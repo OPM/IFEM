@@ -1,0 +1,121 @@
+// $Id: SPRMatrix.h,v 1.10 2010-12-06 09:20:46 rho Exp $
+//==============================================================================
+//!
+//! \file SPRMatrix.h
+//!
+//! \date Jan 4 2008
+//!
+//! \author Knut Morten Okstad / SINTEF
+//!
+//! \brief Representation of the system matrix on the SPR-format with interface
+//! to a Fortran module for assembling and solving linear equation systems.
+//!
+//==============================================================================
+
+#ifndef _SPR_MATRIX_H
+#define _SPR_MATRIX_H
+
+#include "SystemMatrix.h"
+
+//! \brief Size of the MSPAR array.
+#define NS 60
+
+
+/*!
+  \brief Class for representing the system matrix on the SPR-format.
+  \details It is an interface to a Fortran module for assembling and solving
+  linear systems of equations.
+*/
+
+class SPRMatrix : public SystemMatrix
+{
+public:
+  //! \brief Default constructor.
+  SPRMatrix() {}
+  //! \brief Copy constructor.
+  SPRMatrix(const SPRMatrix& A);
+  //! \brief The destructor frees the dynamically allocated arrays.
+  virtual ~SPRMatrix();
+
+  //! \brief Returns the matrix type.
+  virtual Type getType() const { return SPR; }
+
+  //! \brief Creates a copy of the system matrix and returns a pointer to it.
+  virtual SystemMatrix* copy() const { return new SPRMatrix(*this); }
+
+  //! \brief Returns the dimension of the system matrix.
+  virtual size_t dim(int = 1) const { return mpar[7]; }
+
+  //! \brief Initializes the element assembly process.
+  //! \details Must be called once before the element assembly loop.
+  //! The SPR data structures are initialized and the all symbolic operations
+  //! that are need before the actual assembly can start are performed.
+  //! \param[in] sam Auxilliary data describing the FE model topology, etc.
+  virtual void initAssembly(const SAM& sam);
+
+  //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
+  virtual void init();
+
+  //! \brief Adds an element stiffness matrix into the system stiffness matrix.
+  //! \param[in] eM  The element stiffness matrix
+  //! \param[in] sam Auxilliary data describing the FE model topology,
+  //!                nodal DOF status and constraint equations
+  //! \param[in] e   Identifier for the element that \a eM belongs to
+  //! \return \e true on successful assembly, otherwise \e false
+  virtual bool assemble(const Matrix& eM, const SAM& sam, int e);
+  //! \brief Adds an element stiffness matrix into the system stiffness matrix.
+  //! \details When multi-point constraints are present, contributions from
+  //! these are also added into the system right-hand-side load vector.
+  //! \param[in] eM  The element stiffness matrix
+  //! \param[in] sam Auxilliary data describing the FE model topology,
+  //!                nodal DOF status and constraint equations
+  //! \param     B   The system right-hand-side load vector
+  //! \param[in] e   Identifier for the element that \a eM belongs to
+  //! \return \e true on successful assembly, otherwise \e false
+  virtual bool assemble(const Matrix& eM, const SAM& sam,
+			SystemVector& B, int e);
+
+  //! \brief Adds a matrix with similar sparsity pattern to the current matrix.
+  //! \param[in] B     The matrix to be added
+  //! \param[in] alpha Scale factor for matrix \b B
+  virtual bool add(const SystemMatrix& B, real alpha = 1.0);
+
+  //! \brief Adds the diagonal matrix \f$\sigma\f$\b I to the current matrix.
+  virtual bool add(real sigma);
+
+  //! \brief Performs the matrix-vector multiplication \b C = \a *this * \b B.
+  virtual bool multiply(const SystemVector& B, SystemVector& C);
+
+  //! \brief Solves the linear system of equations for a given right-hand-side.
+  //! \param B Right-hand-side vector on input, solution vector on output
+  //! \param newLHS \e true if the left-hand-side matrix is updated
+  virtual bool solve(SystemVector& B, bool newLHS = true);
+
+  //! \brief Solves a generalized symmetric-definite eigenproblem.
+  //! \details The eigenproblem is assumed to be on the form
+  //! \b A \b x = \f$\lambda\f$ \b B \b x where \b A ( = \a *this ) and \b B
+  //! both are assumed to be symmetric and \b B also to be positive definite.
+  //! The eigenproblem is solved by the SAM library subroutine \a SPRLAN.
+  //! \sa SAM library documentation.
+  //! \param B Symmetric and positive definite mass matrix.
+  //! \param[out] eigVal Computed eigenvalues
+  //! \param[out] eigVec Computed eigenvectors stored column by column
+  //! \param[in] nev The number of eigenvalues and eigenvectors to compute
+  //! \param[in] shift Eigenvalue shift
+  //! \param[in] iop Option telling whether to factorize matrix \a A or \b B.
+  bool solveEig (SPRMatrix& B, RealArray& eigVal, Matrix& eigVec, int nev,
+		 real shift = 0.0, int iop = 1);
+
+private:
+  int mpar[NS]; //!< Matrix of sparse PARameters
+  int* msica;   //!< Matrix of Storage Information for CA
+  int* msifa;   //!< Matrix of Storage Information for FA
+  int* mtrees;  //!< Matrix of elimination assembly TREES
+  int* mvarnc;  //!< Matrix of VARiable to Node Correspondence
+  real* values; //!< The actual matrix VALUES
+
+  std::vector<int>  iWork; //!< Integer work array
+  std::vector<real> rWork; //!< Real work array
+};
+
+#endif

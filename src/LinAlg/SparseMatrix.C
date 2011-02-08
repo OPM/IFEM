@@ -1,0 +1,990 @@
+// $Id: SparseMatrix.C,v 1.23 2011-02-08 09:32:18 kmo Exp $
+//==============================================================================
+//!
+//! \file SparseMatrix.C
+//!
+//! \date Jan 8 2008
+//!
+//! \author Knut Morten Okstad / SINTEF
+//!
+//! \brief Representation of the system matrix on an unstructured sparse format.
+//!
+//==============================================================================
+
+#include "SparseMatrix.h"
+#include "SAM.h"
+#if defined(HAS_SUPERLU_MT)
+#include "pdsp_defs.h"
+#elif defined(HAS_SUPERLU)
+#include "slu_ddefs.h"
+#endif
+#ifdef HAS_SAMG
+#include "samg.h"
+#endif
+#include <algorithm>
+
+#if defined(HAS_SUPERLU_MT)
+#define sluop_t superlumt_options_t
+#elif defined(HAS_SUPERLU)
+#define sluop_t superlu_options_t
+#endif
+
+
+/*!
+  \brief Data structures for the SuperLU equation solver.
+*/
+
+struct SuperLUdata
+{
+#if defined(HAS_SUPERLU) || defined(HAS_SUPERLU_MT)
+  SuperMatrix A; //! The unfactored coefficient matrix
+  SuperMatrix L; //! The lower triangle factor
+  SuperMatrix U; //! The upper triangle factor
+  real*       R; //! The row scale factors for \a A
+  real*       C; //! The column scale factors for \a A
+  int*   perm_r; //! Row permutation vector
+  int*   perm_c; //! Column permutation vector
+  int*    etree; //! The elimination tree
+  sluop_t* opts; //! Input options for the SuperLU driver routine
+#ifdef HAS_SUPERLU_MT
+  equed_t equed; //! Specifies the form of equilibration that was done
+#else
+  char equed[1]; //! Specifies the form of equilibration that was done
+#endif
+
+  //! \brief The constructor initializes the default input options.
+  SuperLUdata(int numThreads = 0)
+  {
+    R = C = 0;
+    perm_r = perm_c = etree = 0;
+    if (numThreads > 0)
+    {
+      opts = new sluop_t;
+#ifdef HAS_SUPERLU_MT
+      opts->nprocs = numThreads;
+      opts->fact = DOFACT;
+      opts->trans = NOTRANS;
+      opts->refact = NO;
+      opts->panel_size = sp_ienv(1);
+      opts->relax = sp_ienv(2);
+      opts->diag_pivot_thresh = 1.0;
+      opts->drop_tol = 0.0;
+      opts->ColPerm = MMD_ATA;
+      opts->usepr = NO;
+      opts->SymmetricMode = NO;
+      opts->PrintStat = NO;
+      opts->perm_c = 0;
+      opts->perm_r = 0;
+      opts->work = 0;
+      opts->lwork = 0;
+      opts->etree = 0;
+      opts->colcnt_h = 0;
+      opts->part_super_h = 0;
+#else
+      set_default_options(opts);
+      opts->SymmetricMode = YES;
+      opts->ColPerm = MMD_AT_PLUS_A;
+      opts->DiagPivotThresh = 0.001;
+#endif
+    }
+    else
+      opts = 0;
+  }
+
+  //! \brief The destructor frees the dynamically allocated data members.
+  ~SuperLUdata()
+  {
+    Destroy_SuperMatrix_Store(&A);
+    Destroy_SuperNode_Matrix(&L);
+    Destroy_CompCol_Matrix(&U);
+    if (R)      delete[] R;
+    if (C)      delete[] C;
+    if (perm_r) delete[] perm_r;
+    if (perm_c) delete[] perm_c;
+    if (etree)  delete[] etree;
+    if (opts)   delete   opts;
+  }
+#endif
+};
+
+
+bool SparseMatrix::printSLUstat = false;
+
+
+SparseMatrix::SparseMatrix (SparseSolver eqSolver, int nt)
+{
+  editable = true;
+  nrow = ncol = 0;
+  solver = eqSolver;
+  numThreads = nt;
+  slu = 0;
+}
+
+
+SparseMatrix::SparseMatrix (const SparseMatrix& B)
+{
+  editable = B.editable;
+  nrow = B.nrow;
+  ncol = B.ncol;
+  elem = B.elem;
+  IA = B.IA;
+  JA = B.JA;
+  A  = B.A;
+  solver = B.solver;
+  numThreads = B.numThreads;
+  slu = 0; // The SuperLU data (if any) is not copied
+}
+
+
+SparseMatrix::~SparseMatrix ()
+{
+  if (slu) delete slu;
+}
+
+
+void SparseMatrix::resize (size_t r, size_t c)
+{
+  editable = true;
+  elem.clear();
+  IA.clear();
+  JA.clear();
+  A.clear();
+
+  if (r == nrow && c == ncol) return;
+
+  nrow = r;
+  ncol = c > 0 ? c : r;
+
+  if (slu) delete slu;
+}
+
+
+bool SparseMatrix::redim (size_t r, size_t c)
+{
+  if (!editable) return false;
+
+  nrow = r;
+  ncol = c > 0 ? c : r;
+  for (ValueIter it = elem.begin(); it != elem.end();)
+    if (it->first.first > nrow || it->first.second > ncol)
+    {
+      ValueIter jt = it++;
+      elem.erase(jt->first);
+    }
+    else
+      it++;
+
+  return true;
+}
+
+
+size_t SparseMatrix::dim (int idim) const
+{
+  if (idim == 1)
+    return nrow;
+  else if (idim == 2)
+    return ncol;
+  else if (idim == 3)
+    return nrow*ncol;
+  else
+    return this->size();
+}
+
+
+real& SparseMatrix::operator () (size_t r, size_t c)
+{
+  if (r < 1 || r > nrow || c < 1 || c > ncol)
+    std::cerr <<"SparseMatrix::operator(): Indices ("
+	      << r <<","<< c <<") out of range "
+	      << nrow <<"x"<< ncol << std::endl;
+  else if (editable) {
+    IJPair index(r,c);
+    if (elem.find(index) == elem.end()) elem[index] = 0.0;
+    return elem[index];
+  }
+
+  static real anyValue = real(0);
+#if INDEX_CHECK > 1
+  abort();
+#endif
+  return anyValue;
+}
+
+
+const real& SparseMatrix::operator () (size_t r, size_t c) const
+{
+  if (r < 1 || r > nrow || c < 1 || c > ncol)
+    std::cerr <<"SparseMatrix::operator(): Indices ("
+	      << r <<","<< c <<") out of range "
+	      << nrow <<"x"<< ncol << std::endl;
+  else if (editable) {
+    ValueIter vit = elem.find(IJPair(r,c));
+    if (vit != elem.end()) return vit->second;
+  }
+  else if (solver == SUPERLU) {
+    // Column-oriented format with 0-based indices
+    std::vector<int>::const_iterator begin = JA.begin() + IA[c-1];
+    std::vector<int>::const_iterator end = JA.begin() + IA[c];
+    std::vector<int>::const_iterator it = std::find(begin, end, r-1);
+    if (it != end) return A[it - JA.begin()];
+  }
+  else {
+    // Row-oriented format with 1-based indices
+    std::vector<int>::const_iterator begin = JA.begin() + (IA[r-1]-1);
+    std::vector<int>::const_iterator end = JA.begin() + (IA[r]-1);
+    std::vector<int>::const_iterator it = std::find(begin, end, c);
+    if (it != end) return A[it - JA.begin()];
+  }
+
+  static const real zero = real(0);
+#if INDEX_CHECK > 1
+  abort();
+#endif
+  return zero;
+}
+
+
+std::ostream& SparseMatrix::write (std::ostream& os) const
+{
+  os << nrow <<' '<< ncol <<' '<< this->size();
+  if (editable)
+    for (ValueIter it = elem.begin(); it != elem.end(); it++)
+      os <<'\n'<< it->first.first <<' '<< it->first.second <<" : "<< it->second;
+  else {
+    size_t i;
+    os <<'\n';
+    for (i = 0; i < A.size(); i++) os << A[i] <<' ';
+
+    os <<'\n'<< IA.size() <<'\n';
+    for (i = 0; i < IA.size(); i++) os << IA[i] <<' ';
+
+    os <<'\n'<< JA.size() <<'\n';
+    for (i = 0; i < JA.size(); i++) os << JA[i] <<' ';
+  }
+  return os << std::endl;
+}
+
+
+void SparseMatrix::printSparsity (std::ostream& os) const
+{
+  if (nrow < 1 || ncol < 1) return;
+
+  size_t r, c;
+  std::cout <<'\t';
+  for (c = 1; c <= ncol; c++) std::cout << (c%10 ? char('0'+(c%10)) : ' ');
+  std::cout <<'\n';
+
+  for (r = 1; r <= nrow; r++) {
+    os << r <<'\t';
+    for (c = 1; c <= ncol; c++)
+      if (editable)
+	os << (elem.find(IJPair(r,c)) == elem.end() ? '.' : 'X');
+      else if (solver == SUPERLU) {
+	// Column-oriented format with 0-based indices
+	std::vector<int>::const_iterator begin = JA.begin() + IA[c-1];
+	std::vector<int>::const_iterator end = JA.begin() + IA[c];
+	os << (std::find(begin,end,r-1) == end ? '.' : 'X');
+      }
+      else {
+	// Row-oriented format with 1-based indices
+	std::vector<int>::const_iterator begin = JA.begin() + (IA[r-1]-1);
+	std::vector<int>::const_iterator end = JA.begin() + (IA[r]-1);
+	os << (std::find(begin,end,c) == end ? '.' : 'X');
+      }
+    os <<'\n';
+  }
+  os << std::endl;
+}
+
+
+void SparseMatrix::printFull (std::ostream& os) const
+{
+  for (size_t r = 1; r <= nrow; r++)
+    for (size_t c = 1; c <= ncol; c++)
+      os << this->operator()(r,c) << (c < ncol ? '\t' : '\n');
+
+  os << std::endl;
+}
+
+
+bool SparseMatrix::augment (const SystemMatrix& B, size_t r0, size_t c0)
+{
+  if (!editable) return false;
+
+  const SparseMatrix* Bptr = dynamic_cast<const SparseMatrix*>(&B);
+  if (!Bptr) return false;
+  if (!Bptr->editable) return false;
+
+  if (r0+Bptr->nrow > nrow) nrow = r0 + Bptr->nrow;
+  if (r0+Bptr->nrow > ncol) ncol = r0 + Bptr->nrow;
+  if (c0+Bptr->ncol > ncol) ncol = c0 + Bptr->ncol;
+  if (c0+Bptr->ncol > nrow) nrow = c0 + Bptr->ncol;
+
+  for (ValueIter it = Bptr->elem.begin(); it != Bptr->elem.end(); it++)
+  {
+    elem[std::make_pair(r0+it->first.first,c0+it->first.second)] += it->second;
+    elem[std::make_pair(c0+it->first.second,r0+it->first.first)] += it->second;
+  }
+
+  return true;
+}
+
+
+bool SparseMatrix::truncate (real threshold)
+{
+  if (!editable) return false;
+
+  ValueIter it;
+  real tol = real(0);
+  for (it = elem.begin(); it != elem.end(); it++)
+    if (it->first.first == it->first.second)
+      if (it->second > tol)
+	tol = it->second;
+      else if (it->second < -tol)
+	tol = -it->second;
+
+  tol *= threshold;
+  size_t nnz = elem.size();
+  for (it = elem.begin(); it != elem.end();)
+    if (it->second < tol && it->second > -tol)
+    {
+      ValueIter jt = it++;
+      elem.erase(jt->first);
+    }
+    else
+      it++;
+
+  if (nnz > elem.size())
+    std::cout <<"SparseMatrix: Truncated "<< nnz-elem.size()
+	      <<" matrix elements smaller than "<< tol <<" to zero"<< std::endl;
+  return true;
+}
+
+
+bool SparseMatrix::add (const SystemMatrix& B, real alpha)
+{
+  if (!editable) return false;
+
+  const SparseMatrix* Bptr = dynamic_cast<const SparseMatrix*>(&B);
+  if (!Bptr) return false;
+
+  if (Bptr->nrow > nrow || Bptr->ncol > ncol) return false;
+
+  if (Bptr->editable)
+    for (ValueIter it = Bptr->elem.begin(); it != Bptr->elem.end(); it++)
+      elem[it->first] += alpha*it->second;
+  else if (solver == SUPERLU)
+    // Column-oriented format with 0-based indices
+    for (size_t j = 1; j <= Bptr->ncol; j++)
+      for (int i = Bptr->IA[j-1]; i < Bptr->IA[j]; i++)
+	elem[IJPair(Bptr->JA[i]+1,j)] += alpha*Bptr->A[i];
+  else
+    // Row-oriented format with 1-based indices
+    for (size_t i = 1; i <= Bptr->nrow; i++)
+      for (int j = Bptr->IA[i-1]; j < Bptr->IA[i]; j++)
+	elem[IJPair(i,Bptr->JA[j-1])] += alpha*Bptr->A[j-1];
+
+  return true;
+}
+
+
+bool SparseMatrix::add (real sigma)
+{
+  if (!editable) return false;
+
+  for (size_t i = 1; i <= nrow && i <= ncol; i++)
+    this->operator()(i,i) += sigma;
+
+  return true;
+}
+
+
+bool SparseMatrix::multiply (const SystemVector& B, SystemVector& C)
+{
+  C.resize(nrow,true);
+  if (B.dim() < ncol) return false;
+
+  const StdVector* Bptr = dynamic_cast<const StdVector*>(&B);
+  if (!Bptr) return false;
+  StdVector*       Cptr = dynamic_cast<StdVector*>(&C);
+  if (!Cptr) return false;
+
+  if (editable)
+    for (ValueIter it = elem.begin(); it != elem.end(); it++)
+      (*Cptr)(it->first.first) += it->second*(*Bptr)(it->first.second);
+  else if (solver == SUPERLU)
+    // Column-oriented format with 0-based indices
+    for (size_t j = 1; j <= ncol; j++)
+      for (int i = IA[j-1]; i < IA[j]; i++)
+	(*Cptr)(JA[i]+1) += A[i]*(*Bptr)(j);
+  else
+    // Row-oriented format with 1-based indices
+    for (size_t i = 1; i <= nrow; i++)
+      for (int j = IA[i-1]; j < IA[i]; j++)
+	(*Cptr)(i) += A[j-1]*(*Bptr)(JA[j-1]);
+
+  return true;
+}
+
+
+/*!
+  \brief This is a C++ version of the F77 subroutine ADDEM2 (SAM library).
+  \details It performs exactly the same tasks, except that \a NRHS always is 1,
+  and that the system matrix \a SM here is an object of the SparseMatrix class.
+*/
+
+static void assemSparse (const Matrix& eM, SparseMatrix& SM, Vector& SV,
+			 const std::vector<int>& meen, const int* meqn,
+			 const int* mpmceq, const int* mmceq, const real* ttcc)
+{
+  // Add elements corresponding to free dofs in eM into SM
+  int i, j, ip, nedof = meen.size();
+  for (j = 1; j <= nedof; j++)
+  {
+    int jeq = meen[j-1];
+    if (jeq < 1) continue;
+
+    SM(jeq,jeq) += eM(j,j);
+
+    for (i = 1; i < j; i++)
+    {
+      int ieq = meen[i-1];
+      if (ieq < 1) continue;
+
+      SM(ieq,jeq) += eM(i,j);
+      SM(jeq,ieq) += eM(j,i);
+    }
+  }
+
+  // Add (appropriately weighted) elements corresponding to constrained
+  // (dependent and prescribed) dofs in eM into SM and/or SV
+  for (j = 1; j <= nedof; j++)
+  {
+    int jceq = -meen[j-1];
+    if (jceq < 1) continue;
+
+    int jp = mpmceq[jceq-1];
+    real c0 = ttcc[jp-1];
+
+    // Add contributions to SV (right-hand-side)
+    if (!SV.empty())
+      for (i = 1; i <= nedof; i++)
+      {
+	int ieq = meen[i-1];
+	int iceq = -ieq;
+	if (ieq > 0)
+	  SV(ieq) -= c0*eM(i,j);
+	else if (iceq > 0)
+	  for (ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ip++)
+	    if (mmceq[ip] > 0)
+	    {
+	      ieq = meqn[mmceq[ip]-1];
+	      SV(ieq) -= c0*ttcc[ip]*eM(i,j);
+	    }
+      }
+
+    // Add contributions to SM
+    for (jp = mpmceq[jceq-1]; jp < mpmceq[jceq]-1; jp++)
+      if (mmceq[jp] > 0)
+      {
+	int jeq = meqn[mmceq[jp]-1];
+	for (i = 1; i <= nedof; i++)
+	{
+	  int ieq = meen[i-1];
+	  int iceq = -ieq;
+	  if (ieq > 0)
+	  {
+	    SM(ieq,jeq) += ttcc[jp]*eM(i,j);
+	    SM(jeq,ieq) += ttcc[jp]*eM(j,i);
+	  }
+	  else if (iceq > 0)
+	    for (ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ip++)
+	      if (mmceq[ip] > 0)
+	      {
+		ieq = meqn[mmceq[ip]-1];
+		SM(ieq,jeq) += ttcc[ip]*ttcc[jp]*eM(i,j);
+	      }
+	}
+      }
+  }
+}
+
+
+/*!
+  \brief Adds a nodal vector into a non-symmetric rectangular sparse matrix.
+  \details The nodal values are added into the columns \a col to \a col+2.
+*/
+
+static void assemSparse (const RealArray& V, SparseMatrix& SM, size_t col,
+			 const std::vector<int>& mnen, const int* meqn,
+			 const int* mpmceq, const int* mmceq, const real* ttcc)
+{
+  for (size_t d = 0; d < mnen.size(); d++, col++)
+  {
+    real vd = d < V.size() ? V[d] : V.back();
+    int ieq = mnen[d];
+    int ceq = -ieq;
+    if (ieq > 0)
+      SM(ieq,col) += vd;
+    else if (ceq > 0)
+      for (int ip = mpmceq[ceq-1]; ip < mpmceq[ceq]-1; ip++)
+      {
+	ieq = meqn[mmceq[ip]-1];
+	SM(ieq,col) += vd;
+      }
+  }
+}
+
+
+void SparseMatrix::initAssembly (const SAM& sam)
+{
+  this->resize(sam.neq,sam.neq);
+}
+
+
+void SparseMatrix::init ()
+{
+  this->resize(nrow,ncol);
+}
+
+
+bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
+{
+  std::vector<int> meen;
+  if (!sam.getElmEqns(meen,e,eM.rows()))
+    return false;
+
+  Vector dummyB;
+  assemSparse(eM,*this,dummyB,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
+  return true;
+}
+
+
+bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam,
+			     SystemVector& B, int e)
+{
+  StdVector* Bptr = dynamic_cast<StdVector*>(&B);
+  if (!Bptr) return false;
+
+  std::vector<int> meen;
+  if (!sam.getElmEqns(meen,e,eM.rows()))
+    return false;
+
+  assemSparse(eM,*this,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
+  return true;
+}
+
+
+bool SparseMatrix::assembleCol (const RealArray& V, const SAM& sam,
+				int n, size_t col)
+{
+  if (V.empty() || col > ncol) return false;
+
+  std::vector<int> mnen;
+  if (!sam.getNodeEqns(mnen,n)) return false;
+
+  assemSparse(V,*this,col,mnen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
+  return true;
+}
+
+
+// Converts an editable sparse matrix to a non-editable row-oriented storage
+// format suitable for the SAMG equation solver.
+
+bool SparseMatrix::optimiseSAMG (bool transposed)
+{
+  if (!editable) return false;
+
+  ValueMap trans; // only computed if needed
+  ValueIter it, begin, end;
+
+  if (transposed) {
+    for (it = elem.begin(); it != elem.end(); it++)
+      trans[IJPair(it->first.second,it->first.first)] = it->second;
+    begin = trans.begin();
+    end = trans.end();
+    std::swap(nrow,ncol);
+  }
+  else {
+    begin = elem.begin();
+    end = elem.end();
+  }
+
+  size_t nnz = this->size();
+  A.resize(nnz);
+  JA.resize(nnz);
+  IA.resize(nrow+1,nnz+1);
+
+  IA[0] = 1; // first row start at index 1
+  size_t cur_row = 1, ix = 0;
+  for (it = begin; it != end; it++, ix++) {
+    A[ix] = it->second; // storing element value
+    JA[ix] = it->first.second;
+    while (it->first.first > cur_row)
+      IA[cur_row++] = ix+1;
+  }
+
+  editable = false;
+  elem.clear(); // Erase the editable matrix elements
+
+  // convert to row storage format required by SAMG (diagonal term first)
+  for (size_t r = 0; r < nrow; r++) {
+    int rstart = IA[r]-1;
+    int rend = IA[r+1]-1;
+    // looking for diagonal element
+    for (int diag_ix = rstart; diag_ix < rend; diag_ix++)
+      if (JA[diag_ix] == (int)(1+r)) {
+	// swapping (if necessary) with first element on this row
+	if (diag_ix > rstart) {
+	  std::swap(A[rstart],A[diag_ix]);
+	  std::swap(JA[rstart],JA[diag_ix]);
+	}
+	break;
+      }
+  }
+
+  return true;
+}
+
+
+// Converts an editable sparse matrix to a non-editable column-oriented storage
+// format suitable for the SuperLU equation solver. This method is based on
+// the function dreadtriple() from the SuperLU package.
+
+bool SparseMatrix::optimiseSLU ()
+{
+  if (!editable) return false;
+
+  size_t nnz = this->size();
+  A.resize(nnz);
+  JA.resize(nnz);
+  IA.resize(ncol+1,0);
+
+  // Initialize the array of column pointers
+  ValueIter it;
+  for (it = elem.begin(); it != elem.end(); it++)
+    if (it->first.first <= nrow && it->first.second <= ncol)
+      IA[it->first.second-1]++;
+    else
+      return false;
+
+  size_t j, nz;
+  int k, jsize = IA[0];
+  for (j = 1, k = IA[0] = 0; j < ncol; j++) {
+    k += jsize;
+    jsize = IA[j];
+    IA[j] = k;
+  }
+
+  // Copy the triplets into the column-oriented storage
+  for (nz = 0, it = elem.begin(); nz < nnz; nz++, it++) {
+    k = IA[it->first.second-1]++;
+    JA[k] = it->first.first-1;
+    A[k]  = it->second;
+  }
+
+  // Reset the column pointers to the beginning of each column
+  for (j = ncol; j > 0; j--)
+    IA[j] = IA[j-1];
+  IA[0] = 0;
+
+  editable = false;
+  elem.clear(); // Erase the editable matrix elements
+
+  return true;
+}
+
+
+// Invokes the linear equation solver for the given right-hand-side vector, B.
+
+bool SparseMatrix::solve (SystemVector& B, bool)
+{
+  if (this->size() < 1) return true; // No equations to solve
+
+  StdVector* Bptr = dynamic_cast<StdVector*>(&B);
+  if (!Bptr) return false;
+
+  switch (solver)
+    {
+    case SUPERLU: return this->solveSLUx(editable,*Bptr);
+    case S_A_M_G: return this->solveSAMG(editable,*Bptr);
+    default: std::cerr <<"SparseMatrix::solve: No equation solver"<< std::endl;
+    }
+
+  return false;
+}
+
+
+bool SparseMatrix::solveSLU (bool isFirstRHS, Vector& B)
+{
+  int ierr = ncol+1;
+  if (isFirstRHS) this->optimiseSLU();
+
+#ifdef HAS_SUPERLU_MT
+  if (!slu) {
+    // Create a new SuperLU matrix
+    slu = new SuperLUdata;
+    slu->perm_c = new int[ncol];
+    slu->perm_r = new int[nrow];
+    dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
+			   &A.front(), &JA.front(), &IA.front(),
+			   SLU_NC, SLU_D, SLU_GE);
+  }
+  else
+  {
+    Destroy_SuperMatrix_Store(&slu->A);
+    Destroy_SuperNode_Matrix(&slu->L);
+    Destroy_CompCol_Matrix(&slu->U);
+    dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
+			   &A.front(), &JA.front(), &IA.front(),
+			   SLU_NC, SLU_D, SLU_GE);
+  }
+
+  // Get column permutation vector perm_c[], according to permc_spec:
+  //   permc_spec = 0: natural ordering
+  //   permc_spec = 1: minimum degree ordering on structure of A'*A
+  //   permc_spec = 2: minimum degree ordering on structure of A'+A
+  //   permc_spec = 3: approximate minimum degree for unsymmetric matrices
+  int permc_spec = 1;
+  get_perm_c(permc_spec, &slu->A, slu->perm_c);
+
+  // Create right-hand-side/solution vector
+  SuperMatrix Bmat;
+  dCreate_Dense_Matrix(&Bmat, nrow, 1, B.ptr(), nrow,
+		       SLU_DN, SLU_D, SLU_GE);
+
+  // Invoke the simple driver
+  pdgssv(numThreads, &slu->A, slu->perm_c, slu->perm_r,
+	 &slu->L, &slu->U, &Bmat, &ierr);
+
+  if (ierr > 0)
+    std::cerr <<"SuperLU_MT Failure "<< ierr << std::endl;
+
+  Destroy_SuperMatrix_Store(&Bmat);
+
+#elif defined(HAS_SUPERLU)
+  if (!slu) {
+    // Create a new SuperLU matrix
+    slu = new SuperLUdata(1);
+    slu->perm_c = new int[ncol];
+    slu->perm_r = new int[nrow];
+    dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
+			   &A.front(), &JA.front(), &IA.front(),
+			   SLU_NC, SLU_D, SLU_GE);
+  }
+  else if (isFirstRHS)
+  {
+    Destroy_SuperMatrix_Store(&slu->A);
+    Destroy_SuperNode_Matrix(&slu->L);
+    Destroy_CompCol_Matrix(&slu->U);
+    dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
+			   &A.front(), &JA.front(), &IA.front(),
+			   SLU_NC, SLU_D, SLU_GE);
+  }
+  else
+    slu->opts->Fact = FACTORED; // Re-use previous factorization
+
+  // Create right-hand-side/solution vector
+  SuperMatrix Bmat;
+  dCreate_Dense_Matrix(&Bmat, nrow, 1, B.ptr(), nrow,
+		       SLU_DN, SLU_D, SLU_GE);
+
+  SuperLUStat_t stat;
+  StatInit(&stat);
+
+  // Invoke the simple driver
+  dgssv(slu->opts, &slu->A, slu->perm_c, slu->perm_r,
+	&slu->L, &slu->U, &Bmat, &stat, &ierr);
+
+  if (ierr > 0)
+    std::cerr <<"SuperLU Failure "<< ierr << std::endl;
+
+  if (printSLUstat)
+    StatPrint(&stat);
+  StatFree(&stat);
+
+  Destroy_SuperMatrix_Store(&Bmat);
+#else
+  std::cerr <<"SparseMatrix::solve: SuperLU solver not available"<< std::endl;
+#endif
+  return ierr == 0;
+}
+
+
+bool SparseMatrix::solveSLUx (bool isFirstRHS, Vector& B)
+{
+  int ierr = ncol+1;
+  if (isFirstRHS) this->optimiseSLU();
+
+#ifdef HAS_SUPERLU_MT
+  if (!slu) {
+    // Create a new SuperLU matrix
+    slu = new SuperLUdata(numThreads);
+    slu->equed = NOEQUIL;
+    slu->perm_c = new int[ncol];
+    slu->perm_r = new int[nrow];
+    slu->C = new real[ncol];
+    slu->R = new real[nrow];
+    dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
+			   &A.front(), &JA.front(), &IA.front(),
+			   SLU_NC, SLU_D, SLU_GE);
+
+    // Get column permutation vector perm_c[], according to permc_spec:
+    //   permc_spec = 0: natural ordering
+    //   permc_spec = 1: minimum degree ordering on structure of A'*A
+    //   permc_spec = 2: minimum degree ordering on structure of A'+A
+    //   permc_spec = 3: approximate minimum degree for unsymmetric matrices
+    int permc_spec = 1;
+    get_perm_c(permc_spec, &slu->A, slu->perm_c);
+  }
+  else if (isFirstRHS)
+    slu->opts->refact = YES; // Re-use previous ordering
+  else
+    slu->opts->fact = FACTORED; // Re-use previous factorization
+
+  // Create right-hand-side vector and solution vector
+  Vector      X(B.size());
+  SuperMatrix Bmat, Xmat;
+  dCreate_Dense_Matrix(&Bmat, nrow, 1, B.ptr(), nrow,
+		       SLU_DN, SLU_D, SLU_GE);
+  dCreate_Dense_Matrix(&Xmat, nrow, 1, X.ptr(), nrow,
+		       SLU_DN, SLU_D, SLU_GE);
+
+  real rpg, rcond, ferr, berr;
+  superlu_memusage_t mem_usage;
+
+  // Invoke the expert driver
+  pdgssvx(numThreads, slu->opts, &slu->A, slu->perm_c, slu->perm_r,
+	  &slu->equed, slu->R, slu->C, &slu->L, &slu->U, &Bmat, &Xmat,
+	  &rpg, &rcond, &ferr, &berr, &mem_usage, &ierr);
+
+  B.swap(X);
+
+  if (ierr > 0)
+    std::cerr <<"SuperLU_MT Failure "<< ierr << std::endl;
+
+  Destroy_SuperMatrix_Store(&Bmat);
+  Destroy_SuperMatrix_Store(&Xmat);
+
+#elif defined(HAS_SUPERLU)
+  if (!slu) {
+    // Create a new SuperLU matrix
+    slu = new SuperLUdata(1);
+    slu->perm_c = new int[ncol];
+    slu->perm_r = new int[nrow];
+    slu->etree = new int[ncol];
+    slu->C = new real[ncol];
+    slu->R = new real[nrow];
+    dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
+			   &A.front(), &JA.front(), &IA.front(),
+			   SLU_NC, SLU_D, SLU_GE);
+  }
+  else if (isFirstRHS)
+  {
+    Destroy_SuperMatrix_Store(&slu->A);
+    Destroy_SuperNode_Matrix(&slu->L);
+    Destroy_CompCol_Matrix(&slu->U);
+    dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
+			   &A.front(), &JA.front(), &IA.front(),
+			   SLU_NC, SLU_D, SLU_GE);
+  }
+  else
+    slu->opts->Fact = FACTORED; // Re-use previous factorization
+
+  // Create right-hand-side vector and solution vector
+  Vector      X(B.size());
+  SuperMatrix Bmat, Xmat;
+  dCreate_Dense_Matrix(&Bmat, nrow, 1, B.ptr(), nrow,
+		       SLU_DN, SLU_D, SLU_GE);
+  dCreate_Dense_Matrix(&Xmat, nrow, 1, X.ptr(), nrow,
+		       SLU_DN, SLU_D, SLU_GE);
+
+  void* work = 0;
+  int  lwork = 0;
+  real rpg, rcond, ferr, berr;
+  mem_usage_t mem_usage;
+
+  SuperLUStat_t stat;
+  StatInit(&stat);
+
+  // Invoke the expert driver
+  dgssvx(slu->opts, &slu->A, slu->perm_c, slu->perm_r, slu->etree, slu->equed,
+	 slu->R, slu->C, &slu->L, &slu->U, work, lwork, &Bmat, &Xmat,
+	 &rpg, &rcond, &ferr, &berr, &mem_usage, &stat, &ierr);
+
+  B.swap(X);
+
+  if (ierr > 0)
+    std::cerr <<"SuperLU Failure "<< ierr << std::endl;
+
+  if (printSLUstat)
+    StatPrint(&stat);
+  StatFree(&stat);
+
+  Destroy_SuperMatrix_Store(&Bmat);
+  Destroy_SuperMatrix_Store(&Xmat);
+#else
+  std::cerr <<"SparseMatrix::solve: SuperLU solver not available"<< std::endl;
+#endif
+  return ierr == 0;
+}
+
+
+bool SparseMatrix::solveSAMG (bool isFirstRHS, Vector& B)
+{
+  int ierr = 1;
+  if (isFirstRHS) this->optimiseSAMG();
+
+#ifdef HAS_SAMG
+  // Setting up additional parameters
+  int nnu = this->rows(); // number of solution components (variables)
+  int nna = this->size(); // number of nonzero entries in system matrix
+  int nsys = 1; // one unknown - scalar system
+  int iu = 1; // dummy - since nsys = 1;
+  int ndiu = 1; // dummy - since nsys = 1;
+  int ip = 1; // dummy - since nsys = 1 and no point-based approach used
+  int ndip = 1; // dummy - since nsys = 1 and no point-based approach used
+  int matrix = 120; // symmetric, NO zero rowsum, NO modification of matrix
+  int iscale = 1; // dummy - since nsys = 1;
+  real res_in, res_out; // output parameters
+  int ncyc_done; // output parameters
+  int nsolve = 2; // default solution strategy
+                  // (this parameter can quickly become complicated to set)
+  int ifirst = 1; // no initial solution guess
+  real eps = -1.0e-16; // stopping criterion
+  int ncyc = 110200; // define the cycling and accelleration strategy
+  int iswitch = isFirstRHS ? 4140 : 1140; // No memory release in first run,
+  // assuming identical coefficent matrix in all subsequent runs
+  real a_cmplx = 0.0; // l
+  real g_cmplx = 0.0; //  l  specifies preallocation of memory, etc.
+  real p_cmplx = 0.0; //  /
+  real w_avrge = 0.0; // /
+  real chktol = 0.0; // standard checking for logical correctness
+                     // @@ set this to negative value for production run
+  int iout = -2; // minimal output on results and timings
+  int idump = -2; // printout of coarsening history
+
+  int mode_mess = -2;
+  SAMG_SET_MODE_MESS(&mode_mess);
+
+  Vector X(B.size());
+
+  SAMG(&nnu, &nna, &nsys,
+       &IA.front(), &JA.front(), &A.front(), B.ptr(), X.ptr(),
+       &iu, &ndiu, &ip, &ndip, &matrix, &iscale,
+       &res_in, &res_out, &ncyc_done, &ierr,
+       &nsolve, &ifirst, &eps, &ncyc, &iswitch,
+       &a_cmplx, &g_cmplx, &p_cmplx, &w_avrge,
+       &chktol, &idump, &iout);
+
+  B.swap(X);
+
+  if (ierr > 0)
+    std::cerr <<"SAMG Failure "<< ierr << std::endl;
+  else if (ierr < 0)
+    std::cerr <<"SAMG warning "<< -ierr << std::endl;
+#else
+  std::cerr <<"SparseMatrix::solve: SAMG solver not available"<< std::endl;
+#endif
+  return ierr <= 0;
+}

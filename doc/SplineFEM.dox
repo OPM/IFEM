@@ -1,0 +1,45 @@
+// $Id: SplineFEM.dox,v 1.1 2010-01-12 15:35:06 kmo Exp $
+//==============================================================================
+//!
+//! \file SplineFEM.dox
+//!
+//! \date Jan 12 2010
+//!
+//! \author Knut Morten Okstad / SINTEF
+//!
+//! \brief File containing the Main Page of the spline FEM documentation.
+//!
+//==============================================================================
+
+/*! \mainpage The ICADA Spline FEM analysis toolbox
+
+\author Knut Morten Okstad, Sintef ICT, Trondheim
+
+\section intro Introduction
+
+This is the source code documentation of the Spline FEM simulation toolbox
+developed in the ICADA project at SINTEF ICT.
+
+\section overview Module overview
+
+The simulation toolbox is organized into a set of modules,
+organized as class hierarchies implemented in the C++ language.
+The top-level driver is organized in the class SIMbase and its sub-classes.
+These classes have methods for reading model data from an input file,
+to assemble the algebraic system of equations resulting from the finite element
+discretization, and to solve that system. It also contains a method for writing
+a VTF-file with results.
+Problem-specific drivers and main programs are found in the sub-folder Apps.
+
+The core of the finite element implementation is contained in the class
+ASMbase and its sub-classes, which have methods for evaluating the element
+matrices involved and assembling them into the system matrices.
+There is typically one ASMbase object for each spline patch in the model.
+
+The actual NURBS evaluation is performed through the GoTools library, which is
+not part of the current package. In addition, this code depends on the ARPACK,
+LAPACK and BLAS libraries, the VTFAPI library, and portions of the SAM library
+(ASM and optionally SPR). Optionally, the SAMG algebraic multi-grid solver and
+the SuperLU direct solver (public domain http://crd.lbl.gov/~xiaoye/SuperLU)
+may be included.
+*/

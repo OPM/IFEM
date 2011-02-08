@@ -1,0 +1,253 @@
+% $Id: sim-input.tex,v 1.3 2010-08-18 11:23:00 kmo Exp $
+
+\documentclass{article}
+\usepackage{color}
+\usepackage{/home/kmo/LaTeX/Sty/a4}
+\input{/home/kmo/LaTeX/Macros/NameList}
+
+\title{{\large ICADA - Note 2010-001:}\hfill\mbox{}\\[2mm]
+Specification of spline patch topology to SIM}
+\author{Knut Morten Okstad and Trond Kvamsdal}
+
+\def\cube{
+\begin{picture}(95,85)
+\thicklines
+\put(15,15){\line(1,0){40}}
+\put(15,50){\line(1,0){40}}
+\put(15,15){\line(0,1){35}}
+\put(55,15){\line(0,1){35}}
+\put(15,50){\line(1,1){20}}
+\put(55,50){\line(1,1){20}}
+\put(55,15){\line(1,1){20}}
+\put(35,70){\line(1,0){40}}
+\put(75,35){\line(0,1){35}}
+\put(15,15){\line(1,1){20}}
+\put(35,35){\line(1,0){40}}
+\put(35,35){\line(0,1){35}}
+\thinlines
+\put(10,10){\vector(-1,-1){7}}
+\put(80,35){\vector(1,0){10}}
+\put(35,75){\vector(0,1){10}}
+\put( 0, 0){\mbox{I}}
+\put(91,33){\mbox{J}}
+\put(36,82){\mbox{K}}
+\end{picture}}
+
+\def\nodes{
+\begin{picture}(60,55)
+\put(20,20){\circle*{2}}
+\put( 0, 0){\circle*{2}}
+\put(60,20){\circle*{2}}
+\put(40, 0){\circle*{2}}
+\put(20,55){\circle*{2}}
+\put( 0,35){\circle*{2}}
+\put(60,55){\circle*{2}}
+\put(40,35){\circle*{2}}
+\end{picture}}
+
+\def\edges{
+\begin{picture}(60,55)
+\put(10,10){\circle*{2}}
+\put(50,10){\circle*{2}}
+\put(10,45){\circle*{2}}
+\put(50,45){\circle*{2}}
+\put(35,20){\circle*{2}}
+\put(20, 0){\circle*{2}}
+\put(40,55){\circle*{2}}
+\put(25,35){\circle*{2}}
+\put(20,40){\circle*{2}}
+\put( 0,20){\circle*{2}}
+\put(60,40){\circle*{2}}
+\put(40,15){\circle*{2}}
+\end{picture}}
+
+\def\faces{
+\begin{picture}(60,55)
+\put(40,40){\circle{5}}
+\put(20,15){\circle{5}}
+\put(10,25){\circle{5}}
+\put(50,25){\circle{5}}
+\put(30,10){\circle{5}}
+\put(30,45){\circle{5}}
+\end{picture}}
+
+\begin{document}
+\maketitle
+
+\section{Assumptions}
+
+We only allow for completely matching blocks for now.
+That is, two adjacent blocks are topologically connected
+with a common surface if, and only if, all control points (nodes)
+defining the geometry of the surface are identical for the two blocks.
+Otherwise, they are assumed not connected (we have a ``crack'').
+
+\section{Input description, topology}
+
+The simulation module must generate a unique global node number for all
+control points in the model.
+The input to this process should be as compact as possible, but should contain
+sufficient information such that the node number generation can be carried out
+locally within each patch in arbitrary order or in parallel.
+Only topology information is included, all geometry data goes via the g2-files
+from GoTools.
+
+\begin{figure}[htb]
+\begin{center}
+\setlength{\unitlength}{4pt}
+\begin{picture}(95,85)
+\put( 0, 0){\cube}
+\put(15,15){\nodes}
+\put(31,35){\bf 1}
+\put(11,14){\bf 2}
+\put(78,35){\bf 3}
+\put(58,13){\bf 4}
+\put(31,70){\bf 5}
+\put(11,49){\bf 6}
+\put(78,69){\bf 7}
+\put(58,48){\bf 8}
+% Mark the <icnod> nodes
+\put(32,31){{\Large\tt *} icnod1}
+\put(72,31){{\Large\tt *} icnod2}
+\put(24,66){icnod3 {\Large\tt *}}
+\put(64,66){icnod4 {\Large\tt *}}
+\put(39,34){\Large\tt *}\put(41,36){icnod5}
+\put(19,14){\Large\tt *}\put(21,16){icnod6}
+\put(39,69){\Large\tt *}\put(41,71){icnod7}
+\put(19,49){\Large\tt *}\put(21,51){icnod8}
+\put(35,40){{\Large\tt *} icnod9}
+\put(5.8,20){icnod10 {\Large\tt *}}
+\put(75,40){{\Large\tt *} icnod11}
+\put(45.8,20){icnod12 {\Large\tt *}}
+\end{picture}
+\end{center}
+\caption{Local vertex numbering convention $(\bullet)$
+and the first node along each edge $(\star)$.}
+\label{fig:vertices}
+\end{figure}
+
+\clearpage
+For each patch, the input is as follows (see Figures~\ref{fig:vertices},
+\ref{fig:edges} and~\ref{fig:faces} for the interpretation of the variables
+ICNOD$i$, ISNOD$i$ and IINOD$i$):
+
+\vskip2mm\hskip\parindent
+\fbox{%
+\begin{minipage}{8cm}
+\begin{tabbing} XXXXXX \= XXXXXX \= XXX \= XXXXXX \= \kill
+IBLOCK \\
+IBNOD1 \> IBNOD2 \> ... \> IBNOD8 \\
+ICNOD1 \> INCR1 \\
+ICNOD2 \> INCR2 \\
+... \\
+ICNOD12 \> INCR12 \\
+ISNOD1  \> INCI1 \> INCJ1 \\
+ISNOD2  \> INCI2 \> INCJ2 \\
+... \\
+ISNOD6 \> INCI6 \> INCJ6 \\
+IINOD1
+\end{tabbing}
+\end{minipage}}
+
+\begin{figure}[htb]
+\begin{center}
+\setlength{\unitlength}{3.8pt}
+\begin{picture}(95,85)
+\put( 0, 0){\cube}
+\put(15,15){\edges}
+\put(25,28){\bf 1}
+\put(69,23){\bf 2}
+\put(25,63){\bf 3}
+\put(69,58){\bf 4}
+\put(50,37){\bf 5}
+\put(37,17){\bf 6}
+\put(57,73){\bf 7}
+\put(41,52){\bf 8}
+\put(32,54){\bf 9}
+\put(10,34){\bf 10}
+\put(79,54){\bf 11}
+\put(59,29){\bf 12}
+% Mark the <isnod> nodes
+\put(38,37){{\Large\tt *} isnod1}
+\put(17,17){\colorbox{white}{\Large\tt *}isnod2}
+\put(24,35){isnod3 {\Large\tt *}}
+\put(70.6,34){\colorbox{white}{\Large\tt *}}\put(64,36){isnod4}
+\put(36,31){{\Large\tt *} isnod5}
+\put(35,66){\colorbox{white}{\Large\tt *}isnod6}
+\end{picture}
+\end{center}
+\caption{Local edge numbering convention $(\bullet)$
+and the first node on each surface $(\star)$.}
+\label{fig:edges}
+\end{figure}
+
+\begin{namelist}{IBLOCK}
+\item[IBLOCK] Spline patch index
+\item[IBNOD$i$] Global node number of vertex $i$
+\item[ICNOD$i$] Global node number of second point along edge $i$
+\item[INCR$i$] Increment in global numbering along the edge ($\pm1$)
+\item[ISNOD$i$] Global node number of first interior point on face $i$
+\item[INCI$i$] Increment in global numbering in local $I$-direction on the face ($\pm1$)
+\item[INCJ$i$] Increment in global numbering in local $J$-direction on the face ($\pm1$)
+\item[IINOD1] Global node number of the first interior point of the patch
+\end{namelist}
+
+The local $I$ and $J$ directions for a face are defined as the two remaining
+directions when removing the index defining the normal direction of that face
+from the $I-J-K$ triplet.
+That is, for local faces 1 and 2, the local $I-J$ directions correspond the
+``global'' $J-K$ directions (depicted in Figure~\ref{fig:faces}).
+For local faces 3 and 4, the local $I-J$ directions correspond to the ``global''
+$I-K$ directions, respectively, whereas for local faces 5 and 6 they coincide
+with the global $I-J$ directions.
+
+\begin{figure}[htb]
+\begin{center}
+\setlength{\unitlength}{3.8pt}
+\begin{picture}(95,85)
+\put(0,0){\cube}
+\put(15,15){\faces}
+\put(55,54){\bf 1}
+\put(35,29){\bf 2}
+\put(25,39){\bf 3}
+\put(65,39){\bf 4}
+\put(45,24){\bf 5}
+\put(45,59){\bf 6}
+% Mark the <iinod> nodes
+\put(37.2,32.8){\colorbox{white}{\Large\tt *}}
+\put(40,36){iinod1}
+\end{picture}
+\end{center}
+\caption{Local face numbering convention $(\circ)$
+and the first interior node $(\star)$.}
+\label{fig:faces}
+\end{figure}
+
+\section{Properties and boundary conditions}
+
+All physical properties defined in the GPM-module are mapped onto the
+spline model through a set of user-defined codes.
+The actual interpretation of each code is defined within SIM itself,
+via a separate input file.
+The property codes are specified through the following syntax:
+
+\vskip2mm\hskip\parindent\fbox{PCODE~~~IBLOCK~~~LDIM~~~LINDEX}
+
+\begin{namelist}{IBLOCK}
+\item[PCODE]  Property or boundary condition code
+(either a string or an integer value)
+\item[IBLOCK] Spline patch index
+\item[LDIM]   Local entity dimension flag (0, 1, 2, or 3)
+\item[LINDEX] Local entity index which is assigned the property
+\begin{itemize}
+\item Local vertex if LDIM = 0
+\item Local edge if LDIM = 1
+\item Local face if LDIM = 2
+\item Not referenced if LDIM = 3
+\end{itemize}
+\end{namelist}
+
+The local ordering of the vertices, edges and faces follows the convention
+defined in Figures~\ref{fig:vertices}, \ref{fig:edges} and~\ref{fig:faces},
+respectively.
+\end{document}

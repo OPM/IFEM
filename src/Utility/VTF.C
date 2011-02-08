@@ -1,0 +1,483 @@
+// $Id: VTF.C,v 1.10 2010-12-31 13:14:06 kmo Exp $
+//==============================================================================
+//!
+//! \file VTF.C
+//!
+//! \date Dec 1 2008
+//!
+//! \author Knut Morten Okstad / SINTEF
+//!
+//! \brief Output of FE model and results to VTF file.
+//!
+//==============================================================================
+
+#include "VTF.h"
+#if HAS_VTFAPI == 1
+#include "VTFAPI.h"
+#include "VTOAPIPropertyIDs.h"
+#endif
+#include "ElementBlock.h"
+#include <iostream>
+
+
+real VTF::vecOffset[3] = { 0.0, 0.0, 0.0 };
+
+
+VTF::VTF (const char* filename, int type)
+{
+#ifdef HAS_VTFAPI
+  myState = 0;
+
+  // Create the VTF file object
+  myFile = new VTFAFile();
+
+  // Enable debug info to stderr/console
+  myFile->SetOutputDebugError(1);
+
+  if (!VTFA_FAILURE(myFile->CreateVTFFile(filename,type > 0)))
+    return;
+
+  delete myFile;
+  showError("Error creating VTF file");
+#else
+  showError("VTF export is not available in this version");
+#endif
+  myFile = 0;
+}
+
+
+VTF::~VTF ()
+{
+  std::vector<int> geomID(myBlocks.size());
+  for (size_t i = 0; i < myBlocks.size(); i++)
+  {
+    geomID[i] = i+1;
+    delete myBlocks[i];
+  }
+
+  if (!writeGeometry(&geomID.front(),geomID.size()))
+    showError("Error writing geometry");
+
+#ifdef HAS_VTFAPI
+  if (!myFile) return;
+
+  size_t i;
+  for (i = 0; i < myDBlock.size(); i++)
+    if (myDBlock[i])
+    {
+      if (VTFA_FAILURE(myFile->WriteBlock(myDBlock[i])))
+	showError("Error writing Displacement Block");
+      delete myDBlock[i];
+    }
+  for (i = 0; i < myVBlock.size(); i++)
+    if (myVBlock[i])
+    {
+      if (VTFA_FAILURE(myFile->WriteBlock(myVBlock[i])))
+	showError("Error writing Vector Block");
+      delete myVBlock[i];
+    }
+
+  for (i = 0; i < mySBlock.size(); i++)
+    if (mySBlock[i])
+    {
+      if (VTFA_FAILURE(myFile->WriteBlock(mySBlock[i])))
+	showError("Error writing Scalar Block");
+      delete mySBlock[i];
+    }
+
+  if (myState)
+  {
+    if (VTFA_FAILURE(myFile->WriteBlock(myState)))
+      showError("Error writing state info block");
+    delete myState;
+  }
+
+  if (VTFA_FAILURE(myFile->CloseFile()))
+    showError("Error closing VTF file");
+
+  delete myFile;
+#endif
+}
+
+
+bool VTF::writeGrid (const ElementBlock* block, const char* partname)
+{
+  if (!myFile) return true;
+
+  myBlocks.push_back(block);
+  int geomID = myBlocks.size();
+
+  if (!writeNodes(geomID))
+    return showError("Error writing node block",geomID);
+
+  if (!writeElements(partname,geomID,geomID))
+    return showError("Error writing element block",geomID);
+
+  return true;
+}
+
+
+bool VTF::writeVres (const std::vector<real>& nodeResult,
+		     int idBlock, int geomID, size_t nvc)
+{
+  if (!myFile) return true;
+
+  const size_t nnod = myBlocks[geomID-1]->getNoNodes();
+  const size_t nres = nodeResult.size();
+  const size_t ncmp = nres/(nnod > 0 ? nnod : 1);
+  if (nres != ncmp*nnod)
+    return showError("Invalid size of result array",nres);
+  else if (nvc < 1)
+    nvc = ncmp;
+
+#ifdef HAS_VTFAPI
+  // Cast to float
+  float* resVec = new float[3*nnod];
+  if (nres == 3*nnod && nvc == 3)
+    for (size_t i = 0; i < nres; i++)
+      resVec[i] = nodeResult[i];
+  else
+    for (size_t i = 0; i < nnod; i++)
+      for (size_t j = 0; j < 3; j++)
+	resVec[3*i+j] = j < nvc ? nodeResult[ncmp*i+j] : 0.0f;
+
+  VTFAResultBlock dBlock(idBlock,VTFA_DIM_VECTOR,VTFA_RESMAP_NODE,0);
+
+  if (VTFA_FAILURE(dBlock.SetResults3D(resVec,nnod)))
+    return showError("Error defining result block",idBlock);
+
+  delete[] resVec;
+  dBlock.SetMapToBlockID(geomID);
+  if (VTFA_FAILURE(myFile->WriteBlock(&dBlock)))
+    return showError("Error writing result block",idBlock);
+#endif
+
+  return true;
+}
+
+
+bool VTF::writeEres (const std::vector<real>& elementResult,
+		     int idBlock, int geomID)
+{
+  if (!myFile) return true;
+  if (geomID < 1 || geomID > myBlocks.size()) return false;
+
+  const size_t nres = elementResult.size();
+  if (nres > myBlocks[geomID-1]->getNoElms())
+    return showError("Invalid size of result array",nres);
+  else if (nres < myBlocks[geomID-1]->getNoElms())
+    showError("Warning: Fewer element results that anticipated",nres);
+
+#ifdef HAS_VTFAPI
+  // Cast to float
+  float* resVec = new float[nres];
+  for (size_t i = 0; i < nres; i++)
+    resVec[i] = elementResult[i];
+
+  VTFAResultBlock dBlock(idBlock,VTFA_DIM_SCALAR,VTFA_RESMAP_ELEMENT,0);
+
+  if (VTFA_FAILURE(dBlock.SetResults1D(resVec,nres)))
+    return showError("Error defining result block",idBlock);
+
+  delete[] resVec;
+  dBlock.SetMapToBlockID(geomID);
+  if (VTFA_FAILURE(myFile->WriteBlock(&dBlock)))
+    return showError("Error writing result block",idBlock);
+#endif
+
+  return true;
+}
+
+
+bool VTF::writeNres (const std::vector<real>& nodalResult,
+		     int idBlock, int geomID)
+{
+  if (!myFile) return true;
+  if (geomID < 1 || geomID > myBlocks.size()) return false;
+
+  const size_t nres = nodalResult.size();
+  if (nres != myBlocks[geomID-1]->getNoNodes())
+    return showError("Invalid size of result array",nres);
+
+#ifdef HAS_VTFAPI
+  // Cast to float
+  float* resVec = new float[nres];
+  for (size_t i = 0; i < nres; i++)
+    resVec[i] = nodalResult[i];
+
+  VTFAResultBlock dBlock(idBlock,VTFA_DIM_SCALAR,VTFA_RESMAP_NODE,0);
+
+  if (VTFA_FAILURE(dBlock.SetResults1D(resVec,nres)))
+    return showError("Error defining result block",idBlock);
+
+  delete[] resVec;
+  dBlock.SetMapToBlockID(geomID);
+  if (VTFA_FAILURE(myFile->WriteBlock(&dBlock)))
+    return showError("Error writing result block",idBlock);
+#endif
+
+  return true;
+}
+
+
+bool VTF::writeVectors (const std::map<Vec3,Vec3>& pntResult, int idBlock)
+{
+#ifdef HAS_VTFAPI
+  bool writePoints = false;
+  static int geomID = 0;
+  if (geomID == 0)
+  {
+    // The big assumption here is that we have only one call to writeVectors
+    // per time step, and that all subsequent calls are with the same points
+    myBlocks.push_back(new ElementBlock());
+    geomID = myBlocks.size();
+    writePoints = true;
+  }
+
+  VTFANodeBlock   nBlock(geomID,0);
+  VTFAResultBlock rBlock(idBlock,VTFA_DIM_VECTOR,VTFA_RESMAP_NODE,0);
+
+  size_t i = 0, np = pntResult.size();
+  if (writePoints && VTFA_FAILURE(nBlock.SetNumNodes(np)))
+    return showError("Error defining node block",geomID);
+  else if (VTFA_FAILURE(rBlock.SetNumResults(np)))
+    return showError("Error defining result block",idBlock);
+  else
+    rBlock.SetMapToBlockID(geomID);
+
+  int* mnpc = writePoints ? new int[np] : 0;
+  std::map<Vec3,Vec3>::const_iterator cit;
+  for (cit = pntResult.begin(); cit != pntResult.end(); cit++, i++)
+    if (writePoints && VTFA_FAILURE(nBlock.AddNode(vecOffset[0]+cit->first.x,
+						   vecOffset[1]+cit->first.y,
+						   vecOffset[2]+cit->first.z)))
+      return showError("Error adding node to block",geomID);
+    else if (VTFA_FAILURE(rBlock.AddResult(cit->second.x,
+					   cit->second.y,
+					   cit->second.z)))
+      return showError("Error adding result to block",idBlock);
+    else if (writePoints)
+      mnpc[i] = i;
+
+  if (writePoints)
+  {
+    // We must define an element block (with point elements) also,
+    // otherwise GLview does not visualize the vectors
+    VTFAElementBlock eBlock(geomID,0,0);
+    eBlock.SetPartID(geomID);
+    eBlock.SetNodeBlockID(geomID);
+    if (VTFA_FAILURE(eBlock.AddElements(VTFA_POINTS,mnpc,np)))
+      return showError("Error defining element block",geomID);
+    delete[] mnpc;
+
+    if (VTFA_FAILURE(myFile->WriteBlock(&nBlock)))
+      return showError("Error writing node block",geomID);
+    else if (VTFA_FAILURE(myFile->WriteBlock(&eBlock)))
+      return showError("Error writing element block",geomID);
+  }
+  if (VTFA_FAILURE(myFile->WriteBlock(&rBlock)))
+    return showError("Error writing result block",idBlock);
+#endif
+
+  return true;
+}
+
+
+bool VTF::writeDblk (const std::vector<int>& dBlockIDs, const char* resultName,
+		     int idBlock, int iStep)
+{
+#if HAS_VTFAPI == 1
+  if (myDBlock.size() < idBlock) myDBlock.resize(idBlock,0);
+
+  if (!myDBlock[--idBlock])
+  {
+    myDBlock[idBlock] = new VTFADisplacementBlock(idBlock+1);
+    if (resultName) myDBlock[idBlock]->SetName(resultName);
+    myDBlock[idBlock]->SetRelativeDisplacementResults(1);
+  }
+  if (VTFA_FAILURE(myDBlock[idBlock]->SetResultBlocks(&dBlockIDs.front(),
+						      dBlockIDs.size(),iStep)))
+    return showError("Error defining displacement block",idBlock);
+#endif
+
+  return true;
+}
+
+
+bool VTF::writeVblk (int vBlockID, const char* resultName,
+		     int idBlock, int iStep)
+{
+#if HAS_VTFAPI == 1
+  if (myVBlock.size() < idBlock) myVBlock.resize(idBlock,0);
+
+  if (!myVBlock[--idBlock])
+  {
+    myVBlock[idBlock] = new VTFAVectorBlock(idBlock+1);
+    if (resultName) myVBlock[idBlock]->SetName(resultName);
+  }
+  if (VTFA_FAILURE(myVBlock[idBlock]->SetResultBlocks(&vBlockID,1,iStep)))
+    return showError("Error defining vector block",idBlock);
+#endif
+
+  return true;
+}
+
+
+bool VTF::writeVblk (const std::vector<int>& vBlockIDs, const char* resultName,
+		     int idBlock, int iStep)
+{
+#if HAS_VTFAPI == 1
+  if (myVBlock.size() < idBlock) myVBlock.resize(idBlock,0);
+
+  if (!myVBlock[--idBlock])
+  {
+    myVBlock[idBlock] = new VTFAVectorBlock(idBlock+1);
+    if (resultName) myVBlock[idBlock]->SetName(resultName);
+  }
+  if (VTFA_FAILURE(myVBlock[idBlock]->SetResultBlocks(&vBlockIDs.front(),
+						      vBlockIDs.size(),iStep)))
+    return showError("Error defining vector block",idBlock);
+#endif
+
+  return true;
+}
+
+
+bool VTF::writeSblk (int sBlockID, const char* resultName,
+		     int idBlock, int iStep)
+{
+#if HAS_VTFAPI == 1
+  if (mySBlock.size() < idBlock) mySBlock.resize(idBlock,0);
+
+  if (!mySBlock[--idBlock])
+  {
+    mySBlock[idBlock] = new VTFAScalarBlock(idBlock+1);
+    if (resultName) mySBlock[idBlock]->SetName(resultName);
+  }
+  if (VTFA_FAILURE(mySBlock[idBlock]->SetResultBlocks(&sBlockID,1,iStep)))
+    return showError("Error defining scalar block",idBlock);
+#endif
+
+  return true;
+}
+
+
+bool VTF::writeSblk (const std::vector<int>& sBlockIDs, const char* resultName,
+                     int idBlock, int iStep)
+{
+#if HAS_VTFAPI == 1
+  if (mySBlock.size() < idBlock) mySBlock.resize(idBlock,0);
+
+  if (!mySBlock[--idBlock])
+  {
+    mySBlock[idBlock] = new VTFAScalarBlock(idBlock+1);
+    if (resultName) mySBlock[idBlock]->SetName(resultName);
+  }
+  if (VTFA_FAILURE(mySBlock[idBlock]->SetResultBlocks(&sBlockIDs.front(),
+						      sBlockIDs.size(),iStep)))
+    return showError("Error defining scalar block",idBlock);
+#endif
+
+  return true;
+}
+
+
+bool VTF::writeState (int iStep, const char* fmt, real refValue, int refType)
+{
+#ifdef HAS_VTFAPI
+  if (!myState) myState = new VTFAStateInfoBlock();
+
+  char stepName[32];
+  sprintf(stepName,fmt,refValue);
+  if (VTFA_FAILURE(myState->SetStepData(iStep,stepName,refValue,refType)))
+    return showError("Error defining state info block");
+#endif
+
+  return true;
+}
+
+
+bool VTF::writeGeometry (const int* pGeometryParts, int iNumParts)
+{
+  bool ok = true;
+
+#ifdef HAS_VTFAPI
+  VTFAGeometryBlock geoBlock;
+
+  if (VTFA_FAILURE(geoBlock.SetGeometryElementBlocks(pGeometryParts,iNumParts)))
+    ok = false;
+
+  if (VTFA_FAILURE(myFile->WriteBlock(&geoBlock)))
+    ok = false;
+#endif
+
+  return ok;
+}
+
+
+bool VTF::writeNodes (int iBlockID)
+{
+  bool ok = true;
+
+#ifdef HAS_VTFAPI
+  VTFANodeBlock nBlock(iBlockID,0);
+
+  const ElementBlock* grid = myBlocks.back();
+  if (VTFA_FAILURE(nBlock.SetNumNodes(grid->getNoNodes())))
+    ok = false;
+
+  std::vector<Vec3>::const_iterator cit;
+  for (cit = grid->begin_XYZ(); cit != grid->end_XYZ() && ok; cit++)
+    if (VTFA_FAILURE(nBlock.AddNode(cit->x, cit->y, cit->z))) ok = false;
+
+  if (VTFA_FAILURE(myFile->WriteBlock(&nBlock)))
+    ok = false;
+#endif
+
+  return ok;
+}
+
+
+bool VTF::writeElements (const char* partName, int iBlockID, int iNodeBlockID)
+{
+  bool ok = true;
+
+#ifdef HAS_VTFAPI
+  VTFAElementBlock eBlock(iBlockID,0,0);
+
+  const ElementBlock* grid = myBlocks.back();
+  const int* mnpc = grid->getElements();
+  int nel = grid->getNoElms();
+  switch (grid->getNoElmNodes()) {
+  case 2:
+    ok = VTFA_SUCCESS(eBlock.AddElements(VTFA_BEAMS,mnpc,nel));
+    break;
+  case 4:
+    ok = VTFA_SUCCESS(eBlock.AddElements(VTFA_QUADS,mnpc,nel));
+    break;
+  case 8:
+    ok = VTFA_SUCCESS(eBlock.AddElements(VTFA_HEXAHEDRONS,mnpc,nel));
+    break;
+  default:
+    ok = false;
+  }
+
+  eBlock.SetPartID(iBlockID);
+  eBlock.SetPartName(partName);
+  eBlock.SetNodeBlockID(iNodeBlockID);
+
+  if (VTFA_FAILURE(myFile->WriteBlock(&eBlock)))
+    ok = false;
+#endif
+
+  return ok;
+}
+
+
+bool VTF::showError (const char* msg, int ID)
+{
+  std::cerr <<"VTF: "<< msg;
+  if (ID) std::cerr <<" "<< ID;
+  std::cerr << std::endl;
+  return false;
+}

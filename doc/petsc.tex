@@ -1,0 +1,198 @@
+\documentclass[a4wide,11pt]{article}
+\usepackage{a4wide}
+\usepackage{latexsym}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{epsfig,graphics,color}
+
+\title{Use of PETSc and SLEPc in the SplineFEM library}
+\author{Runar Holdahl, SINTEF ICT, Applied Mathematics}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Installation of PETSc}
+The lastest version of PETSc can be downloaded from the webpage
+\textsf{http://www.mcs.anl.gov/petsc/petsc-as/}. When writing 
+this note the tarball has the name \textsf{petsc-3.1-p5.tar.gz}.
+Save the file to the directory where you want to install PETSc.
+Then unpack the tarball by writing
+%----------
+\begin{verbatim}
+> tar xvfz petsc-3.1-p5.tar.gz
+\end{verbatim}
+%----------
+This should produce a directory named \textsf{petsc-3.1-p5}. Before 
+the library can be compiled the environment variable \textsf{PETSC\_DIR}
+must be set to the path of the PETSc home directory. For instance, if the
+library was unpacked at \$HOME/libs/PETSc, the variable can be set by
+writing
+%----------
+\begin{verbatim}
+> export PETSC_DIR=$HOME/libs/PETSc/petsc-3.1-p5
+\end{verbatim}
+%----------
+in the terminal window. Alternatively, the path can be set in the 
+\textsf{.bashrc} file under the home directory to define the variable 
+when a new terminal window is opened on the machine.
+
+Now the PETSc library can be compiled from \textsf{\$PETSC\_DIR} by 
+first calling the configuration script to generate the \textsf{Makefile}.
+In my installation I have used the following configuration options
+%----------
+\begin{verbatim}
+> ./config/configure.py --with-cc=gcc --with-fc=gfortran 
+--download-f-blas-lapack --download-mpich --with-clanguage=c++ 
+--download-ml --download-superlu --download-superlu_dist 
+--download-parmetis --with-shared=0
+\end{verbatim}
+%----------
+If you already have a version of some of the library on your machine
+the \textsf{download} command can be replaced by the \textsf{with}
+command specifying the path of the installed library. See the PETSc
+homepage for more information on options for the configuration script.
+To run in parallel MPI must be installed on the machine. Moreover, the
+use of the distributed SuperLU solver requires that ParMetis is installed.
+Trilinos/ML is not supported by the linear solver interface of the
+SplineFEM library, but will be included at a later stage to give access
+to algebraic multigrid preconditioners.
+
+After the configuration script has been runned, the code can be compiled
+and tested by
+%----------
+\begin{verbatim}
+> make all test
+\end{verbatim}
+%----------
+
+\section{Installation of SLEPc}
+SLEPc is a library which is built on top of PETSc for computing eigenvalues 
+and eigenvalues. It can be downloaded from the webpage 
+\textsf{http://www.grycap.upv.es/slepc/}. At the time of writing the tarball
+is named \textsf{slepc-3.1-p4.tgz}. Unpack the library by calling
+%----------
+\begin{verbatim}
+> tar xvfz slepc-3.1-p4.tgz
+\end{verbatim}
+%----------
+To compile the library PETSc must be installed and the environment variables
+\textsf{PETSC\_DIR} and \textsf{SLEPC\_DIR} musted be set. For example,
+if SLEPc is installed at the directory \textsf{\$HOME/libs/SLEPc/slepc-3.1-p4}
+write
+%----------
+\begin{verbatim}
+> export SLEPC_DIR=$HOME/libs/SLEpc/slepc-3.1-p4
+\end{verbatim}
+%----------
+From  the \textsf{\$SLEPC\_DIR} directory the library can be compiled
+by calling
+%----------
+\begin{verbatim}
+> ./configure
+> make
+\end{verbatim}
+%----------
+
+\section{Compilation of SplineFEM with PETSc/SLEPc}
+To compile the SplineFEM library and application code with
+PETSc and SLEPc the Makefiles in the \textsf{SplineFEM/src}
+and \textsf{SplineFEM/src/Apps} directories must be modified.
+Uncomment the line
+%----------
+\begin{verbatim}
+#include ${SLEPC_DIR}/conf/slepc_common_variables
+\end{verbatim}
+%----------
+to include the necessary variables from PETSc/SLEPc. Then uncomment
+one of the \textsf{PETSCOPT} lines depending on whether you want to
+run the code sequential or in parallel. Then compile the SplineFEM
+library and application code as usual.
+
+\section{Input files when running with PETSc}
+The input files must be modified slightly to run with PETSc. The
+linear solver parameters are defined in the \textsf{LINEARSOLVER}
+block which has the following parameters and default values
+%----------
+\begin{verbatim}
+LINEARSOLVER 8
+type    = gmres    # Krylov solver
+pc      = ilu      # Preconditioner
+package = petsc    # Software package used for linear solver
+levels  = 0        # Number of levels for ilu
+atol    = 1.0e-6   # Absolute tolerance for residual
+rtol    = 1.0e-6   # Relative tolerance for residual
+dtol    = 1.0e-6   # Divergence tolerance
+maxits  = 1000     # Maximal number of iterations
+\end{verbatim}
+%----------
+If some parameters are not specified in the input file, the default
+value is used. Note that not all solvers and preconditioners are
+available both for serial and parallel computations. For instance, the
+\textsf{ilu} preconditioner is not available in parallel. See the
+PETSc documentation for legal choices. To use the distributed SuperLU 
+solver the following input is given
+%----------
+\begin{verbatim}
+LINEARSOLVER 3
+type    = preonly
+pc      = lu
+package = superlu_dist
+\end{verbatim}
+%---------- 
+In parallel computations the patches must be specified by the 
+\textsf{PATCHFILE} command and a global numbering of the unknowns
+must be specfied by the \textsf{NODEFILE} command. A special
+numbering scheme is required by PETSc, and can be generated
+from the patchfile using the \textsf{gpm\_getGNO} program with
+the option \textsf{-petsc}. Parallelization using PETSc is only
+available for multi-patch cases and the user must specify the
+distribution of patches to each process in the \textsf{PARTITIONING}
+block at the beginning of the input file. For instance, the input
+%----------
+\begin{verbatim}
+PARTITIONING 2
+# proc first last
+  0    1     2
+  1    3     3
+\end{verbatim}
+%----------
+specifies a case with 3 patches which is run on 2 processes. Process 0
+is assigned patches 1 and 2, while process 1 gets patch 3. Consecutive
+patch numbers must be assigned to the processes because of the special 
+numbering scheme used by PETSc.
+
+\section{Running application code using PETSc}
+To run application code compiled in serial mode, it is sufficient
+to give the option \textsf{-petsc} to the executable. For example,
+running \textsf{linel3D} with input file \textsf{CanTS-p1.inp} using
+PETSc 
+%----------
+\begin{verbatim}
+> ./linel3D -petsc CanTS-p1.inp
+\end{verbatim}
+%----------
+To run in parallel MPI must be called with the correct number of
+processes. If the input file has at least two patches, the program
+can be run in parallel by
+%----------
+\begin{verbatim}
+> mpiexec -np 2 ./linel3D -petsc CanTS-p1.inp
+\end{verbatim}
+%----------
+For parallel simulations the output will be written to individual 
+files for each process. For instance, the case given above will produce
+the output files \textsf{CanTS-p1\_p0000.vtf} and \textsf{CanTS-p1\_p0001.vtf}.
+The \textsf{glue} program can then be used to merge the different VTF-files
+in a pre-processing step. The command
+%----------
+\begin{verbatim}
+> ./glue -FileBaseIn CanTS-p1 -NoFileIn 2 -format ASCII
+\end{verbatim}
+%----------
+will generate a file named \textsf{CanTS-p1.vtf} containing the
+results for all patches.
+
+\end{document}

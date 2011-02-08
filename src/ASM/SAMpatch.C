@@ -1,0 +1,239 @@
+// $Id: SAMpatch.C,v 1.10 2011-01-02 16:33:04 kmo Exp $
+//==============================================================================
+//!
+//! \file SAMpatch.C
+//!
+//! \date Dec 10 2008
+//!
+//! \author Knut Morten Okstad / SINTEF
+//!
+//! \brief Assembly of FE matrices into system matrices for multi-patch models.
+//!
+//==============================================================================
+
+#include "SAMpatch.h"
+#include "ASMbase.h"
+#include "MPC.h"
+
+
+bool SAMpatch::init (const ASMVec& model, int numNod)
+{
+  if (model.empty()) return false;
+
+  // Initialize some model size parameters
+  nnod = numNod;
+  for (size_t i = 0; i < model.size(); i++)
+  {
+    nel  += model[i]->getNoElms();
+    nceq += model[i]->getNoMPCs();
+    if (numNod == 0) nnod += model[i]->getNoNodes();
+  }
+
+  // Initialize the node/dof arrays (madof,msc) and compute ndof
+  this->initNodeDofs(model);
+
+  std::cout <<"\n\n >>> SAM model summary <<<"
+	    <<"\nNumber of elements    "<< nel
+	    <<"\nNumber of nodes       "<< nnod
+	    <<"\nNumber of dofs        "<< ndof << std::endl;
+
+  // Initialize the element connectivity arrays (mpmnpc,mmnpc)
+  this->initElementConn(model);
+
+  // Initialize the constraint equation arrays (mpmceq,mmceq,ttcc)
+  this->initConstraintEqs(model);
+  if (nceq > 0)
+    std::cout <<"Number of constraints "<< nceq << std::endl;
+
+  // Initialize the dof-to-equation connectivity array (meqn)
+  bool status = this->initSystemEquations();
+  std::cout <<"Number of unknowns    "<< neq << std::endl;
+  return status;
+}
+
+
+void SAMpatch::initNodeDofs (const ASMVec& model)
+{
+  if (nnod < 1) return;
+
+  int n;
+  size_t i, j;
+
+  // Initialize the array of accumulated DOFs for the nodes
+  madof = new int[nnod+1];
+  memset(madof,0,(nnod+1)*sizeof(int));
+
+  for (i = 0; i < model.size(); i++)
+    for (j = 0; j < model[i]->getNoNodes(); j++)
+      if ((n = model[i]->getNodeID(j+1)) > 0 && n <= nnod)
+	madof[n] = model[i]->getNodalDOFs(j+1);
+
+  madof[0] = 1;
+  for (n = 0; n < nnod; n++)
+    madof[n+1] += madof[n];
+
+  for (i = 0; i < model.size(); i++)
+    model[i]->initMADOF(madof);
+
+  // Initialize the array of DOF status codes
+  ndof = madof[nnod]-1;
+  msc = new int[ndof];
+  for (n = 0; n < ndof; n++)
+    msc[n] = 1;
+
+  ASMbase::BCVec::const_iterator bit;
+  for (j = 0; j < model.size(); j++)
+    for (bit = model[j]->begin_BC(); bit != model[j]->end_BC(); bit++)
+    {
+      int idof1 = madof[bit->node-1];
+      int nndof = madof[bit->node] - idof1;
+      if (nndof > 0) msc[idof1-1] *= bit->CX;
+      if (nndof > 1) msc[idof1  ] *= bit->CY;
+      if (nndof > 2) msc[idof1+1] *= bit->CZ;
+    }
+}
+
+
+void SAMpatch::initElementConn (const ASMVec& model)
+{
+  if (nel < 1) return;
+
+  // Find the size of the element connectivity array
+  size_t i, j;
+  IntMat::const_iterator eit;
+  for (j = 0; j < model.size(); j++)
+    for (i = 1, eit = model[j]->begin_elm(); eit != model[j]->end_elm(); eit++)
+      if (model[j]->getElmID(i++) > 0)
+	nmmnpc += eit->size();
+
+  // Initialize the element connectivity arrays
+  mpmnpc = new int[nel+1];
+  mmnpc  = new int[nmmnpc];
+  int ip = mpmnpc[0] = 1;
+  for (j = 0; j < model.size(); j++)
+    for (i = 1, eit = model[j]->begin_elm(); eit != model[j]->end_elm(); eit++)
+      if (model[j]->getElmID(i++) > 0)
+      {
+	mpmnpc[ip] = mpmnpc[ip-1];
+	for (size_t i = 0; i < eit->size(); i++)
+	  mmnpc[(mpmnpc[ip]++)-1] = model[j]->getNodeID(1+(*eit)[i]);
+	ip++;
+      }
+}
+
+
+void SAMpatch::initConstraintEqs (const ASMVec& model)
+{
+  // Estimate the size of the constraint equation array
+  size_t j;
+  MPCIter cit;
+  for (j = 0; j < model.size(); j++)
+    for (cit = model[j]->begin_MPC(); cit != model[j]->end_MPC(); cit++)
+      nmmceq += 1 + (*cit)->getNoMaster();
+
+  // Initialize the constraint equation arrays
+  mpmceq = new int[nceq+1];
+  int ip = mpmceq[0] = 1;
+  if (nceq < 1) return;
+  mmceq  = new int[nmmceq];
+  ttcc   = new real[nmmceq];
+  for (j = 0; j < model.size(); j++)
+    for (cit = model[j]->begin_MPC(); cit != model[j]->end_MPC(); cit++, ip++)
+    {
+      mpmceq[ip] = mpmceq[ip-1];
+
+      // Slave dof ...
+      int idof = madof[(*cit)->getSlave().node-1] + (*cit)->getSlave().dof - 1;
+      if (msc[idof-1] == 0)
+      {
+	std::cerr <<"SAM: Ignoring constraint equation for dof "
+		  << idof <<" ("<< (*cit)->getSlave()
+		  <<").\n     This dof is already marked as FIXED."<< std::endl;
+	ip--;
+	nceq--;
+	continue;
+      }
+      else if (msc[idof-1] < 0)
+      {
+	std::cerr <<"SAM: Ignoring constraint equation for dof "
+		  << idof <<" ("<< (*cit)->getSlave()
+		  <<").\n     This dof is already marked as SLAVE."<< std::endl;
+	ip--;
+	nceq--;
+	continue;
+      }
+
+      int ipslv = (mpmceq[ip]++) - 1;
+      mmceq[ipslv] = idof;
+      ttcc[ipslv] = (*cit)->getSlave().coeff;
+      msc[idof-1] = -ip;
+
+      // Master dofs ...
+      for (size_t i = 0; i < (*cit)->getNoMaster(); i++)
+      {
+	idof = madof[(*cit)->getMaster(i).node-1] + (*cit)->getMaster(i).dof-1;
+	if (msc[idof-1] > 0)
+	{
+	  int ipmst = (mpmceq[ip]++) - 1;
+	  mmceq[ipmst] = idof;
+	  ttcc[ipmst] = (*cit)->getMaster(i).coeff;
+	}
+	else if (msc[idof-1] < 0)
+	{
+	  // Master dof is constrained (unresolved chaining)
+	  std::cerr <<"SAM: Chained MPCs detected"
+		    <<", slave "<< (*cit)->getSlave()
+		    <<", master "<< (*cit)->getMaster(i)
+		    <<" (ignored)."<< std::endl;
+	  mpmceq[ip] = mpmceq[ip-1];
+	  ip--;
+	  nceq--;
+	  break;
+	}
+      }
+
+      (*cit)->iceq = ip-1; // index into mpmceq for this MPC equation
+    }
+
+  // Reset the negative values in msc before calling SYSEQ
+  for (ip = 0; ip < ndof; ip++)
+    if (msc[ip] < 0) msc[ip] = 0;
+}
+
+
+bool SAMpatch::updateConstraintEqs (const ASMVec& model, const Vector* prevSol)
+{
+  if (nceq < 1) return true; // No constraints in this model
+
+  MPCIter cit;
+  for (size_t j = 0; j < model.size(); j++)
+    for (cit = model[j]->begin_MPC(); cit != model[j]->end_MPC(); cit++)
+    {
+      if ((*cit)->iceq < 0) continue; // Skip the ignored constraint equations
+
+      // Slave dof ...
+      int idof = madof[(*cit)->getSlave().node-1] + (*cit)->getSlave().dof - 1;
+      int ipeq = mpmceq[(*cit)->iceq] - 1;
+      if (msc[idof-1] > 0 || mmceq[ipeq] != idof)
+      {
+	std::cerr <<" *** Corrupted SAM arrays detected in update."<< std::endl;
+	return false;
+      }
+      else if (!prevSol)
+	ttcc[ipeq] = 0.0;
+      else if (idof <= prevSol->size())
+	ttcc[ipeq] = (*cit)->getSlave().coeff - (*prevSol)(idof);
+      else
+	ttcc[ipeq] = (*cit)->getSlave().coeff;
+
+      // Master dofs ...
+      for (size_t i = 0; prevSol && i < (*cit)->getNoMaster(); i++)
+      {
+	idof = madof[(*cit)->getMaster(i).node-1] + (*cit)->getMaster(i).dof-1;
+	if (msc[idof-1] > 0 && mmceq[++ipeq] == idof)
+	  ttcc[ipeq] = (*cit)->getMaster(i).coeff;
+      }
+    }
+
+  return true;
+}

@@ -1,0 +1,50 @@
+// $Id: SplineFEM.dox,v 1.3 2009-09-15 07:12:54 kmo Exp $
+//==============================================================================
+//!
+//! \file SplineFEM.dox
+//!
+//! \date Apr 20 2009
+//!
+//! \author Knut Morten Okstad / SINTEF
+//!
+//! \brief File containing the Main Page of the spline FEM documentation.
+//!
+//==============================================================================
+
+/*! \mainpage The prototype Spline FEM elasticity solver
+
+\author Knut Morten Okstad, Sintef ICT, Trondheim
+
+\section intro Introduction
+
+SplineFEM is the prototype FE elasticity solver developed in the ICADA project.
+The purpose of this code is to try out different implementations and the learn
+about the isogeometric analysis technology itself.
+The code can solve static elasticity problems for a varity of load conditions,
+such as normal and component pressure loads and gravity load.
+It can also solve for the natural eigenfrequencies and associated mode shapes,
+as well as performing linearized buckling analysis.
+The program writes the results to a standard VTF-file, by first converting the
+geometry into a mesh of standard HEX8 elements, and then mapping the results
+onto that mesh.
+
+\section overview Overview of the source code documentation
+
+The top-level driver is organized in the class LinearEl. This class has methods
+for reading model data from an input file, to assemble the algebraic system of
+equations resulting from the finite element discretization, and to solve that
+system. It also contains a method for writing a VTF-file with results.
+These methods are invoked from the main program, which is found in main_LinEl.C.
+
+The core of the finite element implementation is contained in the class
+VolumePatch, which has methods for evaluating the element matrices involved and
+assembling them into the system matrices. There is typically one VolumePatch
+object for each spline patch in the model.
+
+The actual NURBS evaluation is performed through the GoTools library, which is
+not part of the current package. In addition, this code depends on the ARPACK,
+LAPACK and BLAS libraries, the VTFAPI library, and portions of the SAM library
+(ASM and optionally SPR). Optionally, the SAMG algebraic multi-grid solver and
+the SuperLU direct solver (public domain http://crd.lbl.gov/~xiaoye/SuperLU)
+may be included.
+*/

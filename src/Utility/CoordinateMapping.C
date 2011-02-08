@@ -1,0 +1,151 @@
+// $Id: CoordinateMapping.C,v 1.4 2010-10-14 20:01:55 kmo Exp $
+//==============================================================================
+//!
+//! \file CoordinateMapping.C
+//!
+//! \date May 18 2010
+//!
+//! \author Knut Morten Okstad / SINTEF
+//!
+//! \brief Utilities for coordinate mapping transformations.
+//!
+//==============================================================================
+
+#include "CoordinateMapping.h"
+#include "Vec3.h"
+#include "Profiler.h"
+
+#ifndef epsZ
+//! \brief Zero tolerance for the Jacobian determinant.
+#define epsZ 1.0e-16
+#endif
+
+
+real utl::Jacobian (matrix<real>& J, matrix<real>& dNdX,
+		    const matrix<real>& X, const matrix<real>& dNdu,
+		    bool computeGradient)
+{
+  // Compute the Jacobian matrix, J = [dXdu]
+  J.multiply(X,dNdu); // J = X * dNdu
+
+  // Compute the Jacobian determinant and inverse
+  real detJ = J.inverse(epsZ);
+
+  // Compute the first order derivatives of the basis function, w.r.t. X
+  if (detJ != real(0) && computeGradient)
+    dNdX.multiply(dNdu,J); // dNdX = dNdu * J^-1
+
+  return detJ;
+}
+
+
+real utl::Jacobian (matrix<real>& J, Vec3& t, matrix<real>& dNdX,
+		    const matrix<real>& X, const matrix<real>& dNdu,
+		    size_t tangent)
+{
+  // Compute the Jacobian matrix, J = [dXdu]
+  J.multiply(X,dNdu); // J = X * dNdu
+
+  // Extract the tangent vector
+  t = J.getColumn(tangent);
+
+  // Compute the Jacobian determinant and inverse
+  real detJ = J.inverse(epsZ);
+
+  // Compute the first order derivatives of the basis function, w.r.t. X
+  if (detJ != real(0))
+    dNdX.multiply(dNdu,J); // dNdX = dNdu * J^-1
+
+  // Return the curve dilation (dS) in the tangent direction, vt
+  return t.normalize();
+}
+
+
+real utl::Jacobian (matrix<real>& J, Vec3& n, matrix<real>& dNdX,
+		    const matrix<real>& X, const matrix<real>& dNdu,
+		    size_t t1, size_t t2)
+{
+  // Compute the Jacobian matrix, J = [dXdu]
+  J.multiply(X,dNdu); // J = X * dNdu
+
+  real dS;
+  if (J.cols() == 2)
+  {
+    // Compute the face normal
+    Vec3 v1(J.getColumn(t1));
+    Vec3 v2(J.getColumn(t2));
+    Vec3 v3(v1,v2); // v3 = v1 x v2
+    // Compute the curve dilation (dS) and the in-plane edge normal (n)
+    dS = v2.normalize(); // dA = |v2|
+    v3.normalize();
+    n.cross(v2,v3); // n = v2 x v3 / (|v2|*|v3|)
+  }
+  else
+  {
+    // Compute the face normal (n) and surface dilation (dS)
+    n.cross(J.getColumn(t1),J.getColumn(t2)); // n = t1 x t2
+    dS = n.normalize(); // dS = |n|
+  }
+
+  // Compute the Jacobian inverse
+  if (J.inverse(epsZ) == real(0))
+    return real(0);
+
+  // Compute the first order derivatives of the basis function, w.r.t. X
+  dNdX.multiply(dNdu,J); // dNdX = dNdu * J^-1
+
+  return dS;
+}
+
+
+bool utl::Hessian (matrix3d<real>& H, matrix3d<real>& d2NdX2,
+		   const matrix<real>& Ji, const matrix<real>& X,
+		   const matrix3d<real>& d2Ndu2, const matrix<real>& dNdu,
+		   bool computeGradient)
+{
+  PROFILE4("utl::Hessian");
+
+  // Compute the Hessian matrix, H = [d2Xdu2]
+  if (!H.multiply(X,d2Ndu2)) // H = X * d2Ndu2
+    return false;
+  else if (!computeGradient)
+    return true;
+
+  // Check that the matrix dimensions are compatible
+  size_t nsd  = X.rows();
+  size_t nnod = X.cols();
+  if (Ji.rows() != nsd || Ji.cols() != nsd)
+  {
+    std::cerr <<"Hessian: Invalid dimension on Jacobian inverse, Ji("
+	      << Ji.rows() <<","<< Ji.cols() <<"), nsd="<< nsd << std::endl;
+    return false;
+  }
+  else if (dNdu.rows() != nnod || dNdu.cols() != nsd)
+  {
+    std::cerr <<"Hessian: Invalid dimension on basis function matrix, dNdu("
+	      << dNdu.rows() <<","<< dNdu.cols() <<"), nnod="<< nnod
+	      <<", nsd="<< nsd << std::endl;
+    return false;
+  }
+
+  // Compute the second order derivatives of the basis functions, w.r.t. X
+  d2NdX2.resize(nnod,nsd,nsd,true);
+  size_t i1, i2, i3, i4, i5, i6;
+  for (size_t n = 1; n <= nnod; n++)
+    for (i1 = 1; i1 <= nsd; i1++)
+      for (i2 = 1; i2 <= nsd; i2++)
+      {
+	real& v = d2NdX2(n,i1,i2);
+	for (i3 = 1; i3 <= nsd; i3++)
+	  for (i4 = 1; i4 <= nsd; i4++)
+	  {
+	    real Ji31x42 = Ji(i3,i1)*Ji(i4,i2);
+	    v += d2Ndu2(n,i3,i4)*Ji31x42;
+	    for (i5 = 1; i5 <= nsd; i5++)
+	      for (i6 = 1; i6 <= nsd; i6++)
+		v -= dNdu(n,i5)*H(i6,i3,i4)*Ji31x42*Ji(i5,i6);
+	  }
+      }
+
+  return true;
+}

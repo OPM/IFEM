@@ -1,0 +1,69 @@
+# $Id: Makefile.proto,v 1.3 2010-03-16 08:57:47 kmo Exp $
+#===============================================================================
+#
+# File: Makefile.proto
+#
+# Created: Oct 31 2008
+#
+# Author: Knut Morten Okstad / SINTEF
+#
+# Description:
+# Makefile for the spline-based elasticity solver (prototype), Linux platform.
+#
+#===============================================================================
+
+CSRC	= main_LinEl.C LinearEl.C VolumePatch.C LinEqSystem.C SAMSpline.C
+OBJS	= $(CSRC:.C=.o)
+
+PROGRAM	= splineSolve.proto
+
+MYLIB	= -L. -lSplineFEM
+GOTOPT	= -IGoTools/include
+GOTLIB	= -LGoTools/lib -lGoTrivariate -lGoToolsCore
+BLASOPT	= -DUSE_CBLAS
+BLASLIB	= -LARPACK -larpack -llapack -lblas
+SLUOPT	= -DHAS_SUPERLU -ISuperLU/SRC
+SLULIB	= -LSuperLU/lib -lsuperlu
+SAMOPT	= -DHAS_SPR -DUSE_F77SAM
+SAMLIB	= -LSAM -lSPR -lASM
+SAMGOPT	= -DHAS_SAMG -DSAMG_UNIX_LINUX -DSAMG_LCASE_USCORE -ISAMG
+SAMGLIB	= -LSAMG/samg -lamg_coo
+VTFOPT	= -DHAS_VTFAPI -IGLviewExpressWriter/include
+VTFLIB	= -LGLviewExpressWriter/lib -lVTFExpressAPI
+LIBS	= $(MYLIB) $(GOTLIB) $(SAMLIB) $(SAMGLIB) $(VTFLIB) $(SLULIB) $(BLASLIB)
+
+CXX	= g++
+
+#CDEBUG	= -g -DINDEX_CHECK -DSP_DEBUG=3
+CDEBUG	= -O2
+
+CXXFLAGS = $(CDEBUG) -Dreal=double -IIntegrands -IEig -ILinAlg -IUtility \
+	   $(GOTOPT) $(BLASOPT)
+
+all: $(PROGRAM)
+
+libs:
+	cd ARPACK; make lib DIRS='$(PWD)/ARPACK/SRC $(PWD)/ARPACK/UTIL'
+	if [ -d SAM ]; then cd SAM/ASM; make; cd ../SPR; make; fi
+	if [ -d SuperLU ]; then cd SuperLU/SRC; make double; fi
+	if [ -d SAMG ]; then cd SAMG/samg; make; fi
+	if [ -d GLviewEpxressWriter ]; then \
+	cd GLviewExpressWriter/source; make install; fi
+
+$(PROGRAM): $(OBJS) Makefile
+	$(CXX) -o $@ $(OBJS) $(LIBS) -lgfortran
+
+clean:
+	rm -f $(OBJS)
+	sed '1,/^# DO NOT DELETE/w Makefile.tmp' < Makefile.proto > /dev/null
+	mv Makefile.tmp Makefile.proto
+
+depend:
+	sed '1,/^# DO NOT DELETE/w Makefile.tmp' < Makefile.proto > /dev/null
+	$(CXX) -M $(CXXFLAGS) $(MAIN) $(CSRC) >> Makefile.tmp
+	mv Makefile.proto Makefile.bak
+	mv Makefile.tmp Makefile.proto
+	for dir in Eig LinAlg Utility; do \
+	sed -i "/^[A-Za-z].*: $$dir/s/.*:/$$dir\/&/" Makefile.proto; done
+
+# DO NOT DELETE

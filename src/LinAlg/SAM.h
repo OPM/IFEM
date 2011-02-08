@@ -1,0 +1,257 @@
+// $Id: SAM.h,v 1.24 2011-02-05 18:07:51 kmo Exp $
+//==============================================================================
+//!
+//! \file SAM.h
+//!
+//! \date Oct 1 2007
+//!
+//! \author Knut Morten Okstad / SINTEF
+//!
+//! \brief Assembly of FE matrices into system matrices.
+//!
+//==============================================================================
+
+#ifndef _SAM_H
+#define _SAM_H
+
+#include "MatVec.h"
+#include <set>
+
+class SystemMatrix;
+class SystemVector;
+
+
+/*!
+  \brief This class contains data and functions for the assembly of FE matrices.
+  \details The names and meanings of the data members of this class are
+  are adopted from Kolbein Bell's pionering work on the field.
+  See his reports on the SAM library for a thorough elaboration.
+
+  The class does not contain methods for initializing the data members.
+  That has to be done by deriving sub-classes specific to the solution methods.
+*/
+
+class SAM
+{
+public:
+  //! \brief The constructor initializes an empty object.
+  SAM();
+  //! \brief The destructor frees the dynamically allocated arrays.
+  virtual ~SAM();
+
+  //! \brief Prints out the key data to the given stream.
+  void print(std::ostream& os) const;
+
+  //! \brief Returns the number of elements in the model.
+  int getNoElms() const { return nel; }
+  //! \brief Returns the number of FE nodes in the model.
+  int getNoNodes() const { return nnod; }
+  //! \brief Returns the total number of DOFs in the model.
+  int getNoDOFs() const { return ndof; }
+  //! \brief Returns the number of equations (free DOFs) in the model.
+  virtual int getNoEquations() const { return neq; }
+
+  //! \brief Returns max number of dof couplings in the model.
+  int getMaxDofCouplings() const;
+
+  typedef std::vector<int> IntVec; //!< General integer vector
+
+  //! \brief Computes number of couplings for each dof in the system matrix.
+  //! \param[out] nnz Number of couplings (non-zeroes) for each DOF
+  //! \return \e false if number of couplings is not computed, otherwise \e true
+  bool getNoDofCouplings(IntVec& nnz) const;
+
+  //! \brief Interface to computation of DOF couplings for distributed matrices.
+  virtual bool getNoDofCouplings(int, int, IntVec&, IntVec&) const
+  { return false; }
+
+  //! \brief Computes sparse structure (DOF couplings) in the system matrix.
+  //! \param[out] irow start index for each row in jcol
+  //! \param[out] jcol column indices for non-zero entries
+  //! \return \e false if sparse structure is not computed, otherwise \e true
+  bool getDofCouplings(IntVec& irow, IntVec& jcol) const;
+
+private:
+  typedef std::set<int> IntSet; //!< General integer set
+
+  //! \brief Finds the set of free DOFs coupled to each free DOF.
+  bool getDofCouplings(std::vector<IntSet>& dofc) const;
+
+public:
+  //! \brief Initializes the system matrices prior to the element assembly.
+  //! \param sysK   The system left-hand-side matrix to be initialized
+  //! \param sysRHS The system right-hand-side load vector to be initialized
+  //! \param reactionForces Pointer to vector of nodal reaction forces
+  //! \return \e false if no free DOFs in the system, otherwise \e true
+  //!
+  //! \details This method must be called once before the first call to
+  //! \a assembleSystem for a given load case or time step.
+  bool initForAssembly(SystemMatrix& sysK, SystemVector& sysRHS,
+		       Vector* reactionForces = 0) const;
+
+  //! \brief Initializes a system matrix prior to the element assembly.
+  //! \param sysM The system left-hand-side matrix to be initialized
+  //! \return \e false if no free DOFs in the system, otherwise \e true
+  //!
+  //! \details This method must be called once before the first call to
+  //! \a assembleSystem for a given load case or time step.
+  bool initForAssembly(SystemMatrix& sysM) const;
+
+  //! \brief Initializes the system load vector prior to the element assembly.
+  //! \param sysRHS The system right-hand-side load vector to be initialized
+  //! \param reactionForces Pointer to vector of nodal reaction forces
+  //! \return \e false if no free DOFs in the system, otherwise \e true
+  bool initForAssembly(SystemVector& sysRHS, Vector* reactionForces = 0) const;
+
+  //! \brief Adds an element stiffness matrix into the system stiffness matrix.
+  //! \param sysK    The left-hand-side system stiffness matrix
+  //! \param sysRHS  The right-hand-side system load vector
+  //! \param[in] eK  The element stiffness matrix
+  //! \param[in] iel Identifier for the element that \a eK belongs to
+  //! \param reactionForces Pointer to vector of nodal reaction forces
+  //! \return \e true on successful assembly, otherwise \e false
+  //!
+  //! \details When multi-point constraints are present, contributions from
+  //! these are also added into the right-hand-side system load vector.
+  bool assembleSystem(SystemMatrix& sysK, SystemVector& sysRHS,
+		      const Matrix& eK, int iel = 0,
+		      Vector* reactionForces = 0) const;
+
+  //! \brief Adds an element matrix into the corresponding system matrix.
+  //! \param sysM    The left-hand-side system matrix
+  //! \param[in] eM  The element matrix
+  //! \param[in] iel Identifier for the element that \a eM belongs to
+  //! \return \e true on successful assembly, otherwise \e false
+  bool assembleSystem(SystemMatrix& sysM,
+		      const Matrix& eM, int iel = 0) const;
+
+  //! \brief Adds element stiffness contributions to the system load vector.
+  //! \param sysRHS  The right-hand-side system load vector
+  //! \param[in] eK  The element stiffness matrix
+  //! \param[in] iel Identifier for the element that \a eK belongs to
+  //! \param reactionForces Pointer to vector of nodal reaction forces
+  //! \return \e true on successful assembly, otherwise \e false
+  //!
+  //! \details When multi-point constraints are present, contributions from
+  //! these are added into the right-hand-side system load vector.
+  virtual bool assembleSystem(SystemVector& sysRHS,
+			      const Matrix& eK, int iel = 0,
+			      Vector* reactionForces = 0) const;
+
+  //! \brief Adds an element load vector into the system load vector.
+  //! \param sysRHS  The right-hand-side system load vector
+  //! \param[in] eS  The element load vector
+  //! \param[in] iel Identifier for the element that \a eS belongs to
+  //! \param reactionForces Pointer to vector of nodal reaction forces
+  //! \return \e true on successful assembly, otherwise \e false
+  virtual bool assembleSystem(SystemVector& sysRHS,
+			      const RealArray& eS, int iel = 0,
+			      Vector* reactionForces = 0) const;
+
+  //! \brief Finds the matrix of equation numbers for an element.
+  //! \param[out] meen Matrix of element equation numbers
+  //! \param[in] iel Identifier for the element to get the equation numbers for
+  //! \param[in] nedof Number of degrees of freedom in the element
+  //! (used for internal consistency checking, unless zero)
+  bool getElmEqns(IntVec& meen, int iel, int nedof = 0) const;
+
+  //! \brief Finds the matrix of equation numbers for a node.
+  //! \param[out] mnen Matrix of node equation numbers
+  //! \param[in] inod Identifier for the node to get the equation numbers for
+  bool getNodeEqns(IntVec& mnen, int inod) const;
+
+  //! \brief Returns the first and last DOFs for a node.
+  //! \param[in] inod Identifier for the node to get the DOF numbers for
+  std::pair<int,int> getNodeDOFs(int inod) const;
+
+  //! \brief Finds the equation number corresponding to a local nodal DOF.
+  //! \param[in] inod Identifier for the node to get the equation number for
+  //! \param[in] ldof Local index of the DOF within node \a inod
+  //! \return Equation number, or zero if the DOF is or constrained
+  int getEquation(int inod, int ldof) const;
+
+  //! \brief Expands a solution vector from equation-ordering to DOF-ordering.
+  //! \param[in] solVec Solution vector, length = NEQ
+  //! \param[out] displ Displacement vector, length = NDOF = 3*NNOD
+  //! \return \e false if the length of \a solVec is invalid, otherwise \e true
+  //!
+  //! \details The size of the solution vector that comes out of the linear
+  //! equation solver equals the number of free DOFs in the system (=NEQ).
+  //! That is, all fixed or constrained (slave) DOFs are not present.
+  //! Before we can compute derived element quantities we therefore need to
+  //! extract the resulting displacement values also for the constrained DOFs.
+  virtual bool expandSolution(const SystemVector& solVec, Vector& displ) const;
+
+  //! \brief Expands a solution vector from equation-ordering to DOF-ordering.
+  //! \param[in] solVec Solution vector, length = NEQ
+  //! \param[out] displ Displacement vector, length = NDOF = 3*NNOD
+  //! \return \e false if the length of \a solVec is invalid, otherwise \e true
+  //!
+  //! \details This version is typically used to expand eigenvectors.
+  bool expandVector(const Vector& solVec, Vector& displ) const;
+
+  //! \brief Computes the dot-product of two vectors of length NDOF.
+  virtual real dot(const Vector& x, const Vector& y) const;
+  //! \brief Computes the l2-norm of a vector of length NDOF.
+  real norm2(const Vector& x) const { return sqrt(this->dot(x,x)); }
+  //! \brief Computes the L2-norm of a vector of length NDOF.
+  virtual real normL2(const Vector& x) const;
+  //! \brief Computes the L_infinity-norm of a vector of length NDOF.
+  //! \param[in] x The vector to compute the norm of
+  //! \param comp Local nodal DOF on input, index of the largest value on output
+  virtual real normInf(const Vector& x, size_t& comp) const;
+  //! \brief Computes energy norm contributions from nodal reaction forces.
+  //! \param[in] u The (incremental) nodal displacement vector
+  //! \param[in] rf Compressed reaction force vector
+  virtual real normReact(const Vector& u, const Vector& rf) const;
+
+protected:
+  //! \brief Initializes the DOF-to-equation connectivity array \a MEQN.
+  virtual bool initSystemEquations();
+
+  //! \brief Assembles reaction forces for the fixed and prescribed DOFs.
+  //! \param reac The vector of reaction forces
+  //! \param[in] eS  The element load vector
+  //! \param[in] iel Identifier for the element that \a eS belongs to
+  void assembleReactions(Vector& reac, const RealArray& eS, int iel) const;
+
+  //! \brief Expands a solution vector from equation-ordering to DOF-ordering.
+  //! \param[in] solVec Pointer to solution vector, length = NEQ
+  //! \param[out] displ Displacement vector, length = NDOF = 3*NNOD
+  bool expandVector(const real* solVec, Vector& displ) const;
+
+  //! \brief Returns the internal node number and local index for a global DOF.
+  //! \param[in] idof Global DOF-number in the range [1,NDOF]
+  //! \return first = internal node number in the range [1,NNOD]
+  //! \return second = local DOF number in the range [1,NNDOF]
+  std::pair<int,int> getNodeAndLocalDof(int idof) const;
+
+  // The following parameters are pointers to specific locations in MPAR
+  int& nnod;   //!< Number of nodes
+  int& nel;    //!< Number of elements
+  int& ndof;   //!< Number of DOFs
+  int& nceq;   //!< Number of constraint equations
+  int& neq;    //!< Number of system equations
+  int& nmmnpc; //!< Number of elements in MMNPC
+  int& nmmceq; //!< Number of elements in MMCEQ
+
+  // The standard SAM arrays (see K. Bell's reports for detailed explanation)
+  int*  mpmnpc; //!< Matrix of pointers to MNPCs in MMNPC
+  int*  mmnpc;  //!< Matrix of matrices of nodal point correspondances
+  int*  madof;  //!< Matrix of accumulated DOFs
+  int*  msc;    //!< Matrix of status codes
+  int*  mpmceq; //!< Matrix of pointers to MCEQs in MMCEQ
+  int*  mmceq;  //!< Matrix of matrices of constraint equation definitions
+  real* ttcc;   //!< Table of tables of constraint equation coefficients
+  int*  minex;  //!< Matrix of internal to external node numbers
+  int*  meqn;   //!< Matrix of equation numbers
+
+  int mpar[50]; //!< Matrix of parameters
+
+  friend class DenseMatrix;
+  friend class SPRMatrix;
+  friend class SparseMatrix;
+  friend class PETScMatrix;
+};
+
+#endif
