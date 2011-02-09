@@ -1,4 +1,4 @@
-// $Id: LinSolParams.h,v 1.4 2010-12-06 09:07:51 rho Exp $
+// $Id: LinSolParams.h,v 1.5 2011-02-08 12:44:55 rho Exp $
 //==============================================================================
 //!
 //! \file LinSolParams.h
@@ -22,6 +22,9 @@
 #include "petscksp.h"
 #endif
 
+
+//! \brief Null-space for matrix operator
+enum NullSpace { NONE, CONSTANT, RIGID_BODY };
 
 /*!
   \brief Class for linear solver parameters.
@@ -71,6 +74,12 @@ public:
   //! \brief Set maximum number of iterations
   virtual void setMaxIterations(int its) { maxIts = its; }
 
+  //! \brief Set number of overlap
+  virtual void setOverlap(int olap) { overlap = olap; }
+
+  //! \brief Set null-space of matrix
+  virtual void setNullSpace(NullSpace nspc) { nullspc = nspc; }
+
   //! \brief Get linear solver method
   virtual const char* getMethod() const { return method.c_str(); }
 
@@ -92,6 +101,12 @@ public:
   //! \brief Get maximum number of iterations
   virtual int getMaxIterations() const { return maxIts; }
 
+  //! \brief Get number of overlaps
+  virtual int getOverlap() const { return overlap; }
+
+  //! \brief Get number of overlaps
+  virtual NullSpace getNullSpace() const { return nullspc; }
+
   //! \brief Set linear solver parameters for KSP object
   virtual void setParams(KSP& ksp) const;
 
@@ -105,6 +120,7 @@ private:
   PetscInt  levels;     // Number of levels of fill to use
   PetscInt  maxIts;     // Maximum number of iterations
   PetscInt  overlap;    // Number of overlaps
+  NullSpace nullspc;    // Null-space for matrix
 #endif // HAS_PETSC
 };
 

@@ -1,4 +1,4 @@
-// $Id: StabilizedStokes.C,v 1.6 2010-12-30 17:38:19 kmo Exp $
+// $Id: StabilizedStokes.C,v 1.7 2011-02-08 12:42:36 rho Exp $
 //==============================================================================
 //!
 //! \file StabilizedStokes.C
@@ -42,7 +42,6 @@ bool StabilizedStokes::evalInt (LocalIntegral*& elmInt, double detJW,
 
   const int nf = nsd + 1;
 
-  elmInt = &myMats;
   if (eM) {
     Matrix& EM = *eM;
 
@@ -90,8 +89,7 @@ bool StabilizedStokes::evalInt (LocalIntegral*& elmInt, double detJW,
 	ES((i-1)*nf+k) += fb(k)*N(i);
   }	
 
-  myMats.rhsOnly = false;
-  return true;
+  return getIntegralResult(elmInt);
 }
 
 
@@ -107,7 +105,6 @@ bool StabilizedStokes::evalInt (LocalIntegral*& elmInt, double detJW,
   const int nf = nsd + 1;
   const real delta = 0.001*h*h*detJW;
 
-  elmInt = &myMats;
   if (eM) {
     Matrix& EM = *eM;
 
@@ -177,8 +174,7 @@ bool StabilizedStokes::evalInt (LocalIntegral*& elmInt, double detJW,
      	ES(nf*i) -= delta*fb(k)*dNdX(i,k);
   }	
 
-  myMats.rhsOnly = false;
-  return true;
+  return getIntegralResult(elmInt);
 }
 
 
@@ -192,7 +188,6 @@ bool StabilizedStokes::evalInt (LocalIntegral*& elmInt, double detJW,
 
   const int nf = nsd + 1;
 
-  elmInt = &myMats;
   if (eM) {
     Matrix& EM = *eM;
 
@@ -240,8 +235,7 @@ bool StabilizedStokes::evalInt (LocalIntegral*& elmInt, double detJW,
 	ES((i-1)*nf+k) += fb(k)*N(i);
   }	
 
-  myMats.rhsOnly = false;
-  return true;
+  return getIntegralResult(elmInt);
 }
 
 

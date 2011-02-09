@@ -1,4 +1,4 @@
-// $Id: SIMLinEl3D.h,v 1.11 2010-12-18 16:23:52 kmo Exp $
+// $Id: SIMLinEl3D.h,v 1.12 2011-02-09 10:07:57 rho Exp $
 //==============================================================================
 //!
 //! \file SIMLinEl3D.h
@@ -16,6 +16,7 @@
 
 #include "SIM3D.h"
 #include "SIMenums.h"
+#include "AnaSol.h"
 
 
 /*!
@@ -64,11 +65,11 @@ protected:
   virtual bool initNeumann(size_t propInd);
 
   //! \brief Returns the analytical solution function, if any.
-  virtual TensorFunc* getAnaSol() const { return asol; }
+  virtual AnaSol* getAnaSol() const { return asol; }
 
 private:
   MaterialVec mVec; //!< Material data
-  TensorFunc* asol; //!< Analytical stress field
+  AnaSol*     asol; //!< Analytical solution fields
 };
 
 #endif

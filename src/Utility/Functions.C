@@ -1,4 +1,4 @@
-// $Id: Functions.C,v 1.7 2011-01-05 12:45:14 kmo Exp $
+// $Id: Functions.C,v 1.8 2011-02-08 12:55:52 rho Exp $
 //==============================================================================
 //!
 //! \file Functions.C
@@ -65,6 +65,27 @@ real LinearZFunc::evaluate (const Vec3& X) const
 }
 
 
+real QuadraticXFunc::evaluate(const Vec3& X) const
+{
+  real val = 0.5*(a-b);
+  return max*(a-X.x)*(X.x-b)/(val*val);
+}
+
+
+real QuadraticYFunc::evaluate(const Vec3& X) const
+{
+  real val = 0.5*(a-b);
+  return max*(a-X.y)*(X.y-b)/(val*val);
+}
+
+
+real QuadraticZFunc::evaluate(const Vec3& X) const
+{
+  real val = 0.5*(a-b);
+  return max*(a-X.z)*(X.z-b)/(val*val);
+}
+
+
 real LinearRotZFunc::evaluate (const Vec3& _X) const
 {
   // Always return zero if the argument has no time component
@@ -95,7 +116,8 @@ real StepXYFunc::evaluate (const Vec3& X) const
 const RealFunc* utl::parseRealFunc (char* cline, real A)
 {
   // Check for spatial variation
-  int linear = 0;
+  int linear    = 0;
+  int quadratic = 0;
   if (cline)
     if (strcmp(cline,"X") == 0)
       linear = 1;
@@ -109,6 +131,12 @@ const RealFunc* utl::parseRealFunc (char* cline, real A)
       linear = 5;
     else if (strcmp(cline,"Tinit") == 0)
       linear = 6;
+    else if (strcmp(cline,"quadX") == 0)
+      quadratic = 1;
+    else if (strcmp(cline,"quadY") == 0)
+      quadratic = 2;
+    else if (strcmp(cline,"quadZ") == 0)
+      quadratic = 1;
     else if (strcmp(cline,"StepX") == 0)
       linear = 7;
     else if (strcmp(cline,"StepXY") == 0)
@@ -155,8 +183,28 @@ const RealFunc* utl::parseRealFunc (char* cline, real A)
     }
     cline = strtok(NULL," ");
   }
-  else
-    std::cout << C;
+  else if (quadratic && (cline = strtok(NULL," ")))
+  {
+    real a = atof(cline);
+    real b = atof(strtok(NULL," "));
+    real val = 0.5*(a-b);
+    val *= val;
+    std::cout << A/val << "*(" << char('W' + quadratic) << "-" << a << ")*("
+	      << b << "-" << char('W' + quadratic) << ")";
+    switch(quadratic) {
+    case 1:
+      f = new QuadraticXFunc(A,a,b);
+      break;
+    case 2:
+      f = new QuadraticYFunc(A,a,b);
+      break;
+    case 3:
+      f = new QuadraticZFunc(A,a,b);
+      break;  
+    }
+    cline = strtok(NULL," ");
+  } 
+  //std::cout << C;
 
   // Check for time variation
   if (!cline) return f;

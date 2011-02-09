@@ -1,4 +1,4 @@
-// $Id: SIMLinEl3D.C,v 1.28 2011-02-08 09:06:02 kmo Exp $
+// $Id: SIMLinEl3D.C,v 1.29 2011-02-09 10:08:02 rho Exp $
 //==============================================================================
 //!
 //! \file SIMLinEl3D.C
@@ -128,7 +128,7 @@ public:
 	T(1,i) = v1[i-1];
 	T(2,i) = v2[i-1];
 	T(3,i) = v3[i-1];
-      }
+      } 
 #ifdef PRINT_CS
       s1 << v1 <<'\n';
       s2 << v2 <<'\n';
@@ -232,7 +232,7 @@ bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
       double a  = atof(strtok(NULL," "));
       double F0 = atof(strtok(NULL," "));
       double nu = atof(strtok(NULL," "));
-      asol = new Hole(a,F0,nu,true);
+      asol = new AnaSol(NULL,NULL,NULL,new Hole(a,F0,nu,true));
       std::cout <<"\nAnalytical solution: Hole a="<< a <<" F0="<< F0
 		<<" nu="<< nu << std::endl;
     }
@@ -241,7 +241,7 @@ bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
       double a  = atof(strtok(NULL," "));
       double F0 = atof(strtok(NULL," "));
       double nu = atof(strtok(NULL," "));
-      asol = new Lshape(a,F0,nu,true);
+      asol = new AnaSol(NULL,NULL,NULL,new Lshape(a,F0,nu,true));
       std::cout <<"\nAnalytical solution: Lshape a="<< a <<" F0="<< F0
 		<<" nu="<< nu << std::endl;
     }
@@ -250,7 +250,7 @@ bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
       double L  = atof(strtok(NULL," "));
       double H  = atof(strtok(NULL," "));
       double F0 = atof(strtok(NULL," "));
-      asol = new CanTS(L,H,F0,true);
+      asol = new AnaSol(NULL,NULL,NULL,new CanTS(L,H,F0,true));
       std::cout <<"\nAnalytical solution: CanTS L="<< L <<" H="<< H
 		<<" F0="<< F0 << std::endl;
     }
@@ -260,11 +260,11 @@ bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
 
     // Define the analytical boundary traction field
     int code = (cline = strtok(NULL," ")) ? atoi(cline) : 0;
-    if (code > 0 && asol)
+    if (code > 0 && asol->getVectorSecSol())
     {
       std::cout <<"Pressure code "<< code <<": Analytical traction"<< std::endl;
       this->setPropertyType(code,Property::NEUMANN);
-      myTracs[code] = new TractionField(*asol);
+      myTracs[code] = new TractionField(*(asol->getVectorSecSol()));
     }
   }
 
@@ -297,11 +297,11 @@ bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
 	return false;
       }
 
-      if (asol)
+      if (asol && asol->getVectorSecSol())
       {
 	std::cout <<"\tTraction on P"<< press.patch
 		  <<" F"<< (int)press.lindx << std::endl;
-	myTracs[1+i] = new TractionField(*asol);
+	myTracs[1+i] = new TractionField(*asol->getVectorSecSol());
       }
       else
       {

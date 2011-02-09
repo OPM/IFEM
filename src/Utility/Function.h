@@ -1,4 +1,4 @@
-// $Id: Function.h,v 1.6 2010-09-16 10:19:08 kmo Exp $
+// $Id: Function.h,v 1.7 2011-02-08 15:07:19 rho Exp $
 //==============================================================================
 //!
 //! \file Function.h
@@ -71,7 +71,9 @@ namespace utl
 
 
 class Vec3;
+class Tensor;
 class SymmTensor;
+
 
 //! \brief Scalar-valued unary function of a scalar value.
 typedef utl::Function<real,real> ScalarFunc;
@@ -82,8 +84,8 @@ typedef utl::Function<Vec3,real> RealFunc;
 //! \brief Vector-valued unary function of a spatial point.
 typedef utl::Function<Vec3,Vec3> VecFunc;
 
-//! \brief Tensor-valued unary function of a spatial point.
-typedef utl::Function<Vec3,SymmTensor> TensorFunc;
+//! \brief Symmetric tensor-valued unary function of a spatial point.
+typedef utl::Function<Vec3,Tensor> TensorFunc;
 
 
 /*!

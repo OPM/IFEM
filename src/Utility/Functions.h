@@ -1,4 +1,4 @@
-// $Id: Functions.h,v 1.6 2011-01-05 12:45:14 kmo Exp $
+// $Id: Functions.h,v 1.7 2011-02-08 12:55:33 rho Exp $
 //==============================================================================
 //!
 //! \file Functions.h
@@ -190,6 +190,63 @@ public:
 
 protected:
   //! \brief Evaluates the linear function.
+  virtual real evaluate(const Vec3& X) const;
+};
+
+
+/*!
+  \brief A scalar function, quadratic in \a x.
+*/
+
+class QuadraticXFunc : public RealFunc
+{
+  real max;   // Max value of function
+  real a, b;  // Roots where function is \a 0
+
+ public:
+  //! \brief Constructor initializing the function parameters.
+  QuadraticXFunc(real MAX, real A, real B) { max = MAX; a = A; b = B; }
+
+ protected:
+  //! \brief Evaluates the quadratic function.
+  virtual real evaluate(const Vec3& X) const;
+};
+
+
+/*!
+  \brief A scalar function, quadratic in \a y.
+*/
+
+class QuadraticYFunc : public RealFunc
+{
+  real max;   // Max value of function
+  real a, b;  // Roots where function is \a 0
+
+ public:
+  //! \brief Constructor initializing the function parameters.
+  QuadraticYFunc(real MAX, real A, real B) { max = MAX; a = A; b = B; }
+
+ protected:
+  //! \brief Evaluates the quadratic function.
+  virtual real evaluate(const Vec3& X) const;
+};
+
+
+/*!
+  \brief A scalar function, quadratic in \a x.
+*/
+
+class QuadraticZFunc : public RealFunc
+{
+  real max;   // Max value of function
+  real a, b;  // Roots where function is \a 0
+
+ public:
+  //! \brief Constructor initializing the function parameters.
+  QuadraticZFunc(real MAX, real A, real B) { max = MAX; a = A; b = B; }
+
+ protected:
+  //! \brief Evaluates the quadratic function.
   virtual real evaluate(const Vec3& X) const;
 };
 

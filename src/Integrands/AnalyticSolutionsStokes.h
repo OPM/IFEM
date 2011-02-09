@@ -14,7 +14,7 @@
 #define _ANALYTIC_SOLUTIONS_STOKES_H
 
 #include "AnaSol.h"
-
+#include "Tensor.h"
 
 /*!
   \brief Analytic solution for Poiseuille flow

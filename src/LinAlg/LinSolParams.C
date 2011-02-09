@@ -1,4 +1,4 @@
-// $Id: LinSolParams.C,v 1.5 2010-12-06 09:08:28 rho Exp $
+// $Id: LinSolParams.C,v 1.6 2011-02-08 12:45:08 rho Exp $
 //==============================================================================
 //!
 //! \file LinSolParams.C
@@ -28,6 +28,7 @@ void LinSolParams::setDefault ()
   package = MAT_SOLVER_PETSC; 
   levels  = 0;
   overlap = 0;
+  nullspc = NONE;
 
   atol   = 1.0e-6;
   rtol   = 1.0e-6;
@@ -46,6 +47,7 @@ void LinSolParams::copy (const LinSolParams& spar)
   package = spar.package;
   levels  = spar.levels;
   overlap = spar.overlap;
+  nullspc = spar.nullspc;
 
   atol   = spar.atol;
   rtol   = spar.rtol;
@@ -114,6 +116,16 @@ bool LinSolParams::read (std::istream& is, int nparam)
       maxIts = atoi(++c);
     }
 
+    else if (!strncasecmp(cline,"nullspace",6)) {
+      char* c = strchr(cline,'=');
+      if (!strncasecmp(c,"CONSTANT",8))
+	nullspc = CONSTANT;
+      else if (!strncasecmp(c,"RIGID_BODY",10))
+	nullspc = RIGID_BODY;
+      else
+	nullspc = NONE;
+    }
+
     else
     {
       std::cerr <<" *** LinSolParams::read: Unknown keyword: "
@@ -150,8 +162,10 @@ void LinSolParams::setParams(KSP& ksp) const
   //PCMGSetLevels(pc,levels,PETSC_NULL);
   //PCMGSetType(pc,PC_MG_MULTIPLICATIVE);
   PCSetType(pc,prec.c_str());
-  if (overlap > 0)
+  if (overlap > 0) {
+    PCASMSetType(pc,PC_ASM_BASIC);
     PCASMSetOverlap(pc,overlap);
+  }
   PCFactorSetMatSolverPackage(pc,package.c_str());
   PCSetFromOptions(pc);
   PCSetUp(pc);

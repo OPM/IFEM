@@ -1,4 +1,4 @@
-// $Id: SAM.h,v 1.24 2011-02-05 18:07:51 kmo Exp $
+// $Id: SAM.h,v 1.25 2011-02-08 12:45:46 rho Exp $
 //==============================================================================
 //!
 //! \file SAM.h
@@ -153,7 +153,7 @@ public:
   //! \param[in] iel Identifier for the element to get the equation numbers for
   //! \param[in] nedof Number of degrees of freedom in the element
   //! (used for internal consistency checking, unless zero)
-  bool getElmEqns(IntVec& meen, int iel, int nedof = 0) const;
+  virtual bool getElmEqns(IntVec& meen, int iel, int nedof = 0) const;
 
   //! \brief Finds the matrix of equation numbers for a node.
   //! \param[out] mnen Matrix of node equation numbers

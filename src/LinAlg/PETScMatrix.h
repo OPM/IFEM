@@ -1,4 +1,4 @@
-// $Id: PETScMatrix.h,v 1.6 2010-12-06 09:17:56 rho Exp $
+// $Id: PETScMatrix.h,v 1.7 2011-02-08 12:46:29 rho Exp $
 //==============================================================================
 //!
 //! \file PETScMatrix.h
@@ -208,6 +208,7 @@ public:
 private:
   Mat                 A;         //!< Linear system matrix
   KSP                 ksp;       //!< Linear solver
+  MatNullSpace        nsp;       //!< Null-space of linear operator
   const LinSolParams& solParams; //!< Linear solver parameters
   //EPS                 eps;       //!< Eigenvalue solver
 

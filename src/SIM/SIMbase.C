@@ -1,4 +1,4 @@
-// $Id: SIMbase.C,v 1.49 2011-02-08 09:32:18 kmo Exp $
+// $Id: SIMbase.C,v 1.50 2011-02-08 12:52:12 rho Exp $
 //==============================================================================
 //!
 //! \file SIMbase.C
@@ -268,11 +268,10 @@ bool SIMbase::preprocess (const std::vector<int>& ignoredPatches, bool fixDup)
 
   // Initialize data structures for the algebraic system
 #ifdef PARALLEL_PETSC
-  if (nProc > 1)
     mySam = new SAMpatchPara(l2gn);
-  else
-#endif
+#else
     mySam = new SAMpatch();
+#endif
 
   return mySam->init(myModel,nnod) && ok;
 }
@@ -425,7 +424,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
       else
 	ok = false;
 
-  if (j == 0 && ok)
+  if (j == 0 && ok) 
     // All patches are referring to the same material, and we assume it has
     // been initialized during input processing (thus no initMaterial call here)
     for (i = 0; i < myModel.size() && ok; i++)
@@ -600,7 +599,6 @@ bool SIMbase::solutionNorms (const TimeDomain& time, const Vectors& psol,
 			     Matrix& eNorm, Vector& gNorm)
 {
   NormBase* norm = myProblem->getNormIntegrand(this->getAnaSol());
-  if (!norm) norm = myProblem->getNormIntegrandScal(this->getScalarSol());
   if (!norm)
   {
     std::cerr <<" *** SIMbase::solutionNorms: No integrand."<< std::endl;
@@ -609,9 +607,9 @@ bool SIMbase::solutionNorms (const TimeDomain& time, const Vectors& psol,
 
   PROFILE1("Norm integration");
 
+  size_t nNorms = norm->getNoFields() + norm->getNoSecFields();
   const Vector& primsol = psol.front();
 
-  size_t nNorms = norm->getNoFields();
   size_t i, nel = mySam->getNoElms();
   eNorm.resize(nNorms,nel,true);
   gNorm.resize(nNorms,true);
@@ -925,7 +923,7 @@ bool SIMbase::writeGlvS (const Vector& psol,
   bool haveAsol = false;
   bool scalarEq = myModel.empty() ? false : myModel.front()->getNoFields() == 1;
   if (scalarEq) {
-    if (this->getScalarSol())
+    if (this->getAnaSol()->hasScalarSol())
       haveAsol = true;
   }
   else
@@ -993,9 +991,9 @@ bool SIMbase::writeGlvS (const Vector& psol,
       for (j = 1; cit != grid->end_XYZ() && ok; j++, cit++)
       {
 	if (scalarEq)
-	  ok = myProblem->evalSolScal(solPt,*this->getScalarSol(),*cit);
+	  ok = myProblem->evalSecSolScal(solPt,*this->getAnaSol()->getScalarSecSol(),*cit);
 	else
-	  ok = myProblem->evalSol(solPt,*this->getAnaSol(),*cit);
+	  ok = myProblem->evalSecSol(solPt,*this->getAnaSol()->getVectorSecSol(),*cit);
 	if (ok)
 	  field.fillColumn(j,solPt);
       }

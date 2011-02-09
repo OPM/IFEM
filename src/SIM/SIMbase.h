@@ -1,4 +1,4 @@
-// $Id: SIMbase.h,v 1.33 2011-02-08 09:32:18 kmo Exp $
+// $Id: SIMbase.h,v 1.35 2011-02-08 15:51:16 rho Exp $
 //==============================================================================
 //!
 //! \file SIMbase.h
@@ -19,6 +19,7 @@
 #include "TimeDomain.h"
 #include "Property.h"
 #include "Function.h"
+#include "AnaSol.h"
 #include <map>
 
 class ASMbase;
@@ -97,7 +98,7 @@ public:
 
   //! \brief Prints out problem-specific data to the given stream.
   void printProblem(std::ostream& os) const;
-
+ 
   //! \brief Returns the number of spatial dimensions in the model.
   size_t getNoSpaceDim() const;
   //! \brief Returns the model size in terms of number of DOFs.
@@ -169,27 +170,27 @@ public:
   //! \param[out] inf Infinity norms in each spatial direction
   //! \param[out] ind Global index of the node corresponding to the inf-value
   //! \return L2-norm of the solution vector
-  double solutionNorms(const Vector& x, double* inf, size_t* ind) const;
+  virtual double solutionNorms(const Vector& x, double* inf, size_t* ind) const;
 
   //! \brief Integrates some solution norm quantities.
   //! \details If an analytical solution is provided, norms of the exact
   //! error in the solution are computed as well.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations.
-  //! \param[in] psol Global primary solution vector
+  //! \param[in] psol Global primary solution vectors
   //! \param[out] eNorm Element-wise norm quantities
   //! \param[out] gNorm Global norm quantities
-  bool solutionNorms(const TimeDomain& time, const Vectors& psol,
-		     Matrix& eNorm, Vector& gNorm);
+  virtual bool solutionNorms(const TimeDomain& time, const Vectors& psol,
+			     Matrix& eNorm, Vector& gNorm);
 
   //! \brief Integrates some solution norm quantities.
   //! \details If an analytical solution is provided, norms of the exact
   //! error in the solution are computed as well.
-  //! \param[in] psol Global primary solution vector
+  //! \param[in] psol Global primary solution vectors
   //! \param[out] eNorm Element-wise norm quantities
   //! \param[out] gNorm Global norm quantities
   //!
   //! \details Use this version for linear/stationary problems only.
-  bool solutionNorms(const Vectors& psol, Matrix& eNorm, Vector& gNorm)
+  virtual bool solutionNorms(const Vectors& psol, Matrix& eNorm, Vector& gNorm)
   { return this->solutionNorms(TimeDomain(),psol,eNorm,gNorm); }
 
   //! \brief Performs a generalized eigenvalue analysis of the assembled system.
@@ -322,10 +323,7 @@ protected:
   virtual bool initNeumann(size_t) { return true; }
 
   //! \brief Returns the analytical solution field, if any.
-  virtual TensorFunc* getAnaSol() const { return 0; }
-
-  //! \brief Returns the scalar analytical solution field, if any.
-  virtual VecFunc* getScalarSol() const { return 0; }
+  virtual AnaSol* getAnaSol() const { return 0; }
 
   //! \brief Extract local solution vector(s) for a given patch.
   //! \param[in] patch Pointer to the patch to extract solution vectors for

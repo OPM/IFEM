@@ -1,4 +1,4 @@
-// $Id: PETScMatrix.C,v 1.8 2010-12-06 09:19:50 rho Exp $
+// $Id: PETScMatrix.C,v 1.9 2011-02-08 12:47:38 rho Exp $
 //==============================================================================
 //!
 //! \file PETScMatrix.C
@@ -63,7 +63,7 @@ size_t PETScVector::dim() const
 {
   PetscInt size;
 
-  size = VecGetLocalSize(x);
+  VecGetLocalSize(x,&size);
   return size;
 }
 
@@ -152,10 +152,16 @@ real PETScVector::Linfnorm() const
 PETScMatrix::PETScMatrix(const LinSolParams& spar) : solParams(spar)
 {
   // Create matrix object. By default the matrix type is AIJ
-  A = MatCreate(PETSC_COMM_WORLD);
-  
+  MatCreate(PETSC_COMM_WORLD,&A);
+
   // Create linear solver object.
   KSPCreate(PETSC_COMM_WORLD,&ksp); 
+
+  // Create null space if any
+  if (solParams.getNullSpace() == CONSTANT) {
+    MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_TRUE,0,0,&nsp);
+    KSPSetNullSpace(ksp,nsp);
+  }
 
   // Create eigenvalue solver object.
   //EPSCreate(PETSC_COMM_WORLD,&eps);
@@ -165,10 +171,17 @@ PETScMatrix::PETScMatrix(const LinSolParams& spar) : solParams(spar)
 PETScMatrix::PETScMatrix (const PETScMatrix& B) : solParams(B.solParams)
 {
   // Duplicate matrix. 
-  A = MatDuplicate(B.A);
+  //A = MatDuplicate(B.A);
+  MatDuplicate(B.A,MAT_COPY_VALUES,&A);
 
   // Create linear solver object.
   KSPCreate(PETSC_COMM_WORLD,&ksp);
+
+  // Create null space, if any
+  if (solParams.getNullSpace() == CONSTANT) {
+    MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_TRUE,0,0,&nsp);
+    KSPSetNullSpace(ksp,nsp);
+  }
 
   // Create eigenvalue solver object.
   //EPSCreate(PETSC_COMM_WORLD,&eps);
@@ -180,8 +193,12 @@ PETScMatrix::~PETScMatrix ()
   // Deallocation of eigenvalue solver object.
   //EPSDestroy(eps);
 
+  // Deallocation of null space
+  if (solParams.getNullSpace() == CONSTANT) 
+    MatNullSpaceDestroy(nsp);
+
   // Deallocation of linear solver object.
-  //KSPDestroy(ksp);
+  KSPDestroy(ksp);
 
   // Deallocation of matrix object.
   MatDestroy(A); 
@@ -516,8 +533,6 @@ bool PETScMatrix::multiply (const SystemVector& B, SystemVector& C)
 
 bool PETScMatrix::solve (SystemVector& B, bool newLHS)
 {
-  PC pc;
-
   PETScVector* Bptr = dynamic_cast<PETScVector*>(&B);
   if (!Bptr)
     return false;
@@ -526,10 +541,12 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
   VecDuplicate(Bptr->getVector(),&x);
   VecCopy(Bptr->getVector(),x);
 
+  // Has lefthand side changed?
   if (newLHS)
     KSPSetOperators(ksp,A,A,SAME_NONZERO_PATTERN);
   else
     KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
+  
   solParams.setParams(ksp);
   KSPSolve(ksp,x,Bptr->getVector());
 

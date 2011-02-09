@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.48 2011-02-08 09:06:02 kmo Exp $
+# $Id: Makefile,v 1.49 2011-02-08 13:10:06 rho Exp $
 #===============================================================================
 #
 # File: Makefile
@@ -25,12 +25,14 @@ CSRC	= SIM/SIMinput.C SIM/SIMbase.C SIM/SIM3D.C SIM/SIM2D.C SIM/SIM1D.C \
 	  ASM/ASMs2D.C ASM/ASMs2DLag.C ASM/ASMs2DSpec.C \
 	  ASM/ASMs2Dmx.C ASM/ASMs2DmxLag.C \
 	  ASM/ASMs1D.C ASM/ASMs1DLag.C ASM/ASMs1DSpec.C \
-	  Integrands/AnalyticSolutions.C Integrands/LinearElasticity.C \
-	  Integrands/Elasticity.C Integrands/Poisson.C Integrands/Stokes.C \
+	  Integrands/AnalyticSolutions.C Integrands/AnalyticSolutionsStokes.C \
+	  Integrands/Poisson.C \
+	  Integrands/LinearElasticity.C Integrands/Elasticity.C Integrands/Stokes.C \
 	  Integrands/StabilizedStokes.C Integrands/StabilizedNavierStokes.C \
 	  Integrands/NavierStokesG2.C Integrands/NavierStokesG2CN.C \
 	  Integrands/NavierStokesG2MP.C Integrands/NavierStokesG2GenTheta.C \
-	  Integrands/ChorinVelPred.C Integrands/ChorinVelPredBE.C Integrands/ChorinVelPredBDF2.C \
+	  Integrands/ChorinVelPred.C Integrands/ChorinVelPredBE.C \
+	  Integrands/ChorinVelPredBDF2.C \
 	  Integrands/ChorinPressCorr.C Integrands/ChorinVelCorr.C \
 	  LinAlg/SystemMatrix.C LinAlg/DenseMatrix.C LinAlg/SPRMatrix.C \
 	  LinAlg/SparseMatrix.C LinAlg/PETScMatrix.C LinAlg/LinSolParams.C \
@@ -40,7 +42,8 @@ CSRC	= SIM/SIMinput.C SIM/SIMbase.C SIM/SIM3D.C SIM/SIM2D.C SIM/SIM1D.C \
 	  Utility/GaussQuadrature.C Utility/Legendre.C \
 	  Utility/ElementBlock.C Utility/VTF.C \
 	  Utility/Vec3Oper.C Utility/Tensor.C Utility/Function.C \
-	  Utility/Utilities.C Utility/Profiler.C Utility/Functions.C
+	  Utility/Utilities.C Utility/Profiler.C Utility/Functions.C \
+	  Utility/AnaSol.C
 
 OBJS	= $(CSRC:.C=.o) $(FSRC:.f=.o)
 HDRS	= $(CSRC:.C=.h) SIM/SIMenums.h SIM/Property.h \

@@ -1,4 +1,4 @@
-// $Id: StabilizedNavierStokes.C,v 1.4 2010-12-30 17:38:19 kmo Exp $
+// $Id: StabilizedNavierStokes.C,v 1.5 2011-02-08 12:43:49 rho Exp $
 //==============================================================================
 //!
 //! \file StabilizedNavierStokes.C
@@ -37,8 +37,7 @@ bool StabilizedNavierStokes::evalInt(LocalIntegral*& elmInt, double detJW,
   int    k, l;
   double div, laplace, conv;
   Vector vel(3);
-  
-  elmInt = &myMats;
+
   if (eM) {
     Matrix& EM = *eM;
     Vector& EV = *eVs[0];
@@ -106,7 +105,7 @@ bool StabilizedNavierStokes::evalInt(LocalIntegral*& elmInt, double detJW,
 	ES((i-1)*nf+k) += fb(k)*N(i);
   }	
 
-  return true;
+  return getIntegralResult(elmInt);
 }
 
 
@@ -122,7 +121,6 @@ bool StabilizedNavierStokes::evalInt (LocalIntegral*& elmInt, double detJW,
 
   const real delta = 0.001*h*h*detJW;
 
-  elmInt = &myMats;
   if (eM) {
     Matrix& EM = *eM;
     Vector& EV = *eVs[0];
@@ -213,7 +211,7 @@ bool StabilizedNavierStokes::evalInt (LocalIntegral*& elmInt, double detJW,
      	ES(nf*i) -= delta*fb(k)*dNdX(i,k);
   }	
 
-  return true;
+  return getIntegralResult(elmInt);
 }
 
 
@@ -226,7 +224,6 @@ bool StabilizedNavierStokes::evalInt(LocalIntegral*& elmInt, double detJW,
   double div, laplace, conv;
   Vector vel(3);
 
-  elmInt = &myMats;
   if (eM) {
     Matrix& EM = *eM;
     Vector& EV = *eVs[0];
@@ -294,7 +291,7 @@ bool StabilizedNavierStokes::evalInt(LocalIntegral*& elmInt, double detJW,
 	ES((i-1)*nf+k) += fb(k)*N(i);
   }	
 
-  return true;
+  return getIntegralResult(elmInt);
 }
 
 
@@ -302,7 +299,6 @@ bool StabilizedNavierStokes::evalBou (LocalIntegral*& elmInt, double detJW,
                                 const Vector& N, const Matrix& dNdX,
                                 const Vec3& X, const Vec3& normal) const
 {
-  elmInt = &myMats;
   if (!eS || !tracFld)
   {
     std::cerr <<" *** StabilizedNavierStokes::evalBou: Zero pointers."<< std::endl;
@@ -322,5 +318,5 @@ bool StabilizedNavierStokes::evalBou (LocalIntegral*& elmInt, double detJW,
     for (short int d = 1; d <= nsd; d++)
       ES(nf*(a-1)+d) += T[d-1]*N(a)*detJW;
 
-  return true;
+  return getIntegralResult(elmInt);
 }

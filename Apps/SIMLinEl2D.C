@@ -1,4 +1,4 @@
-// $Id: SIMLinEl2D.C,v 1.18 2011-02-08 09:06:02 kmo Exp $
+// $Id: SIMLinEl2D.C,v 1.19 2011-02-09 10:07:36 rho Exp $
 //==============================================================================
 //!
 //! \file SIMLinEl2D.C
@@ -118,7 +118,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
       double a  = atof(strtok(NULL," "));
       double F0 = atof(strtok(NULL," "));
       double nu = atof(strtok(NULL," "));
-      asol = new Hole(a,F0,nu);
+      asol = new AnaSol(NULL,NULL,NULL,new Hole(a,F0,nu));
       std::cout <<"\nAnalytical solution: Hole a="<< a <<" F0="<< F0
 		<<" nu="<< nu << std::endl;
     }
@@ -127,7 +127,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
       double a  = atof(strtok(NULL," "));
       double F0 = atof(strtok(NULL," "));
       double nu = atof(strtok(NULL," "));
-      asol = new Lshape(a,F0,nu);
+      asol = new AnaSol(NULL,NULL,NULL,new Lshape(a,F0,nu));
       std::cout <<"\nAnalytical solution: Lshape a="<< a <<" F0="<< F0
 		<<" nu="<< nu << std::endl;
     }
@@ -136,7 +136,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
       double L  = atof(strtok(NULL," "));
       double H  = atof(strtok(NULL," "));
       double F0 = atof(strtok(NULL," "));
-      asol = new CanTS(L,H,F0);
+      asol = new AnaSol(NULL,NULL,NULL,new CanTS(L,H,F0));
       std::cout <<"\nAnalytical solution: CanTS L="<< L <<" H="<< H
 		<<" F0="<< F0 << std::endl;
     }
@@ -144,7 +144,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
     {
       double H  = atof(strtok(NULL," "));
       double M0 = atof(strtok(NULL," "));
-      asol = new CanTM(H,M0);
+      asol = new AnaSol(NULL,NULL,NULL,new CanTM(H,M0));
       std::cout <<"\nAnalytical solution: CanTM H="<< H
 		<<" M0="<< M0 << std::endl;
     }
@@ -154,7 +154,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
       double b  = atof(strtok(NULL," "));
       double u0 = atof(strtok(NULL," "));
       double E  = atof(strtok(NULL," "));
-      asol = new CurvedBeam(u0,a,b,E);
+      asol = new AnaSol(NULL,NULL,NULL,new CurvedBeam(u0,a,b,E));
       std::cout <<"\nAnalytical solution: Curved Beam a="<< a <<" b="<< b
                 <<" u0="<< u0 <<" E="<< E << std::endl;
     }
@@ -164,11 +164,11 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
 
     // Define the analytical boundary traction field
     int code = (cline = strtok(NULL," ")) ? atoi(cline) : 0;
-    if (code > 0 && asol)
+    if (code > 0 && asol->getVectorSecSol())
     {
       std::cout <<"Pressure code "<< code <<": Analytical traction"<< std::endl;
       this->setPropertyType(code,Property::NEUMANN);
-      myTracs[code] = new TractionField(*asol);
+      myTracs[code] = new TractionField(*(asol->getVectorSecSol()));
     }
   }
 
@@ -201,11 +201,11 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
 	return false;
       }
 
-      if (asol)
+      if (asol->getVectorSecSol())
       {
 	std::cout <<"\tTraction on P"<< press.patch
 		  <<" E"<< (int)press.lindx << std::endl;
-	myTracs[1+i] = new TractionField(*asol);
+	myTracs[1+i] = new TractionField(*asol->getVectorSecSol());
       }
       else
       {

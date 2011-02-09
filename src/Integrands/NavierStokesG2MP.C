@@ -1,4 +1,4 @@
-// $Id: NavierStokesG2MP.C,v 1.2 2010-10-05 09:26:12 kmo Exp $
+// $Id: NavierStokesG2MP.C,v 1.3 2011-02-08 12:41:32 rho Exp $
 //==============================================================================
 //!
 //! \file NavierStokesG2MP.C
@@ -146,7 +146,6 @@ bool NavierStokesG2MP::evalInt(LocalIntegral*& elmInt,
 
   // Stabilization parameters
   if (mu < rho*U*h) {
-    // RUNAR
     if (time.dt == 0.0)
       delta1 = 0.5/sqrt(1.0/(h*h) + (U*U)/(h*h));
     else
@@ -161,11 +160,7 @@ bool NavierStokesG2MP::evalInt(LocalIntegral*& elmInt,
   //delta2 *= 0.01*detJW;
   delta1 *= 0.001*detJW;
   delta2 *= 0.001*detJW;
-  // RUNAR
-  //delta1 = 0.0001*h*h*detJW;
-  //delta2 = 0.0001*h*h*detJW;
 
-  elmInt = &myMats;
   if (eM) {
     Matrix& EM = *eM;
 
@@ -379,8 +374,7 @@ bool NavierStokesG2MP::evalInt(LocalIntegral*& elmInt,
     }
   }	
 
-  myMats.rhsOnly = false;
-  return true;
+  return getIntegralResult(elmInt);
 }
 			     
 
@@ -439,7 +433,6 @@ bool NavierStokesG2MP::evalInt (LocalIntegral*& elmInt, double detJW,
 
   // Stabilization parameters
   if (mu < rho*U*h) {
-    // RUNAR
     delta1 = 0.5/sqrt(1.0/(h*h) + (U*U)/(h*h));
     delta2 = h;
   }
@@ -451,7 +444,6 @@ bool NavierStokesG2MP::evalInt (LocalIntegral*& elmInt, double detJW,
   //delta1 = 0.0001*h*h*detJW;
   //delta2 = 0.0001*h*h*detJW;
 
-  elmInt = &myMats;
   if (eM) {
     Matrix& EM = *eM;
 
@@ -655,6 +647,5 @@ bool NavierStokesG2MP::evalInt (LocalIntegral*& elmInt, double detJW,
     }
   }	
 
-  myMats.rhsOnly = false;
-  return true;
+  return getIntegralResult(elmInt);
 }
