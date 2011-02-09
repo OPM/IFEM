@@ -923,7 +923,7 @@ bool SIMbase::writeGlvS (const Vector& psol,
   bool haveAsol = false;
   bool scalarEq = myModel.empty() ? false : myModel.front()->getNoFields() == 1;
   if (scalarEq) {
-    if (this->getAnaSol()->hasScalarSol())
+    if (getAnaSol() && this->getAnaSol()->hasScalarSol())
       haveAsol = true;
   }
   else
