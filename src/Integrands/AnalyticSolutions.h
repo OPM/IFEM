@@ -1,4 +1,4 @@
-// $Id: AnalyticSolutions.h,v 1.10 2011-02-08 12:19:37 rho Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file AnalyticSolutions.h
@@ -22,7 +22,7 @@
   \brief Analytic solution for an infinite plate with a hole.
 */
 
-class Hole : public TensorFunc
+class Hole : public STensorFunc
 {
 public:
   //! \brief Constructor with some default parameters.
@@ -33,13 +33,13 @@ public:
 
 protected:
   //! \brief Evaluates the analytic stress tensor at the point \a x.
-  virtual Tensor evaluate(const Vec3& x) const;
+  virtual SymmTensor evaluate(const Vec3& x) const;
 
 private:
-  bool is3D; //!< Flag telling whether to return a 3D stress tensor or not
   double a;  //!< Hole radius
   double F0; //!< Load factor
   double nu; //!< Poisson's ratio
+  bool is3D; //!< Flag telling whether to return a 3D stress tensor or not
 };
 
 
@@ -47,7 +47,7 @@ private:
   \brief Analytic solution for the L-shaped domain.
 */
 
-class Lshape : public TensorFunc
+class Lshape : public STensorFunc
 {
 public:
   //! \brief Constructor with some default parameters.
@@ -57,13 +57,13 @@ public:
 
 protected:
   //! \brief Evaluates the analytic stress tensor at the point \a x.
-  virtual Tensor evaluate(const Vec3& x) const;
+  virtual SymmTensor evaluate(const Vec3& x) const;
 
 private:
-  bool is3D; //!< Flag telling whether to return a 3D stress tensor or not
   double a;  //!< Length parameter
   double F0; //!< Load factor
   double nu; //!< Poisson's ratio
+  bool is3D; //!< Flag telling whether to return a 3D stress tensor or not
 
   Tensor T;  //!< Local-to-global stress transformation tensor
 };
@@ -73,7 +73,7 @@ private:
   \brief Analytic solution for the cantilever beam with a tip shear load.
 */
 
-class CanTS : public TensorFunc
+class CanTS : public STensorFunc
 {
 public:
   //! \brief Constructor with some default parameters.
@@ -84,13 +84,13 @@ public:
 
 protected:
   //! \brief Evaluates the analytic stress tensor at the point \a x.
-  virtual Tensor evaluate(const Vec3& x) const;
+  virtual SymmTensor evaluate(const Vec3& x) const;
 
 private:
-  bool is3D; //!< Flag telling whether to return a 3D stress tensor or not
   double L;  //!< Length
   double H;  //!< Height
   double F0; //!< Load factor
+  bool is3D; //!< Flag telling whether to return a 3D stress tensor or not
 };
 
 
@@ -98,7 +98,7 @@ private:
   \brief Analytic solution for the cantilever beam with a tip moment load.
 */
 
-class CanTM : public TensorFunc
+class CanTM : public STensorFunc
 {
 public:
   //! \brief Constructor with some default parameters.
@@ -109,12 +109,12 @@ public:
 
 protected:
   //! \brief Evaluates the analytic stress tensor at the point \a x.
-  virtual Tensor evaluate(const Vec3& x) const;
+  virtual SymmTensor evaluate(const Vec3& x) const;
 
 private:
-  bool is3D; //!< Flag telling whether to return a 3D stress tensor or not
   double H;  //!< Height
   double M0; //!< Load factor
+  bool is3D; //!< Flag telling whether to return a 3D stress tensor or not
 };
 
 
@@ -122,7 +122,7 @@ private:
   \brief Analytic solution for the curved beam with end shear.
 */
 
-class CurvedBeam : public TensorFunc
+class CurvedBeam : public STensorFunc
 {
 public:
   //! \brief Constructor with some default parameters.
@@ -133,13 +133,13 @@ public:
 
 protected:
   //! \brief Evaluates the analytic stress tensor at the point \a x.
-  virtual Tensor evaluate(const Vec3& x) const;
+  virtual SymmTensor evaluate(const Vec3& x) const;
 
 private:
-  bool is3D; //!< Flag telling whether to return a 3D stress tensor or not
   double a;  //!< Inner radius
   double b;  //!< Outer radius
   double PN; //!< Load parameter
+  bool is3D; //!< Flag telling whether to return a 3D stress tensor or not
 
   mutable Tensor T; //!< Local-to-global stress transformation tensor
 };
@@ -242,7 +242,7 @@ protected:
 class PoissonLine : public VecFunc
 {
 public:
-  //! \brief Empty Constructor.
+  //! \brief Empty constructor.
   PoissonLine(double r = 1.0) : L(r) {}
   //! \brief Empty destructor.
   virtual ~PoissonLine() {}

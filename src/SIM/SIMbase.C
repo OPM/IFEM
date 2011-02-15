@@ -1,4 +1,4 @@
-// $Id: SIMbase.C,v 1.50 2011-02-08 12:52:12 rho Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file SIMbase.C
@@ -25,6 +25,7 @@
 #include "LinSolParams.h"
 #include "GlbNorm.h"
 #include "ElmNorm.h"
+#include "AnaSol.h"
 #include "Tensor.h"
 #include "Vec3.h"
 #include "Vec3Oper.h"
@@ -45,9 +46,10 @@ int                     SIMbase::num_threads_SLU = 1;
 SIMbase::SIMbase ()
 {
   myProblem = 0;
+  mySol = 0;
   myVtf = 0;
-  mySam = 0;
   myEqSys = 0;
+  mySam = 0;
   mySolParams = 0;
   nGlPatches = 0;
 
@@ -68,6 +70,7 @@ SIMbase::~SIMbase ()
 #endif
 
   if (myProblem)   delete myProblem;
+  if (mySol)       delete mySol;
   if (myVtf)       delete myVtf;
   if (myEqSys)     delete myEqSys;
   if (mySam)       delete mySam;
@@ -424,7 +427,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
       else
 	ok = false;
 
-  if (j == 0 && ok) 
+  if (j == 0 && ok)
     // All patches are referring to the same material, and we assume it has
     // been initialized during input processing (thus no initMaterial call here)
     for (i = 0; i < myModel.size() && ok; i++)
@@ -540,19 +543,24 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
   if (printSol < 1) return true;
 
   // Compute and print solution norms
-  const int nsd = this->getNoSpaceDim();
-  size_t iMax[nsd];
-  double dMax[nsd];
-  double dNorm = this->solutionNorms(solution,dMax,iMax);
+  const size_t nf = myModel.front()->getNoFields(1);
+  size_t iMax[nf];
+  double dMax[nf];
+  double dNorm = this->solutionNorms(solution,dMax,iMax,nf);
 
   if (myPid == 0)
   {
     std::cout <<"\n >>> Solution summary <<<\n"
 	      <<"\nL2-norm            : "<< dNorm;
-    char D = 'X';
-    for (int d = 0; d < nsd; d++, D++)
-      std::cout <<"\nMax "<< D <<'-'<< compName <<" : "
-		<< dMax[d] <<" node "<< iMax[d];
+    if (nf == 1)
+      std::cout <<"\nMax "<< compName <<"   : "<< dMax[0] <<" node "<< iMax[0];
+    else
+    {
+      char D = 'X';
+      for (size_t d = 0; d < nf; d++, D++)
+	std::cout <<"\nMax "<< D <<'-'<< compName <<" : "
+		  << dMax[d] <<" node "<< iMax[d];
+    }
     std::cout << std::endl;
   }
 
@@ -583,9 +591,12 @@ void SIMbase::iterationNorms (const Vector& u, const Vector& r,
 }
 
 
-double SIMbase::solutionNorms (const Vector& x, double* inf, size_t* ind) const
+double SIMbase::solutionNorms (const Vector& x, double* inf,
+			       size_t* ind, size_t nf) const
 {
-  for (size_t d = 0; d < this->getNoSpaceDim(); d++)
+  if (nf == 0) nf = this->getNoSpaceDim();
+
+  for (size_t d = 0; d < nf; d++)
   {
     ind[d] = d+1;
     inf[d] = mySam->normInf(x,ind[d]);
@@ -598,7 +609,7 @@ double SIMbase::solutionNorms (const Vector& x, double* inf, size_t* ind) const
 bool SIMbase::solutionNorms (const TimeDomain& time, const Vectors& psol,
 			     Matrix& eNorm, Vector& gNorm)
 {
-  NormBase* norm = myProblem->getNormIntegrand(this->getAnaSol());
+  NormBase* norm = myProblem->getNormIntegrand(mySol);
   if (!norm)
   {
     std::cerr <<" *** SIMbase::solutionNorms: No integrand."<< std::endl;
@@ -814,9 +825,9 @@ bool SIMbase::writeGlvBC (const int* nViz, int& nBlock) const
     if (myModel[i]->empty()) continue; // skip empty patches
 
     geomID++;
-    size_t nbc = myModel.front()->getNoFields(1);
-    RealArray flag(3,0.0);
+    size_t nbc = myModel[i]->getNoFields(1);
     Matrix bc(nbc,myModel[i]->getNoNodes());
+    RealArray flag(3,0.0);
     ASMbase::BCVec::const_iterator bit;
     for (bit = myModel[i]->begin_BC(); bit != myModel[i]->end_BC(); bit++)
       if ((node = myModel[i]->getNodeIndex(bit->node)))
@@ -921,14 +932,12 @@ bool SIMbase::writeGlvS (const Vector& psol,
   int geomID = 0, idBlock = 10;
   std::vector<int> vID, dID[14], sID[14];
   bool haveAsol = false;
-  bool scalarEq = myModel.empty() ? false : myModel.front()->getNoFields() == 1;
-  if (scalarEq) {
-    if (getAnaSol() && this->getAnaSol()->hasScalarSol())
-      haveAsol = true;
-  }
-  else
-    if (this->getAnaSol())
-      haveAsol = true;
+  bool scalarEq = myModel.front()->getNoFields() == 1;
+  if (mySol)
+    if (scalarEq)
+      haveAsol = mySol->hasScalarSol() > 1;
+    else
+      haveAsol = mySol->hasVectorSol() > 1;
 
   for (i = 0; i < myModel.size(); i++)
   {
@@ -991,9 +1000,11 @@ bool SIMbase::writeGlvS (const Vector& psol,
       for (j = 1; cit != grid->end_XYZ() && ok; j++, cit++)
       {
 	if (scalarEq)
-	  ok = myProblem->evalSecSolScal(solPt,*this->getAnaSol()->getScalarSecSol(),*cit);
+	  ok = myProblem->evalSol(solPt,*mySol->getScalarSecSol(),*cit);
+	else if (mySol->hasVectorSol() == 3)
+	  ok = myProblem->evalSol(solPt,*mySol->getStressSol(),*cit);
 	else
-	  ok = myProblem->evalSecSol(solPt,*this->getAnaSol()->getVectorSecSol(),*cit);
+	  ok = myProblem->evalSol(solPt,*mySol->getVectorSecSol(),*cit);
 	if (ok)
 	  field.fillColumn(j,solPt);
       }
@@ -1201,7 +1212,6 @@ bool SIMbase::dumpSolution (const Vector& psol, std::ostream& os) const
 
   Matrix field;
   size_t i, j, k;
-  const int nsd = this->getNoSpaceDim();
 
   for (i = 0; i < myModel.size(); i++)
   {
@@ -1211,15 +1221,19 @@ bool SIMbase::dumpSolution (const Vector& psol, std::ostream& os) const
       os <<"\n# Patch: "<< i+1;
 
     // Extract and write primary solution
+    size_t nf = myModel[i]->getNoFields(1);
     Vector& patchSol = myProblem->getSolution();
     myModel[i]->extractNodeVec(psol,patchSol);
-    for (int d = 1; d <= nsd; d++)
+    for (k = 1; k <= nf; k++)
     {
-      os <<"# FE u_"<< char('w'+d);
+      os <<"# FE u";
+      if (nf > 1)
+	os <<'_'<< char('w'+k);
+
       for (j = 1; j <= myModel[i]->getNoNodes(); j++)
       {
 	std::pair<int,int> dofs = mySam->getNodeDOFs(j);
-	int idof = dofs.first+d-1;
+	int idof = dofs.first+k-1;
 	if (idof <= dofs.second)
 	  os <<"\n"<< patchSol[idof-1];
       }

@@ -1,4 +1,4 @@
-// $Id: NonlinearElasticityUL.C,v 1.5 2011-02-08 09:06:02 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file NonlinearElasticityUL.C
@@ -428,7 +428,7 @@ bool NonlinearElasticityUL::constitutive (Matrix& C, SymmTensor& sigma,
 }
 
 
-NormBase* NonlinearElasticityUL::getNormIntegrand (TensorFunc*) const
+NormBase* NonlinearElasticityUL::getNormIntegrand (AnaSol*) const
 {
   return new ElasticityNormUL(*const_cast<NonlinearElasticityUL*>(this));
 }

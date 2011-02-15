@@ -1,4 +1,4 @@
-// $Id: Functions.C,v 1.8 2011-02-08 12:55:52 rho Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file Functions.C
@@ -118,33 +118,34 @@ const RealFunc* utl::parseRealFunc (char* cline, real A)
   // Check for spatial variation
   int linear    = 0;
   int quadratic = 0;
-  if (cline)
-    if (strcmp(cline,"X") == 0)
-      linear = 1;
-    else if (strcmp(cline,"Y") == 0)
-      linear = 2;
-    else if (strcmp(cline,"Z") == 0)
-      linear = 3;
-    else if (strcmp(cline,"XrotZ") == 0)
-      linear = 4;
-    else if (strcmp(cline,"YrotZ") == 0)
-      linear = 5;
-    else if (strcmp(cline,"Tinit") == 0)
-      linear = 6;
-    else if (strcmp(cline,"quadX") == 0)
-      quadratic = 1;
-    else if (strcmp(cline,"quadY") == 0)
-      quadratic = 2;
-    else if (strcmp(cline,"quadZ") == 0)
-      quadratic = 1;
-    else if (strcmp(cline,"StepX") == 0)
-      linear = 7;
-    else if (strcmp(cline,"StepXY") == 0)
-      linear = 8;
+  if (!cline)
+    linear = -1;
+  else if (strcmp(cline,"X") == 0)
+    linear = 1;
+  else if (strcmp(cline,"Y") == 0)
+    linear = 2;
+  else if (strcmp(cline,"Z") == 0)
+    linear = 3;
+  else if (strcmp(cline,"XrotZ") == 0)
+    linear = 4;
+  else if (strcmp(cline,"YrotZ") == 0)
+    linear = 5;
+  else if (strcmp(cline,"Tinit") == 0)
+    linear = 6;
+  else if (strcmp(cline,"quadX") == 0)
+    quadratic = 1;
+  else if (strcmp(cline,"quadY") == 0)
+    quadratic = 2;
+  else if (strcmp(cline,"quadZ") == 0)
+    quadratic = 3;
+  else if (strcmp(cline,"StepX") == 0)
+    linear = 7;
+  else if (strcmp(cline,"StepXY") == 0)
+    linear = 8;
 
   real C = A;
   const RealFunc* f = 0;
-  if (linear && (cline = strtok(NULL," ")))
+  if (linear > 0 && (cline = strtok(NULL," ")))
   {
     C = real(1);
     std::cout <<"("<< A <<"*";
@@ -200,18 +201,19 @@ const RealFunc* utl::parseRealFunc (char* cline, real A)
       break;
     case 3:
       f = new QuadraticZFunc(A,a,b);
-      break;  
+      break;
     }
     cline = strtok(NULL," ");
-  } 
-  //std::cout << C;
+  }
+  if (quadratic == 0)
+    std::cout << C;
 
   // Check for time variation
   if (!cline) return f;
 
   const ScalarFunc* s = 0;
   double freq = atof(cline);
-  if (cline = strtok(NULL," "))
+  if ((cline = strtok(NULL," ")))
   {
     std::cout <<" * sin("<< freq <<"*t + "<< cline <<")";
     s = new SineFunc(C,freq,atof(cline));

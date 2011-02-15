@@ -1,4 +1,4 @@
-// $Id: SIMLinEl3D.h,v 1.12 2011-02-09 10:07:57 rho Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file SIMLinEl3D.h
@@ -16,7 +16,6 @@
 
 #include "SIM3D.h"
 #include "SIMenums.h"
-#include "AnaSol.h"
 
 
 /*!
@@ -47,8 +46,8 @@ public:
   //! \param[in] checkRHS If \e true, ensure the model is in a right-hand system
   //! \param[in] form Problem formulation option
   SIMLinEl3D(bool checkRHS = false, int form = SIM::LINEAR);
-  //! \brief The destructor frees the dynamically allocated data.
-  virtual ~SIMLinEl3D();
+  //! \brief Empty destructor.
+  virtual ~SIMLinEl3D() {}
 
 protected:
   //! \brief Parses a data section from the input stream.
@@ -64,12 +63,8 @@ protected:
   //! \param[in] propInd Physical property index
   virtual bool initNeumann(size_t propInd);
 
-  //! \brief Returns the analytical solution function, if any.
-  virtual AnaSol* getAnaSol() const { return asol; }
-
 private:
   MaterialVec mVec; //!< Material data
-  AnaSol*     asol; //!< Analytical solution fields
 };
 
 #endif

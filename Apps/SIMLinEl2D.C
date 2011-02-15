@@ -1,4 +1,4 @@
-// $Id: SIMLinEl2D.C,v 1.19 2011-02-09 10:07:36 rho Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file SIMLinEl2D.C
@@ -13,13 +13,14 @@
 
 #include "SIMLinEl2D.h"
 #include "LinearElasticity.h"
-#include "NonlinearElasticity.h"
+#include "FiniteDefElasticity/NonlinearElasticity.h"
 #include "AnalyticSolutions.h"
 #include "Functions.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
 #include "Property.h"
 #include "Tensor.h"
+#include "AnaSol.h"
 #include <string.h>
 
 
@@ -34,14 +35,6 @@ SIMLinEl2D::SIMLinEl2D (int form, bool planeStress)
       myProblem = new NonlinearElasticity(2,planeStress);
       break;
     }
-
-  asol = 0;
-}
-
-
-SIMLinEl2D::~SIMLinEl2D ()
-{
-  if (asol) delete asol;
 }
 
 
@@ -55,7 +48,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
   {
     double gx = atof(strtok(keyWord+7," "));
     double gy = atof(strtok(NULL," "));
-    elp->setGravity(gx,gy,0.0);
+    elp->setGravity(gx,gy);
     if (myPid == 0)
       std::cout <<"\nGravitation vector: "
 		<< gx <<" "<< gy << std::endl;
@@ -78,7 +71,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
 		  << E <<" "<< nu <<" "<< rho << std::endl;
       if (code == 0 || i == 0)
 	elp->setMaterial(E,nu,rho);
-      for (unsigned int j = 0; j < myProps.size() && code > 0; j++)
+      for (size_t j = 0; j < myProps.size() && code > 0; j++)
 	if (myProps[j].pindx == (size_t)code &&
 	    myProps[j].pcode == Property::UNDEFINED)
 	{
@@ -118,7 +111,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
       double a  = atof(strtok(NULL," "));
       double F0 = atof(strtok(NULL," "));
       double nu = atof(strtok(NULL," "));
-      asol = new AnaSol(NULL,NULL,NULL,new Hole(a,F0,nu));
+      mySol = new AnaSol(new Hole(a,F0,nu));
       std::cout <<"\nAnalytical solution: Hole a="<< a <<" F0="<< F0
 		<<" nu="<< nu << std::endl;
     }
@@ -127,7 +120,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
       double a  = atof(strtok(NULL," "));
       double F0 = atof(strtok(NULL," "));
       double nu = atof(strtok(NULL," "));
-      asol = new AnaSol(NULL,NULL,NULL,new Lshape(a,F0,nu));
+      mySol = new AnaSol(new Lshape(a,F0,nu));
       std::cout <<"\nAnalytical solution: Lshape a="<< a <<" F0="<< F0
 		<<" nu="<< nu << std::endl;
     }
@@ -136,7 +129,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
       double L  = atof(strtok(NULL," "));
       double H  = atof(strtok(NULL," "));
       double F0 = atof(strtok(NULL," "));
-      asol = new AnaSol(NULL,NULL,NULL,new CanTS(L,H,F0));
+      mySol = new AnaSol(new CanTS(L,H,F0));
       std::cout <<"\nAnalytical solution: CanTS L="<< L <<" H="<< H
 		<<" F0="<< F0 << std::endl;
     }
@@ -144,7 +137,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
     {
       double H  = atof(strtok(NULL," "));
       double M0 = atof(strtok(NULL," "));
-      asol = new AnaSol(NULL,NULL,NULL,new CanTM(H,M0));
+      mySol = new AnaSol(new CanTM(H,M0));
       std::cout <<"\nAnalytical solution: CanTM H="<< H
 		<<" M0="<< M0 << std::endl;
     }
@@ -154,21 +147,24 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
       double b  = atof(strtok(NULL," "));
       double u0 = atof(strtok(NULL," "));
       double E  = atof(strtok(NULL," "));
-      asol = new AnaSol(NULL,NULL,NULL,new CurvedBeam(u0,a,b,E));
+      mySol = new AnaSol(new CurvedBeam(u0,a,b,E));
       std::cout <<"\nAnalytical solution: Curved Beam a="<< a <<" b="<< b
                 <<" u0="<< u0 <<" E="<< E << std::endl;
     }
     else
+    {
       std::cerr <<"  ** SIMLinEl2D::parse: Unknown analytical solution "
-		<< cline << std::endl;
+		<< cline <<" (ignored)"<< std::endl;
+      return true;
+    }
 
     // Define the analytical boundary traction field
     int code = (cline = strtok(NULL," ")) ? atoi(cline) : 0;
-    if (code > 0 && asol->getVectorSecSol())
+    if (code > 0 && mySol->getStressSol())
     {
       std::cout <<"Pressure code "<< code <<": Analytical traction"<< std::endl;
       this->setPropertyType(code,Property::NEUMANN);
-      myTracs[code] = new TractionField(*(asol->getVectorSecSol()));
+      myTracs[code] = new TractionField(*mySol->getStressSol());
     }
   }
 
@@ -201,11 +197,11 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
 	return false;
       }
 
-      if (asol->getVectorSecSol())
+      if (mySol && mySol->getStressSol())
       {
 	std::cout <<"\tTraction on P"<< press.patch
 		  <<" E"<< (int)press.lindx << std::endl;
-	myTracs[1+i] = new TractionField(*asol->getVectorSecSol());
+	myTracs[1+i] = new TractionField(*mySol->getStressSol());
       }
       else
       {

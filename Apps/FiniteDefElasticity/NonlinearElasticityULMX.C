@@ -1,4 +1,4 @@
-// $Id: NonlinearElasticityULMX.C,v 1.7 2011-02-08 09:06:02 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file NonlinearElasticityULMX.C
@@ -459,7 +459,7 @@ bool NonlinearElasticityULMX::finalizeElement (LocalIntegral*& elmInt)
 }
 
 
-NormBase* NonlinearElasticityULMX::getNormIntegrand (TensorFunc*) const
+NormBase* NonlinearElasticityULMX::getNormIntegrand (AnaSol*) const
 {
   return new ElasticityNormULMX(*const_cast<NonlinearElasticityULMX*>(this));
 }

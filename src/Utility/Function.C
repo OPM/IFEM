@@ -1,4 +1,4 @@
-// $Id: Function.C,v 1.6 2010-10-14 19:10:55 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file Function.C
@@ -42,5 +42,10 @@ Vec3 PressureField::evaluate (const Vec3& x, const Vec3& n) const
 
 Vec3 TractionField::evaluate (const Vec3& x, const Vec3& n) const
 {
-  return stress(x) * n;
+  if (sigma) // symmetric tensor field
+    return (*sigma)(x) * n;
+  else if (sigmaN) // non-symmetric tensor field
+    return (*sigmaN)(x) * n;
+  else
+    return Vec3();
 }

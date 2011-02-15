@@ -1,4 +1,4 @@
-// $Id: SIMLinEl3D.C,v 1.29 2011-02-09 10:08:02 rho Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file SIMLinEl3D.C
@@ -13,13 +13,14 @@
 
 #include "SIMLinEl3D.h"
 #include "LinearElasticity.h"
-#include "NonlinearElasticity.h"
+#include "FiniteDefElasticity/NonlinearElasticity.h"
 #include "AnalyticSolutions.h"
 #include "Functions.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
 #include "Property.h"
 #include "Tensor.h"
+#include "AnaSol.h"
 #include <string.h>
 
 
@@ -128,7 +129,7 @@ public:
 	T(1,i) = v1[i-1];
 	T(2,i) = v2[i-1];
 	T(3,i) = v3[i-1];
-      } 
+      }
 #ifdef PRINT_CS
       s1 << v1 <<'\n';
       s2 << v2 <<'\n';
@@ -161,14 +162,6 @@ SIMLinEl3D::SIMLinEl3D (bool checkRHS, int form) : SIM3D(checkRHS)
       myProblem = new NonlinearElasticity();
       break;
     }
-
-  asol = 0;
-}
-
-
-SIMLinEl3D::~SIMLinEl3D ()
-{
-  if (asol) delete asol;
 }
 
 
@@ -208,8 +201,9 @@ bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
 		  << E <<" "<< nu <<" "<< rho << std::endl;
       if (code == 0 || i == 0)
 	elp->setMaterial(E,nu,rho);
-      for (unsigned int j = 0; j < myProps.size() && code > 0; j++)
-	if (myProps[j].pindx == code && myProps[j].pcode == Property::UNDEFINED)
+      for (size_t j = 0; j < myProps.size() && code > 0; j++)
+	if (myProps[j].pindx == (size_t)code &&
+	    myProps[j].pcode == Property::UNDEFINED)
 	{
 	  myProps[j].pindx = mVec.size();
 	  myProps[j].pcode = Property::MATERIAL;
@@ -232,7 +226,7 @@ bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
       double a  = atof(strtok(NULL," "));
       double F0 = atof(strtok(NULL," "));
       double nu = atof(strtok(NULL," "));
-      asol = new AnaSol(NULL,NULL,NULL,new Hole(a,F0,nu,true));
+      mySol = new AnaSol(new Hole(a,F0,nu,true));
       std::cout <<"\nAnalytical solution: Hole a="<< a <<" F0="<< F0
 		<<" nu="<< nu << std::endl;
     }
@@ -241,7 +235,7 @@ bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
       double a  = atof(strtok(NULL," "));
       double F0 = atof(strtok(NULL," "));
       double nu = atof(strtok(NULL," "));
-      asol = new AnaSol(NULL,NULL,NULL,new Lshape(a,F0,nu,true));
+      mySol = new AnaSol(new Lshape(a,F0,nu,true));
       std::cout <<"\nAnalytical solution: Lshape a="<< a <<" F0="<< F0
 		<<" nu="<< nu << std::endl;
     }
@@ -250,21 +244,24 @@ bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
       double L  = atof(strtok(NULL," "));
       double H  = atof(strtok(NULL," "));
       double F0 = atof(strtok(NULL," "));
-      asol = new AnaSol(NULL,NULL,NULL,new CanTS(L,H,F0,true));
+      mySol = new AnaSol(new CanTS(L,H,F0,true));
       std::cout <<"\nAnalytical solution: CanTS L="<< L <<" H="<< H
 		<<" F0="<< F0 << std::endl;
     }
     else
+    {
       std::cerr <<"  ** SIMLinEl3D::parse: Unknown analytical solution "
-		<< cline << std::endl;
+		<< cline <<" (ignored)"<< std::endl;
+      return true;
+    }
 
     // Define the analytical boundary traction field
     int code = (cline = strtok(NULL," ")) ? atoi(cline) : 0;
-    if (code > 0 && asol->getVectorSecSol())
+    if (code > 0 && mySol->getStressSol())
     {
       std::cout <<"Pressure code "<< code <<": Analytical traction"<< std::endl;
       this->setPropertyType(code,Property::NEUMANN);
-      myTracs[code] = new TractionField(*(asol->getVectorSecSol()));
+      myTracs[code] = new TractionField(*mySol->getStressSol());
     }
   }
 
@@ -297,11 +294,11 @@ bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
 	return false;
       }
 
-      if (asol && asol->getVectorSecSol())
+      if (mySol && mySol->getStressSol())
       {
 	std::cout <<"\tTraction on P"<< press.patch
 		  <<" F"<< (int)press.lindx << std::endl;
-	myTracs[1+i] = new TractionField(*asol->getVectorSecSol());
+	myTracs[1+i] = new TractionField(*mySol->getStressSol());
       }
       else
       {

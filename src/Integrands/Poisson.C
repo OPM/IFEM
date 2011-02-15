@@ -1,4 +1,4 @@
-// $Id: Poisson.C,v 1.6 2010-12-27 18:29:01 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file Poisson.C
@@ -16,6 +16,7 @@
 #include "ElmNorm.h"
 #include "Tensor.h"
 #include "Vec3Oper.h"
+#include "AnaSol.h"
 #include "VTF.h"
 
 
@@ -86,7 +87,7 @@ bool Poisson::initElement (const std::vector<int>& MNPC)
 
   int ierr = 0;
   if (eV && !primsol.front().empty())
-    if (ierr = utl::gather(MNPC,1,primsol.front(),*eV))
+    if ((ierr = utl::gather(MNPC,1,primsol.front(),*eV)))
       std::cerr <<" *** Poisson::initElement: Detected "
 		<< ierr <<" node numbers out of range."<< std::endl;
 
@@ -199,8 +200,8 @@ bool Poisson::evalSol (Vector& q, const Vector&,
     return false;
 
   Vector Dtmp;
-  int ierr = 0;
-  if (ierr = utl::gather(MNPC,1,primsol.front(),Dtmp))
+  int ierr = utl::gather(MNPC,1,primsol.front(),Dtmp);
+  if (ierr > 0)
   {
     std::cerr <<" *** Poisson::evalSol: Detected "
 	      << ierr <<" node numbers out of range."<< std::endl;
@@ -215,8 +216,7 @@ bool Poisson::evalSol (Vector& q, const Vector&,
 }
 
 
-bool Poisson::evalSol (Vector& q,
-		       const Matrix& dNdX, const Vec3& X) const
+bool Poisson::evalSol (Vector& q, const Matrix& dNdX, const Vec3& X) const
 {
   if (!eV || eV->empty())
   {
@@ -242,8 +242,7 @@ bool Poisson::evalSol (Vector& q,
 }
 
 
-bool Poisson::evalSolScal (Vector& s,
-			   const VecFunc& asol, const Vec3& X) const
+bool Poisson::evalSol (Vector& s, const VecFunc& asol, const Vec3& X) const
 {
   s = Vector(asol(X).ptr(),nsd);
   return true;
@@ -266,9 +265,13 @@ const char* Poisson::getFieldLabel (size_t i, const char* prefix) const
 }
 
 
-NormBase* Poisson::getNormIntegrandScal (VecFunc* asol) const
+NormBase* Poisson::getNormIntegrand (AnaSol* asol) const
 {
-  return new PoissonNorm(*const_cast<Poisson*>(this),asol);
+  if (asol)
+    return new PoissonNorm(*const_cast<Poisson*>(this),
+			   asol->getScalarSecSol());
+  else
+    return new PoissonNorm(*const_cast<Poisson*>(this));
 }
 
 

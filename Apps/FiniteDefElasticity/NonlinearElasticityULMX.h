@@ -1,4 +1,4 @@
-// $Id: NonlinearElasticityULMX.h,v 1.3 2011-01-08 16:29:10 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file NonlinearElasticityULMX.h
@@ -89,7 +89,7 @@ public:
   //! \note The Integrand object is allocated dynamically and has to be deleted
   //! manually when leaving the scope of the pointer variable receiving the
   //! returned pointer value.
-  virtual NormBase* getNormIntegrand(TensorFunc* = 0) const;
+  virtual NormBase* getNormIntegrand(AnaSol* = 0) const;
 
   //! \brief Returns which integrand to be used.
   virtual int getIntegrandType() const { return 4; }

@@ -1,4 +1,4 @@
-// $Id: Elasticity.C,v 1.1 2011-02-08 09:06:02 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file Elasticity.C
@@ -17,18 +17,19 @@
 #include "ElmNorm.h"
 #include "Tensor.h"
 #include "Vec3Oper.h"
+#include "AnaSol.h"
 #include "VTF.h"
 
 
-Elasticity::Elasticity (unsigned short int n, bool ps)
+Elasticity::Elasticity (unsigned short int n, bool ps) : nsd(n), planeStress(ps)
 {
-  nsd = n;
-  planeStress = ps;
-
   // Default material properties - typical values for steel (SI units)
   Emod = 2.05e11;
   nu = 0.29;
   rho = 7.85e3;
+
+  // Default is zero gravity
+  g[0] = g[1] = g[2] = 0.0;
 
   myMats = new ElmMats();
 
@@ -161,7 +162,9 @@ bool Elasticity::initElement (const std::vector<int>& MNPC)
       std::cerr <<" *** Elasticity::initElement: Detected "
 		<< ierr <<" node numbers out of range."<< std::endl;
 
-  myMats->withLHS = true;
+  if (myMats)
+    myMats->withLHS = true;
+
   return ierr == 0;
 }
 
@@ -178,7 +181,9 @@ bool Elasticity::initElementBou (const std::vector<int>& MNPC)
       std::cerr <<" *** Elasticity::initElement: Detected "
                 << ierr <<" node numbers out of range."<< std::endl;
 
-  myMats->withLHS = false;
+  if (myMats)
+    myMats->withLHS = false;
+
   return ierr == 0;
 }
 
@@ -585,9 +590,10 @@ bool Elasticity::evalSol (Vector& s, const Matrix& dNdX, const Vec3& X) const
 }
 
 
-bool Elasticity::evalSol (Vector& s, const TensorFunc& sol, const Vec3& X) const
+bool Elasticity::evalSol (Vector& s, const STensorFunc& asol,
+			  const Vec3& X) const
 {
-  s = sol(X);
+  s = asol(X);
   s.push_back(SymmTensor(s).vonMises());
   return true;
 }
@@ -623,9 +629,13 @@ const char* Elasticity::getFieldLabel (size_t i, const char* prefix) const
 }
 
 
-NormBase* Elasticity::getNormIntegrand (TensorFunc* sol) const
+NormBase* Elasticity::getNormIntegrand (AnaSol* asol) const
 {
-  return new ElasticityNorm(*const_cast<Elasticity*>(this),sol);
+  if (asol)
+    return new ElasticityNorm(*const_cast<Elasticity*>(this),
+			      asol->getStressSol());
+  else
+    return new ElasticityNorm(*const_cast<Elasticity*>(this));
 }
 
 

@@ -1,4 +1,4 @@
-// $Id: NonlinearElasticityTL.h,v 1.2 2011-02-08 09:06:02 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file NonlinearElasticityTL.h
@@ -43,6 +43,16 @@ public:
   //! \param[in] mode The solution mode to use
   virtual void setMode(SIM::SolutionMode mode);
 
+  //! \brief Evaluates the integrand at an interior point.
+  //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] detJW Jacobian determinant times integration point weight
+  //! \param[in] N Basis function values
+  //! \param[in] dNdX Basis function gradients
+  //! \param[in] X Cartesian coordinates of current integration point
+  virtual bool evalInt(LocalIntegral*& elmInt, double detJW,
+                       const Vector& N, const Matrix& dNdX,
+                       const Vec3& X) const;
+
   //! \brief Evaluates the integrand at a boundary point.
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] detJW Jacobian determinant times integration point weight
@@ -69,8 +79,9 @@ protected:
   virtual bool kinematics(const Matrix& dNdX, SymmTensor& E) const;
 
 protected:
-  bool       formB; //!< Flag determining whether we need to form the B-matrix
-  mutable Matrix F; //!< Deformation gradient
+  bool       formB;  //!< Flag determining whether we need to form the B-matrix
+  mutable Matrix F;  //!< Deformation gradient
+  mutable Matrix CB; //!< Result of the matrix-matrix product C*B
 };
 
 #endif

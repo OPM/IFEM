@@ -1,4 +1,4 @@
-// $Id: SIMLinEl2D.h,v 1.10 2011-02-09 10:07:31 rho Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file SIMLinEl2D.h
@@ -16,7 +16,6 @@
 
 #include "SIM2D.h"
 #include "SIMenums.h"
-#include "AnaSol.h"
 
 
 /*!
@@ -47,8 +46,8 @@ public:
   //! \param[in] form Problem formulation option
   //! \param[in] planeStress Plane stress/plane strain option
   SIMLinEl2D(int form = SIM::LINEAR, bool planeStress = true);
-  //! \brief The destructor frees the dynamically allocated data.
-  virtual ~SIMLinEl2D();
+  //! \brief Empty destructor.
+  virtual ~SIMLinEl2D() {}
 
 protected:
   //! \brief Parses a data section from the input stream.
@@ -64,12 +63,8 @@ protected:
   //! \param[in] propInd Physical property index
   virtual bool initNeumann(size_t propInd);
 
-  //! \brief Returns the analytical solution function, if any.
-  virtual AnaSol* getAnaSol() const { return asol; }
-
 private:
   MaterialVec mVec; //!< Material data
-  AnaSol*     asol; //!< Analytical stress field
 };
 
 #endif

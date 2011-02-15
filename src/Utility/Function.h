@@ -1,4 +1,4 @@
-// $Id: Function.h,v 1.7 2011-02-08 15:07:19 rho Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file Function.h
@@ -84,8 +84,11 @@ typedef utl::Function<Vec3,real> RealFunc;
 //! \brief Vector-valued unary function of a spatial point.
 typedef utl::Function<Vec3,Vec3> VecFunc;
 
-//! \brief Symmetric tensor-valued unary function of a spatial point.
+//! \brief Tensor-valued unary function of a spatial point.
 typedef utl::Function<Vec3,Tensor> TensorFunc;
+
+//! \brief Symmetric tensor-valued unary function of a spatial point.
+typedef utl::Function<Vec3,SymmTensor> STensorFunc;
 
 
 /*!
@@ -136,11 +139,14 @@ protected:
 
 class TractionField : public TractionFunc
 {
-  const TensorFunc& stress; //!< The tensor field to derive the traction from
+  const STensorFunc* sigma; //!< Symmetric tensor field to derive tractions from
+  const TensorFunc* sigmaN; //!< Tensor field to derive tractions from
 
 public:
-  //! \brief Constructor initializing the tensor function reference.
-  TractionField(const TensorFunc& field) : stress(field) {}
+  //! \brief Constructor initializing the symmetric tensor function pointer.
+  TractionField(const STensorFunc& field) : sigma(&field), sigmaN(0) {}
+  //! \brief Constructor initializing the tensor function pointer.
+  TractionField(const TensorFunc& field) : sigma(0), sigmaN(&field) {}
   //! \brief Empty destructor.
   virtual ~TractionField() {}
 

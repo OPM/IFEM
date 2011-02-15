@@ -1,4 +1,4 @@
-// $Id: AnalyticSolutions.C,v 1.11 2011-02-08 12:19:52 rho Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file AnalyticSolutions.C
@@ -13,8 +13,6 @@
 
 #include "AnalyticSolutions.h"
 #include "Vec3.h"
-#include "Vec3Oper.h"
-#include <math.h>
 
 
 /*!
@@ -26,7 +24,7 @@
   IJNME, 33, 1331-1364, 1992, page 1355 (eq. 36).
 */
 
-Tensor Hole::evaluate (const Vec3& X) const
+SymmTensor Hole::evaluate (const Vec3& X) const
 {
   double R  = hypot(X.x,X.y);
   double th = atan2(X.y,X.x);
@@ -82,7 +80,7 @@ Lshape::Lshape (double r, double f, double P, bool use3D)
 }
 
 
-Tensor Lshape::evaluate (const Vec3& X) const
+SymmTensor Lshape::evaluate (const Vec3& X) const
 {
   // Some constants (see Szabo & Babuska for an elaboration)
   const double lambda = 0.544483737;
@@ -112,7 +110,7 @@ Tensor Lshape::evaluate (const Vec3& X) const
 }
 
 
-Tensor CanTS::evaluate (const Vec3& X) const
+SymmTensor CanTS::evaluate (const Vec3& X) const
 {
   double x = X.x/L;
   double y = (is3D ? X.z : X.y)/H - 0.5;
@@ -127,7 +125,7 @@ Tensor CanTS::evaluate (const Vec3& X) const
 }
 
 
-Tensor CanTM::evaluate (const Vec3& X) const
+SymmTensor CanTM::evaluate (const Vec3& X) const
 {
   double y = (is3D ? X.z : X.y)/H - 0.5;
   double I = H*H*H / 12.0;
@@ -157,7 +155,7 @@ CurvedBeam::CurvedBeam (double u0, double Ri, double Ro, double E, bool use3D)
 }
 
 
-Tensor CurvedBeam::evaluate (const Vec3& X) const
+SymmTensor CurvedBeam::evaluate (const Vec3& X) const
 {
   // Find polar coordinates
   double r     = hypot(X.x,X.y);

@@ -1,4 +1,4 @@
-// $Id: SIMbase.h,v 1.35 2011-02-08 15:51:16 rho Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file SIMbase.h
@@ -19,11 +19,11 @@
 #include "TimeDomain.h"
 #include "Property.h"
 #include "Function.h"
-#include "AnaSol.h"
 #include <map>
 
 class ASMbase;
 class Integrand;
+class AnaSol;
 class VTF;
 class SAMpatch;
 class AlgEqSystem;
@@ -98,7 +98,7 @@ public:
 
   //! \brief Prints out problem-specific data to the given stream.
   void printProblem(std::ostream& os) const;
- 
+
   //! \brief Returns the number of spatial dimensions in the model.
   size_t getNoSpaceDim() const;
   //! \brief Returns the model size in terms of number of DOFs.
@@ -169,8 +169,10 @@ public:
   //! \param[in] x Global primary solution vector
   //! \param[out] inf Infinity norms in each spatial direction
   //! \param[out] ind Global index of the node corresponding to the inf-value
+  //! \param[in] nf Number of components in the primary solution field
   //! \return L2-norm of the solution vector
-  virtual double solutionNorms(const Vector& x, double* inf, size_t* ind) const;
+  virtual double solutionNorms(const Vector& x, double* inf,
+			       size_t* ind, size_t nf = 0) const;
 
   //! \brief Integrates some solution norm quantities.
   //! \details If an analytical solution is provided, norms of the exact
@@ -322,9 +324,6 @@ protected:
   //! \brief Initializes for integration of Neumann terms for a given property.
   virtual bool initNeumann(size_t) { return true; }
 
-  //! \brief Returns the analytical solution field, if any.
-  virtual AnaSol* getAnaSol() const { return 0; }
-
   //! \brief Extract local solution vector(s) for a given patch.
   //! \param[in] patch Pointer to the patch to extract solution vectors for
   //! \param[in] sol Global primary solution vectors in DOF-order
@@ -357,6 +356,7 @@ protected:
   VecFuncMap  myVectors; //!< Vector property fields
   TracFuncMap myTracs;   //!< Traction property fields
   Integrand*  myProblem; //!< Problem-specific data and methods
+  AnaSol*     mySol;     //!< Analytical/Exact solution
   VTF*        myVtf;     //!< VTF-file for result visualization
 
   // Parallel computing attributes

@@ -1,3 +1,4 @@
+// $Id$
 //==============================================================================
 //!
 //! \file AnalyticSolutionsStokes.h
@@ -16,140 +17,137 @@
 #include "AnaSol.h"
 #include "Tensor.h"
 
+
 /*!
-  \brief Analytic solution for Poiseuille flow
+  \brief Analytic solution for Poiseuille flow.
 */
 
 class Poiseuille : public AnaSol
 {
  public:
-  //! \brief Constructor for pressure inlet BC
-  Poiseuille(double P = 1.0, double diam = 1.0, double len = 1.0, double visc = 1.0);
-  //! \brief Destructor
-  virtual ~Poiseuille();
+  //! \brief Constructor with some default parameters.
+  Poiseuille(double P = 1.0, double diam = 1.0, double len = 1.0,
+	     double visc = 1.0);
+  //! \brief Empty destructor.
+  virtual ~Poiseuille() {}
 
  private:
-  double D;    // Diameter of channel
-  double L;    // Length of channel
-  double mu;   // Fluid viscosity
-  double Pin;  // Inlet value
+  double D;   //!< Diameter of channel
+  double L;   //!< Length of channel
+  double mu;  //!< Fluid viscosity
+  double Pin; //!< Inlet pressure value
 
-  // Analytical pressure
+  //! \brief Analytical pressure field.
   class Pressure : public RealFunc
   {
-  private:
-    Poiseuille& params;
+    const Poiseuille& params;
 
   protected:
-    real evaluate(const Vec3& x) const;
+    virtual double evaluate(const Vec3& x) const;
 
   public:
-    Pressure(Poiseuille& p) : params(p) {}
+    Pressure(const Poiseuille& p) : params(p) {}
     virtual ~Pressure() {}
   };
 
-  // Analytical velocity
+  //! \brief Analytical velocity field.
   class Velocity : public VecFunc
   {
-  private:
-    Poiseuille& params;
+    const Poiseuille& params;
 
   protected:
-    Vec3 evaluate(const Vec3& x) const;
+    virtual Vec3 evaluate(const Vec3& x) const;
 
   public:
-    Velocity(Poiseuille& p) : params(p) {}
+    Velocity(const Poiseuille& p) : params(p) {}
     virtual ~Velocity() {}
   };
 
 
-  // Analytical pressure gradient
+  //! \brief Analytical pressure gradient field.
   class PressureGrad : public VecFunc
   {
-  private:
-    Poiseuille& params;
+    const Poiseuille& params;
 
   protected:
-    Vec3 evaluate(const Vec3& x) const;
+    virtual Vec3 evaluate(const Vec3& x) const;
 
   public:
-   PressureGrad(Poiseuille& p) : params(p) {}
+   PressureGrad(const Poiseuille& p) : params(p) {}
     virtual ~PressureGrad() {}
   };
 
-  // Analytical velocity gradient
+  //! \brief Analytical velocity gradient field.
   class VelocityGrad : public TensorFunc
   {
-  private:
-    Poiseuille& params;
+    const Poiseuille& params;
 
   protected:
-    Tensor evaluate(const Vec3& x) const;
+    virtual Tensor evaluate(const Vec3& x) const;
 
   public:
-    VelocityGrad(Poiseuille& p) : params(p) {}
+    VelocityGrad(const Poiseuille& p) : params(p) {}
     virtual ~VelocityGrad() {}
   };
 };
 
 
 /*!
-  \brief Artificial solution for Navier-Stokes equations
+  \brief Artificial solution for Navier-Stokes equations.
 */
 
 class TestSolution : public AnaSol
 {
  public:
-  //! \brief Constructor 
-  //! \param[in] rho Fluid density
-  //! \param[in] mu  Fluid viscosity
-  TestSolution(double rho = 1.0, double mu = 1.0);
-  //! \brief Destructor
-  virtual ~TestSolution();
+  //! \brief Constructor with some default parameters.
+  //! \param[in] dens Fluid density
+  //! \param[in] visc Fluid viscosity
+  TestSolution(double dens = 1.0, double visc = 1.0);
+  //! \brief Empty destructor.
+  virtual ~TestSolution() {}
 
  private:
-  double rho;  // Fluid density
-  double mu;   // Fluid viscosity
+  double rho; //!< Fluid density
+  double mu;  //!< Fluid viscosity
 
-  // Analytical pressure
+  //! \brief Analytical pressure field.
   class Pressure : public RealFunc
   {
   protected:
-    real evaluate(const Vec3& x) const;
+    virtual double evaluate(const Vec3& x) const;
 
   public:
     Pressure() {}
     virtual ~Pressure() {}
   };
 
-  // Analytical velocity
+  //! \brief Analytical velocity field.
   class Velocity : public VecFunc
   {
   protected:
-    Vec3 evaluate(const Vec3& x) const;
+    virtual Vec3 evaluate(const Vec3& x) const;
 
   public:
     Velocity() {}
     virtual ~Velocity() {}
   };
 
-
-  // Analytical pressure gradient
+  //! \brief Analytical pressure gradient field.
   class PressureGrad : public VecFunc
   {
   protected:
-    Vec3 evaluate(const Vec3& x) const;
+    virtual Vec3 evaluate(const Vec3& x) const;
 
   public:
     PressureGrad() {}
     virtual ~PressureGrad() {}
   };
 
-  // Analytical velocity gradient
+  //! \brief Analytical velocity gradient field.
   class VelocityGrad : public TensorFunc
   {
   protected:
-    Tensor evaluate(const Vec3& x) const;
+    virtual Tensor evaluate(const Vec3& x) const;
 
   public:
     VelocityGrad() {}

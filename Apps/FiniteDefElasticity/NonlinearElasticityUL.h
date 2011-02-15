@@ -1,4 +1,4 @@
-// $Id: NonlinearElasticityUL.h,v 1.7 2011-02-08 09:06:02 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file NonlinearElasticityUL.h
@@ -89,7 +89,7 @@ public:
   //! \note The Integrand object is allocated dynamically and has to be deleted
   //! manually when leaving the scope of the pointer variable receiving the
   //! returned pointer value.
-  virtual NormBase* getNormIntegrand(TensorFunc* = 0) const;
+  virtual NormBase* getNormIntegrand(AnaSol* = 0) const;
 
   //! \brief Calculates some kinematic quantities at current point.
   //! \param[in] dNdX Basis function gradients at current point
@@ -143,7 +143,7 @@ class ElasticityNormUL : public ElasticityNorm
 public:
   //! \brief The only constructor initializes its data members.
   //! \param[in] p The linear elasticity problem to evaluate norms for
-  ElasticityNormUL(NonlinearElasticityUL& p) : ElasticityNorm(p,0) {}
+  ElasticityNormUL(NonlinearElasticityUL& p) : ElasticityNorm(p) {}
   //! \brief Empty destructor.
   virtual ~ElasticityNormUL() {}
 

@@ -1,4 +1,4 @@
-// $Id: Elasticity.h,v 1.1 2011-02-08 09:06:02 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file Elasticity.h
@@ -21,7 +21,6 @@
 class LocalSystem;
 class ElmMats;
 class ElmNorm;
-class Tensor;
 class VTF;
 
 
@@ -57,7 +56,7 @@ public:
   void clearTracVal() { tracVal.clear(); }
 
   //! \brief Defines the gravitation vector.
-  void setGravity(double gx, double gy, double gz)
+  void setGravity(double gx, double gy = 0.0, double gz = 0.0)
   { g[0] = gx; g[1] = gy; g[2] = gz; }
 
   //! \brief Defines the body force field.
@@ -98,9 +97,9 @@ public:
 
   //! \brief Evaluates the analytical solution at an integration point.
   //! \param[out] s The analytical stress values at current point
-  //! \param[in] sol The analytical solution field
+  //! \param[in] asol The analytical solution field
   //! \param[in] X Cartesian coordinates of current point
-  virtual bool evalSol(Vector& s, const TensorFunc& sol, const Vec3& X) const;
+  virtual bool evalSol(Vector& s, const STensorFunc& asol, const Vec3& X) const;
 
   //! \brief Evaluates the primary solution at a result point.
   //! \param[in] N Basis function values at current point
@@ -127,8 +126,8 @@ public:
   //! \note The Integrand object is allocated dynamically and has to be deleted
   //! manually when leaving the scope of the pointer variable receiving the
   //! returned pointer value.
-  //! \param[in] sol Pointer to analytical solution field (optional)
-  virtual NormBase* getNormIntegrand(TensorFunc* sol = 0) const;
+  //! \param[in] asol Pointer to analytical solution fields (optional)
+  virtual NormBase* getNormIntegrand(AnaSol* asol = 0) const;
 
   //! \brief Returns the number of secondary solution fields.
   virtual size_t getNoFields() const;
@@ -246,7 +245,7 @@ public:
   //! \brief The only constructor initializes its data members.
   //! \param[in] p The linear elasticity problem to evaluate norms for
   //! \param[in] a The analytical stress field (optional)
-  ElasticityNorm(Elasticity& p, TensorFunc* a) : problem(p), anasol(a) {}
+  ElasticityNorm(Elasticity& p, STensorFunc* a = 0) : problem(p), anasol(a) {}
   //! \brief Empty destructor.
   virtual ~ElasticityNorm() {}
 
@@ -297,7 +296,7 @@ protected:
   Elasticity& problem; //!< The problem-specific data
 
 private:
-  TensorFunc* anasol; //!< Analytical stress field
+  STensorFunc* anasol; //!< Analytical stress field
 };
 
 #endif

@@ -1,4 +1,4 @@
-// $Id: NonlinearElasticityTL.C,v 1.4 2011-02-08 09:06:02 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file NonlinearElasticityTL.C
@@ -77,6 +77,54 @@ void NonlinearElasticityTL::setMode (SIM::SolutionMode mode)
   eS = &myMats->b[0];
   eV = &myMats->b[1];
   tracVal.clear();
+}
+
+
+bool NonlinearElasticityTL::evalInt (LocalIntegral*& elmInt, double detJW,
+				     const Vector& N, const Matrix& dNdX,
+				     const Vec3& X) const
+{
+  // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E,
+  // and compute the nonlinear strain-displacement matrix B from dNdX and F
+  SymmTensor E(nsd), S(nsd);
+  if (!this->kinematics(dNdX,E))
+    return false;
+
+  // Evaluate the constitutive relation
+  double U = 0.0;
+  bool lHaveStrains = !E.isZero();
+  if (eKm || eKg || iS)
+    if (!this->constitutive(Cmat,S,U,E,X, (eKg || iS) && lHaveStrains))
+      return false;
+
+  if (eKm)
+  {
+    // Integrate the material stiffness matrix
+    CB.multiply(Cmat,Bmat).multiply(detJW); // CB = C*B*|J|*w
+    eKm->multiply(Bmat,CB,true,false,true); // EK += B^T * CB
+  }
+
+  if (eKg && lHaveStrains)
+    // Integrate the geometric stiffness matrix
+    this->formKG(*eKg,dNdX,S,detJW);
+
+  if (eM)
+    // Integrate the mass matrix
+    this->formMassMatrix(*eM,N,X,detJW);
+
+  if (iS && lHaveStrains)
+  {
+    // Integrate the internal forces
+    S *= -detJW;
+    if (!Bmat.multiply(S,*iS,true,true)) // ES -= B^T*S
+      return false;
+  }
+
+  if (eS)
+    // Integrate the load vector due to gravitation and other body forces
+    this->formBodyForce(*eS,N,X,detJW);
+
+  return this->getIntegralResult(elmInt);
 }
 
 

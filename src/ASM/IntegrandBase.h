@@ -1,4 +1,4 @@
-// $Id: IntegrandBase.h,v 1.20 2011-02-08 12:10:25 rho Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file IntegrandBase.h
@@ -121,7 +121,6 @@ public:
   //! the same element, provided the necessary integration point values are
   //! stored internally in the object during the first integration loop.
   virtual bool finalizeElement(LocalIntegral*&) { return true; }
-  
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
@@ -294,19 +293,6 @@ public:
     return false;
   }
 
-  //! \brief Evaluates the secondary solution at a result point.
-  //! \param[out] s The solution field values at current point
-  //! \param[in] N Basis function values at current point
-  //! \param[in] dNdX Basis function gradients at current point
-  //! \param[in] X Cartesian coordinates of current point
-  //! \param[in] MNPC Nodal point correspondance for the basis function values
-  virtual bool evalSecSol(Vector& s,
-                          const Vector& N, const Matrix& dNdX,
-                          const Vec3& X, const std::vector<int>& MNPC) const
-  {
-    return false;
-  }
-
   //! \brief Evaluates the secondary solution at a result point (mixed problem).
   //! \param[out] s The solution field values at current point
   //! \param[in] N1 Basis function values at current point, field 1
@@ -325,41 +311,53 @@ public:
     return this->evalSol(s,N1,dN1dX,X,MNPC1);
   }
 
-  //! \brief Evaluates the analytical solution at an integration point.
+  //! \brief Evaluates the analytical primary solution at a result point.
+  //! \param[out] s The solution field values at current point
+  //! \param[in] asol The analytical solution field (vector field)
+  //! \param[in] X Cartesian coordinates of current point
+  virtual bool evalPrimSol(Vector& s, const VecFunc& asol, const Vec3& X) const
+  {
+    std::cerr <<" *** Integrand::evalPrimSol not implemented"<< std::endl;
+    return false;
+  }
+
+  //! \brief Evaluates the analytical secondary solution at a result point.
   //! \param[out] s The solution field values at current point
   //! \param[in] asol The analytical solution field (tensor field)
+  //! \param[in] X Cartesian coordinates of current point
+  virtual bool evalSol(Vector& s, const TensorFunc& asol, const Vec3& X) const
+  {
+    std::cerr <<" *** Integrand::evalSol (exact) not implemented"<< std::endl;
+    return false;
+  }
+
+  //! \brief Evaluates the analytical secondary solution at a result point.
+  //! \param[out] s The solution field values at current point
+  //! \param[in] asol The analytical solution field (symmetric tensor field)
+  //! \param[in] X Cartesian coordinates of current point
+  virtual bool evalSol(Vector& s, const STensorFunc& asol, const Vec3& X) const
+  {
+    std::cerr <<" *** Integrand::evalSol (exact) not implemented"<< std::endl;
+    return false;
+  }
+
+  //! \brief Evaluates the analytical primary solution at a result point.
+  //! \param[out] s The solution field value at current point
+  //! \param[in] asol The analytical solution field (scalar field)
+  //! \param[in] X Cartesian coordinates of current point
+  virtual bool evalPrimSol(real& s, const RealFunc& asol, const Vec3& X) const
+  {
+    std::cerr <<" *** Integrand::evalPrimSol not implemented"<< std::endl;
+    return false;
+  }
+
+  //! \brief Evaluates the analytical secondary solution at a result point.
+  //! \param[out] s The solution field values at current point
+  //! \param[in] asol The analytical solution field (vector field)
   //! \param[in] X Cartesian coordinates of current point
   virtual bool evalSol(Vector& s, const VecFunc& asol, const Vec3& X) const
   {
     std::cerr <<" *** Integrand::evalSol (exact) not implemented"<< std::endl;
-    return false;
-  }
-
-  //! \brief Evaluates the analytical secondary solution at an integration point.
-  //! \param[out] s The solution field values at current point
-  //! \param[in] asol The analytical solution field (tensor field)
-  //! \param[in] X Cartesian coordinates of current point
-  virtual bool evalSecSol(Vector& s, const TensorFunc& asol, const Vec3& X) const
-  {
-    return false;
-  }
-
-  //! \brief Evaluates the analytical scalar solution at an integration point.
-  //! \param[out] s The solution field values at current point
-  //! \param[in] asol The analytical solution field (vector field)
-  //! \param[in] X Cartesian coordinates of current point
-  virtual bool evalSolScal(real& s, const RealFunc& asol, const Vec3& X) const
-  {
-    std::cerr <<" *** Integrand::evalSol (exact) not implemented"<< std::endl;
-    return false;
-  }
-
-  //! \brief Evaluates the analytical secondary scalar solution at an integration point.
-  //! \param[out] s The solution field values at current point
-  //! \param[in] asol The analytical solution field (vector field)
-  //! \param[in] X Cartesian coordinates of current point
-  virtual bool evalSecSolScal(Vector& s, const VecFunc& asol, const Vec3& X) const
-  {
     return false;
   }
 
@@ -390,14 +388,8 @@ public:
   }
 
   //! \brief Returns a pointer to an Integrand for solution norm evaluation.
-  //! \param[in] asol Pointer to the analytical solution field (optional)
+  //! \param[in] asol Pointer to the analytical solution (optional)
   virtual NormBase* getNormIntegrand(AnaSol* asol = 0) const { return 0; }
-
-  //! \brief Returns a pointer to an Integrand for solution norm evaluation.
-  //! \param[in] asol Pointer to the analytical solution field (optional)
-  //!
-  //! \details This version is used for scalar problems only.
-  virtual NormBase* getNormIntegrandScal(AnaSol* asol = 0) const { return 0; }
 
   //! \brief Returns the number of solution vectors.
   size_t getNoSolutions() const { return primsol.size(); }

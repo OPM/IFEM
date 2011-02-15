@@ -1,4 +1,4 @@
-// $Id: Poisson.h,v 1.4 2010-12-27 18:29:02 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file Poisson.h
@@ -98,9 +98,9 @@ public:
 
   //! \brief Evaluates the analytical solution at an integration point.
   //! \param[out] s The analytical solution values at current point
-  //! \param[in] asol The analytical solution field
+  //! \param[in] asol The analytical solution field (heat flux)
   //! \param[in] X Cartesian coordinates of current point
-  virtual bool evalSolScal(Vector& s, const VecFunc& asol, const Vec3& X) const;
+  virtual bool evalSol(Vector& s, const VecFunc& asol, const Vec3& X) const;
 
   //! \brief Writes the surface tractions for a given time step to VTF-file.
   //! \param vtf The VTF-file object to receive the tractions
@@ -115,8 +115,8 @@ public:
   //! \note The Integrand object is allocated dynamically and has to be deleted
   //! manually when leaving the scope of the pointer variable receiving the
   //! returned pointer value.
-  //! \param[in] asol Pointer to analytical solution field (optional)
-  virtual NormBase* getNormIntegrandScal(VecFunc* asol = 0) const;
+  //! \param[in] asol Pointer to analytical solution (optional)
+  virtual NormBase* getNormIntegrand(AnaSol* asol = 0) const;
 
   //! \brief Returns the number of secondary solution fields.
   virtual size_t getNoFields() const { return nsd; }
@@ -173,7 +173,7 @@ public:
   //! \brief The only constructor initializes its data members.
   //! \param[in] p The Poisson problem to evaluate norms for
   //! \param[in] a The analytical heat flux (optional)
-  PoissonNorm(Poisson& p, VecFunc* a) : problem(p), anasol(a) {}
+  PoissonNorm(Poisson& p, VecFunc* a = 0) : problem(p), anasol(a) {}
   //! \brief Empty destructor.
   virtual ~PoissonNorm() {}
 
