@@ -130,7 +130,7 @@ void DenseMatrix::init ()
   myMat.fill(real(0));
 
   // Delete pivotation vector of old factorization, if any
-  if (ipiv) delete ipiv;
+  delete[] ipiv;
   ipiv = 0;
 }
 
