@@ -83,7 +83,7 @@ C
       real*8    detF, Engy, F(3,3), Bmod, Smod, Sig(6), Cst(6,6)
       real*8    c1, c2, c3, Cstv, bm(6), detFi, Press, trbm3
 C
-      include 'include/feninc/const.h'
+      include 'const.h'
 C
 C         Entry section
 C

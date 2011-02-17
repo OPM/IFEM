@@ -72,7 +72,7 @@ C
       real*8    c1, c2
       real*8    GLe(6), PK2(6), Cmt(6,6)
 C
-      include 'include/feninc/const.h'
+      include 'const.h'
 C
 C         Entry section
 C

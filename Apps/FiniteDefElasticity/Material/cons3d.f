@@ -77,7 +77,7 @@ C
       real*8    Bmod, Emod, Pratio, Smod
       logical   incomp
 C
-      include  'include/feninc/const.h'
+      include  'const.h'
 C
 C         Entry section
 C

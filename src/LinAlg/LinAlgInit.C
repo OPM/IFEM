@@ -13,15 +13,19 @@
 
 #include "LinAlgInit.h"
 #ifdef HAS_PETSC
-#include "slepceps.h"
 #include "petscksp.h"
+#endif
+#ifdef HAS_SLEPC
+#include "slepceps.h"
 #endif
 
 
 LinAlgInit::LinAlgInit (int argc, char** argv)
 {
-#ifdef HAS_PETSC
+#ifdef HAS_SLEPC
   SlepcInitialize(&argc,&argv,(char*)0,PETSC_NULL);
+#endif
+#ifdef HAS_PETSC
   //PetscInitialize(&argc,&argv,(char*)0,PETSC_NULL);
 #endif
 #ifdef PARALLEL_PETSC
@@ -34,8 +38,10 @@ LinAlgInit::LinAlgInit (int argc, char** argv)
 
 LinAlgInit::~LinAlgInit ()
 {
-#ifdef HAS_PETSC
+#ifdef HAS_SLEPC
   SlepcFinalize();
+#endif
+#ifdef HAS_PETSC
   //PetscFinalize();
 #endif
 }

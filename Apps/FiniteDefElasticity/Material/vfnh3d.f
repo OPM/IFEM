@@ -73,7 +73,7 @@ C
       real*8    detF, detFi, lambda,
      &          detF2, detFi2, detFm1, U, Up, Upp
 C
-      include 'include/feninc/const.h'
+      include 'const.h'
 C
 C         Entry section
 C

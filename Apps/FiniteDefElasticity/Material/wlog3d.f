@@ -67,7 +67,7 @@ C
       real*8    jthird, mu, twomu, fourmu, w, tol,
      &          bpr(3), lamt(3), epsd(3), taup(3), aap(6,6)
 C
-      include 'include/feninc/const.h'
+      include 'const.h'
 C
       data      tol / 1.0d-08 /
 C

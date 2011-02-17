@@ -562,6 +562,8 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
 bool PETScMatrix::solveEig(PETScMatrix& B, RealArray& val, 
 			   Matrix& vec, int nv, real shift, int iop)
 {
+#ifdef HAS_SLEPC
+  return false;
   int         i;
   ST          st;
   PetscInt    m, n, nconv;
@@ -614,6 +616,8 @@ bool PETScMatrix::solveEig(PETScMatrix& B, RealArray& val,
   EPSDestroy(eps);
 
   return true;
+#endif
+  return false;
 }
 
 #endif // HAS_PETSC

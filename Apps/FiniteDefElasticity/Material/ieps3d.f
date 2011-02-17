@@ -68,7 +68,7 @@ C
       real*8    aap(6,6), b(6), bpr(6), Cstv, detFi, EngU, EngW,
      &          epsd(3), Press, q(6,6), qen(3,3), taup(3)
 C
-      include 'include/feninc/const.h'
+      include 'const.h'
 C
 C         Entry section
 C

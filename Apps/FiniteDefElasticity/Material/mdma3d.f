@@ -63,7 +63,7 @@ C
       real*8    DD(7,7), P_bar, P_mix, Sig(6)
       real*8    fac1, Sig_D(6)
 C
-      include 'include/feninc/const.h'
+      include 'const.h'
 C
 C         Entry section
 C

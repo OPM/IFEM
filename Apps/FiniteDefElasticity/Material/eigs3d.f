@@ -68,7 +68,7 @@ C
       real*8    g, h, aij, sm, thresh, t, c, s, tau,
      *          v(3,3), d(3), a(3), b(3), z(3)
 C
-      include 'include/feninc/const.h'
+      include 'const.h'
 C
 C         Entry section
 C

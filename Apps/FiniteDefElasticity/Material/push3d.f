@@ -63,7 +63,7 @@ C
       real*8    detF, F(3,3), PK2(6), Cmt(6,6), Sig(6), Cst(6,6)
       real*8    detFi, Tmat(6,6)
 C
-      include 'include/feninc/const.h'
+      include 'const.h'
 C
       data      i1 /1,2,3,1,2,3/
       data      i2 /1,2,3,2,3,1/

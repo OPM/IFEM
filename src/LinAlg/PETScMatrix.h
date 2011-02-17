@@ -19,6 +19,8 @@
 #ifdef HAS_PETSC
 #include "LinSolParams.h"
 #include "petscksp.h"
+#endif
+#ifdef HAS_SLEPC
 #include "slepceps.h"
 #endif
 

@@ -84,7 +84,7 @@ C
       real*8    detF, Engy, F(3,3), lambda, mu, Sig(6), Cst(6,6)
       real*8    c1, c2, b(6), Cstv, detFi, Press
 C
-      include 'include/feninc/const.h'
+      include 'const.h'
 C
 C         Entry section
 C

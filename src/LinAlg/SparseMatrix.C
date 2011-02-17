@@ -16,7 +16,7 @@
 #if defined(HAS_SUPERLU_MT)
 #include "superlu/pdsp_defs.h"
 #elif defined(HAS_SUPERLU)
-#include "slu_ddefs.h"
+#include "superlu/slu_ddefs.h"
 #endif
 #ifdef HAS_SAMG
 #include "samg.h"

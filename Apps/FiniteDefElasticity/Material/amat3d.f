@@ -61,7 +61,7 @@ C
 C
       real*8    taup(3), aap(6,6), q(6,6), tau(6), aa(6,6), vi(6)
 C
-      include 'include/feninc/const.h'
+      include 'const.h'
 C
 C         Entry section
 C
