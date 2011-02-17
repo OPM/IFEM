@@ -18,6 +18,7 @@
 #include "SIMenums.h"
 #include "TimeDomain.h"
 #include "MatVec.h"
+#include "SIMparameters.h"
 
 class SIMbase;
 
@@ -39,31 +40,23 @@ public:
   virtual ~NonLinSIM();
 
   /*!
-    \brief A struct for nonlinear solution parameters.
+    \brief A class for nonlinear solution parameters.
   */
-  struct SolvePrm
-  {
-    int  step;        //!< Load/time step counter
-    int& iter;        //!< Iteration counter
-    int  maxit;       //!< Maximum number of iterations
-    int  nupdat;      //!< Number of iterations with updated tangent
-    double startTime; //!< Start (pseudo)time of simulation
-    double stopTime;  //!< Stop (pseudo)time of simulation
-    RealArray tInc;   //!< Time (or pseudo time) increment size(s)
-    double convTol;   //!< Relative convergence tolerance
-    double divgLim;   //!< Relative divergence limit
-    double refNorm;   //!< Reference energy norm used in convergence checks
-    double alpha;     //!< Iteration acceleration parameter (line search)
-    double eta;       //!< Line searce tolerance
-    TimeDomain time;  //!< Time domain data
 
-    //! \brief The constructor initializes the counters to zero.
-    SolvePrm() : iter(time.it) { step = maxit = 0; refNorm = alpha = 1.0; }
-    //! \brief Returns \e true if the simulation consists of several load steps.
-    bool multiSteps() const;
-    //! \brief Increments the time/load step.
-    //! \return \e true, if we have reached the end of the simulation.
-    bool increment();
+  class SolvePrm : public SIMparameters
+  {
+    public:
+      int  maxit;       //!< Maximum number of iterations
+      int  nupdat;      //!< Number of iterations with updated tangent
+      double convTol;   //!< Relative convergence tolerance
+      double divgLim;   //!< Relative divergence limit
+      double refNorm;   //!< Reference energy norm used in convergence checks
+      double alpha;     //!< Iteration acceleration parameter (line search)
+      double eta;       //!< Line searce tolerance
+      SolvePrm()
+      {
+        refNorm = alpha = 1;
+      }
   };
 
   //! \brief Initializes solution parameters object with values read from file.

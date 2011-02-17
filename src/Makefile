@@ -18,7 +18,7 @@
 FSRC	= Eig/eig_drv1.f Eig/eig_drv2.f Eig/eig_drv3.f \
 	  Eig/eig_drv4.f Eig/eig_drv5.f Eig/eig_drv6.f
 CSRC	= SIM/SIMinput.C SIM/SIMbase.C SIM/SIM3D.C SIM/SIM2D.C SIM/SIM1D.C \
-	  SIM/NonLinSIM.C ASM/Lagrange.C \
+	  SIM/NonLinSIM.C SIM/SIMparameters.C ASM/Lagrange.C \
 	  ASM/AlgEqSystem.C ASM/ASMbase.C ASM/ASMmxBase.C ASM/ASMstruct.C \
 	  ASM/ASMs3D.C ASM/ASMs3DLag.C ASM/ASMs3DSpec.C \
 	  ASM/ASMs3Dmx.C ASM/ASMs3DmxLag.C \
