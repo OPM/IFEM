@@ -3,15 +3,9 @@ IF (Arpack_LIBRARIES)
   SET(Arpack_FIND_QUIETLY TRUE)
 ENDIF (Arpack_LIBRARIES)
 
-FIND_PATH(Arpack_INCLUDES
-          NAMES
-          arpack++/arpackf.h
-          PATHS
-          $ENV{HOME}/include
-)
-
-FIND_LIBRARY(Arpack_LIBRARIES arpack 
+FIND_LIBRARY(Arpack_LIBRARIES arpack
              PATHS 
+             /sima/libs/ARPACK
              $ENV{HOME}/lib
 )
 

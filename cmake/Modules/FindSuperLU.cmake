@@ -7,6 +7,7 @@ FIND_PATH(SuperLU_INCLUDES
           supermatrix.h
           PATHS
           $ENV{HOME}/include
+          /sima/libs/SuperLU_4.0/include
           PATH_SUFFIXES superlu
 )
 
@@ -15,16 +16,19 @@ FIND_PATH(SuperLU_MT_INCLUDES
           slu_mt_machines.h
           PATHS
           $ENV{HOME}/include
+          /sima/libs/SuperLU_4.0/include
           PATH_SUFFIXES superlu
 )
 
 FIND_LIBRARY(SuperLU_LIBRARIES superlu 
              PATHS 
+             /sima/libs/SuperLU_4.0/lib
              $ENV{HOME}/lib
 )
 
 FIND_LIBRARY(SuperLU_MT_LIBRARIES superlu_mt
              PATHS 
+             /sima/libs/SuperLU_4.0/lib
              $ENV{HOME}/lib
 )
 

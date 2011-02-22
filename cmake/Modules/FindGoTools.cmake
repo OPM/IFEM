@@ -18,6 +18,7 @@ ENDIF(GoTools_BUILD_ALL)
 
 # Find header files
 FIND_PATH(GoTools_INCLUDE_DIRS "GoTools/geometry/SplineSurface.h"
+  /sima/libs/GoTools/include
   "$ENV{HOME}/include"
   "$ENV{HOME}/install/include"
   "C:/Program Files (x86)/GoTools/include"
@@ -30,6 +31,7 @@ FIND_LIBRARY(GoTools_LIBRARIES
   PATHS "$ENV{HOME}/lib"
   "$ENV{HOME}/install/lib"
   "C:/Program Files (x86)/GoTools/lib"
+  /sima/libs/GoTools/lib
   PATH_SUFFIXES GoTools
   )
 

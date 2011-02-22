@@ -14,9 +14,9 @@
 #include "SparseMatrix.h"
 #include "SAM.h"
 #if defined(HAS_SUPERLU_MT)
-#include "superlu/pdsp_defs.h"
+#include "pdsp_defs.h"
 #elif defined(HAS_SUPERLU)
-#include "superlu/slu_ddefs.h"
+#include "slu_ddefs.h"
 #endif
 #ifdef HAS_SAMG
 #include "samg.h"

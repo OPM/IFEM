@@ -21,6 +21,7 @@ FIND_PATH(GoTrivariate_INCLUDE_DIRS
   "$ENV{HOME}/include"
   "$ENV{HOME}/install/include"
   "/usr/local/include"
+  /sima/libs/GoTools/include
   "C:/Program Files (x86)/GoTools/include"
 )
 
@@ -31,6 +32,7 @@ FIND_LIBRARY(GoTrivariate_LIBRARIES
   "$ENV{HOME}/install/lib"
   "C:/Program Files (x86)/GoTools/lib"
   "/usr/local/lib"
+  /sima/libs/GoTools/lib
   PATH_SUFFIXES GoTools
 )
 

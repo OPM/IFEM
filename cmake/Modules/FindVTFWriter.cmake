@@ -7,12 +7,14 @@ FIND_PATH(VTFWRITER_INCLUDES
   VTFAPI.h
   PATHS
   $ENV{HOME}/include
+  /sima/libs/GLviewExpressWriter/include
 )
 
 FIND_LIBRARY(VTFWRITER_LIBRARIES 
              VTFExpressAPI
              PATHS
              $ENV{HOME}/lib
+             /sima/libs/GLviewExpressWriter/lib
 )
 
 IF(VTFWRITER_LIBRARIES AND CMAKE_COMPILER_IS_GNUCXX)
