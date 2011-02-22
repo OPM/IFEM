@@ -3,19 +3,17 @@ IF (SAMG_LIBRARIES)
 ENDIF(SAMG_LIBRARIES)
 
 FIND_PATH(SAMG_INCLUDES
-          NAMES
-          samg.h
-          PATHS
-          $ENV{HOME}/include
+  NAMES samg.h
+  PATHS $ENV{HOME}/include
 )
 
-FIND_LIBRARY(SAMG_LIBRARIES amg_coo 
-             PATHS 
-             $ENV{HOME}/lib
+FIND_LIBRARY(SAMG_LIBRARIES
+  NAMES amg_coo
+  PATHS $ENV{HOME}/lib
 )
 
 INCLUDE(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(SAMG DEFAULT_MSG
-                                  SAMG_LIBRARIES)
+                                  SAMG_INCLUDES SAMG_LIBRARIES)
 
-MARK_AS_ADVANCED(SAMG_LIBRARIES)
+MARK_AS_ADVANCED(SAMG_INCLUDES SAMG_LIBRARIES)
