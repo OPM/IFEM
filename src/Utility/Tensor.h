@@ -76,6 +76,9 @@ public:
   //! \brief Scaling operator.
   Tensor& operator*=(real val);
 
+  //! \brief Inner product
+  real innerProd(const Tensor& T);
+
   //! \brief Return the dimension of this tensor.
   t_ind dim() const { return n; }
 

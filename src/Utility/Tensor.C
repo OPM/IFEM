@@ -132,6 +132,22 @@ Tensor& Tensor::operator*= (real val)
 }
 
 
+real Tensor::innerProd(const Tensor& T)
+{
+  real value = 0.0;
+  if (v.size() == T.v.size()) {
+    std::vector<real> vec = T;
+    for (t_ind i = 0; i < v.size(); i++)
+      value += v[i]*vec[i];
+  }
+  else
+   std::cerr <<"Tensor::innerProd(const Tensor&): "
+              <<"Not implemented for tensors of different size."<< std::endl; 
+
+  return value;
+}
+
+
 bool Tensor::isZero (real tol) const
 {
   for (t_ind i = 0; i < v.size(); i++)
