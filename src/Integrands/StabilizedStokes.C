@@ -20,8 +20,8 @@
 
 
 StabilizedStokes::StabilizedStokes (short int n,
-				    Stokes::ProblemFormulation form, int itg)
-  : Stokes(n,(SIM::Formulation)form,itg)
+				    SIM::Formulation form, int itg)
+  : Stokes(n,form,itg)
 {
   // Resize element solution vectors
   eVs.resize(2);
@@ -57,7 +57,7 @@ bool StabilizedStokes::evalInt (LocalIntegral*& elmInt, double detJW,
 	  EM(nf*(j-1)+k,nf*(i-1)+k) += laplace;       
       }
     
-    if (formulation == STRESS) 
+    if (formulation == SIM::STRESS) 
       for (i = 1; i <= N.size(); i++)
  	for (j = 1; j <= N.size(); j++)
  	  for (k = 1; k <= nsd; k++)
@@ -120,7 +120,7 @@ bool StabilizedStokes::evalInt (LocalIntegral*& elmInt, double detJW,
 	  EM(nf*(j-1)+k,nf*(i-1)+k) += laplace;       
       }
     
-    if (formulation == STRESS) 
+    if (formulation == SIM::STRESS) 
       for (i = 1; i <= N.size(); i++)
  	for (j = 1; j <= N.size(); j++)
  	  for (k = 1; k <= nsd; k++)
@@ -150,7 +150,7 @@ bool StabilizedStokes::evalInt (LocalIntegral*& elmInt, double detJW,
 	}
       }
     
-    if (formulation == STRESS)
+    if (formulation == SIM::STRESS)
       for (i = 1;i <= N.size();i++)
  	for (j = 1;j <= N.size();j++)
  	  for (k = 1;k <= nsd;k++)
@@ -203,7 +203,7 @@ bool StabilizedStokes::evalInt (LocalIntegral*& elmInt, double detJW,
 	  EM(nf*(j-1)+k,nf*(i-1)+k) += laplace;       
       }
     
-    if (formulation == STRESS) 
+    if (formulation == SIM::STRESS) 
       for (i = 1; i <= N.size(); i++)
  	for (j = 1; j <= N.size(); j++)
  	  for (k = 1; k <= nsd; k++)

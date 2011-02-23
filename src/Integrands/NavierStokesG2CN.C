@@ -17,7 +17,7 @@
 #include "ElmNorm.h"
 
 
-NavierStokesG2CN::NavierStokesG2CN(short int n, ProblemFormulation form, int itg)
+NavierStokesG2CN::NavierStokesG2CN(short int n, SIM::Formulation form, int itg)
   : NavierStokesG2(n,form,itg) {}
 
 
@@ -179,7 +179,7 @@ bool NavierStokesG2CN::evalInt(LocalIntegral*& elmInt,
       }
     
     temp1 = 0.5*mu*detJW;
-    if (formulation == STRESS) 
+    if (formulation == SIM::STRESS) 
       for (i = 1; i <= N.size(); i++)
  	for (j = 1; j <= N.size(); j++)
  	  for (k = 1; k <= nsd; k++)
@@ -464,7 +464,7 @@ bool NavierStokesG2CN::evalInt (LocalIntegral*& elmInt, double detJW,
 	  EM(nf*(j-1)+k,nf*(i-1)+k) += laplace;       
       }
     
-    if (formulation == STRESS) 
+    if (formulation == SIM::STRESS) 
       for (i = 1; i <= N.size(); i++)
  	for (j = 1; j <= N.size(); j++)
  	  for (k = 1; k <= nsd; k++)

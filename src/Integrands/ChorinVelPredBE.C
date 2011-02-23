@@ -16,7 +16,7 @@
 #include "Utilities.h"
 
 
-ChorinVelPredBE::ChorinVelPredBE(short int n, ProblemFormulation form,
+ChorinVelPredBE::ChorinVelPredBE(short int n, SIM::Formulation form,
 				 int itg, bool incPress, bool mixed)
   : ChorinVelPred(n,form,itg,incPress,mixed)
 {
@@ -131,7 +131,7 @@ bool ChorinVelPredBE::evalInt(LocalIntegral*& elmInt,
 	  EM((j-1)*nsd + k,(i-1)*nsd + k) += laplace;
 
 	// Extra terms for stress-strain formulation
-	if (formulation == STRESS)
+	if (formulation == SIM::STRESS)
 	  for (k = 1;k <= nsd;k++)
 	    for (l = 1;l <= nsd;l++)
 	      EM((j-1)*nsd + l,(i-1)*nsd + k) += mu*dNdX(i,k)*dNdX(j,l)*detJW;
@@ -291,7 +291,7 @@ bool ChorinVelPredBE::evalInt(LocalIntegral*& elmInt,
 	  EM((j-1)*nsd + k,(i-1)*nsd + k) += laplace;
 
 	// Extra terms for stress-strain formulation
-	if (formulation == STRESS)
+	if (formulation == SIM::STRESS)
 	  for (k = 1;k <= nsd;k++)
 	    for (l = 1;l <= nsd;l++)
 	      EM((j-1)*nsd + l,(i-1)*nsd + k) += mu*dNdX(i,k)*dNdX(j,l)*detJW;
@@ -451,7 +451,7 @@ bool ChorinVelPredBE::evalInt(LocalIntegral*& elmInt,
 	  EM((j-1)*nsd + k,(i-1)*nsd + k) += laplace;
 
 	// Extra terms for stress-strain formulation
-	if (formulation == STRESS)
+	if (formulation == SIM::STRESS)
 	  for (k = 1;k <= nsd;k++)
 	    for (l = 1;l <= nsd;l++)
 	      EM((j-1)*nsd + l,(i-1)*nsd + k) += mu*dN1dX(i,k)*dN1dX(j,l)*detJW;

@@ -31,7 +31,7 @@ public:
   //! \param[in] form The solution formulation to use
   //! \param[in] itg The integrandtype to use
   //! \param[in] incPress \e true if incremental pressure formulation
-  ChorinVelPredBE(short int n, ProblemFormulation form, int itg, 
+  ChorinVelPredBE(short int n, SIM::Formulation form, int itg, 
 		  bool incPress = false, bool mixed = false);
   //! \brief The destructor frees dynamically allocated objects.
   virtual ~ChorinVelPredBE();

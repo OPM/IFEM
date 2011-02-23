@@ -16,7 +16,7 @@
 #include "Utilities.h"
 
 
-NavierStokesG2::NavierStokesG2(short int n, ProblemFormulation form, int itg)
+NavierStokesG2::NavierStokesG2(short int n, SIM::Formulation form, int itg)
   : StabilizedStokes(n,form,itg)
 {
   mu  = 1.0e-3;

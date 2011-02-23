@@ -31,10 +31,6 @@ class VTF;
 class Stokes : public Integrand
 {
 public:
-  //TODO: Temporary; remove and use SIM-enum in all sub-classes instead (kmo).
-  enum ProblemFormulation { LAPLACE = SIM::LAPLACE, STRESS = SIM::STRESS };
-  //END TODO:
-
   //! \brief The default constructor initializes all pointers to zero.
   //! \param[in] n Number of spatial dimensions
   //! \param[in] form The solution formulation to use

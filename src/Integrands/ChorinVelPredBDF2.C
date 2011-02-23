@@ -16,7 +16,7 @@
 #include "Utilities.h"
 
 
-ChorinVelPredBDF2::ChorinVelPredBDF2(short int n, ProblemFormulation form, 
+ChorinVelPredBDF2::ChorinVelPredBDF2(short int n, SIM::Formulation form, 
 				     int itg, bool mixed)
   : ChorinVelPredBE(n,form,itg,true,mixed)
 {
@@ -150,7 +150,7 @@ bool ChorinVelPredBDF2::evalInt(LocalIntegral*& elmInt,
 	  EM((j-1)*nsd + k,(i-1)*nsd + k) += laplace;
 
 	// Extra terms for stress-strain formulation
-	if (formulation == STRESS)
+	if (formulation == SIM::STRESS)
 	  for (k = 1;k <= nsd;k++)
 	    for (l = 1;l <= nsd;l++)
 	      EM((j-1)*nsd + l,(i-1)*nsd + k) += mu*dNdX(i,k)*dNdX(j,l)*detJW;
@@ -328,7 +328,7 @@ bool ChorinVelPredBDF2::evalInt(LocalIntegral*& elmInt,
 	  EM((j-1)*nsd + k,(i-1)*nsd + k) += laplace;
 
 	// Extra terms for stress-strain formulation
-	if (formulation == STRESS)
+	if (formulation == SIM::STRESS)
 	  for (k = 1;k <= nsd;k++)
 	    for (l = 1;l <= nsd;l++)
 	      EM((j-1)*nsd + l,(i-1)*nsd + k) += mu*dNdX(i,k)*dNdX(j,l)*detJW;
@@ -503,7 +503,7 @@ bool ChorinVelPredBDF2::evalInt(LocalIntegral*& elmInt,
 	  EM((j-1)*nsd + k,(i-1)*nsd + k) += laplace;
 
 	// Extra terms for stress-strain formulation
-	if (formulation == STRESS)
+	if (formulation == SIM::STRESS)
 	  for (k = 1;k <= nsd;k++)
 	    for (l = 1;l <= nsd;l++)
 	      EM((j-1)*nsd + l,(i-1)*nsd + k) += mu*dN1dX(i,k)*dN1dX(j,l)*detJW;

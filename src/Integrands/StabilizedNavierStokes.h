@@ -28,7 +28,7 @@ class StabilizedNavierStokes : public StabilizedStokes
 
   //! \brief The default constructor initializes all pointers to zero
   //! \param[in] n Number of spatial dimensions
-  StabilizedNavierStokes(short int n, ProblemFormulation form, int itg = 3);
+  StabilizedNavierStokes(short int n, SIM::Formulation form, int itg = 3);
   //! \brief The destructor clears the static work arrays used internally.
   virtual ~StabilizedNavierStokes();
 

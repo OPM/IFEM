@@ -31,7 +31,7 @@ public:
   //! \param[in] n Number of spatial dimensions
   //! \param[in] form The solution formulation to use
   //! \param[in] itg The integrandtype to use
-  StabilizedStokes(short int n, Stokes::ProblemFormulation form = LAPLACE, 
+  StabilizedStokes(short int n, SIM::Formulation form = SIM::LAPLACE, 
 		   int itg = 3);
   //! \brief The destructor frees dynamically allocated objects.
   virtual ~StabilizedStokes() {}

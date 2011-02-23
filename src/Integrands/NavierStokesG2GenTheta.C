@@ -17,7 +17,7 @@
 #include "ElmNorm.h"
 
 
-NavierStokesG2GenTheta::NavierStokesG2GenTheta(short int n, ProblemFormulation form, int itg)
+NavierStokesG2GenTheta::NavierStokesG2GenTheta(short int n, SIM::Formulation form, int itg)
   : NavierStokesG2(n,form,itg) {}
 
 
@@ -173,7 +173,7 @@ bool NavierStokesG2GenTheta::evalInt(LocalIntegral*& elmInt,
       }
     
     temp1 = thetau*mu*detJW;
-    if (formulation == STRESS) 
+    if (formulation == SIM::STRESS) 
       for (i = 1; i <= N.size(); i++)
  	for (j = 1; j <= N.size(); j++)
  	  for (k = 1; k <= nsd; k++)
@@ -486,7 +486,7 @@ bool NavierStokesG2GenTheta::evalInt (LocalIntegral*& elmInt, double detJW,
 	  EM(nf*(j-1)+k,nf*(i-1)+k) += laplace;       
       }
     
-    if (formulation == STRESS) 
+    if (formulation == SIM::STRESS) 
       for (i = 1; i <= N.size(); i++)
  	for (j = 1; j <= N.size(); j++)
  	  for (k = 1; k <= nsd; k++)

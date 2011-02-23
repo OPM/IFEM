@@ -224,7 +224,7 @@ bool Stokes::strain(const Matrix& dNdX, Tensor& eps) const
   else 
     return false;
 
-  if (formulation == Stokes::STRESS) {
+  if (formulation == SIM::STRESS) {
     eps += eps.transpose();
     eps *= 0.5;
   }
@@ -391,7 +391,7 @@ bool StokesNorm::evalInt (LocalIntegral*& elmInt, double detJW,
     Tensor gradUh(nsd);
     problem.strain(dNdX,gradUh);
     
-    if (problem.getFormulation() == Stokes::STRESS) { 
+    if (problem.getFormulation() == SIM::STRESS) { 
       pnorm[ip++] += 2.0*mu*gradU.innerProd(gradU)*detJW;
       pnorm[ip++] += 2.0*mu*gradUh.innerProd(gradUh)*detJW;
       gradUh *= -1.0;
@@ -451,7 +451,7 @@ bool StokesForce::evalBou(LocalIntegral*& elmInt,
     Tensor sigma = (*anasol->getVectorSecSol())(X);
 
     // Symmetrice for stress formulation
-    if (problem.getFormulation() == Stokes::STRESS) 
+    if (problem.getFormulation() == SIM::STRESS) 
       sigma += sigma.transpose();
 
     // Analytical stress

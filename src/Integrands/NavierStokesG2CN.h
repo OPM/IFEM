@@ -29,7 +29,7 @@ class NavierStokesG2CN : public NavierStokesG2
 
   //! \brief The default constructor initializes all pointers to zero
   //! \param[in] n Number of spatial dimensions
-  NavierStokesG2CN(short int n, ProblemFormulation form, int itg = 3);
+  NavierStokesG2CN(short int n, SIM::Formulation form, int itg = 3);
   //! \brief The destructor clears the static work arrays used internally.
   virtual ~NavierStokesG2CN();
 

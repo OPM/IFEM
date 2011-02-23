@@ -18,7 +18,7 @@
 #include "Utilities.h"
 
 
-ChorinVelPred::ChorinVelPred(short int n, ProblemFormulation form, 
+ChorinVelPred::ChorinVelPred(short int n, SIM::Formulation form, 
 			     int itg, bool incPress, bool mixed)
   : Stokes(n,(SIM::Formulation)form,itg), incPressure(incPress), mixedFEM(mixed)
 {
@@ -241,7 +241,7 @@ bool ChorinVelPred::strain(const Matrix& dNdX, Tensor& eps) const
   else 
     return false;
     
-  if (formulation == Stokes::STRESS) {
+  if (formulation == SIM::STRESS) {
     eps += eps.transpose();
     eps *= 0.5;
   }
@@ -407,7 +407,7 @@ bool ChorinStokesNorm::evalInt (LocalIntegral*& elmInt, double detJW,
     gradUh.zero();
     problem.strain(dNdX,gradUh);
 
-    if (problem.getFormulation() == Stokes::STRESS) { 
+    if (problem.getFormulation() == SIM::STRESS) { 
       pnorm[ip++] += 2.0*mu*gradU.innerProd(gradU)*detJW;
       pnorm[ip++] += 2.0*mu*gradUh.innerProd(gradUh)*detJW;
       gradUh *= -1.0;
@@ -535,7 +535,7 @@ bool ChorinStokesNorm::evalInt(LocalIntegral*& elmInt,
     Tensor gradUh(nsd);
     problem.strain(dN1dX,gradUh);
     
-    if (problem.getFormulation() == Stokes::STRESS) { 
+    if (problem.getFormulation() == SIM::STRESS) { 
       pnorm[ip++] += 2.0*mu*gradU.innerProd(gradU)*detJW;
       pnorm[ip++] += 2.0*mu*gradUh.innerProd(gradUh)*detJW;
       gradUh *= -1.0;
@@ -605,7 +605,7 @@ bool ChorinStokesForce::evalBou(LocalIntegral*& elmInt,
     Tensor sigma = (*anasol->getVectorSecSol())(X);
 
     // Symmetrice for stress formulation
-    if (prob->getFormulation() == Stokes::STRESS) 
+    if (prob->getFormulation() == SIM::STRESS) 
       sigma += sigma.transpose();
 
     // Analytical stress

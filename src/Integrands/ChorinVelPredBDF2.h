@@ -30,7 +30,7 @@ public:
   //! \param[in] n Number of spatial dimensions
   //! \param[in] form The solution formulation to use
   //! \param[in] itg The integrandtype to use
-  ChorinVelPredBDF2(short int n, ProblemFormulation form, 
+  ChorinVelPredBDF2(short int n, SIM::Formulation form, 
 		    int itg, bool mixed = false);
   //! \brief The destructor frees dynamically allocated objects.
   virtual ~ChorinVelPredBDF2();

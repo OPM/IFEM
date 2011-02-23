@@ -17,6 +17,7 @@
 #include "ElmMats.h"
 #include "Vec3.h"
 #include "TimeDomain.h"
+#include "SIMenums.h"
 #include <map>
 
 class LocalSystem;
@@ -39,7 +40,7 @@ class ChorinVelPred : public Stokes
   //! \param[in] form The solution formulation to use (Laplace/Stress)
   //! \param[in] itg The integrandtype to use
   //! \param[in] incPress \e true if incremental pressure formulation
-  ChorinVelPred(short int n, ProblemFormulation form, 
+  ChorinVelPred(short int n, SIM::Formulation form, 
 		int itg, bool incPress, bool mixed = false);
 
 public:

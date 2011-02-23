@@ -14,6 +14,7 @@
 #define _NAVIER_STOKES_G2_H
 
 #include "StabilizedStokes.h"
+#include "SIMenums.h"
 
 /*!
   \brief Class representing the integrand of the pressure stabilized Navier-Stokes problem.
@@ -28,7 +29,7 @@ class NavierStokesG2 : public StabilizedStokes
 
   //! \brief The default constructor initializes all pointers to zero
   //! \param[in] n Number of spatial dimensions
-  NavierStokesG2(short int n, ProblemFormulation form, int itg = 3);
+  NavierStokesG2(short int n, SIM::Formulation form, int itg = 3);
   //! \brief The destructor clears the static work arrays used internally.
   virtual ~NavierStokesG2();
 

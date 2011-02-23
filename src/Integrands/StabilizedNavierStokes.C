@@ -16,7 +16,7 @@
 #include "Vec3Oper.h"
 
 
-StabilizedNavierStokes::StabilizedNavierStokes(short int n, ProblemFormulation form, int itg) 
+StabilizedNavierStokes::StabilizedNavierStokes(short int n, SIM::Formulation form, int itg) 
   : StabilizedStokes(n,form,itg)
 {
   mu  = 1.0e-3;
