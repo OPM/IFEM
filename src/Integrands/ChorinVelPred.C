@@ -97,8 +97,19 @@ bool ChorinVelPred::initElementBou(const std::vector<int>& MNPC)
 
   if (eS) eS->resize(nsd*nen,true);
 
+  int ierr = 0;
+  if (!eVs.empty() && !primsol.empty())
+    if (ierr = utl::gather(MNPC,nsd,primsol[0],*eVs[0]))
+      std::cerr <<" *** ChorinVelPred::initElementBou: Detected "
+                << ierr <<" node numbers out of range."<< std::endl;
+    
+  if (!ePs.empty() && !psol.empty())
+    if (ierr = utl::gather(MNPC,1,psol[0],*ePs[0]))
+      std::cerr <<" *** ChorinVelPred::initElementBou: Detected "
+                << ierr <<" node numbers out of range."<< std::endl;
+
   myMats->withLHS = false;
-  return true;
+  return ierr == 0;
 }
 
 
@@ -111,15 +122,31 @@ bool ChorinVelPred::initElementBou(const std::vector<int>& MNPC1,
 
   if (eS) eS->resize(nsd*nen1,true);
 
-  myMats->withLHS = false;
-  return true;
-}
+  int ierr = 0;
+  if (!eVs.empty() && !primsol.empty())
+    if (ierr = utl::gather(MNPC1,nsd,primsol[0],*eVs[0]))
+      std::cerr <<" *** ChorinVelPred::initElementBou: Detected "
+                << ierr <<" node numbers out of range."<< std::endl;
+    
+  if (!ePs.empty() && !psol.empty())
+    if (ierr = utl::gather(MNPC2,1,psol[0],*ePs[0]))
+      std::cerr <<" *** ChorinVelPred::initElementBou: Detected "
+                << ierr <<" node numbers out of range."<< std::endl;
 
+  myMats->withLHS = false;
+  return ierr == 0;
+}
 
 
 NormBase* ChorinVelPred::getNormIntegrand (AnaSol* asol) const
 {
   return new ChorinStokesNorm(*const_cast<ChorinVelPred*>(this),asol);
+}
+
+
+NormBase* ChorinVelPred::getForceIntegrand (AnaSol* asol) const
+{
+  return new ChorinStokesForce(*const_cast<ChorinVelPred*>(this),asol);
 }
 
 
@@ -193,7 +220,7 @@ bool ChorinVelPred::evalSol (Vector& s, const TensorFunc& asol,
 }
 
 
-bool ChorinVelPred::strain(const Matrix& dNdX, SymmTensor& eps) const
+bool ChorinVelPred::strain(const Matrix& dNdX, Tensor& eps) const
 {
   int i, k, l;
 
@@ -203,27 +230,34 @@ bool ChorinVelPred::strain(const Matrix& dNdX, SymmTensor& eps) const
     return false;
   }
 
+  eps.zero();
   if (!eVs.empty() && !eVs[0]->empty() && eps.dim() > 0) {
     Vector& EV = *(eVs[0]);
     for (i = 1;i <= dNdX.rows();i++)
       for (k = 1;k <= nsd;k++)
-	for (l = 1;l <= k;l++)
-	  eps(k,l) = dNdX(i,l)*EV((i-1)*nsd+k); + dNdX(i,k)*EV((i-1)*nsd+l);
+        for (l = 1;l <= nsd;l++) 
+          eps(k,l) += dNdX(i,l)*EV((i-1)*nsd+k);
+  }
+  else 
+    return false;
     
-    eps *= mu;
+  if (formulation == Stokes::STRESS) {
+    eps += eps.transpose();
+    eps *= 0.5;
   }
 
   return true;
 }
 
 
-bool ChorinVelPred::stress(const Vector& N, const Matrix& dNdX, SymmTensor& sigma) const
+bool ChorinVelPred::stress(const Vector& N, const Matrix& dNdX, Tensor& sigma) const
 {
   int i, k;
 
   // Compute strain
   if (!this->strain(dNdX,sigma))
     return false;
+  sigma *= mu;
   
   // Compute pressure
   if (!ePs.empty() && !ePs[0]->empty() && sigma.dim() > 0) {
@@ -231,7 +265,7 @@ bool ChorinVelPred::stress(const Vector& N, const Matrix& dNdX, SymmTensor& sigm
     Vector& EP = *(ePs[0]);
     for (i = 1;i <= N.size();i++)
       P += EP(i)*N(i);
-    
+
     // Add pressure and strain contributions
     for (k = 1;k <= nsd;k++)
       sigma(k,k) -= P;
@@ -243,7 +277,7 @@ bool ChorinVelPred::stress(const Vector& N, const Matrix& dNdX, SymmTensor& sigm
 
 bool ChorinVelPred::stress(const Vector& N1, const Vector& N2,
 			   const Matrix& dN1dX, const Matrix& dN2dX,
-			   SymmTensor& sigma) const
+			   Tensor& sigma) const
 {
   int i, k;
 
@@ -337,7 +371,7 @@ bool ChorinStokesNorm::evalInt (LocalIntegral*& elmInt, double detJW,
     Vec3 Uh; Uh = 0.0;
     for (i = 1;i <= N.size();i++)
       for (k = 1;k <= nsd;k++)
-	Uh[k-1] += EV((i-1)*nsd + k)*N(i);
+        Uh[k-1] += EV((i-1)*nsd + k)*N(i);
     
     // L2-norm of velocity error
     U -= Uh;
@@ -353,7 +387,7 @@ bool ChorinStokesNorm::evalInt (LocalIntegral*& elmInt, double detJW,
     Vec3 dPh; dPh = 0.0;
     for (i = 1;i <= N.size();i++)
       for (k = 1;k <= nsd;k++)
-	dPh[k-1] += EP(i)*dNdX(i,k);
+        dPh[k-1] += EP(i)*dNdX(i,k);
 
     // H1-seminorm of pressure
     dP -= dPh;
@@ -368,44 +402,27 @@ bool ChorinStokesNorm::evalInt (LocalIntegral*& elmInt, double detJW,
     // Analytical velocity gradient
     Tensor gradU = (*anasol->getVectorSecSol())(X);
     
-    // Computed velocity gradient
-    Matrix gradUh(nsd,nsd);
-    gradUh.fill(0.0);
-    for (i = 1;i <= N.size();i++)
-      for (k = 1;k <= nsd;k++)
-	for (l = 1;l <= nsd;l++)
-	  gradUh(k,l) += EV((i-1)*nsd + k)*dNdX(i,l);
+    // Numerical velocity gradient
+    Tensor gradUh(3);
+    gradUh.zero();
+    problem.strain(dNdX,gradUh);
 
-    if (problem.getFormulation() == Stokes::LAPLACE) {
-      for (k = 1;k <= nsd;k++) 
-	for (l = 1;l <= nsd;l++) {
-	  // Energy norm of analytical solution
-	  pnorm[ip] += mu*gradU(k,l)*gradU(k,l)*detJW;
-	  // Energy norm of numerical solution
-	  pnorm[ip+1] += mu*gradUh(k,l)*gradUh(k,l)*detJW;
-	  // Energy norm of error
-	  value = gradU(k,l)-gradUh(k,l);
-	  pnorm[ip+2] += mu*value*value*detJW;
-	}
+    if (problem.getFormulation() == Stokes::STRESS) { 
+      pnorm[ip++] += 2.0*mu*gradU.innerProd(gradU)*detJW;
+      pnorm[ip++] += 2.0*mu*gradUh.innerProd(gradUh)*detJW;
+      gradUh *= -1.0;
+      gradU += gradUh;
+      pnorm[ip++] += 2.0*mu*gradU.innerProd(gradU)*detJW; 
     }
     else {
-      for (k = 1;k <= nsd;k++)
-	for (l = 1;l <= nsd;l++) {
-	  // Strain of analytical solution
-	  eps  = 0.5*(gradU(k,l) + gradU(l,k));
-	  // Strain of computed solution
-	  epsh = 0.5*(gradUh(k,l) + gradUh(l,k));
-	  // Energy norm of analytical solution
-	  pnorm[ip] += mu*eps*eps*detJW;
-	  // Energy norm of computed solution
-	  pnorm[ip+1] += mu*epsh*epsh*detJW;
-	  // Energy norm of error
-	  eps -= epsh;
-	  pnorm[ip+2] += mu*epsh*epsh*detJW;
-	} 
+      pnorm[ip++] += mu*gradU.innerProd(gradU)*detJW;
+      pnorm[ip++] += mu*gradUh.innerProd(gradUh)*detJW;
+      gradUh *= -1.0;
+      gradU += gradUh;
+      pnorm[ip++] += mu*gradU.innerProd(gradU)*detJW; 
     }
   }
-
+  
   return true;
 }
 
@@ -483,7 +500,7 @@ bool ChorinStokesNorm::evalInt(LocalIntegral*& elmInt,
     Vec3 Uh; Uh = 0.0;
     for (i = 1;i <= nbfU;i++)
       for (k = 1;k <= nsd;k++)
-	Uh[k-1] += EV((i-1)*nsd + k)*N1(i);
+        Uh[k-1] += EV((i-1)*nsd + k)*N1(i);
     
     // L2-norm of velocity error
     U -= Uh;
@@ -499,7 +516,7 @@ bool ChorinStokesNorm::evalInt(LocalIntegral*& elmInt,
     Vec3 dPh; dPh = 0.0;
     for (i = 1;i <= nbfP;i++)
       for (k = 1;k <= nsd;k++)
-	dPh[k-1] += EP(i)*dN2dX(i,k);
+        dPh[k-1] += EP(i)*dN2dX(i,k);
 
     // H1-seminorm of pressure
     dP -= dPh;
@@ -515,41 +532,96 @@ bool ChorinStokesNorm::evalInt(LocalIntegral*& elmInt,
     Tensor gradU = (*anasol->getVectorSecSol())(X);
     
     // Computed velocity gradient
-    Matrix gradUh(nsd,nsd);
-    gradUh.fill(0.0);
-    for (i = 1;i <= nbfU;i++)
-      for (k = 1;k <= nsd;k++)
-	for (l = 1;l <= nsd;l++)
-	  gradUh(k,l) += EV((i-1)*nsd + k)*dN1dX(i,l);
-
-    if (problem.getFormulation() == Stokes::LAPLACE) {
-      for (k = 1;k <= nsd;k++) 
-	for (l = 1;l <= nsd;l++) {
-	  // Energy norm of analytical solution
-	  pnorm[ip] += mu*gradU(k,l)*gradU(k,l)*detJW;
-	  // Energy norm of numerical solution
-	  pnorm[ip+1] += mu*gradUh(k,l)*gradUh(k,l)*detJW;
-	  // Energy norm of error
-	  value = gradU(k,l)-gradUh(k,l);
-	  pnorm[ip+2] += mu*value*value*detJW;
-	}
+    Tensor gradUh(nsd);
+    problem.strain(dN1dX,gradUh);
+    
+    if (problem.getFormulation() == Stokes::STRESS) { 
+      pnorm[ip++] += 2.0*mu*gradU.innerProd(gradU)*detJW;
+      pnorm[ip++] += 2.0*mu*gradUh.innerProd(gradUh)*detJW;
+      gradUh *= -1.0;
+      gradU += gradUh;
+      pnorm[ip++] += 2.0*mu*gradU.innerProd(gradU)*detJW; 
     }
     else {
-      for (k = 1;k <= nsd;k++)
-	for (l = 1;l <= nsd;l++) {
-	  // Strain of analytical solution
-	  eps  = 0.5*(gradU(k,l) + gradU(l,k));
-	  // Strain of computed solution
-	  epsh = 0.5*(gradUh(k,l) + gradUh(l,k));
-	  // Energy norm of analytical solution
-	  pnorm[ip] += mu*eps*eps*detJW;
-	  // Energy norm of computed solution
-	  pnorm[ip+1] += mu*epsh*epsh*detJW;
-	  // Energy norm of error
-	  eps -= epsh;
-	  pnorm[ip+2] += mu*epsh*epsh*detJW;
-	} 
+      pnorm[ip++] += mu*gradU.innerProd(gradU)*detJW;
+      pnorm[ip++] += mu*gradUh.innerProd(gradUh)*detJW;
+      gradUh *= -1.0;
+      gradU += gradUh;
+      pnorm[ip++] += mu*gradU.innerProd(gradU)*detJW; 
     }
+  }
+
+  return true;
+}
+
+
+bool ChorinStokesForce::initElementBou(const std::vector<int>& MNPC)
+{
+  return problem.initElementBou(MNPC);
+}
+
+
+bool ChorinStokesForce::initElementBou(const std::vector<int>& MNPC1,
+                                       const std::vector<int>& MNPC2, 
+                                       size_t n1)
+{
+  return problem.initElementBou(MNPC1,MNPC2,n1);
+}
+
+
+bool ChorinStokesForce::evalBou(LocalIntegral*& elmInt,
+                          const TimeDomain& time, double detJW,
+                          const Vector& N, const Matrix& dNdX,
+                          const Vec3& X, const Vec3& normal) const
+{
+  const int nsd = dNdX.cols();
+
+  ElmNorm* eNorm = dynamic_cast<ElmNorm*>(elmInt);
+  if (!eNorm) {
+    std::cerr <<" *** StokesForce::evalBou: No force array."<< std::endl;
+    return false;
+  }  
+
+  ChorinVelPred* prob = static_cast<ChorinVelPred*>(&problem);
+  
+  double mu = prob->getViscosity(X);
+
+  // Numerical approximation of stress
+  Tensor sigmah(3);
+  prob->stress(N,dNdX,sigmah);
+
+  // Traction
+  Vec3 th = sigmah*normal;
+
+  // Numerical force term
+  ElmNorm& pnorm = *eNorm;
+  int i, ip = 0;
+  for (i = 0;i < nsd;i++)
+    pnorm[ip++] += th[i]*detJW;
+
+    // Analytical force term and error norm
+  if ( anasol && anasol->getScalarSol() && anasol->getVectorSecSol()) {
+    real P = (*anasol->getScalarSol())(X);
+    Tensor sigma = (*anasol->getVectorSecSol())(X);
+
+    // Symmetrice for stress formulation
+    if (prob->getFormulation() == Stokes::STRESS) 
+      sigma += sigma.transpose();
+
+    // Analytical stress
+    sigma *= mu;
+    for (i = 1;i <= nsd;i++)
+      sigma(i,i) -= P;
+
+    // Analytical traction
+    Vec3 t = sigma*normal;
+
+    for (i = 0;i < nsd;i++)
+      pnorm[ip++] += t[i]*detJW;
+
+    // Error in traction
+    t -= th;
+    pnorm[ip++] += t*t*detJW;
   }
 
   return true;

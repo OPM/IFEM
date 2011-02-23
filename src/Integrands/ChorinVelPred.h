@@ -168,6 +168,12 @@ public:
   //! \param[in] asol Pointer to analytical solution field (optional)
   virtual NormBase* getNormIntegrand(AnaSol* asol = 0) const;
 
+  //! \brief Returns a pointer to an Integrand for boundary force evaluation.
+  //! \note The Integrand is allocated dynamically and has to be deleted
+  //! manually when leaving the scope of the pointer returned.
+  //! \param[in] asol Pointer to analytical solution field (optional)
+  virtual NormBase* getForceIntegrand(AnaSol* asol = 0) const;
+  
   //! \brief Accesses the velocity solution vectors of current patch
   Vector& getVelocity(int n = 0) { return this->getSolution(n); }
 
@@ -192,17 +198,16 @@ public:
   //! \brief Get number of pressure solutions
   size_t getNoPressures() const { return psol.size(); }
 
- protected:
   //! \brief Calculates viscous part of stress tensor at current point.
   //! \param[in] dNdX Basis function gradients at current point
   //! \param[out] eps Strain tensor at current point
-  virtual bool strain(const Matrix& dNdX, SymmTensor& eps) const;
+  virtual bool strain(const Matrix& dNdX, Tensor& eps) const;
 
   //! \brief Calculates the (Cauchy) stress tensor at current point
   //! \param[in] N Basis functions at current point
   //! \param[in] dNdX Basis function gradients at current point
   //! \param[out] sigma Strain tensor at current point
-  bool stress(const Vector& N, const Matrix& dNdX, SymmTensor& sigma) const;
+  bool stress(const Vector& N, const Matrix& dNdX, Tensor& sigma) const;
 
   //! \brief Calculates the (Cauchy) stress tensor at current point
   //! \param[in] N1 Velocity basis functions at current point
@@ -210,8 +215,9 @@ public:
   //! \param[out] sigma Strain tensor at current point
   bool stress(const Vector& N1, const Vector& N2, 
               const Matrix& dN1dX, const Matrix& dN2dX,
-              SymmTensor& sigma) const;
-  
+              Tensor& sigma) const;
+
+ protected:
   bool incPressure;           //!< Incremental pressure formulation
   bool mixedFEM;              //!< Mixed FE formulation
 
@@ -273,4 +279,67 @@ class ChorinStokesNorm : public StokesNorm
 };
 
 
+/*!
+  \brief Class representing for computing boundary force
+*/
+
+class ChorinStokesForce : public StokesForce
+{
+public:
+  //! \brief The only constructor initializes its data members.
+  //! \param[in] p The Stokes problem to evaluate norms for
+  //! \param[in] a The analytical velocity and pressure fields (optional)
+ ChorinStokesForce(ChorinVelPred& p, AnaSol* a = 0) : StokesForce(p,a) {}
+  //! \brief Empty destructor.
+  virtual ~ChorinStokesForce() {}
+
+  //! \brief Initializes current element for boundary integration.
+  //! \param[in] MNPC Matrix of nodal point correspondance for current element
+  virtual bool initElementBou(const std::vector<int>& MNPC);
+  //! \brief Initializes current element for boundary integration (mixed).
+  //! \param[in] MNPC1 Nodal point correspondance for the basis 1
+  //! \param[in] MNPC2 Nodal point correspondance for the basis 2
+  //! \param[in] n1 Number of nodes in basis 1 on this patch
+  virtual bool initElementBou(const std::vector<int>& MNPC1,
+                              const std::vector<int>& MNPC2, 
+                              size_t n1);
+
+    //! \brief Evaluates the integrand at a boundary point.
+  //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] detJW Jacobian determinant times integration point weight
+  //! \param[in] time Parameters for nonlinear and time-dependent simulations
+  //! \param[in] N Basis function values
+  //! \param[in] dNdX Basis function gradients
+  //! \param[in] X Cartesian coordinates of current integration point
+  //! \param[in] normal Boundary normal vector at current integration point
+  //!
+  //! \details The default implementation forwards to the stationary version.
+  //! Reimplement this method for time-dependent or non-linear problems.
+  virtual bool evalBou(LocalIntegral*& elmInt,
+                       const TimeDomain& time, double detJW,
+                       const Vector& N, const Matrix& dNdX,
+                       const Vec3& X, const Vec3& normal) const;
+
+  //! \brief Evaluates the integrand at a boundary point.
+  //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] detJW Jacobian determinant times integration point weight
+  //! \param[in] time Parameters for nonlinear and time-dependent simulations
+  //! \param[in] N1 Basis function values, field 1
+  //! \param[in] N2 Basis function values, field 2
+  //! \param[in] dN1dX Basis function gradients, field 1
+  //! \param[in] dN2dX Basis function gradients, field 2
+  //! \param[in] X Cartesian coordinates of current integration point
+  //! \param[in] normal Boundary normal vector at current integration point
+  //!
+  //! \details This interface is used for mixed formulations.
+  //! The default implementation forwards to the stationary version.
+  //! Reimplement this method for time-dependent or non-linear problems.
+  virtual bool evalBou(LocalIntegral*& elmInt,
+                       const TimeDomain& time, double detJW,
+                       const Vector& N1, const Vector& N2,
+                       const Matrix& dN1dX, const Matrix& dN2dX,
+                       const Vec3& X, const Vec3& normal) const
+  { return false; }
+};
+ 
 #endif

@@ -63,9 +63,29 @@ public:
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   virtual bool initElement(const std::vector<int>& MNPC);
+   //! \brief Initializes current element for numerical integration (mixed).
+  //! \param[in] MNPC1 Nodal point correspondance for the basis 1
+  //! \param[in] MNPC2 Nodal point correspondance for the basis 2
+  //! \param[in] n1 Number of nodes in basis 1 on this patch
+  virtual bool initElement(const std::vector<int>& MNPC1,
+                           const std::vector<int>& MNPC2, size_t n1)
+  {
+    std::cerr <<" *** Integrand::initElement not implemented."<< std::endl;
+    return false;
+  }
   //! \brief Initializes current element for boundary numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   virtual bool initElementBou(const std::vector<int>& MNPC);
+  //! \brief Initializes current element for boundary integration (mixed).
+  //! \param[in] MNPC1 Nodal point correspondance for the basis 1
+  //! \param[in] MNPC2 Nodal point correspondance for the basis 2
+  //! \param[in] n1 Number of nodes in basis 1 on this patch
+  virtual bool initElementBou(const std::vector<int>& MNPC1,
+                              const std::vector<int>& MNPC2, size_t n1)
+  {
+    std::cerr <<" *** Integrand::initElementBou not implemented."<< std::endl;
+    return false;
+  }
 
   //! \brief Evaluates the integrand at a boundary point.
   //! \param elmInt The local integral object to receive the contributions
@@ -106,6 +126,12 @@ public:
   //! \param[in] asol Pointer to analytical solution field (optional)
   virtual NormBase* getNormIntegrand(AnaSol* asol = 0) const;
 
+  //! \brief Returns a pointer to an Integrand for boundary force evaluation.
+  //! \note The Integrand is allocated dynamically and has to be deleted
+  //! manually when leaving the scope of the pointer returned.
+  //! \param[in] asol Pointer to analytical solution field (optional)
+  virtual NormBase* getForceIntegrand(AnaSol* asol = 0) const;
+
   //! \brief Returns problem formulation type.
   SIM::Formulation getFormulation() const { return formulation; }
 
@@ -131,6 +157,9 @@ public:
 
   //! \brief Returns a pointer to current element solution vector.
   virtual const Vector* getElementPressure() const { return 0; }
+  
+  //! \brief Returns the number of space dimensions
+  size_t getNoSpaceDim() const { return nsd; }
 
   //! \brief Returns the number of solution fields.
   virtual size_t getNoFields() const { return nsd; }
@@ -148,6 +177,25 @@ public:
   //! \param[in] prefix Name prefix for all components
   virtual const char* getSecFieldLabel(size_t i, const char* prefix = 0) const
   { return 0; }
+
+  //! \brief Calculates viscous part of stress tensor at current point.
+  //! \param[in] dNdX Basis function gradients at current point
+  //! \param[out] eps Strain tensor at current point
+  virtual bool strain(const Matrix& dNdX, Tensor& eps) const;
+
+  //! \brief Calculates the (Cauchy) stress tensor at current point
+  //! \param[in] N Basis functions at current point
+  //! \param[in] dNdX Basis function gradients at current point
+  //! \param[out] sigma Strain tensor at current point
+  bool stress(const Vector& N, const Matrix& dNdX, Tensor& sigma) const;
+
+  //! \brief Calculates the (Cauchy) stress tensor at current point
+  //! \param[in] N1 Velocity basis functions at current point
+  //! \param[in] dNdX Basis function gradients at current point
+  //! \param[out] sigma Strain tensor at current point
+  bool stress(const Vector& N1, const Vector& N2, 
+              const Matrix& dN1dX, const Matrix& dN2dX,
+              Tensor& sigma) const;
 
 protected:
   //! \brief Utility used by the virtual \a evalInt and \a evalBou methods.
@@ -195,6 +243,9 @@ public:
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   virtual bool initElement(const std::vector<int>& MNPC);
+  //! \brief Initializes current element for boundary integration (mixed).
+  //! \param[in] MNPC Matrix of nodal point correspondance for current element
+  virtual bool initElementBou(const std::vector<int>& MNPC);
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
@@ -211,6 +262,83 @@ public:
 
   //! \brief Returns the number of secondary norm quantities.
   virtual size_t getNoSecFields() const { return anasol ? 3 : 1; }
+
+protected:
+  Stokes&     problem; //!< The problem-specific data
+  AnaSol*     anasol;  //!< Analytical solution fields
+};
+
+
+/*!
+  \brief Class representing for computing boundary force
+*/
+
+class StokesForce : public NormBase
+{
+public:
+  //! \brief The only constructor initializes its data members.
+  //! \param[in] p The Stokes problem to evaluate norms for
+  //! \param[in] a The analytical velocity and pressure fields (optional)
+ StokesForce(Stokes& p, AnaSol* a = 0) : problem(p), anasol(a) {}
+  //! \brief Empty destructor.
+  virtual ~StokesForce() {}
+
+  //! \brief Initializes current element for boundary integration.
+  //! \param[in] MNPC Matrix of nodal point correspondance for current element
+  virtual bool initElementBou(const std::vector<int>& MNPC);
+  //! \brief Initializes current element for boundary integration (mixed).
+  //! \param[in] MNPC1 Nodal point correspondance for the basis 1
+  //! \param[in] MNPC2 Nodal point correspondance for the basis 2
+  //! \param[in] n1 Number of nodes in basis 1 on this patch
+  virtual bool initElementBou(const std::vector<int>& MNPC1,
+                              const std::vector<int>& MNPC2, size_t n1)
+  { return false; }
+
+    //! \brief Evaluates the integrand at a boundary point.
+  //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] detJW Jacobian determinant times integration point weight
+  //! \param[in] time Parameters for nonlinear and time-dependent simulations
+  //! \param[in] N Basis function values
+  //! \param[in] dNdX Basis function gradients
+  //! \param[in] X Cartesian coordinates of current integration point
+  //! \param[in] normal Boundary normal vector at current integration point
+  //!
+  //! \details The default implementation forwards to the stationary version.
+  //! Reimplement this method for time-dependent or non-linear problems.
+  virtual bool evalBou(LocalIntegral*& elmInt,
+                       const TimeDomain& time, double detJW,
+                       const Vector& N, const Matrix& dNdX,
+                       const Vec3& X, const Vec3& normal) const;
+
+  //! \brief Evaluates the integrand at a boundary point.
+  //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] detJW Jacobian determinant times integration point weight
+  //! \param[in] time Parameters for nonlinear and time-dependent simulations
+  //! \param[in] N1 Basis function values, field 1
+  //! \param[in] N2 Basis function values, field 2
+  //! \param[in] dN1dX Basis function gradients, field 1
+  //! \param[in] dN2dX Basis function gradients, field 2
+  //! \param[in] X Cartesian coordinates of current integration point
+  //! \param[in] normal Boundary normal vector at current integration point
+  //!
+  //! \details This interface is used for mixed formulations.
+  //! The default implementation forwards to the stationary version.
+  //! Reimplement this method for time-dependent or non-linear problems.
+  virtual bool evalBou(LocalIntegral*& elmInt,
+                       const TimeDomain& time, double detJW,
+                       const Vector& N1, const Vector& N2,
+                       const Matrix& dN1dX, const Matrix& dN2dX,
+                       const Vec3& X, const Vec3& normal) const
+  { return false; }
+
+  //! \brief Returns the number of primary norm quantities.
+  virtual size_t getNoFields() const;
+
+  //! \brief Returns the number of secondary norm quantities.
+  virtual size_t getNoSecFields() const { return 0; }
+
+  //! \brief Only boundary contributions here
+  virtual bool hasBoundaryTerms() const { return true; }
 
 protected:
   Stokes&     problem; //!< The problem-specific data

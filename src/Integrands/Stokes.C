@@ -70,8 +70,14 @@ bool Stokes::initElementBou (const std::vector<int>& MNPC)
 {
   eS->resize(nf*MNPC.size(),true);
 
+  
+  int ierr = 0;
+  if (ierr = utl::gather(MNPC,nf,primsol[0],*eVs[0]))
+    std::cerr <<" *** Stokes::initElementBou: Detected "
+	      << ierr <<" node numbers out of range."<< std::endl;
+
   myMats->withLHS = false;
-  return true;
+  return ierr == 0;
 }
 
 
@@ -152,10 +158,133 @@ NormBase* Stokes::getNormIntegrand (AnaSol* asol) const
 }
 
 
+NormBase* Stokes::getForceIntegrand (AnaSol* asol) const
+{
+  return new StokesForce(*const_cast<Stokes*>(this),asol);
+}
+
+
 bool Stokes::getIntegralResult (LocalIntegral*& elmInt) const
 {
   elmInt = myMats;
   return elmInt ? true : false;
+}
+
+
+bool Stokes::getBodyForce(const Vec3& X, Vector& f) const
+{
+  const Vec4* Y = dynamic_cast<const Vec4*>(&X);
+  if (!Y) return false;
+
+  const double PI = 3.141592653589793238462;
+  const double x  = X[0];
+  const double y  = X[1];
+  const double t  = Y->t;
+
+  f.fill(0.0);
+  
+
+  f(1) = rho*pow(sin(PI*x),2.0)*sin(2.0*PI*y)*cos(t) + 
+    rho*PI*pow(sin(PI*x)*sin(2.0*PI*y)*sin(t),2.0)*sin(2.0*PI*x) -
+    2.0*rho*PI*pow(sin(PI*x)*sin(PI*y)*sin(t),2.0)*sin(2.0*PI*x)*cos(2.0*PI*y) -
+    PI*sin(PI*x)*sin(PI*y)*sin(t) - 
+    2.0*pow(PI,2.0)*mu*sin(2.0*PI*y)*sin(t)*(cos(2*PI*x)-2*pow(sin(PI*x),2.0));
+
+  f(2) = -rho*sin(2.0*PI*x)*pow(sin(PI*y),2.0)*cos(t) -
+    2.0*rho*PI*pow(sin(PI*x)*sin(PI*y)*sin(t),2.0)*cos(2.0*PI*x)*sin(2.0*PI*y) +
+    rho*PI*pow(sin(2.0*PI*x)*sin(PI*y)*sin(t),2.0)*sin(2.0*PI*y) +
+    PI*cos(PI*x)*cos(PI*y)*sin(t) -
+    4*mu*pow(PI*sin(PI*y),2.0)*sin(2.0*PI*x)*sin(t) +
+    2.0*mu*pow(PI,2.0)*sin(2.0*PI*x)*cos(2.0*PI*y)*sin(t);
+  
+  return true;
+}
+
+
+bool Stokes::strain(const Matrix& dNdX, Tensor& eps) const
+{
+  int i, k, l;
+
+  const int nf = nsd+1;
+
+  if (dNdX.cols() < nsd) {
+    std::cerr <<" *** Stokes::strain: Invalid dimension on dNdX "
+              << dNdX.rows() <<" "<< dNdX.cols() << std::endl;
+    return false;
+  }
+
+  eps.zero();
+  if (!eVs.empty() && !eVs[0]->empty() && eps.dim() > 0) {
+    Vector& EV = *(eVs[0]);
+    for (i = 1;i <= dNdX.rows();i++)
+      for (k = 1;k <= nsd;k++)
+        for (l = 1;l <= nsd;l++) 
+          eps(k,l) += dNdX(i,l)*EV((i-1)*nf+k);
+  }
+  else 
+    return false;
+
+  if (formulation == Stokes::STRESS) {
+    eps += eps.transpose();
+    eps *= 0.5;
+  }
+
+  return true;
+}
+
+
+bool Stokes::stress(const Vector& N, const Matrix& dNdX, Tensor& sigma) const
+{
+  int i, k;
+  
+  const int nf = nsd+1;
+
+  // Compute strain
+  if (!this->strain(dNdX,sigma))
+    return false;
+  sigma *= mu;
+  
+  // Compute pressure
+  if (!eVs.empty() && !eVs[0]->empty() && sigma.dim() > 0) {
+    double P = 0.0;
+    Vector& EV = *(eVs[0]);
+    for (i = 1;i <= N.size();i++)
+      P += EV(i*nf)*N(i);
+    
+    // Add pressure and strain contributions
+    for (k = 1;k <= nsd;k++)
+      sigma(k,k) -= P;
+  }
+
+  return true;
+}
+
+
+bool Stokes::stress(const Vector& N1, const Vector& N2,
+                    const Matrix& dN1dX, const Matrix& dN2dX,
+                    Tensor& sigma) const
+{
+  int i, k;
+
+  const int nf = nsd+1;
+
+  // Compute strain
+  if (!this->strain(dN1dX,sigma))
+    return false;
+
+  // Add pressure
+  if (!eVs.empty() && eVs[0]) {
+    double P = 0.0;
+    Vector& EV = *eVs[0];
+    for (i = 1;i <= N2.size();i++)
+      P += EV(i*nf)*N2(i);
+
+    // Add pressure to strain
+    for (k = 1;k <= nsd;k++)
+      sigma(k,k) -= P;
+  }
+                
+  return true;
 }
 
 
@@ -165,9 +294,15 @@ bool StokesNorm::initElement (const std::vector<int>& MNPC)
 }
 
 
+bool StokesNorm::initElementBou (const std::vector<int>& MNPC)
+{
+  return problem.initElementBou(MNPC);
+}
+
+
 bool StokesNorm::evalInt (LocalIntegral*& elmInt, double detJW,
-			  const Vector& N, const Matrix& dNdX,
-			  const Vec3& X) const
+                          const Vector& N, const Matrix& dNdX,
+                          const Vec3& X) const
 {
   int    i, k, l;
   double value, eps, epsh;
@@ -221,7 +356,7 @@ bool StokesNorm::evalInt (LocalIntegral*& elmInt, double detJW,
     Vec3 Uh; Uh = 0.0;
     for (i = 1;i <= N.size();i++)
       for (k = 1;k <= nsd;k++)
-	Uh[k-1] += EV((i-1)*nf + k)*N(i);
+        Uh[k-1] += EV((i-1)*nf + k)*N(i);
     
     // L2-norm of velocity error
     U -= Uh;
@@ -237,7 +372,7 @@ bool StokesNorm::evalInt (LocalIntegral*& elmInt, double detJW,
     Vec3 dPh; dPh = 0.0;
     for (i = 1;i <= N.size();i++)
       for (k = 1;k <= nsd;k++)
-	dPh[k-1] += EV(i*nf)*dNdX(i,k);
+        dPh[k-1] += EV(i*nf)*dNdX(i,k);
 
     // H1-seminorm of pressure
     dP -= dPh;
@@ -251,73 +386,102 @@ bool StokesNorm::evalInt (LocalIntegral*& elmInt, double detJW,
 
     // Analytical velocity gradient
     Tensor gradU = (*anasol->getVectorSecSol())(X);
+   
+    // Numerical velocity gradient
+    Tensor gradUh(nsd);
+    problem.strain(dNdX,gradUh);
     
-    // Computed velocity gradient
-    Matrix gradUh(nsd,nsd);
-    for (i = 1;i <= N.size();i++)
-      for (k = 1;k <= nsd;k++)
-	for (l = 1;l <= nsd;l++)
-	  gradUh(k,l) += EV((i-1)*nf + k)*dNdX(i,l);
-    
-    if (problem.getFormulation() == Stokes::LAPLACE) {
-      for (k = 1;k <= nsd;k++) 
-	for (l = 1;l <= nsd;l++) {
-	  // Energy norm of analytical solution
-	  pnorm[ip++] += mu*gradU(k,l)*gradU(k,l)*detJW;
-	  // Energy norm of numerical solution
-	  pnorm[ip++] += mu*gradUh(k,l)*gradUh(k,l)*detJW;
-	  // Energy norm of error
-	  value = gradU(k,l)-gradUh(k,l);
-	  pnorm[ip++] += mu*value*value*detJW;
-	}
+    if (problem.getFormulation() == Stokes::STRESS) { 
+      pnorm[ip++] += 2.0*mu*gradU.innerProd(gradU)*detJW;
+      pnorm[ip++] += 2.0*mu*gradUh.innerProd(gradUh)*detJW;
+      gradUh *= -1.0;
+      gradU += gradUh;
+      pnorm[ip++] += 2.0*mu*gradU.innerProd(gradU)*detJW; 
     }
     else {
-      for (k = 1;k <= nsd;k++)
-	for (l = 1;l <= nsd;l++) {
-	  // Strain of analytical solution
-	  eps  = 0.5*(gradU(k,l) + gradU(l,k));
-	  // Strain of computed solution
-	  epsh = 0.5*(gradUh(k,l) + gradUh(l,k));
-	  // Energy norm of analytical solution
-	  pnorm[ip++] += mu*eps*eps*detJW;
-	  // Energy norm of computed solution
-	  pnorm[ip++] += mu*epsh*epsh*detJW;
-	  // Energy norm of error
-	  eps -= epsh;
-	  pnorm[ip++] += mu*epsh*epsh*detJW;
-	} 
+      pnorm[ip++] += mu*gradU.innerProd(gradU)*detJW;
+      pnorm[ip++] += mu*gradUh.innerProd(gradUh)*detJW;
+      gradUh *= -1.0;
+      gradU += gradUh;
+      pnorm[ip++] += mu*gradU.innerProd(gradU)*detJW; 
     }
+  }    
+
+  return true;
+}
+
+
+bool StokesForce::initElementBou(const std::vector<int>& MNPC)
+{
+  return problem.initElementBou(MNPC);
+}
+
+
+bool StokesForce::evalBou(LocalIntegral*& elmInt,
+                          const TimeDomain& time, double detJW,
+                          const Vector& N, const Matrix& dNdX,
+                          const Vec3& X, const Vec3& normal) const
+{
+  const int nsd = dNdX.cols();
+
+  ElmNorm* eNorm = dynamic_cast<ElmNorm*>(elmInt);
+  if (!eNorm) {
+    std::cerr <<" *** StokesForce::evalBou: No force array."<< std::endl;
+    return false;
+  }  
+
+  double mu = problem.getViscosity(X);
+
+  // Numerical approximation of stress
+  Tensor sigmah(3);
+  problem.stress(N,dNdX,sigmah);
+  
+  // Traction
+  Vec3 th = sigmah*normal;
+
+  // Numerical force term
+  ElmNorm& pnorm = *eNorm;
+  int i, ip = 0;
+  for (i = 0;i < nsd;i++)
+    pnorm[ip++] += th[i]*detJW;
+
+  // Analytical force term and error norm
+  if (anasol->getScalarSol() && anasol->getVectorSecSol()) {
+    real P = (*anasol->getScalarSol())(X);
+    Tensor sigma = (*anasol->getVectorSecSol())(X);
+
+    // Symmetrice for stress formulation
+    if (problem.getFormulation() == Stokes::STRESS) 
+      sigma += sigma.transpose();
+
+    // Analytical stress
+    sigma *= mu;
+    for (i = 1;i <= nsd;i++)
+      sigma(i,i) -= P;
+
+    // Analytical traction
+    Vec3 t = sigma*normal;
+
+    for (i = 0;i < nsd;i++)
+      pnorm[ip++] += t[i]*detJW;
+
+    // Error in traction
+    t -= th;
+    pnorm[ip++] += t*t*detJW;
   }
 
   return true;
 }
 
 
-bool Stokes::getBodyForce(const Vec3& X, Vector& f) const
+size_t StokesForce::getNoFields() const 
 {
-  const Vec4* Y = dynamic_cast<const Vec4*>(&X);
-  if (!Y) return false;
-
-  const double PI = 3.141592653589793238462;
-  const double x  = X[0];
-  const double y  = X[1];
-  const double t  = Y->t;
-
-  f.fill(0.0);
+  size_t nsd = problem.getNoSpaceDim();
+  
+  if (anasol)
+    return 2*nsd + 1;
+  else
+    return nsd;
+}
   
 
-  f(1) = rho*pow(sin(PI*x),2.0)*sin(2.0*PI*y)*cos(t) + 
-    rho*PI*pow(sin(PI*x)*sin(2.0*PI*y)*sin(t),2.0)*sin(2.0*PI*x) -
-    2.0*rho*PI*pow(sin(PI*x)*sin(PI*y)*sin(t),2.0)*sin(2.0*PI*x)*cos(2.0*PI*y) -
-    PI*sin(PI*x)*sin(PI*y)*sin(t) - 
-    2.0*pow(PI,2.0)*mu*sin(2.0*PI*y)*sin(t)*(cos(2*PI*x)-2*pow(sin(PI*x),2.0));
-
-  f(2) = -rho*sin(2.0*PI*x)*pow(sin(PI*y),2.0)*cos(t) -
-    2.0*rho*PI*pow(sin(PI*x)*sin(PI*y)*sin(t),2.0)*cos(2.0*PI*x)*sin(2.0*PI*y) +
-    rho*PI*pow(sin(2.0*PI*x)*sin(PI*y)*sin(t),2.0)*sin(2.0*PI*y) +
-    PI*cos(PI*x)*cos(PI*y)*sin(t) -
-    4*mu*pow(PI*sin(PI*y),2.0)*sin(2.0*PI*x)*sin(t) +
-    2.0*mu*pow(PI,2.0)*sin(2.0*PI*x)*cos(2.0*PI*y)*sin(t);
-
-  return true;
-}
