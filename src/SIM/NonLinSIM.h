@@ -75,6 +75,17 @@ public:
   //! \param[in] mode Solution mode to use for this step
   bool solveStep(SolvePrm& param, SIM::SolutionMode mode = SIM::STATIC);
 
+  //! \brief Enum describing the norm used for convergence tests in the
+  //!        Newton-Raphson iterations
+  enum ERRORNORM {
+    L2,
+    ENERGY
+  };
+
+  //! \brief Set the current norm in used in iteration error estimates
+  //! param[in] norm The wanted error norm
+  void setErrorNorm(ERRORNORM norm) { iteNorm = norm; }
+
   //! \brief Computes and prints some solution norm quantities.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations.
   //! \param[in] compName Solution name to be used in the norm output
@@ -130,6 +141,7 @@ private:
   double eta;       //!< Line search tolerance
   int    maxit;     //!< Maximum number of iterations in a time/load step
   int    nupdat;    //!< Number of iterations with updated tangent
+  ERRORNORM iteNorm;//!< The norm used to measure the residual
 
   // Post-processing attributes
   int    nBlock; //!< Running VTF result block counter

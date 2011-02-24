@@ -37,6 +37,7 @@ NonLinSIM::NonLinSIM (SIMbase* sim)
   convTol   = 1.0e-6;
   divgLim   = 1.0;
   eta       = 0.0;
+  iteNorm = ENERGY;
 }
 
 
@@ -263,18 +264,22 @@ NonLinSIM::ConvStatus NonLinSIM::checkConvergence (SolvePrm& param)
   static double prevNorm  = 0.0;
   static int    nIncrease = 0;
 
-  double norm, enorm, resNorm, linsolNorm;
+  double norm=1.f, enorm, resNorm, linsolNorm;
   model->iterationNorms(linsol,residual,enorm,resNorm,linsolNorm);
+  if (iteNorm == ENERGY)
+    norm = enorm;
+  else if (iteNorm == L2)
+    norm = resNorm;
 
   if (param.iter == 0)
   {
-    if (enorm > param.refNorm)
-      param.refNorm = enorm;
+    if (norm > param.refNorm)
+      param.refNorm = norm;
     norm = prevNorm = 1.0;
     nIncrease = 0;
   }
   else
-    norm = fabs(enorm)/param.refNorm;
+    norm = fabs(norm)/param.refNorm;
 
   if (msgLevel > 0 && myPid == 0 && !solution.empty())
   {
