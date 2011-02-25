@@ -1257,3 +1257,9 @@ bool SIMbase::dumpSolution (const Vector& psol, std::ostream& os) const
 
   return true;
 }
+
+void SIMbase::readLinSolParams(std::istream& is, int npar)
+{
+  if (!mySolParams) mySolParams = new LinSolParams();
+  mySolParams->read(is,npar);
+}

@@ -329,6 +329,9 @@ protected:
   //! \param[in] sol Global primary solution vectors in DOF-order
   void extractPatchSolution(const ASMbase* patch, const Vectors& sol);
 
+  //! \brief Read a LinSolParams from the given stream.
+  //!   This method helps with encapsulating PETSc in libIFEM
+  void readLinSolParams(std::istream& is, int npar);
 public:
   //! \brief Enum defining the available discretization methods.
   enum Discretization { Spline, Lagrange, Spectral };
