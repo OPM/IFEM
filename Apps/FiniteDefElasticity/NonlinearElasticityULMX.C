@@ -135,7 +135,7 @@ bool NonlinearElasticityULMX::initElement (const std::vector<int>& MNPC,
   // Extract the element level displacements of previous increment
   int ierr = 0;
   if (!primsol[1].empty())
-    if (ierr = utl::gather(MNPC,nsd,primsol[1],myMats->b[2]))
+    if ((ierr = utl::gather(MNPC,nsd,primsol[1],myMats->b[2])))
       std::cerr <<" *** NonlinearElasticityULMX::initElement: Detected "
 		<< ierr <<" node numbers out of range."<< std::endl;
 

@@ -306,7 +306,7 @@ bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
 	double p = atof(strtok(NULL," "));
 	std::cout <<"\tPressure on P"<< press.patch
 		  <<" F"<< (int)press.lindx <<" direction "<< pdir <<": ";
-	if (cline = strtok(NULL," "))
+	if ((cline = strtok(NULL," ")))
 	  myTracs[1+i] = new PressureField(utl::parseRealFunc(cline,p),pdir);
 	else
 	{
@@ -330,7 +330,7 @@ bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
       double E   = atof(strtok(cline," "));
       double nu  = atof(strtok(NULL," "));
       double rho = atof(strtok(NULL," "));
-      while (cline = strtok(NULL," "))
+      while ((cline = strtok(NULL," ")))
 	if (!strncasecmp(cline,"ALL",3))
         {
 	  std::cout <<"\tMaterial for all patches: "

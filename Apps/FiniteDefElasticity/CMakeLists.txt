@@ -92,7 +92,7 @@ IF(NOT WIN32)
 ENDIF(NOT WIN32)
 
 # Enable all warnings
-#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
 FILE(GLOB_RECURSE NonLinEl_SRCS ${PROJECT_SOURCE_DIR}/../SIMLinEl?D.C
                                 ${PROJECT_SOURCE_DIR}/*.[Cf])

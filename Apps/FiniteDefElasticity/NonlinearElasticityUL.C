@@ -20,15 +20,17 @@
 #ifdef USE_FTNMAT
 extern "C" {
   //! \brief Interface to 2D nonlinear material routines (FORTRAN-77 code).
-  void cons2d_(const int& mTYP, const int& mVER, const double& detF,
-	       const double* F, const double* pmat, double& Engy,
-	       const double* Sig, double* Cst,
-	       const int& ipsw, const int& iwr, int& ierr);
+  void cons2d_(const int& ipsw, const int& iter, const int& iwr,
+	       const int& lfirst, const int& mTYP, const int& mVER,
+	       const int& nHV, const int& nTM, const double& detF,
+	       const double* F, const double* pMAT, double* HV, double& Engy,
+	       const double* Sig, double* Cst, int& ierr);
   //! \brief Interface to 3D nonlinear material routines (FORTRAN-77 code).
-  void cons3d_(const int& mTYP, const int& mVER, const double& detF,
-	       const double* F, const double* pmat, double& Engy,
-	       const double* Sig, double* Cst,
-	       const int& ipsw, const int& iwr, int& ierr);
+  void cons3d_(const int& ipsw, const int& iter, const int& iwr,
+	       const int& lfirst, const int& mTYP, const int& mVER,
+	       const int& nHV, const int& nTM, const double& detF,
+	       const double* F, const double* pMAT, double* HV, double& Engy,
+	       const double* Sig, double* Cst, int& ierr);
 }
 #ifndef INT_DEBUG
 #define INT_DEBUG 0
@@ -280,7 +282,6 @@ bool NonlinearElasticityUL::kinematics (const Matrix& dNdX, SymmTensor& E) const
   }
 
   const size_t nenod = dNdX.rows();
-  const size_t nstrc = nsd*(nsd+1)/2;
   if (eV->size() != nenod*nsd || dNdX.cols() < nsd)
   {
     std::cerr <<" *** NonlinearElasticityUL::kinematics: Invalid dimension,"
@@ -348,9 +349,11 @@ bool NonlinearElasticityUL::constitutive (Matrix& C, SymmTensor& sigma,
     int ipsw = INT_DEBUG > 1 ? 9 : 0;
     int ierr = 0;
     if (ndim == 2)
-      cons2d_(mTYP,mVER,J,F.ptr(),pmat,U,sigma.ptr(),C.ptr(),ipsw,6,ierr);
+      cons2d_(ipsw,0,6,0,mTYP,mVER,0,3,J,F.ptr(),pmat,
+	      &U,U,sigma.ptr(),C.ptr(),ierr);
     else
-      cons3d_(mTYP,mVER,J,F.ptr(),pmat,U,sigma.ptr(),C.ptr(),ipsw,6,ierr);
+      cons3d_(ipsw,0,6,0,mTYP,mVER,0,6,J,F.ptr(),pmat,
+	      &U,U,sigma.ptr(),C.ptr(),ierr);
     if (calcStress == 2)
     {
       // Transform to 2nd Piola-Kirchhoff stresses,

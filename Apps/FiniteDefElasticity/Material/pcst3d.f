@@ -61,7 +61,7 @@ C
       integer   ipswb3, iwr, j
       real*8    aa(6,6), dd(7,7)
 C
-      include 'const.h'
+      include 'include/feninc/const.h'
 C
 C
 C         Entry section

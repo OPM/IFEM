@@ -1,7 +1,7 @@
-      subroutine cons3d (mTYP, mVER, detF, F, pmat, Engy, Sig, Cst,
-     &                   ipswb3, iwr, ierr)
+      subroutine cons3d (ipsw, iter, iwr, lfirst, mTYP, mVER, nHV, nTM,
+     &                   detF, F, pMAT, HV, Engy, Sig, Cst, ierr)
 C
-C ---------------------------------------------------------------------
+C ----------------------------------------------------------------------
 C
 C F E N R I S   ROUTINE:   CONS3D                        NTNU/SINTEF/DNV
 C
@@ -21,13 +21,24 @@ C                combined isotropic and kinematic hardening,
 C                3-D stress
 C
 C ARGUMENTS INPUT:
-C     mTYP    - Material type number
-C     mVER    - Material version number
-C     detF    - Determinant of the deformation gradient
-C     F       - Deformation gradient
-C     pmat(2) - Material property array
+C     ipsw     - Print switch
+C     iter     - Iteration number
+C     iwr      - Write unit number
+C     lFIRST   - Control variable
+C              = 0 : The number of computed equilibrium configurations
+C                    are greater or equal to one
+C              = 1 : No equilibrium configuration has been computed
+C     mTYP     - Material type number
+C     mVER     - Material version number
+C     nHV      - Number of history parameters/stress points
+C     nTM      - Number og stress/strain components per point
+C     detF     - Determinant of the deformation gradient
+C     F        - Deformation gradient
+C     pMAT     - Material property array
+C     HV       - History parameters at t_n
 C
 C ARGUMENTS OUTPUT:
+C     HV       - History parameters at t_n+1
 C     Engy     - Strain energy density
 C     Sig(6)   - Cauchy stresses (spatial stresses)
 C     Cst(6,6) - Spatial constitutive tensor
@@ -45,14 +56,20 @@ C     Bmod     - Material property (Bulk modulus)
 C     Emod     - Material property (Youngs modulus)
 C     Pratio   - Material property (Poissons ratio)
 C     Smod     - Material property (Shear modulus)
+C     GLe(6)   - Green-Lagrangse strains
+C     PK2(6)   - 2nd Piola-Kirchhoff stresses (material stresses)
+C     Cmt(6,6) - Material constitutive tensor
 C     incomp   - logical variable
-C                = .true. if incompressible material ): Pratio = 0
+C                = .true. if incompressible material ): Pratio = 0.5
+C     istrt    - Start state:
+C                = 0 : Elastic
+C                = 1 : Last solution
 C
 C PRINT SWITCH:
-C     ipswb3 = 0  Gives no print
-C     ipswb3 = 2  Gives enter and leave
-C     ipswb3 = 3  Gives in addition parameters on input
-C     ipswb3 = 5  Gives in addition parameters on output
+C     ipsw = 0  Gives no print
+C     ipsw = 2  Gives enter and leave
+C     ipsw = 3  Gives in addition parameters on input
+C     ipsw = 5  Gives in addition parameters on output
 C
 C LIMITS:
 C
@@ -72,26 +89,32 @@ C ---------------------------------------------------------------------
 C
       implicit  none
 C
-      integer   mTYP, mVER, ipswb3, iwr, ierr
-      real*8    detF, Engy, F(9), pmat(2), Sig(6), Cst(6,6)
-      real*8    Bmod, Emod, Pratio, Smod
-      logical   incomp
+      integer   mTYP, mVER, ipsw, iter, iwr, lfirst, nHV, nTM, ierr
+      real*8    detF, Engy, F(3,*), pMAT(*), Sig(*), Cst(*), HV(*)
 C
-      include  'const.h'
+      real*8    Bmod, Emod, Pratio, Smod
+      logical   incomp, state
+C
+      include 'include/feninc/const.h'
 C
 C         Entry section
 C
       ierr = 0
 C
-      if (ipswb3 .gt. 0)                          then
+      if (ipsw .gt. 0)                            then
           write(iwr,9010) 'ENTERING SUBROUTINE CONS3D'
-          if (ipswb3 .gt. 2)                      then
+          if (ipsw .gt. 2)                        then
               write(iwr,9010) 'WITH INPUT ARGUMENTS'
+              write(iwr,9020) 'iter   =', iter
+              write(iwr,9020) 'lfirst =', lfirst
               write(iwr,9020) 'mTYP   =', mTYP
               write(iwr,9020) 'mVER   =', mVER
+              write(iwr,9020) 'nHV    =', nHV
+              write(iwr,9020) 'nTM    =', nTM
               write(iwr,9030) 'detF   =', detF
-              write(iwr,9030) 'Pmat   =', pmat
+              write(iwr,9030) 'pMAT   =', pMAT(1:2)
               call rprin0(F   , 3,    3, 'F     ', iwr)
+              call rprin0(HV  , 1,  nHV, 'HV    ', iwr)
           endif
       endif
 C
@@ -99,8 +122,9 @@ C
 C         Compute Shear and Bulk modulus
 C
       if (mTYP .lt. 0) then
-         Bmod = pmat(1)
-         Smod = pmat(2)
+         Bmod   = pmat(1)
+         Smod   = pmat(2)
+         incomp = Bmod .eq. zero
       else
          Emod   = pmat(1)
          Pratio = pmat(2)
@@ -118,14 +142,14 @@ C
 C
 C         Compute Cauchy stresses and spatial constitutive tensor
 C
-      if (abs(mTYP) .eq. 10) then
+      if (abs(mTYP) .eq. 10)                      then
 C
-         if (mVER .eq. 0) then
+         if (mVER .eq. 0)                         then
 C
 C         Linear elastic isotropic material
 C
-            call liel3d(detF, F, Bmod, Smod, Engy, Sig, Cst,
-     &                  ipswb3, iwr, ierr)
+            call liel3d(ipsw, iwr, detF, F, Bmod, Smod, Engy, Sig, Cst,
+     &                  ierr)
             if (ierr .lt. 0)                      go to 7000
 C
          elseif (mVER .gt. 0 .and. mVER .lt. 5)   then
@@ -136,16 +160,16 @@ C         Compute Lame's parameter for compressibel material
 C
             if (.not. incomp)  Bmod = Bmod - two3 * Smod
 C
-            call stnh3d(mVER, detF, F, Bmod, Smod, Engy, Sig, Cst,
-     &                  ipswb3, iwr, ierr)
+            call stnh3d(ipsw, iwr, mVER, detF, F, Bmod, Smod, Engy, Sig,
+     &                  Cst, ierr)
             if (ierr .lt. 0)                      go to 7000
 C
          elseif (mVER .gt. 10 .and. mVER .lt. 15) then
 C
 C         Modified hyperelastic neoHookean model
 C
-            call monh3d(mVER-10, detF, F, Bmod, Smod, Engy, Sig, Cst,
-     &                  ipswb3, iwr, ierr)
+            call monh3d(ipsw, iwr, mVER-10, detF, F, Bmod, Smod, Engy,
+     &                  Sig, Cst, ierr)
             if (ierr .lt. 0)                      go to 7000
 C
          elseif (mVER .eq. 20)                    then
@@ -153,8 +177,8 @@ C
 C         Isotropic elasticity formulated in terms of
 C         principal logarithmic stretches
 C
-            call ieps3d(detF, F, Bmod, Smod, Engy, Sig, Cst,
-     &                  ipswb3, iwr, ierr)
+            call ieps3d(ipsw, iwr, detF, F, Bmod, Smod, Engy, Sig, Cst,
+     &                  ierr)
             if (ierr .lt. 0)                      go to 7000
 C
          else
@@ -163,6 +187,16 @@ C         Illegal material version
 C
                                                   go to 7100
          endif
+C
+      elseif (abs(mTYP) .eq. 40)                  then
+C
+C         Finite stretch plasticity model
+C
+         call plas3d(ipsw, iwr, iter, lfirst, ntm, pMAT, detF, F(1,1),
+     &               F(1,4), HV(1), HV(7), HV(8), Sig, Cst, state, ierr)
+         if (ierr .lt. 0)                         go to 7000
+C
+         Engy = zero
 C
       else
 C
@@ -187,14 +221,20 @@ C     ----------
  7900 continue
       write(iwr,9020) '*** ERROR IN SUBROUTINE CONS3D *** IERR = ', ierr
       write(iwr,9010) 'WITH INPUT ARGUMENTS'
+      write(iwr,9020) 'iter   =', iter
+      write(iwr,9020) 'lfirst =', lfirst
       write(iwr,9020) 'mTYP   =', mTYP
       write(iwr,9020) 'mVER   =', mVER
+      write(iwr,9020) 'nHV    =', nHV
+      write(iwr,9020) 'nTM    =', nTM
       write(iwr,9030) 'detF   =', detF
-      write(iwr,9030) 'Pmat   =', pmat
+      write(iwr,9030) 'pMAT   =', pMAT(1:2)
       call rprin0(F   , 3,    3, 'F     ', iwr)
+      call rprin0(HV  , 1,  nHV, 'HV    ', iwr)
 C
       write(iwr,9010) 'WITH OUTPUT ARGUMENTS'
       write(iwr,9030) 'Engy   =', Engy
+      call rprin0(HV  , 1,  nHV, 'HV    ', iwr)
       call rprin0(Sig , 1,    6, 'Sig   ', iwr)
       call rprin0(Cst , 6,    6, 'Cst   ', iwr)
       call flush(iwr)
@@ -204,11 +244,12 @@ C         Closing section
 C
  8000 continue
 C
-      if (ipswb3 .gt. 0)                          then
+      if (ipsw .gt. 0)                            then
           write(iwr,9010) 'LEAVING SUBROUTINE CONS3D'
-          if (ipswb3 .gt. 3)                      then
+          if (ipsw .gt. 3)                        then
               write(iwr,9010) 'WITH OUTPUT ARGUMENTS'
               write(iwr,9030) 'Engy   =', Engy
+              call rprin0(HV  , 1,  nHV, 'HV    ', iwr)
               call rprin0(Sig , 1,    6, 'Sig   ', iwr)
               call rprin0(Cst , 6,    6, 'Cst   ', iwr)
           endif

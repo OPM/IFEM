@@ -1,5 +1,5 @@
-      subroutine liel3d (detF, F, Bmod, Smod, Engy, Sig, Cst,
-     &                   ipswb3, iwr, ierr)
+      subroutine liel3d (ipsw, iwr, detF, F, Bmod, Smod, Engy, Sig, Cst,
+     &                   ierr)
 C
 C ---------------------------------------------------------------------
 C
@@ -17,7 +17,9 @@ C     Stress(3,3) = | Stress(4)  Stress(2)  Stress(5) |
 C                   | Stress(6)  Stress(5)  Stress(3) |
 C     
 C
-C ARGUMENTS INPUT:  
+C ARGUMENTS INPUT:
+C     ipsw    - Print switch
+C     iwr     - Write unit number
 C     detF    - Determinant of the deformation gradient
 C     F       - Deformation gradients 
 C     Bmod    - Bulk modulus
@@ -42,10 +44,10 @@ C     PK2(6)   - 2nd Piola-Kirchhoff stresses (material stresses)
 C     Cmt(6,6) - Material constitutive tensor
 C
 C PRINT SWITCH:
-C     ipswb3 = 0  Gives no print
-C     ipswb3 = 2  Gives enter and leave
-C     ipswb3 = 3  Gives in addition parameters on input
-C     ipswb3 = 5  Gives in addition parameters on output
+C     ipsw = 0  Gives no print
+C     ipsw = 2  Gives enter and leave
+C     ipsw = 3  Gives in addition parameters on input
+C     ipsw = 5  Gives in addition parameters on output
 C
 C LIMITS:
 C
@@ -65,22 +67,22 @@ C ---------------------------------------------------------------------
 C
       implicit  none
 C
-      integer   ipswb3, iwr, ierr
-      integer   i, j, i3
+      integer   ipsw, iwr, ierr
+      integer   i, j, i3, iop
 C
       real*8    detF, Engy, F(9), Bmod, Smod, Sig(6), Cst(6,6)
       real*8    c1, c2
       real*8    GLe(6), PK2(6), Cmt(6,6)
 C
-      include 'const.h'
+      include 'include/feninc/const.h'
 C
 C         Entry section
 C
       ierr = 0
 C
-      if (ipswb3 .gt. 0)                          then 
+      if (ipsw .gt. 0)                            then
           write(iwr,9010) 'ENTERING SUBROUTINE LIEL3D'
-          if (ipswb3 .gt. 2)                      then
+          if (ipsw .gt. 2)                        then
               write(iwr,9010) 'WITH INPUT ARGUMENTS'
               write(iwr,9030) 'detF   =', detF
               write(iwr,9030) 'Bmod   =', Bmod
@@ -131,7 +133,8 @@ C
 C         Push stresses and constitutive tensor forward from
 C         material to spatial coordinates in current configuration
 C
-      call push3D (detF, F, PK2, Cmt, Sig, Cst, ipswb3, iwr)
+      iop = 0
+      call push3D (ipsw, iop, iwr, detF, F, PK2, Cmt, Sig, Cst)
 C
                                                   go to 8000
 C
@@ -162,9 +165,9 @@ C         Closing section
 C
  8000 continue
 C
-      if (ipswb3 .gt. 0)                          then
+      if (ipsw .gt. 0)                            then
           write(iwr,9010) 'LEAVING SUBROUTINE LIEL3D'
-          if (ipswb3 .gt. 3)                      then
+          if (ipsw .gt. 3)                        then
               write(iwr,9010) 'WITH OUTPUT ARGUMENTS'
               write(iwr,9030) 'Engy   =', Engy
               call rprin0(Sig, 1, 6,'Sig   ', iwr)

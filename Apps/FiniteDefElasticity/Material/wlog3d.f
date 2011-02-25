@@ -1,5 +1,4 @@
-      subroutine wlog3d (mu, bpr, epsd, taup, aap, w,
-     &                   ipswb3, iwr, ierr)
+      subroutine wlog3d (ipsw, iwr, mu, bpr, epsd, taup, aap, w, ierr)
 C
 C ---------------------------------------------------------------------
 C
@@ -17,7 +16,9 @@ C
 C     Logarithmic strain energy function
 C          w    = mu * [log(lambda)]**2      
 C
-C ARGUMENTS INPUT:  
+C ARGUMENTS INPUT:
+C     ipsw     - Print switch
+C     iwr      - Write unit number 
 C     mu       - Shear modulus
 C     bpr(3)   - Principal stretch (squared)
 C
@@ -39,10 +40,10 @@ C
 C     
 C
 C PRINT SWITCH:
-C     ipswb3 = 0  Gives no print
-C     ipswb3 = 2  Gives enter and leave
-C     ipswb3 = 3  Gives in addition parameters on input
-C     ipswb3 = 5  Gives in addition parameters on output
+C     ipsw = 0  Gives no print
+C     ipsw = 2  Gives enter and leave
+C     ipsw = 3  Gives in addition parameters on input
+C     ipsw = 5  Gives in addition parameters on output
 C
 C LIMITS:
 C
@@ -62,12 +63,12 @@ C ---------------------------------------------------------------------
 C
       implicit  none
 C
-      integer   i, j, ipswb3, iwr, ierr
+      integer   i, j, ipsw, iwr, ierr
 C
       real*8    jthird, mu, twomu, fourmu, w, tol,
      &          bpr(3), lamt(3), epsd(3), taup(3), aap(6,6)
 C
-      include 'const.h'
+      include 'include/feninc/const.h'
 C
       data      tol / 1.0d-08 /
 C
@@ -75,9 +76,9 @@ C         Entry section
 C
       ierr = 0
 C
-      if (ipswb3 .gt. 0)                          then 
+      if (ipsw .gt. 0)                            then
           write(iwr,9010) 'ENTERING SUBROUTINE WLOG3D'
-          if (ipswb3 .gt. 2)                      then
+          if (ipsw .gt. 2)                        then
               write(iwr,9010) 'WITH INPUT ARGUMENTS'
               write(iwr,9030) 'mu     =', mu
               call rprin0(bpr, 1, 3, 'bpr   ', iwr)
@@ -162,9 +163,9 @@ C         Closing section
 C
  8000 continue
 C
-      if (ipswb3 .gt. 0)                          then
+      if (ipsw .gt. 0)                            then
           write(iwr,9010) 'LEAVING SUBROUTINE WLOG3D'
-          if (ipswb3 .gt. 3)                      then
+          if (ipsw .gt. 3)                        then
               write(iwr,9010) 'WITH OUTPUT ARGUMENTS'
               write(iwr,9030) 'w      =', w  
               call rprin0(epsd, 1, 3, 'epsd  ', iwr)

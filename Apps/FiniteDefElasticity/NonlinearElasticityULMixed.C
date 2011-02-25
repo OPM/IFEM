@@ -1,4 +1,4 @@
-// $Id: NonlinearElasticityULMixed.C,v 1.4 2011-02-08 09:06:02 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file NonlinearElasticityULMixed.C
@@ -261,7 +261,7 @@ bool NonlinearElasticityULMixed::initElement (const std::vector<int>& MNPC1,
   // Extract the element level volumetric change and pressure vectors
   int ierr = 0;
   if (!primsol.front().empty())
-    if (ierr = (utl::gather(MNPC2,0,2,primsol.front(),myMats->b[T],nsd*n1,n1) +
+    if ((ierr = utl::gather(MNPC2,0,2,primsol.front(),myMats->b[T],nsd*n1,n1) +
 		utl::gather(MNPC2,1,2,primsol.front(),myMats->b[P],nsd*n1,n1)))
       std::cerr <<" *** NonlinearElasticityULMixed::initElement: Detected "
 		<< ierr/2 <<" node numbers out of range."<< std::endl;
@@ -285,7 +285,7 @@ bool NonlinearElasticityULMixed::initElementBou (const std::vector<int>& MNPC1,
   // Extract the element level displacement vector
   int ierr = 0;
   if (!primsol.front().empty())
-    if (ierr = utl::gather(MNPC1,nsd,primsol.front(),myMats->b[U]))
+    if ((ierr = utl::gather(MNPC1,nsd,primsol.front(),myMats->b[U])))
       std::cerr <<" *** NonlinearElasticityULMixed::initElementBou: Detected "
                 << ierr <<" node numbers out of range."<< std::endl;
 

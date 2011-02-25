@@ -1,5 +1,5 @@
-      subroutine monh3d (iVF, detF, F, Bmod, Smod, Engy, Sig, Cst,
-     &                   ipswb3, iwr, ierr)
+      subroutine monh3d (ipsw, iwr, iVF, detF, F, Bmod, Smod, Engy,
+     &                   Sig, Cst, ierr)
 C 
 C ---------------------------------------------------------------------
 C
@@ -29,9 +29,11 @@ C           =   partial^2_J ( Psi )/JC
 C     
 C
 C ARGUMENTS INPUT:  
+C     ipsw    - Print switch
+C     iwr     - Write unit number
 C     iVF     - Volumetric function type
 C     detF    - Determinant of the deformation gradient
-C     F       - Deformation gradients 
+C     F       - Deformation gradient
 C     Bmod    - Bulk modulus
 C     Smod    - Shear modulus
 C
@@ -50,14 +52,15 @@ C     None
 C
 C INTERNAL VARIABLES:
 C     nSTR     - Number of stress/strain components 
+C     b(6)     - Left Cauchy-Green deformation tensor
 C     bm(6)    - Modified Left Cauchy-Green deformation tensor
 C     
 C
 C PRINT SWITCH:
-C     ipswb3 = 0  Gives no print
-C     ipswb3 = 2  Gives enter and leave
-C     ipswb3 = 3  Gives in addition parameters on input
-C     ipswb3 = 5  Gives in addition parameters on output
+C     ipsw = 0  Gives no print
+C     ipsw = 2  Gives enter and leave
+C     ipsw = 3  Gives in addition parameters on input
+C     ipsw = 5  Gives in addition parameters on output
 C
 C LIMITS:
 C
@@ -77,26 +80,26 @@ C ---------------------------------------------------------------------
 C
       implicit  none
 C
-      integer   iVF, ipswb3, iwr, ierr
+      integer   ipsw, iwr, iVF, ierr
       integer   i, j, ierrl
 C
-      real*8    detF, Engy, F(3,3), Bmod, Smod, Sig(6), Cst(6,6)
-      real*8    c1, c2, c3, Cstv, bm(6), detFi, Press, trbm3
+      real*8    detF, Engy, Bmod, Smod, F(3,3), Sig(6), Cst(6,6)
+      real*8    c1, c2, c3, Cstv, b(6), bm(6), detFi, Press, trbm3
 C
-      include 'const.h'
+      include 'include/feninc/const.h'
 C
 C         Entry section
 C
       ierr = 0
 C
-      if (ipswb3 .gt. 0)                          then 
+      if (ipsw .gt. 0)                            then
           write(iwr,9010) 'ENTERING SUBROUTINE MONH3D'
-          if (ipswb3 .gt. 2)                      then
+          if (ipsw .gt. 2)                        then
               write(iwr,9010) 'WITH INPUT ARGUMENTS'
               write(iwr,9020) 'iVF    =', iVF
               write(iwr,9030) 'detF   =', detF
               write(iwr,9030) 'Bmod   =', Bmod
-              write(iwr,9030) 'Smod   =', Smod     
+              write(iwr,9030) 'Smod   =', Smod
               call rprin0(F   , 3,    3, 'F     ', iwr)
           endif
       endif
@@ -109,27 +112,19 @@ C         Compute Left Cauchy-Green deformation tensor
 C   
 C         b = F * F^T
 C
-      bm(1) = F(1,1)*F(1,1) + F(1,2)*F(1,2) + F(1,3)*F(1,3)
-      bm(2) = F(2,1)*F(2,1) + F(2,2)*F(2,2) + F(2,3)*F(2,3)
-      bm(3) = F(3,1)*F(3,1) + F(3,2)*F(3,2) + F(3,3)*F(3,3)
-      bm(4) = F(1,1)*F(2,1) + F(1,2)*F(2,2) + F(1,3)*F(2,3)
-      bm(5) = F(2,1)*F(3,1) + F(2,2)*F(3,2) + F(2,3)*F(3,3)
-      bm(6) = F(1,1)*F(3,1) + F(1,2)*F(3,2) + F(1,3)*F(3,3)
-C
-      if (ipswb3 .gt. 3)                          then
-         call rprin0(bm, 1, 6,'bm    ', iwr)
-      endif
+      b(1) = F(1,1)*F(1,1) + F(1,2)*F(1,2) + F(1,3)*F(1,3)
+      b(2) = F(2,1)*F(2,1) + F(2,2)*F(2,2) + F(2,3)*F(2,3)
+      b(3) = F(3,1)*F(3,1) + F(3,2)*F(3,2) + F(3,3)*F(3,3)
+      b(4) = F(1,1)*F(2,1) + F(1,2)*F(2,2) + F(1,3)*F(2,3)
+      b(5) = F(2,1)*F(3,1) + F(2,2)*F(3,2) + F(2,3)*F(3,3)
+      b(6) = F(1,1)*F(3,1) + F(1,2)*F(3,2) + F(1,3)*F(3,3)
 C
 C         Compute modified Left Cauchy-Green deformation tensor
 C               _   
 C         bm =  b = J^(-2/3) * b
 C
       detFi = one / detF
-      bm    = bm * (detFi ** two3)
-C
-      if (ipswb3 .gt. 3)                          then
-         call rprin0(bm, 1, 6,'bm    ', iwr)
-      endif
+      bm    = b * (detFi ** two3)
 C
 C         Compute one third of the trace of the modified 
 C         Left Cauchy-Green deformation tensor
@@ -140,10 +135,6 @@ C
       bm(1) = bm(1) - trbm3
       bm(2) = bm(2) - trbm3
       bm(3) = bm(3) - trbm3
-C
-      if (ipswb3 .gt. 3)                          then
-         call rprin0(bm, 1, 6,'bm    ', iwr)
-      endif
 C
 C         Compute deviatoric part of the constitutive tensor
 C
@@ -187,18 +178,18 @@ C
       Sig = Sig * detFi
       Cst = Cst * detFi
 C
-      if (ipswb3 .gt. 3)                          then
+      if (ipsw .gt. 3)                            then
          write(iwr,9030) 'Press =', Press
          call rprin0(Sig, 1, 6,'Sig   ', iwr)
          call rprin0(Cst, 6, 6,'Cst   ', iwr)
       endif
 C
-C         Compute volumetric stresses (presssure) and material moduli
+C         Compute volumetric stresses (pressure) and material moduli
 C         according to the volumetric function type
 C
-      call vfnh3d (iVF, detF, detFi, Bmod, Engy, Press, Cstv,
-     &             ipswb3, iwr, ierrl)
-      if (ierrl .lt. 0)                     go to 7000
+      call vfnh3d (ipsw, iwr, iVF, detF, detFi, Bmod, Engy, Press, Cstv,
+     &             ierrl)
+      if (ierrl .lt. 0)                           go to 7000
 C
       Sig(1:3) = Sig(1:3) + Press
 C
@@ -240,8 +231,8 @@ C     ----------
       write(iwr,9020) 'iVF    =', iVF
       write(iwr,9030) 'detF   =', detF
       write(iwr,9030) 'Bmod   =', Bmod
-      write(iwr,9030) 'Smod   =', Smod     
-      call rprin0(F   , 3,    3, 'F     ', iwr)
+      write(iwr,9030) 'Smod   =', Smod
+      call rprin0(F   , 3,    3, 'F     ', iwr)   
 C
       write(iwr,9010) 'WITH OUTPUT ARGUMENTS'
       write(iwr,9030) 'Engy   =', Engy
@@ -253,9 +244,9 @@ C         Closing section
 C
  8000 continue
 C
-      if (ipswb3 .gt. 0)                          then
+      if (ipsw .gt. 0)                            then
           write(iwr,9010) 'LEAVING SUBROUTINE MONH3D'
-          if (ipswb3 .gt. 3)                      then
+          if (ipsw .gt. 3)                        then
               write(iwr,9010) 'WITH OUTPUT ARGUMENTS'
               write(iwr,9030) 'Engy   =', Engy
               call rprin0(Sig, 1, 6,'Sig   ', iwr)

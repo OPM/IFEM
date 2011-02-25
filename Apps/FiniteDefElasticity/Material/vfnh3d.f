@@ -1,5 +1,5 @@
-      subroutine vfnh3d (iVF, detF, detFi, lambda, U, Up, Upp,
-     &                   ipswb3, iwr, ierr)
+      subroutine vfnh3d (ipsw, iwr, iVF, detF, detFi, lambda, U, Up,
+     &                   Upp, ierr)
 C
 C ---------------------------------------------------------------------
 C
@@ -22,6 +22,8 @@ C           =   partial^2_J ( Psi )/JC
 C     
 C
 C ARGUMENTS INPUT:  
+C     ipsw    - Prints switch
+C     iwr     - Write unit number
 C     iVF     - Volumetric function type
 C     detF    - Determinant of the deformation gradient
 C     detFi   - Inverse of the determinant of the Jacobian gradient
@@ -45,10 +47,10 @@ C     U     = U(J)
 C     Up    = partial_J ( Psi )
 C
 C PRINT SWITCH:
-C     ipswb3 = 0  Gives no print
-C     ipswb3 = 2  Gives enter and leave
-C     ipswb3 = 3  Gives in addition parameters on input
-C     ipswb3 = 5  Gives in addition parameters on output
+C     ipsw = 0  Gives no print
+C     ipsw = 2  Gives enter and leave
+C     ipsw = 3  Gives in addition parameters on input
+C     ipsw = 5  Gives in addition parameters on output
 C
 C LIMITS:
 C
@@ -68,20 +70,20 @@ C ---------------------------------------------------------------------
 C
       implicit  none
 C
-      integer   iVF, ipswb3, iwr, ierr
+      integer   ipsw, iwr, iVF, ierr
 C
       real*8    detF, detFi, lambda,
      &          detF2, detFi2, detFm1, U, Up, Upp
 C
-      include 'const.h'
+      include 'include/feninc/const.h'
 C
 C         Entry section
 C
       ierr = 0
 C
-      if (ipswb3 .gt. 0)                          then 
+      if (ipsw .gt. 0)                            then
           write(iwr,9010) 'ENTERING SUBROUTINE VFNH3D'
-          if (ipswb3 .gt. 2)                      then
+          if (ipsw .gt. 2)                        then
               write(iwr,9010) 'WITH INPUT ARGUMENTS'
               write(iwr,9020) 'iVF    =', iVF
               write(iwr,9030) 'detF   =', detF
@@ -93,7 +95,7 @@ C
 C         Compute volumetric stresses (pressure) and material moduli
 C         according to the volumetric function type
 C
-      if (iVF . eq. 1) then
+      if (iVF . eq. 1)                            then
 C
 C         Volumetric function type 1: 
 C         U(J) = lambda*0.25*(J^2 - 1 - 2*(log J))
@@ -104,7 +106,7 @@ C
         Up     = one2 * lambda * ( detF - detFi )
         Upp    = one2 * lambda * ( one + detFi2 )
 C
-      else if (iVF .eq. 2) then
+      else if (iVF .eq. 2)                        then
 C
 C         Volumetric function type 2: 
 C         U(J) = lambda*0.5*(J-1)^2
@@ -114,7 +116,7 @@ C
         Up     =        lambda *  detFm1
         Upp    =        lambda
 C
-      else if (IVF .eq. 3) then
+      else if (IVF .eq. 3)                        then
 C
 C         Volumetric function type 3: 
 C         U(J) = lambda*0.5*(log J)^2
@@ -123,7 +125,7 @@ C
         Up   =         lambda * log(abs(detF)) * detFi
         Upp  =       ( lambda * detFi - Up ) * detFi
 C
-      else if (iVF .eq. 4) then
+      else if (iVF .eq. 4)                        then
 C
 C         Volumetric function type 4: 
 C         U(J) = lambda*2.0*(J - 1 - log J)
@@ -166,9 +168,9 @@ C         Closing section
 C
  8000 continue
 C
-      if (ipswb3 .gt. 0)                          then
+      if (ipsw .gt. 0)                            then
           write(iwr,9010) 'LEAVING SUBROUTINE VFNH3D'
-          if (ipswb3 .gt. 3)                      then
+          if (ipsw .gt. 3)                        then
               write(iwr,9010) 'WITH OUTPUT ARGUMENTS'
               write(iwr,9030) 'U      =', U  
               write(iwr,9030) 'Up     =', Up

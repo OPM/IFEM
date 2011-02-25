@@ -1,4 +1,4 @@
-// $Id: NonlinearElasticity.C,v 1.3 2011-02-08 09:06:02 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file NonlinearElasticity.C
@@ -181,7 +181,7 @@ bool NonlinearElasticity::evalSol (Vector& s, const Vector&,
 
   int ierr = 0;
   if (eV && !primsol.front().empty())
-    if (ierr = utl::gather(MNPC,nsd,primsol.front(),*eV))
+    if ((ierr = utl::gather(MNPC,nsd,primsol.front(),*eV)))
     {
       std::cerr <<" *** NonlinearElasticity::evalSol: Detected "
 		<< ierr <<" node numbers out of range."<< std::endl;

@@ -1,5 +1,4 @@
-      subroutine amat3d (taup, aap, q, tau, aa,
-     &                   ipswb3, iwr, ierr)
+      subroutine amat3d (ipsw, iwr, taup, aap, q, tau, aa, ierr)
 C
 C ---------------------------------------------------------------------
 C
@@ -12,7 +11,9 @@ C
 C METHOD:
 C     
 C
-C ARGUMENTS INPUT:  
+C ARGUMENTS INPUT:
+C     ipsw     - Print switch
+C     iwr      - Write unit number
 C     taup(3)  - Principal deviatoric Kirchhoff stresses
 C     aap(6,6) - Deviatoric tangent moduli in principal basis
 C     q(6,6)   - Transformation matrix: [principal]-->[std] basis
@@ -34,10 +35,10 @@ C
 C     
 C
 C PRINT SWITCH:
-C     ipswb3 = 0  Gives no print
-C     ipswb3 = 2  Gives enter and leave
-C     ipswb3 = 3  Gives in addition parameters on input
-C     ipswb3 = 5  Gives in addition parameters on output
+C     ipsw = 0  Gives no print
+C     ipsw = 2  Gives enter and leave
+C     ipsw = 3  Gives in addition parameters on input
+C     ipsw = 5  Gives in addition parameters on output
 C
 C LIMITS:
 C
@@ -57,19 +58,19 @@ C ---------------------------------------------------------------------
 C
       implicit  none
 C
-      integer   i, j, k, ipswb3, iwr, ierr
+      integer   i, j, k, ipsw, iwr, ierr
 C
       real*8    taup(3), aap(6,6), q(6,6), tau(6), aa(6,6), vi(6)
 C
-      include 'const.h'
+      include 'include/feninc/const.h'
 C
 C         Entry section
 C
       ierr = 0
 C
-      if (ipswb3 .gt. 0)                          then 
+      if (ipsw .gt. 0)                            then
           write(iwr,9010) 'ENTERING SUBROUTINE AMAT3D'
-          if (ipswb3 .gt. 2)                      then
+          if (ipsw .gt. 2)                        then
               write(iwr,9010) 'WITH INPUT ARGUMENTS'
               call rprin0(taup, 1, 3, 'taup  ', iwr)
               call rprin0(aap , 6, 6, 'aap   ', iwr)
@@ -142,9 +143,9 @@ C         Closing section
 C
  8000 continue
 C
-      if (ipswb3 .gt. 0)                          then
+      if (ipsw .gt. 0)                            then
           write(iwr,9010) 'LEAVING SUBROUTINE AMAT3D'
-          if (ipswb3 .gt. 3)                      then
+          if (ipsw .gt. 3)                        then
               write(iwr,9010) 'WITH OUTPUT ARGUMENTS'
               call rprin0(tau, 1, 3, 'tau   ', iwr)
               call rprin0(aa , 6, 6, 'aa    ', iwr)

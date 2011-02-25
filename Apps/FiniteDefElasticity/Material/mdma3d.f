@@ -1,4 +1,4 @@
-      subroutine mdma3d (P_bar, P_mix, Sig, DD, ipswb3, iwr)
+      subroutine mdma3d (P_bar, P_mix, Sig, DD, ipsw, iwr)
 C
 C ---------------------------------------------------------------------
 C
@@ -36,10 +36,10 @@ C INTERNAL VARIABLES:
 C     None
 C
 C PRINT SWITCH:
-C     ipswb3 = 0  Gives no print
-C     ipswb3 = 2  Gives enter and leave
-C     ipswb3 = 3  Gives in addition parameters on input
-C     ipswb3 = 5  Gives in addition parameters on output
+C     ipsw = 0  Gives no print
+C     ipsw = 2  Gives enter and leave
+C     ipsw = 3  Gives in addition parameters on input
+C     ipsw = 5  Gives in addition parameters on output
 C
 C LIMITS:
 C
@@ -59,21 +59,21 @@ C ---------------------------------------------------------------------
 C
       implicit  none
 C
-      integer   ipswb3, iwr, j
+      integer   ipsw, iwr, j
       real*8    DD(7,7), P_bar, P_mix, Sig(6)
       real*8    fac1, Sig_D(6)
 C
-      include 'const.h'
+      include 'include/feninc/const.h'
 C
 C         Entry section
 C
-      if (ipswb3 .gt. 0)                          then 
+      if (ipsw .gt. 0)                            then
          write(iwr,9010) 'ENTERING SUBROUTINE MDMA3D'
-         if (ipswb3 .gt. 2)                       then
+         if (ipsw .gt. 2)                         then
             write(iwr,9010) 'WITH INPUT ARGUMENTS'
             write(iwr,9030) 'P_bar  =', P_bar
             write(iwr,9030) 'P_mix  =', P_mix
-            call rprin0(Sig, 1, 6, 'Sig   ', iwr)    
+            call rprin0(Sig, 1, 6, 'Sig   ', iwr)
             call rprin0(DD , 7, 7, 'DD    ', iwr)
          endif
       endif
@@ -115,9 +115,9 @@ C
 C         Closing section
 C
  8000 continue
-      if (ipswb3 .gt. 0)                          then
+      if (ipsw .gt. 0)                            then
          write(iwr,9010) 'LEAVING SUBROUTINE MDMA3D'
-         if (ipswb3 .gt. 3)                       then
+         if (ipsw .gt. 3)                         then
             write(iwr,9010) 'WITH OUTPUT ARGUMENTS'
             call rprin0(DD , 7, 7, 'DD    ', iwr)
          endif

@@ -1,5 +1,5 @@
-      subroutine stnh3d (iVF, detF, F, lambda, mu, Engy, Sig, Cst,
-     &                   ipswb3, iwr, ierr)
+      subroutine stnh3d (ipsw, iwr, iVF, detF, F, lambda, mu, Engy, Sig,
+     &                   Cst, ierr)
 C
 C ---------------------------------------------------------------------
 C
@@ -31,9 +31,11 @@ C           =   partial^2_J ( Psi )/JC
 C     
 C
 C ARGUMENTS INPUT:  
+C     ipsw    - Print switch
+C     iwr     - Write unit number
 C     iVF     - Volumetric function type
 C     detF    - Determinant of the deformation gradient
-C     F       - Deformation gradients 
+C     F       - Deformation gradient
 C     lambda  - Lame's constant (=K-2*G/3)
 C     mu      - Shear modulus
 C
@@ -52,13 +54,12 @@ C     None
 C
 C INTERNAL VARIABLES:
 C     b(6)    - Left Cauchy-Green deformation tensor
-C     
 C
 C PRINT SWITCH:
-C     ipswb3 = 0  Gives no print
-C     ipswb3 = 2  Gives enter and leave
-C     ipswb3 = 3  Gives in addition parameters on input
-C     ipswb3 = 5  Gives in addition parameters on output
+C     ipsw = 0  Gives no print
+C     ipsw = 2  Gives enter and leave
+C     ipsw = 3  Gives in addition parameters on input
+C     ipsw = 5  Gives in addition parameters on output
 C
 C LIMITS:
 C
@@ -78,27 +79,27 @@ C ---------------------------------------------------------------------
 C
       implicit  none
 C
-      integer   iVF, ipswb3, iwr, ierr
+      integer   iVF, ipsw, iwr, ierr
       integer   i, i3, ierrl
 C
-      real*8    detF, Engy, F(3,3), lambda, mu, Sig(6), Cst(6,6)
-      real*8    c1, c2, b(6), Cstv, detFi, Press
+      real*8    detF, Engy, lambda, mu, b(6), F(3,3), Sig(6), Cst(6,6)
+      real*8    c1, c2, Cstv, detFi, Press
 C
-      include 'const.h'
+      include 'include/feninc/const.h'
 C
 C         Entry section
 C
       ierr = 0
 C
-      if (ipswb3 .gt. 0)                          then 
+      if (ipsw .gt. 0)                            then
           write(iwr,9010) 'ENTERING SUBROUTINE STNH3D'
-          if (ipswb3 .gt. 2)                      then
+          if (ipsw .gt. 2)                        then
               write(iwr,9010) 'WITH INPUT ARGUMENTS'
               write(iwr,9020) 'iVF    =', iVF
               write(iwr,9030) 'detF   =', detF
               write(iwr,9030) 'lambda =', lambda
-              write(iwr,9030) 'mu     =', mu    
-              call rprin0(F   , 3,    3, 'F     ', iwr)
+              write(iwr,9030) 'mu     =', mu
+              call rprin0(F   , 3,    3, 'F     ', iwr)   
           endif
       endif
 C
@@ -118,9 +119,9 @@ C         according to the volumetric function type
 C
       detFi = one / detF
 C
-      call vfnh3d (iVF, detF, detFi, lambda, Engy, Press, Cstv,
-     &             ipswb3, iwr, ierrl)
-      if (ierrl .lt. 0)                     go to 7000
+      call vfnh3d (ipsw, iwr, iVF, detF, detFi, lambda, Engy, Press,
+     &             Cstv, ierrl)
+      if (ierrl .lt. 0)                           go to 7000
 C
 C         Initialize spatial constitutive tensor
 C
@@ -130,7 +131,6 @@ C         Accumulate deviatoric and volumetric contribution to
 C         spatial stresses and material moduli
 C
       c1    = mu * detFi
-C      c2    = two * mu
       c2    = two * c1
       Cstv  = Cstv * detF
 C
@@ -176,8 +176,8 @@ C     ----------
       write(iwr,9020) 'iVF    =', iVF
       write(iwr,9030) 'detF   =', detF
       write(iwr,9030) 'lambda =', lambda
-      write(iwr,9030) 'mu     =', mu   
-      call rprin0(F   , 3,    3, 'F     ', iwr)
+      write(iwr,9030) 'mu     =', mu
+      call rprin0(F   , 3,    3, 'F     ', iwr)  
 C
       write(iwr,9010) 'WITH OUTPUT ARGUMENTS'
       write(iwr,9030) 'Engy   =', Engy
@@ -189,9 +189,9 @@ C         Closing section
 C
  8000 continue
 C
-      if (ipswb3 .gt. 0)                          then
+      if (ipsw .gt. 0)                            then
           write(iwr,9010) 'LEAVING SUBROUTINE STNH3D'
-          if (ipswb3 .gt. 3)                      then
+          if (ipsw .gt. 3)                        then
               write(iwr,9010) 'WITH OUTPUT ARGUMENTS'
               write(iwr,9030) 'Engy   =', Engy
               call rprin0(Sig, 1, 6,'Sig   ', iwr)

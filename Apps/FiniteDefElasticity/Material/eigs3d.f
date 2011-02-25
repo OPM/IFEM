@@ -1,5 +1,4 @@
-      subroutine eigs3d (v, d, nrotd,
-     &                   ipswb3, iwr, ierr)
+      subroutine eigs3d (ipsw, iwr, v, d, nrotd, ierr)
 C
 C ---------------------------------------------------------------------
 C
@@ -23,6 +22,8 @@ C     v(3,3) - Matrix for which eigenvalues/vectors should be
 C              computed for
 C
 C ARGUMENTS OUTPUT:
+C     ipsw   - Print switch
+C     iwr    - Write unit number
 C     v(3,3) - Matrix of eigenvectors (by column)
 C     d(3)   - Eigenvalues associated with the columns of v
 C     nrotd  - number of rotations to diagonalize
@@ -40,10 +41,10 @@ C
 C     
 C
 C PRINT SWITCH:
-C     ipswb3 = 0  Gives no print
-C     ipswb3 = 2  Gives enter and leave
-C     ipswb3 = 3  Gives in addition parameters on input
-C     ipswb3 = 5  Gives in addition parameters on output
+C     ipsw = 0  Gives no print
+C     ipsw = 2  Gives enter and leave
+C     ipsw = 3  Gives in addition parameters on input
+C     ipsw = 5  Gives in addition parameters on output
 C
 C LIMITS:
 C
@@ -63,20 +64,20 @@ C ---------------------------------------------------------------------
 C
       implicit  none
 C
-      integer   nrotd, i, its, j, k, ipswb3, iwr, ierr
+      integer   nrotd, i, its, j, k, ipsw, iwr, ierr
 C
       real*8    g, h, aij, sm, thresh, t, c, s, tau,
      *          v(3,3), d(3), a(3), b(3), z(3)
 C
-      include 'const.h'
+      include 'include/feninc/const.h'
 C
 C         Entry section
 C
       ierr = 0
 C
-      if (ipswb3 .gt. 0)                          then 
+      if (ipsw .gt. 0)                            then
           write(iwr,9010) 'ENTERING SUBROUTINE EIGS3D'
-          if (ipswb3 .gt. 2)                      then
+          if (ipsw .gt. 2)                        then
               write(iwr,9010) 'WITH INPUT ARGUMENTS'
               call rprin0(v, 3, 3, 'v     ', iwr)
           endif
@@ -236,9 +237,9 @@ C         Closing section
 C
  8000 continue
 C
-      if (ipswb3 .gt. 0)                          then
+      if (ipsw .gt. 0)                            then
           write(iwr,9010) 'LEAVING SUBROUTINE EIGS3D'
-          if (ipswb3 .gt. 3)                      then
+          if (ipsw .gt. 3)                        then
               write(iwr,9010) 'WITH OUTPUT ARGUMENTS'
               write(iwr,9020) 'nrotd  =', nrotd 
               call rprin0(v, 3, 3, 'v     ', iwr)

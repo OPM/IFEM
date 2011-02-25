@@ -1,5 +1,5 @@
-      subroutine ieps3d (detF, F, lambda, mu, Engy, Sig, Cst,
-     &                   ipswb3, iwr, ierr)
+      subroutine ieps3d (ipsw, iwr, detF, F, lambda, mu, Engy, Sig, Cst,
+     &                   ierr)
 C
 C ---------------------------------------------------------------------
 C
@@ -14,7 +14,9 @@ C METHOD:
 C     
 C     
 C
-C ARGUMENTS INPUT:  
+C ARGUMENTS INPUT:
+C     ipsw     - Print switch
+C     iwr      - Write unit number
 C     detF     - Determinant of the deformation gradient
 C     F(3,3)   - Deformation gradient 
 C     lambda   - Lame's constant (=K-2*G/3)
@@ -34,14 +36,13 @@ C PERIPHERAL UNITS:
 C     None
 C
 C INTERNAL VARIABLES:
-C     b(6)    - Left Cauchy-Green deformation tensor
-C     
+C     b(6)     - Left Cauchy-Green deformation tensor
 C
 C PRINT SWITCH:
-C     ipswb3 = 0  Gives no print
-C     ipswb3 = 2  Gives enter and leave
-C     ipswb3 = 3  Gives in addition parameters on input
-C     ipswb3 = 5  Gives in addition parameters on output
+C     ipsw = 0  Gives no print
+C     ipsw = 2  Gives enter and leave
+C     ipsw = 3  Gives in addition parameters on input
+C     ipsw = 5  Gives in addition parameters on output
 C
 C LIMITS:
 C
@@ -61,27 +62,27 @@ C ---------------------------------------------------------------------
 C
       implicit  none
 C
-      integer   ipswb3, iwr, ierr
+      integer   ipsw, iwr, ierr
       integer   i, j, k, l, iVF, i3, ierrl, nrotd
 C
-      real*8    detF, Engy, F(3,3), lambda, mu, Sig(6), Cst(6,6)
+      real*8    detF, Engy, lambda, mu, F(3,3), Sig(6), Cst(6,6)
       real*8    aap(6,6), b(6), bpr(6), Cstv, detFi, EngU, EngW,
      &          epsd(3), Press, q(6,6), qen(3,3), taup(3)
 C
-      include 'const.h'
+      include 'include/feninc/const.h'
 C
 C         Entry section
 C
       ierr = 0
 C
-      if (ipswb3 .gt. 0)                          then 
+      if (ipsw .gt. 0)                            then
           write(iwr,9010) 'ENTERING SUBROUTINE IEPS3D'
-          if (ipswb3 .gt. 2)                      then
+          if (ipsw .gt. 2)                        then
               write(iwr,9010) 'WITH INPUT ARGUMENTS'
               write(iwr,9030) 'detF   =', detF
               write(iwr,9030) 'lambda =', lambda
-              write(iwr,9030) 'mu     =', mu    
-              call rprin0(F , 3, 3, 'F     ', iwr)
+              write(iwr,9030) 'mu     =', mu
+              call rprin0(F   , 3,    3, 'F     ', iwr)  
           endif
       endif
 C
@@ -118,7 +119,7 @@ C
 C
       end do ! i
 C
-      call eigs3d(qen, bpr, nrotd, ipswb3, iwr, ierr)
+      call eigs3d(ipsw, iwr, qen, bpr, nrotd, ierr)
       if (ierrl .lt. 0)                           go to 7000
 C
 C         Compute transformation matrix from
@@ -133,11 +134,8 @@ C
             l = 1 + mod(j,3)
 C
             q(i,j)     = qen(i,j)*qen(i,j)
-C
             q(i+3,j)   = qen(i,j)*qen(k,j)
-C
             q(j,i+3)   = qen(j,i)*qen(j,k)*two
-C
             q(j+3,i+3) = qen(j,i)*qen(l,k) + qen(j,k)*qen(l,i)
 C
          end do ! j
@@ -147,13 +145,13 @@ C
 C         Compute Deviatoric Strains, deviatoric Kirchhoff 
 C         Stresses and Material Moduli in Principal Basis
 C 
-      call wlog3d (mu, bpr, epsd, taup, aap, EngW, ipswb3, iwr, ierrl)
+      call wlog3d (ipsw, iwr, mu, bpr, epsd, taup, aap, EngW, ierrl)
       if (ierrl .lt. 0)                           go to 7000
 C
 C         Transform deviatoric Kirchhoff Stresses and Material Moduli
 C         to Cauchy stresses and spatial material moduli
 C 
-      call amat3d (taup, aap, q, Sig, Cst, ipswb3, iwr, ierrl)
+      call amat3d (ipsw, iwr, taup, aap, q, Sig, Cst, ierrl)
       if (ierrl .lt. 0)                           go to 7000
 C
 C         Transform deviatoric Kirchhoff Stresses and Material Moduli
@@ -167,8 +165,8 @@ C         Compute volumetric stresses (pressure) and material moduli
 C
       iVF   = 1
 C
-      call vfnh3d (iVF, detF, detFi, lambda, EngU, Press, Cstv,
-     &             ipswb3, iwr, ierrl)
+      call vfnh3d (ipsw, iwr, iVF, detF, detFi, lambda, EngU, Press,
+     &             Cstv, ierrl)
       if (ierrl .lt. 0)                           go to 7000
 C     
 C         Accumulate deviatoric and volumetric contribution to
@@ -214,7 +212,7 @@ C     ----------
       write(iwr,9030) 'detF   =', detF
       write(iwr,9030) 'lambda =', lambda
       write(iwr,9030) 'mu     =', mu    
-      call rprin0(F , 3, 3, 'F     ', iwr)
+      call rprin0(F   , 3,    3, 'F     ', iwr)
 C
       write(iwr,9010) 'WITH OUTPUT ARGUMENTS'
       write(iwr,9030) 'Engy   =', Engy
@@ -226,9 +224,9 @@ C         Closing section
 C
  8000 continue
 C
-      if (ipswb3 .gt. 0)                          then
+      if (ipsw .gt. 0)                            then
           write(iwr,9010) 'LEAVING SUBROUTINE IEPS3D'
-          if (ipswb3 .gt. 3)                      then
+          if (ipsw .gt. 3)                        then
               write(iwr,9010) 'WITH OUTPUT ARGUMENTS'
               write(iwr,9030) 'Engy   =', Engy
               call rprin0(Sig, 1, 6,'Sig   ', iwr)
