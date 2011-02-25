@@ -13,7 +13,7 @@ FIND_PATH(SuperLU_MT_INCLUDES
   NAMES pdsp_defs.h
   PATHS $ENV{HOME}/include
   /sima/libs/SuperLU_MT/include
-  PATH_SUFFIXES superlu
+  PATH_SUFFIXES superlu_mt superlu
 )
 
 FIND_LIBRARY(SuperLU_LIBRARIES
@@ -25,7 +25,7 @@ FIND_LIBRARY(SuperLU_LIBRARIES
 FIND_LIBRARY(SuperLU_MT_LIBRARIES
   NAMES superlu_mt
   PATHS $ENV{HOME}/lib
-  /sima/libs/SuperLU_MT/lib           
+  /sima/libs/SuperLU_MT/lib
 )
 
 INCLUDE(FindPackageHandleStandardArgs)
