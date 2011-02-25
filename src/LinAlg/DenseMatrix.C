@@ -1,4 +1,4 @@
-// $Id: DenseMatrix.C,v 1.17 2010-12-06 09:06:08 rho Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file DenseMatrix.C
@@ -219,7 +219,7 @@ static void assemDense (const Matrix& eM, Matrix& SM, Vector& SV,
 
 bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
 {
-  if (myMat.rows() != sam.neq || myMat.cols() < sam.neq)
+  if (myMat.rows() != (size_t)sam.neq || myMat.cols() < (size_t)sam.neq)
     return false;
 
   int ierr = 0;
@@ -245,7 +245,7 @@ bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
 bool DenseMatrix::assemble (const Matrix& eK, const SAM& sam,
 			    SystemVector& B, int e)
 {
-  if (myMat.rows() != sam.neq || myMat.cols() < sam.neq)
+  if (myMat.rows() != (size_t)sam.neq || myMat.cols() < (size_t)sam.neq)
     return false;
 
   StdVector* Bptr = dynamic_cast<StdVector*>(&B);
@@ -375,7 +375,7 @@ bool DenseMatrix::multiply (const SystemVector& B, SystemVector& C)
 
 bool DenseMatrix::solve (SystemVector& B, bool newLHS)
 {
-  const int n = myMat.rows();
+  const size_t n = myMat.rows();
   if (n < 1) return true; // No equations to solve
   if (n > myMat.cols()) return false;
 
@@ -408,7 +408,7 @@ bool DenseMatrix::solve (SystemVector& B, bool newLHS)
 
 bool DenseMatrix::solveEig (RealArray& val, Matrix& vec, int nv)
 {
-  const int n = myMat.rows();
+  const size_t n = myMat.rows();
   if (n < 1 || nv < 1) return true; // No equations to solve
   if (n > myMat.cols()) return false;
 
@@ -456,7 +456,7 @@ bool DenseMatrix::solveEig (RealArray& val, Matrix& vec, int nv)
 bool DenseMatrix::solveEig (DenseMatrix& B, RealArray& val, Matrix& vec, int nv,
 			    real)
 {
-  const int n = myMat.rows();
+  const size_t n = myMat.rows();
   if (n < 1 || nv < 1) return true; // No equations to solve
   if (n > myMat.cols()) return false;
 
@@ -494,9 +494,9 @@ bool DenseMatrix::solveEig (DenseMatrix& B, RealArray& val, Matrix& vec, int nv,
   std::cerr <<"LAPACK::DSYGVX: ";
   if (info < 0)
     std::cerr <<"Invalid argument #"<< -info << std::endl;
-  else if (info <= n)
+  else if ((size_t)info <= n)
     std::cerr << info <<" eigenvectors failed to converge."<< std::endl;
-  else if (info <= 2*n)
+  else if ((size_t)info <= 2*n)
     std::cerr <<"The leading minor of order "<< info-n
 	      <<" of matrix B is not positive definite."<< std::endl;
 #else
@@ -508,11 +508,11 @@ bool DenseMatrix::solveEig (DenseMatrix& B, RealArray& val, Matrix& vec, int nv,
 
 bool DenseMatrix::solveEigNon (RealArray& r_val, RealArray& c_val)
 {
-  const int n = myMat.rows();
+  const size_t n = myMat.rows();
   if (n < 1) return true; // No equations to solve
 
 #ifdef USE_CBLAS
-  int m, info = 0;
+  int  info  = 0;
   char jobvl = 'N';
   char jobvr = 'N';
   real dummy = 0.0;
