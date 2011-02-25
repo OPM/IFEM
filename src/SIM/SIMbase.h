@@ -136,6 +136,12 @@ public:
   bool assembleSystem(const TimeDomain& time, const Vectors& pSol = Vectors(),
 		      bool newLHSmatrix = true);
 
+  //! \brief Finalize system assembly.
+  // TODO: This HAS to be called from subclasses if assembleSystem
+  //       is overridden. This need to be fixed, probably through
+  //       a wrapper function
+  bool finalizeAssembly();
+
   //! \brief Administers assembly of the linear equation system.
   //! \param[in] pSol Previous primary solution vectors in DOF-order
   //!

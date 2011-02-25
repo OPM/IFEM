@@ -479,27 +479,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 	  else
 	    ok = false;
 
-  SystemMatrix* A = myEqSys->getMatrix();
-  SystemVector* b = myEqSys->getVector();
-  if (A && b && A->getType() == SystemMatrix::PETSC)
-  {
-#ifdef HAS_PETSC
-    // Communication of matrix and vector assembly (for PETSc only)
-    if (!static_cast<PETScMatrix*>(A)->beginAssembly()) return false;
-    if (!static_cast<PETScMatrix*>(A)->endAssembly())   return false;
-    if (!static_cast<PETScVector*>(b)->beginAssembly()) return false;
-    if (!static_cast<PETScVector*>(b)->endAssembly())   return false;
-#else
-    ok = false;
-#endif
-  }
-
-#if SP_DEBUG > 3
-  if (A && newLHSmatrix) std::cout <<"\nSystem coefficient matrix:"<< *A;
-  if (b) std::cout <<"\nSystem right-hand-side vector:"<< *b;
-#endif
-
-  return ok;
+  return ok && finalizeAssembly();
 }
 
 
@@ -1262,4 +1242,27 @@ void SIMbase::readLinSolParams(std::istream& is, int npar)
 {
   if (!mySolParams) mySolParams = new LinSolParams();
   mySolParams->read(is,npar);
+}
+
+bool SIMbase::finalizeAssembly()
+{
+  SystemMatrix* A = myEqSys->getMatrix();
+  SystemVector* b = myEqSys->getVector();
+  if (A && b && A->getType() == SystemMatrix::PETSC)
+  {
+    //Communication of matrix and vector assembly (for PETSC only)
+#ifdef HAS_PETSC
+    if (!static_cast<PETScMatrix*>(A)->beginAssembly()) return false;
+    if (!static_cast<PETScMatrix*>(A)->endAssembly())   return false;
+    if (!static_cast<PETScVector*>(b)->beginAssembly()) return false;
+    if (!static_cast<PETScVector*>(b)->endAssembly())   return false;
+#endif
+  }
+
+#if SP_DEBUG > 3
+  if (A && newLHSmatrix) std::cout <<"\nSystem coefficient matrix:"<< *A;
+  if (b) std::cout <<"\nSystem right-hand-side vector:"<< *b;
+#endif
+
+  return true;
 }
