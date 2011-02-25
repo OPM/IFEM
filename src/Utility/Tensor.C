@@ -1,4 +1,4 @@
-// $Id: Tensor.C,v 1.11 2010-12-20 13:52:42 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file Tensor.C
@@ -48,6 +48,13 @@ Tensor::Tensor (const std::vector<real>& t1, const std::vector<real>& t2) : n(3)
     v[3+i] = v2[i];
     v[6+i] = v3[i];
   }
+}
+
+
+Tensor::Tensor (const Tensor& T) : n(T.n)
+{
+  v.resize(n*n);
+  this->operator=(T);
 }
 
 
@@ -132,17 +139,15 @@ Tensor& Tensor::operator*= (real val)
 }
 
 
-real Tensor::innerProd(const Tensor& T)
+real Tensor::innerProd (const Tensor& T)
 {
-  real value = 0.0;
-  if (v.size() == T.v.size()) {
-    std::vector<real> vec = T;
+  real value = real(0);
+  if (v.size() == T.v.size())
     for (t_ind i = 0; i < v.size(); i++)
-      value += v[i]*vec[i];
-  }
+      value += v[i]*T.v[i];
   else
-   std::cerr <<"Tensor::innerProd(const Tensor&): "
-              <<"Not implemented for tensors of different size."<< std::endl; 
+    std::cerr <<"Tensor::innerProd(const Tensor&): "
+	      <<"Not implemented for tensors of different size."<< std::endl;
 
   return value;
 }
@@ -324,6 +329,13 @@ SymmTensor::SymmTensor (const std::vector<real>& vec) : Tensor(0)
     this->redim(0);
 
   std::copy(vec.begin(),vec.begin()+v.size(),v.begin());
+}
+
+
+SymmTensor::SymmTensor (const SymmTensor& T) : Tensor(0)
+{
+  this->redim(T.n);
+  std::copy(T.v.begin(),T.v.end(),v.begin());
 }
 
 
@@ -522,9 +534,9 @@ SymmTensor operator- (const SymmTensor& T, real a)
 }
 
 
-SymmTensor4::SymmTensor4 (const std::vector<real>& x, t_ind nsd) : v(x), n(nsd)
+SymmTensor4::SymmTensor4 (const std::vector<real>& x, t_ind nsd)
+  : n(nsd), m(0), v(x)
 {
-  m = 0;
   if (n == 3)
     m = 6;
   else if (n == 2)
@@ -532,7 +544,7 @@ SymmTensor4::SymmTensor4 (const std::vector<real>& x, t_ind nsd) : v(x), n(nsd)
   else
     std::cerr <<" *** Invalid fourth-order tensor, dim="<< n << std::endl;
 
-  if (v.size() < m*m)
+  if (v.size() < (size_t)m*m)
     std::cerr <<" *** Invalid fourth-order tensor,"
 	      <<" matrix represention too small, size="<< v.size() << std::endl;
 

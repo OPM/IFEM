@@ -1,4 +1,4 @@
-// $Id: Tensor.h,v 1.9 2010-11-18 11:22:10 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file Tensor.h
@@ -44,6 +44,8 @@ public:
   Tensor(const t_ind nsd) : n(nsd) { v.resize(n*n,real(0)); }
   //! \brief Constructor creating a transformation from two tangent vectors.
   Tensor(const std::vector<real>& t1, const std::vector<real>& t2);
+  //! \brief Copy constructor.
+  Tensor(const Tensor& T);
 
   //! \brief Set to 0-tensor.
   void zero() { std::fill(v.begin(),v.end(),real(0)); }
@@ -76,14 +78,14 @@ public:
   //! \brief Scaling operator.
   Tensor& operator*=(real val);
 
-  //! \brief Inner product
+  //! \brief Inner product of two tensors.
   real innerProd(const Tensor& T);
 
   //! \brief Return the dimension of this tensor.
   t_ind dim() const { return n; }
 
   //! \brief Query whether this tensor is symmetric or not.
-  bool symmetric() const { return v.size() == n*(n+1)/2; }
+  bool symmetric() const { return v.size() == (size_t)(n*(n+1)/2); }
 
   //! brief Query whether this tensor is zero within the given tolerance.
   bool isZero(real tol = real(1.0e-6)) const;
@@ -153,6 +155,8 @@ public:
   SymmTensor(const t_ind nsd) : Tensor(nsd) { v.resize(n*(n+1)/2,real(0)); }
   //! \brief Constructor creating a symmetric tensor from a vector.
   SymmTensor(const std::vector<real>& vec);
+  //! \brief Copy constructor.
+  SymmTensor(const SymmTensor& T);
 
   //! \brief Transpose the symmetric tensor (do nothing).
   virtual Tensor& transpose() { return *this; }
