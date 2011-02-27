@@ -1,4 +1,4 @@
-// $Id: Functions.h,v 1.7 2011-02-08 12:55:33 rho Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file Functions.h
@@ -28,7 +28,7 @@ class LinearFunc : public ScalarFunc
 
 public:
   //! \brief Constructor initializing the function parameter.
-  LinearFunc(real s = real(1)) { scale = s; }
+  LinearFunc(real s = real(1)) : scale(s) {}
 
 protected:
   //! \brief Evaluates the scalar function.
@@ -49,7 +49,7 @@ class SineFunc : public ScalarFunc
 public:
   //! \brief Constructor initializing the function parameters.
   SineFunc(real s = real(1), real f = real(1), real p = real(0))
-  { scale = s; freq = f; phase = p; }
+    : scale(s), freq(f), phase(p) {}
 
 protected:
   //! \brief Evaluates the scalar function.
@@ -67,7 +67,7 @@ class ConstFunc : public RealFunc
 
 public:
   //! \brief Constructor initializing the function value.
-  ConstFunc(real v) { fval = v; }
+  ConstFunc(real v) : fval(v) {}
 
 protected:
   //! \brief Evaluates the constant function.
@@ -125,11 +125,11 @@ protected:
 class LinearTinitFunc : public RealFunc
 {
   real value; //!< Max function value
-  real Tinit; //!< Function is linear from 0 to t = Tinit
+  real Tinit; //!< Function is linear from t = 0 to t = Tinit
 
 public:
   //! \brief Constructor initializing the function parameters.
-  LinearTinitFunc(real value_, real Tinit_) { value = value_; Tinit = Tinit_; }
+  LinearTinitFunc(real value_, real Tinit_) : value(value_), Tinit(Tinit_) {}
 
 protected:
   //! \brief Evaluates the linear function.
@@ -148,7 +148,7 @@ class LinearXFunc : public RealFunc
 
 public:
   //! \brief Constructor initializing the function parameters.
-  LinearXFunc(real A, real B = real(0)) { a = A; b = B; }
+  LinearXFunc(real A, real B = real(0)) : a(A), b(B) {}
 
 protected:
   //! \brief Evaluates the linear function.
@@ -167,7 +167,7 @@ class LinearYFunc : public RealFunc
 
 public:
   //! \brief Constructor initializing the function parameters.
-  LinearYFunc(real A, real B = real(0)) { a = A; b = B; }
+  LinearYFunc(real A, real B = real(0)) : a(A), b(B) {}
 
 protected:
   //! \brief Evaluates the linear function.
@@ -186,7 +186,7 @@ class LinearZFunc : public RealFunc
 
 public:
   //! \brief Constructor initializing the function parameters.
-  LinearZFunc(real A, real B = real(0)) { a = A; b = B; }
+  LinearZFunc(real A, real B = real(0)) : a(A), b(B) {}
 
 protected:
   //! \brief Evaluates the linear function.
@@ -200,14 +200,15 @@ protected:
 
 class QuadraticXFunc : public RealFunc
 {
-  real max;   // Max value of function
-  real a, b;  // Roots where function is \a 0
+  real max; //!< Max value of function
+  real a;   //!< First root where function is zero
+  real b;   //!< Second root where function is zero
 
- public:
+public:
   //! \brief Constructor initializing the function parameters.
-  QuadraticXFunc(real MAX, real A, real B) { max = MAX; a = A; b = B; }
+  QuadraticXFunc(real MAX, real A, real B) : max(MAX), a(A), b(B) {}
 
- protected:
+protected:
   //! \brief Evaluates the quadratic function.
   virtual real evaluate(const Vec3& X) const;
 };
@@ -219,14 +220,15 @@ class QuadraticXFunc : public RealFunc
 
 class QuadraticYFunc : public RealFunc
 {
-  real max;   // Max value of function
-  real a, b;  // Roots where function is \a 0
+  real max; //!< Max value of function
+  real a;   //!< First root where function is zero
+  real b;   //!< Second root where function is zero
 
- public:
+public:
   //! \brief Constructor initializing the function parameters.
-  QuadraticYFunc(real MAX, real A, real B) { max = MAX; a = A; b = B; }
+  QuadraticYFunc(real MAX, real A, real B) : max(MAX), a(A), b(B) {}
 
- protected:
+protected:
   //! \brief Evaluates the quadratic function.
   virtual real evaluate(const Vec3& X) const;
 };
@@ -238,14 +240,15 @@ class QuadraticYFunc : public RealFunc
 
 class QuadraticZFunc : public RealFunc
 {
-  real max;   // Max value of function
-  real a, b;  // Roots where function is \a 0
+  real max; //!< Max value of function
+  real a;   //!< First root where function is zero
+  real b;   //!< Second root where function is zero
 
- public:
+public:
   //! \brief Constructor initializing the function parameters.
-  QuadraticZFunc(real MAX, real A, real B) { max = MAX; a = A; b = B; }
+  QuadraticZFunc(real MAX, real A, real B) : max(MAX), a(A), b(B) {}
 
- protected:
+protected:
   //! \brief Evaluates the quadratic function.
   virtual real evaluate(const Vec3& X) const;
 };
@@ -273,7 +276,7 @@ class LinearRotZFunc : public RealFunc
 public:
   //! \brief Constructor initializing the function parameters.
   LinearRotZFunc(bool retX, real a, real x_0 = real(0), real y_0 = real(0))
-  { rX = retX; A = a; x0 = x_0; y0 = y_0; }
+    : rX(retX), A(a), x0(x_0), y0(y_0) {}
 
 protected:
   //! \brief Evaluates the rotation function.
@@ -294,7 +297,7 @@ class StepXFunc : public RealFunc
 public:
   //! \brief Constructor initializing the function parameters.
   StepXFunc(real v, real X0 = real(0), real X1 = real(1))
-  { fv = v; x0 = X0; x1 = X1; }
+    : fv(v), x0(X0), x1(X1) {}
 
 protected:
   //! \brief Evaluates the linear function.
@@ -319,7 +322,7 @@ public:
   StepXYFunc(real v,
 	     real X1 = real(1), real Y1 = real(1),
 	     real X0 = real(-1), real Y0 = real(-1))
-  { fv = v; x0 = X0; y0 = Y0; x1 = X1; y1 = Y1; }
+    : fv(v), x0(X0), y0(Y0), x1(X1), y1(Y1) {}
 
 protected:
   //! \brief Evaluates the linear function.

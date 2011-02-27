@@ -48,7 +48,7 @@ ENDIF(${ENABLE_SAMG})
 FIND_PACKAGE(VTFWriter)
 
 # Required include directories
-SET(INCLUDES ${IFEM_INCLUDES} ${PROJECT_SOURCE_DIR}/..)
+SET(INCLUDES ${IFEM_INCLUDES} ${PROJECT_SOURCE_DIR}/../LinearElasticity)
 
 # Required libraries
 SET(DEPLIBS ${IFEM_LIBRARIES}
@@ -94,8 +94,9 @@ ENDIF(NOT WIN32)
 # Enable all warnings
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
-FILE(GLOB_RECURSE NonLinEl_SRCS ${PROJECT_SOURCE_DIR}/../SIMLinEl?D.C
-                                ${PROJECT_SOURCE_DIR}/*.[Cf])
+FILE(GLOB_RECURSE NonLinEl_SRCS
+  ${PROJECT_SOURCE_DIR}/../LinearElasticity/SIMLinEl*.C
+  ${PROJECT_SOURCE_DIR}/*.[Cf])
 
 ADD_EXECUTABLE(NonLinEl ${NonLinEl_SRCS})
 TARGET_LINK_LIBRARIES(NonLinEl ${DEPLIBS})

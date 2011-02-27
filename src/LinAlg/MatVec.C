@@ -1,4 +1,4 @@
-// $Id: MatVec.C,v 1.6 2010-12-18 19:54:54 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file MatVec.C
@@ -138,7 +138,7 @@ bool utl::invert (Matrix& A)
   dgetrf_(N,N,A.ptr(),A.rows(),IPIV,INFO);
   if (INFO != 0)
   {
-    delete IPIV;
+    delete[] IPIV;
     std::cerr <<" *** utl::invert:DGETRF: INFO = "<< INFO << std::endl;
     return false;
   }
@@ -146,8 +146,8 @@ bool utl::invert (Matrix& A)
   dgetri_(N,A.ptr(),A.rows(),IPIV,&NWORK,-1,INFO);
   double* WORK = new double[int(NWORK)];
   dgetri_(N,A.ptr(),A.rows(),IPIV,WORK,int(NWORK),INFO);
-  delete IPIV;
-  delete WORK;
+  delete[] IPIV;
+  delete[] WORK;
   if (INFO == 0) return true;
   std::cerr <<" *** utl::invert:DGETRI: INFO = "<< INFO << std::endl;
 #else

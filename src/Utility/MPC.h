@@ -1,4 +1,4 @@
-// $Id: MPC.h,v 1.4 2010-10-14 19:10:56 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file MPC.h
@@ -59,23 +59,14 @@ public:
   */
   struct DOF
   {
-    //! \brief Default constructor with no arguments.
-    DOF()
-    {
-      node = dof = 0;
-      coeff = real(0);
-    };
+    //! \brief Default constructor.
+    DOF() : node(0), dof(0), coeff(real(0)) {}
 
     //! \brief Convenience constructor creating a valid DOF object.
     //! \param[in] n Node number (1...NNOD)
     //! \param[in] d The local DOF number (1...3)
     //! \param[in] c Associated coefficient or constrained value
-    DOF(int n, int d, real c = real(0))
-    {
-      node  = n;
-      dof   = d;
-      coeff = c;
-    };
+    DOF(int n, int d, real c = real(0)) : node(n), dof(d), coeff(c) {}
 
     //! \brief Global stream operator printing a DOF instance.
     friend std::ostream& operator<<(std::ostream& s, const DOF& dof)
@@ -94,7 +85,7 @@ public:
   //! \param[in] d The local DOF number of the slave DOF (1...3)
   //! \param[in] c The actual value that this slave DOF is constrained to
   //! when there are no master DOFs, or all master DOFs are zero
-  MPC(int n, int d, real c = real(0)) { iceq = -1; slave = DOF(n,d,c); }
+  MPC(int n, int d, real c = real(0)) : slave(n,d,c) { iceq = -1; }
 
   //! \brief Adds a master DOF to the constraint equation.
   //! \param[in] n The node number of the master DOF (1...NNOD)

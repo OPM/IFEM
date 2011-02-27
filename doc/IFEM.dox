@@ -1,0 +1,54 @@
+// $Id$
+//==============================================================================
+//!
+//! \file IFEM.dox
+//!
+//! \date Jan 12 2010
+//!
+//! \author Knut Morten Okstad / SINTEF
+//!
+//! \brief File containing the Main Page of the spline FEM documentation.
+//!
+//==============================================================================
+
+/*! \mainpage Toolbox for Isogeometric Finite Element analysis
+
+\author Knut Morten Okstad, Sintef ICT, Trondheim
+
+\section intro Introduction
+
+IFEM is an object-oriented toolbox for implementing isogeometric finite element
+solvers for linear and nonlinear partial differential equations.
+The toolbox is developed through the ICADA project at SINTEF ICT, Trondheim.
+The purpose of this code is to serve as a common base for isogeometric
+PDE-simulators, using splines and NURBS as basis functions in the finite element
+formulations. The toolbox contains methods for doing linear and non-linear,
+stationary and dynamic time-domain analyses, as well as eigenvalue analyses.
+
+\section overview Module overview
+
+The simulation toolbox is organized into a set of modules,
+organized as class hierarchies implemented in the C++ language.
+The top-level driver is organized in the class SIMbase and its sub-classes.
+These classes have methods for reading model data from an input file,
+to assemble the linearized algebraic system of equations resulting from the
+finite element discretization, and to solve that system.
+It also contains methods for writing a VTF-file with results.
+Problem-specific drivers and main programs are found in the sub-folder Apps.
+
+The core of the finite element implementation is contained in the class
+ASMbase and its sub-classes, which have methods for evaluating the element
+matrices involved and assembling them into the system matrices.
+There is typically one ASMbase object for each spline patch in the model.
+
+The physical problem-dependent data and methods is accessed via an abstract
+interface class, Integrand, through which the application programmer can
+implement the weak form of the underlying finite element problem.
+
+The actual splines evaluation is performed through the GoTools library, which is
+not part of the current package. In addition, this code depends on the ARPACK,
+LAPACK and BLAS libraries. Optionally, the SAMG algebraic multi-grid solver and
+the SuperLU direct solver (public domain http://crd.lbl.gov/~xiaoye/SuperLU)
+may be included. The Ceetron VTFAPI library may also be included for direct
+export of simulations results to GLview VTF-files.
+*/

@@ -1,4 +1,4 @@
-// $Id: main_LinEl3D.C,v 1.27 2011-02-08 09:32:18 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file main_LinEl3D.C
@@ -52,7 +52,6 @@
   \arg -fixDup : Resolve co-located nodes by merging them into a single node
   \arg -2D : Use two-parametric simulation driver (plane stress)
   \arg -2Dpstrain : Use two-parametric simulation driver (plane strain)
-  \arg -TL : Use the nonlinear total-lagrangian elasticity integrand
   \arg -lag : Use Lagrangian basis functions instead of splines/NURBS
   \arg -spec : Use Spectral basis functions instead of splines/NURBS
 */
@@ -62,7 +61,6 @@ int main (int argc, char** argv)
   Profiler prof(argv[0]);
   utl::profiler->start("Initialization");
 
-  SIM::Formulation form = SIM::LINEAR;
   SystemMatrix::Type solver = SystemMatrix::SPARSE;
   int nGauss = 4;
   int format = -1;
@@ -141,8 +139,6 @@ int main (int argc, char** argv)
       fixDup = true;
     else if (!strncmp(argv[i],"-2D",3))
       twoD = strcmp(argv[i],"-2Dpstrain") ? 1 : 2;
-    else if (!strcmp(argv[i],"-TL"))
-      form = SIM::NONLINEAR;
     else if (!strncmp(argv[i],"-lag",4))
       SIMbase::discretization = SIMbase::Lagrange;
     else if (!strncmp(argv[i],"-spec",5))
@@ -155,8 +151,8 @@ int main (int argc, char** argv)
   if (!infile)
   {
     std::cout <<"usage: "<< argv[0]
-	      <<" <inputfile> [-dense|-spr|-superlu<nt>|-samg|-petsc]\n      "
-	      <<" [-free] [-lag] [-spec] [-2D[pstrain]] [-TL] [-nGauss <n>]\n"
+	      <<" <inputfile> [-dense|-spr|-superlu<nt>|-samg|-petsc]\n"
+	      <<"       [-free] [-lag] [-spec] [-2D[pstrain]] [-nGauss <n>]\n"
 	      <<"       [-vtf <format>] [-nviz <nviz>]"
 	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]\n"
 	      <<"       [-eig <iop>] [-nev <nev>] [-ncv <ncv] [-shift <shf>]\n"
@@ -192,8 +188,6 @@ int main (int argc, char** argv)
 		<<"\nNumber of eigenvalues: "<< nev
 		<<"\nNumber of Arnoldi vectors: "<< ncv
 		<<"\nShift value: "<< shf;
-    if (form == SIM::NONLINEAR)
-      std::cout <<"\nGreen-Lagrange strains are used";
     if (SIMbase::discretization == SIMbase::Lagrange)
       std::cout <<"\nLagrangian basis functions are used";
     else if (SIMbase::discretization == SIMbase::Spectral)
@@ -218,9 +212,9 @@ int main (int argc, char** argv)
   // Read in model definitions and establish the FE data structures
   SIMbase* model;
   if (twoD)
-    model = new SIMLinEl2D(form,twoD==1);
+    model = new SIMLinEl2D(SIM::LINEAR,twoD==1);
   else
-    model = new SIMLinEl3D(checkRHS,form);
+    model = new SIMLinEl3D(checkRHS);
 
   if (!model->read(infile))
     return 1;

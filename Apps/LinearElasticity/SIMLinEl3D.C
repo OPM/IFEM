@@ -1,19 +1,18 @@
 // $Id$
 //==============================================================================
 //!
-//! \file SIMLinEl2D.C
+//! \file SIMLinEl3D.C
 //!
-//! \date Dec 04 2010
+//! \date Dec 08 2009
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Solution driver for 2D NURBS-based linear elastic FEM analysis.
+//! \brief Solution driver for 3D NURBS-based linear elastic FEM analysis.
 //!
 //==============================================================================
 
-#include "SIMLinEl2D.h"
+#include "SIMLinEl3D.h"
 #include "LinearElasticity.h"
-#include "FiniteDefElasticity/NonlinearElasticity.h"
 #include "AnalyticSolutions.h"
 #include "Functions.h"
 #include "Utilities.h"
@@ -24,23 +23,144 @@
 #include <string.h>
 
 
-SIMLinEl2D::SIMLinEl2D (int form, bool planeStress)
+/*!
+  \brief Local coordinate system for a cylinder along global z-axis.
+*/
+
+class CylinderCS : public LocalSystem
 {
-  switch (form)
+public:
+  //! \brief Constructor printing a message making user aware of its presense.
+  CylinderCS()
+  {
+    std::cout <<"\nLocal coordinate system: Cylindric"<< std::endl;
+  }
+
+  //! \brief Computes the global-to-local transformation at the point \a X.
+  virtual const Tensor& getTmat(const Vec3& X) const
+  {
+    static Tensor T(3);
+    double r = hypot(X.x,X.y);
+    T(1,1) = X.x/r;
+    T(1,2) = X.y/r;
+    T(2,1) = -T(1,2);
+    T(2,2) = T(1,1);
+    T(3,3) = 1.0;
+    return T;
+  }
+};
+
+
+#ifdef PRINT_CS
+#include <fstream>
+#endif
+
+/*!
+  \brief Local coordinate system for a cylinder along global z-axis,
+  closed by a spherical cap.
+*/
+
+class CylinderSphereCS : public LocalSystem
+{
+public:
+  //! \brief Constructor printing a message making user aware of its presense.
+  CylinderSphereCS(double H = 0.0) : h(H)
+  {
+    std::cout <<"\nLocal coordinate system: Cylindric with Spherical cap, h="
+	      << h << std::endl;
+#ifdef PRINT_CS
+    sn.open("nodes.dat");
+    se.open("elements.dat");
+    s1.open("v1.dat");
+    s2.open("v2.dat");
+    s3.open("v3.dat");
+    sn <<"\n*NODES 4\n";
+    se <<"\n*ELEMENTS 4\n%NODES #4\n"
+       <<"%NO_ID\n%MAP_NODE_INDICES\n%PART_ID 4\n%POINTS\n";
+    s1 <<"\n*RESULTS 31\n%NO_ID\n%DIMENSION 3\n%PER_NODE #4\n";
+    s2 <<"\n*RESULTS 32\n%NO_ID\n%DIMENSION 3\n%PER_NODE #4\n";
+    s3 <<"\n*RESULTS 33\n%NO_ID\n%DIMENSION 3\n%PER_NODE #4\n";
+  }
+
+  virtual ~CylinderSphereCS()
+  {
+    std::cout <<"Finalizing VTF-output of local coordinate systems"<< std::endl;
+    s1 <<"\n*GLVIEWVECTOR 2\n%NAME \"v1\"\n%STEP 1\n31\n";
+    s2 <<"\n*GLVIEWVECTOR 3\n%NAME \"v2\"\n%STEP 1\n32\n";
+    s3 <<"\n*GLVIEWVECTOR 4\n%NAME \"v3\"\n%STEP 1\n33\n";
+#endif
+  }
+
+  //! \brief Computes the global-to-local transformation at the point \a X.
+  virtual const Tensor& getTmat(const Vec3& X) const
+  {
+    static Tensor T(3);
+#ifdef PRINT_CS
+    sn << X <<'\n';
+    static int iel = 0;
+    se << ++iel <<'\n';
+#endif
+    if (patch == 1) // Cylindric system {-z,theta,r}
     {
-    case SIM::LINEAR:
-      myProblem = new LinearElasticity(2,planeStress);
-      break;
-    case SIM::NONLINEAR:
-      myProblem = new NonlinearElasticity(2,planeStress);
-      break;
+      T.zero();
+      double r = hypot(X.x,X.y);
+      T(1,3) = -1.0;
+      T(2,1) = -X.y/r;
+      T(2,2) =  X.x/r;
+      T(3,1) =  T(2,2);
+      T(3,2) = -T(2,1);
+#ifdef PRINT_CS
+      s1 <<"0 0 -1\n";
+      s2 << T(2,1) <<" "<< T(2,2) <<" 0\n";
+      s3 << T(3,1) <<" "<< T(3,2) <<" 0\n";
+#endif
     }
+    else // Spherical system {phi,theta,r}
+    {
+      Vec3 v3(X.x,X.y,X.z-h);
+      v3 /= v3.length();
+      double theta = atan2(X.y,X.x);
+      double phi = acos(v3.z);
+      Vec3 v1(cos(theta)*cos(phi),sin(theta)*cos(phi),-sin(phi));
+      Vec3 v2(v3,v1);
+      for (int i = 1; i <= 3; i++)
+      {
+	T(1,i) = v1[i-1];
+	T(2,i) = v2[i-1];
+	T(3,i) = v3[i-1];
+      }
+#ifdef PRINT_CS
+      s1 << v1 <<'\n';
+      s2 << v2 <<'\n';
+      s3 << v3 <<'\n';
+#endif
+    }
+    return T;
+  }
+
+private:
+  double h; //!< Height above global origin of the centre of the sphere
+#ifdef PRINT_CS
+  mutable std::ofstream sn; //!< VTF output stream for CS nodes
+  mutable std::ofstream se; //!< VTF output stream for CS point elements
+  mutable std::ofstream s1; //!< VTF output stream for vector v1 of local CS
+  mutable std::ofstream s2; //!< VTF output stream for vector v2 of local CS
+  mutable std::ofstream s3; //!< VTF output stream for vector v3 of local CS
+#endif
+};
+
+
+SIMLinEl3D::SIMLinEl3D (bool checkRHS, int) : SIM3D(checkRHS)
+{
+  myProblem = new LinearElasticity();
 }
 
 
-bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
+bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
 {
   char* cline = 0;
+  int nConstPress = 0;
+  int nLinearPress = 0;
   Elasticity* elp = dynamic_cast<Elasticity*>(myProblem);
   if (!elp) return false;
 
@@ -48,10 +168,11 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
   {
     double gx = atof(strtok(keyWord+7," "));
     double gy = atof(strtok(NULL," "));
-    elp->setGravity(gx,gy);
+    double gz = atof(strtok(NULL," "));
+    elp->setGravity(gx,gy,gz);
     if (myPid == 0)
       std::cout <<"\nGravitation vector: "
-		<< gx <<" "<< gy << std::endl;
+		<< gx <<" "<< gy <<" "<< gz << std::endl;
   }
 
   else if (!strncasecmp(keyWord,"ISOTROPHIC",10))
@@ -84,24 +205,9 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
   }
 
   else if (!strncasecmp(keyWord,"CONSTANT_PRESSURE",17))
-  {
-    int npres = atoi(keyWord+17);
-    if (myPid == 0)
-      std::cout <<"\nNumber of pressures: "<< npres << std::endl;
-
-    for (int i = 0; i < npres && (cline = utl::readLine(is)); i++)
-    {
-      int code = atoi(strtok(cline," "));
-      int pdir = atoi(strtok(NULL," "));
-      double p = atof(strtok(NULL," "));
-      if (myPid == 0)
-	std::cout <<"\tPressure code "<< code <<" direction "<< pdir
-		  <<": "<< p << std::endl;
-
-      this->setPropertyType(code,Property::NEUMANN);
-      myTracs[code] = new PressureField(p,pdir);
-    }
-  }
+    nConstPress  = atoi(keyWord+17);
+  else if (!strncasecmp(keyWord,"LINEAR_PRESSURE",15))
+    nLinearPress = atoi(keyWord+15);
 
   else if (!strncasecmp(keyWord,"ANASOL",6))
   {
@@ -111,7 +217,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
       double a  = atof(strtok(NULL," "));
       double F0 = atof(strtok(NULL," "));
       double nu = atof(strtok(NULL," "));
-      mySol = new AnaSol(new Hole(a,F0,nu));
+      mySol = new AnaSol(new Hole(a,F0,nu,true));
       std::cout <<"\nAnalytical solution: Hole a="<< a <<" F0="<< F0
 		<<" nu="<< nu << std::endl;
     }
@@ -120,7 +226,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
       double a  = atof(strtok(NULL," "));
       double F0 = atof(strtok(NULL," "));
       double nu = atof(strtok(NULL," "));
-      mySol = new AnaSol(new Lshape(a,F0,nu));
+      mySol = new AnaSol(new Lshape(a,F0,nu,true));
       std::cout <<"\nAnalytical solution: Lshape a="<< a <<" F0="<< F0
 		<<" nu="<< nu << std::endl;
     }
@@ -129,31 +235,13 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
       double L  = atof(strtok(NULL," "));
       double H  = atof(strtok(NULL," "));
       double F0 = atof(strtok(NULL," "));
-      mySol = new AnaSol(new CanTS(L,H,F0));
+      mySol = new AnaSol(new CanTS(L,H,F0,true));
       std::cout <<"\nAnalytical solution: CanTS L="<< L <<" H="<< H
 		<<" F0="<< F0 << std::endl;
     }
-    else if (!strncasecmp(cline,"CANTM",5))
-    {
-      double H  = atof(strtok(NULL," "));
-      double M0 = atof(strtok(NULL," "));
-      mySol = new AnaSol(new CanTM(H,M0));
-      std::cout <<"\nAnalytical solution: CanTM H="<< H
-		<<" M0="<< M0 << std::endl;
-    }
-    else if (!strncasecmp(cline,"CURVED",6))
-    {
-      double a  = atof(strtok(NULL," "));
-      double b  = atof(strtok(NULL," "));
-      double u0 = atof(strtok(NULL," "));
-      double E  = atof(strtok(NULL," "));
-      mySol = new AnaSol(new CurvedBeam(u0,a,b,E));
-      std::cout <<"\nAnalytical solution: Curved Beam a="<< a <<" b="<< b
-                <<" u0="<< u0 <<" E="<< E << std::endl;
-    }
     else
     {
-      std::cerr <<"  ** SIMLinEl2D::parse: Unknown analytical solution "
+      std::cerr <<"  ** SIMLinEl3D::parse: Unknown analytical solution "
 		<< cline <<" (ignored)"<< std::endl;
       return true;
     }
@@ -176,7 +264,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
   {
     Property press;
     press.pcode = Property::NEUMANN;
-    press.ldim = 1;
+    press.ldim = 2;
 
     int npres = atoi(keyWord+8);
     std::cout <<"\nNumber of pressures: "<< npres << std::endl;
@@ -190,9 +278,9 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
       if (pid < 1) continue;
 
       press.lindx = atoi(strtok(NULL," "));
-      if (press.lindx < 1 || press.lindx > 4)
+      if (press.lindx < 1 || press.lindx > 6)
       {
-	std::cerr <<" *** SIMLinEl2D::parse: Invalid edge index "
+	std::cerr <<" *** SIMLinEl3D::parse: Invalid face index "
 		  << (int)press.lindx << std::endl;
 	return false;
       }
@@ -200,7 +288,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
       if (mySol && mySol->getStressSol())
       {
 	std::cout <<"\tTraction on P"<< press.patch
-		  <<" E"<< (int)press.lindx << std::endl;
+		  <<" F"<< (int)press.lindx << std::endl;
 	myTracs[1+i] = new TractionField(*mySol->getStressSol());
       }
       else
@@ -208,7 +296,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
 	int pdir = atoi(strtok(NULL," "));
 	double p = atof(strtok(NULL," "));
 	std::cout <<"\tPressure on P"<< press.patch
-		  <<" E"<< (int)press.lindx <<" direction "<< pdir <<": ";
+		  <<" F"<< (int)press.lindx <<" direction "<< pdir <<": ";
 	if ((cline = strtok(NULL," ")))
 	  myTracs[1+i] = new PressureField(utl::parseRealFunc(cline,p),pdir);
 	else
@@ -257,14 +345,53 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
     }
   }
 
+  else if (!strncasecmp(keyWord,"LOCAL_SYSTEM",12))
+  {
+    size_t i = 12;
+    while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
+    if (!strncasecmp(keyWord+i,"CYLINDRICZ",10))
+      elp->setLocalSystem(new CylinderCS);
+    else if (!strncasecmp(keyWord+i,"CYLINDER+SPHERE",15))
+      elp->setLocalSystem(new CylinderSphereCS(atof(keyWord+i+15)));
+    else
+      std::cerr <<" *** SIMLinEl3D::parse: Unsupported coordinate system: "
+		<< keyWord+i << std::endl;
+  }
+
   else
-    return this->SIM2D::parse(keyWord,is);
+    return this->SIM3D::parse(keyWord,is);
+
+  int npres = nConstPress + nLinearPress;
+  if (npres > 0)
+  {
+    if (myPid == 0)
+      std::cout <<"\nNumber of pressures: "<< npres << std::endl;
+    for (int i = 0; i < npres && (cline = utl::readLine(is)); i++)
+    {
+      int code = atoi(strtok(cline," "));
+      int pdir = atoi(strtok(NULL," "));
+      double p = atof(strtok(NULL," "));
+      if (myPid == 0)
+	std::cout <<"\tPressure code "<< code <<" direction "<< pdir
+		  <<": "<< p << std::endl;
+
+      this->setPropertyType(code,Property::NEUMANN);
+
+      if (nLinearPress)
+      {
+	RealFunc* pfl = new ConstTimeFunc(new LinearFunc(p));
+	myTracs[code] = new PressureField(pfl,pdir);
+      }
+      else
+	myTracs[code] = new PressureField(p,pdir);
+    }
+  }
 
   return true;
 }
 
 
-bool SIMLinEl2D::initMaterial (size_t propInd)
+bool SIMLinEl3D::initMaterial (size_t propInd)
 {
   Elasticity* elp = dynamic_cast<Elasticity*>(myProblem);
   if (!elp) return false;
@@ -276,7 +403,7 @@ bool SIMLinEl2D::initMaterial (size_t propInd)
 }
 
 
-bool SIMLinEl2D::initNeumann (size_t propInd)
+bool SIMLinEl3D::initNeumann (size_t propInd)
 {
   TracFuncMap::const_iterator tit = myTracs.find(propInd);
   if (tit == myTracs.end()) return false;

@@ -1,4 +1,4 @@
-// $Id: PETScMatrix.h,v 1.7 2011-02-08 12:46:29 rho Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file PETScMatrix.h
@@ -16,13 +16,7 @@
 #define _PETSC_MATRIX_H
 
 #include "SystemMatrix.h"
-#ifdef HAS_PETSC
 #include "LinSolParams.h"
-#include "petscksp.h"
-#endif
-#ifdef HAS_SLEPC
-#include "slepceps.h"
-#endif
 
 
 /*!
@@ -72,12 +66,12 @@ public:
   virtual void init(real value = real(0));
 
   //! \brief Begins communication step needed in parallel vector assembly.
-  //! \details Must be called together with endAssembly after vector assembly 
+  //! \details Must be called together with endAssembly after vector assembly
   //! is completed on each processor and before the linear system is solved.
   bool beginAssembly();
 
   //! \brief Ends communication step needed in parallel vector assembly.
-  //! \details Must be called together with beginAssembly after vector assembly 
+  //! \details Must be called together with beginAssembly after vector assembly
   //! is completed on each processor and before the linear system is solved.
   bool endAssembly();
 
@@ -134,6 +128,9 @@ public:
   PETScMatrix(const PETScMatrix& A);
   //! \brief The destructor frees the dynamically allocated arrays.
   virtual ~PETScMatrix();
+#else
+  //! \brief Constructor.
+  PETScMatrix(const LinSolParams&) {}
 #endif
 
   //! \brief Returns the matrix type.
@@ -150,12 +147,11 @@ public:
   virtual void init();
 
   //! \brief Begins communication step needed in parallel matrix assembly.
-  //! \details Must be called together with endAssembly after matrix assembly 
+  //! \details Must be called together with endAssembly after matrix assembly
   //! is completed on each processor and before the linear system is solved.
   bool beginAssembly();
-
   //! \brief Ends communication step needed in parallel matrix assembly.
-  //! \details Must be called together with beginAssembly after matrix assembly 
+  //! \details Must be called together with beginAssembly after matrix assembly
   //! is completed on each processor and before the linear system is solved.
   bool endAssembly();
 
@@ -212,10 +208,8 @@ private:
   KSP                 ksp;       //!< Linear solver
   MatNullSpace        nsp;       //!< Null-space of linear operator
   const LinSolParams& solParams; //!< Linear solver parameters
-  //EPS                 eps;       //!< Eigenvalue solver
 
 #else // dummy implementation when PETSc is not included
-  PETScMatrix(const LinSolParams&) {}
   virtual SystemMatrix* copy() const { return 0; }
   virtual void init() {}
   virtual void initAssembly(const SAM&) {}
