@@ -1,4 +1,4 @@
-// $Id: AlgEqSystem.h,v 1.8 2011-02-08 09:32:18 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file AlgEqSystem.h
@@ -42,7 +42,7 @@ public:
   //! \param[in] nvec Number of system vectors to allocate
   //! \param[in] num_threads_SLU Number of threads for SuperLU_MT
   void init(SystemMatrix::Type mtype, const LinSolParams* spar,
-	    size_t nmat, size_t nvec, int num_thread_SLU = 1);
+	    size_t nmat, size_t nvec, int num_threads_SLU = 1);
 
   //! \brief Initializes the system matrices to zero.
   //! \param[in] initLHS If \e false, only initialize the right-hand-side vector

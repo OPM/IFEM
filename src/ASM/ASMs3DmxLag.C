@@ -1,4 +1,4 @@
-// $Id: ASMs3DmxLag.C,v 1.2 2010-12-30 15:02:02 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMs3DmxLag.C
@@ -122,10 +122,9 @@ bool ASMs3DmxLag::generateFEMTopology ()
   nb1 = MLGN.size();
   nb2 = nx2*ny2*nz2;
   MLGN.reserve(nb1+nb2);
-  int i, j, k, a, b, c, iel;
-  for (k = 0; k < nz2; k++)
-    for (j = 0; j < ny2; j++)
-      for (i = 0; i < nx2; i++)
+  for (size_t i3 = 0; i3 < nz2; i3++)
+    for (size_t i2 = 0; i2 < ny2; i2++)
+      for (size_t i1 = 0; i1 < nx2; i1++)
 	MLGN.push_back(++gNod);
 
   // Number of elements in each direction
@@ -134,6 +133,7 @@ bool ASMs3DmxLag::generateFEMTopology ()
   const int nelz = (nz2-1)/(p3-1);
 
   // Add connectivety for second basis: local --> global node relation
+  int i, j, k, a, b, c, iel;
   for (k = iel = 0; k < nelz; k++)
     for (j = 0; j < nely; j++)
       for (i = 0; i < nelx; i++, iel++)
@@ -206,7 +206,8 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
 
   // === Assembly loop over all elements in the patch ==========================
 
-  for (int iel = 1; iel <= this->getNoElms(); iel++)
+  const int nel = this->getNoElms();
+  for (int iel = 1; iel <= nel; iel++)
     {
         // Set up control point coordinates for current element
         if (!this->getElementCoordinates(Xnod,iel)) return false;
@@ -438,7 +439,8 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const Integrand& integrand,
   Matrix dN1du, dN2du, dN1dX, dN2dX, Xnod, Jac;
 
   // Evaluate the secondary solution field at each point
-  for (int iel = 1; iel <= this->getNoElms(); iel++)
+  const int nel = this->getNoElms();
+  for (int iel = 1; iel <= nel; iel++)
   {
     IntVec::const_iterator f2start = MNPC[iel-1].begin() + p1*p2*p3;
     IntVec mnpc1(MNPC[iel-1].begin(),f2start);

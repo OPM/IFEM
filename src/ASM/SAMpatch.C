@@ -1,4 +1,4 @@
-// $Id: SAMpatch.C,v 1.10 2011-01-02 16:33:04 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file SAMpatch.C
@@ -221,7 +221,7 @@ bool SAMpatch::updateConstraintEqs (const ASMVec& model, const Vector* prevSol)
       }
       else if (!prevSol)
 	ttcc[ipeq] = 0.0;
-      else if (idof <= prevSol->size())
+      else if (idof <= (int)prevSol->size())
 	ttcc[ipeq] = (*cit)->getSlave().coeff - (*prevSol)(idof);
       else
 	ttcc[ipeq] = (*cit)->getSlave().coeff;

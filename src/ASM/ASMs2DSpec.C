@@ -1,4 +1,4 @@
-// $Id: ASMs2DSpec.C,v 1.6 2010-12-29 18:36:06 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMs2DSpec.C
@@ -32,7 +32,7 @@ bool ASMs2DSpec::getGridParameters (RealArray& prm, int dir,
   int p = dir == 0 ? surf->order_u() : surf->order_v();
   if (!Legendre::GLL(dummy,xGLL,p)) return false;
 
-  if (xGLL.size() != nSegPerSpan+1)
+  if (xGLL.size() != (size_t)(nSegPerSpan+1))
   {
     nSegPerSpan = xGLL.size() - 1;
     std::cout <<"Spectral elements: Number of nodes per knot-span in "
@@ -103,7 +103,8 @@ bool ASMs2DSpec::integrate (Integrand& integrand,
 
   // === Assembly loop over all elements in the patch ==========================
 
-  for (int iel = 1; iel <= this->getNoElms(); iel++)
+  const int nel = this->getNoElms();
+  for (int iel = 1; iel <= nel; iel++)
     {
       // Set up control point coordinates for current element
       if (!this->getElementCoordinates(Xnod,iel)) return false;
@@ -291,7 +292,8 @@ bool ASMs2DSpec::evalSolution (Matrix& sField, const Integrand& integrand,
   Matrix dNdu(p1*p2,2), dNdX, Xnod, Jac;
 
   // Evaluate the secondary solution field at each point
-  for (int iel = 1; iel <= this->getNoElms(); iel++)
+  const int nel = this->getNoElms();
+  for (int iel = 1; iel <= nel; iel++)
   {
     const IntVec& mnpc = MNPC[iel-1];
     this->getElementCoordinates(Xnod,iel);

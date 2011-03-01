@@ -1,4 +1,4 @@
-// $Id: ASMs3DLag.C,v 1.14 2011-01-08 14:00:16 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMs3DLag.C
@@ -134,7 +134,7 @@ bool ASMs3DLag::generateFEMTopology()
 
 bool ASMs3DLag::getElementCoordinates (Matrix& X, int iel) const
 {
-  if (iel < 1 || iel > MNPC.size())
+  if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs3DLag::getElementCoordinates: Element index "<< iel
 	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -203,7 +203,8 @@ bool ASMs3DLag::integrate (Integrand& integrand,
 
   // === Assembly loop over all elements in the patch ==========================
 
-  for (int iel = 1; iel <= this->getNoElms(); iel++)
+  const int nel = this->getNoElms();
+  for (int iel = 1; iel <= nel; iel++)
     {
 	// Set up nodal point coordinates for current element
 	if (!this->getElementCoordinates(Xnod,iel)) return false;
@@ -553,7 +554,8 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const Integrand& integrand,
   Matrix dNdu, dNdX, Xnod, Jac;
 
   // Evaluate the secondary solution field at each point
-  for (int iel = 1; iel <= this->getNoElms(); iel++)
+  const int nel = this->getNoElms();
+  for (int iel = 1; iel <= nel; iel++)
   {
     const IntVec& mnpc = MNPC[iel-1];
     this->getElementCoordinates(Xnod,iel);

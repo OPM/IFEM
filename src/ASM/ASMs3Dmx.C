@@ -1,4 +1,4 @@
-// $Id: ASMs3Dmx.C,v 1.2 2010-12-30 15:02:02 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMs3Dmx.C
@@ -294,7 +294,7 @@ bool ASMs3Dmx::generateFEMTopology ()
 bool ASMs3Dmx::getElementCoordinates (Matrix& X, int iel) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || iel > MNPC.size())
+  if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs3Dmx::getElementCoordinates: Element index "<< iel
 	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -628,6 +628,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 	  case 1: nf1 = nel2; j2 = i3-p3; j1 = i2-p2; break;
 	  case 2: nf1 = nel1; j2 = i3-p3; j1 = i1-p1; break;
 	  case 3: nf1 = nel1; j2 = i2-p2; j1 = i1-p1; break;
+	  default: nf1 = j1 = j2 = 0;
 	  }
 
 	// Caution: Unless locInt is empty, we assume it points to an array of

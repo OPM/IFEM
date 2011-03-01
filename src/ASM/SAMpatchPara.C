@@ -1,4 +1,4 @@
-// $Id: SAMpatchPara.C,v 1.5 2011-02-08 11:59:51 rho Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file SAMpatchPara.C
@@ -72,7 +72,7 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
 	  for (k = 0; k < meen.size(); k++)
 	    if (meen[k] > 0) {
 	      o_ldof = meen[k]-1;
-	      o_gdof = meqn[o_ldof]-1; 
+	      o_gdof = meqn[o_ldof]-1;
 	      if (o_gdof >= ifirst && o_gdof < ilast)
 		o_dofc[d_ldof].insert(o_ldof);
 	    }
@@ -142,7 +142,7 @@ bool SAMpatchPara::assembleSystem (SystemVector& sysRHS,
   IntVec l2g;
   if (!this->getElmEqns(l2g,iel,eS.size()))
     return false;
-  
+
   RealArray eSv(eS);
   for (size_t i = 0; i < l2g.size(); i++) {
     if (mpmceq[--l2g[i]] != 0)
@@ -179,7 +179,7 @@ bool SAMpatchPara::getElmEqns (IntVec& meen, int iel, int nedof) const
   int neldof, neslv, neprd;
   meen.resize(nedof,0);
   elmeq_(madof,mmnpc+ip-1,mpmceq,meqn,nenod,&meen.front(),neldof,neslv,neprd);
-#else  
+#else
   meen.clear();
   meen.reserve(nedof);
   for (int i = 0; i < nenod; i++, ip++)
@@ -254,7 +254,7 @@ real SAMpatchPara::dot (const Vector& x, const Vector& y) const
 real SAMpatchPara::normL2 (const Vector& x) const
 {
 #ifdef PARALLEL_PETSC
-  if (nProc > 1 && nnodGlob > 1) 
+  if (nProc > 1 && nnodGlob > 1)
     return this->norm2(x)/sqrt(mpar[17]*nnodGlob);
 #endif
   return this->SAM::normL2(x);
@@ -273,18 +273,17 @@ real SAMpatchPara::normInf (const Vector& x, size_t& comp) const
     Vector locval, globval;
     locval.resize(2*nProc,0.0);
     globval.resize(2*nProc,0.0);
-    
+
     comp = meqn[(comp-1)*mpar[17]]/mpar[17]+1;
-    
+
     locval[2*myRank]   = locmax;
     locval[2*myRank+1] = 1.0*comp;
-    
     MPI_Allreduce(&locval[0],&globval[0],2*nProc,MPI_DOUBLE,MPI_MAX,PETSC_COMM_WORLD);
-    
-    for (size_t n = 0;n < nProc;n++)
+
+    for (int n = 0; n < nProc; n++)
       if (globval[2*n] > locmax) {
 	locmax = globval[2*n];
-	comp   = (size_t) globval[2*n+1];
+	comp   = (size_t)globval[2*n+1];
       }
   }
 #endif
@@ -393,7 +392,7 @@ bool SAMpatchPara::updateConstraintEqs (const std::vector<ASMbase*>& model,
       }
       else if (!prevSol)
         ttcc[ipeq] = 0.0;
-      else if (idof <= prevSol->size())
+      else if (idof <= (int)prevSol->size())
         ttcc[ipeq] = (*cit)->getSlave().coeff - (*prevSol)(idof);
       else
         ttcc[ipeq] = (*cit)->getSlave().coeff;
@@ -480,7 +479,7 @@ bool SAMpatchPara::initSystemEquations ()
   // Initialize the number of nodal DOFs
   int inod, nndof;
   mpar[16] = mpar[17] = madof[1]-madof[0];
-  for (int inod = 1; inod < nnod && madof; inod++)
+  for (inod = 1; inod < nnod && madof; inod++)
     if ((nndof = madof[1]-madof[0]) < mpar[16])
       mpar[16] = nndof;
     else if (nndof > mpar[17])

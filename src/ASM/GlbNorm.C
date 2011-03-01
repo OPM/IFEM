@@ -1,4 +1,4 @@
-// $Id: GlbNorm.C,v 1.2 2010-01-16 16:02:54 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file GlbNorm.C
@@ -58,6 +58,9 @@ void GlbNorm::applyFinalOp (double& value) const
 	value = -sqrt(-value);
       else
 	value = sqrt(value);
+      break;
+
+    default:
       break;
     }
 }

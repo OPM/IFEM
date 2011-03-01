@@ -1,3 +1,4 @@
+// $Id$
 //==============================================================================
 //!
 //! \file SIMparameters.h
@@ -6,38 +7,44 @@
 //!
 //! \author Arne Morten Kvarving / SINTEF
 //!
-//! \brief Class for encapsulation generic simulation parameters.
+//! \brief Class for encapsulation of general simulation parameters.
 //!
 //==============================================================================
 
-#ifndef SIMPARAMETERS_H_
-#define SIMPARAMETERS_H_
+#ifndef SIM_PARAMETERS_H_
+#define SIM_PARAMETERS_H_
 
-#include "MatVec.h"
 #include "TimeDomain.h"
+#include <vector>
 
-class SIMparameters {
-  public:
-    //! \brief The constructor initializes the counters to zero.
-    SIMparameters();
 
-    //! \brief Empty destructor
-    virtual ~SIMparameters() {};
+/*!
+  \brief Class for encapsulation of general simulation parameters.
+*/
 
-    //! \brief Returns \e true if the simulation consists of several load steps.
-    bool multiSteps() const;
+class SIMparameters
+{
+public:
+  //! \brief The constructor initializes the counters to zero.
+  SIMparameters() : step(0), iter(time.it) {}
 
-    //! \brief Increments the time/load step.
-    //! \return \e true, if we have reached the end of the simulation.
-    bool increment();
+  //! \brief Empty destructor.
+  virtual ~SIMparameters() {}
 
-    int  step;        //!< Load/time step counter
-    int& iter;        //!< Iteration counter
-    double startTime; //!< Start (pseudo)time of simulation
-    double stopTime;  //!< Stop (pseudo)time of simulation
-    RealArray tInc;   //!< Time (or pseudo time) increment size(s)
-    TimeDomain time;  //!< Time domain data
+  //! \brief Returns \e true if the simulation consists of several load steps.
+  bool multiSteps() const;
+
+  //! \brief Increments the time/load step.
+  //! \return \e true, if we have reached the end of the simulation.
+  bool increment();
+
+  int    step;      //!< Load/time step counter
+  int&   iter;      //!< Iteration counter
+  double startTime; //!< Start (pseudo)time of simulation
+  double stopTime;  //!< Stop (pseudo)time of simulation
+
+  std::vector<double> tInc; //!< Time (or pseudo time) increment size(s)
+  TimeDomain          time; //!< Time domain data
 };
 
-
-#endif // SIMPARAMETERS_H_
+#endif

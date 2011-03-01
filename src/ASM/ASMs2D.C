@@ -1,4 +1,4 @@
-// $Id: ASMs2D.C,v 1.22 2011-01-27 17:04:52 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMs2D.C
@@ -208,7 +208,7 @@ bool ASMs2D::generateFEMTopology ()
   const int n2 = surf->numCoefs_v();
   if (!nodeInd.empty())
   {
-    if (nodeInd.size() == n1*n2) return true;
+    if (nodeInd.size() == (size_t)n1*n2) return true;
     std::cerr <<" *** ASMs2D::generateFEMTopology: Inconsistency between the"
 	      <<" number of FE nodes "<< nodeInd.size()
 	      <<"\n     and the number of spline coefficients "<< n1*n2
@@ -307,7 +307,7 @@ bool ASMs2D::assignNodeNumbers (BlockNodes& nodes, int basis)
     if (!this->getSize(m1,m2,3-basis))
       return false;
 
-  if (MLGN.size() != n1*n2+m1*m2) return false;
+  if (MLGN.size() != (size_t)(n1*n2+m1*m2)) return false;
 
   nodes.nnodI = n1;
 
@@ -419,7 +419,7 @@ bool ASMs2D::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool rev)
       return false;
     }
 
-  if (n1 != slaveNodes.size())
+  if (n1 != (int)slaveNodes.size())
   {
     std::cerr <<" *** ASMs2D::connectPatch: Non-matching edges, sizes "
 	      << n1 <<" and "<< slaveNodes.size() << std::endl;
@@ -525,7 +525,7 @@ void ASMs2D::constrainNode (double xi, double eta, int dof, int code)
 double ASMs2D::getParametricArea (int iel) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || iel > MNPC.size())
+  if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs2D::getParametricArea: Element index "<< iel
 	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -537,7 +537,7 @@ double ASMs2D::getParametricArea (int iel) const
 
   int inod1 = MNPC[iel-1].back();
 #ifdef INDEX_CHECK
-  if (inod1 < 0 || inod1 >= nodeInd.size())
+  if (inod1 < 0 || (size_t)inod1 >= nodeInd.size())
   {
     std::cerr <<" *** ASMs2D::getParametricArea: Node index "<< inod1
 	      <<" out of range [0,"<< nodeInd.size() <<">."<< std::endl;
@@ -554,7 +554,7 @@ double ASMs2D::getParametricArea (int iel) const
 double ASMs2D::getParametricLength (int iel, int dir) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || iel > MNPC.size())
+  if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs2D::getParametricLength: Element index "<< iel
 	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -566,7 +566,7 @@ double ASMs2D::getParametricLength (int iel, int dir) const
 
   int inod1 = MNPC[iel-1].back();
 #ifdef INDEX_CHECK
-  if (inod1 < 0 || inod1 >= nodeInd.size())
+  if (inod1 < 0 || (size_t)inod1 >= nodeInd.size())
   {
     std::cerr <<" *** ASMs2D::getParametricLength: Node index "<< inod1
 	      <<" out of range [0,"<< nodeInd.size() <<">."<< std::endl;
@@ -608,7 +608,7 @@ int ASMs2D::coeffInd (size_t inod) const
 bool ASMs2D::getElementCoordinates (Matrix& X, int iel) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || iel > MNPC.size())
+  if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs2D::getElementCoordinates: Element index "<< iel
 	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -804,8 +804,8 @@ bool ASMs2D::integrate (Integrand& integrand,
   Vector   N(p1*p2), Navg;
   Matrix   dNdu, dNdX, Xnod, Jac;
   Matrix3D d2Ndu2, d2NdX2, Hess;
+  double   h = 0.0;
   Vec4     X;
-  double   h;
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -989,7 +989,6 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
   const int p2 = surf->order_v();
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
-  const int nel1 = n1 - p1 + 1;
 
   Vector N(p1*p2);
   Matrix dNdu, dNdX, Xnod, Jac;

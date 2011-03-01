@@ -1,4 +1,4 @@
-// $Id: VTF.C,v 1.10 2010-12-31 13:14:06 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file VTF.C
@@ -160,7 +160,7 @@ bool VTF::writeEres (const std::vector<real>& elementResult,
 		     int idBlock, int geomID)
 {
   if (!myFile) return true;
-  if (geomID < 1 || geomID > myBlocks.size()) return false;
+  if (geomID < 1 || (size_t)geomID > myBlocks.size()) return false;
 
   const size_t nres = elementResult.size();
   if (nres > myBlocks[geomID-1]->getNoElms())
@@ -193,7 +193,7 @@ bool VTF::writeNres (const std::vector<real>& nodalResult,
 		     int idBlock, int geomID)
 {
   if (!myFile) return true;
-  if (geomID < 1 || geomID > myBlocks.size()) return false;
+  if (geomID < 1 || (size_t)geomID > myBlocks.size()) return false;
 
   const size_t nres = nodalResult.size();
   if (nres != myBlocks[geomID-1]->getNoNodes())
@@ -287,7 +287,7 @@ bool VTF::writeDblk (const std::vector<int>& dBlockIDs, const char* resultName,
 		     int idBlock, int iStep)
 {
 #if HAS_VTFAPI == 1
-  if (myDBlock.size() < idBlock) myDBlock.resize(idBlock,0);
+  if ((int)myDBlock.size() < idBlock) myDBlock.resize(idBlock,0);
 
   if (!myDBlock[--idBlock])
   {
@@ -308,7 +308,7 @@ bool VTF::writeVblk (int vBlockID, const char* resultName,
 		     int idBlock, int iStep)
 {
 #if HAS_VTFAPI == 1
-  if (myVBlock.size() < idBlock) myVBlock.resize(idBlock,0);
+  if ((int)myVBlock.size() < idBlock) myVBlock.resize(idBlock,0);
 
   if (!myVBlock[--idBlock])
   {
@@ -327,7 +327,7 @@ bool VTF::writeVblk (const std::vector<int>& vBlockIDs, const char* resultName,
 		     int idBlock, int iStep)
 {
 #if HAS_VTFAPI == 1
-  if (myVBlock.size() < idBlock) myVBlock.resize(idBlock,0);
+  if ((int)myVBlock.size() < idBlock) myVBlock.resize(idBlock,0);
 
   if (!myVBlock[--idBlock])
   {
@@ -347,7 +347,7 @@ bool VTF::writeSblk (int sBlockID, const char* resultName,
 		     int idBlock, int iStep)
 {
 #if HAS_VTFAPI == 1
-  if (mySBlock.size() < idBlock) mySBlock.resize(idBlock,0);
+  if ((int)mySBlock.size() < idBlock) mySBlock.resize(idBlock,0);
 
   if (!mySBlock[--idBlock])
   {
@@ -366,7 +366,7 @@ bool VTF::writeSblk (const std::vector<int>& sBlockIDs, const char* resultName,
                      int idBlock, int iStep)
 {
 #if HAS_VTFAPI == 1
-  if (mySBlock.size() < idBlock) mySBlock.resize(idBlock,0);
+  if ((int)mySBlock.size() < idBlock) mySBlock.resize(idBlock,0);
 
   if (!mySBlock[--idBlock])
   {

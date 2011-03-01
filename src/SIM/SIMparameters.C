@@ -1,3 +1,4 @@
+// $Id$
 //==============================================================================
 //!
 //! \file SIMparameters.C
@@ -6,16 +7,12 @@
 //!
 //! \author Arne Morten Kvarving / SINTEF
 //!
-//! \brief Class for encapsulation generic simulation parameters.
+//! \brief Class for encapsulation of general simulation parameters.
 //!
 //==============================================================================
 
 #include "SIMparameters.h"
 
-SIMparameters::SIMparameters() :
-  iter(time.it), step(0)
-{ 
-}
 
 bool SIMparameters::multiSteps () const
 {
@@ -25,11 +22,12 @@ bool SIMparameters::multiSteps () const
   return (startTime+(1.0+epsT)*tInc.front() < stopTime);
 }
 
+
 bool SIMparameters::increment ()
 {
   const double epsT = 1.0e-6;
 
-  if (++step <= (int)tInc.size())
+  if (++step <= (int)tInc.size() && step > 0)
     time.dt = tInc[step-1];
 
   if (time.t+time.dt*epsT >= stopTime)
@@ -46,4 +44,3 @@ bool SIMparameters::increment ()
 
   return true;
 }
-

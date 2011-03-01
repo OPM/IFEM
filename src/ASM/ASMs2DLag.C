@@ -1,4 +1,4 @@
-// $Id: ASMs2DLag.C,v 1.11 2011-01-08 14:00:16 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMs2DLag.C
@@ -120,7 +120,7 @@ bool ASMs2DLag::generateFEMTopology ()
 
 bool ASMs2DLag::getElementCoordinates (Matrix& X, int iel) const
 {
-  if (iel < 1 || iel > MNPC.size())
+  if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs2DLag::getElementCoordinates: Element index "<< iel
 	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -187,7 +187,8 @@ bool ASMs2DLag::integrate (Integrand& integrand,
 
   // === Assembly loop over all elements in the patch ==========================
 
-  for (int iel = 1; iel <= this->getNoElms(); iel++)
+  const int nel = this->getNoElms();
+  for (int iel = 1; iel <= nel; iel++)
     {
       // Set up control point coordinates for current element
       if (!this->getElementCoordinates(Xnod,iel)) return false;
@@ -405,7 +406,8 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const Integrand& integrand,
   Matrix dNdu, dNdX, Xnod, Jac;
 
   // Evaluate the secondary solution field at each point
-  for (int iel = 1; iel <= this->getNoElms(); iel++)
+  const int nel = this->getNoElms();
+  for (int iel = 1; iel <= nel; iel++)
   {
     const IntVec& mnpc = MNPC[iel-1];
     this->getElementCoordinates(Xnod,iel);

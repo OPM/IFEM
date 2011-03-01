@@ -1,4 +1,4 @@
-// $Id: ASMs1DLag.C,v 1.5 2010-12-29 18:39:37 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMs1DLag.C
@@ -72,7 +72,7 @@ bool ASMs1DLag::generateFEMTopology ()
   coord.resize(nx);
 
   // Evaluate the nodal coordinates
-  for (int i = 0; i < nx; i++)
+  for (size_t i = 0; i < nx; i++)
   {
     Go::Point pt;
     curv->point(pt,gpar[i]);
@@ -104,7 +104,7 @@ bool ASMs1DLag::generateFEMTopology ()
 
 bool ASMs1DLag::getElementCoordinates (Matrix& X, int iel) const
 {
-  if (iel < 1 || iel > MNPC.size())
+  if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs1DLag::getElementCoordinates: Element index "<< iel
 	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -160,7 +160,8 @@ bool ASMs1DLag::integrate (Integrand& integrand,
 
   // === Assembly loop over all elements in the patch ==========================
 
-  for (int iel = 1; iel <= this->getNoElms(); iel++)
+  const int nel = this->getNoElms();
+  for (int iel = 1; iel <= nel; iel++)
     {
       // Set up control point coordinates for current element
       if (!this->getElementCoordinates(Xnod,iel)) return false;
@@ -229,6 +230,10 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
     case 2:
       iel = nel;
       x = 1.0;
+
+    default:
+      iel = 0;
+      x = 0.0;
     }
 
   // Set up control point coordinates for current element
@@ -274,7 +279,7 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
 
 bool ASMs1DLag::tesselate (ElementBlock& grid, const int*) const
 {
-  int i, l;
+  size_t i, l;
 
   grid.resize(nx);
   for (i = 0; i < grid.getNoNodes(); i++)
@@ -327,7 +332,8 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const Integrand& integrand,
   Matrix dNdu, dNdX, Xnod, Jac;
 
   // Evaluate the secondary solution field at each point
-  for (int iel = 1; iel <= this->getNoElms(); iel++)
+  const int nel = this->getNoElms();
+  for (int iel = 1; iel <= nel; iel++)
   {
     const IntVec& mnpc = MNPC[iel-1];
     this->getElementCoordinates(Xnod,iel);

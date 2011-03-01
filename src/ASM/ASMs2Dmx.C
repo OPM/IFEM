@@ -1,4 +1,4 @@
-// $Id: ASMs2Dmx.C,v 1.2 2010-12-30 15:02:02 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMs2Dmx.C
@@ -274,7 +274,7 @@ bool ASMs2Dmx::generateFEMTopology ()
 bool ASMs2Dmx::getElementCoordinates (Matrix& X, int iel) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || iel > MNPC.size())
+  if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs2Dmx::getElementCoordinates: Element index "<< iel
 	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -539,7 +539,6 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
   const int p2 = surf->order_v();
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
-  const int nel1 = n1 - p1 + 1;
 
   Vector N1(basis1->order_u()*basis1->order_v());
   Vector N2(basis2->order_u()*basis2->order_v());

@@ -1,4 +1,4 @@
-// $Id: ASMs3D.C,v 1.30 2011-01-27 17:04:52 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMs3D.C
@@ -211,7 +211,7 @@ bool ASMs3D::generateFEMTopology ()
   const int n3 = svol->numCoefs(2);
   if (!nodeInd.empty())
   {
-    if (nodeInd.size() == n1*n2*n3) return true;
+    if (nodeInd.size() == (size_t)n1*n2*n3) return true;
     std::cerr <<" *** ASMs3D::generateFEMTopology: Inconsistency between the"
 	      <<" number of FE nodes "<< nodeInd.size()
 	      <<"\n     and the number of spline coefficients "<< n1*n2*n3
@@ -335,7 +335,7 @@ bool ASMs3D::assignNodeNumbers (BlockNodes& nodes, int basis)
     if (!this->getSize(m1,m2,m3,3-basis))
       return false;
 
-  if (MLGN.size() != n1*n2*n3+m1*m2*m3) return false;
+  if (MLGN.size() != (size_t)(n1*n2*n3+m1*m2*m3)) return false;
 
   nodes.faces[0].nnodI = nodes.faces[1].nnodI = n2;
   nodes.faces[2].nnodI = nodes.faces[3].nnodI = n1;
@@ -459,17 +459,11 @@ bool ASMs3D::assignNodeNumbers (BlockNodes& nodes, int basis)
 
 bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
 {
-  if (swapW) // Account for swapped parameter direction
-    if (face == 5)
-      face = 6;
-    else if (face == 6)
-      face = 5;
+  if (swapW && face > 4) // Account for swapped parameter direction
+    face = 11-face;
 
-  if (neighbor.swapW) // Account for swapped parameter direction
-    if (nface == 5)
-      nface = 6;
-    else if (nface == 6)
-      nface = 5;
+  if (neighbor.swapW && face > 4) // Account for swapped parameter direction
+    nface = 11-nface;
 
   // Set up the slave node numbers for this volume patch
 
@@ -548,23 +542,19 @@ bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
       return false;
     }
 
-  bool matching = false;
   if (norient < 0 || norient > 7)
   {
     std::cerr <<" *** ASMs3D::connectPatch: Orientation flag "
 	      << norient <<" is out of range [0,7]"<< std::endl;
     return false;
   }
-  else if (norient < 4)
-    matching = (n1 == slaveNodes.size() && n2 == slaveNodes.front().size());
-  else
-    matching = (n2 == slaveNodes.size() && n1 == slaveNodes.front().size());
-  if (!matching)
+
+  int m1 = slaveNodes.size();
+  int m2 = slaveNodes.front().size();
+  if (norient < 4 ? (n1 != m1 || n2 != m2) : (n2 != m1 || n1 != m2))
   {
     std::cerr <<" *** ASMs3D::connectPatch: Non-matching faces, sizes "
-	      << n1 <<","<< n2 <<" and "
-	      << slaveNodes.size() <<","<< slaveNodes.front().size()
-	      << std::endl;
+	      << n1 <<","<< n2 <<" and "<< m1 <<","<< m2 << std::endl;
     return false;
   }
 
@@ -671,12 +661,8 @@ void ASMs3D::constrainEdge (int lEdge, int dof, int code)
   int n1, n2, n3, n, node = 1, inc = 1;
   if (!this->getSize(n1,n2,n3,1)) return;
 
-  if (swapW) // Account for swapped parameter direction
-    if (lEdge <= 8)
-      if ((lEdge-1)%4 < 2)
-	lEdge += 2;
-      else
-	lEdge -= 2;
+  if (swapW && lEdge <= 8) // Account for swapped parameter direction
+    lEdge += (lEdge-1)%4 < 2 ? 2 : -2;
 
   if (lEdge > 8)
   {
@@ -837,7 +823,7 @@ void ASMs3D::constrainNode (double xi, double eta, double zeta,
 double ASMs3D::getParametricVolume (int iel) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || iel > MNPC.size())
+  if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs3D::getParametricVolume: Element index "<< iel
 	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -849,7 +835,7 @@ double ASMs3D::getParametricVolume (int iel) const
 
   int inod1 = MNPC[iel-1].back();
 #ifdef INDEX_CHECK
-  if (inod1 < 0 || inod1 >= nodeInd.size())
+  if (inod1 < 0 || (size_t)inod1 >= nodeInd.size())
   {
     std::cerr <<" *** ASMs3D::getParametricVolume: Node index "<< inod1
 	      <<" out of range [0,"<< nodeInd.size() <<">."<< std::endl;
@@ -867,7 +853,7 @@ double ASMs3D::getParametricVolume (int iel) const
 double ASMs3D::getParametricArea (int iel, int dir) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || iel > MNPC.size())
+  if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs3D::getParametricArea: Element index "<< iel
 	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -879,7 +865,7 @@ double ASMs3D::getParametricArea (int iel, int dir) const
 
   int inod1 = MNPC[iel-1].back();
 #ifdef INDEX_CHECK
-  if (inod1 < 0 || inod1 >= nodeInd.size())
+  if (inod1 < 0 || (size_t)inod1 >= nodeInd.size())
   {
     std::cerr <<" *** ASMs3D::getParametricArea: Node index "<< inod1
 	      <<" out of range [0,"<< nodeInd.size() <<">."<< std::endl;
@@ -924,7 +910,7 @@ int ASMs3D::coeffInd (size_t inod) const
 bool ASMs3D::getElementCoordinates (Matrix& X, int iel) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || iel > MNPC.size())
+  if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs3D::getElementCoordinates: Element index "<< iel
 	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -1149,8 +1135,8 @@ bool ASMs3D::integrate (Integrand& integrand,
   Vector   N(p1*p2*p3), Navg;
   Matrix   dNdu, dNdX, Xnod, Jac;
   Matrix3D d2Ndu2, d2NdX2, Hess;
+  double   h = 0.0;
   Vec4     X;
-  double   h;
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -1398,6 +1384,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 	  case 1: nf1 = nel2; j2 = i3-p3; j1 = i2-p2; break;
 	  case 2: nf1 = nel1; j2 = i3-p3; j1 = i1-p1; break;
 	  case 3: nf1 = nel1; j2 = i2-p2; j1 = i1-p1; break;
+	  default: nf1 = j1 = j2 = 0;
 	  }
 
 	// Caution: Unless locInt is empty, we assume it points to an array of
@@ -1504,9 +1491,6 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
   const int p2 = svol->order(1);
   const int p3 = svol->order(2);
 
-  const int nel1 = n1 - p1 + 1;
-  const int nel2 = n2 - p2 + 1;
-
   Vector N(p1*p2*p3);
   Matrix dNdu, dNdX, Xnod, Jac;
   Vec4   X;
@@ -1545,7 +1529,7 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 	double dS = 0.0;
 	int ip = MNPC[iel-1].back();
 #ifdef INDEX_CHECK
-	if (ip < 0 || ip >= nodeInd.size()) return false;
+	if (ip < 0 || (size_t)ip >= nodeInd.size()) return false;
 #endif
 	if (lEdge < 5)
 	{

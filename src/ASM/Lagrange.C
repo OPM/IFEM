@@ -1,4 +1,4 @@
-// $Id: Lagrange.C,v 1.2 2010-10-05 07:25:25 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file Lagrange.C
@@ -29,18 +29,18 @@ bool Lagrange::evalPol (int polnum, double xi, double& retval) const
   size_t degree = points.size();
 
   // Check if the polynomial number is feasible
-  if (polnum < 0 || polnum > degree-1)
+  if (polnum < 0 || (size_t)polnum >= degree)
   {
     std::cerr <<" *** Lagrange::evalPol: Poynomial number out of range: "
-	      << polnum <<", must be in the interval [0,"<< degree-1
-	      <<"]"<< std::endl;
+	      << polnum <<", must be in the interval [0,"<< degree
+	      <<">"<< std::endl;
     return false;
   }
 
   // Evaluate value of polynomial number polnum in point x
   retval = 1.0;
   for (size_t j = 0; j < degree; j++)
-    if (j != polnum)
+    if (j != (size_t)polnum)
       retval *= (xi - points[j]) / (points[polnum] - points[j]);
 
   return true;
@@ -62,22 +62,22 @@ bool Lagrange::evalDer (int polnum, double xi, double& retval) const
   size_t degree = points.size();
 
   // Check if the polynomial number is feasible
-  if (polnum < 0 || polnum > degree-1)
+  if (polnum < 0 || (size_t)polnum >= degree)
   {
     std::cerr <<" *** Lagrange::evalDer: Poynomial number out of range: "
-	      << polnum <<", must be in the interval [0,"<< degree-1
-	      <<"]"<< std::endl;
+	      << polnum <<", must be in the interval [0,"<< degree
+	      <<">"<< std::endl;
     return false;
   }
 
   // Evaluate derivative of polynomial number polnum in point x
   retval = 0.0;
   for (size_t k = 0; k < degree; k++)
-    if (k != polnum)
+    if (k != (size_t)polnum)
     {
       double prod = 1.0;
       for (size_t j = 0; j < degree; j++)
-	if (j != polnum && j != k)
+	if (j != (size_t)polnum && j != k)
 	  prod *= (xi - points[j]) / (points[polnum] - points[j]);
       retval += prod / (points[polnum] - points[k]);
     }

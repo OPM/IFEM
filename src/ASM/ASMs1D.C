@@ -1,4 +1,4 @@
-// $Id: ASMs1D.C,v 1.8 2011-01-05 12:49:41 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMs1D.C
@@ -197,7 +197,7 @@ bool ASMs1D::generateFEMTopology ()
   const int n1 = curv->numCoefs();
   if (!MLGN.empty())
   {
-    if (MLGN.size() == n1) return true;
+    if (MLGN.size() == (size_t)n1) return true;
     std::cerr <<" *** ASMs1D::generateFEMTopology: Inconsistency between the"
 	      <<" number of FE nodes "<< MLGN.size()
 	      <<"\n     and the number of spline coefficients "<< n1
@@ -330,7 +330,7 @@ void ASMs1D::constrainNode (double xi, int dof, int code)
 double ASMs1D::getParametricLength (int iel) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || iel > MNPC.size())
+  if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs1D::getParametricLength: Element index "<< iel
 	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -342,7 +342,7 @@ double ASMs1D::getParametricLength (int iel) const
 
   int inod1 = MNPC[iel-1].back();
 #ifdef INDEX_CHECK
-  if (inod1 < 0 || inod1 >= MLGN.size())
+  if (inod1 < 0 || (size_t)inod1 >= MLGN.size())
   {
     std::cerr <<" *** ASMs1D::getParametricLength: Node index "<< inod1
 	      <<" out of range [0,"<< MLGN.size() <<">."<< std::endl;
@@ -367,7 +367,7 @@ double ASMs1D::getKnotSpan (int i) const
 bool ASMs1D::getElementCoordinates (Matrix& X, int iel) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || iel > MNPC.size())
+  if (iel < 1 || (size_t)iel > MNPC.size())
   {
     std::cerr <<" *** ASMs1D::getElementCoordinates: Element index "<< iel
 	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
@@ -568,7 +568,7 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
       return false;
     }
 
-  if (MLGE[iel-1] < 1) true; // zero-length element
+  if (MLGE[iel-1] < 1) return true; // zero-length element
 
   // Set up control point coordinates for current element
   Matrix Xnod;
@@ -653,13 +653,13 @@ bool ASMs1D::tesselate (ElementBlock& grid, const int* npe) const
   DoubleVec XYZ(3*nx,0.0);
 
   // Establish the block grid coordinates
-  size_t i, j, l;
-  for (i = l = 0; i < nx; i++, l += 3)
+  size_t i, j;
+  for (i = j = 0; i < nx; i++, j += 3)
   {
     Go::Point pt;
     curv->point(pt,gpar[i]);
-    for (j = 0; j < pt.size(); j++)
-      XYZ[l+j] = pt[j];
+    for (int k = 0; k < pt.size(); k++)
+      XYZ[j+k] = pt[k];
   }
 
   grid.resize(nx);
@@ -672,8 +672,8 @@ bool ASMs1D::tesselate (ElementBlock& grid, const int* npe) const
   n[1] = n[0] + 1;
 
   for (i = 1; i < nx; i++)
-    for (l = 0; l < 2; l++)
-      grid.setNode(ip++,n[l]++);
+    for (j = 0; j < 2; j++)
+      grid.setNode(ip++,n[j]++);
 
   return true;
 }

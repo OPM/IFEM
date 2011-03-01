@@ -1,4 +1,4 @@
-// $Id: Utilities.C,v 1.9 2011-01-07 08:55:54 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file Utilities.C
@@ -125,13 +125,16 @@ int utl::gather (const std::vector<int>& index, size_t ir, size_t nr,
   out.resize(index.size());
   offset_in += ir;
   for (size_t i = 0; i < index.size(); i++)
-  {
-    int ip = offset_in + nr*(index[i]-shift_idx);
-    if (ip >= offset_in && ip < in.size())
-      out[i] = in[ip];
+    if (index[i] >= shift_idx)
+    {
+      size_t ip = offset_in + nr*(index[i]-shift_idx);
+      if (ip < in.size())
+	out[i] = in[ip];
+      else
+	outside++;
+    }
     else
       outside++;
-  }
 
   return outside;
 }

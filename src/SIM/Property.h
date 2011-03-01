@@ -1,4 +1,4 @@
-// $Id: Property.h,v 1.4 2010-01-29 13:07:14 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file Property.h
@@ -40,11 +40,11 @@ struct Property
   char   ldim;  //!< Local entity dimension flag [0,3]
 
   //! \brief Default constructor.
-  Property() : pcode(UNDEFINED), pindx(0), patch(0), ldim(0), lindx(0) {}
+  Property() : pcode(UNDEFINED), pindx(0), patch(0), lindx(0), ldim(0) {}
 
   //! \brief Constructor creating an initialized property instance.
   Property(Type t, size_t px, size_t p, char ld, char lx = 0) :
-    pcode(t), pindx(px), patch(p), ldim(ld), lindx(lx) {}
+    pcode(t), pindx(px), patch(p), lindx(lx), ldim(ld) {}
 };
 
 typedef std::vector<Property> PropertyVec; //!< Vector of properties

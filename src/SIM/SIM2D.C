@@ -1,4 +1,4 @@
-// $Id: SIM2D.C,v 1.17 2011-01-05 12:54:56 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file SIM2D.C
@@ -63,7 +63,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 	myModel.push_back(pch);
     }
 
-    if (myModel.size() < npatch)
+    if ((int)myModel.size() < npatch)
     {
       std::cerr <<" *** SIM2D::parse: Expected "<< npatch
 		<<" patches but could read only "<< myModel.size()
@@ -201,7 +201,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
       else
       {
 	this->setPropertyType(code,Property::DIRICHLET_INHOM);
-	if (cline = strtok(NULL," "))
+	if ((cline = strtok(NULL," ")))
 	  myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,d));
 	else
 	{
@@ -225,7 +225,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
     {
       bool uniform = !strchr(cline,'.');
       int patch = atoi(strtok(cline," "));
-      if (patch == 0 || abs(patch) > myModel.size())
+      if (patch == 0 || abs(patch) > (int)myModel.size())
       {
 	std::cerr <<" *** SIM2D::parse: Invalid patch index "
 		  << patch << std::endl;
@@ -254,7 +254,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
       {
 	int dir = atoi(strtok(NULL," "));
 	RealArray xi;
-	while (cline = strtok(NULL," "))
+	while ((cline = strtok(NULL," ")))
 	  xi.push_back(atof(cline));
 	for (int j = ipatch; j < patch; j++)
 	{
@@ -277,7 +277,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
       int patch = atoi(strtok(cline," "));
       int addu  = atoi(strtok(NULL," "));
       int addv  = atoi(strtok(NULL," "));
-      if (patch == 0 || abs(patch) > myModel.size())
+      if (patch == 0 || abs(patch) > (int)myModel.size())
       {
 	std::cerr <<" *** SIM2D::parse: Invalid patch index "
 		  << patch << std::endl;
@@ -312,8 +312,8 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
       int sEdge  = atoi(strtok(NULL," "));
       bool rever = (cline = strtok(NULL," ")) ? cline[0] == 'R' : false;
       if (master == slave ||
-	  master < 1 || master > myModel.size() ||
-	  slave  < 1 || slave  > myModel.size())
+	  master < 1 || master > (int)myModel.size() ||
+	  slave  < 1 || slave  > (int)myModel.size())
       {
 	std::cerr <<" *** SIM2D::parse: Invalid patch indices "
 		  << master <<" "<< slave << std::endl;
@@ -339,7 +339,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
     {
       int patch = atoi(strtok(cline," "));
       int pedir = atoi(strtok(NULL," "));
-      if (patch < 1 || patch > myModel.size())
+      if (patch < 1 || patch > (int)myModel.size())
       {
 	std::cerr <<" *** SIM2D::parse: Invalid patch index "
 		  << patch << std::endl;
@@ -383,7 +383,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 	if (!this->addConstraint(patch,abs(pedge),ldim,bcode%1000,code))
 	  return false;
 
-	if (cline = strtok(NULL," "))
+	if ((cline = strtok(NULL," ")))
 	  myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,pd));
 	else
 	  myScalars[code] = new ConstFunc(pd);
@@ -436,7 +436,7 @@ static bool constrError (const char* lab, int idx)
 
 bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code)
 {
-  if (patch < 1 || patch > myModel.size())
+  if (patch < 1 || patch > (int)myModel.size())
     return constrError("patch index ",patch);
 
   std::cout <<"\tConstraining P"<< patch
