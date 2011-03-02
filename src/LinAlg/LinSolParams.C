@@ -32,7 +32,7 @@ void LinSolParams::setDefault ()
 
   atol   = 1.0e-6;
   rtol   = 1.0e-6;
-  dtol   = 1.0e-6;
+  dtol   = 1.0e3;
   maxIts = 1000;
 #endif
 }
