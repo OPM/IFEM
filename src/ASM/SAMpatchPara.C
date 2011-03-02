@@ -154,7 +154,7 @@ bool SAMpatchPara::assembleSystem (SystemVector& sysRHS,
   if (!pvec) return false;
 
   // Add contributions to SV (righthand side)
-  VecSetValues(pvec->getVector(),nedof,&l2g[0],&eSv[0],ADD_VALUES);
+  VecSetValues(pvec->getVector(),eSv.size(),&l2g[0],&eSv[0],ADD_VALUES);
 
   // Add contributions to reaction forces
   if (reactionForces)
