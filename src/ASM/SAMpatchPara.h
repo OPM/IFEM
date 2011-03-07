@@ -45,6 +45,12 @@ public:
   virtual bool getNoDofCouplings(int ifirst, int ilast,
 				 IntVec& d_nnz, IntVec& o_nnz) const;
 
+  //! \brief Initializes the system load vector prior to the element assembly.
+  //! \param sysRHS The system right-hand-side load vector to be initialized
+  //! \param reactionForces Pointer to vector of nodal reaction forces
+  //! \return \e false if no free DOFs in the system, otherwise \e true
+  virtual bool initForAssembly(SystemVector& sysRHS, Vector* reactionForces = 0) const;
+
   //! \brief Adds element stiffness contributions to the system load vector.
   //! \param sysRHS  The right-hand-side system load vector
   //! \param[in] eK  The element stiffness matrix

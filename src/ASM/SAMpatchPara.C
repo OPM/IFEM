@@ -126,6 +126,18 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
 }
 
 
+bool SAMpatchPara::initForAssembly (SystemVector& sysRHS, Vector* reactionForces) const
+{
+  sysRHS.redim(nleq);
+  sysRHS.init();
+  if (reactionForces)
+    reactionForces->resize(mpar[5],true);
+
+  return nleq > 0 ? true : false;
+}
+
+
+
 bool SAMpatchPara::assembleSystem (SystemVector& sysRHS,
 				   const Matrix& eK, int iel,
 				   Vector* reactionForces) const

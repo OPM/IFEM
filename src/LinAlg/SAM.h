@@ -101,7 +101,7 @@ public:
   //! \param sysRHS The system right-hand-side load vector to be initialized
   //! \param reactionForces Pointer to vector of nodal reaction forces
   //! \return \e false if no free DOFs in the system, otherwise \e true
-  bool initForAssembly(SystemVector& sysRHS, Vector* reactionForces = 0) const;
+  virtual bool initForAssembly(SystemVector& sysRHS, Vector* reactionForces = 0) const;
 
   //! \brief Adds an element stiffness matrix into the system stiffness matrix.
   //! \param sysK    The left-hand-side system stiffness matrix
