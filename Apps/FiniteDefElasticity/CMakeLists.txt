@@ -47,9 +47,6 @@ IF(${ENABLE_SAMG})
 ENDIF(${ENABLE_SAMG})
 FIND_PACKAGE(VTFWriter)
 
-# Required include directories
-SET(INCLUDES ${IFEM_INCLUDES} ${PROJECT_SOURCE_DIR}/../LinearElasticity)
-
 # Required libraries
 SET(DEPLIBS ${IFEM_LIBRARIES}
   ${GoTrivariate_LIBRARIES} ${GoTools_LIBRARIES}
@@ -82,17 +79,16 @@ IF(VTFWRITER_LIBRARIES)
   SET(DEPLIBS ${DEPLIBS} ${VTFWRITER_LIBRARIES})
 ENDIF(VTFWRITER_LIBRARIES)
 
-INCLUDE_DIRECTORIES(${INCLUDES})
+INCLUDE_DIRECTORIES(${IFEM_INCLUDES} ${PROJECT_SOURCE_DIR}/../LinearElasticity)
+
 SET(EXECUTABLE_OUTPUT_PATH bin)
 
-# This line may be needed only on AMD 64 bit... @jbt
-# 091120: Adding this because GUV-plugins will need it. (J.O.)
 IF(NOT WIN32)
+  # Emit position-independent code, suitable for dynamic linking
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+  # Enable all warnings
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 ENDIF(NOT WIN32)
-
-# Enable all warnings
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
 FILE(GLOB_RECURSE NonLinEl_SRCS
   ${PROJECT_SOURCE_DIR}/../LinearElasticity/SIMLinEl*.C

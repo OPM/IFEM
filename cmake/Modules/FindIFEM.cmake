@@ -49,5 +49,3 @@ ENDIF(IFEM_INCLUDES)
 INCLUDE(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(IFEM DEFAULT_MSG
                                   IFEM_INCLUDES IFEM_LIBRARIES)
-
-MARK_AS_ADVANCED(IFEM_INCLUDES IFEM_LIBRARIES)
