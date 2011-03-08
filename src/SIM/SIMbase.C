@@ -280,15 +280,24 @@ bool SIMbase::preprocess (const std::vector<int>& ignoredPatches, bool fixDup)
 }
 
 
-void SIMbase::setPropertyType (int code, Property::Type ptype)
+bool SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
 {
   if (code < 0)
+  {
     std::cerr <<"  ** SIMbase::setPropertyType: Negative property code "
 	      << code <<" (ignored)"<< std::endl;
-  else for (size_t j = 0; j < myProps.size(); j++)
+    return false;
+  }
+
+  for (size_t j = 0; j < myProps.size(); j++)
     if (myProps[j].pindx == (size_t)code &&
 	myProps[j].pcode == Property::UNDEFINED)
+    {
       myProps[j].pcode = ptype;
+      if (pindex >= 0) myProps[j].pindx = pindex;
+    }
+
+  return true;
 }
 
 
@@ -479,7 +488,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 	  else
 	    ok = false;
 
-  return ok && finalizeAssembly();
+  return ok && this->finalizeAssembly(newLHSmatrix);
 }
 
 
@@ -1238,22 +1247,27 @@ bool SIMbase::dumpSolution (const Vector& psol, std::ostream& os) const
   return true;
 }
 
-void SIMbase::readLinSolParams(std::istream& is, int npar)
+
+void SIMbase::readLinSolParams (std::istream& is, int npar)
 {
   if (!mySolParams) mySolParams = new LinSolParams();
   mySolParams->read(is,npar);
 }
 
-bool SIMbase::finalizeAssembly()
+
+bool SIMbase::finalizeAssembly (bool newLHSmatrix)
 {
   SystemMatrix* A = myEqSys->getMatrix();
   SystemVector* b = myEqSys->getVector();
   if (A && b && A->getType() == SystemMatrix::PETSC)
   {
-    //Communication of matrix and vector assembly (for PETSC only)
+    // Communication of matrix and vector assembly (for PETSC only)
 #ifdef HAS_PETSC
-    if (!static_cast<PETScMatrix*>(A)->beginAssembly()) return false;
-    if (!static_cast<PETScMatrix*>(A)->endAssembly())   return false;
+    if (newLHSmatrix)
+    {
+      if (!static_cast<PETScMatrix*>(A)->beginAssembly()) return false;
+      if (!static_cast<PETScMatrix*>(A)->endAssembly())   return false;
+    }
     if (!static_cast<PETScVector*>(b)->beginAssembly()) return false;
     if (!static_cast<PETScVector*>(b)->endAssembly())   return false;
 #endif

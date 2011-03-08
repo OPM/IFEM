@@ -140,7 +140,7 @@ public:
   // TODO: This HAS to be called from subclasses if assembleSystem
   //       is overridden. This need to be fixed, probably through
   //       a wrapper function
-  bool finalizeAssembly();
+  bool finalizeAssembly(bool newLHSmatrix);
 
   //! \brief Administers assembly of the linear equation system.
   //! \param[in] pSol Previous primary solution vectors in DOF-order
@@ -303,7 +303,8 @@ protected:
   //! \brief Defines the type of a property set.
   //! \param[in] code The property code to be associated with the property type
   //! \param[in] ptype The property type to be associated with the given code
-  void setPropertyType(int code, Property::Type ptype);
+  //! \param[in] pindex 0-based index into problem-dependent property container
+  bool setPropertyType(int code, Property::Type ptype, int pindex = -1);
 
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   //! \param[in] patch 1-based index of the patch to receive the property
@@ -335,9 +336,10 @@ protected:
   //! \param[in] sol Global primary solution vectors in DOF-order
   void extractPatchSolution(const ASMbase* patch, const Vectors& sol);
 
-  //! \brief Read a LinSolParams from the given stream.
-  //!   This method helps with encapsulating PETSc in libIFEM
+  //! \brief Read a LinSolParams object from the given stream.
+  //! \details This method helps with encapsulating PETSc in libIFEM.
   void readLinSolParams(std::istream& is, int npar);
+
 public:
   //! \brief Enum defining the available discretization methods.
   enum Discretization { Spline, Lagrange, Spectral };
