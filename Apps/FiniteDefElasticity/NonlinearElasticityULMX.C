@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "NonlinearElasticityULMX.h"
+#include "MaterialBase.h"
 #include "ElmMats.h"
 #include "ElmNorm.h"
 #include "Utilities.h"
@@ -39,9 +40,8 @@ extern "C" {
 #endif
 
 
-NonlinearElasticityULMX::NonlinearElasticityULMX (unsigned short int n,
-						  int mver, int pp)
-  : NonlinearElasticityUL(n, false, mver < 0 ? 0 : mver)
+NonlinearElasticityULMX::NonlinearElasticityULMX (unsigned short int n, int pp)
+  : NonlinearElasticityUL(n)
 {
   p = pp;
   iP = 0;
@@ -151,7 +151,6 @@ bool NonlinearElasticityULMX::evalInt (LocalIntegral*& elmInt, double detJW,
   if (myMats->b.size() < 3) return false;
 
   ItgPtData& ptData = myData[iP++];
-  unsigned short int i, j;
 
 #if INT_DEBUG > 0
   std::cout <<"NonlinearElasticityUL::dNdX ="<< dNdX;
@@ -159,31 +158,25 @@ bool NonlinearElasticityULMX::evalInt (LocalIntegral*& elmInt, double detJW,
 
   // Evaluate the deformation gradient, Fp, at previous configuration
   const_cast<NonlinearElasticityULMX*>(this)->eV = &myMats->b[2];
-  if (this->formDefGradient(dNdX))
-    for (i = 1; i <= nsd; i++)
-      for (j = 1; j <= nsd; j++)
-	ptData.Fp(i,j) = F(i,j);
-  else
+  if (!this->formDefGradient(dNdX,ptData.Fp))
     return false;
 
   // Evaluate the deformation gradient, F, at current configuration
   const_cast<NonlinearElasticityULMX*>(this)->eV = &myMats->b[1];
-  if (this->formDefGradient(dNdX))
-    for (i = 1; i <= nsd; i++)
-      for (j = 1; j <= nsd; j++)
-	ptData.F(i,j) = F(i,j);
-  else
+  if (!this->formDefGradient(dNdX,ptData.F))
     return false;
 
   if (nsd == 2) // In 2D we always assume plane strain so set F(3,3)=1
     ptData.F(3,3) = ptData.Fp(3,3) = 1.0;
 
   // Invert the deformation gradient ==> Fi
-  double J = F.inverse();
+  Tensor Fi(nsd);
+  Fi = ptData.F;
+  double J = Fi.inverse();
   if (J == 0.0) return false;
 
   // Push-forward the basis function gradients to current configuration
-  ptData.dNdx.multiply(dNdX,F); // dNdx = dNdX * F^-1
+  ptData.dNdx.multiply(dNdX,Fi); // dNdx = dNdX * F^-1
 
   ptData.X.assign(X);
   ptData.detJW = detJW;
@@ -359,7 +352,6 @@ bool NonlinearElasticityULMX::finalizeElement (LocalIntegral*& elmInt)
   Vector Sigm(nPM), Hsig;
   std::vector<SymmTensor> Sig;
   Sig.reserve(nGP);
-  F.resize(3,3);
 
   bool lHaveStress = false;
   for (iP = 0; iP < nGP; iP++)
@@ -371,9 +363,8 @@ bool NonlinearElasticityULMX::finalizeElement (LocalIntegral*& elmInt)
 
     // Evaluate the constitutive relation
     double U = 0.0;
-    F.fill(pt.F.ptr());
     Sig.push_back(SymmTensor(3));
-    if (!this->constitutive(Cmat,Sig.back(),U,Sig.back(),pt.X))
+    if (!material->evaluate(Cmat,Sig.back(),U,pt.X,pt.F,Sig.back()))
       return false;
 
 #ifdef USE_FTNMAT
@@ -569,7 +560,6 @@ bool ElasticityNormULMX::finalizeElement (LocalIntegral*& elmInt)
 
   Matrix C;
   SymmTensor Sig(3);
-  elp.F.resize(3,3);
 
   for (iP = 0; iP < nGP; iP++)
   {
@@ -583,8 +573,7 @@ bool ElasticityNormULMX::finalizeElement (LocalIntegral*& elmInt)
 
     // Compute the strain energy density
     double U = 0.0;
-    elp.F.fill(pt.F.ptr());
-    if (!elp.constitutive(C,Sig,U,Sig,pt.X,false))
+    if (!elp.material->evaluate(C,Sig,U,pt.X,pt.F,Sig,false))
       return false;
 
     // Integrate strain energy

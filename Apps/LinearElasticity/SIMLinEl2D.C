@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "SIMLinEl2D.h"
+#include "LinIsotropic.h"
 #include "LinearElasticity.h"
 #include "AnalyticSolutions.h"
 #include "Functions.h"
@@ -23,11 +24,19 @@
 #include <string.h>
 
 
-SIMLinEl2D::SIMLinEl2D (int, bool planeStress)
+bool SIMLinEl2D::planeStrain = false;
+
+
+SIMLinEl2D::SIMLinEl2D (int)
 {
-  myProblem = new LinearElasticity(2,planeStress);
+  myProblem = new LinearElasticity(2);
 }
 
+SIMLinEl2D::~SIMLinEl2D ()
+{
+  for (size_t i = 0; i < mVec.size(); i++)
+    delete mVec[i];
+}
 
 bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
 {
@@ -45,33 +54,28 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
 		<< gx <<" "<< gy << std::endl;
   }
 
-  else if (!strncasecmp(keyWord,"ISOTROPHIC",10))
+  else if (!strncasecmp(keyWord,"ISOTROPIC",9))
   {
     int nmat = atoi(keyWord+10);
     if (myPid == 0)
-      std::cout <<"\nNumber of isotrophic materials: "<< nmat << std::endl;
+      std::cout <<"\nNumber of isotropic materials: "<< nmat << std::endl;
 
     for (int i = 0; i < nmat && (cline = utl::readLine(is)); i++)
     {
-      int   code = atoi(strtok(cline," "));
+      int code = atoi(strtok(cline," "));
+      if (code > 0)
+	this->setPropertyType(code,Property::MATERIAL,mVec.size());
+
       double E   = atof(strtok(NULL," "));
       double nu  = atof(strtok(NULL," "));
       double rho = atof(strtok(NULL," "));
+      mVec.push_back(new LinIsotropic(E,nu,rho,!planeStrain));
       if (myPid == 0)
 	std::cout <<"\tMaterial code "<< code <<": "
 		  << E <<" "<< nu <<" "<< rho << std::endl;
-      if (code == 0 || i == 0)
-	elp->setMaterial(E,nu,rho);
-      for (size_t j = 0; j < myProps.size() && code > 0; j++)
-	if (myProps[j].pindx == (size_t)code &&
-	    myProps[j].pcode == Property::UNDEFINED)
-	{
-	  myProps[j].pindx = mVec.size();
-	  myProps[j].pcode = Property::MATERIAL;
-	}
-      if (code > 0)
-	mVec.push_back(IsoMat(E,nu,rho));
     }
+    if (!mVec.empty())
+      elp->setMaterial(mVec.front());
   }
 
   else if (!strncasecmp(keyWord,"CONSTANT_PRESSURE",17))
@@ -229,7 +233,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
         {
 	  std::cout <<"\tMaterial for all patches: "
 		    << E <<" "<< nu <<" "<< rho << std::endl;
-	  elp->setMaterial(E,nu,rho);
+	  mVec.push_back(new LinIsotropic(E,nu,rho,!planeStrain));
 	}
 	else
         {
@@ -241,11 +245,12 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
 	  std::cout <<"\tMaterial for P"<< patch
 		    <<": "<< E <<" "<< nu <<" "<< rho << std::endl;
 	  myProps.push_back(Property(Property::MATERIAL,mVec.size(),pid,3));
-	  mVec.push_back(IsoMat(E,nu,rho));
-	  if (i == 0)
-	    elp->setMaterial(E,nu,rho);
+	  mVec.push_back(new LinIsotropic(E,nu,rho,!planeStrain));
 	}
     }
+
+    if (!mVec.empty())
+      elp->setMaterial(mVec.front());
   }
 
   else
@@ -262,7 +267,7 @@ bool SIMLinEl2D::initMaterial (size_t propInd)
 
   if (propInd >= mVec.size()) propInd = mVec.size()-1;
 
-  elp->setMaterial(mVec[propInd].E,mVec[propInd].nu,mVec[propInd].rho);
+  elp->setMaterial(mVec[propInd]);
   return true;
 }
 

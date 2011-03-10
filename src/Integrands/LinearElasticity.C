@@ -12,12 +12,12 @@
 //==============================================================================
 
 #include "LinearElasticity.h"
+#include "MaterialBase.h"
 #include "Tensor.h"
 #include "Vec3Oper.h"
 
 
-LinearElasticity::LinearElasticity (unsigned short int n, bool ps)
-  : Elasticity(n,ps)
+LinearElasticity::LinearElasticity (unsigned short int n) : Elasticity(n)
 {
   // Only the current solution is needed
   primsol.resize(1);
@@ -29,17 +29,19 @@ bool LinearElasticity::evalInt (LocalIntegral*& elmInt, double detJW,
 				const Vec3& X) const
 {
   bool lHaveStrains = false;
+  SymmTensor eps(nsd), sigma(nsd);
 
-  SymmTensor eps(nsd);
   if (eKm || eKg || iS)
   {
     // Compute the strain-displacement matrix B from dNdX
     // and evaluate the symmetric strain tensor if displacements are available
-    if (!this->kinematics(dNdX,eps)) return false;
+    if (!this->kinematics(dNdX,eps,sigma)) return false;
     if (!eps.isZero(1.0e-16)) lHaveStrains = true;
 
-    // Evaluate the constitutive matrix at this point
-    if (!this->formCmatrix(Cmat,X)) return false;
+    // Evaluate the constitutive matrix and the stress tensor at this point
+    double U;
+    if (!material->evaluate(Cmat,sigma,U,X,eps,eps))
+      return false;
   }
 
   if (eKm)
@@ -48,11 +50,6 @@ bool LinearElasticity::evalInt (LocalIntegral*& elmInt, double detJW,
     CB.multiply(Cmat,Bmat).multiply(detJW); // CB = C*B*|J|*w
     eKm->multiply(Bmat,CB,true,false,true); // EK += B^T * CB
   }
-
-  SymmTensor sigma(nsd);
-  if ((eKg || iS) && lHaveStrains)
-    // Evaluate the symmetric stress tensor
-    Cmat.multiply(eps,sigma); // sigma = C*eps
 
   if (eKg && lHaveStrains)
     // Integrate the geometric stiffness matrix

@@ -12,9 +12,9 @@
 //==============================================================================
 
 #include "NonlinearElasticityULMixed.h"
+#include "MaterialBase.h"
 #include "ElmMats.h"
 #include "Utilities.h"
-#include "Tensor.h"
 
 #ifdef USE_FTNMAT
 extern "C" {
@@ -189,13 +189,9 @@ const Vector& NonlinearElasticityULMixed::MixedElmMats::getRHSVector () const
 }
 
 
-NonlinearElasticityULMixed::NonlinearElasticityULMixed (unsigned short int n,
-							int mver)
-  : NonlinearElasticityUL(n,false,mver)
+NonlinearElasticityULMixed::NonlinearElasticityULMixed (unsigned short int n)
+  : NonlinearElasticityUL(n), Fbar(n), Dmat(7,7)
 {
-  Fbar.resize(3,3);
-  Dmat.resize(7,7);
-
   if (myMats) delete myMats;
   myMats = new MixedElmMats();
 
@@ -302,8 +298,9 @@ bool NonlinearElasticityULMixed::evalInt (LocalIntegral*& elmInt, double detJW,
 					  const Vec3& X) const
 {
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E
+  Tensor F(nsd);
   SymmTensor E(nsd);
-  if (!this->kinematics(dNdX1,E))
+  if (!this->kinematics(dNdX1,F,E))
     return false;
 
   bool lHaveStrains = !E.isZero();
@@ -354,10 +351,9 @@ bool NonlinearElasticityULMixed::evalInt (LocalIntegral*& elmInt, double detJW,
     this->formBodyForce(*eS,N1,X,J*detJW);
 
   // Evaluate the constitutive relation
-  F = Fbar;
   SymmTensor Eps(3), Sig(3), Sigma(nsd);
   double U, Bpres = 0.0, Mpres = 0.0;
-  if (!this->constitutive(Cmat,Sig,U,Eps=E,X,lHaveStrains))
+  if (!material->evaluate(Cmat,Sig,U,X,Fbar,Eps=E,lHaveStrains))
     return false;
 
 #ifdef USE_FTNMAT

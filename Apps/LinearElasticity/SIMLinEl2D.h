@@ -17,6 +17,8 @@
 #include "SIM2D.h"
 #include "SIMenums.h"
 
+class Material;
+
 
 /*!
   \brief Driver class for 2D isogeometric FEM analysis of elasticity problems.
@@ -27,27 +29,12 @@
 
 class SIMLinEl2D : public SIM2D
 {
-  //! \brief Struct for storage of physical material property parameters.
-  struct IsoMat
-  {
-    double E;   //!< Young's modulus
-    double nu;  //!< Poisson's ratio
-    double rho; //!< Mass density
-    //! \brief Default constructor.
-    IsoMat() { E = nu = rho = 0.0; }
-    //! \brief Constructor initializing a material instance.
-    IsoMat(double Emod, double Poiss, double D) : E(Emod), nu(Poiss), rho(D) {}
-  };
-
-  typedef std::vector<IsoMat> MaterialVec; //!< Vector of material data sets
-
 public:
   //! \brief Default constructor.
   //! \param[in] form Problem formulation option
-  //! \param[in] planeStress Plane stress/plane strain option
-  SIMLinEl2D(int form = SIM::LINEAR, bool planeStress = true);
-  //! \brief Empty destructor.
-  virtual ~SIMLinEl2D() {}
+  SIMLinEl2D(int form = SIM::LINEAR);
+  //! \brief The destructor frees the dynamically allocated material properties.
+  virtual ~SIMLinEl2D();
 
 protected:
   //! \brief Parses a data section from the input stream.
@@ -63,8 +50,11 @@ protected:
   //! \param[in] propInd Physical property index
   virtual bool initNeumann(size_t propInd);
 
-private:
-  MaterialVec mVec; //!< Material data
+public:
+  static bool planeStrain; //!<  Plane strain/stress option
+
+protected:
+  std::vector<Material*> mVec; //!< Material data
 };
 
 #endif

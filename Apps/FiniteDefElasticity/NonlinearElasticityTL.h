@@ -31,8 +31,7 @@ class NonlinearElasticityTL : public Elasticity
 public:
   //! \brief The default constructor invokes the parent class constructor only.
   //! \param[in] n Number of spatial dimensions
-  //! \param[in] ps If \e true, assume plane stress in 2D
-  NonlinearElasticityTL(unsigned short int n = 3, bool ps = true);
+  NonlinearElasticityTL(unsigned short int n = 3);
   //! \brief Empty destructor.
   virtual ~NonlinearElasticityTL() {}
 
@@ -70,17 +69,17 @@ public:
 protected:
   //! \brief Calculates some kinematic quantities at current point.
   //! \param[in] dNdX Basis function gradients at current point
+  //! \param[in] F Deformation gradient at current point
   //! \param[out] E Green-Lagrange strain tensor at current point
   //!
   //! \details The deformation gradient \b F and the nonlinear
   //! strain-displacement matrix \b B are established. The latter matrix
   //! is stored in the mutable class member \a Bmat of the parent class.
   //! The B-matrix is formed only when the variable \a formB is true.
-  virtual bool kinematics(const Matrix& dNdX, SymmTensor& E) const;
+  virtual bool kinematics(const Matrix& dNdX, Tensor& F, SymmTensor& E) const;
 
 protected:
-  bool       formB;  //!< Flag determining whether we need to form the B-matrix
-  mutable Matrix F;  //!< Deformation gradient
+  bool        formB; //!< Flag determining whether we need to form the B-matrix
   mutable Matrix CB; //!< Result of the matrix-matrix product C*B
 };
 

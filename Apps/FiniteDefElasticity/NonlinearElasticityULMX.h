@@ -42,9 +42,8 @@ class NonlinearElasticityULMX : public NonlinearElasticityUL
 public:
   //! \brief The default constructor invokes the parent class constructor.
   //! \param[in] n Number of spatial dimensions
-  //! \param[in] mver Material version parameter
   //! \param[in] pp Polynomial order of the pressure/volumetric-change field
-  NonlinearElasticityULMX(unsigned short int n = 3, int mver = 0, int pp = 1);
+  NonlinearElasticityULMX(unsigned short int n = 3, int pp = 1);
   //! \brief Empty destructor.
   virtual ~NonlinearElasticityULMX() {}
 

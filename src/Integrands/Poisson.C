@@ -255,7 +255,7 @@ const char* Poisson::getFieldLabel (size_t i, const char* prefix) const
 
   static std::string label;
   if (prefix)
-    label = prefix + std::string(" ");
+    label = std::string(prefix) + " ";
   else
     label.clear();
 

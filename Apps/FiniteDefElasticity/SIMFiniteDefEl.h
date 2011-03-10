@@ -1,4 +1,4 @@
-// $Id: SIMFiniteDefEl.h,v 1.2 2010-12-29 18:51:53 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file SIMFiniteDefEl.h
@@ -41,13 +41,16 @@ class SIMFiniteDefEl2D : public SIMLinEl2D
 {
 public:
   //! \brief Default constructor.
-  //! \param[in] form Problem formulation option
-  //! \param[in] planeStress Plane stress/plane strain option
   //! \param[in] options Additional solution formulation options
-  SIMFiniteDefEl2D(int form = SIM::TOTAL_LAGRANGE, bool planeStress = false,
-		   const std::vector<int>& options = std::vector<int>());
+  SIMFiniteDefEl2D(const std::vector<int>& options = std::vector<int>());
   //! \brief Empty destructor.
   virtual ~SIMFiniteDefEl2D() {}
+
+protected:
+  //! \brief Parses a data section from the input stream.
+  //! \param[in] keyWord Keyword of current data section to read
+  //! \param is The file stream to read from
+  virtual bool parse(char* keyWord, std::istream& is);
 };
 
 
@@ -60,12 +63,17 @@ class SIMFiniteDefEl3D : public SIMLinEl3D
 public:
   //! \brief Default constructor.
   //! \param[in] checkRHS If \e true, ensure the model is in a right-hand system
-  //! \param[in] form Problem formulation option
   //! \param[in] options Additional solution formulation options
-  SIMFiniteDefEl3D(bool checkRHS = false, int form = SIM::TOTAL_LAGRANGE,
+  SIMFiniteDefEl3D(bool checkRHS = false,
 		   const std::vector<int>& options = std::vector<int>());
   //! \brief Empty destructor.
   virtual ~SIMFiniteDefEl3D() {}
+
+protected:
+  //! \brief Parses a data section from the input stream.
+  //! \param[in] keyWord Keyword of current data section to read
+  //! \param is The file stream to read from
+  virtual bool parse(char* keyWord, std::istream& is);
 };
 
 #endif

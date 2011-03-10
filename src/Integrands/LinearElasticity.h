@@ -19,17 +19,14 @@
 
 /*!
   \brief Class representing the integrand of the linear elasticity problem.
-  \details This class supports constant isotrophic material properties only.
-  Properties with spatial variation has to be implemented as sub-classes.
 */
 
 class LinearElasticity : public Elasticity
 {
 public:
-  //! \brief The default constructor initializes all pointers to zero.
+  //! \brief Default constructor.
   //! \param[in] n Number of spatial dimensions
-  //! \param[in] ps If \e true, assume plane stress in 2D
-  LinearElasticity(unsigned short int n = 3, bool ps = true);
+  LinearElasticity(unsigned short int n = 3);
   //! \brief Empty destructor.
   virtual ~LinearElasticity() {}
 

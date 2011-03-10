@@ -1,4 +1,4 @@
-// $Id: NeoHookeElasticity.C,v 1.2 2011-02-08 09:06:02 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file NeoHookeElasticity.C
@@ -23,7 +23,7 @@ void NeoHookeElasticity::print (std::ostream& os) const
 
 void NeoHookeElasticity::setMaterial (double Emod, double Poiss, double Density)
 {
-  this->Elasticity::setMaterial(Emod,Poiss,Density);
+  //this->Elasticity::setMaterial(Emod,Poiss,Density);
 
   // Define the Lame elasticity parameters
   lambda = Emod*Poiss / ((1.0+Poiss)*(1.0-Poiss-Poiss));
@@ -43,7 +43,8 @@ bool NeoHookeElasticity::formStressTensor (const Matrix& dNdX, const Vec3&,
   }
 
   // Evaluate the kinematic quantities, F, E, Ci, and J at this point
-  if (!this->kinematics(dNdX,E))
+  Tensor _F(nsd);
+  if (!this->kinematics(dNdX,_F,E))
     return false;
 
   // Set up the 2nd Piola-Kirchhoff stress tensor, S
@@ -65,17 +66,17 @@ bool NeoHookeElasticity::formTangent (Matrix& Ctan, SymmTensor& S,
 }
 
 
-bool NeoHookeElasticity::kinematics (const Matrix& dNdX, SymmTensor& _E) const
+bool NeoHookeElasticity::kinematics (const Matrix& dNdX,
+				     Tensor& _F, SymmTensor& _E) const
 {
   // Form the deformation gradient, F
-  if (!this->NonlinearElasticity::kinematics(dNdX,_E))
+  if (!this->NonlinearElasticity::kinematics(dNdX,_F,_E))
     return false;
   else
-    J = F.det();
+    J = _F.det();
 
   // Form the right Cauchy-Green tensor, C = F^T*F
-  static Tensor dUdX(nsd);
-  C.rightCauchyGreen(dUdX=F);
+  C.rightCauchyGreen(_F);
 
   // Invert the right Cauchy-Green tensor, Ci = C^-1
   Ci = C;

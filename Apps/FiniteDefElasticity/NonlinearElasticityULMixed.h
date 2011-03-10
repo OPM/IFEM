@@ -1,4 +1,4 @@
-// $Id: NonlinearElasticityULMixed.h,v 1.2 2010-12-30 15:25:14 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file NonlinearElasticityULMixed.h
@@ -16,6 +16,7 @@
 
 #include "NonlinearElasticityUL.h"
 #include "ElmMats.h"
+#include "Tensor.h"
 
 
 /*!
@@ -44,8 +45,7 @@ class NonlinearElasticityULMixed : public NonlinearElasticityUL
 public:
   //! \brief The default constructor invokes the parent class constructor.
   //! \param[in] n Number of spatial dimensions
-  //! \param[in] mver Material version parameter
-  NonlinearElasticityULMixed(unsigned short int n = 3, int mver = 0);
+  NonlinearElasticityULMixed(unsigned short int n = 3);
   //! \brief Empty destructor.
   virtual ~NonlinearElasticityULMixed() {}
 
@@ -101,7 +101,7 @@ public:
   }
 
 protected:
-  mutable Matrix Fbar; //!< Mixed model deformation gradient
+  mutable Tensor Fbar; //!< Mixed model deformation gradient
   mutable Matrix Dmat; //!< Projected mixed constitutive matrix
 };
 

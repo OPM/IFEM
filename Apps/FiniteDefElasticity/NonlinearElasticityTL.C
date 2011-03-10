@@ -12,13 +12,14 @@
 //==============================================================================
 
 #include "NonlinearElasticity.h"
+#include "MaterialBase.h"
 #include "ElmMats.h"
 #include "Tensor.h"
 #include "Vec3Oper.h"
 
 
-NonlinearElasticityTL::NonlinearElasticityTL (unsigned short int n, bool ps)
-  : Elasticity(n,ps)
+NonlinearElasticityTL::NonlinearElasticityTL (unsigned short int n)
+  : Elasticity(n)
 {
   // Only the current solution is needed
   primsol.resize(1);
@@ -85,17 +86,20 @@ bool NonlinearElasticityTL::evalInt (LocalIntegral*& elmInt, double detJW,
 				     const Vec3& X) const
 {
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E,
-  // and compute the nonlinear strain-displacement matrix B from dNdX and F
+  // and compute the nonlinear strain-displacement matrix, B, from dNdX and F
+  Tensor F(nsd);
   SymmTensor E(nsd), S(nsd);
-  if (!this->kinematics(dNdX,E))
+  if (!this->kinematics(dNdX,F,E))
     return false;
 
   // Evaluate the constitutive relation
-  double U = 0.0;
   bool lHaveStrains = !E.isZero();
   if (eKm || eKg || iS)
-    if (!this->constitutive(Cmat,S,U,E,X, (eKg || iS) && lHaveStrains))
+  {
+    double U;
+    if (!material->evaluate(Cmat,S,U,X,F,E, (eKg || iS) && lHaveStrains))
       return false;
+  }
 
   if (eKm)
   {
@@ -156,8 +160,9 @@ bool NonlinearElasticityTL::evalBou (LocalIntegral*& elmInt, double detJW,
   if (tracFld->isNormalPressure())
   {
     // Compute the deformation gradient, F
+    Tensor F(nsd);
     SymmTensor dummy(0);
-    if (!this->kinematics(dNdX,dummy)) return false;
+    if (!this->kinematics(dNdX,F,dummy)) return false;
 
     // Compute its inverse and determinant, J
     double J = F.inverse();
@@ -182,13 +187,14 @@ bool NonlinearElasticityTL::evalBou (LocalIntegral*& elmInt, double detJW,
 }
 
 
-bool NonlinearElasticityTL::kinematics (const Matrix& dNdX, SymmTensor& E) const
+bool NonlinearElasticityTL::kinematics (const Matrix& dNdX,
+					Tensor& F, SymmTensor& E) const
 {
   if (!eV || eV->empty())
   {
     // Initial state, unit deformation gradient and linear B-matrix
-    F.diag(1.0,nsd);
-    return this->Elasticity::kinematics(dNdX,E);
+    F = 1.0;
+    return this->Elasticity::kinematics(dNdX,F,E);
   }
 
   const size_t nenod = dNdX.rows();
@@ -206,7 +212,10 @@ bool NonlinearElasticityTL::kinematics (const Matrix& dNdX, SymmTensor& E) const
   // Notice that the matrix multiplication method used here treats the
   // element displacement vector, *eV, as a matrix whose number of columns
   // equals the number of rows in the matrix dNdX.
-  if (!F.multiplyMat(*eV,dNdX)) // F = Grad{u} = eV*dNdX
+  Matrix dUdX;
+  if (dUdX.multiplyMat(*eV,dNdX)) // dUdX = Grad{u} = eV*dNd
+    F = dUdX;
+  else
     return false;
 
   unsigned short int i, j, k;
@@ -224,11 +233,10 @@ bool NonlinearElasticityTL::kinematics (const Matrix& dNdX, SymmTensor& E) const
     }
 
   // Add the unit tensor to F to form the deformation gradient
-  for (i = 1; i <= nsd; i++)
-    F(i,i) += 1.0;
+  F += 1.0;
 
 #ifdef INT_DEBUG
-  std::cout <<"NonlinearElasticityTL::F ="<< F;
+  std::cout <<"NonlinearElasticityTL::F =\n"<< F;
 #endif
 
   if (!formB || E.dim() < nsd) return true;

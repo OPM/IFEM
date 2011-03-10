@@ -19,6 +19,7 @@
 #include <map>
 
 class LocalSystem;
+class Material;
 class ElmMats;
 class ElmNorm;
 class VTF;
@@ -36,8 +37,7 @@ class Elasticity : public Integrand
 protected:
   //! \brief The default constructor initializes all pointers to zero.
   //! \param[in] n Number of spatial dimensions
-  //! \param[in] ps If \e true, assume plane stress in 2D
-  Elasticity(unsigned short int n = 3, bool ps = true);
+  Elasticity(unsigned short int n = 3);
 
 public:
   //! \brief The destructor frees the dynamically allocated data objects.
@@ -57,17 +57,13 @@ public:
 
   //! \brief Defines the gravitation vector.
   void setGravity(double gx, double gy = 0.0, double gz = 0.0)
-  { g[0] = gx; g[1] = gy; g[2] = gz; }
+  { grav[0] = gx; grav[1] = gy; grav[2] = gz; }
 
   //! \brief Defines the body force field.
   void setBodyForce(VecFunc* bf) { bodyFld = bf; }
 
-  //! \brief Defines material properties for current volume patch.
-  //! \param[in] Young   Young's modulus
-  //! \param[in] Poiss   Poisson's ratio
-  //! \param[in] Density Mass density
-  virtual void setMaterial(double Young, double Poiss, double Density)
-  { Emod = Young; nu = Poiss; rho = Density; }
+  //! \brief Defines the material properties.
+  virtual void setMaterial(Material* mat) { material = mat; }
 
   //! \brief Defines the local coordinate system for stress output.
   void setLocalSystem(LocalSystem* cs) { locSys = cs; }
@@ -138,27 +134,13 @@ public:
   virtual const char* getFieldLabel(size_t i, const char* prefix = 0) const;
 
 protected:
-  //! \brief Evaluates the mass density at current point.
-  virtual double getMassDensity(const Vec3&) const { return rho; }
-
   //! \brief Calculates some kinematic quantities at current point.
   //! \param[in] dNdX Basis function gradients at current point
   //! \param[out] eps Strain tensor at current point
   //!
   //! \details The strain displacement matrix \b B is established
   //! and stored in the mutable class member \a Bmat.
-  virtual bool kinematics(const Matrix& dNdX, SymmTensor& eps) const;
-
-  //! \brief Evaluates the constitutive relation at current point.
-  //! \param[out] C Constitutive matrix at current point
-  //! \param[out] sigma Stress tensor at current point
-  //! \param[out] U Strain energy density
-  //! \param[in] eps Strain tensor at current point
-  //! \param[in] X Cartesian coordinates of current point
-  //! \param[in] calcStress If \e false, claculate the C-matrix only
-  virtual bool constitutive(Matrix& C, SymmTensor& sigma, double& U,
-			    const SymmTensor& eps, const Vec3& X,
-			    char calcStress = true) const;
+  virtual bool kinematics(const Matrix& dNdX, Tensor&, SymmTensor& eps) const;
 
   //! \brief Calculates integration point geometric stiffness contributions.
   //! \param EM Element matrix to receive the stiffness contributions
@@ -194,19 +176,11 @@ protected:
   bool getIntegralResult(LocalIntegral*& elmInt) const;
 
 public:
-  //! \brief Sets up the tangential constitutive matrix at current point.
-  //! \param[out] C \f$6\times6\f$-matrix (in 3D) or \f$3\times3\f$-matrix
-  //! (in 2D), representing the constitutive tensor
+  //! \brief Sets up the inverse constitutive matrix at current point.
+  //! \param[out] Cinv \f$6\times6\f$-matrix (in 3D) or \f$3\times3\f$-matrix
+  //! (in 2D), representing the inverse constitutive tensor
   //! \param[in] X Cartesian coordinates of current point
-  //! \param[in] invers If \e true, set up the inverse matrix instead
-  virtual bool formCmatrix(Matrix& C, const Vec3& X, bool invers = false) const;
-
-private:
-  // Physical properties (constant)
-  double Emod; //!< Young's modulus
-  double nu;   //!< Poisson's ratio
-  double rho;  //!< Mass density
-  double g[3]; //!< Gravitation vector
+  bool formCinverse(Matrix& Cinv, const Vec3& X) const;
 
 protected:
   // Finite element quantities
@@ -219,6 +193,10 @@ protected:
 
   ElmMats* myMats; //!< Local element matrices, result of numerical integration
 
+  // Physical properties
+  Material* material; //!< Material data and constitutive relation
+  double    grav[3];  //!< Gravitation vector
+
   LocalSystem*  locSys;  //!< Local coordinate system for result output
   TractionFunc* tracFld; //!< Pointer to boundary traction field
   VecFunc*      bodyFld; //!< Pointer to body force field
@@ -226,7 +204,6 @@ protected:
   mutable std::map<Vec3,Vec3> tracVal; //!< Traction field point values
 
   unsigned short int nsd; //!< Number of space dimensions (1, 2 or, 3)
-  bool       planeStress; //!< Plane stress/strain option for 2D problems
 
   // Work arrays declared as members to avoid frequent re-allocation
   // within the numerical integration loop (for reduced overhead)

@@ -16,6 +16,8 @@
 
 #include "Elasticity.h"
 
+struct TimeDomain;
+
 
 /*!
   \brief Class representing the integrand of the nonlinear elasticity problem.
@@ -25,9 +27,6 @@
   strain tensor, and the method \a constitutive for calculating the tangent
   constitutive matrix and the associated stress tensor. The \a evalInt and
   \a evalBou methods are also reimplemented to account for the updated geometry.
-
-  This class supports isotrophic linear-elastic and neo-Hookean hyperelastic
-  material laws. The material properties are assumed constant in space.
 */
 
 class NonlinearElasticityUL : public Elasticity
@@ -35,25 +34,13 @@ class NonlinearElasticityUL : public Elasticity
 public:
   //! \brief The default constructor invokes the parent class constructor.
   //! \param[in] n Number of spatial dimensions
-  //! \param[in] ps If \e true, assume plane stress in 2D
-  //! \param[in] mver Material version parameter
   //! \param[in] lop Load option (0=on initial length, 1=on updated length)
-  NonlinearElasticityUL(unsigned short int n = 3,
-			bool ps = false, int mver = 0, char lop = 0);
+  NonlinearElasticityUL(unsigned short int n = 3, char lop = 0);
   //! \brief Empty destructor.
   virtual ~NonlinearElasticityUL() {}
 
   //! \brief Prints out problem definition to the given output stream.
   virtual void print(std::ostream& os) const;
-
-  //! \brief Defines the material properties to use.
-  //! \param[in] Young   Young's modulus
-  //! \param[in] Poiss   Poisson's ratio
-  //! \param[in] Density Mass density
-  //!
-  //! \details If \a Poiss > 0.5, it is assumed that \a Young and \a Poiss
-  //! are the Lame's parameters instead (bulk and shear moduli).
-  virtual void setMaterial(double Young, double Poiss, double Density);
 
   //! \brief Defines the solution mode before the element assembly is started.
   //! \param[in] mode The solution mode to use
@@ -93,40 +80,24 @@ public:
 
   //! \brief Calculates some kinematic quantities at current point.
   //! \param[in] dNdX Basis function gradients at current point
+  //! \param[out] F Deformation gradient at current point
   //! \param[out] E Green-Lagrange strain tensor at current point
-  //!
-  //! \details The deformation gradient is established and stored in
-  //! the mutable class member \a F.
-  virtual bool kinematics(const Matrix& dNdX, SymmTensor& E) const;
-
-  //! \brief Calculates the deformation gradient at current point.
-  //! \param[in] dNdX Basis function gradients at current point
-  bool formDefGradient(const Matrix& dNdX) const;
-
-  //! \brief Evaluates the constitutive relation at current point.
-  //! \param[out] C Constitutive matrix at current point
-  //! \param[out] sigma Stress tensor at current point
-  //! \param[out] U Strain energy density
-  //! \param[in] eps Strain tensor at current point
-  //! \param[in] X Cartesian coordinates of current point
-  //! \param[in] calcStress Stress calculation option.
-  //! 0: No stress calculation, only output the C-matrix,
-  //! 1: Calculate Cauchy stresses,
-  //! 2: Calculate Second Piola Kirchhoff stresses.
-  virtual bool constitutive(Matrix& C, SymmTensor& sigma, double& U,
-			    const SymmTensor& eps, const Vec3& X,
-			    char calcStress = 1) const;
+  virtual bool kinematics(const Matrix& dNdX, Tensor& F, SymmTensor& E) const;
 
 protected:
-  mutable Matrix F;    //!< Deformation gradient
+  //! \brief Calculates the deformation gradient at current point.
+  //! \param[in] dNdX Basis function gradients at current point
+  //! \param[out] F Deformation gradient at current point
+  bool formDefGradient(const Matrix& dNdX, Tensor& F) const;
+
+protected:
   mutable Matrix dNdx; //!< Basis function gradients in current configuration
   mutable Matrix CB;   //!< Result of the matrix-matrix product C*B
 
 private:
-  char   loadOp;  //!< Load option
-  int    mTYP;    //!< Material type
-  int    mVER;    //!< Material version
-  double pmat[2]; //!< Material properties
+  char loadOp; //!< Load option
+
+  friend class ElasticityNormUL;
 };
 
 

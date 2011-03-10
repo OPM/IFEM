@@ -1,4 +1,4 @@
-// $Id: main_NonLinEl.C,v 1.6 2011-02-08 09:32:18 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file main_NonLinEl.C
@@ -47,9 +47,10 @@
   \arg -check : Data check only, read model and output to VTF (no solution)
   \arg -checkRHS : Check that the patches are modelled in a right-hand system
   \arg -fixDup : Resolve co-located nodes by merging them into a single node
-  \arg -2D : Use two-parametric simulation driver
+  \arg -2D : Use two-parametric simulation driver (plane stress)
+  \arg -2Dpstrain : Use two-parametric simulation driver (plane strain)
   \arg -Tensor : Use tensorial total Lagrangian formulation (slow...)
-  \arg -UL \a mver : Use updated Lagrangian formulation with nonlinear material
+  \arg -UL : Use updated Lagrangian formulation with nonlinear material
   \arg -MX \a pord : Mixed formulation with internal discontinuous pressure
   \arg -mixed : Mixed formulation with continuous pressure and volumetric change
   \arg -lag : Use Lagrangian basis functions instead of splines/NURBS
@@ -72,7 +73,7 @@ int main (int argc, char** argv)
   bool skip2nd = false;
   bool checkRHS = false;
   bool fixDup = false;
-  char twoD = false;
+  bool twoD = false;
   char* infile = 0;
 
   LinAlgInit linalg(argc,argv);
@@ -140,14 +141,14 @@ int main (int argc, char** argv)
       checkRHS = true;
     else if (!strcmp(argv[i],"-fixDup"))
       fixDup = true;
+    else if (!strcmp(argv[i],"-2Dpstrain"))
+      twoD = SIMLinEl2D::planeStrain = true;
     else if (!strncmp(argv[i],"-2D",3))
-      twoD = strcmp(argv[i],"-2Dpstrain") ? 1 : 2;
+      twoD = true;
     else if (!strcmp(argv[i],"-UL"))
     {
       if (form < SIM::UPDATED_LAGRANGE)
 	form = SIM::UPDATED_LAGRANGE;
-      if (i < argc-1 && isdigit(argv[i+1][0]))
-        options[0] = atoi(argv[++i]);
     }
     else if (!strcmp(argv[i],"-MX"))
     {
@@ -178,8 +179,8 @@ int main (int argc, char** argv)
   {
     std::cout <<"usage: "<< argv[0]
 	      <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n      "
-	      <<" [-lag] [-spec] [-2D[pstrain]] [-UL [<mVER>]] [-MX [<p>]|-mixe"
-	      <<"d] [-nGauss <n>]\n       [-vtf <format>] [-nviz <nviz>]"
+	      <<" [-lag] [-spec] [-2D[pstrain]] [-UL] [-MX [<p>]|-mixed]"
+	      <<" [-nGauss <n>]\n       [-vtf <format>] [-nviz <nviz>]"
 	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]\n      "
 	      <<" [-saveInc <dtSave>] [-dumpInc <dtDump> [raw]]\n      "
 	      <<" [-ignore <p1> <p2> ...] [-fixDup] [-checkRHS] [-check]\n";
@@ -225,11 +226,12 @@ int main (int argc, char** argv)
   utl::profiler->start("Model input");
 
   // Create the finite deformation elasticity model
+  options[0] = form%100;
   SIMbase* model;
   if (twoD)
-    model = new SIMFiniteDefEl2D(form%100,twoD==1,options);
+    model = new SIMFiniteDefEl2D(options);
   else
-    model = new SIMFiniteDefEl3D(checkRHS,form%100,options);
+    model = new SIMFiniteDefEl3D(checkRHS,options);
 
   // Read in solver and model definitions
   NonLinSIM simulator(model);
@@ -255,6 +257,7 @@ int main (int argc, char** argv)
     std::cout <<"\nWriting updated g2-file "<< infile << std::endl;
     std::ofstream osg(infile);
     model->dumpGeometry(osg);
+
     // Open ASCII file for solution dump
     strcat(strtok(infile,"."),".sol");
     oss = new std::ofstream(infile);
@@ -290,22 +293,25 @@ int main (int argc, char** argv)
     if (!simulator.solveStep(params,SIM::STATIC))
       return 5;
 
-    // Dump primary solution for inspection or external processing
     if (params.time.t + epsT*params.time.dt > nextDump)
     {
+      // Dump primary solution for inspection or external processing
       if (dumpWithID)
 	simulator.dumpStep(params.step,params.time.t,std::cout);
       else
 	simulator.dumpStep(params.step,params.time.t,*oss,false);
+
       nextDump = params.time.t + dtDump;
     }
 
-    // Save solution variables to VTF for visualization
     if (params.time.t + epsT*params.time.dt > nextSave)
-      if (simulator.saveStep(++iStep,params.time.t,n,skip2nd))
-	nextSave = params.time.t + dtSave;
-      else
+    {
+      // Save solution variables to VTF for visualization
+      if (!simulator.saveStep(++iStep,params.time.t,n,skip2nd))
 	return 6;
+
+      nextSave = params.time.t + dtSave;
+    }
   }
 
   if (oss) delete oss;

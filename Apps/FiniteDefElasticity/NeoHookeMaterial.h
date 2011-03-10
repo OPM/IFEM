@@ -1,0 +1,56 @@
+// $Id$
+//==============================================================================
+//!
+//! \file NeoHookeMaterial.h
+//!
+//! \date Mar 08 2011
+//!
+//! \author Knut Morten Okstad / SINTEF
+//!
+//! \brief Neo-Hookean hyperelastic material model.
+//!
+//==============================================================================
+
+#ifndef _NEO_HOOKE_MATERIAL_H
+#define _NEO_HOOKE_MATERIAL_H
+
+#include "LinIsotropic.h"
+
+
+/*!
+  \brief Class representing a Neo-Hookean hyperelastic material model.
+*/
+
+class NeoHookeMaterial : public LinIsotropic
+{
+public:
+  //! \brief Default constructor.
+  NeoHookeMaterial();
+  //! \brief Constructor initializing the material parameters.
+  NeoHookeMaterial(double E, double v = 0.0, double density = 0.0, int ver = 0);
+  //! \brief Empty destructor.
+  virtual ~NeoHookeMaterial() {}
+
+  //! \brief Prints out material parameters to the given output stream.
+  virtual void print(std::ostream&) const;
+
+  //! \brief Evaluates the constitutive relation at an integration point.
+  //! \param[out] C Constitutive matrix at current point
+  //! \param[out] sigma Stress tensor at current point
+  //! \param[out] U Strain energy density
+  //! \param[in] F Deformation gradient at current point
+  //! \param[in] iop Calculation option;
+  //!  0 : Calculate the consitutive matrix only,
+  //!  1 : Cauchy stresses and the tangent constitutive matrix,
+  //!  2 : 2nd Piola-Kirchhoff stresses and the tangent constitutive matrix.
+  virtual bool evaluate(Matrix& C, SymmTensor& sigma, double& U,
+			const Vec3&, const Tensor& F, const SymmTensor&,
+			char iop = 1, const TimeDomain* = 0) const;
+
+private:
+  int    mTYP;    //!< Material type
+  int    mVER;    //!< Material version
+  double pmat[2]; //!< Material properties
+};
+
+#endif

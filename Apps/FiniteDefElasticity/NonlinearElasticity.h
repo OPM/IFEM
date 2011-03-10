@@ -1,4 +1,4 @@
-// $Id: NonlinearElasticity.h,v 1.2 2011-02-08 09:06:02 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file NonlinearElasticity.h
@@ -36,8 +36,7 @@ class NonlinearElasticity : public NonlinearElasticityTL
 public:
   //! \brief The default constructor invokes the parent class constructor only.
   //! \param[in] n Number of spatial dimensions
-  //! \param[in] ps If \e true, assume plane stress in 2D
-  NonlinearElasticity(unsigned short int n = 3, bool ps = true);
+  NonlinearElasticity(unsigned short int n = 3);
   //! \brief Empty destructor.
   virtual ~NonlinearElasticity() {}
 
@@ -76,10 +75,12 @@ public:
 
 protected:
   //! \brief Forms tangential tensorial quantities needed by the evalInt method.
-  //! \param[in] X Cartesian coordinates of current integration point
   //! \param[out] Ctan Tangential constitutive tensor at current point
   //! \param[out] S 2nd Piola-Kirchhoff stress tensor at current point
-  virtual bool formTangent(Matrix& Ctan, SymmTensor& S, const Vec3& X) const;
+  //! \param[in] X Cartesian coordinates of current integration point
+  //! \param[in] F Deformation gradient at current integration point
+  virtual bool formTangent(Matrix& Ctan, SymmTensor& S,
+			   const Vec3& X, const Tensor& F) const;
 
   //! \brief Forms the 2nd Piola-Kirchhoff stress tensor.
   //! \param[in] dNdX Basis function gradients at current integration point

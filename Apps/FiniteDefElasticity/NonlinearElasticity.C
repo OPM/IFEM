@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "NonlinearElasticity.h"
+#include "MaterialBase.h"
 #include "Utilities.h"
 #include "Profiler.h"
 
@@ -51,8 +52,8 @@ extern "C" {
 #endif
 
 
-NonlinearElasticity::NonlinearElasticity (unsigned short int n, bool ps)
-  : NonlinearElasticityTL(n,ps), E(n)
+NonlinearElasticity::NonlinearElasticity (unsigned short int n)
+  : NonlinearElasticityTL(n), E(n)
 {
   fullCmat = false;
 }
@@ -80,14 +81,15 @@ bool NonlinearElasticity::evalInt (LocalIntegral*& elmInt, double detJW,
   PROFILE3("NonlinearEl::evalInt");
 
   // Evaluate the kinematic quantities, F and E, at this point
-  if (!this->kinematics(dNdX,E))
+  Tensor F(nsd);
+  if (!this->kinematics(dNdX,F,E))
     return false;
 
   // Evaluate current tangent at this point, that is
   // the incremental constitutive matrix, Cmat, and
   // the 2nd Piola-Kirchhoff stress tensor, S
-  static SymmTensor S(nsd);
-  if (!this->formTangent(Cmat,S,X))
+  SymmTensor S(nsd);
+  if (!this->formTangent(Cmat,S,X,F))
     return false;
 
   bool haveStrains = !E.isZero(1.0e-16);
@@ -189,7 +191,7 @@ bool NonlinearElasticity::evalSol (Vector& s, const Vector&,
     }
 
   // Evaluate the stress state at this point
-  static SymmTensor Sigma(nsd);
+  SymmTensor Sigma(nsd);
   if (!this->formStressTensor(dNdX,X,Sigma))
     return false;
 
@@ -207,7 +209,7 @@ bool NonlinearElasticity::evalSol (Vector& s,
 {
   PROFILE3("NonlinearEl::evalSol");
 
-  static SymmTensor Sigma(nsd);
+  SymmTensor Sigma(nsd);
   if (!this->formStressTensor(dNdX,X,Sigma))
     return false;
 
@@ -227,24 +229,19 @@ bool NonlinearElasticity::formStressTensor (const Matrix& dNdX, const Vec3& X,
   }
 
   // Evaluate the kinematic quantities, F and E, at this point
-  if (!this->kinematics(dNdX,E))
+  Tensor F(nsd);
+  if (!this->kinematics(dNdX,F,E))
     return false;
 
-  // Evaluate the constitutive matrix, C, at this point
-  if (!this->formCmatrix(Cmat,X))
-    return false;
-
-  return Cmat.multiply(E,S); // S = C*E
+  // Evaluate the stress tensor, S, at this point
+  double U;
+  return material->evaluate(Cmat,S,U,X,F,E);
 }
 
 
 bool NonlinearElasticity::formTangent (Matrix& Ctan, SymmTensor& S,
-				       const Vec3& X) const
+				       const Vec3& X, const Tensor& F) const
 {
-  if (!this->formCmatrix(Ctan,X))
-    return false;
-  else if (eV && !eV->empty())
-    return Ctan.multiply(E,S); // S = C*E
-  else
-    return true; // Initial state (no stresses)
+  double U;
+  return material->evaluate(Ctan,S,U,X,F,E,!E.isZero());
 }

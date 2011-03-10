@@ -74,7 +74,7 @@ int main (int argc, char** argv)
   bool vizRHS = false;
   bool fixDup = false;
   bool dumpASCII = false;
-  char twoD = false;
+  bool twoD = false;
   char* infile = 0;
 
   LinAlgInit linalg(argc,argv);
@@ -137,8 +137,10 @@ int main (int argc, char** argv)
       vizRHS = true;
     else if (!strcmp(argv[i],"-fixDup"))
       fixDup = true;
+    else if (!strcmp(argv[i],"-2Dpstrain"))
+      twoD = SIMLinEl2D::planeStrain = true;
     else if (!strncmp(argv[i],"-2D",3))
-      twoD = strcmp(argv[i],"-2Dpstrain") ? 1 : 2;
+      twoD = true;
     else if (!strncmp(argv[i],"-lag",4))
       SIMbase::discretization = SIMbase::Lagrange;
     else if (!strncmp(argv[i],"-spec",5))
@@ -212,7 +214,7 @@ int main (int argc, char** argv)
   // Read in model definitions and establish the FE data structures
   SIMbase* model;
   if (twoD)
-    model = new SIMLinEl2D(SIM::LINEAR,twoD==1);
+    model = new SIMLinEl2D();
   else
     model = new SIMLinEl3D(checkRHS);
 

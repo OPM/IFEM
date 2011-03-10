@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "Elasticity.h"
+#include "MaterialBase.h"
 #include "Utilities.h"
 #include "ElmMats.h"
 #include "ElmNorm.h"
@@ -21,18 +22,14 @@
 #include "VTF.h"
 
 
-Elasticity::Elasticity (unsigned short int n, bool ps) : nsd(n), planeStress(ps)
+Elasticity::Elasticity (unsigned short int n) : nsd(n)
 {
-  // Default material properties - typical values for steel (SI units)
-  Emod = 2.05e11;
-  nu = 0.29;
-  rho = 7.85e3;
-
   // Default is zero gravity
-  g[0] = g[1] = g[2] = 0.0;
+  grav[0] = grav[1] = grav[2] = 0.0;
 
   myMats = new ElmMats();
 
+  material = 0;
   locSys = 0;
   tracFld = 0;
   bodyFld = 0;
@@ -50,14 +47,11 @@ Elasticity::~Elasticity ()
 
 void Elasticity::print (std::ostream& os) const
 {
-  std::cout <<"Elasticity: "<< nsd <<"D";
-  if (nsd == 2)
-    std::cout <<" plane "<< (planeStress ? "stress" : "strain");
-  std::cout <<", E = "<< Emod <<", nu = "<< nu <<", rho = "<< rho
-	    <<", gravity =";
+  std::cout <<"Elasticity: "<< nsd <<"D, gravity =";
   for (unsigned short int d = 0; d < nsd; d++)
-    std::cout <<" "<< g[d];
+    std::cout <<" "<< grav[d];
   std::cout << std::endl;
+  if (material) material->print(os);
 }
 
 
@@ -162,6 +156,10 @@ bool Elasticity::initElement (const std::vector<int>& MNPC)
       std::cerr <<" *** Elasticity::initElement: Detected "
 		<< ierr <<" node numbers out of range."<< std::endl;
 
+  int j = 1+myMats->b.size()-primsol.size();
+  for (size_t i = 1; i < primsol.size() && ierr == 0; i++, j++)
+    ierr = utl::gather(MNPC,nsd,primsol[j],myMats->b[j]);
+
   if (myMats)
     myMats->withLHS = true;
 
@@ -199,8 +197,8 @@ Vec3 Elasticity::getTraction (const Vec3& X, const Vec3& n) const
 
 Vec3 Elasticity::getBodyforce (const Vec3& X) const
 {
-  Vec3 f(g[0],g[1],g[2]);
-  f *= this->getMassDensity(X);
+  Vec3 f(grav[0],grav[1],grav[2]);
+  f *= material->getMassDensity(X);
 
   if (bodyFld)
     f += (*bodyFld)(X);
@@ -214,10 +212,10 @@ bool Elasticity::haveLoads () const
   if (tracFld) return true;
   if (bodyFld) return true;
 
-  if (rho != 0.0)
-    for (unsigned short int i = 0; i < nsd; i++)
-      if (g[i] != 0.0)
-	return true;
+  for (unsigned short int i = 0; i < nsd; i++)
+    if (grav[i] != 0.0)
+      if (material)
+	return material->getMassDensity(Vec3()) != 0.0;
 
   return false;
 }
@@ -259,7 +257,7 @@ bool Elasticity::writeGlvT (VTF* vtf, int iStep, int& nBlock) const
   [\a N ] is the element basis functions arranged in a [nsd][nsd*NENOD] matrix.
 */
 
-bool Elasticity::kinematics (const Matrix& dNdX, SymmTensor& eps) const
+bool Elasticity::kinematics (const Matrix& dNdX, Tensor&, SymmTensor& eps) const
 {
   const size_t nenod = dNdX.rows();
   const size_t nstrc = nsd*(nsd+1)/2;
@@ -348,115 +346,7 @@ bool Elasticity::kinematics (const Matrix& dNdX, SymmTensor& eps) const
 bool Elasticity::formBmatrix (const Matrix& dNdX) const
 {
   static SymmTensor dummy(0);
-  return this->Elasticity::kinematics(dNdX,dummy);
-}
-
-
-/*!
-  The consitutive matrix for Isotrophic linear elastic problems
-  is defined as follows:
-
-  For 2D plain stress: \f[
-  [C] = \frac{E}{(1-\nu^2)} \left[\begin{array}{ccc}
-  1 & \ \ \nu & 0 \\
-  \nu & \ \ 1 & 0 \\
-  0 & \ \ 0 & \frac{1}{2}(1-\nu)
-  \end{array}\right] \f]
-
-  For 2D plain strain: \f[
-  [C] = \frac{E}{(1+\nu)(1-2\nu)} \left[\begin{array}{ccc}
-  1-\nu & \nu & 0 \\
-  \nu & 1-\nu & 0 \\
-  0 & 0 & \frac{1}{2}-\nu
-  \end{array}\right] \f]
-
-  For 3D: \f[
-  [C] = \frac{E}{(1+\nu)(1-2\nu)} \left[\begin{array}{cccccc}
-  1-\nu & \nu & \nu & 0 & 0 & 0 \\
-  \nu & 1-\nu & \nu & 0 & 0 & 0 \\
-  \nu & \nu & 1-\nu & 0 & 0 & 0 \\
-  0 & 0 & 0 & \frac{1}{2}-\nu & 0 & 0 \\
-  0 & 0 & 0 & 0 & \frac{1}{2}-\nu & 0 \\
-  0 & 0 & 0 & 0 & 0 & \frac{1}{2}-\nu
-  \end{array}\right] \f]
-*/
-
-bool Elasticity::formCmatrix (Matrix& C, const Vec3&, bool invers) const
-{
-  const double one = 1.0;
-  const size_t nst = nsd*(nsd+1)/2;
-  C.resize(nst,nst,true);
-  if (nsd == 1)
-  {
-    // Special for 1D problems
-    C(1,1) = invers ? one/Emod : Emod;
-    return true;
-  }
-  else if (nu < 0.0 || nu >= 0.5)
-  {
-    std::cerr <<" *** Elasticity::formCmatrix: Poisson's ratio "<< nu
-              <<" out of range [0,0.5>."<< std::endl;
-    return false;
-  }
-
-  if (invers)
-    if (nsd == 3 || (nsd == 2 && planeStress))
-    {
-      C(1,1) = one / Emod;
-      C(2,1) = -nu / Emod;
-    }
-    else // 2D plain strain
-    {
-      C(1,1) = (one - nu*nu) / Emod;
-      C(2,1) = (-nu - nu*nu) / Emod;
-    }
-
-  else
-    if (nsd == 2 && planeStress)
-    {
-      C(1,1) = Emod / (one - nu*nu);
-      C(2,1) = C(1,1) * nu;
-    }
-    else // 2D plain strain or 3D
-    {
-      double fact = Emod / ((one + nu) * (one - nu - nu));
-      C(1,1) = fact * (one - nu);
-      C(2,1) = fact * nu;
-    }
-
-  C(1,2) = C(2,1);
-  C(2,2) = C(1,1);
-
-  const double G = Emod / (2.0 + nu + nu);
-  C(nsd+1,nsd+1) = invers ? one / G : G;
-
-  if (nsd > 2)
-  {
-    C(3,1) = C(2,1);
-    C(3,2) = C(2,1);
-    C(1,3) = C(2,1);
-    C(2,3) = C(2,1);
-    C(3,3) = C(1,1);
-    C(5,5) = C(4,4);
-    C(6,6) = C(4,4);
-  }
-
-  return true;
-}
-
-
-bool Elasticity::constitutive (Matrix& C, SymmTensor& sigma, double&,
-			       const SymmTensor& eps, const Vec3& X,
-			       char calcStress) const
-{
-  // Set up the constitutive matrix, C, at this point
-  if (!this->formCmatrix(C,X))
-    return false;
-  else if (!calcStress)
-    return true;
-
-  // Calculate the stress vector, sigma = C*eps
-  return C.multiply(eps,sigma);
+  return this->Elasticity::kinematics(dNdX,dummy,dummy);
 }
 
 
@@ -493,7 +383,7 @@ void Elasticity::formKG (Matrix& EM, const Matrix& dNdX,
 void Elasticity::formMassMatrix (Matrix& EM, const Vector& N,
 				 const Vec3& X, double detJW) const
 {
-  double rhow = this->getMassDensity(X)*detJW;
+  double rhow = material->getMassDensity(X)*detJW;
   if (rhow == 0.0) return;
 
   for (size_t a = 1; a <= N.size(); a++)
@@ -527,6 +417,13 @@ Vec3 Elasticity::evalSol (const Vector& N) const
 }
 
 
+bool Elasticity::formCinverse (Matrix& Cinv, const Vec3& X) const
+{
+  SymmTensor dummy(nsd); double U;
+  return material->evaluate(Cinv,dummy,U,X,dummy,dummy,-1);
+}
+
+
 bool Elasticity::evalSol (Vector& s, const Vector&,
 			  const Matrix& dNdX, const Vec3& X,
 			  const std::vector<int>& MNPC) const
@@ -540,14 +437,15 @@ bool Elasticity::evalSol (Vector& s, const Vector&,
       return false;
     }
 
-  // Evaluate the strain tensor, eps
+  // Evaluate the deformation gradient, dUdX, and/or the strain tensor, eps
+  Tensor dUdX(nsd);
   SymmTensor eps(nsd);
-  if (!this->kinematics(dNdX,eps))
+  if (!this->kinematics(dNdX,dUdX,eps))
     return false;
 
   // Calculate the stress tensor through the constitutive relation
-  SymmTensor sigma(nsd); double U = 0.0;
-  if (!this->constitutive(Cmat,sigma,U,eps,X))
+  SymmTensor sigma(nsd); double U;
+  if (!material->evaluate(Cmat,sigma,U,X,dUdX,eps))
     return false;
 
   // Congruence transformation to local coordinate system at current point
@@ -575,14 +473,15 @@ bool Elasticity::evalSol (Vector& s, const Matrix& dNdX, const Vec3& X) const
     return false;
   }
 
-  // Evaluate the strain tensor, eps
+  // Evaluate the deformation gradient, dUdX, and/or the strain tensor, eps
+  Tensor dUdX(nsd);
   SymmTensor eps(nsd);
-  if (!this->kinematics(dNdX,eps))
+  if (!this->kinematics(dNdX,dUdX,eps))
     return false;
 
   // Calculate the stress tensor through the constitutive relation
-  SymmTensor sigma(nsd); double U = 0.0;
-  if (!this->constitutive(Cmat,sigma,U,eps,X))
+  SymmTensor sigma(nsd); double U;
+  if (!material->evaluate(Cmat,sigma,U,X,dUdX,eps))
     return false;
 
   s = sigma;
@@ -613,7 +512,7 @@ const char* Elasticity::getFieldLabel (size_t i, const char* prefix) const
 
   static std::string label;
   if (prefix)
-    label = prefix + std::string(" ");
+    label = std::string(prefix) + " ";
   else
     label.clear();
 
@@ -678,7 +577,7 @@ bool ElasticityNorm::evalInt (LocalIntegral*& elmInt, double detJW,
 
   // Evaluate the inverse constitutive matrix at this point
   Matrix Cinv;
-  if (!problem.formCmatrix(Cinv,X,true)) return false;
+  if (!problem.formCinverse(Cinv,X)) return false;
 
   // Evaluate the finite element stress field
   Vector sigmah, sigma;

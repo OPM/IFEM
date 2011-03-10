@@ -17,6 +17,8 @@
 #include "SIM3D.h"
 #include "SIMenums.h"
 
+class Material;
+
 
 /*!
   \brief Driver class for 3D isogeometric FEM analysis of elasticity problems.
@@ -27,27 +29,13 @@
 
 class SIMLinEl3D : public SIM3D
 {
-  //! \brief Struct for storage of physical material property parameters.
-  struct IsoMat
-  {
-    double E;   //!< Young's modulus
-    double nu;  //!< Poisson's ratio
-    double rho; //!< Mass density
-    //! \brief Default constructor.
-    IsoMat() { E = nu = rho = 0.0; }
-    //! \brief Constructor initializing a material instance.
-    IsoMat(double Emod, double Poiss, double D) : E(Emod), nu(Poiss), rho(D) {}
-  };
-
-  typedef std::vector<IsoMat> MaterialVec; //!< Vector of material data sets
-
 public:
   //! \brief Default constructor.
   //! \param[in] checkRHS If \e true, ensure the model is in a right-hand system
   //! \param[in] form Problem formulation option
   SIMLinEl3D(bool checkRHS = false, int form = SIM::LINEAR);
-  //! \brief Empty destructor.
-  virtual ~SIMLinEl3D() {}
+  //! \brief The destructor frees the dynamically allocated material properties.
+  virtual ~SIMLinEl3D();
 
 protected:
   //! \brief Parses a data section from the input stream.
@@ -63,8 +51,8 @@ protected:
   //! \param[in] propInd Physical property index
   virtual bool initNeumann(size_t propInd);
 
-private:
-  MaterialVec mVec; //!< Material data
+protected:
+  std::vector<Material*> mVec; //!< Material data
 };
 
 #endif

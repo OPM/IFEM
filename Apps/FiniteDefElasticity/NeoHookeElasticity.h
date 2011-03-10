@@ -1,4 +1,4 @@
-// $Id: NeoHookeElasticity.h,v 1.1 2010-12-18 20:03:53 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file NeoHookeElasticity.h
@@ -45,13 +45,14 @@ public:
 protected:
   //! \brief Calculates some kinematic quantities at current point.
   //! \param[in] dNdX Basis function gradients at current point
+  //! \param[out] _F Deformation gradient at current point
   //! \param[out] _E Green-Lagrange strain tensor at current point
   //!
   //! \details The deformation gradient \b F and the Green-Lagrange tensor \b E
   //! are established. In addition, the right Cauchy-Green tensor \b C and its
   //! inverse \b Ci are formed.
   //! All quantities are stored internally in mutable data members.
-  virtual bool kinematics(const Matrix& dNdX, SymmTensor& _E) const;
+  virtual bool kinematics(const Matrix& dNdX, Tensor& _F, SymmTensor& _E) const;
 
   //! \brief Forms tangential tensorial quantities needed by the evalInt method.
   //! \param[in] X Cartesian coordinates of current integration point
