@@ -13,7 +13,6 @@
 
 #include "SIMbase.h"
 #include "ASMbase.h"
-#include "PETScMatrix.h"
 #ifdef PARALLEL_PETSC
 #include "SAMpatchPara.h"
 #include "petscksp.h"
@@ -94,10 +93,8 @@ SIMbase::~SIMbase ()
 bool SIMbase::parse (char* keyWord, std::istream& is)
 {
   if (!strncasecmp(keyWord,"LINEARSOLVER",12))
-  {
-    if (!mySolParams) mySolParams = new LinSolParams();
-    mySolParams->read(is,atoi(keyWord+12));
-  }
+    this->readLinSolParams(is,atoi(keyWord+12));
+
   else if (!strncasecmp(keyWord,"PARTITIONING",12))
   {
     int nproc = atoi(keyWord+12);
@@ -129,6 +126,7 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
       return false;
     }
   }
+
   else if (isalpha(keyWord[0]))
     std::cerr <<" *** SIMbase::parse: Unknown keyword: "<< keyWord << std::endl;
 
@@ -410,6 +408,9 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 {
   PROFILE1("Element assembly");
 
+  if (!myProblem) return false;
+
+  myProblem->initIntegration(time);
   myEqSys->init(newLHSmatrix);
   bool ok = true;
 
@@ -1257,26 +1258,26 @@ void SIMbase::readLinSolParams (std::istream& is, int npar)
 
 bool SIMbase::finalizeAssembly (bool newLHSmatrix)
 {
+  // Communication of matrix and vector assembly (for PETSC only)
   SystemMatrix* A = myEqSys->getMatrix();
-  SystemVector* b = myEqSys->getVector();
-  if (A && b && A->getType() == SystemMatrix::PETSC)
+  if (A && newLHSmatrix)
   {
-    // Communication of matrix and vector assembly (for PETSC only)
-#ifdef HAS_PETSC
-    if (newLHSmatrix)
-    {
-      if (!static_cast<PETScMatrix*>(A)->beginAssembly()) return false;
-      if (!static_cast<PETScMatrix*>(A)->endAssembly())   return false;
-    }
-    if (!static_cast<PETScVector*>(b)->beginAssembly()) return false;
-    if (!static_cast<PETScVector*>(b)->endAssembly())   return false;
+    if (!A->beginAssembly()) return false;
+    if (!A->endAssembly())   return false;
+#if SP_DEBUG > 3
+    std::cout <<"\nSystem coefficient matrix:"<< *A;
 #endif
   }
 
+  SystemVector* b = myEqSys->getVector();
+  if (b)
+  {
+    if (!b->beginAssembly()) return false;
+    if (!b->endAssembly())   return false;
 #if SP_DEBUG > 3
-  if (A && newLHSmatrix) std::cout <<"\nSystem coefficient matrix:"<< *A;
-  if (b) std::cout <<"\nSystem right-hand-side vector:"<< *b;
+    std::cout <<"\nSystem right-hand-side vector:"<< *b;
 #endif
+  }
 
   return true;
 }

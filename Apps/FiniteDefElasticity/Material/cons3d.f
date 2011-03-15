@@ -56,14 +56,8 @@ C     Bmod     - Material property (Bulk modulus)
 C     Emod     - Material property (Youngs modulus)
 C     Pratio   - Material property (Poissons ratio)
 C     Smod     - Material property (Shear modulus)
-C     GLe(6)   - Green-Lagrangse strains
-C     PK2(6)   - 2nd Piola-Kirchhoff stresses (material stresses)
-C     Cmt(6,6) - Material constitutive tensor
 C     incomp   - logical variable
 C                = .true. if incompressible material ): Pratio = 0.5
-C     istrt    - Start state:
-C                = 0 : Elastic
-C                = 1 : Last solution
 C
 C PRINT SWITCH:
 C     ipsw = 0  Gives no print
@@ -93,7 +87,7 @@ C
       real*8    detF, Engy, F(3,*), pMAT(*), Sig(*), Cst(*), HV(*)
 C
       real*8    Bmod, Emod, Pratio, Smod
-      logical   incomp, state
+      logical   incomp
 C
       include 'include/feninc/const.h'
 C
@@ -193,7 +187,7 @@ C
 C         Finite stretch plasticity model
 C
          call plas3d(ipsw, iwr, iter, lfirst, ntm, pMAT, detF, F(1,1),
-     &               F(1,4), HV(1), HV(7), HV(8), Sig, Cst, state, ierr)
+     &               F(1,4), HV(1), HV(7), HV(8), Sig, Cst, ierr)
          if (ierr .lt. 0)                         go to 7000
 C
          Engy = zero

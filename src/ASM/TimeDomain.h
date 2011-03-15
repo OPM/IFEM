@@ -1,4 +1,4 @@
-// $Id: TimeDomain.h,v 1.1 2010-06-01 09:40:25 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file TimeDomain.h
@@ -21,12 +21,13 @@
 
 struct TimeDomain
 {
-  double t;  //!< Current time (or pseudo time)
-  double dt; //!< Current time increment (or load parameter increment)
-  int    it; //!< Current iteration within current time/load step
+  double   t; //!< Current time (or pseudo time, load parameter)
+  double  dt; //!< Current time (or load parameter) increment
+  int     it; //!< Current iteration within current time/load step
+  bool first; //!< If \e true, this is the first load/time step
 
   //! \brief Default constructor.
-  TimeDomain() { t = dt = 0.0; it = 0; }
+  TimeDomain() { t = dt = 0.0; it = 0; first = true; }
 };
 
 #endif

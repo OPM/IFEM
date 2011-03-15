@@ -1,4 +1,4 @@
-// $Id: NonLinSIM.C,v 1.28 2011-02-05 18:27:02 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file NonLinSIM.C
@@ -18,11 +18,8 @@
 #include <sstream>
 
 
-NonLinSIM::NonLinSIM (SIMbase* sim)
+NonLinSIM::NonLinSIM (SIMbase* sim) : model(sim), nBlock(0)
 {
-  model  = sim;
-  nBlock = 0;
-
 #if SP_DEBUG > 2
   msgLevel = 100; // prints the linear solution vector if size < 100
 #else
@@ -37,7 +34,7 @@ NonLinSIM::NonLinSIM (SIMbase* sim)
   convTol   = 1.0e-6;
   divgLim   = 1.0;
   eta       = 0.0;
-  iteNorm = ENERGY;
+  iteNorm   = ENERGY;
 }
 
 
@@ -159,6 +156,7 @@ bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode)
 	if (!this->updateConfiguration(param))
 	  return false;
 
+	param.time.first = false;
 	model->setMode(SIM::RECOVERY);
 	return this->solutionNorms(param.time);
 
@@ -264,12 +262,9 @@ NonLinSIM::ConvStatus NonLinSIM::checkConvergence (SolvePrm& param)
   static double prevNorm  = 0.0;
   static int    nIncrease = 0;
 
-  double norm=1.f, enorm, resNorm, linsolNorm;
+  double enorm, resNorm, linsolNorm;
   model->iterationNorms(linsol,residual,enorm,resNorm,linsolNorm);
-  if (iteNorm == ENERGY)
-    norm = enorm;
-  else if (iteNorm == L2)
-    norm = resNorm;
+  double norm = iteNorm == ENERGY ? enorm : resNorm;
 
   if (param.iter == 0)
   {

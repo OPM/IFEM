@@ -71,7 +71,7 @@ void NeoHookeMaterial::print (std::ostream& os) const
 
 
 bool NeoHookeMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
-				 const Vec3& X, const Tensor& F,
+				 const Vec3&, const Tensor& F,
 				 const SymmTensor&, char iop,
 				 const TimeDomain*) const
 {
@@ -86,16 +86,17 @@ bool NeoHookeMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
   size_t ndim = F.dim();
   size_t ncmp = ndim*(ndim+1)/2;
   C.resize(ncmp,ncmp);
-  int ipsw = INT_DEBUG > 1 ? 9 : 0;
-  int ierr = 0;
+  int ierr = -99;
 #ifdef USE_FTNMAT
   // Invoke the FORTRAN routine for Neo-Hookean hyperelastic material models.
   if (ndim == 2)
-    cons2d_(ipsw,0,6,0,mTYP,mVER,0,3,J,F.ptr(),pmat,
+    cons2d_(INT_DEBUG,0,6,0,mTYP,mVER,0,3,J,F.ptr(),pmat,
 	    &U,U,sigma.ptr(),C.ptr(),ierr);
   else
-    cons3d_(ipsw,0,6,0,mTYP,mVER,0,6,J,F.ptr(),pmat,
+    cons3d_(INT_DEBUG,0,6,0,mTYP,mVER,0,6,J,F.ptr(),pmat,
 	    &U,U,sigma.ptr(),C.ptr(),ierr);
+#else
+  std::cerr <<" *** NeoHookeMaterial::evaluate: Not included."<< std::endl;
 #endif
 
   if (iop == 2)

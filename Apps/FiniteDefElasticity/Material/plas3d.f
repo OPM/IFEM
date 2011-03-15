@@ -1,5 +1,5 @@
       subroutine plas3d (ipsw, iwr, iter, lfirst, ntm, pMAT, detF,
-     &                   Fn1, Fn, be, Epp, Epl, Sig, Cst, state, ierr)
+     &                   Fn1, Fn, be, Epp, Epl, Sig, Cst, ierr)
 C
 C ----------------------------------------------------------------------
 C
@@ -68,7 +68,6 @@ C     Epp      - Cumulative plastic strain               at t_n+1
 C     Epl(*)   - Plastic Strain for Hardening            at t_n+1
 C     Sig(6)   - Cauchy stresses (spatial stresses)
 C     Cst(6,6) - Spatial constitutive tensor
-C     state    -
 C     ierr     - Error flag
 C               = 1 : Illegal number of element nodes
 C
@@ -93,6 +92,7 @@ C     yield     - yield function value
 C     yfunct    - yield function
 C                 flg = .false.  only yield function
 C                 flg = .true.   yield function and derivatives
+C     state    -
 C
 C PRINT SWITCH:
 C     ipsw = 0  Gives no print
@@ -121,7 +121,6 @@ C
       integer   ipsw, iwr, istrt, iter, lfirst, ntm, ierr
       real*8    pMAT(*), detF, Fn1(3,3), Fn(3,3),
      &          Epp, be(*), Epl(*), Sig(*), Cst(6,6)
-      logical   state
 C
       integer   i, j, a, b, rot, it, itmax, p1(6), p2(6), ierrl, iop
       real*8    Bmod, Smod, F(3,3), Finv(3,3), detFr, detr
@@ -135,7 +134,7 @@ C
       real*8    dtde(3,3), ff(6,6), Cstm(6,6), Eppn
       real*8    nn_t(3,3), nn(3), aa(3), bb(3)
       real*8    tolb, tolc, d_el, xx, f112, f123, yield, yfunct
-      logical   conv
+      logical   conv, state
 C
       include 'include/feninc/const.h'
 C
@@ -193,21 +192,14 @@ C
 C
 C     Check state for iterations
 C
+      state = .true.
+      dyld  = zero
       if (iter .eq. 0)  then           ! First iteration in step
-C
-         if(istrt.eq.0) then           ! Elastic state requested
+         if (istrt .eq. 0) then        ! Elastic state requested
             state = .false.
-            dyld  =  zero
          else                          ! Last state requested
-            state = .true.
-            dyld  =  1.0d-08*Y0
+            dyld  = 1.0d-08*Y0
          endif
-C
-      else                             ! Not first iteration in step
-C
-         state = .true.
-         dyld  =  zero
-C
       endif
 C
 C     KINEMATIC COMPUTATIONS  (Incremental Lagrangian formulation)
@@ -538,8 +530,6 @@ C
       else
 C
 C     ELASTIC STEP  ( only tangent computation )
-C
-         state  = .false.                   ! Indicate elastic on return
 C
          dtde(1,1) = one2 * Bmod  + two3 * Smod
          dtde(1,2) = one2 * Bmod  - one3 * Smod

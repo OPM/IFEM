@@ -1,4 +1,4 @@
-// $Id: NonLinSIM.h,v 1.15 2011-01-28 15:28:54 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file NonLinSIM.h
@@ -16,9 +16,8 @@
 
 #include "SIMinput.h"
 #include "SIMenums.h"
-#include "TimeDomain.h"
-#include "MatVec.h"
 #include "SIMparameters.h"
+#include "MatVec.h"
 
 class SIMbase;
 
@@ -39,27 +38,23 @@ public:
   //! \brief The destructor frees the dynamically allocated FE model object.
   virtual ~NonLinSIM();
 
-  /*!
-    \brief A class for nonlinear solution parameters.
-  */
-
+  //! \brief A class for nonlinear solution parameters.
   class SolvePrm : public SIMparameters
   {
-    public:
-      int  maxit;       //!< Maximum number of iterations
-      int  nupdat;      //!< Number of iterations with updated tangent
-      double convTol;   //!< Relative convergence tolerance
-      double divgLim;   //!< Relative divergence limit
-      double refNorm;   //!< Reference energy norm used in convergence checks
-      double alpha;     //!< Iteration acceleration parameter (line search)
-      double eta;       //!< Line searce tolerance
-      SolvePrm()
-      {
-        refNorm = alpha = 1;
-      }
+  public:
+    //! \brief Default constructor.
+    SolvePrm() : refNorm(1.0), alpha(1.0) {}
+
+    int    maxit;   //!< Maximum number of iterations
+    int    nupdat;  //!< Number of iterations with updated tangent
+    double convTol; //!< Relative convergence tolerance
+    double divgLim; //!< Relative divergence limit
+    double refNorm; //!< Reference energy norm used in convergence checks
+    double alpha;   //!< Iteration acceleration parameter (line search)
+    double eta;     //!< Line search tolerance
   };
 
-  //! \brief Initializes solution parameters object with values read from file.
+  //! \brief Initializes the solution parameters with values read from file.
   virtual void init(SolvePrm& param);
   //! \brief Advances the time/load step one step forward.
   virtual bool advanceStep(SolvePrm& param);
@@ -75,19 +70,15 @@ public:
   //! \param[in] mode Solution mode to use for this step
   bool solveStep(SolvePrm& param, SIM::SolutionMode mode = SIM::STATIC);
 
-  //! \brief Enum describing the norm used for convergence tests in the
-  //!        Newton-Raphson iterations
-  enum ERRORNORM {
-    L2,
-    ENERGY
-  };
+  //! \brief Enum describing the norm used for convergence checks.
+  enum CNORM { L2, ENERGY };
 
-  //! \brief Set the current norm in used in iteration error estimates
+  //! \brief Sets the current norm in used in iteration error estimates.
   //! param[in] norm The wanted error norm
-  void setErrorNorm(ERRORNORM norm) { iteNorm = norm; }
+  void setErrorNorm(CNORM norm) { iteNorm = norm; }
 
   //! \brief Computes and prints some solution norm quantities.
-  //! \param[in] time Parameters for nonlinear/time-dependent simulations.
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param[in] compName Solution name to be used in the norm output
   bool solutionNorms(const TimeDomain& time,
 		     const char* compName = "displacement");
@@ -102,7 +93,7 @@ public:
   //! \brief Dumps the primary solution to given stream for inspection.
   //! \param[in] iStep Load/time step identifier
   //! \param[in] time Current time/load parameter
-  //! \param[in] os The output streeam to write to.
+  //! \param[in] os The output streeam to write to
   //! \param[in] withID If \e true, write node ID and coordinates too
   void dumpStep(int iStep, double time, std::ostream& os,
 		bool withID = true) const;
@@ -127,9 +118,9 @@ private:
   SIMbase* model; //!< The isogeometric FE model
 
 protected:
-  Vector              linsol;   //!< Linear solution vector
-  Vector              residual; //!< Residual force vector
-  std::vector<Vector> solution; //!< Total solution vectors
+  Vector  linsol;   //!< Linear solution vector
+  Vector  residual; //!< Residual force vector
+  Vectors solution; //!< Total solution vectors
 
 private:
   // Nonlinear solution algorithm parameters
@@ -141,7 +132,7 @@ private:
   double eta;       //!< Line search tolerance
   int    maxit;     //!< Maximum number of iterations in a time/load step
   int    nupdat;    //!< Number of iterations with updated tangent
-  ERRORNORM iteNorm;//!< The norm used to measure the residual
+  CNORM  iteNorm;   //!< The norm type used to measure the residual
 
   // Post-processing attributes
   int    nBlock; //!< Running VTF result block counter

@@ -76,6 +76,11 @@ public:
   //! \brief Initializes the vector assuming it is properly dimensioned.
   virtual void init(real value = real(0)) = 0;
 
+  //! \brief Begins communication step needed in parallel vector assembly.
+  virtual bool beginAssembly() { return true; }
+  //! \brief Ends communication step needed in parallel vector assembly.
+  virtual bool endAssembly() { return true; }
+
   //! \brief Multiplication with a scalar.
   virtual void mult(real alpha) = 0;
 
@@ -146,6 +151,11 @@ public:
   //! \brief Initializes the vector to a given scalar value.
   virtual void init(real value = real(0)) { this->fill(value); }
 
+  //! \brief Begins communication step needed in parallel vector assembly.
+  virtual bool beginAssembly() { return true; }
+  //! \brief Ends communication step needed in parallel vector assembly.
+  virtual bool endAssembly() { return true; }
+
   //! \brief Multiplication with a scalar.
   virtual void mult(real alpha) { this->operator*=(alpha); }
 
@@ -211,6 +221,11 @@ public:
 
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   virtual void init() = 0;
+
+  //! \brief Begins communication step needed in parallel matrix assembly.
+  virtual bool beginAssembly() { return true; }
+  //! \brief Ends communication step needed in parallel matrix assembly.
+  virtual bool endAssembly() { return true; }
 
   //! \brief Adds an element stiffness matrix into the system stiffness matrix.
   //! \param[in] eM  The element stiffness matrix

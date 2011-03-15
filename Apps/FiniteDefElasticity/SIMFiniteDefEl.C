@@ -15,6 +15,8 @@
 #include "LinIsotropic.h"
 #include "LinearMaterial.h"
 #include "NeoHookeMaterial.h"
+#include "PlasticMaterial.h"
+#include "PlasticityUL.h"
 #include "NonlinearElasticityULMixed.h"
 #include "NonlinearElasticityULMX.h"
 #include "NeoHookeElasticity.h"
@@ -30,6 +32,9 @@ SIMFiniteDefEl2D::SIMFiniteDefEl2D (const std::vector<int>& options)
 
   switch (form)
     {
+    case SIM::PLASTICITY:
+      myProblem = new PlasticityUL(2);
+      break;
     case SIM::MIXED_QnQn1:
       nf[1] = 2; // continuous volumetric change and pressure fields
       myProblem = new NonlinearElasticityULMixed(2);
@@ -58,7 +63,7 @@ bool SIMFiniteDefEl2D::parse (char* keyWord, std::istream& is)
 {
   if (!strncasecmp(keyWord,"ISOTROPIC",9))
   {
-    int nmat = atoi(keyWord+10);
+    int nmat = atoi(keyWord+9);
     if (myPid == 0)
       std::cout <<"\nNumber of isotropic materials: "<< nmat << std::endl;
 
@@ -68,6 +73,7 @@ bool SIMFiniteDefEl2D::parse (char* keyWord, std::istream& is)
       int code = atoi(strtok(cline," "));
       if (code > 0)
         this->setPropertyType(code,Property::MATERIAL,mVec.size());
+
       double E   = atof(strtok(NULL," "));
       double nu  = atof(strtok(NULL," "));
       double rho = atof(strtok(NULL," "));
@@ -81,6 +87,38 @@ bool SIMFiniteDefEl2D::parse (char* keyWord, std::istream& is)
                   << E <<" "<< nu <<" "<< rho <<" ("<< matVer <<")"<< std::endl;
     }
   }
+
+  else if (!strncasecmp(keyWord,"PLASTIC",7))
+  {
+    int nmat = atoi(keyWord+7);
+    if (myPid == 0)
+      std::cout <<"\nNumber of plastic materials: "<< nmat << std::endl;
+
+    char* cline = 0;
+    for (int i = 0; i < nmat && (cline = utl::readLine(is)); i++)
+    {
+      int code = atoi(strtok(cline," "));
+      if (code > 0)
+        this->setPropertyType(code,Property::MATERIAL,mVec.size());
+
+      RealArray pMAT;
+      double rho = atof(strtok(NULL," "));
+      while ((cline = strtok(NULL," ")))
+      {
+	pMAT.push_back(rho);
+	rho = atof(cline);
+      }
+      mVec.push_back(new PlasticPrm(pMAT,rho));
+      if (myPid == 0)
+      {
+        std::cout <<"\tMaterial code "<< code <<":";
+	for (size_t i = 0; i < pMAT.size(); i++)
+	  std::cout <<" "<< pMAT[i];
+	std::cout <<" rho = "<< rho << std::endl;
+      }
+    }
+  }
+
   else
     return this->SIMLinEl2D::parse(keyWord,is);
 
@@ -103,6 +141,9 @@ SIMFiniteDefEl3D::SIMFiniteDefEl3D (bool checkRHS,
 
   switch (form)
     {
+    case SIM::PLASTICITY:
+      myProblem = new PlasticityUL(2);
+      break;
     case SIM::MIXED_QnQn1:
       nf[1] = 2; // continuous volumetric change and pressure fields
       myProblem = new NonlinearElasticityULMixed();
@@ -137,7 +178,7 @@ bool SIMFiniteDefEl3D::parse (char* keyWord, std::istream& is)
 {
   if (!strncasecmp(keyWord,"ISOTROPIC",9))
   {
-    int nmat = atoi(keyWord+10);
+    int nmat = atoi(keyWord+9);
     if (myPid == 0)
       std::cout <<"\nNumber of isotropic materials: "<< nmat << std::endl;
 
@@ -147,6 +188,7 @@ bool SIMFiniteDefEl3D::parse (char* keyWord, std::istream& is)
       int code = atoi(strtok(cline," "));
       if (code > 0)
         this->setPropertyType(code,Property::MATERIAL,mVec.size());
+
       double E   = atof(strtok(NULL," "));
       double nu  = atof(strtok(NULL," "));
       double rho = atof(strtok(NULL," "));
@@ -160,6 +202,38 @@ bool SIMFiniteDefEl3D::parse (char* keyWord, std::istream& is)
                   << E <<" "<< nu <<" "<< rho <<" ("<< matVer <<")"<< std::endl;
     }
   }
+
+  else if (!strncasecmp(keyWord,"PLASTIC",7))
+  {
+    int nmat = atoi(keyWord+7);
+    if (myPid == 0)
+      std::cout <<"\nNumber of plastic materials: "<< nmat << std::endl;
+
+    char* cline = 0;
+    for (int i = 0; i < nmat && (cline = utl::readLine(is)); i++)
+    {
+      int code = atoi(strtok(cline," "));
+      if (code > 0)
+        this->setPropertyType(code,Property::MATERIAL,mVec.size());
+
+      RealArray pMAT;
+      double rho = atof(strtok(NULL," "));
+      while ((cline = strtok(NULL," ")))
+      {
+	pMAT.push_back(rho);
+	rho = atof(cline);
+      }
+      mVec.push_back(new PlasticPrm(pMAT,rho));
+      if (myPid == 0)
+      {
+        std::cout <<"\tMaterial code "<< code <<":";
+	for (size_t i = 0; i < pMAT.size(); i++)
+	  std::cout <<" "<< pMAT[i];
+	std::cout <<" rho = "<< rho << std::endl;
+      }
+    }
+  }
+
   else
     return this->SIMLinEl3D::parse(keyWord,is);
 

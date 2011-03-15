@@ -55,6 +55,11 @@ public:
   //! \brief Defines the solution mode before the element assembly is started.
   virtual void setMode(SIM::SolutionMode) {}
 
+  //! \brief Initializes the integrand for a new integration loop.
+  //! \details This method is invoked once before starting the numerical
+  //! integration over the entire spatial domain.
+  virtual void initIntegration(const TimeDomain&) {}
+
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param[in] X0 Cartesian coordinates of the element center

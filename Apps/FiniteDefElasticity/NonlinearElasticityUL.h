@@ -16,17 +16,14 @@
 
 #include "Elasticity.h"
 
-struct TimeDomain;
-
 
 /*!
   \brief Class representing the integrand of the nonlinear elasticity problem.
   \details This class implements an Updated Lagrangian formulation. It inherits
   most of the Elasticity methods, but reimplements the \a kinematics method
   for calculating the deformation gradient and the associated Green-Lagrange
-  strain tensor, and the method \a constitutive for calculating the tangent
-  constitutive matrix and the associated stress tensor. The \a evalInt and
-  \a evalBou methods are also reimplemented to account for the updated geometry.
+  strain tensor. The \a evalInt and \a evalBou methods are also reimplemented
+  to account for the updated geometry.
 */
 
 class NonlinearElasticityUL : public Elasticity
