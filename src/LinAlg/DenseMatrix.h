@@ -138,6 +138,9 @@ public:
   bool solveEig(DenseMatrix& B, RealArray& eigVal, Matrix& eigVec, int nev,
 		real shift = 0.0);
 
+  //! \brief Returns the L-infinity norm of the matrix.
+  virtual real Linfnorm() const { return myMat.normInf(); }
+
 protected:
   //! \brief Augments a dense matrix symmetrically to the current matrix.
   //! \param[in] B  The matrix to be augmented

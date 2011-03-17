@@ -97,7 +97,6 @@ private:
   Vec x; //!< The actual PETSc vector.
 
 #else // dummy implementation when PETSc is not included
-  PETScVector() {}
   virtual SystemVector* copy() const { return 0; }
   virtual size_t dim() const { return 0; }
   virtual void redim(size_t) {}
@@ -202,6 +201,9 @@ public:
   //! \param[in] iop Option telling whether to factorize matrix \a A or \b B.
   bool solveEig(PETScMatrix& B, RealArray& eigVal, Matrix& eigVec, int nev,
 		real shift = real(0), int iop = 1);
+
+  //! \brief Returns the L-infinity norm of the matrix.
+  virtual real Linfnorm() const;
 
 private:
   Mat                 A;         //!< Linear system matrix

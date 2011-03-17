@@ -196,6 +196,9 @@ protected:
   //! \brief Writes the system matrix to the given output stream.
   virtual std::ostream& write(std::ostream& os) const;
 
+  //! \brief Returns the L-infinity norm of the matrix.
+  virtual real Linfnorm() const;
+
 public:
   static bool printSLUstat; //!< Print solution statistics for SuperLU?
 

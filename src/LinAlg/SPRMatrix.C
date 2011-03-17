@@ -403,3 +403,10 @@ bool SPRMatrix::solveEig (SPRMatrix& B, RealArray& val, Matrix& vec, int nv,
 #endif
   return false;
 }
+
+
+real SPRMatrix::Linfnorm () const
+{
+  std::cerr <<"SPRMatrix::Linfnorm not yet implemented"<< std::endl;
+  return real(0);
+}

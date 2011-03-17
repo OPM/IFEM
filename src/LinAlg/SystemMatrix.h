@@ -265,6 +265,9 @@ public:
   //! \param newLHS \e true if the left-hand-side matrix has been updated
   virtual bool solve(SystemVector&, bool newLHS = true) { return false; }
 
+  //! \brief Returns the L-infinity norm of the matrix.
+  virtual real Linfnorm() const = 0;
+
 protected:
   //! \brief Writes the system matrix to the given output stream.
   virtual std::ostream& write(std::ostream& os) const { return os; }

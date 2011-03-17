@@ -15,6 +15,9 @@
 #ifdef HAS_PETSC
 #include "SAM.h"
 #include "petscmg.h"
+#ifdef HAS_SLEPC
+#include "slepceps.h"
+#endif
 
 
 PETScVector::PETScVector()
@@ -151,20 +154,17 @@ real PETScVector::Linfnorm() const
 
 PETScMatrix::PETScMatrix(const LinSolParams& spar) : solParams(spar)
 {
-  // Create matrix object. By default the matrix type is AIJ
+  // Create matrix object, by default the matrix type is AIJ
   MatCreate(PETSC_COMM_WORLD,&A);
 
-  // Create linear solver object.
-  KSPCreate(PETSC_COMM_WORLD,&ksp); 
+  // Create linear solver object
+  KSPCreate(PETSC_COMM_WORLD,&ksp);
 
   // Create null space if any
   if (solParams.getNullSpace() == CONSTANT) {
     MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_TRUE,0,0,&nsp);
     KSPSetNullSpace(ksp,nsp);
   }
-
-  // Create eigenvalue solver object.
-  //EPSCreate(PETSC_COMM_WORLD,&eps);
 }
 
 
@@ -182,17 +182,11 @@ PETScMatrix::PETScMatrix (const PETScMatrix& B) : solParams(B.solParams)
     MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_TRUE,0,0,&nsp);
     KSPSetNullSpace(ksp,nsp);
   }
-
-  // Create eigenvalue solver object.
-  //EPSCreate(PETSC_COMM_WORLD,&eps);
 }
 
 
 PETScMatrix::~PETScMatrix ()
 {
-  // Deallocation of eigenvalue solver object.
-  //EPSDestroy(eps);
-
   // Deallocation of null space
   if (solParams.getNullSpace() == CONSTANT) 
     MatNullSpaceDestroy(nsp);
@@ -205,20 +199,21 @@ PETScMatrix::~PETScMatrix ()
 }
 
 
-static void assemPETScPara(const Matrix& eM, Mat SM, PETScVector& SV,
-			const std::vector<int>& meen, const int* meqn,
-			const int* mpmceq, const int* mmceq, const real* ttcc)
+static void assemPETScPara (const Matrix& eM, Mat SM, PETScVector& SV,
+			    const std::vector<int>& meen, const int* meqn,
+			    const int* mpmceq, const int* mmceq,
+			    const real* ttcc)
 {
-  real c0;
-  int i, j, jp, jceq;
+  real   c0;
+  size_t i, j;
+  int    jp, jceq;
 
   // Number of degrees of freedom for element
-  const int nedof = meen.size();
+  size_t nedof = meen.size();
 
-  // Convert meen to C array. Start column numbering at 0.
-  int *l2g;
-  l2g = new int[nedof];
-  for (i = 0;i < nedof;i++)
+  // Convert meen to 0-based C array
+  int* l2g = new int[nedof];
+  for (i = 0; i < nedof; i++)
     l2g[i] = meqn[meen[i]-1]-1;
 
   // Cast to non-constant Matrix to modify for Dirichlet BCs
@@ -270,24 +265,24 @@ static void assemPETScPara(const Matrix& eM, Mat SM, PETScVector& SV,
 }
 
 
-static void assemPETSc(const Matrix& eM, Mat SM, PETScVector& SV,
-		       const std::vector<int>& meen, const int* meqn,
-		       const int* mpmceq, const int* mmceq, const real* ttcc)
+static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
+			const std::vector<int>& meen, const int* meqn,
+			const int* mpmceq, const int* mmceq, const real* ttcc)
 {
-  real c0;
-  int  i, j, ieq, jeq, ip, jp, iceq, jceq;
+  real   c0;
+  size_t i, j;
+  int    ieq, jeq, ip, jp, iceq, jceq;
 
   // Get C array
   PetscScalar* svec;
   VecGetArray(SV.getVector(),&svec); 
   
   // Number of degrees of freedom for element
-  const int nedof = meen.size();
+  size_t nedof = meen.size();
 
-  // Convert meen to C array. Start column numbering at 0. 
-  int *l2g;
-  l2g = new int[nedof];
-  for (i = 0;i < nedof; i++)
+  // Convert meen to 0-based C array
+  int* l2g = new int[nedof];
+  for (i = 0; i < nedof; i++)
     l2g[i] = meen[i]-1;
 
   // Cast to non-constant Matrix 
@@ -358,20 +353,20 @@ static void assemPETSc(const Matrix& eM, Mat SM, PETScVector& SV,
 }
 
 
-static void assemPETSc(const Matrix& eM, Mat SM, const std::vector<int>& meen, 
-		       const int* meqn, const int* mpmceq, const int* mmceq, 
-		       const real* ttcc)
+static void assemPETSc (const Matrix& eM, Mat SM, const std::vector<int>& meen,
+			const int* meqn, const int* mpmceq, const int* mmceq,
+			const real* ttcc)
 {
-  real c0;
-  int  i, j, ieq, jeq, ip, jp, iceq, jceq;
+  real   c0;
+  size_t i, j;
+  int    ieq, jeq, ip, jp, iceq, jceq;
 
   // Number of degrees of freedom for element
-  const int nedof = meen.size();
+  size_t nedof = meen.size();
 
-  // Convert meen to C array. Start column numbering at 0. 
-  int *l2g;
-  l2g = new int[nedof];
-  for (i = 0;i < nedof; i++) 
+  // Convert meen to 0-based C array
+  int* l2g = new int[nedof];
+  for (i = 0; i < nedof; i++)
     l2g[i] = meen[i]-1;
 
   // Cast to non-constant Matrix 
@@ -559,12 +554,10 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
 }
 
 
-bool PETScMatrix::solveEig(PETScMatrix& B, RealArray& val, 
-			   Matrix& vec, int nv, real shift, int iop)
+bool PETScMatrix::solveEig (PETScMatrix& B, RealArray& val,
+			    Matrix& vec, int nv, real shift, int iop)
 {
 #ifdef HAS_SLEPC
-  return false;
-  int         i;
   ST          st;
   PetscInt    m, n, nconv;
   PetscScalar kr, ki;
@@ -600,7 +593,7 @@ bool PETScMatrix::solveEig(PETScMatrix& B, RealArray& val,
 
   val.resize(nv);
   vec.resize(n,nv);
-  for ( i = 0; i < nv; i++) {
+  for (int i = 0; i < nv; i++) {
     EPSGetEigenpair(eps,i,&kr,&ki,xr,xi);
     VecGetArray(xr,&xrarr);
     
@@ -618,6 +611,14 @@ bool PETScMatrix::solveEig(PETScMatrix& B, RealArray& val,
   return true;
 #endif
   return false;
+}
+
+
+real PETScMatrix::Linfnorm () const
+{
+  PetscReal norm;
+  MatNorm(A,NORM_INFINITY,&norm);
+  return norm;
 }
 
 #endif // HAS_PETSC

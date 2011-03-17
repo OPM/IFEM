@@ -199,7 +199,7 @@ real& SparseMatrix::operator () (size_t r, size_t c)
 	      << nrow <<"x"<< ncol << std::endl;
   else if (editable) {
     IJPair index(r,c);
-    if (elem.find(index) == elem.end()) elem[index] = 0.0;
+    if (elem.find(index) == elem.end()) elem[index] = real(0);
     return elem[index];
   }
 
@@ -987,4 +987,26 @@ bool SparseMatrix::solveSAMG (bool isFirstRHS, Vector& B)
   std::cerr <<"SparseMatrix::solve: SAMG solver not available"<< std::endl;
 #endif
   return ierr <= 0;
+}
+
+
+real SparseMatrix::Linfnorm () const
+{
+  RealArray sums(nrow,real(0));
+
+  if (editable)
+    for (ValueIter it = elem.begin(); it != elem.end(); ++it)
+      sums[it->first.first-1] += fabs(it->second);
+  else if (solver == SUPERLU)
+    // Column-oriented format with 0-based row-indices
+    for (size_t j = 1; j <= ncol; j++)
+      for (int i = IA[j-1]; i < IA[j]; i++)
+	sums[JA[i]] += fabs(A[i]);
+  else
+    // Row-oriented format with 1-based row-indices
+    for (size_t i = 1; i <= nrow; i++)
+      for (int j = IA[i-1]; j < IA[i]; j++)
+	sums[i-1] += fabs(A[j-1]);
+
+  return *std::max_element(sums.begin(),sums.end());
 }

@@ -505,6 +505,18 @@ namespace utl //! General utility classes and functions.
       return true;
     }
 
+    //! \brief Return the infinite norm of the matrix.
+    T normInf() const
+    {
+      if (nrow == 0) return T(0);
+
+      // Compute row sums
+      vector<T> sums(nrow);
+      for (size_t i = 0; i < nrow; i++)
+	sums[i] = elem.asum(i,ncol);
+      return *std::max_element(sums.begin(),sums.end());
+    }
+
   private:
     //! \brief Check dimension compatibility for matrix-vector multiplication.
     bool compatible(const std::vector<T>& X, const std::vector<T>& Y,

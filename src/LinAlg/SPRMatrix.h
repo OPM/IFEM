@@ -106,6 +106,9 @@ public:
   bool solveEig (SPRMatrix& B, RealArray& eigVal, Matrix& eigVec, int nev,
 		 real shift = 0.0, int iop = 1);
 
+  //! \brief Returns the L-infinity norm of the matrix.
+  virtual real Linfnorm() const;
+
 private:
   int mpar[NS]; //!< Matrix of sparse PARameters
   int* msica;   //!< Matrix of Storage Information for CA
