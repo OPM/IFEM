@@ -67,6 +67,8 @@ bool SIMFiniteDefEl2D::parse (char* keyWord, std::istream& is)
     if (myPid == 0)
       std::cout <<"\nNumber of isotropic materials: "<< nmat << std::endl;
 
+    bool isUL = dynamic_cast<NonlinearElasticityUL*>(myProblem) ? true : false;
+
     char* cline = 0;
     for (int i = 0; i < nmat && (cline = utl::readLine(is)); i++)
     {
@@ -78,10 +80,13 @@ bool SIMFiniteDefEl2D::parse (char* keyWord, std::istream& is)
       double nu  = atof(strtok(NULL," "));
       double rho = atof(strtok(NULL," "));
       int matVer = (cline = strtok(NULL," ")) ? atoi(cline) : -1;
-      if (matVer >= 0)
+      if (matVer >= 0 && isUL)
 	mVec.push_back(new NeoHookeMaterial(E,nu,rho,matVer));
       else
-	mVec.push_back(new LinearMaterial(new LinIsotropic(E,nu,rho)));
+	mVec.push_back(new LinIsotropic(E,nu,rho,!planeStrain));
+      if (matVer < 0 && isUL)
+	mVec.back() = new LinearMaterial(mVec.back());
+
       if (myPid == 0)
         std::cout <<"\tMaterial code "<< code <<": "
                   << E <<" "<< nu <<" "<< rho <<" ("<< matVer <<")"<< std::endl;
@@ -102,23 +107,27 @@ bool SIMFiniteDefEl2D::parse (char* keyWord, std::istream& is)
         this->setPropertyType(code,Property::MATERIAL,mVec.size());
 
       RealArray pMAT;
-      double rho = atof(strtok(NULL," "));
       while ((cline = strtok(NULL," ")))
-      {
-	pMAT.push_back(rho);
-	rho = atof(cline);
-      }
-      mVec.push_back(new PlasticPrm(pMAT,rho));
+	pMAT.push_back(atof(cline));
+      mVec.push_back(new PlasticPrm(pMAT));
+
       if (myPid == 0)
       {
         std::cout <<"\tMaterial code "<< code <<":";
 	for (size_t i = 0; i < pMAT.size(); i++)
 	  std::cout <<" "<< pMAT[i];
-	std::cout <<" rho = "<< rho << std::endl;
+	std::cout << std::endl;
       }
     }
   }
 
+  else if (!strncasecmp(keyWord,"MATERIAL",8))
+  {
+    std::cerr <<" *** SIMFiniteDefEl2D::parse: The keyword MATERIAL"
+	      <<" is not supported\n     for finite deformation analysis."
+	      <<" You must use ISOTROPIC instead."<< std::endl;
+    return false;
+  }
   else
     return this->SIMLinEl2D::parse(keyWord,is);
 
@@ -142,7 +151,7 @@ SIMFiniteDefEl3D::SIMFiniteDefEl3D (bool checkRHS,
   switch (form)
     {
     case SIM::PLASTICITY:
-      myProblem = new PlasticityUL(2);
+      myProblem = new PlasticityUL();
       break;
     case SIM::MIXED_QnQn1:
       nf[1] = 2; // continuous volumetric change and pressure fields
@@ -182,6 +191,8 @@ bool SIMFiniteDefEl3D::parse (char* keyWord, std::istream& is)
     if (myPid == 0)
       std::cout <<"\nNumber of isotropic materials: "<< nmat << std::endl;
 
+    bool isUL = dynamic_cast<NonlinearElasticityUL*>(myProblem) ? true : false;
+
     char* cline = 0;
     for (int i = 0; i < nmat && (cline = utl::readLine(is)); i++)
     {
@@ -193,10 +204,13 @@ bool SIMFiniteDefEl3D::parse (char* keyWord, std::istream& is)
       double nu  = atof(strtok(NULL," "));
       double rho = atof(strtok(NULL," "));
       int matVer = (cline = strtok(NULL," ")) ? atoi(cline) : -1;
-      if (matVer >= 0)
+      if (matVer >= 0 && isUL)
 	mVec.push_back(new NeoHookeMaterial(E,nu,rho,matVer));
       else
-	mVec.push_back(new LinearMaterial(new LinIsotropic(E,nu,rho)));
+	mVec.push_back(new LinIsotropic(E,nu,rho));
+      if (matVer < 0 && isUL)
+	mVec.back() = new LinearMaterial(mVec.back());
+
       if (myPid == 0)
         std::cout <<"\tMaterial code "<< code <<": "
                   << E <<" "<< nu <<" "<< rho <<" ("<< matVer <<")"<< std::endl;
@@ -217,23 +231,27 @@ bool SIMFiniteDefEl3D::parse (char* keyWord, std::istream& is)
         this->setPropertyType(code,Property::MATERIAL,mVec.size());
 
       RealArray pMAT;
-      double rho = atof(strtok(NULL," "));
       while ((cline = strtok(NULL," ")))
-      {
-	pMAT.push_back(rho);
-	rho = atof(cline);
-      }
-      mVec.push_back(new PlasticPrm(pMAT,rho));
+	pMAT.push_back(atof(cline));
+      mVec.push_back(new PlasticPrm(pMAT));
+
       if (myPid == 0)
       {
         std::cout <<"\tMaterial code "<< code <<":";
 	for (size_t i = 0; i < pMAT.size(); i++)
 	  std::cout <<" "<< pMAT[i];
-	std::cout <<" rho = "<< rho << std::endl;
+	std::cout << std::endl;
       }
     }
   }
 
+  else if (!strncasecmp(keyWord,"MATERIAL",8))
+  {
+    std::cerr <<" *** SIMFiniteDefEl2D::parse: The MATERIAL keyword"
+	      <<" is not supported\n     for finite deformation analysis."
+	      <<" You must use ISOTROPIC instead."<< std::endl;
+    return false;
+  }
   else
     return this->SIMLinEl3D::parse(keyWord,is);
 

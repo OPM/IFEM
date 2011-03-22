@@ -113,8 +113,8 @@ bool Poisson::evalInt (LocalIntegral*& elmInt, double detJW,
 
   if (eM)
   {
-    // Evaluate conductive matrix at this point.
-    if (!this->formCmatrix(C,X,false)) return false;
+    // Evaluate the constitutive matrix at this point
+    if (!this->formCmatrix(C,X)) return false;
 
     CB.multiply(C,dNdX,false,true).multiply(detJW); // CB = C*dNdX^T*|J|*w
     eM->multiply(dNdX,CB,false,false,true); // EK += dNdX * CB
@@ -176,12 +176,9 @@ bool Poisson::writeGlvT (VTF* vtf, int iStep, int& nBlock) const
 }
 
 
-bool Poisson::formCmatrix (Matrix& C, const Vec3& X, bool inv) const
+bool Poisson::formCmatrix (Matrix& C, const Vec3&, bool invers) const
 {
-  double cx = this->getConductivety(X);
-  if (inv && cx != 0.0) cx = 1.0/cx;
-
-  C.diag(cx,nsd);
+  C.diag(invers && kappa != 0.0 ? 1.0/kappa : kappa, nsd);
   return true;
 }
 
@@ -196,7 +193,7 @@ bool Poisson::evalSol (Vector& q, const Vector&,
 	      << std::endl;
     return false;
   }
-  else if (!this->formCmatrix(C,X,false))
+  else if (!this->formCmatrix(C,X))
     return false;
 
   Vector Dtmp;
@@ -231,7 +228,7 @@ bool Poisson::evalSol (Vector& q, const Matrix& dNdX, const Vec3& X) const
 	      << dNdX.rows() <<","<< dNdX.cols() << std::endl;
     return false;
   }
-  else if (!this->formCmatrix(C,X,false))
+  else if (!this->formCmatrix(C,X))
     return false;
 
   // Evaluate the heat flux vector
@@ -292,7 +289,7 @@ bool PoissonNorm::evalInt (LocalIntegral*& elmInt, double detJW,
     return false;
   }
 
-  // Evaluate the inverse conductivety matrix at this point
+  // Evaluate the inverse constitutive matrix at this point
   Matrix Cinv;
   if (!problem.formCmatrix(Cinv,X,true)) return false;
 

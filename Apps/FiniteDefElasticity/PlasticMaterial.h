@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Plasticity material models.
+//! \brief Elasto-plastic material models.
 //!
 //==============================================================================
 
@@ -19,14 +19,14 @@
 
 
 /*!
-  \brief Class containing parameters of a plasticity material model.
+  \brief Class containing parameters of an elasto-plastic material model.
 */
 
 class PlasticPrm : public Material
 {
 public:
   //! \brief Constructor initializing the material parameters.
-  PlasticPrm(const RealArray& p, double dens = 0.0) : pMAT(p), rho(dens) {}
+  PlasticPrm(const RealArray&);
   //! \brief Empty destructor.
   virtual ~PlasticPrm() {}
 
@@ -34,7 +34,7 @@ public:
   virtual void print(std::ostream&) const;
 
   //! \brief Evaluates the mass density at current point.
-  virtual double getMassDensity(const Vec3&) const { return rho; }
+  virtual double getMassDensity(const Vec3&) const { return pMAT[3]; }
 
   //! \brief Dummy method (should not be invoked).
   virtual bool evaluate(Matrix&, SymmTensor&, double&,
@@ -43,23 +43,27 @@ public:
 
 private:
   RealArray pMAT; //!< Material property parameters
-  double    rho;  //!< Mass density
 
   friend class PlasticMaterial;
 };
 
 
 /*!
-  \brief Class representing a plasticity material model.
+  \brief Class representing an elasto-plastic material point.
 */
 
 class PlasticMaterial : public Material
 {
 public:
   //! \brief Constructor initializing the material parameters.
-  PlasticMaterial(const PlasticPrm* prm, unsigned short int n = 0);
+  //! \param[in] prm Pointer to actual material parameters object.
+  //! \param[in] n Number of space dimensions
+  PlasticMaterial(const PlasticPrm* prm, unsigned short int n);
   //! \brief Empty destructor.
   virtual ~PlasticMaterial() {}
+
+  //! \brief Evaluates the mass density at current point.
+  virtual double getMassDensity(const Vec3&) const { return pMAT[3]; }
 
   //! \brief Evaluates the constitutive relation at an integration point.
   //! \param[out] C Constitutive matrix at current point

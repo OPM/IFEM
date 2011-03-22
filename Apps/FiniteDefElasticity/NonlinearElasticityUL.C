@@ -31,9 +31,10 @@ NonlinearElasticityUL::NonlinearElasticityUL (unsigned short int n, char lop)
 
 void NonlinearElasticityUL::print (std::ostream& os) const
 {
-  material->print(os);
   std::cout <<"NonlinearElasticityUL: Updated Lagrangian formulation"
 	    << std::endl;
+
+  this->Elasticity::print(os);
 }
 
 

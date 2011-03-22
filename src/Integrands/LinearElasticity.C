@@ -1,4 +1,4 @@
-// $Id: LinearElasticity.C,v 1.27 2011-02-08 09:06:02 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file LinearElasticity.C
@@ -35,7 +35,7 @@ bool LinearElasticity::evalInt (LocalIntegral*& elmInt, double detJW,
   {
     // Compute the strain-displacement matrix B from dNdX
     // and evaluate the symmetric strain tensor if displacements are available
-    if (!this->kinematics(dNdX,eps,sigma)) return false;
+    if (!this->kinematics(dNdX,eps,eps)) return false;
     if (!eps.isZero(1.0e-16)) lHaveStrains = true;
 
     // Evaluate the constitutive matrix and the stress tensor at this point

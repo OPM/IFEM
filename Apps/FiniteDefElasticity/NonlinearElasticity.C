@@ -61,9 +61,10 @@ NonlinearElasticity::NonlinearElasticity (unsigned short int n)
 
 void NonlinearElasticity::print (std::ostream& os) const
 {
-  this->Elasticity::print(os);
   std::cout <<"NonlinearElasticity: Total Lagrangian formulation "
 	    <<" (tensorial form)"<< std::endl;
+
+  this->Elasticity::print(os);
 }
 
 
@@ -243,5 +244,5 @@ bool NonlinearElasticity::formTangent (Matrix& Ctan, SymmTensor& S,
 				       const Vec3& X, const Tensor& F) const
 {
   double U;
-  return material->evaluate(Ctan,S,U,X,F,E,!E.isZero());
+  return material->evaluate(Ctan,S,U,X,F,E, !E.isZero(1.0e-16));
 }

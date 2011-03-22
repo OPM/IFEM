@@ -53,9 +53,10 @@ NonlinearElasticityULMX::NonlinearElasticityULMX (unsigned short int n, int pp)
 
 void NonlinearElasticityULMX::print (std::ostream& os) const
 {
-  this->NonlinearElasticityUL::print(os);
   std::cout <<"NonlinearElasticityULMX: Mixed formulation,"
 	    <<" discontinuous pressure, p="<< p << std::endl;
+
+  this->NonlinearElasticityUL::print(os);
 }
 
 
@@ -170,8 +171,8 @@ bool NonlinearElasticityULMX::evalInt (LocalIntegral*& elmInt, double detJW,
     ptData.F(3,3) = ptData.Fp(3,3) = 1.0;
 
   // Invert the deformation gradient ==> Fi
-  Tensor Fi(nsd);
-  Fi = ptData.F;
+  Matrix Fi(nsd,nsd);
+  Fi.fill(ptData.F.ptr());
   double J = Fi.inverse();
   if (J == 0.0) return false;
 

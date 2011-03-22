@@ -28,8 +28,9 @@ NonlinearElasticityTL::NonlinearElasticityTL (unsigned short int n)
 
 void NonlinearElasticityTL::print (std::ostream& os) const
 {
-  this->Elasticity::print(os);
   std::cout <<"NonlinearElasticityTL: Total Lagrangian formulation"<< std::endl;
+
+  this->Elasticity::print(os);
 }
 
 

@@ -180,9 +180,9 @@ C
       istrt = nint(pMAT(13))
 C
       if (Hk .gt. zero)                          then
-          Hkr = one / Hk
+         Hkr = one / Hk
       else
-          Hkr = zero
+         Hkr = zero
       endif
 C
       TwoG  = two * Smod
@@ -259,32 +259,26 @@ C
 C     COMPUTE TRIAL KIRCHHOFF STRESS  ( pressure and deviator )
 C
       do a = 1, 3
-        ee_tr(a) = log( sqrt(ll2_tr(a)) )  ! log ( lambda(a)^TR )
+         ee_tr(a) = log( sqrt(ll2_tr(a)) ) ! log ( lambda(a)^TR )
       end do ! a
 C
       th_tr = ee_tr(1) + ee_tr(2) + ee_tr(3)
 C
-      do a = 1,3
-        ee_tr(a) = ee_tr(a) - one3*th_tr   ! Trial deviators
-      end do ! a
+      ee_tr = ee_tr - one3*th_tr           ! Trial deviators
 C
-      pp   = Bmod * th_tr                    ! Pressure: K*th_tr
+      pp   = Bmod * th_tr                  ! Pressure: K*th_tr
       Eppn = Epp
 C
-      do a = 1, 3
-        tt(a)    = TwoG   * ee_tr(a)       ! Trial deviatoric stress
-        tau(a)   = tt(a)  + pp
-        alp(a)   = Hk * Epl(a)
-        alp_n(a) = alp(a)
-      end do ! a
+      tt    = TwoG * ee_tr ! Trial deviatoric stress
+      tau   = tt  + pp
+      alp   = Hk * Epl(1:3)
+      alp_n = alp
 C
 C     Deviatoric: ta =  tt - alp_dev
 C
       aatr = (alp(1) + alp(2) + alp(3))*one3
 C
-      do a = 1,3
-        ta(a) = tt(a) - alp(a) + aatr    ! Trial SigMA = ss - alp
-      end do ! a
+      ta = tt - alp + aatr    ! Trial SigMA = ss - alp
 C
 C     CHECK ELASTIC / PLASTIC STEP
 C
@@ -315,11 +309,9 @@ C
          vol_tr = th_tr * one3
          vol_e  = K3inv * pp
 C
-         do a = 1, 3
-            eps_tr(a) = ee_tr(a) + vol_tr
-            ee_e(a)   = G2inv * tt(a)
-            eps_e(a)  = ee_e(a)  + vol_e
-         end do ! a
+         eps_tr = ee_tr + vol_tr
+         ee_e   = G2inv * tt
+         eps_e  = ee_e  + vol_e
 C
          epse = 1.d0/(abs(eps_tr(1)) + abs(eps_tr(2)) + abs(eps_tr(3)))
 C
@@ -334,11 +326,11 @@ C
             xx  = f1 - f3 * two3 * J2
 C
             do a = 1, 3
-               nn(a)    = xx + ( f2 + f3 * ta(a) ) * ta(a)
-               res(a)   = eps_e(a) - eps_tr(a) + gam * nn(a)
-               res(a+3) = (alp_n(a) - alp(a))*Hkr + gam * nn(a)
+               nn(a) = xx + ( f2 + f3 * ta(a) ) * ta(a)
             end do ! a
 C
+            res(1:3) = eps_e - eps_tr + gam * nn
+            res(4:6) = (alp_n - alp)*Hkr + gam * nn
             res(7) = yield
 C
             err  = (abs(res(1)) + abs(res(2)) + abs(res(3)))*epse
@@ -371,9 +363,7 @@ C
 C
             do a = 1, 3
 C
-               do b = 1, 3
-                  tres(a,b) = fss(a,b) + d_el
-               end do ! b
+               tres(a,1:3) = fss(a,1:3) + d_el
 C
                tres(a,a) = tres(a,a) + G2inv
 C
@@ -438,41 +428,31 @@ C
                end do ! i
 C
                dsol(7) = dsol(4)
-               dsol(4) = zero
-               dsol(5) = zero
-               dsol(6) = zero
+               dsol(4:6) = zero
 C
             endif
 C
 C         Update Kirchhoff stress and plastic flow
 C
-            tau(1) = tau(1) + dsol(1)
-            tau(2) = tau(2) + dsol(2)
-            tau(3) = tau(3) + dsol(3)
-            gam    = gam    + dsol(7)
+            tau = tau + dsol(1:3)
+            gam = gam + dsol(7)
 C
 C         Update accumulated plastic strain
 C
-            Epp    = Eppn + sqt23*gam
+            Epp = Eppn + sqt23*gam
 C
 C         Update Back Stress
 C
-            alp(1) = alp(1) + dsol(4)
-            alp(2) = alp(2) + dsol(5)
-            alp(3) = alp(3) + dsol(6)
+            alp = alp + dsol(4:6)
 C
 C         Update vol.-dev. Kirchhoff stress and stress invariants
 C
-            pp     = ( tau(1) + tau(2) + tau(3) ) * one3
-            tt(1)  = tau(1) - pp
-            tt(2)  = tau(2) - pp
-            tt(3)  = tau(3) - pp
+            pp = ( tau(1) + tau(2) + tau(3) ) * one3
+            tt = tau - pp
 C
             aatr = (alp(1) + alp(2) + alp(3))*one3
 C
-            do a = 1,3
-               ta(a)   = tt(a) - alp(a) + aatr
-            end do ! a
+            ta = tt - alp + aatr
 C
             I1 =  three * (pp - aatr)
             J2 = ( ta(1)*ta(1)       + ta(2)*ta(2)       +
@@ -504,7 +484,7 @@ C
 C       Update elastic left Cauchy-Green tensor and plastic acc. strain
 C
          do a = 1, 3
-            ll2 (a) = exp( two * eps_e(a) )
+            ll2(a) = exp( two * eps_e(a) )
          end do ! a
 C
          do i = 1, 6
@@ -515,17 +495,11 @@ C
 C
 C       Update plastic strains
 C
-         Epl(1) = Epl(1) + gam * nn(1)
-         Epl(2) = Epl(2) + gam * nn(2)
-         Epl(3) = Epl(3) + gam * nn(3)
+         Epl(1:3) = Epl(1:3) + gam * nn
 C
 C       Compute elasto-plastic tangent
 C
-         do b = 1, 3
-            do a = 1, 3
-               dtde(a,b) = one2 * tres(a,b)
-            end do ! a
-         end do ! b
+         dtde = one2 * tres(1:3,1:3)
 C
       else
 C
@@ -547,14 +521,17 @@ C     COMPUTE CAUCHY STRESS
 C
       detr = one / detF
 C
-      do i = 1, ntm
+      do i = 1, min(6,ntm)
          Sig(i) = (tau(1) * nn_t(p1(i),1)*nn_t(p2(i),1)
      &          +  tau(2) * nn_t(p1(i),2)*nn_t(p2(i),2)
      &          +  tau(3) * nn_t(p1(i),3)*nn_t(p2(i),3)) * detr
       end do ! i
 C
-      Sig( 9) = Epp                      ! Plastic strain for output
-      Sig(10) = sqrt(onep5)*(YY + yield) ! Yield stress value
+      if (ntm .ge. 10) then
+         Sig( 9) = Epp                      ! Plastic strain for output
+         Sig(10) = sqrt(onep5)*(YY + yield) ! Yield stress value
+      end if
+C
 C
 C     TANGENT TRANSFORMATION
 C
@@ -564,16 +541,13 @@ C
 C
 C       Upper 3x3 block of Cstm()
 C
-         do b = 1, 3
-            Cstm(b,a) = two * dtde(b,a)
-         end do ! b
+         Cstm(1:3,a) = two * dtde(1:3,a)
 C
          Cstm(a,a) = Cstm(a,a) - two * tau(a)
 C
 C       Lower 3x3 block of Cstm() [ diagonal block ]
 C
          b = mod(a,3) + 1
-C
          if (abs(ll2_tr(a)-ll2_tr(b)).gt.tolb)    then
             Cstm(a+3,a+3) = ( ll2_tr(a)*tau(b) - ll2_tr(b)*tau(a) ) /
      &                      ( ll2_tr(b) - ll2_tr(a))
@@ -615,7 +589,7 @@ C
       write(iwr,9030) 'Epp    =', Epp
       call rprin0(be  , 1, ntm, 'be    ', iwr)
       call rprin0(Epl , 1,   3, 'Epl   ', iwr)
-      call rprin0(Sig , 1,  10, 'Sig   ', iwr)
+      call rprin0(Sig , 1, ntm, 'Sig   ', iwr)
       call rprin0(Cst , 6,   6, 'Cst   ', iwr)
                                                   go to 8010
 C
@@ -630,9 +604,10 @@ C
               write(iwr,9030) 'Epp    =', Epp
               call rprin0(be  , 1, ntm, 'be    ', iwr)
               call rprin0(Epl , 1,   3, 'Epl   ', iwr)
-              call rprin0(Sig , 1,  10, 'Sig   ', iwr)
+              call rprin0(Sig , 1, ntm, 'Sig   ', iwr)
               call rprin0(Cst , 6,   6, 'Cst   ', iwr)
           endif
+          call flush(iwr)
       endif
 C
  8010 continue
@@ -686,16 +661,6 @@ C PERIPHERAL UNITS:
 C     None
 C
 C INTERNAL VARIABLES:
-C     vol       - volumetric strain   -   vol = ( eps : 1 ) / 3
-C     nn_t(3,3) - principal directions (by columns) tensor form
-C     ll2(3)    - squares of principal stretches =  lambda^2
-C     tau(3)    - principal values   total    Kirchhoff stress
-C     tt(3)     - principal values deviatoric Kirchhoff stress
-C     pp        - pressure         volumetric Kirchhoff stress
-C     dtde(3,3) - Kirchhoff stress derivative
-C                 dtde(a,b)   = [ d tau_a / d (lambda_b^2) ] * lambda_b^2
-C                             = [ d tau_a / d ( eps_b ) ] / 2.0d0
-C     Cstm(6,6) - spatial elastic moduli in principal basis
 C     yield     - yield function value
 C     yfunct    - yield function
 C                 flg = .false.  only yield function
@@ -848,6 +813,8 @@ C
       end if
 C
       yfunct = yield
+C
+      return
 C
 C     Format
 C

@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Main program for the isogeometric nonlinear elasticity solver.
+//! \brief Main program for the isogeometric finite deformation solver.
 //!
 //==============================================================================
 
@@ -23,7 +23,7 @@
 
 
 /*!
-  \brief Main program for the isogeometric nonlinear elasticity solver.
+  \brief Main program for the isogeometric finite deformation solver.
 
   The input to the program is specified through the following
   command-line arguments. The arguments may be given in arbitrary order.
@@ -35,7 +35,7 @@
   \arg -samg :    Use the sparse algebraic multi-grid equation solver
   \arg -petsc :   Use equation solver from PETSc library
   \arg -nGauss \a n : Number of Gauss points over a knot-span in each direction
-  \arg -vtf \a format : VTF-file format (0=ASCII, 1=BINARY)
+  \arg -vtf \a format : VTF-file format (-1=NONE, 0=ASCII, 1=BINARY)
   \arg -nviz \a nviz : Number of visualization points over each knot-span
   \arg -nu \a nu : Number of visualization points per knot-span in u-direction
   \arg -nv \a nv : Number of visualization points per knot-span in v-direction
@@ -51,6 +51,7 @@
   \arg -2Dpstrain : Use two-parametric simulation driver (plane strain)
   \arg -Tensor : Use tensorial total Lagrangian formulation (slow...)
   \arg -UL : Use updated Lagrangian formulation with nonlinear material
+  \arg -PL : Use placticity solution driver
   \arg -MX \a pord : Mixed formulation with internal discontinuous pressure
   \arg -mixed : Mixed formulation with continuous pressure and volumetric change
   \arg -lag : Use Lagrangian basis functions instead of splines/NURBS
@@ -64,7 +65,7 @@ int main (int argc, char** argv)
   SystemMatrix::Type solver = SystemMatrix::SPARSE;
   int form = SIM::TOTAL_LAGRANGE;
   int nGauss = 4;
-  int format = 0;
+  int format = -1;
   int n[3] = { 2, 2, 2 };
   std::vector<int> ignoredPatches;
   double dtSave = 0.0;
@@ -78,7 +79,7 @@ int main (int argc, char** argv)
 
   LinAlgInit linalg(argc,argv);
 
-  std::vector<int> options(2,-1);
+  std::vector<int> options(2,0);
   for (int i = 1; i < argc; i++)
     if (!strcmp(argv[i],"-dense"))
       solver = SystemMatrix::DENSE;
@@ -145,6 +146,8 @@ int main (int argc, char** argv)
       twoD = SIMLinEl2D::planeStrain = true;
     else if (!strncmp(argv[i],"-2D",3))
       twoD = true;
+    else if (!strcmp(argv[i],"-PL"))
+      form = SIM::PLASTICITY;
     else if (!strcmp(argv[i],"-UL"))
     {
       if (form < SIM::UPDATED_LAGRANGE)
@@ -155,8 +158,6 @@ int main (int argc, char** argv)
       form = SIM::MIXED_QnPn1;
       if (i < argc-1 && isdigit(argv[i+1][0]))
 	options[1] = atoi(argv[++i]);
-      else
-	options[1] = 0;
     }
     else if (!strcmp(argv[i],"-mixed"))
       form = SIM::MIXED_QnQn1;
@@ -188,21 +189,19 @@ int main (int argc, char** argv)
   }
 
   if (linalg.myPid == 0)
-    std::cout <<"\n >>> Spline FEM Nonlinear Elasticity solver <<<"
-	      <<"\n ==============================================\n"
+  {
+    std::cout <<"\n >>> Spline FEM Finite Deformation Nonlinear solver <<<"
+	      <<"\n ======================================================\n"
 	      <<"\nInput file: "<< infile
 	      <<"\nEquation solver: "<< solver
-	      <<"\nNumber of Gauss points: "<< nGauss
-	      <<"\nVTF file format: "<< (format ? "BINARY":"ASCII")
-	      <<"\nNumber of visualization points: "
-	      << n[0] <<" "<< n[1];
-  if (twoD)
-    n[2] = 1;
-  else if (linalg.myPid == 0)
-    std::cout <<" "<< n[2];
-
-  if (linalg.myPid == 0)
-  {
+	      <<"\nNumber of Gauss points: "<< nGauss;
+    if (format >= 0)
+    {
+      std::cout <<"\nVTF file format: "<< (format ? "BINARY":"ASCII")
+		<<"\nNumber of visualization points: "
+		<< n[0] <<" "<< n[1];
+      if (!twoD) std::cout <<" "<< n[2];
+    }
     if (dtSave > 0.0)
       std::cout <<"\nTime between each result save: "<< dtSave;
     if (dtDump > 0.0)
@@ -225,7 +224,7 @@ int main (int argc, char** argv)
   }
   utl::profiler->start("Model input");
 
-  // Create the finite deformation elasticity model
+  // Create the finite deformation continuum model
   options[0] = form%100;
   SIMbase* model;
   if (twoD)
@@ -245,9 +244,13 @@ int main (int argc, char** argv)
   if (!model->preprocess(ignoredPatches,fixDup))
     return 2;
 
-  // Save FE model to VTF file for visualization
-  if (!simulator.saveModel(infile,format,n))
-    return 3;
+  if (format >= 0)
+  {
+    // Save FE model to VTF file for visualization
+    if (twoD) n[2] = 1;
+    if (!simulator.saveModel(infile,format,n))
+      return 3;
+  }
 
   std::ostream* oss = 0;
   if (dtDump > 0.0 && !dumpWithID)
@@ -270,11 +273,12 @@ int main (int argc, char** argv)
 
   const double epsT = 1.0e-6;
   if (dtDump <= 0.0) dtDump = params.stopTime + 1.0;
+  if (format < 0)    dtSave = params.stopTime + 1.0;
   double nextDump = params.time.t + dtDump;
   double nextSave = params.time.t + dtSave;
 
   int iStep = 0; // Save initial state to VTF
-  if (params.multiSteps())
+  if (format >= 0 && params.multiSteps())
     if (!simulator.saveStep(-(++iStep),params.time.t,n,skip2nd))
       return 4;
 

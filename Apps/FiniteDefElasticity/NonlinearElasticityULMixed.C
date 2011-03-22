@@ -206,10 +206,10 @@ NonlinearElasticityULMixed::NonlinearElasticityULMixed (unsigned short int n)
 
 void NonlinearElasticityULMixed::print (std::ostream& os) const
 {
-  this->NonlinearElasticityUL::print(os);
-
   std::cout <<"NonlinearElasticityULMixed: "
 	    <<"Continuous volumetric change and pressure fields"<< std::endl;
+
+  this->NonlinearElasticityUL::print(os);
 }
 
 
@@ -298,9 +298,8 @@ bool NonlinearElasticityULMixed::evalInt (LocalIntegral*& elmInt, double detJW,
 					  const Vec3& X) const
 {
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E
-  Tensor F(nsd);
   SymmTensor E(nsd);
-  if (!this->kinematics(dNdX1,F,E))
+  if (!this->kinematics(dNdX1,Fbar,E))
     return false;
 
   bool lHaveStrains = !E.isZero();
@@ -318,24 +317,23 @@ bool NonlinearElasticityULMixed::evalInt (LocalIntegral*& elmInt, double detJW,
   double dVol = Theta*detJW;
 
   // Compute the mixed model deformation gradient, F_bar
-  double r1 = pow(fabs(Theta/F.det()),1.0/3.0);
+  double r1 = pow(fabs(Theta/Fbar.det()),1.0/3.0);
 
-  unsigned short int i, j, k;
-  for (i = 1; i <= nsd; i++)
-    for (j = 1; j <= nsd; j++)
-      Fbar(i,j) = r1*F(i,j);
+  Matrix Fi(nsd,nsd);
+  Fi.fill(Fbar.ptr());
 
+  Fbar *= r1;
   if (nsd == 2) // In 2D we always assume plane strain so set F(3,3)=1
     Fbar(3,3) = r1;
   else if (nsd != 3)
     return false;
 
   // Invert the deformation gradient ==> Fi
-  double J = F.inverse();
+  double J = Fi.inverse();
   if (J == 0.0) return false;
 
   // Push-forward the basis function gradients to current configuration
-  dNdx.multiply(dNdX1,F); // dNdx = dNdX * F^-1
+  dNdx.multiply(dNdX1,Fi); // dNdx = dNdX * F^-1
 #if INT_DEBUG > 0
   std::cout <<"NonlinearElasticityULMixed::dNdX ="<< dNdX1;
   std::cout <<"NonlinearElasticityULMixed::dNdx ="<< dNdx;
@@ -391,6 +389,7 @@ bool NonlinearElasticityULMixed::evalInt (LocalIntegral*& elmInt, double detJW,
 
   // Integrate the volumetric change and pressure tangent terms
   size_t a, b;
+  unsigned short int i, j, k;
   for (a = 1; a <= N1.size(); a++)
     for (b = 1; b <= N2.size(); b++)
       for (i = 1; i <= nsd; i++)

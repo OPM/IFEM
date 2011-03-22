@@ -24,7 +24,7 @@ class VTF;
 
 /*!
   \brief Class representing the integrand of the Poisson problem.
-  \details This class supports constant isotrophic conductivity properties only.
+  \details This class supports constant isotropic constitutive properties only.
   Properties with spatial variation has to be implemented as sub-classes.
 */
 
@@ -49,7 +49,7 @@ public:
   //! \brief Defines the heat source.
   void setSource(RealFunc* src) { heatSrc = src; }
 
-  //! \brief Defines the conductivity.
+  //! \brief Defines the conductivity (constitutive property).
   void setMaterial(double K) { kappa = K; }
 
   //! \brief Initializes current element for numerical integration.
@@ -126,12 +126,7 @@ public:
   //! \param[in] prefix Name prefix for all components
   virtual const char* getFieldLabel(size_t i, const char* prefix = 0) const;
 
-protected:
-  //! \brief Returns the conductivety at current point.
-  virtual double getConductivety(const Vec3&) const { return kappa; }
-
-public:
-  //! \brief Sets up the conductivity matrix at current point.
+  //! \brief Sets up the constitutive matrix at current point.
   //! \param[out] C \f$ nsd\times nsd\f$-matrix
   //! \param[in] X Cartesian coordinates of current point
   //! \param[in] invers If \e true, set up the inverse matrix instead
@@ -158,7 +153,7 @@ protected:
 
   // Work arrays declared as members to avoid frequent re-allocation
   // within the numerical integration loop (for reduced overhead)
-  mutable Matrix C;  //!< Conductivity matrix
+  mutable Matrix C;  //!< Constitutive matrix
   mutable Matrix CB; //!< Result of the matrix-matrix product C*dNdX^T
 };
 

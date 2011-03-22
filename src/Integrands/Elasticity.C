@@ -150,15 +150,18 @@ bool Elasticity::initElement (const std::vector<int>& MNPC)
   if (eM)  eM->resize(nsd*nen,nsd*nen,true);
   if (eS)  eS->resize(nsd*nen,true);
 
+  // Extract the current primary solution and store in the array *eV
   int ierr = 0;
   if (eV && !primsol.front().empty())
     if ((ierr = utl::gather(MNPC,nsd,primsol.front(),*eV)))
       std::cerr <<" *** Elasticity::initElement: Detected "
 		<< ierr <<" node numbers out of range."<< std::endl;
 
+  // If previous solutions are required, they are stored in the
+  // (primsol.size()-1) last entries in myMats->b
   int j = 1+myMats->b.size()-primsol.size();
   for (size_t i = 1; i < primsol.size() && ierr == 0; i++, j++)
-    ierr = utl::gather(MNPC,nsd,primsol[j],myMats->b[j]);
+    ierr = utl::gather(MNPC,nsd,primsol[i],myMats->b[j]);
 
   if (myMats)
     myMats->withLHS = true;
@@ -353,7 +356,7 @@ bool Elasticity::formBmatrix (const Matrix& dNdX) const
 void Elasticity::formKG (Matrix& EM, const Matrix& dNdX,
 			 const Tensor& sigma, double detJW) const
 {
-#ifdef INT_DEBUG
+#if SP_DEBUG > 3
   std::cout <<"Elasticity::eV ="<< *eV;
   std::cout <<"Elasticity::sigma =\n"<< sigma;
   std::cout <<"Elasticity::kg =";
@@ -367,14 +370,14 @@ void Elasticity::formKG (Matrix& EM, const Matrix& dNdX,
       for (i = 1; i <= nsd; i++)
 	for (j = 1; j <= nsd; j++)
 	  kg += dNdX(a,i)*sigma(i,j)*dNdX(b,j);
-#ifdef INT_DEBUG
+#if SP_DEBUG > 3
       std::cout << (b == 1 ? '\n' : ' ') << kg;
 #endif
 
       for (i = 1; i <= nsd; i++)
 	EM(nsd*(a-1)+i,nsd*(b-1)+i) += kg*detJW;
     }
-#ifdef INT_DEBUG
+#if SP_DEBUG > 3
   std::cout << std::endl;
 #endif
 }

@@ -36,8 +36,9 @@ PlasticityUL::~PlasticityUL ()
 
 void PlasticityUL::print (std::ostream& os) const
 {
-  material->print(os);
-  std::cout <<"PlasticityUL: Updated Lagrangian formulation"<< std::endl;
+  std::cout <<"PlasticityUL: Finite deformation plasticity"<< std::endl;
+
+  this->NonlinearElasticityUL::print(os);
 }
 
 
