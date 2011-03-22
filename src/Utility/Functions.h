@@ -15,11 +15,10 @@
 #define _FUNCTIONS_H
 
 #include "Function.h"
-#include <math.h>
 
 
 /*!
-  \brief A linear scalar function.
+  \brief A scalar-valued linear function.
 */
 
 class LinearFunc : public ScalarFunc
@@ -31,13 +30,70 @@ public:
   LinearFunc(real s = real(1)) : scale(s) {}
 
 protected:
-  //! \brief Evaluates the scalar function.
+  //! \brief Evaluates the function at \a x.
   virtual real evaluate(const real& x) const { return scale*x; }
 };
 
 
 /*!
-  \brief A sinusoidal scalar function.
+  \brief A scalar-valued ramp function, linear up to \a xmax.
+*/
+
+class RampFunc : public ScalarFunc
+{
+  real fval; //!< Max function value
+  real xmax; //!< Function is linear from \a x = 0 to \a x = \a xmax
+
+public:
+  //! \brief Constructor initializing the function parameters.
+  RampFunc(real f = real(1), real x = real(1)) : fval(f), xmax(x) {}
+
+protected:
+  //! \brief Evaluates the function at \a x.
+  virtual real evaluate(const real& x) const;
+};
+
+
+/*!
+  \brief A scalar-valued dirac function.
+*/
+
+class DiracFunc : public ScalarFunc
+{
+  real amp;  //!< The amplitude of the dirac function
+  real xmax; //!< Associated \a x value
+
+public:
+  //! \brief Constructor initializing the function parameters.
+  DiracFunc(real a = real(1), real x = real(0)) : amp(a), xmax(x) {}
+
+protected:
+  //! \brief Evaluates the function at \a x.
+  virtual real evaluate(const real& x) const;
+};
+
+
+/*!
+  \brief A scalar-valued step function.
+*/
+
+class StepFunc : public ScalarFunc
+{
+  real amp;  //!< The amplitude of the step function
+  real xmax; //!< Associated \a x value
+
+public:
+  //! \brief Constructor initializing the function parameters.
+  StepFunc(real a, real x = real(0)) : amp(a), xmax(x) {}
+
+protected:
+  //! \brief Evaluates the function at \a x.
+  virtual real evaluate(const real& x) const;
+};
+
+
+/*!
+  \brief A scalar-valued sinusoidal function.
 */
 
 class SineFunc : public ScalarFunc
@@ -52,13 +108,13 @@ public:
     : scale(s), freq(f), phase(p) {}
 
 protected:
-  //! \brief Evaluates the scalar function.
-  virtual real evaluate(const real& x) const { return scale*sin(freq*x+phase); }
+  //! \brief Evaluates the function at \a x.
+  virtual real evaluate(const real& x) const;
 };
 
 
 /*!
-  \brief A scalar function, constant in space and time.
+  \brief A scalar-valued spatial function, constant in space and time.
 */
 
 class ConstFunc : public RealFunc
@@ -76,7 +132,7 @@ protected:
 
 
 /*!
-  \brief A scalar function, constant in space but varying in time.
+  \brief A scalar-valued spatial function, constant in space, varying in time.
 */
 
 class ConstTimeFunc : public RealFunc
@@ -91,12 +147,12 @@ public:
 
 protected:
   //! \brief Evaluates the time-varying function.
-  virtual real evaluate(const Vec3& x) const;
+  virtual real evaluate(const Vec3& X) const;
 };
 
 
 /*!
-  \brief A scalar function, varying in space and time.
+  \brief A scalar-valued spatial function, varying in space and time.
   \details The function value is defined as a product between one
   space-dependent component and one time-dependent component.
 */
@@ -114,31 +170,12 @@ public:
 
 protected:
   //! \brief Evaluates the space-time function.
-  virtual real evaluate(const Vec3& x) const;
+  virtual real evaluate(const Vec3& X) const;
 };
 
 
 /*!
-  \brief A scalar function, linear in \a t up to \a Tinit.
-*/
-
-class LinearTinitFunc : public RealFunc
-{
-  real value; //!< Max function value
-  real Tinit; //!< Function is linear from t = 0 to t = Tinit
-
-public:
-  //! \brief Constructor initializing the function parameters.
-  LinearTinitFunc(real value_, real Tinit_) : value(value_), Tinit(Tinit_) {}
-
-protected:
-  //! \brief Evaluates the linear function.
-  virtual real evaluate(const Vec3& x) const;
-};
-
-
-/*!
-  \brief A scalar function, linear in \a x.
+  \brief A scalar-valued spatial function, linear in \a x.
 */
 
 class LinearXFunc : public RealFunc
@@ -157,7 +194,7 @@ protected:
 
 
 /*!
-  \brief A scalar function, linear in \a y.
+  \brief A scalar-valued spatial function, linear in \a y.
 */
 
 class LinearYFunc : public RealFunc
@@ -176,7 +213,7 @@ protected:
 
 
 /*!
-  \brief A scalar function, linear in \a z.
+  \brief A scalar-valued spatial function, linear in \a z.
 */
 
 class LinearZFunc : public RealFunc
@@ -195,7 +232,7 @@ protected:
 
 
 /*!
-  \brief A scalar function, quadratic in \a x.
+  \brief A scalar-valued spatial function, quadratic in \a x.
 */
 
 class QuadraticXFunc : public RealFunc
@@ -215,7 +252,7 @@ protected:
 
 
 /*!
-  \brief A scalar function, quadratic in \a y.
+  \brief A scalar-valued spatial function, quadratic in \a y.
 */
 
 class QuadraticYFunc : public RealFunc
@@ -235,7 +272,7 @@ protected:
 
 
 /*!
-  \brief A scalar function, quadratic in \a x.
+  \brief A scalar-valued spatial function, quadratic in \a z.
 */
 
 class QuadraticZFunc : public RealFunc
@@ -255,11 +292,11 @@ protected:
 
 
 /*!
-  \brief A scalar function, defining a linear rotation about the global Z-axis.
+  \brief A scalar-valued spatial function, defining a rotation about the Z-axis.
   \details The time component of the function argument multiplied with the
   function parameter \a A, is interpreted as the angle of rotation (in radians)
-  about the Z-axis passing through the point \a x0, \a y0.
-  The function then returns the translation in either \a x or \a y direction
+  about the global Z-axis passing through the point \a x0, \a y0.
+  The function then returns the translation in either X- or Y-direction
   (depending on the \a retX argument to the constructor) of the global point
   { \a X.x, \a X.y } corresponding to this rotation.
   \note If the function is passed a Vec3 object as argument (and not a Vec4),
@@ -268,10 +305,10 @@ protected:
 
 class LinearRotZFunc : public RealFunc
 {
-  bool rX; //!< Flag telling whether to return the X (true) or Y component
+  bool rX; //!< Flag telling whether to return the X- (true) or Y-component
   real A;  //!< Magnitude of the rotation
-  real x0; //!< Global x-coordinate of rotation centre
-  real y0; //!< Global y-coordinate of rotation centre
+  real x0; //!< Global X-coordinate of rotation centre
+  real y0; //!< Global Y-coordinate of rotation centre
 
 public:
   //! \brief Constructor initializing the function parameters.
@@ -285,7 +322,7 @@ protected:
 
 
 /*!
-  \brief A scalar function, step in \a x.
+  \brief A scalar-valued spatial function, step in \a x.
 */
 
 class StepXFunc : public RealFunc
@@ -300,13 +337,13 @@ public:
     : fv(v), x0(X0), x1(X1) {}
 
 protected:
-  //! \brief Evaluates the linear function.
+  //! \brief Evaluates the step function.
   virtual real evaluate(const Vec3& X) const;
 };
 
 
 /*!
-  \brief A scalar function, step in \a x and \a y.
+  \brief A scalar-valued spatial function, step in \a x and \a y.
 */
 
 class StepXYFunc : public RealFunc
@@ -325,15 +362,15 @@ public:
     : fv(v), x0(X0), y0(Y0), x1(X1), y1(Y1) {}
 
 protected:
-  //! \brief Evaluates the linear function.
+  //! \brief Evaluates the step function.
   virtual real evaluate(const Vec3& X) const;
 };
 
 
 namespace utl
 {
-  //! \brief Creates a real function by parsing data from a character string.
-  const RealFunc* parseRealFunc(char* cline, real A = real(0));
+  //! \brief Creates a scalar-valued function by parsing a character string.
+  const RealFunc* parseRealFunc(char* cline, real A = real(1));
 }
 
 #endif
