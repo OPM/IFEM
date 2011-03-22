@@ -55,7 +55,9 @@ public:
   };
 
   //! \brief Initializes the solution parameters with values read from file.
-  virtual void init(SolvePrm& param);
+  //! \param param Solution algorithm parameters
+  //! \param[in] initVal Initial values of the primary solution
+  virtual void init(SolvePrm& param, const Vector& initVal = Vector());
   //! \brief Advances the time/load step one step forward.
   virtual bool advanceStep(SolvePrm& param);
 
@@ -64,6 +66,10 @@ public:
   //! \param[in] format Format of VTF-file (0=ASCII, 1=BINARY)
   //! \param[in] nViz Number of visualization points over a knot-span
   bool saveModel(char* fileName, int format, int* nViz);
+
+  //! \brief Sets the initial guess in the Newton-Raphson iterations.
+  //! \param value The initial guess to use
+  void setInitialGuess(const Vector& value) { solution.front() = value; }
 
   //! \brief Solves the nonlinear equations by Newton-Raphson iterations.
   //! \param param Solution algorithm parameters
@@ -97,6 +103,9 @@ public:
   //! \param[in] withID If \e true, write node ID and coordinates too
   void dumpStep(int iStep, double time, std::ostream& os,
 		bool withID = true) const;
+
+  //! \brief Returns a const reference to current solution vector.
+  const Vector& getSolution() const { return solution.front(); }
 
 protected:
   //! \brief Convergence status enum.

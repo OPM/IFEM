@@ -90,7 +90,7 @@ bool NonLinSIM::parse (char* keyWord, std::istream& is)
 }
 
 
-void NonLinSIM::init (SolvePrm& param)
+void NonLinSIM::init (SolvePrm& param, const Vector& initVal)
 {
   param.startTime = startTime;
   param.stopTime = stopTime;
@@ -103,12 +103,15 @@ void NonLinSIM::init (SolvePrm& param)
   param.divgLim = divgLim;
   param.eta     = eta;
 
-  // TODO perhaps set initial conditions for time-dependent problems here
   size_t nSols = model->getNoSolutions();
   if (nSols < 2) nSols = 2;
   solution.resize(nSols);
   for (size_t n = 0; n < nSols; n++)
     solution[n].resize(model->getNoDOFs(),true);
+
+  // Set initial conditions for time-dependent problems
+  if (initVal.size() == model->getNoDOFs())
+    solution.front() = initVal;
 }
 
 

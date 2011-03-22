@@ -602,7 +602,9 @@ bool SIMbase::solutionNorms (const TimeDomain& time, const Vectors& psol,
   NormBase* norm = myProblem->getNormIntegrand(mySol);
   if (!norm)
   {
+#ifdef SP_DEBUG
     std::cerr <<" *** SIMbase::solutionNorms: No integrand."<< std::endl;
+#endif
     return false;
   }
 
