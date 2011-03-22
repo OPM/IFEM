@@ -217,7 +217,13 @@ public:
   //! points and then projected onto the spline basis to obtain the control
   //! point values, which then are returned through \a sField.
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
-			    const int* npe) const;
+			    const int* npe = 0) const;
+
+  //! \brief Projects the secondary solution field onto the primary basis.
+  //! \param[in] integrand Object with problem-specific data and methods
+  Go::SplineSurface* projectSolution(const Integrand& integrand) const;
+  //! \brief Projects the secondary solution field onto the primary basis.
+  virtual Go::GeomObject* evalSolution(const Integrand& integrand) const;
 
 protected:
 

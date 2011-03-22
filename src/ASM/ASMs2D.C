@@ -754,6 +754,19 @@ void ASMs2D::extractBasis (const Go::BasisDerivsSf2& spline,
 }
 
 
+#if SP_DEBUG > 4
+std::ostream& operator<<(std::ostream& os, const Go::BasisDerivsSf& bder)
+{
+  os <<" : (u,v) = "<< bder.param[0] <<" "<< bder.param[1]
+     <<"  left_idx = "<< bder.left_idx[0] <<" "<< bder.left_idx[1] << std::endl;
+  for (size_t i = 0; i < bder.basisValues.size(); i++)
+    os << 1+i <<'\t'<< bder.basisValues[i] <<'\t'
+       << bder.basisDerivs_u[i] <<'\t'<< bder.basisDerivs_v[i] << std::endl;
+  return os;
+}
+#endif
+
+
 bool ASMs2D::integrate (Integrand& integrand,
 			GlobalIntegral& glInt,
 			const TimeDomain& time,
@@ -794,6 +807,11 @@ bool ASMs2D::integrate (Integrand& integrand,
     surf->computeBasisGrid(gpar[0],gpar[1],spline2);
   else
     surf->computeBasisGrid(gpar[0],gpar[1],spline);
+
+#if SP_DEBUG > 4
+  for (size_t i = 0; i < spline.size(); i++)
+    std::cout <<"\nBasis functions at integration point "<< 1+i << spline[i];
+#endif
 
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
@@ -898,6 +916,11 @@ bool ASMs2D::integrate (Integrand& integrand,
 	  if (integrand.getIntegrandType() == 2)
 	    if (!utl::Hessian(Hess,d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
 	      return false;
+
+#if SP_DEBUG > 4
+	  std::cout <<"\niel, ip = "<< iel <<" "<< ip
+		    <<"\nN ="<< N <<"dNdX ="<< dNdX << std::endl;
+#endif
 
 	  // Cartesian coordinates of current integration point
 	  X = Xnod * N;
@@ -1208,20 +1231,54 @@ bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
 bool ASMs2D::evalSolution (Matrix& sField, const Integrand& integrand,
 			   const int* npe) const
 {
-  sField.resize(0,0);
-
-  // Compute parameter values of the result sampling points
-  DoubleVec gpar[2];
   bool retVal = true;
-  for (int dir = 0; dir < 2; dir++)
-    if (npe)
+
+  if (npe)
+  {
+    // Compute parameter values of the result sampling points
+    DoubleVec gpar[2];
+    for (int dir = 0; dir < 2 && retVal; dir++)
       retVal = this->getGridParameters(gpar[dir],dir,npe[dir]-1);
+
+    // Evaluate the secondary solution at all sampling points
+    if (retVal)
+      retVal = this->evalSolution(sField,integrand,gpar);
+  }
+  else
+  {
+    Go::SplineSurface* s = this->projectSolution(integrand);
+    if (s)
+    {
+      sField.resize(s->dimension(),s->numCoefs_u()*s->numCoefs_v());
+      sField.fill(&(*s->coefs_begin()));
+      delete s;
+    }
     else
-      retVal = this->getGrevilleParameters(gpar[dir],dir);
+      retVal = false;
+  }
+
+  return retVal;
+}
+
+
+Go::GeomObject* ASMs2D::evalSolution (const Integrand& integrand) const
+{
+  return this->projectSolution(integrand);
+}
+
+
+Go::SplineSurface* ASMs2D::projectSolution (const Integrand& integrand) const
+{
+  // Compute parameter values of the result sampling points (Greville points)
+  DoubleVec gpar[2];
+  for (int dir = 0; dir < 2; dir++)
+    if (!this->getGrevilleParameters(gpar[dir],dir))
+      return 0;
 
   // Evaluate the secondary solution at all sampling points
-  if (retVal) retVal = this->evalSolution(sField,integrand,gpar);
-  if (!retVal || npe) return retVal;
+  Matrix sValues;
+  if (!this->evalSolution(sValues,integrand,gpar))
+    return 0;
 
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.
@@ -1230,22 +1287,18 @@ bool ASMs2D::evalSolution (Matrix& sField, const Integrand& integrand,
   // the result array. Think that is always the case, but beware if trying
   // other projection schemes later.
 
-  Vector sValues = sField;
   DoubleVec weights;
   if (surf->rational())
     surf->getWeights(weights);
 
-  Go::SplineSurface* s =
-    Go::SurfaceInterpolator::regularInterpolation(surf->basis(0),
-						  surf->basis(1),
-						  gpar[0], gpar[1],
-						  sValues, sField.rows(),
-						  surf->rational(), weights);
-
-  sField.fill(&(*s->coefs_begin()));
-  delete s;
-
-  return retVal;
+  const Vector& vec = sValues;
+  return Go::SurfaceInterpolator::regularInterpolation(surf->basis(0),
+						       surf->basis(1),
+						       gpar[0], gpar[1],
+						       const_cast<Vector&>(vec),
+						       sValues.rows(),
+						       surf->rational(),
+						       weights);
 }
 
 

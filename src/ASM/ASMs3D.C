@@ -1236,6 +1236,11 @@ bool ASMs3D::integrate (Integrand& integrand,
 		if (!utl::Hessian(Hess,d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
 		  return false;
 
+#if SP_DEBUG > 4
+	      std::cout <<"\niel, ip = "<< iel <<" "<< ip
+			<<"\nN ="<< N <<"dNdX ="<< dNdX << std::endl;
+#endif
+
 	      // Cartesian coordinates of current integration point
 	      X = Xnod * N;
 	      X.t = time.t;
@@ -1735,18 +1740,55 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
 bool ASMs3D::evalSolution (Matrix& sField, const Integrand& integrand,
 			   const int* npe) const
 {
+  bool retVal = true;
+
+  if (npe)
+  {
+    // Compute parameter values of the result sampling points
+    DoubleVec gpar[3];
+    for (int dir = 0; dir < 3 && retVal; dir++)
+      retVal = this->getGridParameters(gpar[dir],dir,npe[dir]-1);
+
+    // Evaluate the secondary solution at all sampling points
+    if (retVal)
+      retVal = this->evalSolution(sField,integrand,gpar);
+  }
+  else
+  {
+    Go::SplineVolume* v = this->projectSolution(integrand);
+    if (v)
+    {
+      sField.resize(v->dimension(),
+		    v->numCoefs(0)*v->numCoefs(1)*v->numCoefs(2));
+      sField.fill(&(*v->coefs_begin()));
+      delete v;
+    }
+    else
+      retVal = false;
+  }
+
+  return retVal;
+}
+
+
+Go::GeomObject* ASMs3D::evalSolution (const Integrand& integrand) const
+{
+  return this->projectSolution(integrand);
+}
+
+
+Go::SplineVolume* ASMs3D::projectSolution (const Integrand& integrand) const
+{
   // Compute parameter values of the result sampling points
   DoubleVec gpar[3];
-  bool retVal = true;
-  for (int dir = 0; dir < 3 && retVal; dir++)
-    if (npe)
-      retVal = this->getGridParameters(gpar[dir],dir,npe[dir]-1);
-    else
-      retVal = this->getGrevilleParameters(gpar[dir],dir);
+  for (int dir = 0; dir < 3; dir++)
+    if (!this->getGrevilleParameters(gpar[dir],dir))
+      return 0;
 
   // Evaluate the secondary solution at all sampling points
-  if (retVal) retVal = this->evalSolution(sField,integrand,gpar);
-  if (!retVal || npe) return retVal;
+  Matrix sValues;
+  if (!this->evalSolution(sValues,integrand,gpar))
+    return false;
 
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.
@@ -1755,23 +1797,19 @@ bool ASMs3D::evalSolution (Matrix& sField, const Integrand& integrand,
   // the result array. Think that is always the case, but beware if trying
   // other projection schemes later.
 
-  Vector sValues = sField;
   DoubleVec weights;
   if (svol->rational())
     svol->getWeights(weights);
 
-  Go::SplineVolume* s =
-    Go::VolumeInterpolator::regularInterpolation(svol->basis(0),
-						 svol->basis(1),
-						 svol->basis(2),
-						 gpar[0], gpar[1], gpar[2],
-						 sValues, sField.rows(),
-						 svol->rational(), weights);
-
-  sField.fill(&(*s->coefs_begin()));
-  delete s;
-
-  return retVal;
+  const Vector& vec = sValues;
+  return Go::VolumeInterpolator::regularInterpolation(svol->basis(0),
+						      svol->basis(1),
+						      svol->basis(2),
+						      gpar[0], gpar[1], gpar[2],
+						      const_cast<Vector&>(vec),
+						      sValues.rows(),
+						      svol->rational(),
+						      weights);
 }
 
 

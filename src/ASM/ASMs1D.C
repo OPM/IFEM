@@ -729,12 +729,47 @@ bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
 bool ASMs1D::evalSolution (Matrix& sField, const Integrand& integrand,
 			   const int* npe) const
 {
-  sField.resize(0,0);
+  if (npe)
+  {
+    // Compute parameter values of the result sampling points
+    DoubleVec gpar;
+    if (this->getGridParameters(gpar,npe[0]-1))
+      // Evaluate the secondary solution at all sampling points
+      return this->evalSolution(sField,integrand,gpar);
+  }
+  else
+  {
+    Go::SplineCurve* c = this->projectSolution(integrand);
+    if (c)
+    {
+      sField.resize(c->dimension(),c->numCoefs());
+      sField.fill(&(*c->coefs_begin()));
+      delete c;
+      return true;
+    }
+  }
 
-  // Compute parameter values of the result sampling points
-  DoubleVec gpar;
-  if (!this->getGridParameters(gpar,npe[0]-1))
-    return false;
+  return false;
+}
+
+
+Go::GeomObject* ASMs1D::evalSolution (const Integrand& integrand) const
+{
+  return this->projectSolution(integrand);
+}
+
+
+Go::SplineCurve* ASMs1D::projectSolution (const Integrand& integrand) const
+{
+  std::cerr <<"ASMs1D::projectSolution: Not implemented yet!"<< std::endl;
+  return 0;
+}
+
+
+bool ASMs1D::evalSolution (Matrix& sField, const Integrand& integrand,
+			   const RealArray& gpar) const
+{
+  sField.resize(0,0);
 
   const int p1 = curv->order();
 

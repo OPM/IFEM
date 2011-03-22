@@ -139,13 +139,30 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] npe Number of visualization nodes over each knot span
+  //!
+  //! \details If \a npe is NULL, the solution is evaluated at the Greville
+  //! points and then projected onto the spline basis to obtain the control
+  //! point values, which then are returned through \a sField.
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
-			    const int* npe) const;
+			    const int* npe = 0) const;
+
+  //! \brief Projects the secondary solution field onto the primary basis.
+  //! \param[in] integrand Object with problem-specific data and methods
+  Go::SplineCurve* projectSolution(const Integrand& integrand) const;
+  //! \brief Projects the secondary solution field onto the primary basis.
+  virtual Go::GeomObject* evalSolution(const Integrand& integrand) const;
 
 protected:
 
   // Internal utility methods
   // ========================
+
+  //! \brief Evaluates the secondary solution field at the given points.
+  //! \param[out] sField Solution field
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] gpar Parameter values of the result sampling points
+  bool evalSolution(Matrix& sField, const Integrand& integrand,
+		    const RealArray& gpar) const;
 
   //! \brief Calculates parameter values for the visualization nodal points.
   //! \param[out] prm Parameter values for all points

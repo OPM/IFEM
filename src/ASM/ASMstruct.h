@@ -48,6 +48,10 @@ public:
   //! \brief Resets the global element and node counters.
   static void resetNumbering() { gEl = gNod = 0; }
 
+  //! \brief Projects the secondary solution field onto the primary basis.
+  //! \param[in] integrand Object with problem-specific data and methods
+  virtual Go::GeomObject* evalSolution(const Integrand& integrand) const = 0;
+
 protected:
   Go::GeomObject* geo; //!< Pointer to the actual spline geometry object
 

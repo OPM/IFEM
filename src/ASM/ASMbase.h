@@ -245,8 +245,11 @@ public:
   //!
   //! \details The secondary solution is derived from the primary solution,
   //! which is assumed to be stored in the \a integrand for current patch.
+  //! If \a npe is NULL, the solution is evaluated at the Greville points and
+  //! then projected onto the spline basis to obtain the control point values,
+  //! which then are returned through \a sField.
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
-			    const int* npe) const;
+			    const int* npe = 0) const;
 
 
   // Methods for result extraction
@@ -263,6 +266,13 @@ public:
   //! \param[in] nndof Number of DOFs per node (the default is \a nf)
   virtual void extractNodeVec(const Vector& globVec, Vector& nodeVec,
 			      unsigned char nndof = 0) const;
+
+  //! \brief Inject nodal results for this patch into the global vector.
+  //! \param[in] nodeVec Nodal result vector for this patch
+  //! \param globVec Global solution vector in DOF-order
+  //! \param[in] nndof Number of DOFs per node (the default is \a nf)
+  virtual void injectNodeVec(const Vector& nodeVec, Vector& globVec,
+			     unsigned char nndof = 0) const;
 
 protected:
 

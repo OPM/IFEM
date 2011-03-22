@@ -479,6 +479,20 @@ void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
 }
 
 
+void ASMbase::injectNodeVec (const Vector& nodeVec, Vector& globRes,
+			     unsigned char nndof) const
+{
+  if (nndof == 0) nndof = nf;
+
+  for (size_t i = 0; i < MLGN.size(); i++)
+  {
+    int n = MLGN[i]-1;
+    for (unsigned char j = 0; j < nndof; j++)
+      globRes[nndof*n+j] = nodeVec[nndof*i+j];
+  }
+}
+
+
 bool ASMbase::tesselate (ElementBlock&, const int*) const
 {
   std::cerr <<" *** ASMBase::tesselate: Must be implemented in sub-class."
