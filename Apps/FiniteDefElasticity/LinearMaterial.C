@@ -43,7 +43,7 @@ bool LinearMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
   // Push-forward the constitutive matrix to current configuration
 
   size_t i, j, k, l;
-  size_t n = F.dim();
+  size_t n = eps.dim();
   size_t m = C.rows();
   Matrix T(m,m), Ctmp;
 

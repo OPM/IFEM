@@ -15,6 +15,7 @@
 #include "MaterialBase.h"
 #include "ElmMats.h"
 #include "ElmNorm.h"
+#include "TimeDomain.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
 
@@ -133,19 +134,13 @@ bool NonlinearElasticityULMX::initElement (const std::vector<int>& MNPC,
   size_t nPm = utl::Pascal(p,nsd);
   if (Hh) Hh->resize(nPm,nPm,true);
 
-  // Extract the element level displacements of previous increment
-  int ierr = 0;
-  if (!primsol[1].empty())
-    if ((ierr = utl::gather(MNPC,nsd,primsol[1],myMats->b[2])))
-      std::cerr <<" *** NonlinearElasticityULMX::initElement: Detected "
-		<< ierr <<" node numbers out of range."<< std::endl;
-
   // The other element matrices are initialized by the parent class method
-  return this->NonlinearElasticityUL::initElement(MNPC) && ierr == 0;
+  return this->NonlinearElasticityUL::initElement(MNPC);
 }
 
 
-bool NonlinearElasticityULMX::evalInt (LocalIntegral*& elmInt, double detJW,
+bool NonlinearElasticityULMX::evalInt (LocalIntegral*& elmInt,
+				       const TimeDomain&, double detJW,
 				       const Vector& N, const Matrix& dNdX,
 				       const Vec3& X) const
 {
@@ -172,7 +167,9 @@ bool NonlinearElasticityULMX::evalInt (LocalIntegral*& elmInt, double detJW,
 
   // Invert the deformation gradient ==> Fi
   Matrix Fi(nsd,nsd);
-  Fi.fill(ptData.F.ptr());
+  for (unsigned short int i = 1; i <= nsd; i++)
+    for (unsigned short int j = 1; j <= nsd; j++)
+      Fi(i,j) = ptData.F(i,j);
   double J = Fi.inverse();
   if (J == 0.0) return false;
 
@@ -207,7 +204,8 @@ bool NonlinearElasticityULMX::evalInt (LocalIntegral*& elmInt, double detJW,
 }
 
 
-bool NonlinearElasticityULMX::finalizeElement (LocalIntegral*& elmInt)
+bool NonlinearElasticityULMX::finalizeElement (LocalIntegral*& elmInt,
+					       const TimeDomain& prm)
 {
   if (!iS && !eKm && !eKg) return true;
   if (!Hh) return false;
@@ -365,21 +363,20 @@ bool NonlinearElasticityULMX::finalizeElement (LocalIntegral*& elmInt)
     // Evaluate the constitutive relation
     double U = 0.0;
     Sig.push_back(SymmTensor(3));
-    if (!material->evaluate(Cmat,Sig.back(),U,pt.X,pt.F,Sig.back()))
+    if (!material->evaluate(Cmat,Sig.back(),U,pt.X,pt.F,Sig.back(),true,&prm))
       return false;
 
 #ifdef USE_FTNMAT
     // Project the constitutive matrix for the mixed model
     D[iP].resize(7,7);
-    int ipsw = INT_DEBUG > 1 ? 9 : 0;
-    pcst3d_(Cmat.ptr(),D[iP].ptr(),ipsw,6);
+    pcst3d_(Cmat.ptr(),D[iP].ptr(),INT_DEBUG,6);
 #else
     std::cerr <<" *** NonlinearElasticityULMX::finalizeElement: "
 	      <<" Does not work when compiled without USE_FTNMAT"<< std::endl;
     return false;
 #endif
 
-    if (U > 0.0)
+    if (!Sig.back().isZero())
     {
       // Integrate mean pressure
       lHaveStress = true;
@@ -417,8 +414,7 @@ bool NonlinearElasticityULMX::finalizeElement (LocalIntegral*& elmInt)
     if (eKm)
     {
 #ifdef USE_FTNMAT
-      int ipsw = INT_DEBUG > 1 ? 9 : 0;
-      mdma3d_(Bpres,Press,Sig[iP].ptr(),D[iP].ptr(),ipsw,6);
+      mdma3d_(Bpres,Press,Sig[iP].ptr(),D[iP].ptr(),INT_DEBUG,6);
 
       // Integrate the material stiffness matrix
       D[iP] *= dFmix*pt.detJW;
@@ -473,16 +469,18 @@ bool ElasticityNormULMX::initElement (const std::vector<int>& MNPC,
 }
 
 
-bool ElasticityNormULMX::evalInt (LocalIntegral*& elmInt, double detJW,
+bool ElasticityNormULMX::evalInt (LocalIntegral*& elmInt,
+				  const TimeDomain& prm, double detJW,
 				  const Vector& N, const Matrix& dNdX,
 				  const Vec3& X) const
 {
   NonlinearElasticityULMX& elp = static_cast<NonlinearElasticityULMX&>(problem);
-  return elp.evalInt(elmInt,detJW,N,dNdX,X);
+  return elp.evalInt(elmInt,prm,detJW,N,dNdX,X);
 }
 
 
-bool ElasticityNormULMX::finalizeElement (LocalIntegral*& elmInt)
+bool ElasticityNormULMX::finalizeElement (LocalIntegral*& elmInt,
+					  const TimeDomain& prm)
 {
   NonlinearElasticityULMX& elp = static_cast<NonlinearElasticityULMX&>(problem);
   if (!elp.Hh) return false;
@@ -574,7 +572,7 @@ bool ElasticityNormULMX::finalizeElement (LocalIntegral*& elmInt)
 
     // Compute the strain energy density
     double U = 0.0;
-    if (!elp.material->evaluate(C,Sig,U,pt.X,pt.F,Sig,false))
+    if (!elp.material->evaluate(C,Sig,U,pt.X,pt.F,Sig,false,&prm))
       return false;
 
     // Integrate strain energy

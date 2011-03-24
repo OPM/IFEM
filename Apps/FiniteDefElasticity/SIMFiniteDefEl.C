@@ -16,7 +16,6 @@
 #include "LinearMaterial.h"
 #include "NeoHookeMaterial.h"
 #include "PlasticMaterial.h"
-#include "PlasticityUL.h"
 #include "NonlinearElasticityULMixed.h"
 #include "NonlinearElasticityULMX.h"
 #include "NeoHookeElasticity.h"
@@ -32,9 +31,6 @@ SIMFiniteDefEl2D::SIMFiniteDefEl2D (const std::vector<int>& options)
 
   switch (form)
     {
-    case SIM::PLASTICITY:
-      myProblem = new PlasticityUL(2);
-      break;
     case SIM::MIXED_QnQn1:
       nf[1] = 2; // continuous volumetric change and pressure fields
       myProblem = new NonlinearElasticityULMixed(2);
@@ -109,7 +105,7 @@ bool SIMFiniteDefEl2D::parse (char* keyWord, std::istream& is)
       RealArray pMAT;
       while ((cline = strtok(NULL," ")))
 	pMAT.push_back(atof(cline));
-      mVec.push_back(new PlasticPrm(pMAT));
+      mVec.push_back(new PlasticMaterial(pMAT));
 
       if (myPid == 0)
       {
@@ -150,9 +146,6 @@ SIMFiniteDefEl3D::SIMFiniteDefEl3D (bool checkRHS,
 
   switch (form)
     {
-    case SIM::PLASTICITY:
-      myProblem = new PlasticityUL();
-      break;
     case SIM::MIXED_QnQn1:
       nf[1] = 2; // continuous volumetric change and pressure fields
       myProblem = new NonlinearElasticityULMixed();
@@ -233,7 +226,7 @@ bool SIMFiniteDefEl3D::parse (char* keyWord, std::istream& is)
       RealArray pMAT;
       while ((cline = strtok(NULL," ")))
 	pMAT.push_back(atof(cline));
-      mVec.push_back(new PlasticPrm(pMAT));
+      mVec.push_back(new PlasticMaterial(pMAT));
 
       if (myPid == 0)
       {

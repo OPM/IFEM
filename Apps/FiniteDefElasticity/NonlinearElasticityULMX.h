@@ -63,6 +63,7 @@ public:
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] prm Nonlinear solution algorithm parameters
   //! \param[in] detJW Jacobian determinant times integration point weight
   //! \param[in] N Basis function values
   //! \param[in] dNdX Basis function gradients
@@ -72,7 +73,8 @@ public:
   //! depending on the basis function values in the internal member \a myData.
   //! The actual numerical integration of the tangent stiffness and internal
   //! forces is then performed by the \a finalizeElement method.
-  virtual bool evalInt(LocalIntegral*& elmInt, double detJW,
+  virtual bool evalInt(LocalIntegral*& elmInt,
+		       const TimeDomain& prm, double detJW,
 		       const Vector& N, const Matrix& dNdX,
 		       const Vec3& X) const;
 
@@ -82,7 +84,8 @@ public:
   //! modes. All data needed during the integration has been stored internally
   //! in the \a myData member by the \a evalInt method.
   //! \param elmInt The local integral object to receive the contributions
-  virtual bool finalizeElement(LocalIntegral*&);
+  //! \param[in] prm Nonlinear solution algorithm parameters
+  virtual bool finalizeElement(LocalIntegral*& elmInt, const TimeDomain& prm);
 
   //! \brief Returns a pointer to an Integrand for solution norm evaluation.
   //! \note The Integrand object is allocated dynamically and has to be deleted
@@ -128,6 +131,7 @@ public:
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] prm Nonlinear solution algorithm parameters
   //! \param[in] detJW Jacobian determinant times integration point weight
   //! \param[in] N Basis function values
   //! \param[in] dNdX Basis function gradients
@@ -137,7 +141,8 @@ public:
   //! corresponding NonlinearElasticityULMX object, for which this class is
   //! declared as friend such that it can access the data members. The actual
   //! norm integration us then performed by the \a finalizeElement method.
-  virtual bool evalInt(LocalIntegral*& elmInt, double detJW,
+  virtual bool evalInt(LocalIntegral*& elmInt,
+		       const TimeDomain& prm, double detJW,
 		       const Vector& N, const Matrix& dNdX,
 		       const Vec3& X) const;
 
@@ -146,7 +151,8 @@ public:
   //! loops within an element required by the mixed formulation. It performs
   //! a subset of the tasks done by NonlinearElasticityULMX::finalizeElement.
   //! \param elmInt The local integral object to receive the contributions
-  virtual bool finalizeElement(LocalIntegral*& elmInt);
+  //! \param[in] prm Nonlinear solution algorithm parameters
+  virtual bool finalizeElement(LocalIntegral*& elmInt, const TimeDomain& prm);
 
   //! \brief Returns which integrand to be used.
   virtual int getIntegrandType() const { return 4; }

@@ -19,6 +19,11 @@
 
 /*!
   \brief Class representing a Neo-Hookean hyperelastic material model.
+  \details This class is a wrapper for the FORTRAN material routines of FENRIS,
+  implemented in by the subroutine CONS3D and subroutines called from CONS3D.
+  Which material routine to use is governed by the \a mVER parameter.
+  Only isotropic material properties are supported by this class.
+  \note In 2D, only plane strain is supported by this class.
 */
 
 class NeoHookeMaterial : public LinIsotropic

@@ -43,13 +43,21 @@ public:
   //! \param[in] mode The solution mode to use
   virtual void setMode(SIM::SolutionMode mode);
 
+  //! \brief Initializes the integrand for a new integration loop.
+  //! \param[in] prm Nonlinear solution algorithm parameters
+  virtual void initIntegration(const TimeDomain& prm);
+  //! \brief Initializes the integrand for a result point loop.
+  virtual void initResultPoints();
+
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] prm Nonlinear solution algorithm parameters
   //! \param[in] detJW Jacobian determinant times integration point weight
   //! \param[in] N Basis function values
   //! \param[in] dNdX Basis function gradients
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool evalInt(LocalIntegral*& elmInt, double detJW,
+  virtual bool evalInt(LocalIntegral*& elmInt,
+		       const TimeDomain& prm, double detJW,
 		       const Vector& N, const Matrix& dNdX,
 		       const Vec3& X) const;
 
@@ -115,6 +123,10 @@ public:
   //! \brief Empty destructor.
   virtual ~ElasticityNormUL() {}
 
+  //! \brief Initializes the integrand for a new integration loop.
+  //! \param[in] prm Nonlinear solution algorithm parameters
+  virtual void initIntegration(const TimeDomain& prm);
+
   //! \brief Initializes current element for numerical integration (mixed).
   //! \param[in] MNPC1 Nodal point correspondance for the displacement field
   virtual bool initElement(const std::vector<int>& MNPC1,
@@ -132,25 +144,29 @@ public:
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] prm Nonlinear solution algorithm parameters
   //! \param[in] detJW Jacobian determinant times integration point weight
   //! \param[in] N Basis function values
   //! \param[in] dNdX Basis function gradients
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool evalInt(LocalIntegral*& elmInt, double detJW,
+  virtual bool evalInt(LocalIntegral*& elmInt,
+		       const TimeDomain& prm, double detJW,
 		       const Vector& N, const Matrix& dNdX,
 		       const Vec3& X) const;
   //! \brief Evaluates the integrand at an interior point (mixed).
   //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] prm Nonlinear solution algorithm parameters
   //! \param[in] detJW Jacobian determinant times integration point weight
   //! \param[in] N1 Basis function values for the displacement field
   //! \param[in] dN1dX Basis function gradients for the displacement field
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool evalInt(LocalIntegral*& elmInt, double detJW,
+  virtual bool evalInt(LocalIntegral*& elmInt,
+		       const TimeDomain& prm, double detJW,
                        const Vector& N1, const Vector&,
                        const Matrix& dN1dX, const Matrix&,
                        const Vec3& X) const
   {
-    return this->evalInt(elmInt,detJW,N1,dN1dX,X);
+    return this->evalInt(elmInt,prm,detJW,N1,dN1dX,X);
   }
 
   //! \brief Evaluates the integrand at a boundary point (mixed).

@@ -18,13 +18,21 @@
 
 
 /*!
-  \brief Class representing a isotropic linear elastic material model.
+  \brief Class representing a general linear elastic material model.
+  \details This class is a wrapper for any linear-elastic material model,
+  when it is to be used in a nonlinear finite element formulation based on
+  the updated Lagrangian formulation. The \a evaluate method of this class
+  just invokes the corresponding method of the object pointed to by the
+  \a material member, and then transforms the resulting constitutive matrix
+  and stress tensor to the current updated reference frame, based on the
+  supplied deformation tensor, \a F.
 */
 
 class LinearMaterial : public Material
 {
 public:
   //! \brief The constructor initializes the material properties pointer.
+  //! \param[in] Pointer to material model for linear elastic analysis.
   LinearMaterial(const Material* mat) : material(mat) {}
   //! \brief The destructor deletes the material properties object.
   virtual ~LinearMaterial() { delete material; }
@@ -53,7 +61,7 @@ public:
 			char iop = 1, const TimeDomain* prm = 0) const;
 
 private:
-  const Material* material; //!< Pointer to actual material properties object
+  const Material* material; //!< Linear-elastic material properties object
 };
 
 #endif

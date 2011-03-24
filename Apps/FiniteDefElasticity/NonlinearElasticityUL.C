@@ -15,6 +15,7 @@
 #include "MaterialBase.h"
 #include "ElmMats.h"
 #include "ElmNorm.h"
+#include "TimeDomain.h"
 #include "Tensor.h"
 #include "Vec3Oper.h"
 
@@ -85,7 +86,22 @@ void NonlinearElasticityUL::setMode (SIM::SolutionMode mode)
 }
 
 
-bool NonlinearElasticityUL::evalInt (LocalIntegral*& elmInt, double detJW,
+void NonlinearElasticityUL::initIntegration (const TimeDomain& prm)
+{
+  if (material)
+    material->initIntegration(prm);
+}
+
+
+void NonlinearElasticityUL::initResultPoints ()
+{
+  if (material)
+    material->initResultPoints();
+}
+
+
+bool NonlinearElasticityUL::evalInt (LocalIntegral*& elmInt,
+				     const TimeDomain& prm, double detJW,
 				     const Vector& N, const Matrix& dNdX,
 				     const Vec3& X) const
 {
@@ -128,7 +144,7 @@ bool NonlinearElasticityUL::evalInt (LocalIntegral*& elmInt, double detJW,
   if (eKm || eKg || iS)
   {
     double U = 0.0;
-    if (!material->evaluate(Cmat,sigma,U,X,F,E, (eKg || iS) && lHaveStrains))
+    if (!material->evaluate(Cmat,sigma,U,X,F,E,(eKg || iS),&prm))
       return false;
   }
 
@@ -226,7 +242,7 @@ bool NonlinearElasticityUL::evalBou (LocalIntegral*& elmInt, double detJW,
 bool NonlinearElasticityUL::formDefGradient (const Matrix& dNdX,
 					     Tensor& F) const
 {
-  SymmTensor dummy(0);
+  static SymmTensor dummy(0);
   return this->kinematics(dNdX,F,dummy);
 }
 
@@ -250,6 +266,7 @@ bool NonlinearElasticityUL::kinematics (const Matrix& dNdX,
     return false;
   }
 
+
   // Compute the deformation gradient, [F] = [I] + [dudX] = [I] + [dNdX]*[u],
   // and the Green-Lagrange strains, E_ij = 0.5(F_ij+F_ji+F_ki*F_kj).
 
@@ -257,12 +274,17 @@ bool NonlinearElasticityUL::kinematics (const Matrix& dNdX,
   // element displacement vector, *eV, as a matrix whose number of columns
   // equals the number of rows in the matrix dNdX.
   Matrix dUdX;
-  if (dUdX.multiplyMat(*eV,dNdX)) // dUdX = Grad{u} = eV*dNdX
-    F = dUdX;
-  else
+  if (!dUdX.multiplyMat(*eV,dNdX)) // dUdX = Grad{u} = eV*dNdX
     return false;
 
   unsigned short int i, j, k;
+  if (dUdX.rows() < F.dim())
+    F.zero();
+
+  // Cannot use operator= here, in case F is of higher dimension than dUdX
+  for (i = 1; i <= dUdX.rows(); i++)
+    for (j = 1; j <= dUdX.cols(); j++)
+      F(i,j) = dUdX(i,j);
 
   // Now form the Green-Lagrange strain tensor.
   // Note that for the shear terms (i/=j) we actually compute 2*E_ij
@@ -294,7 +316,14 @@ NormBase* NonlinearElasticityUL::getNormIntegrand (AnaSol*) const
 }
 
 
-bool ElasticityNormUL::evalInt (LocalIntegral*& elmInt, double detJW,
+void ElasticityNormUL::initIntegration (const TimeDomain& prm)
+{
+  problem.initIntegration(prm);
+}
+
+
+bool ElasticityNormUL::evalInt (LocalIntegral*& elmInt,
+				const TimeDomain& prm, double detJW,
 				const Vector&, const Matrix& dNdX,
 				const Vec3& X) const
 {
@@ -312,18 +341,12 @@ bool ElasticityNormUL::evalInt (LocalIntegral*& elmInt, double detJW,
   Matrix C;
   SymmTensor S(E.dim());
   double U = 0.0;
-  if (!ulp->material->evaluate(C,S,U,X,F,E,2))
+  if (!ulp->material->evaluate(C,S,U,X,F,E,2,&prm))
     return false;
 
-  if (U == 0.0)
-  {
-    // Integrate the energy norm a(u^h,u^h) = Int_Omega0 (S:E) dV0
-    const RealArray& sigma = S;
-    const RealArray& epsil = E;
-    for (size_t i = 0; i < sigma.size(); i++)
-      U += sigma[i]*epsil[i];
-  }
-
+  // Integrate the energy norm a(u^h,u^h) = Int_Omega0 (S:E) dV0
+  if (U == 0.0) U = S.innerProd(E);
   pnorm[0] += U*detJW;
+
   return true;
 }

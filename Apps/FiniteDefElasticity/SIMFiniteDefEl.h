@@ -28,8 +28,7 @@ namespace SIM
     NEOHOOKE_IV      = 5,
     UPDATED_LAGRANGE = 6,
     MIXED_QnPn1      = 7,
-    MIXED_QnQn1      = 8,
-    PLASTICITY       = 9
+    MIXED_QnQn1      = 8
   };
 };
 

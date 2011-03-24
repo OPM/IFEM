@@ -51,7 +51,6 @@
   \arg -2Dpstrain : Use two-parametric simulation driver (plane strain)
   \arg -Tensor : Use tensorial total Lagrangian formulation (slow...)
   \arg -UL : Use updated Lagrangian formulation with nonlinear material
-  \arg -PL : Use placticity solution driver
   \arg -MX \a pord : Mixed formulation with internal discontinuous pressure
   \arg -mixed : Mixed formulation with continuous pressure and volumetric change
   \arg -lag : Use Lagrangian basis functions instead of splines/NURBS
@@ -146,8 +145,6 @@ int main (int argc, char** argv)
       twoD = SIMLinEl2D::planeStrain = true;
     else if (!strncmp(argv[i],"-2D",3))
       twoD = true;
-    else if (!strcmp(argv[i],"-PL"))
-      form = SIM::PLASTICITY;
     else if (!strcmp(argv[i],"-UL"))
     {
       if (form < SIM::UPDATED_LAGRANGE)
@@ -183,8 +180,8 @@ int main (int argc, char** argv)
 	      <<" [-lag] [-spec] [-2D[pstrain]] [-UL] [-MX [<p>]|-mixed]"
 	      <<" [-nGauss <n>]\n       [-vtf <format>] [-nviz <nviz>]"
 	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]\n      "
-	      <<" [-saveInc <dtSave>] [-dumpInc <dtDump> [raw]]\n      "
-	      <<" [-ignore <p1> <p2> ...] [-fixDup] [-checkRHS] [-check]\n";
+	      <<" [-saveInc <dtSave>] [-skip2nd] [-dumpInc <dtDump> [raw]]\n   "
+	      <<"    [-ignore <p1> <p2> ...] [-fixDup] [-checkRHS] [-check]\n";
     return 0;
   }
 

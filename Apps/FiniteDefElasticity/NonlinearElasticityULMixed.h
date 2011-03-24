@@ -70,13 +70,15 @@ public:
 
   //! \brief Evaluates the mixed field problem integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] prm Nonlinear solution algorithm parameters
   //! \param[in] detJW Jacobian determinant times integration point weight
   //! \param[in] N1 Basis function values, field 1 (displacements)
   //! \param[in] N2 Basis function values, field 2 (pressure and volume change)
   //! \param[in] dN1dX Basis function gradients, field 1
   //! \param[in] dN2dX Basis function gradients, field 2
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool evalInt(LocalIntegral*& elmInt, double detJW,
+  virtual bool evalInt(LocalIntegral*& elmInt,
+		       const TimeDomain& prm, double detJW,
 		       const Vector& N1, const Vector& N2,
 		       const Matrix& dN1dX, const Matrix& dN2dX,
 		       const Vec3& X) const;

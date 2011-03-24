@@ -20,14 +20,15 @@ extern "C" {
   void cons2d_(const int& ipsw, const int& iter, const int& iwr,
 	       const int& lfirst, const int& mTYP, const int& mVER,
 	       const int& nHV, const int& nTM, const double& detF,
-	       const double* F, const double* pMAT, double* HV, double& Engy,
-	       const double* Sig, double* Cst, int& ierr);
+	       const int& nDF,
+	       const double* F, const double* pMAT, double* HV,
+	       double& Engy, const double* Sig, double* Cst, int& ierr);
   //! \brief Interface to 3D nonlinear material routines (FORTRAN-77 code).
   void cons3d_(const int& ipsw, const int& iter, const int& iwr,
 	       const int& lfirst, const int& mTYP, const int& mVER,
 	       const int& nHV, const int& nTM, const double& detF,
-	       const double* F, const double* pMAT, double* HV, double& Engy,
-	       const double* Sig, double* Cst, int& ierr);
+	       const double* F, const double* pMAT, double* HV,
+	       double& Engy, const double* Sig, double* Cst, int& ierr);
 }
 #ifndef INT_DEBUG
 #define INT_DEBUG 0
@@ -83,14 +84,14 @@ bool NeoHookeMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
     return false;
   }
 
-  size_t ndim = F.dim();
+  size_t ndim = sigma.dim();
   size_t ncmp = ndim*(ndim+1)/2;
   C.resize(ncmp,ncmp);
   int ierr = -99;
 #ifdef USE_FTNMAT
   // Invoke the FORTRAN routine for Neo-Hookean hyperelastic material models.
   if (ndim == 2)
-    cons2d_(INT_DEBUG,0,6,0,mTYP,mVER,0,3,J,F.ptr(),pmat,
+    cons2d_(INT_DEBUG,0,6,0,mTYP,mVER,0,3,J,F.dim(),F.ptr(),pmat,
 	    &U,U,sigma.ptr(),C.ptr(),ierr);
   else
     cons3d_(INT_DEBUG,0,6,0,mTYP,mVER,0,6,J,F.ptr(),pmat,

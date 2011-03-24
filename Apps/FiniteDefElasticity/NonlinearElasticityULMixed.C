@@ -190,7 +190,7 @@ const Vector& NonlinearElasticityULMixed::MixedElmMats::getRHSVector () const
 
 
 NonlinearElasticityULMixed::NonlinearElasticityULMixed (unsigned short int n)
-  : NonlinearElasticityUL(n), Fbar(n), Dmat(7,7)
+  : NonlinearElasticityUL(n), Fbar(3), Dmat(7,7)
 {
   if (myMats) delete myMats;
   myMats = new MixedElmMats();
@@ -290,7 +290,8 @@ bool NonlinearElasticityULMixed::initElementBou (const std::vector<int>& MNPC1,
 }
 
 
-bool NonlinearElasticityULMixed::evalInt (LocalIntegral*& elmInt, double detJW,
+bool NonlinearElasticityULMixed::evalInt (LocalIntegral*& elmInt,
+					  const TimeDomain& prm, double detJW,
 					  const Vector& N1,
 					  const Vector& N2,
 					  const Matrix& dNdX1,
@@ -298,8 +299,9 @@ bool NonlinearElasticityULMixed::evalInt (LocalIntegral*& elmInt, double detJW,
 					  const Vec3& X) const
 {
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E
+  Tensor F(nsd);
   SymmTensor E(nsd);
-  if (!this->kinematics(dNdX1,Fbar,E))
+  if (!this->kinematics(dNdX1,F,E))
     return false;
 
   bool lHaveStrains = !E.isZero();
@@ -317,10 +319,8 @@ bool NonlinearElasticityULMixed::evalInt (LocalIntegral*& elmInt, double detJW,
   double dVol = Theta*detJW;
 
   // Compute the mixed model deformation gradient, F_bar
-  double r1 = pow(fabs(Theta/Fbar.det()),1.0/3.0);
-
-  Matrix Fi(nsd,nsd);
-  Fi.fill(Fbar.ptr());
+  Fbar = F; // notice that F_bar always has dimension 3
+  double r1 = pow(fabs(Theta/F.det()),1.0/3.0);
 
   Fbar *= r1;
   if (nsd == 2) // In 2D we always assume plane strain so set F(3,3)=1
@@ -329,6 +329,8 @@ bool NonlinearElasticityULMixed::evalInt (LocalIntegral*& elmInt, double detJW,
     return false;
 
   // Invert the deformation gradient ==> Fi
+  Matrix Fi(nsd,nsd);
+  Fi.fill(F.ptr());
   double J = Fi.inverse();
   if (J == 0.0) return false;
 
@@ -351,7 +353,7 @@ bool NonlinearElasticityULMixed::evalInt (LocalIntegral*& elmInt, double detJW,
   // Evaluate the constitutive relation
   SymmTensor Eps(3), Sig(3), Sigma(nsd);
   double U, Bpres = 0.0, Mpres = 0.0;
-  if (!material->evaluate(Cmat,Sig,U,X,Fbar,Eps=E,lHaveStrains))
+  if (!material->evaluate(Cmat,Sig,U,X,Fbar,Eps=E,lHaveStrains,&prm))
     return false;
 
 #ifdef USE_FTNMAT
