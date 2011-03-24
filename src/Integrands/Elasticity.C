@@ -143,6 +143,9 @@ void Elasticity::setTraction (TractionFunc* tf)
 
 bool Elasticity::initElement (const std::vector<int>& MNPC)
 {
+  if (myMats)
+    myMats->withLHS = true;
+
   const size_t nen = MNPC.size();
 
   if (eKm) eKm->resize(nsd*nen,nsd*nen,true);
@@ -153,39 +156,39 @@ bool Elasticity::initElement (const std::vector<int>& MNPC)
   // Extract the current primary solution and store in the array *eV
   int ierr = 0;
   if (eV && !primsol.front().empty())
-    if ((ierr = utl::gather(MNPC,nsd,primsol.front(),*eV)))
-      std::cerr <<" *** Elasticity::initElement: Detected "
-		<< ierr <<" node numbers out of range."<< std::endl;
+    ierr = utl::gather(MNPC,nsd,primsol.front(),*eV);
 
   // If previous solutions are required, they are stored in the
   // (primsol.size()-1) last entries in myMats->b
   int j = 1+myMats->b.size()-primsol.size();
   for (size_t i = 1; i < primsol.size() && ierr == 0; i++, j++)
-    ierr = utl::gather(MNPC,nsd,primsol[i],myMats->b[j]);
+    if (!primsol[i].empty())
+      ierr = utl::gather(MNPC,nsd,primsol[i],myMats->b[j]);
 
-  if (myMats)
-    myMats->withLHS = true;
+  if (ierr == 0) return true;
 
-  return ierr == 0;
+  std::cerr <<" *** Elasticity::initElement: Detected "
+	    << ierr <<" node numbers out of range."<< std::endl;
+  return false;
 }
 
 
 bool Elasticity::initElementBou (const std::vector<int>& MNPC)
 {
-  const size_t nen = MNPC.size();
-
-  if (eS) eS->resize(nsd*nen,true);
-
-  int ierr = 0;
-  if (eV && !primsol.front().empty())
-    if ((ierr = utl::gather(MNPC,nsd,primsol.front(),*eV)))
-      std::cerr <<" *** Elasticity::initElement: Detected "
-                << ierr <<" node numbers out of range."<< std::endl;
-
   if (myMats)
     myMats->withLHS = false;
 
-  return ierr == 0;
+  if (eS) eS->resize(nsd*MNPC.size(),true);
+
+  int ierr = 0;
+  if (eV && !primsol.front().empty())
+    ierr = utl::gather(MNPC,nsd,primsol.front(),*eV);
+
+  if (ierr == 0) return true;
+
+  std::cerr <<" *** Elasticity::initElement: Detected "
+	    << ierr <<" node numbers out of range."<< std::endl;
+  return false;
 }
 
 

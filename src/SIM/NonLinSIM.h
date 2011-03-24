@@ -107,6 +107,13 @@ public:
   //! \brief Returns a const reference to current solution vector.
   const Vector& getSolution() const { return solution.front(); }
 
+  //! \brief Projects the secondary solution onto the spline basis.
+  //! \details The secondary solution, defined through the Integrand class,
+  //! is projected onto the spline basis to obtain the control point values
+  //! of the secondary solution. These values then overwrite the current
+  //! primary solution vector.
+  bool project();
+
 protected:
   //! \brief Convergence status enum.
   enum ConvStatus { NONE, CONVERGED, DIVERGED };

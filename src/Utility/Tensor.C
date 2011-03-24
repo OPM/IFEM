@@ -346,7 +346,7 @@ SymmTensor::SymmTensor (const SymmTensor& T) : Tensor(0)
 
 SymmTensor& SymmTensor::transform (const Tensor& T)
 {
-  if (T.symmetric() || T.dim() != n) return *this;
+  if (T.symmetric() || T.dim() < n) return *this;
 
   real S11, S12, S13, S21, S22, S23, S31, S32, S33;
   switch (n) {

@@ -159,9 +159,12 @@ bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode)
 	if (!this->updateConfiguration(param))
 	  return false;
 
-	param.time.first = false;
 	model->setMode(SIM::RECOVERY);
-	return this->solutionNorms(param.time);
+	if (!this->solutionNorms(param.time))
+	  return false;
+
+	param.time.first = false;
+	return true;
 
       case DIVERGED:
 	return false;
@@ -420,4 +423,10 @@ void NonLinSIM::dumpStep (int iStep, double time, std::ostream& os,
        <<", Time="<< time <<"\n";
 
   model->dumpPrimSol(solution.front(),os,withID);
+}
+
+
+bool NonLinSIM::project ()
+{
+  return model->project(solution.front());
 }

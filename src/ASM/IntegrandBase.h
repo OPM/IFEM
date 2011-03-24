@@ -59,6 +59,8 @@ public:
   //! \details This method is invoked once before starting the numerical
   //! integration over the entire spatial domain.
   virtual void initIntegration(const TimeDomain&) {}
+  //! \brief Initializes the integrand for a new result point loop.
+  virtual void initResultPoints() {}
 
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
@@ -125,7 +127,10 @@ public:
   //! It can also be used to implement multiple integration point loops within
   //! the same element, provided the necessary integration point values are
   //! stored internally in the object during the first integration loop.
-  virtual bool finalizeElement(LocalIntegral*&) { return true; }
+  virtual bool finalizeElement(LocalIntegral*&, const TimeDomain&)
+  {
+    return true;
+  }
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
@@ -350,7 +355,7 @@ public:
   //! \param[out] s The solution field value at current point
   //! \param[in] asol The analytical solution field (scalar field)
   //! \param[in] X Cartesian coordinates of current point
-  virtual bool evalPrimSol(real& s, const RealFunc& asol, const Vec3& X) const
+  virtual bool evalPrimSol(double& s, const RealFunc& asol, const Vec3& X) const
   {
     std::cerr <<" *** Integrand::evalPrimSol not implemented"<< std::endl;
     return false;

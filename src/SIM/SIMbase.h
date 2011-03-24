@@ -213,6 +213,13 @@ public:
 		   int nev, int ncv, int iop, double shift,
 		   size_t iA = 0, size_t iB = 1);
 
+  //! \brief Project the secondary solution associated with \a psol.
+  //! \param psol Control point values of primary(in)/secondary(out) solution
+  //!
+  //! \details The secondary solution, defined through the Integrand class,
+  //! corresponding to the primary solution \a psol is projected onto the
+  //! spline basis to obtain the control point values of the secondary solution.
+  bool project(Vector& psol);
 
   // Post-processing methods
   // =======================

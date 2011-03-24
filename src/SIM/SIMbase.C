@@ -610,6 +610,8 @@ bool SIMbase::solutionNorms (const TimeDomain& time, const Vectors& psol,
 
   PROFILE1("Norm integration");
 
+  myProblem->initIntegration(time);
+
   size_t nNorms = norm->getNoFields() + norm->getNoSecFields();
   const Vector& primsol = psol.front();
 
@@ -918,6 +920,9 @@ bool SIMbase::writeGlvS (const Vector& psol,
     return true;
   else if (!myVtf)
     return false;
+
+  if (!psolOnly)
+    myProblem->initResultPoints();
 
   Matrix field;
   size_t i, j;
@@ -1280,6 +1285,21 @@ bool SIMbase::finalizeAssembly (bool newLHSmatrix)
     std::cout <<"\nSystem right-hand-side vector:"<< *b;
 #endif
   }
+
+  return true;
+}
+
+
+bool SIMbase::project (Vector& psol)
+{
+  Matrix values;
+  Vector psol2(psol.size());
+  for (size_t i = 0; i < myModel.size(); ++i) {
+    myModel[i]->extractNodeVec(psol,myProblem->getSolution());
+    myModel[i]->evalSolution(values,*myProblem,NULL);
+    myModel[i]->injectNodeVec(values,psol2);
+  }
+  psol = psol2;
 
   return true;
 }

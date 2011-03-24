@@ -39,6 +39,11 @@ public:
   //! \brief Prints out material parameters to the given output stream.
   virtual void print(std::ostream&) const {}
 
+  //! \brief Initializes the material model for a new integration loop.
+  virtual void initIntegration(const TimeDomain&) {}
+  //! \brief Initializes the material model for a new result point loop.
+  virtual void initResultPoints() {}
+
   //! \brief Evaluates the mass density at current point.
   virtual double getMassDensity(const Vec3&) const { return 0.0; }
 

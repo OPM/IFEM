@@ -259,7 +259,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
 	    }
 
 	// Finalize the element quantities
- 	if (!integrand.finalizeElement(elmInt))
+ 	if (!integrand.finalizeElement(elmInt,time))
  	  return false;
 
 	// Assembly of global system integral

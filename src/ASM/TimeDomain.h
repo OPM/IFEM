@@ -27,7 +27,7 @@ struct TimeDomain
   bool first; //!< If \e true, this is the first load/time step
 
   //! \brief Default constructor.
-  TimeDomain() { t = dt = 0.0; it = 0; first = true; }
+  TimeDomain(int i = 0, bool f = true) : it(i), first(f) { t = dt = 0.0; }
 };
 
 #endif
