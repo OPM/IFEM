@@ -127,7 +127,7 @@ real StepXYFunc::evaluate (const Vec3& X) const
 
 
 /*!
-  The functions is assumed on the general form
+  The functions are assumed on the general form
   \f[ f({\bf X},t) = A * g({\bf X}) * h(t) \f]
 
   The character string \a cline is assumed to contain first the definition
@@ -244,7 +244,7 @@ const RealFunc* utl::parseRealFunc (char* cline, real A)
   else if (strncmp(cline,"Step",4) == 0)
   {
     real xmax = atof(strtok(NULL," "));
-    std::cout <<"Step(t,"<< xmax <<")";
+    std::cout <<" * Step(t,"<< xmax <<")";
     s = new StepFunc(C,xmax);
   }
   else if (strcmp(cline,"sin") == 0)

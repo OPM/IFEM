@@ -1,4 +1,4 @@
-// $Id: matrix.h,v 1.32 2011-02-05 17:39:56 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file matrix.h
@@ -11,7 +11,8 @@
 //! \details The classes have some algebraic operators defined, such that the
 //! class type \a T has to be of a numerical type, i.e., \a float or \a double.
 //! The multiplication methods are implemented based on the CBLAS library if
-//! the macro symbol USE_CBLAS is defined. Otherwise, inlined methods are used.
+//! either of the macro symbols USE_CBLAS or USE_MKL are defined.
+//! Otherwise, inlined methods are used.
 //!
 //==============================================================================
 
@@ -724,7 +725,7 @@ namespace utl //! General utility classes and functions.
   };
 
 
-#ifdef USE_CBLAS
+#if defined(USE_CBLAS) || defined(USE_MKL)
   //============================================================================
   //===   BLAS-implementation of the matrix/vector multiplication methods   ====
   //============================================================================
@@ -1345,9 +1346,9 @@ namespace utl //! General utility classes and functions.
   template<class T> std::ostream& operator<<(std::ostream& s,
 					     const vector<T>& X)
   {
-    if (X.size() < 1) return s;
-
-    for (size_t i = 0; i < X.size(); i++)
+    if (X.size() < 1)
+      s <<" (empty)";
+    else for (size_t i = 0; i < X.size(); i++)
       s << (i%nval_per_line ? ' ':'\n') << trunc(X[i]);
 
     return s << std::endl;
@@ -1361,7 +1362,8 @@ namespace utl //! General utility classes and functions.
   template<class T> std::ostream& operator<<(std::ostream& s,
 					     const matrix<T>& A)
   {
-    if (A.rows() < 1 || A.cols() < 1) return s;
+    if (A.rows() < 1 || A.cols() < 1)
+      return s <<" (empty)"<< std::endl;
 
     bool symm = A.isSymmetric(zero_print_tol);
     for (size_t i = 1; i <= A.rows(); i++)
@@ -1403,7 +1405,6 @@ namespace utl //! General utility classes and functions.
     }
     s <<" ];"<< std::endl;
   }
-
 };
 
 #undef THIS
