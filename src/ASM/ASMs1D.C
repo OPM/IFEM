@@ -16,6 +16,7 @@
 
 #include "ASMs1D.h"
 #include "TimeDomain.h"
+#include "FiniteElement.h"
 #include "GlobalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
@@ -467,22 +468,21 @@ bool ASMs1D::integrate (Integrand& integrand,
   const int p1 = curv->order();
   const int n1 = curv->numCoefs();
 
-  Vector gpar;
   int pm1 = p1 - 1;
+  int nCol = n1 - pm1;
+  Matrix gpar(nGauss,nCol);
   DoubleIter uit = curv->basis().begin() + pm1;
   double ucurr, uprev = *(uit++);
-  int nCol = n1 - pm1;
-  gpar.reserve(nGauss*nCol);
   for (int j = 1; j <= nCol; uit++, j++)
   {
     ucurr = *uit;
-    for (int i = 0; i < nGauss; i++)
-      gpar.push_back(0.5*((ucurr-uprev)*xg[i] + ucurr+uprev));
+    for (int i = 1; i <= nGauss; i++)
+      gpar(i,j) = 0.5*((ucurr-uprev)*xg[i-1] + ucurr+uprev);
     uprev = ucurr;
   }
 
-  Vector N;
-  Matrix dNdu, dNdX, Xnod, Jac;
+  FiniteElement fe(p1);
+  Matrix dNdu, Xnod, Jac;
   Vec4   X;
 
 
@@ -514,21 +514,22 @@ bool ASMs1D::integrate (Integrand& integrand,
 
     for (int i = 0; i < nGauss; i++)
     {
-      // Weight of current integration point
-      double weight = 0.5*dL*wg[i];
+      // Parameter value of current integration point
+      fe.u = gpar(i+1,iel);
 
       // Compute basis functions and derivatives
-      this->extractBasis(gpar((iel-1)*nGauss+i+1),N,dNdu);
+      this->extractBasis(fe.u,fe.N,dNdu);
 
       // Compute derivatives in terms of physical co-ordinates
-      double detJ = utl::Jacobian(Jac,dNdX,Xnod,dNdu);
+      fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
 
       // Cartesian coordinates of current integration point
-      X = Xnod * N;
+      X = Xnod * fe.N;
       X.t = time.t;
 
       // Evaluate the integrand and accumulate element contributions
-      if (!integrand.evalInt(elmInt,time,detJ*weight,N,dNdX,X))
+      fe.detJxW *= 0.5*dL*wg[i];
+      if (!integrand.evalInt(elmInt,fe,time,X))
 	return false;
     }
 
@@ -584,16 +585,16 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
   LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
 
   // Evaluate basis functions and corresponding derivatives
-  Vector N;
+  FiniteElement fe;
   Matrix dNdu;
-  this->extractBasis(param,N,dNdu);
+  this->extractBasis(param,fe.N,dNdu);
 
   // Cartesian coordinates of current integration point
-  Vec4 X(Xnod*N,time.t);
+  Vec4 X(Xnod*fe.N,time.t);
 
   // Compute basis function derivatives
   Matrix Jac, dNdX;
-  utl::Jacobian(Jac,dNdX,Xnod,dNdu);
+  utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
 
   // Set up the normal vector
   Vec3 normal;
@@ -603,7 +604,7 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
     normal.x = copysign(1.0,Jac(1,1));
 
   // Evaluate the integrand and accumulate element contributions
-  if (!integrand.evalBou(elmInt,time,1.0,N,dNdX,X,normal))
+  if (!integrand.evalBou(elmInt,fe,time,X,normal))
     return false;
 
   // Assembly of global system integral
@@ -623,12 +624,14 @@ bool ASMs1D::getGridParameters (RealArray& prm, int nSegPerSpan) const
   }
 
   DoubleIter uit = curv->basis().begin();
-  double ucurr, uprev = *(uit++);
+  double ucurr = 0.0, uprev = *(uit++);
   while (uit != curv->basis().end())
   {
     ucurr = *(uit++);
     if (ucurr > uprev)
-      for (int i = 0; i < nSegPerSpan; i++)
+      if (nSegPerSpan == 1)
+	prm.push_back(uprev);
+      else for (int i = 0; i < nSegPerSpan; i++)
       {
 	double xg = (double)(2*i-nSegPerSpan)/(double)nSegPerSpan;
 	prm.push_back(0.5*(ucurr*(1.0+xg) + uprev*(1.0-xg)));
@@ -636,7 +639,8 @@ bool ASMs1D::getGridParameters (RealArray& prm, int nSegPerSpan) const
     uprev = ucurr;
   }
 
-  prm.push_back(curv->basis().endparam());
+  if (ucurr > prm.back())
+    prm.push_back(ucurr);
   return true;
 }
 
@@ -732,7 +736,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const Integrand& integrand,
   if (npe)
   {
     // Compute parameter values of the result sampling points
-    DoubleVec gpar;
+    RealArray gpar;
     if (this->getGridParameters(gpar,npe[0]-1))
       // Evaluate the secondary solution at all sampling points
       return this->evalSolution(sField,integrand,gpar);

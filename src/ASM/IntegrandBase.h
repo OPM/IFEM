@@ -19,6 +19,8 @@
 #include "MatVec.h"
 
 struct TimeDomain;
+class FiniteElement;
+class MxFiniteElement;
 class LocalIntegral;
 class NormBase;
 class AnaSol;
@@ -134,159 +136,80 @@ public:
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe Finite element data of current integration point
   //! \param[in] time Parameters for nonlinear and time-dependent simulations
-  //! \param[in] detJW Jacobian determinant times integration point weight
-  //! \param[in] N Basis function values
-  //! \param[in] dNdX Basis function gradients
   //! \param[in] X Cartesian coordinates of current integration point
   //!
-  //! \details This interface is used when \a getIntegrandType returns 1.
-  //! The default implementation forwards to the stationary version.
+  //! \details The default implementation forwards to the stationary version.
   //! Reimplement this method for time-dependent or non-linear problems.
-  virtual bool evalInt(LocalIntegral*& elmInt,
-		       const TimeDomain& time, double detJW,
-		       const Vector& N, const Matrix& dNdX,
-		       const Vec3& X) const
+  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
+		       const TimeDomain& time, const Vec3& X) const
   {
-    return this->evalInt(elmInt,detJW,N,dNdX,X);
+    return this->evalInt(elmInt,fe,X);
   }
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
-  //! \param[in] detJW Jacobian determinant times integration point weight
+  //! \param[in] fe Mixed finite element data of current integration point
   //! \param[in] time Parameters for nonlinear and time-dependent simulations
-  //! \param[in] N Basis function values
-  //! \param[in] dNdX Basis function gradients
-  //! \param[in] d2NdX2 Basis function second derivatives
-  //! \param[in] X Cartesian coordinates of current integration point
-  //! \param[in] h Characteristic element length
-  //!
-  //! \details This interface is used when \a getIntegrandType returns 2.
-  //! The default implementation forwards to the stationary version.
-  //! Reimplement this method for time-dependent or non-linear problems.
-  virtual bool evalInt(LocalIntegral*& elmInt,
-		       const TimeDomain& time, double detJW,
-		       const Vector& N, const Matrix& dNdX,
-		       const Matrix3D& d2NdX2, const Vec3& X,
-		       double h = 0.0) const
-  {
-    return this->evalInt(elmInt,detJW,N,dNdX,d2NdX2,X,h);
-  }
-
-  //! \brief Evaluates the integrand at an interior point.
-  //! \param elmInt The local integral object to receive the contributions
-  //! \param[in] detJW Jacobian determinant times integration point weight
-  //! \param[in] time Parameters for nonlinear and time-dependent simulations
-  //! \param[in] N Basis function values
-  //! \param[in] dNdX Basis function gradients
-  //! \param[in] Navg Volume-averaged basis function values over the element
-  //! \param[in] X Cartesian coordinates of current integration point
-  //!
-  //! \details This interface is used when \a getIntegrandType returns 3.
-  //! Use when the integrand requires second-derivatives of the basis functions.
-  //! The default implementation forwards to the stationary version.
-  //! Reimplement this method for time-dependent or non-linear problems.
-  virtual bool evalInt(LocalIntegral*& elmInt,
-		       const TimeDomain& time, double detJW,
-		       const Vector& N, const Matrix& dNdX,
-		       const Vector& Navg, const Vec3& X) const
-  {
-    return this->evalInt(elmInt,detJW,N,dNdX,Navg,X);
-  }
-
-  //! \brief Evaluates the integrand at an interior point.
-  //! \param elmInt The local integral object to receive the contributions
-  //! \param[in] time Parameters for nonlinear and time-dependent simulations
-  //! \param[in] detJW Jacobian determinant times integration point weight
-  //! \param[in] N1 Basis function values, field 1
-  //! \param[in] N2 Basis function values, field 2
-  //! \param[in] dN1dX Basis function gradients, field 1
-  //! \param[in] dN2dX Basis function gradients, field 2
   //! \param[in] X Cartesian coordinates of current integration point
   //!
   //! \details This interface is used for mixed formulations only.
   //! The default implementation forwards to the stationary version.
   //! Reimplement this method for time-dependent or non-linear problems.
-  virtual bool evalInt(LocalIntegral*& elmInt,
-		       const TimeDomain& time, double detJW,
-		       const Vector& N1, const Vector& N2,
-		       const Matrix& dN1dX, const Matrix& dN2dX,
-		       const Vec3& X) const
+  virtual bool evalIntMx(LocalIntegral*& elmInt, const MxFiniteElement& fe,
+			 const TimeDomain& time, const Vec3& X) const
   {
-    return this->evalInt(elmInt,detJW,N1,N2,dN1dX,dN2dX,X);
+    return this->evalIntMx(elmInt,fe,X);
   }
 
   //! \brief Evaluates the integrand at a boundary point.
   //! \param elmInt The local integral object to receive the contributions
-  //! \param[in] detJW Jacobian determinant times integration point weight
+  //! \param[in] fe Finite element data of current integration point
   //! \param[in] time Parameters for nonlinear and time-dependent simulations
-  //! \param[in] N Basis function values
-  //! \param[in] dNdX Basis function gradients
   //! \param[in] X Cartesian coordinates of current integration point
   //! \param[in] normal Boundary normal vector at current integration point
   //!
   //! \details The default implementation forwards to the stationary version.
   //! Reimplement this method for time-dependent or non-linear problems.
-  virtual bool evalBou(LocalIntegral*& elmInt,
-		       const TimeDomain& time, double detJW,
-		       const Vector& N, const Matrix& dNdX,
+  virtual bool evalBou(LocalIntegral*& elmInt, const FiniteElement& fe,
+		       const TimeDomain& time,
 		       const Vec3& X, const Vec3& normal) const
   {
-    return this->evalBou(elmInt,detJW,N,dNdX,X,normal);
+    return this->evalBou(elmInt,fe,X,normal);
   }
 
   //! \brief Evaluates the integrand at a boundary point.
   //! \param elmInt The local integral object to receive the contributions
-  //! \param[in] detJW Jacobian determinant times integration point weight
+  //! \param[in] fe Mixed finite element data of current integration point
   //! \param[in] time Parameters for nonlinear and time-dependent simulations
-  //! \param[in] N1 Basis function values, field 1
-  //! \param[in] N2 Basis function values, field 2
-  //! \param[in] dN1dX Basis function gradients, field 1
-  //! \param[in] dN2dX Basis function gradients, field 2
   //! \param[in] X Cartesian coordinates of current integration point
   //! \param[in] normal Boundary normal vector at current integration point
   //!
   //! \details This interface is used for mixed formulations.
   //! The default implementation forwards to the stationary version.
   //! Reimplement this method for time-dependent or non-linear problems.
-  virtual bool evalBou(LocalIntegral*& elmInt,
-		       const TimeDomain& time, double detJW,
-		       const Vector& N1, const Vector& N2,
-		       const Matrix& dN1dX, const Matrix& dN2dX,
-		       const Vec3& X, const Vec3& normal) const
+  virtual bool evalBouMx(LocalIntegral*& elmInt, const MxFiniteElement& fe,
+			 const TimeDomain& time,
+			 const Vec3& X, const Vec3& normal) const
   {
-    return this->evalBou(elmInt,detJW,N1,N2,dN1dX,dN2dX,X,normal);
+    return this->evalBouMx(elmInt,fe,X,normal);
   }
 
 protected:
   //! \brief Evaluates the integrand at interior points for stationary problems.
-  virtual bool evalInt(LocalIntegral*& elmInt, double detJW,
-		       const Vector& N, const Matrix& dNdX,
-		       const Vec3& X) const { return false; }
+  virtual bool evalInt(LocalIntegral*&, const FiniteElement& fe,
+		       const Vec3&) const { return false; }
   //! \brief Evaluates the integrand at interior points for stationary problems.
-  virtual bool evalInt(LocalIntegral*& elmInt, double detJW,
-		       const Vector& N, const Matrix& dNdX,
-		       const Matrix3D& d2NdX2, const Vec3& X,
-		       double h = 0.0) const { return false; }
-  //! \brief Evaluates the integrand at interior points for stationary problems.
-  virtual bool evalInt(LocalIntegral*& elmInt, double detJW,
-		       const Vector& N, const Matrix& dNdX, const Vector& Navg,
-		       const Vec3& X) const { return false; }
-  //! \brief Evaluates the integrand at interior points for stationary problems.
-  virtual bool evalInt(LocalIntegral*& elmInt, double detJW,
-		       const Vector& N1, const Vector& N2,
-		       const Matrix& dN1dX, const Matrix& dN2dX,
-		       const Vec3& X) const { return false; }
+  virtual bool evalIntMx(LocalIntegral*&, const MxFiniteElement& fe,
+			 const Vec3&) const { return false; }
 
   //! \brief Evaluates the integrand at boundary points for stationary problems.
-  virtual bool evalBou(LocalIntegral*& elmInt, double detJW,
-		       const Vector& N, const Matrix& dNdX, const Vec3& X,
-		       const Vec3& normal) const { return false; }
+  virtual bool evalBou(LocalIntegral*&, const FiniteElement&,
+		       const Vec3&, const Vec3&) const { return false; }
   //! \brief Evaluates the integrand at boundary points for stationary problems.
-  virtual bool evalBou(LocalIntegral*& elmInt, double detJW,
-		       const Vector& N1, const Vector& N2,
-		       const Matrix& dN1dX, const Matrix& dN2dX, const Vec3& X,
-		       const Vec3& normal) const { return false; }
+  virtual bool evalBouMx(LocalIntegral*&, const MxFiniteElement&,
+			 const Vec3&, const Vec3&) const { return false; }
 
 public:
   //! \brief Evaluates the secondary solution at a result point.

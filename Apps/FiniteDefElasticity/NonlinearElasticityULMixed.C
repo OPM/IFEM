@@ -13,6 +13,7 @@
 
 #include "NonlinearElasticityULMixed.h"
 #include "MaterialBase.h"
+#include "FiniteElement.h"
 #include "ElmMats.h"
 #include "Utilities.h"
 
@@ -290,25 +291,22 @@ bool NonlinearElasticityULMixed::initElementBou (const std::vector<int>& MNPC1,
 }
 
 
-bool NonlinearElasticityULMixed::evalInt (LocalIntegral*& elmInt,
-					  const TimeDomain& prm, double detJW,
-					  const Vector& N1,
-					  const Vector& N2,
-					  const Matrix& dNdX1,
-					  const Matrix& dNdX2,
-					  const Vec3& X) const
+bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
+					    const MxFiniteElement& fe,
+					    const TimeDomain& prm,
+					    const Vec3& X) const
 {
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E
   Tensor F(nsd);
   SymmTensor E(nsd);
-  if (!this->kinematics(dNdX1,F,E))
+  if (!this->kinematics(fe.dN1dX,F,E))
     return false;
 
   bool lHaveStrains = !E.isZero();
 
   // Evaluate the volumetric change and pressure fields
-  double Theta = N2.dot(myMats->b[T]) + 1.0;
-  double Press = N2.dot(myMats->b[P]);
+  double Theta = fe.N2.dot(myMats->b[T]) + 1.0;
+  double Press = fe.N2.dot(myMats->b[P]);
 #if INT_DEBUG > 0
   std::cout <<"NonlinearElasticityULMixed::b_theta ="<< myMats->b[T];
   std::cout <<"NonlinearElasticityULMixed::b_p ="<< myMats->b[P];
@@ -316,7 +314,7 @@ bool NonlinearElasticityULMixed::evalInt (LocalIntegral*& elmInt,
 #endif
 
   // Compute the mixed integration point volume
-  double dVol = Theta*detJW;
+  double dVol = Theta*fe.detJxW;
 
   // Compute the mixed model deformation gradient, F_bar
   Fbar = F; // notice that F_bar always has dimension 3
@@ -335,20 +333,20 @@ bool NonlinearElasticityULMixed::evalInt (LocalIntegral*& elmInt,
   if (J == 0.0) return false;
 
   // Push-forward the basis function gradients to current configuration
-  dNdx.multiply(dNdX1,Fi); // dNdx = dNdX * F^-1
+  dNdx.multiply(fe.dN1dX,Fi); // dNdx = dNdX * F^-1
 #if INT_DEBUG > 0
-  std::cout <<"NonlinearElasticityULMixed::dNdX ="<< dNdX1;
+  std::cout <<"NonlinearElasticityULMixed::dNdX ="<< fe.dN1dX;
   std::cout <<"NonlinearElasticityULMixed::dNdx ="<< dNdx;
   std::cout <<"NonlinearElasticityULMixed::Fbar ="<< Fbar;
 #endif
 
   if (eM)
     // Integrate the mass matrix
-    this->formMassMatrix(*eM,N1,X,J*detJW);
+    this->formMassMatrix(*eM,fe.N1,X,J*fe.detJxW);
 
   if (eS)
     // Integrate the load vector due to gravitation and other body forces
-    this->formBodyForce(*eS,N1,X,J*detJW);
+    this->formBodyForce(*eS,fe.N1,X,J*fe.detJxW);
 
   // Evaluate the constitutive relation
   SymmTensor Eps(3), Sig(3), Sigma(nsd);
@@ -384,34 +382,34 @@ bool NonlinearElasticityULMixed::evalInt (LocalIntegral*& elmInt,
   // Integrate the material stiffness matrix
   Dmat *= dVol;
   if (nsd == 2)
-    acckm2d_(N1.size(),dNdx.ptr(),Dmat.ptr(),eKm->ptr());
+    acckm2d_(fe.N1.size(),dNdx.ptr(),Dmat.ptr(),eKm->ptr());
   else
-    acckm3d_(N1.size(),dNdx.ptr(),Dmat.ptr(),eKm->ptr());
+    acckm3d_(fe.N1.size(),dNdx.ptr(),Dmat.ptr(),eKm->ptr());
 #endif
 
   // Integrate the volumetric change and pressure tangent terms
   size_t a, b;
   unsigned short int i, j, k;
-  for (a = 1; a <= N1.size(); a++)
-    for (b = 1; b <= N2.size(); b++)
+  for (a = 1; a <= fe.N1.size(); a++)
+    for (b = 1; b <= fe.N2.size(); b++)
       for (i = 1; i <= nsd; i++)
       {
-	myMats->A[Kut](nsd*(a-1)+i,b) += dNdx(a,i)*N2(b) * Dmat(i,7);
+	myMats->A[Kut](nsd*(a-1)+i,b) += dNdx(a,i)*fe.N2(b) * Dmat(i,7);
 	if (nsd == 2)
-	  myMats->A[Kut](nsd*(a-1)+i,b) += dNdx(a,3-i)*N2(b) * Dmat(4,7);
+	  myMats->A[Kut](nsd*(a-1)+i,b) += dNdx(a,3-i)*fe.N2(b) * Dmat(4,7);
 	else if (i < 3)
 	{
 	  j = i + 1;
 	  k = j%3 + 1;
-	  myMats->A[Kut](nsd*(a-1)+i,b) += dNdx(a,3-i)*N2(b) * Dmat(4,7);
-	  myMats->A[Kut](nsd*(a-1)+j,b) += dNdx(a,5-j)*N2(b) * Dmat(5,7);
-	  myMats->A[Kut](nsd*(a-1)+k,b) += dNdx(a,4-k)*N2(b) * Dmat(6,7);
+	  myMats->A[Kut](nsd*(a-1)+i,b) += dNdx(a,3-i)*fe.N2(b) * Dmat(4,7);
+	  myMats->A[Kut](nsd*(a-1)+j,b) += dNdx(a,5-j)*fe.N2(b) * Dmat(5,7);
+	  myMats->A[Kut](nsd*(a-1)+k,b) += dNdx(a,4-k)*fe.N2(b) * Dmat(6,7);
 	}
-	myMats->A[Kup](nsd*(a-1)+i,b) += dNdx(a,i)*N2(b) * dVol;
+	myMats->A[Kup](nsd*(a-1)+i,b) += dNdx(a,i)*fe.N2(b) * dVol;
       }
 
-  myMats->A[Ktt].outer_product(N2,N2*Dmat(7,7),true); // Ktt += N2*N2^T * D77
-  myMats->A[Ktp].outer_product(N2,N2*(-detJW),true);  // Ktp -= N2*N2^T * detJW
+  myMats->A[Ktt].outer_product(fe.N2,fe.N2*Dmat(7,7),true);    // += N2*N2^T*D77
+  myMats->A[Ktp].outer_product(fe.N2,fe.N2*(-fe.detJxW),true); // -= N2*N2^T*|J|
 
   if (lHaveStrains)
   {
@@ -420,13 +418,28 @@ bool NonlinearElasticityULMixed::evalInt (LocalIntegral*& elmInt,
 
     // Integrate the internal forces
     Sigma *= -dVol;
-    if (!Bmat.multiply(Sigma,myMats->b[Ru],true,true)) // Ru -= B^T * sigma
+    if (!Bmat.multiply(Sigma,myMats->b[Ru],true,true))  // -= B^T*sigma
       return false;
 
     // Integrate the volumetric change and pressure forces
-    myMats->b[Rt].add(N2,(Press - Bpres)*detJW); // Rt += N2 * (p-pBar)
-    myMats->b[Rp].add(N2,(Theta - J)*detJW);     // Rp += N2 * (Theta-J)
+    myMats->b[Rt].add(fe.N2,(Press - Bpres)*fe.detJxW); // += N2*(p-pBar)*|J|
+    myMats->b[Rp].add(fe.N2,(Theta - J)*fe.detJxW);     // += N2*(Theta-J)*|J|
   }
 
   return this->getIntegralResult(elmInt);
+}
+
+
+/*!
+  The boundary integral is the same as that of the parent class. It does not
+  depend on the pressure and volumetric change fields. Thus, this call is
+  forwarded to the corresponding single-field method of the parent class.
+*/
+
+bool NonlinearElasticityULMixed::evalBouMx (LocalIntegral*& elmInt,
+					    const MxFiniteElement& fe,
+					    const Vec3& X,
+					    const Vec3& normal) const
+{
+  return this->evalBou(elmInt,fe,X,normal);
 }

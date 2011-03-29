@@ -63,20 +63,16 @@ public:
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe Finite element data of current integration point
   //! \param[in] prm Nonlinear solution algorithm parameters
-  //! \param[in] detJW Jacobian determinant times integration point weight
-  //! \param[in] N Basis function values
-  //! \param[in] dNdX Basis function gradients
   //! \param[in] X Cartesian coordinates of current integration point
   //!
   //! \details This method mainly stores the integration point quantities
   //! depending on the basis function values in the internal member \a myData.
   //! The actual numerical integration of the tangent stiffness and internal
   //! forces is then performed by the \a finalizeElement method.
-  virtual bool evalInt(LocalIntegral*& elmInt,
-		       const TimeDomain& prm, double detJW,
-		       const Vector& N, const Matrix& dNdX,
-		       const Vec3& X) const;
+  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
+		       const TimeDomain& prm, const Vec3& X) const;
 
   //! \brief Finalizes the element matrices after the numerical integration.
   //! \details This method is used to implement the multiple integration point
@@ -131,20 +127,16 @@ public:
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe Finite element data of current integration point
   //! \param[in] prm Nonlinear solution algorithm parameters
-  //! \param[in] detJW Jacobian determinant times integration point weight
-  //! \param[in] N Basis function values
-  //! \param[in] dNdX Basis function gradients
   //! \param[in] X Cartesian coordinates of current integration point
   //!
   //! \details This method just forwards to the \a evalInt method of the
   //! corresponding NonlinearElasticityULMX object, for which this class is
   //! declared as friend such that it can access the data members. The actual
   //! norm integration us then performed by the \a finalizeElement method.
-  virtual bool evalInt(LocalIntegral*& elmInt,
-		       const TimeDomain& prm, double detJW,
-		       const Vector& N, const Matrix& dNdX,
-		       const Vec3& X) const;
+  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
+		       const TimeDomain& prm, const Vec3& X) const;
 
   //! \brief Finalizes the element norms after the numerical integration.
   //! \details This method is used to implement the multiple integration point

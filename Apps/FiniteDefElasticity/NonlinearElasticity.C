@@ -13,6 +13,7 @@
 
 #include "NonlinearElasticity.h"
 #include "MaterialBase.h"
+#include "FiniteElement.h"
 #include "Utilities.h"
 #include "Profiler.h"
 
@@ -75,15 +76,15 @@ void NonlinearElasticity::setMode (SIM::SolutionMode mode)
 }
 
 
-bool NonlinearElasticity::evalInt (LocalIntegral*& elmInt, double detJW,
-				   const Vector& N, const Matrix& dNdX,
+bool NonlinearElasticity::evalInt (LocalIntegral*& elmInt,
+				   const FiniteElement& fe,
 				   const Vec3& X) const
 {
   PROFILE3("NonlinearEl::evalInt");
 
   // Evaluate the kinematic quantities, F and E, at this point
   Tensor F(nsd);
-  if (!this->kinematics(dNdX,F,E))
+  if (!this->kinematics(fe.dNdX,F,E))
     return false;
 
   // Evaluate current tangent at this point, that is
@@ -106,30 +107,30 @@ bool NonlinearElasticity::evalInt (LocalIntegral*& elmInt, double detJW,
     PROFILE4("stiff_TL_");
     if (nsd == 3)
       if (fullCmat)
-	stiff_tl3d_(N.size(),detJW,dNdX.ptr(),F.ptr(),
+	stiff_tl3d_(fe.N.size(),fe.detJxW,fe.dNdX.ptr(),F.ptr(),
 		    Cmat.ptr(),eKm->ptr());
       else
-	stiff_tl3d_isoel_(N.size(),detJW,dNdX.ptr(),F.ptr(),
+	stiff_tl3d_isoel_(fe.N.size(),fe.detJxW,fe.dNdX.ptr(),F.ptr(),
 			  Cmat(1,1),Cmat(1,2),Cmat(4,4),eKm->ptr());
     else if (nsd == 2)
       if (fullCmat)
-	stiff_tl2d_(N.size(),detJW,dNdX.ptr(),F.ptr(),
+	stiff_tl2d_(fe.N.size(),fe.detJxW,fe.dNdX.ptr(),F.ptr(),
 		    Cmat.ptr(),eKm->ptr());
       else
-	stiff_tl2d_isoel_(N.size(),detJW,dNdX.ptr(),F.ptr(),
+	stiff_tl2d_isoel_(fe.N.size(),fe.detJxW,fe.dNdX.ptr(),F.ptr(),
 			  Cmat(1,1),Cmat(1,2),Cmat(3,3),eKm->ptr());
     else if (nsd == 1)
-      for (a = 1; a <= N.size(); a++)
-	for (b = 1; b <= N.size(); b++)
-	  (*eKm)(a,b) += dNdX(a,1)*F(1,1)*Cmat(1,1)*F(1,1)*dNdX(b,1);
+      for (a = 1; a <= fe.N.size(); a++)
+	for (b = 1; b <= fe.N.size(); b++)
+	  (*eKm)(a,b) += fe.dNdX(a,1)*F(1,1)*Cmat(1,1)*F(1,1)*fe.dNdX(b,1);
 #else
     // This is too costly, but is basically what is done in the fortran routines
     PROFILE4("dNdX^t*F^t*C*F*dNdX");
     unsigned short int l, m, n;
     SymmTensor4 D(Cmat,nsd); // fourth-order material tensor
     Matrix& EM = *eKm;
-    for (a = 1; a <= N.size(); a++)
-      for (b = 1; b <= N.size(); b++)
+    for (a = 1; a <= fe.N.size(); a++)
+      for (b = 1; b <= fe.N.size(); b++)
 	for (m = 1; m <= nsd; m++)
 	  for (n = 1; n <= nsd; n++)
 	  {
@@ -138,39 +139,39 @@ bool NonlinearElasticity::evalInt (LocalIntegral*& elmInt, double detJW,
 	      for (j = 1; j <= nsd; j++)
 		for (k = 1; k <= nsd; k++)
 		  for (l = 1; l <= nsd; l++)
-		    km += dNdX(a,i)*F(m,j)*D(i,j,k,l)*F(n,k)*dNdX(b,l);
+		    km += fe.dNdX(a,i)*F(m,j)*D(i,j,k,l)*F(n,k)*fe.dNdX(b,l);
 
-	    EM(nsd*(a-1)+m,nsd*(b-1)+n) += km*detJW;
+	    EM(nsd*(a-1)+m,nsd*(b-1)+n) += km*fe.detJxW;
 	  }
 #endif
   }
 
   if (eKg && haveStrains)
     // Integrate the geometric stiffness matrix
-    this->formKG(*eKg,dNdX,S,detJW);
+    this->formKG(*eKg,fe.dNdX,S,fe.detJxW);
 
   if (eM)
     // Integrate the mass matrix
-    this->formMassMatrix(*eM,N,X,detJW);
+    this->formMassMatrix(*eM,fe.N,X,fe.detJxW);
 
   if (iS && haveStrains)
   {
     // Integrate the internal forces
     Vector& ES = *iS;
-    for (a = 1; a <= N.size(); a++)
+    for (a = 1; a <= fe.N.size(); a++)
       for (k = 1; k <= nsd; k++)
       {
 	double f = 0.0;
 	for (i = 1; i <= nsd; i++)
 	  for (j = 1; j <= nsd; j++)
-	    f -= dNdX(a,i)*F(k,j)*S(i,j);
-	ES(nsd*(a-1)+k) += f*detJW;
+	    f -= fe.dNdX(a,i)*F(k,j)*S(i,j);
+	ES(nsd*(a-1)+k) += f*fe.detJxW;
       }
   }
 
   if (eS)
     // Integrate the load vector due to gravitation and other body forces
-    this->formBodyForce(*eS,N,X,detJW);
+    this->formBodyForce(*eS,fe.N,X,fe.detJxW);
 
   return this->getIntegralResult(elmInt);
 }

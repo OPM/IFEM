@@ -51,21 +51,15 @@ public:
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe Finite element data of current integration point
   //! \param[in] prm Nonlinear solution algorithm parameters
-  //! \param[in] detJW Jacobian determinant times integration point weight
-  //! \param[in] N Basis function values
-  //! \param[in] dNdX Basis function gradients
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool evalInt(LocalIntegral*& elmInt,
-		       const TimeDomain& prm, double detJW,
-		       const Vector& N, const Matrix& dNdX,
-		       const Vec3& X) const;
+  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
+		       const TimeDomain& prm, const Vec3& X) const;
 
   //! \brief Evaluates the integrand at a boundary point.
   //! \param elmInt The local integral object to receive the contributions
-  //! \param[in] detJW Jacobian determinant times integration point weight
-  //! \param[in] N Basis function values
-  //! \param[in] dNdX Basis function gradients
+  //! \param[in] fe Finite element data of current integration point
   //! \param[in] X Cartesian coordinates of current integration point
   //! \param[in] normal Boundary normal vector at current integration point
   //!
@@ -73,8 +67,7 @@ public:
   //! possibly with-rotated traction fields (non-conservative loads).
   //! For uni-directional (conservative) loads, it is similar to the
   //! \a LinearElasticity::evalBou method.
-  virtual bool evalBou(LocalIntegral*& elmInt, double detJW,
-                       const Vector& N, const Matrix& dNdX,
+  virtual bool evalBou(LocalIntegral*& elmInt, const FiniteElement& fe,
                        const Vec3& X, const Vec3& normal) const;
 
   //! \brief Returns a pointer to an Integrand for solution norm evaluation.
@@ -144,45 +137,26 @@ public:
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe Finite element data of current integration point
   //! \param[in] prm Nonlinear solution algorithm parameters
-  //! \param[in] detJW Jacobian determinant times integration point weight
-  //! \param[in] N Basis function values
-  //! \param[in] dNdX Basis function gradients
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool evalInt(LocalIntegral*& elmInt,
-		       const TimeDomain& prm, double detJW,
-		       const Vector& N, const Matrix& dNdX,
-		       const Vec3& X) const;
+  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
+		       const TimeDomain& prm, const Vec3& X) const;
   //! \brief Evaluates the integrand at an interior point (mixed).
   //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe Mixed finite element data of current integration point
   //! \param[in] prm Nonlinear solution algorithm parameters
-  //! \param[in] detJW Jacobian determinant times integration point weight
-  //! \param[in] N1 Basis function values for the displacement field
-  //! \param[in] dN1dX Basis function gradients for the displacement field
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool evalInt(LocalIntegral*& elmInt,
-		       const TimeDomain& prm, double detJW,
-                       const Vector& N1, const Vector&,
-                       const Matrix& dN1dX, const Matrix&,
-                       const Vec3& X) const
-  {
-    return this->evalInt(elmInt,prm,detJW,N1,dN1dX,X);
-  }
+  virtual bool evalIntMx(LocalIntegral*& elmInt, const MxFiniteElement& fe,
+			 const TimeDomain& prm, const Vec3& X) const;
 
   //! \brief Evaluates the integrand at a boundary point (mixed).
   //! \param elmInt The local integral object to receive the contributions
-  //! \param[in] detJW Jacobian determinant times integration point weight
-  //! \param[in] N1 Basis function values for the displacement field
-  //! \param[in] dN1dX Basis function gradients for the displacement field
+  //! \param[in] fe Mixed finite element data of current integration point
   //! \param[in] X Cartesian coordinates of current integration point
   //! \param[in] normal Boundary normal vector at current integration point
-  virtual bool evalBou(LocalIntegral*& elmInt, double detJW,
-                       const Vector& N1, const Vector&,
-                       const Matrix& dN1dX, const Matrix&,
-                       const Vec3& X, const Vec3& normal) const
-  {
-    return this->ElasticityNorm::evalBou(elmInt,detJW,N1,dN1dX,X,normal);
-  }
+  virtual bool evalBouMx(LocalIntegral*& elmInt, const MxFiniteElement& fe,
+			 const Vec3& X, const Vec3& normal) const;
 };
 
 #endif

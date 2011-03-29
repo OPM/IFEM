@@ -15,6 +15,7 @@
 
 #include "ASMs2DSpec.h"
 #include "TimeDomain.h"
+#include "FiniteElement.h"
 #include "GlobalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
@@ -95,9 +96,8 @@ bool ASMs2DSpec::integrate (Integrand& integrand,
   if (!Legendre::basisDerivatives(p1,D1)) return false;
   if (!Legendre::basisDerivatives(p2,D2)) return false;
 
-  Vector  N (p1*p2);
-  Matrix dNdu(p1*p2,2);
-  Matrix dNdX, Xnod, Jac;
+  FiniteElement fe(p1*p2);
+  Matrix dNdu(p1*p2,2), Xnod, Jac;
   Vec4   X;
 
 
@@ -125,16 +125,13 @@ bool ASMs2DSpec::integrate (Integrand& integrand,
       for (int j = 1; j <= p2; j++)
 	for (int i = 1; i <= p1; i++, count++)
 	{
-	  // Weight of current integration point
-	  double weight = wg1(i)*wg2(j);
-
 	  // Evaluate the basis functions and gradients using
 	  // tensor product of one-dimensional Lagrange polynomials
-	  evalBasis(i,j,p1,p2,D1,D2,N,dNdu);
+	  evalBasis(i,j,p1,p2,D1,D2,fe.N,dNdu);
 
 	  // Compute Jacobian inverse of coordinate mapping and derivatives
-	  double dA = utl::Jacobian(Jac,dNdX,Xnod,dNdu);
-	  if (dA == 0.0) continue; // skip singular points
+	  fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+	  if (fe.detJxW == 0.0) continue; // skip singular points
 
 	  // Cartesian coordinates of current integration point
 	  X.x = Xnod(1,count);
@@ -142,7 +139,8 @@ bool ASMs2DSpec::integrate (Integrand& integrand,
 	  X.t = time.t;
 
 	  // Evaluate the integrand and accumulate element contributions
-	  if (!integrand.evalInt(elmInt,time,dA*weight,N,dNdX,X))
+	  fe.detJxW *= wg1(i)*wg2(j);
+	  if (!integrand.evalInt(elmInt,fe,time,X))
 	    return false;
 	}
 
@@ -191,9 +189,8 @@ bool ASMs2DSpec::integrate (Integrand& integrand, int lIndex,
 
   int nen = p[0]*p[1];
 
-  Vector N(nen);
-  Matrix dNdu(nen,2);
-  Matrix dNdX, Xnod, Jac;
+  FiniteElement fe(nen);
+  Matrix dNdu(nen,2), Xnod, Jac;
   Vec4   X;
   Vec3   normal;
   int    xi[2];
@@ -233,29 +230,27 @@ bool ASMs2DSpec::integrate (Integrand& integrand, int lIndex,
 
       for (int i = 0; i < p[t2-1]; i++)
       {
-	// Weight of current integration point
-	double weight = wg[t2-1][i];
-
 	// "Coordinates" along the edge
 	xi[t1-1] = edgeDir < 0 ? 1 : p[t1-1];
 	xi[t2-1] = i+1;
 
 	// Evaluate the basis functions and gradients using
 	// tensor product of one-dimensional Lagrange polynomials
-	evalBasis(xi[0],xi[1],p[0],p[1],D1,D2,N,dNdu);
+	evalBasis(xi[0],xi[1],p[0],p[1],D1,D2,fe.N,dNdu);
 
 	// Compute basis function derivatives and the edge normal
-	double dS = utl::Jacobian(Jac,normal,dNdX,Xnod,dNdu,t1,t2);
-	if (dS == 0.0) continue; // skip singular points
+	fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
+	if (fe.detJxW == 0.0) continue; // skip singular points
 
 	if (edgeDir < 0) normal *= -1.0;
 
 	// Cartesian coordinates of current integration point
-	X = Xnod * N;
+	X = Xnod * fe.N;
 	X.t = time.t;
 
 	// Evaluate the integrand and accumulate element contributions
-	if (!integrand.evalBou(elmInt,time,dS*weight,N,dNdX,X,normal))
+	fe.detJxW *= wg[t2-1][i];
+	if (!integrand.evalBou(elmInt,fe,time,X,normal))
 	  return false;
       }
 

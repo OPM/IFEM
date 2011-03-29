@@ -12,7 +12,8 @@
 //==============================================================================
 
 #include "Elasticity.h"
-#include "MaterialBase.h"
+#include "LinIsotropic.h"
+#include "FiniteElement.h"
 #include "Utilities.h"
 #include "ElmMats.h"
 #include "ElmNorm.h"
@@ -51,7 +52,13 @@ void Elasticity::print (std::ostream& os) const
   for (unsigned short int d = 0; d < nsd; d++)
     std::cout <<" "<< grav[d];
   std::cout << std::endl;
-  if (material) material->print(os);
+
+  if (!material)
+  {
+    static LinIsotropic defaultMat;
+    const_cast<Elasticity*>(this)->material = &defaultMat;
+  }
+  material->print(os);
 }
 
 
@@ -575,8 +582,7 @@ ElmNorm& ElasticityNorm::getElmNormBuffer (LocalIntegral*& elmInt)
 }
 
 
-bool ElasticityNorm::evalInt (LocalIntegral*& elmInt, double detJW,
-			      const Vector& N, const Matrix& dNdX,
+bool ElasticityNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
 			      const Vec3& X) const
 {
   ElmNorm& pnorm = ElasticityNorm::getElmNormBuffer(elmInt);
@@ -587,19 +593,19 @@ bool ElasticityNorm::evalInt (LocalIntegral*& elmInt, double detJW,
 
   // Evaluate the finite element stress field
   Vector sigmah, sigma;
-  if (!problem.evalSol(sigmah,dNdX,X)) return false;
+  if (!problem.evalSol(sigmah,fe.dNdX,X)) return false;
 
   // Integrate the energy norm a(u^h,u^h)
-  pnorm[0] += sigmah.dot(Cinv*sigmah)*detJW;
+  pnorm[0] += sigmah.dot(Cinv*sigmah)*fe.detJxW;
 
   if (problem.haveLoads())
   {
     // Evaluate the body load
     Vec3 f = problem.getBodyforce(X);
     // Evaluate the displacement field
-    Vec3 u = problem.evalSol(N);
+    Vec3 u = problem.evalSol(fe.N);
     // Integrate the external energy (f,u^h)
-    pnorm[1] += f*u*detJW;
+    pnorm[1] += f*u*fe.detJxW;
   }
 
   if (anasol)
@@ -607,18 +613,17 @@ bool ElasticityNorm::evalInt (LocalIntegral*& elmInt, double detJW,
     // Evaluate the analytical stress field
     sigma = (*anasol)(X);
     // Integrate the energy norm a(u,u)
-    pnorm[2] += sigma.dot(Cinv*sigma)*detJW;
+    pnorm[2] += sigma.dot(Cinv*sigma)*fe.detJxW;
     // Integrate the error in energy norm a(u-u^h,u-u^h)
     sigma -= sigmah;
-    pnorm[3] += sigma.dot(Cinv*sigma)*detJW;
+    pnorm[3] += sigma.dot(Cinv*sigma)*fe.detJxW;
   }
 
   return true;
 }
 
 
-bool ElasticityNorm::evalBou (LocalIntegral*& elmInt, double detJW,
-			      const Vector& N, const Matrix&,
+bool ElasticityNorm::evalBou (LocalIntegral*& elmInt, const FiniteElement& fe,
 			      const Vec3& X, const Vec3& normal) const
 {
   if (!problem.haveLoads()) return true;
@@ -628,9 +633,9 @@ bool ElasticityNorm::evalBou (LocalIntegral*& elmInt, double detJW,
   // Evaluate the surface traction
   Vec3 T = problem.getTraction(X,normal);
   // Evaluate the displacement field
-  Vec3 u = problem.evalSol(N);
+  Vec3 u = problem.evalSol(fe.N);
 
   // Integrate the external energy
-  pnorm[1] += T*u*detJW;
+  pnorm[1] += T*u*fe.detJxW;
   return true;
 }

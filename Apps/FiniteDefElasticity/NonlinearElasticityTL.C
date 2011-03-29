@@ -13,6 +13,7 @@
 
 #include "NonlinearElasticity.h"
 #include "MaterialBase.h"
+#include "FiniteElement.h"
 #include "ElmMats.h"
 #include "Tensor.h"
 #include "Vec3Oper.h"
@@ -82,15 +83,15 @@ void NonlinearElasticityTL::setMode (SIM::SolutionMode mode)
 }
 
 
-bool NonlinearElasticityTL::evalInt (LocalIntegral*& elmInt, double detJW,
-				     const Vector& N, const Matrix& dNdX,
+bool NonlinearElasticityTL::evalInt (LocalIntegral*& elmInt,
+				     const FiniteElement& fe,
 				     const Vec3& X) const
 {
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E,
   // and compute the nonlinear strain-displacement matrix, B, from dNdX and F
   Tensor F(nsd);
   SymmTensor E(nsd), S(nsd);
-  if (!this->kinematics(dNdX,F,E))
+  if (!this->kinematics(fe.dNdX,F,E))
     return false;
 
   // Evaluate the constitutive relation
@@ -105,36 +106,36 @@ bool NonlinearElasticityTL::evalInt (LocalIntegral*& elmInt, double detJW,
   if (eKm)
   {
     // Integrate the material stiffness matrix
-    CB.multiply(Cmat,Bmat).multiply(detJW); // CB = C*B*|J|*w
-    eKm->multiply(Bmat,CB,true,false,true); // EK += B^T * CB
+    CB.multiply(Cmat,Bmat).multiply(fe.detJxW); // CB = C*B*|J|*w
+    eKm->multiply(Bmat,CB,true,false,true);     // EK += B^T * CB
   }
 
   if (eKg && lHaveStrains)
     // Integrate the geometric stiffness matrix
-    this->formKG(*eKg,dNdX,S,detJW);
+    this->formKG(*eKg,fe.dNdX,S,fe.detJxW);
 
   if (eM)
     // Integrate the mass matrix
-    this->formMassMatrix(*eM,N,X,detJW);
+    this->formMassMatrix(*eM,fe.N,X,fe.detJxW);
 
   if (iS && lHaveStrains)
   {
     // Integrate the internal forces
-    S *= -detJW;
+    S *= -fe.detJxW;
     if (!Bmat.multiply(S,*iS,true,true)) // ES -= B^T*S
       return false;
   }
 
   if (eS)
     // Integrate the load vector due to gravitation and other body forces
-    this->formBodyForce(*eS,N,X,detJW);
+    this->formBodyForce(*eS,fe.N,X,fe.detJxW);
 
   return this->getIntegralResult(elmInt);
 }
 
 
-bool NonlinearElasticityTL::evalBou (LocalIntegral*& elmInt, double detJW,
-				     const Vector& N, const Matrix& dNdX,
+bool NonlinearElasticityTL::evalBou (LocalIntegral*& elmInt,
+				     const FiniteElement& fe,
 				     const Vec3& X, const Vec3& normal) const
 {
   if (!tracFld)
@@ -163,7 +164,7 @@ bool NonlinearElasticityTL::evalBou (LocalIntegral*& elmInt, double detJW,
     // Compute the deformation gradient, F
     Tensor F(nsd);
     SymmTensor dummy(0);
-    if (!this->kinematics(dNdX,F,dummy)) return false;
+    if (!this->kinematics(fe.dNdX,F,dummy)) return false;
 
     // Compute its inverse and determinant, J
     double J = F.inverse();
@@ -180,9 +181,9 @@ bool NonlinearElasticityTL::evalBou (LocalIntegral*& elmInt, double detJW,
 
   // Integrate the force vector
   Vector& ES = *eS;
-  for (size_t a = 1; a <= N.size(); a++)
+  for (size_t a = 1; a <= fe.N.size(); a++)
     for (i = 1; i <= nsd; i++)
-      ES(nsd*(a-1)+i) += T[i-1]*N(a)*detJW;
+      ES(nsd*(a-1)+i) += T[i-1]*fe.N(a)*fe.detJxW;
 
   return this->getIntegralResult(elmInt);
 }

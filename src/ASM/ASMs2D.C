@@ -17,6 +17,7 @@
 
 #include "ASMs2D.h"
 #include "TimeDomain.h"
+#include "FiniteElement.h"
 #include "GlobalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
@@ -819,10 +820,9 @@ bool ASMs2D::integrate (Integrand& integrand,
   const int n2 = surf->numCoefs_v();
   const int nel1 = n1 - p1 + 1;
 
-  Vector   N(p1*p2), Navg;
-  Matrix   dNdu, dNdX, Xnod, Jac;
-  Matrix3D d2Ndu2, d2NdX2, Hess;
-  double   h = 0.0;
+  FiniteElement fe(p1*p2);
+  Matrix   dNdu, Xnod, Jac;
+  Matrix3D d2Ndu2, Hess;
   Vec4     X;
 
 
@@ -843,33 +843,33 @@ bool ASMs2D::integrate (Integrand& integrand,
 
       // Compute characteristic element length, if needed
       if (integrand.getIntegrandType() == 2)
-	h = getElmSize(p1,p2,Xnod);
+	fe.h = getElmSize(p1,p2,Xnod);
 
       else if (integrand.getIntegrandType() == 3)
       {
 	// --- Compute average value of basis functions over the element -------
 
-	Navg.resize(p1*p2,true);
+	fe.Navg.resize(p1*p2,true);
 	double area = 0.0;
 	int ip = ((i2-p2)*nGauss*nel1 + i1-p1)*nGauss;
 	for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
 	  for (int i = 0; i < nGauss; i++, ip++)
 	  {
 	    // Fetch basis function derivatives at current integration point
-	    extractBasis(spline[ip],N,dNdu);
+	    extractBasis(spline[ip],fe.N,dNdu);
 
 	    // Compute Jacobian determinant of coordinate mapping
 	    // and multiply by weight of current integration point
+	    double detJac = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu,false);
 	    double weight = 0.25*dA*wg[i]*wg[j];
-	    double detJxW = utl::Jacobian(Jac,dNdX,Xnod,dNdu,false)*weight;
 
 	    // Numerical quadrature
-	    Navg += N*detJxW;
-	    area += detJxW;
+	    fe.Navg.add(fe.N,detJac*weight);
+	    area += detJac*weight;
 	  }
 
 	// Divide by element area
-	Navg /= area;
+	fe.Navg /= area;
       }
 
       else if (integrand.getIntegrandType() == 4)
@@ -899,47 +899,38 @@ bool ASMs2D::integrate (Integrand& integrand,
       for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
 	for (int i = 0; i < nGauss; i++, ip++)
 	{
-	  // Weight of current integration point
-	  double weight = 0.25*dA*wg[i]*wg[j];
+	  // Parameter values of current integration point
+	  fe.u = gpar[0](i+1,i1-p1+1);
+	  fe.v = gpar[1](j+1,i2-p2+1);
 
 	  // Fetch basis function derivatives at current integration point
 	  if (integrand.getIntegrandType() == 2)
-	    extractBasis(spline2[ip],N,dNdu,d2Ndu2);
+	    extractBasis(spline2[ip],fe.N,dNdu,d2Ndu2);
 	  else
-	    extractBasis(spline[ip],N,dNdu);
+	    extractBasis(spline[ip],fe.N,dNdu);
 
 	  // Compute Jacobian inverse of coordinate mapping and derivatives
-	  double detJ = utl::Jacobian(Jac,dNdX,Xnod,dNdu);
-	  if (detJ == 0.0) continue; // skip singular points
+	  fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+	  if (fe.detJxW == 0.0) continue; // skip singular points
 
 	  // Compute Hessian of coordinate mapping and 2nd order derivatives
 	  if (integrand.getIntegrandType() == 2)
-	    if (!utl::Hessian(Hess,d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
+	    if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
 	      return false;
 
 #if SP_DEBUG > 4
 	  std::cout <<"\niel, ip = "<< iel <<" "<< ip
-		    <<"\nN ="<< N <<"dNdX ="<< dNdX << std::endl;
+		    <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX << std::endl;
 #endif
 
 	  // Cartesian coordinates of current integration point
-	  X = Xnod * N;
+	  X = Xnod * fe.N;
 	  X.t = time.t;
 
 	  // Evaluate the integrand and accumulate element contributions
-	  bool ok = false;
-	  switch (integrand.getIntegrandType())
-	    {
-	    case 2:
-	      ok = integrand.evalInt(elmInt,time,detJ*weight,N,dNdX,d2NdX2,X,h);
-	      break;
-	    case 3:
-	      ok = integrand.evalInt(elmInt,time,detJ*weight,N,dNdX,Navg,X);
-	      break;
-	    default:
-	      ok = integrand.evalInt(elmInt,time,detJ*weight,N,dNdX,X);
-	    }
-	  if (!ok) return false;
+	  fe.detJxW *= 0.25*dA*wg[i]*wg[j];
+	  if (!integrand.evalInt(elmInt,fe,time,X))
+	    return false;
 	}
 
       // Finalize the element quantities
@@ -1013,8 +1004,8 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
 
-  Vector N(p1*p2);
-  Matrix dNdu, dNdX, Xnod, Jac;
+  FiniteElement fe(p1*p2);
+  Matrix dNdu, Xnod, Jac;
   Vec4   X;
   Vec3   normal;
 
@@ -1060,24 +1051,22 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       int ip = (abs(edgeDir) == 1 ? i2-p2 : i1-p1)*nGauss;
       for (int i = 0; i < nGauss; i++, ip++)
       {
-	// Weight of current integration point
-	double weight = 0.5*dS*wg[i];
-
 	// Fetch basis function derivatives at current integration point
-	extractBasis(spline[ip],N,dNdu);
+	extractBasis(spline[ip],fe.N,dNdu);
 
 	// Compute basis function derivatives and the edge normal
-	double dT = utl::Jacobian(Jac,normal,dNdX,Xnod,dNdu,t1,t2);
-	if (dT == 0.0) continue; // skip singular points
+	fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
+	if (fe.detJxW == 0.0) continue; // skip singular points
 
 	if (edgeDir < 0) normal *= -1.0;
 
 	// Cartesian coordinates of current integration point
-	X = Xnod * N;
+	X = Xnod * fe.N;
 	X.t = time.t;
 
 	// Evaluate the integrand and accumulate element contributions
-	if (!integrand.evalBou(elmInt,time,dT*weight,N,dNdX,X,normal))
+	fe.detJxW *= 0.5*dS*wg[i];
+	if (!integrand.evalBou(elmInt,fe,time,X,normal))
 	  return false;
       }
 
@@ -1102,12 +1091,14 @@ bool ASMs2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
   }
 
   DoubleIter uit = surf->basis(dir).begin();
-  double ucurr, uprev = *(uit++);
+  double ucurr = 0.0, uprev = *(uit++);
   while (uit != surf->basis(dir).end())
   {
     ucurr = *(uit++);
     if (ucurr > uprev)
-      for (int i = 0; i < nSegPerSpan; i++)
+      if (nSegPerSpan == 1)
+	prm.push_back(uprev);
+      else for (int i = 0; i < nSegPerSpan; i++)
       {
 	double xg = (double)(2*i-nSegPerSpan)/(double)nSegPerSpan;
 	prm.push_back(0.5*(ucurr*(1.0+xg) + uprev*(1.0-xg)));
@@ -1115,7 +1106,8 @@ bool ASMs2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
     uprev = ucurr;
   }
 
-  prm.push_back(surf->basis(dir).endparam());
+  if (ucurr > prm.back())
+    prm.push_back(ucurr);
   return true;
 }
 
@@ -1236,7 +1228,7 @@ bool ASMs2D::evalSolution (Matrix& sField, const Integrand& integrand,
   if (npe)
   {
     // Compute parameter values of the result sampling points
-    DoubleVec gpar[2];
+    RealArray gpar[2];
     for (int dir = 0; dir < 2 && retVal; dir++)
       retVal = this->getGridParameters(gpar[dir],dir,npe[dir]-1);
 

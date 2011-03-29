@@ -15,6 +15,7 @@
 
 #include "ASMs1DSpec.h"
 #include "TimeDomain.h"
+#include "FiniteElement.h"
 #include "GlobalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
@@ -83,8 +84,8 @@ bool ASMs1DSpec::integrate (Integrand& integrand,
     if (!Legendre::GL(wg1,xg1,n1))
       return false;
 
-  Vector N(p1);
-  Matrix dNdu, dNdX, Xnod, Jac;
+  FiniteElement fe(p1);
+  Matrix dNdu, Xnod, Jac;
   Vec4   X;
 
 
@@ -110,29 +111,27 @@ bool ASMs1DSpec::integrate (Integrand& integrand,
 
     for (int i = 0; i < n1; i++)
     {
-      // Weight of current integration point
-      double weight = wg1[i];
-
       // Compute basis function derivatives at current integration point
       if (nGauss < 1)
       {
-	N.fill(0.0);
-	N(i+1) = 1.0;
+	fe.N.fill(0.0);
+	fe.N(i+1) = 1.0;
 	dNdu.fillColumn(1,D1.getRow(i+1));
       }
       else
-	if (!Lagrange::computeBasis(N,dNdu,points1,xg1[i]))
+	if (!Lagrange::computeBasis(fe.N,dNdu,points1,xg1[i]))
 	  return false;
 
       // Compute Jacobian inverse of coordinate mapping and derivatives
-      double detJ = utl::Jacobian(Jac,dNdX,Xnod,dNdu);
+      fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
 
       // Cartesian coordinates of current integration point
-      X = Xnod*N;
+      X = Xnod*fe.N;
       X.t = time.t;
 
       // Evaluate the integrand and accumulate element contributions
-      if (!integrand.evalInt(elmInt,time,detJ*weight,N,dNdX,X))
+      fe.detJxW *= wg1[i];
+      if (!integrand.evalInt(elmInt,fe,time,X))
 	return false;
     }
 

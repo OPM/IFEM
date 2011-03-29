@@ -32,23 +32,17 @@ public:
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
-  //! \param[in] detJW Jacobian determinant times integration point weight
-  //! \param[in] N Basis function values
-  //! \param[in] dNdX Basis function gradients
+  //! \param[in] fe Finite element data of current integration point
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool evalInt(LocalIntegral*& elmInt, double detJW,
-		       const Vector& N, const Matrix& dNdX,
+  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
 		       const Vec3& X) const;
 
   //! \brief Evaluates the integrand at a boundary point.
   //! \param elmInt The local integral object to receive the contributions
-  //! \param[in] detJW Jacobian determinant times integration point weight
-  //! \param[in] N Basis function values
-  //! \param[in] dNdX Basis function gradients
+  //! \param[in] fe Finite element data of current integration point
   //! \param[in] X Cartesian coordinates of current integration point
   //! \param[in] normal Boundary normal vector at current integration point
-  virtual bool evalBou(LocalIntegral*& elmInt, double detJW,
-		       const Vector& N, const Matrix& dNdX,
+  virtual bool evalBou(LocalIntegral*& elmInt, const FiniteElement& fe,
 		       const Vec3& X, const Vec3& normal) const;
 
 private:

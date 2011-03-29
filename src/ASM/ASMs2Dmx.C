@@ -15,6 +15,7 @@
 
 #include "ASMs2Dmx.h"
 #include "TimeDomain.h"
+#include "FiniteElement.h"
 #include "GlobalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
@@ -400,11 +401,10 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   const int n2 = surf->numCoefs_v();
   const int nel1 = n1 - p1 + 1;
 
-  Vector N1(basis1->order_u()*basis1->order_v());
-  Vector N2(basis2->order_u()*basis2->order_v());
-  Matrix dN1du, dN1dX, dN2du, dN2dX, Xnod, Jac;
+  MxFiniteElement fe(basis1->order_u()*basis1->order_v(),
+		     basis2->order_u()*basis2->order_v());
+  Matrix dN1du, dN2du, Xnod, Jac;
   Vec4   X;
-  double detJ;
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -423,7 +423,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
       if (!this->getElementCoordinates(Xnod,iel)) return false;
 
       // Initialize element quantities
-      IntVec::iterator f2start = MNPC[iel-1].begin() + N1.size();
+      IntVec::iterator f2start = MNPC[iel-1].begin() + fe.N1.size();
       if (!integrand.initElement(IntVec(MNPC[iel-1].begin(),f2start),
 				 IntVec(f2start,MNPC[iel-1].end()),nb1))
 	return false;
@@ -441,33 +441,35 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
       for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
 	for (int i = 0; i < nGauss; i++, ip++)
 	{
-	  // Weight of current integration point
-	  double weight = 0.25*dA*wg[i]*wg[j];
+	  // Parameter values of current integration point
+	  fe.u = gpar[0](i+1,i1-p1+1);
+	  fe.v = gpar[1](j+1,i2-p2+1);
 
 	  // Fetch basis function derivatives at current integration point
-	  extractBasis(spline1[ip],N1,dN1du);
-	  extractBasis(spline2[ip],N2,dN2du);
+	  extractBasis(spline1[ip],fe.N1,dN1du);
+	  extractBasis(spline2[ip],fe.N2,dN2du);
 
 	  // Compute Jacobian inverse of the coordinate mapping and
 	  // basis function derivatives w.r.t. Cartesian coordinates
 	  if (geoUsesBasis1)
 	  {
-	    detJ = utl::Jacobian(Jac,dN1dX,Xnod,dN1du);
-	    dN2dX.multiply(dN2du,Jac); // dN2dX = dN2du * J^-1
+	    fe.detJxW = utl::Jacobian(Jac,fe.dN1dX,Xnod,dN1du);
+	    fe.dN2dX.multiply(dN2du,Jac); // dN2dX = dN2du * J^-1
 	  }
 	  else
 	  {
-	    detJ = utl::Jacobian(Jac,dN2dX,Xnod,dN2du);
-	    dN1dX.multiply(dN1du,Jac); // dN1dX = dN1du * J^-1
+	    fe.detJxW = utl::Jacobian(Jac,fe.dN2dX,Xnod,dN2du);
+	    fe.dN1dX.multiply(dN1du,Jac); // dN1dX = dN1du * J^-1
 	  }
-	  if (detJ == 0.0) continue; // skip singular points
+	  if (fe.detJxW == 0.0) continue; // skip singular points
 
 	  // Cartesian coordinates of current integration point
-	  X = Xnod * (geoUsesBasis1 ? N1 : N2);
+	  X = Xnod * (geoUsesBasis1 ? fe.N1 : fe.N2);
 	  X.t = time.t;
 
 	  // Evaluate the integrand and accumulate element contributions
-	  if (!integrand.evalInt(elmInt,time,detJ*weight,N1,N2,dN1dX,dN2dX,X))
+	  fe.detJxW *= 0.25*dA*wg[i]*wg[j];
+	  if (!integrand.evalIntMx(elmInt,fe,time,X))
 	    return false;
 	}
 
@@ -540,12 +542,11 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
 
-  Vector N1(basis1->order_u()*basis1->order_v());
-  Vector N2(basis2->order_u()*basis2->order_v());
-  Matrix dN1du, dN1dX, dN2du, dN2dX, Xnod, Jac;
+  MxFiniteElement fe(basis1->order_u()*basis1->order_v(),
+		     basis2->order_u()*basis2->order_v());
+  Matrix dN1du, dN2du, Xnod, Jac;
   Vec4   X;
   Vec3   normal;
-  double detJ;
 
 
   // === Assembly loop over all elements on the patch edge =====================
@@ -575,7 +576,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
       if (!this->getElementCoordinates(Xnod,iel)) return false;
 
       // Initialize element quantities
-      IntVec::iterator f2start = MNPC[iel-1].begin() + N1.size();
+      IntVec::iterator f2start = MNPC[iel-1].begin() + fe.N1.size();
       if (!integrand.initElementBou(IntVec(MNPC[iel-1].begin(),f2start),
 				    IntVec(f2start,MNPC[iel-1].end()),nb1))
 	return false;
@@ -592,36 +593,33 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
       int ip = (abs(edgeDir) == 1 ? i2-p2 : i1-p1)*nGauss;
       for (int i = 0; i < nGauss; i++, ip++)
       {
-	// Weight of current integration point
-	double weight = 0.5*dS*wg[i];
-
 	// Fetch basis function derivatives at current integration point
-	extractBasis(spline1[ip],N1,dN1du);
-	extractBasis(spline2[ip],N2,dN2du);
+	extractBasis(spline1[ip],fe.N1,dN1du);
+	extractBasis(spline2[ip],fe.N2,dN2du);
 
 	// Compute Jacobian inverse of the coordinate mapping and
 	// basis function derivatives w.r.t. Cartesian coordinates
 	if (geoUsesBasis1)
 	{
-	  detJ = utl::Jacobian(Jac,normal,dN1dX,Xnod,dN1du,t1,t2);
-	  dN2dX.multiply(dN2du,Jac); // dN2dX = dN2du * J^-1
+	  fe.detJxW = utl::Jacobian(Jac,normal,fe.dN1dX,Xnod,dN1du,t1,t2);
+	  fe.dN2dX.multiply(dN2du,Jac); // dN2dX = dN2du * J^-1
 	}
 	else
 	{
-	  detJ = utl::Jacobian(Jac,normal,dN2dX,Xnod,dN2du,t1,t2);
-	  dN1dX.multiply(dN1du,Jac); // dN1dX = dN1du * J^-1
+	  fe.detJxW = utl::Jacobian(Jac,normal,fe.dN2dX,Xnod,dN2du,t1,t2);
+	  fe.dN1dX.multiply(dN1du,Jac); // dN1dX = dN1du * J^-1
 	}
-	if (detJ == 0.0) continue; // skip singular points
+	if (fe.detJxW == 0.0) continue; // skip singular points
 
 	if (edgeDir < 0) normal *= -1.0;
 
 	// Cartesian coordinates of current integration point
-	X = Xnod * (geoUsesBasis1 ? N1 : N2);
+	X = Xnod * (geoUsesBasis1 ? fe.N1 : fe.N2);
 	X.t = time.t;
 
 	// Evaluate the integrand and accumulate element contributions
-	if (!integrand.evalBou(elmInt,time,detJ*weight,
-			       N1,N2,dN1dX,dN2dX,X,normal))
+	fe.detJxW *= 0.5*dS*wg[i];
+	if (!integrand.evalBouMx(elmInt,fe,time,X,normal))
 	  return false;
       }
 

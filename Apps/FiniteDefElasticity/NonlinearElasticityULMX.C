@@ -13,6 +13,7 @@
 
 #include "NonlinearElasticityULMX.h"
 #include "MaterialBase.h"
+#include "FiniteElement.h"
 #include "ElmMats.h"
 #include "ElmNorm.h"
 #include "TimeDomain.h"
@@ -140,26 +141,25 @@ bool NonlinearElasticityULMX::initElement (const std::vector<int>& MNPC,
 
 
 bool NonlinearElasticityULMX::evalInt (LocalIntegral*& elmInt,
-				       const TimeDomain&, double detJW,
-				       const Vector& N, const Matrix& dNdX,
-				       const Vec3& X) const
+				       const FiniteElement& fe,
+				       const TimeDomain&, const Vec3& X) const
 {
   if (myMats->b.size() < 3) return false;
 
   ItgPtData& ptData = myData[iP++];
 
 #if INT_DEBUG > 0
-  std::cout <<"NonlinearElasticityUL::dNdX ="<< dNdX;
+  std::cout <<"NonlinearElasticityUL::dNdX ="<< fe.dNdX;
 #endif
 
   // Evaluate the deformation gradient, Fp, at previous configuration
   const_cast<NonlinearElasticityULMX*>(this)->eV = &myMats->b[2];
-  if (!this->formDefGradient(dNdX,ptData.Fp))
+  if (!this->formDefGradient(fe.dNdX,ptData.Fp))
     return false;
 
   // Evaluate the deformation gradient, F, at current configuration
   const_cast<NonlinearElasticityULMX*>(this)->eV = &myMats->b[1];
-  if (!this->formDefGradient(dNdX,ptData.F))
+  if (!this->formDefGradient(fe.dNdX,ptData.F))
     return false;
 
   if (nsd == 2) // In 2D we always assume plane strain so set F(3,3)=1
@@ -174,10 +174,10 @@ bool NonlinearElasticityULMX::evalInt (LocalIntegral*& elmInt,
   if (J == 0.0) return false;
 
   // Push-forward the basis function gradients to current configuration
-  ptData.dNdx.multiply(dNdX,Fi); // dNdx = dNdX * F^-1
+  ptData.dNdx.multiply(fe.dNdX,Fi); // dNdx = dNdX * F^-1
 
   ptData.X.assign(X);
-  ptData.detJW = detJW;
+  ptData.detJW = fe.detJxW;
 
   // Evaluate the pressure modes (generalized coordinates)
   Vec3 Xg = X-X0;
@@ -190,15 +190,15 @@ bool NonlinearElasticityULMX::evalInt (LocalIntegral*& elmInt,
 
   if (Hh)
     // Integrate the Hh-matrix
-    Hh->outer_product(ptData.Phi,ptData.Phi*detJW,true);
+    Hh->outer_product(ptData.Phi,ptData.Phi*fe.detJxW,true);
 
   if (eM)
     // Integrate the mass matrix
-    this->formMassMatrix(*eM,N,X,J*detJW);
+    this->formMassMatrix(*eM,fe.N,X,J*fe.detJxW);
 
   if (eS)
     // Integrate the load vector due to gravitation and other body forces
-    this->formBodyForce(*eS,N,X,J*detJW);
+    this->formBodyForce(*eS,fe.N,X,J*fe.detJxW);
 
   return this->getIntegralResult(elmInt);
 }
@@ -470,12 +470,10 @@ bool ElasticityNormULMX::initElement (const std::vector<int>& MNPC,
 
 
 bool ElasticityNormULMX::evalInt (LocalIntegral*& elmInt,
-				  const TimeDomain& prm, double detJW,
-				  const Vector& N, const Matrix& dNdX,
-				  const Vec3& X) const
+				  const FiniteElement& fe,
+				  const TimeDomain& td, const Vec3& X) const
 {
-  NonlinearElasticityULMX& elp = static_cast<NonlinearElasticityULMX&>(problem);
-  return elp.evalInt(elmInt,prm,detJW,N,dNdX,X);
+  return static_cast<NonlinearElasticityULMX&>(problem).evalInt(elmInt,fe,td,X);
 }
 
 

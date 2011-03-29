@@ -13,6 +13,7 @@
 
 #include "NonlinearElasticityUL.h"
 #include "MaterialBase.h"
+#include "FiniteElement.h"
 #include "ElmMats.h"
 #include "ElmNorm.h"
 #include "TimeDomain.h"
@@ -101,14 +102,14 @@ void NonlinearElasticityUL::initResultPoints ()
 
 
 bool NonlinearElasticityUL::evalInt (LocalIntegral*& elmInt,
-				     const TimeDomain& prm, double detJW,
-				     const Vector& N, const Matrix& dNdX,
+				     const FiniteElement& fe,
+				     const TimeDomain& prm,
 				     const Vec3& X) const
 {
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E
   Tensor F(nsd);
   SymmTensor E(nsd);
-  if (!this->kinematics(dNdX,F,E))
+  if (!this->kinematics(fe.dNdX,F,E))
     return false;
 
   bool lHaveStrains = !E.isZero();
@@ -121,12 +122,12 @@ bool NonlinearElasticityUL::evalInt (LocalIntegral*& elmInt,
     if (J == 0.0) return false;
 
     // Scale with J=|F| since we are integrating over current configuration
-    detJW *= J;
+    const_cast<double&>(fe.detJxW) *= J;
 
     if (eKm || iS)
     {
       // Push-forward the basis function gradients to current configuration
-      dNdx.multiply(dNdX,Fi); // dNdx = dNdX * F^-1
+      dNdx.multiply(fe.dNdX,Fi); // dNdx = dNdX * F^-1
       // Compute the small-deformation strain-displacement matrix B from dNdx
       if (!this->formBmatrix(dNdx)) return false;
 #ifdef INT_DEBUG
@@ -137,7 +138,7 @@ bool NonlinearElasticityUL::evalInt (LocalIntegral*& elmInt,
   }
   else if (eKm || iS)
     // Initial state, no deformation yet
-    if (!this->formBmatrix(dNdX)) return false;
+    if (!this->formBmatrix(fe.dNdX)) return false;
 
   // Evaluate the constitutive relation
   SymmTensor sigma(nsd);
@@ -151,36 +152,36 @@ bool NonlinearElasticityUL::evalInt (LocalIntegral*& elmInt,
   if (eKm)
   {
     // Integrate the material stiffness matrix
-    CB.multiply(Cmat,Bmat).multiply(detJW); // CB = C*B*|J|*w
-    eKm->multiply(Bmat,CB,true,false,true); // EK += B^T * CB
+    CB.multiply(Cmat,Bmat).multiply(fe.detJxW); // CB = C*B*|J|*w
+    eKm->multiply(Bmat,CB,true,false,true);     // EK += B^T * CB
   }
 
   if (eKg && lHaveStrains)
     // Integrate the geometric stiffness matrix
-    this->formKG(*eKg,dNdx,sigma,detJW);
+    this->formKG(*eKg,dNdx,sigma,fe.detJxW);
 
   if (eM)
     // Integrate the mass matrix
-    this->formMassMatrix(*eM,N,X,detJW);
+    this->formMassMatrix(*eM,fe.N,X,fe.detJxW);
 
   if (iS && lHaveStrains)
   {
     // Integrate the internal forces
-    sigma *= -detJW;
+    sigma *= -fe.detJxW;
     if (!Bmat.multiply(sigma,*iS,true,true)) // ES -= B^T*sigma
       return false;
   }
 
   if (eS)
     // Integrate the load vector due to gravitation and other body forces
-    this->formBodyForce(*eS,N,X,detJW);
+    this->formBodyForce(*eS,fe.N,X,fe.detJxW);
 
   return this->getIntegralResult(elmInt);
 }
 
 
-bool NonlinearElasticityUL::evalBou (LocalIntegral*& elmInt, double detJW,
-				     const Vector& N, const Matrix& dNdX,
+bool NonlinearElasticityUL::evalBou (LocalIntegral*& elmInt,
+				     const FiniteElement& fe,
 				     const Vec3& X, const Vec3& normal) const
 {
   if (!tracFld)
@@ -207,7 +208,7 @@ bool NonlinearElasticityUL::evalBou (LocalIntegral*& elmInt, double detJW,
   {
     // Compute the deformation gradient, F
     Tensor F(nsd);
-    if (!this->formDefGradient(dNdX,F)) return false;
+    if (!this->formDefGradient(fe.dNdX,F)) return false;
 
     // Check for with-rotated pressure load
     if (tracFld->isNormalPressure())
@@ -226,14 +227,14 @@ bool NonlinearElasticityUL::evalBou (LocalIntegral*& elmInt, double detJW,
     }
     else
       // Scale with J=|F| since we are integrating over current configuration
-      detJW *= F.det();
+      const_cast<double&>(fe.detJxW) *= F.det();
   }
 
   // Integrate the force vector
   Vector& ES = *eS;
-  for (size_t a = 1; a <= N.size(); a++)
+  for (size_t a = 1; a <= fe.N.size(); a++)
     for (i = 1; i <= nsd; i++)
-      ES(nsd*(a-1)+i) += T[i-1]*N(a)*detJW;
+      ES(nsd*(a-1)+i) += T[i-1]*fe.N(a)*fe.detJxW;
 
   return this->getIntegralResult(elmInt);
 }
@@ -323,8 +324,8 @@ void ElasticityNormUL::initIntegration (const TimeDomain& prm)
 
 
 bool ElasticityNormUL::evalInt (LocalIntegral*& elmInt,
-				const TimeDomain& prm, double detJW,
-				const Vector&, const Matrix& dNdX,
+				const FiniteElement& fe,
+				const TimeDomain& prm,
 				const Vec3& X) const
 {
   ElmNorm& pnorm = ElasticityNorm::getElmNormBuffer(elmInt);
@@ -332,9 +333,9 @@ bool ElasticityNormUL::evalInt (LocalIntegral*& elmInt,
   NonlinearElasticityUL* ulp = static_cast<NonlinearElasticityUL*>(&problem);
 
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E
-  Tensor F(dNdX.cols());
-  SymmTensor E(dNdX.cols());
-  if (!ulp->kinematics(dNdX,F,E))
+  Tensor F(fe.dNdX.cols());
+  SymmTensor E(fe.dNdX.cols());
+  if (!ulp->kinematics(fe.dNdX,F,E))
     return false;
 
   // Evaluate the 2nd Piola Kirchhoff stresses, S
@@ -346,7 +347,24 @@ bool ElasticityNormUL::evalInt (LocalIntegral*& elmInt,
 
   // Integrate the energy norm a(u^h,u^h) = Int_Omega0 (S:E) dV0
   if (U == 0.0) U = S.innerProd(E);
-  pnorm[0] += U*detJW;
+  pnorm[0] += U*fe.detJxW;
 
   return true;
+}
+
+
+bool ElasticityNormUL::evalIntMx (LocalIntegral*& elmInt,
+				  const MxFiniteElement& fe,
+				  const TimeDomain& prm,
+				  const Vec3& X) const
+{
+  return this->evalInt(elmInt,fe,prm,X);
+}
+
+
+bool ElasticityNormUL::evalBouMx (LocalIntegral*& elmInt,
+				  const MxFiniteElement& fe,
+				  const Vec3& X, const Vec3& normal) const
+{
+  return this->evalBou(elmInt,fe,X,normal);
 }

@@ -70,37 +70,19 @@ public:
 
   //! \brief Evaluates the mixed field problem integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe Mixed finite element data of current integration point
   //! \param[in] prm Nonlinear solution algorithm parameters
-  //! \param[in] detJW Jacobian determinant times integration point weight
-  //! \param[in] N1 Basis function values, field 1 (displacements)
-  //! \param[in] N2 Basis function values, field 2 (pressure and volume change)
-  //! \param[in] dN1dX Basis function gradients, field 1
-  //! \param[in] dN2dX Basis function gradients, field 2
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool evalInt(LocalIntegral*& elmInt,
-		       const TimeDomain& prm, double detJW,
-		       const Vector& N1, const Vector& N2,
-		       const Matrix& dN1dX, const Matrix& dN2dX,
-		       const Vec3& X) const;
+  virtual bool evalIntMx(LocalIntegral*& elmInt, const MxFiniteElement& fe,
+			 const TimeDomain& prm, const Vec3& X) const;
 
   //! \brief Evaluates the integrand at a boundary point.
   //! \param elmInt The local integral object to receive the contributions
-  //! \param[in] detJW Jacobian determinant times integration point weight
-  //! \param[in] N1 Basis function values, field 1
-  //! \param[in] dN1dX Basis function gradients, field 1
+  //! \param[in] fe Mixed finite element data of current integration point
   //! \param[in] X Cartesian coordinates of current integration point
   //! \param[in] normal Boundary normal vector at current integration point
-  //!
-  //! \details The boundary integral is the same as that of the parent class.
-  //! It does not depend on the pressure and volumetric change fields.
-  //! Thus, this call is forwarded to the single-field parent class method.
-  virtual bool evalBou(LocalIntegral*& elmInt, double detJW,
-                       const Vector& N1, const Vector&,
-                       const Matrix& dN1dX, const Matrix&,
-                       const Vec3& X, const Vec3& normal) const
-  {
-    return this->NonlinearElasticityUL::evalBou(elmInt,detJW,N1,dN1dX,X,normal);
-  }
+  virtual bool evalBouMx(LocalIntegral*& elmInt, const MxFiniteElement& fe,
+			 const Vec3& X, const Vec3& normal) const;
 
 protected:
   mutable Tensor Fbar; //!< Mixed model deformation gradient

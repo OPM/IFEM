@@ -16,6 +16,7 @@
 #include "ASMs1DLag.h"
 #include "Lagrange.h"
 #include "TimeDomain.h"
+#include "FiniteElement.h"
 #include "GlobalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
@@ -150,11 +151,15 @@ bool ASMs1DLag::integrate (Integrand& integrand,
   const double* wg = GaussQuadrature::getWeight(nGauss);
   if (!xg || !wg) return false;
 
+  // Get parametric coordinates of the elements
+  RealArray gpar;
+  this->getGridParameters(gpar,1);
+
   // Order of basis (order = degree + 1)
   const int p1 = curv->order();
 
-  Vector N(p1);
-  Matrix dNdu, dNdX, Xnod, Jac;
+  FiniteElement fe(p1);
+  Matrix dNdu, Xnod, Jac;
   Vec4   X;
 
 
@@ -162,44 +167,47 @@ bool ASMs1DLag::integrate (Integrand& integrand,
 
   const int nel = this->getNoElms();
   for (int iel = 1; iel <= nel; iel++)
+  {
+    // Set up control point coordinates for current element
+    if (!this->getElementCoordinates(Xnod,iel)) return false;
+
+    // Initialize element quantities
+    if (!integrand.initElement(MNPC[iel-1])) return false;
+
+    // Caution: Unless locInt is empty, we assume it points to an array of
+    // LocalIntegral pointers, of length at least the number of elements in
+    // the model (as defined by the highest number in the MLGE array).
+    // If the array is shorter than this, expect a segmentation fault.
+    LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
+
+
+    // --- Integration loop over all Gauss points in each direction ------------
+
+    for (int i = 0; i < nGauss; i++)
     {
-      // Set up control point coordinates for current element
-      if (!this->getElementCoordinates(Xnod,iel)) return false;
+      // Parameter value of current integration point
+      fe.u = 0.5*(gpar[iel-1]*(1.0-xg[i]) + gpar[iel]*(1.0+xg[i]));
 
-      // Initialize element quantities
-      if (!integrand.initElement(MNPC[iel-1])) return false;
+      // Compute basis function derivatives at current integration point
+      if (!Lagrange::computeBasis(fe.N,dNdu,p1,xg[i]))
+	return false;
 
-      // Caution: Unless locInt is empty, we assume it points to an array of
-      // LocalIntegral pointers, of length at least the number of elements in
-      // the model (as defined by the highest number in the MLGE array).
-      // If the array is shorter than this, expect a segmentation fault.
-      LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
+      // Compute Jacobian inverse of coordinate mapping and derivatives
+      fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu)*wg[i];
 
+      // Cartesian coordinates of current integration point
+      X = Xnod * fe.N;
+      X.t = time.t;
 
-      // --- Integration loop over all Gauss points in each direction ----------
-
-      for (int i = 0; i < nGauss; i++)
-	{
-	  // Compute basis function derivatives at current integration point
-	  if (!Lagrange::computeBasis(N,dNdu,p1,xg[i]))
-	    return false;
-
-	  // Compute Jacobian inverse of coordinate mapping and derivatives
-	  double detJ = utl::Jacobian(Jac,dNdX,Xnod,dNdu);
-
-	  // Cartesian coordinates of current integration point
-	  X = Xnod * N;
-	  X.t = time.t;
-
-	  // Evaluate the integrand and accumulate element contributions
-	  if (!integrand.evalInt(elmInt,time,detJ*wg[i],N,dNdX,X))
-	    return false;
-	}
-
-      // Assembly of global system integral
-      if (!glInt.assemble(elmInt,MLGE[iel-1]))
+      // Evaluate the integrand and accumulate element contributions
+      if (!integrand.evalInt(elmInt,fe,time,X))
 	return false;
     }
+
+    // Assembly of global system integral
+    if (!glInt.assemble(elmInt,MLGE[iel-1]))
+      return false;
+  }
 
   return true;
 }
@@ -250,16 +258,15 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
   LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
 
   // Evaluate basis functions and corresponding derivatives
-  Vector N;
-  Matrix dNdu;
-  if (!Lagrange::computeBasis(N,dNdu,p1,x)) return false;
+  FiniteElement fe;
+  Matrix dNdu, Jac;
+  if (!Lagrange::computeBasis(fe.N,dNdu,p1,x)) return false;
 
   // Cartesian coordinates of current integration point
-  Vec4 X(Xnod*N,time.t);
+  Vec4 X(Xnod*fe.N,time.t);
 
   // Compute basis function derivatives
-  Matrix Jac, dNdX;
-  utl::Jacobian(Jac,dNdX,Xnod,dNdu);
+  utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
 
   // Set up the normal vector
   Vec3 normal;
@@ -269,7 +276,7 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
     normal.x = copysign(1.0,Jac(1,1));
 
   // Evaluate the integrand and accumulate element contributions
-  if (!integrand.evalBou(elmInt,time,1.0,N,dNdX,X,normal))
+  if (!integrand.evalBou(elmInt,fe,time,X,normal))
     return false;
 
   // Assembly of global system integral

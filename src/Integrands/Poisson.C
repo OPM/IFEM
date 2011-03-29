@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "Poisson.h"
+#include "FiniteElement.h"
 #include "Utilities.h"
 #include "ElmNorm.h"
 #include "Tensor.h"
@@ -105,8 +106,7 @@ bool Poisson::initElementBou (const std::vector<int>& MNPC)
 }
 
 
-bool Poisson::evalInt (LocalIntegral*& elmInt, double detJW,
-		       const Vector& N, const Matrix& dNdX,
+bool Poisson::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
 		       const Vec3& X) const
 {
   elmInt = &myMats;
@@ -116,20 +116,19 @@ bool Poisson::evalInt (LocalIntegral*& elmInt, double detJW,
     // Evaluate the constitutive matrix at this point
     if (!this->formCmatrix(C,X)) return false;
 
-    CB.multiply(C,dNdX,false,true).multiply(detJW); // CB = C*dNdX^T*|J|*w
-    eM->multiply(dNdX,CB,false,false,true); // EK += dNdX * CB
+    CB.multiply(C,fe.dNdX,false,true).multiply(fe.detJxW); // = C*dNdX^T*|J|*w
+    eM->multiply(fe.dNdX,CB,false,false,true); // EK += dNdX * CB
   }
 
   // Integrate heat source if defined
   if (eS && heatSrc)
-    eS->add(N,(*heatSrc)(X)*detJW);
+    eS->add(fe.N,(*heatSrc)(X)*fe.detJxW);
 
   return true;
 }
 
 
-bool Poisson::evalBou (LocalIntegral*& elmInt, double detJW,
-		       const Vector& N, const Matrix& dNdX,
+bool Poisson::evalBou (LocalIntegral*& elmInt, const FiniteElement& fe,
 		       const Vec3& X, const Vec3& normal) const
 {
   elmInt = &myMats;
@@ -155,7 +154,7 @@ bool Poisson::evalBou (LocalIntegral*& elmInt, double detJW,
     tracVal.insert(std::make_pair(X,trac*normal));
 
   // Integrate the Neumann value
-  eS->add(N,trac*detJW);
+  eS->add(fe.N,trac*fe.detJxW);
 
   return true;
 }
@@ -278,8 +277,7 @@ bool PoissonNorm::initElement (const std::vector<int>& MNPC)
 }
 
 
-bool PoissonNorm::evalInt (LocalIntegral*& elmInt, double detJW,
-			   const Vector& N, const Matrix& dNdX,
+bool PoissonNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
 			   const Vec3& X) const
 {
   ElmNorm* eNorm = dynamic_cast<ElmNorm*>(elmInt);
@@ -295,20 +293,20 @@ bool PoissonNorm::evalInt (LocalIntegral*& elmInt, double detJW,
 
   // Evaluate the finite element heat flux field
   Vector sigmah;
-  if (!problem.evalSol(sigmah,dNdX,X)) return false;
+  if (!problem.evalSol(sigmah,fe.dNdX,X)) return false;
 
   // Integrate the energy norm a(u^h,u^h)
   ElmNorm& pnorm = *eNorm;
-  pnorm[0] += sigmah.dot(Cinv*sigmah)*detJW;
+  pnorm[0] += sigmah.dot(Cinv*sigmah)*fe.detJxW;
   if (anasol)
   {
     // Evaluate the analytical heat flux
     Vector sigma((*anasol)(X).ptr(),sigmah.size());
     // Integrate the energy norm a(u,u)
-    pnorm[1] += sigma.dot(Cinv*sigma)*detJW;
+    pnorm[1] += sigma.dot(Cinv*sigma)*fe.detJxW;
     // Integrate the error in energy norm a(u-u^h,u-u^h)
     sigma -= sigmah;
-    pnorm[2] += sigma.dot(Cinv*sigma)*detJW;
+    pnorm[2] += sigma.dot(Cinv*sigma)*fe.detJxW;
   }
 
   return true;

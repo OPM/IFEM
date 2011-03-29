@@ -16,6 +16,7 @@
 #include "ASMs3DLag.h"
 #include "Lagrange.h"
 #include "TimeDomain.h"
+#include "FiniteElement.h"
 #include "GlobalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
@@ -104,7 +105,7 @@ bool ASMs3DLag::generateFEMTopology()
   int i, j, k, a, b, c, iel = 0;
   for (k = 0; k < nelz; k++)
     for (j = 0; j < nely; j++)
-      for ( i = 0; i < nelx; i++, iel++)
+      for (i = 0; i < nelx; i++, iel++)
       {
 	MLGE[iel] = ++gEl;
 	MNPC[iel].resize(nen);
@@ -191,21 +192,34 @@ bool ASMs3DLag::integrate (Integrand& integrand,
   const double* wg = GaussQuadrature::getWeight(nGauss);
   if (!xg || !wg) return false;
 
+  // Get parametric coordinates of the elements
+  RealArray upar, vpar, wpar;
+  this->getGridParameters(upar,0,1);
+  this->getGridParameters(vpar,1,1);
+  this->getGridParameters(wpar,2,1);
+
+  // Number of elements in each direction
+  const int nelx = upar.size() - 1;
+  const int nely = vpar.size() - 1;
+  const int nelz = wpar.size() - 1;
+
   // Order of basis in the three parametric directions (order = degree + 1)
   const int p1 = svol->order(0);
   const int p2 = svol->order(1);
   const int p3 = svol->order(2);
 
-  Vector N(p1*p2*p3);
-  Matrix dNdu, dNdX, Xnod, Jac;
+  FiniteElement fe(p1*p2*p3);
+  Matrix dNdu, Xnod, Jac;
   Vec4   X;
 
 
   // === Assembly loop over all elements in the patch ==========================
 
-  const int nel = this->getNoElms();
-  for (int iel = 1; iel <= nel; iel++)
-    {
+  int iel = 1;
+  for (int i3 = 0; i3 < nelz; i3++)
+    for (int i2 = 0; i2 < nely; i2++)
+      for (int i1 = 0; i1 < nelx; i1++, iel++)
+      {
 	// Set up nodal point coordinates for current element
 	if (!this->getElementCoordinates(Xnod,iel)) return false;
 
@@ -237,24 +251,27 @@ bool ASMs3DLag::integrate (Integrand& integrand,
 	  for (int j = 0; j < nGauss; j++)
 	    for (int i = 0; i < nGauss; i++)
 	    {
-	      // Weight of current integration point
-	      double weight = wg[i]*wg[j]*wg[k];
+	      // Parameter value of current integration point
+	      fe.u = 0.5*(upar[i1]*(1.0-xg[i]) + upar[i1+1]*(1.0+xg[i]));
+	      fe.v = 0.5*(vpar[i2]*(1.0-xg[j]) + vpar[i2+1]*(1.0+xg[j]));
+	      fe.w = 0.5*(wpar[i3]*(1.0-xg[k]) + wpar[i3+1]*(1.0+xg[k]));
 
 	      // Compute basis function derivatives at current integration point
 	      // using tensor product of one-dimensional Lagrange polynomials
-	      if (!Lagrange::computeBasis(N,dNdu,p1,xg[i],p2,xg[j],p3,xg[k]))
+	      if (!Lagrange::computeBasis(fe.N,dNdu,p1,xg[i],p2,xg[j],p3,xg[k]))
 		return false;
 
 	      // Compute Jacobian inverse of coordinate mapping and derivatives
-	      double detJ = utl::Jacobian(Jac,dNdX,Xnod,dNdu);
-	      if (detJ == 0.0) continue; // skip singular points
+	      fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+	      if (fe.detJxW == 0.0) continue; // skip singular points
 
 	      // Cartesian coordinates of current integration point
-	      X = Xnod * N;
+	      X = Xnod * fe.N;
 	      X.t = time.t;
 
 	      // Evaluate the integrand and accumulate element contributions
-	      if (!integrand.evalInt(elmInt,time,detJ*weight,N,dNdX,X))
+	      fe.detJxW *= wg[i]*wg[j]*wg[k];
+	      if (!integrand.evalInt(elmInt,fe,time,X))
 		return false;
 	    }
 
@@ -265,7 +282,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
 	// Assembly of global system integral
 	if (!glInt.assemble(elmInt,MLGE[iel-1]))
 	  return false;
-    }
+      }
 
   return true;
 }
@@ -300,8 +317,8 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
   const int nely = (ny-1)/(p2-1);
   const int nelz = (nz-1)/(p3-1);
 
-  Vector N(p1*p2*p3);
-  Matrix dNdu, dNdX, Xnod, Jac;
+  FiniteElement fe(p1*p2*p3);
+  Matrix dNdu, Xnod, Jac;
   Vec4   X;
   Vec3   normal;
   double xi[3];
@@ -345,9 +362,6 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 	for (int j = 0; j < nGauss; j++)
 	  for (int i = 0; i < nGauss; i++)
 	  {
-	    // Weight of current integration point
-	    double weight = wg[i]*wg[j];
-
 	    // Gauss point coordinates on the face
 	    xi[t0-1] = faceDir < 0 ? -1.0 : 1.0;
 	    xi[t1-1] = xg[i];
@@ -355,21 +369,22 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 
 	    // Compute the basis functions and their derivatives, using
 	    // tensor product of one-dimensional Lagrange polynomials
-	    if (!Lagrange::computeBasis(N,dNdu,p1,xi[0],p2,xi[1],p3,xi[2]))
+	    if (!Lagrange::computeBasis(fe.N,dNdu,p1,xi[0],p2,xi[1],p3,xi[2]))
 	      return false;
 
 	    // Compute basis function derivatives and the face normal
-	    double dS = utl::Jacobian(Jac,normal,dNdX,Xnod,dNdu,t1,t2);
-	    if (dS == 0.0) continue; // skip singular points
+	    fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
+	    if (fe.detJxW == 0.0) continue; // skip singular points
 
 	    if (faceDir < 0) normal *= -1.0;
 
 	    // Cartesian coordinates of current integration point
-	    X = Xnod * N;
+	    X = Xnod * fe.N;
 	    X.t = time.t;
 
 	    // Evaluate the integrand and accumulate element contributions
-	    if (!integrand.evalBou(elmInt,time,dS*weight,N,dNdX,X,normal))
+	    fe.detJxW *= wg[i]*wg[j];
+	    if (!integrand.evalBou(elmInt,fe,time,X,normal))
 	      return false;
 	  }
 
@@ -406,8 +421,8 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
   const int nely = (ny-1)/(p2-1);
   const int nelz = (nz-1)/(p3-1);
 
-  Vector N(p1*p2*p3);
-  Matrix dNdu, dNdX, Xnod, Jac;
+  FiniteElement fe(p1*p2*p3);
+  Matrix dNdu, Xnod, Jac;
   Vec4   X;
   Vec3   tangent;
   double xi[3];
@@ -472,19 +487,19 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
 
 	  // Compute the basis functions and their derivatives, using
 	  // tensor product of one-dimensional Lagrange polynomials
-	  if (!Lagrange::computeBasis(N,dNdu,p1,xi[0],p2,xi[1],p3,xi[2]))
+	  if (!Lagrange::computeBasis(fe.N,dNdu,p1,xi[0],p2,xi[1],p3,xi[2]))
 	    return false;
 
 	  // Compute basis function derivatives and the edge tangent
-	  double dS = utl::Jacobian(Jac,tangent,dNdX,Xnod,dNdu,1+lDir);
-	  if (dS == 0.0) continue; // skip singular points
+	  fe.detJxW = utl::Jacobian(Jac,tangent,fe.dNdX,Xnod,dNdu,1+lDir);
+	  if (fe.detJxW == 0.0) continue; // skip singular points
 
 	  // Cartesian coordinates of current integration point
-	  X = Xnod * N;
+	  X = Xnod * fe.N;
 	  X.t = time.t;
 
 	  // Evaluate the integrand and accumulate element contributions
-	  if (!integrand.evalBou(elmInt,time,dS*wg[i],N,dNdX,X,tangent))
+	  if (!integrand.evalBou(elmInt,fe,time,X,tangent))
 	    return false;
 	}
 
