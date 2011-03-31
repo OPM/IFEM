@@ -1,0 +1,101 @@
+\documentclass[twoside, 11pt, a4paper]{article}
+\usepackage{amsmath,amsfonts,amssymb,graphicx,parskip}
+\usepackage[utf8]{inputenc}
+
+\DeclareMathOperator{\eps}{\epsilon}
+\newcommand{\dee}{\mathrm{d}}
+
+\title{A differential equation for approximate wall distance - SplineFEM implementation}
+\author{Arne Morten Kvarving}
+\begin{document}
+\maketitle
+This document describe the derivation of the weak form, and the associated
+Jacobian for the equation given for approximate wall distance in
+\cite{fares}. It is implemented in SplineFEM in the FSWallDistance
+Integrand, see src/Integrands/FSWallDistance.h/C, while
+you can find a test application (and SIM classes) in src/Apps/FSWallDistance.
+
+The equation is expressed for the inverse wall distance $\mathcal{G}$.
+This field should be initialized to $\mathcal{G}_{\text{init}} \neq 0$ (any
+constant value),
+except on the walls where it should be initialized to
+$\mathcal{G}_{\text{wall}} = \frac{1}{\mathcal{D}_0} = \mathcal{G}_0$.
+The value can be used to simulate rough walls. In any case we must put
+$\mathcal{D}_0 > 0$.
+
+Initial expression:
+\begin{equation}
+	\left(\mathcal{G}\mathcal{G}_x\right)_x + \left(\mathcal{G}\mathcal{G}_y\right)_y+\left(\mathcal{G}\mathcal{G}_z\right)_z + \left(\sigma-1\right)\mathcal{G}\left(\mathcal{G}_{xx}+\mathcal{G}_{yy}+\mathcal{G}_{zz}\right)-\gamma\mathcal{G}^4=0
+\end{equation}
+Using vector notation this is:
+\begin{equation}
+	\nabla\cdot\left(\mathcal{G}\nabla \mathcal{G}\right) + \left(\sigma-1\right)\mathcal{G}\nabla^2\mathcal{G} - \gamma\mathcal{G}^4
+\end{equation}
+Multiply with test function, perform integration by parts:
+\begin{eqnarray}
+	\int_\Omega \nabla\cdot\left(\mathcal{G}\nabla{G}\right)v\,\dee\Omega + \left(\sigma-1\right)\int_\Omega\mathcal{G}\nabla^2\mathcal{G}v\,\dee\Omega - \gamma\int_\Omega\mathcal{G}^4v\,\dee\Omega = \\
+	\int_{\partial\Omega}\mathcal{G}\nabla\mathcal{G}v\cdot \mathbf{n}\,\dee S - \int_\Omega\mathcal{G}\nabla\mathcal{G}\cdot\nabla v\,\dee\Omega +\,  \\
+	\left(\sigma-1\right)\left(\int_{\partial\Omega}\mathcal{G}\cdot\nabla\mathcal{G}v\cdot\mathbf{n}\,\dee S - \int_\Omega \mathcal{G}\nabla\mathcal{G}\cdot\nabla v\,\dee\Omega-\int_\Omega\nabla^2Gv\,\dee\Omega\right)- \\
+	\gamma\int_\Omega\mathcal{G}^4v\,\dee\Omega = 0.
+\end{eqnarray}
+
+As far as the Jacobian goes, we are looking for
+\begin{equation}
+	\frac{\dee}{\dee \mathcal{G}}\left(\nabla \cdot \left(\mathcal{G}\nabla\mathcal{G}\right)+\left(\sigma-1\right)\mathcal{G}\nabla^2\mathcal{G}-\gamma\mathcal{G}^4\right).
+\end{equation}
+We ``cheat'' and insert a delta value;
+\begin{equation}
+	\begin{aligned}
+		\nabla\cdot\left(\left(\mathcal{G}+\delta \mathcal{G}\right)\nabla\left(\mathcal{G}+\delta \mathcal{G}\right)\right) + \left(\sigma-1\right)\left(\mathcal{G}+\delta \mathcal{G}\right)\nabla^2\left(\mathcal{G}+\delta \mathcal{G}\right)-\gamma\left(\mathcal{G}+\delta \mathcal{G}\right)^4 \Rightarrow \\
+		\nabla\cdot\left(\mathcal{G}\nabla \mathcal{G}+\mathcal{G}\nabla\delta\mathcal{G}+\delta\mathcal{G}\nabla\mathcal{G}+\delta\mathcal{G}\nabla\delta\mathcal{G}\right) + \\
+		\left(\sigma-1\right)\left(\mathcal{G}\nabla^2\mathcal{G}+\mathcal{G}\nabla^2\delta\mathcal{G}+\delta\mathcal{G}\nabla^2\mathcal{G} + \delta\mathcal{G}\nabla^2\delta\mathcal{G}\right) - \\
+		\gamma\left(\mathcal{G}^4+4\mathcal{G}^3\delta\mathcal{G}+6\mathcal{G}^2\delta\mathcal{G}^2 + 4\mathcal{G}\delta\mathcal{G}^3+\delta\mathcal{G}^4\right).
+	\end{aligned}
+\end{equation}
+Linearizing, we end up with
+\begin{equation}
+	\nabla\cdot\left(\mathcal{G}\nabla\delta\mathcal{G}+\delta\mathcal{G}\nabla\mathcal{G}\right) + \\
+	\left(\sigma-1\right)\left(\mathcal{G}\nabla^2\delta\mathcal{G}+\delta\mathcal{G}\nabla^2\mathcal{G}\right) - \\
+	\gamma\left(4\mathcal{G}^3\delta\mathcal{G}\right) = 0.
+\end{equation}
+Weak form of the Jacobian, term by term:
+\begin{equation}
+	\begin{aligned}
+		\int_\Omega \nabla\cdot\left(\mathcal{G}\nabla\delta\mathcal{G}+\delta\mathcal{G}\nabla\mathcal{G}\right)\,\dee\Omega &=&
+		\int_{\partial\Omega} \mathcal{G}\nabla\delta\mathcal{G}v\cdot\mathbf{n}\,\dee S - \int_\Omega\mathcal{G}\nabla\delta\mathcal{G}\cdot\nabla v\,\dee\Omega= \\
+		&+&\int_{\partial\Omega} \delta\mathcal{G}\nabla\mathcal{G}v\cdot\mathbf{n}\,\dee S - \int_\Omega\delta\mathcal{G}\nabla\mathcal{G}\cdot\nabla v\,\dee\Omega
+	\end{aligned}
+\end{equation}
+\begin{equation}
+	\begin{aligned}
+		\int_\Omega\left(\mathcal{G}\nabla^2\delta\mathcal{G}+\delta\mathcal{G}\nabla^2\mathcal{G}\right)v\,\dee\Omega &=&
+		\int_{\partial\Omega}\mathcal{G}\nabla\delta\mathcal{G}v\,\dee S - \int_\Omega\nabla\mathcal{G}\cdot\nabla\left(\delta\mathcal{G}v\right)\,\dee\Omega \\
+		&+&\int_{\partial\Omega}\delta\mathcal{G}\nabla\mathcal{G}v\,\dee S - \int_\Omega\nabla\delta\mathcal{G}\cdot\nabla\left(\mathcal{G}v\right)\,\dee\Omega \\
+		&=& -\int_\Omega\nabla\mathcal{G}\cdot\nabla\delta\mathcal{G}v\,\dee\Omega - \int_\Omega\delta\mathcal{G}\nabla\mathcal{G}\cdot\nabla v\,\dee\Omega \\
+		& & -\int_\Omega\nabla\delta\mathcal{G}\cdot\nabla\mathcal{G}v\,\dee\Omega - \int_\Omega\mathcal{G}\nabla\delta\mathcal{G}\cdot\nabla v\,\dee\Omega
+	\end{aligned}
+\end{equation}
+The last term is straight forward;
+\begin{equation}
+	\int_\Omega 4\mathcal{G}^3\delta\mathcal{G}v\,\dee\Omega
+\end{equation}
+
+In summary, our Jacobian reads
+\begin{equation}
+	\begin{aligned}
+		&-&\int_\Omega\mathcal{G}\nabla\delta\mathcal{G}\cdot\nabla v\,\dee \Omega - \int_\Omega\delta\mathcal{G}\nabla\mathcal{G}\cdot\nabla v\,\dee\Omega \\
+		&-&\left(\sigma-1\right)\left(\int_\Omega\nabla\mathcal{G}\cdot\nabla\delta\mathcal{G}v\,\dee\Omega - \int_\Omega\delta\mathcal{G}\nabla\mathcal{G}\cdot\nabla v\,\dee\Omega\right) \\
+		&-&\left(\sigma-1\right)\left(\int_\Omega\nabla\delta\mathcal{G}\cdot\nabla\mathcal{G}v\,\dee\Omega - \int_\Omega\mathcal{G}\nabla\delta\mathcal{G}\cdot\nabla v\,\dee\Omega\right) \\
+		&-&\gamma\int_\Omega 4\mathcal{G}^3\delta\mathcal{G}v\,\dee\Omega
+	\end{aligned}
+\end{equation}
+where
+\[
+	\sigma \geq 0.2, \gamma = 1+2\sigma.
+\]
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}
+
