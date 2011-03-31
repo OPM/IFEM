@@ -292,7 +292,20 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
   const int nelx = (nx-1)/(p1-1);
   const int nely = (ny-1)/(p2-1);
 
+  // Get parametric coordinates of the elements
   FiniteElement fe(p1*p2);
+  RealArray upar, vpar;
+  if (t1 == 1)
+  {
+    fe.u = edgeDir < 0 ? surf->startparam_u() : surf->endparam_u();
+    this->getGridParameters(vpar,1,1);
+  }
+  else if (t1 == 2)
+  {
+    this->getGridParameters(upar,0,1);
+    fe.v = edgeDir < 0 ? surf->startparam_v() : surf->endparam_v();
+  }
+
   Matrix dNdu, Xnod, Jac;
   Vec4   X;
   Vec3   normal;
@@ -336,6 +349,12 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
 	// Gauss point coordinates along the edge
 	xi[t1-1] = edgeDir < 0 ? -1.0 : 1.0;
 	xi[t2-1] = xg[i];
+
+	// Parameter values of current integration point
+	if (upar.size() > 1)
+	  fe.u = 0.5*(upar[i1]*(1.0-xg[i]) + upar[i1+1]*(1.0+xg[i]));
+	if (vpar.size() > 1)
+	  fe.v = 0.5*(vpar[i2]*(1.0-xg[i]) + vpar[i2+1]*(1.0+xg[i]));
 
 	// Compute the basis functions and their derivatives, using
 	// tensor product of one-dimensional Lagrange polynomials
@@ -402,6 +421,15 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
 }
 
 
+bool ASMs2DLag::evalSolution (Matrix&, const Vector&,
+			      const RealArray*, bool) const
+{
+  std::cerr <<" *** ASMs2DLag::evalSolution(Matrix&,const Vector&,"
+	    <<"const RealArray*,bool): Not implemented."<< std::endl;
+  return false;
+}
+
+
 bool ASMs2DLag::evalSolution (Matrix& sField, const Integrand& integrand,
 			      const int*) const
 {
@@ -456,4 +484,13 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const Integrand& integrand,
     sField.fillColumn(1+i,globSolPt[i]/=check[i]);
 
   return true;
+}
+
+
+bool ASMs2DLag::evalSolution (Matrix&, const Integrand&,
+			      const RealArray*, bool) const
+{
+  std::cerr <<" *** ASMs2DLag::evalSolution(Matrix&,const Integrand&,"
+	    <<"const RealArray*,bool): Not implemented."<< std::endl;
+  return false;
 }

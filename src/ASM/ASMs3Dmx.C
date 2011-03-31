@@ -25,9 +25,6 @@
 #include "Vec3Oper.h"
 #include "Vec3.h"
 
-typedef Go::SplineVolume::Dvector DoubleVec;  //!< 1D double array
-typedef DoubleVec::const_iterator DoubleIter; //!< Iterator over DoubleVec
-
 
 ASMs3Dmx::ASMs3Dmx (const char* fileName, bool checkRHS,
 		    char n_f1, unsigned char n_f2)
@@ -312,14 +309,14 @@ bool ASMs3Dmx::getElementCoordinates (Matrix& X, int iel) const
 
   const int n1 = svol->numCoefs(0);
   const int n2 = svol->numCoefs(1);
-  const int ndim = svol->dimension();
-  DoubleIter cit = svol->coefs_begin();
+  const int nd = svol->dimension();
+  RealArray::const_iterator cit = svol->coefs_begin();
   for (size_t n = 0; n < nenod; n++)
   {
     int iI = nodeInd[mnpc[lnod0+n]].I;
     int iJ = nodeInd[mnpc[lnod0+n]].J;
     int iK = nodeInd[mnpc[lnod0+n]].K;
-    int ip = ((iK*n2 + iJ)*n1 + iI)*ndim;
+    int ip = ((iK*n2 + iJ)*n1 + iI)*nd;
     for (size_t i = 0; i < 3; i++)
       X(i+1,n+1) = *(cit+(ip+i));
   }
@@ -342,7 +339,7 @@ Vec3 ASMs3Dmx::getCoord (size_t inod) const
   }
 #endif
 
-  DoubleIter cit;
+  RealArray::const_iterator cit;
   const int I = nodeInd[inod-1].I;
   const int J = nodeInd[inod-1].J;
   const int K = nodeInd[inod-1].K;
@@ -401,7 +398,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
   for (dir = 0; dir < 3; dir++)
   {
     int pm1 = svol->order(dir) - 1;
-    DoubleIter uit = svol->basis(dir).begin() + pm1;
+    RealArray::const_iterator uit = svol->basis(dir).begin() + pm1;
     double ucurr, uprev = *(uit++);
     int nCol = svol->numCoefs(dir) - pm1;
     gpar[dir].resize(nGauss,nCol);
@@ -551,7 +548,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
     else
     {
       int pm1 = svol->order(d) - 1;
-      DoubleIter uit = svol->basis(d).begin() + pm1;
+      RealArray::const_iterator uit = svol->basis(d).begin() + pm1;
       double ucurr, uprev = *(uit++);
       int nCol = svol->numCoefs(d) - pm1;
       gpar[d].resize(nGauss,nCol);
@@ -582,6 +579,9 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 
   MxFiniteElement fe(basis1->order(0)*basis1->order(1)*basis1->order(2),
 		     basis2->order(0)*basis2->order(1)*basis2->order(2));
+  fe.u = gpar[0](1,1);
+  fe.v = gpar[1](1,1);
+  fe.w = gpar[2](1,1);
 
   Matrix dN1du, dN2du, Xnod, Jac;
   Vec4   X;
@@ -642,10 +642,22 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 
 	// --- Integration loop over all Gauss points in each direction --------
 
+	int k1, k2, k3;
 	int ip = (j2*nGauss*nf1 + j1)*nGauss;
 	for (int j = 0; j < nGauss; j++, ip += nGauss*(nf1-1))
 	  for (int i = 0; i < nGauss; i++, ip++)
 	  {
+	    // Parameter values of current integration point
+	    switch (abs(faceDir)) {
+	    case 1: k2 = i+1; k3 = j+1; k1 = 0; break;
+	    case 2: k1 = i+1; k3 = j+1; k2 = 0; break;
+	    case 3: k1 = i+1; k2 = j+1; k3 = 0; break;
+	    default: k1 = k2 = k3 = 0;
+	    }
+	    if (gpar[0].size() > 1) fe.u = gpar[0](k1,i1-p1+1);
+	    if (gpar[1].size() > 1) fe.v = gpar[1](k2,i2-p2+1);
+	    if (gpar[2].size() > 1) fe.w = gpar[1](k3,i3-p3+1);
+
 	    // Fetch basis function derivatives at current integration point
 	    extractBasis(spline1[ip],fe.N1,dN1du);
 	    extractBasis(spline2[ip],fe.N2,dN2du);
@@ -686,20 +698,37 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 
 
 bool ASMs3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
-			     const int* npe) const
+			     const RealArray* gpar, bool regular) const
 {
-  // Compute parameter values of the result sampling points
-  DoubleVec gpar[3];
-  for (int dir = 0; dir < 3; dir++)
-    if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
-      return false;
-
   if (!basis1 || !basis2) return false;
 
   // Evaluate the basis functions at all points
   std::vector<Go::BasisPts> spline1, spline2;
-  basis1->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline1);
-  basis2->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline2);
+  if (regular)
+  {
+    basis1->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline1);
+    basis2->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline2);
+  }
+  else if (gpar[0].size() == gpar[1].size() && gpar[0].size() == gpar[2].size())
+  {
+    std::vector<Go::BasisPts> tmpSpline(1);
+    spline1.resize(gpar[0].size());
+    spline2.resize(gpar[0].size());
+    for (size_t i = 0; i < spline1.size(); i++)
+    {
+      basis1->computeBasisGrid(RealArray(1,gpar[0][i]),
+			       RealArray(1,gpar[1][i]),
+			       RealArray(1,gpar[2][i]),
+			       tmpSpline);
+      spline1[i] = tmpSpline.front();
+      basis2->computeBasisGrid(RealArray(1,gpar[0][i]),
+			       RealArray(1,gpar[1][i]),
+			       RealArray(1,gpar[2][i]),
+			       tmpSpline);
+      spline2[i] = tmpSpline.front();
+    }
+    // TODO: Request a GoTools method replacing the above (see ASMs3D)
+  }
 
   const int p1 = basis1->order(0);
   const int p2 = basis1->order(1);
@@ -756,22 +785,39 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs3Dmx::evalSolution (Matrix& sField, const Integrand& integrand,
-			     const int* npe) const
+			     const RealArray* gpar, bool regular) const
 {
   sField.resize(0,0);
-
-  // Compute parameter values of the result sampling points
-  DoubleVec gpar[3];
-  for (int dir = 0; dir < 3; dir++)
-    if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
-      return false;
 
   if (!basis1 || !basis2) return false;
 
   // Evaluate the basis functions and their derivatives at all points
   std::vector<Go::BasisDerivs> spline1, spline2;
-  basis1->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline1);
-  basis2->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline2);
+  if (regular)
+  {
+    basis1->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline1);
+    basis2->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline2);
+  }
+  else if (gpar[0].size() == gpar[1].size() && gpar[0].size() == gpar[2].size())
+  {
+    std::vector<Go::BasisDerivs> tmpSpline(1);
+    spline1.resize(gpar[0].size());
+    spline2.resize(gpar[0].size());
+    for (size_t i = 0; i < spline1.size(); i++)
+    {
+      basis1->computeBasisGrid(RealArray(1,gpar[0][i]),
+			       RealArray(1,gpar[1][i]),
+			       RealArray(1,gpar[2][i]),
+			       tmpSpline);
+      spline1[i] = tmpSpline.front();
+      basis2->computeBasisGrid(RealArray(1,gpar[0][i]),
+			       RealArray(1,gpar[1][i]),
+			       RealArray(1,gpar[2][i]),
+			       tmpSpline);
+      spline2[i] = tmpSpline.front();
+    }
+    // TODO: Request a GoTools method replacing the above (see ASMs3D)
+  }
 
   const int p1 = basis1->order(0);
   const int p2 = basis1->order(1);

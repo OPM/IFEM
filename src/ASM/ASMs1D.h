@@ -1,4 +1,4 @@
-// $Id: ASMs1D.h,v 1.4 2011-01-05 12:49:41 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMs1D.h
@@ -135,6 +135,13 @@ public:
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
 			    const int* npe) const;
 
+  //! \brief Evaluates the primary solution field at the given points.
+  //! \param[out] sField Solution field
+  //! \param[in] locSol Solution vector local to current patch
+  //! \param[in] gpar Parameter values of the result sampling points
+  virtual bool evalSolution(Matrix& sField, const Vector& locSol,
+			    const RealArray* gpar, bool = true) const;
+
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
@@ -150,19 +157,20 @@ public:
   //! \param[in] integrand Object with problem-specific data and methods
   Go::SplineCurve* projectSolution(const Integrand& integrand) const;
   //! \brief Projects the secondary solution field onto the primary basis.
+  //! \param[in] integrand Object with problem-specific data and methods
   virtual Go::GeomObject* evalSolution(const Integrand& integrand) const;
-
-protected:
-
-  // Internal utility methods
-  // ========================
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] gpar Parameter values of the result sampling points
-  bool evalSolution(Matrix& sField, const Integrand& integrand,
-		    const RealArray& gpar) const;
+  virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
+			    const RealArray* gpar, bool = true) const;
+
+protected:
+
+  // Internal utility methods
+  // ========================
 
   //! \brief Calculates parameter values for the visualization nodal points.
   //! \param[out] prm Parameter values for all points

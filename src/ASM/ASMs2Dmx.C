@@ -25,9 +25,6 @@
 #include "Vec3Oper.h"
 #include "Vec3.h"
 
-typedef Go::SplineSurface::Dvector DoubleVec; //!< 1D double array
-typedef DoubleVec::const_iterator DoubleIter; //!< Iterator over DoubleVec
-
 
 ASMs2Dmx::ASMs2Dmx (const char* fileName, unsigned char n_s,
 		    char n_f1, unsigned char n_f2)
@@ -289,7 +286,7 @@ bool ASMs2Dmx::getElementCoordinates (Matrix& X, int iel) const
   X.resize(nsd,nenod);
   const IntVec& mnpc = MNPC[iel-1];
 
-  DoubleIter cit = surf->coefs_begin();
+  RealArray::const_iterator cit = surf->coefs_begin();
   for (size_t n = 0; n < nenod; n++)
   {
     int iI = nodeInd[mnpc[lnod0+n]].I;
@@ -317,7 +314,7 @@ Vec3 ASMs2Dmx::getCoord (size_t inod) const
   }
 #endif
 
-  DoubleIter cit;
+  RealArray::const_iterator cit;
   const int I = nodeInd[inod-1].I;
   const int J = nodeInd[inod-1].J;
   if (inod <= nb1)
@@ -377,7 +374,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   for (dir = 0; dir < 2; dir++)
   {
     int pm1 = (dir == 0 ? surf->order_u() : surf->order_v()) - 1;
-    DoubleIter uit = surf->basis(dir).begin() + pm1;
+    RealArray::const_iterator uit = surf->basis(dir).begin() + pm1;
     double ucurr, uprev = *(uit++);
     int nCol = (dir == 0 ? surf->numCoefs_u() : surf->numCoefs_v()) - pm1;
     gpar[dir].resize(nGauss,nCol);
@@ -519,7 +516,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
     else
     {
       int pm1 = (d == 0 ? surf->order_u() : surf->order_v()) - 1;
-      DoubleIter uit = surf->basis(d).begin() + pm1;
+      RealArray::const_iterator uit = surf->basis(d).begin() + pm1;
       double ucurr, uprev = *(uit++);
       int nCol = (d == 0 ? surf->numCoefs_u() : surf->numCoefs_v()) - pm1;
       gpar[d].resize(nGauss,nCol);
@@ -544,6 +541,9 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
   MxFiniteElement fe(basis1->order_u()*basis1->order_v(),
 		     basis2->order_u()*basis2->order_v());
+  fe.u = gpar[0](1,1);
+  fe.v = gpar[1](1,1);
+
   Matrix dN1du, dN2du, Xnod, Jac;
   Vec4   X;
   Vec3   normal;
@@ -569,7 +569,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
       if (skipMe) continue;
 
       // Get element edge length in the parameter space
-      double dS = this->getParametricLength(iel,abs(edgeDir));
+      double dS = this->getParametricLength(iel,t1);
       if (dS < 0.0) return false; // topology error (probably logic error)
 
       // Set up control point coordinates for current element
@@ -590,9 +590,13 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
       // --- Integration loop over all Gauss points along the edge -------------
 
-      int ip = (abs(edgeDir) == 1 ? i2-p2 : i1-p1)*nGauss;
+      int ip = (t1 == 1 ? i2-p2 : i1-p1)*nGauss;
       for (int i = 0; i < nGauss; i++, ip++)
       {
+	// Parameter values of current integration point
+	if (gpar[0].size() > 1) fe.u = gpar[0](i+1,i1-p1+1);
+	if (gpar[1].size() > 1) fe.v = gpar[1](i+1,i2-p2+1);
+
 	// Fetch basis function derivatives at current integration point
 	extractBasis(spline1[ip],fe.N1,dN1du);
 	extractBasis(spline2[ip],fe.N2,dN2du);
@@ -633,20 +637,35 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
 
 bool ASMs2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
-			     const int* npe) const
+			     const RealArray* gpar, bool regular) const
 {
-  // Compute parameter values of the result sampling points
-  DoubleVec gpar[2];
-  for (int dir = 0; dir < 2; dir++)
-    if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
-      return false;
-
   if (!basis1 || !basis2) return false;
 
   // Evaluate the basis functions at all points
   std::vector<Go::BasisPtsSf> spline1, spline2;
-  basis1->computeBasisGrid(gpar[0],gpar[1],spline1);
-  basis2->computeBasisGrid(gpar[0],gpar[1],spline2);
+  if (regular)
+  {
+    basis1->computeBasisGrid(gpar[0],gpar[1],spline1);
+    basis2->computeBasisGrid(gpar[0],gpar[1],spline2);
+  }
+  else if (gpar[0].size() == gpar[1].size())
+  {
+    std::vector<Go::BasisPtsSf> tmpSpline(1);
+    spline1.resize(gpar[0].size());
+    spline2.resize(gpar[0].size());
+    for (size_t i = 0; i < spline1.size(); i++)
+    {
+      basis1->computeBasisGrid(RealArray(1,gpar[0][i]),
+			       RealArray(1,gpar[1][i]),
+			       tmpSpline);
+      spline1[i] = tmpSpline.front();
+      basis2->computeBasisGrid(RealArray(1,gpar[0][i]),
+			       RealArray(1,gpar[1][i]),
+			       tmpSpline);
+      spline2[i] = tmpSpline.front();
+    }
+    // TODO: Request a GoTools method replacing the above (see ASMs2D)
+  }
 
   const int p1 = basis1->order_u();
   const int p2 = basis1->order_v();
@@ -699,22 +718,37 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs2Dmx::evalSolution (Matrix& sField, const Integrand& integrand,
-			     const int* npe) const
+			     const RealArray* gpar, bool regular) const
 {
   sField.resize(0,0);
-
-  // Compute parameter values of the result sampling points
-  DoubleVec gpar[2];
-  for (int dir = 0; dir < 2; dir++)
-    if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
-      return false;
 
   if (!basis1 || !basis2) return false;
 
   // Evaluate the basis functions and their derivatives at all points
   std::vector<Go::BasisDerivsSf> spline1, spline2;
-  basis1->computeBasisGrid(gpar[0],gpar[1],spline1);
-  basis2->computeBasisGrid(gpar[0],gpar[1],spline2);
+  if (regular)
+  {
+    basis1->computeBasisGrid(gpar[0],gpar[1],spline1);
+    basis2->computeBasisGrid(gpar[0],gpar[1],spline2);
+  }
+  else if (gpar[0].size() == gpar[1].size())
+  {
+    std::vector<Go::BasisDerivsSf> tmpSpline(1);
+    spline1.resize(gpar[0].size());
+    spline2.resize(gpar[0].size());
+    for (size_t i = 0; i < spline1.size(); i++)
+    {
+      basis1->computeBasisGrid(RealArray(1,gpar[0][i]),
+			       RealArray(1,gpar[1][i]),
+			       tmpSpline);
+      spline1[i] = tmpSpline.front();
+      basis2->computeBasisGrid(RealArray(1,gpar[0][i]),
+			       RealArray(1,gpar[1][i]),
+			       tmpSpline);
+      spline2[i] = tmpSpline.front();
+    }
+    // TODO: Request a GoTools method replacing the above (see ASMs2D)
+  }
 
   const int p1 = basis1->order_u();
   const int p2 = basis1->order_v();

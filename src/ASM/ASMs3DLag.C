@@ -317,7 +317,24 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
   const int nely = (ny-1)/(p2-1);
   const int nelz = (nz-1)/(p3-1);
 
+  // Get parametric coordinates of the elements
+  RealArray upar, vpar, wpar;
+  if (t0 == 1)
+    upar.resize(1,faceDir < 0 ? svol->startparam(0) : svol->endparam(0));
+  else if (t0 == 2)
+    vpar.resize(1,faceDir < 0 ? svol->startparam(1) : svol->endparam(1));
+  else if (t0 == 3)
+    wpar.resize(1,faceDir < 0 ? svol->startparam(2) : svol->endparam(2));
+
+  if (upar.empty()) this->getGridParameters(upar,0,1);
+  if (vpar.empty()) this->getGridParameters(vpar,1,1);
+  if (wpar.empty()) this->getGridParameters(wpar,2,1);
+
   FiniteElement fe(p1*p2*p3);
+  fe.u = upar.front();
+  fe.v = vpar.front();
+  fe.w = wpar.front();
+
   Matrix dNdu, Xnod, Jac;
   Vec4   X;
   Vec3   normal;
@@ -359,6 +376,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 
 	// --- Integration loop over all Gauss points in each direction --------
 
+	int k1, k2, k3;
 	for (int j = 0; j < nGauss; j++)
 	  for (int i = 0; i < nGauss; i++)
 	  {
@@ -366,6 +384,20 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 	    xi[t0-1] = faceDir < 0 ? -1.0 : 1.0;
 	    xi[t1-1] = xg[i];
 	    xi[t2-1] = xg[j];
+
+	    // Parameter values of current integration point
+	    switch (abs(faceDir)) {
+	    case 1: k2 = i; k3 = j; k1 = -1; break;
+	    case 2: k1 = i; k3 = j; k2 = -1; break;
+	    case 3: k1 = i; k2 = j; k3 = -1; break;
+	    default: k1 = k2 = k3 = -1;
+	    }
+	    if (upar.size() > 1)
+	      fe.u = 0.5*(upar[i1]*(1.0-xg[k1]) + upar[i1+1]*(1.0+xg[k1]));
+	    if (vpar.size() > 1)
+	      fe.v = 0.5*(vpar[i2]*(1.0-xg[k2]) + vpar[i2+1]*(1.0+xg[k2]));
+	    if (wpar.size() > 1)
+	      fe.w = 0.5*(wpar[i3]*(1.0-xg[k3]) + wpar[i3+1]*(1.0+xg[k3]));
 
 	    // Compute the basis functions and their derivatives, using
 	    // tensor product of one-dimensional Lagrange polynomials
@@ -549,6 +581,15 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
 }
 
 
+bool ASMs3DLag::evalSolution (Matrix&, const Vector&,
+			      const RealArray*, bool) const
+{
+  std::cerr <<" *** ASMs3DLag::evalSolution(Matrix&,const Vector&,"
+	    <<"const RealArray*,bool): Not implemented."<< std::endl;
+  return false;
+}
+
+
 bool ASMs3DLag::evalSolution (Matrix& sField, const Integrand& integrand,
 			      const int*) const
 {
@@ -607,4 +648,13 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const Integrand& integrand,
     sField.fillColumn(1+i,globSolPt[i]/=check[i]);
 
   return true;
+}
+
+
+bool ASMs3DLag::evalSolution (Matrix&, const Integrand&,
+			      const RealArray*, bool) const
+{
+  std::cerr <<" *** ASMs3DLag::evalSolution(Matrix&,const Integrand&,"
+	    <<"const RealArray*,bool): Not implemented."<< std::endl;
+  return false;
 }

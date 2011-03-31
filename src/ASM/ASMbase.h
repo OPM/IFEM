@@ -1,4 +1,4 @@
-// $Id: ASMbase.h,v 1.19 2011-01-28 13:34:28 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMbase.h
@@ -238,6 +238,20 @@ public:
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
 			    const int* npe) const;
 
+  //! \brief Evaluates the primary solution field at the given points.
+  //! \param[out] sField Solution field
+  //! \param[in] locSol Solution vector local to current patch
+  //! \param[in] gpar Parameter values of the result sampling points
+  //! \param[in] regular Flag indicating how the sampling points are defined
+  //!
+  //! \details When \a regular is \e true, it is assumed that the parameter
+  //! value array \a gpar forms a regular tensor-product point grid of dimension
+  //! \a gpar[0].size() \a X \a gpar[1].size() \a X \a gpar[2].size().
+  //! Otherwise, we assume that it contains the \a u, \a v and \a w parameters
+  //! directly for each sampling point.
+  virtual bool evalSolution(Matrix& sField, const Vector& locSol,
+			    const RealArray* gpar, bool regular = true) const;
+
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
@@ -250,6 +264,20 @@ public:
   //! which then are returned through \a sField.
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
 			    const int* npe = 0) const;
+
+  //! \brief Evaluates the secondary solution field at the given points.
+  //! \param[out] sField Solution field
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] gpar Parameter values of the result sampling points
+  //! \param[in] regular Flag indicating how the sampling points are defined
+  //!
+  //! \details When \a regular is \e true, it is assumed that the parameter
+  //! value array \a gpar forms a regular tensor-product point grid of dimension
+  //! \a gpar[0].size() \a X \a gpar[1].size() \a X \a gpar[2].size().
+  //! Otherwise, we assume that it contains the \a u, \a v and \a w parameters
+  //! directly for each sampling point.
+  virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
+			    const RealArray* gpar, bool regular = true) const;
 
 
   // Methods for result extraction

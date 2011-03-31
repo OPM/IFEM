@@ -220,28 +220,26 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
 {
   if (!curv) return true; // silently ignore empty patches
 
-  // Number of elements
-  const int p1  = curv->order();
-  const int nel = (nx-1)/(p1-1);
-
   // Integration of boundary point
 
-  int iel;
+  FiniteElement fe;
   double x;
+  int iel;
   switch (lIndex)
     {
     case 1:
-      iel = 1;
+      fe.u = curv->startparam();
       x = -1.0;
+      iel = 1;
       break;
 
     case 2:
-      iel = nel;
+      fe.u = curv->endparam();
       x = 1.0;
+      iel = this->getNoElms();
 
     default:
-      iel = 0;
-      x = 0.0;
+      return false;
     }
 
   // Set up control point coordinates for current element
@@ -258,9 +256,8 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
   LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
 
   // Evaluate basis functions and corresponding derivatives
-  FiniteElement fe;
   Matrix dNdu, Jac;
-  if (!Lagrange::computeBasis(fe.N,dNdu,p1,x)) return false;
+  if (!Lagrange::computeBasis(fe.N,dNdu,curv->order(),x)) return false;
 
   // Cartesian coordinates of current integration point
   Vec4 X(Xnod*fe.N,time.t);
@@ -323,6 +320,15 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const Vector& locSol,
 }
 
 
+bool ASMs1DLag::evalSolution (Matrix&, const Vector&,
+			      const RealArray*, bool) const
+{
+  std::cerr <<" *** ASMs1DLag::evalSolution(Matrix&,const Vector&,"
+	    <<"const RealArray*,bool): Not implemented."<< std::endl;
+  return false;
+}
+
+
 bool ASMs1DLag::evalSolution (Matrix& sField, const Integrand& integrand,
 			      const int*) const
 {
@@ -372,4 +378,13 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const Integrand& integrand,
     sField.fillColumn(1+i,globSolPt[i]/=check[i]);
 
   return true;
+}
+
+
+bool ASMs1DLag::evalSolution (Matrix&, const Integrand&,
+			      const RealArray*, bool) const
+{
+  std::cerr <<" *** ASMs1DLag::evalSolution(Matrix&,const Integrand&,"
+	    <<"const RealArray*,bool): Not implemented."<< std::endl;
+  return false;
 }

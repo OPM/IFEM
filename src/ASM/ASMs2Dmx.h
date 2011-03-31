@@ -1,4 +1,4 @@
-// $Id: ASMs2Dmx.h,v 1.2 2010-12-30 15:02:02 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMs2Dmx.h
@@ -95,19 +95,33 @@ public:
   // Post-processing methods
   // =======================
 
-  //! \brief Evaluates the primary solution field at all visualization points.
+  //! \brief Evaluates the primary solution field at the given points.
   //! \param[out] sField Solution field
-  //! \param[in] locSol Solution vector in DOF-order
-  //! \param[in] npe Number of visualization nodes over each knot span
+  //! \param[in] locSol Solution vector local to current patch
+  //! \param[in] gpar Parameter values of the result sampling points
+  //! \param[in] regular Flag indicating how the sampling points are defined
+  //!
+  //! \details When \a regular is \e true, it is assumed that the parameter
+  //! value array \a gpar forms a regular tensor-product point grid of dimension
+  //! \a gpar[0].size() \a X \a gpar[1].size().
+  //! Otherwise, we assume that it contains the \a u and \a v parameters
+  //! directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-			    const int* npe) const;
+			    const RealArray* gpar, bool regular = true) const;
 
-  //! \brief Evaluates the secondary solution field at all visualization points.
+  //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] npe Number of visualization nodes over each knot span
+  //! \param[in] gpar Parameter values of the result sampling points
+  //! \param[in] regular Flag indicating how the sampling points are defined
+  //!
+  //! \details When \a regular is \e true, it is assumed that the parameter
+  //! value array \a gpar forms a regular tensor-product point grid of dimension
+  //! \a gpar[0].size() \a X \a gpar[1].size().
+  //! Otherwise, we assume that it contains the \a u and \a v parameters
+  //! directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
-			    const int* npe) const;
+			    const RealArray* gpar, bool regular = true) const;
 
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order

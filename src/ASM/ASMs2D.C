@@ -29,9 +29,6 @@
 #include <ctype.h>
 #include <fstream>
 
-typedef Go::SplineSurface::Dvector DoubleVec; //!< 1D double array
-typedef DoubleVec::const_iterator DoubleIter; //!< Iterator over DoubleVec
-
 
 ASMs2D::ASMs2D (const char* fileName, unsigned char n_s, unsigned char n_f)
   : ASMstruct(2,n_s,n_f)
@@ -139,8 +136,8 @@ bool ASMs2D::refine (int dir, const RealArray& xi)
   if (!surf || dir < 0 || dir > 1 || xi.empty()) return false;
   if (xi.front() < 0.0 || xi.back() > 1.0) return false;
 
-  DoubleVec  extraKnots;
-  DoubleIter uit = surf->basis(dir).begin();
+  RealArray extraKnots;
+  RealArray::const_iterator uit = surf->basis(dir).begin();
   double ucurr, uprev = *(uit++);
   while (uit != surf->basis(dir).end())
   {
@@ -168,8 +165,8 @@ bool ASMs2D::uniformRefine (int dir, int nInsert)
 {
   if (!surf || dir < 0 || dir > 1 || nInsert < 1) return false;
 
-  DoubleVec  extraKnots;
-  DoubleIter uit = surf->basis(dir).begin();
+  RealArray extraKnots;
+  RealArray::const_iterator uit = surf->basis(dir).begin();
   double ucurr, uprev = *(uit++);
   while (uit != surf->basis(dir).end())
   {
@@ -620,7 +617,7 @@ bool ASMs2D::getElementCoordinates (Matrix& X, int iel) const
   const IntVec& mnpc = MNPC[iel-1];
   X.resize(nsd,mnpc.size());
 
-  DoubleIter cit = surf->coefs_begin();
+  RealArray::const_iterator cit = surf->coefs_begin();
   for (size_t n = 0; n < mnpc.size(); n++)
   {
     int ip = this->coeffInd(mnpc[n])*surf->dimension();
@@ -643,7 +640,7 @@ void ASMs2D::getNodalCoordinates (Matrix& X) const
   const int n2 = surf->numCoefs_v();
   X.resize(nsd,n1*n2);
 
-  DoubleIter cit = surf->coefs_begin();
+  RealArray::const_iterator cit = surf->coefs_begin();
   size_t inod = 1;
   for (int i2 = 0; i2 < n2; i2++)
     for (int i1 = 0; i1 < n1; i1++, inod++)
@@ -661,7 +658,7 @@ Vec3 ASMs2D::getCoord (size_t inod) const
   int ip = this->coeffInd(inod-1)*surf->dimension();
   if (ip < 0) return X;
 
-  DoubleIter cit = surf->coefs_begin() + ip;
+  RealArray::const_iterator cit = surf->coefs_begin() + ip;
   for (size_t i = 0; i < nsd; i++, cit++)
     X[i] = *cit;
 
@@ -788,7 +785,7 @@ bool ASMs2D::integrate (Integrand& integrand,
   for (dir = 0; dir < 2; dir++)
   {
     int pm1 = (dir == 0 ? surf->order_u() : surf->order_v()) - 1;
-    DoubleIter uit = surf->basis(dir).begin() + pm1;
+    RealArray::const_iterator uit = surf->basis(dir).begin() + pm1;
     double ucurr, uprev = *(uit++);
     int nCol = (dir == 0 ? surf->numCoefs_u() : surf->numCoefs_v()) - pm1;
     gpar[dir].resize(nGauss,nCol);
@@ -982,7 +979,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
     else
     {
       int pm1 = (d == 0 ? surf->order_u() : surf->order_v()) - 1;
-      DoubleIter uit = surf->basis(d).begin() + pm1;
+      RealArray::const_iterator uit = surf->basis(d).begin() + pm1;
       double ucurr, uprev = *(uit++);
       int nCol = (d == 0 ? surf->numCoefs_u() : surf->numCoefs_v()) - pm1;
       gpar[d].resize(nGauss,nCol);
@@ -1005,6 +1002,9 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
   const int n2 = surf->numCoefs_v();
 
   FiniteElement fe(p1*p2);
+  fe.u = gpar[0](1,1);
+  fe.v = gpar[1](1,1);
+
   Matrix dNdu, Xnod, Jac;
   Vec4   X;
   Vec3   normal;
@@ -1030,7 +1030,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       if (skipMe) continue;
 
       // Get element edge length in the parameter space
-      double dS = this->getParametricLength(iel,abs(edgeDir));
+      double dS = this->getParametricLength(iel,t1);
       if (dS < 0.0) return false; // topology error (probably logic error)
 
       // Set up control point coordinates for current element
@@ -1048,9 +1048,13 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 
       // --- Integration loop over all Gauss points along the edge -------------
 
-      int ip = (abs(edgeDir) == 1 ? i2-p2 : i1-p1)*nGauss;
+      int ip = (t1 == 1 ? i2-p2 : i1-p1)*nGauss;
       for (int i = 0; i < nGauss; i++, ip++)
       {
+	// Parameter values of current integration point
+	if (gpar[0].size() > 1) fe.u = gpar[0](i+1,i1-p1+1);
+	if (gpar[1].size() > 1) fe.v = gpar[1](i+1,i2-p2+1);
+
 	// Fetch basis function derivatives at current integration point
 	extractBasis(spline[ip],fe.N,dNdu);
 
@@ -1090,7 +1094,7 @@ bool ASMs2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
     return false;
   }
 
-  DoubleIter uit = surf->basis(dir).begin();
+  RealArray::const_iterator uit = surf->basis(dir).begin();
   double ucurr = 0.0, uprev = *(uit++);
   while (uit != surf->basis(dir).end())
   {
@@ -1129,7 +1133,7 @@ bool ASMs2D::getGrevilleParameters (RealArray& prm, int dir) const
 bool ASMs2D::tesselate (ElementBlock& grid, const int* npe) const
 {
   // Compute parameter values of the nodal points
-  DoubleVec gpar[2];
+  RealArray gpar[2];
   for (int dir = 0; dir < 2; dir++)
     if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
       return false;
@@ -1137,7 +1141,7 @@ bool ASMs2D::tesselate (ElementBlock& grid, const int* npe) const
   // Evaluate the spline surface at all points
   size_t nx = gpar[0].size();
   size_t ny = gpar[1].size();
-  DoubleVec XYZ(surf->dimension()*nx*ny);
+  RealArray XYZ(surf->dimension()*nx*ny);
   surf->gridEvaluator(XYZ,gpar[0],gpar[1]);
 
   // Establish the block grid coordinates
@@ -1183,14 +1187,45 @@ bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
 			   const int* npe) const
 {
   // Compute parameter values of the result sampling points
-  DoubleVec gpar[2];
+  RealArray gpar[2];
   for (int dir = 0; dir < 2; dir++)
     if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
       return false;
 
+  // Evaluate the primary solution at all sampling points
+  return this->evalSolution(sField,locSol,gpar);
+}
+
+
+bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
+			   const RealArray* gpar, bool regular) const
+{
   // Evaluate the basis functions at all points
   std::vector<Go::BasisPtsSf> spline;
-  surf->computeBasisGrid(gpar[0],gpar[1],spline);
+  if (regular)
+    surf->computeBasisGrid(gpar[0],gpar[1],spline);
+  else if (gpar[0].size() == gpar[1].size())
+  {
+    spline.resize(gpar[0].size());
+    std::vector<Go::BasisPtsSf> tmpSpline(1);
+    for (size_t i = 0; i < spline.size(); i++)
+    {
+      surf->computeBasisGrid(RealArray(1,gpar[0][i]),
+			     RealArray(1,gpar[1][i]),
+			     tmpSpline);
+      spline[i] = tmpSpline.front();
+    }
+    // TODO: Request a GoTools method replacing the above:
+    // void SplineSurface::computeBasisGrid(double param_u, double param_v,
+    //                                      BasisPtsSf& result) const
+    /*
+    spline.resize(gpar[0].size());
+    for (size_t i = 0; i < spline.size(); i++)
+      surf->computeBasis(gpar[0][i],gpar[1][i],spline[i]);
+    */
+  }
+  else
+    return false;
 
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
@@ -1238,9 +1273,11 @@ bool ASMs2D::evalSolution (Matrix& sField, const Integrand& integrand,
   }
   else
   {
+    // Project the secondary solution onto the spline basis
     Go::SplineSurface* s = this->projectSolution(integrand);
     if (s)
     {
+      // Extract control point values from the spline object
       sField.resize(s->dimension(),s->numCoefs_u()*s->numCoefs_v());
       sField.fill(&(*s->coefs_begin()));
       delete s;
@@ -1262,7 +1299,7 @@ Go::GeomObject* ASMs2D::evalSolution (const Integrand& integrand) const
 Go::SplineSurface* ASMs2D::projectSolution (const Integrand& integrand) const
 {
   // Compute parameter values of the result sampling points (Greville points)
-  DoubleVec gpar[2];
+  RealArray gpar[2];
   for (int dir = 0; dir < 2; dir++)
     if (!this->getGrevilleParameters(gpar[dir],dir))
       return 0;
@@ -1279,7 +1316,7 @@ Go::SplineSurface* ASMs2D::projectSolution (const Integrand& integrand) const
   // the result array. Think that is always the case, but beware if trying
   // other projection schemes later.
 
-  DoubleVec weights;
+  RealArray weights;
   if (surf->rational())
     surf->getWeights(weights);
 
@@ -1295,13 +1332,36 @@ Go::SplineSurface* ASMs2D::projectSolution (const Integrand& integrand) const
 
 
 bool ASMs2D::evalSolution (Matrix& sField, const Integrand& integrand,
-			   const RealArray* gpar) const
+			   const RealArray* gpar, bool regular) const
 {
   sField.resize(0,0);
 
   // Evaluate the basis functions and their derivatives at all points
   std::vector<Go::BasisDerivsSf> spline;
-  surf->computeBasisGrid(gpar[0],gpar[1],spline);
+  if (regular)
+    surf->computeBasisGrid(gpar[0],gpar[1],spline);
+  else if (gpar[0].size() == gpar[1].size())
+  {
+    spline.resize(gpar[0].size());
+    std::vector<Go::BasisDerivsSf> tmpSpline(1);
+    for (size_t i = 0; i < spline.size(); i++)
+    {
+      surf->computeBasisGrid(RealArray(1,gpar[0][i]),
+			     RealArray(1,gpar[1][i]),
+			     tmpSpline);
+      spline[i] = tmpSpline.front();
+    }
+    // TODO: Request a GoTools method replacing the above:
+    // void SplineSurface::computeBasisGrid(double param_u, double param_v,
+    //                                      BasisDerivsSf& result) const
+    /*
+    spline.resize(gpar[0].size());
+    for (size_t i = 0; i < spline.size(); i++)
+      surf->computeBasis(gpar[0][i],gpar[1][i],spline[i]);
+    */
+  }
+  else
+    return false;
 
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();

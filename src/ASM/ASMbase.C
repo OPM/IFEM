@@ -1,4 +1,4 @@
-// $Id: ASMbase.C,v 1.13 2010-12-29 18:02:10 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMbase.C
@@ -509,7 +509,25 @@ bool ASMbase::evalSolution (Matrix&, const Vector&, const int*) const
 }
 
 
+bool ASMbase::evalSolution (Matrix&, const Vector&,
+			    const RealArray*, bool) const
+{
+  std::cerr <<" *** ASMBase::evalSolution: Must be implemented in sub-class."
+	    << std::endl;
+  return false;
+}
+
+
 bool ASMbase::evalSolution (Matrix&, const Integrand&, const int*) const
+{
+  std::cerr <<" *** ASMBase::evalSolution: Must be implemented in sub-class."
+	    << std::endl;
+  return false;
+}
+
+
+bool ASMbase::evalSolution (Matrix&, const Integrand&,
+			    const RealArray*, bool) const
 {
   std::cerr <<" *** ASMBase::evalSolution: Must be implemented in sub-class."
 	    << std::endl;

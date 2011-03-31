@@ -1,4 +1,4 @@
-// $Id: ASMs2DLag.h,v 1.6 2010-12-29 18:41:38 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMs2DLag.h
@@ -90,18 +90,30 @@ public:
   //! the Lagrange elements by default.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector in DOF-order
-  //! \param[in] npe Number of visualization nodes over each knot span
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-			    const int* npe) const;
+			    const int*) const;
+
+  //! \brief Evaluates the primary solution field at the given points.
+  //! \param[out] sField Solution field
+  //! \param[in] locSol Solution vector local to current patch
+  //! \param[in] gpar Parameter values of the result sampling points
+  virtual bool evalSolution(Matrix& sField, const Vector& locSol,
+			    const RealArray* gpar, bool = true) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \details The number of visualization points is the same as the order of
   //! the Lagrange elements by default.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] npe Number of visualization nodes over each knot span
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
-			    const int* npe) const;
+			    const int*) const;
+
+  //! \brief Evaluates the secondary solution field at the given points.
+  //! \param[out] sField Solution field
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] gpar Parameter values of the result sampling points
+  virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
+			    const RealArray* gpar, bool = true) const;
 
 protected:
 

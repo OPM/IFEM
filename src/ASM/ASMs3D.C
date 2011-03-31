@@ -29,9 +29,6 @@
 #include <ctype.h>
 #include <fstream>
 
-typedef Go::SplineVolume::Dvector DoubleVec;  //!< 1D double array
-typedef DoubleVec::const_iterator DoubleIter; //!< Iterator over DoubleVec
-
 
 ASMs3D::ASMs3D (const char* fileName, bool checkRHS, unsigned char n_f)
   : ASMstruct(3,3,n_f)
@@ -127,10 +124,10 @@ bool ASMs3D::checkRightHandSystem ()
   if (!svol) return false;
 
   // Evaluate the spline volume at its center
-  DoubleVec u(1,0.5*(svol->startparam(0) + svol->endparam(0)));
-  DoubleVec v(1,0.5*(svol->startparam(1) + svol->endparam(1)));
-  DoubleVec w(1,0.5*(svol->startparam(2) + svol->endparam(2)));
-  DoubleVec X(3), dXdu(3), dXdv(3), dXdw(3);
+  RealArray u(1,0.5*(svol->startparam(0) + svol->endparam(0)));
+  RealArray v(1,0.5*(svol->startparam(1) + svol->endparam(1)));
+  RealArray w(1,0.5*(svol->startparam(2) + svol->endparam(2)));
+  RealArray X(3), dXdu(3), dXdv(3), dXdw(3);
   svol->gridEvaluator(u,v,w,X,dXdu,dXdv,dXdw);
 
   // Check that |J| = (dXdu x dXdv) * dXdw > 0.0
@@ -149,8 +146,8 @@ bool ASMs3D::refine (int dir, const RealArray& xi)
   if (!svol || dir < 0 || dir > 2 || xi.empty()) return false;
   if (xi.front() < 0.0 || xi.back() > 1.0) return false;
 
-  DoubleVec  extraKnots;
-  DoubleIter uit = svol->basis(dir).begin();
+  RealArray extraKnots;
+  RealArray::const_iterator uit = svol->basis(dir).begin();
   double ucurr, uprev = *(uit++);
   while (uit != svol->basis(dir).end())
   {
@@ -174,8 +171,8 @@ bool ASMs3D::uniformRefine (int dir, int nInsert)
 {
   if (!svol || dir < 0 || dir > 2 || nInsert < 1) return false;
 
-  DoubleVec  extraKnots;
-  DoubleIter uit = svol->basis(dir).begin();
+  RealArray extraKnots;
+  RealArray::const_iterator uit = svol->basis(dir).begin();
   double ucurr, uprev = *(uit++);
   while (uit != svol->basis(dir).end())
   {
@@ -922,7 +919,7 @@ bool ASMs3D::getElementCoordinates (Matrix& X, int iel) const
   const IntVec& mnpc = MNPC[iel-1];
   X.resize(3,mnpc.size());
 
-  DoubleIter cit = svol->coefs_begin();
+  RealArray::const_iterator cit = svol->coefs_begin();
   for (size_t n = 0; n < mnpc.size(); n++)
   {
     int ip = this->coeffInd(mnpc[n])*svol->dimension();
@@ -946,7 +943,7 @@ void ASMs3D::getNodalCoordinates (Matrix& X) const
   const int n3 = svol->numCoefs(2);
   X.resize(3,n1*n2*n3);
 
-  DoubleIter cit = svol->coefs_begin();
+  RealArray::const_iterator cit = svol->coefs_begin();
   size_t inod = 1;
   for (int i3 = 0; i3 < n3; i3++)
     for (int i2 = 0; i2 < n2; i2++)
@@ -965,7 +962,7 @@ Vec3 ASMs3D::getCoord (size_t inod) const
   int ip = this->coeffInd(inod-1)*svol->dimension();
   if (ip < 0) return Vec3();
 
-  DoubleIter cit = svol->coefs_begin() + ip;
+  RealArray::const_iterator cit = svol->coefs_begin() + ip;
   return Vec3(*cit,*(cit+1),*(cit+2));
 }
 
@@ -1098,7 +1095,7 @@ bool ASMs3D::integrate (Integrand& integrand,
   for (dir = 0; dir < 3; dir++)
   {
     int pm1 = svol->order(dir) - 1;
-    DoubleIter uit = svol->basis(dir).begin() + pm1;
+    RealArray::const_iterator uit = svol->basis(dir).begin() + pm1;
     double ucurr, uprev = *(uit++);
     int nCol = svol->numCoefs(dir) - pm1;
     gpar[dir].resize(nGauss,nCol);
@@ -1302,7 +1299,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
     else
     {
       int pm1 = svol->order(d) - 1;
-      DoubleIter uit = svol->basis(d).begin() + pm1;
+      RealArray::const_iterator uit = svol->basis(d).begin() + pm1;
       double ucurr, uprev = *(uit++);
       int nCol = svol->numCoefs(d) - pm1;
       gpar[d].resize(nGauss,nCol);
@@ -1334,6 +1331,10 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
   const int nel2 = n2 - p2 + 1;
 
   FiniteElement fe(p1*p2*p3);
+  fe.u = gpar[0](1,1);
+  fe.v = gpar[1](1,1);
+  fe.w = gpar[2](1,1);
+
   Matrix dNdu, Xnod, Jac;
   Vec4   X;
   Vec3   normal;
@@ -1390,10 +1391,22 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 
 	// --- Integration loop over all Gauss points in each direction --------
 
+	int k1, k2, k3;
 	int ip = (j2*nGauss*nf1 + j1)*nGauss;
 	for (int j = 0; j < nGauss; j++, ip += nGauss*(nf1-1))
 	  for (int i = 0; i < nGauss; i++, ip++)
 	  {
+	    // Parameter values of current integration point
+	    switch (abs(faceDir)) {
+	    case 1: k2 = i+1; k3 = j+1; k1 = 0; break;
+	    case 2: k1 = i+1; k3 = j+1; k2 = 0; break;
+	    case 3: k1 = i+1; k2 = j+1; k3 = 0; break;
+	    default: k1 = k2 = k3 = 0;
+	    }
+	    if (gpar[0].size() > 1) fe.u = gpar[0](k1,i1-p1+1);
+	    if (gpar[1].size() > 1) fe.v = gpar[1](k2,i2-p2+1);
+	    if (gpar[2].size() > 1) fe.w = gpar[1](k3,i3-p3+1);
+
 	    // Fetch basis function derivatives at current integration point
 	    extractBasis(spline[ip],fe.N,dNdu);
 
@@ -1455,7 +1468,7 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
     else
     {
       int pm1 = svol->order(d) - 1;
-      DoubleIter uit = svol->basis(d).begin() + pm1;
+      RealArray::const_iterator uit = svol->basis(d).begin() + pm1;
       double ucurr, uprev = *(uit++);
       int nCol = svol->numCoefs(d) - pm1;
       gpar[d].resize(nGauss,nCol);
@@ -1484,6 +1497,10 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
   const int p3 = svol->order(2);
 
   FiniteElement fe(p1*p2*p3);
+  fe.u = gpar[0](1,1);
+  fe.v = gpar[1](1,1);
+  fe.w = gpar[2](1,1);
+
   Matrix dNdu, Xnod, Jac;
   Vec4   X;
   Vec3   tang;
@@ -1551,6 +1568,11 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 	LocalIntegral* elmInt = 0;
 	for (int i = 0; i < nGauss; i++, ip++)
 	{
+	  // Parameter values of current integration point
+	  if (gpar[0].size() > 1) fe.u = gpar[0](i+1,i1-p1+1);
+	  if (gpar[1].size() > 1) fe.v = gpar[1](i+1,i2-p2+1);
+	  if (gpar[2].size() > 1) fe.w = gpar[1](i+1,i3-p3+1);
+
 	  // Fetch basis function derivatives at current integration point
 	  extractBasis(spline[ip],fe.N,dNdu);
 
@@ -1588,7 +1610,7 @@ bool ASMs3D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
     return false;
   }
 
-  DoubleIter uit = svol->basis(dir).begin();
+  RealArray::const_iterator uit = svol->basis(dir).begin();
   double ucurr = 0.0, uprev = *(uit++);
   while (uit != svol->basis(dir).end())
   {
@@ -1627,7 +1649,7 @@ bool ASMs3D::getGrevilleParameters (RealArray& prm, int dir) const
 bool ASMs3D::tesselate (ElementBlock& grid, const int* npe) const
 {
   // Compute parameter values of the nodal points
-  DoubleVec gpar[3];
+  RealArray gpar[3];
   for (int dir = 0; dir < 3; dir++)
     if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
       return false;
@@ -1636,7 +1658,7 @@ bool ASMs3D::tesselate (ElementBlock& grid, const int* npe) const
   size_t nx = gpar[0].size();
   size_t ny = gpar[1].size();
   size_t nz = gpar[2].size();
-  DoubleVec XYZ(svol->dimension()*nx*ny*nz);
+  RealArray XYZ(svol->dimension()*nx*ny*nz);
   svol->gridEvaluator(gpar[0],gpar[1],gpar[2],XYZ);
 
   // Establish the block grid coordinates
@@ -1683,17 +1705,52 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
 			   const int* npe) const
 {
   // Compute parameter values of the result sampling points
-  DoubleVec gpar[3];
+  RealArray gpar[3];
   for (int dir = 0; dir < 3; dir++)
     if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
       return false;
 
+  // Evaluate the primary solution at all sampling points
+  return this->evalSolution(sField,locSol,gpar);
+}
+
+
+bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
+			   const RealArray* gpar, bool regular) const
+{
   // Evaluate the basis functions at all points
   std::vector<Go::BasisPts> spline;
+  if (regular)
   {
     PROFILE2("Spline evaluation");
     svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline);
   }
+  else if (gpar[0].size() == gpar[1].size() && gpar[0].size() == gpar[2].size())
+  {
+    PROFILE2("Spline evaluation");
+    spline.resize(gpar[0].size());
+    std::vector<Go::BasisPts> tmpSpline(1);
+    for (size_t i = 0; i < spline.size(); i++)
+    {
+      svol->computeBasisGrid(RealArray(1,gpar[0][i]),
+                             RealArray(1,gpar[1][i]),
+                             RealArray(1,gpar[2][i]),
+                             tmpSpline);
+      spline[i] = tmpSpline.front();
+    }
+    // TODO: Request a GoTools method replacing the above:
+    // void SplineVolume::computeBasisGrid(double param_u,
+    //                                     double param_v,
+    //                                     double param_w,
+    //                                     BasisPts& result) const
+    /*
+    spline.resize(gpar[0].size());
+    for (size_t i = 0; i < spline.size(); i++)
+      svol->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline[i]);
+    */
+  }
+  else
+    return false;
 
   const int p1 = svol->order(0);
   const int p2 = svol->order(1);
@@ -1743,9 +1800,11 @@ bool ASMs3D::evalSolution (Matrix& sField, const Integrand& integrand,
   }
   else
   {
+    // Project the secondary solution onto the spline basis
     Go::SplineVolume* v = this->projectSolution(integrand);
     if (v)
     {
+      // Extract control point values from the spline object
       sField.resize(v->dimension(),
 		    v->numCoefs(0)*v->numCoefs(1)*v->numCoefs(2));
       sField.fill(&(*v->coefs_begin()));
@@ -1768,7 +1827,7 @@ Go::GeomObject* ASMs3D::evalSolution (const Integrand& integrand) const
 Go::SplineVolume* ASMs3D::projectSolution (const Integrand& integrand) const
 {
   // Compute parameter values of the result sampling points
-  DoubleVec gpar[3];
+  RealArray gpar[3];
   for (int dir = 0; dir < 3; dir++)
     if (!this->getGrevilleParameters(gpar[dir],dir))
       return 0;
@@ -1785,7 +1844,7 @@ Go::SplineVolume* ASMs3D::projectSolution (const Integrand& integrand) const
   // the result array. Think that is always the case, but beware if trying
   // other projection schemes later.
 
-  DoubleVec weights;
+  RealArray weights;
   if (svol->rational())
     svol->getWeights(weights);
 
@@ -1802,16 +1861,43 @@ Go::SplineVolume* ASMs3D::projectSolution (const Integrand& integrand) const
 
 
 bool ASMs3D::evalSolution (Matrix& sField, const Integrand& integrand,
-			   const RealArray* gpar) const
+			   const RealArray* gpar, bool regular) const
 {
   sField.resize(0,0);
 
   // Evaluate the basis functions and their derivatives at all points
   std::vector<Go::BasisDerivs> spline;
+  if (regular)
   {
     PROFILE2("Spline evaluation");
     svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline);
   }
+  else if (gpar[0].size() == gpar[1].size() && gpar[0].size() == gpar[2].size())
+  {
+    PROFILE2("Spline evaluation");
+    spline.resize(gpar[0].size());
+    std::vector<Go::BasisDerivs> tmpSpline(1);
+    for (size_t i = 0; i < spline.size(); i++)
+    {
+      svol->computeBasisGrid(RealArray(1,gpar[0][i]),
+                             RealArray(1,gpar[1][i]),
+                             RealArray(1,gpar[2][i]),
+                             tmpSpline);
+      spline[i] = tmpSpline.front();
+    }
+    // TODO: Request a GoTools method replacing the above:
+    // void SplineVolume::computeBasisGrid(double param_u,
+    //                                     double param_v,
+    //                                     double param_w,
+    //                                     BasisDerivs& result) const
+    /*
+    spline.resize(gpar[0].size());
+    for (size_t i = 0; i < spline.size(); i++)
+      svol->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline[i]);
+    */
+  }
+  else
+    return false;
 
   const int p1 = svol->order(0);
   const int p2 = svol->order(1);

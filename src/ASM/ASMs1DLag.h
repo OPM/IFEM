@@ -1,4 +1,4 @@
-// $Id: ASMs1DLag.h,v 1.2 2010-09-07 07:51:46 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMs1DLag.h
@@ -79,29 +79,40 @@ public:
   // Post-processing methods
   // =======================
 
-  //! \brief Creates a quad element model of this patch for visualization.
-  //! \param[out] grid The generated quadrilateral grid
-  //! \param[in] npe Number of visualization nodes over each knot span
+  //! \brief Creates a line element model of this patch for visualization.
+  //! \param[out] grid The generated line grid
   //! \note The number of element nodes must be set in \a grid on input.
-  virtual bool tesselate(ElementBlock& grid, const int* npe) const;
+  virtual bool tesselate(ElementBlock& grid, const int*) const;
 
   //! \brief Evaluates the primary solution field at all visualization points.
   //! \details The number of visualization points is the same as the order of
   //! the Lagrange elements by default.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector in DOF-order
-  //! \param[in] npe Number of visualization nodes over each knot span
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-			    const int* npe) const;
+			    const int*) const;
+
+  //! \brief Evaluates the primary solution field at the given points.
+  //! \param[out] sField Solution field
+  //! \param[in] locSol Solution vector local to current patch
+  //! \param[in] gpar Parameter values of the result sampling points
+  virtual bool evalSolution(Matrix& sField, const Vector& locSol,
+			    const RealArray* gpar, bool = true) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \details The number of visualization points is the same as the order of
   //! the Lagrange elements by default.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] npe Number of visualization nodes over each knot span
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
-			    const int* npe) const;
+			    const int*) const;
+
+  //! \brief Evaluates the secondary solution field at the given points.
+  //! \param[out] sField Solution field
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] gpar Parameter values of the result sampling points
+  virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
+			    const RealArray* gpar, bool = true) const;
 
 protected:
 

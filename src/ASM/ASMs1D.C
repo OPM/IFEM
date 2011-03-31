@@ -27,9 +27,6 @@
 #include <ctype.h>
 #include <fstream>
 
-typedef std::vector<double>       DoubleVec;  //!< 1D double array
-typedef DoubleVec::const_iterator DoubleIter; //!< Iterator over DoubleVec
-
 
 ASMs1D::ASMs1D (const char* fileName, unsigned char n_s, unsigned char n_f)
   : ASMstruct(1,n_s,n_f)
@@ -137,8 +134,8 @@ bool ASMs1D::refine (const RealArray& xi)
   if (!curv || xi.empty()) return false;
   if (xi.front() < 0.0 || xi.back() > 1.0) return false;
 
-  DoubleVec  extraKnots;
-  DoubleIter uit = curv->basis().begin();
+  RealArray extraKnots;
+  RealArray::const_iterator uit = curv->basis().begin();
   double ucurr, uprev = *(uit++);
   while (uit != curv->basis().end())
   {
@@ -162,8 +159,8 @@ bool ASMs1D::uniformRefine (int nInsert)
 {
   if (!curv || nInsert < 1) return false;
 
-  DoubleVec  extraKnots;
-  DoubleIter uit = curv->basis().begin();
+  RealArray extraKnots;
+  RealArray::const_iterator uit = curv->basis().begin();
   double ucurr, uprev = *(uit++);
   while (uit != curv->basis().end())
   {
@@ -360,7 +357,7 @@ double ASMs1D::getKnotSpan (int i) const
   if (i < 0 || i >= curv->numCoefs() + curv->order() - 1)
     return 0.0;
 
-  DoubleIter uit = curv->basis().begin() + i;
+  RealArray::const_iterator uit = curv->basis().begin() + i;
   return *(uit+1) - *uit;
 }
 
@@ -379,7 +376,7 @@ bool ASMs1D::getElementCoordinates (Matrix& X, int iel) const
   const IntVec& mnpc = MNPC[iel-1];
   X.resize(nsd,mnpc.size());
 
-  DoubleIter cit = curv->coefs_begin();
+  RealArray::const_iterator cit = curv->coefs_begin();
   for (size_t n = 0; n < mnpc.size(); n++)
   {
     int ip = mnpc[n]*curv->dimension();
@@ -402,7 +399,7 @@ void ASMs1D::getNodalCoordinates (Matrix& X) const
 
   X.resize(nsd,n1);
 
-  DoubleIter cit = curv->coefs_begin();
+  RealArray::const_iterator cit = curv->coefs_begin();
   for (int inod = 0; inod < n1; inod++)
   {
     int ip = inod*curv->dimension();
@@ -418,7 +415,7 @@ Vec3 ASMs1D::getCoord (size_t inod) const
   int ip = (inod-1)*curv->dimension();
   if (ip < 0) return X;
 
-  DoubleIter cit = curv->coefs_begin() + ip;
+  RealArray::const_iterator cit = curv->coefs_begin() + ip;
   for (size_t i = 0; i < nsd; i++, cit++)
     X[i] = *cit;
 
@@ -438,7 +435,7 @@ void ASMs1D::extractBasis (double u, Vector& N, Matrix& dNdu) const
 {
   int p1 = curv->order();
 
-  DoubleVec bas(p1*2);
+  RealArray bas(p1*2);
   curv->basis().computeBasisValues(u,&bas.front(),1);
 
   N.resize(p1);
@@ -471,7 +468,7 @@ bool ASMs1D::integrate (Integrand& integrand,
   int pm1 = p1 - 1;
   int nCol = n1 - pm1;
   Matrix gpar(nGauss,nCol);
-  DoubleIter uit = curv->basis().begin() + pm1;
+  RealArray::const_iterator uit = curv->basis().begin() + pm1;
   double ucurr, uprev = *(uit++);
   for (int j = 1; j <= nCol; uit++, j++)
   {
@@ -551,18 +548,18 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
 
   // Integration of boundary point
 
-  int    iel;
-  double param;
+  FiniteElement fe;
+  int iel;
   switch (lIndex)
     {
     case 1:
+      fe.u = curv->startparam();
       iel = 1;
-      param = curv->startparam();
       break;
 
     case 2:
+      fe.u = curv->endparam();
       iel = this->getNoElms();
-      param = curv->endparam();
       break;
 
     default:
@@ -585,9 +582,8 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
   LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
 
   // Evaluate basis functions and corresponding derivatives
-  FiniteElement fe;
   Matrix dNdu;
-  this->extractBasis(param,fe.N,dNdu);
+  this->extractBasis(fe.u,fe.N,dNdu);
 
   // Cartesian coordinates of current integration point
   Vec4 X(Xnod*fe.N,time.t);
@@ -623,7 +619,7 @@ bool ASMs1D::getGridParameters (RealArray& prm, int nSegPerSpan) const
     return false;
   }
 
-  DoubleIter uit = curv->basis().begin();
+  RealArray::const_iterator uit = curv->basis().begin();
   double ucurr = 0.0, uprev = *(uit++);
   while (uit != curv->basis().end())
   {
@@ -648,13 +644,13 @@ bool ASMs1D::getGridParameters (RealArray& prm, int nSegPerSpan) const
 bool ASMs1D::tesselate (ElementBlock& grid, const int* npe) const
 {
   // Compute parameter values of the nodal points
-  DoubleVec gpar;
+  RealArray gpar;
   if (!this->getGridParameters(gpar,npe[0]-1))
     return false;
 
   // Evaluate the spline curve at all points
   size_t nx = gpar.size();
-  DoubleVec XYZ(3*nx,0.0);
+  RealArray XYZ(3*nx,0.0);
 
   // Establish the block grid coordinates
   size_t i, j;
@@ -699,10 +695,18 @@ bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
 			   const int* npe) const
 {
   // Compute parameter values of the result sampling points
-  DoubleVec gpar;
+  RealArray gpar;
   if (!this->getGridParameters(gpar,npe[0]-1))
     return false;
 
+  // Evaluate the primary solution at all sampling points
+  return this->evalSolution(sField,locSol,&gpar);
+}
+
+
+bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
+			   const RealArray* gpar, bool) const
+{
   const int p1 = curv->order();
   size_t nComp = locSol.size() / this->getNoNodes();
   if (nComp*this->getNoNodes() != locSol.size())
@@ -712,11 +716,12 @@ bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
   Vector Ytmp, basis(p1);
 
   // Evaluate the primary solution field at each point
-  size_t nPoints = gpar.size();
+  const RealArray& upar = *gpar;
+  size_t nPoints = upar.size();
   sField.resize(nComp,nPoints);
   for (size_t i = 0; i < nPoints; i++)
   {
-    curv->basis().computeBasisValues(gpar[i],&basis.front());
+    curv->basis().computeBasisValues(upar[i],&basis.front());
 
     IntVec ip;
     scatterInd(p1,curv->basis().lastKnotInterval(),ip);
@@ -739,13 +744,15 @@ bool ASMs1D::evalSolution (Matrix& sField, const Integrand& integrand,
     RealArray gpar;
     if (this->getGridParameters(gpar,npe[0]-1))
       // Evaluate the secondary solution at all sampling points
-      return this->evalSolution(sField,integrand,gpar);
+      return this->evalSolution(sField,integrand,&gpar);
   }
   else
   {
+    // Project the secondary solution onto the spline basis
     Go::SplineCurve* c = this->projectSolution(integrand);
     if (c)
     {
+      // Extract control point values from the spline object
       sField.resize(c->dimension(),c->numCoefs());
       sField.fill(&(*c->coefs_begin()));
       delete c;
@@ -771,7 +778,7 @@ Go::SplineCurve* ASMs1D::projectSolution (const Integrand& integrand) const
 
 
 bool ASMs1D::evalSolution (Matrix& sField, const Integrand& integrand,
-			   const RealArray& gpar) const
+			   const RealArray* gpar, bool) const
 {
   sField.resize(0,0);
 
@@ -785,11 +792,12 @@ bool ASMs1D::evalSolution (Matrix& sField, const Integrand& integrand,
   Matrix dNdu, dNdX, Jac;
 
   // Evaluate the secondary solution field at each point
-  size_t nPoints = gpar.size();
+  const RealArray& upar = *gpar;
+  size_t nPoints = upar.size();
   for (size_t i = 0; i < nPoints; i++)
   {
     // Fetch basis function derivatives at current integration point
-    this->extractBasis(gpar[i],N,dNdu);
+    this->extractBasis(upar[i],N,dNdu);
 
     // Fetch indices of the non-zero basis functions at this point
     IntVec ip;
