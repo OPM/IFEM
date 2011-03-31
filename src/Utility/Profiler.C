@@ -17,6 +17,8 @@
 #endif
 #include <sys/time.h>
 
+#include "LinAlgInit.h"
+
 
 Profiler* utl::profiler = 0;
 
@@ -30,6 +32,7 @@ Profiler::Profiler (const std::string& name) : myName(name), nRunners(0)
   // Update pointer to current profiler (it should only be one at any time)
   if (utl::profiler) delete utl::profiler;
   utl::profiler = this;
+  LinAlgInit::increfs();
 }
 
 
@@ -37,6 +40,7 @@ Profiler::~Profiler ()
 {
   this->stop("Total");
   this->report(std::cout);
+  LinAlgInit::decrefs();
 }
 
 

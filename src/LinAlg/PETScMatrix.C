@@ -19,11 +19,14 @@
 #include "slepceps.h"
 #endif
 
+#include "LinAlgInit.h"
+
 
 PETScVector::PETScVector()
 {
   VecCreate(PETSC_COMM_WORLD,&x);
   VecSetFromOptions(x);
+  LinAlgInit::increfs();
 }
 
 
@@ -32,6 +35,7 @@ PETScVector::PETScVector(size_t n)
   VecCreate(PETSC_COMM_WORLD,&x);
   VecSetSizes(x,n,PETSC_DECIDE);
   VecSetFromOptions(x);
+  LinAlgInit::increfs();
 }
 
 
@@ -45,6 +49,7 @@ PETScVector::PETScVector(const real* values, size_t n)
   VecGetArray(x,&x_array);
   *x_array = *values;
   VecRestoreArray(x,&x_array);    
+  LinAlgInit::increfs();
 }
 
 
@@ -52,6 +57,7 @@ PETScVector::PETScVector(const PETScVector& vec)
 {
   VecDuplicate(vec.x,&x);
   VecCopy(vec.x,x);
+  LinAlgInit::increfs();
 }
 
 
@@ -59,6 +65,7 @@ PETScVector::~PETScVector()
 {
   // Deallocation of vector
   VecDestroy(x);
+  LinAlgInit::decrefs();
 }
 
 
@@ -165,6 +172,7 @@ PETScMatrix::PETScMatrix(const LinSolParams& spar) : solParams(spar)
     MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_TRUE,0,0,&nsp);
     KSPSetNullSpace(ksp,nsp);
   }
+  LinAlgInit::increfs();
 }
 
 
@@ -182,6 +190,7 @@ PETScMatrix::PETScMatrix (const PETScMatrix& B) : solParams(B.solParams)
     MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_TRUE,0,0,&nsp);
     KSPSetNullSpace(ksp,nsp);
   }
+  LinAlgInit::increfs();
 }
 
 
@@ -196,6 +205,7 @@ PETScMatrix::~PETScMatrix ()
 
   // Deallocation of matrix object.
   MatDestroy(A); 
+  LinAlgInit::decrefs();
 }
 
 

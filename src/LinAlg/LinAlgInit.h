@@ -22,12 +22,26 @@
 class LinAlgInit
 {
 public:
-  //! \brief The constructor uses the command-line arguments to set up things.
-  LinAlgInit(int argc, char** argv);
+  //! \brief This class is a ref-counted singleton. We need control over 
+  //         the destruction order since the destructor calls PetscFinalize() 
+  //         which shuts down MPI. Thus this object must be destroyed after 
+  //         objects that do MPI calls in their destructor.
+  //         This we cannot guarantee without the ref-counting since this
+  //         class is instanced as a local variable in the main() scope of 
+  //         applications.
+  static LinAlgInit& Init(int argc, char** argv);
   //! \brief The destructor finalizes the linear algebra packages.
   ~LinAlgInit();
 
   int myPid; //!< Processor ID in parallel simulations
+  static void increfs();
+  static void decrefs();
+private:
+  static int refs;
+  //! \brief The constructor uses the command-line arguments to set up things.
+  LinAlgInit(int argc, char** argv);
+
+  static LinAlgInit* instance;
 };
 
 #endif

@@ -16,6 +16,8 @@
 #include "ASMbase.h"
 #include "MPC.h"
 
+#include "LinAlgInit.h"
+
 
 SAMpatchPara::SAMpatchPara(const IntVec& l2gn_mp)
 {
@@ -25,6 +27,7 @@ SAMpatchPara::SAMpatchPara(const IntVec& l2gn_mp)
 #else
   nProc = 1;
 #endif
+  LinAlgInit::increfs();
 }
 
 
@@ -34,6 +37,7 @@ SAMpatchPara::~SAMpatchPara ()
   ISDestroy(iglob);
   ISDestroy(iloc);
 #endif
+  LinAlgInit::decrefs();
 }
 
 

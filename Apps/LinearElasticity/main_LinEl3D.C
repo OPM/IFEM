@@ -77,7 +77,7 @@ int main (int argc, char** argv)
   bool twoD = false;
   char* infile = 0;
 
-  LinAlgInit linalg(argc,argv);
+  LinAlgInit& linalg = LinAlgInit::Init(argc,argv);
 
   for (int i = 1; i < argc; i++)
     if (!strcmp(argv[i],"-dense"))
