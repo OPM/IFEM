@@ -1,4 +1,4 @@
-// $Id: Utilities.h,v 1.7 2010-12-30 15:11:34 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file Utilities.h
@@ -89,6 +89,6 @@ namespace utl
   void Pascal(int p, real x, real y, std::vector<real>& phi);
   //! \brief Evaluates the monomials of Pascal's triangle in 3D for order \a p.
   void Pascal(int p, real x, real y, real z, std::vector<real>& phi);
-};
+}
 
 #endif

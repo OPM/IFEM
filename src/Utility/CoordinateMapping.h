@@ -1,4 +1,4 @@
-// $Id: CoordinateMapping.h,v 1.2 2010-10-14 20:01:55 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file CoordinateMapping.h
@@ -70,6 +70,6 @@ namespace utl
 	       const matrix<real>& Ji, const matrix<real>& X,
 	       const matrix3d<real>& d2Ndu2, const matrix<real>& dNdu,
 	       bool computeGradient = true);
-};
+}
 
 #endif

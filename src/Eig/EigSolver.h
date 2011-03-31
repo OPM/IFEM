@@ -1,4 +1,4 @@
-// $Id: EigSolver.h,v 1.2 2010-03-24 12:01:36 rho Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file EigSolver.h
@@ -43,6 +43,6 @@ namespace eig //! Top-level functions for invoking eigenproblem solvers.
   bool solve(SystemMatrix* A, SystemMatrix* B,
 	     Vector& eigVal, Matrix& eigVec, int nev, int ncv,
 	     int mode = 4, double shift = 0.0);
-};
+}
 
 #endif

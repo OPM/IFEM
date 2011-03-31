@@ -1,4 +1,4 @@
-// $Id: Legendre.h,v 1.2 2010-10-05 06:47:34 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file Legendre.h
@@ -48,6 +48,6 @@ namespace Legendre
   //! \param[in] n Number of GLL points\polynomials
   //! \param[out] der Evaluated values
   bool basisDerivatives(int n, Matrix& der);
-};
+}
 
 #endif

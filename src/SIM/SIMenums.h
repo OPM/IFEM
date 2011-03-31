@@ -1,4 +1,4 @@
-// $Id: SIMenums.h,v 1.3 2010-12-18 20:03:54 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file SIMenums.h
@@ -40,6 +40,6 @@ namespace SIM //! Simulation scope
     RHS_ONLY,
     RECOVERY
   };
-};
+}
 
 #endif

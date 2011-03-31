@@ -1,4 +1,4 @@
-// $Id: MatVec.h,v 1.9 2011-02-05 18:07:51 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file MatVec.h
@@ -57,6 +57,6 @@ namespace utl
 
   //! \brief Inverts the square matrix \b A.
   bool invert(Matrix& A);
-};
+}
 
 #endif

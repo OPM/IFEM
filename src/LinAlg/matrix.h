@@ -520,8 +520,7 @@ namespace utl //! General utility classes and functions.
 
   private:
     //! \brief Check dimension compatibility for matrix-vector multiplication.
-    bool compatible(const std::vector<T>& X, const std::vector<T>& Y,
-		    bool transA) const
+    bool compatible(const std::vector<T>& X, bool transA) const
     {
       if ((transA ? nrow : ncol) == X.size()) return true;
 
@@ -863,7 +862,7 @@ namespace utl //! General utility classes and functions.
 			       std::vector<float>& Y,
 			       bool transA, bool addTo) const
   {
-    if (!this->compatible(X,Y,transA)) return false;
+    if (!this->compatible(X,transA)) return false;
     if (!addTo) Y.resize(transA ? ncol : nrow);
 
     cblas_sgemv(CblasColMajor,
@@ -881,7 +880,7 @@ namespace utl //! General utility classes and functions.
 				std::vector<double>& Y,
 				bool transA, bool addTo) const
   {
-    if (!this->compatible(X,Y,transA)) return false;
+    if (!this->compatible(X,transA)) return false;
     if (!addTo) Y.resize(transA ? ncol : nrow);
 
     cblas_dgemv(CblasColMajor,
@@ -1405,7 +1404,7 @@ namespace utl //! General utility classes and functions.
     }
     s <<" ];"<< std::endl;
   }
-};
+}
 
 #undef THIS
 #endif
