@@ -96,13 +96,18 @@ public:
   //! \param[in] psolOnly If \e true, skip secondary solution field output
   bool saveStep(int iStep, double time, int* nViz, bool psolOnly = false);
 
-  //! \brief Dumps the primary solution to given stream for inspection.
+  //! \brief Dumps the primary solution for inspection.
   //! \param[in] iStep Load/time step identifier
   //! \param[in] time Current time/load parameter
-  //! \param[in] os The output streeam to write to
+  //! \param[in] os The output stream to write the solution to
   //! \param[in] withID If \e true, write node ID and coordinates too
   void dumpStep(int iStep, double time, std::ostream& os,
 		bool withID = true) const;
+
+  //! \brief Dumps solution variables at user-defined points.
+  //! \param[in] time Current time/load parameter
+  //! \param[in] os The output stream to write the solution to
+  bool dumpResults(double time, std::ostream& os) const;
 
   //! \brief Returns a const reference to current solution vector.
   const Vector& getSolution() const { return solution.front(); }

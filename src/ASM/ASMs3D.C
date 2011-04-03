@@ -31,11 +31,8 @@
 
 
 ASMs3D::ASMs3D (const char* fileName, bool checkRHS, unsigned char n_f)
-  : ASMstruct(3,3,n_f)
+  : ASMstruct(3,3,n_f), svol(0), swapW(false)
 {
-  svol = 0;
-  swapW = false;
-
   std::cout <<"\nReading patch file "<< fileName << std::endl;
   std::ifstream is(fileName);
   if (!is.good())
@@ -48,11 +45,8 @@ ASMs3D::ASMs3D (const char* fileName, bool checkRHS, unsigned char n_f)
 
 
 ASMs3D::ASMs3D (std::istream& is, bool checkRHS, unsigned char n_f)
-  : ASMstruct(3,3,n_f)
+  : ASMstruct(3,3,n_f), svol(0), swapW(false)
 {
-  svol = 0;
-  swapW = false;
-
   if (this->read(is) && checkRHS)
     this->checkRightHandSystem();
 
@@ -1594,6 +1588,23 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 	if (!glInt.assemble(elmInt,MLGE[iel-1]))
 	  return false;
       }
+
+  return true;
+}
+
+
+bool ASMs3D::evalPoint (const double* xi, double* param, Vec3& X) const
+{
+  if (!svol) return false;
+
+  for (int i = 0; i < 3; i++)
+    param[i] = (1.0-xi[i])*svol->startparam(i) + xi[i]*svol->endparam(i);
+
+  Go::Point X0;
+  svol->point(X0,param[0],param[1],param[2]);
+  X.x = X0[0];
+  X.y = X0[1];
+  X.z = X0[2];
 
   return true;
 }

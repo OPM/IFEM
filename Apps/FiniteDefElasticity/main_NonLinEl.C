@@ -76,7 +76,7 @@ int main (int argc, char** argv)
   bool twoD = false;
   char* infile = 0;
 
-  LinAlgInit linalg(argc,argv);
+  const LinAlgInit& linalg = LinAlgInit::Init(argc,argv);
 
   std::vector<int> options(2,0);
   for (int i = 1; i < argc; i++)
@@ -293,6 +293,9 @@ int main (int argc, char** argv)
     // Solve the nonlinear FE problem at this load step
     if (!simulator.solveStep(params,SIM::STATIC))
       return 5;
+
+    // Print solution components at the user-defined points
+    simulator.dumpResults(params.time.t,std::cout);
 
     if (params.time.t + epsT*params.time.dt > nextDump)
     {

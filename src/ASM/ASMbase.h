@@ -47,7 +47,7 @@ typedef std::vector<ASMbase*>       ASMVec;       //!< Spline patch container
   of a set of partial differential equations using splines as basis functions.
 
   The class does not contain any problem-specific data or methods.
-  The methods that need access to problem information are provided that through
+  The methods that need access to problem information are given that through
   Integrand objects that are passed as arguments to those methods.
 */
 
@@ -225,6 +225,12 @@ public:
   // Post-processing methods
   // =======================
 
+  //! \brief Evaluates the geometry at a specified point.
+  //! \param[in] xi Dimensionless parameters in range [0.0,1.0] of the point
+  //! \param[out] param The parameters of the point in the knot-span domain
+  //! \param[out] X The Cartesian coordinates of the point
+  virtual bool evalPoint(const double* xi, double* param, Vec3& X) const = 0;
+
   //! \brief Creates a standard FE model of this patch for visualization.
   //! \param[out] grid The generated finite element grid
   //! \param[in] npe Number of visualization nodes over each knot span
@@ -295,7 +301,7 @@ public:
   virtual void extractNodeVec(const Vector& globVec, Vector& nodeVec,
 			      unsigned char nndof = 0) const;
 
-  //! \brief Inject nodal results for this patch into the global vector.
+  //! \brief Injects nodal results for this patch into the global vector.
   //! \param[in] nodeVec Nodal result vector for this patch
   //! \param globVec Global solution vector in DOF-order
   //! \param[in] nndof Number of DOFs per node (the default is \a nf)

@@ -30,15 +30,17 @@ class VTF;
 
 /*!
   \brief Abstract base class representing a system level integrated quantity.
-  \details This class defines the interface between the finite element
+  \details This class defines the interface between the finite element (FE)
   assembly drivers of the ASM-hierarchy and the problem-dependent classes
   containing all physical properties for the problem to be solved.
 
-  The interface has several overloaded versions of the \a evalInt method, for
-  evaluation of the coefficient matrix contributions at an element-interior
-  integration point. Only one of these methods needs to be implemented, and
-  which one to use is governed by the \a getIntegrandType method.
-  There is also one method intended for mixed field interpolation problems.
+  The interface consists of methods for evaluating the integrand at interior
+  integration points (\a evalInt), and at boundary integration points
+  (\a evalBou). The latter are used for Neumann boundary conditions, typically.
+  The integrand evaluation methods have access to the FE basis function values
+  and derivatives through the FiniteElement argument. There are also a set
+  of methods dedicated for mixed field interpolation problems, which take
+  and MxFiniteElement object as argument instead.
 */
 
 class Integrand
@@ -51,18 +53,28 @@ public:
   //! \brief Empty destructor.
   virtual ~Integrand() {}
 
-  //! \brief Prints out problem definition to the given output stream.
+  //! \brief Prints out the problem definition to the given output stream.
   virtual void print(std::ostream&) const {}
+
+
+  // Global initialization interface
+  // ===============================
 
   //! \brief Defines the solution mode before the element assembly is started.
   virtual void setMode(SIM::SolutionMode) {}
-
   //! \brief Initializes the integrand for a new integration loop.
   //! \details This method is invoked once before starting the numerical
   //! integration over the entire spatial domain.
   virtual void initIntegration(const TimeDomain&) {}
   //! \brief Initializes the integrand for a new result point loop.
-  virtual void initResultPoints() {}
+  //! \details This method is invoked once before starting the evaluation of
+  //! the secondary solution at all result sampling points, after the converged
+  //! primary solution has been found.
+  virtual void initResultPoints(double) {}
+
+
+  // Element-level initialization interface
+  // ======================================
 
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
@@ -85,7 +97,7 @@ public:
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //!
-  //! \details Reimplement this method for problems not requiring the
+  //! \details Reimplement this method for problems \e not requiring the
   //! the element center nor the number of integration points before the
   //! integration loop is started.
   virtual bool initElement(const std::vector<int>& MNPC)
@@ -122,17 +134,18 @@ public:
     return false;
   }
 
-  //! \brief Finalizes the element quantities after the numerical integration.
-  //! \details This method is invoked once for each element, after the numerical
-  //! integration loop is finished, and before the resulting element quantities
-  //! are assembled into their system level equivalents.
-  //! It can also be used to implement multiple integration point loops within
-  //! the same element, provided the necessary integration point values are
-  //! stored internally in the object during the first integration loop.
-  virtual bool finalizeElement(LocalIntegral*&, const TimeDomain&)
-  {
-    return true;
-  }
+
+  // Integrand evaluation interface
+  // ==============================
+
+  //! \brief Defines which FE quantities are needed by the integrand.
+  //! \return 1: The basis functions and their gradients are needed
+  //! \return 2: As 1, but in addition the second derivatives of the basis
+  //! functions and the characteristic element size is needed
+  //! \return 3: As 1, but in addition the volume-averaged basis functions
+  //! are needed
+  //! \return 4: As 1, but in addition the element center coordinates are needed
+  virtual int getIntegrandType() const { return 1; }
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
@@ -161,6 +174,18 @@ public:
 			 const TimeDomain& time, const Vec3& X) const
   {
     return this->evalIntMx(elmInt,fe,X);
+  }
+
+  //! \brief Finalizes the element quantities after the numerical integration.
+  //! \details This method is invoked once for each element, after the numerical
+  //! integration loop over interior points is finished and before the resulting
+  //! element quantities are assembled into their system level equivalents.
+  //! It can also be used to implement multiple integration point loops within
+  //! the same element, provided the necessary integration point values are
+  //! stored internally in the object during the first integration loop.
+  virtual bool finalizeElement(LocalIntegral*&, const TimeDomain&)
+  {
+    return true;
   }
 
   //! \brief Evaluates the integrand at a boundary point.
@@ -212,6 +237,10 @@ protected:
 			 const Vec3&, const Vec3&) const { return false; }
 
 public:
+
+  // Solution field evaluation interface
+  // ===================================
+
   //! \brief Evaluates the secondary solution at a result point.
   //! \param[out] s The solution field values at current point
   //! \param[in] N Basis function values at current point
@@ -294,35 +323,24 @@ public:
     return false;
   }
 
+
+  // Various service methods
+  // =======================
+
   //! \brief Writes surface tractions/fluxes for a given time step to VTF-file.
-  //! \param vtf The VTF-file object to receive the tractions
-  //! \param[in] iStep Load/time step identifier
-  //! \param nBlck Running result block counter
-  virtual bool writeGlvT(VTF* vtf, int iStep, int& nBlck) const { return true; }
+  virtual bool writeGlvT(VTF*, int, int&) const { return true; }
 
   //! \brief Returns whether there are any traction/flux values to write to VTF.
   virtual bool hasTractionValues() const { return false; }
 
-  //! \brief Returns which integrand to be used.
-  virtual int getIntegrandType() const { return 1; }
-
-  //! \brief Returns the number of secondary solution field components.
+  //! \brief Returns the number of (secondary) solution field components.
   virtual size_t getNoFields() const { return 0; }
 
-  //! \brief Returns the number of secondary solution field components.
-  virtual size_t getNoSecFields() const { return 0; }
-
-  //! \brief Returns the name of a secondary solution field component.
-  //! \param[in] i Field component index
-  //! \param[in] prefix Name prefix for all components
-  virtual const char* getFieldLabel(size_t i, const char* prefix = 0) const
-  {
-    return 0;
-  }
+  //! \brief Returns the name of a (secondary) solution field component.
+  virtual const char* getFieldLabel(size_t, const char* = 0) const { return 0; }
 
   //! \brief Returns a pointer to an Integrand for solution norm evaluation.
-  //! \param[in] asol Pointer to the analytical solution (optional)
-  virtual NormBase* getNormIntegrand(AnaSol* asol = 0) const { return 0; }
+  virtual NormBase* getNormIntegrand(AnaSol* = 0) const { return 0; }
 
   //! \brief Returns the number of solution vectors.
   size_t getNoSolutions() const { return primsol.size(); }
@@ -331,7 +349,7 @@ public:
   Vector& getSolution(size_t n = 0) { return primsol[n]; }
 
 protected:
-  Vectors primsol; //!< Primary solution vectors for this patch
+  Vectors primsol; //!< Primary solution vectors for current patch
 };
 
 

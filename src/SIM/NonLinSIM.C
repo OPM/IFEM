@@ -402,7 +402,7 @@ bool NonLinSIM::saveStep (int iStep, double time, int* nViz, bool psolOnly)
 
   // Write solution fields
   if (!solution.empty())
-    if (!model->writeGlvS(solution.front(),nViz,iStep,nBlock,psolOnly))
+    if (!model->writeGlvS(solution.front(),nViz,iStep,nBlock,time,psolOnly))
       return false;
 
   // Write element norms (only when no additional visualization points are used)
@@ -423,6 +423,12 @@ void NonLinSIM::dumpStep (int iStep, double time, std::ostream& os,
        <<", Time="<< time <<"\n";
 
   model->dumpPrimSol(solution.front(),os,withID);
+}
+
+
+bool NonLinSIM::dumpResults (double time, std::ostream& os) const
+{
+  return model->dumpResults(solution.front(),time,os);
 }
 
 

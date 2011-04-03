@@ -22,10 +22,8 @@
 
 
 NonlinearElasticityUL::NonlinearElasticityUL (unsigned short int n, char lop)
-  : Elasticity(n)
+  : Elasticity(n), loadOp(lop), plam(-999.9)
 {
-  loadOp = lop;
-
   // Only the current solution is needed
   primsol.resize(1);
 }
@@ -94,10 +92,13 @@ void NonlinearElasticityUL::initIntegration (const TimeDomain& prm)
 }
 
 
-void NonlinearElasticityUL::initResultPoints ()
+void NonlinearElasticityUL::initResultPoints (double lambda)
 {
-  if (material)
+  if (material && lambda > plam)
+  {
     material->initResultPoints();
+    plam = lambda;
+  }
 }
 
 

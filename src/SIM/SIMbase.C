@@ -26,13 +26,13 @@
 #include "ElmNorm.h"
 #include "AnaSol.h"
 #include "Tensor.h"
-#include "Vec3.h"
 #include "Vec3Oper.h"
 #include "EigSolver.h"
 #include "Profiler.h"
 #include "ElementBlock.h"
 #include "VTF.h"
 #include "Utilities.h"
+#include <iomanip>
 #include <ctype.h>
 #include <stdio.h>
 
@@ -103,7 +103,7 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
 
     char* cline = 0;
     nGlPatches = 0;
-    for (int i = 0; i < nproc && (cline = utl::readLine(is));i++)
+    for (int i = 0; i < nproc && (cline = utl::readLine(is)); i++)
     {
       int proc  = atoi(strtok(cline," "));
       int first = atoi(strtok(NULL," "));
@@ -127,10 +127,43 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
     }
   }
 
+  else if (!strncasecmp(keyWord,"RESULTPOINTS",12))
+  {
+    int nres = atoi(keyWord+12);
+    if (myPid == 0 && nres > 0)
+      std::cout <<"\nNumber of result points: "<< nres;
+
+    char* cline = 0;
+    myPoints.resize(nres);
+    for (int i = 0; i < nres && (cline = utl::readLine(is)); i++)
+    {
+      myPoints[i].patch = atoi(strtok(cline," "));
+      if (myPid == 0)
+	std::cout <<"\n\tPoint "<< i+1 <<": P"<< myPoints[i].patch <<" xi =";
+      for (int j = 0; j < 3 && (cline = strtok(NULL," ")); j++)
+      {
+        myPoints[i].param[j] = atof(cline);
+	if (myPid == 0)
+	  std::cout <<' '<< myPoints[i].param[j];
+      }
+    }
+    if (myPid == 0 && nres > 0)
+      std::cout << std::endl;
+  }
+
   else if (isalpha(keyWord[0]))
     std::cerr <<" *** SIMbase::parse: Unknown keyword: "<< keyWord << std::endl;
 
   return true;
+}
+
+
+void SIMbase::readLinSolParams (std::istream& is, int npar)
+{
+  if (!mySolParams)
+    mySolParams = new LinSolParams();
+
+  mySolParams->read(is,npar);
 }
 
 
@@ -267,6 +300,34 @@ bool SIMbase::preprocess (const std::vector<int>& ignoredPatches, bool fixDup)
   // Resolve possibly chained multi-point constraints
   ASMbase::resolveMPCchains(myModel);
 
+  // Preprocess the result points
+  for (ResPointVec::iterator p = myPoints.begin(); p != myPoints.end();)
+  {
+    int pid = this->getLocalPatchIndex(p->patch);
+    if (pid < 1 || myModel[pid-1]->empty())
+      p = myPoints.erase(p);
+    else
+    {
+      p->npar = myModel[pid-1]->getNoParamDim();
+      myModel[pid-1]->evalPoint(p->param,p->param,p->X);
+
+      std::cout <<"\nResult point #"<< 1+(int)(p-myPoints.begin())
+		<<": patch #"<< p->patch;
+      switch (p->npar) {
+      case 1: std::cout <<" u="; break;
+      case 2: std::cout <<" (u,v)=("; break;
+      case 3: std::cout <<" (u,v,w)=("; break;
+      }
+      std::cout << p->param[0];
+      for (unsigned char c = 1; c < p->npar; c++)
+	std::cout <<','<< p->param[c];
+      if (p->npar > 1) std::cout <<')';
+	std::cout <<", X = "<< p->X;
+      p++;
+    }
+  }
+  std::cout << std::endl;
+
   // Initialize data structures for the algebraic system
 #ifdef PARALLEL_PETSC
     mySam = new SAMpatchPara(l2gn);
@@ -337,10 +398,11 @@ bool SIMbase::setMode (int mode)
 
 void SIMbase::printProblem (std::ostream& os) const
 {
-  if (!myProblem) return;
-
-  std::cout <<"\nProblem definition:"<< std::endl;
-  myProblem->print(os);
+  if (myProblem)
+  {
+    std::cout <<"\nProblem definition:"<< std::endl;
+    myProblem->print(os);
+  }
 
 #if SP_DEBUG > 1
   std::cout <<"\nProperty mapping:";
@@ -493,6 +555,33 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 }
 
 
+bool SIMbase::finalizeAssembly (bool newLHSmatrix)
+{
+  // Communication of matrix and vector assembly (for PETSc only)
+  SystemMatrix* A = myEqSys->getMatrix();
+  if (A && newLHSmatrix)
+  {
+    if (!A->beginAssembly()) return false;
+    if (!A->endAssembly())   return false;
+#if SP_DEBUG > 3
+    std::cout <<"\nSystem coefficient matrix:"<< *A;
+#endif
+  }
+
+  SystemVector* b = myEqSys->getVector();
+  if (b)
+  {
+    if (!b->beginAssembly()) return false;
+    if (!b->endAssembly())   return false;
+#if SP_DEBUG > 2
+    std::cout <<"\nSystem right-hand-side vector:"<< *b;
+#endif
+  }
+
+  return true;
+}
+
+
 bool SIMbase::extractLoadVec (Vector& loadVec) const
 {
   SystemVector* b = myEqSys->getVector();
@@ -612,7 +701,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time, const Vectors& psol,
 
   myProblem->initIntegration(time);
 
-  size_t nNorms = norm->getNoFields() + norm->getNoSecFields();
+  size_t nNorms = norm->getNoFields();
   const Vector& primsol = psol.front();
 
   size_t i, nel = mySam->getNoElms();
@@ -913,8 +1002,8 @@ bool SIMbase::writeGlvV (const Vector& vec, const char* fieldName,
 }
 
 
-bool SIMbase::writeGlvS (const Vector& psol,
-			 const int* nViz, int iStep, int& nBlock, bool psolOnly)
+bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
+			 int iStep, int& nBlock, double time, bool psolOnly)
 {
   if (psol.empty())
     return true;
@@ -922,7 +1011,7 @@ bool SIMbase::writeGlvS (const Vector& psol,
     return false;
 
   if (!psolOnly)
-    myProblem->initResultPoints();
+    myProblem->initResultPoints(time);
 
   Matrix field;
   size_t i, j;
@@ -1193,12 +1282,12 @@ void SIMbase::dumpPrimSol (const Vector& psol, std::ostream& os,
 
 bool SIMbase::dumpGeometry (std::ostream& os) const
 {
-  bool retVal = true;
-  for (size_t i = 0; i < myModel.size() && retVal; i++)
+  for (size_t i = 0; i < myModel.size(); i++)
     if (!myModel[i]->empty())
-      retVal = myModel[i]->write(os);
+      if (!myModel[i]->write(os))
+	return false;
 
-  return retVal;
+  return true;
 }
 
 
@@ -1239,7 +1328,7 @@ bool SIMbase::dumpSolution (const Vector& psol, std::ostream& os) const
 
     // Evaluate secondary solution variables
     LocalSystem::patch = i;
-    if (!myModel[i]->evalSolution(field,*myProblem,0))
+    if (!myModel[i]->evalSolution(field,*myProblem))
       return false;
 
     // Write the secondary solution
@@ -1256,34 +1345,63 @@ bool SIMbase::dumpSolution (const Vector& psol, std::ostream& os) const
 }
 
 
-void SIMbase::readLinSolParams (std::istream& is, int npar)
+bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
+			   std::streamsize outputPrecision) const
 {
-  if (!mySolParams) mySolParams = new LinSolParams();
-  mySolParams->read(is,npar);
-}
+  if (psol.empty() || myPoints.empty())
+    return true;
 
+  myProblem->initResultPoints(time);
 
-bool SIMbase::finalizeAssembly (bool newLHSmatrix)
-{
-  // Communication of matrix and vector assembly (for PETSC only)
-  SystemMatrix* A = myEqSys->getMatrix();
-  if (A && newLHSmatrix)
+  size_t i, j, k;
+  Matrix sol1, sol2;
+
+  for (i = 0; i < myModel.size(); i++)
   {
-    if (!A->beginAssembly()) return false;
-    if (!A->endAssembly())   return false;
-#if SP_DEBUG > 3
-    std::cout <<"\nSystem coefficient matrix:"<< *A;
-#endif
-  }
+    if (myModel[i]->empty()) continue; // skip empty patches
 
-  SystemVector* b = myEqSys->getVector();
-  if (b)
-  {
-    if (!b->beginAssembly()) return false;
-    if (!b->endAssembly())   return false;
-#if SP_DEBUG > 3
-    std::cout <<"\nSystem right-hand-side vector:"<< *b;
-#endif
+    ResPointVec::const_iterator p;
+    std::vector<size_t> points;
+    RealArray params[3];
+
+    // Find all evaluation points within this patch, if any
+    for (j = 0, p = myPoints.begin(); p != myPoints.end(); j++, p++)
+      if (this->getLocalPatchIndex(p->patch) == (int)(i+1))
+      {
+	points.push_back(j+1);
+	for (k = 0; k < myModel[i]->getNoParamDim(); k++)
+	  params[k].push_back(p->param[k]);
+      }
+
+    if (points.empty()) continue; // no points in this patch
+
+    // Evaluate the primary solution variables
+    myModel[i]->extractNodeVec(psol,myProblem->getSolution());
+    if (!myModel[i]->evalSolution(sol1,myProblem->getSolution(),params,false))
+      return false;
+
+    // Evaluate the secondary solution variables
+    LocalSystem::patch = i;
+    if (!myModel[i]->evalSolution(sol2,*myProblem,params,false))
+      return false;
+
+    // Formatted output, use scientific notation with fixed field width
+    std::streamsize flWidth = 8 + outputPrecision;
+    std::streamsize oldPrec = os.precision(outputPrecision);
+    std::ios::fmtflags oldF = os.flags(std::ios::scientific | std::ios::right);
+    for (j = 0; j < points.size(); j++)
+    {
+      os <<"  Result point #"<< points[j];
+      os <<":  sol1 =";
+      for (k = 1; k <= sol1.rows(); k++)
+	os << std::setw(flWidth) << sol1(k,j+1);
+      os <<"   sol2 =";
+      for (k = 1; k <= sol2.rows(); k++)
+	os << std::setw(flWidth) << sol2(k,j+1);
+      os << std::endl;
+    }
+    os.precision(oldPrec);
+    os.flags(oldF);
   }
 
   return true;
@@ -1293,13 +1411,14 @@ bool SIMbase::finalizeAssembly (bool newLHSmatrix)
 bool SIMbase::project (Vector& psol)
 {
   Matrix values;
-  Vector psol2(psol.size());
-  for (size_t i = 0; i < myModel.size(); ++i) {
+  Vector ssol(psol.size());
+  for (size_t i = 0; i < myModel.size(); i++)
+  {
     myModel[i]->extractNodeVec(psol,myProblem->getSolution());
-    myModel[i]->evalSolution(values,*myProblem,NULL);
-    myModel[i]->injectNodeVec(values,psol2);
+    if (!myModel[i]->evalSolution(values,*myProblem)) return false;
+    myModel[i]->injectNodeVec(values,ssol);
   }
-  psol = psol2;
+  psol = ssol;
 
   return true;
 }

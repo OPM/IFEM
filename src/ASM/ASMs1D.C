@@ -29,10 +29,8 @@
 
 
 ASMs1D::ASMs1D (const char* fileName, unsigned char n_s, unsigned char n_f)
-  : ASMstruct(1,n_s,n_f)
+  : ASMstruct(1,n_s,n_f), curv(0)
 {
-  curv = 0;
-
   std::cout <<"\nReading patch file "<< fileName << std::endl;
   std::ifstream is(fileName);
   if (!is.good())
@@ -45,10 +43,8 @@ ASMs1D::ASMs1D (const char* fileName, unsigned char n_s, unsigned char n_f)
 
 
 ASMs1D::ASMs1D (std::istream& is, unsigned char n_s, unsigned char n_f)
-  : ASMstruct(1,n_s,n_f)
+  : ASMstruct(1,n_s,n_f), curv(0)
 {
-  curv = 0;
-
   this->read(is);
 
   geo = curv;
@@ -56,9 +52,8 @@ ASMs1D::ASMs1D (std::istream& is, unsigned char n_s, unsigned char n_f)
 
 
 ASMs1D::ASMs1D (unsigned char n_s, unsigned char n_f)
-  : ASMstruct(1,n_s,n_f)
+  : ASMstruct(1,n_s,n_f), curv(0)
 {
-  curv = 0;
 }
 
 
@@ -608,6 +603,21 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
 }
 
 
+bool ASMs1D::evalPoint (const double* xi, double* param, Vec3& X) const
+{
+  if (!curv) return false;
+
+  param[0] = (1.0-xi[0])*curv->startparam() + xi[0]*curv->endparam();
+
+  Go::Point X0;
+  curv->point(X0,param[0]);
+  for (unsigned char i = 0; i < nsd; i++)
+    X[i] = X0[i];
+
+  return true;
+}
+
+
 bool ASMs1D::getGridParameters (RealArray& prm, int nSegPerSpan) const
 {
   if (!curv) return false;
@@ -772,6 +782,8 @@ Go::GeomObject* ASMs1D::evalSolution (const Integrand& integrand) const
 
 Go::SplineCurve* ASMs1D::projectSolution (const Integrand& integrand) const
 {
+  //TODO: This requires the method Go::CurveInterpolator::regularInterpolation
+  //      which is not yet present in GoTools.
   std::cerr <<"ASMs1D::projectSolution: Not implemented yet!"<< std::endl;
   return 0;
 }

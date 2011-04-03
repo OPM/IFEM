@@ -122,6 +122,12 @@ public:
   // Post-processing methods
   // =======================
 
+  //! \brief Evaluates the geometry at a specified point.
+  //! \param[in] xi Dimensionless parameter in range [0.0,1.0] of the point
+  //! \param[out] param The parameter of the point in the knot-span domain
+  //! \param[out] X The Cartesian coordinates of the point
+  virtual bool evalPoint(const double* xi, double* param, Vec3& X) const;
+
   //! \brief Creates a line element model of this patch for visualization.
   //! \param[out] grid The generated line grid
   //! \param[in] npe Number of visualization nodes over each knot span

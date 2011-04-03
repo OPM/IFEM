@@ -19,6 +19,7 @@
 #include "TimeDomain.h"
 #include "Property.h"
 #include "Function.h"
+#include "Vec3.h"
 #include <map>
 
 class ASMbase;
@@ -39,9 +40,26 @@ struct Mode
   int    eigNo;  //!< Eigenvalue identifier
   double eigVal; //!< Eigenvalue associated with this mode
   Vector eigVec; //!< Eigenvector associated with this mode
-  // \brief Default constructor setting \a eigNo and \a eigVal to zero.
-  Mode() { eigNo = 0; eigVal = 0.0; }
+  // \brief Default constructor.
+  Mode() : eigNo(0), eigVal(0.0) {}
 };
+
+
+/*!
+  \brief Struct defining a result sampling point.
+*/
+
+struct ResultPoint
+{
+  unsigned char npar;     //!< Number of parameters
+  size_t        patch;    //!< Patch index [0,nPatch>
+  double        param[3]; //!< Parameters of the point (u,v,w)
+  Vec3          X;        //!< Spatial coordinates of the point
+  // \brief Default constructor.
+  ResultPoint() : npar(0), patch(0) { param[0] = param[1] = param[2] = 0.0; }
+};
+
+typedef std::vector<ResultPoint> ResPointVec; //!< Result point container
 
 
 /*!
@@ -136,10 +154,9 @@ public:
   bool assembleSystem(const TimeDomain& time, const Vectors& pSol = Vectors(),
 		      bool newLHSmatrix = true);
 
-  //! \brief Finalize system assembly.
-  // TODO: This HAS to be called from subclasses if assembleSystem
-  //       is overridden. This need to be fixed, probably through
-  //       a wrapper function
+  //! \brief Finalizes system assembly.
+  //TODO: This HAS to be called from subclasses if assembleSystem is overridden.
+  //      This need to be fixed, probably through a wrapper function.
   bool finalizeAssembly(bool newLHSmatrix);
 
   //! \brief Administers assembly of the linear equation system.
@@ -262,9 +279,10 @@ public:
   //! \param[in] nViz Number of visualization points over each knot-span
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter
+  //! \param[in] time Load/time step parameter
   //! \param[in] psolOnly If \e true, skip secondary solution field evaluation
   virtual bool writeGlvS(const Vector& psol, const int* nViz, int iStep,
-			 int& nBlock, bool psolOnly = false);
+			 int& nBlock, double time = 0.0, bool psolOnly = false);
 
   //! \brief Writes a mode shape and associated eigenvalue to the VTF-file.
   //! \details The eigenvalue is used as a label on the step state info
@@ -299,6 +317,13 @@ public:
   //! \param[in] psol Primary solution vector to derive other quantities from
   //! \param os Output stream to write the solution data to
   bool dumpSolution(const Vector& psol, std::ostream& os) const;
+  //! \brief Dumps solution results at specified points in ASCII format.
+  //! \param[in] psol Primary solution vector to derive other quantities from
+  //! \param[in] time Load/time step parameter
+  //! \param os Output stream to write the solution data to
+  //! \param[in] outputPrecision Number of digits after the decimal point
+  bool dumpResults(const Vector& psol, double time, std::ostream& os,
+		   std::streamsize outputPrecision = 3) const;
   //! \brief Dumps the primary solution in ASCII format for inspection.
   //! \param[in] psol Primary solution vector
   //! \param os Output stream to write the solution data to
@@ -376,6 +401,7 @@ protected:
   Integrand*  myProblem; //!< Problem-specific data and methods
   AnaSol*     mySol;     //!< Analytical/Exact solution
   VTF*        myVtf;     //!< VTF-file for result visualization
+  ResPointVec myPoints;  //!< User-defined result sampling points
 
   // Parallel computing attributes
   int              nGlPatches; //!< Number of global patches

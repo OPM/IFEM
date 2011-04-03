@@ -31,10 +31,8 @@
 
 
 ASMs2D::ASMs2D (const char* fileName, unsigned char n_s, unsigned char n_f)
-  : ASMstruct(2,n_s,n_f)
+  : ASMstruct(2,n_s,n_f), surf(0)
 {
-  surf = 0;
-
   std::cout <<"\nReading patch file "<< fileName << std::endl;
   std::ifstream is(fileName);
   if (!is.good())
@@ -47,10 +45,8 @@ ASMs2D::ASMs2D (const char* fileName, unsigned char n_s, unsigned char n_f)
 
 
 ASMs2D::ASMs2D (std::istream& is, unsigned char n_s, unsigned char n_f)
-  : ASMstruct(2,n_s,n_f)
+  : ASMstruct(2,n_s,n_f), surf(0)
 {
-  surf = 0;
-
   this->read(is);
 
   geo = surf;
@@ -58,9 +54,8 @@ ASMs2D::ASMs2D (std::istream& is, unsigned char n_s, unsigned char n_f)
 
 
 ASMs2D::ASMs2D (unsigned char n_s, unsigned char n_f)
-  : ASMstruct(2,n_s,n_f)
+  : ASMstruct(2,n_s,n_f), surf(0)
 {
-  surf = 0;
 }
 
 
@@ -659,7 +654,7 @@ Vec3 ASMs2D::getCoord (size_t inod) const
   if (ip < 0) return X;
 
   RealArray::const_iterator cit = surf->coefs_begin() + ip;
-  for (size_t i = 0; i < nsd; i++, cit++)
+  for (unsigned char i = 0; i < nsd; i++, cit++)
     X[i] = *cit;
 
   return X;
@@ -753,7 +748,7 @@ void ASMs2D::extractBasis (const Go::BasisDerivsSf2& spline,
 
 
 #if SP_DEBUG > 4
-std::ostream& operator<<(std::ostream& os, const Go::BasisDerivsSf& bder)
+std::ostream& operator<< (std::ostream& os, const Go::BasisDerivsSf& bder)
 {
   os <<" : (u,v) = "<< bder.param[0] <<" "<< bder.param[1]
      <<"  left_idx = "<< bder.left_idx[0] <<" "<< bder.left_idx[1] << std::endl;
@@ -876,8 +871,8 @@ bool ASMs2D::integrate (Integrand& integrand,
 	double u0 = 0.5*(gpar[0](1,i1-p1+1) + gpar[0](nGauss,i1-p1+1));
 	double v0 = 0.5*(gpar[1](1,i2-p2+1) + gpar[1](nGauss,i2-p2+1));
 	surf->point(X0,u0,v0);
-	X.x = X0[0];
-	X.y = X0[1];
+	for (unsigned char i = 0; i < nsd; i++)
+	  X[i] = X0[i];
       }
 
       // Initialize element quantities
@@ -1081,6 +1076,23 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 
   return true;
 }
+
+
+bool ASMs2D::evalPoint (const double* xi, double* param, Vec3& X) const
+{
+  if (!surf) return false;
+
+  param[0] = (1.0-xi[0])*surf->startparam_u() + xi[0]*surf->endparam_u();
+  param[1] = (1.0-xi[1])*surf->startparam_v() + xi[1]*surf->endparam_v();
+
+  Go::Point X0;
+  surf->point(X0,param[0],param[1]);
+  for (unsigned char i = 0; i < nsd; i++)
+    X[i] = X0[i];
+
+  return true;
+}
+
 
 
 bool ASMs2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const

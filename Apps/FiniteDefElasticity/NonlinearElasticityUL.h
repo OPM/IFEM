@@ -47,7 +47,8 @@ public:
   //! \param[in] prm Nonlinear solution algorithm parameters
   virtual void initIntegration(const TimeDomain& prm);
   //! \brief Initializes the integrand for a result point loop.
-  virtual void initResultPoints();
+  //! \param[in] lambda Load parameter
+  virtual void initResultPoints(double lambda);
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
@@ -94,6 +95,7 @@ protected:
 
 private:
   char loadOp; //!< Load option
+  double plam; //!< Load parameter of the previous result evaluation
 
   friend class ElasticityNormUL;
 };

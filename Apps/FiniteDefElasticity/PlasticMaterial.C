@@ -104,12 +104,14 @@ void PlasticMaterial::initIntegration (const TimeDomain& prm)
 
   if (prm.it > 0 || prm.first) return;
 
+  int nUpdated = 0;
   for (size_t i = 0; i < itgPoints.size(); i++)
-    itgPoints[i]->updateHistoryVars();
+    if (itgPoints[i]->updateHistoryVars())
+      nUpdated++;
 
 #if INT_DEBUG > 0
   std::cout <<"PlasticMaterial::initIntegration: History updated "
-	    << itgPoints.size() << std::endl;
+	    << nUpdated << std::endl;
 #endif
 }
 
@@ -123,12 +125,14 @@ void PlasticMaterial::initResultPoints ()
   iP2 = 0;
   iAmIntegrating = false;
 
+  int nUpdated = 0;
   for (size_t i = 0; i < resPoints.size(); i++)
-    resPoints[i]->updateHistoryVars();
+    if (resPoints[i]->updateHistoryVars())
+      nUpdated++;
 
 #if INT_DEBUG > 0
   std::cout <<"PlasticMaterial::initResultPoints: History updated "
-	    << resPoints.size() << std::endl;
+	    << nUpdated << std::endl;
 #endif
 }
 
@@ -170,7 +174,7 @@ bool PlasticMaterial::evaluate (Matrix& C, SymmTensor& sigma, double&,
 
 PlasticMaterial::PlasticPoint::PlasticPoint (const PlasticMaterial* prm,
 					     unsigned short int n)
-  : pMAT(prm->pMAT), Fp(n)
+  : pMAT(prm->pMAT), updated(false), Fp(n)
 {
   // Initialize the history variables
   memset(HVc,0,sizeof(HVc));
@@ -179,10 +183,15 @@ PlasticMaterial::PlasticPoint::PlasticPoint (const PlasticMaterial* prm,
 }
 
 
-void PlasticMaterial::PlasticPoint::updateHistoryVars ()
+bool PlasticMaterial::PlasticPoint::updateHistoryVars ()
 {
+  if (!updated) return false;
+
   // Update history variables with values of the new converged solution
   memcpy(HVp,HVc,sizeof(HVc));
+  updated = false;
+
+  return true;
 }
 
 
@@ -209,6 +218,12 @@ bool PlasticMaterial::PlasticPoint::evaluate (Matrix& C,
   int ierr = -99;
 #ifdef USE_FTNMAT
   // Invoke the FORTRAN routine for plasticity material models
+#if INT_DEBUG > 0
+  std::cout <<"PlasticMaterial::Fp =\n"<< Fp;
+  std::cout <<"PlasticMaterial::HV =";
+  for (int i = 0; i < 10; i++) std::cout <<" "<< HVc[i];
+  std::cout << std::endl;
+#endif
   if (ndim == 2)
     plas2d_(INT_DEBUG,6,prm.it,prm.first,4,&pMAT.front(),J,F.dim(),
 	    F.ptr(),Fp.ptr(),HVc,HVc[6],HVc+7,sigma.ptr(),C.ptr(),ierr);
@@ -223,5 +238,6 @@ bool PlasticMaterial::PlasticPoint::evaluate (Matrix& C,
   std::cerr <<" *** PlasticMaterial::evaluate: Not included."<< std::endl;
 #endif
 
+  const_cast<PlasticPoint*>(this)->updated = true;
   return ierr == 0;
 }

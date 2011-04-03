@@ -52,7 +52,7 @@ class PlasticMaterial : public Material
     PlasticPoint(const PlasticMaterial* prm, unsigned short int n);
 
     //! \brief Updates the internal history variables after convergence.
-    void updateHistoryVars();
+    bool updateHistoryVars();
 
     //! \brief Evaluates the constitutive relation at this point.
     //! \param[out] C Constitutive matrix at current point
@@ -67,6 +67,7 @@ class PlasticMaterial : public Material
 
     double HVc[10]; //!< History variables, current configuration
     double HVp[10]; //!< History variables, previous configuration
+    bool   updated; //!< Flag indicating whether history variables are updated
 
   public:
     Tensor Fp; //!< Deformation gradient, previous configuration
