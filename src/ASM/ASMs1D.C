@@ -603,18 +603,35 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
 }
 
 
-bool ASMs1D::evalPoint (const double* xi, double* param, Vec3& X) const
+int ASMs1D::evalPoint (const double* xi, double* param, Vec3& X) const
 {
-  if (!curv) return false;
+  if (!curv) return -1;
 
   param[0] = (1.0-xi[0])*curv->startparam() + xi[0]*curv->endparam();
 
   Go::Point X0;
   curv->point(X0,param[0]);
-  for (unsigned char i = 0; i < nsd; i++)
-    X[i] = X0[i];
+  for (unsigned char d = 0; d < nsd; d++)
+    X[d] = X0[d];
 
-  return true;
+  // Check if this point matches any of the control points (nodes)
+  Vec3 Xnod;
+  size_t inod = 1;
+  RealArray::const_iterator cit = curv->coefs_begin();
+  for (int i = 0; cit != curv->coefs_end(); cit++, i++)
+  {
+    if (i < nsd) Xnod[i] = *cit;
+    if (i+1 == curv->dimension())
+      if (X.equal(Xnod,0.001))
+	return inod;
+      else
+      {
+	inod++;
+	i = -1;
+      }
+  }
+
+  return 0;
 }
 
 

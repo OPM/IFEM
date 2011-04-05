@@ -1078,19 +1078,36 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 }
 
 
-bool ASMs2D::evalPoint (const double* xi, double* param, Vec3& X) const
+int ASMs2D::evalPoint (const double* xi, double* param, Vec3& X) const
 {
-  if (!surf) return false;
+  if (!surf) return -2;
 
   param[0] = (1.0-xi[0])*surf->startparam_u() + xi[0]*surf->endparam_u();
   param[1] = (1.0-xi[1])*surf->startparam_v() + xi[1]*surf->endparam_v();
 
   Go::Point X0;
   surf->point(X0,param[0],param[1]);
-  for (unsigned char i = 0; i < nsd; i++)
-    X[i] = X0[i];
+  for (unsigned char d = 0; d < nsd; d++)
+    X[d] = X0[d];
 
-  return true;
+  // Check if this point matches any of the control points (nodes)
+  Vec3 Xnod;
+  size_t inod = 1;
+  RealArray::const_iterator cit = surf->coefs_begin();
+  for (int i = 0; cit != surf->coefs_end(); cit++, i++)
+  {
+    if (i < nsd) Xnod[i] = *cit;
+    if (i+1 == surf->dimension())
+      if (X.equal(Xnod,0.001))
+	return inod;
+      else
+      {
+	inod++;
+	i = -1;
+      }
+  }
+
+  return 0;
 }
 
 

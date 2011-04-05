@@ -1,4 +1,4 @@
-// $Id: LinSolParams.C,v 1.6 2011-02-08 12:45:08 rho Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file LinSolParams.C
@@ -25,7 +25,7 @@ void LinSolParams::setDefault ()
   // Use GMRES with ILU preconditioner as default
   method  = KSPGMRES;
   prec    = PCILU;
-  package = MAT_SOLVER_PETSC; 
+  package = MAT_SOLVER_PETSC;
   levels  = 0;
   overlap = 0;
   nullspc = NONE;
@@ -126,8 +126,7 @@ bool LinSolParams::read (std::istream& is, int nparam)
 	nullspc = NONE;
     }
 
-    else
-    {
+    else {
       std::cerr <<" *** LinSolParams::read: Unknown keyword: "
 		<< cline << std::endl;
       return false;

@@ -1,4 +1,4 @@
-// $Id: SAM.h,v 1.25 2011-02-08 12:45:46 rho Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file SAM.h
@@ -101,7 +101,8 @@ public:
   //! \param sysRHS The system right-hand-side load vector to be initialized
   //! \param reactionForces Pointer to vector of nodal reaction forces
   //! \return \e false if no free DOFs in the system, otherwise \e true
-  virtual bool initForAssembly(SystemVector& sysRHS, Vector* reactionForces = 0) const;
+  virtual bool initForAssembly(SystemVector& sysRHS,
+			       Vector* reactionForces = 0) const;
 
   //! \brief Adds an element stiffness matrix into the system stiffness matrix.
   //! \param sysK    The left-hand-side system stiffness matrix
@@ -204,6 +205,12 @@ public:
   //! \param[in] u The (incremental) nodal displacement vector
   //! \param[in] rf Compressed reaction force vector
   virtual real normReact(const Vector& u, const Vector& rf) const;
+  //! \brief Returns a vector of reaction forces for a given node.
+  //! \param[in] inod Identifier for the node to get the reaction forces for
+  //! \param[in] rf Compressed reaction force vector for the entire model
+  //! \param[out] nrf Nodal reaction forces
+  //! \return \e true of the specified node has reaction forces
+  bool getNodalReactions(int inod, const Vector& rf, Vector& nrf) const;
 
 protected:
   //! \brief Initializes the DOF-to-equation connectivity array \a MEQN.

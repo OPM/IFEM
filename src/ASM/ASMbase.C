@@ -501,6 +501,27 @@ bool ASMbase::tesselate (ElementBlock&, const int*) const
 }
 
 
+bool ASMbase::getSolution (Matrix& sField, const Vector& locSol,
+			   const IntVec& nodes) const
+{
+  sField.resize(nf,nodes.size());
+  for (size_t i = 0; i < nodes.size(); i++)
+    if (nodes[i] < 1 || (size_t)nodes[i] > MLGN.size())
+    {
+      std::cerr <<" *** ASMbase::getSolution: Node #"<< nodes[i]
+		<<" is out of range [1,"<< MLGN.size() <<"]."<< std::endl;
+      return false;
+    }
+    else
+    {
+      for (unsigned char j = 0; j < nf; j++)
+	sField(j+1,i+1) = locSol[nf*(nodes[i]-1)+j];
+    }
+
+  return true;
+}
+
+
 bool ASMbase::evalSolution (Matrix&, const Vector&, const int*) const
 {
   std::cerr <<" *** ASMBase::evalSolution: Must be implemented in sub-class."

@@ -19,28 +19,17 @@
 #include "slepceps.h"
 #endif
 
-LinAlgInit* LinAlgInit::instance;
-int LinAlgInit::refs;
+
+LinAlgInit* LinAlgInit::instance = 0;
+int         LinAlgInit::refs = 0;
 
 
-LinAlgInit& LinAlgInit::Init(int argc, char** argv)
+LinAlgInit& LinAlgInit::Init (int argc, char** argv)
 {
   if (!instance)
     instance = new LinAlgInit(argc,argv);
 
   return *instance;
-}
-
-void LinAlgInit::increfs()
-{
-  refs++;
-}
-
-void LinAlgInit::decrefs()
-{
-  refs--;
-  if (!refs)
-    delete instance;
 }
 
 

@@ -142,9 +142,9 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
 	std::cout <<"\n\tPoint "<< i+1 <<": P"<< myPoints[i].patch <<" xi =";
       for (int j = 0; j < 3 && (cline = strtok(NULL," ")); j++)
       {
-        myPoints[i].param[j] = atof(cline);
+        myPoints[i].par[j] = atof(cline);
 	if (myPid == 0)
-	  std::cout <<' '<< myPoints[i].param[j];
+	  std::cout <<' '<< myPoints[i].par[j];
       }
     }
     if (myPid == 0 && nres > 0)
@@ -306,11 +306,11 @@ bool SIMbase::preprocess (const std::vector<int>& ignoredPatches, bool fixDup)
     int pid = this->getLocalPatchIndex(p->patch);
     if (pid < 1 || myModel[pid-1]->empty())
       p = myPoints.erase(p);
+    else if ((p->inod = myModel[pid-1]->evalPoint(p->par,p->par,p->X)) < 0)
+      p = myPoints.erase(p);
     else
     {
       p->npar = myModel[pid-1]->getNoParamDim();
-      myModel[pid-1]->evalPoint(p->param,p->param,p->X);
-
       std::cout <<"\nResult point #"<< 1+(int)(p-myPoints.begin())
 		<<": patch #"<< p->patch;
       switch (p->npar) {
@@ -318,11 +318,12 @@ bool SIMbase::preprocess (const std::vector<int>& ignoredPatches, bool fixDup)
       case 2: std::cout <<" (u,v)=("; break;
       case 3: std::cout <<" (u,v,w)=("; break;
       }
-      std::cout << p->param[0];
+      std::cout << p->par[0];
       for (unsigned char c = 1; c < p->npar; c++)
-	std::cout <<','<< p->param[c];
+	std::cout <<','<< p->par[c];
       if (p->npar > 1) std::cout <<')';
-	std::cout <<", X = "<< p->X;
+      if (p->inod > 0) std::cout <<", node #"<< p->inod;
+      std::cout <<", X = "<< p->X;
       p++;
     }
   }
@@ -1355,35 +1356,47 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
 
   size_t i, j, k;
   Matrix sol1, sol2;
+  Vector reactionFS;
+  const Vector* reactionForces = myEqSys->getReactions();
 
   for (i = 0; i < myModel.size(); i++)
   {
     if (myModel[i]->empty()) continue; // skip empty patches
 
     ResPointVec::const_iterator p;
-    std::vector<size_t> points;
+    std::vector<int> points;
     RealArray params[3];
 
     // Find all evaluation points within this patch, if any
     for (j = 0, p = myPoints.begin(); p != myPoints.end(); j++, p++)
       if (this->getLocalPatchIndex(p->patch) == (int)(i+1))
-      {
-	points.push_back(j+1);
-	for (k = 0; k < myModel[i]->getNoParamDim(); k++)
-	  params[k].push_back(p->param[k]);
-      }
+	if (discretization == Spline)
+	{
+	  points.push_back(p->inod > 0 ? p->inod : -(j+1));
+	  for (k = 0; k < myModel[i]->getNoParamDim(); k++)
+	    params[k].push_back(p->par[k]);
+	}
+	else if (p->inod > 0)
+	  points.push_back(p->inod);
 
     if (points.empty()) continue; // no points in this patch
 
-    // Evaluate the primary solution variables
     myModel[i]->extractNodeVec(psol,myProblem->getSolution());
-    if (!myModel[i]->evalSolution(sol1,myProblem->getSolution(),params,false))
-      return false;
+    if (discretization == Spline)
+    {
+      // Evaluate the primary solution variables
+      if (!myModel[i]->evalSolution(sol1,myProblem->getSolution(),params,false))
+	return false;
 
-    // Evaluate the secondary solution variables
-    LocalSystem::patch = i;
-    if (!myModel[i]->evalSolution(sol2,*myProblem,params,false))
-      return false;
+      // Evaluate the secondary solution variables
+      LocalSystem::patch = i;
+      if (!myModel[i]->evalSolution(sol2,*myProblem,params,false))
+	return false;
+    }
+    else
+      // Extract nodal primary solution variables
+      if (!myModel[i]->getSolution(sol1,myProblem->getSolution(),points))
+	return false;
 
     // Formatted output, use scientific notation with fixed field width
     std::streamsize flWidth = 8 + outputPrecision;
@@ -1391,13 +1404,32 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
     std::ios::fmtflags oldF = os.flags(std::ios::scientific | std::ios::right);
     for (j = 0; j < points.size(); j++)
     {
-      os <<"  Result point #"<< points[j];
-      os <<":  sol1 =";
+      if (points[j] > 0)
+      {
+	points[j] = myModel[i]->getNodeID(points[j]);
+	os <<"  Node #"<< points[j] <<":\tsol1 =";
+      }
+      else
+	os <<"  Point #"<< -points[j] <<":\tsol1 =";
       for (k = 1; k <= sol1.rows(); k++)
 	os << std::setw(flWidth) << sol1(k,j+1);
-      os <<"   sol2 =";
-      for (k = 1; k <= sol2.rows(); k++)
-	os << std::setw(flWidth) << sol2(k,j+1);
+
+      if (discretization == Spline)
+      {
+	os <<"   sol2 =";
+	for (k = 1; k <= sol2.rows(); k++)
+	  os << std::setw(flWidth) << sol2(k,j+1);
+      }
+
+      if (reactionForces && points[j] > 0)
+	// Print nodal reaction forces for nodes with prescribed DOFs
+	if (mySam->getNodalReactions(points[j],*reactionForces,reactionFS))
+	{
+	  os <<"\n\t\treac =";
+	  for (k = 0; k < reactionFS.size(); k++)
+	    os << std::setw(flWidth) << reactionFS[k];
+	}
+
       os << std::endl;
     }
     os.precision(oldPrec);

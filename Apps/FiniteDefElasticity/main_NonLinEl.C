@@ -41,6 +41,7 @@
   \arg -nv \a nv : Number of visualization points per knot-span in v-direction
   \arg -nw \a nw : Number of visualization points per knot-span in w-direction
   \arg -skip2nd : Skip VTF-output of secondary solution fields
+  \arg -noEnergy : Skip integration of energy norms
   \arg -saveInc \a dtSave : Time increment between each result save to VTF
   \arg -dumpInc \a dtDump [raw] : Time increment between each solution dump
   \arg -ignore \a p1, \a p2, ... : Ignore these patches in the analysis
@@ -65,12 +66,14 @@ int main (int argc, char** argv)
   int form = SIM::TOTAL_LAGRANGE;
   int nGauss = 4;
   int format = -1;
+  int outPrec = 3;
   int n[3] = { 2, 2, 2 };
   std::vector<int> ignoredPatches;
   double dtSave = 0.0;
   double dtDump = 0.0;
   bool dumpWithID = true;
   bool skip2nd = false;
+  bool energy = true;
   bool checkRHS = false;
   bool fixDup = false;
   bool twoD = false;
@@ -108,8 +111,12 @@ int main (int argc, char** argv)
       n[2] = atoi(argv[++i]);
     else if (!strcmp(argv[i],"-skip2nd"))
       skip2nd = true;
+    else if (!strcmp(argv[i],"-noEnergy"))
+      energy = false;
     else if (!strcmp(argv[i],"-saveInc") && i < argc-1)
       dtSave = atof(argv[++i]);
+    else if (!strcmp(argv[i],"-outPrec") && i < argc-1)
+      outPrec = atoi(argv[++i]);
     else if (!strcmp(argv[i],"-dumpInc") && i < argc-1)
     {
       dtDump = atof(argv[++i]);
@@ -291,11 +298,11 @@ int main (int argc, char** argv)
   while (simulator.advanceStep(params))
   {
     // Solve the nonlinear FE problem at this load step
-    if (!simulator.solveStep(params,SIM::STATIC))
+    if (!simulator.solveStep(params,SIM::STATIC,"displacement",energy))
       return 5;
 
     // Print solution components at the user-defined points
-    simulator.dumpResults(params.time.t,std::cout);
+    simulator.dumpResults(params.time.t,std::cout,outPrec);
 
     if (params.time.t + epsT*params.time.dt > nextDump)
     {

@@ -126,7 +126,9 @@ public:
   //! \param[in] xi Dimensionless parameter in range [0.0,1.0] of the point
   //! \param[out] param The parameter of the point in the knot-span domain
   //! \param[out] X The Cartesian coordinates of the point
-  virtual bool evalPoint(const double* xi, double* param, Vec3& X) const;
+  //! \return Local node number within the patch that matches the point, if any
+  //! \return 0 if no node (control point) matches this point
+  virtual int evalPoint(const double* xi, double* param, Vec3& X) const;
 
   //! \brief Creates a line element model of this patch for visualization.
   //! \param[out] grid The generated line grid

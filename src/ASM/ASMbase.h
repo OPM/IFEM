@@ -229,13 +229,21 @@ public:
   //! \param[in] xi Dimensionless parameters in range [0.0,1.0] of the point
   //! \param[out] param The parameters of the point in the knot-span domain
   //! \param[out] X The Cartesian coordinates of the point
-  virtual bool evalPoint(const double* xi, double* param, Vec3& X) const = 0;
+  //! \return Local node number within the patch that matches the point
+  virtual int evalPoint(const double* xi, double* param, Vec3& X) const = 0;
 
   //! \brief Creates a standard FE model of this patch for visualization.
   //! \param[out] grid The generated finite element grid
   //! \param[in] npe Number of visualization nodes over each knot span
   //! \note The number of element nodes must be set in \a grid on input.
   virtual bool tesselate(ElementBlock& grid, const int* npe) const;
+
+  //! \brief Extract the primary solution field at the specified nodes.
+  //! \param[out] sField Solution field
+  //! \param[in] locSol Solution vector local to current patch
+  //! \param[in] nodes 1-based local node numbers to extract solution for
+  bool getSolution(Matrix& sField, const Vector& locSol,
+		   const IntVec& nodes) const;
 
   //! \brief Evaluates the primary solution field at all visualization points.
   //! \param[out] sField Solution field

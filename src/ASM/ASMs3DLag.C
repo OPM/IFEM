@@ -544,6 +544,29 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
 }
 
 
+int ASMs3DLag::evalPoint (const double* xi, double* param, Vec3& X) const
+{
+  if (!svol) return -3;
+
+  // Evaluate the parametric values of the point and nodes
+  RealArray u[3];
+  for (int d = 0; d < 3; d++)
+  {
+    param[d] = (1.0-xi[d])*svol->startparam(d) + xi[d]*svol->endparam(d);
+    if (!this->getGridParameters(u[d],d,svol->order(d)-1)) return -3;
+  }
+
+  // Search for the closest node
+  size_t i = utl::find_closest(u[0],param[0]);
+  size_t j = utl::find_closest(u[1],param[1]);
+  size_t k = utl::find_closest(u[2],param[2]);
+  size_t n = u[0].size()*(u[1].size()*k + j) + i;
+  X = coord[n];
+
+  return 1+n;
+}
+
+
 bool ASMs3DLag::tesselate (ElementBlock& grid, const int* npe) const
 {
   const int p1 = svol->order(0);

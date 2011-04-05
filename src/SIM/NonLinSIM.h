@@ -74,7 +74,11 @@ public:
   //! \brief Solves the nonlinear equations by Newton-Raphson iterations.
   //! \param param Solution algorithm parameters
   //! \param[in] mode Solution mode to use for this step
-  bool solveStep(SolvePrm& param, SIM::SolutionMode mode = SIM::STATIC);
+  //! \param[in] compName Solution name to be used in the norm output
+  //! \param[in] energyNorm If \e true, integrate energy norm of the solution
+  bool solveStep(SolvePrm& param, SIM::SolutionMode mode = SIM::STATIC,
+		 const char* compName = "displacement",
+		 bool energyNorm = false);
 
   //! \brief Enum describing the norm used for convergence checks.
   enum CNORM { L2, ENERGY };
@@ -86,8 +90,9 @@ public:
   //! \brief Computes and prints some solution norm quantities.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param[in] compName Solution name to be used in the norm output
+  //! \param[in] energyNorm If \e true, integrate energy norm of the solution
   bool solutionNorms(const TimeDomain& time,
-		     const char* compName = "displacement");
+		     const char* compName, bool energyNorm);
 
   //! \brief Saves the converged results to VTF file of a given load/time step.
   //! \param[in] iStep Load/time step identifier
@@ -107,7 +112,8 @@ public:
   //! \brief Dumps solution variables at user-defined points.
   //! \param[in] time Current time/load parameter
   //! \param[in] os The output stream to write the solution to
-  bool dumpResults(double time, std::ostream& os) const;
+  //! \param[in] precision Number of digits after the decimal point
+  bool dumpResults(double time, std::ostream& os, int precision = 3) const;
 
   //! \brief Returns a const reference to current solution vector.
   const Vector& getSolution() const { return solution.front(); }

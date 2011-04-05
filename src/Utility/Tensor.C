@@ -71,7 +71,7 @@ Tensor& Tensor::operator= (const Tensor& T)
     else
       ndim = n;
     for (t_ind i = 1; i <= ndim; i++)
-      for (t_ind j = (this->symmetric() ? i : 1); j <= n; j++)
+      for (t_ind j = (this->symmetric() ? i : 1); j <= ndim; j++)
 	v[this->index(i,j)] = T(i,j);
   }
 

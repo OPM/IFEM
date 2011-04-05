@@ -1,4 +1,4 @@
-// $Id: SAM.C,v 1.27 2011-02-05 18:07:50 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file SAM.C
@@ -728,4 +728,22 @@ real SAM::normReact (const Vector& u, const Vector& rf) const
       retVal += 0.5*u[i]*rf(-msc[i]);
 
   return retVal;
+}
+
+
+bool SAM::getNodalReactions (int inod, const Vector& rf, Vector& nrf) const
+{
+  if (inod < 1 || inod > nnod) return false;
+
+  bool haveRF = false;
+  int ip = madof[inod-1]-1;
+  nrf.resize(madof[inod]-1-ip,true);
+  for (size_t i = 0; i < nrf.size(); i++, ip++)
+    if (msc[ip] < 0 && -msc[ip] <= (int)rf.size())
+    {
+      haveRF = true;
+      nrf[i] = rf(-msc[ip]);
+    }
+
+  return haveRF;
 }

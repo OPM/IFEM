@@ -281,6 +281,24 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
 }
 
 
+int ASMs1DLag::evalPoint (const double* xi, double* param, Vec3& X) const
+{
+  if (!curv) return -1;
+
+  param[0] = (1.0-xi[0])*curv->startparam() + xi[0]*curv->endparam();
+
+  // Evaluate the parametric values of the nodes
+  RealArray u;
+  if (!this->getGridParameters(u,curv->order()-1)) return -1;
+
+  // Search for the closest node
+  size_t n = utl::find_closest(u,param[0]);
+  X = coord[n];
+
+  return 1+n;
+}
+
+
 bool ASMs1DLag::tesselate (ElementBlock& grid, const int*) const
 {
   size_t i, l;

@@ -386,6 +386,28 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
 }
 
 
+int ASMs2DLag::evalPoint (const double* xi, double* param, Vec3& X) const
+{
+  if (!surf) return -2;
+
+  param[0] = (1.0-xi[0])*surf->startparam_u() + xi[0]*surf->endparam_u();
+  param[1] = (1.0-xi[1])*surf->startparam_v() + xi[1]*surf->endparam_v();
+
+  // Evaluate the parametric values of the nodes
+  RealArray u, v;
+  if (!this->getGridParameters(u,0,surf->order_u()-1)) return -2;
+  if (!this->getGridParameters(v,1,surf->order_v()-1)) return -2;
+
+  // Search for the closest node
+  size_t i = utl::find_closest(u,param[0]);
+  size_t j = utl::find_closest(v,param[1]);
+  size_t n = u.size()*j + i;
+  X = coord[n];
+
+  return 1+n;
+}
+
+
 bool ASMs2DLag::tesselate (ElementBlock& grid, const int* npe) const
 {
   const int p1 = surf->order_u();

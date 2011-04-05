@@ -51,12 +51,13 @@ struct Mode
 
 struct ResultPoint
 {
-  unsigned char npar;     //!< Number of parameters
-  size_t        patch;    //!< Patch index [0,nPatch>
-  double        param[3]; //!< Parameters of the point (u,v,w)
-  Vec3          X;        //!< Spatial coordinates of the point
+  unsigned char npar;   //!< Number of parameters
+  size_t        patch;  //!< Patch index [0,nPatch>
+  int           inod;   //!< Local node number of the closest node
+  double        par[3]; //!< Parameters of the point (u,v,w)
+  Vec3          X;      //!< Spatial coordinates of the point
   // \brief Default constructor.
-  ResultPoint() : npar(0), patch(0) { param[0] = param[1] = param[2] = 0.0; }
+  ResultPoint() : npar(0), patch(0), inod(0) { par[0] = par[1] = par[2] = 0.0; }
 };
 
 typedef std::vector<ResultPoint> ResPointVec; //!< Result point container
@@ -154,11 +155,6 @@ public:
   bool assembleSystem(const TimeDomain& time, const Vectors& pSol = Vectors(),
 		      bool newLHSmatrix = true);
 
-  //! \brief Finalizes system assembly.
-  //TODO: This HAS to be called from subclasses if assembleSystem is overridden.
-  //      This need to be fixed, probably through a wrapper function.
-  bool finalizeAssembly(bool newLHSmatrix);
-
   //! \brief Administers assembly of the linear equation system.
   //! \param[in] pSol Previous primary solution vectors in DOF-order
   //!
@@ -237,6 +233,7 @@ public:
   //! corresponding to the primary solution \a psol is projected onto the
   //! spline basis to obtain the control point values of the secondary solution.
   bool project(Vector& psol);
+
 
   // Post-processing methods
   // =======================
@@ -363,14 +360,17 @@ protected:
   //! \brief Initializes for integration of Neumann terms for a given property.
   virtual bool initNeumann(size_t) { return true; }
 
-  //! \brief Extract local solution vector(s) for a given patch.
+  //! \brief Reads a LinSolParams object from the given stream.
+  //! \details This method helps with encapsulating PETSc in libIFEM.
+  void readLinSolParams(std::istream& is, int npar);
+
+  //! \brief Finalizes the system assembly.
+  bool finalizeAssembly(bool newLHSmatrix);
+
+  //! \brief Extracts local solution vector(s) for the given patch.
   //! \param[in] patch Pointer to the patch to extract solution vectors for
   //! \param[in] sol Global primary solution vectors in DOF-order
   void extractPatchSolution(const ASMbase* patch, const Vectors& sol);
-
-  //! \brief Read a LinSolParams object from the given stream.
-  //! \details This method helps with encapsulating PETSc in libIFEM.
-  void readLinSolParams(std::istream& is, int npar);
 
 public:
   //! \brief Enum defining the available discretization methods.

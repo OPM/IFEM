@@ -125,7 +125,8 @@ bool NonLinSIM::advanceStep (SolvePrm& param)
 }
 
 
-bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode)
+bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode,
+			   const char* compName, bool energyNorm)
 {
   PROFILE1("NonLinSIM::solveStep");
 
@@ -160,7 +161,7 @@ bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode)
 	  return false;
 
 	model->setMode(SIM::RECOVERY);
-	if (!this->solutionNorms(param.time))
+	if (!this->solutionNorms(param.time,compName,energyNorm))
 	  return false;
 
 	param.time.first = false;
@@ -324,7 +325,8 @@ bool NonLinSIM::updateConfiguration (SolvePrm& param)
 }
 
 
-bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName)
+bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName,
+			       bool energyNorm)
 {
   if (msgLevel < 0 || solution.empty()) return true;
 
@@ -334,8 +336,9 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName)
   double dMax[nsd];
   double normL2 = model->solutionNorms(solution.front(),dMax,iMax);
 
-  if (!model->solutionNorms(time,solution,eNorm,gNorm))
-    gNorm.clear();
+  if (energyNorm)
+    if (!model->solutionNorms(time,solution,eNorm,gNorm))
+      gNorm.clear();
 
   if (myPid == 0)
   {
@@ -426,9 +429,9 @@ void NonLinSIM::dumpStep (int iStep, double time, std::ostream& os,
 }
 
 
-bool NonLinSIM::dumpResults (double time, std::ostream& os) const
+bool NonLinSIM::dumpResults (double time, std::ostream& os, int precision) const
 {
-  return model->dumpResults(solution.front(),time,os);
+  return model->dumpResults(solution.front(),time,os,precision);
 }
 
 

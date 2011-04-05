@@ -247,7 +247,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
 
 	  // Evaluate the integrand and accumulate element contributions
 	  fe.detJxW *= wg[i]*wg[j];
-	  if (!integrand.evalInt(elmInt,fe,time,X))
+	  if (!integrand.evalIntMx(elmInt,fe,time,X))
 	    return false;
 	}
 
@@ -358,7 +358,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 
 	// Evaluate the integrand and accumulate element contributions
 	fe.detJxW *= wg[i];
-	if (!integrand.evalBou(elmInt,fe,time,X,normal))
+	if (!integrand.evalBouMx(elmInt,fe,time,X,normal))
 	  return false;
       }
 

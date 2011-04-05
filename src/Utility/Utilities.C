@@ -189,3 +189,17 @@ void utl::Pascal (int p, real x, real y, real z, std::vector<real>& phi)
 	  phi.push_back(a);
 	}
 }
+
+
+size_t utl::find_closest (const std::vector<real>& a, real v)
+{
+  // The lower_bound function uses binary search to find the index of the value.
+  // Thus, this works only when the vector a is sorted in increasing order.
+  size_t i = std::lower_bound(a.begin(),a.end(),v) - a.begin();
+  if (i > 0 && i < a.size())
+    return a[i]-v < v-a[i-1] ? i : i-1;
+  else if (i == 0)
+    return 0;
+  else
+    return i-1;
+}

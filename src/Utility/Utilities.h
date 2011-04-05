@@ -89,6 +89,14 @@ namespace utl
   void Pascal(int p, real x, real y, std::vector<real>& phi);
   //! \brief Evaluates the monomials of Pascal's triangle in 3D for order \a p.
   void Pascal(int p, real x, real y, real z, std::vector<real>& phi);
+
+  //! \brief Searches for a real value in an ordered array of reals.
+  //! \param[in] a The array of real values
+  //! \param[in] v The value to search for
+  //! \return 0-based index of the closest array value.
+  //! \note It is assumed that the array \a a is sorted in encreasing order on
+  //! input. If this is not the case the method will deliver incorrect result.
+  size_t find_closest(const std::vector<real>& a, real v);
 }
 
 #endif

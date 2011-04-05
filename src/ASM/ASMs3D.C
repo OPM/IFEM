@@ -1593,20 +1593,37 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 }
 
 
-bool ASMs3D::evalPoint (const double* xi, double* param, Vec3& X) const
+int ASMs3D::evalPoint (const double* xi, double* param, Vec3& X) const
 {
-  if (!svol) return false;
+  if (!svol) return -3;
 
-  for (int i = 0; i < 3; i++)
+  int i;
+  for (i = 0; i < 3; i++)
     param[i] = (1.0-xi[i])*svol->startparam(i) + xi[i]*svol->endparam(i);
 
   Go::Point X0;
   svol->point(X0,param[0],param[1],param[2]);
-  X.x = X0[0];
-  X.y = X0[1];
-  X.z = X0[2];
+  for (i = 0; i < 3 && i < svol->dimension(); i++)
+    X[i] = X0[i];
 
-  return true;
+  // Check if this point matches any of the control points (nodes)
+  Vec3 Xnod;
+  size_t inod = 1;
+  RealArray::const_iterator cit = svol->coefs_begin();
+  for (i = 0; cit != svol->coefs_end(); cit++, i++)
+  {
+    if (i < 3) Xnod[i] = *cit;
+    if (i+1 == svol->dimension())
+      if (X.equal(Xnod,0.001))
+	return inod;
+      else
+      {
+	inod++;
+	i = -1;
+      }
+  }
+
+  return 0;
 }
 
 
