@@ -30,17 +30,18 @@
 #include <fstream>
 
 
-ASMs2D::ASMs2D (const char* fileName, unsigned char n_s, unsigned char n_f)
+ASMs2D::ASMs2D (const char* fName, unsigned char n_s, unsigned char n_f)
   : ASMstruct(2,n_s,n_f), surf(0)
 {
-  std::cout <<"\nReading patch file "<< fileName << std::endl;
-  std::ifstream is(fileName);
-  if (!is.good())
-    std::cerr <<" *** ASMs2D: Failure opening patch file"<< std::endl;
-  else
-    this->read(is);
-
-  geo = surf;
+  if (fName)
+  {
+    std::cout <<"\nReading patch file "<< fName << std::endl;
+    std::ifstream is(fName);
+    if (!is.good())
+      std::cerr <<" *** ASMs2D: Failure opening patch file"<< std::endl;
+    else
+      this->read(is);
+  }
 }
 
 
@@ -48,14 +49,6 @@ ASMs2D::ASMs2D (std::istream& is, unsigned char n_s, unsigned char n_f)
   : ASMstruct(2,n_s,n_f), surf(0)
 {
   this->read(is);
-
-  geo = surf;
-}
-
-
-ASMs2D::ASMs2D (unsigned char n_s, unsigned char n_f)
-  : ASMstruct(2,n_s,n_f), surf(0)
-{
 }
 
 
@@ -87,6 +80,8 @@ bool ASMs2D::read (std::istream& is)
   {
     std::cerr <<" *** ASMs2D::read: Invalid spline surface patch, dim="
 	      << surf->dimension() << std::endl;
+    delete surf;
+    surf = 0;
     return false;
   }
   else if (surf->dimension() < nsd)
@@ -98,6 +93,7 @@ bool ASMs2D::read (std::istream& is)
     nsd = surf->dimension();
   }
 
+  geo = surf;
   return true;
 }
 
@@ -352,25 +348,32 @@ bool ASMs2D::assignNodeNumbers (BlockNodes& nodes, int basis)
 }
 
 
-bool ASMs2D::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool rev)
+bool ASMs2D::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool revers)
+{
+  return this->connectBasis(edge,neighbor,nedge,revers);
+}
+
+
+bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
+			   int basis, int slave, int master)
 {
   // Set up the slave node numbers for this surface patch
 
   int n1, n2;
-  if (!this->getSize(n1,n2)) return false;
-  int node = 1, i1 = 0;
+  if (!this->getSize(n1,n2,basis)) return false;
+  int node = slave+1, i1 = 0;
 
   switch (edge)
     {
     case 2: // Positive I-direction
-      node = n1;
+      node += n1-1;
     case 1: // Negative I-direction
       i1 = n1;
       n1 = n2;
       break;
 
     case 4: // Positive J-direction
-      node = n1*(n2-1)+1;
+      node += n1*(n2-1);
     case 3: // Negative J-direction
       i1 = 1;
       break;
@@ -388,20 +391,20 @@ bool ASMs2D::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool rev)
 
   // Set up the master node numbers for the neighboring surface patch
 
-  if (!neighbor.getSize(n1,n2)) return false;
-  node = 1; i1 = 0;
+  if (!neighbor.getSize(n1,n2,basis)) return false;
+  node = master+1; i1 = 0;
 
   switch (nedge)
     {
     case 2: // Positive I-direction
-      node = n1;
+      node += n1-1;
     case 1: // Negative I-direction
       i1 = n1;
       n1 = n2;
       break;
 
     case 4: // Positive J-direction
-      node = n1*(n2-1)+1;
+      node += n1*(n2-1);
     case 3: // Negative J-direction
       i1 = 1;
       break;
@@ -422,7 +425,7 @@ bool ASMs2D::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool rev)
   const double xtol = 1.0e-4;
   for (i = 0; i < n1; i++, node += i1)
   {
-    int k = rev ? n1-i-1 : i;
+    int k = revers ? n1-i-1 : i;
     if (!neighbor.getCoord(node).equal(this->getCoord(slaveNodes[k]),xtol))
     {
       std::cerr <<" *** ASMs2D::connectPatch: Non-matching nodes "
@@ -440,10 +443,11 @@ bool ASMs2D::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool rev)
 }
 
 
-void ASMs2D::closeEdges (int dir)
+void ASMs2D::closeEdges (int dir, int basis, int master)
 {
-  int n1, n2, master = 1;
-  if (!this->getSize(n1,n2)) return;
+  int n1, n2;
+  if (basis < 1) basis = 1;
+  if (!this->getSize(n1,n2,basis)) return;
 
   switch (dir)
     {
@@ -1109,7 +1113,6 @@ int ASMs2D::evalPoint (const double* xi, double* param, Vec3& X) const
 
   return 0;
 }
-
 
 
 bool ASMs2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const

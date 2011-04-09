@@ -26,9 +26,9 @@
 #include "Vec3.h"
 
 
-ASMs2Dmx::ASMs2Dmx (const char* fileName, unsigned char n_s,
+ASMs2Dmx::ASMs2Dmx (const char* fName, unsigned char n_s,
 		    char n_f1, unsigned char n_f2)
-  : ASMs2D(fileName, n_s), ASMmxBase(n_f1 < 0 ? -n_f1 : n_f1, n_f2, n_f1 < 0)
+  : ASMs2D(fName,n_s), ASMmxBase(n_f1 < 0 ? -n_f1 : n_f1, n_f2, n_f1 < 0)
 {
   basis1 = basis2 = 0;
   nf = nf1 + nf2;
@@ -37,15 +37,7 @@ ASMs2Dmx::ASMs2Dmx (const char* fileName, unsigned char n_s,
 
 ASMs2Dmx::ASMs2Dmx (std::istream& is, unsigned char n_s,
 		    char n_f1, unsigned char n_f2)
-  : ASMs2D(is, n_s), ASMmxBase(n_f1 < 0 ? -n_f1 : n_f1, n_f2, n_f1 < 0)
-{
-  basis1 = basis2 = 0;
-  nf = nf1 + nf2;
-}
-
-
-ASMs2Dmx::ASMs2Dmx (unsigned char n_s, char n_f1, unsigned char n_f2)
-  : ASMs2D(n_s), ASMmxBase(n_f1 < 0 ? -n_f1 : n_f1, n_f2, n_f1 < 0)
+  : ASMs2D(is,n_s), ASMmxBase(n_f1 < 0 ? -n_f1 : n_f1, n_f2, n_f1 < 0)
 {
   basis1 = basis2 = 0;
   nf = nf1 + nf2;
@@ -84,14 +76,21 @@ unsigned char ASMs2Dmx::getNodalDOFs (size_t inod) const
 
 void ASMs2Dmx::initMADOF (const int* sysMadof)
 {
-  this->init(MLGN,sysMadof);
+  this->initMx(MLGN,sysMadof);
 }
 
 
 void ASMs2Dmx::extractNodeVec (const Vector& globRes, Vector& nodeVec,
 			       unsigned char) const
 {
-  this->extrNodeVec(globRes,nodeVec);
+  this->extractNodeVecMx(globRes,nodeVec);
+}
+
+
+bool ASMs2Dmx::getSolution (Matrix& sField, const Vector& locSol,
+			    const IntVec& nodes) const
+{
+  return this->getSolutionMx(sField,locSol,nodes);
 }
 
 
@@ -266,6 +265,23 @@ bool ASMs2Dmx::generateFEMTopology ()
   std::cout <<"NEL = "<< MLGE.size() <<" NNOD = "<< MLGN.size() << std::endl;
 #endif
   return true;
+}
+
+
+bool ASMs2Dmx::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool revers)
+{
+  ASMs2Dmx* neighMx = dynamic_cast<ASMs2Dmx*>(&neighbor);
+  if (!neighMx) return false;
+
+  return this->connectBasis(edge,neighbor,nedge,revers,1,0,0)
+    &&   this->connectBasis(edge,neighbor,nedge,revers,2,nb1,neighMx->nb1);
+}
+
+
+void ASMs2Dmx::closeEdges (int dir, int, int)
+{
+  this->ASMs2D::closeEdges(dir,1,1);
+  this->ASMs2D::closeEdges(dir,2,nb1+1);
 }
 
 
@@ -633,6 +649,39 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
     }
 
   return true;
+}
+
+
+int ASMs2Dmx::evalPoint (const double* xi, double* param, Vec3& X) const
+{
+  if (!surf) return -2;
+
+  param[0] = (1.0-xi[0])*surf->startparam_u() + xi[0]*surf->endparam_u();
+  param[1] = (1.0-xi[1])*surf->startparam_v() + xi[1]*surf->endparam_v();
+
+  Go::Point X0;
+  surf->point(X0,param[0],param[1]);
+  for (unsigned char d = 0; d < nsd; d++)
+    X[d] = X0[d];
+
+  // Check if this point matches any of the basis1 control points (nodes)
+  Vec3 Xnod;
+  size_t inod = 1;
+  RealArray::const_iterator cit = basis1->coefs_begin();
+  for (int i = 0; cit != basis1->coefs_end(); cit++, i++)
+  {
+    if (i < nsd) Xnod[i] = *cit;
+    if (i+1 == basis1->dimension())
+      if (X.equal(Xnod,0.001))
+        return inod;
+      else
+      {
+        inod++;
+        i = -1;
+      }
+  }
+
+  return 0;
 }
 
 

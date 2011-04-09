@@ -1,4 +1,4 @@
-// $Id: ASMs2DSpec.h,v 1.4 2010-10-05 07:25:25 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMs2DSpec.h
@@ -26,14 +26,11 @@ class ASMs2DSpec : public ASMs2DLag
 {
 public:
   //! \brief Constructor creating an instance by reading the given file.
-  ASMs2DSpec(const char* fileName, unsigned char n_s = 2, unsigned char n_f = 2)
-    : ASMs2DLag(fileName,n_s,n_f) {}
+  ASMs2DSpec(const char* fNam = 0, unsigned char n_s = 2, unsigned char n_f = 2)
+    : ASMs2DLag(fNam,n_s,n_f) {}
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs2DSpec(std::istream& is, unsigned char n_s = 2, unsigned char n_f = 2)
     : ASMs2DLag(is,n_s,n_f) {}
-  //! \brief Default constructor creating an empty patch.
-  ASMs2DSpec(unsigned char n_s = 2, unsigned char n_f = 2)
-    : ASMs2DLag(n_s,n_f) {}
   //! \brief Empty destructor.
   virtual ~ASMs2DSpec() {}
 

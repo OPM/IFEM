@@ -1,4 +1,4 @@
-// $Id: ASMs3DSpec.h,v 1.6 2010-10-17 13:10:47 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMs3DSpec.h
@@ -26,13 +26,11 @@ class ASMs3DSpec : public ASMs3DLag
 {
 public:
   //! \brief Constructor creating an instance by reading the given file.
-  ASMs3DSpec(const char* fileName, bool checkRHS = false, unsigned char n_f = 3)
-    : ASMs3DLag(fileName,checkRHS,n_f) {}
+  ASMs3DSpec(const char* fNam = 0, bool checkRHS = false, unsigned char n_f = 3)
+    : ASMs3DLag(fNam,checkRHS,n_f) {}
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs3DSpec(std::istream& is, bool checkRHS = false, unsigned char n_f = 3)
     : ASMs3DLag(is,checkRHS,n_f) {}
-  //! \brief Default constructor creating an empty patch.
-  ASMs3DSpec(unsigned char n_f = 3) : ASMs3DLag(n_f) {}
   //! \brief Empty destructor.
   virtual ~ASMs3DSpec() {}
 

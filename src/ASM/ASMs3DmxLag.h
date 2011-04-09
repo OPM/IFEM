@@ -1,4 +1,4 @@
-// $Id: ASMs3DmxLag.h,v 1.1 2010-12-29 18:41:39 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMs3DmxLag.h
@@ -29,7 +29,7 @@ class ASMs3DmxLag : public ASMs3DLag, private ASMmxBase
 {
 public:
   //! \brief Constructor creating an instance by reading the given file.
-  ASMs3DmxLag(const char* fileName, bool checkRHS = false,
+  ASMs3DmxLag(const char* fName = 0, bool checkRHS = false,
 	      unsigned char n_f1 = 3, unsigned char n_f2 = 1);
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs3DmxLag(std::istream& is, bool checkRHS = false,
@@ -61,6 +61,18 @@ public:
   //! \brief Initializes the patch level MADOF array for mixed problems.
   virtual void initMADOF(const int* sysMadof);
 
+  //! \brief Connects all matching nodes on two adjacent boundary faces.
+  //! \param[in] face Local face index of this patch, in range [1,6]
+  //! \param neighbor The neighbor patch
+  //! \param[in] nface Local face index of neighbor patch, in range [1,6]
+  //! \param[in] norient Relative face orientation flag (see class ASMs3D)
+  virtual bool connectPatch(int face, ASMs3D& neighbor, int nface,
+			    int norient = 0);
+
+  //! \brief Makes two opposite boundary faces periodic.
+  //! \param[in] dir Parameter direction defining the periodic faces
+  virtual void closeFaces(int dir, int = 0, int = 1);
+
 
   // Methods for integration of finite element quantities.
   // These are the main computational methods of the ASM class hierarchy.
@@ -88,6 +100,13 @@ public:
 
   // Post-processing methods
   // =======================
+
+  //! \brief Extract the primary solution field at the specified nodes.
+  //! \param[out] sField Solution field
+  //! \param[in] locSol Solution vector local to current patch
+  //! \param[in] nodes 1-based local node numbers to extract solution for
+  virtual bool getSolution(Matrix& sField, const Vector& locSol,
+			   const IntVec& nodes) const;
 
   //! \brief Evaluates the primary solution field at all visualization points.
   //! \param[out] sField Solution field

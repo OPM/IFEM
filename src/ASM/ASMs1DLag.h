@@ -27,11 +27,9 @@ class ASMs1DLag : public ASMs1D
 {
 public:
   //! \brief Constructor creating an instance by reading the given file.
-  ASMs1DLag(const char* fileName, unsigned char n_s = 1, unsigned char n_f = 1);
+  ASMs1DLag(const char* fNam = 0, unsigned char n_s = 1, unsigned char n_f = 1);
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs1DLag(std::istream& is, unsigned char n_s = 1, unsigned char n_f = 1);
-  //! \brief Default constructor creating an empty patch.
-  ASMs1DLag(unsigned char n_s = 1, unsigned char n_f = 1) : ASMs1D(n_s,n_f) {}
   //! \brief Empty destructor.
   virtual ~ASMs1DLag() {}
 

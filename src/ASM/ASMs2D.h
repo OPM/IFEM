@@ -67,11 +67,9 @@ public:
   };
 
   //! \brief Constructor creating an instance by reading the given file.
-  ASMs2D(const char* fileName, unsigned char n_s = 2, unsigned char n_f = 2);
+  ASMs2D(const char* fName = 0, unsigned char n_s = 2, unsigned char n_f = 2);
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs2D(std::istream& is, unsigned char n_s = 2, unsigned char n_f = 2);
-  //! \brief Default constructor creating an empty patch.
-  ASMs2D(unsigned char n_s = 2, unsigned char n_f = 2);
   //! \brief Empty destructor.
   virtual ~ASMs2D() {}
 
@@ -124,12 +122,8 @@ public:
   bool raiseOrder(int ru, int rv);
 
 
-  // Various methods for preprocessing of boundary conditions
-  // ========================================================
-
-  //! \brief Makes two opposite boundary edges periodic.
-  //! \param[in] dir Parameter direction defining the periodic edges
-  void closeEdges(int dir);
+  // Various methods for preprocessing of boundary conditions and patch topology
+  // ===========================================================================
 
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
@@ -165,7 +159,14 @@ public:
   //! \param neighbor The neighbor patch
   //! \param[in] nedge Local edge index of neighbor patch, in range [1,4]
   //! \param[in] revers Indicates whether the two edges have opposite directions
-  bool connectPatch(int edge, ASMs2D& neighbor, int nedge, bool revers = false);
+  virtual bool connectPatch(int edge, ASMs2D& neighbor, int nedge,
+			    bool revers = false);
+
+  //! \brief Makes two opposite boundary edges periodic.
+  //! \param[in] dir Parameter direction defining the periodic edges
+  //! \param[in] basis Which basis to connect (mixed methods), 0 means both
+  //! \param[in] master 1-based index of the first master node in this basis
+  virtual void closeEdges(int dir, int basis = 0, int master = 1);
 
 
   // Methods for integration of finite element quantities.
@@ -235,9 +236,11 @@ public:
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] npe Number of visualization nodes over each knot span
   //!
-  //! \details If \a npe is NULL, the solution is evaluated at the Greville
-  //! points and then projected onto the spline basis to obtain the control
-  //! point values, which then are returned through \a sField.
+  //! \details The secondary solution is derived from the primary solution,
+  //! which is assumed to be stored within the \a integrand for current patch.
+  //! If \a npe is NULL, the solution is evaluated at the Greville points and
+  //! then projected onto the spline basis to obtain the control point values,
+  //! which then are returned through \a sField.
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
 			    const int* npe = 0) const;
 
@@ -254,8 +257,10 @@ public:
   //! \param[in] gpar Parameter values of the result sampling points
   //! \param[in] regular Flag indicating how the sampling points are defined
   //!
-  //! \details When \a regular is \e true, it is assumed that the parameter
-  //! value array \a gpar forms a regular tensor-product point grid of dimension
+  //! \details The secondary solution is derived from the primary solution,
+  //! which is assumed to be stored within the \a integrand for current patch.
+  //! When \a regular is \e true, it is assumed that the parameter value array
+  //! \a gpar forms a regular tensor-product point grid of dimension
   //! \a gpar[0].size() \a X \a gpar[1].size().
   //! Otherwise, we assume that it contains the \a u and \a v parameters
   //! directly for each sampling point.
@@ -266,6 +271,17 @@ protected:
 
   // Internal utility methods
   // ========================
+
+  //! \brief Connects all matching nodes on two adjacent boundary edges.
+  //! \param[in] edge Local edge index of this patch, in range [1,4]
+  //! \param neighbor The neighbor patch
+  //! \param[in] nedge Local edge index of neighbor patch, in range [1,4]
+  //! \param[in] revers Indicates whether the two edges have opposite directions
+  //! \param[in] basis Which basis to connect the nodes for (mixed methods)
+  //! \param[in] slave 0-based index of the first slave node in this basis
+  //! \param[in] master 0-based index of the first master node in this basis
+  bool connectBasis(int edge, ASMs2D& neighbor, int nedge, bool revers,
+		    int basis = 1, int slave = 0, int master = 0);
 
   //! \brief Calculates parameter values for visualization nodal points.
   //! \param[out] prm Parameter values in given direction for all points

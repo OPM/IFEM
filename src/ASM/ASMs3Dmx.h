@@ -32,13 +32,11 @@ class ASMs3Dmx : public ASMs3D, private ASMmxBase
 {
 public:
   //! \brief Constructor creating an instance by reading the given file.
-  ASMs3Dmx(const char* fileName, bool checkRHS = false,
+  ASMs3Dmx(const char* fName = 0, bool checkRHS = false,
 	   char n_f1 = 3, unsigned char n_f2 = 1);
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs3Dmx(std::istream& is, bool checkRHS = false,
 	   char n_f1 = 3, unsigned char n_f2 = 1);
-  //! \brief Default constructor creating an empty patch.
-  ASMs3Dmx(bool checkRHS = false, char n_f1 = 3, unsigned char n_f2 = 1);
   //! \brief Empty destructor.
   virtual ~ASMs3Dmx() {}
 
@@ -66,6 +64,18 @@ public:
 
   //! \brief Initializes the patch level MADOF array for mixed problems.
   virtual void initMADOF(const int* sysMadof);
+
+  //! \brief Connects all matching nodes on two adjacent boundary faces.
+  //! \param[in] face Local face index of this patch, in range [1,6]
+  //! \param neighbor The neighbor patch
+  //! \param[in] nface Local face index of neighbor patch, in range [1,6]
+  //! \param[in] norient Relative face orientation flag (see class ASMs3D)
+  virtual bool connectPatch(int face, ASMs3D& neighbor, int nface,
+			    int norient = 0);
+
+  //! \brief Makes two opposite boundary faces periodic.
+  //! \param[in] dir Parameter direction defining the periodic faces
+  virtual void closeFaces(int dir, int = 0, int = 1);
 
 
   // Methods for integration of finite element quantities.
@@ -95,6 +105,21 @@ public:
   // Post-processing methods
   // =======================
 
+  //! \brief Evaluates the geometry at a specified point.
+  //! \param[in] xi Dimensionless parameters in range [0.0,1.0] of the point
+  //! \param[out] param The (u,v,w) parameters of the point in knot-span domain
+  //! \param[out] X The Cartesian coordinates of the point
+  //! \return Local node number within the patch that matches the point, if any
+  //! \return 0 if no node (control point) matches this point
+  virtual int evalPoint(const double* xi, double* param, Vec3& X) const;
+
+  //! \brief Extract the primary solution field at the specified nodes.
+  //! \param[out] sField Solution field
+  //! \param[in] locSol Solution vector local to current patch
+  //! \param[in] nodes 1-based local node numbers to extract solution for
+  virtual bool getSolution(Matrix& sField, const Vector& locSol,
+			   const IntVec& nodes) const;
+
   //! \brief Evaluates the primary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
@@ -115,8 +140,10 @@ public:
   //! \param[in] gpar Parameter values of the result sampling points
   //! \param[in] regular Flag indicating how the sampling points are defined
   //!
-  //! \details When \a regular is \e true, it is assumed that the parameter
-  //! value array \a gpar forms a regular tensor-product point grid of dimension
+  //! \details The secondary solution is derived from the primary solution,
+  //! which is assumed to be stored within the \a integrand for current patch.
+  //! When \a regular is \e true, it is assumed that the parameter value array
+  //! \a gpar forms a regular tensor-product point grid of dimension
   //! \a gpar[0].size() \a X \a gpar[1].size() \a X \a gpar[2].size().
   //! Otherwise, we assume that it contains the \a u, \a v and \a w parameters
   //! directly for each sampling point.

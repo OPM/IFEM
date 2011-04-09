@@ -25,9 +25,9 @@
 #include "Vec3Oper.h"
 
 
-ASMs3DmxLag::ASMs3DmxLag (const char* fileName, bool checkRHS,
+ASMs3DmxLag::ASMs3DmxLag (const char* fName, bool checkRHS,
 			  unsigned char n_f1, unsigned char n_f2)
-  : ASMs3DLag(fileName,checkRHS), ASMmxBase(n_f1,n_f2)
+  : ASMs3DLag(fName,checkRHS), ASMmxBase(n_f1,n_f2)
 {
   nx2 = ny2 = nz2 = 0;
   nf = nf1 + nf2;
@@ -37,15 +37,6 @@ ASMs3DmxLag::ASMs3DmxLag (const char* fileName, bool checkRHS,
 ASMs3DmxLag::ASMs3DmxLag (std::istream& is, bool checkRHS,
 			  unsigned char n_f1, unsigned char n_f2)
   : ASMs3DLag(is,checkRHS), ASMmxBase(n_f1,n_f2)
-{
-  nx2 = ny2 = nz2 = 0;
-  nf = nf1 + nf2;
-}
-
-
-ASMs3DmxLag::ASMs3DmxLag (bool checkRHS,
-			  unsigned char n_f1, unsigned char n_f2)
-  : ASMs3DLag(checkRHS), ASMmxBase(n_f1,n_f2)
 {
   nx2 = ny2 = nz2 = 0;
   nf = nf1 + nf2;
@@ -79,14 +70,21 @@ unsigned char ASMs3DmxLag::getNodalDOFs (size_t inod) const
 
 void ASMs3DmxLag::initMADOF (const int* sysMadof)
 {
-  this->init(MLGN,sysMadof);
+  this->initMx(MLGN,sysMadof);
 }
 
 
 void ASMs3DmxLag::extractNodeVec (const Vector& globRes, Vector& nodeVec,
 				  unsigned char) const
 {
-  this->extrNodeVec(globRes,nodeVec);
+  this->extractNodeVecMx(globRes,nodeVec);
+}
+
+
+bool ASMs3DmxLag::getSolution (Matrix& sField, const Vector& locSol,
+			       const IntVec& nodes) const
+{
+  return this->getSolutionMx(sField,locSol,nodes);
 }
 
 
@@ -163,6 +161,30 @@ bool ASMs3DmxLag::generateFEMTopology ()
       }
 
   return true;
+}
+
+
+bool ASMs3DmxLag::connectPatch (int face, ASMs3D& neighbor,
+				int nface, int norient)
+{
+  ASMs3DmxLag* neighMx = dynamic_cast<ASMs3DmxLag*>(&neighbor);
+  if (!neighMx) return false;
+
+  if (swapW && face > 4) // Account for swapped parameter direction
+    face = 11-face;
+
+  if (neighMx->swapW && face > 4) // Account for swapped parameter direction
+    nface = 11-nface;
+
+  return this->connectBasis(face,neighbor,nface,norient,1,0,0)
+    &&   this->connectBasis(face,neighbor,nface,norient,2,nb1,neighMx->nb1);
+}
+
+
+void ASMs3DmxLag::closeFaces (int dir, int, int)
+{
+  this->ASMs3D::closeFaces(dir,1,1);
+  this->ASMs3D::closeFaces(dir,2,nb1+1);
 }
 
 

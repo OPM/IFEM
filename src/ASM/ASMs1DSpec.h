@@ -1,4 +1,4 @@
-// $Id: ASMs1DSpec.h,v 1.2 2010-10-05 07:25:25 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMs1DSpec.h
@@ -26,14 +26,11 @@ class ASMs1DSpec : public ASMs1DLag
 {
 public:
   //! \brief Constructor creating an instance by reading the given file.
-  ASMs1DSpec(const char* fileName, unsigned char n_s = 1, unsigned char n_f = 1)
-    : ASMs1DLag(fileName,n_s,n_f) {}
+  ASMs1DSpec(const char* fNam = 0, unsigned char n_s = 1, unsigned char n_f = 1)
+    : ASMs1DLag(fNam,n_s,n_f) {}
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs1DSpec(std::istream& is, unsigned char n_s = 1, unsigned char n_f = 1)
     : ASMs1DLag(is,n_s,n_f) {}
-  //! \brief Default constructor creating an empty patch.
-  ASMs1DSpec(unsigned char n_s = 1, unsigned char n_f = 1)
-    : ASMs1DLag(n_s,n_f) {}
   //! \brief Empty destructor.
   virtual ~ASMs1DSpec() {}
 

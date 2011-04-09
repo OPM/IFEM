@@ -30,17 +30,18 @@
 #include <fstream>
 
 
-ASMs3D::ASMs3D (const char* fileName, bool checkRHS, unsigned char n_f)
+ASMs3D::ASMs3D (const char* fName, bool checkRHS, unsigned char n_f)
   : ASMstruct(3,3,n_f), svol(0), swapW(false)
 {
-  std::cout <<"\nReading patch file "<< fileName << std::endl;
-  std::ifstream is(fileName);
-  if (!is.good())
-    std::cerr <<" *** ASMs3D: Failure opening patch file"<< std::endl;
-  else if (this->read(is) && checkRHS)
-    this->checkRightHandSystem();
-
-  geo = svol;
+  if (fName)
+  {
+    std::cout <<"\nReading patch file "<< fName << std::endl;
+    std::ifstream is(fName);
+    if (!is.good())
+      std::cerr <<" *** ASMs3D: Failure opening patch file"<< std::endl;
+    else if (this->read(is) && checkRHS)
+      this->checkRightHandSystem();
+  }
 }
 
 
@@ -49,8 +50,6 @@ ASMs3D::ASMs3D (std::istream& is, bool checkRHS, unsigned char n_f)
 {
   if (this->read(is) && checkRHS)
     this->checkRightHandSystem();
-
-  geo = svol;
 }
 
 
@@ -82,9 +81,12 @@ bool ASMs3D::read (std::istream& is)
   {
     std::cerr <<" *** ASMs3D::read: Invalid spline volume patch, dim="
 	      << svol->dimension() << std::endl;
+    delete svol;
+    svol = 0;
     return false;
   }
 
+  geo = svol;
   return true;
 }
 
@@ -457,16 +459,23 @@ bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
   if (neighbor.swapW && face > 4) // Account for swapped parameter direction
     nface = 11-nface;
 
+  return this->connectBasis(face,neighbor,nface,norient);
+}
+
+
+bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
+			   int basis, int slave, int master)
+{
   // Set up the slave node numbers for this volume patch
 
   int n1, n2, n3;
-  if (!this->getSize(n1,n2,n3,1)) return false;
-  int node = 1, i1 = 0, i2 = 0;
+  if (!this->getSize(n1,n2,n3,basis)) return false;
+  int node = slave+1, i1 = 0, i2 = 0;
 
   switch (face)
     {
     case 2: // Positive I-direction
-      node = n1;
+      node += n1-1;
     case 1: // Negative I-direction
       i1 = n1;
       n1 = n2;
@@ -474,7 +483,7 @@ bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
       break;
 
     case 4: // Positive J-direction
-      node = n1*(n2-1)+1;
+      node += n1*(n2-1);
     case 3: // Negative J-direction
       i2 = n1*(n2-1);
       i1 = 1;
@@ -482,7 +491,7 @@ bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
       break;
 
     case 6: // Positive K-direction
-      node = n1*n2*(n3-1)+1;
+      node += n1*n2*(n3-1);
     case 5: // Negative K-direction
       i1 = 1;
       break;
@@ -501,13 +510,13 @@ bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
 
   // Set up the master node numbers for the neighboring volume patch
 
-  if (!neighbor.getSize(n1,n2,n3,1)) return false;
-  node = 1; i1 = i2 = 0;
+  if (!neighbor.getSize(n1,n2,n3,basis)) return false;
+  node = master+1; i1 = i2 = 0;
 
   switch (nface)
     {
     case 2: // Positive I-direction
-      node = n1;
+      node += n1-1;
     case 1: // Negative I-direction
       i1 = n1;
       n1 = n2;
@@ -515,7 +524,7 @@ bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
       break;
 
     case 4: // Positive J-direction
-      node = n1*(n2-1)+1;
+      node += n1*(n2-1);
     case 3: // Negative J-direction
       i2 = n1*(n2-1);
       i1 = 1;
@@ -523,7 +532,7 @@ bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
       break;
 
     case 6: // Positive K-direction
-      node = n1*n2*(n3-1)+1;
+      node += n1*n2*(n3-1);
     case 5: // Negative K-direction
       i1 = 1;
       break;
@@ -583,10 +592,11 @@ bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
 }
 
 
-void ASMs3D::closeFaces (int dir)
+void ASMs3D::closeFaces (int dir, int basis, int master)
 {
-  int n1, n2, n3, master = 1;
-  if (!this->getSize(n1,n2,n3,1)) return;
+  int n1, n2, n3;
+  if (basis < 1) basis = 1;
+  if (!this->getSize(n1,n2,n3,basis)) return;
 
   switch (dir)
     {

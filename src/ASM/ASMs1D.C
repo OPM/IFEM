@@ -28,17 +28,18 @@
 #include <fstream>
 
 
-ASMs1D::ASMs1D (const char* fileName, unsigned char n_s, unsigned char n_f)
+ASMs1D::ASMs1D (const char* fName, unsigned char n_s, unsigned char n_f)
   : ASMstruct(1,n_s,n_f), curv(0)
 {
-  std::cout <<"\nReading patch file "<< fileName << std::endl;
-  std::ifstream is(fileName);
-  if (!is.good())
-    std::cerr <<" *** ASMs1D: Failure opening patch file"<< std::endl;
-  else
-    this->read(is);
-
-  geo = curv;
+  if (fName)
+  {
+    std::cout <<"\nReading patch file "<< fName << std::endl;
+    std::ifstream is(fName);
+    if (!is.good())
+      std::cerr <<" *** ASMs1D: Failure opening patch file"<< std::endl;
+    else
+      this->read(is);
+  }
 }
 
 
@@ -46,14 +47,6 @@ ASMs1D::ASMs1D (std::istream& is, unsigned char n_s, unsigned char n_f)
   : ASMstruct(1,n_s,n_f), curv(0)
 {
   this->read(is);
-
-  geo = curv;
-}
-
-
-ASMs1D::ASMs1D (unsigned char n_s, unsigned char n_f)
-  : ASMstruct(1,n_s,n_f), curv(0)
-{
 }
 
 
@@ -85,6 +78,8 @@ bool ASMs1D::read (std::istream& is)
   {
     std::cerr <<" *** ASMs1D::read: Invalid spline curve patch, dim="
 	      << curv->dimension() << std::endl;
+    delete curv;
+    curv = 0;
     return false;
   }
   else if (curv->dimension() < nsd)
@@ -96,6 +91,7 @@ bool ASMs1D::read (std::istream& is)
     nsd = curv->dimension();
   }
 
+  geo = curv;
   return true;
 }
 
@@ -246,16 +242,23 @@ bool ASMs1D::generateFEMTopology ()
 
 bool ASMs1D::connectPatch (int vertex, ASMs1D& neighbor, int nvertex)
 {
+  return this->connectBasis(vertex,neighbor,nvertex);
+}
+
+
+bool ASMs1D::connectBasis (int vertex, ASMs1D& neighbor, int nvertex,
+			   int basis, int slave, int master)
+{
   // Set up the slave node number for this curve patch
 
-  int n1 = this->getSize();
-  int node = 1;
+  int n1 = this->getSize(basis);
 
   switch (vertex)
     {
     case 2: // Positive I-direction
-      node = n1;
+      slave += n1;
     case 1: // Negative I-direction
+      slave += 1;
       break;
 
     default:
@@ -266,14 +269,14 @@ bool ASMs1D::connectPatch (int vertex, ASMs1D& neighbor, int nvertex)
 
   // Set up the master node number for the neighboring patch
 
-  n1 = neighbor.getSize();
-  int nnode = 1;
+  n1 = neighbor.getSize(basis);
 
   switch (nvertex)
     {
     case 2: // Positive I-direction
-      nnode = n1;
+      master += n1;
     case 1: // Negative I-direction
+      master += 1;
       break;
 
     default:
@@ -283,25 +286,26 @@ bool ASMs1D::connectPatch (int vertex, ASMs1D& neighbor, int nvertex)
     }
 
   const double xtol = 1.0e-4;
-  if (!neighbor.getCoord(nnode).equal(this->getCoord(node),xtol))
+  if (!neighbor.getCoord(master).equal(this->getCoord(slave),xtol))
   {
     std::cerr <<" *** ASMs1D::connectPatch: Non-matching nodes "
-	      << nnode <<": "<< neighbor.getCoord(nnode)
+	      << master <<": "<< neighbor.getCoord(master)
 	      <<"\n                                          and "
-	      << node <<": "<< this->getCoord(node) << std::endl;
+	      << slave <<": "<< this->getCoord(slave) << std::endl;
     return false;
   }
   else
-    ASMbase::collapseNodes(neighbor.MLGN[nnode-1],MLGN[node-1]);
+    ASMbase::collapseNodes(neighbor.MLGN[master-1],MLGN[slave-1]);
 
   return true;
 }
 
 
-void ASMs1D::closeEnds ()
+void ASMs1D::closeEnds (int basis, int master)
 {
-  int n1 = this->getSize();
-  this->makePeriodic(1,n1);
+  if (basis < 1) basis = 1;
+  int n1 = this->getSize(basis < 1 ? 1 : basis);
+  this->makePeriodic(1,master+n1-1);
 }
 
 
@@ -418,7 +422,7 @@ Vec3 ASMs1D::getCoord (size_t inod) const
 }
 
 
-int ASMs1D::getSize () const
+int ASMs1D::getSize (int) const
 {
   if (!curv) return 0;
 

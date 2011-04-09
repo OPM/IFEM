@@ -25,9 +25,9 @@
 #include "Vec3Oper.h"
 
 
-ASMs2DmxLag::ASMs2DmxLag (const char* fileName, unsigned char n_s,
+ASMs2DmxLag::ASMs2DmxLag (const char* fName, unsigned char n_s,
 			  unsigned char n_f1, unsigned char n_f2)
-  : ASMs2DLag(fileName,n_s), ASMmxBase(n_f1,n_f2)
+  : ASMs2DLag(fName,n_s), ASMmxBase(n_f1,n_f2)
 {
   nx2 = ny2 = 0;
   nf = nf1 + nf2;
@@ -37,15 +37,6 @@ ASMs2DmxLag::ASMs2DmxLag (const char* fileName, unsigned char n_s,
 ASMs2DmxLag::ASMs2DmxLag (std::istream& is, unsigned char n_s,
 			  unsigned char n_f1, unsigned char n_f2)
   : ASMs2DLag(is,n_s), ASMmxBase(n_f1,n_f2)
-{
-  nx2 = ny2 = 0;
-  nf = nf1 + nf2;
-}
-
-
-ASMs2DmxLag::ASMs2DmxLag (unsigned char n_s,
-			  unsigned char n_f1, unsigned char n_f2)
-  : ASMs2DLag(n_s), ASMmxBase(n_f1,n_f2)
 {
   nx2 = ny2 = 0;
   nf = nf1 + nf2;
@@ -79,14 +70,21 @@ unsigned char ASMs2DmxLag::getNodalDOFs (size_t inod) const
 
 void ASMs2DmxLag::initMADOF (const int* sysMadof)
 {
-  this->init(MLGN,sysMadof);
+  this->initMx(MLGN,sysMadof);
 }
 
 
 void ASMs2DmxLag::extractNodeVec (const Vector& globRes, Vector& nodeVec,
 				  unsigned char) const
 {
-  this->extrNodeVec(globRes,nodeVec);
+  this->extractNodeVecMx(globRes,nodeVec);
+}
+
+
+bool ASMs2DmxLag::getSolution (Matrix& sField, const Vector& locSol,
+			       const IntVec& nodes) const
+{
+  return this->getSolutionMx(sField,locSol,nodes);
 }
 
 
@@ -149,6 +147,24 @@ bool ASMs2DmxLag::generateFEMTopology ()
     }
 
   return true;
+}
+
+
+bool ASMs2DmxLag::connectPatch (int edge, ASMs2D& neighbor,
+				int nedge, bool revers)
+{
+  ASMs2DmxLag* neighMx = dynamic_cast<ASMs2DmxLag*>(&neighbor);
+  if (!neighMx) return false;
+
+  return this->connectBasis(edge,neighbor,nedge,revers,1,0,0)
+    &&   this->connectBasis(edge,neighbor,nedge,revers,2,nb1,neighMx->nb1);
+}
+
+
+void ASMs2DmxLag::closeEdges (int dir, int, int)
+{
+  this->ASMs2D::closeEdges(dir,1,1);
+  this->ASMs2D::closeEdges(dir,2,nb1+1);
 }
 
 

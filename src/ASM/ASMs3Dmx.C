@@ -26,9 +26,9 @@
 #include "Vec3.h"
 
 
-ASMs3Dmx::ASMs3Dmx (const char* fileName, bool checkRHS,
+ASMs3Dmx::ASMs3Dmx (const char* fName, bool checkRHS,
 		    char n_f1, unsigned char n_f2)
-  : ASMs3D(fileName,checkRHS), ASMmxBase(n_f1 < 0 ? -n_f1 : n_f1,n_f2, n_f1 < 0)
+  : ASMs3D(fName,checkRHS), ASMmxBase(n_f1 < 0 ? -n_f1 : n_f1,n_f2, n_f1 < 0)
 {
   basis1 = basis2 = 0;
   nf = nf1 + nf2;
@@ -38,14 +38,6 @@ ASMs3Dmx::ASMs3Dmx (const char* fileName, bool checkRHS,
 ASMs3Dmx::ASMs3Dmx (std::istream& is, bool checkRHS,
 		    char n_f1, unsigned char n_f2)
   : ASMs3D(is,checkRHS), ASMmxBase(n_f1 < 0 ? -n_f1 : n_f1, n_f2, n_f1 < 0)
-{
-  basis1 = basis2 = 0;
-  nf = nf1 + nf2;
-}
-
-
-ASMs3Dmx::ASMs3Dmx (bool checkRHS, char n_f1, unsigned char n_f2)
-  : ASMs3D(checkRHS), ASMmxBase(n_f1 < 0 ? -n_f1 : n_f1, n_f2, n_f1 < 0)
 {
   basis1 = basis2 = 0;
   nf = nf1 + nf2;
@@ -84,14 +76,21 @@ unsigned char ASMs3Dmx::getNodalDOFs (size_t inod) const
 
 void ASMs3Dmx::initMADOF (const int* sysMadof)
 {
-  this->init(MLGN,sysMadof);
+  this->initMx(MLGN,sysMadof);
 }
 
 
 void ASMs3Dmx::extractNodeVec (const Vector& globRes, Vector& nodeVec,
 			       unsigned char) const
 {
-  this->extrNodeVec(globRes,nodeVec);
+  this->extractNodeVecMx(globRes,nodeVec);
+}
+
+
+bool ASMs3Dmx::getSolution (Matrix& sField, const Vector& locSol,
+			    const IntVec& nodes) const
+{
+  return this->getSolutionMx(sField,locSol,nodes);
 }
 
 
@@ -286,6 +285,29 @@ bool ASMs3Dmx::generateFEMTopology ()
   std::cout <<"NEL = "<< MLGE.size() <<" NNOD = "<< MLGN.size() << std::endl;
 #endif
   return true;
+}
+
+
+bool ASMs3Dmx::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
+{
+  ASMs3Dmx* neighMx = dynamic_cast<ASMs3Dmx*>(&neighbor);
+  if (!neighMx) return false;
+
+  if (swapW && face > 4) // Account for swapped parameter direction
+    face = 11-face;
+
+  if (neighMx->swapW && face > 4) // Account for swapped parameter direction
+    nface = 11-nface;
+
+  return this->connectBasis(face,neighbor,nface,norient,1,0,0)
+    &&   this->connectBasis(face,neighbor,nface,norient,2,nb1,neighMx->nb1);
+}
+
+
+void ASMs3Dmx::closeFaces (int dir, int, int)
+{
+  this->ASMs3D::closeFaces(dir,1,1);
+  this->ASMs3D::closeFaces(dir,2,nb1+1);
 }
 
 
@@ -694,6 +716,40 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
       }
 
   return true;
+}
+
+
+int ASMs3Dmx::evalPoint (const double* xi, double* param, Vec3& X) const
+{
+  if (!svol) return -3;
+
+  int i;
+  for (i = 0; i < 3; i++)
+    param[i] = (1.0-xi[i])*svol->startparam(i) + xi[i]*svol->endparam(i);
+
+  Go::Point X0;
+  svol->point(X0,param[0],param[1],param[2]);
+  for (i = 0; i < 3 && i < svol->dimension(); i++)
+    X[i] = X0[i];
+
+  // Check if this point matches any of the basis1 control points (nodes)
+  Vec3 Xnod;
+  size_t inod = 1;
+  RealArray::const_iterator cit = basis1->coefs_begin();
+  for (i = 0; cit != basis1->coefs_end(); cit++, i++)
+  {
+    if (i < 3) Xnod[i] = *cit;
+    if (i+1 == basis1->dimension())
+      if (X.equal(Xnod,0.001))
+	return inod;
+      else
+      {
+	inod++;
+	i = -1;
+      }
+  }
+
+  return 0;
 }
 
 

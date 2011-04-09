@@ -86,11 +86,9 @@ public:
   };
 
   //! \brief Constructor creating an instance by reading the given file.
-  ASMs3D(const char* fileName, bool checkRHS = false, unsigned char n_f = 3);
+  ASMs3D(const char* fName = 0, bool checkRHS = false, unsigned char n_f = 3);
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs3D(std::istream& is, bool checkRHS = false, unsigned char n_f = 3);
-  //! \brief Default constructor creating an empty patch.
-  ASMs3D(unsigned char n_f = 3) : ASMstruct(3,3,n_f), svol(0), swapW(false) {}
   //! \brief Empty destructor.
   virtual ~ASMs3D() {}
 
@@ -148,12 +146,8 @@ public:
   bool raiseOrder(int ru, int rv, int rw);
 
 
-  // Various methods for preprocessing of boundary conditions
-  // ========================================================
-
-  //! \brief Makes two opposite boundary faces periodic.
-  //! \param[in] dir Parameter direction defining the periodic faces
-  void closeFaces(int dir);
+  // Various methods for preprocessing of boundary conditions and patch topology
+  // ===========================================================================
 
   //! \brief Constrains all DOFs on a given boundary face.
   //! \param[in] dir Parameter direction defining the face to constrain
@@ -222,7 +216,14 @@ public:
   //! - left digit = 1: The u and v parameters of the neighbor face are swapped
   //! - middle digit = 1: Parameter \a u in neighbor patch face is reversed
   //! - right digit = 1: Parameter \a v in neighbor patch face is reversed
-  bool connectPatch(int face, ASMs3D& neighbor, int nface, int norient = 0);
+  virtual bool connectPatch(int face, ASMs3D& neighbor, int nface,
+			    int norient = 0);
+
+  //! \brief Makes two opposite boundary faces periodic.
+  //! \param[in] dir Parameter direction defining the periodic faces
+  //! \param[in] basis Which basis to connect (mixed methods), 0 means both
+  //! \param[in] master 1-based index of the first master node in this basis
+  virtual void closeFaces(int dir, int basis = 0, int master = 1);
 
 
   // Methods for integration of finite element quantities.
@@ -300,9 +301,11 @@ public:
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] npe Number of visualization nodes over each knot span
   //!
-  //! \details If \a npe is NULL, the solution is evaluated at the Greville
-  //! points and then projected onto the spline basis to obtain the control
-  //! point values, which then are returned through \a sField.
+  //! \details The secondary solution is derived from the primary solution,
+  //! which is assumed to be stored within the \a integrand for current patch.
+  //! If \a npe is NULL, the solution is evaluated at the Greville points and
+  //! then projected onto the spline basis to obtain the control point values,
+  //! which then are returned through \a sField.
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
 			    const int* npe = 0) const;
 
@@ -318,8 +321,10 @@ public:
   //! \param[in] gpar Parameter values of the result sampling points
   //! \param[in] regular Flag indicating how the sampling points are defined
   //!
-  //! \details When \a regular is \e true, it is assumed that the parameter
-  //! value array \a gpar forms a regular tensor-product point grid of dimension
+  //! \details The secondary solution is derived from the primary solution,
+  //! which is assumed to be stored within the \a integrand for current patch.
+  //! When \a regular is \e true, it is assumed that the parameter value array
+  //! \a gpar forms a regular tensor-product point grid of dimension
   //! \a gpar[0].size() \a X \a gpar[1].size() \a X \a gpar[2].size().
   //! Otherwise, we assume that it contains the \a u, \a v and \a w parameters
   //! directly for each sampling point.
@@ -330,6 +335,17 @@ protected:
 
   // Internal utility methods
   // ========================
+
+  //! \brief Connects all matching nodes on two adjacent boundary faces.
+  //! \param[in] face Local face index of this patch, in range [1,6]
+  //! \param neighbor The neighbor patch
+  //! \param[in] nface Local face index of neighbor patch, in range [1,6]
+  //! \param[in] norient Relative face orientation flag (see \a connectPatch)
+  //! \param[in] basis Which basis to connect the nodes for (mixed methods)
+  //! \param[in] slave 0-based index of the first slave node in this basis
+  //! \param[in] master 0-based index of the first master node in this basis
+  bool connectBasis(int edge, ASMs3D& neighbor, int nedge, int norient,
+		    int basis = 1, int slave = 0, int master = 0);
 
   //! \brief Calculates parameter values for visualization nodal points.
   //! \param[out] prm Parameter values in given direction for all points

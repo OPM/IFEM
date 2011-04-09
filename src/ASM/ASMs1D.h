@@ -30,11 +30,9 @@ class ASMs1D : public ASMstruct
 {
 public:
   //! \brief Constructor creating an instance by reading the given file.
-  ASMs1D(const char* fileName, unsigned char n_s = 1, unsigned char n_f = 1);
+  ASMs1D(const char* fName = 0, unsigned char n_s = 1, unsigned char n_f = 1);
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs1D(std::istream& is, unsigned char n_s = 1, unsigned char n_f = 1);
-  //! \brief Default constructor creating an empty patch.
-  ASMs1D(unsigned char n_s = 1, unsigned char n_f = 1);
   //! \brief Empty destructor.
   virtual ~ASMs1D() {}
 
@@ -70,11 +68,8 @@ public:
   bool raiseOrder(int ru);
 
 
-  // Various methods for preprocessing of boundary conditions
-  // ========================================================
-
-  //! \brief Makes the two end vertices of the curve periodic.
-  void closeEnds();
+  // Various methods for preprocessing of boundary conditions and patch topology
+  // ===========================================================================
 
   //! \brief Constrains a node identified by a relative parameter value.
   //! \param[in] xi Parameter value along the curve
@@ -92,7 +87,12 @@ public:
   //! \param[in] vertex Local vertex index of this patch, in range [1,2]
   //! \param neighbor The neighbor patch
   //! \param[in] nvertex Local vertex index of neighbor patch, in range [1,2]
-  bool connectPatch(int vertex, ASMs1D& neighbor, int nvertex);
+  virtual bool connectPatch(int vertex, ASMs1D& neighbor, int nvertex);
+
+  //! \brief Makes the two end vertices of the curve periodic.
+  //! \param[in] basis Which basis to connect (mixed methods), 0 means both
+  //! \param[in] master 1-based index of the first master node in this basis
+  virtual void closeEnds(int basis = 0, int master = 1);
 
 
   // Methods for integration of finite element quantities.
@@ -155,9 +155,11 @@ public:
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] npe Number of visualization nodes over each knot span
   //!
-  //! \details If \a npe is NULL, the solution is evaluated at the Greville
-  //! points and then projected onto the spline basis to obtain the control
-  //! point values, which then are returned through \a sField.
+  //! \details The secondary solution is derived from the primary solution,
+  //! which is assumed to be stored within the \a integrand for current patch.
+  //! If \a npe is NULL, the solution is evaluated at the Greville points and
+  //! then projected onto the spline basis to obtain the control point values,
+  //! which then are returned through \a sField.
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
 			    const int* npe = 0) const;
 
@@ -172,6 +174,9 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] gpar Parameter values of the result sampling points
+  //!
+  //! \details The secondary solution is derived from the primary solution,
+  //! which is assumed to be stored within the \a integrand for current patch.
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
 			    const RealArray* gpar, bool = true) const;
 
@@ -179,6 +184,16 @@ protected:
 
   // Internal utility methods
   // ========================
+
+  //! \brief Connects matching nodes on two adjacent vertices.
+  //! \param[in] vertex Local vertex index of this patch, in range [1,2]
+  //! \param neighbor The neighbor patch
+  //! \param[in] nvertex Local vertex index of neighbor patch, in range [1,2]
+  //! \param[in] basis Which basis to connect the nodes for (mixed methods)
+  //! \param[in] slave 0-based index of the first slave node in this basis
+  //! \param[in] master 0-based index of the first master node in this basis
+  bool connectBasis(int vertex, ASMs1D& neighbor, int nvertex,
+		    int basis = 1, int slave = 0, int master = 0);
 
   //! \brief Calculates parameter values for the visualization nodal points.
   //! \param[out] prm Parameter values for all points
@@ -200,7 +215,8 @@ protected:
   virtual void getNodalCoordinates(Matrix& X) const;
 
   //! \brief Returns the number of nodal points in the patch.
-  virtual int getSize() const;
+  //! \param[in] basis Which basis to return size parameters for (mixed methods)
+  virtual int getSize(int basis = 0) const;
 
 private:
   //! \brief Establishes vectors with basis functions and 1st derivatives.

@@ -242,8 +242,8 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] nodes 1-based local node numbers to extract solution for
-  bool getSolution(Matrix& sField, const Vector& locSol,
-		   const IntVec& nodes) const;
+  virtual bool getSolution(Matrix& sField, const Vector& locSol,
+			   const IntVec& nodes) const;
 
   //! \brief Evaluates the primary solution field at all visualization points.
   //! \param[out] sField Solution field
@@ -272,7 +272,7 @@ public:
   //! \param[in] npe Number of visualization nodes over each knot span
   //!
   //! \details The secondary solution is derived from the primary solution,
-  //! which is assumed to be stored in the \a integrand for current patch.
+  //! which is assumed to be stored within the \a integrand for current patch.
   //! If \a npe is NULL, the solution is evaluated at the Greville points and
   //! then projected onto the spline basis to obtain the control point values,
   //! which then are returned through \a sField.
@@ -285,8 +285,10 @@ public:
   //! \param[in] gpar Parameter values of the result sampling points
   //! \param[in] regular Flag indicating how the sampling points are defined
   //!
-  //! \details When \a regular is \e true, it is assumed that the parameter
-  //! value array \a gpar forms a regular tensor-product point grid of dimension
+  //! \details The secondary solution is derived from the primary solution,
+  //! which is assumed to be stored within the \a integrand for current patch.
+  //! When \a regular is \e true, it is assumed that the parameter value array
+  //! \a gpar forms a regular tensor-product point grid of dimension
   //! \a gpar[0].size() \a X \a gpar[1].size() \a X \a gpar[2].size().
   //! Otherwise, we assume that it contains the \a u, \a v and \a w parameters
   //! directly for each sampling point.

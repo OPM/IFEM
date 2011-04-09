@@ -1,4 +1,4 @@
-// $Id: ASMmxBase.C,v 1.1 2010-12-29 18:41:38 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMmxBase.C
@@ -23,7 +23,7 @@ ASMmxBase::ASMmxBase (unsigned char n_f1, unsigned char n_f2, bool geo1)
 }
 
 
-void ASMmxBase::init (const std::vector<int>& MLGN, const int* sysMadof)
+void ASMmxBase::initMx (const std::vector<int>& MLGN, const int* sysMadof)
 {
   MADOF.resize(MLGN.size());
   for (size_t i = 0; i < MADOF.size(); i++)
@@ -31,7 +31,7 @@ void ASMmxBase::init (const std::vector<int>& MLGN, const int* sysMadof)
 }
 
 
-void ASMmxBase::extrNodeVec (const Vector& globRes, Vector& nodeVec) const
+void ASMmxBase::extractNodeVecMx (const Vector& globRes, Vector& nodeVec) const
 {
   nodeVec.resize(nf1*nb1 + nf2*nb2);
 
@@ -50,4 +50,43 @@ void ASMmxBase::extrNodeVec (const Vector& globRes, Vector& nodeVec) const
     for (j = 0; j < nf2; j++, ldof++)
       nodeVec[ldof] = globRes[idof++];
   }
+}
+
+
+bool ASMmxBase::getSolutionMx (Matrix& sField, const Vector& locSol,
+			       const std::vector<int>& nodes) const
+{
+  if (nodes.empty()) return true;
+
+  int low, high, nvar;
+  if ((size_t)nodes.front() <= nb1)
+  {
+    nvar = nf1;
+    low  = 1;
+    high = nb1;
+  }
+  else
+  {
+    nvar = nf2;
+    low  = nb1+1;
+    high = nb1+nb2;
+  }
+
+  sField.resize(nvar,nodes.size());
+  for (size_t i = 0; i < nodes.size(); i++)
+    if (nodes[i] < low || nodes[i] > high)
+    {
+      std::cerr <<" *** ASMmxBase::getSolutionMx: Node #"<< nodes[i]
+		<<" is out of range ["<< low <<","<< high <<"]."<< std::endl;
+      return false;
+    }
+    else
+    {
+      int idof = nvar*(nodes[i]-1);
+      if (low > 1) idof += nf1*nb1;
+      for (int j = 0; j < nvar; j++)
+	sField(j+1,i+1) = locSol[idof++];
+    }
+
+  return true;
 }

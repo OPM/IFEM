@@ -27,11 +27,9 @@ class ASMs3DLag : public ASMs3D
 {
 public:
   //! \brief Constructor creating an instance by reading the given file.
-  ASMs3DLag(const char* fileName, bool checkRHS = false, unsigned char n_f = 3);
+  ASMs3DLag(const char* fNam = 0, bool checkRHS = false, unsigned char n_f = 3);
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs3DLag(std::istream& is, bool checkRHS = false, unsigned char n_f = 3);
-  //! \brief Default constructor creating an empty patch.
-  ASMs3DLag(unsigned char n_f = 3) : ASMs3D(n_f) {}
   //! \brief Empty destructor.
   virtual ~ASMs3DLag() {}
 
@@ -112,8 +110,9 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] gpar Parameter values of the result sampling points
+  //! \param[in] regular Flag indicating how the sampling points are defined
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-			    const RealArray* gpar, bool = true) const;
+			    const RealArray* gpar, bool regular = true) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \details The number of visualization points is the same as the order of
@@ -127,8 +126,9 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] gpar Parameter values of the result sampling points
+  //! \param[in] regular Flag indicating how the sampling points are defined
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
-			    const RealArray* gpar, bool = true) const;
+			    const RealArray* gpar, bool regular = true) const;
 
 protected:
 

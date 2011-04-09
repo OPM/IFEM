@@ -27,11 +27,9 @@ class ASMs2DLag : public ASMs2D
 {
 public:
   //! \brief Constructor creating an instance by reading the given file.
-  ASMs2DLag(const char* fileName, unsigned char n_s = 2, unsigned char n_f = 2);
+  ASMs2DLag(const char* fNam = 0, unsigned char n_s = 2, unsigned char n_f = 2);
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs2DLag(std::istream& is, unsigned char n_s = 2, unsigned char n_f = 2);
-  //! \brief Default constructor creating an empty patch.
-  ASMs2DLag(unsigned char n_s = 2, unsigned char n_f = 2) : ASMs2D(n_s,n_f) {}
   //! \brief Empty destructor.
   virtual ~ASMs2DLag() {}
 
@@ -104,8 +102,9 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] gpar Parameter values of the result sampling points
+  //! \param[in] regular Flag indicating how the sampling points are defined
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-			    const RealArray* gpar, bool = true) const;
+			    const RealArray* gpar, bool regular = true) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \details The number of visualization points is the same as the order of
@@ -119,8 +118,9 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] gpar Parameter values of the result sampling points
+  //! \param[in] regular Flag indicating how the sampling points are defined
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
-			    const RealArray* gpar, bool = true) const;
+			    const RealArray* gpar, bool regular = true) const;
 
 protected:
 

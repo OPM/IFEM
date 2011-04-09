@@ -1,4 +1,4 @@
-// $Id: ASMmxBase.h,v 1.1 2010-12-29 18:41:38 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMmxBase.h
@@ -33,12 +33,19 @@ protected:
   //! \brief Initializes the patch level MADOF array.
   //! \param[in] MLGN Matrix of local-to-global node numbers
   //! \param[out] sysMadof System-level matrix of accumulated DOFs
-  void init(const std::vector<int>& MLGN, const int* sysMadof);
+  void initMx(const std::vector<int>& MLGN, const int* sysMadof);
 
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order
   //! \param[out] nodeVec Nodal result vector for this patch
-  void extrNodeVec(const Vector& globVec, Vector& nodeVec) const;
+  void extractNodeVecMx(const Vector& globVec, Vector& nodeVec) const;
+
+  //! \brief Extract the primary solution field at the specified nodes.
+  //! \param[out] sField Solution field
+  //! \param[in] locSol Solution vector local to current patch
+  //! \param[in] nodes 1-based local node numbers to extract solution for
+  bool getSolutionMx(Matrix& sField, const Vector& locSol,
+		     const std::vector<int>& nodes) const;
 
 private:
   std::vector<int> MADOF; //!< Matrix of accumulated DOFs for this patch
