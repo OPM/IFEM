@@ -1,0 +1,16 @@
+# $Id$
+# Pipe joint with shear-loaded brace.
+# Static linear-elastic analysis.
+# 10-patch model, cubic NURBS elements.
+
+PATCHFILE    pipe_bifurcation.g2
+NODEFILE     pipe_bifurcation.gno
+PROPERTYFILE pipe_bifurcation.prc
+
+DIRICHLET 1
+# code
+  123
+
+CONSTANT_PRESSURE 1
+# code dir pval
+  1001 1   1.0e8

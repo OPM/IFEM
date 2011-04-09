@@ -1,0 +1,28 @@
+# $Id$
+# Infinite membrane with a circular hole.
+# Neumann boundary conditions from analytical solution.
+# Static linear-elastic analysis, cubic NURBS elements.
+
+PATCHES 1
+hole2D.g2
+
+REFINE 1
+# patch ru rv
+  1     3  3
+
+CONSTRAINTS 2
+# patch edge code
+  1     1    1
+  1     2    2
+
+# Analytical solution
+# Specifier a   F0   nu
+ANASOL Hole 1.0 10.0 0.3
+
+PRESSURE 1
+# patch edge
+  1     4
+
+ISOTROPIC 1
+# code E      nu  rho
+  0    1000.0 0.3 0.0

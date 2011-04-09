@@ -1,0 +1,35 @@
+# $Id$
+# Square plate subjected to in-plane compression.
+# Linearized buckling analysis, quadratic splines.
+
+PATCHES 1
+plate_10x10x01.g2
+
+RAISEORDER 1
+# patch ru rv rw
+  1     1  1  1
+
+REFINE 1
+# patch ru rv rw
+  1     6  6  0
+
+CONSTRAINTS 4
+# patch line code par
+  1     11   3    0.5
+  1     12   3    0.5
+  1     23   3    0.5
+  1     24   3    0.5
+
+FIXPOINTS 2
+# patch rx  ry  rz  code
+  1     0.0 0.0 0.5 123
+  1     0.0 1.0 0.5 13
+
+PRESSURE 2
+# patch face dir pressure
+  1     1    1    10.0
+  1     2    1   -10.0
+
+ISOTROPIC 1
+# code E     nu  rho
+  0    10.92 0.3 1.0e-6

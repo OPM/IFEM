@@ -1,0 +1,24 @@
+# $Id$
+# Thick cylinder with internal pressure.
+# Static linear-elastic analysis, quartic NURBS elements.
+
+PATCHES 1
+cylinder.g2
+
+CONSTRAINTS 4
+# patch face code
+  1     5    3
+  1     6    3
+# patch corner code
+  1     -1     123
+  1     -3      23
+
+PERIODIC 1
+# patch direction
+  1     1
+
+PRESSURE 1
+# patch face direction pressure
+  1     3    0         -1.0e6
+
+LOCAL_SYSTEM CYLINDRICZ
