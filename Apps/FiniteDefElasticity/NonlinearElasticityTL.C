@@ -95,7 +95,7 @@ bool NonlinearElasticityTL::evalInt (LocalIntegral*& elmInt,
     return false;
 
   // Evaluate the constitutive relation
-  bool lHaveStrains = !E.isZero();
+  bool lHaveStrains = !E.isZero(1.0e-16);
   if (eKm || eKg || iS)
   {
     double U;

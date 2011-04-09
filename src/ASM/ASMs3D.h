@@ -344,7 +344,7 @@ protected:
   //! \param[in] basis Which basis to connect the nodes for (mixed methods)
   //! \param[in] slave 0-based index of the first slave node in this basis
   //! \param[in] master 0-based index of the first master node in this basis
-  bool connectBasis(int edge, ASMs3D& neighbor, int nedge, int norient,
+  bool connectBasis(int face, ASMs3D& neighbor, int nface, int norient,
 		    int basis = 1, int slave = 0, int master = 0);
 
   //! \brief Calculates parameter values for visualization nodal points.

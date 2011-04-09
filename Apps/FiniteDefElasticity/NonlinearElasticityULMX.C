@@ -148,7 +148,7 @@ bool NonlinearElasticityULMX::evalInt (LocalIntegral*& elmInt,
 
   ItgPtData& ptData = myData[iP++];
 
-#if INT_DEBUG > 0
+#if INT_DEBUG > 1
   std::cout <<"NonlinearElasticityUL::dNdX ="<< fe.dNdX;
 #endif
 
@@ -289,7 +289,7 @@ bool NonlinearElasticityULMX::finalizeElement (LocalIntegral*& elmInt,
       }
     }
 
-#if INT_DEBUG > 0
+#if INT_DEBUG > 1
     std::cout <<"NonlinearElasticityULMX::J1 ="<< J1;
     std::cout <<"NonlinearElasticityULMX::J2 ="<< J2;
     for (i = 0; i < nPM; i++)
@@ -305,7 +305,7 @@ bool NonlinearElasticityULMX::finalizeElement (LocalIntegral*& elmInt,
       for (j = 1; j <= nPM; j++)
 	Hg[i-1].add(Gg[j-1],Hi(i,j));
 
-#if INT_DEBUG > 0
+#if INT_DEBUG > 1
     std::cout <<"NonlinearElasticityULMX::Hj1 ="<< Hj1;
     std::cout <<"NonlinearElasticityULMX::Hj2 ="<< Hj2;
     for (i = 0; i < nPM; i++)
@@ -338,7 +338,7 @@ bool NonlinearElasticityULMX::finalizeElement (LocalIntegral*& elmInt,
     pt.Fp *= pow(fabs(Theta(2,iP)/pt.Fp.det()),1.0/3.0);
   }
 
-#if INT_DEBUG > 0
+#if INT_DEBUG > 1
   std::cout <<"NonlinearElasticityULMX::detF ="<< detF;
   std::cout <<"NonlinearElasticityULMX::Theta ="<< Theta;
   for (iP = 0; iP < nGP; iP++)
@@ -537,7 +537,7 @@ bool ElasticityNormULMX::finalizeElement (LocalIntegral*& elmInt,
     // Calculate Hj = Hi*Ji
     if (!Hi.multiply(Ji,Hj)) return false;
 
-#if INT_DEBUG > 0
+#if INT_DEBUG > 1
     std::cout <<"ElasticityNormULMX::Ji ="<< Ji;
     std::cout <<"ElasticityNormULMX::Hj ="<< Hj;
 #endif
@@ -547,7 +547,7 @@ bool ElasticityNormULMX::finalizeElement (LocalIntegral*& elmInt,
       Theta[iP] = Hj.dot(elp.myData[iP].Phi);
   }
 
-#if INT_DEBUG > 0
+#if INT_DEBUG > 1
   std::cout <<"ElasticityNormULMX::Theta ="<< Theta;
 #endif
 

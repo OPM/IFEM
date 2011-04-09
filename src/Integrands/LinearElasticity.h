@@ -1,4 +1,4 @@
-// $Id: LinearElasticity.h,v 1.21 2011-02-08 09:06:02 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file LinearElasticity.h
@@ -19,6 +19,9 @@
 
 /*!
   \brief Class representing the integrand of the linear elasticity problem.
+  \details Most methods of this class are inherited form the base class.
+  Only the \a evalInt and \a evalBou methods, which are specific for linear
+  elasticity problems (and not used in nonlinear problems) are implemented here.
 */
 
 class LinearElasticity : public Elasticity

@@ -43,7 +43,7 @@ public:
   //! \brief The destructor frees the dynamically allocated data objects.
   virtual ~Elasticity();
 
-  //! \brief Prints out problem definition to the given output stream.
+  //! \brief Prints out the problem definition to the given output stream.
   virtual void print(std::ostream& os) const;
 
   //! \brief Defines the solution mode before the element assembly is started.
@@ -113,7 +113,7 @@ public:
   //! \param vtf The VTF-file object to receive the tractions
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter
-  bool writeGlvT(VTF* vtf, int iStep, int& nBlock) const;
+  virtual bool writeGlvT(VTF* vtf, int iStep, int& nBlock) const;
 
   //! \brief Returns whether there are any traction values to write to VTF.
   virtual bool hasTractionValues() const { return !tracVal.empty(); }
@@ -125,7 +125,7 @@ public:
   //! \param[in] asol Pointer to analytical solution fields (optional)
   virtual NormBase* getNormIntegrand(AnaSol* asol = 0) const;
 
-  //! \brief Returns the number of secondary solution fields.
+  //! \brief Returns the number of secondary solution field components.
   virtual size_t getNoFields() const;
 
   //! \brief Returns the name of a secondary solution field component.

@@ -113,7 +113,7 @@ bool NonlinearElasticityUL::evalInt (LocalIntegral*& elmInt,
   if (!this->kinematics(fe.dNdX,F,E))
     return false;
 
-  bool lHaveStrains = !E.isZero();
+  bool lHaveStrains = !E.isZero(1.0e-16);
   if (lHaveStrains)
   {
     // Invert the deformation gradient ==> Fi

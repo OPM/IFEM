@@ -100,7 +100,7 @@ public:
   //! \param vtf The VTF-file object to receive the tractions
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter
-  bool writeGlvT(VTF* vtf, int iStep, int& nBlock) const;
+  virtual bool writeGlvT(VTF* vtf, int iStep, int& nBlock) const;
 
   //! \brief Returns whether there are any traction values to write to VTF.
   virtual bool hasTractionValues() const { return !tracVal.empty(); }
@@ -112,7 +112,7 @@ public:
   //! \param[in] asol Pointer to analytical solution (optional)
   virtual NormBase* getNormIntegrand(AnaSol* asol = 0) const;
 
-  //! \brief Returns the number of secondary solution fields.
+  //! \brief Returns the number of secondary solution field components.
   virtual size_t getNoFields() const { return nsd; }
 
   //! \brief Returns the name of a secondary solution field component.

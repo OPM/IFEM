@@ -1,0 +1,26 @@
+// $Id$
+//==============================================================================
+//!
+//! \file FiniteDefElasticity.dox
+//!
+//! \date Apr 01 2011
+//!
+//! \author Knut Morten Okstad / SINTEF
+//!
+//! \brief File containing the Main Page of the FiniteDeformation documentation.
+//!
+//==============================================================================
+
+/*! \mainpage An IFEM simulator for finite deformation problems
+
+\author Knut Morten Okstad, Sintef ICT, Trondheim
+
+\section intro Introduction
+
+This is an application built on the IFEM toolbox for conducting finite
+deformation simulations of solid mechanics problems with linear and nonlinear
+material behavior. Both hyperelastic and elasto-plastic materials are supported.
+
+This documentation also contain all classes of the IFEM toolbox itelself, in
+addition to the specific classes for doing finite deformation simulations.
+*/

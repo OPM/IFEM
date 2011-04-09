@@ -65,19 +65,19 @@ bool LinearMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
   }
 
   // C = 1/J * T^t * C * T
-  Ctmp.multiply(C,T);
-  C.multiply(T,Ctmp,true);
+  C.multiply(T,Ctmp.multiply(C,T),true);
   C *= 1.0/J;
-#if INT_DEBUG > 0
+#ifdef INT_DEBUG
   std::cout <<"LinearMaterial::C ="<< C;
 #endif
 
   if (iop == 1)
   {
     // Push-forward the stress tensor to current configuration
-    sigma.transform(F); // sigma = F * sigma * F^t
+    // sigma = 1/J * F * sigma * F^t
+    sigma.transform(F);
     sigma *= 1.0/J;
-#if INT_DEBUG > 0
+#ifdef INT_DEBUG
     std::cout <<"LinearMaterial::sigma =\n"<< sigma;
 #endif
   }

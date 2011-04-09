@@ -1,5 +1,5 @@
-      subroutine cons3d (ipsw, iter, iwr, lfirst, mTYP, mVER, nHV, nTM,
-     &                   detF, F, pMAT, HV, Engy, Sig, Cst, ierr)
+      subroutine cons3d (ipsw, iter, iwr, lfirst, mTYP, mVER, nHV, nSig,
+     &                   nTM, detF, F, pMAT, HV, Engy, Sig, Cst, ierr)
 C
 C ----------------------------------------------------------------------
 C
@@ -31,7 +31,8 @@ C              = 1 : No equilibrium configuration has been computed
 C     mTYP     - Material type number
 C     mVER     - Material version number
 C     nHV      - Number of history parameters/stress points
-C     nTM      - Number og stress/strain components per point
+C     nSig     - Number of stress components per point
+C     nTM      - Number og strain components per point
 C     detF     - Determinant of the deformation gradient
 C     F        - Deformation gradient
 C     pMAT     - Material property array
@@ -83,7 +84,7 @@ C ---------------------------------------------------------------------
 C
       implicit  none
 C
-      integer   mTYP, mVER, ipsw, iter, iwr, lfirst, nHV, nTM, ierr
+      integer   mTYP, mVER, ipsw, iter, iwr, lfirst, nHV,nSig,nTM, ierr
       real*8    detF, Engy, F(3,*), pMAT(*), Sig(*), Cst(*), HV(*)
 C
       real*8    Bmod, Emod, Pratio, Smod
@@ -104,6 +105,7 @@ C
               write(iwr,9020) 'mTYP   =', mTYP
               write(iwr,9020) 'mVER   =', mVER
               write(iwr,9020) 'nHV    =', nHV
+              write(iwr,9020) 'nSig   =', nSig
               write(iwr,9020) 'nTM    =', nTM
               write(iwr,9030) 'detF   =', detF
               write(iwr,9030) 'pMAT   =', pMAT(1:2)
@@ -182,12 +184,12 @@ C
                                                   go to 7100
          endif
 C
-      elseif (abs(mTYP) .eq. 40)                  then
+      elseif (abs(mTYP) .eq. 40 .and. nHV .ge. 10) then
 C
 C         Finite stretch plasticity model
 C
-         call plas3d(ipsw, iwr, iter, lfirst, ntm, pMAT, detF, F(1,1),
-     &               F(1,4), HV(1), HV(7), HV(8), Sig, Cst, ierr)
+         call plas3d(ipsw, iwr, iter, lfirst, nSig, nTM, pMAT, detF,
+     &               F(1,1),F(1,4), HV(1),HV(7),HV(8), Sig, Cst, ierr)
          if (ierr .lt. 0)                         go to 7000
 C
          Engy = zero
@@ -220,6 +222,7 @@ C     ----------
       write(iwr,9020) 'mTYP   =', mTYP
       write(iwr,9020) 'mVER   =', mVER
       write(iwr,9020) 'nHV    =', nHV
+      write(iwr,9020) 'nSig   =', nSig
       write(iwr,9020) 'nTM    =', nTM
       write(iwr,9030) 'detF   =', detF
       write(iwr,9030) 'pMAT   =', pMAT(1:2)
@@ -229,7 +232,7 @@ C
       write(iwr,9010) 'WITH OUTPUT ARGUMENTS'
       write(iwr,9030) 'Engy   =', Engy
       call rprin0(HV  , 1,  nHV, 'HV    ', iwr)
-      call rprin0(Sig , 1,    6, 'Sig   ', iwr)
+      call rprin0(Sig , 1, nSig, 'Sig   ', iwr)
       call rprin0(Cst , 6,    6, 'Cst   ', iwr)
       call flush(iwr)
                                                   go to 8010
@@ -244,7 +247,7 @@ C
               write(iwr,9010) 'WITH OUTPUT ARGUMENTS'
               write(iwr,9030) 'Engy   =', Engy
               call rprin0(HV  , 1,  nHV, 'HV    ', iwr)
-              call rprin0(Sig , 1,    6, 'Sig   ', iwr)
+              call rprin0(Sig , 1, nSig, 'Sig   ', iwr)
               call rprin0(Cst , 6,    6, 'Cst   ', iwr)
           endif
           call flush(iwr)

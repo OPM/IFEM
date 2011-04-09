@@ -16,6 +16,7 @@
 #include "FiniteElement.h"
 #include "ElmMats.h"
 #include "Utilities.h"
+#include "Vec3Oper.h"
 
 #ifdef USE_FTNMAT
 extern "C" {
@@ -39,14 +40,14 @@ extern "C" {
 #endif
 
 
-//! \brief Enum for element-level solution vectors
-enum DisplacementVectors {
+//! \brief Enum for element-level solution vectors.
+enum SolutionVectors {
   U = 0, // displacement
   T = 1, // volumetric change (theta)
   P = 2  // pressure
 };
 
-//! \brief Enum for element-level right-hand-side vectors
+//! \brief Enum for element-level right-hand-side vectors.
 enum ResidualVectors {
   Ru = 3,
   Rt = 4,
@@ -55,7 +56,7 @@ enum ResidualVectors {
   NVEC = 7
 };
 
-//! \brief Enum for element-level left-hand-side matrices
+//! \brief Enum for element-level left-hand-side matrices.
 enum TangentMatrices {
   Kuu = 0,
   Kut = 1,
@@ -104,7 +105,7 @@ const Matrix& NonlinearElasticityULMixed::MixedElmMats::getNewtonMatrix () const
 	    <<"\nKtp ="<< A[Ktp];
 #endif
 
-  Matrix& N = const_cast<Matrix&>(A.back());
+  Matrix& N = const_cast<Matrix&>(A[Ktan]);
 
   size_t i, j;
   size_t n = A[Kuu].rows();
@@ -137,9 +138,9 @@ const Matrix& NonlinearElasticityULMixed::MixedElmMats::getNewtonMatrix () const
     }
 
 #if INT_DEBUG > 0
-  std::cout <<"\nNewton matrix ="<< A.back();
+  std::cout <<"\nNewton matrix ="<< A[Ktan];
 #endif
-  return A.back();
+  return A[Ktan];
 }
 
 
@@ -165,7 +166,7 @@ const Vector& NonlinearElasticityULMixed::MixedElmMats::getRHSVector () const
   if (withLHS)
     std::cout <<"\nRt ="<< b[Rt] <<"\nRp ="<< b[Rp];
 #endif
-  Vector& R = const_cast<Vector&>(b.back());
+  Vector& R = const_cast<Vector&>(b[Rres]);
 
   size_t i;
   size_t n = b[Ru].size();
@@ -184,9 +185,9 @@ const Vector& NonlinearElasticityULMixed::MixedElmMats::getRHSVector () const
     std::fill(R.begin()+n,R.end(),0.0);
 
 #if INT_DEBUG > 0
-  std::cout <<"\nRHS ="<< b.back();
+  std::cout <<"\nRHS ="<< b[Rres];
 #endif
-  return b.back();
+  return b[Rres];
 }
 
 
@@ -237,10 +238,18 @@ void NonlinearElasticityULMixed::setMode (SIM::SolutionMode mode)
 }
 
 
+#if INT_DEBUG
+static int iP = 0;
+#endif
+
 bool NonlinearElasticityULMixed::initElement (const std::vector<int>& MNPC1,
 					      const std::vector<int>& MNPC2,
 					      size_t n1)
 {
+#if INT_DEBUG
+  iP = 0;
+#endif
+
   const size_t nen1 = MNPC1.size();
   const size_t nen2 = MNPC2.size();
   const size_t nedof = nsd*nen1 + 2*nen2;
@@ -249,11 +258,11 @@ bool NonlinearElasticityULMixed::initElement (const std::vector<int>& MNPC1,
   myMats->A[Kup].resize(nsd*nen1,nen2,true);
   myMats->A[Ktt].resize(nen2,nen2,true);
   myMats->A[Ktp].resize(nen2,nen2,true);
-  myMats->A.back().resize(nedof,nedof,true);
+  myMats->A[Ktan].resize(nedof,nedof,true);
 
   myMats->b[Rt].resize(nen2,true);
   myMats->b[Rp].resize(nen2,true);
-  myMats->b.back().resize(nedof,true);
+  myMats->b[Rres].resize(nedof,true);
 
   // Extract the element level volumetric change and pressure vectors
   int ierr = 0;
@@ -277,7 +286,7 @@ bool NonlinearElasticityULMixed::initElementBou (const std::vector<int>& MNPC1,
   const size_t nedof = nsd*nen1 + 2*nen2;
 
   myMats->b[Ru].resize(nsd*nen1,true);
-  myMats->b.back().resize(nedof,true);
+  myMats->b[Rres].resize(nedof,true);
 
   // Extract the element level displacement vector
   int ierr = 0;
@@ -296,25 +305,30 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
 					    const TimeDomain& prm,
 					    const Vec3& X) const
 {
+#if INT_DEBUG > 0
+  std::cout <<"\n\n *** Entering NonlinearElasticityULMixed::evalIntMx: iP = "
+	    << ++iP <<", (X,t) = "<< X << std::endl;
+#endif
+
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E
   Tensor F(nsd);
   SymmTensor E(nsd);
   if (!this->kinematics(fe.dN1dX,F,E))
     return false;
 
-  bool lHaveStrains = !E.isZero();
+  bool lHaveStrains = !E.isZero(1.0e-16);
 
   // Evaluate the volumetric change and pressure fields
   double Theta = fe.N2.dot(myMats->b[T]) + 1.0;
   double Press = fe.N2.dot(myMats->b[P]);
-#if INT_DEBUG > 0
-  std::cout <<"NonlinearElasticityULMixed::b_theta ="<< myMats->b[T];
-  std::cout <<"NonlinearElasticityULMixed::b_p ="<< myMats->b[P];
-  std::cout <<"Theta = "<< Theta <<" Press = "<< Press << std::endl;
-#endif
-
   // Compute the mixed integration point volume
   double dVol = Theta*fe.detJxW;
+#if INT_DEBUG > 0
+  std::cout <<"NonlinearElasticityULMixed::Theta = "<< Theta
+	    <<", Press = "<< Press <<", dVol = "<< dVol << std::endl;
+  std::cout <<"NonlinearElasticityULMixed::b_theta ="<< myMats->b[T];
+  std::cout <<"NonlinearElasticityULMixed::b_p ="<< myMats->b[P];
+#endif
 
   // Compute the mixed model deformation gradient, F_bar
   Fbar = F; // notice that F_bar always has dimension 3
@@ -337,7 +351,8 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
 #if INT_DEBUG > 0
   std::cout <<"NonlinearElasticityULMixed::dNdX ="<< fe.dN1dX;
   std::cout <<"NonlinearElasticityULMixed::dNdx ="<< dNdx;
-  std::cout <<"NonlinearElasticityULMixed::Fbar ="<< Fbar;
+  std::cout <<"NonlinearElasticityULMixed::Fbar =\n"<< Fbar;
+  std::cout <<"NonlinearElasticityULMixed::E =\n"<< E;
 #endif
 
   if (eM)
@@ -356,9 +371,8 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
 
 #ifdef USE_FTNMAT
   // Project the constitutive matrix for the mixed model
-  int ipsw = INT_DEBUG > 1 ? 9 : 0;
-  pcst3d_(Cmat.ptr(),Dmat.ptr(),ipsw,6);
-#if INT_DEBUG == 1
+  pcst3d_(Cmat.ptr(),Dmat.ptr(),INT_DEBUG,6);
+#if INT_DEBUG > 0
   std::cout <<"NonlinearElasticityULMixed::Dmat ="<< Dmat;
 #endif
 #else
@@ -377,7 +391,7 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
   }
 
 #ifdef USE_FTNMAT
-  mdma3d_(Bpres,Mpres,Sig.ptr(),Dmat.ptr(),ipsw,6);
+  mdma3d_(Bpres,Mpres,Sig.ptr(),Dmat.ptr(),INT_DEBUG,6);
 
   // Integrate the material stiffness matrix
   Dmat *= dVol;
@@ -414,7 +428,8 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
   if (lHaveStrains)
   {
     // Compute the small-deformation strain-displacement matrix B from dNdx
-    if (!this->Elasticity::formBmatrix(dNdx)) return false;
+    if (!this->Elasticity::formBmatrix(dNdx))
+      return false;
 
     // Integrate the internal forces
     Sigma *= -dVol;
@@ -424,6 +439,12 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
     // Integrate the volumetric change and pressure forces
     myMats->b[Rt].add(fe.N2,(Press - Bpres)*fe.detJxW); // += N2*(p-pBar)*|J|
     myMats->b[Rp].add(fe.N2,(Theta - J)*fe.detJxW);     // += N2*(Theta-J)*|J|
+
+#if INT_DEBUG > 4
+    std::cout <<"NonlinearElasticityULMixed::Sigma*dVol =\n"<< Sigma;
+    std::cout <<"NonlinearElasticityULMixed::Bmat ="<< Bmat;
+    std::cout <<"NonlinearElasticityULMixed::Ru("<< iP <<") ="<< myMats->b[Ru];
+#endif
   }
 
   return this->getIntegralResult(elmInt);

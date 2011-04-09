@@ -32,7 +32,7 @@ class LinearMaterial : public Material
 {
 public:
   //! \brief The constructor initializes the material properties pointer.
-  //! \param[in] Pointer to material model for linear elastic analysis.
+  //! \param[in] mat Pointer to material model for linear elastic analysis
   LinearMaterial(const Material* mat) : material(mat) {}
   //! \brief The destructor deletes the material properties object.
   virtual ~LinearMaterial() { delete material; }

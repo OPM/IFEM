@@ -1,4 +1,4 @@
-      subroutine plas3d (ipsw, iwr, iter, lfirst, ntm, pMAT, detF,
+      subroutine plas3d (ipsw, iwr, iter, lfirst, nSig, nTM, pMAT, detF,
      &                   Fn1, Fn, be, Epp, Epl, Sig, Cst, ierr)
 C
 C ----------------------------------------------------------------------
@@ -37,8 +37,9 @@ C     lFIRST   - Control variable
 C                = 0 : The number of computed equilibrium configurations
 C                      are greater or equal to one
 C                = 1 : No equilibrium configuration has been computed
-C     ntm      - Number of stress/strain components pr point
-C     pMAT     - Material properties:
+C     nSig     - Number of stress components pr point
+C     nTM      - Number of strain components pr point
+C     pMAT(13) - Material properties:
 C                pMAT(1) = Emod : Elastic Bulk  modulus
 C                pMAT(2) = Poissons ratio
 C                pMAT(5) = Bmod : Bulk modulus
@@ -66,10 +67,9 @@ C History variables:
 C     be(*)    - Left Cauchy-Green deformation tensor    at t_n+1
 C     Epp      - Cumulative plastic strain               at t_n+1
 C     Epl(*)   - Plastic Strain for Hardening            at t_n+1
-C     Sig(6)   - Cauchy stresses (spatial stresses)
+C     Sig(*)   - Cauchy stresses (spatial stresses)
 C     Cst(6,6) - Spatial constitutive tensor
 C     ierr     - Error flag
-C               = 1 : Illegal number of element nodes
 C
 C COMMON BLOCKS:
 C     const
@@ -85,8 +85,8 @@ C     tau(3)    - principal values   total    Kirchhoff stress
 C     tt(3)     - principal values deviatoric Kirchhoff stress
 C     pp        - pressure         volumetric Kirchhoff stress
 C     dtde(3,3) - Kirchhoff stress derivative
-C                 dtde(a,b)   = [ d tau_a / d (lambda_b^2) ] * lambda_b^2
-C                             = [ d tau_a / d ( eps_b ) ] / 2.0d0
+C                 dtde(a,b) = [ d tau_a / d (lambda_b^2) ] * lambda_b^2
+C                           = [ d tau_a / d ( eps_b ) ] / 2.0d0
 C     Cstm(6,6) - spatial elastic moduli in principal basis
 C     yield     - yield function value
 C     yfunct    - yield function
@@ -118,7 +118,7 @@ C ---------------------------------------------------------------------
 C
       implicit  none
 C
-      integer   ipsw, iwr, istrt, iter, lfirst, ntm, ierr
+      integer   ipsw, iwr, istrt, iter, lfirst, nSig, nTM, ierr
       real*8    pMAT(*), detF, Fn1(3,3), Fn(3,3),
      &          Epp, be(*), Epl(*), Sig(*), Cst(6,6)
 C
@@ -134,13 +134,15 @@ C
       real*8    dtde(3,3), ff(6,6), Cstm(6,6), Eppn
       real*8    nn_t(3,3), nn(3), aa(3), bb(3)
       real*8    tolb, tolc, d_el, xx, f112, f123, yield, yfunct
+      real*8    temp
       logical   conv, state
+C
+      parameter ( itmax = 50, tolb = 1.0d-8, tolc = 1.0d-9 )
 C
       include 'include/feninc/const.h'
 C
       data     p1    /1,2,3,1,2,3/
       data     p2    /1,2,3,2,3,1/
-      data     tolb  / 1.0d-08 /
 C
 C         Entry section
 C
@@ -152,13 +154,14 @@ C
               write(iwr,9010) 'WITH INPUT ARGUMENTS'
               write(iwr,9020) 'iter   =', iter
               write(iwr,9020) 'lfirst =', lfirst
-              write(iwr,9020) 'ntm    =', ntm
+              write(iwr,9020) 'nSig   =', nSig
+              write(iwr,9020) 'nTM    =', nTM
               write(iwr,9030) 'detF   =', detF
               write(iwr,9030) 'Epp    =', Epp
               call rprin0(pMAT, 1,  13, 'pMAT  ', iwr)
               call rprin0(Fn1 , 3,   3, 'Fn1   ', iwr)
               call rprin0(Fn  , 3,   3, 'Fn    ', iwr)
-              call rprin0(be  , 1, ntm, 'be    ', iwr)
+              call rprin0(be  , 1, nTM, 'be    ', iwr)
               call rprin0(Epl , 1,   3, 'Epl   ', iwr)
           endif
       endif
@@ -186,9 +189,6 @@ C
       endif
 C
       TwoG  = two * Smod
-C
-      itmax = 50                       ! Iteration maximum #
-      tolc  = 1.d-09                   ! Tolerance for convergence
 C
 C     Check state for iterations
 C
@@ -259,10 +259,21 @@ C
 C     COMPUTE TRIAL KIRCHHOFF STRESS  ( pressure and deviator )
 C
       do a = 1, 3
-         ee_tr(a) = log( sqrt(ll2_tr(a)) ) ! log ( lambda(a)^TR )
+         temp = sqrt(ll2_tr(a))
+         ee_tr(a) = log(temp) ! log ( lambda(a)^TR )
+         if (ipsw .ge. 5)                         then
+            write(iwr,9030) 'll2_tr(a) =', ll2_tr(a)
+            write(iwr,9030) 'temp      =', temp
+            write(iwr,9030) 'ee_tr(a)  =', ee_tr(a)
+         end if
       end do ! a
 C
       th_tr = ee_tr(1) + ee_tr(2) + ee_tr(3)
+C
+      if (ipsw .ge. 5)                            then
+         write(iwr,9030) 'th_tr  =', th_tr
+         call rprin0(ee_tr, 1, 3, 'ee_tr ',iwr)
+      end if
 C
       ee_tr = ee_tr - one3*th_tr           ! Trial deviators
 C
@@ -270,7 +281,7 @@ C
       Eppn = Epp
 C
       tt    = TwoG * ee_tr ! Trial deviatoric stress
-      tau   = tt  + pp
+      tau   = tt + pp
       alp   = Hk * Epl(1:3)
       alp_n = alp
 C
@@ -363,7 +374,7 @@ C
 C
             do a = 1, 3
 C
-               tres(a,1:3) = fss(a,1:3) + d_el
+               tres(a,1:3) = fss(a,:) + d_el
 C
                tres(a,a) = tres(a,a) + G2inv
 C
@@ -393,7 +404,6 @@ C
 C
                call invert (7, 7, tres, ierrl)
                if (ierrl .lt. 0)                  go to 7000
-C             call invert(7,7,tres,ierrl)
 C
                do i = 1, 7
                  dsol(i) = - tres(i,1)*res(1)
@@ -418,7 +428,6 @@ C
 C
                call invert (7, 4, tres, ierrl)
                if (ierrl .lt. 0)                   go to 7000
-C            call invert(4,7,tres,ierrl)
 C
                do i = 1, 4
                   dsol(i) = - tres(i,1)*res(1)
@@ -434,8 +443,17 @@ C
 C
 C         Update Kirchhoff stress and plastic flow
 C
+            if (ipsw .ge. 5)                      then
+               call rprin0(tau , 1, 3, 'tau   ',iwr)
+               call rprin0(dsol, 1, 3, 'dsol  ',iwr)
+            end if
+C
             tau = tau + dsol(1:3)
             gam = gam + dsol(7)
+C
+            if (ipsw .ge. 5)                      then
+               call rprin0(tau , 1, 3, 'tau   ',iwr)
+            end if
 C
 C         Update accumulated plastic strain
 C
@@ -521,15 +539,21 @@ C     COMPUTE CAUCHY STRESS
 C
       detr = one / detF
 C
-      do i = 1, min(6,ntm)
+      if (ipsw .ge. 5)                            then
+         call rprin0(tau , 1, 3, 'tau   ',iwr)
+         call rprin0(nn_t, 3, 3, 'nn_t  ',iwr)
+      end if
+C
+      do i = 1, min(6,nSig)
          Sig(i) = (tau(1) * nn_t(p1(i),1)*nn_t(p2(i),1)
      &          +  tau(2) * nn_t(p1(i),2)*nn_t(p2(i),2)
      &          +  tau(3) * nn_t(p1(i),3)*nn_t(p2(i),3)) * detr
       end do ! i
 C
-      if (ntm .ge. 10) then
-         Sig( 9) = Epp                      ! Plastic strain for output
-         Sig(10) = sqrt(onep5)*(YY + yield) ! Yield stress value
+      if (nSig .ge. 10) then
+         Sig(7:8) = zero
+         Sig(  9) = Epp                      ! Plastic strain for output
+         Sig( 10) = sqrt(onep5)*(YY + yield) ! Yield stress value
       end if
 C
 C
@@ -579,7 +603,8 @@ C     ----------
       write(iwr,9010) 'WITH INPUT ARGUMENTS'
       write(iwr,9020) 'iter   =', iter
       write(iwr,9020) 'lfirst =', lfirst
-      write(iwr,9020) 'ntm    =', ntm
+      write(iwr,9020) 'nSig   =', nSig
+      write(iwr,9020) 'nTM    =', nTM
       write(iwr,9030) 'detF   =', detF
       call rprin0(pMAT, 1, 13, 'pMAT  ', iwr)
       call rprin0(Fn1 , 3,  3, 'Fn1   ', iwr)
@@ -587,9 +612,9 @@ C     ----------
 C
       write(iwr,9010) 'WITH OUTPUT ARGUMENTS'
       write(iwr,9030) 'Epp    =', Epp
-      call rprin0(be  , 1, ntm, 'be    ', iwr)
+      call rprin0(be  , 1, nTM, 'be    ', iwr)
       call rprin0(Epl , 1,   3, 'Epl   ', iwr)
-      call rprin0(Sig , 1, ntm, 'Sig   ', iwr)
+      call rprin0(Sig , 1,nSig, 'Sig   ', iwr)
       call rprin0(Cst , 6,   6, 'Cst   ', iwr)
                                                   go to 8010
 C
@@ -602,9 +627,9 @@ C
           if (ipsw .gt. 3)                        then
               write(iwr,9010) 'WITH OUTPUT ARGUMENTS'
               write(iwr,9030) 'Epp    =', Epp
-              call rprin0(be  , 1, ntm, 'be    ', iwr)
+              call rprin0(be  , 1, nTM, 'be    ', iwr)
               call rprin0(Epl , 1,   3, 'Epl   ', iwr)
-              call rprin0(Sig , 1, ntm, 'Sig   ', iwr)
+              call rprin0(Sig , 1,nSig, 'Sig   ', iwr)
               call rprin0(Cst , 6,   6, 'Cst   ', iwr)
           endif
           call flush(iwr)
