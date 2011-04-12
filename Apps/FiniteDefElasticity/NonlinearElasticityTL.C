@@ -11,7 +11,7 @@
 //!
 //==============================================================================
 
-#include "NonlinearElasticity.h"
+#include "NonlinearElasticityTL.h"
 #include "MaterialBase.h"
 #include "FiniteElement.h"
 #include "ElmMats.h"
@@ -99,7 +99,7 @@ bool NonlinearElasticityTL::evalInt (LocalIntegral*& elmInt,
   if (eKm || eKg || iS)
   {
     double U;
-    if (!material->evaluate(Cmat,S,U,X,F,E, (eKg || iS) && lHaveStrains))
+    if (!material->evaluate(Cmat,S,U,X,F,E, (eKg || iS) && lHaveStrains ? 2:0))
       return false;
   }
 

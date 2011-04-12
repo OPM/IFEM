@@ -29,7 +29,7 @@ bool LinearMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
   // Evaluate the constitutive matrix and the stress tensor at this point
   if (!material->evaluate(C,sigma,U,X,F,eps,iop,prm))
     return false;
-  else if (iop == 2)
+  else if (iop > 1)
     return true;
 
   double J = F.det();
@@ -43,7 +43,7 @@ bool LinearMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
   // Push-forward the constitutive matrix to current configuration
 
   size_t i, j, k, l;
-  size_t n = eps.dim();
+  size_t n = sigma.dim();
   size_t m = C.rows();
   Matrix T(m,m), Ctmp;
 

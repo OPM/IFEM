@@ -23,7 +23,7 @@ struct TimeDomain;
 
 
 /*!
-  \brief Base class representing a material model of a PDE problem.
+  \brief Base class representing a material model of a solid mechanics problem.
 */
 
 class Material
@@ -57,8 +57,9 @@ public:
   //! \param[in] iop Calculation option;
   //!  -1 : Calculate the inverse constitutive matrix only,
   //!   0 : Calculate the consitutive matrix only,
-  //!   1 : Cauchy stresses and the tangent constitutive matrix,
-  //!   2 : 2nd Piola-Kirchhoff stresses and the tangent constitutive matrix.
+  //!   1 : Calculate Cauchy stresses and the tangent constitutive matrix,
+  //!   2 : 2nd Piola-Kirchhoff stresses and tangent constitutive matrix,
+  //!   3 : Calculate the strain energy density only.
   //! \param[in] prm Nonlinear solution algorithm parameters
   virtual bool evaluate(Matrix& C, SymmTensor& sigma, double& U,
 			const Vec3& X, const Tensor& F, const SymmTensor& eps,

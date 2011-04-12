@@ -235,9 +235,9 @@ bool NonlinearElasticity::formStressTensor (const Matrix& dNdX, const Vec3& X,
   if (!this->kinematics(dNdX,F,E))
     return false;
 
-  // Evaluate the stress tensor, S, at this point
+  // Evaluate the 2nd Piola-Kirchhoff stress tensor, S, at this point
   double U;
-  return material->evaluate(Cmat,S,U,X,F,E);
+  return material->evaluate(Cmat,S,U,X,F,E,2);
 }
 
 
@@ -245,5 +245,5 @@ bool NonlinearElasticity::formTangent (Matrix& Ctan, SymmTensor& S,
 				       const Vec3& X, const Tensor& F) const
 {
   double U;
-  return material->evaluate(Ctan,S,U,X,F,E, !E.isZero(1.0e-16));
+  return material->evaluate(Ctan,S,U,X,F,E, E.isZero(1.0e-16) ? 0 : 2);
 }

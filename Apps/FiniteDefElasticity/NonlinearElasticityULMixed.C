@@ -15,6 +15,7 @@
 #include "MaterialBase.h"
 #include "FiniteElement.h"
 #include "ElmMats.h"
+#include "ElmNorm.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
 
@@ -321,13 +322,11 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
   // Evaluate the volumetric change and pressure fields
   double Theta = fe.N2.dot(myMats->b[T]) + 1.0;
   double Press = fe.N2.dot(myMats->b[P]);
-  // Compute the mixed integration point volume
-  double dVol = Theta*fe.detJxW;
 #if INT_DEBUG > 0
-  std::cout <<"NonlinearElasticityULMixed::Theta = "<< Theta
-	    <<", Press = "<< Press <<", dVol = "<< dVol << std::endl;
   std::cout <<"NonlinearElasticityULMixed::b_theta ="<< myMats->b[T];
   std::cout <<"NonlinearElasticityULMixed::b_p ="<< myMats->b[P];
+  std::cout <<"NonlinearElasticityULMixed::Theta = "<< Theta
+	    <<", Press = "<< Press << std::endl;
 #endif
 
   // Compute the mixed model deformation gradient, F_bar
@@ -348,11 +347,16 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
 
   // Push-forward the basis function gradients to current configuration
   dNdx.multiply(fe.dN1dX,Fi); // dNdx = dNdX * F^-1
+
+  // Compute the mixed integration point volume
+  double dVol = Theta*fe.detJxW;
+
 #if INT_DEBUG > 0
   std::cout <<"NonlinearElasticityULMixed::dNdX ="<< fe.dN1dX;
   std::cout <<"NonlinearElasticityULMixed::dNdx ="<< dNdx;
   std::cout <<"NonlinearElasticityULMixed::Fbar =\n"<< Fbar;
   std::cout <<"NonlinearElasticityULMixed::E =\n"<< E;
+  std::cout <<"NonlinearElasticityULMixed::dVol = "<< dVol << std::endl;
 #endif
 
   if (eM)
@@ -364,9 +368,9 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
     this->formBodyForce(*eS,fe.N1,X,J*fe.detJxW);
 
   // Evaluate the constitutive relation
-  SymmTensor Eps(3), Sig(3), Sigma(nsd);
+  SymmTensor Sig(3), Sigma(nsd);
   double U, Bpres = 0.0, Mpres = 0.0;
-  if (!material->evaluate(Cmat,Sig,U,X,Fbar,Eps=E,lHaveStrains,&prm))
+  if (!material->evaluate(Cmat,Sig,U,X,Fbar,E,lHaveStrains,&prm))
     return false;
 
 #ifdef USE_FTNMAT
@@ -463,4 +467,77 @@ bool NonlinearElasticityULMixed::evalBouMx (LocalIntegral*& elmInt,
 					    const Vec3& normal) const
 {
   return this->evalBou(elmInt,fe,X,normal);
+}
+
+
+NormBase* NonlinearElasticityULMixed::getNormIntegrand (AnaSol*) const
+{
+  NonlinearElasticityULMixed* ulp;
+  ulp = const_cast<NonlinearElasticityULMixed*>(this);
+  return new ElasticityNormULMixed(*ulp);
+}
+
+
+bool ElasticityNormULMixed::initElement (const std::vector<int>& MNPC1,
+					 const std::vector<int>& MNPC2,
+					 size_t n1)
+{
+  return static_cast<NonlinearElasticityULMixed&>(problem).initElement(MNPC1,
+								       MNPC2,
+								       n1);
+}
+
+
+bool ElasticityNormULMixed::initElementBou (const std::vector<int>& MNPC1,
+					    const std::vector<int>&, size_t)
+{
+  return problem.initElementBou(MNPC1);
+}
+
+
+bool ElasticityNormULMixed::evalIntMx (LocalIntegral*& elmInt,
+				       const MxFiniteElement& fe,
+				       const TimeDomain& prm,
+				       const Vec3& X) const
+{
+  ElmNorm& pnorm = ElasticityNorm::getElmNormBuffer(elmInt);
+
+  NonlinearElasticityULMixed* ulp;
+  ulp = static_cast<NonlinearElasticityULMixed*>(&problem);
+
+  // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E
+  Tensor F(fe.dN1dX.cols());
+  SymmTensor E(F.dim());
+  if (!ulp->kinematics(fe.dN1dX,F,E))
+    return false;
+
+  // Evaluate the volumetric change field
+  double Theta = fe.N2.dot(ulp->myMats->b[T]) + 1.0;
+
+  // Compute the mixed model deformation gradient, F_bar
+  ulp->Fbar = F; // notice that F_bar always has dimension 3
+  double r1 = pow(fabs(Theta/F.det()),1.0/3.0);
+
+  ulp->Fbar *= r1;
+  if (F.dim() == 2) // In 2D we always assume plane strain so set F(3,3)=1
+    ulp->Fbar(3,3) = r1;
+
+  // Compute the strain energy density, U(E) = Int_E (Sig:Eps) dEps
+  double U = 0.0;
+  SymmTensor Sig(3);
+  if (!ulp->material->evaluate(ulp->Cmat,Sig,U,X,ulp->Fbar,E,3,&prm))
+    return false;
+
+  // Integrate the energy norm a(u^h,u^h) = Int_Omega0 U(E) dV0
+  pnorm[0] += U*fe.detJxW;
+
+  return true;
+}
+
+
+bool ElasticityNormULMixed::evalBouMx (LocalIntegral*& elmInt,
+				       const MxFiniteElement& fe,
+				       const Vec3& X, const Vec3& normal) const
+{
+  return this->ElasticityNormUL::evalBou(elmInt,fe,X,normal);
 }

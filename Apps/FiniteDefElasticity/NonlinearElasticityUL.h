@@ -46,7 +46,7 @@ public:
   //! \brief Initializes the integrand for a new integration loop.
   //! \param[in] prm Nonlinear solution algorithm parameters
   virtual void initIntegration(const TimeDomain& prm);
-  //! \brief Initializes the integrand for a result point loop.
+  //! \brief Initializes the integrand for a new result point loop.
   //! \param[in] lambda Load parameter
   virtual void initResultPoints(double lambda);
 
@@ -105,8 +105,8 @@ private:
   \brief Class representing the integrand of the elasticity energy norm.
   \details This class reimplements the \a evalInt method to use the strain
   energy density value returned by the nonlinear constitutive model.
-  It also forwards the mixed interface methods to the corresponding single-field
-  methods of the parent class.
+  It also reimplements the \a evalBou method with a path integral of
+  the external energy due to boundary tractions.
 */
 
 class ElasticityNormUL : public ElasticityNorm
@@ -114,28 +114,13 @@ class ElasticityNormUL : public ElasticityNorm
 public:
   //! \brief The only constructor initializes its data members.
   //! \param[in] p The linear elasticity problem to evaluate norms for
-  ElasticityNormUL(NonlinearElasticityUL& p) : ElasticityNorm(p) {}
+  ElasticityNormUL(NonlinearElasticityUL& p) : ElasticityNorm(p), iP(0) {}
   //! \brief Empty destructor.
   virtual ~ElasticityNormUL() {}
 
   //! \brief Initializes the integrand for a new integration loop.
   //! \param[in] prm Nonlinear solution algorithm parameters
   virtual void initIntegration(const TimeDomain& prm);
-
-  //! \brief Initializes current element for numerical integration (mixed).
-  //! \param[in] MNPC1 Nodal point correspondance for the displacement field
-  virtual bool initElement(const std::vector<int>& MNPC1,
-                           const std::vector<int>&, size_t)
-  {
-    return this->ElasticityNorm::initElement(MNPC1);
-  }
-  //! \brief Initializes current element for boundary integration (mixed).
-  //! \param[in] MNPC1 Nodal point correspondance for the displacement field
-  virtual bool initElementBou(const std::vector<int>& MNPC1,
-			      const std::vector<int>&, size_t)
-  {
-    return this->ElasticityNorm::initElement(MNPC1);
-  }
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
@@ -144,21 +129,21 @@ public:
   //! \param[in] X Cartesian coordinates of current integration point
   virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
 		       const TimeDomain& prm, const Vec3& X) const;
-  //! \brief Evaluates the integrand at an interior point (mixed).
-  //! \param elmInt The local integral object to receive the contributions
-  //! \param[in] fe Mixed finite element data of current integration point
-  //! \param[in] prm Nonlinear solution algorithm parameters
-  //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool evalIntMx(LocalIntegral*& elmInt, const MxFiniteElement& fe,
-			 const TimeDomain& prm, const Vec3& X) const;
 
-  //! \brief Evaluates the integrand at a boundary point (mixed).
+  //! \brief Evaluates the integrand at a boundary point.
   //! \param elmInt The local integral object to receive the contributions
-  //! \param[in] fe Mixed finite element data of current integration point
+  //! \param[in] fe Finite element data of current integration point
   //! \param[in] X Cartesian coordinates of current integration point
   //! \param[in] normal Boundary normal vector at current integration point
-  virtual bool evalBouMx(LocalIntegral*& elmInt, const MxFiniteElement& fe,
-			 const Vec3& X, const Vec3& normal) const;
+  virtual bool evalBou(LocalIntegral*& elmInt, const FiniteElement& fe,
+		       const Vec3& X, const Vec3& normal) const;
+
+private:
+  // Data for path-integral of the external energy due to boundary tractions
+  mutable size_t            iP; //!< Global integration point counter
+  mutable RealArray         Ux; //!< External energy densities
+  mutable std::vector<Vec3> up; //!< Previous displacements
+  mutable std::vector<Vec3> tp; //!< Previous tractions
 };
 
 #endif

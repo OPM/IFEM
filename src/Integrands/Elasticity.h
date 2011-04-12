@@ -213,7 +213,7 @@ protected:
 
 
 /*!
-  \brief Class representing the integrand of linear elasticity energy norms.
+  \brief Class representing the integrand of elasticity energy norms.
 */
 
 class ElasticityNorm : public NormBase
@@ -231,6 +231,9 @@ public:
   //! \brief Returns a 1-based index of the external energy norm.
   virtual size_t indExt() const { return 2; }
 
+  //! \brief Initializes the integrand for a new integration loop.
+  //! \param[in] time Parameters for nonlinear and time-dependent simulations
+  virtual void initIntegration(const TimeDomain& time);
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   virtual bool initElement(const std::vector<int>& MNPC);
@@ -257,10 +260,10 @@ public:
   virtual size_t getNoFields() const;
 
 protected:
-  //! \brief Get the element norm object to use in the integration.
+  //! \brief Returns the element norm object to use in the integration.
   //! \param elmInt The local integral object to receive norm contributions
   //!
-  //! \details If \a elmInt is NULL or cannot be casted to a ElmNorm pointer,
+  //! \details If \a elmInt is NULL or cannot be casted to an ElmNorm pointer,
   //! a local static buffer is used instead.
   static ElmNorm& getElmNormBuffer(LocalIntegral*& elmInt);
 

@@ -42,14 +42,17 @@ public:
   //! \brief Evaluates the constitutive relation at an integration point.
   //! \param[out] C Constitutive matrix at current point
   //! \param[out] sigma Stress tensor at current point
-  //! \param[out] U Strain energy density
+  //! \param[out] U Strain energy density at current point
+  //! \param[in] X Cartesian coordinates of current point
   //! \param[in] F Deformation gradient at current point
+  //! \param[in] eps Strain tensor at current point
   //! \param[in] iop Calculation option;
   //!  0 : Calculate the consitutive matrix only,
   //!  1 : Cauchy stresses and the tangent constitutive matrix,
-  //!  2 : 2nd Piola-Kirchhoff stresses and the tangent constitutive matrix.
+  //!  2 : 2nd Piola-Kirchhoff stresses and the tangent constitutive matrix,
+  //!  3 : Calculate strain energy density only.
   virtual bool evaluate(Matrix& C, SymmTensor& sigma, double& U,
-			const Vec3&, const Tensor& F, const SymmTensor&,
+			const Vec3& X, const Tensor& F, const SymmTensor& eps,
 			char iop = 1, const TimeDomain* = 0) const;
 
 private:

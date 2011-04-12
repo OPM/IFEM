@@ -32,11 +32,11 @@ protected:
   const t_ind       n; //!< Number of spatial dimensions for the tensor
   std::vector<real> v; //!< The actual tensor component values
 
-  //! \brief Return a 0-based array index for the given tensor indices.
+  //! \brief Returns a 0-based array index for the given tensor indices.
   //! \details Assuming column-wise storage for non-symmetric tensors.
   virtual t_ind index(t_ind i, t_ind j) const { return i-1 + n*(j-1); }
 
-  //! \brief Print out the tensor to an output stream.
+  //! \brief Prints out the tensor to an output stream.
   virtual std::ostream& print(std::ostream& os) const;
 
 public:
@@ -47,7 +47,7 @@ public:
   //! \brief Copy constructor.
   Tensor(const Tensor& T);
 
-  //! \brief Set to 0-tensor.
+  //! \brief Sets \a this to the 0-tensor.
   void zero() { std::fill(v.begin(),v.end(),real(0)); }
 
   //! \brief Type casting to a one-dimensional vector, for referencing.
@@ -75,13 +75,18 @@ public:
   //! \brief Incrementation operator.
   Tensor& operator+=(real val);
 
+  //! \brief Decrementation operator.
+  Tensor& operator-=(const Tensor& T);
+  //! \brief Decrementation operator.
+  Tensor& operator-=(real val);
+
   //! \brief Scaling operator.
   Tensor& operator*=(real val);
 
-  //! \brief Inner product of two tensors.
-  real innerProd(const Tensor& T);
+  //! \brief Returns the inner-product of \a *this and the given tensor.
+  real innerProd(const Tensor& T) const;
 
-  //! \brief Return the dimension of this tensor.
+  //! \brief Returns the dimension of this tensor.
   t_ind dim() const { return n; }
 
   //! \brief Query whether this tensor is symmetric or not.
@@ -90,16 +95,16 @@ public:
   //! brief Query whether this tensor is zero within the given tolerance.
   bool isZero(real tol = real(1.0e-6)) const;
 
-  //! \brief Transpose the tensor.
+  //! \brief Transposes the tensor.
   virtual Tensor& transpose();
 
-  //! \brief Compute the trace of the tensor.
+  //! \brief Returns the trace of the tensor.
   virtual real trace() const;
 
-  //! \brief Compute the determinant of the tensor.
+  //! \brief Returns the determinant of the tensor.
   virtual real det() const;
 
-  //! \brief Invert the tensor.
+  //! \brief Inverts the tensor.
   //! \param[in] tol Division by zero tolerance
   //! \return Determinant of the tensor
   virtual real inverse(real tol = real(0));
@@ -133,7 +138,7 @@ class SymmTensor : public Tensor
   bool redim(const t_ind newDim);
 
 protected:
-  //! \brief Return a 0-based array index for the given tensor indices.
+  //! \brief Returns a 0-based array index for the given tensor indices.
   //! \details Symmetric tensors are assumed stored with the following order:
   //! s11, s22, s33, s12, s23, s13.
   virtual t_ind index(t_ind i, t_ind j) const
@@ -147,7 +152,7 @@ protected:
     return i+2; // upper triangular term (3D)
   }
 
-  //! \brief Print out the lower triangle of the tensor to an output stream.
+  //! \brief Prints out the lower triangle of the tensor to an output stream.
   virtual std::ostream& print(std::ostream& os) const;
 
 public:
@@ -156,18 +161,21 @@ public:
   //! \brief Constructor creating a symmetric tensor from a vector.
   SymmTensor(const std::vector<real>& vec);
   //! \brief Copy constructor.
-  SymmTensor(const SymmTensor& T);
+  SymmTensor(const SymmTensor& T) : Tensor(0) { this->copy(T); }
 
-  //! \brief Transpose the symmetric tensor (do nothing).
+  //! \brief Copies a symmetric tensor, possibly with dimension change.
+  void copy(const SymmTensor& T);
+
+  //! \brief Transposes the symmetric tensor (i.e., does nothing).
   virtual Tensor& transpose() { return *this; }
 
-  //! \brief Compute the trace of the symmetric tensor.
+  //! \brief Returns the trace of the symmetric tensor.
   virtual real trace() const;
 
-  //! \brief Compute the determinant of the symmetric tensor.
+  //! \brief Returns the determinant of the symmetric tensor.
   virtual real det() const;
 
-  //! \brief Invert the symmetric tensor.
+  //! \brief Inverts the symmetric tensor.
   //! \param[in] tol Division by zero tolerance
   //! \return Determinant of the tensor
   virtual real inverse(real tol = real(0));
@@ -175,10 +183,10 @@ public:
   //! \brief Congruence transformation of a symmetric tensor.
   SymmTensor& transform(const Tensor& T);
 
-  //! \brief Construct the right Cauchy-Green tensor from a deformation tensor.
+  //! \brief Constructs the right Cauchy-Green tensor from a deformation tensor.
   SymmTensor& rightCauchyGreen(const Tensor& F);
 
-  //! \brief Return the von Mises value of the symmetric tensor.
+  //! \brief Returns the von Mises value of the symmetric tensor.
   real vonMises() const;
 
   // Global operators
@@ -186,10 +194,27 @@ public:
   //! \brief Multiplication between a scalar and a symmetric tensor.
   friend SymmTensor operator*(real a, const SymmTensor& T);
 
+  //! \brief Inner-product of two symmetric tensors.
+  friend real operator*(const SymmTensor& A, const SymmTensor& B)
+  {
+    return A.innerProd(B);
+  }
+
   //! \brief Adding a scaled unit tensor to a symmetric tensor.
   friend SymmTensor operator+(const SymmTensor& T, real a);
   //! \brief Subtracting a scaled unit tensor from a symmetric tensor.
   friend SymmTensor operator-(const SymmTensor& T, real a);
+
+  //! \brief Adding two symmetric tensors.
+  friend SymmTensor operator+(const SymmTensor& A, const SymmTensor& B)
+  {
+    SymmTensor C(A); C += B; return C;
+  }
+  //! \brief Subtracting two symmetric tensors.
+  friend SymmTensor operator-(const SymmTensor& A, const SymmTensor& B)
+  {
+    SymmTensor C(A); C -= B; return C;
+  }
 };
 
 
@@ -206,7 +231,7 @@ class SymmTensor4
   const std::vector<real>& v; //!< The actual tensor component values
   real*                  ptr; //!< Non-const pointer to tensor component values
 
-  //! \brief Return a 0-based array index for the given row and column indices.
+  //! \brief Returns a 0-based array index for the given row and column indices.
   //! \details Symmetric second-order tensors in 3D are assumed stored with the
   //! following order in a one-dimensional array: s11, s22, s33, s12, s23, s13.
   inline t_ind index(t_ind i, t_ind j) const

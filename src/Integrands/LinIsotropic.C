@@ -66,7 +66,7 @@ bool LinIsotropic::evaluate (Matrix& C, SymmTensor& sigma, double& U,
 			     const Vec3&, const Tensor&, const SymmTensor& eps,
 			     char iop, const TimeDomain*) const
 {
-  const size_t nsd = eps.dim();
+  const size_t nsd = sigma.dim();
   const size_t nst = nsd*(nsd+1)/2;
   C.resize(nst,nst,true);
 
@@ -77,7 +77,8 @@ bool LinIsotropic::evaluate (Matrix& C, SymmTensor& sigma, double& U,
     if (iop > 0)
     {
       sigma = eps; sigma *= Emod;
-      U = 0.5*sigma(1,1)*eps(1,1);
+      if (iop == 3)
+	U = 0.5*sigma(1,1)*eps(1,1);
     }
     return true;
   }
@@ -131,11 +132,22 @@ bool LinIsotropic::evaluate (Matrix& C, SymmTensor& sigma, double& U,
   }
 
   if (iop > 0)
-    // Calculate the stress tensor, sigma = C*eps, and strain energy density, U
-    if (C.multiply(eps,sigma))
-      U = 0.5*sigma.innerProd(eps); // U = 0.5*sigma:eps
+  {
+    // Calculate the stress tensor, sigma = C*eps
+    if (eps.dim() != sigma.dim())
+    {
+      // Account for non-matching tensor dimensions
+      SymmTensor epsil(sigma.dim());
+      if (!C.multiply(epsil=eps,sigma))
+	return false;
+    }
     else
-      return false;
+      if (!C.multiply(eps,sigma))
+	return false;
+  }
+
+  if (iop == 3) // Calculate strain energy density, // U = 0.5*sigma:eps
+    U = 0.5*sigma.innerProd(eps);
 
   return true;
 }

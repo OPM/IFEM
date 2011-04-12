@@ -62,12 +62,23 @@ class PlasticMaterial : public Material
     bool evaluate(Matrix& C, SymmTensor& sigma,
 		  const Tensor& F, const TimeDomain& prm) const;
 
+    //! \brief Updates the path integral of the strain energy density.
+    //! \param[in] S Stress tensor at current configuration
+    //! \param[in] E Strain tensor at current configuration
+    //! \return Updated strain energy density
+    double energyIntegral(const SymmTensor& S, const SymmTensor& E);
+
   private:
     const RealArray& pMAT; //!< Material property parameters
 
     double HVc[10]; //!< History variables, current configuration
     double HVp[10]; //!< History variables, previous configuration
     bool   updated; //!< Flag indicating whether history variables are updated
+
+    // Data for path integral of strain energy
+    SymmTensor Ep; //!< Strain tensor, previous configuration
+    SymmTensor Sp; //!< Stress tensor, previous configuration
+    double     Up; //!< Strain energy density
 
   public:
     Tensor Fp; //!< Deformation gradient, previous configuration
@@ -98,11 +109,19 @@ public:
   //! \brief Evaluates the constitutive relation at current integration point.
   //! \param[out] C Constitutive matrix at current point
   //! \param[out] sigma Stress tensor at current point
+  //! \param[out] U Strain energy density at current point
+  //! \param[in] X Cartesian coordinates of current point
   //! \param[in] F Deformation gradient at current point
+  //! \param[in] eps Strain tensor at current point
+  //! \param[in] iop Calculation option;
+  //!  0 : Calculate the consitutive matrix only,
+  //!  1 : Cauchy stresses and the tangent constitutive matrix,
+  //!  2 : 2nd Piola-Kirchhoff stresses and the tangent constitutive matrix,
+  //!  3 : Calculate strain energy density only.
   //! \param[in] prm Nonlinear solution algorithm parameters
-  virtual bool evaluate(Matrix& C, SymmTensor& sigma, double&,
-                        const Vec3&, const Tensor& F, const SymmTensor&,
-                        char, const TimeDomain* prm) const;
+  virtual bool evaluate(Matrix& C, SymmTensor& sigma, double& U,
+                        const Vec3& X, const Tensor& F, const SymmTensor& eps,
+                        char iop, const TimeDomain* prm) const;
 
 private:
   friend class PlasticPoint;

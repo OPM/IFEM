@@ -363,7 +363,7 @@ bool NonlinearElasticityULMX::finalizeElement (LocalIntegral*& elmInt,
     // Evaluate the constitutive relation
     double U = 0.0;
     Sig.push_back(SymmTensor(3));
-    if (!material->evaluate(Cmat,Sig.back(),U,pt.X,pt.F,Sig.back(),true,&prm))
+    if (!material->evaluate(Cmat,Sig.back(),U,pt.X,pt.F,SymmTensor(0),1,&prm))
       return false;
 
 #ifdef USE_FTNMAT
@@ -555,25 +555,26 @@ bool ElasticityNormULMX::finalizeElement (LocalIntegral*& elmInt,
 
   ElmNorm& pnorm = ElasticityNorm::getElmNormBuffer(elmInt);
 
-  Matrix C;
-  SymmTensor Sig(3);
-
+  SymmTensor Sig(3), Eps(3);
   for (iP = 0; iP < nGP; iP++)
   {
 #if INT_DEBUG > 0
     std::cout <<"\n   iGP =     "<< iP+1 << std::endl;
 #endif
     NonlinearElasticityULMX::ItgPtData& pt = elp.myData[iP];
+    Eps.rightCauchyGreen(pt.F); // Green Lagrange strain tensor
+    Eps -= 1.0;
+    Eps *= 0.5;
 
     // Modify the deformation gradient
     pt.F *= pow(fabs(Theta[iP]/pt.F.det()),1.0/3.0);
 
-    // Compute the strain energy density
+    // Compute the strain energy density, U(Eps) = Int_Eps (Sig:E) dE
     double U = 0.0;
-    if (!elp.material->evaluate(C,Sig,U,pt.X,pt.F,Sig,false,&prm))
+    if (!elp.material->evaluate(elp.Cmat,Sig,U,pt.X,pt.F,Eps,3,&prm))
       return false;
 
-    // Integrate strain energy
+    // Integrate energy norm a(u^h,u^h) = Int_Omega0 U(Eps) dV0
     pnorm[0] += U*pt.detJW;
   }
 

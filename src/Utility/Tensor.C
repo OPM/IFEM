@@ -109,12 +109,13 @@ Tensor& Tensor::operator= (real val)
 
 Tensor& Tensor::operator+= (const Tensor& T)
 {
-  if (v.size() == T.v.size())
-    for (t_ind i = 0; i < v.size(); i++)
-      v[i] += T.v[i];
-  else
-    std::cerr <<"Tensor::operator+(const Tensor&): "
-	      <<"Not implemented for tensors of different size."<< std::endl;
+  if (T.n > 0)
+    if (v.size() == T.v.size())
+      for (t_ind i = 0; i < v.size(); i++)
+	v[i] += T.v[i];
+    else
+      std::cerr <<"Tensor::operator+=(const Tensor&): "
+		<<"Not implemented for tensors of different size."<< std::endl;
 
   return *this;
 }
@@ -130,6 +131,30 @@ Tensor& Tensor::operator+= (real val)
 }
 
 
+Tensor& Tensor::operator-= (const Tensor& T)
+{
+  if (T.n > 0)
+    if (v.size() == T.v.size())
+      for (t_ind i = 0; i < v.size(); i++)
+	v[i] -= T.v[i];
+    else
+      std::cerr <<"Tensor::operator-=(const Tensor&): "
+		<<"Not implemented for tensors of different size."<< std::endl;
+
+  return *this;
+}
+
+
+Tensor& Tensor::operator-= (real val)
+{
+  t_ind i, j, inc = this->symmetric() ? 1 : n+1;
+  for (i = j = 0; i < n; i++, j += inc)
+    v[j] -= val;
+
+  return *this;
+}
+
+
 Tensor& Tensor::operator*= (real val)
 {
   for (t_ind i = 0; i < v.size(); i++)
@@ -139,14 +164,22 @@ Tensor& Tensor::operator*= (real val)
 }
 
 
-real Tensor::innerProd (const Tensor& T)
+real Tensor::innerProd (const Tensor& T) const
 {
   real value = real(0);
   if (v.size() == T.v.size())
     for (t_ind i = 0; i < v.size(); i++)
       value += v[i]*T.v[i];
-  else
-    std::cerr <<"Tensor::innerProd(const Tensor&): "
+  else if (this->symmetric() && T.symmetric())
+  {
+    // Handle symmetric tensors with different dimensions
+    t_ind ndim = n < T.n ? n : T.n;
+    for (t_ind i = 1; i <= ndim; i++)
+      for (t_ind j = i; j <= ndim; j++)
+	value += v[this->index(i,j)]*T(i,j);
+  }
+  else if (n > 0 && T.n > 0)
+    std::cerr <<"Tensor::innerProd(const Tensor&) const: "
 	      <<"Not implemented for tensors of different size."<< std::endl;
 
   return value;
@@ -332,7 +365,7 @@ SymmTensor::SymmTensor (const std::vector<real>& vec) : Tensor(0)
 }
 
 
-SymmTensor::SymmTensor (const SymmTensor& T) : Tensor(0)
+void SymmTensor::copy (const SymmTensor& T)
 {
   this->redim(T.n);
   std::copy(T.v.begin(),T.v.end(),v.begin());
@@ -453,6 +486,10 @@ SymmTensor& SymmTensor::rightCauchyGreen (const Tensor& F)
   this->redim(F.dim());
 
   switch (n) {
+  case 1:
+    v[0] = F(1,1)*F(1,1);
+    break;
+    
   case 2:
     v[0] = F(1,1)*F(1,1) + F(2,1)*F(2,1);
     v[1] = F(1,2)*F(1,2) + F(2,2)*F(2,2);

@@ -551,6 +551,12 @@ NormBase* Elasticity::getNormIntegrand (AnaSol* asol) const
 }
 
 
+void ElasticityNorm::initIntegration (const TimeDomain& time)
+{
+  problem.initIntegration(time);
+}
+
+
 bool ElasticityNorm::initElement (const std::vector<int>& MNPC)
 {
   return problem.initElement(MNPC);

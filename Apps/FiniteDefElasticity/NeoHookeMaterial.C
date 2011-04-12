@@ -73,7 +73,7 @@ void NeoHookeMaterial::print (std::ostream& os) const
 
 bool NeoHookeMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
 				 const Vec3&, const Tensor& F,
-				 const SymmTensor&, char iop,
+				 const SymmTensor& eps, char iop,
 				 const TimeDomain*) const
 {
   double J = F.det();
@@ -100,7 +100,7 @@ bool NeoHookeMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
   std::cerr <<" *** NeoHookeMaterial::evaluate: Not included."<< std::endl;
 #endif
 
-  if (iop == 2)
+  if (iop > 1)
   {
     // Transform to 2nd Piola-Kirchhoff stresses,
     // via pull-back to reference configuration
@@ -108,7 +108,13 @@ bool NeoHookeMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
     Fi.inverse();
     sigma.transform(Fi); // sigma = F^-1 * sigma * F^-t
     sigma *= J;
+
+    //TODO: If invoked with iop=2, also pull-back the C-matrix
+    //TODO: When mixed formulation, we need the standard F, not Fbar here
   }
+
+  if (iop == 3 && U == 0.0)
+    U = sigma.innerProd(eps); //TODO: Replace this by proper path integral
 
 #if INT_DEBUG > 0
   if (iop > 0)

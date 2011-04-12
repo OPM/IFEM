@@ -47,7 +47,8 @@ public:
   //! \param[in] iop Calculation option;
   //!  -1 : Calculate the inverse constitutive matrix only,
   //!   0 : Calculate the constitutive matrix only,
-  //!   1 : Calculate Cauchy stresses and the constitutive matrix.
+  //!   1 : Calculate Cauchy stresses and the constitutive matrix,
+  //!   3 : Calculate the strain energy density only.
   virtual bool evaluate(Matrix& C, SymmTensor& sigma, double& U,
 			const Vec3&, const Tensor&, const SymmTensor& eps,
 			char iop = 1, const TimeDomain* = 0) const;

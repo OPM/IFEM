@@ -161,7 +161,9 @@ C
               call rprin0(pMAT, 1,  13, 'pMAT  ', iwr)
               call rprin0(Fn1 , 3,   3, 'Fn1   ', iwr)
               call rprin0(Fn  , 3,   3, 'Fn    ', iwr)
-              call rprin0(be  , 1, nTM, 'be    ', iwr)
+              if (lfirst .ne. 1) then
+                 call rprin0(be  , 1, nTM, 'be    ', iwr)
+              endif
               call rprin0(Epl , 1,   3, 'Epl   ', iwr)
           endif
       endif
@@ -182,7 +184,7 @@ C
       Hk    = two3 *  pMAT(8)   ! N.B. Kinematic hardening = 2/3 * H_kin
       istrt = nint(pMAT(13))
 C
-      if (Hk .gt. zero)                          then
+      if (Hk .gt. zero)                           then
          Hkr = one / Hk
       else
          Hkr = zero
@@ -299,11 +301,18 @@ C
       J2 = ( ta(1)*ta(1) + ta(2)*ta(2) + ta(3)*ta(3) ) * one2
       J3 = ( ta(1)*ta(1)*ta(1) + ta(2)*ta(2)*ta(2) +
      &                           ta(3)*ta(3)*ta(3)   ) * one3
+      if (ipsw .ge. 5)                            then
+         write(iwr,9030) 'I1,J2,J3 =', I1,J2,J3
+      end if
 C
       gam   = zero
       yield = yfunct(ipsw,iwr,pMAT,
      &               Epp,I1,J2,J3, f1,f2,f3,
      &               f11,f22,f33,f12,f13,f23,Ypr,YY,gam,.false.)
+C
+      if (ipsw .ge. 5)                            then
+         write(iwr,9030) 'yield(0) =', yield
+      end if
 C
 C     Check yield
 C
@@ -333,6 +342,10 @@ C
             yield = yfunct(ipsw,iwr,pMAT,
      &                     Epp,I1,J2,J3, f1,f2,f3,
      &                     f11,f22,f33,f12,f13,f23,Ypr,YY,gam,.true.)
+C
+            if (ipsw .ge. 5 .and. it.lt.10)       then
+               write(iwr,"('   yield(',I1,') =')") it,yield
+            end if
 C
             xx  = f1 - f3 * two3 * J2
 C
@@ -427,7 +440,7 @@ C
                tres(4,4) = -Ypr
 C
                call invert (7, 4, tres, ierrl)
-               if (ierrl .lt. 0)                   go to 7000
+               if (ierrl .lt. 0)                  go to 7000
 C
                do i = 1, 4
                   dsol(i) = - tres(i,1)*res(1)
@@ -540,6 +553,7 @@ C
       detr = one / detF
 C
       if (ipsw .ge. 5)                            then
+         call rprin0(dtde, 3, 3, 'dtde  ',iwr)
          call rprin0(tau , 1, 3, 'tau   ',iwr)
          call rprin0(nn_t, 3, 3, 'nn_t  ',iwr)
       end if
@@ -641,7 +655,7 @@ C
 C
  9010 format(3X,A)
  9020 format(3X,A,I6)
- 9030 format(3X,A,E15.6)
+ 9030 format(3X,A,3E15.6)
 C
       end
 

@@ -84,9 +84,61 @@ public:
   virtual bool evalBouMx(LocalIntegral*& elmInt, const MxFiniteElement& fe,
 			 const Vec3& X, const Vec3& normal) const;
 
+  //! \brief Returns a pointer to an Integrand for solution norm evaluation.
+  //! \note The Integrand object is allocated dynamically and has to be deleted
+  //! manually when leaving the scope of the pointer variable receiving the
+  //! returned pointer value.
+  virtual NormBase* getNormIntegrand(AnaSol* = 0) const;
+
 protected:
   mutable Tensor Fbar; //!< Mixed model deformation gradient
   mutable Matrix Dmat; //!< Projected mixed constitutive matrix
+
+  friend class ElasticityNormULMixed;
+};
+
+
+/*!
+  \brief Class representing the integrand of the mixed elasticity energy norm.
+*/
+
+class ElasticityNormULMixed : public ElasticityNormUL
+{
+public:
+  //! \brief The only constructor initializes its data members.
+  //! \param[in] p The linear elasticity problem to evaluate norms for
+  ElasticityNormULMixed(NonlinearElasticityULMixed& p) : ElasticityNormUL(p) {}
+  //! \brief Empty destructor.
+  virtual ~ElasticityNormULMixed() {}
+
+  //! \brief Initializes current element for numerical integration (mixed).
+  //! \param[in] MNPC1 Nodal point correspondance for the basis 1
+  //! \param[in] MNPC2 Nodal point correspondance for the basis 2
+  //! \param[in] n1 Number of nodes in basis 1 on this patch
+  virtual bool initElement(const std::vector<int>& MNPC1,
+                           const std::vector<int>& MNPC2, size_t n1);
+  //! \brief Initializes current element for boundary integration (mixed).
+  //! \param[in] MNPC1 Nodal point correspondance for the basis 1
+  //! \param[in] MNPC2 Nodal point correspondance for the basis 2
+  //! \param[in] n1 Number of nodes in basis 1 on this patch
+  virtual bool initElementBou(const std::vector<int>& MNPC1,
+			      const std::vector<int>& MNPC2, size_t n1);
+
+  //! \brief Evaluates the integrand at an interior point (mixed).
+  //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe Mixed finite element data of current integration point
+  //! \param[in] prm Nonlinear solution algorithm parameters
+  //! \param[in] X Cartesian coordinates of current integration point
+  virtual bool evalIntMx(LocalIntegral*& elmInt, const MxFiniteElement& fe,
+			 const TimeDomain& prm, const Vec3& X) const;
+
+  //! \brief Evaluates the integrand at a boundary point (mixed).
+  //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe Mixed finite element data of current integration point
+  //! \param[in] X Cartesian coordinates of current integration point
+  //! \param[in] normal Boundary normal vector at current integration point
+  virtual bool evalBouMx(LocalIntegral*& elmInt, const MxFiniteElement& fe,
+			 const Vec3& X, const Vec3& normal) const;
 };
 
 #endif

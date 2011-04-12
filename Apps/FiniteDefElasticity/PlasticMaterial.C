@@ -138,9 +138,10 @@ void PlasticMaterial::initResultPoints ()
 }
 
 
-bool PlasticMaterial::evaluate (Matrix& C, SymmTensor& sigma, double&,
-				const Vec3&, const Tensor& F, const SymmTensor&,
-				char, const TimeDomain* prm) const
+bool PlasticMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
+				const Vec3&, const Tensor& F,
+				const SymmTensor& eps, char iop,
+				const TimeDomain* prm) const
 {
   if (iAmIntegrating)
   {
@@ -156,7 +157,8 @@ bool PlasticMaterial::evaluate (Matrix& C, SymmTensor& sigma, double&,
     if (prm->it == 0 && !prm->first)
       itgPoints[iP1]->Fp = F;
 
-    return itgPoints[iP1++]->evaluate(C,sigma,F,*prm);
+    if (!itgPoints[iP1++]->evaluate(C,sigma,F,*prm))
+      return false;
   }
   else // Result evaluation
   {
@@ -168,19 +170,42 @@ bool PlasticMaterial::evaluate (Matrix& C, SymmTensor& sigma, double&,
 
     // Assume only one evaluation per increment; always update Fp
     resPoints[iP2++]->Fp = F;
-    return true;
   }
+
+  if (iop > 1)
+  {
+    // Transform to 2nd Piola-Kirchhoff stresses,
+    // via pull-back to reference configuration
+    Tensor Fi(F);
+    double J = Fi.inverse();
+    sigma.transform(Fi); // sigma = F^-1 * sigma * F^-t
+    sigma *= J;
+
+    //TODO: When mixed formulation, we need the standard F here (not Fbar)
+    //TODO: If invoked with iop=2, also pull-back the C-matrix
+  }
+
+  if (iop == 3)
+  {
+    if (iAmIntegrating)
+      U = itgPoints[iP1-1]->energyIntegral(sigma,eps);
+    else
+      U = resPoints[iP2-1]->energyIntegral(sigma,eps);
+  }
+
+  return true;
 }
 
 
 PlasticMaterial::PlasticPoint::PlasticPoint (const PlasticMaterial* prm,
 					     unsigned short int n)
-  : pMAT(prm->pMAT), updated(false), Fp(n)
+  : pMAT(prm->pMAT), updated(false), Ep(0), Sp(0), Fp(n)
 {
   // Initialize the history variables
   memset(HVc,0,sizeof(HVc));
   memset(HVp,0,sizeof(HVp));
   Fp = HVp[0] = HVp[1] = HVp[2] = 1.0;
+  Up = 0.0;
 }
 
 
@@ -241,4 +266,14 @@ bool PlasticMaterial::PlasticPoint::evaluate (Matrix& C,
 
   const_cast<PlasticPoint*>(this)->updated = true;
   return ierr == 0;
+}
+
+
+double PlasticMaterial::PlasticPoint::energyIntegral (const SymmTensor& S,
+						      const SymmTensor& E)
+{
+  Up += 0.5*((S+Sp)*(E-Ep));
+  Sp.copy(S);
+  Ep.copy(E);
+  return Up;
 }

@@ -314,13 +314,14 @@ bool NonlinearElasticityUL::kinematics (const Matrix& dNdX,
 
 NormBase* NonlinearElasticityUL::getNormIntegrand (AnaSol*) const
 {
-  return new ElasticityNormUL(*const_cast<NonlinearElasticityUL*>(this));
+  return new ElasticityNormUL(const_cast<NonlinearElasticityUL&>(*this));
 }
 
 
 void ElasticityNormUL::initIntegration (const TimeDomain& prm)
 {
-  problem.initIntegration(prm);
+  this->ElasticityNorm::initIntegration(prm);
+  iP = 0;
 }
 
 
@@ -331,41 +332,56 @@ bool ElasticityNormUL::evalInt (LocalIntegral*& elmInt,
 {
   ElmNorm& pnorm = ElasticityNorm::getElmNormBuffer(elmInt);
 
-  NonlinearElasticityUL* ulp = static_cast<NonlinearElasticityUL*>(&problem);
+  NonlinearElasticityUL& ulp = static_cast<NonlinearElasticityUL&>(problem);
 
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E
   Tensor F(fe.dNdX.cols());
   SymmTensor E(fe.dNdX.cols());
-  if (!ulp->kinematics(fe.dNdX,F,E))
+  if (!ulp.kinematics(fe.dNdX,F,E))
     return false;
 
-  // Evaluate the 2nd Piola Kirchhoff stresses, S
-  Matrix C;
-  SymmTensor S(E.dim());
+  // Compute the strain energy density, U(E) = Int_E (Sig:Eps) dEps
   double U = 0.0;
-  if (!ulp->material->evaluate(C,S,U,X,F,E,2,&prm))
+  SymmTensor S(E.dim());
+  if (!ulp.material->evaluate(ulp.Cmat,S,U,X,F,E,3,&prm))
     return false;
 
-  // Integrate the energy norm a(u^h,u^h) = Int_Omega0 (S:E) dV0
-  if (U == 0.0) U = S.innerProd(E);
+  // Integrate the energy norm a(u^h,u^h) = Int_Omega0 U(E) dV0
   pnorm[0] += U*fe.detJxW;
 
   return true;
 }
 
 
-bool ElasticityNormUL::evalIntMx (LocalIntegral*& elmInt,
-				  const MxFiniteElement& fe,
-				  const TimeDomain& prm,
-				  const Vec3& X) const
+bool ElasticityNormUL::evalBou (LocalIntegral*& elmInt,
+				const FiniteElement& fe,
+				const Vec3& X, const Vec3& normal) const
 {
-  return this->evalInt(elmInt,fe,prm,X);
-}
+  if (!problem.haveLoads()) return true;
 
+  ElmNorm& pnorm = ElasticityNorm::getElmNormBuffer(elmInt);
 
-bool ElasticityNormUL::evalBouMx (LocalIntegral*& elmInt,
-				  const MxFiniteElement& fe,
-				  const Vec3& X, const Vec3& normal) const
-{
-  return this->evalBou(elmInt,fe,X,normal);
+  // Evaluate the current surface traction
+  Vec3 t = problem.getTraction(X,normal);
+  // Evaluate the current displacement field
+  Vec3 u = problem.evalSol(fe.N);
+
+  // Integrate the external energy (path integral)
+  if (iP < Ux.size())
+  {
+    // New load step, update integration point values
+    Ux[iP] += 0.5*(t+tp[iP])*(u-up[iP]);
+    tp[iP] = t;
+    up[iP] = u;
+  }
+  else
+  {
+    // This is the first load step at this integration point
+    Ux.push_back(0.5*t*u);
+    tp.push_back(t);
+    up.push_back(u);
+  }
+
+  pnorm[1] += Ux[iP++]*fe.detJxW;
+  return true;
 }
