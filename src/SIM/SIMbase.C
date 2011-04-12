@@ -926,6 +926,7 @@ bool SIMbase::writeGlvBC (const int* nViz, int& nBlock) const
 
     if (msgLevel > 1)
       std::cout <<"Writing boundary conditions for patch "<< i+1 << std::endl;
+
     if (!myModel[i]->evalSolution(field,bc,nViz))
       return false;
 
@@ -980,7 +981,7 @@ bool SIMbase::writeGlvV (const Vector& vec, const char* fieldName,
 
   Matrix field;
   Vector lovec;
-  int geomID = 0, idBlock = 2;
+  int geomID = 0;
   std::vector<int> vID;
 
   for (size_t i = 0; i < myModel.size(); i++)
@@ -989,6 +990,7 @@ bool SIMbase::writeGlvV (const Vector& vec, const char* fieldName,
 
     if (msgLevel > 1)
       std::cout <<"Writing vector field for patch "<< i+1 << std::endl;
+
     myModel[i]->extractNodeVec(vec,lovec);
     if (!myModel[i]->evalSolution(field,lovec,nViz))
       return false;
@@ -999,6 +1001,7 @@ bool SIMbase::writeGlvV (const Vector& vec, const char* fieldName,
       vID.push_back(nBlock);
   }
 
+  int idBlock = 2;
   return myVtf->writeVblk(vID,fieldName,idBlock,iStep);
 }
 
@@ -1016,8 +1019,9 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
 
   Matrix field;
   size_t i, j;
-  int geomID = 0, idBlock = 10;
-  std::vector<int> vID, dID[14], sID[14];
+  int geomID = 0;
+  const size_t sMAX = 21;
+  std::vector<int> vID, dID[3], sID[sMAX];
   bool haveAsol = false;
   bool scalarEq = myModel.front()->getNoFields() == 1;
   if (mySol)
@@ -1032,6 +1036,9 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
 
     if (msgLevel > 1)
       std::cout <<"Writing FE solution for patch "<< i+1 << std::endl;
+
+    // 1. Evaluate primary solution variables
+
     myModel[i]->extractNodeVec(psol,myProblem->getSolution());
     if (!myModel[i]->evalSolution(field,myProblem->getSolution(),nViz))
       return false;
@@ -1059,6 +1066,8 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
 
     if (psolOnly) continue; // skip secondary solution
 
+    // 2. Direct evaluation of secondary solution variables
+
     LocalSystem::patch = i;
     if (!myModel[i]->evalSolution(field,*myProblem,nViz))
       return false;
@@ -1070,16 +1079,33 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
 	vID.push_back(nBlock);
 
     size_t k = 0;
-    for (j = 1; j <= field.rows() && k < 14; j++)
+    for (j = 1; j <= field.rows() && k < sMAX; j++)
       if (!myVtf->writeNres(field.getRow(j),++nBlock,geomID))
 	return false;
       else
 	sID[k++].push_back(nBlock);
 
+    if (discretization == Spline)
+    {
+      // 3. Projection of secondary solution variables (splines only)
+
+      if (!myModel[i]->evalSolution(field,*myProblem,nViz,true))
+	return false;
+
+      for (j = 1; j <= field.rows() && k < sMAX; j++)
+	if (!myVtf->writeNres(field.getRow(j),++nBlock,geomID))
+	  return false;
+	else
+	  sID[k++].push_back(nBlock);
+    }
+
     if (haveAsol)
     {
+      // 4. Evaluate analytical solution variables
+
       if (msgLevel > 1)
 	std::cout <<"Writing exact solution for patch "<< i+1 << std::endl;
+
       const ElementBlock* grid = myVtf->getBlock(geomID);
       std::vector<Vec3>::const_iterator cit = grid->begin_XYZ();
       Vector solPt; field.fill(0.0);
@@ -1095,7 +1121,8 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
 	if (ok)
 	  field.fillColumn(j,solPt);
       }
-      for (j = 1; j <= field.rows() && k < 14 && ok; j++)
+
+      for (j = 1; j <= field.rows() && k < sMAX && ok; j++)
 	if (!myVtf->writeNres(field.getRow(j),++nBlock,geomID))
 	  return false;
 	else
@@ -1103,14 +1130,16 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
     }
   }
 
+  // Write result block identifications
+
+  int idBlock = 10;
   if (scalarEq)
   {
+    if (!psolOnly)
+      if (!myVtf->writeVblk(vID,"Flux",idBlock,iStep))
+	return false;
+
     if (!myVtf->writeSblk(dID[0],"u",++idBlock,iStep))
-      return false;
-
-    if (psolOnly) return true;
-
-    if (!myVtf->writeVblk(vID,"Flux",idBlock,iStep))
       return false;
   }
   else
@@ -1129,13 +1158,18 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
   if (psolOnly) return true;
 
   size_t nf = myProblem->getNoFields();
-  for (j = 0; j < nf && !sID[j].empty(); j++)
-    if (!myVtf->writeSblk(sID[j],myProblem->getFieldLabel(j,haveAsol?"FE":0),
+  for (i = j = 0; i < nf && !sID[j].empty(); i++, j++)
+    if (!myVtf->writeSblk(sID[j],myProblem->getFieldLabel(i,haveAsol?"FE":0),
 			  ++idBlock,iStep)) return false;
 
+  if (discretization == Spline)
+    for (i = 0; i < nf && !sID[j].empty(); i++, j++)
+      if (!myVtf->writeSblk(sID[j],myProblem->getFieldLabel(i,"Projected"),
+			    ++idBlock,iStep)) return false;
+
   if (haveAsol)
-    for (j = 0; j < nf && !sID[nf+j].empty(); j++)
-      if (!myVtf->writeSblk(sID[nf+j],myProblem->getFieldLabel(j,"Exact"),
+    for (i = 0; i < nf && !sID[j].empty(); i++, j++)
+      if (!myVtf->writeSblk(sID[j],myProblem->getFieldLabel(i,"Exact"),
 			    ++idBlock,iStep)) return false;
 
   return true;
@@ -1164,7 +1198,7 @@ bool SIMbase::writeGlvM (const Mode& mode, bool freq,
 
   Vector displ;
   Matrix field;
-  int geomID = 0, idBlock = 10;
+  int geomID = 0;
   std::vector<int> vID;
 
   for (size_t i = 0; i < myModel.size(); i++)
@@ -1184,6 +1218,7 @@ bool SIMbase::writeGlvM (const Mode& mode, bool freq,
   }
   if (myModel.size() > 1 && msgLevel > 1) std::cout << std::endl;
 
+  int idBlock = 10;
   if (!myVtf->writeDblk(vID,"Mode Shape",idBlock,mode.eigNo))
     return false;
 
@@ -1200,7 +1235,7 @@ bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock)
     return false;
 
   Matrix field;
-  int idBlock = 100, geomID = 0;
+  int geomID = 0;
   std::vector<int> sID[3];
 
   size_t i, j, k;
@@ -1208,9 +1243,10 @@ bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock)
   {
     if (myModel[i]->empty()) continue; // skip empty patches
 
-    geomID++;
     if (msgLevel > 1)
       std::cout <<"Writing element norms for patch "<< i+1 << std::endl;
+
+    geomID++;
     myModel[i]->extractElmRes(norms,field);
 
     for (j = k = 0; j < field.rows() && j < 4; j++)
@@ -1227,6 +1263,7 @@ bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock)
     "a(e,e)^0.5, e=u-u^h"
   };
 
+  int idBlock = 100;
   for (j = 0; j < 3; j++)
     if (!sID[j].empty())
       if (!myVtf->writeSblk(sID[j],label[j],++idBlock,iStep))

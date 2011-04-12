@@ -98,7 +98,7 @@ bool ASMs3DLag::generateFEMTopology()
   // Number of nodes in a xy-surface of an element
   const int ct  = p1*p2;
 
-  // Connectivety array: local --> global node relation
+  // Connectivity array: local --> global node relation
   MLGE.resize(nel);
   MNPC.resize(nel);
 
@@ -614,7 +614,7 @@ bool ASMs3DLag::evalSolution (Matrix&, const Vector&,
 
 
 bool ASMs3DLag::evalSolution (Matrix& sField, const Integrand& integrand,
-			      const int*) const
+			      const int*, bool) const
 {
   sField.resize(0,0);
 

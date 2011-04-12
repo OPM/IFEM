@@ -539,7 +539,7 @@ bool ASMbase::evalSolution (Matrix&, const Vector&,
 }
 
 
-bool ASMbase::evalSolution (Matrix&, const Integrand&, const int*) const
+bool ASMbase::evalSolution (Matrix&, const Integrand&, const int*, bool) const
 {
   std::cerr <<" *** ASMBase::evalSolution: Must be implemented in sub-class."
 	    << std::endl;

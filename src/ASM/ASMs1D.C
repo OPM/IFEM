@@ -681,21 +681,24 @@ bool ASMs1D::tesselate (ElementBlock& grid, const int* npe) const
 
   // Evaluate the spline curve at all points
   size_t nx = gpar.size();
-  RealArray XYZ(3*nx,0.0);
-
-  // Establish the block grid coordinates
-  size_t i, j;
-  for (i = j = 0; i < nx; i++, j += 3)
+  RealArray XYZ(curv->dimension()*nx);
+  //curv->gridEvaluator(XYZ,gpar);
+  //TODO: Replace this loop by the above line when available in GoTools
+  size_t m, jp;
+  Go::Point pt;
+  for (m = jp = 0; m < nx; m++)
   {
-    Go::Point pt;
-    curv->point(pt,gpar[i]);
+    curv->point(pt,gpar[m]);
     for (int k = 0; k < pt.size(); k++)
-      XYZ[j+k] = pt[k];
+      XYZ[jp++] = pt[k];
   }
 
+  // Establish the block grid coordinates
+  size_t i, j, l;
   grid.resize(nx);
-  for (i = j = 0; i < grid.getNoNodes(); i++, j += 3)
-    grid.setCoor(i,XYZ[j],XYZ[j+1],XYZ[j+2]);
+  for (i = l = 0; i < grid.getNoNodes(); i++, l += curv->dimension())
+    for (j = 0; j < nsd; j++)
+      grid.setCoor(i,j,XYZ[l+j]);
 
   // Establish the block grid topology
   int n[2], ip = 0;
@@ -703,8 +706,8 @@ bool ASMs1D::tesselate (ElementBlock& grid, const int* npe) const
   n[1] = n[0] + 1;
 
   for (i = 1; i < nx; i++)
-    for (j = 0; j < 2; j++)
-      grid.setNode(ip++,n[j]++);
+    for (l = 0; l < 2; l++)
+      grid.setNode(ip++,n[l]++);
 
   return true;
 }
@@ -767,15 +770,38 @@ bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs1D::evalSolution (Matrix& sField, const Integrand& integrand,
-			   const int* npe) const
+			   const int* npe, bool project) const
 {
   if (npe)
   {
     // Compute parameter values of the result sampling points
     RealArray gpar;
     if (this->getGridParameters(gpar,npe[0]-1))
-      // Evaluate the secondary solution at all sampling points
-      return this->evalSolution(sField,integrand,&gpar);
+      if (project)
+      {
+	// Project the secondary solution onto the spline basis
+	Go::SplineCurve* c = this->projectSolution(integrand);
+	if (c)
+	{
+	  // Evaluate the projected field at the result sampling points
+	  //const Vector& svec = sField; // using utl::matrix cast operator
+	  sField.resize(c->dimension(),gpar.size());
+	  //c->gridEvaluator(svec,gpar);
+	  //TODO: Replace this loop by the above line when available in GoTools
+	  Go::Point pt;
+	  for (size_t j = 0; j < sField.cols(); j++)
+	  {
+	    c->point(pt,gpar[j]);
+	    for (size_t i = 0; i < sField.rows(); i++)
+	      sField(i+1,j+1) = pt[i];
+	  }
+	  delete c;
+	  return true;
+	}
+      }
+      else
+	// Evaluate the secondary solution directly at all sampling points
+	return this->evalSolution(sField,integrand,&gpar);
   }
   else
   {
@@ -791,6 +817,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const Integrand& integrand,
     }
   }
 
+  std::cerr <<" *** ASMs1D::evalSolution: Failure!"<< std::endl;
   return false;
 }
 
@@ -805,7 +832,7 @@ Go::SplineCurve* ASMs1D::projectSolution (const Integrand& integrand) const
 {
   //TODO: This requires the method Go::CurveInterpolator::regularInterpolation
   //      which is not yet present in GoTools.
-  std::cerr <<"ASMs1D::projectSolution: Not implemented yet!"<< std::endl;
+  std::cerr <<" *** ASMs1D::projectSolution: Not implemented yet!"<< std::endl;
   return 0;
 }
 

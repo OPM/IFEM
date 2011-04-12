@@ -1,4 +1,4 @@
-// $Id: ElementBlock.h,v 1.2 2010-03-10 13:59:02 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ElementBlock.h
@@ -35,6 +35,8 @@ public:
 
   //! \brief Defines the coordinates of node \a i
   bool setCoor(size_t i, real x, real y, real z);
+  //! \brief Defines the \a j'th coordinate of node \a i
+  bool setCoor(size_t i, size_t j, real x);
 
   //! \brief Defines the global number of element node \a i
   bool setNode(size_t i, int nodeNumb);

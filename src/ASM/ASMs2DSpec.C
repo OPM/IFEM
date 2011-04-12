@@ -264,7 +264,7 @@ bool ASMs2DSpec::integrate (Integrand& integrand, int lIndex,
 
 
 bool ASMs2DSpec::evalSolution (Matrix& sField, const Integrand& integrand,
-			       const int*) const
+			       const int*, bool) const
 {
   sField.resize(0,0);
 

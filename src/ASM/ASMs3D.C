@@ -1821,20 +1821,33 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs3D::evalSolution (Matrix& sField, const Integrand& integrand,
-			   const int* npe) const
+			   const int* npe, bool project) const
 {
-  bool retVal = true;
-
   if (npe)
   {
     // Compute parameter values of the result sampling points
     RealArray gpar[3];
-    for (int dir = 0; dir < 3 && retVal; dir++)
-      retVal = this->getGridParameters(gpar[dir],dir,npe[dir]-1);
-
-    // Evaluate the secondary solution at all sampling points
-    if (retVal)
-      retVal = this->evalSolution(sField,integrand,gpar);
+    if (this->getGridParameters(gpar[0],0,npe[0]-1) &&
+	this->getGridParameters(gpar[1],1,npe[1]-1) &&
+	this->getGridParameters(gpar[2],2,npe[2]-1))
+      if (project)
+      {
+	// Project the secondary solution onto the spline basis
+	Go::SplineVolume* v = this->projectSolution(integrand);
+	if (v)
+	{
+	  // Evaluate the projected field at the result sampling points
+	  const Vector& svec = sField; // using utl::matrix cast operator
+	  sField.resize(v->dimension(),
+			gpar[0].size()*gpar[1].size()*gpar[2].size());
+	  v->gridEvaluator(const_cast<Vector&>(svec),gpar[0],gpar[1],gpar[2]);
+	  delete v;
+	  return true;
+	}
+      }
+      else
+	// Evaluate the secondary solution at all sampling points
+	return this->evalSolution(sField,integrand,gpar);
   }
   else
   {
@@ -1847,12 +1860,12 @@ bool ASMs3D::evalSolution (Matrix& sField, const Integrand& integrand,
 		    v->numCoefs(0)*v->numCoefs(1)*v->numCoefs(2));
       sField.fill(&(*v->coefs_begin()));
       delete v;
+      return true;
     }
-    else
-      retVal = false;
   }
 
-  return retVal;
+  std::cerr <<" *** ASMs3D::evalSolution: Failure!"<< std::endl;
+  return false;
 }
 
 

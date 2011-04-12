@@ -39,7 +39,7 @@ public:
 
   //! \brief Generates the finite element topology data for the patch.
   //! \details The data generated are the element-to-node connectivity array,
-  //! and the global node and element numbers.
+  //! the nodal coordinate array, as well as global node and element numbers.
   virtual bool generateFEMTopology();
 
   //! \brief Clears the contents of the patch, making it empty.
@@ -86,8 +86,9 @@ public:
 
   //! \brief Creates a line element model of this patch for visualization.
   //! \param[out] grid The generated line grid
+  //! \param[in] npe Number of visualization nodes over each knot span
   //! \note The number of element nodes must be set in \a grid on input.
-  virtual bool tesselate(ElementBlock& grid, const int*) const;
+  virtual bool tesselate(ElementBlock& grid, const int* npe) const;
 
   //! \brief Evaluates the primary solution field at all visualization points.
   //! \details The number of visualization points is the same as the order of
@@ -110,7 +111,7 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
-			    const int*) const;
+			    const int*, bool = false) const;
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
@@ -135,7 +136,7 @@ protected:
   virtual void getNodalCoordinates(Matrix& X) const;
 
   //! \brief Returns the number of nodal points in the patch.
-  virtual int getSize() const { return nx; }
+  virtual int getSize(int = 0) const { return nx; }
 
 private:
   //! \brief The number of nodes in each direction for the patch

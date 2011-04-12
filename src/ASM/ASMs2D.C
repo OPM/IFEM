@@ -1178,14 +1178,10 @@ bool ASMs2D::tesselate (ElementBlock& grid, const int* npe) const
 
   // Establish the block grid coordinates
   size_t i, j, l;
-  double X[3] = { 0.0, 0.0, 0.0 };
   grid.resize(nx,ny);
-  for (i = j = 0; i < grid.getNoNodes(); i++, j += surf->dimension())
-  {
-    for (l = 0; l < nsd; l++)
-      X[l] = XYZ[j+l];
-    grid.setCoor(i,X[0],X[1],X[2]);
-  }
+  for (i = l = 0; i < grid.getNoNodes(); i++, l += surf->dimension())
+    for (j = 0; j < nsd; j++)
+      grid.setCoor(i,j,XYZ[l+j]);
 
   // Establish the block grid topology
   int n[4], ip = 0;
@@ -1288,20 +1284,31 @@ bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs2D::evalSolution (Matrix& sField, const Integrand& integrand,
-			   const int* npe) const
+			   const int* npe, bool project) const
 {
-  bool retVal = true;
-
   if (npe)
   {
     // Compute parameter values of the result sampling points
     RealArray gpar[2];
-    for (int dir = 0; dir < 2 && retVal; dir++)
-      retVal = this->getGridParameters(gpar[dir],dir,npe[dir]-1);
-
-    // Evaluate the secondary solution at all sampling points
-    if (retVal)
-      retVal = this->evalSolution(sField,integrand,gpar);
+    if (this->getGridParameters(gpar[0],0,npe[0]-1) &&
+	this->getGridParameters(gpar[1],1,npe[1]-1))
+      if (project)
+      {
+	// Project the secondary solution onto the spline basis
+	Go::SplineSurface* s = this->projectSolution(integrand);
+	if (s)
+	{
+	  // Evaluate the projected field at the result sampling points
+	  const Vector& svec = sField; // using utl::matrix cast operator
+	  sField.resize(s->dimension(),gpar[0].size()*gpar[1].size());
+	  s->gridEvaluator(const_cast<Vector&>(svec),gpar[0],gpar[1]);
+	  delete s;
+	  return true;
+	}
+      }
+      else
+	// Evaluate the secondary solution directly at all sampling points
+	return this->evalSolution(sField,integrand,gpar);
   }
   else
   {
@@ -1313,12 +1320,12 @@ bool ASMs2D::evalSolution (Matrix& sField, const Integrand& integrand,
       sField.resize(s->dimension(),s->numCoefs_u()*s->numCoefs_v());
       sField.fill(&(*s->coefs_begin()));
       delete s;
+      return true;
     }
-    else
-      retVal = false;
   }
 
-  return retVal;
+  std::cerr <<" *** ASMs2D::evalSolution: Failure!"<< std::endl;
+  return false;
 }
 
 

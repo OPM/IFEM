@@ -73,16 +73,16 @@ bool ASMs1DLag::generateFEMTopology ()
   coord.resize(nx);
 
   // Evaluate the nodal coordinates
+  Go::Point pt;
   for (size_t i = 0; i < nx; i++)
   {
-    Go::Point pt;
     curv->point(pt,gpar[i]);
     for (int k = 0; k < pt.size(); k++)
       coord[i][k] = pt[k];
     MLGN[i] = ++gNod;
   }
 
-  // Connectivety array: local --> global node relation
+  // Connectivity array: local --> global node relation
   MLGE.resize(nel);
   MNPC.resize(nel);
 
@@ -299,8 +299,16 @@ int ASMs1DLag::evalPoint (const double* xi, double* param, Vec3& X) const
 }
 
 
-bool ASMs1DLag::tesselate (ElementBlock& grid, const int*) const
+bool ASMs1DLag::tesselate (ElementBlock& grid, const int* npe) const
 {
+  const int p1 = curv->order();
+  if (p1 != npe[0])
+  {
+    std::cout <<"\nLagrange elements: The number of visualization points is "
+	      << p1 <<" by default\n"<< std::endl;
+    const_cast<int*>(npe)[0] = p1;
+  }
+
   size_t i, l;
 
   grid.resize(nx);
@@ -348,7 +356,7 @@ bool ASMs1DLag::evalSolution (Matrix&, const Vector&,
 
 
 bool ASMs1DLag::evalSolution (Matrix& sField, const Integrand& integrand,
-			      const int*) const
+			      const int*, bool) const
 {
   sField.resize(0,0);
 

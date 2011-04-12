@@ -131,7 +131,7 @@ bool ASMs3DmxLag::generateFEMTopology ()
   const int nely = (ny2-1)/(p2-1);
   const int nelz = (nz2-1)/(p3-1);
 
-  // Add connectivety for second basis: local --> global node relation
+  // Add connectivity for second basis: local --> global node relation
   int i, j, k, a, b, c, iel;
   for (k = iel = 0; k < nelz; k++)
     for (j = 0; j < nely; j++)
@@ -451,7 +451,7 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs3DmxLag::evalSolution (Matrix& sField, const Integrand& integrand,
-				const int*) const
+				const int*, bool) const
 {
   sField.resize(0,0);
 

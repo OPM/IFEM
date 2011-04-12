@@ -1,4 +1,4 @@
-// $Id: ElementBlock.C,v 1.4 2010-09-05 11:29:18 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file ElementBlock.C
@@ -49,6 +49,15 @@ bool ElementBlock::setCoor (size_t i, real x, real y, real z)
   if (i >= coord.size()) return false;
 
   coord[i] = Vec3(x,y,z);
+  return true;
+}
+
+
+bool ElementBlock::setCoor (size_t i, size_t j, real x)
+{
+  if (i >= coord.size() || j >= 3) return false;
+
+  coord[i][j] = x;
   return true;
 }
 

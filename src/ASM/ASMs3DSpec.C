@@ -408,7 +408,7 @@ bool ASMs3DSpec::integrateEdge (Integrand& integrand, int lEdge,
 
 
 bool ASMs3DSpec::evalSolution (Matrix& sField, const Integrand& integrand,
-			       const int*) const
+			       const int*, bool) const
 {
   sField.resize(0,0);
 

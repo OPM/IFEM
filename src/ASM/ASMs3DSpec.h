@@ -73,9 +73,8 @@ public:
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] npe Number of visualization nodes over each knot span
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
-			    const int* npe) const;
+			    const int*, bool = false) const;
 
 protected:
 

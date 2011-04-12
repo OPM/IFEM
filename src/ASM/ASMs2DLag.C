@@ -93,7 +93,7 @@ bool ASMs2DLag::generateFEMTopology ()
   // Number of nodes per element
   const int nen = p1*p2;
 
-  // Connectivety array: local --> global node relation
+  // Connectivity array: local --> global node relation
   MLGE.resize(nel);
   MNPC.resize(nel);
 
@@ -453,7 +453,7 @@ bool ASMs2DLag::evalSolution (Matrix&, const Vector&,
 
 
 bool ASMs2DLag::evalSolution (Matrix& sField, const Integrand& integrand,
-			      const int*) const
+			      const int*, bool) const
 {
   sField.resize(0,0);
 

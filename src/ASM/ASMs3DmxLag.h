@@ -118,7 +118,7 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
-			    const int*) const;
+			    const int*, bool = false) const;
 
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order
