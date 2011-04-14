@@ -336,6 +336,9 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName,
   double dMax[nsd];
   double normL2 = model->solutionNorms(solution.front(),dMax,iMax);
 
+  RealArray RF;
+  bool haveRFs = model->getCurrentReactions(RF,solution.front());
+
   if (energyNorm)
     if (!model->solutionNorms(time,solution,eNorm,gNorm))
       gNorm.clear();
@@ -347,6 +350,13 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName,
     for (int d = 0; d < nsd; d++, D++)
       std::cout <<"\n                            Max "<< D <<'-'<< compName
 		<<" : "<< dMax[d] <<" node "<< iMax[d];
+    if (haveRFs)
+    {
+      std::cout <<"\n  Total reaction forces: Sum(R) =";
+      for (size_t i = 1; i < RF.size(); i++)
+        std::cout <<" "<< RF[i];
+      std::cout <<"\n  "<< compName <<"*reactions: (R,u) = "<< RF.front();
+    }
     if (gNorm.size() > 0)
     {
       std::cout <<"\n  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : "<< gNorm(1);

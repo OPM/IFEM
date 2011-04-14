@@ -665,9 +665,9 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
 void SIMbase::iterationNorms (const Vector& u, const Vector& r,
 			      double& eNorm, double& rNorm, double& dNorm) const
 {
-  eNorm = mySam->dot(r,u);
-  rNorm = mySam->norm2(r);
-  dNorm = mySam->norm2(u);
+  eNorm = mySam->dot(r,u,'A');
+  rNorm = mySam->norm2(r,'D');
+  dNorm = mySam->norm2(u,'D');
 }
 
 
@@ -809,6 +809,30 @@ bool SIMbase::solutionNorms (const TimeDomain& time, const Vectors& psol,
     delete elementNorms[i];
 
   return ok;
+}
+
+
+/*!
+  The content of the output array \a RF is as follows:
+  \f[
+  RF[0] = \sum_{i=n}^{\rm nnod} \sum_{i=1}^{\rm nsd} f_n^i u_n^i
+  \quad\quad\mbox{(energy)}\f]
+  \f[
+  RF[i] = \sum_{n=1}^{\rm nnod} f_n^i \quad\forall\quad i=1,\ldots,{\rm nsd}
+  \f]
+*/
+
+bool SIMbase::getCurrentReactions (RealArray& RF, const Vector& psol) const
+{
+  const Vector* reactionForces = myEqSys->getReactions();
+  if (!reactionForces) return false;
+
+  RF.resize(1+this->getNoSpaceDim());
+  RF.front() = 2.0*mySam->normReact(psol,*reactionForces);
+  for (size_t dir = 1; dir < RF.size(); dir++)
+    RF[dir] = mySam->getReaction(dir,*reactionForces);
+
+  return true;
 }
 
 

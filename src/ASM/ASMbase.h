@@ -99,7 +99,7 @@ public:
   //! \brief Returns the number of parameter dimensions.
   unsigned char getNoParamDim() const { return ndim; }
   //! \brief Returns the number of solution fields.
-  virtual unsigned char getNoFields(int = 0) const { return nf; }
+  virtual unsigned char getNoFields(int b = 0) const { return b > 1 ? 0 : nf; }
 
   //! \brief Returns local 1-based index of the node with given global number.
   //! \details If the given node number is not present, 0 is returned.
@@ -113,6 +113,8 @@ public:
   int getElmID(size_t iel) const;
   //! \brief Returns the number of DOFs per node.
   virtual unsigned char getNodalDOFs(size_t) const { return nf; }
+  //! \brief Returns which mixed field basis a node belongs to.
+  virtual unsigned char getNodalBasis(size_t) const { return 0; }
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const = 0;

@@ -1,4 +1,4 @@
-// $Id: SAMpatchPara.h,v 1.4 2011-02-08 12:09:30 rho Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file SAMpatchPara.h
@@ -49,7 +49,8 @@ public:
   //! \param sysRHS The system right-hand-side load vector to be initialized
   //! \param reactionForces Pointer to vector of nodal reaction forces
   //! \return \e false if no free DOFs in the system, otherwise \e true
-  virtual bool initForAssembly(SystemVector& sysRHS, Vector* reactionForces = 0) const;
+  virtual bool initForAssembly(SystemVector& sysRHS,
+			       Vector* reactionForces = 0) const;
 
   //! \brief Adds element stiffness contributions to the system load vector.
   //! \param sysRHS  The right-hand-side system load vector
@@ -98,42 +99,43 @@ public:
   virtual bool expandSolution(const SystemVector& solVec, Vector& displ) const;
 
   //! \brief Computes the dot-product of two vectors.
-  //! \param[in] x First vector in dot-product.
-  //! \param[in] y Second vector in dot-product.
+  //! \param[in] x First vector in dot-product
+  //! \param[in] y Second vector in dot-product
+  //! \param[in] dofType Only consider nodes of this type (for mixed methods)
   //! \return Value of dot-product
   //!
   //! \details Both vectors are defined over all nodes in the patch, i.e.
   //! for parallel vectors the ghost entries are also included.
-  virtual real dot(const Vector& x, const Vector& y) const;
+  virtual real dot(const Vector& x, const Vector& y, char dofType = 'D') const;
 
   //! \brief Computes the L2-norm of a vector.
   //! \param[in] x Vector for norm computation
+  //! \param[in] dofType Only consider nodes of this type (for mixed methods)
   //! \return Value of L2-norm
   //!
   //! \details The vector is defined over all nodes in the patch, i.e.
   //! for parallel vectors the ghost entries are also included.
-  virtual real normL2(const Vector& x) const;
+  virtual real normL2(const Vector& x, char dofType = 'D') const;
 
   //! \brief Computes the inf-norm of a vector.
   //! \param[in] x Vector for norm computation
   //! \param comp Local nodal DOF on input, index of the largest value on output
+  //! \param[in] dofType Only consider nodes of this type (for mixed methods)
   //! \return Value of inf-norm
   //!
   //! \details The vector is defined over all nodes in the patch, i.e.
   //! for parallel vectors the ghost entries are also included.
-  virtual real normInf(const Vector& x, size_t& comp) const;
+  virtual real normInf(const Vector& x, size_t& comp, char dofType = 'D') const;
 
 protected:
   //! \brief Initializes the multi-point constraint arrays
   //! \a MPMCEQ, \a MMCEQ and \a TTCC.
-  virtual void initConstraintEqs(const std::vector<ASMbase*>& model);
+  virtual bool initConstraintEqs(const std::vector<ASMbase*>& model);
 
   //! \brief Initializes the DOF-to-equation connectivity array \a MEQN.
   virtual bool initSystemEquations();
 
 private:
-  typedef std::set<int> IntSet; //!< General integer set
-
   // Parameters for parallel computing
   int    nProc;      //!< Number of processes
   int    nleq;       //!< Number of equations for this processor

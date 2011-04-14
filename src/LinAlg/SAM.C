@@ -63,7 +63,7 @@ void expand_(const real* solVec, const real* ttcc,
 
 
 SAM::SAM () : nnod(mpar[0]), nel(mpar[1]), ndof(mpar[2]),
-	      nceq(mpar[6]), neq(mpar[10]),
+	      nspdof(mpar[5]), nceq(mpar[6]), neq(mpar[10]),
 	      nmmnpc(mpar[14]), nmmceq(mpar[15])
 {
   // Initialize the parameters array to zero
@@ -166,6 +166,8 @@ void SAM::print (std::ostream& os) const
       }
       code[i] = '\0';
       os <<'\t'<< code;
+      if ((size_t)n < nodeType.size())
+	os <<'\t'<< nodeType[n];
     }
     os << std::endl;
   }
@@ -187,7 +189,6 @@ bool SAM::initSystemEquations ()
   int i, j, idof;
   int ndof1  = 0;
   int ndof2  = 0;
-  int nspdof = 0;
   int npdof  = 0;
   int nddof  = 0;
   for (i = 0; i < ndof; i++)
@@ -246,7 +247,6 @@ bool SAM::initSystemEquations ()
 
   mpar[3] = ndof1;
   mpar[4] = ndof2;
-  mpar[5] = nspdof;
   mpar[7] = nspdof - nceq;
   mpar[8] = npdof;
   mpar[9] = nddof;
@@ -260,15 +260,6 @@ bool SAM::initSystemEquations ()
     else if (msc[idof] == 2)
       meqn[idof] = j++;
 #endif
-
-  // Initialize the number of nodal DOFs
-  int inod, nndof;
-  mpar[16] = mpar[17] = madof[1]-madof[0];
-  for (inod = 1; inod < nnod && madof; inod++)
-    if ((nndof = madof[inod+1]-madof[inod]) < mpar[16])
-      mpar[16] = nndof;
-    else if (nndof > mpar[17])
-      mpar[17] = nndof;
 
   if (ierr == 0) return true;
 
@@ -382,7 +373,7 @@ bool SAM::initForAssembly (SystemVector& sysRHS, Vector* reactionForces) const
   sysRHS.redim(neq);
   sysRHS.init();
   if (reactionForces)
-    reactionForces->resize(mpar[5],true);
+    reactionForces->resize(nspdof,true);
 
   return neq > 0 ? true : false;
 }
@@ -655,16 +646,16 @@ bool SAM::expandVector (const real* solVec, Vector& dofVec) const
 }
 
 
-real SAM::dot (const Vector& x, const Vector& y) const
+real SAM::dot (const Vector& x, const Vector& y, char dofType) const
 {
-  if (mpar[16] == mpar[17]) // All nodes have the same number of DOFs
-    return x.dot(y);
+  if (nodeType.empty() || dofType == 'A')
+    return x.dot(y); // All nodes are of the same type, or consider all of them
 
-  // Consider the nodes with mpar[17] DOFs only
+  // Consider only the dofType nodes
   int i, j, n = x.size() < y.size() ? x.size() : y.size();
   real retVal = real(0);
   for (i = 0; i < nnod; i++)
-    if (madof[i+1] - madof[i] == mpar[17])
+    if (nodeType[i] == dofType)
       for (j = madof[i]-1; j < madof[i+1] && j < n; j++)
 	retVal += x[j]*y[j];
 
@@ -672,19 +663,19 @@ real SAM::dot (const Vector& x, const Vector& y) const
 }
 
 
-real SAM::normL2 (const Vector& x) const
+real SAM::normL2 (const Vector& x, char dofType) const
 {
   if (x.empty())
     return real(0);
-  else if (mpar[16] == mpar[17]) // All nodes have the same number of DOFs
+  else if (nodeType.empty()) // All nodes are of the same type
     return x.norm2()/sqrt(x.size());
 
-  // Consider the nodes with mpar[17] DOFs only
-  int i, j, count = 0;
+  // Consider only the dofType nodes
+  int count, i, j, n = x.size();
   real retVal = real(0);
-  for (i = 0; i < nnod; i++)
-    if (madof[i+1] - madof[i] == mpar[17])
-      for (j = madof[i]-1; j < madof[i+1] && j < (int)x.size(); j++)
+  for (count = i = 0; i < nnod; i++)
+    if (nodeType[i] == dofType)
+      for (j = madof[i]-1; j < madof[i+1] && j < n; j++)
       {
 	retVal += x[j]*x[j];
 	count ++;
@@ -694,21 +685,28 @@ real SAM::normL2 (const Vector& x) const
 }
 
 
-real SAM::normInf (const Vector& x, size_t& comp) const
+real SAM::normInf (const Vector& x, size_t& comp, char dofType) const
 {
-  if (x.empty() || (int)comp > mpar[17])
+  if (x.empty() || comp < 1)
     return real(0);
-  else if (mpar[16] == mpar[17]) // All nodes have the same number of DOFs
-    return x.normInf(--comp,mpar[17]);
+  else if (nodeType.empty())
+  {
+    // All nodes are of the same type with the same number of nodal DOFs
+    int nndof = madof[1] - madof[0];
+    if ((int)comp <= nndof)
+      return x.normInf(--comp,nndof);
+    else
+      return real(0);
+  }
 
-  // Consider the nodes with mpar[17] DOFs only
+  // Consider only the dofType nodes
   int i, k = comp;
   real retVal = real(0);
   for (i = 0; i < nnod; i++)
-    if (madof[i+1] - madof[i] == mpar[17])
+    if (nodeType[i] == dofType)
     {
       int idof = madof[i] + k-2;
-      if (idof < (int)x.size())
+      if (idof >= 0 && idof < madof[i+1]-1)
 	if (fabs(x[idof]) > retVal)
 	{
 	  comp = i+1;
@@ -723,9 +721,26 @@ real SAM::normInf (const Vector& x, size_t& comp) const
 real SAM::normReact (const Vector& u, const Vector& rf) const
 {
   real retVal = real(0);
+
   for (int i = 0; i < ndof; i++)
     if (msc[i] < 0 && -msc[i] <= (int)rf.size())
-      retVal += 0.5*u[i]*rf(-msc[i]);
+      retVal += u[i]*rf(-msc[i]);
+
+  return 0.5*retVal;
+}
+
+
+real SAM::getReaction (int dir, const Vector& rf) const
+{
+  real retVal = real(0);
+
+  if (dir > 0)
+    for (int i = 0; i < nnod; i++)
+    {
+      int idof = madof[i]+dir-2;
+      if (idof < madof[i+1]-1 && msc[idof] < 0 && -msc[idof] <= (int)rf.size())
+	retVal += rf(-msc[idof]);
+    }
 
   return retVal;
 }
@@ -733,7 +748,8 @@ real SAM::normReact (const Vector& u, const Vector& rf) const
 
 bool SAM::getNodalReactions (int inod, const Vector& rf, Vector& nrf) const
 {
-  if (inod < 1 || inod > nnod) return false;
+  if (inod < 1 || inod > nnod)
+    return false;
 
   bool haveRF = false;
   int ip = madof[inod-1]-1;

@@ -30,7 +30,8 @@ bool SAMpatch::init (const ASMVec& model, int numNod)
   }
 
   // Initialize the node/dof arrays (madof,msc) and compute ndof
-  this->initNodeDofs(model);
+  if (!this->initNodeDofs(model))
+    return false;
 
   std::cout <<"\n\n >>> SAM model summary <<<"
 	    <<"\nNumber of elements    "<< nel
@@ -38,11 +39,13 @@ bool SAMpatch::init (const ASMVec& model, int numNod)
 	    <<"\nNumber of dofs        "<< ndof << std::endl;
 
   // Initialize the element connectivity arrays (mpmnpc,mmnpc)
-  this->initElementConn(model);
+  if (!this->initElementConn(model))
+    return false;
 
   // Initialize the constraint equation arrays (mpmceq,mmceq,ttcc)
-  this->initConstraintEqs(model);
-  if (nceq > 0)
+  if (!this->initConstraintEqs(model))
+    return false;
+  else if (nceq > 0)
     std::cout <<"Number of constraints "<< nceq << std::endl;
 
   // Initialize the dof-to-equation connectivity array (meqn)
@@ -52,21 +55,36 @@ bool SAMpatch::init (const ASMVec& model, int numNod)
 }
 
 
-void SAMpatch::initNodeDofs (const ASMVec& model)
+bool SAMpatch::initNodeDofs (const ASMVec& model)
 {
-  if (nnod < 1) return;
+  if (nnod < 1) return true;
 
   int n;
   size_t i, j;
+
+  // Check if we are doing mixed methods
+  for (i = 0; i < model.size() && nodeType.empty(); i++)
+    if (!model[i]->empty() && model[i]->getNoFields(2) > 0)
+      nodeType.resize(nnod,'D'); // Initialize all nodes as 'Displacement type'
 
   // Initialize the array of accumulated DOFs for the nodes
   madof = new int[nnod+1];
   memset(madof,0,(nnod+1)*sizeof(int));
 
+  bool ierr = 0;
   for (i = 0; i < model.size(); i++)
     for (j = 0; j < model[i]->getNoNodes(); j++)
       if ((n = model[i]->getNodeID(j+1)) > 0 && n <= nnod)
-	madof[n] = model[i]->getNodalDOFs(j+1);
+      {
+	if (madof[n] == 0)
+	  madof[n] = model[i]->getNodalDOFs(j+1);
+	else if (madof[n] != model[i]->getNodalDOFs(j+1))
+	  ierr++;
+
+	// Define the node type for mixed methods (used by norm evaluations)
+	if (!nodeType.empty() && model[i]->getNodalBasis(j+1) == 2)
+	  nodeType[n-1] = 'P'; // This is a 'Pressure type' node (basis 2)
+      }
 
   madof[0] = 1;
   for (n = 0; n < nnod; n++)
@@ -91,12 +109,19 @@ void SAMpatch::initNodeDofs (const ASMVec& model)
       if (nndof > 1) msc[idof1  ] *= bit->CY;
       if (nndof > 2) msc[idof1+1] *= bit->CZ;
     }
+
+  if (ierr == 0) return true;
+
+  std::cerr <<" *** SAMpatch::initNodeDOFs: Detected "<< ierr <<" nodes"
+	    <<" nodes with conflicting number of DOFs in adjacent patches."
+	    << std::endl;
+  return false;
 }
 
 
-void SAMpatch::initElementConn (const ASMVec& model)
+bool SAMpatch::initElementConn (const ASMVec& model)
 {
-  if (nel < 1) return;
+  if (nel < 1) return true;
 
   // Find the size of the element connectivity array
   size_t i, j;
@@ -119,10 +144,12 @@ void SAMpatch::initElementConn (const ASMVec& model)
 	  mmnpc[(mpmnpc[ip]++)-1] = model[j]->getNodeID(1+(*eit)[i]);
 	ip++;
       }
+
+  return true;
 }
 
 
-void SAMpatch::initConstraintEqs (const ASMVec& model)
+bool SAMpatch::initConstraintEqs (const ASMVec& model)
 {
   // Estimate the size of the constraint equation array
   size_t j;
@@ -134,7 +161,8 @@ void SAMpatch::initConstraintEqs (const ASMVec& model)
   // Initialize the constraint equation arrays
   mpmceq = new int[nceq+1];
   int ip = mpmceq[0] = 1;
-  if (nceq < 1) return;
+  if (nceq < 1) return true;
+
   mmceq  = new int[nmmceq];
   ttcc   = new real[nmmceq];
   for (j = 0; j < model.size(); j++)
@@ -198,6 +226,8 @@ void SAMpatch::initConstraintEqs (const ASMVec& model)
   // Reset the negative values in msc before calling SYSEQ
   for (ip = 0; ip < ndof; ip++)
     if (msc[ip] < 0) msc[ip] = 0;
+
+  return true;
 }
 
 

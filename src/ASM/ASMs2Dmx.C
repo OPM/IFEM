@@ -74,6 +74,12 @@ unsigned char ASMs2Dmx::getNodalDOFs (size_t inod) const
 }
 
 
+unsigned char ASMs2Dmx::getNodalBasis (size_t inod) const
+{
+  return inod <= nb1 ? 1 : 2;
+}
+
+
 void ASMs2Dmx::initMADOF (const int* sysMadof)
 {
   this->initMx(MLGN,sysMadof);

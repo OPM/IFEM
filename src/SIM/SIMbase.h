@@ -197,7 +197,7 @@ public:
   //! \details If an analytical solution is provided, norms of the exact
   //! error in the solution are computed as well.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations.
-  //! \param[in] psol Global primary solution vectors
+  //! \param[in] psol Primary solution vectors
   //! \param[out] eNorm Element-wise norm quantities
   //! \param[out] gNorm Global norm quantities
   virtual bool solutionNorms(const TimeDomain& time, const Vectors& psol,
@@ -206,13 +206,18 @@ public:
   //! \brief Integrates some solution norm quantities.
   //! \details If an analytical solution is provided, norms of the exact
   //! error in the solution are computed as well.
-  //! \param[in] psol Global primary solution vectors
+  //! \param[in] psol Primary solution vectors
   //! \param[out] eNorm Element-wise norm quantities
   //! \param[out] gNorm Global norm quantities
   //!
   //! \details Use this version for linear/stationary problems only.
   virtual bool solutionNorms(const Vectors& psol, Matrix& eNorm, Vector& gNorm)
   { return this->solutionNorms(TimeDomain(),psol,eNorm,gNorm); }
+
+  //! \brief Computes the total reaction forces in the model.
+  //! \param[out] RF Reaction force in each spatial direction + energy
+  //! \param[in] psol Primary solution vector
+  bool getCurrentReactions(RealArray& RF, const Vector& psol) const;
 
   //! \brief Performs a generalized eigenvalue analysis of the assembled system.
   //! \param[in] iop Which eigensolver method to use
@@ -272,7 +277,7 @@ public:
   //! \brief Writes solution fields for a given load/time step to the VTF-file.
   //! \details If an analytical solution is provided, the exact stress fields
   //! are written to the VTF-file as well.
-  //! \param[in] psol Global primary solution vector
+  //! \param[in] psol Primary solution vector
   //! \param[in] nViz Number of visualization points over each knot-span
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter

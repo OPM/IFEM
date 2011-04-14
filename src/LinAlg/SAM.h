@@ -23,7 +23,7 @@ class SystemVector;
 
 /*!
   \brief This class contains data and functions for the assembly of FE matrices.
-  \details The names and meanings of the data members of this class are
+  \details The names and meanings of (most of) the data members of this class
   are adopted from Kolbein Bell's pionering work on the field.
   See his reports on the SAM library for a thorough elaboration.
 
@@ -33,6 +33,10 @@ class SystemVector;
 
 class SAM
 {
+protected:
+  typedef std::vector<int> IntVec; //!< General integer vector
+  typedef std::set<int>    IntSet; //!< General integer set
+
 public:
   //! \brief The constructor initializes an empty object.
   SAM();
@@ -51,12 +55,10 @@ public:
   //! \brief Returns the number of equations (free DOFs) in the model.
   virtual int getNoEquations() const { return neq; }
 
-  //! \brief Returns max number of dof couplings in the model.
+  //! \brief Returns max number of DOF couplings in the model.
   int getMaxDofCouplings() const;
 
-  typedef std::vector<int> IntVec; //!< General integer vector
-
-  //! \brief Computes number of couplings for each dof in the system matrix.
+  //! \brief Computes number of couplings for each DOF in the system matrix.
   //! \param[out] nnz Number of couplings (non-zeroes) for each DOF
   //! \return \e false if number of couplings is not computed, otherwise \e true
   bool getNoDofCouplings(IntVec& nnz) const;
@@ -72,8 +74,6 @@ public:
   bool getDofCouplings(IntVec& irow, IntVec& jcol) const;
 
 private:
-  typedef std::set<int> IntSet; //!< General integer set
-
   //! \brief Finds the set of free DOFs coupled to each free DOF.
   bool getDofCouplings(std::vector<IntSet>& dofc) const;
 
@@ -192,24 +192,38 @@ public:
   bool expandVector(const Vector& solVec, Vector& displ) const;
 
   //! \brief Computes the dot-product of two vectors of length NDOF.
-  virtual real dot(const Vector& x, const Vector& y) const;
+  //! \param[in] x The first vector of the dot-product
+  //! \param[in] y The second vector of the dot-product
+  //! \param[in] dofType Only consider nodes of this type (for mixed methods)
+  virtual real dot(const Vector& x, const Vector& y, char dofType = 'D') const;
   //! \brief Computes the l2-norm of a vector of length NDOF.
-  real norm2(const Vector& x) const { return sqrt(this->dot(x,x)); }
+  //! \param[in] x The vector to compute the norm of
+  //! \param[in] dofType Only consider nodes of this type (for mixed methods)
+  real norm2(const Vector& x, char dofType = 'D') const
+  { return sqrt(this->dot(x,x,dofType)); }
   //! \brief Computes the L2-norm of a vector of length NDOF.
-  virtual real normL2(const Vector& x) const;
+  //! \param[in] x The vector to compute the norm of
+  //! \param[in] dofType Only consider nodes of this type (for mixed methods)
+  virtual real normL2(const Vector& x, char dofType = 'D') const;
   //! \brief Computes the L_infinity-norm of a vector of length NDOF.
   //! \param[in] x The vector to compute the norm of
   //! \param comp Local nodal DOF on input, index of the largest value on output
-  virtual real normInf(const Vector& x, size_t& comp) const;
-  //! \brief Computes energy norm contributions from nodal reaction forces.
+  //! \param[in] dofType Only consider nodes of this type (for mixed methods)
+  virtual real normInf(const Vector& x, size_t& comp, char dofType = 'D') const;
+
+  //! \brief Computes the energy norm contributions from nodal reaction forces.
   //! \param[in] u The (incremental) nodal displacement vector
-  //! \param[in] rf Compressed reaction force vector
+  //! \param[in] rf Compressed reaction force vector for the entire model
   virtual real normReact(const Vector& u, const Vector& rf) const;
+  //! \brief Returns the total reaction force in the given coordinate direction.
+  //! \param[in] dir 1-based coordinate direction index
+  //! \param[in] rf Compressed reaction force vector for the entire model
+  virtual real getReaction(int dir, const Vector& rf) const;
   //! \brief Returns a vector of reaction forces for a given node.
   //! \param[in] inod Identifier for the node to get the reaction forces for
   //! \param[in] rf Compressed reaction force vector for the entire model
   //! \param[out] nrf Nodal reaction forces
-  //! \return \e true of the specified node has reaction forces
+  //! \return \e true if the specified node has reaction forces
   bool getNodalReactions(int inod, const Vector& rf, Vector& nrf) const;
 
 protected:
@@ -233,16 +247,23 @@ protected:
   //! \return second = local DOF number in the range [1,NNDOF]
   std::pair<int,int> getNodeAndLocalDof(int idof) const;
 
+private:
+  int mpar[50]; //!< Matrix of parameters
+
+protected:
   // The following parameters are pointers to specific locations in MPAR
   int& nnod;   //!< Number of nodes
   int& nel;    //!< Number of elements
   int& ndof;   //!< Number of DOFs
+  int& nspdof; //!< Number of specified DOFs
   int& nceq;   //!< Number of constraint equations
   int& neq;    //!< Number of system equations
   int& nmmnpc; //!< Number of elements in MMNPC
   int& nmmceq; //!< Number of elements in MMCEQ
 
-  // The standard SAM arrays (see K. Bell's reports for detailed explanation)
+  // The standard SAM arrays (see K. Bell's reports for detailed explanation).
+  // We are using plane C-pointers for these items such that they more easily
+  // can be passed directly as arguments to FORTRAN subroutines.
   int*  mpmnpc; //!< Matrix of pointers to MNPCs in MMNPC
   int*  mmnpc;  //!< Matrix of matrices of nodal point correspondances
   int*  madof;  //!< Matrix of accumulated DOFs
@@ -253,7 +274,7 @@ protected:
   int*  minex;  //!< Matrix of internal to external node numbers
   int*  meqn;   //!< Matrix of equation numbers
 
-  int mpar[50]; //!< Matrix of parameters
+  std::vector<char> nodeType; //!< DOF classification when using mixed methods
 
   friend class DenseMatrix;
   friend class SPRMatrix;

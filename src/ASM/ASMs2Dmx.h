@@ -61,6 +61,9 @@ public:
   //! \brief Returns the number of DOFs per node.
   //! \param[in] inod 1-based node index local to current patch
   virtual unsigned char getNodalDOFs(size_t inod) const;
+  //! \brief Returns which mixed field basis a node belongs to.
+  //! \param[in] inod 1-based node index local to current patch
+  virtual unsigned char getNodalBasis(size_t inod) const;
 
   //! \brief Initializes the patch level MADOF array for mixed problems.
   virtual void initMADOF(const int* sysMadof);

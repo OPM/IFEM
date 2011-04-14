@@ -13,13 +13,12 @@
 
 #include "SAMpatchPara.h"
 #include "PETScMatrix.h"
+#include "LinAlgInit.h"
 #include "ASMbase.h"
 #include "MPC.h"
 
-#include "LinAlgInit.h"
 
-
-SAMpatchPara::SAMpatchPara(const IntVec& l2gn_mp)
+SAMpatchPara::SAMpatchPara (const IntVec& l2gn_mp)
 {
   l2gn = l2gn_mp;
 #ifdef PARALLEL_PETSC
@@ -94,10 +93,8 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
   }
 
   // Generate nnz for off-diagonal block
-  IntVec l2g;
-  Vector nnz;
-  l2g.resize(ndof);
-  nnz.resize(ndof);
+  IntVec l2g(ndof);
+  Vector nnz(ndof);
   for (i = 0;i < ndof;i++) {
     l2g[i] = meqn[i]-1;
     nnz[i] = o_dofc[i].size();
@@ -130,12 +127,13 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
 }
 
 
-bool SAMpatchPara::initForAssembly (SystemVector& sysRHS, Vector* reactionForces) const
+bool SAMpatchPara::initForAssembly (SystemVector& sysRHS,
+				    Vector* reactionForces) const
 {
   sysRHS.redim(nleq);
   sysRHS.init();
   if (reactionForces)
-    reactionForces->resize(mpar[5],true);
+    reactionForces->resize(nspdof,true);
 
   return nleq > 0 ? true : false;
 }
@@ -243,9 +241,9 @@ bool SAMpatchPara::expandSolution (const SystemVector& solVec,
 }
 
 
-real SAMpatchPara::dot (const Vector& x, const Vector& y) const
+real SAMpatchPara::dot (const Vector& x, const Vector& y, char dofType) const
 {
-  real globVal = this->SAM::dot(x,y);
+  real globVal = this->SAM::dot(x,y,dofType);
 
 #ifdef PARALLEL_PETSC
   if (nProc > 1)
@@ -254,7 +252,7 @@ real SAMpatchPara::dot (const Vector& x, const Vector& y) const
     for (size_t i = 0; i < ghostNodes.size(); i++)
     {
       int inod = ghostNodes[i];
-      if (madof[inod] - madof[inod-1] == mpar[17])
+      if (nodeType[inod-1] == dofType || dofType == 'A')
 	for (int j = madof[inod-1]; j < madof[inod]; j++)
 	  locVal -= x(j)*y(j);
     }
@@ -267,35 +265,44 @@ real SAMpatchPara::dot (const Vector& x, const Vector& y) const
 }
 
 
-real SAMpatchPara::normL2 (const Vector& x) const
+real SAMpatchPara::normL2 (const Vector& x, char dofType) const
 {
 #ifdef PARALLEL_PETSC
   if (nProc > 1 && nnodGlob > 1)
-    return this->norm2(x)/sqrt(mpar[17]*nnodGlob);
+    return this->norm2(x,dofType)/sqrt((madof[1]-madof[0])*nnodGlob);
+  // TODO,kmo: The above is not correct for mixed methods. We need to find the
+  // global number of DOFs of type dofType and use that in the denominator.
 #endif
-  return this->SAM::normL2(x);
+  return this->SAM::normL2(x,dofType);
 }
 
 
-real SAMpatchPara::normInf (const Vector& x, size_t& comp) const
+real SAMpatchPara::normInf (const Vector& x, size_t& comp, char dofType) const
 {
-  real locmax = this->SAM::normInf(x,comp);
+  real locmax = this->SAM::normInf(x,comp,dofType);
 #ifdef PARALLEL_PETSC
-  int nProc, myRank;
-  MPI_Comm_size(PETSC_COMM_WORLD,&nProc);
-  MPI_Comm_rank(PETSC_COMM_WORLD,&myRank);
+  if (nProc > 1)
+  {
+    int myRank;
+    MPI_Comm_rank(PETSC_COMM_WORLD,&myRank);
 
-  if (nProc > 1) {
-    Vector locval, globval;
-    locval.resize(2*nProc,0.0);
-    globval.resize(2*nProc,0.0);
+    int nndof = madof[1]-madof[0];
+    for (size_t i = 0; i < nodeType.size(); i++)
+      if (nodeType[i] == dofType)
+      {
+	nndof = madof[i+1]-madof[i];
+	break;
+      }
 
-    comp = meqn[(comp-1)*mpar[17]]/mpar[17]+1;
+    // TODO,kmo: Don't think this is correct in case of mixed methods
+    comp = meqn[(comp-1)*nndof]/nndof+1;
 
+    RealArray locval(2*nProc,0.0), globval(2*nProc,0.0);
     locval[2*myRank]   = locmax;
     locval[2*myRank+1] = 1.0*comp;
     MPI_Allreduce(&locval[0],&globval[0],2*nProc,MPI_DOUBLE,MPI_MAX,PETSC_COMM_WORLD);
 
+    // TODO,kmo: Is this calculation of comp correct? I doubth it...
     for (int n = 0; n < nProc; n++)
       if (globval[2*n] > locmax) {
 	locmax = globval[2*n];
@@ -307,7 +314,7 @@ real SAMpatchPara::normInf (const Vector& x, size_t& comp) const
 }
 
 
-void SAMpatchPara::initConstraintEqs (const std::vector<ASMbase*>& model)
+bool SAMpatchPara::initConstraintEqs (const std::vector<ASMbase*>& model)
 {
   // TODO: Rewrite this calling the parent-class method, and then replacing
   // the mpmceq array into the ndof-sized array used here (why is it needed?)
@@ -322,7 +329,8 @@ void SAMpatchPara::initConstraintEqs (const std::vector<ASMbase*>& model)
   // Initialize the constraint equation arrays
   mpmceq = new int[ndof];
   memset(mpmceq,0,ndof*sizeof(int));
-  if (nceq < 1) return;
+  if (nceq < 1) return true;
+
   mmceq  = new int[nmmceq];
   ttcc   = new real[nmmceq];
   int ip = 1;
@@ -386,6 +394,8 @@ void SAMpatchPara::initConstraintEqs (const std::vector<ASMbase*>& model)
   // Reset the negative values in msc before calling SYSEQ
   for (ip = 0; ip < ndof; ip++)
     if (msc[ip] < 0) msc[ip] = 0;
+
+  return true;
 }
 
 
@@ -491,15 +501,6 @@ bool SAMpatchPara::initSystemEquations ()
 
   // Number of equations equals number of dofs
   neq = ndof;
-
-  // Initialize the number of nodal DOFs
-  int inod, nndof;
-  mpar[16] = mpar[17] = madof[1]-madof[0];
-  for (inod = 1; inod < nnod && madof; inod++)
-    if ((nndof = madof[1]-madof[0]) < mpar[16])
-      mpar[16] = nndof;
-    else if (nndof > mpar[17])
-      mpar[17] = nndof;
 
   return true;
 }

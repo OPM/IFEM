@@ -34,9 +34,6 @@ public:
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs2DmxLag(std::istream& is, unsigned char n_s = 2,
 	      unsigned char n_f1 = 2, unsigned char n_f2 = 1);
-  //! \brief Default constructor creating an empty patch.
-  ASMs2DmxLag(unsigned char n_s = 2,
-	      unsigned char n_f1 = 2, unsigned char n_f2 = 1);
   //! \brief Empty destructor.
   virtual ~ASMs2DmxLag() {}
 
@@ -57,6 +54,9 @@ public:
   //! \brief Returns the number of DOFs per node.
   //! \param[in] inod 1-based node index local to current patch
   virtual unsigned char getNodalDOFs(size_t inod) const;
+  //! \brief Returns which mixed field basis a node belongs to.
+  //! \param[in] inod 1-based node index local to current patch
+  virtual unsigned char getNodalBasis(size_t inod) const;
 
   //! \brief Initializes the patch level MADOF array for mixed problems.
   virtual void initMADOF(const int* sysMadof);

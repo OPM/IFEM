@@ -1,4 +1,4 @@
-// $Id: SAMpatch.h,v 1.5 2011-01-02 16:33:04 kmo Exp $
+// $Id$
 //==============================================================================
 //!
 //! \file SAMpatch.h
@@ -46,12 +46,12 @@ public:
 
 protected:
   //! \brief Initializes the nodal arrays \a MINEX, \a MADOF and \a MSC.
-  void initNodeDofs(const std::vector<ASMbase*>& model);
+  bool initNodeDofs(const std::vector<ASMbase*>& model);
   //! \brief Initializes the element topology arrays \a MPMNPC and \a MMNPC.
-  void initElementConn(const std::vector<ASMbase*>& model);
+  bool initElementConn(const std::vector<ASMbase*>& model);
   //! \brief Initializes the multi-point constraint arrays
   //! \a MPMCEQ, \a MMCEQ and \a TTCC.
-  virtual void initConstraintEqs(const std::vector<ASMbase*>& model);
+  virtual bool initConstraintEqs(const std::vector<ASMbase*>& model);
 };
 
 #endif
