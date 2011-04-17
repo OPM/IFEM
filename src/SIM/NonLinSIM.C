@@ -355,7 +355,8 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName,
       std::cout <<"\n  Total reaction forces: Sum(R) =";
       for (size_t i = 1; i < RF.size(); i++)
         std::cout <<" "<< RF[i];
-      std::cout <<"\n  "<< compName <<"*reactions: (R,u) = "<< RF.front();
+      if (RF.front() != 0.0)
+	std::cout <<"\n  "<< compName <<"*reactions: (R,u) = "<< RF.front();
     }
     if (gNorm.size() > 0)
     {

@@ -311,8 +311,9 @@ bool SIMbase::preprocess (const std::vector<int>& ignoredPatches, bool fixDup)
     else
     {
       p->npar = myModel[pid-1]->getNoParamDim();
-      std::cout <<"\nResult point #"<< 1+(int)(p-myPoints.begin())
-		<<": patch #"<< p->patch;
+      int ipt = 1 + (int)(p-myPoints.begin());
+      if (ipt == 1) std::cout <<'\n';
+      std::cout <<"Result point #"<< ipt <<": patch #"<< p->patch;
       switch (p->npar) {
       case 1: std::cout <<" u="; break;
       case 2: std::cout <<" (u,v)=("; break;
@@ -323,11 +324,10 @@ bool SIMbase::preprocess (const std::vector<int>& ignoredPatches, bool fixDup)
 	std::cout <<','<< p->par[c];
       if (p->npar > 1) std::cout <<')';
       if (p->inod > 0) std::cout <<", node #"<< p->inod;
-      std::cout <<", X = "<< p->X;
+      std::cout <<", X = "<< p->X << std::endl;
       p++;
     }
   }
-  std::cout << std::endl;
 
   // Initialize data structures for the algebraic system
 #ifdef PARALLEL_PETSC
@@ -1477,7 +1477,7 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
 
       if (discretization == Spline)
       {
-	os <<"   sol2 =";
+	os <<"\n\t\tsol2 =";
 	for (k = 1; k <= sol2.rows(); k++)
 	  os << std::setw(flWidth) << sol2(k,j+1);
       }

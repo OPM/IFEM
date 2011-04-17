@@ -51,12 +51,16 @@ run Cyl-p2.inp -UL -vtf 1 -nGauss 3 -nviz 3
 run Cyl-p3.inp -UL -vtf 1 -nGauss 4 -nviz 3
 run Cyl-p4.inp -UL -vtf 1 -nGauss 4 -nviz 3
 
-# 2D Rubber block, hyperelastic Neo-Hooke material.
-# - mixed formulation with internal pressure modes.
+# 2D Rubber block, hyperelastic Neo-Hooke material
+# - mixed formulation with internal pressure modes
 run FBlock-h9x5-Q2P1.inp -2Dpstrain -MX 1 -nGauss 3 -vtf 1 -lagrange
 run FBlock-h8x3-Q3P2.inp -2Dpstrain -MX 2 -nGauss 4 -vtf 1 -lagrange
 run FBlock-h8x2-Q4P3.inp -2Dpstrain -MX 3 -nGauss 5 -vtf 1 -lagrange
-# - mixed formulation with continuous pressure field.
+# - mixed formulation with continuous pressure field
 run FBlock-h9x5-Q2Q1.inp -2Dpstrain -mixed -nGauss 3 -vtf 1 -lagrange
 run FBlock-h8x3-Q3Q2.inp -2Dpstrain -mixed -nGauss 4 -vtf 1 -lagrange
 run FBlock-h8x2-Q4Q3.inp -2Dpstrain -mixed -nGauss 5 -vtf 1 -lagrange
+
+# Tension of a 2D elasto-plastic strip
+run Necking-Q2P1.inp -2D -MX 1  -vtf 1 -nviz 3 -nGauss 3 -outPrec 6
+run Necking-Q2Q1.inp -2D -mixed -vtf 1 -nviz 3 -nGauss 3 -outPrec 6
