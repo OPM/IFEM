@@ -1,13 +1,13 @@
-      subroutine plas2d (ipsw,iwr,iter,lfirst,pmat,ndf,detF,
+      subroutine plas2d (ipsw,iwr,iter,lfirst,pmat,nsig,ndf,detF,
      &                   Fn1,Fn,be,Epp,Epl,Sig,Cst,ierr)
 C
 C     PLAS2D: A 2D wrapper on the 3D plastic material routine of FENRIS.
 C
       implicit none
 C
-      integer  ipsw, iwr, iter, lfirst, ndf, ierr
+      integer  ipsw, iwr, iter, lfirst, nsig, ndf, ierr
       real*8   pmat(*), detF, Fn1(*), Fn(*)
-      real*8   be(*), Epp, Epl(*), Sig(3), Cst(3,3)
+      real*8   be(*), Epp, Epl(*), Sig(4), Cst(3,3)
       real*8   F3D(3,3), F3P(3,3), S3D(4), C3D(6,6)
 C
       if (ndf .eq. 2) then
@@ -38,8 +38,12 @@ C
       Cst(1:2,3)   = C3D(1:2,4)
       Cst(3,1:2)   = C3D(4,1:2)
       Cst(3,3)     = C3D(4,4)
-      Sig(1:2)     = S3D(1:2)
-      Sig(3)       = S3D(4)
+      if (nsig .eq. 4) then
+         Sig(1:4)  = S3D
+      else
+         Sig(1:2)  = S3D(1:2)
+         Sig(3)    = S3D(4)
+      end if
 C
       return
       end

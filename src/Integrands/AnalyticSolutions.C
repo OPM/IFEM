@@ -35,11 +35,11 @@ SymmTensor Hole::evaluate (const Vec3& X) const
   double R2 = R <= a ? 1.0 : a*a/(R*R);
   double R4 = R <= a ? 1.0 : R2*R2;
 
-  SymmTensor sigma(is3D ? 3 : 2);
+  SymmTensor sigma(is3D ? 3 : 2, true);
   sigma(1,1) = F0 * (1.0 - R2*(1.5*C2 + C4) + 1.5*R4*C4);
   sigma(2,2) = F0 * (    - R2*(0.5*C2 - C4) - 1.5*R4*C4);
   sigma(1,2) = F0 * (    - R2*(0.5*S2 + S4) + 1.5*R4*S4);
-  if (is3D) sigma(3,3) = F0 * nu*(1.0 - 2.0*R2*C2);
+  sigma(3,3) = F0 * nu*(1.0 - 2.0*R2*C2);
 
   return sigma;
 }
@@ -98,12 +98,12 @@ SymmTensor Lshape::evaluate (const Vec3& X) const
   double theta = atan2(y,x);
 
   // Set up the stress tensor in local system
-  SymmTensor sigma(is3D ? 3 : 2);
+  SymmTensor sigma(is3D ? 3 : 2, true);
   double c0  = F0*lambda*pow(r,lm1);
   sigma(1,1) = c0*((2.0-q*lp1)*cos(lm1*theta) - lm1*cos(lm3*theta));
   sigma(2,2) = c0*((2.0+q*lp1)*cos(lm1*theta) + lm1*cos(lm3*theta));
   sigma(1,2) = c0*(     q*lp1 *sin(lm1*theta) + lm1*sin(lm3*theta));
-  if (is3D) sigma(3,3) = nu * (sigma(1,1)+sigma(2,2));
+  sigma(3,3) = nu * (sigma(1,1)+sigma(2,2));
 
   // Transform to global coordinates
   return sigma.transform(T);

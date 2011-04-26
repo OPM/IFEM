@@ -457,7 +457,7 @@ bool Elasticity::evalSol (Vector& s, const Vector&,
     return false;
 
   // Calculate the stress tensor through the constitutive relation
-  SymmTensor sigma(nsd); double U;
+  SymmTensor sigma(nsd,material->isPlaneStrain()); double U;
   if (!material->evaluate(Cmat,sigma,U,X,dUdX,eps))
     return false;
 
@@ -493,7 +493,7 @@ bool Elasticity::evalSol (Vector& s, const Matrix& dNdX, const Vec3& X) const
     return false;
 
   // Calculate the stress tensor through the constitutive relation
-  SymmTensor sigma(nsd); double U;
+  SymmTensor sigma(nsd,material->isPlaneStrain()); double U;
   if (!material->evaluate(Cmat,sigma,U,X,dUdX,eps))
     return false;
 
@@ -513,15 +513,16 @@ bool Elasticity::evalSol (Vector& s, const STensorFunc& asol,
 
 size_t Elasticity::getNoFields () const
 {
-  return nsd*(nsd+1)/2 + 1;
+  if (nsd == 2 && material->isPlaneStrain())
+    return 5;
+  else
+    return nsd*(nsd+1)/2 + 1;
 }
 
 
 const char* Elasticity::getFieldLabel (size_t i, const char* prefix) const
 {
-  static const char* s1[1] = { "Axial stress" };
-  static const char* s2[3] = { "s_xx","s_yy","s_xy" };
-  static const char* s3[6] = { "s_xx","s_yy","s_zz","s_xy","s_yz","s_xz" };
+  static const char* s[6] = { "s_xx","s_yy","s_zz","s_xy","s_yz","s_xz" };
 
   static std::string label;
   if (prefix)
@@ -529,13 +530,14 @@ const char* Elasticity::getFieldLabel (size_t i, const char* prefix) const
   else
     label.clear();
 
-  if (i >= (size_t)(nsd*(nsd+1)/2))
+  if (nsd == 1)
+    label += "Axial stress";
+  else if (i+1 >= this->getNoFields())
     label += "von Mises stress";
-  else switch (nsd) {
-  case 1: label += s1[i]; break;
-  case 2: label += s2[i]; break;
-  case 3: label += s3[i]; break;
-  }
+  else if (i == 2 && this->getNoFields() == 4)
+    label += s[3];
+  else
+    label += s[i];
 
   return label.c_str();
 }
@@ -599,7 +601,10 @@ bool ElasticityNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
 
   // Evaluate the finite element stress field
   Vector sigmah, sigma;
-  if (!problem.evalSol(sigmah,fe.dNdX,X)) return false;
+  if (!problem.evalSol(sigmah,fe.dNdX,X))
+    return false;
+  else if (sigmah.size() == 4)
+    sigmah.erase(sigmah.begin()+2); // Remove the sigma_zz if plane strain
 
   // Integrate the energy norm a(u^h,u^h)
   pnorm[0] += sigmah.dot(Cinv*sigmah)*fe.detJxW;
@@ -618,6 +623,9 @@ bool ElasticityNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
   {
     // Evaluate the analytical stress field
     sigma = (*anasol)(X);
+    if (sigma.size() == 4)
+      sigma.erase(sigma.begin()+2); // Remove the sigma_zz if plane strain
+
     // Integrate the energy norm a(u,u)
     pnorm[2] += sigma.dot(Cinv*sigma)*fe.detJxW;
     // Integrate the error in energy norm a(u-u^h,u-u^h)

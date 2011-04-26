@@ -19,7 +19,7 @@ extern "C" {
   //! \brief Interface to 2D elasto-plastic material routines (FORTRAN-77 code).
   void plas2d_(const int& ipsw, const int& iwr, const int& iter,
 	       const int& lfirst, const double* pMAT,
-	       const int& nDF, const double& detF,
+	       const int& nSig, const int& nDF, const double& detF,
 	       const double* Fn1, const double* Fn,
 	       const double* be, const double& Epp, const double* Epl,
 	       const double* Sig, double* Cst, int& ierr);
@@ -251,7 +251,7 @@ bool PlasticMaterial::PlasticPoint::evaluate (Matrix& C,
   std::cout << std::endl;
 #endif
   if (ndim == 2)
-    plas2d_(INT_DEBUG,6,prm.it,prm.first,&pMAT.front(),F.dim(),J,
+    plas2d_(INT_DEBUG,6,prm.it,prm.first,&pMAT.front(),sigma.size(),F.dim(),J,
 	    F.ptr(),Fp.ptr(),HVc,HVc[6],HVc+7,sigma.ptr(),C.ptr(),ierr);
   else
     plas3d_(INT_DEBUG,6,prm.it,prm.first,6,6,&pMAT.front(),J,

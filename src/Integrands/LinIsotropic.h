@@ -33,6 +33,9 @@ public:
   //! \brief Empty destructor.
   virtual ~LinIsotropic() {}
 
+  //! \brief Returns \e false if plane stress in 2D.
+  virtual bool isPlaneStrain() const { return !planeStress; }
+
   //! \brief Prints out material parameters to the given output stream.
   virtual void print(std::ostream&) const;
 

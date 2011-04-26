@@ -37,6 +37,9 @@ public:
   //! \brief The destructor deletes the material properties object.
   virtual ~LinearMaterial() { delete material; }
 
+  //! \brief Returns \e false if plane stress in 2D.
+  virtual bool isPlaneStrain() const { return material->isPlaneStrain(); }
+
   //! \brief Prints out material parameters to the given output stream.
   virtual void print(std::ostream& os) const { material->print(os); }
 

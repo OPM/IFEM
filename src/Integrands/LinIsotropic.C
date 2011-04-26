@@ -134,16 +134,21 @@ bool LinIsotropic::evaluate (Matrix& C, SymmTensor& sigma, double& U,
   if (iop > 0)
   {
     // Calculate the stress tensor, sigma = C*eps
+    Vector sig; // Use a local variable to avoid a redim of sigma
     if (eps.dim() != sigma.dim())
     {
       // Account for non-matching tensor dimensions
       SymmTensor epsil(sigma.dim());
-      if (!C.multiply(epsil=eps,sigma))
+      if (!C.multiply(epsil=eps,sig))
 	return false;
     }
     else
-      if (!C.multiply(eps,sigma))
+      if (!C.multiply(eps,sig))
 	return false;
+
+    sigma = sig; // Add sigma_zz in case of plane strain
+    if (!planeStress && nsd == 2 && sigma.size() == 4)
+      sigma(3,3) = nu * (sigma(1,1)+sigma(2,2));
   }
 
   if (iop == 3) // Calculate strain energy density, // U = 0.5*sigma:eps

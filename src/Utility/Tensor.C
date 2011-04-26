@@ -73,6 +73,9 @@ Tensor& Tensor::operator= (const Tensor& T)
     for (t_ind i = 1; i <= ndim; i++)
       for (t_ind j = (this->symmetric() ? i : 1); j <= ndim; j++)
 	v[this->index(i,j)] = T(i,j);
+
+    if (v.size() == 4 && T.v.size() >= 4)
+      v[2] = T(3,3);
   }
 
   return *this;
@@ -326,10 +329,10 @@ std::ostream& SymmTensor::print (std::ostream& os) const
 {
   switch (n) {
   case 1:
-    return os << v[0] << std::endl;
+    return os << v.front() << std::endl;
   case 2:
-    return os << v[0] <<'\n'
-	      << v[2] <<' '<< v[1] << std::endl;
+    return os << v.front() <<'\n'
+	      << v.back()  <<' '<< v[1] << std::endl;
   case 3:
     return os << v[0] <<'\n'
 	      << v[3] <<' '<< v[1] <<'\n'
@@ -340,12 +343,18 @@ std::ostream& SymmTensor::print (std::ostream& os) const
 }
 
 
-bool SymmTensor::redim (const t_ind dim)
+SymmTensor::SymmTensor (const t_ind nsd, bool with33) : Tensor(0)
 {
-  if (n == dim) return false;
+  this->redim(nsd,with33);
+}
 
-  const_cast<t_ind&>(n) = dim;
-  v.resize(n*(n+1)/2,real(0));
+
+bool SymmTensor::redim (const t_ind nsd, bool with33)
+{
+  if (n == nsd) return false;
+
+  const_cast<t_ind&>(n) = nsd;
+  v.resize(nsd == 2 && with33 ? 4 : n*(n+1)/2, real(0));
   return true;
 }
 
@@ -355,7 +364,7 @@ SymmTensor::SymmTensor (const std::vector<real>& vec) : Tensor(0)
   if (vec.size() > 5)
     this->redim(3);
   else if (vec.size() > 2)
-    this->redim(2);
+    this->redim(2, vec.size() == 4);
   else if (vec.size() > 0)
     this->redim(1);
   else
@@ -367,7 +376,7 @@ SymmTensor::SymmTensor (const std::vector<real>& vec) : Tensor(0)
 
 void SymmTensor::copy (const SymmTensor& T)
 {
-  this->redim(T.n);
+  this->redim(T.n, T.v.size() == 4);
   std::copy(T.v.begin(),T.v.end(),v.begin());
 }
 
@@ -384,14 +393,14 @@ SymmTensor& SymmTensor::transform (const Tensor& T)
   real S11, S12, S13, S21, S22, S23, S31, S32, S33;
   switch (n) {
   case 2:
-    S11 = T(1,1)*v[0] + T(1,2)*v[2];
-    S12 = T(1,1)*v[2] + T(1,2)*v[1];
-    S21 = T(2,1)*v[0] + T(2,2)*v[2];
-    S22 = T(2,1)*v[2] + T(2,2)*v[1];
+    S11 = T(1,1)*v.front() + T(1,2)*v.back();
+    S12 = T(1,1)*v.back()  + T(1,2)*v[1];
+    S21 = T(2,1)*v.front() + T(2,2)*v.back();
+    S22 = T(2,1)*v.back()  + T(2,2)*v[1];
 
-    v[0] = S11*T(1,1) + S12*T(1,2);
-    v[1] = S21*T(2,1) + S22*T(2,2);
-    v[2] = S11*T(2,1) + S12*T(2,2);
+    v.front() = S11*T(1,1) + S12*T(1,2);
+    v[1]      = S21*T(2,1) + S22*T(2,2);
+    v.back()  = S11*T(2,1) + S12*T(2,2);
     break;
 
   case 3:
@@ -419,29 +428,39 @@ SymmTensor& SymmTensor::transform (const Tensor& T)
 
 real SymmTensor::trace () const
 {
-  if (n == 3)
-    return v[0] + v[1] + v[2];
-  else if (n == 2)
-    return v[0] + v[1];
-  else if (n == 1)
-    return v[0];
+  real t = real(0);
 
-  return real(0);
+  if (n == 3)
+    t = v[0] + v[1] + v[2];
+  else if (n == 2)
+    t = v[0] + v[1];
+  else if (n == 1)
+    t = v[0];
+
+  if (v.size() == 4)
+    t += v[2];
+
+  return t;
 }
 
 
 real SymmTensor::det () const
 {
-  if (n == 3)
-    return v[0]*(v[1]*v[2] - v[4]*v[4])
-      -    v[3]*(v[3]*v[2] - v[5]*v[4])
-      +    v[5]*(v[3]*v[4] - v[5]*v[1]);
-  else if (n == 2)
-    return (v[0]-v[2])*v[1];
-  else if (n == 1)
-    return v[0];
+  real d = real(0);
 
-  return real(0);
+  if (n == 3)
+    d = v[0]*(v[1]*v[2] - v[4]*v[4])
+      - v[3]*(v[3]*v[2] - v[5]*v[4])
+      + v[5]*(v[3]*v[4] - v[5]*v[1]);
+  else if (n == 2)
+    d = (v.front()-v.back())*v[1];
+  else if (n == 1)
+    d = v.front();
+
+  if (v.size() == 4)
+    d *= v[2];
+
+  return d;
 }
 
 
@@ -468,14 +487,21 @@ real SymmTensor::inverse (real tol)
   }
   else if (n == 2)
   {
-    real T11 = v[0];
-    real T21 = v[2]; real T22 = v[1];
-    v[0] =  T22 / det;
-    v[1] =  T11 / det;
-    v[2] = -T21 / det;
+    real T11 = v.front();
+    real T21 = v.back(); real T22 = v[1];
+    v.front()=  T22 / det;
+    v[1]     =  T11 / det;
+    v.back() = -T21 / det;
+    if (v.size() == 4)
+    {
+      v[0] *= v[2];
+      v[1] *= v[2];
+      v[3] *= v[2];
+      v[2] = (T11*T22 - T21*T21) / det;
+    }
   }
   else if (n == 1)
-    v[0] = real(1) / det;
+    v.front() = real(1) / det;
 
   return det;
 }
@@ -509,26 +535,43 @@ SymmTensor& SymmTensor::rightCauchyGreen (const Tensor& F)
 }
 
 
+/*!
+  The von Mises value of a symmetric 3D (stress) tensor is defined as follows:
+  \f[ s_{\rm vm} = \sqrt{
+  s_{11}(s_{11}-s_{22}) +
+  s_{22}(s_{22}-s_{33}) +
+  s_{33}(s_{33}-s_{11}) + 3(s_{12}^2 + s_{23}^2 + s_{31}^2)}
+  \f]
+*/
+
 real SymmTensor::vonMises () const
 {
-  switch (n) {
-  case 1:
-    return v[0];
-  case 2:
-    return sqrt(v[0]*v[0] + v[1]*v[1] - v[0]*v[1] + 2.0*v[2]*v[2]);
-  case 3:
-    return sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2] -
-		v[0]*v[1] - v[1]*v[2] - v[2]*v[0] +
-	   3.0*(v[3]*v[3] + v[4]*v[4] + v[5]*v[5]));
+  double vms = 0.0;
+  if (n == 3)
+  {
+    double s11 = v[0];
+    double s22 = v[1];
+    double s33 = v[2];
+    double s12 = v[3];
+    double s23 = v[4];
+    double s31 = v[5];
+    vms = sqrt(s11*(s11-s22) + s22*(s22-s33) + s33*(s33-s11) +
+	       3.0*(s12*s12 + s23*s23 + s31*s31));
   }
+  else if (n == 2)
+  {
+    double s11 = v[0];
+    double s22 = v[1];
+    double s33 = v.size() == 4 ? v[2] : 0.0;
+    double s12 = v.size() == 4 ? v[3] : v[2];
+    vms = sqrt(s11*(s11-s22) + s22*(s22-s33) + s33*(s33-s11) + 3.0*s12*s12);
+  }
+  else if (n == 1)
+    vms = v.front();
 
-  return real(0);
+  return vms;
 }
 
-
-/*!
-  \brief Multiplication between a scalar and a symmetric tensor.
-*/
 
 SymmTensor operator* (real a, const SymmTensor& T)
 {
@@ -541,10 +584,6 @@ SymmTensor operator* (real a, const SymmTensor& T)
 }
 
 
-/*!
-  \brief Adding a scaled unit tensor to a symmetric tensor.
-*/
-
 SymmTensor operator+ (const SymmTensor& T, real a)
 {
   SymmTensor S(T);
@@ -552,13 +591,12 @@ SymmTensor operator+ (const SymmTensor& T, real a)
   for (Tensor::t_ind i = 0; i < S.n; i++)
     S.v[i] += a;
 
+  if (S.v.size() == 4)
+    S.v[2] += a;
+
   return S;
 }
 
-
-/*!
-  \brief Subtracting a scaled unit tensor from a symmetric tensor.
-*/
 
 SymmTensor operator- (const SymmTensor& T, real a)
 {
@@ -566,6 +604,9 @@ SymmTensor operator- (const SymmTensor& T, real a)
 
   for (Tensor::t_ind i = 0; i < S.n; i++)
     S.v[i] -= a;
+
+  if (S.v.size() == 4)
+    S.v[2] -= a;
 
   return S;
 }

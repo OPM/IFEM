@@ -89,6 +89,9 @@ public:
   //! \brief Returns the dimension of this tensor.
   t_ind dim() const { return n; }
 
+  //! \brief Returns the size of this tensor.
+  size_t size() const { return v.size(); }
+
   //! \brief Query whether this tensor is symmetric or not.
   bool symmetric() const { return v.size() == (size_t)(n*(n+1)/2); }
 
@@ -130,23 +133,26 @@ public:
 
 class SymmTensor : public Tensor
 {
-  //! \brief Sets the number of spatial dimensions for the tensor to \a newDim.
+  //! \brief Resets the number of spatial dimensions of the tensor.
+  //! \param[in] nsd The new tensor dimension
+  //! \param[in] with33 If \e true and \a nsd = 2, include the 33 term also
   //! \return \e true if the dimension was changed, otherwise \e false
   //!
   //! \details This method is private because the tensor dimension is not
   //! supposed to be changed by the application. It is only for internal use.
-  bool redim(const t_ind newDim);
+  bool redim(const t_ind nsd, bool with33 = false);
 
 protected:
   //! \brief Returns a 0-based array index for the given tensor indices.
-  //! \details Symmetric tensors are assumed stored with the following order:
-  //! s11, s22, s33, s12, s23, s13.
+  //! \details Symmetric 3D tensors are assumed stored with the following order:
+  //! s11, s22, s33, s12, s23, s13. Symmetric 2D tensors have the order
+  //! s11, s22, s12 and if the 33 component is included: s11, s22, s33, s12.
   virtual t_ind index(t_ind i, t_ind j) const
   {
     if (i == j)
       return i-1; // diagonal term
     else if (n == 2)
-      return 2;   // off-diagonal term (2D)
+      return v.size()-1; // off-diagonal term (2D)
 
     if (i == j+1 || i+2 == j) std::swap(i,j);
     return i+2; // upper triangular term (3D)
@@ -157,7 +163,14 @@ protected:
 
 public:
   //! \brief Constructor creating a zero tensor.
-  SymmTensor(const t_ind nsd) : Tensor(nsd) { v.resize(n*(n+1)/2,real(0)); }
+  //! \param[in] nsd The tensor dimension (1, 2 or 3)
+  //! \param[in] with33 If \e true and \a nsd = 2, include the 33 term also
+  //!
+  //! \details The combination \a nsd = 2 and \a with33 = \e true results in a
+  //! 2D tensor with the 33-term as the forth component. This is typically used
+  //! to represent the symmetric stress tensor in 2D plane strain models,
+  //! where the \f$\sigma_{zz}\f$ component is nonzero.
+  SymmTensor(const t_ind nsd, bool with33 = false);
   //! \brief Constructor creating a symmetric tensor from a vector.
   SymmTensor(const std::vector<real>& vec);
   //! \brief Copy constructor.

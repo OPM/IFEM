@@ -1,12 +1,12 @@
       subroutine cons2d (ipsw,iter,iwr,lfirst,mTYP,mVER,
-     &                   ndf,detF,F,pMAT,U,Sig,Cst,ierr)
+     &                   nsig,ndf,detF,F,pMAT,U,Sig,Cst,ierr)
 C
 C     CONS2D: A 2D wrapper on the 3D material routines of FENRIS.
 C
       implicit none
 C
-      integer  ipsw, iter, iwr, lfirst, mTYP, mVER, ndf, ierr
-      real*8   detF, F(*), pMAT(*), U, Sig(3), Cst(3,3)
+      integer  ipsw, iter, iwr, lfirst, mTYP, mVER, nsig, ndf, ierr
+      real*8   detF, F(*), pMAT(*), U, Sig(4), Cst(3,3)
       real*8   F3D(3,3), S3D(6), C3D(6,6)
 C
       if (ndf .eq. 2) then
@@ -31,8 +31,12 @@ C
       Cst(1:2,3)   = C3D(1:2,4)
       Cst(3,1:2)   = C3D(4,1:2)
       Cst(3,3)     = C3D(4,4)
-      Sig(1:2)     = S3D(1:2)
-      Sig(3)       = S3D(4)
+      if (nsig .eq. 4) then
+         Sig(1:4)  = S3D(1:4)
+      else
+         Sig(1:2)  = S3D(1:2)
+         Sig(3)    = S3D(4)
+      end if
 C
       return
       end

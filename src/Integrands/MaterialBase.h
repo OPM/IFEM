@@ -36,6 +36,9 @@ public:
   //! \brief Empty destructor.
   virtual ~Material() {}
 
+  //! \brief Returns \e false if plane stress in 2D.
+  virtual bool isPlaneStrain() const { return true; }
+
   //! \brief Prints out material parameters to the given output stream.
   virtual void print(std::ostream&) const {}
 
