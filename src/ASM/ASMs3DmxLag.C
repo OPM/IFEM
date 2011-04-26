@@ -101,7 +101,7 @@ bool ASMs3DmxLag::generateFEMTopology ()
   bool basis1IsOK = this->ASMs3DLag::generateFEMTopology();
   if (haveFEdata || !basis1IsOK) return basis1IsOK;
 
-  // Order of 2nd basis in the two parametric directions (order = degree + 1)
+  // Order of 2nd basis in the three parametric directions (order = degree + 1)
   const int p1 = svol->order(0)-1;
   const int p2 = svol->order(1)-1;
   const int p3 = svol->order(2)-1;
@@ -116,7 +116,7 @@ bool ASMs3DmxLag::generateFEMTopology ()
   RealArray gpar[3];
   if (!this->getGridParameters(gpar[0],0,p1-1)) return false;
   if (!this->getGridParameters(gpar[1],1,p2-1)) return false;
-  if (!this->getGridParameters(gpar[2],1,p3-1)) return false;
+  if (!this->getGridParameters(gpar[2],2,p3-1)) return false;
 
   // Number of nodes in each direction
   nx2 = gpar[0].size();
