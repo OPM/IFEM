@@ -1409,7 +1409,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 	    }
 	    if (gpar[0].size() > 1) fe.u = gpar[0](k1,i1-p1+1);
 	    if (gpar[1].size() > 1) fe.v = gpar[1](k2,i2-p2+1);
-	    if (gpar[2].size() > 1) fe.w = gpar[1](k3,i3-p3+1);
+	    if (gpar[2].size() > 1) fe.w = gpar[2](k3,i3-p3+1);
 
 	    // Fetch basis function derivatives at current integration point
 	    extractBasis(spline[ip],fe.N,dNdu);
@@ -1575,7 +1575,7 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 	  // Parameter values of current integration point
 	  if (gpar[0].size() > 1) fe.u = gpar[0](i+1,i1-p1+1);
 	  if (gpar[1].size() > 1) fe.v = gpar[1](i+1,i2-p2+1);
-	  if (gpar[2].size() > 1) fe.w = gpar[1](i+1,i3-p3+1);
+	  if (gpar[2].size() > 1) fe.w = gpar[2](i+1,i3-p3+1);
 
 	  // Fetch basis function derivatives at current integration point
 	  extractBasis(spline[ip],fe.N,dNdu);
@@ -1840,13 +1840,13 @@ bool ASMs3D::evalSolution (Matrix& sField, const Integrand& integrand,
 	  const Vector& svec = sField; // using utl::matrix cast operator
 	  sField.resize(v->dimension(),
 			gpar[0].size()*gpar[1].size()*gpar[2].size());
-	  v->gridEvaluator(const_cast<Vector&>(svec),gpar[0],gpar[1],gpar[2]);
+	  v->gridEvaluator(gpar[0],gpar[1],gpar[2],const_cast<Vector&>(svec));
 	  delete v;
 	  return true;
 	}
       }
       else
-	// Evaluate the secondary solution at all sampling points
+	// Evaluate the secondary solution directly at all sampling points
 	return this->evalSolution(sField,integrand,gpar);
   }
   else
@@ -1877,7 +1877,7 @@ Go::GeomObject* ASMs3D::evalSolution (const Integrand& integrand) const
 
 Go::SplineVolume* ASMs3D::projectSolution (const Integrand& integrand) const
 {
-  // Compute parameter values of the result sampling points
+  // Compute parameter values of the result sampling points (Greville points)
   RealArray gpar[3];
   for (int dir = 0; dir < 3; dir++)
     if (!this->getGrevilleParameters(gpar[dir],dir))
@@ -1886,7 +1886,7 @@ Go::SplineVolume* ASMs3D::projectSolution (const Integrand& integrand) const
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,gpar))
-    return false;
+    return 0;
 
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.

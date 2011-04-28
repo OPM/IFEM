@@ -684,7 +684,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 	    }
 	    if (gpar[0].size() > 1) fe.u = gpar[0](k1,i1-p1+1);
 	    if (gpar[1].size() > 1) fe.v = gpar[1](k2,i2-p2+1);
-	    if (gpar[2].size() > 1) fe.w = gpar[1](k3,i3-p3+1);
+	    if (gpar[2].size() > 1) fe.w = gpar[2](k3,i3-p3+1);
 
 	    // Fetch basis function derivatives at current integration point
 	    extractBasis(spline1[ip],fe.N1,dN1du);
