@@ -45,6 +45,8 @@ run Cylinder-NURBS.inp    -checkRHS -vtf 1 -nviz 5
 run Cylinder-Lagrange.inp -checkRHS -vtf 1 -lagrange
 run Cylinder-Spectral.inp -checkRHS -vtf 1 -spectral
 
+run Cylinder-Axisymm.inp -2Daxisymm -vtf 1 -nviz 5
+
 eigOpt="-eig 5 -nev 20 -ncv 40 -shift 2.0e-4"
 run SquarePlate-Splines.inp  $eigOpt -nGauss 3 -vtf 1 -nviz 3
 run SquarePlate-Lagrange.inp $eigOpt -nGauss 3 -vtf 1 -lagrange

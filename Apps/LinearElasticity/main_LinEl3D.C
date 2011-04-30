@@ -52,6 +52,7 @@
   \arg -fixDup : Resolve co-located nodes by merging them into a single node
   \arg -2D : Use two-parametric simulation driver (plane stress)
   \arg -2Dpstrain : Use two-parametric simulation driver (plane strain)
+  \arg -2Daxisymm : Use two-parametric simulation driver (axi-symmetric solid)
   \arg -lag : Use Lagrangian basis functions instead of splines/NURBS
   \arg -spec : Use Spectral basis functions instead of splines/NURBS
 */
@@ -137,8 +138,10 @@ int main (int argc, char** argv)
       vizRHS = true;
     else if (!strcmp(argv[i],"-fixDup"))
       fixDup = true;
-    else if (!strcmp(argv[i],"-2Dpstrain"))
+    else if (!strncmp(argv[i],"-2Dpstra",8))
       twoD = SIMLinEl2D::planeStrain = true;
+    else if (!strncmp(argv[i],"-2Daxi",6))
+      twoD = SIMLinEl2D::axiSymmetry = true;
     else if (!strncmp(argv[i],"-2D",3))
       twoD = true;
     else if (!strncmp(argv[i],"-lag",4))
@@ -153,11 +156,11 @@ int main (int argc, char** argv)
   if (!infile)
   {
     std::cout <<"usage: "<< argv[0]
-	      <<" <inputfile> [-dense|-spr|-superlu<nt>|-samg|-petsc]\n"
-	      <<"       [-free] [-lag] [-spec] [-2D[pstrain]] [-nGauss <n>]\n"
-	      <<"       [-vtf <format>] [-nviz <nviz>]"
-	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]\n"
-	      <<"       [-eig <iop>] [-nev <nev>] [-ncv <ncv] [-shift <shf>]\n"
+	      <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n      "
+	      <<" [-free] [-lag] [-spec] [-2D[pstrain|axisymm]] [-nGauss <n>]\n"
+	      <<"       [-vtf <format> [-nviz <nviz>]"
+	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]]\n"
+	      <<"       [-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>]]\n"
 	      <<"       [-ignore <p1> <p2> ...] [-fixDup]"
 	      <<" [-checkRHS] [-check] [-dumpASC]\n";
     return 0;

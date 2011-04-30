@@ -18,7 +18,7 @@
 
 
 /*!
-  \brief Class representing a isotropic linear elastic material model.
+  \brief Class representing an isotropic linear elastic material model.
 */
 
 class LinIsotropic : public Material
@@ -26,10 +26,17 @@ class LinIsotropic : public Material
 public:
   //! \brief Default constructor.
   //! \param[in] ps If \e true, assume plane stress in 2D
-  LinIsotropic(bool ps = false);
+  //! \param[in] ax If \e true, assume 3D axi-symmetric material
+  LinIsotropic(bool ps = false, bool ax = false);
   //! \brief Constructor initializing the material parameters.
-  LinIsotropic(double E, double v = 0.0, double density = 0.0, bool ps = false)
-    : Emod(E), nu(v), rho(density), planeStress(ps) {}
+  //! \param[in] E Young's modulus
+  //! \param[in] v Poisson's ratio
+  //! \param[in] density Mass density
+  //! \param[in] ps If \e true, assume plane stress in 2D
+  //! \param[in] ax If \e true, assume 3D axi-symmetric material
+  LinIsotropic(double E, double v = 0.0, double density = 0.0,
+	       bool ps = false, bool ax = false)
+    : Emod(E), nu(v), rho(density), planeStress(ps), axiSymmetry(ax) {}
   //! \brief Empty destructor.
   virtual ~LinIsotropic() {}
 
@@ -37,7 +44,7 @@ public:
   virtual bool isPlaneStrain() const { return !planeStress; }
 
   //! \brief Prints out material parameters to the given output stream.
-  virtual void print(std::ostream&) const;
+  virtual void print(std::ostream& os) const;
 
   //! \brief Evaluates the mass density at current point.
   virtual double getMassDensity(const Vec3&) const { return rho; }
@@ -62,6 +69,7 @@ protected:
   double nu;          //!< Poisson's ratio
   double rho;         //!< Mass density
   bool   planeStress; //!< Plane stress/strain option for 2D problems
+  bool   axiSymmetry; //!< Axi-symmetric option
 };
 
 #endif

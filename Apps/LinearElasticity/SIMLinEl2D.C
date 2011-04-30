@@ -14,6 +14,7 @@
 #include "SIMLinEl2D.h"
 #include "LinIsotropic.h"
 #include "LinearElasticity.h"
+#include "AxSymmElasticity.h"
 #include "AnalyticSolutions.h"
 #include "Functions.h"
 #include "Utilities.h"
@@ -25,18 +26,24 @@
 
 
 bool SIMLinEl2D::planeStrain = false;
+bool SIMLinEl2D::axiSymmetry = false;
 
 
 SIMLinEl2D::SIMLinEl2D (int)
 {
-  myProblem = new LinearElasticity(2);
+  if (axiSymmetry)
+    myProblem = new AxSymmElasticity();
+  else
+    myProblem = new LinearElasticity(2);
 }
+
 
 SIMLinEl2D::~SIMLinEl2D ()
 {
   for (size_t i = 0; i < mVec.size(); i++)
     delete mVec[i];
 }
+
 
 bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
 {
@@ -69,7 +76,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
       double E   = atof(strtok(NULL," "));
       double nu  = atof(strtok(NULL," "));
       double rho = atof(strtok(NULL," "));
-      mVec.push_back(new LinIsotropic(E,nu,rho,!planeStrain));
+      mVec.push_back(new LinIsotropic(E,nu,rho,!planeStrain,axiSymmetry));
       if (myPid == 0)
 	std::cout <<"\tMaterial code "<< code <<": "
 		  << E <<" "<< nu <<" "<< rho << std::endl;
@@ -233,7 +240,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
         {
 	  std::cout <<"\tMaterial for all patches: "
 		    << E <<" "<< nu <<" "<< rho << std::endl;
-	  mVec.push_back(new LinIsotropic(E,nu,rho,!planeStrain));
+	  mVec.push_back(new LinIsotropic(E,nu,rho,!planeStrain,axiSymmetry));
 	}
 	else
         {
@@ -245,7 +252,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
 	  std::cout <<"\tMaterial for P"<< patch
 		    <<": "<< E <<" "<< nu <<" "<< rho << std::endl;
 	  myProps.push_back(Property(Property::MATERIAL,mVec.size(),pid,3));
-	  mVec.push_back(new LinIsotropic(E,nu,rho,!planeStrain));
+	  mVec.push_back(new LinIsotropic(E,nu,rho,!planeStrain,axiSymmetry));
 	}
     }
 

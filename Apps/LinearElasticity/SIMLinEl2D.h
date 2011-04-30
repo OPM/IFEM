@@ -51,7 +51,8 @@ protected:
   virtual bool initNeumann(size_t propInd);
 
 public:
-  static bool planeStrain; //!<  Plane strain/stress option
+  static bool planeStrain; //!< Plane strain/stress option
+  static bool axiSymmetry; //!< Axisymmtry option
 
 protected:
   std::vector<Material*> mVec; //!< Material data

@@ -470,7 +470,8 @@ bool Elasticity::evalSol (Vector& s, const Vector&,
 }
 
 
-bool Elasticity::evalSol (Vector& s, const Matrix& dNdX, const Vec3& X) const
+bool Elasticity::evalSol (Vector& s, const Vector&,
+			  const Matrix& dNdX, const Vec3& X) const
 {
   if (!eV || eV->empty())
   {
@@ -601,13 +602,17 @@ bool ElasticityNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
 
   // Evaluate the finite element stress field
   Vector sigmah, sigma;
-  if (!problem.evalSol(sigmah,fe.dNdX,X))
+  if (!problem.evalSol(sigmah,fe.N,fe.dNdX,X))
     return false;
-  else if (sigmah.size() == 4)
+  else if (sigmah.size() == 4 && Cinv.rows() == 3)
     sigmah.erase(sigmah.begin()+2); // Remove the sigma_zz if plane strain
 
+  double detJW = fe.detJxW;
+  if (problem.isAxiSymmetric())
+    detJW *= 2.0*M_PI*X.x;
+
   // Integrate the energy norm a(u^h,u^h)
-  pnorm[0] += sigmah.dot(Cinv*sigmah)*fe.detJxW;
+  pnorm[0] += sigmah.dot(Cinv*sigmah)*detJW;
 
   if (problem.haveLoads())
   {
@@ -616,21 +621,21 @@ bool ElasticityNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
     // Evaluate the displacement field
     Vec3 u = problem.evalSol(fe.N);
     // Integrate the external energy (f,u^h)
-    pnorm[1] += f*u*fe.detJxW;
+    pnorm[1] += f*u*detJW;
   }
 
   if (anasol)
   {
     // Evaluate the analytical stress field
     sigma = (*anasol)(X);
-    if (sigma.size() == 4)
+    if (sigma.size() == 4 && Cinv.rows() == 3)
       sigma.erase(sigma.begin()+2); // Remove the sigma_zz if plane strain
 
     // Integrate the energy norm a(u,u)
-    pnorm[2] += sigma.dot(Cinv*sigma)*fe.detJxW;
+    pnorm[2] += sigma.dot(Cinv*sigma)*detJW;
     // Integrate the error in energy norm a(u-u^h,u-u^h)
     sigma -= sigmah;
-    pnorm[3] += sigma.dot(Cinv*sigma)*fe.detJxW;
+    pnorm[3] += sigma.dot(Cinv*sigma)*detJW;
   }
 
   return true;
@@ -649,7 +654,11 @@ bool ElasticityNorm::evalBou (LocalIntegral*& elmInt, const FiniteElement& fe,
   // Evaluate the displacement field
   Vec3 u = problem.evalSol(fe.N);
 
+  double detJW = fe.detJxW;
+  if (problem.isAxiSymmetric())
+    detJW *= 2.0*M_PI*X.x;
+
   // Integrate the external energy
-  pnorm[1] += T*u*fe.detJxW;
+  pnorm[1] += T*u*detJW;
   return true;
 }

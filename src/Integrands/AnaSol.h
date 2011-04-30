@@ -40,7 +40,7 @@ public:
   //! \param[in] v3 Secondary solution field, symmetric stress tensor
   //!
   //! \details It is assumed that all the arguments are pointers to dynamically
-  //! allocation objects, as the class destructor will attempt to delete them.
+  //! allocated objects, as the class destructor will attempt to delete them.
   AnaSol(RealFunc* s1 = 0, VecFunc* s2 = 0,
 	 VecFunc* v1 = 0, TensorFunc* v2 = 0, STensorFunc* v3 = 0)
     : scalSol(s1), scalSecSol(s2), vecSol(v1), vecSecSol(v2), stressSol(v3) {}

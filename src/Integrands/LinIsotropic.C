@@ -15,7 +15,7 @@
 #include "Tensor.h"
 
 
-LinIsotropic::LinIsotropic (bool ps) : planeStress(ps)
+LinIsotropic::LinIsotropic (bool ps, bool ax) : planeStress(ps), axiSymmetry(ax)
 {
   // Default material properties - typical values for steel (SI units)
   Emod = 2.05e11;
@@ -27,7 +27,9 @@ LinIsotropic::LinIsotropic (bool ps) : planeStress(ps)
 void LinIsotropic::print (std::ostream& os) const
 {
   std::cout <<"LinIsotropic: ";
-  if (planeStress)
+  if (axiSymmetry)
+    std::cout <<"axial-symmetric, ";
+  else if (planeStress)
     std::cout <<"plane stress, ";
   std::cout <<"E = "<< Emod <<", nu = "<< nu <<", rho = "<< rho << std::endl;
 }
@@ -51,6 +53,14 @@ void LinIsotropic::print (std::ostream& os) const
   0 & 0 & \frac{1}{2}-\nu
   \end{array}\right] \f]
 
+  For 3D axisymmetric solids: \f[
+  [C] = \frac{E}{(1+\nu)(1-2\nu)} \left[\begin{array}{cccc}
+  1-\nu & \nu & \nu & 0 \\
+  \nu & 1-\nu & \nu & 0 \\
+  \nu & \nu & 1-\nu & 0 \\
+  0 & 0 & 0 & \frac{1}{2}-\nu
+  \end{array}\right] \f]
+
   For 3D: \f[
   [C] = \frac{E}{(1+\nu)(1-2\nu)} \left[\begin{array}{cccccc}
   1-\nu & \nu & \nu & 0 & 0 & 0 \\
@@ -67,7 +77,7 @@ bool LinIsotropic::evaluate (Matrix& C, SymmTensor& sigma, double& U,
 			     char iop, const TimeDomain*) const
 {
   const size_t nsd = sigma.dim();
-  const size_t nst = nsd*(nsd+1)/2;
+  const size_t nst = nsd == 2 && axiSymmetry ? 4 : nsd*(nsd+1)/2;
   C.resize(nst,nst,true);
 
   if (nsd == 1)
@@ -90,7 +100,7 @@ bool LinIsotropic::evaluate (Matrix& C, SymmTensor& sigma, double& U,
   }
 
   if (iop < 0) // The inverse C-matrix is wanted
-    if (nsd == 3 || (nsd == 2 && planeStress))
+    if (nsd == 3 || (nsd == 2 && (planeStress || axiSymmetry)))
     {
       C(1,1) = 1.0 / Emod;
       C(2,1) = -nu / Emod;
@@ -102,12 +112,12 @@ bool LinIsotropic::evaluate (Matrix& C, SymmTensor& sigma, double& U,
     }
 
   else
-    if (nsd == 2 && planeStress)
+    if (nsd == 2 && planeStress && !axiSymmetry)
     {
       C(1,1) = Emod / (1.0 - nu*nu);
       C(2,1) = C(1,1) * nu;
     }
-    else // 2D plain strain or 3D
+    else // 2D plain strain, axisymmetric or 3D
     {
       double fact = Emod / ((1.0 + nu) * (1.0 - nu - nu));
       C(1,1) = fact * (1.0 - nu);
@@ -120,7 +130,16 @@ bool LinIsotropic::evaluate (Matrix& C, SymmTensor& sigma, double& U,
   const double G = Emod / (2.0 + nu + nu);
   C(nsd+1,nsd+1) = iop < 0 ? 1.0 / G : G;
 
-  if (nsd > 2)
+  if (nsd == 2 && axiSymmetry)
+  {
+    C(4,4) = C(3,3);
+    C(3,1) = C(2,1);
+    C(3,2) = C(2,1);
+    C(1,3) = C(2,1);
+    C(2,3) = C(2,1);
+    C(3,3) = C(1,1);
+  }
+  else if (nsd > 2)
   {
     C(3,1) = C(2,1);
     C(3,2) = C(2,1);
@@ -134,11 +153,11 @@ bool LinIsotropic::evaluate (Matrix& C, SymmTensor& sigma, double& U,
   if (iop > 0)
   {
     // Calculate the stress tensor, sigma = C*eps
-    Vector sig; // Use a local variable to avoid a redim of sigma
+    Vector sig; // Use a local variable to avoid redimensioning of sigma
     if (eps.dim() != sigma.dim())
     {
       // Account for non-matching tensor dimensions
-      SymmTensor epsil(sigma.dim());
+      SymmTensor epsil(sigma.dim(), nsd == 2 && axiSymmetry);
       if (!C.multiply(epsil=eps,sig))
 	return false;
     }
@@ -147,7 +166,7 @@ bool LinIsotropic::evaluate (Matrix& C, SymmTensor& sigma, double& U,
 	return false;
 
     sigma = sig; // Add sigma_zz in case of plane strain
-    if (!planeStress && nsd == 2 && sigma.size() == 4)
+    if (!planeStress && ! axiSymmetry && nsd == 2 && sigma.size() == 4)
       sigma(3,3) = nu * (sigma(1,1)+sigma(2,2));
   }
 

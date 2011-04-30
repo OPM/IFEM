@@ -81,15 +81,16 @@ public:
   //! \param[in] dNdX Basis function gradients at current point
   //! \param[in] X Cartesian coordinates of current point
   //! \param[in] MNPC Nodal point correspondance for the basis function values
-  virtual bool evalSol(Vector& s,
-		       const Vector& N, const Matrix& dNdX,
+  virtual bool evalSol(Vector& s, const Vector& N, const Matrix& dNdX,
 		       const Vec3& X, const std::vector<int>& MNPC) const;
 
   //! \brief Evaluates the finite element (FE) solution at an integration point.
   //! \param[out] s The FE stress values at current point
+  //! \param[in] N Basis function values at current point
   //! \param[in] dNdX Basis function gradients at current point
   //! \param[in] X Cartesian coordinates of current point
-  virtual bool evalSol(Vector& s, const Matrix& dNdX, const Vec3& X) const;
+  virtual bool evalSol(Vector& s, const Vector& N, const Matrix& dNdX,
+		       const Vec3& X) const;
 
   //! \brief Evaluates the analytical solution at an integration point.
   //! \param[out] s The analytical stress values at current point
@@ -132,6 +133,9 @@ public:
   //! \param[in] i Field component index
   //! \param[in] prefix Name prefix for all components
   virtual const char* getFieldLabel(size_t i, const char* prefix = 0) const;
+
+  //! \brief Returns \e true if this is an axial-symmetric problem.
+  virtual bool isAxiSymmetric() const { return false; }
 
 protected:
   //! \brief Calculates some kinematic quantities at current point.
