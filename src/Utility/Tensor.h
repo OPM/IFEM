@@ -204,31 +204,33 @@ public:
 
   // Global operators
 
-  //! \brief Multiplication between a scalar and a symmetric tensor.
-  friend SymmTensor operator*(real a, const SymmTensor& T);
-
-  //! \brief Inner-product of two symmetric tensors.
-  friend real operator*(const SymmTensor& A, const SymmTensor& B)
-  {
-    return A.innerProd(B);
-  }
-
   //! \brief Adding a scaled unit tensor to a symmetric tensor.
   friend SymmTensor operator+(const SymmTensor& T, real a);
   //! \brief Subtracting a scaled unit tensor from a symmetric tensor.
   friend SymmTensor operator-(const SymmTensor& T, real a);
 
-  //! \brief Adding two symmetric tensors.
-  friend SymmTensor operator+(const SymmTensor& A, const SymmTensor& B)
-  {
-    SymmTensor C(A); C += B; return C;
-  }
-  //! \brief Subtracting two symmetric tensors.
-  friend SymmTensor operator-(const SymmTensor& A, const SymmTensor& B)
-  {
-    SymmTensor C(A); C -= B; return C;
-  }
+  //! \brief Multiplication between a scalar and a symmetric tensor.
+  friend SymmTensor operator*(real a, const SymmTensor& T);
 };
+
+
+//! \brief Adding two symmetric tensors.
+inline SymmTensor operator+(const SymmTensor& A, const SymmTensor& B)
+{
+  SymmTensor C(A); C += B; return C;
+}
+
+//! \brief Subtracting two symmetric tensors.
+inline SymmTensor operator-(const SymmTensor& A, const SymmTensor& B)
+{
+  SymmTensor C(A); C -= B; return C;
+}
+
+//! \brief Inner-product of two symmetric tensors.
+inline real operator*(const SymmTensor& A, const SymmTensor& B)
+{
+  return A.innerProd(B);
+}
 
 
 /*!

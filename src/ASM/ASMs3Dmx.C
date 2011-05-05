@@ -833,10 +833,11 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
     if (nc2 > 0)
     {
       ip.clear();
-      scatterInd(m1,m2,m3,q1,q2,q3,spline1[i].left_idx,ip);
+      scatterInd(m1,m2,m3,q1,q2,q3,spline2[i].left_idx,ip);
 
       utl::gather(ip,nc2,locSol,Xtmp,nc1*nb1);
       Xtmp.multiply(spline2[i].basisValues,Ztmp);
+
       Ytmp.insert(Ytmp.end(),Ztmp.begin(),Ztmp.end());
     }
     sField.fillColumn(1+i,Ytmp);

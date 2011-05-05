@@ -515,7 +515,7 @@ SymmTensor& SymmTensor::rightCauchyGreen (const Tensor& F)
   case 1:
     v[0] = F(1,1)*F(1,1);
     break;
-    
+
   case 2:
     v[0] = F(1,1)*F(1,1) + F(2,1)*F(2,1);
     v[1] = F(1,2)*F(1,2) + F(2,2)*F(2,2);
@@ -573,16 +573,9 @@ real SymmTensor::vonMises () const
 }
 
 
-SymmTensor operator* (real a, const SymmTensor& T)
-{
-  SymmTensor S(T.dim());
-
-  for (Tensor::t_ind i = 0; i < T.v.size(); i++)
-    S.v[i] = a*T.v[i];
-
-  return S;
-}
-
+/*!
+  \brief Adding a scaled unit tensor to a symmetric tensor.
+*/
 
 SymmTensor operator+ (const SymmTensor& T, real a)
 {
@@ -598,6 +591,10 @@ SymmTensor operator+ (const SymmTensor& T, real a)
 }
 
 
+/*!
+  \brief Subtracting a scaled unit tensor from a symmetric tensor.
+*/
+
 SymmTensor operator- (const SymmTensor& T, real a)
 {
   SymmTensor S(T);
@@ -607,6 +604,21 @@ SymmTensor operator- (const SymmTensor& T, real a)
 
   if (S.v.size() == 4)
     S.v[2] -= a;
+
+  return S;
+}
+
+
+/*!
+  \brief Multiplication between a scalar and a symmetric tensor.
+*/
+
+SymmTensor operator* (real a, const SymmTensor& T)
+{
+  SymmTensor S(T.dim(), T.v.size() == 4);
+
+  for (Tensor::t_ind i = 0; i < T.v.size(); i++)
+    S.v[i] = a*T.v[i];
 
   return S;
 }
