@@ -1504,12 +1504,14 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
 bool SIMbase::project (Vector& psol)
 {
   Matrix values;
-  Vector ssol(psol.size());
+  Vector ssol;
+  ssol.resize(psol.size()*myProblem->getNoFields());
   for (size_t i = 0; i < myModel.size(); i++)
   {
     myModel[i]->extractNodeVec(psol,myProblem->getSolution());
-    if (!myModel[i]->evalSolution(values,*myProblem)) return false;
-    myModel[i]->injectNodeVec(values,ssol);
+    if (!myModel[i]->evalSolution(values,*myProblem))
+      return false;
+    myModel[i]->injectNodeVec(values,ssol,values.rows());
   }
   psol = ssol;
 
