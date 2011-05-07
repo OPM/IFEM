@@ -90,6 +90,14 @@ public:
   //! returned pointer value.
   virtual NormBase* getNormIntegrand(AnaSol* = 0) const;
 
+  //! \brief Returns the number of primary/secondary solution field components.
+  //! \param[in] fld which field to consider (1=primary, 2=secondary)
+  virtual size_t getNoFields(int fld = 2) const;
+  //! \brief Returns the name of a primary solution field component.
+  //! \param[in] i Field component index
+  //! \param[in] prefix Name prefix for all components
+  virtual const char* getField1Name(size_t i, const char* prefix = 0) const;
+
 protected:
   mutable Tensor Fbar; //!< Mixed model deformation gradient
   mutable Matrix Dmat; //!< Projected mixed constitutive matrix

@@ -16,8 +16,9 @@ IF(IFEM_INCLUDES)
   FIND_PATH(SIM_INCL SIMbase.h ${PROJECT_SOURCE_DIR}/../../src/SIM)
   FIND_PATH(Alg_INCL MatVec.h  ${PROJECT_SOURCE_DIR}/../../src/LinAlg)
   FIND_PATH(Utl_INCL Vec3.h    ${PROJECT_SOURCE_DIR}/../../src/Utility)
+  FIND_PATH(Utl_3rd  tinyxml.h ${PROJECT_SOURCE_DIR}/../../3rdparty/tinyxml)
   SET(IFEM_INCLUDES ${IFEM_INCLUDES}
-    ${Int_INCL} ${SIM_INCL} ${Alg_INCL} ${Utl_INCL})
+    ${Int_INCL} ${SIM_INCL} ${Alg_INCL} ${Utl_INCL} ${Utl_3rd})
 
   FIND_LIBRARY(IFEM_LIBRARIES
     NAMES IFEM

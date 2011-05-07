@@ -394,7 +394,8 @@ bool NonLinSIM::saveModel (char* fileName, int format, int* nViz)
 }
 
 
-bool NonLinSIM::saveStep (int iStep, double time, int* nViz, bool psolOnly)
+bool NonLinSIM::saveStep (int iStep, double time, int* nViz,
+			  bool psolOnly, const char* vecName)
 {
   PROFILE1("NonLinSIM::saveStep");
 
@@ -416,7 +417,8 @@ bool NonLinSIM::saveStep (int iStep, double time, int* nViz, bool psolOnly)
 
   // Write solution fields
   if (!solution.empty())
-    if (!model->writeGlvS(solution.front(),nViz,iStep,nBlock,time,psolOnly))
+    if (!model->writeGlvS(solution.front(),nViz,iStep,nBlock,time,
+			  psolOnly,vecName))
       return false;
 
   // Write element norms (only when no additional visualization points are used)

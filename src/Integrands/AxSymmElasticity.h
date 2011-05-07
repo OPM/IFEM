@@ -67,13 +67,17 @@ public:
   virtual bool evalSol(Vector& s, const Vector& N, const Matrix& dNdX,
 		       const Vec3& X) const;
 
-  //! \brief Returns the number of secondary solution field components.
-  virtual size_t getNoFields() const { return 5; }
-
+  //! \brief Returns the number of primary/secondary solution field components.
+  //! \param[in] fld which field set to consider (1=primary, 2=secondary)
+  virtual size_t getNoFields(int fld = 2) const { return fld > 1 ? 5 : 2; }
   //! \brief Returns the name of a secondary solution field component.
   //! \param[in] i Field component index
   //! \param[in] prefix Name prefix for all components
-  virtual const char* getFieldLabel(size_t i, const char* prefix = 0) const;
+  virtual const char* getField1Name(size_t i, const char* prefix = 0) const;
+  //! \brief Returns the name of a secondary solution field component.
+  //! \param[in] i Field component index
+  //! \param[in] prefix Name prefix for all components
+  virtual const char* getField2Name(size_t i, const char* prefix = 0) const;
 
   //! \brief Returns \e true if this is an axial-symmetric problem.
   virtual bool isAxiSymmetric() const { return true; }

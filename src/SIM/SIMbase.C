@@ -657,6 +657,10 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
     }
     std::cout << std::endl;
   }
+#if SP_DEBUG > 2
+  else
+    std::cout <<"\nSolution vector:"<< *b;
+#endif
 
   return true;
 }
@@ -1031,7 +1035,8 @@ bool SIMbase::writeGlvV (const Vector& vec, const char* fieldName,
 
 
 bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
-			 int iStep, int& nBlock, double time, bool psolOnly)
+			 int iStep, int& nBlock, double time,
+			 bool psolOnly, const char* vecName)
 {
   if (psol.empty())
     return true;
@@ -1044,10 +1049,12 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
   Matrix field;
   size_t i, j;
   int geomID = 0;
+  const size_t pMAX = 6;
   const size_t sMAX = 21;
-  std::vector<int> vID, dID[3], sID[sMAX];
-  bool haveAsol = false;
+  std::vector<int> vID[2], dID[pMAX], sID[sMAX];
   bool scalarEq = myModel.front()->getNoFields() == 1;
+  size_t nVcomp = scalarEq ? 1 : this->getNoSpaceDim();
+  bool haveAsol = false;
   if (mySol)
     if (scalarEq)
       haveAsol = mySol->hasScalarSol() > 1;
@@ -1067,26 +1074,16 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
     if (!myModel[i]->evalSolution(field,myProblem->getSolution(),nViz))
       return false;
 
-    if (scalarEq)
-    {
-      if (!myVtf->writeNres(field.getRow(1),++nBlock,++geomID))
-	return false;
-      else
-	dID[0].push_back(nBlock);
-    }
+    if (!myVtf->writeVres(field,++nBlock,++geomID,nVcomp))
+      return false;
     else
-    {
-      if (!myVtf->writeVres(field,++nBlock,++geomID,this->getNoSpaceDim()))
+      vID[0].push_back(nBlock);
+
+    for (j = 0; j < field.rows() && j < pMAX; j++)
+      if (!myVtf->writeNres(field.getRow(1+j),++nBlock,geomID))
 	return false;
       else
-	vID.push_back(nBlock);
-
-      for (j = 0; j < field.rows() && j < 3; j++)
-	if (!myVtf->writeNres(field.getRow(1+j),++nBlock,geomID))
-	  return false;
-	else
-	  dID[j].push_back(nBlock);
-    }
+	dID[j].push_back(nBlock);
 
     if (psolOnly) continue; // skip secondary solution
 
@@ -1100,7 +1097,7 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
       if (!myVtf->writeVres(field,++nBlock,geomID))
 	return false;
       else
-	vID.push_back(nBlock);
+	vID[1].push_back(nBlock);
 
     size_t k = 0;
     for (j = 1; j <= field.rows() && k < sMAX; j++)
@@ -1156,44 +1153,37 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
 
   // Write result block identifications
 
+  bool ok = true;
   int idBlock = 10;
-  if (scalarEq)
-  {
-    if (!psolOnly)
-      if (!myVtf->writeVblk(vID,"Flux",idBlock,iStep))
-	return false;
-
-    if (!myVtf->writeSblk(dID[0],"u",++idBlock,iStep))
-      return false;
-  }
+  if (vecName)
+    ok = myVtf->writeVblk(vID[0],vecName,idBlock,iStep);
   else
-  {
-    if (!myVtf->writeDblk(vID,"Solution",idBlock,iStep))
+    ok = myVtf->writeDblk(vID[0],"Solution",idBlock,iStep);
+  if (!ok) return false;
+
+  if (scalarEq && !psolOnly)
+    if (!myVtf->writeVblk(vID[1],"Flux",idBlock+1,iStep))
       return false;
 
-    std::string label("u_x");
-    for (j = 0; j < 3 && !dID[j].empty(); j++)
-      if (!myVtf->writeSblk(dID[j],label.c_str(),++idBlock,iStep))
-	return false;
-      else
-	label[2]++;
-  }
+  for (j = 0; j < pMAX && !dID[j].empty(); j++)
+    if (!myVtf->writeSblk(dID[j],myProblem->getField1Name(j),++idBlock,iStep))
+      return false;
 
   if (psolOnly) return true;
 
-  size_t nf = myProblem->getNoFields();
+  size_t nf = myProblem->getNoFields(2);
   for (i = j = 0; i < nf && !sID[j].empty(); i++, j++)
-    if (!myVtf->writeSblk(sID[j],myProblem->getFieldLabel(i,haveAsol?"FE":0),
+    if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,haveAsol?"FE":0),
 			  ++idBlock,iStep)) return false;
 
   if (discretization == Spline)
     for (i = 0; i < nf && !sID[j].empty(); i++, j++)
-      if (!myVtf->writeSblk(sID[j],myProblem->getFieldLabel(i,"Projected"),
+      if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,"Projected"),
 			    ++idBlock,iStep)) return false;
 
   if (haveAsol)
     for (i = 0; i < nf && !sID[j].empty(); i++, j++)
-      if (!myVtf->writeSblk(sID[j],myProblem->getFieldLabel(i,"Exact"),
+      if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,"Exact"),
 			    ++idBlock,iStep)) return false;
 
   return true;
@@ -1374,10 +1364,7 @@ bool SIMbase::dumpSolution (const Vector& psol, std::ostream& os) const
     myModel[i]->extractNodeVec(psol,patchSol);
     for (k = 1; k <= nf; k++)
     {
-      os <<"# FE u";
-      if (nf > 1)
-	os <<'_'<< char('w'+k);
-
+      os << myProblem->getField1Name(k,"# FE");
       for (j = 1; j <= myModel[i]->getNoNodes(); j++)
       {
 	std::pair<int,int> dofs = mySam->getNodeDOFs(j);
@@ -1396,7 +1383,7 @@ bool SIMbase::dumpSolution (const Vector& psol, std::ostream& os) const
     // Write the secondary solution
     for (j = 1; j <= field.rows(); j++)
     {
-      os <<"# "<< myProblem->getFieldLabel(j-1,"FE");
+      os << myProblem->getField2Name(j-1,"# FE");
       for (k = 1; k <= field.cols(); k++)
 	os <<"\n"<< field(j,k);
       os << std::endl;
@@ -1511,9 +1498,40 @@ bool SIMbase::project (Vector& psol)
     myModel[i]->extractNodeVec(psol,myProblem->getSolution());
     if (!myModel[i]->evalSolution(values,*myProblem))
       return false;
-    myModel[i]->injectNodeVec(values,ssol,values.rows());
+    if (!myModel[i]->injectNodeVec(values,ssol,values.rows()))
+      return false;
   }
   psol = ssol;
 
   return true;
+}
+
+
+bool SIMbase::extractPatchSolution (const Vector& sol,
+				    int pindx, unsigned char nndof)
+{
+  if (pindx < 0 || (size_t)pindx >= myModel.size() || sol.empty())
+    return false;
+
+  myModel[pindx]->extractNodeVec(sol,myProblem->getSolution(),nndof);
+  return true;
+}
+
+
+bool SIMbase::injectPatchSolution (Vector& sol, const Vector& locSol,
+				   int pindx, unsigned char nndof)
+{
+  if (pindx < 0 || (size_t)pindx >= myModel.size())
+    return false;
+
+  return myModel[pindx]->injectNodeVec(locSol,sol,nndof);
+}
+
+
+bool SIMbase::evalSecondarySolution (Matrix& field, int pindx) const
+{
+  if (pindx < 0 || (size_t)pindx >= myModel.size())
+    return false;
+
+  return myModel[pindx]->evalSolution(field,*myProblem);
 }

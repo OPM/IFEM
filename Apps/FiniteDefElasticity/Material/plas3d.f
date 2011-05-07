@@ -344,7 +344,7 @@ C
      &                     f11,f22,f33,f12,f13,f23,Ypr,YY,gam,.true.)
 C
             if (ipsw .ge. 5 .and. it.lt.10)       then
-               write(iwr,"('   yield(',I1,') =')") it,yield
+               write(iwr,"('   yield(',I1,') =',1PE12.5)") it,yield
             end if
 C
             xx  = f1 - f3 * two3 * J2

@@ -245,19 +245,28 @@ bool Poisson::evalSol (Vector& s, const VecFunc& asol, const Vec3& X) const
 }
 
 
-const char* Poisson::getFieldLabel (size_t i, const char* prefix) const
+const char* Poisson::getField1Name (size_t, const char* prefix) const
 {
-  static const char* s3[3] = { "q_x","q_y","q_z" };
+  if (!prefix) return "u";
 
-  static std::string label;
-  if (prefix)
-    label = std::string(prefix) + " ";
-  else
-    label.clear();
+  static std::string name;
+  name = prefix + std::string(" u");
 
-  label += s3[i];
+  return name.c_str();
+}
 
-  return label.c_str();
+
+const char* Poisson::getField2Name (size_t i, const char* prefix) const
+{
+  if (i >= nsd) return 0;
+
+  static const char* s[3] = { "q_x","q_y","q_z" };
+  if (!prefix) return s[i];
+
+  static std::string name;
+  name = prefix + std::string(" ") + s[i];
+
+  return name.c_str();
 }
 
 

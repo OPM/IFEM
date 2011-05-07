@@ -512,35 +512,53 @@ bool Elasticity::evalSol (Vector& s, const STensorFunc& asol,
 }
 
 
-size_t Elasticity::getNoFields () const
+size_t Elasticity::getNoFields (int fld) const
 {
-  if (nsd == 2 && material->isPlaneStrain())
+  if (fld < 2)
+    return nsd;
+  else if (nsd == 2 && material->isPlaneStrain())
     return 5;
   else
     return nsd*(nsd+1)/2 + 1;
 }
 
 
-const char* Elasticity::getFieldLabel (size_t i, const char* prefix) const
+const char* Elasticity::getField1Name (size_t i, const char* prefix) const
 {
-  static const char* s[6] = { "s_xx","s_yy","s_zz","s_xy","s_yz","s_xz" };
+  if (i >= nsd) return 0;
 
-  static std::string label;
+  static const char* s[3] = { "u_x", "u_y", "u_z" };
+  if (!prefix) return s[i];
+
+  static std::string name;
+  name = prefix + std::string(" ") + s[i];
+
+  return name.c_str();
+}
+
+
+const char* Elasticity::getField2Name (size_t i, const char* prefix) const
+{
+  if (i >= this->getNoFields(2)) return 0;
+
+  static const char* s[6] = { "s_xx", "s_yy", "s_zz", "s_xy", "s_yz", "s_xz" };
+
+  static std::string name;
   if (prefix)
-    label = std::string(prefix) + " ";
+    name = std::string(prefix) + " ";
   else
-    label.clear();
+    name.clear();
 
   if (nsd == 1)
-    label += "Axial stress";
+    name += "Axial stress";
   else if (i+1 >= this->getNoFields())
-    label += "von Mises stress";
+    name += "von Mises stress";
   else if (i == 2 && this->getNoFields() == 4)
-    label += s[3];
+    name += s[3];
   else
-    label += s[i];
+    name += s[i];
 
-  return label.c_str();
+  return name.c_str();
 }
 
 
@@ -572,7 +590,7 @@ bool ElasticityNorm::initElementBou (const std::vector<int>& MNPC)
 }
 
 
-size_t ElasticityNorm::getNoFields () const
+size_t ElasticityNorm::getNoFields (int) const
 {
   return anasol ? 4 : 2;
 }

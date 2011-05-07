@@ -479,10 +479,17 @@ void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
 }
 
 
-void ASMbase::injectNodeVec (const Vector& nodeVec, Vector& globRes,
+bool ASMbase::injectNodeVec (const Vector& nodeVec, Vector& globRes,
 			     unsigned char nndof) const
 {
   if (nndof == 0) nndof = nf;
+
+  if (nodeVec.size() < MLGN.size()*nndof)
+  {
+    std::cerr <<" *** ASMbase::injectNodeVec:: Invalid patch vector, size = "
+	      << nodeVec.size() <<" < "<< MLGN.size()*nndof << std::endl;
+    return false;
+  }
 
   for (size_t i = 0; i < MLGN.size(); i++)
   {
@@ -490,6 +497,8 @@ void ASMbase::injectNodeVec (const Vector& nodeVec, Vector& globRes,
     for (unsigned char j = 0; j < nndof; j++)
       globRes[nndof*n+j] = nodeVec[nndof*i+j];
   }
+
+  return true;
 }
 
 

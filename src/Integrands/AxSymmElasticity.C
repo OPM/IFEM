@@ -254,15 +254,29 @@ bool AxSymmElasticity::evalSol (Vector& s, const Vector& N,
 }
 
 
-const char* AxSymmElasticity::getFieldLabel (size_t i, const char* prefix) const
+const char* AxSymmElasticity::getField1Name (size_t i, const char* prefix) const
 {
-  static const char* s[5] = { "s_r","s_z","s_t","s_zr", "von Mises stress" };
+  if (i > 2)
+    return 0;
+  else if (!prefix)
+    return i == 0 ? "u_r" : "u_z";
 
-  static std::string label;
-  if (prefix)
-    label = std::string(prefix) + " " + std::string(s[i]);
-  else
-    label = s[i];
+  static std::string name;
+  name = prefix + std::string(i == 0 ? " u_r" : " u_z");
 
-  return label.c_str();
+  return name.c_str();
+}
+
+
+const char* AxSymmElasticity::getField2Name (size_t i, const char* prefix) const
+{
+  if (i > 4) return 0;
+
+  static const char* s[5] = { "s_rr","s_zz","s_tt","s_zr", "von Mises stress" };
+  if (!prefix) return s[i];
+
+  static std::string name;
+  name = prefix + std::string(" ") + s[i];
+
+  return name.c_str();
 }

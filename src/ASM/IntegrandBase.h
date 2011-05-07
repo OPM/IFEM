@@ -333,14 +333,15 @@ public:
   //! \brief Returns whether there are any traction/flux values to write to VTF.
   virtual bool hasTractionValues() const { return false; }
 
-  //! \brief Returns the number of (secondary) solution field components.
-  virtual size_t getNoFields() const { return 0; }
-
-  //! \brief Returns the name of a (secondary) solution field component.
-  virtual const char* getFieldLabel(size_t, const char* = 0) const { return 0; }
-
   //! \brief Returns a pointer to an Integrand for solution norm evaluation.
   virtual NormBase* getNormIntegrand(AnaSol* = 0) const { return 0; }
+
+  //! \brief Returns the number of primary/secondary solution field components.
+  virtual size_t getNoFields(int = 2) const { return 0; }
+  //! \brief Returns the name of a primary solution field component.
+  virtual const char* getField1Name(size_t, const char* = 0) const { return 0; }
+  //! \brief Returns the name of a secondary solution field component.
+  virtual const char* getField2Name(size_t, const char* = 0) const { return 0; }
 
   //! \brief Returns the number of solution vectors.
   size_t getNoSolutions() const { return primsol.size(); }

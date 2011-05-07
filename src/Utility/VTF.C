@@ -127,7 +127,7 @@ bool VTF::writeVres (const std::vector<real>& nodeResult,
   const size_t ncmp = nres/(nnod > 0 ? nnod : 1);
   if (nres != ncmp*nnod)
     return showError("Invalid size of result array",nres);
-  else if (nvc < 1)
+  else if (nvc < 1 || nvc > ncmp)
     nvc = ncmp;
 
 #ifdef HAS_VTFAPI
@@ -136,6 +136,13 @@ bool VTF::writeVres (const std::vector<real>& nodeResult,
   if (nres == 3*nnod && nvc == 3)
     for (size_t i = 0; i < nres; i++)
       resVec[i] = nodeResult[i];
+  else if (nres == nnod && nvc == 1)
+    for (size_t i = 0; i < nnod; i++)
+    {
+      // Writing a scalar solution as Z-deflection
+      resVec[3*i] = resVec[3*i+1] = 0.0f;
+      resVec[3*i+2] = nodeResult[i];
+    }
   else
     for (size_t i = 0; i < nnod; i++)
       for (size_t j = 0; j < 3; j++)

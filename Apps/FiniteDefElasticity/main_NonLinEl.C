@@ -14,6 +14,8 @@
 #include "NonLinSIM.h"
 #include "SIMFiniteDefEl.h"
 #include "LinAlgInit.h"
+#include "HDF5Writer.h"
+#include "XMLWriter.h"
 #include "Profiler.h"
 #include "VTF.h"
 #include <fstream>
@@ -40,9 +42,10 @@
   \arg -nu \a nu : Number of visualization points per knot-span in u-direction
   \arg -nv \a nv : Number of visualization points per knot-span in v-direction
   \arg -nw \a nw : Number of visualization points per knot-span in w-direction
-  \arg -skip2nd : Skip VTF-output of secondary solution fields
+  \arg -hdf5 : Write primary and projected secondary solution to HDF5 file
+  \arg -skip2nd : Skip VTF/HDF5-output of secondary solution fields
   \arg -noEnergy : Skip integration of energy norms
-  \arg -saveInc \a dtSave : Time increment between each result save to VTF
+  \arg -saveInc \a dtSave : Time increment between each result save to VTF/HDF5
   \arg -dumpInc \a dtDump [raw] : Time increment between each solution dump
   \arg -ignore \a p1, \a p2, ... : Ignore these patches in the analysis
   \arg -check : Data check only, read model and output to VTF (no solution)
@@ -69,6 +72,7 @@ int main (int argc, char** argv)
   int outPrec = 3;
   int n[3] = { 2, 2, 2 };
   std::vector<int> ignoredPatches;
+  bool doHDF5 = false;
   double dtSave = 0.0;
   double dtDump = 0.0;
   bool dumpWithID = true;
@@ -113,6 +117,8 @@ int main (int argc, char** argv)
       skip2nd = true;
     else if (!strcmp(argv[i],"-noEnergy"))
       energy = false;
+    else if (!strcmp(argv[i],"-hdf5"))
+      doHDF5 = true;
     else if (!strcmp(argv[i],"-saveInc") && i < argc-1)
       dtSave = atof(argv[++i]);
     else if (!strcmp(argv[i],"-outPrec") && i < argc-1)
@@ -185,10 +191,11 @@ int main (int argc, char** argv)
     std::cout <<"usage: "<< argv[0]
 	      <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n      "
 	      <<" [-lag] [-spec] [-2D[pstrain]] [-UL] [-MX [<p>]|-mixed]"
-	      <<" [-nGauss <n>]\n       [-vtf <format>] [-nviz <nviz>]"
-	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]\n      "
-	      <<" [-saveInc <dtSave>] [-skip2nd] [-dumpInc <dtDump> [raw]]\n   "
-	      <<"    [-ignore <p1> <p2> ...] [-fixDup] [-checkRHS] [-check]\n";
+	      <<" [-nGauss <n>]\n       [-vtf <format> [-nviz <nviz>]"
+	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]]\n      "
+	      <<" [-saveInc <dtSave>] [-skip2nd] [-dumpInc <dtDump> [raw]]"
+	      <<" [-hdf5]\n      "
+	      <<" [-ignore <p1> <p2> ...] [-fixDup] [-checkRHS] [-check]\n";
     return 0;
   }
 
@@ -289,6 +296,20 @@ int main (int argc, char** argv)
   if (form >= 100)
     return 0; // model check
 
+  DataExporter* writer = 0;
+  if (doHDF5)
+  {
+    strtok(infile,".");
+    if (linalg.myPid == 0)
+      std::cout <<"\nWriting HDF5 file "<< infile <<".hdf5"<< std::endl;
+
+    writer = new DataExporter(true);
+    writer->registerField("u","solution",DataExporter::SIM, skip2nd ? 0 : -1);
+    writer->setFieldValue("u",model,(void*)&simulator.getSolution());
+    writer->registerWriter(new HDF5Writer(infile));
+    writer->registerWriter(new XMLWriter(infile));
+  }
+
   // Initialize the linear solver
   model->initSystem(solver,1,1);
   model->setAssociatedRHS(0,0);
@@ -321,10 +342,15 @@ int main (int argc, char** argv)
       if (!simulator.saveStep(++iStep,params.time.t,n,skip2nd))
 	return 6;
 
+      // Save solution variables to HDF5
+      if (writer)
+	writer->dumpTimeLevel();
+
       nextSave = params.time.t + dtSave;
     }
   }
 
+  if (writer) delete writer;
   if (oss) delete oss;
   return 0;
 }

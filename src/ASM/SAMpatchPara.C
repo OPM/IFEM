@@ -139,7 +139,6 @@ bool SAMpatchPara::initForAssembly (SystemVector& sysRHS,
 }
 
 
-
 bool SAMpatchPara::assembleSystem (SystemVector& sysRHS,
 				   const Matrix& eK, int iel,
 				   Vector* reactionForces) const
@@ -189,11 +188,6 @@ bool SAMpatchPara::getElmEqns (IntVec& meen, int iel, int nedof) const
   int nenod = mpmnpc[iel] - ip;
   if (nedof < 1) nedof = nenod*ndof/nnod;
 
-#ifdef USE_F77SAM
-  int neldof, neslv, neprd;
-  meen.resize(nedof,0);
-  elmeq_(madof,mmnpc+ip-1,mpmceq,meqn,nenod,&meen.front(),neldof,neslv,neprd);
-#else
   meen.clear();
   meen.reserve(nedof);
   for (int i = 0; i < nenod; i++, ip++)
@@ -202,12 +196,10 @@ bool SAMpatchPara::getElmEqns (IntVec& meen, int iel, int nedof) const
     for (int j = madof[node-1]; j < madof[node]; j++)
       meen.push_back(j);
   }
-  int neldof = meen.size();
-#endif
-  if (neldof == nedof) return true;
+  if (meen.size() == nedof) return true;
 
   std::cerr <<"SAMpatchPara::getElmEqns: Invalid element matrix dimension "
-	    << nedof <<" (should have been "<< neldof <<")"<< std::endl;
+	    << nedof <<" (should have been "<< meen.size() <<")"<< std::endl;
   return false;
 }
 

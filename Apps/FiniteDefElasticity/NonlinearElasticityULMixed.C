@@ -470,6 +470,35 @@ bool NonlinearElasticityULMixed::evalBouMx (LocalIntegral*& elmInt,
 }
 
 
+size_t NonlinearElasticityULMixed::getNoFields (int fld) const
+{
+  if (fld < 2)
+    return nsd + 2;
+  else
+    return this->Elasticity::getNoFields(fld);
+}
+
+
+const char* NonlinearElasticityULMixed::getField1Name (size_t i,
+						       const char* prefix) const
+{
+  if (i < nsd)
+    return this->Elasticity::getField1Name(i,prefix);
+
+  static std::string name;
+  if (prefix) name = prefix + std::string(" ");
+
+  if (i == nsd)
+    name += "theta";
+  else if (i == (size_t)(nsd+1))
+    name += "p";
+  else
+    return 0;
+
+  return name.c_str();
+}
+
+
 NormBase* NonlinearElasticityULMixed::getNormIntegrand (AnaSol*) const
 {
   NonlinearElasticityULMixed* ulp;

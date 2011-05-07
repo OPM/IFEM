@@ -320,7 +320,7 @@ public:
   //! \param[in] nodeVec Nodal result vector for this patch
   //! \param globVec Global solution vector in DOF-order
   //! \param[in] nndof Number of DOFs per node (the default is \a nf)
-  virtual void injectNodeVec(const Vector& nodeVec, Vector& globVec,
+  virtual bool injectNodeVec(const Vector& nodeVec, Vector& globVec,
 			     unsigned char nndof = 0) const;
 
 protected:

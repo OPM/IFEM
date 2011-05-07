@@ -112,13 +112,16 @@ public:
   //! \param[in] asol Pointer to analytical solution (optional)
   virtual NormBase* getNormIntegrand(AnaSol* asol = 0) const;
 
-  //! \brief Returns the number of secondary solution field components.
-  virtual size_t getNoFields() const { return nsd; }
-
+  //! \brief Returns the number of primary/secondary solution field components.
+  //! \param[in] fld which field set to consider (1=primary, 2=secondary)
+  virtual size_t getNoFields(int fld = 2) const { return fld > 1 ? nsd : 1; }
+  //! \brief Returns the name of the primary solution field.
+  //! \param[in] prefix Name prefix
+  virtual const char* getField1Name(size_t, const char* prefix = 0) const;
   //! \brief Returns the name of a secondary solution field component.
   //! \param[in] i Field component index
   //! \param[in] prefix Name prefix for all components
-  virtual const char* getFieldLabel(size_t i, const char* prefix = 0) const;
+  virtual const char* getField2Name(size_t i, const char* prefix = 0) const;
 
   //! \brief Sets up the constitutive matrix at current point.
   //! \param[out] C \f$ nsd\times nsd\f$-matrix
@@ -178,7 +181,7 @@ public:
 		       const Vec3& X) const;
 
   //! \brief Returns the number of norm quantities.
-  virtual size_t getNoFields() const { return anasol ? 3 : 1; }
+  virtual size_t getNoFields(int = 0) const { return anasol ? 3 : 1; }
 
 private:
   Poisson& problem; //!< The problem-specific data

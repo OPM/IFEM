@@ -73,6 +73,7 @@ C
 C
 C         Entry section
 C
+      nrotd = 0
       ierr = 0
 C
       if (ipsw .gt. 0)                            then
@@ -94,13 +95,7 @@ C
          d(i) = v(i,i)
          b(i) = d(i)
          z(i) = zero
-C
-         do j = 1,3
-C
-          v(i,j) = zero
-C
-         end do ! j
-C
+         v(i,:) = zero
          v(i,i) = one
 C
       end do ! i
@@ -111,8 +106,6 @@ C
       g  = abs(d(1)) + abs(d(2)) + abs(d(3))
 C
       if (sm .lt. 1.d-13*g)                       go to 8000
-C
-      nrotd = 0
 C
       do its = 1, 50
 C

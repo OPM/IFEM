@@ -118,6 +118,9 @@ public:
   //! \brief Prints out problem-specific data to the given stream.
   void printProblem(std::ostream& os) const;
 
+  //! \brief Returns a pointer to the problem-specific data object.
+  const Integrand* getProblem() const { return myProblem; }
+
   //! \brief Returns the number of spatial dimensions in the model.
   size_t getNoSpaceDim() const;
   //! \brief Returns the model size in terms of number of DOFs.
@@ -126,6 +129,8 @@ public:
   size_t getNoNodes(bool unique = false) const;
   //! \brief Returns the number of solution vectors.
   size_t getNoSolutions() const;
+  //! \brief Returns the total number of patches in the model.
+  int getNoPatches() const { return nGlPatches; }
 
   //! \brief Initializes time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time
@@ -231,13 +236,23 @@ public:
 		   int nev, int ncv, int iop, double shift,
 		   size_t iA = 0, size_t iB = 1);
 
-  //! \brief Project the secondary solution associated with \a psol.
+  //! \brief Projects the secondary solution associated with \a psol.
   //! \param psol Control point values of primary(in)/secondary(out) solution
   //!
-  //! \details The secondary solution, defined through the Integrand class,
+  //! \details The secondary solution, defined through the Integrand object,
   //! corresponding to the primary solution \a psol is projected onto the
   //! spline basis to obtain the control point values of the secondary solution.
   bool project(Vector& psol);
+
+  //! \brief Evaluates the secondary solution field for specified patch.
+  //! \param[out] field Control point values of the secondary solution field
+  //! \param[in] pindx Local patch index to evaluate solution field for
+  //!
+  //! \details The secondary solution is derived from the primary solution,
+  //! which is assumed to be stored within the Integrand object.
+  //! The solution is evaluated at the Greville points and then projected onto
+  //! the spline basis to obtain the control point values.
+  bool evalSecondarySolution(Matrix& field, int pindx) const;
 
 
   // Post-processing methods
@@ -271,20 +286,25 @@ public:
   //! \param[in] nViz Number of visualization points over each knot-span
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter
-  virtual bool writeGlvV(const Vector& vec, const char* fieldName,
-			 const int* nViz, int iStep, int& nBlock) const;
+  bool writeGlvV(const Vector& vec, const char* fieldName,
+		 const int* nViz, int iStep, int& nBlock) const;
 
   //! \brief Writes solution fields for a given load/time step to the VTF-file.
-  //! \details If an analytical solution is provided, the exact stress fields
-  //! are written to the VTF-file as well.
   //! \param[in] psol Primary solution vector
   //! \param[in] nViz Number of visualization points over each knot-span
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter
   //! \param[in] time Load/time step parameter
   //! \param[in] psolOnly If \e true, skip secondary solution field evaluation
+  //! \param[in] vecName Optional name of the primary vector field solution
+  //!
+  //! \details The primary vector field solution is written as a deformation
+  //! plot if \a vecName is NULL. Otherwise, it is written as a named vector
+  //! field. If an analytical solution is provided, the exact secondary solution
+  //! fields are written to the VTF-file as well.
   virtual bool writeGlvS(const Vector& psol, const int* nViz, int iStep,
-			 int& nBlock, double time = 0.0, bool psolOnly = false);
+			 int& nBlock, double time = 0.0, bool psolOnly = false,
+			 const char* vecName = 0);
 
   //! \brief Writes a mode shape and associated eigenvalue to the VTF-file.
   //! \details The eigenvalue is used as a label on the step state info
@@ -352,12 +372,38 @@ protected:
   //! \brief Creates the computational FEM model from the spline patches.
   bool createFEMmodel();
 
+public:
   //! \brief Returns the local patch index for the given global patch number.
   //! \details For serial applications this is an identity mapping only, whereas
   //! for parallel applications the local (1-based) patch index on the current
   //! processor is returned. If \a patchNo is out of range, -1 is returned.
   //! If \a patchNo is not on current processor, 0 is returned.
   int getLocalPatchIndex(int patchNo) const;
+
+  //! \brief Extracts the local solution vector for a specified patch.
+  //! \param[in] sol Global primary solution vectors in DOF-order
+  //! \param[in] pindx Local patch index to extract solution vectors for
+  //! \param[in] nndof Number of DOFs per node (optional)
+  //!
+  //! \details The extracted patch-level solution vector is stored within the
+  //! Integrand \a *myProblem such that \a evalSolution can be invoked to get
+  //! the secondary solution field values within the same patch afterwards,
+  bool extractPatchSolution(const Vector& sol,
+			    int pindx, unsigned char nndof = 0);
+
+  //! \brief Injects a patch-wise solution vector into the global vector.
+  //! \param sol Global primary solution vector in DOF-order
+  //! \param[in] locSol Local solution vector associated with specified patch
+  //! \param[in] pindx Local patch index to inject solution vector for
+  //! \param[in] nndof Number of DOFs per node (optional)
+  bool injectPatchSolution(Vector& sol, const Vector& locSol,
+			   int pindx, unsigned char nndof = 0);
+
+protected:
+  //! \brief Extracts local solution vector(s) for the given patch.
+  //! \param[in] patch Pointer to the patch to extract solution vectors for
+  //! \param[in] sol Global primary solution vectors in DOF-order
+  void extractPatchSolution(const ASMbase* patch, const Vectors& sol);
 
   //! \brief Initializes material properties for integration of interior terms.
   virtual bool initMaterial(size_t) { return true; }
@@ -371,11 +417,6 @@ protected:
 
   //! \brief Finalizes the system assembly.
   bool finalizeAssembly(bool newLHSmatrix);
-
-  //! \brief Extracts local solution vector(s) for the given patch.
-  //! \param[in] patch Pointer to the patch to extract solution vectors for
-  //! \param[in] sol Global primary solution vectors in DOF-order
-  void extractPatchSolution(const ASMbase* patch, const Vectors& sol);
 
 public:
   //! \brief Enum defining the available discretization methods.

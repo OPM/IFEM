@@ -14,6 +14,8 @@
 #include "SIMLinEl3D.h"
 #include "SIMLinEl2D.h"
 #include "LinAlgInit.h"
+#include "HDF5Writer.h"
+#include "XMLWriter.h"
 #include "Profiler.h"
 #include <fstream>
 #include <stdlib.h>
@@ -39,6 +41,7 @@
   \arg -nu \a nu : Number of visualization points per knot-span in u-direction
   \arg -nv \a nv : Number of visualization points per knot-span in v-direction
   \arg -nw \a nw : Number of visualization points per knot-span in w-direction
+  \arg -hdf5 : Write primary and projected secondary solution to HDF5 file
   \arg -dumpASC : Dump model and solution to ASCII files for external processing
   \arg -ignore \a p1, \a p2, ... : Ignore these patches in the analysis
   \arg -eig \a iop : Eigenproblem solver to use (1...6)
@@ -74,6 +77,7 @@ int main (int argc, char** argv)
   bool checkRHS = false;
   bool vizRHS = false;
   bool fixDup = false;
+  bool dumpHDF5 = false;
   bool dumpASCII = false;
   bool twoD = false;
   char* infile = 0;
@@ -107,6 +111,8 @@ int main (int argc, char** argv)
       n[1] = atoi(argv[++i]);
     else if (!strcmp(argv[i],"-nw") && i < argc-1)
       n[2] = atoi(argv[++i]);
+    else if (!strcmp(argv[i],"-hdf5"))
+      dumpHDF5 = true;
     else if (!strcmp(argv[i],"-dumpASC"))
       dumpASCII = true;
     else if (!strcmp(argv[i],"-ignore"))
@@ -313,6 +319,19 @@ int main (int argc, char** argv)
   }
 
   utl::profiler->start("Postprocessing");
+
+  if (dumpHDF5 && !displ.front().empty())
+  {
+    strtok(infile,".");
+    if (linalg.myPid == 0)
+      std::cout <<"\nWriting HDF5 file "<< infile <<".hdf5"<< std::endl;
+    DataExporter exporter(true);
+    exporter.registerField("u","displacement",DataExporter::SIM,-1);
+    exporter.setFieldValue("u",model,&displ.front());
+    exporter.registerWriter(new HDF5Writer(infile));
+    exporter.registerWriter(new XMLWriter(infile));
+    exporter.dumpTimeLevel();
+  }
 
   if (format >= 0)
   {
