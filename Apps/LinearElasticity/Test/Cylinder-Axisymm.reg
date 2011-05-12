@@ -1,0 +1,11 @@
+Cylinder-Axisymm.inp -2Daxisymm -nviz 5
+
+Number of elements    8
+Number of nodes       35
+Number of dofs        70
+Number of unknowns    56
+L2-norm            : 5.20881e-06
+Max X-displacement : 9.21008e-06 node 22
+Max Y-displacement : 7.37456e-20 node 22
+Energy norm |u^h| = a(u^h,u^h)^0.5   : 17.0101
+External energy ((f,u^h)+(t,u^h)^0.5 : 17.0101

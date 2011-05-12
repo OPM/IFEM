@@ -1,0 +1,13 @@
+Cylinder-Lagrange.inp -checkRHS -lagrange
+
+Number of elements    64
+Number of nodes       5049
+Number of dofs        15147
+Number of constraints 425
+Number of unknowns    13597
+L2-norm            : 0.00051814
+Max X-displacement : 0.00146856 node 425
+Max Y-displacement : 0.00329493 node 4652
+Max Z-displacement : 0.00644642 node 4200
+Energy norm |u^h| = a(u^h,u^h)^0.5   : 17.0665
+External energy ((f,u^h)+(t,u^h)^0.5 : 17.3112

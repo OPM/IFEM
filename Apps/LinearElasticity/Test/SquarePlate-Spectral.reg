@@ -1,0 +1,33 @@
+SquarePlate-Spectral.inp -eig 5 -nev 20 -ncv 40 -shift 2.0e-4 -nGauss 3 -spectral
+
+Number of elements    49
+Number of nodes       675
+Number of dofs        2025
+Number of unknowns    1966
+L2-norm            : 3.24332
+Max X-displacement : 9.15751 node 15
+Max Y-displacement : 2.74725 node 675
+Max Z-displacement : 0.0137363 node 141
+Energy norm |u^h| = a(u^h,u^h)^0.5   : 9.56949
+External energy ((f,u^h)+(t,u^h)^0.5 : 9.56949
+     Mode	Eigenvalue
+     1		0.000397885
+     2		0.000646211
+     3		0.00124808
+     4		0.00163378
+     5		0.00201232
+     6		0.00225966
+     7		0.00258407
+     8		0.00294378
+     9		0.0037461
+     10		0.0038357
+     11		0.00439048
+     12		0.00439077
+     13		0.00452341
+     14		0.00543184
+     15		0.00566056
+     16		0.00605423
+     17		0.00633285
+     18		0.00694727
+     19		0.00720034
+     20		0.00723013

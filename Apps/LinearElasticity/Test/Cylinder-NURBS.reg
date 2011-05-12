@@ -1,0 +1,13 @@
+Cylinder-NURBS.inp -checkRHS -nviz 5
+
+Number of elements    64
+Number of nodes       1260
+Number of dofs        3780
+Number of constraints 160
+Number of unknowns    3197
+L2-norm            : 6.74404e-06
+Max X-displacement : 1.85428e-05 node 222
+Max Y-displacement : 9.27156e-06 node 645
+Max Z-displacement : 2.17282e-18 node 580
+Energy norm |u^h| = a(u^h,u^h)^0.5   : 17.0665
+External energy ((f,u^h)+(t,u^h)^0.5 : 17.0665

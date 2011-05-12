@@ -1,0 +1,33 @@
+SquarePlate-Lagrange.inp -eig 5 -nev 20 -ncv 40 -shift 2.0e-4 -nGauss 3 -lagrange
+
+Number of elements    49
+Number of nodes       675
+Number of dofs        2025
+Number of unknowns    1966
+L2-norm            : 3.24332
+Max X-displacement : 9.15751 node 585
+Max Y-displacement : 2.74725 node 436
+Max Z-displacement : 0.0137363 node 83
+Energy norm |u^h| = a(u^h,u^h)^0.5   : 9.56949
+External energy ((f,u^h)+(t,u^h)^0.5 : 9.56949
+     Mode	Eigenvalue
+     1		0.000397498
+     2		0.000643834
+     3		0.00123561
+     4		0.0016299
+     5		0.00199837
+     6		0.00221839
+     7		0.00257798
+     8		0.00289996
+     9		0.00365368
+     10		0.00382284
+     11		0.00429388
+     12		0.00434341
+     13		0.00451961
+     14		0.00529737
+     15		0.00555164
+     16		0.00591268
+     17		0.00615693
+     18		0.00676318
+     19		0.00706523
+     20		0.00719485

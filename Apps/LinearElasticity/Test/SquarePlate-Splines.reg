@@ -1,0 +1,33 @@
+SquarePlate-Splines.inp -eig 5 -nev 20 -ncv 40 -shift 2.0e-4 -nGauss 3 -nviz 3
+
+Number of elements    49
+Number of nodes       243
+Number of dofs        729
+Number of unknowns    694
+L2-norm            : 3.3533
+Max X-displacement : 9.15751 node 198
+Max Y-displacement : 2.74725 node 154
+Max Z-displacement : 0.0137363 node 51
+Energy norm |u^h| = a(u^h,u^h)^0.5   : 9.56949
+External energy ((f,u^h)+(t,u^h)^0.5 : 9.56949
+     Mode	Eigenvalue
+     1		0.000417151
+     2		0.000845558
+     3		0.00203991
+     4		0.00270478
+     5		0.00335392
+     6		0.0036516
+     7		0.00678568
+     8		0.00809802
+     9		0.00942794
+     10		0.0101638
+     11		0.0125943
+     12		0.0211415
+     13		0.0219982
+     14		0.0254907
+     15		0.0320796
+     16		0.032728
+     17		0.0345402
+     18		0.0417065
+     19		0.0436573
+     20		0.0618522
