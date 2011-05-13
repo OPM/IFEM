@@ -6,8 +6,8 @@ Number of dofs        15147
 Number of constraints 425
 Number of unknowns    13597
 L2-norm            : 6.68966e-06
-Max X-displacement : 1.85424e-05 node 3383
-Max Y-displacement : 9.27122e-06 node 570
-Max Z-displacement : 1.33734e-18 node 3926
+Max X-displacement : 1.85424e-05
+Max Y-displacement : 9.27122e-06
+Max Z-displacement : 1.33734e-18
 Energy norm |u^h| = a(u^h,u^h)^0.5   : 17.0665
 External energy ((f,u^h)+(t,u^h)^0.5 : 17.0665

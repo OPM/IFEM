@@ -5,8 +5,8 @@ Number of nodes       77
 Number of dofs        154
 Number of unknowns    140
 L2-norm            : 0.0204072
-Max X-displacement : 0.0465281 node 77
-Max Y-displacement : 0.0152723 node 67
+Max X-displacement : 0.0465281
+Max Y-displacement : 0.0152723
 Energy norm |u^h| = a(u^h,u^h)^0.5   : 1.29947
 External energy ((f,u^h)+(t,u^h)^0.5 : 1.29947
 Exact norm  |u|   = a(u,u)^0.5       : 1.29959
