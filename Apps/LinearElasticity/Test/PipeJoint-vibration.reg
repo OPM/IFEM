@@ -1,0 +1,33 @@
+PipeJoint-vibration.inp -free -eig 4 -nev 16 -ncv 32
+
+Number of elements    12
+Number of nodes       166
+Number of dofs        498
+Number of unknowns    498
+     7		7.45855
+     8		7.80118
+     9		11.7379
+     10		13.5283
+     11		15.9218
+     12		16.62
+     13		21.4777
+     14		23.4314
+     15		27.2659
+     16		29.3211
+  Row   7:    2.19619D+03
+  Row   8:    2.40260D+03
+  Row   9:    5.43926D+03
+  Row  10:    7.22517D+03
+  Row  11:    1.00079D+04
+  Row  12:    1.09048D+04
+  Row  13:    1.82111D+04
+  Row  14:    2.16749D+04
+  Row  15:    2.93495D+04
+  Row  16:    3.39407D+04
+  Size of the matrix is          498
+  The number of Ritz values requested is           16
+  The number of Arnoldi vectors generated (NCV) is           32
+  What portion of the spectrum: LM
+  The number of converged Ritz values is           16
+  The number of Implicit Arnoldi update iterations taken is            3
+  The number of OP\*x is           49
