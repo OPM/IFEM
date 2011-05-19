@@ -93,6 +93,11 @@ public:
   virtual ~ASMs3D() {}
 
 
+  // Methods to access data
+  // ============================
+  Go::SplineVolume* getVolume() { return svol; }
+
+
   // Methods for model generation
   // ============================
 
