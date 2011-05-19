@@ -74,6 +74,10 @@ public:
   virtual ~ASMs2D() {}
 
 
+  // Methods to access data
+  // ============================
+  Go::SplineSurface* getSurface() { return surf; }
+
   // Methods for model generation
   // ============================
 
