@@ -225,6 +225,8 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
   for (int i2 = 0; i2 < nely; i2++)
     for (int i1 = 0; i1 < nelx; i1++, iel++)
     {
+      fe.iel = MLGE[iel-1];
+
       // Set up control point coordinates for current element
       if (!this->getElementCoordinates(Xnod,iel)) return false;
 
@@ -238,7 +240,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
       // LocalIntegral pointers, of length at least the number of elements in
       // the model (as defined by the highest number in the MLGE array).
       // If the array is shorter than this, expect a segmentation fault.
-      LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
+      LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
 
 
       // --- Integration loop over all Gauss points in each direction ----------
@@ -274,7 +276,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
 	}
 
       // Assembly of global system integral
-      if (!glInt.assemble(elmInt,MLGE[iel-1]))
+      if (!glInt.assemble(elmInt,fe.iel))
 	return false;
     }
 
@@ -324,6 +326,8 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
   for (int i2 = 0; i2 < nely; i2++)
     for (int i1 = 0; i1 < nelx; i1++, iel++)
     {
+      fe.iel = MLGE[iel-1];
+
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
       switch (edgeDir)
@@ -348,7 +352,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
       // LocalIntegral pointers, of length at least the number of elements in
       // the model (as defined by the highest number in the MLGE array).
       // If the array is shorter than this, expect a segmentation fault.
-      LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
+      LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
 
 
       // --- Integration loop over all Gauss points along the edge -------------
@@ -385,7 +389,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
       }
 
       // Assembly of global system integral
-      if (!glInt.assemble(elmInt,MLGE[iel-1]))
+      if (!glInt.assemble(elmInt,fe.iel))
 	return false;
     }
 

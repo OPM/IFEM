@@ -196,7 +196,7 @@ bool SAMpatchPara::getElmEqns (IntVec& meen, int iel, int nedof) const
     for (int j = madof[node-1]; j < madof[node]; j++)
       meen.push_back(j);
   }
-  if (meen.size() == nedof) return true;
+  if ((int)meen.size() == nedof) return true;
 
   std::cerr <<"SAMpatchPara::getElmEqns: Invalid element matrix dimension "
 	    << nedof <<" (should have been "<< meen.size() <<")"<< std::endl;

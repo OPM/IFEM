@@ -16,12 +16,15 @@
 #include "LinAlgInit.h"
 #include "HDF5Writer.h"
 #include "XMLWriter.h"
+#include "Utilities.h"
 #include "Profiler.h"
 #include "VTF.h"
 #include <fstream>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+
+extern std::vector<int> mixedDbgEl; //!< List of elements for additional output
 
 
 /*!
@@ -131,17 +134,12 @@ int main (int argc, char** argv)
       else
 	--i;
     }
+    else if (!strcmp(argv[i],"-dbgElm"))
+      while (i < argc-1 && isdigit(argv[i+1][0]))
+	utl::parseIntegers(mixedDbgEl,argv[++i]);
     else if (!strcmp(argv[i],"-ignore"))
       while (i < argc-1 && isdigit(argv[i+1][0]))
-      {
-	char* endp = 0;
-	int endVal = 0;
-	ignoredPatches.push_back(strtol(argv[++i],&endp,10));
-	if (endp && *endp == ':')
-	  endVal = strtol(endp+1,&endp,10);
-	while (ignoredPatches.back() < endVal)
-	  ignoredPatches.push_back(ignoredPatches.back()+1);
-      }
+	utl::parseIntegers(ignoredPatches,argv[++i]);
     else if (!strcmp(argv[i],"-vox") && i < argc-1)
       VTF::vecOffset[0] = atof(argv[++i]);
     else if (!strcmp(argv[i],"-voy") && i < argc-1)

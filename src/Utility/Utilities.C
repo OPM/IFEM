@@ -12,7 +12,22 @@
 //==============================================================================
 
 #include "Utilities.h"
+#include <stdlib.h>
 #include <ctype.h>
+
+
+void utl::parseIntegers (std::vector<int>& values, const char* argv)
+{
+  if (!argv) return;
+
+  char* endp = 0;
+  int endVal = 0;
+  values.push_back(strtol(argv,&endp,10));
+  if (endp && *endp == ':')
+    endVal = strtol(endp+1,&endp,10);
+  while (values.back() < endVal)
+    values.push_back(values.back()+1);
+}
 
 
 char* utl::readLine (std::istream& is)

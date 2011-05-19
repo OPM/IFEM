@@ -14,6 +14,7 @@
 #include "NonlinearElasticityULMixed.h"
 #include "MaterialBase.h"
 #include "FiniteElement.h"
+#include "TimeDomain.h"
 #include "ElmMats.h"
 #include "ElmNorm.h"
 #include "Utilities.h"
@@ -239,17 +240,15 @@ void NonlinearElasticityULMixed::setMode (SIM::SolutionMode mode)
 }
 
 
-#if INT_DEBUG
-static int iP = 0;
-#endif
+static int iP = 0; //!< Local integration point counter for debug output
+std::vector<int> mixedDbgEl; //!< List of elements for additional output
+
 
 bool NonlinearElasticityULMixed::initElement (const std::vector<int>& MNPC1,
 					      const std::vector<int>& MNPC2,
 					      size_t n1)
 {
-#if INT_DEBUG
   iP = 0;
-#endif
 
   const size_t nen1 = MNPC1.size();
   const size_t nen2 = MNPC2.size();
@@ -385,6 +384,23 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
 
   if (lHaveStrains)
   {
+    if (prm.it == 0 &&
+	find(mixedDbgEl.begin(),mixedDbgEl.end(),fe.iel) != mixedDbgEl.end())
+    {
+#if INT_DEBUG > 0
+      if (iP == 1)
+#else
+      if (++iP == 1)
+#endif
+	std::cout <<"\n  ** Stresses in element "<< fe.iel << std::endl;
+
+      std::cout << iP;
+      const RealArray& sigma = Sig;
+      for (size_t i = 0; i < sigma.size(); i++)
+	std::cout <<" "<< sigma[i];
+      std::cout <<" "<< Sig.vonMises() << std::endl;
+    }
+
     // Compute mixed strees
     Bpres = Sig.trace()/3.0;
     Mpres = Press * J/Theta;
