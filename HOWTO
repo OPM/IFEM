@@ -6,9 +6,8 @@ sudo apt-get install libarpack2-dev
 sudo apt-get install libsuperlu3-dev
 sudo apt-get install libboost-dev
 sudo apt-get install libpetsc3.0.0-dev
-sudo apt-get install libslepc3.0.0-dev
 
-Installer GoToolsCore, SISL og GoTrivariate fra GoTools-svn.
+Installer GoToolsCore og GoTrivariate fra GoTools-svn.
 Gjør så cmake ., make og sudo make install i disse katalogene
 
 CMake og out-of-tree builds:
@@ -41,3 +40,6 @@ system hvis den ikke finner in-tree. Du kan tvinge system med
 -DFORCE_SYSTEM_IFEM:BOOL=1. Merk at in-tree sjekkes både for <root>/<type> og
 i <root>.
 
+Ved å spesifisere -DDISABLE_HDF5:BOOL=1 kan du slå av HDF5-støtten.
+
+For å kompilere mot parallel Petsc bruker du -DENABLE_PARALLEL_PETSC:BOOL=1
