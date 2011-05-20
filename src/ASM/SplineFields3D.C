@@ -196,7 +196,7 @@ bool SplineFields3D::valueFE(const FiniteElement& fe, Vector& vals) const
 
 
 
-bool SplineFields3D::valueCoor(const Vec3 x, Vector& vals) const
+bool SplineFields3D::valueCoor(const Vec3& x, Vector& vals) const
 {
   // Not implemented yet
   return false;
@@ -428,7 +428,7 @@ bool SplineFields3D::gradFE(const FiniteElement& fe, Matrix& grad) const
 }
 
 
-bool SplineFields3D::gradCoor(const Vec3 x, Matrix& grad) const
+bool SplineFields3D::gradCoor(const Vec3& x, Matrix& grad) const
 {
   // Not implemented yet
   return false;

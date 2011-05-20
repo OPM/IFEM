@@ -132,7 +132,7 @@ double SplineField2D::valueFE(const FiniteElement& fe) const
 }
 
 
-double SplineField2D::valueCoor(const Vec3 x) const
+double SplineField2D::valueCoor(const Vec3& x) const
 {
   // Not implemented yet
   return 0.0;
@@ -301,7 +301,7 @@ bool SplineField2D::gradFE(const FiniteElement& fe, Vector& grad) const
 }
 
 
-bool SplineField2D::gradCoor(const Vec3 x, Vector& grad) const
+bool SplineField2D::gradCoor(const Vec3& x, Vector& grad) const
 {
   // Not implemented yet
   return false;

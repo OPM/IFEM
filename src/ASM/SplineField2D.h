@@ -54,7 +54,7 @@ class SplineField2D : public SplineField
 
   //! \brief Computed the value at a given global coordinate
   //! \param[in] x Global/physical coordinate for point
-  double valueCoor(const Vec3 x) const;
+  double valueCoor(const Vec3& x) const;
 
   //! \brief Computes the gradient for a given local coordinate
   //! \param[in] fe Finite element
@@ -64,7 +64,7 @@ class SplineField2D : public SplineField
   //! \brief Computes the gradient for a given global/physical coordinate
   //! \param[in] x Global coordinate
   //! \param[out] grad Gradient of solution in a given global coordinate
-  bool gradCoor(const Vec3 x, Vector& grad) const;
+  bool gradCoor(const Vec3& x, Vector& grad) const;
 
  protected:
   Go::SplineSurface *surf;    //!< Spline surface geometry description
