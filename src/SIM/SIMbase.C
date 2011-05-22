@@ -1036,17 +1036,19 @@ bool SIMbase::writeGlvV (const Vector& vec, const char* fieldName,
 
 bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
 			 int iStep, int& nBlock, double time,
-			 bool psolOnly, const char* vecName)
+			 char psolOnly, const char* pvecName,
+			 int idBlock, int psolComps)
 {
   if (psol.empty())
     return true;
   else if (!myVtf)
     return false;
 
-  if (!psolOnly)
+  if (!psolOnly && myProblem)
     myProblem->initResultPoints(time);
 
   Matrix field;
+  Vector lovec;
   size_t i, j;
   int geomID = 0;
   const size_t pMAX = 6;
@@ -1070,11 +1072,14 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
 
     // 1. Evaluate primary solution variables
 
-    myModel[i]->extractNodeVec(psol,myProblem->getSolution());
-    if (!myModel[i]->evalSolution(field,myProblem->getSolution(),nViz))
+    Vector& locvec = myProblem ? myProblem->getSolution() : lovec;
+    myModel[i]->extractNodeVec(psol,locvec,psolComps);
+    if (!myModel[i]->evalSolution(field,locvec,nViz))
       return false;
 
-    if (!myVtf->writeVres(field,++nBlock,++geomID,nVcomp))
+    if (psolOnly > 1)
+      geomID++;
+    else if (!myVtf->writeVres(field,++nBlock,++geomID,nVcomp))
       return false;
     else
       vID[0].push_back(nBlock);
@@ -1085,7 +1090,7 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
       else
 	dID[j].push_back(nBlock);
 
-    if (psolOnly) continue; // skip secondary solution
+    if (psolOnly || !myProblem) continue; // skip secondary solution
 
     // 2. Direct evaluation of secondary solution variables
 
@@ -1154,22 +1159,32 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
   // Write result block identifications
 
   bool ok = true;
-  int idBlock = 10;
-  if (vecName)
-    ok = myVtf->writeVblk(vID[0],vecName,idBlock,iStep);
-  else
-    ok = myVtf->writeDblk(vID[0],"Solution",idBlock,iStep);
-  if (!ok) return false;
+  if (!vID[0].empty())
+    if (pvecName)
+      ok = myVtf->writeVblk(vID[0],pvecName,idBlock,iStep);
+    else
+      ok = myVtf->writeDblk(vID[0],"Solution",idBlock,iStep);
 
-  if (scalarEq && !psolOnly)
-    if (!myVtf->writeVblk(vID[1],"Flux",idBlock+1,iStep))
-      return false;
+  if (ok && !vID[1].empty())
+    ok = myVtf->writeVblk(vID[1],"Flux",idBlock+1,iStep);
 
-  for (j = 0; j < pMAX && !dID[j].empty(); j++)
-    if (!myVtf->writeSblk(dID[j],myProblem->getField1Name(j),++idBlock,iStep))
-      return false;
+  std::string pname;
+  if (!myProblem)
+  {
+    pname = pvecName ? pvecName : "Solution";
+    if (psolOnly < 2) pname += "_w";
+  }
 
-  if (psolOnly) return true;
+  for (j = 0; j < pMAX && !dID[j].empty() && ok; j++)
+  {
+    if (myProblem)
+      pname = myProblem->getField1Name(j);
+    else if (psolOnly < 2)
+      (*pname.rbegin()) ++;
+    ok = myVtf->writeSblk(dID[j],pname.c_str(),++idBlock,iStep);
+  }
+
+  if (psolOnly || !myProblem || !ok) return ok;
 
   size_t nf = myProblem->getNoFields(2);
   for (i = j = 0; i < nf && !sID[j].empty(); i++, j++)

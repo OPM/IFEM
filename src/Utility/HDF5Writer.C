@@ -4,7 +4,6 @@
 #include "SIMbase.h"
 #include "IntegrandBase.h"
 #include <sstream>
-#include <numeric>
 #include <sys/stat.h>
 
 #ifdef HAS_HDF5
@@ -16,30 +15,23 @@
 #endif
 
 
-HDF5Writer::HDF5Writer (const std::string& name) : m_hdf5(name+".hdf5")
+HDF5Writer::HDF5Writer (const std::string& name, bool append)
+  : DataWriter(name+".hdf5")
 {
 #ifdef HAS_HDF5
   struct stat temp;
   // file already exists - open and find the next group
-  if (stat(m_hdf5.c_str(),&temp) == 0)
+  if (append && stat(m_name.c_str(),&temp) == 0)
     m_flag = H5F_ACC_RDWR;
   else
     m_flag = H5F_ACC_TRUNC;
 #endif
-#ifdef PARALLEL_PETSC
-  MPI_Comm_rank(MPI_COMM_WORLD,&m_rank);
-  MPI_Comm_size(MPI_COMM_WORLD,&m_size);
-#else
-  m_rank = 0;
-#endif
 }
 
-HDF5Writer::~HDF5Writer()
-{
-}
 
 int HDF5Writer::getLastTimeLevel()
 {
+  int result = 0;
 #ifdef HAS_HDF5
   if (m_flag == H5F_ACC_TRUNC)
     return -1;
@@ -47,12 +39,11 @@ int HDF5Writer::getLastTimeLevel()
   hid_t acc_tpl = H5P_DEFAULT;
 #ifdef PARALLEL_PETSC
   MPI_Info info = MPI_INFO_NULL;
-  acc_tpl = H5Pcreate (H5P_FILE_ACCESS);
+  acc_tpl = H5Pcreate(H5P_FILE_ACCESS);
   H5Pset_fapl_mpio(acc_tpl, MPI_COMM_WORLD, info);
 #endif
 
-  m_file = H5Fopen(m_hdf5.c_str(),m_flag,acc_tpl);
-  int result=0;
+  m_file = H5Fopen(m_name.c_str(),m_flag,acc_tpl);
   while (1) {
     std::stringstream str;
     str << '/' << result;
@@ -61,11 +52,8 @@ int HDF5Writer::getLastTimeLevel()
     result++;
   }
   H5Fclose(m_file);
-
-  return result-1;
-#else
-  return -1;
 #endif
+  return result-1;
 }
 
 void HDF5Writer::openFile(int level)
@@ -78,9 +66,9 @@ void HDF5Writer::openFile(int level)
   H5Pset_fapl_mpio(acc_tpl, MPI_COMM_WORLD, info);
 #endif
   if (m_flag == H5F_ACC_TRUNC)
-    m_file = H5Fcreate(m_hdf5.c_str(),m_flag,H5P_DEFAULT,acc_tpl);
+    m_file = H5Fcreate(m_name.c_str(),m_flag,H5P_DEFAULT,acc_tpl);
   else
-    m_file = H5Fopen(m_hdf5.c_str(),m_flag,acc_tpl);
+    m_file = H5Fopen(m_name.c_str(),m_flag,acc_tpl);
 
   std::stringstream str;
   str << '/' << level;
@@ -153,9 +141,10 @@ void HDF5Writer::writeArray(int group, const std::string& name,
 #endif
 }
 
-void HDF5Writer::readVector(int level, const DataEntry& entry)
+bool HDF5Writer::readVector(int level, const DataEntry& entry)
 {
 //  readArray(level,entry.first,entry.second.size,entry.second.data);
+  return true;
 }
 
 void HDF5Writer::writeVector(int level, const DataEntry& entry)
@@ -163,14 +152,15 @@ void HDF5Writer::writeVector(int level, const DataEntry& entry)
   writeArray(level,entry.first,entry.second.size,entry.second.data);
 }
 
-void HDF5Writer::readSIM(int level, const DataEntry& entry)
+bool HDF5Writer::readSIM(int level, const DataEntry& entry)
 {
+  bool ok = true;
 #ifdef HAS_HDF5
   SIMbase* sim = static_cast<SIMbase*>(entry.second.data);
   Vector* sol = static_cast<Vector*>(entry.second.data2);
-  if (!sol) return;
+  if (!sol) return false;
 
-  for (int i = 0; i < sim->getNoPatches(); ++i) {
+  for (int i = 0; i < sim->getNoPatches() && ok; ++i) {
     std::stringstream str;
     str << level;
     str << '/';
@@ -180,12 +170,42 @@ void HDF5Writer::readSIM(int level, const DataEntry& entry)
     if (loc > 0) {
       double* tmp = NULL; int siz = 0;
       readArray(group2,entry.first,siz,tmp);
-      sim->injectPatchSolution(*sol,Vector(tmp,siz),loc-1,entry.second.size);
+      ok = sim->injectPatchSolution(*sol,Vector(tmp,siz),
+                                    loc-1,entry.second.size);
       delete[] tmp;
     }
     H5Gclose(group2);
   }
 #endif
+  return ok;
+}
+
+bool HDF5Writer::readField(int level, const std::string& name,
+                           Vector& vec, SIMbase* sim, int components)
+{
+  bool ok = true;
+  openFile(level);
+#ifdef HAS_HDF5
+  vec.resize(sim->getNoNodes()*components);
+  for (int i = 0; i < sim->getNoPatches() && ok; ++i) {
+    std::stringstream str;
+    str << level;
+    str << '/';
+    str << i+1;
+    hid_t group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
+    int loc = sim->getLocalPatchIndex(i+1);
+    if (loc > 0) {
+      double* tmp = NULL; int siz = 0;
+      readArray(group2,name,siz,tmp);
+      ok = sim->injectPatchSolution(vec,Vector(tmp,siz),
+                                    loc-1,components);
+      delete[] tmp;
+    }
+    H5Gclose(group2);
+  }
+#endif
+  closeFile(level);
+  return ok;
 }
 
 void HDF5Writer::writeSIM(int level, const DataEntry& entry)
@@ -208,17 +228,29 @@ void HDF5Writer::writeSIM(int level, const DataEntry& entry)
       group2 = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
     int loc = sim->getLocalPatchIndex(i+1);
     if (loc > 0) // we own the patch
+    {
       sim->extractPatchSolution(*sol,loc-1);
-    if (entry.second.size == -1) {
-      Matrix field;
-      if (loc > 0)
-	sim->evalSecondarySolution(field,loc-1);
-      for (size_t j = 0; j < prob->getNoFields(2); ++j)
-        writeArray(group2,prob->getField2Name(j),field.cols(),
-		   field.getRow(j+1).ptr());
+      Vector& psol = const_cast<Integrand*>(prob)->getSolution();
+      writeArray(group2,entry.first,psol.size(),psol.ptr());
+      // TODO: For mixed methods we need to output each primary field
+      // TODO: The above is sufficient for simulation restarts.
+      // TODO: For mixed methods we need to output each primary field
+      // TODO: separately in addition, with reference to correct spline basis.
+      if (entry.second.size == -1) {
+        Matrix field;
+        sim->evalSecondarySolution(field,loc-1);
+        for (size_t j = 0; j < prob->getNoFields(2); ++j)
+          writeArray(group2,prob->getField2Name(j),field.cols(),
+                     field.getRow(j+1).ptr());
+      }
     }
-    Vector& psol = const_cast<Integrand*>(prob)->getSolution();
-    writeArray(group2, entry.first, loc > 0 ? psol.size() : 0, psol.ptr());
+    else // must write empty dummy records for the other patches
+    {
+      double dummy;
+      writeArray(group2,entry.first,0,&dummy);
+      for (size_t j = 0; j < prob->getNoFields(2); ++j)
+        writeArray(group2,prob->getField2Name(j),0,&dummy);
+    }
     H5Gclose(group2);
   }
 #endif
@@ -226,15 +258,15 @@ void HDF5Writer::writeSIM(int level, const DataEntry& entry)
 
 bool HDF5Writer::checkGroupExistence(int parent, const char* path)
 {
+  bool result = false;
 #ifdef HAS_HDF5
   // turn off errors to avoid cout spew
   herr_t (*old_func)(void*);
   void* old_client_data;
   H5Eget_auto(&old_func,&old_client_data);
   H5Eset_auto(NULL,NULL);
-  bool result =H5Gget_objinfo((hid_t)parent,path,0,NULL) == 0;
+  result = H5Gget_objinfo((hid_t)parent,path,0,NULL) == 0;
   H5Eset_auto(old_func,old_client_data);
-  return result;
 #endif
-  return false;
+  return result;
 }

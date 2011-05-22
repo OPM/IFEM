@@ -1,17 +1,17 @@
 Dette må gjøres for å kompilere denne versjonen:
 
+sudo apt-get install libboost-dev
 sudo apt-get install libblas-dev
 sudo apt-get install liblapack-dev
 sudo apt-get install libarpack2-dev
 sudo apt-get install libsuperlu3-dev
-sudo apt-get install libboost-dev
 sudo apt-get install libpetsc3.0.0-dev
 
 Installer GoToolsCore og GoTrivariate fra GoTools-svn.
 Gjør så cmake ., make og sudo make install i disse katalogene
 
 CMake og out-of-tree builds:
-CMake støtter debug og release-builds samtidig vi det som kalles
+CMake støtter debug og release-builds samtidig via det som kalles
 out-of-tree builds. In-tree builds av App'ene forventer at har byggefilene
 i en underkatalog med samme navn som bygge-typen. Feks for å bygge Debug
 gjør vi:
@@ -20,26 +20,28 @@ mkdir Debug
 cd Debug
 cmake .. -DCMAKE_BUILD_TYPE:STRING=Debug
 
-På samme måte kan vi lage en release-katalog. 
+På samme måte kan vi lage en release-katalog.
 
 Merk: Hvis du har en CMakeCache.txt i root når du prøver dette, vil
 det ikke fungere.
 
 Flagg av interesse:
 Per default lenker vi mot et minimum av bibliotek. Det betyr ingen
-PETSc, ingen SuperLU, ingen VTFWriter og ingen SAMG. Disse kan slås på
-med opsjoner:
+PETSc og ingen SAMG. Disse kan slås på med opsjoner:
 
--DENABLE_SUPERLU:BOOL=1, -DENABLE_PETSC:BOOL=1, -DENABLE_VTFWRITER:BOOL=1
-og -DENABLE_SAMG:BOOL=1.
+-DENABLE_PETSC:BOOL=1 og -DENABLE_SAMG:BOOL=1.
 
-Vi bygger kun libIFEM og Apps/Poisson.
-Stokes og FiniteDefElasticity har egen CMakeLists.txt. Disse er
-satt opp til å bruke in-tree kopi av libIFEM per default, men sjekker
-system hvis den ikke finner in-tree. Du kan tvinge system med 
--DFORCE_SYSTEM_IFEM:BOOL=1. Merk at in-tree sjekkes både for <root>/<type> og
-i <root>.
+For å kompilere mot parallel Petsc bruker du -DENABLE_PARALLEL_PETSC:BOOL=1
+
+Ved å spesifisere -DDISABLE_SUPERLU:BOOL=1 kan du slå av SuperLU ligningsløseren.
+Ved å spesifisere -DENABLE_SUPERLU_MT:BOOL=1 kan du aktivere multi-threaded SuperLU
+istedet for den serielle versjonen.
 
 Ved å spesifisere -DDISABLE_HDF5:BOOL=1 kan du slå av HDF5-støtten.
 
-For å kompilere mot parallel Petsc bruker du -DENABLE_PARALLEL_PETSC:BOOL=1
+Vi bygger kun libIFEM, Apps/Poisson og Apps/LinearElasticity.
+Stokes og FiniteDefElasticity har egne CMakeLists.txt. Disse
+er satt opp til å bruke in-tree kopi av libIFEM per default,
+men sjekker system hvis den ikke finner in-tree.
+Du kan tvinge system med -DFORCE_SYSTEM_IFEM:BOOL=1.
+Merk at in-tree sjekkes både for <root>/<type> og i <root>.

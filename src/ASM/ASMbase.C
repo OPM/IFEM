@@ -484,10 +484,10 @@ bool ASMbase::injectNodeVec (const Vector& nodeVec, Vector& globRes,
 {
   if (nndof == 0) nndof = nf;
 
-  if (nodeVec.size() < MLGN.size()*nndof)
+  if (nodeVec.size() != MLGN.size()*nndof)
   {
     std::cerr <<" *** ASMbase::injectNodeVec:: Invalid patch vector, size = "
-	      << nodeVec.size() <<" < "<< MLGN.size()*nndof << std::endl;
+	      << nodeVec.size() <<" != "<< MLGN.size()*nndof << std::endl;
     return false;
   }
 

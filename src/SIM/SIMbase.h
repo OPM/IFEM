@@ -296,15 +296,18 @@ public:
   //! \param nBlock Running result block counter
   //! \param[in] time Load/time step parameter
   //! \param[in] psolOnly If \e true, skip secondary solution field evaluation
-  //! \param[in] vecName Optional name of the primary vector field solution
+  //! \param[in] pvecName Optional name of the primary vector field solution
+  //! \param[in] idBlock Starting value of result block numbering
+  //! \param[in] psolComps Optional number of primary solution components
   //!
   //! \details The primary vector field solution is written as a deformation
-  //! plot if \a vecName is NULL. Otherwise, it is written as a named vector
+  //! plot if \a pvecName is NULL. Otherwise, it is written as a named vector
   //! field. If an analytical solution is provided, the exact secondary solution
   //! fields are written to the VTF-file as well.
   virtual bool writeGlvS(const Vector& psol, const int* nViz, int iStep,
-			 int& nBlock, double time = 0.0, bool psolOnly = false,
-			 const char* vecName = 0);
+			 int& nBlock, double time = 0.0, char psolOnly = 0,
+			 const char* pvecName = 0, int idBlock = 10,
+			 int psolComps = 0);
 
   //! \brief Writes a mode shape and associated eigenvalue to the VTF-file.
   //! \details The eigenvalue is used as a label on the step state info

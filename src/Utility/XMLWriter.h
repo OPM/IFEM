@@ -3,32 +3,45 @@
 #pragma once
 
 #include "DataExporter.h"
-#include "tinyxml.h"
+
+class TiXmlDocument;
+class TiXmlNode;
 
 
-class XMLWriter : public DataWriter {
-  public:
-    XMLWriter(const std::string& name);
-    virtual ~XMLWriter();
+class XMLWriter : public DataWriter
+{
+public:
+  struct Entry {
+    std::string name;
+    std::string description;
+    std::string patchfile;
+    int patches;
+    int components;
+  };
 
-    int getLastTimeLevel();
+  XMLWriter(const std::string& name);
+  virtual ~XMLWriter() {}
 
-    void openFile(int level);
-    void closeFile(int level);
+  virtual int getLastTimeLevel();
 
-    void writeVector(int level, const DataEntry& entry);
-    void readVector(int level, const DataEntry& entry);
-    void writeSIM(int level, const DataEntry& entry);
-    void readSIM(int level, const DataEntry& entry);
+  void readInfo();
+  const std::vector<Entry>& getEntries() const { return m_entry; }
 
-  protected:
-    void addField(const std::string& name, const std::string& description,
-                  const std::string& type, int patches);
-    std::string m_xml;
+  virtual void openFile(int level);
+  virtual void closeFile(int level);
 
-    int m_rank; // MPI rank
-    int m_size; // number of MPI nodes
+  virtual void writeVector(int level, const DataEntry& entry);
+  virtual bool readVector(int level, const DataEntry& entry);
+  virtual void writeSIM(int level, const DataEntry& entry);
+  virtual bool readSIM(int level, const DataEntry& entry);
 
-    TiXmlDocument* m_doc;
-    TiXmlNode* m_node;
+protected:
+  void addField(const std::string& name, const std::string& description,
+                const std::string& type, const std::string& patchfile,
+                int components, int patches);
+
+  std::vector<Entry> m_entry;
+
+  TiXmlDocument* m_doc;
+  TiXmlNode* m_node;
 };

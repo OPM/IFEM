@@ -23,10 +23,10 @@
 namespace utl
 {
   //! \brief Parses a character string into an integer or an integer range.
-  //! \param values The integer value(s) is(are) appended to this vector
-  //! \param argv Character string with integer data
+  //! \param values The integer value(s) is/are appended to this vector
+  //! \param[in] argv Character string with integer data
   //!
-  //! \details An integer range is recognised through the syntax <i>:<j>.
+  //! \details An integer range is recognised through the syntax \a i:j.
   void parseIntegers(std::vector<int>& values, const char* argv);
 
   //! \brief Reads one line, ignoring comment lines and leading blanks.

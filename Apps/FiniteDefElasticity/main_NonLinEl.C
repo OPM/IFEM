@@ -282,7 +282,6 @@ int main (int argc, char** argv)
 
   const double epsT = 1.0e-6;
   if (dtDump <= 0.0) dtDump = params.stopTime + 1.0;
-  if (format < 0)    dtSave = params.stopTime + 1.0;
   double nextDump = params.time.t + dtDump;
   double nextSave = params.time.t + dtSave;
 
@@ -302,7 +301,7 @@ int main (int argc, char** argv)
       std::cout <<"\nWriting HDF5 file "<< infile <<".hdf5"<< std::endl;
 
     writer = new DataExporter(true);
-    writer->registerField("u","solution",DataExporter::SIM, skip2nd ? 0 : -1);
+    writer->registerField("u","displacement",DataExporter::SIM, skip2nd ? 0 : -1);
     writer->setFieldValue("u",model,(void*)&simulator.getSolution());
     writer->registerWriter(new HDF5Writer(infile));
     writer->registerWriter(new XMLWriter(infile));
@@ -337,8 +336,9 @@ int main (int argc, char** argv)
     if (params.time.t + epsT*params.time.dt > nextSave)
     {
       // Save solution variables to VTF for visualization
-      if (!simulator.saveStep(++iStep,params.time.t,n,skip2nd))
-	return 6;
+      if (format >= 0)
+        if (!simulator.saveStep(++iStep,params.time.t,n,skip2nd))
+	  return 6;
 
       // Save solution variables to HDF5
       if (writer)

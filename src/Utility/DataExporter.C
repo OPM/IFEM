@@ -3,15 +3,26 @@
 #include "DataExporter.h"
 #include <iostream>
 #include <algorithm>
+#ifdef PARALLEL_PETSC
+#include <mpi.h>
+#endif
 
 
-DataExporter::DataExporter(bool dynWrts) : deleteWriters(dynWrts), m_level(-1)
+DataWriter::DataWriter (const std::string& name) : m_name(name)
 {
+#ifdef PARALLEL_PETSC
+  MPI_Comm_size(MPI_COMM_WORLD,&m_size);
+  MPI_Comm_rank(MPI_COMM_WORLD,&m_rank);
+#else
+  m_size = 1;
+  m_rank = 0;
+#endif
 }
 
-DataExporter::~DataExporter()
+
+DataExporter::~DataExporter ()
 {
-  if (deleteWriters)
+  if (m_delete)
     for (size_t i = 0; i < m_writers.size(); i++)
       delete m_writers[i];
 }
@@ -40,6 +51,7 @@ bool DataExporter::registerWriter(DataWriter* writer)
   return true;
 }
 
+
 bool DataExporter::setFieldValue(const std::string& name,
 				 void* data, void* data2)
 {
@@ -52,10 +64,11 @@ bool DataExporter::setFieldValue(const std::string& name,
   return true;
 }
 
+
 bool DataExporter::dumpTimeLevel()
 {
   if (m_level == -1)
-    m_level = getWritersTimeLevel()+1;
+    m_level = this->getWritersTimeLevel()+1;
 
   std::map<std::string,FileEntry>::iterator it;
   std::vector<DataWriter*>::iterator it2;
@@ -72,7 +85,7 @@ bool DataExporter::dumpTimeLevel()
           (*it2)->writeSIM(m_level,*it);
           break;
         default:
-	  std::cout <<"DataExporter: Invalid field type registered, skipping"
+	  std::cerr <<"DataExporter: Invalid field type registered, skipping"
 		    << std::endl;
           break;
       }
@@ -84,52 +97,59 @@ bool DataExporter::dumpTimeLevel()
   return true;
 }
 
-bool DataExporter::loadTimeLevel(int level, DataWriter* input)
-{
-  if (!input && m_writers.empty())
-    return false;
-  if (!input)
-    input = m_writers.front();
-  if (level == -1)
-    level = m_level = input->getLastTimeLevel();
-  if (level == -1)
-    return false;
 
+bool DataExporter::loadTimeLevel (int level, DataWriter* input)
+{
+  if (!input)
+    if (m_writers.empty())
+      return false;
+    else
+      input = m_writers.front();
+
+  if (level == -1)
+    if ((m_level = input->getLastTimeLevel()) < 0)
+      return false;
+    else
+      level = m_level;
+
+  bool ok = true;
   input->openFile(level);
   std::map<std::string,FileEntry>::iterator it;
-  for (it = m_entry.begin(); it != m_entry.end(); ++it)
-  {
+  for (it = m_entry.begin(); it != m_entry.end() && ok; ++it)
     if (!it->second.data)
-      return false;
-    switch (it->second.field)
+      ok = false;
+    else switch (it->second.field)
     {
       case VECTOR:
-        input->readVector(level,*it);
+        ok = input->readVector(level,*it);
         break;
       case SIM:
-        input->readSIM(level,*it);
+        ok = input->readSIM(level,*it);
         break;
       default:
-	std::cout << "DataExporter::loadTimeLevel: Invalid field type "
-		  << "registered, skipping" << std::endl;
+        ok = false;
+	std::cerr <<" *** DataExporter: Invalid field type registered "
+		  << it->second.field << std::endl;
         break;
     }
-  }
+
   input->closeFile(level);
   m_level++;
 
-  return true;
+  return ok;
 }
 
-int DataExporter::getTimeLevel()
+
+int DataExporter::getTimeLevel ()
 {
   if (m_level == -1)
-    m_level = getWritersTimeLevel();
+    m_level = this->getWritersTimeLevel();
 
   return m_level;
 }
 
-int DataExporter::getWritersTimeLevel()
+
+int DataExporter::getWritersTimeLevel () const
 {
   std::vector<int> levels;
   std::vector<DataWriter*>::const_iterator it2;
