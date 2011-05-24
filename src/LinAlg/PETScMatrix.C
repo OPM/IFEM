@@ -209,6 +209,7 @@ PETScMatrix::~PETScMatrix ()
 }
 
 
+#ifdef PARALLEL_PETSC
 static void assemPETScPara (const Matrix& eM, Mat SM, PETScVector& SV,
 			    const std::vector<int>& meen, const int* meqn,
 			    const int* mpmceq, const int* mmceq,
@@ -273,6 +274,7 @@ static void assemPETScPara (const Matrix& eM, Mat SM, PETScVector& SV,
 
   delete[] l2g;
 }
+#endif
 
 
 static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
