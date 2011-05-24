@@ -44,6 +44,21 @@ ASMs3Dmx::ASMs3Dmx (std::istream& is, bool checkRHS,
 }
 
 
+bool ASMs3Dmx::write (std::ostream& os, int basis) const
+{
+  if (basis1 && basis == 1)
+    os <<"700 1 0 0\n" << *basis1;
+  else if (basis2 && basis == 2)
+    os <<"700 1 0 0\n" << *basis2;
+  else if (svol)
+    os <<"700 1 0 0\n" << *svol;
+  else
+    return false;
+
+  return os.good();
+}
+
+
 void ASMs3Dmx::clear ()
 {
   // Erase the spline data
@@ -53,6 +68,18 @@ void ASMs3Dmx::clear ()
 
   // Erase the FE data
   ASMs3D::clear();
+}
+
+
+size_t ASMs3Dmx::getNoNodes (int basis) const
+{
+  switch (basis)
+    {
+    case 1: return nb1;
+    case 2: return nb2;
+    }
+
+  return nb1+nb2;
 }
 
 
@@ -87,9 +114,9 @@ void ASMs3Dmx::initMADOF (const int* sysMadof)
 
 
 void ASMs3Dmx::extractNodeVec (const Vector& globRes, Vector& nodeVec,
-			       unsigned char) const
+			       unsigned char, int basis) const
 {
-  this->extractNodeVecMx(globRes,nodeVec);
+  this->extractNodeVecMx(globRes,nodeVec,basis);
 }
 
 

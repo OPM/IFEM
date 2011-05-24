@@ -121,6 +121,9 @@ public:
   //! \brief Returns a pointer to the problem-specific data object.
   const Integrand* getProblem() const { return myProblem; }
 
+  //! \brief Returns the number of primary solution fields.
+  //! \param[in] basis Which basis to condsider when mixed methods (0 = both)
+  size_t getNoFields(int basis = 0) const;
   //! \brief Returns the number of spatial dimensions in the model.
   size_t getNoSpaceDim() const;
   //! \brief Returns the model size in terms of number of DOFs.
@@ -338,6 +341,10 @@ public:
   //! \brief Dumps the (possibly refined) geometry in g2-format.
   //! \param os Output stream to write the geometry data to
   bool dumpGeometry(std::ostream& os) const;
+  //! \brief Dumps the (possibly refined) spline basis in g2-format.
+  //! \param os Output stream to write the spline data to
+  //! \param[in] basis Which basis to dump for mixed methods (0 = geometry)
+  bool dumpBasis(std::ostream& os, int basis = 0) const;
   //! \brief Dumps the entire solution in ASCII format.
   //! \param[in] psol Primary solution vector to derive other quantities from
   //! \param os Output stream to write the solution data to
@@ -386,13 +393,12 @@ public:
   //! \brief Extracts the local solution vector for a specified patch.
   //! \param[in] sol Global primary solution vectors in DOF-order
   //! \param[in] pindx Local patch index to extract solution vectors for
-  //! \param[in] nndof Number of DOFs per node (optional)
+  //! \return Total number of DOFs in the patch (first basis only if mixed)
   //!
   //! \details The extracted patch-level solution vector is stored within the
   //! Integrand \a *myProblem such that \a evalSolution can be invoked to get
   //! the secondary solution field values within the same patch afterwards,
-  bool extractPatchSolution(const Vector& sol,
-			    int pindx, unsigned char nndof = 0);
+  size_t extractPatchSolution(const Vector& sol, int pindx);
 
   //! \brief Injects a patch-wise solution vector into the global vector.
   //! \param sol Global primary solution vector in DOF-order

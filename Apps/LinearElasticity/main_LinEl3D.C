@@ -16,6 +16,7 @@
 #include "LinAlgInit.h"
 #include "HDF5Writer.h"
 #include "XMLWriter.h"
+#include "Utilities.h"
 #include "Profiler.h"
 #include <fstream>
 #include <stdlib.h>
@@ -117,15 +118,7 @@ int main (int argc, char** argv)
       dumpASCII = true;
     else if (!strcmp(argv[i],"-ignore"))
       while (i < argc-1 && isdigit(argv[i+1][0]))
-      {
-	char* endp = 0;
-	int endVal = 0;
-	ignoredPatches.push_back(strtol(argv[++i],&endp,10));
-	if (endp && *endp == ':')
-	  endVal = strtol(endp+1,&endp,10);
-	while (ignoredPatches.back() < endVal)
-	  ignoredPatches.push_back(ignoredPatches.back()+1);
-      }
+	utl::parseIntegers(ignoredPatches,argv[++i]);
     else if (!strcmp(argv[i],"-eig") && i < argc-1)
       iop = atoi(argv[++i]);
     else if (!strcmp(argv[i],"-nev") && i < argc-1)
@@ -165,7 +158,7 @@ int main (int argc, char** argv)
 	      <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n      "
 	      <<" [-free] [-lag] [-spec] [-2D[pstrain|axisymm]] [-nGauss <n>]\n"
 	      <<"       [-vtf <format> [-nviz <nviz>]"
-	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]]\n"
+	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]] [-hdf5]\n"
 	      <<"       [-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>]]\n"
 	      <<"       [-ignore <p1> <p2> ...] [-fixDup]"
 	      <<" [-checkRHS] [-check] [-dumpASC]\n";
@@ -326,7 +319,7 @@ int main (int argc, char** argv)
     if (linalg.myPid == 0)
       std::cout <<"\nWriting HDF5 file "<< infile <<".hdf5"<< std::endl;
     DataExporter exporter(true);
-    exporter.registerField("u","displacement",DataExporter::SIM,-1);
+    exporter.registerField("u","solution",DataExporter::SIM,-1);
     exporter.setFieldValue("u",model,&displ.front());
     exporter.registerWriter(new HDF5Writer(infile));
     exporter.registerWriter(new XMLWriter(infile));

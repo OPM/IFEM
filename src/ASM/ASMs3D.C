@@ -91,7 +91,7 @@ bool ASMs3D::read (std::istream& is)
 }
 
 
-bool ASMs3D::write (std::ostream& os) const
+bool ASMs3D::write (std::ostream& os, int) const
 {
   if (!svol) return false;
 
@@ -1147,7 +1147,8 @@ bool ASMs3D::integrate (Integrand& integrand,
     for (int i2 = p2; i2 <= n2; i2++)
       for (int i1 = p1; i1 <= n1; i1++, iel++)
       {
-	if (MLGE[iel-1] < 1) continue; // zero-volume element
+	fe.iel = MLGE[iel-1];
+	if (fe.iel < 1) continue; // zero-volume element
 
 	// Get element volume in the parameter space
 	double dV = this->getParametricVolume(iel);
@@ -1209,7 +1210,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 	// LocalIntegral pointers, of length at least the number of elements in
 	// the model (as defined by the highest number in the MLGE array).
 	// If the array is shorter than this, expect a segmentation fault.
-	LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
+	LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
 
 
 	// --- Integration loop over all Gauss points in each direction --------
@@ -1259,7 +1260,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 	  return false;
 
 	// Assembly of global system integral
-	if (!glInt.assemble(elmInt,MLGE[iel-1]))
+	if (!glInt.assemble(elmInt,fe.iel))
 	  return false;
       }
 
@@ -1351,7 +1352,8 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
     for (int i2 = p2; i2 <= n2; i2++)
       for (int i1 = p1; i1 <= n1; i1++, iel++)
       {
-	if (MLGE[iel-1] < 1) continue; // zero-volume element
+	fe.iel = MLGE[iel-1];
+	if (fe.iel < 1) continue; // zero-volume element
 
 	// Skip elements that are not on current boundary face
 	bool skipMe = false;
@@ -1390,7 +1392,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 	// LocalIntegral pointers, of length at least the number of elements in
 	// the model (as defined by the highest number in the MLGE array).
 	// If the array is shorter than this, expect a segmentation fault.
-	LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
+	LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
 
 
 	// --- Integration loop over all Gauss points in each direction --------
@@ -1431,7 +1433,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 	  }
 
 	// Assembly of global system integral
-	if (!glInt.assemble(elmInt,MLGE[iel-1]))
+	if (!glInt.assemble(elmInt,fe.iel))
 	  return false;
       }
 
@@ -1517,7 +1519,8 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
     for (int i2 = p2; i2 <= n2; i2++)
       for (int i1 = p1; i1 <= n1; i1++, iel++)
       {
-	if (MLGE[iel-1] < 1) continue; // zero-volume element
+	fe.iel = MLGE[iel-1];
+	if (fe.iel < 1) continue; // zero-volume element
 
 	// Skip elements that are not on current boundary edge
 	bool skipMe = false;
@@ -1595,7 +1598,7 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 	}
 
 	// Assembly of global system integral
-	if (!glInt.assemble(elmInt,MLGE[iel-1]))
+	if (!glInt.assemble(elmInt,fe.iel))
 	  return false;
       }
 

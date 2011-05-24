@@ -38,7 +38,9 @@ protected:
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order
   //! \param[out] nodeVec Nodal result vector for this patch
-  void extractNodeVecMx(const Vector& globVec, Vector& nodeVec) const;
+  //! \param[in] basis Which basis to extract the nodal values for
+  void extractNodeVecMx(const Vector& globVec, Vector& nodeVec,
+			int basis = 0) const;
 
   //! \brief Extract the primary solution field at the specified nodes.
   //! \param[out] sField Solution field

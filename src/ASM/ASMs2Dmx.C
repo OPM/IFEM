@@ -44,6 +44,21 @@ ASMs2Dmx::ASMs2Dmx (std::istream& is, unsigned char n_s,
 }
 
 
+bool ASMs2Dmx::write (std::ostream& os, int basis) const
+{
+  if (basis1 && basis == 1)
+    os <<"200 1 0 0\n" << *basis1;
+  else if (basis2 && basis == 2)
+    os <<"200 1 0 0\n" << *basis2;
+  else if (surf)
+    os <<"200 1 0 0\n" << *surf;
+  else
+    return false;
+
+  return os.good();
+}
+
+
 void ASMs2Dmx::clear ()
 {
   // Erase the spline data
@@ -53,6 +68,18 @@ void ASMs2Dmx::clear ()
 
   // Erase the FE data
   ASMs2D::clear();
+}
+
+
+size_t ASMs2Dmx::getNoNodes (int basis) const
+{
+  switch (basis)
+    {
+    case 1: return nb1;
+    case 2: return nb2;
+    }
+
+  return nb1+nb2;
 }
 
 
@@ -87,9 +114,9 @@ void ASMs2Dmx::initMADOF (const int* sysMadof)
 
 
 void ASMs2Dmx::extractNodeVec (const Vector& globRes, Vector& nodeVec,
-			       unsigned char) const
+			       unsigned char, int basis) const
 {
-  this->extractNodeVecMx(globRes,nodeVec);
+  this->extractNodeVecMx(globRes,nodeVec,basis);
 }
 
 

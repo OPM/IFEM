@@ -52,10 +52,10 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
 
-  //! \brief Creates an instance by reading the given input stream, \a is.
-  bool read(std::istream& is);
+  //! \brief Creates an instance by reading the given input stream.
+  bool read(std::istream&);
   //! \brief Writes the geometry of the SplineCurve object to given stream.
-  bool write(std::ostream& os) const;
+  virtual bool write(std::ostream&, int = 0) const;
 
   //! \brief Refine the parametrization by inserting extra knots.
   //! \param[in] xi Relative positions of added knots in each existing knot span

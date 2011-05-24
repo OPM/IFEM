@@ -90,6 +90,9 @@ public:
   //! returned pointer value.
   virtual NormBase* getNormIntegrand(AnaSol* = 0) const;
 
+  //! \brief Returns whether a mixed formulation is used.
+  virtual bool mixedFormulation() const { return true; }
+
   //! \brief Returns the number of primary/secondary solution field components.
   //! \param[in] fld which field to consider (1=primary, 2=secondary)
   virtual size_t getNoFields(int fld = 2) const;

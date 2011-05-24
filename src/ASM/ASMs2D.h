@@ -93,10 +93,10 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
 
-  //! \brief Creates an instance by reading the given input stream, \a is.
-  bool read(std::istream& is);
+  //! \brief Creates an instance by reading the given input stream.
+  bool read(std::istream&);
   //! \brief Writes the geometry of the SplineSurface object to given stream.
-  bool write(std::ostream& os) const;
+  virtual bool write(std::ostream&, int = 0) const;
 
   //! \brief Assigns new global node numbers for all nodes of the patch.
   //! \param nodes Object with global nodes numbers to assign to this patch

@@ -327,6 +327,9 @@ public:
   // Various service methods
   // =======================
 
+  //! \brief Returns whether a mixed formulation is used.
+  virtual bool mixedFormulation() const { return false; }
+
   //! \brief Writes surface tractions/fluxes for a given time step to VTF-file.
   virtual bool writeGlvT(VTF*, int, int&) const { return true; }
 

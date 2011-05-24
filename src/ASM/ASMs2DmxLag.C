@@ -50,6 +50,18 @@ void ASMs2DmxLag::clear ()
 }
 
 
+size_t ASMs2DmxLag::getNoNodes (int basis) const
+{
+  switch (basis)
+    {
+    case 1: return nb1;
+    case 2: return nb2;
+    }
+
+  return nb1+nb2;
+}
+
+
 unsigned char ASMs2DmxLag::getNoFields (int basis) const
 {
   switch (basis)
@@ -81,9 +93,9 @@ void ASMs2DmxLag::initMADOF (const int* sysMadof)
 
 
 void ASMs2DmxLag::extractNodeVec (const Vector& globRes, Vector& nodeVec,
-				  unsigned char) const
+				  unsigned char, int basis) const
 {
-  this->extractNodeVecMx(globRes,nodeVec);
+  this->extractNodeVecMx(globRes,nodeVec,basis);
 }
 
 

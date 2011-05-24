@@ -498,18 +498,21 @@ size_t NonlinearElasticityULMixed::getNoFields (int fld) const
 const char* NonlinearElasticityULMixed::getField1Name (size_t i,
 						       const char* prefix) const
 {
-  if (i < nsd)
+  if (i < nsd || (i > (size_t)(nsd+1) && i != 12))
     return this->Elasticity::getField1Name(i,prefix);
 
   static std::string name;
-  if (prefix) name = prefix + std::string(" ");
-
-  if (i == nsd)
-    name += "theta";
-  else if (i == (size_t)(nsd+1))
-    name += "p";
+  if (prefix)
+    name = prefix + std::string(" ");
   else
-    return 0;
+    name.clear();
+
+  if (i == 12)
+    name += "theta+p";
+  else if (i == nsd)
+    name += "theta";
+  else
+    name += "p";
 
   return name.c_str();
 }

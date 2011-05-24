@@ -5,6 +5,7 @@
 #include "IntegrandBase.h"
 #include <sstream>
 #include <sys/stat.h>
+#include <numeric>
 
 #ifdef HAS_HDF5
 #include <hdf5.h>
@@ -29,7 +30,7 @@ HDF5Writer::HDF5Writer (const std::string& name, bool append)
 }
 
 
-int HDF5Writer::getLastTimeLevel()
+int HDF5Writer::getLastTimeLevel ()
 {
   int result = 0;
 #ifdef HAS_HDF5
@@ -56,15 +57,17 @@ int HDF5Writer::getLastTimeLevel()
   return result-1;
 }
 
+
 void HDF5Writer::openFile(int level)
 {
 #ifdef HAS_HDF5
   hid_t acc_tpl = H5P_DEFAULT;
 #ifdef PARALLEL_PETSC
   MPI_Info info = MPI_INFO_NULL;
-  acc_tpl = H5Pcreate (H5P_FILE_ACCESS);
+  acc_tpl = H5Pcreate(H5P_FILE_ACCESS);
   H5Pset_fapl_mpio(acc_tpl, MPI_COMM_WORLD, info);
 #endif
+
   if (m_flag == H5F_ACC_TRUNC)
     m_file = H5Fcreate(m_name.c_str(),m_flag,H5P_DEFAULT,acc_tpl);
   else
@@ -72,10 +75,8 @@ void HDF5Writer::openFile(int level)
 
   std::stringstream str;
   str << '/' << level;
-  if (!checkGroupExistence(m_file,str.str().c_str())) {
-    hid_t group = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
-    H5Gclose(group);
-  }
+  if (!checkGroupExistence(m_file,str.str().c_str()))
+    H5Gclose(H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT));
 #ifdef PARALLEL_PETSC
   H5Pclose(acc_tpl);
 #endif
@@ -96,13 +97,13 @@ void HDF5Writer::readArray(int group, const std::string& name,
 {
 #ifdef HAS_HDF5
   hid_t set = H5Dopen2(group,name.c_str(),H5P_DEFAULT);
-  hsize_t siz = H5Dget_storage_size(set);
-  siz /= 8;
+  hsize_t siz = H5Dget_storage_size(set) / 8;
   len = siz;
   data = new double[siz];
   H5Dread(set,H5T_NATIVE_DOUBLE,H5S_ALL,H5S_ALL,H5P_DEFAULT,data);
   H5Dclose(set);
 #else
+  len = 0;
   std::cout << "HDF5Writer: compiled without HDF5 support, no data read" << std::endl;
 #endif
 }
@@ -115,20 +116,19 @@ void HDF5Writer::writeArray(int group, const std::string& name,
   int lens[m_size];
   std::fill(lens,lens+m_size,len);
   MPI_Alltoall(lens,1,MPI_INT,lens,1,MPI_INT,MPI_COMM_WORLD);
-  int total_len=std::accumulate(lens,lens+m_size,0);
+  hsize_t siz   = (hsize_t)std::accumulate(lens,lens+m_size,0);
   hsize_t start = (hsize_t)std::accumulate(lens,lens+m_rank,0);
 #else
-  int total_len = len;
+  hsize_t siz   = (hsize_t)len;
   hsize_t start = 0;
 #endif
-  hsize_t stride = 1;
-  hsize_t siz = total_len;
   hid_t space = H5Screate_simple(1,&siz,NULL);
-  hid_t set = H5Dcreate2(group,name.c_str(),
-                         H5T_NATIVE_DOUBLE,space,H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+  hid_t set = H5Dcreate2(group,name.c_str(),H5T_NATIVE_DOUBLE,space,
+                         H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
   hid_t file_space = H5Dget_space(set);
-  if (len ) {
+  if (len > 0) {
     siz = len;
+    hsize_t stride = 1;
     H5Sselect_hyperslab(file_space,H5S_SELECT_SET,&start,&stride,&siz,NULL);
     hid_t mem_space = H5Screate_simple(1,&siz,NULL);
     H5Dwrite(set,H5T_NATIVE_DOUBLE,mem_space,file_space,H5P_DEFAULT,data);
@@ -152,7 +152,7 @@ void HDF5Writer::writeVector(int level, const DataEntry& entry)
   writeArray(level,entry.first,entry.second.size,entry.second.data);
 }
 
-bool HDF5Writer::readSIM(int level, const DataEntry& entry)
+bool HDF5Writer::readSIM (int level, const DataEntry& entry)
 {
   bool ok = true;
 #ifdef HAS_HDF5
@@ -208,7 +208,7 @@ bool HDF5Writer::readField(int level, const std::string& name,
   return ok;
 }
 
-void HDF5Writer::writeSIM(int level, const DataEntry& entry)
+void HDF5Writer::writeSIM (int level, const DataEntry& entry)
 {
 #ifdef HAS_HDF5
   SIMbase* sim = static_cast<SIMbase*>(entry.second.data);
@@ -229,13 +229,19 @@ void HDF5Writer::writeSIM(int level, const DataEntry& entry)
     int loc = sim->getLocalPatchIndex(i+1);
     if (loc > 0) // we own the patch
     {
-      sim->extractPatchSolution(*sol,loc-1);
+      size_t ndof1 = sim->extractPatchSolution(*sol,loc-1);
       Vector& psol = const_cast<Integrand*>(prob)->getSolution();
-      writeArray(group2,entry.first,psol.size(),psol.ptr());
-      // TODO: For mixed methods we need to output each primary field
-      // TODO: The above is sufficient for simulation restarts.
-      // TODO: For mixed methods we need to output each primary field
-      // TODO: separately in addition, with reference to correct spline basis.
+      if (prob->mixedFormulation())
+      {
+        // Mixed methods: The primary solution vector is referring to two bases
+        size_t ndof2 = psol.size() > ndof1 ? psol.size() - ndof1 : 0;
+        writeArray(group2,entry.first,psol.size(),psol.ptr());
+        writeArray(group2,prob->getField1Name(11),ndof1,psol.ptr());
+        writeArray(group2,prob->getField1Name(12),ndof2,psol.ptr()+ndof1);
+      }
+      else
+        writeArray(group2,prob->getField1Name(11),psol.size(),psol.ptr());
+
       if (entry.second.size == -1) {
         Matrix field;
         sim->evalSecondarySolution(field,loc-1);
@@ -248,6 +254,11 @@ void HDF5Writer::writeSIM(int level, const DataEntry& entry)
     {
       double dummy;
       writeArray(group2,entry.first,0,&dummy);
+      if (prob->mixedFormulation())
+      {
+        writeArray(group2,prob->getField1Name(11),0,&dummy);
+        writeArray(group2,prob->getField1Name(12),0,&dummy);
+      }
       for (size_t j = 0; j < prob->getNoFields(2); ++j)
         writeArray(group2,prob->getField2Name(j),0,&dummy);
     }

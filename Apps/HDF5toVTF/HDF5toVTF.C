@@ -76,7 +76,12 @@ int main (int argc, char** argv)
 
   ProcessList processlist;
   for (it = entry.begin(); it != entry.end(); ++it)
-    processlist[it->patchfile].push_back(*it);
+    if (!it->patchfile.empty())
+    {
+      processlist["PATCHFILE " + it->patchfile].push_back(*it);
+      std::cout << it->name <<"\t"<< it->description <<"\tnc="<< it->components
+		<<"\t"<< it->patchfile << std::endl;
+    }
 
   ProcessList::const_iterator pit = processlist.begin();
   for (int j = 1; pit != processlist.end(); ++pit, ++j)
@@ -89,16 +94,10 @@ int main (int argc, char** argv)
     else
       sim = new SIM3D;
 
-    std::stringstream dummy;
-    dummy << "PATCHFILE " << pit->first;
-    sim->parse(const_cast<char*>(dummy.str().c_str()),dummy);
-    std::stringstream dummy2;
-    std::string foo(pit->first);
-    dummy2 << "NODEFILE " << replaceAll(foo,".g2",".gno");
-    sim->parse(const_cast<char*>(dummy2.str().c_str()),dummy2);
-
-    if (!sim->preprocess(std::vector<int>(),false))
+    if (!sim->parse(const_cast<char*>(pit->first.c_str()),std::cin))
       return 1;
+    else if (!sim->preprocess(std::vector<int>(),false))
+      return 2;
 
     bool ok = true;
     if (processlist.size() > 1) {
@@ -119,11 +118,27 @@ int main (int argc, char** argv)
         Vector vec;
         std::cout <<"Reading \""<< it->name <<"\""<< std::endl;
         ok = hdf.readField(i,it->name,vec,sim,it->components);
-        if (it->description == "displacement")
+        if (it->name == "displacement") // displacement field
           ok &= sim->writeGlvS(vec,n,i+1,block,i,1,NULL,10,it->components);
-        else if (it->components < 2)
+        else if (it->components < 2) // scalar field
           ok &= sim->writeGlvS(vec,n,i+1,block,i,2,it->name.c_str(),k++,1);
-        else
+        else if (it->name.find('+') < it->name.size())
+	{
+	  // Temporary hack to split a vector into scalar fields.
+	  // The big assumption here is that the individual scalar names
+	  // are separated by '+'-characters in the vector field name
+	  Matrix tmp(it->components,vec.size()/it->components);
+	  tmp.fill(vec.ptr());
+	  size_t pos = 0;
+	  for (size_t r = 1; r <= tmp.rows() && pos < it->name.size(); r++)
+	  {
+	    size_t end = it->name.find('+',pos);
+	    ok &= sim->writeGlvS(tmp.getRow(r),n,i+1,block,i,2,
+				 it->name.substr(pos,end).c_str(),k++,1);
+	    pos = end+1;
+	  }
+	}
+	else // just write as vector field
           ok &= sim->writeGlvV(vec,it->name.c_str(),n,i+1,block);
       }
       if (ok)
@@ -131,7 +146,7 @@ int main (int argc, char** argv)
     }
     delete sim;
 
-    if (!ok) return 2;
+    if (!ok) return 3;
   }
 
   return 0;

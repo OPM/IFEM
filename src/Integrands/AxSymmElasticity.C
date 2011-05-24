@@ -257,7 +257,7 @@ bool AxSymmElasticity::evalSol (Vector& s, const Vector& N,
 const char* AxSymmElasticity::getField1Name (size_t i, const char* prefix) const
 {
   if (i > 2)
-    return 0;
+    return "displacement";
   else if (!prefix)
     return i == 0 ? "u_r" : "u_z";
 

@@ -98,7 +98,7 @@ bool ASMs2D::read (std::istream& is)
 }
 
 
-bool ASMs2D::write (std::ostream& os) const
+bool ASMs2D::write (std::ostream& os, int) const
 {
   if (!surf) return false;
 
@@ -828,7 +828,8 @@ bool ASMs2D::integrate (Integrand& integrand,
   for (int i2 = p2; i2 <= n2; i2++)
     for (int i1 = p1; i1 <= n1; i1++, iel++)
     {
-      if (MLGE[iel-1] < 1) continue; // zero-area element
+      fe.iel = MLGE[iel-1];
+      if (fe.iel < 1) continue; // zero-area element
 
       // Get element area in the parameter space
       double dA = this->getParametricArea(iel);
@@ -886,7 +887,7 @@ bool ASMs2D::integrate (Integrand& integrand,
       // LocalIntegral pointers, of length at least the number of elements in
       // the model (as defined by the highest number in the MLGE array).
       // If the array is shorter than this, expect a segmentation fault.
-      LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
+      LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
 
 
       // --- Integration loop over all Gauss points in each direction ----------
@@ -934,7 +935,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 	return false;
 
       // Assembly of global system integral
-      if (!glInt.assemble(elmInt,MLGE[iel-1]))
+      if (!glInt.assemble(elmInt,fe.iel))
 	return false;
     }
 
@@ -1015,7 +1016,8 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
   for (int i2 = p2; i2 <= n2; i2++)
     for (int i1 = p1; i1 <= n1; i1++, iel++)
     {
-      if (MLGE[iel-1] < 1) continue; // zero-area element
+      fe.iel = MLGE[iel-1];
+      if (fe.iel < 1) continue; // zero-area element
 
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
@@ -1042,7 +1044,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       // LocalIntegral pointers, of length at least the number of elements in
       // the model (as defined by the highest number in the MLGE array).
       // If the array is shorter than this, expect a segmentation fault.
-      LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
+      LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
 
 
       // --- Integration loop over all Gauss points along the edge -------------
@@ -1074,7 +1076,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       }
 
       // Assembly of global system integral
-      if (!glInt.assemble(elmInt,MLGE[iel-1]))
+      if (!glInt.assemble(elmInt,fe.iel))
 	return false;
     }
 

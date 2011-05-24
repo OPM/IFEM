@@ -31,25 +31,32 @@ void ASMmxBase::initMx (const std::vector<int>& MLGN, const int* sysMadof)
 }
 
 
-void ASMmxBase::extractNodeVecMx (const Vector& globRes, Vector& nodeVec) const
+void ASMmxBase::extractNodeVecMx (const Vector& globRes, Vector& nodeVec,
+				  int basis) const
 {
-  nodeVec.resize(nf1*nb1 + nf2*nb2);
+  switch (basis) {
+  case  1: nodeVec.resize(nf1*nb1); break;
+  case  2: nodeVec.resize(nf2*nb2); break;
+  default: nodeVec.resize(nf1*nb1 + nf2*nb2);
+  }
 
   size_t i, j;
   int idof, ldof = 0;
-  for (i = 0; i < nb1; i++)
-  {
-    idof = MADOF[i];
-    for (j = 0; j < nf1; j++, ldof++)
-      nodeVec[ldof] = globRes[idof++];
-  }
+  if (basis != 2)
+    for (i = 0; i < nb1; i++)
+    {
+      idof = MADOF[i];
+      for (j = 0; j < nf1; j++, ldof++)
+	nodeVec[ldof] = globRes[idof++];
+    }
 
-  for (i = nb1; i < nb1+nb2; i++)
-  {
-    idof = MADOF[i];
-    for (j = 0; j < nf2; j++, ldof++)
-      nodeVec[ldof] = globRes[idof++];
-  }
+  if (basis != 1)
+    for (i = nb1; i < nb1+nb2; i++)
+    {
+      idof = MADOF[i];
+      for (j = 0; j < nf2; j++, ldof++)
+	nodeVec[ldof] = globRes[idof++];
+    }
 }
 
 

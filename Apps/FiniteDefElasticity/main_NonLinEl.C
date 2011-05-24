@@ -190,10 +190,9 @@ int main (int argc, char** argv)
 	      <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n      "
 	      <<" [-lag] [-spec] [-2D[pstrain]] [-UL] [-MX [<p>]|-mixed]"
 	      <<" [-nGauss <n>]\n       [-vtf <format> [-nviz <nviz>]"
-	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]]\n      "
-	      <<" [-saveInc <dtSave>] [-skip2nd] [-dumpInc <dtDump> [raw]]"
-	      <<" [-hdf5]\n      "
-	      <<" [-ignore <p1> <p2> ...] [-fixDup] [-checkRHS] [-check]\n";
+	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]] [-hdf5]\n      "
+	      <<" [-saveInc <dtSave>] [-skip2nd] [-dumpInc <dtDump> [raw]]\n   "
+	      <<"    [-ignore <p1> <p2> ...] [-fixDup] [-checkRHS] [-check]\n";
     return 0;
   }
 
@@ -301,7 +300,7 @@ int main (int argc, char** argv)
       std::cout <<"\nWriting HDF5 file "<< infile <<".hdf5"<< std::endl;
 
     writer = new DataExporter(true);
-    writer->registerField("u","displacement",DataExporter::SIM, skip2nd ? 0 : -1);
+    writer->registerField("u","solution",DataExporter::SIM, skip2nd ? 0 : -1);
     writer->setFieldValue("u",model,(void*)&simulator.getSolution());
     writer->registerWriter(new HDF5Writer(infile));
     writer->registerWriter(new XMLWriter(infile));

@@ -49,6 +49,8 @@ public:
   //! \brief Clears the contents of the patch, making it empty.
   virtual void clear();
 
+  //! \brief Returns the total number of nodes in this patch.
+  virtual size_t getNoNodes(int basis = 0) const;
   //! \brief Returns the number of solution fields.
   virtual unsigned char getNoFields(int basis = 0) const;
   //! \brief Returns the number of DOFs per node.
@@ -123,8 +125,9 @@ public:
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order
   //! \param[out] nodeVec Nodal result vector for this patch
+  //! \param[in] basis Which basis (or 0 for both) to extract nodal values for
   virtual void extractNodeVec(const Vector& globVec, Vector& nodeVec,
-			      unsigned char = 0) const;
+			      unsigned char = 0, int basis = 0) const;
 
 protected:
 

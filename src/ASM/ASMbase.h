@@ -87,8 +87,8 @@ public:
   //! \brief Clears the contents of this patch, making it empty.
   virtual void clear();
 
-  //! \brief Writes the geometry of the patch to the given stream.
-  virtual bool write(std::ostream&) const { return false; }
+  //! \brief Writes the geometry/basis of the patch to the given stream.
+  virtual bool write(std::ostream&, int = 0) const { return false; }
 
 
   // Service methods for query of various model data
@@ -126,7 +126,7 @@ public:
   void printNodes(std::ostream& os, const char* heading = 0) const;
 
   //! \brief Returns the total number of nodes in this patch.
-  size_t getNoNodes() const { return MLGN.size(); }
+  virtual size_t getNoNodes(int = 0) const { return MLGN.size(); }
   //! \brief Returns the total number of elements in this patch.
   size_t getNoElms(bool includeZeroVolumeElms = false) const;
   //! \brief Returns the total number of MPC equations in this patch.
@@ -313,8 +313,9 @@ public:
   //! \param[in] globVec Global solution vector in DOF-order
   //! \param[out] nodeVec Nodal result vector for this patch
   //! \param[in] nndof Number of DOFs per node (the default is \a nf)
+  //! \param[in] basis Which basis to extract nodal values for (mixed methods)
   virtual void extractNodeVec(const Vector& globVec, Vector& nodeVec,
-			      unsigned char nndof = 0) const;
+			      unsigned char nndof = 0, int basis = 0) const;
 
   //! \brief Injects nodal results for this patch into the global vector.
   //! \param[in] nodeVec Nodal result vector for this patch

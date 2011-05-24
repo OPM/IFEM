@@ -73,7 +73,8 @@ void XMLWriter::readInfo()
       entry.description = elem->Attribute("description");
       entry.patches = atoi(elem->Attribute("patches"));
       entry.components = atoi(elem->Attribute("components"));
-      entry.patchfile = elem->Attribute("patchfile");
+      if (elem->Attribute("patchfile"))
+	entry.patchfile = elem->Attribute("patchfile");
       m_entry.push_back(entry);
     }
     elem = elem->NextSiblingElement("entry");
@@ -100,48 +101,70 @@ void XMLWriter::writeVector(int level, const DataEntry& entry)
 }
 
 
-bool XMLWriter::readSIM(int level, const DataEntry& entry)
+bool XMLWriter::readSIM (int level, const DataEntry& entry)
 {
   return true;
 }
 
-void XMLWriter::writeSIM(int level, const DataEntry& entry)
+void XMLWriter::writeSIM (int level, const DataEntry& entry)
 {
   if (m_rank != 0)
     return;
 
-  // Assume that all fields use the same basis as the geometry.
-  // TODO: Not true for mixed methods, fix later...
-  std::string g2file(m_name);
-  std::ofstream os(replaceAll(g2file,".xml",".g2").c_str());
-  static_cast<SIMbase*>(entry.second.data)->dumpGeometry(os);
+  const SIMbase*   sim  = static_cast<const SIMbase*>(entry.second.data);
+  const Integrand* prob = sim->getProblem();
 
-  int nPatch = static_cast<SIMbase*>(entry.second.data)->getNoPatches();
-  const Integrand* prb = static_cast<SIMbase*>(entry.second.data)->getProblem();
+  std::string g2file;
+  if (prob->mixedFormulation())
+  {
+    // primary solution vector
+    addField(entry.first,entry.second.description,g2file,
+	     prob->getNoFields(1),sim->getNoPatches());
 
-  // primary solution
-  addField(entry.first,entry.second.description,"field",g2file,
-           prb->getNoFields(1),nPatch);
+    std::string g2file1(m_name);
+    std::string g2file2(m_name);
+    std::ofstream os1(replaceAll(g2file1,".xml","_1.g2").c_str());
+    std::ofstream os2(replaceAll(g2file2,".xml","_2.g2").c_str());
+    sim->dumpBasis(os1,1);
+    sim->dumpBasis(os2,2);
+    g2file = g2file2; // Assuming that basis2 is used for secondary variables
 
-  // secondary solutions
+    // primary solution fields
+    addField(prob->getField1Name(11),"primary",g2file1,
+	     sim->getNoFields(1),sim->getNoPatches());
+    addField(prob->getField1Name(12),"primary",g2file2,
+	     sim->getNoFields(2),sim->getNoPatches());
+  }
+  else
+  {
+    g2file = m_name;
+    std::ofstream os(replaceAll(g2file,".xml",".g2").c_str());
+    sim->dumpGeometry(os);
+
+    // primary solution
+    addField(prob->getField1Name(11),entry.second.description,g2file,
+	     prob->getNoFields(1),sim->getNoPatches());
+  }
+
+  // secondary solution fields
   if (entry.second.size == -1)
-    for (size_t j = 0; j < prb->getNoFields(2); j++)
-      addField(prb->getField2Name(j),"secondary","field",g2file,1,nPatch);
+    for (size_t j = 0; j < prob->getNoFields(2); j++)
+      addField(prob->getField2Name(j),"secondary",g2file,1,sim->getNoPatches());
 }
 
 
 void XMLWriter::addField (const std::string& name,
                           const std::string& description,
-                          const std::string& type,
                           const std::string& patchfile,
                           int components, int patches)
 {
   TiXmlElement element("entry");
   element.SetAttribute("name",name.c_str());
   element.SetAttribute("description",description.c_str());
-  element.SetAttribute("type",type.c_str());
+  element.SetAttribute("type","field");
+  if (!patchfile.empty())
+    element.SetAttribute("patchfile",patchfile.c_str());
   element.SetAttribute("patches",patches);
   element.SetAttribute("components",components);
-  element.SetAttribute("patchfile",patchfile.c_str());
   m_node->InsertEndChild(element);
 }

@@ -96,7 +96,7 @@ bool ASMs1D::read (std::istream& is)
 }
 
 
-bool ASMs1D::write (std::ostream& os) const
+bool ASMs1D::write (std::ostream& os, int) const
 {
   if (!curv) return false;
 
@@ -487,7 +487,8 @@ bool ASMs1D::integrate (Integrand& integrand,
   int iel = 1;
   for (int i1 = p1; i1 <= n1; i1++, iel++)
   {
-    if (MLGE[iel-1] < 1) continue; // zero-length element
+    fe.iel = MLGE[iel-1];
+    if (fe.iel < 1) continue; // zero-length element
 
     // Check that the current element has nonzero length
     double dL = this->getParametricLength(iel);
@@ -503,7 +504,7 @@ bool ASMs1D::integrate (Integrand& integrand,
     // LocalIntegral pointers, of length at least the number of elements in
     // the model (as defined by the highest number in the MLGE array).
     // If the array is shorter than this, expect a segmentation fault.
-    LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
+    LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
 
 
     // --- Integration loop over all Gauss points in current element -----------
@@ -530,7 +531,7 @@ bool ASMs1D::integrate (Integrand& integrand,
     }
 
     // Assembly of global system integral
-    if (!glInt.assemble(elmInt,MLGE[iel-1]))
+    if (!glInt.assemble(elmInt,fe.iel))
       return false;
   }
 
@@ -565,7 +566,8 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
       return false;
     }
 
-  if (MLGE[iel-1] < 1) return true; // zero-length element
+  fe.iel = MLGE[iel-1];
+  if (fe.iel < 1) return true; // zero-length element
 
   // Set up control point coordinates for current element
   Matrix Xnod;
@@ -578,7 +580,7 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
   // LocalIntegral pointers, of length at least the number of elements in
   // the model (as defined by the highest number in the MLGE array).
   // If the array is shorter than this, expect a segmentation fault.
-  LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
+  LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
 
   // Evaluate basis functions and corresponding derivatives
   Matrix dNdu;
@@ -603,7 +605,7 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
     return false;
 
   // Assembly of global system integral
-  return glInt.assemble(elmInt,MLGE[iel-1]);
+  return glInt.assemble(elmInt,fe.iel);
 }
 
 

@@ -525,9 +525,9 @@ size_t Elasticity::getNoFields (int fld) const
 
 const char* Elasticity::getField1Name (size_t i, const char* prefix) const
 {
-  if (i >= nsd) return 0;
+  if (i > nsd) i = 3;
 
-  static const char* s[3] = { "u_x", "u_y", "u_z" };
+  static const char* s[4] = { "u_x", "u_y", "u_z", "displacement" };
   if (!prefix) return s[i];
 
   static std::string name;

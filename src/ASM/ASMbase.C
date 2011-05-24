@@ -465,7 +465,7 @@ void ASMbase::extractElmRes (const Matrix& globRes, Matrix& elmRes) const
 
 
 void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
-			      unsigned char nndof) const
+			      unsigned char nndof, int) const
 {
   if (nndof == 0) nndof = nf;
 

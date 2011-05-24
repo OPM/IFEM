@@ -415,6 +415,12 @@ void SIMbase::printProblem (std::ostream& os) const
 }
 
 
+size_t SIMbase::getNoFields (int basis) const
+{
+  return myModel.empty() ? 0 : myModel.front()->getNoFields(basis);
+}
+
+
 size_t SIMbase::getNoSpaceDim () const
 {
   return myModel.empty() ? 0 : myModel.front()->getNoSpaceDim();
@@ -623,7 +629,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
   if (printSol < 1) return true;
 
   // Compute and print solution norms
-  const size_t nf = myModel.front()->getNoFields(1);
+  const size_t nf = this->getNoFields(1);
   size_t iMax[nf];
   double dMax[nf];
   double dNorm = this->solutionNorms(solution,dMax,iMax,nf);
@@ -1054,7 +1060,7 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
   const size_t pMAX = 6;
   const size_t sMAX = 21;
   std::vector<int> vID[2], dID[pMAX], sID[sMAX];
-  bool scalarEq = myModel.front()->getNoFields() == 1;
+  bool scalarEq = this->getNoFields() == 1;
   size_t nVcomp = scalarEq ? 1 : this->getNoSpaceDim();
   bool haveAsol = false;
   if (mySol)
@@ -1358,6 +1364,17 @@ bool SIMbase::dumpGeometry (std::ostream& os) const
 }
 
 
+bool SIMbase::dumpBasis (std::ostream& os, int basis) const
+{
+  for (size_t i = 0; i < myModel.size(); i++)
+    if (!myModel[i]->empty())
+      if (!myModel[i]->write(os,basis))
+	return false;
+
+  return true;
+}
+
+
 bool SIMbase::dumpSolution (const Vector& psol, std::ostream& os) const
 {
   if (psol.empty())
@@ -1522,14 +1539,13 @@ bool SIMbase::project (Vector& psol)
 }
 
 
-bool SIMbase::extractPatchSolution (const Vector& sol,
-				    int pindx, unsigned char nndof)
+size_t SIMbase::extractPatchSolution (const Vector& sol, int pindx)
 {
   if (pindx < 0 || (size_t)pindx >= myModel.size() || sol.empty())
-    return false;
+    return 0;
 
-  myModel[pindx]->extractNodeVec(sol,myProblem->getSolution(),nndof);
-  return true;
+  myModel[pindx]->extractNodeVec(sol,myProblem->getSolution());
+  return myModel[pindx]->getNoFields(1)*myModel[pindx]->getNoNodes(1);
 }
 
 

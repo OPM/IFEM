@@ -37,8 +37,7 @@ public:
 
 protected:
   void addField(const std::string& name, const std::string& description,
-                const std::string& type, const std::string& patchfile,
-                int components, int patches);
+                const std::string& patchfile, int components, int patches);
 
   std::vector<Entry> m_entry;
 
