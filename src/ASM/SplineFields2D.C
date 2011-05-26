@@ -1,3 +1,4 @@
+// $Id$
 //==============================================================================
 //!
 //! \file SplineFields2D.C
@@ -6,21 +7,20 @@
 //!
 //! \author Runar Holdahl / SINTEF
 //!
-//! \brief Base class for spline based finite element vector field in 2D
+//! \brief Class for spline-based finite element vector fields in 2D.
 //!
 //==============================================================================
 
 #include "SplineFields2D.h"
-#include <algorithm>
+#include "FiniteElement.h"
+#include "Vec3.h"
+
+#include "GoTools/geometry/SplineSurface.h"
 #include "GoTools/geometry/SplineUtils.h"
 #ifndef __BORLANDC__
 #include "boost/lambda/lambda.hpp"
 #endif
 
-using namespace std;
-#ifndef __BORLANDC__
-using namespace boost::lambda;
-#endif
 
 SplineFields2D::SplineFields2D(Go::SplineSurface *geometry, char* name)
   : SplineFields(2,name),  surf(geometry) 
@@ -52,24 +52,15 @@ bool SplineFields2D::valueNode(int node, Vector& vals) const
 }
 
 
-// bool SplineFields2D::valueFE(const FiniteElement& fe, Vector& vals) const
-// {
-//   if (!surf) return false;
-
-//   Go::Point pt;
-//   surf->pointValue(pt,values,fe.u,fe.v);
-  
-//   vals.resize(pt.size());
-//   for (int i = 0;i < pt.size();i++)
-//     vals[i] = pt[i];
-
-//   return true;
-// }
-
-
 bool SplineFields2D::valueFE(const FiniteElement& fe, Vector& vals) const
 {
   if (!surf) return false;
+
+//   Go::Point pt;
+//   surf->pointValue(pt,values,fe.u,fe.v);
+//   vals.resize(pt.size());
+//   for (int i = 0;i < pt.size();i++)
+//     vals[i] = pt[i];
 
   const int uorder = surf->order_u();
   const int vorder = surf->order_v();
@@ -131,9 +122,9 @@ bool SplineFields2D::valueFE(const FiniteElement& fe, Vector& vals) const
 
       const double w_inv = double(1) / w;
 #ifdef __BORLANDC__ //C++Builder does not support boost lambda
-      transform(result.begin(), result.end(), result.begin(), ScaleBy(w_inv));
+      std::transform(result.begin(), result.end(), result.begin(), ScaleBy(w_inv));
 #else
-      transform(result.begin(), result.end(), result.begin(), _1 * w_inv);
+      std::transform(result.begin(), result.end(), result.begin(), boost::lambda::_1 * w_inv);
 #endif
     }
   else {
@@ -170,9 +161,9 @@ bool SplineFields2D::valueCoor(const Vec3& x, Vector& vals) const
 }
 
 
-// bool SplineFields2D::gradFE(const FiniteElement& fe, Matrix& grad) const
-// {
-//   if (!surf) return false;
+bool SplineFields2D::gradFE(const FiniteElement& fe, Matrix& grad) const
+{
+  if (!surf) return false;
 
 //   // Derivatives of solution in parametric space
 //   std::vector<Go::Point> pts(3);
@@ -200,14 +191,6 @@ bool SplineFields2D::valueCoor(const Vec3& x, Vector& vals) const
 //   // Gradient of solution in given parametric point
 //   // df/dX = df/dXi * Jac^-1 = df/dXi * [dX/dXi]^-1
 //   grad.multiply(gradXi,Jac);
-
-//   return true;
-// }
-
-
-bool SplineFields2D::gradFE(const FiniteElement& fe, Matrix& grad) const
-{
-  if (!surf) return false;
 
   // Gradient of field 
   Matrix gradXi(nf,2);

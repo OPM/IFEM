@@ -1,3 +1,4 @@
+// $Id$
 //==============================================================================
 //!
 //! \file SplineFields3D.C
@@ -6,22 +7,22 @@
 //!
 //! \author Runar Holdahl / SINTEF
 //!
-//! \brief Base class for spline based finite element vector field in 3D
+//! \brief Class for spline-based finite element vector fields in 3D.
 //!
 //==============================================================================
 
-
 #include "SplineFields3D.h"
-#include <algorithm>
-#include "GoTools/geometry/SplineUtils.h"
-#ifndef __BORLANDC__
-#include "boost/lambda/lambda.hpp"
-#endif
+#include "FiniteElement.h"
+#include "Vec3.h"
 
-using namespace std;
-#ifndef __BORLANDC__
-using namespace boost::lambda;
-#endif
+#include "GoTools/trivariate/SplineVolume.h"
+#include "GoTools/geometry/SplineUtils.h"
+#include "boost/lambda/lambda.hpp"
+
+namespace Go {
+  void volume_ratder(double const eder[],int idim,int ider,double gder[]);
+}
+
 
 SplineFields3D::SplineFields3D(Go::SplineVolume *geometry, char* name)
   : SplineFields(3,name), vol(geometry) 
@@ -55,26 +56,16 @@ bool SplineFields3D::valueNode(int node, Vector& vals) const
 }
 
 
-// bool SplineFields3D::valueFE(const FiniteElement& fe, Vector& vals) const
-// {
-//   if (!vol) return false;
-
-//   Go::Point pt;
-//   vol->pointValue(pt,values,fe.u,fe.v,fe.w);
-  
-//   vals.resize(pt.size());
-//   for (int i = 0;i < pt.size();i++)
-//     vals[i] = pt[i];
-
-//   return true;
-// }
-
-
 bool SplineFields3D::valueFE(const FiniteElement& fe, Vector& vals) const
 {
   if (!vol) return false;
 
   Go::Point pt;
+
+//   vol->pointValue(pt,values,fe.u,fe.v,fe.w);
+//   vals.resize(pt.size());
+//   for (int i = 0;i < pt.size();i++)
+//     vals[i] = pt[i];
 
   const int uorder = vol->order(0);
   const int vorder = vol->order(1);
@@ -181,10 +172,10 @@ bool SplineFields3D::valueFE(const FiniteElement& fe, Vector& vals) const
     }
   }
   
-  copy(tempResult.begin(), tempResult.begin() + dim, pt.begin());
+  std::copy(tempResult.begin(), tempResult.begin() + dim, pt.begin());
   if (rational) {
     const double w_inv = double(1) / w;
-    transform(pt.begin(), pt.end(), pt.begin(), _1 * w_inv);
+    std::transform(pt.begin(), pt.end(), pt.begin(), boost::lambda::_1 * w_inv);
   }    
   
   vals.resize(pt.size());
@@ -203,9 +194,9 @@ bool SplineFields3D::valueCoor(const Vec3& x, Vector& vals) const
 }
 
 
-// bool SplineFields3D::gradFE(const FiniteElement& fe, Matrix& grad) const
-// {
-//   if (!vol) return false;
+bool SplineFields3D::gradFE(const FiniteElement& fe, Matrix& grad) const
+{
+  if (!vol) return false;
   
 //   // Derivatives of solution in parametric space
 //   std::vector<Go::Point> pts;
@@ -231,14 +222,6 @@ bool SplineFields3D::valueCoor(const Vec3& x, Vector& vals) const
 //   // Gradient of solution in given parametric point
 //   // df/dX = df/dXi * Jac^-1 = df/dXi * [dX/dXi]^-1
 //   grad.multiply(gradXi,Jac);
-
-//   return true;
-// }
-
-
-bool SplineFields3D::gradFE(const FiniteElement& fe, Matrix& grad) const
-{
-  if (!vol) return false;
 
   // Derivatives of solution in parametric space
   std::vector<Go::Point> pts(4);
@@ -271,7 +254,7 @@ bool SplineFields3D::gradFE(const FiniteElement& fe, Matrix& grad) const
   }
   
   // Take care of the rational case
-  const vector<double>::iterator co = rational ? vol->rcoefs_begin() : vol->coefs_begin();
+  const std::vector<double>::iterator co = rational ? vol->rcoefs_begin() : vol->coefs_begin();
   int kdim = dim + (rational ? 1 : 0);
   int ndim = ncomp + (rational ? 1 : 0);
   
@@ -386,7 +369,7 @@ bool SplineFields3D::gradFE(const FiniteElement& fe, Matrix& grad) const
   
   // Copy from restemp to result
   if (rational) {
-    vector<double> restemp2(totpts*ncomp);
+    std::vector<double> restemp2(totpts*ncomp);
     Go::volume_ratder(&restemp[0], dim, derivs, &restemp2[0]);
     for (int i = 0; i < totpts; ++i) {
       for (int d = 0; d < ncomp; ++d) {

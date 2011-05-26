@@ -1,3 +1,4 @@
+// $Id$
 //==============================================================================
 //!
 //! \file SplineField2D.C
@@ -6,21 +7,17 @@
 //!
 //! \author Runar Holdahl / SINTEF
 //!
-//! \brief Base class for spline based finite element field in 2D
+//! \brief Class for spline-based finite element scalar field in 2D.
 //!
 //==============================================================================
 
 #include "SplineField2D.h"
-#include <algorithm>
-#include "GoTools/geometry/SplineUtils.h"
-#ifndef __BORLANDC__
-#include "boost/lambda/lambda.hpp"
-#endif
+#include "FiniteElement.h"
+#include "Vec3.h"
 
-using namespace std;
-#ifndef __BORLANDC__
-using namespace boost::lambda;
-#endif
+#include "GoTools/geometry/SplineSurface.h"
+#include "GoTools/geometry/SplineUtils.h"
+
 
 SplineField2D::SplineField2D(Go::SplineSurface *geometry, char* name)
   : SplineField(2,name), surf(geometry) 
@@ -49,17 +46,12 @@ double SplineField2D::valueNode(int node) const
 }
 
 
-// double SplineField2D::valueFE(const FiniteElement& fe) const
-// {
-//   Go::Point pt;
-//   surf->pointValue(pt,values,fe.u,fe.v);
-  
-//   return pt[0];
-// }
-
-
 double SplineField2D::valueFE(const FiniteElement& fe) const
 {
+//   Go::Point pt;
+//   surf->pointValue(pt,values,fe.u,fe.v);
+//   return pt[0];
+
   const int uorder = surf->order_u();
   const int vorder = surf->order_v();
   const int unum = surf->numCoefs_u();
@@ -139,9 +131,9 @@ double SplineField2D::valueCoor(const Vec3& x) const
 }
 
 
-// bool SplineField2D::gradFE(const FiniteElement& fe, Vector& grad) const
-// {
-//   if (!surf) return false;
+bool SplineField2D::gradFE(const FiniteElement& fe, Vector& grad) const
+{
+  if (!surf) return false;
 
 //   // Derivatives of solution in parametric space
 //   std::vector<Go::Point> pts(3);
@@ -169,14 +161,6 @@ double SplineField2D::valueCoor(const Vec3& x) const
 //   // df/dX = Jac^-T * df/dXi = [dX/dXi]^-T * df/dXi
 //   Jac.multiply(gradXi,grad,true,false);
   
-//   return true;
-// }
-
-
-bool SplineField2D::gradFE(const FiniteElement& fe, Vector& grad) const
-{
-  if (!surf) return false;
-
   // Gradient of field wrt parametric coordinates
   Vector gradXi(2);
 
