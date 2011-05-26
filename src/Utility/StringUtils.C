@@ -1,3 +1,4 @@
+// $Id$
 //==============================================================================
 //!
 //! \file StringUtils.C
@@ -6,18 +7,19 @@
 //!
 //! \author Arne Morten Kvarving / SINTEF
 //!
-//! \brief Some general string manipulation functions
+//! \brief Some general string manipulation functions.
 //!
 //==============================================================================
 
 #include <StringUtils.h>
+
 
 // taken from cppreference.com ::replace documentation
 std::string& replaceAll(std::string& context, const std::string& from,
                         const std::string& to)
 {
   size_t lookHere = 0;
-  size_t foundHere;
+  size_t foundHere = 0;
   while((foundHere = context.find(from, lookHere)) != std::string::npos)
   {
     context.replace(foundHere, from.size(), to);

@@ -1,6 +1,6 @@
       subroutine eig_drv1 (n,nev,ncv,d,v,work,ierr)
 c
-c $Id: eig_drv1.f,v 1.1 2009-12-08 15:32:49 kmo Exp $
+c $Id$
 c-----------------------------------------------------------------------
 c\BeginDoc
 c
