@@ -210,10 +210,10 @@ PETScMatrix::~PETScMatrix ()
 
 
 #ifdef PARALLEL_PETSC
-static void assemPETScPara (const Matrix& eM, Mat SM, PETScVector& SV,
-			    const std::vector<int>& meen, const int* meqn,
-			    const int* mpmceq, const int* mmceq,
-			    const real* ttcc)
+static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
+                        const std::vector<int>& meen, const int* meqn,
+                        const int* mpmceq, const int* mmceq,
+                        const real* ttcc)
 {
   real   c0;
   size_t i, j;
@@ -274,7 +274,7 @@ static void assemPETScPara (const Matrix& eM, Mat SM, PETScVector& SV,
 
   delete[] l2g;
 }
-#endif
+#else
 
 
 static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
@@ -363,6 +363,7 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
   // Deallocate memory for l2g mapping
   delete [] l2g;
 }
+#endif
 
 
 static void assemPETSc (const Matrix& eM, Mat SM, const std::vector<int>& meen,
@@ -516,11 +517,7 @@ bool PETScMatrix::assemble (const Matrix& eM, const SAM& sam,
     return false;
 
   // Assemble local stiffness matrix into global system.
-#ifdef PARALLEL_PETSC
-  assemPETScPara(eM,A,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
-#else
   assemPETSc(eM,A,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
-#endif
   return true;
 }
 
