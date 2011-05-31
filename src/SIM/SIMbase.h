@@ -344,7 +344,8 @@ public:
   //! \brief Dumps the (possibly refined) spline basis in g2-format.
   //! \param os Output stream to write the spline data to
   //! \param[in] basis Which basis to dump for mixed methods (0 = geometry)
-  bool dumpBasis(std::ostream& os, int basis = 0) const;
+  //! \param[in] patch Which patch to dump for (0 = all)
+  bool dumpBasis(std::ostream& os, int basis = 0, size_t patch=0) const;
   //! \brief Dumps the entire solution in ASCII format.
   //! \param[in] psol Primary solution vector to derive other quantities from
   //! \param os Output stream to write the solution data to
