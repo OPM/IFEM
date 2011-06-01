@@ -201,6 +201,27 @@ bool HDF5Writer::readSIM (int level, const DataEntry& entry)
   return ok;
 }
 
+bool HDF5Writer::readVector(int level, const std::string& name,
+                            int patch, Vector& vec)
+{
+  bool ok=true;
+  openFile(level);
+#ifdef HAS_HDF5
+  std::stringstream str;
+  str << level;
+  str << '/';
+  str << patch;
+  hid_t group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
+  double* tmp = NULL; int siz = 0;
+  readArray(group2,name,siz,tmp);
+  vec.fill(tmp,siz);
+  delete[] tmp;
+  H5Gclose(group2);
+#endif
+  closeFile(level);
+  return ok;
+}
+
 bool HDF5Writer::readField(int level, const std::string& name,
                            Vector& vec, SIMbase* sim, int components)
 {

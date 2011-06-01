@@ -27,6 +27,8 @@ public:
   bool readField(int level, const std::string& name,
                  Vector& vec, SIMbase* sim, int components);
   void readString(const std::string& name, std::string& out);
+  bool readVector(int level, const std::string& name,
+                  int patch, Vector& vec);
 
 protected:
   void writeArray(int group, const std::string& name,
