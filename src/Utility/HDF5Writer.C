@@ -180,6 +180,7 @@ bool HDF5Writer::readSIM (int level, const DataEntry& entry)
   SIMbase* sim = static_cast<SIMbase*>(entry.second.data);
   Vector* sol = static_cast<Vector*>(entry.second.data2);
   if (!sol) return false;
+  const Integrand* prob = sim->getProblem();
 
   for (int i = 0; i < sim->getNoPatches() && ok; ++i) {
     std::stringstream str;
@@ -190,9 +191,12 @@ bool HDF5Writer::readSIM (int level, const DataEntry& entry)
     int loc = sim->getLocalPatchIndex(i+1);
     if (loc > 0) {
       double* tmp = NULL; int siz = 0;
-      readArray(group2,entry.first,siz,tmp);
+      if (prob->mixedFormulation())
+        readArray(group2,entry.first,siz,tmp);
+      else
+        readArray(group2,prob->getField1Name(11),siz,tmp);
       ok = sim->injectPatchSolution(*sol,Vector(tmp,siz),
-                                    loc-1,entry.second.size);
+                                    loc-1);
       delete[] tmp;
     }
     H5Gclose(group2);

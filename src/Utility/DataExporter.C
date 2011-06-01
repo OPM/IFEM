@@ -98,7 +98,8 @@ bool DataExporter::dumpTimeLevel()
 }
 
 
-bool DataExporter::loadTimeLevel (int level, DataWriter* input)
+bool DataExporter::loadTimeLevel (int level, DataWriter* info,
+                                  DataWriter* input)
 {
   if (!input)
     if (m_writers.empty())
@@ -106,14 +107,21 @@ bool DataExporter::loadTimeLevel (int level, DataWriter* input)
     else
       input = m_writers.front();
 
-  if (level == -1)
-    if ((m_level = input->getLastTimeLevel()) < 0)
+  if (!info)
+    if (m_writers.empty())
       return false;
     else
-      level = m_level;
+      info = m_writers.front();
+
+  int level2=level;
+  if (level == -1)
+    if ((m_level = info->getLastTimeLevel()) < 0)
+      return false;
+    else
+      level2 = m_level;
 
   bool ok = true;
-  input->openFile(level);
+  input->openFile(level2);
   std::map<std::string,FileEntry>::iterator it;
   for (it = m_entry.begin(); it != m_entry.end() && ok; ++it)
     if (!it->second.data)
@@ -121,10 +129,10 @@ bool DataExporter::loadTimeLevel (int level, DataWriter* input)
     else switch (it->second.field)
     {
       case VECTOR:
-        ok = input->readVector(level,*it);
+        ok = input->readVector(level2,*it);
         break;
       case SIM:
-        ok = input->readSIM(level,*it);
+        ok = input->readSIM(level2,*it);
         break;
       default:
         ok = false;
@@ -132,9 +140,11 @@ bool DataExporter::loadTimeLevel (int level, DataWriter* input)
 		  << it->second.field << std::endl;
         break;
     }
-
-  input->closeFile(level);
-  m_level++;
+  input->closeFile(level2);
+  // if we load the last time level, we want to advance
+  // if we load a specified time level, we do not want to advance
+  if (level == -1)
+    m_level++;
 
   return ok;
 }

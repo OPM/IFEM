@@ -48,7 +48,10 @@ class DataExporter
   bool dumpTimeLevel();
 
   //! \brief Loads last time level with first registered writer by default.
-  bool loadTimeLevel(int level=-1, DataWriter* input=NULL);
+  //! param[in] level Time level to load, defaults to last time level
+  //! param[in] info The datawriter to read the info from (e.g. the XML writer)
+  //! param[in] input The datawriter to read the data from (e.g. the HDF5 writer)
+  bool loadTimeLevel(int level=-1, DataWriter* info=NULL, DataWriter* input=NULL);
   int getTimeLevel();
 
 protected:
