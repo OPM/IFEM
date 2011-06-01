@@ -69,27 +69,7 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
     size_t i = 9; while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
     std::cout <<"\nReading data file "<< keyWord+i << std::endl;
     std::ifstream isp(keyWord+i);
-
-    ASMbase* pch = 0;
-    for (int patchNo = 1; isp.good(); patchNo++)
-    {
-      std::cout <<"Reading patch "<< patchNo << std::endl;
-      switch (discretization) {
-      case Lagrange:
-	pch = new ASMs1DLag(isp,1,nf);
-	break;
-      case Spectral:
-	pch = new ASMs1DSpec(isp,1,nf);
-	break;
-      default:
-	pch = new ASMs1D(isp,1,nf);
-      }
-      if (pch->empty())
-	delete pch;
-      else
-	myModel.push_back(pch);
-    }
-
+    readPatches(isp);
     if (myModel.empty())
     {
       std::cerr <<" *** SIM1D::parse: No patches read"<< std::endl;
@@ -388,4 +368,28 @@ void SIM1D::setQuadratureRule (size_t ng)
   for (size_t i = 0; i < myModel.size(); i++)
     if (!myModel.empty())
       static_cast<ASMs1D*>(myModel[i])->setGauss(ng);
+}
+
+
+void SIM1D::readPatches(std::istream& isp)
+{
+  ASMbase* pch = 0;
+  for (int patchNo = 1; isp.good(); patchNo++)
+  {
+    std::cout <<"Reading patch "<< patchNo << std::endl;
+    switch (discretization) {
+      case Lagrange:
+        pch = new ASMs1DLag(isp,1,nf);
+        break;
+      case Spectral:
+        pch = new ASMs1DSpec(isp,1,nf);
+        break;
+      default:
+        pch = new ASMs1D(isp,1,nf);
+    }
+    if (pch->empty())
+      delete pch;
+    else
+      myModel.push_back(pch);
+  }
 }

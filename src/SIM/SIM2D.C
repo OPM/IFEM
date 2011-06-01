@@ -77,33 +77,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
     size_t i = 9; while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
     std::cout <<"\nReading data file "<< keyWord+i << std::endl;
     std::ifstream isp(keyWord+i);
-
-    ASMbase* pch = 0;
-    for (int patchNo = 1; isp.good(); patchNo++)
-    {
-      std::cout <<"Reading patch "<< patchNo << std::endl;
-      switch (discretization) {
-      case Lagrange:
-	if (nf[1] > 0)
-	  pch = new ASMs2DmxLag(isp,2,nf[0],nf[1]);
-	else
-	  pch = new ASMs2DLag(isp,2,nf[0]);
-	break;
-      case Spectral:
-	pch = new ASMs2DSpec(isp,2,nf[0]);
-	break;
-      default:
-	if (nf[1] > 0)
-	  pch = new ASMs2Dmx(isp,2,nf[0],nf[1]);
-	else
-	  pch = new ASMs2D(isp,2,nf[0]);
-      }
-      if (pch->empty() || this->getLocalPatchIndex(patchNo) < 1)
-	delete pch;
-      else
-	myModel.push_back(pch);
-    }
-
+    readPatches(isp);
     if (myModel.empty())
     {
       std::cerr <<" *** SIM2D::parse: No patches read"<< std::endl;
@@ -484,4 +458,34 @@ void SIM2D::setQuadratureRule (size_t ng)
   for (size_t i = 0; i < myModel.size(); i++)
     if (!myModel.empty())
       static_cast<ASMs2D*>(myModel[i])->setGauss(ng);
+}
+
+
+void SIM2D::readPatches(std::istream& isp)
+{
+  ASMbase* pch = 0;
+  for (int patchNo = 1; isp.good(); patchNo++)
+  {
+    std::cout <<"Reading patch "<< patchNo << std::endl;
+    switch (discretization) {
+      case Lagrange:
+        if (nf[1] > 0)
+	  pch = new ASMs2DmxLag(isp,2,nf[0],nf[1]);
+	else
+	  pch = new ASMs2DLag(isp,2,nf[0]);
+        break;
+      case Spectral:
+	pch = new ASMs2DSpec(isp,2,nf[0]);
+        break;
+      default:
+	if (nf[1] > 0)
+	  pch = new ASMs2Dmx(isp,2,nf[0],nf[1]);
+	else
+	  pch = new ASMs2D(isp,2,nf[0]);
+    }
+    if (pch->empty() || this->getLocalPatchIndex(patchNo) < 1)
+      delete pch;
+    else
+      myModel.push_back(pch);
+  }
 }

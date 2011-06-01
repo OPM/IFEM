@@ -96,6 +96,10 @@ public:
   bool preprocess(const std::vector<int>& ignoredPatches = std::vector<int>(),
 		  bool fixDup = false);
 
+  //! \brief Read patches from given stream
+  //! \param[in] isp The stream to read from
+  virtual void readPatches(std::istream& isp) {};
+
   //! \brief Allocates the system matrices of the FE problem to be solved.
   //! \param[in] mType The matrix format to use
   //! \param[in] nMats Number of system matrices

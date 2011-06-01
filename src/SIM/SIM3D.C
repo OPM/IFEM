@@ -78,33 +78,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
     size_t i = 9; while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
     std::cout <<"\nReading data file "<< keyWord+i << std::endl;
     std::ifstream isp(keyWord+i);
-
-    ASMbase* pch = 0;
-    for (int patchNo = 1; isp.good(); patchNo++)
-    {
-      std::cout <<"Reading patch "<< patchNo << std::endl;
-      switch (discretization) {
-      case Lagrange:
-	if (nf[1] > 0)
-	  pch = new ASMs3DmxLag(isp,checkRHSys,nf[0],nf[1]);
-	else
-	  pch = new ASMs3DLag(isp,checkRHSys,nf[0]);
-	break;
-      case Spectral:
-	pch = new ASMs3DSpec(isp,checkRHSys,nf[0]);
-	break;
-      default:
-	if (nf[1] > 0)
-	  pch = new ASMs3Dmx(isp,checkRHSys,nf[0],nf[1]);
-	else
-	  pch = new ASMs3D(isp,checkRHSys,nf[0]);
-      }
-      if (pch->empty() || this->getLocalPatchIndex(patchNo) < 1)
-	delete pch;
-      else
-	myModel.push_back(pch);
-    }
-
+    readPatches(isp);
     if (myModel.empty())
     {
       std::cerr <<" *** SIM3D::parse: No patches read"<< std::endl;
@@ -596,4 +570,34 @@ void SIM3D::setQuadratureRule (size_t ng)
   for (size_t i = 0; i < myModel.size(); i++)
     if (!myModel.empty())
       static_cast<ASMs3D*>(myModel[i])->setGauss(ng);
+}
+
+
+void SIM3D::readPatches(std::istream& isp)
+{
+  ASMbase* pch = 0;
+  for (int patchNo = 1; isp.good(); patchNo++)
+  {
+    std::cout <<"Reading patch "<< patchNo << std::endl;
+    switch (discretization) {
+      case Lagrange:
+        if (nf[1] > 0)
+          pch = new ASMs3DmxLag(isp,checkRHSys,nf[0],nf[1]);
+        else
+          pch = new ASMs3DLag(isp,checkRHSys,nf[0]);
+        break;
+      case Spectral:
+        pch = new ASMs3DSpec(isp,checkRHSys,nf[0]);
+        break;
+      default:
+        if (nf[1] > 0)
+          pch = new ASMs3Dmx(isp,checkRHSys,nf[0],nf[1]);
+        else
+          pch = new ASMs3D(isp,checkRHSys,nf[0]);
+    }
+    if (pch->empty() || this->getLocalPatchIndex(patchNo) < 1)
+      delete pch;
+    else
+      myModel.push_back(pch);
+  }
 }
