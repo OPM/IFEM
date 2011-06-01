@@ -73,6 +73,7 @@ void XMLWriter::readInfo()
       entry.description = elem->Attribute("description");
       entry.patches = atoi(elem->Attribute("patches"));
       entry.components = atoi(elem->Attribute("components"));
+      entry.type = elem->Attribute("type");
       if (elem->Attribute("basis"))
 	entry.basis = elem->Attribute("basis");
       m_entry.push_back(entry);
@@ -118,39 +119,40 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry)
   if (prob->mixedFormulation())
   {
     // primary solution vector
-    addField(entry.first,entry.second.description,sim->getName()+"-0",
-	     prob->getNoFields(1),sim->getNoPatches());
+    addField(entry.first,entry.second.description,sim->getName()+"-1",
+             prob->getNoFields(1),sim->getNoPatches(),"restart");
 
     // Assuming that basis2 is used for secondary variables
     // primary solution fields
-    addField(prob->getField1Name(11),"primary",sim->getName()+"-0",
+    addField(prob->getField1Name(11),"primary",sim->getName()+"-1",
 	     sim->getNoFields(1),sim->getNoPatches());
-    addField(prob->getField1Name(12),"primary",sim->getName()+"-1",
+    addField(prob->getField1Name(12),"primary",sim->getName()+"-2",
 	     sim->getNoFields(2),sim->getNoPatches());
   }
   else
   {
     // primary solution
-    addField(prob->getField1Name(11),entry.second.description,sim->getName()+"-0",
+    addField(prob->getField1Name(11),entry.second.description,sim->getName()+"-1",
 	     prob->getNoFields(1),sim->getNoPatches());
   }
 
   // secondary solution fields
   if (entry.second.size == -1)
     for (size_t j = 0; j < prob->getNoFields(2); j++)
-      addField(prob->getField2Name(j),"secondary",sim->getName()+"-1",1,sim->getNoPatches());
+      addField(prob->getField2Name(j),"secondary",sim->getName()+(prob->mixedFormulation()?"-2":"-1"),1,sim->getNoPatches());
 }
 
 
 void XMLWriter::addField (const std::string& name,
                           const std::string& description,
                           const std::string& basis,
-                          int components, int patches)
+                          int components, int patches,
+                          const std::string& type)
 {
   TiXmlElement element("entry");
   element.SetAttribute("name",name.c_str());
   element.SetAttribute("description",description.c_str());
-  element.SetAttribute("type","field");
+  element.SetAttribute("type",type);
   if (!basis.empty())
     element.SetAttribute("basis",basis.c_str());
   element.SetAttribute("patches",patches);

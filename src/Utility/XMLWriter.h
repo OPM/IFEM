@@ -17,6 +17,7 @@ public:
     std::string basis;
     int patches;
     int components;
+    std::string type;
   };
 
   XMLWriter(const std::string& name);
@@ -37,7 +38,8 @@ public:
 
 protected:
   void addField(const std::string& name, const std::string& description,
-                const std::string& geometry, int components, int patches);
+                const std::string& geometry, int components, int patches,
+                const std::string& type="field");
 
   std::vector<Entry> m_entry;
 
