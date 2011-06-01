@@ -11,17 +11,105 @@
 //!
 //==============================================================================
 
-#include "SIM1D.h"
-#include "SIM2D.h"
-#include "SIM3D.h"
 #include "HDF5Writer.h"
 #include "XMLWriter.h"
 #include "StringUtils.h"
 #include <sstream>
 #include <stdlib.h>
 #include <string.h>
+#include "ASMs1D.h"
+#include "ASMs2D.h"
+#include "ASMs3D.h"
+#include "ElementBlock.h"
+#include "VTF.h"
 
 typedef std::map< std::string,std::vector<XMLWriter::Entry> > ProcessList;
+typedef std::map< std::string, std::vector<int> > VTFList;
+
+std::vector<ASMbase*> readBasis(const std::string& name, 
+                                int patches, HDF5Writer& hdf, int dim)
+{
+  std::vector<ASMbase*> result;
+  for (int i=0;i<patches;++i) {
+    std::stringstream geom;
+    geom << "/0/basis/";
+    geom << name;
+    geom << "/";
+    geom << i+1;
+    std::string out;
+    hdf.readString(geom.str(),out);
+    std::stringstream basis;
+    basis << out;
+    if (dim == 1)
+      result.push_back(new ASMs1D(basis,1,1));
+    if (dim == 2)
+      result.push_back(new ASMs2D(basis,2,1));
+    if (dim == 3)
+      result.push_back(new ASMs3D(basis,false,1));
+    result.back()->generateFEMTopology();
+  }
+
+  return result;
+}
+
+
+bool writeFieldPatch(const Vector& locvec, int components,
+                     ASMbase& patch, int* nViz, int geomID, int& nBlock,
+                     const std::string& name, VTFList& vlist, VTFList& slist,
+                     VTF& myVtf)
+{
+  Matrix field;
+  if (!patch.evalSolution(field,locvec,nViz))
+    return false;
+
+  if (components > 1) {
+    if (!myVtf.writeVres(field,++nBlock,geomID,components))
+      return false;
+    else
+      vlist[name].push_back(nBlock);
+  }
+
+  for (size_t j = 0; j < field.rows(); j++) {
+    std::string nam = name;
+    if (field.rows() > 1) {
+      nam += "_";
+      nam += (char)('x'+j);
+    }
+    if (!myVtf.writeNres(field.getRow(1+j),++nBlock,geomID))
+      return false;
+    else 
+      slist[nam].push_back(nBlock);
+  }
+
+  return true;
+}
+
+
+void writeFieldBlocks(VTFList& vlist, VTFList& slist, VTF& myvtf,
+                      int iStep)
+{
+  int idBlock = 20;
+  for (VTFList::iterator it = vlist.begin(); it != vlist.end(); ++it) {
+    myvtf.writeVblk(it->second,it->first.c_str(),
+                    it->first=="displacement"?10:idBlock++,iStep);
+  }
+  for (VTFList::iterator it = slist.begin(); it != slist.end(); ++it) {
+    myvtf.writeSblk(it->second,
+                    it->first.c_str(),idBlock++,iStep);
+  }
+}
+
+
+void writePatchGeometry(ASMbase* patch, int id, VTF& myVtf, int* nViz)
+{
+  std::stringstream str;
+  str << "Patch " << id;
+
+  size_t nd = patch->getNoParamDim();
+  ElementBlock* lvb = new ElementBlock(nd == 3 ? 8 : (nd == 2 ? 4 : 2));
+  patch->tesselate(*lvb,nViz);
+  myVtf.writeGrid(lvb,str.str().c_str());
+}
 
 
 int main (int argc, char** argv)
@@ -68,84 +156,77 @@ int main (int argc, char** argv)
   xml.readInfo();
 
   int levels = xml.getLastTimeLevel();
-  if (levels > 0) SIMinput::msgLevel = 1;
   std::cout <<"Reading "<< infile <<": Time levels = "<< levels << std::endl;
 
   const std::vector<XMLWriter::Entry>& entry = xml.getEntries();
   std::vector<XMLWriter::Entry>::const_iterator it;
 
   ProcessList processlist;
-  for (it = entry.begin(); it != entry.end(); ++it)
-    if (!it->basis.empty())
-    {
-      processlist["PATCHFILE " + it->basis].push_back(*it);
+  for (it = entry.begin(); it != entry.end(); ++it) {
+    if (!it->basis.empty() && it->type != "restart") {
+      processlist[it->basis].push_back(*it);
       std::cout << it->name <<"\t"<< it->description <<"\tnc="<< it->components
 		<<"\t"<< it->basis << std::endl;
     }
+  }
 
   ProcessList::const_iterator pit = processlist.begin();
-  for (int j = 1; pit != processlist.end(); ++pit, ++j)
-  {
-    SIMbase* sim;
-    if (dims == 1)
-      sim = new SIM1D;
-    else if (dims == 2)
-      sim = new SIM2D;
-    else
-      sim = new SIM3D;
-
-    if (!sim->parse(const_cast<char*>(pit->first.c_str()),std::cin))
-      return 1;
-    else if (!sim->preprocess(std::vector<int>(),false))
-      return 2;
-
-    bool ok = true;
+  for (int j = 1; pit != processlist.end(); ++pit, ++j) {
+    std::string vtf = vtffile;
     if (processlist.size() > 1) {
       std::string temp(strtok(vtffile,"."));
       std::stringstream str;
       str <<"-"<< j;
       temp.append(str.str());
-      ok = sim->writeGlv(temp.c_str(),n,format);
+      vtf = temp+".vtf";
     }
-    else
-      ok = sim->writeGlv(vtffile,n,format);
 
+    // This is broken with time dependent geometries.
+    // Luckily it's not fundamentally broken so we can remedy when it's needed
+    VTF myVtf(vtf.c_str(),1);
+    std::vector<ASMbase*> patches =
+                       readBasis(pit->first,pit->second[0].patches,hdf,dims);
+    for (size_t i=0;i<patches.size();++i)
+      writePatchGeometry(patches[i],i+1,myVtf,n);
+
+    bool ok = true;
     int block = 0;
     for (int i = 0; i <= levels && ok; ++i) {
-      int k = 20;
       if (levels > 0) std::cout <<"\nTime level "<< i << std::endl;
+      VTFList vlist, slist;
       for (it = pit->second.begin(); it != pit->second.end() && ok; ++it) {
-        Vector vec;
         std::cout <<"Reading \""<< it->name <<"\""<< std::endl;
-        ok = hdf.readField(i,it->name,vec,sim,it->components);
-        if (it->name == "displacement") // displacement field
-          ok &= sim->writeGlvS(vec,n,i+1,block,i,1,NULL,10,it->components);
-        else if (it->components < 2) // scalar field
-          ok &= sim->writeGlvS(vec,n,i+1,block,i,2,it->name.c_str(),k++,1);
-        else if (it->name.find('+') < it->name.size())
-	{
-	  // Temporary hack to split a vector into scalar fields.
-	  // The big assumption here is that the individual scalar names
-	  // are separated by '+'-characters in the vector field name
-	  Matrix tmp(it->components,vec.size()/it->components);
-	  tmp.fill(vec.ptr());
-	  size_t pos = 0;
-	  for (size_t r = 1; r <= tmp.rows() && pos < it->name.size(); r++)
-	  {
-	    size_t end = it->name.find('+',pos);
-	    ok &= sim->writeGlvS(tmp.getRow(r),n,i+1,block,i,2,
-				 it->name.substr(pos,end).c_str(),k++,1);
-	    pos = end+1;
-	  }
-	}
-	else // just write as vector field
-          ok &= sim->writeGlvV(vec,it->name.c_str(),n,i+1,block);
-      }
-      if (ok)
-        ok = sim->writeGlvStep(i+1,i);
-    }
-    delete sim;
+        for( int j=0;j<pit->second[0].patches;++j) {
+          Vector vec;
+          ok = hdf.readVector(i,it->name,j+1,vec);
 
+          if (it->name.find('+') != std::string::npos) {
+            // Temporary hack to split a vector into scalar fields.
+            // The big assumption here is that the individual scalar names
+            // are separated by '+'-characters in the vector field name
+            Matrix tmp(it->components,vec.size()/it->components);
+            tmp.fill(vec.ptr());
+            size_t pos = 0;
+            for (size_t r = 1; r <= tmp.rows() && pos < it->name.size(); r++) {
+              size_t end = it->name.find('+',pos);
+
+              ok &= writeFieldPatch(tmp.getRow(r),1,*patches[j],n,j+1,
+                                    block,it->name.substr(pos,end),vlist,
+                                    slist,myVtf);
+              pos = end+1;
+            }
+          }
+          else {
+            ok &= writeFieldPatch(vec,it->components,*patches[j],n,j+1,
+                                  block,it->name,vlist,slist,myVtf);
+          }
+        }
+      }
+      writeFieldBlocks(vlist,slist,myVtf,i+1);
+
+      if (ok)
+        myVtf.writeState(i+1,"Step %g",(float)i+1,1);
+    }
     if (!ok) return 3;
   }
 
