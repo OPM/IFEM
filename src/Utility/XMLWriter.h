@@ -14,7 +14,7 @@ public:
   struct Entry {
     std::string name;
     std::string description;
-    std::string patchfile;
+    std::string basis;
     int patches;
     int components;
   };
@@ -37,7 +37,7 @@ public:
 
 protected:
   void addField(const std::string& name, const std::string& description,
-                const std::string& patchfile, int components, int patches);
+                const std::string& geometry, int components, int patches);
 
   std::vector<Entry> m_entry;
 

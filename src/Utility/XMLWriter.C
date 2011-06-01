@@ -73,8 +73,8 @@ void XMLWriter::readInfo()
       entry.description = elem->Attribute("description");
       entry.patches = atoi(elem->Attribute("patches"));
       entry.components = atoi(elem->Attribute("components"));
-      if (elem->Attribute("patchfile"))
-	entry.patchfile = elem->Attribute("patchfile");
+      if (elem->Attribute("basis"))
+	entry.basis = elem->Attribute("basis");
       m_entry.push_back(entry);
     }
     elem = elem->NextSiblingElement("entry");
@@ -144,15 +144,15 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry)
 
 void XMLWriter::addField (const std::string& name,
                           const std::string& description,
-                          const std::string& patchfile,
+                          const std::string& basis,
                           int components, int patches)
 {
   TiXmlElement element("entry");
   element.SetAttribute("name",name.c_str());
   element.SetAttribute("description",description.c_str());
   element.SetAttribute("type","field");
-  if (!patchfile.empty())
-    element.SetAttribute("patchfile",patchfile.c_str());
+  if (!basis.empty())
+    element.SetAttribute("basis",basis.c_str());
   element.SetAttribute("patches",patches);
   element.SetAttribute("components",components);
   m_node->InsertEndChild(element);

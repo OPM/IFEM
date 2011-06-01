@@ -76,11 +76,11 @@ int main (int argc, char** argv)
 
   ProcessList processlist;
   for (it = entry.begin(); it != entry.end(); ++it)
-    if (!it->patchfile.empty())
+    if (!it->basis.empty())
     {
-      processlist["PATCHFILE " + it->patchfile].push_back(*it);
+      processlist["PATCHFILE " + it->basis].push_back(*it);
       std::cout << it->name <<"\t"<< it->description <<"\tnc="<< it->components
-		<<"\t"<< it->patchfile << std::endl;
+		<<"\t"<< it->basis << std::endl;
     }
 
   ProcessList::const_iterator pit = processlist.begin();
