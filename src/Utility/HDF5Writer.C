@@ -108,6 +108,25 @@ void HDF5Writer::readArray(int group, const std::string& name,
 #endif
 }
 
+void HDF5Writer::readString(const std::string& name, std::string& out)
+{
+#ifdef HAS_HDF5
+  openFile(0);
+  hid_t set = H5Dopen2(m_file,name.c_str(),H5P_DEFAULT);
+  hsize_t siz = H5Dget_storage_size(set);
+  char* temp = new char[siz+1];
+  out.resize(siz);
+  H5Dread(set,H5T_NATIVE_CHAR,H5S_ALL,H5S_ALL,H5P_DEFAULT,temp);
+  temp[siz] = '\0';
+  out = temp;
+  delete[] temp;
+  H5Dclose(set);
+  closeFile(0);
+#else
+  std::cout << "HDF5Writer: compiled without HDF5 support, no data read" << std::endl;
+#endif
+}
+
 void HDF5Writer::writeArray(int group, const std::string& name,
                             int len, const void* data, int type)
 {

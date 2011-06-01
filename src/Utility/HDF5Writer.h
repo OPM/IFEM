@@ -26,6 +26,7 @@ public:
 
   bool readField(int level, const std::string& name,
                  Vector& vec, SIMbase* sim, int components);
+  void readString(const std::string& name, std::string& out);
 
 protected:
   void writeArray(int group, const std::string& name,
