@@ -121,6 +121,8 @@ public:
   //! \brief Returns a pointer to the problem-specific data object.
   const Integrand* getProblem() const { return myProblem; }
 
+  virtual std::string getName() const { return "SIMbase"; }
+
   //! \brief Returns the number of primary solution fields.
   //! \param[in] basis Which basis to condsider when mixed methods (0 = both)
   size_t getNoFields(int basis = 0) const;
