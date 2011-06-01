@@ -109,7 +109,7 @@ void HDF5Writer::readArray(int group, const std::string& name,
 }
 
 void HDF5Writer::writeArray(int group, const std::string& name,
-                            int len, void* data)
+                            int len, const void* data, int type)
 {
 #ifdef HAS_HDF5
 #ifdef PARALLEL_PETSC
@@ -123,15 +123,15 @@ void HDF5Writer::writeArray(int group, const std::string& name,
   hsize_t start = 0;
 #endif
   hid_t space = H5Screate_simple(1,&siz,NULL);
-  hid_t set = H5Dcreate2(group,name.c_str(),H5T_NATIVE_DOUBLE,space,
-                         H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+  hid_t set = H5Dcreate2(group,name.c_str(),
+                         type,space,H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
   hid_t file_space = H5Dget_space(set);
   if (len > 0) {
     siz = len;
     hsize_t stride = 1;
     H5Sselect_hyperslab(file_space,H5S_SELECT_SET,&start,&stride,&siz,NULL);
     hid_t mem_space = H5Screate_simple(1,&siz,NULL);
-    H5Dwrite(set,H5T_NATIVE_DOUBLE,mem_space,file_space,H5P_DEFAULT,data);
+    H5Dwrite(set,type,mem_space,file_space,H5P_DEFAULT,data);
     H5Sclose(mem_space);
   }
   H5Sclose(file_space);
@@ -149,7 +149,9 @@ bool HDF5Writer::readVector(int level, const DataEntry& entry)
 
 void HDF5Writer::writeVector(int level, const DataEntry& entry)
 {
-  writeArray(level,entry.first,entry.second.size,entry.second.data);
+#ifdef HAS_HDF5
+  writeArray(level,entry.first,entry.second.size,entry.second.data,H5T_NATIVE_DOUBLE);
+#endif
 }
 
 bool HDF5Writer::readSIM (int level, const DataEntry& entry)
@@ -216,6 +218,12 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry)
   if (!sol) return;
 
   const Integrand* prob = sim->getProblem();
+  if (level == 0) { // TODO time dependent geometries
+    writeBasis(sim,sim->getName()+"-1",1,level);
+    if (prob->mixedFormulation())
+      writeBasis(sim,sim->getName()+"-2",2,level);
+  }
+
   for (int i = 0; i < sim->getNoPatches(); ++i) {
     std::stringstream str;
     str << level;
@@ -235,35 +243,69 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry)
       {
         // Mixed methods: The primary solution vector is referring to two bases
         size_t ndof2 = psol.size() > ndof1 ? psol.size() - ndof1 : 0;
-        writeArray(group2,entry.first,psol.size(),psol.ptr());
-        writeArray(group2,prob->getField1Name(11),ndof1,psol.ptr());
-        writeArray(group2,prob->getField1Name(12),ndof2,psol.ptr()+ndof1);
+        writeArray(group2,entry.first,psol.size(),psol.ptr(),H5T_NATIVE_DOUBLE);
+        writeArray(group2,prob->getField1Name(11),ndof1,psol.ptr(),H5T_NATIVE_DOUBLE);
+        writeArray(group2,prob->getField1Name(12),ndof2,psol.ptr()+ndof1,H5T_NATIVE_DOUBLE);
       }
       else
-        writeArray(group2,prob->getField1Name(11),psol.size(),psol.ptr());
+        writeArray(group2,prob->getField1Name(11),psol.size(),psol.ptr(),H5T_NATIVE_DOUBLE);
 
       if (entry.second.size == -1) {
         Matrix field;
         sim->evalSecondarySolution(field,loc-1);
         for (size_t j = 0; j < prob->getNoFields(2); ++j)
           writeArray(group2,prob->getField2Name(j),field.cols(),
-                     field.getRow(j+1).ptr());
+                     field.getRow(j+1).ptr(),H5T_NATIVE_DOUBLE);
       }
     }
     else // must write empty dummy records for the other patches
     {
       double dummy;
-      writeArray(group2,entry.first,0,&dummy);
+      writeArray(group2,entry.first,0,&dummy,H5T_NATIVE_DOUBLE);
       if (prob->mixedFormulation())
       {
-        writeArray(group2,prob->getField1Name(11),0,&dummy);
-        writeArray(group2,prob->getField1Name(12),0,&dummy);
+        writeArray(group2,prob->getField1Name(11),0,&dummy,H5T_NATIVE_DOUBLE);
+        writeArray(group2,prob->getField1Name(12),0,&dummy,H5T_NATIVE_DOUBLE);
       }
       for (size_t j = 0; j < prob->getNoFields(2); ++j)
-        writeArray(group2,prob->getField2Name(j),0,&dummy);
+        writeArray(group2,prob->getField2Name(j),0,&dummy,H5T_NATIVE_DOUBLE);
     }
     H5Gclose(group2);
   }
+#endif
+}
+
+void HDF5Writer::writeBasis(SIMbase* sim, const std::string& name,
+                               int basis, int level)
+{
+#ifdef HAS_HDF5
+  std::stringstream str;
+  str << "/" << level << "/basis/";
+  int group;
+  if (checkGroupExistence(m_file,str.str().c_str()))
+    group = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
+  else
+    group = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
+  str << "/"+name;
+  if (checkGroupExistence(m_file,str.str().c_str()))
+  {
+    H5Gclose(group);
+    return;
+  }
+  hid_t group2 = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
+
+  for (int i=0;i<sim->getNoPatches();++i) {
+    std::stringstream str;
+    int loc = sim->getLocalPatchIndex(i+1);
+    if (loc > 0)
+      sim->dumpBasis(str,basis,loc);
+    std::stringstream str2;
+    str2 << i+1;
+    writeArray(group2, str2.str(), str.str().size(), str.str().c_str(),
+               H5T_NATIVE_CHAR);
+  }
+  H5Gclose(group2);
+  H5Gclose(group);
 #endif
 }
 

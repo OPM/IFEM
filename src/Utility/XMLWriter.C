@@ -118,38 +118,27 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry)
   if (prob->mixedFormulation())
   {
     // primary solution vector
-    addField(entry.first,entry.second.description,g2file,
+    addField(entry.first,entry.second.description,sim->getName()+"-0",
 	     prob->getNoFields(1),sim->getNoPatches());
 
-    std::string g2file1(m_name);
-    std::string g2file2(m_name);
-    std::ofstream os1(replaceAll(g2file1,".xml","_1.g2").c_str());
-    std::ofstream os2(replaceAll(g2file2,".xml","_2.g2").c_str());
-    sim->dumpBasis(os1,1);
-    sim->dumpBasis(os2,2);
-    g2file = g2file2; // Assuming that basis2 is used for secondary variables
-
+    // Assuming that basis2 is used for secondary variables
     // primary solution fields
-    addField(prob->getField1Name(11),"primary",g2file1,
+    addField(prob->getField1Name(11),"primary",sim->getName()+"-0",
 	     sim->getNoFields(1),sim->getNoPatches());
-    addField(prob->getField1Name(12),"primary",g2file2,
+    addField(prob->getField1Name(12),"primary",sim->getName()+"-1",
 	     sim->getNoFields(2),sim->getNoPatches());
   }
   else
   {
-    g2file = m_name;
-    std::ofstream os(replaceAll(g2file,".xml",".g2").c_str());
-    sim->dumpGeometry(os);
-
     // primary solution
-    addField(prob->getField1Name(11),entry.second.description,g2file,
+    addField(prob->getField1Name(11),entry.second.description,sim->getName()+"-0",
 	     prob->getNoFields(1),sim->getNoPatches());
   }
 
   // secondary solution fields
   if (entry.second.size == -1)
     for (size_t j = 0; j < prob->getNoFields(2); j++)
-      addField(prob->getField2Name(j),"secondary",g2file,1,sim->getNoPatches());
+      addField(prob->getField2Name(j),"secondary",sim->getName()+"-1",1,sim->getNoPatches());
 }
 
 

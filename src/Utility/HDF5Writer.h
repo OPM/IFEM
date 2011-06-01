@@ -29,7 +29,9 @@ public:
 
 protected:
   void writeArray(int group, const std::string& name,
-                  int len, void* data);
+                  int len, const void* data, int type);
+  void writeBasis(SIMbase* SIM, const std::string& name,
+                     int basis, int level);
   void readArray(int group, const std::string& name,
                  int& len, double*& data);
   bool checkGroupExistence(int parent, const char* group);
