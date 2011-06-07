@@ -20,6 +20,7 @@
 #include <map>
 
 class VTF;
+class ElmNorm;
 
 
 /*!
@@ -86,6 +87,11 @@ public:
   virtual bool evalSol(Vector& s,
 		       const Vector& N, const Matrix& dNdX,
 		       const Vec3& X, const std::vector<int>& MNPC) const;
+
+  //! \brief Evaluates the primary solution at a result point.
+  //! \param[in] N Basis function values at current point
+  //! \return Primary solution vector at current point
+  double evalSol(const Vector& N) const;
 
   //! \brief Evaluates the finite element (FE) solution at an integration point.
   //! \param[out] s The FE solution values at current point
@@ -185,6 +191,22 @@ public:
 
   //! \brief Returns the number of norm quantities.
   virtual size_t getNoFields(int = 0) const { return anasol ? 3 : 1; }
+
+protected:
+  //! \brief Evaluates the integrand at a boundary point.
+  //! \param elmInt The local integral object to receive the contributions
+  //! \param[fe] Finite Element quantities
+  //! \param[in] X Cartesian coordinates of current integration point
+  //! \param[in] normal Boundary normal vector at current integration point
+  virtual bool evalBou(LocalIntegral*& elmInt,  const FiniteElement& fe,
+		       const Vec3& X, const Vec3& normal) const;
+
+  //! \brief Get a pointer to the element norm object to use in the integration.
+  //! \param elmInt The local integral object to receive norm contributions
+  //!
+  //! \details If \a elmInt is NULL or cannot be casted to a ElmNorm pointer,
+  //! a local static buffer is used instead.
+  static ElmNorm* getElmNormBuffer(LocalIntegral*& elmInt);
 
 private:
   Poisson& problem; //!< The problem-specific data

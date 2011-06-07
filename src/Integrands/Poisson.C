@@ -183,6 +183,15 @@ bool Poisson::writeGlvT (VTF* vtf, int iStep, int& nBlock) const
   return vtf->writeVblk(nBlock,"Tractions",1,iStep);
 }
 
+double Poisson::evalSol (const Vector& N) const
+{
+  double u = 0;
+  if (eV && eV->size() == N.size()*nsd)
+      u = eV->dot(N);
+
+  return u;
+}
+
 
 bool Poisson::formCmatrix (Matrix& C, const Vec3&, bool invers) const
 {
@@ -244,6 +253,18 @@ bool Poisson::evalSol (Vector& q, const Matrix& dNdX, const Vec3& X) const
   q *= -1.0;
 
   return true;
+}
+
+ElmNorm* PoissonNorm::getElmNormBuffer (LocalIntegral*& elmInt)
+{
+  ElmNorm* eNorm = dynamic_cast<ElmNorm*>(elmInt);
+  if (eNorm) return eNorm;
+
+  static double data[4];
+  static ElmNorm buf(data);
+  memset(data,0,4*sizeof(double));
+  elmInt = eNorm = &buf;
+  return eNorm;
 }
 
 
@@ -327,5 +348,20 @@ bool PoissonNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
     pnorm[2] += sigma.dot(Cinv*sigma)*fe.detJxW;
   }
 
+  return true;
+}
+
+bool PoissonNorm::evalBou(LocalIntegral*& elmInt, const FiniteElement& fe,
+		          const Vec3& X, const Vec3& normal) const
+{
+  ElmNorm* eNorm = PoissonNorm::getElmNormBuffer(elmInt);
+
+  // Evaluate the surface flux
+  double T = problem.getTraction(X,normal);
+  // Evaluate the displacement field
+  double u = problem.evalSol(fe.N);
+
+  // Integrate the external energy
+  (*eNorm)[1] += T*u*fe.detJxW;
   return true;
 }
