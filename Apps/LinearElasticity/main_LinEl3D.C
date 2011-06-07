@@ -359,6 +359,7 @@ int main (int argc, char** argv)
       if (!model->writeGlvN(eNorm,iStep,nBlock))
 	return 12;
 
+    model->writeGlvStep(1,0,1);
     model->closeGlv();
   }
 
