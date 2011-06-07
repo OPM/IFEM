@@ -25,6 +25,13 @@ class VTFADisplacementBlock;
 class VTFAVectorBlock;
 class VTFAScalarBlock;
 
+#if HAS_VTFAPI == 2
+class VTFXADatabase;
+class VTFXAFile;
+class VTFXAResultBlock;
+class VTFXAStateInfoBlock;
+#endif
+
 
 /*!
   \brief Class for output of FE model and results to VTF file.
@@ -146,11 +153,20 @@ public:
   static real vecOffset[3]; //!< Optional offset for vector attack points
 
 private:
+#if HAS_VTFAPI == 1
   VTFAFile* myFile; //!< Pointer to the actual VTF-file being written
-  VTFAStateInfoBlock* myState; //!< The state info block for this file
-  std::vector<VTFADisplacementBlock*> myDBlock; //!< Displacement blocks
   std::vector<VTFAVectorBlock*>       myVBlock; //!< Vector field blocks
   std::vector<VTFAScalarBlock*>       mySBlock; //!< Scalar field blocks
+  std::vector<VTFADisplacementBlock*> myDBlock; //!< Displacement blocks
+  VTFAStateInfoBlock* myState; //!< The state info block for this file
+#elif HAS_VTFAPI == 2
+  VTFXAFile* myFile;
+  VTFXADatabase* myDatabase;
+  std::vector<VTFXAResultBlock*>       myVBlock; //!< Vector field blocks
+  std::vector<VTFXAResultBlock*>       mySBlock; //!< Scalarfield blocks
+  std::vector<VTFXAResultBlock*>       myDBlock; //!< Displacement blocks
+  VTFXAStateInfoBlock* myState; //!< The state info block for this file
+#endif
   std::vector<const ElementBlock*>    myBlocks; //!< The FE geometry
 };
 
