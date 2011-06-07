@@ -898,10 +898,14 @@ bool SIMbase::writeGlv (const char* inpFile, const int* nViz, int format)
   // Open a new VTF-file
   char* vtfName = new char[strlen(inpFile)+10];
   strtok(strcpy(vtfName,inpFile),".");
+  const char* ext = ".vtf";
+#if HAS_VTFAPI == 2
+  ext = ".vtfx";
+#endif
   if (nProc > 1)
-    sprintf(vtfName+strlen(vtfName),"_p%04d.vtf",myPid);
+    sprintf(vtfName+strlen(vtfName),"_p%04d%s",myPid,ext);
   else
-    strcat(vtfName,".vtf");
+    strcat(vtfName,ext);
 
   std::cout <<"\nWriting VTF-file "<< vtfName << std::endl;
   myVtf = new VTF(vtfName,format);
