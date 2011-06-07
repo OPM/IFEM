@@ -49,6 +49,9 @@ public:
   //! \brief Defines the heat source.
   void setSource(RealFunc* src) { heatSrc = src; }
 
+  //! \brief Evaluates the boundary traction field (if any) at specified point.
+  double getTraction(const Vec3& X, const Vec3& n) const;
+
   //! \brief Defines the conductivity (constitutive property).
   void setMaterial(double K) { kappa = K; }
 

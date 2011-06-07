@@ -78,6 +78,15 @@ void Poisson::setMode (SIM::SolutionMode mode)
     }
 }
 
+double Poisson::getTraction (const Vec3& X, const Vec3& n) const
+{
+  if (tracFld)
+    return (*tracFld)(X)*(n);
+  else
+    return 0;
+}
+
+
 
 bool Poisson::initElement (const std::vector<int>& MNPC)
 {
