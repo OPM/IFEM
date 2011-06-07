@@ -1,0 +1,1161 @@
+% $Id$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass{beamer}
+\usepackage[english]{babel}
+\usepackage{eqalign}
+\usepackage{bm}
+\usepackage{epic}
+\usepackage{epsfig}
+
+\def\hideframe{\frame<article>}
+\def\classitem#1{\item{\color{red}\tt#1} -}
+\def\hugebox#1{\colorbox{white}{\fboxrule=0.5mm\fbox{\huge~#1~}}}
+\def\BigBox#1#2{\fboxrule=0.3mm\fbox{\begin{minipage}{42mm}
+ {\small\color{red}#1} -- \scriptsize #2\end{minipage}}}
+
+\title{\Large{\sl IFEM} - getting started}
+
+\author{Knut Morten Okstad}
+
+\institute{SINTEF ICT, Department of Applied Mathematics}
+
+\hypersetup{colorlinks=true,urlcolor=blue}
+\hypersetup{pdfauthor=Knut Morten Okstad}
+\hypersetup{pdfsubject=Getting started with IFEM as simulation tool}
+\hypersetup{pdfkeywords=NURBS Isogeometry FEA Object-orientation}
+
+
+\begin{document} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\frame %1
+{
+ \frametitle{\footnotesize ICADA - Note 2011-001:}
+ \titlepage
+}
+
+\frame %2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+{
+ \frametitle{IFEM module overview}
+
+ \begin{picture}(300,150)
+  \thicklines
+
+  \put(140, 66){\includegraphics[width=1cm]{user}}
+  \put(149, 60){\tiny user}
+  \put(117, 95){\vector(-2, 1){30}}\put(107,100){\vector( 2,-1){30}}
+  \put(  0,140){\BigBox{GEOM}{Geometry Modeller
+   \begin{itemize}\tiny
+   \item Edit g2-files (GoTools) by hand
+   \item Using Rhino and small C++ tools
+   \item Coming: Interactive volumetric modeler
+   \end{itemize}}}
+
+  \uncover<2->{
+  \put(190, 95){\vector( 2, 1){30}}\put(200,100){\vector(-2,-1){30}}
+  \put(135,145){\vector( 1, 0){60}}
+  \put(200,140){\BigBox{GPM}{Grid/Property Modeller
+   \begin{itemize}\tiny
+   \item Automatic global node numbering for multi-patch models
+   \item Interactive assignment of property codes to topological entities
+   \end{itemize}}}}
+
+  \uncover<3->{
+  \put(190, 65){\vector( 2,-1){30}}\put(200, 60){\vector(-2, 1){30}}
+  \put(260,113){\vector( 0,-1){65}}
+  \put(200, 10){\BigBox{SIM}{Numerical Simulation
+   \begin{itemize}\tiny
+   \item Object-oriented framework for Isogeometric Finite Element Analysis
+   \item The user has to program his/her own application
+   \item A few sample applications are provided (Poisson, Linear elasticity)
+   \end{itemize}}}}
+
+  \uncover<4->{
+  \put(117, 65){\vector(-2,-1){30}}\put(107, 60){\vector( 2, 1){30}}
+  \put(195, 13){\vector(-1, 0){60}}
+  \put(  0, 10){\BigBox{RESV}{Result Visualization
+   \begin{itemize}\tiny
+   \item Currently, GLview Inova (Ceetron) \\ is used based on VTF file format
+   \item HDF5 file format is used for result storage and restart, from which
+   converters to any preferred visualization tool can be made
+   \end{itemize}}}}
+
+ \end{picture}
+}
+
+\frame %3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+{
+ \frametitle{Major class hierarchies of the SIMulation environment}
+
+ \begin{enumerate}
+  \item<1-> {\color{red}NonLinSIM} - Nonlinear simulation driver
+  \begin{itemize}
+   \item Administers time/load step loop of the solution algorithm
+   \item Newton iteration loop,
+   \footnotesize convergence check, configuration update
+  \end{itemize}
+
+  \item<2-> {\color{red}SystemMatrix/Vector} - Linear algebra system level
+  \begin{itemize}
+   \item Interface to equation solvers (direct/iterative, serial/parallel)
+   \item Sub-classes for various linear equation solver packages
+  \end{itemize}
+
+  \item<3-> {\color{red}SIMbase} - System level drivers
+  \begin{itemize}
+   \item Administering an assembly of spline patches (blocks)
+   \item Sub-classes for problem-specific input and setup
+  \end{itemize}
+
+  \item<4-> {\color{red}ASMbase} - Block/patch level drivers
+  \begin{itemize}
+   \item Administers the element loop and numerical integration loop within
+         a block (spline patch)
+   \item Sub-classes depending on discretization
+         (Splines/NURBS, Lagrange, Spectral)
+   \item Uses {\sl GoTools} to evaluate basis functions at integration points
+   {\scriptsize\url{http://www.sintef.no/Projectweb/Geometry-Toolkits/GoTools}}
+  \end{itemize}
+
+  \item<5-> {\color{red}Integrand} - Integration point level
+  \begin{itemize}
+   \item Administers the problem-dependent calculations at an integration point
+         (interior and boundary integrals)
+   \item Problem-specific sub-classes
+  \end{itemize}
+ \end{enumerate}
+
+ \begin{picture}(0,0)
+  \color{red}
+  \uncover<6->{\put(55,97){\hugebox{Isogeometric level}}}
+  \uncover<7->{\put(55,25){\hugebox{User/Application level}}}
+ \end{picture}
+}
+
+\frame %4 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+{
+ \frametitle{ASM class hierarchy - \em the Isogeometry level}
+
+ \begin{picture}(310,205)
+  \put(240,195){\vector(1,0){15}}
+  \put(258,193){\scriptsize 'is-a' relationship}
+  \dashline[50]{2}(240,185)(255,185)\put(250,185){\vector(1,0){5}}
+  \put(258,183){\scriptsize 'has-a' relationship}
+
+  \put( 90,190){\color{red}\fbox{\small ASMbase}}
+
+  \uncover<2->{
+   \put( 20,150){\color{red}\fbox{\small ASMstruct}}
+   \put(120,150){\color{green}\fbox{\small GeomObject}}
+   \put( 47,161){\vector(2,1){50}}
+   \dashline[50]{2}(72,154)(120,154)\put(115,154){\vector(1,0){5}}}
+
+  \uncover<3->{
+   \put( 37,121){\vector(1,3){8}}
+   \put( 12,110){\color{red}\fbox{\small ASMs1D}}}
+  \uncover<3-3>{
+   \put(110,110){\color{green}\fbox{\small SplineCurve}}
+   \put(140,120){\vector(1,3){8}}
+   \dashline[50]{2}(56,114)(110,114)\put(105,114){\vector(1,0){5}}}
+
+  \uncover<4->{\put( 15,105){\colorbox{white}{\color{red}\fbox{\small ASMs2D}}}}
+  \uncover<4-4>{
+   \put(110,108){\color{green}\fbox{\small SplineSurface}}
+   \put(140,119){\vector(1,3){8}}
+   \dashline[50]{2}(62,110)(110,112)\put(105,112){\vector(1,0){5}}}
+
+  \uncover<5->{\put(20,100){\colorbox{white}{\color{red}\fbox{\small ASMs3D}}}}
+  \uncover<5-9>{
+   \put(110,106){\color{green}\fbox{\small SplineVolume}}
+   \put(140,118){\vector(1,3){8}}
+   \dashline[50]{2}(67,105)(110,110)\put(105,110){\vector(1,0){5}}}
+
+  \uncover<6->{
+   \put( 43,71){\vector(0,1){25}}
+   \put( 15,60){\color{red}\fbox{\small ASMs3Dmx}}}
+  \uncover<6-9>{\dashline[50]{2}(72,65)(133,98)\put(130,95){\vector(1,1){6}}}
+
+  \uncover<7->{
+   \put(130,60){\vector(-2,1){72}}
+   \put(100,50){\color{red}\fbox{\small ASMs3DLag}}}
+
+  \uncover<8->{
+   \put( 70,20){\vector(2,1){48}}
+   \put( 30,10){\color{red}\fbox{\small ASMs3DmxLag}}}
+
+  \uncover<9->{
+   \put(210,150){\color{red}\fbox{\small ASMunstruct}}
+   \put(235,161){\vector(-4,1){100}}
+   \dashline[50]{2}(210,153)(178,153)\put(183,153){\vector(-1,0){5}}}
+
+  \uncover<10->{
+   \put(250,121){\vector(-1,3){8}}
+   \put(150,121){\vector(0,1){23}}
+   \put(222,110){\color{red}\fbox{\small ASMu2DTspline}}}
+  \uncover<10-10>{
+   \dashline[50]{2}(220,113)(195,113)\put(194,113){\vector(-1,0){5}}
+   \put(120,110){\color{green}\fbox{\small TsplineSurface}}}
+
+  \uncover<11->{
+   \put(212,105){\colorbox{white}{\color{red}\fbox{\small ASMu2DLRspline}}}}
+  \uncover<11-11>{
+   \put(110,108){\color{green}\fbox{\small LRsplineSurface}}
+   \dashline[50]{2}(212,109)(185,112)\put(188,111){\vector(-1,0){5}}}
+
+  \uncover<12->{
+   \put(207,100){\colorbox{white}{\color{red}\fbox{\small ASMu3DLRspline}}}
+   \put(110,108){\color{green}\fbox{\small LRsplineVolume}}
+   \dashline[50]{2}(207,104)(186,111)\put(188,111){\vector(-1,0){5}}}
+
+  \uncover<13->{
+   \put(243,70){\vector(0,1){25}}
+   \put(200,60){\color{red}\fbox{\small ASMu3DmxLRspline}}}
+
+   \put(260,10){\color{red}\scriptsize{\sl IFEM} classes}
+   \put(260, 0){\color{green}\scriptsize{\sl GoTools} classes}
+ \end{picture}
+
+ \uncover<14->{\small
+ {\color{red} ASMbase} is the interface between the isogeometric FE procedures,
+ and the solution algorithms (from above) and the physical problem to be solved
+ (from below).}
+}
+
+\begin{frame}[fragile] %5 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ \frametitle{The main ASM methods}
+
+ \tiny
+ \begin{verbatim}
+typedef std::vector<LocalIntegral*> LintegralVec; //!< Local integral container
+
+class ASMbase
+{
+public:
+  //! \brief Evaluates an integral over the interior patch domain.
+  //! \param integrand Object with problem-specific data and methods
+  //! \param glbInt The integrated quantity
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
+  //! \param locInt Vector of element-wise contributions to \a glbInt
+  virtual bool integrate(Integrand& integrand,
+                         GlobalIntegral& glbInt, const TimeDomain& time,
+                         const LintegralVec& locInt = LintegralVec()) = 0;
+
+  //! \brief Evaluates a boundary integral over a patch face/edge.
+  //! \param integrand Object with problem-specific data and methods
+  //! \param[in] lIndex Local index of the boundary face/edge
+  //! \param glbInt The integrated quantity
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
+  //! \param locInt Vector of element-wise contributions to \a glbInt
+  virtual bool integrate(Integrand& integrand, int lIndex,
+                         GlobalIntegral& glbInt, const TimeDomain& time,
+                         const LintegralVec& locInt = LintegralVec()) = 0;
+};
+ \end{verbatim}
+ \footnotesize
+ {\color{red}LocalIntegral} and {\color{red}GlobalIntegral} are interfaces to
+ the element-level and system-level matrices of the FE problem.
+ {\color{red}TimeDomain} contains the integration parameters
+ needed for nonlinear and/or time-dependent simulations.
+\end{frame}
+
+\frame %6 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+{
+ \frametitle{Numerical integration method for a 3D spline patch}
+
+ \scriptsize\tt
+ \begin{tabbing} bo\=ol\=AS\=Ms\=3D::integrateXX(\= \kill
+  bool {\color{red}ASMs3D}::{\color{blue}integrate}
+  ({\color{red}Integrand}\& integrand, {\color{red}GlobalIntegral}\& glInt, \\
+  \>\>\>\>\> const {\color{red}TimeDomain}\& time,
+  const {\color{red}LintegralVec}\& locInt) \\
+  \{\\
+  \uncover<2->{\>
+  {\rm Compute parameter values (u,v,w)
+  of all integration points within the patch} \+\\[1mm]
+  basis->{\color{green}SplineVolume}::%
+  {\color{blue}computeBasisGrid}(u,v,w,splineData); \+\\[1pt]
+  splineData {\rm contains derivatives w.r.t. u,v,w of all basis functions} \\
+  {\rm at all integration points and the function values themselves}\-\-\\[1mm]}
+
+  \uncover<3->{
+  {\rm Loop over elements (knot-spans);} do iel=0,nel-1 \\}
+   \uncover<4->{\>\>
+   If {\rm current knot span is non-zero in all three directions} then \\}
+    \uncover<5->{\>\>\>
+    {\rm Initialize for numerical integration over the element} \\\>\>\>
+    {\rm Fetch nodal coordinates (control points) for current element,} Xnod \\}
+    \uncover<6->{\>\>\>
+    {\rm Loop over integration points;}
+    do i=1,nGauss, j=1,nGauss, k=1,nGauss \\}
+     \uncover<7->{\>\>\>\>
+     {\rm Fetch data from} splineData
+     {\rm belonging to current integration point;} N, dN/du \\}
+     \uncover<8->{\>\>\>\>
+     {\rm Compute Cartesian coordinates and Jacobian;}
+     X = N*Xnod, J = dN/du*Xnod \\\>\>\>\>
+     {\rm and the gradient;} dN/dX = dN/du * J$^{-1}$ \\}
+     \uncover<9->{\>\>\>\>
+     integrand.{\color{blue}evalInt}%
+     (locInt[iel], time, detJ*weight, N, dN/dX, X); \\}
+    \uncover<6->{\>\>\>
+    end do i, j, j \\}
+    \uncover<10->{\>\>\>
+    integrand.{\color{blue}finalizeElement}(locInt[iel]); \\}
+    \uncover<11->{\>\>\>
+    glInt.{\color{blue}assemble}(locInt[iel], MGEL[iel]); \\}
+   \uncover<4->{\>\>
+   end if \\}
+  \uncover<3->{\>
+  end do iel \\}
+\}
+\end{tabbing}
+\uncover<12->{
+ \thicklines\color{red}
+ \begin{picture}(0,0)
+  \put(  6,207){\line(1,0){290}}
+  \put(  6,165){\line(1,0){290}}
+  \put(  6,165){\line(0,1){42}}
+  \put(296,165){\line(0,1){42}}
+ \end{picture}}
+}
+
+\begin{frame}[fragile] %7 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ \frametitle{The ``user'' interface ...}
+
+ \tiny
+ \begin{verbatim}
+class Integrand
+{
+  //! \brief Evaluates the integrand at an interior point.
+  //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe Finite element data of current integration point
+  //! \param[in] time Parameters for nonlinear and time-dependent simulations
+  //! \param[in] X Cartesian coordinates of current integration point
+  //!
+  //! \details The default implementation forwards to the stationary version.
+  //! Reimplement this method for time-dependent or non-linear problems.
+  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
+                       const TimeDomain& time, const Vec3& X) const;
+
+
+  //! \brief Evaluates the integrand at a boundary point.
+  //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe Finite element data of current integration point
+  //! \param[in] time Parameters for nonlinear and time-dependent simulations
+  //! \param[in] X Cartesian coordinates of current integration point
+  //! \param[in] normal Boundary normal vector at current integration point
+  //!
+  //! \details The default implementation forwards to the stationary version.
+  //! Reimplement this method for time-dependent or non-linear problems.
+  virtual bool evalBou(LocalIntegral*& elmInt, const FiniteElement& fe,
+                       const TimeDomain& time,
+                       const Vec3& X, const Vec3& normal) const;
+
+  . . .
+};
+ \end{verbatim}
+ \vskip-5mm\footnotesize
+ Overloaded versions of these method interfaces exist without the
+ {\tt TimeDomain} argument, for stationary/linear problems.
+\end{frame}
+
+\begin{frame}[fragile] %8 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ \frametitle{Finite element data at integration point level}
+
+ \scriptsize
+ \begin{verbatim}
+class FiniteElement
+{
+public:
+  int      iel;    //!< Element identifier
+  double   u;      //!< First parameter of current point
+  double   v;      //!< Second parameter of current point
+  double   w;      //!< Third parameter of current point
+  double   h;      //!< Characteristic element size
+  Vector   N;      //!< Basis function values
+  Vector   Navg;   //!< Volume-averaged basis function values
+  Matrix   dNdX;   //!< First derivatives (gradient) of the basis functions
+  Matrix3D d2NdX2; //!< Second derivatives of the basis functions
+  double   detJxW; //!< Weighted determinant of the coordinate mapping
+};
+ \end{verbatim}
+
+An object of this class is used to transport all integration point quantities to
+the application-dependent integrands.
+\end{frame}
+
+\frame %9 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+{
+ \frametitle{Framework for two-field mixed formulations}
+
+ \begin{itemize}
+  \item<1-> Two sets of basis functions --
+            the first basis should be of one order higher than the second
+  \item<2-> Current solution: Establish the first basis by order-elevating
+            the second basis once
+  \begin{itemize}
+   \item<3-> The knot-span elements become the same for the two bases,
+             $\Rightarrow$ simplifies the finite element topology management.
+   \item<4-> Since the geometry represented by the two bases will be identical,
+             it suffice to use the second (lowest order) basis only,
+             when evaluating the Jacobian of the geometry mapping
+             and the basis function gradients w.r.t.\ Cartesian coordinates.
+   \item<5-> The user only needs to relate to the lowest-order grid/basis, the
+             higher order basis is established internally automatically.
+   \vskip2mm
+   \item<6-> But, we only get ${\cal C}^{p-2}$ continuity in the highest-order
+             solution field ($p$ being the polynomial order of the first basis),
+             and ${\cal C}^{p-1}$ continuity in the other field.
+  \end{itemize}
+  \item<7-> TODO: Manage bases with ${\cal C}^{p-1}$ continuity in both fields.
+ \end{itemize}
+}
+
+\frame %10
+{
+ \frametitle{Numerical integration for the two-field mixed method}
+
+ \scriptsize\tt
+ \begin{tabbing} bo\=ol\=AS\=Ms\=3Dmx::integrateXX(\= \kill
+  bool {\color{red}ASMs3Dmx}::{\color{blue}integrate}
+  ({\color{red}Integrand}\& integrand, {\color{red}GlobalIntegral}\& glInt, \\
+  \>\>\>\>\> const {\color{red}TimeDomain}\& time,
+  const {\color{red}LintegralVec}\& locInt) \\
+  \{\\
+  \uncover<2->{\>
+  {\rm Compute parameter values (u,v,w)
+  of all integration points within the patch} \+\\[1mm]
+  basis1->{\color{green}SplineVolume}::%
+  {\color{blue}computeBasisGrid}(u,v,w,splineData1); \\
+  basis2->{\color{green}SplineVolume}::%
+  {\color{blue}computeBasisGrid}(u,v,w,splineData2); \-\\[1mm]}
+
+  \uncover<3->{\>
+  {\rm Loop over elements (knot-spans);} do iel=0,nel-1 \+\+\\
+   If {\rm current knot span is non-zero in all three directions} then \-\-\\}
+    \uncover<4->{\>\>\>
+    {\rm Initialize for numerical integration over the element} \\\>\>\>
+    {\rm Fetch nodal coordinates for current element,} Xnod
+    {\rm (Note: for }basis2 {\rm only)} \\}
+    \uncover<5->{\>\>\>
+    {\rm Loop over integration points;}
+    do i=1,nGauss, j=1,nGauss, k=1,nGauss \\}
+     \uncover<6->{\>\>\>\>
+     {\rm Fetch data from} splineData[12]; N$_1$, dN$_1$/du, N$_2$, dN$_2$/du\\}
+     \uncover<7->{\>\>\>\>
+     {\rm Compute Cartesian coordinates and Jacobian;}
+     X = N$_2$*Xnod, J = dN$_2$/du*Xnod \\\>\>\>\>
+     {\rm and the gradients;} dN$_1$/dX = dN$_1$/du * J$^{-1}$,
+     dN$_2$/dX = dN$_2$/du * J$^{-1}$, \\}
+     \uncover<8->{\>\>\>\>
+     integrand.{\color{blue}evalInt}%
+     (locInt[iel], time, detJ*weight, \\\>\>\>\>\>
+      N$_1$, dN$_1$/dX, N$_2$, dN$_2$/dX, X); \\}
+    \uncover<5->{\>\>\>
+    end do i, j, j \\}
+    \uncover<9->{\>\>\>
+    integrand.{\color{blue}finalizeElement}(locInt[iel]); \\\>\>\>
+    glInt.{\color{blue}assemble}(locInt[iel], MGEL[iel]); \\}
+   \uncover<3->{\>\>
+   end if \\\>
+  end do iel \\}
+\}
+\end{tabbing}
+}
+
+\frame %11 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+{
+ \frametitle{Current Applications - {\color{red}\tt Integrand} sub-classes}
+
+ \small
+ \begin{itemize}
+  \classitem{Poisson} Simple scalar equation
+
+  \pause
+  \classitem{Elasticity} Solid mechanics problems
+  \begin{itemize}
+   \classitem{LinearElasticity} Linear elasticity, isotropic material
+   \classitem{NonlinearElasticityTL} Finite deformation elasticity, \\
+    Total Lagrangian formulation, linear elastic material
+   \classitem{NonlinearElasticityUL} Finite deformation elasticity,
+    Updated Lagrangian formulation, Neo-Hookean materials
+   \pause
+   \begin{itemize}
+    \classitem{NonlinearElasticityULMX} Incompressible and nearly incompressible
+     materials, mixed formulation with internal pressure and volumetric change
+     modes
+    \classitem{NonlinearElasticityULMixed} ...,
+     mixed formulation with with continuous pressure and volumetric change fields
+    \\(work in progress)
+   \end{itemize}
+  \end{itemize}
+
+  \pause
+  \classitem{StabilizedStokes} Pressure-stabilized Stokes, fully coupled
+  \begin{itemize}
+   \classitem{NavierStokesG2} G2-stabilized Navier--Stokes solver, \\
+                              Euler time integration
+   \classitem{NavierStokesG2M2} ..., Mid-point rule time integration
+  \end{itemize}
+
+  \pause
+  \item Projection-based, decoupled Navier--Stokes solvers (Chorin method)
+  \begin{itemize}
+   \item Mixed formulation (work in progress)
+  \end{itemize}
+
+ \end{itemize}
+}
+
+\frame %12 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+{
+ \frametitle{Implementational issues (integration point level)}
+
+ \begin{itemize}
+  \item<1-> Using splines as basis function, especially the higher-order ones,
+            the ``elements'' become large (in terms of nodal connectivities)
+            $\Rightarrow$ large, dense element matrices
+  \item<2-> Element-level linear algebra: Use machine-optimized {\bf BLAS}
+            rather than inline C++ code
+  \item<2-> Important to express the nonlinear FE formulation on {\em matrix}
+            form (Voigt notation) --- not {\em tensor} form
+ \end{itemize}
+}
+
+\frame %13 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+{
+ \frametitle{System-level linear algebra -- equation solving}
+
+ \begin{itemize}
+  \item Interfaced through classes {\color{red}\tt SystemMatrix} and
+        {\color{red}\tt SystemVector} with sub-classes for particular solvers.
+  \vskip5pt
+  \item Current available linear equation solvers:
+  \begin{itemize}
+   \item LAPACK {\tt DGESV} (dense matrices, small problems only)
+   \item SuperLU (direct methods)
+         \hfill{\scriptsize\url{http://crd.lbl.gov/~xiaoye/SuperLU}}
+   \item PETSc (iterative methods)
+         \hfill{\scriptsize\url{http://www.mcs.anl.gov/petsc}}
+   \item Parallelization in progress (based on PETSc and MPI)
+  \end{itemize}
+ \end{itemize}
+}
+
+\frame %14 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+{
+ \frametitle{Detailed source code documentation}
+
+ See the doxygen-generated html-pages \url{../html/index.html}
+}
+
+\frame %15 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+{
+ \begin{center}
+  \huge\color{blue} Tutorial: Poisson equation in $R^2$
+ \end{center}
+
+ Given a heat source function $f(x,y)$ defined over a domain
+ $\Omega\in R^2$, a flux function $h(x,y)$ defined over the boundary
+ $\partial\Omega_h$, and a function $g(x,y)$ defined over the boundary
+ $\partial\Omega_g = \partial\Omega\setminus\partial\Omega_h$,
+ find the scalar function $u(x,y)$ satisfying
+ \begin{eqnarray}
+  \left.\eqalign{
+  q_{i,i} &= f \cr
+  q_i & = -\kappa_{ij} u_{,j}
+  }\right\} &\forall& \{x,y\}\in\overline{\Omega} \\[2mm]
+  q_i n_i = h &\forall& \{x,y\}\in\partial\Omega_h \\
+  u = g &\forall&\{x,y\}\in\partial\Omega_g
+ \end{eqnarray}
+ where $\kappa_{ij}$ is the conductivity tensor and $n_i$ defines the outward-
+ directed unit normal vector on $\partial\Omega_h$.
+}
+
+\begin{frame}[fragile] %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ \frametitle{Tutorial: Poisson equation}
+
+ \begin{columns}[c]
+  \column{0.6\textwidth}
+  \tiny\begin{verbatim}
+class Poisson : public Integrand
+{
+protected:
+  // Physical properties
+  double    kappa;   //!< Conductivity (constant)
+  VecFunc*  fluxFld; //!< Boundary heat flux field
+  RealFunc* heatSrc; //!< Interior heat source field
+
+  // Finite element quantities
+  Matrix* eM; //!< Element coefficient matrix
+  Vector* eS; //!< Element right-hand-side vector
+  Vector* eV; //!< Element solution vector
+
+  mutable ElmMats myMats; //!< Local element matrices
+  \end{verbatim}
+  \column{0.4\textwidth} \small
+  Define the class {\tt Poisson} as an {\tt Integrand} subclass,
+  containing data and methods that are specific to the 2D Poisson problem
+  (assuming constant conductivity).
+ \end{columns}
+ \pause
+ \begin{columns}[c]
+  \column{0.6\textwidth}
+  \tiny\begin{verbatim}
+
+public:
+  Poisson() : kappa(1.0), fluxFld(0), heatSrc(0)
+  {
+    primsol.resize(1);
+    myMats.A.resize(1);
+    myMats.b.resize(2);
+    eM = &myMats.A[0];
+    eS = &myMats.b[0];
+    eV = &myMats.b[1];
+  }
+  virtual ~Poisson() {}
+  \end{verbatim}
+  \column{0.4\textwidth}\small
+  Define the class constructor and destructor.
+  The constructor {\tt Poisson()} initializes the data members.
+ \end{columns}
+
+\end{frame}
+\begin{frame}[fragile]
+ \frametitle{Tutorial: Poisson equation}
+
+ \begin{columns}[c]
+  \column{0.6\textwidth}
+  \tiny\begin{verbatim}
+  void setMaterial(double K) { kappa = K; }
+  void setFlux(VecFunc* tf) { fluxFld = tf; }
+  void setSource(RealFunc* src) { heatSrc = src; }
+  \end{verbatim}
+  \column{0.4\textwidth} \small
+  Initialization of physical properties.
+ \end{columns}
+ \pause
+ \begin{columns}[c]
+  \column{0.6\textwidth}
+  \tiny\begin{verbatim}
+  virtual bool initElement(const std::vector<int>& MNPC);
+  virtual bool initElementBou(const std::vector<int>& MNPC);
+  \end{verbatim}
+  \column{0.4\textwidth} \small
+  Virtual methods for element initialization during the numerical integration.
+ \end{columns}
+ \pause
+ \begin{columns}[c]
+  \column{0.6\textwidth}
+  \tiny\begin{verbatim}
+  virtual bool evalInt(LocalIntegral*& elmInt,
+                       const FiniteElement& fe,
+                       const Vec3& X) const;
+  virtual bool evalBou(LocalIntegral*& elmInt,
+                       const FiniteElement& fe,
+                       const Vec3& X,
+                       const Vec3& normal) const;
+  virtual bool evalSol(Vector& s,
+                       const Vector& N,
+                       const Matrix& dNdX,
+                       const Vec3& X,
+                       const std::vector<int>& MNPC) const;
+  virtual bool evalSol(Vector& s,
+                       const VecFunc& asol,
+                       const Vec3& X) const;
+  \end{verbatim}
+  \column{0.4\textwidth} \small
+  Virtual methods for integrand and solution field evaluation.
+ \end{columns}
+ \pause
+ \vskip-5mm
+ \begin{columns}[c]
+  \column{0.6\textwidth}
+  \tiny\begin{verbatim}
+  virtual NormBase* getNormIntegrand(AnaSol* asol = 0) const;
+
+  bool evalSol(Vector& s,
+               const Matrix& dNdX,
+               const Vec3& X) const;
+  bool formCmatrix(Matrix& C, const Vec3& X,
+                   bool invers = false) const;
+};
+  \end{verbatim}
+  \column{0.4\textwidth}\small
+  Methods for solution norm integration.
+ \end{columns}
+\end{frame}
+
+\begin{frame}[fragile] %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ \frametitle{Tutorial: Poisson equation}
+
+ \begin{columns}[c]
+  \column{0.6\textwidth}
+  \tiny\begin{verbatim}
+
+bool Poisson::initElement (const std::vector<int>& MNPC)
+{
+  const size_t nen = MNPC.size();
+
+  eM->resize(nen,nen,true);
+  eS->resize(nen,true);
+
+  int ierr = 0;
+  if (!primsol.front().empty())
+    if ((ierr = utl::gather(MNPC,1,primsol.front(),*eV)))
+      std::cerr <<" *** Poisson::initElement: Detected "
+                << ierr <<" node numbers out of range."
+                << std::endl;
+
+  myMats.withLHS = true;
+  return ierr == 0;
+}
+
+
+bool Poisson::initElementBou (const std::vector<int>& MNPC)
+{
+  eS->resize(MNPC.size(),true);
+
+  myMats.withLHS = false;
+  return true;
+}
+  \end{verbatim}
+  \column{0.4\textwidth}\small
+  Element initialization:
+
+  Set the size of the element matrices based on the number of element nodes.
+
+  Extract the element solution vector from the global (patch-level) vector.
+
+  Indicate whether the left-hand-side matrices are to be integrated or not.
+ \end{columns}
+\end{frame}
+
+\begin{frame}[fragile] %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ \frametitle{Tutorial: Poisson equation}
+
+ \begin{columns}[c]
+  \column{0.6\textwidth}
+  \tiny\begin{verbatim}
+bool Poisson::evalInt (LocalIntegral*& elmInt,
+                       const FiniteElement& fe,
+                       const Vec3& X) const
+{
+  elmInt = &myMats;
+
+  Matrix C; C.diag(kappa,2); // Diagonal constitutive matrix
+
+  Matrix CB;
+  CB.multiply(C,fe.dNdX,false,true).multiply(fe.detJxW);
+  eM->multiply(fe.dNdX,CB,false,false,true);
+
+  if (heatSrc)
+    eS->add(fe.N,(*heatSrc)(X)*fe.detJxW);
+
+  return true;
+}
+
+
+bool Poisson::evalBou (LocalIntegral*& elmInt,
+                       const FiniteElement& fe,
+                       const Vec3& X, const Vec3& normal) const
+{
+  elmInt = &myMats;
+  if (!fluxFld) return false;
+
+  Vec3 q = (*fluxFld)(X); // heat flux at point X
+
+  double flux = -(q*normal);
+  eS->add(fe.N,flux*fe.detJxW);
+
+  return true;
+}
+  \end{verbatim}
+  \column{0.4\textwidth}\small
+  Integrand evaluations:
+
+  Assuming here $\kappa_{ij} = \kappa\delta_{ij}$
+  $$
+  [CB] = [C]\cdot[\partial N/\partial\bm{X}]^T|J|w
+  $$
+  $$
+  [eM] = \sum\left([\partial N/\partial\bm{X}]\cdot[CB]\right)
+  $$
+  $$
+  \{eS\} = \sum\left(h\{N\}|J|w\right)
+  $$
+  \vskip15mm
+  $$
+  \{eS\} = \sum\left(-(\bm{q}\cdot\bm{n})\{N\}|J|w \right)
+  $$
+ \end{columns}
+\end{frame}
+
+\begin{frame}[fragile] %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ \frametitle{Tutorial: Poisson equation}
+
+ \begin{columns}[c]
+  \column{0.55\textwidth}
+  \tiny\begin{verbatim}
+bool Poisson::evalSol (Vector& q, const Vector&,
+                       const Matrix& dNdX, const Vec3& X,
+                       const std::vector<int>& MNPC) const
+{
+  if (primsol.front().empty()) return false;
+
+  Matrix C;
+  this->formCmatrix(C,X);
+
+  Vector Dtmp;
+  int ierr = utl::gather(MNPC,1,primsol.front(),Dtmp);
+  if (ierr > 0) return false;
+
+  // Evaluate the heat flux vector
+  Matrix CB;
+  CB.multiply(C,dNdX,false,true).multiply(Dtmp,q);
+  q *= -1.0;
+
+  return true;
+}
+
+
+bool Poisson::evalSol (Vector& s, const VecFunc& asol,
+                       const Vec3& X) const
+{
+  s = Vector(asol(X).ptr(),2);
+  return true;
+}
+  \end{verbatim}
+  \column{0.45\textwidth}\small
+  Secondary solution evaluation:
+  $$
+  \bm{q} = [C]\cdot[\partial N/\partial\bm{X}]^T\cdot\{Dtmp\}
+  $$
+  \vskip3cm
+  Analytical solution
+ \end{columns}
+\end{frame}
+
+
+\begin{frame}[fragile] %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ \frametitle{Tutorial: Poisson equation}
+
+ \begin{columns}[c]
+  \column{0.6\textwidth}
+  \tiny\begin{verbatim}
+NormBase* Poisson::getNormIntegrand (AnaSol* asol) const
+{
+  if (asol)
+    return new PoissonNorm(*const_cast<Poisson*>(this),
+                           asol->getScalarSecSol());
+  else
+    return new PoissonNorm(*const_cast<Poisson*>(this));
+}
+
+
+class PoissonNorm : public NormBase
+{
+  Poisson& problem; //!< The problem-specific data
+  VecFunc* anasol;  //!< Analytical heat flux
+
+public:
+  PoissonNorm(Poisson& p, VecFunc* a = 0)
+  : problem(p), anasol(a) {}
+  virtual ~PoissonNorm() {}
+
+  virtual bool initElement(const std::vector<int>& MNPC)
+  {
+    return problem.initElement(MNPC);
+  }
+
+  virtual bool evalInt(LocalIntegral*& elmInt,
+                       const FiniteElement& fe,
+                       const Vec3& X) const;
+};
+  \end{verbatim}
+  \column{0.45\textwidth}\small
+  Accompanying class for solution norm integration
+
+  {\tt NormBase} is a sub-class of {\tt Integrand} with a couple of added
+  methods common to all norm classes.
+ \end{columns}
+\end{frame}
+
+\begin{frame}[fragile] %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ \frametitle{Tutorial: Poisson equation}
+
+ \begin{columns}[c]
+  \column{0.6\textwidth}
+  \tiny\begin{verbatim}
+bool PoissonNorm::evalInt (LocalIntegral*& elmInt,
+                           const FiniteElement& fe,
+                           const Vec3& X) const
+{
+  ElmNorm* eNorm = dynamic_cast<ElmNorm*>(elmInt);
+  if (!eNorm) return false;
+
+  // Evaluate the inverse constitutive matrix at this point
+  Matrix Cinv;
+  if (!problem.formCmatrix(Cinv,X,true)) return false;
+
+  // Evaluate the finite element heat flux field
+  Vector sigmah;
+  if (!problem.evalSol(sigmah,fe.dNdX,X)) return false;
+
+  // Integrate the energy norm a(u^h,u^h)
+  ElmNorm& pnorm = *eNorm;
+  pnorm[0] += sigmah.dot(Cinv*sigmah)*fe.detJxW;
+  if (anasol)
+  {
+    // Evaluate the analytical heat flux
+    Vector sigma((*anasol)(X).ptr(),sigmah.size());
+    // Integrate the energy norm a(u,u)
+    pnorm[1] += sigma.dot(Cinv*sigma)*fe.detJxW;
+    // Integrate the error in energy norm a(u-u^h,u-u^h)
+    sigma -= sigmah;
+    pnorm[2] += sigma.dot(Cinv*sigma)*fe.detJxW;
+  }
+
+  return true;
+}
+  \end{verbatim}
+  \column{0.45\textwidth}\small
+  Norm integrand evaluation
+ \end{columns}
+\end{frame}
+
+\begin{frame}[fragile] %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ \frametitle{Tutorial: Poisson equation}
+
+ \begin{columns}[c]
+  \column{0.6\textwidth}
+  \tiny\begin{verbatim}
+class SIMPoisson2D : public SIM2D
+{
+  Poisson   prob; //!< Poisson data and methods
+  RealArray mVec; //!< Material data
+
+public:
+  SIMPoisson2D() : SIM2D(1), prob(2)
+  { myProblem = &prob; }
+
+  virtual ~SIMPoisson2D()
+  { myProblem = 0; }
+
+protected:
+  virtual bool parse(char* keyWord, std::istream& is);
+  virtual bool initMaterial(size_t propInd);
+  virtual bool initNeumann(size_t propInd);
+};
+
+
+bool SIMPoisson2D::initMaterial (size_t propInd)
+{
+  if (propInd >= mVec.size()) return false;
+  prob.setMaterial(mVec[propInd]);
+  return true;
+}
+
+bool SIMPoisson2D::initNeumann (size_t propInd)
+{
+  VecFuncMap::const_iterator tit = myVectors.find(propInd);
+  if (tit == myVectors.end()) return false;
+  prob.setTraction(tit->second);
+  return true;
+}
+  \end{verbatim}
+  \column{0.45\textwidth}\small
+  Simulation driver class
+ \end{columns}
+\end{frame}
+
+\begin{frame}[fragile] %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ \frametitle{Tutorial: Poisson equation}
+
+ \tiny\begin{verbatim}
+bool SIMPoisson2D::parse (char* keyWord, std::istream& is)
+{
+  char* cline = 0;
+  if (!strncasecmp(keyWord,"ISOTROPIC",9))
+  {
+    int nmat = atoi(keyWord+10);
+    std::cout <<"\nNumber of isotropic materials: "<< nmat << std::endl;
+    for (int i = 0; i < nmat && (cline = utl::readLine(is)); i++)
+    {
+      int    code  = atoi(strtok(cline," "));
+      double kappa = atof(strtok(NULL," "));
+      std::cout <<"\tMaterial code "<< code <<": "<< kappa << std::endl;
+      if (code == 0)
+        prob.setMaterial(kappa);
+      else if (this->setPropertyType(code,Property::MATERIAL,mVec.size()))
+        mVec.push_back(kappa);
+    }
+  }
+  else if (!strncasecmp(keyWord,"SOURCE",6))
+  {
+    cline = strtok(keyWord+6," ");
+    if (!strncasecmp(cline,"SQUARE",6))
+    {
+      double L = atof(strtok(NULL," "));
+      std::cout <<"\nHeat source function: Square L="<< L << std::endl;
+      prob.setSource(new Square2DHeat(L));
+    }
+    else
+      std::cerr <<"  ** SIMPoisson2D::parse: Unknown source function "
+                << cline << std::endl;
+  }
+ \end{verbatim}
+\end{frame}
+\begin{frame}[fragile] %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ \frametitle{Tutorial: Poisson equation}
+
+ \tiny\begin{verbatim}
+  else if (!strncasecmp(keyWord,"ANASOL",6))
+  {
+    cline = strtok(keyWord+6," ");
+    if (!strncasecmp(cline,"SQUARE",6))
+    {
+      double L = atof(strtok(NULL," "));
+      std::cout <<"\nAnalytical solution: Square L="<< L << std::endl;
+      mySol = new AnaSol(NULL,new Square2D(L));
+    }
+    else if (!strncasecmp(cline,"LSHAPE",6))
+    {
+      mySol = new AnaSol(NULL,new LshapePoisson());
+      std::cout <<"\nAnalytical solution: Lshape"<< std::endl;
+    }
+    else
+    {
+      std::cerr <<"  ** SIMPoisson2D::parse: Unknown analytical solution "
+                << cline <<" (ignored)"<< std::endl;
+      return true;
+    }
+
+    // Define the analytical boundary traction field
+    int code = (cline = strtok(NULL," ")) ? atoi(cline) : 0;
+    if (code > 0 && mySol->getScalarSecSol())
+    {
+      this->setPropertyType(code,Property::NEUMANN);
+      myVectors[code] = mySol->getScalarSecSol();
+    }
+  }
+  else
+    return this->SIM2D::parse(keyWord,is);
+
+  return true;
+}
+ \end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile] %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ \frametitle{Tutorial: Poisson equation}
+
+ \begin{columns}[c]
+  \column{0.6\textwidth}
+  \tiny\begin{verbatim}
+int main (int argc, char** argv)
+{
+  // (Lots of initialisations skipped here...)
+
+  // Read in model definitions and establish the FE data structures
+  SIMbase* model = new SIMPoisson2D();
+  if (!model->read(infile))
+    return 1;
+  if (!model->preprocess(ignoredPatches,fixDup))
+    return 1;
+
+  model->setQuadratureRule(nGauss);
+
+  Matrix eNorm;
+  Vector gNorm, sol;
+
+  model->initSystem(solver,1,1);
+  model->setAssociatedRHS(0,0);
+  if (!model->assembleSystem())
+    return 2;
+
+  // Solve the linear system of equations
+  if (!model->solveSystem(sol,1))
+    return 3;
+
+  // Evaluate solution norms
+  if (!model->solutionNorms(Vectors(1,sol),eNorm,gNorm))
+    return 4;
+
+  // Print output to terminal and VTF, etc.
+}
+  \end{verbatim}
+  \column{0.45\textwidth}\small
+  Core parts of the main program
+ \end{columns}
+\end{frame}
+
+\begin{frame}[fragile] %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ \frametitle{Tutorial: Poisson equation, sample input files}
+
+ \begin{columns}[c]
+  \column{0.5\textwidth}
+  \tiny\begin{verbatim}
+PATCHFILE    lshape2d.g2
+PROPERTYFILE lshape2d.prc
+
+RAISEORDER 1
+# patch ru rv
+  1     2  2
+
+REFINE 1
+# patch ru rv
+  1     7  7
+
+DIRICHLET 1
+# code
+  1
+
+# Analytical solution
+# Specifier   code
+ANASOL Lshape 2
+  \end{verbatim}
+  lshape2d.prc:
+  \begin{verbatim}
+1 0 1 2
+2 0 1 0
+2 0 1 1
+2 0 1 3
+  \end{verbatim}
+  \column{0.5\textwidth}
+  \tiny lshape2d.g2:
+  \begin{verbatim}
+200 1 0 0
+3 0
+7 4
+0 0 0 0 1 1 1 2 2 2 2 
+4 4
+0 0 0 0 1 1 1 1 
+
+0.000000 -1.000000 0
+0.000000 -0.666667 0
+0.000000 -0.333333 0
+0.000000 -0.000000 0
+0.333333 -0.000000 0
+0.666667 -0.000000 0
+1.000000 -0.000000 0
+-0.333333 -1.000000 0
+-0.333333 -0.555556 0
+-0.333333 -0.111111 0
+-0.333333 0.333333 0
+0.111111 0.333333 0
+0.555556 0.333333 0
+1.000000 0.333333 0
+-0.666667 -1.000000 0
+-0.666667 -0.444444 0
+-0.666667 0.111111 0
+-0.666667 0.666667 0
+  \end{verbatim}
+  \vskip-3mm + 10 more lines
+ \end{columns}
+\end{frame}
+
+\end{document} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
