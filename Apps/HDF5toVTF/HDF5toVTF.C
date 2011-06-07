@@ -169,16 +169,15 @@ int main (int argc, char** argv)
 		<<"\t"<< it->basis << std::endl;
     }
   }
-
   ProcessList::const_iterator pit = processlist.begin();
   for (int j = 1; pit != processlist.end(); ++pit, ++j) {
     std::string vtf = vtffile;
     if (processlist.size() > 1) {
-      std::string temp(strtok(vtffile,"."));
+      std::string temp(vtf.substr(0,vtf.find_last_of('.')));
       std::stringstream str;
       str <<"-"<< j;
       temp.append(str.str());
-      vtf = temp+".vtf";
+      vtf = temp+vtf.substr(vtf.find_last_of('.'));;
     }
 
     // This is broken with time dependent geometries.
