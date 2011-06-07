@@ -50,7 +50,7 @@ VTF::VTF (const char* filename, int type)
   myFile = new VTFXAFile;
   VTFXAFileSettings settings;
   VTFXAInitFileSettings(&settings);
-  settings.bBinary = VTFXA_TRUE;
+  settings.bBinary = type?VTFXA_TRUE:VTFXA_FALSE;
   settings.pszApplicationName = "IFEM";
   settings.pszVendorName = "SINTEF ICT";
   settings.iVendorID = 1001;
