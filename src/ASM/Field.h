@@ -1,18 +1,18 @@
 // $Id$
 //==============================================================================
 //!
-//! \file SplineField.h
+//! \file Field.h
 //!
 //! \date Mar 28 2011
 //!
 //! \author Runar Holdahl / SINTEF
 //!
-//! \brief Base class for spline-based finite element scalar fields.
+//! \brief Base class for scalar fields.
 //!
 //==============================================================================
 
-#ifndef _SPLINE_FIELD_H
-#define _SPLINE_FIELD_H
+#ifndef _FIELD_H
+#define _FIELD_H
 
 #include "MatVec.h"
 
@@ -21,26 +21,26 @@ class Vec3;
 
 
 /*!
-  \brief Base class for spline-based finite element scalar fields.
+  \brief Base class for scalar fields.
 
   \details This class incapsulates the data and methods needed
-  to store and evaluate a spline finite element scalar field.
-  This is an abstract base class and the fields associated with
-  specific spline objects are implemented as subclasses,
-  for instance 1D, 2D and 3D spline formulations.
+  to store and evaluate a scalar field. This is an abstract base 
+  class and the fields associated with a specific field type is 
+  implemented as subclasses, for instance 1D, 2D and 3D spline 
+  formulations or Lagrange formulations.
 */
 
-class SplineField
+class Field
 {
 protected:
   //! \brief The constructor sets the number of space dimensions and fields.
   //! \param[in] n Number of space dimensions (1, 2 or 3)
-  //! \param[in] name Name of spline field
-  SplineField(unsigned char n, char* name = NULL) : nsd(n), fieldname(name) {}
+  //! \param[in] name Name of field
+  Field(unsigned char n, char* name = NULL) : nsd(n), fieldname(name) {}
 
 public:
   //! \brief Empty destructor
-  virtual ~SplineField() {}
+  virtual ~Field() {}
 
   //! \brief Returns number of space dimensions.
   unsigned char getNoSpaceDim() const { return nsd; }
@@ -51,10 +51,10 @@ public:
   //! \brief Returns number of control points.
   int getNoNodes() const { return nno; }
 
-  //! \brief Returns name of spline field.
+  //! \brief Returns name of field.
   const char* getFieldName() const { return fieldname; }
 
-  //! \brief Sets the name of the spline field.
+  //! \brief Sets the name of the field.
   void setFieldName(const char* name) { fieldname = const_cast<char*>(name); }
 
   //! \brief Initializes the field values.
@@ -90,7 +90,7 @@ protected:
   unsigned char nsd; //!< Number of space dimensions
   int nelm;          //!< Number of elements/knot-spans
   int nno;           //!< Number of nodes/control points
-  char* fieldname;   //!< Name of spline element field
+  char* fieldname;   //!< Name of field
   Vector values;     //!< Field values
 };
 

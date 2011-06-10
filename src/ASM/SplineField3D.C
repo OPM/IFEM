@@ -24,7 +24,7 @@ namespace Go {
 
 
 SplineField3D::SplineField3D(Go::SplineVolume *geometry, char* name)
-  : SplineField(3,name), vol(geometry) 
+  : Field(3,name), vol(geometry) 
 {
   const int n1 = vol->numCoefs(0);
   const int n2 = vol->numCoefs(1);

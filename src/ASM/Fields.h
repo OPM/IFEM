@@ -1,18 +1,18 @@
 // $Id$
 //==============================================================================
 //!
-//! \file SplineFields.h
+//! \file Fields.h
 //!
 //! \date Mar 28 2011
 //!
 //! \author Runar Holdahl / SINTEF
 //!
-//! \brief Base class for spline-based finite element vector fields.
+//! \brief Base class for vector fields.
 //!
 //==============================================================================
 
-#ifndef _SPLINE_FIELDS_H
-#define _SPLINE_FIELDS_H
+#ifndef _FIELDS_H
+#define _FIELDS_H
 
 #include "MatVec.h"
 
@@ -21,26 +21,26 @@ class Vec3;
 
 
 /*!
-  \brief Base class for spline-based finite element vector fields.
+  \brief Base class for vector fields.
 
   \details This class incapsulates the data and methods needed
-  to store and evaluate a spline finite element vector field.
-  This is an abstract base class and the fields associated with
-  specific spline objects are implemented as subclasses,
-  for instance 1D, 2D and 3D spline formulations.
+  to store and evaluate a vector field. This is an abstract base 
+  class and the fields of a specific type is implemented as a 
+  subclass, for instance 1D, 2D and 3D spline formulations or 
+  Lagrange formulations.
 */
 
-class SplineFields
+class Fields
 {
 protected:
   //! \brief The constructor sets the field name.
   //! \param[in] n Number of space dimensions (1, 2 or 3)
-  //! \param[in] name Name of spline field
-  SplineFields(unsigned char n, char* name = NULL) : nsd(n), fieldname(name) {}
+  //! \param[in] name Name of fields
+  Fields(unsigned char n, char* name = NULL) : nsd(n), fieldname(name) {}
 
 public:
   //! \brief Empty destructor.
-  virtual ~SplineFields() {}
+  virtual ~Fields() {}
 
   //! \brief Returns number of space dimensions.
   unsigned char getNoSpaceDim() const { return nsd; }
@@ -54,10 +54,10 @@ public:
   //! \brief Returns number of control points.
   int getNoNodes() const { return nno; }
 
-  //! \brief Returns name of spline field.
+  //! \brief Returns name of fields.
   const char* getFieldName() const { return fieldname; }
 
-  //! \brief Sets the name of the spline field.
+  //! \brief Sets the name of the field.
   void setFieldName(char* name) { fieldname = name; }
 
   //! \brief Initializes the field values.
@@ -97,7 +97,7 @@ protected:
   unsigned char nf;  //!< Number of fields
   int nelm;          //!< Number of elements/knot-spans
   int nno;           //!< Number of nodes/control points
-  char* fieldname;   //!< Name of spline element field
+  char* fieldname;   //!< Name of fields
   Vector values;     //!< Field values
 };
 

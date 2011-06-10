@@ -14,7 +14,7 @@
 #ifndef _SPLINE_FIELD_2D_H
 #define _SPLINE_FIELD_2D_H
 
-#include "SplineField.h"
+#include "Field.h"
 
 namespace Go {
   class SplineSurface;
@@ -29,7 +29,7 @@ namespace Go {
 */
 
 
-class SplineField2D : public SplineField
+class SplineField2D : public Field
 {
 public:
   //! \brief The constructor sets the number of space dimensions and fields.

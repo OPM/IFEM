@@ -14,7 +14,7 @@
 #ifndef _SPLINE_FIELD_3D_H
 #define _SPLINE_FIELD_3D_H
 
-#include "SplineField.h"
+#include "Field.h"
 
 namespace Go {
   class SplineVolume;
@@ -29,7 +29,7 @@ namespace Go {
 */
 
 
-class SplineField3D : public SplineField
+class SplineField3D : public Field
 {
 public:
   //! \brief The constructor sets the number of space dimensions and fields.

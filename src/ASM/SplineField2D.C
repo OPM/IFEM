@@ -20,7 +20,7 @@
 
 
 SplineField2D::SplineField2D(Go::SplineSurface *geometry, char* name)
-  : SplineField(2,name), surf(geometry) 
+  : Field(2,name), surf(geometry) 
 {
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();

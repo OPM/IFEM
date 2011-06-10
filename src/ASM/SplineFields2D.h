@@ -14,7 +14,7 @@
 #ifndef _SPLINE_FIELDS_2D_H
 #define _SPLINE_FIELDS_2D_H
 
-#include "SplineFields.h"
+#include "Fields.h"
 
 namespace Go {
   class SplineSurface;
@@ -29,7 +29,7 @@ namespace Go {
 */
 
 
-class SplineFields2D : public SplineFields
+class SplineFields2D : public Fields
 {
 public:
   //! \brief The constructor sets the field name.

@@ -14,7 +14,7 @@
 #ifndef _SPLINE_FIELDS_3D_H
 #define _SPLINE_FIELDS_3D_H
 
-#include "SplineFields.h"
+#include "Fields.h"
 
 namespace Go {
   class SplineVolume;
@@ -29,7 +29,7 @@ namespace Go {
 */
 
 
-class SplineFields3D : public SplineFields
+class SplineFields3D : public Fields
 {
 public:
   //! \brief The constructor sets the field name.
