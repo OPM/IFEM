@@ -16,8 +16,8 @@
 #endif
 
 
-HDF5Writer::HDF5Writer (const std::string& name, bool append)
-  : DataWriter(name+".hdf5")
+HDF5Writer::HDF5Writer (const std::string& name, bool append, bool keepOpen)
+  : DataWriter(name+".hdf5"), m_file(0), m_keepOpen(keepOpen)
 {
 #ifdef HAS_HDF5
   struct stat temp;
@@ -60,6 +60,8 @@ int HDF5Writer::getLastTimeLevel ()
 
 void HDF5Writer::openFile(int level)
 {
+  if (m_file)
+    return;
 #ifdef HAS_HDF5
   hid_t acc_tpl = H5P_DEFAULT;
 #ifdef PARALLEL_PETSC
@@ -83,12 +85,15 @@ void HDF5Writer::openFile(int level)
 #endif
 }
 
-void HDF5Writer::closeFile(int level)
+void HDF5Writer::closeFile(int level, bool force)
 {
+  if (m_keepOpen && !force)
+    return;
 #ifdef HAS_HDF5
   H5Fflush(m_file,H5F_SCOPE_GLOBAL);
   H5Fclose(m_file);
   m_flag = H5F_ACC_RDWR;
+  m_file = 0;
 #endif
 }
 

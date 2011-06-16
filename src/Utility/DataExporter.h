@@ -28,7 +28,7 @@ class DataExporter
   //! \brief Default constructor.
   //! \param[in] dynWriters If \e true, delete the writers on destruction.
   DataExporter(bool dynWriters = false) : m_delete(dynWriters), m_level(-1) {}
-  //! \brief The desctructor deletes the writers if \a dynWriters was \e true.
+  //! \brief The destructor deletes the writers if \a dynWriters was \e true.
   ~DataExporter();
 
   //! \brief Registers an entry for storage.
@@ -77,7 +77,7 @@ public:
   virtual int getLastTimeLevel() = 0;
 
   virtual void openFile(int level) = 0;
-  virtual void closeFile(int level) = 0;
+  virtual void closeFile(int level, bool force=false) = 0;
 
   virtual void writeVector(int level, const DataEntry& entry) = 0;
   virtual bool readVector(int level, const DataEntry& entry) = 0;

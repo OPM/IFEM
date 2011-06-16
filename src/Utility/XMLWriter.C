@@ -41,7 +41,7 @@ void XMLWriter::openFile(int level)
   m_node = m_doc->InsertEndChild(element);
 }
 
-void XMLWriter::closeFile(int level)
+void XMLWriter::closeFile(int level, bool close)
 {
   if (!m_doc || m_rank != 0)
     return;

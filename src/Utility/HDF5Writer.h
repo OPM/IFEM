@@ -11,13 +11,13 @@ class SIMbase;
 class HDF5Writer : public DataWriter
 {
 public:
-  HDF5Writer(const std::string& name, bool append = false);
+  HDF5Writer(const std::string& name, bool append = false, bool keepopen=false);
   virtual ~HDF5Writer() {}
 
   virtual int getLastTimeLevel();
 
   virtual void openFile(int level);
-  virtual void closeFile(int level);
+  virtual void closeFile(int level, bool force=false);
 
   virtual void writeVector(int level, const DataEntry& entry);
   virtual bool readVector(int level, const DataEntry& entry);
@@ -41,4 +41,5 @@ protected:
 
   int          m_file;
   unsigned int m_flag;
+  bool m_keepOpen;
 };

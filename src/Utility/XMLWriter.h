@@ -29,7 +29,7 @@ public:
   const std::vector<Entry>& getEntries() const { return m_entry; }
 
   virtual void openFile(int level);
-  virtual void closeFile(int level);
+  virtual void closeFile(int level, bool force=false);
 
   virtual void writeVector(int level, const DataEntry& entry);
   virtual bool readVector(int level, const DataEntry& entry);

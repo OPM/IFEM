@@ -154,7 +154,7 @@ int main (int argc, char** argv)
             <<"\nNumber of visualization points: "
             << n[0] <<" "<< n[1] << " " << n[2] << std::endl;
 
-  HDF5Writer hdf(strtok(infile,"."),true);
+  HDF5Writer hdf(strtok(infile,"."),true,true);
   XMLWriter xml(infile);
   xml.readInfo();
 
@@ -231,6 +231,7 @@ int main (int argc, char** argv)
     }
     if (!ok) return 3;
   }
+  hdf.closeFile(levels,true);
 
   return 0;
 }
