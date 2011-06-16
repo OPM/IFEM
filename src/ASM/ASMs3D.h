@@ -339,6 +339,12 @@ public:
   bool evalSolution(Matrix& sField, const Integrand& integrand,
 		    const RealArray* gpar, bool regular = true) const;
 
+  //! \brief Calculates parameter values for visualization nodal points.
+  //! \param[out] prm Parameter values in given direction for all points
+  //! \param[in] dir Parameter direction (0,1,2)
+  //! \param[in] nSegSpan Number of visualization segments over each knot-span
+  virtual bool getGridParameters(RealArray& prm, int dir, int nSegSpan) const;
+
 protected:
 
   // Internal utility methods
@@ -354,12 +360,6 @@ protected:
   //! \param[in] master 0-based index of the first master node in this basis
   bool connectBasis(int face, ASMs3D& neighbor, int nface, int norient,
 		    int basis = 1, int slave = 0, int master = 0);
-
-  //! \brief Calculates parameter values for visualization nodal points.
-  //! \param[out] prm Parameter values in given direction for all points
-  //! \param[in] dir Parameter direction (0,1,2)
-  //! \param[in] nSegSpan Number of visualization segments over each knot-span
-  virtual bool getGridParameters(RealArray& prm, int dir, int nSegSpan) const;
 
   //! \brief Calculates parameter values for the Greville points.
   //! \param[out] prm Parameter values in given direction for all points

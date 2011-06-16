@@ -54,12 +54,12 @@ std::vector<ASMbase*> readBasis(const std::string& name,
 
 
 bool writeFieldPatch(const Vector& locvec, int components,
-                     ASMbase& patch, int* nViz, int geomID, int& nBlock,
+                     ASMbase& patch, RealArray* model, int geomID, int& nBlock,
                      const std::string& name, VTFList& vlist, VTFList& slist,
                      VTF& myVtf)
 {
   Matrix field;
-  if (!patch.evalSolution(field,locvec,nViz))
+  if (!patch.evalSolution(field,locvec,model))
     return false;
 
   if (components > 1) {
@@ -111,6 +111,27 @@ void writePatchGeometry(ASMbase* patch, int id, VTF& myVtf, int* nViz)
   myVtf.writeGrid(lvb,str.str().c_str());
 }
 
+std::vector<RealArray*> generateFEModel(std::vector<ASMbase*> patches,
+                                        int dims, int* n)
+{
+  std::vector<RealArray*> result;
+  for (size_t i=0;i<patches.size();++i) {
+    RealArray* gpar = new RealArray[dims];
+    for (int k=0;k<dims;++k) {
+      if (dims == 2) {
+        ASMs2D* patch = (ASMs2D*)patches[i];
+        patch->getGridParameters(gpar[k],k,n[k]-1);
+      }
+      if (dims == 3) {
+        ASMs3D* patch = (ASMs3D*)patches[i];
+        patch->getGridParameters(gpar[k],k,n[k]-1);
+      }
+    }
+    result.push_back(gpar);
+  }
+
+  return result;
+}
 
 int main (int argc, char** argv)
 {
@@ -120,6 +141,7 @@ int main (int argc, char** argv)
   int skip=1;
   char* infile = 0;
   char* vtffile = 0;
+  char* basis = 0;
 
   for (int i = 1; i < argc; i++)
     if (!strcmp(argv[i],"-vtf") && i < argc-1)
@@ -132,6 +154,8 @@ int main (int argc, char** argv)
       dims = 2;
     else if (!strcmp(argv[i],"-ndump") && i < argc-1)
       skip = atoi(argv[++i]);
+    else if (!strcmp(argv[i],"-basis") && i < argc-1)
+      basis = argv[i++];
     else if (!infile)
       infile = argv[i];
     else if (!vtffile)
@@ -141,7 +165,8 @@ int main (int argc, char** argv)
 
   if (!infile) {
     std::cout <<"usage: "<< argv[0]
-              <<" <inputfile> [<vtffile>] [-nviz <nviz>] [-ndump <ndump>] [-1D|-2D]"<< std::endl;
+              <<" <inputfile> [<vtffile>] [-nviz <nviz>] [-ndump <ndump>]"
+              <<" [-basis <basis>] [-1D|-2D]"<< std::endl;
     return 0;
   }
   else if (!vtffile)
@@ -165,37 +190,40 @@ int main (int argc, char** argv)
   std::vector<XMLWriter::Entry>::const_iterator it;
 
   ProcessList processlist;
+  std::map<std::string, std::vector<ASMbase*> > patches;
+  std::vector<RealArray*> FEmodel;
+  VTF myVtf(vtffile,1);
+
   for (it = entry.begin(); it != entry.end(); ++it) {
     if (!it->basis.empty() && it->type != "restart") {
       processlist[it->basis].push_back(*it);
       std::cout << it->name <<"\t"<< it->description <<"\tnc="<< it->components
 		<<"\t"<< it->basis << std::endl;
+      if (patches[it->basis].empty())
+        patches[it->basis] = readBasis(it->basis,it->patches,hdf,dims);
     }
   }
+
   ProcessList::const_iterator pit = processlist.begin();
-  for (int j = 1; pit != processlist.end(); ++pit, ++j) {
-    std::string vtf = vtffile;
-    if (processlist.size() > 1) {
-      std::string temp(vtf.substr(0,vtf.find_last_of('.')));
-      std::stringstream str;
-      str <<"-"<< j;
-      temp.append(str.str());
-      vtf = temp+vtf.substr(vtf.find_last_of('.'));;
-    }
 
-    // This is broken with time dependent geometries.
-    // Luckily it's not fundamentally broken so we can remedy when it's needed
-    VTF myVtf(vtf.c_str(),1);
-    std::vector<ASMbase*> patches =
-                       readBasis(pit->first,pit->second[0].patches,hdf,dims);
-    for (size_t i=0;i<patches.size();++i)
-      writePatchGeometry(patches[i],i+1,myVtf,n);
+  // This is broken with time dependent geometries.
+  // Luckily it's not fundamentally broken so we can remedy when it's needed
+  std::vector<ASMbase*> gpatches;
+  if (basis) 
+    gpatches = patches[basis];
+  else
+    gpatches = patches.begin()->second;
+  for (int i=0;i<pit->second[0].patches;++i)
+    writePatchGeometry(gpatches[i],i+1,myVtf,n);
+  FEmodel = generateFEModel(gpatches,dims,n);
 
-    bool ok = true;
-    int block = 0;
-    for (int i = 0; i <= levels && ok; i+= skip) {
-      if (levels > 0) std::cout <<"\nTime level "<< i << std::endl;
-      VTFList vlist, slist;
+  bool ok = true;
+  int block = 0;
+  for (int i = 0; i <= levels && ok; i+= skip) {
+    if (levels > 0) std::cout <<"\nTime level "<< i << std::endl;
+    VTFList vlist, slist;
+    pit = processlist.begin();
+    for (pit = processlist.begin(); pit != processlist.end(); ++pit) {
       for (it = pit->second.begin(); it != pit->second.end() && ok; ++it) {
         std::cout <<"Reading \""<< it->name <<"\""<< std::endl;
         for( int j=0;j<pit->second[0].patches;++j) {
@@ -212,24 +240,28 @@ int main (int argc, char** argv)
             for (size_t r = 1; r <= tmp.rows() && pos < it->name.size(); r++) {
               size_t end = it->name.find('+',pos);
 
-              ok &= writeFieldPatch(tmp.getRow(r),1,*patches[j],n,j+1,
+              ok &= writeFieldPatch(tmp.getRow(r),1,*patches[pit->first][j],
+                                    FEmodel[j],j+1,
                                     block,it->name.substr(pos,end),vlist,
                                     slist,myVtf);
               pos = end+1;
             }
           }
           else {
-            ok &= writeFieldPatch(vec,it->components,*patches[j],n,j+1,
+            ok &= writeFieldPatch(vec,it->components,
+                                  *patches[pit->first][j],
+                                  FEmodel[j],j+1,
                                   block,it->name,vlist,slist,myVtf);
           }
         }
       }
-      writeFieldBlocks(vlist,slist,myVtf,i+1);
-
-      if (ok)
-        myVtf.writeState(i+1,"Step %g",(float)i+1,1);
     }
-    if (!ok) return 3;
+    writeFieldBlocks(vlist,slist,myVtf,i+1);
+
+    if (ok)
+      myVtf.writeState(i+1,"Step %g",(float)(i+skip)/skip,1);
+    else
+      return 3;
   }
   hdf.closeFile(levels,true);
 
