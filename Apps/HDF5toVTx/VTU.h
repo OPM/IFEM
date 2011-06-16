@@ -24,7 +24,7 @@ class ElementBlock;
 
 class VTU : public VTF {
   public:
-    VTU(const char* base, int format);
+    VTU(const char* base, bool single);
     virtual ~VTU();
 
     bool writeGrid(const ElementBlock* lvb, const char* name);
@@ -50,4 +50,5 @@ class VTU : public VTF {
       std::string name;
     };
     std::map<int,FieldInfo> m_field;
+    bool m_single;
 };

@@ -142,6 +142,7 @@ int main (int argc, char** argv)
   int n[3] = { 5, 5, 5 };
   int dims = 3;
   int skip=1;
+  bool last=false;
   char* infile = 0;
   char* vtffile = 0;
   char* basis = 0;
@@ -155,6 +156,8 @@ int main (int argc, char** argv)
       dims = 1;
     else if (!strcmp(argv[i],"-2D"))
       dims = 2;
+    else if (!strcmp(argv[i],"-last"))
+      last = true;
     else if (!strcmp(argv[i],"-ndump") && i < argc-1)
       skip = atoi(argv[++i]);
     else if (!strcmp(argv[i],"-basis") && i < argc-1)
@@ -169,7 +172,7 @@ int main (int argc, char** argv)
   if (!infile) {
     std::cout <<"usage: "<< argv[0]
               <<" <inputfile> [<vtffile>] [<vtufile>] [-nviz <nviz>] [-ndump <ndump>]"
-              <<" [-basis <basis>] [-1D|-2D]"<< std::endl;
+              <<" [-last] [-basis <basis>] [-1D|-2D]"<< std::endl;
     return 0;
   }
   else if (!vtffile)
@@ -199,7 +202,7 @@ int main (int argc, char** argv)
   if (strstr(vtffile,".vtf"))
     myVtf = new VTF(vtffile,1);
   else
-    myVtf = new VTU(vtffile,1);
+    myVtf = new VTU(vtffile,last?1:0);
 
   for (it = entry.begin(); it != entry.end(); ++it) {
     if (!it->basis.empty() && it->type != "restart") {
@@ -228,7 +231,7 @@ int main (int argc, char** argv)
   int block = 0;
   double time=0;
   int k=1;
-  for (int i = 0; i <= levels && ok; i += skip) {
+  for (int i = last?levels:0; i <= levels && ok; i += skip) {
     if (levels > 0) std::cout <<"\nTime level "<< i << " (t=" << time << ")" << std::endl;
     VTFList vlist, slist;
     for (pit = processlist.begin(); pit != processlist.end(); ++pit) {

@@ -20,8 +20,8 @@
 #include <sstream>
 
 
-VTU::VTU(const char* base, int format)
-  : VTF(NULL,format), m_base(base)
+VTU::VTU(const char* base, bool single)
+  : VTF(NULL,0), m_base(base), m_single(single)
 {
   m_base = m_base.substr(0,m_base.rfind('.'));
 }
@@ -83,7 +83,10 @@ bool VTU::writeState(int iStep, const char* fmt, real refValue, int refType)
 {
   std::ofstream file;
   std::stringstream str;
-  str << m_base << "-" << std::setfill('0') << std::setw(5) << iStep-1 << ".vtu";
+  str << m_base;
+  if (!m_single)
+    str << "-" << std::setfill('0') << std::setw(5) << iStep-1;
+  str << ".vtu";
   file.open(str.str().c_str());
 
   file << "<?xml version=\"1.0\"?>" << std::endl;
