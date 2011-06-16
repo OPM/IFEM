@@ -91,8 +91,10 @@ void writeFieldBlocks(VTFList& vlist, VTFList& slist, VTF& myvtf,
 {
   int idBlock = 20;
   for (VTFList::iterator it = vlist.begin(); it != vlist.end(); ++it) {
-    myvtf.writeVblk(it->second,it->first.c_str(),
-                    it->first=="displacement"?10:idBlock++,iStep);
+    if (it->first == "displacement")
+      myvtf.writeDblk(it->second,it->first.c_str(),10,iStep);
+    else
+      myvtf.writeVblk(it->second,it->first.c_str(),idBlock++,iStep);
   }
   for (VTFList::iterator it = slist.begin(); it != slist.end(); ++it) {
     myvtf.writeSblk(it->second,

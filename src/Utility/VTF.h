@@ -115,8 +115,8 @@ public:
   //! \param[in] resultName Name of the result quantity
   //! \param[in] idBlock Displacement block identifier
   //! \param[in] iStep Load/Time step identifier
-  bool writeDblk(const std::vector<int>& dBlockIDs,
-		 const char* resultName = 0, int idBlock = 1, int iStep = 1);
+  virtual bool writeDblk(const std::vector<int>& dBlockIDs,
+		         const char* resultName = 0, int idBlock = 1, int iStep = 1);
 
   //! \brief Writes a state info block to the VTF-file.
   //! \param[in] iStep Load/Time step identifier

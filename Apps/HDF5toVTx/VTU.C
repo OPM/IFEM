@@ -69,6 +69,12 @@ bool VTU::writeVblk(const std::vector<int>& vBlockIDs,
   return true;
 }
 
+bool VTU::writeDblk(const std::vector<int>& dBlockIDs, 
+                    const char* resultName, int idBlock, int iStep)
+{
+  return writeVblk(dBlockIDs,resultName,idBlock,iStep);
+}
+
 
 bool VTU::writeSblk(const std::vector<int>& sBlockIDs, 
                     const char* resultName, int idBlock, int iStep)

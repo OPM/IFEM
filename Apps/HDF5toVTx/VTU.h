@@ -35,7 +35,8 @@ class VTU : public VTF {
 
     bool writeVblk(const std::vector<int>& vBlockIDs, 
                    const char* resultName, int idBlock, int iStep=1);
-
+    bool writeDblk(const std::vector<int>& vBlockIDs, 
+                   const char* resultName, int idBlock, int iStep=1);
     bool writeSblk(const std::vector<int>& sBlockIDs,
                    const char* resultName, int idBlock, int iStep=1);
 
