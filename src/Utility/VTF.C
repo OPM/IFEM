@@ -33,6 +33,11 @@ real VTF::vecOffset[3] = { 0.0, 0.0, 0.0 };
 
 VTF::VTF (const char* filename, int type)
 {
+  if (!filename) {
+    myFile = 0;
+    return;
+  }
+
   myState = 0;
 #if HAS_VTFAPI == 1
   // Create the VTF file object
@@ -71,6 +76,8 @@ VTF::VTF (const char* filename, int type)
 
 VTF::~VTF ()
 {
+  if (!myFile) return;
+
   std::vector<int> geomID(myBlocks.size());
   for (size_t i = 0; i < myBlocks.size(); i++)
   {
@@ -82,8 +89,6 @@ VTF::~VTF ()
     showError("Error writing geometry");
 
 #if HAS_VTFAPI == 1
-  if (!myFile) return;
-
   size_t i;
   for (i = 0; i < myDBlock.size(); i++)
     if (myDBlock[i])
@@ -120,8 +125,6 @@ VTF::~VTF ()
 
   delete myFile;
 #elif HAS_VTFAPI == 2
-  if (!myFile) return;
-
   size_t i;
   for (i = 0; i < myDBlock.size(); i++)
     if (myDBlock[i])

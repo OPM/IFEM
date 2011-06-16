@@ -7,7 +7,7 @@
 //!
 //! \author Arne Morten Kvarving / SINTEF
 //!
-//! \brief Convert a HDF5 results database to VTF for visualisation.
+//! \brief Convert a HDF5 results database to VTF/VTU for visualisation.
 //!
 //==============================================================================
 
@@ -22,6 +22,7 @@
 #include "ASMs3D.h"
 #include "ElementBlock.h"
 #include "VTF.h"
+#include "VTU.h"
 
 typedef std::map< std::string,std::vector<XMLWriter::Entry> > ProcessList;
 typedef std::map< std::string, std::vector<int> > VTFList;
@@ -111,6 +112,7 @@ void writePatchGeometry(ASMbase* patch, int id, VTF& myVtf, int* nViz)
   myVtf.writeGrid(lvb,str.str().c_str());
 }
 
+
 std::vector<RealArray*> generateFEModel(std::vector<ASMbase*> patches,
                                         int dims, int* n)
 {
@@ -132,6 +134,7 @@ std::vector<RealArray*> generateFEModel(std::vector<ASMbase*> patches,
 
   return result;
 }
+
 
 int main (int argc, char** argv)
 {
@@ -165,7 +168,7 @@ int main (int argc, char** argv)
 
   if (!infile) {
     std::cout <<"usage: "<< argv[0]
-              <<" <inputfile> [<vtffile>] [-nviz <nviz>] [-ndump <ndump>]"
+              <<" <inputfile> [<vtffile>] [<vtufile>] [-nviz <nviz>] [-ndump <ndump>]"
               <<" [-basis <basis>] [-1D|-2D]"<< std::endl;
     return 0;
   }
@@ -192,7 +195,11 @@ int main (int argc, char** argv)
   ProcessList processlist;
   std::map<std::string, std::vector<ASMbase*> > patches;
   std::vector<RealArray*> FEmodel;
-  VTF myVtf(vtffile,1);
+  VTF* myVtf;
+  if (strstr(vtffile,".vtf"))
+    myVtf = new VTF(vtffile,1);
+  else
+    myVtf = new VTU(vtffile,1);
 
   for (it = entry.begin(); it != entry.end(); ++it) {
     if (!it->basis.empty() && it->type != "restart") {
@@ -214,12 +221,13 @@ int main (int argc, char** argv)
   else
     gpatches = patches.begin()->second;
   for (int i=0;i<pit->second[0].patches;++i)
-    writePatchGeometry(gpatches[i],i+1,myVtf,n);
+    writePatchGeometry(gpatches[i],i+1,*myVtf,n);
   FEmodel = generateFEModel(gpatches,dims,n);
 
   bool ok = true;
   int block = 0;
   double time=0;
+  int k=1;
   for (int i = 0; i <= levels && ok; i += skip) {
     if (levels > 0) std::cout <<"\nTime level "<< i << " (t=" << time << ")" << std::endl;
     VTFList vlist, slist;
@@ -243,7 +251,7 @@ int main (int argc, char** argv)
               ok &= writeFieldPatch(tmp.getRow(r),1,*patches[pit->first][j],
                                     FEmodel[j],j+1,
                                     block,it->name.substr(pos,end),vlist,
-                                    slist,myVtf);
+                                    slist,*myVtf);
               pos = end+1;
             }
           }
@@ -251,21 +259,22 @@ int main (int argc, char** argv)
             ok &= writeFieldPatch(vec,it->components,
                                   *patches[pit->first][j],
                                   FEmodel[j],j+1,
-                                  block,it->name,vlist,slist,myVtf);
+                                  block,it->name,vlist,slist,*myVtf);
           }
         }
       }
     }
-    writeFieldBlocks(vlist,slist,myVtf,i+1);
+    writeFieldBlocks(vlist,slist,*myVtf,k);
 
     if (ok)
-      myVtf.writeState(i+1,"Time %g",time,0);
+      myVtf->writeState(k++,"Time %g",time,0);
     else
       return 3;
     pit = processlist.begin();
     time += pit->second.begin()->timestep*skip;
   }
   hdf.closeFile(levels,true);
+  delete myVtf;
 
   return 0;
 }

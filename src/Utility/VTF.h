@@ -50,15 +50,15 @@ public:
   //! \brief Writes the FE geometry to the VTF-file.
   //! \param[in] g The FE grid that all results written are referred to
   //! \param[in] partname Name of the geometry being written
-  bool writeGrid(const ElementBlock* g, const char* partname);
+  virtual bool writeGrid(const ElementBlock* g, const char* partname);
 
   //! \brief Writes a block of scalar nodal results to the VTF-file.
   //! \param[in] nodeResult Vector of nodal results,
   //!            length must equal the number of nodes in the geometry block
   //! \param[in] idBlock Result block identifier
   //! \param[in] gID Geometry block identifier
-  bool writeNres(const std::vector<real>& nodeResult,
-		 int idBlock = 1, int gID = 1);
+  virtual bool writeNres(const std::vector<real>& nodeResult,
+		         int idBlock = 1, int gID = 1);
   //! \brief Writes a block of scalar element results to the VTF-file.
   //! \param[in] elmResult Vector of element results (one per element)
   //!            length must equal the number of elements in the geometry block
@@ -72,8 +72,8 @@ public:
   //! \param[in] idBlock Result block identifier
   //! \param[in] gID Geometry block identifier
   //! \param[in] nvc Number of components per node in \a nodeResult
-  bool writeVres(const std::vector<real>& nodeResult,
-		 int idBlock = 1, int gID = 1, size_t nvc = 0);
+  virtual bool writeVres(const std::vector<real>& nodeResult,
+		         int idBlock = 1, int gID = 1, size_t nvc = 0);
   //! \brief Writes a block of point vector results to the VTF-file.
   //! \details This method creates a separate geometry block consisting of the
   //! attack points of the result vectors, since they are independent of the
@@ -94,8 +94,8 @@ public:
   //! \param[in] resultName Name of the result quantity
   //! \param[in] idBlock Scalar block identifier
   //! \param[in] iStep Load/Time step identifier
-  bool writeSblk(const std::vector<int>& sBlockIDs,
-                 const char* resultName = 0, int idBlock = 1, int iStep = 1);
+  virtual bool writeSblk(const std::vector<int>& sBlockIDs,
+                         const char* resultName = 0, int idBlock = 1, int iStep = 1);
   //! \brief Writes a vector block definition to the VTF-file.
   //! \param[in] vBlockID The result block that makes up this vector block
   //! \param[in] resultName Name of the result quantity
@@ -108,8 +108,8 @@ public:
   //! \param[in] resultName Name of the result quantity
   //! \param[in] idBlock Vector block identifier
   //! \param[in] iStep Load/Time step identifier
-  bool writeVblk(const std::vector<int>& vBlockIDs,
-                 const char* resultName = 0, int idBlock = 1, int iStep = 1);
+  virtual bool writeVblk(const std::vector<int>& vBlockIDs,
+                         const char* resultName = 0, int idBlock = 1, int iStep = 1);
   //! \brief Writes a displacement block definition to the VTF-file.
   //! \param[in] dBlockIDs All result blocks that make up the displacement block
   //! \param[in] resultName Name of the result quantity
@@ -123,7 +123,7 @@ public:
   //! \param[in] fmt Format string for step name
   //! \param[in] refValue Reference value for the step (time, frequency, etc.)
   //! \param[in] refType Reference value type (0=Time, 1=Frequency, 2=Load case)
-  bool writeState(int iStep, const char* fmt, real refValue, int refType = 0);
+  virtual bool writeState(int iStep, const char* fmt, real refValue, int refType = 0);
 
   //! \brief Returns the pointer to a geometry block.
   const ElementBlock* getBlock(int geomID) const { return myBlocks[geomID-1]; }
