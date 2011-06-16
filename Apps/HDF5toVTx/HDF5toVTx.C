@@ -142,6 +142,8 @@ int main (int argc, char** argv)
   int n[3] = { 5, 5, 5 };
   int dims = 3;
   int skip=1;
+  int start=0;
+  int end=-1;
   bool last=false;
   char* infile = 0;
   char* vtffile = 0;
@@ -158,6 +160,10 @@ int main (int argc, char** argv)
       dims = 2;
     else if (!strcmp(argv[i],"-last"))
       last = true;
+    else if (!strcmp(argv[i],"-start") && i < argc-1)
+      start = atoi(argv[++i]);
+    else if (!strcmp(argv[i],"-end") && i < argc-1)
+      end = atoi(argv[++i]);
     else if (!strcmp(argv[i],"-ndump") && i < argc-1)
       skip = atoi(argv[++i]);
     else if (!strcmp(argv[i],"-basis") && i < argc-1)
@@ -229,9 +235,12 @@ int main (int argc, char** argv)
 
   bool ok = true;
   int block = 0;
-  double time=0;
   int k=1;
-  for (int i = last?levels:0; i <= levels && ok; i += skip) {
+  if (end == -1)
+    end = levels;
+  double time=last?end  *pit->second.begin()->timestep:
+                   start*pit->second.begin()->timestep;
+  for (int i = last?end:start; i <= end && ok; i += skip) {
     if (levels > 0) std::cout <<"\nTime level "<< i << " (t=" << time << ")" << std::endl;
     VTFList vlist, slist;
     for (pit = processlist.begin(); pit != processlist.end(); ++pit) {
