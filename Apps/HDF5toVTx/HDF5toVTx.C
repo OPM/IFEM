@@ -148,6 +148,7 @@ int main (int argc, char** argv)
   char* infile = 0;
   char* vtffile = 0;
   char* basis = 0;
+  float starttime = -1, endtime = -1;
 
   for (int i = 1; i < argc; i++)
     if (!strcmp(argv[i],"-vtf") && i < argc-1)
@@ -162,8 +163,12 @@ int main (int argc, char** argv)
       last = true;
     else if (!strcmp(argv[i],"-start") && i < argc-1)
       start = atoi(argv[++i]);
+    else if (!strcmp(argv[i],"-starttime") && i < argc-1)
+      starttime = atof(argv[++i]);
     else if (!strcmp(argv[i],"-end") && i < argc-1)
       end = atoi(argv[++i]);
+    else if (!strcmp(argv[i],"-endtime") && i < argc-1)
+      endtime = atof(argv[++i]);
     else if (!strcmp(argv[i],"-ndump") && i < argc-1)
       skip = atoi(argv[++i]);
     else if (!strcmp(argv[i],"-basis") && i < argc-1)
@@ -177,8 +182,9 @@ int main (int argc, char** argv)
 
   if (!infile) {
     std::cout <<"usage: "<< argv[0]
-              <<" <inputfile> [<vtffile>] [<vtufile>] [-nviz <nviz>] [-ndump <ndump>]"
-              <<" [-last] [-basis <basis>] [-1D|-2D]"<< std::endl;
+              <<" <inputfile> [<vtffile>] [<vtufile>] [-nviz <nviz>]" << std::endl
+              << "[-ndump <ndump>] [-last] [-start <level] [-end <level>]" << std::endl
+              << "[-starttime <time>] [-endtime <time>] [-basis <basis>] [-1D|-2D]"<< std::endl;
     return 0;
   }
   else if (!vtffile)
@@ -233,13 +239,19 @@ int main (int argc, char** argv)
     writePatchGeometry(gpatches[i],i+1,*myVtf,n);
   FEmodel = generateFEModel(gpatches,dims,n);
 
-  bool ok = true;
-  int block = 0;
-  int k=1;
+  // setup step boundaries and initial time
+  if (starttime > 0)
+    start = (int)(floor(starttime/pit->second.begin()->timestep));
+  if (endtime > 0)
+    end = int(endtime/pit->second.begin()->timestep+0.5f);
   if (end == -1)
     end = levels;
   double time=last?end  *pit->second.begin()->timestep:
                    start*pit->second.begin()->timestep;
+
+  bool ok = true;
+  int block = 0;
+  int k=1;
   for (int i = last?end:start; i <= end && ok; i += skip) {
     if (levels > 0) std::cout <<"\nTime level "<< i << " (t=" << time << ")" << std::endl;
     VTFList vlist, slist;
@@ -279,7 +291,7 @@ int main (int argc, char** argv)
     writeFieldBlocks(vlist,slist,*myVtf,k);
 
     if (ok)
-      myVtf->writeState(k++,"Time %g",time,0);
+      myVtf->writeState(k++,"Time %g",time,1);
     else
       return 3;
     pit = processlist.begin();
