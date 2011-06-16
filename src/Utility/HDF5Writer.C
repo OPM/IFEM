@@ -2,6 +2,7 @@
 
 #include "HDF5Writer.h"
 #include "SIMbase.h"
+#include "SIMparameters.h"
 #include "IntegrandBase.h"
 #include <sstream>
 #include <sys/stat.h>
@@ -371,4 +372,11 @@ bool HDF5Writer::checkGroupExistence(int parent, const char* path)
   H5Eset_auto(old_func,old_client_data);
 #endif
   return result;
+}
+
+// TODO: implement for variable timesteps 
+// (named time series to allow different timelevels for different fields)
+bool HDF5Writer::writeTimeInfo(int level, SIMparameters& tp)
+{
+  return true;
 }

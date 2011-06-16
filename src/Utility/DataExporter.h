@@ -8,6 +8,7 @@
 
 
 class DataWriter;
+class SIMparameters;
 
 class DataExporter
 {
@@ -45,7 +46,7 @@ class DataExporter
 
   bool setFieldValue(const std::string& name, void* data, void* data2=NULL);
 
-  bool dumpTimeLevel();
+  bool dumpTimeLevel(SIMparameters* tp=NULL);
 
   //! \brief Loads last time level with first registered writer by default.
   //! param[in] level Time level to load, defaults to last time level
@@ -83,6 +84,8 @@ public:
   virtual bool readVector(int level, const DataEntry& entry) = 0;
   virtual void writeSIM(int level, const DataEntry& entry) = 0;
   virtual bool readSIM(int level, const DataEntry& entry) = 0;
+
+  virtual bool writeTimeInfo(int level, SIMparameters& tp) = 0;
 
 protected:
   std::string m_name; //!< File name

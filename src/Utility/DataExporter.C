@@ -6,6 +6,7 @@
 #ifdef PARALLEL_PETSC
 #include <mpi.h>
 #endif
+#include "SIMparameters.h"
 
 
 DataWriter::DataWriter (const std::string& name) : m_name(name)
@@ -65,7 +66,7 @@ bool DataExporter::setFieldValue(const std::string& name,
 }
 
 
-bool DataExporter::dumpTimeLevel()
+bool DataExporter::dumpTimeLevel(SIMparameters* tp)
 {
   if (m_level == -1)
     m_level = this->getWritersTimeLevel()+1;
@@ -90,6 +91,8 @@ bool DataExporter::dumpTimeLevel()
           break;
       }
     }
+    if (tp)
+      (*it2)->writeTimeInfo(m_level,*tp);
     (*it2)->closeFile(m_level);
   }
   m_level++;

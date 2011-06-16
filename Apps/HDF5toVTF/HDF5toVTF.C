@@ -219,10 +219,10 @@ int main (int argc, char** argv)
 
   bool ok = true;
   int block = 0;
-  for (int i = 0; i <= levels && ok; i+= skip) {
-    if (levels > 0) std::cout <<"\nTime level "<< i << std::endl;
+  double time=0;
+  for (int i = 0; i <= levels && ok; i += skip) {
+    if (levels > 0) std::cout <<"\nTime level "<< i << " (t=" << time << ")" << std::endl;
     VTFList vlist, slist;
-    pit = processlist.begin();
     for (pit = processlist.begin(); pit != processlist.end(); ++pit) {
       for (it = pit->second.begin(); it != pit->second.end() && ok; ++it) {
         std::cout <<"Reading \""<< it->name <<"\""<< std::endl;
@@ -259,9 +259,11 @@ int main (int argc, char** argv)
     writeFieldBlocks(vlist,slist,myVtf,i+1);
 
     if (ok)
-      myVtf.writeState(i+1,"Step %g",(float)(i+skip)/skip,1);
+      myVtf.writeState(i+1,"Time %g",time,0);
     else
       return 3;
+    pit = processlist.begin();
+    time += pit->second.begin()->timestep*skip;
   }
   hdf.closeFile(levels,true);
 

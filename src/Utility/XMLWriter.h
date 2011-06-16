@@ -6,6 +6,7 @@
 
 class TiXmlDocument;
 class TiXmlNode;
+class SIMparameters;
 
 
 class XMLWriter : public DataWriter
@@ -17,6 +18,7 @@ public:
     std::string basis;
     int patches;
     int components;
+    double timestep;
     std::string type;
   };
 
@@ -35,6 +37,7 @@ public:
   virtual bool readVector(int level, const DataEntry& entry);
   virtual void writeSIM(int level, const DataEntry& entry);
   virtual bool readSIM(int level, const DataEntry& entry);
+  virtual bool writeTimeInfo(int level, SIMparameters& tp);
 
 protected:
   void addField(const std::string& name, const std::string& description,
@@ -45,4 +48,5 @@ protected:
 
   TiXmlDocument* m_doc;
   TiXmlNode* m_node;
+  double m_dt;
 };

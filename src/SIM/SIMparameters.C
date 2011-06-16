@@ -33,6 +33,9 @@ bool SIMparameters::increment ()
   if (time.t+time.dt*epsT >= stopTime)
     return false;
 
+  if (tInc.size() <= (size_t)step)
+    tInc.push_back(time.dt);
+
   time.t += time.dt;
 
   if (time.t > stopTime)
@@ -40,6 +43,7 @@ bool SIMparameters::increment ()
     // Adjust the size of the last time step
     time.dt += stopTime - time.t;
     time.t = stopTime;
+    tInc.back() = time.dt;
   }
 
   return true;

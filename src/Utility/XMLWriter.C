@@ -2,6 +2,7 @@
 
 #include "XMLWriter.h"
 #include "SIMbase.h"
+#include "SIMparameters.h"
 #include "IntegrandBase.h"
 #include "StringUtils.h"
 #include "tinyxml.h"
@@ -13,6 +14,7 @@ XMLWriter::XMLWriter(const std::string& name) : DataWriter(name+".xml")
 {
   m_doc = NULL;
   m_node = NULL;
+  m_dt = 0;
 }
 
 
@@ -48,10 +50,18 @@ void XMLWriter::closeFile(int level, bool close)
 
   TiXmlElement element2("levels");
   TiXmlNode *pNewNode = m_node->InsertEndChild(element2);
-  char temp[8];
+  char temp[32];
   sprintf(temp,"%i",level);
   TiXmlText value(temp);
   pNewNode->InsertEndChild(value);
+
+  // TODO: support variable time steps
+  TiXmlElement element3("timestep");
+  element3.Attribute("constant",&m_dt);
+  pNewNode = m_node->InsertEndChild(element3);
+  sprintf(temp,"%f",m_dt);
+  TiXmlText value2(temp);
+  pNewNode->InsertEndChild(value2);
 
   m_doc->SaveFile(m_name);
   delete m_doc;
@@ -66,6 +76,7 @@ void XMLWriter::readInfo()
   TiXmlHandle handle(&doc);
   TiXmlElement* elem = handle.FirstChild("info").
                                          FirstChild("entry").ToElement();
+  TiXmlElement* timestep = handle.FirstChild("info").FirstChild("timestep").ToElement();
   while (elem) {
     if (strcasecmp(elem->Attribute("type"),"field") == 0) {
       Entry entry;
@@ -74,6 +85,10 @@ void XMLWriter::readInfo()
       entry.patches = atoi(elem->Attribute("patches"));
       entry.components = atoi(elem->Attribute("components"));
       entry.type = elem->Attribute("type");
+      if (timestep)
+        entry.timestep = atof(timestep->FirstChild()->Value());
+      else
+        entry.timestep = 0;
       if (elem->Attribute("basis"))
 	entry.basis = elem->Attribute("basis");
       m_entry.push_back(entry);
@@ -158,4 +173,10 @@ void XMLWriter::addField (const std::string& name,
   element.SetAttribute("patches",patches);
   element.SetAttribute("components",components);
   m_node->InsertEndChild(element);
+}
+
+bool XMLWriter::writeTimeInfo(int level, SIMparameters& tp)
+{
+  m_dt = tp.time.dt;
+  return true;
 }
