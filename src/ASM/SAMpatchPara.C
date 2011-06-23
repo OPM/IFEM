@@ -241,14 +241,14 @@ real SAMpatchPara::dot (const Vector& x, const Vector& y, char dofType) const
   if (nProc > 1)
   {
     real locVal = globVal;
-    for (size_t i = 0; i < ghostNodes.size(); i++)
-    {
+
+    for (size_t i = 0; i < ghostNodes.size(); i++) {
       int inod = ghostNodes[i];
-      if (nodeType[inod-1] == dofType || dofType == 'A')
-	for (int j = madof[inod-1]; j < madof[inod]; j++)
+      if (nodeType.empty() || nodeType[inod-1] == dofType || dofType == 'A')
+	for (int j = madof[inod-1]; j < madof[inod]; j++) 
 	  locVal -= x(j)*y(j);
     }
-
+    
     MPI_Allreduce(&locVal,&globVal,1,MPI_DOUBLE,MPI_SUM,PETSC_COMM_WORLD);
   }
 #endif
@@ -260,7 +260,7 @@ real SAMpatchPara::dot (const Vector& x, const Vector& y, char dofType) const
 real SAMpatchPara::normL2 (const Vector& x, char dofType) const
 {
 #ifdef PARALLEL_PETSC
-  if (nProc > 1 && nnodGlob > 1)
+  if (nProc > 1 && nnodGlob > 1) 
     return this->norm2(x,dofType)/sqrt((madof[1]-madof[0])*nnodGlob);
   // TODO,kmo: The above is not correct for mixed methods. We need to find the
   // global number of DOFs of type dofType and use that in the denominator.
@@ -403,6 +403,7 @@ bool SAMpatchPara::updateConstraintEqs (const std::vector<ASMbase*>& model,
       // Slave dof ...
       int idof = madof[(*cit)->getSlave().node-1] + (*cit)->getSlave().dof - 1;
       int ipeq = mpmceq[idof-1] - 1;
+
       if (msc[idof-1] > 0 || mmceq[ipeq] != idof)
       {
         std::cerr <<" *** Corrupted SAM arrays detected in update."<< std::endl;
@@ -466,7 +467,7 @@ bool SAMpatchPara::initSystemEquations ()
     for (size_t k = 0; k < l2gn.size(); k++)
       if (l2gn[k] < min) ghostNodes.push_back(k+1);
 #endif
-
+    
     // TODO: Fix this for mixed field interpolations (varying DOFs per node)
     int nndof = ndof/nnod;
     nleq = (max-min+1)*nndof;
