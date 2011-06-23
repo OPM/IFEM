@@ -186,7 +186,7 @@ bool HDF5Writer::readSIM (int level, const DataEntry& entry)
   SIMbase* sim = static_cast<SIMbase*>(entry.second.data);
   Vector* sol = static_cast<Vector*>(entry.second.data2);
   if (!sol) return false;
-  const Integrand* prob = sim->getProblem();
+  const IntegrandBase* prob = sim->getProblem();
 
   for (int i = 0; i < sim->getNoPatches() && ok; ++i) {
     std::stringstream str;
@@ -267,7 +267,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry)
   Vector* sol = static_cast<Vector*>(entry.second.data2);
   if (!sol) return;
 
-  const Integrand* prob = sim->getProblem();
+  const IntegrandBase* prob = sim->getProblem();
   if (level == 0) { // TODO time dependent geometries
     writeBasis(sim,sim->getName()+"-1",1,level);
     if (prob->mixedFormulation())
@@ -288,7 +288,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry)
     if (loc > 0) // we own the patch
     {
       size_t ndof1 = sim->extractPatchSolution(*sol,loc-1);
-      Vector& psol = const_cast<Integrand*>(prob)->getSolution();
+      Vector& psol = const_cast<IntegrandBase*>(prob)->getSolution();
       if (prob->mixedFormulation())
       {
         // Mixed methods: The primary solution vector is referring to two bases

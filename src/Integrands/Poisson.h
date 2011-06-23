@@ -15,13 +15,10 @@
 #define _POISSON_H
 
 #include "IntegrandBase.h"
-#include "ElmMats.h"
 #include "Vec3.h"
 #include <map>
 
-class VTF;
 class ElmNorm;
-
 
 /*!
   \brief Class representing the integrand of the Poisson problem.
@@ -29,7 +26,7 @@ class ElmNorm;
   Properties with spatial variation has to be implemented as sub-classes.
 */
 
-class Poisson : public Integrand
+class Poisson : public IntegrandBase
 {
 public:
   //! \brief The default constructor initializes all pointers to zero.
@@ -43,7 +40,7 @@ public:
   virtual void setMode(SIM::SolutionMode mode);
 
   //! \brief Defines the traction field to use in Neumann boundary conditions.
-  void setTraction(VecFunc* tf) { tracFld = tf; myMats.rhsOnly = true; }
+  void setTraction(VecFunc* tf);
   //! \brief Clears the integration point traction values.
   void clearTracVal() { tracVal.clear(); }
 
@@ -78,6 +75,11 @@ public:
   virtual bool evalBou(LocalIntegral*& elmInt, const FiniteElement& fe,
 		       const Vec3& X, const Vec3& normal) const;
 
+  //! \brief Evaluates the primary solution at a result point.
+  //! \param[in] N Basis function values at current point
+  //! \return Primary solution value at current point
+  double evalSol(const Vector& N) const;
+
   //! \brief Evaluates the secondary solution at a result point.
   //! \param[out] s Array of solution field values at current point
   //! \param[in] N Basis function values at current point
@@ -87,11 +89,6 @@ public:
   virtual bool evalSol(Vector& s,
 		       const Vector& N, const Matrix& dNdX,
 		       const Vec3& X, const std::vector<int>& MNPC) const;
-
-  //! \brief Evaluates the primary solution at a result point.
-  //! \param[in] N Basis function values at current point
-  //! \return Primary solution vector at current point
-  double evalSol(const Vector& N) const;
 
   //! \brief Evaluates the finite element (FE) solution at an integration point.
   //! \param[out] s The FE solution values at current point
@@ -148,8 +145,6 @@ protected:
   Vector* eS; //!< Pointer to element right-hand-side vector
   Vector* eV; //!< Pointer to element solution vector
 
-  mutable ElmMats myMats; //!< Local element matrices
-
   VecFunc*  tracFld; //!< Pointer to boundary traction field
   RealFunc* heatSrc; //!< Pointer to interior heat source
 
@@ -174,13 +169,9 @@ public:
   //! \brief The only constructor initializes its data members.
   //! \param[in] p The Poisson problem to evaluate norms for
   //! \param[in] a The analytical heat flux (optional)
-  PoissonNorm(Poisson& p, VecFunc* a = 0) : problem(p), anasol(a) {}
+  PoissonNorm(Poisson& p, VecFunc* a = 0) : NormBase(p), anasol(a) {}
   //! \brief Empty destructor.
   virtual ~PoissonNorm() {}
-
-  //! \brief Initializes current element for numerical integration.
-  //! \param[in] MNPC Matrix of nodal point correspondance for current element
-  virtual bool initElement(const std::vector<int>& MNPC);
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
@@ -189,10 +180,6 @@ public:
   virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
 		       const Vec3& X) const;
 
-  //! \brief Returns the number of norm quantities.
-  virtual size_t getNoFields(int = 0) const { return anasol ? 3 : 1; }
-
-protected:
   //! \brief Evaluates the integrand at a boundary point.
   //! \param elmInt The local integral object to receive the contributions
   //! \param[fe] Finite Element quantities
@@ -201,16 +188,11 @@ protected:
   virtual bool evalBou(LocalIntegral*& elmInt,  const FiniteElement& fe,
 		       const Vec3& X, const Vec3& normal) const;
 
-  //! \brief Get a pointer to the element norm object to use in the integration.
-  //! \param elmInt The local integral object to receive norm contributions
-  //!
-  //! \details If \a elmInt is NULL or cannot be casted to a ElmNorm pointer,
-  //! a local static buffer is used instead.
-  static ElmNorm* getElmNormBuffer(LocalIntegral*& elmInt);
+  //! \brief Returns the number of norm quantities.
+  virtual size_t getNoFields() const { return anasol ? 3 : 1; }
 
 private:
-  Poisson& problem; //!< The problem-specific data
-  VecFunc* anasol;  //!< Analytical heat flux
+  VecFunc* anasol; //!< Analytical heat flux
 };
 
 #endif

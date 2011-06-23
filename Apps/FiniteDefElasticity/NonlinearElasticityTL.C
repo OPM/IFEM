@@ -47,13 +47,13 @@ void NonlinearElasticityTL::setMode (SIM::SolutionMode mode)
   switch (mode)
     {
     case SIM::STATIC:
-      myMats->resize(1,2);
+      myMats->resize(1,1);
       eKm = &myMats->A[0];
       eKg = &myMats->A[0];
       break;
 
     case SIM::DYNAMIC:
-      myMats->resize(2,2);
+      myMats->resize(2,1);
       eKm = &myMats->A[0];
       eKg = &myMats->A[0];
       eM  = &myMats->A[1];
@@ -61,9 +61,9 @@ void NonlinearElasticityTL::setMode (SIM::SolutionMode mode)
 
     case SIM::RHS_ONLY:
       if (myMats->A.empty())
-	myMats->resize(1,2);
+	myMats->resize(1,1);
       else
-	myMats->b.resize(2);
+	myMats->b.resize(1);
       eKm = &myMats->A[0];
       eKg = &myMats->A[0];
       myMats->rhsOnly = true;
@@ -76,9 +76,10 @@ void NonlinearElasticityTL::setMode (SIM::SolutionMode mode)
     }
 
   // We always need the force+displacement vectors in nonlinear simulations
+  mySols.resize(1);
   iS = &myMats->b[0];
   eS = &myMats->b[0];
-  eV = &myMats->b[1];
+  eV = &mySols[0];
   tracVal.clear();
 }
 

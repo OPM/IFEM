@@ -42,7 +42,6 @@ void NonlinearElasticityUL::setMode (SIM::SolutionMode mode)
 {
   if (!myMats) return;
 
-  size_t nvec = 1 + primsol.size();
   myMats->rhsOnly = false;
   eM = eKm = eKg = 0;
   iS = eS  = eV  = 0;
@@ -50,13 +49,13 @@ void NonlinearElasticityUL::setMode (SIM::SolutionMode mode)
   switch (mode)
     {
     case SIM::STATIC:
-      myMats->resize(1,nvec);
+      myMats->resize(1,1);
       eKm = &myMats->A[0];
       eKg = &myMats->A[0];
       break;
 
     case SIM::DYNAMIC:
-      myMats->resize(2,nvec);
+      myMats->resize(2,1);
       eKm = &myMats->A[0];
       eKg = &myMats->A[0];
       eM  = &myMats->A[1];
@@ -64,9 +63,9 @@ void NonlinearElasticityUL::setMode (SIM::SolutionMode mode)
 
     case SIM::RHS_ONLY:
       if (myMats->A.empty())
-	myMats->resize(1,nvec);
+	myMats->resize(1,1);
       else
-        myMats->b.resize(nvec);
+        myMats->b.resize(1);
       eKm = &myMats->A[0];
       eKg = &myMats->A[0];
       myMats->rhsOnly = true;
@@ -80,7 +79,8 @@ void NonlinearElasticityUL::setMode (SIM::SolutionMode mode)
   // We always need the force+displacement vectors in nonlinear simulations
   iS = &myMats->b[0];
   eS = &myMats->b[0];
-  eV = &myMats->b[1];
+  mySols.resize(1);
+  eV = &mySols[0];
   tracVal.clear();
 }
 
@@ -330,9 +330,9 @@ bool ElasticityNormUL::evalInt (LocalIntegral*& elmInt,
 				const TimeDomain& prm,
 				const Vec3& X) const
 {
-  ElmNorm& pnorm = ElasticityNorm::getElmNormBuffer(elmInt);
+  NonlinearElasticityUL& ulp = static_cast<NonlinearElasticityUL&>(myProblem);
 
-  NonlinearElasticityUL& ulp = static_cast<NonlinearElasticityUL&>(problem);
+  ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt);
 
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E
   Tensor F(fe.dNdX.cols());
@@ -357,14 +357,15 @@ bool ElasticityNormUL::evalBou (LocalIntegral*& elmInt,
 				const FiniteElement& fe,
 				const Vec3& X, const Vec3& normal) const
 {
-  if (!problem.haveLoads()) return true;
+  NonlinearElasticityUL& ulp = static_cast<NonlinearElasticityUL&>(myProblem);
+  if (!ulp.haveLoads()) return true;
 
-  ElmNorm& pnorm = ElasticityNorm::getElmNormBuffer(elmInt);
+  ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt);
 
   // Evaluate the current surface traction
-  Vec3 t = problem.getTraction(X,normal);
+  Vec3 t = ulp.getTraction(X,normal);
   // Evaluate the current displacement field
-  Vec3 u = problem.evalSol(fe.N);
+  Vec3 u = ulp.evalSol(fe.N);
 
   // Integrate the external energy (path integral)
   if (iP < Ux.size())

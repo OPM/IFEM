@@ -14,6 +14,7 @@
 #include "Poisson.h"
 #include "FiniteElement.h"
 #include "Utilities.h"
+#include "ElmMats.h"
 #include "ElmNorm.h"
 #include "Tensor.h"
 #include "Vec3Oper.h"
@@ -23,6 +24,8 @@
 
 Poisson::Poisson (unsigned short int n) : nsd(n)
 {
+  npv = 1; // One primary unknown per node (scalar equation)
+
   kappa = 1.0;
 
   tracFld = 0;
@@ -32,48 +35,49 @@ Poisson::Poisson (unsigned short int n) : nsd(n)
 
   // Only the current solution is needed
   primsol.resize(1);
+  mySols.resize(1);
+
+  myMats = new ElmMats();
 }
 
 
 void Poisson::setMode (SIM::SolutionMode mode)
 {
-  myMats.rhsOnly = false;
+  myMats->rhsOnly = false;
   eM = 0;
   eS = eV = 0;
 
   switch (mode)
     {
     case SIM::STATIC:
-      myMats.A.resize(1);
-      myMats.b.resize(1);
-      eM = &myMats.A[0];
-      eS = &myMats.b[0];
+      myMats->A.resize(1);
+      myMats->b.resize(1);
+      eM = &myMats->A[0];
+      eS = &myMats->b[0];
       tracVal.clear();
       break;
 
     case SIM::VIBRATION:
-      myMats.A.resize(1);
-      eM = &myMats.A[0];
+      myMats->A.resize(1);
+      eM = &myMats->A[0];
       break;
 
     case SIM::RHS_ONLY:
-      myMats.rhsOnly = true;
-      if (myMats.b.empty())
-	myMats.b.resize(1);
-      eS = &myMats.b[0];
+      myMats->rhsOnly = true;
+      if (myMats->b.empty())
+	myMats->b.resize(1);
+      eS = &myMats->b[0];
       tracVal.clear();
       break;
 
     case SIM::RECOVERY:
-      myMats.rhsOnly = true;
-      if (myMats.b.empty())
-	myMats.b.resize(1);
-      eV = &myMats.b[0];
+      myMats->rhsOnly = true;
+      eV = &mySols[0];
       break;
 
     default:
-      myMats.A.clear();
-      myMats.b.clear();
+      myMats->A.clear();
+      myMats->b.clear();
       tracVal.clear();
     }
 }
@@ -87,6 +91,12 @@ double Poisson::getTraction (const Vec3& X, const Vec3& n) const
 }
 
 
+void Poisson::setTraction (VecFunc* tf)
+{
+  tracFld = tf;
+  myMats->rhsOnly = true;
+}
+
 
 bool Poisson::initElement (const std::vector<int>& MNPC)
 {
@@ -95,14 +105,7 @@ bool Poisson::initElement (const std::vector<int>& MNPC)
   if (eM) eM->resize(nen,nen,true);
   if (eS) eS->resize(nen,true);
 
-  int ierr = 0;
-  if (eV && !primsol.front().empty())
-    if ((ierr = utl::gather(MNPC,1,primsol.front(),*eV)))
-      std::cerr <<" *** Poisson::initElement: Detected "
-		<< ierr <<" node numbers out of range."<< std::endl;
-
-  myMats.withLHS = true;
-  return ierr == 0;
+  return this->IntegrandBase::initElement(MNPC);
 }
 
 
@@ -110,7 +113,7 @@ bool Poisson::initElementBou (const std::vector<int>& MNPC)
 {
   if (eS) eS->resize(MNPC.size(),true);
 
-  myMats.withLHS = false;
+  myMats->withLHS = false;
   return true;
 }
 
@@ -118,7 +121,7 @@ bool Poisson::initElementBou (const std::vector<int>& MNPC)
 bool Poisson::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
 		       const Vec3& X) const
 {
-  elmInt = &myMats;
+  elmInt = myMats;
 
   if (eM)
   {
@@ -140,7 +143,7 @@ bool Poisson::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
 bool Poisson::evalBou (LocalIntegral*& elmInt, const FiniteElement& fe,
 		       const Vec3& X, const Vec3& normal) const
 {
-  elmInt = &myMats;
+  elmInt = myMats;
   if (!tracFld)
   {
     std::cerr <<" *** Poisson::evalBou: No tractions."<< std::endl;
@@ -183,20 +186,17 @@ bool Poisson::writeGlvT (VTF* vtf, int iStep, int& nBlock) const
   return vtf->writeVblk(nBlock,"Tractions",1,iStep);
 }
 
-double Poisson::evalSol (const Vector& N) const
-{
-  double u = 0;
-  if (eV && eV->size() == N.size()*nsd)
-      u = eV->dot(N);
-
-  return u;
-}
-
 
 bool Poisson::formCmatrix (Matrix& C, const Vec3&, bool invers) const
 {
   C.diag(invers && kappa != 0.0 ? 1.0/kappa : kappa, nsd);
   return true;
+}
+
+
+double Poisson::evalSol (const Vector& N) const
+{
+  return eV ? eV->dot(N) : 0.0;
 }
 
 
@@ -255,18 +255,6 @@ bool Poisson::evalSol (Vector& q, const Matrix& dNdX, const Vec3& X) const
   return true;
 }
 
-ElmNorm* PoissonNorm::getElmNormBuffer (LocalIntegral*& elmInt)
-{
-  ElmNorm* eNorm = dynamic_cast<ElmNorm*>(elmInt);
-  if (eNorm) return eNorm;
-
-  static double data[4];
-  static ElmNorm buf(data);
-  memset(data,0,4*sizeof(double));
-  elmInt = eNorm = &buf;
-  return eNorm;
-}
-
 
 bool Poisson::evalSol (Vector& s, const VecFunc& asol, const Vec3& X) const
 {
@@ -310,21 +298,11 @@ NormBase* Poisson::getNormIntegrand (AnaSol* asol) const
 }
 
 
-bool PoissonNorm::initElement (const std::vector<int>& MNPC)
-{
-  return problem.initElement(MNPC);
-}
-
-
 bool PoissonNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
 			   const Vec3& X) const
 {
-  ElmNorm* eNorm = dynamic_cast<ElmNorm*>(elmInt);
-  if (!eNorm)
-  {
-    std::cerr <<" *** PoissonNorm::evalInt: No norm array."<< std::endl;
-    return false;
-  }
+  Poisson& problem = static_cast<Poisson&>(myProblem);
+  ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt);
 
   // Evaluate the inverse constitutive matrix at this point
   Matrix Cinv;
@@ -335,7 +313,6 @@ bool PoissonNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
   if (!problem.evalSol(sigmah,fe.dNdX,X)) return false;
 
   // Integrate the energy norm a(u^h,u^h)
-  ElmNorm& pnorm = *eNorm;
   pnorm[0] += sigmah.dot(Cinv*sigmah)*fe.detJxW;
   if (anasol)
   {
@@ -351,10 +328,12 @@ bool PoissonNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
   return true;
 }
 
-bool PoissonNorm::evalBou(LocalIntegral*& elmInt, const FiniteElement& fe,
-		          const Vec3& X, const Vec3& normal) const
+
+bool PoissonNorm::evalBou (LocalIntegral*& elmInt, const FiniteElement& fe,
+			   const Vec3& X, const Vec3& normal) const
 {
-  ElmNorm* eNorm = PoissonNorm::getElmNormBuffer(elmInt);
+  Poisson& problem = static_cast<Poisson&>(myProblem);
+  ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt);
 
   // Evaluate the surface flux
   double T = problem.getTraction(X,normal);
@@ -362,6 +341,6 @@ bool PoissonNorm::evalBou(LocalIntegral*& elmInt, const FiniteElement& fe,
   double u = problem.evalSol(fe.N);
 
   // Integrate the external energy
-  (*eNorm)[1] += T*u*fe.detJxW;
+  pnorm[1] += T*u*fe.detJxW;
   return true;
 }

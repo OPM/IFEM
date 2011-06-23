@@ -23,7 +23,7 @@
 #include <map>
 
 class ASMbase;
-class Integrand;
+class IntegrandBase;
 class AnaSol;
 class VTF;
 class SAMpatch;
@@ -123,7 +123,7 @@ public:
   void printProblem(std::ostream& os) const;
 
   //! \brief Returns a pointer to the problem-specific data object.
-  const Integrand* getProblem() const { return myProblem; }
+  const IntegrandBase* getProblem() const { return myProblem; }
 
   virtual std::string getName() const { return "SIMbase"; }
 
@@ -455,15 +455,15 @@ protected:
   typedef std::map<int,TractionFunc*> TracFuncMap;
 
   // Model attributes
-  FEModelVec  myModel;   //!< The actual NURBS/spline model
-  PropertyVec myProps;   //!< Physical property mapping
-  SclFuncMap  myScalars; //!< Scalar property fields
-  VecFuncMap  myVectors; //!< Vector property fields
-  TracFuncMap myTracs;   //!< Traction property fields
-  Integrand*  myProblem; //!< Problem-specific data and methods
-  AnaSol*     mySol;     //!< Analytical/Exact solution
-  VTF*        myVtf;     //!< VTF-file for result visualization
-  ResPointVec myPoints;  //!< User-defined result sampling points
+  FEModelVec     myModel;   //!< The actual NURBS/spline model
+  PropertyVec    myProps;   //!< Physical property mapping
+  SclFuncMap     myScalars; //!< Scalar property fields
+  VecFuncMap     myVectors; //!< Vector property fields
+  TracFuncMap    myTracs;   //!< Traction property fields
+  IntegrandBase* myProblem; //!< Problem-specific data and methods
+  AnaSol*        mySol;     //!< Analytical/Exact solution
+  VTF*           myVtf;     //!< VTF-file for result visualization
+  ResPointVec    myPoints;  //!< User-defined result sampling points
 
   // Parallel computing attributes
   int              nGlPatches; //!< Number of global patches

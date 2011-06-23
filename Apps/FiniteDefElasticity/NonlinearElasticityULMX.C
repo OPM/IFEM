@@ -73,14 +73,14 @@ void NonlinearElasticityULMX::setMode (SIM::SolutionMode mode)
   switch (mode)
     {
     case SIM::STATIC:
-      myMats->resize(2,3);
+      myMats->resize(2,1);
       eKm = &myMats->A[0];
       eKg = &myMats->A[0];
       Hh  = &myMats->A[1];
       break;
 
     case SIM::DYNAMIC:
-      myMats->resize(3,3);
+      myMats->resize(3,1);
       eKm = &myMats->A[0];
       eKg = &myMats->A[0];
       eM  = &myMats->A[1];
@@ -89,9 +89,9 @@ void NonlinearElasticityULMX::setMode (SIM::SolutionMode mode)
 
     case SIM::RHS_ONLY:
       if (myMats->A.size() < 2)
-	myMats->resize(2,3);
+	myMats->resize(2,1);
       else
-	myMats->b.resize(3);
+	myMats->b.resize(1);
       eKm = &myMats->A[0];
       eKg = &myMats->A[0];
       Hh  = &myMats->A.back();
@@ -99,12 +99,12 @@ void NonlinearElasticityULMX::setMode (SIM::SolutionMode mode)
       break;
 
     case SIM::RECOVERY:
-      if (myMats->A.size() < 1)
-	myMats->resize(1,3);
-      else
-	myMats->b.resize(3);
+      if (myMats->A.empty())
+	myMats->A.resize(1);
+      if (mySols.empty())
+	mySols.resize(1);
       Hh = &myMats->A.back();
-      eV = &myMats->b[1];
+      eV = &mySols[0];
       myMats->rhsOnly = true;
       return;
 
@@ -116,7 +116,8 @@ void NonlinearElasticityULMX::setMode (SIM::SolutionMode mode)
   // We always need the force+displacement vectors in nonlinear simulations
   iS = &myMats->b[0];
   eS = &myMats->b[0];
-  eV = &myMats->b[1];
+  mySols.resize(2);
+  eV = &mySols[0];
   tracVal.clear();
 }
 
@@ -144,21 +145,22 @@ bool NonlinearElasticityULMX::evalInt (LocalIntegral*& elmInt,
 				       const FiniteElement& fe,
 				       const TimeDomain&, const Vec3& X) const
 {
-  if (myMats->b.size() < 3) return false;
+  if (mySols.size() < 2) return false;
 
   ItgPtData& ptData = myData[iP++];
+  Vectors& eVs = const_cast<Vectors&>(mySols);
 
 #if INT_DEBUG > 1
   std::cout <<"NonlinearElasticityUL::dNdX ="<< fe.dNdX;
 #endif
 
   // Evaluate the deformation gradient, Fp, at previous configuration
-  const_cast<NonlinearElasticityULMX*>(this)->eV = &myMats->b[2];
+  const_cast<NonlinearElasticityULMX*>(this)->eV = &eVs[1];
   if (!this->formDefGradient(fe.dNdX,ptData.Fp))
     return false;
 
   // Evaluate the deformation gradient, F, at current configuration
-  const_cast<NonlinearElasticityULMX*>(this)->eV = &myMats->b[1];
+  const_cast<NonlinearElasticityULMX*>(this)->eV = &eVs[0];
   if (!this->formDefGradient(fe.dNdX,ptData.F))
     return false;
 
@@ -456,16 +458,16 @@ NormBase* NonlinearElasticityULMX::getNormIntegrand (AnaSol*) const
 bool ElasticityNormULMX::initElement (const std::vector<int>& MNPC,
 				      const Vec3& Xc, size_t nPt)
 {
-  NonlinearElasticityULMX& elp = static_cast<NonlinearElasticityULMX&>(problem);
+  NonlinearElasticityULMX& p = static_cast<NonlinearElasticityULMX&>(myProblem);
 
-  elp.iP = 0;
-  elp.X0 = Xc;
-  elp.myData.resize(nPt);
-  size_t nPm = utl::Pascal(elp.p,elp.nsd);
-  if (elp.Hh) elp.Hh->resize(nPm,nPm,true);
+  p.iP = 0;
+  p.X0 = Xc;
+  p.myData.resize(nPt);
+  size_t nPm = utl::Pascal(p.p,p.nsd);
+  if (p.Hh) p.Hh->resize(nPm,nPm,true);
 
   // The other element matrices are initialized by the parent class method
-  return elp.NonlinearElasticityUL::initElement(MNPC);
+  return p.NonlinearElasticityUL::initElement(MNPC);
 }
 
 
@@ -473,38 +475,39 @@ bool ElasticityNormULMX::evalInt (LocalIntegral*& elmInt,
 				  const FiniteElement& fe,
 				  const TimeDomain& td, const Vec3& X) const
 {
-  return static_cast<NonlinearElasticityULMX&>(problem).evalInt(elmInt,fe,td,X);
+  return static_cast<NonlinearElasticityULMX&>(myProblem).evalInt(elmInt,
+								  fe,td,X);
 }
 
 
 bool ElasticityNormULMX::finalizeElement (LocalIntegral*& elmInt,
 					  const TimeDomain& prm)
 {
-  NonlinearElasticityULMX& elp = static_cast<NonlinearElasticityULMX&>(problem);
-  if (!elp.Hh) return false;
+  NonlinearElasticityULMX& p = static_cast<NonlinearElasticityULMX&>(myProblem);
+  if (!p.Hh) return false;
 
   size_t iP;
 #if INT_DEBUG > 0
   std::cout <<"\n\n *** Entering ElasticityNormULMX::finalizeElement\n";
-  for (iP = 1; iP <= elp.myData.size(); iP++)
+  for (iP = 1; iP <= p.myData.size(); iP++)
   {
-    const NonlinearElasticityULMX::ItgPtData& pt = elp.myData[iP-1];
+    const NonlinearElasticityULMX::ItgPtData& pt = p.myData[iP-1];
     std::cout <<"\n     X"   << iP <<" = "<< pt.X;
     std::cout <<"\n     detJ"<< iP <<"W = "<< pt.detJW;
     std::cout <<"\n     F"   << iP <<" =\n"<< pt.F;
     std::cout <<"     dNdx"<< iP <<" ="<< pt.dNdx;
     std::cout <<"     Phi" << iP <<" ="<< pt.Phi;
   }
-  std::cout <<"\n     H ="<< *(elp.Hh) << std::endl;
+  std::cout <<"\n     H ="<< *(p.Hh) << std::endl;
 #endif
 
   // 1. Eliminate the internal pressure DOFs by static condensation.
 
-  size_t nPM = elp.Hh->rows();
-  size_t nGP = elp.myData.size();
+  size_t nPM = p.Hh->rows();
+  size_t nGP = p.myData.size();
 
   // Invert the H-matrix
-  Matrix& Hi = *elp.Hh;
+  Matrix& Hi = *p.Hh;
   if (!utl::invert(Hi)) return false;
 
   Vector Theta(nGP);
@@ -515,7 +518,7 @@ bool ElasticityNormULMX::finalizeElement (LocalIntegral*& elmInt,
 
     double h1 = 0.0;
     for (iP = 0; iP < nGP; iP++)
-      h1 += elp.myData[iP].F.det() * elp.myData[iP].detJW;
+      h1 += p.myData[iP].F.det() * p.myData[iP].detJW;
 
     // All gauss point values are identical
     Theta.front() = h1 * Hi(1,1);
@@ -529,7 +532,7 @@ bool ElasticityNormULMX::finalizeElement (LocalIntegral*& elmInt,
     // Integrate the Ji-matrix
     for (iP = 0; iP < nGP; iP++)
     {
-      const NonlinearElasticityULMX::ItgPtData& pt = elp.myData[iP];
+      const NonlinearElasticityULMX::ItgPtData& pt = p.myData[iP];
       for (size_t i = 0; i < nPM; i++)
 	Ji[i] += pt.Phi[i] * pt.F.det() * pt.detJW;
     }
@@ -544,7 +547,7 @@ bool ElasticityNormULMX::finalizeElement (LocalIntegral*& elmInt,
 
     // Calculate Theta = Hj*Phi
     for (iP = 0; iP < nGP; iP++)
-      Theta[iP] = Hj.dot(elp.myData[iP].Phi);
+      Theta[iP] = Hj.dot(p.myData[iP].Phi);
   }
 
 #if INT_DEBUG > 1
@@ -553,7 +556,7 @@ bool ElasticityNormULMX::finalizeElement (LocalIntegral*& elmInt,
 
   // 2. Evaluate the constitutive relation and integrate energy.
 
-  ElmNorm& pnorm = ElasticityNorm::getElmNormBuffer(elmInt);
+  ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt);
 
   SymmTensor Sig(3), Eps(3);
   for (iP = 0; iP < nGP; iP++)
@@ -561,7 +564,7 @@ bool ElasticityNormULMX::finalizeElement (LocalIntegral*& elmInt,
 #if INT_DEBUG > 0
     std::cout <<"\n   iGP =     "<< iP+1 << std::endl;
 #endif
-    NonlinearElasticityULMX::ItgPtData& pt = elp.myData[iP];
+    NonlinearElasticityULMX::ItgPtData& pt = p.myData[iP];
     Eps.rightCauchyGreen(pt.F); // Green Lagrange strain tensor
     Eps -= 1.0;
     Eps *= 0.5;
@@ -571,7 +574,7 @@ bool ElasticityNormULMX::finalizeElement (LocalIntegral*& elmInt,
 
     // Compute the strain energy density, U(Eps) = Int_Eps (Sig:E) dE
     double U = 0.0;
-    if (!elp.material->evaluate(elp.Cmat,Sig,U,pt.X,pt.F,Eps,3,&prm))
+    if (!p.material->evaluate(p.Cmat,Sig,U,pt.X,pt.F,Eps,3,&prm))
       return false;
 
     // Integrate energy norm a(u^h,u^h) = Int_Omega0 U(Eps) dV0

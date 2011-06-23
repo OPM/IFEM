@@ -122,19 +122,6 @@ public:
   //! \brief Empty destructor.
   virtual ~ElasticityNormULMixed() {}
 
-  //! \brief Initializes current element for numerical integration (mixed).
-  //! \param[in] MNPC1 Nodal point correspondance for the basis 1
-  //! \param[in] MNPC2 Nodal point correspondance for the basis 2
-  //! \param[in] n1 Number of nodes in basis 1 on this patch
-  virtual bool initElement(const std::vector<int>& MNPC1,
-                           const std::vector<int>& MNPC2, size_t n1);
-  //! \brief Initializes current element for boundary integration (mixed).
-  //! \param[in] MNPC1 Nodal point correspondance for the basis 1
-  //! \param[in] MNPC2 Nodal point correspondance for the basis 2
-  //! \param[in] n1 Number of nodes in basis 1 on this patch
-  virtual bool initElementBou(const std::vector<int>& MNPC1,
-			      const std::vector<int>& MNPC2, size_t n1);
-
   //! \brief Evaluates the integrand at an interior point (mixed).
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Mixed finite element data of current integration point

@@ -127,8 +127,8 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry)
   if (m_rank != 0)
     return;
 
-  const SIMbase*   sim  = static_cast<const SIMbase*>(entry.second.data);
-  const Integrand* prob = sim->getProblem();
+  const SIMbase* sim = static_cast<const SIMbase*>(entry.second.data);
+  const IntegrandBase* prob = sim->getProblem();
 
   std::string g2file;
   if (prob->mixedFormulation())

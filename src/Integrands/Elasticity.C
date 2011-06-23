@@ -25,6 +25,8 @@
 
 Elasticity::Elasticity (unsigned short int n) : nsd(n)
 {
+  npv = n; // Number of primary unknowns per node
+
   // Default is zero gravity
   grav[0] = grav[1] = grav[2] = 0.0;
 
@@ -41,7 +43,6 @@ Elasticity::Elasticity (unsigned short int n) : nsd(n)
 
 Elasticity::~Elasticity ()
 {
-  if (myMats) delete myMats;
   if (locSys) delete locSys;
 }
 
@@ -94,10 +95,11 @@ void Elasticity::setMode (SIM::SolutionMode mode)
       break;
 
     case SIM::BUCKLING:
-      myMats->resize(2,1);
+      myMats->resize(2,0);
+      mySols.resize(1);
       eKm = &myMats->A[0];
       eKg = &myMats->A[1];
-      eV  = &myMats->b[0];
+      eV  = &mySols[0];
       break;
 
     case SIM::STIFF_ONLY:
@@ -107,7 +109,7 @@ void Elasticity::setMode (SIM::SolutionMode mode)
 
     case SIM::MASS_ONLY:
       myMats->resize(1,0);
-      eM  = &myMats->A[0];
+      eM = &myMats->A[0];
       break;
 
     case SIM::RHS_ONLY:
@@ -120,13 +122,13 @@ void Elasticity::setMode (SIM::SolutionMode mode)
 
     case SIM::RECOVERY:
       myMats->rhsOnly = true;
-      if (myMats->b.empty())
-	myMats->b.resize(1);
-      eV = &myMats->b[0];
+      mySols.resize(1);
+      eV = &mySols[0];
       break;
 
     default:
       myMats->resize(0,0);
+      mySols.clear();
       tracVal.clear();
     }
 }
@@ -160,23 +162,7 @@ bool Elasticity::initElement (const std::vector<int>& MNPC)
   if (eM)  eM->resize(nsd*nen,nsd*nen,true);
   if (eS)  eS->resize(nsd*nen,true);
 
-  // Extract the current primary solution and store in the array *eV
-  int ierr = 0;
-  if (eV && !primsol.front().empty())
-    ierr = utl::gather(MNPC,nsd,primsol.front(),*eV);
-
-  // If previous solutions are required, they are stored in the
-  // (primsol.size()-1) last entries in myMats->b
-  int j = 1+myMats->b.size()-primsol.size();
-  for (size_t i = 1; i < primsol.size() && ierr == 0; i++, j++)
-    if (!primsol[i].empty())
-      ierr = utl::gather(MNPC,nsd,primsol[i],myMats->b[j]);
-
-  if (ierr == 0) return true;
-
-  std::cerr <<" *** Elasticity::initElement: Detected "
-	    << ierr <<" node numbers out of range."<< std::endl;
-  return false;
+  return this->IntegrandBase::initElement(MNPC);
 }
 
 
@@ -187,15 +173,7 @@ bool Elasticity::initElementBou (const std::vector<int>& MNPC)
 
   if (eS) eS->resize(nsd*MNPC.size(),true);
 
-  int ierr = 0;
-  if (eV && !primsol.front().empty())
-    ierr = utl::gather(MNPC,nsd,primsol.front(),*eV);
-
-  if (ierr == 0) return true;
-
-  std::cerr <<" *** Elasticity::initElement: Detected "
-	    << ierr <<" node numbers out of range."<< std::endl;
-  return false;
+  return this->IntegrandBase::initElementBou(MNPC);
 }
 
 
@@ -572,47 +550,17 @@ NormBase* Elasticity::getNormIntegrand (AnaSol* asol) const
 }
 
 
-void ElasticityNorm::initIntegration (const TimeDomain& time)
-{
-  problem.initIntegration(time);
-}
-
-
-bool ElasticityNorm::initElement (const std::vector<int>& MNPC)
-{
-  return problem.initElement(MNPC);
-}
-
-
-bool ElasticityNorm::initElementBou (const std::vector<int>& MNPC)
-{
-  return problem.initElementBou(MNPC);
-}
-
-
-size_t ElasticityNorm::getNoFields (int) const
+size_t ElasticityNorm::getNoFields () const
 {
   return anasol ? 4 : 2;
-}
-
-
-ElmNorm& ElasticityNorm::getElmNormBuffer (LocalIntegral*& elmInt)
-{
-  ElmNorm* eNorm = dynamic_cast<ElmNorm*>(elmInt);
-  if (eNorm) return *eNorm;
-
-  static double data[4];
-  static ElmNorm buf(data);
-  memset(data,0,4*sizeof(double));
-  elmInt = &buf;
-  return buf;
 }
 
 
 bool ElasticityNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
 			      const Vec3& X) const
 {
-  ElmNorm& pnorm = ElasticityNorm::getElmNormBuffer(elmInt);
+  Elasticity& problem = static_cast<Elasticity&>(myProblem);
+  ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt);
 
   // Evaluate the inverse constitutive matrix at this point
   Matrix Cinv;
@@ -663,9 +611,10 @@ bool ElasticityNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
 bool ElasticityNorm::evalBou (LocalIntegral*& elmInt, const FiniteElement& fe,
 			      const Vec3& X, const Vec3& normal) const
 {
+  Elasticity& problem = static_cast<Elasticity&>(myProblem);
   if (!problem.haveLoads()) return true;
 
-  ElmNorm& pnorm = ElasticityNorm::getElmNormBuffer(elmInt);
+  ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt);
 
   // Evaluate the surface traction
   Vec3 T = problem.getTraction(X,normal);

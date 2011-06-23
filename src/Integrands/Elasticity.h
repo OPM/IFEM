@@ -20,9 +20,6 @@
 
 class LocalSystem;
 class Material;
-class ElmMats;
-class ElmNorm;
-class VTF;
 
 
 /*!
@@ -32,7 +29,7 @@ class VTF;
   Thus, it is regarded as an abstract base class with a protected constructor.
 */
 
-class Elasticity : public Integrand
+class Elasticity : public IntegrandBase
 {
 protected:
   //! \brief The default constructor initializes all pointers to zero.
@@ -199,8 +196,6 @@ protected:
   Vector* iS;  //!< Pointer to element internal force vector
   Vector* eV;  //!< Pointer to element displacement vector
 
-  ElmMats* myMats; //!< Local element matrices, result of numerical integration
-
   // Physical properties
   Material* material; //!< Material data and constitutive relation
   double    grav[3];  //!< Gravitation vector
@@ -230,7 +225,7 @@ public:
   //! \brief The only constructor initializes its data members.
   //! \param[in] p The linear elasticity problem to evaluate norms for
   //! \param[in] a The analytical stress field (optional)
-  ElasticityNorm(Elasticity& p, STensorFunc* a = 0) : problem(p), anasol(a) {}
+  ElasticityNorm(Elasticity& p, STensorFunc* a = 0) : NormBase(p), anasol(a) {}
   //! \brief Empty destructor.
   virtual ~ElasticityNorm() {}
 
@@ -238,16 +233,6 @@ public:
   virtual bool hasBoundaryTerms() const { return true; }
   //! \brief Returns a 1-based index of the external energy norm.
   virtual size_t indExt() const { return 2; }
-
-  //! \brief Initializes the integrand for a new integration loop.
-  //! \param[in] time Parameters for nonlinear and time-dependent simulations
-  virtual void initIntegration(const TimeDomain& time);
-  //! \brief Initializes current element for numerical integration.
-  //! \param[in] MNPC Matrix of nodal point correspondance for current element
-  virtual bool initElement(const std::vector<int>& MNPC);
-  //! \brief Initializes current element for boundary numerical integration.
-  //! \param[in] MNPC Matrix of nodal point correspondance for current element
-  virtual bool initElementBou(const std::vector<int>& MNPC);
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
@@ -265,17 +250,7 @@ public:
 		       const Vec3& X, const Vec3& normal) const;
 
   //! \brief Returns the number of norm quantities.
-  virtual size_t getNoFields(int = 0) const;
-
-protected:
-  //! \brief Returns the element norm object to use in the integration.
-  //! \param elmInt The local integral object to receive norm contributions
-  //!
-  //! \details If \a elmInt is NULL or cannot be casted to an ElmNorm pointer,
-  //! a local static buffer is used instead.
-  static ElmNorm& getElmNormBuffer(LocalIntegral*& elmInt);
-
-  Elasticity& problem; //!< The problem-specific data
+  virtual size_t getNoFields() const;
 
 private:
   STensorFunc* anasol; //!< Analytical stress field

@@ -46,16 +46,17 @@ extern "C" {
 enum SolutionVectors {
   U = 0, // displacement
   T = 1, // volumetric change (theta)
-  P = 2  // pressure
+  P = 2, // pressure
+  NSOL = 3
 };
 
 //! \brief Enum for element-level right-hand-side vectors.
 enum ResidualVectors {
-  Ru = 3,
-  Rt = 4,
-  Rp = 5,
-  Rres = 6,
-  NVEC = 7
+  Ru = 0,
+  Rt = 1,
+  Rp = 2,
+  Rres = 3,
+  NVEC = 4
 };
 
 //! \brief Enum for element-level left-hand-side matrices.
@@ -198,13 +199,14 @@ NonlinearElasticityULMixed::NonlinearElasticityULMixed (unsigned short int n)
 {
   if (myMats) delete myMats;
   myMats = new MixedElmMats();
+  mySols.resize(NSOL);
 
   eKm = &myMats->A[Kuu];
   eKg = &myMats->A[Kuu];
 
   iS = &myMats->b[Ru];
   eS = &myMats->b[Ru];
-  eV = &myMats->b[U];
+  eV = &mySols[U];
 }
 
 
@@ -267,8 +269,8 @@ bool NonlinearElasticityULMixed::initElement (const std::vector<int>& MNPC1,
   // Extract the element level volumetric change and pressure vectors
   int ierr = 0;
   if (!primsol.front().empty())
-    if ((ierr = utl::gather(MNPC2,0,2,primsol.front(),myMats->b[T],nsd*n1,n1) +
-		utl::gather(MNPC2,1,2,primsol.front(),myMats->b[P],nsd*n1,n1)))
+    if ((ierr = utl::gather(MNPC2,0,2,primsol.front(),mySols[T],nsd*n1,n1) +
+		utl::gather(MNPC2,1,2,primsol.front(),mySols[P],nsd*n1,n1)))
       std::cerr <<" *** NonlinearElasticityULMixed::initElement: Detected "
 		<< ierr/2 <<" node numbers out of range."<< std::endl;
 
@@ -291,7 +293,7 @@ bool NonlinearElasticityULMixed::initElementBou (const std::vector<int>& MNPC1,
   // Extract the element level displacement vector
   int ierr = 0;
   if (!primsol.front().empty())
-    if ((ierr = utl::gather(MNPC1,nsd,primsol.front(),myMats->b[U])))
+    if ((ierr = utl::gather(MNPC1,nsd,primsol.front(),mySols[U])))
       std::cerr <<" *** NonlinearElasticityULMixed::initElementBou: Detected "
                 << ierr <<" node numbers out of range."<< std::endl;
 
@@ -319,11 +321,11 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
   bool lHaveStrains = !E.isZero(1.0e-16);
 
   // Evaluate the volumetric change and pressure fields
-  double Theta = fe.N2.dot(myMats->b[T]) + 1.0;
-  double Press = fe.N2.dot(myMats->b[P]);
+  double Theta = fe.N2.dot(mySols[T]) + 1.0;
+  double Press = fe.N2.dot(mySols[P]);
 #if INT_DEBUG > 0
-  std::cout <<"NonlinearElasticityULMixed::b_theta ="<< myMats->b[T];
-  std::cout <<"NonlinearElasticityULMixed::b_p ="<< myMats->b[P];
+  std::cout <<"NonlinearElasticityULMixed::b_theta ="<< mySols[T];
+  std::cout <<"NonlinearElasticityULMixed::b_p ="<< mySols[P];
   std::cout <<"NonlinearElasticityULMixed::Theta = "<< Theta
 	    <<", Press = "<< Press << std::endl;
 #endif
@@ -526,32 +528,15 @@ NormBase* NonlinearElasticityULMixed::getNormIntegrand (AnaSol*) const
 }
 
 
-bool ElasticityNormULMixed::initElement (const std::vector<int>& MNPC1,
-					 const std::vector<int>& MNPC2,
-					 size_t n1)
-{
-  return static_cast<NonlinearElasticityULMixed&>(problem).initElement(MNPC1,
-								       MNPC2,
-								       n1);
-}
-
-
-bool ElasticityNormULMixed::initElementBou (const std::vector<int>& MNPC1,
-					    const std::vector<int>&, size_t)
-{
-  return problem.initElementBou(MNPC1);
-}
-
-
 bool ElasticityNormULMixed::evalIntMx (LocalIntegral*& elmInt,
 				       const MxFiniteElement& fe,
 				       const TimeDomain& prm,
 				       const Vec3& X) const
 {
-  ElmNorm& pnorm = ElasticityNorm::getElmNormBuffer(elmInt);
+  ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt);
 
   NonlinearElasticityULMixed* ulp;
-  ulp = static_cast<NonlinearElasticityULMixed*>(&problem);
+  ulp = static_cast<NonlinearElasticityULMixed*>(&myProblem);
 
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E
   Tensor F(fe.dN1dX.cols());
@@ -560,7 +545,7 @@ bool ElasticityNormULMixed::evalIntMx (LocalIntegral*& elmInt,
     return false;
 
   // Evaluate the volumetric change field
-  double Theta = fe.N2.dot(ulp->myMats->b[T]) + 1.0;
+  double Theta = fe.N2.dot(ulp->mySols[T]) + 1.0;
 
   // Compute the mixed model deformation gradient, F_bar
   ulp->Fbar = F; // notice that F_bar always has dimension 3
