@@ -234,6 +234,10 @@ bool ASMs2DLag::integrate (Integrand& integrand,
 	  fe.u = 0.5*(upar[i1]*(1.0-xg[i]) + upar[i1+1]*(1.0+xg[i]));
 	  fe.v = 0.5*(vpar[i2]*(1.0-xg[j]) + vpar[i2+1]*(1.0+xg[j]));
 
+	  // Local coordinates of current integration point
+	  fe.xi  = xg[i];
+	  fe.eta = xg[j];
+
 	  // Compute basis function derivatives at current integration point
 	  // using tensor product of one-dimensional Lagrange polynomials
 	  if (!Lagrange::computeBasis(fe.N,dNdu,p1,xg[i],p2,xg[j]))
@@ -297,13 +301,15 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
   RealArray upar, vpar;
   if (t1 == 1)
   {
-    fe.u = edgeDir < 0 ? surf->startparam_u() : surf->endparam_u();
+    fe.u  = edgeDir < 0 ? surf->startparam_u() : surf->endparam_u();
+    fe.xi = edgeDir < 0 ? -1.0 : 1.0; 
     this->getGridParameters(vpar,1,1);
   }
   else if (t1 == 2)
   {
     this->getGridParameters(upar,0,1);
-    fe.v = edgeDir < 0 ? surf->startparam_v() : surf->endparam_v();
+    fe.v   = edgeDir < 0 ? surf->startparam_v() : surf->endparam_v();
+    fe.eta = edgeDir < 0 ? -1.0 : 1.0;
   }
 
   Matrix dNdu, Xnod, Jac;
@@ -350,11 +356,15 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
 	xi[t1-1] = edgeDir < 0 ? -1.0 : 1.0;
 	xi[t2-1] = xg[i];
 
-	// Parameter values of current integration point
-	if (upar.size() > 1)
+	// Parameter values and local coordinates of current integration point
+	if (upar.size() > 1) {
 	  fe.u = 0.5*(upar[i1]*(1.0-xg[i]) + upar[i1+1]*(1.0+xg[i]));
-	if (vpar.size() > 1)
+	  fe.xi = xg[i];
+	}
+	if (vpar.size() > 1) {
 	  fe.v = 0.5*(vpar[i2]*(1.0-xg[i]) + vpar[i2+1]*(1.0+xg[i]));
+	  fe.eta = xg[i];
+	}
 
 	// Compute the basis functions and their derivatives, using
 	// tensor product of one-dimensional Lagrange polynomials

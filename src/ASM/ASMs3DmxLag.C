@@ -292,6 +292,11 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
 	      fe.v = 0.5*(vpar[i2]*(1.0-x[j]) + vpar[i2+1]*(1.0+x[j]));
 	      fe.w = 0.5*(wpar[i3]*(1.0-x[k]) + wpar[i3+1]*(1.0+x[k]));
 
+	      // Local coordinate of current integration point
+	      fe.xi   = x[i];
+	      fe.eta  = x[j];
+	      fe.zeta = x[k];
+
 	      // Compute basis function derivatives at current integration point
 	      // using tensor product of one-dimensional Lagrange polynomials
 	      if (!Lagrange::computeBasis(fe.N1,dN1du,p1,x[i],p2,x[j],p3,x[k]))

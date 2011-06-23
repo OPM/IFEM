@@ -31,6 +31,9 @@ public:
   double   u;      //!< First parameter of current point
   double   v;      //!< Second parameter of current point
   double   w;      //!< Third parameter of current point
+  double   xi;     //!< First local coordinate of current integration point
+  double   eta;    //!< Second local coordinate of current integration point
+  double   zeta;   //!< Third local coordinate of current integration point
   double   h;      //!< Characteristic element size
   Vector   N;      //!< Basis function values
   Vector   Navg;   //!< Volume-averaged basis function values

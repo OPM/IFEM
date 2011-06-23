@@ -256,6 +256,11 @@ bool ASMs3DLag::integrate (Integrand& integrand,
 	      fe.v = 0.5*(vpar[i2]*(1.0-xg[j]) + vpar[i2+1]*(1.0+xg[j]));
 	      fe.w = 0.5*(wpar[i3]*(1.0-xg[k]) + wpar[i3+1]*(1.0+xg[k]));
 
+	      // Local coordinate of current integration point
+	      fe.xi   = xg[i];
+	      fe.eta  = xg[j];
+	      fe.zeta = xg[k];
+
 	      // Compute basis function derivatives at current integration point
 	      // using tensor product of one-dimensional Lagrange polynomials
 	      if (!Lagrange::computeBasis(fe.N,dNdu,p1,xg[i],p2,xg[j],p3,xg[k]))
@@ -334,6 +339,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
   fe.u = upar.front();
   fe.v = vpar.front();
   fe.w = wpar.front();
+  fe.xi = fe.eta = fe.zeta = -1.0;
 
   Matrix dNdu, Xnod, Jac;
   Vec4   X;
@@ -385,19 +391,25 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 	    xi[t1-1] = xg[i];
 	    xi[t2-1] = xg[j];
 
-	    // Parameter values of current integration point
+	    // Parameter values and local coordinates of current integration point
 	    switch (abs(faceDir)) {
 	    case 1: k2 = i; k3 = j; k1 = -1; break;
 	    case 2: k1 = i; k3 = j; k2 = -1; break;
 	    case 3: k1 = i; k2 = j; k3 = -1; break;
 	    default: k1 = k2 = k3 = -1;
 	    }
-	    if (upar.size() > 1)
+	    if (upar.size() > 1) {
 	      fe.u = 0.5*(upar[i1]*(1.0-xg[k1]) + upar[i1+1]*(1.0+xg[k1]));
-	    if (vpar.size() > 1)
+	      fe.xi = xg[k1];
+	    }
+	    if (vpar.size() > 1) {
 	      fe.v = 0.5*(vpar[i2]*(1.0-xg[k2]) + vpar[i2+1]*(1.0+xg[k2]));
-	    if (wpar.size() > 1)
+	      fe.eta = xg[k2];
+	    }
+	    if (wpar.size() > 1) {
 	      fe.w = 0.5*(wpar[i3]*(1.0-xg[k3]) + wpar[i3+1]*(1.0+xg[k3]));
+	      fe.zeta = xg[k3];
+	    }
 
 	    // Compute the basis functions and their derivatives, using
 	    // tensor product of one-dimensional Lagrange polynomials

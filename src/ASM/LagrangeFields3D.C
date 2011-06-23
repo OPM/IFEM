@@ -46,7 +46,7 @@ bool LagrangeFields3D::valueFE(const FiniteElement& fe, Vector& vals) const
   
   Vector N;
   Matrix dNdu;
-  Lagrange::computeBasis(N,dNdu,p1,fe.u,p2,fe.v,p3,fe.w);
+  Lagrange::computeBasis(N,dNdu,p1,fe.xi,p2,fe.eta,p3,fe.zeta);
 
   const int nel1 = (n1-1)/p1;
   const int nel2 = (n2-1)/p2;
@@ -93,7 +93,7 @@ bool LagrangeFields3D::gradFE(const FiniteElement& fe, Matrix& grad) const
 
   Vector N;
   Matrix dNdu;
-  if (!Lagrange::computeBasis(N,dNdu,p1,fe.u,p2,fe.v,p3,fe.w))
+  if (!Lagrange::computeBasis(N,dNdu,p1,fe.xi,p2,fe.eta,p3,fe.zeta))
     return false;
 
   const int nel1 = (n1-1)/p1;

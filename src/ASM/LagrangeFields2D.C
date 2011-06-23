@@ -44,7 +44,7 @@ bool LagrangeFields2D::valueFE(const FiniteElement& fe, Vector& vals) const
   
   Vector N;
   Matrix dNdu;
-  Lagrange::computeBasis(N,dNdu,p1,fe.u,p2,fe.v);
+  Lagrange::computeBasis(N,dNdu,p1,fe.xi,p2,fe.eta);
 
   const int nel1 = (n1-1)/p1;
 
@@ -85,7 +85,7 @@ bool LagrangeFields2D::gradFE(const FiniteElement& fe, Matrix& grad) const
 
   Vector N;
   Matrix dNdu;
-  if (!Lagrange::computeBasis(N,dNdu,p1,fe.u,p2,fe.v))
+  if (!Lagrange::computeBasis(N,dNdu,p1,fe.xi,p2,fe.eta))
     return false;
 
   const int nel1 = (n1-1)/p1;

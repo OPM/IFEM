@@ -188,6 +188,9 @@ bool ASMs1DLag::integrate (Integrand& integrand,
       // Parameter value of current integration point
       fe.u = 0.5*(gpar[iel-1]*(1.0-xg[i]) + gpar[iel]*(1.0+xg[i]));
 
+      // Local element coordinate of current integration point
+      fe.xi = xg[i];
+
       // Compute basis function derivatives at current integration point
       if (!Lagrange::computeBasis(fe.N,dNdu,p1,xg[i]))
 	return false;
@@ -229,12 +232,14 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
     {
     case 1:
       fe.u = curv->startparam();
+      fe.xi = -1.0;
       x = -1.0;
       iel = 1;
       break;
 
     case 2:
       fe.u = curv->endparam();
+      fe.xi = 1.0;
       x = 1.0;
       iel = this->getNoElms();
 
