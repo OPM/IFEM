@@ -150,16 +150,16 @@ void HDF5Writer::writeArray(int group, const std::string& name,
   hid_t space = H5Screate_simple(1,&siz,NULL);
   hid_t set = H5Dcreate2(group,name.c_str(),
                          type,space,H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
-  hid_t file_space = H5Dget_space(set);
   if (len > 0) {
+    hid_t file_space = H5Dget_space(set);
     siz = len;
     hsize_t stride = 1;
     H5Sselect_hyperslab(file_space,H5S_SELECT_SET,&start,&stride,&siz,NULL);
     hid_t mem_space = H5Screate_simple(1,&siz,NULL);
     H5Dwrite(set,type,mem_space,file_space,H5P_DEFAULT,data);
     H5Sclose(mem_space);
+    H5Sclose(file_space);
   }
-  H5Sclose(file_space);
   H5Dclose(set);
 #else
   std::cout << "HDF5Writer: compiled without HDF5 support, no data written" << std::endl;
@@ -311,14 +311,16 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry)
     else // must write empty dummy records for the other patches
     {
       double dummy;
-      writeArray(group2,entry.first,0,&dummy,H5T_NATIVE_DOUBLE);
+      writeArray(group2,prob->getField1Name(11),0,&dummy,H5T_NATIVE_DOUBLE);
       if (prob->mixedFormulation())
       {
         writeArray(group2,prob->getField1Name(11),0,&dummy,H5T_NATIVE_DOUBLE);
         writeArray(group2,prob->getField1Name(12),0,&dummy,H5T_NATIVE_DOUBLE);
       }
-      for (size_t j = 0; j < prob->getNoFields(2); ++j)
-        writeArray(group2,prob->getField2Name(j),0,&dummy,H5T_NATIVE_DOUBLE);
+      if (entry.second.size == -1) {
+        for (size_t j = 0; j < prob->getNoFields(2); ++j)
+          writeArray(group2,prob->getField2Name(j),0,&dummy,H5T_NATIVE_DOUBLE);
+      }
     }
     H5Gclose(group2);
   }
