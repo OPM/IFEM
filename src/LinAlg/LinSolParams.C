@@ -23,17 +23,18 @@ void LinSolParams::setDefault ()
 {
 #ifdef HAS_PETSC
   // Use GMRES with ILU preconditioner as default
-  method  = KSPGMRES;
-  prec    = PCILU;
-  package = MAT_SOLVER_PETSC;
-  levels  = 0;
-  overlap = 0;
-  nullspc = NONE;
+  method    = KSPGMRES;
+  hypretype = "boomeramg"; 
+  prec      = PCILU;
+  package   = MAT_SOLVER_PETSC;
+  levels    = 0;
+  overlap   = 0;
+  nullspc   = NONE;
 
-  atol   = 1.0e-6;
-  rtol   = 1.0e-6;
-  dtol   = 1.0e3;
-  maxIts = 1000;
+  atol      = 1.0e-6;
+  rtol      = 1.0e-6;
+  dtol      = 1.0e3;
+  maxIts    = 1000;
 #endif
 }
 
@@ -42,12 +43,13 @@ void LinSolParams::copy (const LinSolParams& spar)
 {
 #ifdef HAS_PETSC
   // Copy linear solver parameters
-  method  = spar.method;
-  prec    = spar.prec;
-  package = spar.package;
-  levels  = spar.levels;
-  overlap = spar.overlap;
-  nullspc = spar.nullspc;
+  method    = spar.method;
+  hypretype = spar.hypretype; 
+  prec      = spar.prec;
+  package   = spar.package;
+  levels    = spar.levels;
+  overlap   = spar.overlap;
+  nullspc   = spar.nullspc;
 
   atol   = spar.atol;
   rtol   = spar.rtol;
@@ -76,6 +78,14 @@ bool LinSolParams::read (std::istream& is, int nparam)
       int j = 0;
       while (c[j] != EOF && c[j] != '\n' && c[j] != ' ' && c[j] != '\0') j++;
       prec.assign(c,j);
+    }
+
+    else if (!strncasecmp(cline,"hypretype",9)) {
+      char* c = strchr(cline,'=');
+      for (++c; *c == ' '; c++);
+      int j = 0;
+      while (c[j] != EOF && c[j] != '\n' && c[j] != ' ' && c[j] != '\0') j++;
+      hypretype.assign(c,j);
     }
 
     else if (!strncasecmp(cline,"package",7)) {
@@ -161,6 +171,8 @@ void LinSolParams::setParams(KSP& ksp) const
   //PCMGSetLevels(pc,levels,PETSC_NULL);
   //PCMGSetType(pc,PC_MG_MULTIPLICATIVE);
   PCSetType(pc,prec.c_str());
+  if (!strncasecmp(prec.c_str(),"hypre",5)) 
+    PCHYPRESetType(pc,hypretype.c_str());
   if (overlap > 0) {
     PCASMSetType(pc,PC_ASM_BASIC);
     PCASMSetOverlap(pc,overlap);

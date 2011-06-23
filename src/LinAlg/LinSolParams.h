@@ -112,6 +112,7 @@ public:
 
 private:
   std::string method;   // Linear solver method
+  std::string hypretype;// Type of hypre preconditioner
   std::string prec;     // Preconditioner
   std::string package;  // Linear software package (petsc, superlu_dist, ...)
   PetscReal atol;       // Absolute tolerance
