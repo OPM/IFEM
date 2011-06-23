@@ -111,36 +111,44 @@ bool SplineFields3D::valueFE(const FiniteElement& fe, Vector& vals) const
   
   double w = 1.0;
   if (rational) {
+    double tempw, tempw2;
     w = 0.0;
+
     const int w_start_ix = (uleft - uorder + 1 + unum * (vleft - vorder + 1 + vnum * (wleft - worder + 1))) * kdim + dim;
     const double *w_ptr = &(vol->rcoefs_begin()[w_start_ix]);
     
     for (double* bval_w_ptr = Bw.begin(); bval_w_ptr != Bw.end(); ++bval_w_ptr) {
       const double bval_w = *bval_w_ptr;
       std::fill(tempPt.begin(), tempPt.end(), 0);
+      tempw = 0.0;
       for (double* bval_v_ptr = Bv.begin(); bval_v_ptr != Bv.end(); ++bval_v_ptr) {
 	const double bval_v = *bval_v_ptr;
 	std::fill(tempPt2.begin(), tempPt2.end(), 0);
+	tempw2 = 0.0;
 	for (double* bval_u_ptr = Bu.begin(); bval_u_ptr != Bu.end(); ++bval_u_ptr) {
 	  const double bval_u = *bval_u_ptr;
 	  for (vtemp = tempPt2.begin(); vtemp != tempPt2.end(); ++vtemp) {
-	    *vtemp += bval_u * (*val_ptr++);
+	    *vtemp += bval_u * (*val_ptr++)*(*w_ptr);
 	  }
-	  w += bval_u*(*w_ptr);
+	  tempw2 += bval_u*(*w_ptr);
 	  w_ptr += kdim;
 	}
+
 	vtemp = tempPt2.begin();
 	for (double* v = tempPt.begin(); v != tempPt.end(); ++v) {
 	  *v += (*vtemp++) * bval_v;
 	}
+
+	tempw += tempw2*bval_v;
 	val_ptr += ncomp * (unum - uorder);
 	w_ptr   += kdim * (unum - uorder);
       }
+
       vtemp = tempPt.begin();
       for (double* v = tempResult.begin(); v != tempResult.end(); ++v) {
 	*v += (*vtemp++) * bval_w;
       }
-      w *= bval_w;
+      w += tempw * bval_w;
       val_ptr += ncomp * unum * (vnum - vorder);
       w_ptr   += kdim  * unum * (vnum - vorder);
     }
@@ -291,7 +299,8 @@ bool SplineFields3D::gradFE(const FiniteElement& fe, Matrix& grad) const
   // Compute the tensor product value
   int coefind = uleft-uorder+1 + unum*(vleft-vorder+1 + vnum*(wleft-worder+1));
   int derivs_plus1=derivs+1;
-  
+
+  double weight = 1.0;
   for (int k = 0; k < worder; ++k) {
     int kd=k*derivs_plus1;
     std::fill(temp.begin(), temp.end(), 0.0);
@@ -302,36 +311,35 @@ bool SplineFields3D::gradFE(const FiniteElement& fe, Matrix& grad) const
       
       for (int i = 0; i < uorder; ++i) {
 	int id=i*derivs_plus1;
+
+	if (rational) {
+	  int temp_ind = ncomp;
+	  weight = co[coefind*kdim+dim];
+
+	  for (int wder = 0; wder <= derivs; ++wder) {
+	    for (int vder = 0; vder <= wder; ++vder) {
+	      for (int uder = 0; uder <= vder; ++uder) {
+		temp2[temp_ind] += b0[id + wder - vder]*weight;
+		temp_ind+=ndim;
+	      }
+	    }
+	  }
+	}
+
 	const double *val_p = &values[coefind*ncomp]; 
-	const double *co_p  = &co[coefind*kdim] + dim;
-	
 	for (int d = 0; d < ncomp; ++d,++val_p) {
 	  int temp_ind = d;
 	  
 	  for (int wder = 0; wder <= derivs; ++wder) {
 	    for (int vder = 0; vder <= wder; ++vder) {
 	      for (int uder = 0; uder <= vder; ++uder) {
-		temp2[temp_ind]
-		  += b0[id + wder - vder]*(*val_p);
+		temp2[temp_ind] += b0[id + wder - vder]*(*val_p)*weight;
 		temp_ind+=kdim;
 	      }
 	    }
 	  }
 	}
-	
-	for (int d = dim;d < kdim;d++, co_p += kdim) {
-	  int temp_ind = ncomp;
-	  
-	  for (int wder = 0; wder <= derivs; ++wder) {
-	    for (int vder = 0; vder <= wder; ++vder) {
-	      for (int uder = 0; uder <= vder; ++uder) {
-		temp2[temp_ind]
-		  += b0[id + wder - vder]*(*co_p);
-		temp_ind+=ndim;
-	      }
-	    }
-	  }
-	}
+
 	coefind += 1;
       }
       
@@ -373,7 +381,7 @@ bool SplineFields3D::gradFE(const FiniteElement& fe, Matrix& grad) const
     Go::volume_ratder(&restemp[0], dim, derivs, &restemp2[0]);
     for (int i = 0; i < totpts; ++i) {
       for (int d = 0; d < ncomp; ++d) {
-	pts[i][d] = restemp2[i*ncomp + d];
+	pts[i][d] = restemp2[i*ndim + d];
       }
     }
   } else {

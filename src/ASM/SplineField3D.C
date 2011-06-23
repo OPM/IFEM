@@ -93,32 +93,35 @@ double SplineField3D::valueFE(const FiniteElement& fe) const
   
   double w = 1.0;
   if (rational) {
+    double tempw, tempw2;
+
     w = 0.0;
     const int w_start_ix = (uleft - uorder + 1 + unum * (vleft - vorder + 1 + vnum * (wleft - worder + 1))) * kdim + dim;
     const double *w_ptr = &(vol->rcoefs_begin()[w_start_ix]);
     
     for (double* bval_w_ptr = Bw.begin(); bval_w_ptr != Bw.end(); ++bval_w_ptr) {
       const double bval_w = *bval_w_ptr;
-      temp = 0.0;
+      temp = tempw = 0.0;
       for (double* bval_v_ptr = Bv.begin(); bval_v_ptr != Bv.end(); ++bval_v_ptr) {
 	const double bval_v = *bval_v_ptr;
-	temp2 = 0.0;
+	temp2 = tempw2 = 0.0;
 	for (double* bval_u_ptr = Bu.begin(); bval_u_ptr != Bu.end(); ++bval_u_ptr) {
 	  const double bval_u = *bval_u_ptr;
-	  temp2 += bval_u * (*val_ptr++);
 
-	  w += bval_u*(*w_ptr);
+	  temp2  += bval_u * (*val_ptr++) * (*w_ptr);
+	  tempw2 += bval_u*(*w_ptr);
 	  w_ptr += kdim;
 	}
 
-	temp += temp2 * bval_v;
+	temp  += temp2 * bval_v;
+	tempw += tempw2 * bval_v;
 
 	val_ptr += unum - uorder;
 	w_ptr   += kdim * (unum - uorder);
       }
 
       tempResult += temp * bval_w;
-      w *= bval_w;
+      w += tempw * bval_w;
 
       val_ptr += unum * (vnum - vorder);
       w_ptr   += kdim  * unum * (vnum - vorder);
@@ -251,6 +254,7 @@ bool SplineField3D::gradFE(const FiniteElement& fe, Vector& grad) const
   int coefind = uleft-uorder+1 + unum*(vleft-vorder+1 + vnum*(wleft-worder+1));
   int derivs_plus1=derivs+1;
   
+  double weight = 1.0;
   for (int k = 0; k < worder; ++k) {
     int kd=k*derivs_plus1;
     std::fill(temp.begin(), temp.end(), 0.0);
@@ -261,32 +265,31 @@ bool SplineField3D::gradFE(const FiniteElement& fe, Vector& grad) const
       
       for (int i = 0; i < uorder; ++i) {
 	int id=i*derivs_plus1;
-	const double *val_p = &values[coefind];
-	const double *co_p  = &co[coefind*kdim] + dim;
-	
-	int temp_ind = 0;
-	for (int wder = 0; wder <= derivs; ++wder) {
-	  for (int vder = 0; vder <= wder; ++vder) {
-	    for (int uder = 0; uder <= vder; ++uder) {
-	      temp2[temp_ind]
-		+= b0[id + wder - vder]*(*val_p);
-	      temp_ind+=kdim;
-	    }
-	  }
-	}
-		
-	for (int d = dim;d < kdim;d++, co_p += kdim) {
+
+	if (rational) {
 	  int temp_ind = 1;
+	  weight  = co[coefind*kdim+dim];
 	  for (int wder = 0; wder <= derivs; ++wder) {
 	    for (int vder = 0; vder <= wder; ++vder) {
 	      for (int uder = 0; uder <= vder; ++uder) {
-		temp2[temp_ind]
-		  += b0[id + wder - vder]*(*co_p);
+		temp2[temp_ind] += b0[id + wder - vder]*weight;
 		temp_ind+=ndim;
 	      }
 	    }
 	  }
 	}
+	
+	int temp_ind = 0;
+	const double *val_p = &values[coefind];
+	for (int wder = 0; wder <= derivs; ++wder) {
+	  for (int vder = 0; vder <= wder; ++vder) {
+	    for (int uder = 0; uder <= vder; ++uder) {
+	      temp2[temp_ind] += b0[id + wder - vder]*(*val_p)*weight;
+	      temp_ind+=kdim;
+	    }
+	  }
+	}
+	
 	coefind += 1;
       }
       

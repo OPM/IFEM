@@ -97,25 +97,31 @@ bool SplineFields2D::valueFE(const FiniteElement& fe, Vector& vals) const
   std::fill(result.begin(), result.end(), double(0));
 
   if (rational) {
+      double wtemp;
       double w = 0.0;
+
       const int w_start_ix  = (uleft - uorder + 1 + unum * (vleft - vorder + 1)) * kdim + dim;
       register const double* w_ptr  = &(surf->rcoefs_begin()[w_start_ix]);
       
       for (register double* bval_v_ptr = Bv.begin(); bval_v_ptr != Bv.end(); ++bval_v_ptr) {
         register const double bval_v = *bval_v_ptr;
 	std::fill(tempVal.begin(), tempVal.end(), 0);
+	wtemp = 0.0;
         for (register double* bval_u_ptr = Bu.begin(); bval_u_ptr != Bu.end(); ++bval_u_ptr) {
           register const double bval_u = *bval_u_ptr;
           for (vtemp = tempVal.begin(); vtemp != tempVal.end(); ++vtemp) {
-            *vtemp += bval_u * (*val_ptr++);
+            *vtemp += bval_u * (*val_ptr++)*(*w_ptr);
           }
-          w += bval_u * (*w_ptr);
+          wtemp += bval_u * (*w_ptr);
           w_ptr += kdim;
         }
+
         vtemp = tempVal.begin();
         for (register double* v = result.begin(); v != result.end(); ++v) {
           *v += (*vtemp++) * bval_v;
         }
+	w += wtemp * bval_v;
+
         val_ptr += ncomp * (unum - uorder);
         w_ptr   += kdim * (unum - uorder);
       }
@@ -216,7 +222,7 @@ bool SplineFields2D::gradFE(const FiniteElement& fe, Matrix& grad) const
   const std::vector<double>::iterator co = rational ? surf->rcoefs_begin() : surf->coefs_begin();
   int kdim = dim   + (rational ? 1 : 0);
   int ndim = ncomp + (rational ? 1 : 0); 
-  
+
   // Make temporary storage for the basis values and a temporary
   // computation cache.
   Go::ScratchVect<double, 30> b0(uorder*(derivs+1));
@@ -243,28 +249,31 @@ bool SplineFields2D::gradFE(const FiniteElement& fe, Matrix& grad) const
   // Compute the tensor product value
   int coefind = uleft-uorder+1 + unum*(vleft-vorder+1);
   int derivs_plus1=derivs+1;
+  double weight = 1.0;
   for (int jj = 0; jj < vorder; ++jj) {
     int jjd=jj*(derivs_plus1);
     std::fill(temp.begin(), temp.end(), 0.0);
     
     for (int ii = 0; ii < uorder; ++ii) {
       int iid=ii*(derivs_plus1);
-      const double *val_p = &values[coefind*ncomp];
-      const double *co_p  = &co[coefind*kdim] + dim;
-      for (int dd = 0; dd < ncomp; ++dd,++val_p) {
-        int temp_ind=dd;
+      
+      if (rational) {
+	weight = co[coefind*kdim + dim];
+	int temp_ind = ncomp;
         for (int vder = 0; vder < derivs_plus1; ++vder) {
           for (int uder = 0; uder < vder+1; ++uder) {
-            temp[temp_ind] += b0[iid+vder - uder]*(*val_p);
+            temp[temp_ind] += b0[iid+vder - uder]*weight;
             temp_ind += ndim;
           }
         }
       }
-      for (int dd = dim;dd < kdim;dd++,co_p += kdim) {
-        int temp_ind = ncomp;
+
+      const double *val_p = &values[coefind*ncomp];
+      for (int dd = 0; dd < ncomp; ++dd,++val_p) {
+        int temp_ind=dd;
         for (int vder = 0; vder < derivs_plus1; ++vder) {
           for (int uder = 0; uder < vder+1; ++uder) {
-            temp[temp_ind] += b0[iid+vder - uder]*(*co_p);
+            temp[temp_ind] += b0[iid+vder - uder]*(*val_p)*(weight);
             temp_ind += ndim;
           }
         }

@@ -83,6 +83,7 @@ double SplineField2D::valueFE(const FiniteElement& fe) const
   register const double* val_ptr = &values[val_start_ix]; 
 
   if (rational) {
+      double tempw;
       double w = 0.0;
       const int w_start_ix  = (uleft - uorder + 1 + unum * (vleft - vorder + 1)) * kdim + dim;
       register const double* w_ptr  = &(surf->rcoefs_begin()[w_start_ix]);
@@ -90,17 +91,19 @@ double SplineField2D::valueFE(const FiniteElement& fe) const
       for (register double* bval_v_ptr = Bv.begin(); bval_v_ptr != Bv.end(); ++bval_v_ptr) {
         register const double bval_v = *bval_v_ptr;
 	tempVal = 0.0;
+	tempw = 0.0;
         for (register double* bval_u_ptr = Bu.begin(); bval_u_ptr != Bu.end(); ++bval_u_ptr) {
           register const double bval_u = *bval_u_ptr;
-	  tempVal += bval_u * (*val_ptr++);
+	  tempVal += bval_u * (*val_ptr++)*(*w_ptr);
 
-          w += bval_u * (*w_ptr);
+          tempw += bval_u * (*w_ptr);
           w_ptr += kdim;
         }
 
 	val += tempVal * bval_v;
 	val_ptr += unum - uorder;
 
+	w += tempw * bval_v;
         w_ptr   += kdim * (unum - uorder);
       }
 
@@ -207,31 +210,33 @@ bool SplineField2D::gradFE(const FiniteElement& fe, Vector& grad) const
   // Compute the tensor product value
   int coefind = uleft-uorder+1 + unum*(vleft-vorder+1);
   int derivs_plus1=derivs+1;
+  double weight = 1.0;
   for (int jj = 0; jj < vorder; ++jj) {
     int jjd=jj*(derivs_plus1);
     std::fill(temp.begin(), temp.end(), 0.0);
     
     for (int ii = 0; ii < uorder; ++ii) {
       int iid=ii*(derivs_plus1);
-      const double *val_p = &values[coefind];
-      const double *co_p  = &co[coefind*kdim] + dim;
-      int temp_ind = 0;
-      for (int vder = 0; vder < derivs_plus1; ++vder) 
-	for (int uder = 0; uder < vder+1; ++uder) {
-	  temp[temp_ind] += b0[iid+vder - uder]*(*val_p);
-	  temp_ind += ndim;
-	}
-      
-      for (int dd = dim;dd < kdim;dd++,co_p += kdim) {
+
+      if (rational) {
 	int temp_ind = 1;
+	weight = co[coefind*kdim+dim];
         for (int vder = 0; vder < derivs_plus1; ++vder) {
           for (int uder = 0; uder < vder+1; ++uder) {
-            temp[temp_ind] += b0[iid+vder - uder]*(*co_p);
+            temp[temp_ind] += b0[iid+vder - uder]*weight;
             temp_ind += ndim;
           }
         }
       }
-
+      
+      const double *val_p = &values[coefind];
+      int temp_ind = 0;
+      for (int vder = 0; vder < derivs_plus1; ++vder) 
+	for (int uder = 0; uder < vder+1; ++uder) {
+	  temp[temp_ind] += b0[iid+vder - uder]*(*val_p)*weight;
+	  temp_ind += ndim;
+	}
+      
       coefind += 1;
     }
     
