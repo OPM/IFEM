@@ -19,6 +19,7 @@
 
 struct ElementBlock;
 class Vec3;
+
 class VTFAFile;
 class VTFAStateInfoBlock;
 class VTFADisplacementBlock;
@@ -26,10 +27,15 @@ class VTFAVectorBlock;
 class VTFAScalarBlock;
 
 #if HAS_VTFAPI == 2
-class VTFXADatabase;
 class VTFXAFile;
-class VTFXAResultBlock;
+class VTFXADatabase;
 class VTFXAStateInfoBlock;
+class VTFXAResultBlock;
+#define VTFAFile              VTFXAFile
+#define VTFAStateInfoBlock    VTFXAStateInfoBlock
+#define VTFADisplacementBlock VTFXAResultBlock
+#define VTFAVectorBlock       VTFXAResultBlock
+#define VTFAScalarBlock       VTFXAResultBlock
 #endif
 
 
@@ -45,7 +51,7 @@ public:
   //! \param[in] type     File type (0 = ASCII, 1 = BINARY)
   VTF(const char* filename, int type = 0);
   //! \brief The destructor finalizes and closes the VTF-file.
-  ~VTF();
+  virtual ~VTF();
 
   //! \brief Writes the FE geometry to the VTF-file.
   //! \param[in] g The FE grid that all results written are referred to
@@ -95,7 +101,8 @@ public:
   //! \param[in] idBlock Scalar block identifier
   //! \param[in] iStep Load/Time step identifier
   virtual bool writeSblk(const std::vector<int>& sBlockIDs,
-                         const char* resultName = 0, int idBlock = 1, int iStep = 1);
+                         const char* resultName = 0,
+			 int idBlock = 1, int iStep = 1);
   //! \brief Writes a vector block definition to the VTF-file.
   //! \param[in] vBlockID The result block that makes up this vector block
   //! \param[in] resultName Name of the result quantity
@@ -109,21 +116,24 @@ public:
   //! \param[in] idBlock Vector block identifier
   //! \param[in] iStep Load/Time step identifier
   virtual bool writeVblk(const std::vector<int>& vBlockIDs,
-                         const char* resultName = 0, int idBlock = 1, int iStep = 1);
+                         const char* resultName = 0,
+			 int idBlock = 1, int iStep = 1);
   //! \brief Writes a displacement block definition to the VTF-file.
   //! \param[in] dBlockIDs All result blocks that make up the displacement block
   //! \param[in] resultName Name of the result quantity
   //! \param[in] idBlock Displacement block identifier
   //! \param[in] iStep Load/Time step identifier
   virtual bool writeDblk(const std::vector<int>& dBlockIDs,
-		         const char* resultName = 0, int idBlock = 1, int iStep = 1);
+		         const char* resultName = 0,
+			 int idBlock = 1, int iStep = 1);
 
   //! \brief Writes a state info block to the VTF-file.
   //! \param[in] iStep Load/Time step identifier
   //! \param[in] fmt Format string for step name
   //! \param[in] refValue Reference value for the step (time, frequency, etc.)
   //! \param[in] refType Reference value type (0=Time, 1=Frequency, 2=Load case)
-  virtual bool writeState(int iStep, const char* fmt, real refValue, int refType = 0);
+  virtual bool writeState(int iStep, const char* fmt,
+			  real refValue, int refType = 0);
 
   //! \brief Returns the pointer to a geometry block.
   const ElementBlock* getBlock(int geomID) const { return myBlocks[geomID-1]; }
@@ -153,20 +163,14 @@ public:
   static real vecOffset[3]; //!< Optional offset for vector attack points
 
 private:
-#if HAS_VTFAPI == 1
   VTFAFile* myFile; //!< Pointer to the actual VTF-file being written
+#if HAS_VTFAPI == 2
+  VTFXADatabase* myDatabase; //!< Pointer to VTFx database object for this file
+#endif
+  VTFAStateInfoBlock* myState; //!< The state info block for this file
   std::vector<VTFAVectorBlock*>       myVBlock; //!< Vector field blocks
   std::vector<VTFAScalarBlock*>       mySBlock; //!< Scalar field blocks
   std::vector<VTFADisplacementBlock*> myDBlock; //!< Displacement blocks
-  VTFAStateInfoBlock* myState; //!< The state info block for this file
-#elif HAS_VTFAPI == 2
-  VTFXAFile* myFile;
-  VTFXADatabase* myDatabase;
-  std::vector<VTFXAResultBlock*>       myVBlock; //!< Vector field blocks
-  std::vector<VTFXAResultBlock*>       mySBlock; //!< Scalarfield blocks
-  std::vector<VTFXAResultBlock*>       myDBlock; //!< Displacement blocks
-  VTFXAStateInfoBlock* myState; //!< The state info block for this file
-#endif
   std::vector<const ElementBlock*>    myBlocks; //!< The FE geometry
 };
 
