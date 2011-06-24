@@ -24,7 +24,8 @@ namespace SIM //! Simulation scope
     LINEAR    = 1,
     NONLINEAR = 2,
     LAPLACE   = 10,
-    STRESS    = 11
+    STRESS    = 11,
+    RANS      = 12
   };
 
   //! \brief Enum defining the various solution modes that may occur.
