@@ -1,4 +1,15 @@
 // $Id$
+//==============================================================================
+//!
+//! \file HDF5Writer.C
+//!
+//! \date Jul 7 2011
+//!
+//! \author Arne MOrten Kvarving / SINTEF
+//!
+//! \brief Output of model and results to HDF5 file.
+//!
+//==============================================================================
 
 #include "HDF5Writer.h"
 #include "SIMbase.h"
@@ -366,12 +377,9 @@ bool HDF5Writer::checkGroupExistence(int parent, const char* path)
   bool result = false;
 #ifdef HAS_HDF5
   // turn off errors to avoid cout spew
-  herr_t (*old_func)(void*);
-  void* old_client_data;
-  H5Eget_auto(&old_func,&old_client_data);
-  H5Eset_auto(NULL,NULL);
-  result = H5Gget_objinfo((hid_t)parent,path,0,NULL) == 0;
-  H5Eset_auto(old_func,old_client_data);
+  H5E_BEGIN_TRY {
+    result = H5Gget_objinfo((hid_t)parent,path,0,NULL) == 0;
+  } H5E_END_TRY;
 #endif
   return result;
 }
