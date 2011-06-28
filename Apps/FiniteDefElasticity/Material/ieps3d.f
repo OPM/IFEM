@@ -1,5 +1,5 @@
-      subroutine ieps3d (ipsw, iwr, detF, F, lambda, mu, Engy, Sig, Cst,
-     &                   ierr)
+      subroutine ieps3d (ipsw, iwr, iMOD, iVOL, detF, F, Bmod, Smod, 
+     &                   pMAT, Engy, Sig, Cst, ierr)
 C
 C ---------------------------------------------------------------------
 C
@@ -17,10 +17,16 @@ C
 C ARGUMENTS INPUT:
 C     ipsw     - Print switch
 C     iwr      - Write unit number
+C     iMOD     - Shear model type:
+C                = 1 : Modified Ogden hyperelastic material 
+C                = 2 : Isotropic elasticity formulated in terms of
+C                      principal logarithmic stretches
+C     iVOL     - Volume function number
 C     detF     - Determinant of the deformation gradient
 C     F(3,3)   - Deformation gradient 
-C     lambda   - Lame's constant (=K-2*G/3)
-C     mu       - Shear modulus
+C     Bmod     - Material property (Bulk modulus)
+C     Smod     - Material property (Shear modulus)
+C     pMAT     - Ogden parameters
 C
 C ARGUMENTS OUTPUT:
 C     Engy     - Strain energy density
@@ -62,12 +68,13 @@ C ---------------------------------------------------------------------
 C
       implicit  none
 C
-      integer   ipsw, iwr, ierr
-      integer   i, j, k, l, iVF, i3, ierrl, nrotd
+      integer   ipsw, iwr, iMOD, iVOL, ierr
+      integer   i, j, k, l, i3, ierrl, nrotd
 C
-      real*8    detF, Engy, lambda, mu, F(3,3), Sig(6), Cst(6,6)
-      real*8    aap(6,6), b(6), bpr(6), Cstv, detFi, EngU, EngW,
-     &          epsd(3), Press, q(6,6), qen(3,3), taup(3)
+      real*8    detF, Engy, Bmod, Smod, 
+     &          F(3,3), pMAT(*), Sig(6), Cst(6,6)
+      real*8    aap(6,6), b(6), bpr(6), Cstv, detFi, EngU, 
+     &          EngW, Press, q(6,6), qen(3,3), taup(3)
 C
       include 'include/feninc/const.h'
 C
@@ -79,9 +86,11 @@ C
           write(iwr,9010) 'ENTERING SUBROUTINE IEPS3D'
           if (ipsw .gt. 2)                        then
               write(iwr,9010) 'WITH INPUT ARGUMENTS'
+              write(iwr,9020) 'iMOD   =', iMOD
+              write(iwr,9020) 'iVOL   =', iVOL
               write(iwr,9030) 'detF   =', detF
-              write(iwr,9030) 'lambda =', lambda
-              write(iwr,9030) 'mu     =', mu
+              write(iwr,9030) 'Bmod   =', Bmod
+              write(iwr,9030) 'Smod   =', Smod
               call rprin0(F   , 3,    3, 'F     ', iwr)  
           endif
       endif
@@ -145,8 +154,23 @@ C
 C         Compute Deviatoric Strains, deviatoric Kirchhoff 
 C         Stresses and Material Moduli in Principal Basis
 C 
-      call wlog3d (ipsw, iwr, mu, bpr, epsd, taup, aap, EngW, ierrl)
-      if (ierrl .lt. 0)                           go to 7000
+      if (iMOD .eq. 1)                            then
+C
+C         Ogden type model
+C
+         call wder3d (ipsw, iwr, nint(pMAT(7)), pMAT, bpr,
+     &                taup, aap, EngW, ierrl)
+         if (ierrl .lt. 0)                        go to 7000
+C
+      else if (iMOD .eq. 2)                       then
+C
+C         Isotropic elastic model
+C
+         call wlog3d (ipsw, iwr, Smod, bpr, taup, aap, EngW, 
+     &                ierrl)
+         if (ierrl .lt. 0)                        go to 7000
+C
+      end if ! iMOD
 C
 C         Transform deviatoric Kirchhoff Stresses and Material Moduli
 C         to Cauchy stresses and spatial material moduli
@@ -163,9 +187,7 @@ C
 C
 C         Compute volumetric stresses (pressure) and material moduli
 C
-      iVF   = 1
-C
-      call vfnh3d (ipsw, iwr, iVF, detF, detFi, lambda, EngU, Press,
+      call vfnh3d (ipsw, iwr, iVOL, detF, detFi, Bmod, EngU, Press,
      &             Cstv, ierrl)
       if (ierrl .lt. 0)                           go to 7000
 C     
@@ -209,9 +231,11 @@ C     ----------
  7900 continue
       write(iwr,9020) '*** ERROR IN SUBROUTINE IEPS3D *** IERR = ', ierr
       write(iwr,9010) 'WITH INPUT ARGUMENTS'
+      write(iwr,9020) 'iMOD   =', iMOD
+      write(iwr,9020) 'iVOL   =', iVOL
       write(iwr,9030) 'detF   =', detF
-      write(iwr,9030) 'lambda =', lambda
-      write(iwr,9030) 'mu     =', mu    
+      write(iwr,9030) 'Bmod   =', Bmod
+      write(iwr,9030) 'Smod   =', Smod   
       call rprin0(F   , 3,    3, 'F     ', iwr)
 C
       write(iwr,9010) 'WITH OUTPUT ARGUMENTS'

@@ -35,7 +35,11 @@ C     nSig     - Number of stress components per point
 C     nTM      - Number og strain components per point
 C     detF     - Determinant of the deformation gradient
 C     F        - Deformation gradient
-C     pMAT     - Material property array
+C     pMAT(13) - Material property array:
+C                pMAT(1) = Emod : Elastic Bulk  modulus
+C                pMAT(2) = Poissons ratio
+C                pMAT(5) = Bmod : Bulk modulus
+C                pMAT(6) = Smod : Shear modulus
 C     HV       - History parameters at t_n
 C
 C ARGUMENTS OUTPUT:
@@ -84,11 +88,11 @@ C ---------------------------------------------------------------------
 C
       implicit  none
 C
-      integer   mTYP, mVER, ipsw, iter, iwr, lfirst, nHV,nSig,nTM, ierr
+      integer   mTYP, mVER, ipsw, iter, iVOL, iwr, lfirst, nHV, nSig,
+     &          nTM, ierr
       real*8    detF, Engy, F(3,*), pMAT(*), Sig(*), Cst(*), HV(*)
 C
       real*8    Bmod, Emod, Pratio, Smod
-      logical   incomp
 C
       include 'include/feninc/const.h'
 C
@@ -114,27 +118,17 @@ C
           endif
       endif
 C
-C
 C         Compute Shear and Bulk modulus
 C
       if (mTYP .lt. 0) then
-         Bmod   = pmat(1)
-         Smod   = pmat(2)
-         incomp = Bmod .eq. zero
+         Bmod   = pMAT(1)
+         Smod   = pMAT(2)
       else
-         Emod   = pmat(1)
-         Pratio = pmat(2)
-         Smod   = one2 * Emod / (one + Pratio)
-         incomp = Pratio .eq. one2
-         if (incomp) then
-C
-C         Incompressible material
-C
-            Bmod = zero
-         else
-            Bmod = one3 * Emod / (one - two * Pratio)
-         end if
+         Bmod   = pMAT(5)
+         Smod   = pMAT(6)
       end if
+C
+      iVOL = nint(pMAT(7))
 C
 C         Compute Cauchy stresses and spatial constitutive tensor
 C
@@ -148,34 +142,43 @@ C
      &                  ierr)
             if (ierr .lt. 0)                      go to 7000
 C
-         elseif (mVER .gt. 0 .and. mVER .lt. 5)   then
+         elseif (mVER .eq. 1)                     then
 C
 C         Standard hyperelastic neoHookean model
 C
 C         Compute Lame's parameter for compressibel material
 C
-            if (.not. incomp)  Bmod = Bmod - two3 * Smod
+C            if (.not. incomp)  Bmod = Bmod - two3 * Smod
 C
-            call stnh3d(ipsw, iwr, mVER, detF, F, Bmod, Smod, Engy, Sig,
+            call stnh3d(ipsw, iwr, iVOL, detF, F, Bmod, Smod, Engy, Sig,
      &                  Cst, ierr)
             if (ierr .lt. 0)                      go to 7000
 C
-         elseif (mVER .gt. 10 .and. mVER .lt. 15) then
+         elseif (mVER .eq. 2)                     then
 C
 C         Modified hyperelastic neoHookean model
 C
-            call monh3d(ipsw, iwr, mVER-10, detF, F, Bmod, Smod, Engy,
+            call monh3d(ipsw, iwr, iVOL, detF, F, Bmod, Smod, Engy,
      &                  Sig, Cst, ierr)
-            if (ierr .lt. 0)                      go to 7000
+            if (iERR .lt. 0)                      go to 7000
 C
-         elseif (mVER .eq. 20)                    then
+         elseif (mVER .eq. 3)                     then
+C
+C         Modified Ogden hyperelastic material formulated in terms of
+C         principal logarithmic stretches
+C
+            call ieps3d(ipsw, iwr, 1, iVOL, detF, F, Bmod, Smod, 
+     &                  pmat(8), Engy, Sig, Cst, ierr)
+            if (iERR .lt. 0)                      go to 7000
+C
+         elseif (mVER .eq. 4)                     then
 C
 C         Isotropic elasticity formulated in terms of
 C         principal logarithmic stretches
 C
-            call ieps3d(ipsw, iwr, detF, F, Bmod, Smod, Engy, Sig, Cst,
-     &                  ierr)
-            if (ierr .lt. 0)                      go to 7000
+            call ieps3d(ipsw, iwr, 2, iVOL, detF, F, Bmod, Smod, 
+     &                  pmat(8), Engy, Sig, Cst, ierr)
+            if (iERR .lt. 0)                      go to 7000
 C
          else
 C
@@ -189,8 +192,9 @@ C
 C         Finite stretch plasticity model
 C
          call plas3d(ipsw, iwr, iter, lfirst, nSig, nTM, pMAT, detF,
-     &               F(1,1),F(1,4), HV(1),HV(7),HV(8), Sig, Cst, ierr)
-         if (ierr .lt. 0)                         go to 7000
+     &               F(1,1), F(1,4), HV(1), HV(7), HV(8), Sig, Cst,
+     &               iERR)
+         if (iERR .lt. 0)                         go to 7000
 C
          Engy = zero
 C

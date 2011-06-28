@@ -1,4 +1,4 @@
-      subroutine wlog3d (ipsw, iwr, mu, bpr, epsd, taup, aap, w, ierr)
+      subroutine wlog3d (ipsw, iwr, mu, bpr, taup, aap, wengy, ierr)
 C
 C ---------------------------------------------------------------------
 C
@@ -14,7 +14,7 @@ C          taup_i  = [w(lam_i)]' * lambda_i
 C          gamm_ij = lambda_j * [taup_i],j
 C
 C     Logarithmic strain energy function
-C          w    = mu * [log(lambda)]**2      
+C          W    = mu * [log(lambda)]**2      
 C
 C ARGUMENTS INPUT:
 C     ipsw     - Print switch
@@ -23,9 +23,9 @@ C     mu       - Shear modulus
 C     bpr(3)   - Principal stretch (squared)
 C
 C ARGUMENTS OUTPUT:
-C     epsd(3)  - Principal deviatoric strains
 C     taup(3)  - Principal deviatoric Kirchhoff stresses
 C     aap(6,6) - Deviatoric tangent moduli in principal basis
+C     wengy    - Stored deviatoric strain energy
 C     ierr     - Error flag
 C               = 1 : 
 C
@@ -36,7 +36,7 @@ C PERIPHERAL UNITS:
 C     None
 C
 C INTERNAL VARIABLES:
-C          
+C     epsd(3)  - Principal deviatoric strains
 C     
 C
 C PRINT SWITCH:
@@ -65,7 +65,7 @@ C
 C
       integer   i, j, ipsw, iwr, ierr
 C
-      real*8    jthird, mu, twomu, fourmu, w, tol,
+      real*8    jthird, mu, twomu, fourmu, wengy, tol,
      &          bpr(3), lamt(3), epsd(3), taup(3), aap(6,6)
 C
       include 'include/feninc/const.h'
@@ -88,6 +88,7 @@ C
 C         Compute Je**(-1/3) and volume preserving stretches
 C
       jthird    = (bpr(1)*bpr(2)*bpr(3))**(-one6)
+C
       do      i = 1,3
         lamt(i) = jthird*sqrt(bpr(i))
       end do ! i
@@ -95,11 +96,11 @@ C
 C         Compute predictor strain energy function derivatives
 C
       twomu     = two * mu
-      w         = zero
+      wengy     = zero
       do      i = 1,3
         epsd(i) = log(lamt(i))
         taup(i) = twomu * epsd(i)
-        w       = w +  mu * epsd(i)**2
+        wengy   = wengy +  mu * epsd(i)**2
       end do ! i
 C
 C         Load material part of moduli in principal stretches
@@ -153,8 +154,7 @@ C     ----------
       call rprin0(bpr, 1, 3, 'bpr   ', iwr)
 C
       write(iwr,9010) 'WITH OUTPUT ARGUMENTS'
-      write(iwr,9030) 'w      =', w  
-      call rprin0(epsd, 1, 3, 'epsd  ', iwr)
+      write(iwr,9030) 'wengy  =', wengy  
       call rprin0(taup, 1, 3, 'taup  ', iwr)
       call rprin0(aap , 6, 6, 'aap   ', iwr)
                                                   go to 8010
@@ -167,8 +167,7 @@ C
           write(iwr,9010) 'LEAVING SUBROUTINE WLOG3D'
           if (ipsw .gt. 3)                        then
               write(iwr,9010) 'WITH OUTPUT ARGUMENTS'
-              write(iwr,9030) 'w      =', w  
-              call rprin0(epsd, 1, 3, 'epsd  ', iwr)
+              write(iwr,9030) 'wengy  =', wengy  
               call rprin0(taup, 1, 3, 'taup  ', iwr)
               call rprin0(aap , 6, 6, 'aap   ', iwr)
           endif

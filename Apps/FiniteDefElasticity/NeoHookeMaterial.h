@@ -32,7 +32,7 @@ public:
   //! \brief Default constructor.
   NeoHookeMaterial();
   //! \brief Constructor initializing the material parameters.
-  NeoHookeMaterial(double E, double v = 0.0, double density = 0.0, int ver = 0);
+  NeoHookeMaterial(double E, double v = 0.0, double density = 0.0, int ver = 1);
   //! \brief Empty destructor.
   virtual ~NeoHookeMaterial() {}
 
@@ -56,9 +56,9 @@ public:
 			char iop = 1, const TimeDomain* = 0) const;
 
 private:
-  int    mTYP;    //!< Material type
-  int    mVER;    //!< Material version
-  double pmat[2]; //!< Material properties
+  int    mTYP;     //!< Material type
+  int    mVER;     //!< Material version
+  double pmat[13]; //!< Material properties
 };
 
 #endif

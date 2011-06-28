@@ -27,7 +27,7 @@ PRESSURE 1
 
 ISOTROPIC 1
 # code kappa    mu      rho mVER
-  0    400942.0 80.1938 0.0 11
+  0    400942.0 80.1938 0.0 21
 
 TIME_STEPPING
 # start stop  dt

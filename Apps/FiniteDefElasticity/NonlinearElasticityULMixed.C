@@ -351,13 +351,15 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
 
   // Compute the mixed integration point volume
   double dVol = Theta*fe.detJxW;
+  double dVup = J*fe.detJxW;
 
 #if INT_DEBUG > 0
   std::cout <<"NonlinearElasticityULMixed::dNdX ="<< fe.dN1dX;
   std::cout <<"NonlinearElasticityULMixed::dNdx ="<< dNdx;
   std::cout <<"NonlinearElasticityULMixed::Fbar =\n"<< Fbar;
   std::cout <<"NonlinearElasticityULMixed::E =\n"<< E;
-  std::cout <<"NonlinearElasticityULMixed::dVol = "<< dVol << std::endl;
+  std::cout <<"NonlinearElasticityULMixed::dVol = "<< dVol
+	    <<" "<< dVup << std::endl;
 #endif
 
   if (eM)
@@ -426,6 +428,9 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
   // Integrate the volumetric change and pressure tangent terms
   size_t a, b;
   unsigned short int i, j, k;
+  for (i = 1; i <= 6; i++)
+    Dmat(i,7) /= Theta;
+  Dmat(7,7) /= (Theta*Theta);
   for (a = 1; a <= fe.N1.size(); a++)
     for (b = 1; b <= fe.N2.size(); b++)
       for (i = 1; i <= nsd; i++)
@@ -441,7 +446,7 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
 	  myMats->A[Kut](nsd*(a-1)+j,b) += dNdx(a,5-j)*fe.N2(b) * Dmat(5,7);
 	  myMats->A[Kut](nsd*(a-1)+k,b) += dNdx(a,4-k)*fe.N2(b) * Dmat(6,7);
 	}
-	myMats->A[Kup](nsd*(a-1)+i,b) += dNdx(a,i)*fe.N2(b) * dVol;
+	myMats->A[Kup](nsd*(a-1)+i,b) += dNdx(a,i)*fe.N2(b) * dVup;
       }
 
   myMats->A[Ktt].outer_product(fe.N2,fe.N2*Dmat(7,7),true);    // += N2*N2^T*D77

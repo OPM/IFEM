@@ -42,6 +42,17 @@ NeoHookeMaterial::NeoHookeMaterial () : LinIsotropic(false)
   mVER = 0;
   pmat[0] = Emod;
   pmat[1] = nu;
+  pmat[2] = pmat[3] = pmat[4] = 0.0;
+  pmat[5] = 0.5 * Emod / (1.0 + nu);
+  if (nu == 0.5) // incompressible material
+    pmat[4] = 0.0;
+  else
+  {
+    pmat[4] = Emod / (3.0 - 6.0*nu);
+    if (mVER == 1)
+      pmat[4] -= pmat[5]*2.0/3.0;
+  }
+  pmat[6] = 1;
 }
 
 
@@ -49,9 +60,10 @@ NeoHookeMaterial::NeoHookeMaterial (double E, double v, double d, int ver)
   : LinIsotropic(E,v,d,false)
 {
   mTYP = 10;
-  mVER = ver;
+  mVER = ver / 10;
   pmat[0] = Emod;
   pmat[1] = nu;
+  pmat[2] = pmat[3] = pmat[4] = 0.0;
   if (nu > 0.5)
   {
     mTYP = -10; // Assume Lame' parameters (kappa and mu are specified)
@@ -61,6 +73,19 @@ NeoHookeMaterial::NeoHookeMaterial (double E, double v, double d, int ver)
     Emod = 9.0*kappa*mu/(3.0*kappa + mu);
     nu   = (1.5*kappa - mu)/(3.0*kappa + mu);
   }
+  else
+  {
+    pmat[5] = 0.5 * Emod / (1.0 + nu);
+    if (nu == 0.5) // incompressible material
+      pmat[4] = 0.0;
+    else
+    {
+      pmat[4] = Emod / (3.0 - 6.0*nu);
+      if (mVER == 1)
+	pmat[4] -= pmat[5]*2.0/3.0;
+    }
+  }
+  pmat[6] = ver % 10;
 }
 
 

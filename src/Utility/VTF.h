@@ -168,9 +168,9 @@ private:
   VTFXADatabase* myDatabase; //!< Pointer to VTFx database object for this file
 #endif
   VTFAStateInfoBlock* myState; //!< The state info block for this file
+  std::vector<VTFADisplacementBlock*> myDBlock; //!< Displacement blocks
   std::vector<VTFAVectorBlock*>       myVBlock; //!< Vector field blocks
   std::vector<VTFAScalarBlock*>       mySBlock; //!< Scalar field blocks
-  std::vector<VTFADisplacementBlock*> myDBlock; //!< Displacement blocks
   std::vector<const ElementBlock*>    myBlocks; //!< The FE geometry
 };
 
