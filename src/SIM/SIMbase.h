@@ -140,6 +140,8 @@ public:
   size_t getNoSolutions() const;
   //! \brief Returns the total number of patches in the model.
   int getNoPatches() const { return nGlPatches; }
+  //! \brief Return the number of registered result points
+  size_t getNoResultPoints() const { return myPoints.size(); }
 
   //! \brief Initializes time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time
