@@ -362,7 +362,7 @@ public:
   //! \param os Output stream to write the solution data to
   //! \param[in] outputPrecision Number of digits after the decimal point
   bool dumpResults(const Vector& psol, double time, std::ostream& os,
-		   std::streamsize outputPrecision = 3) const;
+		   bool formatted = true, std::streamsize outputPrecision = 3) const;
   //! \brief Dumps the primary solution in ASCII format for inspection.
   //! \param[in] psol Primary solution vector
   //! \param os Output stream to write the solution data to

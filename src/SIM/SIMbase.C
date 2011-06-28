@@ -1433,7 +1433,7 @@ bool SIMbase::dumpSolution (const Vector& psol, std::ostream& os) const
 
 
 bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
-			   std::streamsize outputPrecision) const
+			   bool formatted, std::streamsize outputPrecision) const
 {
   if (psol.empty() || myPoints.empty())
     return true;
@@ -1475,9 +1475,11 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
 	return false;
 
       // Evaluate the secondary solution variables
-      LocalSystem::patch = i;
-      if (!myModel[i]->evalSolution(sol2,*myProblem,params,false))
-	return false;
+      if (myProblem->getNoFields(2) > 0) {
+        LocalSystem::patch = i;
+        if (!myModel[i]->evalSolution(sol2,*myProblem,params,false))
+          return false;
+      }
     }
     else
       // Extract nodal primary solution variables
@@ -1490,19 +1492,24 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
     std::ios::fmtflags oldF = os.flags(std::ios::scientific | std::ios::right);
     for (j = 0; j < points.size(); j++)
     {
-      if (points[j] > 0)
-      {
-	points[j] = myModel[i]->getNodeID(points[j]);
-	os <<"  Node #"<< points[j] <<":\tsol1 =";
+      if (formatted) {
+        if (points[j] > 0)
+        {
+          points[j] = myModel[i]->getNodeID(points[j]);
+          os <<"  Node #"<< points[j] <<":\tsol1 =";
+        }
+        else
+          os <<"  Point #"<< -points[j] <<":\tsol1 =";
       }
       else
-	os <<"  Point #"<< -points[j] <<":\tsol1 =";
+        os << time << " ";
       for (k = 1; k <= sol1.rows(); k++)
 	os << std::setw(flWidth) << sol1(k,j+1);
 
-      if (discretization == Spline)
+      if (discretization == Spline && sol2.rows())
       {
-	os <<"\n\t\tsol2 =";
+        if (formatted)
+          os <<"\n\t\tsol2 =";
 	for (k = 1; k <= sol2.rows(); k++)
 	  os << std::setw(flWidth) << sol2(k,j+1);
       }
@@ -1511,7 +1518,8 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
 	// Print nodal reaction forces for nodes with prescribed DOFs
 	if (mySam->getNodalReactions(points[j],*reactionForces,reactionFS))
 	{
-	  os <<"\n\t\treac =";
+          if (formatted)
+            os <<"\n\t\treac =";
 	  for (k = 0; k < reactionFS.size(); k++)
 	    os << std::setw(flWidth) << reactionFS[k];
 	}
