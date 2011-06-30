@@ -444,7 +444,7 @@ void NonLinSIM::dumpStep (int iStep, double time, std::ostream& os,
 
 bool NonLinSIM::dumpResults (double time, std::ostream& os, int precision) const
 {
-  return model->dumpResults(solution.front(),time,os,precision);
+  return model->dumpResults(solution.front(),time,os,true,precision);
 }
 
 

@@ -125,6 +125,10 @@ public:
   //! \brief Returns a pointer to the problem-specific data object.
   const IntegrandBase* getProblem() const { return myProblem; }
 
+  //! \brief Returns the name of this simulator.
+  //! \details This method is typically reimplemented in sub-classes that are
+  //! parts of a partitioned solution method and are used to identify the basis
+  //! for the result fields associated with each simulator in the HDF5 output.
   virtual std::string getName() const { return "SIMbase"; }
 
   //! \brief Returns the number of primary solution fields.
@@ -140,7 +144,7 @@ public:
   size_t getNoSolutions() const;
   //! \brief Returns the total number of patches in the model.
   int getNoPatches() const { return nGlPatches; }
-  //! \brief Return the number of registered result points
+  //! \brief Returns the number of registered result points.
   size_t getNoResultPoints() const { return myPoints.size(); }
 
   //! \brief Initializes time-dependent in-homogeneous Dirichlet coefficients.
@@ -362,9 +366,11 @@ public:
   //! \param[in] psol Primary solution vector to derive other quantities from
   //! \param[in] time Load/time step parameter
   //! \param os Output stream to write the solution data to
-  //! \param[in] outputPrecision Number of digits after the decimal point
+  //! \param[in] formatted If \e false, write all result points on a single line
+  //!            without point identifications, but with time as first column
+  //! \param[in] precision Number of digits after the decimal point
   bool dumpResults(const Vector& psol, double time, std::ostream& os,
-		   bool formatted = true, std::streamsize outputPrecision = 3) const;
+		   bool formatted = true, std::streamsize precision = 3) const;
   //! \brief Dumps the primary solution in ASCII format for inspection.
   //! \param[in] psol Primary solution vector
   //! \param os Output stream to write the solution data to

@@ -50,13 +50,13 @@ extern std::vector<int> mixedDbgEl; //!< List of elements for additional output
   \arg -noEnergy : Skip integration of energy norms
   \arg -saveInc \a dtSave : Time increment between each result save to VTF/HDF5
   \arg -dumpInc \a dtDump [raw] : Time increment between each solution dump
+  \arg -outPrec \a nDigit : Number of digits in solution component printout
   \arg -ignore \a p1, \a p2, ... : Ignore these patches in the analysis
   \arg -check : Data check only, read model and output to VTF (no solution)
   \arg -checkRHS : Check that the patches are modelled in a right-hand system
   \arg -fixDup : Resolve co-located nodes by merging them into a single node
   \arg -2D : Use two-parametric simulation driver (plane stress)
   \arg -2Dpstrain : Use two-parametric simulation driver (plane strain)
-  \arg -Tensor : Use tensorial total Lagrangian formulation (slow...)
   \arg -UL : Use updated Lagrangian formulation with nonlinear material
   \arg -MX \a pord : Mixed formulation with internal discontinuous pressure
   \arg -mixed : Mixed formulation with continuous pressure and volumetric change
@@ -191,8 +191,9 @@ int main (int argc, char** argv)
 	      <<" [-lag] [-spec] [-2D[pstrain]] [-UL] [-MX [<p>]|-mixed]"
 	      <<" [-nGauss <n>]\n       [-vtf <format> [-nviz <nviz>]"
 	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]] [-hdf5]\n      "
-	      <<" [-saveInc <dtSave>] [-skip2nd] [-dumpInc <dtDump> [raw]]\n   "
-	      <<"    [-ignore <p1> <p2> ...] [-fixDup] [-checkRHS] [-check]\n";
+	      <<" [-saveInc <dtSave>] [-skip2nd] [-dumpInc <dtDump> [raw]]"
+	      <<" [-outPrec <nd>]\n       [-ignore <p1> <p2> ...]"
+	      <<" [-fixDup] [-checkRHS] [-check]\n";
     return 0;
   }
 
