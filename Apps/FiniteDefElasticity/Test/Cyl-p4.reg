@@ -1,0 +1,45 @@
+Cyl-p4.inp -UL -nGauss 4
+
+Input file: Cyl-p4.inp
+Equation solver: 2
+Number of Gauss points: 4
+Reading input file Cyl-p4.inp
+Reading data file half_pipe.g2
+Reading patch 1
+Reading data file faceload2.prc
+Number of order raise: 1
+	Raising order of P1 2 3 2
+Number of patch refinements: 1
+	Refining P1 3 3 0
+Number of Dirichlet properties: 3
+	Dirichlet code 1: (fixed)
+	Dirichlet code 2: (fixed)
+	Dirichlet code 3: (fixed)
+Number of pressures: 2
+	Pressure code 4 direction 1: -235
+	Pressure code 5 direction 1: 235
+Number of isotropic materials: 1
+	Material code 0: 16800 0.4 0 (13)
+Reading input file succeeded.
+Problem definition:
+NonlinearElasticityUL: Updated Lagrangian formulation
+Elasticity: 3D, gravity = 0 0 0
+LinIsotropic: E = 16800, nu = 0.4, rho = 0
+NeoHookeMaterial: mVER = 1
+Resolving Dirichlet boundary conditions
+	Constraining P1 V6 in direction(s) 1
+	Constraining P1 F1 in direction(s) 2
+	Constraining P1 F2 in direction(s) 2
+	Constraining P1 F3 in direction(s) 3
+ >>> SAM model summary <<<
+Number of elements    32
+Number of nodes       480
+Number of dofs        1440
+Number of unknowns    1315
+  Primary solution summary: L2-norm            : 0.92118
+                            Max X-displacement : 2.68426 node 226
+                            Max Y-displacement : 1.09407 node 233
+                            Max Z-displacement : 0.100437 node 480
+  Total reaction forces: Sum(R) = 0.000246156 0.0476587 0.595646
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 48.6214	 a(u^h,u^h) = 2364.042118
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 47.394	(f,u)+(t,u) = 2246.188377

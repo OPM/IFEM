@@ -30,7 +30,7 @@ ISOTROPIC 1
 
 TIME_STEPPING
 # start stop dt
-  0.0   1.0  0.25
+  0.0   0.25 0.25
 
 NONLINEAR_SOLVER
 # maxit convTol divgLim

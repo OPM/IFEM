@@ -1,0 +1,66 @@
+Cyl-p3.inp -UL -nGauss 4
+
+Input file: Cyl-p3.inp
+Equation solver: 2
+Number of Gauss points: 4
+Reading input file Cyl-p3.inp
+Reading data file half_pipe.g2
+Reading patch 1
+Reading data file faceload2.prc
+Number of order raise: 1
+	Raising order of P1 1 2 1
+Number of patch refinements: 1
+	Refining P1 3 3 0
+Number of Dirichlet properties: 3
+	Dirichlet code 1: (fixed)
+	Dirichlet code 2: (fixed)
+	Dirichlet code 3: (fixed)
+Number of pressures: 2
+	Pressure code 4 direction 1: -235
+	Pressure code 5 direction 1: 235
+Number of isotropic materials: 1
+	Material code 0: 16800 0.4 0 (13)
+Reading input file succeeded.
+Problem definition:
+NonlinearElasticityUL: Updated Lagrangian formulation
+Elasticity: 3D, gravity = 0 0 0
+LinIsotropic: E = 16800, nu = 0.4, rho = 0
+NeoHookeMaterial: mVER = 1
+Resolving Dirichlet boundary conditions
+	Constraining P1 V6 in direction(s) 1
+	Constraining P1 F1 in direction(s) 2
+	Constraining P1 F2 in direction(s) 2
+	Constraining P1 F3 in direction(s) 3
+ >>> SAM model summary <<<
+Number of elements    32
+Number of nodes       273
+Number of dofs        819
+Number of unknowns    737
+  Primary solution summary: L2-norm            : 0.903296
+                            Max X-displacement : 2.63466 node 170
+                            Max Y-displacement : 1.07876 node 175
+                            Max Z-displacement : 0.0955624 node 261
+  Total reaction forces: Sum(R) = 0.000512131 0.0603447 0.440429
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 48.1001	 a(u^h,u^h) = 2313.623376
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 46.9091	(f,u)+(t,u) = 2200.468219
+  Primary solution summary: L2-norm            : 2.04992
+                            Max X-displacement : 6.17809 node 170
+                            Max Y-displacement : 2.15716 node 175
+                            Max Z-displacement : 0.200878 node 273
+  Total reaction forces: Sum(R) = 3.85263e-05 0.0418855 0.0375298
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 105.725	 a(u^h,u^h) = 11177.74429
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 101.151	(f,u)+(t,u) = 10231.50468
+  Primary solution summary: L2-norm            : 3.34713
+                            Max X-displacement : 10.325 node 261
+                            Max Y-displacement : 2.99164 node 175
+                            Max Z-displacement : 0.376951 node 91
+  Total reaction forces: Sum(R) = 0.00295332 3.65946 2.95705
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 168.195	 a(u^h,u^h) = 28289.63573
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 159.98	(f,u)+(t,u) = 25593.73514
+  Primary solution summary: L2-norm            : 4.65727
+                            Max X-displacement : 14.2944 node 261
+                            Max Y-displacement : 3.4005 node 84
+                            Max Z-displacement : 0.504068 node 80
+  Total reaction forces: Sum(R) = 3.96267e-06 0.0917269 0.00016515
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 227.813	 a(u^h,u^h) = 51898.73839
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 218.25	(f,u)+(t,u) = 47633.0966
