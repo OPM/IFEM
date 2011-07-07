@@ -171,8 +171,10 @@ void LinSolParams::setParams(KSP& ksp) const
   //PCMGSetLevels(pc,levels,PETSC_NULL);
   //PCMGSetType(pc,PC_MG_MULTIPLICATIVE);
   PCSetType(pc,prec.c_str());
+#if PETSC_HAVE_HYPRE
   if (!strncasecmp(prec.c_str(),"hypre",5)) 
     PCHYPRESetType(pc,hypretype.c_str());
+#endif
   if (overlap > 0) {
     PCASMSetType(pc,PC_ASM_BASIC);
     PCASMSetOverlap(pc,overlap);
