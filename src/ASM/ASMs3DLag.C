@@ -220,6 +220,8 @@ bool ASMs3DLag::integrate (Integrand& integrand,
     for (int i2 = 0; i2 < nely; i2++)
       for (int i1 = 0; i1 < nelx; i1++, iel++)
       {
+	fe.iel = MLGE[iel-1];
+
 	// Set up nodal point coordinates for current element
 	if (!this->getElementCoordinates(Xnod,iel)) return false;
 
@@ -242,7 +244,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
 	// LocalIntegral pointers, of length at least the number of elements in
 	// the model (as defined by the highest number in the MLGE array).
 	// If the array is shorter than this, expect a segmentation fault.
-	LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
+	LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
 
 
 	// --- Integration loop over all Gauss points in each direction --------
@@ -251,15 +253,15 @@ bool ASMs3DLag::integrate (Integrand& integrand,
 	  for (int j = 0; j < nGauss; j++)
 	    for (int i = 0; i < nGauss; i++)
 	    {
+	      // Local element coordinates of current integration point
+	      fe.xi   = xg[i];
+	      fe.eta  = xg[j];
+	      fe.zeta = xg[k];
+
 	      // Parameter value of current integration point
 	      fe.u = 0.5*(upar[i1]*(1.0-xg[i]) + upar[i1+1]*(1.0+xg[i]));
 	      fe.v = 0.5*(vpar[i2]*(1.0-xg[j]) + vpar[i2+1]*(1.0+xg[j]));
 	      fe.w = 0.5*(wpar[i3]*(1.0-xg[k]) + wpar[i3+1]*(1.0+xg[k]));
-
-	      // Local coordinate of current integration point
-	      fe.xi   = xg[i];
-	      fe.eta  = xg[j];
-	      fe.zeta = xg[k];
 
 	      // Compute basis function derivatives at current integration point
 	      // using tensor product of one-dimensional Lagrange polynomials
@@ -285,7 +287,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
  	  return false;
 
 	// Assembly of global system integral
-	if (!glInt.assemble(elmInt,MLGE[iel-1]))
+	if (!glInt.assemble(elmInt,fe.iel))
 	  return false;
       }
 
@@ -339,7 +341,6 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
   fe.u = upar.front();
   fe.v = vpar.front();
   fe.w = wpar.front();
-  fe.xi = fe.eta = fe.zeta = -1.0;
 
   Matrix dNdu, Xnod, Jac;
   Vec4   X;
@@ -354,6 +355,8 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
     for (int i2 = 0; i2 < nely; i2++)
       for (int i1 = 0; i1 < nelx; i1++, iel++)
       {
+	fe.iel = MLGE[iel-1];
+
 	// Skip elements that are not on current boundary face
 	bool skipMe = false;
 	switch (faceDir)
@@ -377,7 +380,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 	// LocalIntegral pointers, of length at least the number of elements in
 	// the model (as defined by the highest number in the MLGE array).
 	// If the array is shorter than this, expect a segmentation fault.
-	LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
+	LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
 
 
 	// --- Integration loop over all Gauss points in each direction --------
@@ -386,30 +389,28 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 	for (int j = 0; j < nGauss; j++)
 	  for (int i = 0; i < nGauss; i++)
 	  {
-	    // Gauss point coordinates on the face
+	    // Local element coordinates of current integration point
 	    xi[t0-1] = faceDir < 0 ? -1.0 : 1.0;
 	    xi[t1-1] = xg[i];
 	    xi[t2-1] = xg[j];
+	    fe.xi   = xi[0];
+	    fe.eta  = xi[1];
+	    fe.zeta = xi[2];
 
-	    // Parameter values and local coordinates of current integration point
+	    // Local element coordinates and parameter values
+	    // of current integration point
 	    switch (abs(faceDir)) {
 	    case 1: k2 = i; k3 = j; k1 = -1; break;
 	    case 2: k1 = i; k3 = j; k2 = -1; break;
 	    case 3: k1 = i; k2 = j; k3 = -1; break;
 	    default: k1 = k2 = k3 = -1;
 	    }
-	    if (upar.size() > 1) {
+	    if (upar.size() > 1)
 	      fe.u = 0.5*(upar[i1]*(1.0-xg[k1]) + upar[i1+1]*(1.0+xg[k1]));
-	      fe.xi = xg[k1];
-	    }
-	    if (vpar.size() > 1) {
+	    if (vpar.size() > 1)
 	      fe.v = 0.5*(vpar[i2]*(1.0-xg[k2]) + vpar[i2+1]*(1.0+xg[k2]));
-	      fe.eta = xg[k2];
-	    }
-	    if (wpar.size() > 1) {
+	    if (wpar.size() > 1)
 	      fe.w = 0.5*(wpar[i3]*(1.0-xg[k3]) + wpar[i3+1]*(1.0+xg[k3]));
-	      fe.zeta = xg[k3];
-	    }
 
 	    // Compute the basis functions and their derivatives, using
 	    // tensor product of one-dimensional Lagrange polynomials
@@ -433,7 +434,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 	  }
 
 	// Assembly of global system integral
-	if (!glInt.assemble(elmInt,MLGE[iel-1]))
+	if (!glInt.assemble(elmInt,fe.iel))
 	  return false;
       }
 
@@ -495,6 +496,8 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
     for (int i2 = 0; i2 < nely; i2++)
       for (int i1 = 0; i1 < nelx; i1++, iel++)
       {
+	fe.iel = MLGE[iel-1];
+
 	// Skip elements that are not on current boundary edge
 	bool skipMe = false;
 	switch (lEdge)
@@ -548,7 +551,7 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
 	}
 
 	// Assembly of global system integral
-	if (!glInt.assemble(elmInt,MLGE[iel-1]))
+	if (!glInt.assemble(elmInt,fe.iel))
 	  return false;
       }
 

@@ -203,6 +203,10 @@ protected:
   //! \param[in] nSegSpan Number of visualization segments over each knot-span
   virtual bool getGridParameters(RealArray& prm, int nSegSpan) const;
 
+  //! \brief Calculates parameter values for the Greville points.
+  //! \param[out] prm Parameter values for all points
+  bool getGrevilleParameters(RealArray& prm) const;
+
   //! \brief Returns the length in the parameter space for an element.
   //! \param[in] iel Element index
   double getParametricLength(int iel) const;

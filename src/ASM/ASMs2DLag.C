@@ -201,6 +201,8 @@ bool ASMs2DLag::integrate (Integrand& integrand,
   for (int i2 = 0; i2 < nely; i2++)
     for (int i1 = 0; i1 < nelx; i1++, iel++)
     {
+      fe.iel = MLGE[iel-1];
+
       // Set up control point coordinates for current element
       if (!this->getElementCoordinates(Xnod,iel)) return false;
 
@@ -222,7 +224,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
       // LocalIntegral pointers, of length at least the number of elements in
       // the model (as defined by the highest number in the MLGE array).
       // If the array is shorter than this, expect a segmentation fault.
-      LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
+      LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
 
 
       // --- Integration loop over all Gauss points in each direction ----------
@@ -230,13 +232,13 @@ bool ASMs2DLag::integrate (Integrand& integrand,
       for (int j = 0; j < nGauss; j++)
 	for (int i = 0; i < nGauss; i++)
 	{
+	  // Local element coordinates of current integration point
+	  fe.xi  = xg[i];
+	  fe.eta = xg[j];
+
 	  // Parameter value of current integration point
 	  fe.u = 0.5*(upar[i1]*(1.0-xg[i]) + upar[i1+1]*(1.0+xg[i]));
 	  fe.v = 0.5*(vpar[i2]*(1.0-xg[j]) + vpar[i2+1]*(1.0+xg[j]));
-
-	  // Local coordinates of current integration point
-	  fe.xi  = xg[i];
-	  fe.eta = xg[j];
 
 	  // Compute basis function derivatives at current integration point
 	  // using tensor product of one-dimensional Lagrange polynomials
@@ -262,7 +264,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
 	return false;
 
       // Assembly of global system integral
-      if (!glInt.assemble(elmInt,MLGE[iel-1]))
+      if (!glInt.assemble(elmInt,fe.iel))
 	return false;
     }
 
@@ -301,15 +303,13 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
   RealArray upar, vpar;
   if (t1 == 1)
   {
-    fe.u  = edgeDir < 0 ? surf->startparam_u() : surf->endparam_u();
-    fe.xi = edgeDir < 0 ? -1.0 : 1.0; 
+    fe.u = edgeDir < 0 ? surf->startparam_u() : surf->endparam_u();
     this->getGridParameters(vpar,1,1);
   }
   else if (t1 == 2)
   {
     this->getGridParameters(upar,0,1);
-    fe.v   = edgeDir < 0 ? surf->startparam_v() : surf->endparam_v();
-    fe.eta = edgeDir < 0 ? -1.0 : 1.0;
+    fe.v = edgeDir < 0 ? surf->startparam_v() : surf->endparam_v();
   }
 
   Matrix dNdu, Xnod, Jac;
@@ -324,6 +324,8 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
   for (int i2 = 0; i2 < nely; i2++)
     for (int i1 = 0; i1 < nelx; i1++, iel++)
     {
+      fe.iel = MLGE[iel-1];
+
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
       switch (edgeDir)
@@ -345,26 +347,24 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
       // LocalIntegral pointers, of length at least the number of elements in
       // the model (as defined by the highest number in the MLGE array).
       // If the array is shorter than this, expect a segmentation fault.
-      LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
+      LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
 
 
       // --- Integration loop over all Gauss points along the edge -------------
 
       for (int i = 0; i < nGauss; i++)
       {
-	// Gauss point coordinates along the edge
+	// Local element coordinates of current integration point
 	xi[t1-1] = edgeDir < 0 ? -1.0 : 1.0;
 	xi[t2-1] = xg[i];
+	fe.xi  = xi[0];
+	fe.eta = xi[1];
 
-	// Parameter values and local coordinates of current integration point
-	if (upar.size() > 1) {
+	// Parameter values of current integration point
+	if (upar.size() > 1)
 	  fe.u = 0.5*(upar[i1]*(1.0-xg[i]) + upar[i1+1]*(1.0+xg[i]));
-	  fe.xi = xg[i];
-	}
-	if (vpar.size() > 1) {
+	if (vpar.size() > 1)
 	  fe.v = 0.5*(vpar[i2]*(1.0-xg[i]) + vpar[i2+1]*(1.0+xg[i]));
-	  fe.eta = xg[i];
-	}
 
 	// Compute the basis functions and their derivatives, using
 	// tensor product of one-dimensional Lagrange polynomials
@@ -388,7 +388,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
       }
 
       // Assembly of global system integral
-      if (!glInt.assemble(elmInt,MLGE[iel-1]))
+      if (!glInt.assemble(elmInt,fe.iel))
 	return false;
     }
 

@@ -168,6 +168,8 @@ bool ASMs1DLag::integrate (Integrand& integrand,
   const int nel = this->getNoElms();
   for (int iel = 1; iel <= nel; iel++)
   {
+    fe.iel = MLGE[iel-1];
+
     // Set up control point coordinates for current element
     if (!this->getElementCoordinates(Xnod,iel)) return false;
 
@@ -178,18 +180,18 @@ bool ASMs1DLag::integrate (Integrand& integrand,
     // LocalIntegral pointers, of length at least the number of elements in
     // the model (as defined by the highest number in the MLGE array).
     // If the array is shorter than this, expect a segmentation fault.
-    LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
+    LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
 
 
     // --- Integration loop over all Gauss points in each direction ------------
 
     for (int i = 0; i < nGauss; i++)
     {
-      // Parameter value of current integration point
-      fe.u = 0.5*(gpar[iel-1]*(1.0-xg[i]) + gpar[iel]*(1.0+xg[i]));
-
       // Local element coordinate of current integration point
       fe.xi = xg[i];
+
+      // Parameter value of current integration point
+      fe.u = 0.5*(gpar[iel-1]*(1.0-xg[i]) + gpar[iel]*(1.0+xg[i]));
 
       // Compute basis function derivatives at current integration point
       if (!Lagrange::computeBasis(fe.N,dNdu,p1,xg[i]))
@@ -208,7 +210,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
     }
 
     // Assembly of global system integral
-    if (!glInt.assemble(elmInt,MLGE[iel-1]))
+    if (!glInt.assemble(elmInt,fe.iel))
       return false;
   }
 
@@ -226,26 +228,25 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
   // Integration of boundary point
 
   FiniteElement fe;
-  double x;
   int iel;
   switch (lIndex)
     {
     case 1:
-      fe.u = curv->startparam();
       fe.xi = -1.0;
-      x = -1.0;
+      fe.u = curv->startparam();
       iel = 1;
       break;
 
     case 2:
-      fe.u = curv->endparam();
       fe.xi = 1.0;
-      x = 1.0;
+      fe.u = curv->endparam();
       iel = this->getNoElms();
 
     default:
       return false;
     }
+
+  fe.iel = MLGE[iel-1];
 
   // Set up control point coordinates for current element
   Matrix Xnod;
@@ -258,11 +259,11 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
   // LocalIntegral pointers, of length at least the number of elements in
   // the model (as defined by the highest number in the MLGE array).
   // If the array is shorter than this, expect a segmentation fault.
-  LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
+  LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
 
   // Evaluate basis functions and corresponding derivatives
   Matrix dNdu, Jac;
-  if (!Lagrange::computeBasis(fe.N,dNdu,curv->order(),x)) return false;
+  if (!Lagrange::computeBasis(fe.N,dNdu,curv->order(),fe.xi)) return false;
 
   // Cartesian coordinates of current integration point
   Vec4 X(Xnod*fe.N,time.t);
@@ -282,7 +283,7 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
     return false;
 
   // Assembly of global system integral
-  return glInt.assemble(elmInt,MLGE[iel-1]);
+  return glInt.assemble(elmInt,fe.iel);
 }
 
 

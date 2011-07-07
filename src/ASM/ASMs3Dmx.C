@@ -27,8 +27,8 @@
 
 
 ASMs3Dmx::ASMs3Dmx (const char* fName, bool checkRHS,
-		    char n_f1, unsigned char n_f2)
-  : ASMs3D(fName,checkRHS), ASMmxBase(n_f1 < 0 ? -n_f1 : n_f1,n_f2, n_f1 < 0)
+		    unsigned char n_f1, unsigned char n_f2)
+  : ASMs3D(fName,checkRHS), ASMmxBase(n_f1,n_f2)
 {
   basis1 = basis2 = 0;
   nf = nf1 + nf2;
@@ -36,8 +36,8 @@ ASMs3Dmx::ASMs3Dmx (const char* fName, bool checkRHS,
 
 
 ASMs3Dmx::ASMs3Dmx (std::istream& is, bool checkRHS,
-		    char n_f1, unsigned char n_f2)
-  : ASMs3D(is,checkRHS), ASMmxBase(n_f1 < 0 ? -n_f1 : n_f1, n_f2, n_f1 < 0)
+		    unsigned char n_f1, unsigned char n_f2)
+  : ASMs3D(is,checkRHS), ASMmxBase(n_f1,n_f2)
 {
   basis1 = basis2 = 0;
   nf = nf1 + nf2;
@@ -133,12 +133,28 @@ bool ASMs3Dmx::generateFEMTopology ()
 
   if (!basis1 && !basis2)
   {
-    // With mixed methods we need two separates spline spaces
-    basis1 = new Go::SplineVolume(*svol);
+    // With mixed methods we need two separate spline spaces
+    if (useCpminus1)
+    {
+      // basis1 should be one degree higher than basis2 and C^p-1 continuous
+      // Note: Currently this is implemented for non-rational splines only
+      int ndim = svol->dimension();
+      Go::BsplineBasis b1 = svol->basis(0).extendedBasis(svol->order(0)+1);
+      Go::BsplineBasis b2 = svol->basis(1).extendedBasis(svol->order(1)+1);
+      Go::BsplineBasis b3 = svol->basis(2).extendedBasis(svol->order(2)+1);
+      // Define a dummy coefficient array filled with zeroes. This does not
+      // matter as long as we don't use basis1 for geometry representation.
+      RealArray coefs(b1.numCoefs()*b2.numCoefs()*b3.numCoefs()*ndim,0.0);
+      basis1 = new Go::SplineVolume(b1,b2,b3,coefs.begin(),ndim);
+    }
+    else
+    {
+      // Order-elevate basis1 such that it is of one degree higher than basis2
+      // but only C^p-2 continuous
+      basis1 = new Go::SplineVolume(*svol);
+      basis1->raiseOrder(1,1,1);
+    }
     basis2 = svol;
-
-    // Order-elevate basis1 such that it is of one degree higher than basis2
-    basis1->raiseOrder(1,1,1);
 
     // Define which basis that should be used to represent the geometry
     if (geoUsesBasis1) svol = basis1;
@@ -525,6 +541,11 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 	  for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
 	    for (int i = 0; i < nGauss; i++, ip++)
 	    {
+	      // Local element coordinates of current integration point
+	      fe.xi   = xg[i];
+	      fe.eta  = xg[j];
+	      fe.zeta = xg[k];
+
 	      // Parameter values of current integration point
 	      fe.u = gpar[0](i+1,i1-p1+1);
 	      fe.v = gpar[1](j+1,i2-p2+1);
@@ -635,6 +656,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 
   MxFiniteElement fe(basis1->order(0)*basis1->order(1)*basis1->order(2),
 		     basis2->order(0)*basis2->order(1)*basis2->order(2));
+  fe.xi = fe.eta = fe.zeta = faceDir < 0 ? -1.0 : 1.0;
   fe.u = gpar[0](1,1);
   fe.v = gpar[1](1,1);
   fe.w = gpar[2](1,1);
@@ -704,16 +726,29 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 	for (int j = 0; j < nGauss; j++, ip += nGauss*(nf1-1))
 	  for (int i = 0; i < nGauss; i++, ip++)
 	  {
-	    // Parameter values of current integration point
+ 	    // Local element coordinates and parameter values
+ 	    // of current integration point
 	    switch (abs(faceDir)) {
 	    case 1: k2 = i+1; k3 = j+1; k1 = 0; break;
 	    case 2: k1 = i+1; k3 = j+1; k2 = 0; break;
 	    case 3: k1 = i+1; k2 = j+1; k3 = 0; break;
 	    default: k1 = k2 = k3 = 0;
 	    }
-	    if (gpar[0].size() > 1) fe.u = gpar[0](k1,i1-p1+1);
-	    if (gpar[1].size() > 1) fe.v = gpar[1](k2,i2-p2+1);
-	    if (gpar[2].size() > 1) fe.w = gpar[2](k3,i3-p3+1);
+	    if (gpar[0].size() > 1)
+	    {
+	      fe.xi = xg[k1];
+	      fe.u = gpar[0](k1,i1-p1+1);
+	    }
+	    if (gpar[1].size() > 1)
+	    {
+	      fe.eta = xg[k2];
+	      fe.v = gpar[1](k2,i2-p2+1);
+	    }
+	    if (gpar[2].size() > 1)
+	    {
+	      fe.zeta = xg[k3];
+	      fe.w = gpar[2](k3,i3-p3+1);
+	    }
 
 	    // Fetch basis function derivatives at current integration point
 	    extractBasis(spline1[ip],fe.N1,dN1du);
@@ -802,24 +837,16 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
   }
   else if (gpar[0].size() == gpar[1].size() && gpar[0].size() == gpar[2].size())
   {
-    std::vector<Go::BasisPts> tmpSpline(1);
     spline1.resize(gpar[0].size());
     spline2.resize(gpar[0].size());
     for (size_t i = 0; i < spline1.size(); i++)
     {
-      basis1->computeBasisGrid(RealArray(1,gpar[0][i]),
-			       RealArray(1,gpar[1][i]),
-			       RealArray(1,gpar[2][i]),
-			       tmpSpline);
-      spline1[i] = tmpSpline.front();
-      basis2->computeBasisGrid(RealArray(1,gpar[0][i]),
-			       RealArray(1,gpar[1][i]),
-			       RealArray(1,gpar[2][i]),
-			       tmpSpline);
-      spline2[i] = tmpSpline.front();
+      basis1->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline1[i]);
+      basis2->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline2[i]);
     }
-    // TODO: Request a GoTools method replacing the above (see ASMs3D)
   }
+  else
+    return false;
 
   const int p1 = basis1->order(0);
   const int p2 = basis1->order(1);

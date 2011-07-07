@@ -14,12 +14,14 @@
 #include "ASMmxBase.h"
 
 
-ASMmxBase::ASMmxBase (unsigned char n_f1, unsigned char n_f2, bool geo1)
+bool ASMmxBase::geoUsesBasis1 = false;
+bool ASMmxBase::useCpminus1   = false;
+
+
+ASMmxBase::ASMmxBase (unsigned char n_f1, unsigned char n_f2)
 {
   nf1 = n_f1;
   nf2 = n_f2;
-
-  geoUsesBasis1 = geo1;
 }
 
 

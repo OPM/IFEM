@@ -33,10 +33,10 @@ class ASMs3Dmx : public ASMs3D, private ASMmxBase
 public:
   //! \brief Constructor creating an instance by reading the given file.
   ASMs3Dmx(const char* fName = 0, bool checkRHS = false,
-	   char n_f1 = 3, unsigned char n_f2 = 1);
+	   unsigned char n_f1 = 3, unsigned char n_f2 = 1);
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs3Dmx(std::istream& is, bool checkRHS = false,
-	   char n_f1 = 3, unsigned char n_f2 = 1);
+	   unsigned char n_f1 = 3, unsigned char n_f2 = 1);
   //! \brief Empty destructor.
   virtual ~ASMs3Dmx() {}
 

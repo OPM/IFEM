@@ -13,6 +13,7 @@
 
 #include "GoTools/geometry/SplineCurve.h"
 #include "GoTools/geometry/ObjectHeader.h"
+#include "GoTools/geometry/CurveInterpolator.h"
 
 #include "ASMs1D.h"
 #include "TimeDomain.h"
@@ -511,6 +512,9 @@ bool ASMs1D::integrate (Integrand& integrand,
 
     for (int i = 0; i < nGauss; i++)
     {
+      // Local element coordinate of current integration point
+      fe.xi = xg[i];
+
       // Parameter value of current integration point
       fe.u = gpar(i+1,iel);
 
@@ -553,11 +557,13 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
   switch (lIndex)
     {
     case 1:
+      fe.xi = -1.0;
       fe.u = curv->startparam();
       iel = 1;
       break;
 
     case 2:
+      fe.xi = 1.0;
       fe.u = curv->endparam();
       iel = this->getNoElms();
       break;
@@ -674,6 +680,20 @@ bool ASMs1D::getGridParameters (RealArray& prm, int nSegPerSpan) const
 }
 
 
+bool ASMs1D::getGrevilleParameters (RealArray& prm) const
+{
+  if (!curv) return false;
+
+  const Go::BsplineBasis& basis = curv->basis();
+
+  prm.resize(basis.numCoefs());
+  for (size_t i = 0; i < prm.size(); i++)
+    prm[i] = basis.grevilleParameter(i);
+
+  return true;
+}
+
+
 bool ASMs1D::tesselate (ElementBlock& grid, const int* npe) const
 {
   // Compute parameter values of the nodal points
@@ -684,16 +704,7 @@ bool ASMs1D::tesselate (ElementBlock& grid, const int* npe) const
   // Evaluate the spline curve at all points
   size_t nx = gpar.size();
   RealArray XYZ(curv->dimension()*nx);
-  //curv->gridEvaluator(XYZ,gpar);
-  //TODO: Replace this loop by the above line when available in GoTools
-  size_t m, jp;
-  Go::Point pt;
-  for (m = jp = 0; m < nx; m++)
-  {
-    curv->point(pt,gpar[m]);
-    for (int k = 0; k < pt.size(); k++)
-      XYZ[jp++] = pt[k];
-  }
+  curv->gridEvaluator(XYZ,gpar);
 
   // Establish the block grid coordinates
   size_t i, j, l;
@@ -786,17 +797,9 @@ bool ASMs1D::evalSolution (Matrix& sField, const Integrand& integrand,
 	if (c)
 	{
 	  // Evaluate the projected field at the result sampling points
-	  //const Vector& svec = sField; // using utl::matrix cast operator
+	  const Vector& svec = sField; // using utl::matrix cast operator
 	  sField.resize(c->dimension(),gpar.size());
-	  //c->gridEvaluator(svec,gpar);
-	  //TODO: Replace this loop by the above line when available in GoTools
-	  Go::Point pt;
-	  for (size_t j = 0; j < sField.cols(); j++)
-	  {
-	    c->point(pt,gpar[j]);
-	    for (size_t i = 0; i < sField.rows(); i++)
-	      sField(i+1,j+1) = pt[i];
-	  }
+	  c->gridEvaluator(const_cast<Vector&>(svec),gpar);
 	  delete c;
 	  return true;
 	}
@@ -832,10 +835,33 @@ Go::GeomObject* ASMs1D::evalSolution (const Integrand& integrand) const
 
 Go::SplineCurve* ASMs1D::projectSolution (const Integrand& integrand) const
 {
-  //TODO: This requires the method Go::CurveInterpolator::regularInterpolation
-  //      which is not yet present in GoTools.
-  std::cerr <<" *** ASMs1D::projectSolution: Not implemented yet!"<< std::endl;
-  return 0;
+  // Compute parameter values of the result sampling points (Greville points)
+  RealArray gpar;
+  if (!this->getGrevilleParameters(gpar))
+    return 0;
+
+  // Evaluate the secondary solution at all sampling points
+  Matrix sValues;
+  if (!this->evalSolution(sValues,integrand,&gpar))
+    return 0;
+
+  // Project the results onto the spline basis to find control point
+  // values based on the result values evaluated at the Greville points.
+  // Note that we here implicitly assume the the number of Greville points
+  // equals the number of control points such that we don't have to resize
+  // the result array. Think that is always the case, but beware if trying
+  // other projection schemes later.
+
+  RealArray weights;
+  if (curv->rational())
+    curv->getWeights(weights);
+
+  const Vector& vec = sValues;
+  return Go::CurveInterpolator::regularInterpolation(curv->basis(), gpar,
+						     const_cast<Vector&>(vec),
+						     sValues.rows(),
+						     curv->rational(),
+						     weights);
 }
 
 
@@ -858,15 +884,15 @@ bool ASMs1D::evalSolution (Matrix& sField, const Integrand& integrand,
   size_t nPoints = upar.size();
   for (size_t i = 0; i < nPoints; i++)
   {
-    // Fetch basis function derivatives at current integration point
-    this->extractBasis(upar[i],N,dNdu);
-
     // Fetch indices of the non-zero basis functions at this point
     IntVec ip;
     scatterInd(p1,curv->basis().lastKnotInterval(),ip);
 
     // Fetch associated control point coordinates
     utl::gather(ip,nsd,Xnod,Xtmp);
+
+    // Fetch basis function derivatives at current integration point
+    this->extractBasis(upar[i],N,dNdu);
 
     // Compute the Jacobian inverse
     if (utl::Jacobian(Jac,dNdX,Xtmp,dNdu) == 0.0) // Jac = (Xtmp * dNdu)^-1

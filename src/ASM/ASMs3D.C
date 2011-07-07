@@ -1220,6 +1220,11 @@ bool ASMs3D::integrate (Integrand& integrand,
 	  for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
 	    for (int i = 0; i < nGauss; i++, ip++)
 	    {
+	      // Local element coordinates of current integration point
+	      fe.xi   = xg[i];
+	      fe.eta  = xg[j];
+	      fe.zeta = xg[k];
+
 	      // Parameter values of current integration point
 	      fe.u = gpar[0](i+1,i1-p1+1);
 	      fe.v = gpar[1](j+1,i2-p2+1);
@@ -1336,6 +1341,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
   const int nel2 = n2 - p2 + 1;
 
   FiniteElement fe(p1*p2*p3);
+  fe.xi = fe.eta = fe.zeta = faceDir < 0 ? -1.0 : 1.0;
   fe.u = gpar[0](1,1);
   fe.v = gpar[1](1,1);
   fe.w = gpar[2](1,1);
@@ -1402,16 +1408,29 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 	for (int j = 0; j < nGauss; j++, ip += nGauss*(nf1-1))
 	  for (int i = 0; i < nGauss; i++, ip++)
 	  {
-	    // Parameter values of current integration point
+	    // Local element coordinates and parameter values
+	    // of current integration point
 	    switch (abs(faceDir)) {
 	    case 1: k2 = i+1; k3 = j+1; k1 = 0; break;
 	    case 2: k1 = i+1; k3 = j+1; k2 = 0; break;
 	    case 3: k1 = i+1; k2 = j+1; k3 = 0; break;
 	    default: k1 = k2 = k3 = 0;
 	    }
-	    if (gpar[0].size() > 1) fe.u = gpar[0](k1,i1-p1+1);
-	    if (gpar[1].size() > 1) fe.v = gpar[1](k2,i2-p2+1);
-	    if (gpar[2].size() > 1) fe.w = gpar[2](k3,i3-p3+1);
+	    if (gpar[0].size() > 1)
+	    {
+	      fe.xi = xg[k1];
+	      fe.u = gpar[0](k1,i1-p1+1);
+	    }
+	    if (gpar[1].size() > 1)
+	    {
+	      fe.eta = xg[k2];
+	      fe.v = gpar[1](k2,i2-p2+1);
+	    }
+	    if (gpar[2].size() > 1)
+	    {
+	      fe.zeta = xg[k3];
+	      fe.w = gpar[2](k3,i3-p3+1);
+	    }
 
 	    // Fetch basis function derivatives at current integration point
 	    extractBasis(spline[ip],fe.N,dNdu);
@@ -1506,6 +1525,9 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
   fe.u = gpar[0](1,1);
   fe.v = gpar[1](1,1);
   fe.w = gpar[2](1,1);
+  if (gpar[0].size() == 1) fe.xi = fe.u == svol->startparam(0) ? -1.0 : 1.0;
+  if (gpar[1].size() == 1) fe.eta = fe.v == svol->startparam(1) ? -1.0 : 1.0;
+  if (gpar[2].size() == 1) fe.zeta = fe.w == svol->startparam(2) ? -1.0 : 1.0;
 
   Matrix dNdu, Xnod, Jac;
   Vec4   X;
@@ -1770,25 +1792,8 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
   {
     PROFILE2("Spline evaluation");
     spline.resize(gpar[0].size());
-    std::vector<Go::BasisPts> tmpSpline(1);
-    for (size_t i = 0; i < spline.size(); i++)
-    {
-      svol->computeBasisGrid(RealArray(1,gpar[0][i]),
-                             RealArray(1,gpar[1][i]),
-                             RealArray(1,gpar[2][i]),
-                             tmpSpline);
-      spline[i] = tmpSpline.front();
-    }
-    // TODO: Request a GoTools method replacing the above:
-    // void SplineVolume::computeBasisGrid(double param_u,
-    //                                     double param_v,
-    //                                     double param_w,
-    //                                     BasisPts& result) const
-    /*
-    spline.resize(gpar[0].size());
     for (size_t i = 0; i < spline.size(); i++)
       svol->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline[i]);
-    */
   }
   else
     return false;
@@ -1945,7 +1950,6 @@ bool ASMs3D::evalSolution (Matrix& sField, const Integrand& integrand,
     //                                     double param_w,
     //                                     BasisDerivs& result) const
     /*
-    spline.resize(gpar[0].size());
     for (size_t i = 0; i < spline.size(); i++)
       svol->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline[i]);
     */

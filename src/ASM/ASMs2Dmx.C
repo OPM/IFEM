@@ -27,8 +27,8 @@
 
 
 ASMs2Dmx::ASMs2Dmx (const char* fName, unsigned char n_s,
-		    char n_f1, unsigned char n_f2)
-  : ASMs2D(fName,n_s), ASMmxBase(n_f1 < 0 ? -n_f1 : n_f1, n_f2, n_f1 < 0)
+		    unsigned char n_f1, unsigned char n_f2)
+  : ASMs2D(fName,n_s), ASMmxBase(n_f1,n_f2)
 {
   basis1 = basis2 = 0;
   nf = nf1 + nf2;
@@ -36,8 +36,8 @@ ASMs2Dmx::ASMs2Dmx (const char* fName, unsigned char n_s,
 
 
 ASMs2Dmx::ASMs2Dmx (std::istream& is, unsigned char n_s,
-		    char n_f1, unsigned char n_f2)
-  : ASMs2D(is,n_s), ASMmxBase(n_f1 < 0 ? -n_f1 : n_f1, n_f2, n_f1 < 0)
+		    unsigned char n_f1, unsigned char n_f2)
+  : ASMs2D(is,n_s), ASMmxBase(n_f1,n_f2)
 {
   basis1 = basis2 = 0;
   nf = nf1 + nf2;
@@ -133,12 +133,27 @@ bool ASMs2Dmx::generateFEMTopology ()
 
   if (!basis1 && !basis2)
   {
-    // With mixed methods we need two separates spline spaces
-    basis1 = new Go::SplineSurface(*surf);
+    // With mixed methods we need two separate spline spaces
+    if (useCpminus1)
+    {
+      // basis1 should be one degree higher than basis2 and C^p-1 continuous
+      // Note: Currently this is implemented for non-rational splines only
+      int ndim = surf->dimension();
+      Go::BsplineBasis b1 = surf->basis(0).extendedBasis(surf->order_u()+1);
+      Go::BsplineBasis b2 = surf->basis(1).extendedBasis(surf->order_v()+1);
+      // Define a dummy coefficient array filled with zeroes. This does not
+      // matter as long as we don't use basis1 for geometry representation.
+      RealArray coefs(b1.numCoefs()*b2.numCoefs()*ndim,0.0);
+      basis1 = new Go::SplineSurface(b1,b2,coefs.begin(),ndim);
+    }
+    else
+    {
+      // Order-elevate basis1 such that it is of one degree higher than basis2
+      // but only C^p-2 continuous
+      basis1 = new Go::SplineSurface(*surf);
+      basis1->raiseOrder(1,1);
+    }
     basis2 = surf;
-
-    // Order-elevate basis1 such that it is of one degree higher than basis2
-    basis1->raiseOrder(1,1);
 
     // Define which basis that should be used to represent the geometry
     if (geoUsesBasis1) surf = basis1;
@@ -488,6 +503,10 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
       for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
 	for (int i = 0; i < nGauss; i++, ip++)
 	{
+          // Local element coordinates of current integration point
+          fe.xi  = xg[i];
+          fe.eta = xg[j];
+
 	  // Parameter values of current integration point
 	  fe.u = gpar[0](i+1,i1-p1+1);
 	  fe.v = gpar[1](j+1,i2-p2+1);
@@ -591,6 +610,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
   MxFiniteElement fe(basis1->order_u()*basis1->order_v(),
 		     basis2->order_u()*basis2->order_v());
+  fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
   fe.u = gpar[0](1,1);
   fe.v = gpar[1](1,1);
 
@@ -645,8 +665,16 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
       for (int i = 0; i < nGauss; i++, ip++)
       {
 	// Parameter values of current integration point
-	if (gpar[0].size() > 1) fe.u = gpar[0](i+1,i1-p1+1);
-	if (gpar[1].size() > 1) fe.v = gpar[1](i+1,i2-p2+1);
+	if (gpar[0].size() > 1)
+	{
+          fe.xi = xg[i];
+	  fe.u = gpar[0](i+1,i1-p1+1);
+	}
+	if (gpar[1].size() > 1)
+	{
+          fe.eta = xg[i];
+	  fe.v = gpar[1](i+1,i2-p2+1);
+	}
 
 	// Fetch basis function derivatives at current integration point
 	extractBasis(spline1[ip],fe.N1,dN1du);
@@ -734,22 +762,16 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
   }
   else if (gpar[0].size() == gpar[1].size())
   {
-    std::vector<Go::BasisPtsSf> tmpSpline(1);
     spline1.resize(gpar[0].size());
     spline2.resize(gpar[0].size());
     for (size_t i = 0; i < spline1.size(); i++)
     {
-      basis1->computeBasisGrid(RealArray(1,gpar[0][i]),
-			       RealArray(1,gpar[1][i]),
-			       tmpSpline);
-      spline1[i] = tmpSpline.front();
-      basis2->computeBasisGrid(RealArray(1,gpar[0][i]),
-			       RealArray(1,gpar[1][i]),
-			       tmpSpline);
-      spline2[i] = tmpSpline.front();
+      basis1->computeBasis(gpar[0][i],gpar[1][i],spline1[i]);
+      basis2->computeBasis(gpar[0][i],gpar[1][i],spline2[i]);
     }
-    // TODO: Request a GoTools method replacing the above (see ASMs2D)
   }
+  else
+    return false;
 
   const int p1 = basis1->order_u();
   const int p2 = basis1->order_v();

@@ -896,6 +896,10 @@ bool ASMs2D::integrate (Integrand& integrand,
       for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
 	for (int i = 0; i < nGauss; i++, ip++)
 	{
+	  // Local element coordinates of current integration point
+	  fe.xi  = xg[i];
+	  fe.eta = xg[j];
+
 	  // Parameter values of current integration point
 	  fe.u = gpar[0](i+1,i1-p1+1);
 	  fe.v = gpar[1](j+1,i2-p2+1);
@@ -1002,6 +1006,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
   const int n2 = surf->numCoefs_v();
 
   FiniteElement fe(p1*p2);
+  fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
   fe.u = gpar[0](1,1);
   fe.v = gpar[1](1,1);
 
@@ -1052,9 +1057,18 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       int ip = (t1 == 1 ? i2-p2 : i1-p1)*nGauss;
       for (int i = 0; i < nGauss; i++, ip++)
       {
-	// Parameter values of current integration point
-	if (gpar[0].size() > 1) fe.u = gpar[0](i+1,i1-p1+1);
-	if (gpar[1].size() > 1) fe.v = gpar[1](i+1,i2-p2+1);
+	// Local element coordinates and parameter values
+	// of current integration point
+	if (gpar[0].size() > 1)
+	{
+	  fe.xi = xg[i];
+	  fe.u = gpar[0](i+1,i1-p1+1);
+	}
+	if (gpar[1].size() > 1)
+	{
+	  fe.eta = xg[i];
+	  fe.v = gpar[1](i+1,i2-p2+1);
+	}
 
 	// Fetch basis function derivatives at current integration point
 	extractBasis(spline[ip],fe.N,dNdu);
@@ -1237,22 +1251,8 @@ bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
   else if (gpar[0].size() == gpar[1].size())
   {
     spline.resize(gpar[0].size());
-    std::vector<Go::BasisPtsSf> tmpSpline(1);
-    for (size_t i = 0; i < spline.size(); i++)
-    {
-      surf->computeBasisGrid(RealArray(1,gpar[0][i]),
-			     RealArray(1,gpar[1][i]),
-			     tmpSpline);
-      spline[i] = tmpSpline.front();
-    }
-    // TODO: Request a GoTools method replacing the above:
-    // void SplineSurface::computeBasisGrid(double param_u, double param_v,
-    //                                      BasisPtsSf& result) const
-    /*
-    spline.resize(gpar[0].size());
     for (size_t i = 0; i < spline.size(); i++)
       surf->computeBasis(gpar[0][i],gpar[1][i],spline[i]);
-    */
   }
   else
     return false;
@@ -1396,7 +1396,6 @@ bool ASMs2D::evalSolution (Matrix& sField, const Integrand& integrand,
     // void SplineSurface::computeBasisGrid(double param_u, double param_v,
     //                                      BasisDerivsSf& result) const
     /*
-    spline.resize(gpar[0].size());
     for (size_t i = 0; i < spline.size(); i++)
       surf->computeBasis(gpar[0][i],gpar[1][i],spline[i]);
     */

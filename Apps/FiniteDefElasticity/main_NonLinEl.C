@@ -11,8 +11,9 @@
 //!
 //==============================================================================
 
-#include "NonLinSIM.h"
 #include "SIMFiniteDefEl.h"
+#include "NonLinSIM.h"
+#include "ASMmxBase.h"
 #include "LinAlgInit.h"
 #include "HDF5Writer.h"
 #include "XMLWriter.h"
@@ -39,6 +40,8 @@ extern std::vector<int> mixedDbgEl; //!< List of elements for additional output
   \arg -superlu : Use the sparse SuperLU equation solver
   \arg -samg :    Use the sparse algebraic multi-grid equation solver
   \arg -petsc :   Use equation solver from PETSc library
+  \arg -lag : Use Lagrangian basis functions instead of splines/NURBS
+  \arg -spec : Use Spectral basis functions instead of splines/NURBS
   \arg -nGauss \a n : Number of Gauss points over a knot-span in each direction
   \arg -vtf \a format : VTF-file format (-1=NONE, 0=ASCII, 1=BINARY)
   \arg -nviz \a nviz : Number of visualization points over each knot-span
@@ -60,8 +63,7 @@ extern std::vector<int> mixedDbgEl; //!< List of elements for additional output
   \arg -UL : Use updated Lagrangian formulation with nonlinear material
   \arg -MX \a pord : Mixed formulation with internal discontinuous pressure
   \arg -mixed : Mixed formulation with continuous pressure and volumetric change
-  \arg -lag : Use Lagrangian basis functions instead of splines/NURBS
-  \arg -spec : Use Spectral basis functions instead of splines/NURBS
+  \arg -Mixed : Same as -mixed, but use C^(p-1) continuous displacement basis
 */
 
 int main (int argc, char** argv)
@@ -104,6 +106,10 @@ int main (int argc, char** argv)
       solver = SystemMatrix::SAMG;
     else if (!strcmp(argv[i],"-petsc"))
       solver = SystemMatrix::PETSC;
+    else if (!strncmp(argv[i],"-lag",4))
+      SIMbase::discretization = SIMbase::Lagrange;
+    else if (!strncmp(argv[i],"-spec",5))
+      SIMbase::discretization = SIMbase::Spectral;
     else if (!strcmp(argv[i],"-nGauss") && i < argc-1)
       nGauss = atoi(argv[++i]);
     else if (!strcmp(argv[i],"-vtf") && i < argc-1)
@@ -167,6 +173,11 @@ int main (int argc, char** argv)
       if (i < argc-1 && isdigit(argv[i+1][0]))
 	options[1] = atoi(argv[++i]);
     }
+    else if (!strcmp(argv[i],"-Mixed"))
+    {
+      form = SIM::MIXED_QnQn1;
+      ASMmxBase::useCpminus1 = true;
+    }
     else if (!strcmp(argv[i],"-mixed"))
       form = SIM::MIXED_QnQn1;
     else if (!strcmp(argv[i],"-Tensor"))
@@ -175,10 +186,6 @@ int main (int argc, char** argv)
       form = SIM::NEOHOOKE;
     else if (!strcmp(argv[i],"-NeoHookeIV"))
       form = SIM::NEOHOOKE_IV;
-    else if (!strncmp(argv[i],"-lag",4))
-      SIMbase::discretization = SIMbase::Lagrange;
-    else if (!strncmp(argv[i],"-spec",5))
-      SIMbase::discretization = SIMbase::Spectral;
     else if (!infile)
       infile = argv[i];
     else
@@ -188,7 +195,7 @@ int main (int argc, char** argv)
   {
     std::cout <<"usage: "<< argv[0]
 	      <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n      "
-	      <<" [-lag] [-spec] [-2D[pstrain]] [-UL] [-MX [<p>]|-mixed]"
+	      <<" [-lag] [-spec] [-2D[pstrain]] [-UL] [-MX [<p>]|-[M|m]ixed]"
 	      <<" [-nGauss <n>]\n       [-vtf <format> [-nviz <nviz>]"
 	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]] [-hdf5]\n      "
 	      <<" [-saveInc <dtSave>] [-skip2nd] [-dumpInc <dtDump> [raw]]"
@@ -248,8 +255,16 @@ int main (int argc, char** argv)
 
   utl::profiler->stop("Model input");
 
-  // Preprocess the model and establish data structures for the algebraic system
   model->printProblem(std::cout);
+  if (SIMbase::discretization == SIMbase::Spline)
+  {
+    if (ASMmxBase::useCpminus1)
+      std::cout <<"Using C^(p-1) continuous displacement basis\n";
+    else if (form == SIM::MIXED_QnQn1)
+      std::cout <<"Using C^(p-2) continuous displacement basis\n";
+  }
+
+  // Preprocess the model and establish data structures for the algebraic system
   if (!model->preprocess(ignoredPatches,fixDup))
     return 2;
 

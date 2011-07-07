@@ -27,8 +27,7 @@ protected:
   //! \brief The constructor sets the number of field variables.
   //! \param[in] n_f1 Number of nodal variables in field 1
   //! \param[in] n_f2 Number of nodal variables in field 2
-  //! \param[in] geo1 If \e true, the geometry is represented by the first basis
-  ASMmxBase(unsigned char n_f1, unsigned char n_f2, bool geo1 = true);
+  ASMmxBase(unsigned char n_f1, unsigned char n_f2);
 
   //! \brief Initializes the patch level MADOF array.
   //! \param[in] MLGN Matrix of local-to-global node numbers
@@ -49,6 +48,10 @@ protected:
   bool getSolutionMx(Matrix& sField, const Vector& locSol,
 		     const std::vector<int>& nodes) const;
 
+public:
+  static bool geoUsesBasis1; //!< If \e true, 1st basis represents the geometry
+  static bool useCpminus1;   //!< If \e true, enforce \f$C^{p-1}\f$ continuity
+
 private:
   std::vector<int> MADOF; //!< Matrix of accumulated DOFs for this patch
 
@@ -58,8 +61,6 @@ protected:
 
   unsigned char nf1; //!< Number of solution fields using first basis
   unsigned char nf2; //!< Number of solution fields using second basis
-
-  bool geoUsesBasis1; //!< If \e true, the first basis represents the geometry
 };
 
 #endif
