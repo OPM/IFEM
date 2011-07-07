@@ -57,9 +57,9 @@ void XMLWriter::closeFile(int level, bool close)
 
   // TODO: support variable time steps
   TiXmlElement element3("timestep");
-  element3.Attribute("constant",&m_dt);
-  pNewNode = m_node->InsertEndChild(element3);
   sprintf(temp,"%f",m_dt);
+  element3.SetAttribute("constant","1");
+  pNewNode = m_node->InsertEndChild(element3);
   TiXmlText value2(temp);
   pNewNode->InsertEndChild(value2);
 
