@@ -1,0 +1,100 @@
+CanTS-p2.inp -dense
+
+Input file: CanTS-p2.inp
+Equation solver: 0
+Number of Gauss points: 4
+Reading input file CanTS-p2.inp
+Number of patches: 1
+Reading patch file slenderBeam.g2
+Number of order raise: 1
+	Raising order of P1 1 1 1
+Number of patch refinements: 1
+	Refining P1 9 0 0
+Number of constraints: 1
+	Constraining P1 F1 in direction(s) 123
+Number of pressures: 1
+	Pressure on P1 F2 direction 3: 18224 \* 1\*t
+Number of isotropic materials: 1
+	Material code 0: 1e+08 0 0 (-1)
+Reading input file succeeded.
+Problem definition:
+NonlinearElasticityTL: Total Lagrangian formulation
+Elasticity: 3D, gravity = 0 0 0
+LinIsotropic: E = 1e+08, nu = 0, rho = 0
+Resolving Dirichlet boundary conditions
+ >>> SAM model summary <<<
+Number of elements    10
+Number of nodes       108
+Number of dofs        324
+Number of unknowns    297
+  step=1  time=0.1
+  Primary solution summary: L2-norm            : 1.59483
+                            Max X-displacement : 1.68473 node 84
+                            Max Z-displacement : 4.97748 node 12
+  Total reaction forces: Sum(R) = 0 0 26.935
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 10.5215	 a(u^h,u^h) = 110.7021168
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 11.5607	(f,u)+(t,u) = 133.6491906
+  step=2  time=0.2
+  Primary solution summary: L2-norm            : 2.23765
+                            Max X-displacement : 3.2337 node 84
+                            Max Z-displacement : 6.58125 node 12
+  Total reaction forces: Sum(R) = 0 0 53.87
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 15.2308	 a(u^h,u^h) = 231.9770954
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 18.7875	(f,u)+(t,u) = 352.971888
+  step=3  time=0.3
+  Primary solution summary: L2-norm            : 2.56749
+                            Max X-displacement : 4.17739 node 84
+                            Max Z-displacement : 7.25293 node 12
+  Total reaction forces: Sum(R) = 0 0 80.805
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 17.8705	 a(u^h,u^h) = 319.3531996
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 24.1483	(f,u)+(t,u) = 583.1415441
+  step=4  time=0.4
+  Primary solution summary: L2-norm            : 2.77486
+                            Max X-displacement : 4.8026 node 84
+                            Max Z-displacement : 7.61743 node 12
+  Total reaction forces: Sum(R) = 0 0 107.74
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 19.6578	 a(u^h,u^h) = 386.4304768
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 28.5714	(f,u)+(t,u) = 816.327349
+  step=5  time=0.5
+  Primary solution summary: L2-norm            : 2.9211
+                            Max X-displacement : 5.24958 node 84
+                            Max Z-displacement : 7.84848 node 12
+  Total reaction forces: Sum(R) = 0 0 134.675
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 21.0088	 a(u^h,u^h) = 441.3712969
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 32.4216	(f,u)+(t,u) = 1051.156974
+  step=6  time=0.6
+  Primary solution summary: L2-norm            : 3.03188
+                            Max X-displacement : 5.58735 node 84
+                            Max Z-displacement : 8.0103 node 12
+  Total reaction forces: Sum(R) = 0 0 161.61
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 22.1032	 a(u^h,u^h) = 488.5496845
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 35.8782	(f,u)+(t,u) = 1287.245598
+  step=7  time=0.7
+  Primary solution summary: L2-norm            : 3.11994
+                            Max X-displacement : 5.85327 node 84
+                            Max Z-displacement : 8.13161 node 12
+  Total reaction forces: Sum(R) = 5.02855e-08 0 188.545
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 23.0313	 a(u^h,u^h) = 530.4429627
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 39.0438	(f,u)+(t,u) = 1524.419708
+  step=8  time=0.8
+  Primary solution summary: L2-norm            : 3.19238
+                            Max X-displacement : 6.06925 node 84
+                            Max Z-displacement : 8.22704 node 12
+  Total reaction forces: Sum(R) = 0 0 215.48
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 23.8441	 a(u^h,u^h) = 568.543062
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 41.9829	(f,u)+(t,u) = 1762.563497
+  step=9  time=0.9
+  Primary solution summary: L2-norm            : 3.25352
+                            Max X-displacement : 6.24899 node 84
+                            Max Z-displacement : 8.30483 node 12
+  Total reaction forces: Sum(R) = 0 0 242.415
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 24.5723	 a(u^h,u^h) = 603.7981686
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 44.7391	(f,u)+(t,u) = 2001.582914
+  step=10  time=1
+  Primary solution summary: L2-norm            : 3.30616
+                            Max X-displacement : 6.40153 node 84
+                            Max Z-displacement : 8.36997 node 12
+  Total reaction forces: Sum(R) = 0 0 269.35
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 25.2357	 a(u^h,u^h) = 636.8394095
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 47.3434	(f,u)+(t,u) = 2241.396332
+

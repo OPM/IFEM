@@ -31,7 +31,7 @@ PLASTIC 1    2    3      4   5       6    7     8    9     10    11
 
 TIME_STEPPING
 # start stop dt
-  0.0   5.0  0.01
+  0.0   5.0  0.05
 
 NONLINEAR_SOLVER
 # maxit convTol

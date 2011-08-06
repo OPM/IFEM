@@ -1,0 +1,486 @@
+FBlock-h9x5-Q2P1.inp -2Dpstrain -MX 1 -nGauss 3 -lagrange
+
+ >>> Spline FEM Finite Deformation Nonlinear solver <<<
+ ======================================================
+Input file: FBlock-h9x5-Q2P1.inp
+Equation solver: 2
+Number of Gauss points: 3
+Lagrangian basis functions are used
+Reading input file FBlock-h9x5-Q2P1.inp
+Reading data file block.g2
+Reading patch 1
+Number of patch refinements: 2
+	Refining P1 dir=1 0.125 0.25 0.35 0.45 0.55 0.65 0.75 0.875
+	Refining P1 0 4
+Number of order raise: 1
+	Raising order of P1 1 1
+Number of constraints: 3
+	Constraining P1 E1 in direction(s) 1
+	Constraining P1 E2 in direction(s) 1
+	Constraining P1 E3 in direction(s) 2
+Number of pressures: 1
+	Pressure on P1 E4 direction 2: (-2\*StepX(1.0)) \* 1\*t
+Number of isotropic materials: 1
+	Material code 0: 400942 80.1938 0 (21)
+Reading input file succeeded.
+Problem definition:
+NonlinearElasticityULMX: Mixed formulation, discontinuous pressure, p=1
+NonlinearElasticityUL: Updated Lagrangian formulation
+Elasticity: 2D, gravity = 0 0
+LinIsotropic: E = 240.565, nu = 0.4999, rho = 0
+NeoHookeMaterial: mVER = 2
+Resolving Dirichlet boundary conditions
+ >>> SAM model summary <<<
+Number of elements    45
+Number of nodes       209
+Number of dofs        418
+Number of unknowns    377
+  step=1  time=1
+  Primary solution summary: L2-norm            : 0.00163844
+                            Max X-displacement : 0.00276057 node 5
+                            Max Y-displacement : 0.003214 node 200
+  Total reaction forces: Sum(R) = 0 -4
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.0703093	 a(u^h,u^h) = 0.004943401429
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 0.0703524	(f,u)+(t,u) = 0.004949465648
+  step=2  time=2
+  Primary solution summary: L2-norm            : 0.00327124
+                            Max X-displacement : 0.00552132 node 5
+                            Max Y-displacement : 0.00639874 node 200
+  Total reaction forces: Sum(R) = 0 -8
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.140282	 a(u^h,u^h) = 0.01967914583
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 0.140452	(f,u)+(t,u) = 0.0197266334
+  step=3  time=3
+  Primary solution summary: L2-norm            : 0.00489861
+                            Max X-displacement : 0.00828239 node 5
+                            Max Y-displacement : 0.00955509 node 200
+  Total reaction forces: Sum(R) = 0 -12
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.209934	 a(u^h,u^h) = 0.04407226801
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 0.210307	(f,u)+(t,u) = 0.04422916175
+  step=4  time=4
+  Primary solution summary: L2-norm            : 0.00652077
+                            Max X-displacement : 0.0110439 node 5
+                            Max Y-displacement : 0.0126839 node 200
+  Total reaction forces: Sum(R) = 0 -16
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.279278	 a(u^h,u^h) = 0.07799637318
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 0.279929	(f,u)+(t,u) = 0.07836046385
+  step=5  time=5
+  Primary solution summary: L2-norm            : 0.00813792
+                            Max X-displacement : 0.0138059 node 5
+                            Max Y-displacement : 0.0157859 node 200
+  Total reaction forces: Sum(R) = 0 -20
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.348329	 a(u^h,u^h) = 0.1213331664
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 0.349327	(f,u)+(t,u) = 0.1220294116
+  step=6  time=6
+  Primary solution summary: L2-norm            : 0.00975025
+                            Max X-displacement : 0.0165686 node 5
+                            Max Y-displacement : 0.0188619 node 200
+  Total reaction forces: Sum(R) = 0 -24
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.4171	 a(u^h,u^h) = 0.173972009
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 0.418509	(f,u)+(t,u) = 0.1751500561
+  step=7  time=7
+  Primary solution summary: L2-norm            : 0.011358
+                            Max X-displacement : 0.019332 node 5
+                            Max Y-displacement : 0.0219126 node 200
+  Total reaction forces: Sum(R) = 0 -28
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.485602	 a(u^h,u^h) = 0.2358095016
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 0.487485	(f,u)+(t,u) = 0.237641364
+  step=8  time=8
+  Primary solution summary: L2-norm            : 0.0129612
+                            Max X-displacement : 0.0220962 node 5
+                            Max Y-displacement : 0.0249948 node 209
+  Total reaction forces: Sum(R) = 0 -32
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.553849	 a(u^h,u^h) = 0.3067490908
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 0.556262	(f,u)+(t,u) = 0.3094269683
+  step=9  time=9
+  Primary solution summary: L2-norm            : 0.0145601
+                            Max X-displacement : 0.0248612 node 15
+                            Max Y-displacement : 0.0280783 node 191
+  Total reaction forces: Sum(R) = 0 -36
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.621853	 a(u^h,u^h) = 0.3867006991
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 0.624848	(f,u)+(t,u) = 0.3904349331
+  step=10  time=10
+  Primary solution summary: L2-norm            : 0.0161549
+                            Max X-displacement : 0.0276271 node 5
+                            Max Y-displacement : 0.0311526 node 191
+  Total reaction forces: Sum(R) = 0 -40
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.689623	 a(u^h,u^h) = 0.4755803768
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 0.693251	(f,u)+(t,u) = 0.4805975322
+  step=11  time=11
+  Primary solution summary: L2-norm            : 0.0177457
+                            Max X-displacement : 0.030394 node 5
+                            Max Y-displacement : 0.0342174 node 191
+  Total reaction forces: Sum(R) = 0 -44
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.757172	 a(u^h,u^h) = 0.5733099739
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 0.76148	(f,u)+(t,u) = 0.5798510386
+  step=12  time=12
+  Primary solution summary: L2-norm            : 0.0193327
+                            Max X-displacement : 0.0331619 node 5
+                            Max Y-displacement : 0.0372727 node 209
+  Total reaction forces: Sum(R) = 0 -48
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.82451	 a(u^h,u^h) = 0.6798168316
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 0.829539	(f,u)+(t,u) = 0.6881355279
+  step=13  time=13
+  Primary solution summary: L2-norm            : 0.0209159
+                            Max X-displacement : 0.0359307 node 5
+                            Max Y-displacement : 0.0403185 node 209
+  Total reaction forces: Sum(R) = 0 -52
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.891647	 a(u^h,u^h) = 0.7950334918
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 0.897438	(f,u)+(t,u) = 0.8053946907
+  step=14  time=14
+  Primary solution summary: L2-norm            : 0.0224954
+                            Max X-displacement : 0.0387006 node 5
+                            Max Y-displacement : 0.0433546 node 191
+  Total reaction forces: Sum(R) = 0 -56
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.958591	 a(u^h,u^h) = 0.9188974241
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 0.965182	(f,u)+(t,u) = 0.9315756568
+  step=15  time=15
+  Primary solution summary: L2-norm            : 0.0240715
+                            Max X-displacement : 0.0414715 node 5
+                            Max Y-displacement : 0.0463809 node 209
+  Total reaction forces: Sum(R) = 0 -60
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.02535	 a(u^h,u^h) = 1.051350768
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 1.03278	(f,u)+(t,u) = 1.066628829
+  step=16  time=16
+  Primary solution summary: L2-norm            : 0.0256442
+                            Max X-displacement : 0.0442434 node 5
+                            Max Y-displacement : 0.0493972 node 209
+  Total reaction forces: Sum(R) = 0 -64
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.09194	 a(u^h,u^h) = 1.192340091
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 1.10023	(f,u)+(t,u) = 1.210507726
+  step=17  time=17
+  Primary solution summary: L2-norm            : 0.0272136
+                            Max X-displacement : 0.0470163 node 5
+                            Max Y-displacement : 0.0524035 node 191
+  Total reaction forces: Sum(R) = 0 -68
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.15837	 a(u^h,u^h) = 1.341816162
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 1.16755	(f,u)+(t,u) = 1.363168834
+  step=18  time=18
+  Primary solution summary: L2-norm            : 0.0287797
+                            Max X-displacement : 0.0497902 node 5
+                            Max Y-displacement : 0.0553997 node 209
+  Total reaction forces: Sum(R) = 0 -72
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.22464	 a(u^h,u^h) = 1.499733736
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 1.23474	(f,u)+(t,u) = 1.524571467
+  step=19  time=19
+  Primary solution summary: L2-norm            : 0.0303427
+                            Max X-displacement : 0.0525651 node 5
+                            Max Y-displacement : 0.0583856 node 209
+  Total reaction forces: Sum(R) = 0 -76
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.29076	 a(u^h,u^h) = 1.666051352
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 1.3018	(f,u)+(t,u) = 1.694677636
+  step=20  time=20
+  Primary solution summary: L2-norm            : 0.0319027
+                            Max X-displacement : 0.0553408 node 5
+                            Max Y-displacement : 0.061361 node 191
+  Total reaction forces: Sum(R) = 0 -80
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.35674	 a(u^h,u^h) = 1.840731146
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 1.36874	(f,u)+(t,u) = 1.873451922
+  step=21  time=21
+  Primary solution summary: L2-norm            : 0.0334597
+                            Max X-displacement : 0.0581174 node 5
+                            Max Y-displacement : 0.0643258 node 209
+  Total reaction forces: Sum(R) = 0 -84
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.42258	 a(u^h,u^h) = 2.023738669
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 1.43557	(f,u)+(t,u) = 2.060861361
+  step=22  time=22
+  Primary solution summary: L2-norm            : 0.0350137
+                            Max X-displacement : 0.0608948 node 5
+                            Max Y-displacement : 0.06728 node 191
+  Total reaction forces: Sum(R) = 0 -88
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.4883	 a(u^h,u^h) = 2.215042724
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 1.50229	(f,u)+(t,u) = 2.256875332
+  step=23  time=23
+  Primary solution summary: L2-norm            : 0.0365649
+                            Max X-displacement : 0.0636729 node 5
+                            Max Y-displacement : 0.0702232 node 209
+  Total reaction forces: Sum(R) = 0 -92
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.5539	 a(u^h,u^h) = 2.414615205
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 1.56891	(f,u)+(t,u) = 2.46146545
+  step=24  time=24
+  Primary solution summary: L2-norm            : 0.0381133
+                            Max X-displacement : 0.0664518 node 5
+                            Max Y-displacement : 0.0731555 node 191
+  Total reaction forces: Sum(R) = 0 -96
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.61939	 a(u^h,u^h) = 2.622430953
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 1.63542	(f,u)+(t,u) = 2.674605475
+  step=25  time=25
+  Primary solution summary: L2-norm            : 0.0396589
+                            Max X-displacement : 0.0692312 node 5
+                            Max Y-displacement : 0.0760765 node 209
+  Total reaction forces: Sum(R) = 0 -100
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.68478	 a(u^h,u^h) = 2.838467611
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 1.70184	(f,u)+(t,u) = 2.896271208
+  step=26  time=26
+  Primary solution summary: L2-norm            : 0.0412018
+                            Max X-displacement : 0.0720111 node 5
+                            Max Y-displacement : 0.0789862 node 209
+  Total reaction forces: Sum(R) = 0 -104
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.75006	 a(u^h,u^h) = 3.062705502
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 1.76817	(f,u)+(t,u) = 3.126440415
+  step=27  time=27
+  Primary solution summary: L2-norm            : 0.0427419
+                            Max X-displacement : 0.0747914 node 5
+                            Max Y-displacement : 0.0818844 node 191
+  Total reaction forces: Sum(R) = 0 -108
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.81525	 a(u^h,u^h) = 3.295127503
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 1.83442	(f,u)+(t,u) = 3.365092736
+  step=28  time=28
+  Primary solution summary: L2-norm            : 0.0442794
+                            Max X-displacement : 0.077572 node 5
+                            Max Y-displacement : 0.084771 node 209
+  Total reaction forces: Sum(R) = 0 -112
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.88035	 a(u^h,u^h) = 3.535718931
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 1.90058	(f,u)+(t,u) = 3.612209613
+  step=29  time=29
+  Primary solution summary: L2-norm            : 0.0458142
+                            Max X-displacement : 0.0803529 node 5
+                            Max Y-displacement : 0.0876457 node 191
+  Total reaction forces: Sum(R) = 0 -116
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.94537	 a(u^h,u^h) = 3.78446744
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 1.96667	(f,u)+(t,u) = 3.867774216
+  step=30  time=30
+  Primary solution summary: L2-norm            : 0.0473464
+                            Max X-displacement : 0.0831338 node 5
+                            Max Y-displacement : 0.090512 node 208
+  Total reaction forces: Sum(R) = 0 -120
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.01031	 a(u^h,u^h) = 4.041362922
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 2.03268	(f,u)+(t,u) = 4.131771375
+  step=31  time=31
+  Primary solution summary: L2-norm            : 0.048876
+                            Max X-displacement : 0.0859147 node 5
+                            Max Y-displacement : 0.0933683 node 208
+  Total reaction forces: Sum(R) = 0 -124
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.07519	 a(u^h,u^h) = 4.306397416
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 2.09862	(f,u)+(t,u) = 4.404187518
+  step=32  time=32
+  Primary solution summary: L2-norm            : 0.0504029
+                            Max X-displacement : 0.0886955 node 5
+                            Max Y-displacement : 0.0962125 node 208
+  Total reaction forces: Sum(R) = 0 -128
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.13999	 a(u^h,u^h) = 4.579565024
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 2.16449	(f,u)+(t,u) = 4.685010611
+  step=33  time=33
+  Primary solution summary: L2-norm            : 0.0519273
+                            Max X-displacement : 0.091476 node 5
+                            Max Y-displacement : 0.0990445 node 208
+  Total reaction forces: Sum(R) = 0 -132
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.20474	 a(u^h,u^h) = 4.860861838
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 2.2303	(f,u)+(t,u) = 4.974230108
+  step=34  time=34
+  Primary solution summary: L2-norm            : 0.053449
+                            Max X-displacement : 0.0942561 node 5
+                            Max Y-displacement : 0.101864 node 192
+  Total reaction forces: Sum(R) = 0 -136
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.26942	 a(u^h,u^h) = 5.150285868
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 2.29605	(f,u)+(t,u) = 5.271836897
+  step=35  time=35
+  Primary solution summary: L2-norm            : 0.0549681
+                            Max X-displacement : 0.0970357 node 5
+                            Max Y-displacement : 0.104671 node 208
+  Total reaction forces: Sum(R) = 0 -140
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.33406	 a(u^h,u^h) = 5.447836981
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 2.36174	(f,u)+(t,u) = 5.577823256
+  step=36  time=36
+  Primary solution summary: L2-norm            : 0.0564845
+                            Max X-displacement : 0.0998145 node 5
+                            Max Y-displacement : 0.107465 node 208
+  Total reaction forces: Sum(R) = 0 -144
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.39865	 a(u^h,u^h) = 5.753516852
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 2.42738	(f,u)+(t,u) = 5.892182818
+  step=37  time=37
+  Primary solution summary: L2-norm            : 0.0579983
+                            Max X-displacement : 0.102593 node 5
+                            Max Y-displacement : 0.110247 node 208
+  Total reaction forces: Sum(R) = 0 -148
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.46319	 a(u^h,u^h) = 6.067328913
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 2.49297	(f,u)+(t,u) = 6.214910527
+  step=38  time=38
+  Primary solution summary: L2-norm            : 0.0595094
+                            Max X-displacement : 0.10537 node 5
+                            Max Y-displacement : 0.113015 node 192
+  Total reaction forces: Sum(R) = 0 -152
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.5277	 a(u^h,u^h) = 6.389278317
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 2.55852	(f,u)+(t,u) = 6.546002614
+  step=39  time=39
+  Primary solution summary: L2-norm            : 0.0610179
+                            Max X-displacement : 0.108146 node 5
+                            Max Y-displacement : 0.11577 node 208
+  Total reaction forces: Sum(R) = 0 -156
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.59218	 a(u^h,u^h) = 6.719371911
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 2.62402	(f,u)+(t,u) = 6.885456569
+  step=40  time=40
+  Primary solution summary: L2-norm            : 0.0625236
+                            Max X-displacement : 0.11092 node 5
+                            Max Y-displacement : 0.118511 node 192
+  Total reaction forces: Sum(R) = 0 -160
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.65662	 a(u^h,u^h) = 7.057618213
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 2.68947	(f,u)+(t,u) = 7.233271122
+  step=41  time=41
+  Primary solution summary: L2-norm            : 0.0640265
+                            Max X-displacement : 0.113693 node 5
+                            Max Y-displacement : 0.121239 node 208
+  Total reaction forces: Sum(R) = 0 -164
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.72103	 a(u^h,u^h) = 7.404027406
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 2.75489	(f,u)+(t,u) = 7.589446225
+  step=42  time=42
+  Primary solution summary: L2-norm            : 0.0655266
+                            Max X-displacement : 0.116465 node 5
+                            Max Y-displacement : 0.123953 node 208
+  Total reaction forces: Sum(R) = 0 -168
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.78543	 a(u^h,u^h) = 7.758611335
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 2.82028	(f,u)+(t,u) = 7.953983051
+  step=43  time=43
+  Primary solution summary: L2-norm            : 0.067024
+                            Max X-displacement : 0.119234 node 5
+                            Max Y-displacement : 0.126653 node 208
+  Total reaction forces: Sum(R) = 0 -172
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.8498	 a(u^h,u^h) = 8.121383524
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 2.88563	(f,u)+(t,u) = 8.326883986
+  step=44  time=44
+  Primary solution summary: L2-norm            : 0.0685184
+                            Max X-displacement : 0.122002 node 5
+                            Max Y-displacement : 0.129338 node 208
+  Total reaction forces: Sum(R) = 0 -176
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.91417	 a(u^h,u^h) = 8.492359201
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 2.95096	(f,u)+(t,u) = 8.70815264
+  step=45  time=45
+  Primary solution summary: L2-norm            : 0.0700099
+                            Max X-displacement : 0.124767 node 5
+                            Max Y-displacement : 0.132009 node 208
+  Total reaction forces: Sum(R) = 0 -180
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.97852	 a(u^h,u^h) = 8.871555341
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 3.01625	(f,u)+(t,u) = 9.097793862
+  step=46  time=46
+  Primary solution summary: L2-norm            : 0.0714984
+                            Max X-displacement : 0.127531 node 5
+                            Max Y-displacement : 0.134665 node 208
+  Total reaction forces: Sum(R) = 0 -184
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.04286	 a(u^h,u^h) = 9.258990733
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 3.08153	(f,u)+(t,u) = 9.495813767
+  step=47  time=47
+  Primary solution summary: L2-norm            : 0.072984
+                            Max X-displacement : 0.130291 node 5
+                            Max Y-displacement : 0.137307 node 208
+  Total reaction forces: Sum(R) = 0 -188
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.1072	 a(u^h,u^h) = 9.654686061
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 3.14678	(f,u)+(t,u) = 9.902219775
+  step=48  time=48
+  Primary solution summary: L2-norm            : 0.0744664
+                            Max X-displacement : 0.133049 node 5
+                            Max Y-displacement : 0.139933 node 208
+  Total reaction forces: Sum(R) = 0 -192
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.17154	 a(u^h,u^h) = 10.05866402
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 3.21201	(f,u)+(t,u) = 10.31702067
+  step=49  time=49
+  Primary solution summary: L2-norm            : 0.0759458
+                            Max X-displacement : 0.135805 node 5
+                            Max Y-displacement : 0.142544 node 208
+  Total reaction forces: Sum(R) = 0 -196
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.23588	 a(u^h,u^h) = 10.4709495
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 3.27723	(f,u)+(t,u) = 10.74022668
+  step=50  time=50
+  Primary solution summary: L2-norm            : 0.0774219
+                            Max X-displacement : 0.138557 node 5
+                            Max Y-displacement : 0.145139 node 208
+  Total reaction forces: Sum(R) = 0 -200
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.30024	 a(u^h,u^h) = 10.89156974
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 3.34243	(f,u)+(t,u) = 11.17184957
+  step=51  time=51
+  Primary solution summary: L2-norm            : 0.0788949
+                            Max X-displacement : 0.141306 node 5
+                            Max Y-displacement : 0.147719 node 208
+  Total reaction forces: Sum(R) = 0 -204
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.3646	 a(u^h,u^h) = 11.32055471
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 3.40762	(f,u)+(t,u) = 11.61190283
+  step=52  time=52
+  Primary solution summary: L2-norm            : 0.0803645
+                            Max X-displacement : 0.144052 node 5
+                            Max Y-displacement : 0.150283 node 192
+  Total reaction forces: Sum(R) = 0 -208
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.42898	 a(u^h,u^h) = 11.75793747
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 3.47281	(f,u)+(t,u) = 12.06040186
+  step=53  time=53
+  Primary solution summary: L2-norm            : 0.0818309
+                            Max X-displacement : 0.146794 node 5
+                            Max Y-displacement : 0.15283 node 192
+  Total reaction forces: Sum(R) = 0 -212
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.49339	 a(u^h,u^h) = 12.20375485
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 3.53799	(f,u)+(t,u) = 12.51736432
+  step=54  time=54
+  Primary solution summary: L2-norm            : 0.083294
+                            Max X-displacement : 0.149533 node 5
+                            Max Y-displacement : 0.155361 node 192
+  Total reaction forces: Sum(R) = 0 -216
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.55782	 a(u^h,u^h) = 12.65804849
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 3.60317	(f,u)+(t,u) = 12.98281069
+  step=55  time=55
+  Primary solution summary: L2-norm            : 0.0847538
+                            Max X-displacement : 0.152269 node 5
+                            Max Y-displacement : 0.157876 node 208
+  Total reaction forces: Sum(R) = 0 -220
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.62227	 a(u^h,u^h) = 13.12086648
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 3.66835	(f,u)+(t,u) = 13.45676508
+  step=56  time=56
+  Primary solution summary: L2-norm            : 0.0862104
+                            Max X-displacement : 0.155001 node 5
+                            Max Y-displacement : 0.160373 node 208
+  Total reaction forces: Sum(R) = 0 -224
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.68677	 a(u^h,u^h) = 13.59226654
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 3.73353	(f,u)+(t,u) = 13.9392569
+  step=57  time=57
+  Primary solution summary: L2-norm            : 0.087664
+                            Max X-displacement : 0.157731 node 5
+                            Max Y-displacement : 0.162852 node 208
+  Total reaction forces: Sum(R) = 0 -228
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.75131	 a(u^h,u^h) = 14.07232202
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 3.79873	(f,u)+(t,u) = 14.43032393
+  step=58  time=58
+  Primary solution summary: L2-norm            : 0.0891148
+                            Max X-displacement : 0.160457 node 5
+                            Max Y-displacement : 0.165313 node 192
+  Total reaction forces: Sum(R) = 0 -232
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.81591	 a(u^h,u^h) = 14.56113492
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 3.86394	(f,u)+(t,u) = 14.93001899
+  step=59  time=59
+  Primary solution summary: L2-norm            : 0.0905636
+                            Max X-displacement : 0.163183 node 5
+                            Max Y-displacement : 0.167755 node 208
+  Total reaction forces: Sum(R) = 0 -236
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.88058	 a(u^h,u^h) = 15.05886686
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 3.92918	(f,u)+(t,u) = 15.43842576
+  step=60  time=60
+  Primary solution summary: L2-norm            : 0.0920118
+                            Max X-displacement : 0.16591 node 5
+                            Max Y-displacement : 0.170177 node 208
+  Total reaction forces: Sum(R) = 0 -240
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.94535	 a(u^h,u^h) = 15.56582304
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 3.99446	(f,u)+(t,u) = 15.95570149
+  step=61  time=61
+  Primary solution summary: L2-norm            : 0.0934622
+                            Max X-displacement : 0.168645 node 5
+                            Max Y-displacement : 0.172574 node 208
+  Total reaction forces: Sum(R) = 0 -244
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.01033	 a(u^h,u^h) = 16.08271815
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 4.05983	(f,u)+(t,u) = 16.48221193
+  step=62  time=62
+  Primary solution summary: L2-norm            : 0.0949222
+                            Max X-displacement : 0.1714 node 5
+                            Max Y-displacement : 0.174941 node 192
+  Total reaction forces: Sum(R) = 0 -248
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.07575	 a(u^h,u^h) = 16.61170137
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 4.12542	(f,u)+(t,u) = 17.01905023
+  step=63  time=63
+  Primary solution summary: L2-norm            : 0.0964112
+                            Max X-displacement : 0.174216 node 5
+                            Max Y-displacement : 0.177255 node 208
+  Total reaction forces: Sum(R) = 0 -252
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.14263	 a(u^h,u^h) = 17.16140485
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 4.19173	(f,u)+(t,u) = 17.57058695
+  step=64  time=64
+  Primary solution summary: L2-norm            : 0.0980007
+                            Max X-displacement : 0.177252 node 5
+                            Max Y-displacement : 0.179459 node 191
+  Total reaction forces: Sum(R) = 0 -256
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.21752	 a(u^h,u^h) = 17.78749981
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 4.26203	(f,u)+(t,u) = 18.16489655
+  step=65  time=65
