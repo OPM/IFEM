@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "GoTools/trivariate/SplineVolume.h"
+#include "GoTools/trivariate/VolumeInterpolator.h"
 
 #include "ASMs3Dmx.h"
 #include "TimeDomain.h"
@@ -137,15 +138,38 @@ bool ASMs3Dmx::generateFEMTopology ()
     if (useCpminus1)
     {
       // basis1 should be one degree higher than basis2 and C^p-1 continuous
-      // Note: Currently this is implemented for non-rational splines only
       int ndim = svol->dimension();
       Go::BsplineBasis b1 = svol->basis(0).extendedBasis(svol->order(0)+1);
       Go::BsplineBasis b2 = svol->basis(1).extendedBasis(svol->order(1)+1);
       Go::BsplineBasis b3 = svol->basis(2).extendedBasis(svol->order(2)+1);
-      // Define a dummy coefficient array filled with zeroes. This does not
-      // matter as long as we don't use basis1 for geometry representation.
-      RealArray coefs(b1.numCoefs()*b2.numCoefs()*b3.numCoefs()*ndim,0.0);
-      basis1 = new Go::SplineVolume(b1,b2,b3,coefs.begin(),ndim);
+
+      // Note: Currently this is implemented for non-rational splines only.
+      // TODO: Ask the splines people how to fix this properly, that is, how
+      // may be obtain the correct weights for basis1 when *svol is a NURBS?
+      if (svol->rational())
+	std::cout <<"WARNING: The geometry basis is rational (using NURBS)\n."
+		  <<"         The basis for the unknown fields of one degree"
+		  <<" higher will however be non-rational.\n"
+		  <<"         This may affect accuracy.\n"<< std::endl;
+
+      // Compute parameter values of the Greville points of the new basis
+      size_t i;
+      RealArray ug(b1.numCoefs()), vg(b2.numCoefs()), wg(b3.numCoefs());
+      for (i = 0; i < ug.size(); i++)
+	ug[i] = b1.grevilleParameter(i);
+      for (i = 0; i < vg.size(); i++)
+	vg[i] = b2.grevilleParameter(i);
+      for (i = 0; i < wg.size(); i++)
+	wg[i] = b3.grevilleParameter(i);
+
+      // Evaluate the spline volume at all points
+      RealArray XYZ(ndim*ug.size()*vg.size()*wg.size());
+      svol->gridEvaluator(ug,vg,wg,XYZ);
+
+      // Project the coordinates onto the new basis (the 2nd XYZ is dummy here)
+      basis1 = Go::VolumeInterpolator::regularInterpolation(b1,b2,b3,
+							    ug,vg,wg,XYZ,ndim,
+							    false,XYZ);
     }
     else
     {

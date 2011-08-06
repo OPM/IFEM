@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "GoTools/geometry/SplineSurface.h"
+#include "GoTools/geometry/SurfaceInterpolator.h"
 
 #include "ASMs2Dmx.h"
 #include "TimeDomain.h"
@@ -137,14 +138,35 @@ bool ASMs2Dmx::generateFEMTopology ()
     if (useCpminus1)
     {
       // basis1 should be one degree higher than basis2 and C^p-1 continuous
-      // Note: Currently this is implemented for non-rational splines only
       int ndim = surf->dimension();
       Go::BsplineBasis b1 = surf->basis(0).extendedBasis(surf->order_u()+1);
       Go::BsplineBasis b2 = surf->basis(1).extendedBasis(surf->order_v()+1);
-      // Define a dummy coefficient array filled with zeroes. This does not
-      // matter as long as we don't use basis1 for geometry representation.
-      RealArray coefs(b1.numCoefs()*b2.numCoefs()*ndim,0.0);
-      basis1 = new Go::SplineSurface(b1,b2,coefs.begin(),ndim);
+
+      // Note: Currently this is implemented for non-rational splines only.
+      // TODO: Ask the splines people how to fix this properly, that is, how
+      // may be obtain the correct weights for basis1 when *surf is a NURBS?
+      if (surf->rational())
+	std::cout <<"WARNING: The geometry basis is rational (using NURBS)\n."
+		  <<"         The basis for the unknown fields of one degree"
+		  <<" higher will however be non-rational.\n"
+		  <<"         This may affect accuracy.\n"<< std::endl;
+
+      // Compute parameter values of the Greville points
+      size_t i;
+      RealArray ug(b1.numCoefs()), vg(b2.numCoefs());
+      for (i = 0; i < ug.size(); i++)
+	ug[i] = b1.grevilleParameter(i);
+      for (i = 0; i < vg.size(); i++)
+	vg[i] = b2.grevilleParameter(i);
+
+      // Evaluate the spline surface at all points
+      RealArray XYZ(ndim*ug.size()*vg.size());
+      surf->gridEvaluator(ug,vg,XYZ);
+
+      // Project the coordinates onto the new basis (the 2nd XYZ is dummy here)
+      basis1 = Go::SurfaceInterpolator::regularInterpolation(b1,b2,
+							     ug,vg,XYZ,ndim,
+							     false,XYZ);
     }
     else
     {
