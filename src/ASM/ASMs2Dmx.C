@@ -161,7 +161,7 @@ bool ASMs2Dmx::generateFEMTopology ()
 
       // Evaluate the spline surface at all points
       RealArray XYZ(ndim*ug.size()*vg.size());
-      surf->gridEvaluator(ug,vg,XYZ);
+      surf->gridEvaluator(XYZ,ug,vg);
 
       // Project the coordinates onto the new basis (the 2nd XYZ is dummy here)
       basis1 = Go::SurfaceInterpolator::regularInterpolation(b1,b2,

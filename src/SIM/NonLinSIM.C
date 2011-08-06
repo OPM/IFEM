@@ -126,7 +126,8 @@ bool NonLinSIM::advanceStep (SolvePrm& param)
 
 
 bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode,
-			   const char* compName, bool energyNorm)
+			   const char* compName, bool energyNorm,
+			   double zero_tolerance)
 {
   PROFILE1("NonLinSIM::solveStep");
 
@@ -161,7 +162,7 @@ bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode,
 	  return false;
 
 	model->setMode(SIM::RECOVERY);
-	if (!this->solutionNorms(param.time,compName,energyNorm))
+	if (!this->solutionNorms(param.time,compName,energyNorm,zero_tolerance))
 	  return false;
 
 	param.time.first = false;
@@ -326,7 +327,7 @@ bool NonLinSIM::updateConfiguration (SolvePrm& param)
 
 
 bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName,
-			       bool energyNorm)
+			       bool energyNorm, double zero_tolerance)
 {
   if (msgLevel < 0 || solution.empty()) return true;
 
@@ -345,27 +346,32 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName,
 
   if (myPid == 0)
   {
-    std::cout <<"  Primary solution summary: L2-norm            : "<< normL2;
+    double old_tol = utl::zero_print_tol;
+    utl::zero_print_tol = zero_tolerance;
+    std::cout <<"  Primary solution summary: L2-norm            : "
+	      << utl::trunc(normL2);
     char D = 'X';
     for (int d = 0; d < nsd; d++, D++)
-      std::cout <<"\n                            Max "<< D <<'-'<< compName
-		<<" : "<< dMax[d] <<" node "<< iMax[d];
+      if (utl::trunc(dMax[d]) != 0.0)
+	std::cout <<"\n                            Max "<< D <<'-'<< compName
+		  <<" : "<< dMax[d] <<" node "<< iMax[d];
     if (haveRFs)
     {
       std::cout <<"\n  Total reaction forces: Sum(R) =";
       for (size_t i = 1; i < RF.size(); i++)
-        std::cout <<" "<< RF[i];
-      if (RF.front() != 0.0)
+        std::cout <<" "<< utl::trunc(RF[i]);
+      if (utl::trunc(RF.front()) != 0.0)
 	std::cout <<"\n  "<< compName <<"*reactions: (R,u) = "<< RF.front();
     }
     if (gNorm.size() > 0)
     {
-      std::cout <<"\n  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : "<< gNorm(1);
+      std::cout <<"\n  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : "
+		<< utl::trunc(gNorm(1));
       int oldPrec = std::cout.precision(10);
-      std::cout <<"\t a(u^h,u^h) = "<< gNorm(1)*gNorm(1);
+      std::cout <<"\t a(u^h,u^h) = "<< utl::trunc(gNorm(1)*gNorm(1));
       std::cout.precision(oldPrec);
     }
-    if (gNorm.size() > 1 && gNorm(2) != 0.0)
+    if (gNorm.size() > 1 && utl::trunc(gNorm(2)) != 0.0)
     {
       std::cout <<"\n  External energy: ((f,u^h)+(t,u^h))^0.5 : "<< gNorm(2);
       int oldPrec = std::cout.precision(10);
@@ -373,6 +379,7 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName,
       std::cout.precision(oldPrec);
     }
     std::cout << std::endl;
+    utl::zero_print_tol = old_tol;
   }
 
   return true;

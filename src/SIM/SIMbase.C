@@ -637,15 +637,16 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
   if (myPid == 0)
   {
     std::cout <<"\n >>> Solution summary <<<\n"
-	      <<"\nL2-norm            : "<< dNorm;
-    if (nf == 1)
+	      <<"\nL2-norm            : "<< utl::trunc(dNorm);
+    if (nf == 1 && utl::trunc(dMax[0]) != 0.0)
       std::cout <<"\nMax "<< compName <<"   : "<< dMax[0] <<" node "<< iMax[0];
-    else
+    else if (nf > 1)
     {
       char D = 'X';
       for (size_t d = 0; d < nf; d++, D++)
-	std::cout <<"\nMax "<< D <<'-'<< compName <<" : "
-		  << dMax[d] <<" node "<< iMax[d];
+	if (utl::trunc(dMax[d]) != 0.0)
+	  std::cout <<"\nMax "<< D <<'-'<< compName <<" : "
+		    << dMax[d] <<" node "<< iMax[d];
     }
     std::cout << std::endl;
   }
@@ -659,7 +660,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
       std::cout <<"\nNode "<< inod <<":";
       std::pair<int,int> dofs = mySam->getNodeDOFs(inod);
       for (int d = dofs.first-1; d < dofs.second; d++)
-	std::cout <<" "<< solution[d];
+	std::cout <<" "<< utl::trunc(solution[d]);
     }
     std::cout << std::endl;
   }
@@ -863,9 +864,12 @@ bool SIMbase::systemModes (std::vector<Mode>& solution,
   std::cout <<"\nSolving the eigenvalue problem ..."<< std::endl;
   SystemMatrix* A = myEqSys->getMatrix(iA);
   SystemMatrix* B = myEqSys->getMatrix(iB);
-  bool ok = eig::solve(A,B,eigVal,eigVec,nev,ncv,iop,shift);
+#ifdef HAS_SELPC
   // To interface SLEPC another interface is used
-  //bool ok = eig::solve(A,B,eigVal,eigVec,nev);
+  bool ok = eig::solve(A,B,eigVal,eigVec,nev);
+#else
+  bool ok = eig::solve(A,B,eigVal,eigVec,nev,ncv,iop,shift);
+#endif
 
   // Expand eigenvectors to DOF-ordering and print out eigenvalues
   bool freq = iop == 3 || iop == 4 || iop == 6;
@@ -884,7 +888,7 @@ bool SIMbase::systemModes (std::vector<Mode>& solution,
     else
       solution[i-1].eigVal =  sqrt( eigVal(i))*0.5/M_PI;
 
-    std::cout <<"\n     "<< i <<"\t\t"<< solution[i-1].eigVal;
+    std::cout <<"\n     "<< i <<"\t\t"<< utl::trunc(solution[i-1].eigVal);
   }
   std::cout << std::endl;
   return ok;
@@ -1346,9 +1350,9 @@ void SIMbase::dumpPrimSol (const Vector& psol, std::ostream& os,
       else if (withID)
 	os << j <<' '<< myModel[i]->getNodeID(j)
 	   <<"\t\t"<< myModel[i]->getCoord(j) <<"\t\t";
-      os << patchSol[ip++];
+      os << utl::trunc(patchSol[ip++]);
       for (k = 1; k < n; k++)
-	os <<' '<< patchSol[ip++];
+	os <<' '<< utl::trunc(patchSol[ip++]);
       os <<'\n';
     }
   }
@@ -1408,7 +1412,7 @@ bool SIMbase::dumpSolution (const Vector& psol, std::ostream& os) const
 	std::pair<int,int> dofs = mySam->getNodeDOFs(j);
 	int idof = dofs.first+k-1;
 	if (idof <= dofs.second)
-	  os <<"\n"<< patchSol[idof-1];
+	  os <<"\n"<< utl::trunc(patchSol[idof-1]);
       }
       os << std::endl;
     }
@@ -1423,7 +1427,7 @@ bool SIMbase::dumpSolution (const Vector& psol, std::ostream& os) const
     {
       os << myProblem->getField2Name(j-1,"# FE");
       for (k = 1; k <= field.cols(); k++)
-	os <<"\n"<< field(j,k);
+	os <<"\n"<< utl::trunc(field(j,k));
       os << std::endl;
     }
   }
@@ -1475,11 +1479,10 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
 	return false;
 
       // Evaluate the secondary solution variables
-      if (myProblem->getNoFields(2) > 0) {
-        LocalSystem::patch = i;
+      LocalSystem::patch = i;
+      if (myProblem->getNoFields(2) > 0)
         if (!myModel[i]->evalSolution(sol2,*myProblem,params,false))
           return false;
-      }
     }
     else
       // Extract nodal primary solution variables
@@ -1492,26 +1495,25 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
     std::ios::fmtflags oldF = os.flags(std::ios::scientific | std::ios::right);
     for (j = 0; j < points.size(); j++)
     {
-      if (formatted) {
-        if (points[j] > 0)
-        {
-          points[j] = myModel[i]->getNodeID(points[j]);
-          os <<"  Node #"<< points[j] <<":\tsol1 =";
-        }
-        else
-          os <<"  Point #"<< -points[j] <<":\tsol1 =";
-      }
+      if (!formatted)
+        os << time <<" ";
+      else if (points[j] < 0)
+	os <<"  Point #"<< -points[j] <<":\tsol1 =";
       else
-        os << time << " ";
-      for (k = 1; k <= sol1.rows(); k++)
-	os << std::setw(flWidth) << sol1(k,j+1);
+      {
+	points[j] = myModel[i]->getNodeID(points[j]);
+	os <<"  Node #"<< points[j] <<":\tsol1 =";
+      }
 
-      if (discretization == Spline && sol2.rows())
+      for (k = 1; k <= sol1.rows(); k++)
+	os << std::setw(flWidth) << utl::trunc(sol1(k,j+1));
+
+      if (discretization == Spline && sol2.rows() > 0)
       {
         if (formatted)
           os <<"\n\t\tsol2 =";
 	for (k = 1; k <= sol2.rows(); k++)
-	  os << std::setw(flWidth) << sol2(k,j+1);
+	  os << std::setw(flWidth) << utl::trunc(sol2(k,j+1));
       }
 
       if (reactionForces && points[j] > 0)
@@ -1521,7 +1523,7 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
           if (formatted)
             os <<"\n\t\treac =";
 	  for (k = 0; k < reactionFS.size(); k++)
-	    os << std::setw(flWidth) << reactionFS[k];
+	    os << std::setw(flWidth) << utl::trunc(reactionFS[k]);
 	}
 
       os << std::endl;

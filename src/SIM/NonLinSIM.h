@@ -78,7 +78,7 @@ public:
   //! \param[in] energyNorm If \e true, integrate energy norm of the solution
   bool solveStep(SolvePrm& param, SIM::SolutionMode mode = SIM::STATIC,
 		 const char* compName = "displacement",
-		 bool energyNorm = false);
+		 bool energyNorm = false, double zero_tolerance = 1.0e-8);
 
   //! \brief Enum describing the norm used for convergence checks.
   enum CNORM { L2, ENERGY };
@@ -91,8 +91,9 @@ public:
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param[in] compName Solution name to be used in the norm output
   //! \param[in] energyNorm If \e true, integrate energy norm of the solution
-  bool solutionNorms(const TimeDomain& time,
-		     const char* compName, bool energyNorm);
+  //! \param[in] zero_tolerance Truncate norm values small than this to zero
+  bool solutionNorms(const TimeDomain& time, const char* compName,
+		     bool energyNorm = false, double zero_tolerance = 1.0e-8);
 
   //! \brief Saves the converged results to VTF file of a given load/time step.
   //! \param[in] iStep Load/time step identifier

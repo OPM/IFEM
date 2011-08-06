@@ -54,6 +54,7 @@ extern std::vector<int> mixedDbgEl; //!< List of elements for additional output
   \arg -saveInc \a dtSave : Time increment between each result save to VTF/HDF5
   \arg -dumpInc \a dtDump [raw] : Time increment between each solution dump
   \arg -outPrec \a nDigit : Number of digits in solution component printout
+  \arg -ztol \a eps : Zero tolerance for printing of solution norms
   \arg -ignore \a p1, \a p2, ... : Ignore these patches in the analysis
   \arg -check : Data check only, read model and output to VTF (no solution)
   \arg -checkRHS : Check that the patches are modelled in a right-hand system
@@ -80,6 +81,7 @@ int main (int argc, char** argv)
   bool doHDF5 = false;
   double dtSave = 0.0;
   double dtDump = 0.0;
+  double zero_tol = 1.0e-8;
   bool dumpWithID = true;
   bool skip2nd = false;
   bool energy = true;
@@ -132,6 +134,8 @@ int main (int argc, char** argv)
       dtSave = atof(argv[++i]);
     else if (!strcmp(argv[i],"-outPrec") && i < argc-1)
       outPrec = atoi(argv[++i]);
+    else if (!strcmp(argv[i],"-ztol") && i < argc-1)
+      zero_tol = atof(argv[++i]);
     else if (!strcmp(argv[i],"-dumpInc") && i < argc-1)
     {
       dtDump = atof(argv[++i]);
@@ -199,7 +203,7 @@ int main (int argc, char** argv)
 	      <<" [-nGauss <n>]\n       [-vtf <format> [-nviz <nviz>]"
 	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]] [-hdf5]\n      "
 	      <<" [-saveInc <dtSave>] [-skip2nd] [-dumpInc <dtDump> [raw]]"
-	      <<" [-outPrec <nd>]\n       [-ignore <p1> <p2> ...]"
+	      <<" [-outPrec <nd>]\n       [-ztol <eps>] [-ignore <p1> <p2> ...]"
 	      <<" [-fixDup] [-checkRHS] [-check]\n";
     return 0;
   }
@@ -331,7 +335,7 @@ int main (int argc, char** argv)
   while (simulator.advanceStep(params))
   {
     // Solve the nonlinear FE problem at this load step
-    if (!simulator.solveStep(params,SIM::STATIC,"displacement",energy))
+    if (!simulator.solveStep(params,SIM::STATIC,"displacement",energy,zero_tol))
       return 5;
 
     // Print solution components at the user-defined points
