@@ -1,14 +1,42 @@
-Hole2D-NURBS.inp -2D -nviz 4
+Hole2D-NURBS.inp -2Dpstrain
 
+ >>> Spline FEM Linear Elasticity solver <<<
+ ===========================================
+Input file: Hole2D-NURBS.inp
+Equation solver: 2
+Number of Gauss points: 4
+Reading input file Hole2D-NURBS.inp
+Number of patches: 1
+Reading patch file hole2D.g2
+Number of patch refinements: 1
+	Refining P1 3 3
+Number of constraints: 2
+	Constraining P1 E1 in direction(s) 1
+	Constraining P1 E2 in direction(s) 2
+Analytical solution: Hole a=1 F0=10 nu=0.3
+Number of pressures: 1
+	Traction on P1 E4
+Number of isotropic materials: 1
+	Material code 0: 1000 0.3 0
+Reading input file succeeded.
+Problem definition:
+Elasticity: 2D, gravity = 0 0
+LinIsotropic: E = 1000, nu = 0.3, rho = 0
+Resolving Dirichlet boundary conditions
+ >>> SAM model summary <<<
 Number of elements    32
 Number of nodes       77
 Number of dofs        154
 Number of unknowns    140
-L2-norm            : 0.0204072
-Max X-displacement : 0.0465281
-Max Y-displacement : 0.0152723
-Energy norm |u^h| = a(u^h,u^h)^0.5   : 1.29947
-External energy ((f,u^h)+(t,u^h)^0.5 : 1.29947
-Exact norm  |u|   = a(u,u)^0.5       : 1.29959
-Exact error a(e,e)^0.5, e=u-u^h      : 0.0185057
-Exact relative error (%) : 1.42396
+Assembling interior matrix terms for P1
+Assembling Neumann matrix terms for boundary 4 on P1
+Solving the equation system ...
+ >>> Solution summary <<<
+L2-norm            : 0.0190934
+Max X-displacement : 0.0424722 node 77
+Max Y-displacement : 0.0184177 node 67
+Energy norm |u^h| = a(u^h,u^h)^0.5   : 1.2403
+External energy ((f,u^h)+(t,u^h)^0.5 : 1.2403
+Exact norm  |u|   = a(u,u)^0.5       : 1.24044
+Exact error a(e,e)^0.5, e=u-u^h      : 0.0197653
+Exact relative error (%) : 1.59341
