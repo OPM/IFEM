@@ -74,7 +74,7 @@ void LinIsotropic::print (std::ostream& os) const
 
 bool LinIsotropic::evaluate (Matrix& C, SymmTensor& sigma, double& U,
 			     const Vec3&, const Tensor&, const SymmTensor& eps,
-			     char iop, const TimeDomain*) const
+			     char iop, const TimeDomain*, const Tensor*) const
 {
   const size_t nsd = sigma.dim();
   const size_t nst = nsd == 2 && axiSymmetry ? 4 : nsd*(nsd+1)/2;

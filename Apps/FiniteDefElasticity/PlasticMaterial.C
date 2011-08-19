@@ -141,7 +141,7 @@ void PlasticMaterial::initResultPoints ()
 bool PlasticMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
 				const Vec3&, const Tensor& F,
 				const SymmTensor& eps, char iop,
-				const TimeDomain* prm) const
+				const TimeDomain* prm, const Tensor* Fpf) const
 {
   if (iAmIntegrating)
   {
@@ -176,13 +176,12 @@ bool PlasticMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
   {
     // Transform to 2nd Piola-Kirchhoff stresses,
     // via pull-back to reference configuration
-    Tensor Fi(F);
+    Tensor Fi(Fpf ? *Fpf : F);
     double J = Fi.inverse();
     sigma.transform(Fi); // sigma = F^-1 * sigma * F^-t
     sigma *= J;
 
-    //TODO: When mixed formulation, we need the standard F here (not Fbar)
-    //TODO: If invoked with iop=2, also pull-back the C-matrix
+    //TODO: If invoked with iop=2 (i.e. Total Lagrange), also pull-back the C
   }
 
   if (iop == 3)

@@ -22,21 +22,22 @@ double LinearMaterial::getMassDensity (const Vec3& X) const
 
 
 bool LinearMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
-			       const Vec3& X, const Tensor& F,
+			       const Vec3& X, const Tensor& Fbar,
 			       const SymmTensor& eps, char iop,
-			       const TimeDomain* prm) const
+			       const TimeDomain* prm, const Tensor* Fpf) const
 {
   // Evaluate the constitutive matrix and the stress tensor at this point
-  if (!material->evaluate(C,sigma,U,X,F,eps,iop,prm))
+  if (!material->evaluate(C,sigma,U,X,Fbar,eps,iop,prm))
     return false;
   else if (iop > 1)
     return true;
 
+  const Tensor& F = Fpf ? *Fpf : Fbar;
   double J = F.det();
   if (J == 0.0)
   {
     std::cerr <<" *** LinearMaterial::evaluate: "
-	      <<" Singular/zero deformation gradient\n"<< F;
+	      <<" Singular/zero deformation gradient\n"<< Fbar;
     return false;
   }
 

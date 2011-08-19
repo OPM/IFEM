@@ -61,7 +61,8 @@ public:
   //!   3 : Calculate the strain energy density only.
   virtual bool evaluate(Matrix& C, SymmTensor& sigma, double& U,
 			const Vec3&, const Tensor&, const SymmTensor& eps,
-			char iop = 1, const TimeDomain* = 0) const;
+			char iop = 1, const TimeDomain* = 0,
+			const Tensor* = 0) const;
 
 protected:
   // Material properties (constant)

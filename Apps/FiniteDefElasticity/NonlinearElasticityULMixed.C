@@ -563,11 +563,15 @@ bool ElasticityNormULMixed::evalIntMx (LocalIntegral*& elmInt,
   // Compute the strain energy density, U(E) = Int_E (Sig:Eps) dEps
   double U = 0.0;
   SymmTensor Sig(3);
-  if (!ulp->material->evaluate(ulp->Cmat,Sig,U,X,ulp->Fbar,E,3,&prm))
+  if (!ulp->material->evaluate(ulp->Cmat,Sig,U,X,ulp->Fbar,E,3,&prm,&F))
     return false;
 
   // Integrate the energy norm a(u^h,u^h) = Int_Omega0 U(E) dV0
   pnorm[0] += U*fe.detJxW;
+  // Integrate the L2-norm ||Sig|| = Int_Omega0 Sig:Sig dV0
+  pnorm[2] += Sig.L2norm(false)*fe.detJxW;
+  // Integrate the von Mises stress norm
+  pnorm[3] += Sig.vonMises(false)*fe.detJxW;
 
   return true;
 }

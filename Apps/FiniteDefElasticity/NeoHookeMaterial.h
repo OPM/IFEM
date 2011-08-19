@@ -51,9 +51,11 @@ public:
   //!  1 : Cauchy stresses and the tangent constitutive matrix,
   //!  2 : 2nd Piola-Kirchhoff stresses and the tangent constitutive matrix,
   //!  3 : Calculate strain energy density only.
+  //! \param[in] Fpf Deformation gradient for push-forward transformation
   virtual bool evaluate(Matrix& C, SymmTensor& sigma, double& U,
 			const Vec3& X, const Tensor& F, const SymmTensor& eps,
-			char iop = 1, const TimeDomain* = 0) const;
+			char iop = 1, const TimeDomain* = 0,
+			const Tensor* Fpf = 0) const;
 
 private:
   int    mTYP;     //!< Material type

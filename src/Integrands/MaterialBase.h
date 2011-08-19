@@ -64,9 +64,11 @@ public:
   //!   2 : 2nd Piola-Kirchhoff stresses and tangent constitutive matrix,
   //!   3 : Calculate the strain energy density only.
   //! \param[in] prm Nonlinear solution algorithm parameters
+  //! \param[in] Fpf Deformation gradient for push-forward transformation
   virtual bool evaluate(Matrix& C, SymmTensor& sigma, double& U,
 			const Vec3& X, const Tensor& F, const SymmTensor& eps,
-			char iop = 1, const TimeDomain* prm = 0) const = 0;
+			char iop = 1, const TimeDomain* prm = 0,
+			const Tensor* Fpf = 0) const = 0;
 };
 
 #endif

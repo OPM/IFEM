@@ -151,7 +151,7 @@ bool NonlinearElasticityULMX::evalInt (LocalIntegral*& elmInt,
   Vectors& eVs = const_cast<Vectors&>(mySols);
 
 #if INT_DEBUG > 1
-  std::cout <<"NonlinearElasticityUL::dNdX ="<< fe.dNdX;
+  std::cout <<"NonlinearElasticityULMX::dNdX ="<< fe.dNdX;
 #endif
 
   // Evaluate the deformation gradient, Fp, at previous configuration
@@ -570,15 +570,20 @@ bool ElasticityNormULMX::finalizeElement (LocalIntegral*& elmInt,
     Eps *= 0.5;
 
     // Modify the deformation gradient
-    pt.F *= pow(fabs(Theta[iP]/pt.F.det()),1.0/3.0);
+    Tensor Fbar(pt.F);
+    Fbar *= pow(fabs(Theta[iP]/pt.F.det()),1.0/3.0);
 
     // Compute the strain energy density, U(Eps) = Int_Eps (Sig:E) dE
     double U = 0.0;
-    if (!p.material->evaluate(p.Cmat,Sig,U,pt.X,pt.F,Eps,3,&prm))
+    if (!p.material->evaluate(p.Cmat,Sig,U,pt.X,Fbar,Eps,3,&prm,&pt.F))
       return false;
 
     // Integrate energy norm a(u^h,u^h) = Int_Omega0 U(Eps) dV0
     pnorm[0] += U*pt.detJW;
+    // Integrate the L2-norm ||Sig|| = Int_Omega0 Sig:Sig dV0
+    pnorm[2] += Sig.L2norm(false)*pt.detJW;
+    // Integrate the von Mises stress norm
+    pnorm[3] += Sig.vonMises(false)*pt.detJW;
   }
 
   return true;

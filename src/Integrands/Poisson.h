@@ -182,7 +182,7 @@ public:
 
   //! \brief Evaluates the integrand at a boundary point.
   //! \param elmInt The local integral object to receive the contributions
-  //! \param[fe] Finite Element quantities
+  //! \param[in] fe Finite Element quantities
   //! \param[in] X Cartesian coordinates of current integration point
   //! \param[in] normal Boundary normal vector at current integration point
   virtual bool evalBou(LocalIntegral*& elmInt,  const FiniteElement& fe,

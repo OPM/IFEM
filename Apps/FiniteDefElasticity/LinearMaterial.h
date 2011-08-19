@@ -20,12 +20,12 @@
 /*!
   \brief Class representing a general linear elastic material model.
   \details This class is a wrapper for any linear-elastic material model,
-  when it is to be used in a nonlinear finite element formulation based on
+  when it is to be used in a nonlinear finite element solver based on
   the updated Lagrangian formulation. The \a evaluate method of this class
   just invokes the corresponding method of the object pointed to by the
   \a material member, and then transforms the resulting constitutive matrix
   and stress tensor to the current updated reference frame, based on the
-  supplied deformation tensor, \a F.
+  supplied deformation gradient tensor, \a *Fpf (or \a F if \a Fbf is NULL).
 */
 
 class LinearMaterial : public Material
@@ -60,9 +60,11 @@ public:
   //!   2 : 2nd Piola-Kirchhoff stresses and tangent constitutive matrix,
   //!   3 : Calculate the strain energy density only.
   //! \param[in] prm Nonlinear solution algorithm parameters
+  //! \param[in] Fpf Deformation gradient for push-forward transformation
   virtual bool evaluate(Matrix& C, SymmTensor& sigma, double& U,
 			const Vec3& X, const Tensor& F, const SymmTensor& eps,
-			char iop = 1, const TimeDomain* prm = 0) const;
+			char iop = 1, const TimeDomain* prm = 0,
+			const Tensor* Fpf = 0) const;
 
 private:
   const Material* material; //!< Linear-elastic material properties object

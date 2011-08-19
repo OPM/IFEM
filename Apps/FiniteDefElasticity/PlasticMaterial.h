@@ -60,7 +60,7 @@ class PlasticMaterial : public Material
     //! \param[in] F Deformation gradient at current point
     //! \param[in] prm Nonlinear solution algorithm parameters
     bool evaluate(Matrix& C, SymmTensor& sigma,
-		  const Tensor& F, const TimeDomain& prm) const;
+                  const Tensor& F, const TimeDomain& prm) const;
 
     //! \brief Updates the path integral of the strain energy density.
     //! \param[in] S Stress tensor at current configuration
@@ -119,9 +119,11 @@ public:
   //!  2 : 2nd Piola-Kirchhoff stresses and the tangent constitutive matrix,
   //!  3 : Calculate strain energy density only.
   //! \param[in] prm Nonlinear solution algorithm parameters
+  //! \param[in] Fpf Deformation gradient for push-forward transformation
   virtual bool evaluate(Matrix& C, SymmTensor& sigma, double& U,
                         const Vec3& X, const Tensor& F, const SymmTensor& eps,
-                        char iop, const TimeDomain* prm) const;
+                        char iop, const TimeDomain* prm,
+                        const Tensor* Fpf = 0) const;
 
 private:
   friend class PlasticPoint;
