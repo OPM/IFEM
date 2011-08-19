@@ -127,7 +127,7 @@ bool NonLinSIM::advanceStep (SolvePrm& param)
 
 bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode,
 			   const char* compName, bool energyNorm,
-			   double zero_tolerance)
+			   double zero_tolerance, std::streamsize outPrec)
 {
   PROFILE1("NonLinSIM::solveStep");
 
@@ -162,7 +162,8 @@ bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode,
 	  return false;
 
 	model->setMode(SIM::RECOVERY);
-	if (!this->solutionNorms(param.time,compName,energyNorm,zero_tolerance))
+	if (!this->solutionNorms(param.time,compName,energyNorm,
+				 zero_tolerance,outPrec))
 	  return false;
 
 	param.time.first = false;
@@ -327,7 +328,8 @@ bool NonLinSIM::updateConfiguration (SolvePrm& param)
 
 
 bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName,
-			       bool energyNorm, double zero_tolerance)
+			       bool energyNorm, double zero_tolerance,
+			       std::streamsize outPrec)
 {
   if (msgLevel < 0 || solution.empty()) return true;
 
@@ -346,6 +348,7 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName,
 
   if (myPid == 0)
   {
+    std::streamsize stdPrec = outPrec > 0 ? std::cout.precision(outPrec) : 0;
     double old_tol = utl::zero_print_tol;
     utl::zero_print_tol = zero_tolerance;
     std::cout <<"  Primary solution summary: L2-norm            : "
@@ -367,19 +370,24 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName,
     {
       std::cout <<"\n  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : "
 		<< utl::trunc(gNorm(1));
-      int oldPrec = std::cout.precision(10);
+      std::streamsize oldPrec = std::cout.precision(10);
       std::cout <<"\t a(u^h,u^h) = "<< utl::trunc(gNorm(1)*gNorm(1));
       std::cout.precision(oldPrec);
     }
     if (gNorm.size() > 1 && utl::trunc(gNorm(2)) != 0.0)
     {
       std::cout <<"\n  External energy: ((f,u^h)+(t,u^h))^0.5 : "<< gNorm(2);
-      int oldPrec = std::cout.precision(10);
+      std::streamsize oldPrec = std::cout.precision(10);
       std::cout <<"\t(f,u)+(t,u) = "<< gNorm(2)*gNorm(2);
       std::cout.precision(oldPrec);
     }
+    if (gNorm.size() > 2)
+      std::cout <<"\n  Stress norm, L2: (sigma^h,sigma^h)^0.5 : "<< gNorm(3);
+    if (gNorm.size() > 3)
+      std::cout <<"\n  Stress norm, von Mises: vm(sigma^h)    : "<< gNorm(4);
     std::cout << std::endl;
     utl::zero_print_tol = old_tol;
+    if (stdPrec > 0) std::cout.precision(stdPrec);
   }
 
   return true;

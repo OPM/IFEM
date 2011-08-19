@@ -138,6 +138,9 @@ public:
   virtual bool evalBou(LocalIntegral*& elmInt, const FiniteElement& fe,
 		       const Vec3& X, const Vec3& normal) const;
 
+  //! \brief Returns the number of norm quantities.
+  virtual size_t getNoFields() const { return 4; }
+
 private:
   // Data for path-integral of the external energy due to boundary tractions
   mutable size_t            iP; //!< Global integration point counter

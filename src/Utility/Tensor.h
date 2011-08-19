@@ -200,7 +200,9 @@ public:
   SymmTensor& rightCauchyGreen(const Tensor& F);
 
   //! \brief Returns the von Mises value of the symmetric tensor.
-  real vonMises() const;
+  real vonMises(bool doSqrt = true) const;
+  //! \brief Returns the inner-product (L2-norm) of the symmetric tensor.
+  real L2norm(bool doSqrt = true) const;
 
   // Global operators
 

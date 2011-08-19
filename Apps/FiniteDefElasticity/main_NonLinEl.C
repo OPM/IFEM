@@ -335,7 +335,8 @@ int main (int argc, char** argv)
   while (simulator.advanceStep(params))
   {
     // Solve the nonlinear FE problem at this load step
-    if (!simulator.solveStep(params,SIM::STATIC,"displacement",energy,zero_tol))
+    if (!simulator.solveStep(params,SIM::STATIC,"displacement",energy,
+			     zero_tol, outPrec > 3 ? outPrec : 0))
       return 5;
 
     // Print solution components at the user-defined points

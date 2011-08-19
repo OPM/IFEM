@@ -544,7 +544,7 @@ SymmTensor& SymmTensor::rightCauchyGreen (const Tensor& F)
   \f]
 */
 
-real SymmTensor::vonMises () const
+real SymmTensor::vonMises (bool doSqrt) const
 {
   double vms = 0.0;
   if (n == 3)
@@ -555,8 +555,8 @@ real SymmTensor::vonMises () const
     double s12 = v[3];
     double s23 = v[4];
     double s31 = v[5];
-    vms = sqrt(s11*(s11-s22) + s22*(s22-s33) + s33*(s33-s11) +
-	       3.0*(s12*s12 + s23*s23 + s31*s31));
+    vms = s11*(s11-s22) + s22*(s22-s33) + s33*(s33-s11) +
+          3.0*(s12*s12 + s23*s23 + s31*s31);
   }
   else if (n == 2)
   {
@@ -564,12 +564,22 @@ real SymmTensor::vonMises () const
     double s22 = v[1];
     double s33 = v.size() == 4 ? v[2] : 0.0;
     double s12 = v.size() == 4 ? v[3] : v[2];
-    vms = sqrt(s11*(s11-s22) + s22*(s22-s33) + s33*(s33-s11) + 3.0*s12*s12);
+    vms = s11*(s11-s22) + s22*(s22-s33) + s33*(s33-s11) + 3.0*s12*s12;
   }
   else if (n == 1)
-    vms = v.front();
+    return doSqrt ? v.front() : v.front()*v.front();
 
-  return vms;
+  return doSqrt ? sqrt(vms) : vms;
+}
+
+
+real SymmTensor::L2norm (bool doSqrt) const
+{
+  double l2n = 0.0;
+  for (t_ind i = 0; i < v.size(); i++)
+    l2n += (i < n || (i == 2 && v.size() == 4) ? 1.0 : 2.0)*v[i]*v[i];
+
+  return doSqrt ? sqrt(l2n) : l2n;
 }
 
 

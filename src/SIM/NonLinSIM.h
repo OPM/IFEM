@@ -76,9 +76,12 @@ public:
   //! \param[in] mode Solution mode to use for this step
   //! \param[in] compName Solution name to be used in the norm output
   //! \param[in] energyNorm If \e true, integrate energy norm of the solution
+  //! \param[in] zero_tolerance Truncate norm values small than this to zero
+  //! \param[in] outPrec Number of digits after the decimal point in norm print
   bool solveStep(SolvePrm& param, SIM::SolutionMode mode = SIM::STATIC,
 		 const char* compName = "displacement",
-		 bool energyNorm = false, double zero_tolerance = 1.0e-8);
+		 bool energyNorm = false, double zero_tolerance = 1.0e-8,
+		 std::streamsize outPrec = 0);
 
   //! \brief Enum describing the norm used for convergence checks.
   enum CNORM { L2, ENERGY };
@@ -92,8 +95,10 @@ public:
   //! \param[in] compName Solution name to be used in the norm output
   //! \param[in] energyNorm If \e true, integrate energy norm of the solution
   //! \param[in] zero_tolerance Truncate norm values small than this to zero
+  //! \param[in] outPrec Number of digits after the decimal point in norm print
   bool solutionNorms(const TimeDomain& time, const char* compName,
-		     bool energyNorm = false, double zero_tolerance = 1.0e-8);
+		     bool energyNorm = false, double zero_tolerance = 1.0e-8,
+		     std::streamsize outPrec = 0);
 
   //! \brief Saves the converged results to VTF file of a given load/time step.
   //! \param[in] iStep Load/time step identifier

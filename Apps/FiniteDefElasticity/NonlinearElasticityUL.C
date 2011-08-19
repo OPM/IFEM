@@ -348,6 +348,10 @@ bool ElasticityNormUL::evalInt (LocalIntegral*& elmInt,
 
   // Integrate the energy norm a(u^h,u^h) = Int_Omega0 U(E) dV0
   pnorm[0] += U*fe.detJxW;
+  // Integrate the L2-norm ||Sig|| = Int_Omega0 Sig:Sig dV0
+  pnorm[2] += S.L2norm(false)*fe.detJxW;
+  // Integrate the von Mises stress norm
+  pnorm[3] += S.vonMises(false)*fe.detJxW;
 
   return true;
 }
