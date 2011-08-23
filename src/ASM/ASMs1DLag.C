@@ -151,6 +151,14 @@ bool ASMs1DLag::integrate (Integrand& integrand,
   const double* wg = GaussQuadrature::getWeight(nGauss);
   if (!xg || !wg) return false;
 
+  // Points for selective reduced integration
+  const double* xr = 0;
+  int nRed = integrand.getIntegrandType() - 10;
+  if (nRed < 1)
+    nRed = nRed < 0 ? nGauss : 0;
+  else if (!(xr = GaussQuadrature::getCoord(nRed)))
+    return false;
+
   // Get parametric coordinates of the elements
   RealArray gpar;
   this->getGridParameters(gpar,1);
@@ -170,17 +178,42 @@ bool ASMs1DLag::integrate (Integrand& integrand,
   {
     fe.iel = MLGE[iel-1];
 
-    // Set up control point coordinates for current element
+    // Set up nodal point coordinates for current element
     if (!this->getElementCoordinates(Xnod,iel)) return false;
 
     // Initialize element quantities
-    if (!integrand.initElement(MNPC[iel-1])) return false;
+    if (!integrand.initElement(MNPC[iel-1],X,nRed)) return false;
 
     // Caution: Unless locInt is empty, we assume it points to an array of
     // LocalIntegral pointers, of length at least the number of elements in
     // the model (as defined by the highest number in the MLGE array).
     // If the array is shorter than this, expect a segmentation fault.
     LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
+
+
+    if (integrand.getIntegrandType() > 10)
+
+      // --- Selective reduced integration loop --------------------------------
+
+      for (int i = 0; i < nRed; i++)
+      {
+	// Local element coordinates of current integration point
+	fe.xi  = xr[i];
+
+	// Parameter value of current integration point
+	fe.u = 0.5*(gpar[iel-1]*(1.0-xr[i]) + gpar[iel]*(1.0+xr[i]));
+
+	// Compute basis function derivatives at current integration point
+	if (!Lagrange::computeBasis(fe.N,dNdu,p1,xr[i]))
+	  return false;
+
+	// Compute Jacobian inverse and derivatives
+	fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+
+	// Compute the reduced integration terms of the integrand
+	if (!integrand.reducedInt(fe))
+	  return false;
+      }
 
 
     // --- Integration loop over all Gauss points in each direction ------------
@@ -248,7 +281,7 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
 
   fe.iel = MLGE[iel-1];
 
-  // Set up control point coordinates for current element
+  // Set up nodal point coordinates for current element
   Matrix Xnod;
   if (!this->getElementCoordinates(Xnod,iel)) return false;
 

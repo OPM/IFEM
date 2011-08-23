@@ -49,9 +49,9 @@ public:
     if (A.empty())
       std::cerr <<" *** ElMats::getNewtonMatrix: No element matrices!"
 		<< std::endl;
-#if SP_DEBUG > 2
+#if SP_DEBUG > 2 || INT_DEBUG > 0
     else
-      std::cout <<"Element coefficient matrix"<< A.front() << std::endl;
+      std::cout <<"\nElement coefficient matrix"<< A.front();
 #endif
     return A.front();
   }
@@ -63,9 +63,9 @@ public:
     if (b.empty())
       std::cerr <<" *** ElMats::getNewtonMatrix: No element vectors!"
 		<< std::endl;
-#if SP_DEBUG > 2
+#if SP_DEBUG > 2 || INT_DEBUG > 0
     else
-      std::cout <<"Element right-hand-side vector"<< b.front() << std::endl;
+      std::cout <<"\nElement right-hand-side vector"<< b.front();
 #endif
     return b.front();
   }

@@ -203,6 +203,12 @@ protected:
   //! \param[in] nSegSpan Number of visualization segments over each knot-span
   virtual bool getGridParameters(RealArray& prm, int nSegSpan) const;
 
+  //! \brief Extracts parameter values of the Gauss points.
+  //! \param[out] uGP Parameter values for all points
+  //! \param[in] nGauss Number of Gauss points along a knot-span
+  //! \param[in] xi Dimensionless Gauss point coordinates [-1,1]
+  void getGaussPointParameters(Matrix& uGP, int nGauss, const double* xi) const;
+
   //! \brief Calculates parameter values for the Greville points.
   //! \param[out] prm Parameter values for all points
   bool getGrevilleParameters(RealArray& prm) const;

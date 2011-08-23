@@ -982,6 +982,26 @@ bool ASMs3D::getSize (int& n1, int& n2, int& n3, int) const
 }
 
 
+void ASMs3D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
+				      const double* xi) const
+{
+  int pm1 = svol->order(dir) - 1;
+  RealArray::const_iterator uit = svol->basis(dir).begin() + pm1;
+
+  int nCol = svol->numCoefs(dir) - pm1;
+  uGP.resize(nGauss,nCol);
+
+  double ucurr, uprev = *(uit++);
+  for (int j = 1; j <= nCol; uit++, j++)
+  {
+    ucurr = *uit;
+    for (int i = 1; i <= nGauss; i++)
+      uGP(i,j) = 0.5*((ucurr-uprev)*xi[i-1] + ucurr+uprev);
+    uprev = ucurr;
+  }
+}
+
+
 /*!
   \brief Computes the characteristic element length from nodal coordinates.
 */
@@ -1093,34 +1113,35 @@ bool ASMs3D::integrate (Integrand& integrand,
   const double* wg = GaussQuadrature::getWeight(nGauss);
   if (!xg || !wg) return false;
 
+  // Get the reduced integration quadrature points, if needed
+  const double* xr = 0;
+  int nRed = integrand.getIntegrandType() - 10;
+  if (nRed < 1)
+    nRed = nRed < 0 ? nGauss : 0;
+  else if (!(xr = GaussQuadrature::getCoord(nRed)))
+    return false;
+
   // Compute parameter values of the Gauss points over the whole patch
-  int dir;
-  Matrix gpar[3];
-  for (dir = 0; dir < 3; dir++)
+  Matrix gpar[3], redpar[3];
+  for (int d = 0; d < 3; d++)
   {
-    int pm1 = svol->order(dir) - 1;
-    RealArray::const_iterator uit = svol->basis(dir).begin() + pm1;
-    double ucurr, uprev = *(uit++);
-    int nCol = svol->numCoefs(dir) - pm1;
-    gpar[dir].resize(nGauss,nCol);
-    for (int j = 1; j <= nCol; uit++, j++)
-    {
-      ucurr = *uit;
-      for (int i = 1; i <= nGauss; i++)
-	gpar[dir](i,j) = 0.5*((ucurr-uprev)*xg[i-1] + ucurr+uprev);
-      uprev = ucurr;
-    }
+    this->getGaussPointParameters(gpar[d],d,nGauss,xg);
+    if (integrand.getIntegrandType() > 10)
+      this->getGaussPointParameters(redpar[d],d,nRed,xr);
   }
 
   // Evaluate basis function derivatives at all integration points
   std::vector<Go::BasisDerivs>  spline;
   std::vector<Go::BasisDerivs2> spline2;
+  std::vector<Go::BasisDerivs>  splineRed;
   {
     PROFILE2("Spline evaluation");
     if (integrand.getIntegrandType() == 2)
       svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline2);
     else
       svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline);
+    if (integrand.getIntegrandType() > 10)
+      svol->computeBasisGrid(redpar[0],redpar[1],redpar[2],splineRed);
   }
 
   const int n1 = svol->numCoefs(0);
@@ -1203,7 +1224,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 	}
 
 	// Initialize element quantities
-	if (!integrand.initElement(MNPC[iel-1],X,nGauss*nGauss*nGauss))
+	if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed*nRed))
 	  return false;
 
 	// Caution: Unless locInt is empty, we assume it points to an array of
@@ -1211,6 +1232,38 @@ bool ASMs3D::integrate (Integrand& integrand,
 	// the model (as defined by the highest number in the MLGE array).
 	// If the array is shorter than this, expect a segmentation fault.
 	LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
+
+
+	if (integrand.getIntegrandType() > 10)
+	{
+	  // --- Selective reduced integration loop ----------------------------
+
+	  int ip = (((i3-p3)*nRed*nel2 + i2-p2)*nRed*nel1 + i1-p1)*nRed;
+	  for (int k = 0; k < nRed; k++, ip += nRed*(nel2-1)*nRed*nel1)
+	    for (int j = 0; j < nRed; j++, ip += nRed*(nel1-1))
+	      for (int i = 0; i < nRed; i++, ip++)
+	      {
+		// Local element coordinates of current integration point
+		fe.xi   = xr[i];
+		fe.eta  = xr[j];
+		fe.zeta = xr[k];
+
+		// Parameter values of current integration point
+		fe.u = redpar[0](i+1,i1-p1+1);
+		fe.v = redpar[1](j+1,i2-p2+1);
+		fe.w = redpar[2](k+1,i3-p3+1);
+
+		// Fetch basis function derivatives at current point
+		extractBasis(splineRed[ip],fe.N,dNdu);
+
+		// Compute Jacobian inverse and derivatives
+		fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+
+		// Compute the reduced integration terms of the integrand
+		if (!integrand.reducedInt(fe))
+		  return false;
+	      }
+	}
 
 
 	// --- Integration loop over all Gauss points in each direction --------
@@ -1299,28 +1352,15 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
     if (-1-d == faceDir)
     {
       gpar[d].resize(1,1);
-      gpar[d](1,1) = svol->startparam(d);
+      gpar[d].fill(svol->startparam(d));
     }
     else if (1+d == faceDir)
     {
       gpar[d].resize(1,1);
-      gpar[d](1,1) = svol->endparam(d);
+      gpar[d].fill(svol->endparam(d));
     }
     else
-    {
-      int pm1 = svol->order(d) - 1;
-      RealArray::const_iterator uit = svol->basis(d).begin() + pm1;
-      double ucurr, uprev = *(uit++);
-      int nCol = svol->numCoefs(d) - pm1;
-      gpar[d].resize(nGauss,nCol);
-      for (int j = 1; j <= nCol; uit++, j++)
-      {
-	ucurr = *uit;
-	for (int i = 1; i <= nGauss; i++)
-	  gpar[d](i,j) = 0.5*((ucurr-uprev)*xg[i-1] + ucurr+uprev);
-	uprev = ucurr;
-      }
-    }
+      this->getGaussPointParameters(gpar[d],d,nGauss,xg);
 
   // Evaluate basis function derivatives at all integration points
   std::vector<Go::BasisDerivs> spline;
@@ -1480,15 +1520,15 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
     {
       gpar[d].resize(1,1);
       if (lEdge%4 == 1)
-	gpar[d](1,1) = svol->startparam(d);
+	gpar[d].fill(svol->startparam(d));
       else if (lEdge%4 == 0)
-	gpar[d](1,1) = svol->endparam(d);
+	gpar[d].fill(svol->endparam(d));
       else if (lEdge == 6 || lEdge == 10)
-	gpar[d](1,1) = d == 0 ? svol->endparam(d) : svol->startparam(d);
+	gpar[d].fill(d == 0 ? svol->endparam(d) : svol->startparam(d));
       else if (lEdge == 2 || lEdge == 11)
-	gpar[d](1,1) = d == 1 ? svol->endparam(d) : svol->startparam(d);
+	gpar[d].fill(d == 1 ? svol->endparam(d) : svol->startparam(d));
       else if (lEdge == 3 || lEdge == 7)
-	gpar[d](1,1) = d == 2 ? svol->endparam(d) : svol->startparam(d);
+	gpar[d].fill(d == 2 ? svol->endparam(d) : svol->startparam(d));
     }
     else
     {

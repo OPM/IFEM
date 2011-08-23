@@ -163,7 +163,7 @@ public:
   //! \param[out] nodeVec Nodal result vector for this patch
   //! \param[in] basis Which basis (or 0 for both) to extract nodal values for
   virtual void extractNodeVec(const Vector& globVec, Vector& nodeVec,
-			      unsigned char nndof = 0, int basis = 0) const;
+			      unsigned char = 0, int basis = 0) const;
 
 protected:
 

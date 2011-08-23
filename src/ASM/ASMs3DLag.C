@@ -48,7 +48,7 @@ void ASMs3DLag::clear ()
 }
 
 
-bool ASMs3DLag::generateFEMTopology()
+bool ASMs3DLag::generateFEMTopology ()
 {
   if (!svol) return false;
 
@@ -192,6 +192,14 @@ bool ASMs3DLag::integrate (Integrand& integrand,
   const double* wg = GaussQuadrature::getWeight(nGauss);
   if (!xg || !wg) return false;
 
+  // Points for selective reduced integration
+  const double* xr = 0;
+  int nRed = integrand.getIntegrandType() - 10;
+  if (nRed < 1)
+    nRed = nRed < 0 ? nGauss : 0;
+  else if (!(xr = GaussQuadrature::getCoord(nRed)))
+    return false;
+
   // Get parametric coordinates of the elements
   RealArray upar, vpar, wpar;
   this->getGridParameters(upar,0,1);
@@ -237,7 +245,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
 	}
 
 	// Initialize element quantities
-	if (!integrand.initElement(MNPC[iel-1],X,nGauss*nGauss*nGauss))
+	if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed*nRed))
 	  return false;
 
 	// Caution: Unless locInt is empty, we assume it points to an array of
@@ -245,6 +253,38 @@ bool ASMs3DLag::integrate (Integrand& integrand,
 	// the model (as defined by the highest number in the MLGE array).
 	// If the array is shorter than this, expect a segmentation fault.
 	LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
+
+
+	// --- Selective reduced integration loop ------------------------------
+
+	if (integrand.getIntegrandType() > 10)
+	  for (int k = 0; k < nRed; k++)
+	    for (int j = 0; j < nRed; j++)
+	      for (int i = 0; i < nRed; i++)
+	      {
+		// Local element coordinates of current integration point
+		fe.xi   = xr[i];
+		fe.eta  = xr[j];
+		fe.zeta = xr[k];
+
+		// Parameter value of current integration point
+		fe.u = 0.5*(upar[i1]*(1.0-xr[i]) + upar[i1+1]*(1.0+xr[i]));
+		fe.v = 0.5*(vpar[i2]*(1.0-xr[j]) + vpar[i2+1]*(1.0+xr[j]));
+		fe.w = 0.5*(wpar[i3]*(1.0-xr[k]) + wpar[i3+1]*(1.0+xr[k]));
+
+		// Compute basis function derivatives at current point
+		// using tensor product of one-dimensional Lagrange polynomials
+		if (!Lagrange::computeBasis(fe.N,dNdu,
+					    p1,xr[i],p2,xr[j],p3,xr[k]))
+		  return false;
+
+		// Compute Jacobian inverse and derivatives
+		fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+
+		// Compute the reduced integration terms of the integrand
+		if (!integrand.reducedInt(fe))
+		  return false;
+	      }
 
 
 	// --- Integration loop over all Gauss points in each direction --------

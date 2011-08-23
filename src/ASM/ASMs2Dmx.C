@@ -455,23 +455,9 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   if (!xg || !wg) return false;
 
   // Compute parameter values of the Gauss points over the whole patch
-  int dir;
   Matrix gpar[2];
-  for (dir = 0; dir < 2; dir++)
-  {
-    int pm1 = (dir == 0 ? surf->order_u() : surf->order_v()) - 1;
-    RealArray::const_iterator uit = surf->basis(dir).begin() + pm1;
-    double ucurr, uprev = *(uit++);
-    int nCol = (dir == 0 ? surf->numCoefs_u() : surf->numCoefs_v()) - pm1;
-    gpar[dir].resize(nGauss,nCol);
-    for (int j = 1; j <= nCol; uit++, j++)
-    {
-      ucurr = *uit;
-      for (int i = 1; i <= nGauss; i++)
-	gpar[dir](i,j) = 0.5*((ucurr-uprev)*xg[i-1] + ucurr+uprev);
-      uprev = ucurr;
-    }
-  }
+  for (int d = 0; d < 2; d++)
+    this->getGaussPointParameters(gpar[d],d,nGauss,xg);
 
   // Evaluate basis function derivatives at all integration points
   std::vector<Go::BasisDerivsSf> spline1, spline2;
@@ -597,28 +583,15 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
     if (-1-d == edgeDir)
     {
       gpar[d].resize(1,1);
-      gpar[d](1,1) = d == 0 ? surf->startparam_u() : surf->startparam_v();
+      gpar[d].fill(d == 0 ? surf->startparam_u() : surf->startparam_v());
     }
     else if (1+d == edgeDir)
     {
       gpar[d].resize(1,1);
-      gpar[d](1,1) = d == 0 ? surf->endparam_u() : surf->endparam_v();
+      gpar[d].fill(d == 0 ? surf->endparam_u() : surf->endparam_v());
     }
     else
-    {
-      int pm1 = (d == 0 ? surf->order_u() : surf->order_v()) - 1;
-      RealArray::const_iterator uit = surf->basis(d).begin() + pm1;
-      double ucurr, uprev = *(uit++);
-      int nCol = (d == 0 ? surf->numCoefs_u() : surf->numCoefs_v()) - pm1;
-      gpar[d].resize(nGauss,nCol);
-      for (int j = 1; j <= nCol; uit++, j++)
-      {
-	ucurr = *uit;
-	for (int i = 1; i <= nGauss; i++)
-	  gpar[d](i,j) = 0.5*((ucurr-uprev)*xg[i-1] + ucurr+uprev);
-	uprev = ucurr;
-      }
-    }
+      this->getGaussPointParameters(gpar[d],d,nGauss,xg);
 
   // Evaluate basis function derivatives at all integration points
   std::vector<Go::BasisDerivsSf> spline1, spline2;

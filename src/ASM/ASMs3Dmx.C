@@ -488,23 +488,9 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
   if (!xg || !wg) return false;
 
   // Compute parameter values of the Gauss points over the whole patch
-  int dir;
   Matrix gpar[3];
-  for (dir = 0; dir < 3; dir++)
-  {
-    int pm1 = svol->order(dir) - 1;
-    RealArray::const_iterator uit = svol->basis(dir).begin() + pm1;
-    double ucurr, uprev = *(uit++);
-    int nCol = svol->numCoefs(dir) - pm1;
-    gpar[dir].resize(nGauss,nCol);
-    for (int j = 1; j <= nCol; uit++, j++)
-    {
-      ucurr = *uit;
-      for (int i = 1; i <= nGauss; i++)
-	gpar[dir](i,j) = 0.5*((ucurr-uprev)*xg[i-1] + ucurr+uprev);
-      uprev = ucurr;
-    }
-  }
+  for (int d = 0; d < 3; d++)
+    this->getGaussPointParameters(gpar[d],d,nGauss,xg);
 
   // Evaluate basis function derivatives at all integration points
   std::vector<Go::BasisDerivs> spline1, spline2;
@@ -639,28 +625,15 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
     if (-1-d == faceDir)
     {
       gpar[d].resize(1,1);
-      gpar[d](1,1) = svol->startparam(d);
+      gpar[d].fill(svol->startparam(d));
     }
     else if (1+d == faceDir)
     {
       gpar[d].resize(1,1);
-      gpar[d](1,1) = svol->endparam(d);
+      gpar[d].fill(svol->endparam(d));
     }
     else
-    {
-      int pm1 = svol->order(d) - 1;
-      RealArray::const_iterator uit = svol->basis(d).begin() + pm1;
-      double ucurr, uprev = *(uit++);
-      int nCol = svol->numCoefs(d) - pm1;
-      gpar[d].resize(nGauss,nCol);
-      for (int j = 1; j <= nCol; uit++, j++)
-      {
-	ucurr = *uit;
-	for (int i = 1; i <= nGauss; i++)
-	  gpar[d](i,j) = 0.5*((ucurr-uprev)*xg[i-1] + ucurr+uprev);
-	uprev = ucurr;
-      }
-    }
+      this->getGaussPointParameters(gpar[d],d,nGauss,xg);
 
   // Evaluate basis function derivatives at all integration points
   std::vector<Go::BasisDerivs> spline1, spline2;

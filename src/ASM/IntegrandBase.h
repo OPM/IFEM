@@ -64,6 +64,19 @@ public:
 
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
+  //! \param[in] X0 Cartesian coordinates of the element center
+  //! \param[in] nPt Number of integration points in this element
+  //!
+  //! \details This method is invoked once before starting the numerical
+  //! integration loop over the Gaussian quadrature points over an element.
+  //! It is supposed to perform all the necessary internal initializations
+  //! needed before the numerical integration is started for current element.
+  //! The default implementation forwards to an overloaded method not taking
+  //! \a X0 and \a nPt as arguments.
+  virtual bool initElement(const std::vector<int>& MNPC,
+			   const Vec3& X0, size_t nPt);
+  //! \brief Initializes current element for numerical integration.
+  //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //!
   //! \details This method is invoked once before starting the numerical
   //! integration loop over the Gaussian quadrature points over an element.
@@ -180,6 +193,10 @@ public:
 
   //! \brief Initializes the integrand for a new integration loop.
   virtual void initIntegration(const TimeDomain& time);
+
+  //! \brief Initializes current element for numerical integration.
+  virtual bool initElement(const std::vector<int>& MNPC,
+			   const Vec3& X0, size_t nPt);
 
   //! \brief Initializes current element for numerical integration.
   virtual bool initElement(const std::vector<int>& MNPC);

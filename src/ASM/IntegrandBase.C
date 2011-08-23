@@ -23,6 +23,13 @@ IntegrandBase::~IntegrandBase ()
 }
 
 
+bool IntegrandBase::initElement (const std::vector<int>& MNPC,
+				 const Vec3&, size_t)
+{
+  return this->initElement(MNPC);
+}
+
+
 bool IntegrandBase::initElement (const std::vector<int>& MNPC)
 {
   if (myMats)
@@ -69,8 +76,8 @@ bool IntegrandBase::initElementBou (const std::vector<int>& MNPC)
 }
 
 
-bool IntegrandBase::initElementBou(const std::vector<int>&,
-				   const std::vector<int>&, size_t)
+bool IntegrandBase::initElementBou (const std::vector<int>&,
+				    const std::vector<int>&, size_t)
 {
   std::cerr <<" *** IntegrandBase::initElementBou must be reimplemented"
 	    <<" for mixed problems."<< std::endl;
@@ -135,6 +142,13 @@ bool IntegrandBase::evalSol (Vector&, const VecFunc&, const Vec3&) const
 void NormBase::initIntegration (const TimeDomain& time)
 {
   myProblem.initIntegration(time);
+}
+
+
+bool NormBase::initElement (const std::vector<int>& MNPC,
+			    const Vec3& Xc, size_t nPt)
+{
+  return myProblem.initElement(MNPC,Xc,nPt);
 }
 
 

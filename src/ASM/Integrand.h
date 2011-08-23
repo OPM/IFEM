@@ -70,15 +70,10 @@ public:
   //! integration loop over the Gaussian quadrature points over an element.
   //! It is supposed to perform all the necessary internal initializations
   //! needed before the numerical integration is started for current element.
-  //! The default implementation forwards to an overloaded method not taking
-  //! \a X0 and \a nPt as arguments.
   //! Reimplement this method for problems requiring the element center and/or
   //! the number of integration points during/before the integrand evaluations.
   virtual bool initElement(const std::vector<int>& MNPC,
-			   const Vec3& X0, size_t nPt)
-  {
-    return this->initElement(MNPC);
-  }
+			   const Vec3& X0, size_t nPt) = 0;
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //!
@@ -118,7 +113,16 @@ public:
   //! \return 3: As 1, but in addition the volume-averaged basis functions
   //! are needed
   //! \return 4: As 1, but in addition the element center coordinates are needed
+  //! \return 5: Selectively reduced integration is assumed
   virtual int getIntegrandType() const { return 1; }
+
+  //! \brief Evaluates reduced integration terms at an interior point.
+  //! \param[in] fe Finite element data of current integration point
+  //!
+  //! \details Reimplement this method to evaluate terms at other points than
+  //! the regular integration points. This method is invoked in a separate loop
+  //! prior to the main integration point loop.
+  virtual bool reducedInt(const FiniteElement& fe) const { return false; }
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions

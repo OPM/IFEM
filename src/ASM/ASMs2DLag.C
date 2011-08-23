@@ -177,6 +177,14 @@ bool ASMs2DLag::integrate (Integrand& integrand,
   const double* wg = GaussQuadrature::getWeight(nGauss);
   if (!xg || !wg) return false;
 
+  // Points for selective reduced integration
+  const double* xr = 0;
+  int nRed = integrand.getIntegrandType() - 10;
+  if (nRed < 1)
+    nRed = nRed < 0 ? nGauss : 0;
+  else if (!(xr = GaussQuadrature::getCoord(nRed)))
+    return false;
+
   // Get parametric coordinates of the elements
   RealArray upar, vpar;
   this->getGridParameters(upar,0,1);
@@ -203,7 +211,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
     {
       fe.iel = MLGE[iel-1];
 
-      // Set up control point coordinates for current element
+      // Set up nodal point coordinates for current element
       if (!this->getElementCoordinates(Xnod,iel)) return false;
 
       if (integrand.getIntegrandType() == 4)
@@ -218,13 +226,41 @@ bool ASMs2DLag::integrate (Integrand& integrand,
       }
 
       // Initialize element quantities
-      if (!integrand.initElement(MNPC[iel-1],X,nGauss*nGauss)) return false;
+      if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed)) return false;
 
       // Caution: Unless locInt is empty, we assume it points to an array of
       // LocalIntegral pointers, of length at least the number of elements in
       // the model (as defined by the highest number in the MLGE array).
       // If the array is shorter than this, expect a segmentation fault.
       LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
+
+
+      // --- Selective reduced integration loop --------------------------------
+
+      if (integrand.getIntegrandType() > 10)
+	for (int j = 0; j < nRed; j++)
+	  for (int i = 0; i < nRed; i++)
+	  {
+	    // Local element coordinates of current integration point
+	    fe.xi  = xr[i];
+	    fe.eta = xr[j];
+
+	    // Parameter value of current integration point
+	    fe.u = 0.5*(upar[i1]*(1.0-xr[i]) + upar[i1+1]*(1.0+xr[i]));
+	    fe.v = 0.5*(vpar[i2]*(1.0-xr[j]) + vpar[i2+1]*(1.0+xr[j]));
+
+	    // Compute basis function derivatives at current point
+	    // using tensor product of one-dimensional Lagrange polynomials
+	    if (!Lagrange::computeBasis(fe.N,dNdu,p1,xr[i],p2,xr[j]))
+	      return false;
+
+	    // Compute Jacobian inverse and derivatives
+	    fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+
+	    // Compute the reduced integration terms of the integrand
+	    if (!integrand.reducedInt(fe))
+	      return false;
+	  }
 
 
       // --- Integration loop over all Gauss points in each direction ----------
@@ -337,7 +373,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
 	}
       if (skipMe) continue;
 
-      // Set up control point coordinates for current element
+      // Set up nodal point coordinates for current element
       if (!this->getElementCoordinates(Xnod,iel)) return false;
 
       // Initialize element quantities

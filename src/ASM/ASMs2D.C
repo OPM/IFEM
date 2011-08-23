@@ -675,6 +675,26 @@ bool ASMs2D::getSize (int& n1, int& n2, int) const
 }
 
 
+void ASMs2D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
+				      const double* xi) const
+{
+  int pm1 = (dir == 0 ? surf->order_u() : surf->order_v()) - 1;
+  RealArray::const_iterator uit = surf->basis(dir).begin() + pm1;
+
+  int nCol = (dir == 0 ? surf->numCoefs_u() : surf->numCoefs_v()) - pm1;
+  uGP.resize(nGauss,nCol);
+
+  double ucurr, uprev = *(uit++);
+  for (int j = 1; j <= nCol; uit++, j++)
+  {
+    ucurr = *uit;
+    for (int i = 1; i <= nGauss; i++)
+      uGP(i,j) = 0.5*((ucurr-uprev)*xi[i-1] + ucurr+uprev);
+    uprev = ucurr;
+  }
+}
+
+
 /*!
   \brief Computes the characteristic element length from nodal coordinates.
 */
@@ -778,32 +798,33 @@ bool ASMs2D::integrate (Integrand& integrand,
   const double* wg = GaussQuadrature::getWeight(nGauss);
   if (!xg || !wg) return false;
 
+  // Get the reduced integration quadrature points, if needed
+  const double* xr = 0;
+  int nRed = integrand.getIntegrandType() - 10;
+  if (nRed < 1)
+    nRed = nRed < 0 ? nGauss : 0;
+  else if (!(xr = GaussQuadrature::getCoord(nRed)))
+    return false;
+
   // Compute parameter values of the Gauss points over the whole patch
-  int dir;
-  Matrix gpar[2];
-  for (dir = 0; dir < 2; dir++)
+  Matrix gpar[2], redpar[2];
+  for (int d = 0; d < 2; d++)
   {
-    int pm1 = (dir == 0 ? surf->order_u() : surf->order_v()) - 1;
-    RealArray::const_iterator uit = surf->basis(dir).begin() + pm1;
-    double ucurr, uprev = *(uit++);
-    int nCol = (dir == 0 ? surf->numCoefs_u() : surf->numCoefs_v()) - pm1;
-    gpar[dir].resize(nGauss,nCol);
-    for (int j = 1; j <= nCol; uit++, j++)
-    {
-      ucurr = *uit;
-      for (int i = 1; i <= nGauss; i++)
-	gpar[dir](i,j) = 0.5*((ucurr-uprev)*xg[i-1] + ucurr+uprev);
-      uprev = ucurr;
-    }
+    this->getGaussPointParameters(gpar[d],d,nGauss,xg);
+    if (integrand.getIntegrandType() > 10)
+      this->getGaussPointParameters(redpar[d],d,nRed,xr);
   }
 
   // Evaluate basis function derivatives at all integration points
   std::vector<Go::BasisDerivsSf>  spline;
   std::vector<Go::BasisDerivsSf2> spline2;
+  std::vector<Go::BasisDerivsSf>  splineRed;
   if (integrand.getIntegrandType() == 2)
     surf->computeBasisGrid(gpar[0],gpar[1],spline2);
   else
     surf->computeBasisGrid(gpar[0],gpar[1],spline);
+  if (integrand.getIntegrandType() > 10)
+    surf->computeBasisGrid(redpar[0],redpar[1],splineRed);
 
 #if SP_DEBUG > 4
   for (size_t i = 0; i < spline.size(); i++)
@@ -881,13 +902,42 @@ bool ASMs2D::integrate (Integrand& integrand,
       }
 
       // Initialize element quantities
-      if (!integrand.initElement(MNPC[iel-1],X,nGauss*nGauss)) return false;
+      if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed)) return false;
 
       // Caution: Unless locInt is empty, we assume it points to an array of
       // LocalIntegral pointers, of length at least the number of elements in
       // the model (as defined by the highest number in the MLGE array).
       // If the array is shorter than this, expect a segmentation fault.
       LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
+
+
+      if (integrand.getIntegrandType() > 10)
+      {
+	// --- Selective reduced integration loop ------------------------------
+
+	int ip = ((i2-p2)*nRed*nel1 + i1-p1)*nRed;
+	for (int j = 0; j < nRed; j++, ip += nRed*(nel1-1))
+	  for (int i = 0; i < nRed; i++, ip++)
+	  {
+	    // Local element coordinates of current integration point
+	    fe.xi  = xr[i];
+	    fe.eta = xr[j];
+
+	    // Parameter values of current integration point
+	    fe.u = redpar[0](i+1,i1-p1+1);
+	    fe.v = redpar[1](j+1,i2-p2+1);
+
+	    // Fetch basis function derivatives at current point
+	    extractBasis(splineRed[ip],fe.N,dNdu);
+
+	    // Compute Jacobian inverse and derivatives
+	    fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+
+	    // Compute the reduced integration terms of the integrand
+	    if (!integrand.reducedInt(fe))
+	      return false;
+	  }
+      }
 
 
       // --- Integration loop over all Gauss points in each direction ----------
@@ -969,32 +1019,19 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 
   // Compute parameter values of the Gauss points along the whole patch edge
   Matrix gpar[2];
-  for (short int d = 0; d < 2; d++)
+  for (int d = 0; d < 2; d++)
     if (-1-d == edgeDir)
     {
       gpar[d].resize(1,1);
-      gpar[d](1,1) = d == 0 ? surf->startparam_u() : surf->startparam_v();
+      gpar[d].fill(d == 0 ? surf->startparam_u() : surf->startparam_v());
     }
     else if (1+d == edgeDir)
     {
       gpar[d].resize(1,1);
-      gpar[d](1,1) = d == 0 ? surf->endparam_u() : surf->endparam_v();
+      gpar[d].fill(d == 0 ? surf->endparam_u() : surf->endparam_v());
     }
     else
-    {
-      int pm1 = (d == 0 ? surf->order_u() : surf->order_v()) - 1;
-      RealArray::const_iterator uit = surf->basis(d).begin() + pm1;
-      double ucurr, uprev = *(uit++);
-      int nCol = (d == 0 ? surf->numCoefs_u() : surf->numCoefs_v()) - pm1;
-      gpar[d].resize(nGauss,nCol);
-      for (int j = 1; j <= nCol; uit++, j++)
-      {
-	ucurr = *uit;
-	for (int i = 1; i <= nGauss; i++)
-	  gpar[d](i,j) = 0.5*((ucurr-uprev)*xg[i-1] + ucurr+uprev);
-	uprev = ucurr;
-      }
-    }
+      this->getGaussPointParameters(gpar[d],d,nGauss,xg);
 
   // Evaluate basis function derivatives at all integration points
   std::vector<Go::BasisDerivsSf> spline;
