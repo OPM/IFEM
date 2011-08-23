@@ -149,11 +149,12 @@ void HDF5Writer::writeArray(int group, const std::string& name,
 {
 #ifdef HAS_HDF5
 #ifdef PARALLEL_PETSC
-  int lens[m_size];
+  int lens[m_size], lens2[m_size];
   std::fill(lens,lens+m_size,len);
-  MPI_Alltoall(lens,1,MPI_INT,lens,1,MPI_INT,MPI_COMM_WORLD);
-  hsize_t siz   = (hsize_t)std::accumulate(lens,lens+m_size,0);
-  hsize_t start = (hsize_t)std::accumulate(lens,lens+m_rank,0);
+  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Alltoall(lens,1,MPI_INT,lens2,1,MPI_INT,MPI_COMM_WORLD);
+  hsize_t siz   = (hsize_t)std::accumulate(lens2,lens2+m_size,0);
+  hsize_t start = (hsize_t)std::accumulate(lens2,lens2+m_rank,0);
 #else
   hsize_t siz   = (hsize_t)len;
   hsize_t start = 0;
@@ -172,6 +173,7 @@ void HDF5Writer::writeArray(int group, const std::string& name,
     H5Sclose(file_space);
   }
   H5Dclose(set);
+  H5Sclose(space);
 #else
   std::cout << "HDF5Writer: compiled without HDF5 support, no data written" << std::endl;
 #endif
@@ -343,13 +345,13 @@ void HDF5Writer::writeBasis(SIMbase* sim, const std::string& name,
 {
 #ifdef HAS_HDF5
   std::stringstream str;
-  str << "/" << level << "/basis/";
+  str << "/" << level << "/basis";
   int group;
   if (checkGroupExistence(m_file,str.str().c_str()))
     group = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
   else
     group = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
-  str << "/"+name;
+  str << "/" << name;
   if (checkGroupExistence(m_file,str.str().c_str()))
   {
     H5Gclose(group);
