@@ -342,7 +342,7 @@ bool ElasticityNormUL::evalInt (LocalIntegral*& elmInt,
 
   // Compute the strain energy density, U(E) = Int_E (Sig:Eps) dEps
   double U = 0.0;
-  SymmTensor S(E.dim());
+  SymmTensor S(E.dim(),ulp.material->isPlaneStrain());
   if (!ulp.material->evaluate(ulp.Cmat,S,U,X,F,E,3,&prm))
     return false;
 

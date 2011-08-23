@@ -178,18 +178,21 @@ bool PlasticMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
     // via pull-back to reference configuration
     Tensor Fi(Fpf ? *Fpf : F);
     double J = Fi.inverse();
-    sigma.transform(Fi); // sigma = F^-1 * sigma * F^-t
-    sigma *= J;
-
-    //TODO: If invoked with iop=2 (i.e. Total Lagrange), also pull-back the C
-  }
-
-  if (iop == 3)
-  {
-    if (iAmIntegrating)
-      U = itgPoints[iP1-1]->energyIntegral(sigma,eps);
+    if (iop == 2)
+    {
+      sigma.transform(Fi); // sigma = F^-1 * sigma * F^-t
+      sigma *= J;
+      //TODO: Also pull-back the C-matrix (Total Lagrange formulation)
+    }
     else
-      U = resPoints[iP2-1]->energyIntegral(sigma,eps);
+    {
+      SymmTensor S(sigma); // Make a copy of sigma since it should be Cauchy stress when iop=3
+      S.transform(Fi);     // S = F^-1 * S * F^-t
+      if (iAmIntegrating)
+        U = itgPoints[iP1-1]->energyIntegral(S,eps)*J;
+      else
+        U = resPoints[iP2-1]->energyIntegral(S,eps)*J;
+    }
   }
 
   return true;

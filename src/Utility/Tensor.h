@@ -93,7 +93,7 @@ public:
   size_t size() const { return v.size(); }
 
   //! \brief Query whether this tensor is symmetric or not.
-  bool symmetric() const { return v.size() == (size_t)(n*(n+1)/2); }
+  virtual bool symmetric() const { return false; }
 
   //! brief Query whether this tensor is zero within the given tolerance.
   bool isZero(real tol = real(1.0e-6)) const;
@@ -178,6 +178,9 @@ public:
 
   //! \brief Copies a symmetric tensor, possibly with dimension change.
   void copy(const SymmTensor& T);
+
+  //! \brief Query whether this tensor is symmetric or not.
+  virtual bool symmetric() const { return true; }
 
   //! \brief Transposes the symmetric tensor (i.e., does nothing).
   virtual Tensor& transpose() { return *this; }

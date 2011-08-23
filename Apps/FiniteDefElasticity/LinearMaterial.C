@@ -29,7 +29,7 @@ bool LinearMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
   // Evaluate the constitutive matrix and the stress tensor at this point
   if (!material->evaluate(C,sigma,U,X,Fbar,eps,iop,prm))
     return false;
-  else if (iop > 1)
+  else if (iop == 2)
     return true;
 
   const Tensor& F = Fpf ? *Fpf : Fbar;
@@ -39,6 +39,18 @@ bool LinearMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
     std::cerr <<" *** LinearMaterial::evaluate: "
 	      <<" Singular/zero deformation gradient\n"<< Fbar;
     return false;
+  }
+
+  if (iop > 0)
+  {
+    // Push-forward the stress tensor to current configuration
+    // sigma = 1/J * F * sigma * F^t
+    sigma.transform(F);
+    sigma *= 1.0/J;
+#ifdef INT_DEBUG
+    std::cout <<"LinearMaterial::sigma =\n"<< sigma;
+#endif
+    if (iop > 1) return true;
   }
 
   // Push-forward the constitutive matrix to current configuration
@@ -71,17 +83,6 @@ bool LinearMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
 #ifdef INT_DEBUG
   std::cout <<"LinearMaterial::C ="<< C;
 #endif
-
-  if (iop == 1)
-  {
-    // Push-forward the stress tensor to current configuration
-    // sigma = 1/J * F * sigma * F^t
-    sigma.transform(F);
-    sigma *= 1.0/J;
-#ifdef INT_DEBUG
-    std::cout <<"LinearMaterial::sigma =\n"<< sigma;
-#endif
-  }
 
   return true;
 }

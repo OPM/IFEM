@@ -125,20 +125,24 @@ bool NeoHookeMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
   std::cerr <<" *** NeoHookeMaterial::evaluate: Not included."<< std::endl;
 #endif
 
-  if (iop > 1)
+  if (iop == 2 || (iop == 3 && U == 0.0))
   {
     // Transform to 2nd Piola-Kirchhoff stresses,
     // via pull-back to reference configuration
     Tensor Fi(Fpf ? *Fpf : F);
     J = Fi.inverse();
-    sigma.transform(Fi); // sigma = F^-1 * sigma * F^-t
-    sigma *= J;
-
-    //TODO: If invoked with iop=2 (i.e. Total Lagrange), also pull-back the C
+    if (iop == 2)
+    {
+      sigma.transform(Fi); // sigma = F^-1 * sigma * F^-t
+      sigma *= J;
+      //TODO: Also pull-back the C-matrix (Total Lagrange formulation)
+    }
+    else
+    {
+      SymmTensor S(sigma); // Make a copy of sigma since it should be Cauchy stress when iop=3
+      U = S.transform(Fi).innerProd(eps)*J; //TODO: Replace this by proper path integral
+    }
   }
-
-  if (iop == 3 && U == 0.0)
-    U = sigma.innerProd(eps); //TODO: Replace this by proper path integral
 
 #if INT_DEBUG > 0
   if (iop > 0)
