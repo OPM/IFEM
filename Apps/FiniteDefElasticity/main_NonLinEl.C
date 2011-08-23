@@ -65,6 +65,7 @@ extern std::vector<int> mixedDbgEl; //!< List of elements for additional output
   \arg -MX \a pord : Mixed formulation with internal discontinuous pressure
   \arg -mixed : Mixed formulation with continuous pressure and volumetric change
   \arg -Mixed : Same as -mixed, but use C^(p-1) continuous displacement basis
+  \arg -Fbar \a nvp : Use the F-bar formulation
 */
 
 int main (int argc, char** argv)
@@ -184,6 +185,12 @@ int main (int argc, char** argv)
     }
     else if (!strcmp(argv[i],"-mixed"))
       form = SIM::MIXED_QnQn1;
+    else if (!strcmp(argv[i],"-Fbar"))
+    {
+      form = SIM::FBAR;
+      if (i < argc-1 && isdigit(argv[i+1][0]))
+        options[1] = atoi(argv[++i]);
+    }
     else if (!strcmp(argv[i],"-Tensor"))
       form = SIM::NONLINEAR;
     else if (!strcmp(argv[i],"-NeoHooke"))
@@ -199,8 +206,8 @@ int main (int argc, char** argv)
   {
     std::cout <<"usage: "<< argv[0]
 	      <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n      "
-	      <<" [-lag] [-spec] [-2D[pstrain]] [-UL] [-MX [<p>]|-[M|m]ixed]"
-	      <<" [-nGauss <n>]\n       [-vtf <format> [-nviz <nviz>]"
+	      <<" [-lag] [-spec] [-nGauss <n>] [-2D[pstrain]] [-UL|-MX [<p>]"
+	      <<"|-[M|m]ixed|-Fbar <nvp>]\n       [-vtf <format> [-nviz <nviz>]"
 	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]] [-hdf5]\n      "
 	      <<" [-saveInc <dtSave>] [-skip2nd] [-dumpInc <dtDump> [raw]]"
 	      <<" [-outPrec <nd>]\n       [-ztol <eps>] [-ignore <p1> <p2> ...]"
@@ -212,7 +219,9 @@ int main (int argc, char** argv)
   {
     std::cout <<"\n >>> Spline FEM Finite Deformation Nonlinear solver <<<"
 	      <<"\n ======================================================\n"
-	      <<"\nInput file: "<< infile
+	      <<"\n Executing command:\n";
+    for (int i = 0; i < argc; i++) std::cout <<" "<< argv[i];
+    std::cout <<"\n\nInput file: "<< infile
 	      <<"\nEquation solver: "<< solver
 	      <<"\nNumber of Gauss points: "<< nGauss;
     if (format >= 0)

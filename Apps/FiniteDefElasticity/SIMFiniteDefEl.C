@@ -16,6 +16,7 @@
 #include "LinearMaterial.h"
 #include "NeoHookeMaterial.h"
 #include "PlasticMaterial.h"
+#include "NonlinearElasticityFbar.h"
 #include "NonlinearElasticityULMixed.h"
 #include "NonlinearElasticityULMX.h"
 #include "NeoHookeElasticity.h"
@@ -31,6 +32,10 @@ SIMFiniteDefEl2D::SIMFiniteDefEl2D (const std::vector<int>& options)
 
   switch (form)
     {
+    case SIM::FBAR:
+      // F-bar formulation
+      myProblem = new NonlinearElasticityFbar(2,pOrd);
+      break;
     case SIM::MIXED_QnQn1:
       nf[1] = 2; // continuous volumetric change and pressure fields
       myProblem = new NonlinearElasticityULMixed(2);
@@ -146,6 +151,10 @@ SIMFiniteDefEl3D::SIMFiniteDefEl3D (bool checkRHS,
 
   switch (form)
     {
+    case SIM::FBAR:
+      // F-bar formulation
+      myProblem = new NonlinearElasticityFbar(3,pOrd);
+      break;
     case SIM::MIXED_QnQn1:
       nf[1] = 2; // continuous volumetric change and pressure fields
       myProblem = new NonlinearElasticityULMixed();
