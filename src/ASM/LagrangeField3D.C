@@ -36,8 +36,7 @@ double LagrangeField3D::valueNode(int node) const
 double LagrangeField3D::valueFE(const FiniteElement& fe) const
 {
   Vector N;
-  Matrix dNdu;
-  Lagrange::computeBasis(N,dNdu,p1,fe.xi,p2,fe.eta,p3,fe.zeta);
+  Lagrange::computeBasis(N,p1,fe.xi,p2,fe.eta,p3,fe.zeta);
 
   const int nel1 = (n1-1)/p1;
   const int nel2 = (n2-1)/p2;
@@ -52,16 +51,16 @@ double LagrangeField3D::valueFE(const FiniteElement& fe) const
   const int node2 = p2*iel2-1;
   const int node3 = p3*iel3-1;
 
-  int node;
+  int node, i, j, k;
   int locNode = 1;
   double value = 0.0;
-  for (int k = node3;k <= node3+p3;k++)
-    for (int j = node2;j <= node2+p2;j++)
-      for (int i = node1;i <= node1+p1;i++, locNode++) {
+  for (k = node3; k <= node3+p3; k++)
+    for (j = node2; j <= node2+p2; j++)
+      for (i = node1; i <= node1+p1; i++, locNode++)
+      {
 	node = (k-1)*n1*n2 + (j-1)*n1 + i;
 	value += values(node)*N(locNode);
       }
-      
 
   return value;
 }
@@ -95,15 +94,15 @@ bool LagrangeField3D::gradFE(const FiniteElement& fe, Vector& grad) const
   const int node1 = p1*iel1-1;
   const int node2 = p2*iel2-1;
   const int node3 = p3*iel3-1;
-  
+
   const int nen = (p1+1)*(p2+1)*(p3+1);
   Matrix Xnod(nsd,nen);
 
   int node, i, j, k;
   int locNode = 1;
-  for (k = node3;k <= node3+p3;k++) 
-    for (j = node2;j <= node2+p2;j++) 
-      for (i = node1;i <= node1+p1;i++, locNode++) {
+  for (k = node3; k <= node3+p3; k++)
+    for (j = node2; j <= node2+p2; j++)
+      for (i = node1; i <= node1+p1; i++, locNode++) {
 	node = (k-1)*n1*n2 + (j-1)*n1 + i;
 	Xnod.fillColumn(locNode,coord.getColumn(node));
       }
@@ -111,15 +110,12 @@ bool LagrangeField3D::gradFE(const FiniteElement& fe, Vector& grad) const
   Matrix Jac, dNdX;
   utl::Jacobian(Jac,dNdX,Xnod,dNdu,false);
 
-  double value;
   locNode = 1;
-  for (k = node3;k <= node3+p3;k++) 
-    for (j = node2;j <= node2+p2;j++)
+  for (k = node3; k <= node3+p3; k++)
+    for (j = node2; j <= node2+p2; j++)
       for (i = node1;i <= node1+p1;i++, locNode++) {
 	node = (k-1)*n1*n2 + (j-1)*n1 + i;
-	value = values(node);
-	for (int k = 1;k <= nsd;k++) 
-	  grad(k) += value*dNdX(locNode,k);
+	grad.add(dNdX.getColumn(locNode),values(node));
       }
 
   return true;

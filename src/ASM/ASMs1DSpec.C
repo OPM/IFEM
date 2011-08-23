@@ -119,7 +119,7 @@ bool ASMs1DSpec::integrate (Integrand& integrand,
 	dNdu.fillColumn(1,D1.getRow(i+1));
       }
       else
-	if (!Lagrange::computeBasis(fe.N,dNdu,points1,xg1[i]))
+	if (!Lagrange::computeBasis(fe.N,&dNdu,points1,xg1[i]))
 	  return false;
 
       // Compute Jacobian inverse of coordinate mapping and derivatives

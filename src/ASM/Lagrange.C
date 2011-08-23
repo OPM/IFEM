@@ -16,15 +16,6 @@
 
 bool Lagrange::evalPol (int polnum, double xi, double& retval) const
 {
-  // Check if evaluation point is inside the range of interpolation points
-  if (xi < points.front() || xi > points.back())
-  {
-    std::cerr <<" *** Lagrange::evalPol: Evaluation point out of range: "
-	      << xi <<", must be in the interval ["<< points.front()
-	      <<","<< points.back() <<"]"<< std::endl;
-    return false;
-  }
-
   // Degree of polynomials = number of polynomials
   size_t degree = points.size();
 
@@ -86,7 +77,22 @@ bool Lagrange::evalDer (int polnum, double xi, double& retval) const
 }
 
 
-bool Lagrange::computeBasis (Vector& val,
+bool Lagrange::computeBasis (RealArray& val,
+			     int p1, double x1,
+			     int p2, double x2,
+			     int p3, double x3)
+{
+  // Define the Lagrangian interpolation points
+  RealArray points1(p1), points2(p2), points3(p3);
+  for (int i = 0; i < p1; i++) points1[i] = -1.0 + (i+i)/double(p1-1);
+  for (int j = 0; j < p2; j++) points2[j] = -1.0 + (j+j)/double(p2-1);
+  for (int k = 0; k < p3; k++) points3[k] = -1.0 + (k+k)/double(p3-1);
+
+  return Lagrange::computeBasis(val,0,points1,x1,points2,x2,points3,x3);
+}
+
+
+bool Lagrange::computeBasis (RealArray& val,
 			     Matrix& derval,
 			     int p1, double x1,
 			     int p2, double x2,
@@ -98,12 +104,12 @@ bool Lagrange::computeBasis (Vector& val,
   for (int j = 0; j < p2; j++) points2[j] = -1.0 + (j+j)/double(p2-1);
   for (int k = 0; k < p3; k++) points3[k] = -1.0 + (k+k)/double(p3-1);
 
-  return Lagrange::computeBasis(val,derval,points1,x1,points2,x2,points3,x3);
+  return Lagrange::computeBasis(val,&derval,points1,x1,points2,x2,points3,x3);
 }
 
 
-bool Lagrange::computeBasis (Vector& val,
-			     Matrix& derval,
+bool Lagrange::computeBasis (RealArray& val,
+			     Matrix* derval,
 			     const RealArray& points1, double x1,
 			     const RealArray& points2, double x2,
 			     const RealArray& points3, double x3)
@@ -144,11 +150,15 @@ bool Lagrange::computeBasis (Vector& val,
   // Evaluate values of the 3-dimensional basis functions in the point x
   val.resize(nen);
 
-  size_t count = 1;
+  size_t count = 0;
   for (k = 0; k < n3; k++)
     for (j = 0; j < n2; j++)
       for (i = 0; i < n1; i++, count++)
-	val(count) = tempval1[i]*tempval2[j]*tempval3[k];
+	val[count] = tempval1[i]*tempval2[j]*tempval3[k];
+
+  if (!derval) return true;
+
+  Matrix& deriv = *derval;
 
   // Vectors of derivative values for the one dimensional polynomials
   RealArray tempder1(p1), tempder2(p2), tempder3(p3);
@@ -167,16 +177,16 @@ bool Lagrange::computeBasis (Vector& val,
       return false;
 
   // Evaluate derivatives of the 3-dimensional basis functions in the point x
-  derval.resize(nen, p3 > 0 ? 3 : (p2 > 0 ? 2 : 1));
+  derval->resize(nen, p3 > 0 ? 3 : (p2 > 0 ? 2 : 1));
 
   count = 1;
   for (k = 0; k < n3; k++)
     for (j = 0; j < n2; j++)
       for (i = 0; i < n1; i++, count++)
       {
-	if (p1 > 0) derval(count,1) = tempder1[i]*tempval2[j]*tempval3[k];
-	if (p2 > 0) derval(count,2) = tempval1[i]*tempder2[j]*tempval3[k];
-	if (p3 > 0) derval(count,3) = tempval1[i]*tempval2[j]*tempder3[k];
+	if (p1 > 0) deriv(count,1) = tempder1[i]*tempval2[j]*tempval3[k];
+	if (p2 > 0) deriv(count,2) = tempval1[i]*tempder2[j]*tempval3[k];
+	if (p3 > 0) deriv(count,3) = tempval1[i]*tempval2[j]*tempder3[k];
       }
 
   return true;

@@ -41,30 +41,28 @@ bool LagrangeFields2D::valueNode(int node, Vector& vals) const
 bool LagrangeFields2D::valueFE(const FiniteElement& fe, Vector& vals) const
 {
   vals.resize(nf,0.0);
-  
+
   Vector N;
-  Matrix dNdu;
-  Lagrange::computeBasis(N,dNdu,p1,fe.xi,p2,fe.eta);
+  Lagrange::computeBasis(N,p1,fe.xi,p2,fe.eta);
 
   const int nel1 = (n1-1)/p1;
 
   div_t divresult = div(fe.iel,nel1);
-  const int iel1  = divresult.rem;
-  const int iel2  = divresult.quot;
+  int iel1 = divresult.rem;
+  int iel2 = divresult.quot;
   const int node1 = p1*iel1-1;
   const int node2 = p2*iel2-1;
 
-  int node, dof;
+  int i, j, k, dof;
   int locNode = 1;
   double value;
-  for (int j = node2;j <= node2+p2;j++)
-    for (int i = node1;i <= node1+p1;i++, locNode++) {
-      node = (j-1)*n1 + i;
+  for (j = node2; j <= node2+p2; j++)
+    for (i = node1; i <= node1+p1; i++, locNode++)
+    {
+      dof = nf*((j-1)*n1 + i-1) + 1;
       value = N(locNode);
-      for (int k = 1;k <= nf;k++) {
-	dof = nf*(node-1) + k;
+      for (k = 1; k <= nf; k++, dof++)
 	vals(k) += values(dof)*value;
-      }
     }
 
   return true;
@@ -91,18 +89,19 @@ bool LagrangeFields2D::gradFE(const FiniteElement& fe, Matrix& grad) const
   const int nel1 = (n1-1)/p1;
 
   div_t divresult = div(fe.iel,nel1);
-  const int iel1  = divresult.rem;
-  const int iel2  = divresult.quot;
+  int iel1 = divresult.rem;
+  int iel2 = divresult.quot;
   const int node1 = p1*iel1-1;
   const int node2 = p2*iel2-1;
-  
+
   const int nen = (p1+1)*(p2+1);
   Matrix Xnod(nsd,nen);
 
-  int node;
+  int node, dof, i, j;
   int locNode = 1;
-  for (int j = node2;j <= node2+p2;j++)
-    for (int i = node1;i <= node1+p1;i++, locNode++) {
+  for (j = node2; j <= node2+p2; j++)
+    for (i = node1; i <= node1+p1; i++, locNode++)
+    {
       node = (j-1)*n1 + i;
       Xnod.fillColumn(locNode,coord.getColumn(node));
     }
@@ -110,18 +109,14 @@ bool LagrangeFields2D::gradFE(const FiniteElement& fe, Matrix& grad) const
   Matrix Jac, dNdX;
   utl::Jacobian(Jac,dNdX,Xnod,dNdu,false);
 
-  double value;
-  int dof;
   locNode = 1;
-  for (int j = node2;j <= node2+p2;j++)
-    for (int i = node1;i <= node1+p1;i++, locNode++) {
-      node = (j-1)*n1 + i;
-      for (int k = 1;k <= nf;k++) {
-	dof = nf*(node-1) + k;
-	value = values(dof);
-	for (int l = 1;l <= nsd;l++) 
-	  grad(k,l) += value*dNdX(locNode,l);
-      }
+  for (j = node2; j <= node2+p2; j++)
+    for (i = node1; i <= node1+p1; i++, locNode++)
+    {
+      dof = nf*((j-1)*n1 + i-1) + 1;
+      for (int k = 1; k <= nf; k++, dof++)
+	for (int l = 1; l <= nsd; l++)
+	  grad(k,l) += values(dof)*dNdX(locNode,l);
     }
 
   return true;
