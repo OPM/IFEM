@@ -15,7 +15,6 @@
 #include "MaterialBase.h"
 #include "FiniteElement.h"
 #include "ElmMats.h"
-#include "ElmNorm.h"
 #include "TimeDomain.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
@@ -556,7 +555,7 @@ bool ElasticityNormULMX::finalizeElement (LocalIntegral*& elmInt,
 
   // 2. Evaluate the constitutive relation and integrate energy.
 
-  ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt);
+  ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt,6);
 
   SymmTensor Sig(3), Eps(3);
   for (iP = 0; iP < nGP; iP++)
@@ -573,17 +572,15 @@ bool ElasticityNormULMX::finalizeElement (LocalIntegral*& elmInt,
     Tensor Fbar(pt.F);
     Fbar *= pow(fabs(Theta[iP]/pt.F.det()),1.0/3.0);
 
-    // Compute the strain energy density, U(Eps) = Int_Eps (Sig:E) dE
+    // Compute the strain energy density, U(Eps) = Int_Eps (S:E) dE
+    // and the Cauchy stress tensor, Sig
     double U = 0.0;
     if (!p.material->evaluate(p.Cmat,Sig,U,pt.X,Fbar,Eps,3,&prm,&pt.F))
       return false;
 
-    // Integrate energy norm a(u^h,u^h) = Int_Omega0 U(Eps) dV0
-    pnorm[0] += U*pt.detJW;
-    // Integrate the L2-norm ||Sig|| = Int_Omega0 Sig:Sig dV0
-    pnorm[2] += Sig.L2norm(false)*pt.detJW;
-    // Integrate the von Mises stress norm
-    pnorm[3] += Sig.vonMises(false)*pt.detJW;
+    // Integrate the norms
+    if (!ElasticityNormUL::evalInt(pnorm,Sig,U,Theta[iP],pt.detJW))
+      return false;
   }
 
   return true;

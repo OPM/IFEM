@@ -179,7 +179,6 @@ C
       Cst = Cst * detFi
 C
       if (ipsw .gt. 3)                            then
-         write(iwr,9030) 'Press =', Press
          call rprin0(Sig, 1, 6,'Sig   ', iwr)
          call rprin0(Cst, 6, 6,'Cst   ', iwr)
       endif
@@ -249,6 +248,7 @@ C
           if (ipsw .gt. 3)                        then
               write(iwr,9010) 'WITH OUTPUT ARGUMENTS'
               write(iwr,9030) 'Engy   =', Engy
+              write(iwr,9030) 'Press  =', Press
               call rprin0(Sig, 1, 6,'Sig   ', iwr)
               call rprin0(Cst, 6, 6,'Cst   ', iwr)
           endif

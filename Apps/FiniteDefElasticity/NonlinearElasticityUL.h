@@ -139,7 +139,11 @@ public:
 		       const Vec3& X, const Vec3& normal) const;
 
   //! \brief Returns the number of norm quantities.
-  virtual size_t getNoFields() const { return 4; }
+  virtual size_t getNoFields() const { return 6; }
+
+protected:
+  static bool evalInt(ElmNorm& pnorm, const SymmTensor& S,
+                      double U, double detF, double detJxW);
 
 private:
   // Data for path-integral of the external energy due to boundary tractions

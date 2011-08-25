@@ -14,11 +14,10 @@
 #include "NonlinearElasticityFbar.h"
 #include "MaterialBase.h"
 #include "FiniteElement.h"
+#include "GaussQuadrature.h"
 #include "Lagrange.h"
-#include "ElmNorm.h"
 #include "TimeDomain.h"
 #include "Tensor.h"
-#include "GaussQuadrature.h"
 
 
 NonlinearElasticityFbar::NonlinearElasticityFbar (unsigned short int n, int nvp)
@@ -454,8 +453,6 @@ bool ElasticityNormFbar::evalInt (LocalIntegral*& elmInt,
 {
   NonlinearElasticityFbar& p = static_cast<NonlinearElasticityFbar&>(myProblem);
 
-  ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt);
-
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E
   size_t nsd = fe.dNdX.cols();
   Tensor F(nsd);
@@ -488,17 +485,13 @@ bool ElasticityNormFbar::evalInt (LocalIntegral*& elmInt,
   Fbar *= pow(fabs(Jbar/F.det()),1.0/(double)nsd);
 
   // Compute the strain energy density, U(E) = Int_E (Sig:Eps) dEps
+  // and the Cauchy stress tensor, S
   double U = 0.0;
   SymmTensor S(nsd,p.material->isPlaneStrain());
   if (!p.material->evaluate(p.Cmat,S,U,X,Fbar,E,3,&prm,&F))
     return false;
 
-  // Integrate the energy norm a(u^h,u^h) = Int_Omega0 U(E) dV0
-  pnorm[0] += U*fe.detJxW;
-  // Integrate the L2-norm ||Sig|| = Int_Omega0 Sig:Sig dV0
-  pnorm[2] += S.L2norm(false)*fe.detJxW;
-  // Integrate the von Mises stress norm
-  pnorm[3] += S.vonMises(false)*fe.detJxW;
-
-  return true;
+  // Integrate the norms
+  return ElasticityNormUL::evalInt(getElmNormBuffer(elmInt,6),
+				   S,U,F.det(),fe.detJxW);
 }

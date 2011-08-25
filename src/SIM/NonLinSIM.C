@@ -343,7 +343,7 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName,
   bool haveRFs = model->getCurrentReactions(RF,solution.front());
 
   if (energyNorm)
-    if (!model->solutionNorms(time,solution,eNorm,gNorm))
+    if (!model->solutionNorms(time,solution,gNorm))
       gNorm.clear();
 
   if (myPid == 0)
@@ -384,7 +384,13 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName,
     if (gNorm.size() > 2)
       std::cout <<"\n  Stress norm, L2: (sigma^h,sigma^h)^0.5 : "<< gNorm(3);
     if (gNorm.size() > 3)
-      std::cout <<"\n  Stress norm, von Mises: vm(sigma^h)    : "<< gNorm(4);
+      std::cout <<"\n  Pressure norm, L2:       (p^h,p^h)^0.5 : "<< gNorm(4)
+		<<"\t(p^h = trace(sigma^h)/3)";
+    if (gNorm.size() > 4)
+      std::cout <<"\n  Deviatoric stress norm:  (s^d,s^d)^0.5 : "<< gNorm(5)
+		<<"\t(s^d = sigma^h - p^h*I)";
+    if (gNorm.size() > 5)
+      std::cout <<"\n  Stress norm, von Mises: vm(sigma^h)    : "<< gNorm(6);
     std::cout << std::endl;
     utl::zero_print_tol = old_tol;
     if (stdPrec > 0) std::cout.precision(stdPrec);

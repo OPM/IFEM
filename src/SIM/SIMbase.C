@@ -698,7 +698,7 @@ double SIMbase::solutionNorms (const Vector& x, double* inf,
 
 
 bool SIMbase::solutionNorms (const TimeDomain& time, const Vectors& psol,
-			     Matrix& eNorm, Vector& gNorm)
+			     Vector& gNorm, Matrix* eNorm)
 {
   NormBase* norm = myProblem->getNormIntegrand(mySol);
   if (!norm)
@@ -712,25 +712,26 @@ bool SIMbase::solutionNorms (const TimeDomain& time, const Vectors& psol,
   PROFILE1("Norm integration");
 
   myProblem->initIntegration(time);
-
-  size_t nNorms = norm->getNoFields();
   const Vector& primsol = psol.front();
 
-  size_t i, nel = mySam->getNoElms();
-  eNorm.resize(nNorms,nel,true);
+  size_t nNorms = norm->getNoFields();
   gNorm.resize(nNorms,true);
 
   // Initialize norm integral classes
   GlbNorm globalNorm(gNorm,GlbNorm::SQRT);
   LintegralVec elementNorms;
-  elementNorms.reserve(nel);
-  for (i = 0; i < nel; i++)
-    elementNorms.push_back(new ElmNorm(eNorm.ptr(i)));
+  if (eNorm)
+  {
+    eNorm->resize(nNorms,mySam->getNoElms(),true);
+    elementNorms.reserve(eNorm->cols());
+    for (size_t i = 0; i < eNorm->cols(); i++)
+      elementNorms.push_back(new ElmNorm(eNorm->ptr(i)));
+  }
 
   // Loop over the different material regions, integrating solution norm terms
   // for the patch domain associated with each material
   bool ok = true;
-  size_t j = 0, lp = 0;
+  size_t i, j = 0, lp = 0;
   for (i = 0; i < myProps.size() && ok; i++)
     if (myProps[i].pcode == Property::MATERIAL)
       if ((j = myProps[i].patch) < 1 || j > myModel.size())
@@ -816,7 +817,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time, const Vectors& psol,
 #endif
 
   delete norm;
-  for (i = 0; i < nel; i++)
+  for (i = 0; i < elementNorms.size(); i++)
     delete elementNorms[i];
 
   return ok;

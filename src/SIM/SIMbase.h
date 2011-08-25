@@ -218,10 +218,10 @@ public:
   //! error in the solution are computed as well.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations.
   //! \param[in] psol Primary solution vectors
-  //! \param[out] eNorm Element-wise norm quantities
   //! \param[out] gNorm Global norm quantities
+  //! \param[out] eNorm Element-wise norm quantities
   virtual bool solutionNorms(const TimeDomain& time, const Vectors& psol,
-			     Matrix& eNorm, Vector& gNorm);
+			     Vector& gNorm, Matrix* eNorm = 0);
 
   //! \brief Integrates some solution norm quantities.
   //! \details If an analytical solution is provided, norms of the exact
@@ -232,7 +232,7 @@ public:
   //!
   //! \details Use this version for linear/stationary problems only.
   virtual bool solutionNorms(const Vectors& psol, Matrix& eNorm, Vector& gNorm)
-  { return this->solutionNorms(TimeDomain(),psol,eNorm,gNorm); }
+  { return this->solutionNorms(TimeDomain(),psol,gNorm,&eNorm); }
 
   //! \brief Computes the total reaction forces in the model.
   //! \param[out] RF Reaction force in each spatial direction + energy

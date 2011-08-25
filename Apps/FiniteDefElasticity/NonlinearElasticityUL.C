@@ -332,26 +332,44 @@ bool ElasticityNormUL::evalInt (LocalIntegral*& elmInt,
 {
   NonlinearElasticityUL& ulp = static_cast<NonlinearElasticityUL&>(myProblem);
 
-  ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt);
-
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E
   Tensor F(fe.dNdX.cols());
   SymmTensor E(fe.dNdX.cols());
   if (!ulp.kinematics(fe.dNdX,F,E))
     return false;
 
-  // Compute the strain energy density, U(E) = Int_E (Sig:Eps) dEps
+  // Compute the strain energy density, U(E) = Int_E (S:Eps) dEps
+  // and the Cauchy stress tensor, sigma
   double U = 0.0;
-  SymmTensor S(E.dim(),ulp.material->isPlaneStrain());
-  if (!ulp.material->evaluate(ulp.Cmat,S,U,X,F,E,3,&prm))
+  SymmTensor sigma(E.dim(),ulp.material->isPlaneStrain());
+  if (!ulp.material->evaluate(ulp.Cmat,sigma,U,X,F,E,3,&prm))
     return false;
 
+  // Integrate the norms
+  return evalInt(getElmNormBuffer(elmInt,6),sigma,U,F.det(),fe.detJxW);
+}
+
+
+bool ElasticityNormUL::evalInt (ElmNorm& pnorm, const SymmTensor& S,
+				double U, double detF, double detJxW)
+{
   // Integrate the energy norm a(u^h,u^h) = Int_Omega0 U(E) dV0
-  pnorm[0] += U*fe.detJxW;
-  // Integrate the L2-norm ||Sig|| = Int_Omega0 Sig:Sig dV0
-  pnorm[2] += S.L2norm(false)*fe.detJxW;
+  pnorm[0] += U*detJxW;
+
+  // Integrate the L2-norm ||S|| = Int_Omega S:S dV
+  detJxW *= detF;
+  pnorm[2] += S.L2norm(false)*detJxW;
+
+  // Integrate the L2-norm ||p|| = Int_Omega (trace(S)/nsd)^2 dV
+  double p = S.trace() / (double)(S.size() == 4 ? 3 : S.dim());
+  pnorm[3] += p*p*detJxW;
+
+  // Integrate the L2-norm ||S_dev|| = Int_Omega (S-p*I):(S-p*I) dV
+  SymmTensor Sdev(S); Sdev -= p;
+  pnorm[4] += Sdev.L2norm(false)*detJxW;
+
   // Integrate the von Mises stress norm
-  pnorm[3] += S.vonMises(false)*fe.detJxW;
+  pnorm[5] += S.vonMises(false)*detJxW;
 
   return true;
 }
@@ -363,8 +381,6 @@ bool ElasticityNormUL::evalBou (LocalIntegral*& elmInt,
 {
   NonlinearElasticityUL& ulp = static_cast<NonlinearElasticityUL&>(myProblem);
   if (!ulp.haveLoads()) return true;
-
-  ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt);
 
   // Evaluate the current surface traction
   Vec3 t = ulp.getTraction(X,normal);
@@ -387,6 +403,6 @@ bool ElasticityNormUL::evalBou (LocalIntegral*& elmInt,
     up.push_back(u);
   }
 
-  pnorm[1] += Ux[iP++]*fe.detJxW;
+  getElmNormBuffer(elmInt)[1] += Ux[iP++]*fe.detJxW;
   return true;
 }
