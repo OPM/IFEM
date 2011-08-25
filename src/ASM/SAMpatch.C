@@ -38,6 +38,19 @@ bool SAMpatch::init (const ASMVec& model, int numNod)
 	    <<"\nNumber of nodes       "<< nnod
 	    <<"\nNumber of dofs        "<< ndof << std::endl;
 
+  if (!nodeType.empty())
+  {
+    // Count the number of DOFs in each basis
+    std::map<char,size_t>::const_iterator it;
+    std::map<char,size_t> ndofs;
+    ndofs['D'] = ndofs['P'] = 0;
+    for (size_t n = 0; n < nodeType.size(); n++)
+      ndofs[nodeType[n]] += madof[n+1] - madof[n];
+    for (it = ndofs.begin(); it != ndofs.end(); it++)
+      std::cout <<"Number of "<< it->first <<"-dofs      "
+		<< it->second << std::endl;
+  }
+
   // Initialize the element connectivity arrays (mpmnpc,mmnpc)
   if (!this->initElementConn(model))
     return false;
