@@ -286,10 +286,6 @@ bool SAM::getNoDofCouplings (IntVec& nnz) const
 {
   nnz.clear();
 
-  // RUNAR
-  // Not implemented for constrained equations yet
-  //if (nceq > 0) return false;
-
   // Find the set of DOF couplings for each free DOF
   std::vector<IntSet> dofc;
   if (!this->getDofCouplings(dofc))
@@ -531,7 +527,12 @@ void SAM::assembleReactions (Vector& reac, const RealArray& eS, int iel) const
 
 bool SAM::getElmEqns (IntVec& meen, int iel, int nedof) const
 {
-  if (iel < 1 || iel > nel) return false;
+  if (iel < 1 || iel > nel)
+  {
+    std::cerr <<"SAM::getElmEqns: Element "<< iel <<" is out of range [1,"
+	      << nel <<"]"<< std::endl;
+    return false;
+  }
 
   int ip = mpmnpc[iel-1];
   int nenod = mpmnpc[iel] - ip;
@@ -564,7 +565,12 @@ bool SAM::getElmEqns (IntVec& meen, int iel, int nedof) const
 
 bool SAM::getNodeEqns (IntVec& mnen, int inod) const
 {
-  if (inod < 1 || inod > nnod) return false;
+  if (inod < 1 || inod > nnod)
+  {
+    std::cerr <<"SAM::getNodeEqns: Node "<< inod <<" is out of range [1,"
+	      << nnod <<"]"<< std::endl;
+    return false;
+  }
 
   mnen.clear();
   mnen.reserve(madof[inod]-madof[inod-1]);
@@ -749,7 +755,11 @@ real SAM::getReaction (int dir, const Vector& rf) const
 bool SAM::getNodalReactions (int inod, const Vector& rf, Vector& nrf) const
 {
   if (inod < 1 || inod > nnod)
+  {
+    std::cerr <<"SAM::getNodalReactions: Node "<< inod <<" is out of range [1,"
+	      << nnod <<"]"<< std::endl;
     return false;
+  }
 
   bool haveRF = false;
   int ip = madof[inod-1]-1;

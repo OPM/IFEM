@@ -183,11 +183,14 @@ bool PlasticMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
       sigma.transform(Fi); // sigma = F^-1 * sigma * F^-t
       sigma *= J;
       //TODO: Also pull-back the C-matrix (Total Lagrange formulation)
+      std::cerr <<" *** PlasticMaterial::evaluate: Not available for"
+		<<" Total Lagrangian formulation, sorry."<< std::endl;
+      return false;
     }
     else
     {
-      SymmTensor S(sigma); // Make a copy of sigma since it should be Cauchy stress when iop=3
-      S.transform(Fi);     // S = F^-1 * S * F^-t
+      SymmTensor S(sigma); // sigma should be Cauchy stress when iop=3
+      S.transform(Fi);     // S = F^-1 * sigma * F^-t
       if (iAmIntegrating)
         U = itgPoints[iP1-1]->energyIntegral(S,eps)*J;
       else

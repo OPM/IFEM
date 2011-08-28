@@ -316,15 +316,12 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
   {
     // Evaluate the Lagrange polynomials extrapolating the volumetric
     // sampling points (assuming a regular distribution over the element)
-    RealArray Nbar;
+    Vector Nbar;
     int pbar3 = nsd > 2 ? pbar : 0;
-    if (Lagrange::computeBasis(Nbar,pbar,fe.xi*scale,pbar,fe.eta*scale,
-			       pbar3,fe.zeta*scale)) return false;
-
+    if (!Lagrange::computeBasis(Nbar,pbar,fe.xi*scale,pbar,fe.eta*scale,
+				pbar3,fe.zeta*scale)) return false;
 #ifdef INT_DEBUG
-    std::cout <<"NonlinearElasticityFbar::Nbar =";
-    for (size_t i = 0; i < Nbar.size(); i++) std::cout <<" "<< Nbar[i];
-    std::cout << std::endl;
+    std::cout <<"NonlinearElasticityFbar::Nbar ="<< Nbar;
 #endif
 
     // Compute modified deformation gradient determinant and basis function
@@ -380,8 +377,7 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
 
   if (eKm)
   {
-    // Compute standard and mixed discrete spatial gradient operators
-    Matrix G, Gbar;
+    // Compute standard and modified discrete spatial gradient operators
     getGradOperator(dNdx,G);
     getGradOperator(dMdx,Gbar);
 
@@ -412,11 +408,12 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
 	    <<"NonlinearElasticityFbar::Q ="<< Q;
 #endif
 
-    // Compute and accumulate contribution to tangent stiffness matrix
+    // Compute and accumulate contribution to tangent stiffness matrix.
+
     // First, standard (material and geometric) tangent stiffness terms
     eKm->multiply(G,CB.multiply(A,G),true,false,true); // EK += G^T * A*G
 
-    // Modify the tangent stiffness for the F-bar terms
+    // Then, modify the tangent stiffness for the F-bar terms
     Gbar -= G;
     eKm->multiply(G,CB.multiply(Q,Gbar),true,false,true); // EK += G^T * Q*Gbar
   }
@@ -451,10 +448,10 @@ bool ElasticityNormFbar::evalInt (LocalIntegral*& elmInt,
 				  const TimeDomain& prm,
 				  const Vec3& X) const
 {
+  size_t nsd = fe.dNdX.cols();
   NonlinearElasticityFbar& p = static_cast<NonlinearElasticityFbar&>(myProblem);
 
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E
-  size_t nsd = fe.dNdX.cols();
   Tensor F(nsd);
   SymmTensor E(nsd);
   if (!p.kinematics(fe.dNdX,F,E))
@@ -484,14 +481,14 @@ bool ElasticityNormFbar::evalInt (LocalIntegral*& elmInt,
   Tensor Fbar(F);
   Fbar *= pow(fabs(Jbar/F.det()),1.0/(double)nsd);
 
-  // Compute the strain energy density, U(E) = Int_E (Sig:Eps) dEps
-  // and the Cauchy stress tensor, S
+  // Compute the strain energy density, U(E) = Int_E (S:Eps) dEps
+  // and the Cauchy stress tensor, sigma
   double U = 0.0;
-  SymmTensor S(nsd,p.material->isPlaneStrain());
-  if (!p.material->evaluate(p.Cmat,S,U,X,Fbar,E,3,&prm,&F))
+  SymmTensor sigma(nsd,p.material->isPlaneStrain());
+  if (!p.material->evaluate(p.Cmat,sigma,U,X,Fbar,E,3,&prm,&F))
     return false;
 
   // Integrate the norms
   return ElasticityNormUL::evalInt(getElmNormBuffer(elmInt,6),
-				   S,U,F.det(),fe.detJxW);
+				   sigma,U,F.det(),fe.detJxW);
 }

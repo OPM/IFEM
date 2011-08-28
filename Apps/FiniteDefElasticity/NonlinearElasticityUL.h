@@ -142,6 +142,15 @@ public:
   virtual size_t getNoFields() const { return 6; }
 
 protected:
+  //! \brief Evaluates and accumulates the point-wise norm quantities.
+  //! \param pnorm The element norms
+  //! \param[in] S Cauchy stress tensor
+  //! \param[in] U Strain energy density
+  //! \param[in] detF Determinant of deformation gradient
+  //! \param[in] detJxW Jacobian determinant times integration point weight
+  //!
+  //! \details This method is used by the virtual \a evalInt method and is
+  //! separated out such that it also can be reused by sub-classes.
   static bool evalInt(ElmNorm& pnorm, const SymmTensor& S,
                       double U, double detF, double detJxW);
 

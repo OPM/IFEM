@@ -136,11 +136,22 @@ bool NeoHookeMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
       sigma.transform(Fi); // sigma = F^-1 * sigma * F^-t
       sigma *= J;
       //TODO: Also pull-back the C-matrix (Total Lagrange formulation)
+      std::cerr <<" *** NeoHookeMaterial::evaluate: Not available for"
+                <<" Total Lagrangian formulation, sorry."<< std::endl;
+      return false;
     }
     else
     {
-      SymmTensor S(sigma); // Make a copy of sigma since it should be Cauchy stress when iop=3
-      U = S.transform(Fi).innerProd(eps)*J; //TODO: Replace this by proper path integral
+      SymmTensor S(sigma); // sigma should be Cauchy stress when iop=3
+      U = S.transform(Fi).innerProd(eps)*J;
+      //TODO: Replace the above by proper path integral
+      static bool first = true;
+      if (first)
+	std::cerr <<"  ** NeoHookeMaterial::evaluate: Path-integration of"
+		  <<" strain energy density is not implemented.\n"
+		  <<"     Warning: The strain energy will be incorrect."
+		  << std::endl;
+      first = false;
     }
   }
 

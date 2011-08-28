@@ -36,6 +36,7 @@ class NonlinearElasticityFbar : public NonlinearElasticityUL
 public:
   //! \brief The default constructor invokes the parent class constructor.
   //! \param[in] n Number of spatial dimensions
+  //! \param[in] nvp Number of volumetric sampling points in each direction
   NonlinearElasticityFbar(unsigned short int n = 3, int nvp = 1);
   //! \brief Empty destructor.
   virtual ~NonlinearElasticityFbar() {}
@@ -58,11 +59,6 @@ public:
   //! \param[in] fe Finite element data of current integration point
   //! \param[in] prm Nonlinear solution algorithm parameters
   //! \param[in] X Cartesian coordinates of current integration point
-  //!
-  //! \details This method mainly stores the integration point quantities
-  //! depending on the basis function values in the internal member \a myData.
-  //! The actual numerical integration of the tangent stiffness and internal
-  //! forces is then performed by the \a finalizeElement method.
   virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
 		       const TimeDomain& prm, const Vec3& X) const;
 
@@ -80,9 +76,12 @@ private:
   int    pbar;  //!< Polynomial order of the internal volumetric data field
   double scale; //!< Scaling factor for extrapolation from sampling points
 
-  mutable size_t iP;   //!< Local sampling point counter
-  mutable Matrix dMdx; //!< Modified basis function gradients
   mutable std::vector<VolPtData> myVolData; //!< Volumetric sampling point data
+
+  mutable size_t iP;   //!< Volumetric sampling point counter
+  mutable Matrix dMdx; //!< Modified basis function gradients
+  mutable Matrix G;    //!< Discrete gradient operator
+  mutable Matrix Gbar; //!< Modified discrete gradient operator
 
   friend class ElasticityNormFbar;
 };

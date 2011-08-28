@@ -74,7 +74,7 @@ Tensor& Tensor::operator= (const Tensor& T)
       for (t_ind j = (this->symmetric() ? i : 1); j <= ndim; j++)
 	v[this->index(i,j)] = T(i,j);
 
-    if (v.size() == 4 && T.v.size() >= 4)
+    if (this->symmetric() && v.size() == 4 && T.v.size() >= 4)
       v[2] = T(3,3);
   }
 
@@ -106,6 +106,9 @@ Tensor& Tensor::operator= (real val)
   for (i = j = 0; i < n; i++, j += inc)
     v[j] = val;
 
+  if (inc == 1 && v.size() == 4)
+    v[2] = val;
+
   return *this;
 }
 
@@ -130,6 +133,9 @@ Tensor& Tensor::operator+= (real val)
   for (i = j = 0; i < n; i++, j += inc)
     v[j] += val;
 
+  if (inc == 1 && v.size() == 4)
+    v[2] += val;
+
   return *this;
 }
 
@@ -153,6 +159,9 @@ Tensor& Tensor::operator-= (real val)
   t_ind i, j, inc = this->symmetric() ? 1 : n+1;
   for (i = j = 0; i < n; i++, j += inc)
     v[j] -= val;
+
+  if (inc == 1 && v.size() == 4)
+    v[2] -= val;
 
   return *this;
 }
@@ -455,15 +464,12 @@ real SymmTensor::trace () const
 {
   real t = real(0);
 
-  if (n == 3)
+  if (n == 3 || v.size() == 4)
     t = v[0] + v[1] + v[2];
   else if (n == 2)
     t = v[0] + v[1];
   else if (n == 1)
     t = v[0];
-
-  if (v.size() == 4)
-    t += v[2];
 
   return t;
 }
