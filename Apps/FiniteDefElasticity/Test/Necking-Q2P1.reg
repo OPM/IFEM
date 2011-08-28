@@ -1,7 +1,5 @@
 Necking-Q2P1.inp -2D -MX 1 -nGauss 3 -outPrec 6
 
- >>> Spline FEM Finite Deformation Nonlinear solver <<<
- ======================================================
 Input file: Necking-Q2P1.inp
 Equation solver: 2
 Number of Gauss points: 3
@@ -49,8 +47,12 @@ Number of unknowns    155
                             Max Y-displacement : 0.05 node 85
   Total reaction forces: Sum(R) = -1.10906e-08 0
   displacement\*reactions: (R,u) = -0.134839
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.25953	 a(u^h,u^h) = 0.06735585339
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.25953	 a(u^h,u^h) = 0.06735585341
   External energy: ((f,u^h)+(t,u^h))^0.5 : -0.259653	(f,u)+(t,u) = 0.06741949732
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 5.74594
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 2.37299	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 4.01531	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 4.91773
   Node #7:	sol1 = -4.789559e-03  0.000000e+00
 		sol2 =  6.789873e-03  4.544007e-01  1.337453e-01 -9.779539e-04  3.995615e-01
 		reac =  0.000000e+00  1.864097e-01
@@ -63,8 +65,12 @@ Number of unknowns    155
                             Max Y-displacement : 0.1 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -0.332625
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.466811	 a(u^h,u^h) = 0.217912706
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.466863	 a(u^h,u^h) = 0.217960612
   External energy: ((f,u^h)+(t,u^h))^0.5 : -0.4669	(f,u)+(t,u) = 0.2179953514
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 7.28943
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 3.132	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 4.86904	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 5.96333
   Node #7:	sol1 = -1.579185e-02  0.000000e+00
 		sol2 =  1.089145e-02  5.411839e-01  2.249857e-01  2.078689e-03  4.620896e-01
 		reac =  0.000000e+00  2.243787e-01
@@ -77,8 +83,12 @@ Number of unknowns    155
                             Max Y-displacement : 0.15 node 85
   Total reaction forces: Sum(R) = 1.81767e-08 0
   displacement\*reactions: (R,u) = -0.511455
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.621535	 a(u^h,u^h) = 0.3863054351
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.621598	 a(u^h,u^h) = 0.3863838447
   External energy: ((f,u^h)+(t,u^h))^0.5 : -0.621606	(f,u)+(t,u) = 0.386394193
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 7.63545
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 3.34893	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 4.96529	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 6.08121
   Node #7:	sol1 = -2.749900e-02  0.000000e+00
 		sol2 =  1.406206e-02  5.594808e-01  2.605683e-01  2.228185e-03  4.730885e-01
 		reac =  0.000000e+00  2.300941e-01
@@ -91,8 +101,12 @@ Number of unknowns    155
                             Max Y-displacement : 0.2 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -0.694979
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.747272	 a(u^h,u^h) = 0.5584147019
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.747345	 a(u^h,u^h) = 0.558523966
   External energy: ((f,u^h)+(t,u^h))^0.5 : -0.747335	(f,u)+(t,u) = 0.5585089942
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 7.88158
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 3.48909	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 5.05946	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 6.19655
   Node #7:	sol1 = -3.916832e-02  0.000000e+00
 		sol2 =  1.701287e-02  5.747175e-01  2.812335e-01  2.276855e-03  4.832241e-01
 		reac =  0.000000e+00  2.346196e-01
@@ -105,8 +119,12 @@ Number of unknowns    155
                             Max Y-displacement : 0.25 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -0.883312
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.856512	 a(u^h,u^h) = 0.7336129013
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.856594	 a(u^h,u^h) = 0.7337529006
   External energy: ((f,u^h)+(t,u^h))^0.5 : -0.85657	(f,u)+(t,u) = 0.7337124769
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 8.07583
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 3.59106	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 5.1509	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 6.30854
   Node #7:	sol1 = -5.079234e-02  0.000000e+00
 		sol2 =  1.994070e-02  5.888053e-01  2.953078e-01  2.263204e-03  4.927502e-01
 		reac =  0.000000e+00  2.386824e-01
@@ -119,8 +137,12 @@ Number of unknowns    155
                             Max Y-displacement : 0.3 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -1.0764
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.954798	 a(u^h,u^h) = 0.9116391248
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.954888	 a(u^h,u^h) = 0.9118105956
   External energy: ((f,u^h)+(t,u^h))^0.5 : -0.954853	(f,u)+(t,u) = 0.9117438552
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 8.24162
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 3.673	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 5.23942	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 6.41695
   Node #7:	sol1 = -6.239438e-02  0.000000e+00
 		sol2 =  2.288569e-02  6.022756e-01  3.062610e-01  2.226339e-03  5.018210e-01
 		reac =  0.000000e+00  2.424860e-01
@@ -133,8 +155,12 @@ Number of unknowns    155
                             Max Y-displacement : 0.35 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -1.27405
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.04515	 a(u^h,u^h) = 1.09233762
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.04525	 a(u^h,u^h) = 1.092542197
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.0452	(f,u)+(t,u) = 1.092447423
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 8.39057
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 3.74372	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 5.32498	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 6.52175
   Node #7:	sol1 = -7.397887e-02  0.000000e+00
 		sol2 =  2.584081e-02  6.152760e-01  3.156202e-01  2.187162e-03  5.105038e-01
 		reac =  0.000000e+00  2.460922e-01
@@ -147,8 +173,12 @@ Number of unknowns    155
                             Max Y-displacement : 0.4 node 85
   Total reaction forces: Sum(R) = 3.60502e-08 0
   displacement\*reactions: (R,u) = -1.47598
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.12942	 a(u^h,u^h) = 1.275584708
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.12952	 a(u^h,u^h) = 1.275824671
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.12947	(f,u)+(t,u) = 1.275699523
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 8.52863
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 3.80767	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 5.40764	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 6.62298
   Node #7:	sol1 = -8.554370e-02  0.000000e+00
 		sol2 =  2.878634e-02  6.278472e-01  3.240914e-01  2.155406e-03  5.188326e-01
 		reac =  0.000000e+00  2.495242e-01
@@ -161,8 +191,12 @@ Number of unknowns    155
                             Max Y-displacement : 0.45 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -1.68192
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.20883	 a(u^h,u^h) = 1.461268644
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.20894	 a(u^h,u^h) = 1.461546656
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.20888	(f,u)+(t,u) = 1.461388423
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 8.65892
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 3.86715	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 5.48747	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 6.72075
   Node #7:	sol1 = -9.708643e-02  0.000000e+00
 		sol2 =  3.170136e-02  6.400012e-01  3.320096e-01  2.134880e-03  5.268301e-01
 		reac =  0.000000e+00  2.527941e-01
@@ -175,8 +209,12 @@ Number of unknowns    155
                             Max Y-displacement : 0.5 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -1.8916
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.28424	 a(u^h,u^h) = 1.649283982
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.28437	 a(u^h,u^h) = 1.649602884
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.28429	(f,u)+(t,u) = 1.649408688
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 8.78311
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 3.92338	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 5.56456	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 6.81517
   Node #7:	sol1 = -1.086055e-01  0.000000e+00
 		sol2 =  3.456721e-02  6.517425e-01  3.395353e-01  2.126421e-03  5.345144e-01
 		reac =  0.000000e+00  2.559106e-01
@@ -189,8 +227,12 @@ Number of unknowns    155
                             Max Y-displacement : 0.55 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -2.10476
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.35629	 a(u^h,u^h) = 1.839529906
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.35643	 a(u^h,u^h) = 1.839892577
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.35634	(f,u)+(t,u) = 1.839659508
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 8.90218
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 3.97704	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 5.639	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 6.90634
   Node #7:	sol1 = -1.201004e-01  0.000000e+00
 		sol2 =  3.736835e-02  6.630747e-01  3.467459e-01  2.129460e-03  5.419013e-01
 		reac =  0.000000e+00  2.588809e-01
@@ -203,8 +245,12 @@ Number of unknowns    155
                             Max Y-displacement : 0.6 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -2.32113
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.42545	 a(u^h,u^h) = 2.031909644
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.42559	 a(u^h,u^h) = 2.03231891
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.4255	(f,u)+(t,u) = 2.03204412
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 9.0167
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.02851	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 5.71088	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 6.99437
   Node #7:	sol1 = -1.315709e-01  0.000000e+00
 		sol2 =  4.009224e-02  6.740023e-01  3.536790e-01  2.142837e-03  5.490051e-01
 		reac =  0.000000e+00  2.617114e-01
@@ -217,8 +263,12 @@ Number of unknowns    155
                             Max Y-displacement : 0.65 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -2.5405
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.49209	 a(u^h,u^h) = 2.226330205
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.49224	 a(u^h,u^h) = 2.226788784
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.49214	(f,u)+(t,u) = 2.226469538
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 9.12705
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.07804	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 5.7803	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 7.07939
   Node #7:	sol1 = -1.430173e-01  0.000000e+00
 		sol2 =  4.272898e-02  6.845306e-01  3.603529e-01  2.165217e-03  5.558388e-01
 		reac =  0.000000e+00  2.644084e-01
@@ -231,8 +281,12 @@ Number of unknowns    155
                             Max Y-displacement : 0.7 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -2.76263
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.5565	 a(u^h,u^h) = 2.422702198
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.55667	 a(u^h,u^h) = 2.42321267
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.55655	(f,u)+(t,u) = 2.422846376
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 9.23349
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.12577	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 5.84734	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 7.16149
   Node #7:	sol1 = -1.544402e-01  0.000000e+00
 		sol2 =  4.527093e-02  6.946663e-01  3.667771e-01  2.195281e-03  5.624148e-01
 		reac =  0.000000e+00  2.669774e-01
@@ -245,8 +299,12 @@ Number of unknowns    155
                             Max Y-displacement : 0.75 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -2.98731
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.61893	 a(u^h,u^h) = 2.620939686
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.61911	 a(u^h,u^h) = 2.621504473
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.61898	(f,u)+(t,u) = 2.621088703
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 9.33622
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.17182	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 5.91208	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 7.24079
   Node #7:	sol1 = -1.658402e-01  0.000000e+00
 		sol2 =  4.771227e-02  7.044166e-01  3.729574e-01  2.231817e-03  5.687443e-01
 		reac =  0.000000e+00  2.694240e-01
@@ -259,8 +317,12 @@ Number of unknowns    155
                             Max Y-displacement : 0.8 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -3.21434
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.67957	 a(u^h,u^h) = 2.82096005
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.67976	 a(u^h,u^h) = 2.821581411
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.67962	(f,u)+(t,u) = 2.821113905
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 9.43541
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.21628	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 5.97462	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 7.31738
   Node #7:	sol1 = -1.772180e-01  0.000000e+00
 		sol2 =  5.004869e-02  7.137897e-01  3.788975e-01  2.273750e-03  5.748380e-01
 		reac =  0.000000e+00  2.717530e-01
@@ -273,8 +335,12 @@ Number of unknowns    155
                             Max Y-displacement : 0.85 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -3.44354
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.73859	 a(u^h,u^h) = 3.022683862
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.73878	 a(u^h,u^h) = 3.023363891
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.73863	(f,u)+(t,u) = 3.022842556
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 9.53121
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.2592	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.03502	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 7.39136
   Node #7:	sol1 = -1.885745e-01  0.000000e+00
 		sol2 =  5.227713e-02  7.227942e-01  3.846012e-01  2.320146e-03  5.807061e-01
 		reac =  0.000000e+00  2.739696e-01
@@ -287,8 +353,12 @@ Number of unknowns    155
                             Max Y-displacement : 0.9 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -3.67471
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.79612	 a(u^h,u^h) = 3.226034762
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.79632	 a(u^h,u^h) = 3.226775389
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.79616	(f,u)+(t,u) = 3.226198301
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 9.62375
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.30067	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.09338	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 7.46283
   Node #7:	sol1 = -1.999106e-01  0.000000e+00
 		sol2 =  5.439550e-02  7.314389e-01  3.900718e-01  2.370198e-03  5.863581e-01
 		reac =  0.000000e+00  2.760781e-01
@@ -301,8 +371,12 @@ Number of unknowns    155
                             Max Y-displacement : 0.95 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -3.9077
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.85228	 a(u^h,u^h) = 3.430939339
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.8525	 a(u^h,u^h) = 3.431742337
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.85232	(f,u)+(t,u) = 3.431107734
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 9.71314
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.34073	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.14975	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 7.53188
   Node #7:	sol1 = -2.112273e-01  0.000000e+00
 		sol2 =  5.640255e-02  7.397332e-01  3.953133e-01  2.423220e-03  5.918030e-01
 		reac =  0.000000e+00  2.780832e-01
@@ -315,8 +389,12 @@ Number of unknowns    155
                             Max Y-displacement : 1 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -4.14234
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.90718	 a(u^h,u^h) = 3.637327023
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.90741	 a(u^h,u^h) = 3.638194008
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.90722	(f,u)+(t,u) = 3.637500286
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 9.79952
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.37943	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.20422	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 7.59859
   Node #7:	sol1 = -2.225258e-01  0.000000e+00
 		sol2 =  5.829767e-02  7.476864e-01  4.003297e-01  2.478625e-03  5.970495e-01
 		reac =  0.000000e+00  2.799889e-01
@@ -329,8 +407,12 @@ Number of unknowns    155
                             Max Y-displacement : 1.05 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -4.37848
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.9609	 a(u^h,u^h) = 3.845129967
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.96114	 a(u^h,u^h) = 3.846062412
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.96095	(f,u)+(t,u) = 3.845308116
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 9.88298
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.41683	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.25685	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 7.66305
   Node #7:	sol1 = -2.338071e-01  0.000000e+00
 		sol2 =  6.008079e-02  7.553079e-01  4.051254e-01  2.535916e-03  6.021058e-01
 		reac =  0.000000e+00  2.817994e-01
@@ -343,8 +425,12 @@ Number of unknowns    155
                             Max Y-displacement : 1.1 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -4.61597
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.01353	 a(u^h,u^h) = 4.054282952
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.01377	 a(u^h,u^h) = 4.055282185
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.01357	(f,u)+(t,u) = 4.054466005
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 9.96365
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.45298	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.30771	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 7.72534
   Node #7:	sol1 = -2.450725e-01  0.000000e+00
 		sol2 =  6.175227e-02  7.626070e-01  4.097048e-01  2.594670e-03  6.069797e-01
 		reac =  0.000000e+00  2.835184e-01
@@ -357,8 +443,12 @@ Number of unknowns    155
                             Max Y-displacement : 1.15 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -4.85469
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.06512	 a(u^h,u^h) = 4.264723276
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.06538	 a(u^h,u^h) = 4.265790493
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.06517	(f,u)+(t,u) = 4.264911257
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 10.0416
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.48791	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.35686	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 7.78553
   Node #7:	sol1 = -2.563235e-01  0.000000e+00
 		sol2 =  6.331283e-02  7.695933e-01  4.140726e-01  2.654527e-03  6.116787e-01
 		reac =  0.000000e+00  2.851497e-01
@@ -371,8 +461,12 @@ Number of unknowns    155
                             Max Y-displacement : 1.2 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -5.09451
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.11575	 a(u^h,u^h) = 4.476390664
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.11602	 a(u^h,u^h) = 4.477526932
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.11579	(f,u)+(t,u) = 4.476583599
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 10.117
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.52168	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.40437	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 7.84372
   Node #7:	sol1 = -2.675615e-01  0.000000e+00
 		sol2 =  6.476345e-02  7.762758e-01  4.182338e-01  2.715184e-03  6.162100e-01
 		reac =  0.000000e+00  2.866968e-01
@@ -385,8 +479,12 @@ Number of unknowns    155
                             Max Y-displacement : 1.25 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -5.3353
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.16546	 a(u^h,u^h) = 4.689227172
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.16574	 a(u^h,u^h) = 4.690433437
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.16551	(f,u)+(t,u) = 4.689425091
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 10.1898
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.55433	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.45029	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 7.89996
   Node #7:	sol1 = -2.787880e-01  0.000000e+00
 		sol2 =  6.610534e-02  7.826639e-01  4.221932e-01  2.776383e-03  6.205804e-01
 		reac =  0.000000e+00  2.881630e-01
@@ -399,8 +497,12 @@ Number of unknowns    155
                             Max Y-displacement : 1.3 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -5.57695
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.21431	 a(u^h,u^h) = 4.903177096
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.2146	 a(u^h,u^h) = 4.904454187
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.21436	(f,u)+(t,u) = 4.903380029
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 10.2602
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.58589	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.49468	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 7.95433
   Node #7:	sol1 = -2.900050e-01  0.000000e+00
 		sol2 =  6.733990e-02  7.887664e-01  4.259558e-01  2.837907e-03  6.247965e-01
 		reac =  0.000000e+00  2.895517e-01
@@ -413,8 +515,12 @@ Number of unknowns    155
                             Max Y-displacement : 1.35 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -5.81935
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.26234	 a(u^h,u^h) = 5.118186884
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.26264	 a(u^h,u^h) = 5.119535521
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.26239	(f,u)+(t,u) = 5.118394866
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 10.3283
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.61641	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.5376	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.0069
   Node #7:	sol1 = -3.012141e-01  0.000000e+00
 		sol2 =  6.846866e-02  7.945922e-01  4.295266e-01  2.899574e-03  6.288647e-01
 		reac =  0.000000e+00  2.908658e-01
@@ -427,8 +533,12 @@ Number of unknowns    155
                             Max Y-displacement : 1.4 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -6.06242
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.30959	 a(u^h,u^h) = 5.334205054
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.3099	 a(u^h,u^h) = 5.335625855
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.30964	(f,u)+(t,u) = 5.334418124
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 10.3941
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.64591	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.5791	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.05772
   Node #7:	sol1 = -3.124177e-01  0.000000e+00
 		sol2 =  6.949325e-02  8.001499e-01  4.329106e-01  2.961232e-03  6.327909e-01
 		reac =  0.000000e+00  2.921083e-01
@@ -441,8 +551,12 @@ Number of unknowns    155
                             Max Y-displacement : 1.45 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -6.30604
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.35609	 a(u^h,u^h) = 5.551182114
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.35641	 a(u^h,u^h) = 5.552675597
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.35614	(f,u)+(t,u) = 5.551400312
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 10.4578
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.67445	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.61923	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.10687
   Node #7:	sol1 = -3.236178e-01  0.000000e+00
 		sol2 =  7.041539e-02  8.054481e-01  4.361126e-01  3.022754e-03  6.365811e-01
 		reac =  0.000000e+00  2.932822e-01
@@ -455,8 +569,12 @@ Number of unknowns    155
                             Max Y-displacement : 1.5 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -6.55013
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.40189	 a(u^h,u^h) = 5.769070483
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.40222	 a(u^h,u^h) = 5.770637075
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.40194	(f,u)+(t,u) = 5.769293852
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 10.5194
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.70206	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.65804	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.1544
   Node #7:	sol1 = -3.348170e-01  0.000000e+00
 		sol2 =  7.123682e-02  8.104948e-01  4.391376e-01  3.084039e-03  6.402408e-01
 		reac =  0.000000e+00  2.943900e-01
@@ -469,8 +587,12 @@ Number of unknowns    155
                             Max Y-displacement : 1.55 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -6.7946
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.447	 a(u^h,u^h) = 5.987824415
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.44734	 a(u^h,u^h) = 5.989464455
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.44705	(f,u)+(t,u) = 5.988053002
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 10.5789
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.72876	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.69558	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.20038
   Node #7:	sol1 = -3.460180e-01  0.000000e+00
 		sol2 =  7.195934e-02  8.152982e-01  4.419903e-01  3.145006e-03  6.437755e-01
 		reac =  0.000000e+00  2.954345e-01
@@ -483,8 +605,12 @@ Number of unknowns    155
                             Max Y-displacement : 1.6 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -7.03939
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.49147	 a(u^h,u^h) = 6.207399929
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.49181	 a(u^h,u^h) = 6.209113676
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.49151	(f,u)+(t,u) = 6.207633784
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 10.6366
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.75458	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.73189	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.24485
   Node #7:	sol1 = -3.572239e-01  0.000000e+00
 		sol2 =  7.258475e-02  8.198661e-01  4.446755e-01  3.205592e-03  6.471903e-01
 		reac =  0.000000e+00  2.964180e-01
@@ -497,8 +623,12 @@ Number of unknowns    155
                             Max Y-displacement : 1.65 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -7.2844
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.5353	 a(u^h,u^h) = 6.427754741
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.53565	 a(u^h,u^h) = 6.429542375
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.53535	(f,u)+(t,u) = 6.427993916
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 10.6923
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.77957	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.76702	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.28787
   Node #7:	sol1 = -3.684379e-01  0.000000e+00
 		sol2 =  7.311483e-02  8.242061e-01  4.471977e-01  3.265755e-03  6.504903e-01
 		reac =  0.000000e+00  2.973430e-01
@@ -511,8 +641,12 @@ Number of unknowns    155
                             Max Y-displacement : 1.7 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -7.52958
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.57854	 a(u^h,u^h) = 6.648848192
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.5789	 a(u^h,u^h) = 6.650709822
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.57858	(f,u)+(t,u) = 6.649092744
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 10.7462
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.80375	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.801	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.3295
   Node #7:	sol1 = -3.796636e-01  0.000000e+00
 		sol2 =  7.355134e-02  8.283255e-01  4.495616e-01  3.325466e-03  6.536804e-01
 		reac =  0.000000e+00  2.982118e-01
@@ -525,8 +659,12 @@ Number of unknowns    155
                             Max Y-displacement : 1.75 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -7.77485
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.62119	 a(u^h,u^h) = 6.870641187
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.62156	 a(u^h,u^h) = 6.872576854
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.62124	(f,u)+(t,u) = 6.870891177
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 10.7984
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.82715	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.83389	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.36977
   Node #7:	sol1 = -3.909053e-01  0.000000e+00
 		sol2 =  7.389598e-02  8.322315e-01  4.517714e-01  3.384713e-03  6.567652e-01
 		reac =  0.000000e+00  2.990264e-01
@@ -539,8 +677,12 @@ Number of unknowns    155
                             Max Y-displacement : 1.8 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -8.02016
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.66329	 a(u^h,u^h) = 7.093096134
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.66366	 a(u^h,u^h) = 7.095105813
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.66333	(f,u)+(t,u) = 7.093351624
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 10.849
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.8498	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.86572	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.40875
   Node #7:	sol1 = -4.021673e-01  0.000000e+00
 		sol2 =  7.415041e-02  8.359310e-01  4.538313e-01  3.443501e-03  6.597494e-01
 		reac =  0.000000e+00  2.997891e-01
@@ -553,8 +695,12 @@ Number of unknowns    155
                             Max Y-displacement : 1.85 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -8.26544
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.70484	 a(u^h,u^h) = 7.316176879
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.70523	 a(u^h,u^h) = 7.318260489
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.70489	(f,u)+(t,u) = 7.316437937
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 10.8978
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.87172	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.89652	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.44648
   Node #7:	sol1 = -4.134548e-01  0.000000e+00
 		sol2 =  7.431617e-02  8.394306e-01  4.557456e-01  3.501847e-03  6.626373e-01
 		reac =  0.000000e+00  3.005017e-01
@@ -567,8 +713,12 @@ Number of unknowns    155
                             Max Y-displacement : 1.9 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -8.51065
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.74588	 a(u^h,u^h) = 7.53984865
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.74627	 a(u^h,u^h) = 7.542006054
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.74593	(f,u)+(t,u) = 7.540115349
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 10.9452
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.89294	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.92634	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.483
   Node #7:	sol1 = -4.247735e-01  0.000000e+00
 		sol2 =  7.439472e-02  8.427369e-01  4.575181e-01  3.559786e-03  6.654333e-01
 		reac =  0.000000e+00  3.011662e-01
@@ -581,8 +731,12 @@ Number of unknowns    155
                             Max Y-displacement : 1.95 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -8.75572
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.78641	 a(u^h,u^h) = 7.764078004
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.78681	 a(u^h,u^h) = 7.766309011
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.78646	(f,u)+(t,u) = 7.76435042
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 10.991
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.91348	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.9552	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.51835
   Node #7:	sol1 = -4.361297e-01  0.000000e+00
 		sol2 =  7.438739e-02  8.458560e-01  4.591525e-01  3.617368e-03  6.681415e-01
 		reac =  0.000000e+00  3.017843e-01
@@ -595,8 +749,12 @@ Number of unknowns    155
                             Max Y-displacement : 2 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -9.00062
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.82645	 a(u^h,u^h) = 7.988832766
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.82686	 a(u^h,u^h) = 7.991137138
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.8265	(f,u)+(t,u) = 7.989110981
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.0353
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.93337	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.98315	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.55257
   Node #7:	sol1 = -4.475307e-01  0.000000e+00
 		sol2 =  7.429534e-02  8.487938e-01  4.606525e-01  3.674658e-03  6.707661e-01
 		reac =  0.000000e+00  3.023578e-01
@@ -609,8 +767,12 @@ Number of unknowns    155
                             Max Y-displacement : 2.05 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -9.24529
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.86602	 a(u^h,u^h) = 8.214081979
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.86644	 a(u^h,u^h) = 8.216459433
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.86607	(f,u)+(t,u) = 8.21436608
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.0783
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.95263	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.01021	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.58571
   Node #7:	sol1 = -4.589848e-01  0.000000e+00
 		sol2 =  7.411956e-02  8.515559e-01  4.620213e-01  3.731741e-03  6.733112e-01
 		reac =  0.000000e+00  3.028882e-01
@@ -623,8 +785,12 @@ Number of unknowns    155
                             Max Y-displacement : 2.1 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -9.48969
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.90513	 a(u^h,u^h) = 8.439795851
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.90555	 a(u^h,u^h) = 8.442246061
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.90518	(f,u)+(t,u) = 8.440085932
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.1199
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.97128	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.03641	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.6178
   Node #7:	sol1 = -4.705014e-01  0.000000e+00
 		sol2 =  7.386082e-02  8.541478e-01  4.632620e-01  3.788719e-03  6.757806e-01
 		reac =  0.000000e+00  3.033771e-01
@@ -637,8 +803,12 @@ Number of unknowns    155
                             Max Y-displacement : 2.15 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -9.73378
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.9438	 a(u^h,u^h) = 8.665945702
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.94423	 a(u^h,u^h) = 8.668468306
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.94385	(f,u)+(t,u) = 8.666241865
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.1602
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 4.98935	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.06178	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.64888
   Node #7:	sol1 = -4.820912e-01  0.000000e+00
 		sol2 =  7.351963e-02  8.565745e-01  4.643775e-01  3.845718e-03  6.781784e-01
 		reac =  0.000000e+00  3.038259e-01
@@ -651,8 +821,12 @@ Number of unknowns    155
                             Max Y-displacement : 2.2 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -9.97752
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.98203	 a(u^h,u^h) = 8.892503918
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.98247	 a(u^h,u^h) = 8.895098515
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.98208	(f,u)+(t,u) = 8.892806271
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.1992
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.00685	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.08636	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.67898
   Node #7:	sol1 = -4.937668e-01  0.000000e+00
 		sol2 =  7.309619e-02  8.588407e-01  4.653703e-01  3.902886e-03  6.805086e-01
 		reac =  0.000000e+00  3.042359e-01
@@ -665,8 +839,12 @@ Number of unknowns    155
                             Max Y-displacement : 2.25 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -10.2209
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.01984	 a(u^h,u^h) = 9.119443895
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.02028	 a(u^h,u^h) = 9.122110051
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.01989	(f,u)+(t,u) = 9.119752556
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.237
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.0238	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.11016	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.70814
   Node #7:	sol1 = -5.055425e-01  0.000000e+00
 		sol2 =  7.259032e-02  8.609509e-01  4.662425e-01  3.960401e-03  6.827749e-01
 		reac =  0.000000e+00  3.046083e-01
@@ -679,8 +857,12 @@ Number of unknowns    155
                             Max Y-displacement : 2.3 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -10.4638
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.05724	 a(u^h,u^h) = 9.346739991
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.05769	 a(u^h,u^h) = 9.34947724
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.0573	(f,u)+(t,u) = 9.347055089
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.2736
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.04021	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.13322	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.73638
   Node #7:	sol1 = -5.174354e-01  0.000000e+00
 		sol2 =  7.200141e-02  8.629090e-01  4.669960e-01  4.018474e-03  6.849816e-01
 		reac =  0.000000e+00  3.049442e-01
@@ -693,8 +875,12 @@ Number of unknowns    155
                             Max Y-displacement : 2.35 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -10.7063
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.09425	 a(u^h,u^h) = 9.574367474
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.0947	 a(u^h,u^h) = 9.577175321
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.0943	(f,u)+(t,u) = 9.574689151
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.3091
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.05612	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.15556	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.76373
   Node #7:	sol1 = -5.294654e-01  0.000000e+00
 		sol2 =  7.132828e-02  8.647185e-01  4.676319e-01  4.077355e-03  6.871325e-01
 		reac =  0.000000e+00  3.052447e-01
@@ -707,8 +893,12 @@ Number of unknowns    155
                             Max Y-displacement : 2.4 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -10.9483
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.13086	 a(u^h,u^h) = 9.802302467
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.13132	 a(u^h,u^h) = 9.80518039
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.13092	(f,u)+(t,u) = 9.802630878
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.3434
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.07153	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.17719	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.79023
   Node #7:	sol1 = -5.416561e-01  0.000000e+00
 		sol2 =  7.056909e-02  8.663825e-01  4.681511e-01  4.137346e-03  6.892320e-01
 		reac =  0.000000e+00  3.055106e-01
@@ -721,8 +911,12 @@ Number of unknowns    155
                             Max Y-displacement : 2.45 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -11.1898
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.1671	 a(u^h,u^h) = 10.03052189
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.16757	 a(u^h,u^h) = 10.03346934
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.16715	(f,u)+(t,u) = 10.03085721
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.3767
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.08645	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.19815	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.81589
   Node #7:	sol1 = -5.540359e-01  0.000000e+00
 		sol2 =  6.972114e-02  8.679034e-01  4.685534e-01  4.198809e-03  6.912844e-01
 		reac =  0.000000e+00  3.057425e-01
@@ -735,8 +929,12 @@ Number of unknowns    155
                             Max Y-displacement : 2.5 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -11.4307
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.20297	 a(u^h,u^h) = 10.25900341
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.20344	 a(u^h,u^h) = 10.26201982
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.20302	(f,u)+(t,u) = 10.25934583
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.4089
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.10091	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.21844	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.84075
   Node #7:	sol1 = -5.666390e-01  0.000000e+00
 		sol2 =  6.878069e-02  8.692827e-01  4.688379e-01  4.262186e-03  6.932945e-01
 		reac =  0.000000e+00  3.059411e-01
@@ -749,8 +947,12 @@ Number of unknowns    155
                             Max Y-displacement : 2.55 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -11.6711
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.23848	 a(u^h,u^h) = 10.48772536
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.23895	 a(u^h,u^h) = 10.49081012
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.23853	(f,u)+(t,u) = 10.4880751
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.4401
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.11491	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.23809	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.86482
   Node #7:	sol1 = -5.795072e-01  0.000000e+00
 		sol2 =  6.774258e-02  8.705213e-01  4.690027e-01  4.328018e-03  6.952672e-01
 		reac =  0.000000e+00  3.061067e-01
@@ -763,8 +965,12 @@ Number of unknowns    155
                             Max Y-displacement : 2.6 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -11.9108
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.27363	 a(u^h,u^h) = 10.71666665
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.27411	 a(u^h,u^h) = 10.71981914
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.27369	(f,u)+(t,u) = 10.71702396
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.4704
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.12847	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.25712	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.88811
   Node #7:	sol1 = -5.926923e-01  0.000000e+00
 		sol2 =  6.659989e-02  8.716185e-01  4.690443e-01  4.396985e-03  6.972082e-01
 		reac =  0.000000e+00  3.062393e-01
@@ -777,8 +983,12 @@ Number of unknowns    155
                             Max Y-displacement : 2.65 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -12.1498
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.30844	 a(u^h,u^h) = 10.94580671
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.30893	 a(u^h,u^h) = 10.94902628
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.3085	(f,u)+(t,u) = 10.94617188
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.4996
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.14159	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.27552	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.91066
   Node #7:	sol1 = -6.062589e-01  0.000000e+00
 		sol2 =  6.534326e-02  8.725722e-01  4.689571e-01  4.469945e-03  6.991237e-01
 		reac =  0.000000e+00  3.063388e-01
@@ -791,8 +1001,12 @@ Number of unknowns    155
                             Max Y-displacement : 2.7 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -12.3882
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.34292	 a(u^h,u^h) = 11.17512532
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.34341	 a(u^h,u^h) = 11.1784113
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.34298	(f,u)+(t,u) = 11.17549869
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.5279
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.15428	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.29332	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.93246
   Node #7:	sol1 = -6.202895e-01  0.000000e+00
 		sol2 =  6.396007e-02  8.733782e-01  4.687332e-01  4.548013e-03  7.010209e-01
 		reac =  0.000000e+00  3.064043e-01
@@ -805,8 +1019,12 @@ Number of unknowns    155
                             Max Y-displacement : 2.75 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -12.6258
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.37707	 a(u^h,u^h) = 11.40460251
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.37757	 a(u^h,u^h) = 11.40795419
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.37713	(f,u)+(t,u) = 11.40498447
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.5552
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.16655	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.31052	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.95352
   Node #7:	sol1 = -6.348907e-01  0.000000e+00
 		sol2 =  6.243306e-02  8.740288e-01  4.683607e-01  4.632657e-03  7.029083e-01
 		reac =  0.000000e+00  3.064348e-01
@@ -819,8 +1037,12 @@ Number of unknowns    155
                             Max Y-displacement : 2.8 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -12.8626
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.4109	 a(u^h,u^h) = 11.63421831
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.4114	 a(u^h,u^h) = 11.63763494
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.41095	(f,u)+(t,u) = 11.63460936
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.5816
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.17839	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.32711	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.97384
   Node #7:	sol1 = -6.502034e-01  0.000000e+00
 		sol2 =  6.073829e-02  8.745121e-01  4.678222e-01  4.725867e-03  7.047963e-01
 		reac =  0.000000e+00  3.064281e-01
@@ -833,8 +1055,12 @@ Number of unknowns    155
                             Max Y-displacement : 2.85 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -13.0985
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.44441	 a(u^h,u^h) = 11.86395247
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.44491	 a(u^h,u^h) = 11.86743326
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.44447	(f,u)+(t,u) = 11.8643532
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.607
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.18979	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.34308	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.9934
   Node #7:	sol1 = -6.664184e-01  0.000000e+00
 		sol2 =  5.884181e-02  8.748091e-01  4.670924e-01  4.830416e-03  7.066980e-01
 		reac =  0.000000e+00  3.063811e-01
@@ -847,8 +1073,12 @@ Number of unknowns    155
                             Max Y-displacement : 2.9 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -13.3334
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.47761	 a(u^h,u^h) = 12.09378401
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.47812	 a(u^h,u^h) = 12.09732811
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.47767	(f,u)+(t,u) = 12.09419517
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.6314
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.20074	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.3584	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.01216
   Node #7:	sol1 = -6.838015e-01  0.000000e+00
 		sol2 =  5.669403e-02  8.748896e-01  4.661327e-01  4.950300e-03  7.086301e-01
 		reac =  0.000000e+00  3.062888e-01
@@ -861,8 +1091,12 @@ Number of unknowns    155
                             Max Y-displacement : 2.95 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -13.5671
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.51051	 a(u^h,u^h) = 12.32369049
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.51103	 a(u^h,u^h) = 12.32729697
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.51057	(f,u)+(t,u) = 12.32411307
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.6547
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.21121	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.37302	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.03007
   Node #7:	sol1 = -7.027373e-01  0.000000e+00
 		sol2 =  5.421955e-02  8.747047e-01  4.648833e-01  5.091508e-03  7.106158e-01
 		reac =  0.000000e+00  3.061435e-01
@@ -875,8 +1109,12 @@ Number of unknowns    155
                             Max Y-displacement : 3 node 85
   Total reaction forces: Sum(R) = -1.48991e-08 -1.09999e-08
   displacement\*reactions: (R,u) = -13.7993
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.54311	 a(u^h,u^h) = 12.55364686
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.54363	 a(u^h,u^h) = 12.55731465
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.54317	(f,u)+(t,u) = 12.55408216
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.6767
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.22113	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.38684	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.047
   Node #7:	sol1 = -7.238070e-01  0.000000e+00
 		sol2 =  5.129779e-02  8.741712e-01  4.632458e-01  5.263455e-03  7.126877e-01
 		reac =  0.000000e+00  3.059330e-01
@@ -889,8 +1127,12 @@ Number of unknowns    155
                             Max Y-displacement : 3.05 node 85
   Total reaction forces: Sum(R) = -5.83777e-08 -4.42334e-08
   displacement\*reactions: (R,u) = -14.0296
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.57542	 a(u^h,u^h) = 12.78362324
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.57594	 a(u^h,u^h) = 12.78735107
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.57548	(f,u)+(t,u) = 12.78407311
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.6973
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.2304	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.3997	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.06275
   Node #7:	sol1 = -7.479429e-01  0.000000e+00
 		sol2 =  4.772219e-02  8.731390e-01  4.610482e-01  5.481838e-03  7.148952e-01
 		reac =  0.000000e+00  3.056366e-01
@@ -903,8 +1145,12 @@ Number of unknowns    155
                             Max Y-displacement : 3.1 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -14.2574
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.60743	 a(u^h,u^h) = 13.01358249
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.60796	 a(u^h,u^h) = 13.01736829
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.6075	(f,u)+(t,u) = 13.01404897
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.716
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.23888	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.41132	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.07698
   Node #7:	sol1 = -7.753158e-01  0.000000e+00
 		sol2 =  4.335462e-02  8.714282e-01  4.581362e-01  5.759587e-03  7.172026e-01
 		reac =  0.000000e+00  3.052398e-01
@@ -917,8 +1163,12 @@ Number of unknowns    155
                             Max Y-displacement : 3.15 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -14.4821
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.63916	 a(u^h,u^h) = 13.24348007
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.63969	 a(u^h,u^h) = 13.24732064
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.63923	(f,u)+(t,u) = 13.24396493
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.7326
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.24642	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.42147	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.08941
   Node #7:	sol1 = -8.050532e-01  0.000000e+00
 		sol2 =  3.820144e-02  8.689202e-01  4.544550e-01  6.095137e-03  7.195016e-01
 		reac =  0.000000e+00  3.047470e-01
@@ -931,8 +1181,12 @@ Number of unknowns    155
                             Max Y-displacement : 3.2 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -14.7032
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.67059	 a(u^h,u^h) = 13.47326596
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.67112	 a(u^h,u^h) = 13.47715751
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.67066	(f,u)+(t,u) = 13.47377096
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.7468
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.25297	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.43005	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.09991
   Node #7:	sol1 = -8.367751e-01  0.000000e+00
 		sol2 =  3.216428e-02  8.654665e-01  4.498865e-01  6.488157e-03  7.217492e-01
 		reac =  0.000000e+00  3.041619e-01
@@ -945,8 +1199,12 @@ Number of unknowns    155
                             Max Y-displacement : 3.25 node 85
   Total reaction forces: Sum(R) = -1.56755e-08 -1.05173e-08
   displacement\*reactions: (R,u) = -14.9206
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.70174	 a(u^h,u^h) = 13.70288702
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.70227	 a(u^h,u^h) = 13.70682539
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.70181	(f,u)+(t,u) = 13.7034141
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.7585
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.25848	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.43698	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.1084
   Node #7:	sol1 = -8.702422e-01  0.000000e+00
 		sol2 =  2.511081e-02  8.609093e-01  4.442897e-01  6.930634e-03  7.239234e-01
 		reac =  0.000000e+00  3.034911e-01
@@ -959,8 +1217,12 @@ Number of unknowns    155
                             Max Y-displacement : 3.3 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -15.134
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.7326	 a(u^h,u^h) = 13.9322888
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.73313	 a(u^h,u^h) = 13.93626951
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.73267	(f,u)+(t,u) = 13.93283989
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.7679
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.26295	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.44224	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.11484
   Node #7:	sol1 = -9.050796e-01  0.000000e+00
 		sol2 =  1.705922e-02  8.552422e-01  4.376542e-01  7.377225e-03  7.260017e-01
 		reac =  0.000000e+00  3.027498e-01
@@ -973,8 +1235,12 @@ Number of unknowns    155
                             Max Y-displacement : 3.35 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -15.3433
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.76317	 a(u^h,u^h) = 14.16141661
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.7637	 a(u^h,u^h) = 14.16543511
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.76324	(f,u)+(t,u) = 14.1619938
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.7748
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.26643	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.44584	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.11926
   Node #7:	sol1 = -9.411767e-01  0.000000e+00
 		sol2 =  8.064486e-03  8.485168e-01  4.300179e-01  7.796435e-03  7.279804e-01
 		reac =  0.000000e+00  3.019517e-01
@@ -987,8 +1253,12 @@ Number of unknowns    155
                             Max Y-displacement : 3.4 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -15.5483
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.79344	 a(u^h,u^h) = 14.39021631
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.79398	 a(u^h,u^h) = 14.39426806
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.79352	(f,u)+(t,u) = 14.39082194
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.7795
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.26898	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.44783	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.12169
   Node #7:	sol1 = -9.784713e-01  0.000000e+00
 		sol2 = -1.718236e-03  8.408906e-01  4.215165e-01  8.148324e-03  7.298597e-01
 		reac =  0.000000e+00  3.011112e-01
@@ -1001,8 +1271,12 @@ Number of unknowns    155
                             Max Y-displacement : 3.45 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -15.749
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.82343	 a(u^h,u^h) = 14.61863454
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.82397	 a(u^h,u^h) = 14.62271506
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.82352	(f,u)+(t,u) = 14.61927127
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.7821
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.2707	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.44824	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.12219
   Node #7:	sol1 = -1.016930e+00  0.000000e+00
 		sol2 = -1.199649e-02  8.326609e-01  4.124178e-01  8.383145e-03  7.316418e-01
 		reac =  0.000000e+00  3.002439e-01
@@ -1015,8 +1289,12 @@ Number of unknowns    155
                             Max Y-displacement : 3.5 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -15.9453
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.85313	 a(u^h,u^h) = 14.84661881
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.85366	 a(u^h,u^h) = 14.85072374
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.85322	(f,u)+(t,u) = 14.84728971
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.7827
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.27167	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.44711	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.12081
   Node #7:	sol1 = -1.056540e+00  0.000000e+00
 		sol2 = -2.233248e-02  8.242711e-01  4.031312e-01  8.444529e-03  7.333292e-01
 		reac =  0.000000e+00  2.993658e-01
@@ -1029,8 +1307,12 @@ Number of unknowns    155
                             Max Y-displacement : 3.55 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -16.1371
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.88254	 a(u^h,u^h) = 15.07411767
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.88307	 a(u^h,u^h) = 15.07824271
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.88263	(f,u)+(t,u) = 15.0748262
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.7814
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.27199	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.44448	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.11759
   Node #7:	sol1 = -1.097241e+00  0.000000e+00
 		sol2 = -3.215987e-02  8.162923e-01  3.941949e-01  8.272369e-03  7.349239e-01
 		reac =  0.000000e+00  2.984931e-01
@@ -1043,8 +1325,12 @@ Number of unknowns    155
                             Max Y-displacement : 3.6 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -16.3243
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.91166	 a(u^h,u^h) = 15.30108094
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.91219	 a(u^h,u^h) = 15.30522186
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.91176	(f,u)+(t,u) = 15.30183077
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.7784
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.2717	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.44038	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.11256
   Node #7:	sol1 = -1.138906e+00  0.000000e+00
 		sol2 = -4.081336e-02  8.093934e-01  3.862481e-01  7.810351e-03  7.364275e-01
 		reac =  0.000000e+00  2.976405e-01
@@ -1057,8 +1343,12 @@ Number of unknowns    155
                             Max Y-displacement : 3.65 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -16.5069
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.94049	 a(u^h,u^h) = 15.52745964
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.94102	 a(u^h,u^h) = 15.53161233
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.94059	(f,u)+(t,u) = 15.5282548
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.7738
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.27087	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.43485	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.10579
   Node #7:	sol1 = -1.181523e+00  0.000000e+00
 		sol2 = -4.749804e-02  8.043715e-01  3.800522e-01  7.000391e-03  7.378421e-01
 		reac =  0.000000e+00  2.968215e-01
@@ -1071,8 +1361,12 @@ Number of unknowns    155
                             Max Y-displacement : 3.7 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -16.6848
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.96903	 a(u^h,u^h) = 15.75320618
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.96955	 a(u^h,u^h) = 15.75736651
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.96914	(f,u)+(t,u) = 15.75405099
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.7677
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.26952	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.42792	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.09731
   Node #7:	sol1 = -1.225036e+00  0.000000e+00
 		sol2 = -5.144473e-02  8.019950e-01  3.763614e-01  5.815929e-03  7.391699e-01
 		reac =  0.000000e+00  2.960449e-01
@@ -1085,8 +1379,12 @@ Number of unknowns    155
                             Max Y-displacement : 3.75 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -16.8581
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.99728	 a(u^h,u^h) = 15.97827415
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.9978	 a(u^h,u^h) = 15.98243809
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.9974	(f,u)+(t,u) = 15.97917332
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.7599
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.26768	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.41963	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.08715
   Node #7:	sol1 = -1.269430e+00  0.000000e+00
 		sol2 = -5.181081e-02  8.031034e-01  3.759926e-01  4.221296e-03  7.404136e-01
 		reac =  0.000000e+00  2.953168e-01
@@ -1099,8 +1397,12 @@ Number of unknowns    155
                             Max Y-displacement : 3.8 node 85
   Total reaction forces: Sum(R) = -1.19694e-08 0
   displacement\*reactions: (R,u) = -17.0265
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.02525	 a(u^h,u^h) = 16.20261821
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.02576	 a(u^h,u^h) = 16.20678178
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.02537	(f,u)+(t,u) = 16.20357691
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.7508
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.26535	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.41002	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.07538
   Node #7:	sol1 = -1.314712e+00  0.000000e+00
 		sol2 = -4.776983e-02  8.085165e-01  3.797554e-01  2.197456e-03  7.415758e-01
 		reac =  0.000000e+00  2.946392e-01
@@ -1113,8 +1415,12 @@ Number of unknowns    155
                             Max Y-displacement : 3.85 node 85
   Total reaction forces: Sum(R) = -2.51505e-08 -1.88851e-08
   displacement\*reactions: (R,u) = -17.1902
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.05292	 a(u^h,u^h) = 16.42619396
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.05344	 a(u^h,u^h) = 16.43035325
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.05305	(f,u)+(t,u) = 16.42721787
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.7401
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.26256	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.39911	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.06202
   Node #7:	sol1 = -1.360873e+00  0.000000e+00
 		sol2 = -3.853675e-02  8.190097e-01  3.884254e-01 -2.571098e-04  7.426594e-01
 		reac =  0.000000e+00  2.940089e-01
@@ -1127,8 +1433,12 @@ Number of unknowns    155
                             Max Y-displacement : 3.9 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -17.3489
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.08031	 a(u^h,u^h) = 16.64895777
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.08082	 a(u^h,u^h) = 16.65310889
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.08045	(f,u)+(t,u) = 16.65005313
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.7281
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.25932	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.38693	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.0471
   Node #7:	sol1 = -1.407899e+00  0.000000e+00
 		sol2 = -2.346107e-02  8.352227e-01  4.026644e-01 -3.109038e-03  7.436684e-01
 		reac =  0.000000e+00  2.934170e-01
@@ -1141,8 +1451,12 @@ Number of unknowns    155
                             Max Y-displacement : 3.95 node 85
   Total reaction forces: Sum(R) = -2.96041e-08 -2.11014e-08
   displacement\*reactions: (R,u) = -17.5027
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.10742	 a(u^h,u^h) = 16.87086665
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.10792	 a(u^h,u^h) = 16.87500577
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.10756	(f,u)+(t,u) = 16.87204034
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.7147
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.25563	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.37351	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.03066
   Node #7:	sol1 = -1.455761e+00  0.000000e+00
 		sol2 = -2.126481e-03  8.575631e-01  4.229305e-01 -6.276688e-03  7.446078e-01
 		reac =  0.000000e+00  2.928481e-01
@@ -1155,8 +1469,12 @@ Number of unknowns    155
                             Max Y-displacement : 4 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -17.6514
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.13423	 a(u^h,u^h) = 17.09187821
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.13473	 a(u^h,u^h) = 17.0960015
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.13438	(f,u)+(t,u) = 17.09313775
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.6999
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.25149	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.35885	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.01272
   Node #7:	sol1 = -1.504432e+00  0.000000e+00
 		sol2 =  2.577006e-02  8.863296e-01  4.495675e-01 -9.679764e-03  7.454831e-01
 		reac =  0.000000e+00  2.922839e-01
@@ -1169,8 +1487,12 @@ Number of unknowns    155
                             Max Y-displacement : 4.05 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -17.795
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.16076	 a(u^h,u^h) = 17.31195056
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.16126	 a(u^h,u^h) = 17.31605421
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.16093	(f,u)+(t,u) = 17.31330423
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.6838
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.24692	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.34299	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.99329
   Node #7:	sol1 = -1.553881e+00  0.000000e+00
 		sol2 =  6.039370e-02  9.216885e-01  4.827920e-01 -1.322336e-02  7.463004e-01
 		reac =  0.000000e+00  2.917031e-01
@@ -1183,8 +1505,12 @@ Number of unknowns    155
                             Max Y-displacement : 4.1 node 85
   Total reaction forces: Sum(R) = -2.74317e-08 -1.91054e-08
   displacement\*reactions: (R,u) = -17.9333
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.18701	 a(u^h,u^h) = 17.53104233
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.1875	 a(u^h,u^h) = 17.53512247
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.18718	(f,u)+(t,u) = 17.53249911
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.6663
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.24193	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.32593	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.97239
   Node #7:	sol1 = -1.604067e+00  0.000000e+00
 		sol2 =  1.017540e-01  9.636600e-01  5.226796e-01 -1.678956e-02  7.470661e-01
 		reac =  0.000000e+00  2.910813e-01
@@ -1197,8 +1523,12 @@ Number of unknowns    155
                             Max Y-displacement : 4.15 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -18.0664
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.21297	 a(u^h,u^h) = 17.74911261
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.21345	 a(u^h,u^h) = 17.7531653
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.21316	(f,u)+(t,u) = 17.75068222
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.6476
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.23654	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.30768	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.95004
   Node #7:	sol1 = -1.654951e+00  0.000000e+00
 		sol2 =  1.496790e-01  1.012093e+00  5.691376e-01 -2.024346e-02  7.477872e-01
 		reac =  0.000000e+00  2.903921e-01
@@ -1211,8 +1541,12 @@ Number of unknowns    155
                             Max Y-displacement : 4.2 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -18.1941
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.23865	 a(u^h,u^h) = 17.96612092
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.23912	 a(u^h,u^h) = 17.9701421
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.23885	(f,u)+(t,u) = 17.96781381
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.6276
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.23077	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.28825	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.92625
   Node #7:	sol1 = -1.706482e+00  0.000000e+00
 		sol2 =  2.038323e-01  1.066682e+00  6.219134e-01 -2.344595e-02  7.484711e-01
 		reac =  0.000000e+00  2.896083e-01
@@ -1225,8 +1559,12 @@ Number of unknowns    155
                             Max Y-displacement : 4.25 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -18.3163
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.26404	 a(u^h,u^h) = 18.18202721
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.26451	 a(u^h,u^h) = 18.18601276
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.26425	(f,u)+(t,u) = 18.18385456
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.6065
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.22465	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.26767	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.90104
   Node #7:	sol1 = -1.758620e+00  0.000000e+00
 		sol2 =  2.637554e-01  1.127003e+00  6.806146e-01 -2.628345e-02  7.491245e-01
 		reac =  0.000000e+00  2.887050e-01
@@ -1239,8 +1577,12 @@ Number of unknowns    155
                             Max Y-displacement : 4.3 node 85
   Total reaction forces: Sum(R) = -1.26511e-08 0
   displacement\*reactions: (R,u) = -18.4329
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.28915	 a(u^h,u^h) = 18.39679191
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.28961	 a(u^h,u^h) = 18.40073778
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.28938	(f,u)+(t,u) = 18.3987656
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.5842
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.21822	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.24594	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.87443
   Node #7:	sol1 = -1.811294e+00  0.000000e+00
 		sol2 =  3.287920e-01  1.192442e+00  7.446553e-01 -2.862465e-02  7.497539e-01
 		reac =  0.000000e+00  2.876555e-01
@@ -1253,8 +1595,12 @@ Number of unknowns    155
                             Max Y-displacement : 4.35 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -18.544
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.31397	 a(u^h,u^h) = 18.610376
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.31443	 a(u^h,u^h) = 18.61427802
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.31422	(f,u)+(t,u) = 18.61250854
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.5608
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.21152	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.22308	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.84643
   Node #7:	sol1 = -1.864458e+00  0.000000e+00
 		sol2 =  3.982865e-01  1.262378e+00  8.134166e-01 -3.039839e-02  7.503660e-01
 		reac =  0.000000e+00  2.864379e-01
@@ -1267,8 +1613,12 @@ Number of unknowns    155
                             Max Y-displacement : 4.4 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -18.6494
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.33852	 a(u^h,u^h) = 18.82274091
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.33896	 a(u^h,u^h) = 18.82659483
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.33878	(f,u)+(t,u) = 18.8250455
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.5365
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.20459	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.1991	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.81706
   Node #7:	sol1 = -1.918072e+00  0.000000e+00
 		sol2 =  4.715945e-01  1.336196e+00  8.862634e-01 -3.156442e-02  7.509667e-01
 		reac =  0.000000e+00  2.850317e-01
@@ -1281,8 +1631,12 @@ Number of unknowns    155
                             Max Y-displacement : 4.45 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -18.749
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.36278	 a(u^h,u^h) = 19.03384857
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.36322	 a(u^h,u^h) = 19.03764997
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.36307	(f,u)+(t,u) = 19.03633904
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.5112
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.19747	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.17401	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.78633
   Node #7:	sol1 = -1.972094e+00  0.000000e+00
 		sol2 =  5.481759e-01  1.413368e+00  9.626300e-01 -3.212036e-02  7.515603e-01
 		reac =  0.000000e+00  2.834192e-01
@@ -1295,8 +1649,12 @@ Number of unknowns    155
                             Max Y-displacement : 4.5 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -18.8427
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.38676	 a(u^h,u^h) = 19.24366138
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.38719	 a(u^h,u^h) = 19.24740563
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.38707	(f,u)+(t,u) = 19.24635217
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.485
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.19019	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.14782	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.75425
   Node #7:	sol1 = -2.026472e+00  0.000000e+00
 		sol2 =  6.277257e-01  1.493590e+00  1.042145e+00 -3.211957e-02  7.521494e-01
 		reac =  0.000000e+00  2.815879e-01
@@ -1309,8 +1667,12 @@ Number of unknowns    155
                             Max Y-displacement : 4.55 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -18.9306
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.41046	 a(u^h,u^h) = 19.45214198
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.41088	 a(u^h,u^h) = 19.4558242
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.41079	(f,u)+(t,u) = 19.45504826
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.458
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.1828	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.12053	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.72084
   Node #7:	sol1 = -2.081171e+00  0.000000e+00
 		sol2 =  7.098192e-01  1.576446e+00  1.124376e+00 -3.151552e-02  7.527369e-01
 		reac =  0.000000e+00  2.795178e-01
@@ -1323,8 +1685,12 @@ Number of unknowns    155
                             Max Y-displacement : 4.6 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -19.0124
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.43388	 a(u^h,u^h) = 19.65925334
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.43428	 a(u^h,u^h) = 19.66286832
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.43423	(f,u)+(t,u) = 19.66239097
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.4302
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.17529	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.09215	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.68608
   Node #7:	sol1 = -2.136189e+00  0.000000e+00
 		sol2 =  7.937666e-01  1.661255e+00  1.208648e+00 -3.022567e-02  7.533252e-01
 		reac =  0.000000e+00  2.771849e-01
@@ -1337,8 +1703,12 @@ Number of unknowns    155
                             Max Y-displacement : 4.65 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -19.0882
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.45701	 a(u^h,u^h) = 19.86495822
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.45741	 a(u^h,u^h) = 19.86850049
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.45739	(f,u)+(t,u) = 19.86834406
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.4016
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.16771	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.06267	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.64997
   Node #7:	sol1 = -2.191541e+00  0.000000e+00
 		sol2 =  8.792257e-01  1.747660e+00  1.294539e+00 -2.825673e-02  7.539139e-01
 		reac =  0.000000e+00  2.745688e-01
@@ -1351,8 +1721,12 @@ Number of unknowns    155
                             Max Y-displacement : 4.7 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -19.1577
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.47987	 a(u^h,u^h) = 20.06921897
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.48025	 a(u^h,u^h) = 20.07268267
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.48028	(f,u)+(t,u) = 20.07287108
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.3723
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.16005	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.03205	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.61247
   Node #7:	sol1 = -2.247253e+00  0.000000e+00
 		sol2 =  9.656689e-01  1.835133e+00  1.381523e+00 -2.544852e-02  7.545036e-01
 		reac =  0.000000e+00  2.716340e-01
@@ -1365,8 +1739,12 @@ Number of unknowns    155
                             Max Y-displacement : 4.75 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -19.2207
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.50244	 a(u^h,u^h) = 20.27199708
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.50282	 a(u^h,u^h) = 20.27537584
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.50288	(f,u)+(t,u) = 20.27593519
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.342
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.15228	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.00026	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.57354
   Node #7:	sol1 = -2.303347e+00  0.000000e+00
 		sol2 =  1.052112e+00  1.922698e+00  1.468702e+00 -2.148577e-02  7.550984e-01
 		reac =  0.000000e+00  2.683327e-01
@@ -1379,8 +1757,12 @@ Number of unknowns    155
                             Max Y-displacement : 4.8 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -19.2772
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.52474	 a(u^h,u^h) = 20.47325325
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.5251	 a(u^h,u^h) = 20.47654021
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.52521	(f,u)+(t,u) = 20.47749893
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.3109
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.14436	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.96727	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.53313
   Node #7:	sol1 = -2.359864e+00  0.000000e+00
 		sol2 =  1.137192e+00  2.008957e+00  1.554775e+00 -1.605788e-02  7.557045e-01
 		reac =  0.000000e+00  2.646145e-01
@@ -1393,8 +1775,12 @@ Number of unknowns    155
                             Max Y-displacement : 4.85 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -19.3269
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.54675	 a(u^h,u^h) = 20.67294702
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.5471	 a(u^h,u^h) = 20.67613445
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.54725	(f,u)+(t,u) = 20.67752399
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.2786
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.13618	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.93301	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.49117
   Node #7:	sol1 = -2.416845e+00  0.000000e+00
 		sol2 =  1.218719e+00  2.091655e+00  1.637691e+00 -8.632809e-03  7.563344e-01
 		reac =  0.000000e+00  2.604086e-01
@@ -1407,8 +1793,12 @@ Number of unknowns    155
                             Max Y-displacement : 4.9 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -19.3695
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.56848	 a(u^h,u^h) = 20.87103713
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.56882	 a(u^h,u^h) = 20.87411657
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.56902	(f,u)+(t,u) = 20.87597113
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.2451
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.12762	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.89743	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.44759
   Node #7:	sol1 = -2.474357e+00  0.000000e+00
 		sol2 =  1.293555e+00  2.167470e+00  1.714421e+00  1.308803e-03  7.570073e-01
 		reac =  0.000000e+00  2.556463e-01
@@ -1421,8 +1811,12 @@ Number of unknowns    155
                             Max Y-displacement : 4.95 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -19.4049
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.58993	 a(u^h,u^h) = 21.06748137
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.59026	 a(u^h,u^h) = 21.07044376
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.59051	(f,u)+(t,u) = 21.07279988
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.2101
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.11856	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.8605	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.40237
   Node #7:	sol1 = -2.532491e+00  0.000000e+00
 		sol2 =  1.357991e+00  2.232352e+00  1.781222e+00  1.421672e-02  7.577475e-01
 		reac =  0.000000e+00  2.502615e-01
@@ -1435,8 +1829,12 @@ Number of unknowns    155
                             Max Y-displacement : 5 node 85
   Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -19.4328
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.6111	 a(u^h,u^h) = 21.26223614
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.61141	 a(u^h,u^h) = 21.26507166
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.61172	(f,u)+(t,u) = 21.26796831
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.1733
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 5.10881	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.82219	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.35544
   Node #7:	sol1 = -2.591352e+00  0.000000e+00
 		sol2 =  1.407041e+00  2.280759e+00  1.833048e+00  3.058097e-02  7.585913e-01
 		reac =  0.000000e+00  2.441914e-01
