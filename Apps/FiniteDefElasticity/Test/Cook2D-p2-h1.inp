@@ -1,0 +1,38 @@
+# $Id$
+# Cooks membrane, 2D plastic model, quadratic splines.
+
+PATCHFILE cook2d.g2
+
+RAISEORDER 1
+# patch ru rv
+  1     1  1
+
+REFINE 1
+# patch ru rv
+  1     2  2
+
+CONSTRAINTS 1
+# patch edge code
+  1     1    12
+
+PRESSURE 1
+# patch edge dir pval   linear
+  1     2    2   0.3125 1.0
+
+PLASTIC 1     2    3      4   5       6    7     8    9     10    11
+# code kappa  mu   chterm rho Hiso    Hkin yield Y0   Yinf  beta  istrt
+  0    164.21 80.1938 0.0 0.0 0.12924 0.0  1.0   0.45 0.715 16.93 0
+
+TIME_STEPPING
+# start stop dt
+  0.0   1.0  0.05
+
+NONLINEAR_SOLVER
+# maxit convTol
+  20    1.0e-12
+
+RESULTPOINTS 3
+# patch u   v
+  1     1.0 0.0
+  1     1.0 0.5
+  1     1.0 1.0
