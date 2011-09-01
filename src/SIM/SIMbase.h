@@ -90,15 +90,15 @@ public:
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
 
+  //! \brief Reads patches from a given stream.
+  //! \param[in] isp The stream to read from
+  virtual void readPatches(std::istream& isp) {}
+
   //! \brief Performs some pre-processing tasks on the FE model.
   //! \param[in] ignoredPatches Indices of patches to ignore in the analysis
   //! \param[in] fixDup Merge duplicated FE nodes on patch interfaces?
   bool preprocess(const std::vector<int>& ignoredPatches = std::vector<int>(),
 		  bool fixDup = false);
-
-  //! \brief Read patches from given stream
-  //! \param[in] isp The stream to read from
-  virtual void readPatches(std::istream& isp) {};
 
   //! \brief Allocates the system matrices of the FE problem to be solved.
   //! \param[in] mType The matrix format to use
@@ -215,24 +215,47 @@ public:
 
   //! \brief Integrates some solution norm quantities.
   //! \details If an analytical solution is provided, norms of the exact
-  //! error in the solution are computed as well.
+  //! error in the solution are computed as well. If projected secondary
+  //! solutions are provided (i.e., \a ssol is not empty), norms of the
+  //! difference between these solutions and the directly evaluated secondary
+  //! solution are computed as well.
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations.
+  //! \param[in] psol Primary solution vectors
+  //! \param[in] ssol Secondary solution vectors
+  //! \param[out] gNorm Global norm quantities
+  //! \param[out] eNorm Element-wise norm quantities
+  bool solutionNorms(const TimeDomain& time,
+		     const Vectors& psol, const Vectors& ssol,
+		     Vector& gNorm, Matrix* eNorm = 0);
+  //! \brief Integrates some solution norm quantities.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations.
   //! \param[in] psol Primary solution vectors
   //! \param[out] gNorm Global norm quantities
   //! \param[out] eNorm Element-wise norm quantities
-  virtual bool solutionNorms(const TimeDomain& time, const Vectors& psol,
-			     Vector& gNorm, Matrix* eNorm = 0);
-
+  //!
+  //! \details Use this version if no projected solutions are needed/available.
+  bool solutionNorms(const TimeDomain& time, const Vectors& psol,
+		     Vector& gNorm, Matrix* eNorm = 0)
+  { return this->solutionNorms(time,psol,Vectors(),gNorm,eNorm); }
   //! \brief Integrates some solution norm quantities.
-  //! \details If an analytical solution is provided, norms of the exact
-  //! error in the solution are computed as well.
   //! \param[in] psol Primary solution vectors
+  //! \param[in] ssol Secondary solution vectors
   //! \param[out] eNorm Element-wise norm quantities
   //! \param[out] gNorm Global norm quantities
   //!
   //! \details Use this version for linear/stationary problems only.
-  virtual bool solutionNorms(const Vectors& psol, Matrix& eNorm, Vector& gNorm)
-  { return this->solutionNorms(TimeDomain(),psol,gNorm,&eNorm); }
+  bool solutionNorms(const Vectors& psol, const Vectors& ssol,
+		     Matrix& eNorm, Vector& gNorm)
+  { return this->solutionNorms(TimeDomain(),psol,ssol,gNorm,&eNorm); }
+  //! \brief Integrates some solution norm quantities.
+  //! \param[in] psol Primary solution vectors
+  //! \param[out] eNorm Element-wise norm quantities
+  //! \param[out] gNorm Global norm quantities
+  //!
+  //! \details Use this version for linear/stationary problems,
+  //! and when no projected solutions are needed/available.
+  bool solutionNorms(const Vectors& psol, Matrix& eNorm, Vector& gNorm)
+  { return this->solutionNorms(TimeDomain(),psol,Vectors(),gNorm,&eNorm); }
 
   //! \brief Computes the total reaction forces in the model.
   //! \param[out] RF Reaction force in each spatial direction + energy
@@ -251,13 +274,21 @@ public:
 		   int nev, int ncv, int iop, double shift,
 		   size_t iA = 0, size_t iB = 1);
 
-  //! \brief Projects the secondary solution associated with \a psol.
-  //! \param psol Control point values of primary(in)/secondary(out) solution
+  //! \brief Enum defining the available projection methods.
+  enum ProjectionMethod { GLOBAL, LOCAL };
+  //! \brief Projects the secondary solution associated with a primary solution.
+  //! \param[out] ssol Control point values of the secondary solution
+  //! \param[in] psol Control point values of the primary solution
+  //! \param[in] pMethod Projection method to use
   //!
   //! \details The secondary solution, defined through the Integrand object,
   //! corresponding to the primary solution \a psol is projected onto the
   //! spline basis to obtain the control point values of the secondary solution.
-  bool project(Vector& psol);
+  bool project(Matrix& ssol, const Vector& psol,
+	       ProjectionMethod pMethod = GLOBAL) const;
+  //! \brief Projects the secondary solution associated with a primary solution.
+  //! \param sol Control point values of primary(in)/secondary(out) solution
+  bool project(Vector& sol) const;
 
   //! \brief Evaluates the secondary solution field for specified patch.
   //! \param[out] field Control point values of the secondary solution field
@@ -324,6 +355,18 @@ public:
 			 const char* pvecName = 0, int idBlock = 10,
 			 int psolComps = 0);
 
+  //! \brief Writes projected solutions for a given time step to the VTF-file.
+  //! \param[in] ssol Secondary solution vector (control point values)
+  //! \param[in] nViz Number of visualization points over each knot-span
+  //! \param[in] iStep Load/time step identifier
+  //! \param nBlock Running result block counter
+  //! \param[in] time Load/time step parameter
+  //! \param[in] idBlock Starting value of result block numbering
+  //! \param[in] prefix Common prefix for the field components
+  bool writeGlvP(const Vector& ssol, const int* nViz, int iStep,
+		 int& nBlock, double time = 0.0, int idBlock = 100,
+		 const char* pvecName = "Global projected");
+
   //! \brief Writes a mode shape and associated eigenvalue to the VTF-file.
   //! \details The eigenvalue is used as a label on the step state info
   //! that is associated with the eigenvector.
@@ -344,7 +387,7 @@ public:
   //! \brief Writes time/load step info to the VTF-file.
   //! \param[in] iStep Load/time step identifier
   //! \param[in] value Time or load parameter of the step
-  //! \param[in] itype Type indentifier of the step
+  //! \param[in] itype Type identifier of the step
   bool writeGlvStep(int iStep, double value = 0.0, int itype = 0);
 
   //! \brief Closes the current VTF-file.
@@ -357,7 +400,7 @@ public:
   //! \param os Output stream to write the spline data to
   //! \param[in] basis Which basis to dump for mixed methods (0 = geometry)
   //! \param[in] patch Which patch to dump for (0 = all)
-  bool dumpBasis(std::ostream& os, int basis = 0, size_t patch=0) const;
+  bool dumpBasis(std::ostream& os, int basis = 0, size_t patch = 0) const;
   //! \brief Dumps the entire solution in ASCII format.
   //! \param[in] psol Primary solution vector to derive other quantities from
   //! \param os Output stream to write the solution data to
@@ -377,6 +420,9 @@ public:
   //! \param[in] withID If \e true, write node ID and coordinates too
   void dumpPrimSol(const Vector& psol, std::ostream& os,
 		   bool withID = true) const;
+
+  //! \brief Returns whether an analytical solution is available or not.
+  bool haveAnaSol() const { return mySol ? true : false; }
 
 protected:
   //! \brief Defines the type of a property set.

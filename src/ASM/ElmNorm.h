@@ -28,7 +28,7 @@ class ElmNorm : public LocalIntegral
 {
 public:
   //! \brief The constructor assigns the internal pointer.
-  ElmNorm(double* p) : ptr(p) {}
+  ElmNorm(double* p, size_t n) : ptr(p), nnv(n) {}
   //! \brief Empty destructor.
   virtual ~ElmNorm() {}
 
@@ -37,8 +37,12 @@ public:
   //! \brief Indexing operator for referencing.
   const double& operator[](size_t i) const { return ptr[i]; }
 
+  //! \brief Returns the number of norm values.
+  size_t size() const { return nnv; }
+
 private:
   double* ptr; //!< Pointer to the actual norm values
+  size_t  nnv; //!< Number of norm values
 };
 
 #endif

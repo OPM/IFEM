@@ -697,7 +697,8 @@ double SIMbase::solutionNorms (const Vector& x, double* inf,
 }
 
 
-bool SIMbase::solutionNorms (const TimeDomain& time, const Vectors& psol,
+bool SIMbase::solutionNorms (const TimeDomain& time,
+			     const Vectors& psol, const Vectors& ssol,
 			     Vector& gNorm, Matrix* eNorm)
 {
   NormBase* norm = myProblem->getNormIntegrand(mySol);
@@ -714,6 +715,12 @@ bool SIMbase::solutionNorms (const TimeDomain& time, const Vectors& psol,
   myProblem->initIntegration(time);
   const Vector& primsol = psol.front();
 
+  size_t i, j, k;
+  for (i = 0; i < ssol.size(); i++)
+    if (!ssol[i].empty())
+      norm->getProjection(i+1);
+
+  size_t nCmp = ssol.empty() ? 0 : ssol.front().size() / mySam->getNoNodes();
   size_t nNorms = norm->getNoFields();
   gNorm.resize(nNorms,true);
 
@@ -724,21 +731,24 @@ bool SIMbase::solutionNorms (const TimeDomain& time, const Vectors& psol,
   {
     eNorm->resize(nNorms,mySam->getNoElms(),true);
     elementNorms.reserve(eNorm->cols());
-    for (size_t i = 0; i < eNorm->cols(); i++)
-      elementNorms.push_back(new ElmNorm(eNorm->ptr(i)));
+    for (i = 0; i < eNorm->cols(); i++)
+      elementNorms.push_back(new ElmNorm(eNorm->ptr(i),nNorms));
   }
 
   // Loop over the different material regions, integrating solution norm terms
   // for the patch domain associated with each material
   bool ok = true;
-  size_t i, j = 0, lp = 0;
-  for (i = 0; i < myProps.size() && ok; i++)
+  size_t lp = 0;
+  for (i = j = 0; i < myProps.size() && ok; i++)
     if (myProps[i].pcode == Property::MATERIAL)
       if ((j = myProps[i].patch) < 1 || j > myModel.size())
 	ok = false;
       else if (this->initMaterial(myProps[i].pindx))
       {
 	myModel[j-1]->extractNodeVec(primsol,myProblem->getSolution());
+	for (k = 0; k < ssol.size(); k++)
+	  if (!ssol[k].empty())
+	    myModel[j-1]->extractNodeVec(ssol[k],norm->getProjection(k+1),nCmp);
 	ok = myModel[j-1]->integrate(*norm,globalNorm,time,elementNorms);
 	lp = j;
       }
@@ -751,8 +761,11 @@ bool SIMbase::solutionNorms (const TimeDomain& time, const Vectors& psol,
     for (i = 0; i < myModel.size() && ok; i++)
     {
       myModel[i]->extractNodeVec(primsol,myProblem->getSolution());
+      for (k = 0; k < ssol.size(); k++)
+	if (!ssol[k].empty())
+	  myModel[i]->extractNodeVec(ssol[k],norm->getProjection(k+1),nCmp);
       ok = myModel[i]->integrate(*norm,globalNorm,time,elementNorms);
-      lp = j;
+      lp = i+1;
     }
 
   // Integrate norm contributions due to Neumann boundary conditions, if any.
@@ -900,13 +913,15 @@ bool SIMbase::writeGlv (const char* inpFile, const int* nViz, int format)
 {
   if (myVtf) return false;
 
+#if HAS_VTFAPI == 2
+  const char* ext = ".vtfx";
+#else
+  const char* ext = ".vtf";
+#endif
+
   // Open a new VTF-file
   char* vtfName = new char[strlen(inpFile)+10];
   strtok(strcpy(vtfName,inpFile),".");
-  const char* ext = ".vtf";
-#if HAS_VTFAPI == 2
-  ext = ".vtfx";
-#endif
   if (nProc > 1)
     sprintf(vtfName+strlen(vtfName),"_p%04d%s",myPid,ext);
   else
@@ -1220,6 +1235,52 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
 }
 
 
+bool SIMbase::writeGlvP (const Vector& ssol, const int* nViz,
+			 int iStep, int& nBlock, double time,
+			 int idBlock, const char* prefix)
+{
+  if (ssol.empty())
+    return true;
+  else if (!myVtf)
+    return false;
+
+  Matrix field;
+  Vector lovec;
+  const size_t nf = myProblem->getNoFields(2);
+  std::vector<int> sID[nf];
+
+  size_t i, j;
+  int geomID = 0;
+  for (i = 0; i < myModel.size(); i++)
+  {
+    if (myModel[i]->empty()) continue; // skip empty patches
+
+    if (msgLevel > 1)
+      std::cout <<"Writing projected solution for patch "<< i+1 << std::endl;
+
+    // Evaluate the solution variables at the visualization points
+    myModel[i]->extractNodeVec(ssol,lovec,nf);
+    if (!myModel[i]->evalSolution(field,lovec,nViz))
+      return false;
+
+    // Write out to VTF-file as scalar fields
+    geomID++;
+    for (j = 0; j < field.rows(); j++)
+      if (!myVtf->writeNres(field.getRow(1+j),++nBlock,geomID))
+	return false;
+      else
+	sID[j].push_back(nBlock);
+  }
+
+  // Write result block identifications
+  for (j = 0; j < nf && !sID[j].empty(); j++)
+    if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(j,prefix),
+			  ++idBlock,iStep)) return false;
+
+  return true;
+}
+
+
 bool SIMbase::writeGlvStep (int iStep, double value, int itype)
 {
   if (itype == 0)
@@ -1280,7 +1341,7 @@ bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock)
 
   Matrix field;
   int geomID = 0;
-  std::vector<int> sID[3];
+  std::vector<int> sID[10];
 
   size_t i, j, k;
   for (i = 0; i < myModel.size(); i++)
@@ -1293,25 +1354,39 @@ bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock)
     geomID++;
     myModel[i]->extractElmRes(norms,field);
 
-    for (j = k = 0; j < field.rows() && j < 4; j++)
-      if (field.rows()%2 || j != 1) // Skip the external norms (always zero)
+    for (j = k = 0; j < field.rows() && j < 10; j++)
+      if (j != 1) // Skip the external norms (always zero)
 	if (!myVtf->writeEres(field.getRow(1+j),++nBlock,geomID))
 	  return false;
 	else
 	  sID[k++].push_back(nBlock);
   }
 
-  const char* label[3] = {
+  const char* label[9] = {
     "a(u^h,u^h)^0.5",
     "a(u,u)^0.5",
-    "a(e,e)^0.5, e=u-u^h"
+    "a(e,e)^0.5, e=u-u^h",
+    "a(u^r,u^r)^0.5",
+    "a(e,e)^0.5, e=u^r-u^h",
+    "a(e,e)^0.5, e=u-u^r",
+    "a(u^rr,u^rr)^0.5",
+    "a(e,e)^0.5, e=u^rr-u^h",
+    "a(e,e)^0.5, e=u-u^rr"
   };
 
-  int idBlock = 100;
-  for (j = 0; j < 3; j++)
-    if (!sID[j].empty())
-      if (!myVtf->writeSblk(sID[j],label[j],++idBlock,iStep))
-	return false;
+  int idBlock = 200;
+  for (j = k = 0; !sID[j].empty(); j++, k++)
+  {
+    if (!mySol)
+    {
+      if (k == 1)
+	k = 3;
+      else if (k%3 == 2)
+        k ++;
+    }
+    if (!myVtf->writeSblk(sID[j],label[k],++idBlock,iStep))
+      return false;
+  }
 
   return true;
 }
@@ -1375,9 +1450,9 @@ bool SIMbase::dumpGeometry (std::ostream& os) const
 
 bool SIMbase::dumpBasis (std::ostream& os, int basis, size_t patch) const
 {
-  size_t start = patch?patch-1:0;
-  size_t end = patch?start+1:myModel.size();
-  for (size_t i = start; i < end; i++)
+  size_t start = patch ? patch-1 : 0;
+  size_t end = patch ? start : myModel.size();
+  for (size_t i = start; i < end && i < myModel.size(); i++)
     if (!myModel[i]->empty())
       if (!myModel[i]->write(os,basis))
 	return false;
@@ -1438,7 +1513,7 @@ bool SIMbase::dumpSolution (const Vector& psol, std::ostream& os) const
 
 
 bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
-			   bool formatted, std::streamsize outputPrecision) const
+			   bool formatted, std::streamsize precision) const
 {
   if (psol.empty() || myPoints.empty())
     return true;
@@ -1491,8 +1566,8 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
 	return false;
 
     // Formatted output, use scientific notation with fixed field width
-    std::streamsize flWidth = 8 + outputPrecision;
-    std::streamsize oldPrec = os.precision(outputPrecision);
+    std::streamsize flWidth = 8 + precision;
+    std::streamsize oldPrec = os.precision(precision);
     std::ios::fmtflags oldF = os.flags(std::ios::scientific | std::ios::right);
     for (j = 0; j < points.size(); j++)
     {
@@ -1537,21 +1612,81 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
 }
 
 
-bool SIMbase::project (Vector& psol)
+bool SIMbase::project (Matrix& ssol, const Vector& psol,
+		       ProjectionMethod pMethod) const
 {
-  Matrix values;
-  Vector ssol;
-  ssol.resize(psol.size()*myProblem->getNoFields());
-  for (size_t i = 0; i < myModel.size(); i++)
-  {
-    myModel[i]->extractNodeVec(psol,myProblem->getSolution());
-    if (!myModel[i]->evalSolution(values,*myProblem))
-      return false;
-    if (!myModel[i]->injectNodeVec(values,ssol,values.rows()))
-      return false;
-  }
-  psol = ssol;
+  PROFILE1("Solution projection");
 
+  if (msgLevel > 1)
+    std::cout <<"\nProjecting secondary solution ...\n"<< std::endl;
+
+  ssol.resize(0,0);
+
+  size_t i, j, n;
+  size_t ngNodes = mySam->getNoNodes();
+
+  Matrix values;
+  Vector count(myModel.size() > 1 ? ngNodes : 0);
+
+  for (i = 0; i < myModel.size(); i++)
+  {
+    if (myModel[i]->empty()) continue; // skip empty patches
+
+    // Extract the primary solution control point values for this patch
+    myModel[i]->extractNodeVec(psol,myProblem->getSolution());
+
+    // Project the secondary solution and retrieve control point values
+    switch (pMethod) {
+    case GLOBAL:
+      if (!myModel[i]->evalSolution(values,*myProblem))
+	return false;
+      break;
+
+    case LOCAL:
+      // Annette, add your local projection stuff here...
+
+    default:
+      std::cerr <<" *** SIMbase::project: Projection method "<< pMethod
+		<<" not implemented."<< std::endl;
+      return false;
+    }
+
+    size_t nComps = values.rows();
+    size_t nNodes = myModel[i]->getNoNodes();
+    if (ssol.empty())
+      ssol.resize(nComps,ngNodes);
+
+    // Nodal averaging for nodes referred to by two or more patches
+    // (these are typically the interface nodes)
+    for (n = 1; n <= nNodes; n++)
+      if (count.empty())
+	ssol.fillColumn(myModel[i]->getNodeID(n),values.getColumn(n));
+      else
+      {
+	int inod = myModel[i]->getNodeID(n);
+	for (j = 1; j <= nComps; j++)
+	  ssol(j,inod) += values(j,n);
+	count(inod) ++;
+      }
+  }
+
+  // Divide through by count(n) to get the nodal average at the interface nodes
+  for (n = 1; n <= count.size(); n++)
+    if (count(n) > 1.0)
+      for (j = 1; j <= ssol.rows(); j++)
+	ssol(j,n) /= count(n);
+
+  return true;
+}
+
+
+bool SIMbase::project (Vector& sol) const
+{
+  Matrix secsol;
+  if (!this->project(secsol,sol))
+    return false;
+
+  sol = secsol;
   return true;
 }
 

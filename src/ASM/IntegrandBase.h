@@ -221,6 +221,9 @@ public:
   //! \brief Returns the number of field components.
   virtual size_t getNoFields() const { return 0; }
 
+  //! \brief Accesses a projected secondary solution vector of current patch.
+  virtual Vector& getProjection(size_t) { static Vector dummy; return dummy; }
+
 protected:
   //! \brief Returns the element norm object to use in the integration.
   //! \param elmInt The local integral object to receive norm contributions

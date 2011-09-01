@@ -225,7 +225,7 @@ public:
   //! \brief The only constructor initializes its data members.
   //! \param[in] p The linear elasticity problem to evaluate norms for
   //! \param[in] a The analytical stress field (optional)
-  ElasticityNorm(Elasticity& p, STensorFunc* a = 0) : NormBase(p), anasol(a) {}
+  ElasticityNorm(Elasticity& p, STensorFunc* a = 0);
   //! \brief Empty destructor.
   virtual ~ElasticityNorm() {}
 
@@ -233,6 +233,14 @@ public:
   virtual bool hasBoundaryTerms() const { return true; }
   //! \brief Returns a 1-based index of the external energy norm.
   virtual size_t indExt() const { return 2; }
+
+  //! \brief Initializes current element for numerical integration.
+  //! \param[in] MNPC Matrix of nodal point correspondance for current element
+  virtual bool initElement(const std::vector<int>& MNPC);
+  //! \brief Initializes current element for numerical integration.
+  //! \param[in] MNPC Matrix of nodal point correspondance for current element
+  virtual bool initElement(const std::vector<int>& MNPC, const Vec3&, size_t)
+  { return this->initElement(MNPC); }
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
@@ -252,8 +260,16 @@ public:
   //! \brief Returns the number of norm quantities.
   virtual size_t getNoFields() const;
 
+  //! \brief Accesses a projected secondary solution vector of current patch.
+  virtual Vector& getProjection(size_t i);
+
 private:
   STensorFunc* anasol; //!< Analytical stress field
+
+  Vectors prjsol; //!< Projected secondary solution vectors for current patch
+  Vectors mySols; //!< Local element vectors
+
+  size_t nrcmp; //!< Number of projected solution components
 };
 
 #endif

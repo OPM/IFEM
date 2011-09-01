@@ -35,9 +35,10 @@ bool GlbNorm::assemble (const LocalIntegral* elmObj, int elmId)
   if (!ptr) return false;
 
   ElmNorm& elVals = *const_cast<ElmNorm*>(ptr);
-  for (size_t i = 0; i < myVals.size(); i++)
+  for (size_t i = 0; i < elVals.size(); i++)
   {
-    myVals[i] += elVals[i];
+    if (i < myVals.size())
+      myVals[i] += elVals[i];
     this->applyFinalOp(elVals[i]);
   }
 

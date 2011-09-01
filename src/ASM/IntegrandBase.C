@@ -185,8 +185,8 @@ ElmNorm& NormBase::getElmNormBuffer (LocalIntegral*& elmInt, const size_t nn)
 
   static double* data = 0;
   if (!data) data = new double[nn];
-  static ElmNorm buf(data);
   memset(data,0,nn*sizeof(double));
+  static ElmNorm buf(data,nn);
   elmInt = &buf;
   return buf;
 }

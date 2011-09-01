@@ -550,9 +550,49 @@ NormBase* Elasticity::getNormIntegrand (AnaSol* asol) const
 }
 
 
+ElasticityNorm::ElasticityNorm (Elasticity& p, STensorFunc* a)
+  : NormBase(p), anasol(a)
+{
+  nrcmp = myProblem.getNoFields(2);
+}
+
+
 size_t ElasticityNorm::getNoFields () const
 {
-  return anasol ? 4 : 2;
+  size_t nf = anasol ? 4 : 2;
+  for (size_t i = 0; i < prjsol.size(); i++)
+    if (!prjsol.empty())
+       nf += anasol ? 3 : 2;
+
+  return nf;
+}
+
+
+Vector& ElasticityNorm::getProjection (size_t i)
+{
+  if (prjsol.size() < i)
+  {
+    prjsol.resize(i);
+    mySols.resize(i);
+  }
+
+  return prjsol[i-1];
+}
+
+
+bool ElasticityNorm::initElement (const std::vector<int>& MNPC)
+{
+  // Extract projected solution vectors for this element
+  int ierr = 0;
+  for (size_t i = 0; i < mySols.size() && ierr == 0; i++)
+    if (!prjsol[i].empty())
+      ierr = utl::gather(MNPC,nrcmp,prjsol[i],mySols[i]);
+
+  if (ierr == 0) return myProblem.initElement(MNPC);
+
+  std::cerr <<" *** ElasticityNorm::initElement: Detected "
+            << ierr <<" node numbers out of range."<< std::endl;
+  return false;
 }
 
 
@@ -560,18 +600,19 @@ bool ElasticityNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
 			      const Vec3& X) const
 {
   Elasticity& problem = static_cast<Elasticity&>(myProblem);
-  ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt);
+  ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt,this->getNoFields());
 
   // Evaluate the inverse constitutive matrix at this point
   Matrix Cinv;
   if (!problem.formCinverse(Cinv,X)) return false;
 
   // Evaluate the finite element stress field
-  Vector sigmah, sigma;
+  Vector sigmah, sigma, error;
   if (!problem.evalSol(sigmah,fe.N,fe.dNdX,X))
     return false;
-  else if (sigmah.size() == 4 && Cinv.rows() == 3)
-    sigmah.erase(sigmah.begin()+2); // Remove the sigma_zz if plane strain
+
+  bool planeStrain = sigmah.size() == 4 && Cinv.rows() == 3;
+  if (planeStrain) sigmah.erase(sigmah.begin()+2); // Remove the sigma_zz
 
   double detJW = fe.detJxW;
   if (problem.isAxiSymmetric())
@@ -590,6 +631,7 @@ bool ElasticityNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
     pnorm[1] += f*u*detJW;
   }
 
+  size_t ip = 2;
   if (anasol)
   {
     // Evaluate the analytical stress field
@@ -598,11 +640,35 @@ bool ElasticityNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
       sigma.erase(sigma.begin()+2); // Remove the sigma_zz if plane strain
 
     // Integrate the energy norm a(u,u)
-    pnorm[2] += sigma.dot(Cinv*sigma)*detJW;
+    pnorm[ip++] += sigma.dot(Cinv*sigma)*detJW;
     // Integrate the error in energy norm a(u-u^h,u-u^h)
-    sigma -= sigmah;
-    pnorm[3] += sigma.dot(Cinv*sigma)*detJW;
+    error = sigma - sigmah;
+    pnorm[ip++] += error.dot(Cinv*error)*detJW;
   }
+
+  size_t i, j, k;
+  for (i = 0; i < mySols.size(); i++)
+    if (!mySols[i].empty())
+    {
+      // Evaluate projected stress field
+      Vector sigmar(sigmah.size());
+      for (j = k = 0; j < nrcmp && k < sigmar.size(); j++)
+	if (!planeStrain || j != 2)
+	  sigmar[k++] = mySols[i].dot(fe.N,j,nrcmp);
+
+      // Integrate the energy norm a(u^r,u^r)
+      pnorm[ip++] += sigmar.dot(Cinv*sigmar)*detJW;
+      // Integrate the error in energy norm a(u^r-u^h,u^r-u^h)
+      error = sigmar - sigmah;
+      pnorm[ip++] += error.dot(Cinv*error)*detJW;
+
+      if (anasol)
+      {
+	// Integrate the error in the projected solution a(u-u^r,u-u^r)
+	error = sigma - sigmar;
+	pnorm[ip++] += error.dot(Cinv*error)*detJW;
+      }
+    }
 
   return true;
 }

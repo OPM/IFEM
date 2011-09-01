@@ -233,9 +233,9 @@ int main (int argc, char** argv)
 
   model->setQuadratureRule(nGauss);
 
-  Matrix eNorm;
+  Matrix eNorm, ssol;
   Vector gNorm, load;
-  Vectors displ(1);
+  Vectors displ(1), projs;
   std::vector<Mode> modes;
   std::vector<Mode>::const_iterator it;
 
@@ -255,20 +255,40 @@ int main (int argc, char** argv)
     if (!model->solveSystem(displ.front(),1))
       return 3;
 
-    // Evaluate solution norms
     model->setMode(SIM::RECOVERY);
-    if (!model->solutionNorms(displ,eNorm,gNorm))
+    if (SIMbase::discretization == SIMbase::Spline)
+    {
+      // Project the FE stresses onto the splines basis
+      if (!model->project(ssol,displ.front(),SIMbase::GLOBAL))
+	return 4;
+      else
+	projs.push_back(ssol);
+    }
+
+    // Integrate solution norms and errors
+    if (!model->solutionNorms(displ,projs,eNorm,gNorm))
       return 4;
 
     if (linalg.myPid == 0)
     {
       std::cout <<"Energy norm |u^h| = a(u^h,u^h)^0.5   : "<< gNorm(1);
-      std::cout <<"\nExternal energy ((f,u^h)+(t,u^h)^0.5 : "<< gNorm(2);
-      if (gNorm.size() > 2)
-	std::cout <<"\nExact norm  |u|   = a(u,u)^0.5       : "<< gNorm(3);
-      if (gNorm.size() > 3)
-	std::cout <<"\nExact error a(e,e)^0.5, e=u-u^h      : "<< gNorm(4)
+      std::cout	<<"\nExternal energy ((f,u^h)+(t,u^h)^0.5 : "<< gNorm(2);
+      if (model->haveAnaSol() && gNorm.size() >= 4)
+	std::cout <<"\nExact norm  |u|   = a(u,u)^0.5       : "<< gNorm(3)
+		  <<"\nExact error a(e,e)^0.5, e=u-u^h      : "<< gNorm(4)
 		  <<"\nExact relative error (%) : "<< gNorm(4)/gNorm(3)*100.0;
+      size_t j = model->haveAnaSol() ? 5 : 3;
+      for (size_t i = 0; i < projs.size() && j < gNorm.size(); i++)
+      {
+        std::cout <<"\nEnergy norm |u^r| = a(u^r,u^r)^0.5   : "<< gNorm(j++);
+	std::cout <<"\nError norm a(e,e)^0.5, e=u^r-u^h     : "<< gNorm(j++);
+	std::cout <<"\n- relative error (% of |u^r|) : "
+		  << gNorm(j-1)/gNorm(j-2)*100.0;
+	if (model->haveAnaSol() && j++ <= gNorm.size())
+	  std::cout <<"\nExact error a(e,e)^0.5, e=u-u^r      : "<< gNorm(j-1)
+		    <<"\n- relative error (% of |u|)   : "
+		    << gNorm(j-1)/gNorm(3)*100.0;
+      }
       std::cout << std::endl;
     }
 
@@ -349,6 +369,10 @@ int main (int argc, char** argv)
     if (!model->writeGlvS(displ.front(),n,iStep,nBlock))
       return 10;
 
+    // Write projected solution fields to VTF-file
+    if (!model->writeGlvP(projs.front(),n,iStep,nBlock))
+      return 10;
+
     // Write eigenmodes
     for (it = modes.begin(); it != modes.end(); it++)
       if (!model->writeGlvM(*it, iop==3 || iop==4 || iop==6, n, nBlock))
@@ -359,7 +383,7 @@ int main (int argc, char** argv)
       if (!model->writeGlvN(eNorm,iStep,nBlock))
 	return 12;
 
-    model->writeGlvStep(1,0,1);
+    model->writeGlvStep(1);
     model->closeGlv();
   }
 
