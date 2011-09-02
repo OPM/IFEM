@@ -36,6 +36,8 @@
   \arg -superlu : Use the sparse SuperLU equation solver
   \arg -samg :    Use the sparse algebraic multi-grid equation solver
   \arg -petsc :   Use equation solver from PETSc library
+  \arg -lag : Use Lagrangian basis functions instead of splines/NURBS
+  \arg -spec : Use Spectral basis functions instead of splines/NURBS
   \arg -nGauss \a n : Number of Gauss points over a knot-span in each direction
   \arg -vtf \a format : VTF-file format (-1=NONE, 0=ASCII, 1=BINARY)
   \arg -nviz \a nviz : Number of visualization points over each knot-span
@@ -57,8 +59,6 @@
   \arg -2D : Use two-parametric simulation driver (plane stress)
   \arg -2Dpstrain : Use two-parametric simulation driver (plane strain)
   \arg -2Daxisymm : Use two-parametric simulation driver (axi-symmetric solid)
-  \arg -lag : Use Lagrangian basis functions instead of splines/NURBS
-  \arg -spec : Use Spectral basis functions instead of splines/NURBS
 */
 
 int main (int argc, char** argv)
@@ -83,7 +83,7 @@ int main (int argc, char** argv)
   bool twoD = false;
   char* infile = 0;
 
-  LinAlgInit& linalg = LinAlgInit::Init(argc,argv);
+  const LinAlgInit& linalg = LinAlgInit::Init(argc,argv);
 
   for (int i = 1; i < argc; i++)
     if (!strcmp(argv[i],"-dense"))
@@ -100,6 +100,10 @@ int main (int argc, char** argv)
       solver = SystemMatrix::SAMG;
     else if (!strcmp(argv[i],"-petsc"))
       solver = SystemMatrix::PETSC;
+    else if (!strncmp(argv[i],"-lag",4))
+      SIMbase::discretization = SIMbase::Lagrange;
+    else if (!strncmp(argv[i],"-spec",5))
+      SIMbase::discretization = SIMbase::Spectral;
     else if (!strcmp(argv[i],"-nGauss") && i < argc-1)
       nGauss = atoi(argv[++i]);
     else if (!strcmp(argv[i],"-vtf") && i < argc-1)
@@ -176,7 +180,9 @@ int main (int argc, char** argv)
   {
     std::cout <<"\n >>> Spline FEM Linear Elasticity solver <<<"
 	      <<"\n ===========================================\n"
-	      <<"\nInput file: "<< infile
+	      <<"\n Executing command:\n";
+    for (int i = 0; i < argc; i++) std::cout <<" "<< argv[i];
+    std::cout <<"\n\nInput file: "<< infile
 	      <<"\nEquation solver: "<< solver
 	      <<"\nNumber of Gauss points: "<< nGauss;
     if (format >= 0)
@@ -370,8 +376,9 @@ int main (int argc, char** argv)
       return 10;
 
     // Write projected solution fields to VTF-file
-    if (!model->writeGlvP(projs.front(),n,iStep,nBlock))
-      return 10;
+    if (projs.size() > 0)
+      if (!model->writeGlvP(projs.front(),n,iStep,nBlock))
+	return 10;
 
     // Write eigenmodes
     for (it = modes.begin(); it != modes.end(); it++)
