@@ -41,6 +41,8 @@ void ElementBlock::resize (size_t nI, size_t nJ, size_t nK)
     MMNPC.resize(8*(nI-1)*(nJ-1)*(nK-1));
   else if (nen == 27)
     MMNPC.resize(27*(nI-1)*(nJ-1)*(nK-1)/8);
+
+  MINEX.resize(MMNPC.size()/nen,0);
 }
 
 
@@ -88,4 +90,6 @@ void ElementBlock::merge (const ElementBlock* other, std::vector<int>& nodeNums)
 
   for (i = 0; i < other->MMNPC.size(); i++)
     MMNPC.push_back(nodeNums[other->MMNPC[i]]);
+
+  MINEX.insert(MINEX.end(),other->MINEX.begin(),other->MINEX.end());
 }

@@ -757,13 +757,18 @@ bool ASMs1D::tesselate (ElementBlock& grid, const int* npe) const
       grid.setCoor(i,j,XYZ[l+j]);
 
   // Establish the block grid topology
-  int n[2], ip = 0;
+  int nse1 = npe[0] - 1;
+  int n[2], ie = 1, ip = 0;
   n[0] = 0;
   n[1] = n[0] + 1;
 
   for (i = 1; i < nx; i++)
+  {
     for (l = 0; l < 2; l++)
       grid.setNode(ip++,n[l]++);
+    grid.setElmId(i,ie);
+    if (i%nse1 == 0) ie++;
+  }
 
   return true;
 }

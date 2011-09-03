@@ -385,10 +385,9 @@ int main (int argc, char** argv)
       if (!model->writeGlvM(*it, iop==3 || iop==4 || iop==6, n, nBlock))
 	return 11;
 
-    // Write element norms (when no additional visualization points are used)
-    if (n[0] == 2 && n[1] == 2 && n[2] <= 2)
-      if (!model->writeGlvN(eNorm,iStep,nBlock))
-	return 12;
+    // Write element norms
+    if (!model->writeGlvN(eNorm,iStep,nBlock))
+      return 12;
 
     model->writeGlvStep(1);
     model->closeGlv();

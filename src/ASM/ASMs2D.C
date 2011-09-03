@@ -1237,16 +1237,24 @@ bool ASMs2D::tesselate (ElementBlock& grid, const int* npe) const
       grid.setCoor(i,j,XYZ[l+j]);
 
   // Establish the block grid topology
+  int nel1 = surf->numCoefs_u() - surf->order_u() + 1;
+  int ie, nse1 = npe[0] - 1;
+  int je, nse2 = npe[1] - 1;
   int n[4], ip = 0;
-  for (j = 1, n[1] = 0; j < ny; j++)
+  for (j = je = 1, n[1] = 0; j < ny; j++)
   {
     n[0] = n[1];
     n[1] = n[0] + 1;
     n[2] = n[1] + nx;
     n[3] = n[1] + nx-1;
-    for (i = 1; i < nx; i++)
+    for (i = ie = 1; i < nx; i++)
+    {
       for (l = 0; l < 4; l++)
 	grid.setNode(ip++,n[l]++);
+      grid.setElmId((j-1)*(nx-1)+i,(je-1)*nel1+ie);
+      if (i%nse1 == 0) ie++;
+    }
+    if (j%nse2 == 0) je++;
   }
 
   return true;

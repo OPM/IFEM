@@ -355,13 +355,17 @@ bool ASMs1DLag::tesselate (ElementBlock& grid, const int* npe) const
     grid.setCoor(i,coord[i].x,coord[i].y,coord[i].z);
 
   // Establish the block grid topology
-  int n[2], ip = 0;
+  int n[2], ie = 1, ip = 0;
   n[0] = 0;
   n[1] = n[0] + 1;
 
   for (i = 1; i < nx; i++)
+  {
     for (l = 0; l < 2; l++)
       grid.setNode(ip++,n[l]++);
+    grid.setElmId(i,ie);
+    if (i%(p1-1) == 0) ie++;
+  }
 
   return true;
 }

@@ -1351,8 +1351,17 @@ bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock)
     if (msgLevel > 1)
       std::cout <<"Writing element norms for patch "<< i+1 << std::endl;
 
-    geomID++;
+    const ElementBlock* grid = myVtf->getBlock(++geomID);
     myModel[i]->extractElmRes(norms,field);
+
+    if (grid->getNoElms() > field.cols())
+    {
+      // Expand the element result array
+      Matrix efield(field);
+      field.resize(field.rows(),grid->getNoElms());
+      for (j = 1; j <= field.cols(); j++)
+	field.fillColumn(j,efield.getColumn(grid->getElmId(j)));
+    }
 
     for (j = k = 0; j < field.rows() && j < 10; j++)
       if (j != 1) // Skip the external norms (always zero)

@@ -1771,9 +1771,15 @@ bool ASMs3D::tesselate (ElementBlock& grid, const int* npe) const
     grid.setCoor(i,XYZ[j],XYZ[j+1],XYZ[j+2]);
 
   // Establish the block grid topology
+  int nel1 = svol->numCoefs(0) - svol->order(0) + 1;
+  int nel2 = svol->numCoefs(1) - svol->order(1) + 1;
+  int ie, nse1 = npe[0] - 1;
+  int je, nse2 = npe[1] - 1;
+  int ke, nse3 = npe[2] - 1;
   int n[8], ip = 0;
-  for (k = 1, n[2] = 0; k < nz; k++)
-    for (j = 1, n[1] = n[2]; j < ny; j++)
+  for (k = ke = 1, n[2] = 0; k < nz; k++)
+  {
+    for (j = je = 1, n[1] = n[2]; j < ny; j++)
     {
       n[0] = n[1];
       n[1] = n[0] + 1;
@@ -1783,10 +1789,17 @@ bool ASMs3D::tesselate (ElementBlock& grid, const int* npe) const
       n[5] = n[4] + 1;
       n[6] = n[5] + nx;
       n[7] = n[5] + nx-1;
-      for (i = 1; i < nx; i++)
+      for (i = ie = 1; i < nx; i++)
+      {
 	for (l = 0; l < 8; l++)
 	  grid.setNode(ip++,n[l]++);
+	grid.setElmId(((k-1)*(ny-1)+j-1)*(nx-1)+i,((ke-1)*nel2+je-1)*nel1+ie);
+	if (i%nse1 == 0) ie++;
+      }
+      if (j%nse2 == 0) je++;
     }
+    if (k%nse3 == 0) ke++;
+  }
 
   return true;
 }

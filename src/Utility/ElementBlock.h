@@ -41,10 +41,15 @@ public:
   //! \brief Defines the global number of element node \a i
   bool setNode(size_t i, int nodeNumb);
 
+  //! \brief Assigns an external id to an element.
+  void setElmId(size_t i, int iel) { MINEX[i-1] = iel; }
+  //! \brief Returns the external id of an element.
+  int getElmId(size_t i) const { return MINEX[i-1]; }
+
   //! \brief Returns the total number of nodes in the block.
   size_t getNoNodes() const { return coord.size(); }
   //! \brief Returns the total number of elements in the block.
-  size_t getNoElms() const { return MMNPC.size()/nen; }
+  size_t getNoElms() const { return MINEX.size(); }
   //! \brief Returns the number of nodes per element.
   size_t getNoElmNodes() const { return nen; }
 
@@ -62,6 +67,7 @@ public:
 private:
   std::vector<Vec3> coord; //!< Vector of nodal coordinates
   std::vector<int>  MMNPC; //!< Matrix of Matrices of Nodal Point Correspondance
+  std::vector<int>  MINEX; //!< Matrix of Internal to External element numbers
   size_t            nen;   //!< Number of Element Nodes
 };
 

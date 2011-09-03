@@ -392,6 +392,7 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName,
     if (gNorm.size() > 5)
       std::cout <<"\n  Stress norm, von Mises: vm(sigma^h)    : "<< gNorm(6);
     std::cout << std::endl;
+
     utl::zero_print_tol = old_tol;
     if (stdPrec > 0) std::cout.precision(stdPrec);
   }
@@ -438,12 +439,11 @@ bool NonLinSIM::saveStep (int iStep, double time, int* nViz,
 
   // Write solution fields
   if (!solution.empty())
-    if (!model->writeGlvS(solution.front(),nViz,iStep,nBlock,time,
-			  psolOnly,vecName))
-      return false;
+    if (!model->writeGlvS(solution.front(),nViz,iStep,nBlock,time,psolOnly,
+			  vecName)) return false;
 
-  // Write element norms (only when no additional visualization points are used)
-  if (!psolOnly && nViz[0] == 2 && nViz[1] <= 2 && nViz[2] <= 2)
+  // Write element norms
+  if (!psolOnly)
     if (!model->writeGlvN(eNorm,iStep,nBlock))
       return false;
 
