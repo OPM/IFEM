@@ -444,6 +444,11 @@ bool Elasticity::evalSol (Vector& s, const Vector&,
 
   s = sigma;
   s.push_back(sigma.vonMises());
+
+  // Additional result variables?
+  for (int i = 1; i <= material->getNoIntVariables(); i++)
+    s.push_back(material->getInternalVariable(i));
+
   return true;
 }
 
@@ -495,9 +500,9 @@ size_t Elasticity::getNoFields (int fld) const
   if (fld < 2)
     return nsd;
   else if (nsd == 2 && material->isPlaneStrain())
-    return 5;
+    return 5 + material->getNoIntVariables();
   else
-    return nsd*(nsd+1)/2 + 1;
+    return nsd*(nsd+1)/2 + 1 + material->getNoIntVariables();
 }
 
 
@@ -527,14 +532,23 @@ const char* Elasticity::getField2Name (size_t i, const char* prefix) const
   else
     name.clear();
 
+  // Number of components in the stress vector of this problem
+  size_t nStress = (nsd == 2 && material->isPlaneStrain()) ? 4 : nsd*(nsd+1)/2;
+
   if (nsd == 1)
     name += "Axial stress";
-  else if (i+1 >= this->getNoFields())
-    name += "von Mises stress";
-  else if (i == 2 && this->getNoFields() == 4)
-    name += s[3];
-  else
+  else if (i == 2 && nStress == 3)
+    name += s[3]; // No s_zz when plane stress
+  else if (i < nStress)
     name += s[i];
+  else if (i == nStress)
+    name += "von Mises stress";
+  else
+  {
+    static char varName[16];
+    material->getInternalVariable(i-nStress,varName);
+    name += varName;
+  }
 
   return name.c_str();
 }

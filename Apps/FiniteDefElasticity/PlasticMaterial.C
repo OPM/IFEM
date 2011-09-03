@@ -165,7 +165,8 @@ bool PlasticMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
     while (resPoints.size() <= iP2)
       resPoints.push_back(new PlasticPoint(this,F.dim()));
 
-    if (!resPoints[iP2]->evaluate(C,sigma,F,TimeDomain(0,false)))
+    // Always invoke with iter = 1 in result evaluation
+    if (!resPoints[iP2]->evaluate(C,sigma,F,TimeDomain(1,false)))
       return false;
 
     // Assume only one evaluation per increment; always update Fp
@@ -199,6 +200,25 @@ bool PlasticMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
   }
 
   return true;
+}
+
+
+int PlasticMaterial::getNoIntVariables () const
+{
+  return 1;
+}
+
+
+double PlasticMaterial::getInternalVariable (int index, char* label) const
+{
+  switch (index) {
+  case 1:
+    if (label) strcpy(label,"E_pp"); // Equivalent plastic strain
+    return iP2 > 0 ? resPoints[iP2-1]->getVariable(6) : 0.0;
+  default:
+    if (label) strcpy(label,"zero");
+    return 0.0;
+  }
 }
 
 

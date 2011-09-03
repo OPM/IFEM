@@ -68,6 +68,9 @@ class PlasticMaterial : public Material
     //! \return Updated strain energy density
     double energyIntegral(const SymmTensor& S, const SymmTensor& E);
 
+    //! \brief Returns a history variable.
+    double getVariable(size_t i) const { return HVc[i]; }
+
   private:
     const RealArray& pMAT; //!< Material property parameters
 
@@ -124,6 +127,13 @@ public:
                         const Vec3& X, const Tensor& F, const SymmTensor& eps,
                         char iop, const TimeDomain* prm,
                         const Tensor* Fpf = 0) const;
+
+  //! \brief Returns number of internal result variables of the material model.
+  virtual int getNoIntVariables() const;
+  //! \brief Returns an internal variable associated with the material model.
+  //! \param[in] index Index of the internal variable
+  //! \param[out] label Name of the internal variable (for result presentation)
+  virtual double getInternalVariable(int index, char* label = 0) const;
 
 private:
   friend class PlasticPoint;

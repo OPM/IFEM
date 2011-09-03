@@ -69,6 +69,11 @@ public:
 			const Vec3& X, const Tensor& F, const SymmTensor& eps,
 			char iop = 1, const TimeDomain* prm = 0,
 			const Tensor* Fpf = 0) const = 0;
+
+  //! \brief Returns number of internal result variables of the material model.
+  virtual int getNoIntVariables() const { return 0; }
+  //! \brief Returns an internal variable associated with the material model.
+  virtual double getInternalVariable(int, char* = 0) const { return 0.0; }
 };
 
 #endif
