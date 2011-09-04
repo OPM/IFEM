@@ -1,3 +1,4 @@
+// $Id$
 //==============================================================================
 //!
 //! \file LagrangeFields3D.C
@@ -17,35 +18,33 @@
 #include "Vec3.h"
 
 
-LagrangeFields3D::LagrangeFields3D(Matrix X, int nx, int ny, int nz, 
-				   int px, int py, int pz, char* name)
-  : Fields(3,name), coord(X), n1(nx), n2(ny), n3(nz),
-    p1(px), p2(py), p3(pz) 
+LagrangeFields3D::LagrangeFields3D (const Matrix& X, int nx, int ny, int nz,
+				    int px, int py, int pz, char* name)
+  : Fields(3,name), coord(X), n1(nx), n2(ny), n3(nz), p1(px), p2(py), p3(pz)
 {
   nno = n1*n2*n3;
   nelm = (n1-1)*(n2-1)*(n3-1)/(p1*p2*p3);
-
-  // Number of fields set in fill
-  nf = 0;
 }
 
 
-bool LagrangeFields3D::valueNode(int node, Vector& vals) const
+bool LagrangeFields3D::valueNode (int node, Vector& vals) const
 {
-  vals.resize(nf,0.0);
-  for (int i = 1;i <= nf;i++)
-    vals(i) = values(nf*(node-1)+i);
+  if (node < 1 || (size_t)node > nno) return false;
+
+  vals.resize(nf);
+  vals.fill(values.ptr()+nf*(node-1));
 
   return true;
 }
 
 
-bool LagrangeFields3D::valueFE(const FiniteElement& fe, Vector& vals) const
+bool LagrangeFields3D::valueFE (const FiniteElement& fe, Vector& vals) const
 {
-  vals.resize(nf,0.0);
+  vals.resize(nf,true);
 
   Vector N;
-  Lagrange::computeBasis(N,p1,fe.xi,p2,fe.eta,p3,fe.zeta);
+  if (!Lagrange::computeBasis(N,p1,fe.xi,p2,fe.eta,p3,fe.zeta))
+    return false;
 
   const int nel1 = (n1-1)/p1;
   const int nel2 = (n2-1)/p2;
@@ -60,16 +59,14 @@ bool LagrangeFields3D::valueFE(const FiniteElement& fe, Vector& vals) const
   const int node2 = p2*iel2-1;
   const int node3 = p3*iel3-1;
 
-  int i, j, k, l, dof;
   int locNode = 1;
-  double value;
-  for (k = node3; k <= node3+p3; k++)
-    for (j = node2; j <= node2+p2; j++)
-      for (i = node1; i <= node1+p1; i++, locNode++)
+  for (int k = node3; k <= node3+p3; k++)
+    for (int j = node2; j <= node2+p2; j++)
+      for (int i = node1; i <= node1+p1; i++, locNode++)
       {
-	dof = nf*(n1*(n2*(k-1) + j-1) + i-1) + 1;
-	value = N(locNode);
-	for (l = 1; l <= nf; l++, dof++)
+	int dof = nf*(n1*(n2*(k-1) + j-1) + i-1) + 1;
+	double value = N(locNode);
+	for (int l = 1; l <= nf; l++, dof++)
 	  vals(l) += values(dof)*value;
       }
 
@@ -77,17 +74,16 @@ bool LagrangeFields3D::valueFE(const FiniteElement& fe, Vector& vals) const
 }
 
 
-bool LagrangeFields3D::valueCoor(const Vec3& x, Vector& vals) const
+bool LagrangeFields3D::valueCoor (const Vec3& x, Vector& vals) const
 {
   // Not implemented yet
   return false;
 }
 
 
-bool LagrangeFields3D::gradFE(const FiniteElement& fe, Matrix& grad) const
+bool LagrangeFields3D::gradFE (const FiniteElement& fe, Matrix& grad) const
 {
-  grad.resize(nf,nsd);
-  grad.fill(0.0);
+  grad.resize(nf,nsd,true);
 
   Vector N;
   Matrix dNdu;
@@ -108,37 +104,27 @@ bool LagrangeFields3D::gradFE(const FiniteElement& fe, Matrix& grad) const
   const int node3 = p3*iel3-1;
 
   const int nen = (p1+1)*(p2+1)*(p3+1);
-  Matrix Xnod(nsd,nen);
+  Matrix Xnod(nsd,nen), Vnod(nf,nen);
 
-  int node, dof, i, j, k;
   int locNode = 1;
-  for (k = node3; k <= node3+p3; k++)
-    for (j = node2; j <= node2+p2; j++)
-      for (i = node1; i <= node1+p1; i++, locNode++)
+  for (int k = node3; k <= node3+p3; k++)
+    for (int j = node2; j <= node2+p2; j++)
+      for (int i = node1; i <= node1+p1; i++, locNode++)
       {
-	node = (k-1)*n1*n2 + (j-1)*n1 + i;
+	int node = (k-1)*n1*n2 + (j-1)*n1 + i;
 	Xnod.fillColumn(locNode,coord.getColumn(node));
+	Vnod.fillColumn(locNode,values.ptr()+nf*(node-1));
       }
 
   Matrix Jac, dNdX;
-  utl::Jacobian(Jac,dNdX,Xnod,dNdu,false);
-
-  locNode = 1;
-  for (k = node3; k <= node3+p3; k++)
-    for (j = node2; j <= node2+p2; j++)
-      for (i = node1; i <= node1+p1; i++, locNode++)
-      {
-	dof = nf*(n1*(n2*(k-1) + j-1) + i-1) + 1;
-	for (int m = 1; m <= nf; m++, dof++)
-	  for (int n = 1; n <= nsd; n++)
-	    grad(m,n) += values(dof)*dNdX(locNode,n);
-      }
+  utl::Jacobian(Jac,dNdX,Xnod,dNdu);
+  grad.multiply(Vnod,dNdX);
 
   return true;
 }
 
 
-bool LagrangeFields3D::gradCoor(const Vec3& x, Matrix& grad) const
+bool LagrangeFields3D::gradCoor (const Vec3& x, Matrix& grad) const
 {
   // Not implemented yet
   return false;

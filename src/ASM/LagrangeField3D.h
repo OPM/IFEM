@@ -1,3 +1,4 @@
+// $Id$
 //==============================================================================
 //!
 //! \file LagrangeField3D.h
@@ -15,21 +16,27 @@
 
 #include "Field.h"
 
+
 /*!
   \brief Class for Lagrange-based finite element scalar fields in 3D.
 
-  \details This class implements the functions required to evaluate a 3D
-  Lagrange scalar field at a given point in parametrical or physical coordinates.
+  \details This class implements the methods required to evaluate a 3D Lagrange
+  scalar field at a given point in parametrical or physical coordinates.
 */
-
 
 class LagrangeField3D : public Field
 {
 public:
   //! \brief The constructor sets the number of space dimensions and fields.
-  //! \param[in] geometry Spline volume geometry
-  //! \param[in] name Name of spline field
-  LagrangeField3D(Matrix X, int nx, int ny, int nz,
+  //! \param[in] X  Matrix of nodal coordinates
+  //! \param[in] nx Number of nodes in first parameter direction
+  //! \param[in] ny Number of nodes in second parameter direction
+  //! \param[in] nz Number of nodes in third parameter direction
+  //! \param[in] px Element order in first parameter direction
+  //! \param[in] py Element order in second parameter direction
+  //! \param[in] pz Element order in third parameter direction
+  //! \param[in] name Name of field
+  LagrangeField3D(const Matrix& X, int nx, int ny, int nz,
 		  int px, int py, int pz, char* name = NULL);
   //! \brief Empty destructor.
   virtual ~LagrangeField3D() {}
@@ -59,10 +66,14 @@ public:
   //! \param[out] grad Gradient of solution in a given global coordinate
   bool gradCoor(const Vec3& x, Vector& grad) const;
 
- protected:
-  Matrix coord;   //!< Matrix of nodel coordinates
-  int n1, n2, n3; //!< Number of nodes in each parameter direction
-  int p1, p2, p3; //!< Element order in each parameter direction
+protected:
+  Matrix coord; //!< Matrix of nodel coordinates
+  int n1; //!< Number of nodes in first parameter direction
+  int n2; //!< Number of nodes in second parameter direction
+  int n3; //!< Number of nodes in third parameter direction
+  int p1; //!< Element order in first parameter direction
+  int p2; //!< Element order in second parameter direction
+  int p3; //!< Element order in third parameter direction
 };
 
 #endif

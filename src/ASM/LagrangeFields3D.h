@@ -1,3 +1,4 @@
+// $Id$
 //==============================================================================
 //!
 //! \file LagrangeFields3D.h
@@ -15,21 +16,28 @@
 
 #include "Fields.h"
 
+
 /*!
   \brief Class for Lagrange-based finite element vector fields in 3D.
 
-  \details This class implements the functions required to evaluate a 3D
-  Lagrange vector field at a given point in parametrical or physical coordinates.
+  \details This class implements the methods required to evaluate a 3D Lagrange
+  vector field at a given point in parametrical or physical coordinates.
 */
-
 
 class LagrangeFields3D : public Fields
 {
 public:
   //! \brief The constructor sets the field name.
-  //! \param[in] geometry Spline volume geometry
-  //! \param[in] name Name of spline field
-  LagrangeFields3D(Matrix X, int nx, int ny, int nz, int px, int py, int pz, char* name = NULL);
+  //! \param[in] X  Matrix of nodal coordinates
+  //! \param[in] nx Number of nodes in first parameter direction
+  //! \param[in] ny Number of nodes in second parameter direction
+  //! \param[in] nz Number of nodes in third parameter direction
+  //! \param[in] px Element order in first parameter direction
+  //! \param[in] py Element order in second parameter direction
+  //! \param[in] pz Element order in third parameter direction
+  //! \param[in] name Name of field
+  LagrangeFields3D(const Matrix& X, int nx, int ny, int nz,
+		   int px, int py, int pz, char* name = NULL);
   //! \brief Empty destructor.
   virtual ~LagrangeFields3D() {}
 
@@ -46,9 +54,9 @@ public:
   //! \param[out] vals Values in local point in given element
   bool valueFE(const FiniteElement& fe, Vector& vals) const;
 
-  //! \brief Computed the value at a given global coordinate.
+  //! \brief Computes the value at a given global coordinate.
   //! \param[in] x Global/physical coordinate for point
-  //! \param[in] vals Values in given physical coordinate
+  //! \param[out] vals Values in given physical coordinate
   bool valueCoor(const Vec3& x, Vector& vals) const;
 
   //! \brief Computes the gradient for a given local coordinate.
@@ -61,10 +69,14 @@ public:
   //! \param[out] grad Gradient of solution in a given global coordinate
   bool gradCoor(const Vec3& x, Matrix& grad) const;
 
- protected:
-  Matrix coord;      //!< Matrix of nodel coordinates
-  int n1, n2, n3;    //!< Number of nodes in each parameter direction
-  int p1, p2, p3;    //!< Element order in each parameter direction
+protected:
+  Matrix coord; //!< Matrix of nodel coordinates
+  int n1; //!< Number of nodes in first parameter direction
+  int n2; //!< Number of nodes in second parameter direction
+  int n3; //!< Number of nodes in third parameter direction
+  int p1; //!< Element order in first parameter direction
+  int p2; //!< Element order in second parameter direction
+  int p3; //!< Element order in third parameter direction
 };
 
 #endif

@@ -15,6 +15,7 @@
 #define _FIELD_H
 
 #include "MatVec.h"
+#include <string>
 
 class FiniteElement;
 class Vec3;
@@ -23,23 +24,22 @@ class Vec3;
 /*!
   \brief Base class for scalar fields.
 
-  \details This class incapsulates the data and methods needed
-  to store and evaluate a scalar field. This is an abstract base 
-  class and the fields associated with a specific field type is 
-  implemented as subclasses, for instance 1D, 2D and 3D spline 
-  formulations or Lagrange formulations.
+  \details This class incapsulates the data and methods needed to store and
+  evaluate a scalar field. This is an abstract base class, and the fields
+  associated with a specific field type are implemented as subclasses,
+  for instance 1D, 2D and 3D spline formulations or Lagrange formulations.
 */
 
 class Field
 {
 protected:
-  //! \brief The constructor sets the number of space dimensions and fields.
+  //! \brief The constructor sets the number of space dimensions and field name.
   //! \param[in] n Number of space dimensions (1, 2 or 3)
   //! \param[in] name Name of field
-  Field(unsigned char n, char* name = NULL) : nsd(n), fieldname(name) {}
+  Field(unsigned char n, char* name = 0) : nsd(n) { if (name) fname = name; }
 
 public:
-  //! \brief Empty destructor
+  //! \brief Empty destructor.
   virtual ~Field() {}
 
   //! \brief Returns number of space dimensions.
@@ -52,10 +52,10 @@ public:
   int getNoNodes() const { return nno; }
 
   //! \brief Returns name of field.
-  const char* getFieldName() const { return fieldname; }
+  const char* getFieldName() const { return fname.c_str(); }
 
   //! \brief Sets the name of the field.
-  void setFieldName(const char* name) { fieldname = const_cast<char*>(name); }
+  void setFieldName(const char* name) { fname = name; }
 
   //! \brief Initializes the field values.
   void fill(const Vector& vec) { values = vec; }
@@ -72,7 +72,7 @@ public:
   //! \param[in] fe Finite element definition
   virtual double valueFE(const FiniteElement& fe) const = 0;
 
-  //! \brief Computed the value at a given global coordinate.
+  //! \brief Computes the value at a given global coordinate.
   //! \param[in] x Global/physical coordinate for point
   virtual double valueCoor(const Vec3& x) const = 0;
 
@@ -90,7 +90,7 @@ protected:
   unsigned char nsd; //!< Number of space dimensions
   int nelm;          //!< Number of elements/knot-spans
   int nno;           //!< Number of nodes/control points
-  char* fieldname;   //!< Name of field
+  std::string fname; //!< Name of the field
   Vector values;     //!< Field values
 };
 

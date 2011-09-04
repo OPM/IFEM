@@ -1,3 +1,4 @@
+// $Id$
 //==============================================================================
 //!
 //! \file LagrangeField2D.h
@@ -15,25 +16,26 @@
 
 #include "Field.h"
 
+
 /*!
   \brief Class for Lagrange-based finite element scalar fields in 2D.
 
-  \details This class implements the functions required to evaluate a 2D
-  Lagrange scalar field at a given point in parametrical or physical coordinates.
+  \details This class implements the methods required to evaluate a 2D Lagrange
+  scalar field at a given point in parametrical or physical coordinates.
 */
-
 
 class LagrangeField2D : public Field
 {
 public:
   //! \brief The constructor sets the number of space dimensions and fields.
-  //! \param[in] X  Matrix of nodel coordinates
-  //! \param[in] n1 Number of nodes in first parameter direction
-  //! \param[in] n2 Number of nodes in second parameter direction
-  //! \param[in] p1 Element order in first parameter direction
-  //! \param[in] p2 Element order in second parameter direction
-  //! \param[in] name Name of spline field
-  LagrangeField2D(Matrix X, int nx, int ny, int px, int py, char* name = NULL);
+  //! \param[in] X  Matrix of nodal coordinates
+  //! \param[in] nx Number of nodes in first parameter direction
+  //! \param[in] ny Number of nodes in second parameter direction
+  //! \param[in] px Element order in first parameter direction
+  //! \param[in] py Element order in second parameter direction
+  //! \param[in] name Name of field
+  LagrangeField2D(const Matrix& X,
+		  int nx, int ny, int px, int py, char* name = NULL);
   //! \brief Empty destructor.
   virtual ~LagrangeField2D() {}
 
@@ -48,7 +50,7 @@ public:
   //! \param[in] fe Finite element definition
   double valueFE(const FiniteElement& fe) const;
 
-  //! \brief Computed the value at a given global coordinate.
+  //! \brief Computes the value at a given global coordinate.
   //! \param[in] x Global/physical coordinate for point
   double valueCoor(const Vec3& x) const;
 
@@ -62,10 +64,12 @@ public:
   //! \param[out] grad Gradient of solution in a given global coordinate
   bool gradCoor(const Vec3& x, Vector& grad) const;
 
- protected:
-  Matrix coord;  //!< Matrix of nodel coordinates
-  int n1, n2;    //!< Number of nodes in each parameter direction
-  int p1, p2;    //!< Element order in each parameter direction
+protected:
+  Matrix coord; //!< Matrix of nodal coordinates
+  int n1; //!< Number of nodes in first parameter direction
+  int n2; //!< Number of nodes in second parameter direction
+  int p1; //!< Element order in first parameter direction
+  int p2; //!< Element order in second parameter direction
 };
 
 #endif

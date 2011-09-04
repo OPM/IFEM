@@ -1,3 +1,4 @@
+// $Id$
 //==============================================================================
 //!
 //! \file LagrangeFields2D.C
@@ -16,34 +17,34 @@
 #include "CoordinateMapping.h"
 #include "Vec3.h"
 
-LagrangeFields2D::LagrangeFields2D(Matrix X, int nx, int ny, 
-				   int px, int py, char* name)
-  : Fields(2,name), coord(X), n1(nx), n2(ny), p1(px), p2(py) 
+
+LagrangeFields2D::LagrangeFields2D (const Matrix& X, int nx, int ny,
+				    int px, int py, char* name)
+  : Fields(2,name), coord(X), n1(nx), n2(ny), p1(px), p2(py)
 {
   nno = n1*n2;
   nelm = (n1-1)*(n2-1)/(p1*p2);
-
-  // Number of fields set in fill
-  nf = 0;
 }
 
 
-bool LagrangeFields2D::valueNode(int node, Vector& vals) const
+bool LagrangeFields2D::valueNode (int node, Vector& vals) const
 {
-  vals.resize(nf,0.0);
-  for (int i = 1;i <= nf;i++)
-    vals(i) = values(nf*(node-1)+i);
+  if (node < 1 || (size_t)node > nno) return false;
+
+  vals.resize(nf);
+  vals.fill(values.ptr()+nf*(node-1));
 
   return true;
 }
 
 
-bool LagrangeFields2D::valueFE(const FiniteElement& fe, Vector& vals) const
+bool LagrangeFields2D::valueFE (const FiniteElement& fe, Vector& vals) const
 {
-  vals.resize(nf,0.0);
+  vals.resize(nf,true);
 
   Vector N;
-  Lagrange::computeBasis(N,p1,fe.xi,p2,fe.eta);
+  if (!Lagrange::computeBasis(N,p1,fe.xi,p2,fe.eta))
+    return false;
 
   const int nel1 = (n1-1)/p1;
 
@@ -53,15 +54,13 @@ bool LagrangeFields2D::valueFE(const FiniteElement& fe, Vector& vals) const
   const int node1 = p1*iel1-1;
   const int node2 = p2*iel2-1;
 
-  int i, j, k, dof;
   int locNode = 1;
-  double value;
-  for (j = node2; j <= node2+p2; j++)
-    for (i = node1; i <= node1+p1; i++, locNode++)
+  for (int j = node2; j <= node2+p2; j++)
+    for (int i = node1; i <= node1+p1; i++, locNode++)
     {
-      dof = nf*((j-1)*n1 + i-1) + 1;
-      value = N(locNode);
-      for (k = 1; k <= nf; k++, dof++)
+      int dof = nf*(n1*(j-1) + i-1) + 1;
+      double value = N(locNode);
+      for (int k = 1; k <= nf; k++, dof++)
 	vals(k) += values(dof)*value;
     }
 
@@ -69,17 +68,16 @@ bool LagrangeFields2D::valueFE(const FiniteElement& fe, Vector& vals) const
 }
 
 
-bool LagrangeFields2D::valueCoor(const Vec3& x, Vector& vals) const
+bool LagrangeFields2D::valueCoor (const Vec3& x, Vector& vals) const
 {
   // Not implemented yet
   return false;
 }
 
 
-bool LagrangeFields2D::gradFE(const FiniteElement& fe, Matrix& grad) const
+bool LagrangeFields2D::gradFE (const FiniteElement& fe, Matrix& grad) const
 {
-  grad.resize(nf,nsd);
-  grad.fill(0.0);
+  grad.resize(nf,nsd,true);
 
   Vector N;
   Matrix dNdu;
@@ -95,35 +93,26 @@ bool LagrangeFields2D::gradFE(const FiniteElement& fe, Matrix& grad) const
   const int node2 = p2*iel2-1;
 
   const int nen = (p1+1)*(p2+1);
-  Matrix Xnod(nsd,nen);
+  Matrix Xnod(nsd,nen), Vnod(nf,nen);
 
-  int node, dof, i, j;
   int locNode = 1;
-  for (j = node2; j <= node2+p2; j++)
-    for (i = node1; i <= node1+p1; i++, locNode++)
+  for (int j = node2; j <= node2+p2; j++)
+    for (int i = node1; i <= node1+p1; i++, locNode++)
     {
-      node = (j-1)*n1 + i;
+      int node = (j-1)*n1 + i;
       Xnod.fillColumn(locNode,coord.getColumn(node));
+      Vnod.fillColumn(locNode,values.ptr()+nf*(node-1));
     }
 
   Matrix Jac, dNdX;
-  utl::Jacobian(Jac,dNdX,Xnod,dNdu,false);
-
-  locNode = 1;
-  for (j = node2; j <= node2+p2; j++)
-    for (i = node1; i <= node1+p1; i++, locNode++)
-    {
-      dof = nf*((j-1)*n1 + i-1) + 1;
-      for (int k = 1; k <= nf; k++, dof++)
-	for (int l = 1; l <= nsd; l++)
-	  grad(k,l) += values(dof)*dNdX(locNode,l);
-    }
+  utl::Jacobian(Jac,dNdX,Xnod,dNdu);
+  grad.multiply(Vnod,dNdX);
 
   return true;
 }
 
 
-bool LagrangeFields2D::gradCoor(const Vec3& x, Matrix& grad) const
+bool LagrangeFields2D::gradCoor (const Vec3& x, Matrix& grad) const
 {
   // Not implemented yet
   return false;
