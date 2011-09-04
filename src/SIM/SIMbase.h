@@ -365,7 +365,7 @@ public:
   //! \param[in] prefix Common prefix for the field components
   bool writeGlvP(const Vector& ssol, const int* nViz, int iStep,
 		 int& nBlock, double time = 0.0, int idBlock = 100,
-		 const char* pvecName = "Global projected");
+		 const char* prefix = "Global projected");
 
   //! \brief Writes a mode shape and associated eigenvalue to the VTF-file.
   //! \details The eigenvalue is used as a label on the step state info

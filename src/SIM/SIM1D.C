@@ -69,7 +69,8 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
     size_t i = 9; while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
     std::cout <<"\nReading data file "<< keyWord+i << std::endl;
     std::ifstream isp(keyWord+i);
-    readPatches(isp);
+    this->readPatches(isp);
+
     if (myModel.empty())
     {
       std::cerr <<" *** SIM1D::parse: No patches read"<< std::endl;
@@ -82,8 +83,16 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
     bool oneBasedIdx = keyWord[12] == '1';
     size_t i = (oneBasedIdx || keyWord[12] == '0') ? 13 : 12;
     while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
-    std::cout <<"\nReading data file "<< keyWord+i << std::endl;
     std::ifstream isp(keyWord+i);
+    if (isp)
+      std::cout <<"\nReading data file "<< keyWord+i << std::endl;
+    else
+    {
+      std::cerr <<" *** SIM1D::read: Failure opening input file "
+		<< std::string(keyWord+i) << std::endl;
+      return false;
+    }
+
     while (isp.good())
     {
       Property p;
@@ -371,7 +380,7 @@ void SIM1D::setQuadratureRule (size_t ng)
 }
 
 
-void SIM1D::readPatches(std::istream& isp)
+void SIM1D::readPatches (std::istream& isp)
 {
   ASMbase* pch = 0;
   for (int patchNo = 1; isp.good(); patchNo++)

@@ -36,9 +36,17 @@ SIMinput::SIMinput ()
 
 bool SIMinput::read (const char* fileName)
 {
-  char* keyWord = 0;
-  std::cout <<"\nReading input file "<< fileName << std::endl;
   std::ifstream is(fileName);
+  if (is)
+    std::cout <<"\nReading input file "<< fileName << std::endl;
+  else
+  {
+    std::cerr <<"\n *** SIMinput::read: Failure opening input file "
+	      << fileName << std::endl;
+    return false;
+  }
+
+  char* keyWord = 0;
   while (is.good() && (keyWord = utl::readLine(is)))
     if (!this->parse(keyWord,is))
     {

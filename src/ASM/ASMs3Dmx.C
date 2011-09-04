@@ -145,9 +145,9 @@ bool ASMs3Dmx::generateFEMTopology ()
 
       // Note: Currently this is implemented for non-rational splines only.
       // TODO: Ask the splines people how to fix this properly, that is, how
-      // may be obtain the correct weights for basis1 when *svol is a NURBS?
+      // may we obtain the correct weights for basis1 when *svol is a NURBS?
       if (svol->rational())
-	std::cout <<"WARNING: The geometry basis is rational (using NURBS)\n."
+	std::cout <<"WARNING: The geometry basis is rational (using NURBS).\n"
 		  <<"         The basis for the unknown fields of one degree"
 		  <<" higher will however be non-rational.\n"
 		  <<"         This may affect accuracy.\n"<< std::endl;
