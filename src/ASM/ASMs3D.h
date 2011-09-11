@@ -92,10 +92,8 @@ public:
   //! \brief Empty destructor.
   virtual ~ASMs3D() {}
 
-
-  // Methods to access data
-  // ============================
-  Go::SplineVolume* getVolume() { return svol; }
+  //! \brief Returns the spline volume representing this patch.
+  Go::SplineVolume* getVolume() const { return svol; }
 
 
   // Methods for model generation

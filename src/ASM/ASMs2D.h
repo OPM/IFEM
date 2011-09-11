@@ -73,10 +73,9 @@ public:
   //! \brief Empty destructor.
   virtual ~ASMs2D() {}
 
+  //! \brief Returns the spline surface representing this patch.
+  Go::SplineSurface* getSurface() const { return surf; }
 
-  // Methods to access data
-  // ============================
-  Go::SplineSurface* getSurface() { return surf; }
 
   // Methods for model generation
   // ============================

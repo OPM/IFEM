@@ -237,10 +237,6 @@ public:
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   virtual bool initElement(const std::vector<int>& MNPC);
-  //! \brief Initializes current element for numerical integration.
-  //! \param[in] MNPC Matrix of nodal point correspondance for current element
-  virtual bool initElement(const std::vector<int>& MNPC, const Vec3&, size_t)
-  { return this->initElement(MNPC); }
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
