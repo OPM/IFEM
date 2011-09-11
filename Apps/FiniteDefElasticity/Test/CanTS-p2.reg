@@ -97,4 +97,3 @@ Number of unknowns    297
   Total reaction forces: Sum(R) = 0 0 269.35
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 25.2357	 a(u^h,u^h) = 636.8394095
   External energy: ((f,u^h)+(t,u^h))^0.5 : 47.3434	(f,u)+(t,u) = 2241.396332
-

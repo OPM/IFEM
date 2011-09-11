@@ -46,5 +46,5 @@ Number of unknowns    1315
   External energy: ((f,u^h)+(t,u^h))^0.5 : 47.394	(f,u)+(t,u) = 2246.188377
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 9985.96
   Pressure norm, L2:       (p^h,p^h)^0.5 : 4093.36	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7032.39	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 8612.86
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7032.26	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8612.72

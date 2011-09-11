@@ -45,8 +45,8 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.0572888	(f,u)+(t,u) = 0.003282011423
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 1.25395
   Pressure norm, L2:       (p^h,p^h)^0.5 : 0.506837	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 1.29976	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 1.49092
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 0.895393	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 1.09663
   Node #5:	sol1 = -4.998386e-03  2.545075e-02
   Node #15:	sol1 = -1.162330e-02  2.616219e-02
   Node #25:	sol1 = -2.013237e-02  2.708485e-02
@@ -59,8 +59,8 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.114557	(f,u)+(t,u) = 0.0131233192
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 2.50724
   Pressure norm, L2:       (p^h,p^h)^0.5 : 1.0134	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 2.15596	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 2.54568
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 1.79034	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 2.19271
   Node #5:	sol1 = -1.000727e-02  5.088876e-02
   Node #15:	sol1 = -2.325341e-02  5.230622e-02
   Node #25:	sol1 = -4.026857e-02  5.414201e-02
@@ -73,8 +73,8 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.171805	(f,u)+(t,u) = 0.0295168308
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 3.75988
   Pressure norm, L2:       (p^h,p^h)^0.5 : 1.51968	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 3.02512	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 3.61613
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 2.68485	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 3.28825
   Node #5:	sol1 = -1.502663e-02  7.631400e-02
   Node #15:	sol1 = -3.489030e-02  7.843207e-02
   Node #25:	sol1 = -6.040856e-02  8.117150e-02
@@ -87,8 +87,8 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.229032	(f,u)+(t,u) = 0.05245545
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 5.01186
   Pressure norm, L2:       (p^h,p^h)^0.5 : 2.02568	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 3.90166	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 4.69428
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 3.57891	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 4.38325
   Node #5:	sol1 = -2.005645e-02  1.017265e-01
   Node #15:	sol1 = -4.653394e-02  1.045397e-01
   Node #25:	sol1 = -8.055229e-02  1.081733e-01
@@ -101,8 +101,8 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.286238	(f,u)+(t,u) = 0.08193207697
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 6.2632
   Pressure norm, L2:       (p^h,p^h)^0.5 : 2.53141	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 4.78235	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 5.77647
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 4.47253	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 5.47771
   Node #5:	sol1 = -2.509670e-02  1.271261e-01
   Node #15:	sol1 = -5.818429e-02  1.306292e-01
   Node #25:	sol1 = -1.006997e-01  1.351474e-01
@@ -115,8 +115,8 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.343423	(f,u)+(t,u) = 0.1179396083
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 7.51387
   Pressure norm, L2:       (p^h,p^h)^0.5 : 3.03686	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 5.6655	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 6.86096
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 5.3657	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 6.57162
   Node #5:	sol1 = -3.014737e-02  1.525130e-01
   Node #15:	sol1 = -6.984135e-02  1.567005e-01
   Node #25:	sol1 = -1.208508e-01  1.620939e-01
@@ -129,8 +129,8 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.400588	(f,u)+(t,u) = 0.1604709369
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 8.76389
   Pressure norm, L2:       (p^h,p^h)^0.5 : 3.54203	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.55016	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 7.9468
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.25843	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 7.66498
   Node #5:	sol1 = -3.520842e-02  1.778870e-01
   Node #15:	sol1 = -8.150507e-02  1.827536e-01
   Node #25:	sol1 = -1.410054e-01  1.890127e-01
@@ -143,8 +143,8 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.457732	(f,u)+(t,u) = 0.2095189525
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 10.0133
   Pressure norm, L2:       (p^h,p^h)^0.5 : 4.04692	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.43578	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 9.03343
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.15071	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.7578
   Node #5:	sol1 = -4.027984e-02  2.032482e-01
   Node #15:	sol1 = -9.317542e-02  2.087884e-01
   Node #25:	sol1 = -1.611636e-01  2.159038e-01
@@ -157,8 +157,8 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.516874	(f,u)+(t,u) = 0.2671582674
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.2707
   Pressure norm, L2:       (p^h,p^h)^0.5 : 4.55886	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 8.3228	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 10.1213
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 8.04241	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.8499
   Node #5:	sol1 = -4.567188e-02  2.302417e-01
   Node #15:	sol1 = -1.055543e-01  2.367059e-01
   Node #25:	sol1 = -1.825830e-01  2.447018e-01
@@ -171,8 +171,8 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.578533	(f,u)+(t,u) = 0.334700519
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 12.5408
   Pressure norm, L2:       (p^h,p^h)^0.5 : 5.07692	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 9.21956	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 11.2204
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 8.94133	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 10.9508
   Node #5:	sol1 = -5.061127e-02  2.593361e-01
   Node #15:	sol1 = -1.187244e-01  2.669433e-01
   Node #25:	sol1 = -2.057310e-01  2.757976e-01
@@ -185,8 +185,8 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.650797	(f,u)+(t,u) = 0.4235363795
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 13.858
   Pressure norm, L2:       (p^h,p^h)^0.5 : 5.63236	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 10.1197	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 12.3234
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 9.84247	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 12.0545
   Node #5:	sol1 = -5.796877e-02  2.983897e-01
   Node #15:	sol1 = -1.372365e-01  3.071552e-01
   Node #25:	sol1 = -2.370396e-01  3.168040e-01
@@ -199,8 +199,8 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.747864	(f,u)+(t,u) = 0.5593003048
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 15.3002
   Pressure norm, L2:       (p^h,p^h)^0.5 : 6.26976	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 11.0584	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 13.4725
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 10.778	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 13.2003
   Node #5:	sol1 = -6.902803e-02  3.610224e-01
   Node #15:	sol1 = -1.676239e-01  3.723359e-01
   Node #25:	sol1 = -2.884550e-01  3.826612e-01
@@ -213,8 +213,8 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.871446	(f,u)+(t,u) = 0.7594178079
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 16.8878
   Pressure norm, L2:       (p^h,p^h)^0.5 : 6.97537	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 12.0851	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 14.7289
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 11.7996	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 14.4515
   Node #5:	sol1 = -8.278554e-02  4.518916e-01
   Node #15:	sol1 = -2.097738e-01  4.669631e-01
   Node #25:	sol1 = -3.627685e-01  4.791943e-01
@@ -227,8 +227,8 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.06876	(f,u)+(t,u) = 1.142245259
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 18.7107
   Pressure norm, L2:       (p^h,p^h)^0.5 : 7.82369	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 13.2002	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 16.0919
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 12.902	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 15.8016
   Node #5:	sol1 = -1.111964e-01  6.338038e-01
   Node #15:	sol1 = -2.891242e-01  6.520125e-01
   Node #25:	sol1 = -5.017261e-01  6.673538e-01
@@ -241,8 +241,8 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.49695	(f,u)+(t,u) = 2.240863025
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 20.539
   Pressure norm, L2:       (p^h,p^h)^0.5 : 8.73029	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 14.1992	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 17.3153
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 13.8995	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 17.0233
   Node #5:	sol1 = -2.127496e-01  1.166198e+00
   Node #15:	sol1 = -5.405789e-01  1.190702e+00
   Node #25:	sol1 = -9.310242e-01  1.216784e+00
@@ -255,8 +255,8 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.98959	(f,u)+(t,u) = 3.958472741
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 22.1047
   Pressure norm, L2:       (p^h,p^h)^0.5 : 9.46234	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 15.1274	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 18.4534
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 14.8327	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 18.1662
   Node #5:	sol1 = -3.756985e-01  1.939111e+00
   Node #15:	sol1 = -9.120024e-01  1.969263e+00
   Node #25:	sol1 = -1.567799e+00  2.002381e+00
@@ -269,8 +269,8 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 2.5004	(f,u)+(t,u) = 6.252001699
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 23.4375
   Pressure norm, L2:       (p^h,p^h)^0.5 : 10.1164	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 15.8549	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 19.3459
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 15.5656	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 19.0639
   Node #5:	sol1 = -5.830080e-01  2.894935e+00
   Node #15:	sol1 = -1.369633e+00  2.928779e+00
   Node #25:	sol1 = -2.345853e+00  2.950500e+00
@@ -283,8 +283,8 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 3.01702	(f,u)+(t,u) = 9.102429444
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 24.594
   Pressure norm, L2:       (p^h,p^h)^0.5 : 10.6914	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 16.4711	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 20.1014
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 16.1847	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 19.8222
   Node #5:	sol1 = -8.421771e-01  3.998041e+00
   Node #15:	sol1 = -1.914392e+00  4.031512e+00
   Node #25:	sol1 = -3.258358e+00  4.019535e+00
@@ -297,8 +297,8 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 3.53723	(f,u)+(t,u) = 12.5119789
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 25.6616
   Pressure norm, L2:       (p^h,p^h)^0.5 : 11.2029	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 17.0765	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 20.8436
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 16.793	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 20.5672
   Node #5:	sol1 = -1.159860e+00  5.232860e+00
   Node #15:	sol1 = -2.551985e+00  5.256531e+00
   Node #25:	sol1 = -4.305638e+00  5.183237e+00
@@ -311,8 +311,8 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 4.05902	(f,u)+(t,u) = 16.47561617
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 26.6219
   Pressure norm, L2:       (p^h,p^h)^0.5 : 11.6478	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 17.6508	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 21.5477
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 17.3699	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 21.2737
   Node #5:	sol1 = -1.544440e+00  6.585063e+00
   Node #15:	sol1 = -3.290548e+00  6.584161e+00
   Node #25:	sol1 = -5.490680e+00  6.416231e+00

@@ -1,4 +1,4 @@
-FBlock-h9x5-Q2P1.inp -2Dpstrain -MX 1 -nGauss 3 -lagrange
+FBlock-h9x5-Q2P1.inp -2D -MX 1 -nGauss 3 -lagrange
 
 Input file: FBlock-h9x5-Q2P1.inp
 Equation solver: 2
@@ -42,8 +42,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.0703524	(f,u)+(t,u) = 0.004949465648
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 3.99207
   Pressure norm, L2:       (p^h,p^h)^0.5 : 2.1873	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 2.87221	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 3.03087
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 1.2585	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 1.54134
   step=2  time=2
   Primary solution summary: L2-norm            : 0.00327124
                             Max X-displacement : 0.00552132 node 5
@@ -53,8 +53,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.140452	(f,u)+(t,u) = 0.0197266334
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 7.97697
   Pressure norm, L2:       (p^h,p^h)^0.5 : 4.37137	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 3.67637	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 4.10702
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 2.51103	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 3.07537
   step=3  time=3
   Primary solution summary: L2-norm            : 0.00489861
                             Max X-displacement : 0.00828239 node 5
@@ -64,8 +64,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.210307	(f,u)+(t,u) = 0.04422916175
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.9548
   Pressure norm, L2:       (p^h,p^h)^0.5 : 6.55225	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 4.66269	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 5.38961
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 3.7579	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 4.60247
   step=4  time=4
   Primary solution summary: L2-norm            : 0.00652077
                             Max X-displacement : 0.0110439 node 5
@@ -75,8 +75,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.279929	(f,u)+(t,u) = 0.07836046385
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 15.9258
   Pressure norm, L2:       (p^h,p^h)^0.5 : 8.72994	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 5.74079	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 6.76336
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 4.99941	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 6.123
   step=5  time=5
   Primary solution summary: L2-norm            : 0.00813792
                             Max X-displacement : 0.0138059 node 5
@@ -86,8 +86,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.349327	(f,u)+(t,u) = 0.1220294116
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 19.8899
   Pressure norm, L2:       (p^h,p^h)^0.5 : 10.9045	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.86675	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 8.18076
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.23586	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 7.63734
   step=6  time=6
   Primary solution summary: L2-norm            : 0.00975025
                             Max X-displacement : 0.0165686 node 5
@@ -97,8 +97,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.418509	(f,u)+(t,u) = 0.1751500561
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 23.8473
   Pressure norm, L2:       (p^h,p^h)^0.5 : 13.0758	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 8.01911	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 9.62058
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.46753	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.14582
   step=7  time=7
   Primary solution summary: L2-norm            : 0.011358
                             Max X-displacement : 0.019332 node 5
@@ -108,8 +108,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.487485	(f,u)+(t,u) = 0.237641364
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 27.7981
   Pressure norm, L2:       (p^h,p^h)^0.5 : 15.244	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 9.18663	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 11.0723
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 8.69469	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 10.6488
   step=8  time=8
   Primary solution summary: L2-norm            : 0.0129612
                             Max X-displacement : 0.0220962 node 5
@@ -119,8 +119,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.556262	(f,u)+(t,u) = 0.3094269683
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 31.7424
   Pressure norm, L2:       (p^h,p^h)^0.5 : 17.409	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 10.363	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 12.5304
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 9.9176	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 12.1465
   step=9  time=9
   Primary solution summary: L2-norm            : 0.0145601
                             Max X-displacement : 0.0248612 node 15
@@ -130,8 +130,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.624848	(f,u)+(t,u) = 0.3904349331
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 35.6803
   Pressure norm, L2:       (p^h,p^h)^0.5 : 19.5709	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 11.5447	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 13.9915
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 11.1365	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 13.6394
   step=10  time=10
   Primary solution summary: L2-norm            : 0.0161549
                             Max X-displacement : 0.0276271 node 5
@@ -141,8 +141,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.693251	(f,u)+(t,u) = 0.4805975322
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.6118
   Pressure norm, L2:       (p^h,p^h)^0.5 : 21.7296	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 12.7292	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 15.4538
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 12.3517	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 15.1277
   step=11  time=11
   Primary solution summary: L2-norm            : 0.0177457
                             Max X-displacement : 0.030394 node 5
@@ -152,8 +152,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.76148	(f,u)+(t,u) = 0.5798510386
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 43.537
   Pressure norm, L2:       (p^h,p^h)^0.5 : 23.8852	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 13.9153	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 16.9161
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 13.5634	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 16.6117
   step=12  time=12
   Primary solution summary: L2-norm            : 0.0193327
                             Max X-displacement : 0.0331619 node 5
@@ -163,8 +163,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.829539	(f,u)+(t,u) = 0.6881355279
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 47.456
   Pressure norm, L2:       (p^h,p^h)^0.5 : 26.0376	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 15.1019	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 18.3776
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 14.7718	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 18.0917
   step=13  time=13
   Primary solution summary: L2-norm            : 0.0209159
                             Max X-displacement : 0.0359307 node 5
@@ -174,8 +174,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.897438	(f,u)+(t,u) = 0.8053946907
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 51.3689
   Pressure norm, L2:       (p^h,p^h)^0.5 : 28.1868	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 16.2884	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 19.8379
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 15.9772	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 19.568
   step=14  time=14
   Primary solution summary: L2-norm            : 0.0224954
                             Max X-displacement : 0.0387006 node 5
@@ -185,8 +185,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.965182	(f,u)+(t,u) = 0.9315756568
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 55.2757
   Pressure norm, L2:       (p^h,p^h)^0.5 : 30.3329	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 17.4745	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 21.2968
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 17.1797	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 21.0408
   step=15  time=15
   Primary solution summary: L2-norm            : 0.0240715
                             Max X-displacement : 0.0414715 node 5
@@ -196,8 +196,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.03278	(f,u)+(t,u) = 1.066628829
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 59.1765
   Pressure norm, L2:       (p^h,p^h)^0.5 : 32.4759	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 18.66	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 22.7541
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 18.3797	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 22.5104
   step=16  time=16
   Primary solution summary: L2-norm            : 0.0256442
                             Max X-displacement : 0.0442434 node 5
@@ -207,8 +207,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.10023	(f,u)+(t,u) = 1.210507726
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 63.0713
   Pressure norm, L2:       (p^h,p^h)^0.5 : 34.6156	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 19.8446	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 24.2099
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 19.5772	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 23.9771
   step=17  time=17
   Primary solution summary: L2-norm            : 0.0272136
                             Max X-displacement : 0.0470163 node 5
@@ -218,8 +218,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.16755	(f,u)+(t,u) = 1.363168834
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 66.9602
   Pressure norm, L2:       (p^h,p^h)^0.5 : 36.7522	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 21.0284	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 25.664
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 20.7725	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 25.441
   step=18  time=18
   Primary solution summary: L2-norm            : 0.0287797
                             Max X-displacement : 0.0497902 node 5
@@ -229,8 +229,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.23474	(f,u)+(t,u) = 1.524571467
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 70.8433
   Pressure norm, L2:       (p^h,p^h)^0.5 : 38.8856	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 22.2112	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 27.1166
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 21.9658	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 26.9025
   step=19  time=19
   Primary solution summary: L2-norm            : 0.0303427
                             Max X-displacement : 0.0525651 node 5
@@ -240,8 +240,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.3018	(f,u)+(t,u) = 1.694677636
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 74.7205
   Pressure norm, L2:       (p^h,p^h)^0.5 : 41.0158	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 23.3932	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 28.5678
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 23.1572	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 28.3617
   step=20  time=20
   Primary solution summary: L2-norm            : 0.0319027
                             Max X-displacement : 0.0553408 node 5
@@ -251,8 +251,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.36874	(f,u)+(t,u) = 1.873451922
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 78.5919
   Pressure norm, L2:       (p^h,p^h)^0.5 : 43.1428	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 24.5743	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 30.0177
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 24.347	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 29.8189
   step=21  time=21
   Primary solution summary: L2-norm            : 0.0334597
                             Max X-displacement : 0.0581174 node 5
@@ -262,8 +262,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.43557	(f,u)+(t,u) = 2.060861361
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 82.4575
   Pressure norm, L2:       (p^h,p^h)^0.5 : 45.2666	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 25.7547	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 31.4663
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 25.5353	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 31.2743
   step=22  time=22
   Primary solution summary: L2-norm            : 0.0350137
                             Max X-displacement : 0.0608948 node 5
@@ -273,8 +273,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.50229	(f,u)+(t,u) = 2.256875332
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 86.3174
   Pressure norm, L2:       (p^h,p^h)^0.5 : 47.3871	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 26.9344	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 32.9138
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 26.7223	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 32.728
   step=23  time=23
   Primary solution summary: L2-norm            : 0.0365649
                             Max X-displacement : 0.0636729 node 5
@@ -284,8 +284,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.56891	(f,u)+(t,u) = 2.46146545
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 90.1717
   Pressure norm, L2:       (p^h,p^h)^0.5 : 49.5044	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 28.1135	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 34.3604
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 27.9082	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 34.1804
   step=24  time=24
   Primary solution summary: L2-norm            : 0.0381133
                             Max X-displacement : 0.0664518 node 5
@@ -295,8 +295,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.63542	(f,u)+(t,u) = 2.674605475
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 94.0202
   Pressure norm, L2:       (p^h,p^h)^0.5 : 51.6185	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 29.2921	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 35.8063
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 29.0931	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 35.6316
   step=25  time=25
   Primary solution summary: L2-norm            : 0.0396589
                             Max X-displacement : 0.0692312 node 5
@@ -306,8 +306,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.70184	(f,u)+(t,u) = 2.896271208
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 97.8631
   Pressure norm, L2:       (p^h,p^h)^0.5 : 53.7292	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 30.4703	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 37.2514
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 30.2772	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 37.0818
   step=26  time=26
   Primary solution summary: L2-norm            : 0.0412018
                             Max X-displacement : 0.0720111 node 5
@@ -317,8 +317,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.76817	(f,u)+(t,u) = 3.126440415
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 101.7
   Pressure norm, L2:       (p^h,p^h)^0.5 : 55.8367	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.6482	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 38.6961
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.4606	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 38.5312
   step=27  time=27
   Primary solution summary: L2-norm            : 0.0427419
                             Max X-displacement : 0.0747914 node 5
@@ -328,8 +328,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.83442	(f,u)+(t,u) = 3.365092736
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 105.532
   Pressure norm, L2:       (p^h,p^h)^0.5 : 57.9409	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 32.8259	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 40.1404
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 32.6436	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 39.98
   step=28  time=28
   Primary solution summary: L2-norm            : 0.0442794
                             Max X-displacement : 0.077572 node 5
@@ -339,8 +339,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.90058	(f,u)+(t,u) = 3.612209613
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 109.358
   Pressure norm, L2:       (p^h,p^h)^0.5 : 60.0417	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 34.0036	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 41.5846
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 33.8261	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 41.4284
   step=29  time=29
   Primary solution summary: L2-norm            : 0.0458142
                             Max X-displacement : 0.0803529 node 5
@@ -350,8 +350,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.96667	(f,u)+(t,u) = 3.867774216
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 113.179
   Pressure norm, L2:       (p^h,p^h)^0.5 : 62.1393	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 35.1813	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 43.0287
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 35.0085	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 42.8764
   step=30  time=30
   Primary solution summary: L2-norm            : 0.0473464
                             Max X-displacement : 0.0831338 node 5
@@ -361,8 +361,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 2.03268	(f,u)+(t,u) = 4.131771375
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 116.994
   Pressure norm, L2:       (p^h,p^h)^0.5 : 64.2334	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 36.3592	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 44.4729
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 36.1907	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 44.3244
   step=31  time=31
   Primary solution summary: L2-norm            : 0.048876
                             Max X-displacement : 0.0859147 node 5
@@ -372,8 +372,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 2.09862	(f,u)+(t,u) = 4.404187518
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 120.803
   Pressure norm, L2:       (p^h,p^h)^0.5 : 66.3242	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 37.5374	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 45.9174
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 37.373	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 45.7725
   step=32  time=32
   Primary solution summary: L2-norm            : 0.0504029
                             Max X-displacement : 0.0886955 node 5
@@ -383,8 +383,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 2.16449	(f,u)+(t,u) = 4.685010611
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 124.607
   Pressure norm, L2:       (p^h,p^h)^0.5 : 68.4116	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 38.716	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 47.3623
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 38.5556	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 47.2207
   step=33  time=33
   Primary solution summary: L2-norm            : 0.0519273
                             Max X-displacement : 0.091476 node 5
@@ -394,8 +394,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 2.2303	(f,u)+(t,u) = 4.974230108
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 128.406
   Pressure norm, L2:       (p^h,p^h)^0.5 : 70.4957	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 39.8951	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 48.8078
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 39.7384	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 48.6694
   step=34  time=34
   Primary solution summary: L2-norm            : 0.053449
                             Max X-displacement : 0.0942561 node 5
@@ -405,8 +405,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 2.29605	(f,u)+(t,u) = 5.271836897
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 132.199
   Pressure norm, L2:       (p^h,p^h)^0.5 : 72.5763	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 41.0748	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 50.2539
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 40.9217	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 50.1187
   step=35  time=35
   Primary solution summary: L2-norm            : 0.0549681
                             Max X-displacement : 0.0970357 node 5
@@ -416,8 +416,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 2.36174	(f,u)+(t,u) = 5.577823256
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 135.986
   Pressure norm, L2:       (p^h,p^h)^0.5 : 74.6534	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 42.2553	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 51.7009
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 42.1056	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 51.5687
   step=36  time=36
   Primary solution summary: L2-norm            : 0.0564845
                             Max X-displacement : 0.0998145 node 5
@@ -427,8 +427,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 2.42738	(f,u)+(t,u) = 5.892182818
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 139.768
   Pressure norm, L2:       (p^h,p^h)^0.5 : 76.7271	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 43.4366	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 53.1489
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 43.2902	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 53.0195
   step=37  time=37
   Primary solution summary: L2-norm            : 0.0579983
                             Max X-displacement : 0.102593 node 5
@@ -438,8 +438,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 2.49297	(f,u)+(t,u) = 6.214910527
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 143.545
   Pressure norm, L2:       (p^h,p^h)^0.5 : 78.7973	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 44.6189	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 54.598
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 44.4757	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 54.4713
   step=38  time=38
   Primary solution summary: L2-norm            : 0.0595094
                             Max X-displacement : 0.10537 node 5
@@ -449,8 +449,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 2.55852	(f,u)+(t,u) = 6.546002614
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 147.316
   Pressure norm, L2:       (p^h,p^h)^0.5 : 80.8641	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 45.8022	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 56.0484
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 45.662	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 55.9244
   step=39  time=39
   Primary solution summary: L2-norm            : 0.0610179
                             Max X-displacement : 0.108146 node 5
@@ -460,8 +460,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 2.62402	(f,u)+(t,u) = 6.885456569
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 151.082
   Pressure norm, L2:       (p^h,p^h)^0.5 : 82.9273	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 46.9868	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 57.5002
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 46.8495	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 57.3787
   step=40  time=40
   Primary solution summary: L2-norm            : 0.0625236
                             Max X-displacement : 0.11092 node 5
@@ -471,8 +471,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 2.68947	(f,u)+(t,u) = 7.233271122
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 154.842
   Pressure norm, L2:       (p^h,p^h)^0.5 : 84.987	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 48.1726	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 58.9536
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 48.0381	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 58.8345
   step=41  time=41
   Primary solution summary: L2-norm            : 0.0640265
                             Max X-displacement : 0.113693 node 5
@@ -482,8 +482,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 2.75489	(f,u)+(t,u) = 7.589446225
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 158.597
   Pressure norm, L2:       (p^h,p^h)^0.5 : 87.0431	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 49.3599	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 60.4086
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 49.2281	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 60.2918
   step=42  time=42
   Primary solution summary: L2-norm            : 0.0655266
                             Max X-displacement : 0.116465 node 5
@@ -493,8 +493,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 2.82028	(f,u)+(t,u) = 7.953983051
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 162.346
   Pressure norm, L2:       (p^h,p^h)^0.5 : 89.0957	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 50.5486	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 61.8654
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 50.4194	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 61.7509
   step=43  time=43
   Primary solution summary: L2-norm            : 0.067024
                             Max X-displacement : 0.119234 node 5
@@ -504,8 +504,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 2.88563	(f,u)+(t,u) = 8.326883986
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 166.09
   Pressure norm, L2:       (p^h,p^h)^0.5 : 91.1447	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 51.739	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 63.3242
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 51.6123	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 63.2119
   step=44  time=44
   Primary solution summary: L2-norm            : 0.0685184
                             Max X-displacement : 0.122002 node 5
@@ -515,8 +515,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 2.95096	(f,u)+(t,u) = 8.70815264
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 169.829
   Pressure norm, L2:       (p^h,p^h)^0.5 : 93.1901	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 52.9311	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 64.7851
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 52.8069	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 64.6749
   step=45  time=45
   Primary solution summary: L2-norm            : 0.0700099
                             Max X-displacement : 0.124767 node 5
@@ -526,8 +526,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 3.01625	(f,u)+(t,u) = 9.097793862
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 173.562
   Pressure norm, L2:       (p^h,p^h)^0.5 : 95.2319	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 54.125	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 66.2481
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 54.0031	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 66.1401
   step=46  time=46
   Primary solution summary: L2-norm            : 0.0714984
                             Max X-displacement : 0.127531 node 5
@@ -537,8 +537,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 3.08153	(f,u)+(t,u) = 9.495813767
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 177.289
   Pressure norm, L2:       (p^h,p^h)^0.5 : 97.27	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 55.3208	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 67.7135
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 55.2013	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 67.6075
   step=47  time=47
   Primary solution summary: L2-norm            : 0.072984
                             Max X-displacement : 0.130291 node 5
@@ -548,8 +548,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 3.14678	(f,u)+(t,u) = 9.902219775
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 181.012
   Pressure norm, L2:       (p^h,p^h)^0.5 : 99.3046	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 56.5187	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 69.1814
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 56.4014	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 69.0773
   step=48  time=48
   Primary solution summary: L2-norm            : 0.0744664
                             Max X-displacement : 0.133049 node 5
@@ -559,8 +559,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 3.21201	(f,u)+(t,u) = 10.31702067
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 184.729
   Pressure norm, L2:       (p^h,p^h)^0.5 : 101.335	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 57.7188	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 70.6519
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 57.6036	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 70.5497
   step=49  time=49
   Primary solution summary: L2-norm            : 0.0759458
                             Max X-displacement : 0.135805 node 5
@@ -570,8 +570,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 3.27723	(f,u)+(t,u) = 10.74022668
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 188.441
   Pressure norm, L2:       (p^h,p^h)^0.5 : 103.363	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 58.9211	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 72.1252
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 58.808	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 72.0248
   step=50  time=50
   Primary solution summary: L2-norm            : 0.0774219
                             Max X-displacement : 0.138557 node 5
@@ -581,8 +581,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 3.34243	(f,u)+(t,u) = 11.17184957
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 192.147
   Pressure norm, L2:       (p^h,p^h)^0.5 : 105.386	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 60.1258	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 73.6014
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 60.0148	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 73.5028
   step=51  time=51
   Primary solution summary: L2-norm            : 0.0788949
                             Max X-displacement : 0.141306 node 5
@@ -592,8 +592,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 3.40762	(f,u)+(t,u) = 11.61190283
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 195.848
   Pressure norm, L2:       (p^h,p^h)^0.5 : 107.406	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 61.333	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 75.0805
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 61.2239	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 74.9837
   step=52  time=52
   Primary solution summary: L2-norm            : 0.0803645
                             Max X-displacement : 0.144052 node 5
@@ -603,8 +603,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 3.47281	(f,u)+(t,u) = 12.06040186
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 199.544
   Pressure norm, L2:       (p^h,p^h)^0.5 : 109.422	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 62.5428	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 76.5629
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 62.4357	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 76.4678
   step=53  time=53
   Primary solution summary: L2-norm            : 0.0818309
                             Max X-displacement : 0.146794 node 5
@@ -614,8 +614,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 3.53799	(f,u)+(t,u) = 12.51736432
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 203.235
   Pressure norm, L2:       (p^h,p^h)^0.5 : 111.435	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 63.7553	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 78.0486
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 63.6501	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 77.9552
   step=54  time=54
   Primary solution summary: L2-norm            : 0.083294
                             Max X-displacement : 0.149533 node 5
@@ -625,8 +625,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 3.60317	(f,u)+(t,u) = 12.98281069
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 206.92
   Pressure norm, L2:       (p^h,p^h)^0.5 : 113.443	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 64.9708	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 79.5378
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 64.8674	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 79.446
   step=55  time=55
   Primary solution summary: L2-norm            : 0.0847538
                             Max X-displacement : 0.152269 node 5
@@ -636,8 +636,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 3.66835	(f,u)+(t,u) = 13.45676508
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 210.601
   Pressure norm, L2:       (p^h,p^h)^0.5 : 115.449	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 66.1892	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 81.0308
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 66.0877	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 80.9405
   step=56  time=56
   Primary solution summary: L2-norm            : 0.0862104
                             Max X-displacement : 0.155001 node 5
@@ -647,8 +647,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 3.73353	(f,u)+(t,u) = 13.9392569
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 214.276
   Pressure norm, L2:       (p^h,p^h)^0.5 : 117.45	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 67.4109	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 82.5276
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 67.3111	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 82.4389
   step=57  time=57
   Primary solution summary: L2-norm            : 0.087664
                             Max X-displacement : 0.157731 node 5
@@ -658,8 +658,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 3.79873	(f,u)+(t,u) = 14.43032393
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 217.947
   Pressure norm, L2:       (p^h,p^h)^0.5 : 119.448	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 68.636	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 84.0286
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 68.5379	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 83.9414
   step=58  time=58
   Primary solution summary: L2-norm            : 0.0891148
                             Max X-displacement : 0.160457 node 5
@@ -669,8 +669,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 3.86394	(f,u)+(t,u) = 14.93001899
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 221.613
   Pressure norm, L2:       (p^h,p^h)^0.5 : 121.443	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 69.8649	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 85.5342
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 69.7684	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 85.4485
   step=59  time=59
   Primary solution summary: L2-norm            : 0.0905636
                             Max X-displacement : 0.163183 node 5
@@ -680,8 +680,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 3.92918	(f,u)+(t,u) = 15.43842576
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 225.276
   Pressure norm, L2:       (p^h,p^h)^0.5 : 123.434	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 71.0979	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 87.0449
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 71.0031	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 86.9607
   step=60  time=60
   Primary solution summary: L2-norm            : 0.0920118
                             Max X-displacement : 0.16591 node 5
@@ -691,8 +691,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 3.99446	(f,u)+(t,u) = 15.95570149
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 228.935
   Pressure norm, L2:       (p^h,p^h)^0.5 : 125.422	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 72.3361	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 88.5619
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 72.2429	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 88.4791
   step=61  time=61
   Primary solution summary: L2-norm            : 0.0934622
                             Max X-displacement : 0.168645 node 5
@@ -702,8 +702,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 4.05983	(f,u)+(t,u) = 16.48221193
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 232.593
   Pressure norm, L2:       (p^h,p^h)^0.5 : 127.408	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 73.5814	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 90.0876
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 73.4898	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 90.0062
   step=62  time=62
   Primary solution summary: L2-norm            : 0.0949222
                             Max X-displacement : 0.1714 node 5
@@ -713,8 +713,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 4.12542	(f,u)+(t,u) = 17.01905023
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 236.254
   Pressure norm, L2:       (p^h,p^h)^0.5 : 129.394	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 74.8396	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 91.6291
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 74.7496	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 91.5491
   step=63  time=63
   Primary solution summary: L2-norm            : 0.0964112
                             Max X-displacement : 0.174216 node 5
@@ -724,8 +724,8 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 4.19173	(f,u)+(t,u) = 17.57058695
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 239.933
   Pressure norm, L2:       (p^h,p^h)^0.5 : 131.384	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 76.1329	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 93.2136
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 76.0445	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 93.1351
   step=64  time=64
   Primary solution summary: L2-norm            : 0.0980007
                             Max X-displacement : 0.177252 node 5
@@ -735,6 +735,6 @@ Number of unknowns    377
   External energy: ((f,u^h)+(t,u^h))^0.5 : 4.26203	(f,u)+(t,u) = 18.16489655
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 243.701
   Pressure norm, L2:       (p^h,p^h)^0.5 : 133.395	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 77.5973	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 95.0078
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 77.5109	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 94.931
   step=65  time=65

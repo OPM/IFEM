@@ -44,14 +44,14 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.0573153	(f,u)+(t,u) = 0.003285041252
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 1.26078
   Pressure norm, L2:       (p^h,p^h)^0.5 : 0.51468	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 1.44328	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 1.61378
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 0.891559	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 1.09193
   Node #5:	sol1 = -4.960446e-03  2.540191e-02
-		sol2 =  2.644478e-02  2.340967e-02  1.445799e-02  2.034086e-02  3.684787e-02
+		sol2 =  2.644478e-02  2.340967e-02  1.445799e-02  2.034086e-02  3.684787e-02  0.000000e+00
   Node #15:	sol1 = -1.170457e-02  2.626771e-02
-		sol2 = -2.694526e-03  3.124873e-02  8.280832e-03  1.805492e-02  4.333594e-02
+		sol2 = -2.694526e-03  3.124873e-02  8.280832e-03  1.805492e-02  4.333594e-02  0.000000e+00
   Node #25:	sol1 = -2.016407e-02  2.712093e-02
-		sol2 = -1.104698e-02 -5.339513e-05 -3.219154e-03 -2.855321e-03  1.097891e-02
+		sol2 = -1.104698e-02 -5.339513e-05 -3.219154e-03 -2.855321e-03  1.097891e-02  0.000000e+00
   step=2  time=0.1
   Primary solution summary: L2-norm            : 0.0227468
                             Max X-displacement : 0.0403314 node 25
@@ -61,14 +61,14 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.11461	(f,u)+(t,u) = 0.01313534039
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 2.52089
   Pressure norm, L2:       (p^h,p^h)^0.5 : 1.02907	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 2.22758	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 2.59681
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 1.78267	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 2.18332
   Node #5:	sol1 = -9.931252e-03  5.079114e-02
-		sol2 =  5.281330e-02  4.689415e-02  2.891556e-02  4.069129e-02  7.370229e-02
+		sol2 =  5.281330e-02  4.689415e-02  2.891556e-02  4.069129e-02  7.370229e-02  0.000000e+00
   Node #15:	sol1 = -2.341605e-02  5.251670e-02
-		sol2 = -5.420270e-03  6.255291e-02  1.656870e-02  3.603887e-02  8.663492e-02
+		sol2 = -5.420270e-03  6.255291e-02  1.656870e-02  3.603887e-02  8.663492e-02  0.000000e+00
   Node #25:	sol1 = -4.033144e-02  5.421341e-02
-		sol2 = -2.201840e-02 -1.105773e-04 -6.417492e-03 -5.728853e-03  2.190932e-02
+		sol2 = -2.201840e-02 -1.105773e-04 -6.417492e-03 -5.728853e-03  2.190932e-02  0.000000e+00
   step=3  time=0.15
   Primary solution summary: L2-norm            : 0.0341115
                             Max X-displacement : 0.0605021 node 25
@@ -78,14 +78,14 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.171883	(f,u)+(t,u) = 0.02954365771
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 3.78035
   Pressure norm, L2:       (p^h,p^h)^0.5 : 1.54318	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 3.05667	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 3.62917
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 2.67334	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 3.27417
   Node #5:	sol1 = -1.491240e-02  7.616769e-02
-		sol2 =  7.910557e-02  7.045336e-02  4.337269e-02  6.105102e-02  1.105632e-01
+		sol2 =  7.910557e-02  7.045336e-02  4.337269e-02  6.105102e-02  1.105632e-01  0.000000e+00
   Node #15:	sol1 = -3.513441e-02  7.874696e-02
-		sol2 = -8.177016e-03  9.391216e-02  2.486354e-02  5.395185e-02  1.298969e-01
+		sol2 = -8.177016e-03  9.391216e-02  2.486354e-02  5.395185e-02  1.298969e-01  0.000000e+00
   Node #25:	sol1 = -6.050206e-02  8.127744e-02
-		sol2 = -3.291424e-02 -1.715690e-04 -9.595016e-03 -8.620315e-03  3.279122e-02
+		sol2 = -3.291424e-02 -1.715690e-04 -9.595016e-03 -8.620315e-03  3.279122e-02  0.000000e+00
   step=4  time=0.2
   Primary solution summary: L2-norm            : 0.0454704
                             Max X-displacement : 0.0806759 node 25
@@ -95,14 +95,14 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.229135	(f,u)+(t,u) = 0.05250274986
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 5.03913
   Pressure norm, L2:       (p^h,p^h)^0.5 : 2.05701	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 3.90727	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 4.68284
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 3.56357	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 4.36446
   Node #5:	sol1 = -1.990386e-02  1.015315e-01
-		sol2 =  1.053216e-01  9.408721e-02  5.782934e-02  8.141974e-02  1.474303e-01
+		sol2 =  1.053216e-01  9.408721e-02  5.782934e-02  8.141974e-02  1.474303e-01  0.000000e+00
   Node #15:	sol1 = -4.685963e-02  1.049585e-01
-		sol2 = -1.096455e-02  1.253261e-01  3.316530e-02  7.179383e-02  1.731218e-01
+		sol2 = -1.096455e-02  1.253261e-01  3.316530e-02  7.179383e-02  1.731218e-01  0.000000e+00
   Node #25:	sol1 = -8.067587e-02  1.083130e-01
-		sol2 = -4.373448e-02 -2.363914e-04 -1.275173e-02 -1.152943e-02  4.362462e-02
+		sol2 = -4.373448e-02 -2.363914e-04 -1.275173e-02 -1.152943e-02  4.362462e-02  0.000000e+00
   step=5  time=0.25
   Primary solution summary: L2-norm            : 0.0568235
                             Max X-displacement : 0.100853 node 25
@@ -112,14 +112,14 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.286366	(f,u)+(t,u) = 0.08200536986
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 6.29725
   Pressure norm, L2:       (p^h,p^h)^0.5 : 2.57054	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 4.76925	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 5.74726
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 4.45335	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 5.45422
   Node #5:	sol1 = -2.490563e-02  1.268827e-01
-		sol2 =  1.314613e-01  1.177956e-01  7.228550e-02  1.017972e-01  1.843036e-01
+		sol2 =  1.314613e-01  1.177956e-01  7.228550e-02  1.017972e-01  1.843036e-01  0.000000e+00
   Node #15:	sol1 = -5.859168e-02  1.311513e-01
-		sol2 = -1.378265e-02  1.567943e-01  4.147394e-02  8.956479e-02  2.163096e-01
+		sol2 = -1.378265e-02  1.567943e-01  4.147394e-02  8.956479e-02  2.163096e-01  0.000000e+00
   Node #25:	sol1 = -1.008528e-01  1.353202e-01
-		sol2 = -5.447912e-02 -3.050646e-04 -1.588763e-02 -1.445591e-02  5.440950e-02
+		sol2 = -5.447912e-02 -3.050646e-04 -1.588763e-02 -1.445591e-02  5.440950e-02  0.000000e+00
   step=6  time=0.3
   Primary solution summary: L2-norm            : 0.0681707
                             Max X-displacement : 0.121033 node 25
@@ -129,14 +129,14 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.343576	(f,u)+(t,u) = 0.1180442672
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 7.55471
   Pressure norm, L2:       (p^h,p^h)^0.5 : 3.08379	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 5.63787	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 6.81775
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 5.34268	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 6.54342
   Node #5:	sol1 = -2.991766e-02  1.522211e-01
-		sol2 =  1.575247e-01  1.415785e-01  8.674113e-02  1.221830e-01  2.211830e-01
+		sol2 =  1.575247e-01  1.415785e-01  8.674113e-02  1.221830e-01  2.211830e-01  0.000000e+00
   Node #15:	sol1 = -7.033052e-02  1.573253e-01
-		sol2 = -1.663112e-02  1.883163e-01  4.978939e-02  1.072647e-01  2.594602e-01
+		sol2 = -1.663112e-02  1.883163e-01  4.978939e-02  1.072647e-01  2.594602e-01  0.000000e+00
   Node #25:	sol1 = -1.210329e-01  1.622989e-01
-		sol2 = -6.514815e-02 -3.776073e-04 -1.900273e-02 -1.739948e-02  6.514588e-02
+		sol2 = -6.514815e-02 -3.776073e-04 -1.900273e-02 -1.739948e-02  6.514588e-02  0.000000e+00
   step=7  time=0.35
   Primary solution summary: L2-norm            : 0.0795121
                             Max X-displacement : 0.141216 node 25
@@ -146,14 +146,14 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.400765	(f,u)+(t,u) = 0.1606121879
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 8.81149
   Pressure norm, L2:       (p^h,p^h)^0.5 : 3.59675	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.51065	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 7.89192
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.23157	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 7.63209
   Node #5:	sol1 = -3.493996e-02  1.775467e-01
-		sol2 =  1.835118e-01  1.654358e-01  1.011962e-01  1.425770e-01  2.580683e-01
+		sol2 =  1.835118e-01  1.654358e-01  1.011962e-01  1.425770e-01  2.580683e-01  0.000000e+00
   Node #15:	sol1 = -8.207613e-02  1.834806e-01
-		sol2 = -1.950972e-02  2.198918e-01  5.811161e-02  1.248936e-01  3.025735e-01
+		sol2 = -1.950972e-02  2.198918e-01  5.811161e-02  1.248936e-01  3.025735e-01  0.000000e+00
   Node #25:	sol1 = -1.412159e-01  1.892492e-01
-		sol2 = -7.574157e-02 -4.540370e-04 -2.209703e-02 -2.035987e-02  7.583374e-02
+		sol2 = -7.574157e-02 -4.540370e-04 -2.209703e-02 -2.035987e-02  7.583374e-02  0.000000e+00
   step=8  time=0.4
   Primary solution summary: L2-norm            : 0.0908477
                             Max X-displacement : 0.161402 node 25
@@ -163,14 +163,14 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.457932	(f,u)+(t,u) = 0.2097018746
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 10.0676
   Pressure norm, L2:       (p^h,p^h)^0.5 : 4.10943	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.38613	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 8.96842
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.12001	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 8.7202
   Node #5:	sol1 = -3.997249e-02  2.028596e-01
-		sol2 =  2.094227e-01  1.893673e-01  1.156507e-01  1.629788e-01  2.949594e-01
+		sol2 =  2.094227e-01  1.893673e-01  1.156507e-01  1.629788e-01  2.949594e-01  0.000000e+00
   Node #15:	sol1 = -9.382848e-02  2.096171e-01
-		sol2 = -2.241825e-02  2.515204e-01  6.644053e-02  1.424514e-01  3.456496e-01
+		sol2 = -2.241825e-02  2.515204e-01  6.644053e-02  1.424514e-01  3.456496e-01  0.000000e+00
   Node #25:	sol1 = -1.614020e-01  2.161710e-01
-		sol2 = -8.625936e-02 -5.343700e-04 -2.517053e-02 -2.333679e-02  8.647310e-02
+		sol2 = -8.625936e-02 -5.343700e-04 -2.517053e-02 -2.333679e-02  8.647310e-02  0.000000e+00
   step=9  time=0.45
   Primary solution summary: L2-norm            : 0.102684
                             Max X-displacement : 0.182388 node 25
@@ -180,14 +180,14 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.516374	(f,u)+(t,u) = 0.2666415928
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 11.3278
   Pressure norm, L2:       (p^h,p^h)^0.5 : 4.62594	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 8.26353	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 10.0464
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 8.00764	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 9.80732
   Node #5:	sol1 = -4.506772e-02  2.292369e-01
-		sol2 =  2.404106e-01  2.256008e-01  1.351452e-01  1.739764e-01  3.170876e-01
+		sol2 =  2.404106e-01  2.256008e-01  1.351452e-01  1.739764e-01  3.170876e-01  0.000000e+00
   Node #15:	sol1 = -1.060317e-01  2.369363e-01
-		sol2 = -2.616186e-02  2.830817e-01  7.450778e-02  1.599958e-01  3.891407e-01
+		sol2 = -2.616186e-02  2.830817e-01  7.450778e-02  1.599958e-01  3.891407e-01  0.000000e+00
   Node #25:	sol1 = -1.823884e-01  2.442632e-01
-		sol2 = -9.595536e-02 -5.834743e-04 -2.799665e-02 -2.605558e-02  9.627830e-02
+		sol2 = -9.595536e-02 -5.834743e-04 -2.799665e-02 -2.605558e-02  9.627830e-02  0.000000e+00
   step=10  time=0.5
   Primary solution summary: L2-norm            : 0.116396
                             Max X-displacement : 0.206623 node 25
@@ -197,14 +197,14 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.579384	(f,u)+(t,u) = 0.3356861958
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 12.6127
   Pressure norm, L2:       (p^h,p^h)^0.5 : 5.16388	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 9.14117	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 11.124
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 8.89291	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 10.8915
   Node #5:	sol1 = -5.081357e-02  2.598432e-01
-		sol2 =  2.818422e-01  2.684077e-01  1.595747e-01  1.790418e-01  3.311422e-01
+		sol2 =  2.818422e-01  2.684077e-01  1.595747e-01  1.790418e-01  3.311422e-01  0.000000e+00
   Node #15:	sol1 = -1.202538e-01  2.684868e-01
-		sol2 = -3.263626e-02  3.133029e-01  8.139444e-02  1.783716e-01  4.343714e-01
+		sol2 = -3.263626e-02  3.133029e-01  8.139444e-02  1.783716e-01  4.343714e-01  0.000000e+00
   Node #25:	sol1 = -2.066228e-01  2.765098e-01
-		sol2 = -1.082387e-01 -5.238840e-03 -3.290893e-02 -3.003316e-02  1.059743e-01
+		sol2 = -1.082387e-01 -5.238840e-03 -3.290893e-02 -3.003316e-02  1.059743e-01  0.000000e+00
   step=11  time=0.55
   Primary solution summary: L2-norm            : 0.135844
                             Max X-displacement : 0.241007 node 25
@@ -214,14 +214,14 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.655918	(f,u)+(t,u) = 0.430228314
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 13.9763
   Pressure norm, L2:       (p^h,p^h)^0.5 : 5.7612	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 10.029	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 12.2132
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 9.78591	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 11.9852
   Node #5:	sol1 = -5.869619e-02  3.031769e-01
-		sol2 =  3.640264e-01  3.365909e-01  2.031818e-01  1.678435e-01  3.266881e-01
+		sol2 =  3.640264e-01  3.365909e-01  2.031818e-01  1.678435e-01  3.266881e-01  0.000000e+00
   Node #15:	sol1 = -1.408313e-01  3.129229e-01
-		sol2 = -4.991071e-02  3.393246e-01  8.393118e-02  1.985528e-01  4.853776e-01
+		sol2 = -3.732093e-02  3.238092e-01  8.685676e-02  1.842161e-01  4.503304e-01  1.457876e-04
   Node #25:	sol1 = -2.410066e-01  3.214493e-01
-		sol2 = -1.220415e-01 -1.223211e-02 -3.893990e-02 -3.634370e-02  1.174787e-01
+		sol2 = -1.220415e-01 -1.223211e-02 -3.893990e-02 -3.634370e-02  1.174787e-01  0.000000e+00
   step=12  time=0.6
   Primary solution summary: L2-norm            : 0.16088
                             Max X-displacement : 0.285707 node 25
@@ -231,14 +231,14 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.745803	(f,u)+(t,u) = 0.5562224461
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 15.4223
   Pressure norm, L2:       (p^h,p^h)^0.5 : 6.39641	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 10.9695	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 13.3663
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 10.7288	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 13.14
   Node #5:	sol1 = -6.758382e-02  3.595813e-01
-		sol2 =  5.230014e-01  4.460672e-01  2.810338e-01  1.496998e-01  3.362763e-01
+		sol2 =  5.230014e-01  4.460672e-01  2.810338e-01  1.496998e-01  3.362763e-01  0.000000e+00
   Node #15:	sol1 = -1.666467e-01  3.711282e-01
-		sol2 = -8.499873e-02  3.720475e-01  8.324528e-02  2.308704e-01  5.658670e-01
+		sol2 = -4.321192e-02  3.217908e-01  9.171512e-02  1.843698e-01  4.518409e-01  4.743447e-04
   Node #25:	sol1 = -2.857068e-01  3.801773e-01
-		sol2 = -1.247744e-01 -1.557625e-03 -3.663679e-02 -3.867544e-02  1.287554e-01
+		sol2 = -1.247744e-01 -1.557625e-03 -3.663679e-02 -3.867544e-02  1.287554e-01  0.000000e+00
   step=13  time=0.65
   Primary solution summary: L2-norm            : 0.206213
                             Max X-displacement : 0.370253 node 25
@@ -248,14 +248,14 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.880122	(f,u)+(t,u) = 0.7746150373
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 17.0191
   Pressure norm, L2:       (p^h,p^h)^0.5 : 7.12052	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 11.9682	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 14.5901
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 11.7279	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 14.3637
   Node #5:	sol1 = -8.393454e-02  4.626787e-01
-		sol2 =  7.405689e-01  6.115534e-01  3.921209e-01  1.911903e-01  4.502966e-01
+		sol2 =  7.399125e-01  6.114291e-01  3.929016e-01  1.904018e-01  4.484395e-01  7.746735e-06
   Node #15:	sol1 = -2.145676e-01  4.773997e-01
-		sol2 = -1.896075e-01  4.285945e-01  6.930720e-02  2.972373e-01  7.444454e-01
+		sol2 = -7.783604e-02  3.014042e-01  8.472607e-02  1.813117e-01  4.552157e-01  1.203600e-03
   Node #25:	sol1 = -3.702529e-01  4.877346e-01
-		sol2 = -9.278054e-02  3.428098e-02 -1.696511e-02 -4.870124e-02  1.391934e-01
+		sol2 = -9.278054e-02  3.428098e-02 -1.696511e-02 -4.870124e-02  1.391934e-01  0.000000e+00
   step=14  time=0.7
   Primary solution summary: L2-norm            : 0.331109
                             Max X-displacement : 0.607337 node 25
@@ -265,14 +265,14 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.16022	(f,u)+(t,u) = 1.346114433
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 18.8837
   Pressure norm, L2:       (p^h,p^h)^0.5 : 8.03514	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 13.0118	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 15.8667
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 12.7633	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 15.6318
   Node #5:	sol1 = -1.331341e-01  7.476359e-01
-		sol2 =  1.096006e+00  9.533746e-01  5.943287e-01  4.580255e-01  9.109508e-01
+		sol2 =  9.886784e-01  9.173616e-01  7.376695e-01  2.294198e-01  4.561697e-01  1.900768e-03
   Node #15:	sol1 = -3.468201e-01  7.716003e-01
-		sol2 = -4.889115e-01  6.119709e-01  3.568772e-02  4.824526e-01  1.268032e+00
+		sol2 = -1.497984e-01  2.564862e-01  5.205929e-02  1.754018e-01  4.648649e-01  3.343245e-03
   Node #25:	sol1 = -6.073367e-01  7.835132e-01
-		sol2 = -4.319895e-03  7.852234e-02  2.151901e-02 -5.563574e-02  1.211443e-01
+		sol2 = -4.319895e-03  7.852234e-02  2.151901e-02 -5.563574e-02  1.211443e-01  0.000000e+00
   step=15  time=0.75
   Primary solution summary: L2-norm            : 0.553839
                             Max X-displacement : 1.03531 node 25
@@ -282,14 +282,14 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.55679	(f,u)+(t,u) = 2.423599964
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 20.8839
   Pressure norm, L2:       (p^h,p^h)^0.5 : 9.05198	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 14.0501	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 17.1374
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 13.7958	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 16.8963
   Node #5:	sol1 = -2.249261e-01  1.258590e+00
-		sol2 =  1.664355e+00  1.526187e+00  9.252698e-01  1.052098e+00  1.945238e+00
+		sol2 =  1.433326e+00  1.406483e+00  1.276002e+00  2.599129e-01  4.731938e-01  6.197690e-03
   Node #15:	sol1 = -5.845639e-01  1.298213e+00
-		sol2 = -1.056388e+00  1.054507e+00 -5.454994e-04  8.539867e-01  2.351551e+00
+		sol2 = -2.202581e-01  2.134431e-01  4.388478e-03  1.758810e-01  4.836690e-01  7.769572e-03
   Node #25:	sol1 = -1.035313e+00  1.310042e+00
-		sol2 =  1.999963e-02 -2.569364e-02 -1.651287e-03 -6.153761e-02  1.137012e-01
+		sol2 =  1.999963e-02 -2.569364e-02 -1.651287e-03 -6.153761e-02  1.137012e-01  0.000000e+00
   step=16  time=0.8
   Primary solution summary: L2-norm            : 0.861557
                             Max X-displacement : 1.64962 node 25
@@ -299,14 +299,14 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 2.00979	(f,u)+(t,u) = 4.0392507
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 22.8119
   Pressure norm, L2:       (p^h,p^h)^0.5 : 10.1014	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 14.8859	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 18.163
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 14.6379	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 17.9277
   Node #5:	sol1 = -3.659494e-01  1.968437e+00
-		sol2 =  2.434838e+00  2.361161e+00  1.390859e+00  2.069301e+00  3.723496e+00
+		sol2 =  2.103866e+00  2.091760e+00  1.991232e+00  2.819735e-01  4.999966e-01  1.363751e-02
   Node #15:	sol1 = -9.277262e-01  2.030392e+00
-		sol2 = -1.974381e+00  1.993013e+00  5.403083e-03  1.502543e+00  4.310230e+00
+		sol2 = -2.241311e-01  2.396647e-01  8.500561e-03  1.853451e-01  5.141876e-01  1.579266e-02
   Node #25:	sol1 = -1.649619e+00  2.038034e+00
-		sol2 = -1.070865e-01 -3.920063e-01 -1.447389e-01 -5.389452e-02  2.838713e-01
+		sol2 = -1.070865e-01 -3.920063e-01 -1.447389e-01 -5.389452e-02  2.838713e-01  0.000000e+00
   step=17  time=0.85
   Primary solution summary: L2-norm            : 1.2146
                             Max X-displacement : 2.37144 node 25
@@ -316,14 +316,14 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 2.45918	(f,u)+(t,u) = 6.04756105
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 24.7345
   Pressure norm, L2:       (p^h,p^h)^0.5 : 11.1837	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 15.6227	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 19.0672
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 15.3808	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 18.8376
   Node #5:	sol1 = -5.460613e-01  2.782265e+00
-		sol2 =  3.199655e+00  3.412905e+00  1.917669e+00  3.261816e+00  5.820711e+00
+		sol2 =  2.872927e+00  2.880000e+00  2.777301e+00  2.990629e-01  5.274339e-01  2.248728e-02
   Node #15:	sol1 = -1.339173e+00  2.863578e+00
-		sol2 = -3.103833e+00  3.171116e+00  1.951233e-02  2.137028e+00  6.575113e+00
+		sol2 = -2.233524e-01  2.824537e-01  2.769392e-02  1.870935e-01  5.448809e-01  2.509736e-02
   Node #25:	sol1 = -2.371444e+00  2.854692e+00
-		sol2 = -1.861257e-01 -7.398006e-01 -2.685223e-01 -4.861866e-03  5.174892e-01
+		sol2 = -2.128196e-01 -6.967865e-01 -2.848425e-01 -4.249754e-03  4.523370e-01  2.701573e-04
   step=18  time=0.9
   Primary solution summary: L2-norm            : 1.61558
                             Max X-displacement : 3.20198 node 25
@@ -333,14 +333,14 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 2.91294	(f,u)+(t,u) = 8.485209773
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 26.5937
   Pressure norm, L2:       (p^h,p^h)^0.5 : 12.2694	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 16.226	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 19.8072
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 15.9878	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 19.581
   Node #5:	sol1 = -7.710072e-01  3.704034e+00
-		sol2 =  3.837212e+00  4.701279e+00  2.476197e+00  4.501605e+00  8.035442e+00
+		sol2 =  3.683613e+00  3.727225e+00  3.603849e+00  3.125130e-01  5.520291e-01  3.193583e-02
   Node #15:	sol1 = -1.824898e+00  3.797797e+00
-		sol2 = -4.386064e+00  4.538992e+00  4.434970e-02  2.642516e+00  8.982882e+00
+		sol2 = -2.089017e-01  3.429813e-01  6.319801e-02  1.822806e-01  5.728216e-01  3.501930e-02
   Node #25:	sol1 = -3.201984e+00  3.754574e+00
-		sol2 = -1.989923e-01 -1.018495e+00 -3.530763e-01  8.801882e-02  7.696082e-01
+		sol2 = -3.302120e-01 -8.168188e-01 -4.235331e-01  5.508378e-02  4.573697e-01  1.295972e-03
   step=19  time=0.95
   Primary solution summary: L2-norm            : 2.06287
                             Max X-displacement : 4.13677 node 25
@@ -350,14 +350,14 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 3.37349	(f,u)+(t,u) = 11.38040223
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 28.4428
   Pressure norm, L2:       (p^h,p^h)^0.5 : 13.3729	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 16.7432	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 20.4414
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 16.5073	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 20.2173
   Node #5:	sol1 = -1.040872e+00  4.733219e+00
-		sol2 =  4.340878e+00  6.299624e+00  3.085788e+00  5.794294e+00  1.042074e+01
+		sol2 =  4.566278e+00  4.655496e+00  4.504517e+00  3.226743e-01  5.741432e-01  4.224225e-02
   Node #15:	sol1 = -2.383520e+00  4.829879e+00
-		sol2 = -5.856416e+00  6.064515e+00  6.034957e-02  2.986280e+00  1.154716e+01
+		sol2 = -2.069912e-01  3.879119e-01  8.752790e-02  1.754612e-01  5.981645e-01  4.562257e-02
   Node #25:	sol1 = -4.136775e+00  4.729152e+00
-		sol2 = -1.569782e-01 -1.200525e+00 -3.936814e-01  2.222884e-01  1.022861e+00
+		sol2 = -3.889823e-01 -8.559815e-01 -5.062211e-01  1.103814e-01  4.622066e-01  2.334775e-03
   step=20  time=1
   Primary solution summary: L2-norm            : 2.54011
                             Max X-displacement : 5.16011 node 25
@@ -367,11 +367,11 @@ Number of unknowns    40
   External energy: ((f,u^h)+(t,u^h))^0.5 : 3.82956	(f,u)+(t,u) = 14.6654933
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 30.2951
   Pressure norm, L2:       (p^h,p^h)^0.5 : 14.4775	(p^h = trace(sigma^h)/3)
-  Deviatoric stress norm:  (s^d,s^d)^0.5 : 17.2337	(s^d = sigma^h - p^h\*I)
-  Stress norm, von Mises: vm(sigma^h)    : 21.0428
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 17	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 20.8206
   Node #5:	sol1 = -1.357090e+00  5.830056e+00
-		sol2 =  4.617821e+00  8.215679e+00  3.721766e+00  7.109735e+00  1.298524e+01
+		sol2 =  5.479852e+00  5.628692e+00  5.446722e+00  3.287840e-01  5.936992e-01  5.346368e-02
   Node #15:	sol1 = -3.007140e+00  5.918411e+00
-		sol2 = -7.432482e+00  7.759897e+00  9.495165e-02  3.106853e+00  1.421508e+01
+		sol2 = -1.757081e-01  4.608114e-01  1.372634e-01  1.642340e-01  6.203339e-01  5.670656e-02
   Node #25:	sol1 = -5.160108e+00  5.735090e+00
-		sol2 = -6.443714e-02 -1.248534e+00 -3.807668e-01  4.150442e-01  1.282330e+00
+		sol2 = -3.831078e-01 -7.915831e-01 -5.190467e-01  1.715344e-01  4.669861e-01  3.428895e-03
