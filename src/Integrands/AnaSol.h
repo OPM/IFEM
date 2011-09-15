@@ -45,6 +45,18 @@ public:
 	 VecFunc* v1 = 0, TensorFunc* v2 = 0, STensorFunc* v3 = 0)
     : scalSol(s1), scalSecSol(s2), vecSol(v1), vecSecSol(v2), stressSol(v3) {}
 
+  //! \brief Constructor initializing the primary and secondary solution fields.
+  //! \param[in] s Primary scalar solution field
+  //! \param[in] sigma Symmetric stress tensor field
+  AnaSol(RealFunc* s, STensorFunc* sigma)
+    : scalSol(s), scalSecSol(0), vecSol(0), vecSecSol(0), stressSol(sigma) {}
+
+  //! \brief Constructor initializing the primary and secondary solution fields.
+  //! \param[in] v Primary vector solution field
+  //! \param[in] sigma Symmetric stress tensor field
+  AnaSol(VecFunc* v, STensorFunc* sigma)
+    : scalSol(0), scalSecSol(0), vecSol(v), vecSecSol(0), stressSol(sigma) {}
+
   //! \brief Constructor initializing the symmetric stress tensor field only.
   //! \param[in] sigma Symmetric stress tensor field
   AnaSol(STensorFunc* sigma)
@@ -63,7 +75,9 @@ public:
   //! \brief Checks whether a scalar solution is defined.
   char hasScalarSol() const
   {
-    if (scalSecSol)
+    if (stressSol && !vecSecSol && !vecSol)
+      return 3;
+    else if (scalSecSol)
       return 2;
     else if (scalSol)
       return 1;
@@ -93,6 +107,7 @@ public:
   VecFunc* getVectorSol() const { return vecSol; }
   //! \brief Returns the secondary vector solution, if any.
   TensorFunc* getVectorSecSol() const { return vecSecSol; }
+
   //! \brief Returns the stress solution, if any.
   STensorFunc* getStressSol() const { return stressSol; }
 };

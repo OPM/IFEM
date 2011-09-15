@@ -1978,7 +1978,7 @@ bool ASMs3D::evalSolution (Matrix& sField, const Integrand& integrand,
   sField.resize(0,0);
 
   // Evaluate the basis functions and their derivatives at all points
-  std::vector<Go::BasisDerivs> spline;
+  std::vector<Go::BasisDerivs> spline(regular ? 0 : gpar[0].size());
   if (regular)
   {
     PROFILE2("Spline evaluation");
@@ -1987,7 +1987,6 @@ bool ASMs3D::evalSolution (Matrix& sField, const Integrand& integrand,
   else if (gpar[0].size() == gpar[1].size() && gpar[0].size() == gpar[2].size())
   {
     PROFILE2("Spline evaluation");
-    spline.resize(gpar[0].size());
     std::vector<Go::BasisDerivs> tmpSpline(1);
     for (size_t i = 0; i < spline.size(); i++)
     {

@@ -95,6 +95,14 @@ bool Integrand::evalSol (Vector&,
 
 
 bool Integrand::evalSol (Vector& s,
+			 const Vector& N, const Matrix& dNdX, const Matrix3D&,
+			 const Vec3& X, const std::vector<int>& MNPC) const
+{
+  return this->evalSol(s,N,dNdX,X,MNPC);
+}
+
+
+bool Integrand::evalSol (Vector& s,
 			 const Vector& N1, const Vector&,
 			 const Matrix& dN1dX, const Matrix&, const Vec3& X,
 			 const std::vector<int>& MNPC1,
@@ -145,23 +153,56 @@ void NormBase::initIntegration (const TimeDomain& time)
 }
 
 
+Vector& NormBase::getProjection (size_t i)
+{
+  if (i > nrcmp)
+  {
+    static Vector dummy;
+    return dummy;
+  }
+  else if (prjsol.size() < i)
+  {
+    prjsol.resize(i);
+    mySols.resize(i);
+  }
+
+  return prjsol[i-1];
+}
+
+
+bool NormBase::initProjection (const std::vector<int>& MNPC)
+{
+  // Extract projected solution vectors for this element
+  int ierr = 0;
+  for (size_t i = 0; i < mySols.size() && ierr == 0; i++)
+    if (!prjsol[i].empty())
+      ierr = utl::gather(MNPC,nrcmp,prjsol[i],mySols[i]);
+
+  if (ierr == 0) return true;
+
+  std::cerr <<" *** NormBase::initProjection: Detected "
+            << ierr <<" node numbers out of range."<< std::endl;
+  return false;
+}
+
+
 bool NormBase::initElement (const std::vector<int>& MNPC,
 			    const Vec3& Xc, size_t nPt)
 {
-  return myProblem.initElement(MNPC,Xc,nPt);
+  return this->initProjection(MNPC) && myProblem.initElement(MNPC,Xc,nPt);
 }
 
 
 bool NormBase::initElement (const std::vector<int>& MNPC)
 {
-  return myProblem.initElement(MNPC);
+  return this->initProjection(MNPC) && myProblem.initElement(MNPC);
 }
 
 
 bool NormBase::initElement (const std::vector<int>& MNPC1,
 			    const std::vector<int>& MNPC2, size_t n1)
 {
-  return myProblem.initElement(MNPC1,MNPC2,n1);
+  return this->initProjection(MNPC1) && myProblem.initElement(MNPC1,MNPC2,n1);
 }
 
 

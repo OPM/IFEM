@@ -180,6 +180,77 @@ SymmTensor CurvedBeam::evaluate (const Vec3& X) const
 }
 
 
+/*!
+  \class NavierPlate
+
+  Navier plate solution for a constant pressure load.
+
+  Reference: S. E. Weberg, "Todimensjonal elastisitetsteori", 1975, page 62.
+*/
+
+NavierPlate::NavierPlate (double a, double b, double t, double F,
+			  double E, double Poiss) : pz(F), nu(Poiss)
+{
+  alpha = M_PI/a;
+  beta  = M_PI/b;
+
+  // Calculate and print the maximum displacement (at x=a/2, y=b/2)
+  double D = E*t*t*t/(12.0-12.0*nu*nu);
+  double w = 0.0;
+  for (int m = 1; m < 100; m += 2)
+    for (int n = 1; n < 100; n += 2)
+    {
+      double am   = alpha*m;
+      double bn   = beta*n;
+      double am2  = am*am;
+      double bn2  = bn*bn;
+      double pzmn = 16.0*pz / (M_PI*M_PI*m*n*(am2+bn2)*(am2+bn2));
+      w += (pzmn/D) * sin(0.5*am*a)*sin(0.5*bn*b);
+    }
+
+  std::cout <<"NavierPlate: wmax = "<< w << std::endl;
+}
+
+
+void NavierPlate::addTerms (std::vector<double>& M,
+			    double x, double y, int m, int n) const
+{
+  double am   = alpha*m;
+  double bn   = beta*n;
+  double am2  = am*am;
+  double bn2  = bn*bn;
+  double pzmn = 16.0*pz / (M_PI*M_PI*m*n*(am2+bn2)*(am2+bn2));
+  M[0] += pzmn*(am2 + nu*bn2)*sin(am*x)*sin(bn*y);
+  M[1] += pzmn*(bn2 + nu*am2)*sin(am*x)*sin(bn*y);
+  M[2] += pzmn*(nu - 1.0)*am*bn*cos(am*x)*cos(bn*y);
+}
+
+
+SymmTensor NavierPlate::evaluate (const Vec3& X) const
+{
+  const int max_mn = 100;
+  const double eps = 1.0e-16;
+
+  SymmTensor M(2);
+
+  double prev = 0.0;
+  for (int i = 1; i <= max_mn; i += 2)
+  {
+    for (int m = 1; m < i; m += 2)
+      this->addTerms(M,X.x,X.y,m,i);
+    for (int n = 1; n < i; n += 2)
+      this->addTerms(M,X.x,X.y,i,n);
+    this->addTerms(M,X.x,X.y,i,i);
+
+    double norm = M.L2norm();
+    if (fabs(norm-prev) < eps) break;
+    prev = norm;
+  }
+
+  return M;
+}
+
+
 Vec3 Square2D::evaluate (const Vec3& X) const
 {
   double x = X.x;

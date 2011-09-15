@@ -1290,15 +1290,12 @@ bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
 			   const RealArray* gpar, bool regular) const
 {
   // Evaluate the basis functions at all points
-  std::vector<Go::BasisPtsSf> spline;
+  std::vector<Go::BasisPtsSf> spline(regular ? 0 : gpar[0].size());
   if (regular)
     surf->computeBasisGrid(gpar[0],gpar[1],spline);
   else if (gpar[0].size() == gpar[1].size())
-  {
-    spline.resize(gpar[0].size());
     for (size_t i = 0; i < spline.size(); i++)
       surf->computeBasis(gpar[0][i],gpar[1][i],spline[i]);
-  }
   else
     return false;
 
@@ -1423,26 +1420,48 @@ bool ASMs2D::evalSolution (Matrix& sField, const Integrand& integrand,
   sField.resize(0,0);
 
   // Evaluate the basis functions and their derivatives at all points
-  std::vector<Go::BasisDerivsSf> spline;
+  size_t nPoints = gpar[0].size();
+  bool use2ndDer = integrand.getIntegrandType() == 2;
+  std::vector<Go::BasisDerivsSf>  spline1(regular ||  use2ndDer ? 0 : nPoints);
+  std::vector<Go::BasisDerivsSf2> spline2(regular || !use2ndDer ? 0 : nPoints);
   if (regular)
-    surf->computeBasisGrid(gpar[0],gpar[1],spline);
+  {
+    nPoints *= gpar[1].size();
+    if (use2ndDer)
+      surf->computeBasisGrid(gpar[0],gpar[1],spline2);
+    else
+      surf->computeBasisGrid(gpar[0],gpar[1],spline1);
+  }
   else if (gpar[0].size() == gpar[1].size())
   {
-    spline.resize(gpar[0].size());
-    std::vector<Go::BasisDerivsSf> tmpSpline(1);
-    for (size_t i = 0; i < spline.size(); i++)
-    {
-      surf->computeBasisGrid(RealArray(1,gpar[0][i]),
-			     RealArray(1,gpar[1][i]),
-			     tmpSpline);
-      spline[i] = tmpSpline.front();
-    }
-    // TODO: Request a GoTools method replacing the above:
-    // void SplineSurface::computeBasisGrid(double param_u, double param_v,
-    //                                      BasisDerivsSf& result) const
+    std::vector<Go::BasisDerivsSf> tmpS1(use2ndDer ? 0 : 1);
+    std::vector<Go::BasisDerivsSf2> tmpS2(use2ndDer ? 1 : 0);
+    for (size_t i = 0; i < nPoints; i++)
+      if (use2ndDer)
+      {
+	surf->computeBasisGrid(RealArray(1,gpar[0][i]),
+			       RealArray(1,gpar[1][i]),
+			       tmpS2);
+	spline2[i] = tmpS2.front();
+      }
+      else
+      {
+	surf->computeBasisGrid(RealArray(1,gpar[0][i]),
+			       RealArray(1,gpar[1][i]),
+			       tmpS1);
+	spline1[i] = tmpS1.front();
+      }
+    // TODO: Request GoTools methods replacing the above:
+    // void SplineSurface::computeBasis(double param_u, double param_v,
+    //                                  BasisDerivsSf2& result) const
+    // void SplineSurface::computeBasis(double param_u, double param_v,
+    //                                  BasisDerivsSf& result) const
     /*
-    for (size_t i = 0; i < spline.size(); i++)
-      surf->computeBasis(gpar[0][i],gpar[1][i],spline[i]);
+    for (size_t i = 0; i < nPoints.size(); i++)
+      if (use2ndDer)
+        surf->computeBasis(gpar[0][i],gpar[1][i],spline2[i]);
+      else
+        surf->computeBasis(gpar[0][i],gpar[1][i],spline1[i]);
     */
   }
   else
@@ -1457,29 +1476,40 @@ bool ASMs2D::evalSolution (Matrix& sField, const Integrand& integrand,
   Matrix Xnod, Xtmp;
   this->getNodalCoordinates(Xnod);
 
-  Vector N(p1*p2), solPt;
-  Matrix dNdu, dNdX, Jac;
+  Vector   N(p1*p2), solPt;
+  Matrix   dNdu, dNdX, Jac;
+  Matrix3D d2Ndu2, d2NdX2, Hess;
 
   // Evaluate the secondary solution field at each point
-  size_t nPoints = spline.size();
   for (size_t i = 0; i < nPoints; i++)
   {
     // Fetch indices of the non-zero basis functions at this point
     IntVec ip;
-    scatterInd(n1,n2,p1,p2,spline[i].left_idx,ip);
+    if (use2ndDer)
+      scatterInd(n1,n2,p1,p2,spline2[i].left_idx,ip);
+    else
+      scatterInd(n1,n2,p1,p2,spline1[i].left_idx,ip);
 
     // Fetch associated control point coordinates
     utl::gather(ip,nsd,Xnod,Xtmp);
 
     // Fetch basis function derivatives at current integration point
-    extractBasis(spline[i],N,dNdu);
+    if (use2ndDer)
+      extractBasis(spline2[i],N,dNdu,d2Ndu2);
+    else
+      extractBasis(spline1[i],N,dNdu);
 
-    // Compute the Jacobian inverse
+    // Compute the Jacobian inverse and derivatives
     if (utl::Jacobian(Jac,dNdX,Xtmp,dNdu) == 0.0) // Jac = (Xtmp * dNdu)^-1
       continue; // skip singular points
 
+    // Compute Hessian of coordinate mapping and 2nd order derivatives
+    if (use2ndDer)
+      if (!utl::Hessian(Hess,d2NdX2,Jac,Xtmp,d2Ndu2,dNdu))
+	continue;
+
     // Now evaluate the solution field
-    if (!integrand.evalSol(solPt,N,dNdX,Xtmp*N,ip))
+    if (!integrand.evalSol(solPt,N,dNdX,d2NdX2,Xtmp*N,ip))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);

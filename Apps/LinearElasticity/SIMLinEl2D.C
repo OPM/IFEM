@@ -18,9 +18,7 @@
 #include "AnalyticSolutions.h"
 #include "Functions.h"
 #include "Utilities.h"
-#include "Vec3Oper.h"
 #include "Property.h"
-#include "Tensor.h"
 #include "AnaSol.h"
 #include <string.h>
 
@@ -29,9 +27,11 @@ bool SIMLinEl2D::planeStrain = false;
 bool SIMLinEl2D::axiSymmetry = false;
 
 
-SIMLinEl2D::SIMLinEl2D (int)
+SIMLinEl2D::SIMLinEl2D (int form) : SIM2D(2)
 {
-  if (axiSymmetry)
+  if (form == SIM::NONE)
+    return;
+  else if (axiSymmetry)
     myProblem = new AxSymmElasticity();
   else
     myProblem = new LinearElasticity(2);

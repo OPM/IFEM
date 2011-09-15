@@ -228,6 +228,18 @@ public:
 		       const Vector& N, const Matrix& dNdX,
 		       const Vec3& X, const std::vector<int>& MNPC) const;
 
+  //! \brief Evaluates the secondary solution at a result point.
+  //! \param[out] s The solution field values at current point
+  //! \param[in] N Basis function values at current point
+  //! \param[in] dNdX Basis function gradients at current point
+  //! \param[in] d2NdX2 Basis function 2nd derivatives at current point
+  //! \param[in] X Cartesian coordinates of current point
+  //! \param[in] MNPC Nodal point correspondance for the basis function values
+  virtual bool evalSol(Vector& s,
+		       const Vector& N, const Matrix& dNdX,
+		       const Matrix3D& d2NdX2,
+		       const Vec3& X, const std::vector<int>& MNPC) const;
+
   //! \brief Evaluates the secondary solution at a result point (mixed problem).
   //! \param[out] s The solution field values at current point
   //! \param[in] N1 Basis function values at current point, field 1

@@ -151,9 +151,12 @@ private:
 };
 
 
-SIMLinEl3D::SIMLinEl3D (bool checkRHS, int) : SIM3D(checkRHS)
+SIMLinEl3D::SIMLinEl3D (bool checkRHS, int form) : SIM3D(checkRHS)
 {
-  myProblem = new LinearElasticity();
+  if (form == SIM::NONE)
+    return;
+  else
+    myProblem = new LinearElasticity();
 }
 
 

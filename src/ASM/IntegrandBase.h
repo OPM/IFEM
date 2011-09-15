@@ -171,7 +171,7 @@ public:
 protected:
   Vectors  primsol; //!< Primary solution vectors for current patch
   ElmMats* myMats;  //!< Local element matrices
-  Vectors  mySols;  //!< Local element solution vectors
+  Vectors  mySols;  //!< Local element vectors of the primary solution
 
   unsigned short int npv; //!< Number of primary solution variables per node
 };
@@ -185,7 +185,7 @@ class NormBase : public Integrand
 {
 protected:
   //! \brief The default constructor is protected to allow sub-classes only.
-  NormBase(IntegrandBase& p) : myProblem(p) {}
+  NormBase(IntegrandBase& p) : myProblem(p), nrcmp(0) {}
 
 public:
   //! \brief Empty destructor.
@@ -222,7 +222,7 @@ public:
   virtual size_t getNoFields() const { return 0; }
 
   //! \brief Accesses a projected secondary solution vector of current patch.
-  virtual Vector& getProjection(size_t) { static Vector dummy; return dummy; }
+  Vector& getProjection(size_t i);
 
 protected:
   //! \brief Returns the element norm object to use in the integration.
@@ -233,8 +233,17 @@ protected:
   //! a local static buffer is used instead.
   static ElmNorm& getElmNormBuffer(LocalIntegral*& elmInt, const size_t nn = 4);
 
+private:
+  //! \brief Initializes projected field for current element.
+  bool initProjection(const std::vector<int>& MNPC);
+
 protected:
   IntegrandBase& myProblem; //!< The problem-specific data
+
+  Vectors prjsol; //!< Projected secondary solution vectors for current patch
+  Vectors mySols; //!< Local element vectors of projected secondary solutions
+
+  unsigned short int nrcmp; //!< Number of projected solution components
 };
 
 #endif

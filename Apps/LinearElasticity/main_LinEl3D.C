@@ -12,7 +12,7 @@
 //==============================================================================
 
 #include "SIMLinEl3D.h"
-#include "SIMLinEl2D.h"
+#include "SIMLinElKL.h"
 #include "LinAlgInit.h"
 #include "HDF5Writer.h"
 #include "XMLWriter.h"
@@ -59,6 +59,7 @@
   \arg -2D : Use two-parametric simulation driver (plane stress)
   \arg -2Dpstrain : Use two-parametric simulation driver (plane strain)
   \arg -2Daxisymm : Use two-parametric simulation driver (axi-symmetric solid)
+  \arg -KL : Use two-parametric simulation driver for Kirchhoff-Love plate
 */
 
 int main (int argc, char** argv)
@@ -81,6 +82,7 @@ int main (int argc, char** argv)
   bool dumpHDF5 = false;
   bool dumpASCII = false;
   bool twoD = false;
+  bool KLp = false;
   char* infile = 0;
 
   const LinAlgInit& linalg = LinAlgInit::Init(argc,argv);
@@ -141,6 +143,8 @@ int main (int argc, char** argv)
       vizRHS = true;
     else if (!strcmp(argv[i],"-fixDup"))
       fixDup = true;
+    else if (!strcmp(argv[i],"-KL"))
+      KLp = true;
     else if (!strncmp(argv[i],"-2Dpstra",8))
       twoD = SIMLinEl2D::planeStrain = true;
     else if (!strncmp(argv[i],"-2Daxi",6))
@@ -160,8 +164,8 @@ int main (int argc, char** argv)
   {
     std::cout <<"usage: "<< argv[0]
 	      <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n      "
-	      <<" [-free] [-lag] [-spec] [-2D[pstrain|axisymm]] [-nGauss <n>]\n"
-	      <<"       [-vtf <format> [-nviz <nviz>]"
+	      <<" [-free] [-lag] [-spec] [-2D[pstrain|axisymm]|-KL]"
+	      <<" [-nGauss <n>]\n       [-vtf <format> [-nviz <nviz>]"
 	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]] [-hdf5]\n"
 	      <<"       [-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>]]\n"
 	      <<"       [-ignore <p1> <p2> ...] [-fixDup]"
@@ -221,7 +225,9 @@ int main (int argc, char** argv)
 
   // Read in model definitions and establish the FE data structures
   SIMbase* model;
-  if (twoD)
+  if (KLp)
+    model = new SIMLinElKL();
+  else if (twoD)
     model = new SIMLinEl2D();
   else
     model = new SIMLinEl3D(checkRHS);
@@ -296,6 +302,8 @@ int main (int argc, char** argv)
 		    << gNorm(j-1)/gNorm(3)*100.0;
       }
       std::cout << std::endl;
+
+      model->dumpResults(displ.front(),0.0,std::cout,true,6);
     }
 
     if (iop == 0) break;

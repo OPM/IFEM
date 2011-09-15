@@ -582,18 +582,6 @@ size_t ElasticityNorm::getNoFields () const
 }
 
 
-Vector& ElasticityNorm::getProjection (size_t i)
-{
-  if (prjsol.size() < i)
-  {
-    prjsol.resize(i);
-    mySols.resize(i);
-  }
-
-  return prjsol[i-1];
-}
-
-
 bool ElasticityNorm::initElement (const std::vector<int>& MNPC)
 {
   // Extract projected solution vectors for this element

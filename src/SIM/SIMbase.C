@@ -1128,7 +1128,7 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
     if (!myModel[i]->evalSolution(field,*myProblem,nViz))
       return false;
 
-    if (scalarEq)
+    if (scalarEq && field.rows() == this->getNoSpaceDim())
       if (!myVtf->writeVres(field,++nBlock,geomID))
 	return false;
       else
@@ -1168,10 +1168,10 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
       bool ok = true;
       for (j = 1; cit != grid->end_XYZ() && ok; j++, cit++)
       {
-	if (scalarEq)
-	  ok = myProblem->evalSol(solPt,*mySol->getScalarSecSol(),*cit);
-	else if (mySol->hasVectorSol() == 3)
+	if (mySol->hasScalarSol() == 3 || mySol->hasVectorSol() == 3)
 	  ok = myProblem->evalSol(solPt,*mySol->getStressSol(),*cit);
+	else if (scalarEq)
+	  ok = myProblem->evalSol(solPt,*mySol->getScalarSecSol(),*cit);
 	else
 	  ok = myProblem->evalSol(solPt,*mySol->getVectorSecSol(),*cit);
 	if (ok)

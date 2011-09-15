@@ -146,6 +146,34 @@ private:
 
 
 /*!
+  \brief Analytic solution for the simply supported rectangular thin plate.
+*/
+
+class NavierPlate : public STensorFunc
+{
+public:
+  //! \brief Constructor with some default parameters.
+  NavierPlate(double a = 1.0, double b = 1.0, double t = 0.1, double F = 1.0,
+	      double E = 2.1e11, double Poiss = 0.3);
+  //! \brief Empty destructor.
+  virtual ~NavierPlate() {}
+
+protected:
+  //! \brief Evaluates the analytic stress resultant tensor at the point \a x.
+  virtual SymmTensor evaluate(const Vec3& x) const;
+
+  //! \brief Adds the m'th and n'th terms of the plate solution to the moments.
+  void addTerms(std::vector<double>& M, double x, double y, int m, int n) const;
+
+private:
+  double alpha; //!< pi/(plate length)
+  double beta;  //!< pi/(plate width)
+  double pz;    //!< Load parameter
+  double nu;    //!< Poisson's ratio
+};
+
+
+/*!
   \brief Analytic solution for the Poisson equation on a square.
 */
 
