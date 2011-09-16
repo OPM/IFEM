@@ -29,8 +29,9 @@ class DataExporter
   //! \brief Default constructor.
   //! \param[in] dynWriters If \e true, delete the writers on destruction.
   //! \param[in] ndump Interval between dumps
-  DataExporter(bool dynWriters = false, int ndump=1) :
-    m_delete(dynWriters), m_level(-1), m_ndump(ndump)
+  //! \param[in] order The temporal order of simulations (always dumps order solutions in a row)
+  DataExporter(bool dynWriters = false, int ndump=1, int order=1) :
+    m_delete(dynWriters), m_level(-1), m_ndump(ndump), m_order(order)
   {
   }
 
@@ -68,6 +69,7 @@ protected:
   bool m_delete;
   int m_level;
   int m_ndump;
+  int m_order;
 };
 
 

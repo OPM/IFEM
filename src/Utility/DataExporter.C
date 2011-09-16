@@ -68,7 +68,8 @@ bool DataExporter::setFieldValue(const std::string& name,
 
 bool DataExporter::dumpTimeLevel(SIMparameters* tp)
 {
-  if (tp && tp->step % m_ndump)
+  if (tp && tp->step % m_ndump 
+         && tp->step % m_ndump > m_order-1)
     return true;
 
   if (m_level == -1)
