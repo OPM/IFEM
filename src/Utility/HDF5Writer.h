@@ -23,7 +23,8 @@ public:
   virtual bool readVector(int level, const DataEntry& entry);
   virtual void writeSIM(int level, const DataEntry& entry);
   virtual bool readSIM(int level, const DataEntry& entry);
-  virtual bool writeTimeInfo(int level, SIMparameters& tp);
+  virtual bool writeTimeInfo(int level, int order, int interval,
+                             SIMparameters& tp);
 
   bool readField(int level, const std::string& name,
                  Vector& vec, SIMbase* sim, int components);

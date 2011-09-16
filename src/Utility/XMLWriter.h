@@ -19,6 +19,8 @@ public:
     int patches;
     int components;
     double timestep;
+    int order;
+    int interval;
     std::string type;
   };
 
@@ -26,6 +28,12 @@ public:
   virtual ~XMLWriter() {}
 
   virtual int getLastTimeLevel();
+
+  //! \brief Calculate the real time level, taking order and ndump into account
+  int realTimeLevel(int filelevel) const;
+
+  //! \brief Calculate the real time level, taking order and ndump into account
+  int realTimeLevel(int filelevel, int order, int interval) const;
 
   void readInfo();
   const std::vector<Entry>& getEntries() const { return m_entry; }
@@ -37,7 +45,8 @@ public:
   virtual bool readVector(int level, const DataEntry& entry);
   virtual void writeSIM(int level, const DataEntry& entry);
   virtual bool readSIM(int level, const DataEntry& entry);
-  virtual bool writeTimeInfo(int level, SIMparameters& tp);
+  virtual bool writeTimeInfo(int level, int order, int interval, 
+                             SIMparameters& tp);
 
 protected:
   void addField(const std::string& name, const std::string& description,
@@ -49,4 +58,6 @@ protected:
   TiXmlDocument* m_doc;
   TiXmlNode* m_node;
   double m_dt;
+  int m_order;
+  int m_interval;
 };

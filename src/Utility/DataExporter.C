@@ -96,7 +96,7 @@ bool DataExporter::dumpTimeLevel(SIMparameters* tp)
       }
     }
     if (tp)
-      (*it2)->writeTimeInfo(m_level,*tp);
+      (*it2)->writeTimeInfo(m_level,m_order,m_ndump,*tp);
     (*it2)->closeFile(m_level);
   }
   m_level++;

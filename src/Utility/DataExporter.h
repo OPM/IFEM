@@ -60,7 +60,6 @@ class DataExporter
   //! param[in] input The datawriter to read the data from (e.g. the HDF5 writer)
   bool loadTimeLevel(int level=-1, DataWriter* info=NULL, DataWriter* input=NULL);
   int getTimeLevel();
-
 protected:
   int getWritersTimeLevel() const;
 
@@ -93,7 +92,8 @@ public:
   virtual void writeSIM(int level, const DataEntry& entry) = 0;
   virtual bool readSIM(int level, const DataEntry& entry) = 0;
 
-  virtual bool writeTimeInfo(int level, SIMparameters& tp) = 0;
+  virtual bool writeTimeInfo(int level, int order, int interval,
+                             SIMparameters& tp) = 0;
 
 protected:
   std::string m_name; //!< File name

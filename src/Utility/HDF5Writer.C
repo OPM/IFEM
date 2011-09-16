@@ -387,7 +387,8 @@ bool HDF5Writer::checkGroupExistence(int parent, const char* path)
 
 // TODO: implement for variable timesteps 
 // (named time series to allow different timelevels for different fields)
-bool HDF5Writer::writeTimeInfo(int level, SIMparameters& tp)
+bool HDF5Writer::writeTimeInfo(int level, int order, int interval,
+                               SIMparameters& tp)
 {
   return true;
 }

@@ -15,6 +15,7 @@ XMLWriter::XMLWriter(const std::string& name) : DataWriter(name+".xml")
   m_doc = NULL;
   m_node = NULL;
   m_dt = 0;
+  m_order = m_interval = 1;
 }
 
 
@@ -59,6 +60,8 @@ void XMLWriter::closeFile(int level, bool close)
   TiXmlElement element3("timestep");
   sprintf(temp,"%f",m_dt);
   element3.SetAttribute("constant","1");
+  element3.SetAttribute("order",m_order);
+  element3.SetAttribute("interval",m_interval);
   pNewNode = m_node->InsertEndChild(element3);
   TiXmlText value2(temp);
   pNewNode->InsertEndChild(value2);
@@ -175,8 +178,21 @@ void XMLWriter::addField (const std::string& name,
   m_node->InsertEndChild(element);
 }
 
-bool XMLWriter::writeTimeInfo(int level, SIMparameters& tp)
+bool XMLWriter::writeTimeInfo(int level, int order, int interval,
+                              SIMparameters& tp)
 {
   m_dt = tp.time.dt;
+  m_order = order;
+  m_interval = interval;
   return true;
+}
+
+int XMLWriter::realTimeLevel(int filelevel) const
+{
+  return realTimeLevel(filelevel,m_order,m_interval);
+}
+
+int XMLWriter::realTimeLevel(int filelevel, int order, int interval) const
+{
+  return filelevel/order*interval+1; 
 }
