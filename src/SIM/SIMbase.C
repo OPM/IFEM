@@ -1460,7 +1460,7 @@ bool SIMbase::dumpGeometry (std::ostream& os) const
 bool SIMbase::dumpBasis (std::ostream& os, int basis, size_t patch) const
 {
   size_t start = patch ? patch-1 : 0;
-  size_t end = patch ? start : myModel.size();
+  size_t end = patch ? start+1 : myModel.size();
   for (size_t i = start; i < end && i < myModel.size(); i++)
     if (!myModel[i]->empty())
       if (!myModel[i]->write(os,basis))
