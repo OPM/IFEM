@@ -68,6 +68,9 @@ bool DataExporter::setFieldValue(const std::string& name,
 
 bool DataExporter::dumpTimeLevel(SIMparameters* tp)
 {
+  if (tp && tp->step % m_ndump)
+    return true;
+
   if (m_level == -1)
     m_level = this->getWritersTimeLevel()+1;
 

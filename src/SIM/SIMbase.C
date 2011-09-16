@@ -32,6 +32,7 @@
 #include "ElementBlock.h"
 #include "VTF.h"
 #include "Utilities.h"
+#include <sstream>
 #include <iomanip>
 #include <ctype.h>
 #include <stdio.h>
@@ -51,6 +52,8 @@ SIMbase::SIMbase ()
   mySam = 0;
   mySolParams = 0;
   nGlPatches = 0;
+  vizIncr = 1;
+  format = 1;
 
   MPCLess::compareSlaveDofOnly = true; // to avoid multiple slave definitions
 
@@ -149,6 +152,12 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
     }
     if (myPid == 0 && nres > 0)
       std::cout << std::endl;
+  }
+  else if (!strncasecmp(keyWord,"VISUALIZATION",13))
+  {
+    std::istringstream cline(utl::readLine(is));
+    cline >> format >> vizIncr;
+    return !cline.fail() && !cline.bad();
   }
 
   else if (isalpha(keyWord[0]))

@@ -146,6 +146,8 @@ public:
   int getNoPatches() const { return nGlPatches; }
   //! \brief Returns the number of registered result points.
   size_t getNoResultPoints() const { return myPoints.size(); }
+  //! \brief Return the visualization dump interval
+  int getDumpInterval() const { return vizIncr; }
 
   //! \brief Initializes time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time
@@ -522,6 +524,10 @@ protected:
   // Parallel computing attributes
   int              nGlPatches; //!< Number of global patches
   std::vector<int> myPatches;  //!< Global patch numbers for current processor
+
+  // Visualization attributes
+  int vizIncr;
+  int format;
 
   // Equation solver attributes
   AlgEqSystem*  myEqSys;     //!< The actual linear equation system

@@ -28,7 +28,12 @@ class DataExporter
 
   //! \brief Default constructor.
   //! \param[in] dynWriters If \e true, delete the writers on destruction.
-  DataExporter(bool dynWriters = false) : m_delete(dynWriters), m_level(-1) {}
+  //! \param[in] ndump Interval between dumps
+  DataExporter(bool dynWriters = false, int ndump=1) :
+    m_delete(dynWriters), m_level(-1), m_ndump(ndump)
+  {
+  }
+
   //! \brief The destructor deletes the writers if \a dynWriters was \e true.
   ~DataExporter();
 
@@ -62,6 +67,7 @@ protected:
   std::vector<DataWriter*> m_writers;
   bool m_delete;
   int m_level;
+  int m_ndump;
 };
 
 
