@@ -65,6 +65,7 @@ int HDF5Writer::getLastTimeLevel ()
     result++;
   }
   H5Fclose(m_file);
+  m_file = 0;
 #endif
   return result-1;
 }
@@ -203,9 +204,7 @@ bool HDF5Writer::readSIM (int level, const DataEntry& entry)
 
   for (int i = 0; i < sim->getNoPatches() && ok; ++i) {
     std::stringstream str;
-    str << level;
-    str << '/';
-    str << i+1;
+    str << '/' << level << '/' << i+1;
     hid_t group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
     int loc = sim->getLocalPatchIndex(i+1);
     if (loc > 0) {
