@@ -48,6 +48,7 @@ bool VTU::writeVres(const std::vector<real>& field, int blockID, int geomID,
   m_field[blockID].data = new Vector(field.data(),field.size());
   m_field[blockID].components = components;
   m_field[blockID].patch = geomID;
+  m_field[blockID].cellData = false;
   return true;
 }
 
@@ -57,6 +58,16 @@ bool VTU::writeNres(const std::vector<real>& field, int blockID, int geomID)
   m_field[blockID].data = new Vector(field.data(),field.size());
   m_field[blockID].components = 1;
   m_field[blockID].patch = geomID;
+  m_field[blockID].cellData = false;
+  return true;
+}
+
+bool VTU::writeEres(const std::vector<real>& field, int blockID, int geomID)
+{
+  m_field[blockID].data = new Vector(field.data(),field.size());
+  m_field[blockID].components = 1;
+  m_field[blockID].patch = geomID;
+  m_field[blockID].cellData = true;
   return true;
 }
 
@@ -146,6 +157,8 @@ bool VTU::writeState(int iStep, const char* fmt, real refValue, int refType)
     file << "\t\t\t<PointData Scalars=\"scalars\">" << std::endl;
     for (std::map<int,FieldInfo>::iterator it2  = m_field.begin();
                                            it2 != m_field.end();++it2) {
+      if (it2->second.cellData)
+        continue;
       if (it2->second.patch == (int)i+1) {
         file << "\t\t\t\t<DataArray type=\"Float32\" Name=\"" << it2->second.name << "\""
              << " NumberOfComponents=\"" << it2->second.components
@@ -158,6 +171,24 @@ bool VTU::writeState(int iStep, const char* fmt, real refValue, int refType)
       }
     }
     file << "\t\t\t</PointData>" << std::endl;
+    // now add cell datas
+    file << "\t\t\t<CellData Scalars=\"scalars\">" << std::endl;
+    for (std::map<int,FieldInfo>::iterator it2  = m_field.begin();
+                                           it2 != m_field.end();++it2) {
+      if (!it2->second.cellData)
+        continue;
+      if (it2->second.patch == (int)i+1) {
+        file << "\t\t\t\t<DataArray type=\"Float32\" Name=\"" << it2->second.name << "\""
+             << " NumberOfComponents=\"" << it2->second.components
+             << "\" format=\"ascii\">" << std::endl;
+        file << "\t\t\t\t\t";
+        for (size_t k=0;k<it2->second.data->size();++k)
+          file << (*it2->second.data)[k] << " ";
+        delete it2->second.data;
+        file << std::endl << "\t\t\t\t</DataArray>" << std::endl;
+      }
+    }
+    file << "\t\t\t</CellData>" << std::endl;
     file << "\t\t</Piece>" << std::endl;
   }
   file << "\t</UnstructuredGrid>" << std::endl;

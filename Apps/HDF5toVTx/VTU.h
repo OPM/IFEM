@@ -32,6 +32,7 @@ class VTU : public VTF {
     bool writeVres(const std::vector<double>& field, int blockID,
                    int geomID, int components);
     bool writeNres(const std::vector<double>& vec, int blockID, int geomID);
+    bool writeEres(const std::vector<double>& vec, int blockID, int geomID);
 
     bool writeVblk(const std::vector<int>& vBlockIDs, 
                    const char* resultName, int idBlock, int iStep=1);
@@ -41,6 +42,8 @@ class VTU : public VTF {
                    const char* resultName, int idBlock, int iStep=1);
 
     bool writeState(int iStep, const char* fmt, real refValue, int refType=0);
+
+    const ElementBlock* getBlock(int geomID) const { return m_geom[geomID-1]; }
   protected:
     std::string m_base;
     std::vector<const ElementBlock*> m_geom;
@@ -48,6 +51,7 @@ class VTU : public VTF {
       Vector* data;
       int components;
       int patch;
+      bool cellData;
       std::string name;
     };
     std::map<int,FieldInfo> m_field;

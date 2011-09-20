@@ -70,8 +70,8 @@ public:
   //!            length must equal the number of elements in the geometry block
   //! \param[in] idBlock Result block identifier
   //! \param[in] gID Geometry block identifier
-  bool writeEres(const std::vector<real>& elmResult,
-		 int idBlock = 1, int gID = 1);
+  virtual bool writeEres(const std::vector<real>& elmResult,
+		         int idBlock = 1, int gID = 1);
   //! \brief Writes a block of vector nodal results to the VTF-file.
   //! \param[in] nodeResult Vector of nodal results, length must be equal the
   //!            number of nodes in the geometry block times 1...5
@@ -136,7 +136,7 @@ public:
 			  real refValue, int refType = 0);
 
   //! \brief Returns the pointer to a geometry block.
-  const ElementBlock* getBlock(int geomID) const { return myBlocks[geomID-1]; }
+  virtual const ElementBlock* getBlock(int geomID) const { return myBlocks[geomID-1]; }
 
 private:
   //! \brief Writes a geometry block to the VTF-file.
