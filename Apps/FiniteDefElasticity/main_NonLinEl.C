@@ -329,7 +329,7 @@ int main (int argc, char** argv)
       std::cout <<"\nWriting HDF5 file "<< infile <<".hdf5"<< std::endl;
 
     writer = new DataExporter(true);
-    writer->registerField("u","solution",DataExporter::SIM, skip2nd ? 0 : -1);
+    writer->registerField("u","solution",DataExporter::SIM, skip2nd ? DataExporter::PRIMARY : DataExporter::SECONDARY);
     writer->setFieldValue("u",model,(void*)&simulator.getSolution());
     writer->registerWriter(new HDF5Writer(infile));
     writer->registerWriter(new XMLWriter(infile));

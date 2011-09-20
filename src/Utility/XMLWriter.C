@@ -115,7 +115,8 @@ void XMLWriter::writeVector(int level, const DataEntry& entry)
   element.SetAttribute("name",entry.first.c_str());
   element.SetAttribute("description",entry.second.description.c_str());
   element.SetAttribute("type","vector");
-  element.SetAttribute("size",entry.second.size);
+  Vector* vec = (Vector*)entry.second.data;
+  element.SetAttribute("size",vec->size());
   m_node->InsertEndChild(element);
 }
 
@@ -155,7 +156,7 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry)
   }
 
   // secondary solution fields
-  if (entry.second.size == -1)
+  if (entry.second.results & DataExporter::SECONDARY)
     for (size_t j = 0; j < prob->getNoFields(2); j++)
       addField(prob->getField2Name(j),"secondary",sim->getName()+(prob->mixedFormulation()?"-2":"-1"),1,sim->getNoPatches());
 }

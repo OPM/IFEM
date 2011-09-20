@@ -31,7 +31,7 @@ DataExporter::~DataExporter ()
 
 bool DataExporter::registerField(const std::string& name,
                                  const std::string& description,
-                                 FieldType field, size_t size)
+                                 FieldType field, int results)
 {
   if (m_entry.find(name) != m_entry.end())
     return false;
@@ -39,7 +39,7 @@ bool DataExporter::registerField(const std::string& name,
   FileEntry entry;
   entry.description = description;
   entry.field = field;
-  entry.size = size;
+  entry.results = results;
   entry.data = NULL;
   m_entry.insert(make_pair(name,entry));
 

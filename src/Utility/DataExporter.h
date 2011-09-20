@@ -18,10 +18,15 @@ class DataExporter
     SIM
   };
 
+  enum Results {
+    PRIMARY=0,
+    SECONDARY=1
+  };
+
   struct FileEntry {
     std::string description;
     FieldType field;
-    int size;
+    int results;
     void* data;
     void* data2;
   };
@@ -42,11 +47,11 @@ class DataExporter
   //! param[in] name Name of entry
   //! param[in] description Description of entry
   //! param[in] field Type of entry
-  //! param[in] size Number of entries in an array,
+  //! param[in] results Which results to store
   //! the time level to use for SIM
   bool registerField(const std::string& name,
 		     const std::string& description,
-		     FieldType field, size_t size=0);
+		     FieldType field, int results=PRIMARY);
 
   bool registerWriter(DataWriter* writer);
 

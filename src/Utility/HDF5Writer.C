@@ -189,7 +189,8 @@ bool HDF5Writer::readVector(int level, const DataEntry& entry)
 void HDF5Writer::writeVector(int level, const DataEntry& entry)
 {
 #ifdef HAS_HDF5
-  writeArray(level,entry.first,entry.second.size,entry.second.data,H5T_NATIVE_DOUBLE);
+  Vector* vector = (Vector*)entry.second.data;
+  writeArray(level,entry.first,vector->size(),vector->data(),H5T_NATIVE_DOUBLE);
 #endif
 }
 
@@ -312,7 +313,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry)
       else
         writeArray(group2,prob->getField1Name(11),psol.size(),psol.ptr(),H5T_NATIVE_DOUBLE);
 
-      if (entry.second.size == -1) {
+      if (entry.second.results & DataExporter::SECONDARY) {
         Matrix field;
         sim->evalSecondarySolution(field,loc-1);
         for (size_t j = 0; j < prob->getNoFields(2); ++j)
@@ -329,7 +330,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry)
         writeArray(group2,prob->getField1Name(11),0,&dummy,H5T_NATIVE_DOUBLE);
         writeArray(group2,prob->getField1Name(12),0,&dummy,H5T_NATIVE_DOUBLE);
       }
-      if (entry.second.size == -1) {
+      if (entry.second.results & DataExporter::SECONDARY) {
         for (size_t j = 0; j < prob->getNoFields(2); ++j)
           writeArray(group2,prob->getField2Name(j),0,&dummy,H5T_NATIVE_DOUBLE);
       }

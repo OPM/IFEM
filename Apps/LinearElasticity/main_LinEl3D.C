@@ -353,7 +353,7 @@ int main (int argc, char** argv)
     if (linalg.myPid == 0)
       std::cout <<"\nWriting HDF5 file "<< infile <<".hdf5"<< std::endl;
     DataExporter exporter(true);
-    exporter.registerField("u","solution",DataExporter::SIM,-1);
+    exporter.registerField("u","solution",DataExporter::SIM,DataExporter::SECONDARY);
     exporter.setFieldValue("u",model,&displ.front());
     exporter.registerWriter(new HDF5Writer(infile));
     exporter.registerWriter(new XMLWriter(infile));
