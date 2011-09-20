@@ -287,6 +287,11 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry)
       writeBasis(sim,sim->getName()+"-2",2,level);
   }
 
+  Matrix eNorm;
+  Vector gNorm;
+  if (entry.second.results & DataExporter::NORMS)
+    sim->solutionNorms(Vectors(1,*sol),eNorm,gNorm);
+
   for (int i = 0; i < sim->getNoPatches(); ++i) {
     std::stringstream str;
     str << level;
@@ -320,6 +325,17 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry)
           writeArray(group2,prob->getField2Name(j),field.cols(),
                      field.getRow(j+1).ptr(),H5T_NATIVE_DOUBLE);
       }
+      if (entry.second.results & DataExporter::NORMS) {
+        Matrix patchEnorm;
+        sim->extractPatchElmRes(eNorm,patchEnorm,loc-1);
+        for (size_t j=0;j<eNorm.rows();++j) {
+          if (NormBase::hasElementContributions(j)) {
+            Vector k;
+            writeArray(group2,NormBase::getName(j),patchEnorm.cols(),
+                       patchEnorm.getRow(1+j).ptr(),H5T_NATIVE_DOUBLE);
+          }
+        }
+      }
     }
     else // must write empty dummy records for the other patches
     {
@@ -333,6 +349,12 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry)
       if (entry.second.results & DataExporter::SECONDARY) {
         for (size_t j = 0; j < prob->getNoFields(2); ++j)
           writeArray(group2,prob->getField2Name(j),0,&dummy,H5T_NATIVE_DOUBLE);
+      }
+      if (entry.second.results & DataExporter::NORMS) {
+        for (size_t j=0;j<eNorm.rows();++j) {
+          if (NormBase::hasElementContributions(j))
+            writeArray(group2,NormBase::getName(j),0,&dummy,H5T_NATIVE_DOUBLE);
+        }
       }
     }
     H5Gclose(group2);

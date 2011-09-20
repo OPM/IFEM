@@ -426,6 +426,9 @@ public:
   //! \brief Returns whether an analytical solution is available or not.
   bool haveAnaSol() const { return mySol ? true : false; }
 
+  //! \brief Returns a const pointer to our analytical solution
+  const AnaSol* getAnaSol() const { return mySol; }
+
 protected:
   //! \brief Defines the type of a property set.
   //! \param[in] code The property code to be associated with the property type
@@ -470,6 +473,8 @@ public:
   //! \param[in] nndof Number of DOFs per node (optional)
   bool injectPatchSolution(Vector& sol, const Vector& locSol,
 			   int pindx, unsigned char nndof = 0);
+
+  void extractPatchElmRes(const Matrix& globRes, Matrix& elmRes, size_t patch);
 
 protected:
   //! \brief Extracts local solution vector(s) for the given patch.

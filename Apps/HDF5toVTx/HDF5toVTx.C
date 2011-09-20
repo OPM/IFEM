@@ -86,6 +86,31 @@ bool writeFieldPatch(const Vector& locvec, int components,
 }
 
 
+bool writeElmPatch(const Vector& locvec,
+                   ASMbase& patch, const ElementBlock* grid, 
+                   int geomID, int& nBlock,
+                   const std::string& name, VTFList& elist, VTF& myVtf)
+{
+  Matrix field;
+  Matrix tmp(1,locvec.size());
+  tmp.fill(locvec.data(),locvec.size());
+  patch.extractElmRes(tmp,field);
+  if (grid->getNoElms() > field.cols())
+  {
+    // Expand the element result array
+    Matrix efield(field);
+    field.resize(field.rows(),grid->getNoElms());
+    for (size_t j = 1; j <= field.cols(); j++)
+      field.fillColumn(j,efield.getColumn(grid->getElmId(j)));
+  }
+
+  if (!myVtf.writeEres(field.getRow(1),++nBlock,geomID))
+    return false;
+  else 
+    elist[name].push_back(nBlock);
+
+  return true;
+}
 void writeFieldBlocks(VTFList& vlist, VTFList& slist, VTF& myvtf,
                       int iStep)
 {
@@ -282,10 +307,15 @@ int main (int argc, char** argv)
             }
           }
           else {
-            ok &= writeFieldPatch(vec,it->components,
-                                  *patches[pit->first][j],
-                                  FEmodel[j],j+1,
-                                  block,it->name,vlist,slist,*myVtf);
+            if (it->type == "knotspan") {
+              ok &= writeElmPatch(vec,*patches[pit->first][j],myVtf->getBlock(j+1),
+                            j+1,block,it->name,slist,*myVtf);
+            } else {
+              ok &= writeFieldPatch(vec,it->components,
+                                    *patches[pit->first][j],
+                                    FEmodel[j],j+1,
+                                    block,it->name,vlist,slist,*myVtf);
+            }
           }
         }
       }

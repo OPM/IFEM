@@ -20,7 +20,8 @@ class DataExporter
 
   enum Results {
     PRIMARY=0,
-    SECONDARY=1
+    SECONDARY=1,
+    NORMS=2
   };
 
   struct FileEntry {

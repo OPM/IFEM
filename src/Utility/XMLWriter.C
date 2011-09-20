@@ -81,7 +81,8 @@ void XMLWriter::readInfo()
                                          FirstChild("entry").ToElement();
   TiXmlElement* timestep = handle.FirstChild("info").FirstChild("timestep").ToElement();
   while (elem) {
-    if (strcasecmp(elem->Attribute("type"),"field") == 0) {
+    if (strcasecmp(elem->Attribute("type"),"field") == 0 ||
+        strcasecmp(elem->Attribute("type"),"knotspan") == 0) {
       Entry entry;
       entry.name = elem->Attribute("name");
       entry.description = elem->Attribute("description");
@@ -159,6 +160,17 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry)
   if (entry.second.results & DataExporter::SECONDARY)
     for (size_t j = 0; j < prob->getNoFields(2); j++)
       addField(prob->getField2Name(j),"secondary",sim->getName()+(prob->mixedFormulation()?"-2":"-1"),1,sim->getNoPatches());
+
+  // norms
+  if (entry.second.results & DataExporter::NORMS) {
+    // since the norm data isn't available, we have to instance the object
+    NormBase* norm = sim->getProblem()->getNormIntegrand(const_cast<AnaSol*>(sim->getAnaSol())); 
+    for (size_t j = 0; j < norm->getNoFields(); j++) {
+      if (norm->hasElementContributions(j))
+        addField(norm->getName(j),"knotspan wise norm",sim->getName()+"-1",1,sim->getNoPatches(),"knotspan");
+    }
+    delete norm;
+  }
 }
 
 
