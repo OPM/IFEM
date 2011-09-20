@@ -536,7 +536,9 @@ bool SAM::getElmEqns (IntVec& meen, int iel, int nedof) const
 
   int ip = mpmnpc[iel-1];
   int nenod = mpmnpc[iel] - ip;
+#ifndef USE_F77SAM
   int oldof = nedof;
+#endif
   if (nedof < 1) nedof = nenod*ndof/nnod;
 
 #ifdef USE_F77SAM

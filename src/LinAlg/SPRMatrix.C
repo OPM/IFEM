@@ -336,7 +336,7 @@ bool SPRMatrix::multiply (const SystemVector& B, SystemVector& C)
 
   C.redim(n);
 #ifdef HAS_SPR
-  if (rWork.size() < n) rWork.resize(n);
+  if (n > 0 && rWork.size() < (size_t)n) rWork.resize(n);
   int ierr;
   sprprm_(values+n, B.getRef(), C.getPtr(), &rWork.front(),
           mpar, mtrees, msifa, n, 1, 1, 1, 6, ierr);
