@@ -492,7 +492,7 @@ protected:
 
 public:
   //! \brief Enum defining the available discretization methods.
-  enum Discretization { Spline, Lagrange, Spectral };
+  enum Discretization { Spline, Lagrange, Spectral, LRSpline };
 
   static Discretization discretization; //!< Spatial discretization option
 
