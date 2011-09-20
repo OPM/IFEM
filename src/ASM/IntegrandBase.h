@@ -221,6 +221,12 @@ public:
   //! \brief Returns the number of field components.
   virtual size_t getNoFields() const { return 0; }
 
+  //! \brief Returns the name of a norm quantity.
+  static const char* getName(size_t, const char* = 0);
+
+  //! \brief Returns whether a norm component stores element contributions.
+  static bool hasElementContributions(size_t i) { return i != 1; }
+
   //! \brief Accesses a projected secondary solution vector of current patch.
   Vector& getProjection(size_t i);
 

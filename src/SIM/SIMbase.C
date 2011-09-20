@@ -1373,36 +1373,19 @@ bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock)
     }
 
     for (j = k = 0; j < field.rows() && j < 10; j++)
-      if (j != 1) // Skip the external norms (always zero)
+      if (NormBase::hasElementContributions(j))
 	if (!myVtf->writeEres(field.getRow(1+j),++nBlock,geomID))
 	  return false;
 	else
 	  sID[k++].push_back(nBlock);
   }
 
-  const char* label[9] = {
-    "a(u^h,u^h)^0.5",
-    "a(u,u)^0.5",
-    "a(e,e)^0.5, e=u-u^h",
-    "a(u^r,u^r)^0.5",
-    "a(e,e)^0.5, e=u^r-u^h",
-    "a(e,e)^0.5, e=u-u^r",
-    "a(u^rr,u^rr)^0.5",
-    "a(e,e)^0.5, e=u^rr-u^h",
-    "a(e,e)^0.5, e=u-u^rr"
-  };
-
   int idBlock = 200;
   for (j = k = 0; !sID[j].empty(); j++, k++)
   {
-    if (!mySol)
-    {
-      if (k == 1)
-	k = 3;
-      else if (k%3 == 2)
-        k ++;
-    }
-    if (!myVtf->writeSblk(sID[j],label[k],++idBlock,iStep))
+    while (!NormBase::hasElementContributions(k))
+      k++;
+    if (!myVtf->writeSblk(sID[j],NormBase::getName(k),++idBlock,iStep))
       return false;
   }
 
