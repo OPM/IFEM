@@ -235,7 +235,11 @@ ElmNorm& NormBase::getElmNormBuffer (LocalIntegral*& elmInt, const size_t nn)
 
 const char* NormBase::getName(size_t i, const char* prefix)
 {
-  static const char* s[3] = { "a(u^h,u^h)^0.5","a(u,u)^0.5","a(e,e)^0.5, e=u-u^h" };
+  static const char* s[9] = { "a(u^h,u^h)^0.5",       "a(u,u)^0.5",
+                              "a(e,e)^0.5, e=u-u^h",  "a(u^r,u^r)^0.5",
+                              "a(e,e)^0.5, e=u^r-u^h", "a(e,e)^0.5, e=u-u^r",
+                              "a(u^rr,u^rr)^0.5",      "a(e,e)^0.5, e=u^rr-u^h",
+                              "a(e,e)^0.5, e=u-u^rr"};
   if (!prefix) return s[i];
   
   std::cout << i << std::endl;
