@@ -292,6 +292,27 @@ Vec3 LshapePoisson::evaluate (const Vec3& X) const
   return temp;
 }
 
+Vec3 SquareSinus::evaluate (const Vec3& X) const
+{
+  double x = X.x;
+  double y = X.y;
+  double pi = M_PI;
+
+  Vec3 temp;
+  temp.x = 2*pi*cos(2*pi*x)*sin(2*pi*y);
+  temp.y = 2*pi*sin(2*pi*x)*cos(2*pi*y);
+
+  return temp;
+}
+
+double SquareSinusSource::evaluate (const Vec3& X) const
+{
+  double x = X.x;
+  double y = X.y;
+  double pi = M_PI;
+
+  return  -2*2*pi*pi*sin(2*pi*x)*sin(2*pi*y);
+}
 
 Vec3 PoissonCube::evaluate (const Vec3& X) const
 {

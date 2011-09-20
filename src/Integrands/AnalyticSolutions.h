@@ -226,6 +226,40 @@ protected:
   virtual Vec3 evaluate(const Vec3& X) const;
 };
 
+/*!
+  \brief Sinus-solution of the Poisson equation on a square.
+*/
+
+class SquareSinus : public VecFunc
+{
+public:
+  //! \brief Empty constructor.
+  SquareSinus() {}
+  //! \brief Empty destructor.
+  virtual ~SquareSinus() {}
+
+protected:
+  //! \brief Evaluates the analytic flux vector at the point \a X.
+  virtual Vec3 evaluate(const Vec3& X) const;
+};
+
+/*!
+  \brief Sinus-solution of the Poisson equation on a square.
+*/
+
+class SquareSinusSource : public RealFunc
+{
+public:
+  //! \brief Empty constructor.
+  SquareSinusSource() {}
+  //! \brief Empty destructor.
+  virtual ~SquareSinusSource() {}
+
+protected:
+  //! \brief Evaluates the analytic flux vector at the point \a X.
+  virtual double evaluate(const Vec3& X) const;
+};
+
 
 /*!
   \brief Analytic solution for the Poisson equation on a cube.
