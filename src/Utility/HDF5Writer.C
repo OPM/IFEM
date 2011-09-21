@@ -34,7 +34,9 @@ HDF5Writer::HDF5Writer (const std::string& name, bool append, bool keepOpen)
 #ifdef HAS_HDF5
   struct stat temp;
   // file already exists - open and find the next group
-  if (append && stat(m_name.c_str(),&temp) == 0)
+  if (append && keepOpen)
+    m_flag = H5F_ACC_RDONLY;
+  else if (append && stat(m_name.c_str(),&temp) == 0)
     m_flag = H5F_ACC_RDWR;
   else
     m_flag = H5F_ACC_TRUNC;
