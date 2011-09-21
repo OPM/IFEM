@@ -110,7 +110,6 @@ bool ASMu2D::write (std::ostream& os, int) const
 {
 	if (!lrspline) return false;
 
-	os <<"200 1 0 0\n";
 	os << *lrspline;
 
 	return os.good();
@@ -1046,9 +1045,39 @@ int ASMu2D::evalPoint (const double* xi, double* param, Vec3& X) const
 }
 
 
-#if 0 
 bool ASMu2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 {
+	std::cout << "ASMu2D::getGridParameters(  )\n";
+	if(nSegPerSpan != 2) {
+		std::cerr << "ASMu2D::getGridParameters called with nSegPerSpan != 2\n";
+		return false;
+	}
+
+	// output is written once for each element resulting in a lot of unnecessary storage
+	// this is preferable to figuring out all element topology information
+
+	std::vector<LR::Element*>::iterator el;
+	for(el=lrspline->elementBegin(); el<lrspline->elementEnd(); el++) {
+		// evaluate element at element corner points
+		double umin = (**el).umin();
+		double umax = (**el).umax();
+		double vmin = (**el).vmin();
+		double vmax = (**el).vmax();
+		for(int iv=0; iv<2; iv++) {
+			for(int iu=0; iu<2; iu++) {
+				double u = (iu==0) ? umin : umax;
+				double v = (iv==0) ? vmin : vmax;
+				if(dir==0)
+					prm.push_back(u);
+				else
+					prm.push_back(v);
+			}
+		}
+	}
+	return true;
+}
+
+#if 0
 	if (!lrspline) return false;
 
 	if (nSegPerSpan < 1)
@@ -1092,44 +1121,58 @@ bool ASMu2D::getGrevilleParameters (RealArray& prm, int dir) const
 
 	return true;
 }
+#endif
 
 
 bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
 {
-	// Compute parameter values of the nodal points
-	RealArray gpar[2];
-	for (int dir = 0; dir < 2; dir++)
-		if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
-			return false;
+	std::cout << "ASMu2D::tesselate(  )\n";
+	if(!lrspline) return false;
 
-	// Evaluate the spline lrsplineace at all points
-	size_t nx = gpar[0].size();
-	size_t ny = gpar[1].size();
-	RealArray XYZ(lrspline->dimension()*nx*ny);
-	lrspline->gridEvaluator(XYZ,gpar[0],gpar[1]);
+	if(npe[0] != 2 || npe[1] != 2) {
+		std::cerr <<" *** ASMu2D::tesselate: unstructured tesselation only allows for 2 tesselation points\n";
+		return false;
+	}
 
-	// Establish the block grid coordinates
-	size_t i, j, l;
-	grid.resize(nx,ny);
-	for (i = l = 0; i < grid.getNoNodes(); i++, l += lrspline->dimension())
-		for (j = 0; j < nsd; j++)
-			grid.setCoor(i,j,XYZ[l+j]);
+	// output is written once for each element resulting in a lot of unnecessary storage
+	// this is preferable to figuring out all element topology information
+	grid.unStructResize((size_t) lrspline->nElements(), (size_t) lrspline->nElements()*4);
 
-	// Establish the block grid topology
-	int n[4], ip = 0;
-	for (j = 1, n[1] = 0; j < ny; j++)
-	{
-		n[0] = n[1];
-		n[1] = n[0] + 1;
-		n[2] = n[1] + nx;
-		n[3] = n[1] + nx-1;
-		for (i = 1; i < nx; i++)
-			for (l = 0; l < 4; l++)
-	grid.setNode(ip++,n[l]++);
+	std::vector<LR::Element*>::iterator el;
+	int inod = 0;
+	int iel = 0;
+	for(el=lrspline->elementBegin(); el<lrspline->elementEnd(); el++, iel++) {
+		// evaluate element at element corner points
+		double umin = (**el).umin();
+		double umax = (**el).umax();
+		double vmin = (**el).vmin();
+		double vmax = (**el).vmax();
+		for(int iv=0; iv<2; iv++) {
+			for(int iu=0; iu<2; iu++) {
+				double u = (iu==0) ? umin : umax;
+				double v = (iv==0) ? vmin : vmax;
+				Go::Point pt;
+				lrspline->point(pt, u,v);
+				for(int dim=0; dim<nsd; dim++)
+					grid.setCoor(inod, dim, pt[dim]);
+				inod++;
+			}
+		}
+	}
+
+	// due to duplicate point storage, the element-to-node array is sort of trivial
+	for(int i=0; i<lrspline->nElements()*4; i+=4) {
+		// enumerate nodes counter clockwise around the quad
+		grid.setNode(i  , i  );
+		grid.setNode(i+1, i+1);
+		grid.setNode(i+2, i+3);
+		grid.setNode(i+3, i+2);
 	}
 
 	return true;
 }
+
+#if 0
 
 
 void ASMu2D::scatterInd (int n1, int n2, int p1, int p2,
@@ -1142,14 +1185,17 @@ void ASMu2D::scatterInd (int n1, int n2, int p1, int p2,
 			index.push_back(ip);
 }
 
+#endif
+
 
 bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
                            const int* npe) const
 {
+	std::cout << "ASMu2D::evalSolution(Matrix, Vector, int* )\n";
 	// Compute parameter values of the result sampling points
 	RealArray gpar[2];
 	for (int dir = 0; dir < 2; dir++)
-		if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
+		if (!this->getGridParameters(gpar[dir],dir,npe[dir]))
 			return false;
 
 	// Evaluate the primary solution at all sampling points
@@ -1160,92 +1206,79 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
                            const RealArray* gpar, bool regular) const
 {
-	// Evaluate the basis functions at all points
-	std::vector<Go::BasisPtsSf> spline;
-	if (regular)
-		lrspline->computeBasisGrid(gpar[0],gpar[1],spline);
-	else if (gpar[0].size() == gpar[1].size())
-	{
-		spline.resize(gpar[0].size());
-		for (size_t i = 0; i < spline.size(); i++)
-			lrspline->computeBasis(gpar[0][i],gpar[1][i],spline[i]);
-	}
-	else
-		return false;
-
-	const int p1 = lrspline->order_u();
-	const int p2 = lrspline->order_v();
-	const int n1 = lrspline->numCoefs_u();
-	const int n2 = lrspline->numCoefs_v();
+	std::cout << "ASMu2D::evalSolution(Matrix, Vector, RealArray )\n";
 	size_t nComp = locSol.size() / this->getNoNodes();
 	if (nComp*this->getNoNodes() != locSol.size())
+		return false;
+
+	if(gpar[0].size() != gpar[1].size())
 		return false;
 
 	Matrix Xtmp;
 	Vector Ytmp;
 
 	// Evaluate the primary solution field at each point
-	size_t nPoints = spline.size();
+	size_t nPoints = gpar[0].size();
 	sField.resize(nComp,nPoints);
 	for (size_t i = 0; i < nPoints; i++)
 	{
-		IntVec ip;
-		scatterInd(n1,n2,p1,p2,spline[i].left_idx,ip);
+		// fetch element containing evaluation point
+		int iel = lrspline->getElementContaining(gpar[0][i], gpar[1][i]);
+		// std::cout << "Element containing ("<< gpar[0][i] << ", " << gpar[1][i] << ") = # " << iel << std::endl;
 
+		// fetch index of non-zero basis functions on this element
+		IntVec ip = MNPC[iel];
+
+		// evaluate the basis functions at current parametric point
+		Go::BasisPtsSf spline;
+		lrspline->computeBasis(gpar[0][i], gpar[1][i], spline, iel);
+
+		// Now evaluate the solution field
 		utl::gather(ip,nComp,locSol,Xtmp);
-		Xtmp.multiply(spline[i].basisValues,Ytmp);
+		Xtmp.multiply(spline.basisValues, Ytmp);
 		sField.fillColumn(1+i,Ytmp);
+		// std::cout << "u(" << gpar[0][i] << ", " << gpar[1][i] << ") = " << Ytmp << "\n";
+		// std::cout << "Xtmp = " << Xtmp << std::endl;
+		// std::cout << "ip   = [" ;
+		// for(uint i=0; i<ip.size(); i++) std::cout << ip[i] << ", ";
+		// std::cout << "]\n";
+		// std::vector<LR::Basisfunction*>::iterator it;
+		// for(it=lrspline->getElement(iel)->supportBegin(); it<lrspline->getElement(iel)->supportEnd(); it++)
+			// std::cout << **it << std::endl;
 	}
 
 	return true;
 }
 
-
 bool ASMu2D::evalSolution (Matrix& sField, const Integrand& integrand,
                            const int* npe, bool project) const
 {
+	if(project) {
+		std::cerr << "ASMu2D::evalSolution unstructured LR-spline projection\n";
+		std::cerr << "techniques not implemented yet\n";
+		return false;
+	}
 	if (npe)
 	{
 		// Compute parameter values of the result sampling points
 		RealArray gpar[2];
-		if (this->getGridParameters(gpar[0],0,npe[0]-1) &&
-	this->getGridParameters(gpar[1],1,npe[1]-1))
-			if (project)
-			{
-	// Project the secondary solution onto the spline basis
-	Go::SplineSurface* s = this->projectSolution(integrand);
-	if (s)
-	{
-		// Evaluate the projected field at the result sampling points
-		const Vector& svec = sField; // using utl::matrix cast operator
-		sField.resize(s->dimension(),gpar[0].size()*gpar[1].size());
-		s->gridEvaluator(const_cast<Vector&>(svec),gpar[0],gpar[1]);
-		delete s;
-		return true;
-	}
-			}
-			else
-	// Evaluate the secondary solution directly at all sampling points
-	return this->evalSolution(sField,integrand,gpar);
+		if (this->getGridParameters(gpar[0],0,npe[0]) &&
+		    this->getGridParameters(gpar[1],1,npe[1]))
+			// Evaluate the secondary solution directly at all sampling points
+			return this->evalSolution(sField,integrand,gpar);
 	}
 	else
 	{
-		// Project the secondary solution onto the spline basis
-		Go::SplineSurface* s = this->projectSolution(integrand);
-		if (s)
-		{
-			// Extract control point values from the spline object
-			sField.resize(s->dimension(),s->numCoefs_u()*s->numCoefs_v());
-			sField.fill(&(*s->coefs_begin()));
-			delete s;
-			return true;
-		}
+		std::cerr << "ASMu2D::evalSolution unstructured LR-spline projection\n";
+		std::cerr << "techniques not implemented yet\n";
+		return false;
 	}
 
 	std::cerr <<" *** ASMu2D::evalSolution: Failure!"<< std::endl;
 	return false;
 }
 
+#if 0
 
 Go::GeomObject* ASMu2D::evalSolution (const Integrand& integrand) const
 {
@@ -1287,70 +1320,54 @@ Go::SplineSurface* ASMu2D::projectSolution (const Integrand& integrand) const
 	                                                     weights);
 }
 
+#endif
 
 bool ASMu2D::evalSolution (Matrix& sField, const Integrand& integrand,
                            const RealArray* gpar, bool regular) const
 {
-	sField.resize(0,0);
+	std::cout << "ASMu2D::evalSolution(  )\n";
+	// TODO: investigate the possibility of doing "regular" refinement by unfiorm
+	//       tesselation grid and ignoring LR meshlines
 
-	// Evaluate the basis functions and their derivatives at all points
-	std::vector<Go::BasisDerivsSf> spline;
-	if (regular)
-		lrspline->computeBasisGrid(gpar[0],gpar[1],spline);
-	else if (gpar[0].size() == gpar[1].size())
-	{
-		spline.resize(gpar[0].size());
-		std::vector<Go::BasisDerivsSf> tmpSpline(1);
-		for (size_t i = 0; i < spline.size(); i++)
-		{
-			lrspline->computeBasisGrid(RealArray(1,gpar[0][i]),
-			                           RealArray(1,gpar[1][i]),
-			                           tmpSpline);
-			spline[i] = tmpSpline.front();
-		}
-		// TODO: Request a GoTools method replacing the above:
-		// void SplineSurface::computeBasisGrid(double param_u, double param_v,
-		//                                      BasisDerivsSf& result) const
-		/*
-		for (size_t i = 0; i < spline.size(); i++)
-			lrspline->computeBasis(gpar[0][i],gpar[1][i],spline[i]);
-		*/
-	}
-	else
+	if(gpar[0].size() != gpar[1].size())
 		return false;
 
-	const int p1 = lrspline->order_u();
-	const int p2 = lrspline->order_v();
-	const int n1 = lrspline->numCoefs_u();
-	const int n2 = lrspline->numCoefs_v();
+	sField.resize(0,0);
 
 	// Fetch nodal (control point) coordinates
-	Matrix Xnod, Xtmp;
-	this->getNodalCoordinates(Xnod);
+	Matrix Xnod;
 
-	Vector N(p1*p2), solPt;
+	IntVec ip;
+	Vector solPt;
 	Matrix dNdu, dNdX, Jac;
 
 	// Evaluate the secondary solution field at each point
-	size_t nPoints = spline.size();
+	size_t nPoints = gpar[0].size();
+
 	for (size_t i = 0; i < nPoints; i++)
 	{
-		// Fetch indices of the non-zero basis functions at this point
-		IntVec ip;
-		scatterInd(n1,n2,p1,p2,spline[i].left_idx,ip);
+		// fetch element containing evaluation point
+		int iel = lrspline->getElementContaining(gpar[0][i], gpar[1][i]);
 
-		// Fetch associated control point coordinates
-		utl::gather(ip,nsd,Xnod,Xtmp);
+		// fetch number of nonzero basis functions on this element as well as their indices
+		int nBasis = lrspline->getElement(iel)->nBasisFunctions();
+		Vector N(nBasis);
+		ip = MNPC[iel];
 
-		// Fetch basis function derivatives at current integration point
-		extractBasis(spline[i],N,dNdu);
+		// evaluate the basis functions at current parametric point
+		Go::BasisDerivsSf spline;
+		lrspline->computeBasis(gpar[0][i], gpar[1][i], spline, iel);
+		extractBasis(spline, N, dNdu);
+
+		// Set up control point (nodal) coordinates for current element
+		if (!this->getElementCoordinates(Xnod,iel+1)) return false;
 
 		// Compute the Jacobian inverse
-		if (utl::Jacobian(Jac,dNdX,Xtmp,dNdu) == 0.0) // Jac = (Xtmp * dNdu)^-1
+		if (utl::Jacobian(Jac,dNdX,Xnod,dNdu) == 0.0) // Jac = (Xnod * dNdu)^-1
 			continue; // skip singular points
 
 		// Now evaluate the solution field
-		if (!integrand.evalSol(solPt,N,dNdX,Xtmp*N,ip))
+		if (!integrand.evalSol(solPt,N,dNdX,Xnod*N,ip))
 			return false;
 		else if (sField.empty())
 			sField.resize(solPt.size(),nPoints,true);
@@ -1360,6 +1377,4 @@ bool ASMu2D::evalSolution (Matrix& sField, const Integrand& integrand,
 
 	return true;
 }
-
-#endif
 

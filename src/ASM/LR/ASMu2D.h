@@ -224,13 +224,12 @@ public:
   //! \return 0 if no node (control point) matches this point
   virtual int evalPoint(const double* xi, double* param, Vec3& X) const;
 
-// we'll figure out the postprocessing later
-#if 0
   //! \brief Creates a quad element model of this patch for visualization.
   //! \param[out] grid The generated quadrilateral grid
   //! \param[in] npe Number of visualization nodes over each knot span
   //! \note The number of element nodes must be set in \a grid on input.
   virtual bool tesselate(ElementBlock& grid, const int* npe) const;
+
 
   //! \brief Evaluates the primary solution field at all visualization points.
   //! \param[out] sField Solution field
@@ -251,7 +250,7 @@ public:
   //! Otherwise, we assume that it contains the \a u and \a v parameters
   //! directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const RealArray* gpar, bool regular = true) const;
+                            const RealArray* gpar, bool regular = false) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field
@@ -269,12 +268,14 @@ public:
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
                             const int* npe = 0, bool project = false) const;
 
+#if 0
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods
   Go::SplineSurface* projectSolution(const Integrand& integrand) const;
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods
   virtual Go::GeomObject* evalSolution(const Integrand& integrand) const;
+#endif
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
@@ -297,7 +298,6 @@ public:
   //! \param[in] dir Parameter direction (0,1)
   //! \param[in] nSegSpan Number of visualization segments over each knot-span
   virtual bool getGridParameters(RealArray& prm, int dir, int nSegSpan) const;
-#endif
 
 protected:
 

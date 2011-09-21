@@ -27,7 +27,6 @@ ElementBlock::ElementBlock (size_t nenod)
   nen = nenod;
 }
 
-
 void ElementBlock::resize (size_t nI, size_t nJ, size_t nK)
 {
   coord.resize(nI*nJ*nK);
@@ -42,6 +41,13 @@ void ElementBlock::resize (size_t nI, size_t nJ, size_t nK)
   else if (nen == 27)
     MMNPC.resize(27*(nI-1)*(nJ-1)*(nK-1)/8);
 
+  MINEX.resize(MMNPC.size()/nen,0);
+}
+
+void ElementBlock::unStructResize(size_t nEl, size_t nPts)
+{
+  coord.resize(nPts);
+  MMNPC.resize(nen*nEl);
   MINEX.resize(MMNPC.size()/nen,0);
 }
 

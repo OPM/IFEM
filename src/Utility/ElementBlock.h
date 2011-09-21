@@ -33,6 +33,11 @@ public:
   //! \param[in] nK Number of element in K-direction
   void resize(size_t nI, size_t nJ = 1, size_t nK = 1);
 
+  //! \brief Reallocates the internal arrays to fit an unstructured element block.
+  //! \param[in] nEl  Number of elements
+  //! \param[in] nPts Number of nodes
+  void unStructResize(size_t nEl, size_t nPts);
+
   //! \brief Defines the coordinates of node \a i
   bool setCoor(size_t i, real x, real y, real z);
   //! \brief Defines the \a j'th coordinate of node \a i
