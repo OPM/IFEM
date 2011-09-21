@@ -62,11 +62,17 @@ bool ASMu2D::read (std::istream& is)
 {
 	if (lrspline) delete lrspline;
 
-	Go::ObjectHeader head;
-	Go::SplineSurface *surf = new Go::SplineSurface();
-	is >> head >> *surf;
-
-	lrspline = new LR::LRSplineSurface(surf);
+	// read inputfile as either an LRSpline file directly or a tensor product B-spline and convert
+	char firstline[256];
+	is.getline(firstline, 256);
+	if(strncmp(firstline, "# LRSPLINE", 10) == 0) {
+		lrspline = new LR::LRSplineSurface();
+		is >> *lrspline;
+	} else { // probably a SplineSurface, so we'll read that and convert
+		Go::SplineSurface *surf = new Go::SplineSurface();
+		is >> *surf;
+		lrspline = new LR::LRSplineSurface(surf);
+	}
 
 	// Eat white-space characters to see if there is more data to read
 	char c;
