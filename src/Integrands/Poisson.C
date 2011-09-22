@@ -304,25 +304,25 @@ bool PoissonNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
   Poisson& problem = static_cast<Poisson&>(myProblem);
   ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt);
 
-  // Evaluate the inverse constitutive matrix at this point
-  Matrix Cinv;
-  if (!problem.formCmatrix(Cinv,X,true)) return false;
+  // Evaluate the constitutive matrix at this point
+  Matrix C;
+  if (!problem.formCmatrix(C,X,false)) return false;
 
   // Evaluate the finite element heat flux field
   Vector sigmah;
   if (!problem.evalSol(sigmah,fe.dNdX,X)) return false;
 
   // Integrate the energy norm a(u^h,u^h)
-  pnorm[0] += sigmah.dot(Cinv*sigmah)*fe.detJxW;
+  pnorm[0] += sigmah.dot(C*sigmah)*fe.detJxW;
   if (anasol)
   {
     // Evaluate the analytical heat flux
     Vector sigma((*anasol)(X).ptr(),sigmah.size());
     // Integrate the energy norm a(u,u)
-    pnorm[1] += sigma.dot(Cinv*sigma)*fe.detJxW;
+    pnorm[1] += sigma.dot(C*sigma)*fe.detJxW;
     // Integrate the error in energy norm a(u-u^h,u-u^h)
     sigma -= sigmah;
-    pnorm[2] += sigma.dot(Cinv*sigma)*fe.detJxW;
+    pnorm[2] += sigma.dot(C*sigma)*fe.detJxW;
   }
 
   return true;

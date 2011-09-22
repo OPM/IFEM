@@ -260,6 +260,52 @@ protected:
   virtual double evaluate(const Vec3& X) const;
 };
 
+/*!
+  \brief Poisson problem with smooth solution that exhibits a steep interior layer
+*/
+class PoissonInteriorLayer : public VecFunc
+{
+public:
+  //! \brief Empty constructor.
+  PoissonInteriorLayer(double s = 60.0) : SLOPE(s) {}
+  //! \brief Empty destructor.
+  virtual ~PoissonInteriorLayer() {}
+
+protected:
+  //! \brief Evaluates the heat field at the point \a X.
+  virtual Vec3 evaluate(const Vec3& X) const;
+
+private:
+  double SLOPE; //!< layer SLOPE (larger SLOPE gives problems for adaptive solvers)
+};
+
+class PoissonInteriorLayerSol : public RealFunc
+{
+public:
+  //! \brief Empty constructor.
+  PoissonInteriorLayerSol(double s = 60.0) : SLOPE(s) {}
+  //! \brief Empty destructor.
+  virtual ~PoissonInteriorLayerSol() {}
+protected:
+  //! \brief Evaluates the exact solution of the heat distribution at the point \a X.
+  virtual double evaluate(const Vec3& X) const;
+private:
+  double SLOPE; //!< layer SLOPE (larger SLOPE gives problems for adaptive solvers)
+};
+
+class PoissonInteriorLayerSource : public RealFunc
+{
+public:
+  //! \brief default constructor.
+  PoissonInteriorLayerSource(double s = 60.0) : SLOPE(s) {}
+  //! \brief Empty destructor.
+  virtual ~PoissonInteriorLayerSource() {}
+protected:
+  virtual double evaluate(const Vec3& X) const;
+private:
+  double SLOPE; //!< layer SLOPE (larger SLOPE gives problems for adaptive solvers)
+};
+
 
 /*!
   \brief Analytic solution for the Poisson equation on a cube.

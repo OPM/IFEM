@@ -311,7 +311,44 @@ double SquareSinusSource::evaluate (const Vec3& X) const
   double y = X.y;
   double pi = M_PI;
 
-  return  -2*2*pi*pi*sin(2*pi*x)*sin(2*pi*y);
+  return  -2*2*2*pi*pi*sin(2*pi*x)*sin(2*pi*y);
+}
+
+Vec3 PoissonInteriorLayer::evaluate (const Vec3& X) const
+{
+	double x = X.x;
+	double y = X.y;
+	double pi = M_PI;
+	Vec3 results;
+
+	double root = sqrt((x-1.25)*(x-1.25)+(y+.25)*(y+.25));
+	double u    = SLOPE*(root-pi/3);
+	results.x   = -SLOPE*(x-1.25) / root / (1+u*u);
+	results.y   = -SLOPE*(y+0.25) / root / (1+u*u);
+
+	return results;
+}
+
+double PoissonInteriorLayerSol::evaluate (const Vec3& X) const
+{
+	// picked up from http://hpfem.org/hermes2d/doc/src/benchmarks.html
+	double x = X.x;
+	double y = X.y;
+	double pi = M_PI;
+	return atan(SLOPE*(sqrt((x-1.25)*(x-1.25)+(y+.25)*(y+.25))-pi/3));
+}
+
+double PoissonInteriorLayerSource::evaluate(const Vec3& X) const
+{
+	// nabla of the u above. 
+	double x = X.x;
+	double y = X.y;
+
+	/******       maple did this for me                        ************/
+	double ans = SLOPE * pow(pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1), -0.3e1 / 0.2e1) * pow(0.2e1 * x - 0.250e1, 0.2e1) / (0.1e1 + SLOPE * SLOPE * pow(sqrt(pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1)) - 0.3141592654e1 / 0.3e1, 0.2e1)) / 0.4e1 - 0.2e1 * SLOPE * pow(pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1), -0.1e1 / 0.2e1) / (0.1e1 + SLOPE * SLOPE * pow(sqrt(pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1)) - 0.3141592654e1 / 0.3e1, 0.2e1)) + pow(SLOPE, 0.3e1) / (pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1)) * pow(0.2e1 * x - 0.250e1, 0.2e1) * pow(0.1e1 + SLOPE * SLOPE * pow(sqrt(pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1)) - 0.3141592654e1 / 0.3e1, 0.2e1), -0.2e1) * (sqrt(pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1)) - 0.3141592654e1 / 0.3e1) / 0.2e1 + SLOPE * pow(pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1), -0.3e1 / 0.2e1) * pow(0.2e1 * y + 0.50e0, 0.2e1) / (0.1e1 + SLOPE * SLOPE * pow(sqrt(pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1)) - 0.3141592654e1 / 0.3e1, 0.2e1)) / 0.4e1 + pow(SLOPE, 0.3e1) / (pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1)) * pow(0.2e1 * y + 0.50e0, 0.2e1) * pow(0.1e1 + SLOPE * SLOPE * pow(sqrt(pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1)) - 0.3141592654e1 / 0.3e1, 0.2e1), -0.2e1) * (sqrt(pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1)) - 0.3141592654e1 / 0.3e1) / 0.2e1;
+	/***********************************************************************/
+
+	return  ans;
 }
 
 Vec3 PoissonCube::evaluate (const Vec3& X) const
