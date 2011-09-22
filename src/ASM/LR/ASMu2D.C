@@ -1054,7 +1054,7 @@ int ASMu2D::evalPoint (const double* xi, double* param, Vec3& X) const
 bool ASMu2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 {
 	std::cout << "ASMu2D::getGridParameters(  )\n";
-	if(nSegPerSpan != 2) {
+	if(nSegPerSpan != 1) {
 		std::cerr << "ASMu2D::getGridParameters called with nSegPerSpan != 2\n";
 		return false;
 	}
@@ -1201,7 +1201,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 	// Compute parameter values of the result sampling points
 	RealArray gpar[2];
 	for (int dir = 0; dir < 2; dir++)
-		if (!this->getGridParameters(gpar[dir],dir,npe[dir]))
+		if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
 			return false;
 
 	// Evaluate the primary solution at all sampling points
@@ -1230,6 +1230,8 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 	{
 		// fetch element containing evaluation point
 		int iel = lrspline->getElementContaining(gpar[0][i], gpar[1][i]);
+                if (iel < 0)
+                  continue;
 		// std::cout << "Element containing ("<< gpar[0][i] << ", " << gpar[1][i] << ") = # " << iel << std::endl;
 
 		// fetch index of non-zero basis functions on this element
@@ -1268,8 +1270,8 @@ bool ASMu2D::evalSolution (Matrix& sField, const Integrand& integrand,
 	{
 		// Compute parameter values of the result sampling points
 		RealArray gpar[2];
-		if (this->getGridParameters(gpar[0],0,npe[0]) &&
-		    this->getGridParameters(gpar[1],1,npe[1]))
+		if (this->getGridParameters(gpar[0],0,npe[0]-1) &&
+		    this->getGridParameters(gpar[1],1,npe[1]-1))
 			// Evaluate the secondary solution directly at all sampling points
 			return this->evalSolution(sField,integrand,gpar);
 	}
