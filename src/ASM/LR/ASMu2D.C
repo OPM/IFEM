@@ -902,12 +902,9 @@ bool ASMu2D::integrate (Integrand& integrand,
 				Go::BasisDerivsSf  spline;
 				Go::BasisDerivsSf2 spline2;
 				Go::BasisDerivsSf  splineRed;
-// I'll impement second order differentiation in LRSplines soon - promise
-#if 0
 				if (integrand.getIntegrandType() == 2)
 					lrspline->computeBasis(fe.u,fe.v,spline2, iel);
 				else
-#endif
 					lrspline->computeBasis(fe.u,fe.v,spline, iel-1);
 				if (integrand.getIntegrandType() > 10)
 					lrspline->computeBasis(fe.u,fe.v,splineRed, iel-1);
@@ -971,7 +968,6 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 {
 	if (!lrspline) return true; // silently ignore empty patches
 
-#if 0
 	PROFILE2("ASMu2D::integrate(B)");
 
 	// Get Gaussian quadrature points and weights
@@ -985,47 +981,33 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 	const int t1 = abs(edgeDir);   // Tangent direction normal to the patch edge
 	const int t2 = 3-abs(edgeDir); // Tangent direction along the patch edge
 
-	// Compute parameter values of the Gauss points along the whole patch edge
-	Matrix gpar[2];
+	// Compute const edge parameter values of the Gauss points along the whole patch edge
+	Vector gpar[2];
 	for (int d = 0; d < 2; d++)
 		if (-1-d == edgeDir)
 		{
-			gpar[d].resize(1,1);
+			gpar[d].resize(nGauss);
 			gpar[d].fill(d == 0 ? lrspline->startparam_u() : lrspline->startparam_v());
 		}
 		else if (1+d == edgeDir)
 		{
-			gpar[d].resize(1,1);
+			gpar[d].resize(nGauss);
 			gpar[d].fill(d == 0 ? lrspline->endparam_u() : lrspline->endparam_v());
 		}
-		else
-			this->getGaussPointParameters(gpar[d],d,nGauss,iel,xg);
-
-	// Evaluate basis function derivatives at all integration points
-	std::vector<Go::BasisDerivsSf> spline;
-	lrspline->computeBasisGrid(gpar[0],gpar[1],spline);
-
-	const int p1 = lrspline->order_u();
-	const int p2 = lrspline->order_v();
-	const int n1 = lrspline->numCoefs_u();
-	const int n2 = lrspline->numCoefs_v();
-
-	FiniteElement fe(p1*p2);
-	fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
-	fe.u = gpar[0](1,1);
-	fe.v = gpar[1](1,1);
 
 	Matrix dNdu, Xnod, Jac;
 	Vec4   X;
 	Vec3   normal;
 
-
 	// === Assembly loop over all elements on the patch edge =====================
 
-	std::vector<LR::Element*>::iterator el
+	std::vector<LR::Element*>::iterator el;
 	int iel = 1;
 	for(el = lrspline->elementBegin(); el!=lrspline->elementEnd(); el++, iel++)
 	{
+		FiniteElement fe((**el).nBasisFunctions());
+		fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
+
 		fe.iel = MLGE[iel-1];
 		if (fe.iel < 1) continue; // zero-area element
 
@@ -1033,73 +1015,74 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 		bool skipMe = false;
 		switch (edgeDir)
 		{
-			case -1: if (i1 > p1) skipMe = true; break;
-			case  1: if (i1 < n1) skipMe = true; break;
-			case -2: if (i2 > p2) skipMe = true; break;
-			case  2: if (i2 < n2) skipMe = true; break;
+			case -1: if ((**el).umin() != lrspline->startparam_u()) skipMe = true; break;
+			case  1: if ((**el).umax() != lrspline->endparam_u()  ) skipMe = true; break;
+			case -2: if ((**el).vmin() != lrspline->startparam_v()) skipMe = true; break;
+			case  2: if ((**el).vmax() != lrspline->endparam_v()  ) skipMe = true; break;
 		}
-			if (skipMe) continue;
+		if (skipMe) continue;
 
-			// Get element edge length in the parameter space
-			double dS = this->getParametricLength(iel,t1);
-			if (dS < 0.0) return false; // topology error (probably logic error)
+		// Get element edge length in the parameter space
+		double dS = this->getParametricLength(iel,t1);
+		if (dS < 0.0) return false; // topology error (probably logic error)
 
-			// Set up control point coordinates for current element
-			if (!this->getElementCoordinates(Xnod,iel)) return false;
+		// Set up control point coordinates for current element
+		if (!this->getElementCoordinates(Xnod,iel)) return false;
 
-			// Initialize element quantities
-			if (!integrand.initElementBou(MNPC[iel-1])) return false;
+		// Initialize element quantities
+		if (!integrand.initElementBou(MNPC[iel-1])) return false;
 
-			// Caution: Unless locInt is empty, we assume it points to an array of
-			// LocalIntegral pointers, of length at least the number of elements in
-			// the model (as defined by the highest number in the MLGE array).
-			// If the array is shorter than this, expect a segmentation fault.
-			LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
+		// Caution: Unless locInt is empty, we assume it points to an array of
+		// LocalIntegral pointers, of length at least the number of elements in
+		// the model (as defined by the highest number in the MLGE array).
+		// If the array is shorter than this, expect a segmentation fault.
+		LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
 
+		// get integration gauss points over this element
+		int dim = 2-abs(edgeDir);
+		this->getGaussPointParameters(gpar[dim],dim,nGauss,iel,xg);
 
-			// --- Integration loop over all Gauss points along the edge -------------
+		// --- Integration loop over all Gauss points along the edge -------------
 
-			int ip = (t1 == 1 ? i2-p2 : i1-p1)*nGauss;
-			for (int i = 0; i < nGauss; i++, ip++)
-			{
-	// Local element coordinates and parameter values
-	// of current integration point
-	if (gpar[0].size() > 1)
-	{
-		fe.xi = xg[i];
-		fe.u = gpar[0](i+1,i1-p1+1);
-	}
-	if (gpar[1].size() > 1)
-	{
-		fe.eta = xg[i];
-		fe.v = gpar[1](i+1,i2-p2+1);
-	}
+		for (int i = 0; i < nGauss; i++)
+		{
+			// Local element coordinates and parameter values
+			// of current integration point
+			if(dim==0)
+				fe.xi = xg[i];
+			else
+				fe.eta = xg[i];
+			fe.u = gpar[0][i];
+			fe.v = gpar[1][i];
+		
+			// Evaluate basis function derivatives at current integration points
+			Go::BasisDerivsSf spline;
+			lrspline->computeBasis(fe.u, fe.v, spline, iel-1);
 
-	// Fetch basis function derivatives at current integration point
-	extractBasis(spline[ip],fe.N,dNdu);
-
-	// Compute basis function derivatives and the edge normal
-	fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
-	if (fe.detJxW == 0.0) continue; // skip singular points
-
-	if (edgeDir < 0) normal *= -1.0;
-
-	// Cartesian coordinates of current integration point
-	X = Xnod * fe.N;
-	X.t = time.t;
-
-	// Evaluate the integrand and accumulate element contributions
-	fe.detJxW *= 0.5*dS*wg[i];
-	if (!integrand.evalBou(elmInt,fe,time,X,normal))
-		return false;
+			// Fetch basis function derivatives at current integration point
+			extractBasis(spline,fe.N,dNdu);
+		
+			// Compute basis function derivatives and the edge normal
+			fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
+			if (fe.detJxW == 0.0) continue; // skip singular points
+		
+			if (edgeDir < 0) normal *= -1.0;
+		
+			// Cartesian coordinates of current integration point
+			X = Xnod * fe.N;
+			X.t = time.t;
+		
+			// Evaluate the integrand and accumulate element contributions
+			fe.detJxW *= 0.5*dS*wg[i];
+			if (!integrand.evalBou(elmInt,fe,time,X,normal))
+				return false;
 			}
-
+		
 			// Assembly of global system integral
 			if (!glInt.assemble(elmInt,fe.iel))
-	return false;
-		}
+		return false;
+	}
 
-#endif
 	return true;
 }
 
