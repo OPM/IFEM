@@ -44,14 +44,16 @@ public:
   //! \brief Clears the integration point traction values.
   void clearTracVal() { tracVal.clear(); }
 
+  //! \brief Defines the conductivity (constitutive property).
+  void setMaterial(double K) { kappa = K; }
+
   //! \brief Defines the heat source.
   void setSource(RealFunc* src) { heatSrc = src; }
 
   //! \brief Evaluates the boundary traction field (if any) at specified point.
   double getTraction(const Vec3& X, const Vec3& n) const;
-
-  //! \brief Defines the conductivity (constitutive property).
-  void setMaterial(double K) { kappa = K; }
+  //! \brief Evaluates the heat source (if any) at specified point.
+  double getHeat(const Vec3& X) const;
 
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
@@ -173,6 +175,12 @@ public:
   //! \brief Empty destructor.
   virtual ~PoissonNorm() {}
 
+  //! \brief Returns whether this norm has explicit boundary contributions.
+  virtual bool hasBoundaryTerms() const { return true; }
+
+  //! \brief Returns the number of norm quantities.
+  virtual size_t getNoFields() const { return anasol ? 4 : 2; }
+
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Finite element data of current integration point
@@ -187,9 +195,6 @@ public:
   //! \param[in] normal Boundary normal vector at current integration point
   virtual bool evalBou(LocalIntegral*& elmInt,  const FiniteElement& fe,
 		       const Vec3& X, const Vec3& normal) const;
-
-  //! \brief Returns the number of norm quantities.
-  virtual size_t getNoFields() const { return anasol ? 3 : 1; }
 
 private:
   VecFunc* anasol; //!< Analytical heat flux

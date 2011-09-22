@@ -82,12 +82,16 @@ void Poisson::setMode (SIM::SolutionMode mode)
     }
 }
 
+
+double Poisson::getHeat (const Vec3& X) const
+{
+  return heatSrc ? (*heatSrc)(X) : 0.0;
+}
+
+
 double Poisson::getTraction (const Vec3& X, const Vec3& n) const
 {
-  if (tracFld)
-    return (*tracFld)(X)*(n);
-  else
-    return 0;
+  return tracFld ? (*tracFld)(X)*n : 0.0;
 }
 
 
@@ -132,7 +136,7 @@ bool Poisson::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
     eM->multiply(fe.dNdX,CB,false,false,true); // EK += dNdX * CB
   }
 
-  // Integrate heat source if defined
+  // Integrate heat source, if defined
   if (eS && heatSrc)
     eS->add(fe.N,(*heatSrc)(X)*fe.detJxW);
 
@@ -306,7 +310,7 @@ bool PoissonNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
 
   // Evaluate the constitutive matrix at this point
   Matrix C;
-  if (!problem.formCmatrix(C,X,false)) return false;
+  if (!problem.formCmatrix(C,X,true)) return false;
 
   // Evaluate the finite element heat flux field
   Vector sigmah;
@@ -314,15 +318,18 @@ bool PoissonNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
 
   // Integrate the energy norm a(u^h,u^h)
   pnorm[0] += sigmah.dot(C*sigmah)*fe.detJxW;
+  // Integrate the external energy (h,u^h)
+  pnorm[1] += problem.getHeat(X)*problem.evalSol(fe.N)*fe.detJxW;
+
   if (anasol)
   {
     // Evaluate the analytical heat flux
     Vector sigma((*anasol)(X).ptr(),sigmah.size());
     // Integrate the energy norm a(u,u)
-    pnorm[1] += sigma.dot(C*sigma)*fe.detJxW;
+    pnorm[2] += sigma.dot(C*sigma)*fe.detJxW;
     // Integrate the error in energy norm a(u-u^h,u-u^h)
     sigma -= sigmah;
-    pnorm[2] += sigma.dot(C*sigma)*fe.detJxW;
+    pnorm[3] += sigma.dot(C*sigma)*fe.detJxW;
   }
 
   return true;
@@ -335,12 +342,12 @@ bool PoissonNorm::evalBou (LocalIntegral*& elmInt, const FiniteElement& fe,
   Poisson& problem = static_cast<Poisson&>(myProblem);
   ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt);
 
-  // Evaluate the surface flux
-  double T = problem.getTraction(X,normal);
-  // Evaluate the displacement field
+  // Evaluate the surface heat flux
+  double t = problem.getTraction(X,normal);
+  // Evaluate the temperature field
   double u = problem.evalSol(fe.N);
 
-  // Integrate the external energy
-  pnorm[1] += T*u*fe.detJxW;
+  // Integrate the external energy (t,u^h)
+  pnorm[1] += t*u*fe.detJxW;
   return true;
 }
