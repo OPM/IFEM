@@ -1,4 +1,4 @@
-// $Id: ASMu2D.C 1108 2011-08-23 14:51:03Z kjetijo $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMu2D.C
@@ -34,7 +34,7 @@
 #include <ctype.h>
 
 ASMu2D::ASMu2D (const char* fName, unsigned char n_s, unsigned char n_f)
-	: ASMunstruct(2,n_s,n_f), lrspline(0)
+	: ASMunstruct(2,n_s,n_f), lrspline(0), tensorspline(0)
 {
 	if (fName)
 	{
@@ -49,7 +49,7 @@ ASMu2D::ASMu2D (const char* fName, unsigned char n_s, unsigned char n_f)
 
 
 ASMu2D::ASMu2D (std::istream& is, unsigned char n_s, unsigned char n_f)
-	: ASMunstruct(2,n_s,n_f), lrspline(0)
+	: ASMunstruct(2,n_s,n_f), lrspline(0), tensorspline(0)
 {
 	this->read(is);
 }
@@ -63,12 +63,13 @@ bool ASMu2D::read (std::istream& is)
 	char firstline[256];
 	is.getline(firstline, 256);
 	if(strncmp(firstline, "# LRSPLINE", 10) == 0) {
+		tensorspline = 0;
 		lrspline = new LR::LRSplineSurface();
 		is >> *lrspline;
 	} else { // probably a SplineSurface, so we'll read that and convert
-		Go::SplineSurface *surf = new Go::SplineSurface();
-		is >> *surf;
-		lrspline = new LR::LRSplineSurface(surf);
+		tensorspline = new Go::SplineSurface();
+		is >> *tensorspline;
+		lrspline = new LR::LRSplineSurface(tensorspline);
 	}
 
 	// Eat white-space characters to see if there is more data to read
@@ -123,7 +124,9 @@ void ASMu2D::clear ()
 {
 	// Erase spline data
 	if (lrspline) delete lrspline;
+	if (tensorspline) delete tensorspline;
 	lrspline = 0;
+	tensorspline = 0;
 	geo = 0;
 
 	// Erase the FE data
@@ -212,6 +215,76 @@ bool ASMu2D::uniformRefine (int minBasisfunctions)
 	meshFile.open("mesh.eps");
 	lrspline->writePostscriptMesh(meshFile);
 	meshFile.close();
+	return true;
+}
+
+bool ASMu2D::tensorRefine(int dir, int nInsert)
+{
+	if (!tensorspline || dir < 0 || dir > 1 || nInsert < 1) return false;
+
+	RealArray extraKnots;
+	RealArray::const_iterator uit = tensorspline->basis(dir).begin();
+	double ucurr, uprev = *(uit++);
+	while (uit != tensorspline->basis(dir).end())
+	{
+		ucurr = *(uit++);
+		if (ucurr > uprev)
+			for (int i = 0; i < nInsert; i++)
+			{
+				double xi = (double)(i+1)/(double)(nInsert+1);
+				extraKnots.push_back(ucurr*xi + uprev*(1.0-xi));
+			}
+		uprev = ucurr;
+	}
+
+	if (dir == 0)
+		tensorspline->insertKnot_u(extraKnots);
+	else
+		tensorspline->insertKnot_v(extraKnots);
+
+	if(lrspline) delete lrspline;
+	geo = lrspline = new LR::LRSplineSurface(tensorspline);
+	return true;
+}
+
+bool ASMu2D::tensorRefine(int dir, const RealArray& xi)
+{
+	if (!tensorspline || dir < 0 || dir > 1 || xi.empty()) return false;
+	if (xi.front() < 0.0 || xi.back() > 1.0) return false;
+
+	RealArray extraKnots;
+	RealArray::const_iterator uit = tensorspline->basis(dir).begin();
+	double ucurr, uprev = *(uit++);
+	while (uit != tensorspline->basis(dir).end())
+	{
+		ucurr = *(uit++);
+		if (ucurr > uprev)
+			for (size_t i = 0; i < xi.size(); i++)
+				if (i > 0 && xi[i] < xi[i-1])
+					return false;
+				else
+					extraKnots.push_back(ucurr*xi[i] + uprev*(1.0-xi[i]));
+
+		uprev = ucurr;
+	}
+
+	if (dir == 0)
+		tensorspline->insertKnot_u(extraKnots);
+	else
+		tensorspline->insertKnot_v(extraKnots);
+
+	if(lrspline) delete lrspline;
+	geo = lrspline = new LR::LRSplineSurface(tensorspline);
+	return true;
+}
+
+bool ASMu2D::raiseOrder (int ru, int rv)
+{
+	if (!tensorspline) return false;
+
+	tensorspline->raiseOrder(ru,rv);
+	if(lrspline) delete lrspline;
+	geo = lrspline = new LR::LRSplineSurface(tensorspline);
 	return true;
 }
 

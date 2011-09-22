@@ -246,9 +246,20 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 	{
 	  std::cout <<"\tRefining P"<< j+1
 		    <<" "<< addu <<" "<< addv << std::endl;
-	  ASMs2D* pch = static_cast<ASMs2D*>(myModel[j]);
-	  pch->uniformRefine(0,addu);
-	  pch->uniformRefine(1,addv);
+	  if(discretization == LRSpline)
+	  {
+	    #ifdef HAS_LRSPLINE
+	    ASMu2D* pch = static_cast<ASMu2D*>(myModel[j]);
+	    pch->tensorRefine(0,addu);
+	    pch->tensorRefine(1,addv);
+	    #endif
+	  }
+	  else
+	  {
+	    ASMs2D* pch = static_cast<ASMs2D*>(myModel[j]);
+	    pch->uniformRefine(0,addu);
+	    pch->uniformRefine(1,addv);
+	  }
 	}
       }
       else
@@ -263,7 +274,12 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 	  for (size_t i = 0; i < xi.size(); i++)
 	    std::cout <<" "<< xi[i];
 	  std::cout << std::endl;
-	  static_cast<ASMs2D*>(myModel[j])->refine(dir-1,xi);
+	  if(discretization == LRSpline)
+	    #ifdef HAS_LRSPLINE
+	    static_cast<ASMu2D*>(myModel[j])->tensorRefine(dir-1,xi);
+	    #endif
+	  else
+	    static_cast<ASMs2D*>(myModel[j])->refine(dir-1,xi);
 	}
       }
     }
@@ -294,7 +310,12 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
       {
 	std::cout <<"\tRaising order of P"<< j+1
 		  <<" "<< addu <<" "<< addv << std::endl;
-	static_cast<ASMs2D*>(myModel[j])->raiseOrder(addu,addv);
+	if(discretization == LRSpline)
+	  #ifdef HAS_LRSPLINE
+	  static_cast<ASMu2D*>(myModel[j])->raiseOrder(addu,addv);
+	  #endif
+	else
+	  static_cast<ASMs2D*>(myModel[j])->raiseOrder(addu,addv);
       }
     }
   }

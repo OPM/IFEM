@@ -1,4 +1,4 @@
-// $Id: ASMu2D.h 1108 2011-08-23 14:51:03Z kjetijo $
+// $Id$
 //==============================================================================
 //!
 //! \file ASMu2D.h
@@ -137,6 +137,26 @@ public:
   //! \a minBasisfunctions basisfunctions
   //! \param[in] minBasisfunctions lower bound on number of resulting basis functions
   bool uniformRefine(int minBasisfunctions);
+  //! \brief Refine the parametrization by inserting tensor knots uniformly
+  //! \details This is mainly kept for backward compatability with the "REFINE"
+  //! keyword in the input file
+  //! \param[in] dir Parameter direction to refine
+  //! \param[in] nInsert Number of extra knots to insert in each knot-span
+  bool tensorRefine(int dir, int nInsert);
+  //! \brief Refine the parametrization by inserting extra tensor knots.
+  //! \details This is mainly kept for backward compatability with the "REFINE"
+  //! keyword in the input file
+  //! \param[in] dir Parameter direction to refine
+  //! \param[in] xi Relative positions of added knots in each existing knot span
+  bool tensorRefine(int dir, const RealArray& xi);
+  //! \brief Raise the order of the tensor spline object for this patch.
+  //! \details This is mainly kept for backward compatability with the "RAISEORDER"
+  //! keyword in the input file
+  //! \param[in] ru Number of times to raise the order in u-direction
+  //! \param[in] rv Number of times to raise the order in v-direction
+  bool raiseOrder(int ru, int rv);
+
+
 
   // Various methods for preprocessing of boundary conditions and patch topology
   // ===========================================================================
@@ -362,6 +382,10 @@ private:
 
 protected:
   LR::LRSplineSurface* lrspline; //!< Pointer to the actual spline surface object
+  Go::SplineSurface*   tensorspline; //!< Pointer to the original tensor spline object
+  // the tensor spline object is kept for backwards compatability with the REFINE and RAISEORDER
+  // key-words, although we take note that there is a possibility of optimization since all mapping
+  // values and jacobians may be performed on this object for increased efficiency
 };
 
 #endif
