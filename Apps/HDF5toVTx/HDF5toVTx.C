@@ -169,7 +169,9 @@ std::vector<RealArray*> generateFEModel(std::vector<ASMbase*> patches,
     RealArray* gpar = new RealArray[dims];
     for (int k=0;k<dims;++k) {
       if (dims == 2) {
+#if HAS_LRSPLINE == 1
         TRY(ASMu2D,patches[i])
+#endif
         TRY(ASMs2D,patches[i])
       }
       if (dims == 3) {
