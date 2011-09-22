@@ -32,7 +32,6 @@
 #include "Profiler.h"
 #include "Vec3Oper.h"
 #include <ctype.h>
-#include <fstream>
 
 // #define SP_DEBUG 5
 
@@ -179,6 +178,7 @@ bool ASMu2D::diagonalRefine (int minBasisfunctions)
 	meshFile.open("mesh.eps");
 	lrspline->writePostscriptMesh(meshFile);
 	meshFile.close();
+
 	return true;
 }
 
@@ -1158,7 +1158,7 @@ bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
 				double u = (iu==0) ? umin : umax;
 				double v = (iv==0) ? vmin : vmax;
 				Go::Point pt;
-				lrspline->point(pt, u,v);
+				lrspline->point(pt, u,v, iel);
 				for(int dim=0; dim<nsd; dim++)
 					grid.setCoor(inod, dim, pt[dim]);
 				inod++;
