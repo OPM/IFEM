@@ -29,10 +29,12 @@ ASMbase::ASMbase (unsigned char n_p, unsigned char n_s, unsigned char n_f)
 }
 
 
-void ASMbase::clear ()
+void ASMbase::clear (bool retainGeometry)
 {
-  // Don't erase the elements, but set them to have zero nodes
-  for (size_t i = 0; i < MNPC.size(); i++) MNPC[i].clear();
+  if (retainGeometry) // Clear all FE structures, including the elements
+    MNPC.clear();
+  else // Don't erase the elements, but set them to have zero nodes
+    for (size_t i = 0; i < MNPC.size(); i++) MNPC[i].clear();
 
   // Erase the nodes, boundary conditions and multi-point constraints
   MLGN.clear();

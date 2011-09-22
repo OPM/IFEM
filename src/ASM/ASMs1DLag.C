@@ -41,11 +41,12 @@ ASMs1DLag::ASMs1DLag (std::istream& is, unsigned char n_s, unsigned char n_f)
 }
 
 
-void ASMs1DLag::clear ()
+void ASMs1DLag::clear (bool retainGeometry)
 {
   coord.clear();
   nx = 0;
-  ASMs1D::clear();
+
+  this->ASMs1D::clear(retainGeometry);
 }
 
 

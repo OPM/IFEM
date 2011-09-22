@@ -108,15 +108,18 @@ bool ASMs1D::write (std::ostream& os, int) const
 }
 
 
-void ASMs1D::clear ()
+void ASMs1D::clear (bool retainGeometry)
 {
-  // Erase spline data
-  if (curv) delete curv;
-  curv = 0;
-  geo = 0;
+  if (!retainGeometry)
+  {
+    // Erase spline data
+    if (curv) delete curv;
+    curv = 0;
+    geo = 0;
+  }
 
   // Erase the FE data
-  ASMbase::clear();
+  this->ASMbase::clear(retainGeometry);
 }
 
 

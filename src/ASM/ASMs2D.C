@@ -109,16 +109,19 @@ bool ASMs2D::write (std::ostream& os, int) const
 }
 
 
-void ASMs2D::clear ()
+void ASMs2D::clear (bool retainGeometry)
 {
-  // Erase spline data
-  if (surf) delete surf;
-  surf = 0;
-  geo = 0;
+  if (!retainGeometry)
+  {
+    // Erase spline data
+    if (surf) delete surf;
+    surf = 0;
+    geo = 0;
+  }
 
   // Erase the FE data
+  this->ASMbase::clear(retainGeometry);
   nodeInd.clear();
-  ASMbase::clear();
 }
 
 

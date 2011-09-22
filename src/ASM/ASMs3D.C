@@ -102,16 +102,19 @@ bool ASMs3D::write (std::ostream& os, int) const
 }
 
 
-void ASMs3D::clear ()
+void ASMs3D::clear (bool retainGeometry)
 {
-  // Erase spline data
-  if (svol) delete svol;
-  svol = 0;
-  geo = 0;
+  if (!retainGeometry)
+  {
+    // Erase spline data
+    if (svol) delete svol;
+    svol = 0;
+    geo = 0;
+  }
 
   // Erase the FE data
+  this->ASMbase::clear(retainGeometry);
   nodeInd.clear();
-  ASMbase::clear();
 }
 
 

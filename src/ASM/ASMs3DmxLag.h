@@ -47,7 +47,9 @@ public:
   virtual bool generateFEMTopology();
 
   //! \brief Clears the contents of the patch, making it empty.
-  virtual void clear();
+  //! \param[in] retainGeometry If \e true, the spline geometry is not cleared.
+  //! This is used to reinitialize the patch after it has been refined.
+  virtual void clear(bool retainGeometry = false);
 
   //! \brief Returns the total number of nodes in this patch.
   virtual size_t getNoNodes(int basis = 0) const;

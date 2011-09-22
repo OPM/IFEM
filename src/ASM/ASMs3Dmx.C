@@ -60,15 +60,23 @@ bool ASMs3Dmx::write (std::ostream& os, int basis) const
 }
 
 
-void ASMs3Dmx::clear ()
+void ASMs3Dmx::clear (bool retainGeometry)
 {
   // Erase the spline data
-  if (basis1) delete basis1;
-  if (basis2) delete basis2;
-  svol = basis1 = basis2 = 0;
+  if (retainGeometry)
+  {
+    if (basis1 && basis1 != svol) delete basis1;
+    if (basis2 && basis2 != svol) delete basis2;
+  }
+  else
+  {
+    if (basis1) delete basis1;
+    if (basis2) delete basis2;
+    svol = 0;
+  }
 
   // Erase the FE data
-  ASMs3D::clear();
+  this->ASMs3D::clear(retainGeometry);
 }
 
 

@@ -40,11 +40,12 @@ ASMs3DLag::ASMs3DLag (std::istream& is, bool checkRHS, unsigned char n_f)
 }
 
 
-void ASMs3DLag::clear ()
+void ASMs3DLag::clear (bool retainGeometry)
 {
   coord.clear();
   nx = ny = nz = 0;
-  ASMs3D::clear();
+
+  this->ASMs3D::clear(retainGeometry);
 }
 
 

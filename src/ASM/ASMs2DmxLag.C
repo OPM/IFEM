@@ -43,10 +43,10 @@ ASMs2DmxLag::ASMs2DmxLag (std::istream& is, unsigned char n_s,
 }
 
 
-void ASMs2DmxLag::clear ()
+void ASMs2DmxLag::clear (bool retainGeometry)
 {
   nx2 = ny2 = 0;
-  ASMs2DLag::clear();
+  this->ASMs2DLag::clear(retainGeometry);
 }
 
 

@@ -43,10 +43,10 @@ ASMs3DmxLag::ASMs3DmxLag (std::istream& is, bool checkRHS,
 }
 
 
-void ASMs3DmxLag::clear ()
+void ASMs3DmxLag::clear (bool retainGeometry)
 {
   nx2 = ny2 = nz2 = 0;
-  ASMs3DLag::clear();
+  this->ASMs3DLag::clear(retainGeometry);
 }
 
 

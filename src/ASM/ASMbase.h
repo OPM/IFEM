@@ -85,7 +85,9 @@ public:
   virtual bool generateFEMTopology() = 0;
 
   //! \brief Clears the contents of this patch, making it empty.
-  virtual void clear();
+  //! \param[in] retainGeometry If \e true, the spline geometry is not cleared.
+  //! This is used to reinitialize the patch after it has been refined.
+  virtual void clear(bool retainGeometry = false);
 
   //! \brief Writes the geometry/basis of the patch to the given stream.
   virtual bool write(std::ostream&, int = 0) const { return false; }
