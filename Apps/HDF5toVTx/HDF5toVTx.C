@@ -20,9 +20,14 @@
 #include "ASMs1D.h"
 #include "ASMs2D.h"
 #include "ASMs3D.h"
+#if HAS_LRSPLINE == 1
+#include "LR/ASMu2D.h"
+#endif
 #include "ElementBlock.h"
 #include "VTF.h"
 #include "VTU.h"
+
+#include <assert.h>
 
 typedef std::map< std::string,std::vector<XMLWriter::Entry> > ProcessList;
 typedef std::map< std::string, std::vector<int> > VTFList;
@@ -41,12 +46,24 @@ std::vector<ASMbase*> readBasis(const std::string& name,
     hdf.readString(geom.str(),out);
     std::stringstream basis;
     basis << out;
-    if (dim == 1)
-      result.push_back(new ASMs1D(basis,1,1));
-    if (dim == 2)
-      result.push_back(new ASMs2D(basis,2,1));
-    if (dim == 3)
-      result.push_back(new ASMs3D(basis,false,1));
+    if (out.substr(0,10) == "# LRSPLINE") {
+      switch (dim) {
+#if HAS_LRSPLINE == 1
+        case 2:
+          result.push_back(new ASMu2D(basis,2,1));
+          break;
+#endif
+        default:
+          assert(0);
+      }
+    } else {
+      if (dim == 1)
+        result.push_back(new ASMs1D(basis,1,1));
+      if (dim == 2)
+        result.push_back(new ASMs2D(basis,2,1));
+      if (dim == 3)
+        result.push_back(new ASMs3D(basis,false,1));
+    }
     result.back()->generateFEMTopology();
   }
 
@@ -140,6 +157,10 @@ void writePatchGeometry(ASMbase* patch, int id, VTF& myVtf, int* nViz)
 }
 
 
+#define TRY(x,y) { x* t = dynamic_cast<x*>(y); \
+                   if (t) \
+                     t->getGridParameters(gpar[k],k,n[k]-1); \
+                 }
 std::vector<RealArray*> generateFEModel(std::vector<ASMbase*> patches,
                                         int dims, int* n)
 {
@@ -148,8 +169,8 @@ std::vector<RealArray*> generateFEModel(std::vector<ASMbase*> patches,
     RealArray* gpar = new RealArray[dims];
     for (int k=0;k<dims;++k) {
       if (dims == 2) {
-        ASMs2D* patch = (ASMs2D*)patches[i];
-        patch->getGridParameters(gpar[k],k,n[k]-1);
+        TRY(ASMu2D,patches[i])
+        TRY(ASMs2D,patches[i])
       }
       if (dims == 3) {
         ASMs3D* patch = (ASMs3D*)patches[i];
