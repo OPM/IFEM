@@ -1385,7 +1385,7 @@ bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock)
   {
     while (!NormBase::hasElementContributions(k))
       k++;
-    if (!myVtf->writeSblk(sID[j],NormBase::getName(k),++idBlock,iStep))
+    if (!myVtf->writeSblk(sID[j],NormBase::getName(k),++idBlock,iStep,true))
       return false;
   }
 

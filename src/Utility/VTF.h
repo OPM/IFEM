@@ -93,16 +93,18 @@ public:
   //! \param[in] resultName Name of the result quantity
   //! \param[in] idBlock Scalar block identifier
   //! \param[in] iStep Load/Time step identifier
-  bool writeSblk(int sBlockID,
-                 const char* resultName = 0, int idBlock = 1, int iStep = 1);
+  //! \param[in] elementData false -> data per node, true -> data per element
+  bool writeSblk(int sBlockID, const char* resultName = 0, int idBlock = 1,
+                 int iStep = 1, bool elementData=false);
   //! \brief Writes a scalar block definition to the VTF-file.
   //! \param[in] sBlockIDs All result blocks that make up this scalar block
   //! \param[in] resultName Name of the result quantity
   //! \param[in] idBlock Scalar block identifier
   //! \param[in] iStep Load/Time step identifier
+  //! \param[in] elementData false -> data per node, true -> data per element
   virtual bool writeSblk(const std::vector<int>& sBlockIDs,
                          const char* resultName = 0,
-			 int idBlock = 1, int iStep = 1);
+			 int idBlock = 1, int iStep = 1, bool elementData=false);
   //! \brief Writes a vector block definition to the VTF-file.
   //! \param[in] vBlockID The result block that makes up this vector block
   //! \param[in] resultName Name of the result quantity

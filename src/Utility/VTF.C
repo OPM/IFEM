@@ -255,25 +255,29 @@ bool VTF::writeEres (const std::vector<real>& elementResult,
   else if (nres < myBlocks[geomID-1]->getNoElms())
     showError("Warning: Fewer element results that anticipated",nres);
 
-#if HAS_VTFAPI == 1
   // Cast to float
   float* resVec = new float[nres];
   for (size_t i = 0; i < nres; i++)
     resVec[i] = elementResult[i];
 
+#if HAS_VTFAPI == 1
   VTFAResultBlock dBlock(idBlock,VTFA_DIM_SCALAR,VTFA_RESMAP_ELEMENT,0);
 
   if (VTFA_FAILURE(dBlock.SetResults1D(resVec,nres)))
     return showError("Error defining result block",idBlock);
 
-  delete[] resVec;
   dBlock.SetMapToBlockID(geomID);
   if (VTFA_FAILURE(myFile->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
 #elif HAS_VTFAPI == 2
-  showError("Note: Element-wise results are not yet implemented for VTFx");
+  VTFXAResultValuesBlock dBlock(idBlock,VTFXA_DIM_SCALAR,VTFXA_FALSE);
+  dBlock.SetMapToBlockID(geomID,VTFXA_ELEMENTS);
+  dBlock.SetResultValues1D(resVec,nres);
+  if (VTFA_FAILURE(myDatabase->WriteBlock(&dBlock)))
+    return showError("Error writing result block",idBlock);
 #endif
 
+  delete[] resVec;
   return true;
 }
 
@@ -303,7 +307,7 @@ bool VTF::writeNres (const std::vector<real>& nodalResult,
   if (VTFA_FAILURE(myFile->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
 #elif HAS_VTFAPI == 2
-  VTFXAResultValuesBlock dBlock(idBlock,VTFXA_DIM_SCALAR,VTFXA_RESMAP_NODE);
+  VTFXAResultValuesBlock dBlock(idBlock,VTFXA_DIM_SCALAR,VTFXA_FALSE);
   dBlock.SetMapToBlockID(geomID,VTFXA_NODES);
   dBlock.SetResultValues1D(resVec,nres);
   if (VTFA_FAILURE(myDatabase->WriteBlock(&dBlock)))
@@ -476,7 +480,7 @@ bool VTF::writeVblk (const std::vector<int>& vBlockIDs, const char* resultName,
 
 
 bool VTF::writeSblk (int sBlockID, const char* resultName,
-		     int idBlock, int iStep)
+		     int idBlock, int iStep, bool elementData)
 {
 #if HAS_VTFAPI == 1
   if ((int)mySBlock.size() < idBlock) mySBlock.resize(idBlock,0);
@@ -493,9 +497,9 @@ bool VTF::writeSblk (int sBlockID, const char* resultName,
 
   if (!mySBlock[--idBlock])
   {
+    int type = elementData?VTFXA_RESMAP_ELEMENT:VTFXA_RESMAP_NODE;
     mySBlock[idBlock] = new VTFXAResultBlock(idBlock+1,
-					     VTFXA_RESTYPE_SCALAR,
-					     VTFXA_RESMAP_NODE);
+					     VTFXA_RESTYPE_SCALAR,type);
     if (resultName) mySBlock[idBlock]->SetName(resultName);
   }
   mySBlock[idBlock]->SetResultID(idBlock);
@@ -508,7 +512,7 @@ bool VTF::writeSblk (int sBlockID, const char* resultName,
 
 
 bool VTF::writeSblk (const std::vector<int>& sBlockIDs, const char* resultName,
-                     int idBlock, int iStep)
+                     int idBlock, int iStep, bool elementData)
 {
   if ((int)mySBlock.size() < idBlock) mySBlock.resize(idBlock,0);
 
@@ -524,9 +528,9 @@ bool VTF::writeSblk (const std::vector<int>& sBlockIDs, const char* resultName,
 #elif HAS_VTFAPI == 2
   if (!mySBlock[--idBlock])
   {
+    int type = elementData?VTFXA_RESMAP_ELEMENT:VTFXA_RESMAP_NODE;
     mySBlock[idBlock] = new VTFXAResultBlock(idBlock+1,
-					     VTFXA_RESTYPE_SCALAR,
-					     VTFXA_RESMAP_NODE);
+                                             VTFXA_RESTYPE_SCALAR,type);
     if (resultName) mySBlock[idBlock]->SetName(resultName);
   }
   mySBlock[idBlock]->SetResultID(idBlock);
