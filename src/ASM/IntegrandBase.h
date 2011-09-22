@@ -168,6 +168,9 @@ public:
   //! \brief Accesses the primary solution vector of current patch.
   Vector& getSolution(size_t n = 0) { return primsol[n]; }
 
+  //! \brief Resets the primary solution vectors.
+  void resetSolution();
+
 protected:
   Vectors  primsol; //!< Primary solution vectors for current patch
   ElmMats* myMats;  //!< Local element matrices
@@ -214,9 +217,6 @@ public:
 
   //! \brief Returns whether this norm has explicit boundary contributions.
   virtual bool hasBoundaryTerms() const { return false; }
-
-  //! \brief Returns a 1-based index of the external energy norm.
-  virtual size_t indExt() const { return 0; }
 
   //! \brief Returns the number of field components.
   virtual size_t getNoFields() const { return 0; }

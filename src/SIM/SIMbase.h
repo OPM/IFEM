@@ -85,14 +85,19 @@ public:
   // Model input and pre-processing methods
   // ======================================
 
+  //! \brief Initializes the property containers of the model.
+  //! \details Use this method to clear the model before re-reading
+  //! the input file in the refinement step of an adaptive simulation.
+  virtual void clearProperties();
+
   //! \brief Parses a data section from an input stream.
   //! \param[in] keyWord Keyword of current data section to read
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
 
-  //! \brief Reads patches from a given stream.
-  //! \param[in] isp The stream to read from
-  virtual void readPatches(std::istream& isp) {}
+  //! \brief Refines a list of elements.
+  virtual bool refine(const std::vector<int>&,
+		      const char* = 0) { return false; }
 
   //! \brief Performs some pre-processing tasks on the FE model.
   //! \param[in] ignoredPatches Indices of patches to ignore in the analysis
@@ -114,7 +119,8 @@ public:
 
   //! \brief Defines the solution mode before the element assembly is started.
   //! \param[in] mode The solution mode to use
-  bool setMode(int mode);
+  //! \param[in] resetSol If \e true, the internal solution vectors are cleared
+  bool setMode(int mode, bool resetSol = false);
 
   //! \brief Defines the spatial numerical integration scheme to use.
   virtual void setQuadratureRule(size_t) {}

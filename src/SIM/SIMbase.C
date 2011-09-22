@@ -80,6 +80,17 @@ SIMbase::~SIMbase ()
 
   for (FEModelVec::iterator i1 = myModel.begin(); i1 != myModel.end(); i1++)
     delete *i1;
+
+  this->clearProperties();
+
+#ifdef SP_DEBUG
+  std::cout <<"Leaving SIMbase destructor"<< std::endl;
+#endif
+}
+
+
+void SIMbase::clearProperties ()
+{
   for (SclFuncMap::iterator i2 = myScalars.begin(); i2 != myScalars.end(); i2++)
     delete i2->second;
   for (VecFuncMap::iterator i3 = myVectors.begin(); i3 != myVectors.end(); i3++)
@@ -87,9 +98,11 @@ SIMbase::~SIMbase ()
   for (TracFuncMap::iterator i4 = myTracs.begin(); i4 != myTracs.end(); i4++)
     delete i4->second;
 
-#ifdef SP_DEBUG
-  std::cout <<"Leaving SIMbase destructor"<< std::endl;
-#endif
+  myPatches.clear();
+  myScalars.clear();
+  myVectors.clear();
+  myTracs.clear();
+  myProps.clear();
 }
 
 
@@ -339,10 +352,11 @@ bool SIMbase::preprocess (const std::vector<int>& ignoredPatches, bool fixDup)
   }
 
   // Initialize data structures for the algebraic system
+  if (mySam) delete mySam;
 #ifdef PARALLEL_PETSC
-    mySam = new SAMpatchPara(l2gn);
+  mySam = new SAMpatchPara(l2gn);
 #else
-    mySam = new SAMpatch();
+  mySam = new SAMpatch();
 #endif
 
   return mySam->init(myModel,nnod) && ok;
@@ -381,6 +395,7 @@ bool SIMbase::initSystem (SystemMatrix::Type mType, size_t nMats, size_t nVec)
     myModel[i]->printNodes(std::cout,heading.c_str());
 #endif
 
+  if (myEqSys) delete myEqSys;
   myEqSys = new AlgEqSystem(*mySam);
   myEqSys->init(mType,mySolParams,nMats,nVec,num_threads_SLU);
   myEqSys->initAssembly();
@@ -396,11 +411,12 @@ bool SIMbase::setAssociatedRHS (size_t iMat, size_t iVec)
 }
 
 
-bool SIMbase::setMode (int mode)
+bool SIMbase::setMode (int mode, bool resetSol)
 {
   if (!myProblem) return false;
 
   myProblem->setMode((SIM::SolutionMode)mode);
+  if (resetSol) myProblem->resetSolution();
 
   return true;
 }
@@ -812,21 +828,21 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 	  else
 	    ok = false;
 
-  // Add norm contributions due to inhomogeneous Dirichlet boundary conditions
-  // (if any), that is, the path integral of the total solution vector
-  // times the reaction forces at the prescribed DOFs
+  // Add norm contributions due to inhomogeneous Dirichlet boundary conditions.
+  // That is, the path integral of the total solution vector times the reaction
+  // forces at the prescribed DOFs.
   const Vector* reactionForces = myEqSys->getReactions();
-  if (reactionForces && norm->indExt() > 0)
+  if (reactionForces)
     if (psol.size() > 1)
     {
       static double extEnergy = 0.0;
       static Vector prevForces(reactionForces->size());
       extEnergy += mySam->normReact(psol[0]-psol[1],*reactionForces+prevForces);
-      gNorm(norm->indExt()) += extEnergy;
+      gNorm(2) += extEnergy;
       prevForces = *reactionForces;
     }
     else
-      gNorm(norm->indExt()) += mySam->normReact(psol.front(),*reactionForces);
+      gNorm(2) += mySam->normReact(psol.front(),*reactionForces);
 
 #ifdef PARALLEL_PETSC
   if (nProc > 1)

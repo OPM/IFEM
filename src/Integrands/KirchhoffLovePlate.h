@@ -201,8 +201,6 @@ public:
 
   //! \brief Returns whether this norm has explicit boundary contributions.
   virtual bool hasBoundaryTerms() const { return true; }
-  //! \brief Returns a 1-based index of the external energy norm.
-  virtual size_t indExt() const { return 2; }
 
   //! \brief Returns the number of norm quantities.
   virtual size_t getNoFields() const;

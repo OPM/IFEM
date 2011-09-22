@@ -23,6 +23,13 @@ IntegrandBase::~IntegrandBase ()
 }
 
 
+void IntegrandBase::resetSolution ()
+{
+  for (size_t i = 0; i < primsol.size(); i++)
+    primsol[i].clear();
+}
+
+
 bool IntegrandBase::initElement (const std::vector<int>& MNPC,
 				 const Vec3&, size_t)
 {
@@ -233,16 +240,20 @@ ElmNorm& NormBase::getElmNormBuffer (LocalIntegral*& elmInt, const size_t nn)
 }
 
 
-const char* NormBase::getName(size_t i, const char* prefix)
+const char* NormBase::getName (size_t i, const char* prefix)
 {
-  static const char* s[9] = { "a(u^h,u^h)^0.5",       "a(u,u)^0.5",
-                              "a(e,e)^0.5, e=u-u^h",  "a(u^r,u^r)^0.5",
-                              "a(e,e)^0.5, e=u^r-u^h", "a(e,e)^0.5, e=u-u^r",
-                              "a(u^rr,u^rr)^0.5",      "a(e,e)^0.5, e=u^rr-u^h",
-                              "a(e,e)^0.5, e=u-u^rr"};
+  static const char* s[9] = {
+    "a(u^h,u^h)^0.5",
+    "a(u,u)^0.5",
+    "a(e,e)^0.5, e=u-u^h",
+    "a(u^r,u^r)^0.5",
+    "a(e,e)^0.5, e=u^r-u^h",
+    "a(e,e)^0.5, e=u-u^r",
+    "a(u^rr,u^rr)^0.5",
+    "a(e,e)^0.5, e=u^rr-u^h",
+    "a(e,e)^0.5, e=u-u^rr"
+  };
   if (!prefix) return s[i];
-  
-  std::cout << i << std::endl;
 
   static std::string name;
   name = prefix + std::string(" ") + s[i];
