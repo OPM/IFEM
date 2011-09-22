@@ -18,7 +18,6 @@
 #include "LRSpline/LRSplineSurface.h"
 #include "LRSpline/Element.h"
 #include "LRSpline/Basisfunction.h"
-#include <fstream>
 
 #include "ASMu2D.h"
 #include "TimeDomain.h"
@@ -32,6 +31,8 @@
 #include "Profiler.h"
 #include "Vec3Oper.h"
 #include <ctype.h>
+#include <fstream>
+
 
 ASMu2D::ASMu2D (const char* fName, unsigned char n_s, unsigned char n_f)
 	: ASMunstruct(2,n_s,n_f), lrspline(0), tensorspline(0)
@@ -120,18 +121,22 @@ bool ASMu2D::write (std::ostream& os, int) const
 }
 
 
-void ASMu2D::clear ()
+void ASMu2D::clear (bool retainGeometry)
 {
+  if (!retainGeometry) {
+
 	// Erase spline data
 	if (lrspline) delete lrspline;
 	if (tensorspline) delete tensorspline;
 	lrspline = 0;
 	tensorspline = 0;
 	geo = 0;
+  }
 
-	// Erase the FE data
-	ASMbase::clear();
+  // Erase the FE data
+  this->ASMbase::clear(retainGeometry);
 }
+
 
 bool ASMu2D::cornerRefine (int minBasisfunctions) 
 {
@@ -286,6 +291,20 @@ bool ASMu2D::raiseOrder (int ru, int rv)
 	if(lrspline) delete lrspline;
 	geo = lrspline = new LR::LRSplineSurface(tensorspline);
 	return true;
+}
+
+
+bool ASMu2D::refine (const std::vector<int>& elements, const char* fName)
+{
+  if (!lrspline) return false;
+
+  lrspline->refineElement(elements);
+  if (fName)
+  {
+    std::ofstream meshFile(fName);
+    lrspline->writePostscriptMesh(meshFile);
+  }
+  return true;
 }
 
 
@@ -533,9 +552,9 @@ void ASMu2D::constrainCorner (int I, int J, int dof, int code)
 
 
 // Hopefully we don't have to constrain non-corner singlenodes inside patches
-#if 0
 void ASMu2D::constrainNode (double xi, double eta, int dof, int code)
 {
+#if 0
 	if (xi  < 0.0 || xi  > 1.0) return;
 	if (eta < 0.0 || eta > 1.0) return;
 
@@ -547,8 +566,8 @@ void ASMu2D::constrainNode (double xi, double eta, int dof, int code)
 	if (eta > 0.0) node += n1*int(0.5+(n2-1)*eta);
 
 	this->prescribe(node,dof,code);
-}
 #endif
+}
 
 
 #define DERR -999.99

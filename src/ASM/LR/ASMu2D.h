@@ -15,6 +15,7 @@
 #define _ASM_U2D_H
 
 #include "ASMunstruct.h"
+#include "ASM2D.h"
 
 namespace Go {
   class SplineSurface;
@@ -27,11 +28,11 @@ namespace LR {
 
 
 /*!
-  \brief Driver for assembly of structured 2D spline FE models.
-  \details This class contains methods common for structured 2D spline patches.
+  \brief Driver for assembly of unstructured 2D spline FE models.
+  \details This class contains methods common for 2D LR-spline patches.
 */
 
-class ASMu2D : public ASMunstruct
+class ASMu2D : public ASMunstruct, public ASM2D
 {
   //! \brief Struct for nodal point data.
   struct IJ
@@ -98,7 +99,9 @@ public:
   virtual bool generateFEMTopology();
 
   //! \brief Clears the contents of the patch, making it empty.
-  virtual void clear();
+  //! \param[in] retainGeometry If \e true, the spline geometry is not cleared.
+  //! This is used to reinitialize the patch after it has been refined.
+  virtual void clear(bool retainGeometry = false);
 
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
@@ -155,7 +158,8 @@ public:
   //! \param[in] ru Number of times to raise the order in u-direction
   //! \param[in] rv Number of times to raise the order in v-direction
   bool raiseOrder(int ru, int rv);
-
+  //! \brief Refines the specified list of elements.
+  bool refine(const std::vector<int>& elements, const char* fName = 0);
 
 
   // Various methods for preprocessing of boundary conditions and patch topology

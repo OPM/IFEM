@@ -11,13 +11,13 @@
 //!
 //==============================================================================
 
-#ifdef HAS_LRSPLINE
-#include "LR/ASMu2D.h"
-#endif
 #include "SIM2D.h"
 #include "ASMs2Dmx.h"
 #include "ASMs2DmxLag.h"
 #include "ASMs2DSpec.h"
+#ifdef HAS_LRSPLINE
+#include "LR/ASMu2D.h"
+#endif
 #include "Functions.h"
 #include "Utilities.h"
 #include <fstream>
@@ -38,59 +38,39 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
   char* cline = 0;
   if (!strncasecmp(keyWord,"PATCHES",7))
   {
-    ASMbase* pch = 0;
     int npatch = atoi(keyWord+7);
-    std::cout <<"\nNumber of patches: "<< npatch << std::endl;
-    for (int i = 0; i < npatch && (cline = utl::readLine(is)); i++)
+    if (myModel.empty())
     {
-      cline = strtok(cline," ");
-      switch (discretization) {
-      case Lagrange:
-	if (nf[1] > 0)
-	  pch = new ASMs2DmxLag(cline,2,nf[0],nf[1]);
-	else
-	  pch = new ASMs2DLag(cline,2,nf[0]);
-	break;
-      case Spectral:
-	pch = new ASMs2DSpec(cline,2,nf[0]);
-	break;
-      #ifdef HAS_LRSPLINE
-      case LRSpline:
-	pch = new ASMu2D(cline,2,nf[0]);
-	break;
-      #endif
-      default:
-	if (nf[1] > 0)
-	  pch = new ASMs2Dmx(cline,2,nf[0],nf[1]);
-	else
-	  pch = new ASMs2D(cline,2,nf[0]);
-      }
-      if (pch->empty() || this->getLocalPatchIndex(i+1) < 1)
-	delete pch;
-      else
-	myModel.push_back(pch);
-    }
+      std::cout <<"\nNumber of patches: "<< npatch << std::endl;
+      for (int i = 0; i < npatch && (cline = utl::readLine(is)); i++)
+	this->readPatch(strtok(cline," "),i);
 
-    if ((int)myModel.size() < npatch)
-    {
-      std::cerr <<" *** SIM2D::parse: Expected "<< npatch
-		<<" patches but could read only "<< myModel.size()
-		<< std::endl;
-      return false;
+      if ((int)myModel.size() < npatch)
+      {
+	std::cerr <<" *** SIM2D::parse: Expected "<< npatch
+		  <<" patches but could read only "<< myModel.size()
+		  << std::endl;
+	return false;
+      }
     }
+    else // just read through the npatch next lines without doing anything
+      for (int i = 0; i < npatch && utl::readLine(is); i++);
   }
 
   else if (!strncasecmp(keyWord,"PATCHFILE",9))
   {
-    size_t i = 9; while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
-    std::cout <<"\nReading data file "<< keyWord+i << std::endl;
-    std::ifstream isp(keyWord+i);
-    this->readPatches(isp);
-
     if (myModel.empty())
     {
-      std::cerr <<" *** SIM2D::parse: No patches read"<< std::endl;
-      return false;
+      size_t i = 9; while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
+      std::cout <<"\nReading data file "<< keyWord+i << std::endl;
+      std::ifstream isp(keyWord+i);
+      this->readPatches(isp);
+
+      if (myModel.empty())
+      {
+	std::cerr <<" *** SIM2D::parse: No patches read"<< std::endl;
+	return false;
+      }
     }
   }
 
@@ -465,76 +445,40 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code)
             << (ldim == 0 ? " V" : " E") << lndx <<" in direction(s) "<< dirs;
   if (code) std::cout <<" code = "<< code <<" ";
 
-  if(discretization == LRSpline ) {
-    #ifdef HAS_LRSPLINE
-    ASMu2D* pch = static_cast<ASMu2D*>(myModel[patch-1]);
-    switch (ldim)
-      {
-      case 0: // Vertex constraints
-        switch (lndx)
-          {
-          case 1: pch->constrainCorner(-1,-1,dirs,code); break;
-          case 2: pch->constrainCorner( 1,-1,dirs,code); break;
-          case 3: pch->constrainCorner(-1, 1,dirs,code); break;
-          case 4: pch->constrainCorner( 1, 1,dirs,code); break;
-          default: std::cout << std::endl;
-            return constrError("vertex index ",lndx);
-          }
-        break;
-  
-      case 1: // Edge constraints
-        switch (lndx)
-          {
-          case 1: pch->constrainEdge(-1,dirs,code); break;
-          case 2: pch->constrainEdge( 1,dirs,code); break;
-          case 3: pch->constrainEdge(-2,dirs,code); break;
-          case 4: pch->constrainEdge( 2,dirs,code); break;
-          default: std::cout << std::endl;
-            return constrError("edge index ",lndx);
-          }
-        break;
-  
-      default:
-        std::cout << std::endl;
-        return constrError("local dimension switch ",ldim);
-      }
-      #else
-      std::cerr << "Error: No LR-spline library detected\n";
-      return constrError("discretization: LR-spline ", discretization);
-      #endif
-  } else {
-    ASMs2D* pch = static_cast<ASMs2D*>(myModel[patch-1]);
-    switch (ldim)
-      {
-      case 0: // Vertex constraints
-        switch (lndx)
-          {
-          case 1: pch->constrainCorner(-1,-1,dirs,code); break;
-          case 2: pch->constrainCorner( 1,-1,dirs,code); break;
-          case 3: pch->constrainCorner(-1, 1,dirs,code); break;
-          case 4: pch->constrainCorner( 1, 1,dirs,code); break;
-          default: std::cout << std::endl;
-            return constrError("vertex index ",lndx);
-          }
-        break;
-  
-      case 1: // Edge constraints
-        switch (lndx)
-          {
-          case 1: pch->constrainEdge(-1,dirs,code); break;
-          case 2: pch->constrainEdge( 1,dirs,code); break;
-          case 3: pch->constrainEdge(-2,dirs,code); break;
-          case 4: pch->constrainEdge( 2,dirs,code); break;
-          default: std::cout << std::endl;
-            return constrError("edge index ",lndx);
-          }
-        break;
-  
-      default:
-        std::cout << std::endl;
-        return constrError("local dimension switch ",ldim);
-      }
-  }
+  // Must dynamic cast here, since ASM2D is not derived from ASMbase
+  ASM2D* pch = dynamic_cast<ASM2D*>(myModel[patch-1]);
+  if (!pch) return constrError("2D patch ",patch);
+
+  switch (ldim)
+    {
+    case 0: // Vertex constraints
+      switch (lndx)
+	{
+	case 1: pch->constrainCorner(-1,-1,dirs,code); break;
+	case 2: pch->constrainCorner( 1,-1,dirs,code); break;
+	case 3: pch->constrainCorner(-1, 1,dirs,code); break;
+	case 4: pch->constrainCorner( 1, 1,dirs,code); break;
+	default: std::cout << std::endl;
+	  return constrError("vertex index ",lndx);
+	}
+      break;
+
+    case 1: // Edge constraints
+      switch (lndx)
+	{
+	case 1: pch->constrainEdge(-1,dirs,code); break;
+	case 2: pch->constrainEdge( 1,dirs,code); break;
+	case 3: pch->constrainEdge(-2,dirs,code); break;
+	case 4: pch->constrainEdge( 2,dirs,code); break;
+	default: std::cout << std::endl;
+	  return constrError("edge index ",lndx);
+	}
+      break;
+
+    default:
+      std::cout << std::endl;
+      return constrError("local dimension switch ",ldim);
+    }
 
   return true;
 }
@@ -548,6 +492,37 @@ void SIM2D::setQuadratureRule (size_t ng)
 }
 
 
+void SIM2D::readPatch (const char* patchFile, int pchInd)
+{
+  ASMbase* pch = 0;
+  switch (discretization) {
+  case Lagrange:
+    if (nf[1] > 0)
+      pch = new ASMs2DmxLag(patchFile,2,nf[0],nf[1]);
+    else
+      pch = new ASMs2DLag(patchFile,2,nf[0]);
+    break;
+  case Spectral:
+    pch = new ASMs2DSpec(patchFile,2,nf[0]);
+    break;
+#ifdef HAS_LRSPLINE
+  case LRSpline:
+    pch = new ASMu2D(patchFile,2,nf[0]);
+    break;
+#endif
+  default:
+    if (nf[1] > 0)
+      pch = new ASMs2Dmx(patchFile,2,nf[0],nf[1]);
+    else
+      pch = new ASMs2D(patchFile,2,nf[0]);
+  }
+  if (pch->empty() || this->getLocalPatchIndex(pchInd+1) < 1)
+    delete pch;
+  else
+    myModel.push_back(pch);
+}
+
+
 void SIM2D::readPatches (std::istream& isp)
 {
   ASMbase* pch = 0;
@@ -555,29 +530,40 @@ void SIM2D::readPatches (std::istream& isp)
   {
     std::cout <<"Reading patch "<< patchNo << std::endl;
     switch (discretization) {
-      case Lagrange:
-        if (nf[1] > 0)
-	  pch = new ASMs2DmxLag(isp,2,nf[0],nf[1]);
-	else
-	  pch = new ASMs2DLag(isp,2,nf[0]);
-        break;
-      case Spectral:
-	pch = new ASMs2DSpec(isp,2,nf[0]);
-        break;
-      case LRSpline:
-        #ifdef HAS_LRSPLINE
-	pch = new ASMu2D(isp,2,nf[0]);
-	#endif
-        break;
-      default:
-	if (nf[1] > 0)
-	  pch = new ASMs2Dmx(isp,2,nf[0],nf[1]);
-	else
-	  pch = new ASMs2D(isp,2,nf[0]);
+    case Lagrange:
+      if (nf[1] > 0)
+	pch = new ASMs2DmxLag(isp,2,nf[0],nf[1]);
+      else
+	pch = new ASMs2DLag(isp,2,nf[0]);
+      break;
+    case Spectral:
+      pch = new ASMs2DSpec(isp,2,nf[0]);
+      break;
+    case LRSpline:
+#ifdef HAS_LRSPLINE
+      pch = new ASMu2D(isp,2,nf[0]);
+      break;
+#endif
+    default:
+      if (nf[1] > 0)
+	pch = new ASMs2Dmx(isp,2,nf[0],nf[1]);
+      else
+	pch = new ASMs2D(isp,2,nf[0]);
     }
     if (pch->empty() || this->getLocalPatchIndex(patchNo) < 1)
       delete pch;
     else
       myModel.push_back(pch);
   }
+}
+
+
+bool SIM2D::refine (const std::vector<int>& elements, const char* fName)
+{
+  for (size_t i = 0; i < myModel.size(); i++)
+    if (!myModel.empty())
+      if (!static_cast<ASMu2D*>(myModel[i])->refine(elements,fName))
+	return false;
+
+  return true;
 }

@@ -37,15 +37,25 @@ public:
   //! \param[in] ng Number of Gauss points in each parameter direction
   virtual void setQuadratureRule(size_t ng);
 
-  //! \brief Read patches from given stream
-  //! \param[in] isp The stream to read from
-  void readPatches(std::istream& isp);
-
 protected:
   //! \brief Parses a data section from an input stream.
   //! \param[in] keyWord Keyword of current data section to read
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
+
+  //! \brief Reads a patch from given input file.
+  //! \param[in] patchFile Name of file to read from
+  //! \param[in] pchInd 0-based index of the patch to read
+  void readPatch(const char* patchFile, int pchInd);
+  //! \brief Reads patches from given input stream.
+  //! \param[in] isp The file stream to read from
+  void readPatches(std::istream& isp);
+
+  //! \brief Refines a list of elements.
+  //! \param[in] elements 1-based indices of the elements to refine
+  //! \param[in] fName Optional mesh output file (Encapsulated PostScript)
+  virtual bool refine(const std::vector<int>& elements,
+		      const char* fName = 0);
 
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   //! \param[in] patch 1-based index of the patch to receive the property
