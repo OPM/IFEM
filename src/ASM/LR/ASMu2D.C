@@ -33,8 +33,6 @@
 #include "Vec3Oper.h"
 #include <ctype.h>
 
-// #define SP_DEBUG 5
-
 ASMu2D::ASMu2D (const char* fName, unsigned char n_s, unsigned char n_f)
 	: ASMunstruct(2,n_s,n_f), lrspline(0)
 {
@@ -227,9 +225,7 @@ bool ASMu2D::generateFEMTopology ()
 
 	const int p1 = lrspline->order_u();
 	const int p2 = lrspline->order_v();
-#ifdef SP_DEBUG
-	lrspline->write(std::cout);
-#endif
+
 	// Consistency checks, just to be fool-proof
 	if (nBasis < 4)         return false;
 	if (p1 <  1 || p1 <  1) return false;
@@ -1053,7 +1049,9 @@ int ASMu2D::evalPoint (const double* xi, double* param, Vec3& X) const
 
 bool ASMu2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 {
+#ifdef SP_DEBUG
 	std::cout << "ASMu2D::getGridParameters(  )\n";
+#endif
 	if(nSegPerSpan != 1) {
 		std::cerr << "ASMu2D::getGridParameters called with nSegPerSpan != 2\n";
 		return false;
@@ -1132,7 +1130,9 @@ bool ASMu2D::getGrevilleParameters (RealArray& prm, int dir) const
 
 bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
 {
+#ifdef SP_DEBUG
 	std::cout << "ASMu2D::tesselate(  )\n";
+#endif
 	if(!lrspline) return false;
 
 	if(npe[0] != 2 || npe[1] != 2) {
@@ -1197,7 +1197,9 @@ void ASMu2D::scatterInd (int n1, int n2, int p1, int p2,
 bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
                            const int* npe) const
 {
+#ifdef SP_DEBUG
 	std::cout << "ASMu2D::evalSolution(Matrix, Vector, int* )\n";
+#endif
 	// Compute parameter values of the result sampling points
 	RealArray gpar[2];
 	for (int dir = 0; dir < 2; dir++)
@@ -1212,7 +1214,9 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
                            const RealArray* gpar, bool regular) const
 {
+#ifdef SP_DEBUG
 	std::cout << "ASMu2D::evalSolution(Matrix, Vector, RealArray )\n";
+#endif
 	size_t nComp = locSol.size() / this->getNoNodes();
 	if (nComp*this->getNoNodes() != locSol.size())
 		return false;
@@ -1229,10 +1233,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 	for (size_t i = 0; i < nPoints; i++)
 	{
 		// fetch element containing evaluation point
-		int iel = lrspline->getElementContaining(gpar[0][i], gpar[1][i]);
-                if (iel < 0)
-                  continue;
-		// std::cout << "Element containing ("<< gpar[0][i] << ", " << gpar[1][i] << ") = # " << iel << std::endl;
+		int iel = i/4; // points are always listed in the same order as the elemnts, 4 pts per element
 
 		// fetch index of non-zero basis functions on this element
 		IntVec ip = MNPC[iel];
@@ -1333,7 +1334,9 @@ Go::SplineSurface* ASMu2D::projectSolution (const Integrand& integrand) const
 bool ASMu2D::evalSolution (Matrix& sField, const Integrand& integrand,
                            const RealArray* gpar, bool regular) const
 {
+#ifdef SP_DEBUG
 	std::cout << "ASMu2D::evalSolution(  )\n";
+#endif
 	// TODO: investigate the possibility of doing "regular" refinement by unfiorm
 	//       tesselation grid and ignoring LR meshlines
 
@@ -1355,7 +1358,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const Integrand& integrand,
 	for (size_t i = 0; i < nPoints; i++)
 	{
 		// fetch element containing evaluation point
-		int iel = lrspline->getElementContaining(gpar[0][i], gpar[1][i]);
+		int iel = i/4; // points are always listed in the same order as the elemnts, 4 pts per element
 
 		// fetch number of nonzero basis functions on this element as well as their indices
 		int nBasis = lrspline->getElement(iel)->nBasisFunctions();
