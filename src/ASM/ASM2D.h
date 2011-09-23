@@ -14,12 +14,13 @@
 #ifndef _ASM_2D_H
 #define _ASM_2D_H
 
+#include <vector>
 
 /*!
   \brief Abstract interface for 2D spline patches.
-  \details This class contains an interface to methods common for structured and 
-  unstructured 2D patches, such that these methods can be invoked without need
-  to type-cast the patch object to the actual class type.
+  \details This class contains an interface to methods common for structured and
+  unstructured 2D patches, such that these methods can be invoked without the
+  need to type-cast the patch object to the actual class type.
 */
 
 class ASM2D
@@ -31,6 +32,19 @@ protected:
 public:
   //! \brief Empty destructor.
   virtual ~ASM2D() {}
+
+  //! \brief Refine the parametrization by inserting extra knots.
+  //! \param[in] dir Parameter direction to refine
+  //! \param[in] xi Relative positions of added knots in each existing knot span
+  virtual bool refine(int dir, const std::vector<double>& xi) = 0;
+  //! \brief Refine the parametrization by inserting extra knots uniformly.
+  //! \param[in] dir Parameter direction to refine
+  //! \param[in] nInsert Number of extra knots to insert in each knot-span
+  virtual bool uniformRefine(int dir, int nInsert) = 0;
+  //! \brief Raise the order of the spline object for this patch.
+  //! \param[in] ru Number of times to raise the order in u-direction
+  //! \param[in] rv Number of times to raise the order in v-direction
+  virtual bool raiseOrder(int ru, int rv) = 0;
 
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain

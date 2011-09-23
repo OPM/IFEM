@@ -836,21 +836,8 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 	  else
 	    ok = false;
 
-  // Add norm contributions due to inhomogeneous Dirichlet boundary conditions.
-  // That is, the path integral of the total solution vector times the reaction
-  // forces at the prescribed DOFs.
-  const Vector* reactionForces = myEqSys->getReactions();
-  if (reactionForces)
-    if (psol.size() > 1)
-    {
-      static double extEnergy = 0.0;
-      static Vector prevForces(reactionForces->size());
-      extEnergy += mySam->normReact(psol[0]-psol[1],*reactionForces+prevForces);
-      gNorm(2) += extEnergy;
-      prevForces = *reactionForces;
-    }
-    else
-      gNorm(2) += mySam->normReact(psol.front(),*reactionForces);
+  // Add problem-dependent external norm contributions
+  gNorm(2) += this->externalEnergy(psol);
 
 #ifdef PARALLEL_PETSC
   if (nProc > 1)
@@ -867,6 +854,25 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
     delete elementNorms[i];
 
   return ok;
+}
+
+
+double SIMbase::externalEnergy (const Vectors& psol) const
+{
+  const Vector* reactionForces = myEqSys->getReactions();
+  if (!reactionForces || psol.empty()) return 0.0;
+
+  // Add norm contributions due to inhomogeneous Dirichlet boundary conditions.
+  // That is, the path integral of the total solution vector times the
+  // reaction forces at the prescribed DOFs.
+  if (psol.size() == 1)
+    return mySam->normReact(psol.front(),*reactionForces);
+
+  static double extEnergy = 0.0;
+  static Vector prevForces(reactionForces->size());
+  extEnergy += mySam->normReact(psol[0]-psol[1],*reactionForces+prevForces);
+  prevForces = *reactionForces;
+  return extEnergy;
 }
 
 

@@ -96,7 +96,7 @@ public:
   virtual bool parse(char* keyWord, std::istream& is);
 
   //! \brief Refines a list of elements.
-  virtual bool refine(const std::vector<int>&,
+  virtual bool refine(const std::vector<int>&, const std::vector<int>&,
 		      const char* = 0) { return false; }
 
   //! \brief Performs some pre-processing tasks on the FE model.
@@ -507,6 +507,9 @@ protected:
 
   //! \brief Finalizes the global equation system assembly.
   virtual bool finalizeAssembly(bool newLHSmatrix);
+
+  //! \brief Computes (possibly problem-dependet) external energy contributions.
+  virtual double externalEnergy(const Vectors& psol) const;
 
 public:
   //! \brief Enum defining the available discretization methods.

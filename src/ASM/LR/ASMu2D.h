@@ -128,38 +128,45 @@ public:
   bool assignNodeNumbers();
 #endif
 
-  //! \brief Progressively refine the diagonal until at least the LR-spline
-  //! contains at least \a minBasisfunctions basisfunctions
-  //! \param[in] minBasisfunctions lower bound on number of resulting basis functions
+  //! \brief Refines along the diagonal of the LR-spline patch.
+  //! \details Progressively refine until the LR-spline object contains at least
+  //! \a minBasisfunctions basis functions.
+  //! \param[in] minBasisfunctions lower bound on number of basis functions
   bool diagonalRefine(int minBasisfunctions);
-  //! \brief Progressively refine the lower left corner until at least the LR-spline
-  //! contains at least \a minBasisfunctions basisfunctions
-  //! \param[in] minBasisfunctions lower bound on number of resulting basis functions
+  //! \brief Refines the lower-left corner of the LR-spline patch.
+  //! \brief Progressively refine until the LR-spline object contains at least
+  //! \a minBasisfunctions basis functions.
+  //! \param[in] minBasisfunctions lower bound on number of basis functions
   bool cornerRefine(int minBasisfunctions);
-  //! \brief Inserts one (global)line at a time until the LR-spline contains at least 
-  //! \a minBasisfunctions basisfunctions
-  //! \param[in] minBasisfunctions lower bound on number of resulting basis functions
+  //! \brief Refines the LR-spline patch uniformly.
+  //! \details Inserts one (global) line at a time until the LR-spline object
+  //! contains at least \a minBasisfunctions basis functions.
+  //! \param[in] minBasisfunctions lower bound on number of basis functions
   bool uniformRefine(int minBasisfunctions);
-  //! \brief Refine the parametrization by inserting tensor knots uniformly
-  //! \details This is mainly kept for backward compatability with the "REFINE"
-  //! keyword in the input file
+  //! \brief Refines the parametrization by inserting tensor knots uniformly.
+  //! \details This method is mainly kept for backward compatability with the
+  //! "REFINE" keyword in the input file.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
-  bool tensorRefine(int dir, int nInsert);
+  bool uniformRefine(int dir, int nInsert);
   //! \brief Refine the parametrization by inserting extra tensor knots.
-  //! \details This is mainly kept for backward compatability with the "REFINE"
-  //! keyword in the input file
+  //! \details This method is mainly kept for backward compatability with the
+  //! "REFINE" keyword in the input file.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
-  bool tensorRefine(int dir, const RealArray& xi);
+  bool refine(int dir, const RealArray& xi);
   //! \brief Raise the order of the tensor spline object for this patch.
-  //! \details This is mainly kept for backward compatability with the "RAISEORDER"
-  //! keyword in the input file
+  //! \details This method is mainly kept for backward compatability with the
+  //! "RAISEORDER" keyword in the input file.
   //! \param[in] ru Number of times to raise the order in u-direction
   //! \param[in] rv Number of times to raise the order in v-direction
   bool raiseOrder(int ru, int rv);
   //! \brief Refines the specified list of elements.
-  bool refine(const std::vector<int>& elements, const char* fName = 0);
+  //! \param[in] elements 0-based indices of the elements to refine
+  //! \param[in] options Additional input parameters to control the refinement
+  //! \param[in] fName Optional file name for an image of the resulting mesh
+  bool refine(const std::vector<int>& elements,
+	      const std::vector<int>& options, const char* fName = 0);
 
 
   // Various methods for preprocessing of boundary conditions and patch topology

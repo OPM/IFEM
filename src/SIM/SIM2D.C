@@ -26,7 +26,7 @@
 #include <ctype.h>
 
 
-SIM2D::SIM2D (unsigned char n1, unsigned char n2)
+SIM2D::SIM2D (unsigned char n1, unsigned char n2) : isRefined(false)
 {
   nf[0] = n1;
   nf[1] = n2;
@@ -182,13 +182,9 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
       else
       {
 	this->setPropertyType(code,Property::DIRICHLET_INHOM);
-	if ((cline = strtok(NULL," ")))
-	  myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,d));
-	else
-	{
-	  std::cout << d;
-	  myScalars[code] = new ConstFunc(d);
-	}
+
+	cline = strtok(NULL," ");
+	myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,d));
       }
       std::cout << std::endl;
     }
@@ -201,65 +197,56 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
   else if (!strncasecmp(keyWord,"REFINE",6))
   {
     int nref = atoi(keyWord+6);
-    std::cout <<"\nNumber of patch refinements: "<< nref << std::endl;
-    for (int i = 0; i < nref && (cline = utl::readLine(is)); i++)
+    if (isRefined) // just read through the next lines without doing anything
+      for (int i = 0; i < nref && utl::readLine(is); i++);
+    else
     {
-      bool uniform = !strchr(cline,'.');
-      int patch = atoi(strtok(cline," "));
-      if (patch == 0 || abs(patch) > (int)myModel.size())
+      ASM2D* pch = 0;
+      std::cout <<"\nNumber of patch refinements: "<< nref << std::endl;
+      for (int i = 0; i < nref && (cline = utl::readLine(is)); i++)
       {
-	std::cerr <<" *** SIM2D::parse: Invalid patch index "
-		  << patch << std::endl;
-	return false;
-      }
-      int ipatch = patch-1;
-      if (patch < 0)
-      {
-	ipatch = 0;
-	patch = -patch;
-      }
-      if (uniform)
-      {
-	int addu = atoi(strtok(NULL," "));
-	int addv = atoi(strtok(NULL," "));
-	for (int j = ipatch; j < patch; j++)
+	bool uniform = !strchr(cline,'.');
+	int patch = atoi(strtok(cline," "));
+	if (patch == 0 || abs(patch) > (int)myModel.size())
 	{
-	  std::cout <<"\tRefining P"<< j+1
-		    <<" "<< addu <<" "<< addv << std::endl;
-	  if(discretization == LRSpline)
-	  {
-	    #ifdef HAS_LRSPLINE
-	    ASMu2D* pch = static_cast<ASMu2D*>(myModel[j]);
-	    pch->tensorRefine(0,addu);
-	    pch->tensorRefine(1,addv);
-	    #endif
-	  }
-	  else
-	  {
-	    ASMs2D* pch = static_cast<ASMs2D*>(myModel[j]);
-	    pch->uniformRefine(0,addu);
-	    pch->uniformRefine(1,addv);
-	  }
+	  std::cerr <<" *** SIM2D::parse: Invalid patch index "
+		    << patch << std::endl;
+	  return false;
 	}
-      }
-      else
-      {
-	int dir = atoi(strtok(NULL," "));
-	RealArray xi;
-	while ((cline = strtok(NULL," ")))
-	  xi.push_back(atof(cline));
-	for (int j = ipatch; j < patch; j++)
+	int ipatch = patch-1;
+	if (patch < 0)
 	{
-	  std::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
-	  for (size_t i = 0; i < xi.size(); i++)
-	    std::cout <<" "<< xi[i];
-	  std::cout << std::endl;
-	  if(discretization == LRSpline)
-	    #ifdef HAS_LRSPLINE
-	    static_cast<ASMu2D*>(myModel[j])->tensorRefine(dir-1,xi);
-	    #endif
-	  else
-	    static_cast<ASMs2D*>(myModel[j])->refine(dir-1,xi);
+	  ipatch = 0;
+	  patch = -patch;
+	}
+	if (uniform)
+	{
+	  int addu = atoi(strtok(NULL," "));
+	  int addv = atoi(strtok(NULL," "));
+	  for (int j = ipatch; j < patch; j++)
+	    if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
+	    {
+	      std::cout <<"\tRefining P"<< j+1
+			<<" "<< addu <<" "<< addv << std::endl;
+	      pch->uniformRefine(0,addu);
+	      pch->uniformRefine(1,addv);
+	    }
+	}
+	else
+	{
+	  int dir = atoi(strtok(NULL," "));
+	  RealArray xi;
+	  while ((cline = strtok(NULL," ")))
+	    xi.push_back(atof(cline));
+	  for (int j = ipatch; j < patch; j++)
+	    if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
+	    {
+	      std::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
+	      for (size_t i = 0; i < xi.size(); i++)
+		std::cout <<" "<< xi[i];
+	      std::cout << std::endl;
+	      pch->refine(dir-1,xi);
+	    }
 	}
       }
     }
@@ -268,34 +255,36 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
   else if (!strncasecmp(keyWord,"RAISEORDER",10))
   {
     int nref = atoi(keyWord+10);
-    std::cout <<"\nNumber of order raise: "<< nref << std::endl;
-    for (int i = 0; i < nref && (cline = utl::readLine(is)); i++)
+    if (isRefined) // just read through the next lines without doing anything
+      for (int i = 0; i < nref && utl::readLine(is); i++);
+    else
     {
-      int patch = atoi(strtok(cline," "));
-      int addu  = atoi(strtok(NULL," "));
-      int addv  = atoi(strtok(NULL," "));
-      if (patch == 0 || abs(patch) > (int)myModel.size())
+      ASM2D* pch = 0;
+      std::cout <<"\nNumber of order raise: "<< nref << std::endl;
+      for (int i = 0; i < nref && (cline = utl::readLine(is)); i++)
       {
-	std::cerr <<" *** SIM2D::parse: Invalid patch index "
-		  << patch << std::endl;
-	return false;
-      }
-      int ipatch = patch-1;
-      if (patch < 0)
-      {
-	ipatch = 0;
-	patch = -patch;
-      }
-      for (int j = ipatch; j < patch; j++)
-      {
-	std::cout <<"\tRaising order of P"<< j+1
-		  <<" "<< addu <<" "<< addv << std::endl;
-	if(discretization == LRSpline)
-	  #ifdef HAS_LRSPLINE
-	  static_cast<ASMu2D*>(myModel[j])->raiseOrder(addu,addv);
-	  #endif
-	else
-	  static_cast<ASMs2D*>(myModel[j])->raiseOrder(addu,addv);
+	int patch = atoi(strtok(cline," "));
+	int addu  = atoi(strtok(NULL," "));
+	int addv  = atoi(strtok(NULL," "));
+	if (patch == 0 || abs(patch) > (int)myModel.size())
+	{
+	  std::cerr <<" *** SIM2D::parse: Invalid patch index "
+		    << patch << std::endl;
+	  return false;
+	}
+	int ipatch = patch-1;
+	if (patch < 0)
+	{
+	  ipatch = 0;
+	  patch = -patch;
+	}
+	for (int j = ipatch; j < patch; j++)
+	  if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
+	  {
+	    std::cout <<"\tRaising order of P"<< j+1
+		      <<" "<< addu <<" "<< addv << std::endl;
+	    pch->raiseOrder(addu,addv);
+	  }
       }
     }
   }
@@ -385,10 +374,8 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 	if (!this->addConstraint(patch,abs(pedge),ldim,bcode%1000,code))
 	  return false;
 
-	if ((cline = strtok(NULL," ")))
-	  myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,pd));
-	else
-	  myScalars[code] = new ConstFunc(pd);
+	cline = strtok(NULL," ");
+	myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,pd));
       }
       std::cout << std::endl;
     }
@@ -558,12 +545,14 @@ void SIM2D::readPatches (std::istream& isp)
 }
 
 
-bool SIM2D::refine (const std::vector<int>& elements, const char* fName)
+bool SIM2D::refine (const std::vector<int>& elements,
+		    const std::vector<int>& options, const char* fName)
 {
   for (size_t i = 0; i < myModel.size(); i++)
     if (!myModel.empty())
-      if (!static_cast<ASMu2D*>(myModel[i])->refine(elements,fName))
+      if (!static_cast<ASMu2D*>(myModel[i])->refine(elements,options,fName))
 	return false;
 
+  isRefined = true;
   return true;
 }

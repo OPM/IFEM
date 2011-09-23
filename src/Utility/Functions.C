@@ -142,7 +142,7 @@ const RealFunc* utl::parseRealFunc (char* cline, real A)
   int linear    = 0;
   int quadratic = 0;
   if (!cline)
-    return 0;
+    linear = -1;
   else if (strcmp(cline,"X") == 0)
     linear = 1;
   else if (strcmp(cline,"Y") == 0)
@@ -223,7 +223,11 @@ const RealFunc* utl::parseRealFunc (char* cline, real A)
     cline = strtok(NULL," ");
   }
   else // constant in space
+  {
     std::cout << C;
+    if (linear < 0)
+      f = new ConstFunc(C);
+  }
 
   // Check for time variation
   if (!cline) return f; // constant in time

@@ -223,7 +223,7 @@ bool ASMu2D::uniformRefine (int minBasisfunctions)
 	return true;
 }
 
-bool ASMu2D::tensorRefine(int dir, int nInsert)
+bool ASMu2D::uniformRefine(int dir, int nInsert)
 {
 	if (!tensorspline || dir < 0 || dir > 1 || nInsert < 1) return false;
 
@@ -252,7 +252,7 @@ bool ASMu2D::tensorRefine(int dir, int nInsert)
 	return true;
 }
 
-bool ASMu2D::tensorRefine(int dir, const RealArray& xi)
+bool ASMu2D::refine (int dir, const RealArray& xi)
 {
 	if (!tensorspline || dir < 0 || dir > 1 || xi.empty()) return false;
 	if (xi.front() < 0.0 || xi.back() > 1.0) return false;
@@ -294,11 +294,24 @@ bool ASMu2D::raiseOrder (int ru, int rv)
 }
 
 
-bool ASMu2D::refine (const std::vector<int>& elements, const char* fName)
+bool ASMu2D::refine (const std::vector<int>& elements,
+		     const std::vector<int>& options,
+		     const char* fName)
 {
   if (!lrspline) return false;
 
-  lrspline->refineElement(elements);
+  int multiplicity = 1;
+  if (!options.empty() && options.front() > 1)
+  {
+    int p1 = lrspline->order_u() - 1;
+    int p2 = lrspline->order_v() - 1;
+    multiplicity = options.front();
+    if (multiplicity > p1) multiplicity = p1;
+    if (multiplicity > p2) multiplicity = p2;
+  }
+  bool minSpan = options.size() > 1 && options[1] > 0;
+
+  lrspline->refineElement(elements,multiplicity,minSpan);
   if (fName)
   {
     std::ofstream meshFile(fName);

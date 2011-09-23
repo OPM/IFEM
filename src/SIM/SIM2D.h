@@ -53,8 +53,10 @@ protected:
 
   //! \brief Refines a list of elements.
   //! \param[in] elements 1-based indices of the elements to refine
+  //! \param[in] options Input options to refinement algorithm
   //! \param[in] fName Optional mesh output file (Encapsulated PostScript)
   virtual bool refine(const std::vector<int>& elements,
+		      const std::vector<int>& options,
 		      const char* fName = 0);
 
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
@@ -65,6 +67,9 @@ protected:
   //! \param[in] code In-homegeneous Dirichlet condition property code
   virtual bool addConstraint(int patch, int lndx, int ldim,
 			     int dirs, int code = 0);
+
+private:
+  bool isRefined; //!< If \e true, the model has been adaptively refined
 
 protected:
   unsigned char nf[2]; //!< Number of scalar fields

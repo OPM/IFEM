@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Adaptive solution driver for isogeometric FEM simulators.
+//! \brief Adaptive solution driver for linear isogeometric FEM simulators.
 //!
 //==============================================================================
 
@@ -21,43 +21,37 @@ class SIMbase;
 
 
 /*!
-  \brief Nonlinear solution driver for isogeometric FEM simulators.
-  \details This class contains data and methods for computing the nonlinear
-  solution to a FE problem based on splines/NURBS basis functions, through
-  Newton-Raphson iterations.
+  \brief Adaptive solution driver for linear isogeometric FEM simulators.
+  \details This class contains data and methods for solving linear FE problems
+  adaptively based on element error norms as refinement indicators.
 */
 
 class AdaptiveSIM : public SIMinput
 {
 public:
-  //! \brief The constructor initialized default solution parameters.
+  //! \brief The constructor initializes default adaptation parameters.
   //! \param sim Pointer to the spline FE model
   AdaptiveSIM(SIMbase* sim = 0);
   //! \brief The destructor frees the dynamically allocated FE model object.
   virtual ~AdaptiveSIM();
 
-  //! \brief Solves the nonlinear equations by Newton-Raphson iterations.
-  //! \param param Solution algorithm parameters
-  //! \param[in] mode Solution mode to use for this step
-  //! \param[in] compName Solution name to be used in the norm output
-  //! \param[in] energyNorm If \e true, integrate energy norm of the solution
-  //! \param[in] zero_tolerance Truncate norm values small than this to zero
-  //! \param[in] outPrec Number of digits after the decimal point in norm print
+  //! \brief Assembles and solves the linear FE equations on current mesh.
+  //! \param[in] inputfile File to read model parameters from after refinement
+  //! \param[in] solver The linear equation solver to use
+  //! \param[in] iStep Refinement step counter
   bool solveStep(const char* inputfile, SystemMatrix::Type solver, int iStep);
 
-  //! \brief Computes and prints some solution norm quantities.
-  //! \param[in] time Parameters for nonlinear/time-dependent simulations
-  //! \param[in] compName Solution name to be used in the norm output
-  //! \param[in] energyNorm If \e true, integrate energy norm of the solution
-  //! \param[in] zero_tolerance Truncate norm values small than this to zero
-  //! \param[in] outPrec Number of digits after the decimal point in norm print
+  //! \brief Refines the current mesh based on the element norms.
+  //! \param[in] iStep Refinement step counter
   bool adaptMesh(int iStep);
 
   //! \brief Prints out the global norms to given stream
   static void printNorms(const Vector& norms, std::ostream& os);
 
-  Vector& getSolution() { return linsol; }
-  Matrix& getElementNorms() { return eNorm; }
+  //! \brief Returns the current primary solution vector.
+  const Vector& getSolution() const { return linsol; }
+  //! \brief Returns the current element norms.
+  const Matrix& getElementNorms() const { return eNorm; }
 
 protected:
 
@@ -69,9 +63,12 @@ protected:
 private:
   SIMbase* model; //!< The isogeometric FE model
 
-  int    nStep;
-  double stopTol;
-  double beta;
+  double beta;    //!< Refinement percentage in each step
+  double errTol;  //!< Global error stop tolerance
+  int    maxStep; //!< Maximum number of adaptive refinements
+  int    maxDOFs; //!< Maximum number of degrees of freedom
+
+  std::vector<int> options; //!< Mesh refinement options
 
   Vector linsol; //!< Linear solution vector
   Vector gNorm;  //!< Global norms

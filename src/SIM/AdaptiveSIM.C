@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Adaptive solution driver for isogeometric FEM simulators.
+//! \brief Adaptive solution driver for linear isogeometric FEM simulators.
 //!
 //==============================================================================
 
@@ -23,9 +23,10 @@
 AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : model(sim)
 {
   // Default adaptation parameters
-  nStep = 10;
-  stopTol = 1.0;
-  beta = 25.0;
+  beta = 10.0;
+  errTol = 1.0;
+  maxStep = 10;
+  maxDOFs = 1000000;
 }
 
 
@@ -39,9 +40,29 @@ bool AdaptiveSIM::parse (char* keyWord, std::istream& is)
 {
   if (!strncasecmp(keyWord,"ADAPTIVE",8))
   {
+    options.clear();
     std::istringstream cline(utl::readLine(is));
-    cline >> nStep >> stopTol >> beta;
+
+    cline >> beta >> errTol;
     if (cline.fail() || cline.bad()) return false;
+
+    double itmp;
+    cline >> itmp;
+    if (!cline.fail() && !cline.bad())
+      maxStep = itmp;
+
+    cline >> itmp;
+    if (!cline.fail() && !cline.bad())
+      maxDOFs = itmp;
+
+    cline >> itmp;
+    if (!cline.fail() && !cline.bad())
+      options.push_back(itmp);
+
+    std::string ctmp;
+    cline >> ctmp;
+    if (!cline.fail() && !cline.bad())
+      options.push_back(1);
   }
   else
     return model->parse(keyWord,is);
@@ -85,8 +106,9 @@ bool AdaptiveSIM::adaptMesh (int iStep)
 {
   printNorms(gNorm,std::cout);
 
-  double eta = gNorm.size() > 3 ? 100.0*gNorm(4)/gNorm(3) : 0.0;
-  if (eta < stopTol || iStep > nStep) return false;
+  // Check if further refinement is required
+  if (iStep > maxStep || model->getNoDOFs() > (size_t)maxDOFs) return false;
+  if (gNorm.size() > 3 && 100.0*gNorm(4) < errTol*gNorm(3)) return false;
 
   // Find the list of elements to refine (the beta % with the highest error)
   std::vector<int> elements;
@@ -105,9 +127,10 @@ bool AdaptiveSIM::adaptMesh (int iStep)
     if (eNorm(4,e) >= pivot)
       elements.push_back(e-1);
 
+  // Now refine the mesh
   char fname[12];
   sprintf(fname,"mesh_%02d.eps",iStep);
-  return model->refine(elements,fname);
+  return model->refine(elements,options,fname);
 }
 
 
