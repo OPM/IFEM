@@ -56,6 +56,9 @@ public:
   //! \brief Prints out the global norms to given stream
   static void printNorms(const Vector& norms, std::ostream& os);
 
+  Vector& getSolution() { return linsol; }
+  Matrix& getElementNorms() { return eNorm; }
+
 protected:
 
   //! \brief Parses a data section from an input stream.
