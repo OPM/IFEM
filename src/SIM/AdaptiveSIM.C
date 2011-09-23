@@ -17,6 +17,7 @@
 #include "SIMenums.h"
 #include "Utilities.h"
 #include <sstream>
+#include <cstdio>
 
 
 AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : model(sim)
@@ -52,9 +53,11 @@ bool AdaptiveSIM::parse (char* keyWord, std::istream& is)
 bool AdaptiveSIM::solveStep (const char* inputfile, SystemMatrix::Type solver,
 			     int iStep)
 {
+  std::cout <<"\nAdaptive step "<< iStep << std::endl;
   if (iStep > 1)
   {
     // Re-generate the FE model after the refinement
+    model->clearProperties();
     ASMunstruct::resetNumbering();
     if (!model->read(inputfile) || !model->preprocess())
       return false;
@@ -73,11 +76,9 @@ bool AdaptiveSIM::solveStep (const char* inputfile, SystemMatrix::Type solver,
 
   // Evaluate solution norms
   model->setMode(SIM::RECOVERY);
-  return model->solutionNorms(Vectors(1,linsol),eNorm,gNorm);
+  return (model->solutionNorms(Vectors(1,linsol),eNorm,gNorm) &&
+	  model->dumpResults(linsol,0.0,std::cout,true,6));
 }
-
-
-static bool larger (double a, double b) { return a > b; }
 
 
 bool AdaptiveSIM::adaptMesh (int iStep)
@@ -92,7 +93,8 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   Vector errors(eNorm.getRow(4));
   size_t ipivot = ceil(errors.size()*beta/100.0);
   if (ipivot < 1 || ipivot > errors.size()) return false;
-  std::partial_sort(errors.begin(),errors.begin()+ipivot,errors.end(),larger);
+  std::partial_sort(errors.begin(),errors.begin()+ipivot,
+		    errors.end(),std::greater<double>());
 
   double pivot = errors(ipivot);
   std::cout <<"\nRefining "<< ipivot <<" elements with errors in range ["
@@ -103,8 +105,8 @@ bool AdaptiveSIM::adaptMesh (int iStep)
     if (eNorm(4,e) >= pivot)
       elements.push_back(e-1);
 
-  char fname[10] = "mesh_.eps";
-  fname[4] = '0' + iStep;
+  char fname[12];
+  sprintf(fname,"mesh_%02d.eps",iStep);
   return model->refine(elements,fname);
 }
 
@@ -118,5 +120,5 @@ void AdaptiveSIM::printNorms (const Vector& norms, std::ostream& os)
   if (norms.size() > 3)
     os <<"\nExact error a(e,e)^0.5, e=u-u^h    : "<< norms(4)
        <<"\nExact relative error (%) : "<< 100.0*norms(4)/norms(3);
-  std::cout << std::endl;
+  os << std::endl;
 }

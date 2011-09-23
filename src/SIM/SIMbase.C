@@ -81,6 +81,7 @@ SIMbase::~SIMbase ()
   for (FEModelVec::iterator i1 = myModel.begin(); i1 != myModel.end(); i1++)
     delete *i1;
 
+  myModel.clear();
   this->clearProperties();
 
 #ifdef SP_DEBUG
@@ -91,6 +92,8 @@ SIMbase::~SIMbase ()
 
 void SIMbase::clearProperties ()
 {
+  for (FEModelVec::iterator i1 = myModel.begin(); i1 != myModel.end(); i1++)
+    (*i1)->clear(true); // retain the geometry only
   for (SclFuncMap::iterator i2 = myScalars.begin(); i2 != myScalars.end(); i2++)
     delete i2->second;
   for (VecFuncMap::iterator i3 = myVectors.begin(); i3 != myVectors.end(); i3++)
@@ -173,6 +176,9 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
     return !cline.fail() && !cline.bad();
   }
 
+  else if (!strncasecmp(keyWord,"ADAPTIVE",8))
+    ;
+
   else if (isalpha(keyWord[0]))
     std::cerr <<" *** SIMbase::parse: Unknown keyword: "<< keyWord << std::endl;
 
@@ -221,13 +227,13 @@ int SIMbase::getLocalPatchIndex (int patchNo) const
 }
 
 
-bool SIMbase::preprocess (const std::vector<int>& ignoredPatches, bool fixDup)
+bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 {
   if (!this->createFEMmodel()) return false;
 
   // Erase all patches that should be ignored in the analysis
   std::vector<int>::const_iterator it;
-  for (it = ignoredPatches.begin(); it != ignoredPatches.end(); it++)
+  for (it = ignored.begin(); it != ignored.end(); it++)
     if (*it > 0 && (size_t)*it <= myModel.size())
       myModel[*it-1]->clear();
 
@@ -524,6 +530,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 	if (msgLevel > 1)
 	  std::cout <<"\nAssembling interior matrix terms for P"<< j
 		    << std::endl;
+	this->initBodyLoad(j);
 	this->extractPatchSolution(myModel[j-1],prevSol);
 	ok = myModel[j-1]->integrate(*myProblem,*myEqSys,time);
 	lp = j;
@@ -539,6 +546,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
       if (msgLevel > 1)
 	std::cout <<"\nAssembling interior matrix terms for P"<< i+1
 		  << std::endl;
+      this->initBodyLoad(i+1);
       this->extractPatchSolution(myModel[i],prevSol);
       ok = myModel[i]->integrate(*myProblem,*myEqSys,time);
       lp = i+1;

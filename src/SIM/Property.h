@@ -28,6 +28,7 @@ struct Property
   {
     UNDEFINED,
     MATERIAL,
+    BODYLOAD,
     DIRICHLET,
     DIRICHLET_INHOM,
     NEUMANN

@@ -100,10 +100,10 @@ public:
 		      const char* = 0) { return false; }
 
   //! \brief Performs some pre-processing tasks on the FE model.
-  //! \param[in] ignoredPatches Indices of patches to ignore in the analysis
+  //! \param[in] ignored Indices of patches to ignore in the analysis
   //! \param[in] fixDup Merge duplicated FE nodes on patch interfaces?
-  bool preprocess(const std::vector<int>& ignoredPatches = std::vector<int>(),
-		  bool fixDup = false);
+  virtual bool preprocess(const std::vector<int>& ignored = std::vector<int>(),
+			  bool fixDup = false);
 
   //! \brief Allocates the system matrices of the FE problem to be solved.
   //! \param[in] mType The matrix format to use
@@ -152,7 +152,7 @@ public:
   int getNoPatches() const { return nGlPatches; }
   //! \brief Returns the number of registered result points.
   size_t getNoResultPoints() const { return myPoints.size(); }
-  //! \brief Return the visualization dump interval
+  //! \brief Returns the visualization dump interval.
   int getDumpInterval() const { return vizIncr; }
 
   //! \brief Initializes time-dependent in-homogeneous Dirichlet coefficients.
@@ -490,7 +490,8 @@ protected:
 
   //! \brief Initializes material properties for integration of interior terms.
   virtual bool initMaterial(size_t) { return true; }
-
+  //! \brief Initializes the body load properties for current patch.
+  virtual bool initBodyLoad(size_t) { return true; }
   //! \brief Initializes for integration of Neumann terms for a given property.
   virtual bool initNeumann(size_t) { return true; }
 
@@ -498,8 +499,8 @@ protected:
   //! \details This method helps with encapsulating PETSc in libIFEM.
   void readLinSolParams(std::istream& is, int npar);
 
-  //! \brief Finalizes the system assembly.
-  bool finalizeAssembly(bool newLHSmatrix);
+  //! \brief Finalizes the global equation system assembly.
+  virtual bool finalizeAssembly(bool newLHSmatrix);
 
 public:
   //! \brief Enum defining the available discretization methods.
@@ -529,16 +530,17 @@ protected:
   TracFuncMap    myTracs;   //!< Traction property fields
   IntegrandBase* myProblem; //!< Problem-specific data and methods
   AnaSol*        mySol;     //!< Analytical/Exact solution
-  VTF*           myVtf;     //!< VTF-file for result visualization
-  ResPointVec    myPoints;  //!< User-defined result sampling points
+
+  // Post-processing attributes
+  ResPointVec myPoints; //!< User-defined result sampling points
+  VTF*        myVtf;    //!< VTF-file for result visualization
+  int         vizIncr;  //!< Number increments between each result output
+  int         format;   //!< Output file format
 
   // Parallel computing attributes
   int              nGlPatches; //!< Number of global patches
   std::vector<int> myPatches;  //!< Global patch numbers for current processor
 
-  // Visualization attributes
-  int vizIncr;
-  int format;
 
   // Equation solver attributes
   AlgEqSystem*  myEqSys;     //!< The actual linear equation system

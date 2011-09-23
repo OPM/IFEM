@@ -26,10 +26,11 @@ class SIMinput
 protected:
   //! \brief The default constructor initializes \a myPid and \a nProc.
   SIMinput();
+
+public:
   //! \brief Empty destructor.
   virtual ~SIMinput() {}
 
-public:
   //! \brief Reads model data from the specified input file \a *fileName.
   bool read(const char* fileName);
   //! \brief Parses a data section from an input stream.
