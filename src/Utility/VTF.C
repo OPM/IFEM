@@ -32,6 +32,7 @@ real VTF::vecOffset[3] = { 0.0, 0.0, 0.0 };
 VTF::VTF (const char* filename, int type)
 {
   myFile = 0;
+  geoBlock = new VTFAGeometryBlock;
   myState = 0;
   if (!filename) return;
 
@@ -74,17 +75,9 @@ VTF::~VTF ()
   if (!myFile) return;
 
   size_t i;
-  std::vector<int> geomID(myBlocks.size());
-  for (i = 0; i < myBlocks.size(); i++)
-  {
-    geomID[i] = i+1;
-    delete myBlocks[i];
-  }
-
-  if (!writeGeometry(&geomID.front(),geomID.size()))
-    showError("Error writing geometry");
-
 #if HAS_VTFAPI == 1
+  if (VTFA_FAILURE(myFile->WriteBlock(geoBlock)))
+    showError("Error writing Geometry Block");
   for (i = 0; i < myDBlock.size(); i++)
     if (myDBlock[i])
     {
@@ -120,6 +113,8 @@ VTF::~VTF ()
 
   delete myFile;
 #elif HAS_VTFAPI == 2
+  if (VTFA_FAILURE(myDatabase->WriteBlock(geoBlock)))
+    showError("Error writing Geometry Block");
   for (i = 0; i < myDBlock.size(); i++)
     if (myDBlock[i])
     {
@@ -160,7 +155,7 @@ VTF::~VTF ()
     partAttr.SetPartID(i+1);
     // Turn on mesh
     partAttr.AddBool(VT_PB_PA_MESH, VTFXA_FALSE);
-    partAttr.AddBool(VT_PB_PA_DISPLACEMENTS,      VTFXA_TRUE);
+    partAttr.AddBool(VT_PB_PA_DISPLACEMENTS,      VTFXA_FALSE);
 
     singleCase->WritePropertiesBlock(&partAttr);
   }
@@ -171,21 +166,48 @@ VTF::~VTF ()
   delete myDatabase;
   delete myFile;
 #endif
+  delete geoBlock;
+}
+
+void VTF::writeGeometryBlocks(int iStep)
+{
+  if (!myBlocks.size())
+    return;
+  size_t i;
+  std::vector<int> geomID(myBlocks.size());
+  for (i = 0; i < myBlocks.size(); i++)
+  {
+    geomID[i] = myBlocks[i].first;
+  }
+
+#if HAS_VTFAPI == 1
+  geoBlock->SetGeometryElementBlocks(&geomID.front(),geomID.size(),iStep);
+#elif HAS_VTFAPI == 2
+  std::cout << "yo " << iStep << std::endl;
+  geoBlock->SetElementBlocksForState(&geomID.front(),geomID.size(),iStep);
+#endif
 }
 
 
-bool VTF::writeGrid (const ElementBlock* block, const char* partname)
+void VTF::clearGeometryBlocks()
+{ 
+  for (size_t i=0;i<myBlocks.size();++i) 
+    delete myBlocks[i].second;
+  myBlocks.clear();
+}
+
+
+bool VTF::writeGrid (const ElementBlock* block, const char* partname, int nBlock)
 {
   if (!myFile) return true;
 
-  myBlocks.push_back(block);
-  int geomID = myBlocks.size();
+  myBlocks.push_back(std::make_pair(nBlock,block));
 
-  if (!writeNodes(geomID))
-    return showError("Error writing node block",geomID);
+  if (!writeNodes(nBlock))
+    return showError("Error writing node block",nBlock);
 
-  if (!writeElements(partname,geomID,geomID))
-    return showError("Error writing element block",geomID);
+  if (!writeElements(partname,nBlock,nBlock))
+    return showError("Error writing element block",nBlock);
 
   return true;
 }
@@ -196,7 +218,7 @@ bool VTF::writeVres (const std::vector<real>& nodeResult,
 {
   if (!myFile) return true;
 
-  const size_t nnod = myBlocks[geomID-1]->getNoNodes();
+  const size_t nnod = myBlocks[geomID-1].second->getNoNodes();
   const size_t nres = nodeResult.size();
   const size_t ncmp = nres/(nnod > 0 ? nnod : 1);
   if (nres != ncmp*nnod)
@@ -227,7 +249,7 @@ bool VTF::writeVres (const std::vector<real>& nodeResult,
   if (VTFA_FAILURE(dBlock.SetResults3D(resVec,nnod)))
     return showError("Error defining result block",idBlock);
 
-  dBlock.SetMapToBlockID(geomID);
+  dBlock.SetMapToBlockID(myBlocks[geomID-1].first);
   if (VTFA_FAILURE(myFile->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
 #elif HAS_VTFAPI == 2
@@ -250,9 +272,9 @@ bool VTF::writeEres (const std::vector<real>& elementResult,
   if (geomID < 1 || (size_t)geomID > myBlocks.size()) return false;
 
   const size_t nres = elementResult.size();
-  if (nres > myBlocks[geomID-1]->getNoElms())
+  if (nres > myBlocks[geomID-1].second->getNoElms())
     return showError("Invalid size of result array",nres);
-  else if (nres < myBlocks[geomID-1]->getNoElms())
+  else if (nres < myBlocks[geomID-1].second->getNoElms())
     showError("Warning: Fewer element results that anticipated",nres);
 
   // Cast to float
@@ -266,7 +288,7 @@ bool VTF::writeEres (const std::vector<real>& elementResult,
   if (VTFA_FAILURE(dBlock.SetResults1D(resVec,nres)))
     return showError("Error defining result block",idBlock);
 
-  dBlock.SetMapToBlockID(geomID);
+  dBlock.SetMapToBlockID(myBlocks[geomID-1].first);
   if (VTFA_FAILURE(myFile->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
 #elif HAS_VTFAPI == 2
@@ -289,7 +311,7 @@ bool VTF::writeNres (const std::vector<real>& nodalResult,
   if (geomID < 1 || (size_t)geomID > myBlocks.size()) return false;
 
   const size_t nres = nodalResult.size();
-  if (nres != myBlocks[geomID-1]->getNoNodes())
+  if (nres != myBlocks[geomID-1].second->getNoNodes())
     return showError("Invalid size of result array",nres);
 
   // Cast to float
@@ -303,7 +325,7 @@ bool VTF::writeNres (const std::vector<real>& nodalResult,
   if (VTFA_FAILURE(dBlock.SetResults1D(resVec,nres)))
     return showError("Error defining result block",idBlock);
 
-  dBlock.SetMapToBlockID(geomID);
+  dBlock.SetMapToBlockID(myBlocks[geomID-1].first);
   if (VTFA_FAILURE(myFile->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
 #elif HAS_VTFAPI == 2
@@ -328,7 +350,7 @@ bool VTF::writeVectors (const std::map<Vec3,Vec3>& pntResult, int idBlock)
   {
     // The big assumption here is that we have only one call to writeVectors
     // per time step, and that all subsequent calls are with the same points
-    myBlocks.push_back(new ElementBlock());
+    myBlocks.push_back(std::make_pair(myBlocks.size()+1,new ElementBlock()));
     geomID = myBlocks.size();
     writePoints = true;
   }
@@ -564,33 +586,6 @@ bool VTF::writeState (int iStep, const char* fmt, real refValue, int refType)
 }
 
 
-bool VTF::writeGeometry (const int* pGeometryParts, int iNumParts)
-{
-  bool ok = true;
-
-#if HAS_VTFAPI == 1
-  VTFAGeometryBlock geoBlock;
-
-  if (VTFA_FAILURE(geoBlock.SetGeometryElementBlocks(pGeometryParts,iNumParts)))
-    ok = false;
-
-  if (VTFA_FAILURE(myFile->WriteBlock(&geoBlock)))
-    ok = false;
-
-#elif HAS_VTFAPI == 2
-  VTFXAGeometryBlock geoBlock;
-
-  if (VTFA_FAILURE(geoBlock.SetElementBlocks(pGeometryParts,iNumParts)))
-    ok = false;
-
-  if (VTFA_FAILURE(myDatabase->WriteBlock(&geoBlock)))
-    ok = false;
-#endif
-
-  return ok;
-}
-
-
 bool VTF::writeNodes (int iBlockID)
 {
   bool ok = true;
@@ -602,7 +597,7 @@ bool VTF::writeNodes (int iBlockID)
 #endif
 
 #ifdef HAS_VTFAPI
-  const ElementBlock* grid = myBlocks.back();
+  const ElementBlock* grid = myBlocks.back().second;
   if (VTFA_FAILURE(nBlock.SetNumNodes(grid->getNoNodes())))
     ok = false;
 
@@ -628,7 +623,7 @@ bool VTF::writeElements (const char* partName, int iBlockID, int iNodeBlockID)
 #if HAS_VTFAPI == 1
   VTFAElementBlock eBlock(iBlockID,0,0);
 
-  const ElementBlock* grid = myBlocks.back();
+  const ElementBlock* grid = myBlocks.back().second;
   const int* mnpc = grid->getElements();
   int nel = grid->getNoElms();
   switch (grid->getNoElmNodes()) {
@@ -655,7 +650,7 @@ bool VTF::writeElements (const char* partName, int iBlockID, int iNodeBlockID)
 #elif HAS_VTFAPI == 2
   VTFXAElementBlock eBlock(iBlockID,0,0);
 
-  const ElementBlock* grid = myBlocks.back();
+  const ElementBlock* grid = myBlocks.back().second;
   const int* mnpc = grid->getElements();
   int nel = grid->getNoElms();
   switch (grid->getNoElmNodes()) {

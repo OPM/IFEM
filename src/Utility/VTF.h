@@ -25,17 +25,20 @@ class VTFAStateInfoBlock;
 class VTFADisplacementBlock;
 class VTFAVectorBlock;
 class VTFAScalarBlock;
+class VTFAGeometryBlock;
 
 #if HAS_VTFAPI == 2
 class VTFXAFile;
 class VTFXADatabase;
 class VTFXAStateInfoBlock;
 class VTFXAResultBlock;
+class VTFXAGeometryBlock;
 #define VTFAFile              VTFXAFile
 #define VTFAStateInfoBlock    VTFXAStateInfoBlock
 #define VTFADisplacementBlock VTFXAResultBlock
 #define VTFAVectorBlock       VTFXAResultBlock
 #define VTFAScalarBlock       VTFXAResultBlock
+#define VTFAGeometryBlock     VTFXAGeometryBlock
 #endif
 
 
@@ -56,7 +59,9 @@ public:
   //! \brief Writes the FE geometry to the VTF-file.
   //! \param[in] g The FE grid that all results written are referred to
   //! \param[in] partname Name of the geometry being written
-  virtual bool writeGrid(const ElementBlock* g, const char* partname);
+  //! \param[in] iStep Load/Time step identifier
+  virtual bool writeGrid(const ElementBlock* g, const char* partname,
+                         int iStep=1);
 
   //! \brief Writes a block of scalar nodal results to the VTF-file.
   //! \param[in] nodeResult Vector of nodal results,
@@ -138,13 +143,15 @@ public:
 			  real refValue, int refType = 0);
 
   //! \brief Returns the pointer to a geometry block.
-  virtual const ElementBlock* getBlock(int geomID) const { return myBlocks[geomID-1]; }
+  virtual const ElementBlock* getBlock(int geomID) const { return myBlocks[geomID-1].second; }
+
+  //! \brief Add the current FE geometry blocks to the description block
+  void writeGeometryBlocks(int iStep);
+
+  //! \brief Drop current FE geometry blocks
+  void clearGeometryBlocks();
 
 private:
-  //! \brief Writes a geometry block to the VTF-file.
-  //! \param[in] parts Array of geometry part indices
-  //! \param[in] nPart Number of geometry parts
-  bool writeGeometry(const int* parts, int nPart);
   //! \brief Writes a node block to the VTF-file.
   //! \details The coordinates of the last added element block are written.
   //! \param[in] blockID Node block identifier
@@ -173,7 +180,8 @@ private:
   std::vector<VTFADisplacementBlock*> myDBlock; //!< Displacement blocks
   std::vector<VTFAVectorBlock*>       myVBlock; //!< Vector field blocks
   std::vector<VTFAScalarBlock*>       mySBlock; //!< Scalar field blocks
-  std::vector<const ElementBlock*>    myBlocks; //!< The FE geometry
+  std::vector< std::pair<int,const ElementBlock*> >    myBlocks; //!< The FE geometry
+  VTFAGeometryBlock* geoBlock;
 };
 
 #endif

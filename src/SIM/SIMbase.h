@@ -324,6 +324,12 @@ public:
   //! by the other \a writeGlv* methods.
   bool writeGlv(const char* inpFile, const int* nViz, int format);
 
+  //! \brief Write current geometry to the VTF-file
+  //! \param[in] iStep Load/time step identifier
+  //! \param[in] nViz Number of visualization points over each knot-span
+  //! \param nBlock Running result block counter
+  bool writeGlvG(int iStep, const int* nViz, int& nBlock);
+
   //! \brief Writes boundary conditions as scalar fields to the VTF-file.
   //! \param[in] nViz Number of visualization points over each knot-span
   //! \param nBlock Running result block counter

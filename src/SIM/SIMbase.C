@@ -964,6 +964,15 @@ bool SIMbase::writeGlv (const char* inpFile, const int* nViz, int format)
   myVtf = new VTF(vtfName,format);
   delete[] vtfName;
 
+  // Dirty hack to be backwards compatible! (block 0 is usually unused)
+  int bar=0;
+  return writeGlvG(1,nViz,bar);
+}
+
+
+bool SIMbase::writeGlvG(int iStep, const int* nViz, int& nBlock)
+{
+  myVtf->clearGeometryBlocks();
   // Convert and write model geometry
   char pname[16];
   for (size_t i = 0; i < myModel.size(); i++)
@@ -978,8 +987,9 @@ bool SIMbase::writeGlv (const char* inpFile, const int* nViz, int format)
       return false;
 
     sprintf(pname,"Patch %ld",i+1);
-    if (!myVtf->writeGrid(lvb,pname))
+    if (!myVtf->writeGrid(lvb,pname,++nBlock))
       return false;
+    myVtf->writeGeometryBlocks(iStep);
   }
 
   return true;
