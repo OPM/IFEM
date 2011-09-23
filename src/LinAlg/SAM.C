@@ -180,20 +180,21 @@ bool SAM::initSystemEquations ()
   if (!mpmceq && nceq > 0) return false;
 
   // Initialize the DOF-to-equation connectivity array
-  int ierr = 0;
+  int i, j, ierr = 0;
   meqn = new int[ndof];
   memset(meqn,0,ndof*sizeof(int));
 #ifdef USE_F77SAM
   syseq_(msc,mpmceq,mmceq,6,mpar,meqn,ierr);
+  for (i = j = 0; i < ndof; i++)
+    if (msc[i] == 0) msc[i] = --j; // reaction force indices
 #else
-  int i, j, idof;
   int ndof1  = 0;
   int ndof2  = 0;
   int npdof  = 0;
   int nddof  = 0;
   for (i = 0; i < ndof; i++)
     if (msc[i] == 0)
-      msc[i] = -(++nspdof);
+      msc[i] = -(++nspdof); // reaction force indices
     else if (msc[i] == 1)
       ndof1++;
     else if (msc[i] == 2)
@@ -209,7 +210,7 @@ bool SAM::initSystemEquations ()
   {
     int ip = mpmceq[i-1];
     int jp = mpmceq[i]-1;
-    idof = mmceq[ip-1];
+    int idof = mmceq[ip-1];
     if (idof < 1 || idof > ndof)
     {
       ierr--;
@@ -254,7 +255,7 @@ bool SAM::initSystemEquations ()
 
   i = 1;
   j = ndof1+1;
-  for (idof = 0; idof < ndof; idof++)
+  for (int idof = 0; idof < ndof; idof++)
     if (msc[idof] == 1)
       meqn[idof] = i++;
     else if (msc[idof] == 2)
@@ -473,8 +474,6 @@ bool SAM::assembleSystem (SystemVector& sysRHS,
 			  const RealArray& eS, int iel,
 			  Vector* reactionForces) const
 {
-  if (!meqn) return false;
-
   real* sysrhsPtr = sysRHS.getPtr();
   int ierr = 0;
 #ifdef USE_F77SAM
@@ -507,6 +506,42 @@ bool SAM::assembleSystem (SystemVector& sysRHS,
     this->assembleReactions(*reactionForces,eS,iel);
 
   return ierr == 0;
+}
+
+
+bool SAM::assembleSystem (SystemVector& sysRHS, const real* nS, int inod,
+			  Vector* reactionForces) const
+{
+  IntVec mnen;
+  if (!this->getNodeEqns(mnen,inod))
+    return false;
+
+  real* sysrhsPtr = sysRHS.getPtr();
+  for (size_t i = 0; i < mnen.size(); i++)
+  {
+    int ieq = mnen[i];
+    int iceq = -ieq;
+    if (ieq > 0)
+      sysrhsPtr[ieq-1] += nS[i];
+    else if (iceq > 0)
+      for (int ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ip++)
+	if (mmceq[ip] > 0)
+	{
+	  ieq = meqn[mmceq[ip]-1];
+	  sysrhsPtr[ieq-1] += ttcc[ip]*nS[i];
+	}
+  }
+  sysRHS.restore(sysrhsPtr);
+
+  if (reactionForces)
+  {
+    int ipR, j, k = 0;
+    for (j = madof[inod-1]; j < madof[inod]; j++, k++)
+      if ((ipR = -msc[j-1]) > 0 && (size_t)ipR <= reactionForces->size())
+	(*reactionForces)(ipR) += nS[k];
+  }
+
+  return true;
 }
 
 

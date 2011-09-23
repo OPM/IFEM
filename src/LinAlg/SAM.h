@@ -149,6 +149,16 @@ public:
 			      const RealArray& eS, int iel = 0,
 			      Vector* reactionForces = 0) const;
 
+  //! \brief Adds a node load vector into the system load vector.
+  //! \param sysRHS The right-hand-side system load vector
+  //! \param[in] nS The nodal load vector
+  //! \param[in] inod Identifier for the node that \a nS belongs to
+  //! \param reactionForces Pointer to vector of nodal reaction forces
+  //! \return \e true on successful assembly, otherwise \e false
+  virtual bool assembleSystem(SystemVector& sysRHS,
+			      const real* eS, int inod = 0,
+			      Vector* reactionForces = 0) const;
+
   //! \brief Finds the matrix of equation numbers for an element.
   //! \param[out] meen Matrix of element equation numbers
   //! \param[in] iel Identifier for the element to get the equation numbers for
