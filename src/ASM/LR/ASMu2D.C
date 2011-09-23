@@ -304,6 +304,10 @@ bool ASMu2D::refine (const std::vector<int>& elements, const char* fName)
     std::ofstream meshFile(fName);
     lrspline->writePostscriptMesh(meshFile);
   }
+
+  std::cout <<"Refined mesh: "<< lrspline->nElements()
+	    <<" elements "<< lrspline->nBasisFunctions()
+	    <<" nodes."<< std::endl;
   return true;
 }
 
@@ -315,27 +319,37 @@ bool ASMu2D::generateFEMTopology ()
 	const int nBasis    = lrspline->nBasisFunctions();
 	const int nElements = lrspline->nElements();
 
+	if ((size_t)nBasis == MLGN.size())
+	  return true;
+	else if (!MLGN.empty())
+	{
+	  std::cerr <<" *** ASMu2D::generateFEMTopology: Inconsistency between the"
+		    <<" number of FE nodes "<< MLGN.size()
+		    <<"\n     and the number of basis functions "<< nBasis
+		    <<" in the patch."<< std::endl;
+	  return false;
+	}
+
 	const int p1 = lrspline->order_u();
 	const int p2 = lrspline->order_v();
 
 	// Consistency checks, just to be fool-proof
-	if (nBasis < 4)         return false;
-	if (p1 <  1 || p1 <  1) return false;
-	if (p1*p2 > nBasis)     return false;
+	if (nBasis < 4)       return false;
+	if (p1 < 1 || p1 < 1) return false;
+	if (p1*p2 > nBasis)   return false;
 
-	MLGE.resize(nElements,0);
 	MLGN.resize(nBasis);
-	MNPC.resize(MLGE.size());
+	MLGE.resize(nElements);
+	MNPC.resize(nElements);
 	lrspline->generateIDs();
 
-	int iel = 0;
 	std::vector<LR::Element*>::iterator el_it = lrspline->elementBegin();
 	std::vector<LR::Basisfunction*>::iterator b_it;
-	for(iel=0; iel<nElements; iel++, el_it++)
+	for (int iel=0; iel<nElements; iel++, el_it++)
 	{
-		int nSupportFunctions =  (*el_it)->nBasisFunctions();
+		int nSupportFunctions = (*el_it)->nBasisFunctions();
 		MLGE[iel] = ++gEl; // global element number over all patches
-		MNPC[iel].resize(nSupportFunctions, 0);
+		MNPC[iel].resize(nSupportFunctions);
 
 		b_it = (*el_it)->supportBegin();
 		for(int lnod=0; lnod<nSupportFunctions; lnod++, b_it++)
@@ -384,7 +398,7 @@ bool ASMu2D::assignNodeNumbers ()
 	for(size_t i=0; i<MLGN.size(); i++)
 		MLGN[i] = i+1;
 	return true;
-} 
+}
 
 bool ASMu2D::connectPatch (int edge, ASMu2D& neighbor, int nedge, bool revers)
 {
@@ -522,7 +536,7 @@ void ASMu2D::constrainEdge (int dir, int dof, int code)
 			lrspline->getEdgeFunctions(edgeFunctions, LR::SOUTH);
 			break;
 		}
-	for(size_t i=0; i<edgeFunctions.size(); i++) 
+	for(size_t i=0; i<edgeFunctions.size(); i++)
 		this->prescribe(edgeFunctions[i]->getId()+1,dof,code);
 }
 
@@ -536,7 +550,7 @@ void ASMu2D::constrainCorner (int I, int J, int dof, int code)
 		lrspline->getEdgeFunctions(edgeFunctions, LR::SOUTH_EAST);
 	else if(I == 0 && J >  0)
 		lrspline->getEdgeFunctions(edgeFunctions, LR::NORTH_WEST);
-	else 
+	else
 		lrspline->getEdgeFunctions(edgeFunctions, LR::NORTH_EAST);
 
 #ifdef SP_DEBUG
@@ -688,7 +702,7 @@ void ASMu2D::getGaussPointParameters (Vector& uGP, int dir, int nGauss,
 
 
 /*!
-	\brief Computes the characteristic element length from nodal coordinates.
+  \brief Computes the characteristic element length from nodal coordinates.
 */
 
 #if 0
@@ -800,7 +814,6 @@ bool ASMu2D::integrate (Integrand& integrand,
 	{
 		FiniteElement fe(MNPC[iel-1].size());
 		fe.iel = MLGE[iel-1];
-		if (fe.iel < 1) continue; // zero-area element
 
 		// Get element area in the parameter space
 		double dA = this->getParametricArea(iel);
@@ -922,7 +935,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 				Go::BasisDerivsSf2 spline2;
 				Go::BasisDerivsSf  splineRed;
 				if (integrand.getIntegrandType() == 2)
-					lrspline->computeBasis(fe.u,fe.v,spline2, iel);
+					lrspline->computeBasis(fe.u,fe.v,spline2, iel-1);
 				else
 					lrspline->computeBasis(fe.u,fe.v,spline, iel-1);
 				if (integrand.getIntegrandType() > 10)
@@ -1026,9 +1039,7 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 	{
 		FiniteElement fe((**el).nBasisFunctions());
 		fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
-
 		fe.iel = MLGE[iel-1];
-		if (fe.iel < 1) continue; // zero-area element
 
 		// Skip elements that are not on current boundary edge
 		bool skipMe = false;
@@ -1463,4 +1474,3 @@ bool ASMu2D::evalSolution (Matrix& sField, const Integrand& integrand,
 
 	return true;
 }
-
