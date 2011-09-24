@@ -12,7 +12,9 @@
 //==============================================================================
 
 #include "AdaptiveSIM.h"
+#ifdef HAS_LRSPLINE
 #include "ASMunstruct.h"
+#endif
 #include "SIMbase.h"
 #include "SIMenums.h"
 #include "Utilities.h"
@@ -79,7 +81,9 @@ bool AdaptiveSIM::solveStep (const char* inputfile, SystemMatrix::Type solver,
   {
     // Re-generate the FE model after the refinement
     model->clearProperties();
+#ifdef HAS_LRSPLINE
     ASMunstruct::resetNumbering();
+#endif
     if (!model->read(inputfile) || !model->preprocess())
       return false;
   }

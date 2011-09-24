@@ -550,7 +550,9 @@ bool SIM2D::refine (const std::vector<int>& elements,
 {
   for (size_t i = 0; i < myModel.size(); i++)
     if (!myModel.empty())
+#ifdef HAS_LRSPLINE
       if (!static_cast<ASMu2D*>(myModel[i])->refine(elements,options,fName))
+#endif
 	return false;
 
   isRefined = true;
