@@ -149,13 +149,13 @@ public:
   //! \param[in] dir Parameter direction to refine
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
   bool uniformRefine(int dir, int nInsert);
-  //! \brief Refine the parametrization by inserting extra tensor knots.
+  //! \brief Refines the parametrization by inserting extra tensor knots.
   //! \details This method is mainly kept for backward compatability with the
   //! "REFINE" keyword in the input file.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
   bool refine(int dir, const RealArray& xi);
-  //! \brief Raise the order of the tensor spline object for this patch.
+  //! \brief Raises the order of the tensor spline object for this patch.
   //! \details This method is mainly kept for backward compatability with the
   //! "RAISEORDER" keyword in the input file.
   //! \param[in] ru Number of times to raise the order in u-direction
@@ -352,7 +352,7 @@ protected:
   //! \param[in] nGauss Number of Gauss points along a knot-span
   //! \param[in] iel Element index
   //! \param[in] xi Dimensionless Gauss point coordinates [-1,1]
-  void getGaussPointParameters(Vector& uGP, int dir, int nGauss,
+  void getGaussPointParameters(RealArray& uGP, int dir, int nGauss,
                                int iel, const double* xi) const;
 
   //! \brief Calculates parameter values for the Greville points.
@@ -384,16 +384,10 @@ protected:
   static void extractBasis(const Go::BasisDerivsSf2& spline,
                            Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2);
 
-  //! \brief Auxilliary function for computation of basis function indices.
-  static void scatterInd(int n1, int n2, int p1, int p2,
-                         const int* start, IntVec& index);
-
-private:
-
-
 protected:
   LR::LRSplineSurface* lrspline; //!< Pointer to the actual spline surface object
-  Go::SplineSurface*   tensorspline; //!< Pointer to the original tensor spline object
+private:
+  Go::SplineSurface* tensorspline; //!< Pointer to the original tensor spline object
   // the tensor spline object is kept for backwards compatability with the REFINE and RAISEORDER
   // key-words, although we take note that there is a possibility of optimization since all mapping
   // values and jacobians may be performed on this object for increased efficiency
