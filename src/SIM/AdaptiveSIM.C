@@ -143,9 +143,39 @@ void AdaptiveSIM::printNorms (const Vector& norms, std::ostream& os)
   os <<"Energy norm |u^h| = a(u^h,u^h)^0.5   : "<< norms(1)
      <<"\nExternal energy ((h,u^h)+(t,u^h)^0.5 : "<< norms(2);
   if (norms.size() > 2)
-    os <<"\nExact norm  |u|   = a(u,u)^0.5     : "<< norms(3);
+    os <<"\nExact norm  |u|   = a(u,u)^0.5       : "<< norms(3);
   if (norms.size() > 3)
-    os <<"\nExact error a(e,e)^0.5, e=u-u^h    : "<< norms(4)
+    os <<"\nExact error a(e,e)^0.5, e=u-u^h      : "<< norms(4)
        <<"\nExact relative error (%) : "<< 100.0*norms(4)/norms(3);
   os << std::endl;
+}
+
+
+bool AdaptiveSIM::writeGlv (const char* infile, int format, const int* nViz,
+			    int iStep, int& nBlock)
+{
+  if (format < 0) return true;
+
+  // Write VTF-file with model geometry
+  if (!model->writeGlvG(nViz, nBlock, iStep == 1 ? infile : 0, format))
+    return false;
+
+  // Write boundary tractions, if any
+  if (!model->writeGlvT(iStep,nBlock))
+    return false;
+
+  // Write Dirichlet boundary conditions
+  if (!model->writeGlvBC(nViz,nBlock,iStep))
+    return false;
+
+  // Write solution fields
+  if (!model->writeGlvS(linsol,nViz,iStep,nBlock))
+    return false;
+
+  // Write element norms
+  if (!model->writeGlvN(eNorm,iStep,nBlock))
+    return false;
+
+  // Write state information
+  return model->writeGlvStep(iStep,iStep,1);
 }

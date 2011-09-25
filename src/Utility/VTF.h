@@ -61,7 +61,7 @@ public:
   //! \param[in] partname Name of the geometry being written
   //! \param[in] iStep Load/Time step identifier
   virtual bool writeGrid(const ElementBlock* g, const char* partname,
-                         int iStep=1);
+                         int iStep = 1);
 
   //! \brief Writes a block of scalar nodal results to the VTF-file.
   //! \param[in] nodeResult Vector of nodal results,
@@ -100,7 +100,7 @@ public:
   //! \param[in] iStep Load/Time step identifier
   //! \param[in] elementData false -> data per node, true -> data per element
   bool writeSblk(int sBlockID, const char* resultName = 0, int idBlock = 1,
-                 int iStep = 1, bool elementData=false);
+                 int iStep = 1, bool elementData = false);
   //! \brief Writes a scalar block definition to the VTF-file.
   //! \param[in] sBlockIDs All result blocks that make up this scalar block
   //! \param[in] resultName Name of the result quantity
@@ -108,8 +108,8 @@ public:
   //! \param[in] iStep Load/Time step identifier
   //! \param[in] elementData false -> data per node, true -> data per element
   virtual bool writeSblk(const std::vector<int>& sBlockIDs,
-                         const char* resultName = 0,
-			 int idBlock = 1, int iStep = 1, bool elementData=false);
+                         const char* resultName = 0, int idBlock = 1,
+			 int iStep = 1, bool elementData = false);
   //! \brief Writes a vector block definition to the VTF-file.
   //! \param[in] vBlockID The result block that makes up this vector block
   //! \param[in] resultName Name of the result quantity
@@ -145,11 +145,8 @@ public:
   //! \brief Returns the pointer to a geometry block.
   virtual const ElementBlock* getBlock(int geomID) const { return myBlocks[geomID-1].second; }
 
-  //! \brief Add the current FE geometry blocks to the description block
+  //! \brief Adds the current FE geometry blocks to the description block.
   void writeGeometryBlocks(int iStep);
-
-  //! \brief Drop current FE geometry blocks
-  void clearGeometryBlocks();
 
 private:
   //! \brief Writes a node block to the VTF-file.
@@ -177,11 +174,12 @@ private:
   VTFXADatabase* myDatabase; //!< Pointer to VTFx database object for this file
 #endif
   VTFAStateInfoBlock* myState; //!< The state info block for this file
+  VTFAGeometryBlock* myGBlock; //!< The geometry description block for this file
   std::vector<VTFADisplacementBlock*> myDBlock; //!< Displacement blocks
   std::vector<VTFAVectorBlock*>       myVBlock; //!< Vector field blocks
   std::vector<VTFAScalarBlock*>       mySBlock; //!< Scalar field blocks
-  std::vector< std::pair<int,const ElementBlock*> >    myBlocks; //!< The FE geometry
-  VTFAGeometryBlock* geoBlock;
+  std::vector< std::pair<int,const ElementBlock*> >  myBlocks; //!< FE geometry
+  int pointGeoID; //!< ID of current point vector geometry block
 };
 
 #endif

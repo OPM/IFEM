@@ -13,6 +13,7 @@
 
 #include "SIMLinEl3D.h"
 #include "SIMLinElKL.h"
+#include "AdaptiveSIM.h"
 #include "LinAlgInit.h"
 #include "HDF5Writer.h"
 #include "XMLWriter.h"
@@ -38,6 +39,7 @@
   \arg -petsc :   Use equation solver from PETSc library
   \arg -lag : Use Lagrangian basis functions instead of splines/NURBS
   \arg -spec : Use Spectral basis functions instead of splines/NURBS
+  \arg -LR : Use LR-spline basis functions instead of tensorial splines/NURBS
   \arg -nGauss \a n : Number of Gauss points over a knot-span in each direction
   \arg -vtf \a format : VTF-file format (-1=NONE, 0=ASCII, 1=BINARY)
   \arg -nviz \a nviz : Number of visualization points over each knot-span
@@ -60,6 +62,7 @@
   \arg -2Dpstrain : Use two-parametric simulation driver (plane strain)
   \arg -2Daxisymm : Use two-parametric simulation driver (axi-symmetric solid)
   \arg -KL : Use two-parametric simulation driver for Kirchhoff-Love plate
+  \arg -adap : Use adaptive simulation driver with LR-splines discretization
 */
 
 int main (int argc, char** argv)
@@ -106,6 +109,8 @@ int main (int argc, char** argv)
       SIMbase::discretization = SIMbase::Lagrange;
     else if (!strncmp(argv[i],"-spec",5))
       SIMbase::discretization = SIMbase::Spectral;
+    else if (!strncmp(argv[i],"-LR",3))
+      SIMbase::discretization = SIMbase::LRSpline;
     else if (!strcmp(argv[i],"-nGauss") && i < argc-1)
       nGauss = atoi(argv[++i]);
     else if (!strcmp(argv[i],"-vtf") && i < argc-1)
@@ -151,10 +156,11 @@ int main (int argc, char** argv)
       twoD = SIMLinEl2D::axiSymmetry = true;
     else if (!strncmp(argv[i],"-2D",3))
       twoD = true;
-    else if (!strncmp(argv[i],"-lag",4))
-      SIMbase::discretization = SIMbase::Lagrange;
-    else if (!strncmp(argv[i],"-spec",5))
-      SIMbase::discretization = SIMbase::Spectral;
+    else if (!strncmp(argv[i],"-adap",5))
+    {
+      SIMbase::discretization = SIMbase::LRSpline;
+      iop = 10;
+    }
     else if (!infile)
       infile = argv[i];
     else
@@ -164,8 +170,8 @@ int main (int argc, char** argv)
   {
     std::cout <<"usage: "<< argv[0]
 	      <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n      "
-	      <<" [-free] [-lag] [-spec] [-2D[pstrain|axisymm]|-KL]"
-	      <<" [-nGauss <n>]\n       [-vtf <format> [-nviz <nviz>]"
+	      <<" [-free] [-lag] [-spec] [-LR] [-2D[pstrain|axisymm]|-KL]"
+	      <<" [-adap] [-nGauss <n>]\n       [-vtf <format> [-nviz <nviz>]"
 	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]] [-hdf5]\n"
 	      <<"       [-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>]]\n"
 	      <<"       [-ignore <p1> <p2> ...] [-fixDup]"
@@ -197,7 +203,7 @@ int main (int argc, char** argv)
       if (!twoD) std::cout <<" "<< n[2];
     }
 
-    if (iop > 0 && iop < 100)
+    if (iop > 0 && iop < 10)
       std::cout <<"\nEigenproblem solver: "<< iop
 		<<"\nNumber of eigenvalues: "<< nev
 		<<"\nNumber of Arnoldi vectors: "<< ncv
@@ -232,7 +238,12 @@ int main (int argc, char** argv)
   else
     model = new SIMLinEl3D(checkRHS);
 
-  if (!model->read(infile))
+  SIMinput* theSim = model;
+  AdaptiveSIM* aSim = 0;
+  if (iop == 10)
+    theSim = aSim = new AdaptiveSIM(model);
+
+  if (!theSim->read(infile))
     return 1;
 
   utl::profiler->stop("Model input");
@@ -250,6 +261,7 @@ int main (int argc, char** argv)
   Vectors displ(1), projs;
   std::vector<Mode> modes;
   std::vector<Mode>::const_iterator it;
+  int iStep = 1, nBlock = 0;
 
   switch (iop) {
   case 0:
@@ -331,6 +343,16 @@ int main (int argc, char** argv)
       return 6;
     break;
 
+  case 10:
+    // Adaptive simulation
+    while (true)
+      if (!aSim->solveStep(infile,solver,iStep))
+        return 5;
+      else if (!aSim->writeGlv(infile,format,n,iStep,nBlock))
+	return 6;
+      else if (!aSim->adaptMesh(++iStep))
+        break;
+
   case 100:
     break; // Model check
 
@@ -353,22 +375,22 @@ int main (int argc, char** argv)
     if (linalg.myPid == 0)
       std::cout <<"\nWriting HDF5 file "<< infile <<".hdf5"<< std::endl;
     DataExporter exporter(true);
-    exporter.registerField("u","solution",DataExporter::SIM,DataExporter::SECONDARY);
+    exporter.registerField("u","solution",DataExporter::SIM,
+			   DataExporter::SECONDARY);
     exporter.setFieldValue("u",model,&displ.front());
     exporter.registerWriter(new HDF5Writer(infile));
     exporter.registerWriter(new XMLWriter(infile));
     exporter.dumpTimeLevel();
   }
 
-  if (format >= 0)
+  if (iop != 10 && format >= 0)
   {
     // Write VTF-file with model geometry
-    int iStep = 1, nBlock = 0;
     if (!model->writeGlv(infile,n,format))
       return 7;
 
     // Write boundary tractions, if any
-    if (!model->writeGlvT(iStep,nBlock))
+    if (!model->writeGlvT(iStep,++nBlock))
       return 8;
 
     // Write Dirichlet boundary conditions
@@ -386,20 +408,20 @@ int main (int argc, char** argv)
     // Write projected solution fields to VTF-file
     if (projs.size() > 0)
       if (!model->writeGlvP(projs.front(),n,iStep,nBlock))
-	return 10;
+	return 11;
 
     // Write eigenmodes
     for (it = modes.begin(); it != modes.end(); it++)
       if (!model->writeGlvM(*it, iop==3 || iop==4 || iop==6, n, nBlock))
-	return 11;
+	return 12;
 
     // Write element norms
     if (!model->writeGlvN(eNorm,iStep,nBlock))
-      return 12;
+      return 13;
 
     model->writeGlvStep(1);
-    model->closeGlv();
   }
+  model->closeGlv();
 
   if (dumpASCII)
   {
@@ -431,6 +453,6 @@ int main (int argc, char** argv)
   }
 
   utl::profiler->stop("Postprocessing");
-  delete model;
+  delete theSim;
   return 0;
 }

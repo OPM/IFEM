@@ -950,35 +950,37 @@ bool SIMbase::systemModes (std::vector<Mode>& solution,
 
 bool SIMbase::writeGlv (const char* inpFile, const int* nViz, int format)
 {
-  if (myVtf) return false;
-
-#if HAS_VTFAPI == 2
-  const char* ext = ".vtfx";
-#else
-  const char* ext = ".vtf";
-#endif
-
-  // Open a new VTF-file
-  char* vtfName = new char[strlen(inpFile)+10];
-  strtok(strcpy(vtfName,inpFile),".");
-  if (nProc > 1)
-    sprintf(vtfName+strlen(vtfName),"_p%04d%s",myPid,ext);
-  else
-    strcat(vtfName,ext);
-
-  std::cout <<"\nWriting VTF-file "<< vtfName << std::endl;
-  myVtf = new VTF(vtfName,format);
-  delete[] vtfName;
-
-  // Dirty hack to be backwards compatible! (block 0 is usually unused)
-  int bar=0;
-  return writeGlvG(1,nViz,bar);
+  int nBlock = 0;
+  return this->writeGlvG(nViz,nBlock,inpFile,format);
 }
 
 
-bool SIMbase::writeGlvG(int iStep, const int* nViz, int& nBlock)
+bool SIMbase::writeGlvG (const int* nViz, int& nBlock,
+			 const char* inpFile, int format)
 {
-  myVtf->clearGeometryBlocks();
+  if (inpFile)
+  {
+    if (myVtf) return false;
+
+#if HAS_VTFAPI == 2
+    const char* ext = ".vtfx";
+#else
+    const char* ext = ".vtf";
+#endif
+
+    // Open a new VTF-file
+    char* vtfName = new char[strlen(inpFile)+10];
+    strtok(strcpy(vtfName,inpFile),".");
+    if (nProc > 1)
+      sprintf(vtfName+strlen(vtfName),"_p%04d%s",myPid,ext);
+    else
+      strcat(vtfName,ext);
+
+    std::cout <<"\nWriting VTF-file "<< vtfName << std::endl;
+    myVtf = new VTF(vtfName,format);
+    delete[] vtfName;
+  }
+
   // Convert and write model geometry
   char pname[16];
   for (size_t i = 0; i < myModel.size(); i++)
@@ -995,14 +997,15 @@ bool SIMbase::writeGlvG(int iStep, const int* nViz, int& nBlock)
     sprintf(pname,"Patch %ld",i+1);
     if (!myVtf->writeGrid(lvb,pname,++nBlock))
       return false;
-    myVtf->writeGeometryBlocks(iStep);
   }
 
+  // Do not write the geometry blocks to file yet, writeVectors might create
+  // an additional block for the point vectors, see method VTF::writeVectors
   return true;
 }
 
 
-bool SIMbase::writeGlvBC (const int* nViz, int& nBlock) const
+bool SIMbase::writeGlvBC (const int* nViz, int& nBlock, int iStep) const
 {
   if (!myVtf) return false;
 
@@ -1058,7 +1061,7 @@ bool SIMbase::writeGlvBC (const int* nViz, int& nBlock) const
 
   for (j = 0; j < 3; j++)
     if (!dID[j].empty())
-      if (!myVtf->writeSblk(dID[j],label[j],1+j))
+      if (!myVtf->writeSblk(dID[j],label[j],1+j,iStep))
 	return false;
 
   return true;
@@ -1332,6 +1335,8 @@ bool SIMbase::writeGlvP (const Vector& ssol, const int* nViz,
 
 bool SIMbase::writeGlvStep (int iStep, double value, int itype)
 {
+  myVtf->writeGeometryBlocks(iStep);
+
   if (itype == 0)
     return myVtf->writeState(iStep,"Time %g",value,itype);
   else
@@ -1413,7 +1418,7 @@ bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock)
     }
 
     for (j = k = 0; j < field.rows() && j < 10; j++)
-      if (NormBase::hasElementContributions(j))
+      if (j != 1) // Norm #1 (external norm) does not have element contributions
 	if (!myVtf->writeEres(field.getRow(1+j),++nBlock,geomID))
 	  return false;
 	else
@@ -1421,13 +1426,9 @@ bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock)
   }
 
   int idBlock = 200;
-  for (j = k = 0; !sID[j].empty(); j++, k++)
-  {
-    while (!NormBase::hasElementContributions(k))
-      k++;
-    if (!myVtf->writeSblk(sID[j],NormBase::getName(k),++idBlock,iStep,true))
+  for (k = 0; !sID[k].empty(); k++)
+    if (!myVtf->writeSblk(sID[k],NormBase::getName(k),++idBlock,iStep,true))
       return false;
-  }
 
   return true;
 }

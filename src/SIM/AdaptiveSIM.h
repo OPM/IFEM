@@ -45,13 +45,17 @@ public:
   //! \param[in] iStep Refinement step counter
   bool adaptMesh(int iStep);
 
-  //! \brief Prints out the global norms to given stream
-  static void printNorms(const Vector& norms, std::ostream& os);
+  //! \brief Writes current mesh and results to the VTF-file.
+  //! \param[in] infile File name used to construct the VTF-file name from
+  //! \param[in] format Format of VTF-file (0=ASCII, 1=BINARY)
+  //! \param[in] nViz   Number of visualization points over a knot-span
+  //! \param[in] iStep  Refinement step identifier
+  //! \param     nBlock Running result block counter
+  bool writeGlv(const char* infile, int format, const int* nViz,
+		int iStep, int& nBlock);
 
-  //! \brief Returns the current primary solution vector.
-  const Vector& getSolution() const { return linsol; }
-  //! \brief Returns the current element norms.
-  const Matrix& getElementNorms() const { return eNorm; }
+  //! \brief Prints out the global norms to given stream.
+  static void printNorms(const Vector& norms, std::ostream& os);
 
 protected:
 

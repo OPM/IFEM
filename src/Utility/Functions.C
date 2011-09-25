@@ -177,29 +177,54 @@ const RealFunc* utl::parseRealFunc (char* cline, real A)
     switch (linear) {
     case 1:
       f = new LinearXFunc(A,atof(cline));
+      cline = strtok(NULL," ");
       break;
     case 2:
       f = new LinearYFunc(A,atof(cline));
+      cline = strtok(NULL," ");
       break;
     case 3:
       f = new LinearZFunc(A,atof(cline));
+      cline = strtok(NULL," ");
       break;
     case 4:
       f = new LinearRotZFunc(true,A,atof(cline),atof(strtok(NULL," ")));
+      cline = strtok(NULL," ");
       break;
     case 5:
       f = new LinearRotZFunc(false,A,atof(cline),atof(strtok(NULL," ")));
+      cline = strtok(NULL," ");
       break;
     case 6:
-      std::cout <<"StepX("<< cline <<"))";
-      f = new StepXFunc(A,atof(cline),atof(strtok(NULL," ")));
+      {
+	double x0 = atof(cline);
+	double x1 = atof(strtok(NULL," "));
+	std::cout <<"StepX("<< x0 <<","<< x1 <<"))";
+	f = new StepXFunc(A,x0,x1);
+      }
+      cline = strtok(NULL," ");
       break;
     case 7:
-      std::cout <<"StepXY("<< cline <<"))";
-      f = new StepXYFunc(A,atof(cline),atof(strtok(NULL," ")));
+      {
+	double x0 = atof(cline);
+	double y0 = atof(strtok(NULL," "));
+	cline = strtok(NULL," ");
+	if (cline && cline[0] == 't')
+	{
+	  double x1 = atof(strtok(NULL," "));
+	  double y1 = atof(strtok(NULL," "));
+	  std::cout <<"StepXY(["<< x0<<","<<x1 <<"]x["<< y0<<","<<y1 <<"]))";
+	  f = new StepXYFunc(A,x1,y1,x0,y0);
+	  cline = strtok(NULL," ");
+	}
+	else
+	{
+	  std::cout <<"StepXY([-inf,"<< x0 <<"]x[-inf,"<< y0 <<"]))";
+	  f = new StepXYFunc(A,x0,y0);
+	}
+      }
       break;
     }
-    cline = strtok(NULL," ");
   }
   else if (quadratic > 0 && (cline = strtok(NULL," ")))
   {

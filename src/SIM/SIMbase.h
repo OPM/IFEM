@@ -324,16 +324,19 @@ public:
   //! by the other \a writeGlv* methods.
   bool writeGlv(const char* inpFile, const int* nViz, int format);
 
-  //! \brief Write current geometry to the VTF-file
-  //! \param[in] iStep Load/time step identifier
+  //! \brief Write current model geometry to the VTF-file.
   //! \param[in] nViz Number of visualization points over each knot-span
   //! \param nBlock Running result block counter
-  bool writeGlvG(int iStep, const int* nViz, int& nBlock);
+  //! \param[in] inpFile File name used to construct the VTF-file name from
+  //! \param[in] format Format of VTF-file (0=ASCII, 1=BINARY)
+  bool writeGlvG(const int* nViz, int& nBlock,
+		 const char* inpFile = 0, int format = -1);
 
   //! \brief Writes boundary conditions as scalar fields to the VTF-file.
   //! \param[in] nViz Number of visualization points over each knot-span
   //! \param nBlock Running result block counter
-  bool writeGlvBC(const int* nViz, int& nBlock) const;
+  //! \param[in] iStep Load/time step identifier
+  bool writeGlvBC(const int* nViz, int& nBlock, int iStep = 1) const;
 
   //! \brief Writes boundary tractions for a given time step to the VTF-file.
   //! \param[in] iStep Load/time step identifier

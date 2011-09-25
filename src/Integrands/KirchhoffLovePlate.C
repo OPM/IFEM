@@ -12,14 +12,15 @@
 //==============================================================================
 
 #include "KirchhoffLovePlate.h"
-#include "FiniteElement.h"
 #include "LinIsotropic.h"
+#include "FiniteElement.h"
 #include "Utilities.h"
 #include "ElmMats.h"
 #include "ElmNorm.h"
 #include "Tensor.h"
-#include "Vec3.h"
+#include "Vec3Oper.h"
 #include "AnaSol.h"
+#include "VTF.h"
 
 
 KirchhoffLovePlate::KirchhoffLovePlate ()
@@ -77,6 +78,7 @@ void KirchhoffLovePlate::setMode (SIM::SolutionMode mode)
       myMats->resize(1,1);
       eK = &myMats->A[0];
       eS = &myMats->b[0];
+      presVal.clear();
       break;
 
     case SIM::DYNAMIC:
@@ -84,6 +86,7 @@ void KirchhoffLovePlate::setMode (SIM::SolutionMode mode)
       eK = &myMats->A[0];
       eM = &myMats->A[1];
       eS = &myMats->b[0];
+      presVal.clear();
       break;
 
     case SIM::VIBRATION:
@@ -107,6 +110,7 @@ void KirchhoffLovePlate::setMode (SIM::SolutionMode mode)
       if (myMats->b.empty())
 	myMats->b.resize(1);
       eS = &myMats->b[0];
+      presVal.clear();
       break;
 
     case SIM::RECOVERY:
@@ -118,6 +122,7 @@ void KirchhoffLovePlate::setMode (SIM::SolutionMode mode)
     default:
       myMats->resize(0,0);
       mySols.clear();
+      presVal.clear();
     }
 }
 
@@ -167,6 +172,21 @@ bool KirchhoffLovePlate::haveLoads () const
     return material->getMassDensity(Vec3()) != 0.0;
 
   return false;
+}
+
+
+bool KirchhoffLovePlate::writeGlvT (VTF* vtf, int iStep, int& nBlock) const
+{
+  if (presVal.empty())
+    return true;
+  else if (!vtf)
+    return false;
+
+  // Write surface pressures as discrete point vectors to the VTF-file
+  if (!vtf->writeVectors(presVal,++nBlock))
+    return false;
+
+  return vtf->writeVblk(nBlock,"Pressure",1,iStep);
 }
 
 
@@ -236,9 +256,11 @@ void KirchhoffLovePlate::formBodyForce (Vector& ES, const Vector& N,
 					const Vec3& X, double detJW) const
 {
   double p = this->getPressure(X);
-
   if (p != 0.0)
+  {
     ES.add(N,p*detJW);
+    presVal[X].z = p; // Store pressure value for visualization
+  }
 }
 
 

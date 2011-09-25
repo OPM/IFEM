@@ -133,13 +133,9 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
       else
       {
 	this->setPropertyType(code,Property::DIRICHLET_INHOM);
-	if ((cline = strtok(NULL," ")))
-	  myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,d));
-	else
-	{
-	  std::cout << d;
-	  myScalars[code] = new ConstFunc(d);
-	}
+
+	cline = strtok(NULL," ");
+	myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,d));
       }
       std::cout << std::endl;
     }
@@ -300,10 +296,8 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
 	if (!this->addConstraint(patch,pvert,0,bcode%1000,code))
 	  return false;
 
-	if ((cline = strtok(NULL," ")))
-	  myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,pd));
-	else
-	  myScalars[code] = new ConstFunc(pd);
+	cline = strtok(NULL," ");
+	myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,pd));
       }
       std::cout << std::endl;
     }

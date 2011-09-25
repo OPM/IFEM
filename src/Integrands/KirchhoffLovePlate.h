@@ -15,6 +15,8 @@
 #define _KIRCHHOFF_LOVE_PLATE_H
 
 #include "IntegrandBase.h"
+#include "Vec3.h"
+#include <map>
 
 class LocalSystem;
 class Material;
@@ -31,7 +33,6 @@ class KirchhoffLovePlate : public IntegrandBase
 public:
   //! \brief The default constructor initializes all pointers to zero.
   KirchhoffLovePlate();
-
   //! \brief The destructor frees the dynamically allocated data objects.
   virtual ~KirchhoffLovePlate();
 
@@ -84,12 +85,10 @@ public:
 
   //! \brief Evaluates the secondary solution at a result point.
   //! \param[out] s Array of solution field values at current point
-  //! \param[in] N Basis function values at current point
-  //! \param[in] dNdX Basis function gradients at current point
   //! \param[in] d2NdX2 Basis function 2nd derivatives at current point
   //! \param[in] X Cartesian coordinates of current point
   //! \param[in] MNPC Nodal point correspondance for the basis function values
-  virtual bool evalSol(Vector& s, const Vector& N, const Matrix& dNdX,
+  virtual bool evalSol(Vector& s, const Vector&, const Matrix&,
 		       const Matrix3D& d2NdX2, const Vec3& X,
 		       const std::vector<int>& MNPC) const;
 
@@ -114,6 +113,14 @@ public:
   virtual double getPressure(const Vec3& X) const;
   //! \brief Returns whether an external load is defined.
   virtual bool haveLoads() const;
+
+  //! \brief Writes the surface pressure for a given time step to VTF-file.
+  //! \param vtf The VTF-file object to receive the pressure vectors
+  //! \param[in] iStep Load/time step identifier
+  //! \param nBlock Running result block counter
+  virtual bool writeGlvT(VTF* vtf, int iStep, int& nBlock) const;
+  //! \brief Returns whether there are any pressure values to write to VTF.
+  virtual bool hasTractionValues() const { return !presVal.empty(); }
 
   //! \brief Returns a pointer to an Integrand for solution norm evaluation.
   //! \note The Integrand object is allocated dynamically and has to be deleted
@@ -176,6 +183,8 @@ protected:
 
   LocalSystem* locSys;  //!< Local coordinate system for result output
   RealFunc*    presFld; //!< Pointer to pressure field
+
+  mutable std::map<Vec3,Vec3> presVal; //!< Pressure field point values
 
   // Work arrays declared as members to avoid frequent re-allocation
   // within the numerical integration loop (for reduced overhead)
