@@ -408,7 +408,7 @@ bool NonLinSIM::saveModel (char* fileName, int format, int* nViz)
   nBlock = 0; // initialize the result block counter
 
   // Write VTF-file with model geometry
-  if (!model->writeGlv(fileName,nViz,format))
+  if (!model->writeGlvG(nViz,nBlock,fileName,format))
     return false;
 
   // Write Dirichlet boundary conditions

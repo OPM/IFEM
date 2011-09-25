@@ -74,6 +74,10 @@ VTF::~VTF ()
 {
   if (!myFile) return;
 
+  size_t i;
+  for (i = 0; i < myBlocks.size(); i++) 
+    delete myBlocks[i].second;
+
 #if HAS_VTFAPI == 1
   if (myGBlock)
   {
@@ -81,8 +85,6 @@ VTF::~VTF ()
       showError("Error writing Geometry Block");
     delete myGBlock;
   }
-
-  size_t i;
   for (i = 0; i < myDBlock.size(); i++)
     if (myDBlock[i])
     {
@@ -125,7 +127,6 @@ VTF::~VTF ()
     delete myGBlock;
   }
 
-  size_t i;
   for (i = 0; i < myDBlock.size(); i++)
     if (myDBlock[i])
     {
@@ -181,17 +182,12 @@ VTF::~VTF ()
 
 void VTF::writeGeometryBlocks (int iStep)
 {
-  pointGeoID = 0;
   if (myBlocks.empty())
     return;
 
   std::vector<int> geomID(myBlocks.size());
   for (size_t i = 0; i < myBlocks.size(); i++)
-  {
     geomID[i] = myBlocks[i].first;
-    delete myBlocks[i].second;
-  }
-  myBlocks.clear();
 
 #ifdef HAS_VTFAPI
   if (!myGBlock) myGBlock = new VTFAGeometryBlock();
@@ -201,6 +197,16 @@ void VTF::writeGeometryBlocks (int iStep)
   myGBlock->SetElementBlocksForState(&geomID.front(),geomID.size(),iStep);
 #endif
 #endif
+}
+
+
+void VTF::clearGeometryBlocks ()
+{ 
+  for (size_t i = 0; i < myBlocks.size(); i++) 
+    delete myBlocks[i].second;
+
+  myBlocks.clear();
+  pointGeoID = 0;
 }
 
 

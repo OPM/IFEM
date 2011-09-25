@@ -147,6 +147,8 @@ public:
 
   //! \brief Adds the current FE geometry blocks to the description block.
   void writeGeometryBlocks(int iStep);
+  //! \brief Dropd current FE geometry blocks.
+  void clearGeometryBlocks();
 
 private:
   //! \brief Writes a node block to the VTF-file.

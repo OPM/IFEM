@@ -386,11 +386,11 @@ int main (int argc, char** argv)
   if (iop != 10 && format >= 0)
   {
     // Write VTF-file with model geometry
-    if (!model->writeGlv(infile,n,format))
+    if (!model->writeGlvG(n,nBlock,infile,format))
       return 7;
 
     // Write boundary tractions, if any
-    if (!model->writeGlvT(iStep,++nBlock))
+    if (!model->writeGlvT(iStep,nBlock))
       return 8;
 
     // Write Dirichlet boundary conditions

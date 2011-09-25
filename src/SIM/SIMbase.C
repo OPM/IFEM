@@ -980,6 +980,8 @@ bool SIMbase::writeGlvG (const int* nViz, int& nBlock,
     myVtf = new VTF(vtfName,format);
     delete[] vtfName;
   }
+  else
+    myVtf->clearGeometryBlocks();
 
   // Convert and write model geometry
   char pname[16];
