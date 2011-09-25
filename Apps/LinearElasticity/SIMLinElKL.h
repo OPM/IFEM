@@ -18,6 +18,24 @@
 
 
 /*!
+  \brief Struct defining a nodal point load.
+*/
+
+struct PointLoad
+{
+  size_t patch; //!< Patch index [0,nPatch>
+  int    inod;  //!< Local node number of the closest node
+  double xi[2]; //!< Parameters of the point (u,v)
+  Vec3   X;     //!< Spatial coordinates of the point
+  double pload; //!< Load magnitude
+  // \brief Default constructor.
+  PointLoad() : patch(0), inod(0) { xi[0] = xi[1] = pload = 0.0; }
+};
+
+typedef std::vector<PointLoad> PloadVec; //!< Point load container
+
+
+/*!
   \brief Driver class for isogeometric FEM analysis of Kirchhoff-Love plates.
 */
 
@@ -29,6 +47,12 @@ public:
   //! \brief Empty destructor.
   virtual ~SIMLinElKL() {}
 
+  //! \brief Performs some pre-processing tasks on the FE model.
+  //! \param[in] ignored Indices of patches to ignore in the analysis
+  //! \param[in] fixDup Merge duplicated FE nodes on patch interfaces?
+  virtual bool preprocess(const std::vector<int>& ignored = std::vector<int>(),
+			  bool fixDup = false);
+
 protected:
   //! \brief Parses a data section from the input stream.
   //! \param[in] keyWord Keyword of current data section to read
@@ -38,9 +62,19 @@ protected:
   //! \brief Initializes material properties for integration of interior terms.
   //! \param[in] propInd Physical property index
   virtual bool initMaterial(size_t propInd);
+  //! \brief Initializes the body load properties for current patch.
+  //! \param[in] patchInd 1-based patch index
+  virtual bool initBodyLoad(size_t patchInd);
+
+  //! \brief Finalizes the global equation system assembly.
+  virtual bool finalizeAssembly(bool newLHSmatrix);
+
+  //! \brief Computes problem-dependet external energy contributions.
+  virtual double externalEnergy(const Vectors& psol) const;
 
 private:
-  RealArray tVec; //!< Plate thickness data
+  RealArray tVec;    //!< Plate thickness data
+  PloadVec  myLoads; //!< Nodal point loads
 };
 
 #endif
