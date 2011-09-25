@@ -1,12 +1,41 @@
 Cylinder-Spectral.inp -checkRHS -spectral
 
+Input file: Cylinder-Spectral.inp
+Equation solver: 2
+Number of Gauss points: 4
+Spectral basis functions are used
+Check that each patch has a right-hand coordinate system
+Reading input file Cylinder-Spectral.inp
+Number of patches: 1
+Reading patch file cylinder.g2
+	Swapped.
+Number of constraints: 4
+	Constraining P1 F5 in direction(s) 3
+	Constraining P1 F6 in direction(s) 3
+	Constraining P1 V1 in direction(s) 123
+	Constraining P1 V3 in direction(s) 23
+Number of periodicities: 1
+	Periodic I-direction P1
+Number of pressures: 1
+	Pressure on P1 F3 direction 0: -1e+06
+Local coordinate system: Cylindric
+Reading input file succeeded.
+Problem definition:
+Elasticity: 3D, gravity = 0 0 0
+LinIsotropic: E = 2.05e+11, nu = 0.29, rho = 7850
+Resolving Dirichlet boundary conditions
+ >>> SAM model summary <<<
 Number of elements    64
 Number of nodes       5049
 Number of dofs        15147
 Number of constraints 425
 Number of unknowns    13597
+Assembling interior matrix terms for P1
+Assembling Neumann matrix terms for boundary 3 on P1
+Solving the equation system ...
+ >>> Solution summary <<<
 L2-norm            : 6.68966e-06
-Max X-displacement : 1.85424e-05
-Max Y-displacement : 9.27122e-06
+Max X-displacement : 1.85424e-05 node 2822
+Max Y-displacement : 9.27122e-06 node 9
 Energy norm |u^h| = a(u^h,u^h)^0.5   : 17.0665
 External energy ((f,u^h)+(t,u^h)^0.5 : 17.0665

@@ -17,7 +17,7 @@ Number of constraints: 3
 	Constraining P1 E2 in direction(s) 1
 	Constraining P1 E3 in direction(s) 2
 Number of pressures: 1
-	Pressure on P1 E4 direction 2: (-2\*StepX(1.0)) \* 1\*t
+	Pressure on P1 E4 direction 2: (-2\*StepX(1,3)) \* 1\*t
 Number of isotropic materials: 1
 	Material code 0: 400942 80.1938 0 (21)
 Reading input file succeeded.

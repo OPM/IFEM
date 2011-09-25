@@ -1,7 +1,5 @@
 Hole2D-Lagrange.inp -2Dpstrain -lagrange
 
- >>> Spline FEM Linear Elasticity solver <<<
- ===========================================
 Input file: Hole2D-Lagrange.inp
 Equation solver: 2
 Number of Gauss points: 4

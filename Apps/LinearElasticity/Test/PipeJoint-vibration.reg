@@ -1,9 +1,59 @@
 PipeJoint-vibration.inp -free -eig 4 -nev 16 -ncv 32
 
+Input file: PipeJoint-vibration.inp
+Equation solver: 2
+Number of Gauss points: 4
+Eigenproblem solver: 4
+Number of eigenvalues: 16
+Number of Arnoldi vectors: 32
+Shift value: 0
+Specified boundary conditions are ignored
+Reading input file PipeJoint-vibration.inp
+Reading data file pipe_bifurcation.g2
+Reading patch 1
+Reading patch 2
+Reading patch 3
+Reading patch 4
+Reading patch 5
+Reading patch 6
+Reading patch 7
+Reading patch 8
+Reading patch 9
+Reading patch 10
+Reading data file pipe_bifurcation.gno
+Reading data file pipe_bifurcation.prc
+Number of pressures: 1
+	Pressure code 1001 direction 1: 1e+08
+Reading input file succeeded.
+Problem definition:
+Elasticity: 3D, gravity = 0 0 0
+LinIsotropic: E = 2.05e+11, nu = 0.29, rho = 7850
+Renumbered 265 nodes
+Resolving Dirichlet boundary conditions
+ >>> SAM model summary <<<
 Number of elements    12
 Number of nodes       166
 Number of dofs        498
 Number of unknowns    498
+Assembling interior matrix terms for P1
+Assembling interior matrix terms for P2
+Assembling interior matrix terms for P3
+Assembling interior matrix terms for P4
+Assembling interior matrix terms for P5
+Assembling interior matrix terms for P6
+Assembling interior matrix terms for P7
+Assembling interior matrix terms for P8
+Assembling interior matrix terms for P9
+Assembling interior matrix terms for P10
+Solving the eigenvalue problem ...
+ >>> Computed Eigenvalues <<<
+     Mode	Frequency \[Hz]
+     1		-5.91225e-06
+     2		-4.06953e-06
+     3		-2.46024e-06
+     4		1.56728e-06
+     5		2.79509e-06
+     6		5.90041e-06
      7		7.45855
      8		7.80118
      9		11.7379
@@ -14,20 +64,3 @@ Number of unknowns    498
      14		23.4314
      15		27.2659
      16		29.3211
-  Row   7:    2.19619D+03
-  Row   8:    2.40260D+03
-  Row   9:    5.43926D+03
-  Row  10:    7.22517D+03
-  Row  11:    1.00079D+04
-  Row  12:    1.09048D+04
-  Row  13:    1.82111D+04
-  Row  14:    2.16749D+04
-  Row  15:    2.93495D+04
-  Row  16:    3.39407D+04
-  Size of the matrix is          498
-  The number of Ritz values requested is           16
-  The number of Arnoldi vectors generated (NCV) is           32
-  What portion of the spectrum: LM
-  The number of converged Ritz values is           16
-  The number of Implicit Arnoldi update iterations taken is            3
-  The number of OP\*x is           49
