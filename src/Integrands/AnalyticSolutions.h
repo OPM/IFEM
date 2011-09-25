@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Analytic solutions for some linear elasticity and Poisson problems.
+//! \brief Analytic solutions for linear elasticity problems.
 //!
 //==============================================================================
 
@@ -152,9 +152,11 @@ private:
 class NavierPlate : public STensorFunc
 {
 public:
-  //! \brief Constructor with some default parameters.
-  NavierPlate(double a = 1.0, double b = 1.0, double t = 0.1, double F = 1.0,
-	      double E = 2.1e11, double Poiss = 0.3);
+  //! \brief Constructor for plate with constant pressure load.
+  NavierPlate(double a, double b, double t, double E, double Poiss, double P);
+  //! \brief Constructor for plate with partial pressure or point load.
+  NavierPlate(double a, double b, double t, double E, double Poiss, double P,
+	      double xi_, double eta_, double c = 0.0, double d = 0.0);
   //! \brief Empty destructor.
   virtual ~NavierPlate() {}
 
@@ -170,218 +172,13 @@ private:
   double beta;  //!< pi/(plate width)
   double pz;    //!< Load parameter
   double nu;    //!< Poisson's ratio
-};
 
-
-/*!
-  \brief Analytic solution for the Poisson equation on a square.
-*/
-
-class Square2D : public VecFunc
-{
-public:
-  //! \brief Empty constructor.
-  Square2D(double = 1.0) {}
-  //! \brief Empty destructor.
-  virtual ~Square2D() {}
-
-protected:
-  //! \brief Evaluates the analytic flux vector at the point \a X.
-  virtual Vec3 evaluate(const Vec3& X) const;
-};
-
-
-/*!
-  \brief Heat source for the Poisson equation on a square.
-*/
-
-class Square2DHeat : public RealFunc
-{
-public:
-  //! \brief Empty constructor.
-  Square2DHeat(double = 1.0) {}
-  //! \brief Empty destructor.
-  virtual ~Square2DHeat() {}
-
-protected:
-  //! \brief Evaluates the heat field at the point \a X.
-  virtual double evaluate(const Vec3& X) const;
-};
-
-
-/*!
-  \brief Analytic solution for the L-shape problem for the Poisson equation.
-*/
-
-class LshapePoisson : public VecFunc
-{
-public:
-  //! \brief Empty constructor.
-  LshapePoisson() {}
-  //! \brief Empty destructor.
-  virtual ~LshapePoisson() {}
-
-protected:
-  //! \brief Evaluates the analytic flux vector at the point \a X.
-  virtual Vec3 evaluate(const Vec3& X) const;
-};
-
-/*!
-  \brief Sinus-solution of the Poisson equation on a square.
-*/
-
-class SquareSinus : public VecFunc
-{
-public:
-  //! \brief Empty constructor.
-  SquareSinus() {}
-  //! \brief Empty destructor.
-  virtual ~SquareSinus() {}
-
-protected:
-  //! \brief Evaluates the analytic flux vector at the point \a X.
-  virtual Vec3 evaluate(const Vec3& X) const;
-};
-
-/*!
-  \brief Sinus-solution of the Poisson equation on a square.
-*/
-
-class SquareSinusSource : public RealFunc
-{
-public:
-  //! \brief Empty constructor.
-  SquareSinusSource() {}
-  //! \brief Empty destructor.
-  virtual ~SquareSinusSource() {}
-
-protected:
-  //! \brief Evaluates the analytic flux vector at the point \a X.
-  virtual double evaluate(const Vec3& X) const;
-};
-
-/*!
-  \brief Poisson problem with smooth solution that exhibits a steep interior layer
-*/
-class PoissonInteriorLayer : public VecFunc
-{
-public:
-  //! \brief Empty constructor.
-  PoissonInteriorLayer(double s = 60.0) : SLOPE(s) {}
-  //! \brief Empty destructor.
-  virtual ~PoissonInteriorLayer() {}
-
-protected:
-  //! \brief Evaluates the heat field at the point \a X.
-  virtual Vec3 evaluate(const Vec3& X) const;
-
-private:
-  double SLOPE; //!< layer SLOPE (larger SLOPE gives problems for adaptive solvers)
-};
-
-class PoissonInteriorLayerSol : public RealFunc
-{
-public:
-  //! \brief Empty constructor.
-  PoissonInteriorLayerSol(double s = 60.0) : SLOPE(s) {}
-  //! \brief Empty destructor.
-  virtual ~PoissonInteriorLayerSol() {}
-protected:
-  //! \brief Evaluates the exact solution of the heat distribution at the point \a X.
-  virtual double evaluate(const Vec3& X) const;
-private:
-  double SLOPE; //!< layer SLOPE (larger SLOPE gives problems for adaptive solvers)
-};
-
-class PoissonInteriorLayerSource : public RealFunc
-{
-public:
-  //! \brief default constructor.
-  PoissonInteriorLayerSource(double s = 60.0) : SLOPE(s) {}
-  //! \brief Empty destructor.
-  virtual ~PoissonInteriorLayerSource() {}
-protected:
-  virtual double evaluate(const Vec3& X) const;
-private:
-  double SLOPE; //!< layer SLOPE (larger SLOPE gives problems for adaptive solvers)
-};
-
-
-/*!
-  \brief Analytic solution for the Poisson equation on a cube.
-*/
-
-class PoissonCube : public VecFunc
-{
-public:
-  //! \brief Empty Constructor.
-  PoissonCube() {}
-  //! \brief Empty destructor.
-  virtual ~PoissonCube() {}
-
-protected:
-  //! \brief Evaluates the analytic flux vector at the point \a X.
-  virtual Vec3 evaluate(const Vec3& X) const;
-};
-
-
-/*!
-  \brief Heat source for the Poisson equation on a cube.
-*/
-
-class PoissonCubeSource : public RealFunc
-{
-public:
-  //! \brief Empty constructor.
-  PoissonCubeSource() {}
-  //! \brief Empty destructor.
-  virtual ~PoissonCubeSource() {}
-
-protected:
-  //! \brief Evaluates the heat field at the point \a X.
-  virtual double evaluate(const Vec3& X) const;
-};
-
-
-/*!
-  \brief Analytic solution for the Poisson equation on a line.
-*/
-
-class PoissonLine : public VecFunc
-{
-public:
-  //! \brief Empty constructor.
-  PoissonLine(double r = 1.0) : L(r) {}
-  //! \brief Empty destructor.
-  virtual ~PoissonLine() {}
-
-protected:
-  //! \brief Evaluates the analytic flux vector at the point \a X.
-  virtual Vec3 evaluate(const Vec3& X) const;
-
-private:
-  double L; //!< Length parameter
-};
-
-
-/*!
-  \brief Heat source for the Poisson equation on a line.
-*/
-
-class PoissonLineSource : public RealFunc
-{
-public:
-  //! \brief Empty constructor.
-  PoissonLineSource(double r = 1.0) : L(r) {}
-  //! \brief Empty destructor.
-  virtual ~PoissonLineSource() {}
-
-protected:
-  //! \brief Evaluates the heat field at the point \a X.
-  virtual double evaluate(const Vec3& X) const;
-
-private:
-  double L; //!< Length parameter
+  char   type; //!< Load type parameter
+  double xi;   //!< X-position of point/partial load
+  double eta;  //!< Y-position of point/partial load
+  double c2;   //!< Partial load extension in X-direction
+  double d2;   //!< Partial load extension in Y-direction
+  int    inc;  //!< Increment in Fourier term summation (1 or 2)
 };
 
 #endif

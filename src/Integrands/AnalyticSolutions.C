@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Analytic solutions for some linear elasticity and Poisson problems.
+//! \brief Analytic solutions for linear elasticity problems.
 //!
 //==============================================================================
 
@@ -183,217 +183,150 @@ SymmTensor CurvedBeam::evaluate (const Vec3& X) const
 /*!
   \class NavierPlate
 
-  Navier plate solution for a constant pressure load.
+  Navier plate solution for a constant pressure load or
+  a point load at an arbitrary position.
 
-  Reference: S. E. Weberg, "Todimensjonal elastisitetsteori", 1975, page 62.
+  Reference: S. E. Weberg, "Todimensjonal elastisitetsteori", 1975, pages 61-67.
 */
 
-NavierPlate::NavierPlate (double a, double b, double t, double F,
-			  double E, double Poiss) : pz(F), nu(Poiss)
+NavierPlate::NavierPlate (double a, double b, double t, double E, double Poiss,
+			  double P) : pz(P), nu(Poiss), type(0), inc(2)
 {
   alpha = M_PI/a;
   beta  = M_PI/b;
 
-  // Calculate and print the maximum displacement (at x=a/2, y=b/2)
+  // Calculate and print the maximum displacement (at the centre x=a/2, y=b/2)
+  double x = 0.5*a;
+  double y = 0.5*b;
   double D = E*t*t*t/(12.0-12.0*nu*nu);
+
   double w = 0.0;
-  for (int m = 1; m < 100; m += 2)
-    for (int n = 1; n < 100; n += 2)
+  for (int m = 1; m < 100; m += inc)
+    for (int n = 1; n < 100; n += inc)
     {
       double am   = alpha*m;
       double bn   = beta*n;
-      double am2  = am*am;
-      double bn2  = bn*bn;
-      double pzmn = 16.0*pz / (M_PI*M_PI*m*n*(am2+bn2)*(am2+bn2));
-      w += (pzmn/D) * sin(0.5*am*a)*sin(0.5*bn*b);
+      double abmn = am*am + bn*bn;
+      w += sin(am*x)*sin(bn*y) / (double(m)*double(n)*abmn*abmn);
     }
 
-  std::cout <<"NavierPlate: wmax = "<< w << std::endl;
+  w *= 16.0*pz / (D*M_PI*M_PI);
+
+  std::streamsize oldPrec = std::cout.precision(10);
+  std::cout <<"\nNavierPlate: w_max = "<< w << std::endl;
+  std::cout.precision(oldPrec);
 }
+
+
+NavierPlate::NavierPlate (double a, double b, double t, double E, double Poiss,
+			  double P, double xi_, double eta_, double c, double d)
+  : pz(P), nu(Poiss), type(2), inc(1)
+{
+  alpha = M_PI/a;
+  beta  = M_PI/b;
+  xi    = xi_*a;
+  eta   = eta_*b;
+  c2    = 0.5*c;
+  d2    = 0.5*d;
+  if (c == 0.0 || d == 0.0) type = 1;
+  if (xi_ == 0.5 && eta_ == 0.5) inc = 2;
+
+  // Calculate and print the displacement at the centre x=a/2, y=b/2
+  double x = 0.5*a;
+  double y = 0.5*b;
+  double D = E*t*t*t/(12.0-12.0*nu*nu);
+
+  double w = 0.0;
+  for (int m = 1; m <= 100; m += inc)
+    for (int n = 1; n <= 100; n += inc)
+    {
+      double am   = alpha*m;
+      double bn   = beta*n;
+      double abmn = am*am + bn*bn;
+      double pzmn = sin(am*xi)*sin(bn*eta) / (abmn*abmn);
+      if (type == 2)
+	pzmn *= sin(am*c2)*sin(bn*d2) / (double(m)*double(n));
+      w += pzmn*sin(am*x)*sin(bn*y);
+    }
+
+  if (type == 1)
+    w *= 4.0*pz / (D*a*b);
+  else
+    w *= 16.0*pz / (D*M_PI*M_PI);
+
+  std::streamsize oldPrec = std::cout.precision(10);
+  std::cout <<"\nNavierPlate: w_centre = "<< w << std::endl;
+  std::cout.precision(oldPrec);
+}
+
+
+inline double SIN(double x) { return sin(fmod(x,2.0*M_PI)); }
+inline double COS(double x) { return cos(fmod(x,2.0*M_PI)); }
 
 
 void NavierPlate::addTerms (std::vector<double>& M,
 			    double x, double y, int m, int n) const
 {
-  double am   = alpha*m;
-  double bn   = beta*n;
-  double am2  = am*am;
-  double bn2  = bn*bn;
-  double pzmn = 16.0*pz / (M_PI*M_PI*m*n*(am2+bn2)*(am2+bn2));
-  M[0] += pzmn*(am2 + nu*bn2)*sin(am*x)*sin(bn*y);
-  M[1] += pzmn*(bn2 + nu*am2)*sin(am*x)*sin(bn*y);
-  M[2] += pzmn*(nu - 1.0)*am*bn*cos(am*x)*cos(bn*y);
+  double am  = alpha*m;
+  double bn  = beta*n;
+  double am2 = am*am;
+  double bn2 = bn*bn;
+  double dmn = double(m) * double(n);
+
+  double pzmn = 0.0;
+  switch (type) {
+  case 0: // uniform pressure
+    pzmn = 1.0 / dmn;
+    break;
+  case 1: // concentrated point load
+    pzmn = SIN(am*xi)*SIN(bn*eta);
+    break;
+  case 2: // partial load
+    pzmn = SIN(am*xi)*SIN(bn*eta) * SIN(am*c2)*SIN(bn*d2) / dmn;
+    break;
+  }
+
+  pzmn /= (am2+bn2)*(am2+bn2);
+  M[0] += pzmn*(am2 + nu*bn2)*SIN(am*x)*SIN(bn*y);
+  M[1] += pzmn*(bn2 + nu*am2)*SIN(am*x)*SIN(bn*y);
+  M[2] += pzmn*(nu - 1.0)*am*bn*COS(am*x)*COS(bn*y);
 }
 
 
 SymmTensor NavierPlate::evaluate (const Vec3& X) const
 {
   const int max_mn = 100;
-  const double eps = 1.0e-16;
+  const double eps = 1.0e-8;
 
   SymmTensor M(2);
 
   double prev = 0.0;
-  for (int i = 1; i <= max_mn; i += 2)
+  for (int i = 1; i <= max_mn; i += inc)
   {
-    for (int m = 1; m < i; m += 2)
-      this->addTerms(M,X.x,X.y,m,i);
-    for (int n = 1; n < i; n += 2)
-      this->addTerms(M,X.x,X.y,i,n);
+    for (int j = 1; j < i; j += inc)
+    {
+      this->addTerms(M,X.x,X.y,i,j);
+      this->addTerms(M,X.x,X.y,j,i);
+    }
     this->addTerms(M,X.x,X.y,i,i);
 
     double norm = M.L2norm();
-    if (fabs(norm-prev) < eps) break;
-    prev = norm;
+#ifdef SP_DEBUG
+    if (i == 1) std::cout <<"\nNavierPlate, X = "<< X.x <<" "<< X.y << std::endl;
+    std::cout << i <<": "<< M(1,1) <<" "<< M(2,2) <<" "<< M(1,2)
+	      <<" -> "<< norm <<" "<< fabs(norm-prev)/norm << std::endl;
+#endif
+    if (i%2)
+      if (fabs(norm-prev) < eps*norm)
+        break;
+      else
+	prev = norm;
   }
 
+  if (type == 1) // concentrated load
+    M *= 4.0*pz * (alpha/M_PI)*(beta/M_PI);
+  else // uniform or partial pressure load
+    M *= 16.0*pz / (M_PI*M_PI);
+
   return M;
-}
-
-
-Vec3 Square2D::evaluate (const Vec3& X) const
-{
-  double x = X.x;
-  double y = X.y;
-  double pi = M_PI;
-
-  Vec3 temp;
-  temp.x = -pi*sin(pi*x)*(2.0-y);
-  temp.y = -cos(pi*x);
-
-  return temp;
-}
-
-
-double Square2DHeat::evaluate (const Vec3& X) const
-{
-  double x = X.x;
-  double y = X.y;
-  double pi = M_PI;
-
-  return -pi*pi*cos(pi*x)*(2.0-y);
-}
-
-
-Vec3 LshapePoisson::evaluate (const Vec3& X) const
-{
-  double x = X.x;
-  double y = X.y;
-  double R = hypot(x,y);
-  double pi = M_PI;
-  double Rp = pow(R,-1.0/3.0);
-  double th = x > 0.0 ? asin(y/R) : pi-asin(y/R);
-  double frac = 2.0/3.0;
-
-  Vec3 temp;
-  temp.x =  frac*Rp*sin(th/3.0);
-  temp.y = -frac*Rp*cos(th/3.0);
-
-  return temp;
-}
-
-Vec3 SquareSinus::evaluate (const Vec3& X) const
-{
-  double x = X.x;
-  double y = X.y;
-  double pi = M_PI;
-
-  Vec3 temp;
-  temp.x = 2*pi*cos(2*pi*x)*sin(2*pi*y);
-  temp.y = 2*pi*sin(2*pi*x)*cos(2*pi*y);
-
-  return temp;
-}
-
-double SquareSinusSource::evaluate (const Vec3& X) const
-{
-  double x = X.x;
-  double y = X.y;
-  double pi = M_PI;
-
-  return  -2*2*2*pi*pi*sin(2*pi*x)*sin(2*pi*y);
-}
-
-Vec3 PoissonInteriorLayer::evaluate (const Vec3& X) const
-{
-	double x = X.x;
-	double y = X.y;
-	double pi = M_PI;
-	Vec3 results;
-
-	double root = sqrt((x-1.25)*(x-1.25)+(y+.25)*(y+.25));
-	double u    = SLOPE*(root-pi/3);
-	results.x   = -SLOPE*(x-1.25) / root / (1+u*u);
-	results.y   = -SLOPE*(y+0.25) / root / (1+u*u);
-
-	return results;
-}
-
-double PoissonInteriorLayerSol::evaluate (const Vec3& X) const
-{
-	// picked up from http://hpfem.org/hermes2d/doc/src/benchmarks.html
-	double x = X.x;
-	double y = X.y;
-	double pi = M_PI;
-	return atan(SLOPE*(sqrt((x-1.25)*(x-1.25)+(y+.25)*(y+.25))-pi/3));
-}
-
-double PoissonInteriorLayerSource::evaluate(const Vec3& X) const
-{
-	// nabla of the u above. 
-	double x = X.x;
-	double y = X.y;
-
-	/******       maple did this for me                        ************/
-	double ans = SLOPE * pow(pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1), -0.3e1 / 0.2e1) * pow(0.2e1 * x - 0.250e1, 0.2e1) / (0.1e1 + SLOPE * SLOPE * pow(sqrt(pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1)) - 0.3141592654e1 / 0.3e1, 0.2e1)) / 0.4e1 - 0.2e1 * SLOPE * pow(pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1), -0.1e1 / 0.2e1) / (0.1e1 + SLOPE * SLOPE * pow(sqrt(pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1)) - 0.3141592654e1 / 0.3e1, 0.2e1)) + pow(SLOPE, 0.3e1) / (pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1)) * pow(0.2e1 * x - 0.250e1, 0.2e1) * pow(0.1e1 + SLOPE * SLOPE * pow(sqrt(pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1)) - 0.3141592654e1 / 0.3e1, 0.2e1), -0.2e1) * (sqrt(pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1)) - 0.3141592654e1 / 0.3e1) / 0.2e1 + SLOPE * pow(pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1), -0.3e1 / 0.2e1) * pow(0.2e1 * y + 0.50e0, 0.2e1) / (0.1e1 + SLOPE * SLOPE * pow(sqrt(pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1)) - 0.3141592654e1 / 0.3e1, 0.2e1)) / 0.4e1 + pow(SLOPE, 0.3e1) / (pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1)) * pow(0.2e1 * y + 0.50e0, 0.2e1) * pow(0.1e1 + SLOPE * SLOPE * pow(sqrt(pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1)) - 0.3141592654e1 / 0.3e1, 0.2e1), -0.2e1) * (sqrt(pow(x - 0.125e1, 0.2e1) + pow(y + 0.25e0, 0.2e1)) - 0.3141592654e1 / 0.3e1) / 0.2e1;
-	/***********************************************************************/
-
-	return  ans;
-}
-
-Vec3 PoissonCube::evaluate (const Vec3& X) const
-{
-  double x = X.x;
-  double y = X.y;
-  double z = X.z;
-  double pi = M_PI;
-
-  Vec3 temp;
-  temp.x = -pi*cos(x*pi)*sin(y*pi)*sin(z*pi);
-  temp.y = -pi*sin(x*pi)*cos(y*pi)*sin(z*pi);
-  temp.z = -pi*sin(x*pi)*sin(y*pi)*cos(z*pi);
-
-  return temp;
-}
-
-
-double PoissonCubeSource::evaluate (const Vec3& X) const
-{
-  double x = X.x;
-  double y = X.y;
-  double z = X.z;
-  double pi = M_PI;
-
-  return 3.0*pi*pi*sin(x*pi)*sin(y*pi)*sin(z*pi);
-}
-
-
-Vec3 PoissonLine::evaluate (const Vec3& X) const
-{
-  double x = X.x;
-  double pi = M_PI;
-
-  Vec3 temp;
-  temp.x = -(pi/L)*cos(x*pi/L);
-
-  return temp;
-}
-
-
-double PoissonLineSource::evaluate (const Vec3& X) const
-{
-  double x = X.x;
-  double pi = M_PI;
-
-  return (pi*pi)/(L*L)*sin(pi*x/L);
 }
