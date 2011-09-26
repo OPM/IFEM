@@ -27,7 +27,7 @@ class VTU : public VTF {
     VTU(const char* base, bool single);
     virtual ~VTU();
 
-    bool writeGrid(const ElementBlock* lvb, const char* name);
+    bool writeGrid(const ElementBlock* lvb, const char* name, int iStep=1);
 
     bool writeVres(const std::vector<double>& field, int blockID,
                    int geomID, int components);
@@ -39,7 +39,8 @@ class VTU : public VTF {
     bool writeDblk(const std::vector<int>& vBlockIDs, 
                    const char* resultName, int idBlock, int iStep=1);
     bool writeSblk(const std::vector<int>& sBlockIDs,
-                   const char* resultName, int idBlock, int iStep=1);
+                   const char* resultName, int idBlock, int iStep=1,
+                   bool elementData=false);
 
     bool writeState(int iStep, const char* fmt, real refValue, int refType=0);
 

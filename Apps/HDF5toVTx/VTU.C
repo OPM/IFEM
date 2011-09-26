@@ -35,7 +35,7 @@ VTU::~VTU()
 }
 
 
-bool VTU::writeGrid(const ElementBlock* block, const char* name)
+bool VTU::writeGrid(const ElementBlock* block, const char* name, int iStep)
 {
   m_geom.push_back(block);
   return true;
@@ -87,8 +87,9 @@ bool VTU::writeDblk(const std::vector<int>& dBlockIDs,
 }
 
 
-bool VTU::writeSblk(const std::vector<int>& sBlockIDs, 
-                    const char* resultName, int idBlock, int iStep)
+bool VTU::writeSblk(const std::vector<int>& sBlockIDs,
+                    const char* resultName, int idBlock, int iStep,
+                    bool elementData)
 {
   for (size_t i=0;i<sBlockIDs.size();++i)
     m_field[sBlockIDs[i]].name = resultName;
