@@ -18,6 +18,8 @@
 #include <sstream>
 #include <sys/stat.h>
 #include <numeric>
+#include <sys/statvfs.h>
+#include <assert.h>
 
 #ifdef HAS_HDF5
 #include <hdf5.h>
@@ -26,6 +28,8 @@
 #ifdef PARALLEL_PETSC
 #include <mpi.h>
 #endif
+
+#define HDF5_SANITY_LIMIT 10*1024*1024LL // 10MB
 
 
 HDF5Writer::HDF5Writer (const std::string& name, bool append, bool keepOpen)
@@ -87,8 +91,21 @@ void HDF5Writer::openFile(int level)
 
   if (m_flag == H5F_ACC_TRUNC)
     m_file = H5Fcreate(m_name.c_str(),m_flag,H5P_DEFAULT,acc_tpl);
-  else
+  else {
+    // check free disk space - to protect against corrupting files
+    // due to out of space condition
+    if (m_flag == H5F_ACC_RDWR) {
+      char* cwd = get_current_dir_name();
+      struct statvfs vfs;
+      statvfs(cwd,&vfs);
+      if (((int64_t)vfs.f_bavail)*vfs.f_bsize < HDF5_SANITY_LIMIT) {
+        std::cerr << "HDF5Writer: Low disk space detected, bailing" << std::endl;
+        exit(1);
+      }
+      free(cwd);
+    }
     m_file = H5Fopen(m_name.c_str(),m_flag,acc_tpl);
+  }
 
   std::stringstream str;
   str << '/' << level;
