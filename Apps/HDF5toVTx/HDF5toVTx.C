@@ -153,7 +153,7 @@ void writePatchGeometry(ASMbase* patch, int id, VTF& myVtf, int* nViz)
   size_t nd = patch->getNoParamDim();
   ElementBlock* lvb = new ElementBlock(nd == 3 ? 8 : (nd == 2 ? 4 : 2));
   patch->tesselate(*lvb,nViz);
-  myVtf.writeGrid(lvb,str.str().c_str());
+  myVtf.writeGrid(lvb,str.str().c_str(),id);
 }
 
 
@@ -288,6 +288,7 @@ int main (int argc, char** argv)
   for (int i=0;i<pit->second[0].patches;++i)
     writePatchGeometry(gpatches[i],i+1,*myVtf,n);
   FEmodel = generateFEModel(gpatches,dims,n);
+  myVtf->writeGeometryBlocks(1);
 
   // setup step boundaries and initial time
   if (starttime > 0)
