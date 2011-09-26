@@ -295,33 +295,33 @@ bool ASMu2D::raiseOrder (int ru, int rv)
 
 
 bool ASMu2D::refine (const std::vector<int>& elements,
-		     const std::vector<int>& options,
-		     const char* fName)
+                     const std::vector<int>& options,
+                     const char* fName)
 {
-  if (!lrspline) return false;
+	if (!lrspline) return false;
 
-  int multiplicity = 1;
-  if (!options.empty() && options.front() > 1)
-  {
-    int p1 = lrspline->order_u() - 1;
-    int p2 = lrspline->order_v() - 1;
-    multiplicity = options.front();
-    if (multiplicity > p1) multiplicity = p1;
-    if (multiplicity > p2) multiplicity = p2;
-  }
-  bool minSpan = options.size() > 1 && options[1] > 0;
+	int multiplicity = 1;
+	if (!options.empty() && options.front() > 1)
+	{
+		int p1 = lrspline->order_u() - 1;
+		int p2 = lrspline->order_v() - 1;
+		multiplicity = options.front();
+		if (multiplicity > p1) multiplicity = p1;
+		if (multiplicity > p2) multiplicity = p2;
+	}
+	bool minSpan = options.size() > 1 && options[1] > 0;
 
-  lrspline->refineElement(elements,multiplicity,minSpan);
-  if (fName)
-  {
-    std::ofstream meshFile(fName);
-    lrspline->writePostscriptMesh(meshFile);
-  }
+	lrspline->refineElement(elements,multiplicity,minSpan);
+	if (fName)
+	{
+		std::ofstream meshFile(fName);
+		lrspline->writePostscriptMesh(meshFile);
+	}
 
-  std::cout <<"Refined mesh: "<< lrspline->nElements()
-	    <<" elements "<< lrspline->nBasisFunctions()
-	    <<" nodes."<< std::endl;
-  return true;
+	std::cout <<"Refined mesh: "<< lrspline->nElements()
+	          <<" elements "<< lrspline->nBasisFunctions()
+	          <<" nodes."<< std::endl;
+	return true;
 }
 
 
@@ -333,14 +333,14 @@ bool ASMu2D::generateFEMTopology ()
 	const int nElements = lrspline->nElements();
 
 	if ((size_t)nBasis == MLGN.size())
-	  return true;
+		return true;
 	else if (!MLGN.empty())
 	{
-	  std::cerr <<" *** ASMu2D::generateFEMTopology: Inconsistency between the"
-		    <<" number of FE nodes "<< MLGN.size()
-		    <<"\n     and the number of basis functions "<< nBasis
-		    <<" in the patch."<< std::endl;
-	  return false;
+		std::cerr <<" *** ASMu2D::generateFEMTopology: Inconsistency between the"
+		          <<" number of FE nodes "<< MLGN.size()
+		          <<"\n     and the number of basis functions "<< nBasis
+		          <<" in the patch."<< std::endl;
+		return false;
 	}
 
 	const int p1 = lrspline->order_u();
@@ -1143,10 +1143,6 @@ bool ASMu2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 #ifdef SP_DEBUG
 	std::cout << "ASMu2D::getGridParameters(  )\n";
 #endif
-	if(nSegPerSpan != 1) {
-		std::cerr << "ASMu2D::getGridParameters called with nSegPerSpan != 2\n";
-		return false;
-	}
 
 	// output is written once for each element resulting in a lot of unnecessary storage
 	// this is preferable to figuring out all element topology information
@@ -1158,10 +1154,10 @@ bool ASMu2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 		double umax = (**el).umax();
 		double vmin = (**el).vmin();
 		double vmax = (**el).vmax();
-		for(int iv=0; iv<2; iv++) {
-			for(int iu=0; iu<2; iu++) {
-				double u = (iu==0) ? umin : umax;
-				double v = (iv==0) ? vmin : vmax;
+		for(int iv=0; iv<=nSegPerSpan; iv++) {
+			for(int iu=0; iu<=nSegPerSpan; iu++) {
+				double u = umin + (umax-umin)/nSegPerSpan*iu;
+				double v = vmin + (vmax-vmin)/nSegPerSpan*iv;
 				if(dir==0)
 					prm.push_back(u);
 				else
@@ -1226,14 +1222,20 @@ bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
 #endif
 	if(!lrspline) return false;
 
-	if(npe[0] != 2 || npe[1] != 2) {
-		std::cerr <<" *** ASMu2D::tesselate: unstructured tesselation only allows for 2 tesselation points\n";
+	if(npe[0] != npe[1]) {
+		std::cerr << "ASMu2D::tesselate does not support different tesselation resolution in "
+		          << "u- and v-direction. nviz u = " << npe[0] << ", nviz v = " << npe[1] << "\n";
 		return false;
 	}
 
+	int nNodesPerElement =  npe[0]   * npe[1];
+	int nSubElPerElement = (npe[0]-1)*(npe[1]-1);
+	int nElements        = lrspline->nElements();
+
 	// output is written once for each element resulting in a lot of unnecessary storage
 	// this is preferable to figuring out all element topology information
-	grid.unStructResize((size_t) lrspline->nElements(), (size_t) lrspline->nElements()*4);
+	grid.unStructResize(nElements * nSubElPerElement,
+	                    nElements * nNodesPerElement);
 
 	std::vector<LR::Element*>::iterator el;
 	int inod = 0;
@@ -1244,10 +1246,10 @@ bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
 		double umax = (**el).umax();
 		double vmin = (**el).vmin();
 		double vmax = (**el).vmax();
-		for(int iv=0; iv<2; iv++) {
-			for(int iu=0; iu<2; iu++) {
-				double u = (iu==0) ? umin : umax;
-				double v = (iv==0) ? vmin : vmax;
+		for(int iv=0; iv<npe[1]; iv++) {
+			for(int iu=0; iu<npe[0]; iu++) {
+				double u = umin + (umax-umin)/(npe[0]-1)*iu;
+				double v = vmin + (vmax-vmin)/(npe[1]-1)*iv;
 				Go::Point pt;
 				lrspline->point(pt, u,v, iel);
 				for(int dim=0; dim<nsd; dim++)
@@ -1257,13 +1259,20 @@ bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
 		}
 	}
 
-	// due to duplicate point storage, the element-to-node array is sort of trivial
-	for(int i=0; i<lrspline->nElements()*4; i+=4) {
-		// enumerate nodes counter clockwise around the quad
-		grid.setNode(i  , i  );
-		grid.setNode(i+1, i+1);
-		grid.setNode(i+2, i+3);
-		grid.setNode(i+3, i+2);
+	int ip = 0;
+	iel = 0;
+	for(int i=0; i<lrspline->nElements(); i++) {
+		int iStart = i*nNodesPerElement;
+		for(int iv=0; iv<npe[1]-1; iv++) {
+			for(int iu=0; iu<npe[0]-1; iu++, iel++) {
+				// enumerate nodes counterclockwise around the quad
+				grid.setNode(ip++, iStart + (iv  )*npe[0] + (iu  ) );
+				grid.setNode(ip++, iStart + (iv  )*npe[0] + (iu+1) );
+				grid.setNode(ip++, iStart + (iv+1)*npe[0] + (iu+1) );
+				grid.setNode(ip++, iStart + (iv+1)*npe[0] + (iu  ) );
+				grid.setElmId(iel+1, i+1);
+			}
+		}
 	}
 
 	return true;
@@ -1304,12 +1313,14 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 	Vector Ytmp;
 
 	// Evaluate the primary solution field at each point
-	size_t nPoints = gpar[0].size();
+	size_t nPoints   = gpar[0].size();
+	size_t nElements = lrspline->nElements();
+	size_t nPtsPerElement = nPoints / nElements;
 	sField.resize(nComp,nPoints);
 	for (size_t i = 0; i < nPoints; i++)
 	{
 		// fetch element containing evaluation point
-		int iel = i/4; // points are always listed in the same order as the elemnts, 4 pts per element
+		int iel = i/nPtsPerElement; // points are always listed in the same order as the elemnts
 
 		// fetch index of non-zero basis functions on this element
 		const IntVec& ip = MNPC[iel];
@@ -1411,65 +1422,78 @@ bool ASMu2D::evalSolution (Matrix& sField, const Integrand& integrand,
                            const RealArray* gpar, bool regular) const
 {
 #ifdef SP_DEBUG
-  std::cout <<"ASMu2D::evalSolution(Matrix&,const Integrand&,const RealArray*,bool)\n";
+	std::cout <<"ASMu2D::evalSolution(Matrix&,const Integrand&,const RealArray*,bool)\n";
 #endif
 
-  sField.resize(0,0);
+	sField.resize(0,0);
 
-  // TODO: investigate the possibility of doing "regular" refinement by
-  //       uniform tesselation grid and ignoring LR mesh lines
+	// TODO: investigate the possibility of doing "regular" refinement by
+	//       uniform tesselation grid and ignoring LR mesh lines
 
-  if (gpar[0].size() != gpar[1].size())
-    return false;
+	if (gpar[0].size() != gpar[1].size())
+		return false;
 
-  Vector   solPt;
-  Matrix   dNdu, dNdX, Jac, Xnod;
-  Matrix3D d2Ndu2, d2NdX2, Hess;
+	Vector   solPt;
+	Matrix   dNdu, dNdX, Jac, Xnod;
+	Matrix3D d2Ndu2, d2NdX2, Hess;
 
-  size_t nPoints = gpar[0].size();
-  bool use2ndDer = integrand.getIntegrandType() == 2;
+	size_t nPoints = gpar[0].size();
+	size_t nElements = lrspline->nElements();
+	size_t nPtsPerElement = nPoints / nElements;
+	size_t npe = floor((sqrt(nPtsPerElement)+.5));
+	double edge_epsilon = 0.01; // percentage offset from element size
+	bool use2ndDer = integrand.getIntegrandType() == 2;
 
-  // Evaluate the secondary solution field at each point
-  for (size_t i = 0; i < nPoints; i++)
-  {
-    // Fetch element containing evaluation point. Points are always listed
-    int iel = i/4; // in the same order as the elements, 4 pts per element.
+	// Evaluate the secondary solution field at each point
+	for (size_t i = 0; i < nPoints; i++)
+	{
+		// Fetch element containing evaluation point. Points are always listed
+		int iel = i/nPtsPerElement; // in the same order as the elements
+		LR::Element *el = lrspline->getElement(iel);
+		double du = el->umax() - el->umin();
+		double dv = el->vmax() - el->vmin();
+		double u = gpar[0][i];
+		double v = gpar[1][i];
+		if( i%npe == npe-1 )
+			u -= edge_epsilon*du;
+		if( (i%nPtsPerElement) / npe == npe-1)
+			v -= edge_epsilon*dv;
 
-    // Evaluate the basis functions at current parametric point
-    Vector N(lrspline->getElement(iel)->nBasisFunctions());
-    if (use2ndDer)
-    {
-      Go::BasisDerivsSf2 spline;
-      lrspline->computeBasis(gpar[0][i],gpar[1][i],spline,iel);
-      extractBasis(spline,N,dNdu,d2Ndu2);
-    }
-    else
-    {
-      Go::BasisDerivsSf spline;
-      lrspline->computeBasis(gpar[0][i],gpar[1][i],spline,iel);
-      extractBasis(spline,N,dNdu);
-    }
+		// Evaluate the basis functions at current parametric point
+		Vector N(lrspline->getElement(iel)->nBasisFunctions());
+		if (use2ndDer)
+		{
+			Go::BasisDerivsSf2 spline;
+			lrspline->computeBasis(u, v, spline,iel);
+			extractBasis(spline,N,dNdu,d2Ndu2);
+		}
+		else
+		{
+			Go::BasisDerivsSf spline;
+			lrspline->computeBasis(u, v, spline,iel);
+			extractBasis(spline,N,dNdu);
+		}
 
-    // Set up control point (nodal) coordinates for current element
-    if (!this->getElementCoordinates(Xnod,iel+1)) return false;
+		// Set up control point (nodal) coordinates for current element
+		if (!this->getElementCoordinates(Xnod,iel+1)) return false;
 
-    // Compute the Jacobian inverse
-    if (utl::Jacobian(Jac,dNdX,Xnod,dNdu) == 0.0) // Jac = (Xnod * dNdu)^-1
-      continue; // skip singular points
+		// Compute the Jacobian inverse
+		if (utl::Jacobian(Jac,dNdX,Xnod,dNdu) == 0.0) // Jac = (Xnod * dNdu)^-1
+			continue; // skip singular points
 
-    // Compute Hessian of coordinate mapping and 2nd order derivatives
-    if (use2ndDer)
-      if (!utl::Hessian(Hess,d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
-	continue;
+		// Compute Hessian of coordinate mapping and 2nd order derivatives
+		if (use2ndDer)
+			if (!utl::Hessian(Hess,d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
+				continue;
 
-    // Now evaluate the solution field
-    if (!integrand.evalSol(solPt,N,dNdX,d2NdX2,Xnod*N,MNPC[iel]))
-      return false;
-    else if (sField.empty())
-      sField.resize(solPt.size(),nPoints,true);
+		// Now evaluate the solution field
+		if (!integrand.evalSol(solPt,N,dNdX,d2NdX2,Xnod*N,MNPC[iel]))
+			return false;
+		else if (sField.empty())
+			sField.resize(solPt.size(),nPoints,true);
 
-    sField.fillColumn(1+i,solPt);
-  }
+		sField.fillColumn(1+i,solPt);
+	}
 
-  return true;
+	return true;
 }
