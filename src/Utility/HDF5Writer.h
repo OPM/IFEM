@@ -21,7 +21,8 @@ public:
 
   virtual void writeVector(int level, const DataEntry& entry);
   virtual bool readVector(int level, const DataEntry& entry);
-  virtual void writeSIM(int level, const DataEntry& entry);
+  virtual void writeSIM(int level, const DataEntry& entry,
+                        bool geometryUpdated);
   virtual bool readSIM(int level, const DataEntry& entry);
   virtual bool writeTimeInfo(int level, int order, int interval,
                              SIMparameters& tp);
@@ -31,6 +32,8 @@ public:
   void readString(const std::string& name, std::string& out);
   bool readVector(int level, const std::string& name,
                   int patch, Vector& vec);
+
+  bool hasGeometries(int level);
 
 protected:
   void writeArray(int group, const std::string& name,

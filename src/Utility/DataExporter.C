@@ -66,7 +66,7 @@ bool DataExporter::setFieldValue(const std::string& name,
 }
 
 
-bool DataExporter::dumpTimeLevel(SIMparameters* tp)
+bool DataExporter::dumpTimeLevel(SIMparameters* tp, bool geometryUpdated)
 {
   if (tp && tp->step % m_ndump 
          && tp->step % m_ndump > m_order-1)
@@ -87,7 +87,7 @@ bool DataExporter::dumpTimeLevel(SIMparameters* tp)
           (*it2)->writeVector(m_level,*it);
           break;
         case SIM:
-          (*it2)->writeSIM(m_level,*it);
+          (*it2)->writeSIM(m_level,*it,geometryUpdated);
           break;
         default:
 	  std::cerr <<"DataExporter: Invalid field type registered, skipping"

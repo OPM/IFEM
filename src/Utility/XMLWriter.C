@@ -127,7 +127,8 @@ bool XMLWriter::readSIM (int level, const DataEntry& entry)
   return true;
 }
 
-void XMLWriter::writeSIM (int level, const DataEntry& entry)
+void XMLWriter::writeSIM (int level, const DataEntry& entry,
+                          bool geometryUpdated)
 {
   if (m_rank != 0)
     return;

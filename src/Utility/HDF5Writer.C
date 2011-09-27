@@ -292,7 +292,8 @@ bool HDF5Writer::readField(int level, const std::string& name,
   return ok;
 }
 
-void HDF5Writer::writeSIM (int level, const DataEntry& entry)
+void HDF5Writer::writeSIM (int level, const DataEntry& entry,
+                           bool geometryUpdated)
 {
 #ifdef HAS_HDF5
   SIMbase* sim = static_cast<SIMbase*>(entry.second.data);
@@ -300,7 +301,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry)
   if (!sol) return;
 
   const IntegrandBase* prob = sim->getProblem();
-  if (level == 0) { // TODO time dependent geometries
+  if (level == 0 || geometryUpdated) {
     writeBasis(sim,sim->getName()+"-1",1,level);
     if (prob->mixedFormulation())
       writeBasis(sim,sim->getName()+"-2",2,level);
@@ -433,4 +434,11 @@ bool HDF5Writer::writeTimeInfo(int level, int order, int interval,
                                SIMparameters& tp)
 {
   return true;
+}
+
+bool HDF5Writer::hasGeometries(int level)
+{
+  std::stringstream str;
+  str << '/' << level << "/basis";
+  return checkGroupExistence(m_file,str.str().c_str());
 }

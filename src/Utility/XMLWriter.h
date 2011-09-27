@@ -43,7 +43,8 @@ public:
 
   virtual void writeVector(int level, const DataEntry& entry);
   virtual bool readVector(int level, const DataEntry& entry);
-  virtual void writeSIM(int level, const DataEntry& entry);
+  virtual void writeSIM(int level, const DataEntry& entry,
+                        bool geometryUpdated);
   virtual bool readSIM(int level, const DataEntry& entry);
   virtual bool writeTimeInfo(int level, int order, int interval, 
                              SIMparameters& tp);
