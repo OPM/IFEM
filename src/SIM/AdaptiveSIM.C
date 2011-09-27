@@ -24,7 +24,7 @@
 
 AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : model(sim)
 {
-  // Default adaptation parameters
+  // Default grid adaptation parameters
   beta = 10.0;
   errTol = 1.0;
   maxStep = 10;
@@ -87,6 +87,9 @@ bool AdaptiveSIM::solveStep (const char* inputfile, SystemMatrix::Type solver,
     if (!model->read(inputfile) || !model->preprocess())
       return false;
   }
+  else
+    // Output the initial grid to eps-file
+    model->refine(std::vector<int>(),options,"mesh_01.eps");
 
   // Assemble the linear FE equation system
   model->setMode(SIM::STATIC,true);

@@ -223,7 +223,7 @@ bool ASMu2D::uniformRefine (int minBasisfunctions)
 	return true;
 }
 
-bool ASMu2D::uniformRefine(int dir, int nInsert)
+bool ASMu2D::uniformRefine (int dir, int nInsert)
 {
 	if (!tensorspline || dir < 0 || dir > 1 || nInsert < 1) return false;
 
@@ -311,16 +311,19 @@ bool ASMu2D::refine (const std::vector<int>& elements,
 	}
 	bool minSpan = options.size() > 1 && options[1] > 0;
 
-	lrspline->refineElement(elements,multiplicity,minSpan);
+	if (!elements.empty())
+		lrspline->refineElement(elements,multiplicity,minSpan);
+
 	if (fName)
 	{
 		std::ofstream meshFile(fName);
 		lrspline->writePostscriptMesh(meshFile);
 	}
 
-	std::cout <<"Refined mesh: "<< lrspline->nElements()
-	          <<" elements "<< lrspline->nBasisFunctions()
-	          <<" nodes."<< std::endl;
+	if (!elements.empty())
+		std::cout <<"Refined mesh: "<< lrspline->nElements()
+		          <<" elements "<< lrspline->nBasisFunctions()
+		          <<" nodes."<< std::endl;
 	return true;
 }
 
