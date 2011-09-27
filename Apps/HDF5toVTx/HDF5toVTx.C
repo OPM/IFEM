@@ -33,12 +33,12 @@ typedef std::map< std::string,std::vector<XMLWriter::Entry> > ProcessList;
 typedef std::map< std::string, std::vector<int> > VTFList;
 
 std::vector<ASMbase*> readBasis(const std::string& name, 
-                                int patches, HDF5Writer& hdf, int dim)
+                                int patches, HDF5Writer& hdf, int dim, int level)
 {
   std::vector<ASMbase*> result;
   for (int i=0;i<patches;++i) {
     std::stringstream geom;
-    geom << "/0/basis/";
+    geom << '/' << level << "/basis/";
     geom << name;
     geom << "/";
     geom << i+1;
@@ -145,7 +145,7 @@ void writeFieldBlocks(VTFList& vlist, VTFList& slist, VTF& myvtf,
 }
 
 
-void writePatchGeometry(ASMbase* patch, int id, VTF& myVtf, int* nViz)
+void writePatchGeometry(ASMbase* patch, int id, VTF& myVtf, int* nViz, int iStep)
 {
   std::stringstream str;
   str << "Patch " << id;
@@ -153,7 +153,7 @@ void writePatchGeometry(ASMbase* patch, int id, VTF& myVtf, int* nViz)
   size_t nd = patch->getNoParamDim();
   ElementBlock* lvb = new ElementBlock(nd == 3 ? 8 : (nd == 2 ? 4 : 2));
   patch->tesselate(*lvb,nViz);
-  myVtf.writeGrid(lvb,str.str().c_str(),id);
+  myVtf.writeGrid(lvb,str.str().c_str(),iStep);
 }
 
 
@@ -271,24 +271,13 @@ int main (int argc, char** argv)
       processlist[it->basis].push_back(*it);
       std::cout << it->name <<"\t"<< it->description <<"\tnc="<< it->components
 		<<"\t"<< it->basis << std::endl;
+      // always read level 0 geometries
       if (patches[it->basis].empty())
-        patches[it->basis] = readBasis(it->basis,it->patches,hdf,dims);
+        patches[it->basis] = readBasis(it->basis,it->patches,hdf,dims,0);
     }
   }
 
   ProcessList::const_iterator pit = processlist.begin();
-
-  // This is broken with time dependent geometries.
-  // Luckily it's not fundamentally broken so we can remedy when it's needed
-  std::vector<ASMbase*> gpatches;
-  if (basis) 
-    gpatches = patches[basis];
-  else
-    gpatches = patches.begin()->second;
-  for (int i=0;i<pit->second[0].patches;++i)
-    writePatchGeometry(gpatches[i],i+1,*myVtf,n);
-  FEmodel = generateFEModel(gpatches,dims,n);
-  myVtf->writeGeometryBlocks(1);
 
   // setup step boundaries and initial time
   if (starttime > 0)
@@ -303,10 +292,36 @@ int main (int argc, char** argv)
   bool ok = true;
   int block = 0;
   int k=1;
+  bool genGeometry=true;
   for (int i = last?end:start; i <= end && ok; i += skip) {
     if (levels > 0) std::cout <<"\nTime level "<< i << " (t=" << time << ")" << std::endl;
     VTFList vlist, slist;
     for (pit = processlist.begin(); pit != processlist.end(); ++pit) {
+      if (i != 0 && hdf.hasGeometries(i)) {
+        myVtf->clearGeometryBlocks();
+        for (it = entry.begin(); it != entry.end(); ++it) {
+          for (size_t l=0;l<patches[it->basis].size();++l)
+            delete patches[it->basis][l];
+          patches[it->basis] = readBasis(it->basis,it->patches,hdf,dims,i);
+        }
+        genGeometry = true;
+      }
+      if (genGeometry) {
+        std::vector<ASMbase*> gpatches;
+        if (basis) 
+          gpatches = patches[basis];
+        else
+          gpatches = patches.begin()->second;
+        for (int l=0;l<pit->second[0].patches;++l)
+          writePatchGeometry(gpatches[l],l+1,*myVtf,n,k);
+        block += pit->second[0].patches;
+        for (size_t l=0;l<FEmodel.size();++l)
+          delete[] FEmodel[l];
+        FEmodel.clear();
+        FEmodel = generateFEModel(gpatches,dims,n);
+        myVtf->writeGeometryBlocks(k);
+        genGeometry = false;
+      }
       for (it = pit->second.begin(); it != pit->second.end() && ok; ++it) {
         std::cout <<"Reading \""<< it->name <<"\""<< std::endl;
         for( int j=0;j<pit->second[0].patches;++j) {
@@ -346,9 +361,14 @@ int main (int argc, char** argv)
     }
     writeFieldBlocks(vlist,slist,*myVtf,k);
 
-    if (ok)
-      myVtf->writeState(k++,"Time %g",time,1);
-    else
+    if (ok) {
+      if (processlist.begin()->second.begin()->timestep > 0)
+        myVtf->writeState(k++,"Time %g",time,1);
+      else {
+        double foo = k;
+        myVtf->writeState(k++,"Step %g",foo,1);
+      }
+    } else
       return 3;
     pit = processlist.begin();
     time += pit->second.begin()->timestep*skip;
