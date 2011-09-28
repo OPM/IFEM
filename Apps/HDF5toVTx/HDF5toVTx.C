@@ -145,7 +145,7 @@ void writeFieldBlocks(VTFList& vlist, VTFList& slist, VTF& myvtf,
 }
 
 
-void writePatchGeometry(ASMbase* patch, int id, VTF& myVtf, int* nViz, int iStep)
+void writePatchGeometry(ASMbase* patch, int id, VTF& myVtf, int* nViz, int block)
 {
   std::stringstream str;
   str << "Patch " << id;
@@ -153,7 +153,7 @@ void writePatchGeometry(ASMbase* patch, int id, VTF& myVtf, int* nViz, int iStep
   size_t nd = patch->getNoParamDim();
   ElementBlock* lvb = new ElementBlock(nd == 3 ? 8 : (nd == 2 ? 4 : 2));
   patch->tesselate(*lvb,nViz);
-  myVtf.writeGrid(lvb,str.str().c_str(),iStep);
+  myVtf.writeGrid(lvb,str.str().c_str(),block);
 }
 
 
@@ -313,7 +313,7 @@ int main (int argc, char** argv)
         else
           gpatches = patches.begin()->second;
         for (int l=0;l<pit->second[0].patches;++l)
-          writePatchGeometry(gpatches[l],l+1,*myVtf,n,k);
+          writePatchGeometry(gpatches[l],l+1,*myVtf,n,++block);
         block += pit->second[0].patches;
         for (size_t l=0;l<FEmodel.size();++l)
           delete[] FEmodel[l];

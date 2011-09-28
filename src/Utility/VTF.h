@@ -59,9 +59,9 @@ public:
   //! \brief Writes the FE geometry to the VTF-file.
   //! \param[in] g The FE grid that all results written are referred to
   //! \param[in] partname Name of the geometry being written
-  //! \param[in] iStep Load/Time step identifier
+  //! \param[in] idBlock Result block identifier
   virtual bool writeGrid(const ElementBlock* g, const char* partname,
-                         int iStep = 1);
+                         int idBlock = 1);
 
   //! \brief Writes a block of scalar nodal results to the VTF-file.
   //! \param[in] nodeResult Vector of nodal results,
