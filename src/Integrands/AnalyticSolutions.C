@@ -260,10 +260,6 @@ NavierPlate::NavierPlate (double a, double b, double t, double E, double Poiss,
 }
 
 
-inline double SIN(double x) { return sin(fmod(x,2.0*M_PI)); }
-inline double COS(double x) { return cos(fmod(x,2.0*M_PI)); }
-
-
 void NavierPlate::addTerms (std::vector<double>& M,
 			    double x, double y, int m, int n) const
 {
@@ -279,17 +275,17 @@ void NavierPlate::addTerms (std::vector<double>& M,
     pzmn = 1.0 / dmn;
     break;
   case 1: // concentrated point load
-    pzmn = SIN(am*xi)*SIN(bn*eta);
+    pzmn = sin(am*xi)*sin(bn*eta);
     break;
   case 2: // partial load
-    pzmn = SIN(am*xi)*SIN(bn*eta) * SIN(am*c2)*SIN(bn*d2) / dmn;
+    pzmn = sin(am*xi)*sin(bn*eta) * sin(am*c2)*sin(bn*d2) / dmn;
     break;
   }
 
   pzmn /= (am2+bn2)*(am2+bn2);
-  M[0] += pzmn*(am2 + nu*bn2)*SIN(am*x)*SIN(bn*y);
-  M[1] += pzmn*(bn2 + nu*am2)*SIN(am*x)*SIN(bn*y);
-  M[2] += pzmn*(nu - 1.0)*am*bn*COS(am*x)*COS(bn*y);
+  M[0] += pzmn*(am2 + nu*bn2)*sin(am*x)*sin(bn*y);
+  M[1] += pzmn*(bn2 + nu*am2)*sin(am*x)*sin(bn*y);
+  M[2] += pzmn*(nu - 1.0)*am*bn*cos(am*x)*cos(bn*y);
 }
 
 
@@ -301,6 +297,18 @@ SymmTensor NavierPlate::evaluate (const Vec3& X) const
   SymmTensor M(2);
 
   double prev = 0.0;
+#ifdef REVERSED_SUMMATION
+  cont maxMN = max_mn - (inc-1);
+  for (int i = maxMN; i > 0; i -= inc)
+  {
+    this->addTerms(M,X.x,X.y,i,i);
+    for (int j = i-inc; j > 0; j -= inc)
+    {
+      this->addTerms(M,X.x,X.y,i,j);
+      this->addTerms(M,X.x,X.y,j,i);
+    }
+  }
+#else
   for (int i = 1; i <= max_mn; i += inc)
   {
     for (int j = 1; j < i; j += inc)
@@ -312,7 +320,7 @@ SymmTensor NavierPlate::evaluate (const Vec3& X) const
 
     double norm = M.L2norm();
 #ifdef SP_DEBUG
-    if (i == 1) std::cout <<"\nNavierPlate, X = "<< X.x <<" "<< X.y << std::endl;
+    if (i == 1) std::cout <<"\nNavierPlate, X = "<< X.x <<" "<< X.y <<"\n";
     std::cout << i <<": "<< M(1,1) <<" "<< M(2,2) <<" "<< M(1,2)
 	      <<" -> "<< norm <<" "<< fabs(norm-prev)/norm << std::endl;
 #endif
@@ -322,6 +330,7 @@ SymmTensor NavierPlate::evaluate (const Vec3& X) const
       else
 	prev = norm;
   }
+#endif
 
   if (type == 1) // concentrated load
     M *= 4.0*pz * (alpha/M_PI)*(beta/M_PI);

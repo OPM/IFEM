@@ -16,6 +16,7 @@
 
 #include <map>
 #include <vector>
+#include <cstddef>
 
 struct ElementBlock;
 class Vec3;
@@ -59,9 +60,8 @@ public:
   //! \brief Writes the FE geometry to the VTF-file.
   //! \param[in] g The FE grid that all results written are referred to
   //! \param[in] partname Name of the geometry being written
-  //! \param[in] idBlock Result block identifier
-  virtual bool writeGrid(const ElementBlock* g, const char* partname,
-                         int idBlock = 1);
+  //! \param[in] gID Geometry block identifier
+  virtual bool writeGrid(const ElementBlock* g, const char* partname, int gID);
 
   //! \brief Writes a block of scalar nodal results to the VTF-file.
   //! \param[in] nodeResult Vector of nodal results,
@@ -147,7 +147,7 @@ public:
 
   //! \brief Adds the current FE geometry blocks to the description block.
   void writeGeometryBlocks(int iStep);
-  //! \brief Dropd current FE geometry blocks.
+  //! \brief Drops the current FE geometry blocks.
   void clearGeometryBlocks();
 
 private:

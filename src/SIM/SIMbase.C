@@ -1764,7 +1764,12 @@ bool SIMbase::evalSecondarySolution (Matrix& field, int pindx) const
 }
 
 
-void SIMbase::extractPatchElmRes(const Matrix& globRes, Matrix& elmRes, size_t patch)
+bool SIMbase::extractPatchElmRes (const Matrix& globRes, Matrix& elmRes,
+				  int pindx)
 {
-  myModel[patch]->extractElmRes(globRes,elmRes);
+  if (pindx < 0 || (size_t)pindx >= myModel.size() || globRes.empty())
+    return false;
+
+  myModel[pindx]->extractElmRes(globRes,elmRes);
+  return true;
 }

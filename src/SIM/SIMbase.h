@@ -489,7 +489,11 @@ public:
   bool injectPatchSolution(Vector& sol, const Vector& locSol,
 			   int pindx, unsigned char nndof = 0);
 
-  void extractPatchElmRes(const Matrix& globRes, Matrix& elmRes, size_t patch);
+  //! \brief Extracts element results for a specified patch.
+  //! \param[in] globRes Global element result array
+  //! \param[out] globRes Patch-level element result array
+  //! \param[in] pindx Local patch index to extract element results for
+  bool extractPatchElmRes(const Matrix& globRes, Matrix& elmRes, int pindx);
 
 protected:
   //! \brief Extracts local solution vector(s) for the given patch.

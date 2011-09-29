@@ -210,18 +210,17 @@ void VTF::clearGeometryBlocks ()
 }
 
 
-bool VTF::writeGrid (const ElementBlock* block, const char* partname,
-		     int nBlock)
+bool VTF::writeGrid (const ElementBlock* block, const char* partname, int gID)
 {
   if (!myFile) return true;
 
-  myBlocks.push_back(std::make_pair(nBlock,block));
+  myBlocks.push_back(std::make_pair(gID,block));
 
-  if (!writeNodes(nBlock))
-    return showError("Error writing node block",nBlock);
+  if (!writeNodes(gID))
+    return showError("Error writing node block",gID);
 
-  if (!writeElements(partname,nBlock,nBlock))
-    return showError("Error writing element block",nBlock);
+  if (!writeElements(partname,gID,gID))
+    return showError("Error writing element block",gID);
 
   return true;
 }

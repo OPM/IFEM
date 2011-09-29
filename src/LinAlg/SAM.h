@@ -156,7 +156,7 @@ public:
   //! \param reactionForces Pointer to vector of nodal reaction forces
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assembleSystem(SystemVector& sysRHS,
-			      const real* eS, int inod = 0,
+			      const real* nS, int inod = 0,
 			      Vector* reactionForces = 0) const;
 
   //! \brief Finds the matrix of equation numbers for an element.

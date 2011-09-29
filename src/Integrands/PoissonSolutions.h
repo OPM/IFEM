@@ -128,6 +128,10 @@ private:
 };
 
 
+/*!
+  \brief Analytical primary solution for PoissonInteriorLayer.
+*/
+
 class PoissonInteriorLayerSol : public RealFunc
 {
 public:
@@ -144,6 +148,10 @@ private:
   double SLOPE; //!< layer SLOPE
 };
 
+
+/*!
+  \brief Heat source for PoissonInteriorLayer.
+*/
 
 class PoissonInteriorLayerSource : public RealFunc
 {
