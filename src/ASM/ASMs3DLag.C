@@ -638,7 +638,30 @@ bool ASMs3DLag::tesselate (ElementBlock& grid, const int* npe) const
     newnpe[2] = p3;
   }
 
-  return this->ASMs3D::tesselate(grid,npe);
+  if (!this->ASMs3D::tesselate(grid,npe))
+    return false;
+
+  // Adjust the element Id since each Lagrange element covers several knot-spans
+  int i, ie, nse1 = p1-1;
+  int j, je, nse2 = p2-1;
+  int k, ke, nse3 = p3-1;
+  int nelx = (nx-1)/nse1;
+  int nely = (ny-1)/nse1;
+  for (k = ke = 1; k < (int)nz; k++)
+  {
+    for (j = je = 1; j < (int)ny; j++)
+    {
+      for (i = ie = 1; i < (int)nx; i++)
+      {
+	grid.setElmId(((k-1)*(ny-1)+j-1)*(nx-1)+i,((ke-1)*nely+je-1)*nelx+ie);
+	if (i%nse1 == 0) ie++;
+      }
+      if (j%nse2 == 0) je++;
+    }
+    if (k%nse3 == 0) ke++;
+  }
+
+  return true;
 }
 
 
