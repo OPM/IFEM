@@ -545,7 +545,7 @@ const char* Elasticity::getField2Name (size_t i, const char* prefix) const
     name += "von Mises stress";
   else
   {
-    static char varName[16];
+    static char varName[32];
     material->getInternalVariable(i-nStress,varName);
     name += varName;
   }

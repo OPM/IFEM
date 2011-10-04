@@ -53,6 +53,7 @@ NeoHookeMaterial::NeoHookeMaterial () : LinIsotropic(false)
       pmat[4] -= pmat[5]*2.0/3.0;
   }
   pmat[6] = 1;
+  sigma_p = 0.0;
 }
 
 
@@ -86,6 +87,7 @@ NeoHookeMaterial::NeoHookeMaterial (double E, double v, double d, int ver)
     }
   }
   pmat[6] = ver % 10;
+  sigma_p = 0.0;
 }
 
 
@@ -154,6 +156,8 @@ bool NeoHookeMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
       first = false;
     }
   }
+  else if (iop == 1) // Calculate hydrostatic pressure for output
+    sigma_p = sigma.trace() / double(sigma.size() > 3 ? 3 : ndim);
 
 #if INT_DEBUG > 0
   if (iop > 0)
@@ -162,4 +166,23 @@ bool NeoHookeMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
 #endif
 
   return ierr == 0;
+}
+
+
+int NeoHookeMaterial::getNoIntVariables () const
+{
+  return 1;
+}
+
+
+double NeoHookeMaterial::getInternalVariable (int index, char* label) const
+{
+  switch (index) {
+  case 1:
+    if (label) strcpy(label,"hydrostatic pressure");
+    return sigma_p;
+  default:
+    if (label) strcpy(label,"zero");
+    return 0.0;
+  }
 }

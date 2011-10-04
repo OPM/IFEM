@@ -57,10 +57,19 @@ public:
 			char iop = 1, const TimeDomain* = 0,
 			const Tensor* Fpf = 0) const;
 
+  //! \brief Returns number of internal result variables of the material model.
+  virtual int getNoIntVariables() const;
+  //! \brief Returns an internal variable associated with the material model.
+  //! \param[in] index Index of the internal variable
+  //! \param[out] label Name of the internal variable (for result presentation)
+  virtual double getInternalVariable(int index, char* label = 0) const;
+
 private:
   int    mTYP;     //!< Material type
   int    mVER;     //!< Material version
   double pmat[13]; //!< Material properties
+
+  mutable double sigma_p; //!< Hydrostatic pressure at last evaluation point
 };
 
 #endif

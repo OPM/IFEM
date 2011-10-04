@@ -319,7 +319,7 @@ SymmTensor NavierPlate::evaluate (const Vec3& X) const
     this->addTerms(M,X.x,X.y,i,i);
 
     double norm = M.L2norm();
-#ifdef SP_DEBUG
+#if SP_DEBUG > 3
     if (i == 1) std::cout <<"\nNavierPlate, X = "<< X.x <<" "<< X.y <<"\n";
     std::cout << i <<": "<< M(1,1) <<" "<< M(2,2) <<" "<< M(1,2)
 	      <<" -> "<< norm <<" "<< fabs(norm-prev)/norm << std::endl;
