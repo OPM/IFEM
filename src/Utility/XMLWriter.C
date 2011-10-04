@@ -208,5 +208,5 @@ int XMLWriter::realTimeLevel(int filelevel) const
 
 int XMLWriter::realTimeLevel(int filelevel, int order, int interval) const
 {
-  return filelevel/order*interval+1; 
+  return filelevel/order*interval; 
 }
