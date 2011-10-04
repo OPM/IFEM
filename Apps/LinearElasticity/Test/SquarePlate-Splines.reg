@@ -43,15 +43,13 @@ Assembling Neumann matrix terms for boundary 2 on P1
 Solving the equation system ...
  >>> Solution summary <<<
 L2-norm            : 3.3533
-Max X-displacement : 9.15751 node 171
-Max Y-displacement : 2.74725 node 154
-Max Z-displacement : 0.0137363 node 202
+Max X-displacement : 9.15751
+Max Y-displacement : 2.74725
+Max Z-displacement : 0.0137363
 Projecting secondary solution ...
 Energy norm |u^h| = a(u^h,u^h)^0.5   : 9.56949
 External energy ((f,u^h)+(t,u^h)^0.5 : 9.56949
 Energy norm |u^r| = a(u^r,u^r)^0.5   : 9.56949
-Error norm a(e,e)^0.5, e=u^r-u^h     : 1.69205e-12
- relative error (% of |u^r|) : 1.76817e-11
 Assembling interior matrix terms for P1
 Solving the eigenvalue problem ...
  >>> Computed Eigenvalues <<<

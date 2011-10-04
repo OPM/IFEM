@@ -1,8 +1,8 @@
-Cylinder-Lagrange.inp -checkRHS -lagrange
+Cylinder-Lagrange.inp -checkRHS -lagrange -nGauss 5
 
 Input file: Cylinder-Lagrange.inp
 Equation solver: 2
-Number of Gauss points: 4
+Number of Gauss points: 5
 Lagrangian basis functions are used
 Check that each patch has a right-hand coordinate system
 Reading input file Cylinder-Lagrange.inp
@@ -34,9 +34,8 @@ Assembling interior matrix terms for P1
 Assembling Neumann matrix terms for boundary 3 on P1
 Solving the equation system ...
  >>> Solution summary <<<
-L2-norm            : 2.22502e-05
-Max X-displacement : 0.000353984 node 4913
-Max Y-displacement : 0.000174549 node 4889
-Max Z-displacement : 1.62311e-05 node 2521
+L2-norm            : 6.68754e-06
+Max X-displacement : 1.85434e-05
+Max Y-displacement : 9.2717e-06
 Energy norm |u^h| = a(u^h,u^h)^0.5   : 17.0665
-External energy ((f,u^h)+(t,u^h)^0.5 : 17.0854
+External energy ((f,u^h)+(t,u^h)^0.5 : 17.0665

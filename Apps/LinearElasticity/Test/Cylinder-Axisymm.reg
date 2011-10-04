@@ -33,7 +33,7 @@ Assembling Neumann matrix terms for boundary 1 on P1
 Solving the equation system ...
  >>> Solution summary <<<
 L2-norm            : 5.20881e-06
-Max X-displacement : 9.21008e-06 node 8
+Max X-displacement : 9.21008e-06
 Projecting secondary solution ...
 Energy norm |u^h| = a(u^h,u^h)^0.5   : 17.0101
 External energy ((f,u^h)+(t,u^h)^0.5 : 17.0101

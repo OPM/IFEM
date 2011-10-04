@@ -48,12 +48,6 @@ Assembling interior matrix terms for P10
 Solving the eigenvalue problem ...
  >>> Computed Eigenvalues <<<
      Mode	Frequency \[Hz]
-     1		-5.91225e-06
-     2		-4.06953e-06
-     3		-2.46024e-06
-     4		1.56728e-06
-     5		2.79509e-06
-     6		5.90041e-06
      7		7.45855
      8		7.80118
      9		11.7379

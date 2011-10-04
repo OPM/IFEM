@@ -36,7 +36,7 @@ Assembling interior matrix terms for P1
 Solving the equation system ...
  >>> Solution summary <<<
 L2-norm            : 0.000504337
-Max displacement   : 0.00131415 node 25
+Max displacement   : 0.00131415
 Projecting secondary solution ...
 Energy norm |u^h| = a(u^h,u^h)^0.5   : 6.4908
 External energy ((f,u^h)+(t,u^h)^0.5 : 6.4908

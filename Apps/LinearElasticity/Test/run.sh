@@ -42,7 +42,7 @@ run Hole2D-Lagrange.inp -2Dpstrain -vtf 1 -lagrange
 run Hole2D-Spectral.inp -2Dpstrain -vtf 1 -spectral
 
 run Cylinder-NURBS.inp    -checkRHS -vtf 1 -nviz 5 -hdf5
-run Cylinder-Lagrange.inp -checkRHS -vtf 1 -lagrange
+run Cylinder-Lagrange.inp -checkRHS -vtf 1 -lagrange -nGauss 5
 run Cylinder-Spectral.inp -checkRHS -vtf 1 -spectral
 
 run Cylinder-Axisymm.inp -2Daxisymm -vtf 1 -nviz 5 -hdf5
