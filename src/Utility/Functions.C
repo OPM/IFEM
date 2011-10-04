@@ -15,6 +15,8 @@
 #include "Vec3.h"
 #include <string.h>
 #include <stdlib.h>
+#include <fstream>
+#include <algorithm>
 
 
 PressureField::PressureField (real p, int dir) : pdir(dir)
@@ -157,6 +159,8 @@ const RealFunc* utl::parseRealFunc (char* cline, real A)
     linear = 6;
   else if (strcmp(cline,"StepXY") == 0)
     linear = 7;
+  else if (strcmp(cline,"Interpolate1D") == 0)
+    linear = 8;
   else if (strcmp(cline,"quadX") == 0)
     quadratic = 1;
   else if (strcmp(cline,"quadY") == 0)
@@ -222,6 +226,14 @@ const RealFunc* utl::parseRealFunc (char* cline, real A)
 	  std::cout <<"StepXY([-inf,"<< x0 <<"]x[-inf,"<< y0 <<"]))";
 	  f = new StepXYFunc(A,x0,y0);
 	}
+      }
+      break;
+    case 8:
+      {
+        int dir = atoi(strtok(NULL, " "));
+        std::cout << "Interpolate1D(" << cline << "," << (char)('X'+dir) << ")";
+        f = new Interpolate1D(cline,dir);
+        cline = strtok(NULL," ");
       }
       break;
     }
@@ -302,4 +314,39 @@ const RealFunc* utl::parseRealFunc (char* cline, real A)
     return new SpaceTimeFunc(f,s);
   else
     return new ConstTimeFunc(s);
+}
+
+
+Interpolate1D::Interpolate1D(const char* file, int dir_) : dir(dir_)
+{
+  std::ifstream is(file);
+
+  while (is.good()) {
+    double x, v;
+    is >> x >> v;
+    grid.push_back(x);
+    values.push_back(v);
+  }
+}
+
+real Interpolate1D::evaluate(const Vec3& X) const
+{
+  double x = X[dir];
+  std::vector<double>::const_iterator xb = 
+    find_if(grid.begin(),grid.end()-1,std::bind2nd(std::greater<double>(),x));
+
+  size_t pos = xb-grid.begin();
+  double x1 = *(xb-1);
+  double x2 = *xb;
+  double val1 = values[pos-1];
+  double val2 = values[pos];
+  double delta = x2-x1;
+
+  if (fabs(delta) < 1.e-8)
+    return val1;
+
+  double w1 = (x-x1)/delta;
+  double w2 = (x2-x)/delta;
+
+  return w1*val1+w2*val2;
 }

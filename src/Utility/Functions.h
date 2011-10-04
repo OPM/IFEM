@@ -16,6 +16,8 @@
 
 #include "Function.h"
 
+#include <vector>
+
 
 /*!
   \brief A scalar-valued linear function.
@@ -364,6 +366,26 @@ public:
 protected:
   //! \brief Evaluates the step function.
   virtual real evaluate(const Vec3& X) const;
+};
+
+
+/*!
+  \brief A scalar-valued spatial function, linearly interpolated from given dataset
+*/
+
+class Interpolate1D : public RealFunc
+{
+public:
+  //! \brief Constructor initializing the function parameters.
+  Interpolate1D(const char* file, int dir_);
+
+protected:
+  //! \brief Evaluates the function.
+  virtual real evaluate(const Vec3& X) const;
+
+  std::vector<double> grid;
+  std::vector<double> values;
+  int dir;
 };
 
 
