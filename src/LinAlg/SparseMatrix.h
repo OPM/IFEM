@@ -53,8 +53,12 @@ public:
   virtual SystemMatrix* copy() const { return new SparseMatrix(*this); }
 
   //! \brief Resizes the matrix to dimension \f$r \times c\f$.
-  //! \details Will erase previous content, if any.
-  void resize(size_t r, size_t c = 0);
+  //! \details Will erase previous content, also if the size is unchanged.
+  //! If the size is not changed, the sparsity pattern stored in the members
+  //! \a IA and \a JA is retained such that subsequent matrix assembly steps
+  //! may be performed directly into the optimized storage format, unless
+  //! \a forceEditable is \e true.
+  void resize(size_t r, size_t c = 0, bool forceEditable = false);
 
   //! \brief Resizes the matrix to dimension \f$r \times c\f$.
   //! \details Will preserve existing matrix content within the new dimension.
@@ -72,7 +76,6 @@ public:
   virtual size_t dim(int idim = 1) const;
 
   //! \brief Index-1 based element access.
-  //! \note For editable matrix only.
   real& operator()(size_t r, size_t c);
   //! \brief Index-1 based element reference.
   const real& operator()(size_t r, size_t c) const;
@@ -177,21 +180,18 @@ protected:
   bool optimiseSLU();
 
   //! \brief Invokes the SAMG equation solver for a given right-hand-side.
-  //! \param[in] isFirstRHS Should be \e true when the coefficient matrix is new
   //! \param B Right-hand-side vector on input, solution vector on output
-  bool solveSAMG(bool isFirstRHS, Vector& B);
+  bool solveSAMG(Vector& B);
 
   //! \brief Invokes the SuperLU equation solver for a given right-hand-side.
   //! \details This method uses the simple driver \a dgssv.
-  //! \param[in] isFirstRHS Should be \e true when the coefficient matrix is new
   //! \param B Right-hand-side vector on input, solution vector on output
-  bool solveSLU(bool isFirstRHS, Vector& B);
+  bool solveSLU(Vector& B);
 
   //! \brief Invokes the SuperLU equation solver for a given right-hand-side.
   //! \details This method uses the expert driver \a dgssvx.
-  //! \param[in] isFirstRHS Should be \e true when the coefficient matrix is new
   //! \param B Right-hand-side vector on input, solution vector on output
-  bool solveSLUx(bool isFirstRHS, Vector& B);
+  bool solveSLUx(Vector& B);
 
   //! \brief Writes the system matrix to the given output stream.
   virtual std::ostream& write(std::ostream& os) const;
@@ -204,12 +204,13 @@ public:
 
 private:
   bool editable; //!< \e true during element assembly, \e false after optimized
+  bool factored; //!< \e true when the matrix is factorized
   size_t nrow;   //!< Number of matrix rows
   size_t ncol;   //!< Number of matrix columns
 
   std::vector<int> IA; //!< Identifies the beginning of each row or column
   std::vector<int> JA; //!< Specifies column/row index of each nonzero element
-  std::vector<real> A; //!< Stores nonzero matrix elements
+  std::vector<real> A; //!< Stores the nonzero matrix elements
   ValueMap       elem; //!< Stores nonzero matrix elements with index pairs
   SparseSolver solver; //!< Which equation solver to use
   SuperLUdata*    slu; //!< Matrix data for the SuperLU equation solver

@@ -114,6 +114,7 @@ bool SparseMatrix::printSLUstat = false;
 SparseMatrix::SparseMatrix (SparseSolver eqSolver, int nt)
 {
   editable = true;
+  factored = false;
   nrow = ncol = 0;
   solver = eqSolver;
   numThreads = nt;
@@ -124,6 +125,7 @@ SparseMatrix::SparseMatrix (SparseSolver eqSolver, int nt)
 SparseMatrix::SparseMatrix (const SparseMatrix& B)
 {
   editable = B.editable;
+  factored = false;
   nrow = B.nrow;
   ncol = B.ncol;
   elem = B.elem;
@@ -142,15 +144,22 @@ SparseMatrix::~SparseMatrix ()
 }
 
 
-void SparseMatrix::resize (size_t r, size_t c)
+void SparseMatrix::resize (size_t r, size_t c, bool forceEditable)
 {
-  editable = true;
   elem.clear();
+  factored = false;
+  if (r == nrow && c == ncol && !A.empty() && !forceEditable)
+  {
+    // Clear the matrix content but retain the sparsity pattern
+    std::fill(A.begin(),A.end(),real(0));
+    return;
+  }
+
+  // Clear the matrix completely, including its sparsity pattern
+  editable = true;
   IA.clear();
   JA.clear();
   A.clear();
-
-  if (r == nrow && c == ncol) return;
 
   nrow = r;
   ncol = c > 0 ? c : r;
@@ -202,6 +211,20 @@ real& SparseMatrix::operator () (size_t r, size_t c)
     if (elem.find(index) == elem.end()) elem[index] = real(0);
     return elem[index];
   }
+  else if (solver == SUPERLU) {
+    // Column-oriented format with 0-based indices
+    std::vector<int>::const_iterator begin = JA.begin() + IA[c-1];
+    std::vector<int>::const_iterator end = JA.begin() + IA[c];
+    std::vector<int>::const_iterator it = std::find(begin, end, r-1);
+    if (it != end) return A[it - JA.begin()];
+  }
+  else {
+    // Row-oriented format with 1-based indices
+    std::vector<int>::const_iterator begin = JA.begin() + (IA[r-1]-1);
+    std::vector<int>::const_iterator end = JA.begin() + (IA[r]-1);
+    std::vector<int>::const_iterator it = std::find(begin, end, c);
+    if (it != end) return A[it - JA.begin()];
+  }
 
   static real anyValue = real(0);
 #if INDEX_CHECK > 1
@@ -237,9 +260,6 @@ const real& SparseMatrix::operator () (size_t r, size_t c) const
   }
 
   static const real zero = real(0);
-#if INDEX_CHECK > 1
-  abort();
-#endif
   return zero;
 }
 
@@ -390,8 +410,6 @@ bool SparseMatrix::add (const SystemMatrix& B, real alpha)
 
 bool SparseMatrix::add (real sigma)
 {
-  if (!editable) return false;
-
   for (size_t i = 1; i <= nrow && i <= ncol; i++)
     this->operator()(i,i) += sigma;
 
@@ -706,8 +724,8 @@ bool SparseMatrix::solve (SystemVector& B, bool)
 
   switch (solver)
     {
-    case SUPERLU: return this->solveSLUx(editable,*Bptr);
-    case S_A_M_G: return this->solveSAMG(editable,*Bptr);
+    case SUPERLU: return this->solveSLUx(*Bptr);
+    case S_A_M_G: return this->solveSAMG(*Bptr);
     default: std::cerr <<"SparseMatrix::solve: No equation solver"<< std::endl;
     }
 
@@ -715,10 +733,10 @@ bool SparseMatrix::solve (SystemVector& B, bool)
 }
 
 
-bool SparseMatrix::solveSLU (bool isFirstRHS, Vector& B)
+bool SparseMatrix::solveSLU (Vector& B)
 {
   int ierr = ncol+1;
-  if (isFirstRHS) this->optimiseSLU();
+  if (!factored) this->optimiseSLU();
 
 #ifdef HAS_SUPERLU_MT
   if (!slu) {
@@ -772,8 +790,10 @@ bool SparseMatrix::solveSLU (bool isFirstRHS, Vector& B)
 			   &A.front(), &JA.front(), &IA.front(),
 			   SLU_NC, SLU_D, SLU_GE);
   }
-  else if (isFirstRHS)
-  {
+  else if (factored) 
+    slu->opts->Fact = FACTORED; // Re-use previous factorization
+  else
+ {
     Destroy_SuperMatrix_Store(&slu->A);
     Destroy_SuperNode_Matrix(&slu->L);
     Destroy_CompCol_Matrix(&slu->U);
@@ -781,8 +801,6 @@ bool SparseMatrix::solveSLU (bool isFirstRHS, Vector& B)
 			   &A.front(), &JA.front(), &IA.front(),
 			   SLU_NC, SLU_D, SLU_GE);
   }
-  else
-    slu->opts->Fact = FACTORED; // Re-use previous factorization
 
   // Create right-hand-side/solution vector
   SuperMatrix Bmat;
@@ -798,6 +816,8 @@ bool SparseMatrix::solveSLU (bool isFirstRHS, Vector& B)
 
   if (ierr > 0)
     std::cerr <<"SuperLU Failure "<< ierr << std::endl;
+  else
+    factored = true;
 
   if (printSLUstat)
     StatPrint(&stat);
@@ -811,10 +831,10 @@ bool SparseMatrix::solveSLU (bool isFirstRHS, Vector& B)
 }
 
 
-bool SparseMatrix::solveSLUx (bool isFirstRHS, Vector& B)
+bool SparseMatrix::solveSLUx (Vector& B)
 {
   int ierr = ncol+1;
-  if (isFirstRHS) this->optimiseSLU();
+  if (!factored) this->optimiseSLU();
 
 #ifdef HAS_SUPERLU_MT
   if (!slu) {
@@ -837,10 +857,10 @@ bool SparseMatrix::solveSLUx (bool isFirstRHS, Vector& B)
     int permc_spec = 1;
     get_perm_c(permc_spec, &slu->A, slu->perm_c);
   }
-  else if (isFirstRHS)
-    slu->opts->refact = YES; // Re-use previous ordering
-  else
+  else if (factored)
     slu->opts->fact = FACTORED; // Re-use previous factorization
+  else
+    slu->opts->refact = YES; // Re-use previous ordering
 
   // Create right-hand-side vector and solution vector
   Vector      X(B.size());
@@ -862,6 +882,8 @@ bool SparseMatrix::solveSLUx (bool isFirstRHS, Vector& B)
 
   if (ierr > 0)
     std::cerr <<"SuperLU_MT Failure "<< ierr << std::endl;
+  else
+    factored = true;
 
   Destroy_SuperMatrix_Store(&Bmat);
   Destroy_SuperMatrix_Store(&Xmat);
@@ -879,7 +901,9 @@ bool SparseMatrix::solveSLUx (bool isFirstRHS, Vector& B)
 			   &A.front(), &JA.front(), &IA.front(),
 			   SLU_NC, SLU_D, SLU_GE);
   }
-  else if (isFirstRHS)
+  else if (factored)
+    slu->opts->Fact = FACTORED; // Re-use previous factorization
+  else
   {
     Destroy_SuperMatrix_Store(&slu->A);
     Destroy_SuperNode_Matrix(&slu->L);
@@ -888,8 +912,6 @@ bool SparseMatrix::solveSLUx (bool isFirstRHS, Vector& B)
 			   &A.front(), &JA.front(), &IA.front(),
 			   SLU_NC, SLU_D, SLU_GE);
   }
-  else
-    slu->opts->Fact = FACTORED; // Re-use previous factorization
 
   // Create right-hand-side vector and solution vector
   Vector      X(B.size());
@@ -916,6 +938,8 @@ bool SparseMatrix::solveSLUx (bool isFirstRHS, Vector& B)
 
   if (ierr > 0)
     std::cerr <<"SuperLU Failure "<< ierr << std::endl;
+  else
+    factored = true;
 
   if (printSLUstat)
     StatPrint(&stat);
@@ -930,10 +954,10 @@ bool SparseMatrix::solveSLUx (bool isFirstRHS, Vector& B)
 }
 
 
-bool SparseMatrix::solveSAMG (bool isFirstRHS, Vector& B)
+bool SparseMatrix::solveSAMG (Vector& B)
 {
   int ierr = 1;
-  if (isFirstRHS) this->optimiseSAMG();
+  if (!factored) this->optimiseSAMG();
 
 #ifdef HAS_SAMG
   // Setting up additional parameters
@@ -953,7 +977,7 @@ bool SparseMatrix::solveSAMG (bool isFirstRHS, Vector& B)
   int ifirst = 1; // no initial solution guess
   real eps = -1.0e-16; // stopping criterion
   int ncyc = 110200; // define the cycling and accelleration strategy
-  int iswitch = isFirstRHS ? 4140 : 1140; // No memory release in first run,
+  int iswitch = !factored ? 4140 : 1140; // No memory release in first run,
   // assuming identical coefficent matrix in all subsequent runs
   real a_cmplx = 0.0; // l
   real g_cmplx = 0.0; //  l  specifies preallocation of memory, etc.
@@ -981,8 +1005,12 @@ bool SparseMatrix::solveSAMG (bool isFirstRHS, Vector& B)
 
   if (ierr > 0)
     std::cerr <<"SAMG Failure "<< ierr << std::endl;
-  else if (ierr < 0)
-    std::cerr <<"SAMG warning "<< -ierr << std::endl;
+  else
+  {
+    factored = true;
+    if (ierr < 0)
+      std::cerr <<"SAMG warning "<< -ierr << std::endl;
+  }
 #else
   std::cerr <<"SparseMatrix::solve: SAMG solver not available"<< std::endl;
 #endif
