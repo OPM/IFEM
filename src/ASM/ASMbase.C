@@ -29,6 +29,13 @@ ASMbase::ASMbase (unsigned char n_p, unsigned char n_s, unsigned char n_f)
 }
 
 
+ASMbase::~ASMbase ()
+{
+  for (MPCIter it = mpcs.begin(); it != mpcs.end(); it++)
+    delete *it;
+}
+
+
 void ASMbase::clear (bool retainGeometry)
 {
   if (retainGeometry) // Clear all FE structures, including the elements
@@ -37,8 +44,12 @@ void ASMbase::clear (bool retainGeometry)
     for (size_t i = 0; i < MNPC.size(); i++) MNPC[i].clear();
 
   // Erase the nodes, boundary conditions and multi-point constraints
+  for (MPCIter it = mpcs.begin(); it != mpcs.end(); it++)
+    delete *it;
+
   MLGN.clear();
   BCode.clear();
+  dCode.clear();
   mpcs.clear();
 }
 

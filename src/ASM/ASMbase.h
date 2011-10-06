@@ -75,8 +75,8 @@ protected:
   ASMbase(unsigned char n_p, unsigned char n_s, unsigned char n_f);
 
 public:
-  //! \brief Empty destructor.
-  virtual ~ASMbase() {}
+  //! \brief The destructor frees the dynamically allocated data objects.
+  virtual ~ASMbase();
 
   //! \brief Checks if this patch is empty.
   virtual bool empty() const = 0;
