@@ -17,9 +17,10 @@
 #include "SIMinput.h"
 #include "SIMenums.h"
 #include "SIMparameters.h"
-#include "MatVec.h"
+#include "SystemMatrix.h"
 
 class SIMbase;
+class VTF;
 
 
 /*!
@@ -37,6 +38,14 @@ public:
   NonLinSIM(SIMbase* sim = 0);
   //! \brief The destructor frees the dynamically allocated FE model object.
   virtual ~NonLinSIM();
+
+  //! \brief Performs some pre-processing tasks on the FE model.
+  bool preprocess();
+
+  //! \brief Allocates the system matrices of the linear FE problem.
+  //! \param[in] mType The matrix format to use
+  //! \param[in] nGauss Numerical integration scheme
+  void initSystem(SystemMatrix::Type mType, size_t nGauss);
 
   //! \brief A class for nonlinear solution parameters.
   class SolvePrm : public SIMparameters
@@ -57,7 +66,7 @@ public:
   //! \brief Initializes the solution parameters with values read from file.
   //! \param param Solution algorithm parameters
   //! \param[in] initVal Initial values of the primary solution
-  virtual void init(SolvePrm& param, const Vector& initVal = Vector());
+  virtual void init(SolvePrm& param, const RealArray& initVal = RealArray());
   //! \brief Advances the time/load step one step forward.
   virtual bool advanceStep(SolvePrm& param);
 
@@ -66,7 +75,9 @@ public:
   //! \param[in] format Format of VTF-file (0=ASCII, 1=BINARY)
   //! \param[in] nViz Number of visualization points over a knot-span
   bool saveModel(char* fileName, int format, int* nViz);
-
+  //! \brief Lets subsequent results be written to the provided VTF-file.
+  void shareVTF(VTF* vtf);
+ 
   //! \brief Sets the initial guess in the Newton-Raphson iterations.
   //! \param value The initial guess to use
   void setInitialGuess(const Vector& value) { solution.front() = value; }
@@ -107,7 +118,20 @@ public:
   //! \param[in] psolOnly If \e true, skip secondary solution field output
   //! \param[in] vecName Optional name of primary solution vector field
   bool saveStep(int iStep, double time, int* nViz, bool psolOnly = false,
-		const char* vecName = 0);
+		const char* vecName = 0)
+  {
+    return this->saveStep(iStep,time,nBlock,nViz,psolOnly,vecName);
+  }
+
+  //! \brief Saves the converged results to VTF file of a given load/time step.
+  //! \param[in] iStep Load/time step identifier
+  //! \param[in] time Current time/load parameter
+  //! \param iBlock Running result block counter
+  //! \param[in] nViz Number of visualization points over each knot-span
+  //! \param[in] psolOnly If \e true, skip secondary solution field output
+  //! \param[in] vecName Optional name of primary solution vector field
+  bool saveStep(int iStep, double time, int& iBlock, int* nViz,
+		bool psolOnly = false, const char* vecName = 0);
 
   //! \brief Dumps the primary solution for inspection.
   //! \param[in] iStep Load/time step identifier
@@ -144,6 +168,7 @@ protected:
   //! \brief Updates configuration variables (solution vector) in an iteration.
   virtual bool updateConfiguration(SolvePrm& param);
 
+public:
   //! \brief Parses a data section from an input stream.
   //! \param[in] keyWord Keyword of current data section to read
   //! \param is The file stream to read from

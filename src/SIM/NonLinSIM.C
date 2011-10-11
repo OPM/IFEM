@@ -90,7 +90,21 @@ bool NonLinSIM::parse (char* keyWord, std::istream& is)
 }
 
 
-void NonLinSIM::init (SolvePrm& param, const Vector& initVal)
+bool NonLinSIM::preprocess ()
+{
+  return model->preprocess();
+}
+
+
+void NonLinSIM::initSystem (SystemMatrix::Type mType, size_t nGauss)
+{
+  model->initSystem(mType,1,1);
+  model->setAssociatedRHS(0,0);
+  model->setQuadratureRule(nGauss);
+}
+
+
+void NonLinSIM::init (SolvePrm& param, const RealArray& initVal)
 {
   param.startTime = startTime;
   param.stopTime = stopTime;
@@ -401,6 +415,12 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName,
 }
 
 
+void NonLinSIM::shareVTF (VTF* vtf)
+{
+  model->setVTF(vtf);
+}
+
+
 bool NonLinSIM::saveModel (char* fileName, int format, int* nViz)
 {
   PROFILE1("NonLinSIM::saveModel");
@@ -416,7 +436,7 @@ bool NonLinSIM::saveModel (char* fileName, int format, int* nViz)
 }
 
 
-bool NonLinSIM::saveStep (int iStep, double time, int* nViz,
+bool NonLinSIM::saveStep (int iStep, double time, int& iBlock, int* nViz,
 			  bool psolOnly, const char* vecName)
 {
   PROFILE1("NonLinSIM::saveStep");
@@ -429,22 +449,22 @@ bool NonLinSIM::saveStep (int iStep, double time, int* nViz,
 
   // Write boundary tractions, if any
   if (!psolOnly)
-    if (!model->writeGlvT(iStep,nBlock))
+    if (!model->writeGlvT(iStep,iBlock))
       return false;
 
   // Write residual force vector, but only when no extra visualization points
   if (!psolOnly && nViz[0] == 2 && nViz[1] <= 2 && nViz[2] <= 2)
-    if (!model->writeGlvV(residual,"Residual forces",nViz,iStep,nBlock))
+    if (!model->writeGlvV(residual,"Residual forces",nViz,iStep,iBlock))
       return false;
 
   // Write solution fields
   if (!solution.empty())
-    if (!model->writeGlvS(solution.front(),nViz,iStep,nBlock,time,psolOnly,
+    if (!model->writeGlvS(solution.front(),nViz,iStep,iBlock,time,psolOnly,
 			  vecName)) return false;
 
   // Write element norms
   if (!psolOnly)
-    if (!model->writeGlvN(eNorm,iStep,nBlock))
+    if (!model->writeGlvN(eNorm,iStep,iBlock))
       return false;
 
   // Write time/load step information
