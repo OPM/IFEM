@@ -32,7 +32,7 @@ public:
   virtual ~SIMinput() {}
 
   //! \brief Reads model data from the specified input file \a *fileName.
-  bool read(const char* fileName);
+  virtual bool read(const char* fileName);
   //! \brief Parses a data section from an input stream.
   virtual bool parse(char* keyWord, std::istream& is) = 0;
 
