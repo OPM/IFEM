@@ -18,8 +18,6 @@
 
 bool SAMpatch::init (const ASMVec& model, int numNod)
 {
-  if (model.empty()) return false;
-
   // Initialize some model size parameters
   nnod = numNod;
   for (size_t i = 0; i < model.size(); i++)

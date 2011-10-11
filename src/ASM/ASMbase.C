@@ -365,25 +365,35 @@ bool ASMbase::resolveMPCchain (const MPCSet& allMPCs, MPC* mpc)
 }
 
 
-bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func, double time)
+bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func,
+			       const std::map<int,VecFunc*>& vfunc, double time)
 {
   std::map<int,RealFunc*>::const_iterator fit;
+  std::map<int,VecFunc*>::const_iterator vfit;
   for (MPCMap::iterator cit = dCode.begin(); cit != dCode.end(); cit++)
-    if ((fit = func.find(cit->second)) == func.end())
+  {
+    size_t inod = this->getNodeIndex(cit->first->getSlave().node);
+    if (inod < 1) return false;
+
+    Vec4 X(this->getCoord(inod),time);
+    if ((fit = func.find(cit->second)) != func.end())
     {
-      std::cerr <<" *** ASMbase::updateDirichlet: Code "<< cit->second
-		<<" is not associated with a scalar function"<< std::endl;
-      return false;
+      RealFunc& g = *fit->second;
+      cit->first->setSlaveCoeff(g(X));
+    }
+    else if ((vfit = vfunc.find(cit->second)) != vfunc.end())
+    {
+      int idof = cit->first->getSlave().dof;
+      VecFunc& g = *vfit->second;
+      cit->first->setSlaveCoeff(g(X)[idof-1]);
     }
     else
     {
-      size_t inod = this->getNodeIndex(cit->first->getSlave().node);
-      if (inod < 1) return false;
-
-      RealFunc& g = *fit->second;
-      Vec4 X(this->getCoord(inod),time);
-      cit->first->setSlaveCoeff(g(X));
+      std::cerr <<" *** ASMbase::updateDirichlet: Code "<< cit->second
+		<<" is not associated with any function."<< std::endl;
+      return false;
     }
+  }
 
   return true;
 }

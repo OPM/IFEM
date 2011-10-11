@@ -18,13 +18,13 @@
 #include "MPCLess.h"
 #include "Function.h"
 #include <vector>
-#include <set>
 #include <map>
+#include <set>
 
 typedef std::vector<int>       IntVec;  //!< General integer vector
 typedef std::vector<IntVec>    IntMat;  //!< General 2D integer matrix
-typedef std::set<MPC*,MPCLess> MPCSet;  //!< Sorted set of MPC equations
 typedef std::map<MPC*,int>     MPCMap;  //!< MPC to function code mapping
+typedef std::set<MPC*,MPCLess> MPCSet;  //!< Sorted set of MPC equations
 typedef MPCSet::const_iterator MPCIter; //!< Iterator over an MPC equation set
 
 struct TimeDomain;
@@ -178,16 +178,18 @@ public:
   //! \brief Resolves (possibly multi-level) chaining in MPC equations.
   //! \param[in] model All spline patches in the model
   //!
-  //! \details If a master DOF in one MPC is specified as slave by another MPC,
-  //! it is replaced by the master(s) of that other equation.
-  //! Since an MPC-equation may couple nodes belonging to different patches,
-  //! this method must have all patches in the model available.
+  //! \details If a master DOF in one MPC (multi-point constraint) equation
+  //! is specified as slave by another MPC, it is replaced by the master(s) of
+  //! that other equation. Since an MPC-equation may couple nodes belonging to
+  //! different patches, this method must have access to all patches.
   static void resolveMPCchains(const ASMVec& model);
 
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] func Scalar property fields
+  //! \param[in] vfunc Vector property fields
   //! \param[in] time Current time
-  bool updateDirichlet(const std::map<int,RealFunc*>& func, double time = 0.0);
+  bool updateDirichlet(const std::map<int,RealFunc*>& func,
+		       const std::map<int,VecFunc*>& vfunc, double time = 0.0);
 
   //! \brief Initializes the patch level MADOF array for mixed problems.
   virtual void initMADOF(const int*) {}
@@ -331,7 +333,7 @@ protected:
   // Internal methods for preprocessing of boundary conditions
   // =========================================================
 
-  //! \brief Adds a general multi-point-constraint equation to this patch.
+  //! \brief Adds a general multi-point-constraint (MPC) equation to this patch.
   //! \param[in] mpc Pointer to an MPC-object
   //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
   bool addMPC(MPC* mpc, int code = 0);
@@ -383,8 +385,8 @@ protected:
   IntVec MLGN;  //!< Matrix of Local to Global Node numbers
   IntMat MNPC;  //!< Matrix of Nodal Point Correspondance
   BCVec  BCode; //!< Vector of Boundary condition codes
-  MPCSet mpcs;  //!< All multi-point constraints with slave in this patch
   MPCMap dCode; //!< Inhomogeneous Dirichlet condition codes for the MPCs
+  MPCSet mpcs;  //!< All multi-point constraints with the slave in this patch
 };
 
 #endif

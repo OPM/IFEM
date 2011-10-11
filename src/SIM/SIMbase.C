@@ -493,7 +493,7 @@ bool SIMbase::updateDirichlet (double time, const Vector* prevSol)
 {
   if (prevSol)
     for (size_t i = 0; i < myModel.size(); i++)
-      if (!myModel[i]->updateDirichlet(myScalars,time))
+      if (!myModel[i]->updateDirichlet(myScalars,myVectors,time))
 	return false;
 
   if (mySam)
@@ -1197,7 +1197,7 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
 
     if (discretization == Spline)
     {
-      // 3. Projection of secondary solution variables (splines only)
+      // 3. Projection of secondary solution variables (tensorial splines only)
 
       if (!myModel[i]->evalSolution(field,*myProblem,nViz,true))
 	return false;
@@ -1580,7 +1580,7 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
     // Find all evaluation points within this patch, if any
     for (j = 0, p = myPoints.begin(); p != myPoints.end(); j++, p++)
       if (this->getLocalPatchIndex(p->patch) == (int)(i+1))
-	if (discretization == Spline)
+	if (discretization == Spline || discretization == LRSpline)
 	{
 	  points.push_back(p->inod > 0 ? p->inod : -(j+1));
 	  for (k = 0; k < myModel[i]->getNoParamDim(); k++)
@@ -1592,7 +1592,7 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
     if (points.empty()) continue; // no points in this patch
 
     myModel[i]->extractNodeVec(psol,myProblem->getSolution());
-    if (discretization == Spline)
+    if (discretization == Spline || discretization == LRSpline)
     {
       // Evaluate the primary solution variables
       if (!myModel[i]->evalSolution(sol1,myProblem->getSolution(),params,false))
@@ -1628,9 +1628,9 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
       for (k = 1; k <= sol1.rows(); k++)
 	os << std::setw(flWidth) << utl::trunc(sol1(k,j+1));
 
-      if (discretization == Spline && sol2.rows() > 0)
+      if (discretization == Spline || discretization == LRSpline)
       {
-        if (formatted)
+        if (formatted && sol2.rows() > 0)
           os <<"\n\t\tsol2 =";
 	for (k = 1; k <= sol2.rows(); k++)
 	  os << std::setw(flWidth) << utl::trunc(sol2(k,j+1));

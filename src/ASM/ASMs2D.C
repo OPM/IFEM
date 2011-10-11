@@ -340,7 +340,7 @@ bool ASMs2D::assignNodeNumbers (BlockNodes& nodes, int basis)
 	  MLGN[inod] = nodes.next();
       }
 
-#if SP_DEBUG > 1
+#if SP_DEBUG > 2
   if (basis > 0) std::cout <<"\nBasis "<< basis <<":";
   for (int i = inod-n1*n2; i < inod; i++)
     std::cout <<"\nNode "<< i+1 <<"\t: "<< nodeInd[i].I <<" "<< nodeInd[i].J
