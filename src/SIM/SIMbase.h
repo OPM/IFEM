@@ -410,6 +410,11 @@ public:
   //! \brief Closes the current VTF-file.
   void closeGlv();
 
+  //! \brief Returns the current VTF-file object.
+  VTF* getVTF() const { return myVtf; }
+  //! \brief Defines the VTF-file for subsequent results output.
+  void setVTF(VTF* vtf) { myVtf = vtf; }
+
   //! \brief Dumps the (possibly refined) geometry in g2-format.
   //! \param os Output stream to write the geometry data to
   bool dumpGeometry(std::ostream& os) const;
@@ -491,7 +496,7 @@ public:
 
   //! \brief Extracts element results for a specified patch.
   //! \param[in] globRes Global element result array
-  //! \param[out] globRes Patch-level element result array
+  //! \param[out] elmRes Patch-level element result array
   //! \param[in] pindx Local patch index to extract element results for
   bool extractPatchElmRes(const Matrix& globRes, Matrix& elmRes, int pindx);
 
@@ -513,7 +518,7 @@ protected:
   void readLinSolParams(std::istream& is, int npar);
 
   //! \brief Finalizes the global equation system assembly.
-  virtual bool finalizeAssembly(bool newLHSmatrix);
+  virtual bool finalizeAssembly(bool newLHSmatrix = true);
 
   //! \brief Computes (possibly problem-dependet) external energy contributions.
   virtual double externalEnergy(const Vectors& psol) const;
