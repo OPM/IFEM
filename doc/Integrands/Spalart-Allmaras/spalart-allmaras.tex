@@ -1,19 +1,23 @@
 \documentclass[twoside, 11pt, a4paper]{article}
 \usepackage{amsmath,amsfonts,amssymb,graphicx,parskip}
 \usepackage[utf8]{inputenc}
+\usepackage{subfigure}
 
 \DeclareMathOperator{\eps}{\epsilon}
 \newcommand{\dee}{\mathrm{d}}
 
-\title{Spalart-Allmaras turbulence model - SplineFEM implementation}
+\title{Spalart-Allmaras turbulence model - IFEM implementation}
 \author{Arne Morten Kvarving}
 \begin{document}
 \maketitle
+
 This document describe the derivation of the weak form, and the associated
 Jacobian, for the Spalart-Allmaras turbulence model given in \cite{sa}.
 It is implemented in SplineFEM in the SpalartAllmaras
 Integrand, see src/Integrands/SpalartAllmaras.h/C, while
 you can find a test application (and SIM classes) in Apps/SpalartAllmaras.
+
+\section{Equations}
 
 Initial expression:
 \begin{equation}
@@ -115,6 +119,73 @@ The weak form gives a simple mass term.
 
 \bf Weak form, second term:\rm \\
 Straight forward, no integration by parts have to be performed.
+\newpage
+
+\section{Verification}
+We have performed some verification studies to confirm that the model 
+
+The first one is a two-dimensional backward facing step with a sharp step. The grid and
+geometry definition can be found in Figure \ref{fig:bfsgrid}.
+
+\begin{figure}[h]
+    \begin{center}
+        \includegraphics[width=14cm]{bfs2dgrid}
+    \end{center}
+    \caption{The geometry (and) grid used for BFS2D code validation test. The grid consists of 18751 nodes.}
+    \label{fig:bfsgrid}
+\end{figure}
+
+The boundary conditions for the velocity and pressure are given in Figure \ref{fig:bfsupbc}.
+\begin{figure}[h]
+    \begin{center}
+        \includegraphics[width=14cm]{bfs2dupbc}
+    \end{center}
+    \caption{The boundary conditions for the velocity and pressure in the BFS2D code validation test.}
+    \label{fig:bfsupbc}
+\end{figure}
+\begin{figure}[h]
+    \begin{center}
+        \includegraphics[width=8cm]{inflow}
+    \end{center}
+    \caption{The inflow velocity profile.}
+    \label{fig:bfsinflow}
+\end{figure}
+The boundary conditions for the turbulent viscosity are given in Figure \ref{fig:bfsnutbc}.
+\begin{figure}[h]
+    \begin{center}
+        \includegraphics[width=14cm]{bfs2dnutbc}
+    \end{center}
+    \caption{The boundary conditions for the turbulent viscosity in the BFS2D code validation test.}
+    \label{fig:bfsnutbc}
+\end{figure}
+
+Some important parameters;
+\[
+    \begin{split}
+        u_{\infty} &= 1 \\
+        \nu &= 0.000331 \\
+        \rho &= 1 \\
+        Re &= 3025 \\
+        \Delta t &= 0.005
+    \end{split}
+\]
+
+The following results were obtained using a second order scheme with SUPG stabilization for both the
+turbulence model and the velocity solver. No substantial differences compared to the results without
+can be observed using the naked eye.
+\newpage
+\begin{figure}[h]
+    \begin{center}
+        \subfigure[$\frac{x}{S}=4$]{\includegraphics[width=5.5cm]{x0}}
+        \subfigure[$\frac{x}{S}=6$]{\includegraphics[width=5.5cm]{x2}}
+        \subfigure[$\frac{x}{S}=8$]{\includegraphics[width=5.5cm]{x4}}
+        \subfigure[$\frac{x}{S}=10$]{\includegraphics[width=5.5cm]{x6}}
+        \subfigure[$\frac{x}{S}=12$]{\includegraphics[width=5.5cm]{x8}}
+        \subfigure[$\frac{x}{S}=16$]{\includegraphics[width=5.5cm]{x12}}
+    \end{center}
+    \caption{Comparison of velocity profiles.}
+    \label{fig:bfsx1}
+\end{figure}
 
 \end{document}
 
