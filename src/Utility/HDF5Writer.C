@@ -5,7 +5,7 @@
 //!
 //! \date Jul 7 2011
 //!
-//! \author Arne MOrten Kvarving / SINTEF
+//! \author Arne Morten Kvarving / SINTEF
 //!
 //! \brief Output of model and results to HDF5 file.
 //!
@@ -29,6 +29,7 @@
 #include <mpi.h>
 #endif
 
+//! \brief If file system has less than this amount free we bail to avoid corrupting file when a new write is initiated
 #define HDF5_SANITY_LIMIT 10*1024*1024LL // 10MB
 
 

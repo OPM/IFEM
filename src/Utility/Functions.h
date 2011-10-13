@@ -383,8 +383,11 @@ protected:
   //! \brief Evaluates the function.
   virtual real evaluate(const Vec3& X) const;
 
+  //! \brief The (1D) grid the data is associated with
   std::vector<double> grid;
+  //! \brief The (scalar) data values
   std::vector<double> values;
+  //! \brief In which direction to perform the interpolation
   int dir;
 };
 
