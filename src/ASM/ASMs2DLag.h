@@ -51,6 +51,10 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
 
+  //! \brief Updates the nodal coordinates for this patch.
+  //! \param[in] displ Incremental displacements to update the coordinates with
+  virtual bool updateCoords(const Vector& displ);
+
 
   // Methods for integration of finite element quantities.
   // These are the main computational methods of the ASM class hierarchy.

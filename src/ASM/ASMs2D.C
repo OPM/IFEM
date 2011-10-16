@@ -668,6 +668,45 @@ Vec3 ASMs2D::getCoord (size_t inod) const
 }
 
 
+bool ASMs2D::updateCoords (const Vector& displ)
+{
+  if (!surf) return true; // silently ignore empty patches
+
+  if (displ.size() != nsd*MLGN.size())
+  {
+    std::cerr <<" *** ASMs2D::updateCoords: Invalid dimension "
+	      << displ.size() <<" on displ, should be "
+	      << nsd*MLGN.size() << std::endl;
+    return false;
+  }
+
+  //TODO: This should be placed in GoTools (SplineSurface::deform)
+  //surf->deform(displ,nsd);
+  RealArray::iterator cit;
+  int i, j, cdim = surf->dimension();
+
+  if (surf->rational())
+    for (cit = surf->rcoefs_begin(), j = 0; cit != surf->rcoefs_end(); cit++)
+    {
+      double weight = cit[cdim];
+      for (i = 0; i < cdim && i < nsd; i++)
+	cit[i] += displ[j+i] * weight;
+      cit += cdim;
+      j += nsd;
+    }
+
+  for (cit = surf->coefs_begin(), j = 0; cit != surf->coefs_end();)
+  {
+    for (i = 0; i < cdim && i < nsd; i++)
+      cit[i] += displ[j+i];
+    cit += cdim;
+    j += nsd;
+  }
+
+  return true;
+}
+
+
 bool ASMs2D::getSize (int& n1, int& n2, int) const
 {
   if (!surf) return false;

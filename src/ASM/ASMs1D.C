@@ -426,6 +426,45 @@ Vec3 ASMs1D::getCoord (size_t inod) const
 }
 
 
+bool ASMs1D::updateCoords (const Vector& displ)
+{
+  if (!curv) return true; // silently ignore empty patches
+
+  if (displ.size() != nsd*MLGN.size())
+  {
+    std::cerr <<" *** ASMs1D::updateCoords: Invalid dimension "
+	      << displ.size() <<" on displ, should be "
+	      << nsd*MLGN.size() << std::endl;
+    return false;
+  }
+
+  //TODO: This should be placed in GoTools (SplineCurve::deform)
+  //curv->deform(displ,nsd);
+  RealArray::iterator cit;
+  int i, j, cdim = curv->dimension();
+
+  if (curv->rational())
+    for (cit = curv->rcoefs_begin(), j = 0; cit != curv->rcoefs_end(); cit++)
+    {
+      double weight = cit[cdim];
+      for (i = 0; i < cdim && i < nsd; i++)
+	cit[i] += displ[j+i] * weight;
+      cit += cdim;
+      j += nsd;
+    }
+
+  for (cit = curv->coefs_begin(), j = 0; cit != curv->coefs_end();)
+  {
+    for (i = 0; i < cdim && i < nsd; i++)
+      cit[i] += displ[j+i];
+    cit += cdim;
+    j += nsd;
+  }
+
+  return true;
+}
+
+
 int ASMs1D::getSize (int) const
 {
   if (!curv) return 0;

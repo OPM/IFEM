@@ -58,7 +58,7 @@ ASMu2D::ASMu2D (std::istream& is, unsigned char n_s, unsigned char n_f)
 
 bool ASMu2D::read (std::istream& is)
 {
-	if (lrspline) delete lrspline;
+	delete lrspline;
 
 	// read inputfile as either an LRSpline file directly or a tensor product B-spline and convert
 	char firstline[256];
@@ -126,8 +126,8 @@ void ASMu2D::clear (bool retainGeometry)
   if (!retainGeometry) {
 
 	// Erase spline data
-	if (lrspline) delete lrspline;
-	if (tensorspline) delete tensorspline;
+	delete lrspline;
+	delete tensorspline;
 	lrspline = 0;
 	tensorspline = 0;
 	geo = 0;
@@ -138,7 +138,7 @@ void ASMu2D::clear (bool retainGeometry)
 }
 
 
-bool ASMu2D::cornerRefine (int minBasisfunctions) 
+bool ASMu2D::cornerRefine (int minBasisfunctions)
 {
 	if (!lrspline ) return false;
 
@@ -150,14 +150,13 @@ bool ASMu2D::cornerRefine (int minBasisfunctions)
 		lrspline->insert_const_v_edge(h-unif_step_h, 0, h);
 		h -= unif_step_h;
 	}
-	std::ofstream meshFile;
-	meshFile.open("mesh.eps");
+
+	std::ofstream meshFile("mesh.eps");
 	lrspline->writePostscriptMesh(meshFile);
-	meshFile.close();
 	return true;
 }
 
-bool ASMu2D::diagonalRefine (int minBasisfunctions) 
+bool ASMu2D::diagonalRefine (int minBasisfunctions)
 {
 	if (!lrspline ) return false;
 
@@ -180,15 +179,13 @@ bool ASMu2D::diagonalRefine (int minBasisfunctions)
 			v = h/2.0;
 		}
 	}
-	std::ofstream meshFile;
-	meshFile.open("mesh.eps");
-	lrspline->writePostscriptMesh(meshFile);
-	meshFile.close();
 
+	std::ofstream meshFile("mesh.eps");
+	lrspline->writePostscriptMesh(meshFile);
 	return true;
 }
 
-bool ASMu2D::uniformRefine (int minBasisfunctions) 
+bool ASMu2D::uniformRefine (int minBasisfunctions)
 {
 	if (!lrspline ) return false;
 
@@ -216,10 +213,9 @@ bool ASMu2D::uniformRefine (int minBasisfunctions)
 			}
 		}
 	}
-	std::ofstream meshFile;
-	meshFile.open("mesh.eps");
+
+	std::ofstream meshFile("mesh.eps");
 	lrspline->writePostscriptMesh(meshFile);
-	meshFile.close();
 	return true;
 }
 
@@ -247,7 +243,7 @@ bool ASMu2D::uniformRefine (int dir, int nInsert)
 	else
 		tensorspline->insertKnot_v(extraKnots);
 
-	if(lrspline) delete lrspline;
+	delete lrspline;
 	geo = lrspline = new LR::LRSplineSurface(tensorspline);
 	return true;
 }
@@ -278,7 +274,7 @@ bool ASMu2D::refine (int dir, const RealArray& xi)
 	else
 		tensorspline->insertKnot_v(extraKnots);
 
-	if(lrspline) delete lrspline;
+	delete lrspline;
 	geo = lrspline = new LR::LRSplineSurface(tensorspline);
 	return true;
 }
@@ -288,7 +284,7 @@ bool ASMu2D::raiseOrder (int ru, int rv)
 	if (!tensorspline) return false;
 
 	tensorspline->raiseOrder(ru,rv);
-	if(lrspline) delete lrspline;
+	delete lrspline;
 	geo = lrspline = new LR::LRSplineSurface(tensorspline);
 	return true;
 }
@@ -384,37 +380,6 @@ bool ASMu2D::generateFEMTopology ()
 // We'll deal with at a later time, for now we only allow single patch models
 
 #if 0
-
-int ASMu2D::Edge::next ()
-{
-	int ret = icnod;
-	icnod += incr;
-
-	return ret;
-}
-
-
-int ASMu2D::BlockNodes::next ()
-{
-	int ret = iinod;
-	iinod += inc[0];
-
-	if (++indxI >= nnodI-1)
-	{
-		indxI = 1;
-		iinod += inc[1] - inc[0]*(nnodI-2);
-	}
-
-	return ret;
-}
-
-
-bool ASMu2D::assignNodeNumbers ()
-{
-	for(size_t i=0; i<MLGN.size(); i++)
-		MLGN[i] = i+1;
-	return true;
-}
 
 bool ASMu2D::connectPatch (int edge, ASMu2D& neighbor, int nedge, bool revers)
 {
@@ -660,9 +625,8 @@ bool ASMu2D::getElementCoordinates (Matrix& X, int iel) const
 	X.resize(nsd,mnpc.size());
 
 	std::vector<LR::Basisfunction*>::iterator bit = lrspline->getElement(iel-1)->supportBegin();
-	for (size_t n = 0; n < mnpc.size(); n++, bit++)
-		for (size_t i = 0; i < nsd; i++)
-			X(i+1,n+1) = (*bit)->controlpoint_[i];
+	for (size_t n = 1; n <= mnpc.size(); n++, bit++)
+	  X.fillColumn(n,(*bit)->controlpoint_);
 
 #if SP_DEBUG > 2
 	std::cout <<"\nCoordinates for element "<< iel << X << std::endl;
@@ -677,10 +641,8 @@ void ASMu2D::getNodalCoordinates (Matrix& X) const
 	X.resize(nsd,nBasis);
 
 	std::vector<LR::Basisfunction*>::iterator bit = lrspline->basisBegin();
-
-	for(int inod=0; inod<nBasis; inod++, bit++)
-		for(size_t i=0; i<nsd; i++)
-			X(i+1,inod+1) = (*bit)->controlpoint_[i];
+	for (int inod = 1; inod <= nBasis; inod++, bit++)
+	  X.fillColumn(inod,(*bit)->controlpoint_);
 }
 
 
@@ -692,6 +654,13 @@ Vec3 ASMu2D::getCoord (size_t inod) const
 		X[i] = basis->controlpoint_[i];
 
 	return X;
+}
+
+
+bool ASMu2D::updateCoords (const Vector& displ)
+{
+  std::cerr <<" *** ASMu2D::updateCoords: Not implemented!"<< std::endl;
+  return false;
 }
 
 

@@ -974,6 +974,45 @@ Vec3 ASMs3D::getCoord (size_t inod) const
 }
 
 
+bool ASMs3D::updateCoords (const Vector& displ)
+{
+  if (!svol) return true; // silently ignore empty patches
+
+  if (displ.size() != 3*MLGN.size())
+  {
+    std::cerr <<" *** ASMs3D::updateCoords: Invalid dimension "
+	      << displ.size() <<" on displ, should be "
+	      << 3*MLGN.size() << std::endl;
+    return false;
+  }
+
+  //TODO: This should be placed in GoTools (SplineVolume::deform)
+  //svol->deform(displ);
+  RealArray::iterator cit;
+  int i, j, cdim = svol->dimension();
+
+  if (svol->rational())
+    for (cit = svol->rcoefs_begin(), j = 0; cit != svol->rcoefs_end(); cit++)
+    {
+      double weight = cit[cdim];
+      for (i = 0; i < cdim && i < 3; i++)
+	cit[i] += displ[j+i] * weight;
+      cit += cdim;
+      j += 3;
+    }
+
+  for (cit = svol->coefs_begin(), j = 0; cit != svol->coefs_end();)
+  {
+    for (i = 0; i < cdim && i < 3; i++)
+      cit[i] += displ[j+i];
+    cit += cdim;
+    j += 3;
+  }
+
+  return true;
+}
+
+
 bool ASMs3D::getSize (int& n1, int& n2, int& n3, int) const
 {
   if (!svol) return false;

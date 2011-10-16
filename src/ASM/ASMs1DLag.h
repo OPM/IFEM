@@ -7,7 +7,7 @@
 //!
 //! \author Einar Christensen / SINTEF
 //!
-//! \brief Driver for assembly of structured 1D Lagrange FE models.
+//! \brief Driver for assembly of 1D Lagrange FE models.
 //!
 //==============================================================================
 
@@ -19,8 +19,8 @@
 
 
 /*!
-  \brief Driver for assembly of structured 2D Lagrange FE models.
-  \details This class contains methods for structured 2D Lagrange patches.
+  \brief Driver for assembly of 1D Lagrange FE models.
+  \details This class contains methods for 1D Lagrange patches.
 */
 
 class ASMs1DLag : public ASMs1D
@@ -50,6 +50,10 @@ public:
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
+
+  //! \brief Updates the nodal coordinates for this patch.
+  //! \param[in] displ Incremental displacements to update the coordinates with
+  virtual bool updateCoords(const Vector& displ);
 
 
   // Methods for integration of finite element quantities.

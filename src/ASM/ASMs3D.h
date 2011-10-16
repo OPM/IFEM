@@ -113,6 +113,10 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
 
+  //! \brief Updates the nodal coordinates for this patch.
+  //! \param[in] displ Incremental displacements to update the coordinates with
+  virtual bool updateCoords(const Vector& displ);
+
   //! \brief Creates an instance by reading the given input stream.
   bool read(std::istream&);
   //! \brief Writes the geometry of the SplineVolume object to given stream.

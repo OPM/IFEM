@@ -120,6 +120,14 @@ bool ASMs2DLag::generateFEMTopology ()
 }
 
 
+Vec3 ASMs2DLag::getCoord (size_t inod) const
+{
+  if (inod < 1 || inod > coord.size()) return Vec3();
+
+  return coord[inod-1];
+}
+
+
 bool ASMs2DLag::getElementCoordinates (Matrix& X, int iel) const
 {
   if (iel < 1 || (size_t)iel > MNPC.size())
@@ -149,11 +157,21 @@ void ASMs2DLag::getNodalCoordinates (Matrix& X) const
 }
 
 
-Vec3 ASMs2DLag::getCoord (size_t inod) const
+bool ASMs2DLag::updateCoords (const Vector& displ)
 {
-  if (inod < 1 || inod > coord.size()) return Vec3();
+  if (displ.size() != nsd*coord.size())
+  {
+    std::cerr <<" *** ASMs2DLag::updateCoords: Invalid dimension "
+	      << displ.size() <<" on displ, should be "
+	      << nsd*coord.size() << std::endl;
+    return false;
+  }
 
-  return coord[inod-1];
+  const double* u = displ.ptr();
+  for (size_t inod = 0; inod < coord.size(); inod++, u += nsd)
+    coord[inod] += RealArray(u,u+nsd);
+
+  return true;
 }
 
 
@@ -497,11 +515,10 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
   if (nComp*nPoints != locSol.size())
     return false;
 
-  size_t i, n, ip = 0;
   sField.resize(nComp,nPoints);
-  for (n = 1; n <= nPoints; n++)
-    for (i = 1; i <= nComp; i++)
-      sField(i,n) = locSol(++ip);
+  const double* u = locSol.ptr();
+  for (size_t n = 1; n <= nPoints; n++, u += nComp)
+    sField.fillColumn(n,u);
 
   return true;
 }

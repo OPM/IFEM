@@ -477,11 +477,10 @@ void ASMbase::extractElmRes (const Matrix& globRes, Matrix& elmRes) const
 {
   elmRes.resize(globRes.rows(),MLGE.size(),true);
 
-  size_t i, iel, ivel = 0;
+  size_t iel, ivel = 0;
   for (iel = 0; iel < MLGE.size(); iel++)
     if (MLGE[iel] > 0)
-      for (++ivel, i = 1; i <= globRes.rows(); i++)
-	elmRes(i,ivel) = globRes(i,MLGE[iel]);
+      elmRes.fillColumn(++ivel,globRes.getColumn(MLGE[iel]));
 
   elmRes.resize(globRes.rows(),ivel);
 }
@@ -525,14 +524,6 @@ bool ASMbase::injectNodeVec (const Vector& nodeVec, Vector& globRes,
 }
 
 
-bool ASMbase::tesselate (ElementBlock&, const int*) const
-{
-  std::cerr <<" *** ASMBase::tesselate: Must be implemented in sub-class."
-	    << std::endl;
-  return false;
-}
-
-
 bool ASMbase::getSolution (Matrix& sField, const Vector& locSol,
 			   const IntVec& nodes) const
 {
@@ -545,10 +536,7 @@ bool ASMbase::getSolution (Matrix& sField, const Vector& locSol,
       return false;
     }
     else
-    {
-      for (unsigned char j = 0; j < nf; j++)
-	sField(j+1,i+1) = locSol[nf*(nodes[i]-1)+j];
-    }
+      sField.fillColumn(i+1,locSol.ptr()+nf*nodes[i]-nf);
 
   return true;
 }

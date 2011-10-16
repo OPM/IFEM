@@ -191,6 +191,10 @@ public:
   bool updateDirichlet(const std::map<int,RealFunc*>& func,
 		       const std::map<int,VecFunc*>& vfunc, double time = 0.0);
 
+  //! \brief Updates the nodal coordinates for this patch.
+  //! \param[in] displ Incremental displacements to update the coordinates with
+  virtual bool updateCoords(const Vector& displ) = 0;
+
   //! \brief Initializes the patch level MADOF array for mixed problems.
   virtual void initMADOF(const int*) {}
 
@@ -242,7 +246,7 @@ public:
   //! \param[out] grid The generated finite element grid
   //! \param[in] npe Number of visualization nodes over each knot span
   //! \note The number of element nodes must be set in \a grid on input.
-  virtual bool tesselate(ElementBlock& grid, const int* npe) const;
+  virtual bool tesselate(ElementBlock& grid, const int* npe) const = 0;
 
   //! \brief Extract the primary solution field at the specified nodes.
   //! \param[out] sField Solution field
