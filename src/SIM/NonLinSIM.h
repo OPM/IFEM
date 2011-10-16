@@ -39,9 +39,6 @@ public:
   //! \brief The destructor frees the dynamically allocated FE model object.
   virtual ~NonLinSIM();
 
-  //! \brief Performs some pre-processing tasks on the FE model.
-  bool preprocess();
-
   //! \brief Allocates the system matrices of the linear FE problem.
   //! \param[in] mType The matrix format to use
   //! \param[in] nGauss Numerical integration scheme
@@ -75,8 +72,6 @@ public:
   //! \param[in] format Format of VTF-file (0=ASCII, 1=BINARY)
   //! \param[in] nViz Number of visualization points over a knot-span
   bool saveModel(char* fileName, int format, int* nViz);
-  //! \brief Lets subsequent results be written to the provided VTF-file.
-  void shareVTF(VTF* vtf);
  
   //! \brief Sets the initial guess in the Newton-Raphson iterations.
   //! \param value The initial guess to use
@@ -148,7 +143,7 @@ public:
   bool dumpResults(double time, std::ostream& os, int precision = 3) const;
 
   //! \brief Returns a const reference to current solution vector.
-  const Vector& getSolution() const { return solution.front(); }
+  const Vector& getSolution(int i = 0) const { return solution[i]; }
 
   //! \brief Projects the secondary solution onto the spline basis.
   //! \details The secondary solution, defined through the Integrand class,

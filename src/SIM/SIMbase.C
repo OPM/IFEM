@@ -32,7 +32,6 @@
 #include "ElementBlock.h"
 #include "VTF.h"
 #include "Utilities.h"
-#include <sstream>
 #include <iomanip>
 #include <ctype.h>
 #include <stdio.h>
@@ -169,18 +168,20 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
     if (myPid == 0 && nres > 0)
       std::cout << std::endl;
   }
+
   else if (!strncasecmp(keyWord,"VISUALIZATION",13))
   {
-    std::istringstream cline(utl::readLine(is));
-    cline >> format >> vizIncr;
-    return !cline.fail() && !cline.bad();
+    char* cline = utl::readLine(is);
+    if ((cline = strtok(cline," "))) format = atoi(cline);
+    if ((cline = strtok(NULL," "))) vizIncr = atoi(cline);
   }
 
-  else if (!strncasecmp(keyWord,"ADAPTIVE",8))
-    ;
-
+#ifdef SP_DEBUG
+  // Since the same input file might be parsed by several substep solvers,
+  // warnings on ignored keywords are issued when compiled in debug mode only.
   else if (isalpha(keyWord[0]))
     std::cerr <<" *** SIMbase::parse: Unknown keyword: "<< keyWord << std::endl;
+#endif
 
   return true;
 }
@@ -390,6 +391,13 @@ bool SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
 }
 
 
+bool SIMbase::setVecProperty (int code, Property::Type ptype, VecFunc* field)
+{
+  if (field) myVectors[code] = field;
+  return this->setPropertyType(code,ptype);
+}
+
+
 bool SIMbase::initSystem (SystemMatrix::Type mType, size_t nMats, size_t nVec)
 {
   if (!mySam) return false;
@@ -500,6 +508,20 @@ bool SIMbase::updateDirichlet (double time, const Vector* prevSol)
     return mySam->updateConstraintEqs(myModel,prevSol);
   else
     return true;
+}
+
+
+bool SIMbase::updateGrid (const Vector& displ)
+{
+  bool ok = true;
+  Vector locdisp;
+  for (size_t i = 0; i < myModel.size() && ok; i++)
+  {
+    myModel[i]->extractNodeVec(displ,locdisp,myModel[i]->getNoSpaceDim());
+    ok = myModel[i]->updateCoords(locdisp);
+  }
+
+  return true;
 }
 
 

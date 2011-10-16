@@ -90,12 +90,6 @@ bool NonLinSIM::parse (char* keyWord, std::istream& is)
 }
 
 
-bool NonLinSIM::preprocess ()
-{
-  return model->preprocess();
-}
-
-
 void NonLinSIM::initSystem (SystemMatrix::Type mType, size_t nGauss)
 {
   model->initSystem(mType,1,1);
@@ -412,12 +406,6 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName,
   }
 
   return true;
-}
-
-
-void NonLinSIM::shareVTF (VTF* vtf)
-{
-  model->setVTF(vtf);
 }
 
 

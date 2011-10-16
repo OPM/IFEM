@@ -105,6 +105,12 @@ public:
   virtual bool preprocess(const std::vector<int>& ignored = std::vector<int>(),
 			  bool fixDup = false);
 
+  //! \brief Defines a vector field property.
+  //! \param[in] code The property code to be associated with the property
+  //! \param[in] ptype The property type to be associated with the given code
+  //! \param[in] field The vector field representing the physical property
+  bool setVecProperty(int code, Property::Type ptype, VecFunc* field = 0);
+
   //! \brief Allocates the system matrices of the FE problem to be solved.
   //! \param[in] mType The matrix format to use
   //! \param[in] nMats Number of system matrices
@@ -171,6 +177,10 @@ public:
   //! between the new values from the Dirichlet functions, and the previous
   //! values stored in the provided \a prevSol vector.
   bool updateDirichlet(double time = 0.0, const Vector* prevSol = 0);
+
+  //! \brief Updates the grid coordinates.
+  //! \param[in] displ The displacement increment to update the grid with
+  bool updateGrid(const Vector& displ);
 
 
   // Computational methods
