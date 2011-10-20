@@ -7,7 +7,7 @@
 //!
 //! \author Runar Holdahl / SINTEF
 //!
-//! \brief Assembly of FE matrices into system matrices for multi-patch models.
+//! \brief Assembly of FE matrices into system matrices for distributed models.
 //!
 //==============================================================================
 
@@ -82,11 +82,11 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
 	}
       }
   }
-
+ 
   // Generate nnz for diagonal block
   int locsize = ilast-ifirst;
   d_nnz.resize(locsize,0);
-  for (i = 0;i < ndof;i++) {
+  for (i = 0; i < ndof; i++) {
     d_gdof = meqn[i]-1;
     if (d_gdof >= ifirst && d_gdof < ilast)
       d_nnz[d_gdof-ifirst] = d_dofc[i].size();
@@ -95,7 +95,7 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
   // Generate nnz for off-diagonal block
   IntVec l2g(ndof);
   Vector nnz(ndof);
-  for (i = 0;i < ndof;i++) {
+  for (i = 0; i < ndof; i++) {
     l2g[i] = meqn[i]-1;
     nnz[i] = o_dofc[i].size();
   }
@@ -105,15 +105,15 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
   VecSetSizes(x,locsize,PETSC_DECIDE);
   VecSetFromOptions(x);
   VecSet(x,0.0);
-  VecSetValues(x,ndof,&(l2g[0]),&(nnz[0]),ADD_VALUES);
+  VecSetValues(x,ndof,&l2g[0],&nnz[0],ADD_VALUES);
   VecAssemblyBegin(x);
   VecAssemblyEnd(x);
 
-  PetscScalar *vec;
+  PetscScalar* vec;
   VecGetArray(x,&vec);
 
   o_nnz.resize(locsize);
-  for (i = 0;i < locsize;i++)
+  for (i = 0; i < locsize; i++)
     o_nnz[i] = ceil(vec[i]);
 
   VecRestoreArray(x,&vec);
@@ -205,7 +205,7 @@ bool SAMpatchPara::getElmEqns (IntVec& meen, int iel, int nedof) const
 
 
 bool SAMpatchPara::expandSolution (const SystemVector& solVec,
-				   Vector& dofVec) const
+				   Vector& dofVec, real scaleSD) const
 {
   if (solVec.dim() < (size_t)nleq) return false;
 
@@ -219,7 +219,7 @@ bool SAMpatchPara::expandSolution (const SystemVector& solVec,
   PETScVector* svec = dynamic_cast<PETScVector*>(sv);
   if (!svec) return false;
 
-  VecCreateSeqWithArray(PETSC_COMM_SELF,dofVec.size(),&(dofVec[0]),&solution);
+  VecCreateSeqWithArray(PETSC_COMM_SELF,dofVec.size(),&dofVec[0],&solution);
   VecScatterCreate(svec->getVector(),iglob,solution,iloc,&ctx);
   VecScatterBegin(ctx,svec->getVector(),solution,INSERT_VALUES,SCATTER_FORWARD);
   VecScatterEnd(ctx,svec->getVector(),solution,INSERT_VALUES,SCATTER_FORWARD);
@@ -228,7 +228,7 @@ bool SAMpatchPara::expandSolution (const SystemVector& solVec,
 
   return true;
 #else
-  return this->expandVector(solVec.getRef(),dofVec);
+  return this->expandVector(solVec.getRef(),dofVec,scaleSD);
 #endif
 }
 
@@ -245,10 +245,10 @@ real SAMpatchPara::dot (const Vector& x, const Vector& y, char dofType) const
     for (size_t i = 0; i < ghostNodes.size(); i++) {
       int inod = ghostNodes[i];
       if (nodeType.empty() || nodeType[inod-1] == dofType || dofType == 'A')
-	for (int j = madof[inod-1]; j < madof[inod]; j++) 
+	for (int j = madof[inod-1]; j < madof[inod]; j++)
 	  locVal -= x(j)*y(j);
     }
-    
+
     MPI_Allreduce(&locVal,&globVal,1,MPI_DOUBLE,MPI_SUM,PETSC_COMM_WORLD);
   }
 #endif
@@ -260,7 +260,7 @@ real SAMpatchPara::dot (const Vector& x, const Vector& y, char dofType) const
 real SAMpatchPara::normL2 (const Vector& x, char dofType) const
 {
 #ifdef PARALLEL_PETSC
-  if (nProc > 1 && nnodGlob > 1) 
+  if (nProc > 1 && nnodGlob > 1)
     return this->norm2(x,dofType)/sqrt((madof[1]-madof[0])*nnodGlob);
   // TODO,kmo: The above is not correct for mixed methods. We need to find the
   // global number of DOFs of type dofType and use that in the denominator.
@@ -467,8 +467,8 @@ bool SAMpatchPara::initSystemEquations ()
     for (size_t k = 0; k < l2gn.size(); k++)
       if (l2gn[k] < min) ghostNodes.push_back(k+1);
 #endif
-    
-    // TODO: Fix this for mixed field interpolations (varying DOFs per node)
+
+    // TODO: Fix this for mixed methods (varying DOFs per node)
     int nndof = ndof/nnod;
     nleq = (max-min+1)*nndof;
     for (i = 0; i < nnod; i++)
@@ -488,7 +488,7 @@ bool SAMpatchPara::initSystemEquations ()
     l2g[i] = meqn[i]-1;
 
   // Generate global and local index sets
-  ISCreateGeneral(PETSC_COMM_WORLD,ndof,&(l2g[0]),&iglob);
+  ISCreateGeneral(PETSC_COMM_WORLD,ndof,&l2g[0],&iglob);
   ISCreateStride(PETSC_COMM_WORLD,ndof,0,1,&iloc);
 #endif
 

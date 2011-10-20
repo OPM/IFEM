@@ -184,6 +184,7 @@ public:
   //! \brief Expands a solution vector from equation-ordering to DOF-ordering.
   //! \param[in] solVec Solution vector, length = NEQ
   //! \param[out] displ Displacement vector, length = NDOF = 3*NNOD
+  //! \param[in] scaleSD Scaling factor for specified (slave) DOFs
   //! \return \e false if the length of \a solVec is invalid, otherwise \e true
   //!
   //! \details The size of the solution vector that comes out of the linear
@@ -191,7 +192,8 @@ public:
   //! That is, all fixed or constrained (slave) DOFs are not present.
   //! Before we can compute derived element quantities we therefore need to
   //! extract the resulting displacement values also for the constrained DOFs.
-  virtual bool expandSolution(const SystemVector& solVec, Vector& displ) const;
+  virtual bool expandSolution(const SystemVector& solVec, Vector& displ,
+			      real scaleSD = 1.0) const;
 
   //! \brief Expands a solution vector from equation-ordering to DOF-ordering.
   //! \param[in] solVec Solution vector, length = NEQ
@@ -249,7 +251,8 @@ protected:
   //! \brief Expands a solution vector from equation-ordering to DOF-ordering.
   //! \param[in] solVec Pointer to solution vector, length = NEQ
   //! \param[out] displ Displacement vector, length = NDOF = 3*NNOD
-  bool expandVector(const real* solVec, Vector& displ) const;
+  //! \param[in] scaleSD Scaling factor for specified (slave) DOFs
+  bool expandVector(const real* solVec, Vector& displ, real scaleSD) const;
 
   //! \brief Returns the internal node number and local index for a global DOF.
   //! \param[in] idof Global DOF-number in the range [1,NDOF]

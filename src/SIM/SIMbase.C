@@ -650,7 +650,7 @@ bool SIMbase::extractLoadVec (Vector& loadVec) const
   if (!b) return false;
 
   // Expand load vector from equation ordering to DOF-ordering
-  return mySam->expandSolution(*b,loadVec);
+  return mySam->expandSolution(*b,loadVec,0.0);
 }
 
 

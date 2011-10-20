@@ -639,11 +639,12 @@ int SAM::getEquation (int inod, int ldof) const
 }
 
 
-bool SAM::expandSolution (const SystemVector& solVec, Vector& dofVec) const
+bool SAM::expandSolution (const SystemVector& solVec, Vector& dofVec,
+			  real scaleSD) const
 {
   if (solVec.dim() < (size_t)neq) return false;
 
-  return this->expandVector(solVec.getRef(),dofVec);
+  return this->expandVector(solVec.getRef(),dofVec,scaleSD);
 }
 
 
@@ -651,17 +652,17 @@ bool SAM::expandVector (const Vector& solVec, Vector& dofVec) const
 {
   if (solVec.size() < (size_t)neq) return false;
 
-  return this->expandVector(solVec.ptr(),dofVec);
+  return this->expandVector(solVec.ptr(),dofVec,0.0);
 }
 
 
-bool SAM::expandVector (const real* solVec, Vector& dofVec) const
+bool SAM::expandVector (const real* solVec, Vector& dofVec, real scaleSD) const
 {
   if (!meqn) return false;
 
   dofVec.resize(ndof,true);
 #ifdef USE_F77SAM
-  expand_(solVec, ttcc, mpmceq, mmceq, meqn, real(1), real(1), ndof, neq,
+  expand_(solVec, ttcc, mpmceq, mmceq, meqn, real(1), scaleSD, ndof, neq,
 	  dofVec.ptr());
 #else
   for (int idof = 0; idof < ndof; idof++)
@@ -673,7 +674,7 @@ bool SAM::expandVector (const real* solVec, Vector& dofVec) const
     else if (iceq > 0)
     {
       int ip = mpmceq[iceq-1];
-      dofVec[idof] += ttcc[ip-1];
+      dofVec[idof] += scaleSD*ttcc[ip-1];
       for (; ip < mpmceq[iceq]-1; ip++)
 	if (mmceq[ip] > 0)
 	{
