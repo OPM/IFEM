@@ -14,7 +14,6 @@
 #include "SIMLinEl2D.h"
 #include "LinIsotropic.h"
 #include "LinearElasticity.h"
-#include "AxSymmElasticity.h"
 #include "AnalyticSolutions.h"
 #include "Functions.h"
 #include "Utilities.h"
@@ -31,10 +30,8 @@ SIMLinEl2D::SIMLinEl2D (int form) : SIM2D(2)
 {
   if (form == SIM::NONE)
     return;
-  else if (axiSymmetry)
-    myProblem = new AxSymmElasticity();
   else
-    myProblem = new LinearElasticity(2);
+    myProblem = new LinearElasticity(2,axiSymmetry);
 }
 
 

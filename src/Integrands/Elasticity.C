@@ -22,10 +22,18 @@
 #include "AnaSol.h"
 #include "VTF.h"
 
+#ifndef epsR
+//! \brief Zero tolerance for the radial coordinate.
+#define epsR 1.0e-16
+#endif
 
-Elasticity::Elasticity (unsigned short int n) : nsd(n)
+
+Elasticity::Elasticity (unsigned short int n, bool ax) : nsd(n), axiSymmetry(ax)
 {
-  npv = n; // Number of primary unknowns per node
+  if (axiSymmetry) nsd = 2;
+
+  nDF = axiSymmetry ? 3 : nsd;
+  npv = nsd; // Number of primary unknowns per node
 
   // Default is zero gravity
   grav[0] = grav[1] = grav[2] = 0.0;
@@ -49,6 +57,8 @@ Elasticity::~Elasticity ()
 
 void Elasticity::print (std::ostream& os) const
 {
+  if (axiSymmetry)
+    std::cout <<"Axial-symmetric Elasticity problem\n";
   std::cout <<"Elasticity: "<< nsd <<"D, gravity =";
   for (unsigned short int d = 0; d < nsd; d++)
     std::cout <<" "<< grav[d];
@@ -248,14 +258,14 @@ bool Elasticity::writeGlvT (VTF* vtf, int iStep, int& nBlock) const
   [\a N ] is the element basis functions arranged in a [nsd][nsd*NENOD] matrix.
 */
 
-bool Elasticity::kinematics (const Matrix& dNdX, Tensor&, SymmTensor& eps) const
+bool Elasticity::formBmatrix (const Matrix& dNdX) const
 {
   const size_t nenod = dNdX.rows();
   const size_t nstrc = nsd*(nsd+1)/2;
   Bmat.resize(nstrc*nsd,nenod,true);
   if (dNdX.cols() < nsd)
   {
-    std::cerr <<" *** Elasticity::kinematics: Invalid dimension on dNdX, "
+    std::cerr <<" *** Elasticity::formBmatrix: Invalid dimension on dNdX, "
 	      << dNdX.rows() <<"x"<< dNdX.cols() <<"."<< std::endl;
     return false;
   }
@@ -320,29 +330,93 @@ bool Elasticity::kinematics (const Matrix& dNdX, Tensor&, SymmTensor& eps) const
     break;
 
   default:
-    std::cerr <<" *** Elasticity::kinematics: nsd="<< nsd << std::endl;
+    std::cerr <<" *** Elasticity::formBmatrix: nsd="<< nsd << std::endl;
     return false;
   }
 
+#undef INDEX
+
   Bmat.resize(nstrc,nsd*nenod);
-
-  // Evaluate the strains
-  if (eV && !eV->empty() && eps.dim() > 0)
-    return Bmat.multiply(*eV,eps); // eps = B*eV
-
   return true;
 }
 
 
-bool Elasticity::formBmatrix (const Matrix& dNdX) const
+/*!
+  The strain-displacement matrix for an axially symmetric 3D continuum element
+  is formally defined as:
+  \f[
+  [B] = \left[\begin{array}{cc}
+  \frac{\partial}{\partial r} &                0            \\
+                 0            & \frac{\partial}{\partial z} \\
+         \frac{1}{r}          &                0            \\
+  \frac{\partial}{\partial z} & \frac{\partial}{\partial r}
+  \end{array}\right] [N]
+  \f]
+  where
+  [\a N ] is the element basis functions arranged in a [2][2*NENOD] matrix.
+*/
+
+bool Elasticity::formBmatrix (const Vector& N, const Matrix& dNdX,
+			      const double r) const
 {
-  static SymmTensor dummy(0);
-  return this->Elasticity::kinematics(dNdX,dummy,dummy);
+  const size_t nenod = N.size();
+  Bmat.resize(8,nenod,true);
+  if (dNdX.cols() < 2)
+  {
+    std::cerr <<" *** Elasticity::formBmatrix: Invalid dimension on dNdX, "
+	      << dNdX.rows() <<"x"<< dNdX.cols() <<"."<< std::endl;
+    return false;
+  }
+  else if (r < -epsR)
+  {
+    std::cerr <<" *** Elasticity::formBmatrix: Invalid point r < 0, "
+	      << r << std::endl;
+    return false;
+  }
+
+#define INDEX(i,j) i+4*(j-1)
+
+  // Strain-displacement matrix for 3D axisymmetric elements:
+  //
+  //         | d/dr   0   |
+  //   [B] = |  0    d/dz | * [N]
+  //         | 1/r    0   |
+  //         | d/dz  d/dr |
+
+  for (size_t i = 1; i <= nenod; i++)
+  {
+    // Normal strain part
+    Bmat(INDEX(1,1),i) = dNdX(i,1);
+    Bmat(INDEX(2,2),i) = dNdX(i,2);
+    // Hoop strain part
+    Bmat(INDEX(3,1),i) = r <= epsR ? dNdX(i,1) : N(i)/r;
+    // Shear strain part
+    Bmat(INDEX(4,1),i) = dNdX(i,2);
+    Bmat(INDEX(4,2),i) = dNdX(i,1);
+  }
+
+#undef INDEX
+
+  Bmat.resize(4,2*nenod);
+  return true;
 }
 
 
-void Elasticity::formKG (Matrix& EM, const Matrix& dNdX,
-			 const Tensor& sigma, double detJW) const
+bool Elasticity::kinematics (const Vector& N, const Matrix& dNdX, double r,
+			     Tensor&, SymmTensor& eps) const
+{
+  // Evaluate the strain-displacement matrix, B
+  bool ok = axiSymmetry ? this->formBmatrix(N,dNdX,r) : this->formBmatrix(dNdX);
+  if (!ok || !eV || eV->empty() || eps.dim() == 0)
+    return ok;
+
+  // Evaluate the strains
+  return Bmat.multiply(*eV,eps); // eps = B*eV
+}
+
+
+void Elasticity::formKG (Matrix& EM, const Vector& N, const Matrix& dNdX,
+			 double r, const Tensor& sigma, double detJW) const
 {
 #if SP_DEBUG > 3
   std::cout <<"Elasticity::eV ="<< *eV;
@@ -351,6 +425,7 @@ void Elasticity::formKG (Matrix& EM, const Matrix& dNdX,
 #endif
 
   unsigned short int i, j;
+  double kgrr = axiSymmetry && r > 0.0 ? sigma(3,3)/(r*r) : 0.0;
   for (size_t a = 1; a <= dNdX.rows(); a++)
     for (size_t b = 1; b <= dNdX.rows(); b++)
     {
@@ -364,6 +439,9 @@ void Elasticity::formKG (Matrix& EM, const Matrix& dNdX,
 
       for (i = 1; i <= nsd; i++)
 	EM(nsd*(a-1)+i,nsd*(b-1)+i) += kg*detJW;
+
+      if (kgrr > 0.0)
+	EM(nsd*(a-1)+1,nsd*(b-1)+1) += N(a)*kgrr*N(b)*detJW;
     }
 #if SP_DEBUG > 3
   std::cout << std::endl;
@@ -410,12 +488,12 @@ Vec3 Elasticity::evalSol (const Vector& N) const
 
 bool Elasticity::formCinverse (Matrix& Cinv, const Vec3& X) const
 {
-  SymmTensor dummy(nsd); double U;
+  SymmTensor dummy(nsd,axiSymmetry); double U;
   return material->evaluate(Cinv,dummy,U,X,dummy,dummy,-1);
 }
 
 
-bool Elasticity::evalSol (Vector& s, const Vector&,
+bool Elasticity::evalSol (Vector& s, const Vector& N,
 			  const Matrix& dNdX, const Vec3& X,
 			  const std::vector<int>& MNPC) const
 {
@@ -429,13 +507,13 @@ bool Elasticity::evalSol (Vector& s, const Vector&,
     }
 
   // Evaluate the deformation gradient, dUdX, and/or the strain tensor, eps
-  Tensor dUdX(nsd);
-  SymmTensor eps(nsd);
-  if (!this->kinematics(dNdX,dUdX,eps))
+  Tensor dUdX(nDF);
+  SymmTensor eps(nsd,axiSymmetry);
+  if (!this->kinematics(N,dNdX,X.x,dUdX,eps))
     return false;
 
   // Calculate the stress tensor through the constitutive relation
-  SymmTensor sigma(nsd,material->isPlaneStrain()); double U;
+  SymmTensor sigma(nsd, axiSymmetry || material->isPlaneStrain()); double U;
   if (!material->evaluate(Cmat,sigma,U,X,dUdX,eps))
     return false;
 
@@ -453,7 +531,7 @@ bool Elasticity::evalSol (Vector& s, const Vector&,
 }
 
 
-bool Elasticity::evalSol (Vector& s, const Vector&,
+bool Elasticity::evalSol (Vector& s, const Vector& N,
 			  const Matrix& dNdX, const Vec3& X) const
 {
   if (!eV || eV->empty())
@@ -471,13 +549,13 @@ bool Elasticity::evalSol (Vector& s, const Vector&,
   }
 
   // Evaluate the deformation gradient, dUdX, and/or the strain tensor, eps
-  Tensor dUdX(nsd);
-  SymmTensor eps(nsd);
-  if (!this->kinematics(dNdX,dUdX,eps))
+  Tensor dUdX(nDF);
+  SymmTensor eps(nsd,axiSymmetry);
+  if (!this->kinematics(N,dNdX,X.x,dUdX,eps))
     return false;
 
   // Calculate the stress tensor through the constitutive relation
-  SymmTensor sigma(nsd,material->isPlaneStrain()); double U;
+  SymmTensor sigma(nsd, axiSymmetry || material->isPlaneStrain()); double U;
   if (!material->evaluate(Cmat,sigma,U,X,dUdX,eps))
     return false;
 
@@ -499,7 +577,7 @@ size_t Elasticity::getNoFields (int fld) const
 {
   if (fld < 2)
     return nsd;
-  else if (nsd == 2 && material->isPlaneStrain())
+  else if (nsd == 2 && (axiSymmetry || material->isPlaneStrain()))
     return 5 + material->getNoIntVariables();
   else
     return nsd*(nsd+1)/2 + 1 + material->getNoIntVariables();
@@ -508,13 +586,13 @@ size_t Elasticity::getNoFields (int fld) const
 
 const char* Elasticity::getField1Name (size_t i, const char* prefix) const
 {
-  if (i > nsd) i = 3;
+  if (i > nsd) i = 4;
 
-  static const char* s[4] = { "u_x", "u_y", "u_z", "displacement" };
+  static const char* s[5] = { "u_x", "u_y", "u_z", "u_r", "displacement" };
   if (!prefix) return s[i];
 
   static std::string name;
-  name = prefix + std::string(" ") + s[i];
+  name = prefix + std::string(" ") + s[axiSymmetry ? 3-i : i];
 
   return name.c_str();
 }
@@ -522,8 +600,10 @@ const char* Elasticity::getField1Name (size_t i, const char* prefix) const
 
 const char* Elasticity::getField2Name (size_t i, const char* prefix) const
 {
-  if (i >= this->getNoFields(2)) return 0;
+  size_t nStress = this->getNoFields(2);
+  if (i >= nStress) return 0;
 
+  static const char* r[4] = { "s_rr", "s_zz", "s_tt", "s_zr" };
   static const char* s[6] = { "s_xx", "s_yy", "s_zz", "s_xy", "s_yz", "s_xz" };
 
   static std::string name;
@@ -533,14 +613,14 @@ const char* Elasticity::getField2Name (size_t i, const char* prefix) const
     name.clear();
 
   // Number of components in the stress vector of this problem
-  size_t nStress = (nsd == 2 && material->isPlaneStrain()) ? 4 : nsd*(nsd+1)/2;
+  nStress -= 1 + material->getNoIntVariables();
 
   if (nsd == 1)
     name += "Axial stress";
   else if (i == 2 && nStress == 3)
     name += s[3]; // No s_zz when plane stress
   else if (i < nStress)
-    name += s[i];
+    name += axiSymmetry ? r[i] : s[i];
   else if (i == nStress)
     name += "von Mises stress";
   else

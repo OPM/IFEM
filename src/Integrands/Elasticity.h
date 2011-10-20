@@ -34,7 +34,8 @@ class Elasticity : public IntegrandBase
 protected:
   //! \brief The default constructor initializes all pointers to zero.
   //! \param[in] n Number of spatial dimensions
-  Elasticity(unsigned short int n = 3);
+  //! \param[in] ax \e If \e true, and axisymmetric 3D formulation is assumed
+  Elasticity(unsigned short int n = 3, bool ax = false);
 
 public:
   //! \brief The destructor frees the dynamically allocated data objects.
@@ -135,25 +136,27 @@ public:
   //! \param[in] prefix Name prefix for all components
   virtual const char* getField2Name(size_t i, const char* prefix = 0) const;
 
-  //! \brief Returns \e true if this is an axial-symmetric problem.
-  virtual bool isAxiSymmetric() const { return false; }
-
 protected:
   //! \brief Calculates some kinematic quantities at current point.
+  //! \param[in] N Basis function values at current point
   //! \param[in] dNdX Basis function gradients at current point
+  //! \param[in] r Radial coordinate of current point
   //! \param[out] eps Strain tensor at current point
   //!
   //! \details The strain displacement matrix \b B is established
   //! and stored in the mutable class member \a Bmat.
-  virtual bool kinematics(const Matrix& dNdX, Tensor&, SymmTensor& eps) const;
+  virtual bool kinematics(const Vector& N, const Matrix& dNdX, double r,
+			  Tensor&, SymmTensor& eps) const;
 
   //! \brief Calculates integration point geometric stiffness contributions.
   //! \param EM Element matrix to receive the stiffness contributions
+  //! \param[in] N Basis function values at current point
   //! \param[in] dNdX Basis function gradients at current point
+  //! \param[in] r Radial coordinate of current point
   //! \param[in] sigma Stress tensor at current point
   //! \param[in] detJW Jacobian determinant times integration point weight
-  void formKG(Matrix& EM, const Matrix& dNdX,
-	      const Tensor& sigma, double detJW) const;
+  void formKG(Matrix& EM, const Vector& N, const Matrix& dNdX,
+	      double r, const Tensor& sigma, double detJW) const;
 
   //! \brief Calculates integration point mass matrix contributions.
   //! \param EM Element matrix to receive the mass contributions
@@ -164,7 +167,6 @@ protected:
 		      const Vec3& X, double detJW) const;
 
   //! \brief Calculates integration point body force vector contributions.
-  //! \brief Evaluates the body force vector at current point.
   //! \param ES Element vector to receive the body force contributions
   //! \param[in] N Basis function values at current point
   //! \param[in] X Cartesian coordinates of current point
@@ -172,9 +174,14 @@ protected:
   void formBodyForce(Vector& ES, const Vector& N,
 		     const Vec3& X, double detJW) const;
 
-  //! \brief Calculates the strain-displacement matrix \b B at current point.
+  //! \brief Calculates the strain-displacement matrix, \b B .
   //! \param[in] dNdX Basis function gradients at current point
   bool formBmatrix(const Matrix& dNdX) const;
+  //! \brief Calculates the axi-symmetric strain-displacement matrix, \b B.
+  //! \param[in] N Basis function values at current point
+  //! \param[in] dNdX Basis function gradients at current point
+  //! \param[in] r Radial coordinate of current point
+  bool formBmatrix(const Vector& N, const Matrix& dNdX, double r) const;
 
   //! \brief Utility used by the virtual \a evalInt and \a evalBou methods.
   //! \param elmInt Pointer to the integrated element quantities
@@ -186,6 +193,9 @@ public:
   //! (in 2D), representing the inverse constitutive tensor
   //! \param[in] X Cartesian coordinates of current point
   bool formCinverse(Matrix& Cinv, const Vec3& X) const;
+
+  //! \brief Returns \e true if this is an axial-symmetric problem.
+  bool isAxiSymmetric() const { return axiSymmetry; }
 
 protected:
   // Finite element quantities
@@ -206,7 +216,9 @@ protected:
 
   mutable std::map<Vec3,Vec3> tracVal; //!< Traction field point values
 
-  unsigned short int nsd; //!< Number of space dimensions (1, 2 or, 3)
+  unsigned short int nsd; //!< Number of space dimensions (1, 2 or 3)
+  unsigned short int nDF; //!< Dimension on deformation gradient (2 or 3)
+  bool       axiSymmetry; //!< \e true if the problem is axi-symmetric
 
   // Work arrays declared as members to avoid frequent re-allocation
   // within the numerical integration loop (for reduced overhead)

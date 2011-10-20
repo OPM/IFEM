@@ -18,7 +18,8 @@
 #include "Vec3Oper.h"
 
 
-LinearElasticity::LinearElasticity (unsigned short int n) : Elasticity(n)
+LinearElasticity::LinearElasticity (unsigned short int n, bool axS)
+  : Elasticity(n,axS)
 {
   // Only the current solution is needed
   primsol.resize(1);
@@ -29,13 +30,13 @@ bool LinearElasticity::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
 				const Vec3& X) const
 {
   bool lHaveStrains = false;
-  SymmTensor eps(nsd), sigma(nsd);
+  SymmTensor eps(nsd,axiSymmetry), sigma(nsd,axiSymmetry);
 
   if (eKm || eKg || iS)
   {
-    // Compute the strain-displacement matrix B from dNdX
+    // Compute the strain-displacement matrix B from N, dNdX and r = X.x,
     // and evaluate the symmetric strain tensor if displacements are available
-    if (!this->kinematics(fe.dNdX,eps,eps)) return false;
+    if (!this->kinematics(fe.N,fe.dNdX,X.x,eps,eps)) return false;
     if (!eps.isZero(1.0e-16)) lHaveStrains = true;
 
     // Evaluate the constitutive matrix and the stress tensor at this point
@@ -44,32 +45,38 @@ bool LinearElasticity::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
       return false;
   }
 
+  // Axi-symmetric integration point volume; 2*pi*r*|J|*w
+  const double detJW = axiSymmetry ? 2.0*M_PI*X.x*fe.detJxW : fe.detJxW;
+
   if (eKm)
   {
     // Integrate the material stiffness matrix
-    CB.multiply(Cmat,Bmat).multiply(fe.detJxW); // CB = C*B*|J|*w
+    CB.multiply(Cmat,Bmat).multiply(detJW); // CB = C*B*|J|*w
     eKm->multiply(Bmat,CB,true,false,true); // EK += B^T * CB
   }
 
   if (eKg && lHaveStrains)
+  {
     // Integrate the geometric stiffness matrix
-    this->formKG(*eKg,fe.dNdX,sigma,fe.detJxW);
+    double r = axiSymmetry ? X.x + eV->dot(fe.N,0,nsd) : 0.0;
+    this->formKG(*eKg,fe.N,fe.dNdX,r,sigma,detJW);
+  }
 
   if (eM)
     // Integrate the mass matrix
-    this->formMassMatrix(*eM,fe.N,X,fe.detJxW);
+    this->formMassMatrix(*eM,fe.N,X,detJW);
 
   if (iS && lHaveStrains)
   {
     // Integrate the internal forces
-    sigma *= -fe.detJxW;
+    sigma *= -detJW;
     if (!Bmat.multiply(sigma,*iS,true,true)) // ES -= B^T*sigma
       return false;
   }
 
   if (eS)
     // Integrate the load vector due to gravitation and other body forces
-    this->formBodyForce(*eS,fe.N,X,fe.detJxW);
+    this->formBodyForce(*eS,fe.N,X,detJW);
 
   return this->getIntegralResult(elmInt);
 }
@@ -89,6 +96,9 @@ bool LinearElasticity::evalBou (LocalIntegral*& elmInt, const FiniteElement& fe,
     return false;
   }
 
+  // Axi-symmetric integration point volume; 2*pi*r*|J|*w
+  const double detJW = axiSymmetry ? 2.0*M_PI*X.x*fe.detJxW : fe.detJxW;
+
   // Evaluate the surface traction
   Vec3 T = (*tracFld)(X,normal);
 
@@ -99,7 +109,7 @@ bool LinearElasticity::evalBou (LocalIntegral*& elmInt, const FiniteElement& fe,
   Vector& ES = *eS;
   for (size_t a = 1; a <= fe.N.size(); a++)
     for (unsigned short int i = 1; i <= nsd; i++)
-      ES(nsd*(a-1)+i) += T[i-1]*fe.N(a)*fe.detJxW;
+      ES(nsd*(a-1)+i) += T[i-1]*fe.N(a)*detJW;
 
   return this->getIntegralResult(elmInt);
 }

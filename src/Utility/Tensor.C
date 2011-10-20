@@ -340,8 +340,9 @@ std::ostream& SymmTensor::print (std::ostream& os) const
   case 1:
     return os << v.front() << std::endl;
   case 2:
-    return os << v.front() <<'\n'
-	      << v.back()  <<' '<< v[1] << std::endl;
+    os << v.front() <<'\n'<< v.back() <<' '<< v[1];
+    if (v.size() == 4) os <<"\n0 0 "<< v[2];
+    return os << std::endl;
   case 3:
     return os << v[0] <<'\n'
 	      << v[3] <<' '<< v[1] <<'\n'
