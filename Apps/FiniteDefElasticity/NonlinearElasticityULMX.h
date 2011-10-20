@@ -31,6 +31,7 @@ class NonlinearElasticityULMX : public NonlinearElasticityUL
   {
     Tensor F;     //!< Deformation gradient at current step/iteration
     Tensor Fp;    //!< Deformation gradient at previous (converged) step
+    Vector Nr;    //!< Basis function values (for axisymmetric problems)
     Matrix dNdx;  //!< Basis function gradients at current configuration
     Vector Phi;   //!< Internal modes for the pressure/volumetric-change fields
     Vec4   X;     //!< Cartesian coordinates of current integration point
@@ -42,8 +43,10 @@ class NonlinearElasticityULMX : public NonlinearElasticityUL
 public:
   //! \brief The default constructor invokes the parent class constructor.
   //! \param[in] n Number of spatial dimensions
+  //! \param[in] axS \e If \e true, and axisymmetric 3D formulation is assumed
   //! \param[in] pp Polynomial order of the pressure/volumetric-change field
-  NonlinearElasticityULMX(unsigned short int n = 3, int pp = 1);
+  NonlinearElasticityULMX(unsigned short int n = 3,
+			  bool axS = false, int pp = 1);
   //! \brief Empty destructor.
   virtual ~NonlinearElasticityULMX() {}
 

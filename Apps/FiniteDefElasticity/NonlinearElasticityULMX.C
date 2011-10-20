@@ -29,7 +29,8 @@ extern "C" {
 	       const double* Sig, double* D,
 	       const int& ipsw, const int& iwr);
   //! \brief Accumulates material stiffness contributions for mixed 2D problems.
-  void acckmx2d_(const int& nEN, const double* dNdx, const double* dNdxBar,
+  void acckmx2d_(const int& axS, const int& nEN, const double* Nr,
+		 const double* dNdx, const double* dNdxBar,
 		 const double* D, double* eKt);
   //! \brief Accumulates material stiffness contributions for mixed 3D problems.
   void acckmx3d_(const int& nEN, const double* dNdx, const double* dNdxBar,
@@ -41,8 +42,9 @@ extern "C" {
 #endif
 
 
-NonlinearElasticityULMX::NonlinearElasticityULMX (unsigned short int n, int pp)
-  : NonlinearElasticityUL(n)
+NonlinearElasticityULMX::NonlinearElasticityULMX (unsigned short int n,
+						  bool axS, int pp)
+  : NonlinearElasticityUL(n,axS)
 {
   p = pp;
   iP = 0;
@@ -176,13 +178,16 @@ bool NonlinearElasticityULMX::evalInt (LocalIntegral*& elmInt,
 	Fi(i,j) = ptData.F(i,j);
 
   double J = Fi.inverse();
+  if (axiSymmetry) J *= ptData.F(3,3);
   if (J == 0.0) return false;
 
   // Push-forward the basis function gradients to current configuration
   ptData.dNdx.multiply(fe.dNdX,Fi); // dNdx = dNdX * F^-1
+  if (axiSymmetry)
+    ptData.Nr = fe.N * (1.0/(X.x + eV->dot(fe.N,0,nsd)));
 
   ptData.X.assign(X);
-  ptData.detJW = fe.detJxW;
+  ptData.detJW = axiSymmetry ? 2.0*M_PI*X.x*fe.detJxW : fe.detJxW;
 
   // Evaluate the pressure modes (generalized coordinates)
   Vec3 Xg = X-X0;
@@ -254,9 +259,13 @@ bool NonlinearElasticityULMX::finalizeElement (LocalIntegral*& elmInt,
     for (iP = 0; iP < nGP; iP++)
     {
       const ItgPtData& pt = myData[iP];
-      h1 += pt.F.det() * pt.detJW;
-      h2 += pt.Fp.det()* pt.detJW;
-      dNdxBar->add(pt.dNdx,pt.F.det()*pt.detJW);
+      double dVol = pt.F.det()*pt.detJW;
+      h1 += dVol;
+      h2 += pt.Fp.det()*pt.detJW;
+      dNdxBar->add(pt.dNdx,dVol);
+      if (axiSymmetry)
+	for (j = 1; j <= nEN; j++)
+	  dNdxBar[0](j,1) += pt.Nr(j)*dVol;
     }
     dNdxBar->multiply(1.0/h1);
 
@@ -291,6 +300,9 @@ bool NonlinearElasticityULMX::finalizeElement (LocalIntegral*& elmInt,
 	J1[i] += h1;
 	J2[i] += h2;
 	Gg[i].add(pt.dNdx,h1);
+	if (axiSymmetry)
+	  for (j = 1; j <= nEN; j++)
+	    Gg[i](j,1) += pt.Nr(j)*h1;
       }
     }
 
@@ -398,7 +410,7 @@ bool NonlinearElasticityULMX::finalizeElement (LocalIntegral*& elmInt,
   // 3. Evaluate tangent matrices.
 
   double Press = 0.0, Bpres = 0.0;
-  SymmTensor Sigma(nsd);
+  SymmTensor Sigma(nsd,axiSymmetry);
   for (iP = 0; iP < nGP; iP++)
   {
     const ItgPtData& pt = myData[iP];
@@ -413,7 +425,7 @@ bool NonlinearElasticityULMX::finalizeElement (LocalIntegral*& elmInt,
 #endif
       if (eKg)
 	// Integrate the geometric stiffness matrix
-	this->formKG(*eKg,Vector(),pt.dNdx,X.x,Sigma,dFmix*pt.detJW);
+	this->formKG(*eKg,pt.Nr,pt.dNdx,1.0,Sigma,dFmix*pt.detJW);
     }
 
     if (eKm)
@@ -424,7 +436,8 @@ bool NonlinearElasticityULMX::finalizeElement (LocalIntegral*& elmInt,
       // Integrate the material stiffness matrix
       D[iP] *= dFmix*pt.detJW;
       if (nsd == 2)
-	acckmx2d_(nEN,pt.dNdx.ptr(),dNdxBar[iP].ptr(),D[iP].ptr(),eKm->ptr());
+	acckmx2d_(axiSymmetry,nEN,pt.Nr.ptr(),pt.dNdx.ptr(),dNdxBar[iP].ptr(),
+		  D[iP].ptr(),eKm->ptr());
       else
 	acckmx3d_(nEN,pt.dNdx.ptr(),dNdxBar[iP].ptr(),D[iP].ptr(),eKm->ptr());
 #endif
@@ -433,7 +446,10 @@ bool NonlinearElasticityULMX::finalizeElement (LocalIntegral*& elmInt,
     if (iS && lHaveStress)
     {
       // Compute the small-deformation strain-displacement matrix B from dNdx
-      if (!this->formBmatrix(pt.dNdx)) return false;
+      if (axiSymmetry)
+	this->formBmatrix(pt.Nr,pt.dNdx,1.0);
+      else
+	this->formBmatrix(pt.dNdx);
 
       // Integrate the internal forces
       Sigma *= -dFmix*pt.detJW;

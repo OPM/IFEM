@@ -11,12 +11,13 @@ C! \brief Material stiffness accumulation routines for B-bar methods.
 C!
 C=======================================================================
 C
-      subroutine accKMx2D (NENOD,Shpf,Shpbar,D,EKt)
+      subroutine accKMx2D (axiSymm,NENOD,Shpr,Shpf,Shpbar,D,EKt)
 C
       implicit none
 C
-      integer          NENOD
-      double precision Shpf(NENOD,2), Shpbar(NENOD,2), D(7,7)
+      integer          axiSymm, NENOD
+      double precision Shpr(NENOD), Shpf(NENOD,2)
+      double precision Shpbar(NENOD,2), D(7,7)
       double precision EKt(2,NENOD,2,NENOD)
 C
       integer          a, b, i, j
@@ -32,6 +33,9 @@ C
      &           +     Shpf(a,2)*D(2,j)
      &           +   Shpbar(a,2)*D(7,j)
          end do
+         if (axiSymm .eq. 1) then
+            BBC(1,:) = BBC(1,:) + Shpr(a)*D(3,:)
+         end if
 C
          do b = 1, NENOD
 C
@@ -55,6 +59,10 @@ C
      &           +         BBC(2,2) *   Shpf(b,2)
      &           +         BBC(2,7) * Shpbar(b,2)
 C
+            if (axiSymm .eq. 1) then
+               EKt(1,a,1,b) = EKt(1,a,1,b) + BBC(1,3)*Shpr(b)
+               EKt(2,a,1,b) = EKt(2,a,1,b) + BBC(2,3)*Shpr(b)
+            end if
          end do
 C
       end do

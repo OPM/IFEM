@@ -77,9 +77,6 @@ bool NonlinearElasticityFbar::reducedInt (const FiniteElement& fe,
 
   VolPtData& ptData = myVolData[iP++];
 
-  if (axiSymmetry && X.x > 0.0)
-    ptData.Nr = fe.dNdX * (1.0/X.x);
-
   // Evaluate the deformation gradient, F, at current configuration
   Tensor F(nDF);
   SymmTensor E(nsd,axiSymmetry);
@@ -91,6 +88,8 @@ bool NonlinearElasticityFbar::reducedInt (const FiniteElement& fe,
     // Initial state, no deformation yet
     ptData.J = 1.0;
     ptData.dNdx = fe.dNdX;
+    if (axiSymmetry && X.x > 0.0)
+      ptData.Nr = fe.dNdX * (1.0/X.x);
   }
   else
   {
@@ -110,6 +109,9 @@ bool NonlinearElasticityFbar::reducedInt (const FiniteElement& fe,
 
     // Push-forward the basis function gradients to current configuration
     ptData.dNdx.multiply(fe.dNdX,Fi); // dNdx = dNdX * F^-1
+    if (axiSymmetry && X.x > 0.0)
+      ptData.Nr = fe.dNdX * (1.0/(X.x + eV->dot(fe.N,0,nsd)));
+
 #ifdef INT_DEBUG
     std::cout <<"NonlinearElasticityFbar::J = "<< ptData.J
 	      <<"\nNonlinearElasticityFbar::dNdx ="<< ptData.dNdx;
@@ -376,6 +378,10 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
     dNdx = fe.dNdX;
   }
 
+  // Axi-symmetric integration point volume; 2*pi*r*|J|*w
+  double detJW = (axiSymmetry ? 2.0*M_PI*X.x : 1.0)*fe.detJxW*J;
+  double r = axiSymmetry ? X.x + eV->dot(fe.N,0,nsd) : 0.0;
+
   if (myVolData.size() == 1)
   {
     // Only one volumetric sampling point (linear element)
@@ -415,7 +421,8 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
     // No F-bar terms
     Jbar = J;
     dMdx = dNdx;
-    if (axiSymmetry) M = fe.N;
+    if (axiSymmetry && r > 0.0)
+      M = fe.N * (1.0/r);
   }
 
   // Compute modified deformation gradient, Fbar
@@ -430,10 +437,6 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
   SymmTensor Sig(nsd,axiSymmetry);
   if (!material->evaluate(Cmat,Sig,Jbar,X,F,E,lHaveStrains,&prm))
     return false;
-
-  // Axi-symmetric integration point volume; 2*pi*r*|J|*w
-  double detJW = (axiSymmetry ? 2.0*M_PI*X.x : 1.0)*fe.detJxW*J;
-  double r = axiSymmetry ? X.x + eV->dot(fe.N,0,nsd) : 0.0;
 
   // Multiply tangent moduli and stresses by integration point volume
   Cmat *= detJW;

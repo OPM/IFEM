@@ -42,7 +42,7 @@ SIMFiniteDefEl2D::SIMFiniteDefEl2D (const std::vector<int>& options)
       break;
     case SIM::MIXED_QnPn1:
       // Local discontinuous volumetric change and pressure fields
-      myProblem = new NonlinearElasticityULMX(2,pOrd);
+      myProblem = new NonlinearElasticityULMX(2,axiSymmetry,pOrd);
       break;
     case SIM::UPDATED_LAGRANGE:
       myProblem = new NonlinearElasticityUL(2,axiSymmetry);
