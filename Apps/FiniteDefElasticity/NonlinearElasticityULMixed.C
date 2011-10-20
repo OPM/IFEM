@@ -29,8 +29,8 @@ extern "C" {
 	       const double* Sig, double* D,
 	       const int& ipsw, const int& iwr);
   //! \brief Accumulates material stiffness contributions for 2D problems.
-  void acckm2d_(const int& nEN, const double* dNdx,
-		const double* D, double* eKt);
+  void acckm2d_(const int& axS, const int& nEN, const double* Nr,
+		const double* dNdx, const double* D, double* eKt);
   //! \brief Accumulates material stiffness contributions for 3D problems.
   void acckm3d_(const int& nEN, const double* dNdx,
 		const double* D, double* eKt);
@@ -193,8 +193,9 @@ const Vector& NonlinearElasticityULMixed::MixedElmMats::getRHSVector () const
 }
 
 
-NonlinearElasticityULMixed::NonlinearElasticityULMixed (unsigned short int n)
-  : NonlinearElasticityUL(n), Fbar(3), Dmat(7,7)
+NonlinearElasticityULMixed::NonlinearElasticityULMixed (unsigned short int n,
+							bool axS)
+  : NonlinearElasticityUL(n,axS), Fbar(3), Dmat(7,7)
 {
   if (myMats) delete myMats;
   myMats = new MixedElmMats();
@@ -422,13 +423,18 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
     this->formKG(*eKg,fe.N1,dNdx,r,Sigma,dVol);
   }
 
+  // Radial shape function for axi-symmetric problems
+  Vector Nr(fe.N1);
+  if (axiSymmetry && r > 0.0)
+    Nr /= r;
+
 #ifdef USE_FTNMAT
   mdma3d_(Bpres,Mpres,Sig.ptr(),Dmat.ptr(),INT_DEBUG,6);
 
   // Integrate the material stiffness matrix
   Dmat *= dVol;
   if (nsd == 2)
-    acckm2d_(fe.N1.size(),dNdx.ptr(),Dmat.ptr(),eKm->ptr());
+    acckm2d_(axiSymmetry,Nr.size(),Nr.ptr(),dNdx.ptr(),Dmat.ptr(),eKm->ptr());
   else
     acckm3d_(fe.N1.size(),dNdx.ptr(),Dmat.ptr(),eKm->ptr());
 #endif
@@ -441,6 +447,7 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
   Dmat(7,7) /= (Theta*Theta);
   for (a = 1; a <= fe.N1.size(); a++)
     for (b = 1; b <= fe.N2.size(); b++)
+    {
       for (i = 1; i <= nsd; i++)
       {
 	myMats->A[Kut](nsd*(a-1)+i,b) += dNdx(a,i)*fe.N2(b) * Dmat(i,7);
@@ -455,7 +462,14 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
 	  myMats->A[Kut](nsd*(a-1)+k,b) += dNdx(a,4-k)*fe.N2(b) * Dmat(6,7);
 	}
 	myMats->A[Kup](nsd*(a-1)+i,b) += dNdx(a,i)*fe.N2(b) * dVup;
+      } 
+      if (axiSymmetry)
+      {
+	double Nr = fe.N1(a)/r;
+	myMats->A[Kut](nsd*(a-1)+1,b) += Nr*fe.N2(b) * Dmat(3,7);
+	myMats->A[Kup](nsd*(a-1)+1,b) += Nr*fe.N2(b) * dVup;
       }
+    }
 
   myMats->A[Ktt].outer_product(fe.N2,fe.N2*Dmat(7,7),true); // += N2*N2^T*D77
   myMats->A[Ktp].outer_product(fe.N2,fe.N2*(-detJW),true);  // -= N2*N2^T*|J|

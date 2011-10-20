@@ -11,12 +11,12 @@ C! \brief Material stiffness accumulation routines.
 C!
 C=======================================================================
 C
-      subroutine accKM2D (NENOD,Shpf,D,EKt)
+      subroutine accKM2D (axiSymm,NENOD,Shpr,Shpf,D,EKt)
 C
       implicit none
 C
-      integer          NENOD
-      double precision Shpf(NENOD,2), D(7,7)
+      integer          axiSymm, NENOD
+      double precision Shpr(NENOD), Shpf(NENOD,2), D(7,7)
       double precision EKt(2,NENOD,2,NENOD)
 C
       integer          a, b, i, j
@@ -30,6 +30,10 @@ C
             BBC(2,j) = Shpf(a,1)*D(4,j)
      &           +     Shpf(a,2)*D(2,j)
          end do
+C
+         if (axiSymm .eq. 1) then
+            BBC(1,:) = BBC(1,:) + Shpr(a)*D(3,1:4)
+         end if
 C
          do b = 1, NENOD
 C
@@ -48,6 +52,11 @@ C
             EKt(2,a,2,b) = EKt(2,a,2,b)
      &           +         BBC(2,4) * Shpf(b,1)
      &           +         BBC(2,2) * Shpf(b,2)
+C
+            if (axiSymm .eq. 1) then
+               EKt(1,a,1,b) = EKt(1,a,1,b) + BBC(1,3)*Shpr(b)
+               EKt(2,a,1,b) = EKt(2,a,1,b) + BBC(2,3)*Shpr(b)
+            end if
 C
          end do
 C

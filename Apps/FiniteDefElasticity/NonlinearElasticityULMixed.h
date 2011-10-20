@@ -45,7 +45,8 @@ class NonlinearElasticityULMixed : public NonlinearElasticityUL
 public:
   //! \brief The default constructor invokes the parent class constructor.
   //! \param[in] n Number of spatial dimensions
-  NonlinearElasticityULMixed(unsigned short int n = 3);
+  //! \param[in] axS \e If \e true, and axisymmetric 3D formulation is assumed
+  NonlinearElasticityULMixed(unsigned short int n = 3, bool axS = false);
   //! \brief Empty destructor.
   virtual ~NonlinearElasticityULMixed() {}
 

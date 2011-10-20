@@ -38,7 +38,7 @@ SIMFiniteDefEl2D::SIMFiniteDefEl2D (const std::vector<int>& options)
       break;
     case SIM::MIXED_QnQn1:
       nf[1] = 2; // continuous volumetric change and pressure fields
-      myProblem = new NonlinearElasticityULMixed(2);
+      myProblem = new NonlinearElasticityULMixed(2,axiSymmetry);
       break;
     case SIM::MIXED_QnPn1:
       // Local discontinuous volumetric change and pressure fields

@@ -33,6 +33,7 @@ C
      &           +     Shpf(a,2)*D(2,j)
      &           +   Shpbar(a,2)*D(7,j)
          end do
+C
          if (axiSymm .eq. 1) then
             BBC(1,:) = BBC(1,:) + Shpr(a)*D(3,:)
          end if
@@ -63,6 +64,7 @@ C
                EKt(1,a,1,b) = EKt(1,a,1,b) + BBC(1,3)*Shpr(b)
                EKt(2,a,1,b) = EKt(2,a,1,b) + BBC(2,3)*Shpr(b)
             end if
+C
          end do
 C
       end do
