@@ -92,7 +92,7 @@ bool NonlinearElasticityTL::evalInt (LocalIntegral*& elmInt,
   // and compute the nonlinear strain-displacement matrix, B, from dNdX and F
   Tensor F(nsd);
   SymmTensor E(nsd), S(nsd);
-  if (!this->kinematics(fe.dNdX,F,E))
+  if (!this->kinematics(fe.N,fe.dNdX,X.x,F,E))
     return false;
 
   // Evaluate the constitutive relation
@@ -104,32 +104,35 @@ bool NonlinearElasticityTL::evalInt (LocalIntegral*& elmInt,
       return false;
   }
 
+  // Axi-symmetric integration point volume; 2*pi*r*|J|*w
+  const double detJW = axiSymmetry ? 2.0*M_PI*X.x*fe.detJxW : fe.detJxW;
+
   if (eKm)
   {
     // Integrate the material stiffness matrix
-    CB.multiply(Cmat,Bmat).multiply(fe.detJxW); // CB = C*B*|J|*w
-    eKm->multiply(Bmat,CB,true,false,true);     // EK += B^T * CB
+    CB.multiply(Cmat,Bmat).multiply(detJW); // CB = C*B*|J|*w
+    eKm->multiply(Bmat,CB,true,false,true); // EK += B^T * CB
   }
 
   if (eKg && lHaveStrains)
     // Integrate the geometric stiffness matrix
-    this->formKG(*eKg,fe.dNdX,S,fe.detJxW);
+    this->formKG(*eKg,fe.N,fe.dNdX,X.x,S,detJW);
 
   if (eM)
     // Integrate the mass matrix
-    this->formMassMatrix(*eM,fe.N,X,fe.detJxW);
+    this->formMassMatrix(*eM,fe.N,X,detJW);
 
   if (iS && lHaveStrains)
   {
     // Integrate the internal forces
-    S *= -fe.detJxW;
+    S *= -detJW;
     if (!Bmat.multiply(S,*iS,true,true)) // ES -= B^T*S
       return false;
   }
 
   if (eS)
     // Integrate the load vector due to gravitation and other body forces
-    this->formBodyForce(*eS,fe.N,X,fe.detJxW);
+    this->formBodyForce(*eS,fe.N,X,detJW);
 
   return this->getIntegralResult(elmInt);
 }
@@ -165,7 +168,7 @@ bool NonlinearElasticityTL::evalBou (LocalIntegral*& elmInt,
     // Compute the deformation gradient, F
     Tensor F(nsd);
     SymmTensor dummy(0);
-    if (!this->kinematics(fe.dNdX,F,dummy)) return false;
+    if (!this->kinematics(fe.N,fe.dNdX,X.x,F,dummy)) return false;
 
     // Compute its inverse and determinant, J
     double J = F.inverse();
@@ -180,24 +183,29 @@ bool NonlinearElasticityTL::evalBou (LocalIntegral*& elmInt,
 	T[i-1] += t[j-1]*F(j,i);
   }
 
+  // Axi-symmetric integration point volume; 2*pi*r*|J|*w
+  const double detJW = axiSymmetry ? 2.0*M_PI*X.x*fe.detJxW : fe.detJxW;
+
   // Integrate the force vector
   Vector& ES = *eS;
   for (size_t a = 1; a <= fe.N.size(); a++)
     for (i = 1; i <= nsd; i++)
-      ES(nsd*(a-1)+i) += T[i-1]*fe.N(a)*fe.detJxW;
+      ES(nsd*(a-1)+i) += T[i-1]*fe.N(a)*detJW;
 
   return this->getIntegralResult(elmInt);
 }
 
 
-bool NonlinearElasticityTL::kinematics (const Matrix& dNdX,
-					Tensor& F, SymmTensor& E) const
+bool NonlinearElasticityTL::kinematics (const Vector& N, const Matrix& dNdX,
+					double r, Tensor& F,
+					SymmTensor& E) const
 {
   if (!eV || eV->empty())
   {
     // Initial state, unit deformation gradient and linear B-matrix
     F = 1.0;
-    return this->Elasticity::kinematics(dNdX,F,E);
+    E.zero();
+    return axiSymmetry ? this->formBmatrix(N,dNdX,r) : this->formBmatrix(dNdX);
   }
 
   const size_t nenod = dNdX.rows();
@@ -216,12 +224,17 @@ bool NonlinearElasticityTL::kinematics (const Matrix& dNdX,
   // element displacement vector, *eV, as a matrix whose number of columns
   // equals the number of rows in the matrix dNdX.
   Matrix dUdX;
-  if (dUdX.multiplyMat(*eV,dNdX)) // dUdX = Grad{u} = eV*dNd
-    F = dUdX;
-  else
+  if (!dUdX.multiplyMat(*eV,dNdX)) // dUdX = Grad{u} = eV*dNd
     return false;
 
   unsigned short int i, j, k;
+  if (dUdX.rows() < F.dim())
+    F.zero();
+
+  // Cannot use operator= here, in case F is of higher dimension than dUdX
+  for (i = 1; i <= dUdX.rows(); i++)
+    for (j = 1; j <= dUdX.cols(); j++)
+      F(i,j) = dUdX(i,j);
 
   // Now form the Green-Lagrange strain tensor.
   // Note that for the shear terms (i/=j) we actually compute 2*E_ij

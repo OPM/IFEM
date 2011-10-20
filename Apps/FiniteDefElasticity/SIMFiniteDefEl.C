@@ -45,7 +45,7 @@ SIMFiniteDefEl2D::SIMFiniteDefEl2D (const std::vector<int>& options)
       myProblem = new NonlinearElasticityULMX(2,pOrd);
       break;
     case SIM::UPDATED_LAGRANGE:
-      myProblem = new NonlinearElasticityUL(2);
+      myProblem = new NonlinearElasticityUL(2,axiSymmetry);
       break;
     case SIM::TOTAL_LAGRANGE:
       myProblem = new NonlinearElasticityTL(2);

@@ -62,7 +62,9 @@ public:
 
 protected:
   //! \brief Calculates some kinematic quantities at current point.
+  //! \param[in] N Basis function values at current point
   //! \param[in] dNdX Basis function gradients at current point
+  //! \param[in] r Radial coordinate of current point
   //! \param[in] F Deformation gradient at current point
   //! \param[out] E Green-Lagrange strain tensor at current point
   //!
@@ -70,7 +72,8 @@ protected:
   //! strain-displacement matrix \b B are established. The latter matrix
   //! is stored in the mutable class member \a Bmat of the parent class.
   //! The B-matrix is formed only when the variable \a formB is true.
-  virtual bool kinematics(const Matrix& dNdX, Tensor& F, SymmTensor& E) const;
+  virtual bool kinematics(const Vector& N, const Matrix& dNdX, double r,
+			  Tensor& F, SymmTensor& E) const;
 
 protected:
   bool        formB; //!< Flag determining whether we need to form the B-matrix

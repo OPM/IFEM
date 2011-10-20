@@ -84,7 +84,7 @@ bool NonlinearElasticity::evalInt (LocalIntegral*& elmInt,
 
   // Evaluate the kinematic quantities, F and E, at this point
   Tensor F(nsd);
-  if (!this->kinematics(fe.dNdX,F,E))
+  if (!this->kinematics(fe.N,fe.dNdX,X.x,F,E))
     return false;
 
   // Evaluate current tangent at this point, that is
@@ -148,7 +148,7 @@ bool NonlinearElasticity::evalInt (LocalIntegral*& elmInt,
 
   if (eKg && haveStrains)
     // Integrate the geometric stiffness matrix
-    this->formKG(*eKg,fe.dNdX,S,fe.detJxW);
+    this->formKG(*eKg,fe.N,fe.dNdX,X.x,S,fe.detJxW);
 
   if (eM)
     // Integrate the mass matrix
@@ -232,7 +232,7 @@ bool NonlinearElasticity::formStressTensor (const Matrix& dNdX, const Vec3& X,
 
   // Evaluate the kinematic quantities, F and E, at this point
   Tensor F(nsd);
-  if (!this->kinematics(dNdX,F,E))
+  if (!this->kinematics(Vector(),dNdX,X.x,F,E))
     return false;
 
   // Evaluate the 2nd Piola-Kirchhoff stress tensor, S, at this point

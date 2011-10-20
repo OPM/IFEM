@@ -312,9 +312,9 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
 #endif
 
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E
-  Tensor F(nsd);
-  SymmTensor E(nsd);
-  if (!this->kinematics(fe.dN1dX,F,E))
+  Tensor F(nDF);
+  SymmTensor E(nsd,axiSymmetry);
+  if (!this->kinematics(fe.N1,fe.dN1dX,X.x,F,E))
     return false;
 
   bool lHaveStrains = !E.isZero(1.0e-16);
@@ -329,28 +329,37 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
 	    <<", Press = "<< Press << std::endl;
 #endif
 
+  // Axi-symmetric integration point volume; 2*pi*r*|J|*w
+  double detJW = axiSymmetry ? 2.0*M_PI*X.x*fe.detJxW : fe.detJxW;
+  double r     = axiSymmetry ? X.x + eV->dot(fe.N1,0,nsd) : 0.0;
+
   // Compute the mixed model deformation gradient, F_bar
   Fbar = F; // notice that F_bar always has dimension 3
   double r1 = pow(fabs(Theta/F.det()),1.0/3.0);
 
   Fbar *= r1;
-  if (nsd == 2) // In 2D we always assume plane strain so set F(3,3)=1
+  if (nDF == 2) // In 2D we always assume plane strain so set F(3,3)=1
     Fbar(3,3) = r1;
-  else if (nsd != 3)
-    return false;
 
   // Invert the deformation gradient ==> Fi
   Matrix Fi(nsd,nsd);
-  Fi.fill(F.ptr());
+  if (nDF == nsd)
+    Fi.fill(F.ptr());
+  else
+    for (unsigned short int i = 1; i <= nsd; i++)
+      for (unsigned short int j = 1; j <= nsd; j++)
+	Fi(i,j) = F(i,j);
+
   double J = Fi.inverse();
+  if (axiSymmetry) J *= F(3,3);
   if (J == 0.0) return false;
 
   // Push-forward the basis function gradients to current configuration
   dNdx.multiply(fe.dN1dX,Fi); // dNdx = dNdX * F^-1
 
   // Compute the mixed integration point volume
-  double dVol = Theta*fe.detJxW;
-  double dVup = J*fe.detJxW;
+  double dVol = Theta*detJW;
+  double dVup = J*detJW;
 
 #if INT_DEBUG > 0
   std::cout <<"NonlinearElasticityULMixed::dNdX ="<< fe.dN1dX;
@@ -363,14 +372,14 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
 
   if (eM)
     // Integrate the mass matrix
-    this->formMassMatrix(*eM,fe.N1,X,J*fe.detJxW);
+    this->formMassMatrix(*eM,fe.N1,X,J*detJW);
 
   if (eS)
     // Integrate the load vector due to gravitation and other body forces
-    this->formBodyForce(*eS,fe.N1,X,J*fe.detJxW);
+    this->formBodyForce(*eS,fe.N1,X,J*detJW);
 
   // Evaluate the constitutive relation
-  SymmTensor Sig(3), Sigma(nsd);
+  SymmTensor Sig(3), Sigma(nsd,axiSymmetry);
   double U, Bpres = 0.0, Mpres = 0.0;
   if (!material->evaluate(Cmat,Sig,U,X,Fbar,E,lHaveStrains,&prm))
     return false;
@@ -410,7 +419,7 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
     Sigma = Sig + (Mpres-Bpres);
 
     // Integrate the geometric stiffness matrix
-    this->formKG(*eKg,dNdx,Sigma,dVol);
+    this->formKG(*eKg,fe.N1,dNdx,r,Sigma,dVol);
   }
 
 #ifdef USE_FTNMAT
@@ -448,14 +457,16 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
 	myMats->A[Kup](nsd*(a-1)+i,b) += dNdx(a,i)*fe.N2(b) * dVup;
       }
 
-  myMats->A[Ktt].outer_product(fe.N2,fe.N2*Dmat(7,7),true);    // += N2*N2^T*D77
-  myMats->A[Ktp].outer_product(fe.N2,fe.N2*(-fe.detJxW),true); // -= N2*N2^T*|J|
+  myMats->A[Ktt].outer_product(fe.N2,fe.N2*Dmat(7,7),true); // += N2*N2^T*D77
+  myMats->A[Ktp].outer_product(fe.N2,fe.N2*(-detJW),true);  // -= N2*N2^T*|J|
 
   if (lHaveStrains)
   {
     // Compute the small-deformation strain-displacement matrix B from dNdx
-    if (!this->Elasticity::formBmatrix(dNdx))
-      return false;
+    if (axiSymmetry)
+      this->formBmatrix(fe.N1,dNdx,r);
+    else
+      this->formBmatrix(dNdx);
 
     // Integrate the internal forces
     Sigma *= -dVol;
@@ -463,8 +474,8 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral*& elmInt,
       return false;
 
     // Integrate the volumetric change and pressure forces
-    myMats->b[Rt].add(fe.N2,(Press - Bpres)*fe.detJxW); // += N2*(p-pBar)*|J|
-    myMats->b[Rp].add(fe.N2,(Theta - J)*fe.detJxW);     // += N2*(Theta-J)*|J|
+    myMats->b[Rt].add(fe.N2,(Press - Bpres)*detJW); // += N2*(p-pBar)*|J|
+    myMats->b[Rp].add(fe.N2,(Theta - J)*detJW);     // += N2*(Theta-J)*|J|
 
 #if INT_DEBUG > 4
     std::cout <<"NonlinearElasticityULMixed::Sigma*dVol =\n"<< Sigma;
@@ -541,9 +552,9 @@ bool ElasticityNormULMixed::evalIntMx (LocalIntegral*& elmInt,
   ulp = static_cast<NonlinearElasticityULMixed*>(&myProblem);
 
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E
-  Tensor F(fe.dN1dX.cols());
-  SymmTensor E(F.dim());
-  if (!ulp->kinematics(fe.dN1dX,F,E))
+  Tensor F(ulp->nDF);
+  SymmTensor E(ulp->nDF);
+  if (!ulp->kinematics(fe.N1,fe.dN1dX,X.x,F,E))
     return false;
 
   // Evaluate the volumetric change field
@@ -564,8 +575,11 @@ bool ElasticityNormULMixed::evalIntMx (LocalIntegral*& elmInt,
   if (!ulp->material->evaluate(ulp->Cmat,Sig,U,X,ulp->Fbar,E,3,&prm,&F))
     return false;
 
+  // Axi-symmetric integration point volume; 2*pi*r*|J|*w
+  double detJW = ulp->isAxiSymmetric() ? 2.0*M_PI*X.x*fe.detJxW : fe.detJxW;
+
   // Integrate the norms
-  return evalInt(getElmNormBuffer(elmInt,6),Sig,U,Theta,fe.detJxW);
+  return evalInt(getElmNormBuffer(elmInt,6),Sig,U,Theta,detJW);
 }
 
 

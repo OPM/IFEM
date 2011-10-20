@@ -76,9 +76,9 @@ bool NonlinearElasticityFbar::reducedInt (const FiniteElement& fe) const
   VolPtData& ptData = myVolData[iP++];
 
   // Evaluate the deformation gradient, F, at current configuration
-  Tensor F(nsd);
-  SymmTensor E(nsd);
-  if (!this->kinematics(fe.dNdX,F,E))
+  Tensor F(nDF);
+  SymmTensor E(nsd,axiSymmetry);
+  if (!this->kinematics(fe.N,fe.dNdX,0.0,F,E))
     return false;
 
   if (E.isZero(1.0e-16))
@@ -91,8 +91,15 @@ bool NonlinearElasticityFbar::reducedInt (const FiniteElement& fe) const
   {
     // Invert the deformation gradient ==> Fi
     Matrix Fi(nsd,nsd);
-    Fi.fill(F.ptr());
+    if (nsd == nDF)
+      Fi.fill(F.ptr());
+    else
+      for (unsigned short int i = 1; i <= nsd; i++)
+	for (unsigned short int j = 1; j <= nsd; j++)
+	  Fi(i,j) = F(i,j);
+
     ptData.J = Fi.inverse();
+    if (axiSymmetry) ptData.J *= F(3,3);
     if (ptData.J == 0.0)
       return false;
 
@@ -274,9 +281,9 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
 #endif
 
   // Evaluate the deformation gradient, F, at current configuration
-  Tensor F(nsd);
-  SymmTensor E(nsd);
-  if (!this->kinematics(fe.dNdX,F,E))
+  Tensor F(nDF);
+  SymmTensor E(nsd,axiSymmetry);
+  if (!this->kinematics(fe.N,fe.dNdX,X.x,F,E))
     return false;
 
   double J, Jbar = 0.0;
@@ -285,8 +292,15 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
   {
     // Invert the deformation gradient ==> Fi
     Matrix Fi(nsd,nsd);
-    Fi.fill(F.ptr());
+    if (nDF == nsd)
+      Fi.fill(F.ptr());
+    else
+      for (unsigned short int i = 1; i <= nsd; i++)
+	for (unsigned short int j = 1; j <= nsd; j++)
+	  Fi(i,j) = F(i,j);
+
     J = Fi.inverse();
+    if (axiSymmetry) J *= F(3,3);
     if (J == 0.0) return false;
 
     if (eKm || iS)
@@ -343,7 +357,7 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
   }
 
   // Compute modified deformation gradient, Fbar
-  F *= pow(fabs(Jbar/J),1.0/(double)nsd);
+  F *= pow(fabs(Jbar/J),1.0/(double)nDF);
 #ifdef INT_DEBUG
   std::cout <<"NonlinearElasticityFbar::Jbar = "<< Jbar
 	    <<"\nNonlinearElasticityFbar::dMdx ="<< dMdx
@@ -351,13 +365,16 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
 #endif
 
   // Evaluate the constitutive relation (Jbar is dummy here)
-  SymmTensor Sig(nsd);
+  SymmTensor Sig(nsd,axiSymmetry);
   if (!material->evaluate(Cmat,Sig,Jbar,X,F,E,lHaveStrains,&prm))
     return false;
 
+  // Axi-symmetric integration point volume; 2*pi*r*|J|*w
+  double detJW = (axiSymmetry ? 2.0*M_PI*X.x : 1.0)*fe.detJxW*J;
+
   // Multiply tangent moduli and stresses by integration point volume
-  Cmat *= fe.detJxW*J;
-  Sig  *= fe.detJxW*J;
+  Cmat *= detJW;
+  Sig  *= detJW;
 
   if (iS && lHaveStrains)
   {
@@ -420,11 +437,11 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
 
   if (eM)
     // Integrate the mass matrix
-    this->formMassMatrix(*eM,fe.N,X,J*fe.detJxW);
+    this->formMassMatrix(*eM,fe.N,X,detJW);
 
   if (eS)
     // Integrate the load vector due to gravitation and other body forces
-    this->formBodyForce(*eS,fe.N,X,J*fe.detJxW);
+    this->formBodyForce(*eS,fe.N,X,detJW);
 
   return this->getIntegralResult(elmInt);
 }
@@ -452,9 +469,9 @@ bool ElasticityNormFbar::evalInt (LocalIntegral*& elmInt,
   NonlinearElasticityFbar& p = static_cast<NonlinearElasticityFbar&>(myProblem);
 
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E
-  Tensor F(nsd);
-  SymmTensor E(nsd);
-  if (!p.kinematics(fe.dNdX,F,E))
+  Tensor F(p.nDF);
+  SymmTensor E(p.nDF);
+  if (!p.kinematics(fe.N,fe.dNdX,X.x,F,E))
     return false;
 
   double Jbar = 0.0;
@@ -479,16 +496,19 @@ bool ElasticityNormFbar::evalInt (LocalIntegral*& elmInt,
 
   // Compute modified deformation gradient, Fbar
   Tensor Fbar(F);
-  Fbar *= pow(fabs(Jbar/F.det()),1.0/(double)nsd);
+  Fbar *= pow(fabs(Jbar/F.det()),1.0/(double)p.nDF);
 
   // Compute the strain energy density, U(E) = Int_E (S:Eps) dEps
   // and the Cauchy stress tensor, sigma
   double U = 0.0;
-  SymmTensor sigma(nsd,p.material->isPlaneStrain());
+  SymmTensor sigma(nsd, p.isAxiSymmetric() || p.material->isPlaneStrain());
   if (!p.material->evaluate(p.Cmat,sigma,U,X,Fbar,E,3,&prm,&F))
     return false;
 
+  // Axi-symmetric integration point volume; 2*pi*r*|J|*w
+  double detJW = p.isAxiSymmetric() ? 2.0*M_PI*X.x*fe.detJxW : fe.detJxW;
+
   // Integrate the norms
   return ElasticityNormUL::evalInt(getElmNormBuffer(elmInt,6),
-				   sigma,U,F.det(),fe.detJxW);
+				   sigma,U,F.det(),detJW);
 }

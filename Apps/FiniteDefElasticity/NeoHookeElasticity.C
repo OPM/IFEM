@@ -70,7 +70,7 @@ bool NeoHookeElasticity::kinematics (const Matrix& dNdX,
 				     Tensor& _F, SymmTensor& _E) const
 {
   // Form the deformation gradient, F
-  if (!this->NonlinearElasticity::kinematics(dNdX,_F,_E))
+  if (!this->NonlinearElasticity::kinematics(Vector(),dNdX,0.0,_F,_E))
     return false;
   else
     J = _F.det();

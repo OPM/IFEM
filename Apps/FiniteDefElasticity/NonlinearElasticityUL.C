@@ -20,9 +20,15 @@
 #include "Tensor.h"
 #include "Vec3Oper.h"
 
+#ifndef epsR
+//! \brief Zero tolerance for the radial coordinate.
+#define epsR 1.0e-16
+#endif
 
-NonlinearElasticityUL::NonlinearElasticityUL (unsigned short int n, char lop)
-  : Elasticity(n), loadOp(lop), plam(-999.9)
+
+NonlinearElasticityUL::NonlinearElasticityUL (unsigned short int n,
+					      bool axS, char lop)
+  : Elasticity(n,axS), loadOp(lop), plam(-999.9)
 {
   // Only the current solution is needed
   primsol.resize(1);
@@ -108,29 +114,47 @@ bool NonlinearElasticityUL::evalInt (LocalIntegral*& elmInt,
 				     const Vec3& X) const
 {
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E
-  Tensor F(nsd);
-  SymmTensor E(nsd);
-  if (!this->kinematics(fe.dNdX,F,E))
+  Tensor F(nDF);
+  SymmTensor E(nsd,axiSymmetry);
+  if (!this->kinematics(fe.N,fe.dNdX,X.x,F,E))
     return false;
+
+  // Axi-symmetric integration point volume; 2*pi*r*|J|*w
+  double detJW = axiSymmetry ? 2.0*M_PI*X.x*fe.detJxW : fe.detJxW;
+  double r = axiSymmetry ? X.x : 0.0;
 
   bool lHaveStrains = !E.isZero(1.0e-16);
   if (lHaveStrains)
   {
     // Invert the deformation gradient ==> Fi
     Matrix Fi(nsd,nsd);
-    Fi.fill(F.ptr());
+    if (nDF == nsd)
+      Fi.fill(F.ptr());
+    else
+      for (unsigned short int i = 1; i <= nsd; i++)
+        for (unsigned short int j = 1; j <= nsd; j++)
+          Fi(i,j) = F(i,j);
+
     double J = Fi.inverse();
+    if (axiSymmetry) J *= F(3,3);
     if (J == 0.0) return false;
 
     // Scale with J=|F| since we are integrating over current configuration
-    const_cast<double&>(fe.detJxW) *= J;
+    detJW *= J;
 
     if (eKm || iS)
     {
       // Push-forward the basis function gradients to current configuration
       dNdx.multiply(fe.dNdX,Fi); // dNdx = dNdX * F^-1
       // Compute the small-deformation strain-displacement matrix B from dNdx
-      if (!this->formBmatrix(dNdx)) return false;
+      if (axiSymmetry)
+      {
+	r += eV->dot(fe.N,0,nsd);
+	this->formBmatrix(fe.N,dNdx,r);
+      }
+      else
+	this->formBmatrix(dNdx);
+
 #ifdef INT_DEBUG
       std::cout <<"NonlinearElasticityUL::dNdx ="<< dNdx;
       std::cout <<"NonlinearElasticityUL::B ="<< Bmat;
@@ -138,11 +162,16 @@ bool NonlinearElasticityUL::evalInt (LocalIntegral*& elmInt,
     }
   }
   else if (eKm || iS)
+  {
     // Initial state, no deformation yet
-    if (!this->formBmatrix(fe.dNdX)) return false;
+    if (axiSymmetry)
+      this->formBmatrix(fe.N,fe.dNdX,r);
+    else
+      this->formBmatrix(fe.dNdX);
+  }
 
   // Evaluate the constitutive relation
-  SymmTensor sigma(nsd);
+  SymmTensor sigma(nsd,axiSymmetry);
   if (eKm || eKg || iS)
   {
     double U = 0.0;
@@ -153,29 +182,29 @@ bool NonlinearElasticityUL::evalInt (LocalIntegral*& elmInt,
   if (eKm)
   {
     // Integrate the material stiffness matrix
-    CB.multiply(Cmat,Bmat).multiply(fe.detJxW); // CB = C*B*|J|*w
-    eKm->multiply(Bmat,CB,true,false,true);     // EK += B^T * CB
+    CB.multiply(Cmat,Bmat).multiply(detJW); // CB = C*B*|J|*w
+    eKm->multiply(Bmat,CB,true,false,true); // EK += B^T * CB
   }
 
   if (eKg && lHaveStrains)
     // Integrate the geometric stiffness matrix
-    this->formKG(*eKg,dNdx,sigma,fe.detJxW);
+    this->formKG(*eKg,fe.N,dNdx,r,sigma,detJW);
 
   if (eM)
     // Integrate the mass matrix
-    this->formMassMatrix(*eM,fe.N,X,fe.detJxW);
+    this->formMassMatrix(*eM,fe.N,X,detJW);
 
   if (iS && lHaveStrains)
   {
     // Integrate the internal forces
-    sigma *= -fe.detJxW;
+    sigma *= -detJW;
     if (!Bmat.multiply(sigma,*iS,true,true)) // ES -= B^T*sigma
       return false;
   }
 
   if (eS)
     // Integrate the load vector due to gravitation and other body forces
-    this->formBodyForce(*eS,fe.N,X,fe.detJxW);
+    this->formBodyForce(*eS,fe.N,X,detJW);
 
   return this->getIntegralResult(elmInt);
 }
@@ -204,12 +233,15 @@ bool NonlinearElasticityUL::evalBou (LocalIntegral*& elmInt,
   // Store the traction value for vizualization
   if (!T.isZero()) tracVal[X] = T;
 
+  // Axi-symmetric integration point volume; 2*pi*r*|J|*w
+  double detJW = axiSymmetry ? 2.0*M_PI*X.x*fe.detJxW : fe.detJxW;
+
   unsigned short int i, j;
   if (loadOp == 1)
   {
     // Compute the deformation gradient, F
-    Tensor F(nsd);
-    if (!this->formDefGradient(fe.dNdX,F)) return false;
+    Tensor F(nDF);
+    if (!this->formDefGradient(fe.N,fe.dNdX,X.x,F)) return false;
 
     // Check for with-rotated pressure load
     if (tracFld->isNormalPressure())
@@ -228,29 +260,31 @@ bool NonlinearElasticityUL::evalBou (LocalIntegral*& elmInt,
     }
     else
       // Scale with J=|F| since we are integrating over current configuration
-      const_cast<double&>(fe.detJxW) *= F.det();
+      detJW *= F.det();
   }
 
   // Integrate the force vector
   Vector& ES = *eS;
   for (size_t a = 1; a <= fe.N.size(); a++)
     for (i = 1; i <= nsd; i++)
-      ES(nsd*(a-1)+i) += T[i-1]*fe.N(a)*fe.detJxW;
+      ES(nsd*(a-1)+i) += T[i-1]*fe.N(a)*detJW;
 
   return this->getIntegralResult(elmInt);
 }
 
 
-bool NonlinearElasticityUL::formDefGradient (const Matrix& dNdX,
+bool NonlinearElasticityUL::formDefGradient (const Vector& N,
+					     const Matrix& dNdX, double r,
 					     Tensor& F) const
 {
   static SymmTensor dummy(0);
-  return this->kinematics(dNdX,F,dummy);
+  return this->kinematics(N,dNdX,r,F,dummy);
 }
 
 
-bool NonlinearElasticityUL::kinematics (const Matrix& dNdX,
-					Tensor& F, SymmTensor& E) const
+bool NonlinearElasticityUL::kinematics (const Vector& N, const Matrix& dNdX,
+					double r, Tensor& F,
+					SymmTensor& E) const
 {
   if (!eV || eV->empty())
   {
@@ -267,7 +301,6 @@ bool NonlinearElasticityUL::kinematics (const Matrix& dNdX,
 	      <<" dNdX("<< nenod <<","<< dNdX.cols() <<")"<< std::endl;
     return false;
   }
-
 
   // Compute the deformation gradient, [F] = [I] + [dudX] = [I] + [dNdX]*[u],
   // and the Green-Lagrange strains, E_ij = 0.5(F_ij+F_ji+F_ki*F_kj).
@@ -291,6 +324,7 @@ bool NonlinearElasticityUL::kinematics (const Matrix& dNdX,
   // Now form the Green-Lagrange strain tensor.
   // Note that for the shear terms (i/=j) we actually compute 2*E_ij
   // to be consistent with the engineering strain style constitutive matrix.
+  // TODO: How is this for axisymmetric problems?
   for (i = 1; i <= E.dim(); i++)
     for (j = 1; j <= i; j++)
     {
@@ -302,6 +336,8 @@ bool NonlinearElasticityUL::kinematics (const Matrix& dNdX,
 
   // Add the unit tensor to F to form the deformation gradient
   F += 1.0;
+  // Add the dU/r term to the F(3,3)-term for axisymmetric problems
+  if (axiSymmetry && r > epsR) F(3,3) += eV->dot(N,0,nsd)/r;
 
 #ifdef INT_DEBUG
   std::cout <<"NonlinearElasticityUL::eV ="<< *eV;
@@ -333,20 +369,23 @@ bool ElasticityNormUL::evalInt (LocalIntegral*& elmInt,
   NonlinearElasticityUL& ulp = static_cast<NonlinearElasticityUL&>(myProblem);
 
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E
-  Tensor F(fe.dNdX.cols());
-  SymmTensor E(fe.dNdX.cols());
-  if (!ulp.kinematics(fe.dNdX,F,E))
+  Tensor F(ulp.nDF);
+  SymmTensor E(ulp.nDF);
+  if (!ulp.kinematics(fe.N,fe.dNdX,X.x,F,E))
     return false;
 
   // Compute the strain energy density, U(E) = Int_E (S:Eps) dEps
   // and the Cauchy stress tensor, sigma
   double U = 0.0;
-  SymmTensor sigma(E.dim(),ulp.material->isPlaneStrain());
+  SymmTensor sigma(E.dim(),ulp.isAxiSymmetric()||ulp.material->isPlaneStrain());
   if (!ulp.material->evaluate(ulp.Cmat,sigma,U,X,F,E,3,&prm))
     return false;
 
+  // Axi-symmetric integration point volume; 2*pi*r*|J|*w
+  double detJW = ulp.isAxiSymmetric() ? 2.0*M_PI*X.x*fe.detJxW : fe.detJxW;
+
   // Integrate the norms
-  return evalInt(getElmNormBuffer(elmInt,6),sigma,U,F.det(),fe.detJxW);
+  return evalInt(getElmNormBuffer(elmInt,6),sigma,U,F.det(),detJW);
 }
 
 
@@ -403,6 +442,9 @@ bool ElasticityNormUL::evalBou (LocalIntegral*& elmInt,
     up.push_back(u);
   }
 
-  getElmNormBuffer(elmInt)[1] += Ux[iP++]*fe.detJxW;
+  // Axi-symmetric integration point volume; 2*pi*r*|J|*w
+  double detJW = ulp.isAxiSymmetric() ? 2.0*M_PI*X.x*fe.detJxW : fe.detJxW;
+
+  getElmNormBuffer(elmInt)[1] += Ux[iP++]*detJW;
   return true;
 }

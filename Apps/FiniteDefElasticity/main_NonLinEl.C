@@ -61,6 +61,7 @@ extern std::vector<int> mixedDbgEl; //!< List of elements for additional output
   \arg -fixDup : Resolve co-located nodes by merging them into a single node
   \arg -2D : Use two-parametric simulation driver (plane stress)
   \arg -2Dpstrain : Use two-parametric simulation driver (plane strain)
+  \arg -2Daxisymm : Use two-parametric simulation driver (axi-symmetric solid)
   \arg -UL : Use updated Lagrangian formulation with nonlinear material
   \arg -MX \a pord : Mixed formulation with internal discontinuous pressure
   \arg -mixed : Mixed formulation with continuous pressure and volumetric change
@@ -163,8 +164,10 @@ int main (int argc, char** argv)
       checkRHS = true;
     else if (!strcmp(argv[i],"-fixDup"))
       fixDup = true;
-    else if (!strcmp(argv[i],"-2Dpstrain"))
+    else if (!strncmp(argv[i],"-2Dpstra",8))
       twoD = SIMLinEl2D::planeStrain = true;
+    else if (!strncmp(argv[i],"-2Daxi",6))
+      twoD = SIMLinEl2D::axiSymmetry = true;
     else if (!strncmp(argv[i],"-2D",3))
       twoD = true;
     else if (!strcmp(argv[i],"-UL"))
@@ -206,7 +209,7 @@ int main (int argc, char** argv)
   {
     std::cout <<"usage: "<< argv[0]
 	      <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n      "
-	      <<" [-lag] [-spec] [-nGauss <n>] [-2D[pstrain]] [-UL|-MX [<p>]"
+	      <<" [-lag|-spec] [-nGauss <n>] [-2D[pstrain|axis]] [-UL|-MX [<p>]"
 	      <<"|-[M|m]ixed|-Fbar <nvp>]\n       [-vtf <format> [-nviz <nviz>]"
 	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]] [-hdf5]\n      "
 	      <<" [-saveInc <dtSave>] [-skip2nd] [-dumpInc <dtDump> [raw]]"

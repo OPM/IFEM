@@ -31,8 +31,10 @@ class NonlinearElasticityUL : public Elasticity
 public:
   //! \brief The default constructor invokes the parent class constructor.
   //! \param[in] n Number of spatial dimensions
+  //! \param[in] axS \e If \e true, and axisymmetric 3D formulation is assumed
   //! \param[in] lop Load option (0=on initial length, 1=on updated length)
-  NonlinearElasticityUL(unsigned short int n = 3, char lop = 0);
+  NonlinearElasticityUL(unsigned short int n = 3, bool axS = false,
+			char lop = 0);
   //! \brief Empty destructor.
   virtual ~NonlinearElasticityUL() {}
 
@@ -78,16 +80,22 @@ public:
   virtual NormBase* getNormIntegrand(AnaSol* = 0) const;
 
   //! \brief Calculates some kinematic quantities at current point.
+  //! \param[in] N Basis function values at current point
   //! \param[in] dNdX Basis function gradients at current point
+  //! \param[in] r Radial coordinate of current point
   //! \param[out] F Deformation gradient at current point
   //! \param[out] E Green-Lagrange strain tensor at current point
-  virtual bool kinematics(const Matrix& dNdX, Tensor& F, SymmTensor& E) const;
+  virtual bool kinematics(const Vector& N, const Matrix& dNdX, double r,
+			  Tensor& F, SymmTensor& E) const;
 
 protected:
   //! \brief Calculates the deformation gradient at current point.
+  //! \param[in] N Basis function values at current point
   //! \param[in] dNdX Basis function gradients at current point
+  //! \param[in] r Radial coordinate of current point
   //! \param[out] F Deformation gradient at current point
-  bool formDefGradient(const Matrix& dNdX, Tensor& F) const;
+  bool formDefGradient(const Vector& N, const Matrix& dNdX, double r,
+		       Tensor& F) const;
 
 protected:
   mutable Matrix dNdx; //!< Basis function gradients in current configuration

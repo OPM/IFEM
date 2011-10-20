@@ -155,22 +155,26 @@ bool NonlinearElasticityULMX::evalInt (LocalIntegral*& elmInt,
 
   // Evaluate the deformation gradient, Fp, at previous configuration
   const_cast<NonlinearElasticityULMX*>(this)->eV = &eVs[1];
-  if (!this->formDefGradient(fe.dNdX,ptData.Fp))
+  if (!this->formDefGradient(fe.N,fe.dNdX,X.x,ptData.Fp))
     return false;
 
   // Evaluate the deformation gradient, F, at current configuration
   const_cast<NonlinearElasticityULMX*>(this)->eV = &eVs[0];
-  if (!this->formDefGradient(fe.dNdX,ptData.F))
+  if (!this->formDefGradient(fe.N,fe.dNdX,X.x,ptData.F))
     return false;
 
-  if (nsd == 2) // In 2D we always assume plane strain so set F(3,3)=1
+  if (nDF == 2) // In 2D we always assume plane strain so set F(3,3)=1
     ptData.F(3,3) = ptData.Fp(3,3) = 1.0;
 
   // Invert the deformation gradient ==> Fi
   Matrix Fi(nsd,nsd);
-  for (unsigned short int i = 1; i <= nsd; i++)
-    for (unsigned short int j = 1; j <= nsd; j++)
-      Fi(i,j) = ptData.F(i,j);
+  if (nsd == 3)
+    Fi.fill(ptData.F.ptr());
+  else
+    for (unsigned short int i = 1; i <= nsd; i++)
+      for (unsigned short int j = 1; j <= nsd; j++)
+	Fi(i,j) = ptData.F(i,j);
+
   double J = Fi.inverse();
   if (J == 0.0) return false;
 
@@ -191,15 +195,15 @@ bool NonlinearElasticityULMX::evalInt (LocalIntegral*& elmInt,
 
   if (Hh)
     // Integrate the Hh-matrix
-    Hh->outer_product(ptData.Phi,ptData.Phi*fe.detJxW,true);
+    Hh->outer_product(ptData.Phi,ptData.Phi*ptData.detJW,true);
 
   if (eM)
     // Integrate the mass matrix
-    this->formMassMatrix(*eM,fe.N,X,J*fe.detJxW);
+    this->formMassMatrix(*eM,fe.N,X,J*ptData.detJW);
 
   if (eS)
     // Integrate the load vector due to gravitation and other body forces
-    this->formBodyForce(*eS,fe.N,X,J*fe.detJxW);
+    this->formBodyForce(*eS,fe.N,X,J*ptData.detJW);
 
   return this->getIntegralResult(elmInt);
 }
@@ -409,7 +413,7 @@ bool NonlinearElasticityULMX::finalizeElement (LocalIntegral*& elmInt,
 #endif
       if (eKg)
 	// Integrate the geometric stiffness matrix
-	this->formKG(*eKg,pt.dNdx,Sigma,dFmix*pt.detJW);
+	this->formKG(*eKg,Vector(),pt.dNdx,X.x,Sigma,dFmix*pt.detJW);
     }
 
     if (eKm)
