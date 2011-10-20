@@ -28,6 +28,7 @@ class NonlinearElasticityFbar : public NonlinearElasticityUL
   struct VolPtData
   {
     double J;    //!< Determinant of current deformation gradient
+    Vector Nr;   //!< Basis function values (for axisymmetric problems)
     Matrix dNdx; //!< Basis function gradients at current configuration
     //! \brief Default constructor.
     VolPtData() { J = 1.0; }
@@ -36,8 +37,10 @@ class NonlinearElasticityFbar : public NonlinearElasticityUL
 public:
   //! \brief The default constructor invokes the parent class constructor.
   //! \param[in] n Number of spatial dimensions
+  //! \param[in] axS \e If \e true, and axisymmetric 3D formulation is assumed
   //! \param[in] nvp Number of volumetric sampling points in each direction
-  NonlinearElasticityFbar(unsigned short int n = 3, int nvp = 1);
+  NonlinearElasticityFbar(unsigned short int n = 3,
+			  bool axS = false, int nvp = 1);
   //! \brief Empty destructor.
   virtual ~NonlinearElasticityFbar() {}
 
@@ -52,7 +55,8 @@ public:
 
   //! \brief Evaluates volumetric sampling point data at an interior point.
   //! \param[in] fe Finite element data of current point
-  virtual bool reducedInt(const FiniteElement& fe) const;
+  //! \param[in] X Cartesian coordinates of current integration point
+  virtual bool reducedInt(const FiniteElement& fe, const Vec3& X) const;
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
@@ -79,6 +83,7 @@ private:
   mutable std::vector<VolPtData> myVolData; //!< Volumetric sampling point data
 
   mutable size_t iP;   //!< Volumetric sampling point counter
+  mutable Vector M;    //!< Modified basis function values
   mutable Matrix dMdx; //!< Modified basis function gradients
   mutable Matrix G;    //!< Discrete gradient operator
   mutable Matrix Gbar; //!< Modified discrete gradient operator
@@ -102,7 +107,8 @@ public:
 
   //! \brief Evaluates volumetric sampling point data at an interior point.
   //! \param[in] fe Finite element data of current point
-  virtual bool reducedInt(const FiniteElement& fe) const;
+  //! \param[in] X Cartesian coordinates of current integration point
+  virtual bool reducedInt(const FiniteElement& fe, const Vec3& X) const;
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions

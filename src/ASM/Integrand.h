@@ -118,11 +118,15 @@ public:
 
   //! \brief Evaluates reduced integration terms at an interior point.
   //! \param[in] fe Finite element data of current integration point
+  //! \param[in] X Cartesian coordinates of current integration point
   //!
   //! \details Reimplement this method to evaluate terms at other points than
   //! the regular integration points. This method is invoked in a separate loop
   //! prior to the main integration point loop.
-  virtual bool reducedInt(const FiniteElement& fe) const { return false; }
+  virtual bool reducedInt(const FiniteElement& fe, const Vec3& X) const
+  {
+    return false;
+  }
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions

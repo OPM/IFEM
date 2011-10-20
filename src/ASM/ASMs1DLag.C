@@ -229,8 +229,12 @@ bool ASMs1DLag::integrate (Integrand& integrand,
 	// Compute Jacobian inverse and derivatives
 	fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
 
+	// Cartesian coordinates of current integration point
+	X = Xnod * fe.N;
+	X.t = time.t;
+
 	// Compute the reduced integration terms of the integrand
-	if (!integrand.reducedInt(fe))
+	if (!integrand.reducedInt(fe,X))
 	  return false;
       }
 

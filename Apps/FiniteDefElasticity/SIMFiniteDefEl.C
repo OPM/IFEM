@@ -34,7 +34,7 @@ SIMFiniteDefEl2D::SIMFiniteDefEl2D (const std::vector<int>& options)
     {
     case SIM::FBAR:
       // F-bar formulation
-      myProblem = new NonlinearElasticityFbar(2,pOrd);
+      myProblem = new NonlinearElasticityFbar(2,axiSymmetry,pOrd);
       break;
     case SIM::MIXED_QnQn1:
       nf[1] = 2; // continuous volumetric change and pressure fields

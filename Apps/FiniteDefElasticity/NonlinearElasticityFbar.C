@@ -20,8 +20,9 @@
 #include "Tensor.h"
 
 
-NonlinearElasticityFbar::NonlinearElasticityFbar (unsigned short int n, int nvp)
-  : NonlinearElasticityUL(n), npt1(nvp)
+NonlinearElasticityFbar::NonlinearElasticityFbar (unsigned short int n,
+						  bool axS, int nvp)
+  : NonlinearElasticityUL(n,axS), npt1(nvp)
 {
   iP = 0;
   pbar = 0;
@@ -63,7 +64,8 @@ bool NonlinearElasticityFbar::initElement (const std::vector<int>& MNPC,
 }
 
 
-bool NonlinearElasticityFbar::reducedInt (const FiniteElement& fe) const
+bool NonlinearElasticityFbar::reducedInt (const FiniteElement& fe,
+					  const Vec3& X) const
 {
 #if INT_DEBUG > 1
   std::cout <<"NonlinearElasticityFbar::u(red) = "<< fe.u;
@@ -75,10 +77,13 @@ bool NonlinearElasticityFbar::reducedInt (const FiniteElement& fe) const
 
   VolPtData& ptData = myVolData[iP++];
 
+  if (axiSymmetry && X.x > 0.0)
+    ptData.Nr = fe.dNdX * (1.0/X.x);
+
   // Evaluate the deformation gradient, F, at current configuration
   Tensor F(nDF);
   SymmTensor E(nsd,axiSymmetry);
-  if (!this->kinematics(fe.N,fe.dNdX,0.0,F,E))
+  if (!this->kinematics(fe.N,fe.dNdX,X.x,F,E))
     return false;
 
   if (E.isZero(1.0e-16))
@@ -108,6 +113,8 @@ bool NonlinearElasticityFbar::reducedInt (const FiniteElement& fe) const
 #ifdef INT_DEBUG
     std::cout <<"NonlinearElasticityFbar::J = "<< ptData.J
 	      <<"\nNonlinearElasticityFbar::dNdx ="<< ptData.dNdx;
+    if (axiSymmetry)
+      std::cout <<"NonlinearElasticityFbar::Nr ="<< ptData.Nr;
 #endif
   }
 #ifdef INT_DEBUG
@@ -124,22 +131,29 @@ bool NonlinearElasticityFbar::reducedInt (const FiniteElement& fe) const
   \brief Computes the discrete gradient operator, \b G, for continuum elements.
 */
 
-static void getGradOperator (const Matrix& dNdx, Matrix& G)
+static void getGradOperator (double r, const Vector& N, const Matrix& dNdx,
+			     Matrix& G)
 {
   size_t nen = dNdx.rows();
   size_t nsd = dNdx.cols();
-  G.resize(nsd*nsd,nsd*nen);
+  size_t nrg = r > 0.0 ? nsd*nsd+1 : nsd*nsd;
+  G.resize(nrg,nsd*nen);
 
   size_t a, i, j, k, l = 0;
   for (a = 1; a <= nen; a++, l += nsd)
+  {
     for (i = k = 1; i <= nsd; i++)
       for (j = 1; j <= nsd; j++, k++)
 	G(k,l+j) = dNdx(a,i);
+    if (k == nrg)
+      G(k,l+1) = N(a)/r;
+  }
 }
 
 
 /*!
-  \brief Computes the spatial tangent modulus matrix, \b A, for 2D elements.
+  \brief Computes the spatial tangent modulus matrix, \b A.
+  \details For 2D continuum elements.
 */
 
 static void getAmat2D (const Matrix& C, const SymmTensor& Sig, Matrix& A)
@@ -169,7 +183,49 @@ static void getAmat2D (const Matrix& C, const SymmTensor& Sig, Matrix& A)
 
 
 /*!
-  \brief Computes the spatial tangent modulus matrix, \b A, for 3D elements.
+  \brief Computes the spatial tangent modulus matrix, \b A.
+  \details For 3D axisymmetric continuum elements.
+*/
+
+static void getAmatAx (const Matrix& C, const SymmTensor& Sig, Matrix& A)
+{
+  A.resize(5,5);
+
+  A(1,1) = C(1,1) + Sig(1,1);
+  A(2,1) = C(4,1);
+  A(3,1) = C(4,1) + Sig(2,1);
+  A(4,1) = C(2,1);
+  A(5,1) = C(3,1);
+
+  A(1,2) = C(1,4);
+  A(2,2) = C(4,4) + Sig(1,1);
+  A(3,2) = C(4,4);
+  A(4,2) = C(2,4) + Sig(1,2);
+  A(5,2) = C(3,4);
+
+  A(1,3) = C(1,4) + Sig(1,2);
+  A(2,3) = C(4,4);
+  A(3,3) = C(4,4) + Sig(2,2);
+  A(4,3) = C(2,4);
+  A(5,3) = C(3,4);
+
+  A(1,4) = C(1,2);
+  A(2,4) = C(4,2) + Sig(2,1);
+  A(3,4) = C(4,2);
+  A(4,4) = C(2,2) + Sig(2,2);
+  A(5,4) = C(3,2);
+
+  A(1,5) = C(1,3);
+  A(2,5) = C(4,3);
+  A(3,5) = C(4,3);
+  A(4,5) = C(2,3);
+  A(5,5) = C(3,3) + Sig(3,3);
+}
+
+
+/*!
+  \brief Computes the spatial tangent modulus matrix, \b A.
+  \details For 3D continuum elements.
 */
 
 static void getAmat3D (const Matrix& C, const SymmTensor& Sig, Matrix& A)
@@ -325,6 +381,7 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
     // Only one volumetric sampling point (linear element)
     Jbar = myVolData.front().J;
     dMdx = myVolData.front().dNdx;
+    if (axiSymmetry) M = myVolData.front().Nr;
   }
   else if (!myVolData.empty())
   {
@@ -342,18 +399,23 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
     // gradients wrt. current configuration (spatial coordinates),
     // by extrapolating the volume sampling points
     dMdx.resize(dNdx.rows(),dNdx.cols(),true);
+    if (axiSymmetry) M.resize(dNdx.rows(),true);
     for (size_t a = 0; a < Nbar.size(); a++)
     {
       Jbar += myVolData[a].J*Nbar[a];
       dMdx.add(myVolData[a].dNdx,myVolData[a].J*Nbar[a]);
+      if (axiSymmetry)
+	M.add(myVolData[a].Nr,myVolData[a].J*Nbar[a]);
     }
     dMdx.multiply(1.0/Jbar);
+    if (axiSymmetry) M /= Jbar;
   }
   else
   {
     // No F-bar terms
     Jbar = J;
     dMdx = dNdx;
+    if (axiSymmetry) M = fe.N;
   }
 
   // Compute modified deformation gradient, Fbar
@@ -371,6 +433,7 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
 
   // Axi-symmetric integration point volume; 2*pi*r*|J|*w
   double detJW = (axiSymmetry ? 2.0*M_PI*X.x : 1.0)*fe.detJxW*J;
+  double r = axiSymmetry ? X.x + eV->dot(fe.N,0,nsd) : 0.0;
 
   // Multiply tangent moduli and stresses by integration point volume
   Cmat *= detJW;
@@ -383,6 +446,9 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
     size_t a, d;
     unsigned short int i, j;
     for (a = d = 1; a <= dNdx.rows(); a++)
+    {
+      if (axiSymmetry && r > 0.0)
+	ES(d) -= fe.N(a)*Sig(3,3)/r;
       for (i = 1; i <= nsd; i++, d++)
       {
 	double Sint = 0.0;
@@ -390,32 +456,40 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
 	  Sint += dNdx(a,j)*Sig(i,j);
 	ES(d) -= Sint;
       }
+    }
   }
 
   if (eKm)
   {
     // Compute standard and modified discrete spatial gradient operators
-    getGradOperator(dNdx,G);
-    getGradOperator(dMdx,Gbar);
+    getGradOperator(axiSymmetry ? r : -1.0, fe.N, dNdx, G);
+    getGradOperator(axiSymmetry ? 1.0 : -1.0, M, dMdx, Gbar);
 
     // Convert the spatial constitutive tensor to first elasticity tensor, A
-    Matrix A(nsd*nsd,nsd*nsd), Q(nsd*nsd,nsd*nsd);
-    if (nsd == 2)
+    Matrix A;
+    if (axiSymmetry)
+      getAmatAx(Cmat,Sig,A);
+    else if (nsd == 2)
       getAmat2D(Cmat,Sig,A);
     else
       getAmat3D(Cmat,Sig,A);
 
     // Compute the fourth-order tensor Q
+    Matrix Q(A.rows(),A.cols());
     unsigned short int i, j, k, l;
-    for (i = k = 1; i <= nsd; i++)
+    for (i = k = 1; k < A.rows(); i++)
       for (j = 1; j <= nsd; j++, k++)
       {
-	Q(k,1) = (double)(1-nsd)*Sig(i,j);
-	for (l = 1; l <= A.cols(); l += nsd+1)
+	Q(k,1) = (double)(1-nDF)*(i > nsd ? Sig(3,3) : Sig(i,j));
+	for (l = 1; l <= nsd*nsd; l += nsd+1)
 	  Q(k,1) += A(k,l);
-	Q(k,1) /= (double)nsd;
-	for (l = nsd+2; l <= Q.cols(); l += nsd+1)
-	  Q(k,l) += Q(k,1);
+	if (axiSymmetry)
+	  Q(k,1) += A(k,l);
+	Q(k,1) /= (double)nDF;
+	for (l = nsd+2; l <= nsd*nsd; l += nsd+1)
+	  Q(k,l) = Q(k,1);
+	if (axiSymmetry)
+	  Q(k,5) = Q(k,1);
       }
 
 #ifdef INT_DEBUG
@@ -454,9 +528,10 @@ NormBase* NonlinearElasticityFbar::getNormIntegrand (AnaSol*) const
 }
 
 
-bool ElasticityNormFbar::reducedInt (const FiniteElement& fe) const
+bool ElasticityNormFbar::reducedInt (const FiniteElement& fe,
+				     const Vec3& X) const
 {
-  return myProblem.reducedInt(fe);
+  return myProblem.reducedInt(fe,X);
 }
 
 
