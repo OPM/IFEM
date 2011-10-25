@@ -440,6 +440,32 @@ bool ASMbase::mergeNodes (size_t inod, int globalNum)
 }
 
 
+int ASMbase::renumberNodes (const ASMVec& model, std::map<int,int>& old2new)
+{
+  ASMVec::const_iterator it;
+  std::map<int,int>::iterator nit;
+
+  for (it = model.begin(); it != model.end(); it++)
+    for (size_t i = 0; i < (*it)->myMLGN.size(); i++)
+      old2new[(*it)->myMLGN[i]] = (*it)->myMLGN[i];
+
+  int n, renum = 0;
+  for (n = 1, nit = old2new.begin(); nit != old2new.end(); nit++, n++)
+    if (nit->second > n)
+    {
+      nit->second = n;
+      renum++;
+    }
+
+  if (renum > 0)
+    for (it = model.begin(); it != model.end(); it++)
+      for (size_t i = 0; i < (*it)->myMLGN.size(); i++)
+	utl::renumber((*it)->myMLGN[i],old2new);
+
+  return renum;
+}
+
+
 int ASMbase::renumberNodes (std::map<int,int>& old2new, int& nnod)
 {
   int renum = 0;

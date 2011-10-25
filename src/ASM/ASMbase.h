@@ -168,6 +168,18 @@ public:
   //! \param[in] globalNum Global number of the node to merge \a node with
   bool mergeNodes(size_t inod, int globalNum);
 
+  //! \brief Renumbers all global node numbers in the entire model.
+  //! \param[in] model All spline patches in the model
+  //! \param[out] old2new Old-to-new node number mapping
+  //! \return The number of unique nodes in the model
+  //!
+  //! \details After the renumbering, the global node numbers are in the range
+  //! [1,\a nnod ], where \a nnod is the number of unique nodes in the model.
+  //! The new node numbers computed by this methid preserve the relative
+  //! ordering of the nodes. That is not the case when the non-static version
+  //! is used.
+  static int renumberNodes(const ASMVec& model, std::map<int,int>& old2new);
+
   //! \brief Renumbers the global node numbers in this patch.
   //! \param old2new Old-to-new node number mapping
   //! \param nnod Number of unique nodes found so far
@@ -178,6 +190,8 @@ public:
   int renumberNodes(std::map<int,int>& old2new, int& nnod);
 
   //! \brief Renumbers the global node numbers referred by this patch.
+  //! \param[in] old2new Old-to-new node number mapping
+  //!
   //! \details The node numbers referred by boundary condition and
   //! multi-point constraint objects in the patch are renumbered.
   //! The nodes themselves are assumed already to be up to date.

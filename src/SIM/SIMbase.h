@@ -549,6 +549,7 @@ public:
   static Discretization discretization; //!< Spatial discretization option
 
   static bool ignoreDirichlet; //!< Set to \e true for free vibration analysis
+  static bool preserveNOrder;  //!< Set to \e true to preserve node ordering
 
   static int num_threads_SLU; //!< Number of threads for SuperLU_MT
 

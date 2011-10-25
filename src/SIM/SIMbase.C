@@ -38,6 +38,7 @@
 
 
 SIMbase::Discretization SIMbase::discretization  = SIMbase::Spline;
+bool                    SIMbase::preserveNOrder  = false;
 bool                    SIMbase::ignoreDirichlet = false;
 int                     SIMbase::num_threads_SLU = 1;
 
@@ -277,10 +278,20 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
       std::cout <<"   * "<< nDupl <<" duplicated nodes merged."<< std::endl;
   }
 
-  // Renumber the nodes to account for overlapping nodes and erased patches
+  // Renumber the nodes to account for overlapping nodes and erased patches.
+  // In parallel simulations, the resulting global-to-local node number mapping
+  // will map the global node numbers to local node numbers on the current
+  // processor. In serial simulations, the global-to-local mapping will be unity
+  // unless the original global node number sequence had "holes" due to
+  // duplicated nodes and/or erast patches.
   int ngnod = 0;
   int renum = 0;
-  for (mit = myModel.begin(); mit != myModel.end(); mit++)
+  if (preserveNOrder)
+  {
+    renum = ASMbase::renumberNodes(myModel,myGlb2Loc);
+    ngnod = g2l->size();
+  }
+  else for (mit = myModel.begin(); mit != myModel.end(); mit++)
     renum += (*mit)->renumberNodes(myGlb2Loc,ngnod);
 
   if (renum > 0)
