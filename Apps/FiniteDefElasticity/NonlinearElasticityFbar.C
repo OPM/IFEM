@@ -43,7 +43,7 @@ bool NonlinearElasticityFbar::initElement (const std::vector<int>& MNPC,
                                            const Vec3&, size_t nPt)
 {
   iP = 0;
-  pbar = (int)pow((double)nPt,1.0/(double)nsd);
+  pbar = ceil(pow((double)nPt,1.0/(double)nsd)-0.5);
   if (pow((double)pbar,(double)nsd) == (double)nPt)
     myVolData.resize(nPt);
   else
@@ -89,7 +89,7 @@ bool NonlinearElasticityFbar::reducedInt (const FiniteElement& fe,
     ptData.J = 1.0;
     ptData.dNdx = fe.dNdX;
     if (axiSymmetry && X.x > 0.0)
-      ptData.Nr = fe.dNdX * (1.0/X.x);
+      ptData.Nr = fe.N * (1.0/X.x);
   }
   else
   {
@@ -110,7 +110,7 @@ bool NonlinearElasticityFbar::reducedInt (const FiniteElement& fe,
     // Push-forward the basis function gradients to current configuration
     ptData.dNdx.multiply(fe.dNdX,Fi); // dNdx = dNdX * F^-1
     if (axiSymmetry && X.x > 0.0)
-      ptData.Nr = fe.dNdX * (1.0/(X.x + eV->dot(fe.N,0,nsd)));
+      ptData.Nr = fe.N * (1.0/(X.x + eV->dot(fe.N,0,nsd)));
 
 #ifdef INT_DEBUG
     std::cout <<"NonlinearElasticityFbar::J = "<< ptData.J
@@ -480,14 +480,14 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
     // Compute the fourth-order tensor Q
     Matrix Q(A.rows(),A.cols());
     unsigned short int i, j, k, l;
-    for (i = k = 1; k < A.rows(); i++)
-      for (j = 1; j <= nsd; j++, k++)
+    for (i = k = 1; k <= A.rows(); i++)
+      for (j = 1; j <= nsd && k <= A.rows(); j++, k++)
       {
 	Q(k,1) = (double)(1-nDF)*(i > nsd ? Sig(3,3) : Sig(i,j));
 	for (l = 1; l <= nsd*nsd; l += nsd+1)
 	  Q(k,1) += A(k,l);
 	if (axiSymmetry)
-	  Q(k,1) += A(k,l);
+	  Q(k,1) += A(k,5);
 	Q(k,1) /= (double)nDF;
 	for (l = nsd+2; l <= nsd*nsd; l += nsd+1)
 	  Q(k,l) = Q(k,1);

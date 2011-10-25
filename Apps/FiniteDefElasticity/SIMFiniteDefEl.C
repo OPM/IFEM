@@ -48,7 +48,7 @@ SIMFiniteDefEl2D::SIMFiniteDefEl2D (const std::vector<int>& options)
       myProblem = new NonlinearElasticityUL(2,axiSymmetry);
       break;
     case SIM::TOTAL_LAGRANGE:
-      myProblem = new NonlinearElasticityTL(2);
+      myProblem = new NonlinearElasticityTL(2,axiSymmetry);
       break;
     case SIM::NONLINEAR: // Old tensor-based TL-formulation
       myProblem = new NonlinearElasticity(2);
@@ -84,7 +84,7 @@ bool SIMFiniteDefEl2D::parse (char* keyWord, std::istream& is)
       if (matVer >= 0 && isUL)
 	mVec.push_back(new NeoHookeMaterial(E,nu,rho,matVer));
       else
-	mVec.push_back(new LinIsotropic(E,nu,rho,!planeStrain));
+	mVec.push_back(new LinIsotropic(E,nu,rho,!planeStrain,axiSymmetry));
       if (matVer < 0 && isUL)
 	mVec.back() = new LinearMaterial(mVec.back());
 
@@ -153,7 +153,7 @@ SIMFiniteDefEl3D::SIMFiniteDefEl3D (bool checkRHS,
     {
     case SIM::FBAR:
       // F-bar formulation
-      myProblem = new NonlinearElasticityFbar(3,pOrd);
+      myProblem = new NonlinearElasticityFbar(3,false,pOrd);
       break;
     case SIM::MIXED_QnQn1:
       nf[1] = 2; // continuous volumetric change and pressure fields
@@ -161,7 +161,7 @@ SIMFiniteDefEl3D::SIMFiniteDefEl3D (bool checkRHS,
       break;
     case SIM::MIXED_QnPn1:
       // Local discontinuous volumetric change and pressure fields
-      myProblem = new NonlinearElasticityULMX(3,pOrd);
+      myProblem = new NonlinearElasticityULMX(3,false,pOrd);
       break;
     case SIM::UPDATED_LAGRANGE:
       myProblem = new NonlinearElasticityUL();

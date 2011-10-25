@@ -31,7 +31,8 @@ class NonlinearElasticityTL : public Elasticity
 public:
   //! \brief The default constructor invokes the parent class constructor only.
   //! \param[in] n Number of spatial dimensions
-  NonlinearElasticityTL(unsigned short int n = 3);
+  //! \param[in] axS \e If \e true, and axisymmetric 3D formulation is assumed
+  NonlinearElasticityTL(unsigned short int n = 3, bool axS = false);
   //! \brief Empty destructor.
   virtual ~NonlinearElasticityTL() {}
 

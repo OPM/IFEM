@@ -18,9 +18,14 @@
 #include "Tensor.h"
 #include "Vec3Oper.h"
 
+#ifndef epsR
+//! \brief Zero tolerance for the radial coordinate.
+#define epsR 1.0e-16
+#endif
 
-NonlinearElasticityTL::NonlinearElasticityTL (unsigned short int n)
-  : Elasticity(n)
+
+NonlinearElasticityTL::NonlinearElasticityTL (unsigned short int n, bool axS)
+  : Elasticity(n,axS)
 {
   // Only the current solution is needed
   primsol.resize(1);
@@ -90,8 +95,8 @@ bool NonlinearElasticityTL::evalInt (LocalIntegral*& elmInt,
 {
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E,
   // and compute the nonlinear strain-displacement matrix, B, from dNdX and F
-  Tensor F(nsd);
-  SymmTensor E(nsd), S(nsd);
+  Tensor F(nDF);
+  SymmTensor E(nsd,axiSymmetry), S(nsd,axiSymmetry);
   if (!this->kinematics(fe.N,fe.dNdX,X.x,F,E))
     return false;
 
@@ -166,7 +171,7 @@ bool NonlinearElasticityTL::evalBou (LocalIntegral*& elmInt,
   if (tracFld->isNormalPressure())
   {
     // Compute the deformation gradient, F
-    Tensor F(nsd);
+    Tensor F(nDF);
     SymmTensor dummy(0);
     if (!this->kinematics(fe.N,fe.dNdX,X.x,F,dummy)) return false;
 
@@ -209,7 +214,7 @@ bool NonlinearElasticityTL::kinematics (const Vector& N, const Matrix& dNdX,
   }
 
   const size_t nenod = dNdX.rows();
-  const size_t nstrc = nsd*(nsd+1)/2;
+  const size_t nstrc = axiSymmetry ? 4 : nsd*(nsd+1)/2;
   if (eV->size() != nenod*nsd || dNdX.cols() < nsd)
   {
     std::cerr <<" *** NonlinearElasticityTL::kinematics: Invalid dimension,"
@@ -239,6 +244,7 @@ bool NonlinearElasticityTL::kinematics (const Vector& N, const Matrix& dNdX,
   // Now form the Green-Lagrange strain tensor.
   // Note that for the shear terms (i/=j) we actually compute 2*E_ij
   // to be consistent with the engineering strain style constitutive matrix.
+  // TODO: How is this for axisymmetric problems?
   for (i = 1; i <= E.dim(); i++)
     for (j = 1; j <= i; j++)
     {
@@ -250,6 +256,8 @@ bool NonlinearElasticityTL::kinematics (const Vector& N, const Matrix& dNdX,
 
   // Add the unit tensor to F to form the deformation gradient
   F += 1.0;
+  // Add the dU/r term to the F(3,3)-term for axisymmetric problems
+  if (axiSymmetry && r > epsR) F(3,3) += eV->dot(N,0,nsd)/r;
 
 #ifdef INT_DEBUG
   std::cout <<"NonlinearElasticityTL::F =\n"<< F;
@@ -282,8 +290,16 @@ bool NonlinearElasticityTL::kinematics (const Vector& N, const Matrix& dNdX,
 
   else if (nsd == 2)
     for (a = 1; a <= nenod; a++)
-      for (i = 1; i <= nsd; i++)
-	Bmat(INDEX(3,i),a) = F(i,1)*dNdX(a,2) + F(i,2)*dNdX(a,1);
+      if (axiSymmetry)
+      {
+	for (i = 1; i <= nsd; i++)
+	  Bmat(INDEX(4,i),a) = F(i,1)*dNdX(a,2) + F(i,2)*dNdX(a,1);
+	// Hoop strain part for axisymmetry (TODO: check this)
+	Bmat(INDEX(3,1),i) = F(3,3) * (r <= epsR ? dNdX(a,1) : N(a)/r);
+      }
+      else
+	for (i = 1; i <= nsd; i++)
+	  Bmat(INDEX(3,i),a) = F(i,1)*dNdX(a,2) + F(i,2)*dNdX(a,1);
 
   Bmat.resize(nstrc,nsd*nenod);
 #ifdef INT_DEBUG
