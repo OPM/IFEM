@@ -33,6 +33,8 @@ public:
   ASMs1D(const char* fName = 0, unsigned char n_s = 1, unsigned char n_f = 1);
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs1D(std::istream& is, unsigned char n_s = 1, unsigned char n_f = 1);
+  //! \brief Copy constructor.
+  ASMs1D(const ASMs1D& patch, unsigned char n_f = 0);
   //! \brief Empty destructor.
   virtual ~ASMs1D() {}
 

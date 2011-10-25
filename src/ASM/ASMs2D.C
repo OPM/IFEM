@@ -31,7 +31,7 @@
 
 
 ASMs2D::ASMs2D (const char* fName, unsigned char n_s, unsigned char n_f)
-  : ASMstruct(2,n_s,n_f), surf(0)
+  : ASMstruct(2,n_s,n_f), surf(0), nodeInd(myNodeInd)
 {
   if (fName)
   {
@@ -46,14 +46,21 @@ ASMs2D::ASMs2D (const char* fName, unsigned char n_s, unsigned char n_f)
 
 
 ASMs2D::ASMs2D (std::istream& is, unsigned char n_s, unsigned char n_f)
-  : ASMstruct(2,n_s,n_f), surf(0)
+  : ASMstruct(2,n_s,n_f), surf(0), nodeInd(myNodeInd)
 {
   this->read(is);
 }
 
 
+ASMs2D::ASMs2D (const ASMs2D& patch, unsigned char n_f)
+  : ASMstruct(patch,n_f), surf(patch.surf), nodeInd(patch.myNodeInd)
+{
+}
+
+
 bool ASMs2D::read (std::istream& is)
 {
+  if (shareFE) return false;
   if (surf) delete surf;
 
   Go::ObjectHeader head;
@@ -114,14 +121,14 @@ void ASMs2D::clear (bool retainGeometry)
   if (!retainGeometry)
   {
     // Erase spline data
-    if (surf) delete surf;
+    if (surf && !shareFE) delete surf;
     surf = 0;
     geo = 0;
   }
 
   // Erase the FE data
   this->ASMbase::clear(retainGeometry);
-  nodeInd.clear();
+  myNodeInd.clear();
 }
 
 
@@ -129,6 +136,7 @@ bool ASMs2D::refine (int dir, const RealArray& xi)
 {
   if (!surf || dir < 0 || dir > 1 || xi.empty()) return false;
   if (xi.front() < 0.0 || xi.back() > 1.0) return false;
+  if (shareFE) return true;
 
   RealArray extraKnots;
   RealArray::const_iterator uit = surf->basis(dir).begin();
@@ -158,6 +166,7 @@ bool ASMs2D::refine (int dir, const RealArray& xi)
 bool ASMs2D::uniformRefine (int dir, int nInsert)
 {
   if (!surf || dir < 0 || dir > 1 || nInsert < 1) return false;
+  if (shareFE) return true;
 
   RealArray extraKnots;
   RealArray::const_iterator uit = surf->basis(dir).begin();
@@ -186,6 +195,7 @@ bool ASMs2D::uniformRefine (int dir, int nInsert)
 bool ASMs2D::raiseOrder (int ru, int rv)
 {
   if (!surf) return false;
+  if (shareFE) return true;
 
   surf->raiseOrder(ru,rv);
   return true;
@@ -207,6 +217,8 @@ bool ASMs2D::generateFEMTopology ()
 	      <<" in the patch."<< std::endl;
     return false;
   }
+  else if (shareFE)
+    return true;
 
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
@@ -226,35 +238,35 @@ bool ASMs2D::generateFEMTopology ()
   if (p1 <  1 || p1 <  1) return false;
   if (p1 > n1 || p2 > n2) return false;
 
-  MLGE.resize((n1-p1+1)*(n2-p2+1),0);
-  MLGN.resize(n1*n2);
-  MNPC.resize(MLGE.size());
-  nodeInd.resize(MLGN.size());
+  myMLGE.resize((n1-p1+1)*(n2-p2+1),0);
+  myMLGN.resize(n1*n2);
+  myMNPC.resize(myMLGE.size());
+  myNodeInd.resize(myMLGN.size());
 
   int iel = 0;
   int inod = 0;
   for (int i2 = 1; i2 <= n2; i2++)
     for (int i1 = 1; i1 <= n1; i1++)
     {
-      nodeInd[inod].I = i1-1;
-      nodeInd[inod].J = i2-1;
+      myNodeInd[inod].I = i1-1;
+      myNodeInd[inod].J = i2-1;
       if (i1 >= p1 && i2 >= p2)
       {
 	if (surf->knotSpan(0,i1-1) > 0.0)
 	  if (surf->knotSpan(1,i2-1) > 0.0)
           {
-	    MLGE[iel] = ++gEl; // global element number over all patches
-	    MNPC[iel].resize(p1*p2,0);
+	    myMLGE[iel] = ++gEl; // global element number over all patches
+	    myMNPC[iel].resize(p1*p2,0);
 
 	    int lnod = 0;
 	    for (int j2 = p2-1; j2 >= 0; j2--)
 	      for (int j1 = p1-1; j1 >= 0; j1--)
-		MNPC[iel][lnod++] = inod - n1*j2 - j1;
+		myMNPC[iel][lnod++] = inod - n1*j2 - j1;
 	  }
 
 	iel++;
       }
-      MLGN[inod++] = ++gNod; // global node number over all patches
+      myMLGN[inod++] = ++gNod; // global node number over all patches
     }
 
 #ifdef SP_DEBUG
@@ -290,6 +302,8 @@ int ASMs2D::BlockNodes::next ()
 
 bool ASMs2D::assignNodeNumbers (BlockNodes& nodes, int basis)
 {
+  if (shareFE) return true;
+
   int n1, n2;
   if (!this->getSize(n1,n2,basis))
     return false;
@@ -315,29 +329,29 @@ bool ASMs2D::assignNodeNumbers (BlockNodes& nodes, int basis)
       if (j == 1)
       {
 	if (i == 1)
-	  MLGN[inod] = nodes.ibnod[0];
+	  myMLGN[inod] = nodes.ibnod[0];
 	else if (i == n1)
-	  MLGN[inod] = nodes.ibnod[1];
+	  myMLGN[inod] = nodes.ibnod[1];
 	else
-	  MLGN[inod] = nodes.edges[0].next();
+	  myMLGN[inod] = nodes.edges[0].next();
       }
       else if (j == n2)
       {
 	if (i == 1)
-	  MLGN[inod] = nodes.ibnod[2];
+	  myMLGN[inod] = nodes.ibnod[2];
 	else if (i == n1)
-	  MLGN[inod] = nodes.ibnod[3];
+	  myMLGN[inod] = nodes.ibnod[3];
 	else
-	  MLGN[inod] = nodes.edges[1].next();
+	  myMLGN[inod] = nodes.edges[1].next();
       }
       else
       {
 	if (i == 1)
-	  MLGN[inod] = nodes.edges[2].next();
+	  myMLGN[inod] = nodes.edges[2].next();
 	else if (i == n1)
-	  MLGN[inod] = nodes.edges[3].next();
+	  myMLGN[inod] = nodes.edges[3].next();
 	else
-	  MLGN[inod] = nodes.next();
+	  myMLGN[inod] = nodes.next();
       }
 
 #if SP_DEBUG > 2
@@ -360,6 +374,15 @@ bool ASMs2D::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool revers)
 bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
 			   int basis, int slave, int master)
 {
+  if (shareFE && neighbor.shareFE)
+    return true;
+  else if (shareFE || neighbor.shareFE)
+  {
+    std::cerr <<" *** ASMs2D::connectPatch: Logic error, cannot"
+	      <<" connect a sharedFE patch with an unshared one"<< std::endl;
+    return false;
+  }
+
   // Set up the slave node numbers for this surface patch
 
   int n1, n2;
@@ -439,7 +462,7 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
       return false;
     }
     else
-      ASMbase::collapseNodes(neighbor.MLGN[node-1],MLGN[slaveNodes[k]-1]);
+      ASMbase::collapseNodes(neighbor.myMLGN[node-1],myMLGN[slaveNodes[k]-1]);
   }
 
   return true;
@@ -605,6 +628,20 @@ int ASMs2D::coeffInd (size_t inod) const
 }
 
 
+Vec3 ASMs2D::getCoord (size_t inod) const
+{
+  Vec3 X;
+  int ip = this->coeffInd(inod-1)*surf->dimension();
+  if (ip < 0) return X;
+
+  RealArray::const_iterator cit = surf->coefs_begin() + ip;
+  for (unsigned char i = 0; i < nsd; i++, cit++)
+    X[i] = *cit;
+
+  return X;
+}
+
+
 bool ASMs2D::getElementCoordinates (Matrix& X, int iel) const
 {
 #ifdef INDEX_CHECK
@@ -654,23 +691,10 @@ void ASMs2D::getNodalCoordinates (Matrix& X) const
 }
 
 
-Vec3 ASMs2D::getCoord (size_t inod) const
-{
-  Vec3 X;
-  int ip = this->coeffInd(inod-1)*surf->dimension();
-  if (ip < 0) return X;
-
-  RealArray::const_iterator cit = surf->coefs_begin() + ip;
-  for (unsigned char i = 0; i < nsd; i++, cit++)
-    X[i] = *cit;
-
-  return X;
-}
-
-
 bool ASMs2D::updateCoords (const Vector& displ)
 {
   if (!surf) return true; // silently ignore empty patches
+  if (shareFE) return true;
 
   if (displ.size() != nsd*MLGN.size())
   {

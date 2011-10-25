@@ -45,6 +45,19 @@ ASMs2Dmx::ASMs2Dmx (std::istream& is, unsigned char n_s,
 }
 
 
+ASMs2Dmx::ASMs2Dmx (const ASMs2Dmx& patch, char n_f1, char n_f2)
+  : ASMs2D(patch), ASMmxBase(patch.nf1,patch.nf2)
+{
+  basis1 = patch.basis1;
+  basis2 = patch.basis2;
+  nb1 = patch.nb1;
+  nb2 = patch.nb2;
+  if (n_f1 >= 0) nf1 = n_f1;
+  if (n_f2 >= 0) nf2 = n_f2;
+  nf = nf1 + nf2;
+}
+
+
 bool ASMs2Dmx::write (std::ostream& os, int basis) const
 {
   if (basis1 && basis == 1)
@@ -65,13 +78,13 @@ void ASMs2Dmx::clear (bool retainGeometry)
   // Erase the spline data
   if (retainGeometry)
   {
-    if (basis1 && basis1 != surf) delete basis1;
-    if (basis2 && basis2 != surf) delete basis2;
+    if (basis1 && basis1 != surf && !shareFE) delete basis1;
+    if (basis2 && basis2 != surf && !shareFE) delete basis2;
   }
   else
   {
-    if (basis1) delete basis1;
-    if (basis2) delete basis2;
+    if (basis1 && !shareFE) delete basis1;
+    if (basis2 && !shareFE) delete basis2;
     surf = 0;
   }
   basis1 = basis2 = 0;
@@ -194,7 +207,7 @@ bool ASMs2Dmx::generateFEMTopology ()
   const int n2 = basis1->numCoefs_v();
   const int m1 = basis2->numCoefs_u();
   const int m2 = basis2->numCoefs_v();
-  if (!nodeInd.empty())
+  if (!nodeInd.empty() && !shareFE)
   {
     if (nodeInd.size() == nb1 + nb2) return true;
     std::cerr <<" *** ASMs2Dmx::generateFEMTopology: Inconsistency between the"
@@ -206,6 +219,8 @@ bool ASMs2Dmx::generateFEMTopology ()
 
   nb1 = n1*n2; // Number of functions in first basis
   nb2 = m1*m2; // Number of functions in second basis
+
+  if (shareFE) return true;
 
   const int p1 = basis1->order_u();
   const int p2 = basis1->order_v();
@@ -234,26 +249,26 @@ bool ASMs2Dmx::generateFEMTopology ()
   if (p1 > n1 || p2 > n2) return false;
   if (q1 > m1 || q2 > m2) return false;
 
-  MLGE.resize((n1-p1+1)*(n2-p2+1),0);
-  MLGN.resize(nb1 + nb2);
-  MNPC.resize(MLGE.size());
-  nodeInd.resize(MLGN.size());
+  myMLGE.resize((n1-p1+1)*(n2-p2+1),0);
+  myMLGN.resize(nb1 + nb2);
+  myMNPC.resize(myMLGE.size());
+  myNodeInd.resize(myMLGN.size());
 
   size_t iel, inod = 0;
   for (i2 = 0; i2 < n2; i2++)
     for (i1 = 0; i1 < n1; i1++)
     {
-      nodeInd[inod].I = i1;
-      nodeInd[inod].J = i2;
-      MLGN[inod++]    = ++gNod;
+      myNodeInd[inod].I = i1;
+      myNodeInd[inod].J = i2;
+      myMLGN[inod++]    = ++gNod;
     }
 
   for (i2 = 0; i2 < m2; i2++)
     for (i1 = 0; i1 < m1; i1++)
     {
-      nodeInd[inod].I = i1;
-      nodeInd[inod].J = i2;
-      MLGN[inod++]    = ++gNod;
+      myNodeInd[inod].I = i1;
+      myNodeInd[inod].J = i2;
+      myMLGN[inod++]    = ++gNod;
     }
 
   if (geoUsesBasis1)
@@ -267,13 +282,13 @@ bool ASMs2Dmx::generateFEMTopology ()
 	  if (basis1->knotSpan(0,i1-1) > 0.0)
 	    if (basis1->knotSpan(1,i2-1) > 0.0)
 	    {
-	      MLGE[iel] = ++gEl; // global element number over all patches
-	      MNPC[iel].resize(p1*p2+q1*q2,0);
+	      myMLGE[iel] = ++gEl; // global element number over all patches
+	      myMNPC[iel].resize(p1*p2+q1*q2,0);
 
 	      int lnod = 0;
 	      for (j2 = p2-1; j2 >= 0; j2--)
 		for (j1 = p1-1; j1 >= 0; j1--)
-		  MNPC[iel][lnod++] = inod - n1*j2 - j1;
+		  myMNPC[iel][lnod++] = inod - n1*j2 - j1;
 	    }
 
 	  iel++;
@@ -287,12 +302,12 @@ bool ASMs2Dmx::generateFEMTopology ()
 	  if (basis2->knotSpan(0,i1-1) > 0.0)
 	    if (basis2->knotSpan(1,i2-1) > 0.0)
 	    {
-	      while (iel < MNPC.size() && MNPC[iel].empty()) iel++;
+	      while (iel < myMNPC.size() && myMNPC[iel].empty()) iel++;
 
 	      int lnod = p1*p2;
 	      for (j2 = q2-1; j2 >= 0; j2--)
 		for (j1 = q1-1; j1 >= 0; j1--)
-		  MNPC[iel][lnod++] = inod - m1*j2 - j1;
+		  myMNPC[iel][lnod++] = inod - m1*j2 - j1;
 
 	      iel++;
 	    }
@@ -309,13 +324,13 @@ bool ASMs2Dmx::generateFEMTopology ()
 	  if (basis2->knotSpan(0,i1-1) > 0.0)
 	    if (basis2->knotSpan(1,i2-1) > 0.0)
 	    {
-	      MLGE[iel] = ++gEl; // global element number over all patches
-	      MNPC[iel].resize(p1*p2+q1*q2,0);
+	      myMLGE[iel] = ++gEl; // global element number over all patches
+	      myMNPC[iel].resize(p1*p2+q1*q2,0);
 
 	      int lnod = p1*p2;
 	      for (j2 = q2-1; j2 >= 0; j2--)
 		for (j1 = q1-1; j1 >= 0; j1--)
-		  MNPC[iel][lnod++] = inod - m1*j2 - j1;
+		  myMNPC[iel][lnod++] = inod - m1*j2 - j1;
 	    }
 
 	  iel++;
@@ -329,12 +344,12 @@ bool ASMs2Dmx::generateFEMTopology ()
 	  if (basis1->knotSpan(0,i1-1) > 0.0)
 	    if (basis1->knotSpan(1,i2-1) > 0.0)
 	    {
-	      while (iel < MNPC.size() && MNPC[iel].empty()) iel++;
+	      while (iel < myMNPC.size() && myMNPC[iel].empty()) iel++;
 
 	      int lnod = 0;
 	      for (j2 = p2-1; j2 >= 0; j2--)
 		for (j1 = p1-1; j1 >= 0; j1--)
-		  MNPC[iel][lnod++] = inod - n1*j2 - j1;
+		  myMNPC[iel][lnod++] = inod - n1*j2 - j1;
 
 	      iel++;
 	    }
@@ -502,7 +517,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
       if (!this->getElementCoordinates(Xnod,iel)) return false;
 
       // Initialize element quantities
-      IntVec::iterator f2start = MNPC[iel-1].begin() + fe.N1.size();
+      IntVec::const_iterator f2start = MNPC[iel-1].begin() + fe.N1.size();
       if (!integrand.initElement(IntVec(MNPC[iel-1].begin(),f2start),
 				 IntVec(f2start,MNPC[iel-1].end()),nb1))
 	return false;
@@ -651,7 +666,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
       if (!this->getElementCoordinates(Xnod,iel)) return false;
 
       // Initialize element quantities
-      IntVec::iterator f2start = MNPC[iel-1].begin() + fe.N1.size();
+      IntVec::const_iterator f2start = MNPC[iel-1].begin() + fe.N1.size();
       if (!integrand.initElementBou(IntVec(MNPC[iel-1].begin(),f2start),
 				    IntVec(f2start,MNPC[iel-1].end()),nb1))
 	return false;

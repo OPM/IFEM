@@ -42,7 +42,7 @@ bool                    SIMbase::ignoreDirichlet = false;
 int                     SIMbase::num_threads_SLU = 1;
 
 
-SIMbase::SIMbase ()
+SIMbase::SIMbase () : g2l(&myGlb2Loc)
 {
   myProblem = 0;
   mySol = 0;
@@ -232,6 +232,8 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 {
   if (!this->createFEMmodel()) return false;
 
+  FEModelVec::const_iterator mit;
+
   // Erase all patches that should be ignored in the analysis
   std::vector<int>::const_iterator it;
   for (it = ignored.begin(); it != ignored.end(); it++)
@@ -252,51 +254,40 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 	  myProps.push_back(Property(Property::MATERIAL,999999,i+1,
 				     myModel[i]->getNoSpaceDim()));
 
-  // Renumber the nodes to account for overlapping nodes and erased patches
-#ifdef PARALLEL_PETSC
-  std::vector<int> l2gn;
-  int nnod = ASMbase::renumberNodes(myModel,&l2gn);
-#else
-  int nnod = ASMbase::renumberNodes(myModel);
-#endif
-
   if (fixDup)
   {
     // Check for duplicated nodes (missing topology)
-    int nDupl = 0;
+    int patch, nDupl = 0;
     std::map<Vec3,int> globalNodes;
-    for (size_t i = 0; i < myModel.size(); i++)
-    {
-      std::map<int,int> old2new;
-      std::cout <<"   * Checking Patch "<< i+1 << std::endl;
-      for (size_t node = 1; node <= myModel[i]->getNoNodes(); node++)
+    for (mit = myModel.begin(), patch = 0; mit != myModel.end(); mit++, patch++)
+      if (!(*mit)->empty())
       {
-	int globNum = myModel[i]->getNodeID(node);
-	Vec3 X(myModel[i]->getCoord(node));
-	std::map<Vec3,int>::const_iterator xit = globalNodes.find(X);
-	if (xit == globalNodes.end())
-	  globalNodes.insert(std::make_pair(X,globNum));
-	else if (xit->second != globNum)
+	std::cout <<"   * Checking Patch "<< patch << std::endl;
+	for (size_t node = 1; node <= (*mit)->getNoNodes(); node++)
 	{
-	  std::cout <<"  ** Merging duplicated nodes "<< xit->second <<" and "
-		    << globNum <<" at X="<< X << std::endl;
-	  if (myModel[i]->mergeNodes(node,xit->second))
-	    old2new[globNum] = xit->second;
+	  Vec3 X((*mit)->getCoord(node));
+	  std::map<Vec3,int>::const_iterator xit = globalNodes.find(X);
+	  if (xit == globalNodes.end())
+	    globalNodes.insert(std::make_pair(X,(*mit)->getNodeID(node)));
+	  else if ((*mit)->mergeNodes(node,xit->second))
+	    nDupl++;
 	}
       }
-      if (!old2new.empty())
-      {
-	myModel[i]->renumberNodes(old2new,true);
-	nDupl += old2new.size();
-      }
-    }
     if (nDupl > 0)
-    {
       std::cout <<"   * "<< nDupl <<" duplicated nodes merged."<< std::endl;
-      // Renumber the nodes to account for the merged nodes
-      nnod = ASMbase::renumberNodes(myModel);
-    }
   }
+
+  // Renumber the nodes to account for overlapping nodes and erased patches
+  int ngnod = 0;
+  int renum = 0;
+  for (mit = myModel.begin(); mit != myModel.end(); mit++)
+    renum += (*mit)->renumberNodes(myGlb2Loc,ngnod);
+
+  if (renum > 0)
+    std::cout <<"\nRenumbered "<< renum <<" nodes"<< std::endl;
+
+  for (mit = myModel.begin(); mit != myModel.end(); mit++)
+    (*mit)->renumberNodes(*g2l);
 
   // Process the specified Dirichlet boundary conditions
   std::cout <<"\nResolving Dirichlet boundary conditions"<< std::endl;
@@ -361,12 +352,12 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
   // Initialize data structures for the algebraic system
   if (mySam) delete mySam;
 #ifdef PARALLEL_PETSC
-  mySam = new SAMpatchPara(l2gn);
+  mySam = new SAMpatchPara(*g2l);
 #else
   mySam = new SAMpatch();
 #endif
 
-  return mySam->init(myModel,nnod) && ok;
+  return mySam->init(myModel,ngnod) && ok;
 }
 
 
@@ -749,6 +740,12 @@ double SIMbase::solutionNorms (const Vector& x, double* inf,
   }
 
   return mySam->normL2(x);
+}
+
+
+NormBase* SIMbase::getNormIntegrand () const
+{
+  return myProblem->getNormIntegrand(mySol);
 }
 
 

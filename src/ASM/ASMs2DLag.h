@@ -30,6 +30,8 @@ public:
   ASMs2DLag(const char* fNam = 0, unsigned char n_s = 2, unsigned char n_f = 2);
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs2DLag(std::istream& is, unsigned char n_s = 2, unsigned char n_f = 2);
+  //! \brief Copy constructor.
+  ASMs2DLag(const ASMs2DLag& patch, unsigned char n_f = 0);
   //! \brief Empty destructor.
   virtual ~ASMs2DLag() {}
 
@@ -149,9 +151,12 @@ protected:
   virtual bool getSize(int& n1, int& n2, int = 0) const;
 
 private:
-  size_t            nx;    //!< Number of nodes in first parameter direction
-  size_t            ny;    //!< Number of nodes in second parameter direction
-  std::vector<Vec3> coord; //!< Nodal coordinates
+  size_t nx; //!< Number of nodes in first parameter direction
+  size_t ny; //!< Number of nodes in second parameter direction
+
+  const std::vector<Vec3>& coord; //!< Nodal coordinates
+
+  std::vector<Vec3> myCoord; //!< The actual nodal coordinates
 };
 
 #endif

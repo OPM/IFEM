@@ -43,6 +43,19 @@ ASMs2DmxLag::ASMs2DmxLag (std::istream& is, unsigned char n_s,
 }
 
 
+ASMs2DmxLag::ASMs2DmxLag (const ASMs2DmxLag& patch, char n_f1, char n_f2)
+  : ASMs2DLag(patch), ASMmxBase(patch.nf1,patch.nf2)
+{
+  nx2 = patch.nx2;
+  ny2 = patch.ny2;
+  nb1 = patch.nb1;
+  nb2 = patch.nb2;
+  if (n_f1 >= 0) nf1 = n_f1;
+  if (n_f2 >= 0) nf2 = n_f2;
+  nf = nf1 + nf2;
+}
+
+
 void ASMs2DmxLag::clear (bool retainGeometry)
 {
   nx2 = ny2 = 0;
@@ -111,7 +124,7 @@ bool ASMs2DmxLag::generateFEMTopology ()
   // Generate/check FE data for the geometry/basis1
   bool haveFEdata = !MLGN.empty();
   bool basis1IsOK = this->ASMs2DLag::generateFEMTopology();
-  if (haveFEdata || !basis1IsOK) return basis1IsOK;
+  if ((haveFEdata && !shareFE) || !basis1IsOK) return basis1IsOK;
 
   // Order of 2nd basis in the two parametric directions (order = degree + 1)
   const int p1 = surf->order_u()-1;
@@ -132,13 +145,16 @@ bool ASMs2DmxLag::generateFEMTopology ()
   nx2 = gpar[0].size();
   ny2 = gpar[1].size();
 
-  // Add nodes for second basis (coordinates are not needed)
   nb1 = MLGN.size();
   nb2 = nx2*ny2;
-  MLGN.reserve(nb1+nb2);
+
+  if (shareFE) return true;
+
+  // Add nodes for second basis (coordinates are not needed)
+  myMLGN.reserve(nb1+nb2);
   for (size_t i2 = 0; i2 < ny2; i2++)
     for (size_t i1 = 0; i1 < nx2; i1++)
-      MLGN.push_back(++gNod);
+      myMLGN.push_back(++gNod);
 
   // Number of elements in each direction
   const int nelx = (nx2-1)/(p1-1);
@@ -149,8 +165,8 @@ bool ASMs2DmxLag::generateFEMTopology ()
   for (j = iel = 0; j < nely; j++)
     for (i = 0; i < nelx; i++, iel++)
     {
-      size_t nen1 = MNPC[iel].size();
-      MNPC[iel].resize(nen1+p1*p2);
+      size_t nen1 = myMNPC[iel].size();
+      myMNPC[iel].resize(nen1+p1*p2);
 
       // First node in current element
       int corner = nb1 + (p2-1)*nx2*j + (p1-1)*i;
@@ -158,9 +174,9 @@ bool ASMs2DmxLag::generateFEMTopology ()
       for (b = 0; b < p2; b++)
       {
 	int facenod = nen1 + b*p1;
-	MNPC[iel][facenod] = corner + b*nx2;
+	myMNPC[iel][facenod] = corner + b*nx2;
 	for (a = 1; a < p1; a++)
-	  MNPC[iel][facenod+a] = MNPC[iel][facenod] + a;
+	  myMNPC[iel][facenod+a] = myMNPC[iel][facenod] + a;
       }
     }
 
@@ -243,7 +259,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
       if (!this->getElementCoordinates(Xnod,iel)) return false;
 
       // Initialize element quantities
-      IntVec::iterator f2start = MNPC[iel-1].begin() + fe.N1.size();
+      IntVec::const_iterator f2start = MNPC[iel-1].begin() + fe.N1.size();
       if (!integrand.initElement(IntVec(MNPC[iel-1].begin(),f2start),
 				 IntVec(f2start,MNPC[iel-1].end()),nb1))
 	return false;
@@ -359,7 +375,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
       if (!this->getElementCoordinates(Xnod,iel)) return false;
 
       // Initialize element quantities
-      IntVec::iterator f2start = MNPC[iel-1].begin() + fe.N1.size();
+      IntVec::const_iterator f2start = MNPC[iel-1].begin() + fe.N1.size();
       if (!integrand.initElementBou(IntVec(MNPC[iel-1].begin(),f2start),
 				    IntVec(f2start,MNPC[iel-1].end()),nb1))
 	return false;

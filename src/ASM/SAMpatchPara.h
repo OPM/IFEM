@@ -18,6 +18,7 @@
 #ifdef PARALLEL_PETSC
 #include "petscksp.h"
 #endif
+#include <map>
 
 
 /*!
@@ -28,7 +29,8 @@ class SAMpatchPara : public SAMpatch
 {
 public:
   //! \brief The constructor initializes the \a l2gn array.
-  SAMpatchPara(const IntVec& l2gn_mp);
+  //! \param[in] Global-to-local node numbers for this processor
+  SAMpatchPara(const std::map<int,int>& g2ln);
   //! \brief The destructor destroys the index set arrays.
   virtual ~SAMpatchPara();
 
@@ -83,6 +85,8 @@ public:
   virtual bool getElmEqns(IntVec& meen, int iel, int nedof = 0) const;
 
   //! \brief Updates the multi-point constraint array \a TTCC.
+  //! \param[in] model All spline patches in the model
+  //! \param[in] prevSol Previous primary solution vector in DOF-order
   virtual bool updateConstraintEqs(const std::vector<ASMbase*>& model,
 				   const Vector* prevSol = 0);
 
@@ -91,12 +95,6 @@ public:
   //! \param[out] displ Displacement vector, length = NDOF = 3*NNOD
   //! \param[in] scaleSD Scaling factor for specified (slave) DOFs
   //! \return \e false if the length of \a solVec is invalid, otherwise \e true
-  //!
-  //! \details The size of the solution vector that comes out of the linear
-  //! equation solver equals the number of free DOFs in the system (=NEQ).
-  //! That is, all fixed or constrained (slave) DOFs are not present.
-  //! Before we can compute derived element quantities we therefore need to
-  //! extract the resulting displacement values also for the constrained DOFs.
   virtual bool expandSolution(const SystemVector& solVec, Vector& displ,
 			      real scaleSD = 1.0) const;
 
@@ -142,7 +140,7 @@ private:
   int    nProc;      //!< Number of processes
   int    nleq;       //!< Number of equations for this processor
   int    nnodGlob;   //!< Number of global nodes;
-  IntVec ghostNodes; //!< Indices for ghost nodes
+  IntVec ghostNodes; //!< Indices for the ghost nodes
   IntVec l2gn;       //!< Local-to-global node numbers for this processor
 #ifdef PARALLEL_PETSC
   IS     iglob;      //!< Index set for global numbering

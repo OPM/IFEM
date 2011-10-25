@@ -25,8 +25,8 @@ namespace LR {
 }
 
 /*!
-  \brief Base class for structured spline-based FE assembly drivers.
-  \details This class contains methods common for structured spline patches.
+  \brief Base class for unstructured spline-based FE assembly drivers.
+  \details This class contains methods common for unstructured spline patches.
 */
 
 class ASMunstruct : public ASMbase
@@ -37,6 +37,10 @@ protected:
   //! \param[in] n_s Number of spatial dimensions
   //! \param[in] n_f Number of primary solution fields
   ASMunstruct(unsigned char n_p, unsigned char n_s, unsigned char n_f);
+  //! \brief Copy constructor.
+  //! \param[in] patch The patch to use FE data from
+  //! \param[in] n_f Number of primary solution fields
+  ASMunstruct(const ASMunstruct& patch, unsigned char n_f = 0);
 
 public:
   //! \brief The destructor frees the dynamically allocated spline object.

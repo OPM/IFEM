@@ -31,6 +31,9 @@ public:
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs1DSpec(std::istream& is, unsigned char n_s = 1, unsigned char n_f = 1)
     : ASMs1DLag(is,n_s,n_f) {}
+  //! \brief Copy constructor.
+  ASMs1DSpec(const ASMs1DSpec& patch, unsigned char n_f = 0)
+    : ASMs1DLag(patch,n_f) {}
   //! \brief Empty destructor.
   virtual ~ASMs1DSpec() {}
 

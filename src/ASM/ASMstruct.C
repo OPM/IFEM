@@ -26,7 +26,15 @@ ASMstruct::ASMstruct (unsigned char n_p, unsigned char n_s, unsigned char n_f)
 }
 
 
+ASMstruct::ASMstruct (const ASMstruct& patch, unsigned char n_f)
+  : ASMbase(patch,n_f)
+{
+  nGauss = patch.nGauss;
+  geo = patch.geo;
+}
+
+
 ASMstruct::~ASMstruct ()
 {
-  if (geo) delete geo;
+  if (geo && !shareFE) delete geo;
 }

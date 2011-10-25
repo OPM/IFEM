@@ -31,8 +31,9 @@
 
 
 ASMs3D::ASMs3D (const char* fName, bool checkRHS, unsigned char n_f)
-  : ASMstruct(3,3,n_f), svol(0), swapW(false)
+  : ASMstruct(3,3,n_f), svol(0), nodeInd(myNodeInd)
 {
+  swapW = false;
   if (fName)
   {
     std::cout <<"\nReading patch file "<< fName << std::endl;
@@ -46,10 +47,18 @@ ASMs3D::ASMs3D (const char* fName, bool checkRHS, unsigned char n_f)
 
 
 ASMs3D::ASMs3D (std::istream& is, bool checkRHS, unsigned char n_f)
-  : ASMstruct(3,3,n_f), svol(0), swapW(false)
+  : ASMstruct(3,3,n_f), svol(0), nodeInd(myNodeInd)
 {
+  swapW = false;
   if (this->read(is) && checkRHS)
     this->checkRightHandSystem();
+}
+
+
+ASMs3D::ASMs3D (const ASMs3D& patch, unsigned char n_f)
+  : ASMstruct(patch,n_f), svol(patch.svol), nodeInd(patch.myNodeInd)
+{
+  swapW = patch.swapW;
 }
 
 
@@ -107,14 +116,14 @@ void ASMs3D::clear (bool retainGeometry)
   if (!retainGeometry)
   {
     // Erase spline data
-    if (svol) delete svol;
+    if (svol && !shareFE) delete svol;
     svol = 0;
     geo = 0;
   }
 
   // Erase the FE data
   this->ASMbase::clear(retainGeometry);
-  nodeInd.clear();
+  myNodeInd.clear();
 }
 
 
@@ -144,6 +153,7 @@ bool ASMs3D::refine (int dir, const RealArray& xi)
 {
   if (!svol || dir < 0 || dir > 2 || xi.empty()) return false;
   if (xi.front() < 0.0 || xi.back() > 1.0) return false;
+  if (shareFE) return true;
 
   RealArray extraKnots;
   RealArray::const_iterator uit = svol->basis(dir).begin();
@@ -169,6 +179,7 @@ bool ASMs3D::refine (int dir, const RealArray& xi)
 bool ASMs3D::uniformRefine (int dir, int nInsert)
 {
   if (!svol || dir < 0 || dir > 2 || nInsert < 1) return false;
+  if (shareFE) return true;
 
   RealArray extraKnots;
   RealArray::const_iterator uit = svol->basis(dir).begin();
@@ -193,6 +204,7 @@ bool ASMs3D::uniformRefine (int dir, int nInsert)
 bool ASMs3D::raiseOrder (int ru, int rv, int rw)
 {
   if (!svol) return false;
+  if (shareFE) return true;
 
   svol->raiseOrder(ru,rv,rw);
   return true;
@@ -215,6 +227,8 @@ bool ASMs3D::generateFEMTopology ()
 	      <<" in the patch."<< std::endl;
     return false;
   }
+  else if (shareFE)
+    return true;
 
   const int p1 = svol->order(0);
   const int p2 = svol->order(1);
@@ -235,10 +249,10 @@ bool ASMs3D::generateFEMTopology ()
   if (p1 <  1 || p1 <  1 || p3 <  1) return false;
   if (p1 > n1 || p2 > n2 || p3 > n3) return false;
 
-  MLGE.resize((n1-p1+1)*(n2-p2+1)*(n3-p3+1),0);
-  MLGN.resize(n1*n2*n3);
-  MNPC.resize(MLGE.size());
-  nodeInd.resize(MLGN.size());
+  myMLGE.resize((n1-p1+1)*(n2-p2+1)*(n3-p3+1),0);
+  myMLGN.resize(n1*n2*n3);
+  myMNPC.resize(myMLGE.size());
+  myNodeInd.resize(myMLGN.size());
 
   int iel = 0;
   int inod = 0;
@@ -246,28 +260,28 @@ bool ASMs3D::generateFEMTopology ()
     for (int i2 = 1; i2 <= n2; i2++)
       for (int i1 = 1; i1 <= n1; i1++)
       {
-	nodeInd[inod].I = i1-1;
-	nodeInd[inod].J = i2-1;
-	nodeInd[inod].K = i3-1;
+	myNodeInd[inod].I = i1-1;
+	myNodeInd[inod].J = i2-1;
+	myNodeInd[inod].K = i3-1;
 	if (i1 >= p1 && i2 >= p2 && i3 >= p3)
 	{
 	  if (svol->knotSpan(0,i1-1) > 0.0)
 	    if (svol->knotSpan(1,i2-1) > 0.0)
 	      if (svol->knotSpan(2,i3-1) > 0.0)
 	      {
-		MLGE[iel] = ++gEl; // global element number over all patches
-		MNPC[iel].resize(p1*p2*p3,0);
+		myMLGE[iel] = ++gEl; // global element number over all patches
+		myMNPC[iel].resize(p1*p2*p3,0);
 
 		int lnod = 0;
 		for (int j3 = p3-1; j3 >= 0; j3--)
 		  for (int j2 = p2-1; j2 >= 0; j2--)
 		    for (int j1 = p1-1; j1 >= 0; j1--)
-		      MNPC[iel][lnod++] = inod - n1*n2*j3 - n1*j2 - j1;
+		      myMNPC[iel][lnod++] = inod - n1*n2*j3 - n1*j2 - j1;
 	      }
 
 	  iel++;
 	}
-	MLGN[inod++] = ++gNod; // global node number over all patches
+	myMLGN[inod++] = ++gNod; // global node number over all patches
       }
 
 #ifdef SP_DEBUG
@@ -323,6 +337,8 @@ int ASMs3D::BlockNodes::next ()
 
 bool ASMs3D::assignNodeNumbers (BlockNodes& nodes, int basis)
 {
+  if (shareFE) return true;
+
   int n1, n2, n3;
   if (!this->getSize(n1,n2,n3,basis))
     return false;
@@ -356,29 +372,29 @@ bool ASMs3D::assignNodeNumbers (BlockNodes& nodes, int basis)
 	  if (j == 1)
 	  {
 	    if (i == 1)
-	      MLGN[inod] = nodes.ibnod[0];
+	      myMLGN[inod] = nodes.ibnod[0];
 	    else if (i == n1)
-	      MLGN[inod] = nodes.ibnod[1];
+	      myMLGN[inod] = nodes.ibnod[1];
 	    else
-	      MLGN[inod] = nodes.edges[0].next();
+	      myMLGN[inod] = nodes.edges[0].next();
 	  }
 	  else if (j == n2)
 	  {
 	    if (i == 1)
-	      MLGN[inod] = nodes.ibnod[2];
+	      myMLGN[inod] = nodes.ibnod[2];
 	    else if (i == n1)
-	      MLGN[inod] = nodes.ibnod[3];
+	      myMLGN[inod] = nodes.ibnod[3];
 	    else
-	      MLGN[inod] = nodes.edges[1].next();
+	      myMLGN[inod] = nodes.edges[1].next();
 	  }
 	  else
 	  {
 	    if (i == 1)
-	      MLGN[inod] = nodes.edges[4].next();
+	      myMLGN[inod] = nodes.edges[4].next();
 	    else if (i == n1)
-	      MLGN[inod] = nodes.edges[5].next();
+	      myMLGN[inod] = nodes.edges[5].next();
 	    else
-	      MLGN[inod] = nodes.faces[4].next();
+	      myMLGN[inod] = nodes.faces[4].next();
 	  }
 	}
 	else if (k == n3)
@@ -386,29 +402,29 @@ bool ASMs3D::assignNodeNumbers (BlockNodes& nodes, int basis)
 	  if (j == 1)
 	  {
 	    if (i == 1)
-	      MLGN[inod] = nodes.ibnod[4];
+	      myMLGN[inod] = nodes.ibnod[4];
 	    else if (i == n1)
-	      MLGN[inod] = nodes.ibnod[5];
+	      myMLGN[inod] = nodes.ibnod[5];
 	    else
-	      MLGN[inod] = nodes.edges[2].next();
+	      myMLGN[inod] = nodes.edges[2].next();
 	  }
 	  else if (j == n2)
 	  {
 	    if (i == 1)
-	      MLGN[inod] = nodes.ibnod[6];
+	      myMLGN[inod] = nodes.ibnod[6];
 	    else if (i == n1)
-	      MLGN[inod] = nodes.ibnod[7];
+	      myMLGN[inod] = nodes.ibnod[7];
 	    else
-	      MLGN[inod] = nodes.edges[3].next();
+	      myMLGN[inod] = nodes.edges[3].next();
 	  }
 	  else
 	  {
 	    if (i == 1)
-	      MLGN[inod] = nodes.edges[6].next();
+	      myMLGN[inod] = nodes.edges[6].next();
 	    else if (i == n1)
-	      MLGN[inod] = nodes.edges[7].next();
+	      myMLGN[inod] = nodes.edges[7].next();
 	    else
-	      MLGN[inod] = nodes.faces[5].next();
+	      myMLGN[inod] = nodes.faces[5].next();
 	  }
 	}
 	else
@@ -416,29 +432,29 @@ bool ASMs3D::assignNodeNumbers (BlockNodes& nodes, int basis)
 	  if (j == 1)
 	  {
 	    if (i == 1)
-	      MLGN[inod] = nodes.edges[8].next();
+	      myMLGN[inod] = nodes.edges[8].next();
 	    else if (i == n1)
-	      MLGN[inod] = nodes.edges[9].next();
+	      myMLGN[inod] = nodes.edges[9].next();
 	    else
-	      MLGN[inod] = nodes.faces[2].next();
+	      myMLGN[inod] = nodes.faces[2].next();
 	  }
 	  else if (j == n2)
 	  {
 	    if (i == 1)
-	      MLGN[inod] = nodes.edges[10].next();
+	      myMLGN[inod] = nodes.edges[10].next();
 	    else if (i == n1)
-	      MLGN[inod] = nodes.edges[11].next();
+	      myMLGN[inod] = nodes.edges[11].next();
 	    else
-	      MLGN[inod] = nodes.faces[3].next();
+	      myMLGN[inod] = nodes.faces[3].next();
 	  }
 	  else
 	  {
 	    if (i == 1)
-	      MLGN[inod] = nodes.faces[0].next();
+	      myMLGN[inod] = nodes.faces[0].next();
 	    else if (i == n1)
-	      MLGN[inod] = nodes.faces[1].next();
+	      myMLGN[inod] = nodes.faces[1].next();
 	    else
-	      MLGN[inod] = nodes.next();
+	      myMLGN[inod] = nodes.next();
 	  }
 	}
 
@@ -469,6 +485,15 @@ bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
 bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
 			   int basis, int slave, int master)
 {
+  if (shareFE && neighbor.shareFE)
+    return true;
+  else if (shareFE || neighbor.shareFE)
+  {
+    std::cerr <<" *** ASMs2D::connectPatch: Logic error, cannot"
+	      <<" connect a sharedFE patch with an unshared one"<< std::endl;
+    return false;
+  }
+
   // Set up the slave node numbers for this volume patch
 
   int n1, n2, n3;
@@ -588,7 +613,8 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
 	return false;
       }
       else
-	ASMbase::collapseNodes(neighbor.MLGN[node-1],MLGN[slaveNodes[k][l]-1]);
+	ASMbase::collapseNodes(neighbor.myMLGN[node-1],
+			       myMLGN[slaveNodes[k][l]-1]);
     }
 
   return true;
@@ -912,6 +938,17 @@ int ASMs3D::coeffInd (size_t inod) const
 }
 
 
+Vec3 ASMs3D::getCoord (size_t inod) const
+{
+  if (inod == 0) return Vec3();
+  int ip = this->coeffInd(inod-1)*svol->dimension();
+  if (ip < 0) return Vec3();
+
+  RealArray::const_iterator cit = svol->coefs_begin() + ip;
+  return Vec3(*cit,*(cit+1),*(cit+2));
+}
+
+
 bool ASMs3D::getElementCoordinates (Matrix& X, int iel) const
 {
 #ifdef INDEX_CHECK
@@ -960,17 +997,6 @@ void ASMs3D::getNodalCoordinates (Matrix& X) const
 	for (size_t i = 0; i < 3; i++)
 	  X(i+1,inod) = *(cit+(ip+i));
       }
-}
-
-
-Vec3 ASMs3D::getCoord (size_t inod) const
-{
-  if (inod == 0) return Vec3();
-  int ip = this->coeffInd(inod-1)*svol->dimension();
-  if (ip < 0) return Vec3();
-
-  RealArray::const_iterator cit = svol->coefs_begin() + ip;
-  return Vec3(*cit,*(cit+1),*(cit+2));
 }
 
 

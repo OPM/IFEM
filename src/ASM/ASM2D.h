@@ -16,6 +16,9 @@
 
 #include <vector>
 
+class ASMbase;
+
+
 /*!
   \brief Abstract interface for 2D spline patches.
   \details This class contains an interface to methods common for structured and
@@ -32,6 +35,14 @@ protected:
 public:
   //! \brief Empty destructor.
   virtual ~ASM2D() {}
+
+  //! \brief Returns a copy of this patch with identical FE discretizations.
+  //! \note The copied patch shares the FE data structures with the copy,
+  //! in order to save memory. Thus, the copy cannot be read from file, refined,
+  //! or changed in other ways that affect the FE geometry and/or topology.
+  //! The other properties of the patch (boundary conditions, constraints,
+  //! loads, etc.) are however not copied.
+  ASMbase* clone(unsigned char* nf = 0) const;
 
   //! \brief Refine the parametrization by inserting extra knots.
   //! \param[in] dir Parameter direction to refine

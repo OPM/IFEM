@@ -24,6 +24,7 @@
 
 class ASMbase;
 class IntegrandBase;
+class NormBase;
 class AnaSol;
 class VTF;
 class SAMpatch;
@@ -456,8 +457,11 @@ public:
   //! \brief Returns whether an analytical solution is available or not.
   bool haveAnaSol() const { return mySol ? true : false; }
 
-  //! \brief Returns a const pointer to our analytical solution
-  const AnaSol* getAnaSol() const { return mySol; }
+  //! \brief Returns a pointer to a norm integrand object for this simulator.
+  //! \note The object is allocated dynamically and has therefore to be
+  //! manually deleted before the variable receiving the pointer value goes
+  //! out of scope.
+  NormBase* getNormIntegrand() const;
 
 protected:
   //! \brief Defines the type of a property set.
@@ -509,6 +513,11 @@ public:
   //! \param[out] elmRes Patch-level element result array
   //! \param[in] pindx Local patch index to extract element results for
   bool extractPatchElmRes(const Matrix& globRes, Matrix& elmRes, int pindx);
+
+  //! \brief Returns a const reference to our FEM model.
+  const std::vector<ASMbase*>& getFEModel() const { return myModel; }
+  //! \brief Returns a const reference to our global-to-local node mapping.
+  const std::map<int,int>& getGlob2LocMap() const { return myGlb2Loc; }
 
 protected:
   //! \brief Extracts local solution vector(s) for the given patch.
@@ -569,9 +578,10 @@ protected:
   int         format;   //!< Output file format
 
   // Parallel computing attributes
-  int              nGlPatches; //!< Number of global patches
-  std::vector<int> myPatches;  //!< Global patch numbers for current processor
-
+  int               nGlPatches; //!< Number of global patches
+  std::vector<int>  myPatches;  //!< Global patch numbers for current processor
+  std::map<int,int> myGlb2Loc;  //!< Global-to-local node number mapping
+  const std::map<int,int>* g2l; //!< Pointer to global-to-local node mapping
 
   // Equation solver attributes
   AlgEqSystem*  myEqSys;     //!< The actual linear equation system

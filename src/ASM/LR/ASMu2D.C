@@ -56,8 +56,15 @@ ASMu2D::ASMu2D (std::istream& is, unsigned char n_s, unsigned char n_f)
 }
 
 
+ASMu2D::ASMu2D (const ASMu2D& patch, unsigned char n_f)
+	: ASMunstruct(patch,n_f), lrspline(patch.lrspline), tensorspline(patch.tensorspline)
+{
+}
+
+
 bool ASMu2D::read (std::istream& is)
 {
+	if (shareFE) return false;
 	delete lrspline;
 
 	// read inputfile as either an LRSpline file directly or a tensor product B-spline and convert
@@ -125,12 +132,14 @@ void ASMu2D::clear (bool retainGeometry)
 {
   if (!retainGeometry) {
 
-	// Erase spline data
-	delete lrspline;
-	delete tensorspline;
-	lrspline = 0;
-	tensorspline = 0;
-	geo = 0;
+    // Erase spline data
+    if (!shareFE) {
+      delete lrspline;
+      delete tensorspline;
+    }
+    lrspline = 0;
+    tensorspline = 0;
+    geo = 0;
   }
 
   // Erase the FE data
@@ -140,7 +149,8 @@ void ASMu2D::clear (bool retainGeometry)
 
 bool ASMu2D::cornerRefine (int minBasisfunctions)
 {
-	if (!lrspline ) return false;
+	if (!lrspline) return false;
+	if (shareFE) return true;
 
 	double h = 1.0;
 	int nBasis = lrspline->nBasisFunctions();
@@ -158,7 +168,8 @@ bool ASMu2D::cornerRefine (int minBasisfunctions)
 
 bool ASMu2D::diagonalRefine (int minBasisfunctions)
 {
-	if (!lrspline ) return false;
+	if (!lrspline) return false;
+	if (shareFE) return true;
 
 	double end1 = lrspline->endparam_u();
 	double end2 = lrspline->endparam_v();
@@ -187,7 +198,8 @@ bool ASMu2D::diagonalRefine (int minBasisfunctions)
 
 bool ASMu2D::uniformRefine (int minBasisfunctions)
 {
-	if (!lrspline ) return false;
+	if (!lrspline) return false;
+	if (shareFE) return true;
 
 	double end1 = lrspline->endparam_u();
 	double end2 = lrspline->endparam_v();
@@ -222,6 +234,7 @@ bool ASMu2D::uniformRefine (int minBasisfunctions)
 bool ASMu2D::uniformRefine (int dir, int nInsert)
 {
 	if (!tensorspline || dir < 0 || dir > 1 || nInsert < 1) return false;
+	if (shareFE) return true;
 
 	RealArray extraKnots;
 	RealArray::const_iterator uit = tensorspline->basis(dir).begin();
@@ -252,6 +265,7 @@ bool ASMu2D::refine (int dir, const RealArray& xi)
 {
 	if (!tensorspline || dir < 0 || dir > 1 || xi.empty()) return false;
 	if (xi.front() < 0.0 || xi.back() > 1.0) return false;
+	if (shareFE) return true;
 
 	RealArray extraKnots;
 	RealArray::const_iterator uit = tensorspline->basis(dir).begin();
@@ -282,6 +296,7 @@ bool ASMu2D::refine (int dir, const RealArray& xi)
 bool ASMu2D::raiseOrder (int ru, int rv)
 {
 	if (!tensorspline) return false;
+	if (shareFE) return true;
 
 	tensorspline->raiseOrder(ru,rv);
 	delete lrspline;
@@ -295,6 +310,7 @@ bool ASMu2D::refine (const std::vector<int>& elements,
                      const char* fName)
 {
 	if (!lrspline) return false;
+	if (shareFE) return true;
 
 	int multiplicity = 1;
 	if (!options.empty() && options.front() > 1)
@@ -335,12 +351,14 @@ bool ASMu2D::generateFEMTopology ()
 		return true;
 	else if (!MLGN.empty())
 	{
-		std::cerr <<" *** ASMu2D::generateFEMTopology: Inconsistency between the"
-		          <<" number of FE nodes "<< MLGN.size()
+		std::cerr <<" *** ASMu2D::generateFEMTopology: Inconsistency"
+		          <<" between the number of FE nodes "<< MLGN.size()
 		          <<"\n     and the number of basis functions "<< nBasis
 		          <<" in the patch."<< std::endl;
 		return false;
 	}
+	else if (shareFE)
+		return true;
 
 	const int p1 = lrspline->order_u();
 	const int p2 = lrspline->order_v();
@@ -350,9 +368,9 @@ bool ASMu2D::generateFEMTopology ()
 	if (p1 < 1 || p1 < 1) return false;
 	if (p1*p2 > nBasis)   return false;
 
-	MLGN.resize(nBasis);
-	MLGE.resize(nElements);
-	MNPC.resize(nElements);
+	myMLGN.resize(nBasis);
+	myMLGE.resize(nElements);
+	myMNPC.resize(nElements);
 	lrspline->generateIDs();
 
 	std::vector<LR::Element*>::iterator el_it = lrspline->elementBegin();
@@ -360,18 +378,16 @@ bool ASMu2D::generateFEMTopology ()
 	for (int iel=0; iel<nElements; iel++, el_it++)
 	{
 		int nSupportFunctions = (*el_it)->nBasisFunctions();
-		MLGE[iel] = ++gEl; // global element number over all patches
-		MNPC[iel].resize(nSupportFunctions);
+		myMLGE[iel] = ++gEl; // global element number over all patches
+		myMNPC[iel].resize(nSupportFunctions);
 
 		b_it = (*el_it)->supportBegin();
 		for(int lnod=0; lnod<nSupportFunctions; lnod++, b_it++)
-			MNPC[iel][lnod] = (*b_it)->getId();
+			myMNPC[iel][lnod] = (*b_it)->getId();
 	}
 
-	for(size_t i=0; i<MLGN.size(); i++)
-		MLGN[i] = i+1;
-
-	gNod += nBasis;
+	for (int inod = 0; inod < nBasis; inod++)
+		myMLGN[inod] = ++gNod;
 
 	return true;
 }

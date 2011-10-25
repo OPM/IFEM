@@ -30,6 +30,8 @@ public:
   ASMs3DLag(const char* fNam = 0, bool checkRHS = false, unsigned char n_f = 3);
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs3DLag(std::istream& is, bool checkRHS = false, unsigned char n_f = 3);
+  //! \brief Copy constructor.
+  ASMs3DLag(const ASMs3DLag& patch, unsigned char n_f = 0);
   //! \brief Empty destructor.
   virtual ~ASMs3DLag() {}
 
@@ -158,10 +160,13 @@ protected:
   virtual bool getSize(int& n1, int& n2, int& n3, int = 0) const;
 
 private:
-  size_t            nx;    //!< Number of nodes in first parameter direction
-  size_t            ny;    //!< Number of nodes in second parameter direction
-  size_t            nz;    //!< Number of nodes in third parameter direction
-  std::vector<Vec3> coord; //!< Nodal coordinates
+  size_t nx; //!< Number of nodes in first parameter direction
+  size_t ny; //!< Number of nodes in second parameter direction
+  size_t nz; //!< Number of nodes in third parameter direction
+
+  const std::vector<Vec3>& coord; //!< Nodal coordinates
+
+  std::vector<Vec3> myCoord; //!< The actual nodal coordinates
 };
 
 #endif

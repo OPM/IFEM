@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Base class for spline-based FE assembly drivers.
+//! \brief Base class for spline-based finite element (FE) assembly drivers.
 //!
 //==============================================================================
 
@@ -40,7 +40,7 @@ typedef std::vector<ASMbase*>       ASMVec;       //!< Spline patch container
 
 
 /*!
-  \brief Base class for spline-based finite element assembly drivers.
+  \brief Base class for spline-based finite element (FE) assembly drivers.
 
   \details This class incapsulates the data and methods needed for assembling
   the algebraic equation system resulting from a finite element discretization
@@ -73,6 +73,16 @@ protected:
   //! \param[in] n_s Number of spatial dimensions
   //! \param[in] n_f Number of primary solution fields
   ASMbase(unsigned char n_p, unsigned char n_s, unsigned char n_f);
+  //! \brief Copy constructor.
+  //! \param[in] patch The patch to use FE data from
+  //! \param[in] n_f Number of primary solution fields
+  //!
+  //! \details The default copy constructor is overridden, such that this patch
+  //! shares the FE data (including the basis functions) with the provided
+  //! \a patch. The boundary conditions and constraint equations are however
+  //! not copied, as the copy constructor is typically used for multi-stage
+  //! simulators with different sub-problems discretized on the same grid.
+  ASMbase(const ASMbase& patch, unsigned char n_f = 0);
 
 public:
   //! \brief The destructor frees the dynamically allocated data objects.
@@ -158,22 +168,21 @@ public:
   //! \param[in] globalNum Global number of the node to merge \a node with
   bool mergeNodes(size_t inod, int globalNum);
 
+  //! \brief Renumbers the global node numbers in this patch.
+  //! \param old2new Old-to-new node number mapping
+  //! \param nnod Number of unique nodes found so far
+  //! \return The number of renumbered nodes in this patch
+  //!
+  //! \details After the renumbering, the global node numbers are in the range
+  //! [1,\a nnod ], where \a nnod is the number of unique nodes in the model.
+  int renumberNodes(std::map<int,int>& old2new, int& nnod);
+
   //! \brief Renumbers the global node numbers referred by this patch.
   //! \details The node numbers referred by boundary condition and
   //! multi-point constraint objects in the patch are renumbered.
   //! The nodes themselves are assumed already to be up to date.
   //! \param[in] old2new Old-to-new node number mapping
-  //! \param[in] silent If \e false, give error on missing node in \a old2new
-  bool renumberNodes(const std::map<int,int>& old2new, bool silent);
-
-  //! \brief Renumbers all global node numbers in the entire model.
-  //! \param[in] model All spline patches in the model
-  //! \param[out] l2gn Local-to-global node numbers (optional)
-  //! \return The number of unique nodes in the model
-  //!
-  //! \details After the renumbering, the global node numbers are in the range
-  //! [1,\a nnod ], where \a nnod is the number of unique nodes in the model.
-  static int renumberNodes(const ASMVec& model, IntVec* l2gn = 0);
+  bool renumberNodes(const std::map<int,int>& old2new);
 
   //! \brief Resolves (possibly multi-level) chaining in MPC equations.
   //! \param[in] model All spline patches in the model
@@ -385,12 +394,18 @@ protected:
   unsigned char nsd;  //!< Number of space dimensions (ndim <= nsd <= 3)
   unsigned char nf;   //!< Number of primary solution fields (1 or larger)
 
-  IntVec MLGE;  //!< Matrix of Local to Global Element numbers
-  IntVec MLGN;  //!< Matrix of Local to Global Node numbers
-  IntMat MNPC;  //!< Matrix of Nodal Point Correspondance
+  const IntVec& MLGE; //!< Matrix of Local to Global Element numbers
+  const IntVec& MLGN; //!< Matrix of Local to Global Node numbers
+  const IntMat& MNPC; //!< Matrix of Nodal Point Correspondance
+  const bool shareFE; //!< If \e true, this patch uses FE data of another patch
+
   BCVec  BCode; //!< Vector of Boundary condition codes
   MPCMap dCode; //!< Inhomogeneous Dirichlet condition codes for the MPCs
   MPCSet mpcs;  //!< All multi-point constraints with the slave in this patch
+
+  IntVec myMLGE; //!< The actual Matrix of Local to Global Element numbers
+  IntVec myMLGN; //!< The actual Matrix of Local to Global Node numbers
+  IntMat myMNPC; //!< The actual Matrix of Nodal Point Correspondance
 };
 
 #endif

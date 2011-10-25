@@ -30,6 +30,8 @@ public:
   ASMs1DLag(const char* fNam = 0, unsigned char n_s = 1, unsigned char n_f = 1);
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs1DLag(std::istream& is, unsigned char n_s = 1, unsigned char n_f = 1);
+  //! \brief Copy constructor.
+  ASMs1DLag(const ASMs1DLag& patch, unsigned char n_f = 0);
   //! \brief Empty destructor.
   virtual ~ASMs1DLag() {}
 
@@ -145,9 +147,11 @@ protected:
   virtual int getSize(int = 0) const { return nx; }
 
 private:
-  //! \brief The number of nodes in each direction for the patch
-  size_t            nx;    //!< Number of nodes in first parameter direction
-  std::vector<Vec3> coord; //!< Nodal coordinates
+  size_t nx; //!< Number of nodes
+
+  const std::vector<Vec3>& coord; //!< Nodal coordinates
+
+  std::vector<Vec3> myCoord; //!< The actual nodal coordinates
 };
 
 #endif

@@ -28,22 +28,29 @@
 
 ASMs1DLag::ASMs1DLag (const char* fileName,
 		      unsigned char n_s, unsigned char n_f)
-  : ASMs1D(fileName,n_s,n_f)
+  : ASMs1D(fileName,n_s,n_f), coord(myCoord)
 {
   nx = 0;
 }
 
 
 ASMs1DLag::ASMs1DLag (std::istream& is, unsigned char n_s, unsigned char n_f)
-  : ASMs1D(is,n_s,n_f)
+  : ASMs1D(is,n_s,n_f), coord(myCoord)
 {
   nx = 0;
 }
 
 
+ASMs1DLag::ASMs1DLag (const ASMs1DLag& patch, unsigned char n_f)
+  : ASMs1D(patch,n_f), coord(patch.myCoord)
+{
+  nx = coord.size();
+}
+
+
 void ASMs1DLag::clear (bool retainGeometry)
 {
-  coord.clear();
+  myCoord.clear();
   nx = 0;
 
   this->ASMs1D::clear(retainGeometry);
@@ -70,8 +77,8 @@ bool ASMs1DLag::generateFEMTopology ()
   // Number of elements
   const int nel = (nx-1)/(p1-1);
 
-  MLGN.resize(nx);
-  coord.resize(nx);
+  myMLGN.resize(nx);
+  myCoord.resize(nx);
 
   // Evaluate the nodal coordinates
   Go::Point pt;
@@ -79,25 +86,25 @@ bool ASMs1DLag::generateFEMTopology ()
   {
     curv->point(pt,gpar[i]);
     for (int k = 0; k < pt.size(); k++)
-      coord[i][k] = pt[k];
-    MLGN[i] = ++gNod;
+      myCoord[i][k] = pt[k];
+    myMLGN[i] = ++gNod;
   }
 
   // Connectivity array: local --> global node relation
-  MLGE.resize(nel);
-  MNPC.resize(nel);
+  myMLGE.resize(nel);
+  myMNPC.resize(nel);
 
   int a, iel;
   for (iel = 0; iel < nel; iel++)
   {
-    MLGE[iel] = ++gEl;
+    myMLGE[iel] = ++gEl;
     // Element array
-    MNPC[iel].resize(p1);
+    myMNPC[iel].resize(p1);
     // First node in current element
     int first = (p1-1)*iel;
 
     for (a = 0; a < p1; a++)
-      MNPC[iel][a] = first + a;
+      myMNPC[iel][a] = first + a;
   }
 
   return true;
@@ -142,6 +149,8 @@ void ASMs1DLag::getNodalCoordinates (Matrix& X) const
 
 bool ASMs1DLag::updateCoords (const Vector& displ)
 {
+  if (shareFE) return true;
+
   if (displ.size() != nsd*coord.size())
   {
     std::cerr <<" *** ASMs1DLag::updateCoords: Invalid dimension "
@@ -151,8 +160,8 @@ bool ASMs1DLag::updateCoords (const Vector& displ)
   }
 
   const double* u = displ.ptr();
-  for (size_t inod = 0; inod < coord.size(); inod++, u += nsd)
-    coord[inod] += RealArray(u,u+nsd);
+  for (size_t inod = 0; inod < myCoord.size(); inod++, u += nsd)
+    myCoord[inod] += RealArray(u,u+nsd);
 
   return true;
 }

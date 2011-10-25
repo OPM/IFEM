@@ -39,6 +39,8 @@ public:
   ASMu2D(const char* fName = 0, unsigned char n_s = 2, unsigned char n_f = 2);
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMu2D(std::istream& is, unsigned char n_s = 2, unsigned char n_f = 2);
+  //! \brief Copy constructor.
+  ASMu2D(const ASMu2D& patch, unsigned char n_f = 0);
   //! \brief Empty destructor.
   virtual ~ASMu2D() {}
 

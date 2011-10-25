@@ -545,6 +545,18 @@ void SIM2D::readPatches (std::istream& isp)
 }
 
 
+void SIM2D::clonePatches (const FEModelVec& patches,
+			  const std::map<int,int>& glb2locN)
+{
+  ASM2D* pch = 0;
+  for (size_t i = 0; i < patches.size(); i++)
+    if ((pch = dynamic_cast<ASM2D*>(patches[i])))
+      myModel.push_back(pch->clone(nf));
+
+  g2l = &glb2locN;
+}
+
+
 bool SIM2D::refine (const std::vector<int>& elements,
 		    const std::vector<int>& options, const char* fName)
 {

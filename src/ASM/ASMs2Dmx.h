@@ -37,6 +37,8 @@ public:
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs2Dmx(std::istream& is, unsigned char n_s = 2,
 	   unsigned char n_f1 = 2, unsigned char n_f2 = 1);
+  //! \brief Copy constructor.
+  ASMs2Dmx(const ASMs2Dmx& patch, char n_f1 = -1, char n_f2 = -1);
   //! \brief Empty destructor.
   virtual ~ASMs2Dmx() {}
 

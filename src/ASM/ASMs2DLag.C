@@ -28,22 +28,28 @@
 
 ASMs2DLag::ASMs2DLag (const char* fileName,
 		      unsigned char n_s, unsigned char n_f)
-  : ASMs2D(fileName,n_s,n_f)
+  : ASMs2D(fileName,n_s,n_f), coord(myCoord)
 {
   nx = ny = 0;
 }
 
 
 ASMs2DLag::ASMs2DLag (std::istream& is, unsigned char n_s, unsigned char n_f)
-  : ASMs2D(is,n_s,n_f)
+  : ASMs2D(is,n_s,n_f), coord(myCoord)
 {
   nx = ny = 0;
 }
 
 
+ASMs2DLag::ASMs2DLag (const ASMs2DLag& patch, unsigned char n_f)
+  : ASMs2D(patch,n_f), coord(patch.myCoord)
+{
+}
+
+
 void ASMs2DLag::clear (bool retainGeometry)
 {
-  coord.clear();
+  myCoord.clear();
   nx = ny = 0;
 
   this->ASMs2D::clear(retainGeometry);
@@ -79,13 +85,13 @@ bool ASMs2DLag::generateFEMTopology ()
   surf->gridEvaluator(XYZ,gpar[0],gpar[1]);
 
   size_t i1, j1;
-  MLGN.resize(nx*ny);
-  coord.resize(nx*ny);
-  for (i1 = j1 = 0; i1 < coord.size(); i1++)
+  myMLGN.resize(nx*ny);
+  myCoord.resize(nx*ny);
+  for (i1 = j1 = 0; i1 < myCoord.size(); i1++)
   {
-    MLGN[i1] = ++gNod;
+    myMLGN[i1] = ++gNod;
     for (size_t d = 0; d < nsd; d++)
-      coord[i1][d] = XYZ[j1+d];
+      myCoord[i1][d] = XYZ[j1+d];
     j1 += surf->dimension();
   }
 
@@ -95,24 +101,24 @@ bool ASMs2DLag::generateFEMTopology ()
   const int nen = p1*p2;
 
   // Connectivity array: local --> global node relation
-  MLGE.resize(nel);
-  MNPC.resize(nel);
+  myMLGE.resize(nel);
+  myMNPC.resize(nel);
 
   int i, j, a, b, iel = 0;
   for (j = 0; j < nely; j++)
     for (i = 0; i < nelx; i++, iel++)
     {
-      MLGE[iel] = ++gEl;
-      MNPC[iel].resize(nen);
+      myMLGE[iel] = ++gEl;
+      myMNPC[iel].resize(nen);
       // First node in current element
       int corner = (p2-1)*nx*j + (p1-1)*i;
 
       for (b = 0; b < p2; b++)
       {
 	int facenod = b*p1;
-	MNPC[iel][facenod] = corner + b*nx;
+	myMNPC[iel][facenod] = corner + b*nx;
 	for (a = 1; a < p1; a++)
-	  MNPC[iel][facenod+a] = MNPC[iel][facenod] + a;
+	  myMNPC[iel][facenod+a] = myMNPC[iel][facenod] + a;
       }
     }
 
@@ -159,6 +165,8 @@ void ASMs2DLag::getNodalCoordinates (Matrix& X) const
 
 bool ASMs2DLag::updateCoords (const Vector& displ)
 {
+  if (shareFE) return true;
+
   if (displ.size() != nsd*coord.size())
   {
     std::cerr <<" *** ASMs2DLag::updateCoords: Invalid dimension "
@@ -169,7 +177,7 @@ bool ASMs2DLag::updateCoords (const Vector& displ)
 
   const double* u = displ.ptr();
   for (size_t inod = 0; inod < coord.size(); inod++, u += nsd)
-    coord[inod] += RealArray(u,u+nsd);
+    myCoord[inod] += RealArray(u,u+nsd);
 
   return true;
 }

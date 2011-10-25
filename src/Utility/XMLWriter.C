@@ -21,16 +21,15 @@ XMLWriter::XMLWriter(const std::string& name) : DataWriter(name+".xml")
 
 int XMLWriter::getLastTimeLevel()
 {
-  int result=-1;
   TiXmlDocument doc(m_name.c_str());
   doc.LoadFile();
   TiXmlHandle handle(&doc);
   TiXmlElement* levels = handle.FirstChild("info").
                                             FirstChild("levels").ToElement();
   if (levels && levels->FirstChild())
-    result = atoi(levels->FirstChild()->Value());
+    return atoi(levels->FirstChild()->Value());
 
-  return result;
+  return -1;
 }
 
 
@@ -43,6 +42,7 @@ void XMLWriter::openFile(int level)
   TiXmlElement element("info");
   m_node = m_doc->InsertEndChild(element);
 }
+
 
 void XMLWriter::closeFile(int level, bool close)
 {
@@ -165,7 +165,7 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry,
   // norms
   if (entry.second.results & DataExporter::NORMS) {
     // since the norm data isn't available, we have to instance the object
-    NormBase* norm = sim->getProblem()->getNormIntegrand(const_cast<AnaSol*>(sim->getAnaSol())); 
+    NormBase* norm = sim->getNormIntegrand(); 
     for (size_t j = 0; j < norm->getNoFields(); j++) {
       if (norm->hasElementContributions(j))
         addField(norm->getName(j),"knotspan wise norm",sim->getName()+"-1",1,sim->getNoPatches(),"knotspan");

@@ -38,6 +38,8 @@ class ASMs2D : public ASMstruct, public ASM2D
     int J; //!< Index in second parameter direction
   };
 
+  typedef std::vector<IJ> IndexVec; //! Node index container
+
   //! \brief Struct for edge node definitions.
   struct Edge
   {
@@ -71,6 +73,8 @@ public:
   ASMs2D(const char* fName = 0, unsigned char n_s = 2, unsigned char n_f = 2);
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs2D(std::istream& is, unsigned char n_s = 2, unsigned char n_f = 2);
+  //! \brief Copy constructor.
+  ASMs2D(const ASMs2D& patch, unsigned char n_f = 0);
   //! \brief Empty destructor.
   virtual ~ASMs2D() {}
 
@@ -346,6 +350,7 @@ protected:
   static void extractBasis(const Go::BasisDerivsSf2& spline,
 			   Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2);
 
+public:
   //! \brief Auxilliary function for computation of basis function indices.
   static void scatterInd(int n1, int n2, int p1, int p2,
 			 const int* start, IntVec& index);
@@ -357,7 +362,9 @@ private:
 
 protected:
   Go::SplineSurface* surf; //!< Pointer to the actual spline surface object
-  std::vector<IJ> nodeInd; //!< IJ-pairs for the control points (nodes)
+
+  const IndexVec& nodeInd; //!< IJ-pairs for the control points (nodes)
+  IndexVec      myNodeInd; //!< The actual IJ-pair container
 };
 
 #endif

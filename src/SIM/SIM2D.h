@@ -37,6 +37,11 @@ public:
   //! \param[in] ng Number of Gauss points in each parameter direction
   virtual void setQuadratureRule(size_t ng);
 
+  //! \brief Creates the FE model by copying the given patches.
+  //! \param[in] patches List of patches to borrow the grid from
+  //! \param[in] g2ln Global-to-local node number mapping for the borrowed grid
+  void clonePatches(const FEModelVec& patches, const std::map<int,int>& g2ln);
+
 protected:
   //! \brief Parses a data section from an input stream.
   //! \param[in] keyWord Keyword of current data section to read

@@ -18,9 +18,13 @@
 #include "MPC.h"
 
 
-SAMpatchPara::SAMpatchPara (const IntVec& l2gn_mp)
+SAMpatchPara::SAMpatchPara (const std::map<int,int>& g2ln)
 {
-  l2gn = l2gn_mp;
+  l2gn.resize(g2ln.size(),0);
+  std::map<int,int>::const_iterator it;
+  for (it = g2ln.begin(); it != g2ln.end(); it++)
+    l2gn[it->second-1] = it->first;
+
 #ifdef PARALLEL_PETSC
   MPI_Comm_size(PETSC_COMM_WORLD,&nProc);
 #else
@@ -82,7 +86,7 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
 	}
       }
   }
- 
+
   // Generate nnz for diagonal block
   int locsize = ilast-ifirst;
   d_nnz.resize(locsize,0);

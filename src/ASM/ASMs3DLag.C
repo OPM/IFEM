@@ -27,22 +27,28 @@
 
 
 ASMs3DLag::ASMs3DLag (const char* fName, bool checkRHS, unsigned char n_f)
-  : ASMs3D(fName,checkRHS,n_f)
+  : ASMs3D(fName,checkRHS,n_f), coord(myCoord)
 {
   nx = ny = nz = 0;
 }
 
 
 ASMs3DLag::ASMs3DLag (std::istream& is, bool checkRHS, unsigned char n_f)
-  : ASMs3D(is,checkRHS,n_f)
+  : ASMs3D(is,checkRHS,n_f), coord(myCoord)
 {
   nx = ny = nz = 0;
 }
 
 
+ASMs3DLag::ASMs3DLag (const ASMs3DLag& patch, unsigned char n_f)
+  : ASMs3D(patch,n_f), coord(patch.myCoord)
+{
+}
+
+
 void ASMs3DLag::clear (bool retainGeometry)
 {
-  coord.clear();
+  myCoord.clear();
   nx = ny = nz = 0;
 
   this->ASMs3D::clear(retainGeometry);
@@ -82,14 +88,14 @@ bool ASMs3DLag::generateFEMTopology ()
   svol->gridEvaluator(gpar[0],gpar[1],gpar[2],XYZ);
 
   size_t i1, j1;
-  MLGN.resize(nx*ny*nz);
-  coord.resize(nx*ny*nz);
+  myMLGN.resize(nx*ny*nz);
+  myCoord.resize(nx*ny*nz);
   for (i1 = j1 = 0; i1 < coord.size(); i1++)
   {
-    MLGN[i1] = ++gNod;
-    coord[i1][0] = XYZ[j1++];
-    coord[i1][1] = XYZ[j1++];
-    coord[i1][2] = XYZ[j1++];
+    myMLGN[i1] = ++gNod;
+    myCoord[i1][0] = XYZ[j1++];
+    myCoord[i1][1] = XYZ[j1++];
+    myCoord[i1][2] = XYZ[j1++];
   }
 
   // Number of elements in patch
@@ -100,31 +106,31 @@ bool ASMs3DLag::generateFEMTopology ()
   const int ct  = p1*p2;
 
   // Connectivity array: local --> global node relation
-  MLGE.resize(nel);
-  MNPC.resize(nel);
+  myMLGE.resize(nel);
+  myMNPC.resize(nel);
 
   int i, j, k, a, b, c, iel = 0;
   for (k = 0; k < nelz; k++)
     for (j = 0; j < nely; j++)
       for (i = 0; i < nelx; i++, iel++)
       {
-	MLGE[iel] = ++gEl;
-	MNPC[iel].resize(nen);
+	myMLGE[iel] = ++gEl;
+	myMNPC[iel].resize(nen);
 	// First node in current element
 	int corner = (p3-1)*(nx*ny)*k + (p2-1)*nx*j + (p1-1)*i;
 
 	for (c = 0; c < p3; c++)
 	{
 	  int cornod = ct*c;
-	  MNPC[iel][cornod] = corner + c*nx*ny;
+	  myMNPC[iel][cornod] = corner + c*nx*ny;
 	  for (b = 1; b < p2; b++)
 	  {
 	    int facenod = cornod + b*p1;
-	    MNPC[iel][facenod] = MNPC[iel][cornod] + b*nx;
+	    myMNPC[iel][facenod] = myMNPC[iel][cornod] + b*nx;
 	    for (a = 1; a < p1; a++)
 	    {
-	      MNPC[iel][facenod+a] = MNPC[iel][facenod] + a;
-	      MNPC[iel][cornod+a] = MNPC[iel][cornod] + a;
+	      myMNPC[iel][facenod+a] = myMNPC[iel][facenod] + a;
+	      myMNPC[iel][cornod+a]  = myMNPC[iel][cornod] + a;
 	    }
 	  }
 	}
@@ -173,6 +179,8 @@ void ASMs3DLag::getNodalCoordinates (Matrix& X) const
 
 bool ASMs3DLag::updateCoords (const Vector& displ)
 {
+  if (shareFE) return true;
+
   if (displ.size() != nsd*coord.size())
   {
     std::cerr <<" *** ASMs3DLag::updateCoords: Invalid dimension "
@@ -182,8 +190,8 @@ bool ASMs3DLag::updateCoords (const Vector& displ)
   }
 
   const double* u = displ.ptr();
-  for (size_t inod = 0; inod < coord.size(); inod++, u += nsd)
-    coord[inod] += RealArray(u,u+nsd);
+  for (size_t inod = 0; inod < myCoord.size(); inod++, u += nsd)
+    myCoord[inod] += RealArray(u,u+nsd);
 
   return true;
 }

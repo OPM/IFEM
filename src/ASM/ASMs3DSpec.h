@@ -31,6 +31,9 @@ public:
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs3DSpec(std::istream& is, bool checkRHS = false, unsigned char n_f = 3)
     : ASMs3DLag(is,checkRHS,n_f) {}
+  //! \brief Copy constructor.
+  ASMs3DSpec(const ASMs3DSpec& patch, unsigned char n_f = 0)
+    : ASMs3DLag(patch,n_f) {}
   //! \brief Empty destructor.
   virtual ~ASMs3DSpec() {}
 

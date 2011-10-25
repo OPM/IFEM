@@ -7,13 +7,14 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Base class for spline-based FE assembly drivers.
+//! \brief Base class for spline-based finite element (FE) assembly drivers.
 //!
 //==============================================================================
 
 #include "ASMbase.h"
 #include "MPC.h"
 #include "Vec3.h"
+#include "Vec3Oper.h"
 #include "Utilities.h"
 #include <algorithm>
 
@@ -22,10 +23,21 @@ bool ASMbase::fixHomogeneousDirichlet = true;
 
 
 ASMbase::ASMbase (unsigned char n_p, unsigned char n_s, unsigned char n_f)
+  : MLGE(myMLGE), MLGN(myMLGN), MNPC(myMNPC), shareFE(false)
 {
   nf = n_f;
   nsd = n_s > 3 ? 3 : n_s;
   ndim = n_p > nsd ? nsd : n_p;
+}
+
+
+ASMbase::ASMbase (const ASMbase& patch, unsigned char n_f)
+  : MLGE(patch.myMLGE), MLGN(patch.myMLGN), MNPC(patch.myMNPC), shareFE(true)
+{
+  nf = n_f > 0 ? n_f : patch.nf;
+  nsd = patch.nsd;
+  ndim = patch.ndim;
+  // Note: Properties are _not_ copied
 }
 
 
@@ -38,16 +50,20 @@ ASMbase::~ASMbase ()
 
 void ASMbase::clear (bool retainGeometry)
 {
-  if (retainGeometry) // Clear all FE structures, including the elements
-    MNPC.clear();
+  if (retainGeometry)
+  {
+    // Clear all FE structures, including the elements
+    myMLGE.clear();
+    myMNPC.clear();
+  }
   else // Don't erase the elements, but set them to have zero nodes
-    for (size_t i = 0; i < MNPC.size(); i++) MNPC[i].clear();
+    for (size_t i = 0; i < myMNPC.size(); i++) myMNPC[i].clear();
 
   // Erase the nodes, boundary conditions and multi-point constraints
   for (MPCIter it = mpcs.begin(); it != mpcs.end(); it++)
     delete *it;
 
-  MLGN.clear();
+  myMLGN.clear();
   BCode.clear();
   dCode.clear();
   mpcs.clear();
@@ -109,8 +125,9 @@ void ASMbase::printNodes (std::ostream& os, const char* heading) const
 
 
 /*!
-  \brief An unary function that checks whether a DOF object matches the fixed
-  status of a BC object.
+  \brief A helper class used by ASMbase::addMPC.
+  \details The class is just an unary function that checks whether a DOF object
+  matches the fixed status of a given BC object.
 */
 
 class fixed : public std::unary_function<const ASMbase::BC&,bool>
@@ -410,47 +427,34 @@ void ASMbase::collapseNodes (int& node1, int& node2)
 
 bool ASMbase::mergeNodes (size_t inod, int globalNum)
 {
-  if (inod < 1 || inod > MLGN.size())
+  if (inod < 1 || inod > myMLGN.size())
     return false;
-  else if (MLGN[--inod] <= globalNum)
+  else if (myMLGN[--inod] == globalNum)
     return false;
 
-  MLGN[inod] = globalNum;
+  std::cout <<"  ** Merging duplicated nodes "<< globalNum <<" and "
+	    << myMLGN[inod] <<" at X="<< this->getCoord(inod) << std::endl;
+
+  myMLGN[inod] = globalNum;
   return true;
 }
 
 
-int ASMbase::renumberNodes (const ASMVec& model, IntVec* l2gn)
+int ASMbase::renumberNodes (std::map<int,int>& old2new, int& nnod)
 {
-  int nnod = 0;
   int renum = 0;
-  size_t i, j;
-  std::map<int,int> old2new;
-  for (i = 0; i < model.size(); i++)
-    for (j = 0; j < model[i]->MLGN.size(); j++)
-      if (utl::renumber(model[i]->MLGN[j],nnod,old2new))
-	renum++;
+  for (size_t j = 0; j < myMLGN.size(); j++)
+    if (utl::renumber(myMLGN[j],nnod,old2new))
+      renum++;
 
-  if (renum > 0)
-  {
-    for (i = 0; i < model.size(); i++)
-      model[i]->renumberNodes(old2new,false);
-    std::cout <<"\nRenumbered "<< renum <<" nodes"<< std::endl;
-  }
+  if (renum == 0)
+    nnod = std::max(nnod,*std::max_element(MLGN.begin(),MLGN.end()));
 
-  if (l2gn)
-  {
-    l2gn->resize(old2new.size(),0);
-    std::map<int,int>::const_iterator it;
-    for (it = old2new.begin(); it != old2new.end(); it++)
-      (*l2gn)[it->second-1] = it->first;
-  }
-
-  return nnod;
+  return renum;
 }
 
 
-bool ASMbase::renumberNodes (const std::map<int,int>& old2new, bool silent)
+bool ASMbase::renumberNodes (const std::map<int,int>& old2new)
 {
 #ifdef SP_DEBUG
   bool printInvalidNodes = true;
@@ -466,7 +470,7 @@ bool ASMbase::renumberNodes (const std::map<int,int>& old2new, bool silent)
   for (MPCSet::iterator mit = mpcs.begin(); mit != mpcs.end(); mit++)
     invalid += (*mit)->renumberNodes(old2new,printInvalidNodes);
 
-  if (invalid == 0 || silent) return true;
+  if (invalid == 0) return true;
 
   std::cerr <<" *** "<< invalid <<" invalid nodes found while renumbering\n";
   return false;

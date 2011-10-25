@@ -51,8 +51,15 @@ ASMs1D::ASMs1D (std::istream& is, unsigned char n_s, unsigned char n_f)
 }
 
 
+ASMs1D::ASMs1D (const ASMs1D& patch, unsigned char n_f)
+  : ASMstruct(patch,n_f), curv(patch.curv)
+{
+}
+
+
 bool ASMs1D::read (std::istream& is)
 {
+  if (shareFE) return false;
   if (curv) delete curv;
 
   Go::ObjectHeader head;
@@ -113,7 +120,7 @@ void ASMs1D::clear (bool retainGeometry)
   if (!retainGeometry)
   {
     // Erase spline data
-    if (curv) delete curv;
+    if (curv && !shareFE) delete curv;
     curv = 0;
     geo = 0;
   }
@@ -128,6 +135,7 @@ bool ASMs1D::refine (const RealArray& xi)
 {
   if (!curv || xi.empty()) return false;
   if (xi.front() < 0.0 || xi.back() > 1.0) return false;
+  if (shareFE) return true;
 
   RealArray extraKnots;
   RealArray::const_iterator uit = curv->basis().begin();
@@ -153,6 +161,7 @@ bool ASMs1D::refine (const RealArray& xi)
 bool ASMs1D::uniformRefine (int nInsert)
 {
   if (!curv || nInsert < 1) return false;
+  if (shareFE) return true;
 
   RealArray extraKnots;
   RealArray::const_iterator uit = curv->basis().begin();
@@ -177,6 +186,7 @@ bool ASMs1D::uniformRefine (int nInsert)
 bool ASMs1D::raiseOrder (int ru)
 {
   if (!curv) return false;
+  if (shareFE) return true;
 
   curv->raiseOrder(ru);
   return true;
@@ -197,6 +207,8 @@ bool ASMs1D::generateFEMTopology ()
 	      <<" in the patch."<< std::endl;
     return false;
   }
+  else if (shareFE)
+    return true;
 
   const int p1 = curv->order();
 #ifdef SP_DEBUG
@@ -212,9 +224,9 @@ bool ASMs1D::generateFEMTopology ()
   if (p1 <  1) return false;
   if (p1 > n1) return false;
 
-  MLGE.resize(n1-p1+1,0);
-  MLGN.resize(n1);
-  MNPC.resize(MLGE.size());
+  myMLGE.resize(n1-p1+1,0);
+  myMLGN.resize(n1);
+  myMNPC.resize(myMLGE.size());
 
   int iel = 0;
   int inod = 0;
@@ -224,17 +236,17 @@ bool ASMs1D::generateFEMTopology ()
     {
       if (this->getKnotSpan(i1-1) > 0.0)
       {
-	MLGE[iel] = ++gEl; // global element number over all patches
-	MNPC[iel].resize(p1,0);
+	myMLGE[iel] = ++gEl; // global element number over all patches
+	myMNPC[iel].resize(p1,0);
 
 	int lnod = 0;
 	for (int j1 = p1-1; j1 >= 0; j1--)
-	  MNPC[iel][lnod++] = inod - j1;
+	  myMNPC[iel][lnod++] = inod - j1;
       }
 
       iel++;
     }
-    MLGN[inod++] = ++gNod; // global node number over all patches
+    myMLGN[inod++] = ++gNod; // global node number over all patches
   }
 
 #ifdef SP_DEBUG
@@ -253,6 +265,15 @@ bool ASMs1D::connectPatch (int vertex, ASMs1D& neighbor, int nvertex)
 bool ASMs1D::connectBasis (int vertex, ASMs1D& neighbor, int nvertex,
 			   int basis, int slave, int master)
 {
+  if (shareFE && neighbor.shareFE)
+    return true;
+  else if (shareFE || neighbor.shareFE)
+  {
+    std::cerr <<" *** ASMs1D::connectPatch: Logic error, cannot"
+	      <<" connect a sharedFE patch with an unshared one"<< std::endl;
+    return false;
+  }
+
   // Set up the slave node number for this curve patch
 
   int n1 = this->getSize(basis);
@@ -299,7 +320,7 @@ bool ASMs1D::connectBasis (int vertex, ASMs1D& neighbor, int nvertex,
     return false;
   }
   else
-    ASMbase::collapseNodes(neighbor.MLGN[master-1],MLGN[slave-1]);
+    ASMbase::collapseNodes(neighbor.myMLGN[master-1],myMLGN[slave-1]);
 
   return true;
 }
@@ -365,6 +386,20 @@ double ASMs1D::getKnotSpan (int i) const
 }
 
 
+Vec3 ASMs1D::getCoord (size_t inod) const
+{
+  Vec3 X;
+  int ip = (inod-1)*curv->dimension();
+  if (ip < 0) return X;
+
+  RealArray::const_iterator cit = curv->coefs_begin() + ip;
+  for (size_t i = 0; i < nsd; i++, cit++)
+    X[i] = *cit;
+
+  return X;
+}
+
+
 bool ASMs1D::getElementCoordinates (Matrix& X, int iel) const
 {
 #ifdef INDEX_CHECK
@@ -412,23 +447,10 @@ void ASMs1D::getNodalCoordinates (Matrix& X) const
 }
 
 
-Vec3 ASMs1D::getCoord (size_t inod) const
-{
-  Vec3 X;
-  int ip = (inod-1)*curv->dimension();
-  if (ip < 0) return X;
-
-  RealArray::const_iterator cit = curv->coefs_begin() + ip;
-  for (size_t i = 0; i < nsd; i++, cit++)
-    X[i] = *cit;
-
-  return X;
-}
-
-
 bool ASMs1D::updateCoords (const Vector& displ)
 {
   if (!curv) return true; // silently ignore empty patches
+  if (shareFE) return true;
 
   if (displ.size() != nsd*MLGN.size())
   {

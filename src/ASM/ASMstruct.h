@@ -33,6 +33,10 @@ protected:
   //! \param[in] n_s Number of spatial dimensions
   //! \param[in] n_f Number of primary solution fields
   ASMstruct(unsigned char n_p, unsigned char n_s, unsigned char n_f);
+  //! \brief Copy constructor.
+  //! \param[in] patch The patch to use FE data from
+  //! \param[in] n_f Number of primary solution fields
+  ASMstruct(const ASMstruct& patch, unsigned char n_f = 0);
 
 public:
   //! \brief The destructor frees the dynamically allocated spline object.

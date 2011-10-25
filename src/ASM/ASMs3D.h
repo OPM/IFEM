@@ -38,6 +38,8 @@ class ASMs3D : public ASMstruct
     int K; //!< Index in third parameter direction
   };
 
+  typedef std::vector<IJK> IndexVec; //! Node index container
+
   //! \brief Struct for edge node definitions.
   struct Edge
   {
@@ -89,6 +91,8 @@ public:
   ASMs3D(const char* fName = 0, bool checkRHS = false, unsigned char n_f = 3);
   //! \brief Constructor creating an instance by reading the given input stream.
   ASMs3D(std::istream& is, bool checkRHS = false, unsigned char n_f = 3);
+  //! \brief Copy constructor.
+  ASMs3D(const ASMs3D& patch, unsigned char n_f = 0);
   //! \brief Empty destructor.
   virtual ~ASMs3D() {}
 
@@ -420,9 +424,11 @@ private:
   int coeffInd(size_t inod) const;
 
 protected:
-  Go::SplineVolume* svol;    //!< Pointer to the actual spline volume object
-  bool              swapW;   //!< Has the w-parameter direction been swapped?
-  std::vector<IJK>  nodeInd; //!< IJK-triplets for the control points (nodes)
+  Go::SplineVolume* svol;  //!< Pointer to the actual spline volume object
+  bool              swapW; //!< Has the w-parameter direction been swapped?
+
+  const IndexVec& nodeInd; //!< IJK-triplets for the control points (nodes)
+  IndexVec      myNodeInd; //!< The actual IJK-triplet container
 };
 
 #endif
