@@ -40,10 +40,10 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
     for (int i = 0; i < npatch && (cline = utl::readLine(is)); i++)
     {
       switch (discretization) {
-      case Lagrange:
+      case ASM::Lagrange:
 	pch = new ASMs1DLag(strtok(cline," "),1,nf);
 	break;
-      case Spectral:
+      case ASM::Spectral:
 	pch = new ASMs1DSpec(strtok(cline," "),1,nf);
 	break;
       default:
@@ -380,16 +380,17 @@ void SIM1D::readPatches (std::istream& isp)
   for (int patchNo = 1; isp.good(); patchNo++)
   {
     std::cout <<"Reading patch "<< patchNo << std::endl;
-    switch (discretization) {
-      case Lagrange:
+    switch (discretization)
+      {
+      case ASM::Lagrange:
         pch = new ASMs1DLag(isp,1,nf);
         break;
-      case Spectral:
+      case ASM::Spectral:
         pch = new ASMs1DSpec(isp,1,nf);
         break;
       default:
         pch = new ASMs1D(isp,1,nf);
-    }
+      }
     if (pch->empty())
       delete pch;
     else

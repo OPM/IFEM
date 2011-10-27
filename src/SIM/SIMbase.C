@@ -37,10 +37,10 @@
 #include <stdio.h>
 
 
-SIMbase::Discretization SIMbase::discretization  = SIMbase::Spline;
-bool                    SIMbase::preserveNOrder  = false;
-bool                    SIMbase::ignoreDirichlet = false;
-int                     SIMbase::num_threads_SLU = 1;
+ASM::Discretization SIMbase::discretization  = ASM::Spline;
+bool                SIMbase::preserveNOrder  = false;
+bool                SIMbase::ignoreDirichlet = false;
+int                 SIMbase::num_threads_SLU = 1;
 
 
 SIMbase::SIMbase () : g2l(&myGlb2Loc)
@@ -283,7 +283,7 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
   // will map the global node numbers to local node numbers on the current
   // processor. In serial simulations, the global-to-local mapping will be unity
   // unless the original global node number sequence had "holes" due to
-  // duplicated nodes and/or erast patches.
+  // duplicated nodes and/or erased patches.
   int ngnod = 0;
   int renum = 0;
   if (preserveNOrder)
@@ -1225,7 +1225,7 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
       else
 	sID[k++].push_back(nBlock);
 
-    if (discretization == Spline)
+    if (discretization == ASM::Spline || discretization == ASM::SplineC1)
     {
       // 3. Projection of secondary solution variables (tensorial splines only)
 
@@ -1305,7 +1305,7 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
     if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,haveAsol?"FE":0),
 			  ++idBlock,iStep)) return false;
 
-  if (discretization == Spline)
+  if (discretization == ASM::Spline || discretization == ASM::SplineC1)
     for (i = 0; i < nf && !sID[j].empty(); i++, j++)
       if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,"Projected"),
 			    ++idBlock,iStep)) return false;
@@ -1610,7 +1610,7 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
     // Find all evaluation points within this patch, if any
     for (j = 0, p = myPoints.begin(); p != myPoints.end(); j++, p++)
       if (this->getLocalPatchIndex(p->patch) == (int)(i+1))
-	if (discretization == Spline || discretization == LRSpline)
+	if (discretization >= ASM::Spline)
 	{
 	  points.push_back(p->inod > 0 ? p->inod : -(j+1));
 	  for (k = 0; k < myModel[i]->getNoParamDim(); k++)
@@ -1622,7 +1622,7 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
     if (points.empty()) continue; // no points in this patch
 
     myModel[i]->extractNodeVec(psol,myProblem->getSolution());
-    if (discretization == Spline || discretization == LRSpline)
+    if (discretization >= ASM::Spline)
     {
       // Evaluate the primary solution variables
       if (!myModel[i]->evalSolution(sol1,myProblem->getSolution(),params,false))
@@ -1658,7 +1658,7 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
       for (k = 1; k <= sol1.rows(); k++)
 	os << std::setw(flWidth) << utl::trunc(sol1(k,j+1));
 
-      if (discretization == Spline || discretization == LRSpline)
+      if (discretization >= ASM::Spline)
       {
         if (formatted && sol2.rows() > 0)
           os <<"\n\t\tsol2 =";

@@ -17,6 +17,7 @@
 #include "SIMinput.h"
 #include "SystemMatrix.h"
 #include "TimeDomain.h"
+#include "ASMenums.h"
 #include "Property.h"
 #include "Function.h"
 #include "Vec3.h"
@@ -543,10 +544,7 @@ protected:
   virtual double externalEnergy(const Vectors& psol) const;
 
 public:
-  //! \brief Enum defining the available discretization methods.
-  enum Discretization { Spline, Lagrange, Spectral, LRSpline };
-
-  static Discretization discretization; //!< Spatial discretization option
+  static ASM::Discretization discretization; //!< Spatial discretization option
 
   static bool ignoreDirichlet; //!< Set to \e true for free vibration analysis
   static bool preserveNOrder;  //!< Set to \e true to preserve node ordering

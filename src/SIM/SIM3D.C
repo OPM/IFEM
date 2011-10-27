@@ -43,13 +43,13 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
     {
       cline = strtok(cline," ");
       switch (discretization) {
-      case Lagrange:
+      case ASM::Lagrange:
 	if (nf[1] > 0)
 	  pch = new ASMs3DmxLag(cline,checkRHSys,nf[0],nf[1]);
 	else
 	  pch = new ASMs3DLag(cline,checkRHSys,nf[0]);
 	break;
-      case Spectral:
+      case ASM::Spectral:
 	pch = new ASMs3DSpec(cline,checkRHSys,nf[0]);
 	break;
       default:
@@ -598,14 +598,15 @@ void SIM3D::readPatches (std::istream& isp)
   for (int patchNo = 1; isp.good(); patchNo++)
   {
     std::cout <<"Reading patch "<< patchNo << std::endl;
-    switch (discretization) {
-      case Lagrange:
+    switch (discretization)
+      {
+      case ASM::Lagrange:
         if (nf[1] > 0)
           pch = new ASMs3DmxLag(isp,checkRHSys,nf[0],nf[1]);
         else
           pch = new ASMs3DLag(isp,checkRHSys,nf[0]);
         break;
-      case Spectral:
+      case ASM::Spectral:
         pch = new ASMs3DSpec(isp,checkRHSys,nf[0]);
         break;
       default:
@@ -613,7 +614,7 @@ void SIM3D::readPatches (std::istream& isp)
           pch = new ASMs3Dmx(isp,checkRHSys,nf[0],nf[1]);
         else
           pch = new ASMs3D(isp,checkRHSys,nf[0]);
-    }
+      }
     if (pch->empty() || this->getLocalPatchIndex(patchNo) < 1)
       delete pch;
     else

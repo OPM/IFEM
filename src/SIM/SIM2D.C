@@ -12,12 +12,7 @@
 //==============================================================================
 
 #include "SIM2D.h"
-#include "ASMs2Dmx.h"
-#include "ASMs2DmxLag.h"
-#include "ASMs2DSpec.h"
-#ifdef HAS_LRSPLINE
-#include "LR/ASMu2D.h"
-#endif
+#include "ASMs2D.h"
 #include "Functions.h"
 #include "Utilities.h"
 #include <fstream>
@@ -115,14 +110,12 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
       }
 
       if (isn.good() && pid > 0)
-      {
         if (!static_cast<ASMs2D*>(myModel[pid-1])->assignNodeNumbers(n))
         {
           std::cerr <<" *** SIM2D::parse: Failed to assign node numbers"
                     <<" for patch "<< patch << std::endl;
           return false;
         }
-      }
     }
   }
 
@@ -386,6 +379,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
     if (ignoreDirichlet) return true; // Ignore all boundary conditions
     if (!this->createFEMmodel()) return false;
 
+    ASM2D* pch = 0;
     int nfix = atoi(keyWord+9);
     std::cout <<"\nNumber of fixed points: "<< nfix << std::endl;
     for (int i = 0; i < nfix && (cline = utl::readLine(is)); i++)
@@ -393,15 +387,16 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
       int patch = atoi(strtok(cline," "));
       double rx = atof(strtok(NULL," "));
       double ry = atof(strtok(NULL," "));
-      int bcode = (cline = strtok(NULL," ")) ? atoi(cline) : 123;
+      int bcode = (cline = strtok(NULL," ")) ? atoi(cline) : 12;
 
       int pid = this->getLocalPatchIndex(patch);
-      if (pid < 1) continue;
-
-      std::cout <<"\tConstraining P"<< patch
-		<<" point at "<< rx <<" "<< ry
-		<<" with code "<< bcode << std::endl;
-      static_cast<ASMs2D*>(myModel[pid-1])->constrainNode(rx,ry,bcode);
+      if (pid > 0 && (pch = dynamic_cast<ASM2D*>(myModel[pid-1])))
+      {
+	std::cout <<"\tConstraining P"<< patch
+		  <<" point at "<< rx <<" "<< ry
+		  <<" with code "<< bcode << std::endl;
+	pch->constrainNode(rx,ry,bcode);
+      }
     }
   }
 
@@ -479,69 +474,54 @@ void SIM2D::setQuadratureRule (size_t ng)
 }
 
 
-void SIM2D::readPatch (const char* patchFile, int pchInd)
+bool SIM2D::readPatch (const char* patchFile, int pchInd)
 {
-  ASMbase* pch = 0;
-  switch (discretization) {
-  case Lagrange:
-    if (nf[1] > 0)
-      pch = new ASMs2DmxLag(patchFile,2,nf[0],nf[1]);
-    else
-      pch = new ASMs2DLag(patchFile,2,nf[0]);
-    break;
-  case Spectral:
-    pch = new ASMs2DSpec(patchFile,2,nf[0]);
-    break;
-#ifdef HAS_LRSPLINE
-  case LRSpline:
-    pch = new ASMu2D(patchFile,2,nf[0]);
-    break;
-#endif
-  default:
-    if (nf[1] > 0)
-      pch = new ASMs2Dmx(patchFile,2,nf[0],nf[1]);
-    else
-      pch = new ASMs2D(patchFile,2,nf[0]);
-  }
-  if (pch->empty() || this->getLocalPatchIndex(pchInd+1) < 1)
-    delete pch;
-  else
-    myModel.push_back(pch);
-}
-
-
-void SIM2D::readPatches (std::istream& isp)
-{
-  ASMbase* pch = 0;
-  for (int patchNo = 1; isp.good(); patchNo++)
+  std::ifstream is(patchFile);
+  if (!is.good())
   {
-    std::cout <<"Reading patch "<< patchNo << std::endl;
-    switch (discretization) {
-    case Lagrange:
-      if (nf[1] > 0)
-	pch = new ASMs2DmxLag(isp,2,nf[0],nf[1]);
-      else
-	pch = new ASMs2DLag(isp,2,nf[0]);
-      break;
-    case Spectral:
-      pch = new ASMs2DSpec(isp,2,nf[0]);
-      break;
-    case LRSpline:
-#ifdef HAS_LRSPLINE
-      pch = new ASMu2D(isp,2,nf[0]);
-      break;
-#endif
-    default:
-      if (nf[1] > 0)
-	pch = new ASMs2Dmx(isp,2,nf[0],nf[1]);
-      else
-	pch = new ASMs2D(isp,2,nf[0]);
+    std::cerr <<" *** SIM2D: Failure opening patch file"
+	      << patchFile << std::endl;
+    return false;
+  }
+
+  ASMbase* pch = ASM2D::create(discretization,nf);
+  if (pch)
+  {
+    std::cout <<"\nReading patch file "<< patchFile << std::endl;
+    if (!pch->read(is))
+    {
+      delete pch;
+      return false;
     }
-    if (pch->empty() || this->getLocalPatchIndex(patchNo) < 1)
+    else if (pch->empty() || this->getLocalPatchIndex(pchInd+1) < 1)
       delete pch;
     else
       myModel.push_back(pch);
   }
+
+  return true;
+}
+
+
+bool SIM2D::readPatches (std::istream& isp)
+{
+  ASMbase* pch = 0;
+  for (int pchInd = 1; isp.good(); pchInd++)
+    if ((pch = ASM2D::create(discretization,nf)))
+    {
+      std::cout <<"Reading patch "<< pchInd << std::endl;
+      if (!pch->read(isp))
+      {
+	delete pch;
+	return false;
+      }
+      else if (pch->empty() || this->getLocalPatchIndex(pchInd) < 1)
+        delete pch;
+      else
+        myModel.push_back(pch);
+    }
+
+  return true;
 }
 
 
@@ -560,11 +540,10 @@ void SIM2D::clonePatches (const FEModelVec& patches,
 bool SIM2D::refine (const std::vector<int>& elements,
 		    const std::vector<int>& options, const char* fName)
 {
+  ASM2D* pch = 0;
   for (size_t i = 0; i < myModel.size(); i++)
-    if (!myModel.empty())
-#ifdef HAS_LRSPLINE
-      if (!static_cast<ASMu2D*>(myModel[i])->refine(elements,options,fName))
-#endif
+    if (!myModel[i]->empty() && (pch = dynamic_cast<ASM2D*>(myModel[i])))
+      if (!pch->refine(elements,options,fName))
 	return false;
 
   isRefined = true;

@@ -14,56 +14,47 @@
 #include "HDF5Writer.h"
 #include "XMLWriter.h"
 #include "StringUtils.h"
-#include <sstream>
-#include <stdlib.h>
-#include <string.h>
 #include "ASMs1D.h"
 #include "ASMs2D.h"
 #include "ASMs3D.h"
-#if HAS_LRSPLINE == 1
-#include "LR/ASMu2D.h"
-#endif
 #include "ElementBlock.h"
 #include "VTF.h"
 #include "VTU.h"
-
+#include <sstream>
+#include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 typedef std::map< std::string,std::vector<XMLWriter::Entry> > ProcessList;
-typedef std::map< std::string, std::vector<int> > VTFList;
+typedef std::map< std::string,std::vector<int> > VTFList;
 
-std::vector<ASMbase*> readBasis(const std::string& name, 
-                                int patches, HDF5Writer& hdf, int dim, int level)
+
+std::vector<ASMbase*> readBasis (const std::string& name, 
+				 int patches, HDF5Writer& hdf,
+				 int dim, int level)
 {
+  unsigned char nf = 1;
+  ASM::Discretization ptype;
   std::vector<ASMbase*> result;
   for (int i=0;i<patches;++i) {
-    std::stringstream geom;
+    std::stringstream geom, basis;
     geom << '/' << level << "/basis/";
     geom << name;
     geom << "/";
     geom << i+1;
     std::string out;
     hdf.readString(geom.str(),out);
-    std::stringstream basis;
+    ptype = out.substr(0,10) == "# LRSPLINE" ? ASM::LRSpline : ASM::Spline;
     basis << out;
-    if (out.substr(0,10) == "# LRSPLINE") {
-      switch (dim) {
-#if HAS_LRSPLINE == 1
-        case 2:
-          result.push_back(new ASMu2D(basis,2,1));
-          break;
-#endif
-        default:
-          assert(0);
-      }
-    } else {
-      if (dim == 1)
-        result.push_back(new ASMs1D(basis,1,1));
-      if (dim == 2)
-        result.push_back(new ASMs2D(basis,2,1));
-      if (dim == 3)
-        result.push_back(new ASMs3D(basis,false,1));
+    if (dim == 1)
+      result.push_back(new ASMs1D(basis,1,1));
+    else if (dim == 2) {
+      result.push_back(ASM2D::create(ptype,&nf));
+      assert(result.back());
+      result.back()->read(basis);
     }
+    else if (dim == 3)
+      result.push_back(new ASMs3D(basis,false,1));
     result.back()->generateFEMTopology();
   }
 
@@ -157,26 +148,21 @@ void writePatchGeometry(ASMbase* patch, int id, VTF& myVtf, int* nViz, int block
 }
 
 
-#define TRY(x,y) { x* t = dynamic_cast<x*>(y); \
-                   if (t) \
-                     t->getGridParameters(gpar[k],k,n[k]-1); \
-                 }
 std::vector<RealArray*> generateFEModel(std::vector<ASMbase*> patches,
                                         int dims, int* n)
 {
   std::vector<RealArray*> result;
+  result.reserve(patches.size());
   for (size_t i=0;i<patches.size();++i) {
     RealArray* gpar = new RealArray[dims];
     for (int k=0;k<dims;++k) {
       if (dims == 2) {
-#if HAS_LRSPLINE == 1
-        TRY(ASMu2D,patches[i])
-#endif
-        TRY(ASMs2D,patches[i])
+        ASM2D* patch = dynamic_cast<ASM2D*>(patches[i]);
+        if (patch) patch->getGridParameters(gpar[k],k,n[k]-1);
       }
-      if (dims == 3) {
-        ASMs3D* patch = (ASMs3D*)patches[i];
-        patch->getGridParameters(gpar[k],k,n[k]-1);
+      else if (dims == 3) {
+        ASMs3D* patch = dynamic_cast<ASMs3D*>(patches[i]);
+        if (patch) patch->getGridParameters(gpar[k],k,n[k]-1);
       }
     }
     result.push_back(gpar);

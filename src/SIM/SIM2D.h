@@ -51,10 +51,10 @@ protected:
   //! \brief Reads a patch from given input file.
   //! \param[in] patchFile Name of file to read from
   //! \param[in] pchInd 0-based index of the patch to read
-  void readPatch(const char* patchFile, int pchInd);
+  bool readPatch(const char* patchFile, int pchInd);
   //! \brief Reads patches from given input stream.
   //! \param[in] isp The file stream to read from
-  void readPatches(std::istream& isp);
+  bool readPatches(std::istream& isp);
 
   //! \brief Refines a list of elements.
   //! \param[in] elements 1-based indices of the elements to refine
