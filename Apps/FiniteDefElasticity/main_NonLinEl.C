@@ -111,9 +111,9 @@ int main (int argc, char** argv)
     else if (!strcmp(argv[i],"-petsc"))
       solver = SystemMatrix::PETSC;
     else if (!strncmp(argv[i],"-lag",4))
-      SIMbase::discretization = SIMbase::Lagrange;
+      SIMbase::discretization = ASM::Lagrange;
     else if (!strncmp(argv[i],"-spec",5))
-      SIMbase::discretization = SIMbase::Spectral;
+      SIMbase::discretization = ASM::Spectral;
     else if (!strcmp(argv[i],"-nGauss") && i < argc-1)
       nGauss = atoi(argv[++i]);
     else if (!strcmp(argv[i],"-vtf") && i < argc-1)
@@ -238,9 +238,9 @@ int main (int argc, char** argv)
       std::cout <<"\nTime between each result save: "<< dtSave;
     if (dtDump > 0.0)
       std::cout <<"\nTime between each primary solution dump: "<< dtDump;
-    if (SIMbase::discretization == SIMbase::Lagrange)
+    if (SIMbase::discretization == ASM::Lagrange)
       std::cout <<"\nLagrangian basis functions are used";
-    else if (SIMbase::discretization == SIMbase::Spectral)
+    else if (SIMbase::discretization == ASM::Spectral)
       std::cout <<"\nSpectral basis functions are used";
     if (fixDup)
       std::cout <<"\nCo-located nodes will be merged";
@@ -272,7 +272,7 @@ int main (int argc, char** argv)
   utl::profiler->stop("Model input");
 
   model->printProblem(std::cout);
-  if (SIMbase::discretization == SIMbase::Spline)
+  if (SIMbase::discretization >= ASM::Spline)
   {
     if (ASMmxBase::useCpminus1)
       std::cout <<"Using C^(p-1) continuous displacement basis\n";

@@ -14,6 +14,7 @@
 #include "SIMLinEl3D.h"
 #include "LinAlgInit.h"
 #include "TimeDomain.h"
+#include "Utilities.h"
 #include "Profiler.h"
 #include <stdlib.h>
 #include <string.h>
@@ -34,7 +35,7 @@
   \arg \a input-file : Input file with model definition
   \arg -dense :   Use the dense LAPACK matrix equation solver
   \arg -spr :     Use the SPR direct equation solver
-  \arg -superlu : Use the sparse superLU equation solver
+  \arg -superlu : Use the sparse SuperLU equation solver
   \arg -samg :    Use the sparse algebraic multi-grid equation solver
   \arg -petsc :   Use equation solver from PETSc library
   \arg -nGauss \a n : Number of Gauss points over a knot-span in each direction
@@ -47,8 +48,6 @@
   \arg -checkRHS : Check that the patches are modelled in a right-hand system
   \arg -vizRHS : Save the right-hand-side load vector on the VTF-file
   \arg -fixDup : Resolve co-located nodes by merging them into a single node
-  \arg -lag : Use Lagrangian basis functions instead of splines/NURBS
-  \arg -spec : Use Spectral basis functions instead of splines/NURBS
   \arg -nstep \a n : Number of time steps
   \arg -dt \a dt : Time increment size
 */
@@ -97,25 +96,13 @@ int main (int argc, char** argv)
       n[2] = atoi(argv[++i]);
     else if (!strcmp(argv[i],"-ignore"))
       while (i < argc-1 && isdigit(argv[i+1][0]))
-      {
-	char* endp = 0;
-	int endVal = 0;
-	ignoredPatches.push_back(strtol(argv[++i],&endp,10));
-	if (endp && *endp == ':')
-	  endVal = strtol(endp+1,&endp,10);
-	while (ignoredPatches.back() < endVal)
-	  ignoredPatches.push_back(ignoredPatches.back()+1);
-      }
+	utl::parseIntegers(ignoredPatches,argv[++i]);
     else if (!strcmp(argv[i],"-checkRHS"))
       checkRHS = true;
     else if (!strcmp(argv[i],"-vizRHS"))
       vizRHS = true;
     else if (!strcmp(argv[i],"-fixDup"))
       fixDup = true;
-    else if (!strncmp(argv[i],"-lag",4))
-      SIMbase::discretization = SIMbase::Lagrange;
-    else if (!strncmp(argv[i],"-spec",5))
-      SIMbase::discretization = SIMbase::Spectral;
     else if (!strcmp(argv[i],"-nstep") && i < argc-1)
       nStep = atoi(argv[++i]);
     else if (!strcmp(argv[i],"-dt") && i < argc-1)
@@ -129,7 +116,7 @@ int main (int argc, char** argv)
   {
     std::cout <<"usage: "<< argv[0]
 	      <<" <inputfile> [-dense|-spr|-superlu|-samg|-petsc]\n"
-	      <<"       [-lag] [-spec] [-nGauss <n>] [-nstep <n>] [-dt <dt>]\n"
+	      <<"       [-nGauss <n>] [-nstep <n>] [-dt <dt>]\n"
 	      <<"       [-vtf <format>] [-nviz <nviz>]"
 	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]\n"
 	      <<"       [-ignore <p1> <p2> ...] [-fixDup] [-checkRHS]\n";
@@ -147,10 +134,6 @@ int main (int argc, char** argv)
 	    <<"\nVTF file format: "<< (format ? "BINARY":"ASCII")
 	    <<"\nNumber of visualization points: "
 	    << n[0] <<" "<< n[1] <<" "<< n[2];
-  if (SIMbase::discretization == SIMbase::Lagrange)
-    std::cout <<"\nLagrangian basis functions are used";
-  else if (SIMbase::discretization == SIMbase::Spectral)
-    std::cout <<"\nSpectral basis functions are used";
   if (fixDup)
     std::cout <<"\nCo-located nodes will be merged";
   if (checkRHS)
