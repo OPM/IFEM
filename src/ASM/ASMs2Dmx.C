@@ -27,18 +27,9 @@
 #include "Vec3.h"
 
 
-ASMs2Dmx::ASMs2Dmx (const char* fName, unsigned char n_s,
+ASMs2Dmx::ASMs2Dmx (unsigned char n_s,
 		    unsigned char n_f1, unsigned char n_f2)
-  : ASMs2D(fName,n_s), ASMmxBase(n_f1,n_f2)
-{
-  basis1 = basis2 = 0;
-  nf = nf1 + nf2;
-}
-
-
-ASMs2Dmx::ASMs2Dmx (std::istream& is, unsigned char n_s,
-		    unsigned char n_f1, unsigned char n_f2)
-  : ASMs2D(is,n_s), ASMmxBase(n_f1,n_f2)
+  : ASMs2D(n_s), ASMmxBase(n_f1,n_f2)
 {
   basis1 = basis2 = 0;
   nf = nf1 + nf2;

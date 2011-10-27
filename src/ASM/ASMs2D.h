@@ -69,10 +69,8 @@ public:
     int next();
   };
 
-  //! \brief Constructor creating an instance by reading the given file.
-  ASMs2D(const char* fName = 0, unsigned char n_s = 2, unsigned char n_f = 2);
-  //! \brief Constructor creating an instance by reading the given input stream.
-  ASMs2D(std::istream& is, unsigned char n_s = 2, unsigned char n_f = 2);
+  //! \brief Default constructor.
+  ASMs2D(unsigned char n_s = 2, unsigned char n_f = 2);
   //! \brief Copy constructor.
   ASMs2D(const ASMs2D& patch, unsigned char n_f = 0);
   //! \brief Empty destructor.
@@ -84,6 +82,11 @@ public:
 
   // Methods for model generation
   // ============================
+
+  //! \brief Creates an instance by reading the given input stream.
+  virtual bool read(std::istream&);
+  //! \brief Writes the geometry of the SplineSurface object to given stream.
+  virtual bool write(std::ostream&, int = 0) const;
 
   //! \brief Generates the finite element topology data for the patch.
   //! \details The data generated are the element-to-node connectivity array,
@@ -102,11 +105,6 @@ public:
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with
   virtual bool updateCoords(const Vector& displ);
-
-  //! \brief Creates an instance by reading the given input stream.
-  bool read(std::istream&);
-  //! \brief Writes the geometry of the SplineSurface object to given stream.
-  virtual bool write(std::ostream&, int = 0) const;
 
   //! \brief Assigns new global node numbers for all nodes of the patch.
   //! \param nodes Object with global nodes numbers to assign to this patch

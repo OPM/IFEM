@@ -28,11 +28,8 @@
 class ASMs2DmxLag : public ASMs2DLag, private ASMmxBase
 {
 public:
-  //! \brief Constructor creating an instance by reading the given file.
-  ASMs2DmxLag(const char* fName = 0, unsigned char n_s = 2,
-	      unsigned char n_f1 = 2, unsigned char n_f2 = 1);
-  //! \brief Constructor creating an instance by reading the given input stream.
-  ASMs2DmxLag(std::istream& is, unsigned char n_s = 2,
+  //! \brief Default constructor.
+  ASMs2DmxLag(unsigned char n_s = 2,
 	      unsigned char n_f1 = 2, unsigned char n_f2 = 1);
   //! \brief Copy constructor.
   ASMs2DmxLag(const ASMs2DmxLag& patch, char n_f1 = -1, char n_f2 = -1);

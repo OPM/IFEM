@@ -34,25 +34,9 @@
 #include <fstream>
 
 
-ASMu2D::ASMu2D (const char* fName, unsigned char n_s, unsigned char n_f)
+ASMu2D::ASMu2D (unsigned char n_s, unsigned char n_f)
 	: ASMunstruct(2,n_s,n_f), lrspline(0), tensorspline(0)
 {
-	if (fName)
-	{
-		std::cout <<"\nReading patch file "<< fName << std::endl;
-		std::ifstream is(fName);
-		if (!is.good())
-			std::cerr <<" *** ASMu2D: Failure opening patch file"<< std::endl;
-		else
-			this->read(is);
-	}
-}
-
-
-ASMu2D::ASMu2D (std::istream& is, unsigned char n_s, unsigned char n_f)
-	: ASMunstruct(2,n_s,n_f), lrspline(0), tensorspline(0)
-{
-	this->read(is);
 }
 
 
@@ -131,15 +115,13 @@ bool ASMu2D::write (std::ostream& os, int) const
 void ASMu2D::clear (bool retainGeometry)
 {
   if (!retainGeometry) {
-
     // Erase spline data
     if (!shareFE) {
       delete lrspline;
       delete tensorspline;
     }
-    lrspline = 0;
+    geo = lrspline = 0;
     tensorspline = 0;
-    geo = 0;
   }
 
   // Erase the FE data
@@ -557,8 +539,8 @@ void ASMu2D::constrainCorner (int I, int J, int dof, int code)
 		return;
 	}
 #endif
-	
-	this->prescribe(edgeFunctions[0]->getId()+1,dof,code);
+
+	this->prescribe(edgeFunctions.front()->getId()+1,dof%10,code);
 }
 
 
@@ -586,15 +568,13 @@ void ASMu2D::constrainNode (double xi, double eta, int dof, int code)
 double ASMu2D::getParametricArea (int iel) const
 {
 #ifdef INDEX_CHECK
-	if (iel < 1 || (size_t)iel > MNPC.size())
+	if (iel < 1 || iel > lrspline->nElements())
 	{
 		std::cerr <<" *** ASMu2D::getParametricArea: Element index "<< iel
-		          <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+		          <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
 		return DERR;
 	}
 #endif
-	if (MNPC[iel-1].empty())
-		return 0.0;
 
 	return lrspline->getElement(iel-1)->area();
 }
@@ -603,15 +583,13 @@ double ASMu2D::getParametricArea (int iel) const
 double ASMu2D::getParametricLength (int iel, int dir) const
 {
 #ifdef INDEX_CHECK
-	if (iel < 1 || (size_t)iel > MNPC.size())
+	if (iel < 1 || (size_t)iel > lrspline->nElements())
 	{
 		std::cerr <<" *** ASMu2D::getParametricLength: Element index "<< iel
-		          <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+		          <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
 		return DERR;
 	}
 #endif
-	if (MNPC[iel-1].empty())
-		return 0.0;
 
 	LR::Element *el = lrspline->getElement(iel-1);
 	switch (dir)
@@ -629,19 +607,19 @@ double ASMu2D::getParametricLength (int iel, int dir) const
 bool ASMu2D::getElementCoordinates (Matrix& X, int iel) const
 {
 #ifdef INDEX_CHECK
-	if (iel < 1 || (size_t)iel > MNPC.size())
+	if (iel < 1 || iel > lrspline->nElements())
 	{
 		std::cerr <<" *** ASMu2D::getElementCoordinates: Element index "<< iel
-		          <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+		          <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
 		return false;
 	}
 #endif
 
-	const IntVec& mnpc = MNPC[iel-1];
-	X.resize(nsd,mnpc.size());
+	int nSupportFunctions = lrspline->getElement(iel-1)->nBasisFunctions();
+	X.resize(nsd,nSupportFunctions);
 
 	std::vector<LR::Basisfunction*>::iterator bit = lrspline->getElement(iel-1)->supportBegin();
-	for (size_t n = 1; n <= mnpc.size(); n++, bit++)
+	for (int n = 1; n <= nSupportFunctions; n++, bit++)
 	  X.fillColumn(n,(*bit)->controlpoint_);
 
 #if SP_DEBUG > 2
@@ -684,10 +662,10 @@ void ASMu2D::getGaussPointParameters (RealArray& uGP, int dir, int nGauss,
                                       int iel, const double* xi) const
 {
 #ifdef INDEX_CHECK
-	if (iel < 1 || (size_t)iel > MNPC.size())
+	if (iel < 1 || iel > lrspline->nElements())
 	{
 		std::cerr <<" *** ASMu2D::getGaussPointParameters: Element index "<< iel
-		          <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+		          <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
 		return;
 	}
 #endif

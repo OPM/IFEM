@@ -35,10 +35,8 @@ namespace LR {
 class ASMu2D : public ASMunstruct, public ASM2D
 {
 public:
-  //! \brief Constructor creating an instance by reading the given file.
-  ASMu2D(const char* fName = 0, unsigned char n_s = 2, unsigned char n_f = 2);
-  //! \brief Constructor creating an instance by reading the given input stream.
-  ASMu2D(std::istream& is, unsigned char n_s = 2, unsigned char n_f = 2);
+  //! \brief Default constructor.
+  ASMu2D(unsigned char n_s = 2, unsigned char n_f = 2);
   //! \brief Copy constructor.
   ASMu2D(const ASMu2D& patch, unsigned char n_f = 0);
   //! \brief Empty destructor.
@@ -50,6 +48,11 @@ public:
 
   // Methods for model generation and refinement
   // ===========================================
+
+  //! \brief Creates an instance by reading the given input stream.
+  virtual bool read(std::istream&);
+  //! \brief Writes the geometry of the SplineSurface object to given stream.
+  virtual bool write(std::ostream&, int = 0) const;
 
   //! \brief Generates the finite element topology data for the patch.
   //! \details The data generated are the element-to-node connectivity array,
@@ -68,11 +71,6 @@ public:
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with
   virtual bool updateCoords(const Vector& displ);
-
-  //! \brief Creates an instance by reading the given input stream.
-  bool read(std::istream&);
-  //! \brief Writes the geometry of the SplineSurface object to given stream.
-  virtual bool write(std::ostream&, int = 0) const;
 
   //! \brief Refines along the diagonal of the LR-spline patch.
   //! \details Progressively refine until the LR-spline object contains at least
@@ -94,25 +92,25 @@ public:
   //! "REFINE" keyword in the input file.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
-  bool uniformRefine(int dir, int nInsert);
+  virtual bool uniformRefine(int dir, int nInsert);
   //! \brief Refines the parametrization by inserting extra tensor knots.
   //! \details This method is mainly kept for backward compatability with the
   //! "REFINE" keyword in the input file.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
-  bool refine(int dir, const RealArray& xi);
+  virtual bool refine(int dir, const RealArray& xi);
   //! \brief Raises the order of the tensor spline object for this patch.
   //! \details This method is mainly kept for backward compatability with the
   //! "RAISEORDER" keyword in the input file.
   //! \param[in] ru Number of times to raise the order in u-direction
   //! \param[in] rv Number of times to raise the order in v-direction
-  bool raiseOrder(int ru, int rv);
-  //! \brief Refines the specified list of elements.
+  virtual bool raiseOrder(int ru, int rv);
+  //! \brief Refines a specified list of elements.
   //! \param[in] elements 0-based indices of the elements to refine
   //! \param[in] options Additional input parameters to control the refinement
   //! \param[in] fName Optional file name for an image of the resulting mesh
-  bool refine(const std::vector<int>& elements,
-	      const std::vector<int>& options, const char* fName = 0);
+  virtual bool refine(const std::vector<int>& elements,
+		      const std::vector<int>& options, const char* fName = 0);
 
 
   // Various methods for preprocessing of boundary conditions and patch topology

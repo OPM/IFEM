@@ -26,16 +26,8 @@
 #include "Vec3Oper.h"
 
 
-ASMs2DLag::ASMs2DLag (const char* fileName,
-		      unsigned char n_s, unsigned char n_f)
-  : ASMs2D(fileName,n_s,n_f), coord(myCoord)
-{
-  nx = ny = 0;
-}
-
-
-ASMs2DLag::ASMs2DLag (std::istream& is, unsigned char n_s, unsigned char n_f)
-  : ASMs2D(is,n_s,n_f), coord(myCoord)
+ASMs2DLag::ASMs2DLag (unsigned char n_s, unsigned char n_f)
+  : ASMs2D(n_s,n_f), coord(myCoord)
 {
   nx = ny = 0;
 }
@@ -44,6 +36,8 @@ ASMs2DLag::ASMs2DLag (std::istream& is, unsigned char n_s, unsigned char n_f)
 ASMs2DLag::ASMs2DLag (const ASMs2DLag& patch, unsigned char n_f)
   : ASMs2D(patch,n_f), coord(patch.myCoord)
 {
+  nx = patch.nx;
+  ny = patch.ny;
 }
 
 

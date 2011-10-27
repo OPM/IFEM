@@ -91,6 +91,11 @@ public:
   //! \brief Checks if this patch is empty.
   virtual bool empty() const = 0;
 
+  //! \brief Creates an instance by reading the given input stream.
+  virtual bool read(std::istream& is) = 0;
+  //! \brief Writes the geometry/basis of the patch to the given stream.
+  virtual bool write(std::ostream& os, int basis = 0) const = 0;
+
   //! \brief Generates the finite element topology data for this patch.
   virtual bool generateFEMTopology() = 0;
 
@@ -98,9 +103,6 @@ public:
   //! \param[in] retainGeometry If \e true, the spline geometry is not cleared.
   //! This is used to reinitialize the patch after it has been refined.
   virtual void clear(bool retainGeometry = false);
-
-  //! \brief Writes the geometry/basis of the patch to the given stream.
-  virtual bool write(std::ostream&, int = 0) const { return false; }
 
 
   // Service methods for query of various model data
@@ -211,8 +213,9 @@ public:
   //! \param[in] func Scalar property fields
   //! \param[in] vfunc Vector property fields
   //! \param[in] time Current time
-  bool updateDirichlet(const std::map<int,RealFunc*>& func,
-		       const std::map<int,VecFunc*>& vfunc, double time = 0.0);
+  virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
+			       const std::map<int,VecFunc*>& vfunc,
+			       double time = 0.0);
 
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with
@@ -364,6 +367,12 @@ protected:
   //! \param[in] mpc Pointer to an MPC-object
   //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
   bool addMPC(MPC* mpc, int code = 0);
+  //! \brief Creates and adds a two-point constraint to this patch.
+  //! \param[in] slave Global node number of the node to constrain
+  //! \param[in] dir Which local DOF to constrain (1, 2, 3)
+  //! \param[in] master Global node number of the master node of the constraint
+  //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
+  bool addMPC(int slave, int dir, int master, int code = 0);
   //! \brief Creates and adds a single-point constraint to this patch.
   //! \param[in] node Global node number of the node to constrain
   //! \param[in] dir Which local DOF to constrain (1, 2, 3)

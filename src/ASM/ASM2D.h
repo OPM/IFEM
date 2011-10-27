@@ -14,6 +14,7 @@
 #ifndef _ASM_2D_H
 #define _ASM_2D_H
 
+#include "ASMenums.h"
 #include <vector>
 
 class ASMbase;
@@ -36,7 +37,14 @@ public:
   //! \brief Empty destructor.
   virtual ~ASM2D() {}
 
+  //! \brief Creates a two-parametric patch of specified discretization type.
+  //! \param[in] type The discretization method to use
+  //! \param[in] nf Number of unknown per basis function in the patch
+  static ASMbase* create(ASM::Discretization type, unsigned char* nf);
+
   //! \brief Returns a copy of this patch with identical FE discretizations.
+  //! \param[in] nf Number of unknown per basis function in the patch
+  //!
   //! \note The copied patch shares the FE data structures with the copy,
   //! in order to save memory. Thus, the copy cannot be read from file, refined,
   //! or changed in other ways that affect the FE geometry and/or topology.
@@ -44,10 +52,6 @@ public:
   //! loads, etc.) are however not copied.
   ASMbase* clone(unsigned char* nf = 0) const;
 
-  //! \brief Refine the parametrization by inserting extra knots.
-  //! \param[in] dir Parameter direction to refine
-  //! \param[in] xi Relative positions of added knots in each existing knot span
-  virtual bool refine(int dir, const std::vector<double>& xi) = 0;
   //! \brief Refine the parametrization by inserting extra knots uniformly.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
@@ -56,6 +60,13 @@ public:
   //! \param[in] ru Number of times to raise the order in u-direction
   //! \param[in] rv Number of times to raise the order in v-direction
   virtual bool raiseOrder(int ru, int rv) = 0;
+  //! \brief Refine the parametrization by inserting extra knots.
+  //! \param[in] dir Parameter direction to refine
+  //! \param[in] xi Relative positions of added knots in each existing knot span
+  virtual bool refine(int dir, const std::vector<double>& xi) = 0;
+  //! \brief Refines a specified list of elements.
+  virtual bool refine(const std::vector<int>&, const std::vector<int>&,
+		      const char* = 0) { return false; }
 
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
@@ -85,6 +96,13 @@ public:
   //! and \a n is the number of nodes along that parameter direction.
   virtual void constrainNode(double xi, double eta,
 			     int dof = 123, int code = 0) = 0;
+
+  //! \brief Calculates parameter values for visualization nodal points.
+  //! \param[out] prm Parameter values in given direction for all points
+  //! \param[in] dir Parameter direction (0,1)
+  //! \param[in] nSegSpan Number of visualization segments over each knot-span
+  virtual bool getGridParameters(std::vector<double>& prm,
+				 int dir, int nSegSpan) const = 0;
 };
 
 #endif

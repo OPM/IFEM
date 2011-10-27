@@ -12,12 +12,42 @@
 //==============================================================================
 
 #include "ASM2D.h"
+#include "ASMs2DC1.h"
 #include "ASMs2Dmx.h"
 #include "ASMs2DmxLag.h"
 #include "ASMs2DSpec.h"
 #ifdef HAS_LRSPLINE
 #include "LR/ASMu2D.h"
 #endif
+
+
+ASMbase* ASM2D::create (ASM::Discretization discretization, unsigned char* nf)
+{
+  switch (discretization) {
+  case ASM::SplineC1:
+    return new ASMs2DC1(2,nf[0]);
+
+  case ASM::Lagrange:
+    if (nf[1] > 0)
+      return new ASMs2DmxLag(2,nf[0],nf[1]);
+    else
+      return new ASMs2DLag(2,nf[0]);
+
+  case ASM::Spectral:
+    return new ASMs2DSpec(2,nf[0]);
+
+#ifdef HAS_LRSPLINE
+  case ASM::LRSpline:
+    return new ASMu2D(2,nf[0]);
+#endif
+
+  default:
+    if (nf[1] > 0)
+      return new ASMs2Dmx(2,nf[0],nf[1]);
+    else
+      return new ASMs2D(2,nf[0]);
+  }
+}
 
 
 #define TRY_CLONE1(classType,n) {					\
@@ -35,6 +65,7 @@ ASMbase* ASM2D::clone (unsigned char* nf) const
   TRY_CLONE2(ASMs2Dmx,nf)
   TRY_CLONE1(ASMs2DSpec,nf)
   TRY_CLONE1(ASMs2DLag,nf)
+  TRY_CLONE1(ASMs2DC1,nf)
   TRY_CLONE1(ASMs2D,nf)
 #ifdef HAS_LRSPLINE
   TRY_CLONE1(ASMu2D,nf)

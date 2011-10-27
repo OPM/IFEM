@@ -180,17 +180,24 @@ bool ASMbase::addMPC (MPC* mpc, int code)
 }
 
 
+bool ASMbase::addMPC (int slave, int dir, int master, int code)
+{
+  if (dir < 1 || dir > nf) return true;
+  MPC* mpc = new MPC(slave,dir);
+  mpc->addMaster(master,dir);
+  return this->addMPC(mpc,code);
+}
+
+
 bool ASMbase::addSPC (int node, int dir, int code)
 {
-  if (dir < 1 || dir > nsd) return true;
+  if (dir < 1 || dir > nf) return true;
   return this->addMPC(new MPC(node,dir), code);
 }
 
 
 bool ASMbase::addPeriodicity (size_t master, size_t slave, int dir)
 {
-  if (dir < 1 || dir > nsd) return true;
-
   int slaveNode  = this->getNodeID(slave);
   int masterNode = this->getNodeID(master);
   if (slaveNode < 1 || masterNode < 1)
@@ -200,15 +207,8 @@ bool ASMbase::addPeriodicity (size_t master, size_t slave, int dir)
     return false;
   }
 
-  MPC* mpc = new MPC(slaveNode,dir);
-  mpc->addMaster(masterNode,dir);
-  if (this->addMPC(mpc))
-    return true;
-
-  // Try to swap master and slave
-  mpc = new MPC(masterNode,dir);
-  mpc->addMaster(slaveNode,dir);
-  if (this->addMPC(mpc))
+  if (this->addMPC(masterNode,slaveNode,dir) ||
+      this->addMPC(slaveNode,masterNode,dir))
     return true;
 
   std::cerr <<" *** ASMbase::addPeriodicity: Failed to connect nodes "
@@ -243,8 +243,9 @@ void ASMbase::makePeriodic (size_t master, size_t slave, int dirs)
 	this->addPeriodicity(master,slave,dir);
       break;
     default:
-      for (int dir = 1; dir <= 3; dir++)
-	this->addPeriodicity(master,slave,dir);
+      // If all DOFs are going to be coupled, assign a common global node number
+      if (master <= myMLGN.size() && slave <= myMLGN.size())
+	ASMbase::collapseNodes(myMLGN[master-1],myMLGN[slave-1]);
     }
 }
 

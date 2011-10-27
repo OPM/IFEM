@@ -31,11 +31,8 @@
 class ASMs2Dmx : public ASMs2D, private ASMmxBase
 {
 public:
-  //! \brief Constructor creating an instance by reading the given file.
-  ASMs2Dmx(const char* fName = 0, unsigned char n_s = 2,
-	   unsigned char n_f1 = 2, unsigned char n_f2 = 1);
-  //! \brief Constructor creating an instance by reading the given input stream.
-  ASMs2Dmx(std::istream& is, unsigned char n_s = 2,
+  //! \brief Default constructor.
+  ASMs2Dmx(unsigned char n_s = 2,
 	   unsigned char n_f1 = 2, unsigned char n_f2 = 1);
   //! \brief Copy constructor.
   ASMs2Dmx(const ASMs2Dmx& patch, char n_f1 = -1, char n_f2 = -1);
@@ -45,6 +42,9 @@ public:
 
   // Methods for model generation
   // ============================
+
+  //! \brief Writes the geometry/basis of the patch to given stream.
+  virtual bool write(std::ostream& os, int basis = 0) const;
 
   //! \brief Generates the finite element topology data for the patch.
   //! \details The data generated are the element-to-node connectivity array,
@@ -59,9 +59,6 @@ public:
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
-
-  //! \brief Writes the geometry/basis of the patch to given stream.
-  virtual bool write(std::ostream& os, int basis = 0) const;
 
   //! \brief Returns the total number of nodes in this patch.
   virtual size_t getNoNodes(int basis = 0) const;

@@ -26,10 +26,8 @@
 class ASMs2DLag : public ASMs2D
 {
 public:
-  //! \brief Constructor creating an instance by reading the given file.
-  ASMs2DLag(const char* fNam = 0, unsigned char n_s = 2, unsigned char n_f = 2);
-  //! \brief Constructor creating an instance by reading the given input stream.
-  ASMs2DLag(std::istream& is, unsigned char n_s = 2, unsigned char n_f = 2);
+  //! \brief Default constructor.
+  ASMs2DLag(unsigned char n_s = 2, unsigned char n_f = 2);
   //! \brief Copy constructor.
   ASMs2DLag(const ASMs2DLag& patch, unsigned char n_f = 0);
   //! \brief Empty destructor.

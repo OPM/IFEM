@@ -25,18 +25,9 @@
 #include "Vec3Oper.h"
 
 
-ASMs2DmxLag::ASMs2DmxLag (const char* fName, unsigned char n_s,
+ASMs2DmxLag::ASMs2DmxLag (unsigned char n_s,
 			  unsigned char n_f1, unsigned char n_f2)
-  : ASMs2DLag(fName,n_s), ASMmxBase(n_f1,n_f2)
-{
-  nx2 = ny2 = 0;
-  nf = nf1 + nf2;
-}
-
-
-ASMs2DmxLag::ASMs2DmxLag (std::istream& is, unsigned char n_s,
-			  unsigned char n_f1, unsigned char n_f2)
-  : ASMs2DLag(is,n_s), ASMmxBase(n_f1,n_f2)
+  : ASMs2DLag(n_s), ASMmxBase(n_f1,n_f2)
 {
   nx2 = ny2 = 0;
   nf = nf1 + nf2;

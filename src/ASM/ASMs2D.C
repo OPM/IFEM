@@ -27,28 +27,11 @@
 #include "Profiler.h"
 #include "Vec3Oper.h"
 #include <ctype.h>
-#include <fstream>
 
 
-ASMs2D::ASMs2D (const char* fName, unsigned char n_s, unsigned char n_f)
+ASMs2D::ASMs2D (unsigned char n_s, unsigned char n_f)
   : ASMstruct(2,n_s,n_f), surf(0), nodeInd(myNodeInd)
 {
-  if (fName)
-  {
-    std::cout <<"\nReading patch file "<< fName << std::endl;
-    std::ifstream is(fName);
-    if (!is.good())
-      std::cerr <<" *** ASMs2D: Failure opening patch file"<< std::endl;
-    else
-      this->read(is);
-  }
-}
-
-
-ASMs2D::ASMs2D (std::istream& is, unsigned char n_s, unsigned char n_f)
-  : ASMstruct(2,n_s,n_f), surf(0), nodeInd(myNodeInd)
-{
-  this->read(is);
 }
 
 
@@ -60,7 +43,7 @@ ASMs2D::ASMs2D (const ASMs2D& patch, unsigned char n_f)
 
 bool ASMs2D::read (std::istream& is)
 {
-  if (shareFE) return false;
+  if (shareFE) return true;
   if (surf) delete surf;
 
   Go::ObjectHeader head;
@@ -535,11 +518,10 @@ void ASMs2D::constrainNode (double xi, double eta, int dof, int code)
   int n1, n2;
   if (!this->getSize(n1,n2,1)) return;
 
-  int node = 1;
-  if (xi  > 0.0) node += int(0.5+(n1-1)*xi);
-  if (eta > 0.0) node += n1*int(0.5+(n2-1)*eta);
+  int I = int(0.5+(n1-1)*xi);
+  int J = int(0.5+(n2-1)*eta);
 
-  this->prescribe(node,dof,code);
+  this->prescribe(n1*J+I+1,dof,code);
 }
 
 
@@ -1267,6 +1249,7 @@ bool ASMs2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 
   if (ucurr > prm.back())
     prm.push_back(ucurr);
+
   return true;
 }
 
