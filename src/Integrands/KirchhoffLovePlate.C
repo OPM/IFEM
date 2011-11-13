@@ -23,7 +23,7 @@
 #include "VTF.h"
 
 
-KirchhoffLovePlate::KirchhoffLovePlate ()
+KirchhoffLovePlate::KirchhoffLovePlate (unsigned short int n) : nsd(n)
 {
   npv = 1; // Number of primary unknowns per node
 
@@ -207,10 +207,11 @@ bool KirchhoffLovePlate::writeGlvT (VTF* vtf, int iStep, int& nBlock) const
 bool KirchhoffLovePlate::formBmatrix (const Matrix3D& d2NdX2) const
 {
   const size_t nenod = d2NdX2.dim(1);
+  const size_t nstrc = nsd*(nsd+1)/2;
 
-  Bmat.resize(3,nenod,true);
+  Bmat.resize(nstrc,nenod,true);
 
-  if (d2NdX2.dim(2) != 2 || d2NdX2.dim(3) != 2)
+  if (d2NdX2.dim(2) != nsd || d2NdX2.dim(3) != nsd)
   {
     std::cerr <<" *** KirchhoffLovePlate::formBmatrix: Invalid dimension on"
 	      <<" d2NdX2, "<< d2NdX2.dim(1) <<"x"<< d2NdX2.dim(2)
@@ -219,11 +220,14 @@ bool KirchhoffLovePlate::formBmatrix (const Matrix3D& d2NdX2) const
   }
 
   for (size_t i = 1; i <= nenod; i++)
-  {
-    Bmat(1,i) =     d2NdX2(i,1,1);
-    Bmat(2,i) =     d2NdX2(i,2,2);
-    Bmat(3,i) = 2.0*d2NdX2(i,1,2);
-  }
+    if (nsd == 1)
+      Bmat(1,i) = d2NdX2(i,1,1);
+    else
+    {
+      Bmat(1,i) = d2NdX2(i,1,1);
+      Bmat(2,i) = d2NdX2(i,2,2);
+      Bmat(3,i) = d2NdX2(i,1,2)*2.0;
+    }
 
   return true;
 }
@@ -232,7 +236,7 @@ bool KirchhoffLovePlate::formBmatrix (const Matrix3D& d2NdX2) const
 bool KirchhoffLovePlate::formCmatrix (Matrix& C, const Vec3& X,
 				      bool invers) const
 {
-  SymmTensor dummy(2); double U;
+  SymmTensor dummy(nsd); double U;
   if (!material->evaluate(C,dummy,U,X,dummy,dummy, invers ? -1 : 1))
     return false;
 
@@ -278,7 +282,7 @@ bool KirchhoffLovePlate::evalInt (LocalIntegral*& elmInt,
 
     // Integrate the stiffness matrix
     CB.multiply(Cmat,Bmat).multiply(fe.detJxW); // CB = C*B*|J|*w
-    eK->multiply(Bmat,CB,true,false,true); // EK += B^T * CB
+    eK->multiply(Bmat,CB,true,false,true);      // EK += B^T * CB
   }
 
   if (eM)
@@ -331,7 +335,7 @@ bool KirchhoffLovePlate::evalSol (Vector& s, const Vector&, const Matrix&,
     return false;
 
   // Evaluate the curvature tensor
-  SymmTensor kappa(2), m(2);
+  SymmTensor kappa(nsd), m(nsd);
   if (!Bmat.multiply(*eV,kappa)) // kappa = B*eV
     return false;
 
@@ -373,7 +377,7 @@ bool KirchhoffLovePlate::evalSol (Vector& s,
     return false;
 
   // Evaluate the curvature tensor
-  SymmTensor kappa(2), m(2);
+  SymmTensor kappa(nsd), m(nsd);
   if (!Bmat.multiply(*eV,kappa)) // kappa = B*eV
     return false;
 
@@ -396,7 +400,7 @@ bool KirchhoffLovePlate::evalSol (Vector& s, const STensorFunc& asol,
 
 size_t KirchhoffLovePlate::getNoFields (int fld) const
 {
-  return fld < 2 ? 1 : 3;
+  return fld < 2 ? 1 : nsd*(nsd+1)/2;
 }
 
 

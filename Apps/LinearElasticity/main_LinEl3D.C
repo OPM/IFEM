@@ -106,11 +106,11 @@ int main (int argc, char** argv)
     else if (!strcmp(argv[i],"-petsc"))
       solver = SystemMatrix::PETSC;
     else if (!strncmp(argv[i],"-lag",4))
-      SIMbase::discretization = ASM::Lagrange;
+      SIMbase::discretization = SIMbase::Lagrange;
     else if (!strncmp(argv[i],"-spec",5))
-      SIMbase::discretization = ASM::Spectral;
+      SIMbase::discretization = SIMbase::Spectral;
     else if (!strncmp(argv[i],"-LR",3))
-      SIMbase::discretization = ASM::LRSpline;
+      SIMbase::discretization = SIMbase::LRSpline;
     else if (!strcmp(argv[i],"-nGauss") && i < argc-1)
       nGauss = atoi(argv[++i]);
     else if (!strcmp(argv[i],"-vtf") && i < argc-1)
@@ -149,10 +149,7 @@ int main (int argc, char** argv)
     else if (!strcmp(argv[i],"-fixDup"))
       fixDup = true;
     else if (!strcmp(argv[i],"-KL"))
-    {
       KLp = true;
-      SIMbase::discretization = ASM::SplineC1;
-    }
     else if (!strncmp(argv[i],"-2Dpstra",8))
       twoD = SIMLinEl2D::planeStrain = true;
     else if (!strncmp(argv[i],"-2Daxi",6))
@@ -161,7 +158,7 @@ int main (int argc, char** argv)
       twoD = true;
     else if (!strncmp(argv[i],"-adap",5))
     {
-      SIMbase::discretization = ASM::LRSpline;
+      SIMbase::discretization = SIMbase::LRSpline;
       iop = 10;
     }
     else if (!infile)
@@ -211,9 +208,9 @@ int main (int argc, char** argv)
 		<<"\nNumber of eigenvalues: "<< nev
 		<<"\nNumber of Arnoldi vectors: "<< ncv
 		<<"\nShift value: "<< shf;
-    if (SIMbase::discretization == ASM::Lagrange)
+    if (SIMbase::discretization == SIMbase::Lagrange)
       std::cout <<"\nLagrangian basis functions are used";
-    else if (SIMbase::discretization == ASM::Spectral)
+    else if (SIMbase::discretization == SIMbase::Spectral)
       std::cout <<"\nSpectral basis functions are used";
     if (SIMbase::ignoreDirichlet)
       std::cout <<"\nSpecified boundary conditions are ignored";
@@ -283,8 +280,7 @@ int main (int argc, char** argv)
       return 3;
 
     model->setMode(SIM::RECOVERY);
-    if (SIMbase::discretization == ASM::Spline ||
-	SIMbase::discretization == ASM::SplineC1)
+    if (SIMbase::discretization == SIMbase::Spline)
     {
       // Project the FE stresses onto the splines basis
       if (!model->project(ssol,displ.front(),SIMbase::GLOBAL))

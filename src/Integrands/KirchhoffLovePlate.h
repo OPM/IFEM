@@ -32,7 +32,8 @@ class KirchhoffLovePlate : public IntegrandBase
 {
 public:
   //! \brief The default constructor initializes all pointers to zero.
-  KirchhoffLovePlate();
+  //! \param[in] n Number of spatial dimensions (1=beam, 2=plate)
+  KirchhoffLovePlate(unsigned short int n = 2);
   //! \brief The destructor frees the dynamically allocated data objects.
   virtual ~KirchhoffLovePlate();
 
@@ -185,6 +186,8 @@ protected:
   RealFunc*    presFld; //!< Pointer to pressure field
 
   mutable std::map<Vec3,Vec3> presVal; //!< Pressure field point values
+
+  unsigned short int nsd; //!< Number of space dimensions (1, 2 or, 3)
 
   // Work arrays declared as members to avoid frequent re-allocation
   // within the numerical integration loop (for reduced overhead)
