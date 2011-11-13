@@ -177,16 +177,15 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
       else
       {
 	RealArray xi;
-	while ((cline = strtok(NULL," ")))
-	  xi.push_back(atof(cline));
-	for (int j = ipatch; j < patch; j++)
-	{
-	  std::cout <<"\tRefining P"<< j+1;
-	  for (size_t i = 0; i < xi.size(); i++)
-	    std::cout <<" "<< xi[i];
-	  std::cout << std::endl;
-	  static_cast<ASMs1D*>(myModel[j])->refine(xi);
-	}
+	if (utl::parseKnots(xi))
+	  for (int j = ipatch; j < patch; j++)
+	  {
+	    std::cout <<"\tRefining P"<< j+1;
+	    for (size_t i = 0; i < xi.size(); i++)
+	      std::cout <<" "<< xi[i];
+	    std::cout << std::endl;
+	    static_cast<ASMs1D*>(myModel[j])->refine(xi);
+	  }
       }
     }
   }

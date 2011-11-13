@@ -30,6 +30,43 @@ void utl::parseIntegers (std::vector<int>& values, const char* argv)
 }
 
 
+bool utl::parseKnots (std::vector<real>& xi)
+{
+  char* cline = strtok(NULL," ");
+  if (toupper(cline[0]) == 'G')
+  {
+    // Geometric grading
+    int    ru    = atoi(strtok(NULL," "));
+    double alpha = atof(strtok(NULL," "));
+    double xi1   = (cline = strtok(NULL," ")) ? atof(cline) : 0.0;
+    double xi2   = (cline = strtok(NULL," ")) ? atof(cline) : 1.0;
+    if (xi1 < 0.0 || xi2 <= xi1 || xi2 > 1.0 || ru < 1)
+      return false;
+
+    double D1 = 0.0;
+    double D2 = (xi2-xi1);
+    D2 *= (alpha <= 1.0 ? 1.0/real(ru+1) : (1.0-alpha)/(1.0-pow(alpha,ru+1)));
+    if (xi1 > 0.0) xi.push_back(xi1);
+    for (int i = 0; i < ru; i++)
+    {
+      xi.push_back(xi1+D1+D2);
+      D1 = D2;
+      if (alpha > 1.0) D2 = alpha*D1;
+    }
+    if (xi2 < 1.0) xi.push_back(xi2);
+  }
+  else
+  {
+    // Explicit specification of knots
+    xi.push_back(atof(cline));
+    while ((cline = strtok(NULL," ")))
+      xi.push_back(atof(cline));
+  }
+
+  return !xi.empty();
+}
+
+
 char* utl::readLine (std::istream& is)
 {
   static char buf[1024];

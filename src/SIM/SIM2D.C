@@ -227,19 +227,18 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 	}
 	else
 	{
-	  int dir = atoi(strtok(NULL," "));
 	  RealArray xi;
-	  while ((cline = strtok(NULL," ")))
-	    xi.push_back(atof(cline));
-	  for (int j = ipatch; j < patch; j++)
-	    if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
-	    {
-	      std::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
-	      for (size_t i = 0; i < xi.size(); i++)
-		std::cout <<" "<< xi[i];
-	      std::cout << std::endl;
-	      pch->refine(dir-1,xi);
-	    }
+	  int dir = atoi(strtok(NULL," "));
+	  if (utl::parseKnots(xi))
+	    for (int j = ipatch; j < patch; j++)
+	      if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
+	      {
+		std::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
+		for (size_t i = 0; i < xi.size(); i++)
+		  std::cout <<" "<< xi[i];
+		std::cout << std::endl;
+		pch->refine(dir-1,xi);
+	      }
 	}
       }
     }

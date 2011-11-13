@@ -29,6 +29,15 @@ namespace utl
   //! \details An integer range is recognised through the syntax \a i:j.
   void parseIntegers(std::vector<int>& values, const char* argv);
 
+  //! \brief Parses a (possibly graded) sequence of knot values.
+  //! \param xi The knot value(s) is/are appended to this vector
+  //!
+  //! \details The method uses the strtok function to parse a sequence of
+  //! space-separated numbers and assumes that (at least one) call to strtok
+  //! with the first argument different from NULL has been made before
+  //! invoking this method.
+  bool parseKnots(std::vector<real>& xi);
+
   //! \brief Reads one line, ignoring comment lines and leading blanks.
   //! \details The data read is kept in an internal static buffer.
   //! \param is File stream to read from
