@@ -13,6 +13,7 @@
 
 #include "SIMLinEl3D.h"
 #include "SIMLinElKL.h"
+#include "SIMLinElBeamC1.h"
 #include "AdaptiveSIM.h"
 #include "LinAlgInit.h"
 #include "HDF5Writer.h"
@@ -62,6 +63,7 @@
   \arg -2Dpstrain : Use two-parametric simulation driver (plane strain)
   \arg -2Daxisymm : Use two-parametric simulation driver (axi-symmetric solid)
   \arg -KL : Use two-parametric simulation driver for Kirchhoff-Love plate
+  \arg -Beam : Use one-parametric simulation driver for C1-continous beam
   \arg -adap : Use adaptive simulation driver with LR-splines discretization
 */
 
@@ -86,6 +88,7 @@ int main (int argc, char** argv)
   bool dumpASCII = false;
   bool twoD = false;
   bool KLp = false;
+  bool Beam = false;
   char* infile = 0;
 
   const LinAlgInit& linalg = LinAlgInit::Init(argc,argv);
@@ -106,11 +109,11 @@ int main (int argc, char** argv)
     else if (!strcmp(argv[i],"-petsc"))
       solver = SystemMatrix::PETSC;
     else if (!strncmp(argv[i],"-lag",4))
-      SIMbase::discretization = SIMbase::Lagrange;
+      SIMbase::discretization = ASM::Lagrange;
     else if (!strncmp(argv[i],"-spec",5))
-      SIMbase::discretization = SIMbase::Spectral;
+      SIMbase::discretization = ASM::Spectral;
     else if (!strncmp(argv[i],"-LR",3))
-      SIMbase::discretization = SIMbase::LRSpline;
+      SIMbase::discretization = ASM::LRSpline;
     else if (!strcmp(argv[i],"-nGauss") && i < argc-1)
       nGauss = atoi(argv[++i]);
     else if (!strcmp(argv[i],"-vtf") && i < argc-1)
@@ -148,8 +151,13 @@ int main (int argc, char** argv)
       vizRHS = true;
     else if (!strcmp(argv[i],"-fixDup"))
       fixDup = true;
+    else if (!strcmp(argv[i],"-Beam"))
+      Beam = true;
     else if (!strcmp(argv[i],"-KL"))
-      KLp = true;
+    {
+      twoD = KLp = true;
+      SIMbase::discretization = ASM::SplineC1;
+    }
     else if (!strncmp(argv[i],"-2Dpstra",8))
       twoD = SIMLinEl2D::planeStrain = true;
     else if (!strncmp(argv[i],"-2Daxi",6))
@@ -158,7 +166,7 @@ int main (int argc, char** argv)
       twoD = true;
     else if (!strncmp(argv[i],"-adap",5))
     {
-      SIMbase::discretization = SIMbase::LRSpline;
+      SIMbase::discretization = ASM::LRSpline;
       iop = 10;
     }
     else if (!infile)
@@ -170,8 +178,8 @@ int main (int argc, char** argv)
   {
     std::cout <<"usage: "<< argv[0]
 	      <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n      "
-	      <<" [-free] [-lag] [-spec] [-LR] [-2D[pstrain|axisymm]|-KL]"
-	      <<" [-adap] [-nGauss <n>]\n       [-vtf <format> [-nviz <nviz>]"
+	      <<" [-free] [-lag] [-spec] [-LR] [-2D[pstrain|axisymm]] [-KL|-Bea"
+	      <<"m] [-adap] [-nGauss <n>]\n       [-vtf <format> [-nviz <nviz>]"
 	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]] [-hdf5]\n"
 	      <<"       [-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>]]\n"
 	      <<"       [-ignore <p1> <p2> ...] [-fixDup]"
@@ -179,6 +187,7 @@ int main (int argc, char** argv)
     return 0;
   }
 
+  if (Beam) n[1] = n[2] = 1;
   if (twoD) n[2] = 1;
   // Load vector visualization is not available when using additional viz-points
   if (n[0] > 2 || n[1] > 2 || n[2] > 2) vizRHS = false;
@@ -198,9 +207,12 @@ int main (int argc, char** argv)
     if (format >= 0)
     {
       std::cout <<"\nVTF file format: "<< (format ? "BINARY":"ASCII")
-		<<"\nNumber of visualization points: "
-		<< n[0] <<" "<< n[1];
-      if (!twoD) std::cout <<" "<< n[2];
+		<<"\nNumber of visualization points: "<< n[0];
+      if (!Beam)
+      {
+	std::cout <<" "<< n[1];
+	if (!twoD) std::cout <<" "<< n[2];
+      }
     }
 
     if (iop > 0 && iop < 10)
@@ -208,9 +220,9 @@ int main (int argc, char** argv)
 		<<"\nNumber of eigenvalues: "<< nev
 		<<"\nNumber of Arnoldi vectors: "<< ncv
 		<<"\nShift value: "<< shf;
-    if (SIMbase::discretization == SIMbase::Lagrange)
+    if (SIMbase::discretization == ASM::Lagrange)
       std::cout <<"\nLagrangian basis functions are used";
-    else if (SIMbase::discretization == SIMbase::Spectral)
+    else if (SIMbase::discretization == ASM::Spectral)
       std::cout <<"\nSpectral basis functions are used";
     if (SIMbase::ignoreDirichlet)
       std::cout <<"\nSpecified boundary conditions are ignored";
@@ -231,7 +243,9 @@ int main (int argc, char** argv)
 
   // Read in model definitions and establish the FE data structures
   SIMbase* model;
-  if (KLp)
+  if (Beam)
+    model = new SIMLinElBeamC1();
+  else if (KLp)
     model = new SIMLinElKL();
   else if (twoD)
     model = new SIMLinEl2D();
@@ -280,7 +294,8 @@ int main (int argc, char** argv)
       return 3;
 
     model->setMode(SIM::RECOVERY);
-    if (SIMbase::discretization == SIMbase::Spline)
+    if (SIMbase::discretization == ASM::Spline ||
+	SIMbase::discretization == ASM::SplineC1)
     {
       // Project the FE stresses onto the splines basis
       if (!model->project(ssol,displ.front(),SIMbase::GLOBAL))
