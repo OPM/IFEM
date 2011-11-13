@@ -11,8 +11,8 @@
 //!
 //==============================================================================
 
-#include "GoTools/geometry/SplineCurve.h"
 #include "GoTools/geometry/ObjectHeader.h"
+#include "GoTools/geometry/SplineCurve.h"
 #include "GoTools/geometry/CurveInterpolator.h"
 
 #include "ASMs1D.h"
@@ -59,7 +59,7 @@ ASMs1D::ASMs1D (const ASMs1D& patch, unsigned char n_f)
 
 bool ASMs1D::read (std::istream& is)
 {
-  if (shareFE) return false;
+  if (shareFE) return true;
   if (curv) delete curv;
 
   Go::ObjectHeader head;
@@ -393,7 +393,7 @@ Vec3 ASMs1D::getCoord (size_t inod) const
   if (ip < 0) return X;
 
   RealArray::const_iterator cit = curv->coefs_begin() + ip;
-  for (size_t i = 0; i < nsd; i++, cit++)
+  for (unsigned char i = 0; i < nsd; i++, cit++)
     X[i] = *cit;
 
   return X;
@@ -532,6 +532,26 @@ void ASMs1D::extractBasis (double u, Vector& N, Matrix& dNdu) const
 }
 
 
+void ASMs1D::extractBasis (double u, Vector& N, Matrix& dNdu,
+			   Matrix3D& d2Ndu2) const
+{
+  int p1 = curv->order();
+
+  RealArray bas(p1*3);
+  curv->basis().computeBasisValues(u,&bas.front(),2);
+
+  N.resize(p1);
+  dNdu.resize(p1,1);
+  d2Ndu2.resize(p1,1,1);
+  for (int i = 1; i <= p1; i++)
+  {
+      N(i)         = bas[3*i-3];
+     dNdu(i,1)     = bas[3*i-2];
+     d2Ndu2(i,1,1) = bas[3*i-1];
+  }
+}
+
+
 bool ASMs1D::integrate (Integrand& integrand,
 			GlobalIntegral& glInt,
 			const TimeDomain& time,
@@ -562,8 +582,9 @@ bool ASMs1D::integrate (Integrand& integrand,
   const int n1 = curv->numCoefs();
 
   FiniteElement fe(p1);
-  Matrix dNdu, Xnod, Jac;
-  Vec4   X;
+  Matrix   dNdu, Xnod, Jac;
+  Matrix3D d2Ndu2, Hess;
+  Vec4     X;
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -592,7 +613,7 @@ bool ASMs1D::integrate (Integrand& integrand,
 
 
     if (integrand.getIntegrandType() > 10)
-
+    {
       // --- Selective reduced integration loop --------------------------------
 
       for (int i = 0; i < nRed; i++)
@@ -617,6 +638,7 @@ bool ASMs1D::integrate (Integrand& integrand,
 	if (!integrand.reducedInt(fe,X))
 	  return false;
       }
+    }
 
 
     // --- Integration loop over all Gauss points in current element -----------
@@ -630,10 +652,19 @@ bool ASMs1D::integrate (Integrand& integrand,
       fe.u = gpar(i+1,iel);
 
       // Compute basis functions and derivatives
-      this->extractBasis(fe.u,fe.N,dNdu);
+      if (integrand.getIntegrandType() == 2)
+	this->extractBasis(fe.u,fe.N,dNdu,d2Ndu2);
+      else
+	this->extractBasis(fe.u,fe.N,dNdu);
 
       // Compute derivatives in terms of physical co-ordinates
       fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+      if (fe.detJxW == 0.0) continue; // skip singular points
+
+      // Compute Hessian of coordinate mapping and 2nd order derivatives
+      if (integrand.getIntegrandType() == 2)
+	if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
+	  return false;
 
       // Cartesian coordinates of current integration point
       X = Xnod * fe.N;
@@ -644,6 +675,10 @@ bool ASMs1D::integrate (Integrand& integrand,
       if (!integrand.evalInt(elmInt,fe,time,X))
 	return false;
     }
+
+    // Finalize the element quantities
+    if (!integrand.finalizeElement(elmInt,time))
+      return false;
 
     // Assembly of global system integral
     if (!glInt.assemble(elmInt,fe.iel))
@@ -842,11 +877,7 @@ bool ASMs1D::tesselate (ElementBlock& grid, const int* npe) const
 }
 
 
-/*!
-  \brief Auxilliary function for computation of GoTools basis function indices.
-*/
-
-static void scatterInd (int p1, int start, IntVec& index)
+void ASMs1D::scatterInd (int p1, int start, IntVec& index)
 {
   index.resize(p1);
   for (int i1 = 1; i1 <= p1; i1++)
@@ -992,12 +1023,14 @@ bool ASMs1D::evalSolution (Matrix& sField, const Integrand& integrand,
   Matrix Xnod, Xtmp;
   this->getNodalCoordinates(Xnod);
 
-  Vector N(p1), solPt;
-  Matrix dNdu, dNdX, Jac;
+  Vector   N(p1), solPt;
+  Matrix   dNdu, dNdX, Jac;
+  Matrix3D d2Ndu2, d2NdX2, Hess;
 
   // Evaluate the secondary solution field at each point
   const RealArray& upar = *gpar;
   size_t nPoints = upar.size();
+  bool use2ndDer = integrand.getIntegrandType() == 2;
   for (size_t i = 0; i < nPoints; i++)
   {
     // Fetch indices of the non-zero basis functions at this point
@@ -1008,14 +1041,22 @@ bool ASMs1D::evalSolution (Matrix& sField, const Integrand& integrand,
     utl::gather(ip,nsd,Xnod,Xtmp);
 
     // Fetch basis function derivatives at current integration point
-    this->extractBasis(upar[i],N,dNdu);
+    if (use2ndDer)
+      this->extractBasis(upar[i],N,dNdu,d2Ndu2);
+    else
+      this->extractBasis(upar[i],N,dNdu);
 
-    // Compute the Jacobian inverse
+    // Compute the Jacobian inverse and derivatives
     if (utl::Jacobian(Jac,dNdX,Xtmp,dNdu) == 0.0) // Jac = (Xtmp * dNdu)^-1
       continue; // skip singular points
 
+    // Compute Hessian of coordinate mapping and 2nd order derivatives
+    if (use2ndDer)
+      if (!utl::Hessian(Hess,d2NdX2,Jac,Xtmp,d2Ndu2,dNdu))
+	continue;
+
     // Now evaluate the solution field
-    if (!integrand.evalSol(solPt,N,dNdX,Xtmp*N,ip))
+    if (!integrand.evalSol(solPt,N,dNdX,d2NdX2,Xtmp*N,ip))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);

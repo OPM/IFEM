@@ -239,15 +239,24 @@ protected:
   //! \param[in] basis Which basis to return size parameters for (mixed methods)
   virtual int getSize(int basis = 0) const;
 
-private:
   //! \brief Establishes vectors with basis functions and 1st derivatives.
   //! \param[in] u Parameter value of current integration point
   //! \param[out] N Basis function values
   //! \param[out] dNdu First derivatives of basis functions
   void extractBasis(double u, Vector& N, Matrix& dNdu) const;
+  //! \brief Establishes vectors with basis functions, 1st and 2nd derivatives.
+  //! \param[in] u Parameter value of current integration point
+  //! \param[out] N Basis function values
+  //! \param[out] dNdu First derivatives of basis functions
+  //! \param[out] d2Ndu2 Second derivatives of basis functions
+  void extractBasis(double u, Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2) const;
 
   //! \brief Returns the parametric length on the \a i'th knot-span
   double getKnotSpan(int i) const;
+
+public:
+  //! \brief Auxilliary function for computation of basis function indices.
+  static void scatterInd(int p1, int start, IntVec& index);
 
 protected:
   Go::SplineCurve* curv; //!< Pointer to the actual spline curve object
