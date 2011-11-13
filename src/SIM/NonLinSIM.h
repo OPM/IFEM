@@ -181,7 +181,8 @@ private:
   // Nonlinear solution algorithm parameters
   double startTime; //!< Start time of the simulation
   double stopTime;  //!< Stop time of the simulation
-  RealArray tInc;   //!< Time increment size(s)
+  SIMparameters::TimeSteps steps; //!< Time increment specifications
+
   double convTol;   //!< Relative convergence tolerance
   double divgLim;   //!< Relative divergence limit
   double eta;       //!< Line search tolerance

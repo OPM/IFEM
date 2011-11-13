@@ -38,7 +38,7 @@ class ASMs2D : public ASMstruct, public ASM2D
     int J; //!< Index in second parameter direction
   };
 
-  typedef std::vector<IJ> IndexVec; //! Node index container
+  typedef std::vector<IJ> IndexVec; //!< Node index container
 
   //! \brief Struct for edge node definitions.
   struct Edge

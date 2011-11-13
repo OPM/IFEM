@@ -14,36 +14,63 @@
 #include "SIMparameters.h"
 
 
+void SIMparameters::initTime (double start, double stop, const TimeSteps& steps)
+{
+  starTime = start;
+  stopTime = stop;
+  mySteps  = steps;
+  time.t   = start;
+  time.dt  = steps.empty() ? stop-start : steps.front().first.front();
+  stepIt   = mySteps.begin();
+}
+
+
+static const double epsT = 1.0e-6; //!< Tolerance parameter
+
+
 bool SIMparameters::multiSteps () const
 {
-  if (tInc.empty()) return false;
+  if (mySteps.empty()) return false;
 
-  const double epsT = 1.0e-6;
-  return (startTime+(1.0+epsT)*tInc.front() < stopTime);
+  return (starTime+(1.0+epsT)*mySteps.front().first.front() < stopTime);
 }
 
 
 bool SIMparameters::increment ()
 {
-  const double epsT = 1.0e-6;
-
-  if (++step <= (int)tInc.size() && step > 0)
-    time.dt = tInc[step-1];
+  if (stepIt != mySteps.end())
+    if (++lstep <= stepIt->first.size())
+      time.dt = stepIt->first[lstep-1];
 
   if (time.t+time.dt*epsT >= stopTime)
-    return false;
+    return false; // We've reached the end of the simulation
 
-  if (tInc.size() <= (size_t)step)
-    tInc.push_back(time.dt);
-
+  ++step;
   time.t += time.dt;
+
+  if (stepIt != mySteps.end())
+  {
+    if (stepIt->first.size() <= lstep)
+      stepIt->first.push_back(time.dt);
+    if (time.t+time.dt*epsT >= stepIt->second)
+    {
+      if (time.t != stepIt->second)
+      {
+	// Adjust the size of the last time step
+	time.dt += stepIt->second - time.t;
+	time.t = stepIt->second;
+	stepIt->first.back() = time.dt;
+      }
+      lstep = 0;
+      ++stepIt;
+    }
+  }
 
   if (time.t > stopTime)
   {
     // Adjust the size of the last time step
     time.dt += stopTime - time.t;
     time.t = stopTime;
-    tInc.back() = time.dt;
   }
 
   return true;

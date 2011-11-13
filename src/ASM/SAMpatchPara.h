@@ -29,7 +29,7 @@ class SAMpatchPara : public SAMpatch
 {
 public:
   //! \brief The constructor initializes the \a l2gn array.
-  //! \param[in] Global-to-local node numbers for this processor
+  //! \param[in] g2ln Global-to-local node numbers for this processor
   SAMpatchPara(const std::map<int,int>& g2ln);
   //! \brief The destructor destroys the index set arrays.
   virtual ~SAMpatchPara();

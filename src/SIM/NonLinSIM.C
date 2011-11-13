@@ -48,18 +48,31 @@ bool NonLinSIM::parse (char* keyWord, std::istream& is)
 {
   if (!strncasecmp(keyWord,"TIME_STEPPING",13))
   {
-    double dt;
-    tInc.clear();
-    tInc.reserve(5);
-    std::istringstream cline(utl::readLine(is));
+    int nstep = atoi(keyWord+13);
+    if (nstep < 1) nstep = 1;
 
-    cline >> startTime >> stopTime >> dt;
-    if (cline.fail() || cline.bad()) return false;
-    while (!cline.fail() && !cline.bad())
+    double dt;
+    steps.resize(nstep);
+    for (int i = 0; i < nstep; i++)
     {
-      tInc.push_back(dt);
-      cline >> dt;
+      std::istringstream cline(utl::readLine(is));
+      if (i == 0) cline >> startTime;
+      cline >> steps[i].second >> dt;
+      if (cline.fail() || cline.bad()) return false;
+      if (dt > 1.0 && ceil(dt) == dt)
+      {
+	// The number of time steps are specified
+	dt = (steps[i].second - (i == 0 ? startTime : steps[i-1].second))/dt;
+	steps[i].first.push_back(dt);
+      }
+      else while (!cline.fail() && !cline.bad())
+      {
+	// The time step size(s) is/are specified
+	steps[i].first.push_back(dt);
+	cline >> dt;
+      }
     }
+    stopTime = steps.back().second;
   }
   else if (!strncasecmp(keyWord,"NONLINEAR_SOLVER",16))
   {
@@ -100,11 +113,7 @@ void NonLinSIM::initSystem (SystemMatrix::Type mType, size_t nGauss)
 
 void NonLinSIM::init (SolvePrm& param, const RealArray& initVal)
 {
-  param.startTime = startTime;
-  param.stopTime = stopTime;
-  param.tInc    = tInc;
-  param.time.t  = startTime;
-  param.time.dt = tInc.empty() ? stopTime-startTime : tInc.front();
+  param.initTime(startTime,stopTime,steps);
   param.maxit   = maxit;
   param.nupdat  = nupdat;
   param.convTol = convTol;
@@ -140,8 +149,14 @@ bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode,
   PROFILE1("NonLinSIM::solveStep");
 
   if (msgLevel >= 0 && myPid == 0)
+  {
+    std::streamsize oldPrec = 0;
+    double digits = log10(param.time.t)-log10(param.time.dt);
+    if (digits > 6.0) oldPrec = std::cout.precision(ceil(digits));
     std::cout <<"\n  step="<< param.step
 	      <<"  time="<< param.time.t << std::endl;
+    if (oldPrec > 0) std::cout.precision(oldPrec);
+  }
 
   param.iter = 0;
   param.alpha = 1.0;

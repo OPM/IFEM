@@ -38,7 +38,7 @@ class ASMs3D : public ASMstruct
     int K; //!< Index in third parameter direction
   };
 
-  typedef std::vector<IJK> IndexVec; //! Node index container
+  typedef std::vector<IJK> IndexVec; //!< Node index container
 
   //! \brief Struct for edge node definitions.
   struct Edge
