@@ -199,17 +199,30 @@ ENDIF(NOT IFEM_INSTALL_PREFIX)
 IF(WIN32)
   # TODO
 ELSE(WIN32)
+  # applications
+  INSTALL(TARGETS Poisson LinEl HDF5toVTx
+          DESTINATION ${IFEM_INSTALL_PREFIX}/bin)
+
   # lib
   INSTALL(TARGETS IFEM DESTINATION ${IFEM_INSTALL_PREFIX}/lib)
 
   # headers
-  FILE(GLOB_RECURSE IFEM_HEADERS src/ASM/*.h src/Integrands/*.h
-                                 src/LinAlg/*.h src/SIM/*.h src/Utility/*.h)
+  FILE(GLOB IFEM_HEADERS src/ASM/AlgEqSystem.h src/ASM/ASMbase.h
+                         src/ASM/ASMenums.h src/ASM/ASMmxBase.h
+                         src/ASM/ASMstruct.h src/ASM/ElmMats.h src/ASM/ElmNorm.h
+                         src/ASM/Field.h src/ASM/Fields.h
+                         src/ASM/FiniteElement.h src/ASM/GlbNorm.h
+                         src/ASM/GlobalIntegral.h src/ASM/IntegrandBase.h
+                         src/ASM/Integrand.h src/ASM/Lagrange.h
+                         src/ASM/LocalIntegral.h src/ASM/SAMpatch.h
+                         src/ASM/TimeDomain.h
+                         src/Integrands/*.h src/LinAlg/*.h src/SIM/*.h
+                         src/Utility/*.h)
   INSTALL(FILES ${IFEM_HEADERS}
           DESTINATION ${IFEM_INSTALL_PREFIX}/include/IFEM)
 
-  FILE(GLOB_RECURSE LOCAL_CMAKE_MODULES cmake/Modules/*.cmake)
-
   # cmake modules
-  INSTALL(FILES ${LOCAL_CMAKE_MODULES} DESTINATION ${IFEM_INSTALL_PREFIX}/cmake/Modules)
+  FILE(GLOB_RECURSE LOCAL_CMAKE_MODULES cmake/Modules/*.cmake)
+  INSTALL(FILES ${LOCAL_CMAKE_MODULES}
+          DESTINATION ${IFEM_INSTALL_PREFIX}/cmake/Modules)
 ENDIF(WIN32)
