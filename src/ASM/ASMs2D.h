@@ -353,6 +353,11 @@ public:
   static void scatterInd(int n1, int n2, int p1, int p2,
 			 const int* start, IntVec& index);
 
+  //! \brief Returns the polynomial order in each parameter direction.
+  //! \param[out] p1 Order in first (u) direction
+  //! \param[out] p2 Order in second (v) direction
+  bool getOrder(int& p1, int& p2) const;
+
 private:
   //! \brief Returns an index into the internal coefficient array for a node.
   //! \param[in] inod 0-based node index local to current patch

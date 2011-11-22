@@ -12,7 +12,7 @@
 //==============================================================================
 
 #include "SIMbase.h"
-#include "ASMbase.h"
+#include "ASMs2DC1.h"
 #ifdef PARALLEL_PETSC
 #include "SAMpatchPara.h"
 #include "petscksp.h"
@@ -235,6 +235,7 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
   if (!this->createFEMmodel()) return false;
 
   FEModelVec::const_iterator mit;
+  size_t patch;
 
   // Erase all patches that should be ignored in the analysis
   std::vector<int>::const_iterator it;
@@ -244,24 +245,23 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 
   // If material properties are specified for at least one patch, assign the
   // property code 999999 to all patches with no material property code yet
-  std::vector<int> pchWthMat;
+  std::vector<ASMbase*> pchWthMat;
   for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); p++)
     if (p->pcode == Property::MATERIAL && !myModel[p->patch-1]->empty())
-      pchWthMat.push_back(p->patch-1);
+      pchWthMat.push_back(myModel[p->patch-1]);
 
   if (!pchWthMat.empty())
-    for (size_t i = 0; i < myModel.size(); i++)
-      if (!myModel[i]->empty())
-	if (std::find(pchWthMat.begin(),pchWthMat.end(),i) == pchWthMat.end())
-	  myProps.push_back(Property(Property::MATERIAL,999999,i+1,
-				     myModel[i]->getNoSpaceDim()));
+    for (mit = myModel.begin(), patch = 1; mit != myModel.end(); mit++, patch++)
+      if (std::find(pchWthMat.begin(),pchWthMat.end(),*mit) == pchWthMat.end())
+	myProps.push_back(Property(Property::MATERIAL,999999,patch,
+				   (*mit)->getNoSpaceDim()));
 
   if (fixDup)
   {
     // Check for duplicated nodes (missing topology)
-    int patch, nDupl = 0;
+    int nDupl = 0;
     std::map<Vec3,int> globalNodes;
-    for (mit = myModel.begin(), patch = 0; mit != myModel.end(); mit++, patch++)
+    for (mit = myModel.begin(), patch = 1; mit != myModel.end(); mit++, patch++)
       if (!(*mit)->empty())
       {
 	std::cout <<"   * Checking Patch "<< patch << std::endl;
@@ -296,8 +296,9 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
     renum += (*mit)->renumberNodes(myGlb2Loc,ngnod);
 
   if (renum > 0)
-    std::cout <<"\nRenumbered "<< renum <<" nodes"<< std::endl;
+    std::cout <<"\nRenumbered "<< renum <<" nodes."<< std::endl;
 
+  ASMs2DC1::renumberNodes(*g2l);
   for (mit = myModel.begin(); mit != myModel.end(); mit++)
     (*mit)->renumberNodes(*g2l);
 
@@ -326,11 +327,17 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
       break;
     }
 
-  // Set initial values for the inhomogeneous diriclet conditions, if any
-  this->initDirichlet();
+  // Compute the set of all MPCs over the whole model. This will also merge
+  // multiple constraint equations defined on interfaces between patches.
+  MPCSet allMPCs;
+  ASMbase::mergeAndGetAllMPCs(myModel,allMPCs);
 
-  // Resolve possibly chained multi-point constraints
-  ASMbase::resolveMPCchains(myModel);
+  // Set initial values for the inhomogeneous dirichlet conditions, if any,
+  // and compute coupling coefficients for the C1-continuity constraints
+  if (!this->initDirichlet()) return false;
+
+  // Resolve possibly chaining of the MPC equations
+  if (!allMPCs.empty()) ASMbase::resolveMPCchains(allMPCs);
 
   // Preprocess the result points
   for (ResPointVec::iterator p = myPoints.begin(); p != myPoints.end();)
@@ -495,6 +502,11 @@ size_t SIMbase::getNoSolutions () const
 
 bool SIMbase::initDirichlet (double time)
 {
+  if (time == 0.0)
+    for (size_t i = 0; i < myModel.size(); i++)
+      if (!myModel[i]->initConstraints())
+	return false;
+
   Vector dummy;
   return this->updateDirichlet(time,&dummy);
 }

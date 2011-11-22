@@ -414,9 +414,16 @@ protected:
   static void extractBasis(const Go::BasisDerivs2& spline,
 			   Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2);
 
+public:
   //! \brief Auxilliary function for computation of basis function indices.
   static void scatterInd(int n1, int n2, int n3, int p1, int p2, int p3,
 			 const int* start, IntVec& index);
+
+  //! \brief Returns the polynomial order in each parameter direction.
+  //! \param[out] p1 Order in first (u) direction
+  //! \param[out] p2 Order in second (v) direction
+  //! \param[out] p3 Order in third (w) direction
+  bool getOrder(int& p1, int& p2, int& p3) const;
 
 private:
   //! \brief Returns an index into the internal coefficient array for a node.

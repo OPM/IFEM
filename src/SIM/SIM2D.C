@@ -12,13 +12,32 @@
 //==============================================================================
 
 #include "SIM2D.h"
-#include "ASMs2D.h"
+#include "ASMs2DC1.h"
 #include "Functions.h"
 #include "Utilities.h"
 #include <fstream>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+
+
+/*!
+  A struct defining a patch interface for C1-continuous models.
+*/
+
+struct Interface
+{
+  std::pair<ASMs2DC1*,int> master; //!< Patch and edge index of the master
+  std::pair<ASMs2DC1*,int> slave;  //!< Patch and edge index of the slave
+  bool reversed;                   //!< Relative orientation toggle
+  //! \brief Constructor initializing an Interface instance.
+  Interface(ASMs2DC1* m, int me, ASMs2DC1* s, int se, bool r = false)
+  {
+    master = std::make_pair(m,me);
+    slave = std::make_pair(s,se);
+    reversed = r;
+  }
+};
 
 
 SIM2D::SIM2D (unsigned char n1, unsigned char n2) : isRefined(false)
@@ -287,6 +306,10 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 
     int ntop = atoi(keyWord+8);
     std::cout <<"\nNumber of patch connections: "<< ntop << std::endl;
+    std::vector<Interface> top;
+    if (discretization == ASM::SplineC1)
+      top.reserve(ntop);
+
     for (int i = 0; i < ntop && (cline = utl::readLine(is)); i++)
     {
       int master = atoi(strtok(cline," "));
@@ -309,7 +332,18 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
       ASMs2D* mpch = static_cast<ASMs2D*>(myModel[master-1]);
       if (!spch->connectPatch(sEdge,*mpch,mEdge,rever))
 	return false;
+      else if (discretization == ASM::SplineC1)
+	top.push_back(Interface(static_cast<ASMs2DC1*>(mpch),mEdge,
+				static_cast<ASMs2DC1*>(spch),sEdge,rever));
     }
+
+    // Second pass when C1-continuous patches to set up additional constraints
+    std::vector<Interface>::const_iterator it;
+    for (it = top.begin(); it != top.end(); it++)
+      if (!it->slave.first->connectC1(it->slave.second,
+				      it->master.first,
+				      it->master.second,
+				      it->reversed)) return false;
   }
 
   else if (!strncasecmp(keyWord,"PERIODIC",8))

@@ -152,47 +152,76 @@ public:
 };
 
 
-bool ASMbase::addMPC (MPC* mpc, int code)
+bool ASMbase::addMPC (MPC*& mpc, int code, bool silence)
 {
   if (!mpc) return true;
 
   // Silently ignore MPC's on dofs that already are marked as FIXED
-  bool retVal = true;
-  if (find_if(BCode.begin(),BCode.end(),fixed(mpc->getSlave())) == BCode.end())
-    if (mpcs.insert(mpc).second)
-    {
-#if SP_DEBUG > 1
-      std::cout <<"Added constraint: "<< *mpc;
-#endif
-      if (code > 0) dCode[mpc] = code;
-      return retVal;
-    }
-    else
-    {
-#ifdef SP_DEBUG
-      std::cout <<"Ignored constraint (duplicated slave): "<< *mpc;
-#endif
-      retVal = false; // This dof is already a slave in another MPC
-    }
+  if (find_if(BCode.begin(),BCode.end(),fixed(mpc->getSlave())) != BCode.end())
+  {
+    delete mpc;
+    mpc = 0;
+    return true;
+  }
 
+  std::pair<MPCIter,bool> mit = mpcs.insert(mpc);
+  if (mit.second)
+  {
+#if SP_DEBUG > 1
+    if (!silence) std::cout <<"Added constraint: "<< *mpc;
+#endif
+    if (code > 0) dCode[mpc] = code;
+    return true;
+  }
+
+#ifdef SP_DEBUG
+  if (!silence) std::cout <<"Ignored constraint (duplicated slave): "<< *mpc;
+#endif
   delete mpc;
-  return retVal;
+  mpc = *mit.first; // This dof is already a slave in another MPC
+  return false;
 }
 
 
-bool ASMbase::addMPC (int slave, int dir, int master, int code)
+bool ASMbase::add2PC (int slave, int dir, int master, int code)
 {
   if (dir < 1 || dir > nf) return true;
-  MPC* mpc = new MPC(slave,dir);
-  mpc->addMaster(master,dir);
-  return this->addMPC(mpc,code);
+
+  MPC* cons = new MPC(slave,dir);
+  bool stat = this->addMPC(cons,code,true);
+  if (!cons) return stat;
+
+  cons->addMaster(master,dir);
+#if SP_DEBUG > 1
+  std::cout <<"Added constraint: "<< *cons;
+#endif
+  return stat;
+}
+
+
+bool ASMbase::add3PC (int slave, int dir, int master1, int master2, int code)
+{
+  if (dir < 1 || dir > nf) return true;
+
+  MPC* cons = new MPC(slave,dir);
+  bool stat = this->addMPC(cons,code,true);
+  if (!cons) return stat;
+
+  cons->addMaster(master1,dir);
+  cons->addMaster(master2,dir);
+#if SP_DEBUG > 1
+  std::cout <<"Added constraint: "<< *cons;
+#endif
+  return stat;
 }
 
 
 bool ASMbase::addSPC (int node, int dir, int code)
 {
   if (dir < 1 || dir > nf) return true;
-  return this->addMPC(new MPC(node,dir), code);
+
+  MPC* mpc = new MPC(node,dir);
+  return this->addMPC(mpc,code);
 }
 
 
@@ -207,8 +236,8 @@ bool ASMbase::addPeriodicity (size_t master, size_t slave, int dir)
     return false;
   }
 
-  if (this->addMPC(masterNode,slaveNode,dir) ||
-      this->addMPC(slaveNode,masterNode,dir))
+  if (this->add2PC(masterNode,slaveNode,dir) ||
+      this->add2PC(slaveNode,masterNode,dir))
     return true;
 
   std::cerr <<" *** ASMbase::addPeriodicity: Failed to connect nodes "
@@ -244,8 +273,7 @@ void ASMbase::makePeriodic (size_t master, size_t slave, int dirs)
       break;
     default:
       // If all DOFs are going to be coupled, assign a common global node number
-      if (master <= myMLGN.size() && slave <= myMLGN.size())
-	ASMbase::collapseNodes(myMLGN[master-1],myMLGN[slave-1]);
+      ASMbase::collapseNodes(*this,master,*this,slave);
     }
 }
 
@@ -287,52 +315,146 @@ void ASMbase::prescribe (size_t inod, int dirs, int code)
 }
 
 
+/*!
+  \brief Equality operator for BC objects comparing node numbers only.
+*/
+
+bool operator== (const ASMbase::BC& rhs, const int& lhs)
+{
+  return rhs.node == lhs;
+}
+
+
 void ASMbase::fix (size_t inod, int dirs)
 {
   int node = this->getNodeID(inod);
   if (node < 1) return;
 
+  BCVec::iterator bit = find(BCode.begin(),BCode.end(),node);
+  if (bit == BCode.end())
+  {
+    BCode.push_back(BC(node));
+    bit = BCode.end()-1;
+  }
+
   switch (dirs)
     {
     case 1:
-      BCode.push_back(BC(node,0,1,1));
+      if (bit->CX == 0) return;
+      bit->CX = 0;
       break;
     case 2:
-      BCode.push_back(BC(node,1,0,1));
+      if (bit->CY == 0) return;
+      bit->CY = 0;
       break;
     case 3:
-      BCode.push_back(BC(node,1,1,0));
+      if (bit->CZ == 0) return;
+      bit->CZ = 0;
       break;
     case 12:
     case 21:
-      BCode.push_back(BC(node,0,0,1));
+      if (bit->CX + bit->CY == 0) return;
+      bit->CX = bit->CY = 0;
       break;
     case 13:
     case 31:
-      BCode.push_back(BC(node,0,1,0));
+      if (bit->CX + bit->CZ == 0) return;
+      bit->CX = bit->CZ = 0;
       break;
     case 23:
     case 32:
-      BCode.push_back(BC(node,1,0,0));
+      if (bit->CY + bit->CZ == 0) return;
+      bit->CY = bit->CZ = 0;
       break;
     default:
-      BCode.push_back(BC(node,0,0,0));
+      if (bit->CX + bit->CY + bit->CZ == 0) return;
+      bit->CX = bit->CY = bit->CZ = 0;
     }
 
 #if SP_DEBUG > 1
-  std::cout <<"\tFixed node: "<< node <<" "<< dirs << std::endl;
+  std::cout <<"\n\tFixed node: "<< node <<" "<< dirs;
 #endif
 }
 
 
-void ASMbase::resolveMPCchains (const ASMVec& model)
+void ASMbase::mergeAndGetAllMPCs (const ASMVec& model, MPCSet& allMPCs)
 {
-  MPCSet allMPCs;
-  for (size_t i = 0; i < model.size(); i++)
-    allMPCs.insert(model[i]->begin_MPC(),model[i]->end_MPC());
+  // Build the set of constraint equations over all patches in the model
+  if (model.size() == 1)
+  {
+    // Trivial for single-patch models
+    allMPCs.insert(model.front()->begin_MPC(),model.front()->end_MPC());
+    return;
+  }
+
+  // In multi-patch models interface nodes may be constrained twice or more.
+  // Resolve this such that allMPCs only contains the set of unique MPCs.
+  int nmerged = 0;
+  int ndeleted = 0;
+  for (ASMVec::const_iterator it = model.begin(); it != model.end(); it++)
+  {
+    std::pair<MPCIter,bool> ret;
+    std::vector<MPC*> uniqueMPC;
+    uniqueMPC.reserve((*it)->getNoMPCs());
+    for (MPCIter cit = (*it)->begin_MPC(); cit != (*it)->end_MPC(); cit++)
+      if ((ret = allMPCs.insert(*cit)).second)
+	uniqueMPC.push_back(*cit);
+      else
+      {
+	// Merge multiple constraint equations with common slave definition
+	if ((*ret.first)->getSlave().coeff == 0.0 &&
+	    (*ret.first)->getNoMaster() > 1 &&
+	    (*ret.first)->merge(*cit))
+	{
+#if SP_DEBUG > 1
+	  std::cout <<"Merging constraint "<< **cit;
+	  std::cout <<"Resulting constraint "<< **ret.first;
+#endif
+	  nmerged++;
+	}
+	else
+	{
+	  // The found constraint *ret.first is either a prescribed movement
+	  // or a single-master constraint. Such MPCs are not to be merged but
+	  // should superseed any multi-master constraints with matching slave.
+#if SP_DEBUG > 1
+	  std::cout <<"Deleted constraint "<< **cit;
+#endif
+	  ndeleted++;
+	}
+	delete *cit;
+      }
+
+    if (uniqueMPC.size() < (*it)->getNoMPCs())
+    {
+      // Compress the MPC set for this patch removing duplicated entries
+      (*it)->mpcs.clear();
+      (*it)->mpcs.insert(uniqueMPC.begin(),uniqueMPC.end());
+    }
+  }
+
+  if (nmerged > 0)
+    std::cout <<"Merged "<< nmerged <<" MPC equations."<< std::endl;
+  if (ndeleted > 0)
+    std::cout <<"Deleted "<< ndeleted <<" MPC equations."<< std::endl;
+
+#if SP_DEBUG > 1
+  if (allMPCs.empty()) return;
+  std::cout <<"\nMulti-point constraints:\n";
+  for (MPCIter c = allMPCs.begin(); c != allMPCs.end(); c++) std::cout << **c;
+#endif
+}
+
+
+void ASMbase::resolveMPCchains (const MPCSet& allMPCs)
+{
+#if SP_DEBUG > 1
+  std::cout <<"\nResolving MPC chains"<< std::endl;
+  for (MPCIter c = allMPCs.begin(); c != allMPCs.end(); c++) std::cout << **c;
+#endif
 
   int nresolved = 0;
-  for (MPCSet::iterator cit = allMPCs.begin(); cit != allMPCs.end(); cit++)
+  for (MPCIter cit = allMPCs.begin(); cit != allMPCs.end(); cit++)
     if (ASMbase::resolveMPCchain(allMPCs,*cit)) nresolved++;
 
   if (nresolved > 0)
@@ -346,11 +468,13 @@ void ASMbase::resolveMPCchains (const ASMVec& model)
 
 bool ASMbase::resolveMPCchain (const MPCSet& allMPCs, MPC* mpc)
 {
+  if (!mpc) return false;
+
   bool resolved = false;
   for (size_t i = 0; i < mpc->getNoMaster();)
   {
     MPC master(mpc->getMaster(i).node,mpc->getMaster(i).dof);
-    MPCSet::iterator cit = allMPCs.find(&master);
+    MPCIter cit = allMPCs.find(&master);
     if (cit != allMPCs.end())
     {
       // We have a master dof which is a slave in another constraint equation.
@@ -417,27 +541,38 @@ bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func,
 }
 
 
-void ASMbase::collapseNodes (int& node1, int& node2)
+bool ASMbase::collapseNodes (ASMbase& pch1, int node1, ASMbase& pch2, int node2)
 {
-  if (node1 > node2)
-    node1 = node2;
-  else if (node2 > node1)
-    node2 = node1;
+  if (node1 < 1 || (size_t)node1 > pch1.myMLGN.size()) return false;
+  if (node2 < 1 || (size_t)node2 > pch2.myMLGN.size()) return false;
+
+  if (pch1.myMLGN[node1-1] > pch2.myMLGN[node2-1])
+    pch1.mergeNodes(node1,pch2.myMLGN[node2-1],true);
+  else if (pch2.myMLGN[node2-1] > pch1.myMLGN[node1-1])
+    pch2.mergeNodes(node2,pch1.myMLGN[node1-1],true);
+  else
+    return false;
+
+  return true;
 }
 
 
-bool ASMbase::mergeNodes (size_t inod, int globalNum)
+bool ASMbase::mergeNodes (size_t inod, int globalNum, bool silence)
 {
   if (inod < 1 || inod > myMLGN.size())
     return false;
-  else if (myMLGN[--inod] == globalNum)
+
+  int oldNum = myMLGN[inod-1];
+  if (oldNum == globalNum)
     return false;
 
-  std::cout <<"  ** Merging duplicated nodes "<< globalNum <<" and "
-	    << myMLGN[inod] <<" at X="<< this->getCoord(inod) << std::endl;
+  if (!silence)
+    std::cout <<"  ** Merging duplicated nodes "<< globalNum <<" and "<< oldNum
+	      <<" at X="<< this->getCoord(inod) << std::endl;
 
-  myMLGN[inod] = globalNum;
-  return true;
+  std::map<int,int> old2New;
+  myMLGN[inod-1] = old2New[oldNum] = globalNum;
+  return this->renumberNodes(old2New);
 }
 
 
@@ -484,20 +619,27 @@ int ASMbase::renumberNodes (std::map<int,int>& old2new, int& nnod)
 bool ASMbase::renumberNodes (const std::map<int,int>& old2new)
 {
 #ifdef SP_DEBUG
-  bool printInvalidNodes = true;
+  bool printInvalidNodes = old2new.size() > 1;
 #else
   bool printInvalidNodes = false;
 #endif
 
   int invalid = 0;
-  for (size_t j = 0; j < BCode.size(); j++)
-    if (!utl::renumber(BCode[j].node,old2new,printInvalidNodes))
+  for (BCVec::iterator bit = BCode.begin(); bit != BCode.end();)
+    if (utl::renumber(bit->node,old2new,printInvalidNodes))
+      bit++;
+    else if (old2new.size() > 1)
+    {
+      bit = BCode.erase(bit);
       invalid++;
+    }
+    else
+      bit++;
 
-  for (MPCSet::iterator mit = mpcs.begin(); mit != mpcs.end(); mit++)
+  for (MPCIter mit = mpcs.begin(); mit != mpcs.end(); mit++)
     invalid += (*mit)->renumberNodes(old2new,printInvalidNodes);
 
-  if (invalid == 0) return true;
+  if (invalid == 0 || old2new.size() == 1) return true;
 
   std::cerr <<" *** "<< invalid <<" invalid nodes found while renumbering\n";
   return false;

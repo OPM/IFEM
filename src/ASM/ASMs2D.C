@@ -434,18 +434,17 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
   const double xtol = 1.0e-4;
   for (i = 0; i < n1; i++, node += i1)
   {
-    int k = revers ? n1-i-1 : i;
-    if (!neighbor.getCoord(node).equal(this->getCoord(slaveNodes[k]),xtol))
+    int slave = slaveNodes[revers ? n1-i-1 : i];
+    if (!neighbor.getCoord(node).equal(this->getCoord(slave),xtol))
     {
       std::cerr <<" *** ASMs2D::connectPatch: Non-matching nodes "
 		<< node <<": "<< neighbor.getCoord(node)
 		<<"\n                                          and "
-		<< slaveNodes[k] <<": "<< this->getCoord(slaveNodes[k])
-		<< std::endl;
+		<< slave <<": "<< this->getCoord(slave) << std::endl;
       return false;
     }
     else
-      ASMbase::collapseNodes(neighbor.myMLGN[node-1],myMLGN[slaveNodes[k]-1]);
+      ASMbase::collapseNodes(neighbor,node,*this,slave);
   }
 
   return true;
@@ -709,6 +708,16 @@ bool ASMs2D::updateCoords (const Vector& displ)
     j += nsd;
   }
 
+  return true;
+}
+
+
+bool ASMs2D::getOrder (int& p1, int& p2) const
+{
+  if (!surf) return false;
+
+  p1 = surf->order_u();
+  p2 = surf->order_v();
   return true;
 }
 

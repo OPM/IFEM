@@ -72,14 +72,20 @@ public:
   //! \param neighbor The neighbor patch
   //! \param[in] nedge Local edge index of neighbor patch, in range [1,4]
   //! \param[in] revers Indicates whether the two edges have opposite directions
-  virtual bool connectPatch(int edge, ASMs2D& neighbor, int nedge,
-			    bool revers = false);
+  bool connectC1(int edge, ASMs2DC1* neighbor, int nedge, bool revers = false);
 
   //! \brief Makes two opposite boundary edges periodic.
   //! \param[in] dir Parameter direction defining the periodic edges
   //! \param[in] basis Which basis to connect (mixed methods), 0 means both
   //! \param[in] master 1-based index of the first master node in this basis
   virtual void closeEdges(int dir, int basis = 0, int master = 1);
+
+  //! \brief Renumbers the global node numbers in the \a neighbors map.
+  //! \param[in] old2new Old-to-new node number mapping
+  static void renumberNodes(const std::map<int,int>& old2new);
+
+  //! \brief Initializes constraint equations enforcing C1-continuity.
+  virtual bool initConstraints();
 
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] func Scalar property fields
@@ -88,6 +94,9 @@ public:
   virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
                                const std::map<int,VecFunc*>& vfunc,
                                double time = 0.0);
+
+private:
+  static std::map<int,ASMs2DC1*> neighbors; //!< Global node to patch mapping
 };
 
 #endif

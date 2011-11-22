@@ -26,15 +26,14 @@ LinIsotropic: E = 2.05e+11, nu = 0.29, rho = 7850
 Resolving Dirichlet boundary conditions
  >>> SAM model summary <<<
 Number of elements    64
-Number of nodes       5049
-Number of dofs        15147
-Number of constraints 425
+Number of nodes       4896
+Number of dofs        14688
 Number of unknowns    13597
 Assembling interior matrix terms for P1
 Assembling Neumann matrix terms for boundary 3 on P1
 Solving the equation system ...
  >>> Solution summary <<<
-L2-norm            : 6.68754e-06
+L2-norm            : 6.78707e-06
 Max X-displacement : 1.85434e-05
 Max Y-displacement : 9.2717e-06
 Energy norm |u^h| = a(u^h,u^h)^0.5   : 17.0665

@@ -603,18 +603,18 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
 	case  7: k = n2-j-1; l = n1-i-1; break;
 	default: k =    i  ; l = j     ;
 	}
-      if (!neighbor.getCoord(node).equal(this->getCoord(slaveNodes[k][l]),xtol))
+
+      int slave = slaveNodes[k][l];
+      if (!neighbor.getCoord(node).equal(this->getCoord(slave),xtol))
       {
 	std::cerr <<" *** ASMs3D::connectPatch: Non-matching nodes "
 		  << node <<": "<< neighbor.getCoord(node)
 		  <<"\n                                          and "
-		  << slaveNodes[k][l] <<": "<< this->getCoord(slaveNodes[k][l])
-		  << std::endl;
+		  << slave <<": "<< this->getCoord(slave) << std::endl;
 	return false;
       }
       else
-	ASMbase::collapseNodes(neighbor.myMLGN[node-1],
-			       myMLGN[slaveNodes[k][l]-1]);
+	ASMbase::collapseNodes(neighbor,node,*this,slave);
     }
 
   return true;
@@ -1035,6 +1035,17 @@ bool ASMs3D::updateCoords (const Vector& displ)
     j += 3;
   }
 
+  return true;
+}
+
+
+bool ASMs3D::getOrder (int& p1, int& p2, int& p3) const
+{
+  if (!svol) return false;
+
+  p1 = svol->order(0);
+  p2 = svol->order(1);
+  p3 = svol->order(2);
   return true;
 }
 

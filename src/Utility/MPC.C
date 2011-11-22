@@ -57,6 +57,30 @@ bool MPCLess::operator() (const MPC* lhs, const MPC* rhs) const
 }
 
 
+void MPC::addMaster (const DOF& dof, real tol)
+{
+  if (dof.coeff >= -tol && dof.coeff <= tol) return; // ignore if zero coeff.
+
+  std::vector<DOF>::iterator it = std::find(master.begin(),master.end(),dof);
+  if (it == master.end())
+    master.push_back(dof);
+  else
+    it->coeff += dof.coeff;
+}
+
+
+bool MPC::merge (const MPC* mpc)
+{
+  if (!(this->slave == mpc->slave && this->slave.coeff == mpc->slave.coeff))
+    return false; // the slave definitions did not match
+
+  for (size_t i = 0; i < mpc->master.size(); i++)
+    this->addMaster(mpc->master[i]);
+
+  return true;
+}
+
+
 int MPC::renumberNodes (const std::map<int,int>& old2new, bool msg)
 {
   int invalid = utl::renumber(slave.node,old2new,msg) ? 0 : 1;

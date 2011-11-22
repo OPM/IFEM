@@ -62,7 +62,7 @@ public:
     char CY;  //!< Boundary condition code for Y-translation
     char CZ;  //!< Boundary condition code for Z-translation
     //! \brief Constructor initializing a BC instance.
-    BC(int n, char x, char y, char z) : node(n), CX(x), CY(y), CZ(z) {}
+    BC(int n) : node(n), CX(1), CY(1), CZ(1) {}
   };
 
   typedef std::vector<BC> BCVec; //!< Nodal boundary condition container
@@ -168,7 +168,8 @@ public:
   //! \brief Merges a given node in this patch with a given global node.
   //! \param[in] inod 1-based node index local to current patch
   //! \param[in] globalNum Global number of the node to merge \a node with
-  bool mergeNodes(size_t inod, int globalNum);
+  //! \param[in] silence If \e true, suppress message on the merged nodes
+  bool mergeNodes(size_t inod, int globalNum, bool silence = false);
 
   //! \brief Renumbers all global node numbers in the entire model.
   //! \param[in] model All spline patches in the model
@@ -200,14 +201,28 @@ public:
   //! \param[in] old2new Old-to-new node number mapping
   bool renumberNodes(const std::map<int,int>& old2new);
 
-  //! \brief Resolves (possibly multi-level) chaining in MPC equations.
+  //! \brief Computes the set of all MPCs over the whole model.
   //! \param[in] model All spline patches in the model
+  //! \param[out] allMPCs All multi-point constraint equations in the model
+  //!
+  //! \details The MPC equations are stored distributed over the patches,
+  //! based on the slave DOF of the constraint. Therefore, constraints on the
+  //! interface nodes between patches (to enforce higher order regularity) may
+  //! be defined on both neighboring patches. This method wil also merge such
+  //! multiply defined equations into a single equations.
+  static void mergeAndGetAllMPCs(const ASMVec& model, MPCSet& allMPCs);
+
+  //! \brief Resolves (possibly multi-level) chaining in MPC equations.
+  //! \param[in] allMPCs All multi-point constraint equations in the model
   //!
   //! \details If a master DOF in one MPC (multi-point constraint) equation
   //! is specified as slave by another MPC, it is replaced by the master(s) of
   //! that other equation. Since an MPC-equation may couple nodes belonging to
   //! different patches, this method must have access to all patches.
-  static void resolveMPCchains(const ASMVec& model);
+  static void resolveMPCchains(const MPCSet& allMPCs);
+
+  //! \brief Initializes the multi-point constraint coefficients.
+  virtual bool initConstraints() { return true;}
 
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] func Scalar property fields
@@ -364,15 +379,23 @@ protected:
   // =========================================================
 
   //! \brief Adds a general multi-point-constraint (MPC) equation to this patch.
-  //! \param[in] mpc Pointer to an MPC-object
+  //! \param mpc Pointer to an MPC-object
   //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
-  bool addMPC(MPC* mpc, int code = 0);
+  //! \param[in] silence If \e true, suppress debug print
+  bool addMPC(MPC*& mpc, int code = 0, bool silence = false);
   //! \brief Creates and adds a two-point constraint to this patch.
   //! \param[in] slave Global node number of the node to constrain
   //! \param[in] dir Which local DOF to constrain (1, 2, 3)
   //! \param[in] master Global node number of the master node of the constraint
   //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
-  bool addMPC(int slave, int dir, int master, int code = 0);
+  bool add2PC(int slave, int dir, int master, int code = 0);
+  //! \brief Creates and adds a three-point constraint to this patch.
+  //! \param[in] slave Global node number of the node to constrain
+  //! \param[in] dir Which local DOF to constrain (1, 2, 3)
+  //! \param[in] master1 Global node number of 1st master node of the constraint
+  //! \param[in] master2 Global node number of 2nd master node of the constraint
+  //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
+  bool add3PC(int slave, int dir, int master1, int master2, int code = 0);
   //! \brief Creates and adds a single-point constraint to this patch.
   //! \param[in] node Global node number of the node to constrain
   //! \param[in] dir Which local DOF to constrain (1, 2, 3)
@@ -406,7 +429,7 @@ protected:
   //! \brief Collapses the given two nodes into one.
   //! \details The global node number of the node with the highest number
   //! is changed into the number of the other node.
-  static void collapseNodes(int& node1, int& node2);
+  static bool collapseNodes(ASMbase& pch1, int node1, ASMbase& pch2, int node2);
 
 public:
   static bool fixHomogeneousDirichlet; //!< If \e true, pre-eliminate fixed DOFs
@@ -422,7 +445,7 @@ protected:
   const IntMat& MNPC; //!< Matrix of Nodal Point Correspondance
   const bool shareFE; //!< If \e true, this patch uses FE data of another patch
 
-  BCVec  BCode; //!< Vector of Boundary condition codes
+  BCVec  BCode; //!< Array of Boundary condition codes
   MPCMap dCode; //!< Inhomogeneous Dirichlet condition codes for the MPCs
   MPCSet mpcs;  //!< All multi-point constraints with the slave in this patch
 

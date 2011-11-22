@@ -74,6 +74,12 @@ public:
       return s <<"u_"<< char('w'+dof.dof) <<" in node "<< dof.node;
     }
 
+    //! \brief Global equality operator.
+    friend bool operator==(const DOF& a, const DOF& b)
+    {
+      return a.node == b.node && a.dof == b.dof;
+    }
+
     int  node;  //!< Node number identifying this DOF
     int  dof;   //!< Local DOF number within \a node
     real coeff; //!< The constrained value, or master DOF scaling coefficient
@@ -88,14 +94,18 @@ public:
   MPC(int n, int d, real c = real(0)) : slave(n,d,c) { iceq = -1; }
 
   //! \brief Adds a master DOF to the constraint equation.
+  //! \param[in] dof The the master DOF and associated coefficient to be added
+  //! \param[in] tol Tolerance for comparison with zero,
+  //! if the coefficient \a c is zero, the master DOF is not added
+  void addMaster(const DOF& dof, real tol = real(1.0e-8));
+  //! \brief Adds a master DOF to the constraint equation.
   //! \param[in] n The node number of the master DOF (1...NNOD)
   //! \param[in] d The local DOF number of the master DOF (1...3)
   //! \param[in] c The coefficient that this master should be scaled with
-  //! \param[in] tol Tolerance for comparison with zero,
-  //! if the coefficient \a c is zero, the master DOF is not added
+  //! \param[in] tol Tolerance for comparison with zero
   void addMaster(int n, int d, real c = real(1), real tol = real(1.0e-8))
   {
-    if (c < -tol || c > tol) master.push_back(DOF(n,d,c));
+    this->addMaster(DOF(n,d,c),tol);
   }
 
   //! \brief Updates the coefficient of the \a pos'th master DOF.
@@ -111,6 +121,9 @@ public:
     if (pos < master.size())
       master.erase(master.begin()+pos);
   }
+
+  //! \brief Merges the given MPC equation into this one.
+  bool merge(const MPC* mpc);
 
   //! \brief Renumbers all node numbers in the constraint equation.
   //! \param[in] old2new Old-to-new node number mapping

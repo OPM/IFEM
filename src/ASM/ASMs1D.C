@@ -320,7 +320,7 @@ bool ASMs1D::connectBasis (int vertex, ASMs1D& neighbor, int nvertex,
     return false;
   }
   else
-    ASMbase::collapseNodes(neighbor.myMLGN[master-1],myMLGN[slave-1]);
+    ASMbase::collapseNodes(neighbor,master,*this,slave);
 
   return true;
 }
