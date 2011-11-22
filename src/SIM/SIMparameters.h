@@ -49,13 +49,13 @@ public:
   int&       iter; //!< Iteration counter
   TimeDomain time; //!< Time domain data
 
-  double starTime; //!< Start (pseudo)time of simulation
-  double stopTime; //!< Stop (pseudo)time of simulation
+  double    starTime; //!< Start (pseudo)time of simulation
+  double    stopTime; //!< Stop (pseudo)time of simulation
+  TimeSteps mySteps;  //!< Time step definitions
 
 private:
   size_t lstep; //!< Local step counter, i.e., within current \a *stepIt
 
-  TimeSteps           mySteps; //!< Time step definitions
   TimeSteps::iterator stepIt;  //!< Running iterator over the time steps
 };
 
