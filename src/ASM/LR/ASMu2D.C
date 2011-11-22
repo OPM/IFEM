@@ -41,7 +41,7 @@ ASMu2D::ASMu2D (unsigned char n_s, unsigned char n_f)
 
 
 ASMu2D::ASMu2D (const ASMu2D& patch, unsigned char n_f)
-	: ASMunstruct(patch,n_f), lrspline(patch.lrspline), tensorspline(patch.tensorspline)
+	: ASMunstruct(patch,n_f), lrspline(patch.lrspline), tensorspline(0)
 {
 }
 
@@ -55,7 +55,6 @@ bool ASMu2D::read (std::istream& is)
 	char firstline[256];
 	is.getline(firstline, 256);
 	if(strncmp(firstline, "# LRSPLINE", 10) == 0) {
-		tensorspline = 0;
 		lrspline = new LR::LRSplineSurface();
 		is >> *lrspline;
 	} else { // probably a SplineSurface, so we'll read that and convert
@@ -324,6 +323,11 @@ bool ASMu2D::refine (const std::vector<int>& elements,
 
 bool ASMu2D::generateFEMTopology ()
 {
+	// At this point we are through with the tensor spline object.
+	// So release it to avoid memory leakage.
+	delete tensorspline;
+	tensorspline = 0;
+
 	if (!lrspline) return false;
 
 	const int nBasis    = lrspline->nBasisFunctions();
@@ -1103,7 +1107,6 @@ int ASMu2D::evalPoint (const double* xi, double* param, Vec3& X) const
 	lrspline->point(X0,param[0],param[1]);
 	for (unsigned char d = 0; d < nsd; d++)
 		X[d] = X0[d];
-
 	return 0;
 }
 
@@ -1267,10 +1270,10 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
-                           const RealArray* gpar, bool regular) const
+                           const RealArray* gpar, bool) const
 {
 #ifdef SP_DEBUG
-	std::cout << "ASMu2D::evalSolution(Matrix, Vector, RealArray )\n";
+	std::cout <<"ASMu2D::evalSolution(Matrix&,const Vector&,const RealArray*,bool)\n";
 #endif
 	size_t nComp = locSol.size() / this->getNoNodes();
 	if (nComp*this->getNoNodes() != locSol.size())
@@ -1285,7 +1288,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 	// Evaluate the primary solution field at each point
 	size_t nPoints   = gpar[0].size();
 	size_t nElements = lrspline->nElements();
-	size_t nPtsPerElement = nPoints / nElements;
+	size_t nPtsPerElement = nPoints > nElements ? nPoints / nElements : 4;
 	sField.resize(nComp,nPoints);
 	for (size_t i = 0; i < nPoints; i++)
 	{
@@ -1301,7 +1304,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 
 		// Now evaluate the solution field
 		utl::gather(ip,nComp,locSol,Xtmp);
-		Xtmp.multiply(spline.basisValues, Ytmp);
+		Xtmp.multiply(spline.basisValues,Ytmp);
 		sField.fillColumn(1+i,Ytmp);
 		// std::cout << "u(" << gpar[0][i] << ", " << gpar[1][i] << ") = " << Ytmp << "\n";
 		// std::cout << "Xtmp = " << Xtmp << std::endl;
@@ -1389,7 +1392,7 @@ Go::SplineSurface* ASMu2D::projectSolution (const Integrand& integrand) const
 #endif
 
 bool ASMu2D::evalSolution (Matrix& sField, const Integrand& integrand,
-                           const RealArray* gpar, bool regular) const
+                           const RealArray* gpar, bool) const
 {
 #ifdef SP_DEBUG
 	std::cout <<"ASMu2D::evalSolution(Matrix&,const Integrand&,const RealArray*,bool)\n";
@@ -1409,7 +1412,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const Integrand& integrand,
 
 	size_t nPoints = gpar[0].size();
 	size_t nElements = lrspline->nElements();
-	size_t nPtsPerElement = nPoints / nElements;
+	size_t nPtsPerElement = nPoints > nElements ? nPoints / nElements : 4;
 	size_t npe = floor((sqrt(nPtsPerElement)+.5));
 	double edge_epsilon = 0.01; // percentage offset from element size
 	bool use2ndDer = integrand.getIntegrandType() == 2;
