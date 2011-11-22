@@ -13,14 +13,23 @@
 
 #include "LinIsotropic.h"
 #include "Tensor.h"
+#include "Vec3.h"
 
 
 LinIsotropic::LinIsotropic (bool ps, bool ax) : planeStress(ps), axiSymmetry(ax)
 {
   // Default material properties - typical values for steel (SI units)
+  Efunc = 0;
   Emod = 2.05e11;
   nu = 0.29;
   rho = 7.85e3;
+}
+
+
+LinIsotropic::LinIsotropic (RealFunc* E, double v, double den, bool ps, bool ax)
+  : Efunc(E), nu(v), rho(den), planeStress(ps), axiSymmetry(ax)
+{
+  Emod = (*E)(Vec3());
 }
 
 
@@ -73,12 +82,16 @@ void LinIsotropic::print (std::ostream& os) const
 */
 
 bool LinIsotropic::evaluate (Matrix& C, SymmTensor& sigma, double& U,
-			     const Vec3&, const Tensor&, const SymmTensor& eps,
-			     char iop, const TimeDomain*, const Tensor*) const
+			     const Vec3& X, const Tensor&,
+			     const SymmTensor& eps, char iop,
+			     const TimeDomain*, const Tensor*) const
 {
   const size_t nsd = sigma.dim();
   const size_t nst = nsd == 2 && axiSymmetry ? 4 : nsd*(nsd+1)/2;
   C.resize(nst,nst,true);
+
+  if (Efunc) // Evaluate the scalar stiffness function
+    const_cast<LinIsotropic*>(this)->Emod = (*Efunc)(X);
 
   if (nsd == 1)
   {
