@@ -422,6 +422,7 @@ void ASMbase::mergeAndGetAllMPCs (const ASMVec& model, MPCSet& allMPCs)
 #endif
 	  ndeleted++;
 	}
+	(*it)->dCode.erase(*cit);
 	delete *cit;
       }
 
@@ -515,7 +516,12 @@ bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func,
   for (MPCMap::iterator cit = dCode.begin(); cit != dCode.end(); cit++)
   {
     size_t inod = this->getNodeIndex(cit->first->getSlave().node);
-    if (inod < 1) return false;
+    if (inod < 1)
+    {
+      std::cerr <<" *** ASMbase::updateDirichlet: Invalid slave node in MPC, "
+		<< *cit->first;
+      return false;
+    }
 
     Vec4 X(this->getCoord(inod),time);
     if ((fit = func.find(cit->second)) != func.end())
