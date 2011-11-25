@@ -33,7 +33,7 @@ std::vector<ASMbase*> readBasis (const std::string& name,
 				 int patches, HDF5Writer& hdf,
 				 int dim, int level)
 {
-  unsigned char nf = 1;
+  unsigned char nf[2]; nf[0] = 1; nf[1] = 0;
   ASM::Discretization ptype;
   std::vector<ASMbase*> result;
   for (int i=0;i<patches;++i) {
@@ -49,7 +49,7 @@ std::vector<ASMbase*> readBasis (const std::string& name,
     if (dim == 1)
       result.push_back(new ASMs1D(basis,1,1));
     else if (dim == 2) {
-      result.push_back(ASM2D::create(ptype,&nf));
+      result.push_back(ASM2D::create(ptype,nf));
       assert(result.back());
       result.back()->read(basis);
     }
