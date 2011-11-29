@@ -54,6 +54,7 @@ SIMbase::SIMbase () : g2l(&myGlb2Loc)
   nGlPatches = 0;
   vizIncr = 1;
   format = 1;
+  mixedFEM = false;
 
   MPCLess::compareSlaveDofOnly = true; // to avoid multiple slave definitions
 
@@ -206,7 +207,7 @@ bool SIMbase::createFEMmodel ()
 
   if (nGlPatches == 0 && nProc == 1)
     nGlPatches = myModel.size();
-
+  
   return true;
 }
 
@@ -757,8 +758,7 @@ double SIMbase::solutionNorms (const Vector& x, double* inf,
 {
   if (nf == 0) nf = this->getNoSpaceDim();
 
-  for (size_t d = 0; d < nf; d++)
-  {
+  for (size_t d = 0; d < nf; d++) {
     ind[d] = d+1;
     inf[d] = mySam->normInf(x,ind[d]);
   }

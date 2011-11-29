@@ -192,14 +192,14 @@ public:
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param[in] pSol Previous primary solution vectors in DOF-order
   //! \param[in] newLHSmatrix If \e false, only integrate the RHS vector
-  bool assembleSystem(const TimeDomain& time, const Vectors& pSol = Vectors(),
-		      bool newLHSmatrix = true);
+  virtual bool assembleSystem(const TimeDomain& time, const Vectors& pSol = Vectors(),
+			      bool newLHSmatrix = true);
 
   //! \brief Administers assembly of the linear equation system.
   //! \param[in] pSol Previous primary solution vectors in DOF-order
   //!
   //! \details Use this version for linear/stationary problems only.
-  bool assembleSystem(const Vectors& pSol = Vectors())
+  virtual bool assembleSystem(const Vectors& pSol = Vectors())
   { return this->assembleSystem(TimeDomain(),pSol); }
 
   //! \brief Extracts the assembled load vector for inspection/visualization.
@@ -586,6 +586,9 @@ protected:
   AlgEqSystem*  myEqSys;     //!< The actual linear equation system
   SAMpatch*     mySam;       //!< Auxiliary data for FE assembly management
   LinSolParams* mySolParams; //!< Input parameters for PETSc
+
+  // Discretization attributes
+  bool mixedFEM;             //!< If mixed finite elements are used  
 };
 
 #endif
