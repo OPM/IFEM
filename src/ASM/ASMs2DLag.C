@@ -530,12 +530,20 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
 }
 
 
-bool ASMs2DLag::evalSolution (Matrix&, const Vector&,
-			      const RealArray*, bool) const
+bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
+			      const RealArray* gpar, bool regular) const
 {
-  std::cerr <<" *** ASMs2DLag::evalSolution(Matrix&,const Vector&,"
-	    <<"const RealArray*,bool): Not implemented."<< std::endl;
-  return false;
+  size_t nPoints = coord.size();
+  size_t nComp = locSol.size() / nPoints;
+  if (nComp*nPoints != locSol.size())
+    return false;
+
+  sField.resize(nComp,nPoints);
+  const double* u = locSol.ptr();
+  for (size_t n = 1; n <= nPoints; n++, u += nComp)
+    sField.fillColumn(n,u);
+
+  return true;
 }
 
 
