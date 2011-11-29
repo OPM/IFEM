@@ -21,14 +21,15 @@
 #endif
 
 
-ASMbase* ASM2D::create (ASM::Discretization discretization, unsigned char* nf)
+ASMbase* ASM2D::create (ASM::Discretization discretization, 
+			unsigned char* nf, bool mixedFEM)
 {
   switch (discretization) {
   case ASM::SplineC1:
     return new ASMs2DC1(2,nf[0]);
 
   case ASM::Lagrange:
-    if (nf[1] > 0)
+    if (nf[1] > 0 || mixedFEM)
       return new ASMs2DmxLag(2,nf[0],nf[1]);
     else
       return new ASMs2DLag(2,nf[0]);
@@ -42,7 +43,7 @@ ASMbase* ASM2D::create (ASM::Discretization discretization, unsigned char* nf)
 #endif
 
   default:
-    if (nf[1] > 0)
+    if (nf[1] > 0 || mixedFEM)
       return new ASMs2Dmx(2,nf[0],nf[1]);
     else
       return new ASMs2D(2,nf[0]);
