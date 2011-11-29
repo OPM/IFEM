@@ -33,9 +33,15 @@ class SplineField3D : public Field
 {
 public:
   //! \brief The constructor sets the number of space dimensions and fields.
-  //! \param[in] geometry Spline volume geometry
+  //! \param[in] bf Spline basis description
   //! \param[in] name Name of spline field
-  SplineField3D(Go::SplineVolume *geometry, char* name = NULL);
+  SplineField3D(Go::SplineVolume *bf, char* name = NULL);
+  //! \param[in] bf Spline basis description
+  //! \param[in] geometry Spline geometry description
+  //! \param[in] name Name of spline field
+  SplineField3D(Go::SplineVolume *bf, 
+		Go::SplineVolume *geometry, 
+		char* name = NULL);
   //! \brief Empty destructor.
   virtual ~SplineField3D();
 
@@ -65,7 +71,8 @@ public:
   bool gradCoor(const Vec3& x, Vector& grad) const;
 
 protected:
-  Go::SplineVolume* vol; //!< Spline volume geometry description
+  Go::SplineVolume* basis; //!< Spline basis description
+  Go::SplineVolume* vol;   //!< Spline volume description
 };
 
 #endif

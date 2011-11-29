@@ -19,23 +19,38 @@
 #include "GoTools/geometry/SplineUtils.h"
 
 
-SplineField2D::SplineField2D(Go::SplineSurface *geometry, char* name)
-  : Field(2,name), surf(geometry) 
+SplineField2D::SplineField2D(Go::SplineSurface *bf, char* name)
+  : Field(2,name), basis(bf), surf(bf) 
 {
-  const int n1 = surf->numCoefs_u();
-  const int n2 = surf->numCoefs_v();
+  const int n1 = basis->numCoefs_u();
+  const int n2 = basis->numCoefs_v();
   nno = n1*n2;
 
-  const int p1 = surf->order_u();
-  const int p2 = surf->order_v();
+  const int p1 = basis->order_u();
+  const int p2 = basis->order_v();
+  nelm = (n1-p1+1)*(n2-p2+1);
+}
+
+
+SplineField2D::SplineField2D(Go::SplineSurface *bf, 
+			     Go::SplineSurface *geometry, 
+			     char* name)
+  : Field(2,name), basis(bf), surf(geometry) 
+{
+  const int n1 = basis->numCoefs_u();
+  const int n2 = basis->numCoefs_v();
+  nno = n1*n2;
+
+  const int p1 = basis->order_u();
+  const int p2 = basis->order_v();
   nelm = (n1-p1+1)*(n2-p2+1);
 }
 
 
 SplineField2D::~SplineField2D()
 {
-  // Set geometry pointer to NULL, should not be deallocated here
-  surf = NULL;
+  // Set basis and geometry pointers to NULL, should not be deallocated here
+  basis = surf = NULL;
 }
 
 
@@ -49,16 +64,16 @@ double SplineField2D::valueNode(int node) const
 double SplineField2D::valueFE(const FiniteElement& fe) const
 {
 //   Go::Point pt;
-//   surf->pointValue(pt,values,fe.u,fe.v);
+//   basis->pointValue(pt,values,fe.u,fe.v);
 //   return pt[0];
 
-  const int uorder = surf->order_u();
-  const int vorder = surf->order_v();
-  const int unum = surf->numCoefs_u();
-  //const int vnum = surf->numCoefs_v();
+  const int uorder = basis->order_u();
+  const int vorder = basis->order_v();
+  const int unum = basis->numCoefs_u();
+  //const int vnum = basis->numCoefs_v();
 
-  const int dim = surf->dimension();
-  const bool rational = surf->rational();
+  const int dim = basis->dimension();
+  const bool rational = basis->rational();
   const int kdim = rational ? dim + 1 : dim;
 
   //const int ncomp = values.size()/(unum*vnum);
@@ -71,11 +86,11 @@ double SplineField2D::valueFE(const FiniteElement& fe) const
   Bu.resize(uorder);
   Bv.resize(vorder);
 
-  surf->basis_u().computeBasisValues(fe.u,Bu.begin());
-  surf->basis_v().computeBasisValues(fe.v,Bv.begin());
+  basis->basis_u().computeBasisValues(fe.u,Bu.begin());
+  basis->basis_v().computeBasisValues(fe.v,Bv.begin());
   
-  const int uleft = surf->basis_u().lastKnotInterval();
-  const int vleft = surf->basis_v().lastKnotInterval();
+  const int uleft = basis->basis_u().lastKnotInterval();
+  const int vleft = basis->basis_v().lastKnotInterval();
 
   // compute the tensor product value
   const int val_start_ix = (uleft - uorder + 1 + unum * (vleft - vorder + 1));
@@ -86,7 +101,7 @@ double SplineField2D::valueFE(const FiniteElement& fe) const
       double tempw;
       double w = 0.0;
       const int w_start_ix  = (uleft - uorder + 1 + unum * (vleft - vorder + 1)) * kdim + dim;
-      register const double* w_ptr  = &(surf->rcoefs_begin()[w_start_ix]);
+      register const double* w_ptr  = &(basis->rcoefs_begin()[w_start_ix]);
       
       for (register double* bval_v_ptr = Bv.begin(); bval_v_ptr != Bv.end(); ++bval_v_ptr) {
         register const double bval_v = *bval_v_ptr;
@@ -136,11 +151,11 @@ double SplineField2D::valueCoor(const Vec3& x) const
 
 bool SplineField2D::gradFE(const FiniteElement& fe, Vector& grad) const
 {
-  if (!surf) return false;
+  if (!basis) return false;
 
 //   // Derivatives of solution in parametric space
 //   std::vector<Go::Point> pts(3);
-//   surf->pointValue(pts,values,fe.u,fe.v,1);
+//   basis->pointValue(pts,values,fe.u,fe.v,1);
 
 //   // Gradient of field wrt parametric coordinates
 //   Vector gradXi(2);
@@ -149,7 +164,7 @@ bool SplineField2D::gradFE(const FiniteElement& fe, Vector& grad) const
 
 //   // Derivatives of coordinate mapping 
 //   std::vector<Go::Point> xpts(3);
-//   surf->point(xpts,fe.u,fe.v,1);
+//   basis->point(xpts,fe.u,fe.v,1);
 
 //   // Jacobian matrix
 //   Matrix Jac(2,2);
@@ -167,9 +182,9 @@ bool SplineField2D::gradFE(const FiniteElement& fe, Vector& grad) const
   // Gradient of field wrt parametric coordinates
   Vector gradXi(2);
 
-  const int uorder = surf->order_u();
-  const int vorder = surf->order_v();
-  const int unum = surf->numCoefs_u();
+  const int uorder = basis->order_u();
+  const int vorder = basis->order_v();
+  const int unum = basis->numCoefs_u();
 
   const int derivs = 1;
   const int totpts = 3;
@@ -178,11 +193,11 @@ bool SplineField2D::gradFE(const FiniteElement& fe, Vector& grad) const
   const double resolution = 1.0e-12;
 
   // Dimension
-  const int dim       = surf->dimension();
-  const bool rational = surf->rational();
+  const int dim       = basis->dimension();
+  const bool rational = basis->rational();
   
   // Take care of the rational case
-  const std::vector<double>::iterator co = rational ? surf->rcoefs_begin() : surf->coefs_begin();
+  const std::vector<double>::iterator co = rational ? basis->rcoefs_begin() : basis->coefs_begin();
   int kdim = dim   + (rational ? 1 : 0);
   int ndim = 1 + (rational ? 1 : 0); 
   
@@ -196,16 +211,16 @@ bool SplineField2D::gradFE(const FiniteElement& fe, Vector& grad) const
 
   // Compute the basis values and get some data about the spline spaces
   if (u_from_right) 
-    surf->basis_u().computeBasisValues(fe.u, &b0[0], derivs, resolution);
+    basis->basis_u().computeBasisValues(fe.u, &b0[0], derivs, resolution);
   else 
-    surf->basis_u().computeBasisValuesLeft(fe.u, &b0[0], derivs, resolution);  
-  int uleft  = surf->basis_u().lastKnotInterval();
+    basis->basis_u().computeBasisValuesLeft(fe.u, &b0[0], derivs, resolution);  
+  int uleft  = basis->basis_u().lastKnotInterval();
 
   if (v_from_right) 
-    surf->basis_v().computeBasisValues(fe.v, &b1[0], derivs, resolution);
+    basis->basis_v().computeBasisValues(fe.v, &b1[0], derivs, resolution);
   else 
-    surf->basis_v().computeBasisValuesLeft(fe.v, &b1[0], derivs, resolution);  
-  int vleft = surf->basis_v().lastKnotInterval();
+    basis->basis_v().computeBasisValuesLeft(fe.v, &b1[0], derivs, resolution);  
+  int vleft = basis->basis_v().lastKnotInterval();
 
   // Compute the tensor product value
   int coefind = uleft-uorder+1 + unum*(vleft-vorder+1);

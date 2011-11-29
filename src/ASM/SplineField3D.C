@@ -23,25 +23,42 @@ namespace Go {
 }
 
 
-SplineField3D::SplineField3D(Go::SplineVolume *geometry, char* name)
-  : Field(3,name), vol(geometry) 
+SplineField3D::SplineField3D(Go::SplineVolume *bf, char* name)
+  : Field(3,name), basis(bf), vol(bf) 
 {
-  const int n1 = vol->numCoefs(0);
-  const int n2 = vol->numCoefs(1);
-  const int n3 = vol->numCoefs(2);
+  const int n1 = basis->numCoefs(0);
+  const int n2 = basis->numCoefs(1);
+  const int n3 = basis->numCoefs(2);
   nno = n1*n2*n3;
 
-  const int p1 = vol->order(0);
-  const int p2 = vol->order(1);
-  const int p3 = vol->order(2);
+  const int p1 = basis->order(0);
+  const int p2 = basis->order(1);
+  const int p3 = basis->order(2);
+  nelm = (n1-p1+1)*(n2-p2+1)*(n3-p3+1);
+}
+
+
+SplineField3D::SplineField3D(Go::SplineVolume *bf, 
+			     Go::SplineVolume *geometry, 
+			     char* name)
+  : Field(3,name), basis(bf), vol(geometry) 
+{
+  const int n1 = basis->numCoefs(0);
+  const int n2 = basis->numCoefs(1);
+  const int n3 = basis->numCoefs(2);
+  nno = n1*n2*n3;
+
+  const int p1 = basis->order(0);
+  const int p2 = basis->order(1);
+  const int p3 = basis->order(2);
   nelm = (n1-p1+1)*(n2-p2+1)*(n3-p3+1);
 }
 
 
 SplineField3D::~SplineField3D()
 {
-  // Set geometry pointer to NULL, should not be deallocated here
-  vol = NULL;
+  // Set basis and geometry pointers to NULL, should not be deallocated here
+  basis = vol = NULL;
 }
 
 
@@ -55,19 +72,19 @@ double SplineField3D::valueNode(int node) const
 double SplineField3D::valueFE(const FiniteElement& fe) const
 {
 //   Go::Point pt;
-//   vol->pointValue(pt,values,fe.u,fe.v,fe.w);
+//   basis->pointValue(pt,values,fe.u,fe.v,fe.w);
 //   return pt[0];
 
   double val = 0.0;
 
-  const int uorder = vol->order(0);
-  const int vorder = vol->order(1);
-  const int worder = vol->order(2);
-  const int unum = vol->numCoefs(0);
-  const int vnum = vol->numCoefs(1);
+  const int uorder = basis->order(0);
+  const int vorder = basis->order(1);
+  const int worder = basis->order(2);
+  const int unum = basis->numCoefs(0);
+  const int vnum = basis->numCoefs(1);
 
-  const int dim = vol->dimension();
-  const bool rational = vol->rational();
+  const int dim = basis->dimension();
+  const bool rational = basis->rational();
   int kdim = rational ? dim + 1 : dim;
   
   static Go::ScratchVect<double, 10> Bu(uorder);
@@ -80,12 +97,12 @@ double SplineField3D::valueFE(const FiniteElement& fe) const
   Bw.resize(worder);
   
   // compute tbe basis values and get some data about the spline spaces
-  vol->basis(0).computeBasisValues(fe.u, Bu.begin());
-  vol->basis(1).computeBasisValues(fe.v, Bv.begin());
-  vol->basis(2).computeBasisValues(fe.w, Bw.begin());
-  const int uleft = vol->basis(0).lastKnotInterval();
-  const int vleft = vol->basis(1).lastKnotInterval();
-  const int wleft = vol->basis(2).lastKnotInterval();
+  basis->basis(0).computeBasisValues(fe.u, Bu.begin());
+  basis->basis(1).computeBasisValues(fe.v, Bv.begin());
+  basis->basis(2).computeBasisValues(fe.w, Bw.begin());
+  const int uleft = basis->basis(0).lastKnotInterval();
+  const int vleft = basis->basis(1).lastKnotInterval();
+  const int wleft = basis->basis(2).lastKnotInterval();
 
   // compute the tensor product value
   const int val_start_ix = uleft - uorder + 1 + unum * (vleft - vorder + 1 + vnum * (wleft - worder + 1));
@@ -97,7 +114,7 @@ double SplineField3D::valueFE(const FiniteElement& fe) const
 
     w = 0.0;
     const int w_start_ix = (uleft - uorder + 1 + unum * (vleft - vorder + 1 + vnum * (wleft - worder + 1))) * kdim + dim;
-    const double *w_ptr = &(vol->rcoefs_begin()[w_start_ix]);
+    const double *w_ptr = &(basis->rcoefs_begin()[w_start_ix]);
     
     for (double* bval_w_ptr = Bw.begin(); bval_w_ptr != Bw.end(); ++bval_w_ptr) {
       const double bval_w = *bval_w_ptr;
@@ -162,11 +179,11 @@ double SplineField3D::valueCoor(const Vec3& x) const
 
 bool SplineField3D::gradFE(const FiniteElement& fe, Vector& grad) const
 {
-  if (!vol) return false;
+  if (!basis) return false;
 
 //   // Derivatives of solution in parametric space
 //   std::vector<Go::Point> pts;
-//   vol->pointValue(pts,values,fe.u,fe.v,fe.w,1);
+//   basis->pointValue(pts,values,fe.u,fe.v,fe.w,1);
 
 //   // Gradient of field wrt parametric coordinates
 //   Vector gradXi(3);
@@ -176,7 +193,7 @@ bool SplineField3D::gradFE(const FiniteElement& fe, Vector& grad) const
 
 //   // Derivatives of coordinate mapping 
 //   std::vector<Go::Point> xpts(3);
-//   vol->point(xpts,fe.u,fe.v,fe.w,1);
+//   basis->point(xpts,fe.u,fe.v,fe.w,1);
 
 //   // Jacobian matrix
 //   Matrix Jac(3,3);
@@ -197,13 +214,13 @@ bool SplineField3D::gradFE(const FiniteElement& fe, Vector& grad) const
   int derivs = 1;
   int totpts = (derivs + 1)*(derivs + 2)*(derivs + 3)/6;
   
-  const int unum = vol->numCoefs(0);
-  const int vnum = vol->numCoefs(1);
-  const int wnum = vol->numCoefs(2);
+  const int unum = basis->numCoefs(0);
+  const int vnum = basis->numCoefs(1);
+  const int wnum = basis->numCoefs(2);
 
-  const int uorder = vol->order(0);
-  const int vorder = vol->order(1);
-  const int worder = vol->order(2);
+  const int uorder = basis->order(0);
+  const int vorder = basis->order(1);
+  const int worder = basis->order(2);
 
   const bool u_from_right = true;
   const bool v_from_right = true;
@@ -212,11 +229,11 @@ bool SplineField3D::gradFE(const FiniteElement& fe, Vector& grad) const
   const double resolution = 1.0e-12;
   
   const int ncomp     = values.size()/(unum*vnum*wnum);
-  const int dim       = vol->dimension();
-  const bool rational = vol->rational();
+  const int dim       = basis->dimension();
+  const bool rational = basis->rational();
   
   // Take care of the rational case
-  const std::vector<double>::iterator co = rational ? vol->rcoefs_begin() : vol->coefs_begin();
+  const std::vector<double>::iterator co = rational ? basis->rcoefs_begin() : basis->coefs_begin();
   int kdim = dim + (rational ? 1 : 0);
   int ndim = ncomp + (rational ? 1 : 0);
   
@@ -232,23 +249,23 @@ bool SplineField3D::gradFE(const FiniteElement& fe, Vector& grad) const
   
   // Compute the basis values and get some data about the spline spaces
   if (u_from_right) 
-    vol->basis(0).computeBasisValues(fe.u, &b0[0], derivs, resolution);
+    basis->basis(0).computeBasisValues(fe.u, &b0[0], derivs, resolution);
   else 
-    vol->basis(1).computeBasisValuesLeft(fe.u, &b0[0], derivs, resolution);
+    basis->basis(1).computeBasisValuesLeft(fe.u, &b0[0], derivs, resolution);
   
-  int uleft = vol->basis(0).lastKnotInterval();
+  int uleft = basis->basis(0).lastKnotInterval();
   if (v_from_right) 
-    vol->basis(1).computeBasisValues(fe.v, &b1[0], derivs, resolution);
+    basis->basis(1).computeBasisValues(fe.v, &b1[0], derivs, resolution);
   else 
-    vol->basis(1).computeBasisValuesLeft(fe.v, &b1[0], derivs, resolution);
+    basis->basis(1).computeBasisValuesLeft(fe.v, &b1[0], derivs, resolution);
   
-  int vleft = vol->basis(1).lastKnotInterval();
+  int vleft = basis->basis(1).lastKnotInterval();
   if (w_from_right) 
-    vol->basis(2).computeBasisValues(fe.w, &b2[0], derivs, resolution);
+    basis->basis(2).computeBasisValues(fe.w, &b2[0], derivs, resolution);
   else 
-    vol->basis(2).computeBasisValuesLeft(fe.w, &b2[0], derivs, resolution);
+    basis->basis(2).computeBasisValuesLeft(fe.w, &b2[0], derivs, resolution);
   
-  int wleft = vol->basis(2).lastKnotInterval();
+  int wleft = basis->basis(2).lastKnotInterval();
   
   // Compute the tensor product value
   int coefind = uleft-uorder+1 + unum*(vleft-vorder+1 + vnum*(wleft-worder+1));

@@ -33,9 +33,16 @@ class SplineFields2D : public Fields
 {
 public:
   //! \brief The constructor sets the field name.
-  //! \param[in] geometry Spline surface geometry
+  //! \param[in] bf Spline basis description
   //! \param[in] name Name of spline field
-  SplineFields2D(Go::SplineSurface *geometry, char* name = NULL);
+  SplineFields2D(Go::SplineSurface *bf, char* name = NULL);
+  //! \brief The constructor sets the field name.
+  //! \param[in] bf Spline basis description
+  //! \param[in] geometry Spline geometry description
+  //! \param[in] name Name of spline field
+  SplineFields2D(Go::SplineSurface *bf, 
+		 Go::SplineSurface *geoemtry, 
+		 char* name = NULL);
   //! \brief Empty destructor.
   virtual ~SplineFields2D();
 
@@ -68,7 +75,8 @@ public:
   bool gradCoor(const Vec3& x, Matrix& grad) const;
 
 protected:
-  Go::SplineSurface* surf; //!< Spline surface geometry description
+  Go::SplineSurface* basis; //!< Spline basis description
+  Go::SplineSurface* surf;  //!< Spline geoemtry description
 };
 
 #endif
