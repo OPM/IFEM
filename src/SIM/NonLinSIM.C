@@ -132,12 +132,15 @@ void NonLinSIM::init (SolvePrm& param, const RealArray& initVal)
 }
 
 
-bool NonLinSIM::advanceStep (SolvePrm& param)
+bool NonLinSIM::advanceStep (SolvePrm& param, bool updateTimePrm)
 {
   // Update solution vectors between time steps
   for (int n = solution.size()-1; n > 0; n--)
     solution[n] = solution[n-1];
 
+  if (!updateTimePrm)
+    return true;
+  
   return param.increment();
 }
 

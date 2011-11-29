@@ -65,7 +65,8 @@ public:
   //! \param[in] initVal Initial values of the primary solution
   virtual void init(SolvePrm& param, const RealArray& initVal = RealArray());
   //! \brief Advances the time/load step one step forward.
-  virtual bool advanceStep(SolvePrm& param);
+  //! \param[in] updateTimePrm If the time parameters should be incremented
+  virtual bool advanceStep(SolvePrm& param, bool updateTimePrm = true);
 
   //! \brief Opens a new VTF-file and writes the model geometry to it.
   //! \param[in] fileName File name used to construct the VTF-file name from
