@@ -37,6 +37,16 @@ SystemVector* SystemVector::create (Type vectorType)
 }
 
 
+void SystemVector::copy(const SystemVector& x)
+{
+  this->redim(x.size());
+  SystemVector* xsv = const_cast<SystemVector*>(&x);
+  real* vec = this->getPtr();
+  memcpy(vec,xsv->getPtr(),x.dim()*sizeof(real));
+  this->restore(vec);
+}
+
+
 SystemMatrix* SystemMatrix::create (Type matrixType, const LinSolParams& spar)
 {
 #ifdef HAS_PETSC
@@ -66,4 +76,11 @@ SystemMatrix* SystemMatrix::create (Type matrixType, int num_thread_SLU)
     }
 
   return 0;
+}
+
+
+bool SystemMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
+{
+  x.copy(b);
+  return this->solve(x,newLHS);
 }

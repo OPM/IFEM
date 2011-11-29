@@ -76,6 +76,9 @@ public:
   //! \brief Initializes the vector assuming it is properly dimensioned.
   virtual void init(real value = real(0)) = 0;
 
+  //! \brief Copies entries from input vector
+  virtual void copy(const SystemVector& x);
+
   //! \brief Begins communication step needed in parallel vector assembly.
   virtual bool beginAssembly() { return true; }
   //! \brief Ends communication step needed in parallel vector assembly.
@@ -264,6 +267,19 @@ public:
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param newLHS \e true if the left-hand-side matrix has been updated
   virtual bool solve(SystemVector&, bool newLHS = true) { return false; }
+
+  //! \brief Solves the linear system of equations for a given right-hand-side.
+  //! \param b Right-hand-side vector
+  //! \param x Solution vector
+  //! \param newLHS \e true if the left-hand-side matrix has been updated
+  virtual bool solve(const SystemVector& b, SystemVector& x, bool newLHS = true);
+
+  //! \brief Solves the linear system of equations for a given right-hand-side.
+  //! \param b Right-hand-side vector
+  //! \param P Preconditioning matrix (if different than system matrix)
+  //! \param newLHS \e true if the left-hand-side matrix has been updated
+  virtual bool solve(SystemVector& b, SystemMatrix& P, bool newLHS = true)
+  { return false; }
 
   //! \brief Returns the L-infinity norm of the matrix.
   virtual real Linfnorm() const = 0;

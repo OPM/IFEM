@@ -204,7 +204,7 @@ PETScMatrix::~PETScMatrix ()
   KSPDestroy(ksp);
 
   // Deallocation of matrix object.
-  MatDestroy(A); 
+  MatDestroy(A);   
   LinAlgInit::decrefs();
 }
 
@@ -260,6 +260,7 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
     bc[j-1] = -uc[j-1];
     for (i = 1;i <= nedof;i++)
       A(i,j) = A(j,i) = 0.0;
+    
     
     A(j,j) = 1.0;
   }
@@ -537,14 +538,14 @@ bool PETScMatrix::multiply (const SystemVector& B, SystemVector& C)
 
 bool PETScMatrix::solve (SystemVector& B, bool newLHS)
 {
-  PETScVector* Bptr = dynamic_cast<PETScVector*>(&B);
+  const PETScVector* Bptr = dynamic_cast<PETScVector*>(&B);
   if (!Bptr)
     return false;
 
   Vec x;
   VecDuplicate(Bptr->getVector(),&x);
   VecCopy(Bptr->getVector(),x);
-
+  
   // Has lefthand side changed?
   if (newLHS)
     KSPSetOperators(ksp,A,A,SAME_NONZERO_PATTERN);
@@ -552,6 +553,7 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
     KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
   
   solParams.setParams(ksp);
+  KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
   KSPSolve(ksp,x,Bptr->getVector());
 
   PetscInt its;
@@ -562,6 +564,66 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
   return true;
 }
 
+
+bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
+{
+  SystemVector* Bp = const_cast<SystemVector*>(&b);
+  PETScVector* Bptr = dynamic_cast<PETScVector*>(Bp);
+  if (!Bptr)
+    return false;
+  PETScVector* Xptr = dynamic_cast<PETScVector*>(&x);
+  if (!Xptr)
+    return false;
+
+  // Has lefthand side changed?
+  if (newLHS)
+    KSPSetOperators(ksp,A,A,SAME_NONZERO_PATTERN);
+  else
+    KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
+  
+  solParams.setParams(ksp);
+  KSPSetInitialGuessNonzero(ksp,PETSC_TRUE);
+  KSPSolve(ksp,Bptr->getVector(),Xptr->getVector());
+
+  PetscInt its;
+  KSPGetIterationNumber(ksp,&its);
+  PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getMethod(),its);
+
+  return true;
+}
+
+
+bool PETScMatrix::solve (SystemVector& B, SystemMatrix& P, bool newLHS)
+{
+  const PETScVector* Bptr = dynamic_cast<PETScVector*>(&B);
+  if (!Bptr)
+    return false;
+
+  const PETScMatrix* Pptr = dynamic_cast<PETScMatrix*>(&P);
+  if (!Pptr)
+    return false;
+
+  Vec x;
+  VecDuplicate(Bptr->getVector(),&x);
+  VecCopy(Bptr->getVector(),x);
+
+  // Has lefthand side changed?
+  if (newLHS)
+    KSPSetOperators(ksp,A,Pptr->getMatrix(),SAME_NONZERO_PATTERN);
+  else
+    KSPSetOperators(ksp,A,Pptr->getMatrix(),SAME_PRECONDITIONER);
+  
+  solParams.setParams(ksp);
+  KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
+  KSPSolve(ksp,x,Bptr->getVector());
+
+  PetscInt its;
+  KSPGetIterationNumber(ksp,&its);
+  PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getMethod(),its);
+  VecDestroy(x);
+
+  return true;
+}
 
 bool PETScMatrix::solveEig (PETScMatrix& B, RealArray& val,
 			    Matrix& vec, int nv, real shift, int iop)

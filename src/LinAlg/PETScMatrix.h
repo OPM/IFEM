@@ -187,6 +187,17 @@ public:
   //! \param B Right-hand-side vector on input, solution vector on output
   virtual bool solve(SystemVector& B, bool newLHSmatrix = true);
 
+  //! \brief Solves the linear system of equations for a given right-hand-side.
+  //! \param b Right-hand-side vector
+  //! \param x Solution vector
+  virtual bool solve(const SystemVector& b, SystemVector& x, bool newLHSmatrix = true);
+
+  //! \brief Solves the linear system of equations for a given right-hand-side.
+  //! \param b Right-hand-side vector
+  //! \param P Preconditioning matrix (if different than system matrix)
+  //! \param newLHS \e true if the left-hand-side matrix has been updated
+  virtual bool solve(SystemVector& b, SystemMatrix& P, bool newLHS = true);
+
   //! \brief Solves a generalized symmetric-definite eigenproblem.
   //! \details The eigenproblem is assumed to be on the form
   //! \b A \b x = \f$\lambda\f$ \b B \b x where \b A ( = \a *this ) and \b B
@@ -204,6 +215,12 @@ public:
 
   //! \brief Returns the L-infinity norm of the matrix.
   virtual real Linfnorm() const;
+
+  //! \brief Return PETSc matrix.
+  Mat& getMatrix() { return A; }
+
+  //! \brief Return PETSc matrix.
+  const Mat& getMatrix() const { return A; }
 
 private:
   Mat                 A;         //!< Linear system matrix
