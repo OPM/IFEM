@@ -16,6 +16,7 @@
 #include "Functions.h"
 #include "Utilities.h"
 #include <fstream>
+#include <sstream>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -44,6 +45,8 @@ SIM2D::SIM2D (unsigned char n1, unsigned char n2) : isRefined(false)
 {
   nf[0] = n1;
   nf[1] = n2;
+
+  if (nf[1] > 0) mixedFEM = true;
 }
 
 
@@ -95,49 +98,55 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
     bool oneBasedIdx = keyWord[8] == '1';
     size_t i = (oneBasedIdx || keyWord[8] == '0') ? 9 : 8;
     while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
-    std::ifstream isn(keyWord+i);
-    if (isn)
-      std::cout <<"\nReading data file "<< keyWord+i << std::endl;
-    else
-    {
-      std::cerr <<" *** SIM2D::read: Failure opening input file "
-		<< std::string(keyWord+i) << std::endl;
-      return false;
-    }
 
-    while (isn.good())
-    {
-      int patch = 0;
-      isn >> patch;
-      if (!oneBasedIdx) ++patch;
-      int pid = this->getLocalPatchIndex(patch);
-      if (pid < 0) return false;
+    std::stringstream filenames(keyWord+i);
+    size_t k = 0;
+    while (filenames.good()) {
+      std::string filename;
+      filenames >> filename;
 
-      ASMs2D::BlockNodes n;
-      for (i = 0; i < 4 && isn.good(); i++)
-	isn >> n.ibnod[i];
-      for (i = 0; i < 4 && isn.good(); i++)
-	isn >> n.edges[i].icnod >> n.edges[i].incr;
-      isn >> n.iinod;
+      if (filenames.good() || k > 0) k++;
 
-      if (!oneBasedIdx)
-      {
-        // We always require the node numbers to be 1-based
-        for (i = 0; i < 4; i++) ++n.ibnod[i];
-        for (i = 0; i < 4; i++) ++n.edges[i].icnod;
-        ++n.iinod;
+      std::ifstream isn(filename.c_str());
+      if (isn)
+	std::cout <<"\nReading data file "<< filename << std::endl;
+      else {
+	std::cerr <<" *** SIM2D::read: Failure opening input file "
+		  << filename << std::endl;
+	return false;
       }
 
-      if (isn.good() && pid > 0)
-        if (!static_cast<ASMs2D*>(myModel[pid-1])->assignNodeNumbers(n))
-        {
-          std::cerr <<" *** SIM2D::parse: Failed to assign node numbers"
-                    <<" for patch "<< patch << std::endl;
-          return false;
-        }
+      while (isn.good()) {
+	int patch = 0;
+	isn >> patch;
+	if (!oneBasedIdx) ++patch;
+	int pid = this->getLocalPatchIndex(patch);
+	if (pid < 0) return false;
+	
+	ASMs2D::BlockNodes n;
+	for (i = 0; i < 4 && isn.good(); i++)
+	  isn >> n.ibnod[i];
+	for (i = 0; i < 4 && isn.good(); i++)
+	  isn >> n.edges[i].icnod >> n.edges[i].incr;
+	isn >> n.iinod;
+	
+	if (!oneBasedIdx) {
+	  // We always require the node numbers to be 1-based
+	  for (i = 0; i < 4; i++) ++n.ibnod[i];
+	  for (i = 0; i < 4; i++) ++n.edges[i].icnod;
+	  ++n.iinod;
+	}
+	
+	if (isn.good() && pid > 0) {
+	  if (!static_cast<ASMs2D*>(myModel[pid-1])->assignNodeNumbers(n,k)) {
+	    std::cerr <<" *** SIM2D::parse: Failed to assign node numbers"
+		      <<" for patch "<< patch << std::endl;
+	    return false;
+	  }
+	}
+      }
     }
   }
-
   else if (!strncasecmp(keyWord,"PROPERTYFILE",12))
   {
     bool oneBasedIdx = keyWord[12] == '1';

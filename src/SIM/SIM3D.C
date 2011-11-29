@@ -18,6 +18,7 @@
 #include "Functions.h"
 #include "Utilities.h"
 #include <fstream>
+#include <sstream>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -28,6 +29,8 @@ SIM3D::SIM3D (bool checkRHS, unsigned char n1, unsigned char n2)
   nf[0] = n1;
   nf[1] = n2;
   checkRHSys = checkRHS;
+
+  if (nf[1] > 0) mixedFEM = true;
 }
 
 
@@ -94,49 +97,55 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
     bool oneBasedIdx = keyWord[8] == '1';
     size_t i = (oneBasedIdx || keyWord[8] == '0') ? 9 : 8;
     while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
-    std::ifstream isn(keyWord+i);
-    if (isn)
-      std::cout <<"\nReading data file "<< keyWord+i << std::endl;
-    else
-    {
-      std::cerr <<" *** SIM3D::read: Failure opening input file "
-		<< std::string(keyWord+i) << std::endl;
-      return false;
-    }
 
-    while (isn.good())
-    {
-      int patch = 0;
-      isn >> patch;
-      if (!oneBasedIdx) ++patch;
-      int pid = this->getLocalPatchIndex(patch);
-      if (pid < 0) return false;
+    std::stringstream filenames(keyWord+i);
+    size_t k = 0;
+    while (filenames.good()) {
+      std::string filename;
+      filenames >> filename;
 
-      ASMs3D::BlockNodes n;
-      for (i = 0; i <  8 && isn.good(); i++)
-	isn >> n.ibnod[i];
-      for (i = 0; i < 12 && isn.good(); i++)
-	isn >> n.edges[i].icnod >> n.edges[i].incr;
-      for (i = 0; i <  6 && isn.good(); i++)
-	isn >> n.faces[i].isnod >> n.faces[i].incrI >> n.faces[i].incrJ;
-      isn >> n.iinod;
+      if (filenames.good() || k > 0) k++;
 
-      if (!oneBasedIdx)
-      {
-	// We always require the node numbers to be 1-based
-	for (i = 0; i <  8; i++) ++n.ibnod[i];
-	for (i = 0; i < 12; i++) ++n.edges[i].icnod;
-	for (i = 0; i <  6; i++) ++n.faces[i].isnod;
-	++n.iinod;
+      std::ifstream isn(filename.c_str());
+      if (isn)
+	std::cout <<"\nReading data file "<< filename << std::endl;
+      else {
+	std::cerr <<" *** SIM3D::read: Failure opening input file "
+		  << filename << std::endl;
+	return false;
       }
 
-      if (isn.good() && pid > 0)
-	if (!static_cast<ASMs3D*>(myModel[pid-1])->assignNodeNumbers(n))
-	{
-	  std::cerr <<" *** SIM3D::parse: Failed to assign node numbers"
-		    <<" for patch "<< patch << std::endl;
-	  return false;
+      while (isn.good()) {
+	int patch = 0;
+	isn >> patch;
+	if (!oneBasedIdx) ++patch;
+	int pid = this->getLocalPatchIndex(patch);
+	if (pid < 0) return false;
+	
+	ASMs3D::BlockNodes n;
+	for (i = 0; i <  8 && isn.good(); i++)
+	  isn >> n.ibnod[i];
+	for (i = 0; i < 12 && isn.good(); i++)
+	  isn >> n.edges[i].icnod >> n.edges[i].incr;
+	for (i = 0; i <  6 && isn.good(); i++)
+	  isn >> n.faces[i].isnod >> n.faces[i].incrI >> n.faces[i].incrJ;
+	isn >> n.iinod;
+	
+	if (!oneBasedIdx) {
+	  // We always require the node numbers to be 1-based
+	  for (i = 0; i <  8; i++) ++n.ibnod[i];
+	  for (i = 0; i < 12; i++) ++n.edges[i].icnod;
+	  for (i = 0; i <  6; i++) ++n.faces[i].isnod;
+	  ++n.iinod;
 	}
+	
+	if (isn.good() && pid > 0)
+	  if (!static_cast<ASMs3D*>(myModel[pid-1])->assignNodeNumbers(n,k)) {
+	    std::cerr <<" *** SIM3D::parse: Failed to assign node numbers"
+		      <<" for patch "<< patch << std::endl;
+	    return false;
+	  }
+      }
     }
   }
 
@@ -600,7 +609,7 @@ void SIM3D::readPatches (std::istream& isp)
     switch (discretization)
       {
       case ASM::Lagrange:
-        if (nf[1] > 0)
+        if (mixedFEM)
           pch = new ASMs3DmxLag(isp,checkRHSys,nf[0],nf[1]);
         else
           pch = new ASMs3DLag(isp,checkRHSys,nf[0]);
@@ -609,7 +618,7 @@ void SIM3D::readPatches (std::istream& isp)
         pch = new ASMs3DSpec(isp,checkRHSys,nf[0]);
         break;
       default:
-        if (nf[1] > 0)
+        if (mixedFEM)
           pch = new ASMs3Dmx(isp,checkRHSys,nf[0],nf[1]);
         else
           pch = new ASMs3D(isp,checkRHSys,nf[0]);
