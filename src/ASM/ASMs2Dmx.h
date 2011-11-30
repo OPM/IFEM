@@ -40,6 +40,13 @@ public:
   virtual ~ASMs2Dmx() {}
 
 
+  //! \brief Returns the spline surface representing this patch.
+  Go::SplineSurface* getSurface() const { return surf; }
+
+  //! \brief Returns the spline surface representing this patch.
+  Go::SplineSurface* getBasis(int basis) const; 
+  
+
   // Methods for model generation
   // ============================
 

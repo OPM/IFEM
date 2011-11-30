@@ -49,6 +49,15 @@ ASMs2Dmx::ASMs2Dmx (const ASMs2Dmx& patch, char n_f1, char n_f2)
 }
 
 
+Go::SplineSurface* ASMs2Dmx::getBasis(int basis) const
+{
+  if (basis == 2) 
+    return basis2;
+  else
+    return basis1;
+}
+
+
 bool ASMs2Dmx::write (std::ostream& os, int basis) const
 {
   if (basis1 && basis == 1)
@@ -154,6 +163,13 @@ bool ASMs2Dmx::generateFEMTopology ()
       int ndim = surf->dimension();
       Go::BsplineBasis b1 = surf->basis(0).extendedBasis(surf->order_u()+1);
       Go::BsplineBasis b2 = surf->basis(1).extendedBasis(surf->order_v()+1);
+      // To lower order and regularity this can be used
+//       std::vector<double>::const_iterator first =  ++surf->basis(0).begin();
+//       std::vector<double>::const_iterator last  =  --surf->basis(0).end();
+//       Go::BsplineBasis b1 = Go::BsplineBasis(surf->order_u()-1,first,last);
+//       first =  ++surf->basis(1).begin();
+//       last  =  --surf->basis(1).end();
+//       Go::BsplineBasis b2 = Go::BsplineBasis(surf->order_v()-1,first,last);
 
       // Note: Currently this is implemented for non-rational splines only.
       // TODO: Ask the splines people how to fix this properly, that is, how
@@ -198,6 +214,7 @@ bool ASMs2Dmx::generateFEMTopology ()
   const int n2 = basis1->numCoefs_v();
   const int m1 = basis2->numCoefs_u();
   const int m2 = basis2->numCoefs_v();
+
   if (!nodeInd.empty() && !shareFE)
   {
     if (nodeInd.size() == nb1 + nb2) return true;
@@ -339,7 +356,7 @@ bool ASMs2Dmx::generateFEMTopology ()
 
 	      int lnod = 0;
 	      for (j2 = p2-1; j2 >= 0; j2--)
-		for (j1 = p1-1; j1 >= 0; j1--)
+		for (j1 = p1-1; j1 >= 0; j1--) 
 		  myMNPC[iel][lnod++] = inod - n1*j2 - j1;
 
 	      iel++;
@@ -490,7 +507,6 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   Matrix dN1du, dN2du, Xnod, Jac;
   Vec4   X;
 
-
   // === Assembly loop over all elements in the patch ==========================
 
   int iel = 1;
@@ -561,7 +577,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 	  if (!integrand.evalIntMx(elmInt,fe,time,X))
 	    return false;
 	}
-
+      
       // Assembly of global system integral
       if (!glInt.assemble(elmInt,fe.iel))
 	return false;
