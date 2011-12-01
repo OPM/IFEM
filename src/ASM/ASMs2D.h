@@ -79,7 +79,7 @@ public:
   //! \brief Returns the spline surface representing the geometry of this patch.
   Go::SplineSurface* getSurface() const { return surf; }
   //! \brief Returns the spline surface representing the basis of this patch.
-  virtual Go::SplineSurface* getBasis() const { return surf; }
+  virtual Go::SplineSurface* getBasis(int = 1) const { return surf; }
 
 
   // Methods for model generation

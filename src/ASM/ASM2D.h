@@ -40,6 +40,7 @@ public:
   //! \brief Creates a two-parametric patch of specified discretization type.
   //! \param[in] type The discretization method to use
   //! \param[in] nf Number of unknown per basis function in the patch
+  //! \param[in] mixedFEM If \e true, force mixed formulation even if \a nf[1]=0
   static ASMbase* create(ASM::Discretization type, unsigned char* nf,
 			 bool mixedFEM = false);
 

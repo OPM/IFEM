@@ -21,7 +21,7 @@
 #endif
 
 
-ASMbase* ASM2D::create (ASM::Discretization discretization, 
+ASMbase* ASM2D::create (ASM::Discretization discretization,
 			unsigned char* nf, bool mixedFEM)
 {
   switch (discretization) {

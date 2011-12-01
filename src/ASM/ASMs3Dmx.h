@@ -43,7 +43,8 @@ public:
   virtual ~ASMs3Dmx() {}
 
   //! \brief Returns the spline volume representing the basis of this patch.
-  virtual Go::SplineVolume* getBasis() const { return basis1; }
+  virtual Go::SplineVolume* getBasis(int basis = 1) const
+  { return basis == 2 ? basis2 : basis1; }
 
 
   // Methods for model generation
