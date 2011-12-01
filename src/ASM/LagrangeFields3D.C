@@ -12,24 +12,33 @@
 //==============================================================================
 
 #include "LagrangeFields3D.h"
+#include "ASMs3DLag.h"
 #include "FiniteElement.h"
 #include "Lagrange.h"
 #include "CoordinateMapping.h"
 #include "Vec3.h"
 
 
-LagrangeFields3D::LagrangeFields3D (const Matrix& X, int nx, int ny, int nz,
-				    int px, int py, int pz, char* name)
-  : Fields(3,name), coord(X), n1(nx), n2(ny), n3(nz), p1(px), p2(py), p3(pz)
+LagrangeFields3D::LagrangeFields3D (const ASMs3DLag* patch, const RealArray& v,
+				    const char* name) : Fields(3,name)
 {
+  patch->getNodalCoordinates(coord);
+  patch->getSize(n1,n2,n3);
+  patch->getOrder(p1,p2,p3);
   nno = n1*n2*n3;
   nelm = (n1-1)*(n2-1)*(n3-1)/(p1*p2*p3);
+  nf = v.size()/nno;
+
+  // Ensure the values array has compatible length, pad with zeros if necessary
+  values.resize(nf*nno);
+  RealArray::const_iterator end = v.size() > nf*nno ? v.begin()+nf*nno:v.end();
+  std::copy(v.begin(),end,values.begin());
 }
 
 
-bool LagrangeFields3D::valueNode (int node, Vector& vals) const
+bool LagrangeFields3D::valueNode (size_t node, Vector& vals) const
 {
-  if (node < 1 || (size_t)node > nno) return false;
+  if (node < 1 || node > nno) return false;
 
   vals.resize(nf);
   vals.fill(values.ptr()+nf*(node-1));

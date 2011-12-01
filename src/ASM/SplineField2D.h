@@ -16,6 +16,8 @@
 
 #include "Field.h"
 
+class ASMs2D;
+
 namespace Go {
   class SplineSurface;
 }
@@ -24,40 +26,34 @@ namespace Go {
 /*!
   \brief Class for spline-based finite element scalar fields in 2D.
 
-  \details This class implements the functions required to evaluate a 2D
+  \details This class implements the methods required to evaluate a 2D
   spline scalar field at a given point in parametrical or physical coordinates.
 */
-
 
 class SplineField2D : public Field
 {
 public:
   //! \brief The constructor sets the number of space dimensions and fields.
-  //! \param[in] bf Spline basis description
+  //! \param[in] patch The spline patch on which the field is to be defined
+  //! \param[in] v Array of control point field values
   //! \param[in] name Name of spline field
-  SplineField2D(Go::SplineSurface *bf, char* name = NULL);
-  //! \brief The constructor sets the number of space dimensions and fields.
-  //! \param[in] bf Spline basis description
-  //! \param[in] geometry Spline geometry description
-  //! \param[in] name Name of spline field
-  SplineField2D(Go::SplineSurface *bf, 
-		Go::SplineSurface *geometry, 
-		char* name = NULL);
+  SplineField2D(const ASMs2D* patch, const RealArray& v,
+                const char* name = NULL);
   //! \brief Empty destructor.
-  virtual ~SplineField2D();
+  virtual ~SplineField2D() {}
 
-  // Methods to compute field values
-  //================================
+  // Methods to evaluate the field
+  //==============================
 
   //! \brief Computes the value in a given node/control point.
   //! \param[in] node Node number
-  double valueNode(int node) const;
+  double valueNode(size_t node) const;
 
   //! \brief Computes the value at a given local coordinate.
   //! \param[in] fe Finite element definition
   double valueFE(const FiniteElement& fe) const;
 
-  //! \brief Computed the value at a given global coordinate.
+  //! \brief Computes the value at a given global coordinate.
   //! \param[in] x Global/physical coordinate for point
   double valueCoor(const Vec3& x) const;
 
@@ -72,8 +68,8 @@ public:
   bool gradCoor(const Vec3& x, Vector& grad) const;
 
 protected:
-  Go::SplineSurface* basis; //!< Spline basis description
-  Go::SplineSurface* surf;  //!< Spline geometry description
+  const Go::SplineSurface* basis; //!< Spline basis description
+  const Go::SplineSurface* surf;  //!< Spline geometry description
 };
 
 #endif

@@ -17,6 +17,7 @@
 #include "MatVec.h"
 #include <string>
 
+class ASMbase;
 class FiniteElement;
 class Vec3;
 
@@ -58,20 +59,20 @@ public:
   //! \brief Returns name of field.
   const char* getFieldName() const { return fname.c_str(); }
 
-  //! \brief Sets the name of the field.
-  void setFieldName(const char* name) { fname = name; }
+  //! \brief Creates a dynamically allocated field object.
+  //! \param[in] pch The spline patch on which the field is to be defined on
+  //! \param[in] v Array of nodal/control point field values
+  //! \param[in] name Name of field
+  static Fields* create(const ASMbase* pch, const RealArray& v,
+                        const char* name = NULL);
 
-  //! \brief Initializes the field values.
-  void fill(const Vector& vec) { values = vec; nf = values.size()/nno; }
-
-
-  // Methods to compute field values
-  //================================
+  // Methods to evaluate the field
+  //==============================
 
   //! \brief Computes the value in a given node/control point.
   //! \param[in] node Node number
   //! \param[out] vals Node values
-  virtual bool valueNode(int node, Vector& vals) const = 0;
+  virtual bool valueNode(size_t node, Vector& vals) const = 0;
 
   //! \brief Computes the value at a given local coordinate.
   //! \param[in] fe Finite element definition

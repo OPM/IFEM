@@ -17,6 +17,7 @@
 #include "MatVec.h"
 #include <string>
 
+class ASMbase;
 class FiniteElement;
 class Vec3;
 
@@ -36,7 +37,8 @@ protected:
   //! \brief The constructor sets the number of space dimensions and field name.
   //! \param[in] n Number of space dimensions (1, 2 or 3)
   //! \param[in] name Name of field
-  Field(unsigned char n, char* name = 0) : nsd(n) { if (name) fname = name; }
+  Field(unsigned char n, const char* name = 0) : nsd(n), nelm(0), nno(0)
+  { if (name) fname = name; }
 
 public:
   //! \brief Empty destructor.
@@ -46,27 +48,27 @@ public:
   unsigned char getNoSpaceDim() const { return nsd; }
 
   //! \brief Returns number of elements.
-  int getNoElm() const { return nelm; }
+  size_t getNoElm() const { return nelm; }
 
-  //! \brief Returns number of control points.
-  int getNoNodes() const { return nno; }
+  //! \brief Returns number of nodal/control points.
+  size_t getNoNodes() const { return nno; }
 
-  //! \brief Returns name of field.
+  //! \brief Returns the name of field.
   const char* getFieldName() const { return fname.c_str(); }
 
-  //! \brief Sets the name of the field.
-  void setFieldName(const char* name) { fname = name; }
+  //! \brief Creates a dynamically allocated field object.
+  //! \param[in] pch The spline patch on which the field is to be defined on
+  //! \param[in] v Array of nodal/control point field values
+  //! \param[in] name Name of field
+  static Field* create(const ASMbase* pch, const RealArray& v,
+		       const char* name = NULL);
 
-  //! \brief Initializes the field values.
-  void fill(const Vector& vec) { values = vec; }
-
-
-  // Methods to compute field values
-  //================================
+  // Methods to evaluate the field
+  //==============================
 
   //! \brief Computes the value in a given node/control point.
   //! \param[in] node Node number
-  virtual double valueNode(int node) const = 0;
+  virtual double valueNode(size_t node) const = 0;
 
   //! \brief Computes the value at a given local coordinate.
   //! \param[in] fe Finite element definition
@@ -88,8 +90,8 @@ public:
 
 protected:
   unsigned char nsd; //!< Number of space dimensions
-  int nelm;          //!< Number of elements/knot-spans
-  int nno;           //!< Number of nodes/control points
+  size_t nelm;       //!< Number of elements/knot-spans
+  size_t nno;        //!< Number of nodes/control points
   std::string fname; //!< Name of the field
   Vector values;     //!< Field values
 };

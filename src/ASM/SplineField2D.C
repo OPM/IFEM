@@ -12,15 +12,18 @@
 //==============================================================================
 
 #include "SplineField2D.h"
+#include "ASMs2D.h"
 #include "FiniteElement.h"
+#include "CoordinateMapping.h"
+#include "Utilities.h"
 #include "Vec3.h"
 
 #include "GoTools/geometry/SplineSurface.h"
-#include "GoTools/geometry/SplineUtils.h"
 
 
-SplineField2D::SplineField2D(Go::SplineSurface *bf, char* name)
-  : Field(2,name), basis(bf), surf(bf) 
+SplineField2D::SplineField2D (const ASMs2D* patch,
+                              const RealArray& v, const char* name)
+  : Field(2,name), basis(patch->getBasis()), surf(patch->getSurface())
 {
   const int n1 = basis->numCoefs_u();
   const int n2 = basis->numCoefs_v();
@@ -29,44 +32,41 @@ SplineField2D::SplineField2D(Go::SplineSurface *bf, char* name)
   const int p1 = basis->order_u();
   const int p2 = basis->order_v();
   nelm = (n1-p1+1)*(n2-p2+1);
+
+  // Ensure the values array has compatible length, pad with zeros if necessary
+  values.resize(nno);
+  RealArray::const_iterator end = v.size() > nno ? v.begin()+nno : v.end();
+  std::copy(v.begin(),end,values.begin());
 }
 
 
-SplineField2D::SplineField2D(Go::SplineSurface *bf, 
-			     Go::SplineSurface *geometry, 
-			     char* name)
-  : Field(2,name), basis(bf), surf(geometry) 
+double SplineField2D::valueNode (size_t node) const
 {
-  const int n1 = basis->numCoefs_u();
-  const int n2 = basis->numCoefs_v();
-  nno = n1*n2;
-
-  const int p1 = basis->order_u();
-  const int p2 = basis->order_v();
-  nelm = (n1-p1+1)*(n2-p2+1);
+  return node > 0 && node <= nno ? values(node) : 0.0;
 }
 
 
-SplineField2D::~SplineField2D()
+double SplineField2D::valueFE (const FiniteElement& fe) const
 {
-  // Set basis and geometry pointers to NULL, should not be deallocated here
-  basis = surf = NULL;
+  if (!basis) return false;
+
+  // Evaluate the basis functions at the given point
+  Go::BasisPtsSf spline;
+  basis->computeBasis(fe.u,fe.v,spline);
+
+  // Evaluate the solution field at the given point
+  std::vector<int> ip;
+  ASMs2D::scatterInd(basis->numCoefs_u(),basis->numCoefs_v(),
+		     basis->order_u(),basis->order_v(),
+		     spline.left_idx,ip);
+
+  Vector Vnod;
+  utl::gather(ip,1,values,Vnod);
+  return Vnod.dot(spline.basisValues);
 }
 
-
-double SplineField2D::valueNode(int node) const
-{
-  // Not implemented yet
-  return 0.0;
-}
-
-
-double SplineField2D::valueFE(const FiniteElement& fe) const
-{
-//   Go::Point pt;
-//   basis->pointValue(pt,values,fe.u,fe.v);
-//   return pt[0];
-
+/* Old procedure, way too complex...
+   The above code is more in line with how we do it in ASMs2D.
   const int uorder = basis->order_u();
   const int vorder = basis->order_v();
   const int unum = basis->numCoefs_u();
@@ -140,19 +140,82 @@ double SplineField2D::valueFE(const FiniteElement& fe) const
   
   return val;
 }
+*/
 
-
-double SplineField2D::valueCoor(const Vec3& x) const
+double SplineField2D::valueCoor (const Vec3& x) const
 {
   // Not implemented yet
   return 0.0;
 }
 
 
-bool SplineField2D::gradFE(const FiniteElement& fe, Vector& grad) const
+bool SplineField2D::gradFE (const FiniteElement& fe, Vector& grad) const
 {
   if (!basis) return false;
+  if (!surf)  return false;
 
+  // Evaluate the basis functions at the given point
+/*
+  Go::BasisDerivsSf spline;
+  surf->computeBasis(fe.u,fe.v,spline);
+  TODO: The above is not available yet, the below is temporary workaround.
+*/
+  std::vector<Go::BasisDerivsSf> tmpSpline(1);
+  surf->computeBasisGrid(RealArray(1,fe.u),RealArray(1,fe.v),tmpSpline);
+  Go::BasisDerivsSf& spline = tmpSpline.front();
+
+  const int uorder = surf->order_u();
+  const int vorder = surf->order_v();
+  const size_t nen = uorder*vorder;
+
+  Matrix dNdu(nen,2), dNdX;
+  for (size_t n = 1; n <= nen; n++)
+  {
+    dNdu(n,1) = spline.basisDerivs_u[n-1];
+    dNdu(n,2) = spline.basisDerivs_v[n-1];
+  }
+
+  std::vector<int> ip;
+  ASMs2D::scatterInd(surf->numCoefs_u(),surf->numCoefs_v(),
+		     uorder,vorder,spline.left_idx,ip);
+
+  // Evaluate the Jacobian inverse
+  Matrix Xnod, Jac;
+  Vector Xctrl(&(*surf->coefs_begin()),surf->coefs_end()-surf->coefs_begin());
+  utl::gather(ip,surf->dimension(),Xctrl,Xnod);
+  utl::Jacobian(Jac,dNdX,Xnod,dNdu);
+
+  // Evaluate the gradient of the solution field at the given point
+  if (basis != surf)
+  {
+    // Mixed formulation, the solution uses a different basis than the geometry
+    /*
+    basis->computeBasis(fe.u,fe.v,spline);
+    TODO: The above is not available yet, the below is temporary workaround.
+    */
+    basis->computeBasisGrid(RealArray(1,fe.u),RealArray(1,fe.v),tmpSpline);
+    Go::BasisDerivsSf& spline = tmpSpline.front();
+
+    const size_t nbf = basis->order_u()*basis->order_v();
+    dNdu.resize(nbf,2);
+    for (size_t n = 1; n <= nbf; n++)
+    {
+      dNdu(n,1) = spline.basisDerivs_u[n-1];
+      dNdu(n,2) = spline.basisDerivs_v[n-1];
+    }
+    dNdX.multiply(dNdu,Jac); // dNdX = dNdu * Jac
+
+    ASMs2D::scatterInd(basis->numCoefs_u(),basis->numCoefs_v(),
+		       basis->order_u(),basis->order_v(),
+		       spline.left_idx,ip);
+  }
+
+  Vector Vnod;
+  utl::gather(ip,1,values,Vnod);
+  return dNdX.multiply(Vnod,grad,true);
+}
+
+/*
 //   // Derivatives of solution in parametric space
 //   std::vector<Go::Point> pts(3);
 //   basis->pointValue(pts,values,fe.u,fe.v,1);
@@ -303,9 +366,10 @@ bool SplineField2D::gradFE(const FiniteElement& fe, Vector& grad) const
   
   return true;
 }
+*/
 
 
-bool SplineField2D::gradCoor(const Vec3& x, Vector& grad) const
+bool SplineField2D::gradCoor (const Vec3& x, Vector& grad) const
 {
   // Not implemented yet
   return false;

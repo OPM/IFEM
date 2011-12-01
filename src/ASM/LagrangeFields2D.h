@@ -16,6 +16,8 @@
 
 #include "Fields.h"
 
+class ASMs2DLag;
+
 
 /*!
   \brief Class for Lagrange-based finite element vector fields in 2D.
@@ -27,25 +29,22 @@
 class LagrangeFields2D : public Fields
 {
 public:
-  //! \brief The constructor sets the field name.
-  //! \param[in] X  Matrix of nodal coordinates
-  //! \param[in] nx Number of nodes in first parameter direction
-  //! \param[in] ny Number of nodes in second parameter direction
-  //! \param[in] px Element order in first parameter direction
-  //! \param[in] py Element order in second parameter direction
+  //! \brief The constructor sets the number of space dimensions and fields.
+  //! \param[in] patch The spline patch on which the field is to be defined
+  //! \param[in] v Array of control point field values
   //! \param[in] name Name of field
-  LagrangeFields2D(const Matrix& X,
-		   int nx, int ny, int px, int py, char* name = NULL);
+  LagrangeFields2D(const ASMs2DLag* patch, const RealArray& v,
+                   const char* name = NULL);
   //! \brief Empty destructor.
   virtual ~LagrangeFields2D() {}
 
-  // Methods to compute field values
-  //================================
+  // Methods to evaluate the field
+  //==============================
 
   //! \brief Computes the value in a given node/control point.
   //! \param[in] node Node number
   //! \param[out] vals Node values
-  bool valueNode(int node, Vector& vals) const;
+  bool valueNode(size_t node, Vector& vals) const;
 
   //! \brief Computes the value at a given local coordinate.
   //! \param[in] fe Finite element definition

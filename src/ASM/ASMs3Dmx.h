@@ -42,6 +42,9 @@ public:
   //! \brief Empty destructor.
   virtual ~ASMs3Dmx() {}
 
+  //! \brief Returns the spline volume representing the basis of this patch.
+  virtual Go::SplineVolume* getBasis() const { return basis1; }
+
 
   // Methods for model generation
   // ============================

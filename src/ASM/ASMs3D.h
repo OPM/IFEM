@@ -98,6 +98,8 @@ public:
 
   //! \brief Returns the spline volume representing this patch.
   Go::SplineVolume* getVolume() const { return svol; }
+  //! \brief Returns the spline volume representing the basis of this patch.
+  virtual Go::SplineVolume* getBasis() const { return svol; }
 
 
   // Methods for model generation

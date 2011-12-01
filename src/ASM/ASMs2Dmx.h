@@ -39,6 +39,9 @@ public:
   //! \brief Empty destructor.
   virtual ~ASMs2Dmx() {}
 
+  //! \brief Returns the spline surface representing the basis of this patch.
+  virtual Go::SplineSurface* getBasis() const { return basis1; }
+
 
   //! \brief Returns the spline surface representing this patch.
   Go::SplineSurface* getSurface() const { return surf; }

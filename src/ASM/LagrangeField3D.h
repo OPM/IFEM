@@ -16,6 +16,8 @@
 
 #include "Field.h"
 
+class ASMs3DLag;
+
 
 /*!
   \brief Class for Lagrange-based finite element scalar fields in 3D.
@@ -28,31 +30,26 @@ class LagrangeField3D : public Field
 {
 public:
   //! \brief The constructor sets the number of space dimensions and fields.
-  //! \param[in] X  Matrix of nodal coordinates
-  //! \param[in] nx Number of nodes in first parameter direction
-  //! \param[in] ny Number of nodes in second parameter direction
-  //! \param[in] nz Number of nodes in third parameter direction
-  //! \param[in] px Element order in first parameter direction
-  //! \param[in] py Element order in second parameter direction
-  //! \param[in] pz Element order in third parameter direction
+  //! \param[in] patch The spline patch on which the field is to be defined
+  //! \param[in] v Array of control point field values
   //! \param[in] name Name of field
-  LagrangeField3D(const Matrix& X, int nx, int ny, int nz,
-		  int px, int py, int pz, char* name = NULL);
+  LagrangeField3D(const ASMs3DLag* patch, const RealArray& v,
+		  const char* name = NULL);
   //! \brief Empty destructor.
   virtual ~LagrangeField3D() {}
 
-  // Methods to compute field values
-  //================================
+  // Methods to evaluate the field
+  //==============================
 
   //! \brief Computes the value in a given node/control point.
   //! \param[in] node Node number
-  double valueNode(int node) const;
+  double valueNode(size_t node) const;
 
   //! \brief Computes the value at a given local coordinate.
   //! \param[in] fe Finite element definition
   double valueFE(const FiniteElement& fe) const;
 
-  //! \brief Computed the value at a given global coordinate.
+  //! \brief Computes the value at a given global coordinate.
   //! \param[in] x Global/physical coordinate for point
   double valueCoor(const Vec3& x) const;
 

@@ -12,24 +12,32 @@
 //==============================================================================
 
 #include "LagrangeField2D.h"
+#include "ASMs2DLag.h"
 #include "FiniteElement.h"
 #include "Lagrange.h"
 #include "CoordinateMapping.h"
 #include "Vec3.h"
 
 
-LagrangeField2D::LagrangeField2D (const Matrix& X, int nx, int ny,
-				  int px, int py, char* name)
-  : Field(2,name), coord(X), n1(nx), n2(ny), p1(px), p2(py)
+LagrangeField2D::LagrangeField2D (const ASMs2DLag* patch, const RealArray& v,
+				  const char* name) : Field(2,name)
 {
+  patch->getNodalCoordinates(coord);
+  patch->getSize(n1,n2);
+  patch->getOrder(p1,p2);
   nno = n1*n2;
   nelm = (n1-1)*(n2-1)/(p1*p2);
+
+  // Ensure the values array has compatible length, pad with zeros if necessary
+  values.resize(nno);
+  RealArray::const_iterator end = v.size() > nno ? v.begin()+nno : v.end();
+  std::copy(v.begin(),end,values.begin());
 }
 
 
-double LagrangeField2D::valueNode (int node) const
+double LagrangeField2D::valueNode (size_t node) const
 {
-  return values(node);
+  return node > 0 && node <= nno ? values(node) : 0.0;
 }
 
 
