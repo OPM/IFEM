@@ -87,16 +87,14 @@ public:
     int next();
   };
 
-  //! \brief Constructor creating an instance by reading the given file.
-  ASMs3D(const char* fName = 0, bool checkRHS = false, unsigned char n_f = 3);
-  //! \brief Constructor creating an instance by reading the given input stream.
-  ASMs3D(std::istream& is, bool checkRHS = false, unsigned char n_f = 3);
+  //! \brief Default constructor.
+  ASMs3D(unsigned char n_f = 3);
   //! \brief Copy constructor.
   ASMs3D(const ASMs3D& patch, unsigned char n_f = 0);
   //! \brief Empty destructor.
   virtual ~ASMs3D() {}
 
-  //! \brief Returns the spline volume representing this patch.
+  //! \brief Returns the spline volume representing the geometry of this patch.
   Go::SplineVolume* getVolume() const { return svol; }
   //! \brief Returns the spline volume representing the basis of this patch.
   virtual Go::SplineVolume* getBasis(int = 1) const { return svol; }
@@ -104,6 +102,11 @@ public:
 
   // Methods for model generation
   // ============================
+
+  //! \brief Creates an instance by reading the given input stream.
+  virtual bool read(std::istream&);
+  //! \brief Writes the geometry of the SplineVolume object to given stream.
+  virtual bool write(std::ostream&, int = 0) const;
 
   //! \brief Generates the finite element topology data for the patch.
   //! \details The data generated are the element-to-node connectivity array,
@@ -123,11 +126,6 @@ public:
   //! \param[in] displ Incremental displacements to update the coordinates with
   virtual bool updateCoords(const Vector& displ);
 
-  //! \brief Creates an instance by reading the given input stream.
-  bool read(std::istream&);
-  //! \brief Writes the geometry of the SplineVolume object to given stream.
-  virtual bool write(std::ostream&, int = 0) const;
-
   //! \brief Assigns new global node numbers for all nodes of the patch.
   //! \param nodes Object with global nodes numbers to assign to this patch
   //! \param[in] basis Which basis to assign node numbers for in mixed methods
@@ -142,19 +140,19 @@ public:
   //! patch, its faces and edges.
   bool assignNodeNumbers(BlockNodes& nodes, int basis = 0);
 
-  //! \brief Check that the patch is modelled in a right-hand-side system.
+  //! \brief Checks that the patch is modelled in a right-hand-side system.
   //! \details If it isn't, the w-parameter direction is swapped.
   bool checkRightHandSystem();
 
-  //! \brief Refine the parametrization by inserting extra knots.
+  //! \brief Refines the parametrization by inserting extra knots.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
   bool refine(int dir, const RealArray& xi);
-  //! \brief Refine the parametrization by inserting extra knots uniformly.
+  //! \brief Refines the parametrization by inserting extra knots uniformly.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
   bool uniformRefine(int dir, int nInsert);
-  //! \brief Raise the order of the SplineVolume object for this patch.
+  //! \brief Raises the order of the SplineVolume object for this patch.
   //! \param[in] ru Number of times to raise the order in u-direction
   //! \param[in] rv Number of times to raise the order in v-direction
   //! \param[in] rw Number of times to raise the order in w-direction
@@ -323,7 +321,7 @@ public:
   //! then projected onto the spline basis to obtain the control point values,
   //! which then are returned through \a sField.
   //! If \a npe is not NULL and \a project is \e true, the solution is also
-  //! projected onto the spline basis, and then evaluated at the \a npe points
+  //! projected onto the spline basis, and then evaluated at the \a npe points.
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
 			    const int* npe = 0, bool project = false) const;
 

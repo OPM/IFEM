@@ -25,12 +25,9 @@
 class ASMs1DSpec : public ASMs1DLag
 {
 public:
-  //! \brief Constructor creating an instance by reading the given file.
-  ASMs1DSpec(const char* fNam = 0, unsigned char n_s = 1, unsigned char n_f = 1)
-    : ASMs1DLag(fNam,n_s,n_f) {}
-  //! \brief Constructor creating an instance by reading the given input stream.
-  ASMs1DSpec(std::istream& is, unsigned char n_s = 1, unsigned char n_f = 1)
-    : ASMs1DLag(is,n_s,n_f) {}
+  //! \brief Default constructor.
+  ASMs1DSpec(unsigned char n_s = 1, unsigned char n_f = 1)
+    : ASMs1DLag(n_s,n_f) {}
   //! \brief Copy constructor.
   ASMs1DSpec(const ASMs1DSpec& patch, unsigned char n_f = 0)
     : ASMs1DLag(patch,n_f) {}
@@ -65,11 +62,12 @@ public:
   // Post-processing methods
   // =======================
 
-  //! \brief Evaluates the secondary solution field at all visualization points.
+  //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] gpar Parameter values of the result sampling points
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
-			    const int*, bool = false) const;
+			    const RealArray* gpar, bool = true) const;
 
 protected:
 

@@ -48,13 +48,21 @@ protected:
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
 
-  //! \brief Reads a patch from given input file.
-  //! \param[in] patchFile Name of file to read from
-  //! \param[in] pchInd 0-based index of the patch to read
-  bool readPatch(const char* patchFile, int pchInd);
   //! \brief Reads patches from given input stream.
-  //! \param[in] isp The file stream to read from
-  bool readPatches(std::istream& isp);
+  //! \param[in] isp The input stream to read from
+  virtual bool readPatches(std::istream& isp);
+  //! \brief Reads a patch from given input stream.
+  //! \param[in] isp The input stream to read from
+  //! \param[in] pchInd 0-based index of the patch to read
+  virtual bool readPatch(std::istream& isp, int pchInd);
+  //! \brief Reads global node data for a patch from given input stream.
+  //! \param[in] isn The input stream to read from
+  //! \param[in] pchInd 0-based index of the patch to read node data for
+  //! \param[in] basis The basis to read node data for (mixed FEM)
+  //! \param[in] oneBased If \e true the read node numbers are assumed
+  //! one-based. If \e false they are assumed to be zero-based.
+  virtual bool readNodes(std::istream& isn, int pchInd, int basis = 0,
+			 bool oneBased = false);
 
   //! \brief Refines a list of elements.
   //! \param[in] elements 1-based indices of the elements to refine

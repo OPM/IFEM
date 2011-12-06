@@ -65,15 +65,16 @@ public:
   //! \param[in] initVal Initial values of the primary solution
   virtual void init(SolvePrm& param, const RealArray& initVal = RealArray());
   //! \brief Advances the time/load step one step forward.
-  //! \param[in] updateTimePrm If the time parameters should be incremented
-  virtual bool advanceStep(SolvePrm& param, bool updateTimePrm = true);
+  //! \param param Solution algorithm parameters
+  //! \param[in] updateTime If \e false, the time parameters are not incremented
+  virtual bool advanceStep(SolvePrm& param, bool updateTime = true);
 
   //! \brief Opens a new VTF-file and writes the model geometry to it.
   //! \param[in] fileName File name used to construct the VTF-file name from
   //! \param[in] format Format of VTF-file (0=ASCII, 1=BINARY)
   //! \param[in] nViz Number of visualization points over a knot-span
   bool saveModel(char* fileName, int format, int* nViz);
- 
+
   //! \brief Sets the initial guess in the Newton-Raphson iterations.
   //! \param value The initial guess to use
   void setInitialGuess(const Vector& value) { solution.front() = value; }

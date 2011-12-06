@@ -26,28 +26,11 @@
 #include "Utilities.h"
 #include "Vec3Oper.h"
 #include <ctype.h>
-#include <fstream>
 
 
-ASMs1D::ASMs1D (const char* fName, unsigned char n_s, unsigned char n_f)
+ASMs1D::ASMs1D (unsigned char n_s, unsigned char n_f)
   : ASMstruct(1,n_s,n_f), curv(0)
 {
-  if (fName)
-  {
-    std::cout <<"\nReading patch file "<< fName << std::endl;
-    std::ifstream is(fName);
-    if (!is.good())
-      std::cerr <<" *** ASMs1D: Failure opening patch file"<< std::endl;
-    else
-      this->read(is);
-  }
-}
-
-
-ASMs1D::ASMs1D (std::istream& is, unsigned char n_s, unsigned char n_f)
-  : ASMstruct(1,n_s,n_f), curv(0)
-{
-  this->read(is);
 }
 
 

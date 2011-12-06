@@ -516,22 +516,12 @@ bool ASMs2DLag::tesselate (ElementBlock& grid, const int* npe) const
 bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
 			      const int*) const
 {
-  size_t nPoints = coord.size();
-  size_t nComp = locSol.size() / nPoints;
-  if (nComp*nPoints != locSol.size())
-    return false;
-
-  sField.resize(nComp,nPoints);
-  const double* u = locSol.ptr();
-  for (size_t n = 1; n <= nPoints; n++, u += nComp)
-    sField.fillColumn(n,u);
-
-  return true;
+  return this->evalSolution(sField,locSol,(const RealArray*)0,true);
 }
 
 
 bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
-			      const RealArray* gpar, bool regular) const
+			      const RealArray*, bool) const
 {
   size_t nPoints = coord.size();
   size_t nComp = locSol.size() / nPoints;
@@ -549,6 +539,13 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
 
 bool ASMs2DLag::evalSolution (Matrix& sField, const Integrand& integrand,
 			      const int*, bool) const
+{
+  return this->evalSolution(sField,integrand,(const RealArray*)0,true);
+}
+
+
+bool ASMs2DLag::evalSolution (Matrix& sField, const Integrand& integrand,
+			      const RealArray*, bool) const
 {
   sField.resize(0,0);
 
@@ -601,13 +598,4 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const Integrand& integrand,
     sField.fillColumn(1+i,globSolPt[i]/=check[i]);
 
   return true;
-}
-
-
-bool ASMs2DLag::evalSolution (Matrix&, const Integrand&,
-			      const RealArray*, bool) const
-{
-  std::cerr <<" *** ASMs2DLag::evalSolution(Matrix&,const Integrand&,"
-	    <<"const RealArray*,bool): Not implemented."<< std::endl;
-  return false;
 }

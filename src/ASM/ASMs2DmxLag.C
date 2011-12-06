@@ -421,7 +421,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 
 
 bool ASMs2DmxLag::evalSolution (Matrix& sField, const Vector& locSol,
-				const int*) const
+				const RealArray*, bool) const
 {
   size_t nc1 = nf1;
   size_t nc2 = 0;
@@ -433,7 +433,7 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const Vector& locSol,
   if (nc1*nb1 + nc2*nb2 != locSol.size())
     return false;
 
-  // TODO: Add evaluation second field at the nodes of the first field
+  // TODO: Add evaluation of the second field at the nodes of the first field
   size_t nPoints = nb1;
   size_t nComp = nc1;
   size_t i, n, ip = 0;
@@ -447,10 +447,9 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs2DmxLag::evalSolution (Matrix& sField, const Integrand& integrand,
-				const int*, bool) const
+				const RealArray*, bool) const
 {
   sField.resize(0,0);
-
   if (!surf) return false;
 
   const int p1 = surf->order_u();

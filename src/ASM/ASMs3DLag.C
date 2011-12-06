@@ -26,15 +26,7 @@
 #include "Vec3Oper.h"
 
 
-ASMs3DLag::ASMs3DLag (const char* fName, bool checkRHS, unsigned char n_f)
-  : ASMs3D(fName,checkRHS,n_f), coord(myCoord)
-{
-  nx = ny = nz = 0;
-}
-
-
-ASMs3DLag::ASMs3DLag (std::istream& is, bool checkRHS, unsigned char n_f)
-  : ASMs3D(is,checkRHS,n_f), coord(myCoord)
+ASMs3DLag::ASMs3DLag (unsigned char n_f) : ASMs3D(n_f), coord(myCoord)
 {
   nx = ny = nz = 0;
 }
@@ -43,6 +35,7 @@ ASMs3DLag::ASMs3DLag (std::istream& is, bool checkRHS, unsigned char n_f)
 ASMs3DLag::ASMs3DLag (const ASMs3DLag& patch, unsigned char n_f)
   : ASMs3D(patch,n_f), coord(patch.myCoord)
 {
+  nx = ny = nz = 0;
 }
 
 
@@ -181,17 +174,17 @@ bool ASMs3DLag::updateCoords (const Vector& displ)
 {
   if (shareFE) return true;
 
-  if (displ.size() != nsd*coord.size())
+  if (displ.size() != 3*coord.size())
   {
     std::cerr <<" *** ASMs3DLag::updateCoords: Invalid dimension "
 	      << displ.size() <<" on displ, should be "
-	      << nsd*coord.size() << std::endl;
+	      << 3*coord.size() << std::endl;
     return false;
   }
 
   const double* u = displ.ptr();
-  for (size_t inod = 0; inod < myCoord.size(); inod++, u += nsd)
-    myCoord[inod] += RealArray(u,u+nsd);
+  for (size_t inod = 0; inod < myCoord.size(); inod++, u += 3)
+    myCoord[inod] += RealArray(u,u+3);
 
   return true;
 }
@@ -698,22 +691,12 @@ bool ASMs3DLag::tesselate (ElementBlock& grid, const int* npe) const
 bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
 			      const int*) const
 {
-  size_t nPoints = coord.size();
-  size_t nComp = locSol.size() / nPoints;
-  if (nComp*nPoints != locSol.size())
-    return false;
-
-  sField.resize(nComp,nPoints);
-  const double* u = locSol.ptr();
-  for (size_t n = 1; n <= nPoints; n++, u += nsd)
-    sField.fillColumn(n,u);
-
-  return true;
+  return this->evalSolution(sField,locSol,(const RealArray*)0,true);
 }
 
 
 bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
-			      const RealArray* gpar, bool regular) const
+			      const RealArray*, bool) const
 {
   size_t nPoints = coord.size();
   size_t nComp = locSol.size() / nPoints;
@@ -731,6 +714,13 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
 
 bool ASMs3DLag::evalSolution (Matrix& sField, const Integrand& integrand,
 			      const int*, bool) const
+{
+  return this->evalSolution(sField,integrand,(const RealArray*)0,true);
+}
+
+
+bool ASMs3DLag::evalSolution (Matrix& sField, const Integrand& integrand,
+			      const RealArray*, bool) const
 {
   sField.resize(0,0);
 
@@ -787,13 +777,4 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const Integrand& integrand,
     sField.fillColumn(1+i,globSolPt[i]/=check[i]);
 
   return true;
-}
-
-
-bool ASMs3DLag::evalSolution (Matrix&, const Integrand&,
-			      const RealArray*, bool) const
-{
-  std::cerr <<" *** ASMs3DLag::evalSolution(Matrix&,const Integrand&,"
-	    <<"const RealArray*,bool): Not implemented."<< std::endl;
-  return false;
 }

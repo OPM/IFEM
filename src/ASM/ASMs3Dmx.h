@@ -31,12 +31,8 @@
 class ASMs3Dmx : public ASMs3D, private ASMmxBase
 {
 public:
-  //! \brief Constructor creating an instance by reading the given file.
-  ASMs3Dmx(const char* fName = 0, bool checkRHS = false,
-	   unsigned char n_f1 = 3, unsigned char n_f2 = 1);
-  //! \brief Constructor creating an instance by reading the given input stream.
-  ASMs3Dmx(std::istream& is, bool checkRHS = false,
-	   unsigned char n_f1 = 3, unsigned char n_f2 = 1);
+  //! \brief Default constructor.
+  ASMs3Dmx(unsigned char n_f1 = 3, unsigned char n_f2 = 1);
   //! \brief Copy constructor.
   ASMs3Dmx(const ASMs3Dmx& patch, char n_f1 = -1, char n_f2 = -1);
   //! \brief Empty destructor.

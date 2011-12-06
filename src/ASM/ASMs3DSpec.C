@@ -408,9 +408,10 @@ bool ASMs3DSpec::integrateEdge (Integrand& integrand, int lEdge,
 
 
 bool ASMs3DSpec::evalSolution (Matrix& sField, const Integrand& integrand,
-			       const int*, bool) const
+			       const RealArray*, bool) const
 {
   sField.resize(0,0);
+  if (!svol) return false;
 
   const int p1 = svol->order(0);
   const int p2 = svol->order(1);

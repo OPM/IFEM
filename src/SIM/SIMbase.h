@@ -192,11 +192,12 @@ public:
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param[in] pSol Previous primary solution vectors in DOF-order
   //! \param[in] newLHSmatrix If \e false, only integrate the RHS vector
-  virtual bool assembleSystem(const TimeDomain& time, const Vectors& pSol = Vectors(),
+  virtual bool assembleSystem(const TimeDomain& time,
+			      const Vectors& pSol = Vectors(),
 			      bool newLHSmatrix = true);
 
   //! \brief Administers assembly of the linear equation system.
-  //! \param[in] pSol Previous primary solution vectors in DOF-order
+  //! \param[in] pSol Primary solution vectors in DOF-order
   //!
   //! \details Use this version for linear/stationary problems only.
   virtual bool assembleSystem(const Vectors& pSol = Vectors())
@@ -533,6 +534,22 @@ protected:
   //! \brief Initializes for integration of Neumann terms for a given property.
   virtual bool initNeumann(size_t) { return true; }
 
+  //! \brief Reads patches from given input stream.
+  //! \param[in] isp The input stream to read from
+  virtual bool readPatches(std::istream& isp) = 0;
+  //! \brief Reads a patch from given input stream.
+  //! \param[in] isp The input stream to read from
+  //! \param[in] pchInd 0-based index of the patch to read
+  virtual bool readPatch(std::istream& isp, int pchInd) = 0;
+  //! \brief Reads global node data for a patch from given input stream.
+  //! \param[in] isn The input stream to read from
+  //! \param[in] pchInd 0-based index of the patch to read node data for
+  //! \param[in] basis The basis to read node data for (when mixed FEM)
+  //! \param[in] oneBased If \e true the read node numbers are assumed
+  //! one-based. If \e false they are assumed to be zero-based.
+  virtual bool readNodes(std::istream& isn, int pchInd, int basis = 0,
+			 bool oneBased = false) { return false; }
+
   //! \brief Reads a LinSolParams object from the given stream.
   //! \details This method helps with encapsulating PETSc in libIFEM.
   void readLinSolParams(std::istream& is, int npar);
@@ -548,8 +565,7 @@ public:
 
   static bool ignoreDirichlet; //!< Set to \e true for free vibration analysis
   static bool preserveNOrder;  //!< Set to \e true to preserve node ordering
-
-  static int num_threads_SLU; //!< Number of threads for SuperLU_MT
+  static int  num_threads_SLU; //!< Number of threads for SuperLU_MT
 
 protected:
   //! \brief Spline patch container
@@ -562,6 +578,7 @@ protected:
   typedef std::map<int,TractionFunc*> TracFuncMap;
 
   // Model attributes
+  bool           mixedFEM;  //!< If \e true, mixed finite elements are used
   FEModelVec     myModel;   //!< The actual NURBS/spline model
   PropertyVec    myProps;   //!< Physical property mapping
   SclFuncMap     myScalars; //!< Scalar property fields
@@ -586,9 +603,6 @@ protected:
   AlgEqSystem*  myEqSys;     //!< The actual linear equation system
   SAMpatch*     mySam;       //!< Auxiliary data for FE assembly management
   LinSolParams* mySolParams; //!< Input parameters for PETSc
-
-  // Discretization attributes
-  bool mixedFEM;             //!< If mixed finite elements are used  
 };
 
 #endif

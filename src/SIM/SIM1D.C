@@ -17,7 +17,6 @@
 #include "ASMs1DSpec.h"
 #include "Functions.h"
 #include "Utilities.h"
-#include <fstream>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -32,120 +31,7 @@ SIM1D::SIM1D (unsigned char n_f)
 bool SIM1D::parse (char* keyWord, std::istream& is)
 {
   char* cline = 0;
-  if (!strncasecmp(keyWord,"PATCHES",7))
-  {
-    ASMbase* pch = 0;
-    int npatch = atoi(keyWord+7);
-    std::cout <<"\nNumber of patches: "<< npatch << std::endl;
-    for (int i = 0; i < npatch && (cline = utl::readLine(is)); i++)
-    {
-      switch (discretization) {
-      case ASM::Lagrange:
-	pch = new ASMs1DLag(strtok(cline," "),1,nf);
-	break;
-      case ASM::Spectral:
-	pch = new ASMs1DSpec(strtok(cline," "),1,nf);
-	break;
-      default:
-	pch = new ASMs1D(strtok(cline," "),1,nf);
-      }
-      if (pch->empty())
-	delete pch;
-      else
-	myModel.push_back(pch);
-    }
-
-    if ((int)myModel.size() < npatch)
-    {
-      std::cerr <<" *** SIM1D::parse: Expected "<< npatch
-		<<" patches but could read only "<< myModel.size()
-		<< std::endl;
-      return false;
-    }
-  }
-
-  else if (!strncasecmp(keyWord,"PATCHFILE",9))
-  {
-    size_t i = 9; while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
-    std::cout <<"\nReading data file "<< keyWord+i << std::endl;
-    std::ifstream isp(keyWord+i);
-    this->readPatches(isp);
-
-    if (myModel.empty())
-    {
-      std::cerr <<" *** SIM1D::parse: No patches read"<< std::endl;
-      return false;
-    }
-  }
-
-  else if (!strncasecmp(keyWord,"PROPERTYFILE",12))
-  {
-    bool oneBasedIdx = keyWord[12] == '1';
-    size_t i = (oneBasedIdx || keyWord[12] == '0') ? 13 : 12;
-    while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
-    std::ifstream isp(keyWord+i);
-    if (isp)
-      std::cout <<"\nReading data file "<< keyWord+i << std::endl;
-    else
-    {
-      std::cerr <<" *** SIM1D::read: Failure opening input file "
-		<< std::string(keyWord+i) << std::endl;
-      return false;
-    }
-
-    while (isp.good())
-    {
-      Property p;
-      int ldim, lindx = 0;
-      isp >> p.pindx >> p.patch >> ldim;
-      if (ldim < 1) isp >> lindx;
-
-      if (!oneBasedIdx)
-      {
-	// We always require the item indices to be 1-based
- 	++p.patch;
- 	++lindx;
-      }
-
-      p.ldim = ldim;
-      p.lindx = lindx;
-      if (isp.good())
-	myProps.push_back(p);
-    }
-  }
-
-  else if (!strncasecmp(keyWord,"DIRICHLET",9))
-  {
-    if (ignoreDirichlet) return true; // Ignore all boundary conditions
-
-    int ndir = atoi(keyWord+9);
-    std::cout <<"\nNumber of Dirichlet properties: "<< ndir << std::endl;
-    for (int i = 0; i < ndir && (cline = utl::readLine(is)); i++)
-    {
-      int code = atoi(strtok(cline," "));
-      double d = (cline = strtok(NULL," ")) ? atof(cline) : 0.0;
-      std::cout <<"\tDirichlet code "<< code <<": ";
-      if (d == 0.0)
-      {
-	this->setPropertyType(code,Property::DIRICHLET);
-	std::cout <<"(fixed)";
-      }
-      else
-      {
-	this->setPropertyType(code,Property::DIRICHLET_INHOM);
-
-	cline = strtok(NULL," ");
-	myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,d));
-      }
-      std::cout << std::endl;
-    }
-  }
-
-  // The remaining keywords are retained for backward compatibility with the
-  // prototype version. They enable direct specification of topology and
-  // properties as well as uniform refinement without using the GPM module.
-
-  else if (!strncasecmp(keyWord,"REFINE",6))
+  if (!strncasecmp(keyWord,"REFINE",6))
   {
     int nref = atoi(keyWord+6);
     std::cout <<"\nNumber of patch refinements: "<< nref << std::endl;
@@ -373,7 +259,35 @@ void SIM1D::setQuadratureRule (size_t ng)
 }
 
 
-void SIM1D::readPatches (std::istream& isp)
+bool SIM1D::readPatch (std::istream& isp, int pchInd)
+{
+  ASMs1D* pch = 0;
+  switch (discretization) {
+  case ASM::Lagrange:
+    pch = new ASMs1DLag(1,nf);
+    break;
+  case ASM::Spectral:
+    pch = new ASMs1DSpec(1,nf);
+    break;
+  default:
+    pch = new ASMs1D(1,nf);
+  }
+
+  if (!pch->read(isp))
+  {
+    delete pch;
+    return false;
+  }
+  else if (pch->empty())
+    delete pch;
+  else
+    myModel.push_back(pch);
+
+  return true;
+}
+
+
+bool SIM1D::readPatches (std::istream& isp)
 {
   ASMbase* pch = 0;
   for (int patchNo = 1; isp.good(); patchNo++)
@@ -382,17 +296,24 @@ void SIM1D::readPatches (std::istream& isp)
     switch (discretization)
       {
       case ASM::Lagrange:
-        pch = new ASMs1DLag(isp,1,nf);
+        pch = new ASMs1DLag(1,nf);
         break;
       case ASM::Spectral:
-        pch = new ASMs1DSpec(isp,1,nf);
+        pch = new ASMs1DSpec(1,nf);
         break;
       default:
-        pch = new ASMs1D(isp,1,nf);
+        pch = new ASMs1D(1,nf);
       }
-    if (pch->empty())
+    if (!pch->read(isp))
+    {
+      delete pch;
+      return false;
+    }
+    else if (pch->empty())
       delete pch;
     else
       myModel.push_back(pch);
   }
+
+  return true;
 }

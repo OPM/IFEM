@@ -28,12 +28,8 @@
 class ASMs3DmxLag : public ASMs3DLag, private ASMmxBase
 {
 public:
-  //! \brief Constructor creating an instance by reading the given file.
-  ASMs3DmxLag(const char* fName = 0, bool checkRHS = false,
-	      unsigned char n_f1 = 3, unsigned char n_f2 = 1);
-  //! \brief Constructor creating an instance by reading the given input stream.
-  ASMs3DmxLag(std::istream& is, bool checkRHS = false,
-	      unsigned char n_f1 = 3, unsigned char n_f2 = 1);
+  //! \brief Default constructor.
+  ASMs3DmxLag(unsigned char n_f1 = 3, unsigned char n_f2 = 1);
   //! \brief Copy constructor.
   ASMs3DmxLag(const ASMs3DmxLag& patch, char n_f1 = -1, char n_f2 = -1);
   //! \brief Empty destructor.
@@ -114,17 +110,21 @@ public:
   virtual bool getSolution(Matrix& sField, const Vector& locSol,
 			   const IntVec& nodes) const;
 
-  //! \brief Evaluates the primary solution field at all visualization points.
+  //! \brief Evaluates the primary solution field at the given points.
   //! \param[out] sField Solution field
-  //! \param[in] locSol Solution vector in DOF-order
+  //! \param[in] locSol Solution vector local to current patch
+  //! \param[in] gpar Parameter values of the result sampling points
+  //! \param[in] regular Flag indicating how the sampling points are defined
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-			    const int*) const;
+			    const RealArray* gpar, bool regular = true) const;
 
-  //! \brief Evaluates the secondary solution field at all visualization points.
+  //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] gpar Parameter values of the result sampling points
+  //! \param[in] regular Flag indicating how the sampling points are defined
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
-			    const int*, bool = false) const;
+			    const RealArray* gpar, bool regular = true) const;
 
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order

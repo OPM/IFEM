@@ -18,7 +18,6 @@
 #include "Functions.h"
 #include "Utilities.h"
 #include <fstream>
-#include <sstream>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -37,187 +36,7 @@ SIM3D::SIM3D (bool checkRHS, unsigned char n1, unsigned char n2)
 bool SIM3D::parse (char* keyWord, std::istream& is)
 {
   char* cline = 0;
-  if (!strncasecmp(keyWord,"PATCHES",7))
-  {
-    ASMbase* pch = 0;
-    int npatch = atoi(keyWord+7);
-    std::cout <<"\nNumber of patches: "<< npatch << std::endl;
-    for (int i = 0; i < npatch && (cline = utl::readLine(is)); i++)
-    {
-      cline = strtok(cline," ");
-      switch (discretization) {
-      case ASM::Lagrange:
-	if (nf[1] > 0)
-	  pch = new ASMs3DmxLag(cline,checkRHSys,nf[0],nf[1]);
-	else
-	  pch = new ASMs3DLag(cline,checkRHSys,nf[0]);
-	break;
-      case ASM::Spectral:
-	pch = new ASMs3DSpec(cline,checkRHSys,nf[0]);
-	break;
-      default:
-	if (nf[1] > 0)
-	  pch = new ASMs3Dmx(cline,checkRHSys,nf[0],nf[1]);
-	else
-	  pch = new ASMs3D(cline,checkRHSys,nf[0]);
-      }
-      if (pch->empty() || this->getLocalPatchIndex(i+1) < 1)
-	delete pch;
-      else
-	myModel.push_back(pch);
-    }
-
-    if ((int)myModel.size() < npatch)
-    {
-      std::cerr <<" *** SIM3D::parse: Expected "<< npatch
-		<<" patches but could read only "<< myModel.size()
-		<< std::endl;
-      return false;
-    }
-  }
-
-  else if (!strncasecmp(keyWord,"PATCHFILE",9))
-  {
-    size_t i = 9; while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
-    std::cout <<"\nReading data file "<< keyWord+i << std::endl;
-    std::ifstream isp(keyWord+i);
-    this->readPatches(isp);
-
-    if (myModel.empty())
-    {
-      std::cerr <<" *** SIM3D::parse: No patches read"<< std::endl;
-      return false;
-    }
-  }
-
-  else if (!strncasecmp(keyWord,"NODEFILE",8))
-  {
-    if (!this->createFEMmodel()) return false;
-
-    bool oneBasedIdx = keyWord[8] == '1';
-    size_t i = (oneBasedIdx || keyWord[8] == '0') ? 9 : 8;
-    while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
-
-    std::stringstream filenames(keyWord+i);
-    size_t k = 0;
-    while (filenames.good()) {
-      std::string filename;
-      filenames >> filename;
-
-      if (filenames.good() || k > 0) k++;
-
-      std::ifstream isn(filename.c_str());
-      if (isn)
-	std::cout <<"\nReading data file "<< filename << std::endl;
-      else {
-	std::cerr <<" *** SIM3D::read: Failure opening input file "
-		  << filename << std::endl;
-	return false;
-      }
-
-      while (isn.good()) {
-	int patch = 0;
-	isn >> patch;
-	if (!oneBasedIdx) ++patch;
-	int pid = this->getLocalPatchIndex(patch);
-	if (pid < 0) return false;
-	
-	ASMs3D::BlockNodes n;
-	for (i = 0; i <  8 && isn.good(); i++)
-	  isn >> n.ibnod[i];
-	for (i = 0; i < 12 && isn.good(); i++)
-	  isn >> n.edges[i].icnod >> n.edges[i].incr;
-	for (i = 0; i <  6 && isn.good(); i++)
-	  isn >> n.faces[i].isnod >> n.faces[i].incrI >> n.faces[i].incrJ;
-	isn >> n.iinod;
-	
-	if (!oneBasedIdx) {
-	  // We always require the node numbers to be 1-based
-	  for (i = 0; i <  8; i++) ++n.ibnod[i];
-	  for (i = 0; i < 12; i++) ++n.edges[i].icnod;
-	  for (i = 0; i <  6; i++) ++n.faces[i].isnod;
-	  ++n.iinod;
-	}
-	
-	if (isn.good() && pid > 0)
-	  if (!static_cast<ASMs3D*>(myModel[pid-1])->assignNodeNumbers(n,k)) {
-	    std::cerr <<" *** SIM3D::parse: Failed to assign node numbers"
-		      <<" for patch "<< patch << std::endl;
-	    return false;
-	  }
-      }
-    }
-  }
-
-  else if (!strncasecmp(keyWord,"PROPERTYFILE",12))
-  {
-    bool oneBasedIdx = keyWord[12] == '1';
-    size_t i = (oneBasedIdx || keyWord[12] == '0') ? 13 : 12;
-    while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
-    std::ifstream isp(keyWord+i);
-    if (isp)
-      std::cout <<"\nReading data file "<< keyWord+i << std::endl;
-    else
-    {
-      std::cerr <<" *** SIM3D::read: Failure opening input file "
-		<< std::string(keyWord+i) << std::endl;
-      return false;
-    }
-
-    while (isp.good())
-    {
-      Property p;
-      int ldim, lindx = 0;
-      isp >> p.pindx >> p.patch >> ldim;
-      if (ldim < 3) isp >> lindx;
-
-      if (!oneBasedIdx)
-      {
-	// We always require the item indices to be 1-based
-	++p.patch;
-	++lindx;
-      }
-
-      p.ldim = ldim;
-      p.lindx = lindx;
-      p.patch = this->getLocalPatchIndex(p.patch);
-      if (p.patch > 0 && isp.good())
-	myProps.push_back(p);
-    }
-  }
-
-  else if (!strncasecmp(keyWord,"DIRICHLET",9))
-  {
-    if (ignoreDirichlet) return true; // Ignore all boundary conditions
-
-    int ndir = atoi(keyWord+9);
-    std::cout <<"\nNumber of Dirichlet properties: "<< ndir << std::endl;
-    for (int i = 0; i < ndir && (cline = utl::readLine(is)); i++)
-    {
-      int code = atoi(strtok(cline," "));
-      double d = (cline = strtok(NULL," ")) ? atof(cline) : 0.0;
-      std::cout <<"\tDirichlet code "<< code <<": ";
-      if (d == 0.0)
-      {
-	this->setPropertyType(code,Property::DIRICHLET);
-	std::cout <<"(fixed)";
-      }
-      else
-      {
-	this->setPropertyType(code,Property::DIRICHLET_INHOM);
-
-	cline = strtok(NULL," ");
-	myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,d));
-      }
-      std::cout << std::endl;
-    }
-  }
-
-  // The remaining keywords are retained for backward compatibility with the
-  // prototype version. They enable direct specification of topology and
-  // properties as well as grid refinement without using the GPM module.
-
-  else if (!strncasecmp(keyWord,"REFINE",6))
+  if (!strncasecmp(keyWord,"REFINE",6))
   {
     int nref = atoi(keyWord+6);
     std::cout <<"\nNumber of patch refinements: "<< nref << std::endl;
@@ -600,9 +419,49 @@ void SIM3D::setQuadratureRule (size_t ng)
 }
 
 
-void SIM3D::readPatches (std::istream& isp)
+bool SIM3D::readPatch (std::istream& isp, int pchInd)
 {
-  ASMbase* pch = 0;
+  ASMs3D* pch = 0;
+  switch (discretization) {
+  case ASM::Lagrange:
+    if (nf[1] > 0)
+      pch = new ASMs3DmxLag(nf[0],nf[1]);
+    else
+      pch = new ASMs3DLag(nf[0]);
+    break;
+  case ASM::Spectral:
+    pch = new ASMs3DSpec(nf[0]);
+    break;
+  default:
+    if (nf[1] > 0)
+      pch = new ASMs3Dmx(nf[0],nf[1]);
+    else
+      pch = new ASMs3D(nf[0]);
+  }
+
+  if (!pch->read(isp))
+  {
+    delete pch;
+    return false;
+  }
+  else if (pch->empty() || this->getLocalPatchIndex(pchInd+1) < 1)
+  {
+    delete pch;
+    return true;
+  }
+
+  if (checkRHSys)
+    pch->checkRightHandSystem();
+
+  myModel.push_back(pch);
+
+  return true;
+}
+
+
+bool SIM3D::readPatches (std::istream& isp)
+{
+  ASMs3D* pch = 0;
   for (int patchNo = 1; isp.good(); patchNo++)
   {
     std::cout <<"Reading patch "<< patchNo << std::endl;
@@ -610,22 +469,62 @@ void SIM3D::readPatches (std::istream& isp)
       {
       case ASM::Lagrange:
         if (mixedFEM)
-          pch = new ASMs3DmxLag(isp,checkRHSys,nf[0],nf[1]);
+          pch = new ASMs3DmxLag(nf[0],nf[1]);
         else
-          pch = new ASMs3DLag(isp,checkRHSys,nf[0]);
+          pch = new ASMs3DLag(nf[0]);
         break;
       case ASM::Spectral:
-        pch = new ASMs3DSpec(isp,checkRHSys,nf[0]);
+        pch = new ASMs3DSpec(nf[0]);
         break;
       default:
         if (mixedFEM)
-          pch = new ASMs3Dmx(isp,checkRHSys,nf[0],nf[1]);
+          pch = new ASMs3Dmx(nf[0],nf[1]);
         else
-          pch = new ASMs3D(isp,checkRHSys,nf[0]);
+          pch = new ASMs3D(nf[0]);
       }
-    if (pch->empty() || this->getLocalPatchIndex(patchNo) < 1)
+
+    if (!pch->read(isp))
+    {
+      delete pch;
+      return false;
+    }
+    else if (pch->empty() || this->getLocalPatchIndex(patchNo) < 1)
       delete pch;
     else
+    {
+      if (checkRHSys)
+	pch->checkRightHandSystem();
       myModel.push_back(pch);
+    }
   }
+
+  return true;
+}
+
+
+bool SIM3D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
+{
+  int i;
+  ASMs3D::BlockNodes n;
+
+  for (i = 0; i <  8 && isn.good(); i++)
+    isn >> n.ibnod[i];
+  for (i = 0; i < 12 && isn.good(); i++)
+    isn >> n.edges[i].icnod >> n.edges[i].incr;
+  for (i = 0; i <  6 && isn.good(); i++)
+    isn >> n.faces[i].isnod >> n.faces[i].incrI >> n.faces[i].incrJ;
+  isn >> n.iinod;
+
+  if (pchInd < 0 || !isn.good()) return true;
+
+  if (!oneBased)
+  {
+    // We always require the node numbers to be 1-based
+    for (i = 0; i <  8; i++) ++n.ibnod[i];
+    for (i = 0; i < 12; i++) ++n.edges[i].icnod;
+    for (i = 0; i <  6; i++) ++n.faces[i].isnod;
+    ++n.iinod;
+  }
+
+  return static_cast<ASMs3D*>(myModel[pchInd])->assignNodeNumbers(n,basis);
 }

@@ -29,10 +29,8 @@ namespace Go {
 class ASMs1D : public ASMstruct
 {
 public:
-  //! \brief Constructor creating an instance by reading the given file.
-  ASMs1D(const char* fName = 0, unsigned char n_s = 1, unsigned char n_f = 1);
-  //! \brief Constructor creating an instance by reading the given input stream.
-  ASMs1D(std::istream& is, unsigned char n_s = 1, unsigned char n_f = 1);
+  //! \brief Default constructor.
+  ASMs1D(unsigned char n_s = 1, unsigned char n_f = 1);
   //! \brief Copy constructor.
   ASMs1D(const ASMs1D& patch, unsigned char n_f = 0);
   //! \brief Empty destructor.
@@ -41,6 +39,11 @@ public:
 
   // Methods for model generation
   // ============================
+
+  //! \brief Creates an instance by reading the given input stream.
+  virtual bool read(std::istream&);
+  //! \brief Writes the geometry of the SplineCurve object to given stream.
+  virtual bool write(std::ostream&, int = 0) const;
 
   //! \brief Generates the finite element topology data for the patch.
   //! \details The data generated are the element-to-node connectivity array,
@@ -60,18 +63,13 @@ public:
   //! \param[in] displ Incremental displacements to update the coordinates with
   virtual bool updateCoords(const Vector& displ);
 
-  //! \brief Creates an instance by reading the given input stream.
-  bool read(std::istream&);
-  //! \brief Writes the geometry of the SplineCurve object to given stream.
-  virtual bool write(std::ostream&, int = 0) const;
-
-  //! \brief Refine the parametrization by inserting extra knots.
+  //! \brief Refines the parametrization by inserting extra knots.
   //! \param[in] xi Relative positions of added knots in each existing knot span
   bool refine(const RealArray& xi);
-  //! \brief Refine the parametrization by inserting extra knots uniformly.
+  //! \brief Refines the parametrization by inserting extra knots uniformly.
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
   bool uniformRefine(int nInsert);
-  //! \brief Raise the order of the SplineCurve object for this patch.
+  //! \brief Raises the order of the SplineCurve object for this patch.
   //! \param[in] ru Number of times to raise the order
   bool raiseOrder(int ru);
 
@@ -132,7 +130,7 @@ public:
 
   //! \brief Evaluates the geometry at a specified point.
   //! \param[in] xi Dimensionless parameter in range [0.0,1.0] of the point
-  //! \param[out] param The parameter of the point in the knot-span domain
+  //! \param[out] param The parameter of the point in knot-span domain
   //! \param[out] X The Cartesian coordinates of the point
   //! \return Local node number within the patch that matches the point, if any
   //! \return 0 if no node (control point) matches this point
@@ -191,6 +189,11 @@ public:
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
 			    const RealArray* gpar, bool = true) const;
 
+  //! \brief Calculates parameter values for visualization nodal points.
+  //! \param[out] prm Parameter values for all points
+  //! \param[in] nSegSpan Number of visualization segments over each knot-span
+  virtual bool getGridParameters(RealArray& prm, int nSegSpan) const;
+
 protected:
 
   // Internal utility methods
@@ -205,11 +208,6 @@ protected:
   //! \param[in] master 0-based index of the first master node in this basis
   bool connectBasis(int vertex, ASMs1D& neighbor, int nvertex,
 		    int basis = 1, int slave = 0, int master = 0);
-
-  //! \brief Calculates parameter values for the visualization nodal points.
-  //! \param[out] prm Parameter values for all points
-  //! \param[in] nSegSpan Number of visualization segments over each knot-span
-  virtual bool getGridParameters(RealArray& prm, int nSegSpan) const;
 
   //! \brief Extracts parameter values of the Gauss points.
   //! \param[out] uGP Parameter values for all points
@@ -239,12 +237,12 @@ protected:
   //! \param[in] basis Which basis to return size parameters for (mixed methods)
   virtual int getSize(int basis = 0) const;
 
-  //! \brief Establishes vectors with basis functions and 1st derivatives.
+  //! \brief Establishes matrices with basis functions and 1st derivatives.
   //! \param[in] u Parameter value of current integration point
   //! \param[out] N Basis function values
   //! \param[out] dNdu First derivatives of basis functions
   void extractBasis(double u, Vector& N, Matrix& dNdu) const;
-  //! \brief Establishes vectors with basis functions, 1st and 2nd derivatives.
+  //! \brief Establishes matrices with basis functions, 1st and 2nd derivatives.
   //! \param[in] u Parameter value of current integration point
   //! \param[out] N Basis function values
   //! \param[out] dNdu First derivatives of basis functions

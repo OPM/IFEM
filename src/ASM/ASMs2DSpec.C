@@ -264,9 +264,10 @@ bool ASMs2DSpec::integrate (Integrand& integrand, int lIndex,
 
 
 bool ASMs2DSpec::evalSolution (Matrix& sField, const Integrand& integrand,
-			       const int*, bool) const
+			       const RealArray*, bool) const
 {
   sField.resize(0,0);
+  if (!surf) return false;
 
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();

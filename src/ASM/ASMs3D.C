@@ -27,31 +27,12 @@
 #include "Profiler.h"
 #include "Vec3Oper.h"
 #include <ctype.h>
-#include <fstream>
 
 
-ASMs3D::ASMs3D (const char* fName, bool checkRHS, unsigned char n_f)
+ASMs3D::ASMs3D (unsigned char n_f)
   : ASMstruct(3,3,n_f), svol(0), nodeInd(myNodeInd)
 {
   swapW = false;
-  if (fName)
-  {
-    std::cout <<"\nReading patch file "<< fName << std::endl;
-    std::ifstream is(fName);
-    if (!is.good())
-      std::cerr <<" *** ASMs3D: Failure opening patch file"<< std::endl;
-    else if (this->read(is) && checkRHS)
-      this->checkRightHandSystem();
-  }
-}
-
-
-ASMs3D::ASMs3D (std::istream& is, bool checkRHS, unsigned char n_f)
-  : ASMstruct(3,3,n_f), svol(0), nodeInd(myNodeInd)
-{
-  swapW = false;
-  if (this->read(is) && checkRHS)
-    this->checkRightHandSystem();
 }
 
 

@@ -26,16 +26,8 @@
 #include "Vec3Oper.h"
 
 
-ASMs1DLag::ASMs1DLag (const char* fileName,
-		      unsigned char n_s, unsigned char n_f)
-  : ASMs1D(fileName,n_s,n_f), coord(myCoord)
-{
-  nx = 0;
-}
-
-
-ASMs1DLag::ASMs1DLag (std::istream& is, unsigned char n_s, unsigned char n_f)
-  : ASMs1D(is,n_s,n_f), coord(myCoord)
+ASMs1DLag::ASMs1DLag (unsigned char n_s, unsigned char n_f)
+  : ASMs1D(n_s,n_f), coord(myCoord)
 {
   nx = 0;
 }
@@ -406,6 +398,13 @@ bool ASMs1DLag::tesselate (ElementBlock& grid, const int* npe) const
 bool ASMs1DLag::evalSolution (Matrix& sField, const Vector& locSol,
 			      const int*) const
 {
+  return this->evalSolution(sField,locSol,(const RealArray*)0,true);
+}
+
+
+bool ASMs1DLag::evalSolution (Matrix& sField, const Vector& locSol,
+			      const RealArray*, bool) const
+{
   size_t nPoints = coord.size();
   size_t nComp = locSol.size() / nPoints;
   if (nComp*nPoints != locSol.size())
@@ -420,19 +419,18 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const Vector& locSol,
 }
 
 
-bool ASMs1DLag::evalSolution (Matrix&, const Vector&,
-			      const RealArray*, bool) const
+bool ASMs1DLag::evalSolution (Matrix& sField, const Integrand& integrand,
+			      const int*, bool) const
 {
-  std::cerr <<" *** ASMs1DLag::evalSolution(Matrix&,const Vector&,"
-	    <<"const RealArray*,bool): Not implemented."<< std::endl;
-  return false;
+  return this->evalSolution(sField,integrand,(const RealArray*)0,true);
 }
 
 
 bool ASMs1DLag::evalSolution (Matrix& sField, const Integrand& integrand,
-			      const int*, bool) const
+			      const RealArray*, bool) const
 {
   sField.resize(0,0);
+  if (!curv) return false;
 
   const int p1 = curv->order();
   double incx = 2.0/double(p1-1);
@@ -478,13 +476,4 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const Integrand& integrand,
     sField.fillColumn(1+i,globSolPt[i]/=check[i]);
 
   return true;
-}
-
-
-bool ASMs1DLag::evalSolution (Matrix&, const Integrand&,
-			      const RealArray*, bool) const
-{
-  std::cerr <<" *** ASMs1DLag::evalSolution(Matrix&,const Integrand&,"
-	    <<"const RealArray*,bool): Not implemented."<< std::endl;
-  return false;
 }

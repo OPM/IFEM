@@ -15,8 +15,6 @@
 #include "ASMs2DC1.h"
 #include "Functions.h"
 #include "Utilities.h"
-#include <fstream>
-#include <sstream>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -53,169 +51,7 @@ SIM2D::SIM2D (unsigned char n1, unsigned char n2) : isRefined(false)
 bool SIM2D::parse (char* keyWord, std::istream& is)
 {
   char* cline = 0;
-  if (!strncasecmp(keyWord,"PATCHES",7))
-  {
-    int npatch = atoi(keyWord+7);
-    if (myModel.empty())
-    {
-      std::cout <<"\nNumber of patches: "<< npatch << std::endl;
-      for (int i = 0; i < npatch && (cline = utl::readLine(is)); i++)
-	this->readPatch(strtok(cline," "),i);
-
-      if ((int)myModel.size() < npatch)
-      {
-	std::cerr <<" *** SIM2D::parse: Expected "<< npatch
-		  <<" patches but could read only "<< myModel.size()
-		  << std::endl;
-	return false;
-      }
-    }
-    else // just read through the npatch next lines without doing anything
-      for (int i = 0; i < npatch && utl::readLine(is); i++);
-  }
-
-  else if (!strncasecmp(keyWord,"PATCHFILE",9))
-  {
-    if (myModel.empty())
-    {
-      size_t i = 9; while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
-      std::cout <<"\nReading data file "<< keyWord+i << std::endl;
-      std::ifstream isp(keyWord+i);
-      this->readPatches(isp);
-
-      if (myModel.empty())
-      {
-	std::cerr <<" *** SIM2D::parse: No patches read"<< std::endl;
-	return false;
-      }
-    }
-  }
-
-  else if (!strncasecmp(keyWord,"NODEFILE",8))
-  {
-    if (!this->createFEMmodel()) return false;
-
-    bool oneBasedIdx = keyWord[8] == '1';
-    size_t i = (oneBasedIdx || keyWord[8] == '0') ? 9 : 8;
-    while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
-
-    std::stringstream filenames(keyWord+i);
-    size_t k = 0;
-    while (filenames.good()) {
-      std::string filename;
-      filenames >> filename;
-
-      if (filenames.good() || k > 0) k++;
-
-      std::ifstream isn(filename.c_str());
-      if (isn)
-	std::cout <<"\nReading data file "<< filename << std::endl;
-      else {
-	std::cerr <<" *** SIM2D::read: Failure opening input file "
-		  << filename << std::endl;
-	return false;
-      }
-
-      while (isn.good()) {
-	int patch = 0;
-	isn >> patch;
-	if (!oneBasedIdx) ++patch;
-	int pid = this->getLocalPatchIndex(patch);
-	if (pid < 0) return false;
-	
-	ASMs2D::BlockNodes n;
-	for (i = 0; i < 4 && isn.good(); i++)
-	  isn >> n.ibnod[i];
-	for (i = 0; i < 4 && isn.good(); i++)
-	  isn >> n.edges[i].icnod >> n.edges[i].incr;
-	isn >> n.iinod;
-	
-	if (!oneBasedIdx) {
-	  // We always require the node numbers to be 1-based
-	  for (i = 0; i < 4; i++) ++n.ibnod[i];
-	  for (i = 0; i < 4; i++) ++n.edges[i].icnod;
-	  ++n.iinod;
-	}
-	
-	if (isn.good() && pid > 0) {
-	  if (!static_cast<ASMs2D*>(myModel[pid-1])->assignNodeNumbers(n,k)) {
-	    std::cerr <<" *** SIM2D::parse: Failed to assign node numbers"
-		      <<" for patch "<< patch << std::endl;
-	    return false;
-	  }
-	}
-      }
-    }
-  }
-  else if (!strncasecmp(keyWord,"PROPERTYFILE",12))
-  {
-    bool oneBasedIdx = keyWord[12] == '1';
-    size_t i = (oneBasedIdx || keyWord[12] == '0') ? 13 : 12;
-    while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
-    std::ifstream isp(keyWord+i);
-    if (isp)
-      std::cout <<"\nReading data file "<< keyWord+i << std::endl;
-    else
-    {
-      std::cerr <<" *** SIM2D::read: Failure opening input file "
-		<< std::string(keyWord+i) << std::endl;
-      return false;
-    }
-
-    while (isp.good())
-    {
-      Property p;
-      int ldim, lindx = 0;
-      isp >> p.pindx >> p.patch >> ldim;
-      if (ldim < 2) isp >> lindx;
-
-      if (!oneBasedIdx)
-      {
-	// We always require the item indices to be 1-based
-	++p.patch;
-	++lindx;
-      }
-
-      p.ldim = ldim;
-      p.lindx = lindx;
-      p.patch = this->getLocalPatchIndex(p.patch);
-      if (p.patch > 0 && isp.good())
-	myProps.push_back(p);
-    }
-  }
-
-  else if (!strncasecmp(keyWord,"DIRICHLET",9))
-  {
-    if (ignoreDirichlet) return true; // Ignore all boundary conditions
-
-    int ndir = atoi(keyWord+9);
-    std::cout <<"\nNumber of Dirichlet properties: "<< ndir << std::endl;
-    for (int i = 0; i < ndir && (cline = utl::readLine(is)); i++)
-    {
-      int code = atoi(strtok(cline," "));
-      double d = (cline = strtok(NULL," ")) ? atof(cline) : 0.0;
-      std::cout <<"\tDirichlet code "<< code <<": ";
-      if (d == 0.0)
-      {
-	this->setPropertyType(code,Property::DIRICHLET);
-	std::cout <<"(fixed)";
-      }
-      else
-      {
-	this->setPropertyType(code,Property::DIRICHLET_INHOM);
-
-	cline = strtok(NULL," ");
-	myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,d));
-      }
-      std::cout << std::endl;
-    }
-  }
-
-  // The remaining keywords are retained for backward compatibility with the
-  // prototype version. They enable direct specification of topology and
-  // properties as well as grid refinement without using the GPM module.
-
-  else if (!strncasecmp(keyWord,"REFINE",6))
+  if (!strncasecmp(keyWord,"REFINE",6))
   {
     int nref = atoi(keyWord+6);
     if (isRefined) // just read through the next lines without doing anything
@@ -346,7 +182,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 				static_cast<ASMs2DC1*>(spch),sEdge,rever));
     }
 
-    // Second pass when C1-continuous patches to set up additional constraints
+    // Second pass for C1-continuous patches, to set up additional constraints
     std::vector<Interface>::const_iterator it;
     for (it = top.begin(); it != top.end(); it++)
       if (!it->slave.first->connectC1(it->slave.second,
@@ -516,21 +352,12 @@ void SIM2D::setQuadratureRule (size_t ng)
 }
 
 
-bool SIM2D::readPatch (const char* patchFile, int pchInd)
+bool SIM2D::readPatch (std::istream& isp, int pchInd)
 {
-  std::ifstream is(patchFile);
-  if (!is.good())
-  {
-    std::cerr <<" *** SIM2D: Failure opening patch file"
-	      << patchFile << std::endl;
-    return false;
-  }
-
   ASMbase* pch = ASM2D::create(discretization,nf);
   if (pch)
   {
-    std::cout <<"\nReading patch file "<< patchFile << std::endl;
-    if (!pch->read(is))
+    if (!pch->read(isp))
     {
       delete pch;
       return false;
@@ -564,6 +391,31 @@ bool SIM2D::readPatches (std::istream& isp)
     }
 
   return true;
+}
+
+
+bool SIM2D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
+{
+  int i;
+  ASMs2D::BlockNodes n;
+
+  for (i = 0; i < 4 && isn.good(); i++)
+    isn >> n.ibnod[i];
+  for (i = 0; i < 4 && isn.good(); i++)
+    isn >> n.edges[i].icnod >> n.edges[i].incr;
+  isn >> n.iinod;
+
+  if (!isn.good() || pchInd < 0) return true;
+
+  if (!oneBased)
+  {
+    // We always require the node numbers to be 1-based
+    for (i = 0; i < 4; i++) ++n.ibnod[i];
+    for (i = 0; i < 4; i++) ++n.edges[i].icnod;
+    ++n.iinod;
+  }
+
+  return static_cast<ASMs2D*>(myModel[pchInd])->assignNodeNumbers(n,basis);
 }
 
 

@@ -25,12 +25,8 @@
 class ASMs3DSpec : public ASMs3DLag
 {
 public:
-  //! \brief Constructor creating an instance by reading the given file.
-  ASMs3DSpec(const char* fNam = 0, bool checkRHS = false, unsigned char n_f = 3)
-    : ASMs3DLag(fNam,checkRHS,n_f) {}
-  //! \brief Constructor creating an instance by reading the given input stream.
-  ASMs3DSpec(std::istream& is, bool checkRHS = false, unsigned char n_f = 3)
-    : ASMs3DLag(is,checkRHS,n_f) {}
+  //! \brief Default constructor.
+  ASMs3DSpec(unsigned char n_f = 3) : ASMs3DLag(n_f) {}
   //! \brief Copy constructor.
   ASMs3DSpec(const ASMs3DSpec& patch, unsigned char n_f = 0)
     : ASMs3DLag(patch,n_f) {}
@@ -73,11 +69,13 @@ public:
   // Post-processing methods
   // =======================
 
-  //! \brief Evaluates the secondary solution field at all visualization points.
+  //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] gpar Parameter values of the result sampling points
+  //! \param[in] regular Flag indicating how the sampling points are defined
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
-			    const int*, bool = false) const;
+			    const RealArray* gpar, bool regular = true) const;
 
 protected:
 

@@ -15,7 +15,7 @@
 #include "XMLWriter.h"
 #include "StringUtils.h"
 #include "ASMs1D.h"
-#include "ASMs2D.h"
+#include "ASM2D.h"
 #include "ASMs3D.h"
 #include "ElementBlock.h"
 #include "VTF.h"
@@ -33,7 +33,7 @@ std::vector<ASMbase*> readBasis (const std::string& name,
 				 int patches, HDF5Writer& hdf,
 				 int dim, int level)
 {
-  unsigned char nf[2]; nf[0] = 1; nf[1] = 0;
+  unsigned char nf[2] = { 1, 0 };
   ASM::Discretization ptype;
   std::vector<ASMbase*> result;
   for (int i=0;i<patches;++i) {
@@ -47,14 +47,13 @@ std::vector<ASMbase*> readBasis (const std::string& name,
     ptype = out.substr(0,10) == "# LRSPLINE" ? ASM::LRSpline : ASM::Spline;
     basis << out;
     if (dim == 1)
-      result.push_back(new ASMs1D(basis,1,1));
-    else if (dim == 2) {
+      result.push_back(new ASMs1D());
+    else if (dim == 2)
       result.push_back(ASM2D::create(ptype,nf));
-      assert(result.back());
-      result.back()->read(basis);
-    }
     else if (dim == 3)
-      result.push_back(new ASMs3D(basis,false,1));
+      result.push_back(new ASMs3D(1));
+    assert(result.back());
+    result.back()->read(basis);
     result.back()->generateFEMTopology();
   }
 
@@ -119,6 +118,8 @@ bool writeElmPatch(const Vector& locvec,
 
   return true;
 }
+
+
 void writeFieldBlocks(VTFList& vlist, VTFList& slist, VTF& myvtf,
                       int iStep)
 {
@@ -220,9 +221,9 @@ int main (int argc, char** argv)
 
   if (infile.empty()) {
     std::cout <<"usage: "<< argv[0]
-              <<" <inputfile> [<vtffile>] [<vtufile>] [-nviz <nviz>]" << std::endl
-              << "[-ndump <ndump>] [-last] [-start <level] [-end <level>]" << std::endl
-              << "[-starttime <time>] [-endtime <time>] [-basis <basis>] [-1D|-2D]"<< std::endl;
+              <<" <inputfile> [<vtffile>|<vtufile>] [-nviz <nviz>]\n"
+              << "[-ndump <ndump>] [-last] [-start <level>] [-end <level>]\n"
+              << "[-starttime <time>] [-endtime <time>] [-basis <basis>] [-1D|-2D]\n";
     return 0;
   }
   else if (!vtffile)
@@ -230,10 +231,10 @@ int main (int argc, char** argv)
 
   std::cout <<"\n >>> IFEM HDF5 to VTF converter <<<"
             <<"\n ==================================\n"
-            <<"\nInput file: ";
+            <<"\nInput file:";
 
   for (size_t i=0;i<infile.size();++i)
-    std::cout << infile[i] << " ";
+    std::cout <<" "<< infile[i];
 
   std::cout <<"\nOutput file: "<< vtffile
             <<"\nNumber of visualization points: "
@@ -274,7 +275,7 @@ int main (int argc, char** argv)
 
     ProcessList::const_iterator pit = processlist.begin();
 
-    double time;
+    double time = 0.0;
     if (ic == 0) {
       // setup step boundaries and initial time
       if (starttime > 0)

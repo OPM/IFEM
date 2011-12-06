@@ -122,15 +122,15 @@ public:
   //! patch and its edges.
   bool assignNodeNumbers(BlockNodes& nodes, int basis = 0);
 
-  //! \brief Refine the parametrization by inserting extra knots.
+  //! \brief Refines the parametrization by inserting extra knots.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
   bool refine(int dir, const RealArray& xi);
-  //! \brief Refine the parametrization by inserting extra knots uniformly.
+  //! \brief Refines the parametrization by inserting extra knots uniformly.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
   bool uniformRefine(int dir, int nInsert);
-  //! \brief Raise the order of the SplineSurface object for this patch.
+  //! \brief Raises the order of the SplineSurface object for this patch.
   //! \param[in] ru Number of times to raise the order in u-direction
   //! \param[in] rv Number of times to raise the order in v-direction
   bool raiseOrder(int ru, int rv);
@@ -258,7 +258,7 @@ public:
   //! then projected onto the spline basis to obtain the control point values,
   //! which then are returned through \a sField.
   //! If \a npe is not NULL and \a project is \e true, the solution is also
-  //! projected onto the spline basis, and then evaluated at the \a npe points
+  //! projected onto the spline basis, and then evaluated at the \a npe points.
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
 			    const int* npe = 0, bool project = false) const;
 

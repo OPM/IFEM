@@ -101,8 +101,9 @@ public:
   //! the Lagrange elements by default.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector in DOF-order
+  //! \param[in] npe Number of visualization nodes over each knot span
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-			    const int*) const;
+			    const int* npe) const;
 
   //! \brief Evaluates the primary solution field at the given points.
   //! \param[out] sField Solution field
@@ -117,8 +118,9 @@ public:
   //! the Lagrange elements by default.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] npe Number of visualization nodes over each knot span
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
-			    const int*, bool = false) const;
+			    const int* npe, bool = false) const;
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field

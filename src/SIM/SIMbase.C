@@ -31,7 +31,10 @@
 #include "Profiler.h"
 #include "ElementBlock.h"
 #include "VTF.h"
+#include "Functions.h"
 #include "Utilities.h"
+#include <fstream>
+#include <sstream>
 #include <iomanip>
 #include <ctype.h>
 #include <stdio.h>
@@ -113,7 +116,165 @@ void SIMbase::clearProperties ()
 
 bool SIMbase::parse (char* keyWord, std::istream& is)
 {
-  if (!strncasecmp(keyWord,"LINEARSOLVER",12))
+  char* cline = 0;
+  if (!strncasecmp(keyWord,"PATCHES",7))
+  {
+    int npatch = atoi(keyWord+7);
+    if (myModel.empty())
+    {
+      std::cout <<"\nNumber of patches: "<< npatch << std::endl;
+      for (int i = 0; i < npatch && (cline = utl::readLine(is)); i++)
+      {
+	std::ifstream is(cline);
+	if (is.good())
+	{
+	  std::cout <<"\nReading patch file "<< cline << std::endl;
+	  this->readPatch(is,i);
+	}
+	else
+	  std::cerr <<" *** SIMbase: Failure opening patch file"
+		    << cline << std::endl;
+      }
+
+      if ((int)myModel.size() < npatch)
+      {
+	std::cerr <<" *** SIMbase::parse: Expected "<< npatch
+		  <<" patches but could read only "<< myModel.size()
+		  << std::endl;
+	return false;
+      }
+    }
+    else // just read through the npatch next lines without doing anything
+      for (int i = 0; i < npatch && utl::readLine(is); i++);
+  }
+
+  else if (!strncasecmp(keyWord,"PATCHFILE",9))
+  {
+    if (myModel.empty())
+    {
+      size_t i = 9; while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
+      std::cout <<"\nReading data file "<< keyWord+i << std::endl;
+      std::ifstream isp(keyWord+i);
+      this->readPatches(isp);
+
+      if (myModel.empty())
+      {
+	std::cerr <<" *** SIMbase::parse: No patches read"<< std::endl;
+	return false;
+      }
+    }
+  }
+
+  else if (!strncasecmp(keyWord,"NODEFILE",8))
+  {
+    if (!this->createFEMmodel()) return false;
+
+    bool oneBasedIdx = keyWord[8] == '1';
+    size_t i = (oneBasedIdx || keyWord[8] == '0') ? 9 : 8;
+    while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
+
+    std::stringstream filenames(keyWord+i);
+    for (size_t basis = 0; filenames.good(); basis++)
+    {
+      std::string filename;
+      filenames >> filename;
+      if (basis == 0 && filenames.good()) basis = 1;
+
+      std::ifstream isn(filename.c_str());
+      if (!isn)
+      {
+	std::cerr <<" *** SIMbase::read: Failure opening input file "
+		  << filename << std::endl;
+	return false;
+      }
+
+      if (basis < 2) std::cout <<"\n";
+      std::cout <<"Reading data file "<< filename;
+      if (basis > 0) std::cout <<" (basis "<< basis <<")";
+      std::cout << std::endl;
+
+      while (isn.good())
+      {
+	int patch = 0;
+	isn >> patch;
+	if (!oneBasedIdx) ++patch;
+	int pid = this->getLocalPatchIndex(patch);
+	if (pid < 0) return false;
+
+	if (!this->readNodes(isn,pid-1,basis,oneBasedIdx))
+	{
+	  std::cerr <<" *** SIMbase::parse: Failed to assign node numbers"
+		    <<" for patch "<< patch << std::endl;
+	  return false;
+	}
+      }
+    }
+  }
+  else if (!strncasecmp(keyWord,"PROPERTYFILE",12))
+  {
+    bool oneBasedIdx = keyWord[12] == '1';
+    size_t i = (oneBasedIdx || keyWord[12] == '0') ? 13 : 12;
+    while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
+
+    std::ifstream isp(keyWord+i);
+    if (!isp)
+    {
+      std::cerr <<" *** SIM2D::read: Failure opening input file "
+		<< std::string(keyWord+i) << std::endl;
+      return false;
+    }
+
+    std::cout <<"\nReading data file "<< keyWord+i << std::endl;
+    while (isp.good())
+    {
+      Property p;
+      int ldim, lindx = 0;
+      isp >> p.pindx >> p.patch >> ldim;
+      if (ldim < (int)this->getNoSpaceDim()) isp >> lindx;
+
+      if (!oneBasedIdx)
+      {
+	// We always require the item indices to be 1-based
+	++p.patch;
+	++lindx;
+      }
+
+      p.ldim = ldim;
+      p.lindx = lindx;
+      p.patch = this->getLocalPatchIndex(p.patch);
+      if (p.patch > 0 && isp.good())
+	myProps.push_back(p);
+    }
+  }
+
+  else if (!strncasecmp(keyWord,"DIRICHLET",9))
+  {
+    if (ignoreDirichlet) return true; // Ignore all boundary conditions
+
+    int ndir = atoi(keyWord+9);
+    std::cout <<"\nNumber of Dirichlet properties: "<< ndir << std::endl;
+    for (int i = 0; i < ndir && (cline = utl::readLine(is)); i++)
+    {
+      int code = atoi(strtok(cline," "));
+      double d = (cline = strtok(NULL," ")) ? atof(cline) : 0.0;
+      std::cout <<"\tDirichlet code "<< code <<": ";
+      if (d == 0.0)
+      {
+	this->setPropertyType(code,Property::DIRICHLET);
+	std::cout <<"(fixed)";
+      }
+      else
+      {
+	this->setPropertyType(code,Property::DIRICHLET_INHOM);
+
+	cline = strtok(NULL," ");
+	myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,d));
+      }
+      std::cout << std::endl;
+    }
+  }
+
+  else if (!strncasecmp(keyWord,"LINEARSOLVER",12))
     this->readLinSolParams(is,atoi(keyWord+12));
 
   else if (!strncasecmp(keyWord,"PARTITIONING",12))
@@ -122,7 +283,6 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
     if (myPid == 0)
       std::cout <<"\nNumber of partitions: "<< nproc << std::endl;
 
-    char* cline = 0;
     nGlPatches = 0;
     for (int i = 0; i < nproc && (cline = utl::readLine(is)); i++)
     {
@@ -154,7 +314,6 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
     if (myPid == 0 && nres > 0)
       std::cout <<"\nNumber of result points: "<< nres;
 
-    char* cline = 0;
     myPoints.resize(nres);
     for (int i = 0; i < nres && (cline = utl::readLine(is)); i++)
     {
@@ -174,7 +333,7 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
 
   else if (!strncasecmp(keyWord,"VISUALIZATION",13))
   {
-    char* cline = utl::readLine(is);
+    cline = utl::readLine(is);
     if ((cline = strtok(cline," "))) format = atoi(cline);
     if ((cline = strtok(NULL," "))) vizIncr = atoi(cline);
   }
@@ -207,7 +366,7 @@ bool SIMbase::createFEMmodel ()
 
   if (nGlPatches == 0 && nProc == 1)
     nGlPatches = myModel.size();
-  
+
   return true;
 }
 
@@ -758,7 +917,8 @@ double SIMbase::solutionNorms (const Vector& x, double* inf,
 {
   if (nf == 0) nf = this->getNoSpaceDim();
 
-  for (size_t d = 0; d < nf; d++) {
+  for (size_t d = 0; d < nf; d++)
+  {
     ind[d] = d+1;
     inf[d] = mySam->normInf(x,ind[d]);
   }

@@ -25,21 +25,10 @@
 #include "Vec3Oper.h"
 
 
-ASMs3DmxLag::ASMs3DmxLag (const char* fName, bool checkRHS,
-			  unsigned char n_f1, unsigned char n_f2)
-  : ASMs3DLag(fName,checkRHS), ASMmxBase(n_f1,n_f2)
+ASMs3DmxLag::ASMs3DmxLag (unsigned char n_f1, unsigned char n_f2)
+  : ASMs3DLag(n_f1+n_f2), ASMmxBase(n_f1,n_f2)
 {
   nx2 = ny2 = nz2 = 0;
-  nf = nf1 + nf2;
-}
-
-
-ASMs3DmxLag::ASMs3DmxLag (std::istream& is, bool checkRHS,
-			  unsigned char n_f1, unsigned char n_f2)
-  : ASMs3DLag(is,checkRHS), ASMmxBase(n_f1,n_f2)
-{
-  nx2 = ny2 = nz2 = 0;
-  nf = nf1 + nf2;
 }
 
 
@@ -469,7 +458,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
 
 
 bool ASMs3DmxLag::evalSolution (Matrix& sField, const Vector& locSol,
-				const int*) const
+				const RealArray*, bool) const
 {
   size_t nc1 = nf1;
   size_t nc2 = 0;
@@ -481,7 +470,7 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const Vector& locSol,
   if (nc1*nb1 + nc2*nb2 != locSol.size())
     return false;
 
-  // TODO: Add evaluation second field at the nodes of the first field
+  // TODO: Add evaluation of the second field at the nodes of the first field
   size_t nPoints = nb1;
   size_t nComp = nc1;
   size_t i, n, ip = 0;
@@ -495,10 +484,9 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs3DmxLag::evalSolution (Matrix& sField, const Integrand& integrand,
-				const int*, bool) const
+				const RealArray*, bool) const
 {
   sField.resize(0,0);
-
   if (!svol) return false;
 
   const int p1 = svol->order(0);

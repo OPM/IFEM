@@ -62,11 +62,13 @@ public:
   // Post-processing methods
   // =======================
 
-  //! \brief Evaluates the secondary solution field at all visualization points.
+  //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] gpar Parameter values of the result sampling points
+  //! \param[in] regular Flag indicating how the sampling points are defined
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
-			    const int*, bool = false) const;
+			    const RealArray* gpar, bool regular = true) const;
 
 protected:
 

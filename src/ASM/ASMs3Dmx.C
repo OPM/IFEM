@@ -27,21 +27,10 @@
 #include "Vec3.h"
 
 
-ASMs3Dmx::ASMs3Dmx (const char* fName, bool checkRHS,
-		    unsigned char n_f1, unsigned char n_f2)
-  : ASMs3D(fName,checkRHS), ASMmxBase(n_f1,n_f2)
+ASMs3Dmx::ASMs3Dmx (unsigned char n_f1, unsigned char n_f2)
+  : ASMs3D(n_f1+n_f2), ASMmxBase(n_f1,n_f2)
 {
   basis1 = basis2 = 0;
-  nf = nf1 + nf2;
-}
-
-
-ASMs3Dmx::ASMs3Dmx (std::istream& is, bool checkRHS,
-		    unsigned char n_f1, unsigned char n_f2)
-  : ASMs3D(is,checkRHS), ASMmxBase(n_f1,n_f2)
-{
-  basis1 = basis2 = 0;
-  nf = nf1 + nf2;
 }
 
 
