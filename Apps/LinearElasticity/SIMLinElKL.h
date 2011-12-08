@@ -59,6 +59,10 @@ protected:
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
 
+  //! \brief Parses a data section from an XML element
+  //! \param[in] elem The XML element to parse
+  virtual bool parse(const TiXmlElement* elem);
+
   //! \brief Initializes material properties for integration of interior terms.
   //! \param[in] propInd Physical property index
   virtual bool initMaterial(size_t propInd);

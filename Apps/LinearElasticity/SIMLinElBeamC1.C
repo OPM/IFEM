@@ -25,6 +25,8 @@
 #include "Vec3Oper.h"
 #include <string.h>
 
+#include "tinyxml.h"
+
 
 SIMLinElBeamC1::SIMLinElBeamC1 () : SIM1D(SIM::NONE)
 {
@@ -150,6 +152,96 @@ bool SIMLinElBeamC1::parse (char* keyWord, std::istream& is)
   */
   else
     return this->SIM1D::parse(keyWord,is);
+
+  return true;
+}
+
+
+bool SIMLinElBeamC1::parse(const TiXmlElement* elem)
+{
+  if (strcasecmp(elem->Value(),"eulerbernoulli"))
+    return SIM1D::parse(elem);
+
+  KirchhoffLovePlate* klp = dynamic_cast<KirchhoffLovePlate*>(myProblem);
+  if (!klp)
+    return false;
+
+  std::vector<const TiXmlElement*> parsed = handlePriorityTags(elem);
+  const TiXmlElement* child = elem->FirstChildElement();
+  while (child) {
+    if (find(parsed.begin(),parsed.end(),child) != parsed.end()) {
+      child = child->NextSiblingElement();
+      continue;
+    }
+    if (!strcasecmp(child->Value(),"gravity")) {
+      double g=0;
+      if (child->Attribute("g"))
+        g = atof(child->Attribute("g"));
+      klp->setGravity(g);
+      if (myPid == 0)
+        std::cout <<"\nGravitation constant: "<< g << std::endl;
+    } else if (!strcasecmp(child->Value(),"isotropic")) {
+      int code=0;
+      if (child->Attribute("code"))
+        code = atoi(child->Attribute("code"));
+      if (code > 0)
+        setPropertyType(code,Property::MATERIAL,mVec.size());
+      double E=1000.f, rho = 1.f, thk=0;
+      if (child->Attribute("E"))
+        E = atof(child->Attribute("E"));
+      if (child->Attribute("rho"))
+        rho = atof(child->Attribute("rho"));
+      if (child->Attribute("thickness"))
+        thk = atof(child->Attribute("thickness"));
+      mVec.push_back(new LinIsotropic(E,0.0,rho,true));
+      tVec.push_back(thk);
+      if (myPid == 0)
+        std::cout <<"\tMaterial code "<< code <<": "
+                  << E <<" " << rho <<" " << thk << std::endl;
+      if (!mVec.empty())
+        klp->setMaterial(mVec.front());
+      if (!tVec.empty() && tVec.front() != 0.0)
+        klp->setThickness(tVec.front());
+    } else if (!strcasecmp(child->Value(),"pointload")) {
+      PointLoad load;
+      if (child->Attribute("patch"))
+        load.patch = atoi(child->Attribute("patch"));
+      if (child->Attribute("xi"))
+        load.xi = atof(child->Attribute("xi"));
+      if (child->FirstChild() && child->FirstChild()->Value())
+        load.pload = atof(child->FirstChild()->Value());
+      if (myPid == 0)
+        std::cout <<"\n\tPoint: P" << load.patch
+                  <<" xi = "   << load.xi
+                  <<" load = " << load.pload;
+      myLoads.push_back(load);
+    } else if (!strcasecmp(child->Value(),"pressure")) {
+      int code=0;
+      double p=0;
+      if (child->Attribute("code"))
+        code = atoi(child->Attribute("code"));
+      if (child->FirstChild() && child->FirstChild()->Value())
+        p = atof(child->FirstChild()->Value());
+      if (myPid == 0)
+        std::cout <<"\tPressure code "<< code <<": ";
+      char* function;
+      if (child->Attribute("function"))
+        function = strdup(child->Attribute("function"));
+      else
+        function = strdup("");
+      char* function2 = function;
+      function = strtok(function," ");
+      myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(const_cast<char*>(function),p));
+      free(function2);
+      std::cout << std::endl;
+      if (code > 0)
+	setPropertyType(code,Property::BODYLOAD);
+    }
+    else
+      SIM1D::parse(child);
+
+    child = child->NextSiblingElement();
+  }
 
   return true;
 }

@@ -21,6 +21,8 @@
 #include "AnaSol.h"
 #include <string.h>
 
+#include "tinyxml.h"
+
 
 bool SIMLinEl2D::planeStrain = false;
 bool SIMLinEl2D::axiSymmetry = false;
@@ -289,6 +291,167 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
 
   else
     return this->SIM2D::parse(keyWord,is);
+
+  return true;
+}
+
+
+bool SIMLinEl2D::parse(const TiXmlElement* elem)
+{
+  if (strcasecmp(elem->Value(),"linearelasticity"))
+    return SIM2D::parse(elem);
+
+  Elasticity* elp = dynamic_cast<Elasticity*>(myProblem);
+  if (!elp)
+    return false;
+
+  std::vector<const TiXmlElement*> parsed = handlePriorityTags(elem);
+  const TiXmlElement* child = elem->FirstChildElement();
+  while (child) {
+    if (find(parsed.begin(),parsed.end(),child) != parsed.end()) {
+      child = child->NextSiblingElement();
+      continue;
+    }
+    if (!strcasecmp(child->Value(),"gravity")) {
+      double gx=0, gy=0;
+      if (child->Attribute("x"))
+        gx = atof(child->Attribute("x"));
+      if (child->Attribute("y"))
+        gy = atof(child->Attribute("y"));
+      elp->setGravity(gx,gy);
+      if (myPid == 0)
+        std::cout <<"\nGravitation vector: " << gx <<" "<< gy << std::endl;
+    } else if (!strcasecmp(child->Value(),"isotropic")) {
+      int code=0;
+      if (child->Attribute("code"))
+        code = atoi(child->Attribute("code"));
+      if (code > 0)
+        setPropertyType(code,Property::MATERIAL,mVec.size());
+      double E=1000.f, nu=0.3f, rho = 1.f;
+      if (child->Attribute("E"))
+        E = atof(child->Attribute("E"));
+      if (child->Attribute("rho"))
+        rho = atof(child->Attribute("rho"));
+      if (child->Attribute("nu"))
+        nu = atof(child->Attribute("nu"));
+      mVec.push_back(new LinIsotropic(E,nu,rho,!planeStrain,axiSymmetry));
+      if (myPid == 0)
+        std::cout <<"\tMaterial code "<< code <<": "
+                  << E <<" "<< nu <<" "<< rho << std::endl;
+      if (!mVec.empty())
+        elp->setMaterial(mVec.front());
+    } else if (!strcasecmp(child->Value(),"constantpressure")) {
+      int code=0, pdir=1;
+      double p=0;
+      if (child->Attribute("code"))
+        code = atoi(child->Attribute("code"));
+      if (child->Attribute("dir"))
+        pdir = atoi(child->Attribute("dir"));
+      if (child->FirstChild() && child->FirstChild()->Value())
+        p = atof(child->FirstChild()->Value());
+      if (myPid == 0)
+	std::cout <<"\tPressure code "<< code <<" direction "<< pdir
+		  <<": "<< p << std::endl;
+      setPropertyType(code,Property::NEUMANN);
+      myTracs[code] = new PressureField(p,pdir);
+    } else if (!strcasecmp(child->Value(),"anasol")) {
+      if (child->Attribute("type") &&
+          !strcasecmp(child->Attribute("type"),"hole")) {
+        double a=0, F0 = 0, nu = 0;
+        if (child->Attribute("a"))
+          a = atof(child->Attribute("a"));
+        if (child->Attribute("F0"))
+          F0 = atof(child->Attribute("F0"));
+        if (child->Attribute("nu"))
+          nu = atof(child->Attribute("nu"));
+        mySol = new AnaSol(new Hole(a,F0,nu));
+        std::cout <<"\nAnalytical solution: Hole a="<< a <<" F0="<< F0
+                  <<" nu="<< nu << std::endl;
+      } else if (child->Attribute("type") &&
+                 !strcasecmp(child->Attribute("type"),"Lshape")) {
+        double a=0, F0 = 0, nu = 0;
+        if (child->Attribute("a"))
+          a = atof(child->Attribute("a"));
+        if (child->Attribute("F0"))
+          F0 = atof(child->Attribute("F0"));
+        if (child->Attribute("nu"))
+          nu = atof(child->Attribute("nu"));
+        mySol = new AnaSol(new Lshape(a,F0,nu));
+        std::cout <<"\nAnalytical solution: Lshape a="<< a <<" F0="<< F0
+                  <<" nu="<< nu << std::endl;
+      } else if (child->Attribute("type") &&
+                 !strcasecmp(child->Attribute("type"),"cants")) {
+        double L=0, F0 = 0, H = 0;
+        if (child->Attribute("L"))
+          L = atof(child->Attribute("L"));
+        if (child->Attribute("F0"))
+          F0 = atof(child->Attribute("F0"));
+        if (child->Attribute("H"))
+          H = atof(child->Attribute("H"));
+        mySol = new AnaSol(new CanTS(L,H,F0));
+        std::cout <<"\nAnalytical solution: CanTS L="<< L <<" H="<< H
+                  <<" F0="<< F0 << std::endl;
+      } else if (child->Attribute("type") &&
+                 !strcasecmp(child->Attribute("type"),"cantm")) {
+        double M0 = 0, H = 0;
+        if (child->Attribute("M0"))
+          M0 = atof(child->Attribute("M0"));
+        if (child->Attribute("H"))
+          H = atof(child->Attribute("H"));
+        mySol = new AnaSol(new CanTM(H,M0));
+        std::cout <<"\nAnalytical solution: CanTM H="<< H
+                  <<" M0="<< M0 << std::endl;
+      } else if (child->Attribute("type") &&
+                 !strcasecmp(child->Attribute("type"),"curved")) {
+        double a=0, b=0, u0 = 0, E = 0;
+        if (child->Attribute("a"))
+          a = atof(child->Attribute("a"));
+        if (child->Attribute("b"))
+          b = atof(child->Attribute("b"));
+        if (child->Attribute("u0"))
+          u0 = atof(child->Attribute("u0"));
+        if (child->Attribute("E"))
+          E = atof(child->Attribute("E"));
+        mySol = new AnaSol(new CurvedBeam(u0,a,b,E));
+        std::cout <<"\nAnalytical solution: Curved Beam a="<< a <<" b="<< b
+                  <<" u0="<< u0 <<" E="<< E << std::endl;
+      } else if (child->Attribute("type") &&
+                 !strcasecmp(child->Attribute("type"),"expression")) {
+        std::string variables, stress;
+        const TiXmlElement* var = child->FirstChildElement("variables");
+        if (var && var->FirstChild() && var->FirstChild()->Value()) {
+          variables = var->FirstChild()->Value();
+          if (variables[variables.size()-1] != ';')
+            variables += ";";
+        }
+        const TiXmlElement* str = child->FirstChildElement("stress");
+        if (str && str->FirstChild() && str->FirstChild()->Value())
+          stress = str->FirstChild()->Value();
+        mySol = new AnaSol(new STensorFuncExpr(stress,variables));
+	std::cout <<"\nAnalytical solution:";
+	if (!variables.empty())
+	  std::cout <<"\n\tVariables = "<< variables;
+	std::cout <<"\n\tStress = "<< stress << std::endl;
+      } else {
+        std::cerr <<"  ** SIMLinEl2D::parse: Unknown analytical solution "
+          << (child->Attribute("type")?child->Attribute("type"):"") << std::endl;
+      }
+
+      // Define the analytical boundary traction field
+      int code=0;
+      if (child->Attribute("code"))
+        code = atoi(child->Attribute("code"));
+      if (code > 0 && mySol && mySol->getStressSol()) {
+        std::cout <<"Pressure code "<< code <<": Analytical traction"<< std::endl;
+        setPropertyType(code,Property::NEUMANN);
+        myTracs[code] = new TractionField(*mySol->getStressSol());
+      }
+    }
+    else
+      SIM2D::parse(child);
+
+    child = child->NextSiblingElement();
+  }
 
   return true;
 }

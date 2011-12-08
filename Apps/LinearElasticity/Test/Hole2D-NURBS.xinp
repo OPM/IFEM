@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<simulation>
+    <!-- General - geometry definitions !-->
+    <geometry>
+        <patchfile type="bsplines">hole2D.g2</patchfile>
+        <refine type="uniform" patch="1" u="3" v="3"/>
+    </geometry>
+    <!-- General - boundary conditions !-->
+    <boundaryconditions>
+        <propertycodes>
+            <code value="1">
+                <patch index="1" edge="1"/>
+            </code>
+            <code value="2">
+                <patch index="1" edge="2"/>
+            </code>
+            <code value="1001">
+                <patch index="1" edge="4"/>
+            </code>
+        </propertycodes>    
+        <dirichlet code="1"/>
+        <dirichlet code="2"/>
+    </boundaryconditions>
+    <!-- General - linear solver parameters !-->
+    <linearsolver>
+        <type>cg</type>
+        <pc>ilu</pc>
+        <package>petsc</package>
+        <levels>2</levels>
+        <atol>1.0e-12</atol>
+        <rtol>1.0e-12</rtol>
+        <dtol>1.0e6</dtol>
+        <maxits>5000</maxits>
+    </linearsolver>
+    <!-- App specific block !-->
+    <linearelasticity>
+        <constant_pressure code="1001" pdir="1"/>
+        <anasol type="expression" code="1001">
+          <variables>nu=0.3;
+                     F0=10; 
+                     a=1;
+                     R=sqrt(x*x+y*y);
+                     R2=if(above(R,a),a*a/(R*R),1);
+                     R4=if(above(R,a),R2*R2,1);
+                     th=atan2(y,x);
+                     C2=cos(2*th);
+                     C4=cos(4*th);
+                     S2=sin(2*th);
+                     S4=sin(4*th)
+          </variables>
+          <stress>F0*(1-R2*(1.5*C2+C4)+1.5*R4*C4)|
+                  F0*(-R2*(0.5*S2+S4)+1.5*R4*S4)| 
+                  F0*(-R2*(0.5*C2-C4)-1.5*R4*C4)|
+                  F0*nu*(1-2*R2*C2)
+          </stress>
+        </anasol>
+        <isotropic code="0" E="1000" nu="0.3" rho="0"/>
+    </linearelasticity>
+</simulation>
