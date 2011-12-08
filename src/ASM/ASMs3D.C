@@ -988,34 +988,12 @@ bool ASMs3D::updateCoords (const Vector& displ)
   if (displ.size() != 3*MLGN.size())
   {
     std::cerr <<" *** ASMs3D::updateCoords: Invalid dimension "
-	      << displ.size() <<" on displ, should be "
+	      << displ.size() <<" on displacement vector, should be "
 	      << 3*MLGN.size() << std::endl;
     return false;
   }
 
-  //TODO: This should be placed in GoTools (SplineVolume::deform)
-  //svol->deform(displ);
-  RealArray::iterator cit;
-  int i, j, cdim = svol->dimension();
-
-  if (svol->rational())
-    for (cit = svol->rcoefs_begin(), j = 0; cit != svol->rcoefs_end(); cit++)
-    {
-      double weight = cit[cdim];
-      for (i = 0; i < cdim && i < 3; i++)
-	cit[i] += displ[j+i] * weight;
-      cit += cdim;
-      j += 3;
-    }
-
-  for (cit = svol->coefs_begin(), j = 0; cit != svol->coefs_end();)
-  {
-    for (i = 0; i < cdim && i < 3; i++)
-      cit[i] += displ[j+i];
-    cit += cdim;
-    j += 3;
-  }
-
+  svol->deform(displ,3);
   return true;
 }
 
@@ -2051,24 +2029,8 @@ bool ASMs3D::evalSolution (Matrix& sField, const Integrand& integrand,
   else if (gpar[0].size() == gpar[1].size() && gpar[0].size() == gpar[2].size())
   {
     PROFILE2("Spline evaluation");
-    std::vector<Go::BasisDerivs> tmpSpline(1);
-    for (size_t i = 0; i < spline.size(); i++)
-    {
-      svol->computeBasisGrid(RealArray(1,gpar[0][i]),
-                             RealArray(1,gpar[1][i]),
-                             RealArray(1,gpar[2][i]),
-                             tmpSpline);
-      spline[i] = tmpSpline.front();
-    }
-    // TODO: Request a GoTools method replacing the above:
-    // void SplineVolume::computeBasisGrid(double param_u,
-    //                                     double param_v,
-    //                                     double param_w,
-    //                                     BasisDerivs& result) const
-    /*
     for (size_t i = 0; i < spline.size(); i++)
       svol->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline[i]);
-    */
   }
   else
     return false;

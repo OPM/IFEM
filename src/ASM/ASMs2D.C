@@ -680,34 +680,12 @@ bool ASMs2D::updateCoords (const Vector& displ)
   if (displ.size() != nsd*MLGN.size())
   {
     std::cerr <<" *** ASMs2D::updateCoords: Invalid dimension "
-	      << displ.size() <<" on displ, should be "
+	      << displ.size() <<" on displacement vector, should be "
 	      << nsd*MLGN.size() << std::endl;
     return false;
   }
 
-  //TODO: This should be placed in GoTools (SplineSurface::deform)
-  //surf->deform(displ,nsd);
-  RealArray::iterator cit;
-  int i, j, cdim = surf->dimension();
-
-  if (surf->rational())
-    for (cit = surf->rcoefs_begin(), j = 0; cit != surf->rcoefs_end(); cit++)
-    {
-      double weight = cit[cdim];
-      for (i = 0; i < cdim && i < nsd; i++)
-	cit[i] += displ[j+i] * weight;
-      cit += cdim;
-      j += nsd;
-    }
-
-  for (cit = surf->coefs_begin(), j = 0; cit != surf->coefs_end();)
-  {
-    for (i = 0; i < cdim && i < nsd; i++)
-      cit[i] += displ[j+i];
-    cit += cdim;
-    j += nsd;
-  }
-
+  surf->deform(displ,nsd);
   return true;
 }
 
@@ -1496,35 +1474,11 @@ bool ASMs2D::evalSolution (Matrix& sField, const Integrand& integrand,
   }
   else if (gpar[0].size() == gpar[1].size())
   {
-    std::vector<Go::BasisDerivsSf> tmpS1(use2ndDer ? 0 : 1);
-    std::vector<Go::BasisDerivsSf2> tmpS2(use2ndDer ? 1 : 0);
     for (size_t i = 0; i < nPoints; i++)
       if (use2ndDer)
-      {
-	surf->computeBasisGrid(RealArray(1,gpar[0][i]),
-			       RealArray(1,gpar[1][i]),
-			       tmpS2);
-	spline2[i] = tmpS2.front();
-      }
+	surf->computeBasis(gpar[0][i],gpar[1][i],spline2[i]);
       else
-      {
-	surf->computeBasisGrid(RealArray(1,gpar[0][i]),
-			       RealArray(1,gpar[1][i]),
-			       tmpS1);
-	spline1[i] = tmpS1.front();
-      }
-    // TODO: Request GoTools methods replacing the above:
-    // void SplineSurface::computeBasis(double param_u, double param_v,
-    //                                  BasisDerivsSf2& result) const
-    // void SplineSurface::computeBasis(double param_u, double param_v,
-    //                                  BasisDerivsSf& result) const
-    /*
-    for (size_t i = 0; i < nPoints.size(); i++)
-      if (use2ndDer)
-        surf->computeBasis(gpar[0][i],gpar[1][i],spline2[i]);
-      else
-        surf->computeBasis(gpar[0][i],gpar[1][i],spline1[i]);
-    */
+	surf->computeBasis(gpar[0][i],gpar[1][i],spline1[i]);
   }
   else
     return false;

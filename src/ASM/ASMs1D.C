@@ -443,29 +443,7 @@ bool ASMs1D::updateCoords (const Vector& displ)
     return false;
   }
 
-  //TODO: This should be placed in GoTools (SplineCurve::deform)
-  //curv->deform(displ,nsd);
-  RealArray::iterator cit;
-  int i, j, cdim = curv->dimension();
-
-  if (curv->rational())
-    for (cit = curv->rcoefs_begin(), j = 0; cit != curv->rcoefs_end(); cit++)
-    {
-      double weight = cit[cdim];
-      for (i = 0; i < cdim && i < nsd; i++)
-	cit[i] += displ[j+i] * weight;
-      cit += cdim;
-      j += nsd;
-    }
-
-  for (cit = curv->coefs_begin(), j = 0; cit != curv->coefs_end();)
-  {
-    for (i = 0; i < cdim && i < nsd; i++)
-      cit[i] += displ[j+i];
-    cit += cdim;
-    j += nsd;
-  }
-
+  curv->deform(displ,nsd);
   return true;
 }
 
