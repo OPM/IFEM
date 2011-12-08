@@ -14,6 +14,7 @@
 #ifndef _ELM_NORM_H
 #define _ELM_NORM_H
 
+#include <cstddef>
 #include "LocalIntegral.h"
 
 
