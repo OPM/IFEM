@@ -153,39 +153,31 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
     }
     else if (!strncasecmp(cline,"EXPRESSION",10))
     {
-      std::string primary, secondary, variables;
+      std::string variables, stress;
       int lines = atoi(strtok(NULL, " "));
       char* c = strtok(NULL, " ");
       if (c)
         code = atoi(c);
       else
         code = 0;
-      STensorFunc* v=NULL;
       for (int i = 0; i < lines; i++) {
         std::string function = utl::readLine(is);
         size_t pos;
         if ((pos = function.find("Variables=")) != std::string::npos) {
-          variables = function.substr(pos+10);
+          variables += function.substr(pos+10);
           if (variables[variables.size()-1] != ';')
             variables += ";";
         }
         if ((pos = function.find("Stress=")) != std::string::npos) {
-          secondary = function.substr(pos+7);
-          v = new EvalMultiFunction<STensorFunc,Vec3,SymmTensor>(secondary,
-                                                                 3,variables);
-        }
-        if ((pos = function.find("Stress3=")) != std::string::npos) {
-          secondary = function.substr(pos+8);
-          v = new EvalMultiFunction<STensorFunc,Vec3,SymmTensor>(secondary,
-                                                                 4,variables);
+          stress = function.substr(pos+7);
+	  mySol = new AnaSol(new STensorFuncExpr(stress,variables));
+	  std::cout <<"\nAnalytical solution:";
+	  if (!variables.empty())
+	    std::cout <<"\n\tVariables = "<< variables;
+	  std::cout <<"\n\tStress = "<< stress << std::endl;
+	  break;
         }
       }
-      std::cout <<"\nAnalytical solution:" << std::endl;
-      if (!variables.empty())
-        std::cout << "\t Variables=" << variables << std::endl;
-      if (v)
-        std::cout << "\t Stress=" << secondary << std::endl;
-      mySol = new AnaSol(v);
     }
     else
     {

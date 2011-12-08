@@ -391,37 +391,43 @@ protected:
   virtual real evaluate(const Vec3& X) const;
 
   //! \brief The (1D) grid the data is associated with
-  std::vector<double> grid;
+  std::vector<real> grid;
   //! \brief The (scalar) data values
-  std::vector<double> values;
+  std::vector<real> values;
   //! \brief In which direction to perform the interpolation
   int dir;
 };
 
 
+//TODO doxygen...
+
 class EvalFunction : public RealFunc
 {
-  public:
-    EvalFunction(const char* function);
-    virtual ~EvalFunction();
+ public:
+  EvalFunction(const char* function);
+  virtual ~EvalFunction();
 
-    virtual real evaluate(const Vec3& X) const;
-  protected:
-    ExprEval::Expression* expr;
-    ExprEval::FunctionList* f;
-    ExprEval::ValueList* v;
+ protected:
+  virtual real evaluate(const Vec3& X) const;
+
+  ExprEval::Expression* expr;
+  ExprEval::FunctionList* f;
+  ExprEval::ValueList* v;
+  real* x;
+  real* y;
+  real* z;
 };
 
-  template <class Func, class In, class Ret>
+
+template <class Func, class In, class Ret>
 class EvalMultiFunction : public Func
 {
 public:
-  EvalMultiFunction<Func,In,Ret>(const std::string& functions, int components,
+  EvalMultiFunction<Func,In,Ret>(const std::string& functions,
                                  const std::string& variables="")
   {
     size_t pos = functions.find("|",0), pos2=0;
-    int i=0;
-    while (pos2 != std::string::npos && i < components)
+    for (int i = 0; pos2 < functions.size(); i++)
     {
       int ofs=0;
       if (pos2 != 0)
@@ -432,33 +438,40 @@ public:
       else
         func = variables+functions.substr(pos2+ofs,pos-pos2-ofs);
       p.push_back(new EvalFunction(func.c_str()));
-      pos2 = pos; 
+      pos2 = pos;
       pos = functions.find("|",pos+1);
-      ++i;
     }
   }
-  virtual ~EvalMultiFunction<Func,In,Ret>() 
+  virtual ~EvalMultiFunction<Func,In,Ret>()
   {
     for (size_t i=0;i<p.size();++i)
       delete p[i];
   }
+
 protected:
   virtual Ret evaluate(const In& X) const;
 
   std::vector<EvalFunction*> p;
 };
 
-//! \brief Specialization for vector functions
-  template<>
-Vec3 EvalMultiFunction<VecFunc,Vec3,Vec3>::evaluate(const Vec3& X) const;
+//! Vector function expression
+typedef EvalMultiFunction<VecFunc,Vec3,Vec3>           VecFuncExpr;
+//! Tensor function expression
+typedef EvalMultiFunction<TensorFunc,Vec3,Tensor>      TensorFuncExpr;
+//! Symmetric tensor function expression
+typedef EvalMultiFunction<STensorFunc,Vec3,SymmTensor> STensorFuncExpr;
 
-//! \brief Specialization for symmtensor function
-  template<>
-SymmTensor EvalMultiFunction<STensorFunc,Vec3,SymmTensor>::evaluate(const Vec3& X) const;
+//! \brief Specialization for vector functions
+template<>
+Vec3 VecFuncExpr::evaluate(const Vec3& X) const;
 
 //! \brief Specialization for tensor function
-  template<>
-Tensor EvalMultiFunction<TensorFunc,Vec3,Tensor>::evaluate(const Vec3& X) const;
+template<>
+Tensor TensorFuncExpr::evaluate(const Vec3& X) const;
+
+//! \brief Specialization for symmetric tensor function
+template<>
+SymmTensor STensorFuncExpr::evaluate(const Vec3& X) const;
 
 namespace utl
 {

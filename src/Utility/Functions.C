@@ -335,7 +335,7 @@ Interpolate1D::Interpolate1D(const char* file, int dir_) : dir(dir_)
 real Interpolate1D::evaluate(const Vec3& X) const
 {
   double x = X[dir];
-  std::vector<double>::const_iterator xb = 
+  std::vector<double>::const_iterator xb =
     find_if(grid.begin(),grid.end()-1,std::bind2nd(std::greater<double>(),x));
 
   size_t pos = xb-grid.begin();
@@ -368,9 +368,12 @@ EvalFunction::EvalFunction(const char* function)
     v->Add("z",0,false);
     expr->SetFunctionList(f);
     expr->SetValueList(v);
-    expr->Parse(function); 
+    expr->Parse(function);
+    x = v->GetAddress("x");
+    y = v->GetAddress("y");
+    z = v->GetAddress("z");
   } catch(...) {
-    std::cerr << "Error parsing function: " << function << std::endl;
+    std::cerr <<" *** Error parsing function: " << function << std::endl;
   }
 }
 
@@ -384,9 +387,9 @@ EvalFunction::~EvalFunction()
 real EvalFunction::evaluate(const Vec3& X) const
 {
   try {
-    *v->GetAddress("x") = X[0];
-    *v->GetAddress("y") = X[1];
-    *v->GetAddress("z") = X[2];
+    *x = X.x;
+    *y = X.y;
+    *z = X.z;
     return expr->Evaluate();
   } catch(...) {
     std::cerr << "Error evaluating function" << std::endl;
@@ -398,10 +401,8 @@ real EvalFunction::evaluate(const Vec3& X) const
 Vec3 EvalMultiFunction<VecFunc,Vec3,Vec3>::evaluate(const Vec3& X) const
 {
   Vec3 result;
-  for (size_t i=0;i<3;++i) {
-    if (p.size() > i)
-      result[i] = p[i]->evaluate(X);
-  }
+  for (size_t i = 0; i < 3 && i < p.size(); ++i)
+    result[i] = (*p[i])(X);
 
   return result;
 }
@@ -409,14 +410,14 @@ Vec3 EvalMultiFunction<VecFunc,Vec3,Vec3>::evaluate(const Vec3& X) const
   template<>
 SymmTensor EvalMultiFunction<STensorFunc,Vec3,SymmTensor>::evaluate(const Vec3& X) const
 {
-  bool is3D = (p.size()==6?true:false);
-  SymmTensor sigma(is3D?3:2,p.size()==4);
+  int nsd = p.size() > 5 ? 3 : (p.size() > 2 ? 2 : (p.size() > 0 ? 1 : 0));
+  SymmTensor sigma(nsd,p.size()==4);
   int k=0;
-  for (int i=0;i<(is3D?3:2);++i)
-    for (int j=i;j<(is3D?3:2);++j)
-      sigma(i+1,j+1) = p[k++]->evaluate(X);
+  for (int i = 1; i <= nsd; ++i)
+    for (int j = i; j<= nsd; ++j)
+      sigma(i,j) = (*p[k++])(X);
   if (p.size() == 4)
-    sigma(3,3) = p[3]->evaluate(X);
+    sigma(3,3) = (*p[3])(X);
 
   return sigma;
 }
@@ -425,11 +426,12 @@ SymmTensor EvalMultiFunction<STensorFunc,Vec3,SymmTensor>::evaluate(const Vec3& 
 Tensor EvalMultiFunction<TensorFunc,Vec3,Tensor>::evaluate(const Vec3& X) const
 {
   int nsd = sqrt(p.size());
+  if (nsd > 3) nsd = 3;
   Tensor sigma(nsd);
   int k=0;
-  for (int i=0;i<nsd;++i)
-    for (int j=0;j<nsd;++j)
-      sigma(i+1,j+1) = p[k++]->evaluate(X);
+  for (int i = 1; i <= nsd; ++i)
+    for (int j = 1; j<= nsd; ++j)
+      sigma(i,j) = (*p[k++])(X);
 
   return sigma;
 }
