@@ -17,6 +17,9 @@
 #include <stdlib.h>
 #include <fstream>
 #include <algorithm>
+#include "Tensor.h"
+
+#include "expreval.h"
 
 
 PressureField::PressureField (real p, int dir) : pdir(dir)
@@ -349,4 +352,84 @@ real Interpolate1D::evaluate(const Vec3& X) const
   double w2 = (x2-x)/delta;
 
   return w1*val1+w2*val2;
+}
+
+
+EvalFunction::EvalFunction(const char* function)
+{
+  try {
+    expr = new ExprEval::Expression;
+    f = new ExprEval::FunctionList;
+    v = new ExprEval::ValueList;
+    f->AddDefaultFunctions();
+    v->AddDefaultValues();
+    v->Add("x",0,false);
+    v->Add("y",0,false);
+    v->Add("z",0,false);
+    expr->SetFunctionList(f);
+    expr->SetValueList(v);
+    expr->Parse(function); 
+  } catch(...) {
+    std::cerr << "Error parsing function: " << function << std::endl;
+  }
+}
+
+EvalFunction::~EvalFunction()
+{
+  delete expr;
+  delete f;
+  delete v;
+}
+
+real EvalFunction::evaluate(const Vec3& X) const
+{
+  try {
+    *v->GetAddress("x") = X[0];
+    *v->GetAddress("y") = X[1];
+    *v->GetAddress("z") = X[2];
+    return expr->Evaluate();
+  } catch(...) {
+    std::cerr << "Error evaluating function" << std::endl;
+    return 0;
+  }
+}
+
+  template<>
+Vec3 EvalMultiFunction<VecFunc,Vec3,Vec3>::evaluate(const Vec3& X) const
+{
+  Vec3 result;
+  for (size_t i=0;i<3;++i) {
+    if (p.size() > i)
+      result[i] = p[i]->evaluate(X);
+  }
+
+  return result;
+}
+
+  template<>
+SymmTensor EvalMultiFunction<STensorFunc,Vec3,SymmTensor>::evaluate(const Vec3& X) const
+{
+  bool is3D = (p.size()==6?true:false);
+  SymmTensor sigma(is3D?3:2,p.size()==4);
+  int k=0;
+  for (int i=0;i<(is3D?3:2);++i)
+    for (int j=i;j<(is3D?3:2);++j)
+      sigma(i+1,j+1) = p[k++]->evaluate(X);
+  if (p.size() == 4)
+    sigma(3,3) = p[3]->evaluate(X);
+
+  return sigma;
+}
+
+  template<>
+Tensor EvalMultiFunction<TensorFunc,Vec3,Tensor>::evaluate(const Vec3& X) const
+{
+  int nsd = sqrt(p.size());
+  Tensor sigma(nsd);
+  int k=0;
+  for (int i=0;i<nsd;++i)
+    for (int j=0;j<nsd;++j)
+      sigma(i+1,j+1) = p[k++]->evaluate(X);
+
+  return sigma;
 }

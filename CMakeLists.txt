@@ -84,6 +84,7 @@ SET(INCLUDES
   ${PROJECT_SOURCE_DIR}/src/SIM
   ${PROJECT_SOURCE_DIR}/src/Utility
   ${PROJECT_SOURCE_DIR}/3rdparty/tinyxml
+  ${PROJECT_SOURCE_DIR}/3rdparty/expreval
 )
 
 # MKL
@@ -168,7 +169,8 @@ ENDIF(NOT WIN32)
 
 # Make the IFEM library
 FILE(GLOB_RECURSE IFEM_SRCS ${PROJECT_SOURCE_DIR}/src/*.[Cf]
-                            ${PROJECT_SOURCE_DIR}/3rdparty/*.C)
+                            ${PROJECT_SOURCE_DIR}/3rdparty/*.C
+                            ${PROJECT_SOURCE_DIR}/3rdparty/*.cpp)
 IF(NOT(LRSpline_LIBRARIES AND LRSpline_INCLUDE_DIRS))
   string(REGEX REPLACE "${PROJECT_SOURCE_DIR}/src/ASM/LR/[^;]*" "" IFEM_SRCS "${IFEM_SRCS}")
 ENDIF(NOT(LRSpline_LIBRARIES AND LRSpline_INCLUDE_DIRS))
