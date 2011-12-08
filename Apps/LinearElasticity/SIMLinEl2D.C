@@ -105,6 +105,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
   else if (!strncasecmp(keyWord,"ANASOL",6))
   {
     cline = strtok(keyWord+6," ");
+    int code = -1;
     if (!strncasecmp(cline,"HOLE",4))
     {
       double a  = atof(strtok(NULL," "));
@@ -150,6 +151,42 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
       std::cout <<"\nAnalytical solution: Curved Beam a="<< a <<" b="<< b
                 <<" u0="<< u0 <<" E="<< E << std::endl;
     }
+    else if (!strncasecmp(cline,"EXPRESSION",10))
+    {
+      std::string primary, secondary, variables;
+      int lines = atoi(strtok(NULL, " "));
+      char* c = strtok(NULL, " ");
+      if (c)
+        code = atoi(c);
+      else
+        code = 0;
+      STensorFunc* v=NULL;
+      for (int i = 0; i < lines; i++) {
+        std::string function = utl::readLine(is);
+        size_t pos;
+        if ((pos = function.find("Variables=")) != std::string::npos) {
+          variables = function.substr(pos+10);
+          if (variables[variables.size()-1] != ';')
+            variables += ";";
+        }
+        if ((pos = function.find("Stress=")) != std::string::npos) {
+          secondary = function.substr(pos+7);
+          v = new EvalMultiFunction<STensorFunc,Vec3,SymmTensor>(secondary,
+                                                                 3,variables);
+        }
+        if ((pos = function.find("Stress3=")) != std::string::npos) {
+          secondary = function.substr(pos+8);
+          v = new EvalMultiFunction<STensorFunc,Vec3,SymmTensor>(secondary,
+                                                                 4,variables);
+        }
+      }
+      std::cout <<"\nAnalytical solution:" << std::endl;
+      if (!variables.empty())
+        std::cout << "\t Variables=" << variables << std::endl;
+      if (v)
+        std::cout << "\t Stress=" << secondary << std::endl;
+      mySol = new AnaSol(v);
+    }
     else
     {
       std::cerr <<"  ** SIMLinEl2D::parse: Unknown analytical solution "
@@ -158,7 +195,8 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
     }
 
     // Define the analytical boundary traction field
-    int code = (cline = strtok(NULL," ")) ? atoi(cline) : 0;
+    if (code == -1)
+      code = (cline = strtok(NULL," ")) ? atoi(cline) : 0;
     if (code > 0 && mySol->getStressSol())
     {
       std::cout <<"Pressure code "<< code <<": Analytical traction"<< std::endl;
