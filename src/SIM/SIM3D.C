@@ -22,6 +22,8 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+#include "tinyxml.h"
+
 
 SIM3D::SIM3D (bool checkRHS, unsigned char n1, unsigned char n2)
 {
@@ -292,6 +294,148 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
 }
 
 
+bool SIM3D::parseGeometryTag(const TiXmlElement* elem)
+{
+  // The remaining keywords are retained for backward compatibility with the
+  // prototype version. They enable direct specification of topology and
+  // properties as well as grid refinement without using the GPM module.
+
+  if (!strcasecmp(elem->Value(),"refine")) {
+    bool uniform=true;
+    if (elem->Attribute("type") && !strcasecmp(elem->Attribute("type"),"nonuniform"))
+      uniform = false;
+    size_t lowpatch = 1, uppatch = 2;
+
+    if (elem->Attribute("patch"))
+      lowpatch = uppatch = atoi(elem->Attribute("patch"));
+    if (elem->Attribute("lowerpatch")) {
+      lowpatch = atoi(elem->Attribute("lowerpatch"));
+      uppatch = myModel.size();
+    }
+    if (elem->Attribute("upperpatch"))
+      uppatch = atoi(elem->Attribute("upperpatch"));
+
+    if (lowpatch < 1 || uppatch > myModel.size())
+    {
+      std::cerr <<" *** SIM3D::parse: Invalid patch index "
+        << "lower: " << lowpatch << " upper: " << uppatch << std::endl;
+      return false;
+    }
+
+    if (uniform)
+    {
+      int addu=0, addv = 0, addw = 0;
+      if (elem->Attribute("u"))
+        addu = atoi(elem->Attribute("u"));
+      if (elem->Attribute("v"))
+        addv = atoi(elem->Attribute("v"));
+      if (elem->Attribute("w"))
+        addw = atoi(elem->Attribute("w"));
+      for (size_t j = lowpatch-1; j < uppatch; j++) {
+	  std::cout <<"\tRefining P"<< j+1
+		    <<" "<< addu <<" "<< addv <<" "<< addw << std::endl;
+	  ASMs3D* pch = static_cast<ASMs3D*>(myModel[j]);
+	  pch->uniformRefine(0,addu);
+	  pch->uniformRefine(1,addv);
+	  pch->uniformRefine(2,addw);
+      }
+    } else {
+      int dir=1;
+      if (elem->Attribute("dir"))
+        dir = atoi(elem->Attribute("dir"));
+      char* cline2 = strdup(elem->FirstChildElement()->Value());
+      char* cline = cline2;
+      strtok(cline," ");
+      RealArray xi;
+      while (cline) {
+        xi.push_back(atof(cline));
+        cline = strtok(NULL," ");
+      }
+      free(cline2);
+      ASMs3D* pch;
+      for (size_t j = lowpatch-1; j < uppatch; j++) {
+        if ((pch = dynamic_cast<ASMs3D*>(myModel[j])))
+        {
+	  std::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
+	  for (size_t i = 0; i < xi.size(); i++)
+	    std::cout <<" "<< xi[i];
+	  std::cout << std::endl;
+	  pch->refine(dir-1,xi);
+        }
+      }
+    }
+  } else if (!strcasecmp(elem->Value(),"raiseorder")) {
+    size_t lowpatch = 1, uppatch = 2;
+    if (elem->Attribute("patch"))
+      lowpatch = uppatch = atoi(elem->Attribute("patch"));
+    if (elem->Attribute("lowerpatch")) {
+      lowpatch = atoi(elem->Attribute("lowerpatch"));
+      uppatch = myModel.size();
+    }
+    if (elem->Attribute("upperpatch"))
+      uppatch = atoi(elem->Attribute("upperpatch"));
+
+    if (lowpatch < 1 || uppatch > myModel.size())
+    {
+      std::cerr <<" *** SIM3D::parse: Invalid patch index "
+        << "lower: " << lowpatch << " upper: " << uppatch << std::endl;
+      return false;
+    }
+    int addu=0, addv = 0, addw = 0;
+    if (elem->Attribute("u"))
+      addu = atoi(elem->Attribute("u"));
+    if (elem->Attribute("v"))
+      addv = atoi(elem->Attribute("v"));
+    if (elem->Attribute("w"))
+      addw = atoi(elem->Attribute("w"));
+    ASMs3D* pch;
+    for (size_t j = lowpatch-1; j < uppatch; j++) {
+      if ((pch = dynamic_cast<ASMs3D*>(myModel[j]))) {
+        std::cout <<"\tRaising order of P"<< j+1
+          <<" "<< addu <<" "<< addv  <<" " << addw << std::endl;
+        pch->raiseOrder(addu,addv,addw);
+      }
+    }
+  }
+  else if (!strcasecmp(elem->Value(),"topology")) { // TODO?
+    assert(0);
+  } else if (!strcasecmp(elem->Value(),"periodic")) {
+    if (createFEMmodel()) return false;
+    int patch=0, pfdir=1;
+    if (elem->Attribute("patch"))
+      patch = atoi(elem->Attribute("patch"));
+    if (elem->Attribute("dir"))
+      pfdir = atoi(elem->Attribute("dir"));
+
+    if (patch < 1 || patch > (int)myModel.size()) {
+      std::cerr <<" *** SIM3D::parse: Invalid patch index "
+                << patch << std::endl;
+      return false;
+    }
+    std::cout <<"\tPeriodic "<< char('H'+pfdir) <<"-direction P"<< patch
+              << std::endl;
+    static_cast<ASMs3D*>(myModel[patch-1])->closeFaces(pfdir);
+  }
+  // TODO: topology? constraints? fixpoints?
+
+  return true;
+}
+
+
+bool SIM3D::parse(const TiXmlElement* elem)
+{
+  bool result=SIMbase::parse(elem);
+
+  const TiXmlElement* child = elem->FirstChildElement();
+  while (child) {
+    if (!strcasecmp(elem->Value(),"geometry"))
+      result &= parseGeometryTag(child);
+    child = child->NextSiblingElement();
+  }
+  return result;
+}
+
+
 /*!
   \brief Local-scope convenience function for error message generation.
 */
@@ -527,4 +671,43 @@ bool SIM3D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
   }
 
   return static_cast<ASMs3D*>(myModel[pchInd])->assignNodeNumbers(n,basis);
+}
+
+
+void SIM3D::readNodes (std::istream& isn)
+{
+  while (isn.good()) {
+    int patch = 0;
+    isn >> patch;
+    ++patch;
+    int pid = getLocalPatchIndex(patch);
+    if (pid < 0)
+      return;
+
+    ASMs3D::BlockNodes n;
+    for (size_t i = 0; i <  8 && isn.good(); i++)
+      isn >> n.ibnod[i];
+    for (size_t i = 0; i < 12 && isn.good(); i++)
+      isn >> n.edges[i].icnod >> n.edges[i].incr;
+    for (size_t i = 0; i <  6 && isn.good(); i++)
+      isn >> n.faces[i].isnod >> n.faces[i].incrI >> n.faces[i].incrJ;
+    isn >> n.iinod;
+
+    // We always require the node numbers to be 1-based
+    for (size_t i = 0; i <  8; i++)
+      ++n.ibnod[i];
+    for (size_t i = 0; i < 12; i++)
+      ++n.edges[i].icnod;
+    for (size_t i = 0; i <  6; i++)
+      ++n.faces[i].isnod;
+    ++n.iinod;
+
+    if (isn.good() && pid > 0) {
+      if (!static_cast<ASMs3D*>(myModel[pid-1])->assignNodeNumbers(n)) {
+        std::cerr <<" *** SIM3D::readNodes: Failed to assign node numbers"
+                  <<" for patch "<< patch << std::endl;
+        return;
+      }
+    }
+  }
 }

@@ -18,6 +18,8 @@
 #include "petscmg.h"
 #endif
 
+#include "tinyxml.h"
+
 
 void LinSolParams::setDefault ()
 {
@@ -144,6 +146,53 @@ bool LinSolParams::read (std::istream& is, int nparam)
 #else
     ;
 #endif
+  return true;
+}
+
+static bool IsOK(const TiXmlElement* child, const char* value)
+{
+  return !strcasecmp(child->Value(),value) && 
+         child->FirstChild() && child->FirstChild()->Value();
+}
+
+bool LinSolParams::read (const TiXmlElement* elem)
+{
+  const TiXmlElement *child = elem->FirstChildElement();
+  while (child) {
+#ifdef HAS_PETSC
+    if (IsOK(child,"type")) {
+      method = child->FirstChild()->Value();
+    } else if (IsOK(child,"pc")) {
+      prec = child->FirstChild()->Value();
+    } else if (IsOK(child,"hypretype")) {
+      hypretype = child->FirstChild()->Value();
+    } else if (IsOK(child,"package")) {
+      package = child->FirstChild()->Value();
+    } else if (IsOK(child,"levels")) {
+      levels = atoi(child->FirstChild()->Value());
+    } else if (IsOK(child,"overlap")) {
+      overlap = atoi(child->FirstChild()->Value());
+    } else if (IsOK(child,"atol")) {
+      atol = atof(child->FirstChild()->Value());
+    } else if (IsOK(child,"rtol")) {
+      rtol = atof(child->FirstChild()->Value());
+    } else if (IsOK(child,"dtol")) {
+      dtol = atof(child->FirstChild()->Value());
+    } else if (IsOK(child,"maxits")) {
+      maxIts = atoi(child->FirstChild()->Value());
+    } else if (IsOK(child,"nullspace")) {
+      if (!strcasecmp(child->FirstChild()->Value(),"constant"))
+	nullspc = CONSTANT;
+      else if (!strcasecmp(child->FirstChild()->Value(),"rigid_body"))
+	nullspc = RIGID_BODY;
+    }
+    else {
+      std::cerr <<" *** LinSolParams::read: Unknown keyword: "
+		<< child->Value() << std::endl;
+    }
+#endif
+    child = child->NextSiblingElement();
+  }
   return true;
 }
 

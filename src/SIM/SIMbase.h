@@ -97,6 +97,10 @@ public:
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
 
+  //! \brief Parses a data section from an xml document.
+  //! \param[in] elem The XML element to parse
+  virtual bool parse(const TiXmlElement* elem);
+
   //! \brief Refines a list of elements.
   virtual bool refine(const std::vector<int>&, const std::vector<int>&,
 		      const char* = 0) { return false; }
@@ -484,6 +488,9 @@ protected:
   //! \brief Creates the computational FEM model from the spline patches.
   bool createFEMmodel();
 
+  //! \brief Reads node numbers from given input stream.
+  //! \param[in] isp The file stream to read from
+  virtual void readNodes(std::istream& isp) {}
 public:
   //! \brief Returns the local patch index for the given global patch number.
   //! \details For serial applications this is an identity mapping only, whereas
@@ -554,6 +561,10 @@ protected:
   //! \details This method helps with encapsulating PETSc in libIFEM.
   void readLinSolParams(std::istream& is, int npar);
 
+  //! \brief Reads a LinSolParams object from the given XML element
+  //! \details This method helps with encapsulating PETSc in libIFEM.
+  void readLinSolParams(const TiXmlElement* elem);
+
   //! \brief Finalizes the global equation system assembly.
   virtual bool finalizeAssembly(bool newLHSmatrix = true);
 
@@ -603,6 +614,14 @@ protected:
   AlgEqSystem*  myEqSys;     //!< The actual linear equation system
   SAMpatch*     mySam;       //!< Auxiliary data for FE assembly management
   LinSolParams* mySolParams; //!< Input parameters for PETSc
+private:
+  //! \brief Parses a subelement of the <geometry> tag from input file
+  //! \param[in] elem The XML element to parse
+  bool parseGeometryTag(const TiXmlElement* elem);
+  //! \brief Parses a subelement of the <resultoutput> tag from input file
+  //! \param[in] elem The XML element to parse
+  bool parseOutputTag(const TiXmlElement* elem);
+  bool parseBCTag(const TiXmlElement* elem);
 };
 
 #endif

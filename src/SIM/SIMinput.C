@@ -18,6 +18,8 @@
 #endif
 #include <fstream>
 
+#include "tinyxml.h"
+
 
 int SIMinput::msgLevel = 2;
 
@@ -34,7 +36,16 @@ SIMinput::SIMinput ()
 }
 
 
-bool SIMinput::read (const char* fileName)
+bool SIMinput::read(const char* fileName)
+{
+  if (strcasestr(fileName,".xinp"))
+    return readXML(fileName);
+
+  return readFlat(fileName);
+}
+
+
+bool SIMinput::readFlat (const char* fileName)
 {
   std::ifstream is(fileName);
   if (is)
@@ -57,4 +68,57 @@ bool SIMinput::read (const char* fileName)
 
   std::cout <<"\nReading input file succeeded."<< std::endl;
   return true;
+}
+
+
+bool SIMinput::readXML (const char* fileName)
+{
+  TiXmlDocument doc;
+  if (!doc.LoadFile(fileName)) {
+    std::cerr << __PRETTY_FUNCTION__ << ": Failed to load " << fileName << std::endl;
+    std::cerr << "\t Error at line " << doc.ErrorRow() << ": " << doc.ErrorDesc() << std::endl;
+    return false;
+  }
+    
+  if (!doc.RootElement() ||
+      strcmp(doc.RootElement()->Value(),"simulation")) {
+    std::cerr << __PRETTY_FUNCTION__ << ": Malformatted input file " << fileName << std::endl;
+    return false;
+  }
+
+  std::vector<const TiXmlElement*> parsed = handlePriorityTags(doc.RootElement());
+  // now parse the rest
+  TiXmlElement* elem = doc.RootElement()->FirstChildElement();
+  while (elem) {
+    if (find(parsed.begin(),parsed.end(),elem) == parsed.end()) {
+      if (!parse(elem)) {
+        std::cerr <<" *** SIMinput::read: Failure occured while parsing \""
+                  << elem->Value() <<"\""<< std::endl;
+        return false;
+      }
+    }
+    elem = elem->NextSiblingElement();
+  }
+  return true;
+}
+
+std::vector<const TiXmlElement*> SIMinput::handlePriorityTags(const TiXmlElement* base)
+{
+  // add particular keywords to this list. these will be parsed first,
+  // in the order specified in the list
+  const char* special[] = {"geometry","boundaryconditions"};
+
+  std::vector<const TiXmlElement*> parsed;
+  for (size_t i=0;i<sizeof(special)/sizeof(char*);++i) {
+    const TiXmlElement* elem = base->FirstChildElement(special[i]);
+    if (elem) {
+      if (!parse(elem)) {
+        std::cerr <<" *** SIMinput::read: Failure occured while parsing \""
+                  << elem->Value() <<"\""<< std::endl;
+      }
+      parsed.push_back(elem);
+    }
+  }
+
+  return parsed;
 }

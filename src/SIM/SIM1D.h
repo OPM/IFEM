@@ -48,6 +48,10 @@ protected:
   //! \param[in] pchInd 0-based index of the patch to read
   virtual bool readPatch(std::istream& isp, int pchInd);
 
+  //! \brief Parses a data section from an XML document.
+  //! \param[in] elem The XML element to parse
+  virtual bool parse(const TiXmlElement* elem);
+
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   //! \param[in] patch 1-based index of the patch to receive the property
   //! \param[in] lndx Local index of the boundary item to receive the property
@@ -59,6 +63,9 @@ protected:
 
 protected:
   unsigned char nf; //!< Number of scalar fields
+private:
+  //! \brief Parse subtags of the <geometry> block from the input file
+  bool parseGeometryTag(const TiXmlElement* elem);
 };
 
 #endif

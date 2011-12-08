@@ -48,6 +48,10 @@ protected:
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
 
+  //! \brief Parses a data section from an XML document.
+  //! \param[in] elem The XML element to parse
+  virtual bool parse(const TiXmlElement* elem);
+
   //! \brief Reads patches from given input stream.
   //! \param[in] isp The input stream to read from
   virtual bool readPatches(std::istream& isp);
@@ -63,6 +67,10 @@ protected:
   //! one-based. If \e false they are assumed to be zero-based.
   virtual bool readNodes(std::istream& isn, int pchInd, int basis = 0,
 			 bool oneBased = false);
+
+  //! \brief Reads node numbers from given input stream.
+  //! \param[in] isn The file stream to read from
+  void readNodes(std::istream& isn);
 
   //! \brief Refines a list of elements.
   //! \param[in] elements 1-based indices of the elements to refine
@@ -83,6 +91,8 @@ protected:
 
 private:
   bool isRefined; //!< If \e true, the model has been adaptively refined
+  //! \brief Parse subtags of the <geometry> block from the input file
+  bool parseGeometryTag(const TiXmlElement* elem);
 
 protected:
   unsigned char nf[2]; //!< Number of scalar fields

@@ -28,6 +28,7 @@
 #include "Tensor.h"
 #include "Vec3Oper.h"
 #include "EigSolver.h"
+#include "Functions.h"
 #include "Profiler.h"
 #include "ElementBlock.h"
 #include "VTF.h"
@@ -38,6 +39,9 @@
 #include <iomanip>
 #include <ctype.h>
 #include <stdio.h>
+#include <fstream>
+
+#include "tinyxml.h"
 
 
 ASM::Discretization SIMbase::discretization  = ASM::Spline;
@@ -111,6 +115,197 @@ void SIMbase::clearProperties ()
   myVectors.clear();
   myTracs.clear();
   myProps.clear();
+}
+
+
+bool SIMbase::parseGeometryTag(const TiXmlElement* elem)
+{
+  if (!strcasecmp(elem->Value(),"patchfile")) {
+    if (myModel.empty()) {
+      std::string file = elem->FirstChild()->Value();
+      std::cout <<"\nReading data file "<< file << std::endl;
+      std::ifstream isp(file.c_str());
+      readPatches(isp);
+
+      if (myModel.empty()) {
+        std::cerr <<" *** SIMbase::parse: No patches read"<< std::endl;
+        return false;
+      }
+    }
+  } else if (!strcasecmp(elem->Value(),"nodefile")) {
+    if (!createFEMmodel())
+      return false;
+    std::string file = elem->FirstChild()->Value();
+    std::ifstream isn(file.c_str());
+    if (isn) {
+      std::cout <<"\nReading data file "<< file << std::endl;
+    } else {
+      std::cerr <<" *** SIMbase::read: Failure opening input file "
+                << file << std::endl;
+      return false;
+    }
+    readNodes(isn);
+  } else if (!strcasecmp(elem->Value(),"partitioning")) {
+    if (!elem->Attribute("procs") || atoi(elem->Attribute("procs")) != nProc)
+        return false;
+    if (myPid == 0)
+      std::cout <<"\nNumber of partitions: "<< nProc << std::endl;
+
+    const TiXmlElement* part = elem->FirstChildElement("part");
+    while (part) {
+      if (part->Attribute("proc") && atoi(part->Attribute("proc")) == myPid) {
+        int first=-2, last=-2;
+        if (part->Attribute("lower"))
+          first = atoi(part->Attribute("upper"));
+        if (part->Attribute("upper"))
+          last = atoi(part->Attribute("upper"));
+
+        if (last > nGlPatches) nGlPatches = last;
+
+        myPatches.reserve(last-first+1);
+        for (int j = first; j <= last && j > -1; j++)
+          myPatches.push_back(j);
+      }
+      part = part->NextSiblingElement("part");
+    }
+  }
+
+  return true;
+}
+
+
+bool SIMbase::parseOutputTag(const TiXmlElement* elem)
+{
+  if (!strcasecmp(elem->Value(),"resultpoints")) {
+    const TiXmlElement* point = elem->FirstChildElement("point");
+    int i=0;
+    while (point) {
+      ResultPoint thePoint;
+      if (point->Attribute("patch"))
+        thePoint.patch = atoi(point->Attribute("patch"));
+      if (myPid == 0)
+        std::cout <<"\n\tPoint "<< i+1 <<": P"<< thePoint.patch <<" xi =";
+      if (point->Attribute("u")) {
+        thePoint.par[0] = atof(point->Attribute("u"));
+        if (myPid == 0)
+          std::cout << ' ' << thePoint.par[0];
+      }
+      if (point->Attribute("v")) {
+        thePoint.par[1] = atof(point->Attribute("v"));
+        if (myPid == 0)
+          std::cout << ' ' << thePoint.par[1];
+      }
+      if (point->Attribute("w")) {
+        thePoint.par[2] = atoi(point->Attribute("w"));
+        if (myPid == 0)
+          std::cout << ' ' << thePoint.par[2];
+      }
+      myPoints.push_back(thePoint);
+      i++;
+      point = point->NextSiblingElement();
+    }
+    if (myPid == 0)
+      std::cout << std::endl;
+  } else if (!strcasecmp(elem->Value(),"vtfformat")) {
+    if (elem->FirstChild()->Value() &&
+        !strcasecmp(elem->FirstChild()->Value(),"ascii"))
+      format = 0;
+    else if (elem->FirstChild()->Value() &&
+        !strcasecmp(elem->FirstChild()->Value(),"binary"))
+      format = 1;
+  } else if (!strcasecmp(elem->Value(),"stride")) {
+    if (elem->FirstChild()->Value())
+      vizIncr = atoi(elem->FirstChild()->Value());
+  }
+
+  return true;
+}
+
+
+bool SIMbase::parseBCTag(const TiXmlElement* elem)
+{
+  if (!strcasecmp(elem->Value(),"propertycodes")) {
+    const TiXmlElement* code = elem->FirstChildElement("code");
+    while (code) {
+      int icode=0;
+      if (code->Attribute("value"))
+        icode = atoi(code->Attribute("value"));
+      const TiXmlElement* patch = code->FirstChildElement("patch");
+      while (patch) {
+        Property p;
+        p.pindx = icode;
+        // TODO WTF is the only read number if lindex < 2 ?
+        if (patch->Attribute("face")) {
+          p.lindx = atoi(patch->Attribute("face"));
+          p.ldim = 2;
+        }
+        if (patch->Attribute("edge")) {
+          p.lindx = atoi(patch->Attribute("edge"));
+          p.ldim = 1;
+        }
+        if (patch->Attribute("vertex")) {
+          p.lindx = atoi(patch->Attribute("vertex"));
+          p.ldim = 0;
+        }
+        if (patch->Attribute("index"))
+          p.patch = getLocalPatchIndex(atoi(patch->Attribute("index")));
+        if (p.patch > 0)
+          myProps.push_back(p);
+        patch = patch->NextSiblingElement("patch");
+      }
+      code = code->NextSiblingElement();
+    }
+  } else if (!strcasecmp(elem->Value(),"dirichlet")) {
+    if (ignoreDirichlet) // ignore all boundary conditions
+      return true;
+    int code=0;
+    if (elem->Attribute("code"))
+      code = atoi(elem->Attribute("code"));
+    double val=0.f;
+    if (elem->FirstChild() && elem->FirstChild()->Value())
+      val = atof(elem->FirstChild()->Value());
+    if (val == 0.f) {
+        setPropertyType(code,Property::DIRICHLET);
+    } else {
+       setPropertyType(code,Property::DIRICHLET_INHOM);
+       char* func=NULL;
+       if (elem->Attribute("function"))
+         func = strdup(elem->Attribute("function"));
+       if (func) {
+         char* func2 = func;
+         func = strtok(func," ");
+         myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(const_cast<char*>(func),val));
+         free(func2);
+       } else
+         myScalars[code] = new ConstFunc(val);
+    }
+  }
+
+  return true;
+}
+
+
+bool SIMbase::parse (const TiXmlElement* elem)
+{
+  if (!strcasecmp(elem->Value(),"linearsolver"))
+    readLinSolParams(elem);
+  else {
+    const TiXmlElement* child = elem->FirstChildElement();
+    bool result = true;
+    while (child) {
+      if (!strcasecmp(elem->Value(),"geometry"))
+        result &= parseGeometryTag(child);
+      else if (!strcasecmp(elem->Value(),"resultoutput"))
+        result &= parseOutputTag(child);
+      else if (!strcasecmp(elem->Value(),"boundaryconditions"))
+        result &= parseBCTag(child);
+
+      child = child->NextSiblingElement();
+    }
+    return result;
+  }
+
+  return true;
 }
 
 
@@ -355,6 +550,15 @@ void SIMbase::readLinSolParams (std::istream& is, int npar)
     mySolParams = new LinSolParams();
 
   mySolParams->read(is,npar);
+}
+
+
+void SIMbase::readLinSolParams (const TiXmlElement* elem)
+{
+  if (!mySolParams)
+    mySolParams = new LinSolParams();
+
+  mySolParams->read(elem);
 }
 
 

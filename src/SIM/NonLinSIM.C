@@ -17,6 +17,8 @@
 #include "Utilities.h"
 #include <sstream>
 
+#include "tinyxml.h"
+
 
 NonLinSIM::NonLinSIM (SIMbase* sim) : model(sim), nBlock(0)
 {
@@ -108,6 +110,65 @@ void NonLinSIM::initSystem (SystemMatrix::Type mType, size_t nGauss)
   model->initSystem(mType,1,1);
   model->setAssociatedRHS(0,0);
   model->setQuadratureRule(nGauss);
+}
+
+
+bool NonLinSIM::parse (const TiXmlElement* elem)
+{
+  if (strcasecmp(elem->Value(),"nonlinearsolver"))
+    return model->parse(elem);
+
+  const TiXmlElement* child = elem->FirstChildElement();
+  while (child) {
+    if (!strcasecmp(child->Value(),"timestepping")) {
+      const TiXmlElement* step = child->FirstChildElement("step");
+      steps.clear();
+      while (step) {
+        double dt;
+        std::pair<std::vector<double>,double> tstep;
+        double start, end;
+        if (step->Attribute("start"))
+          start = atof(step->Attribute("start"));
+        if (step->Attribute("end"))
+          end = atof(step->Attribute("end"));
+        if (steps.empty())
+          startTime = start;
+        if (step->FirstChild() && step->FirstChild()->Value()) {
+          std::istringstream cline(child->FirstChild()->Value());
+          cline >> dt;
+          if (dt > 1.0 && ceil(dt) == dt) { // number of steps specified
+            dt = (end-steps.empty()?start:steps.back().second)/dt;
+            tstep.first.push_back(dt);
+          } else while (!cline.fail() && !cline.bad()) { // steps specified
+            tstep.first.push_back(dt);
+            cline >> dt;
+          }
+          tstep.second = end;
+          steps.push_back(tstep);
+        }
+      }
+      stopTime = steps.back().second;
+    } else if (!strcasecmp(child->Value(),"maxits")) {
+      if (child->FirstChild() && child->FirstChild()->Value())
+        maxit = atoi(child->FirstChild()->Value());
+    } else if (!strcasecmp(child->Value(),"nupdate")) {
+      if (child->FirstChild() && child->FirstChild()->Value())
+        nupdat = atoi(child->FirstChild()->Value());
+    } else if (!strcasecmp(child->Value(),"rtol")) {
+      if (child->FirstChild() && child->FirstChild()->Value())
+        convTol = atof(child->FirstChild()->Value());
+    } else if (!strcasecmp(child->Value(),"dtol")) {
+      if (child->FirstChild() && child->FirstChild()->Value())
+        divgLim = atof(child->FirstChild()->Value());
+    } else if (!strcasecmp(child->Value(),"eta")) {
+      if (child->FirstChild() && child->FirstChild()->Value())
+        eta = atof(child->FirstChild()->Value());
+    }
+
+    child = child->NextSiblingElement();
+  }
+
+  return true;
 }
 
 

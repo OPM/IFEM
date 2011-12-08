@@ -23,6 +23,9 @@
 #endif
 
 
+class TiXmlElement;
+
+
 //! \brief Null-space for matrix operator
 enum NullSpace { NONE, CONSTANT, RIGID_BODY };
 
@@ -48,6 +51,9 @@ public:
 
   //! \brief Read linear solver parameters from stream.
   virtual bool read(std::istream& is, int nparams = 10);
+
+  //! \brief Read linear solver parameters from XML document.
+  virtual bool read(const TiXmlElement* elem);
 
   //! \brief Read linear solver parameters from file.
   virtual bool read(const char* filename);
