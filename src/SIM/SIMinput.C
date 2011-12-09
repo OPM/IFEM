@@ -71,6 +71,28 @@ bool SIMinput::readFlat (const char* fileName)
 }
 
 
+static void injectIncludeFiles(TiXmlElement* tag)
+{
+  TiXmlElement* elem = tag->FirstChildElement();
+  while (elem) {
+    if (!strcasecmp(elem->Value(),"include")) {
+      if (elem->FirstChild() && elem->FirstChild()->Value()) {
+        TiXmlDocument doc;
+        if (doc.LoadFile(elem->FirstChild()->Value()))
+          tag->ReplaceChild(elem,*doc.RootElement());
+        else {
+          std::cerr << __PRETTY_FUNCTION__ << ": Failed to load " << elem->FirstChild()->Value() << std::endl;
+          std::cerr << "\t Error at line " << doc.ErrorRow() << ": " << doc.ErrorDesc() << std::endl;
+        }  
+      }
+    } else
+      injectIncludeFiles(elem);
+
+    elem = elem->NextSiblingElement();
+  }
+}
+
+
 bool SIMinput::readXML (const char* fileName)
 {
   TiXmlDocument doc;
@@ -86,6 +108,8 @@ bool SIMinput::readXML (const char* fileName)
     return false;
   }
 
+  injectIncludeFiles(doc.RootElement());
+  
   std::vector<const TiXmlElement*> parsed = handlePriorityTags(doc.RootElement());
   // now parse the rest
   TiXmlElement* elem = doc.RootElement()->FirstChildElement();
@@ -101,6 +125,7 @@ bool SIMinput::readXML (const char* fileName)
   }
   return true;
 }
+
 
 std::vector<const TiXmlElement*> SIMinput::handlePriorityTags(const TiXmlElement* base)
 {
