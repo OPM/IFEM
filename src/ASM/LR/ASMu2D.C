@@ -142,8 +142,10 @@ bool ASMu2D::cornerRefine (int minBasisfunctions)
 		h -= unif_step_h;
 	}
 
-	std::ofstream meshFile("mesh.eps");
-	lrspline->writePostscriptMesh(meshFile);
+	std::ofstream paramMeshFile("mesh_param.eps");
+	std::ofstream physicalMeshFile("mesh_physical.eps");
+	lrspline->writePostscriptMesh(paramMeshFile);
+	lrspline->writePostscriptMesh(physicalMeshFile);
 	return true;
 }
 
@@ -294,29 +296,58 @@ bool ASMu2D::refine (const std::vector<int>& elements,
 	if (shareFE) return true;
 
 	int multiplicity = 1;
-	if (!options.empty() && options.front() > 1)
+	if (options.size()>1 && options[1] > 1)
 	{
 		int p1 = lrspline->order_u() - 1;
 		int p2 = lrspline->order_v() - 1;
-		multiplicity = options.front();
+		multiplicity = options[1];
 		if (multiplicity > p1) multiplicity = p1;
 		if (multiplicity > p2) multiplicity = p2;
 	}
-	bool minSpan = options.size() > 1 && options[1] > 0;
+	// bool minSpan   = options.size() > 1 && options[2] == 1;
+	// bool isotropic = options.size() > 1 && options[2] > 1;
 
-	if (!elements.empty())
-		lrspline->refineElement(elements,multiplicity,minSpan);
-
+	if (!elements.empty()) {
+		/*
+		if(options.size() > 1 && options[1] == 3) 
+			lrspline->refineBasisFunctions(elements,multiplicity);
+		else
+			lrspline->refineElement(elements,multiplicity,minSpan, isotropic);
+		*/
+		enum refinementStrategy strat;
+		strat = LR_SAFE;
+		if(options.size() > 2) {
+			if(options[2]==1)      strat  = LR_MINSPAN;
+			else if(options[2]==2) strat  = LR_ISOTROPIC_EL;
+			else if(options[2]==3) strat  = LR_ISOTROPIC_FUNC;
+		}
+		// lrspline->refine(elements, options[0], multiplicity, ((options.size()>1)?options[1]:0), ((options.size()>2) ? options[2] : 1));
+		lrspline->refine(elements, options[0]/100.0, multiplicity, strat, ((options.size()>3) ? options[3] : 1));
+	}
 	if (fName)
 	{
-		std::ofstream meshFile(fName);
-		lrspline->writePostscriptMesh(meshFile);
+		char fullFileName[256];
+		strcpy(fullFileName, "param_");
+		strcat(fullFileName, fName);
+		std::ofstream paramMeshFile(fullFileName);
+		strcpy(fullFileName, "physical_");
+		strcat(fullFileName, fName);
+		std::ofstream physicalMeshFile(fullFileName);
+		lrspline->writePostscriptMesh(paramMeshFile);
+		lrspline->writePostscriptElements(physicalMeshFile);
 	}
 
 	if (!elements.empty())
 		std::cout <<"Refined mesh: "<< lrspline->nElements()
 		          <<" elements "<< lrspline->nBasisFunctions()
 		          <<" nodes."<< std::endl;
+
+
+	// int nBasis    = lrspline->nBasisFunctions();
+	// myMLGN.resize(nBasis);
+	// for (int inod = 0; inod < nBasis; inod++)
+		// myMLGN[inod] = ++gNod;
+
 	return true;
 }
 
@@ -795,8 +826,8 @@ bool ASMu2D::integrate (Integrand& integrand,
 	int iel = 1;
 	for(el = lrspline->elementBegin(); el!=lrspline->elementEnd(); el++, iel++)
 	{
-		FiniteElement fe(MNPC[iel-1].size());
-		fe.iel = MLGE[iel-1];
+		FiniteElement fe(myMNPC[iel-1].size());
+		fe.iel  = myMLGE[iel-1];
 
 		// Get element area in the parameter space
 		double dA = this->getParametricArea(iel);
@@ -860,7 +891,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 #endif
 
 		// Initialize element quantities
-		if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed)) return false;
+		if (!integrand.initElement(myMNPC[iel-1],X,nRed*nRed)) return false;
 
 		// Caution: Unless locInt is empty, we assume it points to an array of
 		// LocalIntegral pointers, of length at least the number of elements in
@@ -1018,7 +1049,7 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 	{
 		FiniteElement fe((**el).nBasisFunctions());
 		fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
-		fe.iel = MLGE[iel-1];
+		fe.iel = myMLGE[iel-1];
 
 		// Skip elements that are not on current boundary edge
 		bool skipMe = false;
@@ -1039,7 +1070,7 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 		if (!this->getElementCoordinates(Xnod,iel)) return false;
 
 		// Initialize element quantities
-		if (!integrand.initElementBou(MNPC[iel-1])) return false;
+		if (!integrand.initElementBou(myMNPC[iel-1])) return false;
 
 		// Caution: Unless locInt is empty, we assume it points to an array of
 		// LocalIntegral pointers, of length at least the number of elements in
@@ -1296,7 +1327,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 		int iel = i/nPtsPerElement; // points are always listed in the same order as the elemnts
 
 		// fetch index of non-zero basis functions on this element
-		const IntVec& ip = MNPC[iel];
+		const IntVec& ip = myMNPC[iel];
 
 		// evaluate the basis functions at current parametric point
 		Go::BasisPtsSf spline;
@@ -1460,7 +1491,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const Integrand& integrand,
 				continue;
 
 		// Now evaluate the solution field
-		if (!integrand.evalSol(solPt,N,dNdX,d2NdX2,Xnod*N,MNPC[iel]))
+		if (!integrand.evalSol(solPt,N,dNdX,d2NdX2,Xnod*N,myMNPC[iel]))
 			return false;
 		else if (sField.empty())
 			sField.resize(solPt.size(),nPoints,true);

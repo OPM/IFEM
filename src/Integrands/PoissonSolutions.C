@@ -40,6 +40,7 @@ double Square2DHeat::evaluate (const Vec3& X) const
 
 Vec3 LshapePoisson::evaluate (const Vec3& X) const
 {
+/*
   double x = X.x;
   double y = X.y;
   double R = hypot(x,y);
@@ -53,6 +54,25 @@ Vec3 LshapePoisson::evaluate (const Vec3& X) const
   temp.y = -frac*Rp*cos(th/3.0);
 
   return temp;
+*/
+  double x = X.x;
+  double y = X.y;
+  double pi = M_PI;
+
+  double r2 = x*x+y*y;
+  double theta = atan2(y,x);
+  if(theta<=0) theta += 2*pi;
+  if (r2 < 1e-16) {  // truncate the singularity to avoid NaN values
+    r2 = 1e-16; 
+    theta = 2*pi;
+  }
+
+  Vec3 temp;
+  temp.x = (2.0/3) * (cos(2.0/3*theta + pi/6)*x + sin(2.0/3*theta + pi/6)*y) / pow(r2, 2.0/3);
+  temp.y = (2.0/3) * (cos(2.0/3*theta + pi/6)*y - sin(2.0/3*theta + pi/6)*x) / pow(r2, 2.0/3);
+
+  return temp;
+
 }
 
 

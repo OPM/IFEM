@@ -19,6 +19,21 @@
 
 class SIMbase;
 
+class IndexDouble {
+	public:
+		int i; // index in global array
+		double v; // double value
+		IndexDouble(int i, double v) {
+			this->i = i;
+			this->v = v;
+		}
+		bool operator<(const IndexDouble &other) const {
+			return v < other.v;
+		}
+		bool operator>(const IndexDouble &other) const {
+			return v > other.v;
+		}
+};
 
 /*!
   \brief Adaptive solution driver for linear isogeometric FEM simulators.
