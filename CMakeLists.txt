@@ -21,19 +21,6 @@ ELSE(CMAKE_CXX_COMPILER MATCHES icpc)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_CBLAS")
 ENDIF(CMAKE_CXX_COMPILER MATCHES icpc)
 
-INCLUDE(CheckCXXCompilerFlag)
-
-IF(CMAKE_CXX_COMPILER_ID MATCHES GNU)
-# check if compiler supports c++-0x
-  CHECK_CXX_COMPILER_FLAG("-std=gnu++0x" HAVE_0x)
-  IF(HAVE_0x)
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++0x")
-  ELSE(HAVE_0x)
-    MESSAGE("A compiler with c++-0x support is needed")
-    EXIT(1)
-  ENDIF(HAVE_0x)
-ENDIF(CMAKE_CXX_COMPILER_ID MATCHES GNU)
-
 ENABLE_TESTING()
 
 # Add local modules
@@ -45,6 +32,11 @@ FIND_PACKAGE(GoTools REQUIRED)
 FIND_PACKAGE(GoTrivariate REQUIRED)
 FIND_PACKAGE(LAPACK REQUIRED)
 FIND_PACKAGE(ARPACK REQUIRED)
+
+# Mimimum GoTools version
+IF(GoTools_VERSION_MAJOR LESS 3 OR NOT GoTools_VERSION_MAJOR)
+  MESSAGE(FATAL_ERROR "GoTools >= 3.0.0 required. bailing")
+ENDIF(GoTools_VERSION_MAJOR LESS 3 OR NOT GoTools_VERSION_MAJOR)
 
 # Optional packages
 IF(${ENABLE_PETSC})
@@ -166,6 +158,9 @@ IF(NOT WIN32)
   # Enable all warnings
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-parentheses")
 ENDIF(NOT WIN32)
+
+# GoTools compile flags
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GoTools_CXX_FLAGS}")
 
 # Make the IFEM library
 FILE(GLOB_RECURSE IFEM_SRCS ${PROJECT_SOURCE_DIR}/src/*.[Cf]
