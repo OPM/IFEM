@@ -118,6 +118,7 @@ bool SplineField2D::gradFE (const FiniteElement& fe, Vector& grad) const
     }
     dNdX.multiply(dNdu,Jac); // dNdX = dNdu * Jac
 
+    ip.clear();
     ASMs2D::scatterInd(basis->numCoefs_u(),basis->numCoefs_v(),
 		       basis->order_u(),basis->order_v(),
 		       spline.left_idx,ip);

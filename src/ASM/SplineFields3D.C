@@ -130,6 +130,7 @@ bool SplineFields3D::gradFE(const FiniteElement& fe, Matrix& grad) const
     }
     dNdX.multiply(dNdu,Jac); // dNdX = dNdu * Jac
 
+    ip.clear();
     ASMs3D::scatterInd(basis->numCoefs(0),basis->numCoefs(1),basis->numCoefs(2),
 		       basis->order(0),basis->order(1),basis->order(2),
 		       spline.left_idx,ip);
