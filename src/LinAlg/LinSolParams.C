@@ -149,11 +149,15 @@ bool LinSolParams::read (std::istream& is, int nparam)
   return true;
 }
 
+
+#ifdef HAS_PETSC
 static bool IsOK(const TiXmlElement* child, const char* value)
 {
   return !strcasecmp(child->Value(),value) && 
          child->FirstChild() && child->FirstChild()->Value();
 }
+#endif
+
 
 bool LinSolParams::read (const TiXmlElement* elem)
 {
