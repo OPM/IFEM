@@ -14,7 +14,16 @@
 #include "PETScMatrix.h"
 #ifdef HAS_PETSC
 #include "SAM.h"
+#include "petscversion.h"
+
+#if PETSC_VERSION_MAJOR == 3 && PETSC_VERSION_MINOR >= 2
+#include "petscpcmg.h"
+#define PETSCMANGLE(x) &x
+#else
 #include "petscmg.h"
+#define PETSCMANGLE(x) x
+#endif
+
 #ifdef HAS_SLEPC
 #include "slepceps.h"
 #endif
@@ -64,7 +73,7 @@ PETScVector::PETScVector(const PETScVector& vec)
 PETScVector::~PETScVector()
 {
   // Deallocation of vector
-  VecDestroy(x);
+  VecDestroy(PETSCMANGLE(x));
   LinAlgInit::decrefs();
 }
 
@@ -198,13 +207,13 @@ PETScMatrix::~PETScMatrix ()
 {
   // Deallocation of null space
   if (solParams.getNullSpace() == CONSTANT) 
-    MatNullSpaceDestroy(nsp);
+    MatNullSpaceDestroy(PETSCMANGLE(nsp));
 
   // Deallocation of linear solver object.
-  KSPDestroy(ksp);
+  KSPDestroy(PETSCMANGLE(ksp));
 
   // Deallocation of matrix object.
-  MatDestroy(A);   
+  MatDestroy(PETSCMANGLE(A));   
   LinAlgInit::decrefs();
 }
 
@@ -559,7 +568,7 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
   PetscInt its;
   KSPGetIterationNumber(ksp,&its);
   PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getMethod(),its);
-  VecDestroy(x);
+  VecDestroy(PETSCMANGLE(x));
 
   return true;
 }
@@ -620,7 +629,7 @@ bool PETScMatrix::solve (SystemVector& B, SystemMatrix& P, bool newLHS)
   PetscInt its;
   KSPGetIterationNumber(ksp,&its);
   PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getMethod(),its);
-  VecDestroy(x);
+  VecDestroy(PETSCMANGLE(x));
 
   return true;
 }
