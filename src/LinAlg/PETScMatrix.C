@@ -232,7 +232,7 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
   size_t nedof = meen.size();
 
   // Convert meen to 0-based C array
-  int* l2g = new int[nedof];
+  PetscInt* l2g = new PetscInt[nedof];
   for (i = 0; i < nedof; i++)
     l2g[i] = meqn[meen[i]-1]-1;
 
@@ -303,7 +303,7 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
   size_t nedof = meen.size();
 
   // Convert meen to 0-based C array
-  int* l2g = new int[nedof];
+  PetscInt* l2g = new PetscInt[nedof];
   for (i = 0; i < nedof; i++)
     l2g[i] = meen[i]-1;
 
@@ -388,7 +388,7 @@ static void assemPETSc (const Matrix& eM, Mat SM, const std::vector<int>& meen,
   size_t nedof = meen.size();
 
   // Convert meen to 0-based C array
-  int* l2g = new int[nedof];
+  PetscInt* l2g = new PetscInt[nedof];
   for (i = 0; i < nedof; i++)
     l2g[i] = meen[i]-1;
 
@@ -454,8 +454,18 @@ void PETScMatrix::initAssembly (const SAM& sam)
   std::vector<int> d_nnz, o_nnz;
 
   MatGetOwnershipRange(A,&ifirst,&ilast);
-  if (sam.getNoDofCouplings(ifirst,ilast,d_nnz,o_nnz)) 
-    MatMPIAIJSetPreallocation(A,PETSC_DEFAULT,&(d_nnz[0]),PETSC_DEFAULT,&(o_nnz[0]));
+  if (sam.getNoDofCouplings(ifirst,ilast,d_nnz,o_nnz))
+  {
+    std::vector<PetscInt> d_Nnz;
+    std::vector<PetscInt> o_Nnz;
+    d_Nnz.resize(d_nnz.size());
+    for (size_t i=0;i<d_nnz.size();++i) 
+      d_Nnz[i] = d_nnz[i];
+    o_Nnz.resize(o_nnz.size());
+    for (size_t i=0;i<o_nnz.size();++i) 
+      o_Nnz[i] = o_nnz[i];
+    MatMPIAIJSetPreallocation(A,PETSC_DEFAULT,&(d_Nnz[0]),PETSC_DEFAULT,&(o_Nnz[0]));
+  }
   else {
     const PetscInt maxdofc = sam.getMaxDofCouplings();
     MatMPIAIJSetPreallocation(A,maxdofc,PETSC_NULL,maxdofc,PETSC_NULL);
@@ -464,7 +474,11 @@ void PETScMatrix::initAssembly (const SAM& sam)
   std::vector<int> nnz;
 
   if (sam.getNoDofCouplings(nnz)) {
-    PetscInt* nnzPtr = &(nnz[0]);
+    std::vector<PetscInt> Nnz;
+    Nnz.resize(nnz.size());
+    for (size_t i=0;i<nnz.size();++i) 
+      Nnz[i] = nnz[i];
+    PetscInt* nnzPtr = &(Nnz[0]);
     MatSeqAIJSetPreallocation(A,PETSC_DEFAULT,nnzPtr);
   }
   else {

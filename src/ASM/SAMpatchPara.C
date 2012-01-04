@@ -17,6 +17,17 @@
 #include "ASMbase.h"
 #include "MPC.h"
 
+#ifdef HAS_PETSC
+#include "petscversion.h"
+
+#if PETSC_VERSION_MAJOR == 3 && PETSC_VERSION_MINOR >= 2
+#define PETSCMANGLE(x) &x
+#else
+#define PETSCMANGLE(x) x
+#endif
+
+#endif
+
 
 SAMpatchPara::SAMpatchPara (const std::map<int,int>& g2ln)
 {
@@ -37,8 +48,8 @@ SAMpatchPara::SAMpatchPara (const std::map<int,int>& g2ln)
 SAMpatchPara::~SAMpatchPara ()
 {
 #ifdef PARALLEL_PETSC
-  ISDestroy(iglob);
-  ISDestroy(iloc);
+  ISDestroy(PETSCMANGLE(iglob));
+  ISDestroy(PETSCMANGLE(iloc));
 #endif
   LinAlgInit::decrefs();
 }
@@ -97,7 +108,7 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
   }
 
   // Generate nnz for off-diagonal block
-  IntVec l2g(ndof);
+  std::vector<PetscInt> l2g(ndof);
   Vector nnz(ndof);
   for (i = 0; i < ndof; i++) {
     l2g[i] = meqn[i]-1;
@@ -121,7 +132,7 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
     o_nnz[i] = ceil(vec[i]);
 
   VecRestoreArray(x,&vec);
-  VecDestroy(x);
+  VecDestroy(PETSCMANGLE(x));
 
 #else
   this->SAM::getNoDofCouplings(d_nnz);
@@ -170,8 +181,13 @@ bool SAMpatchPara::assembleSystem (SystemVector& sysRHS,
   PETScVector* pvec = dynamic_cast<PETScVector*>(&sysRHS);
   if (!pvec) return false;
 
+  std::vector<PetscInt> L2g;
+  L2g.resize(l2g.size());
+  for (size_t i=0;i<l2g.size();++i)
+    L2g[i] = l2g[i];
+
   // Add contributions to SV (righthand side)
-  VecSetValues(pvec->getVector(),eSv.size(),&l2g[0],&eSv[0],ADD_VALUES);
+  VecSetValues(pvec->getVector(),eSv.size(),&L2g[0],&eSv[0],ADD_VALUES);
 
   // Add contributions to reaction forces
   if (reactionForces)
@@ -227,8 +243,8 @@ bool SAMpatchPara::expandSolution (const SystemVector& solVec,
   VecScatterCreate(svec->getVector(),iglob,solution,iloc,&ctx);
   VecScatterBegin(ctx,svec->getVector(),solution,INSERT_VALUES,SCATTER_FORWARD);
   VecScatterEnd(ctx,svec->getVector(),solution,INSERT_VALUES,SCATTER_FORWARD);
-  VecScatterDestroy(ctx);
-  VecDestroy(solution);
+  VecScatterDestroy(PETSCMANGLE(ctx));
+  VecDestroy(PETSCMANGLE(solution));
 
   return true;
 #else
@@ -487,12 +503,16 @@ bool SAMpatchPara::initSystemEquations ()
 
 #ifdef PARALLEL_PETSC
   // Generate 0-based local-to-global dof mapping
-  IntVec l2g(ndof);
+  std::vector<PetscInt> l2g(ndof);
   for (i = 0; i < ndof; i++)
     l2g[i] = meqn[i]-1;
 
   // Generate global and local index sets
+#if PETSC_VERSION_MAJOR == 3 && PETSC_VERSION_MINOR >= 2
+  ISCreateGeneral(PETSC_COMM_WORLD,ndof,&l2g[0],PETSC_COPY_VALUES,&iglob);
+#else
   ISCreateGeneral(PETSC_COMM_WORLD,ndof,&l2g[0],&iglob);
+#endif
   ISCreateStride(PETSC_COMM_WORLD,ndof,0,1,&iloc);
 #endif
 
