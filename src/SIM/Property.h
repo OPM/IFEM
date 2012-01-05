@@ -29,9 +29,9 @@ struct Property
     UNDEFINED,
     MATERIAL,
     BODYLOAD,
+    NEUMANN,
     DIRICHLET,
-    DIRICHLET_INHOM,
-    NEUMANN
+    DIRICHLET_INHOM
   };
 
   Type   pcode; //!< Physical property code

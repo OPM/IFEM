@@ -398,17 +398,23 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
     for (int i = 0; i < ncon && (cline = utl::readLine(is)); i++)
     {
       int patch = atoi(strtok(cline," "));
-      int pedge = atoi(strtok(NULL," "));
-      int bcode = atoi(strtok(NULL," "));
+      cline = strtok(NULL," ");
+      bool localAxes = cline && toupper(cline[0]) == 'L';
+      if (localAxes) cline = strtok(NULL," ");
+      int pedge = cline ? atoi(cline) : 0;
+      int bcode = (cline = strtok(NULL," ")) ? atoi(cline) : 12;
       double pd = (cline = strtok(NULL," ")) ? atof(cline) : 0.0;
 
       patch = this->getLocalPatchIndex(patch);
       if (patch < 1) continue;
 
-      int ldim  = pedge >= 0 ? 1 : 0;
+      int ldim = pedge >= 0 ? 1 : 0;
+      if (pedge < 0 || (pedge > 0 && localAxes))
+	pedge = -pedge;
+
       if (pd == 0.0)
       {
-	if (!this->addConstraint(patch,abs(pedge),ldim,bcode%1000))
+	if (!this->addConstraint(patch,pedge,ldim,bcode%1000))
 	  return false;
       }
       else
@@ -417,7 +423,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 	while (myScalars.find(code) != myScalars.end())
 	  code += 1000;
 
-	if (!this->addConstraint(patch,abs(pedge),ldim,bcode%1000,code))
+	if (!this->addConstraint(patch,pedge,ldim,bcode%1000,code))
 	  return false;
 
 	cline = strtok(NULL," ");
@@ -477,8 +483,17 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code)
     return constrError("patch index ",patch);
 
   std::cout <<"\tConstraining P"<< patch
-            << (ldim == 0 ? " V" : " E") << lndx <<" in direction(s) "<< dirs;
+            << (ldim == 0 ? " V" : " E") << abs(lndx)
+	    <<" in direction(s) "<< dirs;
+  if (lndx < 0) // Signals edge constraints in local coordinates
+  {
+    std::cout <<" (local)";
+    preserveNOrder = true; // Because some extra nodes might be added
+  }
   if (code) std::cout <<" code = "<< code <<" ";
+#if SP_DEBUG > 1
+  std::cout << std::endl;
+#endif
 
   // Must dynamic cast here, since ASM2D is not derived from ASMbase
   ASM2D* pch = dynamic_cast<ASM2D*>(myModel[patch-1]);
@@ -501,10 +516,14 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code)
     case 1: // Edge constraints
       switch (lndx)
 	{
-	case 1: pch->constrainEdge(-1,dirs,code); break;
-	case 2: pch->constrainEdge( 1,dirs,code); break;
-	case 3: pch->constrainEdge(-2,dirs,code); break;
-	case 4: pch->constrainEdge( 2,dirs,code); break;
+	case  1: pch->constrainEdge(-1,dirs,code); break;
+	case  2: pch->constrainEdge( 1,dirs,code); break;
+	case  3: pch->constrainEdge(-2,dirs,code); break;
+	case  4: pch->constrainEdge( 2,dirs,code); break;
+	case -1: pch->constrainEdgeLocal(-1,dirs,code); break;
+	case -2: pch->constrainEdgeLocal( 1,dirs,code); break;
+	case -3: pch->constrainEdgeLocal(-2,dirs,code); break;
+	case -4: pch->constrainEdgeLocal( 2,dirs,code); break;
 	default: std::cout << std::endl;
 	  return constrError("edge index ",lndx);
 	}
@@ -606,7 +625,6 @@ void SIM2D::clonePatches (const FEModelVec& patches,
 }
 
 
-
 void SIM2D::readNodes (std::istream& isn)
 {
   while (isn.good()) {
@@ -627,7 +645,7 @@ void SIM2D::readNodes (std::istream& isn)
     // We always require the node numbers to be 1-based
     for (size_t i = 0; i < 4; i++)
       ++n.ibnod[i];
-    for (size_t i = 0; i < 4; i++) 
+    for (size_t i = 0; i < 4; i++)
       ++n.edges[i].icnod;
     ++n.iinod;
 
@@ -640,6 +658,7 @@ void SIM2D::readNodes (std::istream& isn)
     }
   }
 }
+
 
 bool SIM2D::refine (const std::vector<int>& elements,
 		    const std::vector<int>& options, const char* fName)

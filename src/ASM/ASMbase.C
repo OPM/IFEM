@@ -125,40 +125,48 @@ void ASMbase::printNodes (std::ostream& os, const char* heading) const
 
 
 /*!
-  \brief A helper class used by ASMbase::addMPC.
+  \brief A helper class used by ASMbase::isFixed.
   \details The class is just an unary function that checks whether a DOF object
   matches the fixed status of a given BC object.
 */
 
 class fixed : public std::unary_function<const ASMbase::BC&,bool>
 {
-  const MPC::DOF& myDof; //!< The DOF object to compare with
+  int myNode; //!< The internal node number to compare with
+  int myDofs; //!< The local DOFs to compare with
 
 public:
-  //! \brief Constructor initializing the myDof reference.
-  fixed(const MPC::DOF& slaveDof) : myDof(slaveDof) {}
-  //! \brief Returns \e true if \a myDof has the same fixed status as \a bc.
+  //! \brief Constructor initializing the node and local dof index.
+  fixed(int node, int dof) : myNode(node), myDofs(dof) {}
+  //! \brief Returns \e true if the DOF has the same fixed status as \a bc.
   bool operator()(const ASMbase::BC& bc)
   {
-    if (bc.node == myDof.node)
-      switch (myDof.dof)
-	{
-	case 1: return bc.CX == 0;
-	case 2: return bc.CY == 0;
-	case 3: return bc.CZ == 0;
-	}
+    if (bc.node == myNode)
+      for (int dof = myDofs; dof > 0; dof /= 10)
+	switch (dof%10)
+	  {
+	  case 1: return bc.CX == 0;
+	  case 2: return bc.CY == 0;
+	  case 3: return bc.CZ == 0;
+	  }
     return false;
   }
 };
+
+
+bool ASMbase::isFixed (int node, int ldof) const
+{
+  return std::find_if(BCode.begin(),BCode.end(),fixed(node,ldof)) != BCode.end();
+}
 
 
 bool ASMbase::addMPC (MPC*& mpc, int code, bool silence)
 {
   if (!mpc) return true;
 
-  // Silently ignore MPC's on dofs that already are marked as FIXED
-  if (find_if(BCode.begin(),BCode.end(),fixed(mpc->getSlave())) != BCode.end())
+  if (this->isFixed(mpc->getSlave().node,mpc->getSlave().dof))
   {
+    // Silently ignore MPC's on dofs that already are marked as FIXED
     delete mpc;
     mpc = 0;
     return true;
@@ -372,7 +380,7 @@ void ASMbase::fix (size_t inod, int dirs)
     }
 
 #if SP_DEBUG > 1
-  std::cout <<"\n\tFixed node: "<< node <<" "<< dirs;
+  std::cout <<"\tFixed node: "<< node <<" "<< dirs << std::endl;
 #endif
 }
 

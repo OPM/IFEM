@@ -2103,7 +2103,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     }
 
     size_t nComps = values.rows();
-    size_t nNodes = myModel[i]->getNoNodes();
+    size_t nNodes = values.cols();
     if (ssol.empty())
       ssol.resize(nComps,ngNodes);
 

@@ -51,6 +51,18 @@ Tensor::Tensor (const std::vector<real>& t1, const std::vector<real>& t2) : n(3)
 }
 
 
+Tensor::Tensor (const Vec3& v1, const Vec3& v2, const Vec3& v3) : n(3)
+{
+  v.resize(9);
+  for (t_ind i = 0; i < 3; i++)
+  {
+    v[  i] = v1[i];
+    v[3+i] = v2[i];
+    v[6+i] = v3[i];
+  }
+}
+
+
 Tensor::Tensor (const Tensor& T) : n(T.n)
 {
   v.resize(n*n);

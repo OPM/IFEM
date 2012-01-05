@@ -44,6 +44,8 @@ public:
   Tensor(const t_ind nsd) : n(nsd) { v.resize(n*n,real(0)); }
   //! \brief Constructor creating a transformation from two tangent vectors.
   Tensor(const std::vector<real>& t1, const std::vector<real>& t2);
+  //! \brief Constructor creating a transformation from three unit vectors.
+  Tensor(const Vec3& v1, const Vec3& v2, const Vec3& v3);
   //! \brief Copy constructor.
   Tensor(const Tensor& T);
 

@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "GoTools/geometry/ObjectHeader.h"
+#include "GoTools/geometry/SplineCurve.h"
 #include "GoTools/geometry/SplineSurface.h"
 #include "GoTools/geometry/SurfaceInterpolator.h"
 
@@ -26,7 +27,10 @@
 #include "Utilities.h"
 #include "Profiler.h"
 #include "Vec3Oper.h"
+#include "Tensor.h"
+#include "MPC.h"
 #include <ctype.h>
+#include <algorithm>
 
 
 ASMs2D::ASMs2D (unsigned char n_s, unsigned char n_f)
@@ -496,21 +500,117 @@ void ASMs2D::constrainEdge (int dir, int dof, int code)
 }
 
 
+/*!
+  \brief Helper method for casting a \a Go::Point object to Vec3.
+*/
+
+static Vec3 toVec3 (const Go::Point& X, int nsd)
+{
+  Vec3 Y;
+  for (int i = 0; i < nsd && i < X.size() && i < 3; i++) Y[i] = X[i];
+  return Y;
+}
+
+
 void ASMs2D::constrainEdgeLocal (int dir, int dof, int code)
 {
+  // Get parameter values of the edge control points (nodes).
+  // We here assume that the Greville parameters represent the
+  // point on the edge at which the local coordinate system will be defined
+  double u[2];
   RealArray gpar;
-  if (!this->getGrevilleParameters(gpar,abs(dir)-1))
+  if (abs(dir) == 1)
+    u[0] = dir < 0 ? surf->startparam_u() : surf->endparam_u();
+  else if (abs(dir) == 2)
+    u[1] = dir < 0 ? surf->startparam_v() : surf->endparam_v();
+
+  if (!this->getGrevilleParameters(gpar,2-abs(dir)))
     return;
 
+  // Find the curve representing the edge geometry (for tangent evaluation)
+  Go::SplineCurve* edge = surf->edgeCurve(dir > 0 ? dir : 3*dir+6);
+
+  if (gNod == 0 && !shareFE) // Keep track of the global node numbers
+    gNod = *std::max_element(MLGN.begin(),MLGN.end());
+
+  // Find start index and increment of the (slave) node with the global DOFs
+  int n1, n2, incNod = 0, iSnod = 0;
+  this->getSize(n1,n2,1);
   switch (dir)
     {
-    case -1:
-    case  1:
+    case  1: // Right edge (positive I-direction)
+      iSnod += n1-1;
+    case -1: // Left edge (negative I-direction)
+      incNod = n1;
       break;
-    case -2:
-    case  2:
+    case  2: // Back edge (positive J-direction)
+      iSnod += n1*(n2-1);
+    case -2: // Front edge (negative J-direction)
+      incNod = 1;
       break;
     }
+
+  std::vector<Go::Point> pts(3);
+  for (size_t i = 0; i < gpar.size(); i++, iSnod += incNod)
+  {
+    // Check if this node already has been constrained or fixed
+    if (this->isFixed(1+iSnod,12)) continue;
+
+    // We need an extra node representing the local (master) DOFs at this point
+    int iMnod = shareFE ? nodeInd.size()+myMLGN.size() : myMLGN.size();
+    if (shareFE) // Store the index into MLGN in myMLGN
+      myMLGN.push_back(iMnod);
+    else
+    {
+      // Create an extra global node for the local DOFs
+      myMLGN.push_back(++gNod);
+      std::swap(myMLGN[iMnod],myMLGN[iSnod]);
+    }
+
+    // Global node numbers of the nodes to be coupled
+    int masterNode = MLGN[iMnod];
+    int slaveNode  = MLGN[iSnod];
+
+    // First find the tangent direction of the edge at this point.
+    // That will be the y-axis of the local coordinate system along the edge.
+    edge->point(pts,gpar[i],1);
+    Vec3 Yaxis(toVec3(pts[1],nsd));
+    Yaxis.normalize();
+    if (dir == -1 || dir == 2) Yaxis *= -1.0;
+
+    // Then compute the surface normal at this edge point.
+    // That will be the local z-axis of the local coordinate system.
+    u[2-abs(dir)] = gpar[i];
+    surf->point(pts,u[0],u[1],1);
+    Vec3 Zaxis(toVec3(pts[1],nsd),toVec3(pts[2],nsd));
+    Zaxis.normalize();
+
+    // And then the local X-axis (outward-directed edge normal)
+    Vec3 Xaxis(Yaxis,Zaxis);
+
+    // Local-to-global transformation matrix at this point
+    Tensor Tlg(Xaxis,Yaxis,Zaxis);
+
+    // Now establish constraint equations relating the global and local DOFs.
+    // We here assume that that there are nsd unknowns per node.
+    for (unsigned char d = 1; d <= nsd; d++)
+    {
+      MPC* cons = new MPC(slaveNode,d);
+      if (this->addMPC(cons,0,true) && cons)
+      {
+	for (unsigned char c = 1; c <= nsd; c++)
+	  cons->addMaster(masterNode,c,Tlg(d,c));
+#if SP_DEBUG > 1
+	std::cout <<"Added constraint: "<< *cons;
+#endif
+      }
+    }
+
+    // Finally, add the Dirchlet condition on the local DOF(s)
+    this->prescribe(1+iMnod,dof,code);
+  }
+
+  delete edge;
 }
 
 
@@ -1261,7 +1361,7 @@ bool ASMs2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 
 bool ASMs2D::getGrevilleParameters (RealArray& prm, int dir) const
 {
-  if (!surf) return false;
+  if (!surf || dir < 0 || dir > 1) return false;
 
   const Go::BsplineBasis& basis = surf->basis(dir);
 

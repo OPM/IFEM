@@ -378,6 +378,10 @@ protected:
   // Internal methods for preprocessing of boundary conditions
   // =========================================================
 
+  //! \brief Checks wether a given DOF is fixed or not.
+  //! \param[in] node Global node number of the DOF to check
+  //! \param[in] dof Local index of the DOF to check
+  bool isFixed(int node, int dof) const;
   //! \brief Adds a general multi-point-constraint (MPC) equation to this patch.
   //! \param mpc Pointer to an MPC-object
   //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
