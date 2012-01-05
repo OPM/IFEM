@@ -143,7 +143,12 @@ public:
   //! \param[in] dir Parameter direction defining the edge to constrain
   //! \param[in] dof Which DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
-  virtual void constrainEdge(int dir, int dof = 123, int code = 0);
+  virtual void constrainEdge(int dir, int dof, int code = 0);
+  //! \brief Constrains all DOFs in local directions on a given boundary edge.
+  //! \param[in] dir Parameter direction defining the edge to constrain
+  //! \param[in] dof Which local DOFs to constrain at each node on the edge
+  //! \param[in] code Inhomogeneous dirichlet condition code
+  virtual void constrainEdgeLocal(int dir, int dof, int code = 0);
 
   //! \brief Constrains a corner node identified by the two parameter indices.
   //! \param[in] I Parameter index in u-direction
@@ -154,7 +159,7 @@ public:
   //! \details The sign of the two indices is used to define whether we want
   //! the node at the beginning or the end of that parameter direction.
   //! The magnitude of the indices are not used.
-  virtual void constrainCorner(int I, int J, int dof = 123, int code = 0);
+  virtual void constrainCorner(int I, int J, int dof, int code = 0);
   //! \brief Constrains a node identified by two relative parameter values.
   //! \param[in] xi Parameter in u-direction
   //! \param[in] eta Parameter in v-direction
@@ -166,8 +171,7 @@ public:
   //! in between, the actual index is taken as the integer value closest to
   //! \a r*n, where \a r denotes the given relative parameter value,
   //! and \a n is the number of nodes along that parameter direction.
-  virtual void constrainNode(double xi, double eta,
-			     int dof = 123, int code = 0);
+  virtual void constrainNode(double xi, double eta, int dof, int code = 0);
 
   //! \brief Connects all matching nodes on two adjacent boundary edges.
   //! \param[in] edge Local edge index of this patch, in range [1,4]

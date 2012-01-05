@@ -496,6 +496,24 @@ void ASMs2D::constrainEdge (int dir, int dof, int code)
 }
 
 
+void ASMs2D::constrainEdgeLocal (int dir, int dof, int code)
+{
+  RealArray gpar;
+  if (!this->getGrevilleParameters(gpar,abs(dir)-1))
+    return;
+
+  switch (dir)
+    {
+    case -1:
+    case  1:
+      break;
+    case -2:
+    case  2:
+      break;
+    }
+}
+
+
 void ASMs2D::constrainCorner (int I, int J, int dof, int code)
 {
   int n1, n2;

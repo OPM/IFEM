@@ -555,6 +555,12 @@ void ASMu2D::constrainEdge (int dir, int dof, int code)
 }
 
 
+void ASMu2D::constrainEdgeLocal (int dir, int dof, int code)
+{
+  // TODO...
+}
+
+
 void ASMu2D::constrainCorner (int I, int J, int dof, int code)
 {
 	std::vector<LR::Basisfunction*> edgeFunctions;
