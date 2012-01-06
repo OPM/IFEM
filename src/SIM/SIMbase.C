@@ -37,8 +37,6 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
-#include <ctype.h>
-#include <stdio.h>
 #include <fstream>
 
 #include "tinyxml.h"

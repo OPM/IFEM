@@ -17,9 +17,6 @@
 #include "ASMs1DSpec.h"
 #include "Functions.h"
 #include "Utilities.h"
-#include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
 
 #include "tinyxml.h"
 

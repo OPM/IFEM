@@ -18,9 +18,6 @@
 #include "Functions.h"
 #include "Utilities.h"
 #include <fstream>
-#include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
 
 #include "tinyxml.h"
 

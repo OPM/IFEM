@@ -19,7 +19,7 @@
 #include <sys/stat.h>
 #include <numeric>
 #include <sys/statvfs.h>
-#include <assert.h>
+#include <cassert>
 
 #ifdef HAS_HDF5
 #include <hdf5.h>

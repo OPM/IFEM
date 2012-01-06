@@ -12,8 +12,7 @@
 //==============================================================================
 
 #include "Utilities.h"
-#include <stdlib.h>
-#include <ctype.h>
+#include <cstdlib>
 
 
 void utl::parseIntegers (std::vector<int>& values, const char* argv)

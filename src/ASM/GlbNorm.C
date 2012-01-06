@@ -13,7 +13,7 @@
 
 #include "GlbNorm.h"
 #include "ElmNorm.h"
-#include <math.h>
+#include <cmath>
 
 
 GlbNorm::GlbNorm (std::vector<double>& vec, FinalOp op) : myVals(vec)

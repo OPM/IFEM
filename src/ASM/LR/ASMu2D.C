@@ -30,7 +30,6 @@
 #include "Utilities.h"
 #include "Profiler.h"
 #include "Vec3Oper.h"
-#include <ctype.h>
 #include <fstream>
 
 

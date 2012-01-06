@@ -25,7 +25,6 @@
 #include "ElementBlock.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
-#include <ctype.h>
 
 
 ASMs1D::ASMs1D (unsigned char n_s, unsigned char n_f)

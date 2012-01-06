@@ -13,8 +13,7 @@
 
 #include "Functions.h"
 #include "Vec3.h"
-#include <string.h>
-#include <stdlib.h>
+#include <cstring>
 #include <fstream>
 #include <algorithm>
 #include "Tensor.h"

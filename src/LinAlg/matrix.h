@@ -22,8 +22,8 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
-#include <string.h>
-#include <math.h>
+#include <cstring>
+#include <cmath>
 #ifdef USE_MKL
 #pragma push_macro("real")
 #undef real

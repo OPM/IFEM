@@ -29,7 +29,6 @@
 #include "Vec3Oper.h"
 #include "Tensor.h"
 #include "MPC.h"
-#include <ctype.h>
 #include <algorithm>
 
 

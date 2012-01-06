@@ -26,7 +26,6 @@
 #include "Utilities.h"
 #include "Profiler.h"
 #include "Vec3Oper.h"
-#include <ctype.h>
 
 
 ASMs3D::ASMs3D (unsigned char n_f)
