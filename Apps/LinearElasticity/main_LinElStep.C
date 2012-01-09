@@ -126,7 +126,7 @@ int main (int argc, char** argv)
   // Load vector visualization is not available when using additional viz-points
   if (n[0] > 2 || n[1] > 2 || n[2] > 2) vizRHS = false;
 
-  std::cout <<"\n >>> Spline FEM Linear Elasticity solver <<<"
+  std::cout <<"\n >>> IFEM Linear Elasticity solver <<<"
 	    <<"\n ===========================================\n"
 	    <<"\nInput file: "<< infile
 	    <<"\nEquation solver: "<< solver

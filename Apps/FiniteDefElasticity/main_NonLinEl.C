@@ -220,7 +220,7 @@ int main (int argc, char** argv)
 
   if (linalg.myPid == 0)
   {
-    std::cout <<"\n >>> Spline FEM Finite Deformation Nonlinear solver <<<"
+    std::cout <<"\n >>> IFEM Finite Deformation Nonlinear solver <<<"
 	      <<"\n ======================================================\n"
 	      <<"\n Executing command:\n";
     for (int i = 0; i < argc; i++) std::cout <<" "<< argv[i];

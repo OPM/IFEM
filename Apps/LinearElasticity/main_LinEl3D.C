@@ -197,7 +197,7 @@ int main (int argc, char** argv)
 
   if (linalg.myPid == 0)
   {
-    std::cout <<"\n >>> Spline FEM Linear Elasticity solver <<<"
+    std::cout <<"\n >>> IFEM Linear Elasticity solver <<<"
 	      <<"\n ===========================================\n"
 	      <<"\n Executing command:\n";
     for (int i = 0; i < argc; i++) std::cout <<" "<< argv[i];
