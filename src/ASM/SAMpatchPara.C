@@ -68,7 +68,7 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
   for (e = 1; e <= nel; e++)
   {
     IntVec meen;
-    if (!this->getElmEqns(meen,e))
+    if (!this->getElmEqns(meen,e,nelmdof))
       return false;
 
     for (j = 0; j < meen.size(); j++)
@@ -215,8 +215,8 @@ bool SAMpatchPara::getElmEqns (IntVec& meen, int iel, int nedof) const
     int node = mmnpc[ip-1];
     for (int j = madof[node-1]; j < madof[node]; j++)
       meen.push_back(j);
-  }
-  if ((int)meen.size() == nedof) return true;
+  }  
+  if ((int)meen.size() == nedof) return true;   
 
   std::cerr <<"SAMpatchPara::getElmEqns: Invalid element matrix dimension "
 	    << nedof <<" (should have been "<< meen.size() <<")"<< std::endl;
@@ -461,10 +461,11 @@ bool SAMpatchPara::initSystemEquations ()
     int max = min;
 
     for (i = 1; i < nnod; i++)
-      if (l2gn[i] < min)
-	min = l2gn[i];
-      else if (max < l2gn[i])
-	max = l2gn[i];
+      if (madof[i] < madof[i+1])
+	if (l2gn[i] < min)
+	  min = l2gn[i];
+	else if (max < l2gn[i])
+	  max = l2gn[i];
 
 #ifdef PARALLEL_PETSC
     int myRank, nProc;
@@ -479,21 +480,26 @@ bool SAMpatchPara::initSystemEquations ()
     }
 
     // Find number of global nodes
-    // RUNAR
-    //MPI_Scatter(&max,1,MPI_INT,&nnodGlob,1,MPI_INT,nProc-1,PETSC_COMM_WORLD);
     MPI_Allreduce(&max,&nnodGlob,1,MPI_INT,MPI_MAX,PETSC_COMM_WORLD);
 
     // Generate list of ghost nodes
+    int m = 1;
     for (size_t k = 0; k < l2gn.size(); k++)
-      if (l2gn[k] < min) ghostNodes.push_back(k+1);
+      if (madof[k] < madof[k+1]) 
+	if (l2gn[k] < min) ghostNodes.push_back(m++);
+
 #endif
 
     // TODO: Fix this for mixed methods (varying DOFs per node)
-    int nndof = ndof/nnod;
+    int nndof = madof[1]-madof[0];
     nleq = (max-min+1)*nndof;
-    for (i = 0; i < nnod; i++)
-      for (j = 0; j < nndof; j++)
-	meqn[i*nndof+j] = (l2gn[i]-1)*nndof + j + 1;
+    int l = 0;
+    for (i = 0; i < nnod; i++) 
+      if (madof[i] < madof[i+1]) {
+	for (j = 0; j < nndof; j++)
+	  meqn[l*nndof+j] = (l2gn[i]-1)*nndof + j + 1;
+	l++;
+      }
   }
   else {
     nleq = ndof;
