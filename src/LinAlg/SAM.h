@@ -34,6 +34,8 @@ class SystemVector;
 class SAM
 {
 protected:
+  size_t nelmdof;                  //!<Number of element degrees of freedom
+  
   typedef std::vector<int> IntVec; //!< General integer vector
   typedef std::set<int>    IntSet; //!< General integer set
 
@@ -183,7 +185,7 @@ public:
 
   //! \brief Expands a solution vector from equation-ordering to DOF-ordering.
   //! \param[in] solVec Solution vector, length = NEQ
-  //! \param[out] displ Displacement vector, length = NDOF = 3*NNOD
+  //! \param[out] dofVec Degrees of freedom vector, length = NDOF
   //! \param[in] scaleSD Scaling factor for specified (slave) DOFs
   //! \return \e false if the length of \a solVec is invalid, otherwise \e true
   //!

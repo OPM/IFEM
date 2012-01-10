@@ -14,7 +14,6 @@
 #include "SAM.h"
 #include "SystemMatrix.h"
 
-
 #ifdef USE_F77SAM
 #if defined(_WIN32)
 #define elmeq_  ELMEQ
@@ -66,6 +65,9 @@ SAM::SAM () : nnod(mpar[0]), nel(mpar[1]), ndof(mpar[2]),
 	      nspdof(mpar[5]), nceq(mpar[6]), neq(mpar[10]),
 	      nmmnpc(mpar[14]), nmmceq(mpar[15])
 {
+  // Initialize numberof DOFs pr element
+  nelmdof = 0;
+
   // Initialize the parameters array to zero
   memset(mpar,0,sizeof(mpar));
 
@@ -336,7 +338,7 @@ bool SAM::getDofCouplings (std::vector<IntSet>& dofc) const
   for (int e = 1; e <= nel; e++)
   {
     IntVec meen;
-    if (!this->getElmEqns(meen,e))
+    if (!this->getElmEqns(meen,e,nelmdof))
       return false;
 
     for (size_t i = 0; i < meen.size(); i++)
@@ -483,7 +485,7 @@ bool SAM::assembleSystem (SystemVector& sysRHS,
   delete[] work;
 #else
   IntVec meen;
-  if (!this->getElmEqns(meen,iel,eS.size()))
+  if (!this->getElmEqns(meen,iel,eS.size())) 
     ierr = 1;
   else for (size_t i = 0; i < meen.size(); i++)
   {
@@ -692,7 +694,7 @@ bool SAM::expandVector (const real* solVec, Vector& dofVec, real scaleSD) const
 
 real SAM::dot (const Vector& x, const Vector& y, char dofType) const
 {
-  if (nodeType.empty() || dofType == 'A')
+  if (nodeType.empty() || dofType == 'A') 
     return x.dot(y); // All nodes are of the same type, or consider all of them
 
   // Consider only the dofType nodes
