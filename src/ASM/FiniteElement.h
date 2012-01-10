@@ -40,6 +40,7 @@ public:
   Matrix   dNdX;   //!< First derivatives (gradient) of the basis functions
   Matrix3D d2NdX2; //!< Second derivatives of the basis functions
   double   detJxW; //!< Weighted determinant of the coordinate mapping
+  Matrix   G;      //!< Matrix used for stabilized methods
 };
 
 
