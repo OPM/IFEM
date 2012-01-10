@@ -59,6 +59,17 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
 
+  //! \brief Returns a matrix with nodal coordinates for an element.
+  //! \param[in] iel Element index
+  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
+  //! in one element
+  virtual bool getElementCoordinates(Matrix& X, int iel) const;
+
+  //! \brief Returns a matrix with all nodal coordinates within the patch.
+  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
+  //! in the patch
+  virtual void getNodalCoordinates(Matrix& X) const;
+
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with
   virtual bool updateCoords(const Vector& displ);
@@ -222,16 +233,6 @@ protected:
   //! \brief Returns the length in the parameter space for an element.
   //! \param[in] iel Element index
   double getParametricLength(int iel) const;
-
-  //! \brief Returns a matrix with nodal coordinates for an element.
-  //! \param[in] iel Element index
-  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
-  //! in one element
-  virtual bool getElementCoordinates(Matrix& X, int iel) const;
-  //! \brief Returns a matrix with all nodal coordinates within the patch.
-  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
-  //! in the patch
-  virtual void getNodalCoordinates(Matrix& X) const;
 
   //! \brief Returns the number of nodal points in the patch.
   //! \param[in] basis Which basis to return size parameters for (mixed methods)

@@ -138,18 +138,12 @@ public:
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
 			    const RealArray* gpar, bool regular = true) const;
 
-protected:
-
-  // Internal utility methods
-  // ========================
-
   //! \brief Returns a matrix with nodal coordinates for an element.
   //! \param[in] iel Element index
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in one element
   virtual bool getElementCoordinates(Matrix& X, int iel) const;
 
-public:
   //! \brief Returns a matrix with all nodal coordinates within the patch.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in the patch

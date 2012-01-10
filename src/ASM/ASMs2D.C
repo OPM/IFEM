@@ -86,6 +86,9 @@ bool ASMs2D::read (std::istream& is)
     nsd = surf->dimension();
   }
 
+  // Define number of DOFs pr element
+  neldof = surf->order_u()*surf->order_v()*nf;
+
   geo = surf;
   return true;
 }
@@ -668,6 +671,7 @@ double ASMs2D::getParametricArea (int iel) const
 
   double du = surf->knotSpan(0,nodeInd[inod1].I);
   double dv = surf->knotSpan(1,nodeInd[inod1].J);
+
   return du*dv;
 }
 
@@ -889,6 +893,25 @@ static double getElmSize (int p1, int p2, const Matrix& X)
 }
 
 
+/*!
+  \brief Computes the characteristic element length from inverse Jacobian.
+*/
+
+static bool getG (const Matrix& Jinv, const Vector& du, Matrix& G)
+{
+  const size_t nsd = Jinv.cols();
+
+  G.resize(nsd,nsd,true);
+
+  for (size_t k = 1;k <= nsd;k++) 
+    for (size_t l = 1;l <= nsd;l++)
+      for (size_t m = 1;m <= nsd;m++)
+	G(k,l) += Jinv(m,k)*Jinv(m,l)/(du(k)*du(l));
+
+  return true;
+}
+
+
 void ASMs2D::extractBasis (const Go::BasisDerivsSf& spline,
 			   Vector& N, Matrix& dNdu)
 {
@@ -994,7 +1017,6 @@ bool ASMs2D::integrate (Integrand& integrand,
   Matrix3D d2Ndu2, Hess;
   Vec4     X;
 
-
   // === Assembly loop over all elements in the patch ==========================
 
   int iel = 1;
@@ -1012,9 +1034,8 @@ bool ASMs2D::integrate (Integrand& integrand,
       if (!this->getElementCoordinates(Xnod,iel)) return false;
 
       // Compute characteristic element length, if needed
-      if (integrand.getIntegrandType() == 2)
-	fe.h = getElmSize(p1,p2,Xnod);
-
+      if (integrand.getIntegrandType() == 2) 
+	fe.h   = getElmSize(p1,p2,Xnod);
       else if (integrand.getIntegrandType() == 3)
       {
 	// --- Compute average value of basis functions over the element -------
@@ -1061,7 +1082,6 @@ bool ASMs2D::integrate (Integrand& integrand,
       // the model (as defined by the highest number in the MLGE array).
       // If the array is shorter than this, expect a segmentation fault.
       LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
-
 
       if (integrand.getIntegrandType() > 10)
       {
@@ -1121,9 +1141,17 @@ bool ASMs2D::integrate (Integrand& integrand,
 	  if (fe.detJxW == 0.0) continue; // skip singular points
 
 	  // Compute Hessian of coordinate mapping and 2nd order derivatives
-	  if (integrand.getIntegrandType() == 2)
+	  if (integrand.getIntegrandType() == 2) {
 	    if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
 	      return false;
+
+	    // RUNAR
+	    Vector dXidu(2);
+	    dXidu(1) = this->getParametricLength(iel,1);
+	    dXidu(2) = this->getParametricLength(iel,2);
+	    if (!getG(Jac,dXidu,fe.G))
+	      return false;
+	  }
 
 #if SP_DEBUG > 4
 	  std::cout <<"\niel, ip = "<< iel <<" "<< ip
@@ -1146,7 +1174,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 
       // Assembly of global system integral
       if (!glInt.assemble(elmInt,fe.iel))
-	return false;
+      	return false;
     }
 
   return true;

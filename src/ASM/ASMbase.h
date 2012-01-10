@@ -114,6 +114,8 @@ public:
   unsigned char getNoParamDim() const { return ndim; }
   //! \brief Returns the number of solution fields.
   virtual unsigned char getNoFields(int b = 0) const { return b > 1 ? 0 : nf; }
+  //! \brief Returns the number of solution fields.
+  virtual size_t getNoElmDOF(int b = 0) const { return b > 1 ? 0 : neldof; }
 
   //! \brief Returns local 1-based index of the node with given global number.
   //! \details If the given node number is not present, 0 is returned.
@@ -136,6 +138,12 @@ public:
   //! \param[out] X nsd\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in the patch
   virtual void getNodalCoordinates(Matrix& X) const = 0;
+  //! \brief Returns a matrix with nodal coordinates for an element.
+  //! \param[in] iel Element index
+  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
+  //! in one element
+  virtual bool getElementCoordinates(Matrix& X, int iel) const = 0;
+
   //! \brief Prints out the nodal coordinates of this patch to the given stream.
   void printNodes(std::ostream& os, const char* heading = 0) const;
 
@@ -440,10 +448,11 @@ public:
 
 protected:
   // Standard finite element data structures
-  unsigned char ndim; //!< Number of parametric dimensions (1, 2 or 3)
-  unsigned char nsd;  //!< Number of space dimensions (ndim <= nsd <= 3)
-  unsigned char nf;   //!< Number of primary solution fields (1 or larger)
-
+  unsigned char ndim;   //!< Number of parametric dimensions (1, 2 or 3)
+  unsigned char nsd;    //!< Number of space dimensions (ndim <= nsd <= 3)
+  unsigned char nf;     //!< Number of primary solution fields (1 or larger)
+  size_t        neldof; //!< Number of degrees of freedom per element
+  
   const IntVec& MLGE; //!< Matrix of Local to Global Element numbers
   const IntVec& MLGN; //!< Matrix of Local to Global Node numbers
   const IntMat& MNPC; //!< Matrix of Nodal Point Correspondance

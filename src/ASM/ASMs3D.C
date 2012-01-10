@@ -75,6 +75,9 @@ bool ASMs3D::read (std::istream& is)
     return false;
   }
 
+  // Number of DOFs pr element
+  neldof = svol->order(0)*svol->order(1)*svol->order(2)*nf;
+
   geo = svol;
   return true;
 }
@@ -1097,6 +1100,25 @@ static double getElmSize (int p1, int p2, int p3, const Matrix& X)
 }
 
 
+/*!
+  \brief Computes the characteristic element length from inverse Jacobian.
+*/
+
+static bool getG (const Matrix& Jinv, const Vector& du, Matrix& G)
+{
+  const size_t nsd = Jinv.cols();
+
+  G.resize(nsd,nsd,true);
+
+  for (size_t k = 1;k <= nsd;k++) 
+    for (size_t l = 1;l <= nsd;l++)
+      for (size_t m = 1;m <= nsd;m++)
+	G(k,l) += Jinv(m,k)*Jinv(m,l)/(du(k)*du(l));
+
+  return true;
+}
+
+
 void ASMs3D::extractBasis (const Go::BasisDerivs& spline,
 			   Vector& N, Matrix& dNdu)
 {
@@ -1335,9 +1357,18 @@ bool ASMs3D::integrate (Integrand& integrand,
 	      if (fe.detJxW == 0.0) continue; // skip singular points
 
  	      // Compute Hessian of coordinate mapping and 2nd order derivatives
-	      if (integrand.getIntegrandType() == 2)
+	      if (integrand.getIntegrandType() == 2) {
 		if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
 		  return false;
+
+		// RUNAR
+		// Vector dXidu(3);
+// 		dXidu(1) = this->getParametricLength(iel,1);
+// 		dXidu(2) = this->getParametricLength(iel,2);
+// 		dXidu(3) = this->getParametricLength(iel,3);
+// 		if (!getG(Jac,dXidu,fe.G))
+// 		  return false;
+	      }
 
 #if SP_DEBUG > 4
 	      std::cout <<"\niel, ip = "<< iel <<" "<< ip

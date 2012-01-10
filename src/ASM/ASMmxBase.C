@@ -14,14 +14,27 @@
 #include "ASMmxBase.h"
 
 
-bool ASMmxBase::geoUsesBasis1 = false;
-bool ASMmxBase::useCpminus1   = false;
+bool ASMmxBase::geoUsesBasis1     = false;
+bool ASMmxBase::useCpminus1       = false;
+bool ASMmxBase::useLowOrderBasis1 = false;
 
 
 ASMmxBase::ASMmxBase (unsigned char n_f1, unsigned char n_f2)
 {
   nf1 = n_f1;
   nf2 = n_f2;
+}
+
+
+size_t ASMmxBase::getNoElmDOF(int basis) const
+{
+  switch(basis) {
+  case 1: return neldof1;
+  case 2: return neldof2;
+  }    
+  
+ 
+ return neldof1 + neldof2;
 }
 
 

@@ -55,6 +55,12 @@ public:
   //! \param[in] retainGeometry If \e true, the spline geometry is not cleared.
   //! This is used to reinitialize the patch after it has been refined.
   virtual void clear(bool retainGeometry = false);
+  
+  //! \brief Returns a matrix with nodal coordinates for an element.
+  //! \param[in] iel Element index
+  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
+  //! in one element
+  virtual bool getElementCoordinates(Matrix& X, int iel) const;
 
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
@@ -173,12 +179,6 @@ protected:
 
   // Internal utility methods
   // ========================
-
-  //! \brief Returns a matrix with nodal coordinates for an element.
-  //! \param[in] iel Element index
-  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
-  //! in one element
-  virtual bool getElementCoordinates(Matrix& X, int iel) const;
 
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction

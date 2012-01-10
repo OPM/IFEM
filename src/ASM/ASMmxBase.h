@@ -49,8 +49,12 @@ protected:
 		     const std::vector<int>& nodes) const;
 
 public:
-  static bool geoUsesBasis1; //!< If \e true, 1st basis represents the geometry
-  static bool useCpminus1;   //!< If \e true, enforce \f$C^{p-1}\f$ continuity
+  static bool geoUsesBasis1;       //!< If \e true, 1st basis represents the geometry
+  static bool useCpminus1;         //!< If \e true, enforce \f$C^{p-1}\f$ continuity
+  static bool useLowOrderBasis1;   //!< If \e true, basis 1 is of lowest order
+
+  //! \brief Returns the number of solution fields.
+  virtual size_t getNoElmDOF(int b = 0) const;
 
 private:
   std::vector<int> MADOF; //!< Matrix of accumulated DOFs for this patch
@@ -61,6 +65,9 @@ protected:
 
   unsigned char nf1; //!< Number of solution fields using first basis
   unsigned char nf2; //!< Number of solution fields using second basis
+
+  size_t neldof1; //!< Number of degrees of freedom per element for basis 1
+  size_t neldof2; //!< Number of degrees of freedom per element for basis 2
 };
 
 #endif

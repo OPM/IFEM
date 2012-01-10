@@ -189,7 +189,7 @@ bool ASMs2Dmx::generateFEMTopology ()
 							     ug,vg,XYZ,ndim,
 							     false,XYZ);
     }
-    else
+    else 
     {
       // Order-elevate basis1 such that it is of one degree higher than basis2
       // but only C^p-2 continuous
@@ -197,6 +197,12 @@ bool ASMs2Dmx::generateFEMTopology ()
       basis1->raiseOrder(1,1);
     }
     basis2 = surf;
+    
+    if (useLowOrderBasis1) {
+      basis2 = basis1;
+      basis1 = surf;
+      surf = basis2;
+    }
 
     // Define which basis that should be used to represent the geometry
     if (geoUsesBasis1) surf = basis1;
@@ -249,7 +255,7 @@ bool ASMs2Dmx::generateFEMTopology ()
   if (p1 > n1 || p2 > n2) return false;
   if (q1 > m1 || q2 > m2) return false;
 
-  myMLGE.resize((n1-p1+1)*(n2-p2+1),0);
+  myMLGE.resize(geoUsesBasis1 ? (n1-p1+1)*(n2-p2+1) : (m1-q1+1)*(m2-q2+1),0);
   myMLGN.resize(nb1 + nb2);
   myMNPC.resize(myMLGE.size());
   myNodeInd.resize(myMLGN.size());
@@ -340,7 +346,7 @@ bool ASMs2Dmx::generateFEMTopology ()
     iel = inod = 0;
     for (i2 = 1; i2 <= n2; i2++)
       for (i1 = 1; i1 <= n1; i1++, inod++)
-	if (i1 >= p1 && i2 >= p2)
+	if (i1 >= p1 && i2 >= p2) {
 	  if (basis1->knotSpan(0,i1-1) > 0.0)
 	    if (basis1->knotSpan(1,i2-1) > 0.0)
 	    {
@@ -352,8 +358,14 @@ bool ASMs2Dmx::generateFEMTopology ()
 		  myMNPC[iel][lnod++] = inod - n1*j2 - j1;
 
 	      iel++;
-	    }
+	    }	
+	}
   }
+
+  // Number of DOFs pr element for each basis
+  neldof1 = basis1->order_u()*basis1->order_v()*nf1;
+  neldof2 = basis2->order_u()*basis2->order_v()*nf2;
+  neldof = neldof1 + neldof2;
 
 #ifdef SP_DEBUG
   std::cout <<"NEL = "<< MLGE.size() <<" NNOD = "<< MLGN.size() << std::endl;
@@ -498,7 +510,6 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 		     basis2->order_u()*basis2->order_v());
   Matrix dN1du, dN2du, Xnod, Jac;
   Vec4   X;
-
 
   // === Assembly loop over all elements in the patch ==========================
 

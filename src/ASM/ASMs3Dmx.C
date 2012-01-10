@@ -153,6 +153,17 @@ bool ASMs3Dmx::generateFEMTopology ()
       Go::BsplineBasis b1 = svol->basis(0).extendedBasis(svol->order(0)+1);
       Go::BsplineBasis b2 = svol->basis(1).extendedBasis(svol->order(1)+1);
       Go::BsplineBasis b3 = svol->basis(2).extendedBasis(svol->order(2)+1);
+      /*  To lower order and regularity this can be used instead     
+      std::vector<double>::const_iterator first =  ++svol->basis(0).begin();
+      std::vector<double>::const_iterator last  =  --svol->basis(0).end();
+      Go::BsplineBasis b1 = Go::BsplineBasis(svol->order(0)-1,first,last);
+      first =  ++svol->basis(1).begin();
+      last  =  --svol->basis(1).end();
+      Go::BsplineBasis b2 = Go::BsplineBasis(svol->order(1)-1,first,last);
+      first =  ++svol->basis(2).begin();
+      last  =  --svol->basis(2).end();
+      Go::BsplineBasis b3 = Go::BsplineBasis(svol->order(2)-1,first,last);
+      */
 
       // Note: Currently this is implemented for non-rational splines only.
       // TODO: Ask the splines people how to fix this properly, that is, how
@@ -366,6 +377,11 @@ bool ASMs3Dmx::generateFEMTopology ()
 		  iel++;
 		}
   }
+
+  // Number of DOFs pr element for each basis
+  neldof1 = basis1->order(0)*basis1->order(1)*basis1->order(2)*nf1;
+  neldof2 = basis2->order(0)*basis2->order(1)*basis2->order(2)*nf2;
+  neldof = neldof1+neldof2;
 
 #ifdef SP_DEBUG
   std::cout <<"NEL = "<< MLGE.size() <<" NNOD = "<< MLGN.size() << std::endl;
