@@ -55,9 +55,9 @@ Assembling Neumann matrix terms for boundary 1 on P10
 Solving the equation system ...
  >>> Solution summary <<<
 L2-norm            : 0.0707423
-Max X-displacement : 0.295694 node 152
-Max Y-displacement : 0.100096 node 3
-Max Z-displacement : 0.0302177 node 78
+Max X-displacement : 0.295694
+Max Y-displacement : 0.100096
+Max Z-displacement : 0.0302177
 Projecting secondary solution ...
 Energy norm |u^h| = a(u^h,u^h)^0.5   : 41649
 External energy ((f,u^h)+(t,u^h)^0.5 : 41649
