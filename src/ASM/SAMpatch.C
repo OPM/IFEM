@@ -27,6 +27,9 @@ bool SAMpatch::init (const ASMVec& model, int numNod)
     if (numNod == 0) nnod += model[i]->getNoNodes();
   }
 
+  // Number of DOFs per element
+  nelmdof = model[0]->getNoElmDOF(0);
+
   // Initialize the node/dof arrays (madof,msc) and compute ndof
   if (!this->initNodeDofs(model))
     return false;
@@ -89,7 +92,7 @@ bool SAMpatch::initNodeDofs (const ASMVec& model)
       {
 	if (madof[n] == 0)
 	  madof[n] = model[i]->getNodalDOFs(j+1);
-	else if (madof[n] != model[i]->getNodalDOFs(j+1))
+	else if (madof[n] != model[i]->getNodalDOFs(j+1)) 
 	  ierr++;
 
 	// Define the node type for mixed methods (used by norm evaluations)
@@ -139,21 +142,21 @@ bool SAMpatch::initElementConn (const ASMVec& model)
   IntMat::const_iterator eit;
   for (j = 0; j < model.size(); j++)
     for (i = 1, eit = model[j]->begin_elm(); eit != model[j]->end_elm(); eit++)
-      if (model[j]->getElmID(i++) > 0)
+      if (model[j]->getElmID(i++) > 0) 
 	nmmnpc += eit->size();
 
   // Initialize the element connectivity arrays
   mpmnpc = new int[nel+1];
   mmnpc  = new int[nmmnpc];
   int ip = mpmnpc[0] = 1;
-  for (j = 0; j < model.size(); j++)
-    for (i = 1, eit = model[j]->begin_elm(); eit != model[j]->end_elm(); eit++)
+  for (j = 0; j < model.size(); j++) 
+    for (i = 1, eit = model[j]->begin_elm(); eit != model[j]->end_elm(); eit++) 
       if (model[j]->getElmID(i++) > 0)
       {
-	mpmnpc[ip] = mpmnpc[ip-1];
-	for (size_t i = 0; i < eit->size(); i++)
-	  mmnpc[(mpmnpc[ip]++)-1] = model[j]->getNodeID(1+(*eit)[i]);
-	ip++;
+ 	mpmnpc[ip] = mpmnpc[ip-1];
+ 	for (size_t k = 0; k < eit->size(); k++)
+ 	  mmnpc[(mpmnpc[ip]++)-1] = model[j]->getNodeID(1+(*eit)[k]);
+ 	ip++;
       }
 
   return true;
