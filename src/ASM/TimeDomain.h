@@ -26,8 +26,13 @@ struct TimeDomain
   int     it; //!< Current iteration within current time/load step
   bool first; //!< If \e true, this is the first load/time step
 
+  bool useCFL;       //!< If timestep limited by CFL
+  double CFL;        //!< Current CFL number
+  double maxCFL;     //!< CFL restriction
+
   //! \brief Default constructor.
-  TimeDomain(int i = 0, bool f = true) : it(i), first(f) { t = dt = 0.0; }
+TimeDomain(int i = 0, bool f = true) : it(i), first(f) 
+  { t = dt = CFL = 0.0; maxCFL = 1.0; useCFL = false; }
 };
 
 #endif
