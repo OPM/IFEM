@@ -1322,7 +1322,7 @@ bool SIMbase::systemModes (std::vector<Mode>& solution,
   std::cout <<"\nSolving the eigenvalue problem ..."<< std::endl;
   SystemMatrix* A = myEqSys->getMatrix(iA);
   SystemMatrix* B = myEqSys->getMatrix(iB);
-#ifdef HAS_SELPC
+#ifdef HAS_SLEPC
   // To interface SLEPC another interface is used
   bool ok = eig::solve(A,B,eigVal,eigVec,nev);
 #else
