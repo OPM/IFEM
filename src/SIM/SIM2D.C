@@ -545,7 +545,7 @@ void SIM2D::setQuadratureRule (size_t ng)
 
 bool SIM2D::readPatch (std::istream& isp, int pchInd)
 {
-  ASMbase* pch = ASM2D::create(discretization,nf);
+  ASMbase* pch = ASM2D::create(discretization,nf,mixedFEM);
   if (pch)
   {
     if (!pch->read(isp))
@@ -567,7 +567,7 @@ bool SIM2D::readPatches (std::istream& isp)
 {
   ASMbase* pch = 0;
   for (int pchInd = 1; isp.good(); pchInd++)
-    if ((pch = ASM2D::create(discretization,nf)))
+    if ((pch = ASM2D::create(discretization,nf,mixedFEM)))
     {
       std::cout <<"Reading patch "<< pchInd << std::endl;
       if (!pch->read(isp))
