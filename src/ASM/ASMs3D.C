@@ -2018,7 +2018,7 @@ Go::SplineVolume* ASMs3D::projectSolution (const Integrand& integrand) const
 
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
-  if (!this->evalSolution(sValues,integrand,gpar))
+  if (!this->evalSolution(sValues,integrand,gpar) || sValues.rows() == 0)
     return 0;
 
   // Project the results onto the spline basis to find control point
