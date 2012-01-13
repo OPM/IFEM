@@ -49,9 +49,16 @@ void SystemVector::copy(const SystemVector& x)
 
 SystemMatrix* SystemMatrix::create (Type matrixType, const LinSolParams& spar)
 {
+  if (matrixType == PETSC)
 #ifdef HAS_PETSC
-  if (matrixType == PETSC) return new PETScMatrix(spar);
+    return new PETScMatrix(spar);
+#else
+  {
+    std::cerr << "PETSc support not compiled in, bailing" << std::endl;
+    exit(1);
+  }
 #endif
+ 
   return SystemMatrix::create(matrixType);
 }
 
@@ -64,11 +71,14 @@ SystemMatrix* SystemMatrix::create (Type matrixType, int num_thread_SLU)
     case SPR   : return new SPRMatrix();
     case SPARSE: return new SparseMatrix(SparseMatrix::SUPERLU,num_thread_SLU);
     case SAMG  : return new SparseMatrix(SparseMatrix::S_A_M_G);
-#ifdef HAS_PETSC
     case PETSC :
+#ifdef HAS_PETSC
       // Use default PETSc settings when no parameters are provided by user
       static LinSolParams defaultPar;
       return new PETScMatrix(defaultPar);
+#else
+      std::cerr << "PETSc support not compiled in, bailing" << std::endl;
+      exit(1);
 #endif
     default:
       std::cerr <<"SystemMatrix::create: Unsupported matrix type "
