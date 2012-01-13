@@ -360,9 +360,11 @@ int main (int argc, char** argv)
       writeFieldBlocks(vlist,slist,*myVtf,k);
 
       if (ok) {
-        if (processlist.begin()->second.begin()->timestep > 0)
-          myVtf->writeState(k++,"Time %g",time,1);
-        else {
+        if (processlist.begin()->second.begin()->timestep > 0) {
+          double time2 = time;
+          hdf.readDouble(i,"timeinfo","SIMbase-1",time2); //TODO!
+          myVtf->writeState(k++,"Time %g",time2,1);
+        } else {
           double foo = k;
           myVtf->writeState(k++,"Step %g",foo,1);
         }

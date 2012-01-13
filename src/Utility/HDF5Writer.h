@@ -90,6 +90,14 @@ public:
   bool readVector(int level, const std::string& name,
                   int patch, Vector& vec);
 
+  //! \brief Reads a double 
+  //! \param[in] level The time level to read at
+  //! \param[in] name The name (path in HDF5 file) to the array
+  //! \param[in] patch The patch to read
+  //! \param[out] vec The vector to read data into
+  bool readDouble(int level, const std::string& group,
+                  const std::string& name, double& data);
+
   //! \brief Check if updated geometries exists in file at given time level
   //! \param[in] level The time level to check
   bool hasGeometries(int level);

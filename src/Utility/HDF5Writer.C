@@ -434,6 +434,21 @@ bool HDF5Writer::checkGroupExistence(int parent, const char* path)
 bool HDF5Writer::writeTimeInfo(int level, int order, int interval,
                                SIMparameters& tp)
 {
+#ifdef HAS_HDF5
+  std::stringstream str;
+  str << "/" << level << "/timeinfo";
+  hid_t group;
+  if (checkGroupExistence(m_file,str.str().c_str()))
+    group = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
+  else
+    group = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
+
+  // parallel nodes != 0 write dummy entries
+  int toWrite=(m_rank == 0);
+
+  // !TODO: different names
+  writeArray(group,"SIMbase-1",toWrite,&tp.time.t,H5T_NATIVE_DOUBLE);
+#endif
   return true;
 }
 
@@ -442,4 +457,23 @@ bool HDF5Writer::hasGeometries(int level)
   std::stringstream str;
   str << '/' << level << "/basis";
   return checkGroupExistence(m_file,str.str().c_str());
+}
+
+bool HDF5Writer::readDouble(int level, const std::string& group, 
+                            const std::string& name, double& data)
+{
+#ifdef HAS_HDF5
+  std::stringstream str;
+  str << "/" << level << "/" << group;
+  hid_t group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
+  int len=1;
+  double* data2;
+  readArray(group2,name,len,data2);
+  if (len > 0) {
+    data = data2[0];
+    delete[] data2;
+    return true;
+  }
+#endif
+  return false;
 }
