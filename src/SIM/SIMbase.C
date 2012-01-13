@@ -1600,7 +1600,8 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
       else
 	sID[k++].push_back(nBlock);
 
-    if (discretization == ASM::Spline || discretization == ASM::SplineC1)
+    if ((discretization == ASM::Spline || discretization == ASM::SplineC1) &&
+        myProblem->getNoFields(2) > 0)
     {
       // 3. Projection of secondary solution variables (tensorial splines only)
 
