@@ -1242,7 +1242,8 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 	    ok = false;
 
   // Add problem-dependent external norm contributions
-  gNorm(2) += this->externalEnergy(psol);
+  if (gNorm.size() >= 2)
+    gNorm(2) += this->externalEnergy(psol);
 
 #ifdef PARALLEL_PETSC
   if (nProc > 1)
