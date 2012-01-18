@@ -1,4 +1,4 @@
-CanTS-p1.inp -dense
+CanTS-p1.inp -dense -ztol 1.0e-6
 
 Input file: CanTS-p1.inp
 Equation solver: 0

@@ -36,8 +36,8 @@ Number of P-dofs      350
 Number of unknowns    893
   step=1  time=1
   Primary solution summary: L2-norm            : 0.00163546
-                            Max X-displacement : 0.00276025 node 9
-                            Max Y-displacement : 0.00324427 node 265
+                            Max X-displacement : 0.00276025
+                            Max Y-displacement : 0.00324427
   Total reaction forces: Sum(R) = 0 -4
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.0704264	 a(u^h,u^h) = 0.004959877948
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.0704687	(f,u)+(t,u) = 0.004965840411
@@ -47,8 +47,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 1.54391
   step=2  time=2
   Primary solution summary: L2-norm            : 0.0032649
-                            Max X-displacement : 0.00552068 node 9
-                            Max Y-displacement : 0.00648053 node 297
+                            Max X-displacement : 0.00552068
+                            Max Y-displacement : 0.00648053
   Total reaction forces: Sum(R) = 0 -8
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.140523	 a(u^h,u^h) = 0.01974669135
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.140689	(f,u)+(t,u) = 0.01979336034
@@ -58,8 +58,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 3.08065
   step=3  time=3
   Primary solution summary: L2-norm            : 0.00488855
-                            Max X-displacement : 0.00828143 node 9
-                            Max Y-displacement : 0.00970871 node 265
+                            Max X-displacement : 0.00828143
+                            Max Y-displacement : 0.00970871
   Total reaction forces: Sum(R) = 0 -12
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.210304	 a(u^h,u^h) = 0.0442279631
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.210671	(f,u)+(t,u) = 0.04438207954
@@ -69,8 +69,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 4.6106
   step=4  time=4
   Primary solution summary: L2-norm            : 0.00650661
-                            Max X-displacement : 0.0110426 node 25
-                            Max Y-displacement : 0.0129287 node 297
+                            Max X-displacement : 0.0110426
+                            Max Y-displacement : 0.0129287
   Total reaction forces: Sum(R) = 0 -16
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.279785	 a(u^h,u^h) = 0.07827982906
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.280423	(f,u)+(t,u) = 0.07863730027
@@ -80,8 +80,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 6.13413
   step=5  time=5
   Primary solution summary: L2-norm            : 0.00811928
-                            Max X-displacement : 0.0138043 node 9
-                            Max Y-displacement : 0.0161406 node 265
+                            Max X-displacement : 0.0138043
+                            Max Y-displacement : 0.0161406
   Total reaction forces: Sum(R) = 0 -20
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.348979	 a(u^h,u^h) = 0.1217865873
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.349957	(f,u)+(t,u) = 0.1224698226
@@ -91,8 +91,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 7.65161
   step=6  time=6
   Primary solution summary: L2-norm            : 0.00972677
-                            Max X-displacement : 0.0165665 node 9
-                            Max Y-displacement : 0.0193441 node 297
+                            Max X-displacement : 0.0165665
+                            Max Y-displacement : 0.0193441
   Total reaction forces: Sum(R) = 0 -24
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.4179	 a(u^h,u^h) = 0.1746402976
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.41928	(f,u)+(t,u) = 0.17579569
@@ -102,8 +102,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 9.16338
   step=7  time=7
   Primary solution summary: L2-norm            : 0.0113292
-                            Max X-displacement : 0.0193294 node 9
-                            Max Y-displacement : 0.0225392 node 297
+                            Max X-displacement : 0.0193294
+                            Max Y-displacement : 0.0225392
   Total reaction forces: Sum(R) = 0 -28
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.48656	 a(u^h,u^h) = 0.2367404383
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.488401	(f,u)+(t,u) = 0.238535968
@@ -113,8 +113,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 10.6698
   step=8  time=8
   Primary solution summary: L2-norm            : 0.0129269
-                            Max X-displacement : 0.022093 node 9
-                            Max Y-displacement : 0.0257259 node 297
+                            Max X-displacement : 0.022093
+                            Max Y-displacement : 0.0257259
   Total reaction forces: Sum(R) = 0 -32
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.554972	 a(u^h,u^h) = 0.307993627
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.55733	(f,u)+(t,u) = 0.3106165615
@@ -124,8 +124,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 12.1712
   step=9  time=9
   Primary solution summary: L2-norm            : 0.0145198
-                            Max X-displacement : 0.0248573 node 9
-                            Max Y-displacement : 0.028904 node 265
+                            Max X-displacement : 0.0248573
+                            Max Y-displacement : 0.028904
   Total reaction forces: Sum(R) = 0 -36
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.623148	 a(u^h,u^h) = 0.3883134214
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.626074	(f,u)+(t,u) = 0.3919680785
@@ -135,8 +135,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 13.6678
   step=10  time=10
   Primary solution summary: L2-norm            : 0.0161082
-                            Max X-displacement : 0.0276224 node 9
-                            Max Y-displacement : 0.0320736 node 297
+                            Max X-displacement : 0.0276224
+                            Max Y-displacement : 0.0320736
   Total reaction forces: Sum(R) = 0 -40
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.691101	 a(u^h,u^h) = 0.477620216
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.694641	(f,u)+(t,u) = 0.4825257495
@@ -146,8 +146,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 15.1601
   step=11  time=11
   Primary solution summary: L2-norm            : 0.0176922
-                            Max X-displacement : 0.0303883 node 25
-                            Max Y-displacement : 0.0352344 node 297
+                            Max X-displacement : 0.0303883
+                            Max Y-displacement : 0.0352344
   Total reaction forces: Sum(R) = 0 -44
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.758842	 a(u^h,u^h) = 0.5758412659
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.76304	(f,u)+(t,u) = 0.5822294194
@@ -157,8 +157,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 16.6483
   step=12  time=12
   Primary solution summary: L2-norm            : 0.019272
-                            Max X-displacement : 0.033155 node 9
-                            Max Y-displacement : 0.0383866 node 297
+                            Max X-displacement : 0.033155
+                            Max Y-displacement : 0.0383866
   Total reaction forces: Sum(R) = 0 -48
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.826384	 a(u^h,u^h) = 0.6829108767
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.831278	(f,u)+(t,u) = 0.6910236353
@@ -168,8 +168,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 18.1328
   step=13  time=13
   Primary solution summary: L2-norm            : 0.0208476
-                            Max X-displacement : 0.0359224 node 9
-                            Max Y-displacement : 0.0415299 node 265
+                            Max X-displacement : 0.0359224
+                            Max Y-displacement : 0.0415299
   Total reaction forces: Sum(R) = 0 -52
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.89374	 a(u^h,u^h) = 0.7987708281
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.899365	(f,u)+(t,u) = 0.808857865
@@ -179,8 +179,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 19.6138
   step=14  time=14
   Primary solution summary: L2-norm            : 0.0224192
-                            Max X-displacement : 0.0386907 node 9
-                            Max Y-displacement : 0.0446644 node 265
+                            Max X-displacement : 0.0386907
+                            Max Y-displacement : 0.0446644
   Total reaction forces: Sum(R) = 0 -56
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.960922	 a(u^h,u^h) = 0.9233711276
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.967309	(f,u)+(t,u) = 0.9356869015
@@ -190,8 +190,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 21.0918
   step=15  time=15
   Primary solution summary: L2-norm            : 0.023987
-                            Max X-displacement : 0.0414597 node 25
-                            Max Y-displacement : 0.0477902 node 265
+                            Max X-displacement : 0.0414597
+                            Max Y-displacement : 0.0477902
   Total reaction forces: Sum(R) = 0 -60
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.02795	 a(u^h,u^h) = 1.056671254
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.03512	(f,u)+(t,u) = 1.071471539
@@ -201,8 +201,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 22.5671
   step=16  time=16
   Primary solution summary: L2-norm            : 0.0255509
-                            Max X-displacement : 0.0442294 node 9
-                            Max Y-displacement : 0.0509072 node 265
+                            Max X-displacement : 0.0442294
+                            Max Y-displacement : 0.0509072
   Total reaction forces: Sum(R) = 0 -64
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.09483	 a(u^h,u^h) = 1.198642148
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.10281	(f,u)+(t,u) = 1.21617966
@@ -212,8 +212,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 24.04
   step=17  time=17
   Primary solution summary: L2-norm            : 0.0271111
-                            Max X-displacement : 0.0469998 node 9
-                            Max Y-displacement : 0.0540155 node 297
+                            Max X-displacement : 0.0469998
+                            Max Y-displacement : 0.0540155
   Total reaction forces: Sum(R) = 0 -68
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.16158	 a(u^h,u^h) = 1.34926938
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.17038	(f,u)+(t,u) = 1.36978797
@@ -223,8 +223,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 25.5112
   step=18  time=18
   Primary solution summary: L2-norm            : 0.0286678
-                            Max X-displacement : 0.0497708 node 9
-                            Max Y-displacement : 0.0571154 node 297
+                            Max X-displacement : 0.0497708
+                            Max Y-displacement : 0.0571154
   Total reaction forces: Sum(R) = 0 -72
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.22823	 a(u^h,u^h) = 1.508558247
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.23785	(f,u)+(t,u) = 1.532284776
@@ -234,8 +234,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 26.981
   step=19  time=19
   Primary solution summary: L2-norm            : 0.030221
-                            Max X-displacement : 0.0525424 node 9
-                            Max Y-displacement : 0.060207 node 297
+                            Max X-displacement : 0.0525424
+                            Max Y-displacement : 0.060207
   Total reaction forces: Sum(R) = 0 -76
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.29481	 a(u^h,u^h) = 1.676542164
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.30525	(f,u)+(t,u) = 1.703674545
@@ -245,8 +245,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 28.4502
   step=20  time=20
   Primary solution summary: L2-norm            : 0.0317707
-                            Max X-displacement : 0.0553144 node 9
-                            Max Y-displacement : 0.063291 node 265
+                            Max X-displacement : 0.0553144
+                            Max Y-displacement : 0.063291
   Total reaction forces: Sum(R) = 0 -80
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.36136	 a(u^h,u^h) = 1.853296936
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.37258	(f,u)+(t,u) = 1.88398562
@@ -256,8 +256,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 29.9196
   step=21  time=21
   Primary solution summary: L2-norm            : 0.0333172
-                            Max X-displacement : 0.0580868 node 25
-                            Max Y-displacement : 0.0663678 node 297
+                            Max X-displacement : 0.0580868
+                            Max Y-displacement : 0.0663678
   Total reaction forces: Sum(R) = 0 -84
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.42792	 a(u^h,u^h) = 2.038966187
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.43989	(f,u)+(t,u) = 2.073283871
@@ -267,8 +267,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 31.3907
   step=22  time=22
   Primary solution summary: L2-norm            : 0.0348604
-                            Max X-displacement : 0.0608596 node 9
-                            Max Y-displacement : 0.0694387 node 297
+                            Max X-displacement : 0.0608596
+                            Max Y-displacement : 0.0694387
   Total reaction forces: Sum(R) = 0 -88
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.49459	 a(u^h,u^h) = 2.233809407
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.50722	(f,u)+(t,u) = 2.271698317
@@ -278,8 +278,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 32.8651
   step=23  time=23
   Primary solution summary: L2-norm            : 0.0364007
-                            Max X-displacement : 0.0636327 node 9
-                            Max Y-displacement : 0.0725051 node 297
+                            Max X-displacement : 0.0636327
+                            Max Y-displacement : 0.0725051
   Total reaction forces: Sum(R) = 0 -92
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.56151	 a(u^h,u^h) = 2.438300293
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.57463	(f,u)+(t,u) = 2.47947319
@@ -289,8 +289,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 34.3461
   step=24  time=24
   Primary solution summary: L2-norm            : 0.0379384
-                            Max X-displacement : 0.0664063 node 9
-                            Max Y-displacement : 0.0755701 node 297
+                            Max X-displacement : 0.0664063
+                            Max Y-displacement : 0.0755701
   Total reaction forces: Sum(R) = 0 -96
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.62891	 a(u^h,u^h) = 2.653351461
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.64228	(f,u)+(t,u) = 2.697085933
@@ -300,8 +300,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 35.8392
   step=25  time=25
   Primary solution summary: L2-norm            : 0.0394739
-                            Max X-displacement : 0.0691808 node 9
-                            Max Y-displacement : 0.0786385 node 297
+                            Max X-displacement : 0.0691808
+                            Max Y-displacement : 0.0786385
   Total reaction forces: Sum(R) = 0 -100
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.69733	 a(u^h,u^h) = 2.880919758
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.71043	(f,u)+(t,u) = 2.925562404
@@ -311,8 +311,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 37.3559
   step=26  time=26
   Primary solution summary: L2-norm            : 0.0410091
-                            Max X-displacement : 0.0719581 node 9
-                            Max Y-displacement : 0.0817215 node 265
+                            Max X-displacement : 0.0719581
+                            Max Y-displacement : 0.0817215
   Total reaction forces: Sum(R) = 0 -104
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.7681	 a(u^h,u^h) = 3.126169794
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.77977	(f,u)+(t,u) = 3.167592687
@@ -322,8 +322,8 @@ Number of unknowns    893
   Stress norm, von Mises: vm(sigma^h)    : 38.926
   step=27  time=27
   Primary solution summary: L2-norm            : 0.042553
-                            Max X-displacement : 0.0747501 node 9
-                            Max Y-displacement : 0.0860191 node 281
+                            Max X-displacement : 0.0747501
+                            Max Y-displacement : 0.0860191
   Total reaction forces: Sum(R) = 0 -108
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.84749	 a(u^h,u^h) = 3.413235226
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.85353	(f,u)+(t,u) = 3.435557675

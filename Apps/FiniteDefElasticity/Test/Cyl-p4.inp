@@ -34,4 +34,4 @@ TIME_STEPPING
 
 NONLINEAR_SOLVER
 # maxit convTol divgLim
-  20    1.0e-6  100.0
+  20    1.0e-16 100.0

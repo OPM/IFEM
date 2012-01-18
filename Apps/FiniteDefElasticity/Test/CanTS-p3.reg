@@ -1,4 +1,4 @@
-CanTS-p3.inp -dense
+CanTS-p3.inp -dense -ztol 1.0e-6
 
 Input file: CanTS-p3.inp
 Equation solver: 0
@@ -38,7 +38,7 @@ Number of unknowns    192
   Primary solution summary: L2-norm            : 1.9759
                             Max X-displacement : 2.53831 
                             Max Z-displacement : 5.69139 
-  Total reaction forces: Sum(R) = 5.04972e-07 0 53.87
+  Total reaction forces: Sum(R) = 0 0 53.87
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 14.181	 a(u^h,u^h) = 201.1004482
   External energy: ((f,u^h)+(t,u^h))^0.5 : 17.4596	(f,u)+(t,u) = 304.8372502
   step=3  time=0.3
@@ -52,7 +52,7 @@ Number of unknowns    192
   Primary solution summary: L2-norm            : 2.43614
                             Max X-displacement : 3.84243 
                             Max Z-displacement : 6.62916 
-  Total reaction forces: Sum(R) = 5.90352e-07 0 107.74
+  Total reaction forces: Sum(R) = 0 0 107.74
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 18.4305	 a(u^h,u^h) = 339.6834556
   External energy: ((f,u^h)+(t,u^h))^0.5 : 26.6258	(f,u)+(t,u) = 708.9346606
   step=5  time=0.5
@@ -80,7 +80,7 @@ Number of unknowns    192
   Primary solution summary: L2-norm            : 2.77276
                             Max X-displacement : 4.91988 
                             Max Z-displacement : 7.14501 
-  Total reaction forces: Sum(R) = 3.15049e-08 0 215.48
+  Total reaction forces: Sum(R) = 0 0 215.48
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 22.1529	 a(u^h,u^h) = 490.7492222
   External energy: ((f,u^h)+(t,u^h))^0.5 : 39.0694	(f,u)+(t,u) = 1526.418833
   step=9  time=0.9

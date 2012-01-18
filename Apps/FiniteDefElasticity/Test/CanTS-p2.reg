@@ -1,4 +1,4 @@
-CanTS-p2.inp -dense
+CanTS-p2.inp -dense -ztol 1.0e-6
 
 Input file: CanTS-p2.inp
 Equation solver: 0
@@ -73,7 +73,7 @@ Number of unknowns    297
   Primary solution summary: L2-norm            : 3.11994
                             Max X-displacement : 5.85327 
                             Max Z-displacement : 8.13161 
-  Total reaction forces: Sum(R) = 5.02855e-08 0 188.545
+  Total reaction forces: Sum(R) = 0 0 188.545
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 23.0313	 a(u^h,u^h) = 530.4429627
   External energy: ((f,u^h)+(t,u^h))^0.5 : 39.0438	(f,u)+(t,u) = 1524.419708
   step=8  time=0.8

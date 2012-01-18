@@ -39,11 +39,10 @@ Number of unknowns    524
   step=1  time=0.25
   Primary solution summary: L2-norm            : 0.831737
                             Max X-displacement : 2.43104 node 122
-                            Max Y-displacement : 1.00139 node 127
-                            Max Z-displacement : 0.0880724 node 198
-  Total reaction forces: Sum(R) = 0.000436261 0.0321288 0.132065
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 46.2051	 a(u^h,u^h) = 2134.913949
-  External energy: ((f,u^h)+(t,u^h))^0.5 : 45.1299	(f,u)+(t,u) = 2036.705874
+                            Max Y-displacement : 1.00139
+                            Max Z-displacement : 0.088072
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 46.2051	 a(u^h,u^h) = 2134.91
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 45.1299	(f,u)+(t,u) = 2036.70
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 9960.12
   Pressure norm, L2:       (p^h,p^h)^0.5 : 4323.44	(p^h = trace(sigma^h)/3)
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 6567.15	(s^d = sigma^h - p^h\*I)
@@ -51,11 +50,10 @@ Number of unknowns    524
   step=2  time=0.5
   Primary solution summary: L2-norm            : 1.86743
                             Max X-displacement : 5.62165 node 122
-                            Max Y-displacement : 1.99493 node 127
-                            Max Z-displacement : 0.187281 node 188
-  Total reaction forces: Sum(R) = 0.00343035 0.470441 0.981058
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 100.663	 a(u^h,u^h) = 10133.1296
-  External energy: ((f,u^h)+(t,u^h))^0.5 : 96.6566	(f,u)+(t,u) = 9342.501373
+                            Max Y-displacement : 1.99493
+                            Max Z-displacement : 0.18728
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 100.663	 a(u^h,u^h) = 10133.1
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 96.6566	(f,u)+(t,u) = 9342.50
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 21723.5
   Pressure norm, L2:       (p^h,p^h)^0.5 : 9434.77	(p^h = trace(sigma^h)/3)
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 14313.2	(s^d = sigma^h - p^h\*I)
@@ -63,11 +61,10 @@ Number of unknowns    524
   step=3  time=0.75
   Primary solution summary: L2-norm            : 3.01809
                             Max X-displacement : 9.29344 node 122
-                            Max Y-displacement : 2.78841 node 127
-                            Max Z-displacement : 0.306432 node 56
-  Total reaction forces: Sum(R) = 0.000854942 0.503352 0.225431
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 159.019	 a(u^h,u^h) = 25286.90965
-  External energy: ((f,u^h)+(t,u^h))^0.5 : 151.952	(f,u)+(t,u) = 23089.56034
+                            Max Y-displacement : 2.78841
+                            Max Z-displacement : 0.30643
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 159.019	 a(u^h,u^h) = 25286.9
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 151.952	(f,u)+(t,u) = 23089.5
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 34486.6
   Pressure norm, L2:       (p^h,p^h)^0.5 : 15012.2	(p^h = trace(sigma^h)/3)
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 22654.5	(s^d = sigma^h - p^h\*I)
@@ -75,11 +72,10 @@ Number of unknowns    524
   step=4  time=1
   Primary solution summary: L2-norm            : 4.1633
                             Max X-displacement : 12.8109 node 188
-                            Max Y-displacement : 3.25394 node 61
-                            Max Z-displacement : 0.436221 node 56
-  Total reaction forces: Sum(R) = 0.000995794 1.024 0.142809
-  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 214.874	 a(u^h,u^h) = 46170.95285
-  External energy: ((f,u^h)+(t,u^h))^0.5 : 206.728	(f,u)+(t,u) = 42736.63385
+                            Max Y-displacement : 3.25394
+                            Max Z-displacement : 0.43622
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 214.874	 a(u^h,u^h) = 46170.9
+  External energy: ((f,u^h)+(t,u^h))^0.5 : 206.728	(f,u)+(t,u) = 42736.6
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 47063.8
   Pressure norm, L2:       (p^h,p^h)^0.5 : 20608.2	(p^h = trace(sigma^h)/3)
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 30674.2	(s^d = sigma^h - p^h\*I)
