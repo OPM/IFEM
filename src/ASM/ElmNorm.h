@@ -14,8 +14,8 @@
 #ifndef _ELM_NORM_H
 #define _ELM_NORM_H
 
-#include <cstddef>
 #include "LocalIntegral.h"
+#include <cstddef>
 
 
 /*!
@@ -29,7 +29,17 @@ class ElmNorm : public LocalIntegral
 {
 public:
   //! \brief The constructor assigns the internal pointer.
+  //! \param[in] p Pointer to element norm values
+  //! \param[in] n Number of norm values
   ElmNorm(double* p, size_t n) : ptr(p), nnv(n) {}
+  //! \brief Alternative constructor using the internal buffer \a buf.
+  //! \param[in] n Number of norm values
+  //!
+  //! \details This constructor is used when the element norms are not requested
+  //! by the application, but are only used to assembly the global norms.
+  //! To avoid the need for a global array of element norms in that case,
+  //! an internal array is then used instead.
+  ElmNorm(size_t n) : buf(n,0.0), nnv(n) { ptr = &buf.front(); }
   //! \brief Empty destructor.
   virtual ~ElmNorm() {}
 
@@ -41,15 +51,32 @@ public:
   //! \brief Returns the number of norm values.
   size_t size() const { return nnv; }
 
+  //! \brief Returns whether the element norms are stored externally or not.
+  bool externalStorage() const { return buf.empty(); }
+
   //! \brief Virtual destruction method to clean up after numerical integration.
-  //! \details For this class we only clear the two solution vector containers
-  //! (to save memory). We do NOT delete the object itself, since it might be
-  //! needed in a second integration loop over element boundaries, for instance.
-  virtual void destruct() { vec.clear(); psol.clear(); }
+  //! \details Unless the internal buffer \a buf is used, these method only
+  //! clears the two solution vector containers (to save memory).
+  //! The object itself is then NOT deleted, since it might be used in a second
+  //! integration loop over element boundaries, for instance.
+  virtual void destruct()
+  {
+    if (buf.empty())
+    {
+      vec.clear();
+      psol.clear();
+    }
+    else
+      delete this; // The internal buffer has been used, delete the whole thing
+  }
 
 private:
-  double* ptr; //!< Pointer to the actual norm values
-  size_t  nnv; //!< Number of norm values
+  RealArray buf; //!< Internal buffer used when element norms are not requested
+  double*   ptr; //!< Pointer to the actual norm values
+  size_t    nnv; //!< Number of norm values
+
+public:
+  Vectors  psol; //!< Element-level projected solution vectors
 };
 
 #endif

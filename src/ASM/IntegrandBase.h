@@ -22,6 +22,8 @@ class NormBase;
 class AnaSol;
 class VTF;
 
+typedef std::vector<LocalIntegral*> LintegralVec;
+
 /*!
   \brief Base class representing a system level integrated quantity.
 */
@@ -259,6 +261,7 @@ protected:
   Vectors prjsol; //!< Projected secondary solution vectors for current patch
 
   unsigned short int nrcmp; //!< Number of projected solution components
+  LintegralVec* lints; //!< Vector of local integrals used during norm integration
 };
 
 #endif

@@ -40,7 +40,7 @@ public:
   //! \brief Adds element norm quantities into the global norm object.
   //! \param[in] elmObj Pointer to the element norms to add into \a *this
   //! \param[in] elmId Global number of the element associated with \a *elmObj
-  virtual bool assemble(const LocalIntegral* elmObj, int elmId);
+  virtual bool assemble(const LocalIntegral* elmObj, int elmId = 0);
 
 private:
   //! \brief Applies the operation \a myOp on the given \a value.

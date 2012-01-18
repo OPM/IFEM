@@ -1139,6 +1139,8 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 			     const Vectors& psol, const Vectors& ssol,
 			     Vector& gNorm, Matrix* eNorm)
 {
+  PROFILE1("Norm integration");
+
   NormBase* norm = myProblem->getNormIntegrand(mySol);
   if (!norm)
   {
@@ -1147,8 +1149,6 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 #endif
     return false;
   }
-
-  PROFILE1("Norm integration");
 
   myProblem->initIntegration(time);
   const Vector& primsol = psol.front();
@@ -1162,6 +1162,14 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   size_t nNorms = norm->getNoFields();
   gNorm.resize(nNorms,true);
 
+#ifdef USE_OPENMP
+  // When assembling in parallel, we must always do the norm summation
+  // at the end in a serial loop, to avoid that the threads try to update the
+  // same memory address simultaneously.
+  Matrix dummy;
+  if (!eNorm) eNorm = &dummy;
+#endif
+
   // Initialize norm integral classes
   GlbNorm globalNorm(gNorm,GlbNorm::SQRT);
   LintegralVec elementNorms;
@@ -1171,7 +1179,9 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
     elementNorms.reserve(eNorm->cols());
     for (i = 0; i < eNorm->cols(); i++)
       elementNorms.push_back(new ElmNorm(eNorm->ptr(i),nNorms));
+    norm->setLocalIntegrals(&elementNorms);
   }
+  norm->setLocalIntegrals(&elementNorms);
 
   // Loop over the different material regions, integrating solution norm terms
   // for the patch domain associated with each material
@@ -1206,12 +1216,6 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
       lp = i+1;
     }
 
-  // Integrate norm contributions due to Neumann boundary conditions, if any.
-  // Note: Currently, only the global norms are considered here.
-  // The corresponding element-level norms are not stored. This is mainly
-  // because the current design only allows one loop over the elements
-  // in the element-norm calculations. Consider rivising this later.
-
   if (norm->hasBoundaryTerms())
     for (i = 0; i < myProps.size() && ok; i++)
       if (myProps[i].pcode == Property::NEUMANN)
@@ -1242,8 +1246,18 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 	  else
 	    ok = false;
 
+  // Clean up the dynamically allocated norm objects. This will also perform
+  // the actual global norm assembly, in case the element norms are stored,
+  // and always when multi-threading is used.
+  for (i = 0; i < elementNorms.size(); i++)
+  {
+    globalNorm.assemble(elementNorms[i]);
+    delete elementNorms[i];
+  }
+  delete norm;
+
   // Add problem-dependent external norm contributions
-  if (gNorm.size() >= 2)
+  if (gNorm.size() > 1)
     gNorm(2) += this->externalEnergy(psol);
 
 #ifdef PARALLEL_PETSC
@@ -1255,10 +1269,6 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
     delete[] tmp;
   }
 #endif
-
-  delete norm;
-  for (i = 0; i < elementNorms.size(); i++)
-    delete elementNorms[i];
 
   return ok;
 }
