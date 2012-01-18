@@ -15,18 +15,97 @@
 #include "MaterialBase.h"
 #include "FiniteElement.h"
 #include "GaussQuadrature.h"
+#include "ElmMats.h"
+#include "ElmNorm.h"
 #include "Lagrange.h"
 #include "TimeDomain.h"
 #include "Tensor.h"
+
+
+/*!
+  \brief A struct with volumetric sampling point data.
+*/
+
+struct VolPtData
+{
+  double J;    //!< Determinant of current deformation gradient
+  Vector Nr;   //!< Basis function values (for axisymmetric problems)
+  Matrix dNdx; //!< Basis function gradients at current configuration
+  //! \brief Default constructor.
+  VolPtData() { J = 1.0; }
+};
+
+
+/*!
+  \brief Class containing internal data for an Fbar element.
+*/
+
+class FbarElmData
+{
+public:
+  //! \brief Default constructor.
+  FbarElmData() : pbar(0), scale(0.0), iP(0) {}
+  //! \brief Empty destructor.
+  virtual ~FbarElmData() {}
+
+  //! \brief Initializes the element data
+  bool init(unsigned short int nsd, size_t nPt)
+  {
+    pbar = ceil(pow((double)nPt,1.0/(double)nsd)-0.5);
+    if (pow((double)pbar,(double)nsd) == (double)nPt)
+      myVolData.resize(nPt);
+    else
+    {
+      pbar = 0;
+      std::cerr <<" *** FbarElmData::init: Invalid element, "<< nPt
+		<<" volumetric sampling points specified."<< std::endl;
+      return false;
+    }
+    scale = pbar > 1 ? 1.0/GaussQuadrature::getCoord(pbar)[pbar-1] : 1.0;
+    iP = 0;
+    return true;
+  }
+
+  int    pbar;  //!< Polynomial order of the internal volumetric data field
+  double scale; //!< Scaling factor for extrapolation from sampling points
+  size_t iP;    //!< Volumetric sampling point counter
+
+  std::vector<VolPtData> myVolData; //!< Volumetric sampling point data
+};
+
+
+/*!
+  \brief Class collecting element matrices associated with a Fbar FEM problem.
+*/
+
+class FbarMats : public FbarElmData, public ElmMats {};
+
+
+/*!
+  \brief Class representing integrated norm quantities for an Fbar element.
+*/
+
+class FbarNorm : public FbarElmData, public LocalIntegral
+{
+public:
+  //! \brief The constructor initializes the ElmNorm pointer.
+  FbarNorm(LocalIntegral& n) { myNorm = static_cast<ElmNorm*>(&n); }
+  //! \brief Alternative constructor allocating an internal ElmNorm.
+  FbarNorm(size_t n) { myNorm = new ElmNorm(n); }
+  //! \brief The destructor destroys the ElmNorm object.
+  virtual ~FbarNorm() { myNorm->destruct(); }
+
+  //! \brief Returns the LocalIntegral object to assemble into the global one.
+  virtual const LocalIntegral* ref() const { return myNorm; }
+
+  ElmNorm* myNorm; //!< Pointer to the actual element norms object
+};
 
 
 NonlinearElasticityFbar::NonlinearElasticityFbar (unsigned short int n,
 						  bool axS, int nvp)
   : NonlinearElasticityUL(n,axS), npt1(nvp)
 {
-  iP = 0;
-  pbar = 0;
-  scale = 1.0;
 }
 
 
@@ -39,48 +118,104 @@ void NonlinearElasticityFbar::print (std::ostream& os) const
 }
 
 
-bool NonlinearElasticityFbar::initElement (const std::vector<int>& MNPC,
-                                           const Vec3&, size_t nPt)
+LocalIntegral* NonlinearElasticityFbar::getLocalIntegral (size_t nen, size_t,
+							  bool neumann) const
 {
-  iP = 0;
-  pbar = ceil(pow((double)nPt,1.0/(double)nsd)-0.5);
-  if (pow((double)pbar,(double)nsd) == (double)nPt)
-    myVolData.resize(nPt);
-  else
+  ElmMats* result = new FbarMats;
+  switch (m_mode)
   {
-    pbar = 0;
-    std::cerr <<" *** NonlinearElasticityFbar::initElement: Invalid element, "
-	      << nPt <<" volumetric sampling points specified."<< std::endl;
-    return false;
-  }
-  scale = pbar > 1 ? 1.0/GaussQuadrature::getCoord(pbar)[pbar-1] : 1.0;
-#if INT_DEBUG > 0
-  std::cout <<"\n\n *** Entering NonlinearElasticityFbar::initElement";
-  std::cout <<", nPt = "<< nPt <<", pbar = "<< pbar
-	    <<", scale = "<< scale << std::endl;
-#endif
+    case SIM::STATIC:
+      result->rhsOnly = neumann;
+      result->withLHS = !neumann;
+      result->resize(neumann?0:1,1);
+      break;
 
-  return this->NonlinearElasticityUL::initElement(MNPC);
+    case SIM::DYNAMIC:
+      result->rhsOnly = neumann;
+      result->withLHS = !neumann;
+      result->resize(neumann?0:2,1);
+      break;
+
+    case SIM::VIBRATION:
+    case SIM::BUCKLING:
+      result->withLHS = true;
+      result->resize(2,0);
+      break;
+
+    case SIM::STIFF_ONLY:
+    case SIM::MASS_ONLY:
+      result->withLHS = true;
+      result->resize(1,0);
+      break;
+
+    case SIM::RHS_ONLY:
+      result->rhsOnly = true;
+      result->resize(neumann?0:1,1);
+      break;
+
+    case SIM::RECOVERY:
+      result->rhsOnly = true;
+      break;
+
+    default:
+      ;
+  }
+
+  for (size_t i = 0; i < result->A.size(); i++)
+    result->A[i].resize(nsd*nen,nsd*nen);
+
+  if (result->b.size())
+    result->b.front().resize(nsd*nen);
+
+  return result;
 }
 
 
-bool NonlinearElasticityFbar::reducedInt (const FiniteElement& fe,
+bool NonlinearElasticityFbar::initElement (const std::vector<int>& MNPC,
+                                           const Vec3&, size_t nPt,
+					   LocalIntegral& elmInt)
+{
+  FbarMats& fbar = static_cast<FbarMats&>(elmInt);
+
+#if INT_DEBUG > 0
+  std::cout <<"\n\n *** Entering NonlinearElasticityFbar::initElement";
+  std::cout <<", nPt = "<< nPt <<", pbar = "<< fbar.pbar
+	    <<", scale = "<< fbar.scale << std::endl;
+#endif
+  return fbar.init(nsd,nPt) && this->IntegrandBase::initElement(MNPC,elmInt);
+}
+
+
+bool NonlinearElasticityFbar::reducedInt (LocalIntegral& elmInt,
+					  const FiniteElement& fe,
 					  const Vec3& X) const
 {
+  FbarNorm* fbNorm = 0;
+  FbarElmData* fbar = dynamic_cast<FbarMats*>(&elmInt);
+  if (!fbar)
+  {
+    if ((fbNorm = dynamic_cast<FbarNorm*>(&elmInt)))
+      fbar = fbNorm;
+    else
+      return false;
+  }
+
 #if INT_DEBUG > 1
   std::cout <<"NonlinearElasticityFbar::u(red) = "<< fe.u;
   if (nsd > 1) std::cout <<" "<< fe.v;
   if (nsd > 2) std::cout <<" "<< fe.w;
-  std::cout <<" (iP="<< iP+1 <<")\n"
+  std::cout <<" (iP="<< fbar->iP+1 <<")\n"
 	    <<"NonlinearElasticityFbar::dNdX ="<< fe.dNdX;
 #endif
 
-  VolPtData& ptData = myVolData[iP++];
+  const Vector& eV = fbNorm ? fbNorm->myNorm->vec.front() : elmInt.vec.front();
+  VolPtData& ptData = fbar->myVolData[fbar->iP++];
 
   // Evaluate the deformation gradient, F, at current configuration
+  Matrix B;
   Tensor F(nDF);
   SymmTensor E(nsd,axiSymmetry);
-  if (!this->kinematics(fe.N,fe.dNdX,X.x,F,E))
+  if (!this->kinematics(eV,fe.N,fe.dNdX,X.x,B,F,E))
     return false;
 
   if (E.isZero(1.0e-16))
@@ -110,7 +245,7 @@ bool NonlinearElasticityFbar::reducedInt (const FiniteElement& fe,
     // Push-forward the basis function gradients to current configuration
     ptData.dNdx.multiply(fe.dNdX,Fi); // dNdx = dNdX * F^-1
     if (axiSymmetry && X.x > 0.0)
-      ptData.Nr = fe.N * (1.0/(X.x + eV->dot(fe.N,0,nsd)));
+      ptData.Nr = fe.N * (1.0/(X.x + eV.dot(fe.N,0,nsd)));
 
 #ifdef INT_DEBUG
     std::cout <<"NonlinearElasticityFbar::J = "<< ptData.J
@@ -120,7 +255,7 @@ bool NonlinearElasticityFbar::reducedInt (const FiniteElement& fe,
 #endif
   }
 #ifdef INT_DEBUG
-  if (iP == myVolData.size())
+  if (fbar->iP == fbar->myVolData.size())
     std::cout <<"NonlinearElasticityFbar: Volumetric sampling points completed."
 	      <<"\n"<< std::endl;
 #endif
@@ -326,7 +461,7 @@ static void getAmat3D (const Matrix& C, const SymmTensor& Sig, Matrix& A)
 }
 
 
-bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
+bool NonlinearElasticityFbar::evalInt (LocalIntegral& elmInt,
 				       const FiniteElement& fe,
 				       const TimeDomain& prm,
 				       const Vec3& X) const
@@ -338,10 +473,13 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
   std::cout <<"\nNonlinearElasticityFbar::dNdX ="<< fe.dNdX;
 #endif
 
+  FbarMats& fbar = static_cast<FbarMats&>(elmInt);
+
   // Evaluate the deformation gradient, F, at current configuration
+  Matrix B, dNdx;
   Tensor F(nDF);
   SymmTensor E(nsd,axiSymmetry);
-  if (!this->kinematics(fe.N,fe.dNdX,X.x,F,E))
+  if (!this->kinematics(fbar.vec.front(),fe.N,fe.dNdX,X.x,B,F,E))
     return false;
 
   double J, Jbar = 0.0;
@@ -380,23 +518,27 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
 
   // Axi-symmetric integration point volume; 2*pi*r*|J|*w
   double detJW = (axiSymmetry ? 2.0*M_PI*X.x : 1.0)*fe.detJxW*J;
-  double r = axiSymmetry ? X.x + eV->dot(fe.N,0,nsd) : 0.0;
+  double r = axiSymmetry ? X.x + fbar.vec.front().dot(fe.N,0,nsd) : 0.0;
 
-  if (myVolData.size() == 1)
+  Vector M;
+  Matrix dMdx;
+  if (fbar.myVolData.size() == 1)
   {
     // Only one volumetric sampling point (linear element)
-    Jbar = myVolData.front().J;
-    dMdx = myVolData.front().dNdx;
-    if (axiSymmetry) M = myVolData.front().Nr;
+    Jbar = fbar.myVolData.front().J;
+    dMdx = fbar.myVolData.front().dNdx;
+    if (axiSymmetry) M = fbar.myVolData.front().Nr;
   }
-  else if (!myVolData.empty())
+  else if (!fbar.myVolData.empty())
   {
     // Evaluate the Lagrange polynomials extrapolating the volumetric
     // sampling points (assuming a regular distribution over the element)
     Vector Nbar;
-    int pbar3 = nsd > 2 ? pbar : 0;
-    if (!Lagrange::computeBasis(Nbar,pbar,fe.xi*scale,pbar,fe.eta*scale,
-				pbar3,fe.zeta*scale)) return false;
+    int pbar3 = nsd > 2 ? fbar.pbar : 0;
+    if (!Lagrange::computeBasis(Nbar,
+				fbar.pbar,fe.xi*fbar.scale,
+				fbar.pbar,fe.eta*fbar.scale,
+				pbar3,fe.zeta*fbar.scale)) return false;
 #ifdef INT_DEBUG
     std::cout <<"NonlinearElasticityFbar::Nbar ="<< Nbar;
 #endif
@@ -408,10 +550,10 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
     if (axiSymmetry) M.resize(dNdx.rows(),true);
     for (size_t a = 0; a < Nbar.size(); a++)
     {
-      Jbar += myVolData[a].J*Nbar[a];
-      dMdx.add(myVolData[a].dNdx,myVolData[a].J*Nbar[a]);
+      Jbar += fbar.myVolData[a].J*Nbar[a];
+      dMdx.add(fbar.myVolData[a].dNdx,fbar.myVolData[a].J*Nbar[a]);
       if (axiSymmetry)
-	M.add(myVolData[a].Nr,myVolData[a].J*Nbar[a]);
+	M.add(fbar.myVolData[a].Nr,fbar.myVolData[a].J*Nbar[a]);
     }
     dMdx.multiply(1.0/Jbar);
     if (axiSymmetry) M /= Jbar;
@@ -434,6 +576,7 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
 #endif
 
   // Evaluate the constitutive relation (Jbar is dummy here)
+  Matrix Cmat;
   SymmTensor Sig(nsd,axiSymmetry);
   if (!material->evaluate(Cmat,Sig,Jbar,X,F,E,lHaveStrains,&prm))
     return false;
@@ -445,7 +588,7 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
   if (iS && lHaveStrains)
   {
     // Compute and accumulate contribution to internal force vector
-    Vector& ES = *iS;
+    Vector& ES = fbar.b[iS-1];
     size_t a, d;
     unsigned short int i, j;
     for (a = d = 1; a <= dNdx.rows(); a++)
@@ -465,6 +608,7 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
   if (eKm)
   {
     // Compute standard and modified discrete spatial gradient operators
+    Matrix G, Gbar;
     getGradOperator(axiSymmetry ? r : -1.0, fe.N, dNdx, G);
     getGradOperator(axiSymmetry ? 1.0 : -1.0, M, dMdx, Gbar);
 
@@ -496,33 +640,33 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral*& elmInt,
       }
 
 #ifdef INT_DEBUG
-  std::cout <<"NonlinearElasticityFbar::G ="<< G
-	    <<"NonlinearElasticityFbar::Gbar ="<< Gbar
-	    <<"NonlinearElasticityFbar::A ="<< A
-	    <<"NonlinearElasticityFbar::Q ="<< Q;
+    std::cout <<"NonlinearElasticityFbar::G ="<< G
+	      <<"NonlinearElasticityFbar::Gbar ="<< Gbar
+	      <<"NonlinearElasticityFbar::A ="<< A
+	      <<"NonlinearElasticityFbar::Q ="<< Q;
 #endif
 
     // Compute and accumulate contribution to tangent stiffness matrix.
 
     // First, standard (material and geometric) tangent stiffness terms
-    eKm->multiply(G,CB.multiply(A,G),true,false,true); // EK += G^T * A*G
+    Matrix CB; CB.multiply(A,G);
+    fbar.A[eKm-1].multiply(G,CB,true,false,true); // EK += G^T * A*G
 
     // Then, modify the tangent stiffness for the F-bar terms
-    Gbar -= G;
-    eKm->multiply(G,CB.multiply(Q,Gbar),true,false,true); // EK += G^T * Q*Gbar
+    Gbar -= G; CB.multiply(Q,Gbar);
+    fbar.A[eKm-1].multiply(G,CB,true,false,true); // EK += G^T * Q*Gbar
   }
 
   if (eM)
     // Integrate the mass matrix
-    this->formMassMatrix(*eM,fe.N,X,detJW);
+    this->formMassMatrix(fbar.A[eM-1],fe.N,X,detJW);
 
   if (eS)
     // Integrate the load vector due to gravitation and other body forces
-    this->formBodyForce(*eS,fe.N,X,detJW);
+    this->formBodyForce(fbar.b[eS-1],fe.N,X,detJW);
 
-  return this->getIntegralResult(elmInt);
+  return true;
 }
-
 
 
 NormBase* NonlinearElasticityFbar::getNormIntegrand (AnaSol*) const
@@ -531,43 +675,78 @@ NormBase* NonlinearElasticityFbar::getNormIntegrand (AnaSol*) const
 }
 
 
-bool ElasticityNormFbar::reducedInt (const FiniteElement& fe,
-				     const Vec3& X) const
+LocalIntegral* ElasticityNormFbar::getLocalIntegral (size_t nen, size_t iEl,
+						     bool neumann) const
 {
-  return myProblem.reducedInt(fe,X);
+  LocalIntegral* result = this->NormBase::getLocalIntegral(nen,iEl,neumann);
+  if (result) return new FbarNorm(static_cast<ElmNorm&>(*result));
+
+  // Element norms are not requested, so allocate an internal object instead
+  // that will delete itself when invoking its destruct method.
+  return new FbarNorm(this->getNoFields());
 }
 
 
-bool ElasticityNormFbar::evalInt (LocalIntegral*& elmInt,
+bool ElasticityNormFbar::initElement (const std::vector<int>& MNPC,
+				      const Vec3&, size_t nPt,
+				      LocalIntegral& elmInt)
+{
+  NonlinearElasticityFbar& p = static_cast<NonlinearElasticityFbar&>(myProblem);
+  FbarNorm& fbar = static_cast<FbarNorm&>(elmInt);
+
+  return fbar.init(p.nsd,nPt) && this->NormBase::initElement(MNPC,*fbar.myNorm);
+}
+
+
+bool ElasticityNormFbar::initElementBou (const std::vector<int>& MNPC,
+					 LocalIntegral& elmInt)
+{
+  return myProblem.initElementBou(MNPC,*static_cast<FbarNorm&>(elmInt).myNorm);
+}
+
+
+bool ElasticityNormFbar::reducedInt (LocalIntegral& elmInt,
+				     const FiniteElement& fe,
+				     const Vec3& X) const
+{
+  return myProblem.reducedInt(elmInt,fe,X);
+}
+
+
+bool ElasticityNormFbar::evalInt (LocalIntegral& elmInt,
 				  const FiniteElement& fe,
 				  const TimeDomain& prm,
 				  const Vec3& X) const
 {
   size_t nsd = fe.dNdX.cols();
   NonlinearElasticityFbar& p = static_cast<NonlinearElasticityFbar&>(myProblem);
+  FbarNorm& fbar = static_cast<FbarNorm&>(elmInt);
 
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E
+  Matrix B;
   Tensor F(p.nDF);
   SymmTensor E(p.nDF);
-  if (!p.kinematics(fe.N,fe.dNdX,X.x,F,E))
+  if (!p.kinematics(fbar.myNorm->vec.front(),fe.N,fe.dNdX,X.x,B,F,E))
     return false;
 
   double Jbar = 0.0;
-  if (p.myVolData.size() == 1)
-    Jbar = p.myVolData.front().J;
-  else if (!p.myVolData.empty())
+  if (fbar.myVolData.size() == 1)
+    Jbar = fbar.myVolData.front().J;
+  else if (!fbar.myVolData.empty())
   {
     // Evaluate the Lagrange polynomials extrapolating the volumetric
     // sampling points (assuming a regular distribution over the element)
     RealArray Nbar;
-    int pbar3 = nsd > 2 ? p.pbar : 0;
-    if (!Lagrange::computeBasis(Nbar,p.pbar,fe.xi*p.scale,p.pbar,fe.eta*p.scale,
-				pbar3,fe.zeta*p.scale)) return false;
+    int pbar3 = nsd > 2 ? fbar.pbar : 0;
+    if (!Lagrange::computeBasis(Nbar,
+				fbar.pbar,fe.xi*fbar.scale,
+				fbar.pbar,fe.eta*fbar.scale,
+				pbar3,fe.zeta*fbar.scale)) return false;
 
     // Compute modified deformation gradient determinant
     // by extrapolating the volume sampling points
     for (size_t a = 0; a < Nbar.size(); a++)
-      Jbar += p.myVolData[a].J*Nbar[a];
+      Jbar += fbar.myVolData[a].J*Nbar[a];
   }
   else
     Jbar = F.det();
@@ -578,15 +757,23 @@ bool ElasticityNormFbar::evalInt (LocalIntegral*& elmInt,
 
   // Compute the strain energy density, U(E) = Int_E (S:Eps) dEps
   // and the Cauchy stress tensor, sigma
-  double U = 0.0;
+  Matrix Cmat; double U = 0.0;
   SymmTensor sigma(nsd, p.isAxiSymmetric() || p.material->isPlaneStrain());
-  if (!p.material->evaluate(p.Cmat,sigma,U,X,Fbar,E,3,&prm,&F))
+  if (!p.material->evaluate(Cmat,sigma,U,X,Fbar,E,3,&prm,&F))
     return false;
 
   // Axi-symmetric integration point volume; 2*pi*r*|J|*w
   double detJW = p.isAxiSymmetric() ? 2.0*M_PI*X.x*fe.detJxW : fe.detJxW;
 
   // Integrate the norms
-  return ElasticityNormUL::evalInt(getElmNormBuffer(elmInt,6),
-				   sigma,U,F.det(),detJW);
+  return ElasticityNormUL::evalInt(*fbar.myNorm,sigma,U,F.det(),detJW);
+}
+
+
+bool ElasticityNormFbar::evalBou (LocalIntegral& elmInt,
+				  const FiniteElement& fe,
+				  const Vec3& X, const Vec3& normal) const
+{
+  return this->ElasticityNormUL::evalBou(*static_cast<FbarNorm&>(elmInt).myNorm,
+					 fe,X,normal);
 }

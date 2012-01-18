@@ -15,7 +15,6 @@
 #define _NONLINEAR_ELASTICITY_UL_MX_H
 
 #include "NonlinearElasticityUL.h"
-#include "Tensor.h"
 
 
 /*!
@@ -26,20 +25,6 @@
 
 class NonlinearElasticityULMX : public NonlinearElasticityUL
 {
-  //! \brief A struct with integration point data needed by \a finalizeElement.
-  struct ItgPtData
-  {
-    Tensor F;     //!< Deformation gradient at current step/iteration
-    Tensor Fp;    //!< Deformation gradient at previous (converged) step
-    Vector Nr;    //!< Basis function values (for axisymmetric problems)
-    Matrix dNdx;  //!< Basis function gradients at current configuration
-    Vector Phi;   //!< Internal modes for the pressure/volumetric-change fields
-    Vec4   X;     //!< Cartesian coordinates of current integration point
-    double detJW; //!< Jacobian determinant times integration point weight
-    //! \brief Default constructor.
-    ItgPtData() : F(3), Fp(3) { detJW = 0.0; }
-  };
-
 public:
   //! \brief The default constructor invokes the parent class constructor.
   //! \param[in] n Number of spatial dimensions
@@ -53,16 +38,20 @@ public:
   //! \brief Prints out problem definition to the given output stream.
   virtual void print(std::ostream& os) const;
 
-  //! \brief Defines the solution mode before the element assembly is started.
-  //! \param[in] mode The solution mode to use
-  virtual void setMode(SIM::SolutionMode mode);
+  //! \brief Returns a local integral container for the given element.
+  //! \param[in] nen Number of nodes on element
+  //! \param[in] neumann Whether or not we are assembling Neumann BC's
+  virtual LocalIntegral* getLocalIntegral(size_t nen, size_t,
+					  bool neumann) const;
 
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param[in] Xc Cartesian coordinates of the element center
   //! \param[in] nPt Number of integration points in this element
+  //! \param elmInt The local integral object for current element
   virtual bool initElement(const std::vector<int>& MNPC,
-			   const Vec3& Xc, size_t nPt);
+			   const Vec3& Xc, size_t nPt,
+			   LocalIntegral& elmInt);
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
@@ -74,17 +63,17 @@ public:
   //! depending on the basis function values in the internal member \a myData.
   //! The actual numerical integration of the tangent stiffness and internal
   //! forces is then performed by the \a finalizeElement method.
-  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalInt(LocalIntegral& elmInt, const FiniteElement& fe,
 		       const TimeDomain& prm, const Vec3& X) const;
 
   //! \brief Finalizes the element matrices after the numerical integration.
   //! \details This method is used to implement the multiple integration point
   //! loops within an element, required by the mixed formulation with internal
   //! modes. All data needed during the integration has been stored internally
-  //! in the \a myData member by the \a evalInt method.
+  //! in the \a elmInt object by the \a evalInt method.
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] prm Nonlinear solution algorithm parameters
-  virtual bool finalizeElement(LocalIntegral*& elmInt, const TimeDomain& prm);
+  virtual bool finalizeElement(LocalIntegral& elmInt, const TimeDomain& prm);
 
   //! \brief Returns a pointer to an Integrand for solution norm evaluation.
   //! \note The Integrand object is allocated dynamically and has to be deleted
@@ -96,13 +85,7 @@ public:
   virtual int getIntegrandType() const { return 4; }
 
 private:
-  int  p;  //!< Polynomial order of the internal pressure field
-  Vec3 X0; //!< Cartesian coordinates of the element center
-
-  Matrix* Hh; //!< Pointer to element Hh-matrix associated with pressure modes
-
-  mutable size_t                 iP;     //!< Local integration point counter
-  mutable std::vector<ItgPtData> myData; //!< Local integration point data
+  int p; //!< Polynomial order of the internal pressure field
 
   friend class ElasticityNormULMX;
 };
@@ -121,12 +104,27 @@ public:
   //! \brief Empty destructor.
   virtual ~ElasticityNormULMX() {}
 
+  //! \brief Returns a local integral contribution object for the given element.
+  //! \param[in] nen Number of nodes on element
+  //! \param[in] iEl The element number
+  //! \param[in] neumann Whether or not we are assembling Neumann BC's
+  virtual LocalIntegral* getLocalIntegral(size_t nen, size_t iEl,
+					  bool neumann) const;
+
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param[in] Xc Cartesian coordinates of the element center
   //! \param[in] nPt Number of integration points in this element
+  //! \param elmInt The local integral object for current element
   virtual bool initElement(const std::vector<int>& MNPC,
-			   const Vec3& Xc, size_t nPt);
+			   const Vec3& Xc, size_t nPt,
+			   LocalIntegral& elmInt);
+
+  //! \brief Initializes current element for boundary integration.
+  //! \param[in] MNPC Matrix of nodal point correspondance for current element
+  //! \param elmInt The local integral object for current element
+  virtual bool initElementBou(const std::vector<int>& MNPC,
+			      LocalIntegral& elmInt);
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
@@ -138,8 +136,16 @@ public:
   //! corresponding NonlinearElasticityULMX object, for which this class is
   //! declared as friend such that it can access the data members. The actual
   //! norm integration us then performed by the \a finalizeElement method.
-  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalInt(LocalIntegral& elmInt, const FiniteElement& fe,
 		       const TimeDomain& prm, const Vec3& X) const;
+
+  //! \brief Evaluates the integrand at a boundary point.
+  //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe Finite element data of current integration point
+  //! \param[in] X Cartesian coordinates of current integration point
+  //! \param[in] normal Boundary normal vector at current integration point
+  virtual bool evalBou(LocalIntegral& elmInt, const FiniteElement& fe,
+		       const Vec3& X, const Vec3& normal) const;
 
   //! \brief Finalizes the element norms after the numerical integration.
   //! \details This method is used to implement the multiple integration point
@@ -147,7 +153,7 @@ public:
   //! a subset of the tasks done by NonlinearElasticityULMX::finalizeElement.
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] prm Nonlinear solution algorithm parameters
-  virtual bool finalizeElement(LocalIntegral*& elmInt, const TimeDomain& prm);
+  virtual bool finalizeElement(LocalIntegral& elmInt, const TimeDomain& prm);
 
   //! \brief Returns which integrand to be used.
   virtual int getIntegrandType() const { return 4; }

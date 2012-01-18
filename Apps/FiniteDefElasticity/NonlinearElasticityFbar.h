@@ -15,6 +15,8 @@
 #define _NONLINEAR_ELASTICITY_FBAR_H
 
 #include "NonlinearElasticityUL.h"
+#include "ElmMats.h"
+#include "ElmNorm.h"
 
 
 /*!
@@ -24,16 +26,6 @@
 
 class NonlinearElasticityFbar : public NonlinearElasticityUL
 {
-  //! \brief A struct with volumetric sampling point data.
-  struct VolPtData
-  {
-    double J;    //!< Determinant of current deformation gradient
-    Vector Nr;   //!< Basis function values (for axisymmetric problems)
-    Matrix dNdx; //!< Basis function gradients at current configuration
-    //! \brief Default constructor.
-    VolPtData() { J = 1.0; }
-  };
-
 public:
   //! \brief The default constructor invokes the parent class constructor.
   //! \param[in] n Number of spatial dimensions
@@ -47,23 +39,33 @@ public:
   //! \brief Prints out problem definition to the given output stream.
   virtual void print(std::ostream& os) const;
 
+  //! \brief Returns a local integral contribution object for the given element.
+  //! \param[in] nen Number of nodes on element
+  //! \param[in] neumann Whether or not we are assembling Neumann BC's
+  virtual LocalIntegral* getLocalIntegral(size_t nen, size_t,
+                                          bool neumann) const;
+
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param[in] nPt Number of volumetric sampling points in this element
+  //! \param elmInt The local integral object for current element
   virtual bool initElement(const std::vector<int>& MNPC,
-			   const Vec3&, size_t nPt);
+			   const Vec3&, size_t nPt,
+			   LocalIntegral& elmInt);
 
   //! \brief Evaluates volumetric sampling point data at an interior point.
+  //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Finite element data of current point
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool reducedInt(const FiniteElement& fe, const Vec3& X) const;
+  virtual bool reducedInt(LocalIntegral& elmInt, const FiniteElement& fe,
+			  const Vec3& X) const;
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Finite element data of current integration point
   //! \param[in] prm Nonlinear solution algorithm parameters
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalInt(LocalIntegral& elmInt, const FiniteElement& fe,
 		       const TimeDomain& prm, const Vec3& X) const;
 
   //! \brief Returns a pointer to an Integrand for solution norm evaluation.
@@ -76,17 +78,7 @@ public:
   virtual int getIntegrandType() const { return 10+npt1; }
 
 private:
-  int    npt1;  //!< Number of volumetric sampling points in each direction
-  int    pbar;  //!< Polynomial order of the internal volumetric data field
-  double scale; //!< Scaling factor for extrapolation from sampling points
-
-  mutable std::vector<VolPtData> myVolData; //!< Volumetric sampling point data
-
-  mutable size_t iP;   //!< Volumetric sampling point counter
-  mutable Vector M;    //!< Modified basis function values
-  mutable Matrix dMdx; //!< Modified basis function gradients
-  mutable Matrix G;    //!< Discrete gradient operator
-  mutable Matrix Gbar; //!< Modified discrete gradient operator
+  int npt1; //!< Number of volumetric sampling points in each direction
 
   friend class ElasticityNormFbar;
 };
@@ -105,18 +97,49 @@ public:
   //! \brief Empty destructor.
   virtual ~ElasticityNormFbar() {}
 
+  //! \brief Returns a local integral contribution object for the given element.
+  //! \param[in] nen Number of nodes on element
+  //! \param[in] iEl Global element number
+  //! \param[in] neumann Whether or not we are assembling Neumann BC's
+  virtual LocalIntegral* getLocalIntegral(size_t nen, size_t iEl,
+                                          bool neumann) const;
+
+  //! \brief Initializes current element for numerical integration.
+  //! \param[in] MNPC Matrix of nodal point correspondance for current element
+  //! \param[in] nPt Number of volumetric sampling points in this element
+  //! \param elmInt The local integral object for current element
+  virtual bool initElement(const std::vector<int>& MNPC,
+			   const Vec3&, size_t nPt,
+			   LocalIntegral& elmInt);
+
+  //! \brief Initializes current element for boundary integration.
+  //! \param[in] MNPC Matrix of nodal point correspondance for current element
+  //! \param elmInt The local integral object for current element
+  virtual bool initElementBou(const std::vector<int>& MNPC,
+			      LocalIntegral& elmInt);
+
   //! \brief Evaluates volumetric sampling point data at an interior point.
+  //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Finite element data of current point
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool reducedInt(const FiniteElement& fe, const Vec3& X) const;
+  virtual bool reducedInt(LocalIntegral& elmInt, const FiniteElement& fe,
+			  const Vec3& X) const;
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Finite element data of current integration point
   //! \param[in] prm Nonlinear solution algorithm parameters
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalInt(LocalIntegral& elmInt, const FiniteElement& fe,
 		       const TimeDomain& prm, const Vec3& X) const;
+
+  //! \brief Evaluates the integrand at a boundary point.
+  //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe Finite element data of current integration point
+  //! \param[in] X Cartesian coordinates of current integration point
+  //! \param[in] normal Boundary normal vector at current integration point
+  virtual bool evalBou(LocalIntegral& elmInt, const FiniteElement& fe,
+		       const Vec3& X, const Vec3& normal) const;
 
   //! \brief Returns which integrand to be used.
   virtual int getIntegrandType() const { return myProblem.getIntegrandType(); }

@@ -51,7 +51,7 @@ public:
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Finite element data of current integration point
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalInt(LocalIntegral& elmInt, const FiniteElement& fe,
 		       const Vec3& X) const;
 
   //! \brief Evaluates the secondary solution at a result point.
@@ -66,9 +66,11 @@ public:
 
   //! \brief Evaluates the finite element (FE) solution at an integration point.
   //! \param[out] s The FE stress values at current point
+  //! \param[in] eV Element solution vector
   //! \param[in] dNdX Basis function gradients at current point
   //! \param[in] X Cartesian coordinates of current point
-  virtual bool evalSol(Vector& s, const Matrix& dNdX, const Vec3& X) const;
+  virtual bool evalSol(Vector& s, const Vector& eV,
+		       const Matrix& dNdX, const Vec3& X) const;
 
 protected:
   //! \brief Forms tangential tensorial quantities needed by the evalInt method.
@@ -76,19 +78,22 @@ protected:
   //! \param[out] S 2nd Piola-Kirchhoff stress tensor at current point
   //! \param[in] X Cartesian coordinates of current integration point
   //! \param[in] F Deformation gradient at current integration point
+  //! \param[in] E Green-Lagrange strain tensor at current integration point
   virtual bool formTangent(Matrix& Ctan, SymmTensor& S,
-			   const Vec3& X, const Tensor& F) const;
+			   const Vec3& X, const Tensor& F,
+			   const SymmTensor& E) const;
 
   //! \brief Forms the 2nd Piola-Kirchhoff stress tensor.
+  //! \param[in] eV Element solution vector
   //! \param[in] dNdX Basis function gradients at current integration point
   //! \param[in] X Cartesian coordinates of current integration point
   //! \param[out] S 2nd Piola-Kirchhoff stress tensor at current point
-  virtual bool formStressTensor(const Matrix& dNdX, const Vec3& X,
+  virtual bool formStressTensor(const Vector& eV,
+				const Matrix& dNdX, const Vec3& X,
 				SymmTensor& S) const;
 
 protected:
-  bool        fullCmat; //!< If \e true, assume a full (but symmetric) C-matrix
-  mutable SymmTensor E; //!< Green-Lagrange strain tensor
+  bool fullCmat; //!< If \e true, assume a full (but symmetric) C-matrix
 };
 
 #endif

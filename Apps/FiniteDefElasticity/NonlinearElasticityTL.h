@@ -69,7 +69,7 @@ public:
 
 protected:
   //! \brief Calculates some kinematic quantities at current point.
-  //! \param[in] eV Element solution vectors
+  //! \param[in] eV Element solution vector
   //! \param[in] N Basis function values at current point
   //! \param[in] dNdX Basis function gradients at current point
   //! \param[in] r Radial coordinate of current point
@@ -80,7 +80,7 @@ protected:
   //! \details The deformation gradient \b F and the nonlinear
   //! strain-displacement matrix \b B are established.
   //! The B-matrix is formed only when the variable \a formB is true.
-  virtual bool kinematics(const Vectors& eV,
+  virtual bool kinematics(const Vector& eV,
 			  const Vector& N, const Matrix& dNdX, double r,
 			  Matrix& Bmat, Tensor& F, SymmTensor& E) const;
 

@@ -16,6 +16,8 @@
 
 #include "Elasticity.h"
 
+class ElmNorm;
+
 
 /*!
   \brief Class representing the integrand of the nonlinear elasticity problem.
@@ -45,6 +47,12 @@ public:
   //! \param[in] mode The solution mode to use
   virtual void setMode(SIM::SolutionMode mode);
 
+  //! \brief Returns a local integral container for the given element.
+  //! \param[in] nen Number of DOFs on element
+  //! \param[in] neumann Whether or not we are assembling Neumann BC's
+  virtual LocalIntegral* getLocalIntegral(size_t nen, size_t,
+					  bool neumann) const;
+
   //! \brief Initializes the integrand for a new integration loop.
   //! \param[in] prm Nonlinear solution algorithm parameters
   virtual void initIntegration(const TimeDomain& prm);
@@ -57,7 +65,7 @@ public:
   //! \param[in] fe Finite element data of current integration point
   //! \param[in] prm Nonlinear solution algorithm parameters
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalInt(LocalIntegral& elmInt, const FiniteElement& fe,
 		       const TimeDomain& prm, const Vec3& X) const;
 
   //! \brief Evaluates the integrand at a boundary point.
@@ -70,7 +78,7 @@ public:
   //! possibly with-rotated traction fields (non-conservative loads).
   //! For uni-directional (conservative) loads, it is similar to the
   //! \a LinearElasticity::evalBou method.
-  virtual bool evalBou(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalBou(LocalIntegral& elmInt, const FiniteElement& fe,
                        const Vec3& X, const Vec3& normal) const;
 
   //! \brief Returns a pointer to an Integrand for solution norm evaluation.
@@ -80,26 +88,26 @@ public:
   virtual NormBase* getNormIntegrand(AnaSol* = 0) const;
 
   //! \brief Calculates some kinematic quantities at current point.
+  //! \param[in] eV Element solution vector
   //! \param[in] N Basis function values at current point
   //! \param[in] dNdX Basis function gradients at current point
   //! \param[in] r Radial coordinate of current point
   //! \param[out] F Deformation gradient at current point
+  //! \param[out] B The strain-displacement matrix at current point
   //! \param[out] E Green-Lagrange strain tensor at current point
-  virtual bool kinematics(const Vector& N, const Matrix& dNdX, double r,
-			  Tensor& F, SymmTensor& E) const;
+  virtual bool kinematics(const Vector& eV,
+                          const Vector& N, const Matrix& dNdX, double r,
+			  Matrix& B, Tensor& F, SymmTensor& E) const;
 
 protected:
   //! \brief Calculates the deformation gradient at current point.
+  //! \param[in] eV Element solution vector
   //! \param[in] N Basis function values at current point
   //! \param[in] dNdX Basis function gradients at current point
   //! \param[in] r Radial coordinate of current point
   //! \param[out] F Deformation gradient at current point
-  bool formDefGradient(const Vector& N, const Matrix& dNdX, double r,
-		       Tensor& F) const;
-
-protected:
-  mutable Matrix dNdx; //!< Basis function gradients in current configuration
-  mutable Matrix CB;   //!< Result of the matrix-matrix product C*B
+  bool formDefGradient(const Vector& eV, const Vector& N,
+		       const Matrix& dNdX, double r, Tensor& F) const;
 
 private:
   char loadOp; //!< Load option
@@ -135,7 +143,7 @@ public:
   //! \param[in] fe Finite element data of current integration point
   //! \param[in] prm Nonlinear solution algorithm parameters
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalInt(LocalIntegral& elmInt, const FiniteElement& fe,
 		       const TimeDomain& prm, const Vec3& X) const;
 
   //! \brief Evaluates the integrand at a boundary point.
@@ -143,7 +151,7 @@ public:
   //! \param[in] fe Finite element data of current integration point
   //! \param[in] X Cartesian coordinates of current integration point
   //! \param[in] normal Boundary normal vector at current integration point
-  virtual bool evalBou(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalBou(LocalIntegral& elmInt, const FiniteElement& fe,
 		       const Vec3& X, const Vec3& normal) const;
 
   //! \brief Returns the number of norm quantities.

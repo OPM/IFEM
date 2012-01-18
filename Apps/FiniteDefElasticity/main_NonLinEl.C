@@ -25,7 +25,9 @@
 #include <string.h>
 #include <ctype.h>
 
+#ifndef USE_OPENMP
 extern std::vector<int> mixedDbgEl; //!< List of elements for additional output
+#endif
 
 
 /*!
@@ -146,9 +148,11 @@ int main (int argc, char** argv)
       else
 	--i;
     }
+#ifndef USE_OPENMP
     else if (!strcmp(argv[i],"-dbgElm"))
       while (i < argc-1 && isdigit(argv[i+1][0]))
 	utl::parseIntegers(mixedDbgEl,argv[++i]);
+#endif
     else if (!strcmp(argv[i],"-ignore"))
       while (i < argc-1 && isdigit(argv[i+1][0]))
 	utl::parseIntegers(ignoredPatches,argv[++i]);

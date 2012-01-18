@@ -14,6 +14,7 @@
 #include "NonlinearElasticity.h"
 #include "MaterialBase.h"
 #include "FiniteElement.h"
+#include "ElmMats.h"
 #include "Utilities.h"
 #include "Profiler.h"
 
@@ -54,7 +55,7 @@ extern "C" {
 
 
 NonlinearElasticity::NonlinearElasticity (unsigned short int n)
-  : NonlinearElasticityTL(n), E(n)
+  : NonlinearElasticityTL(n)
 {
   fullCmat = false;
 }
@@ -76,22 +77,27 @@ void NonlinearElasticity::setMode (SIM::SolutionMode mode)
 }
 
 
-bool NonlinearElasticity::evalInt (LocalIntegral*& elmInt,
+bool NonlinearElasticity::evalInt (LocalIntegral& elmInt,
 				   const FiniteElement& fe,
 				   const Vec3& X) const
 {
   PROFILE3("NonlinearEl::evalInt");
 
+  ElmMats& elMat = static_cast<ElmMats&>(elmInt);
+
   // Evaluate the kinematic quantities, F and E, at this point
+  Matrix Bmat;
   Tensor F(nsd);
-  if (!this->kinematics(fe.N,fe.dNdX,X.x,F,E))
+  SymmTensor E(nsd);
+  if (!this->kinematics(elMat.vec.front(),fe.N,fe.dNdX,X.x,Bmat,F,E))
     return false;
 
   // Evaluate current tangent at this point, that is
   // the incremental constitutive matrix, Cmat, and
   // the 2nd Piola-Kirchhoff stress tensor, S
+  Matrix Cmat;
   SymmTensor S(nsd);
-  if (!this->formTangent(Cmat,S,X,F))
+  if (!this->formTangent(Cmat,S,X,F,E))
     return false;
 
   bool haveStrains = !E.isZero(1.0e-16);
@@ -102,33 +108,33 @@ bool NonlinearElasticity::evalInt (LocalIntegral*& elmInt,
   if (eKm)
   {
     // Integrate the material stiffness matrix
+    Matrix& EM = elMat.A[eKm-1];
 #ifndef NO_FORTRAN
     // Using Fortran routines optimized for symmetric constitutive tensors
     PROFILE4("stiff_TL_");
     if (nsd == 3)
       if (fullCmat)
 	stiff_tl3d_(fe.N.size(),fe.detJxW,fe.dNdX.ptr(),F.ptr(),
-		    Cmat.ptr(),eKm->ptr());
+		    Cmat.ptr(),EM.ptr());
       else
 	stiff_tl3d_isoel_(fe.N.size(),fe.detJxW,fe.dNdX.ptr(),F.ptr(),
-			  Cmat(1,1),Cmat(1,2),Cmat(4,4),eKm->ptr());
+			  Cmat(1,1),Cmat(1,2),Cmat(4,4),EM.ptr());
     else if (nsd == 2)
       if (fullCmat)
 	stiff_tl2d_(fe.N.size(),fe.detJxW,fe.dNdX.ptr(),F.ptr(),
-		    Cmat.ptr(),eKm->ptr());
+		    Cmat.ptr(),EM.ptr());
       else
 	stiff_tl2d_isoel_(fe.N.size(),fe.detJxW,fe.dNdX.ptr(),F.ptr(),
-			  Cmat(1,1),Cmat(1,2),Cmat(3,3),eKm->ptr());
+			  Cmat(1,1),Cmat(1,2),Cmat(3,3),EM.ptr());
     else if (nsd == 1)
       for (a = 1; a <= fe.N.size(); a++)
 	for (b = 1; b <= fe.N.size(); b++)
-	  (*eKm)(a,b) += fe.dNdX(a,1)*F(1,1)*Cmat(1,1)*F(1,1)*fe.dNdX(b,1);
+	  EM(a,b) += fe.dNdX(a,1)*F(1,1)*Cmat(1,1)*F(1,1)*fe.dNdX(b,1);
 #else
     // This is too costly, but is basically what is done in the fortran routines
     PROFILE4("dNdX^t*F^t*C*F*dNdX");
     unsigned short int l, m, n;
     SymmTensor4 D(Cmat,nsd); // fourth-order material tensor
-    Matrix& EM = *eKm;
     for (a = 1; a <= fe.N.size(); a++)
       for (b = 1; b <= fe.N.size(); b++)
 	for (m = 1; m <= nsd; m++)
@@ -148,16 +154,16 @@ bool NonlinearElasticity::evalInt (LocalIntegral*& elmInt,
 
   if (eKg && haveStrains)
     // Integrate the geometric stiffness matrix
-    this->formKG(*eKg,fe.N,fe.dNdX,X.x,S,fe.detJxW);
+    this->formKG(elMat.A[eKg-1],fe.N,fe.dNdX,X.x,S,fe.detJxW);
 
   if (eM)
     // Integrate the mass matrix
-    this->formMassMatrix(*eM,fe.N,X,fe.detJxW);
+    this->formMassMatrix(elMat.A[eM-1],fe.N,X,fe.detJxW);
 
   if (iS && haveStrains)
   {
     // Integrate the internal forces
-    Vector& ES = *iS;
+    Vector& ES = elMat.b[iS-1];
     for (a = 1; a <= fe.N.size(); a++)
       for (k = 1; k <= nsd; k++)
       {
@@ -171,9 +177,9 @@ bool NonlinearElasticity::evalInt (LocalIntegral*& elmInt,
 
   if (eS)
     // Integrate the load vector due to gravitation and other body forces
-    this->formBodyForce(*eS,fe.N,X,fe.detJxW);
+    this->formBodyForce(elMat.b[eS-1],fe.N,X,fe.detJxW);
 
-  return this->getIntegralResult(elmInt);
+  return true;
 }
 
 
@@ -183,18 +189,20 @@ bool NonlinearElasticity::evalSol (Vector& s, const Vector&,
 {
   PROFILE3("NonlinearEl::evalSol");
 
+  // Extract element displacements
+  Vector eV;
   int ierr = 0;
-  if (eV && !primsol.front().empty())
-    if ((ierr = utl::gather(MNPC,nsd,primsol.front(),*eV)))
+  if (!primsol.front().empty())
+    if ((ierr = utl::gather(MNPC,nsd,primsol.front(),eV)))
     {
-      std::cerr <<" *** NonlinearElasticity::evalSol: Detected "
-		<< ierr <<" node numbers out of range."<< std::endl;
+      std::cerr <<" *** NonlinearElasticity::evalSol: Detected "<< ierr
+		<<" node numbers out of range."<< std::endl;
       return false;
     }
 
   // Evaluate the stress state at this point
   SymmTensor Sigma(nsd);
-  if (!this->formStressTensor(dNdX,X,Sigma))
+  if (!this->formStressTensor(eV,dNdX,X,Sigma))
     return false;
 
   // Congruence transformation to local coordinate system at current point
@@ -206,13 +214,13 @@ bool NonlinearElasticity::evalSol (Vector& s, const Vector&,
 }
 
 
-bool NonlinearElasticity::evalSol (Vector& s,
+bool NonlinearElasticity::evalSol (Vector& s, const Vector& eV,
 				   const Matrix& dNdX, const Vec3& X) const
 {
   PROFILE3("NonlinearEl::evalSol");
 
   SymmTensor Sigma(nsd);
-  if (!this->formStressTensor(dNdX,X,Sigma))
+  if (!this->formStressTensor(eV,dNdX,X,Sigma))
     return false;
 
   s = Sigma;
@@ -220,10 +228,11 @@ bool NonlinearElasticity::evalSol (Vector& s,
 }
 
 
-bool NonlinearElasticity::formStressTensor (const Matrix& dNdX, const Vec3& X,
+bool NonlinearElasticity::formStressTensor (const Vector& eV,
+					    const Matrix& dNdX, const Vec3& X,
 					    SymmTensor& S) const
 {
-  if (!eV || eV->empty())
+  if (eV.empty())
   {
     // Initial state (zero stresses)
     S.zero();
@@ -231,18 +240,22 @@ bool NonlinearElasticity::formStressTensor (const Matrix& dNdX, const Vec3& X,
   }
 
   // Evaluate the kinematic quantities, F and E, at this point
+  Matrix B;
   Tensor F(nsd);
-  if (!this->kinematics(Vector(),dNdX,X.x,F,E))
+  SymmTensor E(nsd);
+  if (!this->kinematics(eV,Vector(),dNdX,X.x,B,F,E))
     return false;
 
   // Evaluate the 2nd Piola-Kirchhoff stress tensor, S, at this point
+  Matrix Cmat;
   double U;
   return material->evaluate(Cmat,S,U,X,F,E,2);
 }
 
 
 bool NonlinearElasticity::formTangent (Matrix& Ctan, SymmTensor& S,
-				       const Vec3& X, const Tensor& F) const
+				       const Vec3& X, const Tensor& F,
+				       const SymmTensor& E) const
 {
   double U;
   return material->evaluate(Ctan,S,U,X,F,E, E.isZero(1.0e-16) ? 0 : 2);

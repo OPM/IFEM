@@ -23,6 +23,10 @@
 #define epsR 1.0e-16
 #endif
 
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 
 NonlinearElasticityTL::NonlinearElasticityTL (unsigned short int n, bool axS)
   : Elasticity(n,axS)
@@ -135,7 +139,7 @@ bool NonlinearElasticityTL::evalInt (LocalIntegral& elmInt,
   Matrix Bmat;
   Tensor F(nDF);
   SymmTensor E(nsd,axiSymmetry), S(nsd,axiSymmetry);
-  if (!this->kinematics(elMat.vec,fe.N,fe.dNdX,X.x,Bmat,F,E))
+  if (!this->kinematics(elMat.vec.front(),fe.N,fe.dNdX,X.x,Bmat,F,E))
     return false;
 
   // Evaluate the constitutive relation
@@ -206,7 +210,10 @@ bool NonlinearElasticityTL::evalBou (LocalIntegral& elmInt,
   Vec3 T = (*tracFld)(X,normal);
 
   // Store the traction value for vizualization
-  if (!T.isZero()) tracVal[X] = T;
+#ifdef USE_OPENMP
+  if (omp_get_max_threads() == 1)
+#endif
+    if (!T.isZero()) tracVal[X] = T;
 
   // Check for with-rotated pressure load
   unsigned short int i, j;
@@ -216,7 +223,8 @@ bool NonlinearElasticityTL::evalBou (LocalIntegral& elmInt,
     Matrix B;
     Tensor F(nDF);
     SymmTensor dummy(0);
-    if (!this->kinematics(elMat.vec,fe.N,fe.dNdX,X.x,B,F,dummy)) return false;
+    if (!this->kinematics(elMat.vec.front(),fe.N,fe.dNdX,X.x,B,F,dummy))
+      return false;
 
     // Compute its inverse and determinant, J
     double J = F.inverse();
@@ -244,12 +252,12 @@ bool NonlinearElasticityTL::evalBou (LocalIntegral& elmInt,
 }
 
 
-bool NonlinearElasticityTL::kinematics (const Vectors& eV,
+bool NonlinearElasticityTL::kinematics (const Vector& eV,
 					const Vector& N, const Matrix& dNdX,
 					double r, Matrix& Bmat, Tensor& F,
 					SymmTensor& E) const
 {
-  if (eV.empty() || eV.front().empty())
+  if (eV.empty())
   {
     // Initial state, unit deformation gradient and linear B-matrix
     F = 1.0;
@@ -262,7 +270,7 @@ bool NonlinearElasticityTL::kinematics (const Vectors& eV,
 
   const size_t nenod = dNdX.rows();
   const size_t nstrc = axiSymmetry ? 4 : nsd*(nsd+1)/2;
-  if (eV.front().size() != nenod*nsd || dNdX.cols() < nsd)
+  if (eV.size() != nenod*nsd || dNdX.cols() < nsd)
   {
     std::cerr <<" *** NonlinearElasticityTL::kinematics: Invalid dimension,"
 	      <<" dNdX("<< nenod <<","<< dNdX.cols() <<")"<< std::endl;
@@ -273,10 +281,10 @@ bool NonlinearElasticityTL::kinematics (const Vectors& eV,
   // and the Green-Lagrange strains, E_ij = 0.5(F_ij+F_ji+F_ki*F_kj).
 
   // Notice that the matrix multiplication method used here treats the
-  // element displacement vector, *eV, as a matrix whose number of columns
+  // element displacement vector, eV, as a matrix whose number of columns
   // equals the number of rows in the matrix dNdX.
   Matrix dUdX;
-  if (!dUdX.multiplyMat(eV.front(),dNdX)) // dUdX = Grad{u} = eV*dNd
+  if (!dUdX.multiplyMat(eV,dNdX)) // dUdX = Grad{u} = eV*dNd
     return false;
 
   unsigned short int i, j, k;
@@ -304,7 +312,7 @@ bool NonlinearElasticityTL::kinematics (const Vectors& eV,
   // Add the unit tensor to F to form the deformation gradient
   F += 1.0;
   // Add the dU/r term to the F(3,3)-term for axisymmetric problems
-  if (axiSymmetry && r > epsR) F(3,3) += eV.front().dot(N,0,nsd)/r;
+  if (axiSymmetry && r > epsR) F(3,3) += eV.dot(N,0,nsd)/r;
 
 #ifdef INT_DEBUG
   std::cout <<"NonlinearElasticityTL::F =\n"<< F;
