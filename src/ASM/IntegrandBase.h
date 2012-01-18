@@ -33,7 +33,7 @@ class IntegrandBase : public Integrand
 {
 protected:
   //! \brief The default constructor is protected to allow sub-classes only.
-  IntegrandBase() : npv(0) {}
+  IntegrandBase() : m_mode(SIM::STATIC), npv(0){}
 
 public:
   //! \brief The destructor frees the dynamically allocated data objects.
@@ -47,7 +47,7 @@ public:
   // ===============================
 
   //! \brief Defines the solution mode before the element assembly is started.
-  virtual void setMode(SIM::SolutionMode) {}
+  virtual void setMode(SIM::SolutionMode mode) { m_mode = mode; }
   //! \brief Initializes the integrand for a new integration loop.
   //! \details This method is invoked once before starting the numerical
   //! integration over the entire spatial domain.
@@ -175,6 +175,7 @@ protected:
   Vectors  primsol; //!< Primary solution vectors for current patch
   ElmMats* myMats;  //!< Local element matrices
   Vectors  mySols;  //!< Local element vectors of the primary solution
+  SIM::SolutionMode m_mode; //!< Current solution mode
 
   unsigned short int npv; //!< Number of primary solution variables per node
 };
