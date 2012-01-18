@@ -14,8 +14,13 @@
 #include "LinearElasticity.h"
 #include "FiniteElement.h"
 #include "MaterialBase.h"
+#include "ElmMats.h"
 #include "Tensor.h"
 #include "Vec3Oper.h"
+
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 
 
 LinearElasticity::LinearElasticity (unsigned short int n, bool axS)
@@ -26,18 +31,23 @@ LinearElasticity::LinearElasticity (unsigned short int n, bool axS)
 }
 
 
-bool LinearElasticity::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
+bool LinearElasticity::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
 				const Vec3& X) const
 {
+  ElmMats& elMat = static_cast<ElmMats&>(elmInt);
+
   bool lHaveStrains = false;
   SymmTensor eps(nsd,axiSymmetry), sigma(nsd,axiSymmetry);
 
+  Matrix Bmat, Cmat;
   if (eKm || eKg || iS)
   {
     // Compute the strain-displacement matrix B from N, dNdX and r = X.x,
     // and evaluate the symmetric strain tensor if displacements are available
-    if (!this->kinematics(fe.N,fe.dNdX,X.x,eps,eps)) return false;
-    if (!eps.isZero(1.0e-16)) lHaveStrains = true;
+    if (!this->kinematics(elMat.vec.front(),fe.N,fe.dNdX,X.x,Bmat,eps,eps))
+      return false;
+    else if (!eps.isZero(1.0e-16))
+      lHaveStrains = true;
 
     // Evaluate the constitutive matrix and the stress tensor at this point
     double U;
@@ -51,38 +61,39 @@ bool LinearElasticity::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
   if (eKm)
   {
     // Integrate the material stiffness matrix
+    Matrix CB;
     CB.multiply(Cmat,Bmat).multiply(detJW); // CB = C*B*|J|*w
-    eKm->multiply(Bmat,CB,true,false,true); // EK += B^T * CB
+    elMat.A[eKm-1].multiply(Bmat,CB,true,false,true); // EK += B^T * CB
   }
 
   if (eKg && lHaveStrains)
   {
     // Integrate the geometric stiffness matrix
-    double r = axiSymmetry ? X.x + eV->dot(fe.N,0,nsd) : 0.0;
-    this->formKG(*eKg,fe.N,fe.dNdX,r,sigma,detJW);
+    double r = axiSymmetry ? X.x + elMat.vec.front().dot(fe.N,0,nsd) : 0.0;
+    this->formKG(elMat.A[eKg-1],fe.N,fe.dNdX,r,sigma,detJW);
   }
 
   if (eM)
     // Integrate the mass matrix
-    this->formMassMatrix(*eM,fe.N,X,detJW);
+    this->formMassMatrix(elMat.A[eM-1],fe.N,X,detJW);
 
   if (iS && lHaveStrains)
   {
     // Integrate the internal forces
     sigma *= -detJW;
-    if (!Bmat.multiply(sigma,*iS,true,true)) // ES -= B^T*sigma
+    if (!Bmat.multiply(sigma,elMat.b[iS-1],true,true)) // ES -= B^T*sigma
       return false;
   }
 
   if (eS)
     // Integrate the load vector due to gravitation and other body forces
-    this->formBodyForce(*eS,fe.N,X,detJW);
+    this->formBodyForce(elMat.b[eS-1],fe.N,X,detJW);
 
-  return this->getIntegralResult(elmInt);
+  return true;
 }
 
 
-bool LinearElasticity::evalBou (LocalIntegral*& elmInt, const FiniteElement& fe,
+bool LinearElasticity::evalBou (LocalIntegral& elmInt, const FiniteElement& fe,
 				const Vec3& X, const Vec3& normal) const
 {
   if (!tracFld)
@@ -103,13 +114,16 @@ bool LinearElasticity::evalBou (LocalIntegral*& elmInt, const FiniteElement& fe,
   Vec3 T = (*tracFld)(X,normal);
 
   // Store the traction value for vizualization
-  if (!T.isZero()) tracVal[X] = T;
+#ifdef USE_OPENMP
+  if (omp_get_max_threads() == 1)
+#endif
+    if (!T.isZero()) tracVal[X] = T;
 
   // Integrate the force vector
-  Vector& ES = *eS;
+  Vector& ES = static_cast<ElmMats&>(elmInt).b[eS-1];
   for (size_t a = 1; a <= fe.N.size(); a++)
     for (unsigned short int i = 1; i <= nsd; i++)
       ES(nsd*(a-1)+i) += T[i-1]*fe.N(a)*detJW;
 
-  return this->getIntegralResult(elmInt);
+  return true;
 }

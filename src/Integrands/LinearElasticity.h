@@ -38,7 +38,7 @@ public:
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Finite element data of current integration point
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalInt(LocalIntegral& elmInt, const FiniteElement& fe,
 		       const Vec3& X) const;
 
   //! \brief Evaluates the integrand at a boundary point.
@@ -46,13 +46,8 @@ public:
   //! \param[in] fe Finite element data of current integration point
   //! \param[in] X Cartesian coordinates of current integration point
   //! \param[in] normal Boundary normal vector at current integration point
-  virtual bool evalBou(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalBou(LocalIntegral& elmInt, const FiniteElement& fe,
 		       const Vec3& X, const Vec3& normal) const;
-
-private:
-  // Work array declared as member to avoid frequent re-allocation
-  // within the numerical integration loop (for reduced overhead)
-  mutable Matrix CB; //!< Result of the matrix-matrix product C*B
 };
 
 #endif

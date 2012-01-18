@@ -30,13 +30,11 @@ KirchhoffLovePlate::KirchhoffLovePlate (unsigned short int n) : nsd(n)
   gravity = 0.0;
   thickness = 0.1;
 
-  myMats = new ElmMats();
-
   material = 0;
   locSys = 0;
   presFld = 0;
   eM = eK = 0;
-  eS = eV = 0;
+  eS = 0;
 
   // Only the current solution is needed
   primsol.resize(1);
@@ -66,94 +64,101 @@ void KirchhoffLovePlate::print (std::ostream& os) const
 
 void KirchhoffLovePlate::setMode (SIM::SolutionMode mode)
 {
-  if (!myMats) return;
-
-  myMats->rhsOnly = false;
+  m_mode = mode;
   eM = eK = 0;
-  eS = eV = 0;
+  eS = 0;
 
   switch (mode)
     {
     case SIM::STATIC:
-      myMats->resize(1,1);
-      eK = &myMats->A[0];
-      eS = &myMats->b[0];
+      eK = 1;
+      eS = 1;
       presVal.clear();
       break;
 
     case SIM::DYNAMIC:
-      myMats->resize(2,1);
-      eK = &myMats->A[0];
-      eM = &myMats->A[1];
-      eS = &myMats->b[0];
+      eK = 1;
+      eM = 2;
+      eS = 1;
       presVal.clear();
       break;
 
     case SIM::VIBRATION:
-      myMats->resize(2,0);
-      eK = &myMats->A[0];
-      eM = &myMats->A[1];
+      eK = 1;
+      eM = 2;
       break;
 
     case SIM::STIFF_ONLY:
-      myMats->resize(1,0);
-      eK = &myMats->A[0];
+      eK = 1;
       break;
 
     case SIM::MASS_ONLY:
-      myMats->resize(1,0);
-      eM = &myMats->A[0];
+      eM = 1;
       break;
 
     case SIM::RHS_ONLY:
-      myMats->rhsOnly = true;
-      if (myMats->b.empty())
-	myMats->b.resize(1);
-      eS = &myMats->b[0];
+      eS = 1;
       presVal.clear();
       break;
 
     case SIM::RECOVERY:
-      myMats->rhsOnly = true;
-//      mySols.resize(1);
-//      eV = &mySols[0];
       break;
 
     default:
-      myMats->resize(0,0);
-//      mySols.clear();
       presVal.clear();
     }
 }
 
 
-bool KirchhoffLovePlate::initElement (const std::vector<int>& MNPC,
-                                      LocalIntegral& elmInt)
+LocalIntegral* KirchhoffLovePlate::getLocalIntegral (size_t nen, size_t,
+						     bool neumann) const
 {
-  if (myMats)
-    myMats->withLHS = true;
+  ElmMats* result = new ElmMats;
+  switch (m_mode)
+    {
+    case SIM::STATIC:
+      result->rhsOnly = neumann;
+      result->withLHS = !neumann;
+      result->resize(neumann?0:1,1);
+      break;
 
-  const size_t nen = MNPC.size();
+    case SIM::DYNAMIC:
+      result->rhsOnly = neumann;
+      result->withLHS = !neumann;
+      result->resize(neumann?0:2,1);
+      break;
 
-  if (eK) eK->resize(nen,nen,true);
-  if (eM) eM->resize(nen,nen,true);
-  if (eS) eS->resize(nen,true);
+    case SIM::VIBRATION:
+      result->withLHS = true;
+      result->resize(2,0);
+      break;
 
-  return false;
-//  return this->IntegrandBase::initElement(MNPC);
-}
+    case SIM::STIFF_ONLY:
+    case SIM::MASS_ONLY:
+      result->withLHS = true;
+      result->resize(1,0);
+      break;
 
+    case SIM::RHS_ONLY:
+      result->rhsOnly = true;
+      result->resize(0,1);
+      break;
 
-bool KirchhoffLovePlate::initElementBou (const std::vector<int>& MNPC,
-                                         LocalIntegral& elmInt)
-{
-  if (myMats)
-    myMats->withLHS = false;
+    case SIM::RECOVERY:
+      result->rhsOnly = true;
+      break;
 
-  if (eS) eS->resize(MNPC.size(),true);
+    default:
+      ;
+    }
 
-//  return this->IntegrandBase::initElementBou(MNPC);
-  return false;
+  for (size_t i = 0; i < result->A.size(); i++)
+    result->A[i].resize(nen,nen);
+
+  if (result->b.size())
+    result->b.front().resize(nen);
+
+  return result;
 }
 
 
@@ -208,7 +213,8 @@ bool KirchhoffLovePlate::writeGlvT (VTF* vtf, int iStep, int& nBlock) const
   [\a N ] is the element basis functions arranged in a [NENOD] row-vector.
 */
 
-bool KirchhoffLovePlate::formBmatrix (const Matrix3D& d2NdX2) const
+bool KirchhoffLovePlate::formBmatrix (Matrix& Bmat,
+				      const Matrix3D& d2NdX2) const
 {
   const size_t nenod = d2NdX2.dim(1);
   const size_t nstrc = nsd*(nsd+1)/2;
@@ -272,37 +278,41 @@ void KirchhoffLovePlate::formBodyForce (Vector& ES, const Vector& N,
 }
 
 
-bool KirchhoffLovePlate::evalInt (LocalIntegral*& elmInt,
+bool KirchhoffLovePlate::evalInt (LocalIntegral& elmInt,
 				  const FiniteElement& fe,
 				  const Vec3& X) const
 {
+  ElmMats& elMat = static_cast<ElmMats&>(elmInt);
+
   if (eK)
   {
     // Compute the strain-displacement matrix B from d2NdX2
-    if (!this->formBmatrix(fe.d2NdX2)) return false;
+    Matrix Bmat;
+    if (!this->formBmatrix(Bmat,fe.d2NdX2)) return false;
 
     // Evaluate the constitutive matrix at this point
+    Matrix Cmat;
     if (!this->formCmatrix(Cmat,X)) return false;
 
     // Integrate the stiffness matrix
+    Matrix CB;
     CB.multiply(Cmat,Bmat).multiply(fe.detJxW); // CB = C*B*|J|*w
-    eK->multiply(Bmat,CB,true,false,true);      // EK += B^T * CB
+    elMat.A[eK-1].multiply(Bmat,CB,true,false,true); // EK += B^T * CB
   }
 
   if (eM)
     // Integrate the mass matrix
-    this->formMassMatrix(*eM,fe.N,X,fe.detJxW);
+    this->formMassMatrix(elMat.A[eM-1],fe.N,X,fe.detJxW);
 
   if (eS)
     // Integrate the load vector due to gravitation and other body forces
-    this->formBodyForce(*eS,fe.N,X,fe.detJxW);
+    this->formBodyForce(elMat.b[eS-1],fe.N,X,fe.detJxW);
 
-  elmInt = myMats;
   return true;
 }
 
 
-bool KirchhoffLovePlate::evalBou (LocalIntegral*& elmInt,
+bool KirchhoffLovePlate::evalBou (LocalIntegral& elmInt,
 				  const FiniteElement& fe,
 				  const Vec3& X, const Vec3& normal) const
 {
@@ -311,36 +321,57 @@ bool KirchhoffLovePlate::evalBou (LocalIntegral*& elmInt,
 }
 
 
-double KirchhoffLovePlate::evalSol (const Vector& N) const
-{
-  return eV ? eV->dot(N) : 0.0;
-}
-
-
 bool KirchhoffLovePlate::evalSol (Vector& s, const Vector&, const Matrix&,
 				  const Matrix3D& d2NdX2, const Vec3& X,
 				  const std::vector<int>& MNPC) const
 {
+  // Extract element displacements
   int ierr = 0;
-  if (eV && !primsol.front().empty())
-    if ((ierr = utl::gather(MNPC,1,primsol.front(),*eV)))
+  Vector eV;
+  if (!primsol.front().empty())
+    if ((ierr = utl::gather(MNPC,1,primsol.front(),eV)))
     {
       std::cerr <<" *** KirchhoffLovePlate::evalSol: Detected "
 		<< ierr <<" node numbers out of range."<< std::endl;
       return false;
     }
 
+  // Evaluate the stress resultant tensor
+  return this->evalSol(s,eV,d2NdX2,X,true);
+}
+
+
+bool KirchhoffLovePlate::evalSol (Vector& s, const Vector& eV,
+				  const Matrix3D& d2NdX2, const Vec3& X,
+				  bool toLocal) const
+{
+  if (eV.empty())
+  {
+    std::cerr <<" *** KirchhoffLovePlate::evalSol: No displacement vector."
+	      << std::endl;
+    return false;
+  }
+  else if (eV.size() != d2NdX2.dim(1))
+  {
+    std::cerr <<" *** KirchhoffLovePlate::evalSol: Invalid displacement vector."
+	      <<"\n     size(eV) = "<< eV.size() <<"   size(d2NdX2) = "
+	      << d2NdX2.dim(1) <<","<< d2NdX2.dim(2)*d2NdX2.dim(3) << std::endl;
+    return false;
+  }
+
   // Compute the strain-displacement matrix B from d2NdX2
-  if (!this->formBmatrix(d2NdX2))
+  Matrix Bmat;
+  if (!this->formBmatrix(Bmat,d2NdX2))
     return false;
 
   // Evaluate the constitutive matrix at this point
+  Matrix Cmat;
   if (!this->formCmatrix(Cmat,X))
     return false;
 
   // Evaluate the curvature tensor
   SymmTensor kappa(nsd), m(nsd);
-  if (!Bmat.multiply(*eV,kappa)) // kappa = B*eV
+  if (!Bmat.multiply(eV,kappa)) // kappa = B*eV
     return false;
 
   // Evaluate the stress resultant tensor
@@ -348,46 +379,7 @@ bool KirchhoffLovePlate::evalSol (Vector& s, const Vector&, const Matrix&,
     return false;
 
   // Congruence transformation to local coordinate system at current point
-  if (locSys) m.transform(locSys->getTmat(X));
-
-  s = m;
-  return true;
-}
-
-
-bool KirchhoffLovePlate::evalSol (Vector& s,
-				  const Matrix3D& d2NdX2, const Vec3& X) const
-{
-  if (!eV || eV->empty())
-  {
-    std::cerr <<" *** KirchhoffLovePlate::evalSol: No displacement vector."
-	      << std::endl;
-    return false;
-  }
-  else if (eV->size() != d2NdX2.dim(1))
-  {
-    std::cerr <<" *** KirchhoffLovePlate::evalSol: Invalid displacement vector."
-	      <<"\n     size(eV) = "<< eV->size() <<"   size(d2NdX2) = "
-	      << d2NdX2.dim(1) <<","<< d2NdX2.dim(2)*d2NdX2.dim(3) << std::endl;
-    return false;
-  }
-
-  // Compute the strain-displacement matrix B from d2NdX2
-  if (!this->formBmatrix(d2NdX2))
-    return false;
-
-  // Evaluate the constitutive matrix at this point
-  if (!this->formCmatrix(Cmat,X))
-    return false;
-
-  // Evaluate the curvature tensor
-  SymmTensor kappa(nsd), m(nsd);
-  if (!Bmat.multiply(*eV,kappa)) // kappa = B*eV
-    return false;
-
-  // Evaluate the stress resultant tensor
-  if (!Cmat.multiply(-1.0*kappa,m)) // m = -C*kappa
-    return false;
+  if (toLocal && locSys) m.transform(locSys->getTmat(X));
 
   s = m;
   return true;
@@ -468,30 +460,12 @@ size_t KirchhoffLovePlateNorm::getNoFields () const
 }
 
 
-bool KirchhoffLovePlateNorm::initElement (const std::vector<int>& MNPC,
-                                          LocalIntegral& elmInt)
-{
-  // Extract projected solution vectors for this element
-  int ierr = 0;
-  elmInt.vec.resize(prjsol.size());
-  for (size_t i = 0; i < prjsol.size() && ierr == 0; i++)
-    if (!prjsol[i].empty())
-      ierr = utl::gather(MNPC,nrcmp,prjsol[i],elmInt.vec[i]);
-
-//  if (ierr == 0) return myProblem.initElement(MNPC);
-
-  std::cerr <<" *** KirchhoffLovePlateNorm::initElement: Detected "
-            << ierr <<" node numbers out of range."<< std::endl;
-  return false;
-}
-
-
-bool KirchhoffLovePlateNorm::evalInt (LocalIntegral*& elmInt,
+bool KirchhoffLovePlateNorm::evalInt (LocalIntegral& elmInt,
 				      const FiniteElement& fe,
 				      const Vec3& X) const
 {
   KirchhoffLovePlate& problem = static_cast<KirchhoffLovePlate&>(myProblem);
-  ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt,this->getNoFields());
+  ElmNorm& pnorm = static_cast<ElmNorm&>(elmInt);
 
   // Evaluate the inverse constitutive matrix at this point
   Matrix Cinv;
@@ -499,7 +473,7 @@ bool KirchhoffLovePlateNorm::evalInt (LocalIntegral*& elmInt,
 
   // Evaluate the finite element stress field
   Vector mh, m, error;
-  if (!problem.evalSol(mh,fe.d2NdX2,X))
+  if (!problem.evalSol(mh,pnorm.vec.front(),fe.d2NdX2,X))
     return false;
 
   // Integrate the energy norm a(w^h,w^h)
@@ -509,7 +483,7 @@ bool KirchhoffLovePlateNorm::evalInt (LocalIntegral*& elmInt,
     // Evaluate the body load
     double p = problem.getPressure(X);
     // Evaluate the displacement field
-    double w = problem.evalSol(fe.N);
+    double w = pnorm.vec.front().dot(fe.N);
     // Integrate the external energy (p,w^h)
     pnorm[1] += p*w*fe.detJxW;
   }
@@ -528,14 +502,13 @@ bool KirchhoffLovePlateNorm::evalInt (LocalIntegral*& elmInt,
   }
 
   size_t i, j;
-  // TODO!
-  for (i = 0; i < 0; i++) //mySols.size(); i++)
-    if (0) //!mySols[i].empty())
+  for (i = 0; i < pnorm.psol.size(); i++)
+    if (!pnorm.psol[i].empty())
     {
       // Evaluate projected stress field
       Vector mr(mh.size());
       for (j = 0; j < nrcmp; j++)
-	mr[j] = 0;//mySols[i].dot(fe.N,j,nrcmp);
+	mr[j] = pnorm.psol[i].dot(fe.N,j,nrcmp);
 
       // Integrate the energy norm a(w^r,w^r)
       pnorm[ip++] += mr.dot(Cinv*mr)*fe.detJxW;
@@ -555,7 +528,7 @@ bool KirchhoffLovePlateNorm::evalInt (LocalIntegral*& elmInt,
 }
 
 
-bool KirchhoffLovePlateNorm::evalBou (LocalIntegral*& elmInt,
+bool KirchhoffLovePlateNorm::evalBou (LocalIntegral& elmInt,
 				      const FiniteElement& fe,
 				      const Vec3& X, const Vec3& normal) const
 {

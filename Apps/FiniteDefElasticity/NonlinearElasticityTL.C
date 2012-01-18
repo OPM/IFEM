@@ -42,36 +42,21 @@ void NonlinearElasticityTL::print (std::ostream& os) const
 
 void NonlinearElasticityTL::setMode (SIM::SolutionMode mode)
 {
-  if (!myMats) return;
-
   formB = true;
-  myMats->rhsOnly = false;
+  m_mode = mode;
   eM = eKm = eKg = 0;
-  iS = eS  = eV  = 0;
+  eS = iS  = 0;
 
   switch (mode)
     {
     case SIM::STATIC:
-      myMats->resize(1,1);
-      eKm = &myMats->A[0];
-      eKg = &myMats->A[0];
+    case SIM::RHS_ONLY:
+      eKm = eKg = 1;
       break;
 
     case SIM::DYNAMIC:
-      myMats->resize(2,1);
-      eKm = &myMats->A[0];
-      eKg = &myMats->A[0];
-      eM  = &myMats->A[1];
-      break;
-
-    case SIM::RHS_ONLY:
-      if (myMats->A.empty())
-	myMats->resize(1,1);
-      else
-	myMats->b.resize(1);
-      eKm = &myMats->A[0];
-      eKg = &myMats->A[0];
-      myMats->rhsOnly = true;
+      eKm = eKg = 1;
+      eM  = 2;
       break;
 
     default:
@@ -80,27 +65,81 @@ void NonlinearElasticityTL::setMode (SIM::SolutionMode mode)
       return;
     }
 
-  // We always need the force+displacement vectors in nonlinear simulations
-  mySols.resize(1);
-  iS = &myMats->b[0];
-  eS = &myMats->b[0];
-  eV = &mySols[0];
+  // We always need the force vectors in nonlinear simulations
+  iS = eS = 1;
   tracVal.clear();
 }
 
 
-bool NonlinearElasticityTL::evalInt (LocalIntegral*& elmInt,
+LocalIntegral* NonlinearElasticityTL::getLocalIntegral (size_t nen, size_t,
+							bool neumann) const
+{
+  ElmMats* result = new ElmMats;
+  switch (m_mode)
+  {
+    case SIM::STATIC:
+      result->rhsOnly = neumann;
+      result->withLHS = !neumann;
+      result->resize(neumann?0:1,1);
+      break;
+
+    case SIM::DYNAMIC:
+      result->rhsOnly = neumann;
+      result->withLHS = !neumann;
+      result->resize(neumann?0:2,1);
+      break;
+
+    case SIM::VIBRATION:
+    case SIM::BUCKLING:
+      result->withLHS = true;
+      result->resize(2,0);
+      break;
+
+    case SIM::STIFF_ONLY:
+    case SIM::MASS_ONLY:
+      result->withLHS = true;
+      result->resize(1,0);
+      break;
+
+    case SIM::RHS_ONLY:
+      result->rhsOnly = true;
+      result->resize(neumann?0:1,1);
+      break;
+
+    case SIM::RECOVERY:
+      result->rhsOnly = true;
+      break;
+
+    default:
+      ;
+  }
+
+  for (size_t i = 0; i < result->A.size(); i++)
+    result->A[i].resize(nsd*nen,nsd*nen);
+
+  if (result->b.size())
+    result->b.front().resize(nsd*nen);
+
+  return result;
+}
+
+
+bool NonlinearElasticityTL::evalInt (LocalIntegral& elmInt,
 				     const FiniteElement& fe,
 				     const Vec3& X) const
 {
+  ElmMats& elMat = static_cast<ElmMats&>(elmInt);
+
   // Evaluate the deformation gradient, F, and the Green-Lagrange strains, E,
   // and compute the nonlinear strain-displacement matrix, B, from dNdX and F
+  Matrix Bmat;
   Tensor F(nDF);
   SymmTensor E(nsd,axiSymmetry), S(nsd,axiSymmetry);
-  if (!this->kinematics(fe.N,fe.dNdX,X.x,F,E))
+  if (!this->kinematics(elMat.vec,fe.N,fe.dNdX,X.x,Bmat,F,E))
     return false;
 
   // Evaluate the constitutive relation
+  Matrix Cmat;
   bool lHaveStrains = !E.isZero(1.0e-16);
   if (eKm || eKg || iS)
   {
@@ -115,35 +154,36 @@ bool NonlinearElasticityTL::evalInt (LocalIntegral*& elmInt,
   if (eKm)
   {
     // Integrate the material stiffness matrix
+    Matrix CB;
     CB.multiply(Cmat,Bmat).multiply(detJW); // CB = C*B*|J|*w
-    eKm->multiply(Bmat,CB,true,false,true); // EK += B^T * CB
+    elMat.A[eKm-1].multiply(Bmat,CB,true,false,true); // EK += B^T * CB
   }
 
   if (eKg && lHaveStrains)
     // Integrate the geometric stiffness matrix
-    this->formKG(*eKg,fe.N,fe.dNdX,X.x,S,detJW);
+    this->formKG(elMat.A[eKg-1],fe.N,fe.dNdX,X.x,S,detJW);
 
   if (eM)
     // Integrate the mass matrix
-    this->formMassMatrix(*eM,fe.N,X,detJW);
+    this->formMassMatrix(elMat.A[eM-1],fe.N,X,detJW);
 
   if (iS && lHaveStrains)
   {
     // Integrate the internal forces
     S *= -detJW;
-    if (!Bmat.multiply(S,*iS,true,true)) // ES -= B^T*S
+    if (!Bmat.multiply(S,elMat.b[iS-1],true,true)) // ES -= B^T*S
       return false;
   }
 
   if (eS)
     // Integrate the load vector due to gravitation and other body forces
-    this->formBodyForce(*eS,fe.N,X,detJW);
+    this->formBodyForce(elMat.b[eS-1],fe.N,X,detJW);
 
-  return this->getIntegralResult(elmInt);
+  return true;
 }
 
 
-bool NonlinearElasticityTL::evalBou (LocalIntegral*& elmInt,
+bool NonlinearElasticityTL::evalBou (LocalIntegral& elmInt,
 				     const FiniteElement& fe,
 				     const Vec3& X, const Vec3& normal) const
 {
@@ -160,6 +200,8 @@ bool NonlinearElasticityTL::evalBou (LocalIntegral*& elmInt,
     return false;
   }
 
+  ElmMats& elMat = static_cast<ElmMats&>(elmInt);
+
   // Evaluate the surface traction
   Vec3 T = (*tracFld)(X,normal);
 
@@ -171,9 +213,10 @@ bool NonlinearElasticityTL::evalBou (LocalIntegral*& elmInt,
   if (tracFld->isNormalPressure())
   {
     // Compute the deformation gradient, F
+    Matrix B;
     Tensor F(nDF);
     SymmTensor dummy(0);
-    if (!this->kinematics(fe.N,fe.dNdX,X.x,F,dummy)) return false;
+    if (!this->kinematics(elMat.vec,fe.N,fe.dNdX,X.x,B,F,dummy)) return false;
 
     // Compute its inverse and determinant, J
     double J = F.inverse();
@@ -192,30 +235,34 @@ bool NonlinearElasticityTL::evalBou (LocalIntegral*& elmInt,
   const double detJW = axiSymmetry ? 2.0*M_PI*X.x*fe.detJxW : fe.detJxW;
 
   // Integrate the force vector
-  Vector& ES = *eS;
+  Vector& ES = elMat.b[eS-1];
   for (size_t a = 1; a <= fe.N.size(); a++)
     for (i = 1; i <= nsd; i++)
       ES(nsd*(a-1)+i) += T[i-1]*fe.N(a)*detJW;
 
-  return this->getIntegralResult(elmInt);
+  return true;
 }
 
 
-bool NonlinearElasticityTL::kinematics (const Vector& N, const Matrix& dNdX,
-					double r, Tensor& F,
+bool NonlinearElasticityTL::kinematics (const Vectors& eV,
+					const Vector& N, const Matrix& dNdX,
+					double r, Matrix& Bmat, Tensor& F,
 					SymmTensor& E) const
 {
-  if (!eV || eV->empty())
+  if (eV.empty() || eV.front().empty())
   {
     // Initial state, unit deformation gradient and linear B-matrix
     F = 1.0;
     E.zero();
-    return axiSymmetry ? this->formBmatrix(N,dNdX,r) : this->formBmatrix(dNdX);
+    if (axiSymmetry)
+      return this->formBmatrix(Bmat,N,dNdX,r);
+    else
+      return this->formBmatrix(Bmat,dNdX);
   }
 
   const size_t nenod = dNdX.rows();
   const size_t nstrc = axiSymmetry ? 4 : nsd*(nsd+1)/2;
-  if (eV->size() != nenod*nsd || dNdX.cols() < nsd)
+  if (eV.front().size() != nenod*nsd || dNdX.cols() < nsd)
   {
     std::cerr <<" *** NonlinearElasticityTL::kinematics: Invalid dimension,"
 	      <<" dNdX("<< nenod <<","<< dNdX.cols() <<")"<< std::endl;
@@ -229,7 +276,7 @@ bool NonlinearElasticityTL::kinematics (const Vector& N, const Matrix& dNdX,
   // element displacement vector, *eV, as a matrix whose number of columns
   // equals the number of rows in the matrix dNdX.
   Matrix dUdX;
-  if (!dUdX.multiplyMat(*eV,dNdX)) // dUdX = Grad{u} = eV*dNd
+  if (!dUdX.multiplyMat(eV.front(),dNdX)) // dUdX = Grad{u} = eV*dNd
     return false;
 
   unsigned short int i, j, k;
@@ -257,7 +304,7 @@ bool NonlinearElasticityTL::kinematics (const Vector& N, const Matrix& dNdX,
   // Add the unit tensor to F to form the deformation gradient
   F += 1.0;
   // Add the dU/r term to the F(3,3)-term for axisymmetric problems
-  if (axiSymmetry && r > epsR) F(3,3) += eV->dot(N,0,nsd)/r;
+  if (axiSymmetry && r > epsR) F(3,3) += eV.front().dot(N,0,nsd)/r;
 
 #ifdef INT_DEBUG
   std::cout <<"NonlinearElasticityTL::F =\n"<< F;

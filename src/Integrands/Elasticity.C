@@ -38,14 +38,12 @@ Elasticity::Elasticity (unsigned short int n, bool ax) : nsd(n), axiSymmetry(ax)
   // Default is zero gravity
   grav[0] = grav[1] = grav[2] = 0.0;
 
-  myMats = new ElmMats();
-
   material = 0;
   locSys = 0;
   tracFld = 0;
   bodyFld = 0;
   eM = eKm = eKg = 0;
-  eS = eV = iS = 0;
+  eS = iS = 0;
 }
 
 
@@ -75,117 +73,107 @@ void Elasticity::print (std::ostream& os) const
 
 void Elasticity::setMode (SIM::SolutionMode mode)
 {
-  if (!myMats) return;
-
-  myMats->rhsOnly = false;
+  m_mode = mode;
   eM = eKm = eKg = 0;
-  eS = eV = iS = 0;
+  eS = iS = 0;
 
   switch (mode)
     {
     case SIM::STATIC:
-      myMats->resize(1,1);
-      eKm = &myMats->A[0];
-      eS  = &myMats->b[0];
+      eKm = 1;
+      eS  = 1;
       tracVal.clear();
       break;
 
     case SIM::DYNAMIC:
-      myMats->resize(2,1);
-      eKm = &myMats->A[0];
-      eM  = &myMats->A[1];
-      eS  = &myMats->b[0];
+      eKm = 1;
+      eM  = 2;
+      eS  = 1;
       tracVal.clear();
       break;
 
     case SIM::VIBRATION:
-      myMats->resize(2,0);
-      eKm = &myMats->A[0];
-      eM  = &myMats->A[1];
+      eKm = 1;
+      eM  = 2;
       break;
 
     case SIM::BUCKLING:
-      myMats->resize(2,0);
-//      mySols.resize(1);
-      eKm = &myMats->A[0];
-      eKg = &myMats->A[1];
-//      eV  = &mySols[0];
+      eKm = 1;
+      eKg = 2;
       break;
 
     case SIM::STIFF_ONLY:
-      myMats->resize(1,0);
-      eKm = &myMats->A[0];
+      eKm = 1;
       break;
 
     case SIM::MASS_ONLY:
-      myMats->resize(1,0);
-      eM = &myMats->A[0];
+      eM = 1;
       break;
 
     case SIM::RHS_ONLY:
-      myMats->rhsOnly = true;
-      if (myMats->b.empty())
-	myMats->b.resize(1);
-      eS = &myMats->b[0];
+      eS = 1;
       tracVal.clear();
       break;
 
     case SIM::RECOVERY:
-      myMats->rhsOnly = true;
-//      mySols.resize(1);
-//      eV = &mySols[0];
       break;
 
     default:
-      myMats->resize(0,0);
-//      mySols.clear();
       tracVal.clear();
     }
 }
 
 
-bool Elasticity::getIntegralResult (LocalIntegral*& elmInt) const
+LocalIntegral* Elasticity::getLocalIntegral (size_t nen, size_t,
+					     bool neumann) const
 {
-  elmInt = myMats;
-  return elmInt ? true : false;
-}
+  ElmMats* result = new ElmMats;
+  switch (m_mode)
+  {
+    case SIM::STATIC:
+      result->rhsOnly = neumann;
+      result->withLHS = !neumann;
+      result->resize(neumann?0:1,1);
+      break;
 
+    case SIM::DYNAMIC:
+      result->rhsOnly = neumann;
+      result->withLHS = !neumann;
+      result->resize(neumann?0:2,1);
+      break;
 
-void Elasticity::setTraction (TractionFunc* tf)
-{
-  tracFld = tf;
+    case SIM::VIBRATION:
+    case SIM::BUCKLING:
+      result->withLHS = true;
+      result->resize(2,0);
+      break;
 
-  if (myMats)
-    myMats->rhsOnly = true;
-}
+    case SIM::STIFF_ONLY:
+    case SIM::MASS_ONLY:
+      result->withLHS = true;
+      result->resize(1,0);
+      break;
 
+    case SIM::RHS_ONLY:
+      result->rhsOnly = true;
+      result->resize(0,1);
+      break;
 
-bool Elasticity::initElement (const std::vector<int>& MNPC,
-                              LocalIntegral& elmInt)
-{
-  if (myMats)
-    myMats->withLHS = true;
+    case SIM::RECOVERY:
+      result->rhsOnly = true;
+      break;
 
-  const size_t nen = MNPC.size();
+    default:
+      ;
+  }
 
-  if (eKm) eKm->resize(nsd*nen,nsd*nen,true);
-  if (eKg) eKg->resize(nsd*nen,nsd*nen,true);
-  if (eM)  eM->resize(nsd*nen,nsd*nen,true);
-  if (eS)  eS->resize(nsd*nen,true);
+  for (size_t i = 0; i < result->A.size(); i++)
+    result->A[i].resize(nsd*nen,nsd*nen);
 
-  return this->IntegrandBase::initElement(MNPC,elmInt);
-}
+  if (result->b.size())
+    result->b.front().resize(nsd*nen);
 
-
-bool Elasticity::initElementBou (const std::vector<int>& MNPC,
-                                 LocalIntegral& elmInt)
-{
-  if (myMats)
-    myMats->withLHS = false;
-
-  if (eS) eS->resize(nsd*MNPC.size(),true);
-
-  return this->IntegrandBase::initElementBou(MNPC,elmInt);
+  return result;
 }
 
 
@@ -260,7 +248,7 @@ bool Elasticity::writeGlvT (VTF* vtf, int iStep, int& nBlock) const
   [\a N ] is the element basis functions arranged in a [nsd][nsd*NENOD] matrix.
 */
 
-bool Elasticity::formBmatrix (const Matrix& dNdX) const
+bool Elasticity::formBmatrix (Matrix& Bmat, const Matrix& dNdX) const
 {
   const size_t nenod = dNdX.rows();
   const size_t nstrc = nsd*(nsd+1)/2;
@@ -358,7 +346,7 @@ bool Elasticity::formBmatrix (const Matrix& dNdX) const
   [\a N ] is the element basis functions arranged in a [2][2*NENOD] matrix.
 */
 
-bool Elasticity::formBmatrix (const Vector& N, const Matrix& dNdX,
+bool Elasticity::formBmatrix (Matrix& Bmat, const Vector& N, const Matrix& dNdX,
 			      const double r) const
 {
   const size_t nenod = N.size();
@@ -404,16 +392,27 @@ bool Elasticity::formBmatrix (const Vector& N, const Matrix& dNdX,
 }
 
 
-bool Elasticity::kinematics (const Vector& N, const Matrix& dNdX, double r,
-			     Tensor&, SymmTensor& eps) const
+bool Elasticity::kinematics (const Vector& eV,
+			     const Vector& N, const Matrix& dNdX, double r,
+			     Matrix& B, Tensor&, SymmTensor& eps) const
 {
   // Evaluate the strain-displacement matrix, B
-  bool ok = axiSymmetry ? this->formBmatrix(N,dNdX,r) : this->formBmatrix(dNdX);
-  if (!ok || !eV || eV->empty() || eps.dim() == 0)
-    return ok;
+  if (axiSymmetry)
+  {
+    if (!this->formBmatrix(B,N,dNdX,r))
+      return false;
+  }
+  else
+  {
+    if (!this->formBmatrix(B,dNdX))
+      return false;
+  }
+
+  if (eV.empty() || eps.dim() == 0)
+    return true;
 
   // Evaluate the strains
-  return Bmat.multiply(*eV,eps); // eps = B*eV
+  return B.multiply(eV,eps); // eps = B*eV
 }
 
 
@@ -421,7 +420,6 @@ void Elasticity::formKG (Matrix& EM, const Vector& N, const Matrix& dNdX,
 			 double r, const Tensor& sigma, double detJW) const
 {
 #if SP_DEBUG > 3
-  std::cout <<"Elasticity::eV ="<< *eV;
   std::cout <<"Elasticity::sigma =\n"<< sigma;
   std::cout <<"Elasticity::kg =";
 #endif
@@ -477,12 +475,12 @@ void Elasticity::formBodyForce (Vector& ES, const Vector& N,
 }
 
 
-Vec3 Elasticity::evalSol (const Vector& N) const
+Vec3 Elasticity::evalSol (const Vector& eV, const Vector& N) const
 {
   Vec3 u;
-  if (eV && eV->size() == N.size()*nsd)
+  if (eV.size() == N.size()*nsd)
     for (unsigned short int i = 0; i < nsd; i++)
-      u[i] = eV->dot(N,i,nsd);
+      u[i] = eV.dot(N,i,nsd);
 
   return u;
 }
@@ -495,35 +493,24 @@ bool Elasticity::formCinverse (Matrix& Cinv, const Vec3& X) const
 }
 
 
-bool Elasticity::evalSol (Vector& s, const Vector& N,
-			  const Matrix& dNdX, const Vec3& X,
+bool Elasticity::evalSol (Vector& s,
+			  const Vector& N, const Matrix& dNdX, const Vec3& X,
 			  const std::vector<int>& MNPC) const
 {
+  // Extract element displacements
+  Vector eV;
   int ierr = 0;
-  if (eV && !primsol.front().empty())
-    if ((ierr = utl::gather(MNPC,nsd,primsol.front(),*eV)))
+  if (!primsol.front().empty())
+    if ((ierr = utl::gather(MNPC,nsd,primsol.front(),eV)))
     {
-      std::cerr <<" *** Elasticity::evalSol: Detected "
-		<< ierr <<" node numbers out of range."<< std::endl;
+      std::cerr <<" *** Elasticity::evalSol: Detected "<< ierr
+		<<" node numbers out of range."<< std::endl;
       return false;
     }
 
-  // Evaluate the deformation gradient, dUdX, and/or the strain tensor, eps
-  Tensor dUdX(nDF);
-  SymmTensor eps(nsd,axiSymmetry);
-  if (!this->kinematics(N,dNdX,X.x,dUdX,eps))
+  // Evaluate the stress tensor
+  if (!this->evalSol(s,eV,N,dNdX,X,true))
     return false;
-
-  // Calculate the stress tensor through the constitutive relation
-  SymmTensor sigma(nsd, axiSymmetry || material->isPlaneStrain()); double U;
-  if (!material->evaluate(Cmat,sigma,U,X,dUdX,eps))
-    return false;
-
-  // Congruence transformation to local coordinate system at current point
-  if (locSys) sigma.transform(locSys->getTmat(X));
-
-  s = sigma;
-  s.push_back(sigma.vonMises());
 
   // Additional result variables?
   for (int i = 1; i <= material->getNoIntVariables(); i++)
@@ -533,35 +520,36 @@ bool Elasticity::evalSol (Vector& s, const Vector& N,
 }
 
 
-bool Elasticity::evalSol (Vector& s, const Vector& N,
-			  const Matrix& dNdX, const Vec3& X) const
+bool Elasticity::evalSol (Vector& s, const Vector& eV, const Vector& N,
+			  const Matrix& dNdX, const Vec3& X, bool toLocal) const
 {
-  if (!eV || eV->empty())
-  {
-    std::cerr <<" *** Elasticity::evalSol: No displacement vector."
-	      << std::endl;
-    return false;
-  }
-  else if (eV->size() != dNdX.rows()*nsd)
+  if (eV.size() != dNdX.rows()*nsd)
   {
     std::cerr <<" *** Elasticity::evalSol: Invalid displacement vector."
-	      <<"\n     size(eV) = "<< eV->size() <<"   size(dNdX) = "
+	      <<"\n     size(eV) = "<< eV.size() <<"   size(dNdX) = "
 	      << dNdX.rows() <<","<< dNdX.cols() << std::endl;
     return false;
   }
 
   // Evaluate the deformation gradient, dUdX, and/or the strain tensor, eps
+  Matrix Bmat;
   Tensor dUdX(nDF);
   SymmTensor eps(nsd,axiSymmetry);
-  if (!this->kinematics(N,dNdX,X.x,dUdX,eps))
+  if (!this->kinematics(eV,N,dNdX,X.x,Bmat,dUdX,eps))
     return false;
 
   // Calculate the stress tensor through the constitutive relation
+  Matrix Cmat;
   SymmTensor sigma(nsd, axiSymmetry || material->isPlaneStrain()); double U;
   if (!material->evaluate(Cmat,sigma,U,X,dUdX,eps))
     return false;
 
+  // Congruence transformation to local coordinate system at current point
+  if (toLocal && locSys) sigma.transform(locSys->getTmat(X));
+
   s = sigma;
+  if (toLocal) s.push_back(sigma.vonMises());
+
   return true;
 }
 
@@ -664,29 +652,11 @@ size_t ElasticityNorm::getNoFields () const
 }
 
 
-bool ElasticityNorm::initElement (const std::vector<int>& MNPC,
-                                  LocalIntegral& elmInt)
-{
-  // Extract projected solution vectors for this element
-  int ierr = 0;
-  elmInt.vec.resize(prjsol.size());
-  for (size_t i = 0; i < prjsol.size() && ierr == 0; i++)
-    if (!prjsol[i].empty())
-      ierr = utl::gather(MNPC,nrcmp,prjsol[i],elmInt.vec[i]);
-
-//  if (ierr == 0) return myProblem.initElement(MNPC);
-
-  std::cerr <<" *** ElasticityNorm::initElement: Detected "
-            << ierr <<" node numbers out of range."<< std::endl;
-  return false;
-}
-
-
-bool ElasticityNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
+bool ElasticityNorm::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
 			      const Vec3& X) const
 {
   Elasticity& problem = static_cast<Elasticity&>(myProblem);
-  ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt,this->getNoFields());
+  ElmNorm& pnorm = static_cast<ElmNorm&>(elmInt);
 
   // Evaluate the inverse constitutive matrix at this point
   Matrix Cinv;
@@ -694,7 +664,7 @@ bool ElasticityNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
 
   // Evaluate the finite element stress field
   Vector sigmah, sigma, error;
-  if (!problem.evalSol(sigmah,fe.N,fe.dNdX,X))
+  if (!problem.evalSol(sigmah,pnorm.vec.front(),fe.N,fe.dNdX,X))
     return false;
 
   bool planeStrain = sigmah.size() == 4 && Cinv.rows() == 3;
@@ -712,7 +682,7 @@ bool ElasticityNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
     // Evaluate the body load
     Vec3 f = problem.getBodyforce(X);
     // Evaluate the displacement field
-    Vec3 u = problem.evalSol(fe.N);
+    Vec3 u = problem.evalSol(pnorm.vec.front(),fe.N);
     // Integrate the external energy (f,u^h)
     pnorm[1] += f*u*detJW;
   }
@@ -733,14 +703,14 @@ bool ElasticityNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
   }
 
   size_t i, j, k;
-  for (i = 0; i < 0; i++) // mySols.size(); i++)
-    if (0) //!mySols[i].empty()) // TODO!
+  for (i = 0; i < pnorm.psol.size(); i++)
+    if (!pnorm.psol[i].empty())
     {
       // Evaluate projected stress field
       Vector sigmar(sigmah.size());
       for (j = k = 0; j < nrcmp && k < sigmar.size(); j++)
 	if (!planeStrain || j != 2)
-	  sigmar[k++] = 0;//mySols[i].dot(fe.N,j,nrcmp);
+	  sigmar[k++] = pnorm.psol[i].dot(fe.N,j,nrcmp);
 
       // Integrate the energy norm a(u^r,u^r)
       pnorm[ip++] += sigmar.dot(Cinv*sigmar)*detJW;
@@ -760,18 +730,18 @@ bool ElasticityNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
 }
 
 
-bool ElasticityNorm::evalBou (LocalIntegral*& elmInt, const FiniteElement& fe,
+bool ElasticityNorm::evalBou (LocalIntegral& elmInt, const FiniteElement& fe,
 			      const Vec3& X, const Vec3& normal) const
 {
   Elasticity& problem = static_cast<Elasticity&>(myProblem);
   if (!problem.haveLoads()) return true;
 
-  ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt);
+  ElmNorm& pnorm = static_cast<ElmNorm&>(elmInt);
 
   // Evaluate the surface traction
   Vec3 T = problem.getTraction(X,normal);
   // Evaluate the displacement field
-  Vec3 u = problem.evalSol(fe.N);
+  Vec3 u = problem.evalSol(pnorm.vec.front(),fe.N);
 
   double detJW = fe.detJxW;
   if (problem.isAxiSymmetric())

@@ -59,23 +59,20 @@ public:
   //! \brief Defines the local coordinate system for stress resultant output.
   void setLocalSystem(LocalSystem* cs) { locSys = cs; }
 
-  //! \brief Initializes current element for numerical integration.
-  //! \param[in] MNPC Matrix of nodal point correspondance for current element
-  virtual bool initElement(const std::vector<int>& MNPC, LocalIntegral& elmInt);
-
-  //! \brief Initializes current element for boundary numerical integration.
-  //! \param[in] MNPC Matrix of nodal point correspondance for current element
-  virtual bool initElementBou(const std::vector<int>& MNPC,
-                              LocalIntegral& elmInt);
-
   //! \brief Defines which FE quantities are needed by the integrand.
   virtual int getIntegrandType() const { return 2; }
+
+  //! \brief Returns a local integral container for the given element.
+  //! \param[in] nen Number of nodes on element
+  //! \param[in] neumann Whether or not we are assembling Neumann BC's
+  virtual LocalIntegral* getLocalIntegral(size_t nen, size_t,
+                                          bool neumann) const;
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Finite element data of current integration point
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalInt(LocalIntegral& elmInt, const FiniteElement& fe,
 		       const Vec3& X) const;
 
   //! \brief Evaluates the integrand at a boundary point.
@@ -83,7 +80,7 @@ public:
   //! \param[in] fe Finite element data of current integration point
   //! \param[in] X Cartesian coordinates of current integration point
   //! \param[in] normal Boundary normal vector at current integration point
-  virtual bool evalBou(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalBou(LocalIntegral& elmInt, const FiniteElement& fe,
 		       const Vec3& X, const Vec3& normal) const;
 
   //! \brief Evaluates the secondary solution at a result point.
@@ -97,20 +94,19 @@ public:
 
   //! \brief Evaluates the finite element (FE) solution at an integration point.
   //! \param[out] s The FE stress resultant values at current point
+  //! \param[in] eV Element solution vector
   //! \param[in] d2NdX2 Basis function 2nd derivatives at current point
   //! \param[in] X Cartesian coordinates of current point
-  bool evalSol(Vector& s, const Matrix3D& d2NdX2, const Vec3& X) const;
+  //! \param[in] toLocal If \e true, transform to local coordinates (if defined)
+  bool evalSol(Vector& s, const Vector& eV,
+	       const Matrix3D& d2NdX2, const Vec3& X,
+	       bool toLocal = false) const;
 
   //! \brief Evaluates the analytical solution at an integration point.
   //! \param[out] s The analytical stress resultant values at current point
   //! \param[in] asol The analytical solution field
   //! \param[in] X Cartesian coordinates of current point
   virtual bool evalSol(Vector& s, const STensorFunc& asol, const Vec3& X) const;
-
-  //! \brief Evaluates the primary solution at a result point.
-  //! \param[in] N Basis function values at current point
-  //! \return Primary solution vector at current point
-  double evalSol(const Vector& N) const;
 
   //! \brief Evaluates the pressure field (if any) at specified point.
   virtual double getPressure(const Vec3& X) const;
@@ -162,8 +158,9 @@ protected:
 		     const Vec3& X, double detJW) const;
 
   //! \brief Calculates the strain-displacement matrix \b B at current point.
+  //! \param[out] Bmat The strain-displacement matrix
   //! \param[in] d2NdX2 Basis function 2nd derivatives at current point
-  bool formBmatrix(const Matrix3D& d2NdX2) const;
+  bool formBmatrix(Matrix& Bmat, const Matrix3D& d2NdX2) const;
 
 public:
   //! \brief Sets up the constitutive matrix at current point.
@@ -173,11 +170,13 @@ public:
   bool formCmatrix(Matrix& C, const Vec3& X, bool invers = false) const;
 
 protected:
-  // Finite element quantities
-  Matrix* eK; //!< Pointer to element stiffness matrix
-  Matrix* eM; //!< Pointer to element mass matrix
-  Vector* eS; //!< Pointer to element load vector
-  Vector* eV; //!< Pointer to element displacement vector
+  // Finite element quantities, i.e., indices into element matrices and vectors.
+  // These indices will be identical for all elements in a model and can thus
+  // be stored here, even when doing multi-threading. Note that these indices
+  // 1-based, since the value zero is used to signal non-existing matrix/vector.
+  unsigned short int eK; //!< Index to element stiffness matrix
+  unsigned short int eM; //!< Index to element mass matrix
+  unsigned short int eS; //!< Index to element load vector
 
   // Physical properties
   Material* material;  //!< Material data and constitutive relation
@@ -190,12 +189,6 @@ protected:
   mutable std::map<Vec3,Vec3> presVal; //!< Pressure field point values
 
   unsigned short int nsd; //!< Number of space dimensions (1, 2 or, 3)
-
-  // Work arrays declared as members to avoid frequent re-allocation
-  // within the numerical integration loop (for reduced overhead)
-  mutable Matrix Bmat; //!< Strain-displacement matrix
-  mutable Matrix Cmat; //!< Constitutive matrix
-  mutable Matrix CB;   //!< Result of the matrix-matrix product C*B
 };
 
 
@@ -219,11 +212,6 @@ public:
   //! \brief Returns the number of norm quantities.
   virtual size_t getNoFields() const;
 
-  //! \brief Initializes current element for numerical integration.
-  //! \param[in] MNPC Matrix of nodal point correspondance for current element
-  virtual bool initElement(const std::vector<int>& MNPC,
-                           LocalIntegral& elmInt);
-
   //! \brief Defines which FE quantities are needed by the integrand.
   virtual int getIntegrandType() const { return 2; }
 
@@ -231,7 +219,7 @@ public:
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Finite element data of current integration point
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalInt(LocalIntegral& elmInt, const FiniteElement& fe,
 		       const Vec3& X) const;
 
   //! \brief Evaluates the integrand at a boundary point.
@@ -239,7 +227,7 @@ public:
   //! \param[in] fe Finite element data of current integration point
   //! \param[in] X Cartesian coordinates of current integration point
   //! \param[in] normal Boundary normal vector at current integration point
-  virtual bool evalBou(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalBou(LocalIntegral& elmInt, const FiniteElement& fe,
 		       const Vec3& X, const Vec3& normal) const;
 
 private:

@@ -43,11 +43,17 @@ public:
   //! \param[in] mode The solution mode to use
   virtual void setMode(SIM::SolutionMode mode);
 
+  //! \brief Returns a local integral container for the given element.
+  //! \param[in] nen Number of DOFs on element
+  //! \param[in] neumann Whether or not we are assembling Neumann BC's
+  virtual LocalIntegral* getLocalIntegral(size_t nen, size_t,
+                                          bool neumann) const;
+
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Finite element data of current integration point
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalInt(LocalIntegral& elmInt, const FiniteElement& fe,
                        const Vec3& X) const;
 
   //! \brief Evaluates the integrand at a boundary point.
@@ -58,27 +64,28 @@ public:
   //!
   //! \details This method is reimplemented in this class to account for
   //! possibly with-rotated traction fields in the Total-Lagrangian setting.
-  virtual bool evalBou(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalBou(LocalIntegral& elmInt, const FiniteElement& fe,
                        const Vec3& X, const Vec3& normal) const;
 
 protected:
   //! \brief Calculates some kinematic quantities at current point.
+  //! \param[in] eV Element solution vectors
   //! \param[in] N Basis function values at current point
   //! \param[in] dNdX Basis function gradients at current point
   //! \param[in] r Radial coordinate of current point
   //! \param[in] F Deformation gradient at current point
+  //! \param[out] Bmat The strain-displacement matrix
   //! \param[out] E Green-Lagrange strain tensor at current point
   //!
   //! \details The deformation gradient \b F and the nonlinear
-  //! strain-displacement matrix \b B are established. The latter matrix
-  //! is stored in the mutable class member \a Bmat of the parent class.
+  //! strain-displacement matrix \b B are established.
   //! The B-matrix is formed only when the variable \a formB is true.
-  virtual bool kinematics(const Vector& N, const Matrix& dNdX, double r,
-			  Tensor& F, SymmTensor& E) const;
+  virtual bool kinematics(const Vectors& eV,
+			  const Vector& N, const Matrix& dNdX, double r,
+			  Matrix& Bmat, Tensor& F, SymmTensor& E) const;
 
 protected:
-  bool        formB; //!< Flag determining whether we need to form the B-matrix
-  mutable Matrix CB; //!< Result of the matrix-matrix product C*B
+  bool formB; //!< Flag determining whether we need to form the B-matrix
 };
 
 #endif
