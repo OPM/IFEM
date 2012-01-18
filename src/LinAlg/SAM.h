@@ -168,6 +168,11 @@ public:
   //! (used for internal consistency checking, unless zero)
   virtual bool getElmEqns(IntVec& meen, int iel, int nedof = 0) const;
 
+  //! \brief Finds the number equations for an element.
+  //! \param[in] iel Identifier for the element to get the equation numbers for
+  //! \return The number of equations for this element
+  virtual int getNoElmEqns(int iel) const;
+
   //! \brief Finds the matrix of equation numbers for a node.
   //! \param[out] mnen Matrix of node equation numbers
   //! \param[in] inod Identifier for the node to get the equation numbers for

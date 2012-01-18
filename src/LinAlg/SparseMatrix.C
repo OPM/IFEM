@@ -23,6 +23,10 @@
 #endif
 #include <algorithm>
 
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 #if defined(HAS_SUPERLU_MT)
 #define sluop_t superlumt_options_t
 #elif defined(HAS_SUPERLU)
@@ -557,6 +561,22 @@ static void assemSparse (const RealArray& V, SparseMatrix& SM, size_t col,
 void SparseMatrix::initAssembly (const SAM& sam)
 {
   this->resize(sam.neq,sam.neq);
+#ifdef USE_OPENMP
+  // dummy assembly loop to avoid matrix resizes during assembly
+  if (omp_get_max_threads() > 1) {
+    for (int i=0;i<sam.getNoElms();++i) {
+      int siz = sam.getNoElmEqns(i+1);
+      Matrix Ek;
+      Ek.resize(siz,siz);
+      assemble(Ek,sam,i+1);
+    }
+  }
+  switch (solver) {
+    case SUPERLU: optimiseSLU(); break;
+    case S_A_M_G: optimiseSAMG(); break;
+    default: break;
+  }
+#endif
 }
 
 
