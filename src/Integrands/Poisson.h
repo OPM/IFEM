@@ -20,6 +20,7 @@
 
 class ElmNorm;
 
+
 /*!
   \brief Class representing the integrand of the Poisson problem.
   \details This class supports constant isotropic constitutive properties only.
@@ -40,7 +41,7 @@ public:
   virtual void setMode(SIM::SolutionMode mode);
 
   //! \brief Defines the traction field to use in Neumann boundary conditions.
-  void setTraction(VecFunc* tf);
+  void setTraction(VecFunc* tf) { tracFld = tf; }
   //! \brief Clears the integration point traction values.
   void clearTracVal() { tracVal.clear(); }
 
@@ -55,18 +56,17 @@ public:
   //! \brief Evaluates the heat source (if any) at specified point.
   double getHeat(const Vec3& X) const;
 
-  //! \brief Initializes current element for numerical integration.
-  //! \param[in] MNPC Matrix of nodal point correspondance for current element
-  virtual bool initElement(const std::vector<int>& MNPC);
-  //! \brief Initializes current element for boundary numerical integration.
-  //! \param[in] MNPC Matrix of nodal point correspondance for current element
-  virtual bool initElementBou(const std::vector<int>& MNPC);
+  //! \brief Returns a local integral container for the given element.
+  //! \param[in] nen Number of nodes on element
+  //! \param[in] neumann Whether or not we are assembling Neumann BC's
+  virtual LocalIntegral* getLocalIntegral(size_t nen, size_t,
+                                          bool neumann) const;
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Finite element data of current integration point
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalInt(LocalIntegral& elmInt, const FiniteElement& fe,
 		       const Vec3& X) const;
 
   //! \brief Evaluates the integrand at a boundary point.
@@ -74,13 +74,8 @@ public:
   //! \param[in] fe Finite element data of current integration point
   //! \param[in] X Cartesian coordinates of current integration point
   //! \param[in] normal Boundary normal vector at current integration point
-  virtual bool evalBou(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalBou(LocalIntegral& elmInt, const FiniteElement& fe,
 		       const Vec3& X, const Vec3& normal) const;
-
-  //! \brief Evaluates the primary solution at a result point.
-  //! \param[in] N Basis function values at current point
-  //! \return Primary solution value at current point
-  double evalSol(const Vector& N) const;
 
   //! \brief Evaluates the secondary solution at a result point.
   //! \param[out] s Array of solution field values at current point
@@ -94,9 +89,11 @@ public:
 
   //! \brief Evaluates the finite element (FE) solution at an integration point.
   //! \param[out] s The FE solution values at current point
+  //! \param[in] eV Element solution vector
   //! \param[in] dNdX Basis function gradients at current point
   //! \param[in] X Cartesian coordinates of current point
-  virtual bool evalSol(Vector& s, const Matrix& dNdX, const Vec3& X) const;
+  virtual bool evalSol(Vector& s, const Vector& eV,
+                       const Matrix& dNdX, const Vec3& X) const;
 
   //! \brief Evaluates the analytical solution at an integration point.
   //! \param[out] s The analytical solution values at current point
@@ -142,22 +139,12 @@ private:
   double kappa; //!< Conductivity
 
 protected:
-  // Finite element quantities
-  Matrix* eM; //!< Pointer to element matrix
-  Vector* eS; //!< Pointer to element right-hand-side vector
-  Vector* eV; //!< Pointer to element solution vector
-
   VecFunc*  tracFld; //!< Pointer to boundary traction field
   RealFunc* heatSrc; //!< Pointer to interior heat source
 
   mutable std::map<Vec3,Vec3> tracVal; //!< Traction field point values
 
   unsigned short int nsd; //!< Number of space dimensions (1, 2 or, 3)
-
-  // Work arrays declared as members to avoid frequent re-allocation
-  // within the numerical integration loop (for reduced overhead)
-  mutable Matrix C;  //!< Constitutive matrix
-  mutable Matrix CB; //!< Result of the matrix-matrix product C*dNdX^T
 };
 
 
@@ -185,7 +172,7 @@ public:
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Finite element data of current integration point
   //! \param[in] X Cartesian coordinates of current integration point
-  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalInt(LocalIntegral& elmInt, const FiniteElement& fe,
 		       const Vec3& X) const;
 
   //! \brief Evaluates the integrand at a boundary point.
@@ -193,7 +180,7 @@ public:
   //! \param[in] fe Finite Element quantities
   //! \param[in] X Cartesian coordinates of current integration point
   //! \param[in] normal Boundary normal vector at current integration point
-  virtual bool evalBou(LocalIntegral*& elmInt,  const FiniteElement& fe,
+  virtual bool evalBou(LocalIntegral& elmInt,  const FiniteElement& fe,
 		       const Vec3& X, const Vec3& normal) const;
 
 private:

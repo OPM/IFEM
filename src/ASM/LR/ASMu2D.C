@@ -23,6 +23,7 @@
 #include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
+#include "LocalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
@@ -800,8 +801,7 @@ void ASMu2D::extractBasis (const Go::BasisDerivsSf2& spline,
 
 bool ASMu2D::integrate (Integrand& integrand,
                         GlobalIntegral& glInt,
-                        const TimeDomain& time,
-                        const LintegralVec& locInt)
+                        const TimeDomain& time)
 {
 	if (!lrspline) return true; // silently ignore empty patches
 
@@ -827,12 +827,11 @@ bool ASMu2D::integrate (Integrand& integrand,
 
 	// === Assembly loop over all elements in the patch ==========================
 
-	std::vector<LR::Element*>::iterator el;
-	int iel = 1;
-	for(el = lrspline->elementBegin(); el!=lrspline->elementEnd(); el++, iel++)
+	std::vector<LR::Element*>::iterator el = lrspline->elementBegin();
+	for (int iel = 1; el != lrspline->elementEnd(); el++, iel++)
 	{
 		FiniteElement fe(myMNPC[iel-1].size());
-		fe.iel  = myMLGE[iel-1];
+		fe.iel = MLGE[iel-1];
 
 		// Get element area in the parameter space
 		double dA = this->getParametricArea(iel);
@@ -896,16 +895,10 @@ bool ASMu2D::integrate (Integrand& integrand,
 #endif
 
 		// Initialize element quantities
-		if (!integrand.initElement(myMNPC[iel-1],X,nRed*nRed)) return false;
+                LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
+                if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed,*A)) return false;
 
-		// Caution: Unless locInt is empty, we assume it points to an array of
-		// LocalIntegral pointers, of length at least the number of elements in
-		// the model (as defined by the highest number in the MLGE array).
-		// If the array is shorter than this, expect a segmentation fault.
-		LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
-
-
-		if (integrand.getIntegrandType() > 10)
+/*		if (integrand.getIntegrandType() > 10)
 		{
 		// --- Selective reduced integration loop ------------------------------
 
@@ -937,7 +930,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 					  return false;
 				}
 		}
-
+*/
 
 		// --- Integration loop over all Gauss points in each direction ----------
 
@@ -991,17 +984,19 @@ bool ASMu2D::integrate (Integrand& integrand,
 
 				// Evaluate the integrand and accumulate element contributions
 				fe.detJxW *= 0.25*dA*wg[i]*wg[j];
-				if (!integrand.evalInt(elmInt,fe,time,X))
+                                if (!integrand.evalInt(*A,fe,time,X))
 				return false;
 			}
 
 		// Finalize the element quantities
-		if (!integrand.finalizeElement(elmInt,time))
+		if (!integrand.finalizeElement(*A,time))
 			return false;
 
 		// Assembly of global system integral
-		if (!glInt.assemble(elmInt,fe.iel))
+		if (!glInt.assemble(A->ref(),fe.iel))
 			return false;
+
+                A->destruct();
 	}
 
 	return true;
@@ -1010,8 +1005,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 
 bool ASMu2D::integrate (Integrand& integrand, int lIndex,
                         GlobalIntegral& glInt,
-                        const TimeDomain& time,
-                        const LintegralVec& locInt)
+                        const TimeDomain& time)
 {
 	if (!lrspline) return true; // silently ignore empty patches
 
@@ -1048,14 +1042,9 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 
 	// === Assembly loop over all elements on the patch edge =====================
 
-	std::vector<LR::Element*>::iterator el;
-	int iel = 1;
-	for(el = lrspline->elementBegin(); el!=lrspline->elementEnd(); el++, iel++)
+	std::vector<LR::Element*>::iterator el = lrspline->elementBegin();
+	for (int iel = 1; el != lrspline->elementEnd(); el++, iel++)
 	{
-		FiniteElement fe((**el).nBasisFunctions());
-		fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
-		fe.iel = myMLGE[iel-1];
-
 		// Skip elements that are not on current boundary edge
 		bool skipMe = false;
 		switch (edgeDir)
@@ -1075,13 +1064,11 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 		if (!this->getElementCoordinates(Xnod,iel)) return false;
 
 		// Initialize element quantities
-		if (!integrand.initElementBou(myMNPC[iel-1])) return false;
-
-		// Caution: Unless locInt is empty, we assume it points to an array of
-		// LocalIntegral pointers, of length at least the number of elements in
-		// the model (as defined by the highest number in the MLGE array).
-		// If the array is shorter than this, expect a segmentation fault.
-		LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
+		FiniteElement fe((**el).nBasisFunctions());
+		fe.iel = MLGE[iel-1];
+		fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
+                LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
+                if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;
 
 		// get integration gauss points over this element
 		int dim = 2-abs(edgeDir);
@@ -1099,33 +1086,35 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 				fe.eta = xg[i];
 			fe.u = gpar[0][i];
 			fe.v = gpar[1][i];
-		
+
 			// Evaluate basis function derivatives at current integration points
 			Go::BasisDerivsSf spline;
 			lrspline->computeBasis(fe.u, fe.v, spline, iel-1);
 
 			// Fetch basis function derivatives at current integration point
 			extractBasis(spline,fe.N,dNdu);
-		
+
 			// Compute basis function derivatives and the edge normal
 			fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
 			if (fe.detJxW == 0.0) continue; // skip singular points
-		
+
 			if (edgeDir < 0) normal *= -1.0;
-		
+
 			// Cartesian coordinates of current integration point
 			X = Xnod * fe.N;
 			X.t = time.t;
-		
+
 			// Evaluate the integrand and accumulate element contributions
 			fe.detJxW *= 0.5*dS*wg[i];
-			if (!integrand.evalBou(elmInt,fe,time,X,normal))
+                        if (!integrand.evalBou(*A,fe,time,X,normal))
 				return false;
-			}
-		
-			// Assembly of global system integral
-			if (!glInt.assemble(elmInt,fe.iel))
-		return false;
+		}
+
+		// Assembly of global system integral
+		if (!glInt.assemble(A,fe.iel))
+			return false;
+
+		A->destruct();
 	}
 
 	return true;

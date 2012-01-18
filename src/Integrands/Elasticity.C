@@ -106,10 +106,10 @@ void Elasticity::setMode (SIM::SolutionMode mode)
 
     case SIM::BUCKLING:
       myMats->resize(2,0);
-      mySols.resize(1);
+//      mySols.resize(1);
       eKm = &myMats->A[0];
       eKg = &myMats->A[1];
-      eV  = &mySols[0];
+//      eV  = &mySols[0];
       break;
 
     case SIM::STIFF_ONLY:
@@ -132,13 +132,13 @@ void Elasticity::setMode (SIM::SolutionMode mode)
 
     case SIM::RECOVERY:
       myMats->rhsOnly = true;
-      mySols.resize(1);
-      eV = &mySols[0];
+//      mySols.resize(1);
+//      eV = &mySols[0];
       break;
 
     default:
       myMats->resize(0,0);
-      mySols.clear();
+//      mySols.clear();
       tracVal.clear();
     }
 }
@@ -160,7 +160,8 @@ void Elasticity::setTraction (TractionFunc* tf)
 }
 
 
-bool Elasticity::initElement (const std::vector<int>& MNPC)
+bool Elasticity::initElement (const std::vector<int>& MNPC,
+                              LocalIntegral& elmInt)
 {
   if (myMats)
     myMats->withLHS = true;
@@ -172,18 +173,19 @@ bool Elasticity::initElement (const std::vector<int>& MNPC)
   if (eM)  eM->resize(nsd*nen,nsd*nen,true);
   if (eS)  eS->resize(nsd*nen,true);
 
-  return this->IntegrandBase::initElement(MNPC);
+  return this->IntegrandBase::initElement(MNPC,elmInt);
 }
 
 
-bool Elasticity::initElementBou (const std::vector<int>& MNPC)
+bool Elasticity::initElementBou (const std::vector<int>& MNPC,
+                                 LocalIntegral& elmInt)
 {
   if (myMats)
     myMats->withLHS = false;
 
   if (eS) eS->resize(nsd*MNPC.size(),true);
 
-  return this->IntegrandBase::initElementBou(MNPC);
+  return this->IntegrandBase::initElementBou(MNPC,elmInt);
 }
 
 
@@ -662,15 +664,17 @@ size_t ElasticityNorm::getNoFields () const
 }
 
 
-bool ElasticityNorm::initElement (const std::vector<int>& MNPC)
+bool ElasticityNorm::initElement (const std::vector<int>& MNPC,
+                                  LocalIntegral& elmInt)
 {
   // Extract projected solution vectors for this element
   int ierr = 0;
-  for (size_t i = 0; i < mySols.size() && ierr == 0; i++)
+  elmInt.vec.resize(prjsol.size());
+  for (size_t i = 0; i < prjsol.size() && ierr == 0; i++)
     if (!prjsol[i].empty())
-      ierr = utl::gather(MNPC,nrcmp,prjsol[i],mySols[i]);
+      ierr = utl::gather(MNPC,nrcmp,prjsol[i],elmInt.vec[i]);
 
-  if (ierr == 0) return myProblem.initElement(MNPC);
+//  if (ierr == 0) return myProblem.initElement(MNPC);
 
   std::cerr <<" *** ElasticityNorm::initElement: Detected "
             << ierr <<" node numbers out of range."<< std::endl;
@@ -729,14 +733,14 @@ bool ElasticityNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
   }
 
   size_t i, j, k;
-  for (i = 0; i < mySols.size(); i++)
-    if (!mySols[i].empty())
+  for (i = 0; i < 0; i++) // mySols.size(); i++)
+    if (0) //!mySols[i].empty()) // TODO!
     {
       // Evaluate projected stress field
       Vector sigmar(sigmah.size());
       for (j = k = 0; j < nrcmp && k < sigmar.size(); j++)
 	if (!planeStrain || j != 2)
-	  sigmar[k++] = mySols[i].dot(fe.N,j,nrcmp);
+	  sigmar[k++] = 0;//mySols[i].dot(fe.N,j,nrcmp);
 
       // Integrate the energy norm a(u^r,u^r)
       pnorm[ip++] += sigmar.dot(Cinv*sigmar)*detJW;

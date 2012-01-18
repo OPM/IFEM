@@ -19,11 +19,8 @@
 #include "Function.h"
 
 class NormBase;
-class ElmMats;
-class ElmNorm;
 class AnaSol;
 class VTF;
-
 
 /*!
   \brief Base class representing a system level integrated quantity.
@@ -33,11 +30,11 @@ class IntegrandBase : public Integrand
 {
 protected:
   //! \brief The default constructor is protected to allow sub-classes only.
-  IntegrandBase() : m_mode(SIM::STATIC), npv(0){}
+  IntegrandBase() : npv(1), m_mode(SIM::INIT) {}
 
 public:
-  //! \brief The destructor frees the dynamically allocated data objects.
-  virtual ~IntegrandBase();
+  //! \brief Empty destructor.
+  virtual ~IntegrandBase() {}
 
   //! \brief Prints out the problem definition to the given output stream.
   virtual void print(std::ostream&) const {}
@@ -66,6 +63,7 @@ public:
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param[in] X0 Cartesian coordinates of the element center
   //! \param[in] nPt Number of integration points in this element
+  //! \param[in] elmInt Local integral for element
   //!
   //! \details This method is invoked once before starting the numerical
   //! integration loop over the Gaussian quadrature points over an element.
@@ -74,31 +72,38 @@ public:
   //! The default implementation forwards to an overloaded method not taking
   //! \a X0 and \a nPt as arguments.
   virtual bool initElement(const std::vector<int>& MNPC,
-			   const Vec3& X0, size_t nPt);
+			   const Vec3& X0, size_t nPt, LocalIntegral& elmInt);
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
+  //! \param[in] elmInt Local integral for element
   //!
   //! \details This method is invoked once before starting the numerical
   //! integration loop over the Gaussian quadrature points over an element.
   //! It is supposed to perform all the necessary internal initializations
   //! needed before the numerical integration is started for current element.
-  virtual bool initElement(const std::vector<int>& MNPC);
+  virtual bool initElement(const std::vector<int>& MNPC, LocalIntegral& elmInt);
   //! \brief Initializes current element for numerical integration (mixed).
   //! \param[in] MNPC1 Nodal point correspondance for the basis 1
   //! \param[in] MNPC2 Nodal point correspondance for the basis 2
   //! \param[in] n1 Number of nodes in basis 1 on this patch
+  //! \param[in] elmInt Local integral for element
   virtual bool initElement(const std::vector<int>& MNPC1,
-			   const std::vector<int>& MNPC2, size_t n1);
+			   const std::vector<int>& MNPC2, size_t n1,
+                           LocalIntegral& elmInt);
 
   //! \brief Initializes current element for boundary integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
-  virtual bool initElementBou(const std::vector<int>& MNPC);
+  //! \param[in] elmInt Local integral for element
+  virtual bool initElementBou(const std::vector<int>& MNPC,
+                              LocalIntegral& elmInt);
   //! \brief Initializes current element for boundary integration (mixed).
   //! \param[in] MNPC1 Nodal point correspondance for the basis 1
   //! \param[in] MNPC2 Nodal point correspondance for the basis 2
   //! \param[in] n1 Number of nodes in basis 1 on this patch
+  //! \param[in] elmInt Local integral for element
   virtual bool initElementBou(const std::vector<int>& MNPC1,
-			      const std::vector<int>& MNPC2, size_t n1);
+			      const std::vector<int>& MNPC2, size_t n1,
+                              LocalIntegral& elmInt);
 
 
   // Solution field evaluation interface
@@ -172,12 +177,9 @@ public:
   void resetSolution();
 
 protected:
-  Vectors  primsol; //!< Primary solution vectors for current patch
-  ElmMats* myMats;  //!< Local element matrices
-  Vectors  mySols;  //!< Local element vectors of the primary solution
-  SIM::SolutionMode m_mode; //!< Current solution mode
-
-  unsigned short int npv; //!< Number of primary solution variables per node
+  Vectors            primsol; //!< Primary solution vectors for current patch
+  unsigned short int npv;     //!< Number of primary solution variables per node
+  SIM::SolutionMode  m_mode;  //!< Current solution mode
 };
 
 
@@ -189,7 +191,7 @@ class NormBase : public Integrand
 {
 protected:
   //! \brief The default constructor is protected to allow sub-classes only.
-  NormBase(IntegrandBase& p) : myProblem(p), nrcmp(0) {}
+  NormBase(IntegrandBase& p) : myProblem(p), nrcmp(0), lints(0) {}
 
 public:
   //! \brief Empty destructor.
@@ -198,23 +200,39 @@ public:
   //! \brief Initializes the integrand for a new integration loop.
   virtual void initIntegration(const TimeDomain& time);
 
-  //! \brief Initializes current element for numerical integration.
-  virtual bool initElement(const std::vector<int>& MNPC,
-			   const Vec3& X0, size_t nPt);
+  //! \brief Set a vector of LocalIntegrals to be used during norm integration
+  void setLocalIntegrals(LintegralVec* elementNorms)
+  {
+    lints = elementNorms;
+  }
+
+  //! \brief Get a local integral contribution container for a given element
+  //! \param[in] nen Number of DOFs on element
+  //! \param[in] iEl The element number
+  //! \param[in] neumann Whether or not we are assembling Neumann b.c's
+  virtual LocalIntegral* getLocalIntegral(size_t nen, size_t iEl,
+                                          bool neumann) const;
 
   //! \brief Initializes current element for numerical integration.
-  virtual bool initElement(const std::vector<int>& MNPC);
+  virtual bool initElement(const std::vector<int>& MNPC,
+			   const Vec3& X0, size_t nPt, LocalIntegral& elmInt);
+
+  //! \brief Initializes current element for numerical integration.
+  virtual bool initElement(const std::vector<int>& MNPC, LocalIntegral& elmInt);
 
   //! \brief Initializes current element for numerical integration (mixed).
   virtual bool initElement(const std::vector<int>& MNPC1,
-			   const std::vector<int>& MNPC2, size_t n1);
+			   const std::vector<int>& MNPC2, size_t n1,
+                           LocalIntegral& elmInt);
 
   //! \brief Initializes current element for boundary integration.
-  virtual bool initElementBou(const std::vector<int>& MNPC);
+  virtual bool initElementBou(const std::vector<int>& MNPC,
+                              LocalIntegral& elmInt);
 
   //! \brief Initializes current element for boundary integration (mixed).
   virtual bool initElementBou(const std::vector<int>& MNPC1,
-			      const std::vector<int>& MNPC2, size_t n1);
+			      const std::vector<int>& MNPC2, size_t n1,
+                              LocalIntegral& elmInt);
 
   //! \brief Returns whether this norm has explicit boundary contributions.
   virtual bool hasBoundaryTerms() const { return false; }
@@ -231,24 +249,14 @@ public:
   //! \brief Accesses a projected secondary solution vector of current patch.
   Vector& getProjection(size_t i);
 
-protected:
-  //! \brief Returns the element norm object to use in the integration.
-  //! \param elmInt The local integral object to receive norm contributions
-  //! \param[in] nn Size of static norm buffer
-  //!
-  //! \details If \a elmInt is NULL or cannot be casted to an ElmNorm pointer,
-  //! a local static buffer is used instead.
-  static ElmNorm& getElmNormBuffer(LocalIntegral*& elmInt, const size_t nn = 4);
-
 private:
   //! \brief Initializes projected field for current element.
-  bool initProjection(const std::vector<int>& MNPC);
+  bool initProjection(const std::vector<int>& MNPC, LocalIntegral& elmInt);
 
 protected:
   IntegrandBase& myProblem; //!< The problem-specific data
 
   Vectors prjsol; //!< Projected secondary solution vectors for current patch
-  Vectors mySols; //!< Local element vectors of projected secondary solutions
 
   unsigned short int nrcmp; //!< Number of projected solution components
 };

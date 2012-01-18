@@ -23,6 +23,7 @@
 #include "GaussQuadrature.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
+#include "ElmNorm.h"
 
 
 ASMs2DmxLag::ASMs2DmxLag (unsigned char n_s,
@@ -207,8 +208,7 @@ bool ASMs2DmxLag::getSize (int& n1, int& n2, int basis) const
 
 bool ASMs2DmxLag::integrate (Integrand& integrand,
 			     GlobalIntegral& glInt,
-			     const TimeDomain& time,
-			     const LintegralVec& locInt)
+			     const TimeDomain& time)
 {
   if (!surf) return true; // silently ignore empty patches
 
@@ -251,16 +251,10 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
 
       // Initialize element quantities
       IntVec::const_iterator f2start = MNPC[iel-1].begin() + fe.N1.size();
+      LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),iel-1,false);
       if (!integrand.initElement(IntVec(MNPC[iel-1].begin(),f2start),
-				 IntVec(f2start,MNPC[iel-1].end()),nb1))
+				 IntVec(f2start,MNPC[iel-1].end()),nb1,*A))
 	return false;
-
-      // Caution: Unless locInt is empty, we assume it points to an array of
-      // LocalIntegral pointers, of length at least the number of elements in
-      // the model (as defined by the highest number in the MLGE array).
-      // If the array is shorter than this, expect a segmentation fault.
-      LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
-
 
       // --- Integration loop over all Gauss points in each direction ----------
 
@@ -294,13 +288,15 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
 
 	  // Evaluate the integrand and accumulate element contributions
 	  fe.detJxW *= wg[i]*wg[j];
-	  if (!integrand.evalIntMx(elmInt,fe,time,X))
+	  if (!integrand.evalIntMx(*A,fe,time,X))
 	    return false;
 	}
 
       // Assembly of global system integral
-      if (!glInt.assemble(elmInt,fe.iel))
+      if (!glInt.assemble(A,fe.iel))
 	return false;
+        if (!dynamic_cast<ElmNorm*>(A))
+          delete A;
     }
 
   return true;
@@ -309,8 +305,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
 
 bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 			     GlobalIntegral& glInt,
-			     const TimeDomain& time,
-			     const LintegralVec& locInt)
+			     const TimeDomain& time)
 {
   if (!surf) return true; // silently ignore empty patches
 
@@ -367,16 +362,10 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 
       // Initialize element quantities
       IntVec::const_iterator f2start = MNPC[iel-1].begin() + fe.N1.size();
+      LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),iel-1,true);
       if (!integrand.initElementBou(IntVec(MNPC[iel-1].begin(),f2start),
-				    IntVec(f2start,MNPC[iel-1].end()),nb1))
+				    IntVec(f2start,MNPC[iel-1].end()),nb1,*A))
 	return false;
-
-      // Caution: Unless locInt is empty, we assume it points to an array of
-      // LocalIntegral pointers, of length at least the number of elements in
-      // the model (as defined by the highest number in the MLGE array).
-      // If the array is shorter than this, expect a segmentation fault.
-      LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
-
 
       // --- Integration loop over all Gauss points along the edge -------------
 
@@ -407,13 +396,15 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 
 	// Evaluate the integrand and accumulate element contributions
 	fe.detJxW *= wg[i];
-	if (!integrand.evalBouMx(elmInt,fe,time,X,normal))
+	if (!integrand.evalBouMx(A,fe,time,X,normal))
 	  return false;
       }
 
       // Assembly of global system integral
-      if (!glInt.assemble(elmInt,fe.iel))
+      if (!glInt.assemble(A,fe.iel))
 	return false;
+      if (!dynamic_cast<ElmNorm*>(A))
+        delete A;
     }
 
   return true;

@@ -18,6 +18,10 @@
 
 #include "tinyxml.h"
 
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 
 /*!
   A struct defining a patch interface for C1-continuous models.
@@ -199,6 +203,10 @@ bool SIM2D::parseGeometryTag(const TiXmlElement* elem)
     std::cout <<"\tPeriodic "<< char('H'+pedir) <<"-direction P"<< patch
               << std::endl;
     static_cast<ASMs2D*>(myModel[patch-1])->closeEdges(pedir);
+    // cannot do multi-threaded assembly with periodicities
+#ifdef USE_OPENMP
+    omp_set_num_threads(1);
+#endif
   }
   // TODO: constraints? fixpoints?
 
@@ -382,6 +390,10 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
       std::cout <<"\tPeriodic "<< char('H'+pedir) <<"-direction P"<< patch
 		<< std::endl;
       static_cast<ASMs2D*>(myModel[patch-1])->closeEdges(pedir);
+    // cannot do multi-threaded assembly with periodicities
+#ifdef USE_OPENMP
+    omp_set_num_threads(1);
+#endif
     }
   }
 

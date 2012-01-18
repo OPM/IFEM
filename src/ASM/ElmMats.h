@@ -70,6 +70,9 @@ public:
     return b.front();
   }
 
+  //! \brief Virtual destruction method to clean up after numerical integration.
+  virtual void destruct() { delete this; }
+
   std::vector<Matrix> A; //!< The element coefficient matrices
   std::vector<Vector> b; //!< The element right-hand-side vectors
 

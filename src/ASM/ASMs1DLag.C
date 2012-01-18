@@ -18,6 +18,7 @@
 #include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
+#include "LocalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
@@ -161,8 +162,7 @@ bool ASMs1DLag::updateCoords (const Vector& displ)
 
 bool ASMs1DLag::integrate (Integrand& integrand,
 			   GlobalIntegral& glInt,
-			   const TimeDomain& time,
-			   const LintegralVec& locInt)
+			   const TimeDomain& time)
 {
   if (!curv) return true; // silently ignore empty patches
 
@@ -196,20 +196,13 @@ bool ASMs1DLag::integrate (Integrand& integrand,
   const int nel = this->getNoElms();
   for (int iel = 1; iel <= nel; iel++)
   {
-    fe.iel = MLGE[iel-1];
-
     // Set up nodal point coordinates for current element
     if (!this->getElementCoordinates(Xnod,iel)) return false;
 
     // Initialize element quantities
-    if (!integrand.initElement(MNPC[iel-1],X,nRed)) return false;
-
-    // Caution: Unless locInt is empty, we assume it points to an array of
-    // LocalIntegral pointers, of length at least the number of elements in
-    // the model (as defined by the highest number in the MLGE array).
-    // If the array is shorter than this, expect a segmentation fault.
-    LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
-
+    fe.iel = MLGE[iel-1];
+    LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
+    if (!integrand.initElement(MNPC[iel-1],X,nRed,*A)) return false;
 
     if (integrand.getIntegrandType() > 10)
 
@@ -235,7 +228,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
 	X.t = time.t;
 
 	// Compute the reduced integration terms of the integrand
-	if (!integrand.reducedInt(fe,X))
+	if (!integrand.reducedInt(*A,fe,X))
 	  return false;
       }
 
@@ -262,13 +255,19 @@ bool ASMs1DLag::integrate (Integrand& integrand,
       X.t = time.t;
 
       // Evaluate the integrand and accumulate element contributions
-      if (!integrand.evalInt(elmInt,fe,time,X))
+      if (!integrand.evalInt(*A,fe,time,X))
 	return false;
     }
 
-    // Assembly of global system integral
-    if (!glInt.assemble(elmInt,fe.iel))
+    // Finalize the element quantities
+    if (!integrand.finalizeElement(*A,time))
       return false;
+
+    // Assembly of global system integral
+    if (!glInt.assemble(A->ref(),fe.iel))
+      return false;
+
+    A->destruct();
   }
 
   return true;
@@ -277,14 +276,13 @@ bool ASMs1DLag::integrate (Integrand& integrand,
 
 bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
 			   GlobalIntegral& glInt,
-			   const TimeDomain& time,
-			   const LintegralVec& locInt)
+			   const TimeDomain& time)
 {
   if (!curv) return true; // silently ignore empty patches
 
   // Integration of boundary point
 
-  FiniteElement fe;
+  FiniteElement fe(curv->order());
   int iel;
   switch (lIndex)
     {
@@ -303,20 +301,14 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
       return false;
     }
 
-  fe.iel = MLGE[iel-1];
-
   // Set up nodal point coordinates for current element
   Matrix Xnod;
   if (!this->getElementCoordinates(Xnod,iel)) return false;
 
   // Initialize element quantities
-  if (!integrand.initElementBou(MNPC[iel-1])) return false;
-
-  // Caution: Unless locInt is empty, we assume it points to an array of
-  // LocalIntegral pointers, of length at least the number of elements in
-  // the model (as defined by the highest number in the MLGE array).
-  // If the array is shorter than this, expect a segmentation fault.
-  LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
+  fe.iel = MLGE[iel-1];
+  LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
+  if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;
 
   // Evaluate basis functions and corresponding derivatives
   Matrix dNdu, Jac;
@@ -336,11 +328,14 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
     normal.x = copysign(1.0,Jac(1,1));
 
   // Evaluate the integrand and accumulate element contributions
-  if (!integrand.evalBou(elmInt,fe,time,X,normal))
+  if (!integrand.evalBou(*A,fe,time,X,normal))
     return false;
 
   // Assembly of global system integral
-  return glInt.assemble(elmInt,fe.iel);
+  bool result = glInt.assemble(A->ref(),fe.iel);
+
+  A->destruct();
+  return result;
 }
 
 

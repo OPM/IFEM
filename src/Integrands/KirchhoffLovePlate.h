@@ -61,10 +61,12 @@ public:
 
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
-  virtual bool initElement(const std::vector<int>& MNPC);
+  virtual bool initElement(const std::vector<int>& MNPC, LocalIntegral& elmInt);
+
   //! \brief Initializes current element for boundary numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
-  virtual bool initElementBou(const std::vector<int>& MNPC);
+  virtual bool initElementBou(const std::vector<int>& MNPC,
+                              LocalIntegral& elmInt);
 
   //! \brief Defines which FE quantities are needed by the integrand.
   virtual int getIntegrandType() const { return 2; }
@@ -219,7 +221,8 @@ public:
 
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
-  virtual bool initElement(const std::vector<int>& MNPC);
+  virtual bool initElement(const std::vector<int>& MNPC,
+                           LocalIntegral& elmInt);
 
   //! \brief Defines which FE quantities are needed by the integrand.
   virtual int getIntegrandType() const { return 2; }

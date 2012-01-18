@@ -115,19 +115,20 @@ void KirchhoffLovePlate::setMode (SIM::SolutionMode mode)
 
     case SIM::RECOVERY:
       myMats->rhsOnly = true;
-      mySols.resize(1);
-      eV = &mySols[0];
+//      mySols.resize(1);
+//      eV = &mySols[0];
       break;
 
     default:
       myMats->resize(0,0);
-      mySols.clear();
+//      mySols.clear();
       presVal.clear();
     }
 }
 
 
-bool KirchhoffLovePlate::initElement (const std::vector<int>& MNPC)
+bool KirchhoffLovePlate::initElement (const std::vector<int>& MNPC,
+                                      LocalIntegral& elmInt)
 {
   if (myMats)
     myMats->withLHS = true;
@@ -138,18 +139,21 @@ bool KirchhoffLovePlate::initElement (const std::vector<int>& MNPC)
   if (eM) eM->resize(nen,nen,true);
   if (eS) eS->resize(nen,true);
 
-  return this->IntegrandBase::initElement(MNPC);
+  return false;
+//  return this->IntegrandBase::initElement(MNPC);
 }
 
 
-bool KirchhoffLovePlate::initElementBou (const std::vector<int>& MNPC)
+bool KirchhoffLovePlate::initElementBou (const std::vector<int>& MNPC,
+                                         LocalIntegral& elmInt)
 {
   if (myMats)
     myMats->withLHS = false;
 
   if (eS) eS->resize(MNPC.size(),true);
 
-  return this->IntegrandBase::initElementBou(MNPC);
+//  return this->IntegrandBase::initElementBou(MNPC);
+  return false;
 }
 
 
@@ -464,15 +468,17 @@ size_t KirchhoffLovePlateNorm::getNoFields () const
 }
 
 
-bool KirchhoffLovePlateNorm::initElement (const std::vector<int>& MNPC)
+bool KirchhoffLovePlateNorm::initElement (const std::vector<int>& MNPC,
+                                          LocalIntegral& elmInt)
 {
   // Extract projected solution vectors for this element
   int ierr = 0;
-  for (size_t i = 0; i < mySols.size() && ierr == 0; i++)
+  elmInt.vec.resize(prjsol.size());
+  for (size_t i = 0; i < prjsol.size() && ierr == 0; i++)
     if (!prjsol[i].empty())
-      ierr = utl::gather(MNPC,nrcmp,prjsol[i],mySols[i]);
+      ierr = utl::gather(MNPC,nrcmp,prjsol[i],elmInt.vec[i]);
 
-  if (ierr == 0) return myProblem.initElement(MNPC);
+//  if (ierr == 0) return myProblem.initElement(MNPC);
 
   std::cerr <<" *** KirchhoffLovePlateNorm::initElement: Detected "
             << ierr <<" node numbers out of range."<< std::endl;
@@ -522,13 +528,14 @@ bool KirchhoffLovePlateNorm::evalInt (LocalIntegral*& elmInt,
   }
 
   size_t i, j;
-  for (i = 0; i < mySols.size(); i++)
-    if (!mySols[i].empty())
+  // TODO!
+  for (i = 0; i < 0; i++) //mySols.size(); i++)
+    if (0) //!mySols[i].empty())
     {
       // Evaluate projected stress field
       Vector mr(mh.size());
       for (j = 0; j < nrcmp; j++)
-	mr[j] = mySols[i].dot(fe.N,j,nrcmp);
+	mr[j] = 0;//mySols[i].dot(fe.N,j,nrcmp);
 
       // Integrate the energy norm a(w^r,w^r)
       pnorm[ip++] += mr.dot(Cinv*mr)*fe.detJxW;

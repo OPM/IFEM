@@ -17,12 +17,6 @@
 #include "Utilities.h"
 
 
-IntegrandBase::~IntegrandBase ()
-{
-  if (myMats) delete myMats;
-}
-
-
 void IntegrandBase::resetSolution ()
 {
   for (size_t i = 0; i < primsol.size(); i++)
@@ -31,22 +25,21 @@ void IntegrandBase::resetSolution ()
 
 
 bool IntegrandBase::initElement (const std::vector<int>& MNPC,
-				 const Vec3&, size_t)
+				 const Vec3&, size_t, LocalIntegral& elmInt)
 {
-  return this->initElement(MNPC);
+  return this->initElement(MNPC,elmInt);
 }
 
 
-bool IntegrandBase::initElement (const std::vector<int>& MNPC)
+bool IntegrandBase::initElement (const std::vector<int>& MNPC,
+                                 LocalIntegral& elmInt)
 {
-  if (myMats)
-    myMats->withLHS = true;
-
   // Extract the primary solution vectors for this element
   int ierr = 0;
-  for (size_t i = 0; i < mySols.size() && i < primsol.size() && ierr == 0; i++)
+  elmInt.vec.resize(primsol.size());
+  for (size_t i = 0; i < primsol.size() && ierr == 0; i++)
     if (!primsol[i].empty())
-      ierr = utl::gather(MNPC,npv,primsol[i],mySols[i]);
+      ierr = utl::gather(MNPC,npv,primsol[i],elmInt.vec[i]);
 
   if (ierr == 0) return true;
 
@@ -57,7 +50,8 @@ bool IntegrandBase::initElement (const std::vector<int>& MNPC)
 
 
 bool IntegrandBase::initElement (const std::vector<int>&,
-				 const std::vector<int>&, size_t)
+				 const std::vector<int>&, size_t,
+                                 LocalIntegral&)
 {
   std::cerr <<" *** IntegrandBase::initElement must be reimplemented"
 	    <<" for mixed problems."<< std::endl;
@@ -65,15 +59,14 @@ bool IntegrandBase::initElement (const std::vector<int>&,
 }
 
 
-bool IntegrandBase::initElementBou (const std::vector<int>& MNPC)
+bool IntegrandBase::initElementBou (const std::vector<int>& MNPC,
+                                    LocalIntegral& elmInt)
 {
-  if (myMats)
-    myMats->withLHS = false;
-
   // Extract current primary solution vector for this element
   int ierr = 0;
-  if (!mySols.empty() && !primsol.empty() && !primsol.front().empty())
-    ierr = utl::gather(MNPC,npv,primsol.front(),mySols.front());
+  elmInt.vec.resize(1);
+  if (!primsol.empty() && !primsol.front().empty())
+    ierr = utl::gather(MNPC,npv,primsol.front(),elmInt.vec.front());
 
   if (ierr == 0) return true;
 
@@ -84,7 +77,8 @@ bool IntegrandBase::initElementBou (const std::vector<int>& MNPC)
 
 
 bool IntegrandBase::initElementBou (const std::vector<int>&,
-				    const std::vector<int>&, size_t)
+				    const std::vector<int>&, size_t,
+                                    LocalIntegral&)
 {
   std::cerr <<" *** IntegrandBase::initElementBou must be reimplemented"
 	    <<" for mixed problems."<< std::endl;
@@ -168,75 +162,81 @@ Vector& NormBase::getProjection (size_t i)
     return dummy;
   }
   else if (prjsol.size() < i)
-  {
     prjsol.resize(i);
-    mySols.resize(i);
-  }
 
   return prjsol[i-1];
 }
 
 
-bool NormBase::initProjection (const std::vector<int>& MNPC)
+bool NormBase::initProjection (const std::vector<int>& MNPC,
+                               LocalIntegral& elmInt)
 {
   // Extract projected solution vectors for this element
+  Vectors& psol = static_cast<ElmNorm&>(elmInt).psol;
+  psol.resize(prjsol.size());
+
   int ierr = 0;
-  for (size_t i = 0; i < mySols.size() && ierr == 0; i++)
+  for (size_t i = 0; i < prjsol.size() && ierr == 0; i++)
     if (!prjsol[i].empty())
-      ierr = utl::gather(MNPC,nrcmp,prjsol[i],mySols[i]);
+      ierr = utl::gather(MNPC,nrcmp,prjsol[i],psol[i]);
 
   if (ierr == 0) return true;
 
-  std::cerr <<" *** NormBase::initProjection: Detected "
-            << ierr <<" node numbers out of range."<< std::endl;
+  std::cerr <<" *** NormBase::initProjection: Detected "<< ierr
+            <<" node numbers out of range."<< std::endl;
   return false;
 }
 
 
-bool NormBase::initElement (const std::vector<int>& MNPC,
-			    const Vec3& Xc, size_t nPt)
+LocalIntegral* NormBase::getLocalIntegral(size_t nen, size_t iEl,
+                                          bool neumann) const
 {
-  return this->initProjection(MNPC) && myProblem.initElement(MNPC,Xc,nPt);
+  if (lints && iEl > 0 && iEl <= lints->size()) return (*lints)[iEl-1];
+
+  // Element norms are not requested, so allocate one internally instead that
+  // will delete itself when invoking the destruct method.
+  return new ElmNorm(this->getNoFields());
 }
 
 
-bool NormBase::initElement (const std::vector<int>& MNPC)
+bool NormBase::initElement (const std::vector<int>& MNPC,
+			    const Vec3& Xc, size_t nPt,
+                            LocalIntegral& elmInt)
 {
-  return this->initProjection(MNPC) && myProblem.initElement(MNPC);
+  return this->initProjection(MNPC,elmInt) &&
+         myProblem.initElement(MNPC,Xc,nPt,elmInt);
+}
+
+
+bool NormBase::initElement (const std::vector<int>& MNPC,
+                            LocalIntegral& elmInt)
+{
+  return this->initProjection(MNPC,elmInt) &&
+         myProblem.initElement(MNPC,elmInt);
 }
 
 
 bool NormBase::initElement (const std::vector<int>& MNPC1,
-			    const std::vector<int>& MNPC2, size_t n1)
+			    const std::vector<int>& MNPC2, size_t n1,
+                            LocalIntegral& elmInt)
 {
-  return this->initProjection(MNPC1) && myProblem.initElement(MNPC1,MNPC2,n1);
+  return this->initProjection(MNPC1,elmInt) &&
+         myProblem.initElement(MNPC1,MNPC2,n1,elmInt);
 }
 
 
-bool NormBase::initElementBou (const std::vector<int>& MNPC)
+bool NormBase::initElementBou (const std::vector<int>& MNPC,
+                               LocalIntegral& elmInt)
 {
-  return myProblem.initElementBou(MNPC);
+  return myProblem.initElementBou(MNPC,elmInt);
 }
 
 
 bool NormBase::initElementBou (const std::vector<int>& MNPC1,
-			       const std::vector<int>& MNPC2, size_t n1)
+			       const std::vector<int>& MNPC2, size_t n1,
+                               LocalIntegral& elmInt)
 {
-  return myProblem.initElementBou(MNPC1,MNPC2,n1);
-}
-
-
-ElmNorm& NormBase::getElmNormBuffer (LocalIntegral*& elmInt, const size_t nn)
-{
-  ElmNorm* eNorm = dynamic_cast<ElmNorm*>(elmInt);
-  if (eNorm) return *eNorm;
-
-  static double* data = 0;
-  if (!data) data = new double[nn];
-  static ElmNorm buf(data,nn);
-  memset(data,0,buf.size()*sizeof(double));
-  elmInt = &buf;
-  return buf;
+  return myProblem.initElementBou(MNPC1,MNPC2,n1,elmInt);
 }
 
 

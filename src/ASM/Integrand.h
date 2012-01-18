@@ -60,11 +60,35 @@ public:
 
   // Element-level initialization interface
   // ======================================
+  
+  //! \brief Get a local integral contribution container for a given element
+  //! \param[in] nen Number of DOFs on element
+  //! \param[in] iEl The element number
+  //! \param[in] neumann Whether or not we are assembling Neumann b.c's
+  virtual LocalIntegral* getLocalIntegral(size_t nen, size_t iEl,
+                                          bool neumann = false) const = 0;
+  //! \brief Returns a local integral contribution object for the given element.
+  //! \param[in] nen1 Number of nodes on element for basis 1
+  //! \param[in] nen2 Number of nodes on element for basis 2
+  //! \param[in] iEl Global element number (1-based)
+  //! \param[in] neumann Whether or not we are assembling Neumann BCs
+  //!
+  //! \details This form is used for mixed formulations only.
+  //! The default implementation just forwards to the single-basis version.
+  //! Reimplement this method if your mixed formulation requires specialized
+  //! local integral objects.
+  virtual LocalIntegral* getLocalIntegral(size_t nen1, size_t nen2,
+                                          size_t iEl,
+                                          bool neumann = false) const
+  {
+    return this->getLocalIntegral(nen1,iEl,neumann);
+  }
 
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param[in] X0 Cartesian coordinates of the element center
   //! \param[in] nPt Number of integration points in this element
+  //! \param elmInt Local integral for element
   //!
   //! \details This method is invoked once before starting the numerical
   //! integration loop over the Gaussian quadrature points over an element.
@@ -73,9 +97,11 @@ public:
   //! Reimplement this method for problems requiring the element center and/or
   //! the number of integration points during/before the integrand evaluations.
   virtual bool initElement(const std::vector<int>& MNPC,
-			   const Vec3& X0, size_t nPt) = 0;
+			   const Vec3& X0, size_t nPt,
+			   LocalIntegral& elmInt) = 0;
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
+  //! \param elmInt Local integral for element
   //!
   //! \details This method is invoked once before starting the numerical
   //! integration loop over the Gaussian quadrature points over an element.
@@ -84,23 +110,30 @@ public:
   //! Reimplement this method for problems \e not requiring the
   //! the element center nor the number of integration points before the
   //! integration loop is started.
-  virtual bool initElement(const std::vector<int>& MNPC) = 0;
+  virtual bool initElement(const std::vector<int>& MNPC,
+                           LocalIntegral& elmInt) = 0;
   //! \brief Initializes current element for numerical integration (mixed).
   //! \param[in] MNPC1 Nodal point correspondance for the basis 1
   //! \param[in] MNPC2 Nodal point correspondance for the basis 2
   //! \param[in] n1 Number of nodes in basis 1 on this patch
+  //! \param elmInt Local integral for element
   virtual bool initElement(const std::vector<int>& MNPC1,
-			   const std::vector<int>& MNPC2, size_t n1) = 0;
+			   const std::vector<int>& MNPC2, size_t n1,
+                           LocalIntegral& elmInt) = 0;
 
   //! \brief Initializes current element for boundary integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
-  virtual bool initElementBou(const std::vector<int>& MNPC) = 0;
+  //! \param elmInt Local integral for element
+  virtual bool initElementBou(const std::vector<int>& MNPC,
+                              LocalIntegral& elmInt) = 0;
   //! \brief Initializes current element for boundary integration (mixed).
   //! \param[in] MNPC1 Nodal point correspondance for the basis 1
   //! \param[in] MNPC2 Nodal point correspondance for the basis 2
   //! \param[in] n1 Number of nodes in basis 1 on this patch
+  //! \param elmInt Local integral for element
   virtual bool initElementBou(const std::vector<int>& MNPC1,
-			      const std::vector<int>& MNPC2, size_t n1) = 0;
+			      const std::vector<int>& MNPC2, size_t n1,
+                              LocalIntegral& elmInt) = 0;
 
 
   // Integrand evaluation interface
@@ -117,13 +150,15 @@ public:
   virtual int getIntegrandType() const { return 1; }
 
   //! \brief Evaluates reduced integration terms at an interior point.
+  //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Finite element data of current integration point
   //! \param[in] X Cartesian coordinates of current integration point
   //!
   //! \details Reimplement this method to evaluate terms at other points than
   //! the regular integration points. This method is invoked in a separate loop
   //! prior to the main integration point loop.
-  virtual bool reducedInt(const FiniteElement& fe, const Vec3& X) const
+  virtual bool reducedInt(LocalIntegral& elmInt,
+                          const FiniteElement& fe, const Vec3& X) const
   {
     return false;
   }
@@ -136,7 +171,7 @@ public:
   //!
   //! \details The default implementation forwards to the stationary version.
   //! Reimplement this method for time-dependent or non-linear problems.
-  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalInt(LocalIntegral& elmInt, const FiniteElement& fe,
 		       const TimeDomain& time, const Vec3& X) const
   {
     return this->evalInt(elmInt,fe,X);
@@ -151,7 +186,7 @@ public:
   //! \details This interface is used for mixed formulations only.
   //! The default implementation forwards to the stationary version.
   //! Reimplement this method for time-dependent or non-linear problems.
-  virtual bool evalIntMx(LocalIntegral*& elmInt, const MxFiniteElement& fe,
+  virtual bool evalIntMx(LocalIntegral& elmInt, const MxFiniteElement& fe,
 			 const TimeDomain& time, const Vec3& X) const
   {
     return this->evalIntMx(elmInt,fe,X);
@@ -164,7 +199,7 @@ public:
   //! It can also be used to implement multiple integration point loops within
   //! the same element, provided the necessary integration point values are
   //! stored internally in the object during the first integration loop.
-  virtual bool finalizeElement(LocalIntegral*&, const TimeDomain&)
+  virtual bool finalizeElement(LocalIntegral&, const TimeDomain&)
   {
     return true;
   }
@@ -178,7 +213,7 @@ public:
   //!
   //! \details The default implementation forwards to the stationary version.
   //! Reimplement this method for time-dependent or non-linear problems.
-  virtual bool evalBou(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalBou(LocalIntegral& elmInt, const FiniteElement& fe,
 		       const TimeDomain& time,
 		       const Vec3& X, const Vec3& normal) const
   {
@@ -195,7 +230,7 @@ public:
   //! \details This interface is used for mixed formulations.
   //! The default implementation forwards to the stationary version.
   //! Reimplement this method for time-dependent or non-linear problems.
-  virtual bool evalBouMx(LocalIntegral*& elmInt, const MxFiniteElement& fe,
+  virtual bool evalBouMx(LocalIntegral& elmInt, const MxFiniteElement& fe,
 			 const TimeDomain& time,
 			 const Vec3& X, const Vec3& normal) const
   {
@@ -204,17 +239,17 @@ public:
 
 protected:
   //! \brief Evaluates the integrand at interior points for stationary problems.
-  virtual bool evalInt(LocalIntegral*&, const FiniteElement& fe,
+  virtual bool evalInt(LocalIntegral&, const FiniteElement& fe,
 		       const Vec3&) const { return false; }
   //! \brief Evaluates the integrand at interior points for stationary problems.
-  virtual bool evalIntMx(LocalIntegral*&, const MxFiniteElement& fe,
+  virtual bool evalIntMx(LocalIntegral&, const MxFiniteElement& fe,
 			 const Vec3&) const { return false; }
 
   //! \brief Evaluates the integrand at boundary points for stationary problems.
-  virtual bool evalBou(LocalIntegral*&, const FiniteElement&,
+  virtual bool evalBou(LocalIntegral&, const FiniteElement&,
 		       const Vec3&, const Vec3&) const { return false; }
   //! \brief Evaluates the integrand at boundary points for stationary problems.
-  virtual bool evalBouMx(LocalIntegral*&, const MxFiniteElement&,
+  virtual bool evalBouMx(LocalIntegral&, const MxFiniteElement&,
 			 const Vec3&, const Vec3&) const { return false; }
 
 public:

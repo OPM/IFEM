@@ -17,6 +17,7 @@
 #include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
+#include "LocalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "Vec3Oper.h"
@@ -57,8 +58,7 @@ bool ASMs1DSpec::getGridParameters (RealArray& prm, int nSegPerSpan) const
 
 bool ASMs1DSpec::integrate (Integrand& integrand,
 			    GlobalIntegral& glInt,
-			    const TimeDomain& time,
-			    const LintegralVec& locInt)
+			    const TimeDomain& time)
 {
   if (!curv) return true; // silently ignore empty patches
 
@@ -98,14 +98,9 @@ bool ASMs1DSpec::integrate (Integrand& integrand,
     if (!this->getElementCoordinates(Xnod,iel)) return false;
 
     // Initialize element quantities
-    if (!integrand.initElement(MNPC[iel-1])) return false;
-
-    // Caution: Unless locInt is empty, we assume it points to an array of
-    // LocalIntegral pointers, of length at least the number of elements in
-    // the model (as defined by the highest number in the MLGE array).
-    // If the array is shorter than this, expect a segmentation fault.
-    LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
-
+    fe.iel = MLGE[iel-1];
+    LocalIntegral* A = integrand.getLocalIntegral(p1,fe.iel);
+    if (!integrand.initElement(MNPC[iel-1],*A)) return false;
 
     // --- Integration loop over integration points ----------------------------
 
@@ -131,13 +126,15 @@ bool ASMs1DSpec::integrate (Integrand& integrand,
 
       // Evaluate the integrand and accumulate element contributions
       fe.detJxW *= wg1[i];
-      if (!integrand.evalInt(elmInt,fe,time,X))
+      if (!integrand.evalInt(*A,fe,time,X))
 	return false;
     }
 
     // Assembly of global system integral
-    if (!glInt.assemble(elmInt,MLGE[iel-1]))
+    if (!glInt.assemble(A->ref(),fe.iel))
       return false;
+
+    A->destruct();
   }
 
   return true;
@@ -146,11 +143,9 @@ bool ASMs1DSpec::integrate (Integrand& integrand,
 
 bool ASMs1DSpec::integrate (Integrand& integrand, int lIndex,
 			    GlobalIntegral& glInt,
-			    const TimeDomain& time,
-			    const LintegralVec& locInt)
+			    const TimeDomain& time)
 {
   if (!curv) return true; // silently ignore empty patches
-
 
   return false; // not implemented
 }

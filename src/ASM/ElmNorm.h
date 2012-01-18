@@ -41,6 +41,12 @@ public:
   //! \brief Returns the number of norm values.
   size_t size() const { return nnv; }
 
+  //! \brief Virtual destruction method to clean up after numerical integration.
+  //! \details For this class we only clear the two solution vector containers
+  //! (to save memory). We do NOT delete the object itself, since it might be
+  //! needed in a second integration loop over element boundaries, for instance.
+  virtual void destruct() { vec.clear(); psol.clear(); }
+
 private:
   double* ptr; //!< Pointer to the actual norm values
   size_t  nnv; //!< Number of norm values

@@ -21,6 +21,7 @@
 #include "CoordinateMapping.h"
 #include "Vec3Oper.h"
 #include "Legendre.h"
+#include "ElmNorm.h"
 
 
 bool ASMs3DSpec::getGridParameters (RealArray& prm, int dir,
@@ -79,8 +80,7 @@ static void evalBasis (int i, int j, int k, int p1, int p2, int p3,
 
 bool ASMs3DSpec::integrate (Integrand& integrand,
 			    GlobalIntegral& glInt,
-			    const TimeDomain& time,
-			    const LintegralVec& locInt)
+			    const TimeDomain& time)
 {
   if (!svol) return true; // silently ignore empty patches
 
@@ -115,14 +115,9 @@ bool ASMs3DSpec::integrate (Integrand& integrand,
 	if (!this->getElementCoordinates(Xnod,iel)) return false;
 
 	// Initialize element quantities
-	if (!integrand.initElement(MNPC[iel-1])) return false;
-
-	// Caution: Unless locInt is empty, we assume it points to an array of
-	// LocalIntegral pointers, of length at least the number of elements in
-	// the model (as defined by the highest number in the MLGE array).
-	// If the array is shorter than this, expect a segmentation fault.
-	LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
-
+        Vectors vec;
+        LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),iel-1,false);
+        if (!integrand.initElement(MNPC[iel-1],vec,*A)) return false;
 
 	// --- Integration loop over all Gauss points in each direction --------
 
@@ -147,13 +142,15 @@ bool ASMs3DSpec::integrate (Integrand& integrand,
 
 	      // Evaluate the integrand and accumulate element contributions
 	      fe.detJxW *= wg1(i)*wg2(j)*wg3(k);
-	      if (!integrand.evalInt(elmInt,fe,time,X))
+              if (!integrand.evalInt(*A,fe,time,X,vec))
 		return false;
 	    }
 
 	// Assembly of global system integral
-	if (!glInt.assemble(elmInt,MLGE[iel-1]))
+	if (!glInt.assemble(A,MLGE[iel-1]))
 	  return false;
+        if (!dynamic_cast<ElmNorm*>(A))
+          delete A;
     }
 
   return true;
@@ -162,8 +159,7 @@ bool ASMs3DSpec::integrate (Integrand& integrand,
 
 bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
 			    GlobalIntegral& glInt,
-			    const TimeDomain& time,
-			    const LintegralVec& locInt)
+			    const TimeDomain& time)
 {
   if (!svol) return true; // silently ignore empty patches
 
@@ -232,14 +228,9 @@ bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
 	if (!this->getElementCoordinates(Xnod,iel)) return false;
 
 	// Initialize element quantities
-	if (!integrand.initElementBou(MNPC[iel-1])) return false;
-
-	// Caution: Unless locInt is empty, we assume it points to an array of
-	// LocalIntegral pointers, of length at least the number of elements in
-	// the model (as defined by the highest number in the MLGE array).
-	// If the array is shorter than this, expect a segmentation fault.
-	LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[MLGE[iel-1]-1];
-
+        Vectors vec;
+        LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),iel-1,true);
+        if (!integrand.initElementBou(MNPC[iel-1],vec,*A)) return false;
 
 	// --- Integration loop over all Gauss points in each direction --------
 
@@ -267,13 +258,15 @@ bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
 
 	    // Evaluate the integrand and accumulate element contributions
 	    fe.detJxW *=  wg[t1-1][i]*wg[t2-1][j];
-	    if (!integrand.evalBou(elmInt,fe,time,X,normal))
+            if (!integrand.evalBou(*A,fe,time,X,normal,vec))
 	      return false;
 	  }
 
 	// Assembly of global system integral
-	if (!glInt.assemble(elmInt,MLGE[iel-1]))
+	if (!glInt.assemble(A,MLGE[iel-1]))
 	  return false;
+        if (!dynamic_cast<ElmNorm*>(A))
+          delete A;
       }
 
   return true;
@@ -369,12 +362,12 @@ bool ASMs3DSpec::integrateEdge (Integrand& integrand, int lEdge,
 	if (!this->getElementCoordinates(Xnod,iel)) return false;
 
 	// Initialize element quantities
-	if (!integrand.initElementBou(MNPC[iel-1])) return false;
-
+        Vectors vec;
+        LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),iel-1,false);
+        if (!integrand.initElementBou(MNPC[iel-1],vec,*A)) return false;
 
 	// --- Integration loop over all Gauss points along the edge -----------
 
-	LocalIntegral* elmInt = 0;
 	for (int i = 0; i < pe; i++)
 	{
 	  // "Coordinate" on the edge
@@ -394,12 +387,12 @@ bool ASMs3DSpec::integrateEdge (Integrand& integrand, int lEdge,
 
 	  // Evaluate the integrand and accumulate element contributions
 	  fe.detJxW *= wg[lDir][i];
-	  if (!integrand.evalBou(elmInt,fe,time,X,tangent))
+          if (!integrand.evalBou(*A,fe,time,X,tangent,vec))
 	    return false;
 	}
 
 	// Assembly of global system integral
-	if (!glInt.assemble(elmInt,MLGE[iel-1]))
+	if (!glInt.assemble(A,MLGE[iel-1]))
 	  return false;
       }
 

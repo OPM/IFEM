@@ -21,6 +21,10 @@
 #include "AnaSol.h"
 #include "VTF.h"
 
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 
 Poisson::Poisson (unsigned short int n) : nsd(n)
 {
@@ -30,56 +34,18 @@ Poisson::Poisson (unsigned short int n) : nsd(n)
 
   tracFld = 0;
   heatSrc = 0;
-  eM = 0;
-  eS = eV = 0;
 
   // Only the current solution is needed
   primsol.resize(1);
-  mySols.resize(1);
-
-  myMats = new ElmMats();
 }
 
 
 void Poisson::setMode (SIM::SolutionMode mode)
 {
-  myMats->rhsOnly = false;
-  eM = 0;
-  eS = eV = 0;
+  m_mode = mode;
 
-  switch (mode)
-    {
-    case SIM::STATIC:
-      myMats->A.resize(1);
-      myMats->b.resize(1);
-      eM = &myMats->A[0];
-      eS = &myMats->b[0];
-      tracVal.clear();
-      break;
-
-    case SIM::VIBRATION:
-      myMats->A.resize(1);
-      eM = &myMats->A[0];
-      break;
-
-    case SIM::RHS_ONLY:
-      myMats->rhsOnly = true;
-      if (myMats->b.empty())
-	myMats->b.resize(1);
-      eS = &myMats->b[0];
-      tracVal.clear();
-      break;
-
-    case SIM::RECOVERY:
-      myMats->rhsOnly = true;
-      eV = &mySols[0];
-      break;
-
-    default:
-      myMats->A.clear();
-      myMats->b.clear();
-      tracVal.clear();
-    }
+  if (mode != SIM::RECOVERY)
+    tracVal.clear();
 }
 
 
@@ -95,65 +61,81 @@ double Poisson::getTraction (const Vec3& X, const Vec3& n) const
 }
 
 
-void Poisson::setTraction (VecFunc* tf)
+LocalIntegral* Poisson::getLocalIntegral (size_t nen, size_t,
+                                          bool neumann) const
 {
-  tracFld = tf;
-  myMats->rhsOnly = true;
+  ElmMats* result = new ElmMats;
+  switch (m_mode)
+  {
+    case SIM::STATIC:
+      result->rhsOnly = neumann;
+      result->withLHS = !neumann;
+      result->resize(neumann?0:1,1);
+      break;
+
+    case SIM::VIBRATION:
+      result->withLHS = true;
+      result->resize(1,0);
+      break;
+
+    case SIM::RHS_ONLY:
+      result->rhsOnly = true;
+      result->resize(0,1);
+      break;
+
+    case SIM::RECOVERY:
+      result->rhsOnly = true;
+      break;
+
+    default:
+      break;
+  }
+
+  if (result->A.size())
+    result->A.front().resize(nen,nen);
+
+  if (result->b.size())
+    result->b.front().resize(nen);
+
+  return result;
 }
 
 
-bool Poisson::initElement (const std::vector<int>& MNPC)
-{
-  const size_t nen = MNPC.size();
-
-  if (eM) eM->resize(nen,nen,true);
-  if (eS) eS->resize(nen,true);
-
-  return this->IntegrandBase::initElement(MNPC);
-}
-
-
-bool Poisson::initElementBou (const std::vector<int>& MNPC)
-{
-  if (eS) eS->resize(MNPC.size(),true);
-
-  myMats->withLHS = false;
-  return true;
-}
-
-
-bool Poisson::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
+bool Poisson::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
 		       const Vec3& X) const
 {
-  elmInt = myMats;
+  ElmMats& elMat = static_cast<ElmMats&>(elmInt);
 
-  if (eM)
+  if (!elMat.A.empty())
   {
     // Evaluate the constitutive matrix at this point
-    if (!this->formCmatrix(C,X)) return false;
+    Matrix C, CB;
+    this->formCmatrix(C,X);
 
+    // Integrate the coefficient matrix
     CB.multiply(C,fe.dNdX,false,true).multiply(fe.detJxW); // = C*dNdX^T*|J|*w
-    eM->multiply(fe.dNdX,CB,false,false,true); // EK += dNdX * CB
+    elMat.A.front().multiply(fe.dNdX,CB,false,false,true); // EK += dNdX * CB
   }
 
   // Integrate heat source, if defined
-  if (eS && heatSrc)
-    eS->add(fe.N,(*heatSrc)(X)*fe.detJxW);
+  if (heatSrc && !elMat.b.empty())
+    elMat.b.front().add(fe.N,(*heatSrc)(X)*fe.detJxW);
 
   return true;
 }
 
 
-bool Poisson::evalBou (LocalIntegral*& elmInt, const FiniteElement& fe,
+bool Poisson::evalBou (LocalIntegral& elmInt, const FiniteElement& fe,
 		       const Vec3& X, const Vec3& normal) const
 {
-  elmInt = myMats;
   if (!tracFld)
   {
     std::cerr <<" *** Poisson::evalBou: No tractions."<< std::endl;
     return false;
   }
-  else if (!eS)
+
+  ElmMats& elMat = static_cast<ElmMats&>(elmInt);
+  if (elMat.b.empty())
   {
     std::cerr <<" *** Poisson::evalBou: No load vector."<< std::endl;
     return false;
@@ -167,10 +149,13 @@ bool Poisson::evalBou (LocalIntegral*& elmInt, const FiniteElement& fe,
 
   // Store traction value for visualization
   if (abs(trac) > 1.0e8)
-    tracVal.insert(std::make_pair(X,trac*normal));
+#ifdef USE_OPENMP
+    if (omp_get_max_threads() == 1)
+#endif
+      tracVal.insert(std::make_pair(X,trac*normal));
 
   // Integrate the Neumann value
-  eS->add(fe.N,trac*fe.detJxW);
+  elMat.b.front().add(fe.N,trac*fe.detJxW);
 
   return true;
 }
@@ -198,62 +183,46 @@ bool Poisson::formCmatrix (Matrix& C, const Vec3&, bool invers) const
 }
 
 
-double Poisson::evalSol (const Vector& N) const
-{
-  return eV ? eV->dot(N) : 0.0;
-}
-
-
 bool Poisson::evalSol (Vector& q, const Vector&,
 		       const Matrix& dNdX, const Vec3& X,
 		       const std::vector<int>& MNPC) const
 {
   if (primsol.front().empty())
   {
-    std::cerr <<" *** Poisson::evalSol: No primary solution."
-	      << std::endl;
+    std::cerr <<" *** Poisson::evalSol: No primary solution."<< std::endl;
     return false;
   }
-  else if (!this->formCmatrix(C,X))
-    return false;
 
-  Vector Dtmp;
-  int ierr = utl::gather(MNPC,1,primsol.front(),Dtmp);
+  Vector eV;
+  int ierr = utl::gather(MNPC,1,primsol.front(),eV);
   if (ierr > 0)
   {
-    std::cerr <<" *** Poisson::evalSol: Detected "
-	      << ierr <<" node numbers out of range."<< std::endl;
+    std::cerr <<" *** Poisson::evalSol: Detected "<< ierr
+	      <<" node numbers out of range."<< std::endl;
     return false;
   }
 
-  // Evaluate the heat flux vector
-  CB.multiply(C,dNdX,false,true).multiply(Dtmp,q); // q = C*dNdX^T*Dtmp
-  q *= -1.0;
-
-  return true;
+  return this->evalSol(q,eV,dNdX,X);
 }
 
 
-bool Poisson::evalSol (Vector& q, const Matrix& dNdX, const Vec3& X) const
+bool Poisson::evalSol (Vector& q, const Vector& eV,
+                       const Matrix& dNdX, const Vec3& X) const
 {
-  if (!eV || eV->empty())
-  {
-    std::cerr <<" *** Poisson::evalSol: No solution vector."
-	      << std::endl;
-    return false;
-  }
-  else if (eV->size() != dNdX.rows())
+  if (eV.size() != dNdX.rows())
   {
     std::cerr <<" *** Poisson::evalSol: Invalid solution vector."
-	      <<"\n     size(eV) = "<< eV->size() <<"   size(dNdX) = "
-	      << dNdX.rows() <<","<< dNdX.cols() << std::endl;
+              <<"\n     size(eV) = "<< eV.size() <<"   size(dNdX) = "
+              << dNdX.rows() <<","<< dNdX.cols() << std::endl;
     return false;
   }
-  else if (!this->formCmatrix(C,X))
-    return false;
+
+  // Evaluate the constitutive matrix at this point
+  Matrix C, CB;
+  this->formCmatrix(C,X);
 
   // Evaluate the heat flux vector
-  CB.multiply(C,dNdX,false,true).multiply(*eV,q); // q = C*dNdX^T*eV
+  CB.multiply(C,dNdX,false,true).multiply(eV,q); // q = C*dNdX^T*eV
   q *= -1.0;
 
   return true;
@@ -302,24 +271,26 @@ NormBase* Poisson::getNormIntegrand (AnaSol* asol) const
 }
 
 
-bool PoissonNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
+bool PoissonNorm::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
 			   const Vec3& X) const
 {
   Poisson& problem = static_cast<Poisson&>(myProblem);
-  ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt);
+  ElmNorm& pnorm = static_cast<ElmNorm&>(elmInt);
 
-  // Evaluate the constitutive matrix at this point
+  // Evaluate the inverse constitutive matrix at this point
   Matrix C;
-  if (!problem.formCmatrix(C,X,true)) return false;
+  problem.formCmatrix(C,X,true);
 
   // Evaluate the finite element heat flux field
   Vector sigmah;
-  if (!problem.evalSol(sigmah,fe.dNdX,X)) return false;
+  if (!problem.evalSol(sigmah,pnorm.vec.front(),fe.dNdX,X)) return false;
 
   // Integrate the energy norm a(u^h,u^h)
   pnorm[0] += sigmah.dot(C*sigmah)*fe.detJxW;
+  // Evaluate the temperature field
+  double u = pnorm.vec.front().dot(fe.N);
   // Integrate the external energy (h,u^h)
-  pnorm[1] += problem.getHeat(X)*problem.evalSol(fe.N)*fe.detJxW;
+  pnorm[1] += problem.getHeat(X)*u*fe.detJxW;
 
   if (anasol)
   {
@@ -336,18 +307,19 @@ bool PoissonNorm::evalInt (LocalIntegral*& elmInt, const FiniteElement& fe,
 }
 
 
-bool PoissonNorm::evalBou (LocalIntegral*& elmInt, const FiniteElement& fe,
+bool PoissonNorm::evalBou (LocalIntegral& elmInt, const FiniteElement& fe,
 			   const Vec3& X, const Vec3& normal) const
 {
   Poisson& problem = static_cast<Poisson&>(myProblem);
-  ElmNorm& pnorm = NormBase::getElmNormBuffer(elmInt);
+  ElmNorm& pnorm = static_cast<ElmNorm&>(elmInt);
 
   // Evaluate the surface heat flux
   double t = problem.getTraction(X,normal);
   // Evaluate the temperature field
-  double u = problem.evalSol(fe.N);
+  double u = pnorm.vec.front().dot(fe.N);
 
   // Integrate the external energy (t,u^h)
   pnorm[1] += t*u*fe.detJxW;
+
   return true;
 }

@@ -42,20 +42,16 @@ public:
   //! \param integrand Object with problem-specific data and methods
   //! \param glbInt The integrated quantity
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
-  //! \param locInt Vector of element-wise contributions to \a glbInt
   virtual bool integrate(Integrand& integrand,
-			 GlobalIntegral& glbInt, const TimeDomain& time,
-			 const LintegralVec& locInt = LintegralVec());
+			 GlobalIntegral& glbInt, const TimeDomain& time);
 
   //! \brief Evaluates a boundary integral over a patch face.
   //! \param integrand Object with problem-specific data and methods
   //! \param[in] lIndex Local index [1,6] of the boundary face
   //! \param glbInt The integrated quantity
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
-  //! \param locInt Vector of element-wise contributions to \a glbInt
   virtual bool integrate(Integrand& integrand, int lIndex,
-			 GlobalIntegral& glbInt, const TimeDomain& time,
-			 const LintegralVec& locInt = LintegralVec());
+			 GlobalIntegral& glbInt, const TimeDomain& time);
 
   //! \brief Evaluates a boundary integral over a patch edge.
   //! \param integrand Object with problem-specific data and methods

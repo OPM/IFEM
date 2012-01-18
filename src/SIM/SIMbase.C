@@ -1187,7 +1187,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 	for (k = 0; k < ssol.size(); k++)
 	  if (!ssol[k].empty())
 	    myModel[j-1]->extractNodeVec(ssol[k],norm->getProjection(k+1),nCmp);
-	ok = myModel[j-1]->integrate(*norm,globalNorm,time,elementNorms);
+	ok = myModel[j-1]->integrate(*norm,globalNorm,time);
 	lp = j;
       }
       else
@@ -1202,7 +1202,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
       for (k = 0; k < ssol.size(); k++)
 	if (!ssol[k].empty())
 	  myModel[i]->extractNodeVec(ssol[k],norm->getProjection(k+1),nCmp);
-      ok = myModel[i]->integrate(*norm,globalNorm,time,elementNorms);
+      ok = myModel[i]->integrate(*norm,globalNorm,time);
       lp = i+1;
     }
 
@@ -1211,6 +1211,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   // The corresponding element-level norms are not stored. This is mainly
   // because the current design only allows one loop over the elements
   // in the element-norm calculations. Consider rivising this later.
+
   if (norm->hasBoundaryTerms())
     for (i = 0; i < myProps.size() && ok; i++)
       if (myProps[i].pcode == Property::NEUMANN)

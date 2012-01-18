@@ -19,6 +19,7 @@
 #include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
+#include "LocalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
@@ -110,7 +111,6 @@ void ASMs1D::clear (bool retainGeometry)
   // Erase the FE data
   this->ASMbase::clear(retainGeometry);
 }
-
 
 
 bool ASMs1D::refine (const RealArray& xi)
@@ -514,8 +514,7 @@ void ASMs1D::extractBasis (double u, Vector& N, Matrix& dNdu,
 
 bool ASMs1D::integrate (Integrand& integrand,
 			GlobalIntegral& glInt,
-			const TimeDomain& time,
-			const LintegralVec& locInt)
+			const TimeDomain& time)
 {
   if (!curv) return true; // silently ignore empty patches
 
@@ -563,14 +562,8 @@ bool ASMs1D::integrate (Integrand& integrand,
     if (!this->getElementCoordinates(Xnod,iel)) return false;
 
     // Initialize element matrices
-    if (!integrand.initElement(MNPC[iel-1],X,nRed)) return false;
-
-    // Caution: Unless locInt is empty, we assume it points to an array of
-    // LocalIntegral pointers, of length at least the number of elements in
-    // the model (as defined by the highest number in the MLGE array).
-    // If the array is shorter than this, expect a segmentation fault.
-    LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
-
+    LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
+    if (!integrand.initElement(MNPC[iel-1],X,nRed,*A)) return false;
 
     if (integrand.getIntegrandType() > 10)
     {
@@ -579,7 +572,7 @@ bool ASMs1D::integrate (Integrand& integrand,
       for (int i = 0; i < nRed; i++)
       {
 	// Local element coordinates of current integration point
-	fe.xi  = xr[i];
+	fe.xi = xr[i];
 
 	// Parameter values of current integration point
 	fe.u = redpar(i+1,iel);
@@ -595,7 +588,7 @@ bool ASMs1D::integrate (Integrand& integrand,
 	X.t = time.t;
 
 	// Compute the reduced integration terms of the integrand
-	if (!integrand.reducedInt(fe,X))
+	if (!integrand.reducedInt(*A,fe,X))
 	  return false;
       }
     }
@@ -632,17 +625,19 @@ bool ASMs1D::integrate (Integrand& integrand,
 
       // Evaluate the integrand and accumulate element contributions
       fe.detJxW *= 0.5*dL*wg[i];
-      if (!integrand.evalInt(elmInt,fe,time,X))
+      if (!integrand.evalInt(*A,fe,time,X))
 	return false;
     }
 
     // Finalize the element quantities
-    if (!integrand.finalizeElement(elmInt,time))
+    if (!integrand.finalizeElement(*A,time))
       return false;
 
     // Assembly of global system integral
-    if (!glInt.assemble(elmInt,fe.iel))
+    if (!glInt.assemble(A->ref(),fe.iel))
       return false;
+
+    A->destruct();
   }
 
   return true;
@@ -651,14 +646,13 @@ bool ASMs1D::integrate (Integrand& integrand,
 
 bool ASMs1D::integrate (Integrand& integrand, int lIndex,
 			GlobalIntegral& glInt,
-			const TimeDomain& time,
-			const LintegralVec& locInt)
+			const TimeDomain& time)
 {
   if (!curv) return true; // silently ignore empty patches
 
   // Integration of boundary point
 
-  FiniteElement fe;
+  FiniteElement fe(curv->order());
   int iel;
   switch (lIndex)
     {
@@ -686,13 +680,8 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
   if (!this->getElementCoordinates(Xnod,iel)) return false;
 
   // Initialize element matrices
-  if (!integrand.initElementBou(MNPC[iel-1])) return false;
-
-  // Caution: Unless locInt is empty, we assume it points to an array of
-  // LocalIntegral pointers, of length at least the number of elements in
-  // the model (as defined by the highest number in the MLGE array).
-  // If the array is shorter than this, expect a segmentation fault.
-  LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
+  LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
+  if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;
 
   // Evaluate basis functions and corresponding derivatives
   Matrix dNdu;
@@ -713,11 +702,14 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
     normal.x = copysign(1.0,Jac(1,1));
 
   // Evaluate the integrand and accumulate element contributions
-  if (!integrand.evalBou(elmInt,fe,time,X,normal))
+  if (!integrand.evalBou(*A,fe,time,X,normal))
     return false;
 
   // Assembly of global system integral
-  return glInt.assemble(elmInt,fe.iel);
+  bool result = glInt.assemble(A->ref(),fe.iel);
+
+  A->destruct();
+  return result;
 }
 
 

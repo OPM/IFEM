@@ -26,6 +26,8 @@
 #include "Utilities.h"
 #include "Profiler.h"
 #include "Vec3Oper.h"
+#include "ElmMats.h"
+#include "ElmNorm.h"
 
 
 ASMs3D::ASMs3D (unsigned char n_f)
@@ -1160,8 +1162,7 @@ void ASMs3D::extractBasis (const Go::BasisDerivs2& spline,
 
 bool ASMs3D::integrate (Integrand& integrand,
 			GlobalIntegral& glInt,
-			const TimeDomain& time,
-			const LintegralVec& locInt)
+			const TimeDomain& time)
 {
   if (!svol) return true; // silently ignore empty patches
 
@@ -1283,17 +1284,12 @@ bool ASMs3D::integrate (Integrand& integrand,
 	}
 
 	// Initialize element quantities
-	if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed*nRed))
+        Vectors vec;
+        LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),iel-1,false);
+        if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed*nRed,vec,*A))
 	  return false;
 
-	// Caution: Unless locInt is empty, we assume it points to an array of
-	// LocalIntegral pointers, of length at least the number of elements in
-	// the model (as defined by the highest number in the MLGE array).
-	// If the array is shorter than this, expect a segmentation fault.
-	LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
-
-
-	if (integrand.getIntegrandType() > 10)
+	/*if (integrand.getIntegrandType() > 10)
 	{
 	  // --- Selective reduced integration loop ----------------------------
 
@@ -1326,7 +1322,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 		if (!integrand.reducedInt(fe,X))
 		  return false;
 	      }
-	}
+	}*/
 
 
 	// --- Integration loop over all Gauss points in each direction --------
@@ -1381,17 +1377,19 @@ bool ASMs3D::integrate (Integrand& integrand,
 
 	      // Evaluate the integrand and accumulate element contributions
 	      fe.detJxW *= 0.125*dV*wg[i]*wg[j]*wg[k];
-	      if (!integrand.evalInt(elmInt,fe,time,X))
+              if (!integrand.evalInt(*A,fe,time,X,vec))
 		return false;
 	    }
 
 	// Finalize the element quantities
-	if (!integrand.finalizeElement(elmInt,time))
+	if (!integrand.finalizeElement(A,time))
 	  return false;
 
 	// Assembly of global system integral
-	if (!glInt.assemble(elmInt,fe.iel))
+	if (!glInt.assemble(A,fe.iel))
 	  return false;
+        if (!dynamic_cast<ElmNorm*>(A))
+          delete A;
       }
 
   return true;
@@ -1400,8 +1398,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 
 bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 			GlobalIntegral& glInt,
-			const TimeDomain& time,
-			const LintegralVec& locInt)
+			const TimeDomain& time)
 {
   if (!svol) return true; // silently ignore empty patches
 
@@ -1494,7 +1491,9 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 	if (!this->getElementCoordinates(Xnod,iel)) return false;
 
 	// Initialize element quantities
-	if (!integrand.initElementBou(MNPC[iel-1])) return false;
+        Vectors vec;
+        LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),iel-1,true);
+        if (!integrand.initElementBou(MNPC[iel-1],vec,*A)) return false;
 
 	// Define some loop control variables depending on which face we are on
 	int nf1, j1, j2;
@@ -1505,13 +1504,6 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 	  case 3: nf1 = nel1; j2 = i2-p2; j1 = i1-p1; break;
 	  default: nf1 = j1 = j2 = 0;
 	  }
-
-	// Caution: Unless locInt is empty, we assume it points to an array of
-	// LocalIntegral pointers, of length at least the number of elements in
-	// the model (as defined by the highest number in the MLGE array).
-	// If the array is shorter than this, expect a segmentation fault.
-	LocalIntegral* elmInt = locInt.empty() ? 0 : locInt[fe.iel-1];
-
 
 	// --- Integration loop over all Gauss points in each direction --------
 
@@ -1559,13 +1551,15 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 
 	    // Evaluate the integrand and accumulate element contributions
 	    fe.detJxW *= 0.25*dA*wg[i]*wg[j];
-	    if (!integrand.evalBou(elmInt,fe,time,X,normal))
+            if (!integrand.evalBou(*A,fe,time,X,normal,vec))
 	      return false;
 	  }
 
 	// Assembly of global system integral
-	if (!glInt.assemble(elmInt,fe.iel))
+	if (!glInt.assemble(A,fe.iel))
 	  return false;
+        if (!dynamic_cast<ElmNorm*>(A))
+          delete A;
       }
 
   return true;
@@ -1701,12 +1695,13 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 	if (!this->getElementCoordinates(Xnod,iel)) return false;
 
 	// Initialize element quantities
-	if (!integrand.initElementBou(MNPC[iel-1])) return false;
+        Vectors vec;
+        LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),iel-1,false);
+        if (!integrand.initElementBou(MNPC[iel-1],vec,*A)) return false;
 
 
 	// --- Integration loop over all Gauss points along the edge -----------
 
-	LocalIntegral* elmInt = 0;
 	for (int i = 0; i < nGauss; i++, ip++)
 	{
 	  // Parameter values of current integration point
@@ -1727,12 +1722,12 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 
 	  // Evaluate the integrand and accumulate element contributions
 	  fe.detJxW *= 0.5*dS*wg[i];
-	  if (!integrand.evalBou(elmInt,fe,time,X,tang))
+          if (!integrand.evalBou(*A,fe,time,X,tang,vec))
 	    return false;
 	}
 
 	// Assembly of global system integral
-	if (!glInt.assemble(elmInt,fe.iel))
+	if (!glInt.assemble(A,fe.iel))
 	  return false;
       }
 

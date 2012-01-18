@@ -209,8 +209,7 @@ public:
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param locInt Vector of element-wise contributions to \a glbInt
   virtual bool integrate(Integrand& integrand,
-			 GlobalIntegral& glbInt, const TimeDomain& time,
-			 const LintegralVec& locInt = LintegralVec());
+			 GlobalIntegral& glbInt, const TimeDomain& time);
 
   //! \brief Evaluates a boundary integral over a patch edge.
   //! \param integrand Object with problem-specific data and methods
@@ -219,8 +218,7 @@ public:
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param locInt Vector of element-wise contributions to \a glbInt
   virtual bool integrate(Integrand& integrand, int lIndex,
-			 GlobalIntegral& glbInt, const TimeDomain& time,
-			 const LintegralVec& locInt = LintegralVec());
+			 GlobalIntegral& glbInt, const TimeDomain& time);
 
 
   // Post-processing methods

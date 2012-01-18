@@ -211,6 +211,10 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
       std::cout <<"\tPeriodic "<< char('H'+pfdir) <<"-direction P"<< patch
 		<< std::endl;
       static_cast<ASMs3D*>(myModel[patch-1])->closeFaces(pfdir);
+    // cannot do multi-threaded assembly with periodicities
+#ifdef USE_OPENMP
+    omp_set_num_threads(1);
+#endif
     }
   }
 
@@ -412,6 +416,10 @@ bool SIM3D::parseGeometryTag(const TiXmlElement* elem)
     std::cout <<"\tPeriodic "<< char('H'+pfdir) <<"-direction P"<< patch
               << std::endl;
     static_cast<ASMs3D*>(myModel[patch-1])->closeFaces(pfdir);
+    // cannot do multi-threaded assembly with periodicities
+#ifdef USE_OPENMP
+    omp_set_num_threads(1);
+#endif
   }
   // TODO: topology? constraints? fixpoints?
 
