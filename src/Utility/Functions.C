@@ -371,6 +371,9 @@ EvalFunction::EvalFunction(const char* function)
     x = v->GetAddress("x");
     y = v->GetAddress("y");
     z = v->GetAddress("z");
+#ifdef USE_OPENMP
+    omp_init_lock(&lock);
+#endif
   } catch(...) {
     std::cerr <<" *** Error parsing function: " << function << std::endl;
   }
@@ -381,19 +384,30 @@ EvalFunction::~EvalFunction()
   delete expr;
   delete f;
   delete v;
+#ifdef USE_OPENMP
+  omp_destroy_lock(&lock);
+#endif
 }
 
 real EvalFunction::evaluate(const Vec3& X) const
 {
+#ifdef USE_OPENMP
+  omp_set_lock(const_cast<omp_lock_t*>(&lock));
+#endif
+  double result=0.f;
   try {
     *x = X.x;
     *y = X.y;
     *z = X.z;
-    return expr->Evaluate();
+    result = expr->Evaluate();
   } catch(...) {
     std::cerr << "Error evaluating function" << std::endl;
-    return 0;
   }
+#ifdef USE_OPENMP
+  omp_unset_lock(const_cast<omp_lock_t*>(&lock));
+#endif
+
+  return result;
 }
 
   template<>

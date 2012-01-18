@@ -19,6 +19,10 @@
 #include <string>
 #include <vector>
 
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 namespace ExprEval {
   class Expression;
   class FunctionList;
@@ -416,6 +420,9 @@ class EvalFunction : public RealFunc
   real* x;
   real* y;
   real* z;
+#ifdef USE_OPENMP
+  omp_lock_t lock;
+#endif
 };
 
 
