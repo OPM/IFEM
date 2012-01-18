@@ -17,11 +17,11 @@
 #include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
+#include "LocalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "Vec3Oper.h"
 #include "Legendre.h"
-#include "ElmNorm.h"
 
 
 bool ASMs3DSpec::getGridParameters (RealArray& prm, int dir,
@@ -101,59 +101,81 @@ bool ASMs3DSpec::integrate (Integrand& integrand,
   if (!Legendre::basisDerivatives(p2,D2)) return false;
   if (!Legendre::basisDerivatives(p3,D3)) return false;
 
-  FiniteElement fe(p1*p2*p3);
-  Matrix dNdu(p1*p2*p3,3), Xnod, Jac;
-  Vec4   X;
+  if (threadGroupsVol.empty())
+    generateThreadGroups();
 
 
   // === Assembly loop over all elements in the patch ==========================
 
-  const int nel = this->getNoElms();
-  for (int iel = 1; iel <= nel; iel++)
-    {
-	// Set up nodal point coordinates for current element
-	if (!this->getElementCoordinates(Xnod,iel)) return false;
+  bool ok=true;
+  for (size_t g=0;g<threadGroupsVol.size() && ok;++g) {
+#pragma omp parallel for schedule(static)
+    for (size_t t=0;t<threadGroupsVol[g].size();++t) {
+      FiniteElement fe(p1*p2*p3);
+      Matrix   dNdu(p1*p2*p3,3), Xnod, Jac;
+      Vec4     X;
+      for (size_t l=0;l<threadGroupsVol[g][t].size();++l) {
+        int iel = threadGroupsVol[g][t][l]+1;
+
+        // Set up nodal point coordinates for current element
+        if (!this->getElementCoordinates(Xnod,iel))
+        {
+          ok = false;
+          break;
+        }
 
 	// Initialize element quantities
-        Vectors vec;
-        LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),iel-1,false);
-        if (!integrand.initElement(MNPC[iel-1],vec,*A)) return false;
+        fe.iel = MLGE[iel-1];
+        LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
+        if (!integrand.initElement(MNPC[iel-1],*A))
+        {
+          ok = false;
+          break;
+        }
 
-	// --- Integration loop over all Gauss points in each direction --------
+        // --- Integration loop over all Gauss points in each direction --------
 
-	int count = 1;
-	for (int k = 1; k <= p3; k++)
-	  for (int j = 1; j <= p2; j++)
-	    for (int i = 1; i <= p1; i++, count++)
-	    {
-	      // Evaluate the basis functions and gradients using tensor product
-	      // of the one-dimensional Lagrange polynomials
-	      evalBasis(i,j,k,p1,p2,p3,D1,D2,D3,fe.N,dNdu);
+        int count = 1;
+        for (int k = 1; k <= p3; k++)
+          for (int j = 1; j <= p2; j++)
+            for (int i = 1; i <= p1; i++, count++)
+            {
+              // Evaluate the basis functions and gradients using tensor product
+              // of the one-dimensional Lagrange polynomials
+              evalBasis(i,j,k,p1,p2,p3,D1,D2,D3,fe.N,dNdu);
 
-	      // Compute Jacobian inverse of coordinate mapping and derivatives
-	      fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
-	      if (fe.detJxW == 0.0) continue; // skip singular points
+              // Compute Jacobian inverse of coordinate mapping and derivatives
+              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+              if (fe.detJxW == 0.0) continue; // skip singular points
 
-	      // Cartesian coordinates of current integration point
-	      X.x = Xnod(1,count);
-	      X.y = Xnod(2,count);
-	      X.z = Xnod(3,count);
-	      X.t = time.t;
+              // Cartesian coordinates of current integration point
+              X.x = Xnod(1,count);
+              X.y = Xnod(2,count);
+              X.z = Xnod(3,count);
+              X.t = time.t;
 
-	      // Evaluate the integrand and accumulate element contributions
-	      fe.detJxW *= wg1(i)*wg2(j)*wg3(k);
-              if (!integrand.evalInt(*A,fe,time,X,vec))
-		return false;
-	    }
+              // Evaluate the integrand and accumulate element contributions
+              fe.detJxW *= wg1(i)*wg2(j)*wg3(k);
+              if (!integrand.evalInt(*A,fe,time,X))
+              {
+                ok = false;
+                break;
+              }
+            }
 
 	// Assembly of global system integral
-	if (!glInt.assemble(A,MLGE[iel-1]))
-	  return false;
-        if (!dynamic_cast<ElmNorm*>(A))
-          delete A;
-    }
+	if (!glInt.assemble(A->ref(),fe.iel))
+        {
+          ok = false;
+          break;
+        }
 
-  return true;
+        A->destruct();
+      }
+    }
+  }
+
+  return ok;
 }
 
 
@@ -176,13 +198,6 @@ bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
   p[1] = svol->order(1);
   p[2] = svol->order(2);
 
-  // Number of elements in each direction
-  int n1, n2, n3;
-  this->getSize(n1,n2,n3);
-  const int nelx = (n1-1)/(p[0]-1);
-  const int nely = (n2-1)/(p[1]-1);
-  const int nelz = (n3-1)/(p[2]-1);
-
   // Evaluate integration points (=nodal points) and weights
 
   Vector wg[3],xg1,xg2,xg3;
@@ -197,40 +212,32 @@ bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
 
   int nen = p[0]*p[1]*p[2];
 
-  FiniteElement fe(nen);
-  Matrix dNdu(nen,3), Xnod, Jac;
-  Vec4   X;
-  Vec3   normal;
-  int    xi[3];
-
-
   // === Assembly loop over all elements on the patch face =====================
-
-  int iel = 1;
-  for (int i3 = 0; i3 < nelz; i3++)
-    for (int i2 = 0; i2 < nely; i2++)
-      for (int i1 = 0; i1 < nelx; i1++, iel++)
-      {
-	// Skip elements that are not on current boundary face
-	bool skipMe = false;
-	switch (faceDir)
-	  {
-	  case -1: if (i1 > 0)      skipMe = true; break;
-	  case  1: if (i1 < nelx-1) skipMe = true; break;
-	  case -2: if (i2 > 0)      skipMe = true; break;
-	  case  2: if (i2 < nely-1) skipMe = true; break;
-	  case -3: if (i3 > 0)      skipMe = true; break;
-	  case  3: if (i3 < nelz-1) skipMe = true; break;
-	  }
-	if (skipMe) continue;
+  bool ok=true;
+  for (size_t g=0;g<threadGroupsFace[lIndex-1].size() && ok;++g) {
+#pragma omp parallel for schedule(static)
+    for (size_t t=0;t<threadGroupsFace[lIndex-1][g].size();++t) {
+      FiniteElement fe(nen);
+      Matrix dNdu(nen,3), Xnod, Jac;
+      Vec4   X;
+      Vec3   normal;
+      int    xi[3];
+      for (size_t l=0;l<threadGroupsFace[lIndex-1][g][t].size();++l) {
+        int iel = threadGroupsFace[lIndex-1][g][t][l];
 
 	// Set up nodal point coordinates for current element
-	if (!this->getElementCoordinates(Xnod,iel)) return false;
+	if (!this->getElementCoordinates(Xnod,++iel)) {
+          ok = false;
+          break;
+        }
 
 	// Initialize element quantities
-        Vectors vec;
-        LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),iel-1,true);
-        if (!integrand.initElementBou(MNPC[iel-1],vec,*A)) return false;
+	fe.iel = MLGE[iel-1];
+        LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel,true);
+        if (!integrand.initElementBou(MNPC[iel-1],*A)) {
+          ok = false;
+          break;
+        }
 
 	// --- Integration loop over all Gauss points in each direction --------
 
@@ -258,18 +265,24 @@ bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
 
 	    // Evaluate the integrand and accumulate element contributions
 	    fe.detJxW *=  wg[t1-1][i]*wg[t2-1][j];
-            if (!integrand.evalBou(*A,fe,time,X,normal,vec))
-	      return false;
+            if (!integrand.evalBou(*A,fe,time,X,normal)) {
+              ok = false;
+              break;
+            }
 	  }
 
 	// Assembly of global system integral
-	if (!glInt.assemble(A,MLGE[iel-1]))
-	  return false;
-        if (!dynamic_cast<ElmNorm*>(A))
-          delete A;
-      }
+	if (!glInt.assemble(A->ref(),fe.iel)) {
+          ok = false;
+          break;
+        }
 
-  return true;
+        A->destruct();
+      }
+    }
+  }
+
+  return ok;
 }
 
 
@@ -362,9 +375,9 @@ bool ASMs3DSpec::integrateEdge (Integrand& integrand, int lEdge,
 	if (!this->getElementCoordinates(Xnod,iel)) return false;
 
 	// Initialize element quantities
-        Vectors vec;
-        LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),iel-1,false);
-        if (!integrand.initElementBou(MNPC[iel-1],vec,*A)) return false;
+	fe.iel = MLGE[iel-1];
+        LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel,true);
+        if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;
 
 	// --- Integration loop over all Gauss points along the edge -----------
 
@@ -387,12 +400,12 @@ bool ASMs3DSpec::integrateEdge (Integrand& integrand, int lEdge,
 
 	  // Evaluate the integrand and accumulate element contributions
 	  fe.detJxW *= wg[lDir][i];
-          if (!integrand.evalBou(*A,fe,time,X,tangent,vec))
+          if (!integrand.evalBou(*A,fe,time,X,tangent))
 	    return false;
 	}
 
 	// Assembly of global system integral
-	if (!glInt.assemble(A,MLGE[iel-1]))
+	if (!glInt.assemble(A->ref(),fe.iel))
 	  return false;
       }
 

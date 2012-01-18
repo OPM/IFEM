@@ -15,6 +15,7 @@
 #define _ASM_S3D_H
 
 #include "ASMstruct.h"
+#include "Utilities.h"
 
 namespace Go {
   class SplineVolume;
@@ -433,6 +434,15 @@ protected:
 
   const IndexVec& nodeInd; //!< IJK-triplets for the control points (nodes)
   IndexVec      myNodeInd; //!< The actual IJK-triplet container
+
+  //! \brief Element groups for multithreaded volume assembly 
+  utl::ThreadGroups threadGroupsVol;
+
+  //! \brief Element groups for multithreaded face assembly 
+  std::vector<utl::ThreadGroups> threadGroupsFace;
+
+  //! \brief Generate thread groups
+  virtual void generateThreadGroups();
 };
 
 #endif

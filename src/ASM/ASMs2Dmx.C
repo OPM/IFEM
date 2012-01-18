@@ -18,6 +18,7 @@
 #include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
+#include "LocalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
@@ -25,7 +26,6 @@
 #include "Profiler.h"
 #include "Vec3Oper.h"
 #include "Vec3.h"
-#include "ElmNorm.h"
 
 
 ASMs2Dmx::ASMs2Dmx (unsigned char n_s,
@@ -190,7 +190,7 @@ bool ASMs2Dmx::generateFEMTopology ()
 							     ug,vg,XYZ,ndim,
 							     false,XYZ);
     }
-    else 
+    else
     {
       // Order-elevate basis1 such that it is of one degree higher than basis2
       // but only C^p-2 continuous
@@ -198,7 +198,7 @@ bool ASMs2Dmx::generateFEMTopology ()
       basis1->raiseOrder(1,1);
     }
     basis2 = surf;
-    
+
     if (useLowOrderBasis1) {
       basis2 = basis1;
       basis1 = surf;
@@ -503,87 +503,110 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
   const int n1 = surf->numCoefs_u();
-  const int n2 = surf->numCoefs_v();
   const int nel1 = n1 - p1 + 1;
 
-  MxFiniteElement fe(basis1->order_u()*basis1->order_v(),
-		     basis2->order_u()*basis2->order_v());
-  Matrix dN1du, dN2du, Xnod, Jac;
-  Vec4   X;
+  if (threadGroups.empty())
+    generateThreadGroups();
+
 
   // === Assembly loop over all elements in the patch ==========================
 
-  int iel = 1;
-  for (int i2 = p2; i2 <= n2; i2++)
-    for (int i1 = p1; i1 <= n1; i1++, iel++)
-    {
-      fe.iel = MLGE[iel-1];
-      if (fe.iel < 1) continue; // zero-area element
+  bool ok=true;
+  for (size_t g=0;g<threadGroups.size() && ok;++g) {
+#pragma omp parallel for schedule(static)
+    for (size_t t=0;t<threadGroups[g].size();++t) {
+      MxFiniteElement fe(basis1->order_u()*basis1->order_v(),
+                         basis2->order_u()*basis2->order_v());
+      Matrix dN1du, dN2du, Xnod, Jac;
+      Vec4   X;
+      for (size_t i=0;i<threadGroups[g][t].size();++i) {
+        int iel = threadGroups[g][t][i];
+        fe.iel = MLGE[iel];
+        if (fe.iel < 1) continue; // zero-area element
 
-      // Get element area in the parameter space
-      double dA = this->getParametricArea(iel);
-      if (dA < 0.0) return false; // topology error (probably logic error)
+        int i1 = p1 + iel % nel1;
+        int i2 = p2 + iel / nel1;
 
-      // Set up control point (nodal) coordinates for current element
-      if (!this->getElementCoordinates(Xnod,iel)) return false;
+        // Get element area in the parameter space
+        double dA = this->getParametricArea(++iel);
+        if (dA < 0.0) { // topology error (probably logic error)
+          ok = false;
+          break;
+        }
 
-      // Initialize element quantities
-      IntVec::const_iterator f2start = MNPC[iel-1].begin() + fe.N1.size();
-      LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),iel-1,false);
-      if (!integrand.initElement(IntVec(MNPC[iel-1].begin(),f2start),
-				 IntVec(f2start,MNPC[iel-1].end()),nb1,*A))
-	return false;
+        // Set up control point (nodal) coordinates for current element
+        if (!this->getElementCoordinates(Xnod,iel)) {
+          ok = false;
+          break;
+        }
 
-      // --- Integration loop over all Gauss points in each direction ----------
+        // Initialize element quantities
+        IntVec::const_iterator f2start = MNPC[iel-1].begin() + fe.N1.size();
+        LocalIntegral* A = integrand.getLocalIntegral(fe.N1.size(),fe.N2.size(),
+                                                      fe.iel,false);
+        if (!integrand.initElement(IntVec(MNPC[iel-1].begin(),f2start),
+                                   IntVec(f2start,MNPC[iel-1].end()),nb1,*A))
+        {
+          ok = false;
+          break;
+        }
 
-      int ip = ((i2-p2)*nGauss*nel1 + i1-p1)*nGauss;
-      for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
-	for (int i = 0; i < nGauss; i++, ip++)
-	{
-          // Local element coordinates of current integration point
-          fe.xi  = xg[i];
-          fe.eta = xg[j];
+        // --- Integration loop over all Gauss points in each direction --------
 
-	  // Parameter values of current integration point
-	  fe.u = gpar[0](i+1,i1-p1+1);
-	  fe.v = gpar[1](j+1,i2-p2+1);
+        int ip = ((i2-p2)*nGauss*nel1 + i1-p1)*nGauss;
+        for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
+          for (int i = 0; i < nGauss; i++, ip++)
+          {
+            // Local element coordinates of current integration point
+            fe.xi  = xg[i];
+            fe.eta = xg[j];
 
-	  // Fetch basis function derivatives at current integration point
-	  extractBasis(spline1[ip],fe.N1,dN1du);
-	  extractBasis(spline2[ip],fe.N2,dN2du);
+            // Parameter values of current integration point
+            fe.u = gpar[0](i+1,i1-p1+1);
+            fe.v = gpar[1](j+1,i2-p2+1);
 
-	  // Compute Jacobian inverse of the coordinate mapping and
-	  // basis function derivatives w.r.t. Cartesian coordinates
-	  if (geoUsesBasis1)
-	  {
-	    fe.detJxW = utl::Jacobian(Jac,fe.dN1dX,Xnod,dN1du);
-	    fe.dN2dX.multiply(dN2du,Jac); // dN2dX = dN2du * J^-1
-	  }
-	  else
-	  {
-	    fe.detJxW = utl::Jacobian(Jac,fe.dN2dX,Xnod,dN2du);
-	    fe.dN1dX.multiply(dN1du,Jac); // dN1dX = dN1du * J^-1
-	  }
-	  if (fe.detJxW == 0.0) continue; // skip singular points
+            // Fetch basis function derivatives at current integration point
+            extractBasis(spline1[ip],fe.N1,dN1du);
+            extractBasis(spline2[ip],fe.N2,dN2du);
 
-	  // Cartesian coordinates of current integration point
-	  X = Xnod * (geoUsesBasis1 ? fe.N1 : fe.N2);
-	  X.t = time.t;
+            // Compute Jacobian inverse of the coordinate mapping and
+            // basis function derivatives w.r.t. Cartesian coordinates
+            if (geoUsesBasis1)
+            {
+              fe.detJxW = utl::Jacobian(Jac,fe.dN1dX,Xnod,dN1du);
+              fe.dN2dX.multiply(dN2du,Jac); // dN2dX = dN2du * J^-1
+            }
+            else
+            {
+              fe.detJxW = utl::Jacobian(Jac,fe.dN2dX,Xnod,dN2du);
+              fe.dN1dX.multiply(dN1du,Jac); // dN1dX = dN1du * J^-1
+            }
+            if (fe.detJxW == 0.0) continue; // skip singular points
 
-	  // Evaluate the integrand and accumulate element contributions
-	  fe.detJxW *= 0.25*dA*wg[i]*wg[j];
-	  if (!integrand.evalIntMx(*A,fe,time,X))
-	    return false;
-	}
+            // Cartesian coordinates of current integration point
+            X = Xnod * (geoUsesBasis1 ? fe.N1 : fe.N2);
+            X.t = time.t;
 
-      // Assembly of global system integral
-      if (!glInt.assemble(A,fe.iel))
-	return false;
-      if (!dynamic_cast<ElmNorm*>(A))
-        delete A;
+            // Evaluate the integrand and accumulate element contributions
+            fe.detJxW *= 0.25*dA*wg[i]*wg[j];
+            if (!integrand.evalIntMx(*A,fe,time,X)) {
+              ok = false;
+              break;
+            }
+          }
+
+        // Assembly of global system integral
+        if (!glInt.assemble(A->ref(),fe.iel)) {
+          ok = false;
+          break;
+        }
+
+        A->destruct();
+      }
     }
+  }
 
-  return true;
+  return ok;
 }
 
 
@@ -673,7 +696,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
       // Initialize element quantities
       IntVec::const_iterator f2start = MNPC[iel-1].begin() + fe.N1.size();
-      LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),iel-1,true);
+      LocalIntegral* A = integrand.getLocalIntegral(fe.N1.size(),fe.N2.size(),
+						    fe.iel,true);
       if (!integrand.initElementBou(IntVec(MNPC[iel-1].begin(),f2start),
 				    IntVec(f2start,MNPC[iel-1].end()),nb1,*A))
 	return false;
@@ -721,15 +745,15 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
 	// Evaluate the integrand and accumulate element contributions
 	fe.detJxW *= 0.5*dS*wg[i];
-	if (!integrand.evalBouMx(A,fe,time,X,normal))
+	if (!integrand.evalBouMx(*A,fe,time,X,normal))
 	  return false;
       }
 
       // Assembly of global system integral
-      if (!glInt.assemble(A,fe.iel))
+      if (!glInt.assemble(A->ref(),fe.iel))
 	return false;
-      if (!dynamic_cast<ElmNorm*>(A))
-        delete A;
+
+      A->destruct();
     }
 
   return true;

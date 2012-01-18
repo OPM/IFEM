@@ -14,6 +14,10 @@
 #include "Utilities.h"
 #include <cstdlib>
 
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 
 void utl::parseIntegers (std::vector<int>& values, const char* argv)
 {
@@ -253,4 +257,146 @@ size_t utl::find_closest (const std::vector<real>& a, real v)
     return 0;
   else
     return i-1;
+}
+
+
+void utl::calcThreadGroups(int nel1, int nel2, utl::ThreadGroups& result)
+{
+  int threads=1;
+  int groups=1;
+#ifdef USE_OPENMP
+  threads = omp_get_max_threads();
+  if (threads > 1)
+    groups = 2;
+#endif
+
+  int stripsize = nel1/(groups*threads);
+  if (stripsize < 2) {
+    std::cerr << __FUNCTION__ << ": Warning: too many threads available." << std::endl
+              << "Reducing to a suitable amount" << std::endl;
+    while (((stripsize = nel1/(groups*threads)) < 2) && threads > 1)
+      threads--;
+    if (threads == 1)
+      groups=1;
+    stripsize = nel1/(groups*threads);
+  }
+  int remainder = nel1-(stripsize*groups*threads);
+  result.resize(groups);
+
+#if SP_DEBUG > 1
+  std::cout << "we have " << threads << " threads available" << std::endl;
+  std::cout << "nel1 " << nel1 << std::endl;
+  std::cout << "nel2 " << nel2 << std::endl;
+  std::cout << "stripsize " << stripsize << std::endl;
+  std::cout << "# of strips " << nel1/stripsize << std::endl;
+  std::cout << "remainder " << remainder << std::endl;
+#endif
+
+  if (groups == 1) {
+     result[0].resize(1);
+    for (int i=0;i<nel1*nel2;++i)
+      result[0][0].push_back(i);
+  } else {
+    for (size_t g=0;g<result.size();++g) { // loop over groups
+      result[g].resize(threads);
+      for (int t=0;t<threads;++t) { // loop over threads
+        size_t startel = g*stripsize+result.size()*t*stripsize;
+        int curstripsize = stripsize;
+        if (t == threads-1 && g == result.size()-1)
+          curstripsize += remainder;
+        for (int i2=0; i2 < nel2; ++i2) { // loop in y direction
+          for (int i1=0;i1<curstripsize; ++i1) {
+            int iEl = startel+i1+i2*nel1;
+            result[g][t].push_back(iEl);
+          }
+        }
+      }
+    }
+  }
+
+#if SP_DEBUG > 1
+  for (size_t i=0;i<result.size();++i) {
+    std::cout << "group " << i << std::endl;
+    for (size_t j=0;j<result[i].size();++j) {
+      std::cout << "\t thread " << j << ": ";
+      for (size_t k=0;k<result[i][j].size();++k)
+        std::cout << result[i][j][k] << " ";
+      std::cout << std::endl;
+    }
+  }
+#endif
+}
+
+
+void utl::calcThreadGroups(int nel1, int nel2, int nel3, ThreadGroups& result)
+{
+  int threads=1;
+  int groups=1;
+#ifdef USE_OPENMP
+  threads = omp_get_max_threads();
+  if (threads > 1)
+    groups = 2;
+#endif
+
+  int stripsize = nel1/(groups*threads);
+  if (stripsize < 2) {
+    std::cerr << __FUNCTION__ << ": Warning: too many threads available." << std::endl
+              << "Reducing to a suitable amount" << std::endl;
+    while ((stripsize = nel1/(groups*threads)) < 2 && threads > 1)
+      threads--;
+    if (threads == 1)
+      groups=1;
+    stripsize = nel1/(groups*threads);
+  }
+  int remainder = nel1-(stripsize*groups*threads);
+  result.resize(groups);
+
+#if SP_DEBUG > 1
+  std::cout << "we have " << threads << " threads available" << std::endl;
+  std::cout << "nel1 " << nel1 << std::endl;
+  std::cout << "nel2 " << nel2 << std::endl;
+  std::cout << "nel3 " << nel3 << std::endl;
+  std::cout << "stripsize " << stripsize << std::endl;
+  std::cout << "# of strips " << (stripsize?nel1/stripsize:0) << std::endl;
+  std::cout << "remainder " << remainder << std::endl;
+#endif
+
+  for (size_t g=0;g<result.size();++g) { // loop over groups
+    result[g].resize(threads);
+    for (int t=0;t<threads;++t) { // loop over threads
+      size_t startel = g*stripsize+result.size()*t*stripsize;
+      int curstripsize = stripsize;
+      if (t == threads-1 && g == result.size()-1)
+        curstripsize += remainder;
+      for (int i2=0; i2 < nel2; ++i2) { // loop in y direction
+        for (int i3=0; i3 < nel3; ++i3) {
+          for (int i1=0;i1<curstripsize; ++i1) {
+            int iEl = startel+i1+i3*nel1*nel2+i2*nel1;
+            result[g][t].push_back(iEl);
+          }
+        }
+      }
+    }
+  }
+
+#if SP_DEBUG > 1
+  for (size_t i=0;i<result.size();++i) {
+    std::cout << "group " << i << std::endl;
+    for (size_t j=0;j<result[i].size();++j) {
+      std::cout << "\t thread " << j << " (" << result[i][j].size() << "): ";
+      for (size_t k=0;k<result[i][j].size();++k)
+        std::cout << result[i][j][k] << " ";
+      std::cout << std::endl;
+    }
+  }
+#endif
+}
+
+
+void utl::mapThreadGroups(ThreadGroups& result, const std::vector<int>& map)
+{
+  for (size_t l=0;l<result.size();++l)
+    for (size_t k=0;k<result[l].size();++k)
+      for (size_t j=0;j<result[l][k].size();++j)
+        result[l][k][j] = map[result[l][k][j]];
 }

@@ -137,6 +137,10 @@ public:
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
 			    const RealArray* gpar, bool regular = true) const;
 
+protected:
+  //! \brief Generate thread groups
+  void generateThreadGroups();
+public:
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction
   //! \param[out] n2 Number of nodes in second (v) direction

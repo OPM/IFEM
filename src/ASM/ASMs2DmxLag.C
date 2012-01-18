@@ -18,12 +18,12 @@
 #include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
+#include "LocalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
-#include "ElmNorm.h"
 
 
 ASMs2DmxLag::ASMs2DmxLag (unsigned char n_s,
@@ -222,9 +222,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
   this->getGridParameters(upar,0,1);
   this->getGridParameters(vpar,1,1);
 
-  // Number of elements in each direction
   const int nelx = upar.size() - 1;
-  const int nely = vpar.size() - 1;
 
   // Order of basis in the two parametric directions (order = degree + 1)
   const int p1 = surf->order_u();
@@ -233,73 +231,93 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
   const int q1 = p1 - 1;
   const int q2 = p2 - 1;
 
-  MxFiniteElement fe(p1*p2,q1*q2);
-  Matrix dN1du, dN2du, Xnod, Jac;
-  Vec4   X;
+  if (threadGroups.empty())
+    generateThreadGroups();
 
 
   // === Assembly loop over all elements in the patch ==========================
 
-  int iel = 1;
-  for (int i2 = 0; i2 < nely; i2++)
-    for (int i1 = 0; i1 < nelx; i1++, iel++)
-    {
-      fe.iel = MLGE[iel-1];
+  bool ok=true;
+  for (size_t g=0;g<threadGroups.size() && ok;++g) {
+#pragma omp parallel for schedule(static)
+    for (size_t t=0;t<threadGroups[g].size();++t) {
+      MxFiniteElement fe(p1*p2,q1*q2);
+      Matrix dN1du, dN2du, Xnod, Jac;
+      Vec4   X;
+      for (size_t i=0;i<threadGroups[g][t].size();++i) {
+        int iel = threadGroups[g][t][i];
+        int i1  = iel % nelx;
+        int i2  = iel / nelx;
 
-      // Set up control point coordinates for current element
-      if (!this->getElementCoordinates(Xnod,iel)) return false;
+        // Set up control point coordinates for current element
+        if (!this->getElementCoordinates(Xnod,++iel)) {
+          ok = false;
+          break;
+        }
 
-      // Initialize element quantities
-      IntVec::const_iterator f2start = MNPC[iel-1].begin() + fe.N1.size();
-      LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),iel-1,false);
-      if (!integrand.initElement(IntVec(MNPC[iel-1].begin(),f2start),
-				 IntVec(f2start,MNPC[iel-1].end()),nb1,*A))
-	return false;
+        // Initialize element quantities
+        fe.iel = MLGE[iel-1];
+        IntVec::const_iterator f2start = MNPC[iel-1].begin() + fe.N1.size();
+        LocalIntegral* A = integrand.getLocalIntegral(fe.N1.size(),fe.N2.size(),
+                                                      fe.iel,false);
+        if (!integrand.initElement(IntVec(MNPC[iel-1].begin(),f2start),
+                                   IntVec(f2start,MNPC[iel-1].end()),nb1,*A))
+        {
+          ok = false;
+          break;
+        }
 
-      // --- Integration loop over all Gauss points in each direction ----------
+        // --- Integration loop over all Gauss points in each direction --------
 
-      for (int j = 0; j < nGauss; j++)
-	for (int i = 0; i < nGauss; i++)
-	{
-	  // Parameter value of current integration point
-	  fe.u = 0.5*(upar[i1]*(1.0-xg[i]) + upar[i1+1]*(1.0+xg[i]));
-	  fe.v = 0.5*(vpar[i2]*(1.0-xg[j]) + vpar[i2+1]*(1.0+xg[j]));
+        for (int j = 0; j < nGauss; j++)
+          for (int i = 0; i < nGauss; i++)
+          {
+            // Parameter value of current integration point
+            fe.u = 0.5*(upar[i1]*(1.0-xg[i]) + upar[i1+1]*(1.0+xg[i]));
+            fe.v = 0.5*(vpar[i2]*(1.0-xg[j]) + vpar[i2+1]*(1.0+xg[j]));
 
-	  // Local coordinates of current integration point
-	  fe.xi  = xg[i];
-	  fe.eta = xg[j];
+            // Local coordinates of current integration point
+            fe.xi  = xg[i];
+            fe.eta = xg[j];
 
-	  // Compute basis function derivatives at current integration point
-	  // using tensor product of one-dimensional Lagrange polynomials
-	  if (!Lagrange::computeBasis(fe.N1,dN1du,p1,xg[i],p2,xg[j]))
-	    return false;
-	  if (!Lagrange::computeBasis(fe.N2,dN2du,q1,xg[i],q2,xg[j]))
-	    return false;
+            // Compute basis function derivatives at current integration point
+            // using tensor product of one-dimensional Lagrange polynomials
+            if (!Lagrange::computeBasis(fe.N1,dN1du,p1,xg[i],p2,xg[j]) ||
+                !Lagrange::computeBasis(fe.N2,dN2du,q1,xg[i],q2,xg[j])) {
+              ok = false;
+              break;
+            }
 
-	  // Compute Jacobian inverse of coordinate mapping and derivatives
-	  fe.detJxW = utl::Jacobian(Jac,fe.dN1dX,Xnod,dN1du);
-	  if (fe.detJxW == 0.0) continue; // skip singular points
+            // Compute Jacobian inverse of coordinate mapping and derivatives
+            fe.detJxW = utl::Jacobian(Jac,fe.dN1dX,Xnod,dN1du);
+            if (fe.detJxW == 0.0) continue; // skip singular points
 
-	  fe.dN2dX.multiply(dN2du,Jac); // dN2dX = dN2du * J^-1
+            fe.dN2dX.multiply(dN2du,Jac); // dN2dX = dN2du * J^-1
 
-	  // Cartesian coordinates of current integration point
-	  X = Xnod * fe.N1;
-	  X.t = time.t;
+            // Cartesian coordinates of current integration point
+            X = Xnod * fe.N1;
+            X.t = time.t;
 
-	  // Evaluate the integrand and accumulate element contributions
-	  fe.detJxW *= wg[i]*wg[j];
-	  if (!integrand.evalIntMx(*A,fe,time,X))
-	    return false;
-	}
+            // Evaluate the integrand and accumulate element contributions
+            fe.detJxW *= wg[i]*wg[j];
+            if (!integrand.evalIntMx(*A,fe,time,X)) {
+              ok = false;
+              break;
+            }
+          }
 
-      // Assembly of global system integral
-      if (!glInt.assemble(A,fe.iel))
-	return false;
-        if (!dynamic_cast<ElmNorm*>(A))
-          delete A;
+        // Assembly of global system integral
+        if (!glInt.assemble(A->ref(),fe.iel)) {
+          ok = false;
+          break;
+        }
+
+        A->destruct();
+      }
     }
+  }
 
-  return true;
+  return ok;
 }
 
 
@@ -344,8 +362,6 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
   for (int i2 = 0; i2 < nely; i2++)
     for (int i1 = 0; i1 < nelx; i1++, iel++)
     {
-      fe.iel = MLGE[iel-1];
-
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
       switch (edgeDir)
@@ -361,8 +377,10 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
       if (!this->getElementCoordinates(Xnod,iel)) return false;
 
       // Initialize element quantities
+      fe.iel = MLGE[iel-1];
       IntVec::const_iterator f2start = MNPC[iel-1].begin() + fe.N1.size();
-      LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),iel-1,true);
+      LocalIntegral* A = integrand.getLocalIntegral(fe.N1.size(),fe.N2.size(),
+                                                    fe.iel,true);
       if (!integrand.initElementBou(IntVec(MNPC[iel-1].begin(),f2start),
 				    IntVec(f2start,MNPC[iel-1].end()),nb1,*A))
 	return false;
@@ -396,15 +414,15 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 
 	// Evaluate the integrand and accumulate element contributions
 	fe.detJxW *= wg[i];
-	if (!integrand.evalBouMx(A,fe,time,X,normal))
+	if (!integrand.evalBouMx(*A,fe,time,X,normal))
 	  return false;
       }
 
       // Assembly of global system integral
-      if (!glInt.assemble(A,fe.iel))
+      if (!glInt.assemble(A->ref(),fe.iel))
 	return false;
-      if (!dynamic_cast<ElmNorm*>(A))
-        delete A;
+
+      A->destruct();
     }
 
   return true;

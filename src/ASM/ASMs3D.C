@@ -19,6 +19,7 @@
 #include "TimeDomain.h"
 #include "FiniteElement.h"
 #include "GlobalIntegral.h"
+#include "LocalIntegral.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
@@ -26,8 +27,6 @@
 #include "Utilities.h"
 #include "Profiler.h"
 #include "Vec3Oper.h"
-#include "ElmMats.h"
-#include "ElmNorm.h"
 
 
 ASMs3D::ASMs3D (unsigned char n_f)
@@ -1112,7 +1111,7 @@ static bool getG (const Matrix& Jinv, const Vector& du, Matrix& G)
 
   G.resize(nsd,nsd,true);
 
-  for (size_t k = 1;k <= nsd;k++) 
+  for (size_t k = 1;k <= nsd;k++)
     for (size_t l = 1;l <= nsd;l++)
       for (size_t m = 1;m <= nsd;m++)
 	G(k,l) += Jinv(m,k)*Jinv(m,l)/(du(k)*du(l));
@@ -1206,7 +1205,6 @@ bool ASMs3D::integrate (Integrand& integrand,
 
   const int n1 = svol->numCoefs(0);
   const int n2 = svol->numCoefs(1);
-  const int n3 = svol->numCoefs(2);
 
   const int p1 = svol->order(0);
   const int p2 = svol->order(1);
@@ -1215,184 +1213,208 @@ bool ASMs3D::integrate (Integrand& integrand,
   const int nel1 = n1 - p1 + 1;
   const int nel2 = n2 - p2 + 1;
 
-  FiniteElement fe(p1*p2*p3);
-  Matrix   dNdu, Xnod, Jac;
-  Matrix3D d2Ndu2, Hess;
-  Vec4     X;
+  if (threadGroupsVol.empty())
+    generateThreadGroups();
 
 
   // === Assembly loop over all elements in the patch ==========================
 
-  int iel = 1;
-  for (int i3 = p3; i3 <= n3; i3++)
-    for (int i2 = p2; i2 <= n2; i2++)
-      for (int i1 = p1; i1 <= n1; i1++, iel++)
-      {
-	fe.iel = MLGE[iel-1];
-	if (fe.iel < 1) continue; // zero-volume element
+  bool ok=true;
+  for (size_t g=0;g<threadGroupsVol.size() && ok;++g) {
+#pragma omp parallel for schedule(static)
+    for (size_t t=0;t<threadGroupsVol[g].size();++t) {
+      FiniteElement fe(p1*p2*p3);
+      Matrix   dNdu, Xnod, Jac;
+      Matrix3D d2Ndu2, Hess;
+      Vec4     X;
+      for (size_t l=0;l<threadGroupsVol[g][t].size();++l) {
+        int iel = threadGroupsVol[g][t][l];
+        fe.iel = MLGE[iel];
+        if (fe.iel < 1) continue; // zero-volume element
 
-	// Get element volume in the parameter space
-	double dV = this->getParametricVolume(iel);
-	if (dV < 0.0) return false; // topology error (probably logic error)
+        int i1 = p1 + iel % nel1;
+        int i2 = p2 + (iel / nel1) % nel2;
+        int i3 = p3 + iel / (nel1*nel2);
 
-	// Set up control point (nodal) coordinates for current element
-	if (!this->getElementCoordinates(Xnod,iel)) return false;
+        // Get element volume in the parameter space
+        double dV = this->getParametricVolume(++iel);
+        if (dV < 0.0) {
+          ok = false; // topology error (probably logic error)
+          break;
+        }
 
-	// Compute characteristic element length, if needed
-	if (integrand.getIntegrandType() == 2)
-	  fe.h = getElmSize(p1,p2,p3,Xnod);
+        // Set up control point (nodal) coordinates for current element
+        if (!this->getElementCoordinates(Xnod,iel)) {
+          ok = false;
+          break;
+        }
 
-	else if (integrand.getIntegrandType() == 3)
-	{
-	  // --- Compute average value of basis functions over the element -----
+        // Compute characteristic element length, if needed
+        if (integrand.getIntegrandType() == 2)
+          fe.h = getElmSize(p1,p2,p3,Xnod);
 
-	  fe.Navg.resize(p1*p2*p3,true);
-	  double vol = 0.0;
-	  int ip = (((i3-p3)*nGauss*nel2 + i2-p2)*nGauss*nel1 + i1-p1)*nGauss;
-	  for (int k = 0; k < nGauss; k++, ip += nGauss*(nel2-1)*nGauss*nel1)
-	    for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
-	      for (int i = 0; i < nGauss; i++, ip++)
-	      {
-		// Fetch basis function derivatives at current integration point
-		extractBasis(spline[ip],fe.N,dNdu);
+        else if (integrand.getIntegrandType() == 3)
+        {
+          // --- Compute average value of basis functions over the element -----
 
-		// Compute Jacobian determinant of coordinate mapping
-		// and multiply by weight of current integration point
-		double detJac = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu,false);
-		double weight = 0.125*dV*wg[i]*wg[j]*wg[k];
+          fe.Navg.resize(p1*p2*p3,true);
+          double vol = 0.0;
+          int ip = (((i3-p3)*nGauss*nel2 + i2-p2)*nGauss*nel1 + i1-p1)*nGauss;
+          for (int k = 0; k < nGauss; k++, ip += nGauss*(nel2-1)*nGauss*nel1)
+            for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
+              for (int i = 0; i < nGauss; i++, ip++)
+              {
+                // Fetch basis function derivatives at current integration point
+                extractBasis(spline[ip],fe.N,dNdu);
 
-		// Numerical quadrature
-		fe.Navg.add(fe.N,detJac*weight);
-		vol += detJac*weight;
-	      }
+                // Compute Jacobian determinant of coordinate mapping
+                // and multiply by weight of current integration point
+                double detJac = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu,false);
+                double weight = 0.125*dV*wg[i]*wg[j]*wg[k];
 
-	  // Divide by element volume
-	  fe.Navg /= vol;
-	}
+                // Numerical quadrature
+                fe.Navg.add(fe.N,detJac*weight);
+                vol += detJac*weight;
+              }
 
-	else if (integrand.getIntegrandType() == 4)
-	{
-	  // Compute the element center
-	  Go::Point X0;
-	  double u0 = 0.5*(gpar[0](1,i1-p1+1) + gpar[0](nGauss,i1-p1+1));
-	  double v0 = 0.5*(gpar[1](1,i2-p2+1) + gpar[1](nGauss,i2-p2+1));
-	  double w0 = 0.5*(gpar[2](1,i3-p3+1) + gpar[2](nGauss,i3-p3+1));
-	  svol->point(X0,u0,v0,w0);
-	  X.x = X0[0];
-	  X.y = X0[1];
-	  X.z = X0[2];
-	}
+          // Divide by element volume
+          fe.Navg /= vol;
+        }
+
+        else if (integrand.getIntegrandType() == 4)
+        {
+          // Compute the element center
+          Go::Point X0;
+          double u0 = 0.5*(gpar[0](1,i1-p1+1) + gpar[0](nGauss,i1-p1+1));
+          double v0 = 0.5*(gpar[1](1,i2-p2+1) + gpar[1](nGauss,i2-p2+1));
+          double w0 = 0.5*(gpar[2](1,i3-p3+1) + gpar[2](nGauss,i3-p3+1));
+          svol->point(X0,u0,v0,w0);
+          X.x = X0[0];
+          X.y = X0[1];
+          X.z = X0[2];
+        }
 
 	// Initialize element quantities
-        Vectors vec;
-        LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),iel-1,false);
-        if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed*nRed,vec,*A))
-	  return false;
+        LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
+        if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed*nRed,*A)) {
+          ok = false;
+          break;
+        }
 
-	/*if (integrand.getIntegrandType() > 10)
-	{
-	  // --- Selective reduced integration loop ----------------------------
+        if (integrand.getIntegrandType() > 10)
+        {
+          // --- Selective reduced integration loop ----------------------------
 
-	  int ip = (((i3-p3)*nRed*nel2 + i2-p2)*nRed*nel1 + i1-p1)*nRed;
-	  for (int k = 0; k < nRed; k++, ip += nRed*(nel2-1)*nRed*nel1)
-	    for (int j = 0; j < nRed; j++, ip += nRed*(nel1-1))
-	      for (int i = 0; i < nRed; i++, ip++)
-	      {
-		// Local element coordinates of current integration point
-		fe.xi   = xr[i];
-		fe.eta  = xr[j];
-		fe.zeta = xr[k];
+          int ip = (((i3-p3)*nRed*nel2 + i2-p2)*nRed*nel1 + i1-p1)*nRed;
+          for (int k = 0; k < nRed; k++, ip += nRed*(nel2-1)*nRed*nel1)
+            for (int j = 0; j < nRed; j++, ip += nRed*(nel1-1))
+              for (int i = 0; i < nRed; i++, ip++)
+              {
+                // Local element coordinates of current integration point
+                fe.xi   = xr[i];
+                fe.eta  = xr[j];
+                fe.zeta = xr[k];
 
-		// Parameter values of current integration point
-		fe.u = redpar[0](i+1,i1-p1+1);
-		fe.v = redpar[1](j+1,i2-p2+1);
-		fe.w = redpar[2](k+1,i3-p3+1);
+                // Parameter values of current integration point
+                fe.u = redpar[0](i+1,i1-p1+1);
+                fe.v = redpar[1](j+1,i2-p2+1);
+                fe.w = redpar[2](k+1,i3-p3+1);
 
-		// Fetch basis function derivatives at current point
-		extractBasis(splineRed[ip],fe.N,dNdu);
+                // Fetch basis function derivatives at current point
+                extractBasis(splineRed[ip],fe.N,dNdu);
 
-		// Compute Jacobian inverse and derivatives
-		fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+                // Compute Jacobian inverse and derivatives
+                fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
 
-		// Cartesian coordinates of current integration point
-		X = Xnod * fe.N;
-		X.t = time.t;
+                // Cartesian coordinates of current integration point
+                X = Xnod * fe.N;
+                X.t = time.t;
 
-		// Compute the reduced integration terms of the integrand
-		if (!integrand.reducedInt(fe,X))
-		  return false;
-	      }
-	}*/
+                // Compute the reduced integration terms of the integrand
+                if (!integrand.reducedInt(*A,fe,X)) {
+                  ok = false;
+                  break;
+                }
+              }
+        }
 
+        // --- Integration loop over all Gauss points in each direction --------
 
-	// --- Integration loop over all Gauss points in each direction --------
+        int ip = (((i3-p3)*nGauss*nel2 + i2-p2)*nGauss*nel1 + i1-p1)*nGauss;
+        for (int k = 0; k < nGauss; k++, ip += nGauss*(nel2-1)*nGauss*nel1)
+          for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
+            for (int i = 0; i < nGauss; i++, ip++)
+            {
+              // Local element coordinates of current integration point
+              fe.xi   = xg[i];
+              fe.eta  = xg[j];
+              fe.zeta = xg[k];
 
-	int ip = (((i3-p3)*nGauss*nel2 + i2-p2)*nGauss*nel1 + i1-p1)*nGauss;
-	for (int k = 0; k < nGauss; k++, ip += nGauss*(nel2-1)*nGauss*nel1)
-	  for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
-	    for (int i = 0; i < nGauss; i++, ip++)
-	    {
-	      // Local element coordinates of current integration point
-	      fe.xi   = xg[i];
-	      fe.eta  = xg[j];
-	      fe.zeta = xg[k];
+              // Parameter values of current integration point
+              fe.u = gpar[0](i+1,i1-p1+1);
+              fe.v = gpar[1](j+1,i2-p2+1);
+              fe.w = gpar[2](k+1,i3-p3+1);
 
-	      // Parameter values of current integration point
-	      fe.u = gpar[0](i+1,i1-p1+1);
-	      fe.v = gpar[1](j+1,i2-p2+1);
-	      fe.w = gpar[2](k+1,i3-p3+1);
+              // Fetch basis function derivatives at current integration point
+              if (integrand.getIntegrandType() == 2)
+                extractBasis(spline2[ip],fe.N,dNdu,d2Ndu2);
+              else
+                extractBasis(spline[ip],fe.N,dNdu);
 
-	      // Fetch basis function derivatives at current integration point
-	      if (integrand.getIntegrandType() == 2)
-		extractBasis(spline2[ip],fe.N,dNdu,d2Ndu2);
-	      else
-		extractBasis(spline[ip],fe.N,dNdu);
+              // Compute Jacobian inverse of coordinate mapping and derivatives
+              fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+              if (fe.detJxW == 0.0) continue; // skip singular points
 
- 	      // Compute Jacobian inverse of coordinate mapping and derivatives
-	      fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
-	      if (fe.detJxW == 0.0) continue; // skip singular points
+              // Compute Hessian of coordinate mapping and 2nd order derivatives
+              if (integrand.getIntegrandType() == 2)
+                if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu)) {
+                  ok = false;
+                  break;
+                }
 
- 	      // Compute Hessian of coordinate mapping and 2nd order derivatives
-	      if (integrand.getIntegrandType() == 2) {
-		if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
-		  return false;
-
-		// RUNAR
-		// Vector dXidu(3);
-// 		dXidu(1) = this->getParametricLength(iel,1);
-// 		dXidu(2) = this->getParametricLength(iel,2);
-// 		dXidu(3) = this->getParametricLength(iel,3);
-// 		if (!getG(Jac,dXidu,fe.G))
-// 		  return false;
-	      }
-
+/*	      // RUNAR
+	      Vector dXidu(3);
+ 	      dXidu(1) = this->getParametricLength(iel,1);
+ 	      dXidu(2) = this->getParametricLength(iel,2);
+ 	      dXidu(3) = this->getParametricLength(iel,3);
+ 	      if (!getG(Jac,dXidu,fe.G))
+ 	        return false;
+*/
 #if SP_DEBUG > 4
-	      std::cout <<"\niel, ip = "<< iel <<" "<< ip
-			<<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX << std::endl;
+              std::cout <<"\niel, ip = "<< iel <<" "<< ip
+                <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX << std::endl;
 #endif
 
-	      // Cartesian coordinates of current integration point
-	      X = Xnod * fe.N;
-	      X.t = time.t;
+              // Cartesian coordinates of current integration point
+              X = Xnod * fe.N;
+              X.t = time.t;
 
-	      // Evaluate the integrand and accumulate element contributions
-	      fe.detJxW *= 0.125*dV*wg[i]*wg[j]*wg[k];
-              if (!integrand.evalInt(*A,fe,time,X,vec))
-		return false;
-	    }
+              // Evaluate the integrand and accumulate element contributions
+              fe.detJxW *= 0.125*dV*wg[i]*wg[j]*wg[k];
+              if (!integrand.evalInt(*A,fe,time,X)) {
+                ok = false;
+                break;
+              }
+            }
 
 	// Finalize the element quantities
-	if (!integrand.finalizeElement(A,time))
-	  return false;
+	if (!integrand.finalizeElement(*A,time)) {
+          ok = false;
+          break;
+        }
 
-	// Assembly of global system integral
-	if (!glInt.assemble(A,fe.iel))
-	  return false;
-        if (!dynamic_cast<ElmNorm*>(A))
-          delete A;
+        // Assembly of global system integral
+        if (!glInt.assemble(A->ref(),fe.iel)) {
+          ok = false;
+          break;
+        }
+
+        A->destruct();
       }
+    }
+  }
 
-  return true;
+  return ok;
 }
 
 
@@ -1440,7 +1462,6 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 
   const int n1 = svol->numCoefs(0);
   const int n2 = svol->numCoefs(1);
-  const int n3 = svol->numCoefs(2);
 
   const int p1 = svol->order(0);
   const int p2 = svol->order(1);
@@ -1449,120 +1470,127 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
   const int nel1 = n1 - p1 + 1;
   const int nel2 = n2 - p2 + 1;
 
-  FiniteElement fe(p1*p2*p3);
-  fe.xi = fe.eta = fe.zeta = faceDir < 0 ? -1.0 : 1.0;
-  fe.u = gpar[0](1,1);
-  fe.v = gpar[1](1,1);
-  fe.w = gpar[2](1,1);
-
-  Matrix dNdu, Xnod, Jac;
-  Vec4   X;
-  Vec3   normal;
-
+  if (threadGroupsFace.empty())
+    generateThreadGroups();
 
   // === Assembly loop over all elements on the patch face =====================
 
-  int iel = 1;
-  for (int i3 = p3; i3 <= n3; i3++)
-    for (int i2 = p2; i2 <= n2; i2++)
-      for (int i1 = p1; i1 <= n1; i1++, iel++)
-      {
-	fe.iel = MLGE[iel-1];
-	if (fe.iel < 1) continue; // zero-volume element
+  bool ok=true;
+  for (size_t g=0;g<threadGroupsFace[lIndex-1].size() && ok;++g) {
+#pragma omp parallel for schedule(static)
+    for (size_t t=0;t<threadGroupsFace[lIndex-1][g].size();++t) {
+      FiniteElement fe(p1*p2*p3);
+      fe.xi = fe.eta = fe.zeta = faceDir < 0 ? -1.0 : 1.0;
+      fe.u = gpar[0](1,1);
+      fe.v = gpar[1](1,1);
+      fe.w = gpar[2](1,1);
 
-	// Skip elements that are not on current boundary face
-	bool skipMe = false;
-	switch (faceDir)
-	  {
-	  case -1: if (i1 > p1) skipMe = true; break;
-	  case  1: if (i1 < n1) skipMe = true; break;
-	  case -2: if (i2 > p2) skipMe = true; break;
-	  case  2: if (i2 < n2) skipMe = true; break;
-	  case -3: if (i3 > p3) skipMe = true; break;
-	  case  3: if (i3 < n3) skipMe = true; break;
-	  }
-	if (skipMe) continue;
+      Matrix dNdu, Xnod, Jac;
+      Vec4   X;
+      Vec3   normal;
+      for (size_t l=0;l<threadGroupsFace[lIndex-1][g][t].size();++l) {
+        int iel = threadGroupsFace[lIndex-1][g][t][l];
+        fe.iel = MLGE[iel];
+        if (fe.iel < 1) continue; // zero-volume element
 
-	// Get element face area in the parameter space
-	double dA = this->getParametricArea(iel,abs(faceDir));
-	if (dA < 0.0) return false; // topology error (probably logic error)
+        int i1 = p1 + iel % nel1;
+        int i2 = p2 + (iel / nel1) % nel2;
+        int i3 = p3 + iel / (nel1*nel2);
 
-	// Set up control point coordinates for current element
-	if (!this->getElementCoordinates(Xnod,iel)) return false;
+        // Get element face area in the parameter space
+        double dA = this->getParametricArea(++iel,abs(faceDir));
+        if (dA < 0.0) { // topology error (probably logic error)
+          ok = false;
+          break;
+        }
 
-	// Initialize element quantities
-        Vectors vec;
-        LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),iel-1,true);
-        if (!integrand.initElementBou(MNPC[iel-1],vec,*A)) return false;
+        // Set up control point coordinates for current element
+        if (!this->getElementCoordinates(Xnod,iel)) {
+          ok = false;
+          break;
+        }
 
-	// Define some loop control variables depending on which face we are on
-	int nf1, j1, j2;
-	switch (abs(faceDir))
-	  {
-	  case 1: nf1 = nel2; j2 = i3-p3; j1 = i2-p2; break;
-	  case 2: nf1 = nel1; j2 = i3-p3; j1 = i1-p1; break;
-	  case 3: nf1 = nel1; j2 = i2-p2; j1 = i1-p1; break;
-	  default: nf1 = j1 = j2 = 0;
-	  }
+        // Initialize element quantities
+        LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
+        if (!integrand.initElementBou(MNPC[iel-1],*A)) {
+          ok = false;
+          break;
+        }
 
-	// --- Integration loop over all Gauss points in each direction --------
+        // Define some loop control variables depending on which face we are on
+        int nf1, j1, j2;
+        switch (abs(faceDir))
+        {
+          case 1: nf1 = nel2; j2 = i3-p3; j1 = i2-p2; break;
+          case 2: nf1 = nel1; j2 = i3-p3; j1 = i1-p1; break;
+          case 3: nf1 = nel1; j2 = i2-p2; j1 = i1-p1; break;
+          default: nf1 = j1 = j2 = 0;
+        }
 
-	int k1, k2, k3;
-	int ip = (j2*nGauss*nf1 + j1)*nGauss;
-	for (int j = 0; j < nGauss; j++, ip += nGauss*(nf1-1))
-	  for (int i = 0; i < nGauss; i++, ip++)
-	  {
-	    // Local element coordinates and parameter values
-	    // of current integration point
-	    switch (abs(faceDir)) {
-	    case 1: k2 = i+1; k3 = j+1; k1 = 0; break;
-	    case 2: k1 = i+1; k3 = j+1; k2 = 0; break;
-	    case 3: k1 = i+1; k2 = j+1; k3 = 0; break;
-	    default: k1 = k2 = k3 = 0;
-	    }
-	    if (gpar[0].size() > 1)
-	    {
-	      fe.xi = xg[k1];
-	      fe.u = gpar[0](k1,i1-p1+1);
-	    }
-	    if (gpar[1].size() > 1)
-	    {
-	      fe.eta = xg[k2];
-	      fe.v = gpar[1](k2,i2-p2+1);
-	    }
-	    if (gpar[2].size() > 1)
-	    {
-	      fe.zeta = xg[k3];
-	      fe.w = gpar[2](k3,i3-p3+1);
-	    }
+        // --- Integration loop over all Gauss points in each direction --------
 
-	    // Fetch basis function derivatives at current integration point
-	    extractBasis(spline[ip],fe.N,dNdu);
+        int k1, k2, k3;
+        int ip = (j2*nGauss*nf1 + j1)*nGauss;
+        for (int j = 0; j < nGauss; j++, ip += nGauss*(nf1-1))
+          for (int i = 0; i < nGauss; i++, ip++)
+          {
+            // Local element coordinates and parameter values
+            // of current integration point
+            switch (abs(faceDir)) {
+              case 1: k2 = i+1; k3 = j+1; k1 = 0; break;
+              case 2: k1 = i+1; k3 = j+1; k2 = 0; break;
+              case 3: k1 = i+1; k2 = j+1; k3 = 0; break;
+              default: k1 = k2 = k3 = 0;
+            }
+            if (gpar[0].size() > 1)
+            {
+              fe.xi = xg[k1];
+              fe.u = gpar[0](k1,i1-p1+1);
+            }
+            if (gpar[1].size() > 1)
+            {
+              fe.eta = xg[k2];
+              fe.v = gpar[1](k2,i2-p2+1);
+            }
+            if (gpar[2].size() > 1)
+            {
+              fe.zeta = xg[k3];
+              fe.w = gpar[2](k3,i3-p3+1);
+            }
 
-	    // Compute basis function derivatives and the face normal
-	    fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
-	    if (fe.detJxW == 0.0) continue; // skip singular points
+            // Fetch basis function derivatives at current integration point
+            extractBasis(spline[ip],fe.N,dNdu);
 
-	    if (faceDir < 0) normal *= -1.0;
+            // Compute basis function derivatives and the face normal
+            fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
+            if (fe.detJxW == 0.0) continue; // skip singular points
 
-	    // Cartesian coordinates of current integration point
-	    X = Xnod * fe.N;
-	    X.t = time.t;
+            if (faceDir < 0) normal *= -1.0;
 
-	    // Evaluate the integrand and accumulate element contributions
-	    fe.detJxW *= 0.25*dA*wg[i]*wg[j];
-            if (!integrand.evalBou(*A,fe,time,X,normal,vec))
-	      return false;
-	  }
+            // Cartesian coordinates of current integration point
+            X = Xnod * fe.N;
+            X.t = time.t;
 
-	// Assembly of global system integral
-	if (!glInt.assemble(A,fe.iel))
-	  return false;
-        if (!dynamic_cast<ElmNorm*>(A))
-          delete A;
+            // Evaluate the integrand and accumulate element contributions
+            fe.detJxW *= 0.25*dA*wg[i]*wg[j];
+            if (!integrand.evalBou(*A,fe,time,X,normal)) {
+              ok = false;
+              break;
+            }
+          }
+
+        // Assembly of global system integral
+        if (!glInt.assemble(A->ref(),fe.iel)) {
+          ok = false;
+          break;
+        }
+
+        A->destruct();
       }
+    }
+  }
 
-  return true;
+  return ok;
 }
 
 
@@ -1695,10 +1723,8 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 	if (!this->getElementCoordinates(Xnod,iel)) return false;
 
 	// Initialize element quantities
-        Vectors vec;
-        LocalIntegral* A = integrand.getLocalIntegral(MNPC[iel-1].size(),iel-1,false);
-        if (!integrand.initElementBou(MNPC[iel-1],vec,*A)) return false;
-
+        LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
+        if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;
 
 	// --- Integration loop over all Gauss points along the edge -----------
 
@@ -1722,13 +1748,15 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 
 	  // Evaluate the integrand and accumulate element contributions
 	  fe.detJxW *= 0.5*dS*wg[i];
-          if (!integrand.evalBou(*A,fe,time,X,tang,vec))
+          if (!integrand.evalBou(*A,fe,time,X,tang))
 	    return false;
 	}
 
 	// Assembly of global system integral
-	if (!glInt.assemble(A,fe.iel))
+	if (!glInt.assemble(A->ref(),fe.iel))
 	  return false;
+
+	A->destruct();
       }
 
   return true;
@@ -2102,4 +2130,63 @@ bool ASMs3D::evalSolution (Matrix& sField, const Integrand& integrand,
   }
 
   return true;
+}
+
+
+void ASMs3D::generateThreadGroups()
+{
+  const int p1 = svol->order(0);
+  const int p2 = svol->order(1);
+  const int p3 = svol->order(2);
+  const int n1 = svol->numCoefs(0);
+  const int n2 = svol->numCoefs(1);
+  const int n3 = svol->numCoefs(2);
+  const int nel1 = n1 - p1 + 1;
+  const int nel2 = n2 - p2 + 1;
+  const int nel3 = n3 - p3 + 1;
+
+  utl::calcThreadGroups(nel1,nel2,nel3,threadGroupsVol);
+
+  // now the faces
+  threadGroupsFace.resize(6);
+  for (int face=0;face<6;++face) {
+    const int faceDir = (face+2)/((face+1)%2 ? -2 : 2);
+    std::vector<int> map;
+    int iel=0;
+    for (int i3 = p3; i3 <= n3; i3++) {
+      for (int i2 = p2; i2 <= n2; i2++) {
+        for (int i1 = p1; i1 <= n1; i1++, iel++) {
+          // Skip elements that are not on current boundary face
+          bool skipMe = false;
+          switch (faceDir)
+          {
+            case -1: if (i1 > p1) skipMe = true; break;
+            case  1: if (i1 < n1) skipMe = true; break;
+            case -2: if (i2 > p2) skipMe = true; break;
+            case  2: if (i2 < n2) skipMe = true; break;
+            case -3: if (i3 > p3) skipMe = true; break;
+            case  3: if (i3 < n3) skipMe = true; break;
+          }
+          if (skipMe)
+            continue;
+
+          map.push_back(iel);
+        }
+      }
+    }
+
+    int d1, d2;
+    if (face < 2) {
+      d1 = nel2;
+      d2 = nel3;
+    } else if (face < 4) {
+      d1 = nel1;
+      d2 = nel3;
+    } else {
+      d1 = nel1;
+      d2 = nel2;
+    }
+    utl::calcThreadGroups(d1,d2,threadGroupsFace[face]);
+    utl::mapThreadGroups(threadGroupsFace[face],map);
+  }
 }
