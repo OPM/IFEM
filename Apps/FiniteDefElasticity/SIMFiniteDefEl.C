@@ -19,7 +19,7 @@
 #include "NonlinearElasticityFbar.h"
 #include "NonlinearElasticityULMixed.h"
 #include "NonlinearElasticityULMX.h"
-#include "NeoHookeElasticity.h"
+#include "NonlinearElasticity.h"
 #include "Utilities.h"
 #include "Property.h"
 
@@ -171,12 +171,6 @@ SIMFiniteDefEl3D::SIMFiniteDefEl3D (bool checkRHS,
       break;
     case SIM::NONLINEAR: // Old tensor-based TL-formulation
       myProblem = new NonlinearElasticity();
-      break;
-    case SIM::NEOHOOKE: // NeoHookean TL-formulation (not working)
-      myProblem = new NeoHookeElasticity();
-      break;
-    case SIM::NEOHOOKE_IV: // NeoHookean isochoric/volumetric TL-formulation
-      myProblem = new NeoHookeElasticityIV();
       break;
     default:
       std::cerr <<" *** SIMFiniteDefEl3D: Unknown problem formulation "
