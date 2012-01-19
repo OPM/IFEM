@@ -1139,6 +1139,8 @@ bool ASMs2D::integrate (Integrand& integrand,
         for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
           for (int i = 0; i < nGauss; i++, ip++)
           {
+            fe.iGP = firstIp + ip; // Global integration point counter
+
             // Local element coordinates of current integration point
             fe.xi  = xg[i];
             fe.eta = xg[j];
@@ -1306,6 +1308,8 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       int ip = (t1 == 1 ? i2-p2 : i1-p1)*nGauss;
       for (int i = 0; i < nGauss; i++, ip++)
       {
+	fe.iGP = firstBp + ip; // Global integration point counter
+
 	// Local element coordinates and parameter values
 	// of current integration point
 	if (gpar[0].size() > 1)

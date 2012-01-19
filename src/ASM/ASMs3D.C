@@ -1345,6 +1345,8 @@ bool ASMs3D::integrate (Integrand& integrand,
           for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
             for (int i = 0; i < nGauss; i++, ip++)
             {
+              fe.iGP = firstIp + ip; // Global integration point counter
+
               // Local element coordinates of current integration point
               fe.xi   = xg[i];
               fe.eta  = xg[j];
@@ -1534,6 +1536,8 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
         for (int j = 0; j < nGauss; j++, ip += nGauss*(nf1-1))
           for (int i = 0; i < nGauss; i++, ip++)
           {
+            fe.iGP = firstBp + ip; // Global integration point counter
+
             // Local element coordinates and parameter values
             // of current integration point
             switch (abs(faceDir)) {
@@ -1730,6 +1734,8 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 
 	for (int i = 0; i < nGauss; i++, ip++)
 	{
+          fe.iGP = firstBp + ip; // Global integration point counter
+
 	  // Parameter values of current integration point
 	  if (gpar[0].size() > 1) fe.u = gpar[0](i+1,i1-p1+1);
 	  if (gpar[1].size() > 1) fe.v = gpar[1](i+1,i2-p2+1);

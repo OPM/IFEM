@@ -598,6 +598,8 @@ bool ASMs1D::integrate (Integrand& integrand,
 
     for (int i = 0; i < nGauss; i++)
     {
+      fe.iGP = firstIp + (iel-1)*nGauss + i; // Global integration point counter
+
       // Local element coordinate of current integration point
       fe.xi = xg[i];
 
@@ -672,6 +674,7 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
       return false;
     }
 
+  fe.iGP = firstBp;
   fe.iel = MLGE[iel-1];
   if (fe.iel < 1) return true; // zero-length element
 

@@ -47,6 +47,9 @@ public:
 
   //! \brief Defines the solution mode before the element assembly is started.
   virtual void setMode(SIM::SolutionMode mode) { m_mode = mode; }
+  //! \brief Initializes the integrand with the number of integration points.
+  //! \details This method is invoked only once during the preprocessing stage.
+  virtual void initIntegration(size_t, size_t) {}
   //! \brief Initializes the integrand for a new integration loop.
   //! \details This method is invoked once before starting the numerical
   //! integration over the entire spatial domain.
@@ -199,6 +202,8 @@ public:
   //! \brief Empty destructor.
   virtual ~NormBase() {}
 
+  //! \brief Initializes the integrand with the number of integration points.
+  virtual void initIntegration(size_t, size_t) {}
   //! \brief Initializes the integrand for a new integration loop.
   virtual void initIntegration(const TimeDomain& time);
 

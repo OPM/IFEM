@@ -18,11 +18,11 @@
 
 namespace Go {
   class GeomObject;
-  class BoundingBox;
 }
 namespace LR {
   class LRSplineSurface;
 }
+
 
 /*!
   \brief Base class for unstructured spline-based FE assembly drivers.
@@ -53,15 +53,20 @@ public:
   //! \param[in] ng Number of Gauss points in each parameter direction
   void setGauss(int ng) { nGauss = ng; }
 
-  //! \brief Resets global element and node counters
+  //! \brief Resets global element and node counters.
   static void resetNumbering() { gEl = gNod = 0; }
+
+  //! \brief Computes the total number of integration points in this patch.
+  virtual void getNoIntPoints(size_t& nPt) { nPt = 0; } // later...
+  //! \brief Computes the number of boundary integration points in this patch.
+  virtual void getNoBouPoints(size_t& nPt, int, int) { nPt = 0; } // later...
 
 protected:
   LR::LRSplineSurface* geo; //!< Pointer to the actual spline geometry object
 
-  int        nGauss;                        //!< Numerical integration scheme
-  static int gEl;                           //!< Global element counter
-  static int gNod;                          //!< Global node counter
+  int    nGauss;   //!< Numerical integration scheme
+  static int gEl;  //!< Global element counter
+  static int gNod; //!< Global node counter
 
 };
 

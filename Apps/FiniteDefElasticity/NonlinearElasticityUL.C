@@ -126,6 +126,15 @@ LocalIntegral* NonlinearElasticityUL::getLocalIntegral (size_t nen, size_t,
 }
 
 
+void NonlinearElasticityUL::initIntegration (size_t nGp, size_t nBp)
+{
+  if (material)
+    material->initIntegration(nGp);
+
+  this->Elasticity::initIntegration(nGp,nBp);
+}
+
+
 void NonlinearElasticityUL::initIntegration (const TimeDomain& prm)
 {
   if (material)
@@ -400,10 +409,19 @@ NormBase* NonlinearElasticityUL::getNormIntegrand (AnaSol*) const
 }
 
 
+void ElasticityNormUL::initIntegration (size_t nGp, size_t nBp)
+{
+  Ux.resize(nBp,0.0);
+  up.resize(nBp);
+  tp.resize(nBp);
+
+  this->ElasticityNorm::initIntegration(nGp,nBp);
+}
+
+
 void ElasticityNormUL::initIntegration (const TimeDomain& prm)
 {
   this->ElasticityNorm::initIntegration(prm);
-  iP = 0;
 }
 
 
@@ -474,24 +492,23 @@ bool ElasticityNormUL::evalBou (LocalIntegral& elmInt,
   Vec3 u = ulp.evalSol(elmInt.vec.front(),fe.N);
 
   // Integrate the external energy (path integral)
-  if (iP < Ux.size())
+  size_t iP = fe.iGP;
+#ifdef INDEX_CHECK
+  if (iP > Ux.size())
   {
-    // New load step, update integration point values
-    Ux[iP] += 0.5*(t+tp[iP])*(u-up[iP]);
-    tp[iP] = t;
-    up[iP] = u;
+    std::cerr <<" *** ElasticityNormUL::evalBou: Integration point "<< iP
+	      <<" out of range [0,"<< Ux.size() ">"<< std::endl;
+    return false;
   }
-  else
-  {
-    // This is the first load step at this integration point
-    Ux.push_back(0.5*t*u);
-    tp.push_back(t);
-    up.push_back(u);
-  }
+#endif
+
+  Ux[iP] += 0.5*(t+tp[iP])*(u-up[iP]);
+  tp[iP] = t;
+  up[iP] = u;
 
   // Axi-symmetric integration point volume; 2*pi*r*|J|*w
   double detJW = ulp.isAxiSymmetric() ? 2.0*M_PI*X.x*fe.detJxW : fe.detJxW;
 
-  static_cast<ElmNorm&>(elmInt)[1] += Ux[iP++]*detJW;
+  static_cast<ElmNorm&>(elmInt)[1] += Ux[iP]*detJW;
   return true;
 }

@@ -56,12 +56,19 @@ public:
   //! \param[in] integrand Object with problem-specific data and methods
   virtual Go::GeomObject* evalSolution(const Integrand& integrand) const = 0;
 
+  //! \brief Computes the total number of integration points in this patch.
+  virtual void getNoIntPoints(size_t& nPt);
+  //! \brief Computes the number of boundary integration points in this patch.
+  virtual void getNoBouPoints(size_t& nPt, int ldim, int lindx);
+
 protected:
   Go::GeomObject* geo; //!< Pointer to the actual spline geometry object
 
-  int        nGauss;   //!< Numerical integration scheme
-  static int gEl;      //!< Global element counter
-  static int gNod;     //!< Global node counter
+  size_t firstIp;  //!< Global index to first interior integration point
+  size_t firstBp;  //!< Global index to first boundary integration point
+  int    nGauss;   //!< Numerical integration scheme
+  static int gEl;  //!< Global element counter
+  static int gNod; //!< Global node counter
 };
 
 #endif

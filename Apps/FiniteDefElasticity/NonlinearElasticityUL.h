@@ -53,6 +53,10 @@ public:
   virtual LocalIntegral* getLocalIntegral(size_t nen, size_t,
 					  bool neumann) const;
 
+  //! \brief Initializes the integrand with the number of integration points.
+  //! \param[in] nGp Total number of interior integration points
+  //! \param[in] nBp Total number of boundary integration points
+  virtual void initIntegration(size_t nGp, size_t nBp);
   //! \brief Initializes the integrand for a new integration loop.
   //! \param[in] prm Nonlinear solution algorithm parameters
   virtual void initIntegration(const TimeDomain& prm);
@@ -130,10 +134,14 @@ class ElasticityNormUL : public ElasticityNorm
 public:
   //! \brief The only constructor initializes its data members.
   //! \param[in] p The linear elasticity problem to evaluate norms for
-  ElasticityNormUL(NonlinearElasticityUL& p) : ElasticityNorm(p), iP(0) {}
+  ElasticityNormUL(NonlinearElasticityUL& p) : ElasticityNorm(p) {}
   //! \brief Empty destructor.
   virtual ~ElasticityNormUL() {}
 
+  //! \brief Initializes the integrand with the number of integration points.
+  //! \param[in] nGp Total number of interior integration points
+  //! \param[in] nBp Total number of boundary integration points
+  virtual void initIntegration(size_t nGp, size_t nBp);
   //! \brief Initializes the integrand for a new integration loop.
   //! \param[in] prm Nonlinear solution algorithm parameters
   virtual void initIntegration(const TimeDomain& prm);
@@ -172,7 +180,6 @@ protected:
 
 private:
   // Data for path-integral of the external energy due to boundary tractions
-  mutable size_t            iP; //!< Global integration point counter
   mutable RealArray         Ux; //!< External energy densities
   mutable std::vector<Vec3> up; //!< Previous displacements
   mutable std::vector<Vec3> tp; //!< Previous tractions

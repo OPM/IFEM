@@ -247,6 +247,11 @@ public:
   //! \brief Initializes the patch level MADOF array for mixed problems.
   virtual void initMADOF(const int*) {}
 
+  //! \brief Computes the total number of integration points in this patch.
+  virtual void getNoIntPoints(size_t& nPt) = 0;
+  //! \brief Computes the number of boundary integration points in this patch.
+  virtual void getNoBouPoints(size_t& nPt, int ldim, int lindx) = 0;
+
 
   // Methods for integration of finite element quantities.
   // These are the main computational methods of the ASM class hierarchy.

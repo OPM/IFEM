@@ -25,9 +25,10 @@ class FiniteElement
 {
 public:
   //! \brief Default constructor.
-  FiniteElement(size_t nb = 0) : iel(0), h(0.0), N(nb), detJxW(1.0) {}
+  FiniteElement(size_t nb = 0) : iel(0), iGP(0), h(0.0), N(nb), detJxW(1.0) {}
 
   int      iel;    //!< Element identifier
+  size_t   iGP;    //!< Global integration point counter
   double   u;      //!< First parameter of current point
   double   v;      //!< Second parameter of current point
   double   w;      //!< Third parameter of current point
@@ -39,8 +40,8 @@ public:
   Vector   Navg;   //!< Volume-averaged basis function values
   Matrix   dNdX;   //!< First derivatives (gradient) of the basis functions
   Matrix3D d2NdX2; //!< Second derivatives of the basis functions
-  double   detJxW; //!< Weighted determinant of the coordinate mapping
   Matrix   G;      //!< Matrix used for stabilized methods
+  double   detJxW; //!< Weighted determinant of the coordinate mapping
 };
 
 

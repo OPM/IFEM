@@ -38,3 +38,23 @@ ASMstruct::~ASMstruct ()
 {
   if (geo && !shareFE) delete geo;
 }
+
+
+void ASMstruct::getNoIntPoints (size_t& nPt)
+{
+  size_t nGp = 1;
+  for (unsigned char d = 0; d < ndim; d++)
+    nGp *= nGauss;
+
+  firstIp = nPt;
+
+  nPt += this->getNoElms(true)*nGp; // Note: Includes also the 0-span elements
+}
+
+
+void ASMstruct::getNoBouPoints (size_t& nPt, int ldim, int lindx)
+{
+  firstBp = nPt;
+  if (ldim == 0) nPt ++; // This is correct for 1D only, 2D and 3D must take
+  // care of how many element do we have on the boundary defined by lindx
+}

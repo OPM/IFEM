@@ -34,12 +34,10 @@
 #include "VTF.h"
 #include "Functions.h"
 #include "Utilities.h"
+#include "tinyxml.h"
 #include <fstream>
 #include <sstream>
 #include <iomanip>
-#include <fstream>
-
-#include "tinyxml.h"
 
 
 ASM::Discretization SIMbase::discretization  = ASM::Spline;
@@ -660,9 +658,13 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
   if (renum > 0)
     std::cout <<"\nRenumbered "<< renum <<" nodes."<< std::endl;
 
+  size_t nIntP = 0, nBouP = 0;
   ASMs2DC1::renumberNodes(*g2l);
   for (mit = myModel.begin(); mit != myModel.end(); mit++)
+  {
     (*mit)->renumberNodes(*g2l);
+    (*mit)->getNoIntPoints(nIntP); // count number of global integration points
+  }
 
   // Process the specified Dirichlet boundary conditions
   std::cout <<"\nResolving Dirichlet boundary conditions"<< std::endl;
@@ -685,6 +687,12 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 	ok = false;
       break;
 
+    case Property::NEUMANN:
+      // Count number of global boundary integration points
+      if (p->patch > 0 && p->patch <= myModel.size())
+	myModel[p->patch-1]->getNoBouPoints(nBouP,p->ldim,p->lindx);
+      break;
+
     default:
       break;
     }
@@ -700,6 +708,9 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 
   // Resolve possibly chaining of the MPC equations
   if (!allMPCs.empty()) ASMbase::resolveMPCchains(allMPCs);
+
+  // Let the integrand know how many integration points in total do we have
+  if (myProblem) myProblem->initIntegration(nIntP,nBouP);
 
   // Preprocess the result points
   for (ResPointVec::iterator p = myPoints.begin(); p != myPoints.end();)

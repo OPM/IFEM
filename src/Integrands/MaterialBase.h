@@ -42,6 +42,8 @@ public:
   //! \brief Prints out material parameters to the given output stream.
   virtual void print(std::ostream&) const {}
 
+  //! \brief Initializes the material with the number of integration points.
+  virtual void initIntegration(size_t) {}
   //! \brief Initializes the material model for a new integration loop.
   virtual void initIntegration(const TimeDomain&) {}
   //! \brief Initializes the material model for a new result point loop.
