@@ -19,6 +19,10 @@
 
 #include "LinAlgInit.h"
 
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 
 Profiler* utl::profiler = 0;
 
@@ -48,6 +52,9 @@ Profiler::~Profiler ()
 
 static double WallTime ()
 {
+#ifdef USE_OPENMP
+  return omp_get_wtime();
+#endif
   timeval tmpTime;
   gettimeofday(&tmpTime,NULL);
   return tmpTime.tv_sec + tmpTime.tv_usec/1.0e6;
