@@ -290,7 +290,7 @@ bool NonlinearElasticityULMX::evalInt (LocalIntegral& elmInt,
 
 
 bool NonlinearElasticityULMX::finalizeElement (LocalIntegral& elmInt,
-					       const TimeDomain& prm)
+					       const TimeDomain& prm, size_t iG)
 {
   if (!iS && !eKm && !eKg) return true;
 
@@ -309,7 +309,7 @@ bool NonlinearElasticityULMX::finalizeElement (LocalIntegral& elmInt,
     std::cout <<"     dNdx"<< iP <<" ="<< pt.dNdx;
     std::cout <<"     Phi" << iP <<" ="<< pt.Phi;
   }
-  std::cout <<"\n     H ="<< *Hh << std::endl;
+  std::cout <<"\n     H ="<< *mx.Hh << std::endl;
 #endif
 
   // 1. Eliminate the internal pressure DOFs by static condensation.
@@ -458,7 +458,8 @@ bool NonlinearElasticityULMX::finalizeElement (LocalIntegral& elmInt,
     // Evaluate the constitutive relation
     double U = 0.0;
     Sig.push_back(SymmTensor(3));
-    if (!material->evaluate(Cmat,Sig.back(),U,pt.X,pt.F,SymmTensor(0),1,&prm))
+    if (!material->evaluate(Cmat,Sig.back(),U,iG++,pt.X,pt.F,
+			    SymmTensor(0),1,&prm))
       return false;
 
 #ifdef USE_FTNMAT
@@ -605,7 +606,7 @@ bool ElasticityNormULMX::evalBou (LocalIntegral& elmInt,
 
 
 bool ElasticityNormULMX::finalizeElement (LocalIntegral& elmInt,
-					  const TimeDomain& prm)
+					  const TimeDomain& prm, size_t iG)
 {
   NonlinearElasticityULMX& p = static_cast<NonlinearElasticityULMX&>(myProblem);
   MxNorm& mx = static_cast<MxNorm&>(elmInt);
@@ -617,7 +618,7 @@ bool ElasticityNormULMX::finalizeElement (LocalIntegral& elmInt,
   std::cout <<"\n\n *** Entering ElasticityNormULMX::finalizeElement\n";
   for (iP = 1; iP <= mx.myData.size(); iP++)
   {
-    const NonlinearElasticityULMX::ItgPtData& pt = mx.myData[iP-1];
+    const ItgPtData& pt = mx.myData[iP-1];
     std::cout <<"\n     X"   << iP <<" = "<< pt.X;
     std::cout <<"\n     detJ"<< iP <<"W = "<< pt.detJW;
     std::cout <<"\n     F"   << iP <<" =\n"<< pt.F;
@@ -701,7 +702,7 @@ bool ElasticityNormULMX::finalizeElement (LocalIntegral& elmInt,
     // Compute the strain energy density, U(Eps) = Int_Eps (S:E) dE
     // and the Cauchy stress tensor, Sig
     double U = 0.0;
-    if (!p.material->evaluate(Cmat,Sig,U,pt.X,Fbar,Eps,3,&prm,&pt.F))
+    if (!p.material->evaluate(Cmat,Sig,U,iG++,pt.X,Fbar,Eps,3,&prm,&pt.F))
       return false;
 
     // Integrate the norms

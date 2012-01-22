@@ -97,7 +97,7 @@ bool NonlinearElasticity::evalInt (LocalIntegral& elmInt,
   // the 2nd Piola-Kirchhoff stress tensor, S
   Matrix Cmat;
   SymmTensor S(nsd);
-  if (!this->formTangent(Cmat,S,X,F,E))
+  if (!this->formTangent(Cmat,S,fe.iGP,X,F,E))
     return false;
 
   bool haveStrains = !E.isZero(1.0e-16);
@@ -249,14 +249,14 @@ bool NonlinearElasticity::formStressTensor (const Vector& eV,
   // Evaluate the 2nd Piola-Kirchhoff stress tensor, S, at this point
   Matrix Cmat;
   double U;
-  return material->evaluate(Cmat,S,U,X,F,E,2);
+  return material->evaluate(Cmat,S,U,0,X,F,E,2);
 }
 
 
-bool NonlinearElasticity::formTangent (Matrix& Ctan, SymmTensor& S,
+bool NonlinearElasticity::formTangent (Matrix& Ctan, SymmTensor& S, size_t iGP,
 				       const Vec3& X, const Tensor& F,
 				       const SymmTensor& E) const
 {
   double U;
-  return material->evaluate(Ctan,S,U,X,F,E, E.isZero(1.0e-16) ? 0 : 2);
+  return material->evaluate(Ctan,S,U,iGP,X,F,E, E.isZero(1.0e-16) ? 0 : 2);
 }

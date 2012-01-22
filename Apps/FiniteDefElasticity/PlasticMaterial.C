@@ -41,7 +41,7 @@ extern "C" {
   See the Fortran the routine Material/plas3d.f for interpretation of \a pMAT.
 */
 
-PlasticMaterial::PlasticMaterial (const RealArray& p) : pMAT(p), iP1(0), iP2(0)
+PlasticMaterial::PlasticMaterial (const RealArray& p) : pMAT(p), iP2(0)
 {
   if (pMAT.size() < 11) pMAT.resize(11,0.0);
 
@@ -94,21 +94,28 @@ void PlasticMaterial::print (std::ostream& os) const
 }
 
 
+void PlasticMaterial::initIntegration (size_t nGP)
+{
+  itgPoints.resize(nGP,0);
+}
+
+
 void PlasticMaterial::initIntegration (const TimeDomain& prm)
 {
 #if INT_DEBUG > 0
-  std::cout <<"PlasticMaterial::initIntegration: "<< iP1 << std::endl;
+  std::cout <<"PlasticMaterial::initIntegration: "
+	    << itgPoints.size() << std::endl;
 #endif
 
-  iP1 = 0;
   iAmIntegrating = true;
 
   if (prm.it > 0 || prm.first) return;
 
   int nUpdated = 0;
   for (size_t i = 0; i < itgPoints.size(); i++)
-    if (itgPoints[i]->updateHistoryVars())
-      nUpdated++;
+    if (itgPoints[i])
+      if (itgPoints[i]->updateHistoryVars())
+	nUpdated++;
 
 #if INT_DEBUG > 0
   std::cout <<"PlasticMaterial::initIntegration: History updated "
@@ -120,7 +127,7 @@ void PlasticMaterial::initIntegration (const TimeDomain& prm)
 void PlasticMaterial::initResultPoints ()
 {
 #if INT_DEBUG > 0
-  std::cout <<"PlasticMaterial::initResultPoints: "<< iP1 << std::endl;
+  std::cout <<"PlasticMaterial::initResultPoints: "<< iP2 << std::endl;
 #endif
 
   iP2 = 0;
@@ -139,7 +146,7 @@ void PlasticMaterial::initResultPoints ()
 
 
 bool PlasticMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
-				const Vec3&, const Tensor& F,
+				size_t iP1, const Vec3&, const Tensor& F,
 				const SymmTensor& eps, char iop,
 				const TimeDomain* prm, const Tensor* Fpf) const
 {
@@ -152,14 +159,21 @@ bool PlasticMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
       std::cerr <<" *** PlasticMaterial::evaluate: No time domain."<< std::endl;
       return false;
     }
-
-    while (itgPoints.size() <= iP1)
-      itgPoints.push_back(new PlasticPoint(this,F.dim()));
+#ifdef INDEX_CHECK
+    else if (iP1 >= itgPoints.size())
+    {
+      std::cerr <<" *** PlasticMaterial::evaluate: Integration point "<< iP1+1
+		<<" out of range [1,"<< itgPoints.size() <<"]."<< std::endl;
+      return false;
+    }
+#endif
+    else if (!itgPoints[iP1])
+      itgPoints[iP1] = new PlasticPoint(this,F.dim());
 
     if (prm->it == 0 && !prm->first)
       itgPoints[iP1]->Fp = F;
 
-    if (!itgPoints[iP1++]->evaluate(C,sigma,F,*prm))
+    if (!itgPoints[iP1]->evaluate(C,sigma,F,*prm))
       return false;
   }
   else // Result evaluation
@@ -195,7 +209,7 @@ bool PlasticMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
       SymmTensor S(sigma); // sigma should be Cauchy stress when iop=3
       S.transform(Fi);     // S = F^-1 * sigma * F^-t
       if (iAmIntegrating)
-        U = itgPoints[iP1-1]->energyIntegral(S,eps)*J;
+        U = itgPoints[iP1]->energyIntegral(S,eps)*J;
       else
         U = resPoints[iP2-1]->energyIntegral(S,eps)*J;
     }

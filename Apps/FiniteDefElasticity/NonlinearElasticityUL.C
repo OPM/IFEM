@@ -223,7 +223,7 @@ bool NonlinearElasticityUL::evalInt (LocalIntegral& elmInt,
   if (eKm || eKg || iS)
   {
     double U = 0.0;
-    if (!material->evaluate(Cmat,sigma,U,X,F,E,(eKg || iS),&prm))
+    if (!material->evaluate(Cmat,sigma,U,fe.iGP,X,F,E,(eKg || iS),&prm))
       return false;
   }
 
@@ -395,7 +395,7 @@ bool NonlinearElasticityUL::kinematics (const Vector& eV,
   if (axiSymmetry && r > epsR) F(3,3) += eV.dot(N,0,nsd)/r;
 
 #ifdef INT_DEBUG
-  std::cout <<"NonlinearElasticityUL::eV ="<< eV.front();
+  std::cout <<"NonlinearElasticityUL::eV ="<< eV;
   std::cout <<"NonlinearElasticityUL::F =\n"<< F;
 #endif
 
@@ -443,7 +443,7 @@ bool ElasticityNormUL::evalInt (LocalIntegral& elmInt,
   // and the Cauchy stress tensor, sigma
   Matrix Cmat; double U = 0.0;
   SymmTensor sigma(E.dim(),ulp.isAxiSymmetric()||ulp.material->isPlaneStrain());
-  if (!ulp.material->evaluate(Cmat,sigma,U,X,F,E,3,&prm))
+  if (!ulp.material->evaluate(Cmat,sigma,U,fe.iGP,X,F,E,3,&prm))
     return false;
 
   // Axi-symmetric integration point volume; 2*pi*r*|J|*w
@@ -494,14 +494,13 @@ bool ElasticityNormUL::evalBou (LocalIntegral& elmInt,
   // Integrate the external energy (path integral)
   size_t iP = fe.iGP;
 #ifdef INDEX_CHECK
-  if (iP > Ux.size())
+  if (iP >= Ux.size())
   {
-    std::cerr <<" *** ElasticityNormUL::evalBou: Integration point "<< iP
-	      <<" out of range [0,"<< Ux.size() ">"<< std::endl;
+    std::cerr <<" *** ElasticityNormUL::evalBou: Integration point "<< iP+1
+	      <<" out of range [1,"<< Ux.size() <<"]."<< std::endl;
     return false;
   }
 #endif
-
   Ux[iP] += 0.5*(t+tp[iP])*(u-up[iP]);
   tp[iP] = t;
   up[iP] = u;

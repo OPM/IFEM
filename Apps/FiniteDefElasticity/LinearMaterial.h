@@ -50,6 +50,7 @@ public:
   //! \param[out] C Constitutive matrix at current point
   //! \param[out] sigma Stress tensor at current point
   //! \param[out] U Strain energy density at current point
+  //! \param[in] ip Global index for current point
   //! \param[in] X Cartesian coordinates of current point
   //! \param[in] F Deformation gradient at current point
   //! \param[in] eps Strain tensor at current point
@@ -61,7 +62,7 @@ public:
   //!   3 : Calculate the strain energy density only.
   //! \param[in] prm Nonlinear solution algorithm parameters
   //! \param[in] Fpf Deformation gradient for push-forward transformation
-  virtual bool evaluate(Matrix& C, SymmTensor& sigma, double& U,
+  virtual bool evaluate(Matrix& C, SymmTensor& sigma, double& U, size_t ip,
 			const Vec3& X, const Tensor& F, const SymmTensor& eps,
 			char iop = 1, const TimeDomain* prm = 0,
 			const Tensor* Fpf = 0) const;

@@ -22,12 +22,12 @@ double LinearMaterial::getMassDensity (const Vec3& X) const
 
 
 bool LinearMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
-			       const Vec3& X, const Tensor& Fbar,
+			       size_t ip, const Vec3& X, const Tensor& Fbar,
 			       const SymmTensor& eps, char iop,
 			       const TimeDomain* prm, const Tensor* Fpf) const
 {
   // Evaluate the constitutive matrix and the stress tensor at this point
-  if (!material->evaluate(C,sigma,U,X,Fbar,eps,iop,prm))
+  if (!material->evaluate(C,sigma,U,ip,X,Fbar,eps,iop,prm))
     return false;
   else if (iop == 2)
     return true;

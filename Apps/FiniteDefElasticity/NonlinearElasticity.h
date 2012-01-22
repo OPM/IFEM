@@ -76,10 +76,11 @@ protected:
   //! \brief Forms tangential tensorial quantities needed by the evalInt method.
   //! \param[out] Ctan Tangential constitutive tensor at current point
   //! \param[out] S 2nd Piola-Kirchhoff stress tensor at current point
+  //! \param[in] iGP Global integration point counter
   //! \param[in] X Cartesian coordinates of current integration point
   //! \param[in] F Deformation gradient at current integration point
   //! \param[in] E Green-Lagrange strain tensor at current integration point
-  virtual bool formTangent(Matrix& Ctan, SymmTensor& S,
+  virtual bool formTangent(Matrix& Ctan, SymmTensor& S, size_t iGP,
 			   const Vec3& X, const Tensor& F,
 			   const SymmTensor& E) const;
 

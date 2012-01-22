@@ -69,7 +69,7 @@ public:
   //!   0 : Calculate the constitutive matrix only,
   //!   1 : Calculate Cauchy stresses and the constitutive matrix,
   //!   3 : Calculate the strain energy density only.
-  virtual bool evaluate(Matrix& C, SymmTensor& sigma, double& U,
+  virtual bool evaluate(Matrix& C, SymmTensor& sigma, double& U, size_t,
 			const Vec3& X, const Tensor&, const SymmTensor& eps,
 			char iop = 1, const TimeDomain* = 0,
 			const Tensor* = 0) const;

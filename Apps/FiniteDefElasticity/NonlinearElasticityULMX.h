@@ -73,7 +73,9 @@ public:
   //! in the \a elmInt object by the \a evalInt method.
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] prm Nonlinear solution algorithm parameters
-  virtual bool finalizeElement(LocalIntegral& elmInt, const TimeDomain& prm);
+  //! \param[in] iG Global index of the first integration point in the element
+  virtual bool finalizeElement(LocalIntegral& elmInt, const TimeDomain& prm,
+			       size_t iG);
 
   //! \brief Returns a pointer to an Integrand for solution norm evaluation.
   //! \note The Integrand object is allocated dynamically and has to be deleted
@@ -153,7 +155,9 @@ public:
   //! a subset of the tasks done by NonlinearElasticityULMX::finalizeElement.
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] prm Nonlinear solution algorithm parameters
-  virtual bool finalizeElement(LocalIntegral& elmInt, const TimeDomain& prm);
+  //! \param[in] iG Global index of the first integration point in the element
+  virtual bool finalizeElement(LocalIntegral& elmInt, const TimeDomain& prm,
+			       size_t iG);
 
   //! \brief Returns which integrand to be used.
   virtual int getIntegrandType() const { return 4; }

@@ -96,6 +96,8 @@ public:
   //! \brief Prints out material parameters to the given output stream.
   virtual void print(std::ostream&) const;
 
+  //! \brief Initializes the material with the number of integration points.
+  virtual void initIntegration(size_t nGP);
   //! \brief Initializes the material model for a new integration loop.
   //! \param[in] prm Nonlinear solution algorithm parameters
   //!
@@ -113,6 +115,7 @@ public:
   //! \param[out] C Constitutive matrix at current point
   //! \param[out] sigma Stress tensor at current point
   //! \param[out] U Strain energy density at current point
+  //! \param[in] iP1 Global index for current point
   //! \param[in] X Cartesian coordinates of current point
   //! \param[in] F Deformation gradient at current point
   //! \param[in] eps Strain tensor at current point
@@ -123,7 +126,7 @@ public:
   //!  3 : Calculate strain energy density only.
   //! \param[in] prm Nonlinear solution algorithm parameters
   //! \param[in] Fpf Deformation gradient for push-forward transformation
-  virtual bool evaluate(Matrix& C, SymmTensor& sigma, double& U,
+  virtual bool evaluate(Matrix& C, SymmTensor& sigma, double& U, size_t iP1,
                         const Vec3& X, const Tensor& F, const SymmTensor& eps,
                         char iop, const TimeDomain* prm,
                         const Tensor* Fpf = 0) const;
@@ -139,7 +142,6 @@ private:
   friend class PlasticPoint;
 
   RealArray     pMAT; //!< Material property parameters
-  mutable size_t iP1; //!< Global integration point counter
   mutable size_t iP2; //!< Global result point counter
 
   bool iAmIntegrating; //!< Flag indicating integration or result evaluation

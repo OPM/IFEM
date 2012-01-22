@@ -489,7 +489,7 @@ Vec3 Elasticity::evalSol (const Vector& eV, const Vector& N) const
 bool Elasticity::formCinverse (Matrix& Cinv, const Vec3& X) const
 {
   SymmTensor dummy(nsd,axiSymmetry); double U;
-  return material->evaluate(Cinv,dummy,U,X,dummy,dummy,-1);
+  return material->evaluate(Cinv,dummy,U,0,X,dummy,dummy,-1);
 }
 
 
@@ -541,7 +541,7 @@ bool Elasticity::evalSol (Vector& s, const Vector& eV, const Vector& N,
   // Calculate the stress tensor through the constitutive relation
   Matrix Cmat;
   SymmTensor sigma(nsd, axiSymmetry || material->isPlaneStrain()); double U;
-  if (!material->evaluate(Cmat,sigma,U,X,dUdX,eps))
+  if (!material->evaluate(Cmat,sigma,U,0,X,dUdX,eps))
     return false;
 
   // Congruence transformation to local coordinate system at current point

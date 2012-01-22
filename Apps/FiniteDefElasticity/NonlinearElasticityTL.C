@@ -148,7 +148,8 @@ bool NonlinearElasticityTL::evalInt (LocalIntegral& elmInt,
   if (eKm || eKg || iS)
   {
     double U;
-    if (!material->evaluate(Cmat,S,U,X,F,E, (eKg || iS) && lHaveStrains ? 2:0))
+    if (!material->evaluate(Cmat,S,U,fe.iGP,X,F,E,
+			    (eKg || iS) && lHaveStrains ? 2:0))
       return false;
   }
 

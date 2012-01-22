@@ -388,7 +388,7 @@ bool NonlinearElasticityULMixed::evalIntMx (LocalIntegral& elmInt,
   Matrix Cmat;
   SymmTensor Sig(3), Sigma(nsd,axiSymmetry);
   double U, Bpres = 0.0, Mpres = 0.0;
-  if (!material->evaluate(Cmat,Sig,U,X,Fbar,E,lHaveStrains,&prm))
+  if (!material->evaluate(Cmat,Sig,U,fe.iGP,X,Fbar,E,lHaveStrains,&prm))
     return false;
 
   Matrix Dmat(7,7);
@@ -600,7 +600,7 @@ bool ElasticityNormULMixed::evalIntMx (LocalIntegral& elmInt,
   Matrix Cmat;
   double U = 0.0;
   SymmTensor Sig(3);
-  if (!ulp->material->evaluate(Cmat,Sig,U,X,Fbar,E,3,&prm,&F))
+  if (!ulp->material->evaluate(Cmat,Sig,U,fe.iGP,X,Fbar,E,3,&prm,&F))
     return false;
 
   // Axi-symmetric integration point volume; 2*pi*r*|J|*w

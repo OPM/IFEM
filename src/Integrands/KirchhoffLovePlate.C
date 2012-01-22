@@ -247,7 +247,7 @@ bool KirchhoffLovePlate::formCmatrix (Matrix& C, const Vec3& X,
 				      bool invers) const
 {
   SymmTensor dummy(nsd); double U;
-  if (!material->evaluate(C,dummy,U,X,dummy,dummy, invers ? -1 : 1))
+  if (!material->evaluate(C,dummy,U,0,X,dummy,dummy, invers ? -1 : 1))
     return false;
 
   double factor = thickness*thickness*thickness/12.0;

@@ -99,7 +99,7 @@ void NeoHookeMaterial::print (std::ostream& os) const
 
 
 bool NeoHookeMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
-				 const Vec3&, const Tensor& F,
+				 size_t ip, const Vec3&, const Tensor& F,
 				 const SymmTensor& eps, char iop,
 				 const TimeDomain*, const Tensor* Fpf) const
 {
@@ -156,7 +156,7 @@ bool NeoHookeMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
       first = false;
     }
   }
-  else if (iop == 1) // Calculate hydrostatic pressure for output
+  else if (iop == 1 && ip == 0) // Calculate hydrostatic pressure for output
     sigma_p = sigma.trace() / double(sigma.size() > 3 ? 3 : ndim);
 
 #if INT_DEBUG > 0

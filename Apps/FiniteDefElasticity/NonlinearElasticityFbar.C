@@ -578,7 +578,7 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral& elmInt,
   // Evaluate the constitutive relation (Jbar is dummy here)
   Matrix Cmat;
   SymmTensor Sig(nsd,axiSymmetry);
-  if (!material->evaluate(Cmat,Sig,Jbar,X,F,E,lHaveStrains,&prm))
+  if (!material->evaluate(Cmat,Sig,Jbar,fe.iGP,X,F,E,lHaveStrains,&prm))
     return false;
 
   // Multiply tangent moduli and stresses by integration point volume
@@ -759,7 +759,7 @@ bool ElasticityNormFbar::evalInt (LocalIntegral& elmInt,
   // and the Cauchy stress tensor, sigma
   Matrix Cmat; double U = 0.0;
   SymmTensor sigma(nsd, p.isAxiSymmetric() || p.material->isPlaneStrain());
-  if (!p.material->evaluate(Cmat,sigma,U,X,Fbar,E,3,&prm,&F))
+  if (!p.material->evaluate(Cmat,sigma,U,fe.iGP,X,Fbar,E,3,&prm,&F))
     return false;
 
   // Axi-symmetric integration point volume; 2*pi*r*|J|*w

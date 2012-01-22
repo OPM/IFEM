@@ -81,7 +81,7 @@ void LinIsotropic::print (std::ostream& os) const
   \end{array}\right] \f]
 */
 
-bool LinIsotropic::evaluate (Matrix& C, SymmTensor& sigma, double& U,
+bool LinIsotropic::evaluate (Matrix& C, SymmTensor& sigma, double& U, size_t,
 			     const Vec3& X, const Tensor&,
 			     const SymmTensor& eps, char iop,
 			     const TimeDomain*, const Tensor*) const
