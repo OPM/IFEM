@@ -259,6 +259,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
   if (threadGroupsVol.empty())
     generateThreadGroups();
 
+
   // === Assembly loop over all elements in the patch ==========================
 
   bool ok=true;
@@ -275,7 +276,8 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
         int i3  =  iel / (nelx*nely);
 
         // Set up control point coordinates for current element
-        if (!this->getElementCoordinates(Xnod,++iel)) {
+        if (!this->getElementCoordinates(Xnod,++iel))
+	{
           ok = false;
           break;
         }
@@ -292,11 +294,15 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
           break;
         }
 
+
         // --- Integration loop over all Gauss points in each direction --------
+
+        int jp = ((i3*nely + i2)*nelx + i1)*nGauss*nGauss*nGauss;
+        fe.iGP = firstIp + jp; // Global integration point counter
 
         for (int k = 0; k < nGauss; k++)
           for (int j = 0; j < nGauss; j++)
-            for (int i = 0; i < nGauss; i++)
+            for (int i = 0; i < nGauss; i++, fe.iGP++)
             {
               // Parameter value of current integration point
               fe.u = 0.5*(upar[i1]*(1.0-x[i]) + upar[i1+1]*(1.0+x[i]));
@@ -311,7 +317,8 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
               // Compute basis function derivatives at current integration point
               // using tensor product of one-dimensional Lagrange polynomials
               if (!Lagrange::computeBasis(fe.N1,dN1du,p1,x[i],p2,x[j],p3,x[k]) ||
-                  !Lagrange::computeBasis(fe.N2,dN2du,q1,x[i],q2,x[j],q3,x[k])) {
+                  !Lagrange::computeBasis(fe.N2,dN2du,q1,x[i],q2,x[j],q3,x[k]))
+	      {
                 ok = false;
                 break;
               }
@@ -328,14 +335,16 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
 
               // Evaluate the integrand and accumulate element contributions
               fe.detJxW *= w[i]*w[j]*w[k];
-              if (!integrand.evalIntMx(*A,fe,time,X)) {
+              if (!integrand.evalIntMx(*A,fe,time,X))
+	      {
                 ok = false;
                 break;
               }
             }
 
         // Assembly of global system integral
-        if (!glInt.assemble(A->ref(),fe.iel)) {
+        if (!glInt.assemble(A->ref(),fe.iel))
+	{
           ok = false;
           break;
         }
@@ -376,10 +385,16 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
   const int q2 = p2 - 1;
   const int q3 = p3 - 1;
 
+  // Number of elements in each direction
+  const int nel1 = (nx2-1)/(p1-1);
+  const int nel2 = (ny2-1)/(p2-1);
+
   if (threadGroupsFace.empty())
     generateThreadGroups();
 
+
   // === Assembly loop over all elements on the patch face =====================
+
   bool ok=true;
   for (size_t g=0;g<threadGroupsFace[lIndex-1].size() && ok;++g) {
 #pragma omp parallel for schedule(static)
@@ -391,9 +406,13 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
       double xi[3];
       for (size_t l=0;l<threadGroupsFace[lIndex-1][g][t].size();++l) {
         int iel = threadGroupsFace[lIndex-1][g][t][l];
+        int i1  =  iel % nel1;
+        int i2  = (iel / nel1) % nel2;
+        int i3  =  iel / (nel1*nel2);
 
 	// Set up control point coordinates for current element
-	if (!this->getElementCoordinates(Xnod,++iel)) {
+	if (!this->getElementCoordinates(Xnod,++iel))
+        {
           ok = false;
           break;
         }
@@ -404,15 +423,30 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
         LocalIntegral* A = integrand.getLocalIntegral(fe.N1.size(),fe.N2.size(),
                                                       fe.iel,true);
 	if (!integrand.initElementBou(IntVec(MNPC[iel-1].begin(),f2start),
-				      IntVec(f2start,MNPC[iel-1].end()),nb1,*A)) {
+				      IntVec(f2start,MNPC[iel-1].end()),nb1,*A))
+        {
           ok = false;
           break;
         }
 
+        // Define some loop control variables depending on which face we are on
+        int nf1, j1, j2;
+        switch (abs(faceDir))
+        {
+          case 1: nf1 = nel2; j2 = i3; j1 = i2; break;
+          case 2: nf1 = nel1; j2 = i3; j1 = i1; break;
+          case 3: nf1 = nel1; j2 = i2; j1 = i1; break;
+          default: nf1 = j1 = j2 = 0;
+        }
+
+
 	// --- Integration loop over all Gauss points in each direction --------
 
+        int jp = (j2*nf1 + j1)*nGauss*nGauss;
+        fe.iGP = firstBp[lIndex] + jp; // Global integration point counter
+
 	for (int j = 0; j < nGauss; j++)
-	  for (int i = 0; i < nGauss; i++)
+	  for (int i = 0; i < nGauss; i++, fe.iGP++)
 	  {
 	    // Gauss point coordinates on the face
 	    xi[t0-1] = faceDir < 0 ? -1.0 : 1.0;
@@ -421,11 +455,9 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
 
 	    // Compute the basis functions and their derivatives, using
 	    // tensor product of one-dimensional Lagrange polynomials
-	    if (!Lagrange::computeBasis(fe.N1,dN1du,p1,xi[0],p2,xi[1],p3,xi[2])) {
-              ok = false;
-              break;
-            }
-	    if (!Lagrange::computeBasis(fe.N2,dN2du,q1,xi[0],q2,xi[1],q3,xi[2])) {
+	    if (!Lagrange::computeBasis(fe.N1,dN1du,p1,xi[0],p2,xi[1],p3,xi[2]) ||
+		!Lagrange::computeBasis(fe.N2,dN2du,q1,xi[0],q2,xi[1],q3,xi[2]))
+	    {
               ok = false;
               break;
             }
@@ -444,14 +476,16 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
 
 	    // Evaluate the integrand and accumulate element contributions
 	    fe.detJxW *= wg[i]*wg[j];
-	    if (!integrand.evalBouMx(*A,fe,time,X,normal)) {
+	    if (!integrand.evalBouMx(*A,fe,time,X,normal))
+	    {
               ok = false;
               break;
             }
 	  }
 
 	// Assembly of global system integral
-	if (!glInt.assemble(A->ref(),fe.iel)) {
+	if (!glInt.assemble(A->ref(),fe.iel))
+	{
           ok = false;
           break;
         }
@@ -532,9 +566,8 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const Integrand& integrand,
 	  double xi   = -1.0 + i*incx;
 	  double eta  = -1.0 + j*incy;
 	  double zeta = -1.0 + k*incz;
-	  if (!Lagrange::computeBasis(N1,dN1du,p1,xi,p2,eta,p3,zeta))
-	    return false;
-	  if (!Lagrange::computeBasis(N2,dN2du,q1,xi,q2,eta,q3,zeta))
+	  if (!Lagrange::computeBasis(N1,dN1du,p1,xi,p2,eta,p3,zeta) ||
+	      !Lagrange::computeBasis(N2,dN2du,q1,xi,q2,eta,q3,zeta))
 	    return false;
 
 	  // Compute the Jacobian inverse

@@ -250,7 +250,8 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
         int i2  = iel / nelx;
 
         // Set up control point coordinates for current element
-        if (!this->getElementCoordinates(Xnod,++iel)) {
+        if (!this->getElementCoordinates(Xnod,++iel))
+        {
           ok = false;
           break;
         }
@@ -267,10 +268,14 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
           break;
         }
 
+
         // --- Integration loop over all Gauss points in each direction --------
 
+        int jp = (i2*nelx + i1)*nGauss*nGauss;
+        fe.iGP = firstIp + jp; // Global integration point counter
+
         for (int j = 0; j < nGauss; j++)
-          for (int i = 0; i < nGauss; i++)
+          for (int i = 0; i < nGauss; i++, fe.iGP++)
           {
             // Parameter value of current integration point
             fe.u = 0.5*(upar[i1]*(1.0-xg[i]) + upar[i1+1]*(1.0+xg[i]));
@@ -283,7 +288,8 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
             // Compute basis function derivatives at current integration point
             // using tensor product of one-dimensional Lagrange polynomials
             if (!Lagrange::computeBasis(fe.N1,dN1du,p1,xg[i],p2,xg[j]) ||
-                !Lagrange::computeBasis(fe.N2,dN2du,q1,xg[i],q2,xg[j])) {
+                !Lagrange::computeBasis(fe.N2,dN2du,q1,xg[i],q2,xg[j]))
+            {
               ok = false;
               break;
             }
@@ -300,14 +306,16 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= wg[i]*wg[j];
-            if (!integrand.evalIntMx(*A,fe,time,X)) {
+            if (!integrand.evalIntMx(*A,fe,time,X))
+            {
               ok = false;
               break;
             }
           }
 
         // Assembly of global system integral
-        if (!glInt.assemble(A->ref(),fe.iel)) {
+        if (!glInt.assemble(A->ref(),fe.iel))
+        {
           ok = false;
           break;
         }
@@ -385,9 +393,13 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 				    IntVec(f2start,MNPC[iel-1].end()),nb1,*A))
 	return false;
 
+
       // --- Integration loop over all Gauss points along the edge -------------
 
-      for (int i = 0; i < nGauss; i++)
+      int jp = (t1 == 1 ? i2 : i1)*nGauss;
+      fe.iGP = firstBp[lIndex] + jp; // Global integration point counter
+
+      for (int i = 0; i < nGauss; i++, fe.iGP++)
       {
 	// Gauss point coordinates along the edge
 	xi[t1-1] = edgeDir < 0 ? -1.0 : 1.0;
@@ -395,9 +407,8 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 
 	// Compute the basis functions and their derivatives, using
 	// tensor product of one-dimensional Lagrange polynomials
-	if (!Lagrange::computeBasis(fe.N1,dN1du,p1,xi[0],p2,xi[1]))
-	  return false;
-	if (!Lagrange::computeBasis(fe.N2,dN2du,q1,xi[0],q2,xi[1]))
+	if (!Lagrange::computeBasis(fe.N1,dN1du,p1,xi[0],p2,xi[1]) ||
+	    !Lagrange::computeBasis(fe.N2,dN2du,q1,xi[0],q2,xi[1]))
 	  return false;
 
 	// Compute basis function derivatives and the edge normal
@@ -491,9 +502,8 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const Integrand& integrand,
       {
 	double xi  = -1.0 + i*incx;
 	double eta = -1.0 + j*incy;
-	if (!Lagrange::computeBasis(N1,dN1du,p1,xi,p2,eta))
-	  return false;
-	if (!Lagrange::computeBasis(N2,dN2du,q1,xi,q2,eta))
+	if (!Lagrange::computeBasis(N1,dN1du,p1,xi,p2,eta) ||
+	    !Lagrange::computeBasis(N2,dN2du,q1,xi,q2,eta))
 	  return false;
 
 	// Compute the Jacobian inverse

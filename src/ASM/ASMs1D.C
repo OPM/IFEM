@@ -596,10 +596,11 @@ bool ASMs1D::integrate (Integrand& integrand,
 
     // --- Integration loop over all Gauss points in current element -----------
 
-    for (int i = 0; i < nGauss; i++)
-    {
-      fe.iGP = firstIp + (iel-1)*nGauss + i; // Global integration point counter
+    int jp = (iel-1)*nGauss;
+    fe.iGP = firstIp + jp; // Global integration point counter
 
+    for (int i = 0; i < nGauss; i++, fe.iGP++)
+    {
       // Local element coordinate of current integration point
       fe.xi = xg[i];
 
@@ -632,7 +633,7 @@ bool ASMs1D::integrate (Integrand& integrand,
     }
 
     // Finalize the element quantities
-    if (!integrand.finalizeElement(*A,time))
+    if (!integrand.finalizeElement(*A,time,firstIp+jp))
       return false;
 
     // Assembly of global system integral
@@ -674,7 +675,7 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
       return false;
     }
 
-  fe.iGP = firstBp;
+  fe.iGP = firstBp[lIndex];
   fe.iel = MLGE[iel-1];
   if (fe.iel < 1) return true; // zero-length element
 

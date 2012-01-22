@@ -423,6 +423,9 @@ public:
   //! \param[out] p3 Order in third (w) direction
   bool getOrder(int& p1, int& p2, int& p3) const;
 
+  //! \brief Returns the number of elements on a boundary.
+  virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
+
 private:
   //! \brief Returns an index into the internal coefficient array for a node.
   //! \param[in] inod 0-based node index local to current patch
@@ -435,10 +438,9 @@ protected:
   const IndexVec& nodeInd; //!< IJK-triplets for the control points (nodes)
   IndexVec      myNodeInd; //!< The actual IJK-triplet container
 
-  //! \brief Element groups for multithreaded volume assembly 
+  //! Element groups for multithreaded volume assembly
   utl::ThreadGroups threadGroupsVol;
-
-  //! \brief Element groups for multithreaded face assembly 
+  //! Element groups for multithreaded face assembly
   std::vector<utl::ThreadGroups> threadGroupsFace;
 
   //! \brief Generate thread groups

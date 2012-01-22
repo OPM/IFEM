@@ -563,13 +563,15 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
         // Get element volume in the parameter space
         double dV = this->getParametricVolume(++iel);
-        if (dV < 0.0) { // topology error (probably logic error)
+        if (dV < 0.0) // topology error (probably logic error)
+	{
           ok = false;
           break;
         }
 
         // Set up control point (nodal) coordinates for current element
-        if (!this->getElementCoordinates(Xnod,iel)) {
+        if (!this->getElementCoordinates(Xnod,iel))
+        {
           ok = false;
           break;
         }
@@ -585,12 +587,16 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
           break;
         }
 
+
         // --- Integration loop over all Gauss points in each direction --------
 
         int ip = (((i3-p3)*nGauss*nel2 + i2-p2)*nGauss*nel1 + i1-p1)*nGauss;
+        int jp = (((i3-p3)*nel2 + i2-p2*nel1 + i1-p1))*nGauss*nGauss*nGauss;
+        fe.iGP = firstIp + jp; // Global integration point counter
+
         for (int k = 0; k < nGauss; k++, ip += nGauss*(nel2-1)*nGauss*nel1)
           for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
-            for (int i = 0; i < nGauss; i++, ip++)
+            for (int i = 0; i < nGauss; i++, ip++, fe.iGP++)
             {
               // Local element coordinates of current integration point
               fe.xi   = xg[i];
@@ -626,14 +632,16 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
               // Evaluate the integrand and accumulate element contributions
               fe.detJxW *= 0.125*dV*wg[i]*wg[j]*wg[k];
-              if (!integrand.evalIntMx(*A,fe,time,X)) {
+              if (!integrand.evalIntMx(*A,fe,time,X))
+              {
                 ok = false;
                 break;
               }
             }
 
         // Assembly of global system integral
-        if (!glInt.assemble(A->ref(),fe.iel)) {
+        if (!glInt.assemble(A->ref(),fe.iel))
+        {
           ok = false;
           break;
         }
@@ -701,7 +709,9 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
   if (threadGroupsFace.empty())
     generateThreadGroups();
 
+
   // === Assembly loop over all elements on the patch face =====================
+
   bool ok=true;
   for (size_t g=0;g<threadGroupsFace[lIndex-1].size() && ok;++g) {
 #pragma omp parallel for schedule(static)
@@ -727,13 +737,15 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 
 	// Get element face area in the parameter space
 	double dA = this->getParametricArea(++iel,abs(faceDir));
-	if (dA < 0.0) { // topology error (probably logic error)
+	if (dA < 0.0) // topology error (probably logic error)
+	{
           ok = false;
           break;
         }
 
 	// Set up control point coordinates for current element
-	if (!this->getElementCoordinates(Xnod,iel)) {
+	if (!this->getElementCoordinates(Xnod,iel))
+	{
           ok = false;
           break;
         }
@@ -743,7 +755,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
         LocalIntegral* A = integrand.getLocalIntegral(fe.N1.size(),fe.N2.size(),
                                                       fe.iel,true);
 	if (!integrand.initElementBou(IntVec(MNPC[iel-1].begin(),f2start),
-				      IntVec(f2start,MNPC[iel-1].end()),nb1,*A)) {
+				      IntVec(f2start,MNPC[iel-1].end()),nb1,*A))
+        {
           ok = false;
           break;
         }
@@ -758,16 +771,21 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
           default: nf1 = j1 = j2 = 0;
         }
 
+
 	// --- Integration loop over all Gauss points in each direction --------
 
         int k1, k2, k3;
         int ip = (j2*nGauss*nf1 + j1)*nGauss;
+        int jp = (j2*nf1 + j1)*nGauss*nGauss;
+        fe.iGP = firstBp[lIndex] + jp; // Global integration point counter
+
         for (int j = 0; j < nGauss; j++, ip += nGauss*(nf1-1))
-          for (int i = 0; i < nGauss; i++, ip++)
+          for (int i = 0; i < nGauss; i++, ip++, fe.iGP++)
           {
             // Local element coordinates and parameter values
             // of current integration point
-            switch (abs(faceDir)) {
+            switch (abs(faceDir))
+            {
               case 1: k2 = i+1; k3 = j+1; k1 = 0; break;
               case 2: k1 = i+1; k3 = j+1; k2 = 0; break;
               case 3: k1 = i+1; k2 = j+1; k3 = 0; break;
@@ -815,14 +833,16 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= 0.25*dA*wg[i]*wg[j];
-            if (!integrand.evalBouMx(*A,fe,time,X,normal)) {
+            if (!integrand.evalBouMx(*A,fe,time,X,normal))
+            {
               ok = false;
               break;
             }
           }
 
 	// Assembly of global system integral
-	if (!glInt.assemble(A->ref(),fe.iel)) {
+	if (!glInt.assemble(A->ref(),fe.iel))
+        {
           ok = false;
           break;
         }

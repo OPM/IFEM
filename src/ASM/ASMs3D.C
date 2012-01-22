@@ -1023,6 +1023,34 @@ bool ASMs3D::getSize (int& n1, int& n2, int& n3, int) const
 }
 
 
+size_t ASMs3D::getNoBoundaryElms (char lIndex, char ldim) const
+{
+  if (ldim < 1 && lIndex > 0)
+    return 1;
+  else if (ldim < 2 && lIndex > 0 && lIndex <= 12)
+    return svol->numCoefs((lIndex-1)/4) - svol->order((lIndex-1)/4) + 1;
+
+  int n1 = svol->numCoefs(0) - svol->order(0) + 1;
+  int n2 = svol->numCoefs(1) - svol->order(1) + 1;
+  int n3 = svol->numCoefs(2) - svol->order(2) + 1;
+
+  switch (lIndex)
+    {
+    case 1:
+    case 2:
+      return n2*n3;
+    case 3:
+    case 4:
+      return n1*n3;
+    case 5:
+    case 6:
+      return n1*n2;
+    }
+
+  return 0;
+}
+
+
 void ASMs3D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
 				      const double* xi) const
 {
@@ -1098,25 +1126,6 @@ static double getElmSize (int p1, int p2, int p3, const Matrix& X)
     }
 
   return sqrt(h);
-}
-
-
-/*!
-  \brief Computes the characteristic element length from inverse Jacobian.
-*/
-
-static bool getG (const Matrix& Jinv, const Vector& du, Matrix& G)
-{
-  const size_t nsd = Jinv.cols();
-
-  G.resize(nsd,nsd,true);
-
-  for (size_t k = 1;k <= nsd;k++)
-    for (size_t l = 1;l <= nsd;l++)
-      for (size_t m = 1;m <= nsd;m++)
-	G(k,l) += Jinv(m,k)*Jinv(m,l)/(du(k)*du(l));
-
-  return true;
 }
 
 
@@ -1226,6 +1235,7 @@ bool ASMs3D::integrate (Integrand& integrand,
       FiniteElement fe(p1*p2*p3);
       Matrix   dNdu, Xnod, Jac;
       Matrix3D d2Ndu2, Hess;
+      double   dXidu[3];
       Vec4     X;
       for (size_t l=0;l<threadGroupsVol[g][t].size();++l) {
         int iel = threadGroupsVol[g][t][l];
@@ -1238,13 +1248,15 @@ bool ASMs3D::integrate (Integrand& integrand,
 
         // Get element volume in the parameter space
         double dV = this->getParametricVolume(++iel);
-        if (dV < 0.0) {
+        if (dV < 0.0)
+        {
           ok = false; // topology error (probably logic error)
           break;
         }
 
         // Set up control point (nodal) coordinates for current element
-        if (!this->getElementCoordinates(Xnod,iel)) {
+        if (!this->getElementCoordinates(Xnod,iel))
+        {
           ok = false;
           break;
         }
@@ -1294,9 +1306,16 @@ bool ASMs3D::integrate (Integrand& integrand,
           X.z = X0[2];
         }
 
+	// TODO: Do this conditionally (only when the CFD solver requires it)
+	int inod = MNPC[iel-1].back();
+	dXidu[0] = svol->knotSpan(0,nodeInd[inod].I);
+	dXidu[1] = svol->knotSpan(1,nodeInd[inod].J);
+	dXidu[2] = svol->knotSpan(2,nodeInd[inod].K);
+
 	// Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-        if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed*nRed,*A)) {
+        if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed*nRed,*A))
+        {
           ok = false;
           break;
         }
@@ -1331,22 +1350,25 @@ bool ASMs3D::integrate (Integrand& integrand,
                 X.t = time.t;
 
                 // Compute the reduced integration terms of the integrand
-                if (!integrand.reducedInt(*A,fe,X)) {
+                if (!integrand.reducedInt(*A,fe,X))
+                {
                   ok = false;
                   break;
                 }
               }
         }
 
+
         // --- Integration loop over all Gauss points in each direction --------
 
         int ip = (((i3-p3)*nGauss*nel2 + i2-p2)*nGauss*nel1 + i1-p1)*nGauss;
+        int jp = (((i3-p3)*nel2 + i2-p2)*nel1 + i1-p1)*nGauss*nGauss*nGauss;
+        fe.iGP = firstIp + jp; // Global integration point counter
+
         for (int k = 0; k < nGauss; k++, ip += nGauss*(nel2-1)*nGauss*nel1)
           for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
-            for (int i = 0; i < nGauss; i++, ip++)
+            for (int i = 0; i < nGauss; i++, ip++, fe.iGP++)
             {
-              fe.iGP = firstIp + ip; // Global integration point counter
-
               // Local element coordinates of current integration point
               fe.xi   = xg[i];
               fe.eta  = xg[j];
@@ -1369,22 +1391,18 @@ bool ASMs3D::integrate (Integrand& integrand,
 
               // Compute Hessian of coordinate mapping and 2nd order derivatives
               if (integrand.getIntegrandType() == 2)
-                if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu)) {
+                if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
+                {
                   ok = false;
                   break;
                 }
 
-/*	      // RUNAR
-	      Vector dXidu(3);
- 	      dXidu(1) = this->getParametricLength(iel,1);
- 	      dXidu(2) = this->getParametricLength(iel,2);
- 	      dXidu(3) = this->getParametricLength(iel,3);
- 	      if (!getG(Jac,dXidu,fe.G))
- 	        return false;
-*/
+              // RUNAR: Do this conditionally (when the CFD solver requires it)
+              utl::getGmat(Jac,dXidu,fe.G);
+
 #if SP_DEBUG > 4
               std::cout <<"\niel, ip = "<< iel <<" "<< ip
-                <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX << std::endl;
+                        <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX << std::endl;
 #endif
 
               // Cartesian coordinates of current integration point
@@ -1393,20 +1411,23 @@ bool ASMs3D::integrate (Integrand& integrand,
 
               // Evaluate the integrand and accumulate element contributions
               fe.detJxW *= 0.125*dV*wg[i]*wg[j]*wg[k];
-              if (!integrand.evalInt(*A,fe,time,X)) {
+              if (!integrand.evalInt(*A,fe,time,X))
+              {
                 ok = false;
                 break;
               }
             }
 
 	// Finalize the element quantities
-	if (!integrand.finalizeElement(*A,time)) {
+	if (!integrand.finalizeElement(*A,time,firstIp+jp))
+	{
           ok = false;
           break;
         }
 
         // Assembly of global system integral
-        if (!glInt.assemble(A->ref(),fe.iel)) {
+        if (!glInt.assemble(A->ref(),fe.iel))
+	{
           ok = false;
           break;
         }
@@ -1475,6 +1496,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
   if (threadGroupsFace.empty())
     generateThreadGroups();
 
+
   // === Assembly loop over all elements on the patch face =====================
 
   bool ok=true;
@@ -1501,20 +1523,23 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 
         // Get element face area in the parameter space
         double dA = this->getParametricArea(++iel,abs(faceDir));
-        if (dA < 0.0) { // topology error (probably logic error)
+        if (dA < 0.0) // topology error (probably logic error)
+        {
           ok = false;
           break;
         }
 
         // Set up control point coordinates for current element
-        if (!this->getElementCoordinates(Xnod,iel)) {
+        if (!this->getElementCoordinates(Xnod,iel))
+        {
           ok = false;
           break;
         }
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-        if (!integrand.initElementBou(MNPC[iel-1],*A)) {
+        if (!integrand.initElementBou(MNPC[iel-1],*A))
+        {
           ok = false;
           break;
         }
@@ -1529,18 +1554,21 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
           default: nf1 = j1 = j2 = 0;
         }
 
+
         // --- Integration loop over all Gauss points in each direction --------
 
         int k1, k2, k3;
         int ip = (j2*nGauss*nf1 + j1)*nGauss;
-        for (int j = 0; j < nGauss; j++, ip += nGauss*(nf1-1))
-          for (int i = 0; i < nGauss; i++, ip++)
-          {
-            fe.iGP = firstBp + ip; // Global integration point counter
+        int jp = (j2*nf1 + j1)*nGauss*nGauss;
+        fe.iGP = firstBp[lIndex] + jp; // Global integration point counter
 
+        for (int j = 0; j < nGauss; j++, ip += nGauss*(nf1-1))
+          for (int i = 0; i < nGauss; i++, ip++, fe.iGP++)
+          {
             // Local element coordinates and parameter values
             // of current integration point
-            switch (abs(faceDir)) {
+            switch (abs(faceDir))
+            {
               case 1: k2 = i+1; k3 = j+1; k1 = 0; break;
               case 2: k1 = i+1; k3 = j+1; k2 = 0; break;
               case 3: k1 = i+1; k2 = j+1; k3 = 0; break;
@@ -1577,14 +1605,16 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= 0.25*dA*wg[i]*wg[j];
-            if (!integrand.evalBou(*A,fe,time,X,normal)) {
+            if (!integrand.evalBou(*A,fe,time,X,normal))
+            {
               ok = false;
               break;
             }
           }
 
         // Assembly of global system integral
-        if (!glInt.assemble(A->ref(),fe.iel)) {
+        if (!glInt.assemble(A->ref(),fe.iel))
+        {
           ok = false;
           break;
         }
@@ -1730,12 +1760,13 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
         if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;
 
+
 	// --- Integration loop over all Gauss points along the edge -----------
 
-	for (int i = 0; i < nGauss; i++, ip++)
-	{
-          fe.iGP = firstBp + ip; // Global integration point counter
+	fe.iGP = firstBp[lEdge] + ip; // Global integration point counter
 
+	for (int i = 0; i < nGauss; i++, ip++, fe.iGP++)
+	{
 	  // Parameter values of current integration point
 	  if (gpar[0].size() > 1) fe.u = gpar[0](i+1,i1-p1+1);
 	  if (gpar[1].size() > 1) fe.v = gpar[1](i+1,i2-p2+1);

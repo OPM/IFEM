@@ -114,7 +114,7 @@ public:
   unsigned char getNoParamDim() const { return ndim; }
   //! \brief Returns the number of solution fields.
   virtual unsigned char getNoFields(int b = 0) const { return b > 1 ? 0 : nf; }
-  //! \brief Returns the number of solution fields.
+  //! \brief Returns the number of degrees of freedom per element.
   virtual size_t getNoElmDOF(int b = 0) const { return b > 1 ? 0 : neldof; }
 
   //! \brief Returns local 1-based index of the node with given global number.
@@ -250,7 +250,7 @@ public:
   //! \brief Computes the total number of integration points in this patch.
   virtual void getNoIntPoints(size_t& nPt) = 0;
   //! \brief Computes the number of boundary integration points in this patch.
-  virtual void getNoBouPoints(size_t& nPt, int ldim, int lindx) = 0;
+  virtual void getNoBouPoints(size_t& nPt, char ldim, char lindx) = 0;
 
 
   // Methods for integration of finite element quantities.
@@ -453,7 +453,7 @@ protected:
   unsigned char nsd;    //!< Number of space dimensions (ndim <= nsd <= 3)
   unsigned char nf;     //!< Number of primary solution fields (1 or larger)
   size_t        neldof; //!< Number of degrees of freedom per element
-  
+
   const IntVec& MLGE; //!< Matrix of Local to Global Element numbers
   const IntVec& MLGN; //!< Matrix of Local to Global Node numbers
   const IntMat& MNPC; //!< Matrix of Nodal Point Correspondance

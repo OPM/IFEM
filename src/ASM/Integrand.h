@@ -63,11 +63,11 @@ public:
 
   // Element-level initialization interface
   // ======================================
-  
-  //! \brief Get a local integral contribution container for a given element
-  //! \param[in] nen Number of DOFs on element
-  //! \param[in] iEl The element number
-  //! \param[in] neumann Whether or not we are assembling Neumann b.c's
+
+  //! \brief Returns a local integral contribution object for the given element.
+  //! \param[in] nen Number of nodes on element
+  //! \param[in] iEl Global element number (1-based)
+  //! \param[in] neumann Whether or not we are assembling Neumann BCs
   virtual LocalIntegral* getLocalIntegral(size_t nen, size_t iEl,
                                           bool neumann = false) const = 0;
   //! \brief Returns a local integral contribution object for the given element.
@@ -202,7 +202,7 @@ public:
   //! It can also be used to implement multiple integration point loops within
   //! the same element, provided the necessary integration point values are
   //! stored internally in the object during the first integration loop.
-  virtual bool finalizeElement(LocalIntegral&, const TimeDomain&)
+  virtual bool finalizeElement(LocalIntegral&, const TimeDomain&, size_t = 0)
   {
     return true;
   }

@@ -237,7 +237,8 @@ bool ASMs2DLag::integrate (Integrand& integrand,
         int i2  = iel / nelx;
 
         // Set up nodal point coordinates for current element
-        if (!this->getElementCoordinates(Xnod,++iel)) {
+        if (!this->getElementCoordinates(Xnod,++iel))
+        {
           ok = false;
           break;
         }
@@ -256,7 +257,8 @@ bool ASMs2DLag::integrate (Integrand& integrand,
         // Initialize element quantities
         fe.iel = MLGE[iel-1];
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-        if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed,*A)) {
+        if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed,*A))
+        {
           ok = false;
           break;
         }
@@ -298,10 +300,14 @@ bool ASMs2DLag::integrate (Integrand& integrand,
               }
             }
 
+
         // --- Integration loop over all Gauss points in each direction --------
 
+        int jp = (i2*nelx + i1)*nGauss*nGauss;
+        fe.iGP = firstIp + jp; // Global integration point counter
+
         for (int j = 0; j < nGauss; j++)
-          for (int i = 0; i < nGauss; i++)
+          for (int i = 0; i < nGauss; i++, fe.iGP++)
           {
             // Local element coordinates of current integration point
             fe.xi  = xg[i];
@@ -313,7 +319,8 @@ bool ASMs2DLag::integrate (Integrand& integrand,
 
             // Compute basis function derivatives at current integration point
             // using tensor product of one-dimensional Lagrange polynomials
-            if (!Lagrange::computeBasis(fe.N,dNdu,p1,xg[i],p2,xg[j])) {
+            if (!Lagrange::computeBasis(fe.N,dNdu,p1,xg[i],p2,xg[j]))
+            {
               ok = false;
               break;
             }
@@ -328,20 +335,23 @@ bool ASMs2DLag::integrate (Integrand& integrand,
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= wg[i]*wg[j];
-            if (!integrand.evalInt(*A,fe,time,X)) {
+            if (!integrand.evalInt(*A,fe,time,X))
+            {
               ok = false;
               break;
             }
           }
 
         // Finalize the element quantities
-        if (!integrand.finalizeElement(*A,time)) {
+        if (!integrand.finalizeElement(*A,time,firstIp+jp))
+        {
           ok = false;
           break;
         }
 
         // Assembly of global system integral
-        if (!glInt.assemble(A->ref(),fe.iel)) {
+        if (!glInt.assemble(A->ref(),fe.iel))
+        {
           ok = false;
           break;
         }
@@ -425,9 +435,13 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
       LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
       if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;
 
+
       // --- Integration loop over all Gauss points along the edge -------------
 
-      for (int i = 0; i < nGauss; i++)
+      int jp = (t1 == 1 ? i2 : i1)*nGauss;
+      fe.iGP = firstBp[lIndex] + jp; // Global integration point counter
+
+      for (int i = 0; i < nGauss; i++, fe.iGP++)
       {
 	// Local element coordinates of current integration point
 	xi[t1-1] = edgeDir < 0 ? -1.0 : 1.0;

@@ -22,6 +22,8 @@ int ASMstruct::gNod = 0;
 ASMstruct::ASMstruct (unsigned char n_p, unsigned char n_s, unsigned char n_f)
   : ASMbase(n_p,n_s,n_f)
 {
+  firstIp = 0;
+  nGauss = 0;
   geo = 0;
 }
 
@@ -29,6 +31,7 @@ ASMstruct::ASMstruct (unsigned char n_p, unsigned char n_s, unsigned char n_f)
 ASMstruct::ASMstruct (const ASMstruct& patch, unsigned char n_f)
   : ASMbase(patch,n_f)
 {
+  firstIp = patch.nGauss;
   nGauss = patch.nGauss;
   geo = patch.geo;
 }
@@ -52,9 +55,13 @@ void ASMstruct::getNoIntPoints (size_t& nPt)
 }
 
 
-void ASMstruct::getNoBouPoints (size_t& nPt, int ldim, int lindx)
+void ASMstruct::getNoBouPoints (size_t& nPt, char ldim, char lindx)
 {
-  firstBp = nPt;
-  if (ldim == 0) nPt ++; // This is correct for 1D only, 2D and 3D must take
-  // care of how many element do we have on the boundary defined by lindx
+  size_t nGp = 1;
+  for (char d = 0; d < ldim; d++)
+    nGp *= nGauss;
+
+  firstBp[lindx] = nPt;
+
+  nPt += this->getNoBoundaryElms(lindx,ldim)*nGp; // Includes 0-span elements
 }

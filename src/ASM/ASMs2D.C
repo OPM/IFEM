@@ -699,12 +699,10 @@ double ASMs2D::getParametricLength (int iel, int dir) const
   }
 #endif
 
-  const int ni = nodeInd[inod1].I;
-  const int nj = nodeInd[inod1].J;
   switch (dir)
     {
-    case 1: return surf->knotSpan(1,nj);
-    case 2: return surf->knotSpan(0,ni);
+    case 1: return surf->knotSpan(0,nodeInd[inod1].I);
+    case 2: return surf->knotSpan(1,nodeInd[inod1].J);
     }
 
   std::cerr <<" *** ASMs2D::getParametricLength: Invalid edge direction "
@@ -831,6 +829,25 @@ bool ASMs2D::getSize (int& n1, int& n2, int) const
 }
 
 
+size_t ASMs2D::getNoBoundaryElms (char lIndex, char ldim) const
+{
+  if (ldim < 1 && lIndex > 0)
+    return 1;
+
+  switch (lIndex)
+    {
+    case 1:
+    case 2:
+      return surf->numCoefs_v() - surf->order_v() + 1;
+    case 3:
+    case 4:
+      return surf->numCoefs_u() - surf->order_u() + 1;
+    }
+
+  return 0;
+}
+
+
 void ASMs2D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
 				      const double* xi) const
 {
@@ -890,25 +907,6 @@ static double getElmSize (int p1, int p2, const Matrix& X)
   }
 
   return sqrt(h);
-}
-
-
-/*!
-  \brief Computes the characteristic element length from inverse Jacobian.
-*/
-
-static bool getG (const Matrix& Jinv, const Vector& du, Matrix& G)
-{
-  const size_t nsd = Jinv.cols();
-
-  G.resize(nsd,nsd,true);
-
-  for (size_t k = 1;k <= nsd;k++)
-    for (size_t l = 1;l <= nsd;l++)
-      for (size_t m = 1;m <= nsd;m++)
-	G(k,l) += Jinv(m,k)*Jinv(m,l)/(du(k)*du(l));
-
-  return true;
 }
 
 
@@ -1023,6 +1021,7 @@ bool ASMs2D::integrate (Integrand& integrand,
       FiniteElement fe(p1*p2);
       Matrix   dNdu, Xnod, Jac;
       Matrix3D d2Ndu2, Hess;
+      double   dXidu[2];
       Vec4     X;
       for (size_t i=0;i<threadGroups[g][t].size();++i) {
         int iel = threadGroups[g][t][i];
@@ -1089,6 +1088,11 @@ bool ASMs2D::integrate (Integrand& integrand,
             X[i] = X0[i];
         }
 
+        // TODO: Do this conditionally (only when the CFD solver requires it)
+        int inod = MNPC[iel-1].back();
+        dXidu[0] = surf->knotSpan(0,nodeInd[inod].I);
+        dXidu[1] = surf->knotSpan(1,nodeInd[inod].J);
+
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
         if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed,*A))
@@ -1136,10 +1140,12 @@ bool ASMs2D::integrate (Integrand& integrand,
         // --- Integration loop over all Gauss points in each direction --------
 
         int ip = ((i2-p2)*nGauss*nel1 + i1-p1)*nGauss;
+        int jp = ((i2-p2)*nel1 + i1-p1)*nGauss*nGauss;
+        fe.iGP = firstIp + jp; // Global integration point counter
+
         for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
-          for (int i = 0; i < nGauss; i++, ip++)
+          for (int i = 0; i < nGauss; i++, ip++, fe.iGP++)
           {
-            fe.iGP = firstIp + ip; // Global integration point counter
 
             // Local element coordinates of current integration point
             fe.xi  = xg[i];
@@ -1167,15 +1173,8 @@ bool ASMs2D::integrate (Integrand& integrand,
                 break;
               }
 
-	    // RUNAR
-	    Vector dXidu(2);
-	    dXidu(1) = this->getParametricLength(iel,1);
-	    dXidu(2) = this->getParametricLength(iel,2);
-	    if (!getG(Jac,dXidu,fe.G))
-            {
-              ok = false;
-              break;
-            }
+	    // RUNAR: Do this conditionally (when the CFD solver requires it)
+	    utl::getGmat(Jac,dXidu,fe.G);
 
 #if SP_DEBUG > 4
             std::cout <<"\niel, ip = "<< iel <<" "<< ip
@@ -1196,7 +1195,7 @@ bool ASMs2D::integrate (Integrand& integrand,
           }
 
         // Finalize the element quantities
-        if (!integrand.finalizeElement(*A,time))
+        if (!integrand.finalizeElement(*A,time,firstIp+jp))
         {
           ok = false;
           break;
@@ -1293,7 +1292,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       if (skipMe) continue;
 
       // Get element edge length in the parameter space
-      double dS = this->getParametricLength(iel,t1);
+      double dS = this->getParametricLength(iel,t2);
       if (dS < 0.0) return false; // topology error (probably logic error)
 
       // Set up control point coordinates for current element
@@ -1303,13 +1302,14 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
       if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;
 
+
       // --- Integration loop over all Gauss points along the edge -------------
 
       int ip = (t1 == 1 ? i2-p2 : i1-p1)*nGauss;
-      for (int i = 0; i < nGauss; i++, ip++)
-      {
-	fe.iGP = firstBp + ip; // Global integration point counter
+      fe.iGP = firstBp[lIndex] + ip; // Global integration point counter
 
+      for (int i = 0; i < nGauss; i++, ip++, fe.iGP++)
+      {
 	// Local element coordinates and parameter values
 	// of current integration point
 	if (gpar[0].size() > 1)
@@ -1726,4 +1726,13 @@ void ASMs2D::generateThreadGroups()
   const int nel2 = n2 - p2 + 1;
 
   utl::calcThreadGroups(nel1,nel2,threadGroups);
+
+  if (threadGroups.size() > 1)
+    for (size_t i = 0; i < threadGroups.size(); i++) {
+      std::cout <<" Thread group "<< i+1;
+      for (size_t j = 0; j < threadGroups[i].size(); j++)
+	std::cout <<"\n\t thread "<< j+1
+		  << ": "<< threadGroups[i][j].size() <<" elements";
+      std::cout << std::endl;
+    }
 }

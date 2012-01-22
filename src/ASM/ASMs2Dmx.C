@@ -347,7 +347,8 @@ bool ASMs2Dmx::generateFEMTopology ()
     iel = inod = 0;
     for (i2 = 1; i2 <= n2; i2++)
       for (i1 = 1; i1 <= n1; i1++, inod++)
-	if (i1 >= p1 && i2 >= p2) {
+	if (i1 >= p1 && i2 >= p2)
+	{
 	  if (basis1->knotSpan(0,i1-1) > 0.0)
 	    if (basis1->knotSpan(1,i2-1) > 0.0)
 	    {
@@ -529,13 +530,15 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
         // Get element area in the parameter space
         double dA = this->getParametricArea(++iel);
-        if (dA < 0.0) { // topology error (probably logic error)
+        if (dA < 0.0) // topology error (probably logic error)
+        {
           ok = false;
           break;
         }
 
         // Set up control point (nodal) coordinates for current element
-        if (!this->getElementCoordinates(Xnod,iel)) {
+        if (!this->getElementCoordinates(Xnod,iel))
+        {
           ok = false;
           break;
         }
@@ -551,11 +554,15 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
           break;
         }
 
+
         // --- Integration loop over all Gauss points in each direction --------
 
         int ip = ((i2-p2)*nGauss*nel1 + i1-p1)*nGauss;
+        int jp = ((i2-p2)*nel1 + i1-p1)*nGauss*nGauss;
+        fe.iGP = firstIp + jp; // Global integration point counter
+
         for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
-          for (int i = 0; i < nGauss; i++, ip++)
+          for (int i = 0; i < nGauss; i++, ip++, fe.iGP++)
           {
             // Local element coordinates of current integration point
             fe.xi  = xg[i];
@@ -589,14 +596,16 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= 0.25*dA*wg[i]*wg[j];
-            if (!integrand.evalIntMx(*A,fe,time,X)) {
+            if (!integrand.evalIntMx(*A,fe,time,X))
+            {
               ok = false;
               break;
             }
           }
 
         // Assembly of global system integral
-        if (!glInt.assemble(A->ref(),fe.iel)) {
+        if (!glInt.assemble(A->ref(),fe.iel))
+        {
           ok = false;
           break;
         }
@@ -702,10 +711,13 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 				    IntVec(f2start,MNPC[iel-1].end()),nb1,*A))
 	return false;
 
+
       // --- Integration loop over all Gauss points along the edge -------------
 
       int ip = (t1 == 1 ? i2-p2 : i1-p1)*nGauss;
-      for (int i = 0; i < nGauss; i++, ip++)
+      fe.iGP = firstBp[lIndex] + ip; // Global integration point counter
+
+      for (int i = 0; i < nGauss; i++, ip++, fe.iGP++)
       {
 	// Parameter values of current integration point
 	if (gpar[0].size() > 1)

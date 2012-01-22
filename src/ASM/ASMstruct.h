@@ -59,13 +59,17 @@ public:
   //! \brief Computes the total number of integration points in this patch.
   virtual void getNoIntPoints(size_t& nPt);
   //! \brief Computes the number of boundary integration points in this patch.
-  virtual void getNoBouPoints(size_t& nPt, int ldim, int lindx);
+  virtual void getNoBouPoints(size_t& nPt, char ldim, char lindx);
+  //! \brief Returns the number of elements on a boundary.
+  virtual size_t getNoBoundaryElms(char lIndex, char ldim) const { return 1; }
 
 protected:
   Go::GeomObject* geo; //!< Pointer to the actual spline geometry object
 
-  size_t firstIp;  //!< Global index to first interior integration point
-  size_t firstBp;  //!< Global index to first boundary integration point
+  size_t firstIp; //!< Global index to first interior integration point
+  //! Global indices to first integration point for the Neumann boundaries
+  std::map<char,size_t> firstBp;
+
   int    nGauss;   //!< Numerical integration scheme
   static int gEl;  //!< Global element counter
   static int gNod; //!< Global node counter

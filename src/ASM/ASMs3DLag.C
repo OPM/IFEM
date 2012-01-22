@@ -322,11 +322,15 @@ bool ASMs3DLag::integrate (Integrand& integrand,
                 }
               }
 
+
         // --- Integration loop over all Gauss points in each direction --------
+
+        int jp = ((i3*nel2 + i2)*nel1 + i1)*nGauss*nGauss*nGauss;
+        fe.iGP = firstIp + jp; // Global integration point counter
 
         for (int k = 0; k < nGauss; k++)
           for (int j = 0; j < nGauss; j++)
-            for (int i = 0; i < nGauss; i++)
+            for (int i = 0; i < nGauss; i++, fe.iGP++)
             {
               // Local element coordinates of current integration point
               fe.xi   = xg[i];
@@ -364,7 +368,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
             }
 
 	// Finalize the element quantities
- 	if (!integrand.finalizeElement(*A,time))
+ 	if (!integrand.finalizeElement(*A,time,firstIp+jp))
         {
           ok = false;
           break;
@@ -429,7 +433,9 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
   if (threadGroupsFace.empty())
     generateThreadGroups();
 
+
   // === Assembly loop over all elements on the patch face =====================
+
   bool ok=true;
   for (size_t g=0;g<threadGroupsFace[lIndex-1].size() && ok;++g) {
 #pragma omp parallel for schedule(static)
@@ -445,13 +451,13 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
       double xi[3];
       for (size_t l=0;l<threadGroupsFace[lIndex-1][g][t].size();++l) {
         int iel = threadGroupsFace[lIndex-1][g][t][l];
-        fe.iel = MLGE[iel];
         int i1  =  iel % nel1;
         int i2  = (iel / nel1) % nel2;
         int i3  =  iel / (nel1*nel2);
 
 	// Set up nodal point coordinates for current element
-	if (!this->getElementCoordinates(Xnod,++iel)) {
+        if (!this->getElementCoordinates(Xnod,++iel))
+        {
           ok = false;
           break;
         }
@@ -459,16 +465,31 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 	// Initialize element quantities
 	fe.iel = MLGE[iel-1];
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-        if (!integrand.initElementBou(MNPC[iel-1],*A)) {
+        if (!integrand.initElementBou(MNPC[iel-1],*A))
+        {
           ok = false;
           break;
         }
 
+        // Define some loop control variables depending on which face we are on
+        int nf1, j1, j2;
+        switch (abs(faceDir))
+        {
+          case 1: nf1 = nel2; j2 = i3; j1 = i2; break;
+          case 2: nf1 = nel1; j2 = i3; j1 = i1; break;
+          case 3: nf1 = nel1; j2 = i2; j1 = i1; break;
+          default: nf1 = j1 = j2 = 0;
+        }
+
+
 	// --- Integration loop over all Gauss points in each direction --------
 
 	int k1, k2, k3;
+        int jp = (j2*nf1 + j1)*nGauss*nGauss;
+        fe.iGP = firstBp[lIndex] + jp; // Global integration point counter
+
 	for (int j = 0; j < nGauss; j++)
-	  for (int i = 0; i < nGauss; i++)
+	  for (int i = 0; i < nGauss; i++, fe.iGP++)
 	  {
 	    // Local element coordinates of current integration point
 	    xi[t0-1] = faceDir < 0 ? -1.0 : 1.0;
@@ -480,11 +501,12 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 
 	    // Local element coordinates and parameter values
 	    // of current integration point
-	    switch (abs(faceDir)) {
-	    case 1: k2 = i; k3 = j; k1 = -1; break;
-	    case 2: k1 = i; k3 = j; k2 = -1; break;
-	    case 3: k1 = i; k2 = j; k3 = -1; break;
-	    default: k1 = k2 = k3 = -1;
+	    switch (abs(faceDir))
+	    {
+	      case 1: k2 = i; k3 = j; k1 = -1; break;
+	      case 2: k1 = i; k3 = j; k2 = -1; break;
+	      case 3: k1 = i; k2 = j; k3 = -1; break;
+	      default: k1 = k2 = k3 = -1;
 	    }
 	    if (upar.size() > 1)
 	      fe.u = 0.5*(upar[i1]*(1.0-xg[k1]) + upar[i1+1]*(1.0+xg[k1]));
@@ -495,7 +517,8 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 
 	    // Compute the basis functions and their derivatives, using
 	    // tensor product of one-dimensional Lagrange polynomials
-	    if (!Lagrange::computeBasis(fe.N,dNdu,p1,xi[0],p2,xi[1],p3,xi[2])) {
+            if (!Lagrange::computeBasis(fe.N,dNdu,p1,xi[0],p2,xi[1],p3,xi[2]))
+            {
               ok = false;
               break;
             }
@@ -512,14 +535,16 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 
 	    // Evaluate the integrand and accumulate element contributions
 	    fe.detJxW *= wg[i]*wg[j];
-            if (!integrand.evalBou(*A,fe,time,X,normal)) {
+            if (!integrand.evalBou(*A,fe,time,X,normal))
+            {
               ok = false;
               break;
             }
 	  }
 
 	// Assembly of global system integral
-	if (!glInt.assemble(A->ref(),fe.iel)) {
+	if (!glInt.assemble(A->ref(),fe.iel))
+        {
           ok = false;
           break;
         }
@@ -582,7 +607,7 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
 
   // === Assembly loop over all elements on the patch edge =====================
 
-  int iel = 1;
+  int ip, iel = 1;
   for (int i3 = 0; i3 < nelz; i3++)
     for (int i2 = 0; i2 < nely; i2++)
       for (int i1 = 0; i1 < nelx; i1++, iel++)
@@ -606,6 +631,13 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
 	  }
 	if (skipMe) continue;
 
+	if (lEdge < 5)
+	  ip = i1*nGauss;
+	else if (lEdge < 9)
+	  ip = i2*nGauss;
+	else
+	  ip = i3*nGauss;
+
 	// Set up nodal point coordinates for current element
 	if (!this->getElementCoordinates(Xnod,iel)) return false;
 
@@ -614,9 +646,12 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
         if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;
 
+
 	// --- Integration loop over all Gauss points along the edge -----------
 
-	for (int i = 0; i < nGauss; i++)
+	fe.iGP = firstBp[lEdge] + ip; // Global integration point counter
+
+	for (int i = 0; i < nGauss; i++, fe.iGP++)
 	{
 	  // Gauss point coordinates on the edge
 	  xi[lDir] = xg[i];

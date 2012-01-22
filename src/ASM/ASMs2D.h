@@ -363,6 +363,9 @@ public:
   //! \param[out] p2 Order in second (v) direction
   bool getOrder(int& p1, int& p2) const;
 
+  //! \brief Returns the number of elements on a boundary.
+  virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
+
 private:
   //! \brief Returns an index into the internal coefficient array for a node.
   //! \param[in] inod 0-based node index local to current patch
@@ -374,7 +377,7 @@ protected:
   const IndexVec& nodeInd; //!< IJ-pairs for the control points (nodes)
   IndexVec      myNodeInd; //!< The actual IJ-pair container
 
-  //! \brief Element groups for multithreaded assembly
+  //! Element groups for multithreaded assembly
   utl::ThreadGroups threadGroups;
 
   //! \brief Generate thread groups
