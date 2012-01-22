@@ -58,6 +58,7 @@ SIMbase::SIMbase () : g2l(&myGlb2Loc)
   vizIncr = 1;
   format = 1;
   mixedFEM = false;
+  nIntGP = nBouGP = 0;
 
   MPCLess::compareSlaveDofOnly = true; // to avoid multiple slave definitions
 
@@ -658,13 +659,9 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
   if (renum > 0)
     std::cout <<"\nRenumbered "<< renum <<" nodes."<< std::endl;
 
-  size_t nIntP = 0, nBouP = 0;
   ASMs2DC1::renumberNodes(*g2l);
   for (mit = myModel.begin(); mit != myModel.end(); mit++)
-  {
     (*mit)->renumberNodes(*g2l);
-    (*mit)->getNoIntPoints(nIntP); // count number of global integration points
-  }
 
   // Process the specified Dirichlet boundary conditions
   std::cout <<"\nResolving Dirichlet boundary conditions"<< std::endl;
@@ -687,12 +684,6 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 	ok = false;
       break;
 
-    case Property::NEUMANN:
-      // Count number of global boundary integration points
-      if (p->patch > 0 && p->patch <= myModel.size())
-	myModel[p->patch-1]->getNoBouPoints(nBouP,p->ldim,p->lindx);
-      break;
-
     default:
       break;
     }
@@ -708,9 +699,6 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 
   // Resolve possibly chaining of the MPC equations
   if (!allMPCs.empty()) ASMbase::resolveMPCchains(allMPCs);
-
-  // Let the integrand know how many integration points in total do we have
-  if (myProblem) myProblem->initIntegration(nIntP,nBouP);
 
   // Preprocess the result points
   for (ResPointVec::iterator p = myPoints.begin(); p != myPoints.end();)
@@ -753,6 +741,23 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 }
 
 
+void SIMbase::initIntegrationBuffers ()
+{
+  nIntGP = nBouGP = 0;
+  for (size_t i = 0; i < myModel.size(); i++)
+    myModel[i]->getNoIntPoints(nIntGP); // count the interior integration points
+
+  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); p++)
+    if (p->pcode == Property::NEUMANN)
+      // Count the boundary integration points
+      if (p->patch > 0 && p->patch <= myModel.size())
+        myModel[p->patch-1]->getNoBouPoints(nBouGP,p->ldim,p->lindx);
+
+  // Let the integrand know how many integration points in total do we have
+  if (myProblem) myProblem->initIntegration(nIntGP,nBouGP);
+}
+
+
 bool SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
 {
   if (code < 0)
@@ -762,12 +767,11 @@ bool SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
     return false;
   }
 
-  for (size_t j = 0; j < myProps.size(); j++)
-    if (myProps[j].pindx == (size_t)code &&
-	myProps[j].pcode == Property::UNDEFINED)
+  for (PropertyVec::iterator p = myProps.begin(); p != myProps.end(); p++)
+    if (p->pindx == (size_t)code && p->pcode == Property::UNDEFINED)
     {
-      myProps[j].pcode = ptype;
-      if (pindex >= 0) myProps[j].pindx = pindex;
+      p->pcode = ptype;
+      if (pindex >= 0) p->pindx = pindex;
     }
 
   return true;
@@ -948,7 +952,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
       else
 	ok = false;
 
-  if (j == 0 && ok)
+  if (j == 0)
     // All patches are referring to the same material, and we assume it has
     // been initialized during input processing (thus no initMaterial call here)
     for (i = 0; i < myModel.size() && ok; i++)
@@ -1000,6 +1004,8 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 	  }
 	  else
 	    ok = false;
+
+  if (!ok) std::cerr <<" *** SIMbase::assembleSystem: Failure.\n"<< std::endl;
 
   return ok && this->finalizeAssembly(newLHSmatrix);
 }
@@ -1162,6 +1168,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   }
 
   myProblem->initIntegration(time);
+  norm->initIntegration(nIntGP,nBouGP);
   const Vector& primsol = psol.front();
 
   size_t i, j, k;
@@ -1214,7 +1221,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
       else
 	ok = false;
 
-  if (j == 0 && ok)
+  if (j == 0)
     // All patches are referring to the same material, and we assume it has
     // been initialized during input processing (thus no initMaterial call here)
     for (i = 0; i < myModel.size() && ok; i++)
@@ -1256,6 +1263,8 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 	  }
 	  else
 	    ok = false;
+
+  if (!ok) std::cerr <<" *** SIMbase::solutionNorms: Failure.\n"<< std::endl;
 
   // Clean up the dynamically allocated norm objects. This will also perform
   // the actual global norm assembly, in case the element norms are stored,

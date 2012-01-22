@@ -470,6 +470,9 @@ public:
   NormBase* getNormIntegrand() const;
 
 protected:
+  //! \brief Allocates the problem-dependent integration point buffers, if any.
+  void initIntegrationBuffers();
+
   //! \brief Defines the type of a property set.
   //! \param[in] code The property code to be associated with the property type
   //! \param[in] ptype The property type to be associated with the given code
@@ -614,7 +617,11 @@ protected:
   AlgEqSystem*  myEqSys;     //!< The actual linear equation system
   SAMpatch*     mySam;       //!< Auxiliary data for FE assembly management
   LinSolParams* mySolParams; //!< Input parameters for PETSc
+
 private:
+  size_t nIntGP; //!< Number of interior integration points in the whole model
+  size_t nBouGP; //!< Number of boundary integration points in the whole model
+
   //! \brief Parses a subelement of the <geometry> tag from input file
   //! \param[in] elem The XML element to parse
   bool parseGeometryTag(const TiXmlElement* elem);

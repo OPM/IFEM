@@ -17,9 +17,11 @@
 #include "ASMs3DSpec.h"
 #include "Functions.h"
 #include "Utilities.h"
-#include <fstream>
-
 #include "tinyxml.h"
+#include <fstream>
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 
 
 SIM3D::SIM3D (bool checkRHS, unsigned char n1, unsigned char n2)
@@ -211,11 +213,12 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
       std::cout <<"\tPeriodic "<< char('H'+pfdir) <<"-direction P"<< patch
 		<< std::endl;
       static_cast<ASMs3D*>(myModel[patch-1])->closeFaces(pfdir);
-    // cannot do multi-threaded assembly with periodicities
+    }
+
+    // Cannot do multi-threaded assembly with periodicities
 #ifdef USE_OPENMP
     omp_set_num_threads(1);
 #endif
-    }
   }
 
   else if (!strncasecmp(keyWord,"CONSTRAINTS",11))
@@ -565,6 +568,8 @@ void SIM3D::setQuadratureRule (size_t ng)
   for (size_t i = 0; i < myModel.size(); i++)
     if (!myModel.empty())
       static_cast<ASMs3D*>(myModel[i])->setGauss(ng);
+
+  this->initIntegrationBuffers();
 }
 
 

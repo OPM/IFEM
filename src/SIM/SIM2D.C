@@ -15,9 +15,7 @@
 #include "ASMs2DC1.h"
 #include "Functions.h"
 #include "Utilities.h"
-
 #include "tinyxml.h"
-
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
@@ -203,7 +201,7 @@ bool SIM2D::parseGeometryTag(const TiXmlElement* elem)
     std::cout <<"\tPeriodic "<< char('H'+pedir) <<"-direction P"<< patch
               << std::endl;
     static_cast<ASMs2D*>(myModel[patch-1])->closeEdges(pedir);
-    // cannot do multi-threaded assembly with periodicities
+    // Cannot do multi-threaded assembly with periodicities
 #ifdef USE_OPENMP
     omp_set_num_threads(1);
 #endif
@@ -390,11 +388,11 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
       std::cout <<"\tPeriodic "<< char('H'+pedir) <<"-direction P"<< patch
 		<< std::endl;
       static_cast<ASMs2D*>(myModel[patch-1])->closeEdges(pedir);
-    // cannot do multi-threaded assembly with periodicities
+    }
+    // Cannot do multi-threaded assembly with periodicities
 #ifdef USE_OPENMP
     omp_set_num_threads(1);
 #endif
-    }
   }
 
   else if (!strncasecmp(keyWord,"CONSTRAINTS",11))
@@ -552,6 +550,8 @@ void SIM2D::setQuadratureRule (size_t ng)
   for (size_t i = 0; i < myModel.size(); i++)
     if (!myModel.empty())
       static_cast<ASMs2D*>(myModel[i])->setGauss(ng);
+
+  this->initIntegrationBuffers();
 }
 
 
