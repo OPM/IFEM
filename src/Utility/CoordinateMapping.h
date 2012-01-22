@@ -70,6 +70,12 @@ namespace utl
 	       const matrix<real>& Ji, const matrix<real>& X,
 	       const matrix3d<real>& d2Ndu2, const matrix<real>& dNdu,
 	       bool computeGradient = true);
+
+  //! \brief Compute the stabilization matrix \b G from the Jacobian inverse.
+  //! \param[in] Ji The inverse of the Jacobian matrix
+  //! \param[in] du Element lengths in each parametric direction
+  //! \param[out] G The stabilization matrix (used in CFD simulators)
+  void getGmat(const matrix<real>& Ji, const real* du, matrix<real>& G);
 }
 
 #endif

@@ -149,3 +149,18 @@ bool utl::Hessian (matrix3d<real>& H, matrix3d<real>& d2NdX2,
 
   return true;
 }
+
+
+void utl::getGmat (const matrix<real>& Ji, const real* du, matrix<real>& G)
+{
+  size_t nsd = Ji.cols();
+  G.resize(nsd,nsd,true);
+
+  for (size_t k = 1; k <= nsd; k++)
+    for (size_t l = 1; l <= nsd; l++)
+    {
+      real scale = real(1)/(du[k-1]*du[l-1]);
+      for (size_t m = 1; m <= nsd; m++)
+	G(k,l) += Ji(m,k)*Ji(m,l)*scale;
+    }
+}
