@@ -1,7 +1,7 @@
 // $Id$
 //==============================================================================
 //!
-//! \file AdaptiveSIM.h
+//! \file AdaptiveSIM.C
 //!
 //! \date Sep 22 2011
 //!
@@ -14,9 +14,9 @@
 #include "AdaptiveSIM.h"
 #ifdef HAS_LRSPLINE
 #include "ASMunstruct.h"
-#include "ASMu2D.h"
-#endif
+#else
 #include "ASMbase.h"
+#endif
 #include "SIMbase.h"
 #include "SIMenums.h"
 #include "Utilities.h"
@@ -64,11 +64,13 @@ bool AdaptiveSIM::parse (char* keyWord, std::istream& is)
     if (!cline.fail() && !cline.bad())
       options.push_back(itmp);
 
-    cline >> itmp; // read refinement scheme (0=refine all, 1=minimum span, 2=isotropic)
+    cline >> itmp; // read refinement scheme
+    // (0=refine all, 1=minimum span, 2=isotropic)
     if (!cline.fail() && !cline.bad())
       options.push_back(itmp);
 
-    cline >> itmp; // read symmetry (0=none, <n> always requests a multiplum of <n> elements for refinement)
+    cline >> itmp; // read symmetry
+    // (0=none, <n> always requests a multiplum of <n> elements for refinement)
     if (!cline.fail() && !cline.bad())
       options.push_back(itmp);
   }
@@ -114,21 +116,36 @@ bool AdaptiveSIM::solveStep (const char* inputfile, SystemMatrix::Type solver,
 	  model->dumpResults(linsol,0.0,std::cout,true,6));
 }
 
+
+//! \brief Element error and associated index.
+//! \note The error value must be first and the index second, such that the
+//! internally defined greater-than operator can be used when sorting the
+//! error+index pairs in decreasing error order.
+typedef std::pair<double,int> IndexDouble;
+
+
 bool AdaptiveSIM::adaptMesh (int iStep)
 {
-  double RMS_norm = 0;
-  double avg_norm = 0;
-  double min_err = 10000000;
-  double max_err  = 0;
-  for(size_t i=1; i<=eNorm.cols(); i++) {
+  if (eNorm.cols() < 1) return false;
+
+  double avg_norm = eNorm(4,1);
+  double min_err  = avg_norm;
+  double max_err  = avg_norm;
+  for (size_t i = 2; i <= eNorm.cols(); i++)
+  {
     avg_norm += eNorm(4,i);
-    min_err = (min_err < eNorm(4,i)) ? min_err : eNorm(4,i);
-    max_err = (max_err > eNorm(4,i)) ? max_err : eNorm(4,i);
+    if (min_err > eNorm(4,i))
+      min_err = eNorm(4,i);
+    else if (max_err < eNorm(4,i))
+      max_err = eNorm(4,i);
   }
-  avg_norm  /= eNorm.cols();
-  for(size_t i=1; i<=eNorm.cols(); i++)
-    RMS_norm += pow(eNorm(4,i)-avg_norm,2);
+  avg_norm /= eNorm.cols();
+
+  double RMS_norm = 0.0;
+  for (size_t i = 1; i <= eNorm.cols(); i++)
+    RMS_norm += pow(eNorm(4,i)-avg_norm,2.0);
   RMS_norm = sqrt(RMS_norm/eNorm.cols())/avg_norm;
+
   gNorm.push_back(RMS_norm);
   gNorm.push_back(min_err);
   gNorm.push_back(max_err);
@@ -140,27 +157,24 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   if (gNorm.size() > 3 && 100.0*gNorm(4) < errTol*gNorm(3)) return false;
 
   std::vector<int> toBeRefined;
-  // Vector errors;
   std::vector<IndexDouble> errors;
 
-  if(options.size() > 2 && options[2]==3)
+  if (options.size() > 2 && options[2] == 3)
   {
     // sum up the total function error over all supported elements for that function
     ASMbase *patch = model->getFEModel()[0];
     IntMat::const_iterator eit;
     IntVec::const_iterator nit;
     for(size_t i=0; i<patch->getNoNodes(); i++)
-      errors.push_back(IndexDouble(i, 0));
+      errors.push_back(IndexDouble(0.0,i));
     int i = 1;
     for(eit=patch->begin_elm(); eit<patch->end_elm(); eit++, i++)
       for(nit=eit->begin(); nit<eit->end(); nit++)
-        errors[*nit].v += eNorm(4,i);
+        errors[*nit].first += eNorm(4,i);
   }
   else
-  {
-    for(size_t i=1; i<=eNorm.cols(); i++)
-      errors.push_back(IndexDouble(i-1, eNorm(4,i)));
-  }
+    for (size_t i = 0; i < eNorm.cols(); i++)
+      errors.push_back(IndexDouble(eNorm(4,1+i),i));
 
   // Find the list of elements/functions to refine (the beta % with the highest error)
   size_t ipivot = ceil(errors.size()*beta/100.0);
@@ -169,20 +183,15 @@ bool AdaptiveSIM::adaptMesh (int iStep)
     ipivot += (options[3]-ipivot%options[3]);
 
   if (ipivot < 1 || ipivot > errors.size()) return false;
-  std::sort(errors.begin(),errors.end(),
-	    std::greater<IndexDouble>());
+  std::sort(errors.begin(),errors.end(),std::greater<IndexDouble>());
 
-/*
-  double pivot = errors[ipivot].v;
-  std::cout <<"\nRefining "<< ipivot <<" elements with errors in range ["
-	    << pivot <<","<< errors.front().v <<"]"<< std::endl;
-*/
-
-  std::cout <<"\nRefining up to "<< beta <<" \% new DOFs " << std::endl;
+  std::cout <<"\nRefining "<< ipivot <<" elements ("<< beta
+	    <<"\%) with errors in range ["<< errors[ipivot-1].first
+	    <<","<< errors.front().first <<"]"<< std::endl;
 
   toBeRefined.reserve(ipivot);
   for (size_t i = 0; i < errors.size(); i++)
-    toBeRefined.push_back(errors[i].i);
+    toBeRefined.push_back(errors[i].second);
 
   // Now refine the mesh
   char fname[13];
