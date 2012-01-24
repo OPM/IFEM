@@ -65,6 +65,7 @@ run FBlock-h8x2-Q4Q3.inp -2D -mixed -nGauss 5 -vtf 1 -lagrange
 run Necking-Q2P1.inp -2D -MX 1 -vtf 1 -nviz 3 -nGauss 3 -outPrec 6
 run Necking-Q2Q1.inp -2D -mixed -vtf 1 -nviz 3 -nGauss 3 -outPrec 6
 run Necking-Q2-Q1.inp -2D -Mixed -vtf 1 -nviz 3 -nGauss 3 -outPrec 6
+run Necking-AxS-Fbar2.inp -2Daxis -vtf 1 -Fbar -nviz 3 -nGauss 3 -outPrec 6
 
 # Cooks membrane, 2D plasticity
 run Cook2D-p1-h1.inp -2D -Fbar 1 -nGauss 2 -vtf 1 -nviz 3 -outPrec 6

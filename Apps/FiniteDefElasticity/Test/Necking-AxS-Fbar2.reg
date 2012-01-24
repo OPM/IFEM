@@ -1,0 +1,1839 @@
+Necking-AxS-Fbar2.inp -2Daxis -Fbar -nGauss 3 -outPrec 6
+
+Input file: Necking-AxS-Fbar2.inp
+Equation solver: 2
+Number of Gauss points: 3
+Reading input file Necking-AxS-Fbar2.inp
+Reading data file strip2D1rett.g2
+Reading patch 1
+Number of patch refinements: 1
+	Refining P1 dir=2 0.240484
+Number of order raise: 1
+	Raising order of P1 1 1
+Number of patch refinements: 1
+	Refining P1 9 9
+Number of constraints: 3
+	Constraining P1 E1 in direction(s) 1
+	Constraining P1 E3 in direction(s) 2
+	Constraining P1 E4 in direction(s) 2 code = 1002 1 \* 1\*t
+Number of plastic materials: 1
+	Material code 0: 206.9 0.29 0 0 0.12924 0 1 0.45 0.715 16.93 1
+Number of result points: 2
+	Point 1: P1 xi = 1 0
+	Point 2: P1 xi = 0 1
+Reading input file succeeded.
+Problem definition:
+NonlinearElasticityFbar: F-bar formulation, 0 volumetric points in each direction.
+NonlinearElasticityUL: Updated Lagrangian formulation
+Axial-symmetric Elasticity problem
+Elasticity: 2D, gravity = 0 0
+PlasticMaterial: pMAT = 206.9 0.29 0 0 164.206 80.1938 0.12924 0 1 0.45 0.715 16.93 1
+Resolving Dirichlet boundary conditions
+Result point #1: patch #1 (u,v)=(1,0), node #12, X = 6.29757 0 0
+Result point #2: patch #1 (u,v)=(0,1), node #265, X = 0 26.667 0
+ >>> SAM model summary <<<
+Number of elements    200
+Number of nodes       276
+Number of dofs        552
+Number of constraints 12
+Number of unknowns    505
+  step=1  time=0.05
+  Primary solution summary: L2-norm            : 0.0175307
+                            Max X-displacement : 0.00346868 node 96
+                            Max Y-displacement : 0.05 node 265
+  Total reaction forces: Sum(R) = 5.14419e-07 0
+  displacement\*reactions: (R,u) = -2.45405
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.10719	 a(u^h,u^h) = 1.225878683
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -1.10771	(f,u)+(t,u) = 1.227026518
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 22.5349
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 7.51171	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 18.3996	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 22.5348
+  Node #12:	sol1 = -3.458320e-03  0.000000e+00
+		sol2 =  7.891871e-04  4.014378e-01  3.088640e-03 -4.863510e-05  3.995039e-01  0.000000e+00
+		reac =  0.000000e+00  3.233154e+00
+  Node #265:	sol1 =  0.000000e+00  5.000000e-02
+		sol2 =  5.874985e-02  4.417579e-01  1.451473e-01  0.000000e+00  3.479494e-01  0.000000e+00
+		reac =  1.113732e-06 -8.223343e-02
+  step=2  time=0.1
+  Primary solution summary: L2-norm            : 0.0393003
+                            Max X-displacement : 0.0138889 node 12
+                            Max Y-displacement : 0.1 node 265
+  Total reaction forces: Sum(R) = -1.01531e-05 0
+  displacement\*reactions: (R,u) = -5.7757
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.97409	 a(u^h,u^h) = 3.897016208
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -1.97433	(f,u)+(t,u) = 3.897977071
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 26.5675
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 8.85627	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 21.6918	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 26.5669
+  Node #12:	sol1 = -1.388895e-02  0.000000e+00
+		sol2 =  1.604642e-03  4.655990e-01  2.283862e-03  4.089829e-04  4.636557e-01  3.133799e-03
+		reac =  0.000000e+00  3.750721e+00
+  Node #265:	sol1 =  0.000000e+00  1.000000e-01
+		sol2 =  6.492953e-02  5.112543e-01  1.670933e-01  0.000000e+00  4.050247e-01  0.000000e+00
+		reac = -6.587438e-06 -9.501958e-02
+  step=3  time=0.15
+  Primary solution summary: L2-norm            : 0.0570862
+                            Max X-displacement : 0.0200241 node 12
+                            Max Y-displacement : 0.15 node 265
+  Total reaction forces: Sum(R) = -1.09178e-05 1.19628e-07
+  displacement\*reactions: (R,u) = -8.80087
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.60932	 a(u^h,u^h) = 6.808549483
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -2.60935	(f,u)+(t,u) = 6.808712941
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 27.0383
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 9.01304	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 22.0763	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 27.0379
+  Node #12:	sol1 = -2.002406e-02  0.000000e+00
+		sol2 =  1.839384e-03  4.753251e-01  4.596578e-03  4.676437e-04  4.721139e-01  5.099108e-03
+		reac =  0.000000e+00  3.818992e+00
+  Node #265:	sol1 =  0.000000e+00  1.500000e-01
+		sol2 =  1.741364e-01  6.829516e-01  3.156107e-01  0.000000e+00  4.548886e-01  1.308551e-03
+		reac = -2.016594e-05 -9.707972e-02
+  step=4  time=0.2
+  Primary solution summary: L2-norm            : 0.0748865
+                            Max X-displacement : 0.0261393 node 12
+                            Max Y-displacement : 0.2 node 265
+  Total reaction forces: Sum(R) = -1.08192e-05 0
+  displacement\*reactions: (R,u) = -11.9103
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.12486	 a(u^h,u^h) = 9.764753089
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -3.12479	(f,u)+(t,u) = 9.764318181
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 27.4942
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 9.16495	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 22.4487	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 27.4939
+  Node #12:	sol1 = -2.613930e-02  0.000000e+00
+		sol2 =  2.049760e-03  4.843115e-01  6.021261e-03  5.029619e-04  4.802891e-01  7.060683e-03
+		reac =  0.000000e+00  3.881615e+00
+  Node #265:	sol1 =  0.000000e+00  2.000000e-01
+		sol2 =  3.117693e-01  8.309608e-01  4.684711e-01  0.000000e+00  4.612559e-01  2.832032e-03
+		reac = -1.953455e-05 -9.879993e-02
+  step=5  time=0.25
+  Primary solution summary: L2-norm            : 0.0927033
+                            Max X-displacement : 0.0322455 node 12
+                            Max Y-displacement : 0.25 node 265
+  Total reaction forces: Sum(R) = -1.07442e-05 0
+  displacement\*reactions: (R,u) = -15.0993
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.57267	 a(u^h,u^h) = 12.76396162
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -3.57254	(f,u)+(t,u) = 12.76304301
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 27.9362
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 9.31224	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 22.8096	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 27.9359
+  Node #12:	sol1 = -3.224547e-02  0.000000e+00
+		sol2 =  2.242900e-03  4.927697e-01  6.925012e-03  5.250012e-04  4.882035e-01  9.021652e-03
+		reac =  0.000000e+00  3.940095e+00
+  Node #265:	sol1 =  0.000000e+00  2.500000e-01
+		sol2 =  4.511239e-01  9.789501e-01  6.172954e-01  0.000000e+00  4.674439e-01  4.355092e-03
+		reac = -1.880004e-05 -1.003742e-01
+  step=6  time=0.3
+  Primary solution summary: L2-norm            : 0.110533
+                            Max X-displacement : 0.0383452 node 12
+                            Max Y-displacement : 0.3 node 265
+  Total reaction forces: Sum(R) = -1.0695e-05 3.03105e-07
+  displacement\*reactions: (R,u) = -18.3631
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.9755	 a(u^h,u^h) = 15.80457557
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -3.97533	(f,u)+(t,u) = 15.80323145
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 28.3646
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 9.45503	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 23.1594	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 28.3644
+  Node #12:	sol1 = -3.834516e-02  0.000000e+00
+		sol2 =  2.423156e-03  5.008168e-01  7.515788e-03  5.393978e-04  4.958678e-01  1.098262e-02
+		reac =  0.000000e+00  3.995268e+00
+  Node #265:	sol1 =  0.000000e+00  3.000000e-01
+		sol2 =  5.910421e-01  1.126544e+00  7.634944e-01  0.000000e+00  4.734483e-01  5.875527e-03
+		reac = -1.801887e-05 -1.018370e-01
+  step=7  time=0.35
+  Primary solution summary: L2-norm            : 0.128375
+                            Max X-displacement : 0.0444402 node 12
+                            Max Y-displacement : 0.35 node 265
+  Total reaction forces: Sum(R) = -1.06753e-05 3.36785e-08
+  displacement\*reactions: (R,u) = -21.6972
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.34569	 a(u^h,u^h) = 18.88503387
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -4.34549	(f,u)+(t,u) = 18.88328754
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 28.7799
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 9.59346	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 23.4985	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 28.7797
+  Node #12:	sol1 = -4.444023e-02  0.000000e+00
+		sol2 =  2.593326e-03  5.085246e-01  7.915881e-03  5.493699e-04  5.032920e-01  1.294407e-02
+		reac =  0.000000e+00  4.047654e+00
+  Node #265:	sol1 =  0.000000e+00  3.500000e-01
+		sol2 =  7.309102e-01  1.273492e+00  9.078454e-01  0.000000e+00  4.792697e-01  7.392107e-03
+		reac = -1.722768e-05 -1.032109e-01
+  step=8  time=0.4
+  Primary solution summary: L2-norm            : 0.146229
+                            Max X-displacement : 0.0505321 node 12
+                            Max Y-displacement : 0.4 node 265
+  Total reaction forces: Sum(R) = -1.06887e-05 -8.15411e-08
+  displacement\*reactions: (R,u) = -25.0974
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.69082	 a(u^h,u^h) = 22.00381817
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -4.69059	(f,u)+(t,u) = 22.0016715
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 29.1825
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 9.72765	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 23.8272	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 29.1822
+  Node #12:	sol1 = -5.053212e-02  0.000000e+00
+		sol2 =  2.755244e-03  5.159388e-01  8.197875e-03  5.567786e-04  5.104849e-01  1.490636e-02
+		reac =  0.000000e+00  4.097590e+00
+  Node #265:	sol1 =  0.000000e+00  4.000000e-01
+		sol2 =  8.703905e-01  1.419641e+00  1.050773e+00  0.000000e+00  4.849107e-01  8.904045e-03
+		reac = -1.645158e-05 -1.045104e-01
+  step=9  time=0.45
+  Primary solution summary: L2-norm            : 0.164096
+                            Max X-displacement : 0.056622 node 12
+                            Max Y-displacement : 0.45 node 265
+  Total reaction forces: Sum(R) = -1.07373e-05 -1.33854e-07
+  displacement\*reactions: (R,u) = -28.5595
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 5.01592	 a(u^h,u^h) = 25.1594553
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -5.01567	(f,u)+(t,u) = 25.1568972
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 29.5727
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 9.85774	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 24.1458	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 29.5725
+  Node #12:	sol1 = -5.662202e-02  0.000000e+00
+		sol2 =  2.910146e-03  5.230899e-01  8.405188e-03  5.627130e-04  5.174551e-01  1.686985e-02
+		reac =  0.000000e+00  4.145304e+00
+  Node #265:	sol1 =  0.000000e+00  4.500000e-01
+		sol2 =  1.009290e+00  1.564893e+00  1.192507e+00  0.000000e+00  4.903751e-01  1.041078e-02
+		reac = -1.570747e-05 -1.057453e-01
+  step=10  time=0.5
+  Primary solution summary: L2-norm            : 0.181975
+                            Max X-displacement : 0.062711 node 12
+                            Max Y-displacement : 0.5 node 265
+  Total reaction forces: Sum(R) = -1.08238e-05 -1.60631e-07
+  displacement\*reactions: (R,u) = -32.0798
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 5.32452	 a(u^h,u^h) = 28.35051838
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -5.32424	(f,u)+(t,u) = 28.34753004
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 29.9511
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 9.98386	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 24.4548	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 29.9509
+  Node #12:	sol1 = -6.271100e-02  0.000000e+00
+		sol2 =  3.058886e-03  5.299994e-01  8.563957e-03  5.678173e-04  5.242106e-01  1.883485e-02
+		reac =  0.000000e+00  4.190960e+00
+  Node #265:	sol1 =  0.000000e+00  5.000000e-01
+		sol2 =  1.147493e+00  1.709190e+00  1.333167e+00  0.000000e+00  4.956670e-01  1.191186e-02
+		reac = -1.500718e-05 -1.069226e-01
+  step=11  time=0.55
+  Primary solution summary: L2-norm            : 0.199867
+                            Max X-displacement : 0.0688001 node 12
+                            Max Y-displacement : 0.55 node 265
+  Total reaction forces: Sum(R) = -1.0951e-05 -1.77514e-07
+  displacement\*reactions: (R,u) = -35.6546
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 5.61922	 a(u^h,u^h) = 31.57562685
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -5.61891	(f,u)+(t,u) = 31.57218508
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 30.3179
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 10.1061	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 24.7543	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 30.3177
+  Node #12:	sol1 = -6.880006e-02  0.000000e+00
+		sol2 =  3.202075e-03  5.366831e-01  8.689998e-03  5.724761e-04  5.307592e-01  2.080166e-02
+		reac =  0.000000e+00  4.234684e+00
+  Node #265:	sol1 =  0.000000e+00  5.500000e-01
+		sol2 =  1.284928e+00  1.852492e+00  1.472817e+00  0.000000e+00  5.007907e-01  1.340693e-02
+		reac = -1.435923e-05 -1.080472e-01
+  step=12  time=0.6
+  Primary solution summary: L2-norm            : 0.217773
+                            Max X-displacement : 0.0748902 node 12
+                            Max Y-displacement : 0.6 node 265
+  Total reaction forces: Sum(R) = -1.11215e-05 -1.9117e-07
+  displacement\*reactions: (R,u) = -39.2803
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 5.90199	 a(u^h,u^h) = 34.83344597
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -5.90165	(f,u)+(t,u) = 34.82952526
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 30.6736
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 10.2247	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 25.0447	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 30.6733
+  Node #12:	sol1 = -7.489021e-02  0.000000e+00
+		sol2 =  3.340168e-03  5.431531e-01  8.792901e-03  5.769205e-04  5.371083e-01  2.277061e-02
+		reac =  0.000000e+00  4.276573e+00
+  Node #265:	sol1 =  0.000000e+00  6.000000e-01
+		sol2 =  1.421546e+00  1.994768e+00  1.611483e+00  0.000000e+00  5.057508e-01  1.489566e-02
+		reac = -1.376991e-05 -1.091227e-01
+  step=13  time=0.65
+  Primary solution summary: L2-norm            : 0.235694
+                            Max X-displacement : 0.0809824 node 12
+                            Max Y-displacement : 0.65 node 265
+  Total reaction forces: Sum(R) = -1.13382e-05 -2.04526e-07
+  displacement\*reactions: (R,u) = -42.9535
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 6.17436	 a(u^h,u^h) = 38.12268593
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -6.174	(f,u)+(t,u) = 38.11825973
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 31.0185
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 10.3397	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 25.3263	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 31.0182
+  Node #12:	sol1 = -8.098245e-02  0.000000e+00
+		sol2 =  3.473512e-03  5.494197e-01  8.878479e-03  5.812899e-04  5.432649e-01  2.474199e-02
+		reac =  0.000000e+00  4.316711e+00
+  Node #265:	sol1 =  0.000000e+00  6.500000e-01
+		sol2 =  1.557309e+00  2.135998e+00  1.749175e+00  0.000000e+00  5.105516e-01  1.637776e-02
+		reac = -1.324409e-05 -1.101522e-01
+  step=14  time=0.7
+  Primary solution summary: L2-norm            : 0.253631
+                            Max X-displacement : 0.0870778 node 12
+                            Max Y-displacement : 0.7 node 265
+  Total reaction forces: Sum(R) = -1.16041e-05 -2.18927e-07
+  displacement\*reactions: (R,u) = -46.6711
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 6.43755	 a(u^h,u^h) = 41.44210068
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -6.43717	(f,u)+(t,u) = 41.43714222
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 31.3529
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 10.4511	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 25.5993	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 31.3526
+  Node #12:	sol1 = -8.707781e-02  0.000000e+00
+		sol2 =  3.602383e-03  5.554916e-01  8.950227e-03  5.856684e-04  5.492358e-01  2.671613e-02
+		reac =  0.000000e+00  4.355171e+00
+  Node #265:	sol1 =  0.000000e+00  7.000000e-01
+		sol2 =  1.692189e+00  2.276162e+00  1.885888e+00  0.000000e+00  5.151976e-01  1.785292e-02
+		reac = -1.278572e-05 -1.111380e-01
+  step=15  time=0.75
+  Primary solution summary: L2-norm            : 0.271583
+                            Max X-displacement : 0.0931774 node 12
+                            Max Y-displacement : 0.75 node 265
+  Total reaction forces: Sum(R) = -1.19227e-05 -2.3506e-07
+  displacement\*reactions: (R,u) = -50.4301
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 6.69257	 a(u^h,u^h) = 44.79048668
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -6.69216	(f,u)+(t,u) = 44.78496949
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 31.6772
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 10.5593	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 25.8641	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 31.6769
+  Node #12:	sol1 = -9.317740e-02  0.000000e+00
+		sol2 =  3.727009e-03  5.613764e-01  9.010208e-03  5.901067e-04  5.550276e-01  2.869338e-02
+		reac =  0.000000e+00  4.392019e+00
+  Node #265:	sol1 =  0.000000e+00  7.500000e-01
+		sol2 =  1.826161e+00  2.415243e+00  2.021616e+00  0.000000e+00  5.196932e-01  1.932087e-02
+		reac = -1.239812e-05 -1.120822e-01
+  step=16  time=0.8
+  Primary solution summary: L2-norm            : 0.289553
+                            Max X-displacement : 0.0992823 node 12
+                            Max Y-displacement : 0.8 node 265
+  Total reaction forces: Sum(R) = -1.22975e-05 -2.53378e-07
+  displacement\*reactions: (R,u) = -54.2275
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 6.94022	 a(u^h,u^h) = 48.16668164
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -6.93978	(f,u)+(t,u) = 48.16057978
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 31.9917
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 10.6641	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 26.1209	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 31.9914
+  Node #12:	sol1 = -9.928235e-02  0.000000e+00
+		sol2 =  3.847584e-03  5.670812e-01  9.059588e-03  5.946345e-04  5.606468e-01  3.067409e-02
+		reac =  0.000000e+00  4.427314e+00
+  Node #265:	sol1 =  0.000000e+00  8.000000e-01
+		sol2 =  1.959201e+00  2.553223e+00  2.156342e+00  0.000000e+00  5.240427e-01  2.078132e-02
+		reac = -1.208429e-05 -1.129866e-01
+  step=17  time=0.85
+  Primary solution summary: L2-norm            : 0.307541
+                            Max X-displacement : 0.105394 node 12
+                            Max Y-displacement : 0.85 node 265
+  Total reaction forces: Sum(R) = -1.27323e-05 -2.7425e-07
+  displacement\*reactions: (R,u) = -58.0606
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 7.1812	 a(u^h,u^h) = 51.5695631
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -7.18073	(f,u)+(t,u) = 51.56285141
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 32.2967
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 10.7658	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 26.3699	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 32.2964
+  Node #12:	sol1 = -1.053939e-01  0.000000e+00
+		sol2 =  3.964274e-03  5.726125e-01  9.098966e-03  5.992695e-04  5.660993e-01  3.265865e-02
+		reac =  0.000000e+00  4.461112e+00
+  Node #265:	sol1 =  0.000000e+00  8.500000e-01
+		sol2 =  2.091285e+00  2.690085e+00  2.290052e+00  0.000000e+00  5.282500e-01  2.223396e-02
+		reac = -1.184705e-05 -1.138527e-01
+  step=18  time=0.9
+  Primary solution summary: L2-norm            : 0.325548
+                            Max X-displacement : 0.111513 node 12
+                            Max Y-displacement : 0.9 node 265
+  Total reaction forces: Sum(R) = -1.32317e-05 -2.98073e-07
+  displacement\*reactions: (R,u) = -61.9267
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 7.41607	 a(u^h,u^h) = 54.99804719
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -7.41557	(f,u)+(t,u) = 54.9907013
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 32.5926
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 10.8644	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 26.6115	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 32.5923
+  Node #12:	sol1 = -1.115133e-01  0.000000e+00
+		sol2 =  4.077228e-03  5.779763e-01  9.128567e-03  6.040213e-04  5.713911e-01  3.464746e-02
+		reac =  0.000000e+00  4.493466e+00
+  Node #265:	sol1 =  0.000000e+00  9.000000e-01
+		sol2 =  2.222389e+00  2.825810e+00  2.422725e+00  0.000000e+00  5.323193e-01  2.367850e-02
+		reac = -1.168913e-05 -1.146821e-01
+  step=19  time=0.95
+  Primary solution summary: L2-norm            : 0.343575
+                            Max X-displacement : 0.117642 node 12
+                            Max Y-displacement : 0.95 node 265
+  Total reaction forces: Sum(R) = -1.38002e-05 -3.25299e-07
+  displacement\*reactions: (R,u) = -65.8234
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 7.64533	 a(u^h,u^h) = 58.45108727
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -7.64481	(f,u)+(t,u) = 58.44308367
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 32.8795
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 10.9601	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 26.8458	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 32.8792
+  Node #12:	sol1 = -1.176420e-01  0.000000e+00
+		sol2 =  4.186584e-03  5.831785e-01  9.148372e-03  6.088953e-04  5.765280e-01  3.664095e-02
+		reac =  0.000000e+00  4.524424e+00
+  Node #265:	sol1 =  0.000000e+00  9.500000e-01
+		sol2 =  2.352490e+00  2.960378e+00  2.554341e+00  0.000000e+00  5.362545e-01  2.511461e-02
+		reac = -1.161327e-05 -1.154761e-01
+  step=20  time=1
+  Primary solution summary: L2-norm            : 0.361624
+                            Max X-displacement : 0.123781 node 12
+                            Max Y-displacement : 1 node 265
+  Total reaction forces: Sum(R) = -1.44433e-05 -3.56481e-07
+  displacement\*reactions: (R,u) = -69.7484
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 7.86941	 a(u^h,u^h) = 61.92767263
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -7.86886	(f,u)+(t,u) = 61.91898866
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 33.1579
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 11.0529	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 27.0731	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 33.1576
+  Node #12:	sol1 = -1.237814e-01  0.000000e+00
+		sol2 =  4.292465e-03  5.882246e-01  9.158187e-03  6.138943e-04  5.815156e-01  3.863960e-02
+		reac =  0.000000e+00  4.554035e+00
+  Node #265:	sol1 =  0.000000e+00  1.000000e+00
+		sol2 =  2.481562e+00  3.093769e+00  2.684877e+00  0.000000e+00  5.400594e-01  2.654196e-02
+		reac = -1.162229e-05 -1.162360e-01
+  step=21  time=1.05
+  Primary solution summary: L2-norm            : 0.379696
+                            Max X-displacement : 0.129933 node 12
+                            Max Y-displacement : 1.05 node 265
+  Total reaction forces: Sum(R) = -1.51653e-05 0
+  displacement\*reactions: (R,u) = -73.6992
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 8.08869	 a(u^h,u^h) = 65.42682726
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -8.0881	(f,u)+(t,u) = 65.41744108
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 33.428
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 11.1429	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 27.2935	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 33.4276
+  Node #12:	sol1 = -1.299332e-01  0.000000e+00
+		sol2 =  4.394988e-03  5.931199e-01  9.157689e-03  6.190198e-04  5.863591e-01  4.064390e-02
+		reac =  0.000000e+00  4.582342e+00
+  Node #265:	sol1 =  0.000000e+00  1.050000e+00
+		sol2 =  2.609577e+00  3.225960e+00  2.814306e+00  0.000000e+00  5.437375e-01  2.796018e-02
+		reac = -1.171907e-05 -1.169630e-01
+  step=22  time=1.1
+  Primary solution summary: L2-norm            : 0.397792
+                            Max X-displacement : 0.136099 node 12
+                            Max Y-displacement : 1.1 node 265
+  Total reaction forces: Sum(R) = -1.59754e-05 0
+  displacement\*reactions: (R,u) = -77.6739
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 8.30347	 a(u^h,u^h) = 68.94760862
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -8.30286	(f,u)+(t,u) = 68.93749917
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 33.6899
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 11.2302	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 27.5074	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 33.6896
+  Node #12:	sol1 = -1.360991e-01  0.000000e+00
+		sol2 =  4.494266e-03  5.978695e-01  9.146451e-03  6.242729e-04  5.910638e-01  4.265439e-02
+		reac =  0.000000e+00  4.609389e+00
+  Node #265:	sol1 =  0.000000e+00  1.100000e+00
+		sol2 =  2.736506e+00  3.356925e+00  2.942603e+00  0.000000e+00  5.472924e-01  2.936892e-02
+		reac = -1.190672e-05 -1.176582e-01
+  step=23  time=1.15
+  Primary solution summary: L2-norm            : 0.415914
+                            Max X-displacement : 0.142281 node 12
+                            Max Y-displacement : 1.15 node 265
+  Total reaction forces: Sum(R) = -1.68795e-05 0
+  displacement\*reactions: (R,u) = -81.6702
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 8.51405	 a(u^h,u^h) = 72.48910646
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -8.51342	(f,u)+(t,u) = 72.47825336
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 33.9441
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 11.3149	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 27.7149	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 33.9437
+  Node #12:	sol1 = -1.422811e-01  0.000000e+00
+		sol2 =  4.590403e-03  6.024781e-01  9.123957e-03  6.296547e-04  5.956349e-01  4.467168e-02
+		reac =  0.000000e+00  4.635216e+00
+  Node #265:	sol1 =  0.000000e+00  1.150000e+00
+		sol2 =  2.862319e+00  3.486637e+00  3.069737e+00  0.000000e+00  5.507275e-01  3.076775e-02
+		reac = -1.218840e-05 -1.183227e-01
+  step=24  time=1.2
+  Primary solution summary: L2-norm            : 0.434063
+                            Max X-displacement : 0.148481 node 12
+                            Max Y-displacement : 1.2 node 265
+  Total reaction forces: Sum(R) = -1.78857e-05 0
+  displacement\*reactions: (R,u) = -85.6864
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 8.72069	 a(u^h,u^h) = 76.05044164
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -8.72002	(f,u)+(t,u) = 76.03882516
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 34.1907
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 11.3972	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 27.9163	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 34.1903
+  Node #12:	sol1 = -1.484810e-01  0.000000e+00
+		sol2 =  4.683501e-03  6.069505e-01  9.089602e-03  6.351671e-04  6.000771e-01  4.669638e-02
+		reac =  0.000000e+00  4.659861e+00
+  Node #265:	sol1 =  0.000000e+00  1.200000e+00
+		sol2 =  2.986982e+00  3.615068e+00  3.195678e+00  0.000000e+00  5.540461e-01  3.215626e-02
+		reac = -1.256748e-05 -1.189577e-01
+  step=25  time=1.25
+  Primary solution summary: L2-norm            : 0.452241
+                            Max X-displacement : 0.154701 node 12
+                            Max Y-displacement : 1.25 node 265
+  Total reaction forces: Sum(R) = -1.90029e-05 0
+  displacement\*reactions: (R,u) = -89.7204
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 8.92361	 a(u^h,u^h) = 79.63076502
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -8.92291	(f,u)+(t,u) = 79.618366
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 34.43
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 11.4769	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 28.1116	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 34.4296
+  Node #12:	sol1 = -1.547012e-01  0.000000e+00
+		sol2 =  4.773660e-03  6.112912e-01  9.042697e-03  6.408126e-04  6.043954e-01  4.872920e-02
+		reac =  0.000000e+00  4.683361e+00
+  Node #265:	sol1 =  0.000000e+00  1.250000e+00
+		sol2 =  3.110460e+00  3.742185e+00  3.320390e+00  0.000000e+00  5.572513e-01  3.353398e-02
+		reac = -1.304749e-05 -1.195639e-01
+  step=26  time=1.3
+  Primary solution summary: L2-norm            : 0.470451
+                            Max X-displacement : 0.160944 node 12
+                            Max Y-displacement : 1.3 node 265
+  Total reaction forces: Sum(R) = -2.02411e-05 0
+  displacement\*reactions: (R,u) = -93.7706
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 9.12301	 a(u^h,u^h) = 83.22925638
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -9.12228	(f,u)+(t,u) = 83.21605614
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 34.6622
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 11.5543	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 28.3012	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 34.6617
+  Node #12:	sol1 = -1.609440e-01  0.000000e+00
+		sol2 =  4.860976e-03  6.155046e-01  8.982461e-03  6.465949e-04  6.085943e-01  5.077090e-02
+		reac =  0.000000e+00  4.705752e+00
+  Node #265:	sol1 =  0.000000e+00  1.300000e+00
+		sol2 =  3.232715e+00  3.867953e+00  3.443837e+00  0.000000e+00  5.603461e-01  3.490044e-02
+		reac = -1.363213e-05 -1.201425e-01
+  step=27  time=1.35
+  Primary solution summary: L2-norm            : 0.488694
+                            Max X-displacement : 0.167212 node 12
+                            Max Y-displacement : 1.35 node 265
+  Total reaction forces: Sum(R) = -2.16116e-05 0
+  displacement\*reactions: (R,u) = -97.8354
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 9.31907	 a(u^h,u^h) = 86.84512332
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -9.31832	(f,u)+(t,u) = 86.83110361
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 34.8875
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 11.6295	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 28.4851	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 34.887
+  Node #12:	sol1 = -1.672122e-01  0.000000e+00
+		sol2 =  4.945545e-03  6.195947e-01  8.908014e-03  6.525187e-04  6.126785e-01  5.282229e-02
+		reac =  0.000000e+00  4.727066e+00
+  Node #265:	sol1 =  0.000000e+00  1.350000e+00
+		sol2 =  3.353704e+00  3.992335e+00  3.565979e+00  0.000000e+00  5.633335e-01  3.625509e-02
+		reac = -1.432527e-05 -1.206943e-01
+  step=28  time=1.4
+  Primary solution summary: L2-norm            : 0.506973
+                            Max X-displacement : 0.173509 node 12
+                            Max Y-displacement : 1.4 node 265
+  Total reaction forces: Sum(R) = -2.3127e-05 0
+  displacement\*reactions: (R,u) = -101.913
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 9.51197	 a(u^h,u^h) = 90.47760028
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -9.51119	(f,u)+(t,u) = 90.46274315
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 35.1061
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 11.7024	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 28.6636	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 35.1057
+  Node #12:	sol1 = -1.735085e-01  0.000000e+00
+		sol2 =  5.027461e-03  6.235656e-01  8.818364e-03  6.585903e-04  6.166524e-01  5.488429e-02
+		reac =  0.000000e+00  4.747335e+00
+  Node #265:	sol1 =  0.000000e+00  1.400000e+00
+		sol2 =  3.473385e+00  4.115288e+00  3.686771e+00  0.000000e+00  5.662161e-01  3.759738e-02
+		reac = -1.513097e-05 -1.212202e-01
+  step=29  time=1.45
+  Primary solution summary: L2-norm            : 0.52529
+                            Max X-displacement : 0.179836 node 12
+                            Max Y-displacement : 1.45 node 265
+  Total reaction forces: Sum(R) = -2.48015e-05 0
+  displacement\*reactions: (R,u) = -106.002
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 9.70185	 a(u^h,u^h) = 94.12594751
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -9.70104	(f,u)+(t,u) = 94.11023524
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 35.3183
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 11.7731	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 28.8369	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 35.3178
+  Node #12:	sol1 = -1.798362e-01  0.000000e+00
+		sol2 =  5.106817e-03  6.274211e-01  8.712395e-03  6.648178e-04  6.205204e-01  5.695789e-02
+		reac =  0.000000e+00  4.766587e+00
+  Node #265:	sol1 =  0.000000e+00  1.450000e+00
+		sol2 =  3.591707e+00  4.236768e+00  3.806166e+00  0.000000e+00  5.689967e-01  3.892670e-02
+		reac = -1.605345e-05 -1.217210e-01
+  step=30  time=1.5
+  Primary solution summary: L2-norm            : 0.543648
+                            Max X-displacement : 0.186199 node 12
+                            Max Y-displacement : 1.5 node 265
+  Total reaction forces: Sum(R) = -2.66512e-05 0
+  displacement\*reactions: (R,u) = -110.101
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 9.88885	 a(u^h,u^h) = 97.78945008
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -9.88802	(f,u)+(t,u) = 97.77286509
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 35.5243
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 11.8418	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 29.005	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 35.5237
+  Node #12:	sol1 = -1.861988e-01  0.000000e+00
+		sol2 =  5.183709e-03  6.311649e-01  8.588847e-03  6.712107e-04  6.242867e-01  5.904419e-02
+		reac =  0.000000e+00  4.784851e+00
+  Node #265:	sol1 =  0.000000e+00  1.500000e+00
+		sol2 =  3.708619e+00  4.356724e+00  3.924114e+00  0.000000e+00  5.716777e-01  4.024239e-02
+		reac = -1.709707e-05 -1.221975e-01
+  step=31  time=1.55
+  Primary solution summary: L2-norm            : 0.56205
+                            Max X-displacement : 0.1926 node 12
+                            Max Y-displacement : 1.55 node 265
+  Total reaction forces: Sum(R) = -2.86942e-05 0
+  displacement\*reactions: (R,u) = -114.208
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 10.0731	 a(u^h,u^h) = 101.4674169
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -10.0722	(f,u)+(t,u) = 101.4499417
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 35.7241
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 11.9084	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 29.1682	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 35.7236
+  Node #12:	sol1 = -1.926002e-01  0.000000e+00
+		sol2 =  5.258229e-03  6.348005e-01  8.446297e-03  6.777810e-04  6.279554e-01  6.114440e-02
+		reac =  0.000000e+00  4.802151e+00
+  Node #265:	sol1 =  0.000000e+00  1.550000e+00
+		sol2 =  3.824063e+00  4.475103e+00  4.040558e+00  0.000000e+00  5.742616e-01  4.154373e-02
+		reac = -1.826634e-05 -1.226505e-01
+  step=32  time=1.6
+  Primary solution summary: L2-norm            : 0.5805
+                            Max X-displacement : 0.199045 node 12
+                            Max Y-displacement : 1.6 node 265
+  Total reaction forces: Sum(R) = -3.09513e-05 0
+  displacement\*reactions: (R,u) = -118.323
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 10.2547	 a(u^h,u^h) = 105.15918
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -10.2538	(f,u)+(t,u) = 105.1407968
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 35.9181
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 11.9731	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 29.3266	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 35.9176
+  Node #12:	sol1 = -1.990445e-01  0.000000e+00
+		sol2 =  5.330474e-03  6.383314e-01  8.283132e-03  6.845428e-04  6.315309e-01  6.325985e-02
+		reac =  0.000000e+00  4.818511e+00
+  Node #265:	sol1 =  0.000000e+00  1.600000e+00
+		sol2 =  3.937979e+00  4.591845e+00  4.155437e+00  0.000000e+00  5.767506e-01  4.282996e-02
+		reac = -1.956591e-05 -1.230806e-01
+  step=33  time=1.65
+  Primary solution summary: L2-norm            : 0.599001
+                            Max X-displacement : 0.205537 node 12
+                            Max Y-displacement : 1.65 node 265
+  Total reaction forces: Sum(R) = -3.3446e-05 0
+  displacement\*reactions: (R,u) = -122.443
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 10.4338	 a(u^h,u^h) = 108.8640931
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -10.4329	(f,u)+(t,u) = 108.8447842
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 36.1064
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.0359	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 29.4803	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 36.1058
+  Node #12:	sol1 = -2.055367e-01  0.000000e+00
+		sol2 =  5.400541e-03  6.417607e-01  8.097521e-03  6.915127e-04  6.350170e-01  6.539205e-02
+		reac =  0.000000e+00  4.833953e+00
+  Node #265:	sol1 =  0.000000e+00  1.650000e+00
+		sol2 =  4.050297e+00  4.706885e+00  4.268683e+00  0.000000e+00  5.791468e-01  4.410024e-02
+		reac = -2.100051e-05 -1.234886e-01
+  step=34  time=1.7
+  Primary solution summary: L2-norm            : 0.617558
+                            Max X-displacement : 0.212082 node 12
+                            Max Y-displacement : 1.7 node 265
+  Total reaction forces: Sum(R) = -3.62051e-05 0
+  displacement\*reactions: (R,u) = -126.568
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 10.6104	 a(u^h,u^h) = 112.5815312
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -10.6095	(f,u)+(t,u) = 112.5612785
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 36.2892
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.0968	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 29.6295	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 36.2885
+  Node #12:	sol1 = -2.120819e-01  0.000000e+00
+		sol2 =  5.468530e-03  6.450914e-01  7.887378e-03  6.987108e-04  6.384180e-01  6.754265e-02
+		reac =  0.000000e+00  4.848495e+00
+  Node #265:	sol1 =  0.000000e+00  1.700000e+00
+		sol2 =  4.160945e+00  4.820152e+00  4.380225e+00  0.000000e+00  5.814523e-01  4.535364e-02
+		reac = -2.257492e-05 -1.238752e-01
+  step=35  time=1.75
+  Primary solution summary: L2-norm            : 0.636174
+                            Max X-displacement : 0.218686 node 12
+                            Max Y-displacement : 1.75 node 265
+  Total reaction forces: Sum(R) = -3.92598e-05 0
+  displacement\*reactions: (R,u) = -130.697
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 10.7848	 a(u^h,u^h) = 116.3108896
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -10.7838	(f,u)+(t,u) = 116.2896745
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 36.4665
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.156	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 29.7742	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 36.4659
+  Node #12:	sol1 = -2.186862e-01  0.000000e+00
+		sol2 =  5.534544e-03  6.483264e-01  7.650318e-03  7.061601e-04  6.417377e-01  6.971350e-02
+		reac =  0.000000e+00  4.862154e+00
+  Node #265:	sol1 =  0.000000e+00  1.750000e+00
+		sol2 =  4.269841e+00  4.931566e+00  4.489983e+00  0.000000e+00  5.836689e-01  4.658919e-02
+		reac = -2.429398e-05 -1.242409e-01
+  step=36  time=1.8
+  Primary solution summary: L2-norm            : 0.654855
+                            Max X-displacement : 0.225356 node 12
+                            Max Y-displacement : 1.8 node 265
+  Total reaction forces: Sum(R) = -4.26455e-05 0
+  displacement\*reactions: (R,u) = -134.828
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 10.9568	 a(u^h,u^h) = 120.0515828
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -10.9558	(f,u)+(t,u) = 120.0293861
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 36.6387
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.2134	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 29.9148	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 36.638
+  Node #12:	sol1 = -2.253562e-01  0.000000e+00
+		sol2 =  5.598690e-03  6.514684e-01  7.383610e-03  7.138881e-04  6.449803e-01  7.190670e-02
+		reac =  0.000000e+00  4.874943e+00
+  Node #265:	sol1 =  0.000000e+00  1.800000e+00
+		sol2 =  4.376897e+00  5.041041e+00  4.597867e+00  0.000000e+00  5.857983e-01  4.780578e-02
+		reac = -2.616245e-05 -1.245863e-01
+  step=37  time=1.85
+  Primary solution summary: L2-norm            : 0.673607
+                            Max X-displacement : 0.232099 node 12
+                            Max Y-displacement : 1.85 node 265
+  Total reaction forces: Sum(R) = -4.64035e-05 0
+  displacement\*reactions: (R,u) = -138.961
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 11.1267	 a(u^h,u^h) = 123.8030436
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -11.1256	(f,u)+(t,u) = 123.7798456
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 36.8058
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.2691	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 30.0512	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 36.805
+  Node #12:	sol1 = -2.320993e-01  0.000000e+00
+		sol2 =  5.661082e-03  6.545199e-01  7.084111e-03  7.219268e-04  6.481497e-01  7.412458e-02
+		reac =  0.000000e+00  4.886876e+00
+  Node #265:	sol1 =  0.000000e+00  1.850000e+00
+		sol2 =  4.482015e+00  5.148481e+00  4.703781e+00  0.000000e+00  5.878420e-01  4.900222e-02
+		reac = -2.818504e-05 -1.249120e-01
+  step=38  time=1.9
+  Primary solution summary: L2-norm            : 0.692436
+                            Max X-displacement : 0.238924 node 12
+                            Max Y-displacement : 1.9 node 265
+  Total reaction forces: Sum(R) = -5.0582e-05 0
+  displacement\*reactions: (R,u) = -143.094
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 11.2945	 a(u^h,u^h) = 127.5647224
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -11.2934	(f,u)+(t,u) = 127.5405024
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 36.9679
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.3232	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 30.1835	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 36.9671
+  Node #12:	sol1 = -2.389242e-01  0.000000e+00
+		sol2 =  5.721839e-03  6.574832e-01  6.748194e-03  7.303139e-04  6.512500e-01  7.636982e-02
+		reac =  0.000000e+00  4.897958e+00
+  Node #265:	sol1 =  0.000000e+00  1.900000e+00
+		sol2 =  4.585087e+00  5.253780e+00  4.807618e+00  0.000000e+00  5.898014e-01  5.017719e-02
+		reac = -3.036624e-05 -1.252185e-01
+  step=39  time=1.95
+  Primary solution summary: L2-norm            : 0.711349
+                            Max X-displacement : 0.24584 node 12
+                            Max Y-displacement : 1.95 node 265
+  Total reaction forces: Sum(R) = -5.5237e-05 0
+  displacement\*reactions: (R,u) = -147.226
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 11.4602	 a(u^h,u^h) = 131.3360861
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -11.4591	(f,u)+(t,u) = 131.3108226
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 37.1253
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.3757	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 30.3119	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 37.1244
+  Node #12:	sol1 = -2.458405e-01  0.000000e+00
+		sol2 =  5.781087e-03  6.603603e-01  6.371655e-03  7.390937e-04  6.542853e-01  7.864542e-02
+		reac =  0.000000e+00  4.908195e+00
+  Node #265:	sol1 =  0.000000e+00  1.950000e+00
+		sol2 =  4.685995e+00  5.356820e+00  4.909259e+00  0.000000e+00  5.916777e-01  5.132924e-02
+		reac = -3.271026e-05 -1.255063e-01
+  step=40  time=2
+  Primary solution summary: L2-norm            : 0.730354
+                            Max X-displacement : 0.252859 node 12
+                            Max Y-displacement : 2 node 265
+  Total reaction forces: Sum(R) = -6.04346e-05 0
+  displacement\*reactions: (R,u) = -151.356
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 11.624	 a(u^h,u^h) = 135.1166173
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -11.6228	(f,u)+(t,u) = 135.0902874
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 37.2779
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.4266	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 30.4365	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 37.277
+  Node #12:	sol1 = -2.528592e-01  0.000000e+00
+		sol2 =  5.838965e-03  6.631529e-01  5.949604e-03  7.483184e-04  6.572599e-01  8.095483e-02
+		reac =  0.000000e+00  4.917587e+00
+  Node #265:	sol1 =  0.000000e+00  2.000000e+00
+		sol2 =  4.784605e+00  5.457470e+00  5.008572e+00  0.000000e+00  5.934719e-01  5.245676e-02
+		reac = -3.522091e-05 -1.257758e-01
+  step=41  time=2.05
+  Primary solution summary: L2-norm            : 0.749461
+                            Max X-displacement : 0.259993 node 12
+                            Max Y-displacement : 2.05 node 265
+  Total reaction forces: Sum(R) = -6.62528e-05 0
+  displacement\*reactions: (R,u) = -155.484
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 11.7858	 a(u^h,u^h) = 138.9058129
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -11.7847	(f,u)+(t,u) = 138.8783926
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 37.426
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.476	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 30.5574	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 37.425
+  Node #12:	sol1 = -2.599930e-01  0.000000e+00
+		sol2 =  5.895621e-03  6.658627e-01  5.476329e-03  7.580498e-04  6.601781e-01  8.330200e-02
+		reac =  0.000000e+00  4.926130e+00
+  Node #265:	sol1 =  0.000000e+00  2.050000e+00
+		sol2 =  4.880769e+00  5.555582e+00  5.105409e+00  0.000000e+00  5.951848e-01  5.355795e-02
+		reac = -3.790139e-05 -1.260275e-01
+  step=42  time=2.1
+  Primary solution summary: L2-norm            : 0.768679
+                            Max X-displacement : 0.267257 node 12
+                            Max Y-displacement : 2.1 node 265
+  Total reaction forces: Sum(R) = -7.27847e-05 0
+  displacement\*reactions: (R,u) = -159.609
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 11.9458	 a(u^h,u^h) = 142.7031836
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -11.9446	(f,u)+(t,u) = 142.6746475
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 37.5697
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.524	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 30.6746	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 37.5686
+  Node #12:	sol1 = -2.672567e-01  0.000000e+00
+		sol2 =  5.951220e-03  6.684906e-01  4.945124e-03  7.683615e-04  6.630444e-01  8.569149e-02
+		reac =  0.000000e+00  4.933813e+00
+  Node #265:	sol1 =  0.000000e+00  2.100000e+00
+		sol2 =  4.974323e+00  5.650991e+00  5.199606e+00  0.000000e+00  5.968168e-01  5.463081e-02
+		reac = -4.075414e-05 -1.262617e-01
+  step=43  time=2.15
+  Primary solution summary: L2-norm            : 0.788022
+                            Max X-displacement : 0.274667 node 12
+                            Max Y-displacement : 2.15 node 265
+  Total reaction forces: Sum(R) = -8.01418e-05 0
+  displacement\*reactions: (R,u) = -163.729
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 12.1041	 a(u^h,u^h) = 146.5082523
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -12.1028	(f,u)+(t,u) = 146.4785731
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 37.709
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.5705	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 30.7882	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 37.7077
+  Node #12:	sol1 = -2.746673e-01  0.000000e+00
+		sol2 =  6.005945e-03  6.710375e-01  4.348082e-03  7.793414e-04  6.658634e-01  8.812861e-02
+		reac =  0.000000e+00  4.940621e+00
+  Node #265:	sol1 =  0.000000e+00  2.150000e+00
+		sol2 =  5.065080e+00  5.743513e+00  5.290976e+00  0.000000e+00  5.983682e-01  5.567308e-02
+		reac = -4.378059e-05 -1.264786e-01
+  step=44  time=2.2
+  Primary solution summary: L2-norm            : 0.807502
+                            Max X-displacement : 0.282245 node 12
+                            Max Y-displacement : 2.2 node 265
+  Total reaction forces: Sum(R) = -8.8459e-05 0
+  displacement\*reactions: (R,u) = -167.843
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 12.2605	 a(u^h,u^h) = 150.3205527
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -12.2593	(f,u)+(t,u) = 150.2897018
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 37.844
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.6155	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 30.8984	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 37.8426
+  Node #12:	sol1 = -2.822448e-01  0.000000e+00
+		sol2 =  6.060001e-03  6.735036e-01  3.675826e-03  7.910953e-04  6.686403e-01  9.061953e-02
+		reac =  0.000000e+00  4.946530e+00
+  Node #265:	sol1 =  0.000000e+00  2.200000e+00
+		sol2 =  5.152828e+00  5.832934e+00  5.379307e+00  0.000000e+00  5.998388e-01  5.668223e-02
+		reac = -4.698085e-05 -1.266787e-01
+  step=45  time=2.25
+  Primary solution summary: L2-norm            : 0.827136
+                            Max X-displacement : 0.290013 node 12
+                            Max Y-displacement : 2.25 node 265
+  Total reaction forces: Sum(R) = -9.79006e-05 0
+  displacement\*reactions: (R,u) = -171.951
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 12.4153	 a(u^h,u^h) = 154.1396282
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -12.414	(f,u)+(t,u) = 154.1075751
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 37.9748
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.6592	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.0051	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 37.9733
+  Node #12:	sol1 = -2.900128e-01  0.000000e+00
+		sol2 =  6.113622e-03  6.758885e-01  2.917178e-03  8.037514e-04  6.713803e-01  9.317154e-02
+		reac =  0.000000e+00  4.951507e+00
+  Node #265:	sol1 =  0.000000e+00  2.250000e+00
+		sol2 =  5.237328e+00  5.919014e+00  5.464360e+00  0.000000e+00  6.012282e-01  5.765537e-02
+		reac = -5.035340e-05 -1.268620e-01
+  step=46  time=2.3
+  Primary solution summary: L2-norm            : 0.846943
+                            Max X-displacement : 0.297999 node 12
+                            Max Y-displacement : 2.3 node 265
+  Total reaction forces: Sum(R) = -0.000108669 0
+  displacement\*reactions: (R,u) = -176.051
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 12.5684	 a(u^h,u^h) = 157.96503
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -12.5671	(f,u)+(t,u) = 157.9317424
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 38.1014
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.7015	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.1084	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 38.0998
+  Node #12:	sol1 = -2.979993e-01  0.000000e+00
+		sol2 =  6.167076e-03  6.781912e-01  2.058732e-03  8.174665e-04  6.740892e-01  9.579328e-02
+		reac =  0.000000e+00  4.955506e+00
+  Node #265:	sol1 =  0.000000e+00  2.300000e+00
+		sol2 =  5.318302e+00  6.001477e+00  5.545858e+00  0.000000e+00  6.025353e-01  5.858919e-02
+		reac = -5.389465e-05 -1.270287e-01
+  step=47  time=2.35
+  Primary solution summary: L2-norm            : 0.866945
+                            Max X-displacement : 0.306238 node 12
+                            Max Y-displacement : 2.35 node 265
+  Total reaction forces: Sum(R) = -0.000121017 0
+  displacement\*reactions: (R,u) = -180.143
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 12.7199	 a(u^h,u^h) = 161.7963146
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -12.7186	(f,u)+(t,u) = 161.7617589
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 38.224
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.7425	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.2083	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 38.2222
+  Node #12:	sol1 = -3.062380e-01  0.000000e+00
+		sol2 =  6.220675e-03  6.804098e-01  1.084304e-03  8.324337e-04  6.767735e-01  9.849509e-02
+		reac =  0.000000e+00  4.958469e+00
+  Node #265:	sol1 =  0.000000e+00  2.350000e+00
+		sol2 =  5.395432e+00  6.080000e+00  5.623481e+00  0.000000e+00  6.037587e-01  5.947987e-02
+		reac = -5.759854e-05 -1.271789e-01
+  step=48  time=2.4
+  Primary solution summary: L2-norm            : 0.887169
+                            Max X-displacement : 0.31477 node 12
+                            Max Y-displacement : 2.4 node 265
+  Total reaction forces: Sum(R) = -0.000135261 0
+  displacement\*reactions: (R,u) = -184.225
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 12.8699	 a(u^h,u^h) = 165.6330417
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -12.8685	(f,u)+(t,u) = 165.597183
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 38.3425
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.7822	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.3049	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 38.3405
+  Node #12:	sol1 = -3.147697e-01  0.000000e+00
+		sol2 =  6.274783e-03  6.825412e-01 -2.577914e-05  8.488939e-04  6.794402e-01  1.012895e-01
+		reac =  0.000000e+00  4.960320e+00
+  Node #265:	sol1 =  0.000000e+00  2.400000e+00
+		sol2 =  5.468344e+00  6.154208e+00  5.696855e+00  0.000000e+00  6.048959e-01  6.032296e-02
+		reac = -6.145597e-05 -1.273123e-01
+  step=49  time=2.45
+  Primary solution summary: L2-norm            : 0.907647
+                            Max X-displacement : 0.323644 node 12
+                            Max Y-displacement : 2.45 node 265
+  Total reaction forces: Sum(R) = -0.000151808 0
+  displacement\*reactions: (R,u) = -188.295
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 13.0182	 a(u^h,u^h) = 169.4747706
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -13.0168	(f,u)+(t,u) = 169.437574
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 38.4569
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.8205	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.3981	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 38.4546
+  Node #12:	sol1 = -3.236444e-01  0.000000e+00
+		sol2 =  6.329835e-03  6.845809e-01 -1.295607e-03  8.671508e-04  6.820974e-01  1.041917e-01
+		reac =  0.000000e+00  4.960959e+00
+  Node #265:	sol1 =  0.000000e+00  2.450000e+00
+		sol2 =  5.536595e+00  6.223654e+00  5.765536e+00  0.000000e+00  6.059439e-01  6.111321e-02
+		reac = -6.545443e-05 -1.274288e-01
+  step=50  time=2.5
+  Primary solution summary: L2-norm            : 0.928419
+                            Max X-displacement : 0.332924 node 12
+                            Max Y-displacement : 2.5 node 265
+  Total reaction forces: Sum(R) = -0.000171182 0
+  displacement\*reactions: (R,u) = -192.353
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 13.1651	 a(u^h,u^h) = 173.3210555
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -13.1637	(f,u)+(t,u) = 173.2824875
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 38.5672
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.8574	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.4879	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 38.5646
+  Node #12:	sol1 = -3.329240e-01  0.000000e+00
+		sol2 =  6.386347e-03  6.865226e-01 -2.754915e-03  8.875923e-04  6.847544e-01  1.072207e-01
+		reac =  0.000000e+00  4.960258e+00
+  Node #265:	sol1 =  0.000000e+00  2.500000e+00
+		sol2 =  5.599655e+00  6.287804e+00  5.828995e+00  0.000000e+00  6.068981e-01  6.184434e-02
+		reac = -6.957757e-05 -1.275276e-01
+  step=51  time=2.55
+  Primary solution summary: L2-norm            : 0.949533
+                            Max X-displacement : 0.342687 node 12
+                            Max Y-displacement : 2.55 node 265
+  Total reaction forces: Sum(R) = -0.000194076 0
+  displacement\*reactions: (R,u) = -196.396
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 13.3106	 a(u^h,u^h) = 177.1714395
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -13.3091	(f,u)+(t,u) = 177.1314711
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 38.6732
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.8931	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.5741	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 38.6703
+  Node #12:	sol1 = -3.426867e-01  0.000000e+00
+		sol2 =  6.444940e-03  6.883577e-01 -4.440708e-03  9.107212e-04  6.874220e-01  1.104000e-01
+		reac =  0.000000e+00  4.958051e+00
+  Node #265:	sol1 =  0.000000e+00  2.550000e+00
+		sol2 =  5.656880e+00  6.346006e+00  5.886584e+00  0.000000e+00  6.077528e-01  6.250874e-02
+		reac = -7.380530e-05 -1.276078e-01
+  step=52  time=2.6
+  Primary solution summary: L2-norm            : 0.97105
+                            Max X-displacement : 0.353032 node 12
+                            Max Y-displacement : 2.6 node 265
+  Total reaction forces: Sum(R) = -0.00022142 0
+  displacement\*reactions: (R,u) = -200.422
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 13.4546	 a(u^h,u^h) = 181.0254457
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -13.453	(f,u)+(t,u) = 180.9840571
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 38.775
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.9273	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.6568	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 38.7715
+  Node #12:	sol1 = -3.530320e-01  0.000000e+00
+		sol2 =  6.506366e-03  6.900742e-01 -6.399421e-03  9.372004e-04  6.901132e-01  1.137598e-01
+		reac =  0.000000e+00  4.954120e+00
+  Node #265:	sol1 =  0.000000e+00  2.600000e+00
+		sol2 =  5.707467e+00  6.397450e+00  5.937503e+00  0.000000e+00  6.084997e-01  6.309702e-02
+		reac = -7.811464e-05 -1.276677e-01
+  step=53  time=2.65
+  Primary solution summary: L2-norm            : 0.993049
+                            Max X-displacement : 0.364089 node 12
+                            Max Y-displacement : 2.65 node 265
+  Total reaction forces: Sum(R) = -0.000254488 -2.06136e-08
+  displacement\*reactions: (R,u) = -204.428
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 13.5972	 a(u^h,u^h) = 184.8825635
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -13.5956	(f,u)+(t,u) = 184.8397537
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 38.8722
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.9602	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.7356	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 38.868
+  Node #12:	sol1 = -3.640892e-01  0.000000e+00
+		sol2 =  6.571522e-03  6.916563e-01 -8.689784e-03  9.679196e-04  6.928436e-01  1.173390e-01
+		reac =  0.000000e+00  4.948182e+00
+  Node #265:	sol1 =  0.000000e+00  2.650000e+00
+		sol2 =  5.750405e+00  6.441112e+00  5.980738e+00  0.000000e+00  6.091279e-01  6.359735e-02
+		reac = -8.248250e-05 -1.277042e-01
+  step=54  time=2.7
+  Primary solution summary: L2-norm            : 1.01563
+                            Max X-displacement : 0.376029 node 12
+                            Max Y-displacement : 2.7 node 265
+  Total reaction forces: Sum(R) = -0.000295067 -4.62806e-08
+  displacement\*reactions: (R,u) = -208.409
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 13.7383	 a(u^h,u^h) = 188.7422283
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -13.7367	(f,u)+(t,u) = 188.6980312
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 38.9646
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 12.9916	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.8103	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 38.9595
+  Node #12:	sol1 = -3.760289e-01  0.000000e+00
+		sol2 =  6.641467e-03  6.930824e-01 -1.138653e-02  1.004098e-03  6.956324e-01  1.211887e-01
+		reac =  0.000000e+00  4.939861e+00
+  Node #265:	sol1 =  0.000000e+00  2.700000e+00
+		sol2 =  5.784381e+00  6.475664e+00  6.014981e+00  0.000000e+00  6.096222e-01  6.399452e-02
+		reac = -8.689227e-05 -1.277121e-01
+  step=55  time=2.75
+  Primary solution summary: L2-norm            : 1.03893
+                            Max X-displacement : 0.38908 node 12
+                            Max Y-displacement : 2.75 node 265
+  Total reaction forces: Sum(R) = -0.000345723 -1.09634e-07
+  displacement\*reactions: (R,u) = -212.361
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 13.8782	 a(u^h,u^h) = 192.6037879
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -13.8765	(f,u)+(t,u) = 192.5583021
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.0518
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.0215	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.8804	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 39.0454
+  Node #12:	sol1 = -3.890802e-01  0.000000e+00
+		sol2 =  6.717382e-03  6.943237e-01 -1.458489e-02  1.047440e-03  6.985035e-01  1.253768e-01
+		reac =  0.000000e+00  4.928656e+00
+  Node #265:	sol1 =  0.000000e+00  2.750000e+00
+		sol2 =  5.807656e+00  6.499348e+00  6.038501e+00  0.000000e+00  6.099613e-01  6.426854e-02
+		reac = -9.134814e-05 -1.276822e-01
+  step=56  time=2.8
+  Primary solution summary: L2-norm            : 1.06313
+                            Max X-displacement : 0.403554 node 12
+                            Max Y-displacement : 2.8 node 265
+  Total reaction forces: Sum(R) = -0.000410226 -2.73159e-07
+  displacement\*reactions: (R,u) = -216.276
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 14.0166	 a(u^h,u^h) = 196.4664457
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -14.015	(f,u)+(t,u) = 196.4198905
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.1331
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.0499	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.9452	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 39.1248
+  Node #12:	sol1 = -4.035541e-01  0.000000e+00
+		sol2 =  6.800416e-03  6.953416e-01 -1.840511e-02  1.100378e-03  7.014863e-01  1.299955e-01
+		reac =  0.000000e+00  4.913903e+00
+  Node #265:	sol1 =  0.000000e+00  2.800000e+00
+		sol2 =  5.817884e+00  6.509788e+00  6.048980e+00  0.000000e+00  6.101154e-01  6.439276e-02
+		reac = -9.590448e-05 -1.275967e-01
+  step=57  time=2.85
+  Primary solution summary: L2-norm            : 1.0883
+                            Max X-displacement : 0.419713 node 12
+                            Max Y-displacement : 2.85 node 265
+  Total reaction forces: Sum(R) = -0.000491927 0
+  displacement\*reactions: (R,u) = -220.141
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 14.1538	 a(u^h,u^h) = 200.3292674
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -14.1521	(f,u)+(t,u) = 200.2819878
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.2077
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.0766	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 32.0038	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 39.1965
+  Node #12:	sol1 = -4.197125e-01  0.000000e+00
+		sol2 =  6.890296e-03  6.960803e-01 -2.294855e-02  1.165698e-03  7.045864e-01  1.351178e-01
+		reac =  0.000000e+00  4.894923e+00
+  Node #265:	sol1 =  0.000000e+00  2.850000e+00
+		sol2 =  5.817821e+00  6.508936e+00  6.048721e+00  0.000000e+00  6.094058e-01  6.439276e-02
+		reac = -9.805286e-05 -1.274269e-01
+  step=58  time=2.9
+  Primary solution summary: L2-norm            : 1.11401
+                            Max X-displacement : 0.437182 node 12
+                            Max Y-displacement : 2.9 node 265
+  Total reaction forces: Sum(R) = -0.000566244 0
+  displacement\*reactions: (R,u) = -223.947
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 14.2896	 a(u^h,u^h) = 204.1916567
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -14.2879	(f,u)+(t,u) = 204.1436333
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.2744
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.1016	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 32.0551	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 39.2593
+  Node #12:	sol1 = -4.371825e-01  0.000000e+00
+		sol2 =  6.980868e-03  6.965159e-01 -2.802544e-02  1.243346e-03  7.076911e-01  1.406174e-01
+		reac =  0.000000e+00  4.872202e+00
+  Node #265:	sol1 =  0.000000e+00  2.900000e+00
+		sol2 =  5.817889e+00  6.508393e+00  6.048587e+00  0.000000e+00  6.088676e-01  6.439276e-02
+		reac = -9.919301e-05 -1.273278e-01
+  step=59  time=2.95
+  Primary solution summary: L2-norm            : 1.14012
+                            Max X-displacement : 0.455801 node 12
+                            Max Y-displacement : 2.95 node 265
+  Total reaction forces: Sum(R) = -0.000659299 0
+  displacement\*reactions: (R,u) = -227.685
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 14.424	 a(u^h,u^h) = 208.0529434
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -14.4223	(f,u)+(t,u) = 208.0037444
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.3327
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.1246	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 32.0982	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 39.3121
+  Node #12:	sol1 = -4.558007e-01  0.000000e+00
+		sol2 =  7.065273e-03  6.966970e-01 -3.342611e-02  1.333800e-03  7.107468e-01  1.464381e-01
+		reac =  0.000000e+00  4.846387e+00
+  Node #265:	sol1 =  0.000000e+00  2.950000e+00
+		sol2 =  5.817902e+00  6.507824e+00  6.048430e+00  0.000000e+00  6.083490e-01  6.439276e-02
+		reac = -9.993122e-05 -1.272294e-01
+  step=60  time=3
+  Primary solution summary: L2-norm            : 1.16658
+                            Max X-displacement : 0.475477 node 12
+                            Max Y-displacement : 3 node 265
+  Total reaction forces: Sum(R) = -0.000746582 0
+  displacement\*reactions: (R,u) = -231.346
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 14.5572	 a(u^h,u^h) = 211.9123661
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -14.5555	(f,u)+(t,u) = 211.8611573
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.3821
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.1458	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 32.1328	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 39.3544
+  Node #12:	sol1 = -4.754775e-01  0.000000e+00
+		sol2 =  7.136107e-03  6.966592e-01 -3.901575e-02  1.437932e-03  7.137234e-01  1.525488e-01
+		reac =  0.000000e+00  4.817927e+00
+  Node #265:	sol1 =  0.000000e+00  3.000000e+00
+		sol2 =  5.817880e+00  6.507150e+00  6.048233e+00  0.000000e+00  6.077665e-01  6.439276e-02
+		reac = -1.003997e-04 -1.271074e-01
+  step=61  time=3.05
+  Primary solution summary: L2-norm            : 1.19334
+                            Max X-displacement : 0.496147 node 12
+                            Max Y-displacement : 3.05 node 265
+  Total reaction forces: Sum(R) = -0.000875871 0
+  displacement\*reactions: (R,u) = -234.925
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 14.6891	 a(u^h,u^h) = 215.7691026
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -14.6872	(f,u)+(t,u) = 215.7146529
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.4224
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.1652	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 32.1584	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 39.3858
+  Node #12:	sol1 = -4.961465e-01  0.000000e+00
+		sol2 =  7.185244e-03  6.964302e-01 -4.469895e-02  1.556817e-03  7.166023e-01  1.589271e-01
+		reac =  0.000000e+00  4.787183e+00
+  Node #265:	sol1 =  0.000000e+00  3.050000e+00
+		sol2 =  5.817816e+00  6.506290e+00  6.047971e+00  0.000000e+00  6.070520e-01  6.439276e-02
+		reac = -1.006690e-04 -1.269514e-01
+  step=62  time=3.1
+  Primary solution summary: L2-norm            : 1.22039
+                            Max X-displacement : 0.517764 node 12
+                            Max Y-displacement : 3.1 node 265
+  Total reaction forces: Sum(R) = -0.00101258 0
+  displacement\*reactions: (R,u) = -238.416
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 14.8197	 a(u^h,u^h) = 219.6222717
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -14.8177	(f,u)+(t,u) = 219.562978
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.4536
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.1828	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 32.1749	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 39.406
+  Node #12:	sol1 = -5.177644e-01  0.000000e+00
+		sol2 =  7.204086e-03  6.960247e-01 -5.042362e-02  1.691859e-03  7.193737e-01  1.655585e-01
+		reac =  0.000000e+00  4.754396e+00
+  Node #265:	sol1 =  0.000000e+00  3.100000e+00
+		sol2 =  5.817713e+00  6.505218e+00  6.047639e+00  0.000000e+00  6.061796e-01  6.439276e-02
+		reac = -1.008173e-04 -1.267567e-01
+  step=63  time=3.15
+  Primary solution summary: L2-norm            : 1.24771
+                            Max X-displacement : 0.540284 node 12
+                            Max Y-displacement : 3.15 node 265
+  Total reaction forces: Sum(R) = -0.00119415 0
+  displacement\*reactions: (R,u) = -241.816
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 14.9489	 a(u^h,u^h) = 223.4709744
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -14.9467	(f,u)+(t,u) = 223.4048629
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.4754
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.1988	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 32.1821	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 39.4148
+  Node #12:	sol1 = -5.402839e-01  0.000000e+00
+		sol2 =  7.183402e-03  6.954676e-01 -5.612776e-02  1.844561e-03  7.220317e-01  1.724289e-01
+		reac =  0.000000e+00  4.719868e+00
+  Node #265:	sol1 =  0.000000e+00  3.150000e+00
+		sol2 =  5.817575e+00  6.503922e+00  6.047233e+00  0.000000e+00  6.051362e-01  6.439276e-02
+		reac = -1.009088e-04 -1.265212e-01
+  step=64  time=3.2
+  Primary solution summary: L2-norm            : 1.27527
+                            Max X-displacement : 0.563668 node 12
+                            Max Y-displacement : 3.2 node 265
+  Total reaction forces: Sum(R) = -0.00139825 0
+  displacement\*reactions: (R,u) = -245.12
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 15.0769	 a(u^h,u^h) = 227.3142899
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -15.0744	(f,u)+(t,u) = 227.2390369
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.4882
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2131	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 32.18	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 39.4123
+  Node #12:	sol1 = -5.636681e-01  0.000000e+00
+		sol2 =  7.113845e-03  6.947752e-01 -6.177602e-02  2.016775e-03  7.245751e-01  1.795280e-01
+		reac =  0.000000e+00  4.683824e+00
+  Node #265:	sol1 =  0.000000e+00  3.200000e+00
+		sol2 =  5.817406e+00  6.502401e+00  6.046755e+00  0.000000e+00  6.039172e-01  6.439276e-02
+		reac = -1.009767e-04 -1.262439e-01
+  step=65  time=3.25
+  Primary solution summary: L2-norm            : 1.30308
+                            Max X-displacement : 0.587892 node 12
+                            Max Y-displacement : 3.25 node 265
+  Total reaction forces: Sum(R) = -0.00165593 0
+  displacement\*reactions: (R,u) = -248.326
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 15.2037	 a(u^h,u^h) = 231.1512794
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -15.2008	(f,u)+(t,u) = 231.0642416
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.4919
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.226	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 32.1688	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 39.3986
+  Node #12:	sol1 = -5.878922e-01  0.000000e+00
+		sol2 =  6.986027e-03  6.939578e-01 -6.735143e-02  2.210786e-03  7.270066e-01  1.868500e-01
+		reac =  0.000000e+00  4.646427e+00
+  Node #265:	sol1 =  0.000000e+00  3.250000e+00
+		sol2 =  5.817208e+00  6.500653e+00  6.046204e+00  0.000000e+00  6.025198e-01  6.439276e-02
+		reac = -1.010173e-04 -1.259249e-01
+  step=66  time=3.3
+  Primary solution summary: L2-norm            : 1.33111
+                            Max X-displacement : 0.612918 node 12
+                            Max Y-displacement : 3.3 node 265
+  Total reaction forces: Sum(R) = -0.00193408 0
+  displacement\*reactions: (R,u) = -251.433
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 15.3291	 a(u^h,u^h) = 234.9810329
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -15.3258	(f,u)+(t,u) = 234.8792405
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.4868
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2373	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 32.1485	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 39.3737
+  Node #12:	sol1 = -6.129181e-01  0.000000e+00
+		sol2 =  6.790421e-03  6.930448e-01 -7.280574e-02  2.428976e-03  7.293295e-01  1.943859e-01
+		reac =  0.000000e+00  4.607962e+00
+  Node #265:	sol1 =  0.000000e+00  3.300000e+00
+		sol2 =  5.816982e+00  6.498681e+00  6.045582e+00  0.000000e+00  6.009456e-01  6.439276e-02
+		reac = -1.010600e-04 -1.255649e-01
+  step=67  time=3.35
+  Primary solution summary: L2-norm            : 1.35935
+                            Max X-displacement : 0.638717 node 12
+                            Max Y-displacement : 3.35 node 265
+  Total reaction forces: Sum(R) = -0.00224319 0
+  displacement\*reactions: (R,u) = -254.438
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 15.4532	 a(u^h,u^h) = 238.8026484
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -15.4494	(f,u)+(t,u) = 238.682829
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.4729
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2471	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 32.1193	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 39.338
+  Node #12:	sol1 = -6.387167e-01  0.000000e+00
+		sol2 =  6.517658e-03  6.920501e-01 -7.812328e-02  2.674231e-03  7.315493e-01  2.021304e-01
+		reac =  0.000000e+00  4.568598e+00
+  Node #265:	sol1 =  0.000000e+00  3.350000e+00
+		sol2 =  5.816728e+00  6.496490e+00  6.044890e+00  0.000000e+00  5.991982e-01  6.439276e-02
+		reac = -1.010721e-04 -1.251649e-01
+  step=68  time=3.4
+  Primary solution summary: L2-norm            : 1.3878
+                            Max X-displacement : 0.665266 node 12
+                            Max Y-displacement : 3.4 node 265
+  Total reaction forces: Sum(R) = -0.00256811 0
+  displacement\*reactions: (R,u) = -257.342
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 15.5761	 a(u^h,u^h) = 242.6152389
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -15.5716	(f,u)+(t,u) = 242.4738414
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.4506
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2556	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 32.0815	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 39.2916
+  Node #12:	sol1 = -6.652662e-01  0.000000e+00
+		sol2 =  6.158389e-03  6.909827e-01 -8.329999e-02  2.949930e-03  7.336734e-01  2.100803e-01
+		reac =  0.000000e+00  4.528453e+00
+  Node #265:	sol1 =  0.000000e+00  3.400000e+00
+		sol2 =  5.816448e+00  6.494087e+00  6.044130e+00  0.000000e+00  5.972832e-01  6.439276e-02
+		reac = -1.010698e-04 -1.247263e-01
+  step=69  time=3.45
+  Primary solution summary: L2-norm            : 1.41645
+                            Max X-displacement : 0.692548 node 12
+                            Max Y-displacement : 3.45 node 265
+  Total reaction forces: Sum(R) = -0.00291293 0
+  displacement\*reactions: (R,u) = -260.143
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 15.6977	 a(u^h,u^h) = 246.4179394
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -15.6924	(f,u)+(t,u) = 246.2511543
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.4202
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2627	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 32.0353	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 39.235
+  Node #12:	sol1 = -6.925475e-01  0.000000e+00
+		sol2 =  5.703297e-03  6.898531e-01 -8.833054e-02  3.259930e-03  7.357095e-01  2.182342e-01
+		reac =  0.000000e+00  4.487644e+00
+  Node #265:	sol1 =  0.000000e+00  3.450000e+00
+		sol2 =  5.816143e+00  6.491480e+00  6.043306e+00  0.000000e+00  5.952065e-01  6.439276e-02
+		reac = -1.010704e-04 -1.242505e-01
+  step=70  time=3.5
+  Primary solution summary: L2-norm            : 1.44529
+                            Max X-displacement : 0.720531 node 12
+                            Max Y-displacement : 3.5 node 265
+  Total reaction forces: Sum(R) = -0.00322891 0
+  displacement\*reactions: (R,u) = -262.842
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 15.818	 a(u^h,u^h) = 250.2099289
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -15.8118	(f,u)+(t,u) = 250.0136899
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.3818
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2683	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.9809	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 39.1685
+  Node #12:	sol1 = -7.205306e-01  0.000000e+00
+		sol2 =  5.143545e-03  6.886893e-01 -9.318003e-02  3.608297e-03  7.376653e-01  2.265881e-01
+		reac =  0.000000e+00  4.446387e+00
+  Node #265:	sol1 =  0.000000e+00  3.500000e+00
+		sol2 =  5.815815e+00  6.488677e+00  6.042420e+00  0.000000e+00  5.929744e-01  6.439276e-02
+		reac = -1.010870e-04 -1.237391e-01
+  step=71  time=3.55
+  Primary solution summary: L2-norm            : 1.4743
+                            Max X-displacement : 0.74919 node 12
+                            Max Y-displacement : 3.55 node 265
+  Total reaction forces: Sum(R) = -0.00366907 0
+  displacement\*reactions: (R,u) = -265.439
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 15.9371	 a(u^h,u^h) = 253.9904135
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -15.9299	(f,u)+(t,u) = 253.760419
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.3356
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2725	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.9188	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 39.0924
+  Node #12:	sol1 = -7.491899e-01  0.000000e+00
+		sol2 =  4.470782e-03  6.875047e-01 -9.783974e-02  3.999696e-03  7.395487e-01  2.351397e-01
+		reac =  0.000000e+00  4.404793e+00
+  Node #265:	sol1 =  0.000000e+00  3.550000e+00
+		sol2 =  5.815465e+00  6.485687e+00  6.041475e+00  0.000000e+00  5.905945e-01  6.439276e-02
+		reac = -1.010845e-04 -1.231938e-01
+  step=72  time=3.6
+  Primary solution summary: L2-norm            : 1.50349
+                            Max X-displacement : 0.778508 node 12
+                            Max Y-displacement : 3.6 node 265
+  Total reaction forces: Sum(R) = -0.00407169 -9.65846e-08
+  displacement\*reactions: (R,u) = -267.934
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 16.0549	 a(u^h,u^h) = 257.7586223
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -16.0465	(f,u)+(t,u) = 257.4903623
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.282
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2753	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.8491	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 39.0071
+  Node #12:	sol1 = -7.785080e-01  0.000000e+00
+		sol2 =  3.676958e-03  6.863000e-01 -1.023226e-01  4.439498e-03  7.413683e-01  2.438895e-01
+		reac =  0.000000e+00  4.362881e+00
+  Node #265:	sol1 =  0.000000e+00  3.600000e+00
+		sol2 =  5.815094e+00  6.482522e+00  6.040474e+00  0.000000e+00  5.880742e-01  6.439276e-02
+		reac = -1.010950e-04 -1.226163e-01
+  step=73  time=3.65
+  Primary solution summary: L2-norm            : 1.53285
+                            Max X-displacement : 0.808468 node 12
+                            Max Y-displacement : 3.65 node 265
+  Total reaction forces: Sum(R) = -0.00462909 -1.09965e-07
+  displacement\*reactions: (R,u) = -270.329
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 16.1714	 a(u^h,u^h) = 261.513812
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -16.1618	(f,u)+(t,u) = 261.202589
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.2212
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2768	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.7723	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 38.913
+  Node #12:	sol1 = -8.084681e-01  0.000000e+00
+		sol2 =  2.754564e-03  6.850809e-01 -1.066325e-01  4.933653e-03  7.431322e-01  2.528381e-01
+		reac =  0.000000e+00  4.320691e+00
+  Node #265:	sol1 =  0.000000e+00  3.650000e+00
+		sol2 =  5.814703e+00  6.479188e+00  6.039419e+00  0.000000e+00  5.854208e-01  6.439276e-02
+		reac = -1.010963e-04 -1.220081e-01
+  step=74  time=3.7
+  Primary solution summary: L2-norm            : 1.56237
+                            Max X-displacement : 0.839058 node 12
+                            Max Y-displacement : 3.7 node 265
+  Total reaction forces: Sum(R) = -0.00519966 0
+  displacement\*reactions: (R,u) = -272.624
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 16.2867	 a(u^h,u^h) = 265.2552652
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -16.2756	(f,u)+(t,u) = 264.8962144
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.1536
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2769	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.6888	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 38.8106
+  Node #12:	sol1 = -8.390577e-01  0.000000e+00
+		sol2 =  1.696691e-03  6.838494e-01 -1.107794e-01  5.488879e-03  7.448486e-01  2.619880e-01
+		reac =  0.000000e+00  4.278221e+00
+  Node #265:	sol1 =  0.000000e+00  3.700000e+00
+		sol2 =  5.814293e+00  6.475695e+00  6.038315e+00  0.000000e+00  5.826405e-01  6.439276e-02
+		reac = -1.011075e-04 -1.213709e-01
+  step=75  time=3.75
+  Primary solution summary: L2-norm            : 1.59205
+                            Max X-displacement : 0.870265 node 12
+                            Max Y-displacement : 3.75 node 265
+  Total reaction forces: Sum(R) = -0.00584978 -6.21459e-08
+  displacement\*reactions: (R,u) = -274.819
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 16.4007	 a(u^h,u^h) = 268.9822896
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -16.3881	(f,u)+(t,u) = 268.5703971
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 39.0795
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2756	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.5987	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 38.7004
+  Node #12:	sol1 = -8.702652e-01  0.000000e+00
+		sol2 =  4.972150e-04  6.826095e-01 -1.147689e-01  6.112642e-03  7.465252e-01  2.713421e-01
+		reac =  0.000000e+00  4.235471e+00
+  Node #265:	sol1 =  0.000000e+00  3.750000e+00
+		sol2 =  5.813866e+00  6.472051e+00  6.037163e+00  0.000000e+00  5.797395e-01  6.439276e-02
+		reac = -1.011177e-04 -1.207059e-01
+  step=76  time=3.8
+  Primary solution summary: L2-norm            : 1.62188
+                            Max X-displacement : 0.902077 node 12
+                            Max Y-displacement : 3.8 node 265
+  Total reaction forces: Sum(R) = -0.00657091 0
+  displacement\*reactions: (R,u) = -276.915
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 16.5135	 a(u^h,u^h) = 272.6942114
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -16.4992	(f,u)+(t,u) = 272.2243355
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 38.9992
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2731	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.5025	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 38.5825
+  Node #12:	sol1 = -9.020769e-01  0.000000e+00
+		sol2 = -8.491538e-04  6.813716e-01 -1.185952e-01  6.813170e-03  7.481693e-01  2.809030e-01
+		reac =  0.000000e+00  4.192467e+00
+  Node #265:	sol1 =  0.000000e+00  3.800000e+00
+		sol2 =  5.813423e+00  6.468262e+00  6.035965e+00  0.000000e+00  5.767235e-01  6.439276e-02
+		reac = -1.011276e-04 -1.200145e-01
+  step=77  time=3.85
+  Primary solution summary: L2-norm            : 1.65186
+                            Max X-displacement : 0.934477 node 12
+                            Max Y-displacement : 3.85 node 265
+  Total reaction forces: Sum(R) = -0.0073015 0
+  displacement\*reactions: (R,u) = -278.912
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 16.625	 a(u^h,u^h) = 276.3903812
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -16.609	(f,u)+(t,u) = 275.8572659
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 38.913
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2694	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.4004	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 38.4575
+  Node #12:	sol1 = -9.344771e-01  0.000000e+00
+		sol2 = -2.346333e-03  6.801465e-01 -1.222514e-01  7.599507e-03  7.497875e-01  2.906736e-01
+		reac =  0.000000e+00  4.149224e+00
+  Node #265:	sol1 =  0.000000e+00  3.850000e+00
+		sol2 =  5.812963e+00  6.464335e+00  6.034723e+00  0.000000e+00  5.735984e-01  6.439276e-02
+		reac = -1.011208e-04 -1.192980e-01
+  step=78  time=3.9
+  Primary solution summary: L2-norm            : 1.68197
+                            Max X-displacement : 0.967453 node 12
+                            Max Y-displacement : 3.9 node 265
+  Total reaction forces: Sum(R) = -0.0080945 0
+  displacement\*reactions: (R,u) = -280.812
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 16.7353	 a(u^h,u^h) = 280.0701651
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -16.7173	(f,u)+(t,u) = 279.4684601
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 38.8211
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2646	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.2926	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 38.3255
+  Node #12:	sol1 = -9.674529e-01  0.000000e+00
+		sol2 = -3.996963e-03  6.789367e-01 -1.257435e-01  8.481795e-03  7.513862e-01  3.006573e-01
+		reac =  0.000000e+00  4.105693e+00
+  Node #265:	sol1 =  0.000000e+00  3.900000e+00
+		sol2 =  5.812488e+00  6.460277e+00  6.033440e+00  0.000000e+00  5.703688e-01  6.439276e-02
+		reac = -1.011306e-04 -1.185575e-01
+  step=79  time=3.95
+  Primary solution summary: L2-norm            : 1.71223
+                            Max X-displacement : 1.00099 node 12
+                            Max Y-displacement : 3.95 node 265
+  Total reaction forces: Sum(R) = -0.00894633 0
+  displacement\*reactions: (R,u) = -282.613
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 16.8444	 a(u^h,u^h) = 283.7329461
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -16.8243	(f,u)+(t,u) = 283.0572227
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 38.7238
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2586	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.1794	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 38.1868
+  Node #12:	sol1 = -1.000992e+00  0.000000e+00
+		sol2 = -5.802111e-03  6.777454e-01 -1.290755e-01  9.471165e-03  7.529713e-01  3.108584e-01
+		reac =  0.000000e+00  4.061816e+00
+  Node #265:	sol1 =  0.000000e+00  3.950000e+00
+		sol2 =  5.811998e+00  6.456094e+00  6.032117e+00  0.000000e+00  5.670396e-01  6.439276e-02
+		reac = -1.011528e-04 -1.177941e-01
+  step=80  time=4
+  Primary solution summary: L2-norm            : 1.74261
+                            Max X-displacement : 1.03508 node 12
+                            Max Y-displacement : 4 node 265
+  Total reaction forces: Sum(R) = -0.00981617 0
+  displacement\*reactions: (R,u) = -284.316
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 16.9522	 a(u^h,u^h) = 287.3781202
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -16.9299	(f,u)+(t,u) = 286.6228882
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 38.6215
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2518	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.061	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 38.0418
+  Node #12:	sol1 = -1.035085e+00  0.000000e+00
+		sol2 = -7.761303e-03  6.765721e-01 -1.322566e-01  1.057994e-02  7.545485e-01  3.212819e-01
+		reac =  0.000000e+00  4.017501e+00
+  Node #265:	sol1 =  0.000000e+00  4.000000e+00
+		sol2 =  5.811494e+00  6.451790e+00  6.030757e+00  0.000000e+00  5.636152e-01  6.439276e-02
+		reac = -1.011603e-04 -1.170087e-01
+  step=81  time=4.05
+  Primary solution summary: L2-norm            : 1.77312
+                            Max X-displacement : 1.06972 node 12
+                            Max Y-displacement : 4.05 node 265
+  Total reaction forces: Sum(R) = -0.0107841 0
+  displacement\*reactions: (R,u) = -285.922
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 17.0589	 a(u^h,u^h) = 291.0050932
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -17.0342	(f,u)+(t,u) = 290.1648186
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 38.5144
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2441	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 30.9376	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 37.8907
+  Node #12:	sol1 = -1.069721e+00  0.000000e+00
+		sol2 = -9.872880e-03  6.754209e-01 -1.352880e-01  1.182162e-02  7.561230e-01  3.319332e-01
+		reac =  0.000000e+00  3.972668e+00
+  Node #265:	sol1 =  0.000000e+00  4.050000e+00
+		sol2 =  5.810977e+00  6.447372e+00  6.029360e+00  0.000000e+00  5.600994e-01  6.439276e-02
+		reac = -1.011662e-04 -1.162024e-01
+  step=82  time=4.1
+  Primary solution summary: L2-norm            : 1.80376
+                            Max X-displacement : 1.10489 node 12
+                            Max Y-displacement : 4.1 node 265
+  Total reaction forces: Sum(R) = -0.0118101 0
+  displacement\*reactions: (R,u) = -287.431
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 17.1643	 a(u^h,u^h) = 294.6132798
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -17.1372	(f,u)+(t,u) = 293.6824003
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 38.4029
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2358	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 30.8094	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 37.7336
+  Node #12:	sol1 = -1.104892e+00  0.000000e+00
+		sol2 = -1.213404e-02  6.742954e-01 -1.381697e-01  1.321081e-02  7.576994e-01  3.428184e-01
+		reac =  0.000000e+00  3.927226e+00
+  Node #265:	sol1 =  0.000000e+00  4.100000e+00
+		sol2 =  5.810447e+00  6.442842e+00  6.027928e+00  0.000000e+00  5.564955e-01  6.439276e-02
+		reac = -1.011806e-04 -1.153758e-01
+  step=83  time=4.15
+  Primary solution summary: L2-norm            : 1.83451
+                            Max X-displacement : 1.14059 node 12
+                            Max Y-displacement : 4.15 node 265
+  Total reaction forces: Sum(R) = -0.0129192 -3.77644e-08
+  displacement\*reactions: (R,u) = -288.842
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 17.2685	 a(u^h,u^h) = 298.2021055
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -17.2388	(f,u)+(t,u) = 297.1750422
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 38.2872
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.227	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 30.6765	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 37.5708
+  Node #12:	sol1 = -1.140590e+00  0.000000e+00
+		sol2 = -1.454004e-02  6.732007e-01 -1.408988e-01  1.476311e-02  7.592824e-01  3.539438e-01
+		reac =  0.000000e+00  3.881078e+00
+  Node #265:	sol1 =  0.000000e+00  4.150000e+00
+		sol2 =  5.809905e+00  6.438205e+00  6.026462e+00  0.000000e+00  5.528069e-01  6.439276e-02
+		reac = -1.012007e-04 -1.145297e-01
+  step=84  time=4.2
+  Primary solution summary: L2-norm            : 1.86538
+                            Max X-displacement : 1.17681 node 12
+                            Max Y-displacement : 4.2 node 265
+  Total reaction forces: Sum(R) = -0.0141197 0
+  displacement\*reactions: (R,u) = -290.156
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 17.3716	 a(u^h,u^h) = 301.7710015
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -17.339	(f,u)+(t,u) = 300.642174
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 38.1676
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2178	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 30.539	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 37.4025
+  Node #12:	sol1 = -1.176807e+00  0.000000e+00
+		sol2 = -1.708473e-02  6.721397e-01 -1.434752e-01  1.649532e-02  7.608761e-01  3.653169e-01
+		reac =  0.000000e+00  3.834104e+00
+  Node #265:	sol1 =  0.000000e+00  4.200000e+00
+		sol2 =  5.809350e+00  6.433465e+00  6.024963e+00  0.000000e+00  5.490363e-01  6.439276e-02
+		reac = -1.012199e-04 -1.136647e-01
+  step=85  time=4.25
+  Primary solution summary: L2-norm            : 1.89636
+                            Max X-displacement : 1.21354 node 12
+                            Max Y-displacement : 4.25 node 265
+  Total reaction forces: Sum(R) = -0.015384 0
+  displacement\*reactions: (R,u) = -291.372
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 17.4734	 a(u^h,u^h) = 305.319404
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -17.438	(f,u)+(t,u) = 304.0832435
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 38.0446
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2087	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 30.3971	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 37.2287
+  Node #12:	sol1 = -1.213537e+00  0.000000e+00
+		sol2 = -1.976115e-02  6.711150e-01 -1.458967e-01  1.842541e-02  7.624845e-01  3.769458e-01
+		reac =  0.000000e+00  3.786183e+00
+  Node #265:	sol1 =  0.000000e+00  4.250000e+00
+		sol2 =  5.808784e+00  6.428625e+00  6.023433e+00  0.000000e+00  5.451866e-01  6.439276e-02
+		reac = -1.012374e-04 -1.127814e-01
+  step=86  time=4.3
+  Primary solution summary: L2-norm            : 1.92744
+                            Max X-displacement : 1.25078 node 12
+                            Max Y-displacement : 4.3 node 265
+  Total reaction forces: Sum(R) = -0.016699 0
+  displacement\*reactions: (R,u) = -292.49
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 17.574	 a(u^h,u^h) = 308.8467586
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -17.5356	(f,u)+(t,u) = 307.4977152
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 37.9186
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.1998	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 30.2509	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 37.0496
+  Node #12:	sol1 = -1.250775e+00  0.000000e+00
+		sol2 = -2.256236e-02  6.701298e-01 -1.481583e-01  2.057228e-02  7.641111e-01  3.888394e-01
+		reac =  0.000000e+00  3.737200e+00
+  Node #265:	sol1 =  0.000000e+00  4.300000e+00
+		sol2 =  5.808207e+00  6.423687e+00  6.021872e+00  0.000000e+00  5.412599e-01  6.439276e-02
+		reac = -1.012554e-04 -1.118804e-01
+  step=87  time=4.35
+  Primary solution summary: L2-norm            : 1.95864
+                            Max X-displacement : 1.28852 node 12
+                            Max Y-displacement : 4.35 node 265
+  Total reaction forces: Sum(R) = -0.0180622 -4.64823e-08
+  displacement\*reactions: (R,u) = -293.509
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 17.6735	 a(u^h,u^h) = 312.3525181
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -17.6319	(f,u)+(t,u) = 310.8850687
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 37.79
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.1915	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 30.1005	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 36.8654
+  Node #12:	sol1 = -1.288517e+00  0.000000e+00
+		sol2 = -2.548150e-02  6.691807e-01 -1.502628e-01  2.295589e-02  7.657596e-01  4.010073e-01
+		reac =  0.000000e+00  3.687007e+00
+  Node #265:	sol1 =  0.000000e+00  4.350000e+00
+		sol2 =  5.807618e+00  6.418655e+00  6.020281e+00  0.000000e+00  5.372586e-01  6.439276e-02
+		reac = -1.012752e-04 -1.109621e-01
+  step=88  time=4.4
+  Primary solution summary: L2-norm            : 1.98993
+                            Max X-displacement : 1.32676 node 12
+                            Max Y-displacement : 4.4 node 265
+  Total reaction forces: Sum(R) = -0.0195316 0
+  displacement\*reactions: (R,u) = -294.43
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 17.7718	 a(u^h,u^h) = 315.8361374
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -17.727	(f,u)+(t,u) = 314.2447971
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 37.6593
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.1842	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 29.9459	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 36.6761
+  Node #12:	sol1 = -1.326760e+00  0.000000e+00
+		sol2 = -2.851201e-02  6.682680e-01 -1.522042e-01  2.559600e-02  7.674332e-01  4.134600e-01
+		reac =  0.000000e+00  3.635490e+00
+  Node #265:	sol1 =  0.000000e+00  4.400000e+00
+		sol2 =  5.807019e+00  6.413531e+00  6.018662e+00  0.000000e+00  5.331846e-01  6.439276e-02
+		reac = -1.012965e-04 -1.100271e-01
+  step=89  time=4.45
+  Primary solution summary: L2-norm            : 2.02132
+                            Max X-displacement : 1.3655 node 12
+                            Max Y-displacement : 4.45 node 265
+  Total reaction forces: Sum(R) = -0.0210805 0
+  displacement\*reactions: (R,u) = -295.251
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 17.8689	 a(u^h,u^h) = 319.2970739
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -17.8207	(f,u)+(t,u) = 317.5764054
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 37.527
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.1782	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 29.7873	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 36.4818
+  Node #12:	sol1 = -1.365501e+00  0.000000e+00
+		sol2 = -3.164810e-02  6.673885e-01 -1.539782e-01  2.851256e-02  7.691352e-01  4.262090e-01
+		reac =  0.000000e+00  3.582532e+00
+  Node #265:	sol1 =  0.000000e+00  4.450000e+00
+		sol2 =  5.806409e+00  6.408317e+00  6.017013e+00  0.000000e+00  5.290396e-01  6.439276e-02
+		reac = -1.013182e-04 -1.090756e-01
+  step=90  time=4.5
+  Primary solution summary: L2-norm            : 2.0528
+                            Max X-displacement : 1.40474 node 12
+                            Max Y-displacement : 4.5 node 265
+  Total reaction forces: Sum(R) = -0.0226716 0
+  displacement\*reactions: (R,u) = -295.972
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 17.9648	 a(u^h,u^h) = 322.7347905
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -17.9131	(f,u)+(t,u) = 320.87941
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 37.3934
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.1739	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 29.6245	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 36.2825
+  Node #12:	sol1 = -1.404738e+00  0.000000e+00
+		sol2 = -3.488600e-02  6.665299e-01 -1.555916e-01  3.172625e-02  7.708687e-01  4.392668e-01
+		reac =  0.000000e+00  3.528003e+00
+  Node #265:	sol1 =  0.000000e+00  4.500000e+00
+		sol2 =  5.805789e+00  6.403015e+00  6.015337e+00  0.000000e+00  5.248251e-01  6.439276e-02
+		reac = -1.013399e-04 -1.081080e-01
+  step=91  time=4.55
+  Primary solution summary: L2-norm            : 2.08438
+                            Max X-displacement : 1.44447 node 12
+                            Max Y-displacement : 4.55 node 265
+  Total reaction forces: Sum(R) = -0.0243712 0
+  displacement\*reactions: (R,u) = -296.594
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 18.0596	 a(u^h,u^h) = 326.1487537
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -18.0043	(f,u)+(t,u) = 324.1533368
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 37.2592
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.1718	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 29.4577	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 36.0782
+  Node #12:	sol1 = -1.444474e+00  0.000000e+00
+		sol2 = -3.822904e-02  6.656643e-01 -1.570678e-01  3.525850e-02  7.726369e-01  4.526476e-01
+		reac =  0.000000e+00  3.471752e+00
+  Node #265:	sol1 =  0.000000e+00  4.550000e+00
+		sol2 =  5.805159e+00  6.397626e+00  6.013634e+00  0.000000e+00  5.205426e-01  6.439276e-02
+		reac = -1.013624e-04 -1.071246e-01
+  step=92  time=4.6
+  Primary solution summary: L2-norm            : 2.11604
+                            Max X-displacement : 1.48471 node 12
+                            Max Y-displacement : 4.6 node 265
+  Total reaction forces: Sum(R) = -0.0260588 0
+  displacement\*reactions: (R,u) = -297.114
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 18.1532	 a(u^h,u^h) = 329.5384307
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -18.0941	(f,u)+(t,u) = 327.3977195
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 37.1249
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.1723	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 29.287	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 35.8691
+  Node #12:	sol1 = -1.484714e+00  0.000000e+00
+		sol2 = -4.168975e-02  6.647540e-01 -1.584378e-01  3.912968e-02  7.744431e-01  4.663670e-01
+		reac =  0.000000e+00  3.413653e+00
+  Node #265:	sol1 =  0.000000e+00  4.600000e+00
+		sol2 =  5.804519e+00  6.392153e+00  6.011903e+00  0.000000e+00  5.161931e-01  6.439276e-02
+		reac = -1.013857e-04 -1.061257e-01
+  step=93  time=4.65
+  Primary solution summary: L2-norm            : 2.14779
+                            Max X-displacement : 1.52546 node 12
+                            Max Y-displacement : 4.65 node 265
+  Total reaction forces: Sum(R) = -0.0278811 -8.42262e-08
+  displacement\*reactions: (R,u) = -297.531
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 18.2456	 a(u^h,u^h) = 332.9032887
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -18.1827	(f,u)+(t,u) = 330.6120982
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 36.9911
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.1759	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 29.1123	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 35.6552
+  Node #12:	sol1 = -1.525463e+00  0.000000e+00
+		sol2 = -4.529011e-02  6.637519e-01 -1.597385e-01  4.335733e-02  7.762907e-01  4.804421e-01
+		reac =  0.000000e+00  3.353615e+00
+  Node #265:	sol1 =  0.000000e+00  4.650000e+00
+		sol2 =  5.803870e+00  6.386595e+00  6.010146e+00  0.000000e+00  5.117774e-01  6.439276e-02
+		reac = -1.014096e-04 -1.051114e-01
+  step=94  time=4.7
+  Primary solution summary: L2-norm            : 2.17962
+                            Max X-displacement : 1.56673 node 12
+                            Max Y-displacement : 4.7 node 265
+  Total reaction forces: Sum(R) = -0.0298111 0
+  displacement\*reactions: (R,u) = -297.846
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 18.3369	 a(u^h,u^h) = 336.2427993
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -18.2701	(f,u)+(t,u) = 333.7960166
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 36.8586
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.1831	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 28.9339	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 35.4367
+  Node #12:	sol1 = -1.566732e+00  0.000000e+00
+		sol2 = -4.906324e-02  6.625954e-01 -1.610224e-01  4.795636e-02  7.781831e-01  4.948920e-01
+		reac =  0.000000e+00  3.291573e+00
+  Node #265:	sol1 =  0.000000e+00  4.700000e+00
+		sol2 =  5.803210e+00  6.380953e+00  6.008363e+00  0.000000e+00  5.072960e-01  6.439276e-02
+		reac = -1.014342e-04 -1.040818e-01
+  step=95  time=4.75
+  Primary solution summary: L2-norm            : 2.21154
+                            Max X-displacement : 1.60853 node 12
+                            Max Y-displacement : 4.75 node 265
+  Total reaction forces: Sum(R) = -0.0317334 0
+  displacement\*reactions: (R,u) = -298.056
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 18.4271	 a(u^h,u^h) = 339.5564343
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -18.3562	(f,u)+(t,u) = 336.9490206
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 36.7279
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.1943	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 28.7518	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 35.2137
+  Node #12:	sol1 = -1.608531e+00  0.000000e+00
+		sol2 = -5.305481e-02  6.612054e-01 -1.623586e-01  5.293810e-02  7.801241e-01  5.097371e-01
+		reac =  0.000000e+00  3.227499e+00
+  Node #265:	sol1 =  0.000000e+00  4.750000e+00
+		sol2 =  5.802541e+00  6.375228e+00  6.006553e+00  0.000000e+00  5.027491e-01  6.439276e-02
+		reac = -1.014595e-04 -1.030370e-01
+  step=96  time=4.8
+  Primary solution summary: L2-norm            : 2.24354
+                            Max X-displacement : 1.65087 node 12
+                            Max Y-displacement : 4.8 node 265
+  Total reaction forces: Sum(R) = -0.0338054 -1.36524e-07
+  displacement\*reactions: (R,u) = -298.16
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 18.516	 a(u^h,u^h) = 342.8436638
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -18.441	(f,u)+(t,u) = 340.0706562
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 36.5993
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2097	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 28.5661	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 34.9862
+  Node #12:	sol1 = -1.650872e+00  0.000000e+00
+		sol2 = -5.732400e-02  6.594871e-01 -1.638316e-01  5.830930e-02  7.821175e-01  5.249991e-01
+		reac =  0.000000e+00  3.161426e+00
+  Node #265:	sol1 =  0.000000e+00  4.800000e+00
+		sol2 =  5.801862e+00  6.369420e+00  6.004717e+00  0.000000e+00  4.981366e-01  6.439276e-02
+		reac = -1.014854e-04 -1.019770e-01
+  step=97  time=4.85
+  Primary solution summary: L2-norm            : 2.27561
+                            Max X-displacement : 1.69377 node 12
+                            Max Y-displacement : 4.85 node 265
+  Total reaction forces: Sum(R) = -0.0359292 0
+  displacement\*reactions: (R,u) = -298.157
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 18.6039	 a(u^h,u^h) = 346.1039557
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -18.5246	(f,u)+(t,u) = 343.1604678
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 36.4733
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2296	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 28.3767	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 34.7542
+  Node #12:	sol1 = -1.693770e+00  0.000000e+00
+		sol2 = -6.194445e-02  6.573216e-01 -1.655552e-01  6.407168e-02  7.841671e-01  5.407014e-01
+		reac =  0.000000e+00  3.093413e+00
+  Node #265:	sol1 =  0.000000e+00  4.850000e+00
+		sol2 =  5.801173e+00  6.363527e+00  6.002854e+00  0.000000e+00  4.934584e-01  6.439276e-02
+		reac = -1.015120e-04 -1.009016e-01
+  step=98  time=4.9
+  Primary solution summary: L2-norm            : 2.30776
+                            Max X-displacement : 1.73724 node 12
+                            Max Y-displacement : 4.9 node 265
+  Total reaction forces: Sum(R) = -0.0380822 -1.76668e-07
+  displacement\*reactions: (R,u) = -298.045
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 18.6906	 a(u^h,u^h) = 349.3367704
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -18.6069	(f,u)+(t,u) = 346.2179969
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 36.3497
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2538	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 28.1836	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 34.5178
+  Node #12:	sol1 = -1.737241e+00  0.000000e+00
+		sol2 = -6.701032e-02  6.545790e-01 -1.676506e-01  7.021753e-02  7.862773e-01  5.568688e-01
+		reac =  0.000000e+00  3.023646e+00
+  Node #265:	sol1 =  0.000000e+00  4.900000e+00
+		sol2 =  5.800475e+00  6.357550e+00  6.000965e+00  0.000000e+00  4.887139e-01  6.439276e-02
+		reac = -1.015392e-04 -9.981072e-02
+  step=99  time=4.95
+  Primary solution summary: L2-norm            : 2.33999
+                            Max X-displacement : 1.7813 node 12
+                            Max Y-displacement : 4.95 node 265
+  Total reaction forces: Sum(R) = -0.0403401 0
+  displacement\*reactions: (R,u) = -297.821
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 18.7761	 a(u^h,u^h) = 352.541565
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -18.688	(f,u)+(t,u) = 349.2427797
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 36.2286
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.2821	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 27.9868	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 34.2767
+  Node #12:	sol1 = -1.781301e+00  0.000000e+00
+		sol2 = -7.264263e-02  6.510997e-01 -1.702742e-01  7.672995e-02  7.884525e-01  5.735278e-01
+		reac =  0.000000e+00  2.952384e+00
+  Node #265:	sol1 =  0.000000e+00  4.950000e+00
+		sol2 =  5.799766e+00  6.351487e+00  5.999048e+00  0.000000e+00  4.839024e-01  6.439276e-02
+		reac = -1.015669e-04 -9.870418e-02
+  step=100  time=5
+  Primary solution summary: L2-norm            : 2.37228
+                            Max X-displacement : 1.82597 node 12
+                            Max Y-displacement : 5 node 265
+  Total reaction forces: Sum(R) = -0.0427267 0
+  displacement\*reactions: (R,u) = -297.484
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 18.8605	 a(u^h,u^h) = 355.7177965
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -18.7679	(f,u)+(t,u) = 352.2343458
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 36.1095
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 13.3144	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 27.7863	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 34.0311
+  Node #12:	sol1 = -1.825972e+00  0.000000e+00
+		sol2 = -7.898845e-02  6.466950e-01 -1.736209e-01  8.358181e-02  7.906976e-01  5.907069e-01
+		reac =  0.000000e+00  2.879965e+00
+  Node #265:	sol1 =  0.000000e+00  5.000000e+00
+		sol2 =  5.799047e+00  6.345337e+00  5.997104e+00  0.000000e+00  4.790227e-01  6.439276e-02
+		reac = -1.015952e-04 -9.758172e-02
