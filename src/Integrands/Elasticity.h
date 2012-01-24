@@ -16,7 +16,6 @@
 
 #include "IntegrandBase.h"
 #include "Vec3.h"
-#include <map>
 
 class LocalSystem;
 class Material;
@@ -44,27 +43,29 @@ public:
   //! \brief Prints out the problem definition to the given output stream.
   virtual void print(std::ostream& os) const;
 
-  //! \brief Defines the solution mode before the element assembly is started.
-  //! \param[in] mode The solution mode to use
-  virtual void setMode(SIM::SolutionMode mode);
-
   //! \brief Defines the traction field to use in Neumann boundary conditions.
   void setTraction(TractionFunc* tf) { tracFld = tf; }
-  //! \brief Clears the integration point traction values.
-  void clearTracVal() { tracVal.clear(); }
+  //! \brief Defines the body force field.
+  void setBodyForce(VecFunc* bf) { bodyFld = bf; }
 
   //! \brief Defines the gravitation vector.
   void setGravity(double gx, double gy = 0.0, double gz = 0.0)
   { grav[0] = gx; grav[1] = gy; grav[2] = gz; }
-
-  //! \brief Defines the body force field.
-  void setBodyForce(VecFunc* bf) { bodyFld = bf; }
 
   //! \brief Defines the material properties.
   virtual void setMaterial(Material* mat) { material = mat; }
 
   //! \brief Defines the local coordinate system for stress output.
   void setLocalSystem(LocalSystem* cs) { locSys = cs; }
+
+  //! \brief Defines the solution mode before the element assembly is started.
+  //! \param[in] mode The solution mode to use
+  virtual void setMode(SIM::SolutionMode mode);
+
+  //! \brief Initializes the integrand with the number of integration points.
+  //! \param[in] nGp Total number of interior integration points
+  //! \param[in] nBp Total number of boundary integration points
+  virtual void initIntegration(size_t nGp, size_t nBp);
 
   //! \brief Returns a local integral container for the given element.
   //! \param[in] nen Number of nodes on element
@@ -218,7 +219,7 @@ protected:
   TractionFunc* tracFld; //!< Pointer to boundary traction field
   VecFunc*      bodyFld; //!< Pointer to body force field
 
-  mutable std::map<Vec3,Vec3> tracVal; //!< Traction field point values
+  mutable std::vector<Vec3Pair> tracVal; //!< Traction field point values
 
   unsigned short int nsd; //!< Number of space dimensions (1, 2 or 3)
   unsigned short int nDF; //!< Dimension on deformation gradient (2 or 3)

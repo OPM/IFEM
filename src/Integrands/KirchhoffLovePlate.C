@@ -73,14 +73,12 @@ void KirchhoffLovePlate::setMode (SIM::SolutionMode mode)
     case SIM::STATIC:
       eK = 1;
       eS = 1;
-      presVal.clear();
       break;
 
     case SIM::DYNAMIC:
       eK = 1;
       eM = 2;
       eS = 1;
-      presVal.clear();
       break;
 
     case SIM::VIBRATION:
@@ -98,14 +96,10 @@ void KirchhoffLovePlate::setMode (SIM::SolutionMode mode)
 
     case SIM::RHS_ONLY:
       eS = 1;
-      presVal.clear();
-      break;
-
-    case SIM::RECOVERY:
       break;
 
     default:
-      presVal.clear();
+      ;
     }
 }
 
@@ -181,6 +175,12 @@ bool KirchhoffLovePlate::haveLoads () const
     return material->getMassDensity(Vec3()) != 0.0;
 
   return false;
+}
+
+
+void KirchhoffLovePlate::initIntegration (size_t nGp, size_t)
+{
+  presVal.resize(nGp,std::make_pair(Vec3(),Vec3()));
 }
 
 
@@ -266,14 +266,16 @@ void KirchhoffLovePlate::formMassMatrix (Matrix& EM, const Vector& N,
 }
 
 
-void KirchhoffLovePlate::formBodyForce (Vector& ES, const Vector& N,
+void KirchhoffLovePlate::formBodyForce (Vector& ES, const Vector& N, size_t iP,
 					const Vec3& X, double detJW) const
 {
   double p = this->getPressure(X);
   if (p != 0.0)
   {
     ES.add(N,p*detJW);
-    presVal[X].z = p; // Store pressure value for visualization
+    // Store pressure value for visualization
+    if (iP < presVal.size())
+      presVal[iP] = std::make_pair(X,Vec3(0.0,0.0,p));
   }
 }
 
@@ -306,7 +308,7 @@ bool KirchhoffLovePlate::evalInt (LocalIntegral& elmInt,
 
   if (eS)
     // Integrate the load vector due to gravitation and other body forces
-    this->formBodyForce(elMat.b[eS-1],fe.N,X,fe.detJxW);
+    this->formBodyForce(elMat.b[eS-1],fe.N,fe.iGP,X,fe.detJxW);
 
   return true;
 }

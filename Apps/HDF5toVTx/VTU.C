@@ -7,17 +7,15 @@
 //!
 //! \author Arne Morten Kvarving / SINTEF
 //!
-//! \brief Basic VTU file writer class
+//! \brief Basic VTU file writer class.
 //!
 //==============================================================================
 
-
-#include "ElementBlock.h"
 #include "VTU.h"
-
+#include "ElementBlock.h"
 #include <fstream>
-#include <iomanip>
 #include <sstream>
+#include <iomanip>
 
 
 VTU::VTU(const char* base, bool single)
@@ -45,7 +43,7 @@ bool VTU::writeGrid(const ElementBlock* block, const char* name, int iStep)
 bool VTU::writeVres(const std::vector<real>& field, int blockID, int geomID,
                     int components)
 {
-  m_field[blockID].data = new Vector(field.data(),field.size());
+  m_field[blockID].data = new std::vector<real>(field);
   m_field[blockID].components = components;
   m_field[blockID].patch = geomID;
   m_field[blockID].cellData = false;
@@ -55,7 +53,7 @@ bool VTU::writeVres(const std::vector<real>& field, int blockID, int geomID,
 
 bool VTU::writeNres(const std::vector<real>& field, int blockID, int geomID)
 {
-  m_field[blockID].data = new Vector(field.data(),field.size());
+  m_field[blockID].data = new std::vector<real>(field);
   m_field[blockID].components = 1;
   m_field[blockID].patch = geomID;
   m_field[blockID].cellData = false;
@@ -64,7 +62,7 @@ bool VTU::writeNres(const std::vector<real>& field, int blockID, int geomID)
 
 bool VTU::writeEres(const std::vector<real>& field, int blockID, int geomID)
 {
-  m_field[blockID].data = new Vector(field.data(),field.size());
+  m_field[blockID].data = new std::vector<real>(field);
   m_field[blockID].components = 1;
   m_field[blockID].patch = geomID;
   m_field[blockID].cellData = true;
@@ -72,7 +70,7 @@ bool VTU::writeEres(const std::vector<real>& field, int blockID, int geomID)
 }
 
 
-bool VTU::writeVblk(const std::vector<int>& vBlockIDs, 
+bool VTU::writeVblk(const std::vector<int>& vBlockIDs,
                     const char* resultName, int idBlock, int iStep)
 {
   for (size_t i=0;i<vBlockIDs.size();++i)
@@ -80,7 +78,7 @@ bool VTU::writeVblk(const std::vector<int>& vBlockIDs,
   return true;
 }
 
-bool VTU::writeDblk(const std::vector<int>& dBlockIDs, 
+bool VTU::writeDblk(const std::vector<int>& dBlockIDs,
                     const char* resultName, int idBlock, int iStep)
 {
   return writeVblk(dBlockIDs,resultName,idBlock,iStep);

@@ -14,12 +14,13 @@
 #ifndef _VTF_H
 #define _VTF_H
 
-#include <map>
 #include <vector>
 #include <cstddef>
 
 struct ElementBlock;
 class Vec3;
+
+typedef std::pair<Vec3,Vec3> Vec3Pair; //!< A pair of two point vectors
 
 class VTFAFile;
 class VTFAStateInfoBlock;
@@ -91,7 +92,7 @@ public:
   //! FE geometry created by the \a writeGrid method.
   //! \param[in] pntResult A set of result vectors with associated attack points
   //! \param[in] idBlock Vector block identifier
-  bool writeVectors(const std::map<Vec3,Vec3>& pntResult, int idBlock = 1);
+  bool writeVectors(const std::vector<Vec3Pair>& pntResult, int idBlock = 1);
 
   //! \brief Writes a scalar block definition to the VTF-file.
   //! \param[in] sBlockID The result block that makes up this scalar block
@@ -143,7 +144,7 @@ public:
 			  real refValue, int refType = 0);
 
   //! \brief Returns the pointer to a geometry block.
-  virtual const ElementBlock* getBlock(int geomID) const { return myBlocks[geomID-1].second; }
+  virtual const ElementBlock* getBlock(int gID) const { return myBlocks[gID-1].second; }
 
   //! \brief Adds the current FE geometry blocks to the description block.
   void writeGeometryBlocks(int iStep);
@@ -180,8 +181,11 @@ private:
   std::vector<VTFADisplacementBlock*> myDBlock; //!< Displacement blocks
   std::vector<VTFAVectorBlock*>       myVBlock; //!< Vector field blocks
   std::vector<VTFAScalarBlock*>       mySBlock; //!< Scalar field blocks
-  std::vector< std::pair<int,const ElementBlock*> >  myBlocks; //!< FE geometry
+
   int pointGeoID; //!< ID of current point vector geometry block
+
+protected:
+  std::vector< std::pair<int,const ElementBlock*> > myBlocks; //!< FE geometry
 };
 
 #endif

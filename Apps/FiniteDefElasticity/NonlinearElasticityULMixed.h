@@ -53,10 +53,6 @@ public:
   //! \brief Prints out problem definition to the given output stream.
   virtual void print(std::ostream& os) const;
 
-  //! \brief Defines the solution mode before the element assembly is started.
-  //! \param[in] mode The solution mode to use
-  virtual void setMode(SIM::SolutionMode mode);
-
   //! \brief Returns a local integral container for the given element.
   //! \param[in] nen1 Number of nodes on element for basis 1
   //! \param[in] nen2 Number of nodes on element for basis 2

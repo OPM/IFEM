@@ -16,7 +16,6 @@
 
 #include "IntegrandBase.h"
 #include "Vec3.h"
-#include <map>
 
 class LocalSystem;
 class Material;
@@ -61,6 +60,11 @@ public:
 
   //! \brief Defines which FE quantities are needed by the integrand.
   virtual int getIntegrandType() const { return 2; }
+
+  //! \brief Initializes the integrand with the number of integration points.
+  //! \param[in] nGp Total number of interior integration points
+  //! \param[in] nBp Total number of boundary integration points
+  virtual void initIntegration(size_t nGp, size_t nBp);
 
   //! \brief Returns a local integral container for the given element.
   //! \param[in] nen Number of nodes on element
@@ -152,10 +156,11 @@ protected:
   //! \brief Evaluates the body force vector at current point.
   //! \param ES Element vector to receive the body force contributions
   //! \param[in] N Basis function values at current point
+  //! \param[in] iP Global integration point counter
   //! \param[in] X Cartesian coordinates of current point
   //! \param[in] detJW Jacobian determinant times integration point weight
   void formBodyForce(Vector& ES, const Vector& N,
-		     const Vec3& X, double detJW) const;
+		     size_t iP, const Vec3& X, double detJW) const;
 
   //! \brief Calculates the strain-displacement matrix \b B at current point.
   //! \param[out] Bmat The strain-displacement matrix
@@ -186,7 +191,7 @@ protected:
   LocalSystem* locSys;  //!< Local coordinate system for result output
   RealFunc*    presFld; //!< Pointer to pressure field
 
-  mutable std::map<Vec3,Vec3> presVal; //!< Pressure field point values
+  mutable std::vector<Vec3Pair> presVal; //!< Pressure field point values
 
   unsigned short int nsd; //!< Number of space dimensions (1, 2 or, 3)
 };

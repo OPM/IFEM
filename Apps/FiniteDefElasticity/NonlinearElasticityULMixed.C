@@ -216,25 +216,6 @@ void NonlinearElasticityULMixed::print (std::ostream& os) const
 }
 
 
-void NonlinearElasticityULMixed::setMode (SIM::SolutionMode mode)
-{
-  m_mode = mode;
-  switch (mode)
-    {
-    case SIM::INIT:
-    case SIM::STATIC:
-    case SIM::RHS_ONLY:
-      tracVal.clear();
-    case SIM::RECOVERY:
-      break;
-
-    default:
-      std::cerr <<"\n *** NonlinearElasticityULMixed::setMode: Invalid mode "
-		<< mode << std::endl;
-    }
-}
-
-
 LocalIntegral* NonlinearElasticityULMixed::getLocalIntegral (size_t nen1,
 							     size_t nen2,
 							     size_t,

@@ -354,7 +354,7 @@ bool VTF::writeNres (const std::vector<real>& nodalResult,
 }
 
 
-bool VTF::writeVectors (const std::map<Vec3,Vec3>& pntResult, int idBlock)
+bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int idBlock)
 {
 #if HAS_VTFAPI == 1
   bool writePoints = false;
@@ -379,7 +379,7 @@ bool VTF::writeVectors (const std::map<Vec3,Vec3>& pntResult, int idBlock)
     rBlock.SetMapToBlockID(pointGeoID);
 
   int* mnpc = writePoints ? new int[np] : 0;
-  std::map<Vec3,Vec3>::const_iterator cit;
+  std::vector<Vec3Pair>::const_iterator cit;
   for (cit = pntResult.begin(); cit != pntResult.end(); cit++, i++)
     if (writePoints && VTFA_FAILURE(nBlock.AddNode(vecOffset[0]+cit->first.x,
 						   vecOffset[1]+cit->first.y,

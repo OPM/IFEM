@@ -18,10 +18,6 @@
 #include "Tensor.h"
 #include "Vec3Oper.h"
 
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif
-
 
 LinearElasticity::LinearElasticity (unsigned short int n, bool axS)
   : Elasticity(n,axS)
@@ -113,11 +109,9 @@ bool LinearElasticity::evalBou (LocalIntegral& elmInt, const FiniteElement& fe,
   // Evaluate the surface traction
   Vec3 T = (*tracFld)(X,normal);
 
-  // Store the traction value for vizualization
-#ifdef USE_OPENMP
-  if (omp_get_max_threads() == 1)
-#endif
-    if (!T.isZero()) tracVal[X] = T;
+  // Store traction value for visualization
+  if (fe.iGP < tracVal.size())
+    if (!T.isZero()) tracVal[fe.iGP] = std::make_pair(X,T);
 
   // Integrate the force vector
   Vector& ES = static_cast<ElmMats&>(elmInt).b[eS-1];

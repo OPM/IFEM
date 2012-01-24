@@ -82,14 +82,12 @@ void Elasticity::setMode (SIM::SolutionMode mode)
     case SIM::STATIC:
       eKm = 1;
       eS  = 1;
-      tracVal.clear();
       break;
 
     case SIM::DYNAMIC:
       eKm = 1;
       eM  = 2;
       eS  = 1;
-      tracVal.clear();
       break;
 
     case SIM::VIBRATION:
@@ -112,14 +110,10 @@ void Elasticity::setMode (SIM::SolutionMode mode)
 
     case SIM::RHS_ONLY:
       eS = 1;
-      tracVal.clear();
-      break;
-
-    case SIM::RECOVERY:
       break;
 
     default:
-      tracVal.clear();
+      ;
     }
 }
 
@@ -209,6 +203,12 @@ bool Elasticity::haveLoads () const
 	return material->getMassDensity(Vec3()) != 0.0;
 
   return false;
+}
+
+
+void Elasticity::initIntegration (size_t, size_t nBp)
+{
+  tracVal.resize(nBp,std::make_pair(Vec3(),Vec3()));
 }
 
 

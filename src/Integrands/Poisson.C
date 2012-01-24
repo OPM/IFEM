@@ -21,10 +21,6 @@
 #include "AnaSol.h"
 #include "VTF.h"
 
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif
-
 
 Poisson::Poisson (unsigned short int n) : nsd(n)
 {
@@ -37,15 +33,6 @@ Poisson::Poisson (unsigned short int n) : nsd(n)
 
   // Only the current solution is needed
   primsol.resize(1);
-}
-
-
-void Poisson::setMode (SIM::SolutionMode mode)
-{
-  m_mode = mode;
-
-  if (mode != SIM::RECOVERY)
-    tracVal.clear();
 }
 
 
@@ -148,16 +135,20 @@ bool Poisson::evalBou (LocalIntegral& elmInt, const FiniteElement& fe,
   double trac = -(q*normal);
 
   // Store traction value for visualization
-  if (abs(trac) > 1.0e8)
-#ifdef USE_OPENMP
-    if (omp_get_max_threads() == 1)
-#endif
-      tracVal.insert(std::make_pair(X,trac*normal));
+  if (fe.iGP < tracVal.size())
+    if (abs(trac) > 1.0e8)
+      tracVal[fe.iGP] = std::make_pair(X,trac*normal);
 
   // Integrate the Neumann value
   elMat.b.front().add(fe.N,trac*fe.detJxW);
 
   return true;
+}
+
+
+void Poisson::initIntegration (size_t, size_t nBp)
+{
+  tracVal.resize(nBp,std::make_pair(Vec3(),Vec3()));
 }
 
 

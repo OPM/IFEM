@@ -209,4 +209,7 @@ public:
   }
 };
 
+
+typedef std::pair<Vec3,Vec3> Vec3Pair; //!< A pair of two point vectors
+
 #endif

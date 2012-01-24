@@ -16,9 +16,6 @@
 
 #include "IntegrandBase.h"
 #include "Vec3.h"
-#include <map>
-
-class ElmNorm;
 
 
 /*!
@@ -36,25 +33,18 @@ public:
   //! \brief Empty destructor.
   virtual ~Poisson() {}
 
-  //! \brief Defines the solution mode before the element assembly is started.
-  //! \param[in] mode The solution mode to use
-  virtual void setMode(SIM::SolutionMode mode);
-
   //! \brief Defines the traction field to use in Neumann boundary conditions.
   void setTraction(VecFunc* tf) { tracFld = tf; }
-  //! \brief Clears the integration point traction values.
-  void clearTracVal() { tracVal.clear(); }
+  //! \brief Defines the heat source field.
+  void setSource(RealFunc* src) { heatSrc = src; }
 
   //! \brief Defines the conductivity (constitutive property).
   void setMaterial(double K) { kappa = K; }
 
-  //! \brief Defines the heat source.
-  void setSource(RealFunc* src) { heatSrc = src; }
-
-  //! \brief Evaluates the boundary traction field (if any) at specified point.
-  double getTraction(const Vec3& X, const Vec3& n) const;
-  //! \brief Evaluates the heat source (if any) at specified point.
-  double getHeat(const Vec3& X) const;
+  //! \brief Initializes the integrand with the number of integration points.
+  //! \param[in] nGp Total number of interior integration points
+  //! \param[in] nBp Total number of boundary integration points
+  virtual void initIntegration(size_t nGp, size_t nBp);
 
   //! \brief Returns a local integral container for the given element.
   //! \param[in] nen Number of nodes on element
@@ -101,6 +91,11 @@ public:
   //! \param[in] X Cartesian coordinates of current point
   virtual bool evalSol(Vector& s, const VecFunc& asol, const Vec3& X) const;
 
+  //! \brief Evaluates the boundary traction field (if any) at specified point.
+  double getTraction(const Vec3& X, const Vec3& n) const;
+  //! \brief Evaluates the heat source (if any) at specified point.
+  double getHeat(const Vec3& X) const;
+
   //! \brief Writes the surface tractions for a given time step to VTF-file.
   //! \param vtf The VTF-file object to receive the tractions
   //! \param[in] iStep Load/time step identifier
@@ -142,7 +137,7 @@ protected:
   VecFunc*  tracFld; //!< Pointer to boundary traction field
   RealFunc* heatSrc; //!< Pointer to interior heat source
 
-  mutable std::map<Vec3,Vec3> tracVal; //!< Traction field point values
+  mutable std::vector<Vec3Pair> tracVal; //!< Traction field point values
 
   unsigned short int nsd; //!< Number of space dimensions (1, 2 or, 3)
 };

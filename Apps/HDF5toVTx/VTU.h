@@ -1,5 +1,3 @@
-#pragma once
-
 // $Id$
 //==============================================================================
 //!
@@ -9,18 +7,20 @@
 //!
 //! \author Arne Morten Kvarving / SINTEF
 //!
-//! \brief Basic VTU file writer class
+//! \brief Basic VTU file writer class.
 //!
 //==============================================================================
 
+#pragma once
 
-#include "MatVec.h"
 #include "VTF.h"
 #include <string>
+#include <map>
 
 
-class ElementBlock;
-
+/*!
+  \brief Basic VTU file writer class.
+*/
 
 class VTU : public VTF {
   public:
@@ -29,14 +29,14 @@ class VTU : public VTF {
 
     bool writeGrid(const ElementBlock* lvb, const char* name, int iStep=1);
 
-    bool writeVres(const std::vector<double>& field, int blockID,
+    bool writeVres(const std::vector<real>& field, int blockID,
                    int geomID, int components);
-    bool writeNres(const std::vector<double>& vec, int blockID, int geomID);
-    bool writeEres(const std::vector<double>& vec, int blockID, int geomID);
+    bool writeNres(const std::vector<real>& vec, int blockID, int geomID);
+    bool writeEres(const std::vector<real>& vec, int blockID, int geomID);
 
-    bool writeVblk(const std::vector<int>& vBlockIDs, 
+    bool writeVblk(const std::vector<int>& vBlockIDs,
                    const char* resultName, int idBlock, int iStep=1);
-    bool writeDblk(const std::vector<int>& vBlockIDs, 
+    bool writeDblk(const std::vector<int>& vBlockIDs,
                    const char* resultName, int idBlock, int iStep=1);
     bool writeSblk(const std::vector<int>& sBlockIDs,
                    const char* resultName, int idBlock, int iStep=1,
@@ -45,11 +45,12 @@ class VTU : public VTF {
     bool writeState(int iStep, const char* fmt, real refValue, int refType=0);
 
     const ElementBlock* getBlock(int geomID) const { return m_geom[geomID-1]; }
+
   protected:
     std::string m_base;
     std::vector<const ElementBlock*> m_geom;
     struct FieldInfo {
-      Vector* data;
+      std::vector<real>* data;
       int components;
       int patch;
       bool cellData;

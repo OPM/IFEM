@@ -25,10 +25,6 @@
 #define epsR 1.0e-16
 #endif
 
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif
-
 
 NonlinearElasticityUL::NonlinearElasticityUL (unsigned short int n,
 					      bool axS, char lop)
@@ -73,7 +69,6 @@ void NonlinearElasticityUL::setMode (SIM::SolutionMode mode)
 
   // We always need the force vectors in nonlinear simulations
   iS = eS = 1;
-  tracVal.clear();
 }
 
 
@@ -279,11 +274,9 @@ bool NonlinearElasticityUL::evalBou (LocalIntegral& elmInt,
   // Evaluate the surface traction
   Vec3 T = (*tracFld)(X,normal);
 
-  // Store the traction value for vizualization
-#ifdef USE_OPENMP
-  if (omp_get_max_threads() == 1)
-#endif
-    if (!T.isZero()) tracVal[X] = T;
+  // Store traction value for visualization
+  if (fe.iGP < tracVal.size())
+    if (!T.isZero()) tracVal[fe.iGP] = std::make_pair(X,T);
 
   // Axi-symmetric integration point volume; 2*pi*r*|J|*w
   double detJW = axiSymmetry ? 2.0*M_PI*X.x*fe.detJxW : fe.detJxW;
