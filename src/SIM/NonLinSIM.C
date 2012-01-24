@@ -124,13 +124,10 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
       const TiXmlElement* step = child->FirstChildElement("step");
       steps.clear();
       while (step) {
-        double dt;
+        double start = 0.0, end = 0.0, dt = 0.0;
         std::pair<std::vector<double>,double> tstep;
-        double start, end;
-        if (step->Attribute("start"))
-          start = atof(step->Attribute("start"));
-        if (step->Attribute("end"))
-          end = atof(step->Attribute("end"));
+	utl::getAttribute(step,"start",start);
+	utl::getAttribute(step,"end",end);
         if (steps.empty())
           startTime = start;
         if (step->FirstChild() && step->FirstChild()->Value()) {

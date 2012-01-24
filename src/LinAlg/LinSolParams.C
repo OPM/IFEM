@@ -26,7 +26,6 @@
 #endif
 
 #endif
-
 #include "tinyxml.h"
 
 
@@ -35,7 +34,7 @@ void LinSolParams::setDefault ()
 #ifdef HAS_PETSC
   // Use GMRES with ILU preconditioner as default
   method    = KSPGMRES;
-  hypretype = "boomeramg"; 
+  hypretype = "boomeramg";
   prec      = PCILU;
   package   = DEFAULTSOLVER;
   levels    = 0;
@@ -55,7 +54,7 @@ void LinSolParams::copy (const LinSolParams& spar)
 #ifdef HAS_PETSC
   // Copy linear solver parameters
   method    = spar.method;
-  hypretype = spar.hypretype; 
+  hypretype = spar.hypretype;
   prec      = spar.prec;
   package   = spar.package;
   levels    = spar.levels;
@@ -131,7 +130,6 @@ bool LinSolParams::read (std::istream& is, int nparam)
       char* c = strchr(cline,'=');
       dtol = atof(++c);
     }
-
     else if (!strncasecmp(cline,"maxits",6)) {
       char* c = strchr(cline,'=');
       maxIts = atoi(++c);
@@ -160,54 +158,57 @@ bool LinSolParams::read (std::istream& is, int nparam)
 
 
 #ifdef HAS_PETSC
-static bool IsOK(const TiXmlElement* child, const char* value)
+static const char* IsOK (const TiXmlElement* child, const char* value)
 {
-  return !strcasecmp(child->Value(),value) && 
-         child->FirstChild() && child->FirstChild()->Value();
+  if (strcasecmp(child->Value(),value) || child->FirstChild())
+    return 0;
+
+  return child->FirstChild()->Value();
 }
-#endif
 
 
 bool LinSolParams::read (const TiXmlElement* elem)
 {
-  const TiXmlElement *child = elem->FirstChildElement();
+  const char* value = 0;
+  const TiXmlElement* child = elem->FirstChildElement();
   while (child) {
-#ifdef HAS_PETSC
-    if (IsOK(child,"type")) {
-      method = child->FirstChild()->Value();
-    } else if (IsOK(child,"pc")) {
-      prec = child->FirstChild()->Value();
-    } else if (IsOK(child,"hypretype")) {
-      hypretype = child->FirstChild()->Value();
-    } else if (IsOK(child,"package")) {
-      package = child->FirstChild()->Value();
-    } else if (IsOK(child,"levels")) {
-      levels = atoi(child->FirstChild()->Value());
-    } else if (IsOK(child,"overlap")) {
-      overlap = atoi(child->FirstChild()->Value());
-    } else if (IsOK(child,"atol")) {
-      atol = atof(child->FirstChild()->Value());
-    } else if (IsOK(child,"rtol")) {
-      rtol = atof(child->FirstChild()->Value());
-    } else if (IsOK(child,"dtol")) {
-      dtol = atof(child->FirstChild()->Value());
-    } else if (IsOK(child,"maxits")) {
-      maxIts = atoi(child->FirstChild()->Value());
-    } else if (IsOK(child,"nullspace")) {
-      if (!strcasecmp(child->FirstChild()->Value(),"constant"))
+    if ((value = IsOK(child,"type")))
+      method = value;
+    else if ((value = IsOK(child,"pc")))
+      prec = value;
+    else if ((value = IsOK(child,"hypretype")))
+      hypretype = value;
+    else if ((value = IsOK(child,"package")))
+      package = value;
+    else if ((value = IsOK(child,"levels")))
+      levels = atoi(value);
+    else if ((value = IsOK(child,"overlap")))
+      overlap = atoi(value);
+    else if ((value = IsOK(child,"atol")))
+      atol = atof(value);
+    else if ((value = IsOK(child,"rtol")))
+      rtol = atof(value);
+    else if ((value = IsOK(child,"dtol")))
+      dtol = atof(value);
+    else if ((value = IsOK(child,"maxits")))
+      maxIts = atoi(value);
+    else if ((value = IsOK(child,"nullspace"))) {
+      if (!strcasecmp(value,"constant"))
 	nullspc = CONSTANT;
-      else if (!strcasecmp(child->FirstChild()->Value(),"rigid_body"))
+      else if (!strcasecmp(value,"rigid_body"))
 	nullspc = RIGID_BODY;
     }
-    else {
+    else
       std::cerr <<" *** LinSolParams::read: Unknown keyword: "
 		<< child->Value() << std::endl;
-    }
-#endif
     child = child->NextSiblingElement();
   }
   return true;
 }
+#else
+// No need to loop trough the XML entries when PETSc is not included.
+bool LinSolParams::read (const TiXmlElement*) { return true; }
+#endif
 
 
 bool LinSolParams::read (const char* filename)
@@ -234,7 +235,7 @@ void LinSolParams::setParams(KSP& ksp) const
   //PCMGSetType(pc,PC_MG_MULTIPLICATIVE);
   PCSetType(pc,prec.c_str());
 #if PETSC_HAVE_HYPRE
-  if (!strncasecmp(prec.c_str(),"hypre",5)) 
+  if (!strncasecmp(prec.c_str(),"hypre",5))
     PCHYPRESetType(pc,hypretype.c_str());
 #endif
   if (overlap > 0) {
