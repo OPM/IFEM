@@ -70,7 +70,7 @@ public:
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] gpar Parameter values of the result sampling points
   //! \param[in] regular Flag indicating how the sampling points are defined
-  virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
+  virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
 			    const RealArray* gpar, bool regular = true) const;
 
 protected:

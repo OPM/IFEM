@@ -239,16 +239,16 @@ public:
   //! which then are returned through \a sField.
   //! If \a npe is not NULL and \a project is \e true, the solution is also
   //! projected onto the spline basis, and then evaluated at the \a npe points
-  virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
+  virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
                             const int* npe = 0, bool project = false) const;
 
 #if 0
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods
-  Go::SplineSurface* projectSolution(const Integrand& integrand) const;
+  Go::SplineSurface* projectSolution(const IntegrandBase& integrand) const;
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods
-  virtual Go::GeomObject* evalSolution(const Integrand& integrand) const;
+  virtual Go::GeomObject* evalSolution(const IntegrandBase& integrand) const;
 #endif
 
   //! \brief Evaluates the secondary solution field at the given points.
@@ -264,7 +264,7 @@ public:
   //! \a gpar[0].size() \a X \a gpar[1].size().
   //! Otherwise, we assume that it contains the \a u and \a v parameters
   //! directly for each sampling point.
-  virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
+  virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
                             const RealArray* gpar, bool regular = true) const;
 
   //! \brief Calculates parameter values for visualization nodal points.

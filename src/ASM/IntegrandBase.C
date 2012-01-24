@@ -86,28 +86,26 @@ bool IntegrandBase::initElementBou (const std::vector<int>&,
 }
 
 
-bool Integrand::evalSol (Vector&,
-			 const Vector&, const Matrix&,
-			 const Vec3&, const std::vector<int>&) const
+bool IntegrandBase::evalSol (Vector&, const Vector&, const Matrix&,
+			     const Vec3&, const std::vector<int>&) const
 {
-  std::cerr <<" *** Integrand::evalSol not implemented."<< std::endl;
+  std::cerr <<" *** IntegrandBase::evalSol not implemented."<< std::endl;
   return false;
 }
 
 
-bool Integrand::evalSol (Vector& s,
-			 const Vector& N, const Matrix& dNdX, const Matrix3D&,
-			 const Vec3& X, const std::vector<int>& MNPC) const
+bool IntegrandBase::evalSol (Vector& s, const Vector& N,
+			     const Matrix& dNdX, const Matrix3D&,
+			     const Vec3& X, const std::vector<int>& MNPC) const
 {
   return this->evalSol(s,N,dNdX,X,MNPC);
 }
 
 
-bool Integrand::evalSol (Vector& s,
-			 const Vector& N1, const Vector&,
-			 const Matrix& dN1dX, const Matrix&, const Vec3& X,
-			 const std::vector<int>& MNPC1,
-			 const std::vector<int>&) const
+bool IntegrandBase::evalSol (Vector& s, const Vector& N1, const Vector&,
+			     const Matrix& dN1dX, const Matrix&, const Vec3& X,
+			     const std::vector<int>& MNPC1,
+			     const std::vector<int>&) const
 {
   return this->evalSol(s,N1,dN1dX,X,MNPC1);
 }

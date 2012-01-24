@@ -585,14 +585,14 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
 }
 
 
-bool ASMs2DLag::evalSolution (Matrix& sField, const Integrand& integrand,
+bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 			      const int*, bool) const
 {
   return this->evalSolution(sField,integrand,(const RealArray*)0,true);
 }
 
 
-bool ASMs2DLag::evalSolution (Matrix& sField, const Integrand& integrand,
+bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 			      const RealArray*, bool) const
 {
   sField.resize(0,0);

@@ -2021,7 +2021,7 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
 }
 
 
-bool ASMs3D::evalSolution (Matrix& sField, const Integrand& integrand,
+bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 			   const int* npe, bool project) const
 {
   if (npe)
@@ -2070,13 +2070,13 @@ bool ASMs3D::evalSolution (Matrix& sField, const Integrand& integrand,
 }
 
 
-Go::GeomObject* ASMs3D::evalSolution (const Integrand& integrand) const
+Go::GeomObject* ASMs3D::evalSolution (const IntegrandBase& integrand) const
 {
   return this->projectSolution(integrand);
 }
 
 
-Go::SplineVolume* ASMs3D::projectSolution (const Integrand& integrand) const
+Go::SplineVolume* ASMs3D::projectSolution (const IntegrandBase& integrand) const
 {
   // Compute parameter values of the result sampling points (Greville points)
   RealArray gpar[3];
@@ -2112,7 +2112,7 @@ Go::SplineVolume* ASMs3D::projectSolution (const Integrand& integrand) const
 }
 
 
-bool ASMs3D::evalSolution (Matrix& sField, const Integrand& integrand,
+bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 			   const RealArray* gpar, bool regular) const
 {
   sField.resize(0,0);

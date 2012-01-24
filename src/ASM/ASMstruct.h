@@ -53,8 +53,8 @@ public:
   static void resetNumbering() { gEl = gNod = 0; }
 
   //! \brief Projects the secondary solution field onto the primary basis.
-  //! \param[in] integrand Object with problem-specific data and methods
-  virtual Go::GeomObject* evalSolution(const Integrand& integrand) const = 0;
+  //! \param[in] integr Object with problem-specific data and methods
+  virtual Go::GeomObject* evalSolution(const IntegrandBase& integr) const = 0;
 
   //! \brief Computes the total number of integration points in this patch.
   virtual void getNoIntPoints(size_t& nPt);

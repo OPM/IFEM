@@ -161,7 +161,7 @@ public:
   //! \a gpar[0].size() \a X \a gpar[1].size() \a X \a gpar[2].size().
   //! Otherwise, we assume that it contains the \a u, \a v and \a w parameters
   //! directly for each sampling point.
-  virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
+  virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
 			    const RealArray* gpar, bool regular = true) const;
 
   //! \brief Extracts nodal results for this patch from the global vector.

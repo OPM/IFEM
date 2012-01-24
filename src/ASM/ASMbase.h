@@ -17,7 +17,6 @@
 #include "MatVec.h"
 #include "MPCLess.h"
 #include "Function.h"
-#include <vector>
 #include <map>
 #include <set>
 
@@ -30,13 +29,12 @@ typedef MPCSet::const_iterator MPCIter; //!< Iterator over an MPC equation set
 struct TimeDomain;
 struct ElementBlock;
 class GlobalIntegral;
-class LocalIntegral;
+class IntegrandBase;
 class Integrand;
 class ASMbase;
 class Vec3;
 
-typedef std::vector<LocalIntegral*> LintegralVec; //!< Local integral container
-typedef std::vector<ASMbase*>       ASMVec;       //!< Spline patch container
+typedef std::vector<ASMbase*> ASMVec; //!< Spline patch container
 
 
 /*!
@@ -344,7 +342,7 @@ public:
   //! which then are returned through \a sField.
   //! If \a npe is not NULL and \a project is \e true, the solution is also
   //! projected onto the spline basis, and then evaluated at the \a npe points.
-  virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
+  virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
 			    const int* npe = 0, bool project = false) const;
 
   //! \brief Evaluates the secondary solution field at the given points.
@@ -360,7 +358,7 @@ public:
   //! \a gpar[0].size() \a X \a gpar[1].size() \a X \a gpar[2].size().
   //! Otherwise, we assume that it contains the \a u, \a v and \a w parameters
   //! directly for each sampling point.
-  virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
+  virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
 			    const RealArray* gpar, bool regular = true) const;
 
 

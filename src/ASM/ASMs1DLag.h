@@ -123,14 +123,14 @@ public:
   //! the Lagrange elements by default.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
-  virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
+  virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
 			    const int*, bool = false) const;
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] gpar Parameter values of the result sampling points
-  virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
+  virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
 			    const RealArray* gpar, bool = true) const;
 
 protected:

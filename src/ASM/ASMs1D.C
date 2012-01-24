@@ -885,7 +885,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
 }
 
 
-bool ASMs1D::evalSolution (Matrix& sField, const Integrand& integrand,
+bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 			   const int* npe, bool project) const
 {
   if (npe)
@@ -930,13 +930,13 @@ bool ASMs1D::evalSolution (Matrix& sField, const Integrand& integrand,
 }
 
 
-Go::GeomObject* ASMs1D::evalSolution (const Integrand& integrand) const
+Go::GeomObject* ASMs1D::evalSolution (const IntegrandBase& integrand) const
 {
   return this->projectSolution(integrand);
 }
 
 
-Go::SplineCurve* ASMs1D::projectSolution (const Integrand& integrand) const
+Go::SplineCurve* ASMs1D::projectSolution (const IntegrandBase& integrand) const
 {
   // Compute parameter values of the result sampling points (Greville points)
   RealArray gpar;
@@ -968,7 +968,7 @@ Go::SplineCurve* ASMs1D::projectSolution (const Integrand& integrand) const
 }
 
 
-bool ASMs1D::evalSolution (Matrix& sField, const Integrand& integrand,
+bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 			   const RealArray* gpar, bool) const
 {
   sField.resize(0,0);

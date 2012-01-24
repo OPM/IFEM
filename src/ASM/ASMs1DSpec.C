@@ -151,7 +151,7 @@ bool ASMs1DSpec::integrate (Integrand& integrand, int lIndex,
 }
 
 
-bool ASMs1DSpec::evalSolution (Matrix& sField, const Integrand& integrand,
+bool ASMs1DSpec::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 			       const RealArray*, bool) const
 {
   sField.resize(0,0);

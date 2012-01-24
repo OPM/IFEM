@@ -898,7 +898,7 @@ bool ASMu2D::integrate (Integrand& integrand,
                 LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
                 if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed,*A)) return false;
 
-/*		if (integrand.getIntegrandType() > 10)
+		if (integrand.getIntegrandType() > 10)
 		{
 		// --- Selective reduced integration loop ------------------------------
 
@@ -926,11 +926,10 @@ bool ASMu2D::integrate (Integrand& integrand,
 					X.t = time.t;
 
 					// Compute the reduced integration terms of the integrand
-					if (!integrand.reducedInt(fe,X))
+					if (!integrand.reducedInt(*A,fe,X))
 					  return false;
 				}
 		}
-*/
 
 		// --- Integration loop over all Gauss points in each direction ----------
 
@@ -1344,7 +1343,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 	return true;
 }
 
-bool ASMu2D::evalSolution (Matrix& sField, const Integrand& integrand,
+bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                            const int* npe, bool project) const
 {
 	if(project) {
@@ -1374,13 +1373,13 @@ bool ASMu2D::evalSolution (Matrix& sField, const Integrand& integrand,
 
 #if 0
 
-Go::GeomObject* ASMu2D::evalSolution (const Integrand& integrand) const
+Go::GeomObject* ASMu2D::evalSolution (const IntegrandBase& integrand) const
 {
 	return this->projectSolution(integrand);
 }
 
 
-Go::SplineSurface* ASMu2D::projectSolution (const Integrand& integrand) const
+Go::SplineSurface* ASMu2D::projectSolution (const IntegrandBase& integrand) const
 {
 	// Compute parameter values of the result sampling points (Greville points)
 	RealArray gpar[2];
@@ -1416,7 +1415,7 @@ Go::SplineSurface* ASMu2D::projectSolution (const Integrand& integrand) const
 
 #endif
 
-bool ASMu2D::evalSolution (Matrix& sField, const Integrand& integrand,
+bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                            const RealArray* gpar, bool) const
 {
 #ifdef SP_DEBUG

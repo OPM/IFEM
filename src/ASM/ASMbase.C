@@ -746,7 +746,8 @@ bool ASMbase::evalSolution (Matrix&, const Vector&,
 }
 
 
-bool ASMbase::evalSolution (Matrix&, const Integrand&, const int*, bool) const
+bool ASMbase::evalSolution (Matrix&, const IntegrandBase&,
+			    const int*, bool) const
 {
   std::cerr <<" *** ASMBase::evalSolution: Must be implemented in sub-class."
 	    << std::endl;
@@ -754,7 +755,7 @@ bool ASMbase::evalSolution (Matrix&, const Integrand&, const int*, bool) const
 }
 
 
-bool ASMbase::evalSolution (Matrix&, const Integrand&,
+bool ASMbase::evalSolution (Matrix&, const IntegrandBase&,
 			    const RealArray*, bool) const
 {
   std::cerr <<" *** ASMBase::evalSolution: Must be implemented in sub-class."

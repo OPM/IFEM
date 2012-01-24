@@ -176,15 +176,15 @@ public:
   //! which then are returned through \a sField.
   //! If \a npe is not NULL and \a project is \e true, the solution is also
   //! projected onto the spline basis, and then evaluated at the \a npe points.
-  virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
+  virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
 			    const int* npe = 0, bool project = false) const;
 
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods
-  Go::SplineCurve* projectSolution(const Integrand& integrand) const;
+  Go::SplineCurve* projectSolution(const IntegrandBase& integrand) const;
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods
-  virtual Go::GeomObject* evalSolution(const Integrand& integrand) const;
+  virtual Go::GeomObject* evalSolution(const IntegrandBase& integrand) const;
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
@@ -193,7 +193,7 @@ public:
   //!
   //! \details The secondary solution is derived from the primary solution,
   //! which is assumed to be stored within the \a integrand for current patch.
-  virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
+  virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
 			    const RealArray* gpar, bool = true) const;
 
   //! \brief Calculates parameter values for visualization nodal points.
