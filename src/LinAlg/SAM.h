@@ -34,8 +34,6 @@ class SystemVector;
 class SAM
 {
 protected:
-  size_t nelmdof;                  //!<Number of element degrees of freedom
-  
   typedef std::vector<int> IntVec; //!< General integer vector
   typedef std::set<int>    IntSet; //!< General integer set
 
@@ -167,11 +165,9 @@ public:
   //! \param[in] nedof Number of degrees of freedom in the element
   //! (used for internal consistency checking, unless zero)
   virtual bool getElmEqns(IntVec& meen, int iel, int nedof = 0) const;
-
-  //! \brief Finds the number equations for an element.
-  //! \param[in] iel Identifier for the element to get the equation numbers for
-  //! \return The number of equations for this element
-  virtual int getNoElmEqns(int iel) const;
+  //! \brief Returns the number equations for an element.
+  //! \param[in] iel Identifier for the element to get number of equations for
+  size_t getNoElmEqns(int iel) const;
 
   //! \brief Finds the matrix of equation numbers for a node.
   //! \param[out] mnen Matrix of node equation numbers
@@ -198,17 +194,17 @@ public:
   //! equation solver equals the number of free DOFs in the system (=NEQ).
   //! That is, all fixed or constrained (slave) DOFs are not present.
   //! Before we can compute derived element quantities we therefore need to
-  //! extract the resulting displacement values also for the constrained DOFs.
-  virtual bool expandSolution(const SystemVector& solVec, Vector& displ,
+  //! extract the resulting solution values also for the constrained DOFs.
+  virtual bool expandSolution(const SystemVector& solVec, Vector& dofVec,
 			      real scaleSD = 1.0) const;
 
   //! \brief Expands a solution vector from equation-ordering to DOF-ordering.
   //! \param[in] solVec Solution vector, length = NEQ
-  //! \param[out] displ Displacement vector, length = NDOF = 3*NNOD
+  //! \param[out] dofVec Degrees of freedom vector, length = NDOF
   //! \return \e false if the length of \a solVec is invalid, otherwise \e true
   //!
   //! \details This version is typically used to expand eigenvectors.
-  bool expandVector(const Vector& solVec, Vector& displ) const;
+  bool expandVector(const Vector& solVec, Vector& dofVec) const;
 
   //! \brief Computes the dot-product of two vectors of length NDOF.
   //! \param[in] x The first vector of the dot-product
@@ -257,9 +253,9 @@ protected:
 
   //! \brief Expands a solution vector from equation-ordering to DOF-ordering.
   //! \param[in] solVec Pointer to solution vector, length = NEQ
-  //! \param[out] displ Displacement vector, length = NDOF = 3*NNOD
+  //! \param[out] dofVec Degrees of freedom vector, length = NDOF
   //! \param[in] scaleSD Scaling factor for specified (slave) DOFs
-  bool expandVector(const real* solVec, Vector& displ, real scaleSD) const;
+  bool expandVector(const real* solVec, Vector& dofVec, real scaleSD) const;
 
   //! \brief Returns the internal node number and local index for a global DOF.
   //! \param[in] idof Global DOF-number in the range [1,NDOF]
@@ -280,6 +276,8 @@ protected:
   int& neq;    //!< Number of system equations
   int& nmmnpc; //!< Number of elements in MMNPC
   int& nmmceq; //!< Number of elements in MMCEQ
+
+  size_t nelmdof; //!< Number of degrees of freedom per element
 
   // The standard SAM arrays (see K. Bell's reports for detailed explanation).
   // We are using plane C-pointers for these items such that they more easily

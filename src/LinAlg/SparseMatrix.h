@@ -210,7 +210,7 @@ private:
 
   std::vector<int> IA; //!< Identifies the beginning of each row or column
   std::vector<int> JA; //!< Specifies column/row index of each nonzero element
-  std::vector<real> A; //!< Stores the nonzero matrix elements
+  utl::vector<real> A; //!< Stores the nonzero matrix elements
   ValueMap       elem; //!< Stores nonzero matrix elements with index pairs
   SparseSolver solver; //!< Which equation solver to use
   SuperLUdata*    slu; //!< Matrix data for the SuperLU equation solver

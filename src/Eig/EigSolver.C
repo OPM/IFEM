@@ -138,8 +138,10 @@ bool eig::solve (SystemMatrix* A, SystemMatrix* B,
     break;
   case 2:
     AM = K->copy();
-    if (shift != 0.0) AM->add(-shift);
-    eig_drv2_(n,nev,ncv,shift,eigVal.ptr(),eigVec.ptr(),work,ierr);
+    if (shift != 0.0 && !AM->add(-shift))
+      ierr = 123;
+    else
+      eig_drv2_(n,nev,ncv,shift,eigVal.ptr(),eigVec.ptr(),work,ierr);
     break;
   case 3:
     AM = M->copy();
@@ -147,20 +149,30 @@ bool eig::solve (SystemMatrix* A, SystemMatrix* B,
     break;
   case 4:
     AM = K->copy();
-    if (shift != 0.0) AM->add(*M,-shift);
-    eig_drv4_(n,nev,ncv,shift,eigVal.ptr(),eigVec.ptr(),work,ierr);
+    if (shift != 0.0 && !AM->add(*M,-shift))
+      ierr = 123;
+    else
+      eig_drv4_(n,nev,ncv,shift,eigVal.ptr(),eigVec.ptr(),work,ierr);
     break;
   case 5:
     AM = K->copy();
-    if (shift != 0.0) AM->add(*M,+shift); // Notice the +sign on the shift!
-    eig_drv5_(n,nev,ncv,shift,eigVal.ptr(),eigVec.ptr(),work,ierr);
+    if (shift != 0.0 && !AM->add(*M,+shift)) // Notice the +sign on the shift!
+      ierr = 123;
+    else
+      eig_drv5_(n,nev,ncv,shift,eigVal.ptr(),eigVec.ptr(),work,ierr);
     break;
   case 6:
     AM = K->copy();
-    if (shift != 0.0) AM->add(*M,-shift);
-    eig_drv6_(n,nev,ncv,shift,eigVal.ptr(),eigVec.ptr(),work,ierr);
+    if (shift != 0.0 && AM->add(*M,-shift))
+      ierr = 123;
+    else
+      eig_drv6_(n,nev,ncv,shift,eigVal.ptr(),eigVec.ptr(),work,ierr);
     break;
   }
+
+  if (ierr == 123)
+    std::cerr <<" *** eig::solve: Failed to add system matrices.\n"
+	      <<"                 Check matrix type or dimensions."<< std::endl;
 
   delete[] work;
   if (AM) delete AM;

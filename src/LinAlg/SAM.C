@@ -602,26 +602,19 @@ bool SAM::getElmEqns (IntVec& meen, int iel, int nedof) const
 }
 
 
-int SAM::getNoElmEqns (int iel) const
+size_t SAM::getNoElmEqns (int iel) const
 {
+  size_t result = 0;
   if (iel < 1 || iel > nel)
-  {
     std::cerr <<"SAM::getElmEqns: Element "<< iel <<" is out of range [1,"
 	      << nel <<"]"<< std::endl;
-    return false;
-  }
 
-  int ip = mpmnpc[iel-1];
-  int nenod = mpmnpc[iel] - ip;
-
-  int result=0;
-#ifndef USE_F77SAM 
-  // TODO F77SAM?
-  for (int i = 0; i < nenod; i++, ip++) {
+  else for (int ip = mpmnpc[iel-1]; ip < mpmnpc[iel]; ip++)
+  {
     int node = mmnpc[ip-1];
-    result += madof[node]-madof[node-1];
+    result += madof[node] - madof[node-1];
   }
-#endif
+
   return result;
 }
 

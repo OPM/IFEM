@@ -21,11 +21,10 @@
 #ifdef HAS_SAMG
 #include "samg.h"
 #endif
-#include <algorithm>
-
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
+#include <algorithm>
 
 #if defined(HAS_SUPERLU_MT)
 #define sluop_t superlumt_options_t
@@ -356,7 +355,7 @@ bool SparseMatrix::augment (const SystemMatrix& B, size_t r0, size_t c0)
 
 bool SparseMatrix::truncate (real threshold)
 {
-  if (!editable) return false;
+  if (!editable) return false; // Not implemented for editable matrices yet
 
   ValueIter it;
   real tol = real(0);
@@ -387,26 +386,38 @@ bool SparseMatrix::truncate (real threshold)
 
 bool SparseMatrix::add (const SystemMatrix& B, real alpha)
 {
-  if (!editable) return false;
-
   const SparseMatrix* Bptr = dynamic_cast<const SparseMatrix*>(&B);
   if (!Bptr) return false;
 
   if (Bptr->nrow > nrow || Bptr->ncol > ncol) return false;
 
-  if (Bptr->editable)
+  if (editable && Bptr->editable)
     for (ValueIter it = Bptr->elem.begin(); it != Bptr->elem.end(); it++)
       elem[it->first] += alpha*it->second;
-  else if (solver == SUPERLU)
-    // Column-oriented format with 0-based indices
-    for (size_t j = 1; j <= Bptr->ncol; j++)
-      for (int i = Bptr->IA[j-1]; i < Bptr->IA[j]; i++)
-	elem[IJPair(Bptr->JA[i]+1,j)] += alpha*Bptr->A[i];
+
+  else if (!editable && !Bptr->editable)
+  {
+    // For non-editable matrices the sparsity patterns must match
+    if (A.size() == Bptr->A.size() && IA == Bptr->IA && JA == Bptr->JA)
+      A.add(Bptr->A,alpha);
+    else
+      return false;
+  }
+  else if (editable)
+  {
+    if (solver == SUPERLU)
+      // Column-oriented format with 0-based indices
+      for (size_t j = 1; j <= Bptr->ncol; j++)
+	for (int i = Bptr->IA[j-1]; i < Bptr->IA[j]; i++)
+	  elem[IJPair(Bptr->JA[i]+1,j)] += alpha*Bptr->A[i];
+    else
+      // Row-oriented format with 1-based indices
+      for (size_t i = 1; i <= Bptr->nrow; i++)
+	for (int j = Bptr->IA[i-1]; j < Bptr->IA[i]; j++)
+	  elem[IJPair(i,Bptr->JA[j-1])] += alpha*Bptr->A[j-1];
+  }
   else
-    // Row-oriented format with 1-based indices
-    for (size_t i = 1; i <= Bptr->nrow; i++)
-      for (int j = Bptr->IA[i-1]; j < Bptr->IA[i]; j++)
-	elem[IJPair(i,Bptr->JA[j-1])] += alpha*Bptr->A[j-1];
+    return false;
 
   return true;
 }
@@ -562,15 +573,13 @@ void SparseMatrix::initAssembly (const SAM& sam)
 {
   this->resize(sam.neq,sam.neq);
 #ifdef USE_OPENMP
-  // dummy assembly loop to avoid matrix resizes during assembly
-  if (omp_get_max_threads() > 1) {
-    for (int i=0;i<sam.getNoElms();++i) {
-      int siz = sam.getNoElmEqns(i+1);
-      Matrix Ek;
-      Ek.resize(siz,siz);
-      assemble(Ek,sam,i+1);
+  // Dummy assembly loop to avoid matrix resizing during assembly
+  if (omp_get_max_threads() > 1)
+    for (int iel = 1; iel <= sam.nel; ++iel)
+    {
+      size_t ndim = sam.getNoElmEqns(iel);
+      assemble(Matrix(ndim,ndim),sam,iel);
     }
-  }
   switch (solver) {
     case SUPERLU: optimiseSLU(); break;
     case S_A_M_G: optimiseSAMG(); break;
