@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "Utilities.h"
+#include "tinyxml.h"
 #include <cstdlib>
 
 #ifdef USE_OPENMP
@@ -103,6 +104,40 @@ bool utl::ignoreComments (std::istream& is)
   is.putback(c);
 
   return is.good();
+}
+
+
+bool utl::getAttribute (const TiXmlElement* xml, const char* att, int& val)
+{
+  if (xml->Attribute(att))
+    val = atoi(xml->Attribute(att));
+  else
+    return false;
+
+  return true;
+}
+
+
+bool utl::getAttribute (const TiXmlElement* xml, const char* att, real& val)
+{
+  if (xml->Attribute(att))
+    val = atof(xml->Attribute(att));
+  else
+    return false;
+
+  return true;
+}
+
+
+bool utl::getAttribute (const TiXmlElement* xml, const char* att,
+			std::string& val)
+{
+  if (xml->Attribute(att))
+    val = xml->Attribute(att);
+  else
+    return false;
+
+  return true;
 }
 
 

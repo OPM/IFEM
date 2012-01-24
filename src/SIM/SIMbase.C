@@ -143,20 +143,18 @@ bool SIMbase::parseGeometryTag(const TiXmlElement* elem)
     }
     readNodes(isn);
   } else if (!strcasecmp(elem->Value(),"partitioning")) {
-    if (!elem->Attribute("procs") || atoi(elem->Attribute("procs")) != nProc)
-        return false;
+    int proc = 0;
+    if (!utl::getAttribute(elem,"procs",proc) || proc != nProc)
+      return false;
     if (myPid == 0)
       std::cout <<"\nNumber of partitions: "<< nProc << std::endl;
 
     const TiXmlElement* part = elem->FirstChildElement("part");
     while (part) {
-      if (part->Attribute("proc") && atoi(part->Attribute("proc")) == myPid) {
+      if (utl::getAttribute(part,"proc",proc) && proc == myPid) {
         int first=-2, last=-2;
-        if (part->Attribute("lower"))
-          first = atoi(part->Attribute("upper"));
-        if (part->Attribute("upper"))
-          last = atoi(part->Attribute("upper"));
-
+	utl::getAttribute(part,"lower",first);
+	utl::getAttribute(part,"upper",last);
         if (last > nGlPatches) nGlPatches = last;
 
         myPatches.reserve(last-first+1);
@@ -175,30 +173,20 @@ bool SIMbase::parseOutputTag(const TiXmlElement* elem)
 {
   if (!strcasecmp(elem->Value(),"resultpoints")) {
     const TiXmlElement* point = elem->FirstChildElement("point");
-    int i=0;
-    while (point) {
+    for (int i = 1; point; i++) {
       ResultPoint thePoint;
-      if (point->Attribute("patch"))
-        thePoint.patch = atoi(point->Attribute("patch"));
+      int patch = 0;
+      if (utl::getAttribute(point,"patch",patch) && patch >= 0)
+	thePoint.patch = patch;
       if (myPid == 0)
-        std::cout <<"\n\tPoint "<< i+1 <<": P"<< thePoint.patch <<" xi =";
-      if (point->Attribute("u")) {
-        thePoint.par[0] = atof(point->Attribute("u"));
-        if (myPid == 0)
-          std::cout << ' ' << thePoint.par[0];
-      }
-      if (point->Attribute("v")) {
-        thePoint.par[1] = atof(point->Attribute("v"));
-        if (myPid == 0)
-          std::cout << ' ' << thePoint.par[1];
-      }
-      if (point->Attribute("w")) {
-        thePoint.par[2] = atoi(point->Attribute("w"));
-        if (myPid == 0)
-          std::cout << ' ' << thePoint.par[2];
-      }
+        std::cout <<"\n\tPoint "<< i <<": P"<< thePoint.patch <<" xi =";
+      if (utl::getAttribute(point,"u",thePoint.par[0]) && myPid == 0)
+	std::cout << ' ' << thePoint.par[0];
+      if (utl::getAttribute(point,"v",thePoint.par[1]) && myPid == 0)
+	std::cout << ' ' << thePoint.par[1];
+      if (utl::getAttribute(point,"w",thePoint.par[2]) && myPid == 0)
+	std::cout << ' ' << thePoint.par[2];
       myPoints.push_back(thePoint);
-      i++;
       point = point->NextSiblingElement();
     }
     if (myPid == 0)
@@ -225,27 +213,21 @@ bool SIMbase::parseBCTag(const TiXmlElement* elem)
     const TiXmlElement* code = elem->FirstChildElement("code");
     while (code) {
       int icode=0;
-      if (code->Attribute("value"))
-        icode = atoi(code->Attribute("value"));
+      utl::getAttribute(code,"value",icode);
       const TiXmlElement* patch = code->FirstChildElement("patch");
       while (patch) {
         Property p;
+	int ival = -1;
         p.pindx = icode;
-        // TODO WTF is the only read number if lindex < 2 ?
-        if (patch->Attribute("face")) {
-          p.lindx = atoi(patch->Attribute("face"));
-          p.ldim = 2;
-        }
-        if (patch->Attribute("edge")) {
-          p.lindx = atoi(patch->Attribute("edge"));
-          p.ldim = 1;
-        }
-        if (patch->Attribute("vertex")) {
-          p.lindx = atoi(patch->Attribute("vertex"));
-          p.ldim = 0;
-        }
-        if (patch->Attribute("index"))
-          p.patch = getLocalPatchIndex(atoi(patch->Attribute("index")));
+	if (utl::getAttribute(patch,"face",ival))
+	  p.ldim = 2;
+	else if (utl::getAttribute(patch,"edge",ival))
+	  p.ldim = 1;
+	else if (utl::getAttribute(patch,"vertex",ival))
+	  p.ldim = 0;
+	if (ival >= 0) p.lindx = ival;
+	if (utl::getAttribute(patch,"index",ival) && ival > 0)
+          p.patch = getLocalPatchIndex(ival);
         if (p.patch > 0)
           myProps.push_back(p);
         patch = patch->NextSiblingElement("patch");
@@ -256,8 +238,7 @@ bool SIMbase::parseBCTag(const TiXmlElement* elem)
     if (ignoreDirichlet) // ignore all boundary conditions
       return true;
     int code=0;
-    if (elem->Attribute("code"))
-      code = atoi(elem->Attribute("code"));
+    utl::getAttribute(elem,"code",code);
     double val=0.f;
     if (elem->FirstChild() && elem->FirstChild()->Value())
       val = atof(elem->FirstChild()->Value());
@@ -270,8 +251,8 @@ bool SIMbase::parseBCTag(const TiXmlElement* elem)
          func = strdup(elem->Attribute("function"));
        if (func) {
          char* func2 = func;
-         func = strtok(func," ");
-         myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(const_cast<char*>(func),val));
+         func = strtok(func," "); // Why this?
+         myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(func,val));
          free(func2);
        } else
          myScalars[code] = new ConstFunc(val);

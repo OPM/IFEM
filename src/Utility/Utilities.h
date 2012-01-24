@@ -19,6 +19,8 @@
 #include <vector>
 #include <map>
 
+class TiXmlElement;
+
 
 namespace utl
 {
@@ -46,6 +48,28 @@ namespace utl
   //! \brief Ignores comment lines and blank lines from an input stream.
   //! \param is File stream to read from
   bool ignoreComments(std::istream& is);
+
+  //! \brief Extracts an integer attribute value from the specified XML-element.
+  //! \param[in] xml Pointer to XML-element to evaluate
+  //! \param[in] att The attribute tag
+  //! \param[out] val The attribute value
+  //! \return \e true if the attribute \a att is found in \a child,
+  //! otherwise \e false
+  bool getAttribute(const TiXmlElement* xml, const char* att, int& val);
+  //! \brief Extracts a real attribute value from the specified XML-element.
+  //! \param[in] xml Pointer to XML-element to evaluate
+  //! \param[in] att The attribute tag
+  //! \param[out] val The attribute value
+  //! \return \e true if the attribute \a att is found in \a child,
+  //! otherwise \e false
+  bool getAttribute(const TiXmlElement* xml, const char* att, real& val);
+  //! \brief Extracts a string attribute value from the specified XML-element.
+  //! \param[in] xml Pointer to XML-element to evaluate
+  //! \param[in] att The attribute tag
+  //! \param[out] val The attribute value
+  //! \return \e true if the attribute \a att is found in \a child,
+  //! otherwise \e false
+  bool getAttribute(const TiXmlElement* xml, const char* att, std::string& val);
 
   //! \brief Transforms the integer value \a num into a unique range.
   //! \details This method is invoked on a series of (non-unique) values.
