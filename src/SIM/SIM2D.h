@@ -42,15 +42,19 @@ public:
   //! \param[in] g2ln Global-to-local node number mapping for the borrowed grid
   void clonePatches(const FEModelVec& patches, const std::map<int,int>& g2ln);
 
+private:
+  //! \brief Parses subtags of the \a geometry XML-tag.
+  bool parseGeometryTag(const TiXmlElement* elem);
+
 protected:
+  //! \brief Parses a data section from an XML document.
+  //! \param[in] elem The XML element to parse
+  virtual bool parse(const TiXmlElement* elem);
+
   //! \brief Parses a data section from an input stream.
   //! \param[in] keyWord Keyword of current data section to read
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
-
-  //! \brief Parses a data section from an XML document.
-  //! \param[in] elem The XML element to parse
-  virtual bool parse(const TiXmlElement* elem);
 
   //! \brief Reads patches from given input stream.
   //! \param[in] isp The input stream to read from
@@ -91,8 +95,6 @@ protected:
 
 private:
   bool isRefined; //!< If \e true, the model has been adaptively refined
-  //! \brief Parse subtags of the <geometry> block from the input file
-  bool parseGeometryTag(const TiXmlElement* elem);
 
 protected:
   unsigned char nf[2]; //!< Number of scalar fields

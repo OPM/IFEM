@@ -38,11 +38,15 @@ public:
   //! \param[in] ng Number of Gauss points in each parameter direction
   virtual void setQuadratureRule(size_t ng);
 
-  //! \brief Reads node numbers from given input stream.
-  //! \param[in] isn The file stream to read from
-  void readNodes(std::istream& isn);
+private:
+  //! \brief Parses subtags of the \a geometry XML-tag.
+  bool parseGeometryTag(const TiXmlElement* elem);
 
 protected:
+  //! \brief Parses a data section from an XML document.
+  //! \param[in] elem The XML element to parse
+  virtual bool parse(const TiXmlElement* elem);
+
   //! \brief Parses a data section from an input stream.
   //! \param[in] keyWord Keyword of current data section to read
   //! \param is The file stream to read from
@@ -60,14 +64,13 @@ protected:
   //! \param[in] pchInd 0-based index of the patch to read node data for
   //! \param[in] basis The basis to read node data for (mixed FEM)
   //! \param[in] oneBased If \e true the read node numbers are assumed
-  //! one-based. If \e false they are assumed to be zero-based
+  //! one-based. If \e false they are assumed to be zero-based.
   virtual bool readNodes(std::istream& isn, int pchInd, int basis = 0,
 			 bool oneBased = false);
 
-  //! \brief Parses a data section from an XML element
-  //! \param[in] elem The XML element to parse
-  ////! \param is The file stream to read from
-  virtual bool parse(const TiXmlElement* elem);
+  //! \brief Reads node numbers from given input stream.
+  //! \param[in] isn The file stream to read from
+  void readNodes(std::istream& isn);
 
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   //! \param[in] patch 1-based index of the patch to receive the property
@@ -88,11 +91,7 @@ protected:
 
 protected:
   unsigned char nf[2]; //!< Number of scalar fields
-
-  bool checkRHSys;  //!< Check if all patches are in a right-hand system
-private:
-  //! \brief Parse subtags of the <geometry> block from the input file
-  bool parseGeometryTag(const TiXmlElement* elem);
+  bool     checkRHSys; //!< Check if all patches are in a right-hand system
 };
 
 #endif

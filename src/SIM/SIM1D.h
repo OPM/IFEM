@@ -34,23 +34,27 @@ public:
   //! \param[in] ng Number of Gauss points in each parameter direction
   virtual void setQuadratureRule(size_t ng);
 
+private:
+  //! \brief Parses subtags of the \a geometry XML-tag.
+  bool parseGeometryTag(const TiXmlElement* elem);
+
 protected:
+  //! \brief Parses a data section from an XML document.
+  //! \param[in] elem The XML element to parse
+  virtual bool parse(const TiXmlElement* elem);
+
   //! \brief Parses a data section from an input stream.
   //! \param[in] keyWord Keyword of current data section to read
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
 
-  //! \brief Read patches from given stream
-  //! \param[in] isp The stream to read from
+  //! \brief Reads patches from given input stream.
+  //! \param[in] isp The input stream to read from
   virtual bool readPatches(std::istream& isp);
-  //! \brief Reads a patch from given input file.
-  //! \param[in] isp The stream to read from
+  //! \brief Reads a patch from given input stream.
+  //! \param[in] isp The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read
   virtual bool readPatch(std::istream& isp, int pchInd);
-
-  //! \brief Parses a data section from an XML document.
-  //! \param[in] elem The XML element to parse
-  virtual bool parse(const TiXmlElement* elem);
 
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   //! \param[in] patch 1-based index of the patch to receive the property
@@ -63,9 +67,6 @@ protected:
 
 protected:
   unsigned char nf; //!< Number of scalar fields
-private:
-  //! \brief Parse subtags of the <geometry> block from the input file
-  bool parseGeometryTag(const TiXmlElement* elem);
 };
 
 #endif

@@ -101,6 +101,15 @@ public:
   //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);
 
+private:
+  //! \brief Parses a subelement of the \a geometry XML-tag.
+  bool parseGeometryTag(const TiXmlElement* elem);
+  //! \brief Parses a subelement of the \a resultoutput XML-tag.
+  bool parseOutputTag(const TiXmlElement* elem);
+  //! \brief Parses a subelement of the \a boundaryconditions XML-tag.
+  bool parseBCTag(const TiXmlElement* elem);
+
+public:
   //! \brief Refines a list of elements.
   virtual bool refine(const std::vector<int>&, const std::vector<int>&,
 		      const char* = 0) { return false; }
@@ -491,9 +500,6 @@ protected:
   //! \brief Creates the computational FEM model from the spline patches.
   bool createFEMmodel();
 
-  //! \brief Reads node numbers from given input stream.
-  //! \param[in] isp The file stream to read from
-  virtual void readNodes(std::istream& isp) {}
 public:
   //! \brief Returns the local patch index for the given global patch number.
   //! \details For serial applications this is an identity mapping only, whereas
@@ -559,12 +565,14 @@ protected:
   //! one-based. If \e false they are assumed to be zero-based.
   virtual bool readNodes(std::istream& isn, int pchInd, int basis = 0,
 			 bool oneBased = false) { return false; }
+  //! \brief Reads node numbers from given input stream.
+  //! \param[in] isn The input stream to read from
+  virtual void readNodes(std::istream& isn) {}
 
   //! \brief Reads a LinSolParams object from the given stream.
   //! \details This method helps with encapsulating PETSc in libIFEM.
   void readLinSolParams(std::istream& is, int npar);
-
-  //! \brief Reads a LinSolParams object from the given XML element
+  //! \brief Reads a LinSolParams object from the given XML element.
   //! \details This method helps with encapsulating PETSc in libIFEM.
   void readLinSolParams(const TiXmlElement* elem);
 
@@ -621,14 +629,6 @@ protected:
 private:
   size_t nIntGP; //!< Number of interior integration points in the whole model
   size_t nBouGP; //!< Number of boundary integration points in the whole model
-
-  //! \brief Parses a subelement of the <geometry> tag from input file
-  //! \param[in] elem The XML element to parse
-  bool parseGeometryTag(const TiXmlElement* elem);
-  //! \brief Parses a subelement of the <resultoutput> tag from input file
-  //! \param[in] elem The XML element to parse
-  bool parseOutputTag(const TiXmlElement* elem);
-  bool parseBCTag(const TiXmlElement* elem);
 };
 
 #endif

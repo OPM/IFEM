@@ -171,9 +171,8 @@ public:
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
 
-  //! \brief Parses a data section from an input stream.
-  //! \param[in] keyWord Keyword of current data section to read
-  //! \param is The file stream to read from
+  //! \brief Parses a data section from an XML document.
+  //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);
 
 private:

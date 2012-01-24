@@ -13,12 +13,11 @@
 
 #include "SIMinput.h"
 #include "Utilities.h"
+#include "tinyxml.h"
 #ifdef PARALLEL_PETSC
 #include "petscsys.h"
 #endif
 #include <fstream>
-
-#include "tinyxml.h"
 
 
 int SIMinput::msgLevel = 2;
@@ -36,12 +35,12 @@ SIMinput::SIMinput ()
 }
 
 
-bool SIMinput::read(const char* fileName)
+bool SIMinput::read (const char* fileName)
 {
   if (strcasestr(fileName,".xinp"))
-    return readXML(fileName);
-
-  return readFlat(fileName);
+    return this->readXML(fileName);
+  else
+    return this->readFlat(fileName);
 }
 
 
@@ -71,23 +70,26 @@ bool SIMinput::readFlat (const char* fileName)
 }
 
 
-static void injectIncludeFiles(TiXmlElement* tag)
+/*!
+  \brief Recursive helper method for processing the \a include XML-tags.
+*/
+
+static void injectIncludeFiles (TiXmlElement* tag)
 {
   TiXmlElement* elem = tag->FirstChildElement();
   while (elem) {
-    if (!strcasecmp(elem->Value(),"include")) {
-      if (elem->FirstChild() && elem->FirstChild()->Value()) {
-        TiXmlDocument doc;
-        if (doc.LoadFile(elem->FirstChild()->Value()))
-          tag->ReplaceChild(elem,*doc.RootElement());
-        else {
-          std::cerr << __PRETTY_FUNCTION__ << ": Failed to load " << elem->FirstChild()->Value() << std::endl;
-          std::cerr << "\t Error at line " << doc.ErrorRow() << ": " << doc.ErrorDesc() << std::endl;
-        }  
-      }
-    } else
+    if (strcasecmp(elem->Value(),"include"))
       injectIncludeFiles(elem);
-
+    else if (elem->FirstChild() && elem->FirstChild()->Value()) {
+      TiXmlDocument doc;
+      if (doc.LoadFile(elem->FirstChild()->Value()))
+	tag->ReplaceChild(elem,*doc.RootElement());
+      else
+	std::cerr << __PRETTY_FUNCTION__ <<": Failed to load "
+		  << elem->FirstChild()->Value()
+		  <<"\n\tError at line "<< doc.ErrorRow() <<": "
+		  << doc.ErrorDesc() << std::endl;
+    }
     elem = elem->NextSiblingElement();
   }
 }
@@ -97,25 +99,26 @@ bool SIMinput::readXML (const char* fileName)
 {
   TiXmlDocument doc;
   if (!doc.LoadFile(fileName)) {
-    std::cerr << __PRETTY_FUNCTION__ << ": Failed to load " << fileName << std::endl;
-    std::cerr << "\t Error at line " << doc.ErrorRow() << ": " << doc.ErrorDesc() << std::endl;
+    std::cerr << __PRETTY_FUNCTION__ <<": Failed to load "<< fileName
+	      <<"\n\tError at line "<< doc.ErrorRow() <<": "
+	      << doc.ErrorDesc() << std::endl;
     return false;
   }
-    
-  if (!doc.RootElement() ||
-      strcmp(doc.RootElement()->Value(),"simulation")) {
-    std::cerr << __PRETTY_FUNCTION__ << ": Malformatted input file " << fileName << std::endl;
+
+  if (!doc.RootElement() || strcmp(doc.RootElement()->Value(),"simulation")) {
+    std::cerr << __PRETTY_FUNCTION__ <<": Malformatted input file "<< fileName
+	      << std::endl;
     return false;
   }
 
   injectIncludeFiles(doc.RootElement());
-  
+
   std::vector<const TiXmlElement*> parsed = handlePriorityTags(doc.RootElement());
   // now parse the rest
   TiXmlElement* elem = doc.RootElement()->FirstChildElement();
   while (elem) {
-    if (find(parsed.begin(),parsed.end(),elem) == parsed.end()) {
-      if (!parse(elem)) {
+    if (std::find(parsed.begin(),parsed.end(),elem) == parsed.end()) {
+      if (!this->parse(elem)) {
         std::cerr <<" *** SIMinput::read: Failure occured while parsing \""
                   << elem->Value() <<"\""<< std::endl;
         return false;
@@ -137,10 +140,9 @@ std::vector<const TiXmlElement*> SIMinput::handlePriorityTags(const TiXmlElement
   for (size_t i=0;i<sizeof(special)/sizeof(char*);++i) {
     const TiXmlElement* elem = base->FirstChildElement(special[i]);
     if (elem) {
-      if (!parse(elem)) {
+      if (!this->parse(elem))
         std::cerr <<" *** SIMinput::read: Failure occured while parsing \""
                   << elem->Value() <<"\""<< std::endl;
-      }
       parsed.push_back(elem);
     }
   }
