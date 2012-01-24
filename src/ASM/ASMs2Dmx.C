@@ -506,9 +506,6 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
   const int n1 = surf->numCoefs_u();
   const int nel1 = n1 - p1 + 1;
 
-  if (threadGroups.empty())
-    generateThreadGroups();
-
 
   // === Assembly loop over all elements in the patch ==========================
 

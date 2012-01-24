@@ -1008,9 +1008,6 @@ bool ASMs2D::integrate (Integrand& integrand,
   const int n1 = surf->numCoefs_u();
   const int nel1 = n1 - p1 + 1;
 
-  if (threadGroups.empty())
-    generateThreadGroups();
-
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -1046,9 +1043,16 @@ bool ASMs2D::integrate (Integrand& integrand,
           break;
         }
 
-        // Compute characteristic element length, if needed
         if (integrand.getIntegrandType() == 2)
+        {
+          // Compute characteristic element length
           fe.h = getElmSize(p1,p2,Xnod);
+
+          // Element size in parametric space
+          int inod = MNPC[iel-1].back();
+          dXidu[0] = surf->knotSpan(0,nodeInd[inod].I);
+          dXidu[1] = surf->knotSpan(1,nodeInd[inod].J);
+        }
 
         else if (integrand.getIntegrandType() == 3)
         {
@@ -1087,11 +1091,6 @@ bool ASMs2D::integrate (Integrand& integrand,
           for (unsigned char i = 0; i < nsd; i++)
             X[i] = X0[i];
         }
-
-        // TODO: Do this conditionally (only when the CFD solver requires it)
-        int inod = MNPC[iel-1].back();
-        dXidu[0] = surf->knotSpan(0,nodeInd[inod].I);
-        dXidu[1] = surf->knotSpan(1,nodeInd[inod].J);
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
@@ -1167,14 +1166,15 @@ bool ASMs2D::integrate (Integrand& integrand,
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
             if (integrand.getIntegrandType() == 2)
+            {
               if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
               {
                 ok = false;
                 break;
               }
 
-	    // RUNAR: Do this conditionally (when the CFD solver requires it)
-	    utl::getGmat(Jac,dXidu,fe.G);
+              utl::getGmat(Jac,dXidu,fe.G);
+            }
 
 #if SP_DEBUG > 4
             std::cout <<"\niel, ip = "<< iel <<" "<< ip
@@ -1716,23 +1716,26 @@ bool ASMs2D::evalSolution (Matrix& sField, const Integrand& integrand,
 }
 
 
-void ASMs2D::generateThreadGroups()
+void ASMs2D::generateThreadGroups ()
 {
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
+
   const int nel1 = n1 - p1 + 1;
   const int nel2 = n2 - p2 + 1;
 
   utl::calcThreadGroups(nel1,nel2,threadGroups);
+  if (threadGroups.size() < 2) return;
 
-  if (threadGroups.size() > 1)
-    for (size_t i = 0; i < threadGroups.size(); i++) {
-      std::cout <<" Thread group "<< i+1;
-      for (size_t j = 0; j < threadGroups[i].size(); j++)
-	std::cout <<"\n\t thread "<< j+1
-		  << ": "<< threadGroups[i][j].size() <<" elements";
-      std::cout << std::endl;
-    }
+  std::cout <<"\nMultiple threads are utilized during element assembly.";
+  for (size_t i = 0; i < threadGroups.size(); i++)
+  {
+    std::cout <<"\n Thread group "<< i+1;
+    for (size_t j = 0; j < threadGroups[i].size(); j++)
+      std::cout <<"\n\tthread "<< j+1
+		<< ": "<< threadGroups[i][j].size() <<" elements";
+  }
+  std::cout << std::endl;
 }

@@ -187,6 +187,27 @@ bool ASMs2DLag::getSize (int& n1, int& n2, int) const
 }
 
 
+size_t ASMs2DLag::getNoBoundaryElms (char lIndex, char ldim) const
+{
+  if (!surf) return 0;
+
+  if (ldim < 1 && lIndex > 0)
+    return 1;
+
+  switch (lIndex)
+    {
+    case 1:
+    case 2:
+      return (ny-1)/(surf->order_v()-1);
+    case 3:
+    case 4:
+      return (nx-1)/(surf->order_u()-1);
+    }
+
+  return 0;
+}
+
+
 bool ASMs2DLag::integrate (Integrand& integrand,
 			   GlobalIntegral& glInt,
 			   const TimeDomain& time)
@@ -217,9 +238,6 @@ bool ASMs2DLag::integrate (Integrand& integrand,
   // Order of basis in the two parametric directions (order = degree + 1)
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
-
-  if (threadGroups.empty())
-    generateThreadGroups();
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -631,18 +649,13 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const Integrand& integrand,
 }
 
 
-void ASMs2DLag::generateThreadGroups()
+void ASMs2DLag::generateThreadGroups ()
 {
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
 
-  // Evaluate the parametric values
-  RealArray gpar[2];
-  getGridParameters(gpar[0],0,p1-1);
-  getGridParameters(gpar[1],1,p2-1);
-
-  const int nel1 = (gpar[0].size()-1)/(p1-1);
-  const int nel2 = (gpar[1].size()-1)/(p2-1);
+  const int nel1 = (nx-1)/(p1-1);
+  const int nel2 = (ny-1)/(p2-1);
 
   utl::calcThreadGroups(nel1,nel2,threadGroups);
 }

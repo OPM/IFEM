@@ -252,6 +252,11 @@ public:
   //! \brief Computes the number of boundary integration points in this patch.
   virtual void getNoBouPoints(size_t& nPt, char ldim, char lindx) = 0;
 
+  //! \brief Generates element groups for multi-threading of interior integrals.
+  virtual void generateThreadGroups() {}
+  //! \brief Generates element groups for multi-threading of boundary integrals.
+  virtual void generateThreadGroups(char) {}
+
 
   // Methods for integration of finite element quantities.
   // These are the main computational methods of the ASM class hierarchy.

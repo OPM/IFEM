@@ -47,6 +47,17 @@ public:
   //! This is used to reinitialize the patch after it has been refined.
   virtual void clear(bool retainGeometry = false);
 
+  //! \brief Returns a matrix with nodal coordinates for an element.
+  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
+  //! in one element
+  //! \param[in] iel Element index
+  virtual bool getElementCoordinates(Matrix& X, int iel) const;
+
+  //! \brief Returns a matrix with all nodal coordinates within the patch.
+  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
+  //! in the patch
+  virtual void getNodalCoordinates(Matrix& X) const;
+
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
@@ -134,25 +145,20 @@ public:
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
 			    const RealArray* gpar, bool regular = true) const;
 
-  //! \brief Returns a matrix with nodal coordinates for an element.
-  //! \param[in] iel Element index
-  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
-  //! in one element
-  virtual bool getElementCoordinates(Matrix& X, int iel) const;
-
-  //! \brief Generate thread groups
-  void generateThreadGroups();
-public:
-  //! \brief Returns a matrix with all nodal coordinates within the patch.
-  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
-  //! in the patch
-  virtual void getNodalCoordinates(Matrix& X) const;
-
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction
   //! \param[out] n2 Number of nodes in second (v) direction
   //! \param[out] n3 Number of nodes in third (w) direction
   virtual bool getSize(int& n1, int& n2, int& n3, int = 0) const;
+
+  //! \brief Generates element groups for multi-threading of interior integrals.
+  virtual void generateThreadGroups();
+  //! \brief Generates element groups for multi-threading of boundary integrals.
+  //! \param[in] lIndex Local index [1,6] of the boundary face
+  virtual void generateThreadGroups(char lIndex);
+
+  //! \brief Returns the number of elements on a boundary.
+  virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 
 private:
   size_t nx; //!< Number of nodes in first parameter direction

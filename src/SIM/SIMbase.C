@@ -667,18 +667,19 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
   std::cout <<"\nResolving Dirichlet boundary conditions"<< std::endl;
 
   bool ok = true;
-  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); p++)
-    switch (p->pcode) {
+  PropertyVec::const_iterator q;
+  for (q = myProps.begin(); q != myProps.end(); q++)
+    switch (q->pcode) {
 
     case Property::DIRICHLET:
-      if (this->addConstraint(p->patch,p->lindx,p->ldim,p->pindx))
+      if (this->addConstraint(q->patch,q->lindx,q->ldim,q->pindx))
 	std::cout << std::endl;
       else
 	ok = false;
       break;
 
     case Property::DIRICHLET_INHOM:
-      if (this->addConstraint(p->patch,p->lindx,p->ldim,p->pindx%1000,p->pindx))
+      if (this->addConstraint(q->patch,q->lindx,q->ldim,q->pindx%1000,q->pindx))
 	std::cout << std::endl;
       else
 	ok = false;
@@ -699,6 +700,15 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 
   // Resolve possibly chaining of the MPC equations
   if (!allMPCs.empty()) ASMbase::resolveMPCchains(allMPCs);
+
+  // Generate element groups for multi-threading
+  for (mit = myModel.begin(); mit != myModel.end(); mit++)
+    (*mit)->generateThreadGroups();
+  for (q = myProps.begin(); q != myProps.end(); q++)
+    if (q->pcode == Property::NEUMANN)
+      if (q->patch > 0 && q->patch <= myModel.size())
+	if (q->ldim+1 == myModel[q->patch-1]->getNoParamDim())
+	  myModel[q->patch-1]->generateThreadGroups(q->lindx);
 
   // Preprocess the result points
   for (ResPointVec::iterator p = myPoints.begin(); p != myPoints.end();)

@@ -1025,6 +1025,8 @@ bool ASMs3D::getSize (int& n1, int& n2, int& n3, int) const
 
 size_t ASMs3D::getNoBoundaryElms (char lIndex, char ldim) const
 {
+  if (!svol) return 0;
+
   if (ldim < 1 && lIndex > 0)
     return 1;
   else if (ldim < 2 && lIndex > 0 && lIndex <= 12)
@@ -1222,9 +1224,6 @@ bool ASMs3D::integrate (Integrand& integrand,
   const int nel1 = n1 - p1 + 1;
   const int nel2 = n2 - p2 + 1;
 
-  if (threadGroupsVol.empty())
-    generateThreadGroups();
-
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -1261,9 +1260,17 @@ bool ASMs3D::integrate (Integrand& integrand,
           break;
         }
 
-        // Compute characteristic element length, if needed
         if (integrand.getIntegrandType() == 2)
+        {
+          // Compute characteristic element length
           fe.h = getElmSize(p1,p2,p3,Xnod);
+
+          // Element size in parametric space
+          int inod = MNPC[iel-1].back();
+          dXidu[0] = svol->knotSpan(0,nodeInd[inod].I);
+          dXidu[1] = svol->knotSpan(1,nodeInd[inod].J);
+          dXidu[2] = svol->knotSpan(2,nodeInd[inod].K);
+        }
 
         else if (integrand.getIntegrandType() == 3)
         {
@@ -1306,13 +1313,7 @@ bool ASMs3D::integrate (Integrand& integrand,
           X.z = X0[2];
         }
 
-	// TODO: Do this conditionally (only when the CFD solver requires it)
-	int inod = MNPC[iel-1].back();
-	dXidu[0] = svol->knotSpan(0,nodeInd[inod].I);
-	dXidu[1] = svol->knotSpan(1,nodeInd[inod].J);
-	dXidu[2] = svol->knotSpan(2,nodeInd[inod].K);
-
-	// Initialize element quantities
+        // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
         if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed*nRed,*A))
         {
@@ -1391,14 +1392,15 @@ bool ASMs3D::integrate (Integrand& integrand,
 
               // Compute Hessian of coordinate mapping and 2nd order derivatives
               if (integrand.getIntegrandType() == 2)
+              {
                 if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
                 {
                   ok = false;
                   break;
                 }
 
-              // RUNAR: Do this conditionally (when the CFD solver requires it)
-              utl::getGmat(Jac,dXidu,fe.G);
+                utl::getGmat(Jac,dXidu,fe.G);
+              }
 
 #if SP_DEBUG > 4
               std::cout <<"\niel, ip = "<< iel <<" "<< ip
@@ -1418,16 +1420,16 @@ bool ASMs3D::integrate (Integrand& integrand,
               }
             }
 
-	// Finalize the element quantities
-	if (!integrand.finalizeElement(*A,time,firstIp+jp))
-	{
+        // Finalize the element quantities
+        if (!integrand.finalizeElement(*A,time,firstIp+jp))
+        {
           ok = false;
           break;
         }
 
         // Assembly of global system integral
         if (!glInt.assemble(A->ref(),fe.iel))
-	{
+        {
           ok = false;
           break;
         }
@@ -1448,6 +1450,15 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
   if (!svol) return true; // silently ignore empty patches
 
   PROFILE2("ASMs3D::integrate(B)");
+
+  std::map<char,utl::ThreadGroups>::const_iterator tit;
+  if ((tit = threadGroupsFace.find(lIndex)) == threadGroupsFace.end())
+  {
+    std::cerr <<" *** ASMs3D::integrate: No thread groups for face "<< lIndex
+	      << std::endl;
+    return false;
+  }
+  const utl::ThreadGroups& threadGrp = tit->second;
 
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
@@ -1493,16 +1504,13 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
   const int nel1 = n1 - p1 + 1;
   const int nel2 = n2 - p2 + 1;
 
-  if (threadGroupsFace.empty())
-    generateThreadGroups();
-
 
   // === Assembly loop over all elements on the patch face =====================
 
-  bool ok=true;
-  for (size_t g=0;g<threadGroupsFace[lIndex-1].size() && ok;++g) {
+  bool ok = true;
+  for (size_t g = 0; g < threadGrp.size() && ok; ++g) {
 #pragma omp parallel for schedule(static)
-    for (size_t t=0;t<threadGroupsFace[lIndex-1][g].size();++t) {
+    for (size_t t = 0; t < threadGrp[g].size(); ++t) {
       FiniteElement fe(p1*p2*p3);
       fe.xi = fe.eta = fe.zeta = faceDir < 0 ? -1.0 : 1.0;
       fe.u = gpar[0](1,1);
@@ -1512,8 +1520,8 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
       Matrix dNdu, Xnod, Jac;
       Vec4   X;
       Vec3   normal;
-      for (size_t l=0;l<threadGroupsFace[lIndex-1][g][t].size();++l) {
-        int iel = threadGroupsFace[lIndex-1][g][t][l];
+      for (size_t l = 0; l < threadGrp[g][t].size(); ++l) {
+        int iel = threadGrp[g][t][l];
         fe.iel = MLGE[iel];
         if (fe.iel < 1) continue; // zero-volume element
 
@@ -2170,60 +2178,81 @@ bool ASMs3D::evalSolution (Matrix& sField, const Integrand& integrand,
 }
 
 
-void ASMs3D::generateThreadGroups()
+void ASMs3D::generateThreadGroups ()
 {
+  const int nel1 = svol->numCoefs(0) - svol->order(0) + 1;
+  const int nel2 = svol->numCoefs(1) - svol->order(1) + 1;
+  const int nel3 = svol->numCoefs(2) - svol->order(2) + 1;
+
+  utl::calcThreadGroups(nel1,nel2,nel3,threadGroupsVol);
+  if (threadGroupsVol.size() < 2) return;
+
+  std::cout <<"\nMultiple threads are utilized during element assembly.";
+  for (size_t i = 0; i < threadGroupsVol.size(); i++)
+  {
+    std::cout <<"\n Thread group "<< i+1;
+    for (size_t j = 0; j < threadGroupsVol[i].size(); j++)
+      std::cout <<"\n\tthread "<< j+1
+		<< ": "<< threadGroupsVol[i][j].size() <<" elements";
+  }
+  std::cout << std::endl;
+}
+
+
+void ASMs3D::generateThreadGroups (char lIndex)
+{
+  if (threadGroupsFace.find(lIndex) != threadGroupsFace.end()) return;
+
   const int p1 = svol->order(0);
   const int p2 = svol->order(1);
   const int p3 = svol->order(2);
   const int n1 = svol->numCoefs(0);
   const int n2 = svol->numCoefs(1);
   const int n3 = svol->numCoefs(2);
-  const int nel1 = n1 - p1 + 1;
-  const int nel2 = n2 - p2 + 1;
-  const int nel3 = n3 - p3 + 1;
 
-  utl::calcThreadGroups(nel1,nel2,nel3,threadGroupsVol);
-
-  // now the faces
-  threadGroupsFace.resize(6);
-  for (int face=0;face<6;++face) {
-    const int faceDir = (face+2)/((face+1)%2 ? -2 : 2);
-    std::vector<int> map;
-    int iel=0;
-    for (int i3 = p3; i3 <= n3; i3++) {
-      for (int i2 = p2; i2 <= n2; i2++) {
-        for (int i1 = p1; i1 <= n1; i1++, iel++) {
-          // Skip elements that are not on current boundary face
-          bool skipMe = false;
-          switch (faceDir)
+  // Find elements that are on the boundary face 'lIndex'
+  IntVec map; map.reserve(this->getNoBoundaryElms(lIndex,2));
+  int d1, d2, iel = 0;
+  for (int i3 = p3; i3 <= n3; i3++)
+    for (int i2 = p2; i2 <= n2; i2++)
+      for (int i1 = p1; i1 <= n1; i1++, iel++)
+	switch (lIndex)
           {
-            case -1: if (i1 > p1) skipMe = true; break;
-            case  1: if (i1 < n1) skipMe = true; break;
-            case -2: if (i2 > p2) skipMe = true; break;
-            case  2: if (i2 < n2) skipMe = true; break;
-            case -3: if (i3 > p3) skipMe = true; break;
-            case  3: if (i3 < n3) skipMe = true; break;
+	  case 1: if (i1 == p1) map.push_back(iel); break;
+	  case 2: if (i1 == n1) map.push_back(iel); break;
+	  case 3: if (i2 == p2) map.push_back(iel); break;
+	  case 4: if (i2 == n2) map.push_back(iel); break;
+	  case 5: if (i3 == p3) map.push_back(iel); break;
+	  case 6: if (i3 == n3) map.push_back(iel); break;
           }
-          if (skipMe)
-            continue;
 
-          map.push_back(iel);
-        }
-      }
+  switch (lIndex)
+    {
+    case 1:
+    case 2:
+      d1 = n2 - p2 + 1;
+      d2 = n3 - p3 + 1;
+      break;
+    case 3:
+    case 4:
+      d1 = n1 - p1 + 1;
+      d2 = n3 - p3 + 1;
+      break;
+    default:
+      d1 = n1 - p1 + 1;
+      d2 = n2 - p2 + 1;
     }
 
-    int d1, d2;
-    if (face < 2) {
-      d1 = nel2;
-      d2 = nel3;
-    } else if (face < 4) {
-      d1 = nel1;
-      d2 = nel3;
-    } else {
-      d1 = nel1;
-      d2 = nel2;
+  utl::ThreadGroups& fGrp = threadGroupsFace[lIndex];
+  utl::calcThreadGroups(d1,d2,fGrp);
+  utl::mapThreadGroups(fGrp,map);
+
+  if (fGrp.size() > 1)
+    for (size_t i = 0; i < threadGroupsVol.size(); i++)
+    {
+      std::cout <<"\n Thread group "<< i+1 <<" for boundary face "<<(int)lIndex;
+      for (size_t j = 0; j < fGrp.size(); j++)
+	std::cout <<"\n\tthread "<< j+1
+		  << ": "<< fGrp[i][j].size() <<" elements";
     }
-    utl::calcThreadGroups(d1,d2,threadGroupsFace[face]);
-    utl::mapThreadGroups(threadGroupsFace[face],map);
-  }
 }

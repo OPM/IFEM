@@ -96,9 +96,6 @@ bool ASMs2DSpec::integrate (Integrand& integrand,
   if (!Legendre::basisDerivatives(p1,D1)) return false;
   if (!Legendre::basisDerivatives(p2,D2)) return false;
 
-  if (threadGroups.empty())
-    generateThreadGroups();
-
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -113,7 +110,8 @@ bool ASMs2DSpec::integrate (Integrand& integrand,
         int iel = threadGroups[g][t][e]+1;
 
         // Set up control point coordinates for current element
-        if (!this->getElementCoordinates(Xnod,iel)) {
+        if (!this->getElementCoordinates(Xnod,iel))
+        {
           ok = false;
           break;
         }
@@ -121,10 +119,12 @@ bool ASMs2DSpec::integrate (Integrand& integrand,
         // Initialize element quantities
         fe.iel = MLGE[iel-1];
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-        if (!integrand.initElement(MNPC[iel-1],*A)) {
+        if (!integrand.initElement(MNPC[iel-1],*A))
+        {
           ok = false;
           break;
         }
+
 
         // --- Integration loop over all Gauss points in each direction --------
 
@@ -147,14 +147,16 @@ bool ASMs2DSpec::integrate (Integrand& integrand,
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= wg1(i)*wg2(j);
-            if (!integrand.evalInt(*A,fe,time,X)) {
+            if (!integrand.evalInt(*A,fe,time,X))
+            {
               ok = false;
               break;
             }
           }
 
         // Assembly of global system integral
-        if (!glInt.assemble(A->ref(),fe.iel)) {
+        if (!glInt.assemble(A->ref(),fe.iel))
+        {
           ok = false;
           break;
         }
@@ -234,6 +236,7 @@ bool ASMs2DSpec::integrate (Integrand& integrand, int lIndex,
       fe.iel = MLGE[iel-1];
       LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel,true);
       if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;
+
 
       // --- Integration loop over all Gauss points along the edge -------------
 

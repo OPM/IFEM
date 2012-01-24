@@ -337,6 +337,7 @@ public:
   //! \param[in] integrand Object with problem-specific data and methods
   Go::SplineVolume* projectSolution(const Integrand& integrand) const;
   //! \brief Projects the secondary solution field onto the primary basis.
+  //! \param[in] integrand Object with problem-specific data and methods
   virtual Go::GeomObject* evalSolution(const Integrand& integrand) const;
 
   //! \brief Evaluates the secondary solution field at the given points.
@@ -352,8 +353,8 @@ public:
   //! \a gpar[0].size() \a X \a gpar[1].size() \a X \a gpar[2].size().
   //! Otherwise, we assume that it contains the \a u, \a v and \a w parameters
   //! directly for each sampling point.
-  bool evalSolution(Matrix& sField, const Integrand& integrand,
-		    const RealArray* gpar, bool regular = true) const;
+  virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
+			    const RealArray* gpar, bool regular = true) const;
 
   //! \brief Calculates parameter values for visualization nodal points.
   //! \param[out] prm Parameter values in given direction for all points
@@ -405,6 +406,12 @@ protected:
   //! \param[in] basis Which basis to return size parameters for (mixed methods)
   virtual bool getSize(int& n1, int& n2, int& n3, int basis = 0) const;
 
+  //! \brief Generates element groups for multi-threading of interior integrals.
+  virtual void generateThreadGroups();
+  //! \brief Generates element groups for multi-threading of boundary integrals.
+  //! \param[in] lIndex Local index [1,6] of the boundary face
+  virtual void generateThreadGroups(char lIndex);
+
   //! \brief Establishes matrices with basis functions and 1st derivatives.
   static void extractBasis(const Go::BasisDerivs& spline,
 			   Vector& N, Matrix& dNdu);
@@ -438,13 +445,10 @@ protected:
   const IndexVec& nodeInd; //!< IJK-triplets for the control points (nodes)
   IndexVec      myNodeInd; //!< The actual IJK-triplet container
 
-  //! Element groups for multithreaded volume assembly
+  //! Element groups for multi-threaded volume assembly
   utl::ThreadGroups threadGroupsVol;
-  //! Element groups for multithreaded face assembly
-  std::vector<utl::ThreadGroups> threadGroupsFace;
-
-  //! \brief Generate thread groups
-  virtual void generateThreadGroups();
+  //! Element groups for multi-threaded face assembly
+  std::map<char,utl::ThreadGroups> threadGroupsFace;
 };
 
 #endif

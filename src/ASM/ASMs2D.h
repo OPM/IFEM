@@ -101,7 +101,7 @@ public:
   //! This is used to reinitialize the patch after it has been refined.
   virtual void clear(bool retainGeometry = false);
 
-    //! \brief Returns a matrix with nodal coordinates for an element.
+  //! \brief Returns a matrix with nodal coordinates for an element.
   //! \param[in] iel Element index
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in one element
@@ -346,6 +346,9 @@ protected:
   //! \param[in] basis Which basis to return size parameters for (mixed methods)
   virtual bool getSize(int& n1, int& n2, int basis = 0) const;
 
+  //! \brief Generates element groups for multi-threading of interior integrals.
+  virtual void generateThreadGroups();
+
   //! \brief Establishes matrices with basis functions and 1st derivatives.
   static void extractBasis(const Go::BasisDerivsSf& spline,
 			   Vector& N, Matrix& dNdu);
@@ -377,11 +380,8 @@ protected:
   const IndexVec& nodeInd; //!< IJ-pairs for the control points (nodes)
   IndexVec      myNodeInd; //!< The actual IJ-pair container
 
-  //! Element groups for multithreaded assembly
+  //! Element groups for multi-threaded assembly
   utl::ThreadGroups threadGroups;
-
-  //! \brief Generate thread groups
-  virtual void generateThreadGroups();
 };
 
 #endif

@@ -48,9 +48,9 @@ public:
   virtual void clear(bool retainGeometry = false);
 
   //! \brief Returns a matrix with nodal coordinates for an element.
-  //! \param[in] iel Element index
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in one element
+  //! \param[in] iel Element index
   virtual bool getElementCoordinates(Matrix& X, int iel) const;
 
   //! \brief Returns a matrix with all nodal coordinates within the patch.
@@ -137,14 +137,16 @@ public:
   virtual bool evalSolution(Matrix& sField, const Integrand& integrand,
 			    const RealArray* gpar, bool regular = true) const;
 
-protected:
-  //! \brief Generate thread groups
-  void generateThreadGroups();
-public:
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction
   //! \param[out] n2 Number of nodes in second (v) direction
   virtual bool getSize(int& n1, int& n2, int = 0) const;
+
+  //! \brief Generates element groups for multi-threading of interior integrals.
+  virtual void generateThreadGroups();
+
+  //! \brief Returns the number of elements on a boundary.
+  virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 
 private:
   size_t nx; //!< Number of nodes in first parameter direction

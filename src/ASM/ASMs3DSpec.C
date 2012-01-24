@@ -101,9 +101,6 @@ bool ASMs3DSpec::integrate (Integrand& integrand,
   if (!Legendre::basisDerivatives(p2,D2)) return false;
   if (!Legendre::basisDerivatives(p3,D3)) return false;
 
-  if (threadGroupsVol.empty())
-    generateThreadGroups();
-
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -132,6 +129,7 @@ bool ASMs3DSpec::integrate (Integrand& integrand,
           ok = false;
           break;
         }
+
 
         // --- Integration loop over all Gauss points in each direction --------
 
@@ -185,6 +183,15 @@ bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
 {
   if (!svol) return true; // silently ignore empty patches
 
+  std::map<char,utl::ThreadGroups>::const_iterator tit;
+  if ((tit = threadGroupsFace.find(lIndex)) == threadGroupsFace.end())
+  {
+    std::cerr <<" *** ASMs3DSpec::integrate: No thread groups for face "<<lIndex
+	      << std::endl;
+    return false;
+  }
+  const utl::ThreadGroups& threadGrp = tit->second;
+
   // Find the parametric direction of the face normal {-3,-2,-1, 1, 2, 3}
   const int faceDir = (lIndex+1)/(lIndex%2 ? -2 : 2);
 
@@ -212,32 +219,37 @@ bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
 
   int nen = p[0]*p[1]*p[2];
 
+
   // === Assembly loop over all elements on the patch face =====================
-  bool ok=true;
-  for (size_t g=0;g<threadGroupsFace[lIndex-1].size() && ok;++g) {
+
+  bool ok = true;
+  for (size_t g = 0; g < threadGrp.size() && ok; ++g) {
 #pragma omp parallel for schedule(static)
-    for (size_t t=0;t<threadGroupsFace[lIndex-1][g].size();++t) {
+    for (size_t t = 0; t < threadGrp[g].size(); ++t) {
       FiniteElement fe(nen);
       Matrix dNdu(nen,3), Xnod, Jac;
       Vec4   X;
       Vec3   normal;
       int    xi[3];
-      for (size_t l=0;l<threadGroupsFace[lIndex-1][g][t].size();++l) {
-        int iel = threadGroupsFace[lIndex-1][g][t][l];
+      for (size_t l = 0; l < threadGrp[g][t].size(); ++l) {
+        int iel = threadGrp[g][t][l];
 
 	// Set up nodal point coordinates for current element
-	if (!this->getElementCoordinates(Xnod,++iel)) {
+        if (!this->getElementCoordinates(Xnod,++iel))
+        {
           ok = false;
           break;
         }
 
 	// Initialize element quantities
-	fe.iel = MLGE[iel-1];
+        fe.iel = MLGE[iel-1];
         LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel,true);
-        if (!integrand.initElementBou(MNPC[iel-1],*A)) {
+        if (!integrand.initElementBou(MNPC[iel-1],*A))
+        {
           ok = false;
           break;
         }
+
 
 	// --- Integration loop over all Gauss points in each direction --------
 
@@ -265,14 +277,16 @@ bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
 
 	    // Evaluate the integrand and accumulate element contributions
 	    fe.detJxW *=  wg[t1-1][i]*wg[t2-1][j];
-            if (!integrand.evalBou(*A,fe,time,X,normal)) {
+            if (!integrand.evalBou(*A,fe,time,X,normal))
+            {
               ok = false;
               break;
             }
 	  }
 
 	// Assembly of global system integral
-	if (!glInt.assemble(A->ref(),fe.iel)) {
+        if (!glInt.assemble(A->ref(),fe.iel))
+        {
           ok = false;
           break;
         }
@@ -378,6 +392,7 @@ bool ASMs3DSpec::integrateEdge (Integrand& integrand, int lEdge,
 	fe.iel = MLGE[iel-1];
         LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel,true);
         if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;
+
 
 	// --- Integration loop over all Gauss points along the edge -----------
 

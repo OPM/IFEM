@@ -231,9 +231,6 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
   const int q1 = p1 - 1;
   const int q2 = p2 - 1;
 
-  if (threadGroups.empty())
-    generateThreadGroups();
-
 
   // === Assembly loop over all elements in the patch ==========================
 

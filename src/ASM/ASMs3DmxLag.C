@@ -256,9 +256,6 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
   const int q2 = p2 - 1;
   const int q3 = p3 - 1;
 
-  if (threadGroupsVol.empty())
-    generateThreadGroups();
-
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -364,6 +361,15 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
 {
   if (!svol) return true; // silently ignore empty patches
 
+  std::map<char,utl::ThreadGroups>::const_iterator tit;
+  if ((tit = threadGroupsFace.find(lIndex)) == threadGroupsFace.end())
+  {
+    std::cerr <<" *** ASMs3DLag::integrate: No thread groups for face "<< lIndex
+	      << std::endl;
+    return false;
+  }
+  const utl::ThreadGroups& threadGrp = tit->second;
+
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
   const double* wg = GaussQuadrature::getWeight(nGauss);
@@ -389,23 +395,20 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
   const int nel1 = (nx2-1)/(p1-1);
   const int nel2 = (ny2-1)/(p2-1);
 
-  if (threadGroupsFace.empty())
-    generateThreadGroups();
-
 
   // === Assembly loop over all elements on the patch face =====================
 
-  bool ok=true;
-  for (size_t g=0;g<threadGroupsFace[lIndex-1].size() && ok;++g) {
+  bool ok = true;
+  for (size_t g = 0; g < threadGrp.size() && ok; ++g) {
 #pragma omp parallel for schedule(static)
-    for (size_t t=0;t<threadGroupsFace[lIndex-1][g].size();++t) {
+    for (size_t t = 0; t < threadGrp[g].size(); ++t) {
       MxFiniteElement fe(p1*p2*p3,q1*q2*q3);
       Matrix dN1du, dN2du, Xnod, Jac;
       Vec4   X;
       Vec3   normal;
       double xi[3];
-      for (size_t l=0;l<threadGroupsFace[lIndex-1][g][t].size();++l) {
-        int iel = threadGroupsFace[lIndex-1][g][t][l];
+      for (size_t l = 0; l < threadGrp[g][t].size(); ++l) {
+        int iel = threadGrp[g][t][l];
         int i1  =  iel % nel1;
         int i2  = (iel / nel1) % nel2;
         int i3  =  iel / (nel1*nel2);

@@ -538,9 +538,6 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
   const int nel2 = n2 - p2 + 1;
   const int nel3 = n3 - p3 + 1;
 
-  if (threadGroupsVol.empty())
-    generateThreadGroups();
-
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -664,6 +661,15 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 
   PROFILE2("ASMs3Dmx::integrate(B)");
 
+  std::map<char,utl::ThreadGroups>::const_iterator tit;
+  if ((tit = threadGroupsFace.find(lIndex)) == threadGroupsFace.end())
+  {
+    std::cerr <<" *** ASMs3D::integrate: No thread groups for face "<< lIndex
+	      << std::endl;
+    return false;
+  }
+  const utl::ThreadGroups& threadGrp = tit->second;
+
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
   const double* wg = GaussQuadrature::getWeight(nGauss);
@@ -706,16 +712,13 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
   const int nel1 = n1 - p1 + 1;
   const int nel2 = n2 - p2 + 1;
 
-  if (threadGroupsFace.empty())
-    generateThreadGroups();
-
 
   // === Assembly loop over all elements on the patch face =====================
 
-  bool ok=true;
-  for (size_t g=0;g<threadGroupsFace[lIndex-1].size() && ok;++g) {
+  bool ok = true;
+  for (size_t g = 0; g < threadGrp.size() && ok; ++g) {
 #pragma omp parallel for schedule(static)
-    for (size_t t=0;t<threadGroupsFace[lIndex-1][g].size();++t) {
+    for (size_t t = 0; t < threadGrp[g].size(); ++t) {
       MxFiniteElement fe(basis1->order(0)*basis1->order(1)*basis1->order(2),
                          basis2->order(0)*basis2->order(1)*basis2->order(2));
       fe.xi = fe.eta = fe.zeta = faceDir < 0 ? -1.0 : 1.0;
@@ -726,8 +729,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
       Matrix dN1du, dN2du, Xnod, Jac;
       Vec4   X;
       Vec3   normal;
-      for (size_t l=0;l<threadGroupsFace[lIndex-1][g][t].size();++l) {
-        int iel = threadGroupsFace[lIndex-1][g][t][l];
+      for (size_t l = 0; l < threadGrp[g][t].size(); ++l) {
+        int iel = threadGrp[g][t][l];
         fe.iel = MLGE[iel];
         if (fe.iel < 1) continue; // zero-volume element
 
