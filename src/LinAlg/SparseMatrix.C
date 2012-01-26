@@ -819,7 +819,7 @@ bool SparseMatrix::solveSLU (Vector& B)
 			   &A.front(), &JA.front(), &IA.front(),
 			   SLU_NC, SLU_D, SLU_GE);
   }
-  else if (factored) 
+  else if (factored)
     slu->opts->Fact = FACTORED; // Re-use previous factorization
   else
  {

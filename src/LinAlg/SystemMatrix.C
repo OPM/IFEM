@@ -37,28 +37,24 @@ SystemVector* SystemVector::create (Type vectorType)
 }
 
 
-void SystemVector::copy(const SystemVector& x)
+SystemVector& SystemVector::copy (const SystemVector& x)
 {
   this->redim(x.size());
-  SystemVector* xsv = const_cast<SystemVector*>(&x);
   real* vec = this->getPtr();
-  memcpy(vec,xsv->getPtr(),x.dim()*sizeof(real));
+  memcpy(vec,x.getRef(),x.dim()*sizeof(real));
   this->restore(vec);
+
+  return *this;
 }
 
 
 SystemMatrix* SystemMatrix::create (Type matrixType, const LinSolParams& spar)
 {
-  if (matrixType == PETSC)
 #ifdef HAS_PETSC
+  if (matrixType == PETSC)
     return new PETScMatrix(spar);
-#else
-  {
-    std::cerr << "PETSc support not compiled in, bailing" << std::endl;
-    exit(1);
-  }
 #endif
- 
+
   return SystemMatrix::create(matrixType);
 }
 
@@ -77,7 +73,8 @@ SystemMatrix* SystemMatrix::create (Type matrixType, int num_thread_SLU)
       static LinSolParams defaultPar;
       return new PETScMatrix(defaultPar);
 #else
-      std::cerr << "PETSc support not compiled in, bailing" << std::endl;
+      std::cerr <<"SystemMatrix::create: PETSc not compiled in, bailing out..."
+		<< std::endl;
       exit(1);
 #endif
     default:
@@ -86,11 +83,4 @@ SystemMatrix* SystemMatrix::create (Type matrixType, int num_thread_SLU)
     }
 
   return 0;
-}
-
-
-bool SystemMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
-{
-  x.copy(b);
-  return this->solve(x,newLHS);
 }
