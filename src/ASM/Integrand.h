@@ -15,6 +15,7 @@
 #define _INTEGRAND_H
 
 #include <vector>
+#include <cstddef>
 
 struct TimeDomain;
 class LocalIntegral;
