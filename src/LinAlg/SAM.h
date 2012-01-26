@@ -58,19 +58,16 @@ public:
   //! \brief Returns max number of DOF couplings in the model.
   int getMaxDofCouplings() const;
 
-  //! \brief Computes number of couplings for each DOF in the system matrix.
+  //! \brief Computes number of couplings for each free DOF in the model.
   //! \param[out] nnz Number of couplings (non-zeroes) for each DOF
-  //! \return \e false if number of couplings is not computed, otherwise \e true
   bool getNoDofCouplings(IntVec& nnz) const;
-
   //! \brief Interface to computation of DOF couplings for distributed matrices.
   virtual bool getNoDofCouplings(int, int, IntVec&, IntVec&) const
   { return false; }
 
-  //! \brief Computes sparse structure (DOF couplings) in the system matrix.
+  //! \brief Computes the sparse structure (DOF couplings) in the system matrix.
   //! \param[out] irow start index for each row in jcol
   //! \param[out] jcol column indices for non-zero entries
-  //! \return \e false if sparse structure is not computed, otherwise \e true
   bool getDofCouplings(IntVec& irow, IntVec& jcol) const;
 
 private:
@@ -276,8 +273,6 @@ protected:
   int& neq;    //!< Number of system equations
   int& nmmnpc; //!< Number of elements in MMNPC
   int& nmmceq; //!< Number of elements in MMCEQ
-
-  size_t nelmdof; //!< Number of degrees of freedom per element
 
   // The standard SAM arrays (see K. Bell's reports for detailed explanation).
   // We are using plane C-pointers for these items such that they more easily

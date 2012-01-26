@@ -27,9 +27,6 @@ bool SAMpatch::init (const ASMVec& model, int numNod)
     if (numNod == 0) nnod += model[i]->getNoNodes();
   }
 
-  // Number of DOFs per element
-  nelmdof = model[0]->getNoElmDOF(0);
-
   // Initialize the node/dof arrays (madof,msc) and compute ndof
   if (!this->initNodeDofs(model))
     return false;

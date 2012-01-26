@@ -65,9 +65,6 @@ SAM::SAM () : nnod(mpar[0]), nel(mpar[1]), ndof(mpar[2]),
 	      nspdof(mpar[5]), nceq(mpar[6]), neq(mpar[10]),
 	      nmmnpc(mpar[14]), nmmceq(mpar[15])
 {
-  // Initialize numberof DOFs pr element
-  nelmdof = 0;
-
   // Initialize the parameters array to zero
   memset(mpar,0,sizeof(mpar));
 
@@ -273,13 +270,14 @@ bool SAM::initSystemEquations ()
 
 int SAM::getMaxDofCouplings () const
 {
-  size_t maxdofc = 0;
-
   std::vector<IntSet> dofc;
-  if (this->getDofCouplings(dofc))
-    for (int i = 0; i < neq; i++)
-      if (dofc[i].size() > maxdofc)
-	maxdofc = dofc[i].size();
+  if (!this->getDofCouplings(dofc))
+    return 0;
+
+  size_t maxdofc = 0;
+  for (int i = 0; i < neq; i++)
+    if (dofc[i].size() > maxdofc)
+      maxdofc = dofc[i].size();
 
   return maxdofc;
 }
@@ -308,9 +306,6 @@ bool SAM::getDofCouplings (IntVec& irow, IntVec& jcol) const
   irow.clear();
   jcol.clear();
 
-  // Not implemented for constrained equations yet
-  if (nceq > 0) return false;
-
   // Find the set of DOF couplings for each free DOF
   std::vector<IntSet> dofc;
   if (!this->getDofCouplings(dofc))
@@ -335,10 +330,10 @@ bool SAM::getDofCouplings (IntVec& irow, IntVec& jcol) const
 bool SAM::getDofCouplings (std::vector<IntSet>& dofc) const
 {
   dofc.resize(neq);
-  for (int e = 1; e <= nel; e++)
+  for (int iel = 1; iel <= nel; iel++)
   {
     IntVec meen;
-    if (!this->getElmEqns(meen,e,nelmdof))
+    if (!this->getElmEqns(meen,iel))
       return false;
 
     for (size_t i = 0; i < meen.size(); i++)
@@ -346,6 +341,15 @@ bool SAM::getDofCouplings (std::vector<IntSet>& dofc) const
 	for (size_t j = 0; j < meen.size(); j++)
 	  if (meen[j] > 0)
 	    dofc[meen[i]-1].insert(meen[j]);
+	  else if (meen[j] < 0)
+	  {
+	    // We have coupling to a slave DOF, so find the master DOFs of that
+	    // constraint equation and insert those as the couplings instead
+	    int iceq = -meen[j];
+	    for (int ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ip++)
+	      if (mmceq[ip] > 0)
+		dofc[meen[i]-1].insert(meqn[mmceq[ip]-1]);
+	  }
   }
 
   return true;
@@ -485,7 +489,7 @@ bool SAM::assembleSystem (SystemVector& sysRHS,
   delete[] work;
 #else
   IntVec meen;
-  if (!this->getElmEqns(meen,iel,eS.size())) 
+  if (!this->getElmEqns(meen,iel,eS.size()))
     ierr = 1;
   else for (size_t i = 0; i < meen.size(); i++)
   {
@@ -593,7 +597,7 @@ bool SAM::getElmEqns (IntVec& meen, int iel, int nedof) const
       meen.push_back(meqn[j-1]);
   }
   int neldof = meen.size();
-  if (neldof == nedof || oldof < 0) return true;
+  if (neldof == nedof || oldof < 1) return true;
 #endif
 
   std::cerr <<"SAM::getElmEqns: Invalid element matrix dimension "
@@ -606,7 +610,7 @@ size_t SAM::getNoElmEqns (int iel) const
 {
   size_t result = 0;
   if (iel < 1 || iel > nel)
-    std::cerr <<"SAM::getElmEqns: Element "<< iel <<" is out of range [1,"
+    std::cerr <<"SAM::getNoElmEqns: Element "<< iel <<" is out of range [1,"
 	      << nel <<"]"<< std::endl;
 
   else for (int ip = mpmnpc[iel-1]; ip < mpmnpc[iel]; ip++)
@@ -711,7 +715,7 @@ bool SAM::expandVector (const real* solVec, Vector& dofVec, real scaleSD) const
 
 real SAM::dot (const Vector& x, const Vector& y, char dofType) const
 {
-  if (nodeType.empty() || dofType == 'A') 
+  if (nodeType.empty() || dofType == 'A')
     return x.dot(y); // All nodes are of the same type, or consider all of them
 
   // Consider only the dofType nodes

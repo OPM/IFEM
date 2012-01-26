@@ -17,15 +17,13 @@
 #include "ASMbase.h"
 #include "MPC.h"
 
-#ifdef HAS_PETSC
+#ifdef PARALLEL_PETSC
 #include "petscversion.h"
-
 #if PETSC_VERSION_MAJOR == 3 && PETSC_VERSION_MINOR >= 2
 #define PETSCMANGLE(x) &x
 #else
 #define PETSCMANGLE(x) x
 #endif
-
 #endif
 
 
@@ -59,17 +57,15 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
 				      IntVec& d_nnz, IntVec& o_nnz) const
 {
 #ifdef PARALLEL_PETSC
-  int i, e;
   int d_ldof, d_gdof, o_ldof, o_gdof;
   size_t j, k;
 
   // Find number of dof couplings for each node
   std::vector<IntSet> d_dofc(ndof), o_dofc(ndof);
-  for (e = 1; e <= nel; e++)
+  for (int iel = 1; iel <= nel; iel++)
   {
     IntVec meen;
-    if (!this->getElmEqns(meen,e,nelmdof))
-      return false;
+    this->getElmEqns(meen,iel);
 
     for (j = 0; j < meen.size(); j++)
       if (meen[j] > 0) {
@@ -99,7 +95,7 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
   }
 
   // Generate nnz for diagonal block
-  int locsize = ilast-ifirst;
+  int i, locsize = ilast-ifirst;
   d_nnz.resize(locsize,0);
   for (i = 0; i < ndof; i++) {
     d_gdof = meqn[i]-1;
@@ -109,7 +105,7 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
 
   // Generate nnz for off-diagonal block
   std::vector<PetscInt> l2g(ndof);
-  Vector nnz(ndof);
+  RealArray nnz(ndof);
   for (i = 0; i < ndof; i++) {
     l2g[i] = meqn[i]-1;
     nnz[i] = o_dofc[i].size();
@@ -133,7 +129,6 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
 
   VecRestoreArray(x,&vec);
   VecDestroy(PETSCMANGLE(x));
-
 #else
   this->SAM::getNoDofCouplings(d_nnz);
   o_nnz = IntVec(ndof,0);
@@ -171,8 +166,9 @@ bool SAMpatchPara::assembleSystem (SystemVector& sysRHS,
   if (!this->getElmEqns(l2g,iel,eS.size()))
     return false;
 
+  size_t i;
   RealArray eSv(eS);
-  for (size_t i = 0; i < l2g.size(); i++) {
+  for (i = 0; i < l2g.size(); i++) {
     if (mpmceq[--l2g[i]] != 0)
       eSv[i] = real(0);
     l2g[i] = meqn[l2g[i]]-1;
@@ -181,9 +177,8 @@ bool SAMpatchPara::assembleSystem (SystemVector& sysRHS,
   PETScVector* pvec = dynamic_cast<PETScVector*>(&sysRHS);
   if (!pvec) return false;
 
-  std::vector<PetscInt> L2g;
-  L2g.resize(l2g.size());
-  for (size_t i=0;i<l2g.size();++i)
+  std::vector<PetscInt> L2g(l2g.size());
+  for (i = 0; i < l2g.size(); i++)
     L2g[i] = l2g[i];
 
   // Add contributions to SV (righthand side)
@@ -202,10 +197,16 @@ bool SAMpatchPara::assembleSystem (SystemVector& sysRHS,
 
 bool SAMpatchPara::getElmEqns (IntVec& meen, int iel, int nedof) const
 {
-  if (iel < 1 || iel > nel) return false;
+  if (iel < 1 || iel > nel)
+  {
+    std::cerr <<"SAMpatchPara::getElmEqns: Element "<< iel
+	      <<" is out of range [1,"<< nel <<"]"<< std::endl;
+    return false;
+  }
 
   int ip = mpmnpc[iel-1];
   int nenod = mpmnpc[iel] - ip;
+  int oldof = nedof;
   if (nedof < 1) nedof = nenod*ndof/nnod;
 
   meen.clear();
@@ -216,7 +217,7 @@ bool SAMpatchPara::getElmEqns (IntVec& meen, int iel, int nedof) const
     for (int j = madof[node-1]; j < madof[node]; j++)
       meen.push_back(j);
   }  
-  if ((int)meen.size() == nedof) return true;   
+  if ((int)meen.size() == nedof || oldof < 1) return true;   
 
   std::cerr <<"SAMpatchPara::getElmEqns: Invalid element matrix dimension "
 	    << nedof <<" (should have been "<< meen.size() <<")"<< std::endl;
@@ -487,7 +488,6 @@ bool SAMpatchPara::initSystemEquations ()
     for (size_t k = 0; k < l2gn.size(); k++)
       if (madof[k] < madof[k+1]) 
 	if (l2gn[k] < min) ghostNodes.push_back(m++);
-
 #endif
 
     // TODO: Fix this for mixed methods (varying DOFs per node)
