@@ -299,13 +299,14 @@ void utl::calcThreadGroups(int nel1, int nel2, utl::ThreadGroups& result)
 {
   int threads=1;
   int groups=1;
+  int stripsize=1;
+  int remainder=0;
 #ifdef USE_OPENMP
   threads = omp_get_max_threads();
   if (threads > 1)
     groups = 2;
-#endif
 
-  int stripsize = nel1/(groups*threads);
+  stripsize = nel1/(groups*threads);
   if (stripsize < 2) {
     std::cerr << __FUNCTION__ << ": Warning: too many threads available." << std::endl
               << "Reducing to a suitable amount" << std::endl;
@@ -315,7 +316,8 @@ void utl::calcThreadGroups(int nel1, int nel2, utl::ThreadGroups& result)
       groups=1;
     stripsize = nel1/(groups*threads);
   }
-  int remainder = nel1-(stripsize*groups*threads);
+  remainder = nel1-(stripsize*groups*threads);
+#endif
   result.resize(groups);
 
 #if SP_DEBUG > 1
@@ -367,13 +369,14 @@ void utl::calcThreadGroups(int nel1, int nel2, int nel3, ThreadGroups& result)
 {
   int threads=1;
   int groups=1;
+  int stripsize=1;
+  int remainder=0;
 #ifdef USE_OPENMP
   threads = omp_get_max_threads();
   if (threads > 1)
     groups = 2;
-#endif
 
-  int stripsize = nel1/(groups*threads);
+  stripsize = nel1/(groups*threads);
   if (stripsize < 2) {
     std::cerr << __FUNCTION__ << ": Warning: too many threads available." << std::endl
               << "Reducing to a suitable amount" << std::endl;
@@ -383,7 +386,8 @@ void utl::calcThreadGroups(int nel1, int nel2, int nel3, ThreadGroups& result)
       groups=1;
     stripsize = nel1/(groups*threads);
   }
-  int remainder = nel1-(stripsize*groups*threads);
+  remainder = nel1-(stripsize*groups*threads);
+#endif
   result.resize(groups);
 
 #if SP_DEBUG > 1
