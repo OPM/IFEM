@@ -28,6 +28,10 @@
 #include "slepceps.h"
 #endif
 
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 #include "LinAlgInit.h"
 
 
@@ -380,7 +384,6 @@ static void assemPETSc (const Matrix& eM, Mat SM, const std::vector<int>& meen,
 			const int* meqn, const int* mpmceq, const int* mmceq,
 			const real* ttcc)
 {
-  real   c0;
   size_t i, j;
   int    ieq, jeq, ip, jp, iceq, jceq;
 
@@ -407,7 +410,6 @@ static void assemPETSc (const Matrix& eM, Mat SM, const std::vector<int>& meen,
     if (jceq < 1) continue;
 
     jp = mpmceq[jceq-1];
-    c0 = ttcc[jp-1];
 
     // Add contributions to SM
     for (jp = mpmceq[jceq-1]; jp < mpmceq[jceq]-1; jp++) {
@@ -485,6 +487,20 @@ void PETScMatrix::initAssembly (const SAM& sam)
     const PetscInt maxdofc = sam.getMaxDofCouplings();
     MatSeqAIJSetPreallocation(A,maxdofc,PETSC_NULL);
   }
+#ifdef USE_OPENMP
+  // dummy assembly loop to avoid matrix resizes during assembly
+  if (omp_get_max_threads() > 1) {
+    std::vector<int> irow;
+    std::vector<int> jcol;
+    std::vector<PetscInt> col;
+    sam.getDofCouplings(irow,jcol);
+    for (size_t i=0;i<jcol.size();++i)
+      col.push_back(jcol[i]-1);
+    MatSeqAIJSetColumnIndices(A,&col[0]);
+    MatSetOption(A, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_TRUE);
+    MatSetOption(A, MAT_KEEP_NONZERO_PATTERN, PETSC_TRUE);
+  }
+#endif
 #endif
 }
 
