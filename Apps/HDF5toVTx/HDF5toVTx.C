@@ -175,7 +175,7 @@ std::vector<RealArray*> generateFEModel(std::vector<ASMbase*> patches,
 
 int main (int argc, char** argv)
 {
-  int format = 0;
+  int format = 1;
   int n[3] = { 5, 5, 5 };
   int dims = 3;
   int skip=1;
@@ -188,8 +188,14 @@ int main (int argc, char** argv)
   float starttime = -1, endtime = -1;
 
   for (int i = 1; i < argc; i++)
-    if (!strcmp(argv[i],"-vtf") && i < argc-1)
-      format = atoi(argv[++i]);
+    if (!strcmp(argv[i],"-format") && i < argc-1) {
+      if (!strcasecmp(argv[++i],"ascii"))
+        format = 0;
+      else if (!strcasecmp(argv[i],"binary"))
+        format = 1;
+      else
+        format = atoi(argv[i]);
+    }
     else if (!strcmp(argv[i],"-nviz") && i < argc-1)
       n[0] = n[1] = n[2] = atoi(argv[++i]);
     else if (!strcmp(argv[i],"-1D"))
@@ -221,9 +227,10 @@ int main (int argc, char** argv)
 
   if (infile.empty()) {
     std::cout <<"usage: "<< argv[0]
-              <<" <inputfile> [<vtffile>|<vtufile>] [-nviz <nviz>]\n"
+              <<" <inputfile> [<vtffile>|<vtufile>] [-nviz <nviz>] \n"
               << "[-ndump <ndump>] [-last] [-start <level>] [-end <level>]\n"
-              << "[-starttime <time>] [-endtime <time>] [-basis <basis>] [-1D|-2D]\n";
+              << "[-starttime <time>] [-endtime <time>] [-basis <basis>] [-1D|-2D]\n"
+              << "[-format <0|1|ASCII|BINARY>]\n";
     return 0;
   }
   else if (!vtffile)
@@ -242,7 +249,7 @@ int main (int argc, char** argv)
 
   VTF* myVtf;
   if (strstr(vtffile,".vtf"))
-    myVtf = new VTF(vtffile,1);
+    myVtf = new VTF(vtffile,format);
   else
     myVtf = new VTU(vtffile,last?1:0);
 
