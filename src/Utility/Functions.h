@@ -381,84 +381,99 @@ protected:
 
 
 /*!
-  \brief A scalar-valued spatial function, linearly interpolated from given dataset
+  \brief A scalar-valued spatial function, linear interpolation.
 */
 
 class Interpolate1D : public RealFunc
 {
+  std::vector<real> grid;   //!< The (1D) grid the data is associated with
+  std::vector<real> values; //!< The (scalar) data values
+  int               dir;    //!< In which direction to perform the interpolation
+
 public:
-  //! \brief Constructor initializing the function parameters.
+  //! \brief The constructor initializes the function parameters from a file.
+  //! \param[in] file Name of file to read grid and function data from
+  //! \param[in] dir_ Coordinate direction of the spatial variation
   Interpolate1D(const char* file, int dir_);
 
 protected:
-  //! \brief Evaluates the function.
+  //! \brief Evaluates the function ny interpolating the 1D grid.
   virtual real evaluate(const Vec3& X) const;
-
-  //! \brief The (1D) grid the data is associated with
-  std::vector<real> grid;
-  //! \brief The (scalar) data values
-  std::vector<real> values;
-  //! \brief In which direction to perform the interpolation
-  int dir;
 };
 
 
-//TODO doxygen...
+/*!
+  \brief A scalar-valued spatial function, general function expression.
+*/
 
 class EvalFunction : public RealFunc
 {
- public:
+  ExprEval::Expression* expr; //!< Pointer to the root of the expression tree
+  ExprEval::FunctionList*  f; //!< Pointer to list of function in the expression
+  ExprEval::ValueList*     v; //!< Pointer to list of variables and constants
+
+  real* x; //!< Pointer to the X-coordinate of the function argument
+  real* y; //!< Pointer to the Y-coordinate of the function argument
+  real* z; //!< Pointer to the Z-coordinate of the function argument
+
+public:
+  //! \brief The constructor parses the expression string.
   EvalFunction(const char* function);
+  //! \brief The destructor frees the dynamically allocated objects.
   virtual ~EvalFunction();
 
- protected:
+protected:
+  //! \brief Evaluates the function expression.
   virtual real evaluate(const Vec3& X) const;
 
-  ExprEval::Expression* expr;
-  ExprEval::FunctionList* f;
-  ExprEval::ValueList* v;
-  real* x;
-  real* y;
-  real* z;
+private:
 #ifdef USE_OPENMP
   omp_lock_t lock;
 #endif
 };
 
 
+/*!
+  \brief A general expression function, of any argument and return type.
+
+  \details The function is implemented as an array of EvalFunction objects of
+  arbitrary length.
+*/
+
 template <class Func, class In, class Ret>
 class EvalMultiFunction : public Func
 {
+  std::vector<EvalFunction*> p; //!< Array of component expressions
+
 public:
+  //! \brief The constructor parses the expression string for each component.
   EvalMultiFunction<Func,In,Ret>(const std::string& functions,
                                  const std::string& variables="")
   {
-    size_t pos = functions.find("|",0), pos2=0;
+    size_t pos = functions.find("|"), pos2 = 0;
     for (int i = 0; pos2 < functions.size(); i++)
     {
-      int ofs=0;
-      if (pos2 != 0)
-        ofs = 1;
-      std::string func;
+      std::string func(variables);
       if (pos == std::string::npos)
-        func = variables+functions.substr(pos2+ofs);
+        func += functions.substr(pos2);
       else
-        func = variables+functions.substr(pos2+ofs,pos-pos2-ofs);
+        func += functions.substr(pos2,pos-pos2);
       p.push_back(new EvalFunction(func.c_str()));
-      pos2 = pos;
+      pos2 = pos > 0 && pos < std::string::npos ? pos+1 : pos;
       pos = functions.find("|",pos+1);
     }
   }
+
+  //! \brief The destructor frees the dynamically allocated functions component.
   virtual ~EvalMultiFunction<Func,In,Ret>()
   {
-    for (size_t i=0;i<p.size();++i)
+    for (size_t i = 0; i < p.size(); i++)
       delete p[i];
   }
 
 protected:
+  //! \brief Evaluates the function expressions.
   virtual Ret evaluate(const In& X) const;
-
-  std::vector<EvalFunction*> p;
 };
 
 //! Vector function expression
