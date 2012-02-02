@@ -1,4 +1,4 @@
-Cook2D-p2-h1.inp -2D -Fbar 2 -nGauss 3 -outPrec 6
+Cook2D-p2-h1.inp -2D -Fbar 2 -nGauss 3 -outPrec 6 -ztol 1.0e-7
 
 Input file: Cook2D-p2-h1.inp
 Equation solver: 2

@@ -225,7 +225,7 @@ int main (int argc, char** argv)
   if (linalg.myPid == 0)
   {
     std::cout <<"\n >>> IFEM Finite Deformation Nonlinear solver <<<"
-	      <<"\n ======================================================\n"
+	      <<"\n ================================================\n"
 	      <<"\n Executing command:\n";
     for (int i = 0; i < argc; i++) std::cout <<" "<< argv[i];
     std::cout <<"\n\nInput file: "<< infile
@@ -256,6 +256,10 @@ int main (int argc, char** argv)
       for (size_t i = 0; i < ignoredPatches.size(); i++)
 	std::cout <<" "<< ignoredPatches[i];
     }
+    if (outPrec != 3)
+      std::cout <<"\nNorm- and component output precision: "<< outPrec;
+    if (zero_tol != 1.0e-8)
+      std::cout <<"\nNorm output zero tolerance: "<< zero_tol;
     std::cout << std::endl;
   }
   utl::profiler->start("Model input");
@@ -336,7 +340,8 @@ int main (int argc, char** argv)
       std::cout <<"\nWriting HDF5 file "<< infile <<".hdf5"<< std::endl;
 
     writer = new DataExporter(true);
-    writer->registerField("u","solution",DataExporter::SIM, skip2nd ? DataExporter::PRIMARY : DataExporter::SECONDARY);
+    writer->registerField("u","solution",DataExporter::SIM,
+			  static_cast<DataExporter::Results>(!skip2nd));
     writer->setFieldValue("u",model,(void*)&simulator.getSolution());
     writer->registerWriter(new HDF5Writer(infile));
     writer->registerWriter(new XMLWriter(infile));

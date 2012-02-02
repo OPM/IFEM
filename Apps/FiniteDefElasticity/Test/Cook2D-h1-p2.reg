@@ -1,4 +1,4 @@
-Cook2D-h1-p2.inp -2D -Fbar 2 -nGauss 3 -lagrange -outPrec 6
+Cook2D-h1-p2.inp -2D -Fbar 2 -nGauss 3 -lagrange -outPrec 6 -ztol 1.0e-6
 
 Input file: Cook2D-h1-p2.inp
 Equation solver: 2
@@ -208,7 +208,7 @@ Number of unknowns    40
   Primary solution summary: L2-norm            : 0.193725
                             Max X-displacement : 0.362768 node 25
                             Max Y-displacement : 0.479194 node 25
-  Total reaction forces: Sum(R) = 1.78894e-08 3.25
+  Total reaction forces: Sum(R) = 0 3.25
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.963321	 a(u^h,u^h) = 0.927987548
   External energy: ((f,u^h)+(t,u^h))^0.5 : 0.871446	(f,u)+(t,u) = 0.7594178079
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 16.8878
@@ -236,7 +236,7 @@ Number of unknowns    40
   Primary solution summary: L2-norm            : 0.494555
                             Max X-displacement : 0.931024 node 25
                             Max Y-displacement : 1.21678 node 25
-  Total reaction forces: Sum(R) = 5.53623e-07 3.75
+  Total reaction forces: Sum(R) = 0 3.75
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.87598	 a(u^h,u^h) = 3.519295644
   External energy: ((f,u^h)+(t,u^h))^0.5 : 1.49695	(f,u)+(t,u) = 2.240863025
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 20.539
@@ -264,7 +264,7 @@ Number of unknowns    40
   Primary solution summary: L2-norm            : 1.21901
                             Max X-displacement : 2.34585 node 25
                             Max Y-displacement : 2.97312 node 20
-  Total reaction forces: Sum(R) = -1.23951e-08 4.25
+  Total reaction forces: Sum(R) = 0 4.25
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.24438	 a(u^h,u^h) = 10.52596974
   External energy: ((f,u^h)+(t,u^h))^0.5 : 2.5004	(f,u)+(t,u) = 6.252001699
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 23.4375
@@ -278,7 +278,7 @@ Number of unknowns    40
   Primary solution summary: L2-norm            : 1.68057
                             Max X-displacement : 3.25836 node 25
                             Max Y-displacement : 4.08054 node 20
-  Total reaction forces: Sum(R) = 2.4235e-08 4.5
+  Total reaction forces: Sum(R) = 0 4.5
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.91784	 a(u^h,u^h) = 15.34944242
   External energy: ((f,u^h)+(t,u^h))^0.5 : 3.01702	(f,u)+(t,u) = 9.102429444
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 24.594
@@ -306,7 +306,7 @@ Number of unknowns    40
   Primary solution summary: L2-norm            : 2.76711
                             Max X-displacement : 5.49068 node 25
                             Max Y-displacement : 6.61748 node 10
-  Total reaction forces: Sum(R) = 1.48978e-08 5
+  Total reaction forces: Sum(R) = 0 5
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 5.23775	 a(u^h,u^h) = 27.43403429
   External energy: ((f,u^h)+(t,u^h))^0.5 : 4.05902	(f,u)+(t,u) = 16.47561617
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 26.6219

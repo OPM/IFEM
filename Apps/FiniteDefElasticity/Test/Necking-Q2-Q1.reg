@@ -1,4 +1,4 @@
-Necking-Q2-Q1.inp -2D -Mixed -nGauss 3 -outPrec 6
+Necking-Q2-Q1.inp -2D -Mixed -nGauss 3 -outPrec 6 -ztol 1.0e-7
 
 Input file: Necking-Q2-Q1.inp
 Equation solver: 2
@@ -84,7 +84,7 @@ Number of unknowns    391
   Primary solution summary: L2-norm            : 0.0463676
                             Max X-displacement : 0.0278475 node 56
                             Max Y-displacement : 0.15 node 162
-  Total reaction forces: Sum(R) = 2.34964e-08 0
+  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -0.511454
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.621604	 a(u^h,u^h) = 0.3863919627
   External energy: ((f,u^h)+(t,u^h))^0.5 : -0.621605	(f,u)+(t,u) = 0.3863933571
@@ -174,7 +174,7 @@ Number of unknowns    391
   Primary solution summary: L2-norm            : 0.125049
                             Max X-displacement : 0.0862022 node 56
                             Max Y-displacement : 0.4 node 162
-  Total reaction forces: Sum(R) = 3.3613e-08 0
+  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -1.47598
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.12954	 a(u^h,u^h) = 1.275852475
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.12947	(f,u)+(t,u) = 1.275698042
@@ -1146,7 +1146,7 @@ Number of unknowns    391
   Primary solution summary: L2-norm            : 1.00617
                             Max X-displacement : 0.775985 node 8
                             Max Y-displacement : 3.1 node 162
-  Total reaction forces: Sum(R) = 0 2.44803e-08
+  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -14.2567
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.608	 a(u^h,u^h) = 13.0176817
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.60749	(f,u)+(t,u) = 13.01399097
