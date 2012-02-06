@@ -322,7 +322,7 @@ bool ASMs2D::assignNodeNumbers (BlockNodes& nodes, int basis)
 	else if (i == n1)
 	  myMLGN[inod] = nodes.ibnod[1];
 	else
-	  myMLGN[inod] = nodes.edges[0].next();
+	  myMLGN[inod] = nodes.edges[2].next();
       }
       else if (j == n2)
       {
@@ -331,14 +331,14 @@ bool ASMs2D::assignNodeNumbers (BlockNodes& nodes, int basis)
 	else if (i == n1)
 	  myMLGN[inod] = nodes.ibnod[3];
 	else
-	  myMLGN[inod] = nodes.edges[1].next();
+	  myMLGN[inod] = nodes.edges[3].next();
       }
       else
       {
 	if (i == 1)
-	  myMLGN[inod] = nodes.edges[2].next();
+	  myMLGN[inod] = nodes.edges[0].next();
 	else if (i == n1)
-	  myMLGN[inod] = nodes.edges[3].next();
+	  myMLGN[inod] = nodes.edges[1].next();
 	else
 	  myMLGN[inod] = nodes.next();
       }
