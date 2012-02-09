@@ -15,6 +15,8 @@
 #ifdef HAS_PETSC
 #include "SAM.h"
 #include "petscversion.h"
+#include "petscis.h"
+#include "petscsys.h"
 
 #if PETSC_VERSION_MAJOR == 3 && PETSC_VERSION_MINOR >= 2
 #include "petscpcmg.h"
@@ -186,6 +188,9 @@ PETScMatrix::PETScMatrix(const LinSolParams& spar) : solParams(spar)
     KSPSetNullSpace(ksp,nsp);
   }
   LinAlgInit::increfs();
+
+  elmIS = 0;
+  ISsize = 0;
 }
 
 
@@ -204,6 +209,9 @@ PETScMatrix::PETScMatrix (const PETScMatrix& B) : solParams(B.solParams)
     KSPSetNullSpace(ksp,nsp);
   }
   LinAlgInit::increfs();
+
+  elmIS = 0;
+  ISsize = 0;
 }
 
 
@@ -219,6 +227,10 @@ PETScMatrix::~PETScMatrix ()
   // Deallocation of matrix object.
   MatDestroy(PETSCMANGLE(A));   
   LinAlgInit::decrefs();
+
+  for (int i = 0;i < ISsize;i++)
+    ISDestroy(elmIS[i]);
+  delete elmIS;
 }
 
 
@@ -445,6 +457,10 @@ void PETScMatrix::initAssembly (const SAM& sam)
   // Get number of equations in linear system
   const PetscInt neq = sam.getNoEquations();
 
+  // RUNAR
+  if (!strncasecmp(solParams.getPreconditioner(),"mat",3))
+    std::cout << "EBE = " << this->makeElementIS(sam) << std::endl;
+
   // Set correct number of rows and columns for matrix.
   MatSetSizes(A,neq,neq,PETSC_DECIDE,PETSC_DECIDE);
   MPI_Barrier(PETSC_COMM_WORLD);
@@ -577,6 +593,8 @@ bool PETScMatrix::multiply (const SystemVector& B, SystemVector& C)
 
 bool PETScMatrix::solve (SystemVector& B, bool newLHS)
 {
+  Mat AebeI;
+
   const PETScVector* Bptr = dynamic_cast<PETScVector*>(&B);
   if (!Bptr)
     return false;
@@ -586,7 +604,12 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
   VecCopy(Bptr->getVector(),x);
   
   // Has lefthand side changed?
-  if (newLHS)
+  if (!strncasecmp(solParams.getPreconditioner(),"mat",3)) {
+    if (!this->makeEBEpreconditioner(A,&AebeI))
+      return false;
+    KSPSetOperators(ksp,A,AebeI,SAME_NONZERO_PATTERN);
+  }
+  else if (newLHS)
     KSPSetOperators(ksp,A,A,SAME_NONZERO_PATTERN);
   else
     KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
@@ -599,6 +622,9 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
   KSPGetIterationNumber(ksp,&its);
   PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getMethod(),its);
   VecDestroy(PETSCMANGLE(x));
+
+  if (ISsize > 0)
+    MatDestroy(AebeI);
 
   return true;
 }
@@ -729,6 +755,89 @@ real PETScMatrix::Linfnorm () const
   PetscReal norm;
   MatNorm(A,NORM_INFINITY,&norm);
   return norm;
+}
+
+
+bool PETScMatrix::makeElementIS(const SAM& sam)
+{
+  std::vector<PetscInt> meen;
+
+  ISsize = sam.getNoElms();
+
+  elmIS = new IS[ISsize];
+  for (int e = 1;e <= ISsize;e++) {
+    if (!sam.getElmEqns(meen,e))
+      return false;
+    std::sort(meen.begin(),meen.end());
+
+    for (size_t i = 0;i < meen.size();i++)
+      meen[i]--;
+
+    int ndof = 0;
+    for (size_t i = 0;i < meen.size();i++)
+      if (meen[i] >= 0)
+	ndof++;
+
+    PetscInt l2g[ndof];
+    ndof = 0;
+    for (size_t i = 0;i < meen.size();i++)
+      if (meen[i] >= 0)
+	l2g[ndof++] = meen[i];
+
+    ISCreateGeneral(PETSC_COMM_SELF,ndof,l2g,&(elmIS[e-1]));
+  }
+   
+  return true;
+}
+
+
+bool PETScMatrix::makeEBEpreconditioner(const Mat A, Mat* AeI)
+{
+  PetscInt         nedof;
+  const PetscInt*  indx;
+  Vector           vals;
+  std::vector<int> locidx;
+
+  if (!elmIS)
+    return false;
+
+  Mat* subMats;
+  MatGetSubMatrices(A,ISsize,elmIS,elmIS,MAT_INITIAL_MATRIX,&subMats);
+
+  MatDuplicate(A,MAT_DO_NOT_COPY_VALUES,AeI);
+  MatZeroEntries(*AeI);
+
+  Matrix elmMat;
+  for (PetscInt e = 0;e < ISsize;e++) {
+    ISGetSize(elmIS[e],&nedof);
+
+    locidx.resize(nedof);
+    for (int i = 0;i < nedof;i++)
+      locidx[i] = i;
+
+    vals.resize(nedof*nedof,true);
+    MatGetValues(subMats[e],nedof,&(locidx.front()),nedof,&(locidx.front()),&(vals.front()));
+
+    int dof = 0;
+    elmMat.resize(nedof,nedof);
+    for (int i = 1;i <= nedof;i++)
+      for (int j = 1;j <= nedof;j++)
+	elmMat(i,j) = vals[dof++];
+
+    utl::invert(elmMat);
+    elmMat.transpose();
+
+    ISGetIndices(elmIS[e],&indx);
+    MatSetValues(*AeI,nedof,indx,nedof,indx,elmMat.ptr(),ADD_VALUES);
+    ISRestoreIndices(elmIS[e],&indx);
+  }
+
+   MatDestroyMatrices(ISsize,&subMats);
+
+   MatAssemblyBegin(*AeI,MAT_FINAL_ASSEMBLY);
+   MatAssemblyEnd(*AeI,MAT_FINAL_ASSEMBLY);
+
+   return true;
 }
 
 #endif // HAS_PETSC

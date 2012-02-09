@@ -227,6 +227,14 @@ private:
   KSP                 ksp;       //!< Linear solver
   MatNullSpace        nsp;       //!< Null-space of linear operator
   const LinSolParams& solParams; //!< Linear solver parameters
+  IS*                 elmIS;     //!< Element index sets
+  PetscInt            ISsize;    //!< Number of index sets/elements
+
+  //! \brief Constructs index set needed for element-by-element preconditioner
+  bool makeElementIS(const SAM& sam);
+
+  //! \brief Constructs the EBE preconditioner of the given matrix
+  bool makeEBEpreconditioner(const Mat A, Mat* AeI);
 
 #else // dummy implementation when PETSc is not included
   virtual SystemMatrix* copy() const { return 0; }
