@@ -345,7 +345,7 @@ int main (int argc, char** argv)
 
                 ok &= writeFieldPatch(tmp.getRow(r),1,*patches[pit->first][j],
                                       FEmodel[j],j+1,
-                                      block,it->name.substr(pos,end),vlist,
+                                      block,it->name.substr(pos,end-pos),vlist,
                                       slist,*myVtf);
                 pos = end+1;
               }
@@ -375,8 +375,9 @@ int main (int argc, char** argv)
           double foo = k;
           myVtf->writeState(k++,"Step %g",foo,1);
         }
-      } else
+      } else 
         return 3;
+
       pit = processlist.begin();
       time += pit->second.begin()->timestep*skip;
     }
