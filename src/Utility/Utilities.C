@@ -130,14 +130,27 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att, real& val)
 
 
 bool utl::getAttribute (const TiXmlElement* xml, const char* att,
-			std::string& val)
+			std::string& val, bool toLower)
 {
-  if (xml->Attribute(att))
-    val = xml->Attribute(att);
-  else
+  if (!xml->Attribute(att))
     return false;
 
+  val = xml->Attribute(att);
+
+  if (toLower)
+    for (size_t i = 0; i < val.size(); i++)
+      val[i] = tolower(val[i]);
+
   return true;
+}
+
+
+bool utl::parseKnots (const TiXmlElement* xml, std::vector<real>& xi)
+{
+  std::string xiVal("xi ");
+  xiVal += xml->FirstChildElement()->Value();
+  strtok(const_cast<char*>(xiVal.c_str())," ");
+  return utl::parseKnots(xi);
 }
 
 

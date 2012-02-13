@@ -239,23 +239,20 @@ bool SIMbase::parseBCTag(const TiXmlElement* elem)
       return true;
     int code=0;
     utl::getAttribute(elem,"code",code);
-    double val=0.f;
+    double val=0.0;
     if (elem->FirstChild() && elem->FirstChild()->Value())
       val = atof(elem->FirstChild()->Value());
-    if (val == 0.f) {
-        setPropertyType(code,Property::DIRICHLET);
-    } else {
-       setPropertyType(code,Property::DIRICHLET_INHOM);
-       char* func=NULL;
-       if (elem->Attribute("function"))
-         func = strdup(elem->Attribute("function"));
-       if (func) {
-         char* func2 = func;
-         func = strtok(func," "); // Why this?
-         myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(func,val));
-         free(func2);
-       } else
-         myScalars[code] = new ConstFunc(val);
+    if (val == 0.0)
+      setPropertyType(code,Property::DIRICHLET);
+    else {
+      setPropertyType(code,Property::DIRICHLET_INHOM);
+      std::string function;
+      if (utl::getAttribute(elem,"function",function)) {
+        char* func = strtok(const_cast<char*>(function.c_str())," ");
+        myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(func,val));
+      }
+      else
+        myScalars[code] = new ConstFunc(val);
     }
   }
 

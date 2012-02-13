@@ -34,6 +34,163 @@ SIM3D::SIM3D (bool checkRHS, unsigned char n1, unsigned char n2)
 }
 
 
+bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
+{
+  if (!strcasecmp(elem->Value(),"refine"))
+  {
+    bool uniform = true;
+    if (elem->Attribute("type"))
+      uniform = strcasecmp(elem->Attribute("type"),"nonuniform") != 0;
+
+    int lowpatch = 1, uppatch = 2;
+    if (utl::getAttribute(elem,"patch",lowpatch))
+      uppatch = lowpatch;
+    if (utl::getAttribute(elem,"lowerpatch",lowpatch))
+      uppatch = myModel.size();
+    utl::getAttribute(elem,"upperpatch",uppatch);
+
+    if (lowpatch < 1 || uppatch > (int)myModel.size())
+    {
+      std::cerr <<" *** SIM3D::parse: Invalid patch indices, lower="
+                << lowpatch <<" upper="<< uppatch << std::endl;
+      return false;
+    }
+
+    if (uniform)
+    {
+      int addu = 0, addv = 0, addw = 0;
+      utl::getAttribute(elem,"u",addu);
+      utl::getAttribute(elem,"v",addv);
+      utl::getAttribute(elem,"w",addw);
+      for (int j = lowpatch-1; j < uppatch; j++)
+      {
+        std::cout <<"\tRefining P"<< j+1
+                  <<" "<< addu <<" "<< addv <<" "<< addw << std::endl;
+        ASMs3D* pch = static_cast<ASMs3D*>(myModel[j]);
+        pch->uniformRefine(0,addu);
+        pch->uniformRefine(1,addv);
+        pch->uniformRefine(2,addw);
+      }
+    }
+    else
+    {
+      RealArray xi;
+      int dir = 1;
+      if (utl::getAttribute(elem,"dir",dir) && utl::parseKnots(elem,xi))
+        for (int j = lowpatch-1; j < uppatch; j++)
+        {
+          std::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
+          for (size_t i = 0; i < xi.size(); i++)
+            std::cout <<" "<< xi[i];
+          std::cout << std::endl;
+          static_cast<ASMs3D*>(myModel[j])->refine(dir-1,xi);
+        }
+    }
+  }
+
+  else if (!strcasecmp(elem->Value(),"raiseorder"))
+  {
+    int lowpatch = 1, uppatch = 2;
+    if (utl::getAttribute(elem,"patch",lowpatch))
+      uppatch = lowpatch;
+    if (utl::getAttribute(elem,"lowerpatch",lowpatch))
+      uppatch = myModel.size();
+    utl::getAttribute(elem,"upperpatch",uppatch);
+
+    if (lowpatch < 1 || uppatch > (int)myModel.size())
+    {
+      std::cerr <<" *** SIM3D::parse: Invalid patch indices, lower="
+                << lowpatch <<" upper="<< uppatch << std::endl;
+      return false;
+    }
+
+    int addu = 0, addv = 0, addw = 0;
+    utl::getAttribute(elem,"u",addu);
+    utl::getAttribute(elem,"v",addv);
+    utl::getAttribute(elem,"w",addw);
+    for (int j = lowpatch-1; j < uppatch; j++)
+    {
+      std::cout <<"\tRaising order of P"<< j+1
+                <<" "<< addu <<" "<< addv  <<" " << addw << std::endl;
+      static_cast<ASMs3D*>(myModel[j])->raiseOrder(addu,addv,addw);
+    }
+  }
+
+  else if (!strcasecmp(elem->Value(),"topology"))
+  { 
+    if (this->createFEMmodel()) return false;
+
+    const TiXmlElement* child = elem->FirstChildElement("connection");
+    while (child)
+    {
+      int master = 0, slave = 0, mFace = 0, sFace = 0, orient = 0;
+      utl::getAttribute(child,"master",master);
+      utl::getAttribute(child,"mface",mFace);
+      utl::getAttribute(child,"slave",slave);
+      utl::getAttribute(child,"sface",sFace);
+      utl::getAttribute(child,"orient",orient);
+
+      if (master == slave ||
+          master < 1 || master > (int)myModel.size() ||
+          slave  < 1 || slave  > (int)myModel.size())
+      {
+        std::cerr <<" *** SIM3D::parse: Invalid patch indices "
+                  << master <<" "<< slave << std::endl;
+        return false;
+      }
+      std::cout <<"\tConnecting P"<< slave <<" F"<< sFace
+                <<" to P"<< master <<" F"<< mFace
+                <<" orient "<< orient << std::endl;
+      ASMs3D* spch = static_cast<ASMs3D*>(myModel[slave-1]);
+      ASMs3D* mpch = static_cast<ASMs3D*>(myModel[master-1]);
+      if (!spch->connectPatch(sFace,*mpch,mFace,orient))
+        return false;
+
+      child = child->NextSiblingElement();
+    }
+  }
+
+  else if (!strcasecmp(elem->Value(),"periodic"))
+  {
+    if (this->createFEMmodel()) return false;
+
+    int patch = 0, pfdir = 1;
+    utl::getAttribute(elem,"patch",patch);
+    utl::getAttribute(elem,"dir",pfdir);
+
+    if (patch < 1 || patch > (int)myModel.size())
+    {
+      std::cerr <<" *** SIM3D::parse: Invalid patch index "
+                << patch << std::endl;
+      return false;
+    }
+    std::cout <<"\tPeriodic "<< char('H'+pfdir) <<"-direction P"<< patch
+              << std::endl;
+    static_cast<ASMs3D*>(myModel[patch-1])->closeFaces(pfdir);
+    // Cannot do multi-threaded assembly with periodicities
+#ifdef USE_OPENMP
+    omp_set_num_threads(1);
+#endif
+  }
+
+  return true;
+}
+
+
+bool SIM3D::parse (const TiXmlElement* elem)
+{
+  bool result = this->SIMbase::parse(elem);
+
+  const TiXmlElement* child = elem->FirstChildElement();
+  while (child) {
+    if (!strcasecmp(elem->Value(),"geometry"))
+      result &= this->parseGeometryTag(child);
+    child = child->NextSiblingElement();
+  }
+  return result;
+}
+
+
 bool SIM3D::parse (char* keyWord, std::istream& is)
 {
   char* cline = 0;
@@ -295,152 +452,6 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
     return this->SIMbase::parse(keyWord,is);
 
   return true;
-}
-
-
-bool SIM3D::parseGeometryTag(const TiXmlElement* elem)
-{
-  // The remaining keywords are retained for backward compatibility with the
-  // prototype version. They enable direct specification of topology and
-  // properties as well as grid refinement without using the GPM module.
-
-  if (!strcasecmp(elem->Value(),"refine")) {
-    bool uniform=true;
-    if (elem->Attribute("type") && !strcasecmp(elem->Attribute("type"),"nonuniform"))
-      uniform = false;
-    size_t lowpatch = 1, uppatch = 2;
-
-    if (elem->Attribute("patch"))
-      lowpatch = uppatch = atoi(elem->Attribute("patch"));
-    if (elem->Attribute("lowerpatch")) {
-      lowpatch = atoi(elem->Attribute("lowerpatch"));
-      uppatch = myModel.size();
-    }
-    if (elem->Attribute("upperpatch"))
-      uppatch = atoi(elem->Attribute("upperpatch"));
-
-    if (lowpatch < 1 || uppatch > myModel.size())
-    {
-      std::cerr <<" *** SIM3D::parse: Invalid patch index "
-        << "lower: " << lowpatch << " upper: " << uppatch << std::endl;
-      return false;
-    }
-
-    if (uniform)
-    {
-      int addu=0, addv = 0, addw = 0;
-      if (elem->Attribute("u"))
-        addu = atoi(elem->Attribute("u"));
-      if (elem->Attribute("v"))
-        addv = atoi(elem->Attribute("v"));
-      if (elem->Attribute("w"))
-        addw = atoi(elem->Attribute("w"));
-      for (size_t j = lowpatch-1; j < uppatch; j++) {
-	  std::cout <<"\tRefining P"<< j+1
-		    <<" "<< addu <<" "<< addv <<" "<< addw << std::endl;
-	  ASMs3D* pch = static_cast<ASMs3D*>(myModel[j]);
-	  pch->uniformRefine(0,addu);
-	  pch->uniformRefine(1,addv);
-	  pch->uniformRefine(2,addw);
-      }
-    } else {
-      int dir=1;
-      if (elem->Attribute("dir"))
-        dir = atoi(elem->Attribute("dir"));
-      char* cline2 = strdup(elem->FirstChildElement()->Value());
-      char* cline = cline2;
-      strtok(cline," ");
-      RealArray xi;
-      while (cline) {
-        xi.push_back(atof(cline));
-        cline = strtok(NULL," ");
-      }
-      free(cline2);
-      ASMs3D* pch;
-      for (size_t j = lowpatch-1; j < uppatch; j++) {
-        if ((pch = dynamic_cast<ASMs3D*>(myModel[j])))
-        {
-	  std::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
-	  for (size_t i = 0; i < xi.size(); i++)
-	    std::cout <<" "<< xi[i];
-	  std::cout << std::endl;
-	  pch->refine(dir-1,xi);
-        }
-      }
-    }
-  } else if (!strcasecmp(elem->Value(),"raiseorder")) {
-    size_t lowpatch = 1, uppatch = 2;
-    if (elem->Attribute("patch"))
-      lowpatch = uppatch = atoi(elem->Attribute("patch"));
-    if (elem->Attribute("lowerpatch")) {
-      lowpatch = atoi(elem->Attribute("lowerpatch"));
-      uppatch = myModel.size();
-    }
-    if (elem->Attribute("upperpatch"))
-      uppatch = atoi(elem->Attribute("upperpatch"));
-
-    if (lowpatch < 1 || uppatch > myModel.size())
-    {
-      std::cerr <<" *** SIM3D::parse: Invalid patch index "
-        << "lower: " << lowpatch << " upper: " << uppatch << std::endl;
-      return false;
-    }
-    int addu=0, addv = 0, addw = 0;
-    if (elem->Attribute("u"))
-      addu = atoi(elem->Attribute("u"));
-    if (elem->Attribute("v"))
-      addv = atoi(elem->Attribute("v"));
-    if (elem->Attribute("w"))
-      addw = atoi(elem->Attribute("w"));
-    ASMs3D* pch;
-    for (size_t j = lowpatch-1; j < uppatch; j++) {
-      if ((pch = dynamic_cast<ASMs3D*>(myModel[j]))) {
-        std::cout <<"\tRaising order of P"<< j+1
-          <<" "<< addu <<" "<< addv  <<" " << addw << std::endl;
-        pch->raiseOrder(addu,addv,addw);
-      }
-    }
-  }
-  else if (!strcasecmp(elem->Value(),"topology")) { // TODO?
-    assert(0);
-  } else if (!strcasecmp(elem->Value(),"periodic")) {
-    if (createFEMmodel()) return false;
-    int patch=0, pfdir=1;
-    if (elem->Attribute("patch"))
-      patch = atoi(elem->Attribute("patch"));
-    if (elem->Attribute("dir"))
-      pfdir = atoi(elem->Attribute("dir"));
-
-    if (patch < 1 || patch > (int)myModel.size()) {
-      std::cerr <<" *** SIM3D::parse: Invalid patch index "
-                << patch << std::endl;
-      return false;
-    }
-    std::cout <<"\tPeriodic "<< char('H'+pfdir) <<"-direction P"<< patch
-              << std::endl;
-    static_cast<ASMs3D*>(myModel[patch-1])->closeFaces(pfdir);
-    // cannot do multi-threaded assembly with periodicities
-#ifdef USE_OPENMP
-    omp_set_num_threads(1);
-#endif
-  }
-  // TODO: topology? constraints? fixpoints?
-
-  return true;
-}
-
-
-bool SIM3D::parse(const TiXmlElement* elem)
-{
-  bool result=SIMbase::parse(elem);
-
-  const TiXmlElement* child = elem->FirstChildElement();
-  while (child) {
-    if (!strcasecmp(elem->Value(),"geometry"))
-      result &= parseGeometryTag(child);
-    child = child->NextSiblingElement();
-  }
-  return result;
 }
 
 

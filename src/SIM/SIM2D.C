@@ -22,7 +22,7 @@
 
 
 /*!
-  A struct defining a patch interface for C1-continuous models.
+  \brief A struct defining a patch interface for C1-continuous models.
 */
 
 struct Interface
@@ -49,123 +49,106 @@ SIM2D::SIM2D (unsigned char n1, unsigned char n2) : isRefined(false)
 }
 
 
-bool SIM2D::parseGeometryTag(const TiXmlElement* elem)
+bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
 {
-  // The remaining keywords are retained for backward compatibility with the
-  // prototype version. They enable direct specification of topology and
-  // properties as well as grid refinement without using the GPM module.
+  if (!strcasecmp(elem->Value(),"refine") && !isRefined)
+  {
+    bool uniform = true;
+    if (elem->Attribute("type"))
+      uniform = strcasecmp(elem->Attribute("type"),"nonuniform") != 0;
 
-  if (!strcasecmp(elem->Value(),"refine") && !isRefined) {
-    ASM2D* pch = 0;
-    bool uniform=true;
-    if (elem->Attribute("type") && !strcasecmp(elem->Attribute("type"),"nonuniform"))
-      uniform = false;
-    size_t lowpatch = 1, uppatch = 2;
-
-    if (elem->Attribute("patch"))
-      lowpatch = uppatch = atoi(elem->Attribute("patch"));
-    if (elem->Attribute("lowerpatch")) {
-      lowpatch = atoi(elem->Attribute("lowerpatch"));
+    int lowpatch = 1, uppatch = 2;
+    if (utl::getAttribute(elem,"patch",lowpatch))
+      uppatch = lowpatch;
+    if (utl::getAttribute(elem,"lowerpatch",lowpatch))
       uppatch = myModel.size();
-    }
-    if (elem->Attribute("upperpatch"))
-      uppatch = atoi(elem->Attribute("upperpatch"));
+    utl::getAttribute(elem,"upperpatch",uppatch);
 
-    if (lowpatch < 1 || uppatch > myModel.size())
+    if (lowpatch < 1 || uppatch > (int)myModel.size())
     {
-      std::cerr <<" *** SIM2D::parse: Invalid patch index "
-        << "lower: " << lowpatch << " upper: " << uppatch << std::endl;
+      std::cerr <<" *** SIM2D::parse: Invalid patch indices, lower="
+                << lowpatch <<" upper="<< uppatch << std::endl;
       return false;
     }
 
+    ASM2D* pch = 0;
     if (uniform)
     {
-      int addu=0, addv = 0;
-      if (elem->Attribute("u"))
-        addu = atoi(elem->Attribute("u"));
-      if (elem->Attribute("v"))
-        addv = atoi(elem->Attribute("v"));
-      for (size_t j = lowpatch-1; j < uppatch; j++) {
-        if ((pch = dynamic_cast<ASM2D*>(myModel[j]))) {
+      int addu = 0, addv = 0;
+      utl::getAttribute(elem,"u",addu);
+      utl::getAttribute(elem,"v",addv);
+      for (int j = lowpatch-1; j < uppatch; j++)
+        if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
+        {
           std::cout <<"\tRefining P"<< j+1
-            <<" "<< addu <<" "<< addv << std::endl;
+                    <<" "<< addu <<" "<< addv << std::endl;
           pch->uniformRefine(0,addu);
           pch->uniformRefine(1,addv);
         }
-      }
-    } else {
-      int dir=1;
-      if (elem->Attribute("dir"))
-        dir = atoi(elem->Attribute("dir"));
-      char* cline2 = strdup(elem->FirstChildElement()->Value());
-      char* cline = cline2;
-      strtok(cline," ");
-      RealArray xi;
-      while (cline) {
-        xi.push_back(atof(cline));
-        cline = strtok(NULL," ");
-      }
-      free(cline2);
-      for (size_t j = lowpatch-1; j < uppatch; j++) {
-        if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
-        {
-          std::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
-          for (size_t i = 0; i < xi.size(); i++)
-            std::cout <<" "<< xi[i];
-          std::cout << std::endl;
-          pch->refine(dir-1,xi);
-        }
-      }
     }
-  } else if (!strcasecmp(elem->Value(),"raiseorder") && !isRefined) {
-    size_t lowpatch = 1, uppatch = 2;
-    if (elem->Attribute("patch"))
-      lowpatch = uppatch = atoi(elem->Attribute("patch"));
-    if (elem->Attribute("lowerpatch")) {
-      lowpatch = atoi(elem->Attribute("lowerpatch"));
-      uppatch = myModel.size();
-    }
-    if (elem->Attribute("upperpatch"))
-      uppatch = atoi(elem->Attribute("upperpatch"));
-
-    if (lowpatch < 1 || uppatch > myModel.size())
+    else
     {
-      std::cerr <<" *** SIM2D::parse: Invalid patch index "
-        << "lower: " << lowpatch << " upper: " << uppatch << std::endl;
-      return false;
-    }
-    int addu=0, addv = 0;
-    if (elem->Attribute("u"))
-      addu = atoi(elem->Attribute("u"));
-    if (elem->Attribute("v"))
-      addv = atoi(elem->Attribute("v"));
-    ASM2D* pch;
-    for (size_t j = lowpatch-1; j < uppatch; j++) {
-      if ((pch = dynamic_cast<ASM2D*>(myModel[j]))) {
-        std::cout <<"\tRaising order of P"<< j+1
-          <<" "<< addu <<" "<< addv << std::endl;
-        pch->raiseOrder(addu,addv);
-      }
+      RealArray xi;
+      int dir = 1;
+      if (utl::getAttribute(elem,"dir",dir) && utl::parseKnots(elem,xi))
+        for (int j = lowpatch-1; j < uppatch; j++)
+          if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
+          {
+            std::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
+            for (size_t i = 0; i < xi.size(); i++)
+              std::cout <<" "<< xi[i];
+            std::cout << std::endl;
+            pch->refine(dir-1,xi);
+          }
     }
   }
-  else if (!strcasecmp(elem->Value(),"topology")) {
-    if (createFEMmodel()) return false;
 
+  else if (!strcasecmp(elem->Value(),"raiseorder") && !isRefined)
+  {
+    int lowpatch = 1, uppatch = 2;
+    if (utl::getAttribute(elem,"patch",lowpatch))
+      uppatch = lowpatch;
+    if (utl::getAttribute(elem,"lowerpatch",lowpatch))
+      uppatch = myModel.size();
+    utl::getAttribute(elem,"upperpatch",uppatch);
+
+    if (lowpatch < 1 || uppatch > (int)myModel.size())
+    {
+      std::cerr <<" *** SIM2D::parse: Invalid patch indices, lower="
+                << lowpatch <<" upper="<< uppatch << std::endl;
+      return false;
+    }
+
+    ASM2D* pch = 0;
+    int addu = 0, addv = 0;
+    utl::getAttribute(elem,"u",addu);
+    utl::getAttribute(elem,"v",addv);
+    for (int j = lowpatch-1; j < uppatch; j++)
+      if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
+      {
+        std::cout <<"\tRaising order of P"<< j+1
+                  <<" "<< addu <<" "<< addv << std::endl;
+        pch->raiseOrder(addu,addv);
+      }
+  }
+
+  else if (!strcasecmp(elem->Value(),"topology"))
+  {
+    if (this->createFEMmodel()) return false;
+
+    std::vector<Interface> top;
     const TiXmlElement* child = elem->FirstChildElement("connection");
-    while (child) {
-      int master=0, slave=0, mEdge=0, sEdge=0;
-      if (child->Attribute("master"))
-        master = atoi(child->Attribute("master"));
-      if (child->Attribute("medge"))
-        mEdge = atoi(child->Attribute("medge"));
-      if (child->Attribute("slave"))
-        slave = atoi(child->Attribute("slave"));
-      if (child->Attribute("sedge"))
-        sEdge = atoi(child->Attribute("sedge"));
+    while (child)
+    {
+      int master = 0, slave = 0, mEdge = 0, sEdge = 0;
+      utl::getAttribute(child,"master",master);
+      utl::getAttribute(child,"medge",mEdge);
+      utl::getAttribute(child,"slave",slave);
+      utl::getAttribute(child,"sedge",sEdge);
 
-      bool rever=false;
-      if (child->Attribute("reverse") && !strcasecmp(child->Attribute("reverse"),"true"))
-        rever = true;
+      bool rever = false;
+      if (child->Attribute("reverse"))
+        rever = strcasecmp(child->Attribute("reverse"),"true") == 0;
 
       if (master == slave ||
           master < 1 || master > (int)myModel.size() ||
@@ -182,18 +165,32 @@ bool SIM2D::parseGeometryTag(const TiXmlElement* elem)
       ASMs2D* mpch = static_cast<ASMs2D*>(myModel[master-1]);
       if (!spch->connectPatch(sEdge,*mpch,mEdge,rever))
         return false;
+      else if (discretization == ASM::SplineC1)
+        top.push_back(Interface(static_cast<ASMs2DC1*>(mpch),mEdge,
+                                static_cast<ASMs2DC1*>(spch),sEdge,rever));
 
       child = child->NextSiblingElement();
     }
-  } else if (!strcasecmp(elem->Value(),"periodic")) {
-    if (createFEMmodel()) return false;
-    int patch=0, pedir=1;
-    if (elem->Attribute("patch"))
-      patch = atoi(elem->Attribute("patch"));
-    if (elem->Attribute("dir"))
-      pedir = atoi(elem->Attribute("dir"));
 
-    if (patch < 1 || patch > (int)myModel.size()) {
+    // Second pass for C1-continuous patches, to set up additional constraints
+    std::vector<Interface>::const_iterator it;
+    for (it = top.begin(); it != top.end(); it++)
+      if (!it->slave.first->connectC1(it->slave.second,
+                                      it->master.first,
+                                      it->master.second,
+                                      it->reversed)) return false;
+  }
+
+  else if (!strcasecmp(elem->Value(),"periodic"))
+  {
+    if (this->createFEMmodel()) return false;
+
+    int patch = 0, pedir = 1;
+    utl::getAttribute(elem,"patch",patch);
+    utl::getAttribute(elem,"dir",pedir);
+
+    if (patch < 1 || patch > (int)myModel.size())
+    {
       std::cerr <<" *** SIM2D::parse: Invalid patch index "
                 << patch << std::endl;
       return false;
@@ -201,25 +198,24 @@ bool SIM2D::parseGeometryTag(const TiXmlElement* elem)
     std::cout <<"\tPeriodic "<< char('H'+pedir) <<"-direction P"<< patch
               << std::endl;
     static_cast<ASMs2D*>(myModel[patch-1])->closeEdges(pedir);
-    // Cannot do multi-threaded assembly with periodicities
 #ifdef USE_OPENMP
+    // Cannot do multi-threaded assembly with periodicities
     omp_set_num_threads(1);
 #endif
   }
-  // TODO: constraints? fixpoints?
 
   return true;
 }
 
 
-bool SIM2D::parse(const TiXmlElement* elem)
+bool SIM2D::parse (const TiXmlElement* elem)
 {
-  bool result=SIMbase::parse(elem);
+  bool result = this->SIMbase::parse(elem);
 
   const TiXmlElement* child = elem->FirstChildElement();
   while (child) {
     if (!strcasecmp(elem->Value(),"geometry"))
-      result &= parseGeometryTag(child);
+      result &= this->parseGeometryTag(child);
     child = child->NextSiblingElement();
   }
   return result;
@@ -389,8 +385,8 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 		<< std::endl;
       static_cast<ASMs2D*>(myModel[patch-1])->closeEdges(pedir);
     }
-    // Cannot do multi-threaded assembly with periodicities
 #ifdef USE_OPENMP
+    // Cannot do multi-threaded assembly with periodicities
     omp_set_num_threads(1);
 #endif
   }
@@ -597,6 +593,25 @@ bool SIM2D::readPatches (std::istream& isp)
 }
 
 
+void SIM2D::readNodes (std::istream& isn)
+{
+  while (isn.good())
+  {
+    int patch = 0;
+    isn >> patch;
+    int pid = getLocalPatchIndex(patch+1);
+    if (pid < 0) return;
+
+    if (!this->readNodes(isn,pid-1))
+    {
+      std::cerr <<" *** SIM2D::readNodes: Failed to assign node numbers"
+		<<" for patch "<< patch+1 << std::endl;
+      return;
+    }
+  }
+}
+
+
 bool SIM2D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
 {
   int i;
@@ -631,41 +646,6 @@ void SIM2D::clonePatches (const FEModelVec& patches,
       myModel.push_back(pch->clone(nf));
 
   g2l = &glb2locN;
-}
-
-
-void SIM2D::readNodes (std::istream& isn)
-{
-  while (isn.good()) {
-    int patch = 0;
-    isn >> patch;
-    ++patch;
-    int pid = getLocalPatchIndex(patch);
-    if (pid < 0)
-      return;
-
-    ASMs2D::BlockNodes n;
-    for (size_t i = 0; i < 4 && isn.good(); i++)
-      isn >> n.ibnod[i];
-    for (size_t i = 0; i < 4 && isn.good(); i++)
-      isn >> n.edges[i].icnod >> n.edges[i].incr;
-    isn >> n.iinod;
-
-    // We always require the node numbers to be 1-based
-    for (size_t i = 0; i < 4; i++)
-      ++n.ibnod[i];
-    for (size_t i = 0; i < 4; i++)
-      ++n.edges[i].icnod;
-    ++n.iinod;
-
-    if (isn.good() && pid > 0) {
-      if (!static_cast<ASMs2D*>(myModel[pid-1])->assignNodeNumbers(n)) {
-        std::cerr <<" *** SIM2D::readNodes: Failed to assign node numbers"
-          <<" for patch "<< patch << std::endl;
-        return;
-      }
-    }
-  }
 }
 
 

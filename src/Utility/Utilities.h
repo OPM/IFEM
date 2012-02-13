@@ -50,26 +50,32 @@ namespace utl
   bool ignoreComments(std::istream& is);
 
   //! \brief Extracts an integer attribute value from the specified XML-element.
-  //! \param[in] xml Pointer to XML-element to evaluate
+  //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
   //! \param[out] val The attribute value
   //! \return \e true if the attribute \a att is found in \a child,
   //! otherwise \e false
   bool getAttribute(const TiXmlElement* xml, const char* att, int& val);
   //! \brief Extracts a real attribute value from the specified XML-element.
-  //! \param[in] xml Pointer to XML-element to evaluate
+  //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
   //! \param[out] val The attribute value
   //! \return \e true if the attribute \a att is found in \a child,
   //! otherwise \e false
   bool getAttribute(const TiXmlElement* xml, const char* att, real& val);
   //! \brief Extracts a string attribute value from the specified XML-element.
-  //! \param[in] xml Pointer to XML-element to evaluate
+  //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
   //! \param[out] val The attribute value
+  //! \param[in] toLower If \e true, convert return string to lower case
   //! \return \e true if the attribute \a att is found in \a child,
   //! otherwise \e false
-  bool getAttribute(const TiXmlElement* xml, const char* att, std::string& val);
+  bool getAttribute(const TiXmlElement* xml, const char* att, std::string& val,
+                    bool toLower = false);
+  //! \brief Parses a sequence of knot values from the specified XML-element.
+  //! \param[in] xml Pointer to XML-element to extract from
+  //! \param xi The knot value(s) is/are appended to this vector
+  bool parseKnots(const TiXmlElement* xml, std::vector<real>& xi);
 
   //! \brief Transforms the integer value \a num into a unique range.
   //! \details This method is invoked on a series of (non-unique) values.
