@@ -40,6 +40,7 @@ void LinSolParams::setDefault ()
   levels    = 0;
   overlap   = 0;
   nullspc   = NONE;
+  asmlu     = false;
 
   atol      = 1.0e-6;
   rtol      = 1.0e-6;
@@ -60,6 +61,7 @@ void LinSolParams::copy (const LinSolParams& spar)
   levels    = spar.levels;
   overlap   = spar.overlap;
   nullspc   = spar.nullspc;
+  asmlu     = spar.asmlu;
 
   atol   = spar.atol;
   rtol   = spar.rtol;
@@ -88,6 +90,8 @@ bool LinSolParams::read (std::istream& is, int nparam)
       int j = 0;
       while (c[j] != EOF && c[j] != '\n' && c[j] != ' ' && c[j] != '\0') j++;
       prec.assign(c,j);
+      if ((asmlu = (prec.substr(0,5) == "asmlu")))
+	prec = "asm";
     }
 
     else if (!strncasecmp(cline,"hypretype",9)) {
@@ -144,7 +148,6 @@ bool LinSolParams::read (std::istream& is, int nparam)
       else
 	nullspc = NONE;
     }
-
     else {
       std::cerr <<" *** LinSolParams::read: Unknown keyword: "
 		<< cline << std::endl;
@@ -153,6 +156,7 @@ bool LinSolParams::read (std::istream& is, int nparam)
 #else
     ;
 #endif
+
   return true;
 }
 
@@ -175,7 +179,12 @@ bool LinSolParams::read (const TiXmlElement* elem)
     if ((value = IsOK(child,"type")))
       method = value;
     else if ((value = IsOK(child,"pc")))
-      prec = value;
+    {
+      if ((asmlu = !strncasecmp(value,"asmlu",5)))
+	prec = "asm";
+      else
+	prec = value;
+    }
     else if ((value = IsOK(child,"hypretype")))
       hypretype = value;
     else if ((value = IsOK(child,"package")))
@@ -219,7 +228,7 @@ bool LinSolParams::read (const char* filename)
 
 
 #ifdef HAS_PETSC
-void LinSolParams::setParams(KSP& ksp) const
+void LinSolParams::setParams (KSP& ksp) const
 {
   // Set linear solver method
   KSPSetType(ksp,method.c_str());
@@ -242,9 +251,24 @@ void LinSolParams::setParams(KSP& ksp) const
     PCASMSetType(pc,PC_ASM_BASIC);
     PCASMSetOverlap(pc,overlap);
   }
+
   PCFactorSetMatSolverPackage(pc,package.c_str());
   PCSetFromOptions(pc);
   PCSetUp(pc);
+
+  // If LU factorization is used on each subdomain
+  if (asmlu) {
+    KSP* subksp;
+    PC   subpc;
+    PetscInt first, nlocal;
+    PCASMGetSubKSP(pc,&nlocal,&first,&subksp);
+
+    for (int i = 0; i < nlocal; i++) {
+      KSPGetPC(subksp[i],&subpc);
+      PCSetType(subpc,PCLU);
+      KSPSetType(subksp[i],KSPPREONLY);
+    }
+  }
 
   KSPSetFromOptions(ksp);
   KSPSetUp(ksp);

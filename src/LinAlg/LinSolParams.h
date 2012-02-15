@@ -117,17 +117,18 @@ public:
   virtual void setParams(KSP& ksp) const;
 
 private:
-  std::string method;   // Linear solver method
-  std::string hypretype;// Type of hypre preconditioner
-  std::string prec;     // Preconditioner
-  std::string package;  // Linear software package (petsc, superlu_dist, ...)
-  PetscReal atol;       // Absolute tolerance
-  PetscReal rtol;       // Relative tolerance
-  PetscReal dtol;       // Divergence tolerance
-  PetscInt  levels;     // Number of levels of fill to use
-  PetscInt  maxIts;     // Maximum number of iterations
-  PetscInt  overlap;    // Number of overlaps
-  NullSpace nullspc;    // Null-space for matrix
+  std::string method;      // Linear solver method
+  std::string hypretype;   // Type of hypre preconditioner
+  std::string prec;        // Preconditioner
+  std::string package;     // Linear software package (petsc, superlu_dist, ...)
+  PetscReal atol;          // Absolute tolerance
+  PetscReal rtol;          // Relative tolerance
+  PetscReal dtol;          // Divergence tolerance
+  PetscInt  levels;        // Number of levels of fill to use
+  PetscInt  maxIts;        // Maximum number of iterations
+  PetscInt  overlap;       // Number of overlaps
+  NullSpace nullspc;       // Null-space for matrix
+  bool      asmlu;         // If LU-factorization should be used on subdomains
 #endif // HAS_PETSC
 };
 
