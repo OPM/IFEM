@@ -229,7 +229,7 @@ PETScMatrix::~PETScMatrix ()
   LinAlgInit::decrefs();
 
   for (int i = 0;i < ISsize;i++)
-    ISDestroy(elmIS[i]);
+    ISDestroy(PETSCMANGLE(elmIS[i]));
   delete elmIS;
 }
 
@@ -624,7 +624,7 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
   VecDestroy(PETSCMANGLE(x));
 
   if (ISsize > 0)
-    MatDestroy(AebeI);
+    MatDestroy(PETSCMANGLE(AebeI));
 
   return true;
 }
@@ -739,10 +739,10 @@ bool PETScMatrix::solveEig (PETScMatrix& B, RealArray& val,
     VecRestoreArray(xr,&xrarr);
   }
   
-  VecDestroy(xi);
-  VecDestroy(xr);
+  VecDestroy(PETSCMANGLE(xi));
+  VecDestroy(PETSCMANGLE(xr));
 
-  EPSDestroy(eps);
+  EPSDestroy(PETSCMANGLE(eps));
 
   return true;
 #endif
@@ -760,7 +760,7 @@ real PETScMatrix::Linfnorm () const
 
 bool PETScMatrix::makeElementIS(const SAM& sam)
 {
-  std::vector<PetscInt> meen;
+  std::vector<int> meen;
 
   ISsize = sam.getNoElms();
 
@@ -784,7 +784,11 @@ bool PETScMatrix::makeElementIS(const SAM& sam)
       if (meen[i] >= 0)
 	l2g[ndof++] = meen[i];
 
+#if PETSC_VERSION_MAJOR == 3 && PETSC_VERSION_MINOR >= 2
+    ISCreateGeneral(PETSC_COMM_SELF,ndof,l2g,PETSC_COPY_VALUES,&(elmIS[e-1]));
+#else
     ISCreateGeneral(PETSC_COMM_SELF,ndof,l2g,&(elmIS[e-1]));
+#endif
   }
    
   return true;
@@ -796,7 +800,7 @@ bool PETScMatrix::makeEBEpreconditioner(const Mat A, Mat* AeI)
   PetscInt         nedof;
   const PetscInt*  indx;
   Vector           vals;
-  std::vector<int> locidx;
+  std::vector<PetscInt> locidx;
 
   if (!elmIS)
     return false;
