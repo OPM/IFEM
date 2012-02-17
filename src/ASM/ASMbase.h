@@ -373,8 +373,7 @@ public:
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order
   //! \param[out] nodeVec Nodal result vector for this patch
-  //! \param[in] nndof Number of DOFs per node (the default is \a nf)
-  //! \param[in] basis Which basis to extract nodal values for (mixed methods)
+  //! \param[in] nndof Number of DOFs per node (the default is \a nf) //! \param[in] basis Which basis to extract nodal values for (mixed methods)
   virtual void extractNodeVec(const Vector& globVec, Vector& nodeVec,
 			      unsigned char nndof = 0, int basis = 0) const;
 
@@ -450,12 +449,18 @@ protected:
 public:
   static bool fixHomogeneousDirichlet; //!< If \e true, pre-eliminate fixed DOFs
 
+  //! \brief Defines the numerical integration scheme to use.
+  //! \param[in] ng Number of Gauss points in each parameter direction
+  void setGauss(int ng) { nGauss = ng; }
+
 protected:
   // Standard finite element data structures
   unsigned char ndim;   //!< Number of parametric dimensions (1, 2 or 3)
   unsigned char nsd;    //!< Number of space dimensions (ndim <= nsd <= 3)
   unsigned char nf;     //!< Number of primary solution fields (1 or larger)
   size_t        neldof; //!< Number of degrees of freedom per element
+
+  int    nGauss;   //!< Numerical integration scheme
 
   const IntVec& MLGE; //!< Matrix of Local to Global Element numbers
   const IntVec& MLGN; //!< Matrix of Local to Global Node numbers

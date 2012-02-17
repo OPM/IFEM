@@ -392,7 +392,7 @@ void SIM1D::setQuadratureRule (size_t ng)
 {
   for (size_t i = 0; i < myModel.size(); i++)
     if (!myModel.empty())
-      static_cast<ASMs1D*>(myModel[i])->setGauss(ng);
+      myModel[i]->setGauss(ng);
 
   this->initIntegrationBuffers();
 }

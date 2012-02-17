@@ -49,10 +49,6 @@ public:
   //! \brief Checks if the patch is empty.
   virtual bool empty() const { return geo == 0; }
 
-  //! \brief Defines the numerical integration scheme to use.
-  //! \param[in] ng Number of Gauss points in each parameter direction
-  void setGauss(int ng) { nGauss = ng; }
-
   //! \brief Resets global element and node counters.
   static void resetNumbering() { gEl = gNod = 0; }
 
@@ -64,7 +60,6 @@ public:
 protected:
   LR::LRSplineSurface* geo; //!< Pointer to the actual spline geometry object
 
-  int    nGauss;   //!< Numerical integration scheme
   static int gEl;  //!< Global element counter
   static int gNod; //!< Global node counter
 
