@@ -314,12 +314,13 @@ void utl::calcThreadGroups(int nel1, int nel2, ThreadGroups& result)
   int groups=1;
   int stripsize=1;
   int remainder=0;
+  int dir=0, mul=1;
 #ifdef USE_OPENMP
   threads = omp_get_max_threads();
   if (threads > 1)
     groups = 2;
 
-  int dir, els, mul;
+  int els;
   int s1 = nel1/(groups*threads);
   int s2 = nel2/(groups*threads);
   int r1 = nel1-(s1*groups*threads);
@@ -420,19 +421,20 @@ void utl::calcThreadGroups(int nel1, int nel2, int nel3, ThreadGroups& result)
   int groups=1;
   int stripsize=1;
   int remainder=0;
+  int dir=0, mul=1;
 #ifdef USE_OPENMP
   threads = omp_get_max_threads();
   if (threads > 1)
     groups = 2;
 
-  int dir, els, mul;
+  int els;
   int s1 = nel1/(groups*threads);
   int s2 = nel2/(groups*threads);
   int s3 = nel3/(groups*threads);
   int r1 = nel1-(s1*groups*threads);
   int r2 = nel2-(s2*groups*threads);
   int r3 = nel3-(s3*groups*threads);
-  if (r1*nel2*nel3 < r2*nel1*nel2 && r1*nel2*nel3 < r3*nel1*nel2 ) {
+  if (r1*nel2*nel3 < r2*nel1*nel3 && r1*nel2*nel3 < r3*nel1*nel2 ) {
     // strips along x axis
     stripsize = s1;
     dir = 0;
