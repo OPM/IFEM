@@ -1540,7 +1540,7 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Go::SplineSurface* s = NULL;
   if (project == 'S')
     s = this->scRecovery(integrand);
-  else if (project == 'Q' || !npe)
+  else if (project == 'D' || !npe)
     s = this->projectSolution(integrand);
 
   if (npe)

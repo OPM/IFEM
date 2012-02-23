@@ -65,6 +65,9 @@
   \arg -KL : Use two-parametric simulation driver for Kirchhoff-Love plate
   \arg -Beam : Use one-parametric simulation driver for C1-continous beam
   \arg -adap : Use adaptive simulation driver with LR-splines discretization
+  \arg -DGL2 : Estimate error using discrete global L2 projection
+  \arg -CGL2 : Estimate error using continuous global L2 projection
+  \arg -SCR : Estimate error using Superconvergent recovery at Greville points
 */
 
 int main (int argc, char** argv)
@@ -72,7 +75,6 @@ int main (int argc, char** argv)
   Profiler prof(argv[0]);
   utl::profiler->start("Initialization");
 
-  std::vector<SIMbase::ProjectionMethod> pOpt;
   SystemMatrix::Type solver = SystemMatrix::SPARSE;
   int nGauss = 4;
   int format = -1;
@@ -93,6 +95,8 @@ int main (int argc, char** argv)
   char* infile = 0;
 
   const LinAlgInit& linalg = LinAlgInit::Init(argc,argv);
+  std::map<SIMbase::ProjectionMethod,std::string> pOpt;
+  std::map<SIMbase::ProjectionMethod,std::string>::const_iterator pit;
 
   for (int i = 1; i < argc; i++)
     if (!strcmp(argv[i],"-dense"))
@@ -171,11 +175,11 @@ int main (int argc, char** argv)
       iop = 10;
     }
     else if (!strcasecmp(argv[i],"-dgl2"))
-      pOpt.push_back(SIMbase::DGL2);
+      pOpt[SIMbase::DGL2] = "Discrete global L2 projection";
     else if (!strcasecmp(argv[i],"-cgl2"))
-      pOpt.push_back(SIMbase::CGL2);
+      pOpt[SIMbase::CGL2] = "Continuous global L2 projection";
     else if (!strcasecmp(argv[i],"-scr"))
-      pOpt.push_back(SIMbase::SCR);
+      pOpt[SIMbase::SCR]  = "Superconvergent recovery";
     else if (!infile)
       infile = argv[i];
     else
@@ -188,6 +192,7 @@ int main (int argc, char** argv)
 	      <<" [-free] [-lag] [-spec] [-LR] [-2D[pstrain|axisymm]] [-KL|-Bea"
 	      <<"m] [-adap] [-nGauss <n>]\n       [-vtf <format> [-nviz <nviz>]"
 	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]] [-hdf5]\n"
+	      <<"       [-DGL2] [-CGL2] [-SCR]\n"
 	      <<"       [-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>]]\n"
 	      <<"       [-ignore <p1> <p2> ...] [-fixDup]"
 	      <<" [-checkRHS] [-check] [-dumpASC]\n";
@@ -300,19 +305,22 @@ int main (int argc, char** argv)
     if (!model->solveSystem(displ.front(),1))
       return 3;
 
-    model->setMode(SIM::RECOVERY);
-    if (SIMbase::discretization != ASM::Spline &&
-	SIMbase::discretization != ASM::SplineC1)
-      pOpt.clear();
+    if (SIMbase::discretization == ASM::Spline ||
+	SIMbase::discretization == ASM::SplineC1)
+      pOpt[SIMbase::GLOBAL] = "Greville point projection";
     else
-      pOpt.insert(pOpt.begin(),SIMbase::GLOBAL);
+      pOpt.clear();
 
     // Project the FE stresses onto the splines basis
-    for (size_t j = 0; j < pOpt.size(); j++)
-      if (!model->project(ssol,displ.front(),pOpt[j]))
+    model->setMode(SIM::RECOVERY);
+    for (pit = pOpt.begin(); pit != pOpt.end(); pit++)
+      if (!model->project(ssol,displ.front(),pit->first))
 	return 4;
       else
 	projs.push_back(ssol);
+
+    if (linalg.myPid == 0 && !pOpt.empty())
+      std::cout << std::endl;
 
     // Integrate solution norms and errors
     if (!model->solutionNorms(displ,projs,eNorm,gNorm))
@@ -327,9 +335,10 @@ int main (int argc, char** argv)
 		  <<"\nExact error a(e,e)^0.5, e=u-u^h      : "<< gNorm(4)
 		  <<"\nExact relative error (%) : "<< gNorm(4)/gNorm(3)*100.0;
       size_t j = model->haveAnaSol() ? 5 : 3;
-      for (size_t i = 0; i < projs.size() && j < gNorm.size(); i++)
+      for (pit = pOpt.begin(); pit != pOpt.end() && j < gNorm.size(); pit++)
       {
-        std::cout <<"\nEnergy norm |u^r| = a(u^r,u^r)^0.5   : "<< gNorm(j++);
+	std::cout <<"\n>>> Error estimates based on "<< pit->second <<" <<<";
+	std::cout <<"\nEnergy norm |u^r| = a(u^r,u^r)^0.5   : "<< gNorm(j++);
 	std::cout <<"\nError norm a(e,e)^0.5, e=u^r-u^h     : "<< gNorm(j++);
 	std::cout <<"\n- relative error (% of |u^r|) : "
 		  << gNorm(j-1)/gNorm(j-2)*100.0;
@@ -337,8 +346,8 @@ int main (int argc, char** argv)
 	  std::cout <<"\nExact error a(e,e)^0.5, e=u-u^r      : "<< gNorm(j-1)
 		    <<"\n- relative error (% of |u|)   : "
 		    << gNorm(j-1)/gNorm(3)*100.0;
+	std::cout << std::endl;
       }
-      std::cout << std::endl;
 
       model->dumpResults(displ.front(),0.0,std::cout,true,6);
     }
@@ -431,9 +440,11 @@ int main (int argc, char** argv)
       return 10;
 
     // Write projected solution fields to VTF-file
-    if (projs.size() > 0)
-      if (!model->writeGlvP(projs.front(),n,iStep,nBlock))
-	return 11;
+    size_t i = 0;
+    for (pit = pOpt.begin(); pit != pOpt.end(); pit++, i++)
+      if (!model->writeGlvP(projs[i],n,iStep,nBlock,0.0,100+10*i,
+			    pit->second.c_str()))
+        return 11;
 
     // Write eigenmodes
     for (it = modes.begin(); it != modes.end(); it++)

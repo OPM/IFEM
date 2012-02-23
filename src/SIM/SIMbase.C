@@ -1569,6 +1569,10 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
     else
       haveAsol = mySol->hasVectorSol() > 1;
 
+  bool doProject = (discretization == ASM::Spline ||
+		    discretization == ASM::SplineC1);
+  doProject = false; // temporary, add a user-option for this
+
   for (i = 0; i < myModel.size(); i++)
   {
     if (myModel[i]->empty()) continue; // skip empty patches
@@ -1617,12 +1621,11 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
       else
 	sID[k++].push_back(nBlock);
 
-    if ((discretization == ASM::Spline || discretization == ASM::SplineC1) &&
-        myProblem->getNoFields(2) > 0)
+    if (doProject && myProblem->getNoFields(2) > 0)
     {
       // 3. Projection of secondary solution variables (tensorial splines only)
 
-      if (!myModel[i]->evalSolution(field,*myProblem,nViz,true))
+      if (!myModel[i]->evalSolution(field,*myProblem,nViz,'D'))
 	return false;
 
       for (j = 1; j <= field.rows() && k < sMAX; j++)
@@ -1698,7 +1701,7 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
     if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,haveAsol?"FE":0),
 			  ++idBlock,iStep)) return false;
 
-  if (discretization == ASM::Spline || discretization == ASM::SplineC1)
+  if (doProject)
     for (i = 0; i < nf && !sID[j].empty(); i++, j++)
       if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,"Projected"),
 			    ++idBlock,iStep)) return false;

@@ -102,6 +102,10 @@ public:
   //! This is used to reinitialize the patch after it has been refined.
   virtual void clear(bool retainGeometry = false);
 
+  //! \brief Defines the numerical integration scheme to use.
+  //! \param[in] ng Number of Gauss points in each parameter direction
+  void setGauss(int ng) { nGauss = ng; }
+
 
   // Service methods for query of various model data
   // ===============================================
@@ -333,13 +337,13 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] npe Number of visualization nodes over each knot span
-  //! \param[in] project Flag indicating the projection method
+  //! \param[in] project Flag indicating result recovery method
   //!
   //! \details The secondary solution is derived from the primary solution,
   //! which is assumed to be stored within the \a integrand for current patch.
-  //! If \a npe is NULL, the solution is evaluated at the Greville points and
-  //! then projected onto the spline basis to obtain the control point values,
-  //! which then are returned through \a sField.
+  //! If \a npe is NULL, the solution is recovered or evaluated at the Greville
+  //! points and then projected onto the spline basis to obtain the control
+  //! point values, which then are returned through \a sField.
   //! If \a npe is not NULL and \a project is defined, the solution is also
   //! projected onto the spline basis, and then evaluated at the \a npe points.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
@@ -364,7 +368,7 @@ public:
   //! \brief Projects the secondary solution using a (discrete) global L2-norm.
   //! \param[out] sField Secondary solution field control point values
   //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] continuous If \e true, perform a continuous L2-projection
+  //! \param[in] continuous If \e true, a continuous L2-projection is used
   virtual bool globalL2projection(Matrix& sField,
 				  const IntegrandBase& integrand,
 				  bool continuous = false) const;
@@ -381,7 +385,8 @@ public:
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order
   //! \param[out] nodeVec Nodal result vector for this patch
-  //! \param[in] nndof Number of DOFs per node (the default is \a nf) //! \param[in] basis Which basis to extract nodal values for (mixed methods)
+  //! \param[in] nndof Number of DOFs per node (the default is \a nf)
+  //! \param[in] basis Which basis to extract nodal values for (mixed methods)
   virtual void extractNodeVec(const Vector& globVec, Vector& nodeVec,
 			      unsigned char nndof = 0, int basis = 0) const;
 
@@ -457,18 +462,13 @@ protected:
 public:
   static bool fixHomogeneousDirichlet; //!< If \e true, pre-eliminate fixed DOFs
 
-  //! \brief Defines the numerical integration scheme to use.
-  //! \param[in] ng Number of Gauss points in each parameter direction
-  void setGauss(int ng) { nGauss = ng; }
-
 protected:
   // Standard finite element data structures
   unsigned char ndim;   //!< Number of parametric dimensions (1, 2 or 3)
   unsigned char nsd;    //!< Number of space dimensions (ndim <= nsd <= 3)
   unsigned char nf;     //!< Number of primary solution fields (1 or larger)
   size_t        neldof; //!< Number of degrees of freedom per element
-
-  int    nGauss;   //!< Numerical integration scheme
+  int           nGauss; //!< Numerical integration scheme
 
   const IntVec& MLGE; //!< Matrix of Local to Global Element numbers
   const IntVec& MLGN; //!< Matrix of Local to Global Node numbers
