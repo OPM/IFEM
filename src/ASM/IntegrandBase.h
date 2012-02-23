@@ -245,17 +245,15 @@ public:
   virtual void initIntegration(size_t, size_t) {}
   //! \brief Initializes the integrand for a new integration loop.
   virtual void initIntegration(const TimeDomain& time);
+  //! \brief Sets the number of projected solutions.
+  void initProjection(size_t nproj) { prjsol.resize(nproj); }
+  //! \brief Sets a vector of LocalIntegrals to be used during norm integration.
+  void setLocalIntegrals(LintegralVec* elementNorms) { lints = elementNorms; }
 
-  //! \brief Set a vector of LocalIntegrals to be used during norm integration
-  void setLocalIntegrals(LintegralVec* elementNorms)
-  {
-    lints = elementNorms;
-  }
-
-  //! \brief Get a local integral contribution container for a given element
-  //! \param[in] nen Number of DOFs on element
+  //! \brief Returns a local integral container for the given element.
+  //! \param[in] nen Number of nodes on element
   //! \param[in] iEl The element number
-  //! \param[in] neumann Whether or not we are assembling Neumann b.c's
+  //! \param[in] neumann Whether or not we are assembling Neumann BC's
   virtual LocalIntegral* getLocalIntegral(size_t nen, size_t iEl,
                                           bool neumann) const;
 
@@ -305,7 +303,7 @@ protected:
   Vectors prjsol; //!< Projected secondary solution vectors for current patch
 
   unsigned short int nrcmp; //!< Number of projected solution components
-  LintegralVec* lints; //!< Vector of local integrals used during norm integration
+  LintegralVec*      lints; //!< Local integrals used during norm integration
 };
 
 #endif

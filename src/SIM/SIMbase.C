@@ -1156,14 +1156,11 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   }
 
   myProblem->initIntegration(time);
+  norm->initProjection(ssol.size());
   norm->initIntegration(nIntGP,nBouGP);
   const Vector& primsol = psol.front();
 
   size_t i, j, k;
-  for (i = 0; i < ssol.size(); i++)
-    if (!ssol[i].empty())
-      norm->getProjection(i+1);
-
   size_t nCmp = ssol.empty() ? 0 : ssol.front().size() / mySam->getNoNodes();
   size_t nNorms = norm->getNoFields();
   gNorm.resize(nNorms,true);
@@ -1202,7 +1199,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 	myModel[j-1]->extractNodeVec(primsol,myProblem->getSolution());
 	for (k = 0; k < ssol.size(); k++)
 	  if (!ssol[k].empty())
-	    myModel[j-1]->extractNodeVec(ssol[k],norm->getProjection(k+1),nCmp);
+	    myModel[j-1]->extractNodeVec(ssol[k],norm->getProjection(k),nCmp);
 	ok = myModel[j-1]->integrate(*norm,globalNorm,time);
 	lp = j;
       }
@@ -1217,7 +1214,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
       myModel[i]->extractNodeVec(primsol,myProblem->getSolution());
       for (k = 0; k < ssol.size(); k++)
 	if (!ssol[k].empty())
-	  myModel[i]->extractNodeVec(ssol[k],norm->getProjection(k+1),nCmp);
+	  myModel[i]->extractNodeVec(ssol[k],norm->getProjection(k),nCmp);
       ok = myModel[i]->integrate(*norm,globalNorm,time);
       lp = i+1;
     }
@@ -2088,7 +2085,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
   PROFILE1("Solution projection");
 
   if (msgLevel > 1)
-    std::cout <<"\nProjecting secondary solution ...\n"<< std::endl;
+    std::cout <<"\nProjecting secondary solution ..."<< std::endl;
 
   ssol.resize(0,0);
 
@@ -2108,26 +2105,36 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     // Project the secondary solution and retrieve control point values
     switch (pMethod) {
     case GLOBAL:
+      if (msgLevel > 1 && i == 0)
+	std::cout <<"\tGreville point projection"<< std::endl;
       if (!myModel[i]->evalSolution(values,*myProblem))
 	return false;
       break;
 
     case DGL2:
+      if (msgLevel > 1 && i == 0)
+	std::cout <<"\tDiscrete global L2-projection"<< std::endl;
       if (!myModel[i]->globalL2projection(values,*myProblem))
 	return false;
       break;
 
     case CGL2:
+      if (msgLevel > 1 && i == 0)
+	std::cout <<"\tContinuous global L2-projection"<< std::endl;
       if (!myModel[i]->globalL2projection(values,*myProblem,true))
-        return false;
+	return false;
       break;
 
     case SCR:
+      if (msgLevel > 1 && i == 0)
+	std::cout <<"\tSuperconvergent recovery"<< std::endl;
       if (!myModel[i]->evalSolution(values,*myProblem,0,'S'))
-        return false;
+	return false;
       break;
 
     case LOCAL:
+      if (msgLevel > 1 && i == 0)
+	std::cout <<"\tLocal projection"<< std::endl;
       // Annette, add your local projection stuff here...
 
     default:

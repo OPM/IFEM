@@ -154,15 +154,11 @@ void NormBase::initIntegration (const TimeDomain& time)
 
 Vector& NormBase::getProjection (size_t i)
 {
-  if (i > nrcmp)
-  {
-    static Vector dummy;
-    return dummy;
-  }
-  else if (prjsol.size() < i)
-    prjsol.resize(i);
+  if (i < prjsol.size())
+    return prjsol[i];
 
-  return prjsol[i-1];
+  static Vector dummy;
+  return dummy;
 }
 
 
