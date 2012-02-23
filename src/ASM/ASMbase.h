@@ -361,6 +361,12 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
 			    const RealArray* gpar, bool regular = true) const;
 
+  //! \brief Projects the secondary solution using a discrete global L2-norm.
+  //! \param[out] sField Secondary solution field control point values
+  //! \param[in] integrand Object with problem-specific data and methods
+  virtual bool globalL2projection(Matrix& sField,
+				  const IntegrandBase& integrand) const;
+
 
   // Methods for result extraction
   // =============================

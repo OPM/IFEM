@@ -24,6 +24,7 @@
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
+#include "SparseMatrix.h"
 #include "ElementBlock.h"
 #include "Utilities.h"
 #include "Profiler.h"
@@ -848,8 +849,8 @@ size_t ASMs2D::getNoBoundaryElms (char lIndex, char ldim) const
 }
 
 
-void ASMs2D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
-				      const double* xi) const
+const Vector& ASMs2D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
+					       const double* xi) const
 {
   int pm1 = (dir == 0 ? surf->order_u() : surf->order_v()) - 1;
   RealArray::const_iterator uit = surf->basis(dir).begin() + pm1;
@@ -865,6 +866,8 @@ void ASMs2D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
       uGP(i,j) = 0.5*((ucurr-uprev)*xi[i-1] + ucurr+uprev);
     uprev = ucurr;
   }
+
+  return uGP;
 }
 
 
@@ -1598,7 +1601,7 @@ Go::GeomObject* ASMs2D::evalSolution (const IntegrandBase& integrand) const
 }
 
 
-Go::SplineSurface* ASMs2D::projectSolution (const IntegrandBase& integrand) const
+Go::SplineSurface* ASMs2D::projectSolution (const IntegrandBase& integrnd) const
 {
   // Compute parameter values of the result sampling points (Greville points)
   RealArray gpar[2];
@@ -1608,12 +1611,12 @@ Go::SplineSurface* ASMs2D::projectSolution (const IntegrandBase& integrand) cons
 
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
-  if (!this->evalSolution(sValues,integrand,gpar))
+  if (!this->evalSolution(sValues,integrnd,gpar))
     return 0;
 
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.
-  // Note that we here implicitly assume the the number of Greville points
+  // Note that we here implicitly assume that the number of Greville points
   // equals the number of control points such that we don't have to resize
   // the result array. Think that is always the case, but beware if trying
   // other projection schemes later.
@@ -1711,6 +1714,96 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     sField.fillColumn(1+i,solPt);
   }
+
+  return true;
+}
+
+
+bool ASMs2D::globalL2projection (Matrix& sField,
+				 const IntegrandBase& integrand) const
+{
+  if (!surf) return true; // silently ignore empty patches
+
+  PROFILE2("ASMs2D::globalL2");
+
+  const int p1 = surf->order_u();
+  const int p2 = surf->order_v();
+
+  // Get Gaussian quadrature points
+  const double* xg = GaussQuadrature::getCoord(p1-1);
+  const double* yg = GaussQuadrature::getCoord(p2-1);
+  if (!xg || !yg) return false;
+
+  // Compute parameter values of the Gauss points over the whole patch
+  Matrix gp;
+  RealArray gpar[2];
+  gpar[0] = this->getGaussPointParameters(gp,0,p1-1,xg);
+  gpar[1] = this->getGaussPointParameters(gp,1,p2-1,yg);
+
+  // Evaluate basis functions at all integration points
+  std::vector<Go::BasisPtsSf> spline;
+  surf->computeBasisGrid(gpar[0],gpar[1],spline);
+
+  // Evaluate the secondary solution at all integration points
+  if (!this->evalSolution(sField,integrand,gpar))
+    return false;
+
+  const size_t nnod = this->getNoNodes();
+  const size_t ncomp = sField.rows();
+  SparseMatrix A(SparseMatrix::SUPERLU);
+  StdVector B(nnod*ncomp);
+  A.redim(nnod,nnod);
+
+
+  // === Assembly loop over all elements in the patch ==========================
+
+  bool ok = true;
+  const int nel1 = surf->numCoefs_u() - p1 + 1;
+  for (size_t g = 0; g < threadGroups.size() && ok; ++g)
+  {
+#pragma omp parallel for schedule(static)
+    for (size_t t = 0; t < threadGroups[g].size(); ++t)
+      for (size_t i = 0; i < threadGroups[g][t].size(); ++i)
+      {
+        int iel = threadGroups[g][t][i];
+        if (MLGE[iel] < 1) continue; // zero-area element
+
+        int i1 = p1 + iel % nel1;
+        int i2 = p2 + iel / nel1;
+
+        // --- Integration loop over all Gauss points in each direction --------
+
+        int ip = ((i2-p2)*(p1-1)*nel1 + i1-p1)*(p2-1);
+        for (int j = 0; j < p2-1; j++, ip += (p1-1)*(nel1-1))
+          for (int i = 0; i < p1-1; i++, ip++)
+          {
+            // Fetch basis function values at current integration point
+	    const RealArray& phi = spline[ip].basisValues;
+
+	    // Integrate the linear system A*x=B
+	    for (size_t ii = 0; ii < phi.size(); ii++)
+	    {
+	      int inod = MNPC[iel][ii]+1;
+	      for (size_t jj = 0; jj < phi.size(); jj++)
+	      {
+		int jnod = MNPC[iel][jj]+1;
+		A(inod,jnod) += phi[ii]*phi[jj];
+	      }
+	      for (size_t r = 1; r <= ncomp; r++)
+		B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1);
+	    }
+	  }
+      }
+  }
+
+  // Solve the patch-global equation system
+  if (!A.solve(B)) return false;
+
+  // Store the control-point values of the projected field
+  sField.resize(ncomp,nnod);
+  for (size_t i = 1; i <= nnod; i++)
+    for (size_t j = 1; j <= ncomp; j++)
+      sField(j,i) = B(i+(j-1)*nnod);
 
   return true;
 }

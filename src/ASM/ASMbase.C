@@ -762,3 +762,11 @@ bool ASMbase::evalSolution (Matrix&, const IntegrandBase&,
 	    << std::endl;
   return false;
 }
+
+
+bool ASMbase::globalL2projection (Matrix&, const IntegrandBase&) const
+{
+  std::cerr <<" *** ASMBase::globalL2projection: Must be implemented in"
+	    <<" sub-class."<< std::endl;
+  return false;
+}

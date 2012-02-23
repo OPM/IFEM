@@ -2112,6 +2112,11 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
 	return false;
       break;
 
+    case DGL2:
+      if (!myModel[i]->globalL2projection(values,*myProblem))
+	return false;
+      break;
+
     case LOCAL:
       // Annette, add your local projection stuff here...
 

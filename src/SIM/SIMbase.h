@@ -309,7 +309,7 @@ public:
 		   size_t iA = 0, size_t iB = 1);
 
   //! \brief Enum defining the available projection methods.
-  enum ProjectionMethod { GLOBAL, LOCAL };
+  enum ProjectionMethod { GLOBAL, DGL2, LOCAL };
   //! \brief Projects the secondary solution associated with a primary solution.
   //! \param[out] ssol Control point values of the secondary solution
   //! \param[in] psol Control point values of the primary solution

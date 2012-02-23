@@ -297,8 +297,16 @@ int main (int argc, char** argv)
     if (SIMbase::discretization == ASM::Spline ||
 	SIMbase::discretization == ASM::SplineC1)
     {
-      // Project the FE stresses onto the splines basis
+      // Project the FE stresses onto the splines basis,
+      // based on sampling the Greville points
       if (!model->project(ssol,displ.front(),SIMbase::GLOBAL))
+	return 4;
+      else
+	projs.push_back(ssol);
+
+      // Project the FE stresses onto the splines basis,
+      // based on discrete global L2 projection
+      if (!model->project(ssol,displ.front(),SIMbase::DGL2))
 	return 4;
       else
 	projs.push_back(ssol);
