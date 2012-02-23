@@ -362,6 +362,12 @@ public:
   //! \param[in] nSegSpan Number of visualization segments over each knot-span
   virtual bool getGridParameters(RealArray& prm, int dir, int nSegSpan) const;
 
+  //! \brief Projects the secondary solution using a discrete global L2-norm.
+  //! \param[out] sField Secondary solution field control point values
+  //! \param[in] integrand Object with problem-specific data and methods
+  virtual bool globalL2projection(Matrix& sField,
+				  const IntegrandBase& integrand) const;
+
 protected:
 
   // Internal utility methods
@@ -383,8 +389,9 @@ protected:
   //! \param[in] dir Parameter direction (0,1,2)
   //! \param[in] nGauss Number of Gauss points along a knot-span
   //! \param[in] xi Dimensionless Gauss point coordinates [-1,1]
-  void getGaussPointParameters(Matrix& uGP, int dir, int nGauss,
-			       const double* xi) const;
+  //! \return The parameter value matrix costed into a one-dimensional vector
+  const Vector& getGaussPointParameters(Matrix& uGP, int dir, int nGauss,
+					const double* xi) const;
 
   //! \brief Calculates parameter values for the Greville points.
   //! \param[out] prm Parameter values in given direction for all points

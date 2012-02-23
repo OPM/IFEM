@@ -1728,17 +1728,23 @@ bool ASMs2D::globalL2projection (Matrix& sField,
 
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
+  const int n1 = surf->numCoefs_u();
+  const int n2 = surf->numCoefs_v();
+  const int nel1 = n1 - p1 + 1;
+  const int nel2 = n2 - p2 + 1;
 
   // Get Gaussian quadrature points
-  const double* xg = GaussQuadrature::getCoord(p1-1);
-  const double* yg = GaussQuadrature::getCoord(p2-1);
+  const int ng1 = p1 - 1;
+  const int ng2 = p2 - 1;
+  const double* xg = GaussQuadrature::getCoord(ng1);
+  const double* yg = GaussQuadrature::getCoord(ng2);
   if (!xg || !yg) return false;
 
   // Compute parameter values of the Gauss points over the whole patch
   Matrix gp;
   RealArray gpar[2];
-  gpar[0] = this->getGaussPointParameters(gp,0,p1-1,xg);
-  gpar[1] = this->getGaussPointParameters(gp,1,p2-1,yg);
+  gpar[0] = this->getGaussPointParameters(gp,0,ng1,xg);
+  gpar[1] = this->getGaussPointParameters(gp,1,ng2,yg);
 
   // Evaluate basis functions at all integration points
   std::vector<Go::BasisPtsSf> spline;
@@ -1748,6 +1754,7 @@ bool ASMs2D::globalL2projection (Matrix& sField,
   if (!this->evalSolution(sField,integrand,gpar))
     return false;
 
+  // Set up the projection matrices
   const size_t nnod = this->getNoNodes();
   const size_t ncomp = sField.rows();
   SparseMatrix A(SparseMatrix::SUPERLU);
@@ -1757,44 +1764,35 @@ bool ASMs2D::globalL2projection (Matrix& sField,
 
   // === Assembly loop over all elements in the patch ==========================
 
-  bool ok = true;
-  const int nel1 = surf->numCoefs_u() - p1 + 1;
-  for (size_t g = 0; g < threadGroups.size() && ok; ++g)
-  {
-#pragma omp parallel for schedule(static)
-    for (size_t t = 0; t < threadGroups[g].size(); ++t)
-      for (size_t i = 0; i < threadGroups[g][t].size(); ++i)
-      {
-        int iel = threadGroups[g][t][i];
-        if (MLGE[iel] < 1) continue; // zero-area element
+  int iel = 0;
+  for (int i2 = 0; i2 < nel2; i2++)
+    for (int i1 = 0; i1 < nel1; i1++, iel++)
+    {
+      if (MLGE[iel] < 1) continue; // zero-area element
 
-        int i1 = p1 + iel % nel1;
-        int i2 = p2 + iel / nel1;
+      // --- Integration loop over all Gauss points in each direction ----------
 
-        // --- Integration loop over all Gauss points in each direction --------
+      int ip = (i2*ng1*nel1 + i1)*ng2;
+      for (int j = 0; j < ng2; j++, ip += ng1*(nel1-1))
+	for (int i = 0; i < ng1; i++, ip++)
+	{
+	  // Fetch basis function values at current integration point
+	  const RealArray& phi = spline[ip].basisValues;
 
-        int ip = ((i2-p2)*(p1-1)*nel1 + i1-p1)*(p2-1);
-        for (int j = 0; j < p2-1; j++, ip += (p1-1)*(nel1-1))
-          for (int i = 0; i < p1-1; i++, ip++)
-          {
-            // Fetch basis function values at current integration point
-	    const RealArray& phi = spline[ip].basisValues;
-
-	    // Integrate the linear system A*x=B
-	    for (size_t ii = 0; ii < phi.size(); ii++)
+	  // Integrate the linear system A*x=B
+	  for (size_t ii = 0; ii < phi.size(); ii++)
+	  {
+	    int inod = MNPC[iel][ii]+1;
+	    for (size_t jj = 0; jj < phi.size(); jj++)
 	    {
-	      int inod = MNPC[iel][ii]+1;
-	      for (size_t jj = 0; jj < phi.size(); jj++)
-	      {
-		int jnod = MNPC[iel][jj]+1;
-		A(inod,jnod) += phi[ii]*phi[jj];
-	      }
-	      for (size_t r = 1; r <= ncomp; r++)
-		B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1);
+	      int jnod = MNPC[iel][jj]+1;
+	      A(inod,jnod) += phi[ii]*phi[jj];
 	    }
+	    for (size_t r = 1; r <= ncomp; r++)
+	      B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1);
 	  }
-      }
-  }
+	}
+    }
 
   // Solve the patch-global equation system
   if (!A.solve(B)) return false;

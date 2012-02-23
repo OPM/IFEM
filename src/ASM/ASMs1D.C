@@ -23,6 +23,7 @@
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
+#include "SparseMatrix.h"
 #include "ElementBlock.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
@@ -455,8 +456,8 @@ int ASMs1D::getSize (int) const
 }
 
 
-void ASMs1D::getGaussPointParameters (Matrix& uGP, int nGauss,
-				      const double* xi) const
+const Vector& ASMs1D::getGaussPointParameters (Matrix& uGP, int nGauss,
+					       const double* xi) const
 {
   int pm1 = curv->order() - 1;
   RealArray::const_iterator uit = curv->basis().begin() + pm1;
@@ -472,6 +473,8 @@ void ASMs1D::getGaussPointParameters (Matrix& uGP, int nGauss,
       uGP(i,j) = 0.5*((ucurr-uprev)*xi[i-1] + ucurr+uprev);
     uprev = ucurr;
   }
+
+  return uGP;
 }
 
 
@@ -950,7 +953,7 @@ Go::SplineCurve* ASMs1D::projectSolution (const IntegrandBase& integrand) const
 
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.
-  // Note that we here implicitly assume the the number of Greville points
+  // Note that we here implicitly assume that the number of Greville points
   // equals the number of control points such that we don't have to resize
   // the result array. Think that is always the case, but beware if trying
   // other projection schemes later.
@@ -1019,6 +1022,80 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     sField.fillColumn(1+i,solPt);
   }
+
+  return true;
+}
+
+
+bool ASMs1D::globalL2projection (Matrix& sField,
+				 const IntegrandBase& integrand) const
+{
+  if (!curv) return true; // silently ignore empty patches
+
+  const int p1 = curv->order();
+  const int n1 = curv->numCoefs();
+  const int nel = n1 - p1 + 1;
+
+  // Get Gaussian quadrature points
+  const int ng1 = p1 - 1;
+  const double* xg = GaussQuadrature::getCoord(ng1);
+  if (!xg) return false;
+
+  // Compute parameter values of the Gauss points over the whole patch
+  Matrix gp;
+  RealArray gpar = this->getGaussPointParameters(gp,ng1,xg);
+
+  // Evaluate the secondary solution at all integration points
+  if (!this->evalSolution(sField,integrand,&gpar))
+    return false;
+
+  // Set up the projection matrices
+  const size_t nnod = this->getNoNodes();
+  const size_t ncomp = sField.rows();
+  SparseMatrix A(SparseMatrix::SUPERLU);
+  StdVector B(nnod*ncomp);
+  A.redim(nnod,nnod);
+
+  RealArray phi(p1);
+
+
+  // === Assembly loop over all elements in the patch ==========================
+
+  int ip = 0;
+  for (int iel = 1; iel <= nel; iel++)
+  {
+    if (MLGE[iel-1] < 1) continue; // zero-area element
+
+    // --- Integration loop over all Gauss points in current element -----------
+
+    for (int i = 1; i <= ng1; i++, ip++)
+    {
+      // Fetch basis function values at current integration point
+      curv->basis().computeBasisValues(gp(i,iel),&phi.front());
+
+      // Integrate the linear system A*x=B
+      for (size_t ii = 0; ii < phi.size(); ii++)
+      {
+	int inod = MNPC[iel][ii]+1;
+	for (size_t jj = 0; jj < phi.size(); jj++)
+	{
+	  int jnod = MNPC[iel][jj]+1;
+	  A(inod,jnod) += phi[ii]*phi[jj];
+	}
+	for (size_t r = 1; r <= ncomp; r++)
+	  B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1);
+      }
+    }
+  }
+
+  // Solve the patch-global equation system
+  if (!A.solve(B)) return false;
+
+  // Store the control-point values of the projected field
+  sField.resize(ncomp,nnod);
+  for (size_t i = 1; i <= nnod; i++)
+    for (size_t j = 1; j <= ncomp; j++)
+      sField(j,i) = B(i+(j-1)*nnod);
 
   return true;
 }

@@ -23,6 +23,7 @@
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
+#include "SparseMatrix.h"
 #include "ElementBlock.h"
 #include "Utilities.h"
 #include "Profiler.h"
@@ -1053,8 +1054,8 @@ size_t ASMs3D::getNoBoundaryElms (char lIndex, char ldim) const
 }
 
 
-void ASMs3D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
-				      const double* xi) const
+const Vector& ASMs3D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
+					       const double* xi) const
 {
   int pm1 = svol->order(dir) - 1;
   RealArray::const_iterator uit = svol->basis(dir).begin() + pm1;
@@ -1070,6 +1071,8 @@ void ASMs3D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
       uGP(i,j) = 0.5*((ucurr-uprev)*xi[i-1] + ucurr+uprev);
     uprev = ucurr;
   }
+
+  return uGP;
 }
 
 
@@ -2091,7 +2094,7 @@ Go::SplineVolume* ASMs3D::projectSolution (const IntegrandBase& integrand) const
 
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.
-  // Note that we here implicitly assume the the number of Greville points
+  // Note that we here implicitly assume that the number of Greville points
   // equals the number of control points such that we don't have to resize
   // the result array. Think that is always the case, but beware if trying
   // other projection schemes later.
@@ -2173,6 +2176,102 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     sField.fillColumn(1+i,solPt);
   }
+
+  return true;
+}
+
+
+bool ASMs3D::globalL2projection (Matrix& sField,
+				 const IntegrandBase& integrand) const
+{
+  if (!svol) return true; // silently ignore empty patches
+
+  PROFILE2("ASMs3D::globalL2");
+
+  const int p1 = svol->order(0);
+  const int p2 = svol->order(1);
+  const int p3 = svol->order(2);
+  const int n1 = svol->numCoefs(0);
+  const int n2 = svol->numCoefs(1);
+  const int n3 = svol->numCoefs(2);
+  const int nel1 = n1 - p1 + 1;
+  const int nel2 = n2 - p2 + 1;
+  const int nel3 = n3 - p3 + 1;
+
+  // Get Gaussian quadrature points
+  const int ng1 = p1 - 1;
+  const int ng2 = p2 - 1;
+  const int ng3 = p3 - 1;
+  const double* xg = GaussQuadrature::getCoord(ng1);
+  const double* yg = GaussQuadrature::getCoord(ng2);
+  const double* zg = GaussQuadrature::getCoord(ng3);
+  if (!xg || !yg || !zg) return false;
+
+  // Compute parameter values of the Gauss points over the whole patch
+  Matrix gp;
+  RealArray gpar[3];
+  gpar[0] = this->getGaussPointParameters(gp,0,ng1,xg);
+  gpar[1] = this->getGaussPointParameters(gp,1,ng2,yg);
+  gpar[2] = this->getGaussPointParameters(gp,2,ng3,zg);
+
+  // Evaluate basis functions at all integration points
+  std::vector<Go::BasisPts> spline;
+  svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline);
+
+  // Evaluate the secondary solution at all integration points
+  if (!this->evalSolution(sField,integrand,gpar))
+    return false;
+
+  // Set up the projection matrices
+  const size_t nnod = this->getNoNodes();
+  const size_t ncomp = sField.rows();
+  SparseMatrix A(SparseMatrix::SUPERLU);
+  StdVector B(nnod*ncomp);
+  A.redim(nnod,nnod);
+
+
+  // === Assembly loop over all elements in the patch ==========================
+
+  int iel = 0;
+  for (int i3 = 0; i3 < nel3; i3++)
+    for (int i2 = 0; i2 < nel2; i2++)
+      for (int i1 = 0; i1 < nel1; i1++, iel++)
+      {
+	if (MLGE[iel] < 1) continue; // zero-area element
+
+	// --- Integration loop over all Gauss points in each direction --------
+
+        int ip = ((i3*ng2*nel2 + i2)*ng1*nel1 + i1)*ng3;
+        for (int k = 0; k < ng3; k++, ip += ng2*(nel2-1)*ng1*nel1)
+          for (int j = 0; j < ng2; j++, ip += ng1*(nel1-1))
+            for (int i = 0; i < ng1; i++, ip++)
+	    {
+	      // Fetch basis function values at current integration point
+	      const RealArray& phi = spline[ip].basisValues;
+
+	      // Integrate the linear system A*x=B
+	      for (size_t ii = 0; ii < phi.size(); ii++)
+	      {
+		int inod = MNPC[iel][ii]+1;
+		for (size_t jj = 0; jj < phi.size(); jj++)
+		{
+		  int jnod = MNPC[iel][jj]+1;
+		  A(inod,jnod) += phi[ii]*phi[jj];
+		}
+		for (size_t r = 1; r <= ncomp; r++)
+		  B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1);
+	      }
+	    }
+      }
+
+  // Solve the patch-global equation system
+  if (!A.solve(B)) return false;
+
+  // Store the control-point values of the projected field
+  sField.resize(ncomp,nnod);
+  for (size_t i = 1; i <= nnod; i++)
+    for (size_t j = 1; j <= ncomp; j++)
+      sField(j,i) = B(i+(j-1)*nnod);
 
   return true;
 }
