@@ -2025,7 +2025,7 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			   const int* npe, bool project) const
+			   const int* npe, char project) const
 {
   if (npe)
   {

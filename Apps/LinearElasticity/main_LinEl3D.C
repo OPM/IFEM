@@ -72,6 +72,7 @@ int main (int argc, char** argv)
   Profiler prof(argv[0]);
   utl::profiler->start("Initialization");
 
+  std::vector<SIMbase::ProjectionMethod> pOpt;
   SystemMatrix::Type solver = SystemMatrix::SPARSE;
   int nGauss = 4;
   int format = -1;
@@ -169,6 +170,12 @@ int main (int argc, char** argv)
       SIMbase::discretization = ASM::LRSpline;
       iop = 10;
     }
+    else if (!strcasecmp(argv[i],"-dgl2"))
+      pOpt.push_back(SIMbase::DGL2);
+    else if (!strcasecmp(argv[i],"-cgl2"))
+      pOpt.push_back(SIMbase::CGL2);
+    else if (!strcasecmp(argv[i],"-scr"))
+      pOpt.push_back(SIMbase::SCR);
     else if (!infile)
       infile = argv[i];
     else
@@ -294,23 +301,18 @@ int main (int argc, char** argv)
       return 3;
 
     model->setMode(SIM::RECOVERY);
-    if (SIMbase::discretization == ASM::Spline ||
-	SIMbase::discretization == ASM::SplineC1)
-    {
-      // Project the FE stresses onto the splines basis,
-      // based on sampling the Greville points
-      if (!model->project(ssol,displ.front(),SIMbase::GLOBAL))
-	return 4;
-      else
-	projs.push_back(ssol);
+    if (SIMbase::discretization != ASM::Spline &&
+	SIMbase::discretization != ASM::SplineC1)
+      pOpt.clear();
+    else
+      pOpt.insert(pOpt.begin(),SIMbase::GLOBAL);
 
-      // Project the FE stresses onto the splines basis,
-      // based on discrete global L2 projection
-      if (!model->project(ssol,displ.front(),SIMbase::DGL2))
+    // Project the FE stresses onto the splines basis
+    for (size_t j = 0; j < pOpt.size(); j++)
+      if (!model->project(ssol,displ.front(),pOpt[j]))
 	return 4;
       else
 	projs.push_back(ssol);
-    }
 
     // Integrate solution norms and errors
     if (!model->solutionNorms(displ,projs,eNorm,gNorm))

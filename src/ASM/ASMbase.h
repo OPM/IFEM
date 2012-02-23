@@ -333,17 +333,17 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] npe Number of visualization nodes over each knot span
-  //! \param[in] project Flag indicating if the projected solution is wanted
+  //! \param[in] project Flag indicating the projection method
   //!
   //! \details The secondary solution is derived from the primary solution,
   //! which is assumed to be stored within the \a integrand for current patch.
   //! If \a npe is NULL, the solution is evaluated at the Greville points and
   //! then projected onto the spline basis to obtain the control point values,
   //! which then are returned through \a sField.
-  //! If \a npe is not NULL and \a project is \e true, the solution is also
+  //! If \a npe is not NULL and \a project is defined, the solution is also
   //! projected onto the spline basis, and then evaluated at the \a npe points.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-			    const int* npe = 0, bool project = false) const;
+			    const int* npe = 0, char project = false) const;
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
@@ -361,11 +361,13 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
 			    const RealArray* gpar, bool regular = true) const;
 
-  //! \brief Projects the secondary solution using a discrete global L2-norm.
+  //! \brief Projects the secondary solution using a (discrete) global L2-norm.
   //! \param[out] sField Secondary solution field control point values
   //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] continuous If \e true, perform a continuous L2-projection
   virtual bool globalL2projection(Matrix& sField,
-				  const IntegrandBase& integrand) const;
+				  const IntegrandBase& integrand,
+				  bool continuous = false) const;
 
 
   // Methods for result extraction

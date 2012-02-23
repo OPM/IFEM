@@ -2117,6 +2117,16 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
 	return false;
       break;
 
+    case CGL2:
+      if (!myModel[i]->globalL2projection(values,*myProblem,true))
+        return false;
+      break;
+
+    case SCR:
+      if (!myModel[i]->evalSolution(values,*myProblem,0,'S'))
+        return false;
+      break;
+
     case LOCAL:
       // Annette, add your local projection stuff here...
 

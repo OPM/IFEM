@@ -747,7 +747,7 @@ bool ASMbase::evalSolution (Matrix&, const Vector&,
 
 
 bool ASMbase::evalSolution (Matrix&, const IntegrandBase&,
-			    const int*, bool) const
+			    const int*, char) const
 {
   std::cerr <<" *** ASMBase::evalSolution: Must be implemented in sub-class."
 	    << std::endl;
@@ -764,7 +764,7 @@ bool ASMbase::evalSolution (Matrix&, const IntegrandBase&,
 }
 
 
-bool ASMbase::globalL2projection (Matrix&, const IntegrandBase&) const
+bool ASMbase::globalL2projection (Matrix&, const IntegrandBase&, bool) const
 {
   std::cerr <<" *** ASMBase::globalL2projection: Must be implemented in"
 	    <<" sub-class."<< std::endl;
