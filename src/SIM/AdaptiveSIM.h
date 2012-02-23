@@ -55,7 +55,8 @@ public:
 		int iStep, int& nBlock);
 
   //! \brief Prints out the global norms to given stream.
-  static void printNorms(const Vector& norms, std::ostream& os);
+  static std::ostream& printNorms(const Vector& norms, const Matrix& eNorm,
+				  std::ostream& os);
 
 protected:
 
