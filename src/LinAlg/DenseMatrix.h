@@ -49,6 +49,8 @@ public:
   //! \param[in] idim Which direction to return the dimension in.
   virtual size_t dim(int idim = 1) const;
 
+  //! \brief Access to the matrix itself.
+  Matrix& getMat() { return myMat; }
   //! \brief Index-1 based element access.
   real& operator()(size_t r, size_t c) { return myMat(r,c); }
   //! \brief Index-1 based element reference.

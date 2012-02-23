@@ -373,23 +373,26 @@ bool DenseMatrix::multiply (const SystemVector& B, SystemVector& C)
 }
 
 
-bool DenseMatrix::solve (SystemVector& B, bool newLHS)
+bool DenseMatrix::solve (SystemVector& B, bool)
 {
   const size_t n = myMat.rows();
   if (n < 1) return true; // No equations to solve
   if (n > myMat.cols()) return false;
+
+  const size_t nrhs = B.dim()/n;
+  if (nrhs < 1) return true; // No right-hand-side vectors to solve for
 
 #ifdef USE_CBLAS
   int info = 0;
   if (!ipiv)
   {
     ipiv = new int[n];
-    dgesv_(n,1,myMat.ptr(),n,ipiv,B.getPtr(),B.dim(),info);
+    dgesv_(n,nrhs,myMat.ptr(),n,ipiv,B.getPtr(),n,info);
   }
   else
   {
     char trans = 'N';
-    dgetrs_(&trans,n,1,myMat.ptr(),n,ipiv,B.getPtr(),B.dim(),info);
+    dgetrs_(&trans,n,nrhs,myMat.ptr(),n,ipiv,B.getPtr(),n,info);
   }
   if (info == 0) return true;
 
