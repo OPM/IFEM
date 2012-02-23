@@ -140,8 +140,6 @@ private:
   double b;  //!< Outer radius
   double PN; //!< Load parameter
   bool is3D; //!< Flag telling whether to return a 3D stress tensor or not
-
-  mutable Tensor T; //!< Local-to-global stress transformation tensor
 };
 
 

@@ -147,10 +147,8 @@ SymmTensor CanTM::evaluate (const Vec3& X) const
 */
 
 CurvedBeam::CurvedBeam (double u0, double Ri, double Ro, double E, bool use3D)
-  : a(Ri), b(Ro), is3D(use3D), T(use3D ? 3 : 2)
+  : a(Ri), b(Ro), is3D(use3D)
 {
-  if (is3D) T(3,3) = 1.0;
-
   PN = -u0*E/(M_PI*(a*a+b*b));
 }
 
@@ -172,10 +170,12 @@ SymmTensor CurvedBeam::evaluate (const Vec3& X) const
   sigma(1,2) = PN*(   -r - c1 + c2)*ct;
 
   // Transform to Cartesian coordinates
+  Tensor T(is3D ? 3 : 2);
   T(1,1) =  ct;
   T(2,1) =  st;
   T(1,2) = -st;
   T(2,2) =  ct;
+  if (is3D) T(3,3) = 1.0;
   return sigma.transform(T);
 }
 
