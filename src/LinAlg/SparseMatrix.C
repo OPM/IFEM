@@ -795,9 +795,10 @@ bool SparseMatrix::solveSLU (Vector& B)
   int permc_spec = 1;
   get_perm_c(permc_spec, &slu->A, slu->perm_c);
 
-  // Create right-hand-side/solution vector
+  // Create right-hand-side/solution vector(s)
+  size_t nrhs = B.size() / nrow;
   SuperMatrix Bmat;
-  dCreate_Dense_Matrix(&Bmat, nrow, 1, B.ptr(), nrow,
+  dCreate_Dense_Matrix(&Bmat, nrow, nrhs, B.ptr(), nrow,
 		       SLU_DN, SLU_D, SLU_GE);
 
   // Invoke the simple driver
@@ -831,9 +832,10 @@ bool SparseMatrix::solveSLU (Vector& B)
 			   SLU_NC, SLU_D, SLU_GE);
   }
 
-  // Create right-hand-side/solution vector
+  // Create right-hand-side/solution vector(s)
+  size_t nrhs = B.size() / nrow;
   SuperMatrix Bmat;
-  dCreate_Dense_Matrix(&Bmat, nrow, 1, B.ptr(), nrow,
+  dCreate_Dense_Matrix(&Bmat, nrow, nrhs, B.ptr(), nrow,
 		       SLU_DN, SLU_D, SLU_GE);
 
   SuperLUStat_t stat;
@@ -891,21 +893,22 @@ bool SparseMatrix::solveSLUx (Vector& B)
   else
     slu->opts->refact = YES; // Re-use previous ordering
 
-  // Create right-hand-side vector and solution vector
+  // Create right-hand-side and solution vector(s)
   Vector      X(B.size());
   SuperMatrix Bmat, Xmat;
-  dCreate_Dense_Matrix(&Bmat, nrow, 1, B.ptr(), nrow,
+  const size_t nrhs = B.size() / nrow;
+  dCreate_Dense_Matrix(&Bmat, nrow, nrhs, B.ptr(), nrow,
 		       SLU_DN, SLU_D, SLU_GE);
-  dCreate_Dense_Matrix(&Xmat, nrow, 1, X.ptr(), nrow,
+  dCreate_Dense_Matrix(&Xmat, nrow, nrhs, X.ptr(), nrow,
 		       SLU_DN, SLU_D, SLU_GE);
 
-  real rpg, rcond, ferr, berr;
+  real rpg[nrhs], rcond[nrhs], ferr[nrhs], berr[nrhs];
   superlu_memusage_t mem_usage;
 
   // Invoke the expert driver
   pdgssvx(numThreads, slu->opts, &slu->A, slu->perm_c, slu->perm_r,
 	  &slu->equed, slu->R, slu->C, &slu->L, &slu->U, &Bmat, &Xmat,
-	  &rpg, &rcond, &ferr, &berr, &mem_usage, &ierr);
+	  rpg, rcond, ferr, berr, &mem_usage, &ierr);
 
   B.swap(X);
 
@@ -945,14 +948,15 @@ bool SparseMatrix::solveSLUx (Vector& B)
   // Create right-hand-side vector and solution vector
   Vector      X(B.size());
   SuperMatrix Bmat, Xmat;
-  dCreate_Dense_Matrix(&Bmat, nrow, 1, B.ptr(), nrow,
+  const  size_t nrhs = B.size() / nrow;
+  dCreate_Dense_Matrix(&Bmat, nrow, nrhs, B.ptr(), nrow,
 		       SLU_DN, SLU_D, SLU_GE);
-  dCreate_Dense_Matrix(&Xmat, nrow, 1, X.ptr(), nrow,
+  dCreate_Dense_Matrix(&Xmat, nrow, nrhs, X.ptr(), nrow,
 		       SLU_DN, SLU_D, SLU_GE);
 
   void* work = 0;
   int  lwork = 0;
-  real rpg, rcond, ferr, berr;
+  real rpg[nrhs], rcond[nrhs], ferr[nrhs], berr[nrhs];
   mem_usage_t mem_usage;
 
   SuperLUStat_t stat;
@@ -961,7 +965,7 @@ bool SparseMatrix::solveSLUx (Vector& B)
   // Invoke the expert driver
   dgssvx(slu->opts, &slu->A, slu->perm_c, slu->perm_r, slu->etree, slu->equed,
 	 slu->R, slu->C, &slu->L, &slu->U, work, lwork, &Bmat, &Xmat,
-	 &rpg, &rcond, &ferr, &berr, &mem_usage, &stat, &ierr);
+	 rpg, rcond, ferr, berr, &mem_usage, &stat, &ierr);
 
   B.swap(X);
 
