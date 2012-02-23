@@ -425,7 +425,10 @@ public:
   //! \param[in] norms The element norms to output
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter
-  bool writeGlvN(const Matrix& norms, int iStep, int& nBlock);
+  //! \param[in] prefix Prefices for projected solutions
+  //! \param[in] npc Number of norm quantities per projected solution
+  bool writeGlvN(const Matrix& norms, int iStep, int& nBlock,
+		 const char** prefix = 0, size_t npc = 0);
 
   //! \brief Writes time/load step info to the VTF-file.
   //! \param[in] iStep Load/time step identifier

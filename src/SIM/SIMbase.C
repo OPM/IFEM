@@ -1814,7 +1814,8 @@ bool SIMbase::writeGlvM (const Mode& mode, bool freq,
 }
 
 
-bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock)
+bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
+			 const char** prefix, size_t npc)
 {
   if (norms.empty())
     return true;
@@ -1823,7 +1824,8 @@ bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock)
 
   Matrix field;
   int geomID = 0;
-  std::vector<int> sID[10];
+  const size_t maxN = 20;
+  std::vector<int> sID[maxN];
 
   size_t i, j, k;
   for (i = 0; i < myModel.size(); i++)
@@ -1845,8 +1847,8 @@ bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock)
 	field.fillColumn(j,efield.getColumn(grid->getElmId(j)));
     }
 
-    for (j = k = 0; j < field.rows() && j < 10; j++)
-      if (j != 1) // Norm #1 (external norm) does not have element contributions
+    for (j = k = 0; j < field.rows() && k < maxN; j++)
+      if (NormBase::hasElementContributions(j))
 	if (!myVtf->writeEres(field.getRow(1+j),++nBlock,geomID))
 	  return false;
 	else
@@ -1854,9 +1856,21 @@ bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock)
   }
 
   int idBlock = 200;
-  for (k = 0; !sID[k].empty(); k++)
-    if (!myVtf->writeSblk(sID[k],NormBase::getName(k),++idBlock,iStep,true))
+  const char* z = 0;
+  const char** p = &z;
+  for (j = k = 0; k < maxN && !sID[k].empty(); j++, k++)
+    if (!myVtf->writeSblk(sID[k],NormBase::getName(j,*p),++idBlock,iStep,true))
       return false;
+    else if (prefix && npc > 0)
+    {
+      if (k == 2)
+	p = prefix;
+      else if (j == 2+npc)
+      {
+	j = 2;
+	if (*p) p++;
+      }
+    }
 
   return true;
 }
