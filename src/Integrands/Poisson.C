@@ -262,6 +262,23 @@ NormBase* Poisson::getNormIntegrand (AnaSol* asol) const
 }
 
 
+PoissonNorm::PoissonNorm (Poisson& p, VecFunc* a) : NormBase(p), anasol(a)
+{
+  nrcmp = myProblem.getNoFields(2);
+}
+
+
+size_t PoissonNorm::getNoFields () const
+{
+  size_t nf = anasol ? 4 : 2;
+  for (size_t i = 0; i < prjsol.size(); i++)
+    if (!prjsol.empty())
+      nf += anasol ? 3 : 2;
+
+  return nf;
+}
+
+
 bool PoissonNorm::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
 			   const Vec3& X) const
 {
@@ -269,30 +286,55 @@ bool PoissonNorm::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
   ElmNorm& pnorm = static_cast<ElmNorm&>(elmInt);
 
   // Evaluate the inverse constitutive matrix at this point
-  Matrix C;
-  problem.formCmatrix(C,X,true);
+  Matrix Cinv;
+  problem.formCmatrix(Cinv,X,true);
 
   // Evaluate the finite element heat flux field
-  Vector sigmah;
-  if (!problem.evalSol(sigmah,pnorm.vec.front(),fe.dNdX,X)) return false;
+  Vector sigmah, sigma, error;
+  if (!problem.evalSol(sigmah,pnorm.vec.front(),fe.dNdX,X))
+    return false;
 
   // Integrate the energy norm a(u^h,u^h)
-  pnorm[0] += sigmah.dot(C*sigmah)*fe.detJxW;
+  pnorm[0] += sigmah.dot(Cinv*sigmah)*fe.detJxW;
   // Evaluate the temperature field
   double u = pnorm.vec.front().dot(fe.N);
   // Integrate the external energy (h,u^h)
   pnorm[1] += problem.getHeat(X)*u*fe.detJxW;
 
+  size_t ip = 2;
   if (anasol)
   {
     // Evaluate the analytical heat flux
-    Vector sigma((*anasol)(X).ptr(),sigmah.size());
+    sigma.fill((*anasol)(X).ptr(),nrcmp);
     // Integrate the energy norm a(u,u)
-    pnorm[2] += sigma.dot(C*sigma)*fe.detJxW;
+    pnorm[ip++] += sigma.dot(Cinv*sigma)*fe.detJxW;
     // Integrate the error in energy norm a(u-u^h,u-u^h)
-    sigma -= sigmah;
-    pnorm[3] += sigma.dot(C*sigma)*fe.detJxW;
+    error = sigma - sigmah;
+    pnorm[ip++] += error.dot(Cinv*error)*fe.detJxW;
   }
+
+  size_t i, j;
+  for (i = 0; i < pnorm.psol.size(); i++)
+    if (!pnorm.psol[i].empty())
+    {
+      // Evaluate projected heat flux field
+      Vector sigmar(nrcmp);
+      for (j = 0; j < nrcmp; j++)
+	sigmar[j] = pnorm.psol[i].dot(fe.N,j,nrcmp);
+
+      // Integrate the energy norm a(u^r,u^r)
+      pnorm[ip++] += sigmar.dot(Cinv*sigmar)*fe.detJxW;
+      // Integrate the error in energy norm a(u^r-u^h,u^r-u^h)
+      error = sigmar - sigmah;
+      pnorm[ip++] += error.dot(Cinv*error)*fe.detJxW;
+
+      if (anasol)
+      {
+	// Integrate the error in the projected solution a(u-u^r,u-u^r)
+	error = sigma - sigmar;
+	pnorm[ip++] += error.dot(Cinv*error)*fe.detJxW;
+      }
+    }
 
   return true;
 }

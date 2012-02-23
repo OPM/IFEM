@@ -153,7 +153,7 @@ public:
   //! \brief The only constructor initializes its data members.
   //! \param[in] p The Poisson problem to evaluate norms for
   //! \param[in] a The analytical heat flux (optional)
-  PoissonNorm(Poisson& p, VecFunc* a = 0) : NormBase(p), anasol(a) {}
+  PoissonNorm(Poisson& p, VecFunc* a = 0);
   //! \brief Empty destructor.
   virtual ~PoissonNorm() {}
 
@@ -161,7 +161,7 @@ public:
   virtual bool hasBoundaryTerms() const { return true; }
 
   //! \brief Returns the number of norm quantities.
-  virtual size_t getNoFields() const { return anasol ? 4 : 2; }
+  virtual size_t getNoFields() const;
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
