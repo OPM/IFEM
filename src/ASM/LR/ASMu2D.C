@@ -304,16 +304,8 @@ bool ASMu2D::refine (const std::vector<int>& elements,
 		if (multiplicity > p1) multiplicity = p1;
 		if (multiplicity > p2) multiplicity = p2;
 	}
-	// bool minSpan   = options.size() > 1 && options[2] == 1;
-	// bool isotropic = options.size() > 1 && options[2] > 1;
 
 	if (!elements.empty()) {
-		/*
-		if(options.size() > 1 && options[1] == 3) 
-			lrspline->refineBasisFunctions(elements,multiplicity);
-		else
-			lrspline->refineElement(elements,multiplicity,minSpan, isotropic);
-		*/
 		enum refinementStrategy strat;
 		strat = LR_SAFE;
 		if(options.size() > 2) {
@@ -321,7 +313,6 @@ bool ASMu2D::refine (const std::vector<int>& elements,
 			else if(options[2]==2) strat  = LR_ISOTROPIC_EL;
 			else if(options[2]==3) strat  = LR_ISOTROPIC_FUNC;
 		}
-		// lrspline->refine(elements, options[0], multiplicity, ((options.size()>1)?options[1]:0), ((options.size()>2) ? options[2] : 1));
 		lrspline->refine(elements, options[0]/100.0, multiplicity, strat, ((options.size()>3) ? options[3] : 1));
 	}
 	if (fName)

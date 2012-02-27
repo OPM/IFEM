@@ -23,14 +23,20 @@
 #include <sstream>
 #include <cstdio>
 
+#include "tinyxml.h"
+
 
 AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : model(sim)
 {
   // Default grid adaptation parameters
-  beta = 10.0;
-  errTol = 1.0;
-  maxStep = 10;
-  maxDOFs = 1000000;
+  storeMesh = false;
+  beta      = 10.0;
+  errTol    = 1.0;
+  maxStep   = 10;
+  maxDOFs   = 1000000;
+  scheme    = 0; // fullspan 
+  symmetry  = 1; // no symmetry 
+  knot_mult = 1; // maximum regularity (continuity)
 }
 
 
@@ -39,19 +45,75 @@ AdaptiveSIM::~AdaptiveSIM ()
   if (model) delete model;
 }
 
+bool AdaptiveSIM::parse (const TiXmlElement* elem)
+{
+
+  if (strcasecmp(elem->Value(),"adaptive"))
+  {
+  	// if no adaptive word is found, set default refine options and return 
+    options.clear();
+    options.push_back(beta);
+    options.push_back(knot_mult);
+    options.push_back(scheme);
+    options.push_back(symmetry);
+    return model->parse(elem);
+  }
+  const TiXmlElement* child = elem->FirstChildElement();
+  std::string str;
+  while (child) {
+    if (!strcasecmp(child->Value(), "maxstep")) {
+      utl::getAttribute(child, "value", maxStep);
+    } else if (!strcasecmp(child->Value(), "beta")) {
+      utl::getAttribute(child, "value", beta);
+    } else if (!strcasecmp(child->Value(), "maxdof")) {
+      utl::getAttribute(child, "value", maxDOFs);
+    } else if (!strcasecmp(child->Value(), "errtol")) {
+      utl::getAttribute(child, "value", errTol);
+    } else if (!strcasecmp(child->Value(), "symmetry")) {
+      utl::getAttribute(child, "value", symmetry);
+    } else if (!strcasecmp(child->Value(), "knot_mult")) {
+      utl::getAttribute(child, "value", knot_mult);
+    } else if (!strcasecmp(child->Value(), "store_eps_mesh")) {
+      utl::getAttribute(child, "value", storeMesh);
+    } else if (!strcasecmp(child->Value(), "scheme")) {
+      utl::getAttribute(child, "value", str, true);
+      if( !strcasecmp(str.c_str(), "fullspan") )
+        scheme = 0;
+      else if( !strcasecmp(str.c_str(), "minspan") )
+        scheme = 1;
+      else if( !strcasecmp(str.c_str(), "isotropic_element") )
+        scheme = 2;
+      else if( !strcasecmp(str.c_str(), "isotropic_function") )
+        scheme = 3;
+      else
+      {
+      	std::cerr << "Error parsing adaptive refinement scheme: unknown value\n";
+      	scheme = 0;
+        return false;
+      }
+    }
+
+    child = child->NextSiblingElement();
+  }
+  options.clear();
+  options.push_back(beta);
+  options.push_back(knot_mult);
+  options.push_back(scheme);
+  options.push_back(symmetry);
+
+  return true;
+}
 
 bool AdaptiveSIM::parse (char* keyWord, std::istream& is)
 {
   if (!strncasecmp(keyWord,"ADAPTIVE",8))
   {
-    options.clear();
     std::istringstream cline(utl::readLine(is));
 
     cline >> beta >> errTol;
     if (cline.fail() || cline.bad()) return false;
-    options.push_back(beta);
 
-    double itmp;
+    int itmp;
     cline >> itmp;
     if (!cline.fail() && !cline.bad())
       maxStep = itmp;
@@ -62,17 +124,23 @@ bool AdaptiveSIM::parse (char* keyWord, std::istream& is)
 
     cline >> itmp; // read knotline multiplicity
     if (!cline.fail() && !cline.bad())
-      options.push_back(itmp);
+      knot_mult = itmp;
 
     cline >> itmp; // read refinement scheme
     // (0=refine all, 1=minimum span, 2=isotropic)
     if (!cline.fail() && !cline.bad())
-      options.push_back(itmp);
+      scheme = itmp;
 
     cline >> itmp; // read symmetry
     // (0=none, <n> always requests a multiplum of <n> elements for refinement)
     if (!cline.fail() && !cline.bad())
-      options.push_back(itmp);
+      symmetry = itmp;
+
+    options.clear();
+    options.push_back(beta);
+    options.push_back(knot_mult);
+    options.push_back(scheme);
+    options.push_back(symmetry);
   }
   else
     return model->parse(keyWord,is);
@@ -95,7 +163,7 @@ bool AdaptiveSIM::solveStep (const char* inputfile, SystemMatrix::Type solver,
     if (!model->read(inputfile) || !model->preprocess())
       return false;
   }
-  else
+  else if(storeMesh)
     // Output the initial grid to eps-file
     model->refine(std::vector<int>(),options,"mesh_001.eps");
 
@@ -173,7 +241,10 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   // Now refine the mesh
   char fname[13];
   sprintf(fname,"mesh_%03d.eps",iStep);
-  return model->refine(toBeRefined,options,fname);
+  if(storeMesh)
+    return model->refine(toBeRefined,options,fname);
+  else
+    return model->refine(toBeRefined,options,NULL);
 }
 
 

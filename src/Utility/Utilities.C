@@ -117,6 +117,16 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att, int& val)
   return true;
 }
 
+bool utl::getAttribute (const TiXmlElement* xml, const char* att, bool& val)
+{
+  if (xml->Attribute(att))
+    val = ( strcasecmp(xml->Attribute(att), "true") == 0 );
+  else
+    return false;
+
+  return true;
+}
+
 
 bool utl::getAttribute (const TiXmlElement* xml, const char* att, real& val)
 {

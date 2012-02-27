@@ -107,7 +107,11 @@ public:
   virtual bool raiseOrder(int ru, int rv);
   //! \brief Refines a specified list of elements.
   //! \param[in] elements 0-based indices of the elements to refine
-  //! \param[in] options Additional input parameters to control the refinement
+  //! \param[in] options Additional input parameters to control the refinement,
+  //!                    options[0] is the beta percentage of elements to refine
+  //!                    options[1] is the knotline multiplicity (default 1)
+  //!                    options[2] is the refinement scheme (default 0, FULLSPAN=0,MINSPAN=1,ISOTROPIC ELEMENTS=2, ISOTROPIC FUNCTIONS=3))
+  //!                    options[3] is the symmetry, i.e. always refine a multiple of this
   //! \param[in] fName Optional file name for an image of the resulting mesh
   virtual bool refine(const std::vector<int>& elements,
 		      const std::vector<int>& options, const char* fName = 0);

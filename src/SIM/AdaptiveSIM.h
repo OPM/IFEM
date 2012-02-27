@@ -65,13 +65,21 @@ protected:
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
 
+  //! \brief Parses a data section from an XML document.
+  //! \param[in] elem The XML element to parse
+  virtual bool parse(const TiXmlElement* elem);
+
 private:
   SIMbase* model; //!< The isogeometric FE model
 
-  double beta;    //!< Refinement percentage in each step
-  double errTol;  //!< Global error stop tolerance
-  int    maxStep; //!< Maximum number of adaptive refinements
-  int    maxDOFs; //!< Maximum number of degrees of freedom
+  bool   storeMesh; //!< Creates a series of .eps files for intermediate steps
+  double beta;      //!< Refinement percentage in each step
+  double errTol;    //!< Global error stop tolerance
+  int    maxStep;   //!< Maximum number of adaptive refinements
+  int    maxDOFs;   //!< Maximum number of degrees of freedom
+  int    symmetry;  //!< Always refine a multiplum of this
+  int    scheme;    //!< Refinement scheme: 0=fullspan, 1=minspan, 2=isotropic_elements, 3=isotropic_functions
+  int    knot_mult; //!< Knotline multiplicity
 
   std::vector<int> options; //!< Mesh refinement options
 
