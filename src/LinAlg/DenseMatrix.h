@@ -27,7 +27,7 @@ class DenseMatrix : public SystemMatrix
 {
 public:
   //! \brief Default constructor.
-  DenseMatrix(size_t m = 0, size_t n = 0) : myMat(m,n) { ipiv = 0; }
+  DenseMatrix(size_t m = 0, size_t n = 0, bool s = false);
   //! \brief Copy constructor.
   DenseMatrix(const DenseMatrix& A);
   //! \brief Special constructor taking data from a one-dimensional array.
@@ -44,6 +44,10 @@ public:
   //! \brief Resizes the matrix to dimension \f$r \times c\f$.
   //! \details Will preserve existing matrix content within the new dimension.
   bool redim(size_t r, size_t c);
+
+  //! \brief Marks the matrix as symmetric.
+  //! \details If marked as symmetric, Cholesky factorization will be employed.
+  void setSymmetric(bool s = true) { symm = s && myMat.rows() == myMat.cols(); }
 
   //! \brief Returns the dimension of the system matrix.
   //! \param[in] idim Which direction to return the dimension in.
@@ -162,6 +166,7 @@ protected:
 private:
   Matrix myMat; //!< The actual dense matrix
   int*   ipiv;  //!< Pivot indices used in \a solve
+  bool   symm;  //!< Whether or not matrix is symmetric
 };
 
 #endif

@@ -20,16 +20,20 @@
 #define addem2_ ADDEM2
 #define dgesv_  DGESV
 #define dgetrs_ DGETRS
+#define dposv_  DPOSV
+#define dpotrs_ DPOTRS
 #define dsyevx_ DSYEVX
 #define dsygvx_ DSYGVX
-#define dgeev_ DGEEV
+#define dgeev_  DGEEV
 #elif defined(_AIX)
 #define addem2_ addem2
 #define dgesv_  dgesv
 #define dgetrs_ dgetrs
+#define dposv_  dposv
+#define dpotrs_ dpotrs
 #define dsyevx_ dsyevx
 #define dsygvx_ dsygvx
-#define dgeev_ dgeev
+#define dgeev_  dgeev
 #endif
 
 extern "C" {
@@ -53,50 +57,68 @@ void dgesv_(const int& n, const int& nrhs,
 //! \brief Solves the equation system \a A*x=b when \a A is already factorized.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
-void dgetrs_(const char* trans, const int& n, const int& nrhs,
+void dgetrs_(const char& trans, const int& n, const int& nrhs,
 	     real* A, const int& lda, int* ipiv,
 	     real* B, const int& ldb, int& info);
+
+//! \brief Solves the symmetric linear equation system \a A*x=b.
+//! \details This is a FORTRAN-77 subroutine in the LAPack library.
+//! \sa LAPack library documentation.
+void dposv_(const char& uplo, const int& n, const int& nrhs,
+            real* A, const int& lda, real* B, const int& ldb, int& info);
+
+//! \brief Solves the symmetric equation system \a A*x=b for prefactored \b A.
+//! \details This is a FORTRAN-77 subroutine in the LAPack library.
+//! \sa LAPack library documentation.
+void dpotrs_(const char& uplo, const int& n, const int& nrhs,
+             real* A, const int& lda, real* B, const int& ldb, int& info);
 
 //! \brief Solves the standard eigenproblem \a A*x=(lambda)*x.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
-void dsyevx_(const char* jobz, const char* range, const char* uplo,
+void dsyevx_(const char& jobz, const char& range, const char& uplo,
 	     const int& n, real* a, const int& lda,
 	     const real& vl, const real& vu, const int& il, const int& iu,
 	     const real& abstol, const int& m, real* w, real* z, const int& ldz,
 	     real* work, const int& lwork, int* iwork, int* ifail, int& info);
 
-//! \brief Solves the non-symmetric eigenproblem \a A*x=(lambda)*x.
-//! \details This is a FORTRAN-77 subroutine in the LAPack library.
-//! \sa LAPack library documentation.
-void dgeev_(const char* jobvl, const char* jobvr,
-	    const int& n, real* a, const int& lda,
-	    real* wr, real* wi, real* vl, const int& ldvl,
-	    real* vr, const int& ldvr,
-	    real* work, const int& lwork, int& info);
-
 //! \brief Solves the generalized eigenproblem \a A*x=(lambda)*B*x.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
-void dsygvx_(const int& itype, const char* jobz, const char* range,
-	     const char* uplo, const int& n, real* a, const int& lda,
+void dsygvx_(const int& itype, const char& jobz, const char& range,
+	     const char& uplo, const int& n, real* a, const int& lda,
 	     real* b, const int& ldb, const real& vl, const real& vu,
 	     const int& il, const int& iu, const real& abstol,
 	     const int& m, real* w, real* z, const int& ldz,
 	     real* work, const int& lwork, int* iwork, int* ifail, int& info);
+
+//! \brief Solves the non-symmetric eigenproblem \a A*x=(lambda)*x.
+//! \details This is a FORTRAN-77 subroutine in the LAPack library.
+//! \sa LAPack library documentation.
+void dgeev_(const char& jobvl, const char& jobvr,
+            const int& n, real* a, const int& lda,
+            real* wr, real* wi, real* vl, const int& ldvl,
+            real* vr, const int& ldvr,
+            real* work, const int& lwork, int& info);
 }
 
 
-DenseMatrix::DenseMatrix (const DenseMatrix& A)
+DenseMatrix::DenseMatrix (size_t m, size_t n, bool s) : myMat(m,n), ipiv(0)
+{
+  symm = s && m == n;
+}
+
+
+DenseMatrix::DenseMatrix (const DenseMatrix& A) : ipiv(0)
 {
   myMat = A.myMat;
-  ipiv = 0;
+  symm = A.symm;
   if (A.ipiv)
     std::cerr <<"DenseMatrix constructor: Copying factored matrix"<< std::endl;
 }
 
 
-DenseMatrix::DenseMatrix (const RealArray& data, size_t nrows)
+DenseMatrix::DenseMatrix (const RealArray& data, size_t nrows) : ipiv(0)
 {
   size_t ndata = data.size();
   if (nrows == 0) nrows = (size_t)sqrt((double)ndata);
@@ -104,7 +126,7 @@ DenseMatrix::DenseMatrix (const RealArray& data, size_t nrows)
 
   myMat.resize(nrows,ncols);
   memcpy(myMat.ptr(),&data.front(),nrows*ncols*sizeof(real));
-  ipiv = 0;
+  symm = false;
 }
 
 
@@ -335,6 +357,8 @@ bool DenseMatrix::redim (size_t r, size_t c)
   for (size_t i = 1; i <= c && i <= tmp.cols(); i++)
     myMat.fillColumn(i,tmp.getColumn(i));
 
+  if (r != c) symm = false;
+
   return true;
 }
 
@@ -382,28 +406,37 @@ bool DenseMatrix::solve (SystemVector& B, bool)
   const size_t nrhs = B.dim()/n;
   if (nrhs < 1) return true; // No right-hand-side vectors to solve for
 
+  const char* dsolv = symm ? "DGESV" : "DPOSV";
 #ifdef USE_CBLAS
   int info = 0;
-  if (!ipiv)
-  {
-    ipiv = new int[n];
-    dgesv_(n,nrhs,myMat.ptr(),n,ipiv,B.getPtr(),n,info);
+  if (symm) {
+    // Matrix is marked as symmetric - use Cholesky instead of full LU
+    if (ipiv)
+      dpotrs_('U',n,nrhs,myMat.ptr(),n,B.getPtr(),n,info);
+    else {
+      ipiv = new int[1]; // dummy allocation to flag factorization reuse
+      dposv_('U',n,nrhs,myMat.ptr(),n,B.getPtr(),n,info);
+    }
   }
-  else
-  {
-    char trans = 'N';
-    dgetrs_(&trans,n,nrhs,myMat.ptr(),n,ipiv,B.getPtr(),n,info);
+  else {
+    if (ipiv)
+      dgetrs_('N',n,nrhs,myMat.ptr(),n,ipiv,B.getPtr(),n,info);
+    else
+    {
+      ipiv = new int[n];
+      dgesv_(n,nrhs,myMat.ptr(),n,ipiv,B.getPtr(),n,info);
+    }
   }
   if (info == 0) return true;
 
-  std::cerr <<"LAPACK::DGESV: ";
+  std::cerr <<"LAPACK::"<< dsolv <<": ";
   if (info < 0)
     std::cerr <<"Invalid argument #"<< -info << std::endl;
   else
     std::cerr <<"Singular stiffness matrix, pivot "<< info
 	      <<" (of total "<< n <<") is zero."<< std::endl;
 #else
-  std::cerr <<"DGESV not available - linked without LAPack/BLAS"<< std::endl;
+  std::cerr << dsolv <<" not available - built without LAPack/BLAS"<< std::endl;
 #endif
   return false;
 }
@@ -418,13 +451,10 @@ bool DenseMatrix::solveEig (RealArray& val, Matrix& vec, int nv)
 #ifdef USE_CBLAS
   std::cout <<"  Solving dense eigenproblem using LAPACK::DSYEVX"<< std::endl;
   int m, info = 0;
-  char jobz  = 'V';
-  char range = 'I';
-  char uplo  = 'U';
   real dummy = 0.0;
   real abstol = 0.0;
   // Invoke with Lwork = -1 to estimate work space size
-  dsyevx_(&jobz,&range,&uplo,n,myMat.ptr(),n,dummy,dummy,1,nv,
+  dsyevx_('V','I','U',n,myMat.ptr(),n,dummy,dummy,1,nv,
           abstol,m,&val.front(),vec.ptr(),n,&dummy,-1,0,0,info);
 
   if (info == 0)
@@ -436,7 +466,7 @@ bool DenseMatrix::solveEig (RealArray& val, Matrix& vec, int nv)
     val.resize(n);
     vec.resize(n,nv);
     // Solve the eigenproblem
-    dsyevx_(&jobz,&range,&uplo,n,myMat.ptr(),n,dummy,dummy,1,nv,
+    dsyevx_('V','I','U',n,myMat.ptr(),n,dummy,dummy,1,nv,
 	    abstol,m,&val.front(),vec.ptr(),n,work,Lwork,Iwork+n,Iwork,info);
     delete[] work;
     delete[] Iwork;
@@ -450,7 +480,7 @@ bool DenseMatrix::solveEig (RealArray& val, Matrix& vec, int nv)
   else
     std::cerr << info <<" eigenvectors failed to converge."<< std::endl;
 #else
-  std::cerr <<"DSYEVX not available - linked without LAPack/BLAS"<< std::endl;
+  std::cerr <<"DSYEVX not available - built without LAPack/BLAS"<< std::endl;
 #endif
   return false;
 }
@@ -466,13 +496,10 @@ bool DenseMatrix::solveEig (DenseMatrix& B, RealArray& val, Matrix& vec, int nv,
 #ifdef USE_CBLAS
   std::cout <<"  Solving dense eigenproblem using LAPACK::DSYGVX"<< std::endl;
   int m, info = 0;
-  char jobz  = 'V';
-  char range = 'I';
-  char uplo  = 'U';
   real dummy = 0.0;
   real abstol = 0.0;
   // Invoke with Lwork = -1 to estimate work space size
-  dsygvx_(1,&jobz,&range,&uplo,n,myMat.ptr(),n,B.myMat.ptr(),n,
+  dsygvx_(1,'V','I','U',n,myMat.ptr(),n,B.myMat.ptr(),n,
           dummy,dummy,1,nv,abstol,m,&val.front(),vec.ptr(),n,
           &dummy,-1,0,0,info);
 
@@ -485,7 +512,7 @@ bool DenseMatrix::solveEig (DenseMatrix& B, RealArray& val, Matrix& vec, int nv,
     val.resize(n);
     vec.resize(n,nv);
     // Solve the eigenproblem
-    dsygvx_(1,&jobz,&range,&uplo,n,myMat.ptr(),n,B.myMat.ptr(),n,
+    dsygvx_(1,'V','I','U',n,myMat.ptr(),n,B.myMat.ptr(),n,
 	    dummy,dummy,1,nv,abstol,m,&val.front(),vec.ptr(),n,
 	    work,Lwork,Iwork+n,Iwork,info);
     delete[] work;
@@ -503,7 +530,7 @@ bool DenseMatrix::solveEig (DenseMatrix& B, RealArray& val, Matrix& vec, int nv,
     std::cerr <<"The leading minor of order "<< info-n
 	      <<" of matrix B is not positive definite."<< std::endl;
 #else
-  std::cerr <<"DSYGVX not available - linked without LAPack/BLAS"<< std::endl;
+  std::cerr <<"DSYGVX not available - built without LAPack/BLAS"<< std::endl;
 #endif
   return false;
 }
@@ -516,11 +543,9 @@ bool DenseMatrix::solveEigNon (RealArray& r_val, RealArray& c_val)
 
 #ifdef USE_CBLAS
   int  info  = 0;
-  char jobvl = 'N';
-  char jobvr = 'N';
   real dummy = 0.0;
   // Invoke with Lwork = -1 to estimate work space size
-  dgeev_(&jobvl,&jobvr,n,myMat.ptr(),n,&r_val.front(),&c_val.front(),
+  dgeev_('N','N',n,myMat.ptr(),n,&r_val.front(),&c_val.front(),
 	 &dummy,1,&dummy,1,&dummy,-1,info);
 
   if (info == 0)
@@ -531,14 +556,14 @@ bool DenseMatrix::solveEigNon (RealArray& r_val, RealArray& c_val)
     r_val.resize(n);
     c_val.resize(n);
     // Solve the eigenproblem
-    dgeev_(&jobvl,&jobvr,n, myMat.ptr(),n,&r_val.front(),&c_val.front(),
+    dgeev_('N','N',n,myMat.ptr(),n,&r_val.front(),&c_val.front(),
 	   &dummy,1,&dummy,1,work,Lwork,info);
     delete[] work;
     if (info == 0) return true;
   }
 
 #else
-  std::cerr <<"DGEEV not available - linked without LAPack/BLAS"<< std::endl;
+  std::cerr <<"DGEEV not available - built without LAPack/BLAS"<< std::endl;
 #endif
   return false;
 }
