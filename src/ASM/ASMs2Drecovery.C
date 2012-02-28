@@ -1,13 +1,13 @@
 // $Id$
 //==============================================================================
 //!
-//! \file ASMs2D.C
+//! \file ASMs2Drecovery.C
 //!
-//! \date Jan 19 2010
+//! \date Feb 20 2012
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Driver for assembly of structured 2D spline FE models.
+//! \brief Recovery of secondary solutions for structured 2D spline FE models.
 //!
 //==============================================================================
 
@@ -95,7 +95,7 @@ bool ASMs2D::globalL2projection (Matrix& sField,
   const int nel1 = n1 - p1 + 1;
   const int nel2 = n2 - p2 + 1;
 
-  // Get Gaussian quadrature points
+  // Get Gaussian quadrature point coordinates (and weights if continuous)
   const int ng1 = continuous ? nGauss : p1 - 1;
   const int ng2 = continuous ? nGauss : p2 - 1;
   const double* xg = GaussQuadrature::getCoord(ng1);
@@ -269,7 +269,7 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
       int istart = ig;
       int jstart = jg;
 
-      // Special case for the first and last Greville point in each direction
+      // Special case for the first and last Greville points in each direction
       if (ig == 0)
 	istart++;
       else if (ig == gpar[0].size()-1)
@@ -283,7 +283,7 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
       surf->point(G,gpar[0][ig],gpar[1][jg]);
 
       // Set up the local projection matrices
-      DenseMatrix A(nPol,nPol);
+      DenseMatrix A(nPol,nPol,true);
       StdVector B(nPol*nCmp);
 
       // Loop over all non-zero knot-spans in the support of
@@ -309,7 +309,7 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 		  for (k = 1; k <= nPol; k++)
 		  {
 		    // Accumulate the projection matrix, A += P^t * P
-		    for (l = 1; l <= nPol; l++)
+		    for (l = k; l <= nPol; l++) // do the upper triangle only
 		      A(k,l) += P(k)*P(l);
 
 		    // Accumulate the right-hand-side matrix, B += P^t * sigma
