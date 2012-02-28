@@ -448,6 +448,7 @@ bool HDF5Writer::writeTimeInfo(int level, int order, int interval,
 
   // !TODO: different names
   writeArray(group,"SIMbase-1",toWrite,&tp.time.t,H5T_NATIVE_DOUBLE);
+  H5Gclose(group);
 #endif
   return true;
 }
