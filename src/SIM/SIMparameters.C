@@ -16,6 +16,7 @@
 
 void SIMparameters::initTime (double start, double stop, const TimeSteps& steps)
 {
+  maxCFL   = 0.0;
   starTime = start;
   stopTime = stop;
   mySteps  = steps;
@@ -38,11 +39,10 @@ bool SIMparameters::multiSteps () const
 
 bool SIMparameters::increment ()
 {
-  // Adjust timestep according to CFL number
-  if (time.useCFL && time.CFL > 1.0e-12) 
-    time.dt = time.maxCFL*time.dt/time.CFL;
-
-  if (stepIt != mySteps.end())
+  if (maxCFL > 0.0 && time.CFL > 1.0e-12)
+    // Adjust time step size according to CFL number
+    time.dt *= maxCFL/time.CFL;
+  else if (stepIt != mySteps.end())
     if (++lstep <= stepIt->first.size())
       time.dt = stepIt->first[lstep-1];
 

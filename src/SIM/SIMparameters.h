@@ -28,7 +28,6 @@ class SIMparameters
 public:
   //! \brief The constructor initializes the counters to zero.
   SIMparameters() : step(0), iter(time.it), lstep(0) { stepIt = mySteps.end(); }
-
   //! \brief Empty destructor.
   virtual ~SIMparameters() {}
 
@@ -49,13 +48,14 @@ public:
   int&       iter; //!< Iteration counter
   TimeDomain time; //!< Time domain data
 
-  double    starTime; //!< Start (pseudo)time of simulation
-  double    stopTime; //!< Stop (pseudo)time of simulation
-  TimeSteps mySteps;  //!< Time step definitions
+  double starTime; //!< Start (pseudo)time of simulation
+  double stopTime; //!< Stop (pseudo)time of simulation
+  double maxCFL;   //!< CFL restriction on time step size (0.0: no restriction)
 
 private:
   size_t lstep; //!< Local step counter, i.e., within current \a *stepIt
 
+  TimeSteps           mySteps; //!< Time step definitions
   TimeSteps::iterator stepIt;  //!< Running iterator over the time steps
 };
 
