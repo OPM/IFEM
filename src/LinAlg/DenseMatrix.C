@@ -399,12 +399,22 @@ bool DenseMatrix::multiply (const SystemVector& B, SystemVector& C)
 
 bool DenseMatrix::solve (SystemVector& B, bool)
 {
-  const size_t n = myMat.rows();
-  if (n < 1) return true; // No equations to solve
-  if (n > myMat.cols()) return false;
+  size_t nrhs = myMat.rows() > 0 ? B.dim()/myMat.rows() : 1;
+  return this->solve(B.getPtr(),nrhs);
+}
 
-  const size_t nrhs = B.dim()/n;
-  if (nrhs < 1) return true; // No right-hand-side vectors to solve for
+
+bool DenseMatrix::solve (Matrix& B)
+{
+  return this->solve(B.ptr(),B.cols());
+}
+
+
+bool DenseMatrix::solve (real* B, size_t nrhs)
+{
+  const size_t n = myMat.rows();
+  if (n < 1 || nrhs < 1) return true; // Nothing to solve
+  if (n > myMat.cols()) return false; // More equations than unknowns
 
   const char* dsolv = symm ? "DGESV" : "DPOSV";
 #ifdef USE_CBLAS
@@ -412,19 +422,19 @@ bool DenseMatrix::solve (SystemVector& B, bool)
   if (symm) {
     // Matrix is marked as symmetric - use Cholesky instead of full LU
     if (ipiv)
-      dpotrs_('U',n,nrhs,myMat.ptr(),n,B.getPtr(),n,info);
+      dpotrs_('U',n,nrhs,myMat.ptr(),n,B,n,info);
     else {
       ipiv = new int[1]; // dummy allocation to flag factorization reuse
-      dposv_('U',n,nrhs,myMat.ptr(),n,B.getPtr(),n,info);
+      dposv_('U',n,nrhs,myMat.ptr(),n,B,n,info);
     }
   }
   else {
     if (ipiv)
-      dgetrs_('N',n,nrhs,myMat.ptr(),n,ipiv,B.getPtr(),n,info);
+      dgetrs_('N',n,nrhs,myMat.ptr(),n,ipiv,B,n,info);
     else
     {
       ipiv = new int[n];
-      dgesv_(n,nrhs,myMat.ptr(),n,ipiv,B.getPtr(),n,info);
+      dgesv_(n,nrhs,myMat.ptr(),n,ipiv,B,n,info);
     }
   }
   if (info == 0) return true;

@@ -106,8 +106,10 @@ public:
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side vector on input, solution vector on output
-  //! \param newLHS \e true if the left-hand-side matrix is updated
-  virtual bool solve(SystemVector& B, bool newLHS = true);
+  virtual bool solve(SystemVector& B, bool = true);
+  //! \brief Solves the linear system of equations for a given right-hand-side.
+  //! \param B Right-hand-side matrix on input, solution matrix on output
+  bool solve(Matrix& B);
 
   //! \brief Solves a standard symmetric-definite eigenproblem.
   //! \details The eigenproblem is assumed to be on the form
@@ -160,13 +162,22 @@ protected:
   //! \param[in] c0 Column offset for the augmented matrix
   bool augment(const SparseMatrix& B, size_t r0, size_t c0);
 
+  //! \brief Solves the linear system of equations for a given right-hand-side.
+  //! \param B Right-hand-side vectors on input, solution vectors on output
+  //! \param[in] nrhs Number of right-hand-side vectors
+  //!
+  //! \brief This is the function which actually solves the equation system,
+  //! using the LAPack library subroutines. The two public \a solve methods just
+  //! forward to this method.
+  bool solve(real* B, size_t nrhs);
+
   //! \brief Writes the system matrix to the given output stream.
   virtual std::ostream& write(std::ostream& os) const { return os << myMat; }
 
 private:
   Matrix myMat; //!< The actual dense matrix
   int*   ipiv;  //!< Pivot indices used in \a solve
-  bool   symm;  //!< Whether or not matrix is symmetric
+  bool   symm;  //!< Flags whether the matrix is symmetric or not
 };
 
 #endif
