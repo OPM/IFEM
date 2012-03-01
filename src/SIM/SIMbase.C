@@ -1506,7 +1506,8 @@ bool SIMbase::writeGlvT (int iStep, int& nBlock) const
 
 
 bool SIMbase::writeGlvV (const Vector& vec, const char* fieldName,
-			 const int* nViz, int iStep, int& nBlock) const
+			 const int* nViz, int iStep, int& nBlock,
+			 int idBlock) const
 {
   if (vec.empty())
     return true;
@@ -1535,7 +1536,6 @@ bool SIMbase::writeGlvV (const Vector& vec, const char* fieldName,
       vID.push_back(nBlock);
   }
 
-  int idBlock = 2;
   return myVtf->writeVblk(vID,fieldName,idBlock,iStep);
 }
 

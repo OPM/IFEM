@@ -375,8 +375,10 @@ public:
   //! \param[in] nViz Number of visualization points over each knot-span
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter
+  //! \param[in] idBlock Starting value of result block numbering
   bool writeGlvV(const Vector& vec, const char* fieldName,
-		 const int* nViz, int iStep, int& nBlock) const;
+		 const int* nViz, int iStep, int& nBlock,
+		 int idBlock = 2) const;
 
   //! \brief Writes solution fields for a given load/time step to the VTF-file.
   //! \param[in] psol Primary solution vector
