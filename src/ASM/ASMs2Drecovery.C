@@ -239,8 +239,8 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
   gpar[1] = this->getGaussPointParameters(gaussPt[1],1,ng2,yg);
 
 #if SP_DEBUG > 2
-  for (int j = 0; j < gpar[1].size(); j++)
-    for (int i = 0; i < gpar[0].size(); i++)
+  for (size_t j = 0; j < gpar[1].size(); j++)
+    for (size_t i = 0; i < gpar[0].size(); i++)
       std::cout <<"Gassian point "<< i <<","<< j <<" = "
 		<< gpar[0][i] <<" "<< gpar[1][j] << std::endl;
 #endif
@@ -255,36 +255,34 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
   if (!this->getGrevilleParameters(gpar[1],1)) return 0;
 
   const size_t nCmp = sField.rows(); // Number of result components
-  const size_t nPol = p1*p2;         // Number of terms in polynomial expansion
+  const size_t nPol = (p1+1)*(p2+1); // Number of terms in polynomial expansion
 
   Matrix sValues(nCmp,gpar[0].size()*gpar[1].size());
   Vector P(nPol);
   Go::Point X, G;
 
   // Loop over all Greville points
+  int istart, jstart;
   size_t ig, jg, k, l, ip = 1;
   for (jg = 0; jg < gpar[1].size(); jg++)
     for (ig = 0; ig < gpar[0].size(); ig++, ip++)
     {
-      int istart = ig;
-      int jstart = jg;
-
       // Special case for the first and last Greville points in each direction
       if (ig == 0)
-	istart++;
-      else if (ig == gpar[0].size()-1)
-	istart--;
+	istart = 1;
+      else if (ig < gpar[0].size()-1)
+	istart = ig;
       if (jg == 0)
-	jstart++;
-      else if (jg == gpar[1].size()-1)
-	jstart--;
+	jstart = 1;
+      else if (jg < gpar[1].size()-1)
+	jstart = jg;
 
       // Physical coordinates of current Greville point
       surf->point(G,gpar[0][ig],gpar[1][jg]);
 
       // Set up the local projection matrices
       DenseMatrix A(nPol,nPol,true);
-      StdVector B(nPol*nCmp);
+      Matrix B(nPol,nCmp);
 
       // Loop over all non-zero knot-spans in the support of
       // the basis function associated with current Greville point
@@ -304,7 +302,7 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 
 		  // Evaluate the polynomial expansion at current Gauss point
 		  surf->point(X,u,v);
-		  evalMonomials(p1,p2,X[0]-G[0],X[1]-G[1],P);
+		  evalMonomials(p1+1,p2+1,X[0]-G[0],X[1]-G[1],P);
 
 		  for (k = 1; k <= nPol; k++)
 		  {
@@ -314,7 +312,7 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 
 		    // Accumulate the right-hand-side matrix, B += P^t * sigma
 		    for (l = 1; l <= nCmp; l++)
-		      B(k+(l-1)*nPol) += P(k)*sField(l,jp);
+		      B(k,l) += P(k)*sField(l,jp);
 		  }
 		}
 	    }
@@ -322,9 +320,9 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
       // Solve the local equation system
       if (!A.solve(B)) return false;
 
-      // Evaluate the projected field at current Greville point
-      for (k = 1; k <= nCmp; k++)
-	sValues(k,ip) = B[(k-1)*nPol];
+      // Evaluate the projected field at current Greville point (first row of B)
+      for (l = 1; l <= nCmp; l++)
+	sValues(l,ip) = B(1,l);
 
 #if SP_DEBUG > 1
       std::cout <<"Greville point "<< ig <<","<< jg <<" (u,v) = "
