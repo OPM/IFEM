@@ -299,7 +299,7 @@ public:
      integrand.{\color{blue}evalInt}%
      (locInt[iel], time, detJ*weight, N, dN/dX, X); \\}
     \uncover<6->{\>\>\>
-    end do i, j, j \\}
+    end do i, j, k \\}
     \uncover<10->{\>\>\>
     integrand.{\color{blue}finalizeElement}(locInt[iel]); \\}
     \uncover<11->{\>\>\>
@@ -455,7 +455,7 @@ the application-dependent integrands.
      (locInt[iel], time, detJ*weight, \\\>\>\>\>\>
       N$_1$, dN$_1$/dX, N$_2$, dN$_2$/dX, X); \\}
     \uncover<5->{\>\>\>
-    end do i, j, j \\}
+    end do i, j, k \\}
     \uncover<9->{\>\>\>
     integrand.{\color{blue}finalizeElement}(locInt[iel]); \\\>\>\>
     glInt.{\color{blue}assemble}(locInt[iel], MGEL[iel]); \\}
