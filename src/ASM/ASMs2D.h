@@ -20,6 +20,7 @@
 
 namespace Go {
   class SplineSurface;
+  class BsplineBasis;
   class BasisDerivsSf;
   class BasisDerivsSf2;
 }
@@ -284,9 +285,85 @@ public:
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods
   Go::SplineSurface* projectSolution(const IntegrandBase& integrand) const;
+
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods
   virtual Go::GeomObject* evalSolution(const IntegrandBase& integrand) const;
+
+  //! \brief Projects the secondary solution field onto the primary basis using a local method (Quasi-Interpolation).
+  //! \param[in] integrand Object with problem-specific data and methods
+  Go::SplineSurface* projectSolutionLocal(const IntegrandBase& integrand) const;
+
+  //! \brief Projects the secondary solution field onto the primary basis using a local method (Variation Diminishing Spline Approximation).
+  //! \param[in] integrand Object with problem-specific data and methods
+  Go::SplineSurface* projectSolutionLocalApprox(const IntegrandBase& integrand) const;
+
+  //! \brief Projects the secondary solution field onto the primary basis using a global method (Least-Square Approximation).
+  //! \param[in] integrand Object with problem-specific data and methods
+  Go::SplineSurface* projectSolutionLeastSquare (const IntegrandBase& integrand) const;
+
+  //! \brief Global projection method (Least-Square Approximation).
+  //! \param[in] basis_u Basis values in the first parameter direction.
+  //! \param[in] basis_v Basis values in the second parameter direction.
+  //! \param[in] par_u Gauss values in the first parameter direction.
+  //! \param[in] par_v Gauss values in the second parameter direction.
+  //! \param[in] wpar_u Gauss weights in the first parameter direction.
+  //! \param[in] wpar_v Gauss weights in the second parameter direction.
+  //! \param[in] points Secondary solution field evaluated at Gauss points.
+  //! \param[in] dimension Dimension of the secondary solution field.
+  //! \param[in] rational Value marks NURBS geometry.
+  //! \param[in] weights NURBS weights, weight the z-components of the projective control points.
+  //! \return Spline surface object.
+  Go::SplineSurface* leastsquare_approximation(const Go::BsplineBasis& basis_u,
+			                       const Go::BsplineBasis& basis_v,
+                                               std::vector<double>& par_u,
+                                               std::vector<double>& par_v,
+                                               std::vector<double>& wpar_u,
+                                               std::vector<double>& wpar_v,
+                                               std::vector<double>& points,
+                                               int dimension,
+                                               bool rational,
+                                               std::vector<double>& weights) const;
+  
+  //! \brief Local projection method (Quasi-Interpolation).
+  //! \param[in] basis_u Basis values in the first parameter direction.
+  //! \param[in] basis_v Basis values in the second parameter direction.
+  //! \param[in] par_u Grevielle sites in the first parameter direction.
+  //! \param[in] par_v Grevielle sites in the second parameter direction.
+  //! \param[in] points Secondary solution field evaluated at Greville points.
+  //! \param[in] dimension Dimension of the secondary solution field.
+  //! \param[in] rational Value marks NURBS geometry.
+  //! \param[in] weights NURBS weights, weight the z-components of the projective control points.
+  //! \return Spline surface object.
+  Go::SplineSurface* quasiInterpolation(const Go::BsplineBasis& basis_u,
+					const Go::BsplineBasis& basis_v,
+					std::vector<double>& par_u,
+					std::vector<double>& par_v,
+					std::vector<double>& points,
+					int dimension,
+					bool rational,
+					std::vector<double>& weights) const;
+  
+  
+  //! \brief Local projection method (Variation Diminishing Spline Approximation).
+  //! \param[in] basis_u Basis values in the first parameter direction.
+  //! \param[in] basis_v Basis values in the second parameter direction.
+  //! \param[in] par_u Grevielle sites in the first parameter direction.
+  //! \param[in] par_v Grevielle sites in the second parameter direction.
+  //! \param[in] points Secondary solution field evaluated at Greville points.
+  //! \param[in] dimension Dimension of the secondary solution field.
+  //! \param[in] rational Value marks NURBS geometry.
+  //! \param[in] weights NURBS weights, weight the z-components of the projective control points.
+  //! \return Spline surface object.
+  Go::SplineSurface* VariationDiminishingSplineApproximation(const Go::BsplineBasis& basis_u,
+							     const Go::BsplineBasis& basis_v,
+							     std::vector<double>& par_u,
+							     std::vector<double>& par_v,
+							     std::vector<double>& points,
+							     int dimension,
+							     bool rational,
+							     std::vector<double>& weights) const;
+  
   //! \brief Projects the secondary solution using a superconvergent approach.
   //! \param[in] integrand Object with problem-specific data and methods
   Go::SplineSurface* scRecovery(const IntegrandBase& integrand) const;
@@ -344,6 +421,11 @@ protected:
   //! \param[out] prm Parameter values in given direction for all points
   //! \param[in] dir Parameter direction (0,1)
   bool getGrevilleParameters(RealArray& prm, int dir) const;
+
+  //! \brief Calculates parameter values for the Quasi-Interpolation points.
+  //! \param[out] prm Parameter values in given direction for all points
+  //! \param[in] dir Parameter direction (0,1)
+  bool getQuasiInterplParameters(RealArray& prm, int dir) const;
 
   //! \brief Returns the area in the parameter space for an element.
   //! \param[in] iel Element index

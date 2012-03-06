@@ -37,6 +37,35 @@ bool ASMs2D::getGrevilleParameters (RealArray& prm, int dir) const
 }
 
 
+bool ASMs2D::getQuasiInterplParameters (RealArray& prm, int dir) const
+{
+  if (!surf) return false;
+  const Go::BsplineBasis& basis = surf->basis(dir);
+  
+  size_t n = basis.numCoefs();
+  size_t p = basis.order();
+  
+  RealArray::const_iterator knotit = surf->basis(dir).begin();
+  
+  prm.clear();
+  for (size_t i = p-1; i < n+1; i++){
+    prm.push_back(knotit[i]);
+    prm.push_back(0.5*(knotit[i]+knotit[i+1]));}
+  prm.pop_back();
+  
+  std::vector< double > knots_simple;
+  basis.knotsSimple(knots_simple);
+  
+  prm.clear();
+  for (size_t i = 0; i < knots_simple.size(); i++){
+    prm.push_back(knots_simple[i]);
+    prm.push_back(0.5*(knots_simple[i]+knots_simple[i+1]));}
+  prm.pop_back();
+  
+  return true;
+}
+
+
 Go::SplineSurface* ASMs2D::projectSolution (const IntegrandBase& integrnd) const
 {
   PROFILE2("ASMs2D::projectSolution");
@@ -348,3 +377,139 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 						       nCmp, surf->rational(),
 						       weights);
 }
+
+
+// L2-Projection: Least-square approximation; global approximation
+Go::SplineSurface* ASMs2D::projectSolutionLeastSquare (const IntegrandBase& integrand) const
+{ 
+  // Secondary solution evaluated at Gauss-Interpolation points
+  // Compute parameter values of the result sampling points (Gauss-Interpl. points)
+
+  // Get Gaussian quadrature points and weights
+  const double* xg = GaussQuadrature::getCoord(nGauss);
+  const double* wg = GaussQuadrature::getWeight(nGauss);
+  if (!xg || !wg) return false;
+  
+  Matrix ggpar[2];
+  for (int dir = 0; dir < 2; dir++)
+    this->getGaussPointParameters(ggpar[dir],dir,nGauss,xg);
+  
+  std::vector<double> par_u;
+  par_u = ggpar[0];
+  std::vector<double> par_v;
+  par_v = ggpar[1];
+  
+  // gauss weights at parameter values
+  std::vector<double> wgpar_u;
+  std::vector<double> wgpar_v;
+  double d;
+  for (int dir = 0; dir < 2; dir++){
+    if (!surf) return false;
+    const Go::BsplineBasis& basis = surf->basis(dir);
+    RealArray::const_iterator knotit = surf->basis(dir).begin();
+    std::vector<double> tmp;
+    tmp.reserve(nGauss*(basis.numCoefs()-basis.order()));
+    for (size_t i = 0; i<=(basis.numCoefs()-basis.order());i++)
+      {
+	d = knotit[i+basis.order()]-knotit[i+basis.order()-1];
+	if (d > 0)
+	  {for (int j = 0;j<nGauss;j++)
+	      tmp.push_back(wg[j]/(2/d));
+	  }
+	else if (d == 0)
+	  {for (int j = 0;j<nGauss;j++)
+	      tmp.push_back(0);}	
+      }  
+    if (dir == 0) 
+      wgpar_u = tmp;
+    else if (dir == 1)
+      wgpar_v = tmp;
+  }
+  
+  RealArray gpar[2];
+  gpar[0] = par_u;
+  gpar[1] = par_v;
+  
+  // Evaluate the secondary solution at all sampling points (Gauss points)
+  Matrix sValues;
+  if (!this->evalSolution(sValues,integrand,gpar))
+    return 0;
+  
+  RealArray weights;
+  if (surf->rational())
+    surf->getWeights(weights);
+  
+  const Vector& vec = sValues;
+  return leastsquare_approximation(surf->basis(0),
+				   surf->basis(1),
+				   par_u, par_v,
+				   wgpar_u, wgpar_v,
+				   const_cast<Vector&>(vec),
+				   sValues.rows(),
+				   surf->rational(),
+				   weights);
+  
+}
+
+
+// Quasi-Interpolation; local interpolation method
+Go::SplineSurface* ASMs2D::projectSolutionLocal (const IntegrandBase& integrand) const
+{
+  // Secondary solution evaluated at Quasi-Interpolation points
+  // Compute parameter values of the result sampling points (Quasi-Interpl. points)
+  
+  RealArray gpar[2];
+  for (int dir = 0; dir < 2; dir++)
+    if (!this->getQuasiInterplParameters(gpar[dir],dir))
+      return 0;
+  
+  // Evaluate the secondary solution at all sampling points (Quasi-Interpl. points)
+  Matrix sValues;
+  if (!this->evalSolution(sValues,integrand,gpar))
+    return 0;
+  
+  RealArray weights;
+  if (surf->rational())
+    surf->getWeights(weights);
+  
+  const Vector& vec = sValues;
+  return quasiInterpolation(surf->basis(0),
+			    surf->basis(1),
+			    gpar[0], gpar[1],
+			    const_cast<Vector&>(vec),
+			    sValues.rows(),
+			    surf->rational(),
+			    weights);
+}
+
+
+// Variation Diminishing Spline Approximation (VDSA); local approx. method
+Go::SplineSurface* ASMs2D::projectSolutionLocalApprox(const IntegrandBase& integrand) const
+{
+  // Compute parameter values of the result sampling points (Greville points)
+  RealArray gpar[2];
+  for (int dir = 0; dir < 2; dir++)
+    if (!this->getGrevilleParameters(gpar[dir],dir))
+      return 0;
+  
+  // Evaluate the secondary solution at all sampling points
+  Matrix sValues;
+  if (!this->evalSolution(sValues,integrand,gpar))
+    return 0;
+  
+  RealArray weights;
+  if (surf->rational())
+    surf->getWeights(weights);
+  
+  const Vector& vec = sValues;
+  return VariationDiminishingSplineApproximation(surf->basis(0),
+						 surf->basis(1),
+						 gpar[0], gpar[1],
+						 const_cast<Vector&>(vec),
+						 sValues.rows(),
+						 surf->rational(),
+						 weights);
+  
+}
+
+

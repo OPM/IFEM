@@ -19,6 +19,7 @@
 
 namespace Go {
   class SplineVolume;
+  class BsplineBasis;
   class BasisDerivs;
   class BasisDerivs2;
 }
@@ -336,6 +337,94 @@ public:
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods
   Go::SplineVolume* projectSolution(const IntegrandBase& integrand) const;
+
+  //! \brief Projects the secondary solution field onto the primary basis using a local method (Quasi-Interpolation).
+  //! \param[in] integrand Object with problem-specific data and methods
+  Go::SplineVolume* projectSolutionLocal(const IntegrandBase& integrand) const;
+  
+  //! \brief Projects the secondary solution field onto the primary basis using a local method (Variation Diminishing Spline Approximation).
+  //! \param[in] integrand Object with problem-specific data and methods
+  Go::SplineVolume* projectSolutionLocalApprox(const IntegrandBase& integrand) const;
+
+  //! \brief Projects the secondary solution field onto the primary basis using a global method (Least-Square Approximation).
+  //! \param[in] integrand Object with problem-specific data and methods
+  Go::SplineVolume* projectSolutionLeastSquare (const IntegrandBase& integrand) const;
+
+  //! \brief Global projection method (Least-Square Approximation).
+  //! \param[in] basis_u Basis values in the first parameter direction.
+  //! \param[in] basis_v Basis values in the second parameter direction.
+  //! \param[in] basis_w Basis values in the third parameter direction.
+  //! \param[in] par_u Gauss values in the first parameter direction.
+  //! \param[in] par_v Gauss values in the second parameter direction.
+  //! \param[in] par_w Gauss values in the third parameter direction.
+  //! \param[in] wpar_u Gauss weights in the first parameter direction.
+  //! \param[in] wpar_v Gauss weights in the second parameter direction.
+  //! \param[in] wpar_w Gauss weights in the third parameter direction.
+  //! \param[in] points Secondary solution field evaluated at Gauss points.
+  //! \param[in] dimension Dimension of the secondary solution field.
+  //! \param[in] rational Value marks NURBS geometry.
+  //! \param[in] weights NURBS weights, weight the z-components of the projective control points.
+  //! \return Spline volume object.
+  Go::SplineVolume* leastsquare_approximation(const Go:: BsplineBasis& basis_u,
+					      const Go::BsplineBasis& basis_v,
+					      const Go::BsplineBasis& basis_w,
+					      std::vector<double>& par_u,
+					      std::vector<double>& par_v,
+					      std::vector<double>& par_w,
+					      std::vector<double>& wpar_u,
+					      std::vector<double>& wpar_v,
+					      std::vector<double>& wpar_w,
+					      std::vector<double>& points,
+					      int dimension,
+					      bool rational,
+					      std::vector<double>& weights) const;
+  
+  //! \brief Local projection method (Quasi-Interpolation).
+  //! \param[in] basis_u Basis values in the first parameter direction.
+  //! \param[in] basis_v Basis values in the second parameter direction.
+  //! \param[in] basis_w Basis values in the third parameter direction.
+  //! \param[in] par_u Grevielle sites in the first parameter direction.
+  //! \param[in] par_v Grevielle sites in the second parameter direction.
+  //! \param[in] par_w Grevielle sites in the third parameter direction.
+  //! \param[in] points Secondary solution field evaluated at Greville points.
+  //! \param[in] dimension Dimension of the secondary solution field.
+  //! \param[in] rational Value marks NURBS geometry.
+  //! \param[in] weights NURBS weights, weight the z-components of the projective control points.
+  //! \return Spline volume object.
+  Go::SplineVolume* quasiInterpolation(const Go::BsplineBasis& basis_u,
+				       const Go::BsplineBasis& basis_v,
+				       const Go::BsplineBasis& basis_w,
+				       std::vector<double>& par_u,
+				       std::vector<double>& par_v,
+				       std::vector<double>& par_w,
+				       std::vector<double>& points,
+				       int dimension,
+				       bool rational,
+				       std::vector<double>& weights) const;
+   
+  //! \brief Local projection method (Variation Diminishing Spline Approximation).
+  //! \param[in] basis_u Basis values in the first parameter direction.
+  //! \param[in] basis_v Basis values in the second parameter direction.
+  //! \param[in] basis_w Basis values in the third parameter direction.
+  //! \param[in] par_u Grevielle sites in the first parameter direction.
+  //! \param[in] par_v Grevielle sites in the second parameter direction.
+  //! \param[in] par_w Grevielle sites in the third parameter direction.
+  //! \param[in] points Secondary solution field evaluated at Greville points.
+  //! \param[in] dimension Dimension of the secondary solution field.
+  //! \param[in] rational Value marks NURBS geometry.
+  //! \param[in] weights NURBS weights, weight the z-components of the projective control points.
+  //! \return Spline volume object.
+  Go::SplineVolume* VariationDiminishingSplineApproximation(const Go::BsplineBasis& basis_u,
+							    const Go::BsplineBasis& basis_v,
+							    const Go::BsplineBasis& basis_w,
+							    std::vector<double>& par_u,
+							    std::vector<double>& par_v,
+							    std::vector<double>& par_w,
+							    std::vector<double>& points,
+							    int dimension,
+							    bool rational,
+							    std::vector<double>& weights) const;
+  
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods
   virtual Go::GeomObject* evalSolution(const IntegrandBase& integrand) const;
@@ -398,6 +487,10 @@ protected:
   //! \param[in] dir Parameter direction (0,1,2)
   bool getGrevilleParameters(RealArray& prm, int dir) const;
 
+  //! \brief Calculates the quasi interpolation parameter values
+  //! \param[out] prm Parameter values in given direction
+  //! \param[in] dir Parameter direction (0,1,2)
+  bool getQuasiInterplParameters (RealArray& prm, int dir) const;
   //! \brief Returns the volume in the parameter space for an element.
   //! \param[in] iel Element index
   double getParametricVolume(int iel) const;

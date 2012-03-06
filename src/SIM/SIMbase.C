@@ -2149,10 +2149,25 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
 	return false;
       break;
 
-    case LOCAL:
+    case VDSA:
+       if (msgLevel > 1 && i == 0)
+        std::cout <<"\tVDSA projection"<< std::endl;
+       if (!myModel[i]->evalSolution(values,*myProblem,NULL,'A'))
+        return false;
+       break;
+ 
+    case QUASI:
       if (msgLevel > 1 && i == 0)
-	std::cout <<"\tLocal projection"<< std::endl;
-      // Annette, add your local projection stuff here...
+        std::cout <<"\tQuasi interpolation"<< std::endl;
+      if (!myModel[i]->evalSolution(values,*myProblem,NULL,'L'))
+        return false;
+      break;
+    case LEASTSQ:
+      if (msgLevel > 1 && i == 0)
+         std::cout <<"\tLeast squares projection"<< std::endl;
+      if (!myModel[i]->evalSolution(values,*myProblem,NULL,'W'))
+        return false;
+      break;
 
     default:
       std::cerr <<" *** SIMbase::project: Projection method "<< pMethod
