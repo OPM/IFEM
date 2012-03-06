@@ -68,6 +68,9 @@
   \arg -DGL2 : Estimate error using discrete global L2 projection
   \arg -CGL2 : Estimate error using continuous global L2 projection
   \arg -SCR : Estimate error using Superconvergent recovery at Greville points
+  \arg -VDSA: Generate visualization fields through Variational Diminishing Spline Approximations
+  \arg -LSQ : Generate visualization fields through Least Square projections
+  \arg -QUASI : Generate visualization fields through Quasi interpolation projections
 */
 
 int main (int argc, char** argv)
@@ -180,6 +183,12 @@ int main (int argc, char** argv)
       pOpt[SIMbase::CGL2] = "Continuous global L2 projection";
     else if (!strcasecmp(argv[i],"-scr"))
       pOpt[SIMbase::SCR]  = "Superconvergent recovery";
+    else if (!strcasecmp(argv[i],"-vdsa"))
+      pOpt[SIMbase::VDSA] = "VDSA projected";
+    else if (!strcasecmp(argv[i],"-quasi"))
+      pOpt[SIMbase::QUASI] = "Quasi interpolated";
+    else if (!strcasecmp(argv[i],"-lsq"))
+      pOpt[SIMbase::LEASTSQ] = "Least-square projected";
     else if (!infile)
       infile = argv[i];
     else
@@ -340,7 +349,11 @@ int main (int argc, char** argv)
 	std::cout <<"\n>>> Error estimates based on "<< pit->second <<" <<<";
 	std::cout <<"\nEnergy norm |u^r| = a(u^r,u^r)^0.5   : "<< gNorm(j++);
 	std::cout <<"\nError norm a(e,e)^0.5, e=u^r-u^h     : "<< gNorm(j++);
-	std::cout <<"\n- relative error (% of |u^r|) : "
+	std::cout <<"\n- relative error (% of |u^r|)        : "
+		  << gNorm(j-1)/gNorm(j-2)*100.0;
+	std::cout <<"\nL2-norm, |u^r|                       : "<< gNorm(j++);
+	std::cout <<"\nL2-Error norm, e=u^r-u^h             : "<< gNorm(j++);
+	std::cout <<"\n- relative error (% of |u^r|)        : "
 		  << gNorm(j-1)/gNorm(j-2)*100.0;
 	if (model->haveAnaSol() && j++ <= gNorm.size())
 	  std::cout <<"\nExact error a(e,e)^0.5, e=u-u^r      : "<< gNorm(j-1)
