@@ -1859,11 +1859,14 @@ bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
   const char* z = 0;
   const char** p = &z;
   for (j = k = 0; k < maxN && !sID[k].empty(); j++, k++)
-    if (!myVtf->writeSblk(sID[k],NormBase::getName(j,*p),++idBlock,iStep,true))
+  {
+    const char* normName = NormBase::getName(j,this->haveAnaSol(),*p);
+    if (!myVtf->writeSblk(sID[k],normName,++idBlock,iStep,true))
       return false;
-    else if (prefix && npc > 0)
+
+    if (prefix && npc > 0)
     {
-      if (k == 2)
+      if (k == (this->haveAnaSol() ? 2 : 0))
 	p = prefix;
       else if (j == 2+npc)
       {
@@ -1871,6 +1874,7 @@ bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
 	if (*p) p++;
       }
     }
+  }
 
   return true;
 }
@@ -2155,13 +2159,14 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
        if (!myModel[i]->evalSolution(values,*myProblem,NULL,'A'))
         return false;
        break;
- 
+
     case QUASI:
       if (msgLevel > 1 && i == 0)
         std::cout <<"\tQuasi interpolation"<< std::endl;
       if (!myModel[i]->evalSolution(values,*myProblem,NULL,'L'))
         return false;
       break;
+
     case LEASTSQ:
       if (msgLevel > 1 && i == 0)
          std::cout <<"\tLeast squares projection"<< std::endl;

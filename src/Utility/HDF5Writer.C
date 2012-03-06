@@ -352,7 +352,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
         for (size_t j=0;j<eNorm.rows();++j) {
           if (NormBase::hasElementContributions(j)) {
             Vector k;
-            writeArray(group2,NormBase::getName(j),patchEnorm.cols(),
+            writeArray(group2,NormBase::getName(j,sim->haveAnaSol()),patchEnorm.cols(),
                        patchEnorm.getRow(1+j).ptr(),H5T_NATIVE_DOUBLE);
           }
         }
@@ -374,7 +374,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
       if (entry.second.results & DataExporter::NORMS) {
         for (size_t j=0;j<eNorm.rows();++j) {
           if (NormBase::hasElementContributions(j))
-            writeArray(group2,NormBase::getName(j),0,&dummy,H5T_NATIVE_DOUBLE);
+            writeArray(group2,NormBase::getName(j,sim->haveAnaSol()),0,&dummy,H5T_NATIVE_DOUBLE);
         }
       }
     }

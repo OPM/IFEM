@@ -285,7 +285,7 @@ public:
   virtual size_t getNoFields() const { return 0; }
 
   //! \brief Returns the name of a norm quantity.
-  static const char* getName(size_t, const char* = 0);
+  static const char* getName(size_t&, bool, const char* = 0);
 
   //! \brief Returns whether a norm component stores element contributions.
   static bool hasElementContributions(size_t i) { return i != 1; }

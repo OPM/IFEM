@@ -127,6 +127,7 @@ bool XMLWriter::readSIM (int level, const DataEntry& entry)
   return true;
 }
 
+
 void XMLWriter::writeSIM (int level, const DataEntry& entry,
                           bool geometryUpdated)
 {
@@ -158,18 +159,21 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry,
   }
 
   // secondary solution fields
+  size_t i, j;
   if (entry.second.results & DataExporter::SECONDARY)
-    for (size_t j = 0; j < prob->getNoFields(2); j++)
-      addField(prob->getField2Name(j),"secondary",sim->getName()+(prob->mixedFormulation()?"-2":"-1"),1,sim->getNoPatches());
+    for (j = 0; j < prob->getNoFields(2); j++)
+      addField(prob->getField2Name(j),"secondary",
+               sim->getName() + (prob->mixedFormulation() ? "-2" : "-1"),
+               1,sim->getNoPatches());
 
   // norms
   if (entry.second.results & DataExporter::NORMS) {
     // since the norm data isn't available, we have to instance the object
-    NormBase* norm = sim->getNormIntegrand(); 
-    for (size_t j = 0; j < norm->getNoFields(); j++) {
-      if (norm->hasElementContributions(j))
-        addField(norm->getName(j),"knotspan wise norm",sim->getName()+"-1",1,sim->getNoPatches(),"knotspan");
-    }
+    NormBase* norm = sim->getNormIntegrand();
+    for (i = j = 0; i < norm->getNoFields(); i++, j++)
+      if (NormBase::hasElementContributions(i))
+        addField(NormBase::getName(j,sim->haveAnaSol()),"knotspan wise norm",
+                 sim->getName()+"-1",1,sim->getNoPatches(),"knotspan");
     delete norm;
   }
 }
@@ -208,5 +212,5 @@ int XMLWriter::realTimeLevel(int filelevel) const
 
 int XMLWriter::realTimeLevel(int filelevel, int order, int interval) const
 {
-  return filelevel/order*interval; 
+  return filelevel/order*interval;
 }

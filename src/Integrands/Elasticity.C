@@ -643,10 +643,10 @@ ElasticityNorm::ElasticityNorm (Elasticity& p, STensorFunc* a)
 
 size_t ElasticityNorm::getNoFields () const
 {
-  size_t nf = anasol ? 6 : 2;
+  size_t nf = anasol ? 4 : 2;
   for (size_t i = 0; i < prjsol.size(); i++)
     if (!prjsol.empty())
-       nf += anasol ? 5 : 2;
+       nf += anasol ? 5 : 4;
 
   return nf;
 }
@@ -718,12 +718,8 @@ bool ElasticityNorm::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
       error = sigmar - sigmah;
       pnorm[ip++] += error.dot(Cinv*error)*detJW;
 
-      // Integrate the L2-norm ||S|| = Int_Omega S:S dV
-      double tmp2 = sigmar.norm2();
-      pnorm[ip++] += tmp2*tmp2*detJW;
-      double tmp = error.norm2();
-      pnorm[ip++] += tmp*tmp*detJW;
-     
+      double l2u = sigmar.norm2();
+      double l2e = error.norm2();
 
       if (anasol)
       {
@@ -731,6 +727,11 @@ bool ElasticityNorm::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
 	error = sigma - sigmar;
 	pnorm[ip++] += error.dot(Cinv*error)*detJW;
       }
+
+      // Integrate the L2-norm (sigma^r,sigma^r)
+      pnorm[ip++] += l2u*l2u*detJW;
+      // Integrate the error in L2-norm (sigma^r-sigma^h,sigma^r-sigma^h)
+      pnorm[ip++] += l2e*l2e*detJW;
     }
 
   return true;
