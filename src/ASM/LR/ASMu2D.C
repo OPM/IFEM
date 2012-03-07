@@ -37,6 +37,7 @@
 ASMu2D::ASMu2D (unsigned char n_s, unsigned char n_f)
 	: ASMunstruct(2,n_s,n_f), lrspline(0), tensorspline(0), workingEl(-1)
 {
+  ASMunstruct::resetNumbering();
 }
 
 
