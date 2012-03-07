@@ -234,6 +234,23 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] npe Number of visualization nodes over each knot span
+  //! \param[in] project Flag indicating result recovery method
+  //! (0=none, 'D'=direct evaluation, 'S'=superconvergent recovery)
+  //!
+  //! \details The secondary solution is derived from the primary solution,
+  //! which is assumed to be stored within the \a integrand for current patch.
+  //! If \a npe is NULL, the solution is recovered or evaluated at the Greville
+  //! points and then projected onto the spline basis to obtain the control
+  //! point values, which then are returned through \a sField.
+  //! If \a npe is not NULL and \a project is defined, the solution is also
+  //! projected onto the spline basis, and then evaluated at the \a npe points.
+  virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
+			    const int* npe = 0, char project = false) const;
+
+  //! \brief Evaluates the secondary solution field at all visualization points.
+  //! \param[out] sField Solution field
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] npe Number of visualization nodes over each knot span
   //! \param[in] project Flag indicating if the projected solution is wanted
   //!
   //! \details The secondary solution is derived from the primary solution,
@@ -271,11 +288,43 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
                             const RealArray* gpar, bool regular = true) const;
 
+  //! \brief Projects the secondary solution field onto the primary basis.
+  //! \param[in] integrand Object with problem-specific data and methods
+  LR::LRSplineSurface* projectSolution(const IntegrandBase& integrand) const;
+  //! \brief Projects the secondary solution field onto the primary basis.
+  //! \param[in] integrand Object with problem-specific data and methods
+  virtual LR::LRSplineSurface* evalSolution(const IntegrandBase& integrand) const;
+  //! \brief Projects the secondary solution using a superconvergent approach.
+  //! \param[in] integrand Object with problem-specific data and methods
+
+  //! \brief Projects the secondary solution using a discrete global L2-norm.
+  //! \param[out] sField Secondary solution field control point values
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] continuous If \e true, a continuous L2-projection is used
+  virtual bool globalL2projection(Matrix& sField,
+				  const IntegrandBase& integrand,
+				  bool continuous = false) const;
+
+  LR::LRSplineSurface* scRecovery(const IntegrandBase& integrand) const;
+
   //! \brief Calculates parameter values for visualization nodal points.
   //! \param[out] prm Parameter values in given direction for all points
   //! \param[in] dir Parameter direction (0,1)
   //! \param[in] nSegSpan Number of visualization segments over each knot-span
   virtual bool getGridParameters(RealArray& prm, int dir, int nSegSpan) const;
+
+  //! \brief Interpolate an LR spline at a given set of parametric coordinates
+  //! \param[in] basis LR B-spline describing the parametrization (i.e. the mesh and the basis functions)
+  //! \param[in] upar parametric interpolation points in the u-direction
+  //! \param[in] vpar parametric interpolation points in the v-direction (must be same size as \a upar)
+  //! \param[in] points interpolation values stored as one point per matrix row (number of rows equal to \a upar size)
+  //! \param[in] dim number of components in points (i.e. the number of columns)
+  //! \return A LRSplineSurface representation of the interpolated points
+  LR::LRSplineSurface* regularInterpolation(LR::LRSplineSurface *basis,
+					    std::vector<double> upar,
+					    std::vector<double> vpar,
+					    Matrix points,
+					    size_t dim) const;
 
 protected:
 
@@ -331,6 +380,13 @@ protected:
   static void extractBasis(const Go::BasisDerivsSf2& spline,
                            Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2);
 
+  //! \brief Expands a tensor parametrization point to an unstructured one
+  //! \details takes as input a tensor mesh for instance in[0]={0,1,2} in[1]={2,3,5}
+  //§          and expands this to an unstructred representation, i.e. 
+  //§          out[0] = {0,1,2,0,1,2,0,1,2}
+  //§          out[1] = {2,2,2,3,3,3,5,5,5}
+  void expandTensorGrid(RealArray *in, RealArray *out) const ;
+
 protected:
   LR::LRSplineSurface* lrspline;   //!< Pointer to the LR-spline surface object
 private:
@@ -339,6 +395,8 @@ private:
   // and RAISEORDER key-words, although we take note that there is a possibility
   // of optimization since all mapping values and Jacobians may be performed on
   // this object for increased efficiency.
+
+  mutable int workingEl; //!< here to keep track of element across function calls (to avoid topological searches all the time)
 };
 
 #endif

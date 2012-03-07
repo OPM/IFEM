@@ -213,6 +213,12 @@ bool ASMs2D::globalL2projection (Matrix& sField,
 	  }
 	}
     }
+  std::cout << " ---- Matrix A -----\n";
+  std::cout << A << std::endl;
+  std::cout << " -------------------\n";
+  std::cout << " ---- Vector B -----\n";
+  std::cout << B << std::endl;
+  std::cout << " -------------------\n";
 
   // Solve the patch-global equation system
   if (!A.solve(B)) return false;

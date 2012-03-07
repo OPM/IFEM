@@ -35,13 +35,13 @@
 
 
 ASMu2D::ASMu2D (unsigned char n_s, unsigned char n_f)
-	: ASMunstruct(2,n_s,n_f), lrspline(0), tensorspline(0)
+	: ASMunstruct(2,n_s,n_f), lrspline(0), tensorspline(0), workingEl(-1)
 {
 }
 
 
 ASMu2D::ASMu2D (const ASMu2D& patch, unsigned char n_f)
-	: ASMunstruct(patch,n_f), lrspline(patch.lrspline), tensorspline(0)
+	: ASMunstruct(patch,n_f), lrspline(patch.lrspline), tensorspline(0), workingEl(-1)
 {
 }
 
@@ -1308,7 +1308,8 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 	for (size_t i = 0; i < nPoints; i++)
 	{
 		// fetch element containing evaluation point
-		int iel = i/nPtsPerElement; // points are always listed in the same order as the elemnts
+		// int iel = i/nPtsPerElement; // points are always listed in the same order as the elemnts
+		int iel = (workingEl>=0) ? workingEl : lrspline->getElementContaining(gpar[0][i], gpar[1][i]); // sadly, they are not always ordered in the same way as the elements
 
 		// fetch index of non-zero basis functions on this element
 		const IntVec& ip = myMNPC[iel];
@@ -1332,6 +1333,68 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 	}
 
 	return true;
+}
+
+bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
+			   const int* npe, char project) const
+{
+  // sanity check on input
+  if(npe != NULL && (npe[0] != npe[1])) {
+    std::cerr << "Error ASMu2D::evalSolution, LR B-splines assumes same number of discretization points in u- and v-direction" << std::endl;
+    return false;
+  }
+
+  // Project the secondary solution onto the spline basis
+  LR::LRSplineSurface* s = NULL;
+  if (project == 'S')
+    s = this->scRecovery(integrand);
+  else if (project == 'D' || !npe)
+    s = this->projectSolution(integrand);
+
+  if (npe)
+  {
+    // Compute parameter values of the result sampling points
+    RealArray gpar[2];
+    if (this->getGridParameters(gpar[0],0,npe[0]-1) &&
+	this->getGridParameters(gpar[1],1,npe[1]-1))
+    {
+      if (!project)
+	// Evaluate the secondary solution directly at all sampling points
+	return this->evalSolution(sField,integrand,gpar);
+      else if (s)
+      {
+	// Evaluate the projected field at the result sampling points
+	Go::Point p;
+	sField.resize(s->dimension(),gpar[0].size()*gpar[1].size());
+
+	int iel=0; // evaluation points are always structured in element order
+	for(size_t i=0; i<gpar[0].size(); i++) {
+	  if(i+1 % npe[0] == 0)
+	    iel++;
+	  s->point(p, gpar[0][i], gpar[1][i], iel);
+	  for(int d=0; d<s->dimension(); d++)
+	    sField(i+1, d+1) = p[d];
+	}
+	delete s;
+	return true;
+      }
+    }
+    else if (s)
+      delete s;
+  }
+  else if (s)
+  {
+    // Extract control point values from the spline object
+    sField.resize(s->dimension(),s->nBasisFunctions());
+    for(size_t i=0; i<s->nBasisFunctions(); i++)
+      for(int d=0; d<s->dimension(); d++)
+      	sField(d+1,i+1) = s->getBasisfunction(i)->controlpoint_[d];
+    delete s;
+    return true;
+  }
+
+  std::cerr <<" *** ASMu2D::evalSolution: Failure!"<< std::endl;
+  return false;
 }
 
 bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
@@ -1436,16 +1499,19 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 	for (size_t i = 0; i < nPoints; i++)
 	{
 		// Fetch element containing evaluation point. Points are always listed
-		int iel = i/nPtsPerElement; // in the same order as the elements
+		// int iel = i/nPtsPerElement; // in the same order as the elements
+		int iel = (workingEl>=0) ? workingEl : lrspline->getElementContaining(gpar[0][i], gpar[1][i]); // sadly, they are not always ordered in the same way as the elements
 		LR::Element *el = lrspline->getElement(iel);
 		double du = el->umax() - el->umin();
 		double dv = el->vmax() - el->vmin();
 		double u = gpar[0][i];
 		double v = gpar[1][i];
+		/*
 		if( i%npe == npe-1 )
 			u -= edge_epsilon*du;
 		if( (i%nPtsPerElement) / npe == npe-1)
 			v -= edge_epsilon*dv;
+		*/
 
 		// Evaluate the basis functions at current parametric point
 		Vector N(lrspline->getElement(iel)->nBasisFunctions());
@@ -1460,6 +1526,20 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 			Go::BasisDerivsSf spline;
 			lrspline->computeBasis(u, v, spline,iel);
 			extractBasis(spline,N,dNdu);
+			/*
+			if(u==1.0 ) {
+				std::cout << "*** Evaluating at u==1 ***\n";
+				printf("(%.3f, %.3f) in element #%d\n", u,v, iel);
+				el->write(std::cout);
+				std::cout << std::endl;
+				std::vector<LR::Basisfunction*>::iterator b;
+				for(b=el->supportBegin(); b!=el->supportEnd(); b++) {
+					std::cout << "   ";
+					(*b)->write(std::cout);
+					std::cout << std::endl;
+				}
+			}
+			*/
 		}
 
 		// Set up control point (nodal) coordinates for current element
