@@ -58,6 +58,9 @@ public:
   static std::ostream& printNorms(const Vector& norms, const Matrix& eNorm,
 				  std::ostream& os);
 
+  //! \brief Access the solution of the linear system
+  Vector& getSolution() { return linsol; }
+
 protected:
 
   //! \brief Parses a data section from an input stream.
