@@ -273,7 +273,7 @@ size_t PoissonNorm::getNoFields () const
   size_t nf = anasol ? 4 : 2;
   for (size_t i = 0; i < prjsol.size(); i++)
     if (!prjsol.empty())
-      nf += anasol ? 3 : 2;
+      nf += anasol ? 4 : 2;
 
   return nf;
 }
@@ -324,7 +324,7 @@ bool PoissonNorm::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
 
       // Integrate the energy norm a(u^r,u^r)
       pnorm[ip++] += sigmar.dot(Cinv*sigmar)*fe.detJxW;
-      // Integrate the error in energy norm a(u^r-u^h,u^r-u^h)
+      // Integrate the estimated error in energy norm a(u^r-u^h,u^r-u^h)
       error = sigmar - sigmah;
       pnorm[ip++] += error.dot(Cinv*error)*fe.detJxW;
 
@@ -333,6 +333,7 @@ bool PoissonNorm::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
 	// Integrate the error in the projected solution a(u-u^r,u-u^r)
 	error = sigma - sigmar;
 	pnorm[ip++] += error.dot(Cinv*error)*fe.detJxW;
+	ip++; // Make room for the local effectivity index here
       }
     }
 
@@ -353,6 +354,22 @@ bool PoissonNorm::evalBou (LocalIntegral& elmInt, const FiniteElement& fe,
 
   // Integrate the external energy (t,u^h)
   pnorm[1] += t*u*fe.detJxW;
+
+  return true;
+}
+
+
+bool PoissonNorm::finalizeElement (LocalIntegral& elmInt,
+				   const TimeDomain&, size_t)
+{
+  if (!anasol) return true;
+
+  ElmNorm& pnorm = static_cast<ElmNorm&>(elmInt);
+
+  // Evaluate local effectivity indices as sqrt(a(e^r,e^r)/a(e,e))
+  // with e^r = u^r - u^h  and  e = u - u^h
+  for (size_t ip = 5; ip+2 < pnorm.size(); ip += 4)
+    pnorm[ip+2] = sqrt(pnorm[ip] / pnorm[3]);
 
   return true;
 }

@@ -646,7 +646,7 @@ size_t ElasticityNorm::getNoFields () const
   size_t nf = anasol ? 4 : 2;
   for (size_t i = 0; i < prjsol.size(); i++)
     if (!prjsol.empty())
-       nf += anasol ? 5 : 4;
+       nf += anasol ? 6 : 4;
 
   return nf;
 }
@@ -726,6 +726,7 @@ bool ElasticityNorm::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
 	// Integrate the error in the projected solution a(u-u^r,u-u^r)
 	error = sigma - sigmar;
 	pnorm[ip++] += error.dot(Cinv*error)*detJW;
+	ip++; // Make room for the local effectivity index here
       }
 
       // Integrate the L2-norm (sigma^r,sigma^r)
@@ -757,5 +758,21 @@ bool ElasticityNorm::evalBou (LocalIntegral& elmInt, const FiniteElement& fe,
 
   // Integrate the external energy
   pnorm[1] += T*u*detJW;
+  return true;
+}
+
+
+bool ElasticityNorm::finalizeElement (LocalIntegral& elmInt,
+				      const TimeDomain&, size_t)
+{
+  if (!anasol) return true;
+
+  ElmNorm& pnorm = static_cast<ElmNorm&>(elmInt);
+
+  // Evaluate local effectivity indices as sqrt(a(e^r,e^r)/a(e,e))
+  // with e^r = u^r - u^h  and  e = u - u^h
+  for (size_t ip = 5; ip+2 < pnorm.size(); ip += 6)
+    pnorm[ip+2] = sqrt(pnorm[ip] / pnorm[3]);
+
   return true;
 }

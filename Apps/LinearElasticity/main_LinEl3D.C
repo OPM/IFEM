@@ -363,7 +363,7 @@ int main (int argc, char** argv)
 		  <<"\nExact error a(e,e)^0.5, e=u-u^h      : "<< gNorm(4)
 		  <<"\nExact relative error (%) : "<< gNorm(4)/gNorm(3)*100.0
 		  << std::endl;
-      size_t j = model->haveAnaSol() ? 5 : 3;
+      size_t j = model->haveAnaSol() ? 6 : 4;
       for (pit = pOpt.begin(); pit != pOpt.end() && j < gNorm.size(); pit++)
       {
 	std::cout <<"\n>>> Error estimates based on "<< pit->second <<" <<<";
@@ -500,7 +500,7 @@ int main (int argc, char** argv)
 	return 12;
 
     // Write element norms
-    if (!model->writeGlvN(eNorm,iStep,nBlock,prefix,5))
+    if (!model->writeGlvN(eNorm,iStep,nBlock,prefix,6))
       return 13;
 
     model->writeGlvStep(1);

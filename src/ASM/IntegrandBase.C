@@ -236,33 +236,36 @@ bool NormBase::initElementBou (const std::vector<int>& MNPC1,
 
 const char* NormBase::getName (size_t& i, bool haveExact, const char* prefix)
 {
-  static const char* s[8] = {
+  static const char* s[7] = {
     "a(u^h,u^h)^0.5",
     "a(u,u)^0.5",
     "a(e,e)^0.5, e=u-u^h",
     "a(u^r,u^r)^0.5",
-    "a(e,e)^0.5, e=u^r-u^h",
+    "a(e',e')^0.5, e'=u^r-u^h",
     "a(e,e)^0.5, e=u-u^r",
-    "L2(s^r)",
-    "L2(e), e=s^r-s^h"
+    "(a(e',e')/a(e,e))^0.5"
   };
 
   if (!haveExact) // Skip norms present only together with exact solutions
     if (i == 1)
       i = 3;
     else if (i == 5)
-      i = 6;
+      i = 7;
 
-  if (!prefix && i < 8) return s[i];
+  if (!prefix && i < 7) return s[i];
 
   static std::string name;
-  if (prefix) name = prefix + std::string(" ");
-  if (i < 8)
+  if (prefix)
+    name = prefix + std::string(" ");
+  else
+    name.clear();
+
+  if (i < 7)
     name += s[i];
   else
   {
     char comp[16];
-    sprintf(comp,"norm_%lu",i);
+    sprintf(comp,"norm_%lu",1+i);
     name += comp;
   }
 
