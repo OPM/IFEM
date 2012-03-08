@@ -14,7 +14,7 @@
 #ifndef _ADAPTIVE_SIM_H
 #define _ADAPTIVE_SIM_H
 
-#include "SIMinput.h"
+#include "SIMbase.h"
 #include "SystemMatrix.h"
 
 class SIMbase;
@@ -38,12 +38,16 @@ public:
   //! \brief Assembles and solves the linear FE equations on current mesh.
   //! \param[in] inputfile File to read model parameters from after refinement
   //! \param[in] solver The linear equation solver to use
+  //! \param[in] pOpt Projection options
+  //! \param[in] adaptor INdex to element norm to base the mesh adaption on
   //! \param[in] iStep Refinement step counter
-  bool solveStep(const char* inputfile, SystemMatrix::Type solver, int iStep);
+  bool solveStep(const char* inputfile, SystemMatrix::Type solver,
+		 const std::map<SIMbase::ProjectionMethod,std::string>& pOpt,
+		 size_t adaptor, int iStep);
 
   //! \brief Refines the current mesh based on the element norms.
   //! \param[in] iStep Refinement step counter
-  bool adaptMesh(int iStep);
+  bool adaptMesh(size_t adaptor, int iStep);
 
   //! \brief Writes current mesh and results to the VTF-file.
   //! \param[in] infile File name used to construct the VTF-file name from
@@ -56,9 +60,9 @@ public:
 
   //! \brief Prints out the global norms to given stream.
   static std::ostream& printNorms(const Vector& norms, const Matrix& eNorm,
-				  std::ostream& os);
+				  std::ostream& os, size_t adaptor = 4);
 
-  //! \brief Access the solution of the linear system
+  //! \brief Accesses the solution of the linear system.
   Vector& getSolution() { return linsol; }
 
 protected:
@@ -75,16 +79,17 @@ protected:
 private:
   SIMbase* model; //!< The isogeometric FE model
 
-  bool   storeMesh; //!< Creates a series of .eps files for intermediate steps
+  bool   storeMesh; //!< Creates a series of eps-files for intermediate steps
   double beta;      //!< Refinement percentage in each step
   double errTol;    //!< Global error stop tolerance
   int    maxStep;   //!< Maximum number of adaptive refinements
   int    maxDOFs;   //!< Maximum number of degrees of freedom
   int    symmetry;  //!< Always refine a multiplum of this
-  int    scheme;    //!< Refinement scheme: 0=fullspan, 1=minspan, 2=isotropic_elements, 3=isotropic_functions
   int    knot_mult; //!< Knotline multiplicity
 
-  std::vector<int> options; //!< Mesh refinement options
+  //! Refinement scheme: 0=fullspan, 1=minspan, 2=isotropic_elements,
+  //! 3=isotropic_functions
+  int    scheme;
 
   Vector linsol; //!< Linear solution vector
   Vector gNorm;  //!< Global norms

@@ -83,6 +83,7 @@ int main (int argc, char** argv)
   int format = -1;
   int n[3] = { 2, 2, 2 };
   std::vector<int> ignoredPatches;
+  size_t adaptor = 0;
   int iop = 0;
   int nev = 10;
   int ncv = 20;
@@ -174,8 +175,10 @@ int main (int argc, char** argv)
       twoD = true;
     else if (!strncmp(argv[i],"-adap",5))
     {
-      SIMbase::discretization = ASM::LRSpline;
       iop = 10;
+      if (strlen(argv[i]) > 5)
+        adaptor = atoi(argv[i]+5);
+      SIMbase::discretization = ASM::LRSpline;
     }
     else if (!strcasecmp(argv[i],"-dgl2"))
       pOpt[SIMbase::DGL2] = "Discrete global L2 projection";
@@ -289,14 +292,36 @@ int main (int argc, char** argv)
   if (!model->preprocess(ignoredPatches,fixDup))
     return 1;
 
+  if (SIMbase::discretization >= ASM::Spline)
+    pOpt[SIMbase::GLOBAL] = "Greville point projection";
+  else
+    pOpt.clear();
+
   model->setQuadratureRule(nGauss);
 
   Matrix eNorm, ssol;
-  Vector gNorm, load;
-  Vectors displ(1), projs;
+  Vector gNorm, displ, load;
+  Vectors projs;
   std::vector<Mode> modes;
   std::vector<Mode>::const_iterator it;
   int iStep = 1, nBlock = 0;
+
+  DataExporter* exporter = NULL;
+  if (dumpHDF5 && (iop == 0 || iop == 5 || iop == 10))
+  {
+    strtok(infile,".");
+    if (linalg.myPid == 0)
+      std::cout <<"\nWriting HDF5 file "<< infile <<".hdf5"<< std::endl;
+
+    exporter = new DataExporter(true);
+    exporter->registerField("u","solution",DataExporter::SIM,
+                            DataExporter::PRIMARY |
+                            DataExporter::SECONDARY |
+                            DataExporter::NORMS);
+    exporter->setFieldValue("u",model, aSim ? &aSim->getSolution() : &displ);
+    exporter->registerWriter(new HDF5Writer(infile));
+    exporter->registerWriter(new XMLWriter(infile));
+  }
 
   switch (iop) {
   case 0:
@@ -311,19 +336,13 @@ int main (int argc, char** argv)
       model->extractLoadVec(load);
 
     // Solve the linear system of equations
-    if (!model->solveSystem(displ.front(),1))
+    if (!model->solveSystem(displ,1))
       return 3;
-
-    if (SIMbase::discretization == ASM::Spline ||
-	SIMbase::discretization == ASM::SplineC1)
-      pOpt[SIMbase::GLOBAL] = "Greville point projection";
-    else
-      pOpt.clear();
 
     // Project the FE stresses onto the splines basis
     model->setMode(SIM::RECOVERY);
     for (pit = pOpt.begin(); pit != pOpt.end(); pit++)
-      if (!model->project(ssol,displ.front(),pit->first))
+      if (!model->project(ssol,displ,pit->first))
 	return 4;
       else
 	projs.push_back(ssol);
@@ -332,7 +351,7 @@ int main (int argc, char** argv)
       std::cout << std::endl;
 
     // Integrate solution norms and errors
-    if (!model->solutionNorms(displ,projs,eNorm,gNorm))
+    if (!model->solutionNorms(Vectors(1,displ),projs,eNorm,gNorm))
       return 4;
 
     if (linalg.myPid == 0)
@@ -363,7 +382,7 @@ int main (int argc, char** argv)
 	std::cout << std::endl;
       }
 
-      model->dumpResults(displ.front(),0.0,std::cout,true,6);
+      model->dumpResults(displ,0.0,std::cout,true,6);
     }
 
     if (iop == 0) break;
@@ -371,7 +390,7 @@ int main (int argc, char** argv)
     // Linearized buckling: Assemble [Km] and [Kg]
     model->setMode(SIM::BUCKLING);
     model->initSystem(solver,2,0);
-    if (!model->assembleSystem(displ))
+    if (!model->assembleSystem(Vectors(1,displ)))
       return 5;
 
     // Solve the generalized eigenvalue problem
@@ -393,12 +412,36 @@ int main (int argc, char** argv)
 
   case 10:
     // Adaptive simulation
+    pit = pOpt.begin();
+    for (size_t j = 1; pit != pOpt.end(); pit++, j++)
+      if (j == adaptor)
+      {
+	// Compute the index into eNorm for the error indicator to adapt on
+	adaptor = model->haveAnaSol() ? 4+5*(j-1) : 2+4*(j-1);
+	break;
+      }
+
+    std::cout <<"\n\n >>> Starting adaptive simulation based on";
+    if (pit != pOpt.end())
+      std::cout <<"\n     "<< pit->second <<" error estimates (index="
+		<< adaptor <<") <<<\n";
+    else if (model->haveAnaSol())
+    {
+      std::cout <<"exact errors <<<\n";
+      adaptor = 4;
+    }
+    else
+    {
+      std::cout <<" nothing, bailing out ...\n";
+      break;
+    }
+
     while (true)
-      if (!aSim->solveStep(infile,solver,iStep))
+      if (!aSim->solveStep(infile,solver,pOpt,iStep,adaptor))
         return 5;
       else if (!aSim->writeGlv(infile,format,n,iStep,nBlock))
 	return 6;
-      else if (!aSim->adaptMesh(++iStep))
+      else if (!aSim->adaptMesh(adaptor,++iStep))
         break;
 
   case 100:
@@ -416,20 +459,6 @@ int main (int argc, char** argv)
   }
 
   utl::profiler->start("Postprocessing");
-
-  if (dumpHDF5 && !displ.front().empty())
-  {
-    strtok(infile,".");
-    if (linalg.myPid == 0)
-      std::cout <<"\nWriting HDF5 file "<< infile <<".hdf5"<< std::endl;
-    DataExporter exporter(true);
-    exporter.registerField("u","solution",DataExporter::SIM,
-			   DataExporter::SECONDARY);
-    exporter.setFieldValue("u",model,&displ.front());
-    exporter.registerWriter(new HDF5Writer(infile));
-    exporter.registerWriter(new XMLWriter(infile));
-    exporter.dumpTimeLevel();
-  }
 
   if (iop != 10 && format >= 0)
   {
@@ -450,7 +479,7 @@ int main (int argc, char** argv)
       return 9;
 
     // Write solution fields to VTF-file
-    if (!model->writeGlvS(displ.front(),n,iStep,nBlock))
+    if (!model->writeGlvS(displ,n,iStep,nBlock))
       return 10;
 
     const char* prefix[pOpt.size()+1];
@@ -484,15 +513,15 @@ int main (int argc, char** argv)
     std::ofstream osg(strcat(strtok(infile,"."),".g2"));
     std::cout <<"\nWriting updated g2-file "<< infile << std::endl;
     model->dumpGeometry(osg);
-    if (!displ.front().empty())
+    if (!displ.empty())
     {
       // Write solution (control point values) to ASCII files
       std::ofstream osd(strcat(strtok(infile,"."),".dis"));
       std::cout <<"\nWriting deformation to file "<< infile << std::endl;
-      model->dumpPrimSol(displ.front(),osd,false);
+      model->dumpPrimSol(displ,osd,false);
       std::ofstream oss(strcat(strtok(infile,"."),".sol"));
       std::cout <<"\nWriting solution to file "<< infile << std::endl;
-      model->dumpSolution(displ.front(),oss);
+      model->dumpSolution(displ,oss);
     }
     if (!modes.empty())
     {

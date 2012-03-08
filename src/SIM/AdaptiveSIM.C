@@ -34,8 +34,8 @@ AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : model(sim)
   errTol    = 1.0;
   maxStep   = 10;
   maxDOFs   = 1000000;
-  scheme    = 0; // fullspan 
-  symmetry  = 1; // no symmetry 
+  scheme    = 0; // fullspan
+  symmetry  = 1; // no symmetry
   knot_mult = 1; // maximum regularity (continuity)
 }
 
@@ -47,17 +47,9 @@ AdaptiveSIM::~AdaptiveSIM ()
 
 bool AdaptiveSIM::parse (const TiXmlElement* elem)
 {
-
   if (strcasecmp(elem->Value(),"adaptive"))
-  {
-  	// if no adaptive word is found, set default refine options and return 
-    options.clear();
-    options.push_back(beta);
-    options.push_back(knot_mult);
-    options.push_back(scheme);
-    options.push_back(symmetry);
     return model->parse(elem);
-  }
+
   const TiXmlElement* child = elem->FirstChildElement();
   std::string str;
   while (child) {
@@ -95,11 +87,6 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
 
     child = child->NextSiblingElement();
   }
-  options.clear();
-  options.push_back(beta);
-  options.push_back(knot_mult);
-  options.push_back(scheme);
-  options.push_back(symmetry);
 
   return true;
 }
@@ -135,12 +122,6 @@ bool AdaptiveSIM::parse (char* keyWord, std::istream& is)
     // (0=none, <n> always requests a multiplum of <n> elements for refinement)
     if (!cline.fail() && !cline.bad())
       symmetry = itmp;
-
-    options.clear();
-    options.push_back(beta);
-    options.push_back(knot_mult);
-    options.push_back(scheme);
-    options.push_back(symmetry);
   }
   else
     return model->parse(keyWord,is);
@@ -150,7 +131,8 @@ bool AdaptiveSIM::parse (char* keyWord, std::istream& is)
 
 
 bool AdaptiveSIM::solveStep (const char* inputfile, SystemMatrix::Type solver,
-			     int iStep)
+			     const std::map<SIMbase::ProjectionMethod,std::string>& pOpt,
+			     size_t adaptor, int iStep)
 {
   std::cout <<"\nAdaptive step "<< iStep << std::endl;
   if (iStep > 1)
@@ -163,9 +145,9 @@ bool AdaptiveSIM::solveStep (const char* inputfile, SystemMatrix::Type solver,
     if (!model->read(inputfile) || !model->preprocess())
       return false;
   }
-  else if(storeMesh)
+  else if (storeMesh)
     // Output the initial grid to eps-file
-    model->refine(std::vector<int>(),options,"mesh_001.eps");
+    model->refine(std::vector<int>(),std::vector<int>(),"mesh_001.eps");
 
   // Assemble the linear FE equation system
   model->setMode(SIM::STATIC,true);
@@ -178,9 +160,20 @@ bool AdaptiveSIM::solveStep (const char* inputfile, SystemMatrix::Type solver,
   if (!model->solveSystem(linsol,1))
     return false;
 
-  // Evaluate solution norms
+  Matrix  ssol;
+  Vectors projs;
+  std::map<SIMbase::ProjectionMethod,std::string>::const_iterator pit;
+
+  // Project the secondary solution onto the splines basis
   model->setMode(SIM::RECOVERY);
-  return (model->solutionNorms(Vectors(1,linsol),eNorm,gNorm) &&
+  for (pit = pOpt.begin(); pit != pOpt.end(); pit++)
+    if (!model->project(ssol,linsol,pit->first))
+      return false;
+    else
+      projs.push_back(ssol);
+
+  // Evaluate solution norms
+  return (model->solutionNorms(Vectors(1,linsol),projs,eNorm,gNorm) &&
 	  model->dumpResults(linsol,0.0,std::cout,true,6));
 }
 
@@ -192,20 +185,34 @@ bool AdaptiveSIM::solveStep (const char* inputfile, SystemMatrix::Type solver,
 typedef std::pair<double,int> IndexDouble;
 
 
-bool AdaptiveSIM::adaptMesh (int iStep)
+bool AdaptiveSIM::adaptMesh (size_t adaptor, int iStep)
 {
-  printNorms(gNorm,eNorm,std::cout);
+  printNorms(gNorm,eNorm,std::cout,adaptor);
+
+  // Define the reference norm
+  if (adaptor > gNorm.size() || adaptor > eNorm.rows()) return false;
+
+  double uNorm;
+  if (adaptor == 4 && model->haveAnaSol())
+    uNorm = gNorm(3); // Using the analytical solution, |u|_ref = |u|
+  else // |u|_ref = sqrt( |u^h|^2 + |e^*|^2 )
+    uNorm = sqrt(gNorm(1)*gNorm(1) + gNorm(adaptor)*gNorm(adaptor));
 
   // Check if further refinement is required
   if (iStep > maxStep || model->getNoDOFs() > (size_t)maxDOFs) return false;
-  if (gNorm.size() > 3 && 100.0*gNorm(4) < errTol*gNorm(3)) return false;
-  if (eNorm.cols() < 1 || eNorm.rows() < 4) return false;
+  if (eNorm.cols() < 1 || 100.0*gNorm(adaptor) < errTol*uNorm) return false;
 
-  std::vector<int> toBeRefined;
+  std::vector<int> toBeRefined, options;
   std::vector<IndexDouble> errors;
 
+  options.reserve(4);
+  options.push_back(beta);
+  options.push_back(knot_mult);
+  options.push_back(scheme);
+  options.push_back(symmetry);
+
   size_t i;
-  if (options.size() > 2 && options[2] == 3)
+  if (scheme == 3)
   {
     // sum up the total function error over all supported elements for that function
     ASMbase* patch = model->getFEModel().front();
@@ -215,17 +222,17 @@ bool AdaptiveSIM::adaptMesh (int iStep)
       errors.push_back(IndexDouble(0.0,i));
     for (i = 1, eit = patch->begin_elm(); eit < patch->end_elm(); eit++, i++)
       for (nit = eit->begin(); nit < eit->end(); nit++)
-        errors[*nit].first += eNorm(4,i);
+        errors[*nit].first += eNorm(adaptor,i);
   }
   else
     for (i = 0; i < eNorm.cols(); i++)
-      errors.push_back(IndexDouble(eNorm(4,1+i),i));
+      errors.push_back(IndexDouble(eNorm(adaptor,1+i),i));
 
   // Find the list of elements/functions to refine (the beta % with the highest error)
   size_t ipivot = ceil(errors.size()*beta/100.0);
-  // make ipivot a multiplum of options[3] in case of symmetric problems
-  if (options.size() > 3 && options[3] > 0)
-    ipivot += (options[3]-ipivot%options[3]);
+  // make ipivot a multiplum of 'symmetry' in case of symmetric problems
+  if (symmetry > 0)
+    ipivot += (symmetry-ipivot%symmetry);
 
   if (ipivot < 1 || ipivot > errors.size()) return false;
   std::sort(errors.begin(),errors.end(),std::greater<IndexDouble>());
@@ -249,38 +256,44 @@ bool AdaptiveSIM::adaptMesh (int iStep)
 
 
 std::ostream& AdaptiveSIM::printNorms (const Vector& norms, const Matrix& eNorm,
-				       std::ostream& os)
+				       std::ostream& os, size_t adaptor)
 {
+  // TODO: This needs further work to enable print for all recovered solutions.
+  // As for now we only print the norm used for the mesh adaption.
+  // Will be completed after the kmo/xmlfixes branch is merged with trunk.
   os <<    "Energy norm |u^h| = a(u^h,u^h)^0.5   : "<< norms(1)
      <<  "\nExternal energy ((h,u^h)+(t,u^h)^0.5 : "<< norms(2);
-  if (norms.size() > 2)
-    os <<"\nExact norm  |u|   = a(u,u)^0.5       : "<< norms(3);
-  if (norms.size() > 3)
-    os <<"\nExact error a(e,e)^0.5, e=u-u^h      : "<< norms(4)
+  if (adaptor == 4 && norms.size() >= 4)
+    os <<"\nExact norm  |u|   = a(u,u)^0.5       : "<< norms(3)
+       <<"\nExact error a(e,e)^0.5, e=u-u^h      : "<< norms(4)
        <<"\nExact relative error (%) : "<< 100.0*norms(4)/norms(3);
+  else if (adaptor > 4 && adaptor <= norms.size())
+    os <<"\nError estimate a(e,e)^0.5, e=u^r-u^h : "<< norms(adaptor)
+       <<"\nRelative error (%) : "<< 100.0*norms(adaptor)/
+      sqrt(norms(1)*norms(1) + norms(adaptor)*norms(adaptor));
 
-  if (eNorm.rows() < 4 || eNorm.cols() < 1)
+  if (eNorm.rows() < adaptor || eNorm.cols() < 1)
     return os << std::endl;
 
   // Compute some additional error measures
 
   size_t i;
-  double avg_norm = eNorm(4,1);
+  double avg_norm = eNorm(adaptor,1);
   double min_err  = avg_norm;
   double max_err  = avg_norm;
   for (i = 2; i <= eNorm.cols(); i++)
   {
-    avg_norm += eNorm(4,i);
-    if (min_err > eNorm(4,i))
-      min_err = eNorm(4,i);
-    else if (max_err < eNorm(4,i))
-      max_err = eNorm(4,i);
+    avg_norm += eNorm(adaptor,i);
+    if (min_err > eNorm(adaptor,i))
+      min_err = eNorm(adaptor,i);
+    else if (max_err < eNorm(adaptor,i))
+      max_err = eNorm(adaptor,i);
   }
   avg_norm /= eNorm.cols();
 
   double RMS_norm = 0.0;
   for (i = 1; i <= eNorm.cols(); i++)
-    RMS_norm += pow(eNorm(4,i)-avg_norm,2.0);
+    RMS_norm += pow(eNorm(adaptor,i)-avg_norm,2.0);
   RMS_norm = sqrt(RMS_norm/eNorm.cols())/avg_norm;
 
   os <<"\nRoot mean square (RMS) of error      : "<< RMS_norm
