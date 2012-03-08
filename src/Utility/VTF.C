@@ -267,7 +267,7 @@ bool VTF::writeVres (const std::vector<real>& nodeResult,
     return showError("Error writing result block",idBlock);
 #elif HAS_VTFAPI == 2
   VTFXAResultValuesBlock dBlock(idBlock,VTFXA_DIM_VECTOR,VTFXA_FALSE);
-  dBlock.SetMapToBlockID(geomID,VTFXA_NODES);
+  dBlock.SetMapToBlockID(myBlocks[geomID-1].first,VTFXA_NODES);
   dBlock.SetResultValues3D(resVec,nnod);
   if (VTFA_FAILURE(myDatabase->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
@@ -306,7 +306,7 @@ bool VTF::writeEres (const std::vector<real>& elementResult,
     return showError("Error writing result block",idBlock);
 #elif HAS_VTFAPI == 2
   VTFXAResultValuesBlock dBlock(idBlock,VTFXA_DIM_SCALAR,VTFXA_FALSE);
-  dBlock.SetMapToBlockID(geomID,VTFXA_ELEMENTS);
+  dBlock.SetMapToBlockID(myBlocks[geomID-1].first,VTFXA_ELEMENTS);
   dBlock.SetResultValues1D(resVec,nres);
   if (VTFA_FAILURE(myDatabase->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
@@ -343,7 +343,7 @@ bool VTF::writeNres (const std::vector<real>& nodalResult,
     return showError("Error writing result block",idBlock);
 #elif HAS_VTFAPI == 2
   VTFXAResultValuesBlock dBlock(idBlock,VTFXA_DIM_SCALAR,VTFXA_FALSE);
-  dBlock.SetMapToBlockID(geomID,VTFXA_NODES);
+  dBlock.SetMapToBlockID(myBlocks[geomID-1].first,VTFXA_NODES);
   dBlock.SetResultValues1D(resVec,nres);
   if (VTFA_FAILURE(myDatabase->WriteBlock(&dBlock)))
     return showError("Error writing result block",idBlock);
