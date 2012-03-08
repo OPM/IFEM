@@ -16,10 +16,9 @@
 #include "SIMparameters.h"
 #include "IntegrandBase.h"
 #include <sstream>
-#include <sys/stat.h>
 #include <numeric>
+#include <sys/stat.h>
 #include <sys/statvfs.h>
-#include <cassert>
 
 #ifdef HAS_HDF5
 #include <hdf5.h>
@@ -313,6 +312,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
   if (entry.second.results & DataExporter::NORMS)
     sim->solutionNorms(Vectors(1,*sol),eNorm,gNorm);
 
+  size_t j, k;
   for (int i = 0; i < sim->getNoPatches(); ++i) {
     std::stringstream str;
     str << level;
@@ -342,20 +342,18 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
       if (entry.second.results & DataExporter::SECONDARY) {
         Matrix field;
         sim->evalSecondarySolution(field,loc-1);
-        for (size_t j = 0; j < prob->getNoFields(2); ++j)
+        for (j = 0; j < prob->getNoFields(2); j++)
           writeArray(group2,prob->getField2Name(j),field.cols(),
                      field.getRow(j+1).ptr(),H5T_NATIVE_DOUBLE);
       }
       if (entry.second.results & DataExporter::NORMS) {
         Matrix patchEnorm;
         sim->extractPatchElmRes(eNorm,patchEnorm,loc-1);
-        for (size_t j=0;j<eNorm.rows();++j) {
-          if (NormBase::hasElementContributions(j)) {
-            Vector k;
-            writeArray(group2,NormBase::getName(j,sim->haveAnaSol()),patchEnorm.cols(),
+        // We need two loop indices here because getName may update the 2nd one
+        for (j = k = 0; j < eNorm.rows(); j++, k++)
+          if (NormBase::hasElementContributions(j))
+            writeArray(group2,NormBase::getName(k,sim->haveAnaSol()),patchEnorm.cols(),
                        patchEnorm.getRow(1+j).ptr(),H5T_NATIVE_DOUBLE);
-          }
-        }
       }
     }
     else // must write empty dummy records for the other patches
@@ -368,14 +366,15 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
         writeArray(group2,prob->getField1Name(12),0,&dummy,H5T_NATIVE_DOUBLE);
       }
       if (entry.second.results & DataExporter::SECONDARY) {
-        for (size_t j = 0; j < prob->getNoFields(2); ++j)
+        for (j = 0; j < prob->getNoFields(2); j++)
           writeArray(group2,prob->getField2Name(j),0,&dummy,H5T_NATIVE_DOUBLE);
       }
       if (entry.second.results & DataExporter::NORMS) {
-        for (size_t j=0;j<eNorm.rows();++j) {
+        // We need two loop indices here because getName may update the 2nd one
+        for (j = k = 0; j < eNorm.rows(); j++, k++)
           if (NormBase::hasElementContributions(j))
-            writeArray(group2,NormBase::getName(j,sim->haveAnaSol()),0,&dummy,H5T_NATIVE_DOUBLE);
-        }
+            writeArray(group2,NormBase::getName(k,sim->haveAnaSol()),0,
+                       &dummy,H5T_NATIVE_DOUBLE);
       }
     }
     H5Gclose(group2);
@@ -429,7 +428,7 @@ bool HDF5Writer::checkGroupExistence(int parent, const char* path)
   return result;
 }
 
-// TODO: implement for variable timesteps 
+// TODO: implement for variable time steps.
 // (named time series to allow different timelevels for different fields)
 bool HDF5Writer::writeTimeInfo(int level, int order, int interval,
                                SIMparameters& tp)
@@ -460,7 +459,7 @@ bool HDF5Writer::hasGeometries(int level)
   return checkGroupExistence(m_file,str.str().c_str());
 }
 
-bool HDF5Writer::readDouble(int level, const std::string& group, 
+bool HDF5Writer::readDouble(int level, const std::string& group,
                             const std::string& name, double& data)
 {
 #ifdef HAS_HDF5
