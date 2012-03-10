@@ -222,7 +222,7 @@ int main (int argc, char** argv)
   if (linalg.myPid == 0)
   {
     std::cout <<"\n >>> IFEM Linear Elasticity solver <<<"
-	      <<"\n ===========================================\n"
+	      <<"\n =====================================\n"
 	      <<"\n Executing command:\n";
     for (int i = 0; i < argc; i++) std::cout <<" "<< argv[i];
     std::cout <<"\n\nInput file: "<< infile
@@ -248,6 +248,8 @@ int main (int argc, char** argv)
       std::cout <<"\nLagrangian basis functions are used";
     else if (SIMbase::discretization == ASM::Spectral)
       std::cout <<"\nSpectral basis functions are used";
+    else if (SIMbase::discretization == ASM::LRSpline)
+      std::cout <<"\nLR-spline basis functions are used";
     if (SIMbase::ignoreDirichlet)
       std::cout <<"\nSpecified boundary conditions are ignored";
     if (fixDup)
@@ -350,7 +352,7 @@ int main (int argc, char** argv)
     if (linalg.myPid == 0 && !pOpt.empty())
       std::cout << std::endl;
 
-    // Integrate solution norms and errors
+    // Evaluate solution norms
     if (!model->solutionNorms(Vectors(1,displ),projs,eNorm,gNorm))
       return 4;
 
@@ -361,26 +363,31 @@ int main (int argc, char** argv)
       if (model->haveAnaSol() && gNorm.size() >= 4)
 	std::cout <<"\nExact norm  |u|   = a(u,u)^0.5       : "<< gNorm(3)
 		  <<"\nExact error a(e,e)^0.5, e=u-u^h      : "<< gNorm(4)
-		  <<"\nExact relative error (%) : "<< gNorm(4)/gNorm(3)*100.0
-		  << std::endl;
-      size_t j = model->haveAnaSol() ? 6 : 4;
+		  <<"\nExact relative error (%) : "<< gNorm(4)/gNorm(3)*100.0;
+      size_t j = model->haveAnaSol() ? 5 : 3;
       for (pit = pOpt.begin(); pit != pOpt.end() && j < gNorm.size(); pit++)
       {
-	std::cout <<"\n>>> Error estimates based on "<< pit->second <<" <<<";
+	std::cout <<"\n\n>>> Error estimates based on "<< pit->second <<" <<<";
 	std::cout <<"\nEnergy norm |u^r| = a(u^r,u^r)^0.5   : "<< gNorm(j++);
 	std::cout <<"\nError norm a(e,e)^0.5, e=u^r-u^h     : "<< gNorm(j++);
 	std::cout <<"\n- relative error (% of |u^r|) : "
 		  << gNorm(j-1)/gNorm(j-2)*100.0;
-	if (model->haveAnaSol() && j++ <= gNorm.size())
-	  std::cout <<"\nExact error a(e,e)^0.5, e=u-u^r      : "<< gNorm(j-1)
+	if (model->haveAnaSol() && j <= gNorm.size())
+	{
+	  std::cout <<"\nExact error a(e,e)^0.5, e=u-u^r      : "<< gNorm(j)
 		    <<"\n- relative error (% of |u|)   : "
-		    << gNorm(j-1)/gNorm(3)*100.0;
+		    << gNorm(j)/gNorm(3)*100.0;
+	  std::cout <<"\nEffectivity index             : "
+		    << gNorm(j)/gNorm(4);
+	  j += 2; // because of the local effectivity index calculation
+	}
+	if (j+1 > gNorm.size()) continue;
 	std::cout <<"\nL2-norm |s^r| =(s^r,s^r)^0.5         : "<< gNorm(j++);
 	std::cout <<"\nL2-error (e,e)^0.5, e=s^r-s^h        : "<< gNorm(j++);
 	std::cout <<"\n- relative error (% of |s^r|) : "
 		  << gNorm(j-1)/gNorm(j-2)*100.0;
-	std::cout << std::endl;
       }
+      std::cout << std::endl;
 
       model->dumpResults(displ,0.0,std::cout,true,6);
     }
@@ -417,7 +424,7 @@ int main (int argc, char** argv)
       if (j == adaptor)
       {
 	// Compute the index into eNorm for the error indicator to adapt on
-	adaptor = model->haveAnaSol() ? 4+5*(j-1) : 2+4*(j-1);
+	adaptor = model->haveAnaSol() ? 6+6*(j-1) : 4+4*(j-1);
 	break;
       }
 
@@ -427,7 +434,7 @@ int main (int argc, char** argv)
 		<< adaptor <<") <<<\n";
     else if (model->haveAnaSol())
     {
-      std::cout <<"exact errors <<<\n";
+      std::cout <<" exact errors <<<\n";
       adaptor = 4;
     }
     else
@@ -436,13 +443,16 @@ int main (int argc, char** argv)
       break;
     }
 
-    while (true)
-      if (!aSim->solveStep(infile,solver,pOpt,iStep,adaptor))
+    while (true) {
+      if (!aSim->solveStep(infile,solver,pOpt,adaptor,iStep))
         return 5;
       else if (!aSim->writeGlv(infile,format,n,iStep,nBlock))
-	return 6;
-      else if (!aSim->adaptMesh(adaptor,++iStep))
+        return 6;
+      else if (dumpHDF5)
+        exporter->dumpTimeLevel(NULL,true);
+      if (!aSim->adaptMesh(adaptor,++iStep))
         break;
+    }
 
   case 100:
     break; // Model check
@@ -506,6 +516,8 @@ int main (int argc, char** argv)
     model->writeGlvStep(1);
   }
   model->closeGlv();
+  if (dumpHDF5 && iop != 10)
+    exporter->dumpTimeLevel();
 
   if (dumpASCII)
   {
@@ -538,5 +550,6 @@ int main (int argc, char** argv)
 
   utl::profiler->stop("Postprocessing");
   delete theSim;
+  delete exporter;
   return 0;
 }
