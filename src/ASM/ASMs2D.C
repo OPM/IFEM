@@ -14,8 +14,6 @@
 #include "GoTools/geometry/ObjectHeader.h"
 #include "GoTools/geometry/SplineCurve.h"
 #include "GoTools/geometry/SplineSurface.h"
-#include "GoTools/geometry/BsplineBasis.h"
-#include "GoTools/geometry/SurfaceInterpolator.h"
 
 #include "ASMs2D.h"
 #include "TimeDomain.h"
@@ -1542,7 +1540,7 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Go::SplineSurface* s = NULL;
   if (project == 'S')
     s = this->scRecovery(integrand);
-  else if(project == 'A')
+  else if (project == 'A')
     s = this->projectSolutionLocalApprox(integrand);
   else if (project == 'L')
     s = this->projectSolutionLocal(integrand);
@@ -1583,7 +1581,9 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     return true;
   }
 
-  std::cerr <<" *** ASMs2D::evalSolution: Failure!"<< std::endl;
+  std::cerr <<" *** ASMs2D::evalSolution: Failure!";
+  if (project) std::cerr <<" project="<< project;
+  std::cerr << std::endl;
   return false;
 }
 

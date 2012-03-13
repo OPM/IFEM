@@ -23,7 +23,6 @@
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
-#include "SparseMatrix.h"
 #include "ElementBlock.h"
 #include "Utilities.h"
 #include "Profiler.h"
@@ -46,6 +45,7 @@ ASMs3D::ASMs3D (const ASMs3D& patch, unsigned char n_f)
 
 bool ASMs3D::read (std::istream& is)
 {
+  if (shareFE) return true;
   if (svol) delete svol;
 
   Go::ObjectHeader head;
@@ -77,7 +77,7 @@ bool ASMs3D::read (std::istream& is)
     return false;
   }
 
-  // Number of DOFs pr element
+  // Define number of DOFs pr element
   neldof = svol->order(0)*svol->order(1)*svol->order(2)*nf;
 
   geo = svol;
@@ -114,7 +114,7 @@ void ASMs3D::clear (bool retainGeometry)
 
 bool ASMs3D::checkRightHandSystem ()
 {
-  if (!svol) return false;
+  if (!svol || shareFE) return false;
 
   // Evaluate the spline volume at its center
   RealArray u(1,0.5*(svol->startparam(0) + svol->endparam(0)));
@@ -988,6 +988,7 @@ void ASMs3D::getNodalCoordinates (Matrix& X) const
 bool ASMs3D::updateCoords (const Vector& displ)
 {
   if (!svol) return true; // silently ignore empty patches
+  if (shareFE) return true;
 
   if (displ.size() != 3*MLGN.size())
   {
@@ -1874,6 +1875,7 @@ bool ASMs3D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 
   if (ucurr > prm.back())
     prm.push_back(ucurr);
+
   return true;
 }
 
@@ -2013,40 +2015,44 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
 bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 			   const int* npe, char project) const
 {
+  // Project the secondary solution onto the spline basis
   Go::SplineVolume* v = NULL;
-  if(project == 'A')
-    v = projectSolutionLocalApprox(integrand);//hierlocalapprox
+  if (project == 'A')
+    v = this->projectSolutionLocalApprox(integrand);
   else if (project == 'L')
-    v = projectSolutionLocal(integrand);
+    v = this->projectSolutionLocal(integrand);
   else if (project == 'W')
-    v = projectSolutionLeastSquare(integrand);
-  else if (project == 'G')
-    v = projectSolution(integrand);
+    v = this->projectSolutionLeastSquare(integrand);
   else if (project == 'D' || !npe)
-    v = projectSolution(integrand);
+    v = this->projectSolution(integrand);
+
   if (npe)
   {
     // Compute parameter values of the result sampling points
     RealArray gpar[3];
     if (this->getGridParameters(gpar[0],0,npe[0]-1) &&
 	this->getGridParameters(gpar[1],1,npe[1]-1) &&
-	this->getGridParameters(gpar[2],2,npe[2]-1)) {
-       if (v) {
-         // Evaluate the projected field at the result sampling points
-         const Vector& svec = sField; // using utl::matrix cast operator
-         sField.resize(v->dimension(),
-             gpar[0].size()*gpar[1].size()*gpar[2].size());
-         v->gridEvaluator(gpar[0],gpar[1],gpar[2],const_cast<Vector&>(svec));
-         delete v;
-         return true;
-       } else {
-         // Evaluate the secondary solution directly at all sampling points
-         return this->evalSolution(sField,integrand,gpar);
-       }
-    } else if (v)
+	this->getGridParameters(gpar[2],2,npe[2]-1))
+    {
+      if (!project)
+        // Evaluate the secondary solution directly at all sampling points
+        return this->evalSolution(sField,integrand,gpar);
+      else if (v)
+      {
+        // Evaluate the projected field at the result sampling points
+        const Vector& svec = sField; // using utl::matrix cast operator
+        sField.resize(v->dimension(),
+                      gpar[0].size()*gpar[1].size()*gpar[2].size());
+        v->gridEvaluator(gpar[0],gpar[1],gpar[2],const_cast<Vector&>(svec));
+        delete v;
+        return true;
+      }
+    }
+    else if (v)
       delete v;
-  } else if (v) {
-    // Project the secondary solution onto the spline basis
+  }
+  else if (v)
+  {
     // Extract control point values from the spline object
     sField.resize(v->dimension(),
                   v->numCoefs(0)*v->numCoefs(1)*v->numCoefs(2));
@@ -2055,7 +2061,9 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     return true;
   }
 
-  std::cerr <<" *** ASMs3D::evalSolution: Failure!"<< std::endl;
+  std::cerr <<" *** ASMs3D::evalSolution: Failure!";
+  if (project) std::cerr <<" project="<< project;
+  std::cerr << std::endl;
   return false;
 }
 
@@ -2109,7 +2117,7 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     // Fetch basis function derivatives at current integration point
     extractBasis(spline[i],N,dNdu);
 
-    // Compute the Jacobian inverse
+    // Compute the Jacobian inverse and derivatives
     if (utl::Jacobian(Jac,dNdX,Xtmp,dNdu) == 0.0) // Jac = (Xtmp * dNdu)^-1
       continue; // skip singular points
 
@@ -2121,102 +2129,6 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     sField.fillColumn(1+i,solPt);
   }
-
-  return true;
-}
-
-
-bool ASMs3D::globalL2projection (Matrix& sField,
-				 const IntegrandBase& integrand) const
-{
-  if (!svol) return true; // silently ignore empty patches
-
-  PROFILE2("ASMs3D::globalL2");
-
-  const int p1 = svol->order(0);
-  const int p2 = svol->order(1);
-  const int p3 = svol->order(2);
-  const int n1 = svol->numCoefs(0);
-  const int n2 = svol->numCoefs(1);
-  const int n3 = svol->numCoefs(2);
-  const int nel1 = n1 - p1 + 1;
-  const int nel2 = n2 - p2 + 1;
-  const int nel3 = n3 - p3 + 1;
-
-  // Get Gaussian quadrature points
-  const int ng1 = p1 - 1;
-  const int ng2 = p2 - 1;
-  const int ng3 = p3 - 1;
-  const double* xg = GaussQuadrature::getCoord(ng1);
-  const double* yg = GaussQuadrature::getCoord(ng2);
-  const double* zg = GaussQuadrature::getCoord(ng3);
-  if (!xg || !yg || !zg) return false;
-
-  // Compute parameter values of the Gauss points over the whole patch
-  Matrix gp;
-  RealArray gpar[3];
-  gpar[0] = this->getGaussPointParameters(gp,0,ng1,xg);
-  gpar[1] = this->getGaussPointParameters(gp,1,ng2,yg);
-  gpar[2] = this->getGaussPointParameters(gp,2,ng3,zg);
-
-  // Evaluate basis functions at all integration points
-  std::vector<Go::BasisPts> spline;
-  svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline);
-
-  // Evaluate the secondary solution at all integration points
-  if (!this->evalSolution(sField,integrand,gpar))
-    return false;
-
-  // Set up the projection matrices
-  const size_t nnod = this->getNoNodes();
-  const size_t ncomp = sField.rows();
-  SparseMatrix A(SparseMatrix::SUPERLU);
-  StdVector B(nnod*ncomp);
-  A.redim(nnod,nnod);
-
-
-  // === Assembly loop over all elements in the patch ==========================
-
-  int iel = 0;
-  for (int i3 = 0; i3 < nel3; i3++)
-    for (int i2 = 0; i2 < nel2; i2++)
-      for (int i1 = 0; i1 < nel1; i1++, iel++)
-      {
-	if (MLGE[iel] < 1) continue; // zero-area element
-
-	// --- Integration loop over all Gauss points in each direction --------
-
-        int ip = ((i3*ng2*nel2 + i2)*ng1*nel1 + i1)*ng3;
-        for (int k = 0; k < ng3; k++, ip += ng2*(nel2-1)*ng1*nel1)
-          for (int j = 0; j < ng2; j++, ip += ng1*(nel1-1))
-            for (int i = 0; i < ng1; i++, ip++)
-	    {
-	      // Fetch basis function values at current integration point
-	      const RealArray& phi = spline[ip].basisValues;
-
-	      // Integrate the linear system A*x=B
-	      for (size_t ii = 0; ii < phi.size(); ii++)
-	      {
-		int inod = MNPC[iel][ii]+1;
-		for (size_t jj = 0; jj < phi.size(); jj++)
-		{
-		  int jnod = MNPC[iel][jj]+1;
-		  A(inod,jnod) += phi[ii]*phi[jj];
-		}
-		for (size_t r = 1; r <= ncomp; r++)
-		  B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1);
-	      }
-	    }
-      }
-
-  // Solve the patch-global equation system
-  if (!A.solve(B)) return false;
-
-  // Store the control-point values of the projected field
-  sField.resize(ncomp,nnod);
-  for (size_t i = 1; i <= nnod; i++)
-    for (size_t j = 1; j <= ncomp; j++)
-      sField(j,i) = B(i+(j-1)*nnod);
 
   return true;
 }
