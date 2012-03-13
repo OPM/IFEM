@@ -19,7 +19,7 @@
 #include <cstdlib>
 
 
-SIMoptions::SIMoptions () : nGauss({ 4, 4 }), nViz({ 2, 2, 2})
+SIMoptions::SIMoptions ()
 {
   discretization = ASM::Spline;
   solver = SystemMatrix::SPARSE;
@@ -33,6 +33,9 @@ SIMoptions::SIMoptions () : nGauss({ 4, 4 }), nViz({ 2, 2, 2})
   format  = -1;
   saveInc =  1;
   dtSave  =  0.0;
+
+  nGauss[0] = nGauss[1] = 4;
+  nViz[0] = nViz[1] = nViz[2] = 2;
 }
 
 
