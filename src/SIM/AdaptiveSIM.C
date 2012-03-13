@@ -159,6 +159,9 @@ bool AdaptiveSIM::initAdaptor (size_t indxProj, size_t nNormProj)
     return false;
   }
 
+  if (model->opt.format >= 0)
+    prefix.reserve(model->opt.project.size()+1);
+
   return true;
 }
 
@@ -195,17 +198,24 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
   if (!model->solveSystem(linsol,1))
     return false;
 
-  Matrix  ssol;
-  Vectors projs;
-  SIMoptions::ProjectionMap::const_iterator pit;
+  projs.clear();
+  projs.reserve(model->opt.project.size());
 
   // Project the secondary solution onto the splines basis
   model->setMode(SIM::RECOVERY);
+  SIMoptions::ProjectionMap::const_iterator pit;
   for (pit = model->opt.project.begin(); pit != model->opt.project.end(); pit++)
+  {
+    Matrix ssol;
     if (!model->project(ssol,linsol,pit->first))
       return false;
-    else
-      projs.push_back(ssol);
+
+    projs.push_back(ssol);
+    if (iStep == 1 && model->opt.format >= 0)
+      prefix.push_back(pit->second.c_str());
+  }
+  if (iStep == 1 && model->opt.format >= 0)
+    prefix.push_back(NULL);
 
   if (msgLevel > 1 && !projs.empty())
     std::cout << std::endl;
@@ -226,7 +236,7 @@ typedef std::pair<double,int> IndexDouble;
 
 bool AdaptiveSIM::adaptMesh (int iStep)
 {
-  printNorms(gNorm,eNorm,std::cout,adaptor);
+  printNorms(gNorm,eNorm,std::cout,adaptor,model->haveAnaSol());
 
   if (adaptor > gNorm.size() || adaptor > eNorm.rows())
     return false;
@@ -296,21 +306,25 @@ bool AdaptiveSIM::adaptMesh (int iStep)
 
 
 std::ostream& AdaptiveSIM::printNorms (const Vector& norms, const Matrix& eNorm,
-				       std::ostream& os, size_t adaptor)
+				       std::ostream& os, size_t adaptor,
+				       bool withExact)
 {
   // TODO: This needs further work to enable print for all recovered solutions.
   // As for now we only print the norm used for the mesh adaption.
   os <<    "Energy norm |u^h| = a(u^h,u^h)^0.5   : "<< norms(1)
      <<  "\nExternal energy ((h,u^h)+(t,u^h)^0.5 : "<< norms(2);
-  if (adaptor == 4 && norms.size() >= 4)
+  if ((adaptor == 4 || withExact) && norms.size() >= 4)
     os <<"\nExact norm  |u|   = a(u,u)^0.5       : "<< norms(3)
        <<"\nExact error a(e,e)^0.5, e=u-u^h      : "<< norms(4)
        <<"\nExact relative error (%) : "<< 100.0*norms(4)/norms(3);
-  else if (adaptor > 4 && adaptor <= norms.size())
+  if (adaptor != 4 && adaptor <= norms.size())
+  {
     os <<"\nError estimate a(e,e)^0.5, e=u^r-u^h : "<< norms(adaptor)
        <<"\nRelative error (%) : "<< 100.0*norms(adaptor)/
       sqrt(norms(1)*norms(1) + norms(adaptor)*norms(adaptor));
-
+    if (withExact && norms.size() >= 4)
+      os <<"\nEffectivity index  : "<< norms(adaptor)/norms(4);
+  }
   if (eNorm.rows() < adaptor || eNorm.cols() < 1)
     return os << std::endl;
 
@@ -343,7 +357,8 @@ std::ostream& AdaptiveSIM::printNorms (const Vector& norms, const Matrix& eNorm,
 }
 
 
-bool AdaptiveSIM::writeGlv (const char* infile, int iStep, int& nBlock)
+bool AdaptiveSIM::writeGlv (const char* infile, int iStep, int& nBlock,
+			    size_t nNormProj)
 {
   if (model->opt.format < 0) return true;
 
@@ -363,8 +378,15 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep, int& nBlock)
   if (!model->writeGlvS(linsol,iStep,nBlock))
     return false;
 
+  // Write projected solution fields
+  SIMoptions::ProjectionMap::const_iterator pit = model->opt.project.begin();
+  for (size_t i = 0; i < projs.size(); i++, pit++)
+    if (!model->writeGlvP(projs[i],iStep,nBlock,100+10*i,pit->second.c_str()))
+      return false;
+
   // Write element norms
-  if (!model->writeGlvN(eNorm,iStep,nBlock))
+  if (model->haveAnaSol()) nNormProj += 2;
+  if (!model->writeGlvN(eNorm,iStep,nBlock,&prefix.front(),nNormProj))
     return false;
 
   // Write state information

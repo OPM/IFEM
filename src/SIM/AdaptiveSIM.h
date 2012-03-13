@@ -53,11 +53,13 @@ public:
   //! \param[in] infile File name used to construct the VTF-file name from
   //! \param[in] iStep  Refinement step identifier
   //! \param     nBlock Running result block counter
-  bool writeGlv(const char* infile, int iStep, int& nBlock);
+  //! \param[in] nNormProj Number of element norms per projection method
+  bool writeGlv(const char* infile, int iStep, int& nBlock, size_t nNormProj);
 
   //! \brief Prints out the global norms to given stream.
   static std::ostream& printNorms(const Vector& norms, const Matrix& eNorm,
-				  std::ostream& os, size_t adaptor = 4);
+				  std::ostream& os, size_t adaptor = 4,
+				  bool withExact = false);
 
   //! \brief Accesses the solution of the linear system.
   Vector& getSolution() { return linsol; }
@@ -90,6 +92,9 @@ private:
   Vector linsol;  //!< Linear solution vector
   Vector gNorm;   //!< Global norms
   Matrix eNorm;   //!< Element norms
+
+  std::vector<Vector>      projs;  //!< Projected secondary solutions
+  std::vector<const char*> prefix; //!< Norm prefices for VTF-output
 };
 
 #endif
