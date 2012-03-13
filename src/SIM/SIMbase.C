@@ -1569,6 +1569,21 @@ bool SIMbase::writeGlvV (const Vector& vec, const char* fieldName,
 }
 
 
+/*!
+  This method writes both the primary and all secondary solution fields to
+  the VTF-file. The primary solution is written as a deformation plot (labelled
+  "Solution") if \a pvecName is NULL. If the primary solution is a scalar field,
+  the field value is then interpreted as a deformation along the global Z-axis.
+  If the primary solution is a vector field and \a pvecName is not NULL, it is
+  written as a named vector field instead (no deformation plot).
+
+  If the primary solution is a vector field, each vector component is written
+  as a scalar field in addition. If \a psolOnly is greater than 1, it is only
+  written as scalar field components (no deformation or vector field output).
+
+  If analytical solution fields are available, those fields are written as well.
+*/
+
 bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
 			 double time, char psolOnly, const char* pvecName,
 			 int idBlock, int psolComps)
@@ -1583,19 +1598,26 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
 
   Matrix field;
   Vector lovec;
-  size_t i, j;
+  size_t i, j, k;
   int geomID = 0;
   const size_t pMAX = 6;
   const size_t sMAX = 21;
   std::vector<int> vID[2], dID[pMAX], sID[sMAX];
-  bool scalarEq = this->getNoFields() == 1;
+  bool scalarEq = this->getNoFields() == 1 || psolOnly == 3;
   size_t nVcomp = scalarEq ? 1 : this->getNoSpaceDim();
   bool haveAsol = false;
+  bool haveXsol = false;
   if (mySol)
     if (scalarEq)
+    {
       haveAsol = mySol->hasScalarSol() > 1;
+      haveXsol = mySol->getScalarSol() != NULL;
+    }
     else
+    {
       haveAsol = mySol->hasVectorSol() > 1;
+      haveXsol = mySol->getVectorSol() != NULL;
+    }
 
   bool doProject = (opt.discretization == ASM::Spline ||
 		    opt.discretization == ASM::SplineC1) && !opt.project.empty();
@@ -1614,18 +1636,50 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
     if (!myModel[i]->evalSolution(field,locvec,opt.nViz))
       return false;
 
-    if (psolOnly > 1)
-      geomID++;
+    if (psolOnly > 1 || (nVcomp == 1 && pvecName))
+      geomID++; // skip output as vector field
     else if (!myVtf->writeVres(field,++nBlock,++geomID,nVcomp))
       return false;
     else
       vID[0].push_back(nBlock);
 
-    for (j = 0; j < field.rows() && j < pMAX; j++)
-      if (!myVtf->writeNres(field.getRow(1+j),++nBlock,geomID))
+    for (j = 1, k = 0; j <= field.rows() && k < pMAX; j++)
+      if (!myVtf->writeNres(field.getRow(j),++nBlock,geomID))
 	return false;
       else
-	dID[j].push_back(nBlock);
+	dID[k++].push_back(nBlock);
+
+    if (haveXsol)
+    {
+      if (msgLevel > 1)
+        std::cout <<"Writing exact solution for patch "<< i+1 << std::endl;
+
+      // 1.a Evaluate exact primary solution
+
+      const ElementBlock* grid = myVtf->getBlock(geomID);
+      std::vector<Vec3>::const_iterator cit = grid->begin_XYZ();
+      field.fill(0.0);
+      if (scalarEq)
+      {
+	for (j = 1; cit != grid->end_XYZ() && haveXsol; j++, cit++)
+	  if (!myProblem->evalPrimSol(field(1,j),*mySol->getScalarSol(),*cit))
+	    haveXsol = false;
+      }
+      else
+      {
+	for (j = 1; cit != grid->end_XYZ() && haveXsol; j++, cit++)
+	  if (myProblem->evalPrimSol(lovec,*mySol->getVectorSol(),*cit))
+	    field.fillColumn(j,lovec);
+	  else
+	    haveXsol = false;
+      }
+
+      for (j = 1; j <= field.rows() && k < pMAX && haveXsol; j++)
+	if (!myVtf->writeNres(field.getRow(j),++nBlock,geomID))
+	  return false;
+	else
+	  dID[k++].push_back(nBlock);
+    }
 
     if (psolOnly || !myProblem) continue; // skip secondary solution
 
@@ -1641,8 +1695,7 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
       else
 	vID[1].push_back(nBlock);
 
-    size_t k = 0;
-    for (j = 1; j <= field.rows() && k < sMAX; j++)
+    for (j = 1, k = 0; j <= field.rows() && k < sMAX; j++)
       if (!myVtf->writeNres(field.getRow(j),++nBlock,geomID))
 	return false;
       else
@@ -1671,21 +1724,20 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
 
       const ElementBlock* grid = myVtf->getBlock(geomID);
       std::vector<Vec3>::const_iterator cit = grid->begin_XYZ();
-      Vector solPt; field.fill(0.0);
-      bool ok = true;
-      for (j = 1; cit != grid->end_XYZ() && ok; j++, cit++)
+      field.fill(0.0);
+      for (j = 1; cit != grid->end_XYZ() && haveAsol; j++, cit++)
       {
 	if (mySol->hasScalarSol() == 3 || mySol->hasVectorSol() == 3)
-	  ok = myProblem->evalSol(solPt,*mySol->getStressSol(),*cit);
+	  haveAsol = myProblem->evalSol(lovec,*mySol->getStressSol(),*cit);
 	else if (scalarEq)
-	  ok = myProblem->evalSol(solPt,*mySol->getScalarSecSol(),*cit);
+	  haveAsol = myProblem->evalSol(lovec,*mySol->getScalarSecSol(),*cit);
 	else
-	  ok = myProblem->evalSol(solPt,*mySol->getVectorSecSol(),*cit);
-	if (ok)
-	  field.fillColumn(j,solPt);
+	  haveAsol = myProblem->evalSol(lovec,*mySol->getVectorSecSol(),*cit);
+	if (haveAsol)
+	  field.fillColumn(j,lovec);
       }
 
-      for (j = 1; j <= field.rows() && k < sMAX && ok; j++)
+      for (j = 1; j <= field.rows() && k < sMAX && haveAsol; j++)
 	if (!myVtf->writeNres(field.getRow(j),++nBlock,geomID))
 	  return false;
 	else
@@ -1696,45 +1748,48 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
   // Write result block identifications
 
   bool ok = true;
+  std::string pname(pvecName ? pvecName : "Solution");
+
   if (!vID[0].empty())
     if (pvecName)
-      ok = myVtf->writeVblk(vID[0],pvecName,idBlock,iStep);
+      ok = myVtf->writeVblk(vID[0],pname.c_str(),idBlock,iStep);
     else
-      ok = myVtf->writeDblk(vID[0],"Solution",idBlock,iStep);
+      ok = myVtf->writeDblk(vID[0],pname.c_str(),idBlock,iStep);
 
   if (ok && !vID[1].empty())
     ok = myVtf->writeVblk(vID[1],"Flux",idBlock+1,iStep);
 
-  std::string pname;
-  if (!myProblem)
+  size_t nf = scalarEq ? 1 : this->getNoFields();
+  std::vector<std::string> xname(haveXsol ? nf : 0);
+  if (nf > 1) pname += "_w";
+  for (i = j = 0; i < nf && j < pMAX && !dID[j].empty() && ok; i++, j++)
   {
-    pname = pvecName ? pvecName : "Solution";
-    if (psolOnly < 2) pname += "_w";
-  }
-
-  for (j = 0; j < pMAX && !dID[j].empty() && ok; j++)
-  {
-    if (myProblem)
-      pname = myProblem->getField1Name(j);
-    else if (psolOnly < 2)
+    if (!pvecName && myProblem)
+      pname = myProblem->getField1Name(i);
+    else if (nf > 1)
       (*pname.rbegin()) ++;
     ok = myVtf->writeSblk(dID[j],pname.c_str(),++idBlock,iStep);
+    if (haveXsol) xname[i] = "Exact " + pname;
   }
+
+  if (haveXsol)
+    for (i = 0; i < nf && j < pMAX && !dID[j].empty() && ok; i++, j++)
+      ok = myVtf->writeSblk(dID[j],xname[i].c_str(),++idBlock,iStep);
 
   if (psolOnly || !myProblem || !ok) return ok;
 
-  size_t nf = myProblem->getNoFields(2);
-  for (i = j = 0; i < nf && !sID[j].empty(); i++, j++)
+  nf = myProblem->getNoFields(2);
+  for (i = j = 0; i < nf && j < sMAX && !sID[j].empty(); i++, j++)
     if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,haveAsol?"FE":0),
 			  ++idBlock,iStep)) return false;
 
   if (doProject)
-    for (i = 0; i < nf && !sID[j].empty(); i++, j++)
+    for (i = 0; i < nf && j < sMAX && !sID[j].empty(); i++, j++)
       if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,"Projected"),
 			    ++idBlock,iStep)) return false;
 
   if (haveAsol)
-    for (i = 0; i < nf && !sID[j].empty(); i++, j++)
+    for (i = 0; i < nf && j < sMAX && !sID[j].empty(); i++, j++)
       if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,"Exact"),
 			    ++idBlock,iStep)) return false;
 
@@ -1743,7 +1798,7 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
 
 
 bool SIMbase::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
-			 double time, int idBlock, const char* prefix)
+			 int idBlock, const char* prefix)
 {
   if (ssol.empty())
     return true;

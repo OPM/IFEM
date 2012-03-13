@@ -112,6 +112,10 @@ private:
   bool parseLinSolTag(const TiXmlElement* elem);
 
 public:
+  //! \brief Creates the FE model by copying the given patches.
+  virtual void clonePatches(const std::vector<ASMbase*>&,
+			    const std::map<int,int>&) {}
+
   //! \brief Refines a list of elements.
   virtual bool refine(const std::vector<int>&, const std::vector<int>&,
 		      const char* = 0) { return false; }
@@ -389,26 +393,18 @@ public:
   //! \param[in] pvecName Optional name of the primary vector field solution
   //! \param[in] idBlock Starting value of result block numbering
   //! \param[in] psolComps Optional number of primary solution components
-  //!
-  //! \details The primary vector field solution is written as a deformation
-  //! plot if \a pvecName is NULL. Otherwise, it is written as a named vector
-  //! field. If an analytical solution is provided, the exact secondary solution
-  //! fields are written to the VTF-file as well.
-  virtual bool writeGlvS(const Vector& psol, int iStep, int& nBlock,
-			 double time = 0.0, char psolOnly = 0,
-			 const char* pvecName = 0, int idBlock = 10,
-			 int psolComps = 0);
+  bool writeGlvS(const Vector& psol, int iStep, int& nBlock, double time = 0.0,
+		 char psolOnly = 0, const char* pvecName = 0,
+		 int idBlock = 10, int psolComps = 0);
 
   //! \brief Writes projected solutions for a given time step to the VTF-file.
   //! \param[in] ssol Secondary solution vector (control point values)
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter
-  //! \param[in] time Load/time step parameter
   //! \param[in] idBlock Starting value of result block numbering
   //! \param[in] prefix Common prefix for the field components
   bool writeGlvP(const Vector& ssol, int iStep, int& nBlock,
-		 double time = 0.0, int idBlock = 100,
-		 const char* prefix = "Global projected");
+		 int idBlock = 100, const char* prefix = "Global projected");
 
   //! \brief Writes a mode shape and associated eigenvalue to the VTF-file.
   //! \details The eigenvalue is used as a label on the step state info
@@ -419,8 +415,6 @@ public:
   bool writeGlvM(const Mode& mode, bool freq, int& nBlock);
 
   //! \brief Writes element norms for a given load/time step to the VTF-file.
-  //! \details This method can be used only when the number of visualization
-  //! points over each knot-span equals 2 (that is, no additonal points).
   //! \param[in] norms The element norms to output
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter

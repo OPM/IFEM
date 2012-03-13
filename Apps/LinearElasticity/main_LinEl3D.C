@@ -463,7 +463,7 @@ int main (int argc, char** argv)
     size_t i = 0;
     int iBlk = 100;
     for (pit = pOpt.begin(); pit != pOpt.end(); pit++, i++, iBlk += 10)
-      if (!model->writeGlvP(projs[i],iStep,nBlock,0.0,iBlk,pit->second.c_str()))
+      if (!model->writeGlvP(projs[i],iStep,nBlock,iBlk,pit->second.c_str()))
         return 11;
       else
 	prefix[i] = pit->second.c_str();
