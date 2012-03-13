@@ -145,22 +145,24 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"partitioning")) {
     int proc = 0;
-    if (!utl::getAttribute(elem,"procs",proc) || proc != nProc)
+    if (!utl::getAttribute(elem,"procs",proc))
       return false;
+    if (proc != nProc) // silently ignore
+      return true;
     if (myPid == 0)
       std::cout <<"\nNumber of partitions: "<< nProc << std::endl;
 
     const TiXmlElement* part = elem->FirstChildElement("part");
     while (part) {
-      if (utl::getAttribute(part,"proc",proc) && proc == myPid) {
         int first=-2, last=-2;
+        utl::getAttribute(part,"proc",proc);
 	utl::getAttribute(part,"lower",first);
 	utl::getAttribute(part,"upper",last);
         if (last > nGlPatches) nGlPatches = last;
-
-        myPatches.reserve(last-first+1);
-        for (int j = first; j <= last && j > -1; j++)
-          myPatches.push_back(j);
+        if (proc == myPid) {
+          myPatches.reserve(last-first+1);
+          for (int j = first; j <= last && j > -1; j++)
+            myPatches.push_back(j);
       }
       part = part->NextSiblingElement("part");
     }
