@@ -810,7 +810,7 @@ bool SIMbase::setVecProperty (int code, Property::Type ptype, VecFunc* field)
 }
 
 
-bool SIMbase::initSystem (SystemMatrix::Type mType, size_t nMats, size_t nVec)
+bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec)
 {
   if (!mySam) return false;
 #if SP_DEBUG > 1
@@ -823,7 +823,8 @@ bool SIMbase::initSystem (SystemMatrix::Type mType, size_t nMats, size_t nVec)
 
   if (myEqSys) delete myEqSys;
   myEqSys = new AlgEqSystem(*mySam);
-  myEqSys->init(mType,mySolParams,nMats,nVec,opt.num_threads_SLU);
+  myEqSys->init(static_cast<SystemMatrix::Type>(mType),
+		mySolParams,nMats,nVec,opt.num_threads_SLU);
   myEqSys->initAssembly();
   return true;
 }
@@ -1407,15 +1408,7 @@ bool SIMbase::systemModes (std::vector<Mode>& solution,
 }
 
 
-bool SIMbase::writeGlv (const char* inpFile)
-{
-  int nBlock = 0;
-  return this->writeGlvG(opt.nViz,nBlock,inpFile,opt.format);
-}
-
-
-bool SIMbase::writeGlvG (const int* nViz, int& nBlock,
-			 const char* inpFile, int format)
+bool SIMbase::writeGlvG (int& nBlock, const char* inpFile)
 {
   if (inpFile)
   {
@@ -1436,7 +1429,7 @@ bool SIMbase::writeGlvG (const int* nViz, int& nBlock,
       strcat(vtfName,ext);
 
     std::cout <<"\nWriting VTF-file "<< vtfName << std::endl;
-    myVtf = new VTF(vtfName,format);
+    myVtf = new VTF(vtfName,opt.format);
     delete[] vtfName;
   }
   else
@@ -1452,7 +1445,7 @@ bool SIMbase::writeGlvG (const int* nViz, int& nBlock,
       std::cout <<"Writing geometry for patch "<< i+1 << std::endl;
     size_t nd = myModel[i]->getNoParamDim();
     ElementBlock* lvb = new ElementBlock(nd == 3 ? 8 : (nd == 2 ? 4 : 2));
-    if (!myModel[i]->tesselate(*lvb,nViz))
+    if (!myModel[i]->tesselate(*lvb,opt.nViz))
       return false;
 
     sprintf(pname,"Patch %ld",i+1);
@@ -1466,7 +1459,7 @@ bool SIMbase::writeGlvG (const int* nViz, int& nBlock,
 }
 
 
-bool SIMbase::writeGlvBC (const int* nViz, int& nBlock, int iStep) const
+bool SIMbase::writeGlvBC (int& nBlock, int iStep) const
 {
   if (!myVtf) return false;
 
@@ -1498,11 +1491,11 @@ bool SIMbase::writeGlvBC (const int* nViz, int& nBlock, int iStep) const
     if (msgLevel > 1)
       std::cout <<"Writing boundary conditions for patch "<< i+1 << std::endl;
 
-    if (!myModel[i]->evalSolution(field,bc,nViz))
+    if (!myModel[i]->evalSolution(field,bc,opt.nViz))
       return false;
 
     // The BC fields should either be 0.0 or 1.0
-    if (nViz[0] > 2 || nViz[1] > 2 || nViz[2] > 2)
+    if (opt.nViz[0] > 2 || opt.nViz[1] > 2 || opt.nViz[2] > 2)
       for (j = 1; j <= 3; j++)
 	if (flag[j-1] == 1.0)
 	  for (size_t n = 1; n <= field.cols(); n++)
@@ -1543,8 +1536,7 @@ bool SIMbase::writeGlvT (int iStep, int& nBlock) const
 
 
 bool SIMbase::writeGlvV (const Vector& vec, const char* fieldName,
-			 const int* nViz, int iStep, int& nBlock,
-			 int idBlock) const
+			 int iStep, int& nBlock, int idBlock) const
 {
   if (vec.empty())
     return true;
@@ -1564,7 +1556,7 @@ bool SIMbase::writeGlvV (const Vector& vec, const char* fieldName,
       std::cout <<"Writing vector field for patch "<< i+1 << std::endl;
 
     myModel[i]->extractNodeVec(vec,lovec);
-    if (!myModel[i]->evalSolution(field,lovec,nViz))
+    if (!myModel[i]->evalSolution(field,lovec,opt.nViz))
       return false;
 
     if (!myVtf->writeVres(field,++nBlock,++geomID,this->getNoSpaceDim()))
@@ -1577,9 +1569,8 @@ bool SIMbase::writeGlvV (const Vector& vec, const char* fieldName,
 }
 
 
-bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
-			 int iStep, int& nBlock, double time,
-			 char psolOnly, const char* pvecName,
+bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
+			 double time, char psolOnly, const char* pvecName,
 			 int idBlock, int psolComps)
 {
   if (psol.empty())
@@ -1620,7 +1611,7 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
 
     Vector& locvec = myProblem ? myProblem->getSolution() : lovec;
     myModel[i]->extractNodeVec(psol,locvec,psolComps);
-    if (!myModel[i]->evalSolution(field,locvec,nViz))
+    if (!myModel[i]->evalSolution(field,locvec,opt.nViz))
       return false;
 
     if (psolOnly > 1)
@@ -1641,7 +1632,7 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
     // 2. Direct evaluation of secondary solution variables
 
     LocalSystem::patch = i;
-    if (!myModel[i]->evalSolution(field,*myProblem,nViz))
+    if (!myModel[i]->evalSolution(field,*myProblem,opt.nViz))
       return false;
 
     if (scalarEq && field.rows() == this->getNoSpaceDim())
@@ -1661,7 +1652,7 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
     {
       // 3. Projection of secondary solution variables (tensorial splines only)
 
-      if (!myModel[i]->evalSolution(field,*myProblem,nViz,'D'))
+      if (!myModel[i]->evalSolution(field,*myProblem,opt.nViz,'D'))
 	return false;
 
       for (j = 1; j <= field.rows() && k < sMAX; j++)
@@ -1751,9 +1742,8 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
 }
 
 
-bool SIMbase::writeGlvP (const Vector& ssol, const int* nViz,
-			 int iStep, int& nBlock, double time,
-			 int idBlock, const char* prefix)
+bool SIMbase::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
+			 double time, int idBlock, const char* prefix)
 {
   if (ssol.empty())
     return true;
@@ -1776,7 +1766,7 @@ bool SIMbase::writeGlvP (const Vector& ssol, const int* nViz,
 
     // Evaluate the solution variables at the visualization points
     myModel[i]->extractNodeVec(ssol,lovec,nf);
-    if (!myModel[i]->evalSolution(field,lovec,nViz))
+    if (!myModel[i]->evalSolution(field,lovec,opt.nViz))
       return false;
 
     // Write out to VTF-file as scalar fields
@@ -1808,8 +1798,7 @@ bool SIMbase::writeGlvStep (int iStep, double value, int itype)
 }
 
 
-bool SIMbase::writeGlvM (const Mode& mode, bool freq,
-			 const int* nViz, int& nBlock)
+bool SIMbase::writeGlvM (const Mode& mode, bool freq, int& nBlock)
 {
   if (mode.eigVec.empty())
     return true;
@@ -1831,7 +1820,7 @@ bool SIMbase::writeGlvM (const Mode& mode, bool freq,
 
     geomID++;
     myModel[i]->extractNodeVec(mode.eigVec,displ);
-    if (!myModel[i]->evalSolution(field,displ,nViz))
+    if (!myModel[i]->evalSolution(field,displ,opt.nViz))
       return false;
 
     if (!myVtf->writeVres(field,++nBlock,geomID))

@@ -14,8 +14,8 @@
 #ifndef _ADAPTIVE_SIM_H
 #define _ADAPTIVE_SIM_H
 
-#include "SIMbase.h"
-#include "SystemMatrix.h"
+#include "SIMinput.h"
+#include "MatVec.h"
 
 class SIMbase;
 
@@ -35,19 +35,19 @@ public:
   //! \brief The destructor frees the dynamically allocated FE model object.
   virtual ~AdaptiveSIM();
 
+  //! \brief Initializes index to element norms to base the mesh adaption on.
+  //! \param[in] indxProj Index to projection method to base mesh adaption on
+  //! \param[in] nNormProj Number of element norms per projection method
+  bool initAdaptor(size_t indxProj, size_t nNormProj);
+
   //! \brief Assembles and solves the linear FE equations on current mesh.
   //! \param[in] inputfile File to read model parameters from after refinement
-  //! \param[in] solver The linear equation solver to use
-  //! \param[in] pOpt Projection options
-  //! \param[in] adaptor INdex to element norm to base the mesh adaption on
   //! \param[in] iStep Refinement step counter
-  bool solveStep(const char* inputfile, SystemMatrix::Type solver,
-		 const std::map<SIMbase::ProjectionMethod,std::string>& pOpt,
-		 size_t adaptor, int iStep);
+  bool solveStep(const char* inputfile, int iStep);
 
   //! \brief Refines the current mesh based on the element norms.
   //! \param[in] iStep Refinement step counter
-  bool adaptMesh(size_t adaptor, int iStep);
+  bool adaptMesh(int iStep);
 
   //! \brief Writes current mesh and results to the VTF-file.
   //! \param[in] infile File name used to construct the VTF-file name from
@@ -86,9 +86,10 @@ private:
   //! 3=isotropic_functions
   int    scheme;
 
-  Vector linsol; //!< Linear solution vector
-  Vector gNorm;  //!< Global norms
-  Matrix eNorm;  //!< Element norms
+  size_t adaptor; //!< Index to the element norm to base mesh adaption on
+  Vector linsol;  //!< Linear solution vector
+  Vector gNorm;   //!< Global norms
+  Matrix eNorm;   //!< Element norms
 };
 
 #endif

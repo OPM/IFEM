@@ -16,10 +16,10 @@
 
 #include "SIMinput.h"
 #include "SIMoptions.h"
-#include "SystemMatrix.h"
 #include "TimeDomain.h"
 #include "Property.h"
 #include "Function.h"
+#include "MatVec.h"
 #include "Vec3.h"
 #include <map>
 
@@ -132,7 +132,7 @@ public:
   //! \param[in] mType The matrix format to use
   //! \param[in] nMats Number of system matrices
   //! \param[in] nVec Number of system right-hand-side vectors
-  bool initSystem(SystemMatrix::Type mType, size_t nMats, size_t nVec);
+  bool initSystem(int mType, size_t nMats, size_t nVec);
 
   //! \brief Associates a system vector to a system matrix.
   //! \sa AlgEqSystem::setAssociatedVector
@@ -347,28 +347,24 @@ public:
   // =======================
 
   //! \brief Opens a new VTF-file and writes the model geometry to it.
-  //! \param[in] inpFile File name used to construct the VTF-file name from
-  bool writeGlv(const char* inpFile);
+  //! \param[in] fnam File name used to construct the VTF-file name from
+  bool writeGlv(const char* fnam) { int n = 0; return this->writeGlvG(n,fnam); }
 
   //! \brief Write current model geometry to the VTF-file.
-  //! \param[in] nViz Number of visualization points over each knot-span
   //! \param nBlock Running result block counter
   //! \param[in] inpFile File name used to construct the VTF-file name from
-  //! \param[in] format Format of VTF-file (0=ASCII, 1=BINARY)
   //!
   //! \details The spline patches are tesselated into linear finite elements
   //! with a fixed number of elements within each knot-span of non-zero length.
   //! The solution fields are then evaluated at the nodal points of the
   //! generated FE mesh and written to the VTF-file as vector and scalar fields
   //! by the other \a writeGlv* methods.
-  bool writeGlvG(const int* nViz, int& nBlock,
-		 const char* inpFile = 0, int format = -1);
+  bool writeGlvG(int& nBlock, const char* inpFile = 0);
 
   //! \brief Writes boundary conditions as scalar fields to the VTF-file.
-  //! \param[in] nViz Number of visualization points over each knot-span
   //! \param nBlock Running result block counter
   //! \param[in] iStep Load/time step identifier
-  bool writeGlvBC(const int* nViz, int& nBlock, int iStep = 1) const;
+  bool writeGlvBC(int& nBlock, int iStep = 1) const;
 
   //! \brief Writes boundary tractions for a given time step to the VTF-file.
   //! \param[in] iStep Load/time step identifier
@@ -378,17 +374,14 @@ public:
   //! \brief Writes a vector field for a given load/time step to the VTF-file.
   //! \param[in] vec The vector field to output (nodal values in DOF-order)
   //! \param[in] fieldName Name identifying the vector field
-  //! \param[in] nViz Number of visualization points over each knot-span
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter
   //! \param[in] idBlock Starting value of result block numbering
   bool writeGlvV(const Vector& vec, const char* fieldName,
-		 const int* nViz, int iStep, int& nBlock,
-		 int idBlock = 2) const;
+		 int iStep, int& nBlock, int idBlock = 2) const;
 
   //! \brief Writes solution fields for a given load/time step to the VTF-file.
   //! \param[in] psol Primary solution vector
-  //! \param[in] nViz Number of visualization points over each knot-span
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter
   //! \param[in] time Load/time step parameter
@@ -401,21 +394,20 @@ public:
   //! plot if \a pvecName is NULL. Otherwise, it is written as a named vector
   //! field. If an analytical solution is provided, the exact secondary solution
   //! fields are written to the VTF-file as well.
-  virtual bool writeGlvS(const Vector& psol, const int* nViz, int iStep,
-			 int& nBlock, double time = 0.0, char psolOnly = 0,
+  virtual bool writeGlvS(const Vector& psol, int iStep, int& nBlock,
+			 double time = 0.0, char psolOnly = 0,
 			 const char* pvecName = 0, int idBlock = 10,
 			 int psolComps = 0);
 
   //! \brief Writes projected solutions for a given time step to the VTF-file.
   //! \param[in] ssol Secondary solution vector (control point values)
-  //! \param[in] nViz Number of visualization points over each knot-span
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter
   //! \param[in] time Load/time step parameter
   //! \param[in] idBlock Starting value of result block numbering
   //! \param[in] prefix Common prefix for the field components
-  bool writeGlvP(const Vector& ssol, const int* nViz, int iStep,
-		 int& nBlock, double time = 0.0, int idBlock = 100,
+  bool writeGlvP(const Vector& ssol, int iStep, int& nBlock,
+		 double time = 0.0, int idBlock = 100,
 		 const char* prefix = "Global projected");
 
   //! \brief Writes a mode shape and associated eigenvalue to the VTF-file.
@@ -423,9 +415,8 @@ public:
   //! that is associated with the eigenvector.
   //! \param[in] mode The mode shape eigenvector to output
   //! \param[in] freq \e true if the eigenvalue is a frequency
-  //! \param[in] nViz Number of visualization points over each knot-span
   //! \param nBlock Running result block counter
-  bool writeGlvM(const Mode& mode, bool freq, const int* nViz, int& nBlock);
+  bool writeGlvM(const Mode& mode, bool freq, int& nBlock);
 
   //! \brief Writes element norms for a given load/time step to the VTF-file.
   //! \details This method can be used only when the number of visualization

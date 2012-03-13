@@ -282,7 +282,7 @@ int main (int argc, char** argv)
   {
     // Save FE model to VTF file for visualization
     if (twoD) model->opt.nViz[2] = 1;
-    if (!simulator.saveModel(infile,model->opt.format,model->opt.nViz))
+    if (!simulator.saveModel(infile))
       return 3;
   }
 
@@ -312,7 +312,7 @@ int main (int argc, char** argv)
 
   int iStep = 0; // Save initial state to VTF
   if (model->opt.format >= 0 && params.multiSteps())
-    if (!simulator.saveStep(-(++iStep),params.time.t,model->opt.nViz,skip2nd))
+    if (!simulator.saveStep(-(++iStep),params.time.t,skip2nd))
       return 4;
 
   if (form >= 100)
@@ -333,7 +333,7 @@ int main (int argc, char** argv)
   }
 
   // Initialize the linear solver
-  model->initSystem(static_cast<SystemMatrix::Type>(model->opt.solver),1,1);
+  model->initSystem(model->opt.solver,1,1);
   model->setAssociatedRHS(0,0);
   model->setQuadratureRule(model->opt.nGauss[0]);
 
@@ -363,7 +363,7 @@ int main (int argc, char** argv)
     {
       // Save solution variables to VTF for visualization
       if (model->opt.format >= 0)
-        if (!simulator.saveStep(++iStep,params.time.t,model->opt.nViz,skip2nd))
+        if (!simulator.saveStep(++iStep,params.time.t,skip2nd))
 	  return 6;
 
       // Save solution variables to HDF5

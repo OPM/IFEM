@@ -17,7 +17,7 @@
 #include "SIMinput.h"
 #include "SIMenums.h"
 #include "SIMparameters.h"
-#include "SystemMatrix.h"
+#include "MatVec.h"
 
 class SIMbase;
 class VTF;
@@ -42,7 +42,7 @@ public:
   //! \brief Allocates the system matrices of the linear FE problem.
   //! \param[in] mType The matrix format to use
   //! \param[in] nGauss Numerical integration scheme
-  void initSystem(SystemMatrix::Type mType, size_t nGauss);
+  void initSystem(int mType, size_t nGauss);
 
   //! \brief A class for nonlinear solution parameters.
   class SolvePrm : public SIMparameters
@@ -71,9 +71,7 @@ public:
 
   //! \brief Opens a new VTF-file and writes the model geometry to it.
   //! \param[in] fileName File name used to construct the VTF-file name from
-  //! \param[in] format Format of VTF-file (0=ASCII, 1=BINARY)
-  //! \param[in] nViz Number of visualization points over a knot-span
-  bool saveModel(char* fileName, int format, int* nViz);
+  bool saveModel(char* fileName);
 
   //! \brief Sets the initial guess in the Newton-Raphson iterations.
   //! \param value The initial guess to use
@@ -111,23 +109,21 @@ public:
   //! \brief Saves the converged results to VTF file of a given load/time step.
   //! \param[in] iStep Load/time step identifier
   //! \param[in] time Current time/load parameter
-  //! \param[in] nViz Number of visualization points over each knot-span
   //! \param[in] psolOnly If \e true, skip secondary solution field output
   //! \param[in] vecName Optional name of primary solution vector field
-  bool saveStep(int iStep, double time, int* nViz, bool psolOnly = false,
-		const char* vecName = 0)
+  bool saveStep(int iStep, double time,
+		bool psolOnly = false, const char* vecName = 0)
   {
-    return this->saveStep(iStep,time,nBlock,nViz,psolOnly,vecName);
+    return this->saveStep(iStep,time,nBlock,psolOnly,vecName);
   }
 
   //! \brief Saves the converged results to VTF file of a given load/time step.
   //! \param[in] iStep Load/time step identifier
   //! \param[in] time Current time/load parameter
   //! \param iBlock Running result block counter
-  //! \param[in] nViz Number of visualization points over each knot-span
   //! \param[in] psolOnly If \e true, skip secondary solution field output
   //! \param[in] vecName Optional name of primary solution vector field
-  bool saveStep(int iStep, double time, int& iBlock, int* nViz,
+  bool saveStep(int iStep, double time, int& iBlock,
 		bool psolOnly = false, const char* vecName = 0);
 
   //! \brief Dumps the primary solution for inspection.

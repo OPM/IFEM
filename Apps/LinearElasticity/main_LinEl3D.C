@@ -21,6 +21,7 @@
 #include "Utilities.h"
 #include "Profiler.h"
 #include <fstream>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
@@ -125,7 +126,6 @@ int main (int argc, char** argv)
       iop = 10;
       if (strlen(argv[i]) > 5)
         adaptor = atoi(argv[i]+5);
-      dummy.discretization = ASM::LRSpline;
     }
     else if (!infile)
       infile = argv[i];
@@ -136,10 +136,10 @@ int main (int argc, char** argv)
   {
     std::cout <<"usage: "<< argv[0]
 	      <<" <inputfile> [-dense|-spr|-superlu[<nt>]|-samg|-petsc]\n      "
-	      <<" [-free] [-lag] [-spec] [-LR] [-2D[pstrain|axisymm]] [-KL|-Bea"
-	      <<"m] [-adap] [-nGauss <n>]\n       [-vtf <format> [-nviz <nviz>]"
-	      <<" [-nu <nu>] [-nv <nv>] [-nw <nw>]] [-hdf5]\n"
-	      <<"       [-DGL2] [-CGL2] [-SCR]\n"
+	      <<" [-free] [-lag|-spec|-LR] [-2D[pstrain|axisymm]] [-KL|-Beam]"
+	      <<" [-adap[<i>]] [-nGauss <n>]\n       [-vtf <format>"
+	      <<" [-nviz <nviz>] [-nu <nu>] [-nv <nv>] [-nw <nw>]] [-hdf5]\n"
+	      <<"       [-DGL2] [-CGL2] [-SCR] [-VDLSA] [-LSQ] [-QUASI]\n"
 	      <<"       [-eig <iop> [-nev <nev>] [-ncv <ncv] [-shift <shf>]]\n"
 	      <<"       [-ignore <p1> <p2> ...] [-fixDup]"
 	      <<" [-checkRHS] [-check] [-dumpASC]\n";
@@ -208,7 +208,12 @@ int main (int argc, char** argv)
   SIMinput* theSim = model;
   AdaptiveSIM* aSim = 0;
   if (iop == 10)
+  {
     theSim = aSim = new AdaptiveSIM(model);
+    model->opt.discretization = ASM::LRSpline;
+  }
+  else if (KLp)
+    model->opt.discretization = ASM::SplineC1;
 
   // Read in model definitions
   model->opt.discretization = dummy.discretization;
@@ -220,11 +225,6 @@ int main (int argc, char** argv)
     if (!model->opt.parseOldOptions(argc,argv,i))
       if (!strcmp(argv[i],"-ignore"))
 	while (i < argc-1 && isdigit(argv[i+1][0])) ++i;
-
-  if (iop == 10)
-    model->opt.discretization = ASM::LRSpline;
-  else if (KLp)
-    model->opt.discretization = ASM::SplineC1;
 
   // Boundary conditions can be ignored only in generalized eigenvalue analysis
   if (model->opt.eig != 4 && model->opt.eig != 6)
@@ -314,7 +314,7 @@ int main (int argc, char** argv)
   case 5:
     // Static solution: Assemble [Km] and {R}
     model->setMode(SIM::STATIC);
-    model->initSystem((SystemMatrix::Type)model->opt.solver,1,1);
+    model->initSystem(model->opt.solver,1,1);
     model->setAssociatedRHS(0,0);
     if (!model->assembleSystem())
       return 2;
@@ -363,7 +363,7 @@ int main (int argc, char** argv)
 		    <<"\n- relative error (% of |u|)   : "
 		    << gNorm(j)/gNorm(3)*100.0;
 	  std::cout <<"\nEffectivity index             : "
-		    << gNorm(j)/gNorm(4);
+		    << gNorm(j-1)/gNorm(4);
 	  j += 2; // because of the local effectivity index calculation
 	}
 	if (j+1 > gNorm.size()) continue;
@@ -381,7 +381,7 @@ int main (int argc, char** argv)
 
     // Linearized buckling: Assemble [Km] and [Kg]
     model->setMode(SIM::BUCKLING);
-    model->initSystem((SystemMatrix::Type)model->opt.solver,2,0);
+    model->initSystem(model->opt.solver,2,0);
     if (!model->assembleSystem(Vectors(1,displ)))
       return 5;
 
@@ -394,7 +394,7 @@ int main (int argc, char** argv)
   case 2:
     // Assemble and solve the regular eigenvalue problem
     model->setMode(SIM::STIFF_ONLY);
-    model->initSystem((SystemMatrix::Type)model->opt.solver,1,0);
+    model->initSystem(model->opt.solver,1,0);
     if (!model->assembleSystem())
       return 5;
 
@@ -404,38 +404,17 @@ int main (int argc, char** argv)
 
   case 10:
     // Adaptive simulation
-    pit = pOpt.begin();
-    for (size_t j = 1; pit != pOpt.end(); pit++, j++)
-      if (j == adaptor)
-      {
-	// Compute the index into eNorm for the error indicator to adapt on
-	adaptor = model->haveAnaSol() ? 6+6*(j-1) : 4+4*(j-1);
-	break;
-      }
-
-    std::cout <<"\n\n >>> Starting adaptive simulation based on";
-    if (pit != pOpt.end())
-      std::cout <<"\n     "<< pit->second <<" error estimates (index="
-		<< adaptor <<") <<<\n";
-    else if (model->haveAnaSol())
-    {
-      std::cout <<" exact errors <<<\n";
-      adaptor = 4;
-    }
-    else
-    {
-      std::cout <<" nothing, bailing out ...\n";
+    if (!aSim->initAdaptor(adaptor,4))
       break;
-    }
 
     while (true) {
-      if (!aSim->solveStep(infile,(SystemMatrix::Type)model->opt.solver,pOpt,adaptor,iStep))
+      if (!aSim->solveStep(infile,iStep))
         return 5;
       else if (!aSim->writeGlv(infile,iStep,nBlock))
         return 6;
       else if (exporter)
         exporter->dumpTimeLevel(NULL,true);
-      if (!aSim->adaptMesh(adaptor,++iStep))
+      if (!aSim->adaptMesh(++iStep))
         break;
     }
 
@@ -445,7 +424,7 @@ int main (int argc, char** argv)
   default:
     // Free vibration: Assemble [Km] and [M]
     model->setMode(SIM::VIBRATION);
-    model->initSystem((SystemMatrix::Type)model->opt.solver,2,0);
+    model->initSystem(model->opt.solver,2,0);
     if (!model->assembleSystem())
       return 5;
 
@@ -458,7 +437,7 @@ int main (int argc, char** argv)
   if (iop != 10 && model->opt.format >= 0)
   {
     // Write VTF-file with model geometry
-    if (!model->writeGlvG(model->opt.nViz,nBlock,infile,model->opt.format))
+    if (!model->writeGlvG(nBlock,infile))
       return 7;
 
     // Write boundary tractions, if any
@@ -466,15 +445,15 @@ int main (int argc, char** argv)
       return 8;
 
     // Write Dirichlet boundary conditions
-    if (!model->writeGlvBC(model->opt.nViz,nBlock))
+    if (!model->writeGlvBC(nBlock))
       return 8;
 
     // Write load vector to VTF-file
-    if (!model->writeGlvV(load,"Load vector",model->opt.nViz,iStep,nBlock))
+    if (!model->writeGlvV(load,"Load vector",iStep,nBlock))
       return 9;
 
     // Write solution fields to VTF-file
-    if (!model->writeGlvS(displ,model->opt.nViz,iStep,nBlock))
+    if (!model->writeGlvS(displ,iStep,nBlock))
       return 10;
 
     const char* prefix[pOpt.size()+1];
@@ -482,9 +461,9 @@ int main (int argc, char** argv)
 
     // Write projected solution fields to VTF-file
     size_t i = 0;
-    for (pit = pOpt.begin(); pit != pOpt.end(); pit++, i++)
-      if (!model->writeGlvP(projs[i],model->opt.nViz,iStep,nBlock,0.0,100+10*i,
-			    pit->second.c_str()))
+    int iBlk = 100;
+    for (pit = pOpt.begin(); pit != pOpt.end(); pit++, i++, iBlk += 10)
+      if (!model->writeGlvP(projs[i],iStep,nBlock,0.0,iBlk,pit->second.c_str()))
         return 11;
       else
 	prefix[i] = pit->second.c_str();
@@ -492,7 +471,7 @@ int main (int argc, char** argv)
     // Write eigenmodes
     bool isFreq = model->opt.eig==3 || model->opt.eig==4 || model->opt.eig==6;
     for (it = modes.begin(); it != modes.end(); it++)
-      if (!model->writeGlvM(*it,isFreq,model->opt.nViz,nBlock))
+      if (!model->writeGlvM(*it,isFreq,nBlock))
 	return 12;
 
     // Write element norms

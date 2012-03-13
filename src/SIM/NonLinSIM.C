@@ -105,7 +105,7 @@ bool NonLinSIM::parse (char* keyWord, std::istream& is)
 }
 
 
-void NonLinSIM::initSystem (SystemMatrix::Type mType, size_t nGauss)
+void NonLinSIM::initSystem (int mType, size_t nGauss)
 {
   model->initSystem(mType,1,1);
   model->setAssociatedRHS(0,0);
@@ -482,22 +482,22 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName,
 }
 
 
-bool NonLinSIM::saveModel (char* fileName, int format, int* nViz)
+bool NonLinSIM::saveModel (char* fileName)
 {
   PROFILE1("NonLinSIM::saveModel");
 
   nBlock = 0; // initialize the result block counter
 
   // Write VTF-file with model geometry
-  if (!model->writeGlvG(nViz,nBlock,fileName,format))
+  if (!model->writeGlvG(nBlock,fileName))
     return false;
 
   // Write Dirichlet boundary conditions
-  return model->writeGlvBC(nViz,nBlock);
+  return model->writeGlvBC(nBlock);
 }
 
 
-bool NonLinSIM::saveStep (int iStep, double time, int& iBlock, int* nViz,
+bool NonLinSIM::saveStep (int iStep, double time, int& iBlock,
 			  bool psolOnly, const char* vecName)
 {
   PROFILE1("NonLinSIM::saveStep");
@@ -514,14 +514,15 @@ bool NonLinSIM::saveStep (int iStep, double time, int& iBlock, int* nViz,
       return false;
 
   // Write residual force vector, but only when no extra visualization points
-  if (!psolOnly && nViz[0] == 2 && nViz[1] <= 2 && nViz[2] <= 2)
-    if (!model->writeGlvV(residual,"Residual forces",nViz,iStep,iBlock))
+  if (!psolOnly && model->opt.nViz[0] == 2 &&
+      model->opt.nViz[1] <= 2 && model->opt.nViz[2] <= 2)
+    if (!model->writeGlvV(residual,"Residual forces",iStep,iBlock))
       return false;
 
   // Write solution fields
   if (!solution.empty())
-    if (!model->writeGlvS(solution.front(),nViz,iStep,iBlock,time,psolOnly,
-			  vecName)) return false;
+    if (!model->writeGlvS(solution.front(),iStep,iBlock,time,psolOnly,vecName))
+      return false;
 
   // Write element norms
   if (!psolOnly)

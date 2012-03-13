@@ -19,11 +19,11 @@
 #endif
 #include "SIMbase.h"
 #include "SIMenums.h"
+#include "SystemMatrix.h"
 #include "Utilities.h"
+#include "tinyxml.h"
 #include <sstream>
 #include <cstdio>
-
-#include "tinyxml.h"
 
 
 AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : model(sim)
@@ -37,6 +37,7 @@ AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : model(sim)
   scheme    = 0; // fullspan
   symmetry  = 1; // no symmetry
   knot_mult = 1; // maximum regularity (continuity)
+  adaptor   = 0;
 }
 
 
@@ -51,40 +52,38 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
   if (strcasecmp(elem->Value(),"adaptive"))
     return model->parse(elem);
 
+  const char* value = 0;
   const TiXmlElement* child = elem->FirstChildElement();
   while (child) {
-    if (!strcasecmp(child->Value(), "maxstep")) {
-      utl::getAttribute(child, "value", maxStep);
-    } else if (!strcasecmp(child->Value(), "beta")) {
-      utl::getAttribute(child, "value", beta);
-    } else if (!strcasecmp(child->Value(), "maxdof")) {
-      utl::getAttribute(child, "value", maxDOFs);
-    } else if (!strcasecmp(child->Value(), "errtol")) {
-      utl::getAttribute(child, "value", errTol);
-    } else if (!strcasecmp(child->Value(), "symmetry")) {
-      utl::getAttribute(child, "value", symmetry);
-    } else if (!strcasecmp(child->Value(), "knot_mult")) {
-      utl::getAttribute(child, "value", knot_mult);
-    } else if (!strcasecmp(child->Value(), "store_eps_mesh")) {
-      utl::getAttribute(child, "value", storeMesh);
-    } else if (!strcasecmp(child->Value(), "scheme")) {
-      std::string str;
-      utl::getAttribute(child, "value", str, true);
-      if (str == "fullspan")
+    if ((value = utl::getValue(child,"maxstep")))
+      maxStep = atoi(value);
+    else if ((value = utl::getValue(child,"beta")))
+      beta = atof(value);
+    else if ((value = utl::getValue(child,"maxdof")))
+      maxDOFs = atoi(value);
+    else if ((value = utl::getValue(child,"errtol")))
+      errTol = atof(value);
+    else if ((value = utl::getValue(child,"symmetry")))
+      symmetry = atoi(value);
+    else if ((value = utl::getValue(child,"knot_mult")))
+      knot_mult = atoi(value);
+    else if (!strcasecmp(child->Value(), "store_eps_mesh"))
+      storeMesh = true; // no need for value here
+    else if ((value = utl::getValue(child,"scheme"))) {
+      if (!strcasecmp(value,"fullspan"))
         scheme = 0;
-      else if (str == "minspan")
+      else if (!strcasecmp(value,"minspan"))
         scheme = 1;
-      else if (str == "isotropic_element")
+      else if (!strcasecmp(value,"isotropic_element"))
         scheme = 2;
-      else if (str == "isotropic_function")
+      else if (!strcasecmp(value,"isotropic_function"))
         scheme = 3;
-      else {
-      	scheme = 0;
-      	std::cerr <<" *** AdaptiveSIM::parse: Unknown refinement scheme \""
-                  << str <<"\""<< std::endl;
-        return false;
-      }
+      else
+      	std::cerr <<"  ** AdaptiveSIM::parse: Unknown refinement scheme \""
+                  << value <<"\" (ignored)"<< std::endl;
     }
+    else if ((value = utl::getValue(child,"use_norm")))
+      adaptor = atoi(value);
 
     child = child->NextSiblingElement();
   }
@@ -132,9 +131,39 @@ bool AdaptiveSIM::parse (char* keyWord, std::istream& is)
 }
 
 
-bool AdaptiveSIM::solveStep (const char* inputfile, SystemMatrix::Type solver,
-			     const std::map<SIMbase::ProjectionMethod,std::string>& pOpt,
-			     size_t adaptor, int iStep)
+bool AdaptiveSIM::initAdaptor (size_t indxProj, size_t nNormProj)
+{
+  if (indxProj == 0) indxProj = adaptor; // use value from XML input
+
+  SIMoptions::ProjectionMap::const_iterator pit = model->opt.project.begin();
+  for (size_t j = 0; pit != model->opt.project.end(); pit++, j++)
+    if (j+1 == indxProj)
+    {
+      // Compute the index into eNorm for the error indicator to adapt on
+      adaptor = model->haveAnaSol() ? 6+(nNormProj+2)*j : 4+nNormProj*j;
+      break;
+    }
+
+  std::cout <<"\n\n >>> Starting adaptive simulation based on";
+  if (pit != model->opt.project.end())
+    std::cout <<"\n     "<< pit->second <<" error estimates (index="
+                << adaptor <<") <<<\n";
+  else if (model->haveAnaSol())
+  {
+    std::cout <<" exact errors <<<\n";
+    adaptor = 4;
+  }
+  else
+  {
+    std::cout <<" - nothing, bailing out ...\n";
+    return false;
+  }
+
+  return true;
+}
+
+
+bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
 {
   std::cout <<"\nAdaptive step "<< iStep << std::endl;
   if (iStep > 1)
@@ -144,6 +173,9 @@ bool AdaptiveSIM::solveStep (const char* inputfile, SystemMatrix::Type solver,
 #ifdef HAS_LRSPLINE
     ASMunstruct::resetNumbering();
 #endif
+    // Caution: If we are using XML-input and have specified old command-line
+    // options in order to override simulation options read from the input file,
+    // those options will not be overridden here, so please don't do that..
     if (!model->read(inputfile) || !model->preprocess())
       return false;
   }
@@ -153,8 +185,9 @@ bool AdaptiveSIM::solveStep (const char* inputfile, SystemMatrix::Type solver,
 
   // Assemble the linear FE equation system
   model->setMode(SIM::STATIC,true);
-  model->initSystem(iStep == 1 ? SystemMatrix::DENSE : solver, 1,1);
+  model->initSystem(iStep == 1 ? SystemMatrix::DENSE : model->opt.solver, 1, 1);
   model->setAssociatedRHS(0,0);
+  model->setQuadratureRule(model->opt.nGauss[0]);
   if (!model->assembleSystem())
     return false;
 
@@ -164,17 +197,21 @@ bool AdaptiveSIM::solveStep (const char* inputfile, SystemMatrix::Type solver,
 
   Matrix  ssol;
   Vectors projs;
-  std::map<SIMbase::ProjectionMethod,std::string>::const_iterator pit;
+  SIMoptions::ProjectionMap::const_iterator pit;
 
   // Project the secondary solution onto the splines basis
   model->setMode(SIM::RECOVERY);
-  for (pit = pOpt.begin(); pit != pOpt.end(); pit++)
+  for (pit = model->opt.project.begin(); pit != model->opt.project.end(); pit++)
     if (!model->project(ssol,linsol,pit->first))
       return false;
     else
       projs.push_back(ssol);
 
+  if (msgLevel > 1 && !projs.empty())
+    std::cout << std::endl;
+
   // Evaluate solution norms
+  model->setQuadratureRule(model->opt.nGauss[1]);
   return (model->solutionNorms(Vectors(1,linsol),projs,eNorm,gNorm) &&
 	  model->dumpResults(linsol,0.0,std::cout,true,6));
 }
@@ -187,13 +224,14 @@ bool AdaptiveSIM::solveStep (const char* inputfile, SystemMatrix::Type solver,
 typedef std::pair<double,int> IndexDouble;
 
 
-bool AdaptiveSIM::adaptMesh (size_t adaptor, int iStep)
+bool AdaptiveSIM::adaptMesh (int iStep)
 {
   printNorms(gNorm,eNorm,std::cout,adaptor);
 
-  // Define the reference norm
-  if (adaptor > gNorm.size() || adaptor > eNorm.rows()) return false;
+  if (adaptor > gNorm.size() || adaptor > eNorm.rows())
+    return false;
 
+  // Define the reference norm
   double uNorm;
   if (adaptor == 4 && model->haveAnaSol())
     uNorm = gNorm(3); // Using the analytical solution, |u|_ref = |u|
@@ -244,16 +282,16 @@ bool AdaptiveSIM::adaptMesh (size_t adaptor, int iStep)
 	    <<","<< errors.front().first <<"]"<< std::endl;
 
   toBeRefined.reserve(ipivot);
-  for (i = 0; i < errors.size(); i++)
+  for (i = 0; i < ipivot; i++)
     toBeRefined.push_back(errors[i].second);
 
   // Now refine the mesh
+  if (!storeMesh)
+    return model->refine(toBeRefined,options);
+
   char fname[13];
   sprintf(fname,"mesh_%03d.eps",iStep);
-  if(storeMesh)
-    return model->refine(toBeRefined,options,fname);
-  else
-    return model->refine(toBeRefined,options,NULL);
+  return model->refine(toBeRefined,options,fname);
 }
 
 
@@ -262,7 +300,6 @@ std::ostream& AdaptiveSIM::printNorms (const Vector& norms, const Matrix& eNorm,
 {
   // TODO: This needs further work to enable print for all recovered solutions.
   // As for now we only print the norm used for the mesh adaption.
-  // Will be completed after the kmo/xmlfixes branch is merged with trunk.
   os <<    "Energy norm |u^h| = a(u^h,u^h)^0.5   : "<< norms(1)
      <<  "\nExternal energy ((h,u^h)+(t,u^h)^0.5 : "<< norms(2);
   if (adaptor == 4 && norms.size() >= 4)
@@ -311,8 +348,7 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep, int& nBlock)
   if (model->opt.format < 0) return true;
 
   // Write VTF-file with model geometry
-  if (!model->writeGlvG(model->opt.nViz, nBlock, iStep == 1 ? infile : 0,
-			model->opt.format))
+  if (!model->writeGlvG(nBlock, iStep == 1 ? infile : 0))
     return false;
 
   // Write boundary tractions, if any
@@ -320,11 +356,11 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep, int& nBlock)
     return false;
 
   // Write Dirichlet boundary conditions
-  if (!model->writeGlvBC(model->opt.nViz,nBlock,iStep))
+  if (!model->writeGlvBC(nBlock,iStep))
     return false;
 
   // Write solution fields
-  if (!model->writeGlvS(linsol,model->opt.nViz,iStep,nBlock))
+  if (!model->writeGlvS(linsol,iStep,nBlock))
     return false;
 
   // Write element norms
