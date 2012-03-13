@@ -19,8 +19,6 @@
 #include "Utilities.h"
 #include "Property.h"
 #include "AnaSol.h"
-#include <string.h>
-
 #include "tinyxml.h"
 
 
@@ -106,8 +104,8 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
 
   else if (!strncasecmp(keyWord,"ANASOL",6))
   {
-    cline = strtok(keyWord+6," ");
     int code = -1;
+    cline = strtok(keyWord+6," ");
     if (!strncasecmp(cline,"HOLE",4))
     {
       double a  = atof(strtok(NULL," "));
@@ -155,32 +153,10 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
     }
     else if (!strncasecmp(cline,"EXPRESSION",10))
     {
-      std::string variables, stress;
-      int lines = atoi(strtok(NULL, " "));
-      char* c = strtok(NULL, " ");
-      if (c)
-        code = atoi(c);
-      else
-        code = 0;
-      for (int i = 0; i < lines; i++) {
-        std::string function = utl::readLine(is);
-        size_t pos = function.find("Variables=");
-        if (pos != std::string::npos) {
-          variables += function.substr(pos+10);
-          if (variables[variables.size()-1] != ';')
-            variables += ";";
-        }
-        pos = function.find("Stress=");
-        if (pos != std::string::npos) {
-          stress = function.substr(pos+7);
-	  mySol = new AnaSol(new STensorFuncExpr(stress,variables));
-	  std::cout <<"\nAnalytical solution:";
-	  if (!variables.empty())
-	    std::cout <<"\n\tVariables = "<< variables;
-	  std::cout <<"\n\tStress = "<< stress << std::endl;
-	  break;
-        }
-      }
+      std::cout <<"\nAnalytical solution: Expression"<< std::endl;
+      int lines = (cline = strtok(NULL," ")) ? atoi(cline) : 0;
+      code = (cline = strtok(NULL," ")) ? atoi(cline) : 0;
+      mySol = new AnaSol(is,lines,false);
     }
     else
     {
@@ -339,9 +315,9 @@ bool SIMLinEl2D::parse (const TiXmlElement* elem)
              !strcasecmp(child->Value(),"linearpressure")) {
       if (child->FirstChild() && child->FirstChild()->Value()) {
         double p = atof(child->FirstChild()->Value());
-	int code = 0, pdir = 1;
-	utl::getAttribute(child,"code",code);
-	utl::getAttribute(child,"dir",pdir);
+        int code = 0, pdir = 1;
+        utl::getAttribute(child,"code",code);
+        utl::getAttribute(child,"dir",pdir);
         setPropertyType(code,Property::NEUMANN);
         if (!strcasecmp(child->Value(),"linearpressure")) {
           RealFunc* pfl = new ConstTimeFunc(new LinearFunc(p));
@@ -349,7 +325,7 @@ bool SIMLinEl2D::parse (const TiXmlElement* elem)
         }
         else
           myTracs[code] = new PressureField(p,pdir);
-	if (myPid == 0)
+        if (myPid == 0)
           std::cout <<"\tPressure code "<< code <<" direction "<< pdir
                     <<": "<< p << std::endl;
       }
@@ -405,25 +381,12 @@ bool SIMLinEl2D::parse (const TiXmlElement* elem)
                   <<" u0="<< u0 <<" E="<< E << std::endl;
       }
       else if (type == "expression") {
-        std::string variables, stress;
-        const TiXmlElement* var = child->FirstChildElement("variables");
-        if (var && var->FirstChild() && var->FirstChild()->Value()) {
-          variables = var->FirstChild()->Value();
-          if (variables[variables.size()-1] != ';')
-            variables += ";";
-        }
-        const TiXmlElement* str = child->FirstChildElement("stress");
-        if (str && str->FirstChild() && str->FirstChild()->Value())
-          stress = str->FirstChild()->Value();
-        mySol = new AnaSol(new STensorFuncExpr(stress,variables));
-	std::cout <<"\nAnalytical solution:";
-	if (!variables.empty())
-	  std::cout <<"\n\tVariables = "<< variables;
-	std::cout <<"\n\tStress = "<< stress << std::endl;
+        std::cout <<"\nAnalytical solution: Expression"<< std::endl;
+        mySol = new AnaSol(child,false);
       }
       else
         std::cerr <<"  ** SIMLinEl2D::parse: Unknown analytical solution "
-                  << type << std::endl;
+                  << type <<" (ignored)"<< std::endl;
 
       // Define the analytical boundary traction field
       int code = 0;

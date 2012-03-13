@@ -15,6 +15,9 @@
 #define _ANA_SOL_H
 
 #include "Function.h"
+#include <iostream>
+
+class TiXmlElement;
 
 
 /*!
@@ -61,6 +64,16 @@ public:
   //! \param[in] sigma Symmetric stress tensor field
   AnaSol(STensorFunc* sigma)
     : scalSol(0), scalSecSol(0), vecSol(0), vecSecSol(0), stressSol(sigma) {}
+
+  //! \brief Constructor initializing expression functions by parsing a stream.
+  //! \param is The file stream to read function definition from
+  //! \param[in] nlines Number of lines to read
+  //! \param[in] scalarSol If \e true, the primary solution is a scalar field
+  AnaSol(std::istream& is, const int nlines, bool scalarSol = true);
+  //! \brief Constructor initializing expression functions by parsing XML tags.
+  //! \param[in] elem Pointer to XML-element to extract data from
+  //! \param[in] scalarSol If \e true, the primary solution is a scalar field
+  AnaSol(const TiXmlElement* elem, bool scalarSol = true);
 
   //! \brief The destructor frees the analytical solution fields.
   virtual ~AnaSol()

@@ -18,13 +18,11 @@
 #include "AlgEqSystem.h"
 #include "ASMbase.h"
 #include "SAMpatch.h"
-#include "Utilities.h"
 #include "Functions.h"
+#include "Utilities.h"
 #include "Property.h"
 #include "AnaSol.h"
 #include "Vec3Oper.h"
-#include <string.h>
-
 #include "tinyxml.h"
 
 
@@ -112,12 +110,13 @@ bool SIMLinElBeamC1::parse (char* keyWord, std::istream& is)
 	this->setPropertyType(code,Property::BODYLOAD);
     }
   }
-  /*
+
   else if (!strncasecmp(keyWord,"ANASOL",6))
   {
     if (mySol) return true;
 
     cline = strtok(keyWord+6," ");
+    /*
     if (!strncasecmp(cline,"NAVIERBEAM",7))
     {
       double a  = atof(strtok(NULL," "));
@@ -142,14 +141,21 @@ bool SIMLinElBeamC1::parse (char* keyWord, std::istream& is)
       else
 	mySol = new AnaSol(new NavierBeam(a,t,E,pz));
     }
+    */
+    if (!strncasecmp(cline,"EXPRESSION",10))
+    {
+      std::cout <<"\nAnalytical solution: Expression"<< std::endl;
+      int lines = (cline = strtok(NULL," ")) ? atoi(cline) : 0;
+      mySol = new AnaSol(is,lines,false);
+    }
     else
     {
       std::cerr <<"  ** SIMLinElBeamC1::parse: Unknown analytical solution "
-		<< cline <<" (ignored)"<< std::endl;
+                << cline <<" (ignored)"<< std::endl;
       return true;
     }
   }
-  */
+
   else
     return this->SIM1D::parse(keyWord,is);
 
@@ -160,85 +166,88 @@ bool SIMLinElBeamC1::parse (char* keyWord, std::istream& is)
 bool SIMLinElBeamC1::parse(const TiXmlElement* elem)
 {
   if (strcasecmp(elem->Value(),"eulerbernoulli"))
-    return SIM1D::parse(elem);
+    return this->SIM1D::parse(elem);
 
   KirchhoffLovePlate* klp = dynamic_cast<KirchhoffLovePlate*>(myProblem);
-  if (!klp)
-    return false;
+  if (!klp) return false;
 
   std::vector<const TiXmlElement*> parsed = handlePriorityTags(elem);
+
   const TiXmlElement* child = elem->FirstChildElement();
   while (child) {
-    if (find(parsed.begin(),parsed.end(),child) != parsed.end()) {
-      child = child->NextSiblingElement();
-      continue;
-    }
-    if (!strcasecmp(child->Value(),"gravity")) {
-      double g=0;
-      if (child->Attribute("g"))
-        g = atof(child->Attribute("g"));
-      klp->setGravity(g);
+    if (find(parsed.begin(),parsed.end(),child) != parsed.end())
+      ;
+
+    else if (!strcasecmp(child->Value(),"gravity")) {
+      double g = 0.0;
+      utl::getAttribute(child,"g",g);
       if (myPid == 0)
         std::cout <<"\nGravitation constant: "<< g << std::endl;
-    } else if (!strcasecmp(child->Value(),"isotropic")) {
-      int code=0;
-      if (child->Attribute("code"))
-        code = atoi(child->Attribute("code"));
-      if (code > 0)
+      klp->setGravity(g);
+    }
+
+    else if (!strcasecmp(child->Value(),"isotropic")) {
+      int code = 0;
+      if (utl::getAttribute(child,"code",code) && code > 0)
         setPropertyType(code,Property::MATERIAL,mVec.size());
-      double E=1000.f, rho = 1.f, thk=0;
-      if (child->Attribute("E"))
-        E = atof(child->Attribute("E"));
-      if (child->Attribute("rho"))
-        rho = atof(child->Attribute("rho"));
-      if (child->Attribute("thickness"))
-        thk = atof(child->Attribute("thickness"));
+      double E = 1000.0, rho = 1.0, thk = 0.1;
+      utl::getAttribute(child,"E",E);
+      utl::getAttribute(child,"rho",rho);
+      utl::getAttribute(child,"thickness",thk);
       mVec.push_back(new LinIsotropic(E,0.0,rho,true));
       tVec.push_back(thk);
       if (myPid == 0)
         std::cout <<"\tMaterial code "<< code <<": "
-                  << E <<" " << rho <<" " << thk << std::endl;
-      if (!mVec.empty())
-        klp->setMaterial(mVec.front());
-      if (!tVec.empty() && tVec.front() != 0.0)
+                  << E <<" "<< rho <<" " << thk << std::endl;
+      klp->setMaterial(mVec.front());
+      if (tVec.front() != 0.0)
         klp->setThickness(tVec.front());
-    } else if (!strcasecmp(child->Value(),"pointload")) {
-      PointLoad load;
-      if (child->Attribute("patch"))
-        load.patch = atoi(child->Attribute("patch"));
-      if (child->Attribute("xi"))
-        load.xi = atof(child->Attribute("xi"));
-      if (child->FirstChild() && child->FirstChild()->Value())
+    }
+
+    else if (!strcasecmp(child->Value(),"pointload")) {
+      PointLoad load; int patch;
+      utl::getAttribute(child,"patch",patch);
+      if (child->FirstChild()) {
+        load.patch = patch;
         load.pload = atof(child->FirstChild()->Value());
-      if (myPid == 0)
-        std::cout <<"\n\tPoint: P" << load.patch
-                  <<" xi = "   << load.xi
-                  <<" load = " << load.pload;
-      myLoads.push_back(load);
-    } else if (!strcasecmp(child->Value(),"pressure")) {
-      int code=0;
-      double p=0;
-      if (child->Attribute("code"))
-        code = atoi(child->Attribute("code"));
-      if (child->FirstChild() && child->FirstChild()->Value())
+        utl::getAttribute(child,"xi",load.xi);
+        if (myPid == 0)
+          std::cout <<"\n\tPoint: P"<< load.patch
+                    <<" xi = "<< load.xi
+                    <<" load = "<< load.pload;
+        myLoads.push_back(load);
+      }
+    }
+
+    else if (!strcasecmp(child->Value(),"pressure")) {
+      int code = 0;
+      double p = 0.0;
+      char* fn = NULL;
+      utl::getAttribute(child,"code",code);
+      if (child->FirstChild())
         p = atof(child->FirstChild()->Value());
       if (myPid == 0)
         std::cout <<"\tPressure code "<< code <<": ";
-      char* function;
-      if (child->Attribute("function"))
-        function = strdup(child->Attribute("function"));
-      else
-        function = strdup("");
-      char* function2 = function;
-      function = strtok(function," ");
-      myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(const_cast<char*>(function),p));
-      free(function2);
+      std::string function;
+      if (utl::getAttribute(child,"function",function))
+        fn = strtok(const_cast<char*>(function.c_str())," ");
+      myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(fn,p));
       std::cout << std::endl;
       if (code > 0)
-	setPropertyType(code,Property::BODYLOAD);
+        setPropertyType(code,Property::BODYLOAD);
     }
-    else
-      SIM1D::parse(child);
+
+    else if (!strcasecmp(child->Value(),"anasol")) {
+      std::string type;
+      utl::getAttribute(child,"type",type,true);
+      if (type == "expression") {
+        std::cout <<"\nAnalytical solution: Expression"<< std::endl;
+        mySol = new AnaSol(child);
+      }
+      else
+        std::cerr <<"  ** SIMLinElKL::parse: Unknown analytical solution "
+                  << type <<" (ignored)"<< std::endl;
+    }
 
     child = child->NextSiblingElement();
   }
