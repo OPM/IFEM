@@ -63,13 +63,6 @@ namespace utl
   //! \return \e true if the attribute \a att is found in \a child,
   //! otherwise \e false
   bool getAttribute(const TiXmlElement* xml, const char* att, real& val);
-  //! \brief Extracts a boolean attribute value from the specified XML-element.
-  //! \param[in] xml Pointer to XML-element to extract from
-  //! \param[in] att The attribute tag
-  //! \param[out] val The attribute value
-  //! \return \e true if the attribute \a att is found in \a child,
-  //! otherwise \e false
-  bool getAttribute(const TiXmlElement* xml, const char* att, bool& val);
   //! \brief Extracts a string attribute value from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
@@ -79,6 +72,11 @@ namespace utl
   //! otherwise \e false
   bool getAttribute(const TiXmlElement* xml, const char* att, std::string& val,
                     bool toLower = false);
+  //! \brief Returns the value (if any) of the specified XML-element.
+  //! \param[in] xml Pointer to XML-element to extract the value from
+  //! \param[in] tag The name of the XML-element to extract the value from
+  const char* getValue(const TiXmlElement* xml, const char* tag);
+
   //! \brief Parses a sequence of knot values from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
   //! \param xi The knot value(s) is/are appended to this vector

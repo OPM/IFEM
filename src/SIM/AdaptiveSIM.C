@@ -45,13 +45,13 @@ AdaptiveSIM::~AdaptiveSIM ()
   if (model) delete model;
 }
 
+
 bool AdaptiveSIM::parse (const TiXmlElement* elem)
 {
   if (strcasecmp(elem->Value(),"adaptive"))
     return model->parse(elem);
 
   const TiXmlElement* child = elem->FirstChildElement();
-  std::string str;
   while (child) {
     if (!strcasecmp(child->Value(), "maxstep")) {
       utl::getAttribute(child, "value", maxStep);
@@ -68,19 +68,20 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
     } else if (!strcasecmp(child->Value(), "store_eps_mesh")) {
       utl::getAttribute(child, "value", storeMesh);
     } else if (!strcasecmp(child->Value(), "scheme")) {
+      std::string str;
       utl::getAttribute(child, "value", str, true);
-      if( !strcasecmp(str.c_str(), "fullspan") )
+      if (str == "fullspan")
         scheme = 0;
-      else if( !strcasecmp(str.c_str(), "minspan") )
+      else if (str == "minspan")
         scheme = 1;
-      else if( !strcasecmp(str.c_str(), "isotropic_element") )
+      else if (str == "isotropic_element")
         scheme = 2;
-      else if( !strcasecmp(str.c_str(), "isotropic_function") )
+      else if (str == "isotropic_function")
         scheme = 3;
-      else
-      {
-      	std::cerr << "Error parsing adaptive refinement scheme: unknown value\n";
+      else {
       	scheme = 0;
+      	std::cerr <<" *** AdaptiveSIM::parse: Unknown refinement scheme \""
+                  << str <<"\""<< std::endl;
         return false;
       }
     }
@@ -90,6 +91,7 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
 
   return true;
 }
+
 
 bool AdaptiveSIM::parse (char* keyWord, std::istream& is)
 {
@@ -214,7 +216,7 @@ bool AdaptiveSIM::adaptMesh (size_t adaptor, int iStep)
   size_t i;
   if (scheme == 3)
   {
-    // sum up the total function error over all supported elements for that function
+    // Sum up the total error over all supported elements for each function
     ASMbase* patch = model->getFEModel().front();
     IntMat::const_iterator eit;
     IntVec::const_iterator nit;
@@ -228,9 +230,9 @@ bool AdaptiveSIM::adaptMesh (size_t adaptor, int iStep)
     for (i = 0; i < eNorm.cols(); i++)
       errors.push_back(IndexDouble(eNorm(adaptor,1+i),i));
 
-  // Find the list of elements/functions to refine (the beta % with the highest error)
+  // Find the list of elements to refine (the beta % with the highest error)
   size_t ipivot = ceil(errors.size()*beta/100.0);
-  // make ipivot a multiplum of 'symmetry' in case of symmetric problems
+  // Make ipivot a multiplum of 'symmetry' in case of symmetric problems
   if (symmetry > 0)
     ipivot += (symmetry-ipivot%symmetry);
 
@@ -304,13 +306,13 @@ std::ostream& AdaptiveSIM::printNorms (const Vector& norms, const Matrix& eNorm,
 }
 
 
-bool AdaptiveSIM::writeGlv (const char* infile, int format, const int* nViz,
-			    int iStep, int& nBlock)
+bool AdaptiveSIM::writeGlv (const char* infile, int iStep, int& nBlock)
 {
-  if (format < 0) return true;
+  if (model->opt.format < 0) return true;
 
   // Write VTF-file with model geometry
-  if (!model->writeGlvG(nViz, nBlock, iStep == 1 ? infile : 0, format))
+  if (!model->writeGlvG(model->opt.nViz, nBlock, iStep == 1 ? infile : 0,
+			model->opt.format))
     return false;
 
   // Write boundary tractions, if any
@@ -318,11 +320,11 @@ bool AdaptiveSIM::writeGlv (const char* infile, int format, const int* nViz,
     return false;
 
   // Write Dirichlet boundary conditions
-  if (!model->writeGlvBC(nViz,nBlock,iStep))
+  if (!model->writeGlvBC(model->opt.nViz,nBlock,iStep))
     return false;
 
   // Write solution fields
-  if (!model->writeGlvS(linsol,nViz,iStep,nBlock))
+  if (!model->writeGlvS(linsol,model->opt.nViz,iStep,nBlock))
     return false;
 
   // Write element norms

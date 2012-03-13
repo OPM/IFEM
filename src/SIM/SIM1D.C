@@ -401,7 +401,7 @@ void SIM1D::setQuadratureRule (size_t ng)
 bool SIM1D::readPatch (std::istream& isp, int pchInd)
 {
   ASMs1D* pch = 0;
-  switch (discretization) {
+  switch (opt.discretization) {
   case ASM::Lagrange:
     pch = new ASMs1DLag(1,nf);
     break;
@@ -432,7 +432,7 @@ bool SIM1D::readPatches (std::istream& isp)
   for (int patchNo = 1; isp.good(); patchNo++)
   {
     std::cout <<"Reading patch "<< patchNo << std::endl;
-    switch (discretization)
+    switch (opt.discretization)
       {
       case ASM::Lagrange:
         pch = new ASMs1DLag(1,nf);

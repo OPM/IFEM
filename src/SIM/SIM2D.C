@@ -165,7 +165,7 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       ASMs2D* mpch = static_cast<ASMs2D*>(myModel[master-1]);
       if (!spch->connectPatch(sEdge,*mpch,mEdge,rever))
         return false;
-      else if (discretization == ASM::SplineC1)
+      else if (opt.discretization == ASM::SplineC1)
         top.push_back(Interface(static_cast<ASMs2DC1*>(mpch),mEdge,
                                 static_cast<ASMs2DC1*>(spch),sEdge,rever));
 
@@ -326,7 +326,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
     int ntop = atoi(keyWord+8);
     std::cout <<"\nNumber of patch connections: "<< ntop << std::endl;
     std::vector<Interface> top;
-    if (discretization == ASM::SplineC1)
+    if (opt.discretization == ASM::SplineC1)
       top.reserve(ntop);
 
     for (int i = 0; i < ntop && (cline = utl::readLine(is)); i++)
@@ -351,7 +351,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
       ASMs2D* mpch = static_cast<ASMs2D*>(myModel[master-1]);
       if (!spch->connectPatch(sEdge,*mpch,mEdge,rever))
 	return false;
-      else if (discretization == ASM::SplineC1)
+      else if (opt.discretization == ASM::SplineC1)
 	top.push_back(Interface(static_cast<ASMs2DC1*>(mpch),mEdge,
 				static_cast<ASMs2DC1*>(spch),sEdge,rever));
     }
@@ -553,7 +553,7 @@ void SIM2D::setQuadratureRule (size_t ng)
 
 bool SIM2D::readPatch (std::istream& isp, int pchInd)
 {
-  ASMbase* pch = ASM2D::create(discretization,nf,mixedFEM);
+  ASMbase* pch = ASM2D::create(opt.discretization,nf,mixedFEM);
   if (pch)
   {
     if (!pch->read(isp))
@@ -575,7 +575,7 @@ bool SIM2D::readPatches (std::istream& isp)
 {
   ASMbase* pch = 0;
   for (int pchInd = 1; isp.good(); pchInd++)
-    if ((pch = ASM2D::create(discretization,nf,mixedFEM)))
+    if ((pch = ASM2D::create(opt.discretization,nf,mixedFEM)))
     {
       std::cout <<"Reading patch "<< pchInd << std::endl;
       if (!pch->read(isp))

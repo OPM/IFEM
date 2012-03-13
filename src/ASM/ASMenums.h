@@ -22,6 +22,7 @@ namespace ASM //! Assembly scope
   {
     Lagrange = 0,
     Spectral = 1,
+    // The spline entries need to be at the end and successively numbered
     Spline   = 2,
     LRSpline = 3,
     SplineC1 = 4

@@ -117,16 +117,6 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att, int& val)
   return true;
 }
 
-bool utl::getAttribute (const TiXmlElement* xml, const char* att, bool& val)
-{
-  if (xml->Attribute(att))
-    val = ( strcasecmp(xml->Attribute(att), "true") == 0 );
-  else
-    return false;
-
-  return true;
-}
-
 
 bool utl::getAttribute (const TiXmlElement* xml, const char* att, real& val)
 {
@@ -152,6 +142,25 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att,
       val[i] = tolower(val[i]);
 
   return true;
+}
+
+
+/*!
+  This method accepts two alternative ways of specifying the value "myValue":
+  <name>myValue</name> and <name value="myvalue"/>.
+*/
+
+const char* utl::getValue (const TiXmlElement* xml, const char* tag)
+{
+  if (xml->Value() && !strcasecmp(xml->Value(),tag))
+  {
+    if (xml->Attribute("value"))
+      return xml->Attribute("value");
+    else if (xml->FirstChild())
+      return xml->FirstChild()->Value();
+  }
+
+  return NULL;
 }
 
 

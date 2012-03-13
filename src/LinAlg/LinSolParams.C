@@ -161,63 +161,48 @@ bool LinSolParams::read (std::istream& is, int nparam)
 }
 
 
+bool LinSolParams::read (const TiXmlElement* child)
+{
 #ifdef HAS_PETSC
-static const char* IsOK (const TiXmlElement* child, const char* value)
-{
-  if (strcasecmp(child->Value(),value) || child->FirstChild())
-    return 0;
-
-  return child->FirstChild()->Value();
-}
-
-
-bool LinSolParams::read (const TiXmlElement* elem)
-{
   const char* value = 0;
-  const TiXmlElement* child = elem->FirstChildElement();
-  while (child) {
-    if ((value = IsOK(child,"type")))
-      method = value;
-    else if ((value = IsOK(child,"pc")))
-    {
-      if ((asmlu = !strncasecmp(value,"asmlu",5)))
-	prec = "asm";
-      else
-	prec = value;
-    }
-    else if ((value = IsOK(child,"hypretype")))
-      hypretype = value;
-    else if ((value = IsOK(child,"package")))
-      package = value;
-    else if ((value = IsOK(child,"levels")))
-      levels = atoi(value);
-    else if ((value = IsOK(child,"overlap")))
-      overlap = atoi(value);
-    else if ((value = IsOK(child,"atol")))
-      atol = atof(value);
-    else if ((value = IsOK(child,"rtol")))
-      rtol = atof(value);
-    else if ((value = IsOK(child,"dtol")))
-      dtol = atof(value);
-    else if ((value = IsOK(child,"maxits")))
-      maxIts = atoi(value);
-    else if ((value = IsOK(child,"nullspace"))) {
-      if (!strcasecmp(value,"constant"))
-	nullspc = CONSTANT;
-      else if (!strcasecmp(value,"rigid_body"))
-	nullspc = RIGID_BODY;
-    }
-    else
-      std::cerr <<" *** LinSolParams::read: Unknown keyword: "
-		<< child->Value() << std::endl;
-    child = child->NextSiblingElement();
+  if ((value = utl::getValue(child,"type")))
+    method = value;
+  else if ((value = utl::getValue(child,"pc")))
+  {
+    asmlu = !strncasecmp(value,"asmlu",5);
+    prec  = asmlu ? "asm" : value;
   }
+  else if ((value = utl::getValue(child,"hypretype")))
+    hypretype = value;
+  else if ((value = utl::getValue(child,"package")))
+    package = value;
+  else if ((value = utl::getValue(child,"levels")))
+    levels = atoi(value);
+  else if ((value = utl::getValue(child,"overlap")))
+    overlap = atoi(value);
+  else if ((value = utl::getValue(child,"atol")))
+    atol = atof(value);
+  else if ((value = utl::getValue(child,"rtol")))
+    rtol = atof(value);
+  else if ((value = utl::getValue(child,"dtol")))
+    dtol = atof(value);
+  else if ((value = utl::getValue(child,"maxits")))
+    maxIts = atoi(value);
+  else if ((value = utl::getValue(child,"nullspace"))) {
+    if (!strcasecmp(value,"constant"))
+      nullspc = CONSTANT;
+    else if (!strcasecmp(value,"rigid_body"))
+      nullspc = RIGID_BODY;
+  }
+  else
+  {
+    std::cerr <<" *** LinSolParams::read: Unknown keyword: "
+	      << child->Value() << std::endl;
+    return false;
+  }
+#endif
   return true;
 }
-#else
-// No need to loop trough the XML entries when PETSc is not included.
-bool LinSolParams::read (const TiXmlElement*) { return true; }
-#endif
 
 
 bool LinSolParams::read (const char* filename)

@@ -117,7 +117,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
   }
 
   else if (!strcasecmp(elem->Value(),"topology"))
-  { 
+  {
     if (this->createFEMmodel()) return false;
 
     const TiXmlElement* child = elem->FirstChildElement("connection");
@@ -587,7 +587,7 @@ void SIM3D::setQuadratureRule (size_t ng)
 bool SIM3D::readPatch (std::istream& isp, int pchInd)
 {
   ASMs3D* pch = 0;
-  switch (discretization) {
+  switch (opt.discretization) {
   case ASM::Lagrange:
     if (nf[1] > 0)
       pch = new ASMs3DmxLag(nf[0],nf[1]);
@@ -630,7 +630,7 @@ bool SIM3D::readPatches (std::istream& isp)
   for (int patchNo = 1; isp.good(); patchNo++)
   {
     std::cout <<"Reading patch "<< patchNo << std::endl;
-    switch (discretization)
+    switch (opt.discretization)
       {
       case ASM::Lagrange:
         if (mixedFEM)

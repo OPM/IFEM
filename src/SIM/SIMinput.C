@@ -113,8 +113,10 @@ bool SIMinput::readXML (const char* fileName)
 
   injectIncludeFiles(doc.RootElement());
 
-  std::vector<const TiXmlElement*> parsed = handlePriorityTags(doc.RootElement());
-  // now parse the rest
+  std::vector<const TiXmlElement*> parsed;
+  if (!handlePriorityTags(doc.RootElement(),parsed))
+    return false;
+
   TiXmlElement* elem = doc.RootElement()->FirstChildElement();
   while (elem) {
     if (std::find(parsed.begin(),parsed.end(),elem) == parsed.end()) {
@@ -130,22 +132,23 @@ bool SIMinput::readXML (const char* fileName)
 }
 
 
-std::vector<const TiXmlElement*> SIMinput::handlePriorityTags(const TiXmlElement* base)
+bool SIMinput::handlePriorityTags (const TiXmlElement* base,
+				   std::vector<const TiXmlElement*>& parsed)
 {
-  // add particular keywords to this list. these will be parsed first,
-  // in the order specified in the list
-  const char* special[] = {"geometry","boundaryconditions"};
+  // Add particular keywords to this list.
+  // They will be parsed first, in the order specified in the list.
+  const char* special[] = {"discretization","geometry","boundaryconditions",0};
 
-  std::vector<const TiXmlElement*> parsed;
-  for (size_t i=0;i<sizeof(special)/sizeof(char*);++i) {
-    const TiXmlElement* elem = base->FirstChildElement(special[i]);
-    if (elem) {
-      if (!this->parse(elem))
+  const TiXmlElement* elem = 0;
+  for (const char** q = special; *q; q++)
+    if ((elem = base->FirstChildElement(*q))) {
+      if (!this->parse(elem)) {
         std::cerr <<" *** SIMinput::read: Failure occured while parsing \""
                   << elem->Value() <<"\""<< std::endl;
+	return false;
+      }
       parsed.push_back(elem);
     }
-  }
 
-  return parsed;
+  return true;
 }

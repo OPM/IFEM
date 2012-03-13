@@ -51,12 +51,9 @@ public:
 
   //! \brief Writes current mesh and results to the VTF-file.
   //! \param[in] infile File name used to construct the VTF-file name from
-  //! \param[in] format Format of VTF-file (0=ASCII, 1=BINARY)
-  //! \param[in] nViz   Number of visualization points over a knot-span
   //! \param[in] iStep  Refinement step identifier
   //! \param     nBlock Running result block counter
-  bool writeGlv(const char* infile, int format, const int* nViz,
-		int iStep, int& nBlock);
+  bool writeGlv(const char* infile, int iStep, int& nBlock);
 
   //! \brief Prints out the global norms to given stream.
   static std::ostream& printNorms(const Vector& norms, const Matrix& eNorm,
@@ -66,12 +63,10 @@ public:
   Vector& getSolution() { return linsol; }
 
 protected:
-
   //! \brief Parses a data section from an input stream.
   //! \param[in] keyWord Keyword of current data section to read
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
-
   //! \brief Parses a data section from an XML document.
   //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);

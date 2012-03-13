@@ -75,15 +75,10 @@ int main (int argc, char** argv)
 {
   Profiler prof(argv[0]);
 
-  SystemMatrix::Type solver = SystemMatrix::SPARSE;
-  int form = SIM::TOTAL_LAGRANGE;
-  int nGauss = 4;
-  int format = -1;
-  int outPrec = 3;
-  int n[3] = { 2, 2, 2 };
+  SIMoptions dummy;
   std::vector<int> ignoredPatches;
-  bool doHDF5 = false;
-  double dtSave = 0.0;
+  int i, form = SIM::TOTAL_LAGRANGE;
+  int outPrec = 3;
   double dtDump = 0.0;
   double zero_tol = 1.0e-8;
   bool dumpWithID = true;
@@ -97,45 +92,13 @@ int main (int argc, char** argv)
   const LinAlgInit& linalg = LinAlgInit::Init(argc,argv);
 
   std::vector<int> options(2,0);
-  for (int i = 1; i < argc; i++)
-    if (!strcmp(argv[i],"-dense"))
-      solver = SystemMatrix::DENSE;
-    else if (!strcmp(argv[i],"-spr"))
-      solver = SystemMatrix::SPR;
-    else if (!strncmp(argv[i],"-superlu",8))
-    {
-      solver = SystemMatrix::SPARSE;
-      if (isdigit(argv[i][8]))
-	SIMbase::num_threads_SLU = atoi(argv[i]+8);
-    }
-    else if (!strcmp(argv[i],"-samg"))
-      solver = SystemMatrix::SAMG;
-    else if (!strcmp(argv[i],"-petsc"))
-      solver = SystemMatrix::PETSC;
-    else if (!strncmp(argv[i],"-lag",4))
-      SIMbase::discretization = ASM::Lagrange;
-    else if (!strncmp(argv[i],"-spec",5))
-      SIMbase::discretization = ASM::Spectral;
-    else if (!strcmp(argv[i],"-nGauss") && i < argc-1)
-      nGauss = atoi(argv[++i]);
-    else if (!strcmp(argv[i],"-vtf") && i < argc-1)
-      format = atoi(argv[++i]);
-    else if (!strcmp(argv[i],"-nviz") && i < argc-1)
-      n[0] = n[1] = n[2] = atoi(argv[++i]);
-    else if (!strcmp(argv[i],"-nu") && i < argc-1)
-      n[0] = atoi(argv[++i]);
-    else if (!strcmp(argv[i],"-nv") && i < argc-1)
-      n[1] = atoi(argv[++i]);
-    else if (!strcmp(argv[i],"-nw") && i < argc-1)
-      n[2] = atoi(argv[++i]);
+  for (i = 1; i < argc; i++)
+    if (dummy.parseOldOptions(argc,argv,i))
+      ; // ignore the obsolete option
     else if (!strcmp(argv[i],"-skip2nd"))
       skip2nd = true;
     else if (!strcmp(argv[i],"-noEnergy"))
       energy = false;
-    else if (!strcmp(argv[i],"-hdf5"))
-      doHDF5 = true;
-    else if (!strcmp(argv[i],"-saveInc") && i < argc-1)
-      dtSave = atof(argv[++i]);
     else if (!strcmp(argv[i],"-outPrec") && i < argc-1)
       outPrec = atoi(argv[++i]);
     else if (!strcmp(argv[i],"-ztol") && i < argc-1)
@@ -200,10 +163,6 @@ int main (int argc, char** argv)
     }
     else if (!strcmp(argv[i],"-Tensor"))
       form = SIM::NONLINEAR;
-    else if (!strcmp(argv[i],"-NeoHooke"))
-      form = SIM::NEOHOOKE;
-    else if (!strcmp(argv[i],"-NeoHookeIV"))
-      form = SIM::NEOHOOKE_IV;
     else if (!infile)
       infile = argv[i];
     else
@@ -227,24 +186,24 @@ int main (int argc, char** argv)
     std::cout <<"\n >>> IFEM Finite Deformation Nonlinear solver <<<"
 	      <<"\n ================================================\n"
 	      <<"\n Executing command:\n";
-    for (int i = 0; i < argc; i++) std::cout <<" "<< argv[i];
+    for (i = 0; i < argc; i++) std::cout <<" "<< argv[i];
     std::cout <<"\n\nInput file: "<< infile
-	      <<"\nEquation solver: "<< solver
-	      <<"\nNumber of Gauss points: "<< nGauss;
-    if (format >= 0)
+	      <<"\nEquation solver: "<< dummy.solver
+	      <<"\nNumber of Gauss points: "<< dummy.nGauss[0];
+    if (dummy.format >= 0)
     {
-      std::cout <<"\nVTF file format: "<< (format ? "BINARY":"ASCII")
+      std::cout <<"\nVTF file format: "<< (dummy.format ? "BINARY":"ASCII")
 		<<"\nNumber of visualization points: "
-		<< n[0] <<" "<< n[1];
-      if (!twoD) std::cout <<" "<< n[2];
+		<< dummy.nViz[0] <<" "<< dummy.nViz[1];
+      if (!twoD) std::cout <<" "<< dummy.nViz[2];
     }
-    if (dtSave > 0.0)
-      std::cout <<"\nTime between each result save: "<< dtSave;
+    if (dummy.dtSave > 0.0)
+      std::cout <<"\nTime between each result save: "<< dummy.dtSave;
     if (dtDump > 0.0)
       std::cout <<"\nTime between each primary solution dump: "<< dtDump;
-    if (SIMbase::discretization == ASM::Lagrange)
+    if (dummy.discretization == ASM::Lagrange)
       std::cout <<"\nLagrangian basis functions are used";
-    else if (SIMbase::discretization == ASM::Spectral)
+    else if (dummy.discretization == ASM::Spectral)
       std::cout <<"\nSpectral basis functions are used";
     if (fixDup)
       std::cout <<"\nCo-located nodes will be merged";
@@ -273,30 +232,57 @@ int main (int argc, char** argv)
     model = new SIMFiniteDefEl3D(checkRHS,options);
 
   // Read in solver and model definitions
+  model->opt.discretization = dummy.discretization;
   NonLinSIM simulator(model);
   if (!simulator.read(infile))
     return 1;
 
-  utl::profiler->stop("Model input");
+  // Parse the obsolete options again to let them override input file tags
+  for (i = 1; i < argc; i++)
+    if (!model->opt.parseOldOptions(argc,argv,i))
+      if (!strcmp(argv[i],"-ignore"))
+	while (i < argc-1 && isdigit(argv[i+1][0])) ++i;
 
-  model->printProblem(std::cout);
-  if (SIMbase::discretization >= ASM::Spline)
+  if (linalg.myPid == 0)
   {
-    if (ASMmxBase::useCpminus1)
-      std::cout <<"Using C^(p-1) continuous displacement basis\n";
-    else if (form == SIM::MIXED_QnQn1)
-      std::cout <<"Using C^(p-2) continuous displacement basis\n";
+    std::cout <<"\n\nEquation solver: "<< model->opt.solver
+	      <<"\nNumber of Gauss points: "<< model->opt.nGauss[0];
+    if (model->opt.format >= 0)
+    {
+      std::cout <<"\nVTF file format: "<< (model->opt.format ? "BINARY":"ASCII")
+		<<"\nNumber of visualization points: "
+		<< model->opt.nViz[0] <<" "<< model->opt.nViz[1];
+      if (!twoD) std::cout <<" "<< model->opt.nViz[2];
+    }
+    if (model->opt.dtSave > 0.0)
+      std::cout <<"\nTime between each result save: "<< model->opt.dtSave;
+    if (model->opt.discretization == ASM::Lagrange)
+      std::cout <<"\nLagrangian basis functions are used";
+    else if (model->opt.discretization == ASM::Spectral)
+      std::cout <<"\nSpectral basis functions are used";
+    std::cout << std::endl;
+
+    model->printProblem(std::cout);
+    if (model->opt.discretization >= ASM::Spline)
+    {
+      if (ASMmxBase::useCpminus1)
+	std::cout <<"Using C^(p-1) continuous displacement basis\n";
+      else if (form == SIM::MIXED_QnQn1)
+	std::cout <<"Using C^(p-2) continuous displacement basis\n";
+    }
   }
+
+  utl::profiler->stop("Model input");
 
   // Preprocess the model and establish data structures for the algebraic system
   if (!model->preprocess(ignoredPatches,fixDup))
     return 2;
 
-  if (format >= 0)
+  if (model->opt.format >= 0)
   {
     // Save FE model to VTF file for visualization
-    if (twoD) n[2] = 1;
-    if (!simulator.saveModel(infile,format,n))
+    if (twoD) model->opt.nViz[2] = 1;
+    if (!simulator.saveModel(infile,model->opt.format,model->opt.nViz))
       return 3;
   }
 
@@ -322,35 +308,34 @@ int main (int argc, char** argv)
   const double epsT = 1.0e-6;
   if (dtDump <= 0.0) dtDump = params.stopTime + 1.0;
   double nextDump = params.time.t + dtDump;
-  double nextSave = params.time.t + dtSave;
+  double nextSave = params.time.t + model->opt.dtSave;
 
   int iStep = 0; // Save initial state to VTF
-  if (format >= 0 && params.multiSteps())
-    if (!simulator.saveStep(-(++iStep),params.time.t,n,skip2nd))
+  if (model->opt.format >= 0 && params.multiSteps())
+    if (!simulator.saveStep(-(++iStep),params.time.t,model->opt.nViz,skip2nd))
       return 4;
 
   if (form >= 100)
     return 0; // model check
 
-  DataExporter* writer = 0;
-  if (doHDF5)
+  DataExporter* writer = NULL;
+  if (model->opt.dumpHDF5(infile))
   {
-    strtok(infile,".");
     if (linalg.myPid == 0)
-      std::cout <<"\nWriting HDF5 file "<< infile <<".hdf5"<< std::endl;
-
+      std::cout <<"\nWriting HDF5 file "<< model->opt.hdf5
+		<<".hdf5"<< std::endl;
     writer = new DataExporter(true);
     writer->registerField("u","solution",DataExporter::SIM,
 			  static_cast<DataExporter::Results>(!skip2nd));
     writer->setFieldValue("u",model,(void*)&simulator.getSolution());
-    writer->registerWriter(new HDF5Writer(infile));
-    writer->registerWriter(new XMLWriter(infile));
+    writer->registerWriter(new HDF5Writer(model->opt.hdf5));
+    writer->registerWriter(new XMLWriter(model->opt.hdf5));
   }
 
   // Initialize the linear solver
-  model->initSystem(solver,1,1);
+  model->initSystem(static_cast<SystemMatrix::Type>(model->opt.solver),1,1);
   model->setAssociatedRHS(0,0);
-  model->setQuadratureRule(nGauss);
+  model->setQuadratureRule(model->opt.nGauss[0]);
 
   // Invoke the time/load-step loop
   while (simulator.advanceStep(params))
@@ -377,15 +362,15 @@ int main (int argc, char** argv)
     if (params.time.t + epsT*params.time.dt > nextSave)
     {
       // Save solution variables to VTF for visualization
-      if (format >= 0)
-        if (!simulator.saveStep(++iStep,params.time.t,n,skip2nd))
+      if (model->opt.format >= 0)
+        if (!simulator.saveStep(++iStep,params.time.t,model->opt.nViz,skip2nd))
 	  return 6;
 
       // Save solution variables to HDF5
       if (writer)
 	writer->dumpTimeLevel();
 
-      nextSave = params.time.t + dtSave;
+      nextSave = params.time.t + model->opt.dtSave;
     }
   }
 

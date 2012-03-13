@@ -15,9 +15,9 @@
 #define _SIM_BASE_H
 
 #include "SIMinput.h"
+#include "SIMoptions.h"
 #include "SystemMatrix.h"
 #include "TimeDomain.h"
-#include "ASMenums.h"
 #include "Property.h"
 #include "Function.h"
 #include "Vec3.h"
@@ -104,10 +104,12 @@ public:
 private:
   //! \brief Parses a subelement of the \a geometry XML-tag.
   bool parseGeometryTag(const TiXmlElement* elem);
-  //! \brief Parses a subelement of the \a resultoutput XML-tag.
-  bool parseOutputTag(const TiXmlElement* elem);
   //! \brief Parses a subelement of the \a boundaryconditions XML-tag.
   bool parseBCTag(const TiXmlElement* elem);
+  //! \brief Parses a subelement of the \a resultoutput XML-tag.
+  bool parseOutputTag(const TiXmlElement* elem);
+  //! \brief Parses a subelement of the \a linearsolver XML-tag.
+  bool parseLinSolTag(const TiXmlElement* elem);
 
 public:
   //! \brief Refines a list of elements.
@@ -174,7 +176,7 @@ public:
   //! \brief Returns the number of registered result points.
   size_t getNoResultPoints() const { return myPoints.size(); }
   //! \brief Returns the visualization dump interval.
-  int getDumpInterval() const { return vizIncr; }
+  int getDumpInterval() const { return opt.saveInc; }
 
   //! \brief Initializes time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time
@@ -307,9 +309,15 @@ public:
   bool systemModes(std::vector<Mode>& solution,
 		   int nev, int ncv, int iop, double shift,
 		   size_t iA = 0, size_t iB = 1);
+  //! \brief Performs a generalized eigenvalue analysis of the assembled system.
+  //! \param[out] solution Computed eigenvalues and associated eigenvectors
+  //! \param[in] iA Index of system matrix \b A in \a myEqSys->A
+  //! \param[in] iB Index of system matrix \b B in \a myEqSys->A
+  bool systemModes(std::vector<Mode>& solution, size_t iA = 0, size_t iB = 1)
+  {
+    return this->systemModes(solution,opt.nev,opt.ncv,opt.eig,opt.shift,iA,iB);
+  }
 
-  //! \brief Enum defining the available projection methods.
-  enum ProjectionMethod { GLOBAL, DGL2, CGL2, SCR, LOCAL, VDSA, QUASI, LEASTSQ };
   //! \brief Projects the secondary solution associated with a primary solution.
   //! \param[out] ssol Control point values of the secondary solution
   //! \param[in] psol Control point values of the primary solution
@@ -319,7 +327,7 @@ public:
   //! corresponding to the primary solution \a psol is projected onto the
   //! spline basis to obtain the control point values of the secondary solution.
   bool project(Matrix& ssol, const Vector& psol,
-	       ProjectionMethod pMethod = GLOBAL) const;
+	       SIMoptions::ProjectionMethod pMethod = SIMoptions::GLOBAL) const;
   //! \brief Projects the secondary solution associated with a primary solution.
   //! \param sol Control point values of primary(in)/secondary(out) solution
   bool project(Vector& sol) const;
@@ -340,21 +348,19 @@ public:
 
   //! \brief Opens a new VTF-file and writes the model geometry to it.
   //! \param[in] inpFile File name used to construct the VTF-file name from
-  //! \param[in] nViz    Number of visualization points over a knot-span
-  //! \param[in] format  Format of VTF-file (0=ASCII, 1=BINARY)
-  //!
-  //! \details The spline patches are tesselated into linear finite elements
-  //! with a fixed number of elements within each knot-span of non-zero length.
-  //! The solution fields are then evaluated at the nodal points of the
-  //! generated FE mesh and written to the VTF-file as vector and scalar fields
-  //! by the other \a writeGlv* methods.
-  bool writeGlv(const char* inpFile, const int* nViz, int format);
+  bool writeGlv(const char* inpFile);
 
   //! \brief Write current model geometry to the VTF-file.
   //! \param[in] nViz Number of visualization points over each knot-span
   //! \param nBlock Running result block counter
   //! \param[in] inpFile File name used to construct the VTF-file name from
   //! \param[in] format Format of VTF-file (0=ASCII, 1=BINARY)
+  //!
+  //! \details The spline patches are tesselated into linear finite elements
+  //! with a fixed number of elements within each knot-span of non-zero length.
+  //! The solution fields are then evaluated at the nodal points of the
+  //! generated FE mesh and written to the VTF-file as vector and scalar fields
+  //! by the other \a writeGlv* methods.
   bool writeGlvG(const int* nViz, int& nBlock,
 		 const char* inpFile = 0, int format = -1);
 
@@ -573,13 +579,8 @@ protected:
   //! \brief Reads node numbers from given input stream.
   //! \param[in] isn The input stream to read from
   virtual void readNodes(std::istream& isn) {}
-
   //! \brief Reads a LinSolParams object from the given stream.
-  //! \details This method helps with encapsulating PETSc in libIFEM.
   void readLinSolParams(std::istream& is, int npar);
-  //! \brief Reads a LinSolParams object from the given XML element.
-  //! \details This method helps with encapsulating PETSc in libIFEM.
-  void readLinSolParams(const TiXmlElement* elem);
 
   //! \brief Finalizes the global equation system assembly.
   virtual bool finalizeAssembly(bool newLHSmatrix = true);
@@ -588,11 +589,10 @@ protected:
   virtual double externalEnergy(const Vectors& psol) const;
 
 public:
-  static ASM::Discretization discretization; //!< Spatial discretization option
-
   static bool ignoreDirichlet; //!< Set to \e true for free vibration analysis
   static bool preserveNOrder;  //!< Set to \e true to preserve node ordering
-  static int  num_threads_SLU; //!< Number of threads for SuperLU_MT
+
+  SIMoptions opt; //!< Simulation control parameters
 
 protected:
   //! \brief Spline patch container
@@ -617,8 +617,6 @@ protected:
   // Post-processing attributes
   ResPointVec myPoints; //!< User-defined result sampling points
   VTF*        myVtf;    //!< VTF-file for result visualization
-  int         vizIncr;  //!< Number increments between each result output
-  int         format;   //!< Output file format
 
   // Parallel computing attributes
   int               nGlPatches; //!< Number of global patches

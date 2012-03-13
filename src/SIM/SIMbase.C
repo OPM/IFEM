@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "SIMbase.h"
+#include "SIMoptions.h"
 #include "ASMs2DC1.h"
 #ifdef PARALLEL_PETSC
 #include "SAMpatchPara.h"
@@ -40,10 +41,8 @@
 #include <iomanip>
 
 
-ASM::Discretization SIMbase::discretization  = ASM::Spline;
-bool                SIMbase::preserveNOrder  = false;
-bool                SIMbase::ignoreDirichlet = false;
-int                 SIMbase::num_threads_SLU = 1;
+bool SIMbase::preserveNOrder  = false;
+bool SIMbase::ignoreDirichlet = false;
 
 
 SIMbase::SIMbase () : g2l(&myGlb2Loc)
@@ -55,8 +54,6 @@ SIMbase::SIMbase () : g2l(&myGlb2Loc)
   mySam = 0;
   mySolParams = 0;
   nGlPatches = 0;
-  vizIncr = 1;
-  format = 1;
   mixedFEM = false;
   nIntGP = nBouGP = 0;
 
@@ -115,7 +112,7 @@ void SIMbase::clearProperties ()
 }
 
 
-bool SIMbase::parseGeometryTag(const TiXmlElement* elem)
+bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
 {
   if (!strcasecmp(elem->Value(),"patchfile")) {
     if (myModel.empty()) {
@@ -129,20 +126,24 @@ bool SIMbase::parseGeometryTag(const TiXmlElement* elem)
         return false;
       }
     }
-  } else if (!strcasecmp(elem->Value(),"nodefile")) {
+  }
+
+  else if (!strcasecmp(elem->Value(),"nodefile")) {
     if (!createFEMmodel())
       return false;
     std::string file = elem->FirstChild()->Value();
     std::ifstream isn(file.c_str());
-    if (isn) {
+    if (isn)
       std::cout <<"\nReading data file "<< file << std::endl;
-    } else {
+    else {
       std::cerr <<" *** SIMbase::read: Failure opening input file "
                 << file << std::endl;
       return false;
     }
     readNodes(isn);
-  } else if (!strcasecmp(elem->Value(),"partitioning")) {
+  }
+
+  else if (!strcasecmp(elem->Value(),"partitioning")) {
     int proc = 0;
     if (!utl::getAttribute(elem,"procs",proc) || proc != nProc)
       return false;
@@ -169,50 +170,40 @@ bool SIMbase::parseGeometryTag(const TiXmlElement* elem)
 }
 
 
-bool SIMbase::parseOutputTag(const TiXmlElement* elem)
+bool SIMbase::parseBCTag (const TiXmlElement* elem)
 {
-  if (!strcasecmp(elem->Value(),"resultpoints")) {
-    const TiXmlElement* point = elem->FirstChildElement("point");
-    for (int i = 1; point; i++) {
-      ResultPoint thePoint;
-      int patch = 0;
-      if (utl::getAttribute(point,"patch",patch) && patch >= 0)
-	thePoint.patch = patch;
-      if (myPid == 0)
-        std::cout <<"\n\tPoint "<< i <<": P"<< thePoint.patch <<" xi =";
-      if (utl::getAttribute(point,"u",thePoint.par[0]) && myPid == 0)
-	std::cout << ' ' << thePoint.par[0];
-      if (utl::getAttribute(point,"v",thePoint.par[1]) && myPid == 0)
-	std::cout << ' ' << thePoint.par[1];
-      if (utl::getAttribute(point,"w",thePoint.par[2]) && myPid == 0)
-	std::cout << ' ' << thePoint.par[2];
-      myPoints.push_back(thePoint);
-      point = point->NextSiblingElement();
+  if (!strcasecmp(elem->Value(),"propertyfile")) {
+    if (elem->FirstChild()) {
+      std::ifstream isp(elem->FirstChild()->Value());
+      if (!isp)
+      {
+	std::cerr <<" *** SIMbase::parseBCTag: Failure opening input file "
+		  << elem->FirstChild()->Value() << std::endl;
+	return false;
+      }
+      std::cout <<"\nReading data file "
+		<< elem->FirstChild()->Value() << std::endl;
+      while (isp.good())
+      {
+	Property p;
+	int ldim, lindx = 0;
+	isp >> p.pindx >> p.patch >> ldim;
+	if (ldim < (int)this->getNoSpaceDim()) isp >> lindx;
+
+	// We always require the item indices to be 1-based
+	p.ldim = ldim;
+	p.lindx = 1+lindx;
+	p.patch = this->getLocalPatchIndex(1+p.patch);
+	if (p.patch > 0 && isp.good())
+	  myProps.push_back(p);
+      }
     }
-    if (myPid == 0)
-      std::cout << std::endl;
-  } else if (!strcasecmp(elem->Value(),"vtfformat")) {
-    if (elem->FirstChild()->Value() &&
-        !strcasecmp(elem->FirstChild()->Value(),"ascii"))
-      format = 0;
-    else if (elem->FirstChild()->Value() &&
-        !strcasecmp(elem->FirstChild()->Value(),"binary"))
-      format = 1;
-  } else if (!strcasecmp(elem->Value(),"stride")) {
-    if (elem->FirstChild()->Value())
-      vizIncr = atoi(elem->FirstChild()->Value());
   }
 
-  return true;
-}
-
-
-bool SIMbase::parseBCTag(const TiXmlElement* elem)
-{
-  if (!strcasecmp(elem->Value(),"propertycodes")) {
+  else if (!strcasecmp(elem->Value(),"propertycodes")) {
     const TiXmlElement* code = elem->FirstChildElement("code");
     while (code) {
-      int icode=0;
+      int icode = 0;
       utl::getAttribute(code,"value",icode);
       const TiXmlElement* patch = code->FirstChildElement("patch");
       while (patch) {
@@ -234,14 +225,12 @@ bool SIMbase::parseBCTag(const TiXmlElement* elem)
       }
       code = code->NextSiblingElement();
     }
-  } else if (!strcasecmp(elem->Value(),"dirichlet")) {
-    if (ignoreDirichlet) // ignore all boundary conditions
-      return true;
-    int code=0;
+  }
+
+  else if (!strcasecmp(elem->Value(),"dirichlet") && !ignoreDirichlet) {
+    int code = 0;
     utl::getAttribute(elem,"code",code);
-    double val=0.0;
-    if (elem->FirstChild() && elem->FirstChild()->Value())
-      val = atof(elem->FirstChild()->Value());
+    double val = elem->FirstChild() ? atof(elem->FirstChild()->Value()) : 0.0;
     if (val == 0.0)
       setPropertyType(code,Property::DIRICHLET);
     else {
@@ -260,27 +249,69 @@ bool SIMbase::parseBCTag(const TiXmlElement* elem)
 }
 
 
-bool SIMbase::parse (const TiXmlElement* elem)
+bool SIMbase::parseOutputTag (const TiXmlElement* elem)
 {
-  if (!strcasecmp(elem->Value(),"linearsolver"))
-    readLinSolParams(elem);
-  else {
-    const TiXmlElement* child = elem->FirstChildElement();
-    bool result = true;
-    while (child) {
-      if (!strcasecmp(elem->Value(),"geometry"))
-        result &= parseGeometryTag(child);
-      else if (!strcasecmp(elem->Value(),"resultoutput"))
-        result &= parseOutputTag(child);
-      else if (!strcasecmp(elem->Value(),"boundaryconditions"))
-        result &= parseBCTag(child);
+  if (strcasecmp(elem->Value(),"resultpoints"))
+    return opt.parseOutputTag(elem);
 
-      child = child->NextSiblingElement();
-    }
-    return result;
+  const TiXmlElement* point = elem->FirstChildElement("point");
+  for (int i = 1; point; i++)
+  {
+    int patch = 0;
+    ResultPoint thePoint;
+    if (utl::getAttribute(point,"patch",patch) && patch >= 0)
+      thePoint.patch = patch;
+    if (myPid == 0)
+      std::cout <<"\n\tPoint "<< i <<": P"<< thePoint.patch <<" xi =";
+    if (utl::getAttribute(point,"u",thePoint.par[0]) && myPid == 0)
+      std::cout <<' '<< thePoint.par[0];
+    if (utl::getAttribute(point,"v",thePoint.par[1]) && myPid == 0)
+      std::cout <<' '<< thePoint.par[1];
+    if (utl::getAttribute(point,"w",thePoint.par[2]) && myPid == 0)
+      std::cout <<' '<< thePoint.par[2];
+    myPoints.push_back(thePoint);
+    point = point->NextSiblingElement();
   }
+  if (myPid == 0)
+    std::cout << std::endl;
 
   return true;
+}
+
+
+bool SIMbase::parse (const TiXmlElement* elem)
+{
+  bool result = true;
+  if (!strcasecmp(elem->Value(),"discretization"))
+    result = opt.parseDiscretizationTag(elem);
+  else if (!strcasecmp(elem->Value(),"linearsolver"))
+  {
+    std::string solver;
+    if (utl::getAttribute(elem,"class",solver,true))
+      opt.setLinearSolver(solver);
+  }
+  else if (!strcasecmp(elem->Value(),"eigensolver"))
+    utl::getAttribute(elem,"mode",opt.eig);
+
+  const TiXmlElement* child = elem->FirstChildElement();
+  while (child) {
+    if (!strcasecmp(elem->Value(),"geometry"))
+      result &= this->parseGeometryTag(child);
+    else if (!strcasecmp(elem->Value(),"boundaryconditions"))
+      result &= this->parseBCTag(child);
+    else if (!strcasecmp(elem->Value(),"linearsolver"))
+      result &= this->parseLinSolTag(child);
+    else if (!strcasecmp(elem->Value(),"eigensolver"))
+      result &= opt.parseEigSolTag(child);
+    else if (!strcasecmp(elem->Value(),"postprocessing"))
+      result &= this->parseOutputTag(child);
+    else if (!strcasecmp(elem->Value(),"discretization"))
+      result &= opt.parseDiscretizationTag(child);
+
+    child = child->NextSiblingElement();
+  }
+
+  return result;
 }
 
 
@@ -389,7 +420,7 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
     std::ifstream isp(keyWord+i);
     if (!isp)
     {
-      std::cerr <<" *** SIM2D::read: Failure opening input file "
+      std::cerr <<" *** SIMbase::read: Failure opening input file "
 		<< std::string(keyWord+i) << std::endl;
       return false;
     }
@@ -504,8 +535,8 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
   else if (!strncasecmp(keyWord,"VISUALIZATION",13))
   {
     cline = utl::readLine(is);
-    if ((cline = strtok(cline," "))) format = atoi(cline);
-    if ((cline = strtok(NULL," "))) vizIncr = atoi(cline);
+    if ((cline = strtok(cline," "))) opt.format = atoi(cline);
+    if ((cline = strtok(NULL," "))) opt.saveInc = atoi(cline);
   }
 
 #ifdef SP_DEBUG
@@ -528,12 +559,18 @@ void SIMbase::readLinSolParams (std::istream& is, int npar)
 }
 
 
-void SIMbase::readLinSolParams (const TiXmlElement* elem)
+bool SIMbase::parseLinSolTag (const TiXmlElement* elem)
 {
+  if (!strcasecmp(elem->Value(),"class")) {
+    if (elem->FirstChild())
+      opt.setLinearSolver(elem->FirstChild()->Value());
+    return true;
+  }
+
   if (!mySolParams)
     mySolParams = new LinSolParams();
 
-  mySolParams->read(elem);
+  return mySolParams->read(elem);
 }
 
 
@@ -786,7 +823,7 @@ bool SIMbase::initSystem (SystemMatrix::Type mType, size_t nMats, size_t nVec)
 
   if (myEqSys) delete myEqSys;
   myEqSys = new AlgEqSystem(*mySam);
-  myEqSys->init(mType,mySolParams,nMats,nVec,num_threads_SLU);
+  myEqSys->init(mType,mySolParams,nMats,nVec,opt.num_threads_SLU);
   myEqSys->initAssembly();
   return true;
 }
@@ -1370,10 +1407,10 @@ bool SIMbase::systemModes (std::vector<Mode>& solution,
 }
 
 
-bool SIMbase::writeGlv (const char* inpFile, const int* nViz, int format)
+bool SIMbase::writeGlv (const char* inpFile)
 {
   int nBlock = 0;
-  return this->writeGlvG(nViz,nBlock,inpFile,format);
+  return this->writeGlvG(opt.nViz,nBlock,inpFile,opt.format);
 }
 
 
@@ -1569,9 +1606,8 @@ bool SIMbase::writeGlvS (const Vector& psol, const int* nViz,
     else
       haveAsol = mySol->hasVectorSol() > 1;
 
-  bool doProject = (discretization == ASM::Spline ||
-		    discretization == ASM::SplineC1);
-  doProject = false; // temporary, add a user-option for this
+  bool doProject = (opt.discretization == ASM::Spline ||
+		    opt.discretization == ASM::SplineC1) && !opt.project.empty();
 
   for (i = 0; i < myModel.size(); i++)
   {
@@ -2024,7 +2060,7 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
     // Find all evaluation points within this patch, if any
     for (j = 0, p = myPoints.begin(); p != myPoints.end(); j++, p++)
       if (this->getLocalPatchIndex(p->patch) == (int)(i+1))
-	if (discretization >= ASM::Spline)
+	if (opt.discretization >= ASM::Spline)
 	{
 	  points.push_back(p->inod > 0 ? p->inod : -(j+1));
 	  for (k = 0; k < myModel[i]->getNoParamDim(); k++)
@@ -2036,7 +2072,7 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
     if (points.empty()) continue; // no points in this patch
 
     myModel[i]->extractNodeVec(psol,myProblem->getSolution());
-    if (discretization >= ASM::Spline)
+    if (opt.discretization >= ASM::Spline)
     {
       // Evaluate the primary solution variables
       if (!myModel[i]->evalSolution(sol1,myProblem->getSolution(),params,false))
@@ -2072,7 +2108,7 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
       for (k = 1; k <= sol1.rows(); k++)
 	os << std::setw(flWidth) << utl::trunc(sol1(k,j+1));
 
-      if (discretization >= ASM::Spline)
+      if (opt.discretization >= ASM::Spline)
       {
         if (formatted && sol2.rows() > 0)
           os <<"\n\t\tsol2 =";
@@ -2101,7 +2137,7 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
 
 
 bool SIMbase::project (Matrix& ssol, const Vector& psol,
-		       ProjectionMethod pMethod) const
+		       SIMoptions::ProjectionMethod pMethod) const
 {
   PROFILE1("Solution projection");
 
@@ -2125,49 +2161,49 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
 
     // Project the secondary solution and retrieve control point values
     switch (pMethod) {
-    case GLOBAL:
+    case SIMoptions::GLOBAL:
       if (msgLevel > 1 && i == 0)
 	std::cout <<"\tGreville point projection"<< std::endl;
       if (!myModel[i]->evalSolution(values,*myProblem))
 	return false;
       break;
 
-    case DGL2:
+    case SIMoptions::DGL2:
       if (msgLevel > 1 && i == 0)
 	std::cout <<"\tDiscrete global L2-projection"<< std::endl;
       if (!myModel[i]->globalL2projection(values,*myProblem))
 	return false;
       break;
 
-    case CGL2:
+    case SIMoptions::CGL2:
       if (msgLevel > 1 && i == 0)
 	std::cout <<"\tContinuous global L2-projection"<< std::endl;
       if (!myModel[i]->globalL2projection(values,*myProblem,true))
 	return false;
       break;
 
-    case SCR:
+    case SIMoptions::SCR:
       if (msgLevel > 1 && i == 0)
 	std::cout <<"\tSuperconvergent recovery"<< std::endl;
-      if (!myModel[i]->evalSolution(values,*myProblem,0,'S'))
+      if (!myModel[i]->evalSolution(values,*myProblem,NULL,'S'))
 	return false;
       break;
 
-    case VDSA:
-       if (msgLevel > 1 && i == 0)
+    case SIMoptions::VDSA:
+      if (msgLevel > 1 && i == 0)
         std::cout <<"\tVDSA projection"<< std::endl;
-       if (!myModel[i]->evalSolution(values,*myProblem,NULL,'A'))
+      if (!myModel[i]->evalSolution(values,*myProblem,NULL,'A'))
         return false;
-       break;
+      break;
 
-    case QUASI:
+    case SIMoptions::QUASI:
       if (msgLevel > 1 && i == 0)
         std::cout <<"\tQuasi interpolation"<< std::endl;
       if (!myModel[i]->evalSolution(values,*myProblem,NULL,'L'))
         return false;
       break;
 
-    case LEASTSQ:
+    case SIMoptions::LEASTSQ:
       if (msgLevel > 1 && i == 0)
          std::cout <<"\tLeast squares projection"<< std::endl;
       if (!myModel[i]->evalSolution(values,*myProblem,NULL,'W'))
