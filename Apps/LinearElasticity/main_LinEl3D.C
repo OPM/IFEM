@@ -460,13 +460,16 @@ int main (int argc, char** argv)
     prefix[pOpt.size()] = 0;
 
     // Write projected solution fields to VTF-file
-    size_t i = 0;
-    int iBlk = 100;
-    for (pit = pOpt.begin(); pit != pOpt.end(); pit++, i++, iBlk += 10)
-      if (!model->writeGlvP(projs[i],iStep,nBlock,iBlk,pit->second.c_str()))
-        return 11;
-      else
-	prefix[i] = pit->second.c_str();
+    if(projs.size() > 0)
+    {
+      size_t i = 0;
+      int iBlk = 100;
+      for (pit = pOpt.begin(); pit != pOpt.end(); pit++, i++, iBlk += 10)
+	if (!model->writeGlvP(projs[i],iStep,nBlock,iBlk,pit->second.c_str()))
+	  return 11;
+	else
+	  prefix[i] = pit->second.c_str();
+    }
 
     // Write eigenmodes
     bool isFreq = model->opt.eig==3 || model->opt.eig==4 || model->opt.eig==6;
