@@ -101,8 +101,8 @@ AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
   const TiXmlElement* stress = elem->FirstChildElement("stress");
   if (stress && stress->FirstChild())
   {
-    std::string stress = sec->FirstChild()->Value();
-    std::cout <<"\tStress="<< stress << std::endl;
-    stressSol = new STensorFuncExpr(stress,variables);
+    std::string sigma = stress->FirstChild()->Value();
+    std::cout <<"\tStress="<< sigma << std::endl;
+    stressSol = new STensorFuncExpr(sigma,variables);
   }
 }
