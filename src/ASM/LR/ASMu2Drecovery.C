@@ -278,7 +278,7 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
   Go::Point X, G;
 
   // Loop over all Greville points (one for each basis function)
-  size_t iel, k, l, nel, ip = 0;
+  size_t k, l, ip = 0;
   LR::Basisfunction *b;
   std::vector<LR::Basisfunction*>::iterator bit;
   std::vector<LR::Element*>::iterator elStart, elEnd, el;
@@ -286,7 +286,6 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
   for(bit = lrspline->basisBegin(); bit != lrspline->basisEnd(); bit++, ip++)
   {
     b = *bit;
-    nel = b->nSupportedElements();
     
 #if SP_DEBUG > 2
     std::cout << "Basis: " << *b  << std::endl;

@@ -1303,8 +1303,6 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 
 	// Evaluate the primary solution field at each point
 	size_t nPoints   = gpar[0].size();
-	size_t nElements = lrspline->nElements();
-	size_t nPtsPerElement = nPoints > nElements ? nPoints / nElements : 4;
 	sField.resize(nComp,nPoints);
 	for (size_t i = 0; i < nPoints; i++)
 	{
@@ -1490,10 +1488,6 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 	Matrix3D d2Ndu2, d2NdX2, Hess;
 
 	size_t nPoints = gpar[0].size();
-	size_t nElements = lrspline->nElements();
-	size_t nPtsPerElement = nPoints > nElements ? nPoints / nElements : 4;
-	size_t npe = floor((sqrt(nPtsPerElement)+.5));
-	double edge_epsilon = 0.01; // percentage offset from element size
 	bool use2ndDer = integrand.getIntegrandType() == 2;
 
 	// Evaluate the secondary solution field at each point
@@ -1502,9 +1496,6 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 		// Fetch element containing evaluation point. Points are always listed
 		// int iel = i/nPtsPerElement; // in the same order as the elements
 		int iel = (workingEl>=0) ? workingEl : lrspline->getElementContaining(gpar[0][i], gpar[1][i]); // sadly, they are not always ordered in the same way as the elements
-		LR::Element *el = lrspline->getElement(iel);
-		double du = el->umax() - el->umin();
-		double dv = el->vmax() - el->vmin();
 		double u = gpar[0][i];
 		double v = gpar[1][i];
 		/*
