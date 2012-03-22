@@ -29,6 +29,7 @@ Go::SplineVolume*
   ASSERT((int)wpar_w.size() == (int)par_w.size());
 
   std::vector<double> points2;
+  int perknot=dimension;
   if (rational)
   {
     shared_ptr<Go::SplineVolume> denom = 
@@ -46,7 +47,7 @@ Go::SplineVolume*
         points2.push_back(points[kr*dimension+kh]*wgtval[kr]);
       points2.push_back(wgtval[kr]);
     }
-    dimension++;
+    perknot++;
   }
   else
     points2 = points;
@@ -65,8 +66,8 @@ Go::SplineVolume*
       std::vector<double> coefs;
       std::vector<double> pnts;
       pnts.insert(pnts.end(), 
-          points2.begin()+(kj*par_v.size()+ki)*dimension*par_u.size(),
-          points2.begin()+(kj*par_v.size()+ki+1)*dimension*par_u.size());
+          points2.begin()+(kj*par_v.size()+ki)*perknot*par_u.size(),
+          points2.begin()+(kj*par_v.size()+ki+1)*perknot*par_u.size());
 
       SplineInterpolator::leastsquare_approximation(par_u, wpar_u, pnts, tg_pnt,
                                                     basis_u, coefs);
@@ -86,11 +87,6 @@ Go::SplineVolume*
 
   SplineInterpolator::leastsquare_approximation(par_w, wpar_w, sf_coefs, tg_pnt,
                                                 basis_w, vol_coefs);
-
-  if (rational)
-  {
-    dimension--;
-  }
 
   // Make surface
   Go::SplineVolume* vol = new Go::SplineVolume(basis_u, basis_v, basis_w,
@@ -137,6 +133,7 @@ Go::SplineVolume*
     ASSERT( (par_v.size()+1)*0.5 - (2*(basis_v.order()-1)-1) >= 0);
 
   std::vector<double> points2;
+  int perknot=dimension;
   if (rational)
   {
     shared_ptr<Go::SplineVolume> denom = 
@@ -153,7 +150,7 @@ Go::SplineVolume*
         points2.push_back(points[kr*dimension+kh]*wgtval[kr]);
       points2.push_back(wgtval[kr]);
     }
-    dimension++;
+    perknot++;
   }
   else
     points2 = points;
@@ -197,7 +194,7 @@ Go::SplineVolume*
       // Interpolate
       std::vector<double> pnts;
 
-      pnts.insert(pnts.end(), points2.begin()+(kj*par_v.size()+ki)*dimension*par_u.size(),points2.begin()+(kj*par_v.size()+ki+1)*dimension*par_u.size());
+      pnts.insert(pnts.end(), points2.begin()+(kj*par_v.size()+ki)*perknot*par_u.size(),points2.begin()+(kj*par_v.size()+ki+1)*perknot*par_u.size());
       int ui_end =  par_u.size()+2*count_multipl_knots_u-basis_u.numCoefs()+1;
 
       if (count_multipl_knots_u == 0) {
@@ -205,7 +202,7 @@ Go::SplineVolume*
           std::vector<double> pnts_parts;
           std::vector<double> par_u_parts;
           par_u_parts.insert(par_u_parts.end(),par_u.begin()+ui*2,par_u.begin()+ui*2+(2*p-1));
-          pnts_parts.insert(pnts_parts.end(), pnts.begin()+ui*2*dimension, pnts.begin()+(ui*2+(2*p-1))*dimension);
+          pnts_parts.insert(pnts_parts.end(), pnts.begin()+ui*2*perknot, pnts.begin()+(ui*2+(2*p-1))*perknot);
           std::vector<double> coefs;
 
           SplineInterpolator::quasiinterpolate(par_u_parts, pnts_parts, tg_pnt,
@@ -239,7 +236,7 @@ Go::SplineVolume*
                   std::vector<double> pnts_parts;
                   std::vector<double> par_u_parts;
                   par_u_parts.insert(par_u_parts.end(),par_u.begin()+(j+count)*2,par_u.begin()+(j+count)*2+(2*p-1));//dp(j+count,:)
-                  pnts_parts.insert(pnts_parts.end(), pnts.begin()+(j+count)*2*dimension, pnts.begin()+((j+count)*2+(2*p-1))*dimension);
+                  pnts_parts.insert(pnts_parts.end(), pnts.begin()+(j+count)*2*perknot, pnts.begin()+((j+count)*2+(2*p-1))*perknot);
                   std::vector<double> coefs;
                   SplineInterpolator::quasiinterpolate(par_u_parts, pnts_parts,
                                                        tg_pnt, basis_u, 
@@ -252,7 +249,7 @@ Go::SplineVolume*
                   std::vector<double> pnts_parts;
                   std::vector<double> par_u_parts;
                   par_u_parts.insert(par_u_parts.end(),par_u.begin()+p-m+1+j+2*count,par_u.begin()+3*p-m-1+j+2*count+1);//dist_vec(p-m+1+j+2*count:3*p-m-1+j+2*count)
-                  pnts_parts.insert(pnts_parts.end(), pnts.begin()+(p-m+1+j+2*count)*dimension, pnts.begin()+(3*p-m-1+j+2*count+1)*dimension);
+                  pnts_parts.insert(pnts_parts.end(), pnts.begin()+(p-m+1+j+2*count)*perknot, pnts.begin()+(3*p-m-1+j+2*count+1)*perknot);
                   std::vector<double> coefs;
 
                   SplineInterpolator::quasiinterpolate(par_u_parts, pnts_parts, tg_pnt, 
@@ -265,7 +262,7 @@ Go::SplineVolume*
                   std::vector<double> pnts_parts;
                   std::vector<double> par_u_parts;
                   par_u_parts.insert(par_u_parts.end(),par_u.begin()+(j+count+((p-m+2)*0.5)+m-2)*2,par_u.begin()+(j+count+((p-m+2)*0.5)+m-2)*2+(2*p-1));//dp(j+count+((p-m+2)*0.5)+m-2,:)
-                  pnts_parts.insert(pnts_parts.end(), pnts.begin()+(j+count+((p-m+2)*0.5)+m-2)*2*dimension, pnts.begin()+((j+count+((p-m+2)*0.5)+m-2)*2+(2*p-1))*dimension);
+                  pnts_parts.insert(pnts_parts.end(), pnts.begin()+(j+count+((p-m+2)*0.5)+m-2)*2*perknot, pnts.begin()+((j+count+((p-m+2)*0.5)+m-2)*2+(2*p-1))*perknot);
                   std::vector<double> coefs;
 
                   SplineInterpolator::quasiinterpolate(par_u_parts, pnts_parts, tg_pnt, 
@@ -281,7 +278,7 @@ Go::SplineVolume*
                   std::vector<double> pnts_parts;
                   std::vector<double> par_u_parts;
                   par_u_parts.insert(par_u_parts.end(),par_u.begin()+(j+count)*2,par_u.begin()+(j+count)*2+(2*p-1));//dp(j+count,:)
-                  pnts_parts.insert(pnts_parts.end(), pnts.begin()+(j+count)*2*dimension, pnts.begin()+((j+count)*2+(2*p-1))*dimension);
+                  pnts_parts.insert(pnts_parts.end(), pnts.begin()+(j+count)*2*perknot, pnts.begin()+((j+count)*2+(2*p-1))*perknot);
                   std::vector<double> coefs;
 
                   SplineInterpolator::quasiinterpolate(par_u_parts, pnts_parts, 
@@ -295,7 +292,7 @@ Go::SplineVolume*
                   std::vector<double> pnts_parts;
                   std::vector<double> par_u_parts;
                   par_u_parts.insert(par_u_parts.end(),par_u.begin()+p-m+j+2*count,par_u.begin()+3*p-m-2+2*count+j+1);//dist_vec(p-m+j+2*count:3*p-m-2+2*count+j)
-                  pnts_parts.insert(pnts_parts.end(), pnts.begin()+(p-m+j+2*count)*dimension, pnts.begin()+(3*p-m-2+2*count+j+1)*dimension);
+                  pnts_parts.insert(pnts_parts.end(), pnts.begin()+(p-m+j+2*count)*perknot, pnts.begin()+(3*p-m-2+2*count+j+1)*perknot);
                   std::vector<double> coefs;
 
                   SplineInterpolator::quasiinterpolate(par_u_parts, pnts_parts, 
@@ -309,7 +306,7 @@ Go::SplineVolume*
                   std::vector<double> pnts_parts;
                   std::vector<double> par_u_parts;
                   par_u_parts.insert(par_u_parts.end(),par_u.begin()+p+j+2*count,par_u.begin()+3*p-2+j+2*count+1);//dist_vec(p+j+2*count:3*p-2+j+2*count)
-                  pnts_parts.insert(pnts_parts.end(), pnts.begin()+(p+j+2*count)*dimension, pnts.begin()+(3*p-2+j+2*count+1)*dimension);
+                  pnts_parts.insert(pnts_parts.end(), pnts.begin()+(p+j+2*count)*perknot, pnts.begin()+(3*p-2+j+2*count+1)*perknot);
                   std::vector<double> coefs;
 
                   SplineInterpolator::quasiinterpolate(par_u_parts, pnts_parts,
@@ -323,7 +320,7 @@ Go::SplineVolume*
                   std::vector<double> pnts_parts;
                   std::vector<double> par_u_parts;
                   par_u_parts.insert(par_u_parts.end(),par_u.begin()+(j+count+((p-m+1)*0.5)+m-1)*2,par_u.begin()+(j+count+((p-m+1)*0.5)+m-1)*2+(2*p-1));//dp(j+count+((p-m+1)*0.5)+m-1,:)
-                  pnts_parts.insert(pnts_parts.end(), pnts.begin()+(j+count+((p-m+1)*0.5)+m-1)*2*dimension, pnts.begin()+((j+count+((p-m+1)*0.5)+m-1)*2+(2*p-1))*dimension);
+                  pnts_parts.insert(pnts_parts.end(), pnts.begin()+(j+count+((p-m+1)*0.5)+m-1)*2*perknot, pnts.begin()+((j+count+((p-m+1)*0.5)+m-1)*2+(2*p-1))*perknot);
                   std::vector<double> coefs;
 
                   SplineInterpolator::quasiinterpolate(par_u_parts, pnts_parts,
@@ -341,7 +338,7 @@ Go::SplineVolume*
                 std::vector<double> pnts_parts;
                 std::vector<double> par_u_parts;
                 par_u_parts.insert(par_u_parts.end(),par_u.begin()+(dcount+ti-(m-1))*2,par_u.begin()+(dcount+ti-(m-1))*2+(2*p-1));
-                pnts_parts.insert(pnts_parts.end(), pnts.begin()+(dcount+ti-(m-1))*2*dimension, pnts.begin()+((dcount+ti-(m-1))*2+(2*p-1))*dimension);
+                pnts_parts.insert(pnts_parts.end(), pnts.begin()+(dcount+ti-(m-1))*2*perknot, pnts.begin()+((dcount+ti-(m-1))*2+(2*p-1))*perknot);
 
                 std::vector<double> coefs;
 
@@ -355,7 +352,7 @@ Go::SplineVolume*
                 std::vector<double> pnts_parts;
                 std::vector<double> par_u_parts;
                 par_u_parts.insert(par_u_parts.end(),par_u.begin()+(ti+dcount)*2,par_u.begin()+(ti+dcount)*2+(2*p-1));
-                pnts_parts.insert(pnts_parts.end(), pnts.begin()+(ti+dcount)*2*dimension, pnts.begin()+((ti+dcount)*2+(2*p-1))*dimension);
+                pnts_parts.insert(pnts_parts.end(), pnts.begin()+(ti+dcount)*2*perknot, pnts.begin()+((ti+dcount)*2+(2*p-1))*perknot);
                 std::vector<double> coefs;
 
                 SplineInterpolator::quasiinterpolate(par_u_parts, pnts_parts,
@@ -396,7 +393,7 @@ Go::SplineVolume*
     }
 
     std::vector<double> sf_coefs;
-    int ucount = (par_u.size() + 2*count_multipl_knots_u - basis_u.numCoefs()+1)*(2*p-1)*dimension;
+    int ucount = (par_u.size() + 2*count_multipl_knots_u - basis_u.numCoefs()+1)*(2*p-1)*perknot;
     int vi_end =  par_v.size() + 2*count_multipl_knots_v - basis_v.numCoefs()+1 ;
 
     if (count_multipl_knots_v == 0)
@@ -602,7 +599,7 @@ Go::SplineVolume*
     std::vector<double> tmp;
     for(int i = 0; i < gmyl ; i++)
     { 
-      for(int  j=0 ; j < gmxl*dimension  ;j++)
+      for(int  j=0 ; j < gmxl*perknot  ;j++)
       {
         tmp.push_back( 0.0 );
       }
@@ -610,7 +607,7 @@ Go::SplineVolume*
     }
 
     std::vector<double> sf_coefs_solution;
-    for(int i = 0; i < n*m*dimension ; i++)
+    for(int i = 0; i < n*m*perknot ; i++)
       sf_coefs_solution.push_back( 0.0 );
 
     int starti, startj;
@@ -629,61 +626,61 @@ Go::SplineVolume*
           {if (invyl == 1)
             {if (a == 0)
               for (int i = starti;i<(starti+2*q-1);i++)
-                for (int j = startj;j<(startj+p)*dimension;j++)
+                for (int j = startj;j<(startj+p)*perknot;j++)
                   gm[i][j] = 1;
               else if (a == invxl-1)
                 for (int i = starti;i<(starti+2*q-1);i++)
-                  for (int j = (startj+p-1)*dimension; j< (startj+2*p-1)*dimension;j++)
+                  for (int j = (startj+p-1)*perknot; j< (startj+2*p-1)*perknot;j++)
                     gm[i][j] = 1;
               for (int i = starti;i<(starti+2*q-1);i++)
-                for (int j = (startj+p-1)*dimension;j<(startj+p)*dimension;j++)
+                for (int j = (startj+p-1)*perknot;j<(startj+p)*perknot;j++)
                   gm[i][j] = 1;}
               else if (invxl == 1) // 
               {if (b == 0)
                 for (int i = starti; i< (starti+q);i++)
-                  for (int j = startj;j<(startj+2*p-1)*dimension;j++)
+                  for (int j = startj;j<(startj+2*p-1)*perknot;j++)
                     gm[i][j] = 1;
                 else if (b == invyl-1)
                   for (int i = (starti+q-1);i<(starti+2*q-1);i++)
-                    for (int j = startj;j<(startj+2*p-1)*dimension;j++)
+                    for (int j = startj;j<(startj+2*p-1)*perknot;j++)
                       gm[i][j] = 1;
                 for (int i = (starti+q-1);i<(starti+q);i++)
-                  for (int j = startj;j<(startj+2*p-1)*dimension;j++)
+                  for (int j = startj;j<(startj+2*p-1)*perknot;j++)
                     gm[i][j] = 1;}
                 else if (b==0 && a == 0) //top left corner
                   for (int i = starti;i<(starti+q);i++)
-                    for (int j = startj;j<(startj+p)*dimension;j++)
+                    for (int j = startj;j<(startj+p)*perknot;j++)
                       gm[i][j]= 1;
                 else if (b == 0 && a == invxl-1) //top right corner
                   for (int i = starti;i<(starti+q);i++)
-                    for (int j = (startj+p-1)*dimension;j<(startj+2*p-1)*dimension;j++)
+                    for (int j = (startj+p-1)*perknot;j<(startj+2*p-1)*perknot;j++)
                       gm[i][j]= 1;
                 else if (b == invyl-1 && a == 0) //bottom left corner
                   for (int i = (starti+q-1);i<(starti+2*q-1);i++)
-                    for (int j = startj;j<(startj+p)*dimension;j++)
+                    for (int j = startj;j<(startj+p)*perknot;j++)
                       gm[i][j]= 1;
                 else if (b == invyl-1 && a == invxl-1) //bottom right corner
                   for (int i = (starti+q-1);i<(starti+2*q-1);i++)
-                    for (int j = (startj+p-1)*dimension;j<(startj+2*p-1)*dimension;j++)
+                    for (int j = (startj+p-1)*perknot;j<(startj+2*p-1)*perknot;j++)
                       gm[i][j]= 1;
                 else if (b==0) // top edge
                   for (int i = starti;i<(starti+q);i++)
-                    for (int j = (startj+p-1)*dimension;j<(startj+p)*dimension;j++)
+                    for (int j = (startj+p-1)*perknot;j<(startj+p)*perknot;j++)
                       gm[i][j]= 1;
                 else if (a == invxl-1) // right edge
                   for (int i = (starti+q-1);i<(starti+q);i++)
-                    for (int j = (startj+p-1)*dimension;j<(startj+2*p-1)*dimension;j++)
+                    for (int j = (startj+p-1)*perknot;j<(startj+2*p-1)*perknot;j++)
                       gm[i][j]= 1;
                 else if (a == 0) // left edge
                   for (int i = (starti+q-1);i<(starti+q);i++)
-                    for (int j = startj;j<(startj+p)*dimension;j++)
+                    for (int j = startj;j<(startj+p)*perknot;j++)
                       gm[i][j]= 1;
                 else if (b == invyl-1) // bottom edge
                   for (int i = (starti+q-1);i<(starti+2*q-1);i++)
-                    for (int j = (startj+p-1)*dimension;j<(startj+p)*dimension;j++)
+                    for (int j = (startj+p-1)*perknot;j<(startj+p)*perknot;j++)
                       gm[i][j]= 1;}// interior elements
                 for (int i = (starti+q-1);i<(starti+q);i++)
-                  for (int j = (startj+p-1)*dimension;j<(startj+p)*dimension;j++)
+                  for (int j = (startj+p-1)*perknot;j<(startj+p)*perknot;j++)
                     gm[i][j]= 1;
 
         }
@@ -691,10 +688,10 @@ Go::SplineVolume*
 
       int count = -1;
       for (int i = 0;i<gmyl;i++)
-        for (int j = 0;j<gmxl*dimension;j++)
+        for (int j = 0;j<gmxl*perknot;j++)
           if (gm[i][j] == 1)
           {count = count+1;
-            sf_coefs_solution[count] = sf_coefs[i*(gmxl*dimension)+j];}
+            sf_coefs_solution[count] = sf_coefs[i*(gmxl*perknot)+j];}
 
     }
 
@@ -705,11 +702,6 @@ Go::SplineVolume*
   // Interpolate surfaces to create volume
   std::vector<double> vol_coefs;
   SplineInterpolator::interpolate(par_w, volinput_coefs, tg_pnt, basis_w, vol_coefs);
-
-  if (rational)
-  {
-    dimension--;
-  }
 
   // Make surface
   Go::SplineVolume* vol = new Go::SplineVolume(basis_u, basis_v, basis_w,
