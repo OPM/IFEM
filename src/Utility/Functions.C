@@ -12,13 +12,10 @@
 //==============================================================================
 
 #include "Functions.h"
-#include "Vec3.h"
+#include "Vec3Oper.h"
 #include <cstring>
 #include <fstream>
 #include <algorithm>
-#include "Tensor.h"
-
-#include "expreval.h"
 
 
 PressureField::PressureField (real p, int dir) : pdir(dir)
@@ -130,6 +127,39 @@ real StepXYFunc::evaluate (const Vec3& X) const
 }
 
 
+Interpolate1D::Interpolate1D (const char* file, int dir_) : dir(dir_)
+{
+  std::ifstream is(file);
+  while (is.good()) {
+    real x, v;
+    is >> x >> v;
+    grid.push_back(x);
+    values.push_back(v);
+  }
+}
+
+
+real Interpolate1D::evaluate (const Vec3& X) const
+{
+  real x = X[dir];
+  std::vector<real>::const_iterator xb =
+    std::find_if(grid.begin(),grid.end()-1,
+		 std::bind2nd(std::greater<real>(),x));
+
+  size_t pos = xb-grid.begin();
+  real x1 = *(xb-1);
+  real x2 = *xb;
+  real val1 = values[pos-1];
+  real val2 = values[pos];
+
+  double delta = x2 - x1;
+  if (fabs(delta) < 1.0e-8)
+    return val1;
+
+  return (val1*(x-x1) + val2*(x2-x)) / delta;
+}
+
+
 /*!
   The functions are assumed on the general form
   \f[ f({\bf X},t) = A * g({\bf X}) * h(t) \f]
@@ -233,7 +263,7 @@ const RealFunc* utl::parseRealFunc (char* cline, real A)
     case 8:
       {
         int dir = atoi(strtok(NULL, " "));
-        std::cout << "Interpolate1D(" << cline << "," << (char)('X'+dir) << ")";
+        std::cout <<"Interpolate1D("<< cline <<","<< (char)('X'+dir) <<")";
         f = new Interpolate1D(cline,dir);
         cline = strtok(NULL," ");
       }
@@ -319,132 +349,96 @@ const RealFunc* utl::parseRealFunc (char* cline, real A)
 }
 
 
-Interpolate1D::Interpolate1D(const char* file, int dir_) : dir(dir_)
+RealFunc* utl::parseRealFunc (const std::string& func, const std::string& type)
 {
-  std::ifstream is(file);
+  if (func.empty()) return NULL;
 
-  while (is.good()) {
-    double x, v;
-    is >> x >> v;
-    grid.push_back(x);
-    values.push_back(v);
+  std::cout <<": ";
+  real p = real(0);
+  if (type == "constant")
+    p = atof(func.c_str());
+  else if (type == "linear")
+  {
+    p = atof(func.c_str());
+    std::cout << p <<"*t";
+    return new ConstTimeFunc(new LinearFunc(p));
   }
-}
-
-real Interpolate1D::evaluate(const Vec3& X) const
-{
-  double x = X[dir];
-  std::vector<double>::const_iterator xb =
-    find_if(grid.begin(),grid.end()-1,std::bind2nd(std::greater<double>(),x));
-
-  size_t pos = xb-grid.begin();
-  double x1 = *(xb-1);
-  double x2 = *xb;
-  double val1 = values[pos-1];
-  double val2 = values[pos];
-  double delta = x2-x1;
-
-  if (fabs(delta) < 1.e-8)
-    return val1;
-
-  double w1 = (x-x1)/delta;
-  double w2 = (x2-x)/delta;
-
-  return w1*val1+w2*val2;
-}
-
-
-EvalFunction::EvalFunction(const char* function)
-{
-  try {
-    expr = new ExprEval::Expression;
-    f = new ExprEval::FunctionList;
-    v = new ExprEval::ValueList;
-    f->AddDefaultFunctions();
-    v->AddDefaultValues();
-    v->Add("x",0,false);
-    v->Add("y",0,false);
-    v->Add("z",0,false);
-    expr->SetFunctionList(f);
-    expr->SetValueList(v);
-    expr->Parse(function);
-    x = v->GetAddress("x");
-    y = v->GetAddress("y");
-    z = v->GetAddress("z");
-#ifdef USE_OPENMP
-    omp_init_lock(&lock);
-#endif
-  } catch(...) {
-    std::cerr <<" *** Error parsing function: " << function << std::endl;
+  else if (type.substr(0,10) == "expression")
+  {
+    std::cout << func;
+    return new EvalFunction(func.c_str());
   }
-}
-
-EvalFunction::~EvalFunction()
-{
-  delete expr;
-  delete f;
-  delete v;
-#ifdef USE_OPENMP
-  omp_destroy_lock(&lock);
-#endif
-}
-
-real EvalFunction::evaluate(const Vec3& X) const
-{
-#ifdef USE_OPENMP
-  omp_set_lock(const_cast<omp_lock_t*>(&lock));
-#endif
-  double result=0.f;
-  try {
-    *x = X.x;
-    *y = X.y;
-    *z = X.z;
-    result = expr->Evaluate();
-  } catch(...) {
-    std::cerr << "Error evaluating function" << std::endl;
+  else
+  {
+    std::string tmp(func);
+    p = atof(strtok(const_cast<char*>(tmp.c_str())," "));
+    char* sfun = strtok(NULL," ");
+    if (sfun) return const_cast<RealFunc*>(parseRealFunc(sfun,p));
   }
-#ifdef USE_OPENMP
-  omp_unset_lock(const_cast<omp_lock_t*>(&lock));
-#endif
 
-  return result;
+  std::cout << p;
+  return new ConstFunc(p);
 }
 
-  template<>
-Vec3 EvalMultiFunction<VecFunc,Vec3,Vec3>::evaluate(const Vec3& X) const
-{
-  Vec3 result;
-  for (size_t i = 0; i < 3 && i < p.size(); ++i)
-    result[i] = (*p[i])(X);
 
-  return result;
+VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type)
+{
+  if (func.empty()) return NULL;
+
+  if (type == "constant")
+  {
+    Vec3 v;
+    std::string tmp(func);
+    char* s = strtok(const_cast<char*>(tmp.c_str())," ");
+    for (int i = 0; i < 3 && s; i++, s = strtok(NULL," "))
+      v[i] = atof(s);
+    std::cout <<": "<< v;
+    return new ConstVecFunc(v);
+  }
+  else if (type.substr(0,10) == "expression")
+  {
+    std::cout <<": "<< func;
+    return new VecFuncExpr(func.c_str());
+  }
+
+  return NULL;
 }
 
-  template<>
-SymmTensor EvalMultiFunction<STensorFunc,Vec3,SymmTensor>::evaluate(const Vec3& X) const
+
+TractionFunc* utl::parseTracFunc (const std::string& func,
+				  const std::string& type, int dir)
 {
-  int nsd = p.size() > 5 ? 3 : (p.size() > 2 ? 2 : (p.size() > 0 ? 1 : 0));
-  SymmTensor sigma(nsd,p.size()==4);
-  int k=0;
-  for (int i = 1; i <= nsd; ++i)
-    for (int j = i; j<= nsd; ++j)
-      sigma(i,j) = (*p[k++])(X);
-  if (p.size() == 4)
-    sigma(3,3) = (*p[3])(X);
+  if (func.empty()) return NULL;
 
-  return sigma;
-}
+  std::cout <<": ";
+  real p = real(0);
+  const RealFunc* f = 0;
+  if (type == "constant")
+  {
+    p = atof(func.c_str());
+    std::cout << p;
+  }
+  else if (type == "linear")
+  {
+    p = atof(func.c_str());
+    f = new ConstTimeFunc(new LinearFunc(p));
+    std::cout << p <<"*t";
+  }
+  else if (type.substr(0,10) == "expression")
+  {
+    std::cout << func;
+    f = new EvalFunction(func.c_str());
+  }
+  else
+  {
+    std::string tmp(func);
+    p = atof(strtok(const_cast<char*>(tmp.c_str())," "));
+    char* sfun = strtok(NULL," ");
+    if (sfun)
+      f = parseRealFunc(sfun,p);
+    else
+      std::cout << p;
+  }
 
-  template<>
-Tensor EvalMultiFunction<TensorFunc,Vec3,Tensor>::evaluate(const Vec3& X) const
-{
-  int nsd = sqrt(p.size());
-  if (nsd > 3) nsd = 3;
-  Tensor sigma(nsd);
-  int k=0;
-  for (int i = 1; i <= nsd; ++i)
-    for (int j = 1; j<= nsd; ++j)
-      sigma(i,j) = (*p[k++])(X);
-
-  return sigma;
+  return f ? new PressureField(f,dir) : new PressureField(p,dir);
 }

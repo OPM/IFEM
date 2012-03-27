@@ -15,19 +15,8 @@
 #define _FUNCTIONS_H
 
 #include "Function.h"
-
-#include <string>
-#include <vector>
-
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif
-
-namespace ExprEval {
-  class Expression;
-  class FunctionList;
-  class ValueList;
-}
+#include "ExprFunctions.h"
+#include "Vec3.h"
 
 
 /*!
@@ -397,108 +386,50 @@ public:
   Interpolate1D(const char* file, int dir_);
 
 protected:
-  //! \brief Evaluates the function ny interpolating the 1D grid.
+  //! \brief Evaluates the function by interpolating the 1D grid.
   virtual real evaluate(const Vec3& X) const;
 };
 
 
 /*!
-  \brief A scalar-valued spatial function, general function expression.
+  \brief A vector-valued spatial function, constant in space and time.
 */
 
-class EvalFunction : public RealFunc
+class ConstVecFunc : public VecFunc
 {
-  ExprEval::Expression* expr; //!< Pointer to the root of the expression tree
-  ExprEval::FunctionList*  f; //!< Pointer to list of function in the expression
-  ExprEval::ValueList*     v; //!< Pointer to list of variables and constants
-
-  real* x; //!< Pointer to the X-coordinate of the function argument
-  real* y; //!< Pointer to the Y-coordinate of the function argument
-  real* z; //!< Pointer to the Z-coordinate of the function argument
+  Vec3 fval; //!< The function value
 
 public:
-  //! \brief The constructor parses the expression string.
-  EvalFunction(const char* function);
-  //! \brief The destructor frees the dynamically allocated objects.
-  virtual ~EvalFunction();
+  //! \brief Constructor initializing the function value.
+  ConstVecFunc(const Vec3& v) : fval(v) {}
 
 protected:
-  //! \brief Evaluates the function expression.
-  virtual real evaluate(const Vec3& X) const;
-
-private:
-#ifdef USE_OPENMP
-  omp_lock_t lock;
-#endif
+  //! \brief Evaluates the constant function.
+  virtual Vec3 evaluate(const Vec3&) const { return fval; }
 };
 
-
-/*!
-  \brief A general expression function, of any argument and return type.
-
-  \details The function is implemented as an array of EvalFunction objects of
-  arbitrary length.
-*/
-
-template <class Func, class In, class Ret>
-class EvalMultiFunction : public Func
-{
-  std::vector<EvalFunction*> p; //!< Array of component expressions
-
-public:
-  //! \brief The constructor parses the expression string for each component.
-  EvalMultiFunction<Func,In,Ret>(const std::string& functions,
-                                 const std::string& variables="")
-  {
-    size_t pos = functions.find("|"), pos2 = 0;
-    for (int i = 0; pos2 < functions.size(); i++)
-    {
-      std::string func(variables);
-      if (pos == std::string::npos)
-        func += functions.substr(pos2);
-      else
-        func += functions.substr(pos2,pos-pos2);
-      p.push_back(new EvalFunction(func.c_str()));
-      pos2 = pos > 0 && pos < std::string::npos ? pos+1 : pos;
-      pos = functions.find("|",pos+1);
-    }
-  }
-
-  //! \brief The destructor frees the dynamically allocated functions component.
-  virtual ~EvalMultiFunction<Func,In,Ret>()
-  {
-    for (size_t i = 0; i < p.size(); i++)
-      delete p[i];
-  }
-
-protected:
-  //! \brief Evaluates the function expressions.
-  virtual Ret evaluate(const In& X) const;
-};
-
-//! Vector function expression
-typedef EvalMultiFunction<VecFunc,Vec3,Vec3>           VecFuncExpr;
-//! Tensor function expression
-typedef EvalMultiFunction<TensorFunc,Vec3,Tensor>      TensorFuncExpr;
-//! Symmetric tensor function expression
-typedef EvalMultiFunction<STensorFunc,Vec3,SymmTensor> STensorFuncExpr;
-
-//! \brief Specialization for vector functions
-template<>
-Vec3 VecFuncExpr::evaluate(const Vec3& X) const;
-
-//! \brief Specialization for tensor function
-template<>
-Tensor TensorFuncExpr::evaluate(const Vec3& X) const;
-
-//! \brief Specialization for symmetric tensor function
-template<>
-SymmTensor STensorFuncExpr::evaluate(const Vec3& X) const;
 
 namespace utl
 {
   //! \brief Creates a scalar-valued function by parsing a character string.
   const RealFunc* parseRealFunc(char* cline, real A = real(1));
+
+  //! \brief Creates a scalar-valued function by parsing a character string.
+  //! \param[in] func Character string to parse function definition from
+  //! \param[in] type Function definition type flag
+  RealFunc* parseRealFunc(const std::string& func, const std::string& type);
+
+  //! \brief Creates a vector-valued function by parsing a character string.
+  //! \param[in] func Character string to parse function definition from
+  //! \param[in] type Function defintion type flag
+  VecFunc* parseVecFunc(const std::string& func, const std::string& type);
+
+  //! \brief Creates a vector-valued function defining a surface traction.
+  //! \param[in] func Character string to parse function definition from
+  //! \param[in] type Function defintion type flag
+  //! \param[in] dir Coordinate direction of the traction (0=normal direction)
+  TractionFunc* parseTracFunc(const std::string& func,
+			      const std::string& type, int dir);
 }
 
 #endif
