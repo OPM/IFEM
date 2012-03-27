@@ -33,6 +33,25 @@ SIMLinEl2D::~SIMLinEl2D ()
 }
 
 
+void SIMLinEl2D::clearProperties ()
+{
+  Elasticity* elp = dynamic_cast<Elasticity*>(myProblem);
+  if (elp)
+  {
+    elp->setMaterial(NULL);
+    elp->setBodyForce(NULL);
+    elp->setTraction((VecFunc*)NULL);
+    elp->setTraction((TractionFunc*)NULL);
+  }
+
+  for (size_t i = 0; i < mVec.size(); i++)
+    delete mVec[i];
+  mVec.clear();
+
+  this->SIMbase::clearProperties();
+}
+
+
 bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
 {
   char* cline = 0;
@@ -99,35 +118,39 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
       double a  = atof(strtok(NULL," "));
       double F0 = atof(strtok(NULL," "));
       double nu = atof(strtok(NULL," "));
-      mySol = new AnaSol(new Hole(a,F0,nu));
       std::cout <<"\nAnalytical solution: Hole a="<< a <<" F0="<< F0
 		<<" nu="<< nu << std::endl;
+      if (!mySol)
+        mySol = new AnaSol(new Hole(a,F0,nu));
     }
     else if (!strncasecmp(cline,"LSHAPE",6))
     {
       double a  = atof(strtok(NULL," "));
       double F0 = atof(strtok(NULL," "));
       double nu = atof(strtok(NULL," "));
-      mySol = new AnaSol(new Lshape(a,F0,nu));
       std::cout <<"\nAnalytical solution: Lshape a="<< a <<" F0="<< F0
 		<<" nu="<< nu << std::endl;
+      if (!mySol)
+        mySol = new AnaSol(new Lshape(a,F0,nu));
     }
     else if (!strncasecmp(cline,"CANTS",5))
     {
       double L  = atof(strtok(NULL," "));
       double H  = atof(strtok(NULL," "));
       double F0 = atof(strtok(NULL," "));
-      mySol = new AnaSol(new CanTS(L,H,F0));
       std::cout <<"\nAnalytical solution: CanTS L="<< L <<" H="<< H
 		<<" F0="<< F0 << std::endl;
+      if (!mySol)
+        mySol = new AnaSol(new CanTS(L,H,F0));
     }
     else if (!strncasecmp(cline,"CANTM",5))
     {
       double H  = atof(strtok(NULL," "));
       double M0 = atof(strtok(NULL," "));
-      mySol = new AnaSol(new CanTM(H,M0));
       std::cout <<"\nAnalytical solution: CanTM H="<< H
 		<<" M0="<< M0 << std::endl;
+      if (!mySol)
+        mySol = new AnaSol(new CanTM(H,M0));
     }
     else if (!strncasecmp(cline,"CURVED",6))
     {
@@ -135,20 +158,22 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
       double b  = atof(strtok(NULL," "));
       double u0 = atof(strtok(NULL," "));
       double E  = atof(strtok(NULL," "));
-      mySol = new AnaSol(new CurvedBeam(u0,a,b,E));
       std::cout <<"\nAnalytical solution: Curved Beam a="<< a <<" b="<< b
-                <<" u0="<< u0 <<" E="<< E << std::endl;
+		<<" u0="<< u0 <<" E="<< E << std::endl;
+      if (!mySol)
+        mySol = new AnaSol(new CurvedBeam(u0,a,b,E));
     }
     else if (!strncasecmp(cline,"EXPRESSION",10))
     {
       std::cout <<"\nAnalytical solution: Expression"<< std::endl;
       int lines = (cline = strtok(NULL," ")) ? atoi(cline) : 0;
       code = (cline = strtok(NULL," ")) ? atoi(cline) : 0;
-      mySol = new AnaSol(is,lines,false);
+      if (!mySol)
+        mySol = new AnaSol(is,lines,false);
     }
     else
     {
-      std::cerr <<"  ** SIMLinEl2D::parse: Unknown analytical solution "
+      std::cerr <<"  ** SIMLinEl2D::parse: Invalid analytical solution "
 		<< cline <<" (ignored)"<< std::endl;
       return true;
     }
@@ -277,7 +302,7 @@ bool SIMLinEl2D::parse (const TiXmlElement* elem)
       utl::getAttribute(child,"x",gx);
       utl::getAttribute(child,"y",gy);
       if (myPid == 0)
-        std::cout <<"\nGravitation vector: "<< gx <<" "<< gy << std::endl;
+        std::cout <<"\tGravitation vector: "<< gx <<" "<< gy << std::endl;
     }
 
     else if (!strcasecmp(child->Value(),"isotropic")) {
@@ -301,6 +326,20 @@ bool SIMLinEl2D::parse (const TiXmlElement* elem)
                   << E <<" "<< nu <<" "<< rho << std::endl;
     }
 
+    else if (!strcasecmp(elem->Value(),"bodyforce")) {
+      int code = 0;
+      std::string type;
+      utl::getAttribute(elem,"code",code);
+      utl::getAttribute(elem,"type",type,true);
+      if (elem->FirstChild()) {
+        std::cout <<"\tBodyforce code "<< code;
+        if (!type.empty()) std::cout <<" ("<< type <<")";
+        VecFunc* f = utl::parseVecFunc(elem->FirstChild()->Value(),type);
+        if (f) this->setVecProperty(code,Property::BODYLOAD,f);
+        std::cout << std::endl;
+      }
+    }
+
     else if (!strcasecmp(child->Value(),"anasol")) {
       std::string type;
       utl::getAttribute(child,"type",type,true);
@@ -309,36 +348,40 @@ bool SIMLinEl2D::parse (const TiXmlElement* elem)
         utl::getAttribute(child,"a",a);
         utl::getAttribute(child,"F0",F0);
         utl::getAttribute(child,"nu",nu);
-        mySol = new AnaSol(new Hole(a,F0,nu));
-        std::cout <<"\nAnalytical solution: Hole a="<< a <<" F0="<< F0
+        std::cout <<"\tAnalytical solution: Hole a="<< a <<" F0="<< F0
                   <<" nu="<< nu << std::endl;
+        if (!mySol)
+          mySol = new AnaSol(new Hole(a,F0,nu));
       }
       else if (type == "lshape") {
         double a = 0.0, F0 = 0.0, nu = 0.0;
         utl::getAttribute(child,"a",a);
         utl::getAttribute(child,"F0",F0);
         utl::getAttribute(child,"nu",nu);
-        mySol = new AnaSol(new Lshape(a,F0,nu));
-        std::cout <<"\nAnalytical solution: Lshape a="<< a <<" F0="<< F0
+        std::cout <<"\tAnalytical solution: Lshape a="<< a <<" F0="<< F0
                   <<" nu="<< nu << std::endl;
+        if (!mySol)
+          mySol = new AnaSol(new Lshape(a,F0,nu));
       }
       else if (type == "cants") {
         double L = 0.0, H = 0.0, F0 = 0.0;
         utl::getAttribute(child,"L",L);
         utl::getAttribute(child,"H",H);
         utl::getAttribute(child,"F0",F0);
-        mySol = new AnaSol(new CanTS(L,H,F0));
-        std::cout <<"\nAnalytical solution: CanTS L="<< L <<" H="<< H
+        std::cout <<"\tAnalytical solution: CanTS L="<< L <<" H="<< H
                   <<" F0="<< F0 << std::endl;
+        if (!mySol)
+          mySol = new AnaSol(new CanTS(L,H,F0));
       }
       else if (type == "cantm") {
         double L = 0.0, H = 0.0, M0 = 0.0;
         utl::getAttribute(child,"L",L);
         utl::getAttribute(child,"H",H);
         utl::getAttribute(child,"M0",M0);
-        mySol = new AnaSol(new CanTM(H,M0));
-        std::cout <<"\nAnalytical solution: CanTM H="<< H
+        std::cout <<"\tAnalytical solution: CanTM H="<< H
                   <<" M0="<< M0 << std::endl;
+        if (!mySol)
+          mySol = new AnaSol(new CanTM(H,M0));
       }
       else if (type == "curved") {
         double a = 0.0, b = 0.0, u0 = 0.0, E = 0.0;
@@ -346,23 +389,25 @@ bool SIMLinEl2D::parse (const TiXmlElement* elem)
         utl::getAttribute(child,"b",b);
         utl::getAttribute(child,"u0",u0);
         utl::getAttribute(child,"E",E);
-        mySol = new AnaSol(new CurvedBeam(u0,a,b,E));
-        std::cout <<"\nAnalytical solution: Curved Beam a="<< a <<" b="<< b
+        std::cout <<"\tAnalytical solution: Curved Beam a="<< a <<" b="<< b
                   <<" u0="<< u0 <<" E="<< E << std::endl;
+        if (!mySol)
+          mySol = new AnaSol(new CurvedBeam(u0,a,b,E));
       }
       else if (type == "expression") {
-        std::cout <<"\nAnalytical solution: Expression"<< std::endl;
-        mySol = new AnaSol(child,false);
+        std::cout <<"\tAnalytical solution: Expression"<< std::endl;
+        if (!mySol)
+          mySol = new AnaSol(child,false);
       }
       else
-        std::cerr <<"  ** SIMLinEl2D::parse: Unknown analytical solution "
+        std::cerr <<"  ** SIMLinEl2D::parse: Invalid analytical solution "
                   << type <<" (ignored)"<< std::endl;
 
       // Define the analytical boundary traction field
       int code = 0;
       utl::getAttribute(child,"code",code);
       if (code > 0 && mySol && mySol->getStressSol()) {
-        std::cout <<"Pressure code "<< code
+        std::cout <<"\tNeumann code "<< code
                   <<": Analytical traction"<< std::endl;
         setPropertyType(code,Property::NEUMANN);
         myTracs[code] = new TractionField(*mySol->getStressSol());
@@ -410,6 +455,21 @@ bool SIMLinEl2D::initMaterial (size_t propInd)
   if (propInd >= mVec.size()) propInd = mVec.size()-1;
 
   elp->setMaterial(mVec[propInd]);
+  return true;
+}
+
+
+bool SIMLinEl2D::initBodyLoad (size_t patchInd)
+{
+  Elasticity* elp = dynamic_cast<Elasticity*>(myProblem);
+  if (!elp) return false;
+
+  VecFuncMap::const_iterator it = myVectors.end();
+  for (size_t i = 0; i < myProps.size(); i++)
+    if (myProps[i].pcode == Property::BODYLOAD && myProps[i].patch == patchInd)
+      if ((it = myVectors.find(myProps[i].pindx)) != myVectors.end()) break;
+
+  elp->setBodyForce(it == myVectors.end() ? NULL : it->second);
   return true;
 }
 

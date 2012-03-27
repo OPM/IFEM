@@ -36,6 +36,9 @@ public:
   //! \brief The destructor frees the dynamically allocated material properties.
   virtual ~SIMLinEl2D();
 
+  //! \brief Initializes the property containers of the model.
+  virtual void clearProperties();
+
   //! \brief Performs some pre-processing tasks on the FE model.
   //! \details This method is reimplemented inserting a call to \a getIntegrand.
   //! This makes sure the integrand has been allocated in case of minimum input.
@@ -58,6 +61,9 @@ protected:
   //! \brief Initializes material properties for integration of interior terms.
   //! \param[in] propInd Physical property index
   virtual bool initMaterial(size_t propInd);
+  //! \brief Initializes the body load properties for current patch.
+  //! \param[in] patchInd 1-based patch index
+  virtual bool initBodyLoad(size_t patchInd);
 
   //! \brief Initializes for integration of Neumann terms for a given property.
   //! \param[in] propInd Physical property index

@@ -158,6 +158,25 @@ SIMLinEl3D::~SIMLinEl3D ()
 }
 
 
+void SIMLinEl3D::clearProperties ()
+{
+  Elasticity* elp = dynamic_cast<Elasticity*>(myProblem);
+  if (elp)
+  {
+    elp->setMaterial(NULL);
+    elp->setBodyForce(NULL);
+    elp->setTraction((VecFunc*)NULL);
+    elp->setTraction((TractionFunc*)NULL);
+  }
+
+  for (size_t i = 0; i < mVec.size(); i++)
+    delete mVec[i];
+  mVec.clear();
+
+  this->SIMbase::clearProperties();
+}
+
+
 bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
 {
   char* cline = 0;
@@ -212,38 +231,42 @@ bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
       double a  = atof(strtok(NULL," "));
       double F0 = atof(strtok(NULL," "));
       double nu = atof(strtok(NULL," "));
-      mySol = new AnaSol(new Hole(a,F0,nu,true));
       std::cout <<"\nAnalytical solution: Hole a="<< a <<" F0="<< F0
 		<<" nu="<< nu << std::endl;
+      if (!mySol)
+        mySol = new AnaSol(new Hole(a,F0,nu,true));
     }
     else if (!strncasecmp(cline,"LSHAPE",6))
     {
       double a  = atof(strtok(NULL," "));
       double F0 = atof(strtok(NULL," "));
       double nu = atof(strtok(NULL," "));
-      mySol = new AnaSol(new Lshape(a,F0,nu,true));
       std::cout <<"\nAnalytical solution: Lshape a="<< a <<" F0="<< F0
 		<<" nu="<< nu << std::endl;
+      if (!mySol)
+        mySol = new AnaSol(new Lshape(a,F0,nu,true));
     }
     else if (!strncasecmp(cline,"CANTS",5))
     {
       double L  = atof(strtok(NULL," "));
       double H  = atof(strtok(NULL," "));
       double F0 = atof(strtok(NULL," "));
-      mySol = new AnaSol(new CanTS(L,H,F0,true));
       std::cout <<"\nAnalytical solution: CanTS L="<< L <<" H="<< H
 		<<" F0="<< F0 << std::endl;
+      if (!mySol)
+        mySol = new AnaSol(new CanTS(L,H,F0,true));
     }
     else if (!strncasecmp(cline,"EXPRESSION",10))
     {
       std::cout <<"\nAnalytical solution: Expression"<< std::endl;
       int lines = (cline = strtok(NULL," ")) ? atoi(cline) : 0;
       code = (cline = strtok(NULL," ")) ? atoi(cline) : 0;
-      mySol = new AnaSol(is,lines,false);
+      if (!mySol)
+        mySol = new AnaSol(is,lines,false);
     }
     else
     {
-      std::cerr <<"  ** SIMLinEl3D::parse: Unknown analytical solution "
+      std::cerr <<"  ** SIMLinEl3D::parse: Invalid analytical solution "
 		<< cline <<" (ignored)"<< std::endl;
       return true;
     }
@@ -415,7 +438,7 @@ bool SIMLinEl3D::parse (const TiXmlElement* elem)
       utl::getAttribute(child,"y",gy);
       utl::getAttribute(child,"z",gz);
       if (myPid == 0)
-        std::cout <<"\nGravitation vector: "<< gx <<" "<< gy <<" "<< gz
+        std::cout <<"\tGravitation vector: "<< gx <<" "<< gy <<" "<< gz
                   << std::endl;
     }
 
@@ -441,60 +464,65 @@ bool SIMLinEl3D::parse (const TiXmlElement* elem)
         utl::getAttribute(child,"a",a);
         utl::getAttribute(child,"F0",F0);
         utl::getAttribute(child,"nu",nu);
-        mySol = new AnaSol(new Hole(a,F0,nu,true));
-        std::cout <<"\nAnalytical solution: Hole a="<< a <<" F0="<< F0
+        std::cout <<"\tAnalytical solution: Hole a="<< a <<" F0="<< F0
                   <<" nu="<< nu << std::endl;
+        if (!mySol)
+          mySol = new AnaSol(new Hole(a,F0,nu,true));
       }
       else if (type == "lshape") {
         double a = 0.0, F0 = 0.0, nu = 0.0;
         utl::getAttribute(child,"a",a);
         utl::getAttribute(child,"F0",F0);
         utl::getAttribute(child,"nu",nu);
-        mySol = new AnaSol(new Lshape(a,F0,nu,true));
-        std::cout <<"\nAnalytical solution: Lshape a="<< a <<" F0="<< F0
+        std::cout <<"\tAnalytical solution: Lshape a="<< a <<" F0="<< F0
                   <<" nu="<< nu << std::endl;
+        if (!mySol)
+          mySol = new AnaSol(new Lshape(a,F0,nu,true));
       }
       else if (type == "cants") {
         double L = 0.0, H = 0.0, F0 = 0.0;
         utl::getAttribute(child,"L",L);
         utl::getAttribute(child,"H",H);
         utl::getAttribute(child,"F0",F0);
-        mySol = new AnaSol(new CanTS(L,H,F0,true));
-        std::cout <<"\nAnalytical solution: CanTS L="<< L <<" H="<< H
+        std::cout <<"\tAnalytical solution: CanTS L="<< L <<" H="<< H
                   <<" F0="<< F0 << std::endl;
+        if (!mySol)
+          mySol = new AnaSol(new CanTS(L,H,F0,true));
       }
       else if (type == "expression") {
-        std::cout <<"\nAnalytical solution: Expression"<< std::endl;
-        mySol = new AnaSol(child,false);
+        std::cout <<"\tAnalytical solution: Expression"<< std::endl;
+        if (!mySol)
+          mySol = new AnaSol(child,false);
       }
       else
-        std::cerr <<"  ** SIMLinEl3D::parse: Unknown analytical solution "
+        std::cerr <<"  ** SIMLinEl3D::parse: Invalid analytical solution "
                   << type <<" (ignored)"<< std::endl;
 
       // Define the analytical boundary traction field
       int code = 0;
       utl::getAttribute(child,"code",code);
       if (code > 0 && mySol && mySol->getStressSol()) {
-        std::cout <<"Pressure code "<< code
+        std::cout <<"\tNeumann code "<< code
                   <<": Analytical traction"<< std::endl;
         setPropertyType(code,Property::NEUMANN);
         myTracs[code] = new TractionField(*mySol->getStressSol());
       }
     }
 
-    else if (!strcasecmp(child->Value(),"localsystem")) {
-      if (child->FirstChild() && child->FirstChild()->Value()) {
-        if (!strcasecmp(child->FirstChild()->Value(),"cylindricz"))
-          this->getIntegrand()->setLocalSystem(new CylinderCS);
-        else if (!strcasecmp(child->FirstChild()->Value(),"cylinder+sphere")) {
-          double H = 0.0;
-          utl::getAttribute(child,"H",H);
-          this->getIntegrand()->setLocalSystem(new CylinderSphereCS(H));
-        }
-        else
-          std::cerr <<"  ** SIMLinEl3D::parse: Unsupported coordinate system: "
-                    << child->FirstChild()->Value() <<" (ignored)"<< std::endl;
+    else if (!strcasecmp(child->Value(),"localsystem") && child->FirstChild()) {
+      // Caution: When running adaptively, the below will cause a small memory
+      // leak because the coordinate system objects are only deleted by the
+      // Elasticity destructor (and not in SIMbase::clearProperties).
+      if (!strcasecmp(child->FirstChild()->Value(),"cylindricz"))
+        this->getIntegrand()->setLocalSystem(new CylinderCS);
+      else if (!strcasecmp(child->FirstChild()->Value(),"cylinder+sphere")) {
+        double H = 0.0;
+        utl::getAttribute(child,"H",H);
+        this->getIntegrand()->setLocalSystem(new CylinderSphereCS(H));
       }
+      else
+        std::cerr <<"  ** SIMLinEl3D::parse: Unsupported coordinate system: "
+                  << child->FirstChild()->Value() <<" (ignored)"<< std::endl;
     }
 
   if (gx != 0.0 || gy != 0.0 || gz != 0.0)
@@ -538,6 +566,21 @@ bool SIMLinEl3D::initMaterial (size_t propInd)
   if (propInd >= mVec.size()) propInd = mVec.size()-1;
 
   elp->setMaterial(mVec[propInd]);
+  return true;
+}
+
+
+bool SIMLinEl3D::initBodyLoad (size_t patchInd)
+{
+  Elasticity* elp = dynamic_cast<Elasticity*>(myProblem);
+  if (!elp) return false;
+
+  VecFuncMap::const_iterator it = myVectors.end();
+  for (size_t i = 0; i < myProps.size(); i++)
+    if (myProps[i].pcode == Property::BODYLOAD && myProps[i].patch == patchInd)
+      if ((it = myVectors.find(myProps[i].pindx)) != myVectors.end()) break;
+
+  elp->setBodyForce(it == myVectors.end() ? NULL : it->second);
   return true;
 }
 
