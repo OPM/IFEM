@@ -1,4 +1,15 @@
 // $Id$
+//==============================================================================
+//!
+//! \file XMLWriter.h
+//!
+//! \date May 7 2011
+//!
+//! \author Arne Morten Kvarving / SINTEF
+//!
+//! \brief Output of metadata associated with HDF5 to XML.
+//!
+//==============================================================================
 
 #pragma once
 
@@ -9,11 +20,13 @@ class TiXmlNode;
 class SIMparameters;
 
 
-/*! \brief Write data (metadata) to a XML file.
+/*!
+  \brief Write data (metadata) to a XML file.
 
- The XML writer writes metadata (name of fields, description,...)
- in a humanly readable (XML) text format.
+  \details The XML writer writes metadata (name of fields, description,...)
+  in a humanly readable (XML) text format.
 */
+
 class XMLWriter : public DataWriter
 {
 public:
@@ -42,8 +55,8 @@ public:
   //! \brief Default constructor
   //! \param[in] name The name (filename without extension) of data file
   XMLWriter(const std::string& name);
-  
-  //! \brief Default destructor
+
+  //! \brief Empty destructor
   virtual ~XMLWriter() {}
 
   //! \brief Return the last time level stored in file

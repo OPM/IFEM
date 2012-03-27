@@ -1,4 +1,15 @@
 // $Id$
+//==============================================================================
+//!
+//! \file DataExporter.h
+//!
+//! \date May 7 2011
+//!
+//! \author Arne Morten Kvarving / SINTEF
+//!
+//! \brief Admininster and write data using DataWriters.
+//!
+//==============================================================================
 
 #pragma once
 
@@ -6,15 +17,17 @@
 #include <string>
 #include <vector>
 
-
 class DataWriter;
 class SIMparameters;
 
-/*! \brief Admininster and write data using DataWriters
-   
-  \details This class holds a list of data writers, and SIM classes/vectors
-  to write.
+
+/*!
+  \brief Admininster and write data using DataWriters.
+
+  \details This class holds a list of data writers,
+  and the SIM classes or vectors to write.
 */
+
 class DataExporter
 {
  public:
@@ -111,11 +124,14 @@ protected:
 //! \brief Convenience type
 typedef std::pair<std::string,DataExporter::FileEntry> DataEntry;
 
-/*! \brief Stores and reads data from a file
 
- A DataWriter is a backend for the DataExporter, they abstract different
- file formats.
+/*!
+ \brief Stores and reads data from a file
+
+ \details A DataWriter is a backend for the DataExporter,
+ they abstract different file formats.
 */
+
 class DataWriter
 {
 protected:
@@ -135,7 +151,7 @@ public:
 
   //! \brief Close the file
   //! \param[in] level Level we just wrote to the file
-  //! \param[in] force If true, we always close the actual file, 
+  //! \param[in] force If true, we always close the actual file,
   //                   else it's up to the individual writers
   virtual void closeFile(int level, bool force=false) = 0;
 
@@ -152,7 +168,7 @@ public:
   //! \brief Write data from a SIM to file
   //! \param[in] level The time level to write the data at
   //! \param[in] entry The DataEntry describing the vector
-  //! \param[in] geometryUpdated Whether or not geometries should be written 
+  //! \param[in] geometryUpdated Whether or not geometries should be written
   virtual void writeSIM(int level, const DataEntry& entry,
                         bool geometryUpdated) = 0;
 

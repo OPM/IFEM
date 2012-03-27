@@ -1,4 +1,15 @@
 // $Id$
+//==============================================================================
+//!
+//! \file XMLWriter.C
+//!
+//! \date May 7 2011
+//!
+//! \author Arne Morten Kvarving / SINTEF
+//!
+//! \brief Output of metadata associated with HDF5 to XML.
+//!
+//==============================================================================
 
 #include "XMLWriter.h"
 #include "SIMbase.h"

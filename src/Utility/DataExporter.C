@@ -1,12 +1,23 @@
 // $Id$
+//==============================================================================
+//!
+//! \file DataExporter.C
+//!
+//! \date May 7 2011
+//!
+//! \author Arne Morten Kvarving / SINTEF
+//!
+//! \brief Admininster and write data using DataWriters.
+//!
+//==============================================================================
 
 #include "DataExporter.h"
+#include "SIMparameters.h"
 #include <iostream>
 #include <algorithm>
 #ifdef PARALLEL_PETSC
 #include <mpi.h>
 #endif
-#include "SIMparameters.h"
 
 
 DataWriter::DataWriter (const std::string& name) : m_name(name)
@@ -29,9 +40,9 @@ DataExporter::~DataExporter ()
 }
 
 
-bool DataExporter::registerField(const std::string& name,
-                                 const std::string& description,
-                                 FieldType field, int results)
+bool DataExporter::registerField (const std::string& name,
+				  const std::string& description,
+				  FieldType field, int results)
 {
   if (m_entry.find(name) != m_entry.end())
     return false;
@@ -46,15 +57,16 @@ bool DataExporter::registerField(const std::string& name,
   return true;
 }
 
-bool DataExporter::registerWriter(DataWriter* writer)
+
+bool DataExporter::registerWriter (DataWriter* writer)
 {
   m_writers.push_back(writer);
   return true;
 }
 
 
-bool DataExporter::setFieldValue(const std::string& name,
-				 void* data, void* data2)
+bool DataExporter::setFieldValue (const std::string& name,
+				  void* data, void* data2)
 {
   std::map<std::string,FileEntry>::iterator it = m_entry.find(name);
   if (it == m_entry.end())
@@ -66,9 +78,9 @@ bool DataExporter::setFieldValue(const std::string& name,
 }
 
 
-bool DataExporter::dumpTimeLevel(SIMparameters* tp, bool geometryUpdated)
+bool DataExporter::dumpTimeLevel (SIMparameters* tp, bool geometryUpdated)
 {
-  if (tp && tp->step % m_ndump 
+  if (tp && tp->step % m_ndump
          && tp->step % m_ndump > m_order-1)
     return true;
 

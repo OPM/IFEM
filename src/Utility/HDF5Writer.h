@@ -1,4 +1,15 @@
 // $Id$
+//==============================================================================
+//!
+//! \file HDF5Writer.h
+//!
+//! \date Jul 7 2011
+//!
+//! \author Arne Morten Kvarving / SINTEF
+//!
+//! \brief Output of model and results to HDF5 file.
+//!
+//==============================================================================
 
 #pragma once
 
@@ -6,6 +17,7 @@
 #include "MatVec.h"
 
 class SIMbase;
+
 
 /*!
   \brief Write data to a HDF5 file.

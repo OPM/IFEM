@@ -146,8 +146,9 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att,
 
 
 /*!
-  This method accepts two alternative ways of specifying the value "myValue":
-  <name>myValue</name> and <name value="myvalue"/>.
+  This method accepts two alternative ways of specifying the value \e myValue :
+  \verbatim <name>myValue</name> \endverbatim and
+  \verbatim <name value="myValue"/> \endverbatim
 */
 
 const char* utl::getValue (const TiXmlElement* xml, const char* tag)
@@ -350,7 +351,7 @@ void utl::calcThreadGroups(int nel1, int nel2, ThreadGroups& result)
     els = nel1;
     mul = 1;
   } else {
-    stripsize = s2; 
+    stripsize = s2;
     els = nel2;
     dir = 1;
     mul = nel1;
@@ -461,13 +462,13 @@ void utl::calcThreadGroups(int nel1, int nel2, int nel3, ThreadGroups& result)
     mul = 1;
   } else if (r2*nel1*nel3 < r1*nel2*nel3 && r2*nel1*nel3 < r3*nel1*nel2 ) {
     // strips along y axis
-    stripsize = s2; 
+    stripsize = s2;
     els = nel2;
     dir = 1;
     mul = nel1;
   } else {
     // strips along z axis
-    stripsize = s3; 
+    stripsize = s3;
     els = nel3;
     dir = 2;
     mul = nel1*nel2;
