@@ -105,29 +105,31 @@ bool SIMinput::readXML (const char* fileName)
     return false;
   }
 
-  if (!doc.RootElement() || strcmp(doc.RootElement()->Value(),"simulation")) {
+  const TiXmlElement* tag = doc.RootElement();
+  if (!tag || strcmp(tag->Value(),"simulation")) {
     std::cerr << __PRETTY_FUNCTION__ <<": Malformatted input file "<< fileName
 	      << std::endl;
     return false;
   }
 
-  injectIncludeFiles(doc.RootElement());
+  std::cout <<"\nParsing input file "<< fileName << std::endl;
+  injectIncludeFiles(const_cast<TiXmlElement*>(tag));
 
   std::vector<const TiXmlElement*> parsed;
   if (!handlePriorityTags(doc.RootElement(),parsed))
     return false;
 
-  TiXmlElement* elem = doc.RootElement()->FirstChildElement();
-  while (elem) {
-    if (std::find(parsed.begin(),parsed.end(),elem) == parsed.end()) {
-      if (!this->parse(elem)) {
+  for (tag = tag->FirstChildElement(); tag; tag = tag->NextSiblingElement())
+    if (std::find(parsed.begin(),parsed.end(),tag) == parsed.end()) {
+      std::cout <<"\nParsing <"<< tag->Value() <<">"<< std::endl;
+      if (!this->parse(tag)) {
         std::cerr <<" *** SIMinput::read: Failure occured while parsing \""
-                  << elem->Value() <<"\""<< std::endl;
+                  << tag->Value() <<"\""<< std::endl;
         return false;
       }
     }
-    elem = elem->NextSiblingElement();
-  }
+
+  std::cout <<"\nParsing input file succeeded."<< std::endl;
   return true;
 }
 
@@ -135,13 +137,12 @@ bool SIMinput::readXML (const char* fileName)
 bool SIMinput::handlePriorityTags (const TiXmlElement* base,
 				   std::vector<const TiXmlElement*>& parsed)
 {
-  // Add particular keywords to this list.
-  // They will be parsed first, in the order specified in the list.
-  const char* special[] = {"discretization","geometry","boundaryconditions",0};
+  const char** q = this->getPrioritizedTags();
+  if (!q) return true; // No prioritized tags defined
 
-  const TiXmlElement* elem = 0;
-  for (const char** q = special; *q; q++)
+  for (const TiXmlElement* elem = 0; *q; q++)
     if ((elem = base->FirstChildElement(*q))) {
+      std::cout <<"\nParsing <"<< elem->Value() <<">"<< std::endl;
       if (!this->parse(elem)) {
         std::cerr <<" *** SIMinput::read: Failure occured while parsing \""
                   << elem->Value() <<"\""<< std::endl;

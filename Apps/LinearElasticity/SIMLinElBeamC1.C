@@ -163,7 +163,7 @@ bool SIMLinElBeamC1::parse (char* keyWord, std::istream& is)
 }
 
 
-bool SIMLinElBeamC1::parse(const TiXmlElement* elem)
+bool SIMLinElBeamC1::parse (const TiXmlElement* elem)
 {
   if (strcasecmp(elem->Value(),"eulerbernoulli"))
     return this->SIM1D::parse(elem);
@@ -171,14 +171,10 @@ bool SIMLinElBeamC1::parse(const TiXmlElement* elem)
   KirchhoffLovePlate* klp = dynamic_cast<KirchhoffLovePlate*>(myProblem);
   if (!klp) return false;
 
-  std::vector<const TiXmlElement*> parsed = handlePriorityTags(elem);
-
   const TiXmlElement* child = elem->FirstChildElement();
-  while (child) {
-    if (find(parsed.begin(),parsed.end(),child) != parsed.end())
-      ;
+  for (; child; child = child->NextSiblingElement())
 
-    else if (!strcasecmp(child->Value(),"gravity")) {
+    if (!strcasecmp(child->Value(),"gravity")) {
       double g = 0.0;
       utl::getAttribute(child,"g",g);
       if (myPid == 0)
@@ -248,9 +244,6 @@ bool SIMLinElBeamC1::parse(const TiXmlElement* elem)
         std::cerr <<"  ** SIMLinElKL::parse: Unknown analytical solution "
                   << type <<" (ignored)"<< std::endl;
     }
-
-    child = child->NextSiblingElement();
-  }
 
   return true;
 }

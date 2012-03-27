@@ -101,6 +101,10 @@ public:
   //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);
 
+protected:
+  //! \brief Returns a list of prioritized XML-tags.
+  virtual const char** getPrioritizedTags() const;
+
 private:
   //! \brief Parses a subelement of the \a geometry XML-tag.
   bool parseGeometryTag(const TiXmlElement* elem);

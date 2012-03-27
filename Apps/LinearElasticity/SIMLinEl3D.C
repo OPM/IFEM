@@ -417,14 +417,10 @@ bool SIMLinEl3D::parse (const TiXmlElement* elem)
   Elasticity* elp = dynamic_cast<Elasticity*>(myProblem);
   if (!elp) return false;
 
-  std::vector<const TiXmlElement*> parsed = handlePriorityTags(elem);
-
   const TiXmlElement* child = elem->FirstChildElement();
-  while (child) {
-    if (find(parsed.begin(),parsed.end(),child) != parsed.end())
-      ;
+  for (; child; child = child->NextSiblingElement())
 
-    else if (!strcasecmp(child->Value(),"gravity")) {
+    if (!strcasecmp(child->Value(),"gravity")) {
       double gx = 0.0, gy = 0.0, gz = 0.0;
       utl::getAttribute(child,"x",gx);
       utl::getAttribute(child,"y",gy);
@@ -532,9 +528,6 @@ bool SIMLinEl3D::parse (const TiXmlElement* elem)
                     << child->FirstChild()->Value() << std::endl;
       }
     }
-
-    child = child->NextSiblingElement();
-  }
 
   if (!mVec.empty())
     elp->setMaterial(mVec.front());

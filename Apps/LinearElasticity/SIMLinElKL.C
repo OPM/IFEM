@@ -171,19 +171,15 @@ bool SIMLinElKL::parse (char* keyWord, std::istream& is)
 bool SIMLinElKL::parse (const TiXmlElement* elem)
 {
   if (strcasecmp(elem->Value(),"kirchhofflove"))
-    return this->SIMLinEl2D::parse(elem);
+    return this->SIM2D::parse(elem);
 
   KirchhoffLovePlate* klp = dynamic_cast<KirchhoffLovePlate*>(myProblem);
   if (!klp) return false;
 
-  std::vector<const TiXmlElement*> parsed = handlePriorityTags(elem);
-
   const TiXmlElement* child = elem->FirstChildElement();
-  while (child) {
-    if (find(parsed.begin(),parsed.end(),child) != parsed.end())
-      ;
+  for (; child; child = child->NextSiblingElement())
 
-    else if (!strcasecmp(child->Value(),"gravity")) {
+    if (!strcasecmp(child->Value(),"gravity")) {
       double g = 0.0;
       utl::getAttribute(child,"g",g);
       klp->setGravity(g);
@@ -282,9 +278,6 @@ bool SIMLinElKL::parse (const TiXmlElement* elem)
         std::cerr <<"  ** SIMLinElKL::parse: Unknown analytical solution "
                   << type <<" (ignored)"<< std::endl;
     }
-
-    child = child->NextSiblingElement();
-  }
 
   return true;
 }

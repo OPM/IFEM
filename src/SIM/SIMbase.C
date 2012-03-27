@@ -114,12 +114,14 @@ void SIMbase::clearProperties ()
 
 bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
 {
-  if (!strcasecmp(elem->Value(),"patchfile")) {
+  std::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
+
+  if (!strcasecmp(elem->Value(),"patchfile") && elem->FirstChild()) {
     if (myModel.empty()) {
-      std::string file = elem->FirstChild()->Value();
-      std::cout <<"\nReading data file "<< file << std::endl;
-      std::ifstream isp(file.c_str());
-      readPatches(isp);
+      const char* file = elem->FirstChild()->Value();
+      std::cout <<"\tReading data file "<< file << std::endl;
+      std::ifstream isp(file);
+      this->readPatches(isp);
 
       if (myModel.empty()) {
         std::cerr <<" *** SIMbase::parse: No patches read"<< std::endl;
@@ -128,19 +130,19 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
     }
   }
 
-  else if (!strcasecmp(elem->Value(),"nodefile")) {
-    if (!createFEMmodel())
-      return false;
-    std::string file = elem->FirstChild()->Value();
-    std::ifstream isn(file.c_str());
-    if (isn)
-      std::cout <<"\nReading data file "<< file << std::endl;
-    else {
+  else if (!strcasecmp(elem->Value(),"nodefile") && elem->FirstChild()) {
+    if (!this->createFEMmodel()) return false;
+
+    const char* file = elem->FirstChild()->Value();
+    std::ifstream isn(file);
+    if (!isn) {
       std::cerr <<" *** SIMbase::read: Failure opening input file "
                 << file << std::endl;
       return false;
     }
-    readNodes(isn);
+
+    std::cout <<"\tReading data file "<< file << std::endl;
+    this->readNodes(isn);
   }
 
   else if (!strcasecmp(elem->Value(),"partitioning")) {
@@ -150,19 +152,19 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
     if (proc != nProc) // silently ignore
       return true;
     if (myPid == 0)
-      std::cout <<"\nNumber of partitions: "<< nProc << std::endl;
+      std::cout <<"\tNumber of partitions: "<< nProc << std::endl;
 
     const TiXmlElement* part = elem->FirstChildElement("part");
     while (part) {
-        int first=-2, last=-2;
-        utl::getAttribute(part,"proc",proc);
-	utl::getAttribute(part,"lower",first);
-	utl::getAttribute(part,"upper",last);
-        if (last > nGlPatches) nGlPatches = last;
-        if (proc == myPid) {
-          myPatches.reserve(last-first+1);
-          for (int j = first; j <= last && j > -1; j++)
-            myPatches.push_back(j);
+      int first = -2, last = -2;
+      utl::getAttribute(part,"proc",proc);
+      utl::getAttribute(part,"lower",first);
+      utl::getAttribute(part,"upper",last);
+      if (last > nGlPatches) nGlPatches = last;
+      if (proc == myPid) {
+        myPatches.reserve(last-first+1);
+        for (int j = first; j <= last && j > -1; j++)
+          myPatches.push_back(j);
       }
       part = part->NextSiblingElement("part");
     }
@@ -174,31 +176,31 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
 
 bool SIMbase::parseBCTag (const TiXmlElement* elem)
 {
-  if (!strcasecmp(elem->Value(),"propertyfile")) {
-    if (elem->FirstChild()) {
-      std::ifstream isp(elem->FirstChild()->Value());
-      if (!isp)
-      {
-	std::cerr <<" *** SIMbase::parseBCTag: Failure opening input file "
-		  << elem->FirstChild()->Value() << std::endl;
-	return false;
-      }
-      std::cout <<"\nReading data file "
-		<< elem->FirstChild()->Value() << std::endl;
-      while (isp.good())
-      {
-	Property p;
-	int ldim, lindx = 0;
-	isp >> p.pindx >> p.patch >> ldim;
-	if (ldim < (int)this->getNoSpaceDim()) isp >> lindx;
+  std::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
-	// We always require the item indices to be 1-based
-	p.ldim = ldim;
-	p.lindx = 1+lindx;
-	p.patch = this->getLocalPatchIndex(1+p.patch);
-	if (p.patch > 0 && isp.good())
-	  myProps.push_back(p);
-      }
+  if (!strcasecmp(elem->Value(),"propertyfile") && elem->FirstChild()) {
+    const char* file = elem->FirstChild()->Value();
+    std::ifstream isp(file);
+    if (!isp)
+    {
+      std::cerr <<" *** SIMbase::parseBCTag: Failure opening input file "
+                << file << std::endl;
+      return false;
+    }
+    std::cout <<"\tReading data file "<< file << std::endl;
+    while (isp.good())
+    {
+      Property p;
+      int ldim, lindx = 0;
+      isp >> p.pindx >> p.patch >> ldim;
+      if (ldim < (int)this->getNoSpaceDim()) isp >> lindx;
+
+      // We always require the item indices to be 1-based
+      p.ldim = ldim;
+      p.lindx = 1+lindx;
+      p.patch = this->getLocalPatchIndex(1+p.patch);
+      if (p.patch > 0 && isp.good())
+        myProps.push_back(p);
     }
   }
 
@@ -210,16 +212,16 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
       const TiXmlElement* patch = code->FirstChildElement("patch");
       while (patch) {
         Property p;
-	int ival = -1;
+        int ival = -1;
         p.pindx = icode;
-	if (utl::getAttribute(patch,"face",ival))
-	  p.ldim = 2;
-	else if (utl::getAttribute(patch,"edge",ival))
-	  p.ldim = 1;
-	else if (utl::getAttribute(patch,"vertex",ival))
-	  p.ldim = 0;
-	if (ival >= 0) p.lindx = ival;
-	if (utl::getAttribute(patch,"index",ival) && ival > 0)
+        if (utl::getAttribute(patch,"face",ival))
+          p.ldim = 2;
+        else if (utl::getAttribute(patch,"edge",ival))
+          p.ldim = 1;
+        else if (utl::getAttribute(patch,"vertex",ival))
+          p.ldim = 0;
+        if (ival >= 0) p.lindx = ival;
+        if (utl::getAttribute(patch,"index",ival) && ival > 0)
           p.patch = getLocalPatchIndex(ival);
         if (p.patch > 0)
           myProps.push_back(p);
@@ -253,6 +255,8 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
 
 bool SIMbase::parseOutputTag (const TiXmlElement* elem)
 {
+  std::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
+
   if (strcasecmp(elem->Value(),"resultpoints"))
     return opt.parseOutputTag(elem);
 
@@ -314,6 +318,14 @@ bool SIMbase::parse (const TiXmlElement* elem)
   }
 
   return result;
+}
+
+
+const char** SIMbase::getPrioritizedTags () const
+{
+  // Tags to be parsed first, and in the order specified
+  static const char* special[] = { "discretization", "geometry", 0 };
+  return special;
 }
 
 
