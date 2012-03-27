@@ -15,9 +15,8 @@
 #include "SIMbase.h"
 #include "Profiler.h"
 #include "Utilities.h"
-#include <sstream>
-
 #include "tinyxml.h"
+#include <sstream>
 
 
 NonLinSIM::NonLinSIM (SIMbase* sim) : model(sim), nBlock(0)
@@ -105,67 +104,68 @@ bool NonLinSIM::parse (char* keyWord, std::istream& is)
 }
 
 
-void NonLinSIM::initSystem (int mType, size_t nGauss)
-{
-  model->initSystem(mType,1,1);
-  model->setAssociatedRHS(0,0);
-  model->setQuadratureRule(nGauss);
-}
-
-
 bool NonLinSIM::parse (const TiXmlElement* elem)
 {
   if (strcasecmp(elem->Value(),"nonlinearsolver"))
     return model->parse(elem);
 
+  const char* value = 0;
   const TiXmlElement* child = elem->FirstChildElement();
-  while (child) {
+  for (; child; child = child->NextSiblingElement())
+
     if (!strcasecmp(child->Value(),"timestepping")) {
-      const TiXmlElement* step = child->FirstChildElement("step");
       steps.clear();
-      while (step) {
+      const TiXmlElement* step = child->FirstChildElement("step");
+      for (; step; step = step->NextSiblingElement()) {
         double start = 0.0, end = 0.0, dt = 0.0;
-        std::pair<std::vector<double>,double> tstep;
+        std::pair<std::vector<double>,double> timeStep;
 	utl::getAttribute(step,"start",start);
 	utl::getAttribute(step,"end",end);
-        if (steps.empty())
-          startTime = start;
-        if (step->FirstChild() && step->FirstChild()->Value()) {
-          std::istringstream cline(child->FirstChild()->Value());
+        if (steps.empty()) startTime = start;
+        if (step->FirstChild()) {
+          std::istringstream cline(step->FirstChild()->Value());
           cline >> dt;
-          if (dt > 1.0 && ceil(dt) == dt) { // number of steps specified
-            dt = (end-steps.empty()?start:steps.back().second)/dt;
-            tstep.first.push_back(dt);
-          } else while (!cline.fail() && !cline.bad()) { // steps specified
-            tstep.first.push_back(dt);
+          if (dt > 1.0 && ceil(dt) == dt) {
+            // The number of steps are specified
+            dt = (end - (steps.empty() ? start : steps.back().second))/dt;
+            timeStep.first.push_back(dt);
+          }
+          else while (!cline.fail() && !cline.bad()) {
+            // The time step size(s) is/are specified
+            timeStep.first.push_back(dt);
             cline >> dt;
           }
-          tstep.second = end;
-          steps.push_back(tstep);
+          timeStep.second = end;
+          steps.push_back(timeStep);
         }
       }
       stopTime = steps.back().second;
-    } else if (!strcasecmp(child->Value(),"maxits")) {
-      if (child->FirstChild() && child->FirstChild()->Value())
-        maxit = atoi(child->FirstChild()->Value());
-    } else if (!strcasecmp(child->Value(),"nupdate")) {
-      if (child->FirstChild() && child->FirstChild()->Value())
-        nupdat = atoi(child->FirstChild()->Value());
-    } else if (!strcasecmp(child->Value(),"rtol")) {
-      if (child->FirstChild() && child->FirstChild()->Value())
-        convTol = atof(child->FirstChild()->Value());
-    } else if (!strcasecmp(child->Value(),"dtol")) {
-      if (child->FirstChild() && child->FirstChild()->Value())
-        divgLim = atof(child->FirstChild()->Value());
-    } else if (!strcasecmp(child->Value(),"eta")) {
-      if (child->FirstChild() && child->FirstChild()->Value())
-        eta = atof(child->FirstChild()->Value());
     }
 
-    child = child->NextSiblingElement();
-  }
+    else if ((value = utl::getValue(child,"maxits")))
+      maxit = atoi(value);
+
+    else if ((value = utl::getValue(child,"nupdate")))
+      nupdat = atoi(value);
+
+    else if ((value = utl::getValue(child,"rtol")))
+      convTol = atof(value);
+
+    else if ((value = utl::getValue(child,"dtol")))
+      divgLim = atof(value);
+
+    else if ((value = utl::getValue(child,"eta")))
+      eta = atof(value);
 
   return true;
+}
+
+
+void NonLinSIM::initSystem (int mType, size_t nGauss)
+{
+  model->initSystem(mType,1,1);
+  model->setAssociatedRHS(0,0);
+  model->setQuadratureRule(nGauss);
 }
 
 
@@ -226,6 +226,7 @@ bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode,
     return false;
 
   bool newTangent = true;
+  model->setQuadratureRule(model->opt.nGauss[0]);
   if (!model->assembleSystem(param.time,solution,newTangent))
     return false;
 
@@ -424,8 +425,11 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName,
   bool haveRFs = model->getCurrentReactions(RF,solution.front());
 
   if (energyNorm)
+  {
+    model->setQuadratureRule(model->opt.nGauss[1]);
     if (!model->solutionNorms(time,solution,gNorm))
       gNorm.clear();
+  }
 
   if (myPid == 0)
   {
