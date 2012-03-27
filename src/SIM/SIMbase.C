@@ -1689,8 +1689,8 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
       haveXsol = mySol->getVectorSol() != NULL;
     }
 
-  bool doProject = (opt.discretization == ASM::Spline ||
-		    opt.discretization == ASM::SplineC1) && !opt.project.empty();
+  bool project = (opt.discretization == ASM::Spline ||
+		  opt.discretization == ASM::SplineC1) && !opt.project.empty();
 
   for (i = 0; i < myModel.size(); i++)
   {
@@ -1731,17 +1731,15 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
       field.fill(0.0);
       if (scalarEq)
       {
+	const RealFunc& pSol = *mySol->getScalarSol();
 	for (j = 1; cit != grid->end_XYZ() && haveXsol; j++, cit++)
-	  if (!myProblem->evalPrimSol(field(1,j),*mySol->getScalarSol(),*cit))
-	    haveXsol = false;
+	  field(1,j) = pSol(Vec4(*cit,time));
       }
       else
       {
+	const VecFunc& pSol = *mySol->getVectorSol();
 	for (j = 1; cit != grid->end_XYZ() && haveXsol; j++, cit++)
-	  if (myProblem->evalPrimSol(lovec,*mySol->getVectorSol(),*cit))
-	    field.fillColumn(j,lovec);
-	  else
-	    haveXsol = false;
+	  field.fillColumn(j,pSol(Vec4(*cit,time)).ptr());
       }
 
       for (j = 1; j <= field.rows() && k < pMAX && haveXsol; j++)
@@ -1771,7 +1769,7 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
       else
 	sID[k++].push_back(nBlock);
 
-    if (doProject && myProblem->getNoFields(2) > 0)
+    if (project && myProblem->getNoFields(2) > 0)
     {
       // 3. Projection of secondary solution variables (tensorial splines only)
 
@@ -1797,12 +1795,13 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
       field.fill(0.0);
       for (j = 1; cit != grid->end_XYZ() && haveAsol; j++, cit++)
       {
+	Vec4 Xt(*cit,time);
 	if (mySol->hasScalarSol() == 3 || mySol->hasVectorSol() == 3)
-	  haveAsol = myProblem->evalSol(lovec,*mySol->getStressSol(),*cit);
+	  haveAsol = myProblem->evalSol(lovec,*mySol->getStressSol(),Xt);
 	else if (scalarEq)
-	  haveAsol = myProblem->evalSol(lovec,*mySol->getScalarSecSol(),*cit);
+	  haveAsol = myProblem->evalSol(lovec,*mySol->getScalarSecSol(),Xt);
 	else
-	  haveAsol = myProblem->evalSol(lovec,*mySol->getVectorSecSol(),*cit);
+	  haveAsol = myProblem->evalSol(lovec,*mySol->getVectorSecSol(),Xt);
 	if (haveAsol)
 	  field.fillColumn(j,lovec);
       }
@@ -1853,7 +1852,7 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
     if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,haveAsol?"FE":0),
 			  ++idBlock,iStep)) return false;
 
-  if (doProject)
+  if (project)
     for (i = 0; i < nf && j < sMAX && !sID[j].empty(); i++, j++)
       if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,"Projected"),
 			    ++idBlock,iStep)) return false;

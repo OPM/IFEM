@@ -111,13 +111,6 @@ bool IntegrandBase::evalSol (Vector& s, const Vector& N1, const Vector&,
 }
 
 
-bool IntegrandBase::evalPrimSol (Vector&, const VecFunc&, const Vec3&) const
-{
-  std::cerr <<" *** IntegrandBase::evalPrimSol not implemented."<< std::endl;
-  return false;
-}
-
-
 bool IntegrandBase::evalSol (Vector&, const TensorFunc&, const Vec3&) const
 {
   std::cerr <<" *** IntegrandBase::evalSol not implemented."<< std::endl;
@@ -128,13 +121,6 @@ bool IntegrandBase::evalSol (Vector&, const TensorFunc&, const Vec3&) const
 bool IntegrandBase::evalSol (Vector&, const STensorFunc&, const Vec3&) const
 {
   std::cerr <<" *** IntegrandBase::evalSol not implemented."<< std::endl;
-  return false;
-}
-
-
-bool IntegrandBase::evalPrimSol (double&, const RealFunc&, const Vec3&) const
-{
-  std::cerr <<" *** IntegrandBase::evalPrimSol not implemented."<< std::endl;
   return false;
 }
 

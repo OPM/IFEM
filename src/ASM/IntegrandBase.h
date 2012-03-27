@@ -113,8 +113,8 @@ public:
                               LocalIntegral& elmInt);
 
 
-  // Solution field evaluation interface
-  // ===================================
+  // Secondary solution field evaluation interface
+  // =============================================
 
   //! \brief Evaluates the secondary solution at a result point.
   //! \param[out] s The solution field values at current point
@@ -153,13 +153,6 @@ public:
 		       const std::vector<int>& MNPC1,
 		       const std::vector<int>& MNPC2) const;
 
-  //! \brief Evaluates the analytical primary solution at a result point.
-  //! \param[out] s The solution field values at current point
-  //! \param[in] asol The analytical solution field (vector field)
-  //! \param[in] X Cartesian coordinates of current point
-  virtual bool evalPrimSol(Vector& s,
-			   const VecFunc& asol, const Vec3& X) const;
-
   //! \brief Evaluates the analytical secondary solution at a result point.
   //! \param[out] s The solution field values at current point
   //! \param[in] asol The analytical solution field (tensor field)
@@ -173,13 +166,6 @@ public:
   //! \param[in] X Cartesian coordinates of current point
   virtual bool evalSol(Vector& s,
 		       const STensorFunc& asol, const Vec3& X) const;
-
-  //! \brief Evaluates the analytical primary solution at a result point.
-  //! \param[out] s The solution field value at current point
-  //! \param[in] asol The analytical solution field (scalar field)
-  //! \param[in] X Cartesian coordinates of current point
-  virtual bool evalPrimSol(double& s,
-			   const RealFunc& asol, const Vec3& X) const;
 
   //! \brief Evaluates the analytical secondary solution at a result point.
   //! \param[out] s The solution field values at current point
