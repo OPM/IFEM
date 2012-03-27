@@ -208,16 +208,45 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
 }
 
 
+bool SIM2D::parseBCTag (const TiXmlElement* elem)
+{
+  if (!strcasecmp(elem->Value(),"fixpoint") && !ignoreDirichlet)
+  {
+    if (!this->createFEMmodel()) return false;
+
+    int patch = 0, code = 12;
+    double rx = 0.0, ry = 0.0;
+    utl::getAttribute(elem,"patch",patch);
+    utl::getAttribute(elem,"code",code);
+    utl::getAttribute(elem,"rx",rx);
+    utl::getAttribute(elem,"ry",ry);
+    int pid = this->getLocalPatchIndex(patch);
+    if (pid < 1) return pid == 0;
+
+    ASM2D* pch = dynamic_cast<ASM2D*>(myModel[pid-1]);
+    if (!pch) return false;
+
+    std::cout <<"\tConstraining P"<< patch
+              <<" point at "<< rx <<" "<< ry
+              <<" with code "<< code << std::endl;
+    pch->constrainNode(rx,ry,code);
+  }
+
+  return true;
+}
+
+
 bool SIM2D::parse (const TiXmlElement* elem)
 {
   bool result = this->SIMbase::parse(elem);
 
   const TiXmlElement* child = elem->FirstChildElement();
-  while (child) {
+  for (; child; child = child->NextSiblingElement())
     if (!strcasecmp(elem->Value(),"geometry"))
       result &= this->parseGeometryTag(child);
-    child = child->NextSiblingElement();
-  }
+    else if (!strcasecmp(elem->Value(),"boundaryconditions"))
+      result &= this->parseBCTag(child);
+
   return result;
 }
 
@@ -541,16 +570,6 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code)
 }
 
 
-void SIM2D::setQuadratureRule (size_t ng)
-{
-  for (size_t i = 0; i < myModel.size(); i++)
-    if (!myModel.empty())
-      myModel[i]->setGauss(ng);
-
-  this->initIntegrationBuffers();
-}
-
-
 bool SIM2D::readPatch (std::istream& isp, int pchInd)
 {
   ASMbase* pch = ASM2D::create(opt.discretization,nf,mixedFEM);
@@ -571,13 +590,13 @@ bool SIM2D::readPatch (std::istream& isp, int pchInd)
 }
 
 
-bool SIM2D::readPatches (std::istream& isp)
+bool SIM2D::readPatches (std::istream& isp, const char* whiteSpace)
 {
   ASMbase* pch = 0;
   for (int pchInd = 1; isp.good(); pchInd++)
     if ((pch = ASM2D::create(opt.discretization,nf,mixedFEM)))
     {
-      std::cout <<"Reading patch "<< pchInd << std::endl;
+      std::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
       if (!pch->read(isp))
       {
 	delete pch;

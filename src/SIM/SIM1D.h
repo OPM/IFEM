@@ -30,13 +30,11 @@ public:
   //! \brief Empty destructor.
   virtual ~SIM1D() {}
 
-  //! \brief Defines the spatial numerical integration scheme to use.
-  //! \param[in] ng Number of Gauss points in each parameter direction
-  virtual void setQuadratureRule(size_t ng);
-
 private:
-  //! \brief Parses subtags of the \a geometry XML-tag.
+  //! \brief Parses a subelement of the \a geometry XML-tag.
   bool parseGeometryTag(const TiXmlElement* elem);
+  //! \brief Parses a subelement of the \a boundaryconditions XML-tag.
+  bool parseBCTag(const TiXmlElement* elem);
 
 protected:
   //! \brief Parses a data section from an XML document.
@@ -50,7 +48,8 @@ protected:
 
   //! \brief Reads patches from given input stream.
   //! \param[in] isp The input stream to read from
-  virtual bool readPatches(std::istream& isp);
+  //! \param[in] whiteSpace For message formatting
+  virtual bool readPatches(std::istream& isp, const char* whiteSpace);
   //! \brief Reads a patch from given input stream.
   //! \param[in] isp The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read

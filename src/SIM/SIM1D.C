@@ -151,16 +151,40 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
 }
 
 
+bool SIM1D::parseBCTag (const TiXmlElement* elem)
+{
+  if (!strcasecmp(elem->Value(),"fixpoint") && !ignoreDirichlet)
+  {
+    if (!this->createFEMmodel()) return false;
+
+    int patch = 0, code = 123;
+    double rx = 0.0;
+    utl::getAttribute(elem,"patch",patch);
+    utl::getAttribute(elem,"code",code);
+    utl::getAttribute(elem,"rx",rx);
+    int pid = this->getLocalPatchIndex(patch);
+    if (pid < 1) return pid == 0;
+
+    std::cout <<"\tConstraining P"<< patch
+              <<" point at "<< rx <<" with code "<< code << std::endl;
+    static_cast<ASMs1D*>(myModel[pid-1])->constrainNode(rx,code);
+  }
+
+  return true;
+}
+
+
 bool SIM1D::parse (const TiXmlElement* elem)
 {
   bool result = this->SIMbase::parse(elem);
 
   const TiXmlElement* child = elem->FirstChildElement();
-  while (child) {
+  for (; child; child = child->NextSiblingElement())
     if (!strcasecmp(elem->Value(),"geometry"))
       result &= this->parseGeometryTag(child);
-    child = child->NextSiblingElement();
-  }
+    else if (!strcasecmp(elem->Value(),"boundaryconditions"))
+      result &= this->parseBCTag(child);
+
   return result;
 }
 
@@ -388,16 +412,6 @@ bool SIM1D::addConstraint (int patch, int lndx, int, int dirs, int code)
 }
 
 
-void SIM1D::setQuadratureRule (size_t ng)
-{
-  for (size_t i = 0; i < myModel.size(); i++)
-    if (!myModel.empty())
-      myModel[i]->setGauss(ng);
-
-  this->initIntegrationBuffers();
-}
-
-
 bool SIM1D::readPatch (std::istream& isp, int pchInd)
 {
   ASMs1D* pch = 0;
@@ -426,12 +440,12 @@ bool SIM1D::readPatch (std::istream& isp, int pchInd)
 }
 
 
-bool SIM1D::readPatches (std::istream& isp)
+bool SIM1D::readPatches (std::istream& isp, const char* whiteSpace)
 {
   ASMbase* pch = 0;
   for (int patchNo = 1; isp.good(); patchNo++)
   {
-    std::cout <<"Reading patch "<< patchNo << std::endl;
+    std::cout << whiteSpace <<"Reading patch "<< patchNo << std::endl;
     switch (opt.discretization)
       {
       case ASM::Lagrange:

@@ -154,7 +154,8 @@ public:
   bool setMode(int mode, bool resetSol = false);
 
   //! \brief Defines the spatial numerical integration scheme to use.
-  virtual void setQuadratureRule(size_t) {}
+  //! \param[in] ng Number of Gauss points in each parameter direction
+  void setQuadratureRule(size_t ng);
 
   //! \brief Prints out problem-specific data to the given stream.
   void printProblem(std::ostream& os) const;
@@ -560,7 +561,8 @@ protected:
 
   //! \brief Reads patches from given input stream.
   //! \param[in] isp The input stream to read from
-  virtual bool readPatches(std::istream& isp) = 0;
+  //! \param[in] whiteSpace For message formatting
+  virtual bool readPatches(std::istream& isp, const char* whiteSpace = "") = 0;
   //! \brief Reads a patch from given input stream.
   //! \param[in] isp The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read

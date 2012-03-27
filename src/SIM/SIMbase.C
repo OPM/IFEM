@@ -121,7 +121,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
       const char* file = elem->FirstChild()->Value();
       std::cout <<"\tReading data file "<< file << std::endl;
       std::ifstream isp(file);
-      this->readPatches(isp);
+      this->readPatches(isp,"\t");
 
       if (myModel.empty()) {
         std::cerr <<" *** SIMbase::parse: No patches read"<< std::endl;
@@ -280,7 +280,7 @@ bool SIMbase::parseOutputTag (const TiXmlElement* elem)
   {
     int patch = 0;
     ResultPoint thePoint;
-    if (utl::getAttribute(point,"patch",patch) && patch >= 0)
+    if (utl::getAttribute(point,"patch",patch) && patch > 0)
       thePoint.patch = patch;
     if (myPid == 0)
       std::cout <<"\n\tPoint "<< i <<": P"<< thePoint.patch <<" xi =";
@@ -906,6 +906,16 @@ bool SIMbase::setMode (int mode, bool resetSol)
   if (resetSol) myProblem->resetSolution();
 
   return true;
+}
+
+
+void SIMbase::setQuadratureRule (size_t ng)
+{
+  for (size_t i = 0; i < myModel.size(); i++)
+    if (!myModel.empty())
+      myModel[i]->setGauss(ng);
+
+  this->initIntegrationBuffers();
 }
 
 
