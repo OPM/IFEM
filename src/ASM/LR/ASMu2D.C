@@ -37,7 +37,7 @@
 ASMu2D::ASMu2D (unsigned char n_s, unsigned char n_f)
 	: ASMunstruct(2,n_s,n_f), lrspline(0), tensorspline(0), workingEl(-1)
 {
-  ASMunstruct::resetNumbering();
+  ASMunstruct::resetNumbering(); // Replace this when going multi-patch...
 }
 
 
@@ -555,32 +555,40 @@ void ASMu2D::constrainEdgeLocal (int dir, int dof, int code)
 
 void ASMu2D::constrainCorner (int I, int J, int dof, int code)
 {
-	std::vector<LR::Basisfunction*> edgeFunctions;
-	if     (I == 0 && J == 0)
-		lrspline->getEdgeFunctions(edgeFunctions, LR::SOUTH_WEST);
-	else if(I >  0 && J == 0)
-		lrspline->getEdgeFunctions(edgeFunctions, LR::SOUTH_EAST);
-	else if(I == 0 && J >  0)
-		lrspline->getEdgeFunctions(edgeFunctions, LR::NORTH_WEST);
-	else
-		lrspline->getEdgeFunctions(edgeFunctions, LR::NORTH_EAST);
+  std::vector<LR::Basisfunction*> edgeFunctions;
 
-#ifdef SP_DEBUG
-	if(edgeFunctions.size() != 1) {
-		std::cerr <<" *** ASMu2D::constrainCorner: more than one corner"
-		          <<" returned from lrspline->getEdgeFunctions()" << std::endl;
-		return;
-	}
-#endif
+  // Note: Corners are identified by "coordinates" {-1,-1} {-1,1} {1,-1} {1,1}.
+  if (I < 0) {
+    if (J < 0)
+      lrspline->getEdgeFunctions(edgeFunctions, LR::SOUTH_WEST);
+    else if (J > 0)
+      lrspline->getEdgeFunctions(edgeFunctions, LR::NORTH_WEST);
+  }
+  else if (I > 0) {
+    if (J < 0)
+      lrspline->getEdgeFunctions(edgeFunctions, LR::SOUTH_EAST);
+    else if (J > 0)
+      lrspline->getEdgeFunctions(edgeFunctions, LR::NORTH_EAST);
+  }
 
-	this->prescribe(edgeFunctions.front()->getId()+1,dof%10,code);
+  if (edgeFunctions.empty())
+    std::cerr <<" *** ASMu2D::constrainCorner: Invalid corner I,J="<< I <<","<< J << std::endl;
+  else
+    this->prescribe(edgeFunctions.front()->getId()+1,dof,code);
+
+  if (edgeFunctions.size() > 1)
+    std::cerr <<"  ** ASMu2D::constrainCorner: "<< edgeFunctions.size()
+	      <<" corners were returned from lrspline->getEdgeFunctions()"<< std::endl;
 }
 
 
-// Hopefully we don't have to constrain non-corner singlenodes inside patches
+// Hopefully we don't have to constrain non-corner single nodes inside patches.
+// KMO: Actually, we would like to have this, to prescribe mid-edge points, etc.
+// Can it be done, Kjetil?
 void ASMu2D::constrainNode (double xi, double eta, int dof, int code)
 {
-#if 0
+  std::cerr <<" *** ASMu2D::constrainNode: Not implemented yet!"<< std::endl;
+  /*
 	if (xi  < 0.0 || xi  > 1.0) return;
 	if (eta < 0.0 || eta > 1.0) return;
 
@@ -592,7 +600,7 @@ void ASMu2D::constrainNode (double xi, double eta, int dof, int code)
 	if (eta > 0.0) node += n1*int(0.5+(n2-1)*eta);
 
 	this->prescribe(node,dof,code);
-#endif
+  */
 }
 
 

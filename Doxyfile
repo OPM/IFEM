@@ -565,7 +565,7 @@ WARN_LOGFILE           =
 # with spaces.
 
 INPUT                  = doc Apps/Poisson Apps/LinearElasticity \
-			 src/SIM src/ASM src/Integrands \
+			 src/SIM src/ASM src/ASM/LR src/Integrands \
 			 src/Eig src/LinAlg src/Utility
 
 # This tag can be used to specify the character encoding of the source files 

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<!-- Adaptive analysis of a linear-elastic 2D L-shaped domain.
+     Quadratic LR B-splines elements. !-->
+
+<simulation>
+
+  <!-- General - geometry definitions !-->
+  <geometry>
+    <patchfile type="bsplines">Lshape-1x1-p1.g2</patchfile>
+    <raiseorder patch="1" u="1" v="1"/>
+    <refine type="uniform" patch="1" u="3" v="3"/>
+  </geometry>
+
+  <!-- General - boundary conditions !-->
+  <boundaryconditions>
+    <propertycodes>
+      <code value="1">
+        <patch index="1" vertex="4"/>
+      </code>
+      <code value="12">
+        <patch index="1" vertex="2"/>
+      </code>
+      <code value="1000">
+        <patch index="1" edge="1"/>
+        <patch index="1" edge="2"/>
+        <patch index="1" edge="3"/>
+      </code>
+    </propertycodes>
+    <dirichlet code="1"/>
+    <dirichlet code="12"/>
+    <!-- fixpoint is not yet implemented for LR Splines, TODO kjetil?
+    <fixpoint patch="1" rx="0.5" ry="0.0" code="2"/>
+    <fixpoint patch="1" rx="0.5" ry="1.0" code="12"/>
+    !-->
+  </boundaryconditions>
+
+  <!-- General - numerical integration scheme !-->
+  <discretization>
+    <nGauss>3 4</nGauss>
+  </discretization>
+
+  <!-- General - postprocessing !-->
+  <postprocessing>
+    <projection>
+      <Global/>
+      <DGL2/>
+      <CGL2/>
+    </projection>
+    <vtfformat>BINARY</vtfformat>
+  </postprocessing>
+
+  <!-- General - adaptive control !-->
+  <adaptive>
+    <beta>10</beta>
+    <errtol>0.00001</errtol>
+    <maxstep>10</maxstep>
+    <maxDOFs>13000</maxDOFs>
+    <multiplicity>1</multiplicity>
+    <scheme>minSpan</scheme>
+    <symmetry>2</symmetry>
+    <use_norm>2</use_norm>
+  </adaptive>
+
+  <!-- Problem specific block !-->
+  <elasticity>
+    <isotropic E="1.0e5" nu="0.3"/>
+    <anasol type="Lshape" a="1.0" F0="1.0e5" nu="0.3" code="1000"/>
+  </elasticity>
+
+</simulation>
