@@ -16,22 +16,7 @@
 
 #include "SIMLinEl2D.h"
 #include "SIMLinEl3D.h"
-
-
-namespace SIM
-{
-  //! \brief Enum defining various finite deformation formulations.
-  enum NlFormulation
-  {
-    TOTAL_LAGRANGE   = 3,
-    NEOHOOKE         = 4,
-    NEOHOOKE_IV      = 5,
-    UPDATED_LAGRANGE = 6,
-    MIXED_QnPn1      = 7,
-    MIXED_QnQn1      = 8,
-    FBAR             = 9
-  };
-};
+#include "NLoptions.h"
 
 
 /*!
@@ -52,6 +37,12 @@ protected:
   //! \param[in] keyWord Keyword of current data section to read
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
+  //! \brief Parses a data section from an XML element.
+  //! \param[in] elem The XML element to parse
+  virtual bool parse(const TiXmlElement* elem);
+
+private:
+  NLoptions nlo; //!< Input options defining the nonlinear formulation
 };
 
 
@@ -75,6 +66,12 @@ protected:
   //! \param[in] keyWord Keyword of current data section to read
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
+  //! \brief Parses a data section from an XML element.
+  //! \param[in] elem The XML element to parse
+  virtual bool parse(const TiXmlElement* elem);
+
+private:
+  NLoptions nlo; //!< Input options defining the nonlinear formulation
 };
 
 #endif

@@ -16,47 +16,17 @@
 #include "LinearMaterial.h"
 #include "NeoHookeMaterial.h"
 #include "PlasticMaterial.h"
-#include "NonlinearElasticityFbar.h"
-#include "NonlinearElasticityULMixed.h"
-#include "NonlinearElasticityULMX.h"
-#include "NonlinearElasticity.h"
+#include "Elasticity.h"
 #include "Utilities.h"
 #include "Property.h"
+#include "tinyxml.h"
 
 
-SIMFiniteDefEl2D::SIMFiniteDefEl2D (const std::vector<int>& options)
-  : SIMLinEl2D(SIM::NONE)
+SIMFiniteDefEl2D::SIMFiniteDefEl2D (const std::vector<int>& options) : nlo(2)
 {
-  int form = options.size() > 0 ? options[0] : 0; // problem formulation
-  int pOrd = options.size() > 1 ? options[1] : 0; // pressure field order
-
-  switch (form)
-    {
-    case SIM::FBAR:
-      // F-bar formulation
-      myProblem = new NonlinearElasticityFbar(2,axiSymmetry,pOrd);
-      break;
-    case SIM::MIXED_QnQn1:
-      nf[1] = 2; // continuous volumetric change and pressure fields
-      myProblem = new NonlinearElasticityULMixed(2,axiSymmetry);
-      break;
-    case SIM::MIXED_QnPn1:
-      // Local discontinuous volumetric change and pressure fields
-      myProblem = new NonlinearElasticityULMX(2,axiSymmetry,pOrd);
-      break;
-    case SIM::UPDATED_LAGRANGE:
-      myProblem = new NonlinearElasticityUL(2,axiSymmetry);
-      break;
-    case SIM::TOTAL_LAGRANGE:
-      myProblem = new NonlinearElasticityTL(2,axiSymmetry);
-      break;
-    case SIM::NONLINEAR: // Old tensor-based TL-formulation
-      myProblem = new NonlinearElasticity(2);
-      break;
-    default:
-      std::cerr <<" *** SIMFiniteDefEl2D: Unknown problem formulation "
-		<< form << std::endl;
-    }
+  nlo.form = options.size() > 0 ? options[0] : 0; // problem formulation
+  nlo.pOrd = options.size() > 1 ? options[1] : 0; // pressure field order
+  if (nlo.form == SIM::MIXED_QnQn1) nf[1] = 2;
 }
 
 
@@ -67,8 +37,6 @@ bool SIMFiniteDefEl2D::parse (char* keyWord, std::istream& is)
     int nmat = atoi(keyWord+9);
     if (myPid == 0)
       std::cout <<"\nNumber of isotropic materials: "<< nmat << std::endl;
-
-    bool isUL = dynamic_cast<NonlinearElasticityUL*>(myProblem) ? true : false;
 
     char* cline = 0;
     for (int i = 0; i < nmat && (cline = utl::readLine(is)); i++)
@@ -81,11 +49,11 @@ bool SIMFiniteDefEl2D::parse (char* keyWord, std::istream& is)
       double nu  = atof(strtok(NULL," "));
       double rho = atof(strtok(NULL," "));
       int matVer = (cline = strtok(NULL," ")) ? atoi(cline) : -1;
-      if (matVer >= 0 && isUL)
+      if (matVer >= 0 && nlo.form >= SIM::UPDATED_LAGRANGE)
 	mVec.push_back(new NeoHookeMaterial(E,nu,rho,matVer));
       else
 	mVec.push_back(new LinIsotropic(E,nu,rho,!planeStrain,axiSymmetry));
-      if (matVer < 0 && isUL)
+      if (matVer < 0 && nlo.form >= SIM::UPDATED_LAGRANGE)
 	mVec.back() = new LinearMaterial(mVec.back());
 
       if (myPid == 0)
@@ -132,11 +100,95 @@ bool SIMFiniteDefEl2D::parse (char* keyWord, std::istream& is)
   else
     return this->SIMLinEl2D::parse(keyWord,is);
 
+  if (!myProblem)
+    myProblem = nlo.getIntegrand();
+
   if (!mVec.empty())
-  {
-    Elasticity* elp = dynamic_cast<Elasticity*>(myProblem);
-    if (elp) elp->setMaterial(mVec.front());
-  }
+    static_cast<Elasticity*>(myProblem)->setMaterial(mVec.front());
+
+  return true;
+}
+
+
+bool SIMFiniteDefEl2D::parse (const TiXmlElement* elem)
+{
+  if (strcasecmp(elem->Value(),"finitedeformation"))
+    return this->SIMLinEl2D::parse(elem);
+
+  const TiXmlElement* child = elem->FirstChildElement();
+  for (; child; child = child->NextSiblingElement())
+
+    if (!strcasecmp(child->Value(),"formulation"))
+    {
+      nlo.parse(child);
+      nf[1] = nlo.form == SIM::MIXED_QnQn1 ? 2 : 0;
+    }
+
+    else if (!strcasecmp(child->Value(),"isotropic"))
+    {
+      int code = 0, matVer = -1;
+      if (utl::getAttribute(child,"code",code) && code > 0)
+        setPropertyType(code,Property::MATERIAL,mVec.size());
+      double E = 1000.0, nu = 0.3, rho = 1.0;
+      utl::getAttribute(child,"E",E);
+      utl::getAttribute(child,"nu",nu);
+      utl::getAttribute(child,"rho",rho);
+      utl::getAttribute(child,"version",matVer);
+      if (matVer >= 0 && nlo.form >= SIM::UPDATED_LAGRANGE)
+	mVec.push_back(new NeoHookeMaterial(E,nu,rho,matVer));
+      else
+	mVec.push_back(new LinIsotropic(E,nu,rho,!planeStrain,axiSymmetry));
+      if (matVer < 0 && nlo.form >= SIM::UPDATED_LAGRANGE)
+	mVec.back() = new LinearMaterial(mVec.back());
+
+      if (myPid == 0)
+        std::cout <<"\tMaterial code "<< code <<": "
+                  << E <<" "<< nu <<" "<< rho <<" ("<< matVer <<")"<< std::endl;
+    }
+
+    else if (!strcasecmp(child->Value(),"plastic"))
+    {
+      int code = 0;
+      if (utl::getAttribute(child,"code",code) && code > 0)
+        setPropertyType(code,Property::MATERIAL,mVec.size());
+
+      RealArray pMAT;
+      if (child->FirstChild())
+      {
+	std::string value(child->FirstChild()->Value());
+	char* cval = strtok(const_cast<char*>(value.c_str())," ");
+	for (; cval; cval = strtok(NULL," "))
+	  pMAT.push_back(atof(cval));
+      }
+      if (pMAT.size() < 11) pMAT.resize(11,0.0);
+      utl::getAttribute(child,"Bmod" ,pMAT[0]);
+      utl::getAttribute(child,"Emod" ,pMAT[0]);
+      utl::getAttribute(child,"Smod" ,pMAT[1]);
+      utl::getAttribute(child,"nu"   ,pMAT[1]);
+      utl::getAttribute(child,"rho"  ,pMAT[3]);
+      utl::getAttribute(child,"Hiso" ,pMAT[4]);
+      utl::getAttribute(child,"Hkin" ,pMAT[5]);
+      utl::getAttribute(child,"yield",pMAT[7]);
+      utl::getAttribute(child,"Y0"   ,pMAT[8]);
+      utl::getAttribute(child,"Yinf" ,pMAT[8]);
+      utl::getAttribute(child,"beta" ,pMAT[9]);
+      utl::getAttribute(child,"istrt",pMAT[10]);
+      mVec.push_back(new PlasticMaterial(pMAT));
+
+      if (myPid == 0)
+      {
+        std::cout <<"\tMaterial code "<< code <<":";
+	for (size_t i = 0; i < pMAT.size(); i++)
+	  std::cout <<" "<< pMAT[i];
+	std::cout << std::endl;
+      }
+    }
+
+  if (!myProblem)
+    myProblem = nlo.getIntegrand();
+
+  if (!mVec.empty())
+    static_cast<Elasticity*>(myProblem)->setMaterial(mVec.front());
 
   return true;
 }
@@ -144,38 +196,11 @@ bool SIMFiniteDefEl2D::parse (char* keyWord, std::istream& is)
 
 SIMFiniteDefEl3D::SIMFiniteDefEl3D (bool checkRHS,
 				    const std::vector<int>& options)
-  : SIMLinEl3D(checkRHS,SIM::NONE)
+  : SIMLinEl3D(checkRHS), nlo(3)
 {
-  int form = options.size() > 0 ? options[0] : 0; // problem formulation
-  int pOrd = options.size() > 1 ? options[1] : 0; // pressure field order
-
-  switch (form)
-    {
-    case SIM::FBAR:
-      // F-bar formulation
-      myProblem = new NonlinearElasticityFbar(3,false,pOrd);
-      break;
-    case SIM::MIXED_QnQn1:
-      nf[1] = 2; // continuous volumetric change and pressure fields
-      myProblem = new NonlinearElasticityULMixed();
-      break;
-    case SIM::MIXED_QnPn1:
-      // Local discontinuous volumetric change and pressure fields
-      myProblem = new NonlinearElasticityULMX(3,false,pOrd);
-      break;
-    case SIM::UPDATED_LAGRANGE:
-      myProblem = new NonlinearElasticityUL();
-      break;
-    case SIM::TOTAL_LAGRANGE:
-      myProblem = new NonlinearElasticityTL();
-      break;
-    case SIM::NONLINEAR: // Old tensor-based TL-formulation
-      myProblem = new NonlinearElasticity();
-      break;
-    default:
-      std::cerr <<" *** SIMFiniteDefEl3D: Unknown problem formulation "
-		<< form << std::endl;
-    }
+  nlo.form = options.size() > 0 ? options[0] : 0; // problem formulation
+  nlo.pOrd = options.size() > 1 ? options[1] : 0; // pressure field order
+  if (nlo.form == SIM::MIXED_QnQn1) nf[1] = 2;
 }
 
 
@@ -186,8 +211,6 @@ bool SIMFiniteDefEl3D::parse (char* keyWord, std::istream& is)
     int nmat = atoi(keyWord+9);
     if (myPid == 0)
       std::cout <<"\nNumber of isotropic materials: "<< nmat << std::endl;
-
-    bool isUL = dynamic_cast<NonlinearElasticityUL*>(myProblem) ? true : false;
 
     char* cline = 0;
     for (int i = 0; i < nmat && (cline = utl::readLine(is)); i++)
@@ -200,11 +223,11 @@ bool SIMFiniteDefEl3D::parse (char* keyWord, std::istream& is)
       double nu  = atof(strtok(NULL," "));
       double rho = atof(strtok(NULL," "));
       int matVer = (cline = strtok(NULL," ")) ? atoi(cline) : -1;
-      if (matVer >= 0 && isUL)
+      if (matVer >= 0 && nlo.form >= SIM::UPDATED_LAGRANGE)
 	mVec.push_back(new NeoHookeMaterial(E,nu,rho,matVer));
       else
 	mVec.push_back(new LinIsotropic(E,nu,rho));
-      if (matVer < 0 && isUL)
+      if (matVer < 0 && nlo.form >= SIM::UPDATED_LAGRANGE)
 	mVec.back() = new LinearMaterial(mVec.back());
 
       if (myPid == 0)
@@ -243,7 +266,7 @@ bool SIMFiniteDefEl3D::parse (char* keyWord, std::istream& is)
 
   else if (!strncasecmp(keyWord,"MATERIAL",8))
   {
-    std::cerr <<" *** SIMFiniteDefEl2D::parse: The MATERIAL keyword"
+    std::cerr <<" *** SIMFiniteDefEl3D::parse: The MATERIAL keyword"
 	      <<" is not supported\n     for finite deformation analysis."
 	      <<" You must use ISOTROPIC instead."<< std::endl;
     return false;
@@ -251,11 +274,95 @@ bool SIMFiniteDefEl3D::parse (char* keyWord, std::istream& is)
   else
     return this->SIMLinEl3D::parse(keyWord,is);
 
+  if (!myProblem)
+    myProblem = nlo.getIntegrand();
+
   if (!mVec.empty())
-  {
-    Elasticity* elp = dynamic_cast<Elasticity*>(myProblem);
-    if (elp) elp->setMaterial(mVec.front());
-  }
+    static_cast<Elasticity*>(myProblem)->setMaterial(mVec.front());
+
+  return true;
+}
+
+
+bool SIMFiniteDefEl3D::parse (const TiXmlElement* elem)
+{
+  if (strcasecmp(elem->Value(),"finitedeformation"))
+    return this->SIMLinEl3D::parse(elem);
+
+  const TiXmlElement* child = elem->FirstChildElement();
+  for (; child; child = child->NextSiblingElement())
+
+    if (!strcasecmp(child->Value(),"formulation"))
+    {
+      nlo.parse(child);
+      nf[1] = nlo.form == SIM::MIXED_QnQn1 ? 2 : 0;
+    }
+
+    else if (!strcasecmp(child->Value(),"isotropic"))
+    {
+      int code = 0, matVer = -1;
+      if (utl::getAttribute(child,"code",code) && code > 0)
+        setPropertyType(code,Property::MATERIAL,mVec.size());
+      double E = 1000.0, nu = 0.3, rho = 1.0;
+      utl::getAttribute(child,"E",E);
+      utl::getAttribute(child,"nu",nu);
+      utl::getAttribute(child,"rho",rho);
+      utl::getAttribute(child,"version",matVer);
+      if (matVer >= 0 && nlo.form >= SIM::UPDATED_LAGRANGE)
+	mVec.push_back(new NeoHookeMaterial(E,nu,rho,matVer));
+      else
+	mVec.push_back(new LinIsotropic(E,nu,rho));
+      if (matVer < 0 && nlo.form >= SIM::UPDATED_LAGRANGE)
+	mVec.back() = new LinearMaterial(mVec.back());
+
+      if (myPid == 0)
+        std::cout <<"\tMaterial code "<< code <<": "
+                  << E <<" "<< nu <<" "<< rho <<" ("<< matVer <<")"<< std::endl;
+    }
+
+    else if (!strcasecmp(child->Value(),"plastic"))
+    {
+      int code = 0;
+      if (utl::getAttribute(child,"code",code) && code > 0)
+        setPropertyType(code,Property::MATERIAL,mVec.size());
+
+      RealArray pMAT;
+      if (child->FirstChild())
+      {
+	std::string value(child->FirstChild()->Value());
+	char* cval = strtok(const_cast<char*>(value.c_str())," ");
+	for (; cval; cval = strtok(NULL," "))
+	  pMAT.push_back(atof(cval));
+      }
+      if (pMAT.size() < 11) pMAT.resize(11,0.0);
+      utl::getAttribute(child,"Bmod" ,pMAT[0]);
+      utl::getAttribute(child,"Emod" ,pMAT[0]);
+      utl::getAttribute(child,"Smod" ,pMAT[1]);
+      utl::getAttribute(child,"nu"   ,pMAT[1]);
+      utl::getAttribute(child,"rho"  ,pMAT[3]);
+      utl::getAttribute(child,"Hiso" ,pMAT[4]);
+      utl::getAttribute(child,"Hkin" ,pMAT[5]);
+      utl::getAttribute(child,"yield",pMAT[7]);
+      utl::getAttribute(child,"Y0"   ,pMAT[8]);
+      utl::getAttribute(child,"Yinf" ,pMAT[8]);
+      utl::getAttribute(child,"beta" ,pMAT[9]);
+      utl::getAttribute(child,"istrt",pMAT[10]);
+      mVec.push_back(new PlasticMaterial(pMAT));
+
+      if (myPid == 0)
+      {
+        std::cout <<"\tMaterial code "<< code <<":";
+	for (size_t i = 0; i < pMAT.size(); i++)
+	  std::cout <<" "<< pMAT[i];
+	std::cout << std::endl;
+      }
+    }
+
+  if (!myProblem)
+    myProblem = nlo.getIntegrand();
+
+  if (!mVec.empty())
+    static_cast<Elasticity*>(myProblem)->setMaterial(mVec.front());
 
   return true;
 }
