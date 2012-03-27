@@ -226,7 +226,7 @@ bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode,
     return false;
 
   bool newTangent = true;
-  model->setQuadratureRule(model->opt.nGauss[0]);
+  model->setQuadratureRule(model->opt.nGauss[0],true);
   if (!model->assembleSystem(param.time,solution,newTangent))
     return false;
 

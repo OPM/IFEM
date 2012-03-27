@@ -794,23 +794,6 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 }
 
 
-void SIMbase::initIntegrationBuffers ()
-{
-  nIntGP = nBouGP = 0;
-  for (size_t i = 0; i < myModel.size(); i++)
-    myModel[i]->getNoIntPoints(nIntGP); // count the interior integration points
-
-  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); p++)
-    if (p->pcode == Property::NEUMANN)
-      // Count the boundary integration points
-      if (p->patch > 0 && p->patch <= myModel.size())
-        myModel[p->patch-1]->getNoBouPoints(nBouGP,p->ldim,p->lindx);
-
-  // Let the integrand know how many integration points in total do we have
-  if (myProblem) myProblem->initIntegration(nIntGP,nBouGP);
-}
-
-
 bool SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
 {
   if (code < 0)
@@ -909,13 +892,34 @@ bool SIMbase::setMode (int mode, bool resetSol)
 }
 
 
-void SIMbase::setQuadratureRule (size_t ng)
+void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers)
 {
+  nIntGP = nBouGP = 0;
   for (size_t i = 0; i < myModel.size(); i++)
     if (!myModel.empty())
+    {
       myModel[i]->setGauss(ng);
+      // Count the interior integration points
+      myModel[i]->getNoIntPoints(nIntGP);
+    }
 
-  this->initIntegrationBuffers();
+  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); p++)
+    if (p->pcode == Property::NEUMANN)
+      if (p->patch > 0 && p->patch <= myModel.size())
+      {
+	// Account for possibly more than one Neumann property on a boundary
+	bool notCounted = true;
+	for (PropertyVec::const_iterator q = myProps.begin(); q != p; q++)
+	  if (q->patch == p->patch && q->lindx == p->lindx)
+	    notCounted = false;
+
+	if (notCounted) // Count the boundary integration points
+	  myModel[p->patch-1]->getNoBouPoints(nBouGP,p->ldim,p->lindx);
+      }
+
+  // Let the integrand know how many integration points in total do we have
+  if (myProblem && redimBuffers)
+    myProblem->initIntegration(nIntGP,nBouGP);
 }
 
 

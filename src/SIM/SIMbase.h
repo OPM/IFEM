@@ -155,7 +155,8 @@ public:
 
   //! \brief Defines the spatial numerical integration scheme to use.
   //! \param[in] ng Number of Gauss points in each parameter direction
-  void setQuadratureRule(size_t ng);
+  //! \param[in] redimBuffers Toggle initialization of internal buffer arrays
+  void setQuadratureRule(size_t ng, bool redimBuffers = false);
 
   //! \brief Prints out problem-specific data to the given stream.
   void printProblem(std::ostream& os) const;
@@ -480,9 +481,6 @@ public:
   NormBase* getNormIntegrand() const;
 
 protected:
-  //! \brief Allocates the problem-dependent integration point buffers, if any.
-  void initIntegrationBuffers();
-
   //! \brief Defines the type of a property set.
   //! \param[in] code The property code to be associated with the property type
   //! \param[in] ptype The property type to be associated with the given code

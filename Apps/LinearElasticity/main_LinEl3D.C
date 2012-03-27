@@ -286,7 +286,7 @@ int main (int argc, char** argv)
   else
     pOpt.clear();
 
-  model->setQuadratureRule(model->opt.nGauss[0]);
+  model->setQuadratureRule(model->opt.nGauss[0],true);
 
   Matrix eNorm, ssol;
   Vector gNorm, displ, load;

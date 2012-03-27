@@ -336,7 +336,6 @@ int main (int argc, char** argv)
   // Initialize the linear solver
   model->initSystem(model->opt.solver,1,1);
   model->setAssociatedRHS(0,0);
-  model->setQuadratureRule(model->opt.nGauss[0]);
 
   // Invoke the time/load-step loop
   while (simulator.advanceStep(params))
