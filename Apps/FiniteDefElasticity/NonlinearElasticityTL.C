@@ -187,7 +187,7 @@ bool NonlinearElasticityTL::evalBou (LocalIntegral& elmInt,
 				     const FiniteElement& fe,
 				     const Vec3& X, const Vec3& normal) const
 {
-  if (!tracFld)
+  if (!tracFld && !fluxFld)
   {
     std::cerr <<" *** NonlinearElasticityTL::evalBou: No tractions."
 	      << std::endl;
@@ -203,15 +203,18 @@ bool NonlinearElasticityTL::evalBou (LocalIntegral& elmInt,
   ElmMats& elMat = static_cast<ElmMats&>(elmInt);
 
   // Evaluate the surface traction
-  Vec3 T = (*tracFld)(X,normal);
+  Vec3 T = this->getTraction(X,normal);
 
   // Store traction value for visualization
-  if (fe.iGP < tracVal.size())
-    if (!T.isZero()) tracVal[fe.iGP] = std::make_pair(X,T);
+  if (fe.iGP < tracVal.size() && !T.isZero())
+  {
+    tracVal[fe.iGP].first = X;
+    tracVal[fe.iGP].second += T;
+  }
 
   // Check for with-rotated pressure load
   unsigned short int i, j;
-  if (tracFld->isNormalPressure())
+  if (tracFld && tracFld->isNormalPressure())
   {
     // Compute the deformation gradient, F
     Matrix B;

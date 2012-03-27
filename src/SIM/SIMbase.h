@@ -488,6 +488,14 @@ protected:
   //! \param[in] pindex 0-based index into problem-dependent property container
   bool setPropertyType(int code, Property::Type ptype, int pindex = -1);
 
+  //! \brief Defines a Neumann boundary condition property by parsing a string.
+  //! \param[in] prop The string to parse the property definition from
+  //! \param[in] type Additional option defining the type of property definition
+  //! \param[in] ndir Direction of the surface traction on the Neumann boundary
+  //! \param[in] code The property code to be associated with this property
+  bool setNeumann(const std::string& prop, const std::string& type,
+		  int ndir, int code);
+
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   //! \param[in] patch 1-based index of the patch to receive the property
   //! \param[in] lndx Local index of the boundary item to receive the property

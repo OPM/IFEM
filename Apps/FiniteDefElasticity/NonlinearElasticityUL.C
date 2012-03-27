@@ -258,7 +258,7 @@ bool NonlinearElasticityUL::evalBou (LocalIntegral& elmInt,
 				     const FiniteElement& fe,
 				     const Vec3& X, const Vec3& normal) const
 {
-  if (!tracFld)
+  if (!tracFld && !fluxFld)
   {
     std::cerr <<" *** NonlinearElasticityUL::evalBou: No tractions."
 	      << std::endl;
@@ -272,11 +272,14 @@ bool NonlinearElasticityUL::evalBou (LocalIntegral& elmInt,
   }
 
   // Evaluate the surface traction
-  Vec3 T = (*tracFld)(X,normal);
+  Vec3 T = this->getTraction(X,normal);
 
   // Store traction value for visualization
-  if (fe.iGP < tracVal.size())
-    if (!T.isZero()) tracVal[fe.iGP] = std::make_pair(X,T);
+  if (fe.iGP < tracVal.size() && !T.isZero())
+  {
+    tracVal[fe.iGP].first = X;
+    tracVal[fe.iGP].second += T;
+  }
 
   // Axi-symmetric integration point volume; 2*pi*r*|J|*w
   double detJW = axiSymmetry ? 2.0*M_PI*X.x*fe.detJxW : fe.detJxW;
@@ -290,7 +293,7 @@ bool NonlinearElasticityUL::evalBou (LocalIntegral& elmInt,
       return false;
 
     // Check for with-rotated pressure load
-    if (tracFld->isNormalPressure())
+    if (tracFld && tracFld->isNormalPressure())
     {
       // Compute its inverse and determinant, J
       double J = F.inverse();

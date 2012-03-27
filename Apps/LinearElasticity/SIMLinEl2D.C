@@ -301,26 +301,6 @@ bool SIMLinEl2D::parse (const TiXmlElement* elem)
                   << E <<" "<< nu <<" "<< rho << std::endl;
     }
 
-    else if (!strcasecmp(child->Value(),"constantpressure") ||
-             !strcasecmp(child->Value(),"linearpressure")) {
-      if (child->FirstChild() && child->FirstChild()->Value()) {
-        double p = atof(child->FirstChild()->Value());
-        int code = 0, pdir = 1;
-        utl::getAttribute(child,"code",code);
-        utl::getAttribute(child,"dir",pdir);
-        setPropertyType(code,Property::NEUMANN);
-        if (!strcasecmp(child->Value(),"linearpressure")) {
-          RealFunc* pfl = new ConstTimeFunc(new LinearFunc(p));
-          myTracs[code] = new PressureField(pfl,pdir);
-        }
-        else
-          myTracs[code] = new PressureField(p,pdir);
-        if (myPid == 0)
-          std::cout <<"\tPressure code "<< code <<" direction "<< pdir
-                    <<": "<< p << std::endl;
-      }
-    }
-
     else if (!strcasecmp(child->Value(),"anasol")) {
       std::string type;
       utl::getAttribute(child,"type",type,true);
@@ -436,12 +416,18 @@ bool SIMLinEl2D::initMaterial (size_t propInd)
 
 bool SIMLinEl2D::initNeumann (size_t propInd)
 {
-  TracFuncMap::const_iterator tit = myTracs.find(propInd);
-  if (tit == myTracs.end()) return false;
-
   Elasticity* elp = dynamic_cast<Elasticity*>(myProblem);
   if (!elp) return false;
 
-  elp->setTraction(tit->second);
+  VecFuncMap::const_iterator  vit = myVectors.find(propInd);
+  TracFuncMap::const_iterator tit = myTracs.find(propInd);
+
+  if (vit != myVectors.end())
+    elp->setTraction(vit->second);
+  else if (tit != myTracs.end())
+    elp->setTraction(tit->second);
+  else
+    return false;
+
   return true;
 }

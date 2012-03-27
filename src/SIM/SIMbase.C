@@ -84,7 +84,7 @@ SIMbase::~SIMbase ()
     delete *i1;
 
   myModel.clear();
-  this->clearProperties();
+  this->SIMbase::clearProperties();
 
 #ifdef SP_DEBUG
   std::cout <<"Leaving SIMbase destructor"<< std::endl;
@@ -149,7 +149,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
     int proc = 0;
     if (!utl::getAttribute(elem,"procs",proc))
       return false;
-    if (proc != nProc) // silently ignore
+    else if (proc != nProc) // silently ignore
       return true;
     if (myPid == 0)
       std::cout <<"\tNumber of partitions: "<< nProc << std::endl;
@@ -231,21 +231,36 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
     }
   }
 
+  else if (!strcasecmp(elem->Value(),"neumann")) {
+    int code = 0, ndir = 0;
+    std::string type;
+    utl::getAttribute(elem,"code",code);
+    utl::getAttribute(elem,"direction",ndir);
+    utl::getAttribute(elem,"type",type,true);
+    if (elem->FirstChild()) {
+      std::cout <<"\tNeumann code "<< code <<" direction "<< ndir;
+      if (!type.empty()) std::cout <<" ("<< type <<")";
+      this->setNeumann(elem->FirstChild()->Value(),type,ndir,code);
+      std::cout << std::endl;
+    }
+  }
+
   else if (!strcasecmp(elem->Value(),"dirichlet") && !ignoreDirichlet) {
     int code = 0;
+    std::string type;
     utl::getAttribute(elem,"code",code);
-    double val = elem->FirstChild() ? atof(elem->FirstChild()->Value()) : 0.0;
-    if (val == 0.0)
+    utl::getAttribute(elem,"type",type,true);
+    const TiXmlNode* dval = elem->FirstChild();
+    if (!dval || (atof(dval->Value()) == 0.0 && type != "expression")) {
       setPropertyType(code,Property::DIRICHLET);
-    else {
+      std::cout <<"\tDirichlet code "<< code <<": (fixed)"<< std::endl;
+    }
+    else if (dval) {
       setPropertyType(code,Property::DIRICHLET_INHOM);
-      std::string function;
-      if (utl::getAttribute(elem,"function",function)) {
-        char* func = strtok(const_cast<char*>(function.c_str())," ");
-        myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(func,val));
-      }
-      else
-        myScalars[code] = new ConstFunc(val);
+      std::cout <<"\tDirichlet code "<< code;
+      if (!type.empty()) std::cout <<" ("<< type <<")";
+      myScalars[code] = utl::parseRealFunc(dval->Value(),type);
+      std::cout << std::endl;
     }
   }
 
@@ -261,7 +276,7 @@ bool SIMbase::parseOutputTag (const TiXmlElement* elem)
     return opt.parseOutputTag(elem);
 
   const TiXmlElement* point = elem->FirstChildElement("point");
-  for (int i = 1; point; i++)
+  for (int i = 1; point; i++, point = point->NextSiblingElement())
   {
     int patch = 0;
     ResultPoint thePoint;
@@ -276,7 +291,6 @@ bool SIMbase::parseOutputTag (const TiXmlElement* elem)
     if (utl::getAttribute(point,"w",thePoint.par[2]) && myPid == 0)
       std::cout <<' '<< thePoint.par[2];
     myPoints.push_back(thePoint);
-    point = point->NextSiblingElement();
   }
   if (myPid == 0)
     std::cout << std::endl;
@@ -821,6 +835,38 @@ bool SIMbase::setVecProperty (int code, Property::Type ptype, VecFunc* field)
 {
   if (field) myVectors[code] = field;
   return this->setPropertyType(code,ptype);
+}
+
+
+bool SIMbase::setNeumann (const std::string& prop, const std::string& type,
+			  int direction, int code)
+{
+  if (direction == 0 && this->getNoFields() == 1)
+  {
+    RealFunc* f = utl::parseRealFunc(prop,type);
+    if (f)
+      myScalars[code] = f;
+    else
+      return false;
+  }
+  else if (direction < 0 || this->getNoFields() == 1)
+  {
+    VecFunc* f = utl::parseVecFunc(prop,type);
+    if (f)
+      myVectors[code] = f;
+    else
+      return false;
+  }
+  else
+  {
+    TractionFunc* f = utl::parseTracFunc(prop,type,direction);
+    if (f)
+      myTracs[code] = f;
+    else
+      return false;
+  }
+
+  return this->setPropertyType(code,Property::NEUMANN);
 }
 
 
@@ -2154,7 +2200,7 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
     for (j = 0; j < points.size(); j++)
     {
       if (!formatted)
-        os << time <<" ";
+	os << time <<" ";
       else if (points[j] < 0)
 	os <<"  Point #"<< -points[j] <<":\tsol1 =";
       else
@@ -2168,8 +2214,8 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
 
       if (opt.discretization >= ASM::Spline)
       {
-        if (formatted && sol2.rows() > 0)
-          os <<"\n\t\tsol2 =";
+	if (formatted && sol2.rows() > 0)
+	  os <<"\n\t\tsol2 =";
 	for (k = 1; k <= sol2.rows(); k++)
 	  os << std::setw(flWidth) << utl::trunc(sol2(k,j+1));
       }
@@ -2178,8 +2224,8 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
 	// Print nodal reaction forces for nodes with prescribed DOFs
 	if (mySam->getNodalReactions(points[j],*reactionForces,reactionFS))
 	{
-          if (formatted)
-            os <<"\n\t\treac =";
+	  if (formatted)
+	    os <<"\n\t\treac =";
 	  for (k = 0; k < reactionFS.size(); k++)
 	    os << std::setw(flWidth) << utl::trunc(reactionFS[k]);
 	}
@@ -2221,35 +2267,35 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     switch (pMethod) {
     case SIMoptions::GLOBAL:
       if (msgLevel > 1 && i == 0)
-	std::cout <<"\tGreville point projection"<< std::endl;
+        std::cout <<"\tGreville point projection"<< std::endl;
       if (!myModel[i]->evalSolution(values,*myProblem))
-	return false;
+        return false;
       break;
 
     case SIMoptions::DGL2:
       if (msgLevel > 1 && i == 0)
-	std::cout <<"\tDiscrete global L2-projection"<< std::endl;
+        std::cout <<"\tDiscrete global L2-projection"<< std::endl;
       if (!myModel[i]->globalL2projection(values,*myProblem))
-	return false;
+        return false;
       break;
 
     case SIMoptions::CGL2:
       if (msgLevel > 1 && i == 0)
-	std::cout <<"\tContinuous global L2-projection"<< std::endl;
+        std::cout <<"\tContinuous global L2-projection"<< std::endl;
       if (!myModel[i]->globalL2projection(values,*myProblem,true))
-	return false;
+        return false;
       break;
 
     case SIMoptions::SCR:
       if (msgLevel > 1 && i == 0)
-	std::cout <<"\tSuperconvergent recovery"<< std::endl;
+        std::cout <<"\tSuperconvergent recovery"<< std::endl;
       if (!myModel[i]->evalSolution(values,*myProblem,NULL,'S'))
-	return false;
+        return false;
       break;
 
     case SIMoptions::VDSA:
       if (msgLevel > 1 && i == 0)
-        std::cout <<"\tVDSA projection"<< std::endl;
+        std::cout <<"\tVariation diminishing projection"<< std::endl;
       if (!myModel[i]->evalSolution(values,*myProblem,NULL,'A'))
         return false;
       break;
@@ -2270,7 +2316,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
 
     default:
       std::cerr <<" *** SIMbase::project: Projection method "<< pMethod
-		<<" not implemented."<< std::endl;
+                <<" not implemented."<< std::endl;
       return false;
     }
 

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<!-- Pipe joint with shear-loaded brace.
+     Static linear-elastic analysis.
+     10-patch model, cubic Lagrange elements. !-->
+
+<simulation>
+
+  <discretization type="Lagrange"/>
+
+  <geometry>
+    <patchfile>pipe_bifurcation.g2</patchfile>
+    <nodefile>pipe_bifurcation.gno</nodefile>
+  </geometry>
+
+  <boundaryconditions>
+    <propertyfile>pipe_bifurcation.prc</propertyfile>
+    <dirichlet code="123"/>
+    <neumann code="1001" direction="1">1.0e8</neumann>
+  </boundaryconditions>
+
+  <postprocessing>
+    <vtfformat>BINARY</vtfformat>
+  </postprocessing>
+
+</simulation>

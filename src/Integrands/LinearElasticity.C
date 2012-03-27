@@ -92,7 +92,7 @@ bool LinearElasticity::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
 bool LinearElasticity::evalBou (LocalIntegral& elmInt, const FiniteElement& fe,
 				const Vec3& X, const Vec3& normal) const
 {
-  if (!tracFld)
+  if (!tracFld && !fluxFld)
   {
     std::cerr <<" *** LinearElasticity::evalBou: No tractions."<< std::endl;
     return false;
@@ -107,11 +107,14 @@ bool LinearElasticity::evalBou (LocalIntegral& elmInt, const FiniteElement& fe,
   const double detJW = axiSymmetry ? 2.0*M_PI*X.x*fe.detJxW : fe.detJxW;
 
   // Evaluate the surface traction
-  Vec3 T = (*tracFld)(X,normal);
+  Vec3 T = this->getTraction(X,normal);
 
   // Store traction value for visualization
-  if (fe.iGP < tracVal.size())
-    if (!T.isZero()) tracVal[fe.iGP] = std::make_pair(X,T);
+  if (fe.iGP < tracVal.size() && !T.isZero())
+  {
+    tracVal[fe.iGP].first = X;
+    tracVal[fe.iGP].second += T;
+  }
 
   // Integrate the force vector
   Vector& ES = static_cast<ElmMats&>(elmInt).b[eS-1];

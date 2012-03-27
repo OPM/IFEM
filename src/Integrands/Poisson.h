@@ -35,6 +35,8 @@ public:
 
   //! \brief Defines the traction field to use in Neumann boundary conditions.
   void setTraction(VecFunc* tf) { tracFld = tf; }
+  //! \brief Defines the traction field to use in Neumann boundary conditions.
+  void setTraction(RealFunc* ff) { fluxFld = ff; }
   //! \brief Defines the heat source field.
   void setSource(RealFunc* src) { heatSrc = src; }
 
@@ -135,6 +137,7 @@ private:
 
 protected:
   VecFunc*  tracFld; //!< Pointer to boundary traction field
+  RealFunc* fluxFld; //!< Pointer to boundary normal flux field
   RealFunc* heatSrc; //!< Pointer to interior heat source
 
   mutable std::vector<Vec3Pair> tracVal; //!< Traction field point values

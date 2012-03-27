@@ -45,6 +45,8 @@ public:
 
   //! \brief Defines the traction field to use in Neumann boundary conditions.
   void setTraction(TractionFunc* tf) { tracFld = tf; }
+  //! \brief Defines the traction field to use in Neumann boundary conditions.
+  void setTraction(VecFunc* tf) { fluxFld = tf; }
   //! \brief Defines the body force field.
   void setBodyForce(VecFunc* bf) { bodyFld = bf; }
 
@@ -216,7 +218,8 @@ protected:
   double    grav[3];  //!< Gravitation vector
 
   LocalSystem*  locSys;  //!< Local coordinate system for result output
-  TractionFunc* tracFld; //!< Pointer to boundary traction field
+  TractionFunc* tracFld; //!< Pointer to implicit boundary traction field
+  VecFunc*      fluxFld; //!< Pointer to explicit boundary traction field
   VecFunc*      bodyFld; //!< Pointer to body force field
 
   mutable std::vector<Vec3Pair> tracVal; //!< Traction field point values

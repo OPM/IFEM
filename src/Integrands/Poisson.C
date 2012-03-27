@@ -29,6 +29,7 @@ Poisson::Poisson (unsigned short int n) : nsd(n)
   kappa = 1.0;
 
   tracFld = 0;
+  fluxFld = 0;
   heatSrc = 0;
 
   // Only the current solution is needed
@@ -44,7 +45,12 @@ double Poisson::getHeat (const Vec3& X) const
 
 double Poisson::getTraction (const Vec3& X, const Vec3& n) const
 {
-  return tracFld ? (*tracFld)(X)*n : 0.0;
+  if (fluxFld)
+    return (*fluxFld)(X);
+  else if (tracFld)
+    return (*tracFld)(X)*n;
+  else
+    return 0.0;
 }
 
 
@@ -115,7 +121,7 @@ bool Poisson::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
 bool Poisson::evalBou (LocalIntegral& elmInt, const FiniteElement& fe,
 		       const Vec3& X, const Vec3& normal) const
 {
-  if (!tracFld)
+  if (!tracFld && !fluxFld)
   {
     std::cerr <<" *** Poisson::evalBou: No tractions."<< std::endl;
     return false;
@@ -128,16 +134,15 @@ bool Poisson::evalBou (LocalIntegral& elmInt, const FiniteElement& fe,
     return false;
   }
 
-  // Evaluate the heat flux q at point X
-  Vec3 q = (*tracFld)(X);
-
-  // Evaluate the Neumann value -q*n
-  double trac = -(q*normal);
+  // Evaluate the Neumann value -q(X)*n
+  double trac = -this->getTraction(X,normal);
 
   // Store traction value for visualization
-  if (fe.iGP < tracVal.size())
-    if (abs(trac) > 1.0e8)
-      tracVal[fe.iGP] = std::make_pair(X,trac*normal);
+  if (fe.iGP < tracVal.size() && abs(trac) > 1.0e8)
+  {
+    tracVal[fe.iGP].first = X;
+    tracVal[fe.iGP].second += trac*normal;
+  }
 
   // Integrate the Neumann value
   elMat.b.front().add(fe.N,trac*fe.detJxW);
@@ -148,6 +153,7 @@ bool Poisson::evalBou (LocalIntegral& elmInt, const FiniteElement& fe,
 
 void Poisson::initIntegration (size_t, size_t nBp)
 {
+  tracVal.clear();
   tracVal.resize(nBp,std::make_pair(Vec3(),Vec3()));
 }
 

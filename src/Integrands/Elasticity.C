@@ -41,6 +41,7 @@ Elasticity::Elasticity (unsigned short int n, bool ax) : nsd(n), axiSymmetry(ax)
   material = 0;
   locSys = 0;
   tracFld = 0;
+  fluxFld = 0;
   bodyFld = 0;
   eM = eKm = eKg = 0;
   eS = iS = 0;
@@ -173,7 +174,9 @@ LocalIntegral* Elasticity::getLocalIntegral (size_t nen, size_t,
 
 Vec3 Elasticity::getTraction (const Vec3& X, const Vec3& n) const
 {
-  if (tracFld)
+  if (fluxFld)
+    return (*fluxFld)(X);
+  else if (tracFld)
     return (*tracFld)(X,n);
   else
     return Vec3();
@@ -195,6 +198,7 @@ Vec3 Elasticity::getBodyforce (const Vec3& X) const
 bool Elasticity::haveLoads () const
 {
   if (tracFld) return true;
+  if (fluxFld) return true;
   if (bodyFld) return true;
 
   for (unsigned short int i = 0; i < nsd; i++)
@@ -208,6 +212,7 @@ bool Elasticity::haveLoads () const
 
 void Elasticity::initIntegration (size_t, size_t nBp)
 {
+  tracVal.clear();
   tracVal.resize(nBp,std::make_pair(Vec3(),Vec3()));
 }
 
