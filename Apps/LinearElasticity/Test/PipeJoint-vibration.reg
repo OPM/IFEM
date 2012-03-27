@@ -28,7 +28,7 @@ Reading input file succeeded.
 Problem definition:
 Elasticity: 3D, gravity = 0 0 0
 LinIsotropic: E = 2.05e+11, nu = 0.29, rho = 7850
-Renumbered 265 nodes
+Renumbered 246 nodes
 Resolving Dirichlet boundary conditions
  >>> SAM model summary <<<
 Number of elements    12

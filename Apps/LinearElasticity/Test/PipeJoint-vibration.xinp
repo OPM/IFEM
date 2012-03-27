@@ -1,0 +1,18 @@
+<!-- $Id$ !-->
+<!-- Pipe joint with shear-loaded brace !-->
+<!-- Static linear-elastic analysis !-->
+<!-- 10-patch model, cubic NURBS elements !-->
+
+<simulation>
+
+  <geometry>
+    <patchfile>pipe_bifurcation.g2</patchfile>
+    <nodefile>pipe_bifurcation.gno</nodefile>
+  </geometry>
+
+  <eigensolver mode="4">
+    <nev>16</nev>
+    <ncv>32</ncv>
+  </eigensolver>
+
+</simulation>
