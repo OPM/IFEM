@@ -210,10 +210,10 @@ int main (int argc, char** argv)
   if (iop == 10)
   {
     theSim = aSim = new AdaptiveSIM(model);
-    model->opt.discretization = ASM::LRSpline;
+    dummy.discretization = ASM::LRSpline;
   }
   else if (KLp)
-    model->opt.discretization = ASM::SplineC1;
+    dummy.discretization = ASM::SplineC1;
 
   // Read in model definitions
   model->opt.discretization = dummy.discretization;
@@ -221,10 +221,12 @@ int main (int argc, char** argv)
     return 1;
 
   // Parse the obsolete options again to let them override input file tags
+  dummy.discretization = model->opt.discretization; // but not this option
   for (i = 1; i < argc; i++)
     if (!model->opt.parseOldOptions(argc,argv,i))
       if (!strcmp(argv[i],"-ignore"))
 	while (i < argc-1 && isdigit(argv[i+1][0])) ++i;
+  model->opt.discretization = dummy.discretization; // XML-tag is used, if set
 
   // Boundary conditions can be ignored only in generalized eigenvalue analysis
   if (model->opt.eig != 4 && model->opt.eig != 6)
@@ -278,7 +280,8 @@ int main (int argc, char** argv)
   SIMoptions::ProjectionMap::const_iterator pit;
 
   // Default projection method
-  if (model->opt.discretization >= ASM::Spline)
+  bool staticSol = iop + model->opt.eig%5 == 0 || iop == 10;
+  if (model->opt.discretization >= ASM::Spline && staticSol)
     pOpt[SIMoptions::GLOBAL] = "Greville point projection";
   else
     pOpt.clear();
@@ -293,7 +296,7 @@ int main (int argc, char** argv)
   int iStep = 1, nBlock = 0;
 
   DataExporter* exporter = NULL;
-  if (model->opt.dumpHDF5(infile) && (iop+(model->opt.eig%5) == 0 || iop == 10))
+  if (model->opt.dumpHDF5(infile) && staticSol)
   {
     if (linalg.myPid == 0)
       std::cout <<"\nWriting HDF5 file "<< model->opt.hdf5
@@ -460,16 +463,13 @@ int main (int argc, char** argv)
     prefix[pOpt.size()] = 0;
 
     // Write projected solution fields to VTF-file
-    if(projs.size() > 0)
-    {
-      size_t i = 0;
-      int iBlk = 100;
-      for (pit = pOpt.begin(); pit != pOpt.end(); pit++, i++, iBlk += 10)
-	if (!model->writeGlvP(projs[i],iStep,nBlock,iBlk,pit->second.c_str()))
-	  return 11;
-	else
-	  prefix[i] = pit->second.c_str();
-    }
+    size_t i = 0;
+    int iBlk = 100;
+    for (pit = pOpt.begin(); pit != pOpt.end(); pit++, i++, iBlk += 10)
+      if (!model->writeGlvP(projs[i],iStep,nBlock,iBlk,pit->second.c_str()))
+	return 11;
+      else
+	prefix[i] = pit->second.c_str();
 
     // Write eigenmodes
     bool isFreq = model->opt.eig==3 || model->opt.eig==4 || model->opt.eig==6;

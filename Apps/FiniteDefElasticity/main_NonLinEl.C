@@ -76,7 +76,7 @@ int main (int argc, char** argv)
   Profiler prof(argv[0]);
 
   SIMoptions dummy;
-  std::vector<int> ignoredPatches;
+  std::vector<int> options(2,0), ignoredPatches;
   int i, form = SIM::TOTAL_LAGRANGE;
   int outPrec = 3;
   double dtDump = 0.0;
@@ -91,7 +91,6 @@ int main (int argc, char** argv)
 
   const LinAlgInit& linalg = LinAlgInit::Init(argc,argv);
 
-  std::vector<int> options(2,0);
   for (i = 1; i < argc; i++)
     if (dummy.parseOldOptions(argc,argv,i))
       ; // ignore the obsolete option
@@ -238,10 +237,12 @@ int main (int argc, char** argv)
     return 1;
 
   // Parse the obsolete options again to let them override input file tags
+  dummy.discretization = model->opt.discretization; // but not this option
   for (i = 1; i < argc; i++)
     if (!model->opt.parseOldOptions(argc,argv,i))
       if (!strcmp(argv[i],"-ignore"))
 	while (i < argc-1 && isdigit(argv[i+1][0])) ++i;
+  model->opt.discretization = dummy.discretization; // XML-tag is used, if set
 
   if (linalg.myPid == 0)
   {
