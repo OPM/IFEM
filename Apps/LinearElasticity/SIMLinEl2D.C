@@ -26,15 +26,6 @@ bool SIMLinEl2D::planeStrain = false;
 bool SIMLinEl2D::axiSymmetry = false;
 
 
-SIMLinEl2D::SIMLinEl2D (int form) : SIM2D(2)
-{
-  if (form == SIM::NONE)
-    return;
-  else
-    myProblem = new LinearElasticity(2,axiSymmetry);
-}
-
-
 SIMLinEl2D::~SIMLinEl2D ()
 {
   for (size_t i = 0; i < mVec.size(); i++)
@@ -45,14 +36,13 @@ SIMLinEl2D::~SIMLinEl2D ()
 bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
 {
   char* cline = 0;
-  Elasticity* elp = dynamic_cast<Elasticity*>(myProblem);
-  if (!elp) return false;
+  int nmat = 0;
+  double gx = 0.0, gy = 0.0;
 
   if (!strncasecmp(keyWord,"GRAVITY",7))
   {
-    double gx = atof(strtok(keyWord+7," "));
-    double gy = atof(strtok(NULL," "));
-    elp->setGravity(gx,gy);
+    gx = atof(strtok(keyWord+7," "));
+    gy = atof(strtok(NULL," "));
     if (myPid == 0)
       std::cout <<"\nGravitation vector: "
 		<< gx <<" "<< gy << std::endl;
@@ -60,7 +50,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
 
   else if (!strncasecmp(keyWord,"ISOTROPIC",9))
   {
-    int nmat = atoi(keyWord+10);
+    nmat = atoi(keyWord+10);
     if (myPid == 0)
       std::cout <<"\nNumber of isotropic materials: "<< nmat << std::endl;
 
@@ -78,8 +68,6 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
 	std::cout <<"\tMaterial code "<< code <<": "
 		  << E <<" "<< nu <<" "<< rho << std::endl;
     }
-    if (!mVec.empty())
-      elp->setMaterial(mVec.front());
   }
 
   else if (!strncasecmp(keyWord,"CONSTANT_PRESSURE",17))
@@ -234,7 +222,7 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
 
   else if (!strncasecmp(keyWord,"MATERIAL",8))
   {
-    int nmat = atoi(keyWord+8);
+    nmat = atoi(keyWord+8);
     std::cout <<"\nNumber of materials: "<< nmat << std::endl;
     for (int i = 0; i < nmat && (cline = utl::readLine(is)); i++)
     {
@@ -261,13 +249,15 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
 	  mVec.push_back(new LinIsotropic(E,nu,rho,!planeStrain,axiSymmetry));
 	}
     }
-
-    if (!mVec.empty())
-      elp->setMaterial(mVec.front());
   }
 
   else
     return this->SIM2D::parse(keyWord,is);
+
+  if (gx != 0.0 || gy != 0.0)
+    this->getIntegrand()->setGravity(gx,gy);
+  if (nmat > 0 && !mVec.empty())
+    this->getIntegrand()->setMaterial(mVec.front());
 
   return true;
 }
@@ -278,19 +268,16 @@ bool SIMLinEl2D::parse (const TiXmlElement* elem)
   if (strcasecmp(elem->Value(),"elasticity"))
     return this->SIM2D::parse(elem);
 
-  Elasticity* elp = dynamic_cast<Elasticity*>(myProblem);
-  if (!elp) return false;
+  double gx = 0.0, gy = 0.0;
 
   const TiXmlElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
 
     if (!strcasecmp(child->Value(),"gravity")) {
-      double gx = 0.0, gy = 0.0;
       utl::getAttribute(child,"x",gx);
       utl::getAttribute(child,"y",gy);
-      elp->setGravity(gx,gy);
       if (myPid == 0)
-        std::cout <<"\nGravitation vector: " << gx <<" "<< gy << std::endl;
+        std::cout <<"\nGravitation vector: "<< gx <<" "<< gy << std::endl;
     }
 
     else if (!strcasecmp(child->Value(),"isotropic")) {
@@ -301,6 +288,13 @@ bool SIMLinEl2D::parse (const TiXmlElement* elem)
       utl::getAttribute(child,"E",E);
       utl::getAttribute(child,"nu",nu);
       utl::getAttribute(child,"rho",rho);
+      const TiXmlElement* opt = child->FirstChildElement();
+      for (; opt; opt = opt->NextSiblingElement())
+        if (!strcasecmp(opt->Value(),"planestrain"))
+          planeStrain = true;
+        else if (!strcasecmp(opt->Value(),"axisymmetric"))
+          axiSymmetry = true;
+
       mVec.push_back(new LinIsotropic(E,nu,rho,!planeStrain,axiSymmetry));
       if (myPid == 0)
         std::cout <<"\tMaterial code "<< code <<": "
@@ -395,10 +389,36 @@ bool SIMLinEl2D::parse (const TiXmlElement* elem)
       }
     }
 
+  if (gx != 0.0 || gy != 0.0)
+    this->getIntegrand()->setGravity(gx,gy);
   if (!mVec.empty())
-    elp->setMaterial(mVec.front());
+    this->getIntegrand()->setMaterial(mVec.front());
 
   return true;
+}
+
+
+Elasticity* SIMLinEl2D::getIntegrand ()
+{
+  if (myProblem)
+    return dynamic_cast<Elasticity*>(myProblem);
+
+  Elasticity* elp = new LinearElasticity(2,axiSymmetry);
+  myProblem = elp;
+
+  return elp;
+}
+
+
+bool SIMLinEl2D::preprocess (const std::vector<int>& ignored, bool fixDup)
+{
+  if (!myProblem)
+  {
+    this->getIntegrand();
+    if (myPid == 0) this->printProblem(std::cout);
+  }
+
+  return this->SIM2D::preprocess(ignored,fixDup);
 }
 
 

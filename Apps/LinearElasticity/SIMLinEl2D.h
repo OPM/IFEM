@@ -17,6 +17,7 @@
 #include "SIM2D.h"
 #include "SIMenums.h"
 
+class Elasticity;
 class Material;
 
 
@@ -31,10 +32,18 @@ class SIMLinEl2D : public SIM2D
 {
 public:
   //! \brief Default constructor.
-  //! \param[in] form Problem formulation option
-  SIMLinEl2D(int form = SIM::LINEAR);
+  SIMLinEl2D() : SIM2D(2) {}
   //! \brief The destructor frees the dynamically allocated material properties.
   virtual ~SIMLinEl2D();
+
+  //! \brief Performs some pre-processing tasks on the FE model.
+  //! \details This method is reimplemented inserting a call to \a getIntegrand.
+  //! This makes sure the integrand has been allocated in case of minimum input.
+  virtual bool preprocess(const std::vector<int>& ignored, bool fixDup);
+
+private:
+  //! \brief Returns the actual integrand.
+  Elasticity* getIntegrand();
 
 protected:
   //! \brief Parses a data section from the input stream.

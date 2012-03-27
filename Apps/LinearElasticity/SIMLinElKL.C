@@ -26,7 +26,7 @@
 #include "tinyxml.h"
 
 
-SIMLinElKL::SIMLinElKL () : SIMLinEl2D(SIM::NONE)
+SIMLinElKL::SIMLinElKL ()
 {
   nf[0] = 1;
   myProblem = new KirchhoffLovePlate();

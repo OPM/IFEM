@@ -17,6 +17,7 @@
 #include "SIM3D.h"
 #include "SIMenums.h"
 
+class Elasticity;
 class Material;
 
 
@@ -32,10 +33,18 @@ class SIMLinEl3D : public SIM3D
 public:
   //! \brief Default constructor.
   //! \param[in] checkRHS If \e true, ensure the model is in a right-hand system
-  //! \param[in] form Problem formulation option
-  SIMLinEl3D(bool checkRHS = false, int form = SIM::LINEAR);
+  SIMLinEl3D(bool checkRHS = false) : SIM3D(checkRHS) {}
   //! \brief The destructor frees the dynamically allocated material properties.
   virtual ~SIMLinEl3D();
+
+  //! \brief Performs some pre-processing tasks on the FE model.
+  //! \details This method is reimplemented inserting a call to \a getIntegrand.
+  //! This makes sure the integrand has been allocated in case of minimum input.
+  virtual bool preprocess(const std::vector<int>& ignored, bool fixDup);
+
+private:
+  //! \brief Returns the actual integrand.
+  Elasticity* getIntegrand();
 
 protected:
   //! \brief Parses a data section from the input stream.

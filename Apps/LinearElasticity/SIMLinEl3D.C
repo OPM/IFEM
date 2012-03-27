@@ -21,8 +21,6 @@
 #include "Property.h"
 #include "Tensor.h"
 #include "AnaSol.h"
-#include <string.h>
-
 #include "tinyxml.h"
 
 
@@ -153,15 +151,6 @@ private:
 };
 
 
-SIMLinEl3D::SIMLinEl3D (bool checkRHS, int form) : SIM3D(checkRHS)
-{
-  if (form == SIM::NONE)
-    return;
-  else
-    myProblem = new LinearElasticity();
-}
-
-
 SIMLinEl3D::~SIMLinEl3D ()
 {
   for (size_t i = 0; i < mVec.size(); i++)
@@ -172,17 +161,16 @@ SIMLinEl3D::~SIMLinEl3D ()
 bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
 {
   char* cline = 0;
+  int nmat = 0;
   int nConstPress = 0;
   int nLinearPress = 0;
-  Elasticity* elp = dynamic_cast<Elasticity*>(myProblem);
-  if (!elp) return false;
+  double gx = 0.0, gy = 0.0, gz = 0;
 
   if (!strncasecmp(keyWord,"GRAVITY",7))
   {
-    double gx = atof(strtok(keyWord+7," "));
-    double gy = atof(strtok(NULL," "));
-    double gz = atof(strtok(NULL," "));
-    elp->setGravity(gx,gy,gz);
+    gx = atof(strtok(keyWord+7," "));
+    gy = atof(strtok(NULL," "));
+    gz = atof(strtok(NULL," "));
     if (myPid == 0)
       std::cout <<"\nGravitation vector: "
 		<< gx <<" "<< gy <<" "<< gz << std::endl;
@@ -190,7 +178,7 @@ bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
 
   else if (!strncasecmp(keyWord,"ISOTROPIC",9))
   {
-    int nmat = atoi(keyWord+10);
+    nmat = atoi(keyWord+10);
     if (myPid == 0)
       std::cout <<"\nNumber of isotropic materials: "<< nmat << std::endl;
 
@@ -208,8 +196,6 @@ bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
 	std::cout <<"\tMaterial code "<< code <<": "
 		  << E <<" "<< nu <<" "<< rho << std::endl;
     }
-    if (!mVec.empty())
-      elp->setMaterial(mVec.front());
   }
 
   else if (!strncasecmp(keyWord,"CONSTANT_PRESSURE",17))
@@ -331,7 +317,7 @@ bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
 
   else if (!strncasecmp(keyWord,"MATERIAL",8))
   {
-    int nmat = atoi(keyWord+8);
+    nmat = atoi(keyWord+8);
     std::cout <<"\nNumber of materials: "<< nmat << std::endl;
     for (int i = 0; i < nmat && (cline = utl::readLine(is)); i++)
     {
@@ -358,9 +344,6 @@ bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
 	  mVec.push_back(new LinIsotropic(E,nu,rho));
 	}
     }
-
-    if (!mVec.empty())
-      elp->setMaterial(mVec.front());
   }
 
   else if (!strncasecmp(keyWord,"LOCAL_SYSTEM",12))
@@ -368,12 +351,15 @@ bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
     size_t i = 12;
     while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
     if (!strncasecmp(keyWord+i,"CYLINDRICZ",10))
-      elp->setLocalSystem(new CylinderCS);
+      this->getIntegrand()->setLocalSystem(new CylinderCS);
     else if (!strncasecmp(keyWord+i,"CYLINDER+SPHERE",15))
-      elp->setLocalSystem(new CylinderSphereCS(atof(keyWord+i+15)));
+    {
+      double H = atof(keyWord+i+15);
+      this->getIntegrand()->setLocalSystem(new CylinderSphereCS(H));
+    }
     else
-      std::cerr <<" *** SIMLinEl3D::parse: Unsupported coordinate system: "
-		<< keyWord+i << std::endl;
+      std::cerr <<"  ** SIMLinEl3D::parse: Unsupported coordinate system: "
+		<< keyWord+i <<" (ignored)"<< std::endl;
   }
 
   else
@@ -405,6 +391,11 @@ bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
     }
   }
 
+  if (gx != 0.0 || gy != 0.0 || gz != 0.0)
+    this->getIntegrand()->setGravity(gx,gy);
+  if (nmat > 0 && !mVec.empty())
+    this->getIntegrand()->setMaterial(mVec.front());
+
   return true;
 }
 
@@ -414,18 +405,15 @@ bool SIMLinEl3D::parse (const TiXmlElement* elem)
   if (strcasecmp(elem->Value(),"elasticity"))
     return this->SIM3D::parse(elem);
 
-  Elasticity* elp = dynamic_cast<Elasticity*>(myProblem);
-  if (!elp) return false;
+  double gx = 0.0, gy = 0.0, gz = 0.0;
 
   const TiXmlElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
 
     if (!strcasecmp(child->Value(),"gravity")) {
-      double gx = 0.0, gy = 0.0, gz = 0.0;
       utl::getAttribute(child,"x",gx);
       utl::getAttribute(child,"y",gy);
       utl::getAttribute(child,"z",gz);
-      elp->setGravity(gx,gy,gz);
       if (myPid == 0)
         std::cout <<"\nGravitation vector: "<< gx <<" "<< gy <<" "<< gz
                   << std::endl;
@@ -463,8 +451,8 @@ bool SIMLinEl3D::parse (const TiXmlElement* elem)
           std::cout <<"\tPressure code "<< code <<" direction "<< pdir
                     <<": "<< p << std::endl;
       }
-
     }
+
     else if (!strcasecmp(child->Value(),"anasol")) {
       std::string type;
       utl::getAttribute(child,"type",type,true);
@@ -517,22 +505,48 @@ bool SIMLinEl3D::parse (const TiXmlElement* elem)
     else if (!strcasecmp(child->Value(),"localsystem")) {
       if (child->FirstChild() && child->FirstChild()->Value()) {
         if (!strcasecmp(child->FirstChild()->Value(),"cylindricz"))
-          elp->setLocalSystem(new CylinderCS);
+          this->getIntegrand()->setLocalSystem(new CylinderCS);
         else if (!strcasecmp(child->FirstChild()->Value(),"cylinder+sphere")) {
           double H = 0.0;
           utl::getAttribute(child,"H",H);
-          elp->setLocalSystem(new CylinderSphereCS(H));
+          this->getIntegrand()->setLocalSystem(new CylinderSphereCS(H));
         }
         else
-          std::cerr <<" *** SIMLinEl3D::parse: Unsupported coordinate system: "
-                    << child->FirstChild()->Value() << std::endl;
+          std::cerr <<"  ** SIMLinEl3D::parse: Unsupported coordinate system: "
+                    << child->FirstChild()->Value() <<" (ignored)"<< std::endl;
       }
     }
 
+  if (gx != 0.0 || gy != 0.0 || gz != 0.0)
+    this->getIntegrand()->setGravity(gx,gy);
   if (!mVec.empty())
-    elp->setMaterial(mVec.front());
+    this->getIntegrand()->setMaterial(mVec.front());
 
   return true;
+}
+
+
+Elasticity* SIMLinEl3D::getIntegrand ()
+{
+  if (myProblem)
+    return dynamic_cast<Elasticity*>(myProblem);
+
+  Elasticity* elp = new LinearElasticity();
+  myProblem = elp;
+
+  return elp;
+}
+
+
+bool SIMLinEl3D::preprocess (const std::vector<int>& ignored, bool fixDup)
+{
+  if (!myProblem)
+  {
+    this->getIntegrand();
+    if (myPid == 0) this->printProblem(std::cout);
+  }
+
+  return this->SIM3D::preprocess(ignored,fixDup);
 }
 
 
