@@ -259,7 +259,7 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
       setPropertyType(code,Property::DIRICHLET_INHOM);
       std::cout <<"\tDirichlet code "<< code;
       if (!type.empty()) std::cout <<" ("<< type <<")";
-      myScalars[code] = utl::parseRealFunc(dval->Value(),type);
+      myScalars[abs(code)] = utl::parseRealFunc(dval->Value(),type);
       std::cout << std::endl;
     }
   }
@@ -722,7 +722,8 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
       break;
 
     case Property::DIRICHLET_INHOM:
-      if (this->addConstraint(q->patch,q->lindx,q->ldim,q->pindx%1000,q->pindx))
+      if (this->addConstraint(q->patch,q->lindx,q->ldim,abs(q->pindx%1000),
+			      q->pindx))
 	std::cout << std::endl;
       else
 	ok = false;
@@ -795,15 +796,8 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 
 bool SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
 {
-  if (code < 0)
-  {
-    std::cerr <<"  ** SIMbase::setPropertyType: Negative property code "
-	      << code <<" (ignored)"<< std::endl;
-    return false;
-  }
-
   for (PropertyVec::iterator p = myProps.begin(); p != myProps.end(); p++)
-    if (p->pindx == (size_t)code && p->pcode == Property::UNDEFINED)
+    if (p->pindx == code && p->pcode == Property::UNDEFINED)
     {
       if (p->patch > 0 && p->patch <= myModel.size()) p->pcode = ptype;
       if (pindex >= 0) p->pindx = pindex;

@@ -35,7 +35,7 @@ struct Property
   };
 
   Type   pcode; //!< Physical property code
-  size_t pindx; //!< Physical property index
+  int    pindx; //!< Physical property index
   size_t patch; //!< Patch index [0,nPatch>
   char   lindx; //!< Local entity index which is assigned the property
   char   ldim;  //!< Local entity dimension flag [0,3]
@@ -44,7 +44,7 @@ struct Property
   Property() : pcode(UNDEFINED), pindx(0), patch(0), lindx(0), ldim(0) {}
 
   //! \brief Constructor creating an initialized property instance.
-  Property(Type t, size_t px, size_t p, char ld, char lx = 0) :
+  Property(Type t, int px, size_t p, char ld, char lx = 0) :
     pcode(t), pindx(px), patch(p), lindx(lx), ldim(ld) {}
 };
 
