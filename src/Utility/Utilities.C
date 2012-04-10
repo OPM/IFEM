@@ -367,8 +367,6 @@ void utl::calcThreadGroups(int nel1, int nel2, ThreadGroups& result)
     stripsize = els/(groups*threads);
   }
   remainder = els-(stripsize*groups*threads);
-#endif
-  result.resize(groups);
 
 #if SP_DEBUG > 1
   std::cout << "we have " << threads << " threads available" << std::endl;
@@ -378,9 +376,11 @@ void utl::calcThreadGroups(int nel1, int nel2, ThreadGroups& result)
   std::cout << "# of strips " << els/stripsize << std::endl;
   std::cout << "remainder " << remainder << std::endl;
 #endif
+#endif
+  result.resize(groups);
 
   if (groups == 1) {
-     result[0].resize(1);
+    result[0].resize(1);
     for (int i=0;i<nel1*nel2;++i)
       result[0][0].push_back(i);
   } else {
@@ -421,7 +421,7 @@ void utl::calcThreadGroups(int nel1, int nel2, ThreadGroups& result)
     }
   }
 
-#if SP_DEBUG > 1
+#if defined(USE_OPENMP) && SP_DEBUG > 1
   for (size_t i=0;i<result.size();++i) {
     std::cout << "group " << i << std::endl;
     for (size_t j=0;j<result[i].size();++j) {
@@ -484,8 +484,6 @@ void utl::calcThreadGroups(int nel1, int nel2, int nel3, ThreadGroups& result)
     stripsize = els/(groups*threads);
   }
   remainder = els-(stripsize*groups*threads);
-#endif
-  result.resize(groups);
 
 #if SP_DEBUG > 1
   std::cout << "we have " << threads << " threads available" << std::endl;
@@ -496,9 +494,11 @@ void utl::calcThreadGroups(int nel1, int nel2, int nel3, ThreadGroups& result)
   std::cout << "# of strips " << els/stripsize << std::endl;
   std::cout << "remainder " << remainder << std::endl;
 #endif
+#endif
 
+  result.resize(groups);
   if (groups == 1) {
-     result[0].resize(1);
+    result[0].resize(1);
     for (int i=0;i<nel1*nel2*nel3;++i)
       result[0][0].push_back(i);
   } else {
@@ -542,7 +542,7 @@ void utl::calcThreadGroups(int nel1, int nel2, int nel3, ThreadGroups& result)
     }
   }
 
-#if SP_DEBUG > 1
+#if defined(USE_OPENMP) && SP_DEBUG > 1
   for (size_t i=0;i<result.size();++i) {
     std::cout << "group " << i << std::endl;
     for (size_t j=0;j<result[i].size();++j) {
