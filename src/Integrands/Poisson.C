@@ -138,7 +138,7 @@ bool Poisson::evalBou (LocalIntegral& elmInt, const FiniteElement& fe,
   double trac = -this->getTraction(X,normal);
 
   // Store traction value for visualization
-  if (fe.iGP < tracVal.size() && abs(trac) > 1.0e8)
+  if (fe.iGP < tracVal.size() && abs(trac) > 1.0e-8)
   {
     tracVal[fe.iGP].first = X;
     tracVal[fe.iGP].second += trac*normal;
