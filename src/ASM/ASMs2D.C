@@ -24,6 +24,7 @@
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "ElementBlock.h"
+#include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
 #include "Vec3Oper.h"
@@ -32,14 +33,38 @@
 
 
 ASMs2D::ASMs2D (unsigned char n_s, unsigned char n_f)
-  : ASMstruct(2,n_s,n_f), surf(0), nodeInd(myNodeInd)
+  : ASMstruct(2,n_s,n_f), surf(NULL), nodeInd(myNodeInd)
 {
+  bou[0] = bou[1] = bou[2] = bou[3] = NULL;
 }
 
 
 ASMs2D::ASMs2D (const ASMs2D& patch, unsigned char n_f)
   : ASMstruct(patch,n_f), surf(patch.surf), nodeInd(patch.myNodeInd)
 {
+  for (int i = 0; i < 4; i++)
+    bou[i] = patch.bou[i];
+}
+
+
+ASMs2D::~ASMs2D ()
+{
+  if (!shareFE)
+    for (int i = 0; i < 4; i++)
+      delete bou[i];
+}
+
+
+Go::SplineCurve* ASMs2D::getBoundary (int dir)
+{
+  if (dir < -2 || dir == 0 || dir > 2)
+    return NULL;
+
+  int iedge = dir > 0 ? dir : 3*dir+6;
+  if (!bou[iedge])
+    bou[iedge] = surf->edgeCurve(iedge);
+
+  return bou[iedge];
 }
 
 
@@ -474,41 +499,77 @@ void ASMs2D::closeEdges (int dir, int basis, int master)
 }
 
 
+/*!
+  A negative \a code value implies direct evaluation of the Dirchlet condition
+  function at the control point. Positive \a code implies projection onto the
+  spline basis representing the boundary curve (needed for curved edges and/or
+  non-constant functions).
+*/
+
 void ASMs2D::constrainEdge (int dir, int dof, int code)
 {
   int n1, n2, node = 1;
   if (!this->getSize(n1,n2,1)) return;
+
+  int bcode = code;
+  if (code > 0) // Dirichlet projection will be performed
+    dirich.push_back(DirichletEdge(this->getBoundary(dir),dof,code));
+  else if (code < 0)
+    bcode = -code;
 
   switch (dir)
     {
     case  1: // Right edge (positive I-direction)
       node += n1-1;
     case -1: // Left edge (negative I-direction)
-      for (int i2 = 1; i2 <= n2; i2++, node += n1)
-	this->prescribe(node,dof,code);
+      this->prescribe(node,dof,bcode); node += n1;
+      for (int i2 = 2; i2 < n2; i2++, node += n1)
+      {
+	this->prescribe(node,dof,-code);
+	if (code > 0)
+	  dirich.back().nodes.push_back(std::make_pair(i2,node));
+      }
+      this->prescribe(node,dof,bcode);
       break;
 
     case  2: // Back edge (positive J-direction)
       node += n1*(n2-1);
     case -2: // Front edge (negative J-direction)
-      for (int i1 = 1; i1 <= n1; i1++, node++)
-	this->prescribe(node,dof,code);
+      this->prescribe(node,dof,bcode); node++;
+      for (int i1 = 2; i1 < n1; i1++, node++)
+      {
+	this->prescribe(node,dof,-code);
+	if (code > 0)
+	  dirich.back().nodes.push_back(std::make_pair(i1,node));
+      }
+      this->prescribe(node,dof,bcode);
       break;
     }
+
+  if (code > 0)
+    if (dirich.back().nodes.empty())
+      dirich.pop_back(); // In the unlikely event of a 2-point boundary
+#if SP_DEBUG > 1
+    else
+    {
+      std::cout <<"Non-corner boundary nodes:";
+      for (size_t i = 0; i < dirich.back().nodes.size(); i++)
+	std::cout <<" ("<< dirich.back().nodes[i].first
+		  <<","<< dirich.back().nodes[i].second
+		  <<")";
+      std::cout <<"\nThese nodes will be subjected to Dirchlet projection"
+		<< std::endl;
+    }
+#endif
 }
 
 
 /*!
-  \brief Helper method for casting a \a Go::Point object to Vec3.
+  A negative \a code value implies direct evaluation of the Dirchlet condition
+  function at the control point. Positive \a code implies projection onto the
+  spline basis representing the boundary curve (needed for curved edges and/or
+  non-constant functions).
 */
-
-static Vec3 toVec3 (const Go::Point& X, int nsd)
-{
-  Vec3 Y;
-  for (int i = 0; i < nsd && i < X.size() && i < 3; i++) Y[i] = X[i];
-  return Y;
-}
-
 
 void ASMs2D::constrainEdgeLocal (int dir, int dof, int code)
 {
@@ -526,7 +587,8 @@ void ASMs2D::constrainEdgeLocal (int dir, int dof, int code)
     return;
 
   // Find the curve representing the edge geometry (for tangent evaluation)
-  Go::SplineCurve* edge = surf->edgeCurve(dir > 0 ? dir : 3*dir+6);
+  Go::SplineCurve* edge = this->getBoundary(dir);
+  if (!edge) return;
 
   if (gNod == 0 && !shareFE) // Keep track of the global node numbers
     gNod = *std::max_element(MLGN.begin(),MLGN.end());
@@ -547,6 +609,12 @@ void ASMs2D::constrainEdgeLocal (int dir, int dof, int code)
       incNod = 1;
       break;
     }
+
+  int bcode = code;
+  if (code > 0) // Dirichlet projection will be performed
+    dirich.push_back(DirichletEdge(edge,dof,code));
+  else if (code < 0)
+    bcode = -code;
 
   std::vector<Go::Point> pts(3);
   for (size_t i = 0; i < gpar.size(); i++, iSnod += incNod)
@@ -572,7 +640,7 @@ void ASMs2D::constrainEdgeLocal (int dir, int dof, int code)
     // First find the tangent direction of the edge at this point.
     // That will be the y-axis of the local coordinate system along the edge.
     edge->point(pts,gpar[i],1);
-    Vec3 Yaxis(toVec3(pts[1],nsd));
+    Vec3 Yaxis(SplineUtils::toVec3(pts[1],nsd));
     Yaxis.normalize();
     if (dir == -1 || dir == 2) Yaxis *= -1.0;
 
@@ -580,7 +648,7 @@ void ASMs2D::constrainEdgeLocal (int dir, int dof, int code)
     // That will be the local z-axis of the local coordinate system.
     u[2-abs(dir)] = gpar[i];
     surf->point(pts,u[0],u[1],1);
-    Vec3 Zaxis(toVec3(pts[1],nsd),toVec3(pts[2],nsd));
+    Vec3 Zaxis(SplineUtils::toVec3(pts[1],nsd),SplineUtils::toVec3(pts[2],nsd));
     Zaxis.normalize();
 
     // And then the local X-axis (outward-directed edge normal)
@@ -605,10 +673,16 @@ void ASMs2D::constrainEdgeLocal (int dir, int dof, int code)
     }
 
     // Finally, add the Dirchlet condition on the local DOF(s)
-    this->prescribe(1+iMnod,dof,code);
+    int node = 1 + iMnod;
+    if (i == 0 || i+1 == gpar.size())
+      this->prescribe(node,dof,bcode);
+    else
+    {
+      this->prescribe(node,dof,-code);
+      if (code > 0)
+	dirich.back().nodes.push_back(std::make_pair(i+1,node));
+    }
   }
-
-  delete edge;
 }
 
 
@@ -637,6 +711,76 @@ void ASMs2D::constrainNode (double xi, double eta, int dof, int code)
   int J = int(0.5+(n2-1)*eta);
 
   this->prescribe(n1*J+I+1,dof,code);
+}
+
+
+/*!
+  This method projects the function describing the in-homogeneous Dirchlet
+  boundary condition onto the spline basis defining the boundary curve,
+  in order to find the control point values which are used as the prescribed
+  values of the boundary DOFs.
+*/
+
+bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
+			      const std::map<int,VecFunc*>& vfunc, double time)
+{
+  std::map<int,RealFunc*>::const_iterator fit;
+  std::map<int,VecFunc*>::const_iterator vfit;
+  std::vector<DirichletEdge>::const_iterator dit;
+  std::vector<Ipair>::const_iterator nit;
+
+  for (size_t i = 0; i < dirich.size(); i++)
+  {
+    // Project the function onto the spline curve basis
+    Go::SplineCurve* dcrv = 0;
+    if ((fit = func.find(dirich[i].code)) != func.end())
+      dcrv = SplineUtils::project(dirich[i].curve,*fit->second,time);
+    else if ((vfit = vfunc.find(dirich[i].code)) != vfunc.end())
+      dcrv = SplineUtils::project(dirich[i].curve,*vfit->second,nf,time);
+    else
+    {
+      std::cerr <<" *** ASMs2D::updateDirichlet: Code "<< dirich[i].code
+		<<" is not associated with any function."<< std::endl;
+      return false;
+    }
+    if (!dcrv)
+    {
+      std::cerr <<" *** ASMs2D::updateDirichlet: Projection failure."
+		<< std::endl;
+      return false;
+    }
+
+    // Loop over the (interior) nodes (control points) of this boundary curve
+    for (nit = dirich[i].nodes.begin(); nit != dirich[i].nodes.end(); nit++)
+    {
+      // Find the constraint equation for current (node,dof)
+      MPC pDOF(MLGN[nit->second-1],dirich[i].dof);
+      MPCIter mit = mpcs.find(&pDOF);
+      if (mit == mpcs.end())
+      {
+	std::cerr <<" *** ASMbase::updateDirichlet: Invalid slave node in MPC, "
+		  << pDOF << std::endl;
+	return false;
+      }
+
+      // Find index to the control point value for this (node,dof) in dcrv
+      RealArray::const_iterator cit = dcrv->coefs_begin();
+      if (dcrv->dimension() > 1) // A vector field is specified
+	cit += (nit->first-1)*dcrv->dimension() + (dirich[i].dof-1);
+      else // A scalar field is specified at this dof
+	cit += (nit->first-1);
+
+      // Now update the prescribed value in the constraint equation
+      (*mit)->setSlaveCoeff(*cit);
+#if SP_DEBUG > 1
+      std::cout <<"Updated constraint: "<< **mit;
+#endif
+    }
+  }
+
+  // The parent class method takes care of the corner nodes with direct
+  // evaluation of the Dirchlet functions (since they are interpolatory)
+  return this->ASMbase::updateDirichlet(func,vfunc,time);
 }
 
 

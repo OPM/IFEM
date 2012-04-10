@@ -19,6 +19,7 @@
 #include "Utilities.h"
 
 namespace Go {
+  class SplineCurve;
   class SplineSurface;
   class BasisDerivsSf;
   class BasisDerivsSf2;
@@ -70,15 +71,34 @@ public:
     int next();
   };
 
+private:
+  typedef std::pair<int,int> Ipair; //!< Convenience declaration
+
+  //! \brief Struct representing an inhomogeneous Dirichlet boundary condition.
+  struct DirichletEdge
+  {
+    Go::SplineCurve*   curve; //!< Pointer to spline curve for the boundary
+    int                dof;   //!< Local DOF to constrain along the boundary
+    int                code;  //!< Inhomogeneous Dirichlet condition code
+    std::vector<Ipair> nodes; //!< Nodes subjected to projection on the boundary
+    //! \brief Default constructor.
+    DirichletEdge(Go::SplineCurve* sc = 0, int d = 0, int c = 0)
+    : curve(sc), dof(d), code(c) {}
+  };
+
+public:
   //! \brief Default constructor.
   ASMs2D(unsigned char n_s = 2, unsigned char n_f = 2);
   //! \brief Copy constructor.
   ASMs2D(const ASMs2D& patch, unsigned char n_f = 0);
-  //! \brief Empty destructor.
-  virtual ~ASMs2D() {}
+  //! \brief The destructor frees the dynamically allocated boundary curves.
+  virtual ~ASMs2D();
 
   //! \brief Returns the spline surface representing the geometry of this patch.
   Go::SplineSurface* getSurface() const { return surf; }
+  //! \brief Returns the spline curve representing a boundary of this patch.
+  //! \param[in] dir Parameter direction defining which boundary to return
+  Go::SplineCurve* getBoundary(int dir);
   //! \brief Returns the spline surface representing the basis of this patch.
   virtual Go::SplineSurface* getBasis(int = 1) const { return surf; }
 
@@ -199,6 +219,14 @@ public:
   //! \param[in] master 1-based index of the first master node in this basis
   virtual void closeEdges(int dir, int basis = 0, int master = 1);
 
+  //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
+  //! \param[in] func Scalar property fields
+  //! \param[in] vfunc Vector property fields
+  //! \param[in] time Current time
+  virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
+			       const std::map<int,VecFunc*>& vfunc,
+			       double time = 0.0);
+
 
   // Methods for integration of finite element quantities.
   // These are the main computational methods of the ASM class hierarchy.
@@ -281,6 +309,7 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
 			    const int* npe = 0, char project = '\0') const;
 
+private:
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods
   Go::SplineSurface* projectSolution(const IntegrandBase& integrand) const;
@@ -298,6 +327,7 @@ public:
   //! \brief Projects the secondary solution using Least-Square Approximation.
   Go::SplineSurface* projectSolutionLeastSquare(const IntegrandBase&) const;
 
+public:
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods
   virtual Go::GeomObject* evalSolution(const IntegrandBase& integrand) const;
@@ -405,9 +435,13 @@ private:
 
 protected:
   Go::SplineSurface* surf; //!< Pointer to the actual spline surface object
+  Go::SplineCurve* bou[4]; //!< Pointers to the four boundary curves
 
   const IndexVec& nodeInd; //!< IJ-pairs for the control points (nodes)
   IndexVec      myNodeInd; //!< The actual IJ-pair container
+
+  //! Inhomogeneous Dirichlet boundary condition data
+  std::vector<DirichletEdge> dirich;
 
   //! Element groups for multi-threaded assembly
   utl::ThreadGroups threadGroups;
