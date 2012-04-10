@@ -85,9 +85,6 @@ bool ASMs2D::read (std::istream& is)
     nsd = surf->dimension();
   }
 
-  // Define number of DOFs pr element
-  neldof = surf->order_u()*surf->order_v()*nf;
-
   geo = surf;
   return true;
 }

@@ -77,9 +77,6 @@ bool ASMs3D::read (std::istream& is)
     return false;
   }
 
-  // Define number of DOFs pr element
-  neldof = svol->order(0)*svol->order(1)*svol->order(2)*nf;
-
   geo = svol;
   return true;
 }

@@ -116,8 +116,6 @@ public:
   unsigned char getNoParamDim() const { return ndim; }
   //! \brief Returns the number of solution fields.
   virtual unsigned char getNoFields(int b = 0) const { return b > 1 ? 0 : nf; }
-  //! \brief Returns the number of degrees of freedom per element.
-  virtual size_t getNoElmDOF(int b = 0) const { return b > 1 ? 0 : neldof; }
 
   //! \brief Returns local 1-based index of the node with given global number.
   //! \details If the given node number is not present, 0 is returned.
@@ -467,7 +465,6 @@ protected:
   unsigned char ndim;   //!< Number of parametric dimensions (1, 2 or 3)
   unsigned char nsd;    //!< Number of space dimensions (ndim <= nsd <= 3)
   unsigned char nf;     //!< Number of primary solution fields (1 or larger)
-  size_t        neldof; //!< Number of degrees of freedom per element
   int           nGauss; //!< Numerical integration scheme
 
   const IntVec& MLGE; //!< Matrix of Local to Global Element numbers

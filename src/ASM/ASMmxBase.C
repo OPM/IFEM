@@ -26,18 +26,6 @@ ASMmxBase::ASMmxBase (unsigned char n_f1, unsigned char n_f2)
 }
 
 
-size_t ASMmxBase::getNoElmDOF(int basis) const
-{
-  switch(basis) {
-  case 1: return neldof1;
-  case 2: return neldof2;
-  }    
-  
- 
- return neldof1 + neldof2;
-}
-
-
 void ASMmxBase::initMx (const std::vector<int>& MLGN, const int* sysMadof)
 {
   MADOF.resize(MLGN.size());

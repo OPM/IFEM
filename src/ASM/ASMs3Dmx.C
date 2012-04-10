@@ -379,11 +379,6 @@ bool ASMs3Dmx::generateFEMTopology ()
 		}
   }
 
-  // Number of DOFs pr element for each basis
-  neldof1 = basis1->order(0)*basis1->order(1)*basis1->order(2)*nf1;
-  neldof2 = basis2->order(0)*basis2->order(1)*basis2->order(2)*nf2;
-  neldof = neldof1+neldof2;
-
 #ifdef SP_DEBUG
   std::cout <<"NEL = "<< MLGE.size() <<" NNOD = "<< MLGN.size() << std::endl;
 #endif
