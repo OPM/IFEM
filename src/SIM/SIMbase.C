@@ -749,9 +749,8 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
     (*mit)->generateThreadGroups();
   for (q = myProps.begin(); q != myProps.end(); q++)
     if (q->pcode == Property::NEUMANN)
-      if (q->patch > 0 && q->patch <= myModel.size())
-	if (q->ldim+1 == myModel[q->patch-1]->getNoParamDim())
-	  myModel[q->patch-1]->generateThreadGroups(q->lindx);
+      if (q->ldim+1 == myModel[q->patch-1]->getNoParamDim())
+	myModel[q->patch-1]->generateThreadGroups(q->lindx);
 
   // Preprocess the result points
   for (ResPointVec::iterator p = myPoints.begin(); p != myPoints.end();)
@@ -806,7 +805,7 @@ bool SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
   for (PropertyVec::iterator p = myProps.begin(); p != myProps.end(); p++)
     if (p->pindx == (size_t)code && p->pcode == Property::UNDEFINED)
     {
-      p->pcode = ptype;
+      if (p->patch > 0 && p->patch <= myModel.size()) p->pcode = ptype;
       if (pindex >= 0) p->pindx = pindex;
     }
 
@@ -905,13 +904,12 @@ void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers)
 
   for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); p++)
     if (p->pcode == Property::NEUMANN)
-      if (p->patch > 0 && p->patch <= myModel.size())
-      {
-	// Account for possibly more than one Neumann property on a boundary
-	bool notCounted = true;
-	for (PropertyVec::const_iterator q = myProps.begin(); q != p; q++)
-	  if (q->patch == p->patch && q->lindx == p->lindx)
-	    notCounted = false;
+    {
+      // Account for possibly more than one Neumann property on a boundary
+      bool notCounted = true;
+      for (PropertyVec::const_iterator q = myProps.begin(); q != p; q++)
+	if (q->patch == p->patch && q->lindx == p->lindx && q->pcode==p->pcode)
+	  notCounted = false;
 
 	if (notCounted) // Count the boundary integration points
 	  myModel[p->patch-1]->getNoBouPoints(nBouGP,p->ldim,p->lindx);
