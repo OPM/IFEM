@@ -1,26 +1,38 @@
 #include "GoTools/trivariate/SplineVolume.h"
-#include "GoTools/geometry/SplineCurve.h"
-#include "GoTools/geometry/SplineSurface.h"
-
-#include "ASMs3D.h"
-#include "ASMstruct.h"
 #include "SplineInterpolator.h"
+#include "MatVec.h"
 
+/*!
+  \brief Global projection method (Least-Square Approximation).
+  \param[in] basis_u Basis values in the first parameter direction
+  \param[in] basis_v Basis values in the second parameter direction
+  \param[in] basis_w Basis values in the third parameter direction
+  \param[in] par_u Gauss values in the first parameter direction
+  \param[in] par_v Gauss values in the second parameter direction
+  \param[in] par_w Gauss values in the third parameter direction
+  \param[in] wpar_u Gauss weights in the first parameter direction
+  \param[in] wpar_v Gauss weights in the second parameter direction
+  \param[in] wpar_w Gauss weights in the third parameter direction
+  \param[in] points Secondary solution field evaluated at Gauss points
+  \param[in] dimension Dimension of the secondary solution field
+  \param[in] rational Value marks NURBS geometry
+  \param[in] weights NURBS weights for the projective control points
+  \return Spline volume object representing the projected field
+*/
 
-Go::SplineVolume* 
-  ASMs3D::leastsquare_approximation(const Go::BsplineBasis& basis_u,
-                                    const Go::BsplineBasis& basis_v,
-                                    const Go::BsplineBasis& basis_w,
-                                    std::vector<double>& par_u,
-                                    std::vector<double>& par_v,
-                                    std::vector<double>& par_w,
-                                    std::vector<double>& wpar_u,
-                                    std::vector<double>& wpar_v,
-                                    std::vector<double>& wpar_w,
-                                    std::vector<double>& points,
-                                    int dimension,
-                                    bool rational,
-                                    std::vector<double>& weights) const
+static Go::SplineVolume*
+leastsquare_approximation(const Go::BsplineBasis& basis_u,
+                          const Go::BsplineBasis& basis_v,
+                          const Go::BsplineBasis& basis_w,
+                          const RealArray& par_u,
+                          const RealArray& par_v,
+                          const RealArray& par_w,
+                          const RealArray& wpar_u,
+                          const RealArray& wpar_v,
+                          const RealArray& wpar_w,
+                          const RealArray& points,
+                          int dimension, bool rational,
+                          const RealArray& weights)
 {
   // Check input
   ASSERT(par_u.size()*par_v.size()*par_w.size() == points.size()/dimension);
@@ -32,13 +44,9 @@ Go::SplineVolume*
   int perknot=dimension;
   if (rational)
   {
-    shared_ptr<Go::SplineVolume> denom = 
-      shared_ptr<Go::SplineVolume>(new Go::SplineVolume(basis_u, basis_v,
-                                                        basis_w, 
-                                                        weights.begin(), 1,
-                                                        false));
+    Go::SplineVolume denom(basis_u, basis_v, basis_w, weights.begin(), 1,false);
     std::vector<double> wgtval;
-    denom->gridEvaluator(par_u, par_v, par_w, wgtval);
+    denom.gridEvaluator(par_u, par_v, par_w, wgtval);
     size_t nmb_pnt = par_u.size()*par_v.size()*par_w.size();
     points2.reserve(nmb_pnt*(dimension+1));
     for (size_t kr=0; kr<nmb_pnt; ++kr)
@@ -65,7 +73,7 @@ Go::SplineVolume*
       // Interpolate
       std::vector<double> coefs;
       std::vector<double> pnts;
-      pnts.insert(pnts.end(), 
+      pnts.insert(pnts.end(),
           points2.begin()+(kj*par_v.size()+ki)*perknot*par_u.size(),
           points2.begin()+(kj*par_v.size()+ki+1)*perknot*par_u.size());
 
@@ -84,29 +92,40 @@ Go::SplineVolume*
 
   // Interpolate surfaces to create volume
   std::vector<double> vol_coefs;
-
   SplineInterpolator::leastsquare_approximation(par_w, wpar_w, sf_coefs, tg_pnt,
                                                 basis_w, vol_coefs);
 
-  // Make surface
-  Go::SplineVolume* vol = new Go::SplineVolume(basis_u, basis_v, basis_w,
-                                               vol_coefs.begin(), dimension,
-                                               rational);
-  return vol;
+  // Make volume
+  return new Go::SplineVolume(basis_u, basis_v, basis_w, vol_coefs.begin(),
+                              dimension, rational);
 }
 
 
-Go::SplineVolume* 
-  ASMs3D::quasiInterpolation(const Go::BsplineBasis& basis_u,
-                             const Go::BsplineBasis& basis_v,
-                             const Go::BsplineBasis& basis_w,
-                             std::vector<double>& par_u,
-                             std::vector<double>& par_v,
-                             std::vector<double>& par_w,
-                             std::vector<double>& points,
-                             int dimension,
-                             bool rational,
-                             std::vector<double>& weights) const
+/*!
+  \brief Local projection method (Quasi-Interpolation).
+  \param[in] basis_u Basis values in the first parameter direction
+  \param[in] basis_v Basis values in the second parameter direction
+  \param[in] basis_w Basis values in the third parameter direction
+  \param[in] par_u Grevielle sites in the first parameter direction
+  \param[in] par_v Grevielle sites in the second parameter direction
+  \param[in] par_w Grevielle sites in the third parameter direction
+  \param[in] points Secondary solution field evaluated at Greville points
+  \param[in] dimension Dimension of the secondary solution field
+  \param[in] rational Value marks NURBS geometry
+  \param[in] weights NURBS weights for the projective control points
+  \return Spline volume object representing the projected field
+*/
+
+static Go::SplineVolume*
+quasiInterpolation(const Go::BsplineBasis& basis_u,
+                   const Go::BsplineBasis& basis_v,
+                   const Go::BsplineBasis& basis_w,
+                   const RealArray& par_u,
+                   const RealArray& par_v,
+                   const RealArray& par_w,
+                   const RealArray& points,
+                   int dimension, bool rational,
+                   const RealArray& weights)
 {
   std::vector< double > knots_simple_u;
   basis_u.knotsSimple(knots_simple_u);
@@ -136,12 +155,9 @@ Go::SplineVolume*
   int perknot=dimension;
   if (rational)
   {
-    shared_ptr<Go::SplineVolume> denom = 
-      shared_ptr<Go::SplineVolume>(new Go::SplineVolume(basis_u, basis_v,
-                                                        basis_w, weights.begin(),
-                                                        1, false));
+    Go::SplineVolume denom(basis_u, basis_v, basis_w, weights.begin(), 1,false);
     std::vector<double> wgtval;
-    denom->gridEvaluator(par_u, par_v, par_w, wgtval);
+    denom.gridEvaluator(par_u, par_v, par_w, wgtval);
     size_t nmb_pnt = par_u.size()*par_v.size()*par_w.size();
     points2.reserve(nmb_pnt*(dimension+1));
     for (size_t kr=0; kr<nmb_pnt; ++kr)
@@ -692,7 +708,6 @@ Go::SplineVolume*
           if (gm[i][j] == 1)
           {count = count+1;
             sf_coefs_solution[count] = sf_coefs[i*(gmxl*perknot)+j];}
-
     }
 
     volinput_coefs.insert(volinput_coefs.end(), sf_coefs_solution.begin(), sf_coefs_solution.end());
@@ -703,26 +718,39 @@ Go::SplineVolume*
   std::vector<double> vol_coefs;
   SplineInterpolator::interpolate(par_w, volinput_coefs, tg_pnt, basis_w, vol_coefs);
 
-  // Make surface
-  Go::SplineVolume* vol = new Go::SplineVolume(basis_u, basis_v, basis_w,
-                                               vol_coefs.begin(), dimension,
-                                               rational);
-  return vol;
+  // Make volume
+  return new Go::SplineVolume(basis_u, basis_v, basis_w, vol_coefs.begin(),
+                              dimension, rational);
 }
 
 
-//VariationDiminishingSplineApproximation only for function values! 
-Go::SplineVolume* 
-  ASMs3D::VariationDiminishingSplineApproximation(const Go::BsplineBasis& basis_u,
-					          const Go::BsplineBasis& basis_v,
-                                                  const Go::BsplineBasis& basis_w,
-                                                  std::vector<double>& par_u,
-                                                  std::vector<double>& par_v,
-                                                  std::vector<double>& par_w,
-                                                  std::vector<double>& points,
-                                                  int dimension,
-                                                  bool rational,
-                                                  std::vector<double>& weights) const
+/*!
+  \brief Local projection method (Variation Diminishing Spline Approximation).
+  \param[in] basis_u Basis values in the first parameter direction
+  \param[in] basis_v Basis values in the second parameter direction
+  \param[in] basis_w Basis values in the third parameter direction
+  \param[in] par_u Grevielle sites in the first parameter direction
+  \param[in] par_v Grevielle sites in the second parameter direction
+  \param[in] par_w Grevielle sites in the third parameter direction
+  \param[in] points Secondary solution field evaluated at Greville points
+  \param[in] dimension Dimension of the secondary solution field
+  \param[in] rational Value marks NURBS geometry
+  \param[in] weights NURBS weights for the projective control points
+  \return Spline volume object representing the projected field
+
+  \note VariationDiminishingSplineApproximation only for function values! 
+*/
+
+static Go::SplineVolume*
+VariationDiminishingSplineApproximation(const Go::BsplineBasis& basis_u,
+					const Go::BsplineBasis& basis_v,
+					const Go::BsplineBasis& basis_w,
+					const RealArray& par_u,
+					const RealArray& par_v,
+					const RealArray& par_w,
+					const RealArray& points,
+					int dimension, bool rational,
+					const RealArray& weights)
 {
   // Check input
   ASSERT(par_u.size()*par_v.size()*par_w.size() == points.size()/dimension);
@@ -730,37 +758,23 @@ Go::SplineVolume*
   ASSERT(basis_v.numCoefs() == (int)par_v.size());
   ASSERT(basis_w.numCoefs() == (int)par_w.size());
 
-  size_t sizepoints;
+  std::vector<double> local_coefs;
   if (rational)
   {
     ASSERT(weights.size() == points.size()/dimension);
-    sizepoints = par_u.size()*par_v.size()*par_w.size();
-  }
-  else
-    sizepoints = points.size();
-
-  std::vector<double> local_coefs;
-  size_t countpoints=0;
-  if (rational)
-  {
-    for (size_t i = 0; i<sizepoints;i++)
+    size_t sizepoints = par_u.size()*par_v.size()*par_w.size();
+    size_t countpoints = 0;
+    for (size_t i = 0; i < sizepoints; i++)
     {
-      for (int j = 0; j<dimension;j++){
+      for (int j = 0; j < dimension; j++, countpoints++)
         local_coefs.push_back(points[countpoints]*weights[i]);
-        countpoints++;
-      }
-        local_coefs.push_back(weights[i]);
+      local_coefs.push_back(weights[i]);
     }
   }
   else
     local_coefs = points;
 
-
   // Make volume
-  Go::SplineVolume* vol = new Go::SplineVolume(basis_u, basis_v, basis_w,
-                                               local_coefs.begin(), dimension,
-                                               rational);
-
-  return vol;
+  return new Go::SplineVolume(basis_u, basis_v, basis_w, local_coefs.begin(),
+                              dimension, rational);
 }
-

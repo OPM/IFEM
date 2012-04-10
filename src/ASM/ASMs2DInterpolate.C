@@ -1,25 +1,32 @@
-#include "GoTools/geometry/SurfaceInterpolator.h"
-#include "GoTools/geometry/SplineCurve.h"
 #include "GoTools/geometry/SplineSurface.h"
-
-#include "ASMs2D.h"
-#include "ASMstruct.h"
 #include "SplineInterpolator.h"
+#include "MatVec.h"
 
-#include <vector>
+/*!
+  \brief Global projection method (Least-Square Approximation).
+  \param[in] basis_u Basis values in the first parameter direction
+  \param[in] basis_v Basis values in the second parameter direction
+  \param[in] par_u Gauss values in the first parameter direction
+  \param[in] par_v Gauss values in the second parameter direction
+  \param[in] wpar_u Gauss weights in the first parameter direction
+  \param[in] wpar_v Gauss weights in the second parameter direction
+  \param[in] points Secondary solution field evaluated at Gauss points
+  \param[in] dimension Dimension of the secondary solution field
+  \param[in] rational Value marks NURBS geometry
+  \param[in] weights NURBS weights for the projective control points
+  \return Spline surface object representing the projected field
+*/
 
-
-Go::SplineSurface*
-  ASMs2D::leastsquare_approximation(const Go::BsplineBasis& basis_u,
-                                    const Go::BsplineBasis& basis_v,
-                                    std::vector<double>& par_u,
-                                    std::vector<double>& par_v,
-                                    std::vector<double>& wpar_u,
-                                    std::vector<double>& wpar_v,
-                                    std::vector<double>& points,
-                                    int dimension,
-                                    bool rational,
-                                    std::vector<double>& weights) const
+static Go::SplineSurface*
+leastsquare_approximation(const Go::BsplineBasis& basis_u,
+                          const Go::BsplineBasis& basis_v,
+                          const RealArray& par_u,
+                          const RealArray& par_v,
+                          const RealArray& wpar_u,
+                          const RealArray& wpar_v,
+                          const RealArray& points,
+                          int dimension, bool rational,
+                          const RealArray& weights)
 {
   // Check input
   ASSERT(par_u.size()*par_v.size() == points.size()/dimension);
@@ -31,12 +38,9 @@ Go::SplineSurface*
   {
     // Include weight information
     // First get weights in interpolation points
-    shared_ptr<Go::SplineSurface> denom =
-      shared_ptr<Go::SplineSurface>(new Go::SplineSurface(basis_u, basis_v,
-                                                          weights.begin(), 1,
-                                                          false));
+    Go::SplineSurface denom(basis_u, basis_v, weights.begin(), 1, false);
     std::vector<double> wgtval;
-    denom->gridEvaluator(wgtval, par_u, par_v);
+    denom.gridEvaluator(wgtval, par_u, par_v);
     size_t nmb_pnt = par_u.size()*par_v.size();
     points2.reserve(nmb_pnt*(dimension+1));
     for (size_t kr=0; kr<nmb_pnt; ++kr)
@@ -73,11 +77,8 @@ Go::SplineSurface*
                                                 tg_pnt, basis_v, sf_coefs);
 
   // Make surface
-  Go::SplineSurface* surf = new Go::SplineSurface(basis_u, basis_v,
-                                                  sf_coefs.begin(), dimension,
-                                                  rational);
-
-  return surf;
+  return new Go::SplineSurface(basis_u, basis_v, sf_coefs.begin(),
+                               dimension, rational);
 }
 
 
@@ -135,19 +136,19 @@ static InterpolateLoop differs[] =
        2,     2,     1,  1, -1,
        2,     2,     3,  1, -2}};
 
-static InterpolateLoop no_multiple_skeleton = 
+static InterpolateLoop no_multiple_skeleton =
   {0.f, 0.f, 0.f,
-     2,   0, 0, 0,  0,
-     2,   0, 2, 0, -1,
-     2,   0, 0, 0,  0,
-     2,   0, 2, 0, -1};
+     2,   0,   0, 0,  0,
+     2,   0,   2, 0, -1,
+     2,   0,   0, 0,  0,
+     2,   0,   2, 0, -1};
 
 
 static void quasiInterpolateLoop(const InterpolateLoop& loop,
                                  int& countj,
-                                 const std::vector<double>& par_u,
-                                 const std::vector<double>& pnts,
-                                 std::vector<double>& cv_coefs,
+                                 const RealArray& par_u,
+                                 const RealArray& pnts,
+                                 RealArray& cv_coefs,
                                  int count, int p, int m, int perknot,
                                  const Go::BsplineBasis& basis)
 {
@@ -182,12 +183,12 @@ static void quasiInterpolateLoop(const InterpolateLoop& loop,
 
 
 static void quasiInterpolate1D(int count_multiple_knots,
-                               const std::vector<double>& par,
-                               const std::vector<double>& pnts,
+                               const RealArray& par,
+                               const RealArray& pnts,
                                const Go::BsplineBasis& basis,
                                int p, int perknot,
                                double multi_value,
-                               std::vector<double>& coefs)
+                               RealArray& coefs)
 {
   int end = par.size() + 2*count_multiple_knots - basis.numCoefs()+1;
   // case evaluation depending on multiplicity of knots
@@ -254,15 +255,27 @@ static void quasiInterpolate1D(int count_multiple_knots,
 }
 
 
-Go::SplineSurface*
-  ASMs2D::quasiInterpolation(const Go::BsplineBasis& basis_u,
-                             const Go::BsplineBasis& basis_v,
-                             std::vector<double>& par_u,
-                             std::vector<double>& par_v,
-                             std::vector<double>& points,
-                             int dimension,
-                             bool rational,
-                             std::vector<double>& weights) const
+/*!
+  \brief Local projection method (Quasi-Interpolation).
+  \param[in] basis_u Basis values in the first parameter direction
+  \param[in] basis_v Basis values in the second parameter direction
+  \param[in] par_u Grevielle sites in the first parameter direction
+  \param[in] par_v Grevielle sites in the second parameter direction
+  \param[in] points Secondary solution field evaluated at Greville points
+  \param[in] dimension Dimension of the secondary solution field
+  \param[in] rational Value marks NURBS geometry
+  \param[in] weights NURBS weights for the projective control points
+  \return Spline surface object representing the projected field
+*/
+
+static Go::SplineSurface*
+quasiInterpolation(const Go::BsplineBasis& basis_u,
+                   const Go::BsplineBasis& basis_v,
+                   const RealArray& par_u,
+                   const RealArray& par_v,
+                   const RealArray& points,
+                   int dimension, bool rational,
+                   const RealArray& weights)
 {
   // Check knot multiplicity for case evaluation
   std::vector<double> knots_simple_u;
@@ -291,12 +304,9 @@ Go::SplineSurface*
   {
     // Include weight information
     // First get weights in interpolation points
-    shared_ptr<Go::SplineSurface> denom =
-      shared_ptr<Go::SplineSurface>(new Go::SplineSurface(basis_u, basis_v,
-                                                          weights.begin(), 1,
-                                                          false));
+    Go::SplineSurface denom(basis_u, basis_v, weights.begin(), 1, false);
     std::vector<double> wgtval;
-    denom->gridEvaluator(wgtval, par_u, par_v);
+    denom.gridEvaluator(wgtval, par_u, par_v);
     size_t nmb_pnt = par_u.size()*par_v.size();
     points2.reserve(nmb_pnt*(dimension+1));
     for (size_t kr=0; kr<nmb_pnt; ++kr)
@@ -369,7 +379,7 @@ Go::SplineSurface*
     int knot_intern_multipl;
     knot_intern_multipl = basis_v.knotMultiplicity(knots_simple_v[i]);
     multi_v[i]=knot_intern_multipl;
-    if (knot_intern_multipl > 1) {  
+    if (knot_intern_multipl > 1) {
       multi_idx_v[i]=1;
       multi_value_v = knots_simple_v[i];
     } else
@@ -506,59 +516,55 @@ Go::SplineSurface*
   ///////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////
 
-
   // Make surface
-  Go::SplineSurface* surf = new Go::SplineSurface(basis_u, basis_v,
-                                                  sf_coefs_solution.begin(),
-                                                  dimension, rational);
-
-  return surf;
+  return new Go::SplineSurface(basis_u, basis_v, sf_coefs_solution.begin(),
+                               dimension, rational);
 }
 
 
-Go::SplineSurface*
-  ASMs2D::VariationDiminishingSplineApproximation(const Go::BsplineBasis& basis_u,
-                                                  const Go::BsplineBasis& basis_v,
-                                                  std::vector<double>& par_u,
-                                                  std::vector<double>& par_v,
-                                                  std::vector<double>& points,
-                                                  int dimension,
-                                                  bool rational,
-                                                  std::vector<double>& weights) const
+/*!
+  \brief Local projection method (Variation Diminishing Spline Approximation).
+  \param[in] basis_u Basis values in the first parameter direction
+  \param[in] basis_v Basis values in the second parameter direction
+  \param[in] par_u Grevielle sites in the first parameter direction
+  \param[in] par_v Grevielle sites in the second parameter direction
+  \param[in] points Secondary solution field evaluated at Greville points
+  \param[in] dimension Dimension of the secondary solution field
+  \param[in] rational Value marks NURBS geometry
+  \param[in] weights NURBS weights for the projective control points
+  \return Spline surface object representing the projected field
+*/
+
+static Go::SplineSurface*
+VariationDiminishingSplineApproximation(const Go::BsplineBasis& basis_u,
+                                        const Go::BsplineBasis& basis_v,
+                                        const RealArray& par_u,
+                                        const RealArray& par_v,
+                                        const RealArray& points,
+                                        int dimension, bool rational,
+                                        const RealArray& weights)
 {
   // Check input
   ASSERT(par_u.size()*par_v.size() == points.size()/dimension);
   ASSERT(basis_u.numCoefs() == (int)par_u.size());
   ASSERT(basis_v.numCoefs() == (int)par_v.size());
 
-  size_t sizepoints;
-  if (rational)
-  {
-    sizepoints = par_u.size()*par_v.size();
-  }
-  else
-    sizepoints = points.size();
-
   std::vector<double> local_coefs;
-  size_t countpoints=0;
   if (rational)
   {
-    for (size_t i = 0; i<sizepoints;i++)
+    size_t sizepoints = par_u.size()*par_v.size();
+    size_t countpoints = 0;
+    for (size_t i = 0; i < sizepoints; i++)
     {
-      for (int j = 0; j<dimension;j++){
+      for (int j = 0; j < dimension; j++, countpoints++)
         local_coefs.push_back(points[countpoints]*weights[i]);
-        countpoints++;}
-        local_coefs.push_back(weights[i]);
+      local_coefs.push_back(weights[i]);
     }
   }
   else
     local_coefs = points;
 
-
   // Make surface
-  Go::SplineSurface* surf = new Go::SplineSurface(basis_u, basis_v,
-                                                  local_coefs.begin(),
-                                                  dimension, rational);
-
-  return surf;
+  return new Go::SplineSurface(basis_u, basis_v, local_coefs.begin(),
+                               dimension, rational);
 }

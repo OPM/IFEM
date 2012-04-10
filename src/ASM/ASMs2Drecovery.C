@@ -39,29 +39,21 @@ bool ASMs2D::getGrevilleParameters (RealArray& prm, int dir) const
 
 bool ASMs2D::getQuasiInterplParameters (RealArray& prm, int dir) const
 {
-  if (!surf) return false;
+  if (!surf || dir < 0 || dir > 1) return false;
+
   const Go::BsplineBasis& basis = surf->basis(dir);
-  
-  size_t n = basis.numCoefs();
-  size_t p = basis.order();
-  
-  RealArray::const_iterator knotit = surf->basis(dir).begin();
-  
-  prm.clear();
-  for (size_t i = p-1; i < n+1; i++){
-    prm.push_back(knotit[i]);
-    prm.push_back(0.5*(knotit[i]+knotit[i+1]));}
-  prm.pop_back();
-  
-  std::vector< double > knots_simple;
+
+  RealArray knots_simple;
   basis.knotsSimple(knots_simple);
-  
+
   prm.clear();
-  for (size_t i = 0; i < knots_simple.size(); i++){
+  for (size_t i = 0; i+1 < knots_simple.size(); i++)
+  {
     prm.push_back(knots_simple[i]);
-    prm.push_back(0.5*(knots_simple[i]+knots_simple[i+1]));}
-  prm.pop_back();
-  
+    prm.push_back(0.5*(knots_simple[i]+knots_simple[i+1]));
+  }
+  prm.push_back(knots_simple.back());
+
   return true;
 }
 
@@ -176,7 +168,7 @@ bool ASMs2D::globalL2projection (Matrix& sField,
 	// Set up control point (nodal) coordinates for current element
 	if (!this->getElementCoordinates(Xnod,1+iel))
 	  return false;
-        else if ((dA = 0.25*this->getParametricArea(1+iel)) < 0.0)
+	else if ((dA = 0.25*this->getParametricArea(1+iel)) < 0.0)
 	  return false; // topology error (probably logic error)
       }
 
@@ -300,7 +292,7 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
   Go::Point X, G;
 
   // Loop over all Greville points
-  int istart, jstart;
+  int istart, jstart = 0;
   size_t ig, jg, k, l, ip = 1;
   for (jg = 0; jg < gpar[1].size(); jg++)
     for (ig = 0; ig < gpar[0].size(); ig++, ip++)
@@ -388,9 +380,11 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 }
 
 
+#include "ASMs2DInterpolate.C" // TODO: inline these methods instead...
+
 // L2-Projection: Least-square approximation; global approximation
 Go::SplineSurface* ASMs2D::projectSolutionLeastSquare (const IntegrandBase& integrand) const
-{ 
+{
   // Secondary solution evaluated at Gauss-Interpolation points
   // Compute parameter values of the result sampling points (Gauss-Interpl. points)
 
@@ -428,8 +422,8 @@ Go::SplineSurface* ASMs2D::projectSolutionLeastSquare (const IntegrandBase& inte
 	else if (d == 0)
 	  {for (int j = 0;j<nGauss;j++)
 	      tmp.push_back(0);}	
-      }  
-    if (dir == 0) 
+      }
+    if (dir == 0)
       wgpar_u = tmp;
     else if (dir == 1)
       wgpar_v = tmp;
@@ -443,21 +437,19 @@ Go::SplineSurface* ASMs2D::projectSolutionLeastSquare (const IntegrandBase& inte
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,gpar))
     return 0;
-  
+
   RealArray weights;
   if (surf->rational())
     surf->getWeights(weights);
-  
-  const Vector& vec = sValues;
+
   return leastsquare_approximation(surf->basis(0),
 				   surf->basis(1),
 				   par_u, par_v,
 				   wgpar_u, wgpar_v,
-				   const_cast<Vector&>(vec),
+				   sValues,
 				   sValues.rows(),
 				   surf->rational(),
 				   weights);
-  
 }
 
 
@@ -481,11 +473,10 @@ Go::SplineSurface* ASMs2D::projectSolutionLocal (const IntegrandBase& integrand)
   if (surf->rational())
     surf->getWeights(weights);
   
-  const Vector& vec = sValues;
   return quasiInterpolation(surf->basis(0),
 			    surf->basis(1),
 			    gpar[0], gpar[1],
-			    const_cast<Vector&>(vec),
+			    sValues,
 			    sValues.rows(),
 			    surf->rational(),
 			    weights);
@@ -505,20 +496,16 @@ Go::SplineSurface* ASMs2D::projectSolutionLocalApprox(const IntegrandBase& integ
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,gpar))
     return 0;
-  
+
   RealArray weights;
   if (surf->rational())
     surf->getWeights(weights);
-  
-  const Vector& vec = sValues;
+
   return VariationDiminishingSplineApproximation(surf->basis(0),
 						 surf->basis(1),
 						 gpar[0], gpar[1],
-						 const_cast<Vector&>(vec),
+						 sValues,
 						 sValues.rows(),
 						 surf->rational(),
 						 weights);
-  
 }
-
-

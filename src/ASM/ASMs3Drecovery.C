@@ -3,7 +3,7 @@
 //!
 //! \file ASMs3Drecovery.C
 //!
-//! \date March 06 2012
+//! \date Mar 06 2012
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
@@ -15,8 +15,10 @@
 #include "GoTools/trivariate/VolumeInterpolator.h"
 
 #include "ASMs3D.h"
+#include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "SparseMatrix.h"
+#include "Utilities.h"
 #include "Profiler.h"
 
 
@@ -37,17 +39,20 @@ bool ASMs3D::getGrevilleParameters (RealArray& prm, int dir) const
 bool ASMs3D::getQuasiInterplParameters (RealArray& prm, int dir) const
 {
   if (!svol) return false;
+
   const Go::BsplineBasis& basis = svol->basis(dir);
-  
-  std::vector< double > knots_simple;
+
+  RealArray knots_simple;
   basis.knotsSimple(knots_simple);
-  
+
   prm.clear();
-  for (size_t i = 0; i < knots_simple.size(); i++){
+  for (size_t i = 0; i+1 < knots_simple.size(); i++)
+  {
     prm.push_back(knots_simple[i]);
-    prm.push_back(0.5*(knots_simple[i]+knots_simple[i+1]));}
-  prm.pop_back();
-  
+    prm.push_back(0.5*(knots_simple[i]+knots_simple[i+1]));
+  }
+  prm.push_back(knots_simple.back());
+
   return true;
 }
 
@@ -55,6 +60,7 @@ bool ASMs3D::getQuasiInterplParameters (RealArray& prm, int dir) const
 Go::SplineVolume* ASMs3D::projectSolution (const IntegrandBase& integrand) const
 {
   PROFILE1("ASMs3D::projectSolution");
+
   // Compute parameter values of the result sampling points (Greville points)
   RealArray gpar[3];
   for (int dir = 0; dir < 3; dir++)
@@ -96,7 +102,8 @@ Go::GeomObject* ASMs3D::evalSolution (const IntegrandBase& integrand) const
 
 
 bool ASMs3D::globalL2projection (Matrix& sField,
-				 const IntegrandBase& integrand) const
+				 const IntegrandBase& integrand,
+				 bool continuous) const
 {
   if (!svol) return true; // silently ignore empty patches
 
@@ -112,14 +119,16 @@ bool ASMs3D::globalL2projection (Matrix& sField,
   const int nel2 = n2 - p2 + 1;
   const int nel3 = n3 - p3 + 1;
 
-  // Get Gaussian quadrature points
-  const int ng1 = p1 - 1;
-  const int ng2 = p2 - 1;
-  const int ng3 = p3 - 1;
+  // Get Gaussian quadrature point coordinates (and weights if continuous)
+  const int ng1 = continuous ? nGauss : p1 - 1;
+  const int ng2 = continuous ? nGauss : p2 - 1;
+  const int ng3 = continuous ? nGauss : p3 - 1;
   const double* xg = GaussQuadrature::getCoord(ng1);
   const double* yg = GaussQuadrature::getCoord(ng2);
   const double* zg = GaussQuadrature::getCoord(ng3);
+  const double* wg = continuous ? GaussQuadrature::getWeight(nGauss) : 0;
   if (!xg || !yg || !zg) return false;
+  if (continuous && !wg) return false;
 
   // Compute parameter values of the Gauss points over the whole patch
   Matrix gp;
@@ -129,8 +138,12 @@ bool ASMs3D::globalL2projection (Matrix& sField,
   gpar[2] = this->getGaussPointParameters(gp,2,ng3,zg);
 
   // Evaluate basis functions at all integration points
-  std::vector<Go::BasisPts> spline;
-  svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline);
+  std::vector<Go::BasisPts>    spl0;
+  std::vector<Go::BasisDerivs> spl1;
+  if (continuous)
+    svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spl1);
+  else
+    svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spl0);
 
   // Evaluate the secondary solution at all integration points
   if (!this->evalSolution(sField,integrand,gpar))
@@ -143,6 +156,10 @@ bool ASMs3D::globalL2projection (Matrix& sField,
   StdVector B(nnod*ncomp);
   A.redim(nnod,nnod);
 
+  double dV = 1.0;
+  Vector phi(p1*p2*p3);
+  Matrix dNdu, Xnod, J;
+
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -151,7 +168,16 @@ bool ASMs3D::globalL2projection (Matrix& sField,
     for (int i2 = 0; i2 < nel2; i2++)
       for (int i1 = 0; i1 < nel1; i1++, iel++)
       {
-	if (MLGE[iel] < 1) continue; // zero-area element
+	if (MLGE[iel] < 1) continue; // zero-volume element
+
+	if (continuous)
+	{
+	  // Set up control point (nodal) coordinates for current element
+	  if (!this->getElementCoordinates(Xnod,1+iel))
+	    return false;
+	  else if ((dV = 0.125*this->getParametricVolume(1+iel)) < 0.0)
+	    return false; // topology error (probably logic error)
+	}
 
 	// --- Integration loop over all Gauss points in each direction --------
 
@@ -160,8 +186,18 @@ bool ASMs3D::globalL2projection (Matrix& sField,
           for (int j = 0; j < ng2; j++, ip += ng1*(nel1-1))
             for (int i = 0; i < ng1; i++, ip++)
 	    {
-	      // Fetch basis function values at current integration point
-	      const RealArray& phi = spline[ip].basisValues;
+	      if (continuous)
+		extractBasis(spl1[ip],phi,dNdu);
+	      else
+		phi = spl0[ip].basisValues;
+
+	      // Compute the Jacobian inverse and derivatives
+	      double dJw = dV;
+	      if (continuous)
+	      {
+		dJw *= wg[i]*wg[j]*wg[k]*utl::Jacobian(J,dNdu,Xnod,dNdu,false);
+		if (dJw == 0.0) continue; // skip singular points
+	      }
 
 	      // Integrate the linear system A*x=B
 	      for (size_t ii = 0; ii < phi.size(); ii++)
@@ -170,10 +206,10 @@ bool ASMs3D::globalL2projection (Matrix& sField,
 		for (size_t jj = 0; jj < phi.size(); jj++)
 		{
 		  int jnod = MNPC[iel][jj]+1;
-		  A(inod,jnod) += phi[ii]*phi[jj];
+		  A(inod,jnod) += phi[ii]*phi[jj]*dJw;
 		}
 		for (size_t r = 1; r <= ncomp; r++)
-		  B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1);
+		  B(inod+(r-1)*nnod) += phi[ii]*sField(r,ip+1)*dJw;
 	      }
 	    }
       }
@@ -190,6 +226,7 @@ bool ASMs3D::globalL2projection (Matrix& sField,
   return true;
 }
 
+#include "ASMs3DInterpolate.C" // TODO: inline these methods instead...
 
 Go::SplineVolume* ASMs3D::projectSolutionLeastSquare (const IntegrandBase& integrand) const
 {
@@ -255,13 +292,12 @@ Go::SplineVolume* ASMs3D::projectSolutionLeastSquare (const IntegrandBase& integ
   if (svol->rational())
     svol->getWeights(weights);
 
-  const Vector& vec = sValues;
   return leastsquare_approximation(svol->basis(0),
                                    svol->basis(1),
                                    svol->basis(2),
                                    par_u, par_v, par_w,
                                    wgpar_u, wgpar_v, wgpar_w,
-                                   const_cast<Vector&>(vec),
+                                   sValues,
                                    sValues.rows(),
                                    svol->rational(),
                                    weights);
@@ -290,12 +326,11 @@ Go::SplineVolume* ASMs3D::projectSolutionLocal (const IntegrandBase& integrand) 
   if (svol->rational())
     svol->getWeights(weights);
   
-  const Vector& vec = sValues;
   return quasiInterpolation(svol->basis(0),
 			    svol->basis(1),
 			    svol->basis(2),
 			    gpar[0], gpar[1], gpar[2],
-			    const_cast<Vector&>(vec),
+			    sValues,
 			    sValues.rows(),
 			    svol->rational(),
 			    weights);
@@ -319,13 +354,12 @@ Go::SplineVolume* ASMs3D::projectSolutionLocalApprox(const IntegrandBase& integr
   RealArray weights;
   if (svol->rational())
     svol->getWeights(weights);
-  
-  const Vector& vec = sValues;
+
   return VariationDiminishingSplineApproximation(svol->basis(0),
 						 svol->basis(1),
 						 svol->basis(2),
 						 gpar[0], gpar[1], gpar[2],
-						 const_cast<Vector&>(vec),
+						 sValues,
 						 sValues.rows(),
 						 svol->rational(),
 						 weights);
