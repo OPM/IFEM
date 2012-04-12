@@ -108,10 +108,11 @@ public:
   //! \brief Refines a specified list of elements.
   //! \param[in] elements 0-based indices of the elements to refine
   //! \param[in] options Additional input parameters to control the refinement,
-  //!                    options[0] is the beta percentage of elements to refine
-  //!                    options[1] is the knotline multiplicity (default 1)
-  //!                    options[2] is the refinement scheme (default 0, FULLSPAN=0,MINSPAN=1,ISOTROPIC ELEMENTS=2, ISOTROPIC FUNCTIONS=3))
-  //!                    options[3] is the symmetry, i.e. always refine a multiple of this
+  //! options[0] is the beta percentage of elements to refine,
+  //! options[1] is the knotline multiplicity (default 1),
+  //! options[2] is the refinement scheme (default 0),
+  //! (FULLSPAN=0, MINSPAN=1, ISOTROPIC ELEMENTS=2, ISOTROPIC FUNCTIONS=3),
+  //! options[3] is the symmetry, i.e., always refine a multiple of this value
   //! \param[in] fName Optional file name for an image of the resulting mesh
   virtual bool refine(const std::vector<int>& elements,
 		      const std::vector<int>& options, const char* fName = 0);
@@ -129,7 +130,8 @@ public:
   //! \param[in] dir Parameter direction defining the edge to constrain
   //! \param[in] dof Which local DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
-  virtual void constrainEdgeLocal(int dir, int dof, int code = 0);
+  //! \return Number of additional nodes added due to local axis constraints
+  virtual size_t constrainEdgeLocal(int dir, int dof, int code = 0);
 
   //! \brief Constrains a corner node identified by the two parameter indices.
   //! \param[in] I Parameter index in u-direction
@@ -246,31 +248,6 @@ public:
   //! projected onto the spline basis, and then evaluated at the \a npe points.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
 			    const int* npe = 0, char project = false) const;
-
-  //! \brief Evaluates the secondary solution field at all visualization points.
-  //! \param[out] sField Solution field
-  //! \param[in] integrand Object with problem-specific data and methods
-  //! \param[in] npe Number of visualization nodes over each knot span
-  //! \param[in] project Flag indicating if the projected solution is wanted
-  //!
-  //! \details The secondary solution is derived from the primary solution,
-  //! which is assumed to be stored within the \a integrand for current patch.
-  //! If \a npe is NULL, the solution is evaluated at the Greville points and
-  //! then projected onto the spline basis to obtain the control point values,
-  //! which then are returned through \a sField.
-  //! If \a npe is not NULL and \a project is \e true, the solution is also
-  //! projected onto the spline basis, and then evaluated at the \a npe points
-  virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const int* npe = 0, bool project = false) const;
-
-#if 0
-  //! \brief Projects the secondary solution field onto the primary basis.
-  //! \param[in] integrand Object with problem-specific data and methods
-  Go::SplineSurface* projectSolution(const IntegrandBase& integrand) const;
-  //! \brief Projects the secondary solution field onto the primary basis.
-  //! \param[in] integrand Object with problem-specific data and methods
-  virtual Go::GeomObject* evalSolution(const IntegrandBase& integrand) const;
-#endif
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field

@@ -16,7 +16,7 @@
 #include "ASMs2DC1.h"
 #ifdef PARALLEL_PETSC
 #include "SAMpatchPara.h"
-#include "petscksp.h"
+#include "petscsys.h"
 #else
 #include "SAMpatch.h"
 #endif
@@ -208,11 +208,13 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
     const TiXmlElement* code = elem->FirstChildElement("code");
     while (code) {
       int icode = 0;
+      std::string axes;
       utl::getAttribute(code,"value",icode);
+      utl::getAttribute(code,"axes",axes,true);
       const TiXmlElement* patch = code->FirstChildElement("patch");
       while (patch) {
         Property p;
-        int ival = -1;
+        int ival = 0;
         p.pindx = icode;
         if (utl::getAttribute(patch,"face",ival))
           p.ldim = 2;
@@ -220,11 +222,19 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
           p.ldim = 1;
         else if (utl::getAttribute(patch,"vertex",ival))
           p.ldim = 0;
-        if (ival >= 0) p.lindx = ival;
+        if (ival > 0)
+          p.lindx = ival;
         if (utl::getAttribute(patch,"index",ival) && ival > 0)
           p.patch = getLocalPatchIndex(ival);
-        if (p.patch > 0)
+        if (p.patch > 0 && p.lindx > 0)
+        {
+          if (axes == "local" && p.ldim > 0)
+          {
+            p.lindx *= -1; // signal the use of local axis directions
+            preserveNOrder = true; // because extra nodes might be added
+          }
           myProps.push_back(p);
+        }
         patch = patch->NextSiblingElement("patch");
       }
       code = code->NextSiblingElement();
@@ -715,7 +725,7 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
     switch (q->pcode) {
 
     case Property::DIRICHLET:
-      if (this->addConstraint(q->patch,q->lindx,q->ldim,q->pindx))
+      if (this->addConstraint(q->patch,q->lindx,q->ldim,q->pindx,0,ngnod))
 	std::cout << std::endl;
       else
 	ok = false;
@@ -723,7 +733,7 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 
     case Property::DIRICHLET_INHOM:
       if (this->addConstraint(q->patch,q->lindx,q->ldim,abs(q->pindx%1000),
-			      q->pindx))
+			      q->pindx,ngnod))
 	std::cout << std::endl;
       else
 	ok = false;
@@ -927,7 +937,7 @@ void SIMbase::printProblem (std::ostream& os) const
   std::cout <<"\nProperty mapping:";
   for (PropertyVec::const_iterator i = myProps.begin(); i != myProps.end(); i++)
     std::cout <<"\n"<< i->pcode <<" "<< i->pindx <<" "<< i->patch
-	      << (int)i->lindx <<" "<< (int)i->ldim;
+	      <<" "<< (int)i->lindx <<" "<< (int)i->ldim;
   std::cout << std::endl;
 #endif
 }
@@ -1288,7 +1298,6 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
       elementNorms.push_back(new ElmNorm(eNorm->ptr(i),nNorms));
     norm->setLocalIntegrals(&elementNorms);
   }
-  norm->setLocalIntegrals(&elementNorms);
 
   // Loop over the different material regions, integrating solution norm terms
   // for the patch domain associated with each material

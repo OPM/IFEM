@@ -180,7 +180,8 @@ public:
   //! \param[in] dir Parameter direction defining the edge to constrain
   //! \param[in] dof Which local DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
-  virtual void constrainEdgeLocal(int dir, int dof, int code = 0);
+  //! \return Number of additional nodes added due to local axis constraints
+  virtual size_t constrainEdgeLocal(int dir, int dof, int code = 0);
 
   //! \brief Constrains a corner node identified by the two parameter indices.
   //! \param[in] I Parameter index in u-direction

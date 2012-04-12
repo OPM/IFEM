@@ -425,6 +425,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
     if (ignoreDirichlet) return true; // Ignore all boundary conditions
     if (!this->createFEMmodel()) return false;
 
+    int ngno = 0;
     int ncon = atoi(keyWord+11);
     std::cout <<"\nNumber of constraints: "<< ncon << std::endl;
     for (int i = 0; i < ncon && (cline = utl::readLine(is)); i++)
@@ -446,7 +447,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 
       if (pd == 0.0)
       {
-	if (!this->addConstraint(patch,pedge,ldim,bcode%1000))
+	if (!this->addConstraint(patch,pedge,ldim,bcode%1000,0,ngno))
 	  return false;
       }
       else
@@ -455,7 +456,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 	while (myScalars.find(code) != myScalars.end())
 	  code += 1000;
 
-	if (!this->addConstraint(patch,pedge,ldim,bcode%1000,code))
+	if (!this->addConstraint(patch,pedge,ldim,bcode%1000,code,ngno))
 	  return false;
 
 	cline = strtok(NULL," ");
@@ -509,7 +510,8 @@ static bool constrError (const char* lab, int idx)
 }
 
 
-bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code)
+bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
+			   int& ngnod)
 {
   if (patch < 1 || patch > (int)myModel.size())
     return constrError("patch index ",patch);
@@ -552,10 +554,10 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code)
 	case  2: pch->constrainEdge( 1,dirs,code); break;
 	case  3: pch->constrainEdge(-2,dirs,code); break;
 	case  4: pch->constrainEdge( 2,dirs,code); break;
-	case -1: pch->constrainEdgeLocal(-1,dirs,code); break;
-	case -2: pch->constrainEdgeLocal( 1,dirs,code); break;
-	case -3: pch->constrainEdgeLocal(-2,dirs,code); break;
-	case -4: pch->constrainEdgeLocal( 2,dirs,code); break;
+	case -1: ngnod += pch->constrainEdgeLocal(-1,dirs,code); break;
+	case -2: ngnod += pch->constrainEdgeLocal( 1,dirs,code); break;
+	case -3: ngnod += pch->constrainEdgeLocal(-2,dirs,code); break;
+	case -4: ngnod += pch->constrainEdgeLocal( 2,dirs,code); break;
 	default: std::cout << std::endl;
 	  return constrError("edge index ",lndx);
 	}

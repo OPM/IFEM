@@ -89,8 +89,9 @@ protected:
   //! \param[in] ldim Dimension of the boundary item to receive the property
   //! \param[in] dirs Which local DOFs to constrain
   //! \param[in] code In-homegeneous Dirichlet condition property code
+  //! \param ngnod Total number of global nodes in the model (might be updated)
   virtual bool addConstraint(int patch, int lndx, int ldim,
-			     int dirs, int code = 0);
+			     int dirs, int code, int& ngnod);
 
 private:
   bool isRefined; //!< If \e true, the model has been adaptively refined

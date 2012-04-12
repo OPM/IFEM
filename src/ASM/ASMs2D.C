@@ -500,7 +500,7 @@ void ASMs2D::closeEdges (int dir, int basis, int master)
 
 
 /*!
-  A negative \a code value implies direct evaluation of the Dirchlet condition
+  A negative \a code value implies direct evaluation of the Dirichlet condition
   function at the control point. Positive \a code implies projection onto the
   spline basis representing the boundary curve (needed for curved edges and/or
   non-constant functions).
@@ -557,7 +557,7 @@ void ASMs2D::constrainEdge (int dir, int dof, int code)
 	std::cout <<" ("<< dirich.back().nodes[i].first
 		  <<","<< dirich.back().nodes[i].second
 		  <<")";
-      std::cout <<"\nThese nodes will be subjected to Dirchlet projection"
+      std::cout <<"\nThese nodes will be subjected to Dirichlet projection"
 		<< std::endl;
     }
 #endif
@@ -565,30 +565,38 @@ void ASMs2D::constrainEdge (int dir, int dof, int code)
 
 
 /*!
-  A negative \a code value implies direct evaluation of the Dirchlet condition
+  The local coordinate systems in which the constraints are applied, are
+  constructed from the tangent direction of the edge curve, evaluated at the
+  Greville points (giving the local Y-direction). The local X-direction is then
+  the outward-directed normal, defined from the cross product between the
+  surface normal vector and the edge tangent.
+
+  A negative \a code value implies direct evaluation of the Dirichlet condition
   function at the control point. Positive \a code implies projection onto the
   spline basis representing the boundary curve (needed for curved edges and/or
   non-constant functions).
 */
 
-void ASMs2D::constrainEdgeLocal (int dir, int dof, int code)
+size_t ASMs2D::constrainEdgeLocal (int dir, int dof, int code)
 {
   // Get parameter values of the edge control points (nodes).
   // We here assume that the Greville parameters represent the
   // point on the edge at which the local coordinate system will be defined
   double u[2];
   RealArray gpar;
-  if (abs(dir) == 1)
+  int ndir = abs(dir); // normal parameter direction (1,2) for the edge
+  int tdir = 2 - ndir; // tangent parameter direction (0,1) for the edge
+  if (ndir == 1)
     u[0] = dir < 0 ? surf->startparam_u() : surf->endparam_u();
-  else if (abs(dir) == 2)
+  else if (ndir == 2)
     u[1] = dir < 0 ? surf->startparam_v() : surf->endparam_v();
 
-  if (!this->getGrevilleParameters(gpar,2-abs(dir)))
-    return;
+  if (!this->getGrevilleParameters(gpar,tdir))
+    return 0;
 
   // Find the curve representing the edge geometry (for tangent evaluation)
   Go::SplineCurve* edge = this->getBoundary(dir);
-  if (!edge) return;
+  if (!edge) return 0;
 
   if (gNod == 0 && !shareFE) // Keep track of the global node numbers
     gNod = *std::max_element(MLGN.begin(),MLGN.end());
@@ -616,6 +624,7 @@ void ASMs2D::constrainEdgeLocal (int dir, int dof, int code)
   else if (code < 0)
     bcode = -code;
 
+  size_t nLGN = myMLGN.size();
   std::vector<Go::Point> pts(3);
   for (size_t i = 0; i < gpar.size(); i++, iSnod += incNod)
   {
@@ -646,7 +655,7 @@ void ASMs2D::constrainEdgeLocal (int dir, int dof, int code)
 
     // Then compute the surface normal at this edge point.
     // That will be the local z-axis of the local coordinate system.
-    u[2-abs(dir)] = gpar[i];
+    u[tdir] = gpar[i];
     surf->point(pts,u[0],u[1],1);
     Vec3 Zaxis(SplineUtils::toVec3(pts[1],nsd),SplineUtils::toVec3(pts[2],nsd));
     Zaxis.normalize();
@@ -672,7 +681,7 @@ void ASMs2D::constrainEdgeLocal (int dir, int dof, int code)
       }
     }
 
-    // Finally, add the Dirchlet condition on the local DOF(s)
+    // Finally, add the Dirichlet condition on the local DOF(s)
     int node = 1 + iMnod;
     if (i == 0 || i+1 == gpar.size())
       this->prescribe(node,dof,bcode);
@@ -683,6 +692,8 @@ void ASMs2D::constrainEdgeLocal (int dir, int dof, int code)
 	dirich.back().nodes.push_back(std::make_pair(i+1,node));
     }
   }
+
+  return myMLGN.size() - nLGN;
 }
 
 
@@ -715,7 +726,7 @@ void ASMs2D::constrainNode (double xi, double eta, int dof, int code)
 
 
 /*!
-  This method projects the function describing the in-homogeneous Dirchlet
+  This method projects the function describing the in-homogeneous Dirichlet
   boundary condition onto the spline basis defining the boundary curve,
   in order to find the control point values which are used as the prescribed
   values of the boundary DOFs.
@@ -779,7 +790,7 @@ bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
   }
 
   // The parent class method takes care of the corner nodes with direct
-  // evaluation of the Dirchlet functions (since they are interpolatory)
+  // evaluation of the Dirichlet functions (since they are interpolatory)
   return this->ASMbase::updateDirichlet(func,vfunc,time);
 }
 

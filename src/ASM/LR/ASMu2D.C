@@ -13,7 +13,6 @@
 
 #include "GoTools/geometry/ObjectHeader.h"
 #include "GoTools/geometry/SplineSurface.h"
-#include "GoTools/geometry/SurfaceInterpolator.h"
 
 #include "LRSpline/LRSplineSurface.h"
 #include "LRSpline/Element.h"
@@ -547,9 +546,9 @@ void ASMu2D::constrainEdge (int dir, int dof, int code)
 }
 
 
-void ASMu2D::constrainEdgeLocal (int dir, int dof, int code)
+size_t ASMu2D::constrainEdgeLocal (int dir, int dof, int code)
 {
-  // TODO...
+  return 0; // TODO...
 }
 
 
@@ -1342,6 +1341,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 	return true;
 }
 
+
 bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 			   const int* npe, char project) const
 {
@@ -1404,77 +1404,6 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   return false;
 }
 
-bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-                           const int* npe, bool project) const
-{
-	if(project) {
-		std::cerr << "ASMu2D::evalSolution unstructured LR-spline projection\n";
-		std::cerr << "techniques not implemented yet\n";
-		return false;
-	}
-	if (npe)
-	{
-		// Compute parameter values of the result sampling points
-		RealArray gpar[2];
-		if (this->getGridParameters(gpar[0],0,npe[0]-1) &&
-		    this->getGridParameters(gpar[1],1,npe[1]-1))
-			// Evaluate the secondary solution directly at all sampling points
-			return this->evalSolution(sField,integrand,gpar);
-	}
-	else
-	{
-		std::cerr << "ASMu2D::evalSolution unstructured LR-spline projection\n";
-		std::cerr << "techniques not implemented yet\n";
-		return false;
-	}
-
-	std::cerr <<" *** ASMu2D::evalSolution: Failure!"<< std::endl;
-	return false;
-}
-
-#if 0
-
-Go::GeomObject* ASMu2D::evalSolution (const IntegrandBase& integrand) const
-{
-	return this->projectSolution(integrand);
-}
-
-
-Go::SplineSurface* ASMu2D::projectSolution (const IntegrandBase& integrand) const
-{
-	// Compute parameter values of the result sampling points (Greville points)
-	RealArray gpar[2];
-	for (int dir = 0; dir < 2; dir++)
-		if (!this->getGrevilleParameters(gpar[dir],dir))
-			return 0;
-
-	// Evaluate the secondary solution at all sampling points
-	Matrix sValues;
-	if (!this->evalSolution(sValues,integrand,gpar))
-		return 0;
-
-	// Project the results onto the spline basis to find control point
-	// values based on the result values evaluated at the Greville points.
-	// Note that we here implicitly assume the the number of Greville points
-	// equals the number of control points such that we don't have to resize
-	// the result array. Think that is always the case, but beware if trying
-	// other projection schemes later.
-
-	RealArray weights;
-	if (lrspline->rational())
-		lrspline->getWeights(weights);
-
-	const Vector& vec = sValues;
-	return Go::SurfaceInterpolator::regularInterpolation(lrspline->basis(0),
-	                                                     lrspline->basis(1),
-	                                                     gpar[0], gpar[1],
-	                                                     const_cast<Vector&>(vec),
-	                                                     sValues.rows(),
-	                                                     lrspline->rational(),
-	                                                     weights);
-}
-
-#endif
 
 bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                            const RealArray* gpar, bool) const

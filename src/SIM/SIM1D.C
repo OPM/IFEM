@@ -320,6 +320,7 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
     if (ignoreDirichlet) return true; // Ignore all boundary conditions
     if (!this->createFEMmodel()) return false;
 
+    int ngno = 0;
     int ncon = atoi(keyWord+11);
     std::cout <<"\nNumber of constraints: "<< ncon << std::endl;
     for (int i = 0; i < ncon && (cline = utl::readLine(is)); i++)
@@ -330,7 +331,7 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
       double pd = (cline = strtok(NULL," ")) ? atof(cline) : 0.0;
       if (pd == 0.0)
       {
-	if (!this->addConstraint(patch,pvert,0,bcode%1000))
+	if (!this->addConstraint(patch,pvert,0,bcode%1000,0,ngno))
 	  return false;
       }
       else
@@ -339,7 +340,7 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
 	while (myScalars.find(code) != myScalars.end())
 	  code += 1000;
 
-	if (!this->addConstraint(patch,pvert,0,bcode%1000,code))
+	if (!this->addConstraint(patch,pvert,0,bcode%1000,code,ngno))
 	  return false;
 
 	cline = strtok(NULL," ");
@@ -390,7 +391,7 @@ static bool constrError (const char* lab, int idx)
 }
 
 
-bool SIM1D::addConstraint (int patch, int lndx, int, int dirs, int code)
+bool SIM1D::addConstraint (int patch, int lndx, int, int dirs, int code, int&)
 {
   if (patch < 1 || patch > (int)myModel.size())
     return constrError("patch index ",patch);

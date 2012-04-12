@@ -62,7 +62,7 @@ protected:
   //! \param[in] dirs Which local DOFs to constrain
   //! \param[in] code In-homegeneous Dirichlet condition property code
   virtual bool addConstraint(int patch, int lndx, int ldim,
-			     int dirs, int code = 0);
+			     int dirs, int code, int&);
 
 protected:
   unsigned char nf; //!< Number of scalar fields
