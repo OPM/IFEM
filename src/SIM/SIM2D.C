@@ -456,7 +456,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 	while (myScalars.find(code) != myScalars.end())
 	  code += 1000;
 
-	if (!this->addConstraint(patch,pedge,ldim,bcode%1000,code,ngno))
+	if (!this->addConstraint(patch,pedge,ldim,bcode%1000,-code,ngno))
 	  return false;
 
 	cline = strtok(NULL," ");
@@ -527,7 +527,7 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
     std::cout << (project ? " (local projected)" : " (local)");
     preserveNOrder = true; // Because some extra nodes might be added
   }
-  if (code) std::cout <<" code = "<< code <<" ";
+  if (code) std::cout <<" code = "<< abs(code) <<" ";
 #if SP_DEBUG > 1
   std::cout << std::endl;
 #endif
@@ -541,10 +541,10 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
     case 0: // Vertex constraints
       switch (lndx)
 	{
-	case 1: pch->constrainCorner(-1,-1,dirs,code); break;
-	case 2: pch->constrainCorner( 1,-1,dirs,code); break;
-	case 3: pch->constrainCorner(-1, 1,dirs,code); break;
-	case 4: pch->constrainCorner( 1, 1,dirs,code); break;
+	case 1: pch->constrainCorner(-1,-1,dirs,abs(code)); break;
+	case 2: pch->constrainCorner( 1,-1,dirs,abs(code)); break;
+	case 3: pch->constrainCorner(-1, 1,dirs,abs(code)); break;
+	case 4: pch->constrainCorner( 1, 1,dirs,abs(code)); break;
 	default: std::cout << std::endl;
 	  return constrError("vertex index ",lndx);
 	}

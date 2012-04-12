@@ -503,13 +503,15 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
 	this->setPropertyType(code,Property::DIRICHLET);
 	std::cout <<"(fixed)";
       }
-      else
+      else if (code > 0)
       {
-	this->setPropertyType(code,Property::DIRICHLET_INHOM);
+	this->setPropertyType(-code,Property::DIRICHLET_INHOM);
 
 	cline = strtok(NULL," ");
 	myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,d));
       }
+      else
+	std::cout <<"(ignored)";
       std::cout << std::endl;
     }
   }
@@ -808,10 +810,12 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 bool SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
 {
   for (PropertyVec::iterator p = myProps.begin(); p != myProps.end(); p++)
-    if (p->pindx == code && p->pcode == Property::UNDEFINED)
+    if (abs(p->pindx) == abs(code) && p->pcode == Property::UNDEFINED)
     {
       if (p->patch > 0 && p->patch <= myModel.size()) p->pcode = ptype;
       if (pindex >= 0) p->pindx = pindex;
+      if (p->ldim > 0 && p->pindx > 0 && code < 0)
+        if (ptype == Property::DIRICHLET_INHOM) p->pindx = -p->pindx;
     }
 
   return true;
@@ -820,7 +824,7 @@ bool SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
 
 bool SIMbase::setVecProperty (int code, Property::Type ptype, VecFunc* field)
 {
-  if (field) myVectors[code] = field;
+  if (field) myVectors[abs(code)] = field;
   return this->setPropertyType(code,ptype);
 }
 
