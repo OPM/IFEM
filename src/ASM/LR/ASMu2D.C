@@ -546,7 +546,7 @@ void ASMu2D::constrainEdge (int dir, int dof, int code)
 }
 
 
-size_t ASMu2D::constrainEdgeLocal (int dir, int dof, int code)
+size_t ASMu2D::constrainEdgeLocal (int dir, int dof, int code, bool project)
 {
   return 0; // TODO...
 }

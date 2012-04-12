@@ -516,12 +516,15 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
   if (patch < 1 || patch > (int)myModel.size())
     return constrError("patch index ",patch);
 
+  bool project = lndx < -10;
+  if (project) lndx += 10;
+
   std::cout <<"\tConstraining P"<< patch
             << (ldim == 0 ? " V" : " E") << abs(lndx)
 	    <<" in direction(s) "<< dirs;
   if (lndx < 0) // Signals edge constraints in local coordinates
   {
-    std::cout <<" (local)";
+    std::cout << (project ? " (local projected)" : " (local)");
     preserveNOrder = true; // Because some extra nodes might be added
   }
   if (code) std::cout <<" code = "<< code <<" ";
@@ -554,10 +557,10 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 	case  2: pch->constrainEdge( 1,dirs,code); break;
 	case  3: pch->constrainEdge(-2,dirs,code); break;
 	case  4: pch->constrainEdge( 2,dirs,code); break;
-	case -1: ngnod += pch->constrainEdgeLocal(-1,dirs,code); break;
-	case -2: ngnod += pch->constrainEdgeLocal( 1,dirs,code); break;
-	case -3: ngnod += pch->constrainEdgeLocal(-2,dirs,code); break;
-	case -4: ngnod += pch->constrainEdgeLocal( 2,dirs,code); break;
+	case -1: ngnod += pch->constrainEdgeLocal(-1,dirs,code,project); break;
+	case -2: ngnod += pch->constrainEdgeLocal( 1,dirs,code,project); break;
+	case -3: ngnod += pch->constrainEdgeLocal(-2,dirs,code,project); break;
+	case -4: ngnod += pch->constrainEdgeLocal( 2,dirs,code,project); break;
 	default: std::cout << std::endl;
 	  return constrError("edge index ",lndx);
 	}

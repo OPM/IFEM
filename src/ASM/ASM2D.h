@@ -80,8 +80,10 @@ public:
   //! \param[in] dir Parameter direction defining the edge to constrain
   //! \param[in] dof Which local DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] project If \e true, the local axis directions are projected
   //! \return Number of additional nodes added due to local axis constraints
-  virtual size_t constrainEdgeLocal(int dir, int dof, int code = 0) = 0;
+  virtual size_t constrainEdgeLocal(int dir, int dof, int code = 0,
+                                    bool project = false) = 0;
   //! \brief Constrains a corner node identified by the two parameter indices.
   //! \param[in] I Parameter index in u-direction
   //! \param[in] J Parameter index in v-direction

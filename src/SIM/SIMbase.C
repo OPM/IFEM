@@ -228,9 +228,10 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
           p.patch = getLocalPatchIndex(ival);
         if (p.patch > 0 && p.lindx > 0)
         {
-          if (axes == "local" && p.ldim > 0)
+          if (axes.substr(0,5) == "local" && p.ldim > 0)
           {
             p.lindx *= -1; // signal the use of local axis directions
+            if (axes == "local projected") p.lindx -= 10; // enable projection
             preserveNOrder = true; // because extra nodes might be added
           }
           myProps.push_back(p);
@@ -1838,7 +1839,7 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
   if (nf > 1) pname += "_w";
   for (i = j = 0; i < nf && j < pMAX && !dID[j].empty() && ok; i++, j++)
   {
-    if (!pvecName && myProblem)
+    if ((!pvecName || nf > nVcomp) && myProblem)
       pname = myProblem->getField1Name(i);
     else if (nf > 1)
       (*pname.rbegin()) ++;

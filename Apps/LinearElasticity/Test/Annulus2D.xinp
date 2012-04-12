@@ -16,7 +16,7 @@
       <code value="2">
         <patch index="1" edge="1"/>
       </code>
-      <code value="1" axes="local">
+      <code value="1" axes="local projected">
         <patch index="1" edge="4"/>
       </code>
       <code value="1002">

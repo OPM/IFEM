@@ -14,6 +14,7 @@
 #include "GoTools/geometry/ObjectHeader.h"
 #include "GoTools/geometry/SplineCurve.h"
 #include "GoTools/geometry/SplineSurface.h"
+#include "GoTools/geometry/CurveInterpolator.h"
 
 #include "ASMs2D.h"
 #include "TimeDomain.h"
@@ -569,7 +570,10 @@ void ASMs2D::constrainEdge (int dir, int dof, int code)
   constructed from the tangent direction of the edge curve, evaluated at the
   Greville points (giving the local Y-direction). The local X-direction is then
   the outward-directed normal, defined from the cross product between the
-  surface normal vector and the edge tangent.
+  surface normal vector and the edge tangent. If \a project is \e true, the
+  tangent- and normal direction vectors are projected onto the curve basis of
+  the edge in order to obtain corresponding control point values. Otherwise,
+  they are used directly.
 
   A negative \a code value implies direct evaluation of the Dirichlet condition
   function at the control point. Positive \a code implies projection onto the
@@ -577,26 +581,62 @@ void ASMs2D::constrainEdge (int dir, int dof, int code)
   non-constant functions).
 */
 
-size_t ASMs2D::constrainEdgeLocal (int dir, int dof, int code)
+size_t ASMs2D::constrainEdgeLocal (int dir, int dof, int code, bool project)
 {
-  // Get parameter values of the edge control points (nodes).
-  // We here assume that the Greville parameters represent the
-  // point on the edge at which the local coordinate system will be defined
-  double u[2];
-  RealArray gpar;
   int ndir = abs(dir); // normal parameter direction (1,2) for the edge
   int tdir = 2 - ndir; // tangent parameter direction (0,1) for the edge
+  double u[2] = { 0.0, 0.0 }; // running surface parameters along the edge
   if (ndir == 1)
     u[0] = dir < 0 ? surf->startparam_u() : surf->endparam_u();
   else if (ndir == 2)
     u[1] = dir < 0 ? surf->startparam_v() : surf->endparam_v();
 
+  // Get parameter values of the Greville points along the edge
+  RealArray gpar;
   if (!this->getGrevilleParameters(gpar,tdir))
     return 0;
 
   // Find the curve representing the edge geometry (for tangent evaluation)
   Go::SplineCurve* edge = this->getBoundary(dir);
   if (!edge) return 0;
+
+  // Loop over the Greville points along the edge
+  size_t i, k = 0;
+  std::vector<Go::Point> pts(3);
+  RealArray gdata(6*gpar.size(),0.0);
+  for (i = 0; i < gpar.size(); i++, k += 6)
+  {
+    // Find the tangent direction of the edge at this point.
+    // That will be the y-axis of the local coordinate system along the edge.
+    edge->point(pts,gpar[i],1);
+    for (int j = 0; j < 3 && j < pts[1].size(); j++)
+      gdata[k+j] = dir == -1 || dir == 2 ? -pts[1][j] : pts[1][j];
+
+    // Compute the surface normal at this edge point.
+    // That will be the local z-axis of the local coordinate system.
+    u[tdir] = gpar[i];
+    surf->point(pts,u[0],u[1],1);
+    Vec3 Zaxis(SplineUtils::toVec3(pts[1],nsd),SplineUtils::toVec3(pts[2],nsd));
+    gdata[k+3] = Zaxis.x;
+    gdata[k+4] = Zaxis.y;
+    gdata[k+5] = Zaxis.z;
+  }
+
+  Go::SplineCurve* locc = NULL;
+  if (project)
+  {
+    // Project the Greville point values onto the spline basis
+    // to obtain the corresponding control point values
+
+    RealArray weights;
+    if (edge->rational())
+      edge->getWeights(weights);
+
+    locc = Go::CurveInterpolator::regularInterpolation(edge->basis(),
+                                                       gpar,gdata,6,
+                                                       edge->rational(),
+                                                       weights);
+  }
 
   if (gNod == 0 && !shareFE) // Keep track of the global node numbers
     gNod = *std::max_element(MLGN.begin(),MLGN.end());
@@ -625,8 +665,8 @@ size_t ASMs2D::constrainEdgeLocal (int dir, int dof, int code)
     bcode = -code;
 
   size_t nLGN = myMLGN.size();
-  std::vector<Go::Point> pts(3);
-  for (size_t i = 0; i < gpar.size(); i++, iSnod += incNod)
+  RealArray::const_iterator it = locc ? locc->coefs_begin() : gdata.begin();
+  for (i = 0; i < gpar.size(); i++, iSnod += incNod, it += 6)
   {
     // Check if this node already has been constrained or fixed
     if (this->isFixed(1+iSnod,12)) continue;
@@ -646,25 +686,15 @@ size_t ASMs2D::constrainEdgeLocal (int dir, int dof, int code)
     int masterNode = MLGN[iMnod];
     int slaveNode  = MLGN[iSnod];
 
-    // First find the tangent direction of the edge at this point.
-    // That will be the y-axis of the local coordinate system along the edge.
-    edge->point(pts,gpar[i],1);
-    Vec3 Yaxis(SplineUtils::toVec3(pts[1],nsd));
-    Yaxis.normalize();
-    if (dir == -1 || dir == 2) Yaxis *= -1.0;
-
-    // Then compute the surface normal at this edge point.
-    // That will be the local z-axis of the local coordinate system.
-    u[tdir] = gpar[i];
-    surf->point(pts,u[0],u[1],1);
-    Vec3 Zaxis(SplineUtils::toVec3(pts[1],nsd),SplineUtils::toVec3(pts[2],nsd));
-    Zaxis.normalize();
-
-    // And then the local X-axis (outward-directed edge normal)
+    // Find the local axis directions of the edge at this point
+    Vec3 Yaxis(it[0],it[1],it[2]);
+    Vec3 Zaxis(it[3],it[4],it[5]);
     Vec3 Xaxis(Yaxis,Zaxis);
+    Yaxis.normalize();
+    Xaxis.normalize();
 
     // Local-to-global transformation matrix at this point
-    Tensor Tlg(Xaxis,Yaxis,Zaxis);
+    Tensor Tlg(Xaxis,Yaxis,Zaxis.cross(Xaxis,Yaxis));
 
     // Now establish constraint equations relating the global and local DOFs.
     // We here assume that that there are nsd unknowns per node.
@@ -693,7 +723,8 @@ size_t ASMs2D::constrainEdgeLocal (int dir, int dof, int code)
     }
   }
 
-  return myMLGN.size() - nLGN;
+  if (locc) delete locc;
+  return myMLGN.size() - nLGN; // Number of added nodes
 }
 
 
