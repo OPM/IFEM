@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+
+  <geometry>
+    <patchfile>annulus.g2</patchfile>
+    <raiseorder patch="1" v="1"/>
+    <refine patch="1" u="7" v="1"/>
+  </geometry>
+
+  <boundaryconditions>
+    <propertycodes>
+      <code value="12">
+        <patch index="1" vertex="3"/>
+      </code>
+      <code value="2">
+        <patch index="1" edge="1"/>
+      </code>
+      <code value="1" axes="local">
+        <patch index="1" edge="4"/>
+      </code>
+      <code value="1002">
+        <patch index="1" edge="2"/>
+      </code>
+    </propertycodes>
+    <dirichlet code="1"/>
+    <dirichlet code="2"/>
+    <dirichlet code="12"/>
+    <neumann code="1002">1.0e10</neumann>
+  </boundaryconditions>
+
+  <elasticity>
+    <isotropic E="2.068e11" nu="0.29" rho="7820.0"/>
+  </elasticity>
+
+  <postprocessing>
+    <vtfformat nviz="5">BINARY</vtfformat>
+  </postprocessing>
+
+</simulation>
