@@ -48,6 +48,8 @@ public:
   virtual void initIntegration(const TimeDomain&) {}
   //! \brief Initializes the material model for a new result point loop.
   virtual void initResultPoints() {}
+  //! \brief Defines a point location with some special material properties.
+  virtual void addSpecialPoint(const Vec3&) {}
 
   //! \brief Evaluates the mass density at current point.
   virtual double getMassDensity(const Vec3&) const { return 0.0; }

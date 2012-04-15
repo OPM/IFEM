@@ -74,6 +74,9 @@ public:
 			char iop = 1, const TimeDomain* = 0,
 			const Tensor* = 0) const;
 
+  //! \brief Returns the function, if any, describing the stiffness variation.
+  const RealFunc* getEfunc() const { return Efunc; }
+
 protected:
   // Material properties
   RealFunc* Efunc;    //!< Young's modules (spatial function)
