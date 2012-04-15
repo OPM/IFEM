@@ -29,7 +29,7 @@ LinIsotropic::LinIsotropic (bool ps, bool ax) : planeStress(ps), axiSymmetry(ax)
 LinIsotropic::LinIsotropic (RealFunc* E, double v, double den, bool ps, bool ax)
   : Efunc(E), nu(v), rho(den), planeStress(ps), axiSymmetry(ax)
 {
-  Emod = (*E)(Vec3());
+  Emod = -1.0; // Should not be referenced
 }
 
 
@@ -90,16 +90,16 @@ bool LinIsotropic::evaluate (Matrix& C, SymmTensor& sigma, double& U, size_t,
   const size_t nst = nsd == 2 && axiSymmetry ? 4 : nsd*(nsd+1)/2;
   C.resize(nst,nst,true);
 
-  if (Efunc) // Evaluate the scalar stiffness function
-    const_cast<LinIsotropic*>(this)->Emod = (*Efunc)(X);
+  // Evaluate the scalar stiffness function, if defined
+  const double E = Efunc ? (*Efunc)(X) : Emod;
 
   if (nsd == 1)
   {
     // Special for 1D problems
-    C(1,1) = iop < 0 ? 1.0/Emod : Emod;
+    C(1,1) = iop < 0 ? 1.0/E : E;
     if (iop > 0)
     {
-      sigma = eps; sigma *= Emod;
+      sigma = eps; sigma *= E;
       if (iop == 3)
 	U = 0.5*sigma(1,1)*eps(1,1);
     }
@@ -115,24 +115,24 @@ bool LinIsotropic::evaluate (Matrix& C, SymmTensor& sigma, double& U, size_t,
   if (iop < 0) // The inverse C-matrix is wanted
     if (nsd == 3 || (nsd == 2 && (planeStress || axiSymmetry)))
     {
-      C(1,1) = 1.0 / Emod;
-      C(2,1) = -nu / Emod;
+      C(1,1) = 1.0 / E;
+      C(2,1) = -nu / E;
     }
     else // 2D plain strain
     {
-      C(1,1) = (1.0 - nu*nu) / Emod;
-      C(2,1) = (-nu - nu*nu) / Emod;
+      C(1,1) = (1.0 - nu*nu) / E;
+      C(2,1) = (-nu - nu*nu) / E;
     }
 
   else
     if (nsd == 2 && planeStress && !axiSymmetry)
     {
-      C(1,1) = Emod / (1.0 - nu*nu);
+      C(1,1) = E / (1.0 - nu*nu);
       C(2,1) = C(1,1) * nu;
     }
     else // 2D plain strain, axisymmetric or 3D
     {
-      double fact = Emod / ((1.0 + nu) * (1.0 - nu - nu));
+      double fact = E / ((1.0 + nu) * (1.0 - nu - nu));
       C(1,1) = fact * (1.0 - nu);
       C(2,1) = fact * nu;
     }
@@ -140,7 +140,7 @@ bool LinIsotropic::evaluate (Matrix& C, SymmTensor& sigma, double& U, size_t,
   C(1,2) = C(2,1);
   C(2,2) = C(1,1);
 
-  const double G = Emod / (2.0 + nu + nu);
+  const double G = E / (2.0 + nu + nu);
   C(nsd+1,nsd+1) = iop < 0 ? 1.0 / G : G;
 
   if (nsd == 2 && axiSymmetry)
