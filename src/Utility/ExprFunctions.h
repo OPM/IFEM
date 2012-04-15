@@ -29,6 +29,35 @@ namespace ExprEval {
 
 
 /*!
+  \brief A scalar-valued function, general expression.
+*/
+
+class EvalFunc : public ScalarFunc
+{
+  ExprEval::Expression* expr; //!< Pointer to the root of the expression tree
+  ExprEval::FunctionList*  f; //!< Pointer to list of function in the expression
+  ExprEval::ValueList*     v; //!< Pointer to list of variables and constants
+
+  real* arg; //!< Pointer to the function argument
+
+public:
+  //! \brief The constructor parses the expression string.
+  EvalFunc(const char* function, const char* x = "x" );
+  //! \brief The destructor frees the dynamically allocated objects.
+  virtual ~EvalFunc();
+
+protected:
+  //! \brief Evaluates the function expression.
+  virtual real evaluate(const real& x) const;
+
+private:
+#ifdef USE_OPENMP
+  omp_lock_t lock;
+#endif
+};
+
+
+/*!
   \brief A scalar-valued spatial function, general function expression.
 */
 

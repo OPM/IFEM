@@ -17,6 +17,59 @@
 #include "expreval.h"
 
 
+EvalFunc::EvalFunc (const char* function, const char* x)
+{
+  try {
+    expr = new ExprEval::Expression;
+    f = new ExprEval::FunctionList;
+    v = new ExprEval::ValueList;
+    f->AddDefaultFunctions();
+    v->AddDefaultValues();
+    v->Add(x,0,false);
+    expr->SetFunctionList(f);
+    expr->SetValueList(v);
+    expr->Parse(function);
+    arg = v->GetAddress(x);
+#ifdef USE_OPENMP
+    omp_init_lock(&lock);
+#endif
+  } catch(...) {
+    std::cerr <<" *** Error parsing function: "<< function << std::endl;
+  }
+}
+
+
+EvalFunc::~EvalFunc ()
+{
+  delete expr;
+  delete f;
+  delete v;
+#ifdef USE_OPENMP
+  omp_destroy_lock(&lock);
+#endif
+}
+
+
+real EvalFunc::evaluate (const real& x) const
+{
+#ifdef USE_OPENMP
+  omp_set_lock(const_cast<omp_lock_t*>(&lock));
+#endif
+  real result = real(0);
+  try {
+    *arg = x;
+    result = expr->Evaluate();
+  } catch(...) {
+    std::cerr <<" *** Error evaluating expression function."<< std::endl;
+  }
+#ifdef USE_OPENMP
+  omp_unset_lock(const_cast<omp_lock_t*>(&lock));
+#endif
+
+  return result;
+}
+
+
 EvalFunction::EvalFunction (const char* function)
 {
   try {
