@@ -2131,14 +2131,14 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-void ASMs3D::generateThreadGroups ()
+void ASMs3D::generateThreadGroups (bool silence)
 {
   const int nel1 = svol->numCoefs(0) - svol->order(0) + 1;
   const int nel2 = svol->numCoefs(1) - svol->order(1) + 1;
   const int nel3 = svol->numCoefs(2) - svol->order(2) + 1;
 
   utl::calcThreadGroups(nel1,nel2,nel3,threadGroupsVol);
-  if (threadGroupsVol.size() < 2) return;
+  if (silence || threadGroupsVol.size() < 2) return;
 
   std::cout <<"\nMultiple threads are utilized during element assembly.";
   for (size_t i = 0; i < threadGroupsVol.size(); i++)
@@ -2152,7 +2152,7 @@ void ASMs3D::generateThreadGroups ()
 }
 
 
-void ASMs3D::generateThreadGroups (char lIndex)
+void ASMs3D::generateThreadGroups (char lIndex, bool silence)
 {
   if (threadGroupsFace.find(lIndex) != threadGroupsFace.end()) return;
 
@@ -2200,7 +2200,7 @@ void ASMs3D::generateThreadGroups (char lIndex)
   utl::calcThreadGroups(d1,d2,fGrp);
   utl::mapThreadGroups(fGrp,map);
 
-  if (fGrp.size() > 1)
+  if (!silence && fGrp.size() > 1)
     for (size_t i = 0; i < threadGroupsVol.size(); i++)
     {
       std::cout <<"\n Thread group "<< i+1 <<" for boundary face "<<(int)lIndex;

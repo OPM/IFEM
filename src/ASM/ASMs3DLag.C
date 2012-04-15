@@ -875,7 +875,7 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-void ASMs3DLag::generateThreadGroups ()
+void ASMs3DLag::generateThreadGroups (bool)
 {
   const int p1 = svol->order(0);
   const int p2 = svol->order(1);
@@ -889,7 +889,7 @@ void ASMs3DLag::generateThreadGroups ()
 }
 
 
-void ASMs3DLag::generateThreadGroups (char lIndex)
+void ASMs3DLag::generateThreadGroups (char lIndex, bool)
 {
   if (threadGroupsFace.find(lIndex) != threadGroupsFace.end()) return;
 

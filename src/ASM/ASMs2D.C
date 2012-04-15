@@ -1854,7 +1854,7 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-void ASMs2D::generateThreadGroups ()
+void ASMs2D::generateThreadGroups (bool silence)
 {
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
@@ -1865,7 +1865,7 @@ void ASMs2D::generateThreadGroups ()
   const int nel2 = n2 - p2 + 1;
 
   utl::calcThreadGroups(nel1,nel2,threadGroups);
-  if (threadGroups.size() < 2) return;
+  if (silence || threadGroups.size() < 2) return;
 
   std::cout <<"\nMultiple threads are utilized during element assembly.";
   for (size_t i = 0; i < threadGroups.size(); i++)

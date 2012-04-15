@@ -152,10 +152,10 @@ public:
   virtual bool getSize(int& n1, int& n2, int& n3, int = 0) const;
 
   //! \brief Generates element groups for multi-threading of interior integrals.
-  virtual void generateThreadGroups();
+  virtual void generateThreadGroups(bool silence);
   //! \brief Generates element groups for multi-threading of boundary integrals.
   //! \param[in] lIndex Local index [1,6] of the boundary face
-  virtual void generateThreadGroups(char lIndex);
+  virtual void generateThreadGroups(char lIndex, bool silence);
 
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;

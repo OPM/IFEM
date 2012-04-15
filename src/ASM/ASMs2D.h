@@ -408,7 +408,7 @@ protected:
   virtual bool getSize(int& n1, int& n2, int basis = 0) const;
 
   //! \brief Generates element groups for multi-threading of interior integrals.
-  virtual void generateThreadGroups();
+  virtual void generateThreadGroups(bool silence);
 
   //! \brief Establishes matrices with basis functions and 1st derivatives.
   static void extractBasis(const Go::BasisDerivsSf& spline,
