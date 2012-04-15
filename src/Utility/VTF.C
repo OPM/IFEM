@@ -75,7 +75,7 @@ VTF::~VTF ()
   if (!myFile) return;
 
   size_t i;
-  for (i = 0; i < myBlocks.size(); i++) 
+  for (i = 0; i < myBlocks.size(); i++)
     delete myBlocks[i].second;
 
 #if HAS_VTFAPI == 1
@@ -201,12 +201,20 @@ void VTF::writeGeometryBlocks (int iStep)
 
 
 void VTF::clearGeometryBlocks ()
-{ 
-  for (size_t i = 0; i < myBlocks.size(); i++) 
+{
+  for (size_t i = 0; i < myBlocks.size(); i++)
     delete myBlocks[i].second;
 
   myBlocks.clear();
   pointGeoID = 0;
+}
+
+
+const ElementBlock* VTF::getBlock (int geomID) const
+{
+  if (geomID < 1 || (size_t)geomID > myBlocks.size()) return NULL;
+
+  return myBlocks[geomID-1].second;
 }
 
 
@@ -231,7 +239,10 @@ bool VTF::writeVres (const std::vector<real>& nodeResult,
 {
   if (!myFile) return true;
 
-  const size_t nnod = myBlocks[geomID-1].second->getNoNodes();
+  const ElementBlock* grid = this->getBlock(geomID);
+  if (!grid) return false;
+
+  const size_t nnod = grid->getNoNodes();
   const size_t nres = nodeResult.size();
   const size_t ncmp = nres/(nnod > 0 ? nnod : 1);
   if (nres != ncmp*nnod)
@@ -282,12 +293,14 @@ bool VTF::writeEres (const std::vector<real>& elementResult,
 		     int idBlock, int geomID)
 {
   if (!myFile) return true;
-  if (geomID < 1 || (size_t)geomID > myBlocks.size()) return false;
+
+  const ElementBlock* grid = this->getBlock(geomID);
+  if (!grid) return false;
 
   const size_t nres = elementResult.size();
-  if (nres > myBlocks[geomID-1].second->getNoElms())
+  if (nres > grid->getNoElms())
     return showError("Invalid size of result array",nres);
-  else if (nres < myBlocks[geomID-1].second->getNoElms())
+  else if (nres < grid->getNoElms())
     showError("Warning: Fewer element results that anticipated",nres);
 
   // Cast to float
@@ -321,16 +334,55 @@ bool VTF::writeNres (const std::vector<real>& nodalResult,
 		     int idBlock, int geomID)
 {
   if (!myFile) return true;
-  if (geomID < 1 || (size_t)geomID > myBlocks.size()) return false;
+
+  const ElementBlock* grid = this->getBlock(geomID);
+  if (!grid) return false;
 
   const size_t nres = nodalResult.size();
-  if (nres != myBlocks[geomID-1].second->getNoNodes())
+  if (nres != grid->getNoNodes())
     return showError("Invalid size of result array",nres);
 
   // Cast to float
   float* resVec = new float[nres];
   for (size_t i = 0; i < nres; i++)
     resVec[i] = nodalResult[i];
+
+#if HAS_VTFAPI == 1
+  VTFAResultBlock dBlock(idBlock,VTFA_DIM_SCALAR,VTFA_RESMAP_NODE,0);
+
+  if (VTFA_FAILURE(dBlock.SetResults1D(resVec,nres)))
+    return showError("Error defining result block",idBlock);
+
+  dBlock.SetMapToBlockID(myBlocks[geomID-1].first);
+  if (VTFA_FAILURE(myFile->WriteBlock(&dBlock)))
+    return showError("Error writing result block",idBlock);
+#elif HAS_VTFAPI == 2
+  VTFXAResultValuesBlock dBlock(idBlock,VTFXA_DIM_SCALAR,VTFXA_FALSE);
+  dBlock.SetMapToBlockID(myBlocks[geomID-1].first,VTFXA_NODES);
+  dBlock.SetResultValues1D(resVec,nres);
+  if (VTFA_FAILURE(myDatabase->WriteBlock(&dBlock)))
+    return showError("Error writing result block",idBlock);
+#endif
+  delete[] resVec;
+
+  return true;
+}
+
+
+bool VTF::writeNfunc (const RealFunc& f, real time, int idBlock, int geomID)
+{
+  if (!myFile) return true;
+
+  const ElementBlock* grid = this->getBlock(geomID);
+  if (!grid) return false;
+
+  const size_t nres = grid->getNoNodes();
+
+  // Evaluate the function at the grid points
+  float* resVec = new float[nres];
+  std::vector<Vec3>::const_iterator cit = grid->begin_XYZ();
+  for (size_t i = 0; i < nres; i++, cit++)
+    resVec[i] = f(Vec4(*cit,time));
 
 #if HAS_VTFAPI == 1
   VTFAResultBlock dBlock(idBlock,VTFA_DIM_SCALAR,VTFA_RESMAP_NODE,0);

@@ -14,6 +14,7 @@
 #ifndef _VTF_H
 #define _VTF_H
 
+#include "Function.h"
 #include <vector>
 #include <cstddef>
 
@@ -85,7 +86,14 @@ public:
   //! \param[in] gID Geometry block identifier
   //! \param[in] nvc Number of components per node in \a nodeResult
   virtual bool writeVres(const std::vector<real>& nodeResult,
-		         int idBlock = 1, int gID = 1, size_t nvc = 0);
+                         int idBlock = 1, int gID = 1, size_t nvc = 0);
+  //! \brief Writes a block of scalar nodal function values to the VTF-file.
+  //! \param[in] f The scalar function to evaluate at the grid points
+  //! \param[in] time Current time
+  //! \param[in] idBlock Result block identifier
+  //! \param[in] gID Geometry block identifier
+  bool writeNfunc(const RealFunc& f, real time = real(0),
+                  int idBlock = 1, int gID = 1);
   //! \brief Writes a block of point vector results to the VTF-file.
   //! \details This method creates a separate geometry block consisting of the
   //! attack points of the result vectors, since they are independent of the
@@ -144,7 +152,7 @@ public:
 			  real refValue, int refType = 0);
 
   //! \brief Returns the pointer to a geometry block.
-  virtual const ElementBlock* getBlock(int gID) const { return myBlocks[gID-1].second; }
+  virtual const ElementBlock* getBlock(int geomID) const;
 
   //! \brief Adds the current FE geometry blocks to the description block.
   void writeGeometryBlocks(int iStep);
@@ -183,8 +191,6 @@ private:
   std::vector<VTFAScalarBlock*>       mySBlock; //!< Scalar field blocks
 
   int pointGeoID; //!< ID of current point vector geometry block
-
-protected:
   std::vector< std::pair<int,const ElementBlock*> > myBlocks; //!< FE geometry
 };
 

@@ -759,12 +759,13 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
   if (!allMPCs.empty()) ASMbase::resolveMPCchains(allMPCs);
 
   // Generate element groups for multi-threading
+  bool silence = msgLevel < 1 || (msgLevel < 2 && myModel.size() > 1);
   for (mit = myModel.begin(); mit != myModel.end(); mit++)
-    (*mit)->generateThreadGroups();
+    (*mit)->generateThreadGroups(silence);
   for (q = myProps.begin(); q != myProps.end(); q++)
     if (q->pcode == Property::NEUMANN)
       if (q->ldim+1 == myModel[q->patch-1]->getNoParamDim())
-	myModel[q->patch-1]->generateThreadGroups(q->lindx);
+	myModel[q->patch-1]->generateThreadGroups(q->lindx,silence);
 
   // Preprocess the result points
   for (ResPointVec::iterator p = myPoints.begin(); p != myPoints.end();)
@@ -1918,6 +1919,31 @@ bool SIMbase::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
 			  ++idBlock,iStep)) return false;
 
   return true;
+}
+
+
+bool SIMbase::writeGlvF (const RealFunc& f, const char* fname,
+			 int iStep, int& nBlock, int idBlock, double time)
+{
+  if (!myVtf) return false;
+
+  int geomID = 0;
+  std::vector<int> sID;
+  for (size_t i = 0; i < myModel.size(); i++)
+  {
+    if (myModel[i]->empty()) continue; // skip empty patches
+
+    if (msgLevel > 1)
+      std::cout <<"Writing function "<< fname
+		<<" for patch "<< i+1 << std::endl;
+
+    if (!myVtf->writeNfunc(f,time,++nBlock,++geomID))
+      return false;
+    else
+      sID.push_back(nBlock);
+  }
+
+  return myVtf->writeSblk(sID,fname,idBlock,iStep);
 }
 
 
