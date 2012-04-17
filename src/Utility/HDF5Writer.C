@@ -379,6 +379,8 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     }
     H5Gclose(group2);
   }
+#else
+  std::cerr << "HDF5 support disabled, no data saved" << std::endl;
 #endif
 }
 
