@@ -10,29 +10,30 @@
   <geometry>
     <patchfile>hole2D.g2</patchfile>
     <refine patch="1" u="3" v="3"/>
+    <topologysets>
+      <set name="SymmX" type="edge">
+        <item patch="1">1</item>
+      </set>
+      <set name="SymmY" type="edge">
+        <item patch="1">2</item>
+      </set>
+      <set name="Neumann" type="edge">
+        <item patch="1">4</item>
+      </set>
+    </topologysets>
   </geometry>
 
   <!-- General - boundary conditions !-->
   <boundaryconditions>
-    <propertycodes>
-      <code value="1">
-        <patch index="1" edge="1"/>
-      </code>
-      <code value="2">
-        <patch index="1" edge="2"/>
-      </code>
-      <code value="1001">
-        <patch index="1" edge="4"/>
-      </code>
-    </propertycodes>
-    <dirichlet code="1"/>
-    <dirichlet code="2"/>
+    <dirichlet set="SymmX" comp="1"/>
+    <dirichlet set="SymmY" comp="2"/>
+    <neumann set="Neumann" comp="12" type="anasol"/>
   </boundaryconditions>
 
   <!-- Problem specific block !-->
   <elasticity>
     <isotropic E="1000" nu="0.3" rho="0"/>
-    <anasol type="expression" code="1001">
+    <anasol type="expression">
       <variables>nu=0.3;F0=10;a=1;
                  R=sqrt(x*x+y*y);
                  R2=if(above(R,a),a*a/(R*R),1);

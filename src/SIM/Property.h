@@ -30,8 +30,12 @@ struct Property
     MATERIAL,
     BODYLOAD,
     NEUMANN,
+    NEUMANN_ANASOL,
     DIRICHLET,
-    DIRICHLET_INHOM
+    DIRICHLET_INHOM,
+    DIRICHLET_LOCAL,
+    DIRICHLET_LOCAL_PROJECTED,
+    DIRICHLET_ANASOL
   };
 
   Type   pcode; //!< Physical property code

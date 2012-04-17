@@ -155,7 +155,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
       std::cout <<"\tNumber of partitions: "<< nProc << std::endl;
 
     const TiXmlElement* part = elem->FirstChildElement("part");
-    while (part) {
+    for (; part; part = part->NextSiblingElement("part")) {
       int first = -2, last = -2;
       utl::getAttribute(part,"proc",proc);
       utl::getAttribute(part,"lower",first);
@@ -166,7 +166,55 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
         for (int j = first; j <= last && j > -1; j++)
           myPatches.push_back(j);
       }
-      part = part->NextSiblingElement("part");
+    }
+  }
+
+  else if (!strcasecmp(elem->Value(),"topologysets")) {
+    std::string name, type;
+    const TiXmlElement* set = elem->FirstChildElement("set");
+    for (; set; set = set->NextSiblingElement("set"))
+      if (utl::getAttribute(set,"name",name)) {
+        TopEntity& top = myEntitys[name];
+        int idim = 3;
+        utl::getAttribute(set,"type",type,true);
+        if (type == "face")
+          idim = 2;
+        else if (type == "edge")
+          idim = 1;
+        else if (type == "vertex")
+          idim = 0;
+        else
+          utl::getAttribute(set,"dimension",idim);
+        const TiXmlElement* item = set->FirstChildElement("item");
+        for (; item; item = item->NextSiblingElement("item")) {
+          int patch = 0;
+          utl::getAttribute(item,"patch",patch);
+          if ((patch = getLocalPatchIndex(patch)) > 0) {
+            if (idim == (int)this->getNoSpaceDim())
+              top.insert(TopItem(patch,0,idim));
+            else if (item->FirstChild())
+            {
+              std::string value(item->FirstChild()->Value());
+              char* cval = strtok(const_cast<char*>(value.c_str())," ");
+              for (; cval; cval = strtok(NULL," "))
+                top.insert(TopItem(patch,atoi(cval),idim));
+            }
+          }
+        }
+      }
+
+    if (!myEntitys.empty()) {
+      std::cout <<"\tTopology sets: ";
+      TopologySet::const_iterator it;
+      TopEntity::const_iterator jt;
+      for (it = myEntitys.begin(); it != myEntitys.end(); it++) {
+        if (it != myEntitys.begin()) std::cout <<"\t               ";
+        std::cout << it->first;
+        for (jt = it->second.begin(); jt != it->second.end(); jt++)
+          std::cout <<" ("<< jt->patch <<","<< jt->item <<","
+                    << jt->idim <<"D)";
+        std::cout << std::endl;
+      }
     }
   }
 
@@ -225,7 +273,7 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
         if (ival > 0)
           p.lindx = ival;
         if (utl::getAttribute(patch,"index",ival) && ival > 0)
-          p.patch = getLocalPatchIndex(ival);
+          p.patch = this->getLocalPatchIndex(ival);
         if (p.patch > 0 && p.lindx > 0)
         {
           if (axes.substr(0,5) == "local" && p.ldim > 0)
@@ -243,12 +291,19 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
   }
 
   else if (!strcasecmp(elem->Value(),"neumann")) {
-    int code = 0, ndir = 0;
-    std::string type;
-    utl::getAttribute(elem,"code",code);
+    int comp = 0, ndir = 0;
+    std::string set, type;
+    utl::getAttribute(elem,"comp",comp);
     utl::getAttribute(elem,"direction",ndir);
+    utl::getAttribute(elem,"set",set);
     utl::getAttribute(elem,"type",type,true);
-    if (elem->FirstChild()) {
+    int code = this->getUniquePropertyCode(set,comp);
+    if (code == 0) utl::getAttribute(elem,"code",code);
+    if (type == "anasol") {
+      std::cout <<"\tNeumann code "<< code <<" (analytic)" << std::endl;
+      this->setPropertyType(code,Property::NEUMANN_ANASOL);
+    }
+    else if (elem->FirstChild()) {
       std::cout <<"\tNeumann code "<< code <<" direction "<< ndir;
       if (!type.empty()) std::cout <<" ("<< type <<")";
       this->setNeumann(elem->FirstChild()->Value(),type,ndir,code);
@@ -257,17 +312,30 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
   }
 
   else if (!strcasecmp(elem->Value(),"dirichlet") && !ignoreDirichlet) {
-    int code = 0;
-    std::string type;
-    utl::getAttribute(elem,"code",code);
+    int comp = 0;
+    std::string set, type, axes;
+    utl::getAttribute(elem,"comp",comp);
+    utl::getAttribute(elem,"set",set);
     utl::getAttribute(elem,"type",type,true);
+    int code = this->getUniquePropertyCode(set,comp);
+    if (code == 0) utl::getAttribute(elem,"code",code);
     const TiXmlNode* dval = elem->FirstChild();
-    if (!dval || (atof(dval->Value()) == 0.0 && type != "expression")) {
-      setPropertyType(code,Property::DIRICHLET);
+    if (type == "anasol") {
+      this->setPropertyType(code,Property::DIRICHLET_ANASOL);
+      std::cout <<"\tDirichlet code "<< code <<": (analytic)"<< std::endl;
+    }
+    else if (!dval || (atof(dval->Value()) == 0.0 && type != "expression")) {
+      this->setPropertyType(code,Property::DIRICHLET);
       std::cout <<"\tDirichlet code "<< code <<": (fixed)"<< std::endl;
     }
     else if (dval) {
-      setPropertyType(code,Property::DIRICHLET_INHOM);
+      utl::getAttribute(elem,"axes",axes,true);
+      if (axes == "local projected")
+        this->setPropertyType(code,Property::DIRICHLET_LOCAL_PROJECTED);
+      else if (axes == "local")
+        this->setPropertyType(code,Property::DIRICHLET_LOCAL);
+      else
+        this->setPropertyType(code,Property::DIRICHLET_INHOM);
       std::cout <<"\tDirichlet code "<< code;
       if (!type.empty()) std::cout <<" ("<< type <<")";
       myScalars[abs(code)] = utl::parseRealFunc(dval->Value(),type);
@@ -808,22 +876,78 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 }
 
 
-bool SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
-{
-  for (PropertyVec::iterator p = myProps.begin(); p != myProps.end(); p++)
-    if (abs(p->pindx) == abs(code) && p->pcode == Property::UNDEFINED)
-    {
-      if (p->patch > 0 && p->patch <= myModel.size()) p->pcode = ptype;
-      if (pindex >= 0) p->pindx = pindex;
-      if (p->ldim > 0 && p->pindx > 0 && code < 0)
-        if (ptype == Property::DIRICHLET_INHOM) p->pindx = -p->pindx;
-    }
+/*!
+  \brief A helper class used by SIMbase::getUniquePropertyCode.
+  \details The class is just an unary function that checks whether a Property
+  object has a given integer code.
+*/
 
-  return true;
+class hasCode : public std::unary_function<const Property&,bool>
+{
+  int myCode; //!< The property code to compare with
+public:
+  //! \brief Constructore initializing the property code to search for.
+  hasCode(int code) : myCode(abs(code)) { }
+  //! \brief Returns \e true if the Property has the code \a myCode
+  bool operator()(const Property& p) { return abs(p.pindx) == myCode; }
+};
+
+
+int SIMbase::getUniquePropertyCode (const std::string& setName, int code)
+{
+  TopologySet::const_iterator tit = myEntitys.find(setName);
+  if (tit == myEntitys.end()) return 0;
+
+  int cinc = code < 0 ? -1000 : 1000;
+  PropertyVec::const_iterator pit = myProps.begin();
+  while (pit != myProps.end())
+  {
+    if (pit != myProps.begin()) code += cinc;
+    pit = std::find_if(myProps.begin(),myProps.end(),hasCode(code));
+  }
+
+  // Create the actual property objects that are used during simulation
+  TopEntity::const_iterator top;
+  for (top = tit->second.begin(); top != tit->second.end(); top++)
+    myProps.push_back(Property(Property::UNDEFINED,code,
+                               top->patch,top->idim,top->item));
+
+  return code;
 }
 
 
-bool SIMbase::setVecProperty (int code, Property::Type ptype, VecFunc* field)
+size_t SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
+{
+  size_t nDefined = 0;
+  for (PropertyVec::iterator p = myProps.begin(); p != myProps.end(); p++)
+    if (abs(p->pindx) == abs(code) && p->pcode == Property::UNDEFINED)
+      if (p->patch > 0 && p->patch <= myModel.size())
+      {
+        ++nDefined;
+        if (ptype < Property::DIRICHLET_LOCAL)
+          p->pcode = ptype;
+        else
+        {
+          if (p->ldim > 0)
+          {
+            p->lindx *= -1; // flag the use of local axis directions
+            if (ptype == Property::DIRICHLET_LOCAL_PROJECTED)
+              p->lindx -= 10; // enable projection of the local axes definitions
+            preserveNOrder = true; // because extra nodes might be added
+          }
+          p->pcode = Property::DIRICHLET_INHOM;
+        }
+
+        if (pindex >= 0) p->pindx = pindex;
+        if (p->ldim > 0 && p->pindx > 0 && code < 0) // flag local directions
+          if (ptype >= Property::DIRICHLET_INHOM) p->pindx = -p->pindx;
+      }
+
+  return nDefined;
+}
+
+
+size_t SIMbase::setVecProperty (int code, Property::Type ptype,  VecFunc* field)
 {
   if (field) myVectors[abs(code)] = field;
   return this->setPropertyType(code,ptype);

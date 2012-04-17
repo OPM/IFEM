@@ -42,6 +42,8 @@ public:
   //! \brief Performs some pre-processing tasks on the FE model.
   //! \details This method is reimplemented inserting a call to \a getIntegrand.
   //! This makes sure the integrand has been allocated in case of minimum input.
+  //! It also resolves inhomogeneous boundary condition fields in case they are
+  //! derived from the analytical solution.
   virtual bool preprocess(const std::vector<int>& ignored, bool fixDup);
 
 private:
@@ -75,6 +77,9 @@ public:
 
 protected:
   std::vector<Material*> mVec; //!< Material data
+
+private:
+  int aCode; //!< Analytical BC code (used by destructor)
 };
 
 #endif

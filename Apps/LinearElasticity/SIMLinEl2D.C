@@ -28,6 +28,9 @@ bool SIMLinEl2D::axiSymmetry = false;
 
 SIMLinEl2D::~SIMLinEl2D ()
 {
+  // To prevent the SIMbase destructor try to delete already deleted functions
+  if (aCode > 0) myVectors.erase(aCode);
+
   for (size_t i = 0; i < mVec.size(); i++)
     delete mVec[i];
 }
@@ -35,6 +38,9 @@ SIMLinEl2D::~SIMLinEl2D ()
 
 void SIMLinEl2D::clearProperties ()
 {
+  // To prevent SIMbase::clearProperties deleting the analytical solution
+  if (aCode > 0) myVectors.erase(aCode);
+
   Elasticity* elp = dynamic_cast<Elasticity*>(myProblem);
   if (elp)
   {
@@ -308,7 +314,7 @@ bool SIMLinEl2D::parse (const TiXmlElement* elem)
     else if (!strcasecmp(child->Value(),"isotropic")) {
       int code = 0;
       if (utl::getAttribute(child,"code",code) && code > 0)
-        setPropertyType(code,Property::MATERIAL,mVec.size());
+        this->setPropertyType(code,Property::MATERIAL,mVec.size());
       double E = 1000.0, nu = 0.3, rho = 1.0;
       utl::getAttribute(child,"E",E);
       utl::getAttribute(child,"nu",nu);
@@ -409,7 +415,7 @@ bool SIMLinEl2D::parse (const TiXmlElement* elem)
       if (code > 0 && mySol && mySol->getStressSol()) {
         std::cout <<"\tNeumann code "<< code
                   <<": Analytical traction"<< std::endl;
-        setPropertyType(code,Property::NEUMANN);
+        this->setPropertyType(code,Property::NEUMANN);
         myTracs[code] = new TractionField(*mySol->getStressSol());
       }
     }
@@ -442,6 +448,30 @@ bool SIMLinEl2D::preprocess (const std::vector<int>& ignored, bool fixDup)
     this->getIntegrand();
     if (myPid == 0) this->printProblem(std::cout);
   }
+
+  if (mySol) // Define analytical boundary condition fields
+    for (PropertyVec::iterator p = myProps.begin(); p != myProps.end(); p++)
+      if (p->pcode == Property::DIRICHLET_ANASOL)
+      {
+        if (mySol->getVectorSol() && (aCode == 0 || aCode == p->pindx))
+        {
+          p->pcode = Property::DIRICHLET_INHOM;
+          myVectors[p->pindx] = mySol->getVectorSol();
+          aCode = p->pindx;
+        }
+        else
+          p->pcode = Property::UNDEFINED;
+      }
+      else if (p->pcode == Property::NEUMANN_ANASOL)
+      {
+        if (mySol->getStressSol())
+        {
+          p->pcode = Property::NEUMANN;
+          myTracs[p->pindx] = new TractionField(*mySol->getStressSol());
+        }
+        else
+          p->pcode = Property::UNDEFINED;
+      }
 
   return this->SIM2D::preprocess(ignored,fixDup);
 }

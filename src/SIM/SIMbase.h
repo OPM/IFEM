@@ -17,6 +17,7 @@
 #include "SIMinput.h"
 #include "SIMoptions.h"
 #include "TimeDomain.h"
+#include "TopologySet.h"
 #include "Property.h"
 #include "Function.h"
 #include "MatVec.h"
@@ -134,7 +135,7 @@ public:
   //! \param[in] code The property code to be associated with the property
   //! \param[in] ptype The property type to be associated with the given code
   //! \param[in] field The vector field representing the physical property
-  bool setVecProperty(int code, Property::Type ptype, VecFunc* field = 0);
+  size_t setVecProperty(int code, Property::Type ptype, VecFunc* field = NULL);
 
   //! \brief Allocates the system matrices of the FE problem to be solved.
   //! \param[in] mType The matrix format to use
@@ -491,11 +492,16 @@ public:
   NormBase* getNormIntegrand() const;
 
 protected:
+  //! \brief Returns a unique property code for a topological entity set.
+  //! \param[in] setName Name of property set
+  //! \param[in] comp Solution components the property is applied for
+  int getUniquePropertyCode(const std::string& setName, int comp);
+
   //! \brief Defines the type of a property set.
   //! \param[in] code The property code to be associated with the property type
   //! \param[in] ptype The property type to be associated with the given code
   //! \param[in] pindex 0-based index into problem-dependent property container
-  bool setPropertyType(int code, Property::Type ptype, int pindex = -1);
+  size_t setPropertyType(int code, Property::Type ptype, int pindex = -1);
 
   //! \brief Defines a Neumann boundary condition property by parsing a string.
   //! \param[in] prop The string to parse the property definition from
@@ -616,6 +622,7 @@ protected:
   bool           mixedFEM;  //!< If \e true, mixed finite elements are used
   FEModelVec     myModel;   //!< The actual NURBS/spline model
   PropertyVec    myProps;   //!< Physical property mapping
+  TopologySet    myEntitys; //!< Set of named topological entities
   SclFuncMap     myScalars; //!< Scalar property fields
   VecFuncMap     myVectors; //!< Vector property fields
   TracFuncMap    myTracs;   //!< Traction property fields
