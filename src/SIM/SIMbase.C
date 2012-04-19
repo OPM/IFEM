@@ -886,8 +886,8 @@ class hasCode : public std::unary_function<const Property&,bool>
 {
   int myCode; //!< The property code to compare with
 public:
-  //! \brief Constructore initializing the property code to search for.
-  hasCode(int code) : myCode(abs(code)) { }
+  //! \brief Constructor initializing the property code to search for.
+  hasCode(int code) : myCode(abs(code)) {}
   //! \brief Returns \e true if the Property has the code \a myCode
   bool operator()(const Property& p) { return abs(p.pindx) == myCode; }
 };
@@ -899,10 +899,11 @@ int SIMbase::getUniquePropertyCode (const std::string& setName, int code)
   if (tit == myEntitys.end()) return 0;
 
   int cinc = code < 0 ? -1000 : 1000;
+  if (code == 0) code = cinc;
   PropertyVec::const_iterator pit = myProps.begin();
-  while (pit != myProps.end())
+  for (int trial = 0; pit != myProps.end(); trial++)
   {
-    if (pit != myProps.begin()) code += cinc;
+    if (trial > 0) code += cinc;
     pit = std::find_if(myProps.begin(),myProps.end(),hasCode(code));
   }
 
