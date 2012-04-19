@@ -936,11 +936,12 @@ size_t SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
               p->lindx -= 10; // enable projection of the local axes definitions
             preserveNOrder = true; // because extra nodes might be added
           }
+          // Reset the property code to inhomogeneous Dirichlet
           p->pcode = Property::DIRICHLET_INHOM;
         }
 
         if (pindex >= 0) p->pindx = pindex;
-        if (p->ldim > 0 && p->pindx > 0 && code < 0) // flag local directions
+        if (p->ldim > 0 && p->pindx > 0 && code < 0) // flag direct evaluation
           if (ptype >= Property::DIRICHLET_INHOM) p->pindx = -p->pindx;
       }
 

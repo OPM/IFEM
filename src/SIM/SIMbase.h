@@ -491,12 +491,16 @@ public:
   //! out of scope.
   NormBase* getNormIntegrand() const;
 
-protected:
-  //! \brief Returns a unique property code for a topological entity set.
-  //! \param[in] setName Name of property set
-  //! \param[in] comp Solution components the property is applied for
+  //! \brief Returns a unique integer code for a Property set.
+  //! \param[in] setName Name of the topology set the property is defined on
+  //! \param[in] comp The solution components on which the property is applied
+  //!
+  //! \details The actual Property objects are also created (one for each entity
+  //! in the topology set) and their type is set to UNDEFINED. The method
+  //! setPropertyType must be used to assign the actual Property type.
   int getUniquePropertyCode(const std::string& setName, int comp);
 
+protected:
   //! \brief Defines the type of a property set.
   //! \param[in] code The property code to be associated with the property type
   //! \param[in] ptype The property type to be associated with the given code

@@ -453,11 +453,11 @@ bool SIMLinEl2D::preprocess (const std::vector<int>& ignored, bool fixDup)
     for (PropertyVec::iterator p = myProps.begin(); p != myProps.end(); p++)
       if (p->pcode == Property::DIRICHLET_ANASOL)
       {
-        if (mySol->getVectorSol() && (aCode == 0 || aCode == p->pindx))
+        if (mySol->getVectorSol() && (aCode == 0 || aCode == abs(p->pindx)))
         {
           p->pcode = Property::DIRICHLET_INHOM;
-          myVectors[p->pindx] = mySol->getVectorSol();
-          aCode = p->pindx;
+          myVectors[abs(p->pindx)] = mySol->getVectorSol();
+          aCode = abs(p->pindx);
         }
         else
           p->pcode = Property::UNDEFINED;
