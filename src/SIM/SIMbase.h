@@ -499,6 +499,10 @@ public:
   //! in the topology set) and their type is set to UNDEFINED. The method
   //! setPropertyType must be used to assign the actual Property type.
   int getUniquePropertyCode(const std::string& setName, int comp);
+  //! \brief Creates a set of Property objects.
+  //! \param[in] setName Name of the topology set the property is defined on
+  //! \param[in] pc The property code to be associated with this set
+  bool createPropertySet(const std::string& setName, int pc);
 
 protected:
   //! \brief Defines the type of a property set.

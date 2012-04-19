@@ -895,8 +895,7 @@ public:
 
 int SIMbase::getUniquePropertyCode (const std::string& setName, int code)
 {
-  TopologySet::const_iterator tit = myEntitys.find(setName);
-  if (tit == myEntitys.end()) return 0;
+  if (setName.empty()) return 0;
 
   int cinc = code < 0 ? -1000 : 1000;
   if (code == 0) code = cinc;
@@ -907,13 +906,34 @@ int SIMbase::getUniquePropertyCode (const std::string& setName, int code)
     pit = std::find_if(myProps.begin(),myProps.end(),hasCode(code));
   }
 
+  return this->createPropertySet(setName,code) ? code : 0;
+}
+
+
+bool SIMbase::createPropertySet (const std::string& setName, int pc)
+{
+  TopologySet::const_iterator tit = myEntitys.find(setName);
+  if (tit == myEntitys.end())
+  {
+    std::cerr <<" *** SIMbase::createPropertySet: Undefined topology set \""
+              << setName <<"\""<< std::endl;
+    return false;
+  }
+
+  if (std::find_if(myProps.begin(),myProps.end(),hasCode(pc)) != myProps.end())
+  {
+    std::cerr <<" *** SIMbase::createPropertySet: Duplicated property code "
+              << pc << std::endl;
+    return false;
+  }
+
   // Create the actual property objects that are used during simulation
   TopEntity::const_iterator top;
   for (top = tit->second.begin(); top != tit->second.end(); top++)
-    myProps.push_back(Property(Property::UNDEFINED,code,
+    myProps.push_back(Property(Property::UNDEFINED,pc,
                                top->patch,top->idim,top->item));
 
-  return code;
+  return true;
 }
 
 
