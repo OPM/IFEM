@@ -93,3 +93,9 @@ std::ostream& operator<< (std::ostream& os, const Vec3& a)
 {
   return a.print(os);
 }
+
+
+std::istream& operator>> (std::istream& is, Vec3& a)
+{
+  return is >> a.x >> a.y >> a.z;
+}

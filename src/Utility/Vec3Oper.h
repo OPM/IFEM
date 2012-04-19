@@ -52,4 +52,7 @@ bool operator<(const Vec3& a, const Vec3& b);
 //! \brief Output stream operator.
 std::ostream& operator<<(std::ostream& os, const Vec3& a);
 
+//! \brief Input stream operator.
+std::istream& operator>>(std::istream& is, Vec3& a);
+
 #endif

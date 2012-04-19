@@ -102,6 +102,8 @@ public:
 
   //! \brief Transposes the tensor.
   virtual Tensor& transpose();
+  //! \brief Makes the tensor symmetric.
+  virtual Tensor& symmetrize();
 
   //! \brief Returns the trace of the tensor.
   virtual real trace() const;
@@ -186,6 +188,8 @@ public:
 
   //! \brief Transposes the symmetric tensor (i.e., does nothing).
   virtual Tensor& transpose() { return *this; }
+  //! \brief Makes the symmetric tensor symmetric (i.e., does nothing).
+  virtual Tensor& symmetrize() { return *this; }
 
   //! \brief Returns the trace of the symmetric tensor.
   virtual real trace() const;

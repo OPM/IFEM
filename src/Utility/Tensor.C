@@ -236,6 +236,22 @@ Tensor& Tensor::transpose ()
 }
 
 
+Tensor& Tensor::symmetrize ()
+{
+  switch (n) {
+  case 2:
+    v[1] = v[2] = 0.5*(v[1]+v[2]);
+    break;
+  case 3:
+    v[1] = v[3] = 0.5*(v[1]+v[3]);
+    v[2] = v[6] = 0.5*(v[2]+v[6]);
+    v[5] = v[7] = 0.5*(v[5]+v[7]);
+  }
+
+  return *this;
+}
+
+
 real Tensor::trace () const
 {
   if (n == 3)
