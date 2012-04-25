@@ -228,7 +228,7 @@ bool Elasticity::writeGlvT (VTF* vtf, int iStep, int& nBlock) const
   if (!vtf->writeVectors(tracVal,++nBlock))
     return false;
 
-  return vtf->writeVblk(nBlock,"Tractions",1,iStep);
+  return vtf->writeVblk(nBlock,"Tractions",1,iStep,true);
 }
 
 

@@ -195,7 +195,7 @@ bool KirchhoffLovePlate::writeGlvT (VTF* vtf, int iStep, int& nBlock) const
   if (!vtf->writeVectors(presVal,++nBlock))
     return false;
 
-  return vtf->writeVblk(nBlock,"Pressure",1,iStep);
+  return vtf->writeVblk(nBlock,"Pressure",1,iStep,true);
 }
 
 

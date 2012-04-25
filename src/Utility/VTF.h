@@ -124,8 +124,9 @@ public:
   //! \param[in] resultName Name of the result quantity
   //! \param[in] idBlock Vector block identifier
   //! \param[in] iStep Load/Time step identifier
-  bool writeVblk(int vBlockID,
-                 const char* resultName = 0, int idBlock = 1, int iStep = 1);
+  //! \param[in] isVectors Whether or not block originates from writeVectors (HACK!)
+  bool writeVblk(int vBlockID, const char* resultName = 0,
+                 int idBlock = 1, int iStep = 1, bool isVectors=false);
   //! \brief Writes a vector block definition to the VTF-file.
   //! \param[in] vBlockIDs All result blocks that make up this vector block
   //! \param[in] resultName Name of the result quantity

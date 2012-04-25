@@ -504,7 +504,7 @@ bool VTF::writeDblk (const std::vector<int>& dBlockIDs, const char* resultName,
 
 
 bool VTF::writeVblk (int vBlockID, const char* resultName,
-		     int idBlock, int iStep)
+		     int idBlock, int iStep, bool isVectors)
 {
   if ((int)myVBlock.size() < idBlock) myVBlock.resize(idBlock,0);
 
@@ -517,6 +517,8 @@ bool VTF::writeVblk (int vBlockID, const char* resultName,
   if (VTFA_FAILURE(myVBlock[idBlock]->SetResultBlocks(&vBlockID,1,iStep)))
     return showError("Error defining vector block",idBlock);
 #elif HAS_VTFAPI == 2
+  if (isVectors)
+    return true;
   if (!myVBlock[--idBlock])
   {
     myVBlock[idBlock] = new VTFXAResultBlock(idBlock+1,
