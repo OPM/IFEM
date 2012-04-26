@@ -32,7 +32,7 @@ class SIMLinEl2D : public SIM2D
 {
 public:
   //! \brief Default constructor.
-  SIMLinEl2D() : SIM2D(2) {}
+  SIMLinEl2D() : SIM2D(2) { aCode = -1; }
   //! \brief The destructor frees the dynamically allocated material properties.
   virtual ~SIMLinEl2D();
 
