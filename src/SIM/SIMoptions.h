@@ -51,7 +51,7 @@ public:
   bool parseOldOptions(int argc, char** argv, int& i);
 
   //! \brief Returns whether HDF5 output is requested or not.
-  bool dumpHDF5(char* defaultName);
+  bool dumpHDF5(const char* defaultName);
 
 public:
   ASM::Discretization discretization; //!< Spatial discretization option

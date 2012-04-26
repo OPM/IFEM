@@ -174,12 +174,14 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
 }
 
 
-bool SIMoptions::dumpHDF5 (char* defaultName)
+bool SIMoptions::dumpHDF5 (const char* defaultName)
 {
   if (hdf5.empty()) return false;
 
-  if (hdf5 == "(default)")
-    hdf5 = strtok(defaultName,".");
+  if (hdf5 == "(default)") {
+    hdf5 = defaultName;
+    hdf5.erase(hdf5.find_last_of("."));
+  }
 
   return true;
 }
