@@ -40,6 +40,8 @@ IF (GoTools_VERSION_MAJOR GREATER 2)
       MESSAGE(STATUS "Compiler is non-GNU, assuming GoTools was built with Boost")
       FIND_PACKAGE(Boost REQUIRED)
       SET(GoTools_CXX_FLAGS "-DUSE_BOOST=1")
+      SET(GoTools_LIBRARIES ${GoTools_LIBRARIES} ${Boost_LIBRARIES})
+      SET(GoTools_INCLUDE_DIRS ${GoTools_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
   ENDIF(CMAKE_CXX_COMPILER_ID MATCHES GNU)
 ENDIF (GoTools_VERSION_MAJOR GREATER 2)
 
