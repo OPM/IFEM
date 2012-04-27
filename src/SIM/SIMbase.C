@@ -810,6 +810,12 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 	ok = false;
       break;
 
+    case Property::UNDEFINED:
+      std::cout <<"  ** SIMbase::preprocess: Undefined property with code="
+                << q->pindx <<" Patch="<< q->patch <<" Item="
+                << (int)q->lindx <<" "<< (int)q->ldim <<"D (ignored)"
+                << std::endl;
+
     default:
       break;
     }
@@ -960,9 +966,22 @@ size_t SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
           p->pcode = Property::DIRICHLET_INHOM;
         }
 
-        if (pindex >= 0) p->pindx = pindex;
+        if (pindex >= 0)
+          p->pindx = pindex;
+        else if (ptype == Property::NEUMANN_ANASOL ||
+                 ptype == Property::DIRICHLET_ANASOL)
+          // Let all analytical boundary condition properties have the same
+          // property code, because there can only be one analytical solution
+          for (PropertyVec::iterator q = myProps.begin(); q != p; q++)
+            if (ptype == q->pcode)
+            {
+              p->pindx = abs(q->pindx);
+              break;
+            }
+
         if (p->ldim > 0 && p->pindx > 0 && code < 0) // flag direct evaluation
-          if (ptype >= Property::DIRICHLET_INHOM) p->pindx = -p->pindx;
+          if (ptype >= Property::DIRICHLET_INHOM)
+            p->pindx = -p->pindx;
       }
 
   return nDefined;
