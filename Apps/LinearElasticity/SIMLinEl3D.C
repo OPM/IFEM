@@ -165,6 +165,7 @@ void SIMLinEl3D::clearProperties ()
 {
   // To prevent SIMbase::clearProperties deleting the analytical solution
   if (aCode > 0) myVectors.erase(aCode);
+  aCode = 0;
 
   Elasticity* elp = dynamic_cast<Elasticity*>(myProblem);
   if (elp)
@@ -355,13 +356,13 @@ bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
       double rho = atof(strtok(NULL," "));
       while ((cline = strtok(NULL," ")))
 	if (!strncasecmp(cline,"ALL",3))
-        {
+	{
 	  std::cout <<"\tMaterial for all patches: "
 		    << E <<" "<< nu <<" "<< rho << std::endl;
 	  mVec.push_back(new LinIsotropic(E,nu,rho));
 	}
 	else
-        {
+	{
 	  int patch = atoi(cline);
 	  int pid = this->getLocalPatchIndex(patch);
 	  if (pid < 0) return false;
@@ -421,7 +422,7 @@ bool SIMLinEl3D::parse (char* keyWord, std::istream& is)
   }
 
   if (gx != 0.0 || gy != 0.0 || gz != 0.0)
-    this->getIntegrand()->setGravity(gx,gy);
+    this->getIntegrand()->setGravity(gx,gy,gz);
   if (nmat > 0 && !mVec.empty())
     this->getIntegrand()->setMaterial(mVec.front());
 
@@ -434,32 +435,51 @@ bool SIMLinEl3D::parse (const TiXmlElement* elem)
   if (strcasecmp(elem->Value(),"elasticity"))
     return this->SIM3D::parse(elem);
 
-  double gx = 0.0, gy = 0.0, gz = 0.0;
+  Vec3 g;
 
   const TiXmlElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
 
     if (!strcasecmp(child->Value(),"gravity")) {
-      utl::getAttribute(child,"x",gx);
-      utl::getAttribute(child,"y",gy);
-      utl::getAttribute(child,"z",gz);
+      utl::getAttribute(child,"x",g.x);
+      utl::getAttribute(child,"y",g.y);
+      utl::getAttribute(child,"z",g.z);
       if (myPid == 0)
-        std::cout <<"\tGravitation vector: "<< gx <<" "<< gy <<" "<< gz
-                  << std::endl;
+        std::cout <<"\tGravitation vector: "<< g << std::endl;
     }
 
     else if (!strcasecmp(child->Value(),"isotropic")) {
-      int code = 0;
-      if (utl::getAttribute(child,"code",code) && code > 0)
+      std::string set;
+      utl::getAttribute(child,"set",set);
+      int code = this->getUniquePropertyCode(set,0);
+      if (code == 0) utl::getAttribute(child,"code",code);
+      if (code > 0)
         setPropertyType(code,Property::MATERIAL,mVec.size());
+
       double E = 1000.0, nu = 0.3, rho = 1.0;
       utl::getAttribute(child,"E",E);
       utl::getAttribute(child,"nu",nu);
       utl::getAttribute(child,"rho",rho);
+
       mVec.push_back(new LinIsotropic(E,nu,rho));
       if (myPid == 0)
         std::cout <<"\tMaterial code "<< code <<": "
                   << E <<" "<< nu <<" "<< rho << std::endl;
+    }
+
+    else if (!strcasecmp(child->Value(),"bodyforce")) {
+      std::string set, type;
+      utl::getAttribute(child,"set",set);
+      int code = this->getUniquePropertyCode(set,123);
+      if (code == 0) utl::getAttribute(child,"code",code);
+      if (child->FirstChild() && code > 0) {
+        utl::getAttribute(child,"type",type,true);
+        std::cout <<"\tBodyforce code "<< code;
+        if (!type.empty()) std::cout <<" ("<< type <<")";
+        VecFunc* f = utl::parseVecFunc(child->FirstChild()->Value(),type);
+        if (f) this->setVecProperty(code,Property::BODYLOAD,f);
+        std::cout << std::endl;
+      }
     }
 
     else if (!strcasecmp(child->Value(),"anasol")) {
@@ -531,8 +551,8 @@ bool SIMLinEl3D::parse (const TiXmlElement* elem)
                   << child->FirstChild()->Value() <<" (ignored)"<< std::endl;
     }
 
-  if (gx != 0.0 || gy != 0.0 || gz != 0.0)
-    this->getIntegrand()->setGravity(gx,gy);
+  if (!g.isZero(1.0e-16))
+    this->getIntegrand()->setGravity(g.x,g.y,g.z);
   if (!mVec.empty())
     this->getIntegrand()->setMaterial(mVec.front());
 
@@ -564,11 +584,15 @@ bool SIMLinEl3D::preprocess (const std::vector<int>& ignored, bool fixDup)
     for (PropertyVec::iterator p = myProps.begin(); p != myProps.end(); p++)
       if (p->pcode == Property::DIRICHLET_ANASOL)
       {
-        if (mySol->getVectorSol() && (aCode == 0 || aCode == abs(p->pindx)))
-        {
+        if (!mySol->getVectorSol())
+          p->pcode = Property::UNDEFINED;
+        else if (aCode == abs(p->pindx))
           p->pcode = Property::DIRICHLET_INHOM;
-          myVectors[abs(p->pindx)] = mySol->getVectorSol();
+        else if (aCode == 0)
+        {
           aCode = abs(p->pindx);
+          myVectors[aCode] = mySol->getVectorSol();
+          p->pcode = Property::DIRICHLET_INHOM;
         }
         else
           p->pcode = Property::UNDEFINED;

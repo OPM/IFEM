@@ -40,6 +40,7 @@ void SIMLinEl2D::clearProperties ()
 {
   // To prevent SIMbase::clearProperties deleting the analytical solution
   if (aCode > 0) myVectors.erase(aCode);
+  aCode = 0;
 
   Elasticity* elp = dynamic_cast<Elasticity*>(myProblem);
   if (elp)
@@ -262,13 +263,13 @@ bool SIMLinEl2D::parse (char* keyWord, std::istream& is)
       double rho = atof(strtok(NULL," "));
       while ((cline = strtok(NULL," ")))
 	if (!strncasecmp(cline,"ALL",3))
-        {
+	{
 	  std::cout <<"\tMaterial for all patches: "
 		    << E <<" "<< nu <<" "<< rho << std::endl;
 	  mVec.push_back(new LinIsotropic(E,nu,rho,!planeStrain,axiSymmetry));
 	}
 	else
-        {
+	{
 	  int patch = atoi(cline);
 	  int pid = this->getLocalPatchIndex(patch);
 	  if (pid < 0) return false;
@@ -312,9 +313,13 @@ bool SIMLinEl2D::parse (const TiXmlElement* elem)
     }
 
     else if (!strcasecmp(child->Value(),"isotropic")) {
-      int code = 0;
-      if (utl::getAttribute(child,"code",code) && code > 0)
+      std::string set;
+      utl::getAttribute(child,"set",set);
+      int code = this->getUniquePropertyCode(set,0);
+      if (code == 0) utl::getAttribute(child,"code",code);
+      if (code > 0)
         this->setPropertyType(code,Property::MATERIAL,mVec.size());
+
       double E = 1000.0, nu = 0.3, rho = 1.0;
       utl::getAttribute(child,"E",E);
       utl::getAttribute(child,"nu",nu);
@@ -332,15 +337,16 @@ bool SIMLinEl2D::parse (const TiXmlElement* elem)
                   << E <<" "<< nu <<" "<< rho << std::endl;
     }
 
-    else if (!strcasecmp(elem->Value(),"bodyforce")) {
-      int code = 0;
-      std::string type;
-      utl::getAttribute(elem,"code",code);
-      utl::getAttribute(elem,"type",type,true);
-      if (elem->FirstChild()) {
+    else if (!strcasecmp(child->Value(),"bodyforce")) {
+      std::string set, type;
+      utl::getAttribute(child,"set",set);
+      int code = this->getUniquePropertyCode(set,12);
+      if (code == 0) utl::getAttribute(child,"code",code);
+      if (child->FirstChild() && code > 0) {
+        utl::getAttribute(child,"type",type,true);
         std::cout <<"\tBodyforce code "<< code;
         if (!type.empty()) std::cout <<" ("<< type <<")";
-        VecFunc* f = utl::parseVecFunc(elem->FirstChild()->Value(),type);
+        VecFunc* f = utl::parseVecFunc(child->FirstChild()->Value(),type);
         if (f) this->setVecProperty(code,Property::BODYLOAD,f);
         std::cout << std::endl;
       }
@@ -453,11 +459,15 @@ bool SIMLinEl2D::preprocess (const std::vector<int>& ignored, bool fixDup)
     for (PropertyVec::iterator p = myProps.begin(); p != myProps.end(); p++)
       if (p->pcode == Property::DIRICHLET_ANASOL)
       {
-        if (mySol->getVectorSol() && (aCode == 0 || aCode == abs(p->pindx)))
-        {
+        if (!mySol->getVectorSol())
+          p->pcode = Property::UNDEFINED;
+        else if (aCode == abs(p->pindx))
           p->pcode = Property::DIRICHLET_INHOM;
-          myVectors[abs(p->pindx)] = mySol->getVectorSol();
+        else if (aCode == 0)
+        {
           aCode = abs(p->pindx);
+          myVectors[aCode] = mySol->getVectorSol();
+          p->pcode = Property::DIRICHLET_INHOM;
         }
         else
           p->pcode = Property::UNDEFINED;

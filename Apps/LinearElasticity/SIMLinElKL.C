@@ -116,8 +116,6 @@ bool SIMLinElKL::parse (char* keyWord, std::istream& is)
 
   else if (!strncasecmp(keyWord,"ANASOL",6))
   {
-    if (mySol) return true;
-
     cline = strtok(keyWord+6," ");
     if (!strncasecmp(cline,"NAVIERPLATE",7))
     {
@@ -139,19 +137,21 @@ bool SIMLinElKL::parse (char* keyWord, std::istream& is)
 	  double c = atof(cline);
 	  double d = atof(strtok(NULL," "));
 	  std::cout <<" c="<< c <<" d="<< d;
-	  mySol = new AnaSol(new NavierPlate(a,b,t,E,nu,pz,xi,eta,c,d));
+	  if (!mySol)
+	    mySol = new AnaSol(new NavierPlate(a,b,t,E,nu,pz,xi,eta,c,d));
 	}
-	else
+	else if (!mySol)
 	  mySol = new AnaSol(new NavierPlate(a,b,t,E,nu,pz,xi,eta));
       }
-      else
+      else if (!mySol)
 	mySol = new AnaSol(new NavierPlate(a,b,t,E,nu,pz));
     }
     else if (!strncasecmp(cline,"EXPRESSION",10))
     {
       std::cout <<"\nAnalytical solution: Expression"<< std::endl;
       int lines = (cline = strtok(NULL," ")) ? atoi(cline) : 0;
-      mySol = new AnaSol(is,lines,false);
+      if (!mySol)
+	mySol = new AnaSol(is,lines,false);
     }
     else
     {
@@ -188,14 +188,19 @@ bool SIMLinElKL::parse (const TiXmlElement* elem)
     }
 
     else if (!strcasecmp(child->Value(),"isotropic")) {
-      int code = 0;
-      if (utl::getAttribute(child,"code",code) && code > 0)
-        setPropertyType(code,Property::MATERIAL,mVec.size());
+      std::string set;
+      utl::getAttribute(child,"set",set);
+      int code = this->getUniquePropertyCode(set,0);
+      if (code == 0) utl::getAttribute(child,"code",code);
+      if (code > 0)
+        this->setPropertyType(code,Property::MATERIAL,mVec.size());
+
       double E = 1000.0, nu = 0.3, rho = 1.0, thk = 0.1;
       utl::getAttribute(child,"E",E);
       utl::getAttribute(child,"nu",nu);
       utl::getAttribute(child,"rho",rho);
       utl::getAttribute(child,"thickness",thk);
+
       mVec.push_back(new LinIsotropic(E,nu,rho,true));
       tVec.push_back(thk);
       if (myPid == 0)
@@ -223,21 +228,18 @@ bool SIMLinElKL::parse (const TiXmlElement* elem)
     }
 
     else if (!strcasecmp(child->Value(),"pressure")) {
-      int code = 0;
-      double p = 0.0;
-      char* fn = NULL;
-      utl::getAttribute(child,"code",code);
-      if (child->FirstChild())
-        p = atof(child->FirstChild()->Value());
-      if (myPid == 0)
-        std::cout <<"\tPressure code "<< code <<": ";
-      std::string function;
-      if (utl::getAttribute(child,"function",function))
-        fn = strtok(const_cast<char*>(function.c_str())," ");
-      myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(fn,p));
-      std::cout << std::endl;
-      if (code > 0)
-        setPropertyType(code,Property::BODYLOAD);
+      std::string set, type;
+      utl::getAttribute(child,"set",set);
+      int code = this->getUniquePropertyCode(set,1);
+      if (code == 0) utl::getAttribute(child,"code",code);
+
+      if (child->FirstChild() && code > 0) {
+        utl::getAttribute(child,"type",type,true);
+        std::cout <<"\tPressure code "<< code;
+        if (!type.empty()) std::cout <<" ("<< type <<")";
+        myScalars[code] = utl::parseRealFunc(child->FirstChild()->Value(),type);
+        this->setPropertyType(code,Property::BODYLOAD);
+      }
     }
 
     else if (!strcasecmp(child->Value(),"anasol")) {
@@ -262,17 +264,19 @@ bool SIMLinElKL::parse (const TiXmlElement* elem)
           std::cout <<" xi="<< xi <<" eta="<< eta;
           if (c != 0.0 && d != 0.0) {
             std::cout <<" c="<< c <<" d="<< d;
-            mySol = new AnaSol(new NavierPlate(a,b,t,E,nu,pz,xi,eta,c,d));
+            if (!mySol)
+              mySol = new AnaSol(new NavierPlate(a,b,t,E,nu,pz,xi,eta,c,d));
           }
-          else
+          else if (!mySol)
             mySol = new AnaSol(new NavierPlate(a,b,t,E,nu,pz,xi,eta));
         }
-        else
+        else if (!mySol)
           mySol = new AnaSol(new NavierPlate(a,b,t,E,nu,pz));
       }
       else if (type == "expression") {
         std::cout <<"\nAnalytical solution: Expression"<< std::endl;
-        mySol = new AnaSol(child);
+        if (!mySol)
+          mySol = new AnaSol(child);
       }
       else
         std::cerr <<"  ** SIMLinElKL::parse: Unknown analytical solution "
@@ -315,7 +319,7 @@ bool SIMLinElKL::initBodyLoad (size_t patchInd)
 
 bool SIMLinElKL::preprocess (const std::vector<int>& ignored, bool fixDup)
 {
-  if (!this->SIMbase::preprocess(ignored,fixDup))
+  if (!this->SIMLinEl2D::preprocess(ignored,fixDup))
     return false;
 
   // Preprocess the nodal point loads

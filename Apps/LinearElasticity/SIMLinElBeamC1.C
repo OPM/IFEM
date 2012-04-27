@@ -113,8 +113,6 @@ bool SIMLinElBeamC1::parse (char* keyWord, std::istream& is)
 
   else if (!strncasecmp(keyWord,"ANASOL",6))
   {
-    if (mySol) return true;
-
     cline = strtok(keyWord+6," ");
     /*
     if (!strncasecmp(cline,"NAVIERBEAM",7))
@@ -146,7 +144,8 @@ bool SIMLinElBeamC1::parse (char* keyWord, std::istream& is)
     {
       std::cout <<"\nAnalytical solution: Expression"<< std::endl;
       int lines = (cline = strtok(NULL," ")) ? atoi(cline) : 0;
-      mySol = new AnaSol(is,lines,false);
+      if (!mySol)
+	mySol = new AnaSol(is,lines,false);
     }
     else
     {
@@ -183,18 +182,23 @@ bool SIMLinElBeamC1::parse (const TiXmlElement* elem)
     }
 
     else if (!strcasecmp(child->Value(),"isotropic")) {
-      int code = 0;
-      if (utl::getAttribute(child,"code",code) && code > 0)
-        setPropertyType(code,Property::MATERIAL,mVec.size());
+      std::string set;
+      utl::getAttribute(child,"set",set);
+      int code = this->getUniquePropertyCode(set,0);
+      if (code == 0) utl::getAttribute(child,"code",code);
+      if (code > 0)
+        this->setPropertyType(code,Property::MATERIAL,mVec.size());
+
       double E = 1000.0, rho = 1.0, thk = 0.1;
       utl::getAttribute(child,"E",E);
       utl::getAttribute(child,"rho",rho);
       utl::getAttribute(child,"thickness",thk);
+
       mVec.push_back(new LinIsotropic(E,0.0,rho,true));
       tVec.push_back(thk);
       if (myPid == 0)
         std::cout <<"\tMaterial code "<< code <<": "
-                  << E <<" "<< rho <<" " << thk << std::endl;
+                  << E <<" "<< rho <<" "<< thk << std::endl;
       klp->setMaterial(mVec.front());
       if (tVec.front() != 0.0)
         klp->setThickness(tVec.front());
@@ -216,21 +220,18 @@ bool SIMLinElBeamC1::parse (const TiXmlElement* elem)
     }
 
     else if (!strcasecmp(child->Value(),"pressure")) {
-      int code = 0;
-      double p = 0.0;
-      char* fn = NULL;
-      utl::getAttribute(child,"code",code);
-      if (child->FirstChild())
-        p = atof(child->FirstChild()->Value());
-      if (myPid == 0)
-        std::cout <<"\tPressure code "<< code <<": ";
-      std::string function;
-      if (utl::getAttribute(child,"function",function))
-        fn = strtok(const_cast<char*>(function.c_str())," ");
-      myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(fn,p));
-      std::cout << std::endl;
-      if (code > 0)
-        setPropertyType(code,Property::BODYLOAD);
+      std::string set, type;
+      utl::getAttribute(child,"set",set);
+      int code = this->getUniquePropertyCode(set,1);
+      if (code == 0) utl::getAttribute(child,"code",code);
+
+      if (child->FirstChild() && code > 0) {
+        utl::getAttribute(child,"type",type,true);
+        std::cout <<"\tPressure code "<< code;
+        if (!type.empty()) std::cout <<" ("<< type <<")";
+        myScalars[code] = utl::parseRealFunc(child->FirstChild()->Value(),type);
+        this->setPropertyType(code,Property::BODYLOAD);
+      }
     }
 
     else if (!strcasecmp(child->Value(),"anasol")) {
@@ -238,7 +239,8 @@ bool SIMLinElBeamC1::parse (const TiXmlElement* elem)
       utl::getAttribute(child,"type",type,true);
       if (type == "expression") {
         std::cout <<"\nAnalytical solution: Expression"<< std::endl;
-        mySol = new AnaSol(child);
+        if (!mySol)
+          mySol = new AnaSol(child);
       }
       else
         std::cerr <<"  ** SIMLinElKL::parse: Unknown analytical solution "
