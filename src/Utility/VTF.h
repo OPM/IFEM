@@ -71,14 +71,14 @@ public:
   //! \param[in] idBlock Result block identifier
   //! \param[in] gID Geometry block identifier
   virtual bool writeNres(const std::vector<real>& nodeResult,
-		         int idBlock = 1, int gID = 1);
+                         int idBlock = 1, int gID = 1);
   //! \brief Writes a block of scalar element results to the VTF-file.
   //! \param[in] elmResult Vector of element results (one per element)
   //!            length must equal the number of elements in the geometry block
   //! \param[in] idBlock Result block identifier
   //! \param[in] gID Geometry block identifier
   virtual bool writeEres(const std::vector<real>& elmResult,
-		         int idBlock = 1, int gID = 1);
+                         int idBlock = 1, int gID = 1);
   //! \brief Writes a block of vector nodal results to the VTF-file.
   //! \param[in] nodeResult Vector of nodal results, length must be equal the
   //!            number of nodes in the geometry block times 1...5
@@ -99,8 +99,12 @@ public:
   //! attack points of the result vectors, since they are independent of the
   //! FE geometry created by the \a writeGrid method.
   //! \param[in] pntResult A set of result vectors with associated attack points
-  //! \param[in] idBlock Vector block identifier
-  bool writeVectors(const std::vector<Vec3Pair>& pntResult, int idBlock = 1);
+  //! \param[in] idBlock Result block identifier
+  //! \param[in] resultName Name of the result quantity
+  //! \param[in] iStep Load/Time step identifier
+  //! \param[in] iBlock Vector block identifier
+  bool writeVectors(const std::vector<Vec3Pair>& pntResult, int idBlock = 1,
+                    const char* resultName = 0, int iStep = 0, int iBlock = 1);
 
   //! \brief Writes a scalar block definition to the VTF-file.
   //! \param[in] sBlockID The result block that makes up this scalar block
@@ -118,15 +122,14 @@ public:
   //! \param[in] elementData false -> data per node, true -> data per element
   virtual bool writeSblk(const std::vector<int>& sBlockIDs,
                          const char* resultName = 0, int idBlock = 1,
-			 int iStep = 1, bool elementData = false);
+                         int iStep = 1, bool elementData = false);
   //! \brief Writes a vector block definition to the VTF-file.
   //! \param[in] vBlockID The result block that makes up this vector block
   //! \param[in] resultName Name of the result quantity
   //! \param[in] idBlock Vector block identifier
   //! \param[in] iStep Load/Time step identifier
-  //! \param[in] isVectors Whether or not block originates from writeVectors (HACK!)
   bool writeVblk(int vBlockID, const char* resultName = 0,
-                 int idBlock = 1, int iStep = 1, bool isVectors=false);
+                 int idBlock = 1, int iStep = 1);
   //! \brief Writes a vector block definition to the VTF-file.
   //! \param[in] vBlockIDs All result blocks that make up this vector block
   //! \param[in] resultName Name of the result quantity
@@ -134,15 +137,15 @@ public:
   //! \param[in] iStep Load/Time step identifier
   virtual bool writeVblk(const std::vector<int>& vBlockIDs,
                          const char* resultName = 0,
-			 int idBlock = 1, int iStep = 1);
+                         int idBlock = 1, int iStep = 1);
   //! \brief Writes a displacement block definition to the VTF-file.
   //! \param[in] dBlockIDs All result blocks that make up the displacement block
   //! \param[in] resultName Name of the result quantity
   //! \param[in] idBlock Displacement block identifier
   //! \param[in] iStep Load/Time step identifier
   virtual bool writeDblk(const std::vector<int>& dBlockIDs,
-		         const char* resultName = 0,
-			 int idBlock = 1, int iStep = 1);
+                         const char* resultName = 0,
+                         int idBlock = 1, int iStep = 1);
 
   //! \brief Writes a state info block to the VTF-file.
   //! \param[in] iStep Load/Time step identifier
@@ -150,7 +153,7 @@ public:
   //! \param[in] refValue Reference value for the step (time, frequency, etc.)
   //! \param[in] refType Reference value type (0=Time, 1=Frequency, 2=Load case)
   virtual bool writeState(int iStep, const char* fmt,
-			  real refValue, int refType = 0);
+                          real refValue, int refType = 0);
 
   //! \brief Returns the pointer to a geometry block.
   virtual const ElementBlock* getBlock(int geomID) const;

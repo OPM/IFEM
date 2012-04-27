@@ -84,8 +84,8 @@ public:
   //! \param[in] eV Element solution vector
   //! \param[in] dNdX Basis function gradients at current point
   //! \param[in] X Cartesian coordinates of current point
-  virtual bool evalSol(Vector& s, const Vector& eV,
-                       const Matrix& dNdX, const Vec3& X) const;
+  bool evalSol(Vector& s, const Vector& eV,
+               const Matrix& dNdX, const Vec3& X) const;
 
   //! \brief Evaluates the analytical solution at an integration point.
   //! \param[out] s The analytical solution values at current point

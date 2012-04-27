@@ -192,10 +192,7 @@ bool KirchhoffLovePlate::writeGlvT (VTF* vtf, int iStep, int& nBlock) const
     return false;
 
   // Write surface pressures as discrete point vectors to the VTF-file
-  if (!vtf->writeVectors(presVal,++nBlock))
-    return false;
-
-  return vtf->writeVblk(nBlock,"Pressure",1,iStep,true);
+  return vtf->writeVectors(presVal,++nBlock,"Pressure",iStep);
 }
 
 

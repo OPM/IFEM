@@ -64,7 +64,7 @@ VTF::VTF (const char* filename, int type)
   delete myFile;
   showError("Error creating VTFx file");
 #else
-  showError("VTF export is not available in this version");
+  showError("Not available in this version");
 #endif
   myFile = 0;
 }
@@ -406,7 +406,8 @@ bool VTF::writeNfunc (const RealFunc& f, real time, int idBlock, int geomID)
 }
 
 
-bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int idBlock)
+bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int idBlock,
+                        const char* resultName, int iStep, int iBlock)
 {
 #if HAS_VTFAPI == 1
   bool writePoints = false;
@@ -463,10 +464,11 @@ bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int idBlock)
   if (VTFA_FAILURE(myFile->WriteBlock(&rBlock)))
     return showError("Error writing result block",idBlock);
 #elif HAS_VTFAPI == 2
-  showError("Note: Vector points are not yet implemented for VTFx");
+  showError("Vector points are not yet implemented for VTFx");
+  return true;
 #endif
 
-  return true;
+  return iStep > 0 ? this->writeVblk(idBlock,resultName,iBlock,iStep) : true;
 }
 
 
@@ -504,7 +506,7 @@ bool VTF::writeDblk (const std::vector<int>& dBlockIDs, const char* resultName,
 
 
 bool VTF::writeVblk (int vBlockID, const char* resultName,
-		     int idBlock, int iStep, bool isVectors)
+		     int idBlock, int iStep)
 {
   if ((int)myVBlock.size() < idBlock) myVBlock.resize(idBlock,0);
 
@@ -517,8 +519,6 @@ bool VTF::writeVblk (int vBlockID, const char* resultName,
   if (VTFA_FAILURE(myVBlock[idBlock]->SetResultBlocks(&vBlockID,1,iStep)))
     return showError("Error defining vector block",idBlock);
 #elif HAS_VTFAPI == 2
-  if (isVectors)
-    return true;
   if (!myVBlock[--idBlock])
   {
     myVBlock[idBlock] = new VTFXAResultBlock(idBlock+1,

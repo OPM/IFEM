@@ -225,10 +225,7 @@ bool Elasticity::writeGlvT (VTF* vtf, int iStep, int& nBlock) const
     return false;
 
   // Write boundary tractions as discrete point vectors to the VTF-file
-  if (!vtf->writeVectors(tracVal,++nBlock))
-    return false;
-
-  return vtf->writeVblk(nBlock,"Tractions",1,iStep,true);
+  return vtf->writeVectors(tracVal,++nBlock,"Tractions",iStep);
 }
 
 
