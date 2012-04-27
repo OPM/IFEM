@@ -794,30 +794,32 @@ bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
 
     // Loop over the (interior) nodes (control points) of this boundary curve
     for (nit = dirich[i].nodes.begin(); nit != dirich[i].nodes.end(); nit++)
-    {
-      // Find the constraint equation for current (node,dof)
-      MPC pDOF(MLGN[nit->second-1],dirich[i].dof);
-      MPCIter mit = mpcs.find(&pDOF);
-      if (mit == mpcs.end())
+      for (int dofs = dirich[i].dof; dofs > 0; dofs /= 10)
       {
-	std::cerr <<" *** ASMbase::updateDirichlet: Invalid slave node in MPC, "
-		  << pDOF << std::endl;
-	return false;
-      }
+	int dof = dofs%10;
+	// Find the constraint equation for current (node,dof)
+	MPC pDOF(MLGN[nit->second-1],dof);
+	MPCIter mit = mpcs.find(&pDOF);
+	if (mit == mpcs.end())
+	{
+	  std::cerr <<" *** ASMs2D::updateDirichlet: Invalid slave in MPC: "
+		    << pDOF << std::endl;
+	  return false;
+	}
 
-      // Find index to the control point value for this (node,dof) in dcrv
-      RealArray::const_iterator cit = dcrv->coefs_begin();
-      if (dcrv->dimension() > 1) // A vector field is specified
-	cit += (nit->first-1)*dcrv->dimension() + (dirich[i].dof-1);
-      else // A scalar field is specified at this dof
-	cit += (nit->first-1);
+	// Find index to the control point value for this (node,dof) in dcrv
+	RealArray::const_iterator cit = dcrv->coefs_begin();
+	if (dcrv->dimension() > 1) // A vector field is specified
+	  cit += (nit->first-1)*dcrv->dimension() + (dof-1);
+	else // A scalar field is specified at this dof
+	  cit += (nit->first-1);
 
-      // Now update the prescribed value in the constraint equation
-      (*mit)->setSlaveCoeff(*cit);
+	// Now update the prescribed value in the constraint equation
+	(*mit)->setSlaveCoeff(*cit);
 #if SP_DEBUG > 1
-      std::cout <<"Updated constraint: "<< **mit;
+	std::cout <<"Updated constraint: "<< **mit;
 #endif
-    }
+      }
   }
 
   // The parent class method takes care of the corner nodes with direct
