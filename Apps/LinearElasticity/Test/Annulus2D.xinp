@@ -6,27 +6,27 @@
     <patchfile>annulus.g2</patchfile>
     <raiseorder patch="1" v="1"/>
     <refine patch="1" u="7" v="1"/>
+    <topologysets>
+      <set name="fixed point" type="vertex">
+        <item patch="1">3</item>
+      </set>
+      <set name="fixed end" type="edge">
+        <item patch="1">1</item>
+      </set>
+      <set name="pulled end" type="edge">
+        <item patch="1">2</item>
+      </set>
+      <set name="inner curve" type="edge">
+        <item patch="1">4</item>
+      </set>
+    </topologysets>
   </geometry>
 
   <boundaryconditions>
-    <propertycodes>
-      <code value="12">
-        <patch index="1" vertex="3"/>
-      </code>
-      <code value="2">
-        <patch index="1" edge="1"/>
-      </code>
-      <code value="1" axes="local projected">
-        <patch index="1" edge="4"/>
-      </code>
-      <code value="1002">
-        <patch index="1" edge="2"/>
-      </code>
-    </propertycodes>
-    <dirichlet code="1"/>
-    <dirichlet code="2"/>
-    <dirichlet code="12"/>
-    <neumann code="1002">1.0e10</neumann>
+    <dirichlet set="fixed point" comp="12"/>
+    <dirichlet set="fixed end"   comp="2"/>
+    <dirichlet set="inner curve" comp="1" axes="local projected"/>
+    <neumann set="pulled end" comp="2">1.0e10</neumann>
   </boundaryconditions>
 
   <elasticity>
