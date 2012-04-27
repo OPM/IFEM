@@ -25,8 +25,8 @@ struct Property
 {
   //! \brief The available property types.
   //! \note The sequence of these enums are of importance, since the less-than
-  //! operator is used on instances of them. Therefore, do *not* alter the
-  //! below order unless you know what you are doing.
+  //! and greater-than operators are used on instances of them. Therefore,
+  //! do *not* alter the below order unless you know what you are doing.
   enum Type
   {
     UNDEFINED,
@@ -36,9 +36,7 @@ struct Property
     NEUMANN_ANASOL,
     DIRICHLET,
     DIRICHLET_INHOM,
-    DIRICHLET_ANASOL,
-    DIRICHLET_LOCAL,
-    DIRICHLET_LOCAL_PROJECTED
+    DIRICHLET_ANASOL
   };
 
   Type   pcode; //!< Physical property code

@@ -222,6 +222,13 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
 }
 
 
+//! \brief Integer value flagging global axes in boundary conditions.
+#define GLOBAL_AXES     -1
+//! \brief Integer value flagging local axes in boundary conditions.
+#define LOCAL_AXES      -2
+//! \brief Integer value flagging local projected axes in boundary conditions.
+#define LOCAL_PROJECTED -3
+
 bool SIMbase::parseBCTag (const TiXmlElement* elem)
 {
   std::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
@@ -317,25 +324,26 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
     utl::getAttribute(elem,"comp",comp);
     utl::getAttribute(elem,"set",set);
     utl::getAttribute(elem,"type",type,true);
+    utl::getAttribute(elem,"axes",axes,true);
     int code = this->getUniquePropertyCode(set,comp);
     if (code == 0) utl::getAttribute(elem,"code",code);
+    if (axes == "local projected")
+      comp = LOCAL_PROJECTED;
+    else if (axes == "local")
+      comp = LOCAL_AXES;
+    else
+      comp = GLOBAL_AXES;
     const TiXmlNode* dval = elem->FirstChild();
     if (type == "anasol") {
       this->setPropertyType(code,Property::DIRICHLET_ANASOL);
       std::cout <<"\tDirichlet code "<< code <<": (analytic)"<< std::endl;
     }
     else if (!dval || (atof(dval->Value()) == 0.0 && type != "expression")) {
-      this->setPropertyType(code,Property::DIRICHLET);
+      this->setPropertyType(code,Property::DIRICHLET,comp);
       std::cout <<"\tDirichlet code "<< code <<": (fixed)"<< std::endl;
     }
     else if (dval) {
-      utl::getAttribute(elem,"axes",axes,true);
-      if (axes == "local projected")
-        this->setPropertyType(code,Property::DIRICHLET_LOCAL_PROJECTED);
-      else if (axes == "local")
-        this->setPropertyType(code,Property::DIRICHLET_LOCAL);
-      else
-        this->setPropertyType(code,Property::DIRICHLET_INHOM);
+      this->setPropertyType(code,Property::DIRICHLET_INHOM,comp);
       std::cout <<"\tDirichlet code "<< code;
       if (!type.empty()) std::cout <<" ("<< type <<")";
       myScalars[abs(code)] = utl::parseRealFunc(dval->Value(),type);
@@ -943,6 +951,14 @@ bool SIMbase::createPropertySet (const std::string& setName, int pc)
 }
 
 
+/*!
+  Negative values on \a pindex are used to flag the use of local axes for
+  Dirichlet boundary conditions as follows:
+  \a pindex=-2 : Compute local axes directions directly at the Greveille points.
+  \a pindex=-3 : Compute local axes directions by projecting the local tangent
+  direction onto the spline basis, to obtain directions at control points.
+*/
+
 size_t SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
 {
   size_t nDefined = 0;
@@ -951,26 +967,14 @@ size_t SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
       if (p->patch > 0 && p->patch <= myModel.size())
       {
         ++nDefined;
-        if (ptype < Property::DIRICHLET_LOCAL)
-          p->pcode = ptype;
-        else
-        {
-          if (p->ldim > 0)
-          {
-            p->lindx *= -1; // flag the use of local axis directions
-            if (ptype == Property::DIRICHLET_LOCAL_PROJECTED)
-              p->lindx -= 10; // enable projection of the local axes definitions
-            preserveNOrder = true; // because extra nodes might be added
-          }
-          // Reset the property code to inhomogeneous Dirichlet
-          p->pcode = Property::DIRICHLET_INHOM;
-        }
+        p->pcode = ptype;
 
-        if (pindex >= 0)
-          p->pindx = pindex;
+	if (ptype == Property::MATERIAL && pindex >= 0)
+          p->pindx = pindex; // Index to material property container
         else if (ptype == Property::NEUMANN_ANASOL ||
                  ptype == Property::DIRICHLET_ANASOL)
-          // Let all analytical boundary condition properties have the same
+        {
+          // Let all analytical boundary condition properties receive the same
           // property code, because there can only be one analytical solution
           for (PropertyVec::iterator q = myProps.begin(); q != p; q++)
             if (ptype == q->pcode)
@@ -978,6 +982,14 @@ size_t SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
               p->pindx = abs(q->pindx);
               break;
             }
+	}
+        else if (ptype >= Property::DIRICHLET && pindex <= LOCAL_AXES)
+        {
+          p->lindx *= -1; // flag the use of local axis directions
+          if (pindex == LOCAL_PROJECTED)
+            p->lindx -= 10; // enable projection of the local axes definitions
+          preserveNOrder = true; // because extra nodes might be added
+        }
 
         if (p->ldim > 0 && p->pindx > 0 && code < 0) // flag direct evaluation
           if (ptype >= Property::DIRICHLET_INHOM)
@@ -988,7 +1000,7 @@ size_t SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
 }
 
 
-size_t SIMbase::setVecProperty (int code, Property::Type ptype,  VecFunc* field)
+size_t SIMbase::setVecProperty (int code, Property::Type ptype, VecFunc* field)
 {
   if (field) myVectors[abs(code)] = field;
   return this->setPropertyType(code,ptype);
