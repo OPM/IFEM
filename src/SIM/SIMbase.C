@@ -954,7 +954,7 @@ bool SIMbase::createPropertySet (const std::string& setName, int pc)
 /*!
   Negative values on \a pindex are used to flag the use of local axes for
   Dirichlet boundary conditions as follows:
-  \a pindex=-2 : Compute local axes directions directly at the Greveille points.
+  \a pindex=-2 : Compute local axes directions directly at the Greville points.
   \a pindex=-3 : Compute local axes directions by projecting the local tangent
   direction onto the spline basis, to obtain directions at control points.
 */
@@ -1000,10 +1000,11 @@ size_t SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
 }
 
 
-size_t SIMbase::setVecProperty (int code, Property::Type ptype, VecFunc* field)
+size_t SIMbase::setVecProperty (int code, Property::Type ptype, VecFunc* field,
+				int pflag)
 {
   if (field) myVectors[abs(code)] = field;
-  return this->setPropertyType(code,ptype);
+  return this->setPropertyType(code,ptype,pflag);
 }
 
 

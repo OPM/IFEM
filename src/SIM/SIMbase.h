@@ -135,7 +135,9 @@ public:
   //! \param[in] code The property code to be associated with the property
   //! \param[in] ptype The property type to be associated with the given code
   //! \param[in] field The vector field representing the physical property
-  size_t setVecProperty(int code, Property::Type ptype, VecFunc* field = NULL);
+  //! \param[in] pflag Flag for local axis directions (see setPropertyType)
+  size_t setVecProperty(int code, Property::Type ptype, VecFunc* field = NULL,
+			int pflag = -1);
 
   //! \brief Allocates the system matrices of the FE problem to be solved.
   //! \param[in] mType The matrix format to use
