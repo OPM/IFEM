@@ -669,7 +669,7 @@ size_t ASMs2D::constrainEdgeLocal (int dir, int dof, int code, bool project)
   for (i = 0; i < gpar.size(); i++, iSnod += incNod, it += 6)
   {
     // Check if this node already has been constrained or fixed
-    if (this->isFixed(1+iSnod,12)) continue;
+    if (this->isFixed(MLGN[iSnod],12)) continue;
 
     // We need an extra node representing the local (master) DOFs at this point
     int iMnod = shareFE ? nodeInd.size()+myMLGN.size() : myMLGN.size();

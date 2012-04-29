@@ -797,36 +797,49 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 
   // Process the specified Dirichlet boundary conditions
   std::cout <<"\nResolving Dirichlet boundary conditions"<< std::endl;
+  ASMstruct::resetNumbering(ngnod); // to account for possibly added nodes
 
-  bool ok = true;
+  int code, dofs, ierr = 0, iwar = 0;
   PropertyVec::const_iterator q;
   for (q = myProps.begin(); q != myProps.end(); q++)
+  {
+    code = q->pindx;
+    dofs = abs(code%1000);
     switch (q->pcode) {
-
     case Property::DIRICHLET:
-      if (this->addConstraint(q->patch,q->lindx,q->ldim,q->pindx,0,ngnod))
-	std::cout << std::endl;
-      else
-	ok = false;
-      break;
-
+      code = 0;
     case Property::DIRICHLET_INHOM:
-      if (this->addConstraint(q->patch,q->lindx,q->ldim,abs(q->pindx%1000),
-			      q->pindx,ngnod))
-	std::cout << std::endl;
-      else
-	ok = false;
       break;
 
     case Property::UNDEFINED:
-      std::cout <<"  ** SIMbase::preprocess: Undefined property with code="
+      iwar++;
+      std::cout <<"  ** SIMbase::preprocess: Undefined property set with code="
                 << q->pindx <<" Patch="<< q->patch <<" Item="
                 << (int)q->lindx <<" "<< (int)q->ldim <<"D (ignored)"
                 << std::endl;
-
     default:
+      dofs = 0;
       break;
     }
+
+    if (dofs > 0)
+      if (this->addConstraint(q->patch,q->lindx,q->ldim,dofs,code,ngnod))
+        std::cout << std::endl;
+      else
+        ++ierr;
+  }
+
+  if (iwar > 0)
+    std::cerr <<"\n  ** SIMbase::preprocess: Warning: "<< iwar
+              <<" undefined property sets were detected.\n";
+  if (ierr > 0)
+    std::cerr <<"\n *** SIMbase::preprocess: Error: "<< ierr
+              <<" invalid Dirichlet properties were detected.\n"
+              <<"     Please check your model, execution aborts..."
+              << std::endl;
+  else if (iwar > 0)
+    std::cerr <<"     Please verify your model, execution continues..."
+              << std::endl;
 
   // Compute the set of all MPCs over the whole model. This will also merge
   // multiple constraint equations defined on interfaces between patches.
@@ -886,7 +899,7 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
   mySam = new SAMpatch();
 #endif
 
-  return mySam->init(myModel,ngnod) && ok;
+  return mySam->init(myModel,ngnod) && ierr == 0;
 }
 
 

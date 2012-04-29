@@ -280,6 +280,15 @@ void ASMbase::makePeriodic (size_t master, size_t slave, int dirs)
 	this->addPeriodicity(master,slave,dir);
       break;
     default:
+      std::cerr <<"  ** ASMbase::makePeriodic: Invalid DOF code "<< dirs
+		<<" replaced by 123"<< std::endl;
+    case 0:
+    case 123:
+    case 132:
+    case 213:
+    case 231:
+    case 312:
+    case 321:
       // If all DOFs are going to be coupled, assign a common global node number
       ASMbase::collapseNodes(*this,master,*this,slave);
     }
@@ -317,6 +326,14 @@ void ASMbase::prescribe (size_t inod, int dirs, int code)
 	this->addSPC(node,dir,code);
       break;
     default:
+      std::cerr <<"  ** ASMbase::prescribe: Invalid DOF code "<< dirs
+		<<" replaced by 123"<< std::endl;
+    case 123:
+    case 132:
+    case 213:
+    case 231:
+    case 312:
+    case 321:
       for (int dir = 1; dir <= 3; dir++)
 	this->addSPC(node,dir,code);
     }
@@ -375,6 +392,15 @@ void ASMbase::fix (size_t inod, int dirs)
       bit->CY = bit->CZ = 0;
       break;
     default:
+      std::cerr <<"  ** ASMbase::fix: Invalid DOF code "<< dirs
+		<<" replaced by 123"<< std::endl;
+      dirs = 123;
+    case 123:
+    case 132:
+    case 213:
+    case 231:
+    case 312:
+    case 321:
       if (bit->CX + bit->CY + bit->CZ == 0) return;
       bit->CX = bit->CY = bit->CZ = 0;
     }
