@@ -16,7 +16,9 @@
 #include "Vec3.h"
 
 #include "GoTools/geometry/SplineCurve.h"
+#include "GoTools/geometry/SplineSurface.h"
 #include "GoTools/geometry/CurveInterpolator.h"
+#include "GoTools/geometry/SurfaceInterpolator.h"
 
 
 Vec3 SplineUtils::toVec3 (const Go::Point& X, int nsd)
@@ -99,4 +101,93 @@ Go::SplineCurve* SplineUtils::project(const Go::SplineCurve* curve,
   // Project the function onto the spline basis to find control point values
   return Go::CurveInterpolator::regularInterpolation(basis,gpar,fval,nComp,
 						     curve->rational(),weights);
+}
+
+
+Go::SplineSurface* SplineUtils::project (const Go::SplineSurface* surface,
+					 const RealFunc& f, real time)
+{
+  if (!surface) return NULL;
+
+  const Go::BsplineBasis& ubas = surface->basis(0);
+  const Go::BsplineBasis& vbas = surface->basis(0);
+  const int nu = ubas.numCoefs();
+  const int nv = vbas.numCoefs();
+
+  RealArray upar(nu), vpar(nu);
+
+  // Compute parameter values of the function sampling points (Greville points)
+  int i, j;
+  for (i = 0; i < nu; i++)
+    upar[i] = ubas.grevilleParameter(i);
+  for (j = 0; j < nv; j++)
+    vpar[j] = vbas.grevilleParameter(j);
+
+  // Evaluate the function at the sampling points
+  Go::Point X;
+  RealArray fval(nu*nv);
+  size_t k = 0;
+  for (j = 0; j < nv; j++)
+    for (i = 0; i < nu; i++, k++)
+    {
+      surface->point(X,upar[i],vpar[i]);
+      fval[k] = f(toVec4(X,time));
+    }
+
+  // Get weights for rational spline curves (NURBS)
+  RealArray weights;
+  if (surface->rational())
+    surface->getWeights(weights);
+
+  // Project the function onto the spline basis to find control point values
+  return Go::SurfaceInterpolator::regularInterpolation(ubas,vbas,
+						       upar,vpar,fval,1,
+						       surface->rational(),
+						       weights);
+}
+
+
+Go::SplineSurface* SplineUtils::project (const Go::SplineSurface* surface,
+					 const VecFunc& f, int nComp, real time)
+{
+  if (!surface || nComp < 1 || nComp > 3) return NULL;
+
+  const Go::BsplineBasis& ubas = surface->basis(0);
+  const Go::BsplineBasis& vbas = surface->basis(0);
+  const int nu = ubas.numCoefs();
+  const int nv = vbas.numCoefs();
+
+  RealArray upar(nu), vpar(nu);
+
+  // Compute parameter values of the function sampling points (Greville points)
+  int i, j;
+  for (i = 0; i < nu; i++)
+    upar[i] = ubas.grevilleParameter(i);
+  for (j = 0; j < nv; j++)
+    vpar[j] = vbas.grevilleParameter(j);
+
+  // Evaluate the function at the sampling points
+  Go::Point X;
+  Vec3 fOfX;
+  RealArray fval(nComp*nu*nv);
+  size_t k = 0;
+  for (j = 0; j < nv; j++)
+    for (i = 0; i < nu; i++)
+    {
+      surface->point(X,upar[i],vpar[i]);
+      fOfX = f(toVec4(X,time));
+      for (int l = 0; l < nComp; l++, k++)
+	fval[k] = fOfX[l];
+    }
+
+  // Get weights for rational spline curves (NURBS)
+  RealArray weights;
+  if (surface->rational())
+    surface->getWeights(weights);
+
+  // Project the function onto the spline basis to find control point values
+  return Go::SurfaceInterpolator::regularInterpolation(ubas,vbas,
+						       upar,vpar,fval,nComp,
+						       surface->rational(),
+						       weights);
 }

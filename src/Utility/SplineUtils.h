@@ -19,8 +19,9 @@
 class Vec4;
 
 namespace Go {
-  class SplineCurve;
   class Point;
+  class SplineCurve;
+  class SplineSurface;
 }
 
 
@@ -37,6 +38,13 @@ namespace SplineUtils //! Various utility functions on spline objects.
   //! \brief Projects a vector-valued function onto a spline curve.
   Go::SplineCurve* project(const Go::SplineCurve* curve,
 			   const VecFunc& f, int nComp, real time = real(0));
+
+  //! \brief Projects a scalar-valued function onto a spline surface.
+  Go::SplineSurface* project(const Go::SplineSurface* surface,
+			     const RealFunc& f, real time = real(0));
+  //! \brief Projects a vector-valued function onto a spline surface.
+  Go::SplineSurface* project(const Go::SplineSurface* surface,
+			     const VecFunc& f, int nComp, real time = real(0));
 }
 
 #endif

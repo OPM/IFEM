@@ -12,8 +12,9 @@
 //==============================================================================
 
 #include "GoTools/geometry/ObjectHeader.h"
+#include "GoTools/geometry/SplineSurface.h"
 #include "GoTools/trivariate/SplineVolume.h"
-#include "GoTools/trivariate/VolumeInterpolator.h"
+#include "GoTools/geometry/SurfaceInterpolator.h"
 
 #include "ASMs3D.h"
 #include "TimeDomain.h"
@@ -24,9 +25,12 @@
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "ElementBlock.h"
+#include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
 #include "Vec3Oper.h"
+#include "Tensor.h"
+#include "MPC.h"
 
 
 ASMs3D::ASMs3D (unsigned char n_f)
@@ -40,6 +44,17 @@ ASMs3D::ASMs3D (const ASMs3D& patch, unsigned char n_f)
   : ASMstruct(patch,n_f), svol(patch.svol), nodeInd(patch.myNodeInd)
 {
   swapW = patch.swapW;
+}
+
+
+Go::SplineSurface* ASMs3D::getBoundary (int dir)
+{
+  if (dir < -3 || dir == 0 || dir > 3)
+    return NULL;
+
+  // The boundary surfaces are stored internally in the SplineVolume object
+  int iface = dir > 0 ? 2*dir-1 : -2*dir-2;
+  return svol->getBoundarySurface(iface).get();
 }
 
 
@@ -471,7 +486,7 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
     return true;
   else if (shareFE || neighbor.shareFE)
   {
-    std::cerr <<" *** ASMs2D::connectPatch: Logic error, cannot"
+    std::cerr <<" *** ASMs3D::connectPatch: Logic error, cannot"
 	      <<" connect a sharedFE patch with an unshared one"<< std::endl;
     return false;
   }
@@ -632,6 +647,13 @@ void ASMs3D::closeFaces (int dir, int basis, int master)
 }
 
 
+/*!
+  A negative \a code value implies direct evaluation of the Dirichlet condition
+  function at the control point. Positive \a code implies projection onto the
+  spline basis representing the boundary surface (needed for curved faces and/or
+  non-constant functions).
+*/
+
 void ASMs3D::constrainFace (int dir, int dof, int code)
 {
   int n1, n2, n3, node = 1;
@@ -640,6 +662,12 @@ void ASMs3D::constrainFace (int dir, int dof, int code)
   if (swapW) // Account for swapped parameter direction
     if (dir == 3 || dir == -3) dir = -dir;
 
+  int bcode = code;
+  if (code > 0) // Dirichlet projection will be performed
+    dirich.push_back(DirichletFace(this->getBoundary(dir),dof,code));
+  else if (code < 0)
+    bcode = -code;
+
   switch (dir)
     {
     case  1: // Right face (positive I-direction)
@@ -647,7 +675,14 @@ void ASMs3D::constrainFace (int dir, int dof, int code)
     case -1: // Left face (negative I-direction)
       for (int i3 = 1; i3 <= n3; i3++)
 	for (int i2 = 1; i2 <= n2; i2++, node += n1)
-	  this->prescribe(node,dof,code);
+	  if ((i2 == 1 || i2 == n2) && (i3 == 1 || i3 == n3))
+	    this->prescribe(node,dof,bcode);
+	  else
+	  {
+	    this->prescribe(node,dof,-code);
+	    if (code > 0)
+	      dirich.back().nodes.push_back(std::make_pair(n2*(i3-1)+i2,node));
+	  }
       break;
 
     case  2: // Back face (positive J-direction)
@@ -655,7 +690,14 @@ void ASMs3D::constrainFace (int dir, int dof, int code)
     case -2: // Front face (negative J-direction)
       for (int i3 = 1; i3 <= n3; i3++, node += n1*(n2-1))
 	for (int i1 = 1; i1 <= n1; i1++, node++)
-	  this->prescribe(node,dof,code);
+	  if ((i1 == 1 || i1 == n1) && (i3 == 1 || i3 == n3))
+	    this->prescribe(node,dof,bcode);
+	  else
+	  {
+	    this->prescribe(node,dof,-code);
+	    if (code > 0)
+	      dirich.back().nodes.push_back(std::make_pair(n1*(i3-1)+i1,node));
+	  }
       break;
 
     case  3: // Top face (positive K-direction)
@@ -663,9 +705,40 @@ void ASMs3D::constrainFace (int dir, int dof, int code)
     case -3: // Bottom face (negative K-direction)
       for (int i2 = 1; i2 <= n2; i2++)
 	for (int i1 = 1; i1 <= n1; i1++, node++)
-	  this->prescribe(node,dof,code);
+	  if ((i1 == 1 || i1 == n1) && (i2 == 1 || i2 == n2))
+	    this->prescribe(node,dof,bcode);
+	  else
+	  {
+	    this->prescribe(node,dof,-code);
+	    if (code > 0)
+	      dirich.back().nodes.push_back(std::make_pair(n1*(i2-1)+i1,node));
+	  }
       break;
     }
+}
+
+
+/*!
+  The local coordinate systems in which the constraints are applied,
+  are constructed from the tangent directions of the boundary surface,
+  evaluated at the Greville points (giving the local X- and Y-directions).
+  The local Z-direction is then the outward-directed normal.
+  If \a project is \e true, the tangent- and normal direction vectors are
+  projected onto the aurface basis of the face in order to obtain corresponding
+  control point values. Otherwise, they are used directly.
+
+  A negative \a code value implies direct evaluation of the Dirichlet condition
+  function at the control point. Positive \a code implies projection onto the
+  spline basis representing the boundary surface (needed for curved faces and/or
+  non-constant functions).
+*/
+
+size_t ASMs3D::constrainFaceLocal (int dir, int dof, int code, bool project)
+{
+  // TODO....
+  size_t nLGN = myMLGN.size();
+
+  return myMLGN.size() - nLGN; // Number of added nodes
 }
 
 
@@ -828,6 +901,78 @@ void ASMs3D::constrainNode (double xi, double eta, double zeta,
   if (zeta > 0.0) node += n1*n2*int(0.5+(n3-1)*zeta);
 
   this->prescribe(node,dof,code);
+}
+
+
+/*!
+  This method projects the function describing the in-homogeneous Dirichlet
+  boundary condition onto the spline basis defining the boundary surface,
+  in order to find the control point values which are used as the prescribed
+  values of the boundary DOFs.
+*/
+
+bool ASMs3D::updateDirichlet (const std::map<int,RealFunc*>& func,
+			      const std::map<int,VecFunc*>& vfunc, double time)
+{
+  std::map<int,RealFunc*>::const_iterator fit;
+  std::map<int,VecFunc*>::const_iterator vfit;
+  std::vector<DirichletFace>::const_iterator dit;
+  std::vector<Ipair>::const_iterator nit;
+
+  for (size_t i = 0; i < dirich.size(); i++)
+  {
+    // Project the function onto the spline curve basis
+    Go::SplineSurface* dsurf = 0;
+    if ((fit = func.find(dirich[i].code)) != func.end())
+      dsurf = SplineUtils::project(dirich[i].surf,*fit->second,time);
+    else if ((vfit = vfunc.find(dirich[i].code)) != vfunc.end())
+      dsurf = SplineUtils::project(dirich[i].surf,*vfit->second,nf,time);
+    else
+    {
+      std::cerr <<" *** ASMs3D::updateDirichlet: Code "<< dirich[i].code
+		<<" is not associated with any function."<< std::endl;
+      return false;
+    }
+    if (!dsurf)
+    {
+      std::cerr <<" *** ASMs3D::updateDirichlet: Projection failure."
+		<< std::endl;
+      return false;
+    }
+
+    // Loop over the (interior) nodes (control points) of this boundary curve
+    for (nit = dirich[i].nodes.begin(); nit != dirich[i].nodes.end(); nit++)
+      for (int dofs = dirich[i].dof; dofs > 0; dofs /= 10)
+      {
+        int dof = dofs%10;
+        // Find the constraint equation for current (node,dof)
+        MPC pDOF(MLGN[nit->second-1],dof);
+        MPCIter mit = mpcs.find(&pDOF);
+        if (mit == mpcs.end())
+        {
+	  std::cerr <<" *** ASMs3D::updateDirichlet: Invalid slave in MPC: "
+                    << pDOF << std::endl;
+          return false;
+        }
+
+        // Find index to the control point value for this (node,dof) in dsurf
+        RealArray::const_iterator cit = dsurf->coefs_begin();
+        if (dsurf->dimension() > 1) // A vector field is specified
+          cit += (nit->first-1)*dsurf->dimension() + (dof-1);
+        else // A scalar field is specified at this dof
+          cit += (nit->first-1);
+
+        // Now update the prescribed value in the constraint equation
+        (*mit)->setSlaveCoeff(*cit);
+#if SP_DEBUG > 1
+        std::cout <<"Updated constraint: "<< **mit;
+#endif
+      }
+  }
+
+  // The parent class method takes care of the corner nodes with direct
+  // evaluation of the Dirichlet functions (since they are interpolatory)
+  return this->ASMbase::updateDirichlet(func,vfunc,time);
 }
 
 

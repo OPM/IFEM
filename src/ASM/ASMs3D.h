@@ -18,8 +18,8 @@
 #include "Utilities.h"
 
 namespace Go {
+  class SplineSurface;
   class SplineVolume;
-  class BsplineBasis;
   class BasisDerivs;
   class BasisDerivs2;
 }
@@ -89,6 +89,22 @@ public:
     int next();
   };
 
+private:
+  typedef std::pair<int,int> Ipair; //!< Convenience declaration
+
+  //! \brief Struct representing an inhomogeneous Dirichlet boundary condition.
+  struct DirichletFace
+  {
+    Go::SplineSurface* surf;  //!< Pointer to spline surface for the boundary
+    int                dof;   //!< Local DOF to constrain along the boundary
+    int                code;  //!< Inhomogeneous Dirichlet condition code
+    std::vector<Ipair> nodes; //!< Nodes subjected to projection on the boundary
+    //! \brief Default constructor.
+    DirichletFace(Go::SplineSurface* ss = 0, int d = 0, int c = 0)
+    : surf(ss), dof(d), code(c) {}
+  };
+
+public:
   //! \brief Default constructor.
   ASMs3D(unsigned char n_f = 3);
   //! \brief Copy constructor.
@@ -98,6 +114,9 @@ public:
 
   //! \brief Returns the spline volume representing the geometry of this patch.
   Go::SplineVolume* getVolume() const { return svol; }
+  //! \brief Returns the spline surface representing a boundary of this patch.
+  //! \param[in] dir Parameter direction defining which boundary to return
+  Go::SplineSurface* getBoundary(int dir);
   //! \brief Returns the spline volume representing the basis of this patch.
   virtual Go::SplineVolume* getBasis(int = 1) const { return svol; }
 
@@ -180,6 +199,13 @@ public:
   //! \param[in] dof Which DOFs to constrain at each node on the face
   //! \param[in] code Inhomogeneous dirichlet condition code
   void constrainFace(int dir, int dof = 123, int code = 0);
+  //! \brief Constrains all DOFs in local directions on a given boundary face.
+  //! \param[in] dir Parameter direction defining the face to constrain
+  //! \param[in] dof Which local DOFs to constrain at each node on the face
+  //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] project If \e true, the local axis directions are projected
+  //! \return Number of additional nodes added due to local axis constraints
+  size_t constrainFaceLocal(int dir, int dof, int code, bool project);
 
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] lEdge Local index [1,12] of the edge to constrain
@@ -250,6 +276,14 @@ public:
   //! \param[in] basis Which basis to connect (mixed methods), 0 means both
   //! \param[in] master 1-based index of the first master node in this basis
   virtual void closeFaces(int dir, int basis = 0, int master = 1);
+
+  //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
+  //! \param[in] func Scalar property fields
+  //! \param[in] vfunc Vector property fields
+  //! \param[in] time Current time
+  virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
+			       const std::map<int,VecFunc*>& vfunc,
+			       double time = 0.0);
 
 
   // Methods for integration of finite element quantities.
@@ -436,9 +470,11 @@ protected:
   virtual bool getSize(int& n1, int& n2, int& n3, int basis = 0) const;
 
   //! \brief Generates element groups for multi-threading of interior integrals.
+  //! \param[in] silence If \e true, suppress threading group outprint
   virtual void generateThreadGroups(bool silence);
   //! \brief Generates element groups for multi-threading of boundary integrals.
   //! \param[in] lIndex Local index [1,6] of the boundary face
+  //! \param[in] silence If \e true, suppress threading group outprint
   virtual void generateThreadGroups(char lIndex, bool silence);
 
   //! \brief Establishes matrices with basis functions and 1st derivatives.
@@ -457,7 +493,7 @@ public:
   //! \param[out] p1 Order in first (u) direction
   //! \param[out] p2 Order in second (v) direction
   //! \param[out] p3 Order in third (w) direction
-  bool getOrder(int& p1, int& p2, int& p3) const;
+  virtual bool getOrder(int& p1, int& p2, int& p3) const;
 
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
@@ -473,6 +509,9 @@ protected:
 
   const IndexVec& nodeInd; //!< IJK-triplets for the control points (nodes)
   IndexVec      myNodeInd; //!< The actual IJK-triplet container
+
+  //! Inhomogeneous Dirichlet boundary condition data
+  std::vector<DirichletFace> dirich;
 
   //! Element groups for multi-threaded volume assembly
   utl::ThreadGroups threadGroupsVol;
