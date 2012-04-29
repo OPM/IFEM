@@ -408,6 +408,7 @@ protected:
   virtual bool getSize(int& n1, int& n2, int basis = 0) const;
 
   //! \brief Generates element groups for multi-threading of interior integrals.
+  //! \param[in] silence If \e true, suppress threading group outprint
   virtual void generateThreadGroups(bool silence);
 
   //! \brief Establishes matrices with basis functions and 1st derivatives.
@@ -426,6 +427,12 @@ public:
   //! \param[out] p1 Order in first (u) direction
   //! \param[out] p2 Order in second (v) direction
   bool getOrder(int& p1, int& p2) const;
+  //! \brief Returns the polynomial order in each parameter direction.
+  //! \param[out] p1 Order in first (u) direction
+  //! \param[out] p2 Order in second (v) direction
+  //! \param[out] p3 Order in third (w) direction (always zero)
+  virtual bool getOrder(int& p1, int& p2, int& p3) const
+  { p3 = 0; return this->getOrder(p1,p2); }
 
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;

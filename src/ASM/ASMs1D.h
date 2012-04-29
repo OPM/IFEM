@@ -261,6 +261,12 @@ public:
   //! \brief Auxilliary function for computation of basis function indices.
   static void scatterInd(int p1, int start, IntVec& index);
 
+  //! \brief Returns the polynomial order in each parameter direction.
+  //! \param[out] p1 Order in first (u) direction
+  //! \param[out] p2 Order in second (v) direction (always zero)
+  //! \param[out] p3 Order in third (w) direction (always zero)
+  virtual bool getOrder(int& p1, int& p2, int& p3) const;
+
 protected:
   Go::SplineCurve* curv; //!< Pointer to the actual spline curve object
 };

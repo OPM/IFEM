@@ -448,6 +448,16 @@ bool ASMs1D::updateCoords (const Vector& displ)
 }
 
 
+bool ASMs1D::getOrder (int& p1, int& p2, int& p3) const
+{
+  p2 = p3 = 0;
+  if (!curv) return false;
+
+  p1 = curv->order();
+  return true;
+}
+
+
 int ASMs1D::getSize (int) const
 {
   if (!curv) return 0;
