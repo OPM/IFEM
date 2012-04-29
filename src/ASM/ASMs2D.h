@@ -173,16 +173,19 @@ public:
 
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
+  //! \param[in] open If \e true, exclude the end points of the edge
   //! \param[in] dof Which DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
-  virtual void constrainEdge(int dir, int dof, int code = 0);
+  virtual void constrainEdge(int dir, bool open, int dof, int code = 0);
   //! \brief Constrains all DOFs in local directions on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
+  //! \param[in] open If \e true, exclude the end points of the edge
   //! \param[in] dof Which local DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] project If \e true, the local axis directions are projected
   //! \return Number of additional nodes added due to local axis constraints
-  virtual size_t constrainEdgeLocal(int dir, int dof, int code, bool project);
+  virtual size_t constrainEdgeLocal(int dir, bool open, int dof, int code = 0,
+				    bool project = false);
 
   //! \brief Constrains a corner node identified by the two parameter indices.
   //! \param[in] I Parameter index in u-direction
@@ -319,7 +322,7 @@ private:
   //! \brief Projects the secondary solution using a superconvergent approach.
   Go::SplineSurface* scRecovery(const IntegrandBase&) const;
 
-  //! \brief Projects the secondary solution field using Quasi-Interpolation.
+  //! \brief Projects the secondary solution using Quasi-Interpolation.
   Go::SplineSurface* projectSolutionLocal(const IntegrandBase&) const;
 
   //! \brief Projects the secondary solution using

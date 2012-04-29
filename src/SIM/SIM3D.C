@@ -441,7 +441,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
 	while (myScalars.find(code) != myScalars.end())
 	  code += 1000;
 
-	if (!this->addConstraint(patch,abs(pface),ldim,bcode%1000,code,ngno))
+	if (!this->addConstraint(patch,abs(pface),ldim,bcode%1000,-code,ngno))
 	  return false;
 
 	cline = strtok(NULL," ");
@@ -500,33 +500,39 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
   if (patch < 1 || patch > (int)myModel.size())
     return constrError("patch index ",patch);
 
+  bool open = ldim < 0; // open means without face edges or edge ends
+  bool project = lndx < -10;
+  if (project) lndx += 10;
+
   std::cout <<"\tConstraining P"<< patch
-	    << (ldim == 0 ? " V" : (ldim == 1 ? " E": " F")) << lndx
+	    << (ldim == 0 ? " V" : (abs(ldim) == 1 ? " E": " F")) << lndx
 	    <<" in direction(s) "<< dirs;
-  if (code) std::cout <<" code = "<< code <<" ";
+  if (lndx < 0) std::cout << (project ? " (local projected)" : " (local)");
+  if (code != 0) std::cout <<" code = "<< abs(code) <<" ";
 
   ASMs3D* pch = static_cast<ASMs3D*>(myModel[patch-1]);
-  switch (ldim)
+  switch (abs(ldim))
     {
     case 0: // Vertex constraints
       switch (lndx)
 	{
-	case 1: pch->constrainCorner(-1,-1,-1,dirs,code); break;
-	case 2: pch->constrainCorner( 1,-1,-1,dirs,code); break;
-	case 3: pch->constrainCorner(-1, 1,-1,dirs,code); break;
-	case 4: pch->constrainCorner( 1, 1,-1,dirs,code); break;
-	case 5: pch->constrainCorner(-1,-1, 1,dirs,code); break;
-	case 6: pch->constrainCorner( 1,-1, 1,dirs,code); break;
-	case 7: pch->constrainCorner(-1, 1, 1,dirs,code); break;
-	case 8: pch->constrainCorner( 1, 1, 1,dirs,code); break;
-	default: std::cout << std::endl;
+	case 1: pch->constrainCorner(-1,-1,-1,dirs,abs(code)); break;
+	case 2: pch->constrainCorner( 1,-1,-1,dirs,abs(code)); break;
+	case 3: pch->constrainCorner(-1, 1,-1,dirs,abs(code)); break;
+	case 4: pch->constrainCorner( 1, 1,-1,dirs,abs(code)); break;
+	case 5: pch->constrainCorner(-1,-1, 1,dirs,abs(code)); break;
+	case 6: pch->constrainCorner( 1,-1, 1,dirs,abs(code)); break;
+	case 7: pch->constrainCorner(-1, 1, 1,dirs,abs(code)); break;
+	case 8: pch->constrainCorner( 1, 1, 1,dirs,abs(code)); break;
+	default:
+	  std::cout << std::endl;
 	  return constrError("vertex index ",lndx);
 	}
       break;
 
     case 1: // Edge constraints
       if (lndx > 0 && lndx <= 12)
-	pch->constrainEdge(lndx,dirs,code);
+	pch->constrainEdge(lndx,open,dirs,code);
       else
       {
 	std::cout << std::endl;
@@ -537,13 +543,32 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
     case 2:
       switch (lndx)
 	{
-	case 1: pch->constrainFace(-1,dirs,code); break;
-	case 2: pch->constrainFace( 1,dirs,code); break;
-	case 3: pch->constrainFace(-2,dirs,code); break;
-	case 4: pch->constrainFace( 2,dirs,code); break;
-	case 5: pch->constrainFace(-3,dirs,code); break;
-	case 6: pch->constrainFace( 3,dirs,code); break;
-	default: std::cout << std::endl;
+	case  1: pch->constrainFace(-1,open,dirs,code); break;
+	case  2: pch->constrainFace( 1,open,dirs,code); break;
+	case  3: pch->constrainFace(-2,open,dirs,code); break;
+	case  4: pch->constrainFace( 2,open,dirs,code); break;
+	case  5: pch->constrainFace(-3,open,dirs,code); break;
+	case  6: pch->constrainFace( 3,open,dirs,code); break;
+	case -1:
+	  ngnod += pch->constrainFaceLocal(-1,open,dirs,code,project);
+	  break;
+	case -2:
+	  ngnod += pch->constrainFaceLocal( 1,open,dirs,code,project);
+	  break;
+	case -3:
+	  ngnod += pch->constrainFaceLocal(-2,open,dirs,code,project);
+	  break;
+	case -4:
+	  ngnod += pch->constrainFaceLocal( 2,open,dirs,code,project);
+	  break;
+	case -5:
+	  ngnod += pch->constrainFaceLocal(-3,open,dirs,code,project);
+	  break;
+	case -6:
+	  ngnod += pch->constrainFaceLocal( 3,open,dirs,code,project);
+	  break;
+	default:
+	  std::cout << std::endl;
 	  return constrError("face index ",lndx);
 	}
       break;

@@ -196,22 +196,25 @@ public:
 
   //! \brief Constrains all DOFs on a given boundary face.
   //! \param[in] dir Parameter direction defining the face to constrain
+  //! \param[in] open If \e true, exclude all points along the face boundary
   //! \param[in] dof Which DOFs to constrain at each node on the face
   //! \param[in] code Inhomogeneous dirichlet condition code
-  void constrainFace(int dir, int dof = 123, int code = 0);
+  void constrainFace(int dir, bool open, int dof = 123, int code = 0);
   //! \brief Constrains all DOFs in local directions on a given boundary face.
   //! \param[in] dir Parameter direction defining the face to constrain
+  //! \param[in] open If \e true, exclude all points along the face boundary
   //! \param[in] dof Which local DOFs to constrain at each node on the face
   //! \param[in] code Inhomogeneous dirichlet condition code
-  //! \param[in] project If \e true, the local axis directions are projected
+  //! \param[in] proj If \e true, the local axis directions are projected
   //! \return Number of additional nodes added due to local axis constraints
-  size_t constrainFaceLocal(int dir, int dof, int code, bool project);
+  size_t constrainFaceLocal(int dir, bool open, int dof, int code, bool proj);
 
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] lEdge Local index [1,12] of the edge to constrain
+  //! \param[in] open If \e true, exclude the end points of the edge
   //! \param[in] dof Which DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
-  void constrainEdge(int lEdge, int dof = 123, int code = 0);
+  void constrainEdge(int lEdge, bool open, int dof = 123, int code = 0);
 
   //! \brief Constrains all DOFs along a line on a given boundary face.
   //! \param[in] fdir Parameter direction defining the face to constrain

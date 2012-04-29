@@ -39,6 +39,7 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <iterator>
 
 
 bool SIMbase::preserveNOrder  = false;
@@ -174,7 +175,6 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
     const TiXmlElement* set = elem->FirstChildElement("set");
     for (; set; set = set->NextSiblingElement("set"))
       if (utl::getAttribute(set,"name",name)) {
-        TopEntity& top = myEntitys[name];
         int idim = 3;
         utl::getAttribute(set,"type",type,true);
         if (type == "face")
@@ -185,12 +185,16 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
           idim = 0;
         else
           utl::getAttribute(set,"dimension",idim);
+	if (idim > 0 && utl::getAttribute(set,"closure",type,true))
+	  if (type == "open") idim = -idim; // i.e. excluding its boundary
+
+        TopEntity& top = myEntitys[name];
         const TiXmlElement* item = set->FirstChildElement("item");
         for (; item; item = item->NextSiblingElement("item")) {
           int patch = 0;
           utl::getAttribute(item,"patch",patch);
           if ((patch = getLocalPatchIndex(patch)) > 0) {
-            if (idim == (int)this->getNoSpaceDim())
+            if (abs(idim) == (int)this->getNoSpaceDim())
               top.insert(TopItem(patch,0,idim));
             else if (item->FirstChild())
             {
@@ -206,13 +210,11 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
     if (!myEntitys.empty()) {
       std::cout <<"\tTopology sets: ";
       TopologySet::const_iterator it;
-      TopEntity::const_iterator jt;
       for (it = myEntitys.begin(); it != myEntitys.end(); it++) {
         if (it != myEntitys.begin()) std::cout <<"\t               ";
         std::cout << it->first;
-        for (jt = it->second.begin(); jt != it->second.end(); jt++)
-          std::cout <<" ("<< jt->patch <<","<< jt->item <<","
-                    << jt->idim <<"D)";
+        std::copy(it->second.begin(),it->second.end(),
+                  std::ostream_iterator<TopItem>(std::cout," "));
         std::cout << std::endl;
       }
     }
@@ -263,9 +265,7 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
     const TiXmlElement* code = elem->FirstChildElement("code");
     while (code) {
       int icode = 0;
-      std::string axes;
       utl::getAttribute(code,"value",icode);
-      utl::getAttribute(code,"axes",axes,true);
       const TiXmlElement* patch = code->FirstChildElement("patch");
       while (patch) {
         Property p;
@@ -280,17 +280,8 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
         if (ival > 0)
           p.lindx = ival;
         if (utl::getAttribute(patch,"index",ival) && ival > 0)
-          p.patch = this->getLocalPatchIndex(ival);
-        if (p.patch > 0 && p.lindx > 0)
-        {
-          if (axes.substr(0,5) == "local" && p.ldim > 0)
-          {
-            p.lindx *= -1; // signal the use of local axis directions
-            if (axes == "local projected") p.lindx -= 10; // enable projection
-            preserveNOrder = true; // because extra nodes might be added
-          }
-          myProps.push_back(p);
-        }
+          if (p.lindx > 0 && (p.patch = this->getLocalPatchIndex(ival)) > 0)
+            myProps.push_back(p);
         patch = patch->NextSiblingElement("patch");
       }
       code = code->NextSiblingElement();
@@ -795,39 +786,45 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
   for (mit = myModel.begin(); mit != myModel.end(); mit++)
     (*mit)->renumberNodes(*g2l);
 
-  // Process the specified Dirichlet boundary conditions
   std::cout <<"\nResolving Dirichlet boundary conditions"<< std::endl;
   ASMstruct::resetNumbering(ngnod); // to account for possibly added nodes
 
+  // Process the Dirichlet boundary conditions in the order of increasing
+  // dimension, such that vertex definitions override definitions on edges,
+  // and edge definitions override definitions on faces
+  size_t nprop = 0;
   int code, dofs, ierr = 0, iwar = 0;
   PropertyVec::const_iterator q;
-  for (q = myProps.begin(); q != myProps.end(); q++)
-  {
-    code = q->pindx;
-    dofs = abs(code%1000);
-    switch (q->pcode) {
-    case Property::DIRICHLET:
-      code = 0;
-    case Property::DIRICHLET_INHOM:
-      break;
+  for (unsigned char dim = 0; nprop < myProps.size(); dim++)
+    for (q = myProps.begin(); q != myProps.end(); q++)
+      if (abs(q->ldim) == dim)
+      {
+        nprop++;
+        code = q->pindx;
+        dofs = abs(code%1000);
+        switch (q->pcode) {
+        case Property::DIRICHLET:
+          code = 0;
+        case Property::DIRICHLET_INHOM:
+          break;
 
-    case Property::UNDEFINED:
-      iwar++;
-      std::cout <<"  ** SIMbase::preprocess: Undefined property set with code="
-                << q->pindx <<" Patch="<< q->patch <<" Item="
-                << (int)q->lindx <<" "<< (int)q->ldim <<"D (ignored)"
-                << std::endl;
-    default:
-      dofs = 0;
-      break;
-    }
+        case Property::UNDEFINED:
+          iwar++;
+          std::cout <<"  ** SIMbase::preprocess: Undefined property set, code="
+                    << q->pindx <<" Patch="<< q->patch <<" Item="
+                    << (int)q->lindx <<" "<< (int)q->ldim <<"D (ignored)"
+                    << std::endl;
+        default:
+          dofs = 0;
+          break;
+        }
 
-    if (dofs > 0)
-      if (this->addConstraint(q->patch,q->lindx,q->ldim,dofs,code,ngnod))
-        std::cout << std::endl;
-      else
-        ++ierr;
-  }
+        if (dofs > 0)
+          if (this->addConstraint(q->patch,q->lindx,q->ldim,dofs,code,ngnod))
+            std::cout << std::endl;
+          else
+            ++ierr;
+      }
 
   if (iwar > 0)
     std::cerr <<"\n  ** SIMbase::preprocess: Warning: "<< iwar
@@ -859,7 +856,7 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
     (*mit)->generateThreadGroups(silence);
   for (q = myProps.begin(); q != myProps.end(); q++)
     if (q->pcode == Property::NEUMANN)
-      if (q->ldim+1 == myModel[q->patch-1]->getNoParamDim())
+      if (abs(q->ldim)+1 == myModel[q->patch-1]->getNoParamDim())
 	myModel[q->patch-1]->generateThreadGroups(q->lindx,silence);
 
   // Preprocess the result points
@@ -1004,7 +1001,7 @@ size_t SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
           preserveNOrder = true; // because extra nodes might be added
         }
 
-        if (p->ldim > 0 && p->pindx > 0 && code < 0) // flag direct evaluation
+        if (p->ldim != 0 && p->pindx > 0 && code < 0) // flag direct evaluation
           if (ptype >= Property::DIRICHLET_INHOM)
             p->pindx = -p->pindx;
       }
@@ -1113,7 +1110,7 @@ void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers)
 	  notCounted = false;
 
 	if (notCounted) // Count the boundary integration points
-	  myModel[p->patch-1]->getNoBouPoints(nBouGP,p->ldim,p->lindx);
+	  myModel[p->patch-1]->getNoBouPoints(nBouGP,abs(p->ldim),p->lindx);
       }
 
   // Let the integrand know how many integration points in total do we have
@@ -1276,7 +1273,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 	  ok = false;
 	}
 
-	else if (myProps[i].ldim+1 == myModel[j-1]->getNoSpaceDim())
+	else if (abs(myProps[i].ldim)+1 == myModel[j-1]->getNoSpaceDim())
 	  if (this->initNeumann(myProps[i].pindx))
 	  {
 	    int bIndex = myProps[i].lindx;
@@ -1290,7 +1287,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 	  else
 	    ok = false;
 
-	else if (myProps[i].ldim+2 == myModel[j-1]->getNoSpaceDim())
+	else if (abs(myProps[i].ldim)+2 == myModel[j-1]->getNoSpaceDim())
 	  if (this->initNeumann(myProps[i].pindx))
 	  {
 	    int bIndex = myProps[i].lindx;
@@ -1535,7 +1532,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 	if ((j = myProps[i].patch) < 1 || j > myModel.size())
 	  ok = false;
 
-	else if (myProps[i].ldim+1 == myModel[j-1]->getNoSpaceDim())
+	else if (abs(myProps[i].ldim)+1 == myModel[j-1]->getNoSpaceDim())
 	  if (this->initNeumann(myProps[i].pindx))
 	  {
 	    if (j != lp)
@@ -1547,7 +1544,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 	  else
 	    ok = false;
 
-	else if (myProps[i].ldim+2 == myModel[j-1]->getNoSpaceDim())
+	else if (abs(myProps[i].ldim)+2 == myModel[j-1]->getNoSpaceDim())
 	  if (this->initNeumann(myProps[i].pindx))
 	  {
 	    if (j != lp)

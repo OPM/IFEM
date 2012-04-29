@@ -431,10 +431,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
     for (int i = 0; i < ncon && (cline = utl::readLine(is)); i++)
     {
       int patch = atoi(strtok(cline," "));
-      cline = strtok(NULL," ");
-      bool localAxes = cline && toupper(cline[0]) == 'L';
-      if (localAxes) cline = strtok(NULL," ");
-      int pedge = cline ? atoi(cline) : 0;
+      int pedge = (cline = strtok(NULL," ")) ? atoi(cline) : 0;
       int bcode = (cline = strtok(NULL," ")) ? atoi(cline) : 12;
       double pd = (cline = strtok(NULL," ")) ? atof(cline) : 0.0;
 
@@ -442,8 +439,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
       if (patch < 1) continue;
 
       int ldim = pedge >= 0 ? 1 : 0;
-      if (pedge < 0 || (pedge > 0 && localAxes))
-	pedge = -pedge;
+      if (pedge < 0) pedge = -pedge;
 
       if (pd == 0.0)
       {
@@ -516,18 +512,15 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
   if (patch < 1 || patch > (int)myModel.size())
     return constrError("patch index ",patch);
 
+  bool open = ldim < 0; // open means without its end points
   bool project = lndx < -10;
   if (project) lndx += 10;
 
   std::cout <<"\tConstraining P"<< patch
             << (ldim == 0 ? " V" : " E") << abs(lndx)
 	    <<" in direction(s) "<< dirs;
-  if (lndx < 0) // Signals edge constraints in local coordinates
-  {
-    std::cout << (project ? " (local projected)" : " (local)");
-    preserveNOrder = true; // Because some extra nodes might be added
-  }
-  if (code) std::cout <<" code = "<< abs(code) <<" ";
+  if (lndx < 0) std::cout << (project ? " (local projected)" : " (local)");
+  if (code != 0) std::cout <<" code = "<< abs(code) <<" ";
 #if SP_DEBUG > 1
   std::cout << std::endl;
 #endif
@@ -536,7 +529,7 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
   ASM2D* pch = dynamic_cast<ASM2D*>(myModel[patch-1]);
   if (!pch) return constrError("2D patch ",patch);
 
-  switch (ldim)
+  switch (abs(ldim))
     {
     case 0: // Vertex constraints
       switch (lndx)
@@ -545,7 +538,8 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 	case 2: pch->constrainCorner( 1,-1,dirs,abs(code)); break;
 	case 3: pch->constrainCorner(-1, 1,dirs,abs(code)); break;
 	case 4: pch->constrainCorner( 1, 1,dirs,abs(code)); break;
-	default: std::cout << std::endl;
+	default:
+	  std::cout << std::endl;
 	  return constrError("vertex index ",lndx);
 	}
       break;
@@ -553,15 +547,24 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
     case 1: // Edge constraints
       switch (lndx)
 	{
-	case  1: pch->constrainEdge(-1,dirs,code); break;
-	case  2: pch->constrainEdge( 1,dirs,code); break;
-	case  3: pch->constrainEdge(-2,dirs,code); break;
-	case  4: pch->constrainEdge( 2,dirs,code); break;
-	case -1: ngnod += pch->constrainEdgeLocal(-1,dirs,code,project); break;
-	case -2: ngnod += pch->constrainEdgeLocal( 1,dirs,code,project); break;
-	case -3: ngnod += pch->constrainEdgeLocal(-2,dirs,code,project); break;
-	case -4: ngnod += pch->constrainEdgeLocal( 2,dirs,code,project); break;
-	default: std::cout << std::endl;
+	case  1: pch->constrainEdge(-1,open,dirs,code); break;
+	case  2: pch->constrainEdge( 1,open,dirs,code); break;
+	case  3: pch->constrainEdge(-2,open,dirs,code); break;
+	case  4: pch->constrainEdge( 2,open,dirs,code); break;
+	case -1:
+	  ngnod += pch->constrainEdgeLocal(-1,open,dirs,code,project);
+	  break;
+	case -2:
+	  ngnod += pch->constrainEdgeLocal( 1,open,dirs,code,project);
+	  break;
+	case -3:
+	  ngnod += pch->constrainEdgeLocal(-2,open,dirs,code,project);
+	  break;
+	case -4:
+	  ngnod += pch->constrainEdgeLocal( 2,open,dirs,code,project);
+	  break;
+	default:
+	  std::cout << std::endl;
 	  return constrError("edge index ",lndx);
 	}
       break;

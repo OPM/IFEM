@@ -654,7 +654,7 @@ void ASMs3D::closeFaces (int dir, int basis, int master)
   non-constant functions).
 */
 
-void ASMs3D::constrainFace (int dir, int dof, int code)
+void ASMs3D::constrainFace (int dir, bool open, int dof, int code)
 {
   int n1, n2, n3, node = 1;
   if (!this->getSize(n1,n2,n3,1)) return;
@@ -675,8 +675,10 @@ void ASMs3D::constrainFace (int dir, int dof, int code)
     case -1: // Left face (negative I-direction)
       for (int i3 = 1; i3 <= n3; i3++)
 	for (int i2 = 1; i2 <= n2; i2++, node += n1)
-	  if ((i2 == 1 || i2 == n2) && (i3 == 1 || i3 == n3))
-	    this->prescribe(node,dof,bcode);
+	  if (open && (i2 == 1 || i2 == n2 || i3 == 1 || i3 == n3))
+	    continue; // skip all edge nodes if an open boundary is requested
+	  else if ((i2 == 1 || i2 == n2) && (i3 == 1 || i3 == n3))
+	    this->prescribe(node,dof,bcode); // corner node
 	  else
 	  {
 	    this->prescribe(node,dof,-code);
@@ -690,8 +692,10 @@ void ASMs3D::constrainFace (int dir, int dof, int code)
     case -2: // Front face (negative J-direction)
       for (int i3 = 1; i3 <= n3; i3++, node += n1*(n2-1))
 	for (int i1 = 1; i1 <= n1; i1++, node++)
-	  if ((i1 == 1 || i1 == n1) && (i3 == 1 || i3 == n3))
-	    this->prescribe(node,dof,bcode);
+	  if (open && (i1 == 1 || i1 == n1 || i3 == 1 || i3 == n3))
+	    continue; // skip all edge nodes if an open boundary is requested
+	  else if ((i1 == 1 || i1 == n1) && (i3 == 1 || i3 == n3))
+	    this->prescribe(node,dof,bcode); // corner node
 	  else
 	  {
 	    this->prescribe(node,dof,-code);
@@ -705,8 +709,10 @@ void ASMs3D::constrainFace (int dir, int dof, int code)
     case -3: // Bottom face (negative K-direction)
       for (int i2 = 1; i2 <= n2; i2++)
 	for (int i1 = 1; i1 <= n1; i1++, node++)
-	  if ((i1 == 1 || i1 == n1) && (i2 == 1 || i2 == n2))
-	    this->prescribe(node,dof,bcode);
+	  if (open && (i1 == 1 || i1 == n1 || i2 == 1 || i2 == n2))
+	    continue; // skip all edge nodes if an open boundary is requested
+	  else if ((i1 == 1 || i1 == n1) && (i2 == 1 || i2 == n2))
+	    this->prescribe(node,dof,bcode); // corner node
 	  else
 	  {
 	    this->prescribe(node,dof,-code);
@@ -733,7 +739,8 @@ void ASMs3D::constrainFace (int dir, int dof, int code)
   non-constant functions).
 */
 
-size_t ASMs3D::constrainFaceLocal (int dir, int dof, int code, bool project)
+size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
+				   bool project)
 {
   // TODO....
   size_t nLGN = myMLGN.size();
@@ -742,7 +749,7 @@ size_t ASMs3D::constrainFaceLocal (int dir, int dof, int code, bool project)
 }
 
 
-void ASMs3D::constrainEdge (int lEdge, int dof, int code)
+void ASMs3D::constrainEdge (int lEdge, bool open, int dof, int code)
 {
   int n1, n2, n3, n, node = 1, inc = 1;
   if (!this->getSize(n1,n2,n3,1)) return;
@@ -788,8 +795,10 @@ void ASMs3D::constrainEdge (int lEdge, int dof, int code)
       break;
     }
 
-  for (int i = 0; i < n; i++, node += inc)
-    this->prescribe(node,dof,code);
+  // Skip the first and last node if we are requesting an open boundary
+  for (int i = 1; i <= n; i++, node += inc)
+    if (!open || (i > 1 && i < n))
+      this->prescribe(node,dof,code);
 }
 
 

@@ -507,7 +507,7 @@ void ASMs2D::closeEdges (int dir, int basis, int master)
   non-constant functions).
 */
 
-void ASMs2D::constrainEdge (int dir, int dof, int code)
+void ASMs2D::constrainEdge (int dir, bool open, int dof, int code)
 {
   int n1, n2, node = 1;
   if (!this->getSize(n1,n2,1)) return;
@@ -523,27 +523,33 @@ void ASMs2D::constrainEdge (int dir, int dof, int code)
     case  1: // Right edge (positive I-direction)
       node += n1-1;
     case -1: // Left edge (negative I-direction)
-      this->prescribe(node,dof,bcode); node += n1;
+      if (!open)
+	this->prescribe(node,dof,bcode);
+      node += n1;
       for (int i2 = 2; i2 < n2; i2++, node += n1)
       {
 	this->prescribe(node,dof,-code);
 	if (code > 0)
 	  dirich.back().nodes.push_back(std::make_pair(i2,node));
       }
-      this->prescribe(node,dof,bcode);
+      if (!open)
+	this->prescribe(node,dof,bcode);
       break;
 
     case  2: // Back edge (positive J-direction)
       node += n1*(n2-1);
     case -2: // Front edge (negative J-direction)
-      this->prescribe(node,dof,bcode); node++;
+      if (!open)
+	this->prescribe(node,dof,bcode);
+      node++;
       for (int i1 = 2; i1 < n1; i1++, node++)
       {
 	this->prescribe(node,dof,-code);
 	if (code > 0)
 	  dirich.back().nodes.push_back(std::make_pair(i1,node));
       }
-      this->prescribe(node,dof,bcode);
+      if (!open)
+	this->prescribe(node,dof,bcode);
       break;
     }
 
@@ -581,7 +587,8 @@ void ASMs2D::constrainEdge (int dir, int dof, int code)
   non-constant functions).
 */
 
-size_t ASMs2D::constrainEdgeLocal (int dir, int dof, int code, bool project)
+size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
+				   bool project)
 {
   int ndir = abs(dir); // normal parameter direction (1,2) for the edge
   int tdir = 2 - ndir; // tangent parameter direction (0,1) for the edge
@@ -668,6 +675,8 @@ size_t ASMs2D::constrainEdgeLocal (int dir, int dof, int code, bool project)
   RealArray::const_iterator it = locc ? locc->coefs_begin() : gdata.begin();
   for (i = 0; i < gpar.size(); i++, iSnod += incNod, it += 6)
   {
+    // Skip the end points if this should be regarded an open boundary
+    if (open && (i == 0 || i+1 == gpar.size())) continue;
     // Check if this node already has been constrained or fixed
     if (this->isFixed(MLGN[iSnod],12)) continue;
 
@@ -1742,16 +1751,16 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 	this->getGridParameters(gpar[1],1,npe[1]-1))
     {
       if (!project)
-	// Evaluate the secondary solution directly at all sampling points
-	return this->evalSolution(sField,integrand,gpar);
+        // Evaluate the secondary solution directly at all sampling points
+        return this->evalSolution(sField,integrand,gpar);
       else if (s)
       {
-	// Evaluate the projected field at the result sampling points
-	const Vector& svec = sField; // using utl::matrix cast operator
-	sField.resize(s->dimension(),gpar[0].size()*gpar[1].size());
-	s->gridEvaluator(const_cast<Vector&>(svec),gpar[0],gpar[1]);
-	delete s;
-	return true;
+        // Evaluate the projected field at the result sampling points
+        const Vector& svec = sField; // using utl::matrix cast operator
+        sField.resize(s->dimension(),gpar[0].size()*gpar[1].size());
+        s->gridEvaluator(const_cast<Vector&>(svec),gpar[0],gpar[1]);
+        delete s;
+        return true;
       }
     }
     else if (s)

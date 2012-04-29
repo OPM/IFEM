@@ -523,7 +523,7 @@ void ASMu2D::closeEdges (int dir, int basis, int master)
 #endif
 
 
-void ASMu2D::constrainEdge (int dir, int dof, int code)
+void ASMu2D::constrainEdge (int dir, bool open, int dof, int code)
 {
 	std::vector<LR::Basisfunction*> edgeFunctions;
 	switch (dir)
@@ -541,12 +541,19 @@ void ASMu2D::constrainEdge (int dir, int dof, int code)
 			lrspline->getEdgeFunctions(edgeFunctions, LR::SOUTH);
 			break;
 		}
-	for(size_t i=0; i<edgeFunctions.size(); i++)
-		this->prescribe(edgeFunctions[i]->getId()+1,dof,code);
+
+  // Skip the first and last function if we are requesting an open boundary.
+  // I here assume the edgeFunctions are ordered such that the physical
+  // end points are represented by the first and last edgeFunction.
+  // TODO: Please verify that, Kjetil...
+  for (size_t i = 0; i < edgeFunctions.size(); i++)
+    if (!open || (i > 0 && i+1 < edgeFunctions.size()))
+      this->prescribe(edgeFunctions[i]->getId()+1,dof,code);
 }
 
 
-size_t ASMu2D::constrainEdgeLocal (int dir, int dof, int code, bool project)
+size_t ASMu2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
+				   bool project)
 {
   return 0; // TODO...
 }
