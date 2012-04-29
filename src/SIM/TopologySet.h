@@ -30,10 +30,10 @@ struct TopItem
   unsigned short int idim;  //!< Dimension on the local item [0,3]
 
   //! \brief Default constructor.
-  TopItem(size_t p = 1, unsigned short int i = 0, unsigned short int d = 0)
+  TopItem(size_t p = 0, unsigned short int i = 0, unsigned short int d = 0)
   : patch(p), item(i), idim(d) {}
 
-  //! \brief The less-than oprator defining the ordering of topological items.
+  //! \brief The less-than operator defining the ordering of topological items.
   friend bool operator<(const TopItem& a, const TopItem& b)
   {
     if (a.idim < b.idim)
@@ -43,7 +43,7 @@ struct TopItem
     else if (a.patch < b.patch)
       return true;
     else if (a.patch > b.patch)
-      return true;
+      return false;
 
     return a.item < b.item;
   }
