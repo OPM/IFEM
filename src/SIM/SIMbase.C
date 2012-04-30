@@ -1361,7 +1361,8 @@ void SIMbase::extractPatchSolution (const ASMbase* patch, const Vectors& sol,
     if (psol && lvec) {
       if (!it->patches.empty())
         patch = it->patches[p];
-      patch->extractNodeVec(*psol,*lvec,it->components);
+      if (psol && psol->size())
+        patch->extractNodeVec(*psol,*lvec,it->components);
       if (!it->patches.empty()) {
         if (it->components == 1) {
           Field* field = Field::create(patch, *lvec);
