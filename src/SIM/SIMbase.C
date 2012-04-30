@@ -31,6 +31,10 @@
 #include "EigSolver.h"
 #include "Functions.h"
 #include "Profiler.h"
+#include "Field.h"
+#include "SplineField2D.h"
+#include "Fields.h"
+#include "SplineFields2D.h"
 #include "ElementBlock.h"
 #include "VTF.h"
 #include "Functions.h"
@@ -1241,7 +1245,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 	  std::cout <<"\nAssembling interior matrix terms for P"<< j
 		    << std::endl;
 	this->initBodyLoad(j);
-	this->extractPatchSolution(myModel[j-1],prevSol);
+	this->extractPatchSolution(myModel[j-1],prevSol,j-1);
 	ok = myModel[j-1]->integrate(*myProblem,*myEqSys,time);
 	lp = j;
       }
@@ -1257,7 +1261,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 	std::cout <<"\nAssembling interior matrix terms for P"<< i+1
 		  << std::endl;
       this->initBodyLoad(i+1);
-      this->extractPatchSolution(myModel[i],prevSol);
+      this->extractPatchSolution(myModel[i],prevSol,i);
       ok = myModel[i]->integrate(*myProblem,*myEqSys,time);
       lp = i+1;
     }
@@ -1280,7 +1284,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 	    if (msgLevel > 1)
 	      std::cout <<"\nAssembling Neumann matrix terms for boundary "
 			<< bIndex <<" on P"<< j << std::endl;
-	    if (j != lp) this->extractPatchSolution(myModel[j-1],prevSol);
+	    if (j != lp) this->extractPatchSolution(myModel[j-1],prevSol,j-1);
 	    ok = myModel[j-1]->integrate(*myProblem,bIndex,*myEqSys,time);
 	    lp = j;
 	  }
@@ -1294,7 +1298,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 	    if (msgLevel > 1)
 	      std::cout <<"\nAssembling Neumann matrix terms for edge "
 			<< bIndex <<" on P"<< j << std::endl;
-	    if (j != lp) this->extractPatchSolution(myModel[j-1],prevSol);
+	    if (j != lp) this->extractPatchSolution(myModel[j-1],prevSol,j-1);
 	    ok = myModel[j-1]->integrateEdge(*myProblem,bIndex,*myEqSys,time);
 	    lp = j;
 	  }
@@ -1344,11 +1348,31 @@ bool SIMbase::extractLoadVec (Vector& loadVec) const
 }
 
 
-void SIMbase::extractPatchSolution (const ASMbase* patch, const Vectors& sol)
+void SIMbase::extractPatchSolution (const ASMbase* patch, const Vectors& sol,
+                                    size_t p)
 {
   for (size_t i = 0; i < sol.size() && i < myProblem->getNoSolutions(); i++)
     if (!sol[i].empty())
       patch->extractNodeVec(sol[i],myProblem->getSolution(i));
+  for (DepVector::iterator it  = depFields.begin(); 
+                           it != depFields.end(); ++it) {
+    const Vector* psol = it->sim->getNamedField(it->name);
+    Vector* lvec = myProblem->getNamedVector(it->name);
+    if (psol && lvec) {
+      if (!it->patches.empty())
+        patch = it->patches[p];
+      patch->extractNodeVec(*psol,*lvec,it->components);
+      if (!it->patches.empty()) {
+        if (it->components == 1) {
+          Field* field = Field::create(patch, *lvec);
+          myProblem->setNamedField(it->name,field);
+        } else {
+          Fields* field = Fields::create(patch, *lvec);
+          myProblem->setNamedFields(it->name,field);
+        }
+      }
+    }
+  }
 }
 
 

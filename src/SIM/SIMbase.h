@@ -575,7 +575,8 @@ protected:
   //! \brief Extracts local solution vector(s) for the given patch.
   //! \param[in] patch Pointer to the patch to extract solution vectors for
   //! \param[in] sol Global primary solution vectors in DOF-order
-  void extractPatchSolution(const ASMbase* patch, const Vectors& sol);
+  //! \param[in] p The local patch number
+  void extractPatchSolution(const ASMbase* patch, const Vectors& sol, size_t p);
 
   //! \brief Initializes material properties for integration of interior terms.
   virtual bool initMaterial(size_t) { return true; }

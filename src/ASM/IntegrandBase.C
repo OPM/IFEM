@@ -132,6 +132,22 @@ bool IntegrandBase::evalSol (Vector&, const VecFunc&, const Vec3&) const
 }
 
 
+void IntegrandBase::registerVector(const std::string& name, Vector* vec)
+{
+  myFields[name] = vec;
+}
+
+
+Vector* IntegrandBase::getNamedVector(const std::string& name)
+{
+  FieldMap::iterator it = myFields.find(name);
+  if (it == myFields.end())
+    return 0;
+  
+  return it->second;
+}
+
+
 void NormBase::initIntegration (const TimeDomain& time)
 {
   myProblem.initIntegration(time);
