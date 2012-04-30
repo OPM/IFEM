@@ -18,6 +18,7 @@
 #include <string>
 #include <set>
 #include <map>
+#include <cmath>
 
 
 /*!
@@ -37,9 +38,9 @@ struct TopItem
   //! \brief The less-than operator defining the ordering of topological items.
   friend bool operator<(const TopItem& a, const TopItem& b)
   {
-    if (abs(a.idim) < abs(b.idim))
+    if (std::abs(a.idim) < std::abs(b.idim))
       return true;
-    else if (abs(a.idim) > abs(b.idim))
+    else if (std::abs(a.idim) > std::abs(b.idim))
       return false;
     else if (a.patch < b.patch)
       return true;
