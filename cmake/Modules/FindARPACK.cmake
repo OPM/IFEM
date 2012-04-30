@@ -6,6 +6,8 @@ FIND_LIBRARY(ARPACK_LIBRARIES
   NAMES arpack
   PATHS $ENV{HOME}/lib
   /sima/libs/ARPACK
+ # For kongull until they get their act together
+  /share/apps/modulessoftware/arpack/96/lib
 )
 
 INCLUDE(FindPackageHandleStandardArgs)
