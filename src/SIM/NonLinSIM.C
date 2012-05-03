@@ -161,14 +161,6 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
 }
 
 
-void NonLinSIM::initSystem (int mType, size_t nGauss)
-{
-  model->initSystem(mType,1,1);
-  model->setAssociatedRHS(0,0);
-  model->setQuadratureRule(nGauss);
-}
-
-
 void NonLinSIM::init (SolvePrm& param, const RealArray& initVal)
 {
   param.initTime(startTime,stopTime,steps);

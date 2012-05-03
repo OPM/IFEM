@@ -218,7 +218,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
         if (it != myEntitys.begin()) std::cout <<"\t               ";
         std::cout << it->first;
         std::copy(it->second.begin(),it->second.end(),
-                  std::ostream_iterator<TopItem>(std::cout," "));
+                  std::ostream_iterator<TopItem>(std::cout));
         std::cout << std::endl;
       }
     }
@@ -814,10 +814,11 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 
         case Property::UNDEFINED:
           iwar++;
+#ifdef SP_DEBUG
           std::cout <<"  ** SIMbase::preprocess: Undefined property set, code="
                     << q->pindx <<" Patch="<< q->patch <<" Item="
-                    << (int)q->lindx <<" "<< (int)q->ldim <<"D (ignored)"
-                    << std::endl;
+                    << (int)q->lindx <<" "<< (int)q->ldim <<"D"<< std::endl;
+#endif
         default:
           dofs = 0;
           break;
@@ -1061,10 +1062,10 @@ bool SIMbase::setNeumann (const std::string& prop, const std::string& type,
 }
 
 
-bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec)
+bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, bool withRF)
 {
   if (!mySam) return false;
-#if SP_DEBUG > 1
+#if SP_DEBUG > 2
   mySam->print(std::cout);
   std::string heading("\n\nNodal coordinates for Patch 1");
   size_t i, j = heading.size()-1;
@@ -1076,7 +1077,7 @@ bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec)
   myEqSys = new AlgEqSystem(*mySam);
   myEqSys->init(static_cast<SystemMatrix::Type>(mType),
 		mySolParams,nMats,nVec,opt.num_threads_SLU);
-  myEqSys->initAssembly();
+  myEqSys->initAssembly(withRF);
   return true;
 }
 

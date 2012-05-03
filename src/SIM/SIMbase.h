@@ -150,7 +150,8 @@ public:
   //! \param[in] mType The matrix format to use
   //! \param[in] nMats Number of system matrices
   //! \param[in] nVec Number of system right-hand-side vectors
-  bool initSystem(int mType, size_t nMats, size_t nVec);
+  //! \param[in] withRF Whether nodal reaction forces should be computed or not
+  bool initSystem(int mType, size_t nMats, size_t nVec, bool withRF = true);
 
   //! \brief Associates a system vector to a system matrix.
   //! \sa AlgEqSystem::setAssociatedVector
@@ -528,7 +529,7 @@ public:
   //! \details The actual Property objects are also created (one for each entity
   //! in the topology set) and their type is set to UNDEFINED. The method
   //! setPropertyType must be used to assign the actual Property type.
-  int getUniquePropertyCode(const std::string& setName, int comp);
+  int getUniquePropertyCode(const std::string& setName, int comp = 0);
   //! \brief Creates a set of Property objects.
   //! \param[in] setName Name of the topology set the property is defined on
   //! \param[in] pc The property code to be associated with this set

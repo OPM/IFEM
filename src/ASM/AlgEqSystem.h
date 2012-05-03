@@ -62,7 +62,8 @@ public:
   bool setAssociatedVector(size_t imat, size_t ivec);
 
   //! Initializes the matrices to proper size for element assembly.
-  void initAssembly();
+  //! \param[in] withReactions If \e false, no reaction forces will be computed
+  void initAssembly(bool withReactions);
 
   //! \brief Adds a set of element matrices into the algebraic equation system.
   //! \param[in] elmObj Pointer to the element matrices to add into \a *this

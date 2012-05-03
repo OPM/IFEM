@@ -39,11 +39,6 @@ public:
   //! \brief The destructor frees the dynamically allocated FE model object.
   virtual ~NonLinSIM();
 
-  //! \brief Allocates the system matrices of the linear FE problem.
-  //! \param[in] mType The matrix format to use
-  //! \param[in] nGauss Numerical integration scheme
-  void initSystem(int mType, size_t nGauss);
-
   //! \brief A class for nonlinear solution parameters.
   class SolvePrm : public SIMparameters
   {
@@ -193,6 +188,7 @@ protected:
   int    nupdat;    //!< Number of iterations with updated tangent
   CNORM  iteNorm;   //!< The norm type used to measure the residual
 
+protected:
   // Post-processing attributes
   int    nBlock; //!< Running VTF result block counter
   Vector gNorm;  //!< Global norms

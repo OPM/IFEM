@@ -92,7 +92,7 @@ bool AlgEqSystem::setAssociatedVector (size_t imat, size_t ivec)
 }
 
 
-void AlgEqSystem::initAssembly ()
+void AlgEqSystem::initAssembly (bool withReactions)
 {
   size_t i;
 
@@ -100,7 +100,7 @@ void AlgEqSystem::initAssembly ()
     if (A[i]._A) A[i]._A->initAssembly(sam);
 
   if (A.size() == 1 && b.size() == 1)
-    sam.initForAssembly(*b.front(),&R);
+    sam.initForAssembly(*b.front(), withReactions ? &R : NULL);
   else for (i = 0; i < b.size(); i++)
     if (b[i])
       b[i]->redim(sam.getNoEquations());
@@ -118,14 +118,15 @@ bool AlgEqSystem::assemble (const LocalIntegral* elmObj, int elmId)
     // The algebraic system consists of one system matrix and one RHS-vector.
     // Extract the element-level Newton matrix and associated RHS-vector for
     // general time-dependent and/or nonlinear problems.
-    status = sam.assembleSystem(*b.front(), elMat->getRHSVector(), elmId, &R);
+    Vector* reac = R.empty() ? NULL : &R;
+    status = sam.assembleSystem(*b.front(), elMat->getRHSVector(), elmId, reac);
     if (status && elMat->withLHS) // we have LHS element matrices
       if (elMat->rhsOnly) // we only want the RHS system vector
 	status = sam.assembleSystem(*b.front(),
-				    elMat->getNewtonMatrix(), elmId, &R);
+				    elMat->getNewtonMatrix(), elmId, reac);
       else // we want both the LHS system matrix and the RHS system vector
 	status = sam.assembleSystem(*A.front()._A, *b.front(),
-				    elMat->getNewtonMatrix(), elmId, &R);
+				    elMat->getNewtonMatrix(), elmId, reac);
   }
   else
   {
