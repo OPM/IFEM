@@ -140,6 +140,12 @@ public:
   size_t setVecProperty(int code, Property::Type ptype, VecFunc* field = NULL,
 			int pflag = -1);
 
+  //! \brief Defines a traction field property.
+  //! \param[in] code The property code to be associated with the property
+  //! \param[in] ptype The property type to be associated with the given code
+  //! \param[in] field The traction field representing the physical property
+  bool setTracProperty(int code, Property::Type ptype, TractionFunc* field = 0);
+
   //! \brief Allocates the system matrices of the FE problem to be solved.
   //! \param[in] mType The matrix format to use
   //! \param[in] nMats Number of system matrices
@@ -490,6 +496,15 @@ public:
   //! \param[in] precision Number of digits after the decimal point
   bool dumpResults(const Vector& psol, double time, std::ostream& os,
 		   bool formatted = true, std::streamsize precision = 3) const;
+  //! \brief Dumps coordinate at specified points in ASCII format.
+  //! \param[in] time Load/time step parameter
+  //! \param os Output stream to write the solution data to
+  //! \param[in] formatted If \e false, write all result points on a single line
+  //!            without point identifications, but with time as first column
+  //! \param[in] precision Number of digits after the decimal point
+  bool dumpResultCoords(double time, std::ostream& os, bool formatted = true, 
+			std::streamsize precision = 3) const;
+
   //! \brief Dumps the primary solution in ASCII format for inspection.
   //! \param[in] psol Primary solution vector
   //! \param os Output stream to write the solution data to
@@ -563,7 +578,7 @@ public:
   //! \details The extracted patch-level solution vector is stored within the
   //! Integrand \a *myProblem such that \a evalSolution can be invoked to get
   //! the secondary solution field values within the same patch afterwards,
-  size_t extractPatchSolution(const Vector& sol, int pindx);
+  virtual size_t extractPatchSolution(const Vector& sol, int pindx);
 
   //! \brief Injects a patch-wise solution vector into the global vector.
   //! \param sol Global primary solution vector in DOF-order

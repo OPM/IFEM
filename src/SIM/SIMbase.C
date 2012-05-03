@@ -883,6 +883,7 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
       case 3: std::cout <<" (u,v,w)=("; break;
       }
       std::cout << p->par[0];
+
       for (unsigned char c = 1; c < p->npar; c++)
 	std::cout <<','<< p->par[c];
       if (p->npar > 1) std::cout <<')';
@@ -1021,6 +1022,12 @@ size_t SIMbase::setVecProperty (int code, Property::Type ptype, VecFunc* field,
   return this->setPropertyType(code,ptype,pflag);
 }
 
+
+bool SIMbase::setTracProperty (int code, Property::Type ptype, TractionFunc* field)
+{
+  if (field) myTracs[code] = field;
+  return this->setPropertyType(code,ptype);
+}
 
 bool SIMbase::setNeumann (const std::string& prop, const std::string& type,
 			  int direction, int code)
@@ -1276,7 +1283,6 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 		    <<" out of range [1,"<< myModel.size() <<"]"<< std::endl;
 	  ok = false;
 	}
-
 	else if (abs(myProps[i].ldim)+1 == myModel[j-1]->getNoSpaceDim())
 	  if (this->initNeumann(myProps[i].pindx))
 	  {
@@ -1288,7 +1294,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 	    ok = myModel[j-1]->integrate(*myProblem,bIndex,*myEqSys,time);
 	    lp = j;
 	  }
-	  else
+	  else 
 	    ok = false;
 
 	else if (abs(myProps[i].ldim)+2 == myModel[j-1]->getNoSpaceDim())
@@ -1302,8 +1308,9 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 	    ok = myModel[j-1]->integrateEdge(*myProblem,bIndex,*myEqSys,time);
 	    lp = j;
 	  }
-	  else
+	  else 
 	    ok = false;
+	  
 
   if (!ok) std::cerr <<" *** SIMbase::assembleSystem: Failure.\n"<< std::endl;
 
@@ -1314,25 +1321,29 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 bool SIMbase::finalizeAssembly (bool newLHSmatrix)
 {
   // Communication of matrix and vector assembly (for PETSc only)
-  SystemMatrix* A = myEqSys->getMatrix();
-  if (A && newLHSmatrix)
-  {
-    if (!A->beginAssembly()) return false;
-    if (!A->endAssembly())   return false;
+  for (size_t i = 0;i < myEqSys->getNoMatrices();i++) {
+    SystemMatrix* A = myEqSys->getMatrix(i);
+    if (A && newLHSmatrix)
+    {
+      if (!A->beginAssembly()) return false;
+      if (!A->endAssembly())   return false;
 #if SP_DEBUG > 3
-    std::cout <<"\nSystem coefficient matrix:"<< *A;
+      std::cout <<"\nSystem coefficient matrix:"<< *A;
 #endif
+    }
   }
 
-  SystemVector* b = myEqSys->getVector();
-  if (b)
-  {
-    if (!b->beginAssembly()) return false;
-    if (!b->endAssembly())   return false;
+  for (size_t i = 0;i < myEqSys->getNoVectors();i++) {
+    SystemVector* b = myEqSys->getVector(i);
+    if (b)
+    {
+      if (!b->beginAssembly()) return false;
+      if (!b->endAssembly())   return false;
 #if SP_DEBUG > 2
-    std::cout <<"\nSystem right-hand-side vector:"<< *b;
+      std::cout <<"\nSystem right-hand-side vector:"<< *b;
 #endif
-  }
+    }
+  }    
 
   return true;
 }
@@ -2493,6 +2504,36 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
     os.precision(oldPrec);
     os.flags(oldF);
   }
+
+  return true;
+}
+
+
+bool SIMbase::dumpResultCoords (double time, std::ostream& os, bool formatted, 
+				std::streamsize precision) const
+{
+  if (myPoints.empty())
+    return true;
+
+  myProblem->initResultPoints(time);
+
+  size_t i, k;
+
+  // Formatted output, use scientific notation with fixed field width
+  std::streamsize flWidth = 8 + precision;
+  std::streamsize oldPrec = os.precision(precision);
+  std::ios::fmtflags oldF = os.flags(std::ios::scientific | std::ios::right);
+
+  for (i = 0;i < myPoints.size();i++) {
+    if (!formatted)
+      os << time <<" ";
+
+      for (k = 0; k < myPoints[i].npar; k++)
+	os << std::setw(flWidth) << myPoints[i].X[k];
+      os << std::endl;
+  }
+  os.precision(oldPrec);
+  os.flags(oldF);
 
   return true;
 }
