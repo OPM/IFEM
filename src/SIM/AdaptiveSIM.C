@@ -322,6 +322,8 @@ std::ostream& AdaptiveSIM::printNorms (const Vector& norms, const Matrix& eNorm,
     os <<"\nError estimate a(e,e)^0.5, e=u^r-u^h : "<< norms(adaptor)
        <<"\nRelative error (%) : "<< 100.0*norms(adaptor)/
       sqrt(norms(1)*norms(1) + norms(adaptor)*norms(adaptor));
+    if (adaptor+1 <= norms.size())
+      os <<"\nProjective error a(e,e)^0.5, e=u-u^r : "<< norms(adaptor+1);
     if (withExact && norms.size() >= 4)
       os <<"\nEffectivity index  : "<< norms(adaptor)/norms(4);
   }
