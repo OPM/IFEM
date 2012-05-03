@@ -79,7 +79,7 @@ size_t ASMbase::getNodeIndex (int globalNum) const
 }
 
 
-int ASMbase::getNodeID (size_t inod) const
+int ASMbase::getNodeID (size_t inod, bool) const
 {
   if (inod < 1 || inod > MLGN.size())
     return 0;
@@ -700,16 +700,25 @@ void ASMbase::extractElmRes (const Matrix& globRes, Matrix& elmRes) const
 
 
 void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
-			      unsigned char nndof, int) const
+			      unsigned char nndof, int basis) const
 {
   if (nndof == 0) nndof = nf;
 
   nodeVec.resize(nndof*MLGN.size());
-  for (size_t i = 0; i < MLGN.size(); i++)
+  double* nodeP = nodeVec.ptr();
+  for (size_t i = 1; i <= MLGN.size(); i++, nodeP += nndof)
   {
-    int n = MLGN[i]-1;
-    for (unsigned char j = 0; j < nndof; j++)
-      nodeVec[nndof*i+j] = globRes[nndof*n+j];
+    // Note: If nndof==1 (scalar field) we should ignore possibly added nodes
+    // due to Dirichlet conditions defined in local axes because these nodes are
+    // assumed not to have entries in the globRes vector. In that case, we use
+    // the "real" node at that location instead (see, e.g., ASMs2D::getNodeID).
+    int n = this->getNodeID(i, nndof == 1 || basis < 0) - 1;
+#ifdef INDEX_CHECK
+    if (n < 0 || nndof*(size_t)(n+1) > globRes.size())
+      std::cerr <<" *** ASMbase::extractNodeVec: Global DOF "<< nndof*(n+1)
+                <<" is out of range [1,"<< globRes.size() <<"]"<< std::endl;
+#endif
+    memcpy(nodeP,globRes.ptr()+nndof*n,nndof*sizeof(double));
   }
 }
 
@@ -722,15 +731,21 @@ bool ASMbase::injectNodeVec (const Vector& nodeVec, Vector& globRes,
   if (nodeVec.size() != MLGN.size()*nndof)
   {
     std::cerr <<" *** ASMbase::injectNodeVec:: Invalid patch vector, size = "
-	      << nodeVec.size() <<" != "<< MLGN.size()*nndof << std::endl;
+              << nodeVec.size() <<" != "<< MLGN.size()*nndof << std::endl;
     return false;
   }
 
-  for (size_t i = 0; i < MLGN.size(); i++)
+  const double* nodeP = nodeVec.ptr();
+  for (size_t i = 0; i < MLGN.size(); i++, nodeP += nndof)
   {
-    int n = MLGN[i]-1;
-    for (unsigned char j = 0; j < nndof; j++)
-      globRes[nndof*n+j] = nodeVec[nndof*i+j];
+    int n = MLGN[i];
+    if (n > 0 && nndof*(size_t)n <= globRes.size())
+      memcpy(globRes.ptr()+nndof*(n-1),nodeP,nndof*sizeof(double));
+#ifdef SP_DEBUG
+    else // This is most likely OK, print message only in debug mode
+      std::cerr <<" *** ASMbase::injectNodeVec: Global DOF "<< nndof*n
+                <<" is out of range [1,"<< globRes.size() <<"]"<< std::endl;
+#endif
   }
 
   return true;

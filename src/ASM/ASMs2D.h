@@ -121,6 +121,11 @@ public:
   //! This is used to reinitialize the patch after it has been refined.
   virtual void clear(bool retainGeometry = false);
 
+  //! \brief Returns the global node number for the given node.
+  //! \param[in] inod 1-based node index local to current patch
+  //! \param[in] noAddedNodes If \e true, use \a nxMap to find the real node
+  virtual int getNodeID(size_t inod, bool noAddedNodes = false) const;
+
   //! \brief Returns a matrix with nodal coordinates for an element.
   //! \param[in] iel Element index
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
@@ -451,6 +456,9 @@ protected:
 
   const IndexVec& nodeInd; //!< IJ-pairs for the control points (nodes)
   IndexVec      myNodeInd; //!< The actual IJ-pair container
+
+  std::map<size_t,size_t> xnMap; //!< Node index map used by \a getCoord
+  std::map<size_t,size_t> nxMap; //!< Node index map used by \a getNodeID
 
   //! Inhomogeneous Dirichlet boundary condition data
   std::vector<DirichletEdge> dirich;

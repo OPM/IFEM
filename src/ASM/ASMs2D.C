@@ -140,6 +140,23 @@ void ASMs2D::clear (bool retainGeometry)
   // Erase the FE data
   this->ASMbase::clear(retainGeometry);
   myNodeInd.clear();
+  xnMap.clear();
+  nxMap.clear();
+}
+
+
+int ASMs2D::getNodeID (size_t inod, bool noAddedNodes) const
+{
+  if (noAddedNodes && !nxMap.empty())
+  {
+    std::map<size_t,size_t>::const_iterator it = nxMap.find(inod);
+    if (it != nxMap.end()) inod = it->second;
+  }
+
+  if (inod < 1 || inod > MLGN.size())
+    return 0;
+
+  return MLGN[inod-1];
 }
 
 
@@ -607,6 +624,15 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
   Go::SplineCurve* edge = this->getBoundary(dir);
   if (!edge) return 0;
 
+  // We need to add extra nodes, check that the global node counter is good.
+  // If not, we cannot do anything here
+  if (!shareFE && gNod < *std::max_element(MLGN.begin(),MLGN.end()))
+  {
+    std::cerr <<"\n *** ASMs2D::constrainEdgeLocal: Logic error, gNod = "<< gNod
+	      <<" is too small!"<< std::endl;
+    return 0;
+  }
+
   // Loop over the Greville points along the edge
   size_t i, k = 0;
   std::vector<Go::Point> pts(3);
@@ -644,9 +670,6 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
                                                        edge->rational(),
                                                        weights);
   }
-
-  if (gNod == 0 && !shareFE) // Keep track of the global node numbers
-    gNod = *std::max_element(MLGN.begin(),MLGN.end());
 
   // Find start index and increment of the (slave) node with the global DOFs
   int n1, n2, incNod = 0, iSnod = 0;
@@ -694,6 +717,9 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
     // Global node numbers of the nodes to be coupled
     int masterNode = MLGN[iMnod];
     int slaveNode  = MLGN[iSnod];
+
+    xnMap[1+iMnod] = 1+iSnod; // Store nodal connection needed by getCoord
+    nxMap[1+iSnod] = 1+iMnod; // Store nodal connection needed by getNodeID
 
     // Find the local axis directions of the edge at this point
     Vec3 Yaxis(it[0],it[1],it[2]);
@@ -923,6 +949,14 @@ int ASMs2D::coeffInd (size_t inod) const
 
 Vec3 ASMs2D::getCoord (size_t inod) const
 {
+  if (inod > nodeInd.size() && inod <= MLGN.size())
+  {
+    // This is a node added due to constraints in local directions.
+    // Find the corresponding original node (see constrainEdgeLocal)
+    std::map<size_t,size_t>::const_iterator it = xnMap.find(inod);
+    if (it != xnMap.end()) inod = it->second;
+  }
+
   Vec3 X;
   int ip = this->coeffInd(inod-1)*surf->dimension();
   if (ip < 0) return X;

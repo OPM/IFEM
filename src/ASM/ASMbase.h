@@ -129,7 +129,7 @@ public:
   size_t getNodeIndex(int globalNum) const;
   //! \brief Returns the global node number for the given node.
   //! \param[in] inod 1-based node index local to current patch
-  int getNodeID(size_t inod) const;
+  virtual int getNodeID(size_t inod, bool = false) const;
   //! \brief Returns the global element number for the given element
   //! \param[in] iel 1-based element index local to current patch
   int getElmID(size_t iel) const;
