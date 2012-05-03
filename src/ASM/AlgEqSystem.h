@@ -69,6 +69,12 @@ public:
   //! \param[in] elmId Global number of the element associated with \a *elmObj
   virtual bool assemble(const LocalIntegral* elmObj, int elmId);
 
+  //! \brief Returns the number of system matrices allocated
+  size_t getNoMatrices() const { return A.size(); }
+
+  //! \brief Returns the number of vectors allocated
+  size_t getNoVectors() const { return b.size(); }
+
   //! \brief Returns the \a i'th matrix of the equation system.
   SystemMatrix* getMatrix(size_t i = 0) { return i < A.size() ? A[i]._A : 0; }
 
