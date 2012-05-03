@@ -102,9 +102,9 @@ public:
   //! \param[in] energyNorm If \e true, integrate energy norm of the solution
   //! \param[in] zero_tolerance Truncate norm values small than this to zero
   //! \param[in] outPrec Number of digits after the decimal point in norm print
-  bool solutionNorms(const TimeDomain& time, const char* compName,
-		     bool energyNorm = false, double zero_tolerance = 1.0e-8,
-		     std::streamsize outPrec = 0);
+  virtual bool solutionNorms(const TimeDomain& time, const char* compName,
+			     bool energyNorm = false, double zero_tolerance = 1.0e-8,
+			     std::streamsize outPrec = 0);
 
   //! \brief Saves the converged results to VTF file of a given load/time step.
   //! \param[in] iStep Load/time step identifier
@@ -143,6 +143,9 @@ public:
   //! \brief Returns a const reference to current solution vector.
   const Vector& getSolution(int i = 0) const { return solution[i]; }
 
+  //! \brief Returns a const reference to current solution vector.
+  Vector& getSolution(int i = 0) { return solution[i]; }
+
   //! \brief Projects the secondary solution onto the spline basis.
   //! \details The secondary solution, defined through the Integrand class,
   //! is projected onto the spline basis to obtain the control point values
@@ -171,15 +174,13 @@ public:
   //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);
 
-private:
+protected:
   SIMbase* model; //!< The isogeometric FE model
 
-protected:
   Vector  linsol;   //!< Linear solution vector
   Vector  residual; //!< Residual force vector
   Vectors solution; //!< Total solution vectors
 
-private:
   // Nonlinear solution algorithm parameters
   double startTime; //!< Start time of the simulation
   double stopTime;  //!< Stop time of the simulation
