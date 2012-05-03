@@ -16,6 +16,7 @@
 
 #include "SIMinput.h"
 #include "SIMoptions.h"
+#include "SIMparameters.h"
 #include "TimeDomain.h"
 #include "TopologySet.h"
 #include "Property.h"
@@ -194,6 +195,18 @@ public:
   //! \brief Initializes time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time
   bool initDirichlet(double time = 0.0);
+
+  //! \brief Initializes class members with values read from file.
+  virtual void init(SIMparameters& tp) {}
+
+  //! \brief Advances the time step one step forward.
+  virtual bool advanceStep(SIMparameters& tp) { return false; }
+  //! \brief Computes the solution for the current time step.
+  virtual bool solveStep(SIMparameters& tp) { return false; }
+  //! \brief Saves the converged results to VTF file of a given time step.
+  //! \param[in] iStep Time step identifier
+  //! \param[in] time Current time
+  virtual bool saveStep(int iStep, double time, int nBlock=-1) { return false; }
 
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time
