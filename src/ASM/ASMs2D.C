@@ -632,9 +632,16 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
 	      <<" is too small!"<< std::endl;
     return 0;
   }
+  if (nf < nsd)
+  {
+    std::cerr <<"\n *** ASMs2D::constrainEdgeLocal: Not for scalar problems!"
+	      << std::endl;
+    return 0;
+  }
 
   // Loop over the Greville points along the edge
   size_t i, k = 0;
+  unsigned char c, d;
   std::vector<Go::Point> pts(3);
   RealArray gdata(6*gpar.size(),0.0);
   for (i = 0; i < gpar.size(); i++, k += 6)
@@ -642,8 +649,8 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
     // Find the tangent direction of the edge at this point.
     // That will be the y-axis of the local coordinate system along the edge.
     edge->point(pts,gpar[i],1);
-    for (int j = 0; j < 3 && j < pts[1].size(); j++)
-      gdata[k+j] = dir == -1 || dir == 2 ? -pts[1][j] : pts[1][j];
+    for (d = 0; d < nsd; d++)
+      gdata[k+d] = dir == -1 || dir == 2 ? -pts[1][d] : pts[1][d];
 
     // Compute the surface normal at this edge point.
     // That will be the local z-axis of the local coordinate system.
@@ -694,7 +701,7 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
   else if (code < 0)
     bcode = -code;
 
-  size_t nLGN = myMLGN.size();
+  size_t nxNode = 0;
   RealArray::const_iterator it = locc ? locc->coefs_begin() : gdata.begin();
   for (i = 0; i < gpar.size(); i++, iSnod += incNod, it += 6)
   {
@@ -704,22 +711,39 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
     if (this->isFixed(MLGN[iSnod],12)) continue;
 
     // We need an extra node representing the local (master) DOFs at this point
+    std::map<int,int>::const_iterator xit = xNode.end();
     int iMnod = shareFE ? nodeInd.size()+myMLGN.size() : myMLGN.size();
     if (shareFE) // Store the index into MLGN in myMLGN
       myMLGN.push_back(iMnod);
     else
     {
-      // Create an extra global node for the local DOFs
-      myMLGN.push_back(++gNod);
+      // Create an extra node for the local DOFs. The new node, for which the
+      // Dirichlet boundary conditions will be defined, then inherits the global
+      // node number of the original node. The original node, which do not enter
+      // the equation system, then receives a new global node number.
+      if (i > 0 && i+1 < gpar.size())
+        // This is not a corner node
+        myMLGN.push_back(++gNod);
+      else if ((xit = xNode.find(MLGN[iSnod])) != xNode.end())
+        // This is a corner node already processed by another patch
+        myMLGN.push_back(xit->second);
+      else
+      {
+        // This is a corner node, store its original-to-extra node number
+        // mapping in ASMstruct::xNode
+        myMLGN.push_back(++gNod);
+        xNode[MLGN[iSnod]] = gNod;
+      }
       std::swap(myMLGN[iMnod],myMLGN[iSnod]);
     }
+
+    xnMap[1+iMnod] = 1+iSnod; // Store nodal connection needed by getCoord
+    nxMap[1+iSnod] = 1+iMnod; // Store nodal connection needed by getNodeID
+    if (xit != xNode.end()) continue; // This node has already been processed
 
     // Global node numbers of the nodes to be coupled
     int masterNode = MLGN[iMnod];
     int slaveNode  = MLGN[iSnod];
-
-    xnMap[1+iMnod] = 1+iSnod; // Store nodal connection needed by getCoord
-    nxMap[1+iSnod] = 1+iMnod; // Store nodal connection needed by getNodeID
 
     // Find the local axis directions of the edge at this point
     Vec3 Yaxis(it[0],it[1],it[2]);
@@ -732,16 +756,19 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
     Tensor Tlg(Xaxis,Yaxis,Zaxis.cross(Xaxis,Yaxis));
 
     // Now establish constraint equations relating the global and local DOFs.
-    // We here assume that that there are nsd unknowns per node.
-    for (unsigned char d = 1; d <= nsd; d++)
+    // We here assume there are (at least) nsd unknowns per node,
+    // and only the first nsd DOFs are subjected to transformation.
+    for (d = 1; d <= nf; d++)
     {
       MPC* cons = new MPC(slaveNode,d);
       if (this->addMPC(cons,0,true) && cons)
       {
-	for (unsigned char c = 1; c <= nsd; c++)
-	  cons->addMaster(masterNode,c,Tlg(d,c));
+        if (d > nsd)
+          cons->addMaster(masterNode,d);
+        else for (c = 1; c <= nsd; c++)
+          cons->addMaster(masterNode,c,Tlg(d,c));
 #if SP_DEBUG > 1
-	std::cout <<"Added constraint: "<< *cons;
+        std::cout <<"Added constraint: "<< *cons;
 #endif
       }
     }
@@ -754,12 +781,13 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
     {
       this->prescribe(node,dof,-code);
       if (code > 0)
-	dirich.back().nodes.push_back(std::make_pair(i+1,node));
+        dirich.back().nodes.push_back(std::make_pair(i+1,node));
     }
+    ++nxNode;
   }
 
   if (locc) delete locc;
-  return myMLGN.size() - nLGN; // Number of added nodes
+  return nxNode; // Number of added nodes
 }
 
 

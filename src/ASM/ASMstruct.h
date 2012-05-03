@@ -46,7 +46,7 @@ public:
   virtual bool empty() const { return geo == 0; }
 
   //! \brief Resets the global element and node counters.
-  static void resetNumbering(int nnod = 0) { gEl = 0; gNod = nnod; }
+  static void resetNumbering(int nnod = 0);
 
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integr Object with problem-specific data and methods
@@ -65,6 +65,9 @@ protected:
   size_t firstIp; //!< Global index to first interior integration point
   //! Global indices to first integration point for the Neumann boundaries
   std::map<char,size_t> firstBp;
+
+  //! Auxilliary node number map used when establishing Dirichlet constraints
+  static std::map<int,int> xNode;
 
   static int gEl;  //!< Global element counter
   static int gNod; //!< Global node counter
