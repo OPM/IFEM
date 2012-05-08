@@ -160,6 +160,12 @@ int ASMs2D::getNodeID (size_t inod, bool noAddedNodes) const
 }
 
 
+char ASMs2D::getNodeType (size_t inod) const
+{
+  return inod > nodeInd.size() ? 'X' : 'D';
+}
+
+
 bool ASMs2D::refine (int dir, const RealArray& xi)
 {
   if (!surf || dir < 0 || dir > 1 || xi.empty()) return false;

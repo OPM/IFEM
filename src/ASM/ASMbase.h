@@ -135,8 +135,8 @@ public:
   int getElmID(size_t iel) const;
   //! \brief Returns the number of DOFs per node.
   virtual unsigned char getNodalDOFs(size_t) const { return nf; }
-  //! \brief Returns which mixed field basis a node belongs to.
-  virtual unsigned char getNodalBasis(size_t) const { return 0; }
+  //! \brief Returns the classification of a node.
+  virtual char getNodeType(size_t) const { return 'D'; }
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const = 0;
@@ -465,6 +465,8 @@ protected:
 
 public:
   static bool fixHomogeneousDirichlet; //!< If \e true, pre-eliminate fixed DOFs
+
+  size_t idx; //!< Index of this patch in the multi-patch model
 
 protected:
   // Standard finite element data structures

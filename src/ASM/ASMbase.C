@@ -28,6 +28,7 @@ ASMbase::ASMbase (unsigned char n_p, unsigned char n_s, unsigned char n_f)
   nf = n_f;
   nsd = n_s > 3 ? 3 : n_s;
   ndim = n_p > nsd ? nsd : n_p;
+  idx = 0;
 }
 
 
@@ -37,6 +38,7 @@ ASMbase::ASMbase (const ASMbase& patch, unsigned char n_f)
   nf = n_f > 0 ? n_f : patch.nf;
   nsd = patch.nsd;
   ndim = patch.ndim;
+  idx = patch.idx;
   // Note: Properties are _not_ copied
 }
 
@@ -712,6 +714,7 @@ void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
     // due to Dirichlet conditions defined in local axes because these nodes are
     // assumed not to have entries in the globRes vector. In that case, we use
     // the "real" node at that location instead (see, e.g., ASMs2D::getNodeID).
+    // The same is assumed if basis < 0 on input (for vector fields) HACK!
     int n = this->getNodeID(i, nndof == 1 || basis < 0) - 1;
 #ifdef INDEX_CHECK
     if (n < 0 || nndof*(size_t)(n+1) > globRes.size())

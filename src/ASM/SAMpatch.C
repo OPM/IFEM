@@ -41,12 +41,13 @@ bool SAMpatch::init (const ASMVec& model, int numNod)
     // Count the number of DOFs in each basis
     std::map<char,size_t>::const_iterator it;
     std::map<char,size_t> ndofs;
-    ndofs['D'] = ndofs['P'] = 0;
+    ndofs['D'] = ndofs['P'] = ndofs['X'] = 0;
     for (size_t n = 0; n < nodeType.size(); n++)
       ndofs[nodeType[n]] += madof[n+1] - madof[n];
     for (it = ndofs.begin(); it != ndofs.end(); it++)
-      std::cout <<"Number of "<< it->first <<"-dofs      "
-		<< it->second << std::endl;
+      if (it->second > 0)
+	std::cout <<"Number of "<< it->first <<"-dofs      "
+		  << it->second << std::endl;
   }
 
   // Initialize the element connectivity arrays (mpmnpc,mmnpc)
@@ -71,12 +72,8 @@ bool SAMpatch::initNodeDofs (const ASMVec& model)
   if (nnod < 1) return true;
 
   int n;
+  char t;
   size_t i, j;
-
-  // Check if we are doing mixed methods
-  for (i = 0; i < model.size() && nodeType.empty(); i++)
-    if (!model[i]->empty() && model[i]->getNoFields(2) > 0)
-      nodeType.resize(nnod,'D'); // Initialize all nodes as 'Displacement type'
 
   // Initialize the array of accumulated DOFs for the nodes
   madof = new int[nnod+1];
@@ -93,8 +90,12 @@ bool SAMpatch::initNodeDofs (const ASMVec& model)
 	  ierr++;
 
 	// Define the node type for mixed methods (used by norm evaluations)
-	if (!nodeType.empty() && model[i]->getNodalBasis(j+1) == 2)
-	  nodeType[n-1] = 'P'; // This is a 'Pressure type' node (basis 2)
+	t = model[i]->getNodeType(j+1);
+	if (t != 'D')
+	{
+	  if (nodeType.empty()) nodeType.resize(nnod,'D');
+	  nodeType[n-1] = t;
+	}
       }
 
   madof[0] = 1;

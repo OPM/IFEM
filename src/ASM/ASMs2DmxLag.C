@@ -85,9 +85,9 @@ unsigned char ASMs2DmxLag::getNodalDOFs (size_t inod) const
 }
 
 
-unsigned char ASMs2DmxLag::getNodalBasis (size_t inod) const
+char ASMs2DmxLag::getNodeType (size_t inod) const
 {
-  return inod <= nb1 ? 1 : 2;
+  return inod <= nb1 ? 'D' : (inod <= nb1+nb2 ? 'P' : 'X');
 }
 
 

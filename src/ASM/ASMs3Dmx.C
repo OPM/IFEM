@@ -92,7 +92,7 @@ size_t ASMs3Dmx::getNoNodes (int basis) const
     case 2: return nb2;
     }
 
-  return nb1+nb2;
+  return MLGN.size();
 }
 
 
@@ -110,13 +110,13 @@ unsigned char ASMs3Dmx::getNoFields (int basis) const
 
 unsigned char ASMs3Dmx::getNodalDOFs (size_t inod) const
 {
-  return inod <= nb1 ? nf1 : nf2;
+  return inod <= nb1 || inod > nb1+nb2 ? nf1 : nf2;
 }
 
 
-unsigned char ASMs3Dmx::getNodalBasis (size_t inod) const
+char ASMs3Dmx::getNodeType (size_t inod) const
 {
-  return inod <= nb1 ? 1 : 2;
+  return inod <= nb1 ? 'D' : (inod <= nb1+nb2 ? 'P' : 'X');
 }
 
 
@@ -984,23 +984,13 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   }
   else if (gpar[0].size() == gpar[1].size() && gpar[0].size() == gpar[2].size())
   {
-    std::vector<Go::BasisDerivs> tmpSpline(1);
     spline1.resize(gpar[0].size());
     spline2.resize(gpar[0].size());
     for (size_t i = 0; i < spline1.size(); i++)
     {
-      basis1->computeBasisGrid(RealArray(1,gpar[0][i]),
-			       RealArray(1,gpar[1][i]),
-			       RealArray(1,gpar[2][i]),
-			       tmpSpline);
-      spline1[i] = tmpSpline.front();
-      basis2->computeBasisGrid(RealArray(1,gpar[0][i]),
-			       RealArray(1,gpar[1][i]),
-			       RealArray(1,gpar[2][i]),
-			       tmpSpline);
-      spline2[i] = tmpSpline.front();
+      basis1->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline1[i]);
+      basis2->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline2[i]);
     }
-    // TODO: Request a GoTools method replacing the above (see ASMs3D)
   }
 
   const int p1 = basis1->order(0);
