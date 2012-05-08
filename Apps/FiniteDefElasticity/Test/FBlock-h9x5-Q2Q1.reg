@@ -21,6 +21,9 @@ Number of pressures: 1
 Number of isotropic materials: 1
 	Material code 0: 400942 80.1938 0 (21)
 Reading input file succeeded.
+Equation solver: 2
+Number of Gauss points: 3
+Lagrangian basis functions are used
 Problem definition:
 NonlinearElasticityULMixed: Continuous volumetric change and pressure fields
 NonlinearElasticityUL: Updated Lagrangian formulation
@@ -36,7 +39,7 @@ Number of D-dofs      418
 Number of P-dofs      120
 Number of unknowns    497
   step=1  time=1
-  Primary solution summary: L2-norm            : 0.00163985
+  Primary solution summary: L2-norm            : 0.00165257
                             Max X-displacement : 0.0027595
                             Max Y-displacement : 0.0035839
   Total reaction forces: Sum(R) = 0 -4
@@ -47,7 +50,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 1.29201	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 1.58239
   step=2  time=2
-  Primary solution summary: L2-norm            : 0.00327561
+  Primary solution summary: L2-norm            : 0.00330134
                             Max X-displacement : 0.00551929
                             Max Y-displacement : 0.00717463
   Total reaction forces: Sum(R) = 0 -8
@@ -58,7 +61,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 2.58319	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 3.16375
   step=3  time=3
-  Primary solution summary: L2-norm            : 0.00490777
+  Primary solution summary: L2-norm            : 0.0049468
                             Max X-displacement : 0.00827938
                             Max Y-displacement : 0.0107724
   Total reaction forces: Sum(R) = 0 -12
@@ -69,7 +72,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 3.87472	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 4.74554
   step=4  time=4
-  Primary solution summary: L2-norm            : 0.00653691
+  Primary solution summary: L2-norm            : 0.00658955
                             Max X-displacement : 0.0110398
                             Max Y-displacement : 0.0143772
   Total reaction forces: Sum(R) = 0 -16
@@ -80,7 +83,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 5.16804	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 6.32953
   step=5  time=5
-  Primary solution summary: L2-norm            : 0.00816371
+  Primary solution summary: L2-norm            : 0.00823029
                             Max X-displacement : 0.0138005
                             Max Y-displacement : 0.0179893
   Total reaction forces: Sum(R) = 0 -20
@@ -91,7 +94,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 6.46491	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 7.91787
   step=6  time=6
-  Primary solution summary: L2-norm            : 0.00978903
+  Primary solution summary: L2-norm            : 0.00986991
                             Max X-displacement : 0.0165616
                             Max Y-displacement : 0.0216083
   Total reaction forces: Sum(R) = 0 -24
@@ -102,7 +105,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 7.76758	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 9.51331
   step=7  time=7
-  Primary solution summary: L2-norm            : 0.0114139
+  Primary solution summary: L2-norm            : 0.0115095
                             Max X-displacement : 0.0193231
                             Max Y-displacement : 0.0253925
   Total reaction forces: Sum(R) = 0 -28
@@ -113,7 +116,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 9.07895	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 11.1194
   step=8  time=8
-  Primary solution summary: L2-norm            : 0.0130398
+  Primary solution summary: L2-norm            : 0.0131506
                             Max X-displacement : 0.022085
                             Max Y-displacement : 0.0294765
   Total reaction forces: Sum(R) = 0 -32
@@ -124,7 +127,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 10.4028	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 12.7408
   step=9  time=9
-  Primary solution summary: L2-norm            : 0.0146686
+  Primary solution summary: L2-norm            : 0.0147951
                             Max X-displacement : 0.0248476
                             Max Y-displacement : 0.0338135
   Total reaction forces: Sum(R) = 0 -36
@@ -135,7 +138,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 11.7443	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 14.3838
   step=10  time=10
-  Primary solution summary: L2-norm            : 0.0163025
+  Primary solution summary: L2-norm            : 0.0164454
                             Max X-displacement : 0.0276112
                             Max Y-displacement : 0.0384865
   Total reaction forces: Sum(R) = 0 -40
@@ -146,7 +149,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 13.1101	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 16.0565
   step=11  time=11
-  Primary solution summary: L2-norm            : 0.0179446
+  Primary solution summary: L2-norm            : 0.0181049
                             Max X-displacement : 0.0303766
                             Max Y-displacement : 0.0435972
   Total reaction forces: Sum(R) = 0 -44
@@ -157,7 +160,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 14.5087	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 17.7695
   step=12  time=12
-  Primary solution summary: L2-norm            : 0.0195983
+  Primary solution summary: L2-norm            : 0.0197771
                             Max X-displacement : 0.0334686
                             Max Y-displacement : 0.0492578
   Total reaction forces: Sum(R) = 0 -48
@@ -168,7 +171,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 15.9504	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 19.5352
   step=13  time=13
-  Primary solution summary: L2-norm            : 0.0212668
+  Primary solution summary: L2-norm            : 0.0214656
                             Max X-displacement : 0.0386784
                             Max Y-displacement : 0.0555706
   Total reaction forces: Sum(R) = 0 -52
@@ -179,7 +182,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 17.4458	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 21.3666
   step=14  time=14
-  Primary solution summary: L2-norm            : 0.0229521
+  Primary solution summary: L2-norm            : 0.0231728
                             Max X-displacement : 0.0443377
                             Max Y-displacement : 0.062589
   Total reaction forces: Sum(R) = 0 -56
@@ -190,7 +193,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 19.0031	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 23.2739
   step=15  time=15
-  Primary solution summary: L2-norm            : 0.0246538
+  Primary solution summary: L2-norm            : 0.0248984
                             Max X-displacement : 0.050305
                             Max Y-displacement : 0.0702778
   Total reaction forces: Sum(R) = 0 -60
@@ -201,7 +204,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 20.625	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 25.2603
   step=16  time=16
-  Primary solution summary: L2-norm            : 0.0263684
+  Primary solution summary: L2-norm            : 0.0266389
                             Max X-displacement : 0.0564012
                             Max Y-displacement : 0.0785003
   Total reaction forces: Sum(R) = 0 -64
@@ -212,7 +215,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 22.3065	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 27.3197
   step=17  time=17
-  Primary solution summary: L2-norm            : 0.0280901
+  Primary solution summary: L2-norm            : 0.0283887
                             Max X-displacement : 0.0624652
                             Max Y-displacement : 0.0870533
   Total reaction forces: Sum(R) = 0 -68
@@ -223,7 +226,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 24.0366	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 29.4387
   step=18  time=18
-  Primary solution summary: L2-norm            : 0.029813
+  Primary solution summary: L2-norm            : 0.0301414
                             Max X-displacement : 0.0683938
                             Max Y-displacement : 0.0957278
   Total reaction forces: Sum(R) = 0 -72
@@ -234,7 +237,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 25.802	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 31.6008
   step=19  time=19
-  Primary solution summary: L2-norm            : 0.0315321
+  Primary solution summary: L2-norm            : 0.0318917
                             Max X-displacement : 0.074145
                             Max Y-displacement : 0.104356
   Total reaction forces: Sum(R) = 0 -76
@@ -245,7 +248,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 27.5908	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 33.7917
   step=20  time=20
-  Primary solution summary: L2-norm            : 0.033244
+  Primary solution summary: L2-norm            : 0.033636
                             Max X-displacement : 0.0797205
                             Max Y-displacement : 0.112826
   Total reaction forces: Sum(R) = 0 -80
@@ -256,7 +259,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 29.3943	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 36.0005
   step=21  time=21
-  Primary solution summary: L2-norm            : 0.0349464
+  Primary solution summary: L2-norm            : 0.035372
                             Max X-displacement : 0.0851453
                             Max Y-displacement : 0.121076
   Total reaction forces: Sum(R) = 0 -84
@@ -267,7 +270,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 31.2066	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 38.2201
   step=22  time=22
-  Primary solution summary: L2-norm            : 0.0366385
+  Primary solution summary: L2-norm            : 0.0370987
                             Max X-displacement : 0.0904552
                             Max Y-displacement : 0.129077
   Total reaction forces: Sum(R) = 0 -88
@@ -278,7 +281,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 33.0247	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 40.4469
   step=23  time=23
-  Primary solution summary: L2-norm            : 0.03832
+  Primary solution summary: L2-norm            : 0.0388157
                             Max X-displacement : 0.0956904
                             Max Y-displacement : 0.13682
   Total reaction forces: Sum(R) = 0 -92
@@ -289,7 +292,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 34.8475	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 42.6793
   step=24  time=24
-  Primary solution summary: L2-norm            : 0.0399912
+  Primary solution summary: L2-norm            : 0.0405234
                             Max X-displacement : 0.100894
                             Max Y-displacement : 0.144308
   Total reaction forces: Sum(R) = 0 -96
@@ -300,7 +303,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 36.6755	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 44.9181
   step=25  time=25
-  Primary solution summary: L2-norm            : 0.0416528
+  Primary solution summary: L2-norm            : 0.0422226
                             Max X-displacement : 0.106115
                             Max Y-displacement : 0.151549
   Total reaction forces: Sum(R) = 0 -100
@@ -311,7 +314,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 38.5104	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 47.1654
   step=26  time=26
-  Primary solution summary: L2-norm            : 0.043306
+  Primary solution summary: L2-norm            : 0.0439143
                             Max X-displacement : 0.111409
                             Max Y-displacement : 0.158552
   Total reaction forces: Sum(R) = 0 -104
@@ -322,7 +325,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 40.3557	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 49.4254
   step=27  time=27
-  Primary solution summary: L2-norm            : 0.0449524
+  Primary solution summary: L2-norm            : 0.0456006
                             Max X-displacement : 0.11685
                             Max Y-displacement : 0.165321
   Total reaction forces: Sum(R) = 0 -108
@@ -333,7 +336,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 42.217	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 51.7051
   step=28  time=28
-  Primary solution summary: L2-norm            : 0.0465946
+  Primary solution summary: L2-norm            : 0.0472839
                             Max X-displacement : 0.122544
                             Max Y-displacement : 0.171859
   Total reaction forces: Sum(R) = 0 -112
@@ -344,7 +347,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 44.1034	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 54.0154
   step=29  time=29
-  Primary solution summary: L2-norm            : 0.0482367
+  Primary solution summary: L2-norm            : 0.0489689
                             Max X-displacement : 0.128658
                             Max Y-displacement : 0.178156
   Total reaction forces: Sum(R) = 0 -116
@@ -355,7 +358,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 46.0305	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 56.3756
   step=30  time=30
-  Primary solution summary: L2-norm            : 0.0498864
+  Primary solution summary: L2-norm            : 0.0506639
                             Max X-displacement : 0.1355
                             Max Y-displacement : 0.184185
   Total reaction forces: Sum(R) = 0 -120
@@ -366,7 +369,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 48.0289	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 58.8231
   step=31  time=31
-  Primary solution summary: L2-norm            : 0.0515628
+  Primary solution summary: L2-norm            : 0.0523902
                             Max X-displacement : 0.143813
                             Max Y-displacement : 0.189861
   Total reaction forces: Sum(R) = 0 -124
@@ -377,7 +380,7 @@ Number of unknowns    497
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 50.175	(s^d = sigma^h - p^h\*I)
   Stress norm, von Mises: vm(sigma^h)    : 61.4516
   step=32  time=32
-  Primary solution summary: L2-norm            : 0.0533651
+  Primary solution summary: L2-norm            : 0.0542565
                             Max X-displacement : 0.157218
                             Max Y-displacement : 0.194762
   Total reaction forces: Sum(R) = 0 -128

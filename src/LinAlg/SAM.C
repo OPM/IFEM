@@ -723,7 +723,7 @@ real SAM::dot (const Vector& x, const Vector& y, char dofType) const
   real retVal = real(0);
   for (i = 0; i < nnod; i++)
     if (nodeType[i] == dofType)
-      for (j = madof[i]-1; j < madof[i+1] && j < n; j++)
+      for (j = madof[i]-1; j < madof[i+1]-1 && j < n; j++)
 	retVal += x[j]*y[j];
 
   return retVal;
@@ -742,7 +742,7 @@ real SAM::normL2 (const Vector& x, char dofType) const
   real retVal = real(0);
   for (count = i = 0; i < nnod; i++)
     if (nodeType[i] == dofType)
-      for (j = madof[i]-1; j < madof[i+1] && j < n; j++)
+      for (j = madof[i]-1; j < madof[i+1]-1 && j < n; j++)
       {
 	retVal += x[j]*x[j];
 	count ++;
@@ -767,12 +767,12 @@ real SAM::normInf (const Vector& x, size_t& comp, char dofType) const
   }
 
   // Consider only the dofType nodes
-  int i, k = comp;
+  int i, k = comp-2;
   real retVal = real(0);
   for (i = 0; i < nnod; i++)
     if (nodeType[i] == dofType)
     {
-      int idof = madof[i] + k-2;
+      int idof = madof[i] + k;
       if (idof >= 0 && idof < madof[i+1]-1)
 	if (fabs(x[idof]) > retVal)
 	{

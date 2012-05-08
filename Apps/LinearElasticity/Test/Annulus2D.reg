@@ -50,7 +50,7 @@ Assembling interior matrix terms for P1
 Assembling Neumann matrix terms for boundary 2 on P1
 Solving the equation system ...
  >>> Solution summary <<<
-L2-norm            : 0.43269
+L2-norm            : 0.44475
 Max X-displacement : 0.69500
 Max Y-displacement : 1.22735
 Projecting secondary solution ...

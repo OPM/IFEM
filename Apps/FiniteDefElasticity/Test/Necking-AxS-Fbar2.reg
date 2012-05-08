@@ -1668,7 +1668,6 @@ Number of unknowns    505
 		reac =  0.000000e+00  3.161426e+00
   Node #265:	sol1 =  0.000000e+00  4.800000e+00
 		sol2 =  5.801862e+00  6.369420e+00  6.004717e+00  0.000000e+00  4.981366e-01  6.439276e-02
-		reac = -1.014854e-04 -1.019770e-01
   step=97  time=4.85
   Primary solution summary: L2-norm            : 2.27561
                             Max X-displacement : 1.69377 node 12
@@ -1685,7 +1684,6 @@ Number of unknowns    505
 		reac =  0.000000e+00  3.093413e+00
   Node #265:	sol1 =  0.000000e+00  4.850000e+00
 		sol2 =  5.801173e+00  6.363527e+00  6.002854e+00  0.000000e+00  4.934584e-01  6.439276e-02
-		reac = -1.015120e-04 -1.009016e-01
   step=98  time=4.9
   Primary solution summary: L2-norm            : 2.30776
                             Max X-displacement : 1.73724 node 12
@@ -1702,7 +1700,6 @@ Number of unknowns    505
 		reac =  0.000000e+00  3.023646e+00
   Node #265:	sol1 =  0.000000e+00  4.900000e+00
 		sol2 =  5.800475e+00  6.357550e+00  6.000965e+00  0.000000e+00  4.887139e-01  6.439276e-02
-		reac = -1.015392e-04 -9.981072e-02
   step=99  time=4.95
   Primary solution summary: L2-norm            : 2.33999
                             Max X-displacement : 1.7813 node 12
@@ -1719,7 +1716,6 @@ Number of unknowns    505
 		reac =  0.000000e+00  2.952384e+00
   Node #265:	sol1 =  0.000000e+00  4.950000e+00
 		sol2 =  5.799766e+00  6.351487e+00  5.999048e+00  0.000000e+00  4.839024e-01  6.439276e-02
-		reac = -1.015669e-04 -9.870418e-02
   step=100  time=5
   Primary solution summary: L2-norm            : 2.37228
                             Max X-displacement : 1.82597 node 12
@@ -1736,4 +1732,3 @@ Number of unknowns    505
 		reac =  0.000000e+00  2.879965e+00
   Node #265:	sol1 =  0.000000e+00  5.000000e+00
 		sol2 =  5.799047e+00  6.345337e+00  5.997104e+00  0.000000e+00  4.790227e-01  6.439276e-02
-		reac = -1.015952e-04 -9.758172e-02
