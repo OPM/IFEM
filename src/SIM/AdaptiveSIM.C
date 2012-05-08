@@ -189,7 +189,6 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
   // Assemble the linear FE equation system
   model->setMode(SIM::STATIC,true);
   model->initSystem(iStep == 1 ? SystemMatrix::DENSE : model->opt.solver, 1, 1);
-  model->setAssociatedRHS(0,0);
   model->setQuadratureRule(model->opt.nGauss[0],true);
   if (!model->assembleSystem())
     return false;

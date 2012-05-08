@@ -52,6 +52,7 @@ bool SIMbase::ignoreDirichlet = false;
 
 SIMbase::SIMbase () : g2l(&myGlb2Loc)
 {
+  mixedFEM = false;
   myProblem = 0;
   mySol = 0;
   myVtf = 0;
@@ -59,7 +60,6 @@ SIMbase::SIMbase () : g2l(&myGlb2Loc)
   mySam = 0;
   mySolParams = 0;
   nGlPatches = 0;
-  mixedFEM = false;
   nIntGP = nBouGP = 0;
 
   MPCLess::compareSlaveDofOnly = true; // to avoid multiple slave definitions
@@ -884,7 +884,6 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
       case 3: std::cout <<" (u,v,w)=("; break;
       }
       std::cout << p->par[0];
-
       for (unsigned char c = 1; c < p->npar; c++)
 	std::cout <<','<< p->par[c];
       if (p->npar > 1) std::cout <<')';
@@ -942,6 +941,8 @@ int SIMbase::getUniquePropertyCode (const std::string& setName, int code)
 
 bool SIMbase::createPropertySet (const std::string& setName, int pc)
 {
+  if (setName.empty()) return true;
+
   TopologySet::const_iterator tit = myEntitys.find(setName);
   if (tit == myEntitys.end())
   {
@@ -1029,6 +1030,7 @@ bool SIMbase::setTracProperty (int code, Property::Type ptype, TractionFunc* fie
   if (field) myTracs[code] = field;
   return this->setPropertyType(code,ptype);
 }
+
 
 bool SIMbase::setNeumann (const std::string& prop, const std::string& type,
 			  int direction, int code)
@@ -1213,15 +1215,17 @@ bool SIMbase::updateDirichlet (double time, const Vector* prevSol)
 
 bool SIMbase::updateGrid (const Vector& displ)
 {
+  if (displ.empty()) return false;
+
   bool ok = true;
   Vector locdisp;
   for (size_t i = 0; i < myModel.size() && ok; i++)
   {
-    myModel[i]->extractNodeVec(displ,locdisp,myModel[i]->getNoSpaceDim());
+    myModel[i]->extractNodeVec(displ,locdisp,myModel[i]->getNoSpaceDim(),-1);
     ok = myModel[i]->updateCoords(locdisp);
   }
 
-  return true;
+  return ok;
 }
 
 
@@ -1252,9 +1256,9 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 	if (msgLevel > 1)
 	  std::cout <<"\nAssembling interior matrix terms for P"<< j
 		    << std::endl;
-	this->initBodyLoad(j);
-	this->extractPatchSolution(myModel[j-1],prevSol,j-1);
-	ok = myModel[j-1]->integrate(*myProblem,*myEqSys,time);
+	ok &= this->initBodyLoad(j);
+	ok &= this->extractPatchSolution(prevSol,j-1);
+	ok &= myModel[j-1]->integrate(*myProblem,*myEqSys,time);
 	lp = j;
       }
       else
@@ -1268,9 +1272,9 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
       if (msgLevel > 1)
 	std::cout <<"\nAssembling interior matrix terms for P"<< i+1
 		  << std::endl;
-      this->initBodyLoad(i+1);
-      this->extractPatchSolution(myModel[i],prevSol,i);
-      ok = myModel[i]->integrate(*myProblem,*myEqSys,time);
+      ok &= this->initBodyLoad(i+1);
+      ok &= this->extractPatchSolution(prevSol,i);
+      ok &= myModel[i]->integrate(*myProblem,*myEqSys,time);
       lp = i+1;
     }
 
@@ -1284,6 +1288,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 		    <<" out of range [1,"<< myModel.size() <<"]"<< std::endl;
 	  ok = false;
 	}
+
 	else if (abs(myProps[i].ldim)+1 == myModel[j-1]->getNoSpaceDim())
 	  if (this->initNeumann(myProps[i].pindx))
 	  {
@@ -1291,8 +1296,9 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 	    if (msgLevel > 1)
 	      std::cout <<"\nAssembling Neumann matrix terms for boundary "
 			<< bIndex <<" on P"<< j << std::endl;
-	    if (j != lp) this->extractPatchSolution(myModel[j-1],prevSol,j-1);
-	    ok = myModel[j-1]->integrate(*myProblem,bIndex,*myEqSys,time);
+	    if (j != lp)
+	      ok &= this->extractPatchSolution(prevSol,j-1);
+	    ok &= myModel[j-1]->integrate(*myProblem,bIndex,*myEqSys,time);
 	    lp = j;
 	  }
 	  else 
@@ -1305,13 +1311,13 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 	    if (msgLevel > 1)
 	      std::cout <<"\nAssembling Neumann matrix terms for edge "
 			<< bIndex <<" on P"<< j << std::endl;
-	    if (j != lp) this->extractPatchSolution(myModel[j-1],prevSol,j-1);
-	    ok = myModel[j-1]->integrateEdge(*myProblem,bIndex,*myEqSys,time);
+	    if (j != lp)
+	      ok &= this->extractPatchSolution(prevSol,j-1);
+	    ok &= myModel[j-1]->integrateEdge(*myProblem,bIndex,*myEqSys,time);
 	    lp = j;
 	  }
-	  else 
+	  else
 	    ok = false;
-	  
 
   if (!ok) std::cerr <<" *** SIMbase::assembleSystem: Failure.\n"<< std::endl;
 
@@ -1322,21 +1328,21 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 bool SIMbase::finalizeAssembly (bool newLHSmatrix)
 {
   // Communication of matrix and vector assembly (for PETSc only)
-  for (size_t i = 0;i < myEqSys->getNoMatrices();i++) {
-    SystemMatrix* A = myEqSys->getMatrix(i);
-    if (A && newLHSmatrix)
-    {
-      if (!A->beginAssembly()) return false;
-      if (!A->endAssembly())   return false;
+  SystemMatrix* A;
+  SystemVector* b;
+  if (newLHSmatrix)
+    for (size_t i = 0; i < myEqSys->getNoMatrices(); i++)
+      if ((A = myEqSys->getMatrix(i)))
+      {
+	if (!A->beginAssembly()) return false;
+	if (!A->endAssembly())   return false;
 #if SP_DEBUG > 3
-      std::cout <<"\nSystem coefficient matrix:"<< *A;
+	std::cout <<"\nSystem coefficient matrix:"<< *A;
 #endif
-    }
-  }
+      }
 
-  for (size_t i = 0;i < myEqSys->getNoVectors();i++) {
-    SystemVector* b = myEqSys->getVector(i);
-    if (b)
+  for (size_t i = 0; i < myEqSys->getNoVectors(); i++)
+    if ((b = myEqSys->getVector(i)))
     {
       if (!b->beginAssembly()) return false;
       if (!b->endAssembly())   return false;
@@ -1344,7 +1350,6 @@ bool SIMbase::finalizeAssembly (bool newLHSmatrix)
       std::cout <<"\nSystem right-hand-side vector:"<< *b;
 #endif
     }
-  }    
 
   return true;
 }
@@ -1360,32 +1365,42 @@ bool SIMbase::extractLoadVec (Vector& loadVec) const
 }
 
 
-void SIMbase::extractPatchSolution (const ASMbase* patch, const Vectors& sol,
-                                    size_t p)
+bool SIMbase::extractPatchSolution (const Vectors& sol, size_t pindx)
 {
+  if (pindx >= myModel.size() || myModel[pindx]->empty())
+    return false;
+
+  ASMbase* patch = myModel[pindx];
   for (size_t i = 0; i < sol.size() && i < myProblem->getNoSolutions(); i++)
     if (!sol[i].empty())
       patch->extractNodeVec(sol[i],myProblem->getSolution(i));
-  for (DepVector::iterator it  = depFields.begin(); 
-                           it != depFields.end(); ++it) {
+
+  DepVector::const_iterator it;
+  for (it = depFields.begin(); it != depFields.end(); ++it)
+  {
     const Vector* psol = it->sim->getNamedField(it->name);
     Vector* lvec = myProblem->getNamedVector(it->name);
-    if (psol && lvec) {
-      if (!it->patches.empty())
-        patch = it->patches[p];
-      if (psol && psol->size())
-        patch->extractNodeVec(*psol,*lvec,it->components);
-      if (!it->patches.empty()) {
-        if (it->components == 1) {
-          Field* field = Field::create(patch, *lvec);
-          myProblem->setNamedField(it->name,field);
-        } else {
-          Fields* field = Fields::create(patch, *lvec);
-          myProblem->setNamedFields(it->name,field);
-        }
+    if (lvec && psol && !psol->empty()) {
+      if (pindx < it->patches.size())
+	patch = it->patches[pindx];
+      else
+	patch = myModel[pindx];
+      int bflag = it->components < 0 ? it->components : 0; // HACK
+      patch->extractNodeVec(*psol,*lvec,abs(it->components),bflag);
+      if (mixedFEM) {
+	if (it->components == 1)
+	  myProblem->setNamedField(it->name,Field::create(patch,*lvec));
+	else
+	  myProblem->setNamedFields(it->name,Fields::create(patch,*lvec));
       }
+#if SP_DEBUG > 2
+      std::cout <<"SIMbase::extractPatchSolution: Dependent field \""<< it->name
+		<<"\" for patch "<< pindx+1 << *lvec;
+#endif
     }
   }
+
+  return true;
 }
 
 
@@ -2516,8 +2531,6 @@ bool SIMbase::dumpResultCoords (double time, std::ostream& os, bool formatted,
   if (myPoints.empty())
     return true;
 
-  myProblem->initResultPoints(time);
-
   size_t i, k;
 
   // Formatted output, use scientific notation with fixed field width
@@ -2528,7 +2541,6 @@ bool SIMbase::dumpResultCoords (double time, std::ostream& os, bool formatted,
   for (i = 0;i < myPoints.size();i++) {
     if (!formatted)
       os << time <<" ";
-
       for (k = 0; k < myPoints[i].npar; k++)
 	os << std::setw(flWidth) << myPoints[i].X[k];
       os << std::endl;

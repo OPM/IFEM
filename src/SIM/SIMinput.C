@@ -154,19 +154,17 @@ bool SIMinput::handlePriorityTags (const TiXmlElement* base,
   return true;
 }
 
-const Vector* SIMinput::getNamedField(const std::string& name)
+
+const Vector* SIMinput::getNamedField (const std::string& name)
 {
-  ConstFieldMap::iterator it = myFields.find(name);
-
-  if (it == myFields.end())
-    return 0;
-
-  return it->second;
+  FieldMap::const_iterator it = myFields.find(name);
+  return it == myFields.end() ? NULL : it->second;
 }
 
-void SIMinput::registerDependency(SIMinput* sim, const std::string& name,
-                                  size_t nvc,
-                                  const std::vector<ASMbase*>* patches)
+
+void SIMinput::registerDependency (SIMinput* sim,
+				   const std::string& name, short int nvc,
+				   const std::vector<ASMbase*>* patches)
 {
   Dependency dep;
   dep.sim = sim;

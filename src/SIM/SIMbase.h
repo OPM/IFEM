@@ -16,7 +16,6 @@
 
 #include "SIMinput.h"
 #include "SIMoptions.h"
-#include "SIMparameters.h"
 #include "TimeDomain.h"
 #include "TopologySet.h"
 #include "Property.h"
@@ -33,6 +32,7 @@ class VTF;
 class SAMpatch;
 class AlgEqSystem;
 class LinSolParams;
+class SIMparameters;
 
 
 /*!
@@ -203,17 +203,14 @@ public:
   //! \param[in] time Current time
   bool initDirichlet(double time = 0.0);
 
-  //! \brief Initializes class members with values read from file.
-  virtual void init(SIMparameters& tp) {}
-
+  //! \brief Initializes simulation parameters with values read from file.
+  virtual void init(SIMparameters&) {}
   //! \brief Advances the time step one step forward.
-  virtual bool advanceStep(SIMparameters& tp) { return false; }
+  virtual bool advanceStep(SIMparameters&) { return false; }
   //! \brief Computes the solution for the current time step.
-  virtual bool solveStep(SIMparameters& tp) { return false; }
+  virtual bool solveStep(SIMparameters&) { return false; }
   //! \brief Saves the converged results to VTF file of a given time step.
-  //! \param[in] iStep Time step identifier
-  //! \param[in] time Current time
-  virtual bool saveStep(int iStep, double time, int nBlock=-1) { return false; }
+  virtual bool saveStep(int, double, int) { return false; }
 
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time
@@ -571,15 +568,15 @@ public:
   //! If \a patchNo is not on current processor, 0 is returned.
   int getLocalPatchIndex(int patchNo) const;
 
-  //! \brief Extracts the local solution vector for a specified patch.
-  //! \param[in] sol Global primary solution vectors in DOF-order
-  //! \param[in] pindx Local patch index to extract solution vectors for
+  //! \brief Extracts a local solution vector for a specified patch.
+  //! \param[in] sol Global primary solution vector in DOF-order
+  //! \param[in] pindx Local patch index to extract solution vector for
   //! \return Total number of DOFs in the patch (first basis only if mixed)
   //!
   //! \details The extracted patch-level solution vector is stored within the
   //! Integrand \a *myProblem such that \a evalSolution can be invoked to get
-  //! the secondary solution field values within the same patch afterwards,
-  virtual size_t extractPatchSolution(const Vector& sol, int pindx);
+  //! the secondary solution field values within the same patch afterwards.
+  size_t extractPatchSolution(const Vector& sol, int pindx);
 
   //! \brief Injects a patch-wise solution vector into the global vector.
   //! \param sol Global primary solution vector in DOF-order
@@ -601,11 +598,10 @@ public:
   const std::map<int,int>& getGlob2LocMap() const { return myGlb2Loc; }
 
 protected:
-  //! \brief Extracts local solution vector(s) for the given patch.
-  //! \param[in] patch Pointer to the patch to extract solution vectors for
+  //! \brief Extracts all local solution vector(s) for the given patch.
   //! \param[in] sol Global primary solution vectors in DOF-order
-  //! \param[in] p The local patch number
-  void extractPatchSolution(const ASMbase* patch, const Vectors& sol, size_t p);
+  //! \param[in] pindx Local patch index to extract solution vectors for
+  bool extractPatchSolution(const Vectors& sol, size_t pindx);
 
   //! \brief Initializes material properties for integration of interior terms.
   virtual bool initMaterial(size_t) { return true; }

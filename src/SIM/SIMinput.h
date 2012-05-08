@@ -14,31 +14,18 @@
 #ifndef _SIM_INPUT_H
 #define _SIM_INPUT_H
 
-#include <iostream>
-#include <map>
-#include <vector>
 #include "MatVec.h"
+#include <iostream>
+#include <string>
+#include <map>
 
 class TiXmlElement;
+class ASMbase;
 
 
 /*!
   \brief Base class for NURBS-based FEM simulators with input file parsing.
 */
-
-class TiXmlElement;
-class SIMinput;
-class ASMbase;
-
-//! \brief Struct holding information about a inter-SIM dependency
-struct Dependency {
-  SIMinput* sim;
-  std::string name;
-  size_t components;
-  std::vector<ASMbase*> patches;
-};
-typedef std::vector<Dependency> DepVector;
-typedef std::map<std::string,const Vector*> ConstFieldMap;
 
 class SIMinput
 {
@@ -86,23 +73,34 @@ public:
 
   //! \brief Obtain a vector pointing to a named field in this SIM
   //! \param[in] name Name of field
-  //! \return Pointer to the vector holding the field if it exists, NULL otherwise
+  //! \return Pointer to the vector holding the field, if any
   const Vector* getNamedField(const std::string& name);
 
   //! \brief Register a dependency on a field from another SIM
   //! \param[in] sim The SIM holding the field we depend on
   //! \param[in] name Name of field we depend on
   //! \param[in] nvc Number of components in field
-  //! \param[in] patches The geometry the field is defined over. Used with mixed formulations
+  //! \param[in] patches The geometry the field is defined over
   void registerDependency(SIMinput* sim, const std::string& name,
-                          size_t nvc, const std::vector<ASMbase*>* patches=0);
+                          short int nvc, const std::vector<ASMbase*>* patches=0);
+
 protected:
   //! \brief Register a named field in this integrand
   void registerNamedField(const std::string& name, const Vector* vec);
   int myPid; //!< Processor ID in parallel simulations
   int nProc; //!< Number of processors in parallel simulations
 
-  ConstFieldMap myFields; //!< The fields in this SIM
+  //! \brief Struct holding information about a inter-SIM dependency
+  struct Dependency {
+    SIMinput* sim;
+    std::string name;
+    short int components;
+    std::vector<ASMbase*> patches;
+  };
+  typedef std::vector<Dependency>             DepVector;
+  typedef std::map<std::string,const Vector*> FieldMap;
+
+  FieldMap  myFields;  //!< The fields in this SIM
   DepVector depFields; //!< Fields we depend on
 };
 

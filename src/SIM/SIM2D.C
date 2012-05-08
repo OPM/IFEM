@@ -591,7 +591,10 @@ bool SIM2D::readPatch (std::istream& isp, int pchInd)
     else if (pch->empty() || this->getLocalPatchIndex(pchInd+1) < 1)
       delete pch;
     else
+    {
+      pch->idx = myModel.size();
       myModel.push_back(pch);
+    }
   }
 
   return true;
@@ -613,7 +616,10 @@ bool SIM2D::readPatches (std::istream& isp, const char* whiteSpace)
       else if (pch->empty() || this->getLocalPatchIndex(pchInd) < 1)
         delete pch;
       else
+      {
+        pch->idx = myModel.size();
         myModel.push_back(pch);
+      }
     }
 
   return true;
