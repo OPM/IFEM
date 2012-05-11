@@ -302,9 +302,9 @@ public:
   //! \param[in] dim number of components in points (i.e. the number of columns)
   //! \return A LRSplineSurface representation of the interpolated points
   LR::LRSplineSurface* regularInterpolation(LR::LRSplineSurface *basis,
-					    std::vector<double> upar,
-					    std::vector<double> vpar,
-					    Matrix points,
+					    const std::vector<double>& upar,
+					    const std::vector<double>& vpar,
+					    const Matrix& points,
 					    size_t dim) const;
 
 protected:

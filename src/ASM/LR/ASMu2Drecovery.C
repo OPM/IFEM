@@ -417,9 +417,9 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
 }
 
 LR::LRSplineSurface* ASMu2D::regularInterpolation(LR::LRSplineSurface *basis,
-					 std::vector<double> upar,
-					 std::vector<double> vpar,
-					 Matrix points,
+					 const std::vector<double>& upar,
+					 const std::vector<double>& vpar,
+					 const Matrix& points,
 					 size_t dim) const
 {
   // sanity check on input parameters
