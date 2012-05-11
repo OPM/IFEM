@@ -328,6 +328,13 @@ int main (int argc, char** argv)
     if (!model->solveSystem(displ,1))
       return 3;
 
+    if (dummy.discretization == ASM::Spline   ||
+        dummy.discretization == ASM::LRSpline ||
+        dummy.discretization == ASM::SplineC1)
+      pOpt[SIMoptions::GLOBAL] = "Greville point projection";
+    else
+      pOpt.clear();
+
     // Project the FE stresses onto the splines basis
     model->setMode(SIM::RECOVERY);
     for (pit = pOpt.begin(); pit != pOpt.end(); pit++)
