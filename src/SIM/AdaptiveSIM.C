@@ -171,6 +171,7 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
   std::cout <<"\nAdaptive step "<< iStep << std::endl;
   if (iStep > 1)
   {
+    SIMoptions opt = model->opt;
     // Re-generate the FE model after the refinement
     model->clearProperties();
 #ifdef HAS_LRSPLINE
@@ -181,6 +182,7 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
     // those options will not be overridden here, so please don't do that..
     if (!model->read(inputfile) || !model->preprocess())
       return false;
+    model->opt = opt;
   }
   else if (storeMesh)
     // Output the initial grid to eps-file
