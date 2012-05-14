@@ -31,16 +31,16 @@ do
   then 
     if test $globres -eq 1
     then
-      echo "-------- $2 --------" >> ../../../failed.log
+      echo "-------- $2 --------" >> @PROJECT_SOURCE_DIR@/failed.log
     fi
     globres=0
-    echo Failed to find output: $line >> ../../../failed.log
+    echo Failed to find output: $line >> @PROJECT_SOURCE_DIR@/failed.log
   fi
 done
 
 if test $globres -eq 0
 then
-  cat templog >> ../../../failed.log
+  cat templog >> @PROJECT_SOURCE_DIR@/failed.log
   rm templog
   exit 1
 fi

@@ -24,6 +24,9 @@ ENDIF(CMAKE_CXX_COMPILER MATCHES icpc)
 
 ENABLE_TESTING()
 
+CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/scripts/regtest.sh.in
+               ${PROJECT_SOURCE_DIR}/scripts/regtest.sh)
+
 # Add local modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
                       ${CMAKE_SOURCE_DIR}/cmake/Modules)
