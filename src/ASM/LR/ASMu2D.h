@@ -113,6 +113,7 @@ public:
   //! options[2] is the refinement scheme (default 0),
   //! (FULLSPAN=0, MINSPAN=1, ISOTROPIC ELEMENTS=2, ISOTROPIC FUNCTIONS=3),
   //! options[3] is the symmetry, i.e., always refine a multiple of this value
+  //! options[4] is nonzero if one is testing for linear independence at all iterations
   //! \param[in] fName Optional file name for an image of the resulting mesh
   virtual bool refine(const std::vector<int>& elements,
 		      const std::vector<int>& options, const char* fName = 0);

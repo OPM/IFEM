@@ -76,13 +76,14 @@ protected:
 private:
   SIMbase* model; //!< The isogeometric FE model
 
-  bool   storeMesh; //!< Creates a series of eps-files for intermediate steps
-  double beta;      //!< Refinement percentage in each step
-  double errTol;    //!< Global error stop tolerance
-  int    maxStep;   //!< Maximum number of adaptive refinements
-  int    maxDOFs;   //!< Maximum number of degrees of freedom
-  int    symmetry;  //!< Always refine a multiplum of this
-  int    knot_mult; //!< Knotline multiplicity
+  bool   storeMesh;    //!< Creates a series of eps-files for intermediate steps
+  bool   linIndepTest; //!< Test all mesh for linear independence after refinement
+  double beta;         //!< Refinement percentage in each step
+  double errTol;       //!< Global error stop tolerance
+  int    maxStep;      //!< Maximum number of adaptive refinements
+  int    maxDOFs;      //!< Maximum number of degrees of freedom
+  int    symmetry;     //!< Always refine a multiplum of this
+  int    knot_mult;    //!< Knotline multiplicity
 
   //! Refinement scheme: 0=fullspan, 1=minspan, 2=isotropic_elements,
   //! 3=isotropic_functions

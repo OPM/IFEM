@@ -29,15 +29,16 @@
 AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : model(sim)
 {
   // Default grid adaptation parameters
-  storeMesh = false;
-  beta      = 10.0;
-  errTol    = 1.0;
-  maxStep   = 10;
-  maxDOFs   = 1000000;
-  scheme    = 0; // fullspan
-  symmetry  = 1; // no symmetry
-  knot_mult = 1; // maximum regularity (continuity)
-  adaptor   = 0;
+  storeMesh    = false;
+  linIndepTest = false;
+  beta         = 10.0;
+  errTol       = 1.0;
+  maxStep      = 10;
+  maxDOFs      = 1000000;
+  scheme       = 0; // fullspan
+  symmetry     = 1; // no symmetry
+  knot_mult    = 1; // maximum regularity (continuity)
+  adaptor      = 0;
 }
 
 
@@ -69,6 +70,8 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
       knot_mult = atoi(value);
     else if (!strcasecmp(child->Value(), "store_eps_mesh"))
       storeMesh = true; // no need for value here
+    else if (!strcasecmp(child->Value(), "test_linear_independence"))
+      linIndepTest = true; // no need for value here
     else if ((value = utl::getValue(child,"scheme"))) {
       if (!strcasecmp(value,"fullspan"))
         scheme = 0;
@@ -256,11 +259,12 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   std::vector<int> toBeRefined, options;
   std::vector<IndexDouble> errors;
 
-  options.reserve(4);
+  options.reserve(5);
   options.push_back(beta);
   options.push_back(knot_mult);
   options.push_back(scheme);
   options.push_back(symmetry);
+  options.push_back(linIndepTest);
 
   size_t i;
   if (scheme == 3)

@@ -292,11 +292,24 @@ bool ASMu2D::refine (const std::vector<int>& elements,
                      const std::vector<int>& options,
                      const char* fName)
 {
+	PROFILE2("ASMu2D::refine()");
+
 	if (!lrspline) return false;
 	if (shareFE) return true;
 
-	int multiplicity = 1;
-	if (options.size()>1 && options[1] > 1)
+	double                  beta         = (options.size()>0) ? options[0]/100.0 : 0.10;
+	int                     multiplicity = (options.size()>1) ? options[1]       : 1;
+	enum refinementStrategy strat        = LR_SAFE;
+	int                     symmetry     = (options.size()>3) ? options[3]       : 1;
+	bool                    linIndepTest = (options.size()>4) ? options[4]!=0    : false;
+
+	if(options.size() > 2) {
+		if(options[2]==1)      strat  = LR_MINSPAN;
+		else if(options[2]==2) strat  = LR_ISOTROPIC_EL;
+		else if(options[2]==3) strat  = LR_ISOTROPIC_FUNC;
+	}
+
+	if (multiplicity > 1)
 	{
 		int p1 = lrspline->order_u() - 1;
 		int p2 = lrspline->order_v() - 1;
@@ -306,26 +319,37 @@ bool ASMu2D::refine (const std::vector<int>& elements,
 	}
 
 	if (!elements.empty()) {
-		enum refinementStrategy strat;
-		strat = LR_SAFE;
-		if(options.size() > 2) {
-			if(options[2]==1)      strat  = LR_MINSPAN;
-			else if(options[2]==2) strat  = LR_ISOTROPIC_EL;
-			else if(options[2]==3) strat  = LR_ISOTROPIC_FUNC;
-		}
-		lrspline->refine(elements, options[0]/100.0, multiplicity, strat, ((options.size()>3) ? options[3] : 1));
+		lrspline->refine(elements, beta, multiplicity, strat, symmetry);
 	}
 	if (fName)
 	{
 		char fullFileName[256];
+
 		strcpy(fullFileName, "param_");
 		strcat(fullFileName, fName);
 		std::ofstream paramMeshFile(fullFileName);
+
 		strcpy(fullFileName, "physical_");
 		strcat(fullFileName, fName);
 		std::ofstream physicalMeshFile(fullFileName);
+
+		strcpy(fullFileName, "param_dot_");
+		strcat(fullFileName, fName);
+		std::ofstream paramDotMeshFile(fullFileName);
+
+		strcpy(fullFileName, "physical_dot_");
+		strcat(fullFileName, fName);
+		std::ofstream physicalDotMeshFile(fullFileName);
+
+		strcpy(fullFileName, "lrspline_");
+		strcat(fullFileName, fName);
+		std::ofstream lrOut(fullFileName);
+
 		lrspline->writePostscriptMesh(paramMeshFile);
 		lrspline->writePostscriptElements(physicalMeshFile);
+		lrspline->writePostscriptFunctionSpace(paramDotMeshFile);
+		lrspline->writePostscriptMeshWithControlPoints(physicalDotMeshFile);
+		lrOut << *lrspline;
 	}
 
 	if (!elements.empty())
@@ -333,6 +357,24 @@ bool ASMu2D::refine (const std::vector<int>& elements,
 		          <<" elements "<< lrspline->nBasisFunctions()
 		          <<" nodes."<< std::endl;
 
+	if(linIndepTest)
+	{
+		std::cout << "Testing for linear independence....";
+		if(!lrspline->isLinearIndepByMappingMatrix(false))
+		{
+			std::cerr << std::endl;
+			std::cerr << std::endl;
+			std::cerr << std::endl;
+			std::cerr << "*********************************************\n";
+			std::cerr << "\nLR B-spline is linear dependant. Terminating analysis\n\n";
+			std::cerr << "*********************************************\n";
+			std::cerr << std::endl;
+			std::cerr << std::endl;
+			exit(34532);
+			return false;
+		}
+		std::cout << "OK\n";
+	}
 
 	// int nBasis    = lrspline->nBasisFunctions();
 	// myMLGN.resize(nBasis);
