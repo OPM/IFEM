@@ -39,11 +39,17 @@ protected:
   //! \brief Prints out the tensor to an output stream.
   virtual std::ostream& print(std::ostream& os) const;
 
+private:
+  //! \brief Creates a 3D transformation from three unit vectors.
+  void define3Dtransform(const Vec3& v1, const Vec3& v2, const Vec3& v3);
+
 public:
   //! \brief Constructor creating a zero tensor.
   Tensor(const t_ind nsd) : n(nsd) { v.resize(n*n,real(0)); }
+  //! \brief Constructor creating a transformation from a face normal vector.
+  Tensor(const Vec3& vn);
   //! \brief Constructor creating a transformation from two tangent vectors.
-  Tensor(const std::vector<real>& t1, const std::vector<real>& t2);
+  Tensor(const Vec3& t1, const Vec3& t2, bool t1isZ = false);
   //! \brief Constructor creating a transformation from three unit vectors.
   Tensor(const Vec3& v1, const Vec3& v2, const Vec3& v3);
   //! \brief Copy constructor.

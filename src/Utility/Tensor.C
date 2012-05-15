@@ -33,7 +33,50 @@ std::ostream& Tensor::print (std::ostream& os) const
 }
 
 
-Tensor::Tensor (const std::vector<real>& t1, const std::vector<real>& t2) : n(3)
+/*!
+  The provided vector \a vn is taken as the local Z-axis.
+  The local X- and Y-axes are then defined by projecting either the global X-
+  or Y-axis onto the normal plane, depending on whether \a vn points mostly in
+  the global Y- or X-direction, respectively.
+*/
+
+Tensor::Tensor (const Vec3& vn) : n(3)
+{
+  Vec3 v1, v2, v3(vn);
+  v3.normalize();
+
+  if (fabs(v3.y) > fabs(v3.x))
+  {
+    // Define the X-axis by projecting global X-axis onto the tangent plane
+    v1.x =  v3.y*v3.y + v3.z*v3.z;
+    v1.y = -v3.x*v3.y;
+    v1.z = -v3.x*v3.z;
+    // Define the Y-axis as the cross product of Z-axis and X-axis
+    v2.cross(v3,v1);
+  }
+  else
+  {
+    // Define the Y-axis by projecting global Y-axis onto the tangent plane
+    v2.x = -v3.y*v3.x;
+    v2.y =  v3.x*v3.x + v3.z*v3.z;
+    v2.z = -v3.y*v3.z;
+    // Define the X-axis as the cross product of Y-axis and Z-axis
+    v1.cross(v2,v3);
+  }
+  v1.normalize();
+  v2.normalize();
+
+  this->define3Dtransform(v1,v2,v3);
+}
+
+
+/*!
+  The first tangent vector \a t1 is taken as the local X-axis (or Z-axis, if
+  \a t1isZ is \e true). The local Z-axis (X-axis) is then defined as the cross
+  product between \a t1 and \a t2.
+*/
+
+Tensor::Tensor (const Vec3& t1, const Vec3& t2, bool t1isZ) : n(3)
 {
   Vec3 v1(t1), v2(t2), v3;
 
@@ -41,25 +84,20 @@ Tensor::Tensor (const std::vector<real>& t1, const std::vector<real>& t2) : n(3)
   v3.cross(v1,v2).normalize();
   v2.cross(v3,v1);
 
-  v.resize(9);
-  for (t_ind i = 0; i < 3; i++)
-  {
-    v[  i] = v1[i];
-    v[3+i] = v2[i];
-    v[6+i] = v3[i];
-  }
+  if (t1isZ)
+    this->define3Dtransform(v2,v3,v1);
+  else
+    this->define3Dtransform(v1,v2,v3);
 }
 
 
+/*!
+  This constructor assumes the three vectors provided form an orthonormal basis.
+*/
+
 Tensor::Tensor (const Vec3& v1, const Vec3& v2, const Vec3& v3) : n(3)
 {
-  v.resize(9);
-  for (t_ind i = 0; i < 3; i++)
-  {
-    v[  i] = v1[i];
-    v[3+i] = v2[i];
-    v[6+i] = v3[i];
-  }
+  this->define3Dtransform(v1,v2,v3);
 }
 
 
@@ -67,6 +105,18 @@ Tensor::Tensor (const Tensor& T) : n(T.n)
 {
   v.resize(n*n);
   this->operator=(T);
+}
+
+
+void Tensor::define3Dtransform (const Vec3& v1, const Vec3& v2, const Vec3& v3)
+{
+  v.resize(9);
+  for (t_ind i = 0; i < 3; i++)
+  {
+    v[  i] = v1[i];
+    v[3+i] = v2[i];
+    v[6+i] = v3[i];
+  }
 }
 
 
