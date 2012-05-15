@@ -730,7 +730,7 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
     // Skip the end points if this should be regarded an open boundary
     if (open && (i == 0 || i+1 == gpar.size())) continue;
     // Check if this node already has been constrained or fixed
-    if (this->isFixed(MLGN[iSnod],12)) continue;
+    if (this->isFixed(MLGN[iSnod],dof)) continue;
 
     // We need an extra node representing the local (master) DOFs at this point
     std::map<int,int>::const_iterator xit = xNode.end();
@@ -1722,9 +1722,9 @@ bool ASMs2D::tesselate (ElementBlock& grid, const int* npe) const
       grid.setCoor(i,j,XYZ[l+j]);
 
   // Establish the block grid topology
-  int nel1 = surf->numCoefs_u() - surf->order_u() + 1;
   int ie, nse1 = npe[0] - 1;
   int je, nse2 = npe[1] - 1;
+  int nel1 = (nx-1)/nse1;
   int n[4], ip = 0;
   for (j = je = 1, n[1] = 0; j < ny; j++)
   {

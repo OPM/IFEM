@@ -2275,11 +2275,11 @@ bool ASMs3D::tesselate (ElementBlock& grid, const int* npe) const
     grid.setCoor(i,XYZ[j],XYZ[j+1],XYZ[j+2]);
 
   // Establish the block grid topology
-  int nel1 = svol->numCoefs(0) - svol->order(0) + 1;
-  int nel2 = svol->numCoefs(1) - svol->order(1) + 1;
   int ie, nse1 = npe[0] - 1;
   int je, nse2 = npe[1] - 1;
   int ke, nse3 = npe[2] - 1;
+  int nel1 = (nx-1)/nse1;
+  int nel2 = (ny-1)/nse2;
   int n[8], ip = 0;
   for (k = ke = 1, n[2] = 0; k < nz; k++)
   {
