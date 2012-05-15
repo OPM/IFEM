@@ -126,7 +126,7 @@ public:
   //! \brief Returns local 1-based index of the node with given global number.
   //! \details If the given node number is not present, 0 is returned.
   //! \param[in] globalNum Global node number
-  size_t getNodeIndex(int globalNum) const;
+  virtual size_t getNodeIndex(int globalNum, bool = false) const;
   //! \brief Returns the global node number for the given node.
   //! \param[in] inod 1-based node index local to current patch
   virtual int getNodeID(size_t inod, bool = false) const;

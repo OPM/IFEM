@@ -399,6 +399,9 @@ bool SIM1D::addConstraint (int patch, int lndx, int, int dirs, int code, int&)
   std::cout <<"\tConstraining P"<< patch
 	    << " V" << lndx <<" in direction(s) "<< dirs;
   if (code) std::cout <<" code = "<< code <<" ";
+#if SP_DEBUG > 1
+  std::cout << std::endl;
+#endif
 
   ASMs1D* pch = static_cast<ASMs1D*>(myModel[patch-1]);
   switch (lndx) // Vertex constraints

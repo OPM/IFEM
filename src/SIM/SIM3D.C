@@ -509,6 +509,9 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 	    <<" in direction(s) "<< dirs;
   if (lndx < 0) std::cout << (project ? " (local projected)" : " (local)");
   if (code != 0) std::cout <<" code = "<< abs(code) <<" ";
+#if SP_DEBUG > 1
+  std::cout << std::endl;
+#endif
 
   ASMs3D* pch = static_cast<ASMs3D*>(myModel[patch-1]);
   switch (abs(ldim))

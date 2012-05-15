@@ -121,6 +121,11 @@ public:
   //! This is used to reinitialize the patch after it has been refined.
   virtual void clear(bool retainGeometry = false);
 
+  //! \brief Returns local 1-based index of the node with given global number.
+  //! \details If the given node number is not present, 0 is returned.
+  //! \param[in] globalNum Global node number
+  //! \param[in] noAddedNodes If \e true, use \a xnMap to find the real node
+  virtual size_t getNodeIndex(int globalNum, bool noAddedNodes = false) const;
   //! \brief Returns the global node number for the given node.
   //! \param[in] inod 1-based node index local to current patch
   //! \param[in] noAddedNodes If \e true, use \a nxMap to find the real node

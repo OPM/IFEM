@@ -72,9 +72,9 @@ void ASMbase::clear (bool retainGeometry)
 }
 
 
-size_t ASMbase::getNodeIndex (int globalNum) const
+size_t ASMbase::getNodeIndex (int globalNum, bool) const
 {
-  IntVec::const_iterator it = find(MLGN.begin(),MLGN.end(),globalNum);
+  IntVec::const_iterator it = std::find(MLGN.begin(),MLGN.end(),globalNum);
   if (it == MLGN.end()) return 0;
 
   return 1 + (it-MLGN.begin());
@@ -156,9 +156,9 @@ public:
 };
 
 
-bool ASMbase::isFixed (int node, int ldof) const
+bool ASMbase::isFixed (int node, int dof) const
 {
-  return std::find_if(BCode.begin(),BCode.end(),fixed(node,ldof)) != BCode.end();
+  return std::find_if(BCode.begin(),BCode.end(),fixed(node,dof)) != BCode.end();
 }
 
 
@@ -357,7 +357,7 @@ void ASMbase::fix (size_t inod, int dirs)
   int node = this->getNodeID(inod);
   if (node < 1) return;
 
-  BCVec::iterator bit = find(BCode.begin(),BCode.end(),node);
+  BCVec::iterator bit = std::find(BCode.begin(),BCode.end(),node);
   if (bit == BCode.end())
   {
     BCode.push_back(BC(node));

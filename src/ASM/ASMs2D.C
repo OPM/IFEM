@@ -145,6 +145,22 @@ void ASMs2D::clear (bool retainGeometry)
 }
 
 
+size_t ASMs2D::getNodeIndex (int globalNum, bool noAddedNodes) const
+{
+  IntVec::const_iterator it = std::find(MLGN.begin(),MLGN.end(),globalNum);
+  if (it == MLGN.end()) return 0;
+
+  size_t inod = 1 + (it-MLGN.begin());
+  if (noAddedNodes && !xnMap.empty())
+  {
+    std::map<size_t,size_t>::const_iterator it = xnMap.find(inod);
+    if (it != xnMap.end()) return it->second;
+  }
+
+  return inod;
+}
+
+
 int ASMs2D::getNodeID (size_t inod, bool noAddedNodes) const
 {
   if (noAddedNodes && !nxMap.empty())
@@ -690,12 +706,12 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
   switch (dir)
     {
     case  1: // Right edge (positive I-direction)
-      iSnod += n1-1;
+      iSnod = n1-1;
     case -1: // Left edge (negative I-direction)
       incNod = n1;
       break;
     case  2: // Back edge (positive J-direction)
-      iSnod += n1*(n2-1);
+      iSnod = n1*(n2-1);
     case -2: // Front edge (negative J-direction)
       incNod = 1;
       break;
@@ -723,10 +739,10 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
       myMLGN.push_back(iMnod);
     else
     {
-      // Create an extra node for the local DOFs. The new node, for which the
-      // Dirichlet boundary conditions will be defined, then inherits the global
-      // node number of the original node. The original node, which do not enter
-      // the equation system, then receives a new global node number.
+      // Create an extra node for the local DOFs. The new node, for which
+      // the Dirichlet boundary conditions will be defined, then inherits
+      // the global node number of the original node. The original node, which
+      // do not enter the equation system, receives a new global node number.
       if (i > 0 && i+1 < gpar.size())
         // This is not a corner node
         myMLGN.push_back(++gNod);
@@ -747,9 +763,21 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
     nxMap[1+iSnod] = 1+iMnod; // Store nodal connection needed by getNodeID
     if (xit != xNode.end()) continue; // This node has already been processed
 
+    ++nxNode; // Increment number of added nodes
+
     // Global node numbers of the nodes to be coupled
     int masterNode = MLGN[iMnod];
     int slaveNode  = MLGN[iSnod];
+
+    // Add Dirichlet condition on the local DOF(s) of the added node
+    if (i == 0 || i+1 == gpar.size())
+      this->prescribe(1+iMnod,dof,bcode);
+    else
+    {
+      this->prescribe(1+iMnod,dof,-code);
+      if (code > 0)
+        dirich.back().nodes.push_back(std::make_pair(1+i,1+iMnod));
+    }
 
     // Find the local axis directions of the edge at this point
     Vec3 Yaxis(it[0],it[1],it[2]);
@@ -772,24 +800,13 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
         if (d > nsd)
           cons->addMaster(masterNode,d);
         else for (c = 1; c <= nsd; c++)
-          cons->addMaster(masterNode,c,Tlg(d,c));
+          if (!this->isFixed(masterNode,c))
+            cons->addMaster(masterNode,c,Tlg(d,c));
 #if SP_DEBUG > 1
         std::cout <<"Added constraint: "<< *cons;
 #endif
       }
     }
-
-    // Finally, add the Dirichlet condition on the local DOF(s)
-    int node = 1 + iMnod;
-    if (i == 0 || i+1 == gpar.size())
-      this->prescribe(node,dof,bcode);
-    else
-    {
-      this->prescribe(node,dof,-code);
-      if (code > 0)
-        dirich.back().nodes.push_back(std::make_pair(i+1,node));
-    }
-    ++nxNode;
   }
 
   if (locc) delete locc;
