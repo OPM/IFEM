@@ -1,0 +1,78 @@
+Annulus3D.xinp
+
+Input file: Annulus3D.xinp
+Equation solver: 2
+Number of Gauss points: 4
+Parsing input file Annulus3D.xinp
+Parsing <geometry>
+  Parsing <patchfile>
+	Reading data file annulus3D.g2
+	Reading patch 1
+  Parsing <raiseorder>
+  Parsing <refine>
+  Parsing <topologysets>
+	Topology sets: back surface (1,1,1D) (1,5,-1D) (1,6,-1D) (1,5,-2D)
+	               fixed edge (1,12,1D)
+	               fixed end (1,1,2D)
+	               inner edge (1,2,1D)
+	               inner surface (1,4,2D)
+	               pulled end (1,2,2D)
+	Raising order of P1 0 1 1
+	Refining P1 7 1 1
+Parsing <boundaryconditions>
+  Parsing <dirichlet>
+	Dirichlet code 3: (fixed)
+  Parsing <dirichlet>
+	Dirichlet code 123: (fixed)
+  Parsing <dirichlet>
+	Dirichlet code 2: (fixed)
+  Parsing <dirichlet>
+	Dirichlet code 1: (fixed)
+  Parsing <dirichlet>
+	Dirichlet code 1003: (fixed)
+  Parsing <neumann>
+	Neumann code 1002 direction 0: 1e+10
+Parsing <elasticity>
+	Material code 0: 2.068e+11 0.29 7820
+Parsing input file succeeded.
+Equation solver: 2
+Number of Gauss points: 4 4
+Problem definition:
+Elasticity: 3D, gravity = 0 0 0
+LinIsotropic: E = 2.068e+11, nu = 0.29, rho = 7820
+Resolving Dirichlet boundary conditions
+	Constraining P1 E1 in direction(s) 3
+	Constraining P1 E5 in direction(s) 3
+	Constraining P1 E6 in direction(s) 3
+	Constraining P1 E12 in direction(s) 123
+	Constraining P1 E2 in direction(s) 1
+	Constraining P1 F5 in direction(s) 3
+	Constraining P1 F1 in direction(s) 2
+	Constraining P1 F-4 in direction(s) 3 (local projected)
+ >>> SAM model summary <<<
+Number of elements    64
+Number of nodes       376
+Number of dofs        1128
+Number of D-dofs      912
+Number of X-dofs      216
+Number of constraints 216
+Number of unknowns    741
+Assembling interior matrix terms for P1
+Assembling Neumann matrix terms for boundary 2 on P1
+Solving the equation system ...
+ >>> Solution summary <<<
+L2-norm            : 0.300821
+Max X-displacement : 0.59306 node 370
+Max Y-displacement : 1.0174 node 376
+Max Z-displacement : 0.0223644 node 359
+Projecting secondary solution ...
+	Greville point projection
+Energy norm |u^h| = a(u^h,u^h)^0.5   : 132214
+External energy ((f,u^h)+(t,u^h)^0.5 : 138475
+>>> Error estimates based on Greville point projection <<<
+Energy norm |u^r| = a(u^r,u^r)^0.5   : 131734
+Error norm a(e,e)^0.5, e=u^r-u^h     : 1218.15
+ relative error (% of |u^r|) : 0.924711
+L2-norm |s^r| =(s^r,s^r)^0.5         : 6.00616e+10
+L2-error (e,e)^0.5, e=s^r-s^h        : 6.53109e+08
+ relative error (% of |s^r|) : 1.0874

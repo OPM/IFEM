@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+
+  <geometry>
+    <patchfile>trapes.g2</patchfile>
+    <raiseorder patch="1" u="2" v="2" w="3"/>
+    <refine patch="1" u="1" v="2" w="1"/>
+  </geometry>
+
+  <boundaryconditions>
+    <propertycodes>
+      <code value="1">
+        <patch index="1" face="1"/>
+      </code>
+      <code value="2">
+        <patch index="1" face="3"/>
+      </code>
+      <code value="3">
+        <patch index="1" face="5"/>
+      </code>
+      <code value="1003">
+        <patch index="1" face="2"/>
+      </code>
+      <code value="1002">
+        <patch index="1" face="4"/>
+      </code>
+    </propertycodes>
+    <dirichlet code="1"/>
+    <dirichlet code="2"/>
+    <dirichlet code="3"/>
+    <dirichlet code="1003" axes="local"/>
+    <neumann code="1002">1.0e10</neumann>
+  </boundaryconditions>
+
+  <elasticity>
+    <isotropic E="2.05e11" nu="0.27" rho="7850.0"/>
+  </elasticity>
+
+</simulation>
