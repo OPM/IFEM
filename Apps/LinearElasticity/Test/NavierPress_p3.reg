@@ -1,4 +1,4 @@
-NavierPress_p3.inp -KL -nGauss 3
+NavierPress_p3.inp -KL -nGauss 3 -grvl
 
 Input file: NavierPress_p3.inp
 Equation solver: 2

@@ -279,12 +279,12 @@ int main (int argc, char** argv)
   SIMoptions::ProjectionMap& pOpt = model->opt.project;
   SIMoptions::ProjectionMap::const_iterator pit;
 
-  // Default projection method
+  // Set default projection method (tensor splines only)
   bool staticSol = iop + model->opt.eig%5 == 0 || iop == 10;
-  if (model->opt.discretization >= ASM::Spline && staticSol)
+  if (model->opt.discretization < ASM::Spline || !staticSol)
+    pOpt.clear(); // No projection if Lagrange/Spectral or no static solution
+  else if (model->opt.discretization == ASM::Spline)
     pOpt[SIMoptions::GLOBAL] = "Greville point projection";
-  else
-    pOpt.clear();
 
   model->setQuadratureRule(model->opt.nGauss[0],true);
 
@@ -327,13 +327,6 @@ int main (int argc, char** argv)
     // Solve the linear system of equations
     if (!model->solveSystem(displ,1))
       return 3;
-
-    if (dummy.discretization == ASM::Spline   ||
-        dummy.discretization == ASM::LRSpline ||
-        dummy.discretization == ASM::SplineC1)
-      pOpt[SIMoptions::GLOBAL] = "Greville point projection";
-    else
-      pOpt.clear();
 
     // Project the FE stresses onto the splines basis
     model->setMode(SIM::RECOVERY);

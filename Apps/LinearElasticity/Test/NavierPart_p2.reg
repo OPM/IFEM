@@ -1,4 +1,4 @@
-NavierPart_p2.inp -KL -nGauss 2
+NavierPart_p2.inp -KL -nGauss 2 -grvl
 
 Input file: NavierPart_p2.inp
 Equation solver: 2

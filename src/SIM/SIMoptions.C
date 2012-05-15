@@ -243,6 +243,8 @@ bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
     ncv = atoi(argv[++i]);
   else if (!strcmp(argv[i],"-shift") && i < argc-1)
     shift = atof(argv[++i]);
+  else if (!strcasecmp(argv[i],"-grvl"))
+    project[GLOBAL] = "Greville point projection";
   else if (!strcasecmp(argv[i],"-dgl2"))
     project[DGL2] = "Discrete global L2-projection";
   else if (!strcasecmp(argv[i],"-cgl2"))
