@@ -81,9 +81,21 @@ SET(INCLUDES
   ${PROJECT_SOURCE_DIR}/src/LinAlg
   ${PROJECT_SOURCE_DIR}/src/SIM
   ${PROJECT_SOURCE_DIR}/src/Utility
-  ${PROJECT_SOURCE_DIR}/3rdparty/tinyxml
   ${PROJECT_SOURCE_DIR}/3rdparty/expreval
 )
+
+FIND_PACKAGE(TinyXML)
+IF(TINYXML_INCLUDE_DIR AND TINYXML_LIBRARIES)
+  SET(DEPLIBS ${DEPLIBS}
+              ${TINYXML_LIBRARIES})
+   SET(INCLUDES ${INCLUDES}
+                ${TINYXML_INCLUDE_DIR})
+ELSE(TINYXML_INCLUDE_DIR AND TINYXML_LIBRARIES)
+  SET(INCLUDES ${INCLUDES}
+               ${PROJECT_SOURCE_DIR}/3rdparty/tinyxml)
+  FILE(GLOB_RECURSE TINYXML_SRCS ${PROJECT_SOURCE_DIR}/3rdparty/tinyxml/*.C)
+ENDIF(TINYXML_INCLUDE_DIR AND TINYXML_LIBRARIES)
+
 
 # Set libraries, include directories and compiler flags from optional packages
 
@@ -172,12 +184,11 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GoTools_CXX_FLAGS}")
 
 # Make the IFEM library
 FILE(GLOB_RECURSE IFEM_SRCS ${PROJECT_SOURCE_DIR}/src/*.[Cf]
-                            ${PROJECT_SOURCE_DIR}/3rdparty/*.C
-                            ${PROJECT_SOURCE_DIR}/3rdparty/*.cpp)
+                            ${PROJECT_SOURCE_DIR}/3rdparty/expreval/*.cpp)
 IF(NOT(LRSpline_LIBRARIES AND LRSpline_INCLUDE_DIRS))
   string(REGEX REPLACE "${PROJECT_SOURCE_DIR}/src/ASM/LR/[^;]*" "" IFEM_SRCS "${IFEM_SRCS}")
 ENDIF(NOT(LRSpline_LIBRARIES AND LRSpline_INCLUDE_DIRS))
-ADD_LIBRARY(IFEM ${IFEM_SRCS})
+ADD_LIBRARY(IFEM ${IFEM_SRCS} ${TINYXML_SRCS})
 
 # Make some Apps
 FILE(GLOB_RECURSE Poisson_SRCS ${PROJECT_SOURCE_DIR}/Apps/Poisson/*.C)
