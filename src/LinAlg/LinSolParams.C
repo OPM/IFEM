@@ -38,7 +38,7 @@ void LinSolParams::setDefault ()
   prec      = PCILU;
   package   = DEFAULTSOLVER;
   levels    = 0;
-  overlap   = 0;
+  overlap   = 1;
   nullspc   = NONE;
   asmlu     = false;
 
@@ -232,7 +232,7 @@ void LinSolParams::setParams (KSP& ksp) const
   if (!strncasecmp(prec.c_str(),"hypre",5))
     PCHYPRESetType(pc,hypretype.c_str());
 #endif
-  if (overlap > 0) {
+  if (!strncasecmp(prec.c_str(),"asm",3) ||!strncasecmp(prec.c_str(),"gasm",4)) {
     PCASMSetType(pc,PC_ASM_BASIC);
     PCASMSetOverlap(pc,overlap);
   }
