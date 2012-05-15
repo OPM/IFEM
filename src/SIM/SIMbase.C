@@ -328,6 +328,13 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
       comp = LOCAL_AXES;
     else
       comp = GLOBAL_AXES;
+    if (comp <= LOCAL_AXES)
+    {
+      // Check for definition of first tangent direction (relevant for 3D only)
+      utl::getAttribute(elem,"t1",axes,true);
+      if (axes[0] >= 'x' && axes[0] <= 'z')
+	comp -= 10*(axes[0]-'w');
+    }
     const TiXmlNode* dval = elem->FirstChild();
     if (type == "anasol") {
       this->setPropertyType(code,Property::DIRICHLET_ANASOL);
@@ -801,7 +808,7 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
   PropertyVec::const_iterator q;
   for (unsigned char dim = 0; nprop < myProps.size(); dim++)
     for (q = myProps.begin(); q != myProps.end(); q++)
-      if (abs(q->ldim) == dim)
+      if (abs(q->ldim) == dim || (dim == 2 && abs(q->ldim) > 3))
       {
         nprop++;
         code = q->pindx;
@@ -1003,6 +1010,12 @@ size_t SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
         else if (ptype >= Property::DIRICHLET && pindex <= LOCAL_AXES)
         {
           p->lindx *= -1; // flag the use of local axis directions
+          if (abs(p->ldim) == 2 && pindex < 10)
+          {
+            // Flag first local tangent direction ['x','z']
+            p->ldim = (p->ldim/2)*('w'-pindex/10);
+            pindex %= 10;
+          }
           if (pindex == LOCAL_PROJECTED)
             p->lindx -= 10; // enable projection of the local axes definitions
           preserveNOrder = true; // because extra nodes might be added

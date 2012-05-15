@@ -219,9 +219,10 @@ public:
   //! \param[in] dof Which local DOFs to constrain at each node on the face
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] project If \e true, the local axis directions are projected
+  //! \param[in] T1 Desired global direction of first local tangent direction
   //! \return Number of additional nodes added due to local axis constraints
   size_t constrainFaceLocal(int dir, bool open, int dof = 3, int code = 0,
-			    bool project = false);
+			    bool project = false, char T1 = '\0');
 
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] lEdge Local index [1,12] of the edge to constrain

@@ -500,12 +500,14 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
   if (patch < 1 || patch > (int)myModel.size())
     return constrError("patch index ",patch);
 
+  int aldim = abs(ldim);
   bool open = ldim < 0; // open means without face edges or edge ends
   bool project = lndx < -10;
   if (project) lndx += 10;
+  if (lndx < 0 && aldim > 3) aldim = 2; // local tangent direction is indicated
 
   std::cout <<"\tConstraining P"<< patch
-	    << (ldim == 0 ? " V" : (abs(ldim) == 1 ? " E": " F")) << lndx
+	    << (ldim == 0 ? " V" : (aldim == 1 ? " E": " F")) << lndx
 	    <<" in direction(s) "<< dirs;
   if (lndx < 0) std::cout << (project ? " (local projected)" : " (local)");
   if (code != 0) std::cout <<" code = "<< abs(code) <<" ";
@@ -514,7 +516,7 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 #endif
 
   ASMs3D* pch = static_cast<ASMs3D*>(myModel[patch-1]);
-  switch (abs(ldim))
+  switch (aldim)
     {
     case 0: // Vertex constraints
       switch (lndx)
@@ -553,22 +555,22 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 	case  5: pch->constrainFace(-3,open,dirs,code); break;
 	case  6: pch->constrainFace( 3,open,dirs,code); break;
 	case -1:
-	  ngnod += pch->constrainFaceLocal(-1,open,dirs,code,project);
+	  ngnod += pch->constrainFaceLocal(-1,open,dirs,code,project,ldim);
 	  break;
 	case -2:
-	  ngnod += pch->constrainFaceLocal( 1,open,dirs,code,project);
+	  ngnod += pch->constrainFaceLocal( 1,open,dirs,code,project,ldim);
 	  break;
 	case -3:
-	  ngnod += pch->constrainFaceLocal(-2,open,dirs,code,project);
+	  ngnod += pch->constrainFaceLocal(-2,open,dirs,code,project,ldim);
 	  break;
 	case -4:
-	  ngnod += pch->constrainFaceLocal( 2,open,dirs,code,project);
+	  ngnod += pch->constrainFaceLocal( 2,open,dirs,code,project,ldim);
 	  break;
 	case -5:
-	  ngnod += pch->constrainFaceLocal(-3,open,dirs,code,project);
+	  ngnod += pch->constrainFaceLocal(-3,open,dirs,code,project,ldim);
 	  break;
 	case -6:
-	  ngnod += pch->constrainFaceLocal( 3,open,dirs,code,project);
+	  ngnod += pch->constrainFaceLocal( 3,open,dirs,code,project,ldim);
 	  break;
 	default:
 	  std::cout << std::endl;

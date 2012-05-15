@@ -766,7 +766,7 @@ void ASMs3D::constrainFace (int dir, bool open, int dof, int code)
 /*!
   The local coordinate systems in which the constraints are applied,
   are constructed from the tangent directions of the boundary surface,
-  evaluated at the Greville points  The local Z-direction is then the
+  evaluated at the Greville points. The local Z-direction is then the
   outward-directed normal, computed as the cross product of the two tangents.
   If \a project is \e true, the normal vector is projected onto the surface
   basis of the face in order to obtain corresponding control point values.
@@ -779,7 +779,7 @@ void ASMs3D::constrainFace (int dir, bool open, int dof, int code)
 */
 
 size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
-				   bool project)
+				   bool project, char T1)
 {
   int t1 = abs(dir)%3; // first tangent direction [0,2]
   int t2 = (1+t1)%3;   // second tangent direction [0,2]
@@ -884,7 +884,7 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
       if (open && (i == 0 || i+1 == upar.size())) continue;
       if (open && (j == 0 || j+1 == vpar.size())) continue;
       // Check if this node already has been constrained or fixed
-      if (this->isFixed(MLGN[iSnod],123)) continue;
+      if (this->isFixed(MLGN[iSnod],dof)) continue;
 
       // We need an extra node representing the local DOFs at this point
       std::map<int,int>::const_iterator xit = xNode.end();
@@ -935,8 +935,17 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
 
       // Local-to-global transformation matrix at this point, created by
       // projecting the global X- or Y-axis onto the tangent plane defined by
-      // the normal vector (see the Tensor(const Vec3&) constructor)
-      Tensor Tlg(Vec3(it[0],it[1],it[2]));
+      // the normal vector (see the Tensor::Tensor(const Vec3&) constructor).
+      // If T1 is defined, it is used to determine the first tangent direction.
+      Tensor Tlg(3);
+      if (T1 < 'x' || T1 > 'z')
+        Tlg = Tensor(Vec3(it[0],it[1],it[2]));
+      else
+      {
+        Vec3 v1;
+        v1[T1-'x'] = 1.0;
+        Tlg = Tensor(Vec3(it[0],it[1],it[2]),v1,true);
+      }
 
       // Now establish constraint equations relating the global and local DOFs.
       // We here assume there are (at least) 3 unknowns per node,
