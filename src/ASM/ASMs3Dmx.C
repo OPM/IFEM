@@ -450,6 +450,14 @@ bool ASMs3Dmx::getElementCoordinates (Matrix& X, int iel) const
 
 Vec3 ASMs3Dmx::getCoord (size_t inod) const
 {
+  if (inod > nodeInd.size() && inod <= MLGN.size())
+  {
+    // This is a node added due to constraints in local directions.
+    // Find the corresponding original node (see constrainFaceLocal)
+    std::map<size_t,size_t>::const_iterator it = xnMap.find(inod);
+    if (it != xnMap.end()) inod = it->second;
+  }
+
 #ifdef INDEX_CHECK
   if (inod < 1 || inod > nodeInd.size())
   {

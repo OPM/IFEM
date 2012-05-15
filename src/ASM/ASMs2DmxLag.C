@@ -63,7 +63,7 @@ size_t ASMs2DmxLag::getNoNodes (int basis) const
     case 2: return nb2;
     }
 
-  return nb1+nb2;
+  return MLGN.size();
 }
 
 
@@ -81,7 +81,7 @@ unsigned char ASMs2DmxLag::getNoFields (int basis) const
 
 unsigned char ASMs2DmxLag::getNodalDOFs (size_t inod) const
 {
-  return inod <= nb1 ? nf1 : nf2;
+  return inod <= nb1 || inod > nb1+nb2 ? nf1 : nf2;
 }
 
 

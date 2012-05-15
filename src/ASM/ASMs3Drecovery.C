@@ -24,7 +24,7 @@
 
 bool ASMs3D::getGrevilleParameters (RealArray& prm, int dir) const
 {
-  if (!svol) return false;
+  if (!svol || dir < 0 || dir > 2) return false;
 
   const Go::BsplineBasis& basis = svol->basis(dir);
 

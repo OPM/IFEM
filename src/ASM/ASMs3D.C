@@ -121,6 +121,45 @@ void ASMs3D::clear (bool retainGeometry)
   // Erase the FE data
   this->ASMbase::clear(retainGeometry);
   myNodeInd.clear();
+  xnMap.clear();
+  nxMap.clear();
+}
+
+
+size_t ASMs3D::getNodeIndex (int globalNum, bool noAddedNodes) const
+{
+  IntVec::const_iterator it = std::find(MLGN.begin(),MLGN.end(),globalNum);
+  if (it == MLGN.end()) return 0;
+
+  size_t inod = 1 + (it-MLGN.begin());
+  if (noAddedNodes && !xnMap.empty() && inod > nodeInd.size())
+  {
+    std::map<size_t,size_t>::const_iterator it = xnMap.find(inod);
+    if (it != xnMap.end()) return it->second;
+  }
+
+  return inod;
+}
+
+
+int ASMs3D::getNodeID (size_t inod, bool noAddedNodes) const
+{
+  if (noAddedNodes && !nxMap.empty())
+  {
+    std::map<size_t,size_t>::const_iterator it = nxMap.find(inod);
+    if (it != nxMap.end()) inod = it->second;
+  }
+
+  if (inod < 1 || inod > MLGN.size())
+    return 0;
+
+  return MLGN[inod-1];
+}
+
+
+char ASMs3D::getNodeType (size_t inod) const
+{
+  return inod > nodeInd.size() ? 'X' : 'D';
 }
 
 
@@ -727,11 +766,11 @@ void ASMs3D::constrainFace (int dir, bool open, int dof, int code)
 /*!
   The local coordinate systems in which the constraints are applied,
   are constructed from the tangent directions of the boundary surface,
-  evaluated at the Greville points (giving the local X- and Y-directions).
-  The local Z-direction is then the outward-directed normal.
-  If \a project is \e true, the tangent- and normal direction vectors are
-  projected onto the aurface basis of the face in order to obtain corresponding
-  control point values. Otherwise, they are used directly.
+  evaluated at the Greville points  The local Z-direction is then the
+  outward-directed normal, computed as the cross product of the two tangents.
+  If \a project is \e true, the normal vector is projected onto the surface
+  basis of the face in order to obtain corresponding control point values.
+  Otherwise, it is used directly.
 
   A negative \a code value implies direct evaluation of the Dirichlet condition
   function at the control point. Positive \a code implies projection onto the
@@ -742,10 +781,185 @@ void ASMs3D::constrainFace (int dir, bool open, int dof, int code)
 size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
 				   bool project)
 {
-  // TODO....
-  size_t nLGN = myMLGN.size();
+  int t1 = abs(dir)%3; // first tangent direction [0,2]
+  int t2 = (1+t1)%3;   // second tangent direction [0,2]
+  if (t1 == 2) std::swap(t1,t2);
 
-  return myMLGN.size() - nLGN; // Number of added nodes
+  // Get parameter values of the Greville points on the face
+  RealArray upar, vpar;
+  if (!this->getGrevilleParameters(upar,t1) ||
+      !this->getGrevilleParameters(vpar,t2))
+    return 0;
+
+  if (swapW && t1 == 0) dir = -dir; // Account for swapped parameter direction
+
+  // Find the curve representing the edge geometry (for tangent evaluation)
+  Go::SplineSurface* face = this->getBoundary(dir);
+  if (!face) return 0;
+
+  // We need to add extra nodes, check that the global node counter is good.
+  // If not, we cannot do anything here
+  if (!shareFE && gNod < *std::max_element(MLGN.begin(),MLGN.end()))
+  {
+    std::cerr <<"\n *** ASMs3D::constrainFaceLocal: Logic error, gNod = "<< gNod
+              <<" is too small!"<< std::endl;
+    return 0;
+  }
+  if (nf < 3)
+  {
+    std::cerr <<"\n *** ASMs3D::constrainFaceLocal: Not for scalar problems!"
+              << std::endl;
+    return 0;
+  }
+
+  // Loop over the Greville points along over the face
+  size_t i, j, k = 0;
+  unsigned char c, d;
+  std::vector<Go::Point> pts(3);
+  RealArray gdata(3*upar.size()*vpar.size());
+  for (j = 0; j < vpar.size(); j++)
+    for (i = 0; i < upar.size(); i++)
+    {
+      // Compute the outward-directed face normal at this point.
+      // That will be the local z-axis of the local coordinate system.
+      face->point(pts,upar[i],vpar[j],1);
+      Vec3 Zaxis(SplineUtils::toVec3(pts[1]),SplineUtils::toVec3(pts[2]));
+      gdata[k++] = dir > 0 ? Zaxis.x : -Zaxis.x;
+      gdata[k++] = dir > 0 ? Zaxis.y : -Zaxis.y;
+      gdata[k++] = dir > 0 ? Zaxis.z : -Zaxis.z;
+    }
+
+  Go::SplineSurface* locs = NULL;
+  if (project)
+  {
+    // Project the Greville point values onto the spline basis
+    // to obtain the corresponding control point values
+
+    RealArray weights;
+    if (face->rational())
+      face->getWeights(weights);
+
+    locs = Go::SurfaceInterpolator::regularInterpolation(face->basis(0),
+							 face->basis(1),
+							 upar,vpar,gdata,3,
+							 face->rational(),
+							 weights);
+  }
+
+  // Find start index and increment of the (slave) node with the global DOFs
+  int n1, n2, n3, incI = 1, incJ = 0, iSnod = 0;
+  this->getSize(n1,n2,n3,1);
+  switch (dir)
+    {
+    case  1: // Right face (positive I-direction)
+      iSnod = n1-1;
+    case -1: // Left face (negative I-direction)
+      incI = n1;
+      break;
+
+    case  2: // Back face (positive J-direction)
+      iSnod = n1*(n2-1);
+    case -2: // Front face (negative J-direction)
+      incJ = n1*(n2-1);
+      break;
+
+    case  3: // Top face (positive K-direction)
+      iSnod = n1*n2*(n3-1);
+    case -3: // Bottom face (negative K-direction)
+      break;
+    }
+
+  int bcode = code;
+  if (code > 0) // Dirichlet projection will be performed
+    dirich.push_back(DirichletFace(this->getBoundary(dir),dof,code));
+  else if (code < 0)
+    bcode = -code;
+
+  size_t nxNode = 0;
+  RealArray::const_iterator it = locs ? locs->coefs_begin() : gdata.begin();
+  for (j = k = 0; j < vpar.size(); j++, iSnod += incJ)
+    for (i = 0; i < upar.size(); i++, iSnod += incI, it += 3)
+    {
+      // Skip the edge points if this should be regarded an open boundary
+      if (open && (i == 0 || i+1 == upar.size())) continue;
+      if (open && (j == 0 || j+1 == vpar.size())) continue;
+      // Check if this node already has been constrained or fixed
+      if (this->isFixed(MLGN[iSnod],123)) continue;
+
+      // We need an extra node representing the local DOFs at this point
+      std::map<int,int>::const_iterator xit = xNode.end();
+      int iMnod = shareFE ? nodeInd.size()+myMLGN.size() : myMLGN.size();
+      if (shareFE) // Store the index into MLGN in myMLGN
+        myMLGN.push_back(iMnod);
+      else
+      {
+        // Create an extra node for the local DOFs. The new node, for which
+        // the Dirichlet boundary conditions will be defined, then inherits
+        // the global node number of the original node. The original node, which
+        // do not enter the equation system, receives a new global node number.
+        if (i > 0 && i+1 < upar.size() && j > 0 && j+1 < vpar.size())
+          // This is not an edge node
+          myMLGN.push_back(++gNod);
+        else if ((xit = xNode.find(MLGN[iSnod])) != xNode.end())
+          // This is an edge node already processed by another patch
+          myMLGN.push_back(xit->second);
+        else
+        {
+          // This is an edge node, store its original-to-extra node number
+          // mapping in ASMstruct::xNode
+          myMLGN.push_back(++gNod);
+          xNode[MLGN[iSnod]] = gNod;
+        }
+        std::swap(myMLGN[iMnod],myMLGN[iSnod]);
+      }
+
+      xnMap[1+iMnod] = 1+iSnod; // Store nodal connection needed by getCoord
+      nxMap[1+iSnod] = 1+iMnod; // Store nodal connection needed by getNodeID
+      if (xit != xNode.end()) continue; // This node has already been processed
+
+      ++nxNode; // Increment number of added nodes
+
+      // Global node numbers of the nodes to be coupled
+      int masterNode = MLGN[iMnod];
+      int slaveNode  = MLGN[iSnod];
+
+      // Add Dirichlet condition on the local DOF(s) of the added node
+      if ((i == 0 || i+1 == upar.size()) && (j == 0 || j+1 == vpar.size()))
+        this->prescribe(1+iMnod,dof,bcode); // corner node
+      else
+      {
+        this->prescribe(1+iMnod,dof,-code);
+        if (code > 0)
+          dirich.back().nodes.push_back(std::make_pair(1+k,1+iMnod));
+      }
+
+      // Local-to-global transformation matrix at this point, created by
+      // projecting the global X- or Y-axis onto the tangent plane defined by
+      // the normal vector (see the Tensor(const Vec3&) constructor)
+      Tensor Tlg(Vec3(it[0],it[1],it[2]));
+
+      // Now establish constraint equations relating the global and local DOFs.
+      // We here assume there are (at least) 3 unknowns per node,
+      // and only the first 3 DOFs are subjected to transformation.
+      for (d = 1; d <= nf; d++)
+      {
+        MPC* cons = new MPC(slaveNode,d);
+        if (this->addMPC(cons,0,true) && cons)
+        {
+          if (d > 3)
+            cons->addMaster(masterNode,d);
+          else for (c = 1; c <= 3; c++)
+            if (!this->isFixed(masterNode,c))
+              cons->addMaster(masterNode,c,Tlg(d,c));
+#if SP_DEBUG > 1
+          std::cout <<"Added constraint: "<< *cons;
+#endif
+        }
+      }
+    }
+
+  if (locs) delete locs;
+  return nxNode; // Number of added nodes
 }
 
 
@@ -1076,6 +1290,14 @@ int ASMs3D::coeffInd (size_t inod) const
 
 Vec3 ASMs3D::getCoord (size_t inod) const
 {
+  if (inod > nodeInd.size() && inod <= MLGN.size())
+  {
+    // This is a node added due to constraints in local directions.
+    // Find the corresponding original node (see constrainEdgeLocal)
+    std::map<size_t,size_t>::const_iterator it = xnMap.find(inod);
+    if (it != xnMap.end()) inod = it->second;
+  }
+
   if (inod == 0) return Vec3();
   int ip = this->coeffInd(inod-1)*svol->dimension();
   if (ip < 0) return Vec3();

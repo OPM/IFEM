@@ -47,6 +47,9 @@ public:
   //! This is used to reinitialize the patch after it has been refined.
   virtual void clear(bool retainGeometry = false);
 
+  //! \brief Returns the classification of a node.
+  virtual char getNodeType(size_t) const { return 'D'; }
+
   //! \brief Returns a matrix with nodal coordinates for an element.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in one element

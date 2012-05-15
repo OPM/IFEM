@@ -139,6 +139,19 @@ public:
   //! This is used to reinitialize the patch after it has been refined.
   virtual void clear(bool retainGeometry = false);
 
+  //! \brief Returns local 1-based index of the node with given global number.
+  //! \details If the given node number is not present, 0 is returned.
+  //! \param[in] globalNum Global node number
+  //! \param[in] noAddedNodes If \e true, use \a xnMap to find the real node
+  virtual size_t getNodeIndex(int globalNum, bool noAddedNodes = false) const;
+  //! \brief Returns the global node number for the given node.
+  //! \param[in] inod 1-based node index local to current patch
+  //! \param[in] noAddedNodes If \e true, use \a nxMap to find the real node
+  virtual int getNodeID(size_t inod, bool noAddedNodes = false) const;
+  //! \brief Returns the classification of the given node.
+  //! \param[in] inod 1-based node index local to current patch
+  virtual char getNodeType(size_t inod) const;
+
   //! \brief Returns a matrix with nodal coordinates for an element.
   //! \param[in] iel Element index
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
@@ -205,9 +218,10 @@ public:
   //! \param[in] open If \e true, exclude all points along the face boundary
   //! \param[in] dof Which local DOFs to constrain at each node on the face
   //! \param[in] code Inhomogeneous dirichlet condition code
-  //! \param[in] proj If \e true, the local axis directions are projected
+  //! \param[in] project If \e true, the local axis directions are projected
   //! \return Number of additional nodes added due to local axis constraints
-  size_t constrainFaceLocal(int dir, bool open, int dof, int code, bool proj);
+  size_t constrainFaceLocal(int dir, bool open, int dof = 3, int code = 0,
+			    bool project = false);
 
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] lEdge Local index [1,12] of the edge to constrain
@@ -512,6 +526,9 @@ protected:
 
   const IndexVec& nodeInd; //!< IJK-triplets for the control points (nodes)
   IndexVec      myNodeInd; //!< The actual IJK-triplet container
+
+  std::map<size_t,size_t> xnMap; //!< Node index map used by \a getCoord
+  std::map<size_t,size_t> nxMap; //!< Node index map used by \a getNodeID
 
   //! Inhomogeneous Dirichlet boundary condition data
   std::vector<DirichletFace> dirich;
