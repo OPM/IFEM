@@ -81,8 +81,10 @@ public:
   //! \param[in] name Name of field we depend on
   //! \param[in] nvc Number of components in field
   //! \param[in] patches The geometry the field is defined over
+  //! \param[in] diffBasis Different basis for the SIM class and the field
   void registerDependency(SIMinput* sim, const std::string& name,
-                          short int nvc, const std::vector<ASMbase*>* patches=0);
+                          short int nvc, const std::vector<ASMbase*>* patches=0,
+			  bool diffBasis = false);
 
 protected:
   //! \brief Register a named field in this integrand
@@ -96,6 +98,7 @@ protected:
     std::string name;
     short int components;
     std::vector<ASMbase*> patches;
+    bool differentBasis;
   };
   typedef std::vector<Dependency>             DepVector;
   typedef std::map<std::string,const Vector*> FieldMap;

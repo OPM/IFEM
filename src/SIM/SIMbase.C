@@ -594,7 +594,7 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
     }
   }
 
-  else if (!strncasecmp(keyWord,"LINEARSOLVER",12))
+  else if (!strncasecmp(keyWord,"LINEARSOLVER",12)) 
     this->readLinSolParams(is,atoi(keyWord+12));
 
   else if (!strncasecmp(keyWord,"PARTITIONING",12))
@@ -658,14 +658,14 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
     if ((cline = strtok(NULL," "))) opt.saveInc = atoi(cline);
   }
 
-#ifdef SP_DEBUG
+ #ifdef SP_DEBUG
   // Since the same input file might be parsed by several substep solvers,
   // warnings on ignored keywords are issued when compiled in debug mode only.
   else if (isalpha(keyWord[0]))
     std::cerr <<" *** SIMbase::parse: Unknown keyword: "<< keyWord << std::endl;
 #endif
 
-  return true;
+   return true;
 }
 
 
@@ -1400,10 +1400,10 @@ bool SIMbase::extractPatchSolution (const Vectors& sol, size_t pindx)
 	patch = myModel[pindx];
       int bflag = it->components < 0 ? it->components : 0; // HACK
       patch->extractNodeVec(*psol,*lvec,abs(it->components),bflag);
-      if (mixedFEM) {
+      if (it->differentBasis) {
 	if (it->components == 1)
 	  myProblem->setNamedField(it->name,Field::create(patch,*lvec));
-	else
+	else 
 	  myProblem->setNamedFields(it->name,Fields::create(patch,*lvec));
       }
 #if SP_DEBUG > 2

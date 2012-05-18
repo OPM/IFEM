@@ -164,7 +164,8 @@ const Vector* SIMinput::getNamedField (const std::string& name)
 
 void SIMinput::registerDependency (SIMinput* sim,
 				   const std::string& name, short int nvc,
-				   const std::vector<ASMbase*>* patches)
+				   const std::vector<ASMbase*>* patches,
+				   bool diffBasis)
 {
   Dependency dep;
   dep.sim = sim;
@@ -172,6 +173,7 @@ void SIMinput::registerDependency (SIMinput* sim,
   dep.components = nvc;
   if (patches)
     dep.patches = *patches;
+  dep.differentBasis = diffBasis;
   depFields.push_back(dep);
 }
 
