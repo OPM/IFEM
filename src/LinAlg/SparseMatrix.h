@@ -90,6 +90,9 @@ public:
   //! \warning Not recommended for matrices of nontrivial size.
   void printFull(std::ostream& os) const;
 
+  //! \brief Dumps the system matrix on a specified format.
+  virtual void dump(std::ostream&, char, const char* = NULL);
+
   //! \brief Initializes the element assembly process.
   //! \details Must be called once before the element assembly loop.
   //! \param[in] sam Auxilliary data describing the FE model topology, etc.

@@ -157,6 +157,22 @@ void DenseMatrix::init ()
 }
 
 
+void DenseMatrix::dump (std::ostream& os, char format, const char* label)
+{
+  switch (format)
+    {
+    case 'M':
+    case 'm':
+      utl::writeMatlab(label,myMat,os);
+      break;
+
+    default:
+      if (label) os << label <<" =";
+      os << myMat;
+    }
+}
+
+
 /*!
   \brief This is a C++ version of the F77 subroutine ADDEM2 (SAM library).
   \details It performs exactly the same tasks, except that \a NRHS always is 1.

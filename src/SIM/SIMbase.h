@@ -210,7 +210,7 @@ public:
   //! \brief Computes the solution for the current time step.
   virtual bool solveStep(SIMparameters&) { return false; }
   //! \brief Saves the converged results to VTF file of a given time step.
-  virtual bool saveStep(int, double, int) { return false; }
+  virtual bool saveStep(int, double, int&) { return false; }
 
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time
@@ -500,7 +500,7 @@ public:
   //! \param[in] formatted If \e false, write all result points on a single line
   //!            without point identifications, but with time as first column
   //! \param[in] precision Number of digits after the decimal point
-  bool dumpResultCoords(double time, std::ostream& os, bool formatted = true, 
+  bool dumpResultCoords(double time, std::ostream& os, bool formatted = true,
 			std::streamsize precision = 3) const;
 
   //! \brief Dumps the primary solution in ASCII format for inspection.
@@ -665,9 +665,25 @@ protected:
   IntegrandBase* myProblem; //!< Problem-specific data and methods
   AnaSol*        mySol;     //!< Analytical/Exact solution
 
+  //! \brief A struct with data for system matrix/vector dumps.
+  struct DumpData
+  {
+    std::string fname;  //!< File name
+    char        format; //!< File format flag
+    int         step;   //!< Dump step identifier
+    int         count;  //!< Internal step counter, dump only when step==count
+    //! \brief Default constructor.
+    DumpData() : format('P'), step(0), count(0) {}
+    //! \brief Checks if the matrix or vector should be dumped now.
+    bool doDump() { return !fname.empty() && ++count == step; }
+  };
+
   // Post-processing attributes
   ResPointVec myPoints; //!< User-defined result sampling points
   VTF*        myVtf;    //!< VTF-file for result visualization
+
+  std::vector<DumpData> lhsDump; //!< Coefficient matrix dump specifications
+  std::vector<DumpData> rhsDump; //!< Right-hand-side vector dump specifications
 
   // Parallel computing attributes
   int               nGlPatches; //!< Number of global patches

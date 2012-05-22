@@ -48,6 +48,22 @@ SystemVector& SystemVector::copy (const SystemVector& x)
 }
 
 
+void StdVector::dump (std::ostream& os, char format, const char* label)
+{
+  switch (format)
+    {
+    case 'M':
+    case 'm':
+      utl::writeMatlab(label,*this,os);
+      break;
+
+    default:
+      if (label) os << label <<" =";
+      os << *this;
+    }
+}
+
+
 SystemMatrix* SystemMatrix::create (Type matrixType, const LinSolParams& spar)
 {
 #ifdef HAS_PETSC

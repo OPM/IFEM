@@ -1380,7 +1380,11 @@ namespace utl //! General utility classes and functions.
   template<class T> void writeMatlab(const char* label, const vector<T>& X,
                                      std::ostream& s = std::cout)
   {
-    s << label <<" = [";
+    if (label)
+      s << label <<" = [";
+    else
+      s <<"[";
+
     for (size_t i = 1; i <= X.size(); i++)
       s <<' '<< trunc(X(i));
     s <<" ];"<< std::endl;
@@ -1390,7 +1394,11 @@ namespace utl //! General utility classes and functions.
   template<class T> void writeMatlab(const char* label, const matrix<T>& A,
 				     std::ostream& s = std::cout)
   {
-    s << label <<" = [";
+    if (label)
+      s << label <<" = [";
+    else
+      s <<"[";
+
     size_t nsp = 4 + strlen(label);
     for (size_t i = 1; i <= A.rows(); i++)
     {

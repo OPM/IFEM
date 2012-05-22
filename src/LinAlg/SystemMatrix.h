@@ -51,7 +51,7 @@ public:
   virtual size_t dim() const = 0;
 
   //! \brief Sets the dimension of the system vector.
-  virtual void redim(size_t n) = 0;
+  virtual void redim(size_t) = 0;
 
   //! \brief Resize the vector to length \a n.
   virtual void resize(size_t n, bool = false) { this->redim(n); }
@@ -76,7 +76,7 @@ public:
   //! \brief Initializes the vector assuming it is properly dimensioned.
   virtual void init(real value = real(0)) = 0;
 
-  //! \brief Copies entries from input vector into \a *this.
+  //! \brief Copies entries from input vector \b x into \a *this.
   SystemVector& copy(const SystemVector& x);
 
   //! \brief Begins communication step needed in parallel vector assembly.
@@ -85,7 +85,7 @@ public:
   virtual bool endAssembly() { return true; }
 
   //! \brief Multiplication with a scalar.
-  virtual void mult(real alpha) = 0;
+  virtual void mult(real) = 0;
 
   //! \brief L1-norm of the vector.
   virtual real L1norm() const = 0;
@@ -95,6 +95,9 @@ public:
 
   //! \brief Linfinity-norm of the vector.
   virtual real Linfnorm() const = 0;
+
+  //! \brief Dumps the system vector on a specified format.
+  virtual void dump(std::ostream&, char, const char* = NULL) {}
 
 protected:
   //! \brief Writes the system vector to the given output stream.
@@ -170,6 +173,9 @@ public:
 
   //! \brief Linfinity-norm of the vector.
   virtual real Linfnorm() const { size_t off = 0; return this->normInf(off); }
+
+  //! \brief Dumps the system vector on a specified format.
+  virtual void dump(std::ostream& os, char format, const char* label = NULL);
 
 protected:
   //! \brief Writes the system vector to the given output stream.
@@ -288,6 +294,9 @@ public:
 
   //! \brief Returns the L-infinity norm of the matrix.
   virtual real Linfnorm() const = 0;
+
+  //! \brief Dumps the system matrix on a specified format.
+  virtual void dump(std::ostream&, char, const char* = NULL) {}
 
 protected:
   //! \brief Writes the system matrix to the given output stream.

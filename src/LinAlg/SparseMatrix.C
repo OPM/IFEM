@@ -267,6 +267,35 @@ const real& SparseMatrix::operator () (size_t r, size_t c) const
 }
 
 
+void SparseMatrix::dump (std::ostream& os, char format, const char* label)
+{
+  if (label) os << label <<" =\n";
+  switch (format)
+    {
+    case 'M':
+    case 'm':
+      if (editable)
+        for (ValueIter it = elem.begin(); it != elem.end(); it++)
+          os << it->first.first <<' '<< it->first.second <<" "<< it->second
+             <<'\n';
+      else if (solver == SUPERLU)
+        // Column-oriented format with 0-based indices
+        for (size_t j = 1; j <= ncol; j++)
+          for (int i = IA[j-1]; i < IA[j]; i++)
+            os << JA[i]+1 <<' '<< j <<' '<< A[i] <<'\n';
+      else
+        // Row-oriented format with 1-based indices
+        for (size_t i = 1; i <= nrow; i++)
+          for (int j = IA[i-1]; j < IA[i]; j++)
+            os << i <<' '<< JA[j-1] <<' '<< A[i-1] <<'\n';
+      break;
+
+    default:
+      this->write(os);
+    }
+}
+
+
 std::ostream& SparseMatrix::write (std::ostream& os) const
 {
   os << nrow <<' '<< ncol <<' '<< this->size();

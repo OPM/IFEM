@@ -357,11 +357,29 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
 }
 
 
+static bool noDumpDataYet = true; //!< To read only once in adaptive loops
+
+
 bool SIMbase::parseOutputTag (const TiXmlElement* elem)
 {
   std::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
-  if (strcasecmp(elem->Value(),"resultpoints"))
+  if (!strcasecmp(elem->Value(),"dump_lhs_matrix") ||
+      !strcasecmp(elem->Value(),"dump_rhs_vector")) {
+    if (elem->FirstChild() && noDumpDataYet) {
+      DumpData dmp;
+      std::string format;
+      utl::getAttribute(elem,"step",dmp.step);
+      utl::getAttribute(elem,"format",format);
+      dmp.format = format[0];
+      dmp.fname = elem->FirstChild()->Value();
+      if (toupper(elem->Value()[5]) == 'R')
+	rhsDump.push_back(dmp);
+      else
+	lhsDump.push_back(dmp);
+    }
+  }
+  else if (strcasecmp(elem->Value(),"resultpoints"))
     return opt.parseOutputTag(elem);
 
   const TiXmlElement* point = elem->FirstChildElement("point");
@@ -401,6 +419,8 @@ bool SIMbase::parse (const TiXmlElement* elem)
   }
   else if (!strcasecmp(elem->Value(),"eigensolver"))
     utl::getAttribute(elem,"mode",opt.eig);
+  else if (!strcasecmp(elem->Value(),"postprocessing"))
+    noDumpDataYet = lhsDump.empty() && rhsDump.empty();
 
   const TiXmlElement* child = elem->FirstChildElement();
   while (child) {
@@ -594,7 +614,7 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
     }
   }
 
-  else if (!strncasecmp(keyWord,"LINEARSOLVER",12)) 
+  else if (!strncasecmp(keyWord,"LINEARSOLVER",12))
     this->readLinSolParams(is,atoi(keyWord+12));
 
   else if (!strncasecmp(keyWord,"PARTITIONING",12))
@@ -658,14 +678,14 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
     if ((cline = strtok(NULL," "))) opt.saveInc = atoi(cline);
   }
 
- #ifdef SP_DEBUG
+#ifdef SP_DEBUG
   // Since the same input file might be parsed by several substep solvers,
   // warnings on ignored keywords are issued when compiled in debug mode only.
   else if (isalpha(keyWord[0]))
     std::cerr <<" *** SIMbase::parse: Unknown keyword: "<< keyWord << std::endl;
 #endif
 
-   return true;
+  return true;
 }
 
 
@@ -1403,7 +1423,7 @@ bool SIMbase::extractPatchSolution (const Vectors& sol, size_t pindx)
       if (it->differentBasis) {
 	if (it->components == 1)
 	  myProblem->setNamedField(it->name,Field::create(patch,*lvec));
-	else 
+	else
 	  myProblem->setNamedFields(it->name,Fields::create(patch,*lvec));
       }
 #if SP_DEBUG > 2
@@ -1425,6 +1445,23 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
   if (!A) std::cerr <<" *** SIMbase::solveSystem: No LHS matrix"<< std::endl;
   if (!b) std::cerr <<" *** SIMbase::solveSystem: No RHS vector"<< std::endl;
   if (!A || !b) return false;
+
+  // Dump system matrix to file, if requested
+  std::vector<DumpData>::iterator it;
+  for (it = lhsDump.begin(); it != lhsDump.end(); it++)
+    if (it->doDump()) {
+      std::cout <<"\nDumping system matrix to file "<< it->fname << std::endl;
+      std::ofstream os(it->fname.c_str());
+      A->dump(os,it->format,"A");
+    }
+
+  // Dump right-hand-side vector to file, if requested
+  for (it = rhsDump.begin(); it != rhsDump.end(); it++)
+    if (it->doDump()) {
+      std::cout <<"\nDumping RHS vector to file "<< it->fname << std::endl;
+      std::ofstream os(it->fname.c_str());
+      b->dump(os,it->format,"b");
+    }
 
   // Solve the linear system of equations
   if (msgLevel > 1)
