@@ -26,6 +26,7 @@
 
 class IntegrandBase;
 class NormBase;
+class ForceBase;
 class AnaSol;
 class VTF;
 class SAMpatch;
@@ -188,6 +189,8 @@ public:
   size_t getNoDOFs() const;
   //! \brief Returns the model size in terms of number of (unique) nodes.
   size_t getNoNodes(bool unique = false) const;
+  //! \brief Returns the model size in terms of number of elements.
+  size_t getNoElms() const;
   //! \brief Returns the number of solution vectors.
   size_t getNoSolutions() const;
   //! \brief Returns the total number of patches in the model.
@@ -516,6 +519,11 @@ public:
   //! manually deleted before the variable receiving the pointer value goes
   //! out of scope.
   NormBase* getNormIntegrand() const;
+  //! \brief Returns a pointer to a force integrand object for this simulator.
+  //! \note The object is allocated dynamically and has therefore to be
+  //! manually deleted before the variable receiving the pointer value goes
+  //! out of scope.
+  ForceBase* getBoundaryForceIntegrand(const Vec3* X0 = NULL) const;
 
   //! \brief Returns a unique integer code for a Property set.
   //! \param[in] setName Name of the topology set the property is defined on
@@ -566,6 +574,17 @@ public:
   //! If \a patchNo is not on current processor, 0 is returned.
   int getLocalPatchIndex(int patchNo) const;
 
+  //! \brief Extracts all local solution vector(s) for a specified patch.
+  //! \param[in] sol Global primary solution vectors in DOF-order
+  //! \param[in] pindx Local patch index to extract solution vectors for
+  //!
+  //! \details This method is typically invoked before the \a integrate method
+  //! on the the specified path, in order to extract all patch-level vector
+  //! quantities needed by the Integrand. This also includes any dependent
+  //! vectors from other simulator classes that have been registered.
+  //! All patch-level vectors are stored within the Integrand \a *myProblem.
+  bool extractPatchSolution(const Vectors& sol, size_t pindx);
+
   //! \brief Extracts a local solution vector for a specified patch.
   //! \param[in] sol Global primary solution vector in DOF-order
   //! \param[in] pindx Local patch index to extract solution vector for
@@ -595,12 +614,12 @@ public:
   //! \brief Returns a const reference to our global-to-local node mapping.
   const std::map<int,int>& getGlob2LocMap() const { return myGlb2Loc; }
 
-protected:
-  //! \brief Extracts all local solution vector(s) for the given patch.
-  //! \param[in] sol Global primary solution vectors in DOF-order
-  //! \param[in] pindx Local patch index to extract solution vectors for
-  bool extractPatchSolution(const Vectors& sol, size_t pindx);
+  //! \brief Returns the beginning of the property array.
+  PropertyVec::const_iterator begin_prop() const { return myProps.begin(); }
+  //! \brief Returns the end of the property array.
+  PropertyVec::const_iterator end_prop() const { return myProps.end(); }
 
+protected:
   //! \brief Initializes material properties for integration of interior terms.
   virtual bool initMaterial(size_t) { return true; }
   //! \brief Initializes the body load properties for current patch.

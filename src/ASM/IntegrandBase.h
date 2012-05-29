@@ -21,6 +21,8 @@
 #include <map>
 
 class NormBase;
+class ForceBase;
+class GlbNorm;
 class AnaSol;
 class VTF;
 class Field;
@@ -80,7 +82,7 @@ public:
   //! The default implementation forwards to an overloaded method not taking
   //! \a X0 and \a nPt as arguments.
   virtual bool initElement(const std::vector<int>& MNPC,
-			   const Vec3& X0, size_t nPt, LocalIntegral& elmInt);
+                           const Vec3& X0, size_t nPt, LocalIntegral& elmInt);
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param[in] elmInt Local integral for element
@@ -96,7 +98,7 @@ public:
   //! \param[in] n1 Number of nodes in basis 1 on this patch
   //! \param[in] elmInt Local integral for element
   virtual bool initElement(const std::vector<int>& MNPC1,
-			   const std::vector<int>& MNPC2, size_t n1,
+                           const std::vector<int>& MNPC2, size_t n1,
                            LocalIntegral& elmInt);
 
   //! \brief Initializes current element for boundary integration.
@@ -110,8 +112,11 @@ public:
   //! \param[in] n1 Number of nodes in basis 1 on this patch
   //! \param[in] elmInt Local integral for element
   virtual bool initElementBou(const std::vector<int>& MNPC1,
-			      const std::vector<int>& MNPC2, size_t n1,
+                              const std::vector<int>& MNPC2, size_t n1,
                               LocalIntegral& elmInt);
+
+  //! \brief Returns whether this integrand has explicit boundary contributions.
+  virtual bool hasBoundaryTerms() const { return true; }
 
 
   // Secondary solution field evaluation interface
@@ -190,6 +195,9 @@ public:
 
   //! \brief Returns a pointer to an Integrand for solution norm evaluation.
   virtual NormBase* getNormIntegrand(AnaSol* = 0) const { return 0; }
+  //! \brief Returns a pointer to an Integrand for boundary force evaluation.
+  virtual ForceBase* getForceIntegrand(const Vec3* = 0, AnaSol* = 0) const
+  { return 0; }
 
   //! \brief Returns the number of primary/secondary solution field components.
   virtual size_t getNoFields(int = 2) const { return 0; }
@@ -258,22 +266,19 @@ public:
   void setLocalIntegrals(LintegralVec* elementNorms) { lints = elementNorms; }
 
   //! \brief Returns a local integral container for the given element.
-  //! \param[in] nen Number of nodes on element
   //! \param[in] iEl The element number
-  //! \param[in] neumann Whether or not we are assembling Neumann BC's
-  virtual LocalIntegral* getLocalIntegral(size_t nen, size_t iEl,
-                                          bool neumann) const;
+  virtual LocalIntegral* getLocalIntegral(size_t, size_t iEl, bool) const;
 
   //! \brief Initializes current element for numerical integration.
   virtual bool initElement(const std::vector<int>& MNPC,
-			   const Vec3& X0, size_t nPt, LocalIntegral& elmInt);
+                           const Vec3& X0, size_t nPt, LocalIntegral& elmInt);
 
   //! \brief Initializes current element for numerical integration.
   virtual bool initElement(const std::vector<int>& MNPC, LocalIntegral& elmInt);
 
   //! \brief Initializes current element for numerical integration (mixed).
   virtual bool initElement(const std::vector<int>& MNPC1,
-			   const std::vector<int>& MNPC2, size_t n1,
+                           const std::vector<int>& MNPC2, size_t n1,
                            LocalIntegral& elmInt);
 
   //! \brief Initializes current element for boundary integration.
@@ -282,7 +287,7 @@ public:
 
   //! \brief Initializes current element for boundary integration (mixed).
   virtual bool initElementBou(const std::vector<int>& MNPC1,
-			      const std::vector<int>& MNPC2, size_t n1,
+                              const std::vector<int>& MNPC2, size_t n1,
                               LocalIntegral& elmInt);
 
   //! \brief Returns whether this norm has explicit boundary contributions.
@@ -301,7 +306,7 @@ public:
   Vector& getProjection(size_t i);
 
 private:
-  //! \brief Initializes projected field for current element.
+  //! \brief Initializes the projected fields for current element.
   bool initProjection(const std::vector<int>& MNPC, LocalIntegral& elmInt);
 
 protected:
@@ -311,6 +316,69 @@ protected:
 
   unsigned short int nrcmp; //!< Number of projected solution components
   LintegralVec*      lints; //!< Local integrals used during norm integration
+};
+
+
+/*!
+  \brief Base class representing a system level boundary force quantity.
+*/
+
+class ForceBase : public Integrand
+{
+protected:
+  //! \brief The constructor is protected to allow sub-classes only.
+  ForceBase(IntegrandBase& p) : myProblem(p), eBuffer(NULL) {}
+
+public:
+  //! \brief The destructor frees the internally allocated objects.
+  virtual ~ForceBase();
+
+  //! \brief Allocates internal element buffers used in multithreaded assembly.
+  //! \param[in] nel Number of elements
+  bool initBuffer(size_t nel);
+
+  //! \brief Assembles the global forces in case of multithreading.
+  void assemble(GlbNorm& force) const;
+
+  //! \brief Initializes the integrand with the number of integration points.
+  virtual void initIntegration(size_t, size_t) {}
+  //! \brief Initializes the integrand for a new integration loop.
+  virtual void initIntegration(const TimeDomain& time);
+
+  //! \brief Returns a local integral container for the given element.
+  //! \param[in] iEl The element number
+  virtual LocalIntegral* getLocalIntegral(size_t, size_t iEl, bool) const;
+
+  //! \brief Dummy implementation (only boundary integration is relevant).
+  virtual bool initElement(const std::vector<int>&, const Vec3&,
+                           size_t, LocalIntegral&)
+  { return false; }
+
+  //! \brief Dummy implementation (only boundary integration is relevant).
+  virtual bool initElement(const std::vector<int>&, LocalIntegral&)
+  { return false; }
+
+  //! \brief Dummy implementation (only boundary integration is relevant).
+  virtual bool initElement(const std::vector<int>&, const std::vector<int>&,
+                           size_t, LocalIntegral&)
+  { return false; }
+
+  //! \brief Initializes current element for boundary integration.
+  virtual bool initElementBou(const std::vector<int>& MNPC,
+                              LocalIntegral& elmInt);
+
+  //! \brief Initializes current element for boundary integration (mixed).
+  virtual bool initElementBou(const std::vector<int>& MNPC1,
+                              const std::vector<int>& MNPC2, size_t n1,
+                              LocalIntegral& elmInt);
+
+  //! \brief Returns the number of force components.
+  virtual size_t getNoComps() const = 0;
+
+protected:
+  IntegrandBase& myProblem; //!< The problem-specific data
+  LintegralVec      eForce; //!< Local integrals used during force integration
+  double*          eBuffer; //!< Element force buffer (used when multithreading)
 };
 
 #endif

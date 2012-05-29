@@ -1209,6 +1209,12 @@ size_t SIMbase::getNoNodes (bool unique) const
 }
 
 
+size_t SIMbase::getNoElms () const
+{
+  return mySam ? mySam->getNoElms() : 0;
+}
+
+
 size_t SIMbase::getNoSolutions () const
 {
   return myProblem ? myProblem->getNoSolutions() : 0;
@@ -1516,6 +1522,12 @@ double SIMbase::solutionNorms (const Vector& x, double* inf,
 NormBase* SIMbase::getNormIntegrand () const
 {
   return myProblem->getNormIntegrand(mySol);
+}
+
+
+ForceBase* SIMbase::getBoundaryForceIntegrand (const Vec3* X0) const
+{
+  return myProblem->getForceIntegrand(X0,mySol);
 }
 
 
