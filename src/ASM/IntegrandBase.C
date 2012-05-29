@@ -132,19 +132,16 @@ bool IntegrandBase::evalSol (Vector&, const VecFunc&, const Vec3&) const
 }
 
 
-void IntegrandBase::registerVector(const std::string& name, Vector* vec)
+void IntegrandBase::registerVector (const std::string& name, Vector* vec)
 {
   myFields[name] = vec;
 }
 
 
-Vector* IntegrandBase::getNamedVector(const std::string& name)
+Vector* IntegrandBase::getNamedVector (const std::string& name) const
 {
-  FieldMap::iterator it = myFields.find(name);
-  if (it == myFields.end())
-    return 0;
-  
-  return it->second;
+  std::map<std::string,Vector*>::const_iterator it = myFields.find(name);
+  return it == myFields.end() ? NULL : it->second;
 }
 
 

@@ -36,7 +36,7 @@ public:
   //! \brief Creates the FE model by copying the given patches.
   //! \param[in] patches List of patches to borrow the grid from
   //! \param[in] g2ln Global-to-local node number mapping for the borrowed grid
-  void clonePatches(const FEModelVec& patches, const std::map<int,int>& g2ln);
+  void clonePatches(const PatchVec& patches, const std::map<int,int>& g2ln);
 
 private:
   //! \brief Parses a subelement of the \a geometry XML-tag.

@@ -44,8 +44,6 @@ SIM2D::SIM2D (unsigned char n1, unsigned char n2) : isRefined(false)
 {
   nf[0] = n1;
   nf[1] = n2;
-
-  if (nf[1] > 0) mixedFEM = true;
 }
 
 
@@ -580,7 +578,7 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 
 bool SIM2D::readPatch (std::istream& isp, int pchInd)
 {
-  ASMbase* pch = ASM2D::create(opt.discretization,nf,mixedFEM);
+  ASMbase* pch = ASM2D::create(opt.discretization,nf,nf[1] > 0);
   if (pch)
   {
     if (!pch->read(isp))
@@ -605,7 +603,7 @@ bool SIM2D::readPatches (std::istream& isp, const char* whiteSpace)
 {
   ASMbase* pch = 0;
   for (int pchInd = 1; isp.good(); pchInd++)
-    if ((pch = ASM2D::create(opt.discretization,nf,mixedFEM)))
+    if ((pch = ASM2D::create(opt.discretization,nf,nf[1] > 0)))
     {
       std::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
       if (!pch->read(isp))
@@ -670,7 +668,7 @@ bool SIM2D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
 }
 
 
-void SIM2D::clonePatches (const FEModelVec& patches,
+void SIM2D::clonePatches (const PatchVec& patches,
 			  const std::map<int,int>& glb2locN)
 {
   ASM2D* pch = 0;

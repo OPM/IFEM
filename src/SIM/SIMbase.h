@@ -15,6 +15,7 @@
 #define _SIM_BASE_H
 
 #include "SIMinput.h"
+#include "SIMdependency.h"
 #include "SIMoptions.h"
 #include "TimeDomain.h"
 #include "TopologySet.h"
@@ -22,9 +23,7 @@
 #include "Function.h"
 #include "MatVec.h"
 #include "Vec3.h"
-#include <map>
 
-class ASMbase;
 class IntegrandBase;
 class NormBase;
 class AnaSol;
@@ -75,7 +74,7 @@ typedef std::vector<ResultPoint> ResPointVec; //!< Result point container
   Sub-classes are derived with additional info regarding the problem to solve.
 */
 
-class SIMbase : public SIMinput
+class SIMbase : public SIMinput, public SIMdependency
 {
 protected:
   //! \brief The constructor initializes the pointers to dynamic data members.
@@ -119,8 +118,7 @@ private:
 
 public:
   //! \brief Creates the FE model by copying the given patches.
-  virtual void clonePatches(const std::vector<ASMbase*>&,
-			    const std::map<int,int>&) {}
+  virtual void clonePatches(const PatchVec&, const std::map<int,int>&) {}
 
   //! \brief Refines a list of elements.
   virtual bool refine(const std::vector<int>&, const std::vector<int>&,
@@ -593,7 +591,7 @@ public:
   bool extractPatchElmRes(const Matrix& globRes, Matrix& elmRes, int pindx);
 
   //! \brief Returns a const reference to our FEM model.
-  const std::vector<ASMbase*>& getFEModel() const { return myModel; }
+  const PatchVec& getFEModel() const { return myModel; }
   //! \brief Returns a const reference to our global-to-local node mapping.
   const std::map<int,int>& getGlob2LocMap() const { return myGlb2Loc; }
 
@@ -645,8 +643,6 @@ public:
   SIMoptions opt; //!< Simulation control parameters
 
 protected:
-  //! \brief Spline patch container
-  typedef std::vector<ASMbase*>       FEModelVec;
   //! \brief Scalar field container
   typedef std::map<int,RealFunc*>     SclFuncMap;
   //! \brief Vector field container
@@ -655,8 +651,7 @@ protected:
   typedef std::map<int,TractionFunc*> TracFuncMap;
 
   // Model attributes
-  bool           mixedFEM;  //!< If \e true, mixed finite elements are used
-  FEModelVec     myModel;   //!< The actual NURBS/spline model
+  PatchVec       myModel;   //!< The actual NURBS/spline model
   PropertyVec    myProps;   //!< Physical property mapping
   TopologySet    myEntitys; //!< Set of named topological entities
   SclFuncMap     myScalars; //!< Scalar property fields

@@ -77,7 +77,7 @@ bool SIMinput::readFlat (const char* fileName)
 static void injectIncludeFiles (TiXmlElement* tag)
 {
   TiXmlElement* elem = tag->FirstChildElement();
-  while (elem) {
+  for (; elem; elem = elem->NextSiblingElement())
     if (strcasecmp(elem->Value(),"include"))
       injectIncludeFiles(elem);
     else if (elem->FirstChild() && elem->FirstChild()->Value()) {
@@ -90,8 +90,6 @@ static void injectIncludeFiles (TiXmlElement* tag)
 		  <<"\n\tError at line "<< doc.ErrorRow() <<": "
 		  << doc.ErrorDesc() << std::endl;
     }
-    elem = elem->NextSiblingElement();
-  }
 }
 
 
@@ -152,33 +150,4 @@ bool SIMinput::handlePriorityTags (const TiXmlElement* base,
     }
 
   return true;
-}
-
-
-const Vector* SIMinput::getNamedField (const std::string& name)
-{
-  FieldMap::const_iterator it = myFields.find(name);
-  return it == myFields.end() ? NULL : it->second;
-}
-
-
-void SIMinput::registerDependency (SIMinput* sim,
-				   const std::string& name, short int nvc,
-				   const std::vector<ASMbase*>* patches,
-				   bool diffBasis)
-{
-  Dependency dep;
-  dep.sim = sim;
-  dep.name = name;
-  dep.components = nvc;
-  if (patches)
-    dep.patches = *patches;
-  dep.differentBasis = diffBasis;
-  depFields.push_back(dep);
-}
-
-
-void SIMinput::registerNamedField(const std::string& name, const Vector* vec)
-{
-  myFields.insert(make_pair(name,vec));
 }

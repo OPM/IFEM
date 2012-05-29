@@ -31,10 +31,6 @@
 #include "EigSolver.h"
 #include "Functions.h"
 #include "Profiler.h"
-#include "Field.h"
-#include "SplineField2D.h"
-#include "Fields.h"
-#include "SplineFields2D.h"
 #include "ElementBlock.h"
 #include "VTF.h"
 #include "Functions.h"
@@ -52,7 +48,6 @@ bool SIMbase::ignoreDirichlet = false;
 
 SIMbase::SIMbase () : g2l(&myGlb2Loc)
 {
-  mixedFEM = false;
   myProblem = 0;
   mySol = 0;
   myVtf = 0;
@@ -85,7 +80,7 @@ SIMbase::~SIMbase ()
   if (mySam)       delete mySam;
   if (mySolParams) delete mySolParams;
 
-  for (FEModelVec::iterator i1 = myModel.begin(); i1 != myModel.end(); i1++)
+  for (PatchVec::iterator i1 = myModel.begin(); i1 != myModel.end(); i1++)
     delete *i1;
 
   myModel.clear();
@@ -99,7 +94,7 @@ SIMbase::~SIMbase ()
 
 void SIMbase::clearProperties ()
 {
-  for (FEModelVec::iterator i1 = myModel.begin(); i1 != myModel.end(); i1++)
+  for (PatchVec::iterator i1 = myModel.begin(); i1 != myModel.end(); i1++)
     (*i1)->clear(true); // retain the geometry only
   for (SclFuncMap::iterator i2 = myScalars.begin(); i2 != myScalars.end(); i2++)
     delete i2->second;
@@ -749,7 +744,7 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 {
   if (!this->createFEMmodel()) return false;
 
-  FEModelVec::const_iterator mit;
+  PatchVec::const_iterator mit;
   size_t patch;
 
   // Erase all patches that should be ignored in the analysis
@@ -1403,37 +1398,11 @@ bool SIMbase::extractPatchSolution (const Vectors& sol, size_t pindx)
   if (pindx >= myModel.size() || myModel[pindx]->empty())
     return false;
 
-  ASMbase* patch = myModel[pindx];
   for (size_t i = 0; i < sol.size() && i < myProblem->getNoSolutions(); i++)
     if (!sol[i].empty())
-      patch->extractNodeVec(sol[i],myProblem->getSolution(i));
+      myModel[pindx]->extractNodeVec(sol[i],myProblem->getSolution(i));
 
-  DepVector::const_iterator it;
-  for (it = depFields.begin(); it != depFields.end(); ++it)
-  {
-    const Vector* psol = it->sim->getNamedField(it->name);
-    Vector* lvec = myProblem->getNamedVector(it->name);
-    if (lvec && psol && !psol->empty()) {
-      if (pindx < it->patches.size())
-	patch = it->patches[pindx];
-      else
-	patch = myModel[pindx];
-      int bflag = it->components < 0 ? it->components : 0; // HACK
-      patch->extractNodeVec(*psol,*lvec,abs(it->components),bflag);
-      if (it->differentBasis) {
-	if (it->components == 1)
-	  myProblem->setNamedField(it->name,Field::create(patch,*lvec));
-	else
-	  myProblem->setNamedFields(it->name,Fields::create(patch,*lvec));
-      }
-#if SP_DEBUG > 2
-      std::cout <<"SIMbase::extractPatchSolution: Dependent field \""<< it->name
-		<<"\" for patch "<< pindx+1 << *lvec;
-#endif
-    }
-  }
-
-  return true;
+  return this->extractPatchDependencies(myProblem,myModel,pindx);
 }
 
 

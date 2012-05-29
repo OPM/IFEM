@@ -18,8 +18,6 @@
 #include "SIMenums.h"
 #include "Function.h"
 #include "MatVec.h"
-
-#include <vector>
 #include <map>
 
 class NormBase;
@@ -28,8 +26,6 @@ class VTF;
 class Field;
 class Fields;
 
-typedef std::vector<LocalIntegral*> LintegralVec; //!< Local integral container
-typedef std::map<std::string,Vector*> FieldMap; //!< Map of named vectors
 
 /*!
   \brief Base class representing a system level integrated quantity.
@@ -211,31 +207,31 @@ public:
   //! \brief Resets the primary solution vectors.
   void resetSolution();
 
-  //! \brief Obtain a vector where we can store inject a named field
-  //! param[in] name Name of the vector
-  //! \returns Pointer to the vector to inject data into if it exists, NULL otherwise
-  Vector* getNamedVector(const std::string& name);
+  //! \brief Registers where we can inject a mixed-basis scalar field.
+  virtual void setNamedField(const std::string&, Field*) {}
+  //! \brief Registers where we can inject a mixed-basis vector field.
+  virtual void setNamedFields(const std::string&, Fields*) {}
 
-  //! \brief Register where we can inject a mixed-basis scalar field into
-  //! \param[in] name Name of the field
-  //! \param[in] field Pointer to the field to inject data into
-  virtual void setNamedField(const std::string& name, Field* f) {}
+  //! \brief Returns a vector where we can store a named field.
+  Vector* getNamedVector(const std::string& name) const;
 
-  //! \brief Register where we can inject a mixed-basis vector field into
-  //! \param[in] name Name of the fields
-  //! \param[in] field Pointer to the field to inject data into
-  virtual void setNamedFields(const std::string& name, Fields* f) {}
+protected:
+  //! \brief Registers a vector to inject a named field into.
+  //! \param[in] name Name of field
+  //! \param[in] vec Vector to inject field into
+  void registerVector(const std::string& name, Vector* vec);
+
+private:
+  std::map<std::string,Vector*> myFields; //!< Named fields of this integrand
+
 protected:
   Vectors            primsol; //!< Primary solution vectors for current patch
   unsigned short int npv;     //!< Number of primary solution variables per node
   SIM::SolutionMode  m_mode;  //!< Current solution mode
-  FieldMap           myFields; //!< The fields in this integrand
-
-  //! \brief Register a vector to inject a named field into
-  //! \param[in] name Name of field
-  //! \param[in] vec Vector to inject field into
-  void registerVector(const std::string& name, Vector* vec);
 };
+
+
+typedef std::vector<LocalIntegral*> LintegralVec; //!< Local integral container
 
 
 /*!

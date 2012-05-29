@@ -29,8 +29,6 @@ SIM3D::SIM3D (bool checkRHS, unsigned char n1, unsigned char n2)
   nf[0] = n1;
   nf[1] = n2;
   checkRHSys = checkRHS;
-
-  if (nf[1] > 0) mixedFEM = true;
 }
 
 
@@ -676,13 +674,14 @@ bool SIM3D::readPatch (std::istream& isp, int pchInd)
 bool SIM3D::readPatches (std::istream& isp, const char* whiteSpace)
 {
   ASMs3D* pch = 0;
+
   for (int patchNo = 1; isp.good(); patchNo++)
   {
     std::cout << whiteSpace <<"Reading patch "<< patchNo << std::endl;
     switch (opt.discretization)
       {
       case ASM::Lagrange:
-        if (mixedFEM)
+        if (nf[1] > 0)
           pch = new ASMs3DmxLag(nf[0],nf[1]);
         else
           pch = new ASMs3DLag(nf[0]);
@@ -691,7 +690,7 @@ bool SIM3D::readPatches (std::istream& isp, const char* whiteSpace)
         pch = new ASMs3DSpec(nf[0]);
         break;
       default:
-        if (mixedFEM)
+        if (nf[1] > 0)
           pch = new ASMs3Dmx(nf[0],nf[1]);
         else
           pch = new ASMs3D(nf[0]);
