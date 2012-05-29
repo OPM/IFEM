@@ -51,7 +51,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.0175355
                             Max X-displacement : 0.00491801 node 144
                             Max Y-displacement : 0.05 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -0.134839
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.259531	 a(u^h,u^h) = 0.06735639689
   External energy: ((f,u^h)+(t,u^h))^0.5 : -0.259653	(f,u)+(t,u) = 0.06741948561
@@ -69,7 +68,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.0360444
                             Max X-displacement : 0.0160635 node 132
                             Max Y-displacement : 0.1 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -0.332624
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.466867	 a(u^h,u^h) = 0.2179648481
   External energy: ((f,u^h)+(t,u^h))^0.5 : -0.466899	(f,u)+(t,u) = 0.2179949407
@@ -87,7 +85,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.0543025
                             Max X-displacement : 0.0278912 node 132
                             Max Y-displacement : 0.15 node 314
-  Total reaction forces: Sum(R) = 2.34906e-08 0
   displacement\*reactions: (R,u) = -0.511454
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.621604	 a(u^h,u^h) = 0.3863918454
   External energy: ((f,u^h)+(t,u^h))^0.5 : -0.621605	(f,u)+(t,u) = 0.3863932371
@@ -105,7 +102,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.072484
                             Max X-displacement : 0.0396404 node 132
                             Max Y-displacement : 0.2 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -0.694978
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.747353	 a(u^h,u^h) = 0.5585359013
   External energy: ((f,u^h)+(t,u^h))^0.5 : -0.747334	(f,u)+(t,u) = 0.5585078047
@@ -123,7 +119,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.0906277
                             Max X-displacement : 0.0513349 node 132
                             Max Y-displacement : 0.25 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -0.883311
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.856603	 a(u^h,u^h) = 0.7337687812
   External energy: ((f,u^h)+(t,u^h))^0.5 : -0.856569	(f,u)+(t,u) = 0.7337111509
@@ -141,7 +136,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.108762
                             Max X-displacement : 0.0630058 node 132
                             Max Y-displacement : 0.3 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -1.0764
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 0.954898	 a(u^h,u^h) = 0.9118303943
   External energy: ((f,u^h)+(t,u^h))^0.5 : -0.954852	(f,u)+(t,u) = 0.9117424061
@@ -159,7 +153,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.126897
                             Max X-displacement : 0.0746583 node 132
                             Max Y-displacement : 0.35 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -1.27405
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.04526	 a(u^h,u^h) = 1.092565891
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.0452	(f,u)+(t,u) = 1.092445846
@@ -177,7 +170,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.145033
                             Max X-displacement : 0.0862897 node 132
                             Max Y-displacement : 0.4 node 314
-  Total reaction forces: Sum(R) = 3.25048e-08 0
   displacement\*reactions: (R,u) = -1.47598
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.12954	 a(u^h,u^h) = 1.27585225
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.12947	(f,u)+(t,u) = 1.27569781
@@ -195,7 +187,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.163171
                             Max X-displacement : 0.0978969 node 132
                             Max Y-displacement : 0.45 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -1.68192
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.20896	 a(u^h,u^h) = 1.461578117
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.20888	(f,u)+(t,u) = 1.461386567
@@ -213,7 +204,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.181311
                             Max X-displacement : 0.109478 node 132
                             Max Y-displacement : 0.5 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -1.8916
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.28438	 a(u^h,u^h) = 1.649638233
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.28429	(f,u)+(t,u) = 1.649406682
@@ -231,7 +221,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.199453
                             Max X-displacement : 0.121032 node 132
                             Max Y-displacement : 0.55 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -2.10475
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.35644	 a(u^h,u^h) = 1.839931825
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.35634	(f,u)+(t,u) = 1.839657343
@@ -249,7 +238,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.217596
                             Max X-displacement : 0.132558 node 132
                             Max Y-displacement : 0.6 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -2.32113
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.42561	 a(u^h,u^h) = 2.032362073
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.4255	(f,u)+(t,u) = 2.032041789
@@ -267,7 +255,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.235741
                             Max X-displacement : 0.144057 node 132
                             Max Y-displacement : 0.65 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -2.5405
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.49226	 a(u^h,u^h) = 2.226835883
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.49214	(f,u)+(t,u) = 2.226467032
@@ -285,7 +272,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.253887
                             Max X-displacement : 0.155528 node 132
                             Max Y-displacement : 0.7 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -2.76263
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.55668	 a(u^h,u^h) = 2.423263727
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.55655	(f,u)+(t,u) = 2.422843689
@@ -303,7 +289,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.272036
                             Max X-displacement : 0.166973 node 132
                             Max Y-displacement : 0.75 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -2.98731
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.61912	 a(u^h,u^h) = 2.621559515
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.61898	(f,u)+(t,u) = 2.621085825
@@ -321,7 +306,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.290186
                             Max X-displacement : 0.178391 node 132
                             Max Y-displacement : 0.8 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -3.21434
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.67977	 a(u^h,u^h) = 2.821640467
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.67962	(f,u)+(t,u) = 2.821110826
@@ -339,7 +323,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.30834
                             Max X-displacement : 0.189783 node 132
                             Max Y-displacement : 0.85 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -3.44353
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.7388	 a(u^h,u^h) = 3.02342699
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.73863	(f,u)+(t,u) = 3.022839268
@@ -357,7 +340,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.326496
                             Max X-displacement : 0.20115 node 132
                             Max Y-displacement : 0.9 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -3.67471
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.79634	 a(u^h,u^h) = 3.226842565
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.79616	(f,u)+(t,u) = 3.226194793
@@ -375,7 +357,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.344656
                             Max X-displacement : 0.212493 node 132
                             Max Y-displacement : 0.95 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -3.90769
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.85252	 a(u^h,u^h) = 3.431813624
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.85232	(f,u)+(t,u) = 3.431103997
@@ -393,7 +374,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.36282
                             Max X-displacement : 0.223812 node 132
                             Max Y-displacement : 1 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -4.14233
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.90742	 a(u^h,u^h) = 3.638269442
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.90722	(f,u)+(t,u) = 3.637496308
@@ -411,7 +391,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.380988
                             Max X-displacement : 0.235108 node 132
                             Max Y-displacement : 1.05 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -4.37847
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 1.96116	 a(u^h,u^h) = 3.84614203
   External energy: ((f,u^h)+(t,u^h))^0.5 : -1.96094	(f,u)+(t,u) = 3.845303885
@@ -429,7 +408,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.399161
                             Max X-displacement : 0.246383 node 132
                             Max Y-displacement : 1.1 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -4.61597
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.01379	 a(u^h,u^h) = 4.055366025
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.01357	(f,u)+(t,u) = 4.054461509
@@ -447,7 +425,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.41734
                             Max X-displacement : 0.257636 node 132
                             Max Y-displacement : 1.15 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -4.85469
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.0654	 a(u^h,u^h) = 4.265878595
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.06517	(f,u)+(t,u) = 4.264906483
@@ -465,7 +442,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.435525
                             Max X-displacement : 0.268868 node 132
                             Max Y-displacement : 1.2 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -5.0945
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.11604	 a(u^h,u^h) = 4.477619337
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.11579	(f,u)+(t,u) = 4.476578534
@@ -483,7 +459,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.453716
                             Max X-displacement : 0.280082 node 132
                             Max Y-displacement : 1.25 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -5.33529
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.16576	 a(u^h,u^h) = 4.690530186
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.16551	(f,u)+(t,u) = 4.68941972
@@ -501,7 +476,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.471916
                             Max X-displacement : 0.291303 node 108
                             Max Y-displacement : 1.3 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -5.57694
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.21462	 a(u^h,u^h) = 4.904555322
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.21436	(f,u)+(t,u) = 4.903374337
@@ -519,7 +493,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.490123
                             Max X-displacement : 0.302511 node 108
                             Max Y-displacement : 1.35 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -5.81935
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.26266	 a(u^h,u^h) = 5.119641087
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.26239	(f,u)+(t,u) = 5.118388836
@@ -537,7 +510,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.50834
                             Max X-displacement : 0.313708 node 108
                             Max Y-displacement : 1.4 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -6.06241
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.30992	 a(u^h,u^h) = 5.335735896
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.30963	(f,u)+(t,u) = 5.334411739
@@ -555,7 +527,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.526568
                             Max X-displacement : 0.324895 node 108
                             Max Y-displacement : 1.45 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -6.30603
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.35644	 a(u^h,u^h) = 5.552790159
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.35614	(f,u)+(t,u) = 5.551393554
@@ -573,7 +544,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.544807
                             Max X-displacement : 0.336074 node 108
                             Max Y-displacement : 1.5 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -6.55011
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.40224	 a(u^h,u^h) = 5.770756204
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.40193	(f,u)+(t,u) = 5.769286702
@@ -591,7 +561,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.563058
                             Max X-displacement : 0.347247 node 108
                             Max Y-displacement : 1.55 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -6.79459
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.44736	 a(u^h,u^h) = 5.989588199
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.44705	(f,u)+(t,u) = 5.988045439
@@ -609,7 +578,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.581324
                             Max X-displacement : 0.358417 node 108
                             Max Y-displacement : 1.6 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -7.03937
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.49184	 a(u^h,u^h) = 6.209242083
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.49151	(f,u)+(t,u) = 6.207625787
@@ -627,7 +595,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.599605
                             Max X-displacement : 0.369587 node 108
                             Max Y-displacement : 1.65 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -7.28439
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.53568	 a(u^h,u^h) = 6.429675495
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.53535	(f,u)+(t,u) = 6.427985462
@@ -645,7 +612,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.617904
                             Max X-displacement : 0.380758 node 108
                             Max Y-displacement : 1.7 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -7.52956
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.57892	 a(u^h,u^h) = 6.650847705
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.57858	(f,u)+(t,u) = 6.649083807
@@ -663,7 +629,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.636221
                             Max X-displacement : 0.391935 node 108
                             Max Y-displacement : 1.75 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -7.77483
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.62159	 a(u^h,u^h) = 6.872719552
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.62124	(f,u)+(t,u) = 6.870881731
@@ -681,7 +646,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.65456
                             Max X-displacement : 0.403121 node 108
                             Max Y-displacement : 1.8 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -8.02014
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.66369	 a(u^h,u^h) = 7.095253381
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.66333	(f,u)+(t,u) = 7.093341642
@@ -699,7 +663,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.672921
                             Max X-displacement : 0.414334 node 84
                             Max Y-displacement : 1.85 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -8.26542
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.70526	 a(u^h,u^h) = 7.31841298
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.70489	(f,u)+(t,u) = 7.316427389
@@ -717,7 +680,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.691309
                             Max X-displacement : 0.425601 node 84
                             Max Y-displacement : 1.9 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -8.51063
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.7463	 a(u^h,u^h) = 7.542163525
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.74593	(f,u)+(t,u) = 7.540104204
@@ -735,7 +697,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.709726
                             Max X-displacement : 0.436903 node 60
                             Max Y-displacement : 1.95 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -8.7557
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.78684	 a(u^h,u^h) = 7.766471521
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.78646	(f,u)+(t,u) = 7.764338643
@@ -753,7 +714,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.728174
                             Max X-displacement : 0.448282 node 60
                             Max Y-displacement : 2 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -9.00059
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.82689	 a(u^h,u^h) = 7.991304748
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.8265	(f,u)+(t,u) = 7.989098535
@@ -771,7 +731,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.746659
                             Max X-displacement : 0.459709 node 60
                             Max Y-displacement : 2.05 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -9.24526
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.86647	 a(u^h,u^h) = 8.216632205
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.86607	(f,u)+(t,u) = 8.214352926
@@ -789,7 +748,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.765183
                             Max X-displacement : 0.471193 node 60
                             Max Y-displacement : 2.1 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -9.48965
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.90558	 a(u^h,u^h) = 8.442424062
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.90518	(f,u)+(t,u) = 8.440072028
@@ -807,7 +765,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.783752
                             Max X-displacement : 0.482746 node 60
                             Max Y-displacement : 2.15 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -9.73374
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.94426	 a(u^h,u^h) = 8.668651603
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.94385	(f,u)+(t,u) = 8.666227164
@@ -825,7 +782,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.802372
                             Max X-displacement : 0.494378 node 60
                             Max Y-displacement : 2.2 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -9.97748
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 2.9825	 a(u^h,u^h) = 8.895287182
   External energy: ((f,u^h)+(t,u^h))^0.5 : -2.98208	(f,u)+(t,u) = 8.892790724
@@ -843,7 +799,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.82105
                             Max X-displacement : 0.506103 node 60
                             Max Y-displacement : 2.25 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -10.2208
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.02032	 a(u^h,u^h) = 9.122304164
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.01989	(f,u)+(t,u) = 9.119736108
@@ -861,7 +816,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.839791
                             Max X-displacement : 0.517938 node 60
                             Max Y-displacement : 2.3 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -10.4638
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.05772	 a(u^h,u^h) = 9.349676881
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.05729	(f,u)+(t,u) = 9.347037679
@@ -879,7 +833,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.858607
                             Max X-displacement : 0.529901 node 60
                             Max Y-displacement : 2.35 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -10.7063
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.09473	 a(u^h,u^h) = 9.577380578
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.0943	(f,u)+(t,u) = 9.574670711
@@ -897,7 +850,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.877507
                             Max X-displacement : 0.542015 node 60
                             Max Y-displacement : 2.4 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -10.9483
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.13136	 a(u^h,u^h) = 9.805391357
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.13091	(f,u)+(t,u) = 9.802611335
@@ -915,7 +867,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.896504
                             Max X-displacement : 0.554307 node 60
                             Max Y-displacement : 2.45 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -11.1897
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.1676	 a(u^h,u^h) = 10.03368612
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.16715	(f,u)+(t,u) = 10.03083648
@@ -933,7 +884,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.915613
                             Max X-displacement : 0.566809 node 60
                             Max Y-displacement : 2.5 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -11.4306
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.20347	 a(u^h,u^h) = 10.26224252
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.20302	(f,u)+(t,u) = 10.25932382
@@ -951,7 +901,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.934852
                             Max X-displacement : 0.579561 node 60
                             Max Y-displacement : 2.55 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -11.671
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.23899	 a(u^h,u^h) = 10.49103887
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.23853	(f,u)+(t,u) = 10.48805169
@@ -969,7 +918,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.954245
                             Max X-displacement : 0.592613 node 60
                             Max Y-displacement : 2.6 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -11.9107
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.27415	 a(u^h,u^h) = 10.72005408
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.27368	(f,u)+(t,u) = 10.71699903
@@ -987,7 +935,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.97382
                             Max X-displacement : 0.606157 node 24
                             Max Y-displacement : 2.65 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -12.1498
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.30897	 a(u^h,u^h) = 10.94926755
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.3085	(f,u)+(t,u) = 10.94614527
@@ -1005,7 +952,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 0.993612
                             Max X-displacement : 0.620196 node 24
                             Max Y-displacement : 2.7 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -12.3881
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.34345	 a(u^h,u^h) = 11.17865908
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.34297	(f,u)+(t,u) = 11.17547023
@@ -1023,7 +969,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.01367
                             Max X-displacement : 0.634811 node 24
                             Max Y-displacement : 2.75 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -12.6257
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.3776	 a(u^h,u^h) = 11.40820868
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.37712	(f,u)+(t,u) = 11.40495394
@@ -1041,7 +986,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.03404
                             Max X-displacement : 0.650146 node 24
                             Max Y-displacement : 2.8 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -12.8625
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.41144	 a(u^h,u^h) = 11.63789637
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.41095	(f,u)+(t,u) = 11.63457646
@@ -1059,7 +1003,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.05482
                             Max X-displacement : 0.666396 node 24
                             Max Y-displacement : 2.85 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -13.0983
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.44495	 a(u^h,u^h) = 11.8677019
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.44446	(f,u)+(t,u) = 11.86431758
@@ -1077,7 +1020,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.07612
                             Max X-displacement : 0.683834 node 24
                             Max Y-displacement : 2.9 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -13.3332
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.47816	 a(u^h,u^h) = 12.09760428
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.47767	(f,u)+(t,u) = 12.09415634
@@ -1095,7 +1037,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.09808
                             Max X-displacement : 0.702859 node 24
                             Max Y-displacement : 2.95 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -13.5668
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.51107	 a(u^h,u^h) = 12.32758104
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.51057	(f,u)+(t,u) = 12.32407037
@@ -1113,7 +1054,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.12096
                             Max X-displacement : 0.724082 node 24
                             Max Y-displacement : 3 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -13.799
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.54367	 a(u^h,u^h) = 12.55760705
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.54317	(f,u)+(t,u) = 12.5540346
@@ -1131,7 +1071,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.14512
                             Max X-displacement : 0.748504 node 24
                             Max Y-displacement : 3.05 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -14.0292
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.57598	 a(u^h,u^h) = 12.78765225
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.57547	(f,u)+(t,u) = 12.78401909
@@ -1149,7 +1088,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.17042
                             Max X-displacement : 0.77639 node 24
                             Max Y-displacement : 3.1 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -14.2567
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.608	 a(u^h,u^h) = 13.01767771
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.60749	(f,u)+(t,u) = 13.01398568
@@ -1167,7 +1105,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.19633
                             Max X-displacement : 0.806915 node 24
                             Max Y-displacement : 3.15 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -14.481
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.63973	 a(u^h,u^h) = 13.24763512
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.63922	(f,u)+(t,u) = 13.24388735
@@ -1185,7 +1122,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.2227
                             Max X-displacement : 0.839734 node 24
                             Max Y-displacement : 3.2 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -14.7015
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.67117	 a(u^h,u^h) = 13.47747069
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.67065	(f,u)+(t,u) = 13.47367086
@@ -1203,7 +1139,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.24946
                             Max X-displacement : 0.87459 node 24
                             Max Y-displacement : 3.25 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -14.9179
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.70231	 a(u^h,u^h) = 13.70712683
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.70179	(f,u)+(t,u) = 13.70327905
@@ -1221,7 +1156,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.27656
                             Max X-displacement : 0.911302 node 24
                             Max Y-displacement : 3.3 node 314
-  Total reaction forces: Sum(R) = -1.54589e-08 0
   displacement\*reactions: (R,u) = -15.1299
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.73317	 a(u^h,u^h) = 13.93654362
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.73265	(f,u)+(t,u) = 13.93265241
@@ -1239,7 +1173,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.30396
                             Max X-displacement : 0.949747 node 24
                             Max Y-displacement : 3.35 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -15.3373
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.76373	 a(u^h,u^h) = 14.16566029
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.76321	(f,u)+(t,u) = 14.16173035
@@ -1257,7 +1190,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.33163
                             Max X-displacement : 0.989801 node 12
                             Max Y-displacement : 3.4 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -15.54
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.794	 a(u^h,u^h) = 14.3944162
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.79347	(f,u)+(t,u) = 14.3904523
@@ -1275,7 +1207,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.35955
                             Max X-displacement : 1.03132 node 12
                             Max Y-displacement : 3.45 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -15.7378
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.82397	 a(u^h,u^h) = 14.62275169
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.82345	(f,u)+(t,u) = 14.61875849
@@ -1293,7 +1224,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.3877
                             Max X-displacement : 1.0742 node 12
                             Max Y-displacement : 3.5 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -15.9306
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.85365	 a(u^h,u^h) = 14.85060858
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.85313	(f,u)+(t,u) = 14.84659058
@@ -1311,7 +1241,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.41607
                             Max X-displacement : 1.11827 node 12
                             Max Y-displacement : 3.55 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -16.1186
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.88303	 a(u^h,u^h) = 15.07793034
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.88251	(f,u)+(t,u) = 15.07389189
@@ -1329,7 +1258,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.44465
                             Max X-displacement : 1.16335 node 12
                             Max Y-displacement : 3.6 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -16.3015
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.91212	 a(u^h,u^h) = 15.30466246
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.9116	(f,u)+(t,u) = 15.30060776
@@ -1347,7 +1275,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.47342
                             Max X-displacement : 1.20938 node 12
                             Max Y-displacement : 3.65 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -16.4795
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.94091	 a(u^h,u^h) = 15.53075272
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.94039	(f,u)+(t,u) = 15.5266858
@@ -1365,7 +1292,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.50238
                             Max X-displacement : 1.25632 node 12
                             Max Y-displacement : 3.7 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -16.6525
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.9694	 a(u^h,u^h) = 15.7561511
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.96889	(f,u)+(t,u) = 15.75207576
@@ -1383,7 +1309,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.53152
                             Max X-displacement : 1.30412 node 12
                             Max Y-displacement : 3.75 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -16.8205
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 3.9976	 a(u^h,u^h) = 15.98080964
   External energy: ((f,u^h)+(t,u^h))^0.5 : -3.99709	(f,u)+(t,u) = 15.97672944
@@ -1401,7 +1326,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.56083
                             Max X-displacement : 1.35268 node 12
                             Max Y-displacement : 3.8 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -16.9836
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.0255	 a(u^h,u^h) = 16.20468219
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.025	(f,u)+(t,u) = 16.20060055
@@ -1419,7 +1343,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.59032
                             Max X-displacement : 1.40196 node 12
                             Max Y-displacement : 3.85 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -17.1417
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.05311	 a(u^h,u^h) = 16.42772449
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.05261	(f,u)+(t,u) = 16.42364457
@@ -1437,7 +1360,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.61997
                             Max X-displacement : 1.4519 node 12
                             Max Y-displacement : 3.9 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -17.2948
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.08043	 a(u^h,u^h) = 16.64989383
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.07993	(f,u)+(t,u) = 16.64581864
@@ -1455,7 +1377,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.64977
                             Max X-displacement : 1.50245 node 12
                             Max Y-displacement : 3.95 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -17.4429
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.10745	 a(u^h,u^h) = 16.87114887
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.10696	(f,u)+(t,u) = 16.86708133
@@ -1473,7 +1394,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.67973
                             Max X-displacement : 1.55361 node 12
                             Max Y-displacement : 4 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -17.586
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.13418	 a(u^h,u^h) = 17.09144965
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.13369	(f,u)+(t,u) = 17.08739239
@@ -1491,7 +1411,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.70984
                             Max X-displacement : 1.60536 node 12
                             Max Y-displacement : 4.05 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -17.724
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.16062	 a(u^h,u^h) = 17.31075714
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.16013	(f,u)+(t,u) = 17.30671249
@@ -1509,7 +1428,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.7401
                             Max X-displacement : 1.65776 node 12
                             Max Y-displacement : 4.1 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -17.8568
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.18677	 a(u^h,u^h) = 17.52903322
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.18629	(f,u)+(t,u) = 17.52500282
@@ -1527,7 +1445,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.77052
                             Max X-displacement : 1.71078 node 12
                             Max Y-displacement : 4.15 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -17.9843
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.21263	 a(u^h,u^h) = 17.74624011
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.21215	(f,u)+(t,u) = 17.74222476
@@ -1545,7 +1462,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.80108
                             Max X-displacement : 1.76447 node 12
                             Max Y-displacement : 4.2 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -18.1063
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.2382	 a(u^h,u^h) = 17.96234036
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.23773	(f,u)+(t,u) = 17.95833953
@@ -1563,7 +1479,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.83178
                             Max X-displacement : 1.81879 node 12
                             Max Y-displacement : 4.25 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -18.2228
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.26348	 a(u^h,u^h) = 18.17729653
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.26302	(f,u)+(t,u) = 18.17330797
@@ -1581,7 +1496,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.86263
                             Max X-displacement : 1.87373 node 12
                             Max Y-displacement : 4.3 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -18.3334
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.28848	 a(u^h,u^h) = 18.39107115
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.28802	(f,u)+(t,u) = 18.38709029
@@ -1599,7 +1513,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.89361
                             Max X-displacement : 1.92921 node 12
                             Max Y-displacement : 4.35 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -18.4381
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.31319	 a(u^h,u^h) = 18.60362635
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.31273	(f,u)+(t,u) = 18.59964611
@@ -1617,7 +1530,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.92471
                             Max X-displacement : 1.98533 node 24
                             Max Y-displacement : 4.4 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -18.5367
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.33762	 a(u^h,u^h) = 18.81492319
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.33716	(f,u)+(t,u) = 18.81093459
@@ -1635,7 +1547,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.95593
                             Max X-displacement : 2.04226 node 24
                             Max Y-displacement : 4.45 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -18.6291
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.36176	 a(u^h,u^h) = 19.02492334
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.3613	(f,u)+(t,u) = 19.02091468
@@ -1653,7 +1564,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 1.98725
                             Max X-displacement : 2.09966 node 24
                             Max Y-displacement : 4.5 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -18.7151
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.38561	 a(u^h,u^h) = 19.23358732
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.38515	(f,u)+(t,u) = 19.22954504
@@ -1671,7 +1581,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 2.01869
                             Max X-displacement : 2.15755 node 24
                             Max Y-displacement : 4.55 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -18.7945
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.40918	 a(u^h,u^h) = 19.44087517
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.40872	(f,u)+(t,u) = 19.43678402
@@ -1689,7 +1598,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 2.05024
                             Max X-displacement : 2.21596 node 24
                             Max Y-displacement : 4.6 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -18.8672
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.43246	 a(u^h,u^h) = 19.6467451
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.432	(f,u)+(t,u) = 19.64258941
@@ -1707,7 +1615,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 2.08189
                             Max X-displacement : 2.27491 node 24
                             Max Y-displacement : 4.65 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -18.9329
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.45546	 a(u^h,u^h) = 19.85115384
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.45499	(f,u)+(t,u) = 19.84691821
@@ -1725,7 +1632,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 2.11365
                             Max X-displacement : 2.33444 node 24
                             Max Y-displacement : 4.7 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -18.9914
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.47818	 a(u^h,u^h) = 20.05405588
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.47769	(f,u)+(t,u) = 20.04972625
@@ -1743,7 +1649,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 2.14552
                             Max X-displacement : 2.39463 node 24
                             Max Y-displacement : 4.75 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -19.0424
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.5006	 a(u^h,u^h) = 20.25540444
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.50011	(f,u)+(t,u) = 20.25096763
@@ -1761,7 +1666,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 2.17749
                             Max X-displacement : 2.45554 node 24
                             Max Y-displacement : 4.8 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -19.0854
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.52274	 a(u^h,u^h) = 20.45515256
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.52223	(f,u)+(t,u) = 20.45059406
@@ -1779,7 +1683,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 2.20956
                             Max X-displacement : 2.51722 node 24
                             Max Y-displacement : 4.85 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -19.1201
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.54459	 a(u^h,u^h) = 20.65325337
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.54407	(f,u)+(t,u) = 20.64855436
@@ -1797,7 +1700,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 2.24173
                             Max X-displacement : 2.57975 node 24
                             Max Y-displacement : 4.9 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -19.1458
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.56614	 a(u^h,u^h) = 20.84966035
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.56561	(f,u)+(t,u) = 20.84479424
@@ -1815,7 +1717,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 2.27399
                             Max X-displacement : 2.6432 node 24
                             Max Y-displacement : 4.95 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -19.1622
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.58741	 a(u^h,u^h) = 21.04432759
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.58686	(f,u)+(t,u) = 21.03925612
@@ -1833,7 +1734,6 @@ Number of unknowns    687
   Primary solution summary: L2-norm            : 2.30634
                             Max X-displacement : 2.70759 node 24
                             Max Y-displacement : 5 node 314
-  Total reaction forces: Sum(R) = 0 0
   displacement\*reactions: (R,u) = -19.1689
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 4.60838	 a(u^h,u^h) = 21.23720991
   External energy: ((f,u^h)+(t,u^h))^0.5 : -4.60781	(f,u)+(t,u) = 21.23187941

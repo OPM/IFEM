@@ -1,4 +1,4 @@
-Necking-AxS-Fbar2.inp -2Daxis -Fbar -nGauss 3 -outPrec 6 -ztol 1.0e-7
+Necking-AxS-Fbar2.inp -2Daxis -Fbar -nGauss 3 -outPrec 6
 
 Input file: Necking-AxS-Fbar2.inp
 Equation solver: 2
