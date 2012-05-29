@@ -17,12 +17,6 @@
 #include "Vec3Oper.h"
 
 
-bool PressureField::isNormalPressure () const
-{
-  return pdir < 1 || pdir > 3;
-}
-
-
 Vec3 PressureField::evaluate (const Vec3& x, const Vec3& n) const
 {
   const RealFunc& p = *pressure;
@@ -48,4 +42,15 @@ Vec3 TractionField::evaluate (const Vec3& x, const Vec3& n) const
     return (*sigmaN)(x) * n;
   else
     return Vec3();
+}
+
+
+bool TractionField::isZero () const
+{
+  if (sigma)
+    return sigma->isZero();
+  else if (sigmaN)
+    return sigmaN->isZero();
+  else
+    return true;
 }

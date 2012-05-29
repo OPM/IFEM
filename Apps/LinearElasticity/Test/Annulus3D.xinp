@@ -42,7 +42,7 @@
                on the inner surface (otherwise it would be global X) !-->
     <dirichlet set="inner edge"    comp="1"/>
     <dirichlet set="inner surface" comp="3" axes="local projected" t1="Z"/>
-    <neumann set="pulled end" comp="2">1.0e10</neumann>
+    <neumann set="pulled end" direction="2">1.0e10</neumann>
   </boundaryconditions>
 
   <elasticity>

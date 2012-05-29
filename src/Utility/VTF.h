@@ -16,7 +16,6 @@
 
 #include "Function.h"
 #include <vector>
-#include <cstddef>
 
 struct ElementBlock;
 class Vec3;

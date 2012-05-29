@@ -162,7 +162,7 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
       else if (!strcasecmp(ch->Value(),"cgl2"))
 	project[CGL2] = "Continuous global L2-projection";
       else if (!strcasecmp(ch->Value(),"scr"))
-	project[SCR] = "Continuous global L2-projection";
+	project[SCR] = "Superconvergent recovery";
       else if (!strcasecmp(ch->Value(),"vdsa"))
 	project[VDSA] = "VDSA projected";
       else if (!strcasecmp(ch->Value(),"quasi"))

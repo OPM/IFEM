@@ -31,7 +31,7 @@ Parsing <boundaryconditions>
   Parsing <dirichlet>
 	Dirichlet code 1003: (fixed)
   Parsing <neumann>
-	Neumann code 1002 direction 0: 1e+10
+	Neumann code 1000 direction 2: 1e+10
 Parsing <elasticity>
 	Material code 0: 2.068e+11 0.29 7820
 Parsing input file succeeded.

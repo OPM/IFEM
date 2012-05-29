@@ -15,6 +15,7 @@
 #define UTL_FUNCTION_H
 
 #include <functional>
+#include <cstddef>
 
 
 namespace utl
@@ -32,6 +33,9 @@ namespace utl
   public:
     //! \brief Empty destructor.
     virtual ~Function() {}
+
+    //! \brief Returns whether the function is identically zero or not.
+    virtual bool isZero() const { return false; }
 
   protected:
     //! \brief Evaluates the function for the argument \a x.
@@ -57,6 +61,9 @@ namespace utl
   public:
     //! \brief Empty destructor.
     virtual ~Function2() {}
+
+    //! \brief Returns whether the function is identically zero or not.
+    virtual bool isZero() const { return false; }
 
   protected:
     //! \brief Evaluates the function for the arguments \a x and \a y.
@@ -125,7 +132,9 @@ public:
   virtual ~PressureField() { delete pressure; }
 
   //! \brief Returns whether the traction is always normal to the face or not.
-  virtual bool isNormalPressure() const;
+  virtual bool isNormalPressure() const { return pdir < 1 || pdir > 3; }
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return pressure ? pressure->isZero() : true; }
 
 protected:
   //! \brief Evaluates the traction at point \a x and surface normal \a n.
@@ -144,11 +153,14 @@ class TractionField : public TractionFunc
 
 public:
   //! \brief Constructor initializing the symmetric tensor function pointer.
-  TractionField(const STensorFunc& field) : sigma(&field), sigmaN(0) {}
+  TractionField(const STensorFunc& field) : sigma(&field), sigmaN(NULL) {}
   //! \brief Constructor initializing the tensor function pointer.
-  TractionField(const TensorFunc& field) : sigma(0), sigmaN(&field) {}
+  TractionField(const TensorFunc& field) : sigma(NULL), sigmaN(&field) {}
   //! \brief Empty destructor.
   virtual ~TractionField() {}
+
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const;
 
 protected:
   //! \brief Evaluates the traction at point \a x and surface normal \a n.

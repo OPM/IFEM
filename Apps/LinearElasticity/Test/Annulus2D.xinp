@@ -26,7 +26,7 @@
     <dirichlet set="fixed point" comp="12"/>
     <dirichlet set="fixed end"   comp="2"/>
     <dirichlet set="inner curve" comp="1" axes="local projected"/>
-    <neumann set="pulled end" comp="2">1.0e10</neumann>
+    <neumann set="pulled end" direction="2">1.0e10</neumann>
   </boundaryconditions>
 
   <elasticity>

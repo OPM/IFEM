@@ -27,7 +27,7 @@
   <boundaryconditions>
     <dirichlet set="SymmX" comp="1"/>
     <dirichlet set="SymmY" comp="2"/>
-    <neumann set="Neumann" comp="12" type="anasol"/>
+    <neumann set="Neumann" type="anasol"/>
   </boundaryconditions>
 
   <!-- Problem specific block !-->

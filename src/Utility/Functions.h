@@ -31,6 +31,9 @@ public:
   //! \brief Constructor initializing the function parameter.
   LinearFunc(real s = real(1)) : scale(s) {}
 
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return scale == real(0); }
+
 protected:
   //! \brief Evaluates the function at \a x.
   virtual real evaluate(const real& x) const { return scale*x; }
@@ -49,6 +52,9 @@ class RampFunc : public ScalarFunc
 public:
   //! \brief Constructor initializing the function parameters.
   RampFunc(real f = real(1), real x = real(1)) : fval(f), xmax(x) {}
+
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return fval == real(0); }
 
 protected:
   //! \brief Evaluates the function at \a x.
@@ -69,6 +75,9 @@ public:
   //! \brief Constructor initializing the function parameters.
   DiracFunc(real a = real(1), real x = real(0)) : amp(a), xmax(x) {}
 
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return amp == real(0); }
+
 protected:
   //! \brief Evaluates the function at \a x.
   virtual real evaluate(const real& x) const;
@@ -87,6 +96,9 @@ class StepFunc : public ScalarFunc
 public:
   //! \brief Constructor initializing the function parameters.
   StepFunc(real a, real x = real(0)) : amp(a), xmax(x) {}
+  
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return amp == real(0); }
 
 protected:
   //! \brief Evaluates the function at \a x.
@@ -108,6 +120,9 @@ public:
   //! \brief Constructor initializing the function parameters.
   SineFunc(real s = real(1), real f = real(1), real p = real(0))
     : scale(s), freq(f), phase(p) {}
+  
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return scale == real(0); }
 
 protected:
   //! \brief Evaluates the function at \a x.
@@ -126,6 +141,9 @@ class ConstFunc : public RealFunc
 public:
   //! \brief Constructor initializing the function value.
   ConstFunc(real v) : fval(v) {}
+  
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return fval == real(0); }
 
 protected:
   //! \brief Evaluates the constant function.
@@ -146,6 +164,9 @@ public:
   ConstTimeFunc(const ScalarFunc* f) : tfunc(f) {}
   //! \brief The destructor frees the time function.
   virtual ~ConstTimeFunc() { delete tfunc; }
+  
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return tfunc->isZero(); }
 
 protected:
   //! \brief Evaluates the time-varying function.
@@ -169,6 +190,9 @@ public:
   SpaceTimeFunc(const RealFunc* s, const ScalarFunc* t) : sfunc(s), tfunc(t) {}
   //! \brief The destructor frees the space and time functions.
   virtual ~SpaceTimeFunc() { delete sfunc; delete tfunc; }
+  
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return sfunc->isZero() || tfunc->isZero(); }
 
 protected:
   //! \brief Evaluates the space-time function.
@@ -188,6 +212,9 @@ class LinearXFunc : public RealFunc
 public:
   //! \brief Constructor initializing the function parameters.
   LinearXFunc(real A, real B = real(0)) : a(A), b(B) {}
+  
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return a == real(0) && b == real(0); }
 
 protected:
   //! \brief Evaluates the linear function.
@@ -208,6 +235,9 @@ public:
   //! \brief Constructor initializing the function parameters.
   LinearYFunc(real A, real B = real(0)) : a(A), b(B) {}
 
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return a == real(0) && b == real(0); }
+
 protected:
   //! \brief Evaluates the linear function.
   virtual real evaluate(const Vec3& X) const;
@@ -226,6 +256,9 @@ class LinearZFunc : public RealFunc
 public:
   //! \brief Constructor initializing the function parameters.
   LinearZFunc(real A, real B = real(0)) : a(A), b(B) {}
+  
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return a == real(0) && b == real(0); }
 
 protected:
   //! \brief Evaluates the linear function.
@@ -246,6 +279,9 @@ class QuadraticXFunc : public RealFunc
 public:
   //! \brief Constructor initializing the function parameters.
   QuadraticXFunc(real MAX, real A, real B) : max(MAX), a(A), b(B) {}
+  
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return max == real(0); }
 
 protected:
   //! \brief Evaluates the quadratic function.
@@ -267,6 +303,9 @@ public:
   //! \brief Constructor initializing the function parameters.
   QuadraticYFunc(real MAX, real A, real B) : max(MAX), a(A), b(B) {}
 
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return max == real(0); }
+
 protected:
   //! \brief Evaluates the quadratic function.
   virtual real evaluate(const Vec3& X) const;
@@ -286,6 +325,9 @@ class QuadraticZFunc : public RealFunc
 public:
   //! \brief Constructor initializing the function parameters.
   QuadraticZFunc(real MAX, real A, real B) : max(MAX), a(A), b(B) {}
+
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return max == real(0); }
 
 protected:
   //! \brief Evaluates the quadratic function.
@@ -338,6 +380,9 @@ public:
   StepXFunc(real v, real X0 = real(0), real X1 = real(1))
     : fv(v), x0(X0), x1(X1) {}
 
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return fv == real(0); }
+
 protected:
   //! \brief Evaluates the step function.
   virtual real evaluate(const Vec3& X) const;
@@ -363,6 +408,9 @@ public:
 	     real X0 = real(-1), real Y0 = real(-1))
     : fv(v), x0(X0), y0(Y0), x1(X1), y1(Y1) {}
 
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return fv == real(0); }
+
 protected:
   //! \brief Evaluates the step function.
   virtual real evaluate(const Vec3& X) const;
@@ -385,6 +433,9 @@ public:
   //! \param[in] dir_ Coordinate direction of the spatial variation
   Interpolate1D(const char* file, int dir_);
 
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return values.empty(); }
+
 protected:
   //! \brief Evaluates the function by interpolating the 1D grid.
   virtual real evaluate(const Vec3& X) const;
@@ -402,6 +453,9 @@ class ConstVecFunc : public VecFunc
 public:
   //! \brief Constructor initializing the function value.
   ConstVecFunc(const Vec3& v) : fval(v) {}
+
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return fval.isZero(0.0); }
 
 protected:
   //! \brief Evaluates the constant function.

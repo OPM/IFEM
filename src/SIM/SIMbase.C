@@ -288,19 +288,18 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
   }
 
   else if (!strcasecmp(elem->Value(),"neumann")) {
-    int comp = 0, ndir = 0;
     std::string set, type;
-    utl::getAttribute(elem,"comp",comp);
-    utl::getAttribute(elem,"direction",ndir);
     utl::getAttribute(elem,"set",set);
     utl::getAttribute(elem,"type",type,true);
-    int code = this->getUniquePropertyCode(set,comp);
+    int code = this->getUniquePropertyCode(set);
     if (code == 0) utl::getAttribute(elem,"code",code);
     if (type == "anasol") {
       std::cout <<"\tNeumann code "<< code <<" (analytic)" << std::endl;
       this->setPropertyType(code,Property::NEUMANN_ANASOL);
     }
     else if (elem->FirstChild()) {
+      int ndir = 0;
+      utl::getAttribute(elem,"direction",ndir);
       std::cout <<"\tNeumann code "<< code <<" direction "<< ndir;
       if (!type.empty()) std::cout <<" ("<< type <<")";
       this->setNeumann(elem->FirstChild()->Value(),type,ndir,code);
@@ -1066,26 +1065,44 @@ bool SIMbase::setNeumann (const std::string& prop, const std::string& type,
   if (direction == 0 && this->getNoFields() == 1)
   {
     RealFunc* f = utl::parseRealFunc(prop,type);
-    if (f)
-      myScalars[code] = f;
-    else
+    if (!f)
       return false;
+    else if (f->isZero())
+    {
+      std::cout <<"\n  * Ignoring homogeneous Neumann condition, value="<< prop;
+      delete f;
+      return false;
+    }
+    else
+      myScalars[code] = f;
   }
   else if (direction < 0 || this->getNoFields() == 1)
   {
     VecFunc* f = utl::parseVecFunc(prop,type);
-    if (f)
-      myVectors[code] = f;
-    else
+    if (!f)
       return false;
+    else if (f->isZero())
+    {
+      std::cout <<"\n  * Ignoring homogeneous Neumann condition, value="<< prop;
+      delete f;
+      return false;
+    }
+    else
+      myVectors[code] = f;
   }
   else
   {
     TractionFunc* f = utl::parseTracFunc(prop,type,direction);
-    if (f)
-      myTracs[code] = f;
-    else
+    if (!f)
       return false;
+    else if (f->isZero())
+    {
+      std::cout <<"\n  * Ignoring homogeneous Neumann condition, value="<< prop;
+      delete f;
+      return false;
+    }
+    else
+      myTracs[code] = f;
   }
 
   return this->setPropertyType(code,Property::NEUMANN);
@@ -1142,8 +1159,10 @@ void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers)
       myModel[i]->getNoIntPoints(nIntGP);
     }
 
+  if (!myProblem) return;
+
   for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); p++)
-    if (p->pcode == Property::NEUMANN)
+    if (p->pcode == Property::NEUMANN && myProblem->hasBoundaryTerms())
     {
       // Account for possibly more than one Neumann property on a boundary
       bool notCounted = true;
@@ -1156,7 +1175,7 @@ void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers)
       }
 
   // Let the integrand know how many integration points in total do we have
-  if (myProblem && redimBuffers)
+  if (redimBuffers)
     myProblem->initIntegration(nIntGP,nBouGP);
 }
 
@@ -1314,7 +1333,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
     }
 
   // Assemble right-hand-side contributions from the Neumann boundary conditions
-  if (myEqSys->getVector())
+  if (myProblem->hasBoundaryTerms() && myEqSys->getVector())
     for (p = myProps.begin(); p != myProps.end() && ok; p++)
       if (p->pcode == Property::NEUMANN)
 	if ((j = p->patch) < 1 || j > myModel.size())
@@ -1396,19 +1415,6 @@ bool SIMbase::extractLoadVec (Vector& loadVec) const
 
   // Expand load vector from equation ordering to DOF-ordering
   return mySam->expandSolution(*b,loadVec,0.0);
-}
-
-
-bool SIMbase::extractPatchSolution (const Vectors& sol, size_t pindx)
-{
-  if (pindx >= myModel.size() || myModel[pindx]->empty())
-    return false;
-
-  for (size_t i = 0; i < sol.size() && i < myProblem->getNoSolutions(); i++)
-    if (!sol[i].empty())
-      myModel[pindx]->extractNodeVec(sol[i],myProblem->getSolution(i));
-
-  return this->extractPatchDependencies(myProblem,myModel,pindx);
 }
 
 
@@ -2695,6 +2701,19 @@ bool SIMbase::project (Vector& sol) const
 
   sol = secsol;
   return true;
+}
+
+
+bool SIMbase::extractPatchSolution (const Vectors& sol, size_t pindx)
+{
+  if (pindx >= myModel.size() || myModel[pindx]->empty())
+    return false;
+
+  for (size_t i = 0; i < sol.size() && i < myProblem->getNoSolutions(); i++)
+    if (!sol[i].empty())
+      myModel[pindx]->extractNodeVec(sol[i],myProblem->getSolution(i));
+
+  return this->extractPatchDependencies(myProblem,myModel,pindx);
 }
 
 
