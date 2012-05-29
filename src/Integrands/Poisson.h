@@ -43,6 +43,10 @@ public:
   //! \brief Defines the conductivity (constitutive property).
   void setMaterial(double K) { kappa = K; }
 
+  //! \brief Defines the solution mode before the element assembly is started.
+  //! \param[in] mode The solution mode to use
+  virtual void setMode(SIM::SolutionMode mode);
+
   //! \brief Initializes the integrand with the number of integration points.
   //! \param[in] nGp Total number of interior integration points
   //! \param[in] nBp Total number of boundary integration points

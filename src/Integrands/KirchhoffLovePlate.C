@@ -35,9 +35,6 @@ KirchhoffLovePlate::KirchhoffLovePlate (unsigned short int n) : nsd(n)
   presFld = 0;
   eM = eK = 0;
   eS = 0;
-
-  // Only the current solution is needed
-  primsol.resize(1);
 }
 
 
@@ -67,6 +64,11 @@ void KirchhoffLovePlate::setMode (SIM::SolutionMode mode)
   m_mode = mode;
   eM = eK = 0;
   eS = 0;
+
+  if (mode == SIM::RECOVERY)
+    primsol.resize(1);
+  else
+    primsol.clear();
 
   switch (mode)
     {
@@ -327,7 +329,7 @@ bool KirchhoffLovePlate::evalSol (Vector& s, const Vector&, const Matrix&,
   // Extract element displacements
   int ierr = 0;
   Vector eV;
-  if (!primsol.front().empty())
+  if (!primsol.empty() && !primsol.front().empty())
     if ((ierr = utl::gather(MNPC,1,primsol.front(),eV)))
     {
       std::cerr <<" *** KirchhoffLovePlate::evalSol: Detected "

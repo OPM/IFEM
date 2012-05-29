@@ -31,9 +31,6 @@ Poisson::Poisson (unsigned short int n) : nsd(n)
   tracFld = 0;
   fluxFld = 0;
   heatSrc = 0;
-
-  // Only the current solution is needed
-  primsol.resize(1);
 }
 
 
@@ -51,6 +48,17 @@ double Poisson::getTraction (const Vec3& X, const Vec3& n) const
     return (*tracFld)(X)*n;
   else
     return 0.0;
+}
+
+
+void Poisson::setMode (SIM::SolutionMode mode)
+{
+  m_mode = mode;
+
+  if (mode == SIM::RECOVERY)
+    primsol.resize(1);
+  else
+    primsol.clear();
 }
 
 
@@ -181,7 +189,7 @@ bool Poisson::evalSol (Vector& q, const Vector&,
 		       const Matrix& dNdX, const Vec3& X,
 		       const std::vector<int>& MNPC) const
 {
-  if (primsol.front().empty())
+  if (primsol.empty() || primsol.front().empty())
   {
     std::cerr <<" *** Poisson::evalSol: No primary solution."<< std::endl;
     return false;

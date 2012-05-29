@@ -55,20 +55,22 @@ void NonlinearElasticityUL::setMode (SIM::SolutionMode mode)
     case SIM::STATIC:
     case SIM::RHS_ONLY:
       eKm = eKg = 1;
+      iS  = eS  = 1;
       break;
 
     case SIM::DYNAMIC:
       eKm = eKg = 1;
       eM  = 2;
+      iS  = eS  = 1;
       break;
 
-    default:
-      this->Elasticity::setMode(mode);
-      return;
-    }
+    case SIM::BUCKLING:
+      eKm = 1;
+      eKg = 2;
 
-  // We always need the force vectors in nonlinear simulations
-  iS = eS = 1;
+    default:
+      ;
+    }
 }
 
 

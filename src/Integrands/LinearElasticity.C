@@ -22,8 +22,6 @@
 LinearElasticity::LinearElasticity (unsigned short int n, bool axS)
   : Elasticity(n,axS)
 {
-  // Only the current solution is needed
-  primsol.resize(1);
 }
 
 

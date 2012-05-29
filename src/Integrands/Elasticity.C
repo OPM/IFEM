@@ -78,6 +78,11 @@ void Elasticity::setMode (SIM::SolutionMode mode)
   eM = eKm = eKg = 0;
   eS = iS = 0;
 
+  if (mode == SIM::BUCKLING || mode == SIM::RECOVERY)
+    primsol.resize(1);
+  else
+    primsol.clear();
+
   switch (mode)
     {
     case SIM::STATIC:
@@ -502,7 +507,7 @@ bool Elasticity::evalSol (Vector& s,
   // Extract element displacements
   Vector eV;
   int ierr = 0;
-  if (!primsol.front().empty())
+  if (!primsol.empty() && !primsol.front().empty())
     if ((ierr = utl::gather(MNPC,nsd,primsol.front(),eV)))
     {
       std::cerr <<" *** Elasticity::evalSol: Detected "<< ierr
