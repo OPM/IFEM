@@ -316,7 +316,9 @@ void ForceBase::initIntegration (const TimeDomain& time)
 bool ForceBase::initElementBou (const std::vector<int>& MNPC,
                                 LocalIntegral& elmInt)
 {
-  return myProblem.initElementBou(MNPC,elmInt);
+  // Note that we invoke initElement (and not initElementBou) of the problem
+  // integrand here, because the forces may depend on all solution variables.
+  return myProblem.initElement(MNPC,elmInt);
 }
 
 
@@ -324,7 +326,9 @@ bool ForceBase::initElementBou (const std::vector<int>& MNPC1,
                                 const std::vector<int>& MNPC2, size_t n1,
                                 LocalIntegral& elmInt)
 {
-  return myProblem.initElementBou(MNPC1,MNPC2,n1,elmInt);
+  // Note that we invoke initElement (and not initElementBou) of the problem
+  // integrand here, because the forces may depend on all solution variables.
+  return myProblem.initElement(MNPC1,MNPC2,n1,elmInt);
 }
 
 
