@@ -363,8 +363,9 @@ bool SIMbase::parseOutputTag (const TiXmlElement* elem)
     if (elem->FirstChild() && noDumpDataYet) {
       DumpData dmp;
       std::string format;
-      utl::getAttribute(elem,"step",dmp.step);
       utl::getAttribute(elem,"format",format);
+      if(! utl::getAttribute(elem,"step",dmp.step) )
+        dmp.step = 1;
       dmp.format = format[0];
       dmp.fname = elem->FirstChild()->Value();
       if (toupper(elem->Value()[5]) == 'R')
@@ -1433,6 +1434,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
     if (it->doDump()) {
       std::cout <<"\nDumping system matrix to file "<< it->fname << std::endl;
       std::ofstream os(it->fname.c_str());
+	  os << std::setprecision(17);
       A->dump(os,it->format,"A");
     }
 
@@ -1441,6 +1443,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
     if (it->doDump()) {
       std::cout <<"\nDumping RHS vector to file "<< it->fname << std::endl;
       std::ofstream os(it->fname.c_str());
+	  os << std::setprecision(17);
       b->dump(os,it->format,"b");
     }
 
