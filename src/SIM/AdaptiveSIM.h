@@ -78,12 +78,15 @@ private:
 
   bool   storeMesh;    //!< Creates a series of eps-files for intermediate steps
   bool   linIndepTest; //!< Test all mesh for linear independence after refinement
-  double beta;         //!< Refinement percentage in each step
-  double errTol;       //!< Global error stop tolerance
-  int    maxStep;      //!< Maximum number of adaptive refinements
-  int    maxDOFs;      //!< Maximum number of degrees of freedom
-  int    symmetry;     //!< Always refine a multiplum of this
-  int    knot_mult;    //!< Knotline multiplicity
+  double beta;           //!< Refinement percentage in each step
+  double errTol;         //!< Global error stop tolerance
+  int    maxStep;        //!< Maximum number of adaptive refinements
+  int    maxDOFs;        //!< Maximum number of degrees of freedom
+  int    symmetry;       //!< Always refine a multiplum of this
+  int    knot_mult;      //!< Knotline multiplicity
+  int    maxTjoints;     //!< Maximum number of hanging nodes on one element
+  double maxAspectRatio; //!< Maximum element aspect ratio
+  bool   closeGaps;      //!< Split elements with a hanging node on each side
 
   //! Refinement scheme: 0=fullspan, 1=minspan, 2=isotropic_elements,
   //! 3=isotropic_functions

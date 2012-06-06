@@ -29,16 +29,19 @@
 AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : model(sim)
 {
   // Default grid adaptation parameters
-  storeMesh    = false;
-  linIndepTest = false;
-  beta         = 10.0;
-  errTol       = 1.0;
-  maxStep      = 10;
-  maxDOFs      = 1000000;
-  scheme       = 0; // fullspan
-  symmetry     = 1; // no symmetry
-  knot_mult    = 1; // maximum regularity (continuity)
-  adaptor      = 0;
+  storeMesh      = false;
+  linIndepTest   = false;
+  beta           = 10.0;
+  errTol         = 1.0;
+  maxStep        = 10;
+  maxDOFs        = 1000000;
+  scheme         = 0; // fullspan
+  symmetry       = 1; // no symmetry
+  knot_mult      = 1; // maximum regularity (continuity)
+  adaptor        = 0;
+  maxTjoints     = -1;
+  maxAspectRatio = -1.0;
+  closeGaps      = false;
 }
 
 
@@ -82,8 +85,12 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
       else if (!strcasecmp(value,"isotropic_function"))
         scheme = 3;
       else
-      	std::cerr <<"  ** AdaptiveSIM::parse: Unknown refinement scheme \""
+        std::cerr <<"  ** AdaptiveSIM::parse: Unknown refinement scheme \""
                   << value <<"\" (ignored)"<< std::endl;
+      utl::getAttribute(child, "maxTjoints", maxTjoints);
+      utl::getAttribute(child, "maxAspectRatio", maxAspectRatio);
+      if(child->Attribute("closeGaps"))
+        closeGaps = true;
     }
     else if ((value = utl::getValue(child,"use_norm")))
       adaptor = atoi(value);
@@ -259,12 +266,15 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   std::vector<int> toBeRefined, options;
   std::vector<IndexDouble> errors;
 
-  options.reserve(5);
+  options.reserve(8);
   options.push_back(beta);
   options.push_back(knot_mult);
   options.push_back(scheme);
   options.push_back(symmetry);
   options.push_back(linIndepTest);
+  options.push_back(maxTjoints);
+  options.push_back(floor(maxAspectRatio));
+  options.push_back(closeGaps);
 
   size_t i;
   if (scheme == 3)

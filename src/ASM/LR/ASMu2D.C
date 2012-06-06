@@ -241,6 +241,7 @@ bool ASMu2D::uniformRefine (int dir, int nInsert)
 
 	delete lrspline;
 	geo = lrspline = new LR::LRSplineSurface(tensorspline);
+
 	return true;
 }
 
@@ -273,6 +274,7 @@ bool ASMu2D::refine (int dir, const RealArray& xi)
 
 	delete lrspline;
 	geo = lrspline = new LR::LRSplineSurface(tensorspline);
+
 	return true;
 }
 
@@ -297,11 +299,14 @@ bool ASMu2D::refine (const std::vector<int>& elements,
 	if (!lrspline) return false;
 	if (shareFE) return true;
 
-	double                  beta         = (options.size()>0) ? options[0]/100.0 : 0.10;
-	int                     multiplicity = (options.size()>1) ? options[1]       : 1;
-	enum refinementStrategy strat        = LR_SAFE;
-	int                     symmetry     = (options.size()>3) ? options[3]       : 1;
-	bool                    linIndepTest = (options.size()>4) ? options[4]!=0    : false;
+	double                  beta          = (options.size()>0)  ? options[0]/100.0 : 0.10;
+	int                     multiplicity  = (options.size()>1)  ? options[1]       : 1;
+	enum refinementStrategy strat         = LR_SAFE;
+	int                     symmetry      = (options.size()>3)  ? options[3]       : 1;
+	bool                    linIndepTest  = (options.size()>4)  ? options[4]!=0    : false;
+	int                     maxTjoints    = (options.size()>5)  ? options[5]       : -1;
+	double                  maxAspectRatio= (options.size()>6)  ? options[6]       : -1;
+	bool                    closeGaps     = (options.size()>7)  ? options[7]!=0    : false;
 
 	if(options.size() > 2) {
 		if(options[2]==1)      strat  = LR_MINSPAN;
@@ -319,6 +324,11 @@ bool ASMu2D::refine (const std::vector<int>& elements,
 	}
 
 	if (!elements.empty()) {
+		if(maxTjoints > 0)
+			lrspline->setMaxTjoints(maxTjoints);
+		if(maxAspectRatio > 0)
+			lrspline->setMaxAspectRatio(maxAspectRatio);
+		lrspline->setCloseGaps(closeGaps);
 		lrspline->refine(elements, beta, multiplicity, strat, symmetry);
 	}
 	if (fName)
@@ -345,11 +355,21 @@ bool ASMu2D::refine (const std::vector<int>& elements,
 		strcat(fullFileName, fName);
 		std::ofstream lrOut(fullFileName);
 
+		strcpy(fullFileName, "refine_details_");
+		strcat(fullFileName, fName);
+		std::ofstream refineDetails(fullFileName);
+
 		lrspline->writePostscriptMesh(paramMeshFile);
 		lrspline->writePostscriptElements(physicalMeshFile);
 		lrspline->writePostscriptFunctionSpace(paramDotMeshFile);
 		lrspline->writePostscriptMeshWithControlPoints(physicalDotMeshFile);
 		lrOut << *lrspline;
+		refineDetails  << beta << " " << multiplicity << " " << strat << " " << symmetry << std::endl;
+		refineDetails  << maxTjoints << " " << maxAspectRatio << " " << closeGaps        << std::endl;
+		refineDetails  << elements.size() << std::endl;
+		for(size_t i=0; i<elements.size(); i++) {
+			refineDetails << elements[i] << std::endl;
+		}
 	}
 
 	if (!elements.empty())
@@ -362,16 +382,17 @@ bool ASMu2D::refine (const std::vector<int>& elements,
 		std::cout << "Testing for linear independence....";
 		if(!lrspline->isLinearIndepByMappingMatrix(false))
 		{
+			std::cout << "FAILED!!!\n";
 			std::cerr << std::endl;
 			std::cerr << std::endl;
 			std::cerr << std::endl;
 			std::cerr << "*********************************************\n";
-			std::cerr << "\nLR B-spline is linear dependant. Terminating analysis\n\n";
+			std::cerr << "\nLR B-spline is linear dependant. Continuing analysis anyway\n\n";
 			std::cerr << "*********************************************\n";
 			std::cerr << std::endl;
 			std::cerr << std::endl;
-			exit(34532);
-			return false;
+			// exit(34532);
+			// return false;
 		}
 		std::cout << "OK\n";
 	}
@@ -1442,7 +1463,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   {
     // Extract control point values from the spline object
     sField.resize(s->dimension(),s->nBasisFunctions());
-    for(size_t i=0; i<s->nBasisFunctions(); i++)
+    for(int i=0; i<s->nBasisFunctions(); i++)
       for(int d=0; d<s->dimension(); d++)
       	sField(d+1,i+1) = s->getBasisfunction(i)->controlpoint_[d];
     delete s;
