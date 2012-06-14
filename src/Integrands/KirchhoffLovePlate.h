@@ -59,7 +59,10 @@ public:
   void setLocalSystem(LocalSystem* cs) { locSys = cs; }
 
   //! \brief Defines which FE quantities are needed by the integrand.
-  virtual int getIntegrandType() const { return 2; }
+  virtual int getIntegrandType() const
+  { 
+    return Integrand::SECOND_DERIVATIVES;
+  }
 
   //! \brief Initializes the integrand with the number of integration points.
   //! \param[in] nGp Total number of interior integration points
@@ -218,7 +221,10 @@ public:
   virtual size_t getNoFields() const;
 
   //! \brief Defines which FE quantities are needed by the integrand.
-  virtual int getIntegrandType() const { return 2; }
+  virtual int getIntegrandType() const
+  { 
+    return Integrand::SECOND_DERIVATIVES;
+  }
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions

@@ -1571,10 +1571,12 @@ bool ASMs3D::integrate (Integrand& integrand,
 
   // Get the reduced integration quadrature points, if needed
   const double* xr = 0;
-  int nRed = integrand.getIntegrandType() - 10;
-  if (nRed < 1)
-    nRed = nRed < 0 ? nGauss : 0;
-  else if (!(xr = GaussQuadrature::getCoord(nRed)))
+  int nRed = nGauss;
+  if (integrand.getIntegrandType() & Integrand::REDUCED_INTEGRATION) {
+    nRed = integrand.getReducedIntegration();
+    nRed = nRed <= 0? nGauss : nRed;
+  }
+  if (!(xr = GaussQuadrature::getCoord(nRed)))
     return false;
 
   // Compute parameter values of the Gauss points over the whole patch
@@ -1582,7 +1584,7 @@ bool ASMs3D::integrate (Integrand& integrand,
   for (int d = 0; d < 3; d++)
   {
     this->getGaussPointParameters(gpar[d],d,nGauss,xg);
-    if (integrand.getIntegrandType() > 10)
+    if (integrand.getIntegrandType() & Integrand::REDUCED_INTEGRATION)
       this->getGaussPointParameters(redpar[d],d,nRed,xr);
   }
 
@@ -1592,11 +1594,11 @@ bool ASMs3D::integrate (Integrand& integrand,
   std::vector<Go::BasisDerivs>  splineRed;
   {
     PROFILE2("Spline evaluation");
-    if (integrand.getIntegrandType() == 2)
+    if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
       svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline2);
     else
       svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline);
-    if (integrand.getIntegrandType() > 10)
+    if (integrand.getIntegrandType() & Integrand::REDUCED_INTEGRATION)
       svol->computeBasisGrid(redpar[0],redpar[1],redpar[2],splineRed);
   }
 
@@ -1646,7 +1648,7 @@ bool ASMs3D::integrate (Integrand& integrand,
           break;
         }
 
-        if (integrand.getIntegrandType() == 2)
+        if (integrand.getIntegrandType() & Integrand::ELEMENT_SIZE)
         {
           // Compute characteristic element length
           fe.h = getElmSize(p1,p2,p3,Xnod);
@@ -1658,7 +1660,7 @@ bool ASMs3D::integrate (Integrand& integrand,
           dXidu[2] = svol->knotSpan(2,nodeInd[inod].K);
         }
 
-        else if (integrand.getIntegrandType() == 3)
+        else if (integrand.getIntegrandType() & Integrand::AVERAGE)
         {
           // --- Compute average value of basis functions over the element -----
 
@@ -1686,7 +1688,7 @@ bool ASMs3D::integrate (Integrand& integrand,
           fe.Navg /= vol;
         }
 
-        else if (integrand.getIntegrandType() == 4)
+        else if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
         {
           // Compute the element center
           Go::Point X0;
@@ -1707,7 +1709,7 @@ bool ASMs3D::integrate (Integrand& integrand,
           break;
         }
 
-        if (integrand.getIntegrandType() > 10)
+        if (integrand.getIntegrandType() & Integrand::REDUCED_INTEGRATION)
         {
           // --- Selective reduced integration loop ----------------------------
 
@@ -1767,7 +1769,7 @@ bool ASMs3D::integrate (Integrand& integrand,
               fe.w = gpar[2](k+1,i3-p3+1);
 
               // Fetch basis function derivatives at current integration point
-              if (integrand.getIntegrandType() == 2)
+              if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
                 extractBasis(spline2[ip],fe.N,dNdu,d2Ndu2);
               else
                 extractBasis(spline[ip],fe.N,dNdu);
@@ -1777,16 +1779,16 @@ bool ASMs3D::integrate (Integrand& integrand,
               if (fe.detJxW == 0.0) continue; // skip singular points
 
               // Compute Hessian of coordinate mapping and 2nd order derivatives
-              if (integrand.getIntegrandType() == 2)
+              if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
               {
                 if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
                 {
                   ok = false;
                   break;
                 }
-
-                utl::getGmat(Jac,dXidu,fe.G);
               }
+              if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+                utl::getGmat(Jac,dXidu,fe.G);
 
 #if SP_DEBUG > 4
               std::cout <<"\niel, ip = "<< iel <<" "<< ip

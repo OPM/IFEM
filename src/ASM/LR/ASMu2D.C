@@ -883,7 +883,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 
 	// Get the reduced integration quadrature points, if needed
 	const double* xr = 0;
-	int nRed = integrand.getIntegrandType() - 10;
+	int nRed = integrand.getIntegrandType() - Integrand::REDUCED_INTEGRATION;
 	if (nRed < 1)
 		nRed = nRed < 0 ? nGauss : 0;
 	else if (!(xr = GaussQuadrature::getCoord(nRed)))
@@ -914,7 +914,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 		for (int d = 0; d < 2; d++)
 		{
 			this->getGaussPointParameters(gpar[d],d,nGauss,iel,xg);
-			if (integrand.getIntegrandType() > 10)
+			if (integrand.getIntegrandType() & Integrand::REDUCED_INTEGRATION)
 				this->getGaussPointParameters(redpar[d],d,nRed,iel,xr);
 		}
 
@@ -967,7 +967,7 @@ bool ASMu2D::integrate (Integrand& integrand,
                 LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
                 if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed,*A)) return false;
 
-		if (integrand.getIntegrandType() > 10)
+		if (integrand.getIntegrandType() & Integrand::REDUCED_INTEGRATION)
 		{
 		// --- Selective reduced integration loop ------------------------------
 
@@ -1014,7 +1014,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 				fe.v = gpar[1][j];
 
 				// Compute basis function derivatives at current integration point
-				if (integrand.getIntegrandType() == 2) {
+				if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES) {
 					Go::BasisDerivsSf2 spline;
 					lrspline->computeBasis(fe.u,fe.v,spline, iel-1);
 					extractBasis(spline,fe.N,dNdu,d2Ndu2);
@@ -1038,7 +1038,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 				if (fe.detJxW == 0.0) continue; // skip singular points
 		
 				// Compute Hessian of coordinate mapping and 2nd order derivatives
-				if (integrand.getIntegrandType() == 2)
+				if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
 					if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
 					  return false;
 
@@ -1495,7 +1495,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 	Matrix3D d2Ndu2, d2NdX2, Hess;
 
 	size_t nPoints = gpar[0].size();
-	bool use2ndDer = integrand.getIntegrandType() == 2;
+	bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
 
 	// Evaluate the secondary solution field at each point
 	for (size_t i = 0; i < nPoints; i++)

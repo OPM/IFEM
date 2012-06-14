@@ -75,7 +75,15 @@ public:
   virtual NormBase* getNormIntegrand(AnaSol* = 0) const;
 
   //! \brief Returns which integrand to be used.
-  virtual int getIntegrandType() const { return 10+npt1; }
+  virtual int getIntegrandType() const
+  { 
+    return Integrand::REDUCED_INTEGRATION;
+  }
+
+  virtual int getReducedIntegration() const
+  {
+    return npt1;
+  }
 
 private:
   int npt1; //!< Number of volumetric sampling points in each direction
@@ -142,7 +150,15 @@ public:
 		       const Vec3& X, const Vec3& normal) const;
 
   //! \brief Returns which integrand to be used.
-  virtual int getIntegrandType() const { return myProblem.getIntegrandType(); }
+  virtual int getIntegrandType() const
+  { 
+    return myProblem.getIntegrandType();
+  }
+
+  virtual int getReducedIntegration() const
+  {
+    return myProblem.getReducedIntegration();
+  }
 };
 
 #endif

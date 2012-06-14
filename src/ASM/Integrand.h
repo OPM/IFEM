@@ -60,7 +60,8 @@ public:
   //! \details This method is invoked once before starting the numerical
   //! integration over the entire spatial domain.
   virtual void initIntegration(const TimeDomain&) = 0;
-
+  //! \brief Return the number of points for reduced integration
+  virtual int getReducedIntegration() { return 0; }
 
   // Element-level initialization interface
   // ======================================
@@ -143,6 +144,16 @@ public:
   // Integrand evaluation interface
   // ==============================
 
+  enum Traits {
+    STANDARD               = 0,
+    SECOND_DERIVATIVES     = 1, //!< Integrand uses second derivatives
+    AVERAGE                = 2, //!< Integrand wants basis function averages
+    ELEMENT_SIZE           = 4, //!< Integrand wants an estimated element size
+    G_MATRIX               = 8, //!< Integrand wants the G matrix
+    ELEMENT_CENTER         = 16,//!< Integrand wants element center coords
+    REDUCED_INTEGRATION    = 32 //!< Integrand uses reduced integration.
+  };
+
   //! \brief Defines which FE quantities are needed by the integrand.
   //! \return 1: The basis functions and their gradients are needed
   //! \return 2: As 1, but in addition the second derivatives of the basis
@@ -151,7 +162,7 @@ public:
   //! are needed
   //! \return 4: As 1, but in addition the element center coordinates are needed
   //! \return 5: Selectively reduced integration is assumed
-  virtual int getIntegrandType() const { return 1; }
+  virtual int getIntegrandType() const { return STANDARD; }
 
   //! \brief Evaluates reduced integration terms at an interior point.
   //! \param elmInt The local integral object to receive the contributions
