@@ -74,16 +74,8 @@ public:
   //! returned pointer value.
   virtual NormBase* getNormIntegrand(AnaSol* = 0) const;
 
-  //! \brief Returns which integrand to be used.
-  virtual int getIntegrandType() const
-  { 
-    return Integrand::REDUCED_INTEGRATION;
-  }
-
-  virtual int getReducedIntegration() const
-  {
-    return npt1;
-  }
+  //! \brief Returns the number of reduced-order integration points.
+  virtual int getReducedIntegration() const { return npt1; }
 
 private:
   int npt1; //!< Number of volumetric sampling points in each direction
@@ -149,16 +141,9 @@ public:
   virtual bool evalBou(LocalIntegral& elmInt, const FiniteElement& fe,
 		       const Vec3& X, const Vec3& normal) const;
 
-  //! \brief Returns which integrand to be used.
-  virtual int getIntegrandType() const
-  { 
-    return myProblem.getIntegrandType();
-  }
-
+  //! \brief Returns the number of reduced-order integration points.
   virtual int getReducedIntegration() const
-  {
-    return myProblem.getReducedIntegration();
-  }
+  { return myProblem.getReducedIntegration(); }
 };
 
 #endif

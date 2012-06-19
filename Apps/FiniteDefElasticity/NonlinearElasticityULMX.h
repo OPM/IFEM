@@ -84,10 +84,12 @@ public:
   virtual NormBase* getNormIntegrand(AnaSol* = 0) const;
 
   //! \brief Returns which integrand to be used.
-  virtual int getIntegrandType() const
-  { 
-    return Integrand::ELEMENT_CENTER;
-  }
+  virtual int getIntegrandType() const { return ELEMENT_CENTER; }
+  //! \brief Returns the number of reduced-order integration points.
+  //! \return -1 which is used to flag that the integrand needs to know the
+  //! number of integration points within each element.
+  //! \sa The argument \a nPt of initElement.
+  virtual int getReducedIntegration() const { return -1; }
 
 private:
   int p; //!< Polynomial order of the internal pressure field
@@ -163,10 +165,12 @@ public:
 			       size_t iG);
 
   //! \brief Returns which integrand to be used.
-  virtual int getIntegrandType() const
-  { 
-    return Integrand::ELEMENT_CENTER;
-  }
+  virtual int getIntegrandType() const { return ELEMENT_CENTER; }
+  //! \brief Returns the number of reduced-order integration points.
+  //! \return -1 which is used to flag that the integrand needs to know the
+  //! number of integration points within each element.
+  //! \sa The argument \a nPt of initElement.
+  virtual int getReducedIntegration() const { return -1; }
 };
 
 #endif

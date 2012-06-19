@@ -1571,12 +1571,10 @@ bool ASMs3D::integrate (Integrand& integrand,
 
   // Get the reduced integration quadrature points, if needed
   const double* xr = 0;
-  int nRed = nGauss;
-  if (integrand.getIntegrandType() & Integrand::REDUCED_INTEGRATION) {
-    nRed = integrand.getReducedIntegration();
-    nRed = nRed <= 0? nGauss : nRed;
-  }
-  if (!(xr = GaussQuadrature::getCoord(nRed)))
+  int nRed = integrand.getReducedIntegration();
+  if (nRed < 0)
+    nRed = nGauss; // The integrand needs to know nGauss
+  else if (nRed > 0 && !(xr = GaussQuadrature::getCoord(nRed)))
     return false;
 
   // Compute parameter values of the Gauss points over the whole patch
@@ -1584,7 +1582,7 @@ bool ASMs3D::integrate (Integrand& integrand,
   for (int d = 0; d < 3; d++)
   {
     this->getGaussPointParameters(gpar[d],d,nGauss,xg);
-    if (integrand.getIntegrandType() & Integrand::REDUCED_INTEGRATION)
+    if (xr)
       this->getGaussPointParameters(redpar[d],d,nRed,xr);
   }
 
@@ -1598,7 +1596,7 @@ bool ASMs3D::integrate (Integrand& integrand,
       svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline2);
     else
       svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline);
-    if (integrand.getIntegrandType() & Integrand::REDUCED_INTEGRATION)
+    if (xr)
       svol->computeBasisGrid(redpar[0],redpar[1],redpar[2],splineRed);
   }
 
@@ -1709,7 +1707,7 @@ bool ASMs3D::integrate (Integrand& integrand,
           break;
         }
 
-        if (integrand.getIntegrandType() & Integrand::REDUCED_INTEGRATION)
+        if (xr)
         {
           // --- Selective reduced integration loop ----------------------------
 
@@ -2458,17 +2456,27 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   sField.resize(0,0);
 
   // Evaluate the basis functions and their derivatives at all points
-  std::vector<Go::BasisDerivs> spline(regular ? 0 : gpar[0].size());
+  size_t nPoints = gpar[0].size();
+  bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
+  std::vector<Go::BasisDerivs>  spline1(regular ||  use2ndDer ? 0 : nPoints);
+  std::vector<Go::BasisDerivs2> spline2(regular || !use2ndDer ? 0 : nPoints);
   if (regular)
   {
     PROFILE2("Spline evaluation");
-    svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline);
+    nPoints *= gpar[1].size()*gpar[2].size();
+    if (use2ndDer)
+      svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline2);
+    else
+      svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline1);
   }
-  else if (gpar[0].size() == gpar[1].size() && gpar[0].size() == gpar[2].size())
+  else if (nPoints == gpar[1].size() && nPoints == gpar[2].size())
   {
     PROFILE2("Spline evaluation");
-    for (size_t i = 0; i < spline.size(); i++)
-      svol->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline[i]);
+    for (size_t i = 0; i < nPoints; i++)
+      if (use2ndDer)
+        svol->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline2[i]);
+      else
+        svol->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline1[i]);
   }
   else
     return false;
@@ -2484,26 +2492,37 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix Xnod, Xtmp;
   this->getNodalCoordinates(Xnod);
 
-  Vector N(p1*p2*p3), solPt;
-  Matrix dNdu, dNdX, Jac;
+  Vector   N(p1*p2*p3), solPt;
+  Matrix   dNdu, dNdX, Jac;
+  Matrix3D d2Ndu2, d2NdX2, Hess;
 
   // Evaluate the secondary solution field at each point
-  size_t nPoints = spline.size();
   for (size_t i = 0; i < nPoints; i++)
   {
     // Fetch indices of the non-zero basis functions at this point
     IntVec ip;
-    scatterInd(n1,n2,n3,p1,p2,p3,spline[i].left_idx,ip);
+    if (use2ndDer)
+      scatterInd(n1,n2,n3,p1,p2,p3,spline2[i].left_idx,ip);
+    else
+      scatterInd(n1,n2,n3,p1,p2,p3,spline1[i].left_idx,ip);
 
     // Fetch associated control point coordinates
     utl::gather(ip,3,Xnod,Xtmp);
 
     // Fetch basis function derivatives at current integration point
-    extractBasis(spline[i],N,dNdu);
+    if (use2ndDer)
+      extractBasis(spline2[i],N,dNdu,d2Ndu2);
+    else
+      extractBasis(spline1[i],N,dNdu);
 
     // Compute the Jacobian inverse and derivatives
     if (utl::Jacobian(Jac,dNdX,Xtmp,dNdu) == 0.0) // Jac = (Xtmp * dNdu)^-1
       continue; // skip singular points
+
+    // Compute Hessian of coordinate mapping and 2nd order derivatives
+    if (use2ndDer)
+      if (!utl::Hessian(Hess,d2NdX2,Jac,Xtmp,d2Ndu2,dNdu))
+        continue;
 
     // Now evaluate the solution field
     if (!integrand.evalSol(solPt,N,dNdX,Xtmp*N,ip))

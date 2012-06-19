@@ -61,7 +61,7 @@ public:
   //! constraint equations for which the dependent DOFs have been eliminated.
   bool setAssociatedVector(size_t imat, size_t ivec);
 
-  //! Initializes the matrices to proper size for element assembly.
+  //! \brief Initializes the matrices to proper size for element assembly.
   //! \param[in] withReactions If \e false, no reaction forces will be computed
   void initAssembly(bool withReactions);
 
@@ -70,15 +70,13 @@ public:
   //! \param[in] elmId Global number of the element associated with \a *elmObj
   virtual bool assemble(const LocalIntegral* elmObj, int elmId);
 
-  //! \brief Returns the number of system matrices allocated
+  //! \brief Returns the number of system matrices allocated.
   size_t getNoMatrices() const { return A.size(); }
-
-  //! \brief Returns the number of vectors allocated
+  //! \brief Returns the number of vectors allocated.
   size_t getNoVectors() const { return b.size(); }
 
   //! \brief Returns the \a i'th matrix of the equation system.
   SystemMatrix* getMatrix(size_t i = 0) { return i < A.size() ? A[i]._A : 0; }
-
   //! \brief Returns the \a i'th right-hand-side vector of the equation system.
   SystemVector* getVector(size_t i = 0) { return i < b.size() ? b[i] : 0; }
 
@@ -92,7 +90,7 @@ private:
     SystemMatrix* _A; //!< The coefficient matrix
     SystemVector* _b; //!< Pointer to the associated right-hand-side vector
     //! \brief Constructor initializing the pointers to zero.
-    SysMatrixPair() { _A = 0; _b = 0; }
+    SysMatrixPair() : _A(0), _b(0) {}
   };
 
   std::vector<SysMatrixPair> A; //!< The actual coefficient matrices

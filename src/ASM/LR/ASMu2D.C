@@ -883,11 +883,11 @@ bool ASMu2D::integrate (Integrand& integrand,
 
 	// Get the reduced integration quadrature points, if needed
 	const double* xr = 0;
-	int nRed = integrand.getIntegrandType() - Integrand::REDUCED_INTEGRATION;
-	if (nRed < 1)
-		nRed = nRed < 0 ? nGauss : 0;
-	else if (!(xr = GaussQuadrature::getCoord(nRed)))
-		return false;
+	int nRed = integrand.getReducedIntegration();
+	if (nRed < 0)
+	  nRed = nGauss; // The integrand needs to know nGauss
+	else if (nRed > 0 && !(xr = GaussQuadrature::getCoord(nRed)))
+	  return false;
 
 	Matrix   dNdu, Xnod, Jac;
 	Matrix3D d2Ndu2, Hess;
@@ -914,7 +914,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 		for (int d = 0; d < 2; d++)
 		{
 			this->getGaussPointParameters(gpar[d],d,nGauss,iel,xg);
-			if (integrand.getIntegrandType() & Integrand::REDUCED_INTEGRATION)
+			if (xr)
 				this->getGaussPointParameters(redpar[d],d,nRed,iel,xr);
 		}
 
@@ -967,7 +967,7 @@ bool ASMu2D::integrate (Integrand& integrand,
                 LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
                 if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed,*A)) return false;
 
-		if (integrand.getIntegrandType() & Integrand::REDUCED_INTEGRATION)
+		if (xr)
 		{
 		// --- Selective reduced integration loop ------------------------------
 

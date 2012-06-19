@@ -1252,12 +1252,10 @@ bool ASMs2D::integrate (Integrand& integrand,
 
   // Get the reduced integration quadrature points, if needed
   const double* xr = 0;
-  int nRed = nGauss;
-  if (integrand.getIntegrandType() & Integrand::REDUCED_INTEGRATION) {
-    nRed = integrand.getReducedIntegration();
-    nRed = nRed <= 0? nGauss : nRed;
-  }
-  if (!(xr = GaussQuadrature::getCoord(nRed)))
+  int nRed = integrand.getReducedIntegration();
+  if (nRed < 0)
+    nRed = nGauss; // The integrand needs to know nGauss
+  else if (nRed > 0 && !(xr = GaussQuadrature::getCoord(nRed)))
     return false;
 
   // Compute parameter values of the Gauss points over the whole patch
@@ -1265,7 +1263,7 @@ bool ASMs2D::integrate (Integrand& integrand,
   for (int d = 0; d < 2; d++)
   {
     this->getGaussPointParameters(gpar[d],d,nGauss,xg);
-    if (integrand.getIntegrandType() & Integrand::REDUCED_INTEGRATION)
+    if (xr)
       this->getGaussPointParameters(redpar[d],d,nRed,xr);
   }
 
@@ -1277,7 +1275,7 @@ bool ASMs2D::integrate (Integrand& integrand,
     surf->computeBasisGrid(gpar[0],gpar[1],spline2);
   else
     surf->computeBasisGrid(gpar[0],gpar[1],spline);
-  if (integrand.getIntegrandType() & Integrand::REDUCED_INTEGRATION)
+  if (xr)
     surf->computeBasisGrid(redpar[0],redpar[1],splineRed);
 
 #if SP_DEBUG > 4
@@ -1382,7 +1380,7 @@ bool ASMs2D::integrate (Integrand& integrand,
           break;
         }
 
-        if (integrand.getIntegrandType() & Integrand::REDUCED_INTEGRATION)
+        if (xr)
         {
           // --- Selective reduced integration loop ----------------------------
 
@@ -1876,7 +1874,7 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
   // Evaluate the basis functions and their derivatives at all points
   size_t nPoints = gpar[0].size();
-  bool use2ndDer = (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)?true:false;
+  bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   std::vector<Go::BasisDerivsSf>  spline1(regular ||  use2ndDer ? 0 : nPoints);
   std::vector<Go::BasisDerivsSf2> spline2(regular || !use2ndDer ? 0 : nPoints);
   if (regular)

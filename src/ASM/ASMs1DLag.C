@@ -173,12 +173,10 @@ bool ASMs1DLag::integrate (Integrand& integrand,
 
   // Points for selective reduced integration
   const double* xr = 0;
-  int nRed = nGauss;
-  if (integrand.getIntegrandType() & Integrand::REDUCED_INTEGRATION) {
-    nRed = integrand.getReducedIntegration();
-    nRed = nRed <= 0? nGauss : nRed;
-  }
-  if (!(xr = GaussQuadrature::getCoord(nRed)))
+  int nRed = integrand.getReducedIntegration();
+  if (nRed < 0)
+    nRed = nGauss; // The integrand needs to know nGauss
+  else if (nRed > 0 && !(xr = GaussQuadrature::getCoord(nRed)))
     return false;
 
   // Get parametric coordinates of the elements
@@ -206,7 +204,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
     LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
     if (!integrand.initElement(MNPC[iel-1],X,nRed,*A)) return false;
 
-    if (integrand.getIntegrandType() & Integrand::REDUCED_INTEGRATION)
+    if (xr)
 
       // --- Selective reduced integration loop --------------------------------
 

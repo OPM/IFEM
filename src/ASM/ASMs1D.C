@@ -538,18 +538,16 @@ bool ASMs1D::integrate (Integrand& integrand,
 
   // Get the reduced integration quadrature points, if needed
   const double* xr = 0;
-  int nRed = nGauss;
-  if (integrand.getIntegrandType() & Integrand::REDUCED_INTEGRATION) {
-    nRed = integrand.getReducedIntegration();
-    nRed = nRed <= 0? nGauss : nRed;
-  }
-  if (!(xr = GaussQuadrature::getCoord(nRed)))
+  int nRed = integrand.getReducedIntegration();
+  if (nRed < 0)
+    nRed = nGauss; // The integrand needs to know nGauss
+  else if (nRed > 0 && !(xr = GaussQuadrature::getCoord(nRed)))
     return false;
 
   // Compute parameter values of the Gauss points over the whole patch
   Matrix gpar, redpar;
   this->getGaussPointParameters(gpar,nGauss,xg);
-  if (integrand.getIntegrandType() & Integrand::REDUCED_INTEGRATION)
+  if (xr)
     this->getGaussPointParameters(redpar,nRed,xr);
 
   const int p1 = curv->order();
@@ -580,7 +578,7 @@ bool ASMs1D::integrate (Integrand& integrand,
     LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
     if (!integrand.initElement(MNPC[iel-1],X,nRed,*A)) return false;
 
-    if (integrand.getIntegrandType() & Integrand::REDUCED_INTEGRATION)
+    if (xr)
     {
       // --- Selective reduced integration loop --------------------------------
 
@@ -1001,7 +999,6 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   // Evaluate the secondary solution field at each point
   const RealArray& upar = *gpar;
   size_t nPoints = upar.size();
-  bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   for (size_t i = 0; i < nPoints; i++)
   {
     // Fetch indices of the non-zero basis functions at this point
@@ -1012,7 +1009,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     utl::gather(ip,nsd,Xnod,Xtmp);
 
     // Fetch basis function derivatives at current integration point
-    if (use2ndDer)
+    if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
       this->extractBasis(upar[i],N,dNdu,d2Ndu2);
     else
       this->extractBasis(upar[i],N,dNdu);
@@ -1022,7 +1019,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       continue; // skip singular points
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
-    if (use2ndDer)
+    if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
       if (!utl::Hessian(Hess,d2NdX2,Jac,Xtmp,d2Ndu2,dNdu))
 	continue;
 
