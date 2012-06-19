@@ -155,9 +155,11 @@ public:
   virtual bool getSize(int& n1, int& n2, int& n3, int = 0) const;
 
   //! \brief Generates element groups for multi-threading of interior integrals.
+  //! \param[in] silence If \e true, suppress threading group outprint
   virtual void generateThreadGroups(bool silence);
   //! \brief Generates element groups for multi-threading of boundary integrals.
   //! \param[in] lIndex Local index [1,6] of the boundary face
+  //! \param[in] silence If \e true, suppress threading group outprint
   virtual void generateThreadGroups(char lIndex, bool silence);
 
   //! \brief Returns the number of elements on a boundary.

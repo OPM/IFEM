@@ -664,14 +664,14 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 
   PROFILE2("ASMs3Dmx::integrate(B)");
 
-  std::map<char,utl::ThreadGroups>::const_iterator tit;
+  std::map<char,ThreadGroups>::const_iterator tit;
   if ((tit = threadGroupsFace.find(lIndex)) == threadGroupsFace.end())
   {
     std::cerr <<" *** ASMs3D::integrate: No thread groups for face "<< lIndex
 	      << std::endl;
     return false;
   }
-  const utl::ThreadGroups& threadGrp = tit->second;
+  const ThreadGroups& threadGrp = tit->second;
 
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);

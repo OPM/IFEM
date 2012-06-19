@@ -1837,14 +1837,14 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 
   PROFILE2("ASMs3D::integrate(B)");
 
-  std::map<char,utl::ThreadGroups>::const_iterator tit;
+  std::map<char,ThreadGroups>::const_iterator tit;
   if ((tit = threadGroupsFace.find(lIndex)) == threadGroupsFace.end())
   {
     std::cerr <<" *** ASMs3D::integrate: No thread groups for face "<< lIndex
 	      << std::endl;
     return false;
   }
-  const utl::ThreadGroups& threadGrp = tit->second;
+  const ThreadGroups& threadGrp = tit->second;
 
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
@@ -2539,20 +2539,65 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 void ASMs3D::generateThreadGroups (bool silence)
 {
-  const int nel1 = svol->numCoefs(0) - svol->order(0) + 1;
-  const int nel2 = svol->numCoefs(1) - svol->order(1) + 1;
-  const int nel3 = svol->numCoefs(2) - svol->order(2) + 1;
+  const int p1 = svol->order(0) - 1;
+  const int p2 = svol->order(1) - 1;
+  const int p3 = svol->order(2) - 1;
+  const int n1 = svol->numCoefs(0);
+  const int n2 = svol->numCoefs(1);
+  const int n3 = svol->numCoefs(2);
 
-  utl::calcThreadGroups(nel1,nel2,nel3,threadGroupsVol);
+  std::vector<bool> el1, el2, el3;
+  el1.reserve(n1 - p1);
+  el2.reserve(n2 - p2);
+  el3.reserve(n3 - p3);
+
+  int ii;
+  for (ii = p1; ii < n1; ii++)
+    el1.push_back(svol->knotSpan(0,ii) > 0.0);
+  for (ii = p2; ii < n2; ii++)
+    el2.push_back(svol->knotSpan(1,ii) > 0.0);
+  for (ii = p3; ii < n3; ii++)
+    el3.push_back(svol->knotSpan(2,ii) > 0.0);
+
+  threadGroupsVol.calcGroups(el1,el2,el3,p1,p2,p3);
   if (silence || threadGroupsVol.size() < 2) return;
 
   std::cout <<"\nMultiple threads are utilized during element assembly.";
   for (size_t i = 0; i < threadGroupsVol.size(); i++)
   {
+    std::set<int> nodes[threadGroupsVol[i].size()];
+    std::set<int>::const_iterator nit;
+
     std::cout <<"\n Thread group "<< i+1;
     for (size_t j = 0; j < threadGroupsVol[i].size(); j++)
+    {
       std::cout <<"\n\tthread "<< j+1
-		<< ": "<< threadGroupsVol[i][j].size() <<" elements";
+                << ": "<< threadGroupsVol[i][j].size() <<" elements";
+      size_t k, l, nzerovol = 0;
+      for (k = 0; k < threadGroupsVol[i][j].size(); k++)
+      {
+        int iel = threadGroupsVol[i][j][k];
+        if (MLGE[iel] > 0)
+          for (l = 0; l < MNPC[iel].size(); l++)
+            nodes[j].insert(MNPC[iel][l]);
+        else
+          nzerovol++;
+      }
+      if (nzerovol)
+        std::cout <<" ("<< threadGroupsVol[i][j].size() - nzerovol <<" real)";
+#if SP_DEBUG > 1
+      nit = nodes[j].begin();
+      std::cout <<"\n\t   nodes: "<< *(nit++);
+      for (k = 1; nit != nodes[j].end(); ++nit, k++)
+        std::cout << (k%10 > 0 ? " " : "\n\t          ") << *nit;
+#endif
+      // Verify that the nodes on this thread are not present on the others
+      for (k = 0; k < j; k++)
+        for (nit = nodes[j].begin(); nit != nodes[j].end(); ++nit)
+          if (nodes[k].find(*nit) != nodes[k].end())
+            std::cout <<"\n  ** Warning: Node "<< *nit <<" is present on both"
+                      <<" thread "<< k+1 <<" and thread "<< j+1;
+    }
   }
   std::cout << std::endl;
 }
@@ -2571,7 +2616,7 @@ void ASMs3D::generateThreadGroups (char lIndex, bool silence)
 
   // Find elements that are on the boundary face 'lIndex'
   IntVec map; map.reserve(this->getNoBoundaryElms(lIndex,2));
-  int d1, d2, iel = 0;
+  int iel = 0;
   for (int i3 = p3; i3 <= n3; i3++)
     for (int i2 = p2; i2 <= n2; i2++)
       for (int i1 = p1; i1 <= n1; i1++, iel++)
@@ -2585,32 +2630,43 @@ void ASMs3D::generateThreadGroups (char lIndex, bool silence)
 	  case 6: if (i3 == n3) map.push_back(iel); break;
           }
 
+  std::vector<bool> el1, el2, el3;
+  el1.reserve(n1 - p1 + 1);
+  el2.reserve(n2 - p2 + 1);
+  el3.reserve(n3 - p3 + 1);
+
+  if (lIndex > 2)
+    for (int i = p1-1; i < n1; i++)
+      el1.push_back(svol->knotSpan(0,i) > 0.0);
+  if (lIndex < 3 || lIndex > 4)
+    for (int i = p2-1; i < n2; i++)
+      el2.push_back(svol->knotSpan(1,i) > 0.0);
+  if (lIndex < 6)
+    for (int i = p3-1; i < n3; i++)
+      el3.push_back(svol->knotSpan(2,i) > 0.0);
+
+  ThreadGroups& fGrp = threadGroupsFace[lIndex];
   switch (lIndex)
     {
     case 1:
     case 2:
-      d1 = n2 - p2 + 1;
-      d2 = n3 - p3 + 1;
+      fGrp.calcGroups(el2,el3,p2-1,p3-1);
       break;
     case 3:
     case 4:
-      d1 = n1 - p1 + 1;
-      d2 = n3 - p3 + 1;
+      fGrp.calcGroups(el1,el3,p1-1,p3-1);
       break;
     default:
-      d1 = n1 - p1 + 1;
-      d2 = n2 - p2 + 1;
+      fGrp.calcGroups(el1,el2,p1-1,p2-1);
     }
 
-  utl::ThreadGroups& fGrp = threadGroupsFace[lIndex];
-  utl::calcThreadGroups(d1,d2,fGrp);
-  utl::mapThreadGroups(fGrp,map);
+  fGrp.applyMap(map);
 
   if (!silence && fGrp.size() > 1)
-    for (size_t i = 0; i < threadGroupsVol.size(); i++)
+    for (size_t i = 0; i < fGrp.size(); i++)
     {
       std::cout <<"\n Thread group "<< i+1 <<" for boundary face "<<(int)lIndex;
-      for (size_t j = 0; j < fGrp.size(); j++)
+      for (size_t j = 0; j < fGrp[i].size(); j++)
 	std::cout <<"\n\tthread "<< j+1
 		  << ": "<< fGrp[i][j].size() <<" elements";
     }

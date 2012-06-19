@@ -425,14 +425,14 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 {
   if (!svol) return true; // silently ignore empty patches
 
-  std::map<char,utl::ThreadGroups>::const_iterator tit;
+  std::map<char,ThreadGroups>::const_iterator tit;
   if ((tit = threadGroupsFace.find(lIndex)) == threadGroupsFace.end())
   {
     std::cerr <<" *** ASMs3DLag::integrate: No thread groups for face "<< lIndex
 	      << std::endl;
     return false;
   }
-  const utl::ThreadGroups& threadGrp = tit->second;
+  const ThreadGroups& threadGrp = tit->second;
 
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
@@ -885,7 +885,7 @@ void ASMs3DLag::generateThreadGroups (bool)
   const int nel2 = (ny-1)/(p2-1);
   const int nel3 = (nz-1)/(p3-1);
 
-  utl::calcThreadGroups(nel1,nel2,nel3,threadGroupsVol);
+  threadGroupsVol.calcGroups(nel1,nel2,nel3,1);
 }
 
 
@@ -933,6 +933,6 @@ void ASMs3DLag::generateThreadGroups (char lIndex, bool)
       d2 = n2;
     }
 
-  utl::calcThreadGroups(d1,d2,threadGroupsFace[lIndex]);
-  utl::mapThreadGroups(threadGroupsFace[lIndex],map);
+  threadGroupsFace[lIndex].calcGroups(d1,d2,1);
+  threadGroupsFace[lIndex].applyMap(map);
 }

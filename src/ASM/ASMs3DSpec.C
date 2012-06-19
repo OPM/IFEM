@@ -183,14 +183,14 @@ bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
 {
   if (!svol) return true; // silently ignore empty patches
 
-  std::map<char,utl::ThreadGroups>::const_iterator tit;
+  std::map<char,ThreadGroups>::const_iterator tit;
   if ((tit = threadGroupsFace.find(lIndex)) == threadGroupsFace.end())
   {
     std::cerr <<" *** ASMs3DSpec::integrate: No thread groups for face "<<lIndex
 	      << std::endl;
     return false;
   }
-  const utl::ThreadGroups& threadGrp = tit->second;
+  const ThreadGroups& threadGrp = tit->second;
 
   // Find the parametric direction of the face normal {-3,-2,-1, 1, 2, 3}
   const int faceDir = (lIndex+1)/(lIndex%2 ? -2 : 2);

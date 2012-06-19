@@ -1952,24 +1952,60 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 void ASMs2D::generateThreadGroups (bool silence)
 {
-  const int p1 = surf->order_u();
-  const int p2 = surf->order_v();
+  const int p1 = surf->order_u() - 1;
+  const int p2 = surf->order_v() - 1;
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
 
-  const int nel1 = n1 - p1 + 1;
-  const int nel2 = n2 - p2 + 1;
+  std::vector<bool> el1, el2;
+  el1.reserve(n1 - p1);
+  el2.reserve(n2 - p2);
 
-  utl::calcThreadGroups(nel1,nel2,threadGroups);
+  int ii;
+  for (ii = p1; ii < n1; ii++)
+    el1.push_back(surf->knotSpan(0,ii) > 0.0);
+  for (ii = p2; ii < n2; ii++)
+    el2.push_back(surf->knotSpan(1,ii) > 0.0);
+
+  threadGroups.calcGroups(el1,el2,p1,p2);
   if (silence || threadGroups.size() < 2) return;
 
   std::cout <<"\nMultiple threads are utilized during element assembly.";
   for (size_t i = 0; i < threadGroups.size(); i++)
   {
+    std::set<int> nodes[threadGroups[i].size()];
+    std::set<int>::const_iterator nit;
+
     std::cout <<"\n Thread group "<< i+1;
     for (size_t j = 0; j < threadGroups[i].size(); j++)
+    {
       std::cout <<"\n\tthread "<< j+1
-		<< ": "<< threadGroups[i][j].size() <<" elements";
+                << ": "<< threadGroups[i][j].size() <<" elements";
+      size_t k, l, nzeroar = 0;
+      for (k = 0; k < threadGroups[i][j].size(); k++)
+      {
+        int iel = threadGroups[i][j][k];
+        if (MLGE[iel] > 0)
+          for (l = 0; l < MNPC[iel].size(); l++)
+            nodes[j].insert(MNPC[iel][l]);
+        else
+          nzeroar++;
+      }
+      if (nzeroar > 0)
+        std::cout <<" ("<< threadGroups[i][j].size() - nzeroar <<" real)";
+#if SP_DEBUG > 1
+      nit = nodes[j].begin();
+      std::cout <<"\n\t   nodes: "<< *(nit++);
+      for (k = 1; nit != nodes[j].end(); ++nit, k++)
+        std::cout << (k%10 > 0 ? " " : "\n\t          ") << *nit;
+#endif
+      // Verify that the nodes on this thread are not present on the others
+      for (k = 0; k < j; k++)
+        for (nit = nodes[j].begin(); nit != nodes[j].end(); ++nit)
+          if (nodes[k].find(*nit) != nodes[k].end())
+            std::cout <<"\n  ** Warning: Node "<< *nit <<" is present on both"
+                      <<" thread "<< k+1 <<" and thread "<< j+1;
+    }
   }
   std::cout << std::endl;
 }

@@ -16,6 +16,7 @@
 
 #include "ASMstruct.h"
 #include "Utilities.h"
+#include "ThreadGroups.h"
 
 namespace Go {
   class SplineSurface;
@@ -535,9 +536,9 @@ protected:
   std::vector<DirichletFace> dirich;
 
   //! Element groups for multi-threaded volume assembly
-  utl::ThreadGroups threadGroupsVol;
+  ThreadGroups threadGroupsVol;
   //! Element groups for multi-threaded face assembly
-  std::map<char,utl::ThreadGroups> threadGroupsFace;
+  std::map<char,ThreadGroups> threadGroupsFace;
 };
 
 #endif

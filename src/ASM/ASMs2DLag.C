@@ -657,5 +657,5 @@ void ASMs2DLag::generateThreadGroups (bool)
   const int nel1 = (nx-1)/(p1-1);
   const int nel2 = (ny-1)/(p2-1);
 
-  utl::calcThreadGroups(nel1,nel2,threadGroups);
+  threadGroups.calcGroups(nel1,nel2,1);
 }

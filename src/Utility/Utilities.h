@@ -148,26 +148,6 @@ namespace utl
   //! \note It is assumed that the array \a a is sorted in encreasing order on
   //! input. If this is not the case the method will deliver incorrect result.
   size_t find_closest(const std::vector<real>& a, real v);
-
-  //! \brief Used to store thread-groups of finite elements
-  typedef std::vector<std::vector<std::vector<int> > > ThreadGroups;
-  
-  //! \brief Calculate a 2D thread group partitioning based on strips
-  //! \param[in] nel1 Number of elements in the first direction
-  //! \param[in] nel2 Number of elements in the second direction
-  //! \param[out] result The partitioning
-  void calcThreadGroups(int nel1, int nel2, ThreadGroups& result);
-
-  //! \brief Calculate a 3D thread group partitioning based on strips
-  //! \param[in] nel1 Number of elements in the first direction
-  //! \param[in] nel2 Number of elements in the second direction
-  //! \param[in] nel3 Number of elements in the third direction
-  //! \param[out] result The partitioning
-  void calcThreadGroups(int nel1, int nel2, int nel3, ThreadGroups& result);
-
-  //! \brief Map one partitioning through a map
-  //! \details The original entry n in the thread group is mapped to map[n]
-  void mapThreadGroups(ThreadGroups& result, const std::vector<int>& map);
 }
 
 #endif

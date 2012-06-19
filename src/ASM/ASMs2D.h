@@ -17,6 +17,7 @@
 #include "ASMstruct.h"
 #include "ASM2D.h"
 #include "Utilities.h"
+#include "ThreadGroups.h"
 
 namespace Go {
   class SplineCurve;
@@ -472,7 +473,7 @@ protected:
   std::vector<DirichletEdge> dirich;
 
   //! Element groups for multi-threaded assembly
-  utl::ThreadGroups threadGroups;
+  ThreadGroups threadGroups;
 };
 
 #endif
