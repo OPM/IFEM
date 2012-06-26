@@ -301,51 +301,62 @@ const RealFunc* utl::parseRealFunc (char* cline, real A)
   // Check for time variation
   if (!cline) return f; // constant in time
 
-  const ScalarFunc* s = 0;
-  if (strncmp(cline,"Ramp",4) == 0 || strcmp(cline,"Tinit") == 0)
-  {
-    real xmax = atof(strtok(NULL," "));
-    std::cout <<" * Ramp(t,"<< xmax <<")";
-    s = new RampFunc(C,xmax);
-  }
-  else if (strncmp(cline,"Dirac",5) == 0)
-  {
-    real xmax = atof(strtok(NULL," "));
-    std::cout <<" * Dirac(t,"<< xmax <<")";
-    s = new DiracFunc(C,xmax);
-  }
-  else if (strncmp(cline,"Step",4) == 0)
-  {
-    real xmax = atof(strtok(NULL," "));
-    std::cout <<" * Step(t,"<< xmax <<")";
-    s = new StepFunc(C,xmax);
-  }
-  else if (strcmp(cline,"sin") == 0)
-  {
-    real freq = atof(strtok(NULL," "));
-    if ((cline = strtok(NULL," ")))
-    {
-      real phase = atof(cline);
-      std::cout <<" * sin("<< freq <<"*t + "<< phase <<")";
-      s = new SineFunc(C,freq,phase);
-    }
-    else
-    {
-      std::cout <<" * sin("<< freq <<"*t)";
-      s = new SineFunc(C,freq);
-    }
-  }
-  else // linear in time
-  {
-    real scale = atof(cline);
-    std::cout <<" * "<< scale <<"*t";
-    s = new LinearFunc(C*scale);
-  }
+  std::cout <<" * ";
+  const ScalarFunc* s = parseTimeFunc(cline,NULL,C);
 
   if (f)
     return new SpaceTimeFunc(f,s);
   else
     return new ConstTimeFunc(s);
+}
+
+
+const ScalarFunc* utl::parseTimeFunc (const char* type, char* cline, real C)
+{
+  if (strncasecmp(type,"expr",4) == 0 && cline != NULL)
+  {
+    std::cout << cline;
+    return new EvalFunc(cline,"t");
+  }
+  else if (strncmp(type,"Ramp",4) == 0 || strcmp(type,"Tinit") == 0)
+  {
+    real xmax = atof(strtok(cline," "));
+    std::cout <<"Ramp(t,"<< xmax <<")";
+    return new RampFunc(C,xmax);
+  }
+  else if (strncmp(type,"Dirac",5) == 0)
+  {
+    real xmax = atof(strtok(cline," "));
+    std::cout <<"Dirac(t,"<< xmax <<")";
+    return new DiracFunc(C,xmax);
+  }
+  else if (strncmp(type,"Step",4) == 0)
+  {
+    real xmax = atof(strtok(cline," "));
+    std::cout <<"Step(t,"<< xmax <<")";
+    return new StepFunc(C,xmax);
+  }
+  else if (strcmp(type,"sin") == 0)
+  {
+    real freq = atof(strtok(cline," "));
+    if ((cline = strtok(NULL," ")))
+    {
+      real phase = atof(cline);
+      std::cout <<"sin("<< freq <<"*t + "<< phase <<")";
+      return new SineFunc(C,freq,phase);
+    }
+    else
+    {
+      std::cout <<"sin("<< freq <<"*t)";
+      return new SineFunc(C,freq);
+    }
+  }
+  else // linear in time
+  {
+    real scale = atof(type);
+    std::cout << scale <<"*t";
+    return new LinearFunc(C*scale);
+  }
 }
 
 

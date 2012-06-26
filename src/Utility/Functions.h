@@ -96,7 +96,7 @@ class StepFunc : public ScalarFunc
 public:
   //! \brief Constructor initializing the function parameters.
   StepFunc(real a, real x = real(0)) : amp(a), xmax(x) {}
-  
+
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return amp == real(0); }
 
@@ -120,7 +120,7 @@ public:
   //! \brief Constructor initializing the function parameters.
   SineFunc(real s = real(1), real f = real(1), real p = real(0))
     : scale(s), freq(f), phase(p) {}
-  
+
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return scale == real(0); }
 
@@ -141,7 +141,7 @@ class ConstFunc : public RealFunc
 public:
   //! \brief Constructor initializing the function value.
   ConstFunc(real v) : fval(v) {}
-  
+
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return fval == real(0); }
 
@@ -164,7 +164,7 @@ public:
   ConstTimeFunc(const ScalarFunc* f) : tfunc(f) {}
   //! \brief The destructor frees the time function.
   virtual ~ConstTimeFunc() { delete tfunc; }
-  
+
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return tfunc->isZero(); }
 
@@ -190,7 +190,7 @@ public:
   SpaceTimeFunc(const RealFunc* s, const ScalarFunc* t) : sfunc(s), tfunc(t) {}
   //! \brief The destructor frees the space and time functions.
   virtual ~SpaceTimeFunc() { delete sfunc; delete tfunc; }
-  
+
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return sfunc->isZero() || tfunc->isZero(); }
 
@@ -212,7 +212,7 @@ class LinearXFunc : public RealFunc
 public:
   //! \brief Constructor initializing the function parameters.
   LinearXFunc(real A, real B = real(0)) : a(A), b(B) {}
-  
+
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return a == real(0) && b == real(0); }
 
@@ -256,7 +256,7 @@ class LinearZFunc : public RealFunc
 public:
   //! \brief Constructor initializing the function parameters.
   LinearZFunc(real A, real B = real(0)) : a(A), b(B) {}
-  
+
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return a == real(0) && b == real(0); }
 
@@ -279,7 +279,7 @@ class QuadraticXFunc : public RealFunc
 public:
   //! \brief Constructor initializing the function parameters.
   QuadraticXFunc(real MAX, real A, real B) : max(MAX), a(A), b(B) {}
-  
+
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return max == real(0); }
 
@@ -465,6 +465,9 @@ protected:
 
 namespace utl
 {
+  //! \brief Creates a time function by parsing a character string.
+  const ScalarFunc* parseTimeFunc(const char* type, char* cline = NULL,
+				  real C = real(1));
   //! \brief Creates a scalar-valued function by parsing a character string.
   const RealFunc* parseRealFunc(char* cline, real A = real(1));
 
