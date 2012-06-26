@@ -566,8 +566,29 @@ void SAM::assembleReactions (Vector& reac, const RealArray& eS, int iel) const
 }
 
 
+bool SAM::getElmNodes (IntVec& mnpc, int iel) const
+{
+  mnpc.clear();
+  if (iel < 1 || iel > nel)
+  {
+    std::cerr <<"SAM::getElmNodes: Element "<< iel <<" is out of range [1,"
+	      << nel <<"]"<< std::endl;
+    return false;
+  }
+
+  int ip = mpmnpc[iel-1]-1;
+  int jp = mpmnpc[iel]-1;
+  if (jp <= ip) return true;
+
+  mnpc.reserve(jp-ip);
+  mnpc.insert(mnpc.end(),mmnpc+ip,mmnpc+jp);
+  return true;
+}
+
+
 bool SAM::getElmEqns (IntVec& meen, int iel, int nedof) const
 {
+  meen.clear();
   if (iel < 1 || iel > nel)
   {
     std::cerr <<"SAM::getElmEqns: Element "<< iel <<" is out of range [1,"
@@ -577,6 +598,7 @@ bool SAM::getElmEqns (IntVec& meen, int iel, int nedof) const
 
   int ip = mpmnpc[iel-1];
   int nenod = mpmnpc[iel] - ip;
+  if (nenod <= 0) return true;
 #ifndef USE_F77SAM
   int oldof = nedof;
 #endif
@@ -588,13 +610,11 @@ bool SAM::getElmEqns (IntVec& meen, int iel, int nedof) const
   elmeq_(madof,mmnpc+ip-1,mpmceq,meqn,nenod,&meen.front(),neldof,neslv,neprd);
   if (neldof == nedof) return true;
 #else
-  meen.clear();
   meen.reserve(nedof);
   for (int i = 0; i < nenod; i++, ip++)
   {
     int node = mmnpc[ip-1];
-    for (int j = madof[node-1]; j < madof[node]; j++)
-      meen.push_back(meqn[j-1]);
+    meen.insert(meen.end(),meqn+madof[node-1]-1,meqn+madof[node]-1);
   }
   int neldof = meen.size();
   if (neldof == nedof || oldof < 1) return true;
@@ -625,6 +645,7 @@ size_t SAM::getNoElmEqns (int iel) const
 
 bool SAM::getNodeEqns (IntVec& mnen, int inod) const
 {
+  mnen.clear();
   if (inod < 1 || inod > nnod)
   {
     std::cerr <<"SAM::getNodeEqns: Node "<< inod <<" is out of range [1,"
@@ -632,10 +653,8 @@ bool SAM::getNodeEqns (IntVec& mnen, int inod) const
     return false;
   }
 
-  mnen.clear();
   mnen.reserve(madof[inod]-madof[inod-1]);
-  for (int j = madof[inod-1]; j < madof[inod]; j++)
-    mnen.push_back(meqn[j-1]);
+  mnen.insert(mnen.end(),meqn+madof[inod-1]-1,meqn+madof[inod]-1);
 
   return true;
 }

@@ -157,6 +157,10 @@ public:
 			      Vector* reactionForces = 0) const;
 
   //! \brief Finds the matrix of equation numbers for an element.
+  //! \param[out] mnpc Matrix of nodal point correspondance
+  //! \param[in] iel Identifier for the element to get the node numbers for
+  bool getElmNodes(IntVec& mnpc, int iel) const;
+  //! \brief Finds the matrix of equation numbers for an element.
   //! \param[out] meen Matrix of element equation numbers
   //! \param[in] iel Identifier for the element to get the equation numbers for
   //! \param[in] nedof Number of degrees of freedom in the element
