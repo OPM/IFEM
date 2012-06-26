@@ -314,14 +314,17 @@ bool SIMLinElBeamC1::preprocess (const std::vector<int>& ignored, bool fixDup)
 }
 
 
-bool SIMLinElBeamC1::finalizeAssembly (bool newLHSmatrix)
+bool SIMLinElBeamC1::assembleDiscreteTerms (const IntegrandBase* problem)
 {
+  if (problem != myProblem)
+    return true; // Do this only for the main integrand
+
   SystemVector* b = myEqSys->getVector();
   for (size_t i = 0; i < myLoads.size() && b; i++)
     if (!mySam->assembleSystem(*b,&myLoads[i].pload,myLoads[i].inod))
       return false;
 
-  return this->SIMbase::finalizeAssembly(newLHSmatrix);
+  return true;
 }
 
 

@@ -23,12 +23,12 @@
 #include "IntegrandBase.h"
 #include "AlgEqSystem.h"
 #include "LinSolParams.h"
+#include "EigSolver.h"
 #include "GlbNorm.h"
 #include "ElmNorm.h"
 #include "AnaSol.h"
 #include "Tensor.h"
 #include "Vec3Oper.h"
-#include "EigSolver.h"
 #include "Functions.h"
 #include "Profiler.h"
 #include "ElementBlock.h"
@@ -364,8 +364,7 @@ bool SIMbase::parseOutputTag (const TiXmlElement* elem)
       DumpData dmp;
       std::string format;
       utl::getAttribute(elem,"format",format);
-      if(! utl::getAttribute(elem,"step",dmp.step) )
-        dmp.step = 1;
+      utl::getAttribute(elem,"step",dmp.step);
       dmp.format = format[0];
       dmp.fname = elem->FirstChild()->Value();
       if (toupper(elem->Value()[5]) == 'R')
@@ -882,7 +881,7 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
   for (mit = myModel.begin(); mit != myModel.end(); mit++)
     (*mit)->generateThreadGroups(silence);
   for (q = myProps.begin(); q != myProps.end(); q++)
-    if (q->pcode == Property::NEUMANN)
+    if (q->pcode == Property::NEUMANN || q->pcode == Property::NEUMANN_GENERIC)
       if (abs(q->ldim)+1 == myModel[q->patch-1]->getNoParamDim())
 	myModel[q->patch-1]->generateThreadGroups(q->lindx,silence);
 
@@ -923,7 +922,7 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
   mySam = new SAMpatch();
 #endif
 
-  return mySam->init(myModel,ngnod) && ierr == 0;
+  return static_cast<SAMpatch*>(mySam)->init(myModel,ngnod) && ierr == 0;
 }
 
 
@@ -1123,10 +1122,8 @@ bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, bool withRF)
 
   if (myEqSys) delete myEqSys;
   myEqSys = new AlgEqSystem(*mySam);
-  myEqSys->init(static_cast<SystemMatrix::Type>(mType),
-		mySolParams,nMats,nVec,opt.num_threads_SLU);
-  myEqSys->initAssembly(withRF);
-  return true;
+  return myEqSys->init(static_cast<SystemMatrix::Type>(mType),
+		       mySolParams,nMats,nVec,withRF,opt.num_threads_SLU);
 }
 
 
@@ -1140,10 +1137,17 @@ bool SIMbase::setAssociatedRHS (size_t iMat, size_t iVec)
 
 bool SIMbase::setMode (int mode, bool resetSol)
 {
-  if (!myProblem) return false;
+  if (myInts.empty())
+    myInts.insert(std::make_pair(0,myProblem));
 
-  myProblem->setMode((SIM::SolutionMode)mode);
-  if (resetSol) myProblem->resetSolution();
+  for (IntegrandMap::const_iterator i = myInts.begin(); i != myInts.end(); i++)
+    if (i->second)
+    {
+      i->second->setMode((SIM::SolutionMode)mode);
+      if (resetSol) i->second->resetSolution();
+    }
+    else
+      return false;
 
   return true;
 }
@@ -1261,7 +1265,7 @@ bool SIMbase::updateDirichlet (double time, const Vector* prevSol)
 	return false;
 
   if (mySam)
-    return mySam->updateConstraintEqs(myModel,prevSol);
+    return static_cast<SAMpatch*>(mySam)->updateConstraintEqs(myModel,prevSol);
   else
     return true;
 }
@@ -1288,124 +1292,114 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 {
   PROFILE1("Element assembly");
 
-  if (!myProblem) return false;
-
-  myProblem->initIntegration(time);
-  myEqSys->init(newLHSmatrix);
   bool ok = true;
+  myEqSys->initialize(newLHSmatrix);
 
-  // Loop over the different material regions, integrating interior
-  // coefficient matrix terms for the patch associated with each material
-  size_t j = 0, lp = 0;
-  PropertyVec::const_iterator p;
-  for (p = myProps.begin(); p != myProps.end() && ok; p++)
-    if (p->pcode == Property::MATERIAL)
-      if ((j = p->patch) < 1 || j > myModel.size())
-      {
-	std::cerr <<" *** SIMbase::assembleSystem: Patch index "<< j
-		  <<" out of range [1,"<< myModel.size() <<"]"<< std::endl;
-	ok = false;
-      }
-      else if (this->initMaterial(p->pindx))
-      {
-	if (msgLevel > 1)
-	  std::cout <<"\nAssembling interior matrix terms for P"<< j
-		    << std::endl;
-	ok &= this->initBodyLoad(j);
-	ok &= this->extractPatchSolution(prevSol,j-1);
-	ok &= myModel[j-1]->integrate(*myProblem,*myEqSys,time);
-	lp = j;
-      }
-      else
-	ok = false;
+  // Loop over the integrands
+  IntegrandMap::const_iterator it;
+  for (it = myInts.begin(); it != myInts.end() && ok; it++)
+  {
+    if (msgLevel > 1)
+      std::cout <<"\n\nProcessing integrand associated with code "<< it->first
+		<< std::endl;
 
-  if (j == 0)
-    // All patches are referring to the same material, and we assume it has
-    // been initialized during input processing (thus no initMaterial call here)
-    for (size_t i = 0; i < myModel.size() && ok; i++)
+    GlobalIntegral& sysQ = it->second->getGlobalInt(myEqSys);
+    if (&sysQ != myEqSys) sysQ.initialize(newLHSmatrix);
+
+    it->second->initIntegration(time);
+
+    // Loop over the different material regions, integrating interior
+    // coefficient matrix terms for the patch associated with each material
+    size_t j = 0, lp = 0;
+    PropertyVec::const_iterator p;
+    if (it->second->hasInteriorTerms())
     {
-      if (msgLevel > 1)
-	std::cout <<"\nAssembling interior matrix terms for P"<< i+1
-		  << std::endl;
-      ok &= this->initBodyLoad(i+1);
-      ok &= this->extractPatchSolution(prevSol,i);
-      ok &= myModel[i]->integrate(*myProblem,*myEqSys,time);
-      lp = i+1;
+      for (p = myProps.begin(); p != myProps.end() && ok; p++)
+        if (p->pcode == Property::MATERIAL &&
+	    (it->first == 0 || it->first == p->pindx))
+          if ((j = p->patch) < 1 || j > myModel.size())
+          {
+            std::cerr <<" *** SIMbase::assembleSystem: Patch index "<< j
+                      <<" out of range [1,"<< myModel.size() <<"]"<< std::endl;
+            ok = false;
+          }
+          else if (this->initMaterial(p->pindx))
+          {
+            if (msgLevel > 1)
+              std::cout <<"\nAssembling interior matrix terms for P"<< j
+                        << std::endl;
+            ok &= this->initBodyLoad(j);
+            ok &= this->extractPatchSolution(it->second,prevSol,j-1);
+            ok &= myModel[j-1]->integrate(*it->second,sysQ,time);
+            lp = j;
+          }
+          else
+            ok = false;
+
+      if (j == 0 && it->first == 0)
+        // All patches refer to the same material, and we assume it has been
+        // initialized during input processing (thus no initMaterial call here)
+        for (size_t k = 0; k < myModel.size() && ok; k++)
+        {
+          if (msgLevel > 1)
+            std::cout <<"\nAssembling interior matrix terms for P"<< k+1
+                      << std::endl;
+          ok &= this->initBodyLoad(k+1);
+          ok &= this->extractPatchSolution(it->second,prevSol,k);
+          ok &= myModel[k]->integrate(*it->second,sysQ,time);
+          lp = k+1;
+        }
     }
 
-  // Assemble right-hand-side contributions from the Neumann boundary conditions
-  if (myProblem->hasBoundaryTerms() && myEqSys->getVector())
-    for (p = myProps.begin(); p != myProps.end() && ok; p++)
-      if (p->pcode == Property::NEUMANN)
-	if ((j = p->patch) < 1 || j > myModel.size())
-	{
-	  std::cerr <<" *** SIMbase::assembleSystem: Patch index "<< j
-		    <<" out of range [1,"<< myModel.size() <<"]"<< std::endl;
-	  ok = false;
-	}
+    // Assemble contributions from the Neumann boundary conditions
+    // and other boundary integrals (Robin properties, contact, etc.)
+    if (it->second->hasBoundaryTerms() && myEqSys->getVector())
+      for (p = myProps.begin(); p != myProps.end() && ok; p++)
+        if ((p->pcode == Property::NEUMANN && it->first == 0) ||
+	    (p->pcode == Property::NEUMANN_GENERIC && it->first == p->pindx))
+          if ((j = p->patch) < 1 || j > myModel.size())
+          {
+            std::cerr <<" *** SIMbase::assembleSystem: Patch index "<< j
+                      <<" out of range [1,"<< myModel.size() <<"]"<< std::endl;
+            ok = false;
+          }
 
-	else if (abs(p->ldim)+1 == myModel[j-1]->getNoSpaceDim())
-	  if (this->initNeumann(p->pindx))
-	  {
-	    if (msgLevel > 1)
-	      std::cout <<"\nAssembling Neumann matrix terms for boundary "
-			<< (int)p->lindx <<" on P"<< j << std::endl;
-	    if (j != lp)
-	      ok &= this->extractPatchSolution(prevSol,j-1);
-	    ok &= myModel[j-1]->integrate(*myProblem,p->lindx,*myEqSys,time);
-	    lp = j;
-	  }
-	  else
-	    ok = false;
+          else if (abs(p->ldim)+1 == myModel[j-1]->getNoSpaceDim())
+            if (it->first == p->pindx || this->initNeumann(p->pindx))
+            {
+              if (msgLevel > 1)
+                std::cout <<"\nAssembling Neumann matrix terms for boundary "
+                          << (int)p->lindx <<" on P"<< j << std::endl;
+              if (j != lp)
+                ok &= this->extractPatchSolution(it->second,prevSol,j-1);
+              ok &= myModel[j-1]->integrate(*it->second,p->lindx,sysQ,time);
+              lp = j;
+            }
+            else
+              ok = false;
 
-	else if (abs(p->ldim)+2 == myModel[j-1]->getNoSpaceDim())
-	  if (this->initNeumann(p->pindx))
-	  {
-	    if (msgLevel > 1)
-	      std::cout <<"\nAssembling Neumann matrix terms for edge "
-			<< (int)p->lindx <<" on P"<< j << std::endl;
-	    if (j != lp)
-	      ok &= this->extractPatchSolution(prevSol,j-1);
-	    ok &= myModel[j-1]->integrateEdge(*myProblem,p->lindx,
-					      *myEqSys,time);
-	    lp = j;
-	  }
-	  else
-	    ok = false;
+          else if (abs(p->ldim)+2 == myModel[j-1]->getNoSpaceDim())
+            if (it->first == 0 && this->initNeumann(p->pindx))
+            {
+              if (msgLevel > 1)
+                std::cout <<"\nAssembling Neumann matrix terms for edge "
+                          << (int)p->lindx <<" on P"<< j << std::endl;
+              if (j != lp)
+                ok &= this->extractPatchSolution(it->second,prevSol,j-1);
+              ok &= myModel[j-1]->integrateEdge(*it->second,p->lindx,sysQ,time);
+              lp = j;
+            }
+	    else
+              ok = false;
 
-  if (!ok) std::cerr <<" *** SIMbase::assembleSystem: Failure.\n"<< std::endl;
+    if (ok) ok = this->assembleDiscreteTerms(it->second);
+    if (ok && &sysQ != myEqSys) ok = sysQ.finalize(newLHSmatrix);
+  }
+  if (ok && myEqSys->finalize(newLHSmatrix))
+    return true;
 
-  return ok && this->finalizeAssembly(newLHSmatrix);
-}
-
-
-bool SIMbase::finalizeAssembly (bool newLHSmatrix)
-{
-  // Communication of matrix and vector assembly (for PETSc only)
-  SystemMatrix* A;
-  SystemVector* b;
-  if (newLHSmatrix)
-    for (size_t i = 0; i < myEqSys->getNoMatrices(); i++)
-      if ((A = myEqSys->getMatrix(i)))
-      {
-	if (!A->beginAssembly()) return false;
-	if (!A->endAssembly())   return false;
-#if SP_DEBUG > 3
-	std::cout <<"\nSystem coefficient matrix:"<< *A;
-#endif
-      }
-
-  for (size_t i = 0; i < myEqSys->getNoVectors(); i++)
-    if ((b = myEqSys->getVector(i)))
-    {
-      if (!b->beginAssembly()) return false;
-      if (!b->endAssembly())   return false;
-#if SP_DEBUG > 2
-      std::cout <<"\nSystem right-hand-side vector:"<< *b;
-#endif
-    }
-
-  return true;
+  std::cerr <<" *** SIMbase::assembleSystem: Failure.\n"<< std::endl;
+  return false;
 }
 
 
@@ -1434,7 +1428,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
     if (it->doDump()) {
       std::cout <<"\nDumping system matrix to file "<< it->fname << std::endl;
       std::ofstream os(it->fname.c_str());
-	  os << std::setprecision(17);
+      os << std::setprecision(17);
       A->dump(os,it->format,"A");
     }
 
@@ -1443,7 +1437,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
     if (it->doDump()) {
       std::cout <<"\nDumping RHS vector to file "<< it->fname << std::endl;
       std::ofstream os(it->fname.c_str());
-	  os << std::setprecision(17);
+      os << std::setprecision(17);
       b->dump(os,it->format,"b");
     }
 
@@ -2707,16 +2701,17 @@ bool SIMbase::project (Vector& sol) const
 }
 
 
-bool SIMbase::extractPatchSolution (const Vectors& sol, size_t pindx)
+bool SIMbase::extractPatchSolution (IntegrandBase* problem,
+                                    const Vectors& sol, size_t pindx)
 {
   if (pindx >= myModel.size() || myModel[pindx]->empty())
     return false;
 
-  for (size_t i = 0; i < sol.size() && i < myProblem->getNoSolutions(); i++)
+  for (size_t i = 0; i < sol.size() && i < problem->getNoSolutions(); i++)
     if (!sol[i].empty())
-      myModel[pindx]->extractNodeVec(sol[i],myProblem->getSolution(i));
+      myModel[pindx]->extractNodeVec(sol[i],problem->getSolution(i));
 
-  return this->extractPatchDependencies(myProblem,myModel,pindx);
+  return this->extractPatchDependencies(problem,myModel,pindx);
 }
 
 

@@ -40,13 +40,11 @@ public:
   //! \param[in] spar Input parameters for the linear equation solver
   //! \param[in] nmat Number of system matrices to allocate
   //! \param[in] nvec Number of system vectors to allocate
+  //! \param[in] withReactions If \e false, no reaction forces will be computed
   //! \param[in] num_threads_SLU Number of threads for SuperLU_MT
-  void init(SystemMatrix::Type mtype, const LinSolParams* spar,
-	    size_t nmat, size_t nvec, int num_threads_SLU = 1);
-
-  //! \brief Initializes the system matrices to zero.
-  //! \param[in] initLHS If \e false, only initialize the right-hand-side vector
-  void init(bool initLHS = true);
+  bool init(SystemMatrix::Type mtype, const LinSolParams* spar,
+	    size_t nmat, size_t nvec, bool withReactions,
+	    int num_threads_SLU = 1);
 
   //! \brief Erases the system matrices and frees dynamically allocated storage.
   void clear();
@@ -61,19 +59,17 @@ public:
   //! constraint equations for which the dependent DOFs have been eliminated.
   bool setAssociatedVector(size_t imat, size_t ivec);
 
-  //! \brief Initializes the matrices to proper size for element assembly.
-  //! \param[in] withReactions If \e false, no reaction forces will be computed
-  void initAssembly(bool withReactions);
+  //! \brief Initializes the system matrices to zero.
+  //! \param[in] initLHS If \e false, only initialize right-hand-side vectors
+  virtual void initialize(bool initLHS);
+  //! \brief Finalizes the system matrices after element assembly.
+  //! \param[in] newLHS If \e false, only right-hand-side vectors was assembled
+  virtual bool finalize(bool newLHS);
 
   //! \brief Adds a set of element matrices into the algebraic equation system.
   //! \param[in] elmObj Pointer to the element matrices to add into \a *this
   //! \param[in] elmId Global number of the element associated with \a *elmObj
   virtual bool assemble(const LocalIntegral* elmObj, int elmId);
-
-  //! \brief Returns the number of system matrices allocated.
-  size_t getNoMatrices() const { return A.size(); }
-  //! \brief Returns the number of vectors allocated.
-  size_t getNoVectors() const { return b.size(); }
 
   //! \brief Returns the \a i'th matrix of the equation system.
   SystemMatrix* getMatrix(size_t i = 0) { return i < A.size() ? A[i]._A : 0; }

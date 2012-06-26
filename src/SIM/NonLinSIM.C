@@ -21,10 +21,10 @@
 
 NonLinSIM::NonLinSIM (SIMbase* sim) : model(sim), nBlock(0)
 {
-#if SP_DEBUG > 2
-  msgLevel = 100; // prints the linear solution vector if size < 100
-#else
+#ifndef SP_DEBUG
   msgLevel = 1;   // prints the convergence history only
+#elif SP_DEBUG > 2
+  msgLevel = 100; // prints the linear solution vector if its size is < 100
 #endif
 
   // Default solution parameters
@@ -397,7 +397,7 @@ bool NonLinSIM::updateConfiguration (SolvePrm& param)
   else if (param.alpha != 0.0)
     solution.front().add(linsol,param.alpha);
 
-  return true;
+  return model->updateConfiguration(solution.front());
 }
 
 

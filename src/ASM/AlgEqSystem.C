@@ -17,8 +17,9 @@
 #include "LinSolParams.h"
 
 
-void AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
-			size_t nmat, size_t nvec, int num_threads_SLU)
+bool AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
+			size_t nmat, size_t nvec, bool withReactions,
+			int num_threads_SLU)
 {
   size_t i;
   for (i = nmat; i < A.size(); i++)
@@ -28,7 +29,7 @@ void AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
     if (b[i]) delete b[i];
 
   A.resize(nmat);
-  b.resize(nvec,0);
+  b.resize(nvec,NULL);
   R.clear();
 
   for (i = 0; i < A.size(); i++)
@@ -38,30 +39,29 @@ void AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
 	A[i]._A = SystemMatrix::create(mtype,*spar);
       else
 	A[i]._A = SystemMatrix::create(mtype,num_threads_SLU);
-    A[i]._b = 0;
+    if (!A[i]._A) return false;
+
+    A[i]._A->initAssembly(sam);
+    A[i]._b = NULL;
   }
 
   for (i = 0; i < b.size(); i++)
+  {
     if (!b[i])
       if (mtype == SystemMatrix::PETSC)
 	b[i] = SystemVector::create(SystemVector::PETSC);
       else
 	b[i] = SystemVector::create(SystemVector::STD);
-}
+    if (!b[i]) return false;
+  }
 
-
-void AlgEqSystem::init (bool initLHS)
-{
-  size_t i;
-
-  if (initLHS)
-    for (i = 0; i < A.size(); i++)
-      if (A[i]._A) A[i]._A->init();
+  if (A.size() == 1 && b.size() == 1)
+    return sam.initForAssembly(*b.front(), withReactions ? &R : NULL);
 
   for (i = 0; i < b.size(); i++)
-    if (b[i]) b[i]->init();
+    b[i]->redim(sam.getNoEquations());
 
-  R.fill(0.0);
+  return true;
 }
 
 
@@ -70,10 +70,10 @@ void AlgEqSystem::clear ()
   size_t i;
 
   for (i = 0; i < A.size(); i++)
-    if (A[i]._A) delete A[i]._A;
+    delete A[i]._A;
 
   for (i = 0; i < b.size(); i++)
-    if (b[i]) delete b[i];
+    delete b[i];
 
   A.clear();
   b.clear();
@@ -92,18 +92,18 @@ bool AlgEqSystem::setAssociatedVector (size_t imat, size_t ivec)
 }
 
 
-void AlgEqSystem::initAssembly (bool withReactions)
+void AlgEqSystem::initialize (bool initLHS)
 {
   size_t i;
 
-  for (i = 0; i < A.size(); i++)
-    if (A[i]._A) A[i]._A->initAssembly(sam);
+  if (initLHS)
+    for (i = 0; i < A.size(); i++)
+      A[i]._A->init();
 
-  if (A.size() == 1 && b.size() == 1)
-    sam.initForAssembly(*b.front(), withReactions ? &R : NULL);
-  else for (i = 0; i < b.size(); i++)
-    if (b[i])
-      b[i]->redim(sam.getNoEquations());
+  for (i = 0; i < b.size(); i++)
+    b[i]->init();
+
+  R.fill(0.0);
 }
 
 
@@ -163,4 +163,32 @@ bool AlgEqSystem::assemble (const LocalIntegral* elmObj, int elmId)
 	      <<": size(A)="<< A.size() <<","<< elMat->A.size()
 	      <<" size(b)="<< b.size() <<","<< elMat->b.size() << std::endl;
   return status;
+}
+
+
+bool AlgEqSystem::finalize (bool newLHS)
+{
+  // Communication of matrix and vector assembly (for PETSc matrices only)
+  if (newLHS)
+    for (size_t i = 0; i < A.size(); i++)
+      if (!A[i]._A->beginAssembly())
+	return false;
+      else if (!A[i]._A->endAssembly())
+	return false;
+#if SP_DEBUG > 2
+      else if (A[i]._A->dim() < 100)
+	std::cout <<"\nSystem coefficient matrix:"<< *A[i]._A;
+#endif
+
+  for (size_t i = 0; i < b.size(); i++)
+    if (!b[i]->beginAssembly())
+      return false;
+    else if (!b[i]->endAssembly())
+      return false;
+#if SP_DEBUG > 2
+    else
+      std::cout <<"\nSystem right-hand-side vector:"<< *b[i];
+#endif
+
+  return true;
 }

@@ -59,8 +59,7 @@ protected:
   //! \param[in] keyWord Keyword of current data section to read
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
-
-  //! \brief Parses a data section from an XML element
+  //! \brief Parses a data section from an XML element.
   //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);
 
@@ -71,8 +70,8 @@ protected:
   //! \param[in] patchInd 1-based patch index
   virtual bool initBodyLoad(size_t patchInd);
 
-  //! \brief Finalizes the global equation system assembly.
-  virtual bool finalizeAssembly(bool newLHSmatrix);
+  //! \brief Assembles the nodal point loads, if any.
+  virtual bool assembleDiscreteTerms(const IntegrandBase* problem);
 
   //! \brief Computes problem-dependet external energy contributions.
   virtual double externalEnergy(const Vectors& psol) const;

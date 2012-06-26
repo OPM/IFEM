@@ -29,10 +29,13 @@ class NormBase;
 class ForceBase;
 class AnaSol;
 class VTF;
-class SAMpatch;
+class SAM;
 class AlgEqSystem;
 class LinSolParams;
 class SIMparameters;
+
+//! Property code to integrand map
+typedef std::multimap<int,IntegrandBase*> IntegrandMap;
 
 
 /*!
@@ -224,7 +227,11 @@ public:
   //! (used for the initial time step), otherwise they are set to the difference
   //! between the new values from the Dirichlet functions, and the previous
   //! values stored in the provided \a prevSol vector.
-  bool updateDirichlet(double time = 0.0, const Vector* prevSol = 0);
+  virtual bool updateDirichlet(double time = 0.0, const Vector* prevSol = 0);
+
+  //! \brief Updates problem-dependent state based on the current solution.
+  //! \param[in] solution Current primary solution vector in DOF-order
+  virtual bool updateConfiguration(const Vector& solution) { return true; }
 
   //! \brief Updates the grid coordinates.
   //! \param[in] displ The displacement increment to update the grid with
@@ -238,15 +245,14 @@ public:
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param[in] pSol Previous primary solution vectors in DOF-order
   //! \param[in] newLHSmatrix If \e false, only integrate the RHS vector
-  virtual bool assembleSystem(const TimeDomain& time,
-			      const Vectors& pSol = Vectors(),
-			      bool newLHSmatrix = true);
+  bool assembleSystem(const TimeDomain& time, const Vectors& pSol,
+                      bool newLHSmatrix = true);
 
   //! \brief Administers assembly of the linear equation system.
   //! \param[in] pSol Primary solution vectors in DOF-order
   //!
   //! \details Use this version for linear/stationary problems only.
-  virtual bool assembleSystem(const Vectors& pSol = Vectors())
+  bool assembleSystem(const Vectors& pSol = Vectors())
   { return this->assembleSystem(TimeDomain(),pSol); }
 
   //! \brief Extracts the assembled load vector for inspection/visualization.
@@ -258,9 +264,8 @@ public:
   //! \param[in] printSol Print solution if its size is less than \a printSol
   //! \param[in] compName Solution name to be used in norm output
   //! \param[in] newLHS If \e false, reuse the LHS-matrix from previous call.
-  virtual bool solveSystem(Vector& solution, int printSol = 0,
-			   const char* compName = "displacement",
-			   bool newLHS = true);
+  bool solveSystem(Vector& solution, int printSol = 0,
+                   const char* compName = "displacement", bool newLHS = true);
 
   //! \brief Evaluates some iteration norms for convergence assessment.
   //! \param[in] x Global primary solution vector
@@ -277,20 +282,21 @@ public:
   //! \param[out] ind Global index of the node corresponding to the inf-value
   //! \param[in] nf Number of components in the primary solution field
   //! \return L2-norm of the solution vector
-  virtual double solutionNorms(const Vector& x, double* inf,
-			       size_t* ind, size_t nf = 0) const;
+  double solutionNorms(const Vector& x, double* inf,
+                       size_t* ind, size_t nf = 0) const;
 
   //! \brief Integrates some solution norm quantities.
-  //! \details If an analytical solution is provided, norms of the exact
-  //! error in the solution are computed as well. If projected secondary
-  //! solutions are provided (i.e., \a ssol is not empty), norms of the
-  //! difference between these solutions and the directly evaluated secondary
-  //! solution are computed as well.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations.
   //! \param[in] psol Primary solution vectors
   //! \param[in] ssol Secondary solution vectors
   //! \param[out] gNorm Global norm quantities
   //! \param[out] eNorm Element-wise norm quantities
+  //!
+  //! \details If an analytical solution is provided, norms of the exact
+  //! error in the solution are computed as well. If projected secondary
+  //! solutions are provided (i.e., \a ssol is not empty), norms of the
+  //! difference between these solutions and the directly evaluated secondary
+  //! solution are computed as well.
   bool solutionNorms(const TimeDomain& time,
 		     const Vectors& psol, const Vectors& ssol,
 		     Vector& gNorm, Matrix* eNorm = 0);
@@ -566,15 +572,9 @@ protected:
   //! \brief Creates the computational FEM model from the spline patches.
   bool createFEMmodel();
 
-public:
-  //! \brief Returns the local patch index for the given global patch number.
-  //! \details For serial applications this is an identity mapping only, whereas
-  //! for parallel applications the local (1-based) patch index on the current
-  //! processor is returned. If \a patchNo is out of range, -1 is returned.
-  //! If \a patchNo is not on current processor, 0 is returned.
-  int getLocalPatchIndex(int patchNo) const;
-
+private:
   //! \brief Extracts all local solution vector(s) for a specified patch.
+  //! \param[in] problem Integrand to receive the patch-level solution vectors
   //! \param[in] sol Global primary solution vectors in DOF-order
   //! \param[in] pindx Local patch index to extract solution vectors for
   //!
@@ -582,8 +582,16 @@ public:
   //! on the the specified path, in order to extract all patch-level vector
   //! quantities needed by the Integrand. This also includes any dependent
   //! vectors from other simulator classes that have been registered.
-  //! All patch-level vectors are stored within the Integrand \a *myProblem.
-  bool extractPatchSolution(const Vectors& sol, size_t pindx);
+  //! All patch-level vectors are stored within the provided Integrand \a *p.
+  bool extractPatchSolution(IntegrandBase* problem,
+                            const Vectors& sol, size_t pindx);
+
+public:
+  //! \brief Extracts all local solution vector(s) for a specified patch.
+  //! \param[in] sol Global primary solution vectors in DOF-order
+  //! \param[in] pindx Local patch index to extract solution vectors for
+  bool extractPatchSolution(const Vectors& sol, size_t pindx)
+  { return this->extractPatchSolution(myProblem,sol,pindx); }
 
   //! \brief Extracts a local solution vector for a specified patch.
   //! \param[in] sol Global primary solution vector in DOF-order
@@ -608,6 +616,13 @@ public:
   //! \param[out] elmRes Patch-level element result array
   //! \param[in] pindx Local patch index to extract element results for
   bool extractPatchElmRes(const Matrix& globRes, Matrix& elmRes, int pindx);
+
+  //! \brief Returns the local patch index for the given global patch number.
+  //! \details For serial applications this is an identity mapping only, whereas
+  //! for parallel applications the local (1-based) patch index on the current
+  //! processor is returned. If \a patchNo is out of range, -1 is returned.
+  //! If \a patchNo is not on current processor, 0 is returned.
+  int getLocalPatchIndex(int patchNo) const;
 
   //! \brief Returns a const reference to our FEM model.
   const PatchVec& getFEModel() const { return myModel; }
@@ -649,10 +664,9 @@ protected:
   //! \brief Reads a LinSolParams object from the given stream.
   void readLinSolParams(std::istream& is, int npar);
 
-  //! \brief Finalizes the global equation system assembly.
-  virtual bool finalizeAssembly(bool newLHSmatrix = true);
-
-  //! \brief Computes (possibly problem-dependet) external energy contributions.
+  //! \brief Assembles problem-dependent discrete terms, if any.
+  virtual bool assembleDiscreteTerms(const IntegrandBase*) { return true; }
+  //! \brief Computes (possibly problem-dependent) external energy contribution.
   virtual double externalEnergy(const Vectors& psol) const;
 
 public:
@@ -676,7 +690,8 @@ protected:
   SclFuncMap     myScalars; //!< Scalar property fields
   VecFuncMap     myVectors; //!< Vector property fields
   TracFuncMap    myTracs;   //!< Traction property fields
-  IntegrandBase* myProblem; //!< Problem-specific data and methods
+  IntegrandBase* myProblem; //!< The main integrand of this simulator
+  IntegrandMap   myInts;    //!< Set of all integrands involved
   AnaSol*        mySol;     //!< Analytical/Exact solution
 
   //! \brief A struct with data for system matrix/vector dumps.
@@ -687,7 +702,7 @@ protected:
     int         step;   //!< Dump step identifier
     int         count;  //!< Internal step counter, dump only when step==count
     //! \brief Default constructor.
-    DumpData() : format('P'), step(0), count(0) {}
+    DumpData() : format('P'), step(1), count(0) {}
     //! \brief Checks if the matrix or vector should be dumped now.
     bool doDump() { return !fname.empty() && ++count == step; }
   };
@@ -707,7 +722,7 @@ protected:
 
   // Equation solver attributes
   AlgEqSystem*  myEqSys;     //!< The actual linear equation system
-  SAMpatch*     mySam;       //!< Auxiliary data for FE assembly management
+  SAM*          mySam;       //!< Auxiliary data for FE assembly management
   LinSolParams* mySolParams; //!< Input parameters for PETSc
 
 private:

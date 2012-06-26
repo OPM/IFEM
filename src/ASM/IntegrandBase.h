@@ -22,6 +22,7 @@
 
 class NormBase;
 class ForceBase;
+class GlobalIntegral;
 class GlbNorm;
 class AnaSol;
 class VTF;
@@ -64,6 +65,8 @@ public:
   //! the secondary solution at all result sampling points, after the converged
   //! primary solution has been found.
   virtual void initResultPoints(double) {}
+  //! \brief Returns the system quantity to be integrated by \a *this.
+  virtual GlobalIntegral& getGlobalInt(GlobalIntegral* gq) const { return *gq; }
 
 
   // Element-level initialization interface
@@ -115,6 +118,8 @@ public:
                               const std::vector<int>& MNPC2, size_t n1,
                               LocalIntegral& elmInt);
 
+  //! \brief Returns whether this integrand has explicit interior contributions.
+  virtual bool hasInteriorTerms() const { return true; }
   //! \brief Returns whether this integrand has explicit boundary contributions.
   virtual bool hasBoundaryTerms() const { return true; }
 
