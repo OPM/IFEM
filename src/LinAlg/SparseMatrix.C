@@ -490,6 +490,68 @@ bool SparseMatrix::multiply (const SystemVector& B, SystemVector& C)
 
 
 /*!
+  \brief Initilizes the sparsity pattern of a system matrix.
+  \details This method is used only when assembling in parallel, where we cannot
+  allow the system matrix to grow in size during the real assembly process.
+*/
+
+static void preAssemble (SparseMatrix& SM, const std::vector<int>& meen,
+			 const int* meqn, const int* mpmceq, const int* mmceq)
+{
+  // Add elements corresponding to free dofs in eM into SM
+  int i, j, ip, jp, nedof = meen.size();
+  for (j = 1; j <= nedof; j++)
+  {
+    int jeq = meen[j-1];
+    if (jeq < 1) continue;
+
+    SM(jeq,jeq) = 0.0;
+
+    for (i = 1; i < j; i++)
+    {
+      int ieq = meen[i-1];
+      if (ieq < 1) continue;
+
+      SM(ieq,jeq) = 0.0;
+      SM(jeq,ieq) = 0.0;
+    }
+  }
+
+  // Add (appropriately weighted) elements corresponding to constrained
+  // (dependent and prescribed) dofs in eM into SM and/or SV
+  for (j = 1; j <= nedof; j++)
+  {
+    int jceq = -meen[j-1];
+    if (jceq < 1) continue;
+
+    // Add contributions to SM
+    for (jp = mpmceq[jceq-1]; jp < mpmceq[jceq]-1; jp++)
+      if (mmceq[jp] > 0)
+      {
+	int jeq = meqn[mmceq[jp]-1];
+	for (i = 1; i <= nedof; i++)
+	{
+	  int ieq = meen[i-1];
+	  int iceq = -ieq;
+	  if (ieq > 0)
+	  {
+	    SM(ieq,jeq) = 0.0;
+	    SM(jeq,ieq) = 0.0;
+	  }
+	  else if (iceq > 0)
+	    for (ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ip++)
+	      if (mmceq[ip] > 0)
+	      {
+		ieq = meqn[mmceq[ip]-1];
+		SM(ieq,jeq) = 0.0;
+	      }
+	}
+      }
+  }
+}
+
+
+/*!
   \brief This is a C++ version of the F77 subroutine ADDEM2 (SAM library).
   \details It performs exactly the same tasks, except that \a NRHS always is 1,
   and that the system matrix \a SM here is an object of the SparseMatrix class.
@@ -602,17 +664,18 @@ void SparseMatrix::initAssembly (const SAM& sam)
 {
   this->resize(sam.neq,sam.neq);
 #ifdef USE_OPENMP
+  if (omp_get_max_threads() < 2) return;
+
   // Dummy assembly loop to avoid matrix resizing during assembly
-  if (omp_get_max_threads() > 1)
-    for (int iel = 1; iel <= sam.nel; ++iel)
-    {
-      size_t ndim = sam.getNoElmEqns(iel);
-      assemble(Matrix(ndim,ndim),sam,iel);
-    }
+  std::vector<int> meen;
+  for (int iel = 1; iel <= sam.nel; iel++)
+    if (sam.getElmEqns(meen,iel,sam.getNoElmEqns(iel)))
+      preAssemble(*this,meen,sam.meqn,sam.mpmceq,sam.mmceq);
+
   switch (solver) {
-    case SUPERLU: optimiseSLU(); break;
-    case S_A_M_G: optimiseSAMG(); break;
-    default: break;
+  case SUPERLU: optimiseSLU(); break;
+  case S_A_M_G: optimiseSAMG(); break;
+  default: break;
   }
 #endif
 }
