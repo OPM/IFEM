@@ -1,13 +1,13 @@
 // $Id$
 //==============================================================================
 //!
-//! \file ASMu2D.C
+//! \file ASMu2Drecovery.C
 //!
-//! \date February 2012 
+//! \date February 2012
 //!
 //! \author Kjetil A. Johannessen and Knut Morten Okstad / SINTEF
 //!
-//! \brief Recovery techniques for unstructured LR B-splines
+//! \brief Recovery techniques for unstructured LR B-splines.
 //!
 //==============================================================================
 
@@ -28,14 +28,15 @@ bool ASMu2D::getGrevilleParameters (RealArray& prm, int dir) const
 {
   if (!lrspline || dir < 0 || dir > 1) return false;
 
-  int i=0;
-  prm.resize(lrspline->nBasisFunctions());
-  std::vector<LR::Basisfunction*>::iterator bit;
-  for(bit = lrspline->basisBegin(); bit != lrspline->basisEnd(); bit++, i++)
-  	prm[i] = (**bit).getGrevilleParameter()[dir];
+  prm.clear();
+  prm.reserve(lrspline->nBasisFunctions());
+  std::vector<LR::Basisfunction*>::const_iterator bit;
+  for (bit = lrspline->basisBegin(); bit != lrspline->basisEnd(); bit++)
+    prm.push_back((*bit)->getGrevilleParameter()[dir]);
 
   return true;
 }
+
 
 void ASMu2D::expandTensorGrid(RealArray *in, RealArray *out) const {
   out[0].resize((in[0].size()) * (in[1].size()));
@@ -100,13 +101,6 @@ bool ASMu2D::globalL2projection (Matrix& sField,
 
   PROFILE2("ASMu2D::globalL2");
 
-
-/*
-  const int n1 = surf->numCoefs_u();
-  const int n2 = surf->numCoefs_v();
-  const int nel1 = n1 - p1 + 1;
-  const int nel2 = n2 - p2 + 1;
-*/
   const int p1 = lrspline->order_u();
   const int p2 = lrspline->order_v();
 
@@ -122,7 +116,7 @@ bool ASMu2D::globalL2projection (Matrix& sField,
 
   // Set up the projection matrices
   const size_t nnod = this->getNoNodes();
-  const size_t ncomp = integrand.getNoFields(); 
+  const size_t ncomp = integrand.getNoFields();
   SparseMatrix A(SparseMatrix::SUPERLU);
   StdVector B(nnod*ncomp);
   A.redim(nnod,nnod);
@@ -170,7 +164,6 @@ bool ASMu2D::globalL2projection (Matrix& sField,
     for (int j = 0; j < ng2; j++)
       for (int i = 0; i < ng1; i++, ip++)
       {
-        
         if (continuous)
 	{
 	  lrspline->computeBasis(gpar[0][i], gpar[1][j], spl1, iel-1);
@@ -189,7 +182,7 @@ bool ASMu2D::globalL2projection (Matrix& sField,
           dJw = dA*wg[i]*wg[j]*utl::Jacobian(Jac,dNdu,Xnod,dNdu,false);
           if (dJw == 0.0) continue; // skip singular points
         }
-    
+
         // Integrate the linear system A*x=B
         for (size_t ii = 0; ii < phi.size(); ii++)
         {
@@ -213,7 +206,6 @@ bool ASMu2D::globalL2projection (Matrix& sField,
   std::cout << B << std::endl;
   std::cout << " -------------------\n";
 #endif
-
 
   // Solve the patch-global equation system
   if (!A.solve(B)) return false;
@@ -253,7 +245,6 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
 
   const int p1 = lrspline->order_u();
   const int p2 = lrspline->order_v();
-  // const int nel1 = surf->numCoefs_u() - p1 + 1;
 
   // Get Gaussian quadrature point coordinates
   const int ng1 = p1 - 1;
@@ -261,12 +252,9 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
   const double* xg = GaussQuadrature::getCoord(ng1);
   const double* yg = GaussQuadrature::getCoord(ng2);
   if (!xg || !yg) return 0;
-		  
-
-  // Compute parameter values of the Gauss points over the whole patch
-  RealArray gpar[2];
 
   // Compute parameter values of the Greville points
+  RealArray gpar[2];
   if (!this->getGrevilleParameters(gpar[0],0)) return 0;
   if (!this->getGrevilleParameters(gpar[1],1)) return 0;
 
@@ -286,14 +274,11 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
   for(bit = lrspline->basisBegin(); bit != lrspline->basisEnd(); bit++, ip++)
   {
     b = *bit;
-    
 #if SP_DEBUG > 2
     std::cout << "Basis: " << *b  << std::endl;
-    std::cout << "  nel =" << nel  << std::endl;
     std::cout << "  ng1 =" << ng1  << std::endl;
     std::cout << "  ng2 =" << ng2  << std::endl;
     std::cout << "  nPol=" << nPol << std::endl;
-    std::cout << "  needs ext.basis : " <<  (nel*ng1*ng2 < nPol) << std::endl;
 #endif
 
     // Special case for basis functions with too many zero knot spans by using
@@ -431,7 +416,7 @@ LR::LRSplineSurface* ASMu2D::regularInterpolation(LR::LRSplineSurface *basis,
   }
 
   size_t nBasis = basis->nBasisFunctions();
-  Go::BasisPtsSf splineValues; 
+  Go::BasisPtsSf splineValues;
 
   // copy all basis functions and mesh and later swap around the control points
   LR::LRSplineSurface *ans = basis->copy();
@@ -465,6 +450,4 @@ LR::LRSplineSurface* ASMu2D::regularInterpolation(LR::LRSplineSurface *basis,
   }
 
   return ans;
-    
 }
-
