@@ -30,6 +30,14 @@ SIMFiniteDefEl2D::SIMFiniteDefEl2D (const std::vector<int>& options) : nlo(2)
 }
 
 
+SIMFiniteDefEl2D::~SIMFiniteDefEl2D ()
+{
+  for (IntegrandMap::const_iterator i = myInts.begin(); i != myInts.end(); i++)
+    if (i->second != myProblem)
+      delete i->second;
+}
+
+
 bool SIMFiniteDefEl2D::parse (char* keyWord, std::istream& is)
 {
   if (!strncasecmp(keyWord,"ISOTROPIC",9))
@@ -130,7 +138,9 @@ bool SIMFiniteDefEl2D::parse (const TiXmlElement* elem)
       if (utl::getAttribute(child,"code",code) && code > 0)
         setPropertyType(code,Property::MATERIAL,mVec.size());
       double E = 1000.0, nu = 0.3, rho = 1.0;
+      utl::getAttribute(child,"K",E);
       utl::getAttribute(child,"E",E);
+      utl::getAttribute(child,"G",nu);
       utl::getAttribute(child,"nu",nu);
       utl::getAttribute(child,"rho",rho);
       utl::getAttribute(child,"version",matVer);
@@ -184,6 +194,15 @@ bool SIMFiniteDefEl2D::parse (const TiXmlElement* elem)
       }
     }
 
+    else if (!strcasecmp(child->Value(),"contact"))
+    {
+      if (!this->createFEMmodel())
+	return false;
+
+      if (!this->parseContactTag(child,myModel,myEntitys))
+	return false;
+    }
+
   if (!myProblem)
     myProblem = nlo.getIntegrand();
 
@@ -194,6 +213,41 @@ bool SIMFiniteDefEl2D::parse (const TiXmlElement* elem)
 }
 
 
+bool SIMFiniteDefEl2D::preprocess (const std::vector<int>& ignored, bool fixDup)
+{
+  if (!this->SIMLinEl2D::preprocess(ignored,fixDup))
+    return false;
+
+  myInts.insert(std::make_pair(0,myProblem));
+  return this->preprocessContact(myInts,*mySam,this->getNoSpaceDim());
+}
+
+
+bool SIMFiniteDefEl2D::createContactSet (const std::string& slaveSet, int& code)
+{
+  if (!(code = this->getUniquePropertyCode(slaveSet)))
+    return false;
+
+  this->setPropertyType(code,Property::NEUMANN_GENERIC);
+  return true;
+}
+
+
+bool SIMFiniteDefEl2D::updateConfiguration (const Vector& solution)
+{
+  return this->updateContactBodies(solution);
+}
+
+
+bool SIMFiniteDefEl2D::updateDirichlet (double time, const Vector* prevSol)
+{
+  if (prevSol)
+    this->SIMContact::updateDirichlet(time);
+
+  return this->SIMbase::updateDirichlet(time,prevSol);
+}
+
+
 SIMFiniteDefEl3D::SIMFiniteDefEl3D (bool checkRHS,
 				    const std::vector<int>& options)
   : SIMLinEl3D(checkRHS), nlo(3)
@@ -201,6 +255,14 @@ SIMFiniteDefEl3D::SIMFiniteDefEl3D (bool checkRHS,
   nlo.form = options.size() > 0 ? options[0] : 0; // problem formulation
   nlo.pOrd = options.size() > 1 ? options[1] : 0; // pressure field order
   if (nlo.form == SIM::MIXED_QnQn1) nf[1] = 2;
+}
+
+
+SIMFiniteDefEl3D::~SIMFiniteDefEl3D ()
+{
+  for (IntegrandMap::const_iterator i = myInts.begin(); i != myInts.end(); i++)
+    if (i->second != myProblem)
+      delete i->second;
 }
 
 
@@ -304,7 +366,9 @@ bool SIMFiniteDefEl3D::parse (const TiXmlElement* elem)
       if (utl::getAttribute(child,"code",code) && code > 0)
         setPropertyType(code,Property::MATERIAL,mVec.size());
       double E = 1000.0, nu = 0.3, rho = 1.0;
+      utl::getAttribute(child,"K",E);
       utl::getAttribute(child,"E",E);
+      utl::getAttribute(child,"G",nu);
       utl::getAttribute(child,"nu",nu);
       utl::getAttribute(child,"rho",rho);
       utl::getAttribute(child,"version",matVer);
@@ -358,6 +422,15 @@ bool SIMFiniteDefEl3D::parse (const TiXmlElement* elem)
       }
     }
 
+    else if (!strcasecmp(child->Value(),"contact"))
+    {
+      if (!this->createFEMmodel())
+	return false;
+
+      if (!this->parseContactTag(child,myModel,myEntitys))
+	return false;
+    }
+
   if (!myProblem)
     myProblem = nlo.getIntegrand();
 
@@ -365,4 +438,39 @@ bool SIMFiniteDefEl3D::parse (const TiXmlElement* elem)
     static_cast<Elasticity*>(myProblem)->setMaterial(mVec.front());
 
   return true;
+}
+
+
+bool SIMFiniteDefEl3D::preprocess (const std::vector<int>& ignored, bool fixDup)
+{
+  if (!this->SIMLinEl3D::preprocess(ignored,fixDup))
+    return false;
+
+  myInts.insert(std::make_pair(0,myProblem));
+  return this->preprocessContact(myInts,*mySam,this->getNoSpaceDim());
+}
+
+
+bool SIMFiniteDefEl3D::createContactSet (const std::string& slaveSet, int& code)
+{
+  if (!(code = this->getUniquePropertyCode(slaveSet)))
+    return false;
+
+  this->setPropertyType(code,Property::NEUMANN_GENERIC);
+  return true;
+}
+
+
+bool SIMFiniteDefEl3D::updateDirichlet (double time, const Vector* prevSol)
+{
+  if (prevSol)
+    this->SIMContact::updateDirichlet(time);
+
+  return this->SIMbase::updateDirichlet(time,prevSol);
+}
+
+
+bool SIMFiniteDefEl3D::updateConfiguration (const Vector& solution)
+{
+  return this->updateContactBodies(solution);
 }

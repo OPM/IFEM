@@ -1964,7 +1964,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
   if (integrand.getIntegrandType() & Integrand::XO_ELEMENTS)
     if ((doXelms = (n1-p1+1)*(n2-p2+1)*(n3-p3+1))*2 > MNPC.size())
     {
-      std::cerr <<" *** ASMs3D::integrate: To few XO-elements "
+      std::cerr <<" *** ASMs3D::integrate: Too few XO-elements "
                 << MNPC.size() - doXelms << std::endl;
       return false;
     }
