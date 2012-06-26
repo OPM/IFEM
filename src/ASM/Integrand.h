@@ -149,7 +149,8 @@ public:
     AVERAGE            = 2, //!< Integrand wants basis function averages
     ELEMENT_SIZE       = 4, //!< Integrand wants an estimated element size
     G_MATRIX           = 8, //!< Integrand wants the G matrix
-    ELEMENT_CENTER     = 16 //!< Integrand wants element center coordinates
+    ELEMENT_CENTER     = 16,//!< Integrand wants element center coordinates
+    XO_ELEMENTS        = 32 //!< Integrand is defined on extraordinary elements
   };
 
   //! \brief Defines which FE quantities are needed by the integrand.

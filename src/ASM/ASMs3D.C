@@ -126,6 +126,73 @@ void ASMs3D::clear (bool retainGeometry)
 }
 
 
+bool ASMs3D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
+{
+  if (dim != 2)
+  {
+    std::cerr <<" *** ASMs3D::addXElms: Invalid boundary dimension "<< dim
+              <<", only 2 (face) is allowed."<< std::endl;
+    return false;
+  }
+  else if (!svol || shareFE)
+    return false;
+
+  int nel = MNPC.size();
+  myMNPC.resize(2*nel);
+  myMLGE.resize(2*nel,0);
+
+  for (size_t i = 0; i < nXn; i++)
+  {
+    if (nodes.size() == i)
+      nodes.push_back(++gNod);
+    myMLGN.push_back(nodes[i]);
+  }
+
+  const int n1 = svol->numCoefs(0);
+  const int n2 = svol->numCoefs(1);
+  const int n3 = svol->numCoefs(2);
+
+  const int p1 = svol->order(0);
+  const int p2 = svol->order(1);
+  const int p3 = svol->order(2);
+
+  int iel = 0;
+  for (int i3 = p3; i3 <= n3; i3++)
+    for (int i2 = p2; i2 <= n2; i2++)
+      for (int i1 = p1; i1 <= n1; i1++, iel++)
+      {
+	if (MLGE[iel] < 1) continue; // Skip zero-volume element
+
+	// Skip elements that are not on current boundary face
+	bool skipMe = false;
+	switch (item)
+	  {
+	  case 1: if (i1 > p1) skipMe = true; break;
+	  case 2: if (i1 < n1) skipMe = true; break;
+	  case 3: if (i2 > p2) skipMe = true; break;
+	  case 4: if (i2 < n2) skipMe = true; break;
+	  case 5: if (i3 > p3) skipMe = true; break;
+	  case 6: if (i3 < n3) skipMe = true; break;
+	  }
+	if (skipMe) continue;
+
+	if (!MNPC[nel+iel].empty())
+	{
+	  std::cerr <<" *** ASMs3D::addXElms: Only one X-face allowed."
+		    << std::endl;
+	  return false;
+	}
+
+	myMLGE[nel+iel] = ++gEl;
+	myMNPC[nel+iel] = MNPC[iel];
+	for (size_t i = 0; i < nXn; i++)
+	  myMNPC[nel+iel].push_back(MLGN.size()-nXn+i);
+      }
+
+  return iel == nel;
+}
+
+
 size_t ASMs3D::getNodeIndex (int globalNum, bool noAddedNodes) const
 {
   IntVec::const_iterator it = std::find(MLGN.begin(),MLGN.end(),globalNum);
@@ -1882,6 +1949,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 
   const int n1 = svol->numCoefs(0);
   const int n2 = svol->numCoefs(1);
+  const int n3 = svol->numCoefs(2);
 
   const int p1 = svol->order(0);
   const int p2 = svol->order(1);
@@ -1889,6 +1957,16 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 
   const int nel1 = n1 - p1 + 1;
   const int nel2 = n2 - p2 + 1;
+
+  // Integrate the extraordinary elements?
+  size_t doXelms = 0;
+  if (integrand.getIntegrandType() & Integrand::XO_ELEMENTS)
+    if ((doXelms = (n1-p1+1)*(n2-p2+1)*(n3-p3+1))*2 > MNPC.size())
+    {
+      std::cerr <<" *** ASMs3D::integrate: To few XO-elements "
+                << MNPC.size() - doXelms << std::endl;
+      return false;
+    }
 
 
   // === Assembly loop over all elements on the patch face =====================
@@ -1908,7 +1986,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
       Vec3   normal;
       for (size_t l = 0; l < threadGrp[g][t].size(); ++l) {
         int iel = threadGrp[g][t][l];
-        fe.iel = MLGE[iel];
+        fe.iel = MLGE[doXelms+iel];
         if (fe.iel < 1) continue; // zero-volume element
 
         int i1 = p1 + iel % nel1;
@@ -1932,7 +2010,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-        if (!integrand.initElementBou(MNPC[iel-1],*A))
+        if (!integrand.initElementBou(MNPC[doXelms+iel-1],*A))
         {
           ok = false;
           break;

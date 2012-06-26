@@ -102,6 +102,14 @@ public:
   //! This is used to reinitialize the patch after it has been refined.
   virtual void clear(bool retainGeometry = false);
 
+  //! \brief Adds extraordinary elements associated with a patch boundary.
+  //! \param[in] dim Dimension of the boundary (should be \a nsd - 1)
+  //! \param[in] item Local index of the boundary face/edge
+  //! \param[in] nXnod Number of extraordinary nodes
+  //! \param[out] nodes Global numbers assigned to the extraordinary nodes
+  virtual bool addXElms(short int dim, short int item, size_t nXnod,
+                        std::vector<int>& nodes);
+
   //! \brief Defines the numerical integration scheme to use.
   //! \param[in] ng Number of Gauss points in each parameter direction
   void setGauss(int ng) { nGauss = ng; }
@@ -174,6 +182,10 @@ public:
   MPCIter begin_MPC() const { return mpcs.begin(); }
   //! \brief Returns the end of the MPC set.
   MPCIter end_MPC() const { return mpcs.end(); }
+  //! \brief Returns the MPC equation for a specified slave, if any.
+  //! \param[in] node Global node number of the slave node
+  //! \param[in] dof Which local DOF which is constrained (1, 2, 3)
+  MPC* findMPC(int node, int dof) const;
 
 
   // Various preprocessing methods
@@ -443,6 +455,8 @@ protected:
   //! \param[in] slave 1-based local index of the slave node to constrain
   //! \param[in] dirs Which local DOFs to constrain (1, 2, 3, 12, 23, 123)
   void makePeriodic(size_t master, size_t slave, int dirs = 123);
+
+public:
   //! \brief Constrains DOFs in the given node to the given value.
   //! \param[in] inod 1-based node index local to current patch
   //! \param[in] dirs Which local DOFs to constrain (1, 2, 3, 12, 23, 123)
@@ -453,11 +467,13 @@ protected:
   //! \param[in] dirs Which local DOFs to constrain (1, 2, 3, 12, 23, 123)
   void fix(size_t inod, int dirs = 123);
 
+private:
   //! \brief Recursive method used by \a resolveMPCchains.
   //! \param[in] allMPCs All multi-point constraint equations in the model
   //! \param mpc Pointer to the multi-point constraint equation to resolve
   static bool resolveMPCchain(const MPCSet& allMPCs, MPC* mpc);
 
+protected:
   //! \brief Collapses the given two nodes into one.
   //! \details The global node number of the node with the highest number
   //! is changed into the number of the other node.

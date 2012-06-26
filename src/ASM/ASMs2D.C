@@ -145,6 +145,67 @@ void ASMs2D::clear (bool retainGeometry)
 }
 
 
+bool ASMs2D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
+{
+  if (dim != 1)
+  {
+    std::cerr <<" *** ASMs2D::addXElms: Invalid boundary dimension "<< dim
+              <<", only 1 (edge) is allowed."<< std::endl;
+    return false;
+  }
+  else if (!surf || shareFE)
+    return false;
+
+  int nel = MNPC.size();
+  myMNPC.resize(2*nel);
+  myMLGE.resize(2*nel,0);
+
+  for (size_t i = 0; i < nXn; i++)
+  {
+    if (nodes.size() == i)
+      nodes.push_back(++gNod);
+    myMLGN.push_back(nodes[i]);
+  }
+
+  const int p1 = surf->order_u();
+  const int p2 = surf->order_v();
+  const int n1 = surf->numCoefs_u();
+  const int n2 = surf->numCoefs_v();
+
+  int iel = 0;
+  for (int i2 = p2; i2 <= n2; i2++)
+    for (int i1 = p1; i1 <= n1; i1++, iel++)
+    {
+      if (MLGE[iel] < 1) continue; // Skip zero-area element
+
+      // Skip elements that are not on current boundary edge
+      bool skipMe = false;
+      switch (item)
+        {
+        case 1: if (i1 > p1) skipMe = true; break;
+        case 2: if (i1 < n1) skipMe = true; break;
+        case 3: if (i2 > p2) skipMe = true; break;
+        case 4: if (i2 < n2) skipMe = true; break;
+        }
+      if (skipMe) continue;
+
+      if (!MNPC[nel+iel].empty())
+      {
+        std::cerr <<" *** ASMs2D::addXElms: Only one X-edge allowed."
+                  << std::endl;
+        return false;
+      }
+
+      myMLGE[nel+iel] = ++gEl;
+      myMNPC[nel+iel] = MNPC[iel];
+      for (size_t i = 0; i < nXn; i++)
+        myMNPC[nel+iel].push_back(MLGN.size()-nXn+i);
+    }
+
+  return iel == nel;
+}
+
+
 size_t ASMs2D::getNodeIndex (int globalNum, bool noAddedNodes) const
 {
   IntVec::const_iterator it = std::find(MLGN.begin(),MLGN.end(),globalNum);
@@ -1541,6 +1602,16 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
 
+  // Integrate the extraordinary elements?
+  size_t doXelms = 0;
+  if (integrand.getIntegrandType() & Integrand::XO_ELEMENTS)
+    if ((doXelms = (n1-p1+1)*(n2-p2+1))*2 > MNPC.size())
+    {
+      std::cerr <<" *** ASMs2D::integrate: To few XO-elements "
+                << MNPC.size() - doXelms << std::endl;
+      return false;
+    }
+
   FiniteElement fe(p1*p2);
   fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
   fe.u = gpar[0](1,1);
@@ -1557,7 +1628,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
   for (int i2 = p2; i2 <= n2; i2++)
     for (int i1 = p1; i1 <= n1; i1++, iel++)
     {
-      fe.iel = MLGE[iel-1];
+      fe.iel = MLGE[doXelms+iel-1];
       if (fe.iel < 1) continue; // zero-area element
 
       // Skip elements that are not on current boundary edge
@@ -1580,7 +1651,8 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-      if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;
+      if (!integrand.initElementBou(MNPC[doXelms+iel-1],*A))
+        return false;
 
 
       // --- Integration loop over all Gauss points along the edge -------------

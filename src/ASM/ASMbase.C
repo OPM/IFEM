@@ -72,6 +72,14 @@ void ASMbase::clear (bool retainGeometry)
 }
 
 
+bool ASMbase::addXElms (short int, short int, size_t, std::vector<int>&)
+{
+  std::cerr <<" *** ASMBase::addXElms: Must be implemented in sub-class."
+            << std::endl;
+  return false;
+}
+
+
 size_t ASMbase::getNodeIndex (int globalNum, bool) const
 {
   IntVec::const_iterator it = std::find(MLGN.begin(),MLGN.end(),globalNum);
@@ -232,6 +240,14 @@ bool ASMbase::addSPC (int node, int dir, int code)
 
   MPC* mpc = new MPC(node,dir);
   return this->addMPC(mpc,code);
+}
+
+
+MPC* ASMbase::findMPC (int node, int dof) const
+{
+  MPC slave(node,dof);
+  MPCIter cit = mpcs.find(&slave);
+  return cit == mpcs.end() ? NULL : *cit;
 }
 
 

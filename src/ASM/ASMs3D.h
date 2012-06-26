@@ -15,7 +15,6 @@
 #define _ASM_S3D_H
 
 #include "ASMstruct.h"
-#include "Utilities.h"
 #include "ThreadGroups.h"
 
 namespace Go {
@@ -139,6 +138,14 @@ public:
   //! \param[in] retainGeometry If \e true, the spline geometry is not cleared.
   //! This is used to reinitialize the patch after it has been refined.
   virtual void clear(bool retainGeometry = false);
+
+  //! \brief Adds extraordinary elements associated with a patch boundary.
+  //! \param[in] dim Dimension of the boundary (should be 2)
+  //! \param[in] item Local index of the boundary face
+  //! \param[in] nXn Number of extraordinary nodes
+  //! \param[out] nodes Global numbers assigned to the extraordinary nodes
+  virtual bool addXElms(short int dim, short int item,
+                        size_t nXn, IntVec& nodes);
 
   //! \brief Returns local 1-based index of the node with given global number.
   //! \details If the given node number is not present, 0 is returned.
