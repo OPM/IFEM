@@ -1567,8 +1567,9 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
   PROFILE2("ASMs2D::integrate(B)");
 
   // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
+  int nGP = integrand.getBouIntegrationPoints(nGauss);
+  const double* xg = GaussQuadrature::getCoord(nGP);
+  const double* wg = GaussQuadrature::getWeight(nGP);
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the edge normal {-2,-1, 1, 2}
@@ -1591,7 +1592,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       gpar[d].fill(d == 0 ? surf->endparam_u() : surf->endparam_v());
     }
     else
-      this->getGaussPointParameters(gpar[d],d,nGauss,xg);
+      this->getGaussPointParameters(gpar[d],d,nGP,xg);
 
   // Evaluate basis function derivatives at all integration points
   std::vector<Go::BasisDerivsSf> spline;
@@ -1657,10 +1658,10 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 
       // --- Integration loop over all Gauss points along the edge -------------
 
-      int ip = (t1 == 1 ? i2-p2 : i1-p1)*nGauss;
+      int ip = (t1 == 1 ? i2-p2 : i1-p1)*nGP;
       fe.iGP = firstBp[lIndex] + ip; // Global integration point counter
 
-      for (int i = 0; i < nGauss; i++, ip++, fe.iGP++)
+      for (int i = 0; i < nGP; i++, ip++, fe.iGP++)
       {
 	// Local element coordinates and parameter values
 	// of current integration point

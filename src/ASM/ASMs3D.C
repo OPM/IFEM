@@ -1914,8 +1914,9 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
   const ThreadGroups& threadGrp = tit->second;
 
   // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
+  int nGP = integrand.getBouIntegrationPoints(nGauss);
+  const double* xg = GaussQuadrature::getCoord(nGP);
+  const double* wg = GaussQuadrature::getWeight(nGP);
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the face normal {-3,-2,-1, 1, 2, 3}
@@ -1938,7 +1939,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
       gpar[d].fill(svol->endparam(d));
     }
     else
-      this->getGaussPointParameters(gpar[d],d,nGauss,xg);
+      this->getGaussPointParameters(gpar[d],d,nGP,xg);
 
   // Evaluate basis function derivatives at all integration points
   std::vector<Go::BasisDerivs> spline;
@@ -2030,12 +2031,12 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
         // --- Integration loop over all Gauss points in each direction --------
 
         int k1, k2, k3;
-        int ip = (j2*nGauss*nf1 + j1)*nGauss;
-        int jp = (j2*nf1 + j1)*nGauss*nGauss;
+        int ip = (j2*nGP*nf1 + j1)*nGP;
+        int jp = (j2*nf1 + j1)*nGP*nGP;
         fe.iGP = firstBp[lIndex] + jp; // Global integration point counter
 
-        for (int j = 0; j < nGauss; j++, ip += nGauss*(nf1-1))
-          for (int i = 0; i < nGauss; i++, ip++, fe.iGP++)
+        for (int j = 0; j < nGP; j++, ip += nGP*(nf1-1))
+          for (int i = 0; i < nGP; i++, ip++, fe.iGP++)
           {
             // Local element coordinates and parameter values
             // of current integration point

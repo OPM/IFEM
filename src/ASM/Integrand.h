@@ -157,6 +157,8 @@ public:
   virtual int getIntegrandType() const { return STANDARD; }
   //! \brief Returns the number of reduced-order integration points.
   virtual int getReducedIntegration() const { return 0; }
+  //! \brief Returns the number of boundary integration points.
+  virtual int getBouIntegrationPoints(int nGP) const { return nGP; }
 
   //! \brief Evaluates reduced integration terms at an interior point.
   //! \param elmInt The local integral object to receive the contributions
