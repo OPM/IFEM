@@ -1388,11 +1388,6 @@ bool ASMs2D::integrate (Integrand& integrand,
         {
           // Compute characteristic element length
           fe.h = getElmSize(p1,p2,Xnod);
-
-          // Element size in parametric space
-          int inod = MNPC[iel-1].back();
-          dXidu[0] = surf->knotSpan(0,nodeInd[inod].I);
-          dXidu[1] = surf->knotSpan(1,nodeInd[inod].J);
         }
 
         if (integrand.getIntegrandType() & Integrand::AVERAGE)
@@ -1514,8 +1509,15 @@ bool ASMs2D::integrate (Integrand& integrand,
                 break;
               }
             }
-            if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+            if (integrand.getIntegrandType() & Integrand::G_MATRIX) {
+              if (i == j == 0) {
+                // Element size in parametric space
+                int inod = MNPC[iel-1].back();
+                dXidu[0] = surf->knotSpan(0,nodeInd[inod].I);
+                dXidu[1] = surf->knotSpan(1,nodeInd[inod].J);
+              }
               utl::getGmat(Jac,dXidu,fe.G);
+            }
 
 #if SP_DEBUG > 4
             std::cout <<"\niel, ip = "<< iel <<" "<< ip
