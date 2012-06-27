@@ -418,7 +418,7 @@ bool ASMs2D::assignNodeNumbers (BlockNodes& nodes, int basis)
   int n1, n2;
   if (!this->getSize(n1,n2,basis))
     return false;
-
+  
   int m1 = 0, m2 = 0;
   if (basis > 0)
     if (!this->getSize(m1,m2,3-basis))
@@ -439,30 +439,30 @@ bool ASMs2D::assignNodeNumbers (BlockNodes& nodes, int basis)
     for (int i = 1; i <= n1; i++, inod++)
       if (j == 1)
       {
-	if (i == 1)
-	  myMLGN[inod] = nodes.ibnod[0];
-	else if (i == n1)
-	  myMLGN[inod] = nodes.ibnod[1];
-	else
-	  myMLGN[inod] = nodes.edges[2].next();
+        if (i == 1)
+          myMLGN[inod] = nodes.ibnod[0];
+        else if (i == n1)
+          myMLGN[inod] = nodes.ibnod[1];
+        else
+          myMLGN[inod] = nodes.edges[2].next();
       }
       else if (j == n2)
       {
-	if (i == 1)
-	  myMLGN[inod] = nodes.ibnod[2];
-	else if (i == n1)
-	  myMLGN[inod] = nodes.ibnod[3];
-	else
-	  myMLGN[inod] = nodes.edges[3].next();
+        if (i == 1)
+          myMLGN[inod] = nodes.ibnod[2];
+        else if (i == n1)
+          myMLGN[inod] = nodes.ibnod[3];
+        else
+          myMLGN[inod] = nodes.edges[3].next();
       }
       else
       {
-	if (i == 1)
-	  myMLGN[inod] = nodes.edges[0].next();
-	else if (i == n1)
-	  myMLGN[inod] = nodes.edges[1].next();
-	else
-	  myMLGN[inod] = nodes.next();
+        if (i == 1)
+          myMLGN[inod] = nodes.edges[0].next();
+        else if (i == n1)
+          myMLGN[inod] = nodes.edges[1].next();
+        else
+          myMLGN[inod] = nodes.next();
       }
 
 #if SP_DEBUG > 2
@@ -1510,7 +1510,7 @@ bool ASMs2D::integrate (Integrand& integrand,
               }
             }
             if (integrand.getIntegrandType() & Integrand::G_MATRIX) {
-              if (i == j == 0) {
+              if ((i == 0) && (j == 0)) {
                 // Element size in parametric space
                 int inod = MNPC[iel-1].back();
                 dXidu[0] = surf->knotSpan(0,nodeInd[inod].I);
@@ -1520,7 +1520,7 @@ bool ASMs2D::integrate (Integrand& integrand,
             }
 
 #if SP_DEBUG > 4
-            std::cout <<"\niel, ip = "<< iel <<" "<< ip
+	   std::cout <<"\niel, ip = "<< iel <<" "<< ip
                       <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX << std::endl;
 #endif
 
@@ -1623,6 +1623,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
   Matrix dNdu, Xnod, Jac;
   Vec4   X;
   Vec3   normal;
+  double dXidu[2];
 
 
   // === Assembly loop over all elements on the patch edge =====================
@@ -1651,6 +1652,17 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 
       // Set up control point coordinates for current element
       if (!this->getElementCoordinates(Xnod,iel)) return false;
+
+      if (integrand.getIntegrandType() & Integrand::ELEMENT_SIZE )
+        {
+          // Compute characteristic element length
+          fe.h = getElmSize(p1,p2,Xnod);
+
+          // Element size in parametric space
+          int inod = MNPC[iel-1].back();
+          dXidu[0] = surf->knotSpan(0,nodeInd[inod].I);
+          dXidu[1] = surf->knotSpan(1,nodeInd[inod].J);
+        }
 
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
@@ -1687,6 +1699,10 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 
 	if (edgeDir < 0) normal *= -1.0;
 
+	// Compute G matrix
+	if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+	  utl::getGmat(Jac,dXidu,fe.G);
+	
 	// Cartesian coordinates of current integration point
 	X = Xnod * fe.N;
 	X.t = time.t;

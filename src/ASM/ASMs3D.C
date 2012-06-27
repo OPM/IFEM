@@ -1985,6 +1985,8 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
       Matrix dNdu, Xnod, Jac;
       Vec4   X;
       Vec3   normal;
+      double dXidu[3];
+
       for (size_t l = 0; l < threadGrp[g][t].size(); ++l) {
         int iel = threadGrp[g][t][l];
         fe.iel = MLGE[doXelms+iel];
@@ -2007,6 +2009,19 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
         {
           ok = false;
           break;
+        }
+
+
+	if (integrand.getIntegrandType() & Integrand::ELEMENT_SIZE)
+        {
+	  // Compute characteristic element length
+          fe.h = getElmSize(p1,p2,p3,Xnod);
+
+          // Element size in parametric space
+          int inod = MNPC[iel-1].back();
+          dXidu[0] = svol->knotSpan(0,nodeInd[inod].I);
+          dXidu[1] = svol->knotSpan(1,nodeInd[inod].J);
+          dXidu[2] = svol->knotSpan(2,nodeInd[inod].K);
         }
 
         // Initialize element quantities
@@ -2071,6 +2086,9 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
             if (fe.detJxW == 0.0) continue; // skip singular points
 
             if (faceDir < 0) normal *= -1.0;
+
+	    if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+	      utl::getGmat(Jac,dXidu,fe.G);
 
             // Cartesian coordinates of current integration point
             X = Xnod * fe.N;
