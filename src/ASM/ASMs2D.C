@@ -173,33 +173,53 @@ bool ASMs2D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
   const int n2 = surf->numCoefs_v();
 
   int iel = 0;
+  bool skipMe = false;
   for (int i2 = p2; i2 <= n2; i2++)
     for (int i1 = p1; i1 <= n1; i1++, iel++)
     {
       if (MLGE[iel] < 1) continue; // Skip zero-area element
 
       // Skip elements that are not on current boundary edge
-      bool skipMe = false;
       switch (item)
         {
-        case 1: if (i1 > p1) skipMe = true; break;
-        case 2: if (i1 < n1) skipMe = true; break;
-        case 3: if (i2 > p2) skipMe = true; break;
-        case 4: if (i2 < n2) skipMe = true; break;
+        case 1: skipMe = i1 > p1; break;
+        case 2: skipMe = i1 < n1; break;
+        case 3: skipMe = i2 > p2; break;
+        case 4: skipMe = i2 < n2; break;
         }
       if (skipMe) continue;
 
-      if (!MNPC[nel+iel].empty())
+      IntVec& mnpc = myMNPC[nel+iel];
+      if (!mnpc.empty())
       {
         std::cerr <<" *** ASMs2D::addXElms: Only one X-edge allowed."
                   << std::endl;
         return false;
       }
 
-      myMLGE[nel+iel] = ++gEl;
-      myMNPC[nel+iel] = MNPC[iel];
+      mnpc = MNPC[iel]; // Copy the ordinary element nodes
+
+      // Negate node numbers that are not on the boundary edge, to flag that
+      // they shall not receive any tangent and/or residual contributions
+      int lnod = 0;
+      for (int j2 = 0; j2 < p2; j2++)
+        for (int j1 = 0; j1 < p1; j1++, lnod++)
+        {
+          switch (item)
+            {
+            case 1: skipMe = j1 > 0;    break;
+            case 2: skipMe = j1 < p1-1; break;
+            case 3: skipMe = j2 > 0;    break;
+            case 4: skipMe = j2 < p2-1; break;
+	    }
+	  if (skipMe) mnpc[lnod] *= -1;
+	}
+
+      // Add connectivity to the extra-ordinary nodes
       for (size_t i = 0; i < nXn; i++)
-        myMNPC[nel+iel].push_back(MLGN.size()-nXn+i);
+        mnpc.push_back(MLGN.size()-nXn+i);
+
+      myMLGE[nel+iel] = ++gEl;
     }
 
   return iel == nel;
@@ -418,7 +438,7 @@ bool ASMs2D::assignNodeNumbers (BlockNodes& nodes, int basis)
   int n1, n2;
   if (!this->getSize(n1,n2,basis))
     return false;
-  
+
   int m1 = 0, m2 = 0;
   if (basis > 0)
     if (!this->getSize(m1,m2,3-basis))
@@ -1428,6 +1448,13 @@ bool ASMs2D::integrate (Integrand& integrand,
             X[i] = X0[i];
         }
 
+	if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+	{
+          // Element size in parametric space
+          dXidu[0] = surf->knotSpan(0,i1-1);
+          dXidu[1] = surf->knotSpan(1,i2-1);
+	}
+
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
         if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed,*A))
@@ -1481,7 +1508,6 @@ bool ASMs2D::integrate (Integrand& integrand,
         for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
           for (int i = 0; i < nGauss; i++, ip++, fe.iGP++)
           {
-
             // Local element coordinates of current integration point
             fe.xi  = xg[i];
             fe.eta = xg[j];
@@ -1502,25 +1528,18 @@ bool ASMs2D::integrate (Integrand& integrand,
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
             if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-            {
               if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
               {
                 ok = false;
                 break;
               }
-            }
-            if (integrand.getIntegrandType() & Integrand::G_MATRIX) {
-              if ((i == 0) && (j == 0)) {
-                // Element size in parametric space
-                int inod = MNPC[iel-1].back();
-                dXidu[0] = surf->knotSpan(0,nodeInd[inod].I);
-                dXidu[1] = surf->knotSpan(1,nodeInd[inod].J);
-              }
+
+            // Compute G-matrix
+            if (integrand.getIntegrandType() & Integrand::G_MATRIX)
               utl::getGmat(Jac,dXidu,fe.G);
-            }
 
 #if SP_DEBUG > 4
-	   std::cout <<"\niel, ip = "<< iel <<" "<< ip
+            std::cout <<"\niel, ip = "<< iel <<" "<< ip
                       <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX << std::endl;
 #endif
 
@@ -1653,16 +1672,18 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       // Set up control point coordinates for current element
       if (!this->getElementCoordinates(Xnod,iel)) return false;
 
-      if (integrand.getIntegrandType() & Integrand::ELEMENT_SIZE )
-        {
-          // Compute characteristic element length
-          fe.h = getElmSize(p1,p2,Xnod);
+      if (integrand.getIntegrandType() & Integrand::ELEMENT_SIZE)
+      {
+        // Compute characteristic element length
+        fe.h = getElmSize(p1,p2,Xnod);
+      }
 
-          // Element size in parametric space
-          int inod = MNPC[iel-1].back();
-          dXidu[0] = surf->knotSpan(0,nodeInd[inod].I);
-          dXidu[1] = surf->knotSpan(1,nodeInd[inod].J);
-        }
+      if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+      {
+        // Element size in parametric space
+        dXidu[0] = surf->knotSpan(0,i1-1);
+        dXidu[1] = surf->knotSpan(1,i2-1);
+      }
 
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
@@ -1699,10 +1720,10 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 
 	if (edgeDir < 0) normal *= -1.0;
 
-	// Compute G matrix
+	// Compute G-matrix
 	if (integrand.getIntegrandType() & Integrand::G_MATRIX)
 	  utl::getGmat(Jac,dXidu,fe.G);
-	
+
 	// Cartesian coordinates of current integration point
 	X = Xnod * fe.N;
 	X.t = time.t;

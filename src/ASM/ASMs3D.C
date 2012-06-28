@@ -157,36 +157,60 @@ bool ASMs3D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
   const int p3 = svol->order(2);
 
   int iel = 0;
+  bool skipMe = false;
   for (int i3 = p3; i3 <= n3; i3++)
     for (int i2 = p2; i2 <= n2; i2++)
       for (int i1 = p1; i1 <= n1; i1++, iel++)
       {
-	if (MLGE[iel] < 1) continue; // Skip zero-volume element
+        if (MLGE[iel] < 1) continue; // Skip zero-volume element
 
-	// Skip elements that are not on current boundary face
-	bool skipMe = false;
-	switch (item)
-	  {
-	  case 1: if (i1 > p1) skipMe = true; break;
-	  case 2: if (i1 < n1) skipMe = true; break;
-	  case 3: if (i2 > p2) skipMe = true; break;
-	  case 4: if (i2 < n2) skipMe = true; break;
-	  case 5: if (i3 > p3) skipMe = true; break;
-	  case 6: if (i3 < n3) skipMe = true; break;
-	  }
-	if (skipMe) continue;
+        // Skip elements that are not on current boundary face
+        switch (item)
+          {
+          case 1: skipMe = i1 > p1; break;
+          case 2: skipMe = i1 < n1; break;
+          case 3: skipMe = i2 > p2; break;
+          case 4: skipMe = i2 < n2; break;
+          case 5: skipMe = i3 > p3; break;
+          case 6: skipMe = i3 < n3; break;
+          }
+        if (skipMe) continue;
 
-	if (!MNPC[nel+iel].empty())
-	{
-	  std::cerr <<" *** ASMs3D::addXElms: Only one X-face allowed."
-		    << std::endl;
-	  return false;
-	}
+        IntVec& mnpc = myMNPC[nel+iel];
+        if (!mnpc.empty())
+        {
+          std::cerr <<" *** ASMs3D::addXElms: Only one X-face allowed."
+                    << std::endl;
+          return false;
+        }
+
+        mnpc = MNPC[iel]; // Copy the ordinary element nodes
+
+        // Negate node numbers that are not on the boundary edge, to flag that
+        // they shall not receive any tangent and/or residual contributions
+        int lnod = 0;
+        for (int j3 = 0; j3 < p3; j3++)
+          for (int j2 = 0; j2 < p2; j2++)
+            for (int j1 = 0; j1 < p1; j1++, lnod++)
+            {
+              switch (item)
+                {
+                case 1: skipMe = j1 > 0;    break;
+                case 2: skipMe = j1 < p1-1; break;
+                case 3: skipMe = j2 > 0;    break;
+                case 4: skipMe = j2 < p2-1; break;
+                case 5: skipMe = j3 > 0;    break;
+                case 6: skipMe = j3 < p3-1; break;
+	        }
+	      if (skipMe) mnpc[lnod] *= -1;
+	    }
 
 	myMLGE[nel+iel] = ++gEl;
 	myMNPC[nel+iel] = MNPC[iel];
-	for (size_t i = 0; i < nXn; i++)
-	  myMNPC[nel+iel].push_back(MLGN.size()-nXn+i);
+
+        // Add connectivity to the extra-ordinary nodes
+        for (size_t i = 0; i < nXn; i++)
+          mnpc.push_back(MLGN.size()-nXn+i);
       }
 
   return iel == nel;
@@ -1717,12 +1741,14 @@ bool ASMs3D::integrate (Integrand& integrand,
         {
           // Compute characteristic element length
           fe.h = getElmSize(p1,p2,p3,Xnod);
+        }
 
+        if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+        {
           // Element size in parametric space
-          int inod = MNPC[iel-1].back();
-          dXidu[0] = svol->knotSpan(0,nodeInd[inod].I);
-          dXidu[1] = svol->knotSpan(1,nodeInd[inod].J);
-          dXidu[2] = svol->knotSpan(2,nodeInd[inod].K);
+          dXidu[0] = svol->knotSpan(0,i1-1);
+          dXidu[1] = svol->knotSpan(1,i2-1);
+          dXidu[2] = svol->knotSpan(2,i3-1);
         }
 
         else if (integrand.getIntegrandType() & Integrand::AVERAGE)
@@ -1852,6 +1878,8 @@ bool ASMs3D::integrate (Integrand& integrand,
                   break;
                 }
               }
+
+              // Compute G-matrix
               if (integrand.getIntegrandType() & Integrand::G_MATRIX)
                 utl::getGmat(Jac,dXidu,fe.G);
 
@@ -2011,17 +2039,18 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
           break;
         }
 
-
 	if (integrand.getIntegrandType() & Integrand::ELEMENT_SIZE)
         {
 	  // Compute characteristic element length
           fe.h = getElmSize(p1,p2,p3,Xnod);
+        }
 
+        if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+        {
           // Element size in parametric space
-          int inod = MNPC[iel-1].back();
-          dXidu[0] = svol->knotSpan(0,nodeInd[inod].I);
-          dXidu[1] = svol->knotSpan(1,nodeInd[inod].J);
-          dXidu[2] = svol->knotSpan(2,nodeInd[inod].K);
+          dXidu[0] = svol->knotSpan(0,i1-1);
+          dXidu[1] = svol->knotSpan(1,i2-1);
+          dXidu[2] = svol->knotSpan(2,i3-1);
         }
 
         // Initialize element quantities
@@ -2087,8 +2116,9 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 
             if (faceDir < 0) normal *= -1.0;
 
-	    if (integrand.getIntegrandType() & Integrand::G_MATRIX)
-	      utl::getGmat(Jac,dXidu,fe.G);
+            // Compute G-matrix
+            if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+              utl::getGmat(Jac,dXidu,fe.G);
 
             // Cartesian coordinates of current integration point
             X = Xnod * fe.N;

@@ -128,7 +128,10 @@ void SAM::print (std::ostream& os) const
     {
       os <<'\n'<< e+1 <<":";
       for (int i = mpmnpc[e]; i < mpmnpc[e+1]; i++)
-	os <<' '<< (minex ? minex[mmnpc[i-1]-1] : mmnpc[i-1]);
+        if (mmnpc[i-1] > 0)
+          os <<' '<< (minex ? minex[mmnpc[i-1]-1] : mmnpc[i-1]);
+        else if (mmnpc[i-1] < 0)
+          os <<' '<< (minex ? -minex[-mmnpc[i-1]-1] : mmnpc[i-1]);
     }
     os << std::endl;
   }
@@ -559,9 +562,12 @@ void SAM::assembleReactions (Vector& reac, const RealArray& eS, int iel) const
   for (i = k = 0; i < nenod; i++, ip++)
   {
     int node = mmnpc[ip-1];
-    for (j = madof[node-1]; j < madof[node]; j++, k++)
-      if ((ipR = -msc[j-1]) > 0 && (size_t)ipR <= reac.size())
-	reac(ipR) += eS[k];
+    if (node < 0)
+      k += madof[-node] - madof[-node-1];
+    else if (node > 0)
+      for (j = madof[node-1]; j < madof[node]; j++, k++)
+        if ((ipR = -msc[j-1]) > 0 && (size_t)ipR <= reac.size())
+          reac(ipR) += eS[k];
   }
 }
 
@@ -614,7 +620,10 @@ bool SAM::getElmEqns (IntVec& meen, int iel, int nedof) const
   for (int i = 0; i < nenod; i++, ip++)
   {
     int node = mmnpc[ip-1];
-    meen.insert(meen.end(),meqn+madof[node-1]-1,meqn+madof[node]-1);
+    if (node > 0)
+      meen.insert(meen.end(),meqn+madof[node-1]-1,meqn+madof[node]-1);
+    else if (node < 0)
+      meen.insert(meen.end(),madof[-node]-madof[-node-1],0);
   }
   int neldof = meen.size();
   if (neldof == nedof || oldof < 1) return true;
@@ -635,8 +644,9 @@ size_t SAM::getNoElmEqns (int iel) const
 
   else for (int ip = mpmnpc[iel-1]; ip < mpmnpc[iel]; ip++)
   {
-    int node = mmnpc[ip-1];
-    result += madof[node] - madof[node-1];
+    int node = abs(mmnpc[ip-1]);
+    if (node > 0)
+      result += madof[node] - madof[node-1];
   }
 
   return result;

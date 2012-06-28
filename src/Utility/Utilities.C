@@ -210,7 +210,7 @@ int utl::gather (const std::vector<int>& index, size_t nr,
   for (size_t i = 0; i < index.size(); i++, outVec += nr)
     if (index[i] >= 0 && offset_in+nr*index[i] < in.size())
       memcpy(outVec,data+nr*index[i],nr*sizeof(real));
-    else
+    else if (index[i] >= 0)
       outside++;
 
   return outside;
@@ -227,7 +227,7 @@ int utl::gather (const std::vector<int>& index, size_t nr,
   for (size_t i = 0; i < index.size(); i++)
     if (index[i] >= 0 && offset_in+nr*index[i] < in.size())
       out.fillColumn(1+i,data+nr*index[i]);
-    else
+    else if (index[i] >= 0)
       outside++;
 
   return outside;
@@ -252,7 +252,7 @@ int utl::gather (const std::vector<int>& index, size_t ir, size_t nr,
       else
 	outside++;
     }
-    else
+    else if (index[i] >= 0)
       outside++;
 
   return outside;

@@ -12,12 +12,13 @@
 //==============================================================================
 
 #include "SAMpatchPara.h"
-#include "PETScMatrix.h"
+#include "SystemMatrix.h"
 #include "LinAlgInit.h"
 #include "ASMbase.h"
 #include "MPC.h"
 
 #ifdef PARALLEL_PETSC
+#include "PETScMatrix.h"
 #include "petscversion.h"
 #if PETSC_VERSION_MAJOR == 3 && PETSC_VERSION_MINOR >= 2
 #define PETSCMANGLE(x) &x
@@ -214,10 +215,13 @@ bool SAMpatchPara::getElmEqns (IntVec& meen, int iel, int nedof) const
   for (int i = 0; i < nenod; i++, ip++)
   {
     int node = mmnpc[ip-1];
-    for (int j = madof[node-1]; j < madof[node]; j++)
-      meen.push_back(j);
-  }  
-  if ((int)meen.size() == nedof || oldof < 1) return true;   
+    if (node > 0)
+      for (int j = madof[node-1]; j < madof[node]; j++)
+        meen.push_back(j);
+    else if (node < 0)
+      meen.insert(meen.end(),madof[-node]-madof[-node-1],0);
+  }
+  if ((int)meen.size() == nedof || oldof < 1) return true;
 
   std::cerr <<"SAMpatchPara::getElmEqns: Invalid element matrix dimension "
 	    << nedof <<" (should have been "<< meen.size() <<")"<< std::endl;
@@ -486,7 +490,7 @@ bool SAMpatchPara::initSystemEquations ()
     // Generate list of ghost nodes
     int m = 1;
     for (size_t k = 0; k < l2gn.size(); k++)
-      if (madof[k] < madof[k+1]) 
+      if (madof[k] < madof[k+1])
 	if (l2gn[k] < min) ghostNodes.push_back(m++);
 #endif
 
@@ -494,7 +498,7 @@ bool SAMpatchPara::initSystemEquations ()
     int nndof = madof[1]-madof[0];
     nleq = (max-min+1)*nndof;
     int l = 0;
-    for (i = 0; i < nnod; i++) 
+    for (i = 0; i < nnod; i++)
       if (madof[i] < madof[i+1]) {
 	for (j = 0; j < nndof; j++)
 	  meqn[l*nndof+j] = (l2gn[i]-1)*nndof + j + 1;
