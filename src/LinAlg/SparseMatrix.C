@@ -489,6 +489,7 @@ bool SparseMatrix::multiply (const SystemVector& B, SystemVector& C)
 }
 
 
+#ifdef USE_OPENMP
 /*!
   \brief Initilizes the sparsity pattern of a system matrix.
   \details This method is used only when assembling in parallel, where we cannot
@@ -499,7 +500,8 @@ static void preAssemble (SparseMatrix& SM, const std::vector<int>& meen,
 			 const int* meqn, const int* mpmceq, const int* mmceq)
 {
   // Add elements corresponding to free dofs in eM into SM
-  int i, j, ip, jp, nedof = meen.size();
+  int i, j, ip, jp;
+  int nedof = meen.size();
   for (j = 1; j <= nedof; j++)
   {
     int jeq = meen[j-1];
@@ -517,8 +519,7 @@ static void preAssemble (SparseMatrix& SM, const std::vector<int>& meen,
     }
   }
 
-  // Add (appropriately weighted) elements corresponding to constrained
-  // (dependent and prescribed) dofs in eM into SM and/or SV
+  // Add elements corresponding to constrained dofs in eM into SM
   for (j = 1; j <= nedof; j++)
   {
     int jceq = -meen[j-1];
@@ -549,6 +550,7 @@ static void preAssemble (SparseMatrix& SM, const std::vector<int>& meen,
       }
   }
 }
+#endif
 
 
 /*!
