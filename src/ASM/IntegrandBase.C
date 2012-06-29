@@ -14,7 +14,7 @@
 #include "IntegrandBase.h"
 #include "ElmMats.h"
 #include "ElmNorm.h"
-#include "GlbNorm.h"
+#include "GlbForce.h"
 #include "Utilities.h"
 
 
@@ -306,8 +306,7 @@ bool ForceBase::initElementBou (const std::vector<int>& MNPC1,
 }
 
 
-void ForceBase::assemble (GlbNorm& force) const
+void ForceBase::assemble (GlbForce& force) const
 {
-  for (size_t i = 0; i < eForce.size(); i++)
-    force.assemble(eForce[i]);
+  force.assemble(eForce);
 }
