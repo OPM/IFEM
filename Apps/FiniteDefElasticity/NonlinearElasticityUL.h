@@ -163,7 +163,9 @@ public:
 		       const Vec3& X, const Vec3& normal) const;
 
   //! \brief Returns the number of norm quantities.
-  virtual size_t getNoFields() const { return 6; }
+  virtual size_t getNoFields(int fld=0) const;
+
+  const char* getName(size_t i, size_t j, const char* prefix);
 
 protected:
   //! \brief Evaluates and accumulates the point-wise norm quantities.

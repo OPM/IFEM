@@ -17,6 +17,7 @@
 #else
 #include "ASMbase.h"
 #endif
+#include "IntegrandBase.h"
 #include "SIMbase.h"
 #include "SIMenums.h"
 #include "SystemMatrix.h"
@@ -148,26 +149,15 @@ bool AdaptiveSIM::initAdaptor (size_t indxProj, size_t nNormProj)
   SIMoptions::ProjectionMap::const_iterator pit = model->opt.project.begin();
   for (size_t j = 0; pit != model->opt.project.end(); pit++, j++)
     if (j+1 == indxProj)
-    {
-      // Compute the index into eNorm for the error indicator to adapt on
-      adaptor = model->haveAnaSol() ? 6+(nNormProj+2)*j : 4+nNormProj*j;
       break;
-    }
 
   std::cout <<"\n\n >>> Starting adaptive simulation based on";
   if (pit != model->opt.project.end())
     std::cout <<"\n     "<< pit->second <<" error estimates (index="
-                << adaptor <<") <<<\n";
-  else if (model->haveAnaSol())
-  {
-    std::cout <<" exact errors <<<\n";
-    adaptor = 4;
-  }
-  else
-  {
-    std::cout <<" - nothing, bailing out ...\n";
-    return false;
-  }
+                << adaptor <<")";
+  if (model->haveAnaSol())
+    std::cout <<" and exact errors";
+  std::cout << "<<<\n";
 
   if (model->opt.format >= 0)
     prefix.reserve(model->opt.project.size()+1);
@@ -233,6 +223,8 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
 
   // Evaluate solution norms
   model->setQuadratureRule(model->opt.nGauss[1]);
+  eNorm.fill(0.0);
+  gNorm.clear();
   return (model->solutionNorms(Vectors(1,linsol),projs,eNorm,gNorm) &&
 	  model->dumpResults(linsol,0.0,std::cout,true,6));
 }
@@ -247,21 +239,29 @@ typedef std::pair<double,int> IndexDouble;
 
 bool AdaptiveSIM::adaptMesh (int iStep)
 {
-  printNorms(gNorm,eNorm,std::cout,adaptor,model->haveAnaSol());
+  printNorms(gNorm,eNorm,std::cout);
 
   if (adaptor > gNorm.size() || adaptor > eNorm.rows())
     return false;
 
   // Define the reference norm
   double uNorm;
-  if (adaptor == 4 && model->haveAnaSol())
-    uNorm = gNorm(3); // Using the analytical solution, |u|_ref = |u|
+  if (model->haveAnaSol())
+    uNorm = gNorm[0](3); // Using the analytical solution, |u|_ref = |u|
   else // |u|_ref = sqrt( |u^h|^2 + |e^*|^2 )
-    uNorm = sqrt(gNorm(1)*gNorm(1) + gNorm(adaptor)*gNorm(adaptor));
+    uNorm = sqrt(gNorm[0](1)*gNorm[0](1) + gNorm[adaptor](2)*gNorm[adaptor](2));
 
   // Check if further refinement is required
   if (iStep > maxStep || model->getNoDOFs() > (size_t)maxDOFs) return false;
-  if (eNorm.cols() < 1 || 100.0*gNorm(adaptor) < errTol*uNorm) return false;
+  if (eNorm.cols() < 1 || 100.0*gNorm[adaptor](2) < errTol*uNorm) return false;
+
+  NormBase* norm = model->getNormIntegrand();
+  // calculate eNorm row
+  int eRow=0;
+  for (size_t j=1;j<adaptor+1;++j)
+    eRow += norm->getNoFields(j);
+  eRow += 2;
+  delete norm;
 
   std::vector<int> toBeRefined, options;
   std::vector<IndexDouble> errors;
@@ -287,11 +287,11 @@ bool AdaptiveSIM::adaptMesh (int iStep)
       errors.push_back(IndexDouble(0.0,i));
     for (i = 1, eit = patch->begin_elm(); eit < patch->end_elm(); eit++, i++)
       for (nit = eit->begin(); nit < eit->end(); nit++)
-        errors[*nit].first += eNorm(adaptor,i);
+        errors[*nit].first += eNorm(eRow,i);
   }
   else
     for (i = 0; i < eNorm.cols(); i++)
-      errors.push_back(IndexDouble(eNorm(adaptor,1+i),i));
+      errors.push_back(IndexDouble(eNorm(eRow,1+i),i));
 
   // Find the list of elements to refine (the beta % with the highest error)
   size_t ipivot = ceil(errors.size()*beta/100.0);
@@ -320,50 +320,48 @@ bool AdaptiveSIM::adaptMesh (int iStep)
 }
 
 
-std::ostream& AdaptiveSIM::printNorms (const Vector& norms, const Matrix& eNorm,
+std::ostream& AdaptiveSIM::printNorms (const Vectors& norms, const Matrix& eNorm,
 				       std::ostream& os, size_t adaptor,
-				       bool withExact)
+				       bool withExact, NormBase* norm)
 {
   // TODO: This needs further work to enable print for all recovered solutions.
   // As for now we only print the norm used for the mesh adaption.
-  os <<    "Energy norm |u^h| = a(u^h,u^h)^0.5   : "<< norms(1)
-     <<  "\nExternal energy ((h,u^h)+(t,u^h)^0.5 : "<< norms(2);
-  if ((adaptor == 4 || withExact) && norms.size() >= 4)
-    os <<"\nExact norm  |u|   = a(u,u)^0.5       : "<< norms(3)
-       <<"\nExact error a(e,e)^0.5, e=u-u^h      : "<< norms(4)
-       <<"\nExact relative error (%) : "<< 100.0*norms(4)/norms(3);
-  if (adaptor != 4 && adaptor <= norms.size())
+  if (adaptor <= norms.size())
   {
-    os <<"\nError estimate a(e,e)^0.5, e=u^r-u^h : "<< norms(adaptor)
-       <<"\nRelative error (%) : "<< 100.0*norms(adaptor)/
-      sqrt(norms(1)*norms(1) + norms(adaptor)*norms(adaptor));
-    if (adaptor+1 <= norms.size())
-      os <<"\nProjective error a(e,e)^0.5, e=u-u^r : "<< norms(adaptor+1);
-    if (withExact && norms.size() >= 4)
-      os <<"\nEffectivity index  : "<< norms(adaptor)/norms(4);
+    os << "Error estimate " << norm->getName(adaptor,2) 
+       << ": "<< norms[adaptor](2) << std::endl;
+    if (withExact && norms[adaptor].size() > 2)
+      os <<"Projective error " << norm->getName(adaptor,3) << ": "
+                               << norms[adaptor](3) << std::endl;
+    if (withExact && norms[adaptor].size() > 3)
+      os <<"Effectivity index  : "<< norms[adaptor](2)/norms[0](4);
   }
   if (eNorm.rows() < adaptor || eNorm.cols() < 1)
     return os << std::endl;
 
   // Compute some additional error measures
+  int eRow=0;
+  for (size_t j=1;j<adaptor+1;++j)
+    eRow += norm->getNoFields(j);
+  eRow += 2;
 
   size_t i;
-  double avg_norm = eNorm(adaptor,1);
+  double avg_norm = eNorm(eRow,1);
   double min_err  = avg_norm;
   double max_err  = avg_norm;
   for (i = 2; i <= eNorm.cols(); i++)
   {
-    avg_norm += eNorm(adaptor,i);
-    if (min_err > eNorm(adaptor,i))
-      min_err = eNorm(adaptor,i);
-    else if (max_err < eNorm(adaptor,i))
-      max_err = eNorm(adaptor,i);
+    avg_norm += eNorm(eRow,i);
+    if (min_err > eNorm(eRow,i))
+      min_err = eNorm(eRow,i);
+    else if (max_err < eNorm(eRow,i))
+      max_err = eNorm(eRow,i);
   }
   avg_norm /= eNorm.cols();
 
   double RMS_norm = 0.0;
   for (i = 1; i <= eNorm.cols(); i++)
-    RMS_norm += pow(eNorm(adaptor,i)-avg_norm,2.0);
+    RMS_norm += pow(eNorm(eRow,i)-avg_norm,2.0);
   RMS_norm = sqrt(RMS_norm/eNorm.cols())/avg_norm;
 
   os <<"\nRoot mean square (RMS) of error      : "<< RMS_norm
@@ -403,9 +401,21 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep, int& nBlock,
 
   // Write element norms
   if (model->haveAnaSol()) nNormProj += 2;
-  if (!model->writeGlvN(eNorm,iStep,nBlock,&prefix.front(),nNormProj))
+  if (!model->writeGlvN(eNorm,iStep,nBlock,&prefix.front()))
     return false;
 
   // Write state information
   return model->writeGlvStep(iStep,iStep,1);
+}
+
+
+std::ostream& AdaptiveSIM::printNorms(const Vectors& norms, const Matrix& eNorm,
+                                      std::ostream& os)
+{
+  model->printNorms(norms,os);
+  NormBase* norm = model->getNormIntegrand();
+  std::ostream& result = printNorms(norms,eNorm,os,adaptor,
+                                    model->haveAnaSol(),norm);
+  delete norm;
+  return result;
 }

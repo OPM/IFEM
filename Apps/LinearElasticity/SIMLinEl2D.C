@@ -531,3 +531,19 @@ bool SIMLinEl2D::initNeumann (size_t propInd)
 
   return true;
 }
+
+
+std::ostream& SIMLinEl2D::printNorms(const Vectors& norms, std::ostream& os)
+{
+  NormBase* norm = getNormIntegrand();
+  os << "Energy norm " << norm->getName(1,1) << ": " << norms[0](1) << std::endl
+     << "External energy " << norm->getName(1,2) << ": " << norms[0](2) << std::endl;
+  if (haveAnaSol())
+    os << "Exact norm " << norm->getName(1,3) << ": " << norms[0](3) << std::endl
+       << "Exact error " << norm->getName(1,4) << ": " << norms[0](4) << std::endl
+       << "Exact relative error (%) : "<< 100.0*norms[0](4)/norms[0](3) << std::endl;
+
+  delete norm;
+
+  return os;
+}

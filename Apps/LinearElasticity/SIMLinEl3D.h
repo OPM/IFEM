@@ -47,6 +47,8 @@ public:
   //! derived from the analytical solution.
   virtual bool preprocess(const std::vector<int>& ignored, bool fixDup);
 
+  //! \brief Print norms to stream
+  std::ostream& printNorms(const Vectors& norms, std::ostream& os);
 private:
   //! \brief Returns the actual integrand.
   Elasticity* getIntegrand();

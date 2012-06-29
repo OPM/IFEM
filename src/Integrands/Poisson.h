@@ -167,8 +167,11 @@ public:
   //! \brief Returns whether this norm has explicit boundary contributions.
   virtual bool hasBoundaryTerms() const { return true; }
 
+  //! \brief Add external energy terms to relevant norms
+  void addBoundaryTerms(Vectors& gNorm, double extEnergy);
+
   //! \brief Returns the number of norm quantities.
-  virtual size_t getNoFields() const;
+  virtual size_t getNoFields(int fld=0) const;
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
@@ -190,6 +193,12 @@ public:
   //! \param elmInt The local integral object to receive the contributions
   virtual bool finalizeElement(LocalIntegral& elmInt, const TimeDomain&,size_t);
 
+  virtual bool hasElementContributions(size_t i, size_t j)
+  { 
+    return (i == 1 && j < 3) || i > 1;
+  }
+
+  const char* getName(size_t i, size_t j, const char* prefix);
 private:
   VecFunc* anasol; //!< Analytical heat flux
 };

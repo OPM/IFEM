@@ -648,14 +648,19 @@ ElasticityNorm::ElasticityNorm (Elasticity& p, STensorFunc* a)
 }
 
 
-size_t ElasticityNorm::getNoFields () const
+size_t ElasticityNorm::getNoFields (int fld) const
 {
-  size_t nf = anasol ? 4 : 2;
-  for (size_t i = 0; i < prjsol.size(); i++)
-    if (!prjsol.empty())
-       nf += anasol ? 6 : 4;
+  if (fld == 0) {
+    size_t nf=1;
+    for (size_t i = 0; i < prjsol.size(); i++)
+      if (!prjsol.empty())
+        nf++;
+    return nf;
+  }
+  if (fld == 1)
+    return anasol ? 4 : 2;
 
-  return nf;
+  return anasol ? 6 : 4;
 }
 
 
@@ -681,8 +686,9 @@ bool ElasticityNorm::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
   if (problem.isAxiSymmetric())
     detJW *= 2.0*M_PI*X.x;
 
+  size_t ip = 0;
   // Integrate the energy norm a(u^h,u^h)
-  pnorm[0] += sigmah.dot(Cinv*sigmah)*detJW;
+  pnorm[ip++] += sigmah.dot(Cinv*sigmah)*detJW;
 
   if (problem.haveLoads())
   {
@@ -691,10 +697,10 @@ bool ElasticityNorm::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
     // Evaluate the displacement field
     Vec3 u = problem.evalSol(pnorm.vec.front(),fe.N);
     // Integrate the external energy (f,u^h)
-    pnorm[1] += f*u*detJW;
+    pnorm[ip] += f*u*detJW;
   }
+  ip++;
 
-  size_t ip = 2;
   if (anasol)
   {
     // Evaluate the analytical stress field
@@ -728,6 +734,11 @@ bool ElasticityNorm::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
       double l2u = sigmar.norm2();
       double l2e = error.norm2();
 
+      // Integrate the L2-norm (sigma^r,sigma^r)
+      pnorm[ip++] += l2u*l2u*detJW;
+      // Integrate the error in L2-norm (sigma^r-sigma^h,sigma^r-sigma^h)
+      pnorm[ip++] += l2e*l2e*detJW;
+
       if (anasol)
       {
 	// Integrate the error in the projected solution a(u-u^r,u-u^r)
@@ -735,11 +746,6 @@ bool ElasticityNorm::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
 	pnorm[ip++] += error.dot(Cinv*error)*detJW;
 	ip++; // Make room for the local effectivity index here
       }
-
-      // Integrate the L2-norm (sigma^r,sigma^r)
-      pnorm[ip++] += l2u*l2u*detJW;
-      // Integrate the error in L2-norm (sigma^r-sigma^h,sigma^r-sigma^h)
-      pnorm[ip++] += l2e*l2e*detJW;
     }
 
   return true;
@@ -778,8 +784,45 @@ bool ElasticityNorm::finalizeElement (LocalIntegral& elmInt,
 
   // Evaluate local effectivity indices as sqrt(a(e^r,e^r)/a(e,e))
   // with e^r = u^r - u^h  and  e = u - u^h
-  for (size_t ip = 5; ip+2 < pnorm.size(); ip += 6)
-    pnorm[ip+2] = sqrt(pnorm[ip] / pnorm[3]);
+  for (size_t ip = 9; ip < pnorm.size(); ip += 6)
+    pnorm[ip] = sqrt(pnorm[ip-4] / pnorm[3]);
 
   return true;
+}
+
+
+const char* ElasticityNorm::getName(size_t i, size_t j, const char* prefix)
+{
+  static const char* u[4] = {
+    "a(u^h,u^h)^0.5",
+    "(f,u^h)^0.5",
+    "a(u,u)^0.5",
+    "a(e,e)^0.5, e=u-u^h"
+  };
+
+  static const char* p[6] = {
+    "a(u^r,u^r)^0.5",
+    "a(e',e')^0.5, e'=u^r-u^h",
+    "(u^r,u^r)^0.5",
+    "(e',e')^0.5, e'=u^r-u^h",
+    "a(e,e)^0.5, e=u-u^r",
+    "effectivity index"
+  };
+
+  const char** s = j>1?p:u;
+
+  if (!prefix)
+    return s[j-1];
+
+  static std::string name;
+  name = prefix + std::string(" ");
+  name += s[j-1];
+
+  return name.c_str();
+}
+
+
+void ElasticityNorm::addBoundaryTerms(Vectors& gNorm, double extEnergy)
+{
+  gNorm[0](2) += extEnergy;
 }

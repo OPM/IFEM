@@ -452,6 +452,15 @@ bool ElasticityNormUL::evalInt (LocalIntegral& elmInt,
 }
 
 
+size_t ElasticityNormUL::getNoFields(int fld) const
+{
+  if (fld == 0)
+    return 1;
+  
+  return 6;
+}
+
+
 bool ElasticityNormUL::evalInt (ElmNorm& pnorm, const SymmTensor& S,
 				double U, double detF, double detJxW)
 {
@@ -474,6 +483,31 @@ bool ElasticityNormUL::evalInt (ElmNorm& pnorm, const SymmTensor& S,
   pnorm[5] += S.vonMises(false)*detJxW;
 
   return true;
+}
+
+
+const char* ElasticityNormUL::getName(size_t i, size_t j, const char* prefix)
+{
+  static const char* s[6] = {
+      "a(u^h,u^h)^0.5",
+      "(f,u^h)^0.5",
+      "(s^h,s^h)^0.5",
+      "(p^h,p^h)^0.5",
+      "(e^h,e^h), e^h=S^h-p^h*I",
+      "vm(s^h)"
+    };
+
+  if (i > 1)
+    return 0;
+
+  if (!prefix)
+    return s[j-1];
+
+  static std::string name;
+  name = prefix + std::string(" ");
+  name += s[j-1];
+
+  return name.c_str();
 }
 
 

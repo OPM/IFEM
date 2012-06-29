@@ -298,14 +298,21 @@ public:
   //! \brief Returns whether this norm has explicit boundary contributions.
   virtual bool hasBoundaryTerms() const { return false; }
 
+  virtual void addBoundaryTerms(Vectors& gNorm, double extEnergy) {}
+
   //! \brief Returns the number of field components.
-  virtual size_t getNoFields() const { return 0; }
+  //! \param[in] fld   0 = the number of norm groups
+  //!                > 0 = number of norms in group
+  virtual size_t getNoFields(int fld=0) const { return 0; }
 
   //! \brief Returns the name of a norm quantity.
-  static const char* getName(size_t&, bool, const char* = 0);
+  //! \param i The norm group
+  //! \param j The norm number
+  //! \param prefix A prefix to be used
+  virtual const char* getName(size_t i, size_t j, const char* prefix = 0);
 
   //! \brief Returns whether a norm component stores element contributions.
-  static bool hasElementContributions(size_t i) { return i != 1; }
+  virtual bool hasElementContributions(size_t i, size_t j) { return false; }
 
   //! \brief Accesses a projected secondary solution vector of current patch.
   Vector& getProjection(size_t i);

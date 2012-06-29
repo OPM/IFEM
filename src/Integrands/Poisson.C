@@ -279,14 +279,17 @@ PoissonNorm::PoissonNorm (Poisson& p, VecFunc* a) : NormBase(p), anasol(a)
 }
 
 
-size_t PoissonNorm::getNoFields () const
+size_t PoissonNorm::getNoFields (int fld) const
 {
-  size_t nf = anasol ? 4 : 2;
-  for (size_t i = 0; i < prjsol.size(); i++)
-    if (!prjsol.empty())
-      nf += anasol ? 4 : 2;
+  if (fld == 0) {
+    size_t nf = 1;
+    for (size_t i = 0; i < prjsol.size(); i++)
+      if (!prjsol.empty())
+        nf++;
+    return nf;
+  }
 
-  return nf;
+  return anasol ? 4 : 2;
 }
 
 
@@ -305,14 +308,14 @@ bool PoissonNorm::evalInt (LocalIntegral& elmInt, const FiniteElement& fe,
   if (!problem.evalSol(sigmah,pnorm.vec.front(),fe.dNdX,X))
     return false;
 
+  size_t ip = 0;
   // Integrate the energy norm a(u^h,u^h)
-  pnorm[0] += sigmah.dot(Cinv*sigmah)*fe.detJxW;
+  pnorm[ip++] += sigmah.dot(Cinv*sigmah)*fe.detJxW;
   // Evaluate the temperature field
   double u = pnorm.vec.front().dot(fe.N);
   // Integrate the external energy (h,u^h)
-  pnorm[1] += problem.getHeat(X)*u*fe.detJxW;
+  pnorm[ip++] += problem.getHeat(X)*u*fe.detJxW;
 
-  size_t ip = 2;
   if (anasol)
   {
     // Evaluate the analytical heat flux
@@ -379,8 +382,44 @@ bool PoissonNorm::finalizeElement (LocalIntegral& elmInt,
 
   // Evaluate local effectivity indices as sqrt(a(e^r,e^r)/a(e,e))
   // with e^r = u^r - u^h  and  e = u - u^h
-  for (size_t ip = 5; ip+2 < pnorm.size(); ip += 4)
-    pnorm[ip+2] = sqrt(pnorm[ip] / pnorm[3]);
+  for (size_t ip = 7; ip < pnorm.size(); ip += 4)
+    pnorm[ip] = sqrt(pnorm[ip-2] / pnorm[3]);
 
   return true;
+}
+
+
+const char* PoissonNorm::getName(size_t i, size_t j, const char* prefix)
+{
+  static const char* s[8] = {
+    "a(u^h,u^h)^0.5",
+    "(h,u^h)^0.5",
+    "a(u,u)^0.5",
+    "a(e,e)^0.5, e=u-u^h",
+    "a(u^r,u^r)^0.5",
+    "a(e',e')^0.5, e'=u^r-u^h",
+    "a(e,e)^0.5, e=u-u^r",
+    "effectivity index"
+  };
+
+  size_t k;
+  if (i <= 1)
+    k = j-1;
+  else
+    k = j + 3;
+
+  if (!prefix)
+    return s[k];
+
+  static std::string name;
+  name = prefix + std::string(" ");
+  name += s[k];
+
+  return name.c_str();
+}
+
+
+void PoissonNorm::addBoundaryTerms(Vectors& gNorm, double extEnergy)
+{
+  gNorm[0][1] += extEnergy;
 }

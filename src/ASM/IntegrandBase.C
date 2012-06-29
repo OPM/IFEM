@@ -188,7 +188,11 @@ LocalIntegral* NormBase::getLocalIntegral (size_t, size_t iEl, bool) const
 
   // Element norms are not requested, so allocate one internally instead that
   // will delete itself when invoking the destruct method.
-  return new ElmNorm(this->getNoFields());
+  int norms=0;
+  for (size_t j=0;j<getNoFields(0);++j)
+    norms += getNoFields(1+j);
+
+  return new ElmNorm(norms);
 }
 
 
@@ -233,42 +237,12 @@ bool NormBase::initElementBou (const std::vector<int>& MNPC1,
 }
 
 
-const char* NormBase::getName (size_t& i, bool haveExact, const char* prefix)
+const char* NormBase::getName (size_t i, size_t j, const char* prefix)
 {
-  static const char* s[7] = {
-    "a(u^h,u^h)^0.5",
-    "a(u,u)^0.5",
-    "a(e,e)^0.5, e=u-u^h",
-    "a(u^r,u^r)^0.5",
-    "a(e',e')^0.5, e'=u^r-u^h",
-    "a(e,e)^0.5, e=u-u^r",
-    "(a(e',e')/a(e,e))^0.5"
-  };
+  static char comp[16];
+  sprintf(comp,"norm_%lu.%lu",1+i,1+j);
 
-  if (!haveExact) // Skip norms present only together with exact solutions
-    if (i == 1)
-      i = 3;
-    else if (i == 5)
-      i = 7;
-
-  if (!prefix && i < 7) return s[i];
-
-  static std::string name;
-  if (prefix)
-    name = prefix + std::string(" ");
-  else
-    name.clear();
-
-  if (i < 7)
-    name += s[i];
-  else
-  {
-    char comp[16];
-    sprintf(comp,"norm_%lu",1+i);
-    name += comp;
-  }
-
-  return name.c_str();
+  return comp;
 }
 
 

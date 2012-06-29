@@ -289,8 +289,8 @@ int main (int argc, char** argv)
   model->setQuadratureRule(model->opt.nGauss[0],true);
 
   Matrix eNorm, ssol;
-  Vector gNorm, displ, load;
-  Vectors projs;
+  Vector displ, load;
+  Vectors projs, gNorm;
   std::vector<Mode> modes;
   std::vector<Mode>::const_iterator it;
   int iStep = 1, nBlock = 0;
@@ -346,34 +346,37 @@ int main (int argc, char** argv)
 
     if (linalg.myPid == 0)
     {
-      std::cout <<"Energy norm |u^h| = a(u^h,u^h)^0.5   : "<< gNorm(1);
-      std::cout	<<"\nExternal energy ((f,u^h)+(t,u^h)^0.5 : "<< gNorm(2);
-      if (model->haveAnaSol() && gNorm.size() >= 4)
-	std::cout <<"\nExact norm  |u|   = a(u,u)^0.5       : "<< gNorm(3)
-		  <<"\nExact error a(e,e)^0.5, e=u-u^h      : "<< gNorm(4)
-		  <<"\nExact relative error (%) : "<< gNorm(4)/gNorm(3)*100.0;
-      size_t j = model->haveAnaSol() ? 5 : 3;
-      for (pit = pOpt.begin(); pit != pOpt.end() && j < gNorm.size(); pit++)
+      std::cout <<"Energy norm |u^h| = a(u^h,u^h)^0.5   : "<< gNorm[0](1);
+      std::cout	<<"\nExternal energy ((f,u^h)+(t,u^h)^0.5 : "<< gNorm[0](2);
+      if (model->haveAnaSol() && gNorm[0].size() >= 4)
+	std::cout <<"\nExact norm  |u|   = a(u,u)^0.5       : "<< gNorm[0](3)
+		  <<"\nExact error a(e,e)^0.5, e=u-u^h      : "<< gNorm[0](4)
+		  <<"\nExact relative error (%) : "<< gNorm[0](4)/gNorm[0](3)*100.0;
+      size_t j = 1;
+      for (pit = pOpt.begin(); pit != pOpt.end() && j < gNorm.size(); pit++, j++)
       {
 	std::cout <<"\n\n>>> Error estimates based on "<< pit->second <<" <<<";
-	std::cout <<"\nEnergy norm |u^r| = a(u^r,u^r)^0.5   : "<< gNorm(j++);
-	std::cout <<"\nError norm a(e,e)^0.5, e=u^r-u^h     : "<< gNorm(j++);
+	std::cout <<"\nEnergy norm |u^r| = a(u^r,u^r)^0.5   : "<< gNorm[j](1);
+	std::cout <<"\nError norm a(e,e)^0.5, e=u^r-u^h     : "<< gNorm[j](2);
 	std::cout <<"\n- relative error (% of |u^r|) : "
-		  << gNorm(j-1)/gNorm(j-2)*100.0;
-	if (model->haveAnaSol() && j <= gNorm.size())
+		  << gNorm[j](2)/gNorm[j](1)*100.0;
+
+        if (j == 0)
+          continue;
+
+	if (model->haveAnaSol())
 	{
-	  std::cout <<"\nExact error a(e,e)^0.5, e=u-u^r      : "<< gNorm(j)
+	  std::cout <<"\nExact error a(e,e)^0.5, e=u-u^r      : "<< gNorm[j](5)
 		    <<"\n- relative error (% of |u|)   : "
-		    << gNorm(j)/gNorm(3)*100.0;
+		    << gNorm[j](5)/gNorm[0](3)*100.0;
 	  std::cout <<"\nEffectivity index             : "
-		    << gNorm(j-1)/gNorm(4);
-	  j += 2; // because of the local effectivity index calculation
+		    << gNorm[j](2)/gNorm[0](4);
 	}
-	if (j+1 > gNorm.size()) continue;
-	std::cout <<"\nL2-norm |s^r| =(s^r,s^r)^0.5         : "<< gNorm(j++);
-	std::cout <<"\nL2-error (e,e)^0.5, e=s^r-s^h        : "<< gNorm(j++);
-	std::cout <<"\n- relative error (% of |s^r|) : "
-		  << gNorm(j-1)/gNorm(j-2)*100.0;
+        
+	std::cout <<"\nL2-norm |s^r| =(s^r,s^r)^0.5         : "<< gNorm[j](3);
+	std::cout <<"\nL2-error (e,e)^0.5, e=s^r-s^h        : "<< gNorm[j](4);
+        std::cout <<"\n- relative error (% of |s^r|) : "
+                  << gNorm[j](4)/gNorm[j](3)*100.0;
       }
       std::cout << std::endl;
 
@@ -478,7 +481,7 @@ int main (int argc, char** argv)
 	return 12;
 
     // Write element norms
-    if (!model->writeGlvN(eNorm,iStep,nBlock,prefix,6))
+    if (!model->writeGlvN(eNorm,iStep,nBlock,prefix))
       return 13;
 
     model->writeGlvStep(1);

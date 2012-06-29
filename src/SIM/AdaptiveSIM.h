@@ -18,6 +18,7 @@
 #include "MatVec.h"
 
 class SIMbase;
+class NormBase;
 
 
 /*!
@@ -57,9 +58,12 @@ public:
   bool writeGlv(const char* infile, int iStep, int& nBlock, size_t nNormProj);
 
   //! \brief Prints out the global norms to given stream.
-  static std::ostream& printNorms(const Vector& norms, const Matrix& eNorm,
-				  std::ostream& os, size_t adaptor = 4,
-				  bool withExact = false);
+  static std::ostream& printNorms(const Vectors& norms, const Matrix& eNorm,
+				  std::ostream& os, size_t adaptor,
+				  bool withExact, NormBase* norm);
+
+  std::ostream& printNorms(const Vectors& norms, const Matrix& eNorm,
+                           std::ostream& os);
 
   //! \brief Accesses the solution of the linear system.
   Vector& getSolution() { return linsol; }
@@ -94,7 +98,7 @@ private:
 
   size_t adaptor; //!< Index to the element norm to base mesh adaption on
   Vector linsol;  //!< Linear solution vector
-  Vector gNorm;   //!< Global norms
+  Vectors gNorm;  //!< Global norms
   Matrix eNorm;   //!< Element norms
 
   std::vector<Vector>      projs;  //!< Projected secondary solutions

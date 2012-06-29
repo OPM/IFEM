@@ -299,7 +299,7 @@ public:
   //! solution are computed as well.
   bool solutionNorms(const TimeDomain& time,
 		     const Vectors& psol, const Vectors& ssol,
-		     Vector& gNorm, Matrix* eNorm = 0);
+		     Vectors& gNorm, Matrix* eNorm = 0);
   //! \brief Integrates some solution norm quantities.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations.
   //! \param[in] psol Primary solution vectors
@@ -308,7 +308,7 @@ public:
   //!
   //! \details Use this version if no projected solutions are needed/available.
   bool solutionNorms(const TimeDomain& time, const Vectors& psol,
-		     Vector& gNorm, Matrix* eNorm = 0)
+		     Vectors& gNorm, Matrix* eNorm = 0)
   { return this->solutionNorms(time,psol,Vectors(),gNorm,eNorm); }
   //! \brief Integrates some solution norm quantities.
   //! \param[in] psol Primary solution vectors
@@ -318,7 +318,7 @@ public:
   //!
   //! \details Use this version for linear/stationary problems only.
   bool solutionNorms(const Vectors& psol, const Vectors& ssol,
-		     Matrix& eNorm, Vector& gNorm)
+		     Matrix& eNorm, Vectors& gNorm)
   { return this->solutionNorms(TimeDomain(),psol,ssol,gNorm,&eNorm); }
   //! \brief Integrates some solution norm quantities.
   //! \param[in] psol Primary solution vectors
@@ -327,8 +327,14 @@ public:
   //!
   //! \details Use this version for linear/stationary problems,
   //! and when no projected solutions are needed/available.
-  bool solutionNorms(const Vectors& psol, Matrix& eNorm, Vector& gNorm)
+  bool solutionNorms(const Vectors& psol, Matrix& eNorm, Vectors& gNorm)
   { return this->solutionNorms(TimeDomain(),psol,Vectors(),gNorm,&eNorm); }
+
+  //! \brief Print solution norms
+  virtual std::ostream& printNorms(const Vectors& norms, std::ostream& os)
+  {
+    return os;
+  }
 
   //! \brief Computes the total reaction forces in the model.
   //! \param[out] RF Reaction force in each spatial direction + energy
@@ -452,9 +458,8 @@ public:
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter
   //! \param[in] prefix Prefices for projected solutions
-  //! \param[in] npc Number of norm quantities per projected solution
   bool writeGlvN(const Matrix& norms, int iStep, int& nBlock,
-		 const char** prefix = 0, size_t npc = 0);
+		 const char** prefix = 0);
   //! \brief Writes a scalar function to the VTF-file.
   //! \param[in] f The function to output
   //! \param[in] fname Name of the function

@@ -16,7 +16,7 @@
 #include <cmath>
 
 
-GlbNorm::GlbNorm (std::vector<double>& vec, FinalOp op) : myVals(vec)
+GlbNorm::GlbNorm (Vectors& vec, FinalOp op) : myVals(vec)
 {
   myOp = op;
 }
@@ -25,7 +25,8 @@ GlbNorm::GlbNorm (std::vector<double>& vec, FinalOp op) : myVals(vec)
 GlbNorm::~GlbNorm ()
 {
   for (size_t i = 0; i < myVals.size(); i++)
-    this->applyFinalOp(myVals[i]);
+    for (size_t j = 0; j < myVals[i].size(); j++)
+      this->applyFinalOp(myVals[i][j]);
 }
 
 
@@ -42,10 +43,13 @@ bool GlbNorm::assemble (const LocalIntegral* elmObj, int elmId)
   if (elmId > 0 && ptr->externalStorage()) return true;
 
   ElmNorm& elVals = *const_cast<ElmNorm*>(ptr);
+  size_t k=0, j=0;
   for (size_t i = 0; i < elVals.size(); i++)
   {
-    if (i < myVals.size())
-      myVals[i] += elVals[i];
+    if (j >= myVals[k].size())
+      k++, j=0;
+    if (k < myVals.size() && j < myVals[k].size())
+      myVals[k][j++] += elVals[i];
     this->applyFinalOp(elVals[i]);
   }
 

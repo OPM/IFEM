@@ -1536,7 +1536,7 @@ ForceBase* SIMbase::getBoundaryForceIntegrand (const Vec3* X0) const
 
 bool SIMbase::solutionNorms (const TimeDomain& time,
 			     const Vectors& psol, const Vectors& ssol,
-			     Vector& gNorm, Matrix* eNorm)
+			     Vectors& gNorm, Matrix* eNorm)
 {
   PROFILE1("Norm integration");
 
@@ -1554,7 +1554,9 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   norm->initIntegration(nIntGP,nBouGP);
 
   size_t nCmp = ssol.empty() ? 0 : ssol.front().size() / mySam->getNoNodes();
-  size_t nNorms = norm->getNoFields();
+  size_t nNorms=0;
+  for (size_t j=0;j<norm->getNoFields(0);++j)
+    nNorms += norm->getNoFields(1+j);
   gNorm.resize(nNorms,true);
 
 #ifdef USE_OPENMP
@@ -1566,6 +1568,9 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 #endif
 
   // Initialize norm integral classes
+  gNorm.resize(norm->getNoFields(0));
+  for (size_t j=0;j<gNorm.size();++j)
+    gNorm[j].resize(norm->getNoFields(1+j),true);
   GlbNorm globalNorm(gNorm,GlbNorm::SQRT);
   LintegralVec elementNorms;
   if (eNorm)
@@ -1649,11 +1654,12 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
     globalNorm.assemble(elementNorms[j]);
     delete elementNorms[j];
   }
-  delete norm;
 
   // Add problem-dependent external norm contributions
-  if (gNorm.size() > 1)
-    gNorm(2) += this->externalEnergy(psol);
+  if (norm->hasBoundaryTerms())
+    norm->addBoundaryTerms(gNorm,externalEnergy(psol));
+
+  delete norm;
 
 #ifdef PARALLEL_PETSC
   if (nProc > 1)
@@ -2271,12 +2277,14 @@ bool SIMbase::writeGlvM (const Mode& mode, bool freq, int& nBlock)
 
 
 bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
-			 const char** prefix, size_t npc)
+			 const char** prefix)
 {
   if (norms.empty())
     return true;
   else if (!myVtf)
     return false;
+
+  NormBase* norm = myProblem->getNormIntegrand(mySol);
 
   Matrix field;
   int geomID = 0;
@@ -2303,34 +2311,36 @@ bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
 	field.fillColumn(j,efield.getColumn(grid->getElmId(j)));
     }
 
-    for (j = k = 0; j < field.rows() && k < maxN; j++)
-      if (NormBase::hasElementContributions(j))
-	if (!myVtf->writeEres(field.getRow(1+j),++nBlock,geomID))
+    j = 1;
+    size_t l=1;
+    size_t m;
+    for (k = m = 0; m < field.rows() && k < maxN; m++) {
+      if (l > norm->getNoFields(j))
+        l = 1, ++j;
+      if (norm->hasElementContributions(j,l++))
+	if (!myVtf->writeEres(field.getRow(1+m),++nBlock,geomID))
 	  return false;
 	else
 	  sID[k++].push_back(nBlock);
+    }
   }
 
   int idBlock = 200;
-  const char* z = 0;
-  const char** p = &z;
-  for (j = k = 0; k < maxN && !sID[k].empty(); j++, k++)
+  j = 1;
+  size_t l = 1;
+  for (k = 0; k < maxN && !sID[k].empty(); l++)
   {
-    const char* normName = NormBase::getName(j,this->haveAnaSol(),*p);
-    if (!myVtf->writeSblk(sID[k],normName,++idBlock,iStep,true))
-      return false;
+    if (l > norm->getNoFields(j))
+      l = 1, ++j;
+    if (!norm->hasElementContributions(j,l))
+      continue;
 
-    if (prefix && npc > 0)
-    {
-      if (k == (this->haveAnaSol() ? 2 : 0))
-	p = prefix;
-      else if (j == 2+npc)
-      {
-	j = 2;
-	if (*p) p++;
-      }
-    }
+    const char* normName = norm->getName(j,l,j>1?prefix[j-2]:0);
+    if (!myVtf->writeSblk(sID[k++],normName,++idBlock,iStep,true))
+      return false;
   }
+
+  delete norm;
 
   return true;
 }

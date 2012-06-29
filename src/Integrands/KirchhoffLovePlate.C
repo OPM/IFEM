@@ -450,14 +450,17 @@ KirchhoffLovePlateNorm::KirchhoffLovePlateNorm (KirchhoffLovePlate& p,
 }
 
 
-size_t KirchhoffLovePlateNorm::getNoFields () const
+size_t KirchhoffLovePlateNorm::getNoFields (int fld) const
 {
-  size_t nf = anasol ? 4 : 2;
-  for (size_t i = 0; i < prjsol.size(); i++)
-    if (!prjsol.empty())
-       nf += anasol ? 3 : 2;
+  if (fld == 0)
+    return 1+prjsol.size();
 
-  return nf;
+  // solution field
+  if (fld == 1)
+    return anasol ? 4 : 2;
+
+  // projected quantities
+  return anasol ? 6 : 4;
 }
 
 
@@ -477,8 +480,10 @@ bool KirchhoffLovePlateNorm::evalInt (LocalIntegral& elmInt,
   if (!problem.evalSol(mh,pnorm.vec.front(),fe.d2NdX2,X))
     return false;
 
+  size_t ip = 0;
+
   // Integrate the energy norm a(w^h,w^h)
-  pnorm[0] += mh.dot(Cinv*mh)*fe.detJxW;
+  pnorm[ip++] += mh.dot(Cinv*mh)*fe.detJxW;
   if (problem.haveLoads())
   {
     // Evaluate the body load
@@ -486,10 +491,10 @@ bool KirchhoffLovePlateNorm::evalInt (LocalIntegral& elmInt,
     // Evaluate the displacement field
     double w = pnorm.vec.front().dot(fe.N);
     // Integrate the external energy (p,w^h)
-    pnorm[1] += p*w*fe.detJxW;
+    pnorm[ip] += p*w*fe.detJxW;
   }
+  ip++;
 
-  size_t ip = 2;
   if (anasol)
   {
     // Evaluate the analytical stress resultant field
@@ -516,6 +521,10 @@ bool KirchhoffLovePlateNorm::evalInt (LocalIntegral& elmInt,
       // Integrate the error in energy norm a(w^r-w^h,w^r-w^h)
       error = mr - mh;
       pnorm[ip++] += error.dot(Cinv*error)*fe.detJxW;
+      // (w^r,w^r)^0.5
+      pnorm[ip++] += mr.dot(mr)*fe.detJxW;
+      // (e,e)^0.5, e=w-w^r
+      pnorm[ip++] += error.dot(error)*fe.detJxW;
 
       if (anasol)
       {
@@ -535,4 +544,42 @@ bool KirchhoffLovePlateNorm::evalBou (LocalIntegral& elmInt,
 {
   std::cerr <<" *** KirchhoffLovePlateNorm::evalBou not included."<< std::endl;
   return false;
+}
+
+
+const char* KirchhoffLovePlateNorm::getName(size_t i, size_t j, const char* prefix)
+{
+  static const char* u[4] = {
+    "a(w^h,w^h)^0.5",
+    "(p,w^h)^0.5",
+    "a(w,w)^0.5",
+    "a(e,e)^0.5, e=w-w^h",
+  };
+  static const char* p[6] = {
+    "a(w^r,w^r)^0.5",
+    "a(e',e')^0.5, e'=w^r-w^h",
+    "(w^r,w^r)^0.5",
+    "(e',e')^0.5, e'=w^r-w^h",
+    "a(e,e)^0.5, e=w-w^r",
+    "effectivity index"
+  };
+
+  const char** s = u;
+  if (j > 1)
+    s = p;
+
+  if (!prefix)
+    return s[j-1];
+
+  static std::string name;
+  name = prefix + std::string(" ");
+  name += s[j-1];
+
+  return name.c_str();
+}
+
+
+void KirchhoffLovePlateNorm::addBoundaryTerms(Vectors& gNorm, double extEnergy)
+{
+  gNorm[0](2) += extEnergy;
 }

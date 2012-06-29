@@ -446,28 +446,28 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName,
     if (gNorm.size() > 0)
     {
       std::cout <<"\n  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : "
-		<< utl::trunc(gNorm(1));
+		<< utl::trunc(gNorm[0](1));
       std::streamsize oldPrec = std::cout.precision(10);
-      std::cout <<"\t a(u^h,u^h) = "<< utl::trunc(gNorm(1)*gNorm(1));
+      std::cout <<"\t a(u^h,u^h) = "<< utl::trunc(gNorm[0](1)*gNorm[0](1));
       std::cout.precision(oldPrec);
     }
-    if (gNorm.size() > 1 && utl::trunc(gNorm(2)) != 0.0)
+    if (gNorm.size() && gNorm[0].size() > 1 && utl::trunc(gNorm[0](2)) != 0.0)
     {
-      std::cout <<"\n  External energy: ((f,u^h)+(t,u^h))^0.5 : "<< gNorm(2);
+      std::cout <<"\n  External energy: ((f,u^h)+(t,u^h))^0.5 : "<< gNorm[0](2);
       std::streamsize oldPrec = std::cout.precision(10);
-      std::cout <<"\t(f,u)+(t,u) = "<< gNorm(2)*gNorm(2);
+      std::cout <<"\t(f,u)+(t,u) = "<< gNorm[0](2)*gNorm[0](2);
       std::cout.precision(oldPrec);
     }
-    if (gNorm.size() > 2)
-      std::cout <<"\n  Stress norm, L2: (sigma^h,sigma^h)^0.5 : "<< gNorm(3);
-    if (gNorm.size() > 3)
-      std::cout <<"\n  Pressure norm, L2:       (p^h,p^h)^0.5 : "<< gNorm(4)
+    if (gNorm.size() && gNorm[0].size() > 2)
+      std::cout <<"\n  Stress norm, L2: (sigma^h,sigma^h)^0.5 : "<< gNorm[0](3);
+    if (gNorm.size() && gNorm[0].size() > 3)
+      std::cout <<"\n  Pressure norm, L2:       (p^h,p^h)^0.5 : "<< gNorm[0](4)
 		<<"\t(p^h = trace(sigma^h)/3)";
-    if (gNorm.size() > 4)
-      std::cout <<"\n  Deviatoric stress norm:  (s^d,s^d)^0.5 : "<< gNorm(5)
+    if (gNorm.size() && gNorm[0].size() > 4)
+      std::cout <<"\n  Deviatoric stress norm:  (s^d,s^d)^0.5 : "<< gNorm[0](5)
 		<<"\t(s^d = sigma^h - p^h*I)";
-    if (gNorm.size() > 5)
-      std::cout <<"\n  Stress norm, von Mises: vm(sigma^h)    : "<< gNorm(6);
+    if (gNorm.size() && gNorm[0].size() > 5)
+      std::cout <<"\n  Stress norm, von Mises: vm(sigma^h)    : "<< gNorm[0](6);
     std::cout << std::endl;
 
     utl::zero_print_tol = old_tol;

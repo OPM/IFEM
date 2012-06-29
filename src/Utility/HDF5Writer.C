@@ -308,9 +308,11 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
   }
 
   Matrix eNorm;
-  Vector gNorm;
+  Vectors gNorm;
   if (entry.second.results & DataExporter::NORMS)
     sim->solutionNorms(Vectors(1,*sol),eNorm,gNorm);
+
+  NormBase* norm = sim->getProblem()->getNormIntegrand();
 
   size_t j, k;
   for (int i = 0; i < sim->getNoPatches(); ++i) {
@@ -350,10 +352,15 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
         Matrix patchEnorm;
         sim->extractPatchElmRes(eNorm,patchEnorm,loc-1);
         // We need two loop indices here because getName may update the 2nd one
-        for (j = k = 0; j < eNorm.rows(); j++, k++)
-          if (NormBase::hasElementContributions(j))
-            writeArray(group2,NormBase::getName(k,sim->haveAnaSol()),patchEnorm.cols(),
-                       patchEnorm.getRow(1+j).ptr(),H5T_NATIVE_DOUBLE);
+        size_t l = 1;
+        j = 1;
+        for (k = 0; k < eNorm.rows(); k++) {
+          if (l > norm->getNoFields(j))
+            l=1, j++;
+          if (norm->hasElementContributions(j,l))
+            writeArray(group2,norm->getName(j,l),patchEnorm.cols(),
+                       patchEnorm.getRow(1+k).ptr(),H5T_NATIVE_DOUBLE);
+        }
       }
     }
     else // must write empty dummy records for the other patches
@@ -371,14 +378,20 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
       }
       if (entry.second.results & DataExporter::NORMS) {
         // We need two loop indices here because getName may update the 2nd one
-        for (j = k = 0; j < eNorm.rows(); j++, k++)
-          if (NormBase::hasElementContributions(j))
-            writeArray(group2,NormBase::getName(k,sim->haveAnaSol()),0,
+        size_t l = 1;
+        j = 1;
+        for (k = 0; k < eNorm.rows(); k++) {
+          if (l > norm->getNoFields(j))
+            l=1, j++;
+          if (norm->hasElementContributions(j,l))
+            writeArray(group2,norm->getName(j,l),0,
                        &dummy,H5T_NATIVE_DOUBLE);
+        }
       }
     }
     H5Gclose(group2);
   }
+  delete norm;
 #else
   std::cerr << "HDF5 support disabled, no data saved" << std::endl;
 #endif

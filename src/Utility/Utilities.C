@@ -114,6 +114,17 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att, int& val)
 }
 
 
+bool utl::getAttribute (const TiXmlElement* xml, const char* att, size_t& val)
+{
+  if (xml->Attribute(att))
+    val = atoi(xml->Attribute(att));
+  else
+    return false;
+
+  return true;
+}
+
+
 bool utl::getAttribute (const TiXmlElement* xml, const char* att, real& val)
 {
   if (xml->Attribute(att))

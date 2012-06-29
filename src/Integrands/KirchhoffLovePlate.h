@@ -218,7 +218,7 @@ public:
   virtual bool hasBoundaryTerms() const { return true; }
 
   //! \brief Returns the number of norm quantities.
-  virtual size_t getNoFields() const;
+  virtual size_t getNoFields(int fld=0) const;
 
   //! \brief Defines which FE quantities are needed by the integrand.
   virtual int getIntegrandType() const
@@ -240,6 +240,19 @@ public:
   //! \param[in] normal Boundary normal vector at current integration point
   virtual bool evalBou(LocalIntegral& elmInt, const FiniteElement& fe,
 		       const Vec3& X, const Vec3& normal) const;
+
+  //! \brief Returns whether or not the element norm contributions should
+  //         be stored for visualization
+  virtual bool hasElementContributions(size_t i, size_t j)
+  { 
+    return (i == 1 && j < 2) || j < 3;
+  }
+
+  //! \brief Return the name of a particular norm identified by group and entry
+  const char* getName(size_t i, size_t j, const char* prefix);
+
+  //! \brief Add external energy terms to relevant norms
+  void addBoundaryTerms(Vectors& gNorm, double extEnergy);
 
 private:
   STensorFunc* anasol; //!< Analytical stress resultant field

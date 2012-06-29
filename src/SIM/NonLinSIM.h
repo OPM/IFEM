@@ -190,9 +190,9 @@ protected:
 
 protected:
   // Post-processing attributes
-  int    nBlock; //!< Running VTF result block counter
-  Vector gNorm;  //!< Global norms
-  Matrix eNorm;  //!< Element norms
+  int     nBlock; //!< Running VTF result block counter
+  Vectors gNorm;  //!< Global norms
+  Matrix  eNorm;  //!< Element norms
 };
 
 #endif
