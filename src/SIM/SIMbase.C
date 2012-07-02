@@ -1664,10 +1664,12 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 #ifdef PARALLEL_PETSC
   if (nProc > 1)
   {
-    double* tmp = new double[nNorms];
-    MPI_Allreduce(gNorm.ptr(),tmp,nNorms,MPI_DOUBLE,MPI_SUM,PETSC_COMM_WORLD);
-    memcpy(gNorm.ptr(),tmp,nNorms*sizeof(double));
-    delete[] tmp;
+    for (size_t i=0;i<gNorm.size();++i) {
+      double* tmp = new double[gNorm[i].size()];
+      MPI_Allreduce(gNorm[i].ptr(),tmp,gNorm[i].size(),MPI_DOUBLE,MPI_SUM,PETSC_COMM_WORLD);
+      memcpy(gNorm[i].ptr(),tmp,gNorm[i].size()*sizeof(double));
+      delete[] tmp;
+    }
   }
 #endif
 
