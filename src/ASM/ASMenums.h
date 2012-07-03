@@ -27,6 +27,14 @@ namespace ASM //! Assembly scope
     LRSpline = 3,
     SplineC1 = 4
   };
+
+  //! \brief Operations to applied after summing norm element contributions.
+  enum FinalNormOp
+  { 
+    NONE,
+    ABS, 
+    SQRT
+  };
 }
 
 #endif

@@ -16,7 +16,7 @@
 #include <cmath>
 
 
-GlbNorm::GlbNorm (Vectors& vec, FinalOp op) : myVals(vec)
+GlbNorm::GlbNorm (Vectors& vec, ASM::FinalNormOp op) : myVals(vec)
 {
   myOp = op;
 }
@@ -61,11 +61,11 @@ void GlbNorm::applyFinalOp (double& value) const
 {
   switch (myOp)
     {
-    case ABS:
+    case ASM::ABS:
       value = fabs(value);
       break;
 
-    case SQRT:
+    case ASM::SQRT:
       if (value < 0.0)
 	value = -sqrt(-value);
       else

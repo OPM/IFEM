@@ -1571,7 +1571,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   gNorm.resize(norm->getNoFields(0));
   for (size_t j=0;j<gNorm.size();++j)
     gNorm[j].resize(norm->getNoFields(1+j),true);
-  GlbNorm globalNorm(gNorm,GlbNorm::SQRT);
+  GlbNorm globalNorm(gNorm,norm->getFinalOperation());
   LintegralVec elementNorms;
   if (eNorm)
   {

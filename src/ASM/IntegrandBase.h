@@ -16,6 +16,7 @@
 
 #include "Integrand.h"
 #include "SIMenums.h"
+#include "ASMenums.h"
 #include "Function.h"
 #include "MatVec.h"
 #include <map>
@@ -256,7 +257,7 @@ class NormBase : public Integrand
 {
 protected:
   //! \brief The default constructor is protected to allow sub-classes only.
-  NormBase(IntegrandBase& p) : myProblem(p), nrcmp(0), lints(0) {}
+  NormBase(IntegrandBase& p) : myProblem(p), nrcmp(0), lints(0), finalOp(ASM::SQRT) {}
 
 public:
   //! \brief Empty destructor.
@@ -318,6 +319,12 @@ public:
   //! \brief Accesses a projected secondary solution vector of current patch.
   Vector& getProjection(size_t i);
 
+  //! \brief Set the final operation to apply to norms
+  void setFinalOperation(ASM::FinalNormOp op) {finalOp = op; }
+
+  //! \brief Get the final operation applied to norms
+  ASM::FinalNormOp getFinalOperation() { return finalOp; }
+
 private:
   //! \brief Initializes the projected fields for current element.
   bool initProjection(const std::vector<int>& MNPC, LocalIntegral& elmInt);
@@ -329,6 +336,7 @@ protected:
 
   unsigned short int nrcmp; //!< Number of projected solution components
   LintegralVec*      lints; //!< Local integrals used during norm integration
+  ASM::FinalNormOp   finalOp; //!< The final operation to apply to norms after assembly
 };
 
 
