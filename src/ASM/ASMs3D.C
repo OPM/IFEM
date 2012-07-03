@@ -32,6 +32,10 @@
 #include "Tensor.h"
 #include "MPC.h"
 
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 
 ASMs3D::ASMs3D (unsigned char n_f)
   : ASMstruct(3,3,n_f), svol(0), nodeInd(myNodeInd)
@@ -1551,60 +1555,34 @@ const Vector& ASMs3D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
 
 
 /*!
-  \brief Computes the characteristic element length from nodal coordinates.
+  \brief Computes the element corner coordinates.
 */
 
-static double getElmSize (int p1, int p2, int p3, const Matrix& X)
+void ASMs3D::getElementCorners (int i1, int i2, int i3,
+                                std::vector<Vec3>& XC) const
 {
-  int i, j, k, id1, id2;
-  double value, v1, h = 1.0e12;
+  RealArray::const_iterator uit = svol->basis(0).begin();
+  RealArray::const_iterator vit = svol->basis(1).begin();
+  RealArray::const_iterator wit = svol->basis(2).begin();
 
-  // Z-direction
-  for (i = 1; i <= p1; i++)
-    for (j = 0; j < p2; j++)
-    {
-      id1 = j*p1 + i;
-      id2 = id1 + (p3-1)*p2*p1;
-      value = 0.0;
-      for (k = 1; k <= 3; k++)
-      {
-	v1 = X(k,id2) - X(k,id1);
-	value += v1*v1;
-      }
-      if (value < h) h = value;
-    }
+  // Fetch parameter values of the element (knot-span) corners
+  RealArray u(2), v(2), w(2);
+  for (int i = 0; i < 2; i++)
+  {
+    u[i] = uit[i1+i];
+    v[i] = vit[i2+i];
+    w[i] = wit[i3+i];
+  }
 
-  // Y-direction
-  for (i = 1; i <= p1; i++)
-    for (k = 0; k < p2; k++)
-    {
-      id1 = k*p2*p1 + i;
-      id2 = id1 + (p2-1)*p1;
-      value = 0.0;
-      for (j = 1; j <= 3; j++)
-      {
-	v1 = X(j,id2) - X(j,id1);
-	value += v1*v1;
-      }
-      if (value < h) h = value;
-    }
+  // Evaluate the spline volume at the corners to find physical coordinates
+  int dim = svol->dimension();
+  RealArray XYZ(dim*8);
+  svol->gridEvaluator(u,v,w,XYZ);
 
-  // X-direction
-  for (j = 0; j < p2; j++)
-    for (k = 0; k < p3; k++)
-    {
-      id1 = k*p1*p2 + j*p1 + 1;
-      id2 = id1 + p1 - 1;
-      value = 0.0;
-      for (i = 1; i <= 3; i++)
-      {
-	v1 = X(i,id2) - X(i,id1);
-	value += v1*v1;
-      }
-      if (value < h) h = value;
-    }
-
-  return sqrt(h);
+  XC.resize(8);
+  for (unsigned char d = 0; d < nsd; d++)
+    for (int i = 0; i < 8; i++)
+      XC[i][d] = XYZ[dim*i+d];
 }
 
 
@@ -1701,6 +1679,12 @@ bool ASMs3D::integrate (Integrand& integrand,
   const int nel1 = n1 - p1 + 1;
   const int nel2 = n2 - p2 + 1;
 
+#ifdef USE_OPENMP
+  if (integrand.getIntegrandType() && Integrand::ELEMENT_CORNERS) {
+    std::cerr << "WARNING: Disabling multithreading due to GoTools limitations (ELEMENT_CORNERS)" << std::endl;
+    omp_set_num_threads(1);
+  }
+#endif
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -1737,10 +1721,9 @@ bool ASMs3D::integrate (Integrand& integrand,
           break;
         }
 
-        if (integrand.getIntegrandType() & Integrand::ELEMENT_SIZE)
+        if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
         {
-          // Compute characteristic element length
-          fe.h = getElmSize(p1,p2,p3,Xnod);
+          this->getElementCorners(i1-1,i2-1, i3-1, fe.XC);
         }
 
         if (integrand.getIntegrandType() & Integrand::G_MATRIX)
@@ -1997,6 +1980,13 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
       return false;
     }
 
+#ifdef USE_OPENMP
+  if (integrand.getIntegrandType() && Integrand::ELEMENT_CORNERS) {
+    std::cerr << "WARNING: Disabling multithreading due to GoTools limitations (ELEMENT_SIZE/ELEMENT_CORNERS)" << std::endl;
+    omp_set_num_threads(1);
+  }
+#endif
+
 
   // === Assembly loop over all elements on the patch face =====================
 
@@ -2039,10 +2029,9 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
           break;
         }
 
-	if (integrand.getIntegrandType() & Integrand::ELEMENT_SIZE)
+	if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
         {
-	  // Compute characteristic element length
-          fe.h = getElmSize(p1,p2,p3,Xnod);
+          this->getElementCorners(i1-1,i2-1, i3-1, fe.XC);
         }
 
         if (integrand.getIntegrandType() & Integrand::G_MATRIX)

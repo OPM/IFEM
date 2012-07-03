@@ -15,6 +15,7 @@
 #define _FINITE_ELEMENT_H
 
 #include "MatVec.h"
+#include "Vec3.h"
 
 
 /*!
@@ -25,23 +26,23 @@ class FiniteElement
 {
 public:
   //! \brief Default constructor.
-  FiniteElement(size_t nb = 0) : iel(0), iGP(0), h(0.0), N(nb), detJxW(1.0) {}
+  FiniteElement(size_t nb = 0) : iel(0), iGP(0), N(nb), detJxW(1.0) {}
 
-  int      iel;    //!< Element identifier
-  size_t   iGP;    //!< Global integration point counter
-  double   u;      //!< First parameter of current point
-  double   v;      //!< Second parameter of current point
-  double   w;      //!< Third parameter of current point
-  double   xi;     //!< First local coordinate of current integration point
-  double   eta;    //!< Second local coordinate of current integration point
-  double   zeta;   //!< Third local coordinate of current integration point
-  double   h;      //!< Characteristic element size
-  Vector   N;      //!< Basis function values
-  Vector   Navg;   //!< Volume-averaged basis function values
-  Matrix   dNdX;   //!< First derivatives (gradient) of the basis functions
-  Matrix3D d2NdX2; //!< Second derivatives of the basis functions
-  Matrix   G;      //!< Matrix used for stabilized methods
-  double   detJxW; //!< Weighted determinant of the coordinate mapping
+  int      iel;         //!< Element identifier
+  size_t   iGP;         //!< Global integration point counter
+  double   u;           //!< First parameter of current point
+  double   v;           //!< Second parameter of current point
+  double   w;           //!< Third parameter of current point
+  double   xi;          //!< First local coordinate of current integration point
+  double   eta;         //!< Second local coordinate of current integration point
+  double   zeta;        //!< Third local coordinate of current integration point
+  Vector   N;           //!< Basis function values
+  Vector   Navg;        //!< Volume-averaged basis function values
+  Matrix   dNdX;        //!< First derivatives (gradient) of the basis functions
+  Matrix3D d2NdX2;      //!< Second derivatives of the basis functions
+  Matrix   G;           //!< Matrix used for stabilized methods
+  std::vector<Vec3> XC; //!< Matrix with element corner coordinates
+  double   detJxW;      //!< Weighted determinant of the coordinate mapping
 };
 
 

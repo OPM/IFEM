@@ -32,6 +32,9 @@
 #include "Tensor.h"
 #include "MPC.h"
 
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 
 ASMs2D::ASMs2D (unsigned char n_s, unsigned char n_f)
   : ASMstruct(2,n_s,n_f), surf(NULL), nodeInd(myNodeInd)
@@ -1230,44 +1233,36 @@ const Vector& ASMs2D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
 
 
 /*!
-  \brief Computes the characteristic element length from nodal coordinates.
+  \brief Computes the element corner coordinates
 */
 
-static double getElmSize (int p1, int p2, const Matrix& X)
+void ASMs2D::getElementCorners (int i1, int i2, std::vector<Vec3>& XC) const
 {
-  int n = X.rows();
-  int i, j, id1, id2;
-  double value, v1, h = 1.0e12;
+  RealArray::const_iterator uit = surf->basis(0).begin();
+  RealArray::const_iterator vit = surf->basis(1).begin();
 
-  // Y-direction
-  for (i = 1; i <= p1; i++)
+  // Fetch parameter values of the element (knot-span) corners
+  RealArray u(2), v(2);
+  for (int i = 0; i < 2; i++)
   {
-    id1 = i;
-    id2 = id1 + (p2-1)*p1;
-    value = 0.0;
-    for (j = 1; j <= n; j++)
-    {
-      v1 = X(j,id2) - X(j,id1);
-      value += v1*v1;
-    }
-    if (value < h) h = value;
+    u[i] = uit[i1+i];
+    v[i] = vit[i2+i];
   }
 
-  // X-direction
-  for (j = 0; j < p2; j++)
-  {
-    id1 = j*p1 + 1;
-    id2 = id1 + p1 - 1;
-    value = 0.0;
-    for (i = 1; i <= n; i++)
-    {
-      v1 = X(i,id2) - X(i,id1);
-      value += v1*v1;
-    }
-    if (value < h) h = value;
-  }
+  // Evaluate the spline surface at the corners to find physical coordinates
+  int dim = surf->dimension();
+  RealArray XYZ(dim*4);
+  surf->gridEvaluator(XYZ,u,v);
 
-  return sqrt(h);
+  Vec3 X[4];
+  for (unsigned char d = 0; d < nsd; d++)
+    for (int i = 0; i < 4; i++)
+      X[i][d] = XYZ[dim*i+d];
+
+  XC.resize(4);
+  for (int i = 0; i < 4; i++)
+    for (unsigned char d = 0; d < nsd; d++)
+      XC[i][d] = XYZ[dim*i+d];
 }
 
 
@@ -1369,6 +1364,12 @@ bool ASMs2D::integrate (Integrand& integrand,
   const int n1 = surf->numCoefs_u();
   const int nel1 = n1 - p1 + 1;
 
+#ifdef USE_OPENMP
+  if (integrand.getIntegrandType() && Integrand::ELEMENT_CORNERS) {
+    std::cerr << "WARNING: Disabling multithreading due to GoTools limitations (ELEMENT_CORNERS)" << std::endl;
+    omp_set_num_threads(1);
+  }
+#endif
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -1404,10 +1405,9 @@ bool ASMs2D::integrate (Integrand& integrand,
           break;
         }
 
-        if (integrand.getIntegrandType() & Integrand::ELEMENT_SIZE)
+        if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
         {
-          // Compute characteristic element length
-          fe.h = getElmSize(p1,p2,Xnod);
+          this->getElementCorners(i1-1,i2-1, fe.XC);
         }
 
         if (integrand.getIntegrandType() & Integrand::AVERAGE)
@@ -1672,10 +1672,10 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       // Set up control point coordinates for current element
       if (!this->getElementCoordinates(Xnod,iel)) return false;
 
-      if (integrand.getIntegrandType() & Integrand::ELEMENT_SIZE)
+      if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
       {
-        // Compute characteristic element length
-        fe.h = getElmSize(p1,p2,Xnod);
+        // Compute element corners
+        this->getElementCorners(i1-1,i2-1,fe.XC);
       }
 
       if (integrand.getIntegrandType() & Integrand::G_MATRIX)

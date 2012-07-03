@@ -488,6 +488,13 @@ protected:
   //! \param[in] dir Local face index of the boundary face
   double getParametricArea(int iel, int dir) const;
 
+  //! \brief Returns the characteristic element size in physical coordinates.
+  //! \param[in] i1 Parameter index in u-direction
+  //! \param[in] i2 Parameter index in v-direction
+  //! \param[in] i3 Parameter index in w-direction
+  //! \param[in] XC Element corner coordinates are stored there on return
+  void getElementCorners(int i1, int i2, int i3, std::vector<Vec3>& XC) const;
+
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction
   //! \param[out] n2 Number of nodes in second (v) direction

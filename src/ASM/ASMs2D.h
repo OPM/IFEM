@@ -424,6 +424,11 @@ protected:
   //! \param[in] iel Element index
   //! \param[in] dir Local index of the boundary edge
   double getParametricLength(int iel, int dir) const;
+  //! \brief Returns the characteristic element size in physical coordinates.
+  //! \param[in] i1 Parameter index in u-direction
+  //! \param[in] i2 Parameter index in v-direction
+  //! \param[in] XC On return, element corner coordinates are stored there
+  void getElementCorners(int i1, int i2, std::vector<Vec3>& XC) const;
 
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction

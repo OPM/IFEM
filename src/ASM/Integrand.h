@@ -147,7 +147,7 @@ public:
     STANDARD           = 0, //!< Default integrand type, no special terms
     SECOND_DERIVATIVES = 1, //!< Integrand wants second derivatives
     AVERAGE            = 2, //!< Integrand wants basis function averages
-    ELEMENT_SIZE       = 4, //!< Integrand wants an estimated element size
+    ELEMENT_CORNERS    = 4, //!< Integrand wants element corner coordinates
     G_MATRIX           = 8, //!< Integrand wants the G matrix
     ELEMENT_CENTER     = 16,//!< Integrand wants element center coordinates
     XO_ELEMENTS        = 32 //!< Integrand is defined on extraordinary elements
