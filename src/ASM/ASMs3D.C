@@ -1295,6 +1295,7 @@ bool ASMs3D::updateDirichlet (const std::map<int,RealFunc*>& func,
         std::cout <<"Updated constraint: "<< **mit;
 #endif
       }
+    delete dsurf;
   }
 
   // The parent class method takes care of the corner nodes with direct
