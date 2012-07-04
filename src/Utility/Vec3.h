@@ -83,6 +83,9 @@ public:
     return *this;
   }
 
+  //! \brief Return the sum of the vector.
+  real sum() const { return x+y+z; }
+
   //! \brief Return the length of the vector.
   real length() const { return sqrt(x*x+y*y+z*z); }
 
