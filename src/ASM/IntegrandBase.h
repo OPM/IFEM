@@ -325,11 +325,10 @@ public:
   //! \brief Get the final operation applied to norms
   ASM::FinalNormOp getFinalOperation() { return finalOp; }
 
-private:
+protected:
   //! \brief Initializes the projected fields for current element.
   bool initProjection(const std::vector<int>& MNPC, LocalIntegral& elmInt);
 
-protected:
   IntegrandBase& myProblem; //!< The problem-specific data
 
   Vectors prjsol; //!< Projected secondary solution vectors for current patch
