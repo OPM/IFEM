@@ -136,8 +136,8 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
   }
 
   else if (!strcasecmp(elem->Value(),"stride")) {
-    if (elem->FirstChild())
-      saveInc = atoi(elem->FirstChild()->Value());
+    if (utl::getValue(elem, "stride"))
+      saveInc = atoi(utl::getValue(elem,"stride"));
     utl::getAttribute(elem,"dt",dtSave);
   }
 
