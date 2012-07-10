@@ -159,9 +159,14 @@ bool ASMs2D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
   else if (!surf || shareFE)
     return false;
 
-  int nel = MNPC.size();
-  myMNPC.resize(2*nel);
-  myMLGE.resize(2*nel,0);
+  const int p1 = surf->order_u();
+  const int p2 = surf->order_v();
+  const int n1 = surf->numCoefs_u();
+  const int n2 = surf->numCoefs_v();
+
+  nXelm = (n1-p1+1)*(n2-p2+1);
+  myMNPC.resize(2*nXelm);
+  myMLGE.resize(2*nXelm,0);
 
   for (size_t i = 0; i < nXn; i++)
   {
@@ -169,11 +174,6 @@ bool ASMs2D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
       nodes.push_back(++gNod);
     myMLGN.push_back(nodes[i]);
   }
-
-  const int p1 = surf->order_u();
-  const int p2 = surf->order_v();
-  const int n1 = surf->numCoefs_u();
-  const int n2 = surf->numCoefs_v();
 
   int iel = 0;
   bool skipMe = false;
@@ -192,7 +192,7 @@ bool ASMs2D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
         }
       if (skipMe) continue;
 
-      IntVec& mnpc = myMNPC[nel+iel];
+      IntVec& mnpc = myMNPC[nXelm+iel];
       if (!mnpc.empty())
       {
         std::cerr <<" *** ASMs2D::addXElms: Only one X-edge allowed."
@@ -215,17 +215,18 @@ bool ASMs2D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
             case 3: skipMe = j2 > 0;    break;
             case 4: skipMe = j2 < p2-1; break;
 	    }
-	  if (skipMe) mnpc[lnod] *= -1;
+	  if (skipMe) // Hack for node 0: Using -maxint as flag instead
+	    mnpc[lnod] = mnpc[lnod] == 0 ? -2147483648 : -mnpc[lnod];
 	}
 
       // Add connectivity to the extra-ordinary nodes
       for (size_t i = 0; i < nXn; i++)
         mnpc.push_back(MLGN.size()-nXn+i);
 
-      myMLGE[nel+iel] = ++gEl;
+      myMLGE[nXelm+iel] = ++gEl;
     }
 
-  return iel == nel;
+  return true;
 }
 
 
@@ -262,6 +263,7 @@ int ASMs2D::getNodeID (size_t inod, bool noAddedNodes) const
 
 char ASMs2D::getNodeType (size_t inod) const
 {
+  if (this->isLMn(inod)) return 'L';
   return inod > nodeInd.size() ? 'X' : 'D';
 }
 
@@ -1255,11 +1257,6 @@ void ASMs2D::getElementCorners (int i1, int i2, std::vector<Vec3>& XC) const
   RealArray XYZ(dim*4);
   surf->gridEvaluator(XYZ,u,v);
 
-  Vec3 X[4];
-  for (unsigned char d = 0; d < nsd; d++)
-    for (int i = 0; i < 4; i++)
-      X[i][d] = XYZ[dim*i+d];
-
   XC.resize(4);
   for (int i = 0; i < 4; i++)
     for (unsigned char d = 0; d < nsd; d++)
@@ -1407,8 +1404,13 @@ bool ASMs2D::integrate (Integrand& integrand,
         }
 
         if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-        {
           this->getElementCorners(i1-1,i2-1, fe.XC);
+
+        if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+        {
+          // Element size in parametric space
+          dXidu[0] = surf->knotSpan(0,i1-1);
+          dXidu[1] = surf->knotSpan(1,i2-1);
         }
 
         if (integrand.getIntegrandType() & Integrand::AVERAGE)
@@ -1448,13 +1450,6 @@ bool ASMs2D::integrate (Integrand& integrand,
           for (unsigned char i = 0; i < nsd; i++)
             X[i] = X0[i];
         }
-
-	if (integrand.getIntegrandType() & Integrand::G_MATRIX)
-	{
-          // Element size in parametric space
-          dXidu[0] = surf->knotSpan(0,i1-1);
-          dXidu[1] = surf->knotSpan(1,i2-1);
-	}
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);

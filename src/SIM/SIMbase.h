@@ -574,6 +574,9 @@ protected:
   virtual bool addConstraint(int patch, int lndx, int ldim,
 			     int dirs, int code, int& ngnod) = 0;
 
+  //! \brief Specialized preprocessing performed before assembly initialization.
+  virtual void preprocessBeforeAsmInit(int&) {}
+
   //! \brief Creates the computational FEM model from the spline patches.
   bool createFEMmodel();
 

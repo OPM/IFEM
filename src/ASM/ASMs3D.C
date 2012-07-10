@@ -141,10 +141,6 @@ bool ASMs3D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
   else if (!svol || shareFE)
     return false;
 
-  int nel = MNPC.size();
-  myMNPC.resize(2*nel);
-  myMLGE.resize(2*nel,0);
-
   for (size_t i = 0; i < nXn; i++)
   {
     if (nodes.size() == i)
@@ -159,6 +155,10 @@ bool ASMs3D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
   const int p1 = svol->order(0);
   const int p2 = svol->order(1);
   const int p3 = svol->order(2);
+
+  nXelm = (n1-p1+1)*(n2-p2+1)*(n3-p3+1);
+  myMNPC.resize(2*nXelm);
+  myMLGE.resize(2*nXelm,0);
 
   int iel = 0;
   bool skipMe = false;
@@ -180,7 +180,7 @@ bool ASMs3D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
           }
         if (skipMe) continue;
 
-        IntVec& mnpc = myMNPC[nel+iel];
+        IntVec& mnpc = myMNPC[nXelm+iel];
         if (!mnpc.empty())
         {
           std::cerr <<" *** ASMs3D::addXElms: Only one X-face allowed."
@@ -190,7 +190,7 @@ bool ASMs3D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
 
         mnpc = MNPC[iel]; // Copy the ordinary element nodes
 
-        // Negate node numbers that are not on the boundary edge, to flag that
+        // Negate node numbers that are not on the boundary face, to flag that
         // they shall not receive any tangent and/or residual contributions
         int lnod = 0;
         for (int j3 = 0; j3 < p3; j3++)
@@ -206,18 +206,18 @@ bool ASMs3D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
                 case 5: skipMe = j3 > 0;    break;
                 case 6: skipMe = j3 < p3-1; break;
 	        }
-	      if (skipMe) mnpc[lnod] *= -1;
+	      if (skipMe) // Hack for node 0: Using -maxint as flag instead
+		mnpc[lnod] = mnpc[lnod] == 0 ? -2147483648 : -mnpc[lnod];
 	    }
-
-	myMLGE[nel+iel] = ++gEl;
-	myMNPC[nel+iel] = MNPC[iel];
 
         // Add connectivity to the extra-ordinary nodes
         for (size_t i = 0; i < nXn; i++)
           mnpc.push_back(MLGN.size()-nXn+i);
+
+	myMLGE[nXelm+iel] = ++gEl;
       }
 
-  return iel == nel;
+  return true;
 }
 
 
@@ -254,6 +254,7 @@ int ASMs3D::getNodeID (size_t inod, bool noAddedNodes) const
 
 char ASMs3D::getNodeType (size_t inod) const
 {
+  if (this->isLMn(inod)) return 'L';
   return inod > nodeInd.size() ? 'X' : 'D';
 }
 
@@ -1920,7 +1921,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
   if ((tit = threadGroupsFace.find(lIndex)) == threadGroupsFace.end())
   {
     std::cerr <<" *** ASMs3D::integrate: No thread groups for face "<< lIndex
-	      << std::endl;
+              << std::endl;
     return false;
   }
   const ThreadGroups& threadGrp = tit->second;
@@ -2030,10 +2031,8 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
           break;
         }
 
-	if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-        {
-          this->getElementCorners(i1-1,i2-1, i3-1, fe.XC);
-        }
+        if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+          this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
 
         if (integrand.getIntegrandType() & Integrand::G_MATRIX)
         {

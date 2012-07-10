@@ -807,9 +807,13 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
   if (renum > 0)
     std::cout <<"\nRenumbered "<< renum <<" nodes."<< std::endl;
 
-  ASMs2DC1::renumberNodes(*g2l);
   for (mit = myModel.begin(); mit != myModel.end(); mit++)
     (*mit)->renumberNodes(*g2l);
+  ASMs2DC1::renumberNodes(*g2l);
+
+  // Perform specialized preprocessing before the assembly initialization.
+  // This typically involves the system-level Lagrange multipliers, etc.
+  this->preprocessBeforeAsmInit(ngnod);
 
   std::cout <<"\nResolving Dirichlet boundary conditions"<< std::endl;
   ASMstruct::resetNumbering(ngnod); // to account for possibly added nodes
@@ -929,16 +933,17 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 /*!
   \brief A helper class used by SIMbase::getUniquePropertyCode.
   \details The class is just an unary function that checks whether a Property
-  object has a given integer code.
+  object has a specified integer code.
 */
 
-class hasCode : public std::unary_function<const Property&,bool>
+class hasCode
 {
   int myCode; //!< The property code to compare with
+
 public:
   //! \brief Constructor initializing the property code to search for.
   hasCode(int code) : myCode(abs(code)) {}
-  //! \brief Returns \e true if the Property has the code \a myCode
+  //! \brief Returns \e true if the Property \a p has the code \a myCode
   bool operator()(const Property& p) { return abs(p.pindx) == myCode; }
 };
 
@@ -1992,7 +1997,7 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
     // 1. Evaluate primary solution variables
 
     Vector& locvec = myProblem ? myProblem->getSolution() : lovec;
-    myModel[i]->extractNodeVec(psol,locvec,psolComps);
+    myModel[i]->extractNodeVec(psol,locvec,psolComps,0);
     if (!myModel[i]->evalSolution(field,locvec,opt.nViz))
       return false;
 
@@ -2367,7 +2372,7 @@ void SIMbase::dumpPrimSol (const Vector& psol, std::ostream& os,
     if (myModel[i]->empty()) continue; // skip empty patches
 
     Vector patchSol;
-    myModel[i]->extractNodeVec(psol,patchSol);
+    myModel[i]->extractNodeVec(psol,patchSol,mySam->getMADOF());
 
     if (withID)
     {
@@ -2435,7 +2440,7 @@ bool SIMbase::dumpSolution (const Vector& psol, std::ostream& os) const
     // Extract and write primary solution
     size_t nf = myModel[i]->getNoFields(1);
     Vector& patchSol = myProblem->getSolution();
-    myModel[i]->extractNodeVec(psol,patchSol);
+    myModel[i]->extractNodeVec(psol,patchSol,mySam->getMADOF());
     for (k = 1; k <= nf; k++)
     {
       os << myProblem->getField1Name(k,"# FE");
@@ -2503,7 +2508,7 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
 
     if (points.empty()) continue; // no points in this patch
 
-    myModel[i]->extractNodeVec(psol,myProblem->getSolution());
+    myModel[i]->extractNodeVec(psol,myProblem->getSolution(),mySam->getMADOF());
     if (opt.discretization >= ASM::Spline)
     {
       // Evaluate the primary solution variables
@@ -2614,7 +2619,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     if (myModel[i]->empty()) continue; // skip empty patches
 
     // Extract the primary solution control point values for this patch
-    myModel[i]->extractNodeVec(psol,myProblem->getSolution());
+    myModel[i]->extractNodeVec(psol,myProblem->getSolution(),mySam->getMADOF());
 
     // Project the secondary solution and retrieve control point values
     switch (pMethod) {
@@ -2721,7 +2726,8 @@ bool SIMbase::extractPatchSolution (IntegrandBase* problem,
 
   for (size_t i = 0; i < sol.size() && i < problem->getNoSolutions(); i++)
     if (!sol[i].empty())
-      myModel[pindx]->extractNodeVec(sol[i],problem->getSolution(i));
+      myModel[pindx]->extractNodeVec(sol[i],problem->getSolution(i),
+                                     mySam->getMADOF());
 
   return this->extractPatchDependencies(problem,myModel,pindx);
 }

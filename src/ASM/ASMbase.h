@@ -110,6 +110,13 @@ public:
   virtual bool addXElms(short int dim, short int item, size_t nXnod,
                         std::vector<int>& nodes);
 
+  //! \brief Adds a set of Lagrange multipliers to the specified element.
+  //! \param[in] iel 1-based element index local to current patch
+  //! \param[in] mGLag Global node numbers of the Lagrange multipliers
+  //! \param[in] nnLag Number of Lagrange multipliers per node
+  bool addLagrangeMultipliers(size_t iel, const IntVec& mGLag,
+                              unsigned char nnLag = 1);
+
   //! \brief Defines the numerical integration scheme to use.
   //! \param[in] ng Number of Gauss points in each parameter direction
   void setGauss(int ng) { nGauss = ng; }
@@ -124,6 +131,8 @@ public:
   unsigned char getNoParamDim() const { return ndim; }
   //! \brief Returns the number of solution fields.
   virtual unsigned char getNoFields(int b = 0) const { return b > 1 ? 0 : nf; }
+  //! \brief Returns the number of Lagrange multipliers per node.
+  unsigned char getNoLagPerNode() const { return nLag; }
 
   //! \brief Returns the polynomial order in each parameter direction.
   //! \param[out] p1 Order in first (u) direction
@@ -142,9 +151,13 @@ public:
   //! \param[in] iel 1-based element index local to current patch
   int getElmID(size_t iel) const;
   //! \brief Returns the number of DOFs per node.
-  virtual unsigned char getNodalDOFs(size_t) const { return nf; }
+  //! \param[in] inod 1-based node index local to current patch
+  virtual unsigned char getNodalDOFs(size_t inod) const;
   //! \brief Returns the classification of a node.
-  virtual char getNodeType(size_t) const { return 'D'; }
+  //! \param[in] inod 1-based node index local to current patch
+  virtual char getNodeType(size_t inod) const;
+  //! \brief Returns \e true if node \a n is a Lagrange multiplier node.
+  bool isLMn(size_t n) const { return n >= myLMs.first && n <= myLMs.second; }
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const = 0;
@@ -153,7 +166,7 @@ public:
   //! in the patch
   virtual void getNodalCoordinates(Matrix& X) const = 0;
   //! \brief Returns a matrix with nodal coordinates for an element.
-  //! \param[in] iel Element index
+  //! \param[in] iel 1-based element index local to current patch
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
   //! in one element
   virtual bool getElementCoordinates(Matrix& X, int iel) const = 0;
@@ -165,6 +178,8 @@ public:
   virtual size_t getNoNodes(int = 0) const { return MLGN.size(); }
   //! \brief Returns the total number of elements in this patch.
   size_t getNoElms(bool includeZeroVolumeElms = false) const;
+  //! \brief Returns the number of extra-ordinary elements in this patch.
+  size_t getNoXelms() const { return nXelm; }
   //! \brief Returns the total number of MPC equations in this patch.
   size_t getNoMPCs() const { return mpcs.size(); }
 
@@ -401,10 +416,17 @@ public:
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order
   //! \param[out] nodeVec Nodal result vector for this patch
+  //! \param[in] madof Global Matrix of Accumulated DOFs
+  void extractNodeVec(const Vector& globVec, Vector& nodeVec,
+                      const int* madof) const;
+
+  //! \brief Extracts nodal results for this patch from the global vector.
+  //! \param[in] globVec Global solution vector in DOF-order
+  //! \param[out] nodeVec Nodal result vector for this patch
   //! \param[in] nndof Number of DOFs per node (the default is \a nf)
   //! \param[in] basis Which basis to extract nodal values for (mixed methods)
   virtual void extractNodeVec(const Vector& globVec, Vector& nodeVec,
-			      unsigned char nndof = 0, int basis = 0) const;
+			      unsigned char nndof = 0, int basis = 1) const;
 
   //! \brief Injects nodal results for this patch into the global vector.
   //! \param[in] nodeVec Nodal result vector for this patch
@@ -489,6 +511,7 @@ protected:
   unsigned char ndim;   //!< Number of parametric dimensions (1, 2 or 3)
   unsigned char nsd;    //!< Number of space dimensions (ndim <= nsd <= 3)
   unsigned char nf;     //!< Number of primary solution fields (1 or larger)
+  unsigned char nLag;   //!< Number of Lagrange multipliers per node
   int           nGauss; //!< Numerical integration scheme
 
   const IntVec& MLGE; //!< Matrix of Local to Global Element numbers
@@ -503,6 +526,11 @@ protected:
   IntVec myMLGE; //!< The actual Matrix of Local to Global Element numbers
   IntVec myMLGN; //!< The actual Matrix of Local to Global Node numbers
   IntMat myMNPC; //!< The actual Matrix of Nodal Point Correspondance
+
+  size_t nXelm;  //!< Number of extra-ordinary elements
+
+private:
+  std::pair<size_t,size_t> myLMs; //!< Nodal range of the Lagrange multipliers
 };
 
 #endif

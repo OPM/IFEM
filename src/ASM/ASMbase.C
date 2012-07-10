@@ -22,13 +22,28 @@
 bool ASMbase::fixHomogeneousDirichlet = true;
 
 
+/*!
+  \brief Convenience function writing error message for non-implemented methods.
+*/
+
+static bool Aerror (const char* name)
+{
+  std::cerr <<" *** ASMbase::"<< name
+	    <<": Must be implemented in sub-class."<< std::endl;
+  return false;
+}
+
+
 ASMbase::ASMbase (unsigned char n_p, unsigned char n_s, unsigned char n_f)
   : MLGE(myMLGE), MLGN(myMLGN), MNPC(myMNPC), shareFE(false)
 {
   nf = n_f;
   nsd = n_s > 3 ? 3 : n_s;
   ndim = n_p > nsd ? nsd : n_p;
+  nLag = 0;
   idx = 0;
+  nXelm = 0;
+  myLMs.first = myLMs.second = 0;
 }
 
 
@@ -38,7 +53,10 @@ ASMbase::ASMbase (const ASMbase& patch, unsigned char n_f)
   nf = n_f > 0 ? n_f : patch.nf;
   nsd = patch.nsd;
   ndim = patch.ndim;
+  nLag = patch.nLag;
   idx = patch.idx;
+  nXelm = patch.nXelm;
+  myLMs = patch.myLMs;
   // Note: Properties are _not_ copied
 }
 
@@ -65,6 +83,8 @@ void ASMbase::clear (bool retainGeometry)
   for (MPCIter it = mpcs.begin(); it != mpcs.end(); it++)
     delete *it;
 
+  myLMs.first = myLMs.second = 0;
+
   myMLGN.clear();
   BCode.clear();
   dCode.clear();
@@ -74,9 +94,54 @@ void ASMbase::clear (bool retainGeometry)
 
 bool ASMbase::addXElms (short int, short int, size_t, std::vector<int>&)
 {
-  std::cerr <<" *** ASMBase::addXElms: Must be implemented in sub-class."
-            << std::endl;
-  return false;
+  return Aerror("addXElms(short int,short int,size_t,std::vector<int>&)");
+}
+
+
+bool ASMbase::addLagrangeMultipliers (size_t iel, const IntVec& mGLag,
+                                      unsigned char nnLag)
+{
+  if (iel < 1 || iel > MNPC.size())
+  {
+    std::cerr <<" *** ASMbase::addLagrangeMultipliers: Element index "<< iel
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+    return false;
+  }
+  else if (shareFE)
+    return false;
+
+  if (nLag == 0)
+    nLag = nnLag;
+  else if (nnLag != nLag)
+    return false;
+
+  for (size_t i = 0; i < mGLag.size(); i++)
+  {
+    size_t node = MLGN.size();
+    IntVec::const_iterator it = std::find(MLGN.begin(),MLGN.end(),mGLag[i]);
+    if (it == MLGN.end())
+      myMLGN.push_back(mGLag[i]); // Add a new Lagrange multiplier node
+    else
+      node = it - MLGN.begin(); // Existing Lagrange multiplier node
+
+    // Update the nodal range (1-based indices) of the Lagrange multipliers
+    if (myLMs.first == 0)
+      myLMs.first = myLMs.second = node+1;
+    else if (node+1 < myLMs.first)
+    {
+      std::cerr <<" *** ASMbase::addLagrangeMultipliers: Node "<< node+1
+		<<" out of range ["<< myLMs.first <<","<< myLMs.second
+		<<"]."<< std::endl;
+      return false;
+    }
+    else if (node >= myLMs.second)
+      myLMs.second = node+1;
+
+    // Extend the element connectivity table
+    myMNPC[iel-1].push_back(node);
+  }
+
+  return true;
 }
 
 
@@ -104,6 +169,18 @@ int ASMbase::getElmID (size_t iel) const
     return 0;
 
   return MLGE[iel-1];
+}
+
+
+unsigned char ASMbase::getNodalDOFs (size_t inod) const
+{
+  return this->isLMn(inod) ? nLag : nf;
+}
+
+
+char ASMbase::getNodeType (size_t inod) const
+{
+  return this->isLMn(inod) ? 'L' : 'D';
 }
 
 
@@ -140,7 +217,7 @@ void ASMbase::printNodes (std::ostream& os, const char* heading) const
   matches the fixed status of a given BC object.
 */
 
-class fixed : public std::unary_function<const ASMbase::BC&,bool>
+class fixed
 {
   int myNode; //!< The internal node number to compare with
   int myDofs; //!< The local DOFs to compare with
@@ -718,13 +795,36 @@ void ASMbase::extractElmRes (const Matrix& globRes, Matrix& elmRes) const
 
 
 void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
+			      const int* madof) const
+{
+  nodeVec.clear();
+  nodeVec.reserve(nf*MLGN.size());
+  for (size_t i = 0; i < MLGN.size(); i++)
+  {
+    int inod = MLGN[i];
+    int idof = madof[inod-1] - 1;
+    int jdof = madof[inod] - 1;
+#ifdef INDEX_CHECK
+    if (inod < 1 || jdof > (int)globRes.size())
+      std::cerr <<" *** ASMbase::extractNodeVec: Global DOF "<< jdof
+                <<" is out of range [1,"<< globRes.size() <<"]"<< std::endl;
+#endif
+    nodeVec.insert(nodeVec.end(),globRes.ptr()+idof,globRes.ptr()+jdof);
+  }
+}
+
+
+void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
 			      unsigned char nndof, int basis) const
 {
   if (nndof == 0) nndof = nf;
 
-  nodeVec.resize(nndof*MLGN.size());
+  // Don't extract the Lagrange multipliers, if any
+  size_t nNod = myLMs.first > 0 ? myLMs.first-1 : MLGN.size();
+
+  nodeVec.resize(nndof*nNod);
   double* nodeP = nodeVec.ptr();
-  for (size_t i = 1; i <= MLGN.size(); i++, nodeP += nndof)
+  for (size_t i = 1; i <= nNod; i++, nodeP += nndof)
   {
     // Note: If nndof==1 (scalar field) we should ignore possibly added nodes
     // due to Dirichlet conditions defined in local axes because these nodes are
@@ -747,15 +847,18 @@ bool ASMbase::injectNodeVec (const Vector& nodeVec, Vector& globRes,
 {
   if (nndof == 0) nndof = nf;
 
-  if (nodeVec.size() != MLGN.size()*nndof)
+  // Don't inject the Lagrange multipliers, if any
+  size_t nNod = myLMs.first > 0 ? myLMs.first-1 : MLGN.size();
+
+  if (nodeVec.size() != nNod*nndof)
   {
     std::cerr <<" *** ASMbase::injectNodeVec:: Invalid patch vector, size = "
-              << nodeVec.size() <<" != "<< MLGN.size()*nndof << std::endl;
+              << nodeVec.size() <<" != "<< nNod*nndof << std::endl;
     return false;
   }
 
   const double* nodeP = nodeVec.ptr();
-  for (size_t i = 0; i < MLGN.size(); i++, nodeP += nndof)
+  for (size_t i = 0; i < nNod; i++, nodeP += nndof)
   {
     int n = MLGN[i];
     if (n > 0 && nndof*(size_t)n <= globRes.size())
@@ -782,6 +885,12 @@ bool ASMbase::getSolution (Matrix& sField, const Vector& locSol,
 		<<" is out of range [1,"<< MLGN.size() <<"]."<< std::endl;
       return false;
     }
+    else if (this->isLMn(nodes[i]))
+    {
+      std::cerr <<"  ** ASMbase::getSolution: Node #"<< nodes[i]
+		<<" is a Lagrange multiplier, returning 0.0."<< std::endl;
+      sField.fillColumn(i+1,RealArray(nf,0.0));
+    }
     else
       sField.fillColumn(i+1,locSol.ptr()+nf*nodes[i]-nf);
 
@@ -791,42 +900,32 @@ bool ASMbase::getSolution (Matrix& sField, const Vector& locSol,
 
 bool ASMbase::evalSolution (Matrix&, const Vector&, const int*) const
 {
-  std::cerr <<" *** ASMBase::evalSolution: Must be implemented in sub-class."
-	    << std::endl;
-  return false;
+  return Aerror("evalSolution(Matrix&,const Vector&,const int*)");
 }
 
 
 bool ASMbase::evalSolution (Matrix&, const Vector&,
 			    const RealArray*, bool) const
 {
-  std::cerr <<" *** ASMBase::evalSolution: Must be implemented in sub-class."
-	    << std::endl;
-  return false;
+  return Aerror("evalSolution(Matrix&,const Vector&,const RealArray*,bool)");
 }
 
 
 bool ASMbase::evalSolution (Matrix&, const IntegrandBase&,
 			    const int*, char) const
 {
-  std::cerr <<" *** ASMBase::evalSolution: Must be implemented in sub-class."
-	    << std::endl;
-  return false;
+  return Aerror("evalSolution(Matrix&,const IntegrandBase&,const int*,char)");
 }
 
 
 bool ASMbase::evalSolution (Matrix&, const IntegrandBase&,
 			    const RealArray*, bool) const
 {
-  std::cerr <<" *** ASMBase::evalSolution: Must be implemented in sub-class."
-	    << std::endl;
-  return false;
+  return Aerror("evalSolution(Matrix&,const IntegrandBase&,const RealArray*)");
 }
 
 
 bool ASMbase::globalL2projection (Matrix&, const IntegrandBase&, bool) const
 {
-  std::cerr <<" *** ASMBase::globalL2projection: Must be implemented in"
-	    <<" sub-class."<< std::endl;
-  return false;
+  return Aerror("globalL2projection(Matrix&,const IntegrandBase&,bool)");
 }

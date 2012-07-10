@@ -41,7 +41,7 @@ bool SAMpatch::init (const ASMVec& model, int numNod)
     // Count the number of DOFs in each basis
     std::map<char,size_t>::const_iterator it;
     std::map<char,size_t> ndofs;
-    ndofs['D'] = ndofs['P'] = ndofs['X'] = 0;
+    ndofs['D'] = ndofs['L'] = ndofs['P'] = ndofs['X'] = 0;
     for (size_t n = 0; n < nodeType.size(); n++)
       ndofs[nodeType[n]] += madof[n+1] - madof[n];
     for (it = ndofs.begin(); it != ndofs.end(); it++)
@@ -138,10 +138,15 @@ bool SAMpatch::initElementConn (const ASMVec& model)
   // Find the size of the element connectivity array
   size_t i, j;
   IntMat::const_iterator eit;
+  IntVec::const_iterator nit;
   for (j = 0; j < model.size(); j++)
     for (i = 1, eit = model[j]->begin_elm(); eit != model[j]->end_elm(); eit++)
       if (model[j]->getElmID(i++) > 0)
 	nmmnpc += eit->size();
+
+  IntVec elmId;
+  elmId.reserve(nel);
+  int id, outOfOrder = 0;
 
   // Initialize the element connectivity arrays
   mpmnpc = new int[nel+1];
@@ -149,17 +154,58 @@ bool SAMpatch::initElementConn (const ASMVec& model)
   int ip = mpmnpc[0] = 1;
   for (j = 0; j < model.size(); j++)
     for (i = 1, eit = model[j]->begin_elm(); eit != model[j]->end_elm(); eit++)
-      if (model[j]->getElmID(i++) > 0)
+      if ((id = model[j]->getElmID(i++)) > 0)
       {
 	mpmnpc[ip] = mpmnpc[ip-1];
-	for (size_t k = 0; k < eit->size(); k++)
-	  if ((*eit)[k] < 0)
-	    mmnpc[(mpmnpc[ip]++)-1] = -model[j]->getNodeID(1-(*eit)[k]);
+	for (nit = eit->begin(); nit != eit->end(); nit++)
+	  if (*nit == -2147483648) // Hack for node 0: Using -maxint as flag
+	    mmnpc[(mpmnpc[ip]++)-1] = -model[j]->getNodeID(1);
+	  else if (*nit < 0)
+	    mmnpc[(mpmnpc[ip]++)-1] = -model[j]->getNodeID(1-(*nit));
 	  else
-	    mmnpc[(mpmnpc[ip]++)-1] = model[j]->getNodeID(1+(*eit)[k]);
-	ip++;
+	    mmnpc[(mpmnpc[ip]++)-1] =  model[j]->getNodeID(1+(*nit));
+
+	// Check that the elements are in consequtive order
+	if ((ip++) > 1 && id <= elmId.back())
+	  outOfOrder++;
+
+	elmId.push_back(id);
       }
 
+  if (outOfOrder == 0) return true;
+
+  // We need to sort the elements in increasing external element numbers
+  std::cout <<"Detected "<< outOfOrder <<" elements out of order, reordering..."
+	    << std::endl;
+
+  std::map<int, std::pair<int,int> > sortedElms;
+  for (i = 0; i < elmId.size(); i++)
+    if (sortedElms.find(elmId[i]) == sortedElms.end())
+      sortedElms[elmId[i]] = std::make_pair(mpmnpc[i]-1,mpmnpc[i+1]-mpmnpc[i]);
+    else
+    {
+      std::cerr <<" *** SAMpatch::initElementConn: Multiple elements with "
+		<<" external ID "<< elmId[i] <<" detected."<< std::endl;
+      return false;
+    }
+
+  // Create new element connectivity arrays
+  int* new_mpmnpc = new int[nel+1];
+  int* new_mmnpc  = new int[nmmnpc];
+  ip = new_mpmnpc[0] = 1;
+  std::map<int, std::pair<int,int> >::const_iterator it;
+  for (it = sortedElms.begin(); it != sortedElms.end(); it++, ip++)
+  {
+    int nen = it->second.second;
+    new_mpmnpc[ip] = new_mpmnpc[ip-1] + nen;
+    memcpy(new_mmnpc+new_mpmnpc[ip-1]-1,mmnpc+it->second.first,nen*sizeof(int));
+  }
+
+  // Replace the old ones...
+  delete[] mpmnpc;
+  delete[] mmnpc;
+  mpmnpc = new_mpmnpc;
+  mmnpc  = new_mmnpc;
   return true;
 }
 

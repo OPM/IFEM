@@ -54,6 +54,8 @@ public:
   int getNoDOFs() const { return ndof; }
   //! \brief Returns the number of equations (free DOFs) in the model.
   virtual int getNoEquations() const { return neq; }
+  //! \brief Returns the Matrix of Accumulated DOFs.
+  const int* getMADOF() const { return madof; }
 
   //! \brief Returns max number of DOF couplings in the model.
   int getMaxDofCouplings() const;

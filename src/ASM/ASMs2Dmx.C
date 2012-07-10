@@ -112,12 +112,14 @@ unsigned char ASMs2Dmx::getNoFields (int basis) const
 
 unsigned char ASMs2Dmx::getNodalDOFs (size_t inod) const
 {
+  if (this->isLMn(inod)) return nLag;
   return inod <= nb1 || inod > nb1+nb2 ? nf1 : nf2;
 }
 
 
 char ASMs2Dmx::getNodeType (size_t inod) const
 {
+  if (this->isLMn(inod)) return 'L';
   return inod <= nb1 ? 'D' : (inod <= nb1+nb2 ? 'P' : 'X');
 }
 
