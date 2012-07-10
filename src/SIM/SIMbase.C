@@ -1311,7 +1311,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
     GlobalIntegral& sysQ = it->second->getGlobalInt(myEqSys);
     if (&sysQ != myEqSys) sysQ.initialize(newLHSmatrix);
 
-    it->second->initIntegration(time);
+    it->second->initIntegration(time,prevSol.front());
 
     // Loop over the different material regions, integrating interior
     // coefficient matrix terms for the patch associated with each material
@@ -1554,7 +1554,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
     return false;
   }
 
-  myProblem->initIntegration(time);
+  myProblem->initIntegration(time,psol.front());
   norm->initProjection(ssol.size());
   norm->initIntegration(nIntGP,nBouGP);
 

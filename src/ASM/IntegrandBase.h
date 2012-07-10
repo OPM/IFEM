@@ -61,7 +61,7 @@ public:
   //! \brief Initializes the integrand for a new integration loop.
   //! \details This method is invoked once before starting the numerical
   //! integration over the entire spatial domain.
-  virtual void initIntegration(const TimeDomain&) {}
+  virtual void initIntegration(const TimeDomain&, const Vector&) {}
   //! \brief Initializes the integrand for a new result point loop.
   //! \details This method is invoked once before starting the evaluation of
   //! the secondary solution at all result sampling points, after the converged
@@ -258,8 +258,6 @@ public:
 
   //! \brief Initializes the integrand with the number of integration points.
   virtual void initIntegration(size_t, size_t) {}
-  //! \brief Initializes the integrand for a new integration loop.
-  virtual void initIntegration(const TimeDomain& time);
   //! \brief Sets the number of projected solutions.
   void initProjection(size_t nproj) { prjsol.resize(nproj); }
   //! \brief Sets a vector of LocalIntegrals to be used during norm integration.
@@ -290,17 +288,16 @@ public:
   //! \brief Returns whether this norm has explicit boundary contributions.
   virtual bool hasBoundaryTerms() const { return false; }
 
-  virtual void addBoundaryTerms(Vectors& gNorm, double extEnergy) {}
+  //! \brief Adds external energy terms to relevant norms.
+  virtual void addBoundaryTerms(Vectors&, double) {}
 
-  //! \brief Returns the number of field components.
-  //! \param[in] fld   0 = the number of norm groups
-  //!                > 0 = number of norms in group
-  virtual size_t getNoFields(int fld=0) const { return 0; }
+  //! \brief Returns the number of norm groups or size of a specified group.
+  virtual size_t getNoFields(int group = 0) const { return 0; }
 
   //! \brief Returns the name of a norm quantity.
-  //! \param i The norm group
-  //! \param j The norm number
-  //! \param prefix A prefix to be used
+  //! \param[in] i The norm group
+  //! \param[in] j The norm number
+  //! \param[in] prefix A prefix to be used the norm name
   virtual const char* getName(size_t i, size_t j, const char* prefix = 0);
 
   //! \brief Returns whether a norm component stores element contributions.
@@ -347,13 +344,11 @@ public:
   //! \param[in] nel Number of elements
   bool initBuffer(size_t nel);
 
-  //! \brief Assembles the global forces
+  //! \brief Assembles the global forces.
   void assemble(GlbForce& force) const;
 
   //! \brief Initializes the integrand with the number of integration points.
   virtual void initIntegration(size_t, size_t) {}
-  //! \brief Initializes the integrand for a new integration loop.
-  virtual void initIntegration(const TimeDomain& time);
 
   //! \brief Returns a local integral container for the given element.
   //! \param[in] iEl The element number

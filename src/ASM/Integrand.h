@@ -50,17 +50,6 @@ public:
   virtual ~Integrand() {}
 
 
-  // Global initialization interface
-  // ===============================
-
-  //! \brief Initializes the integrand with the number of integration points.
-  //! \details This method is invoked only once during the preprocessing stage.
-  virtual void initIntegration(size_t, size_t) = 0;
-  //! \brief Initializes the integrand for a new integration loop.
-  //! \details This method is invoked once before starting the numerical
-  //! integration over the entire spatial domain.
-  virtual void initIntegration(const TimeDomain&) = 0;
-
   // Element-level initialization interface
   // ======================================
 

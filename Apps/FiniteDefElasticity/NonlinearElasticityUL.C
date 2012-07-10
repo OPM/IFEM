@@ -132,7 +132,8 @@ void NonlinearElasticityUL::initIntegration (size_t nGp, size_t nBp)
 }
 
 
-void NonlinearElasticityUL::initIntegration (const TimeDomain& prm)
+void NonlinearElasticityUL::initIntegration (const TimeDomain& prm,
+					     const Vector&)
 {
   if (material)
     material->initIntegration(prm);
@@ -417,12 +418,6 @@ void ElasticityNormUL::initIntegration (size_t nGp, size_t nBp)
 }
 
 
-void ElasticityNormUL::initIntegration (const TimeDomain& prm)
-{
-  this->ElasticityNorm::initIntegration(prm);
-}
-
-
 bool ElasticityNormUL::evalInt (LocalIntegral& elmInt,
 				const FiniteElement& fe,
 				const TimeDomain& prm,
@@ -452,12 +447,9 @@ bool ElasticityNormUL::evalInt (LocalIntegral& elmInt,
 }
 
 
-size_t ElasticityNormUL::getNoFields(int fld) const
+size_t ElasticityNormUL::getNoFields (int group) const
 {
-  if (fld == 0)
-    return 1;
-  
-  return 6;
+  return group == 0 ? 1 : 6;
 }
 
 
@@ -489,13 +481,13 @@ bool ElasticityNormUL::evalInt (ElmNorm& pnorm, const SymmTensor& S,
 const char* ElasticityNormUL::getName(size_t i, size_t j, const char* prefix)
 {
   static const char* s[6] = {
-      "a(u^h,u^h)^0.5",
-      "(f,u^h)^0.5",
-      "(s^h,s^h)^0.5",
-      "(p^h,p^h)^0.5",
-      "(e^h,e^h), e^h=S^h-p^h*I",
-      "vm(s^h)"
-    };
+    "a(u^h,u^h)^0.5",
+    "(f,u^h)^0.5",
+    "(s^h,s^h)^0.5",
+    "(p^h,p^h)^0.5",
+    "(e^h,e^h), e^h=S^h-p^h*I",
+    "vm(s^h)"
+  };
 
   if (i > 1)
     return 0;

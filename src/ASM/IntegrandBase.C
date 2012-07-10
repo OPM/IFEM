@@ -157,12 +157,6 @@ Vector* IntegrandBase::getNamedVector (const std::string& name) const
 }
 
 
-void NormBase::initIntegration (const TimeDomain& time)
-{
-  myProblem.initIntegration(time);
-}
-
-
 Vector& NormBase::getProjection (size_t i)
 {
   if (i < prjsol.size())
@@ -199,9 +193,10 @@ LocalIntegral* NormBase::getLocalIntegral (size_t, size_t iEl, bool) const
 
   // Element norms are not requested, so allocate one internally instead that
   // will delete itself when invoking the destruct method.
-  int norms=0;
-  for (size_t j=0;j<getNoFields(0);++j)
-    norms += getNoFields(1+j);
+  size_t norms = 0;
+  size_t groups = this->getNoFields(0);
+  for (size_t j = 1; j <= groups; ++j)
+    norms += getNoFields(j);
 
   return new ElmNorm(norms);
 }
@@ -248,7 +243,7 @@ bool NormBase::initElementBou (const std::vector<int>& MNPC1,
 }
 
 
-const char* NormBase::getName (size_t i, size_t j, const char* prefix)
+const char* NormBase::getName (size_t i, size_t j, const char*)
 {
   static char comp[16];
   sprintf(comp,"norm_%lu.%lu",1+i,1+j);
@@ -289,12 +284,6 @@ LocalIntegral* ForceBase::getLocalIntegral (size_t, size_t iEl, bool) const
   // No internal buffers. Allocate an ElmNorm object that will delete itself
   // when invoking its destruct method.
   return new ElmNorm(this->getNoComps());
-}
-
-
-void ForceBase::initIntegration (const TimeDomain& time)
-{
-  myProblem.initIntegration(time);
 }
 
 

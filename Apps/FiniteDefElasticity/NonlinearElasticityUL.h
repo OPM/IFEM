@@ -59,7 +59,7 @@ public:
   virtual void initIntegration(size_t nGp, size_t nBp);
   //! \brief Initializes the integrand for a new integration loop.
   //! \param[in] prm Nonlinear solution algorithm parameters
-  virtual void initIntegration(const TimeDomain& prm);
+  virtual void initIntegration(const TimeDomain& prm, const Vector&);
   //! \brief Initializes the integrand for a new result point loop.
   //! \param[in] lambda Load parameter
   virtual void initResultPoints(double lambda);
@@ -142,9 +142,6 @@ public:
   //! \param[in] nGp Total number of interior integration points
   //! \param[in] nBp Total number of boundary integration points
   virtual void initIntegration(size_t nGp, size_t nBp);
-  //! \brief Initializes the integrand for a new integration loop.
-  //! \param[in] prm Nonlinear solution algorithm parameters
-  virtual void initIntegration(const TimeDomain& prm);
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
@@ -163,8 +160,8 @@ public:
 		       const Vec3& X, const Vec3& normal) const;
 
   //! \brief Returns the number of norm quantities.
-  virtual size_t getNoFields(int fld=0) const;
-
+  virtual size_t getNoFields(int group = 0) const;
+  //! \brief Returns the name of a norm quantity.
   const char* getName(size_t i, size_t j, const char* prefix);
 
 protected:
