@@ -300,19 +300,27 @@ void MortarPenalty::initIntegration (const TimeDomain& prm, const Vector&)
     activeSlave.clear();
 
   activeSlave.reserve(mortar.getNoSlaves());
+
+  size_t nmin = 0;
+  double wmin = DBL_MAX;
   for (size_t n = 1; n <= mortar.getNoSlaves(); n++)
     if (mortar.weightedArea(n) > 0.0 && mortar.weightedGap(n) <= 0.0)
     {
       activeSlave.resize(n,false);
       activeSlave.back() = true;
     }
+    else if (mortar.weightedGap(n) < wmin)
+    {
+      nmin = n;
+      wmin = mortar.weightedGap(n);
+    }
 
 #ifndef INT_DEBUG
   if (prm.it > 0) return;
 #endif
-  std::cout <<"  Active contact nodes: "
-	    << std::count(activeSlave.begin(),activeSlave.end(),true)
-	    << std::endl;
+  std::cout <<"  "<< std::count(activeSlave.begin(),activeSlave.end(),true)
+	    <<" active contact nodes, closest non-active node "<< nmin
+	    <<": wgap = "<< wmin << std::endl;
 }
 
 

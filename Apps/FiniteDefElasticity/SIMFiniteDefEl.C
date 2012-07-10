@@ -200,6 +200,8 @@ bool SIMFiniteDefEl2D::parse (const TiXmlElement* elem)
 
       if (!this->parseContactTag(child,myModel,myEntitys))
 	return false;
+
+      preserveNOrder = true; // because extra nodes have been added
     }
 
   if (!myProblem)
@@ -448,6 +450,8 @@ bool SIMFiniteDefEl3D::parse (const TiXmlElement* elem)
 
       if (!this->parseContactTag(child,myModel,myEntitys))
 	return false;
+
+      preserveNOrder = true; // because extra nodes have been added
     }
 
   if (!myProblem)
