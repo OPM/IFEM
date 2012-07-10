@@ -100,3 +100,13 @@ SystemMatrix* SystemMatrix::create (Type matrixType, int num_thread_SLU)
 
   return 0;
 }
+
+
+bool SystemMatrix::assemble (const Matrix&, const SAM&,
+			     SystemVector&, const std::vector<int>&)
+{
+  std::cerr <<"SystemMatrix::assemble(const Matrix&,const SAM&,"
+	    <<"SystemVector&,const std::vector<int>&): "
+	    <<"Not implemented for the chosen matrix type."<< std::endl;
+  return false;
+}

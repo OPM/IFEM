@@ -30,15 +30,15 @@ public:
   //! \brief The available system vector formats.
   enum Type { STD = 0, PETSC = 1 };
 
-  //! \brief Static method creating a vector of the given \a vectorType
+  //! \brief Static method creating a vector of the given type.
   static SystemVector* create(Type vectorType = STD);
 
 protected:
-  //! \brief Default constructor.
+  //! \brief The default constructor is protected to allow sub-classes only.
   SystemVector() {}
 
 public:
-  //! \brief Empty destructor
+  //! \brief Empty destructor.
   virtual ~SystemVector() {}
 
   //! \brief Returns the vector type.
@@ -68,7 +68,7 @@ public:
   virtual const real* getRef() const = 0;
 
   //! \brief Restores the vector contents from an array.
-  //! \details This method must be implemented only by subclasses for which the
+  //! \details This method must only be implemented by sub-classes for which the
   //! getPtr and getRef methods do not return a pointer to the actual internal
   //! memory segment containing the actual vector data.
   virtual void restore(const real*) {}
@@ -198,9 +198,9 @@ public:
   //! \brief The available system matrix formats.
   enum Type { DENSE = 0, SPR = 1, SPARSE = 2, SAMG = 3, PETSC = 4 };
 
-  //! \brief Static method creating a matrix of the given \a matrixType.
+  //! \brief Static method creating a matrix of the given type.
   static SystemMatrix* create(Type matrixType, int num_thread_SLU = 1);
-  //! \brief Static method creating a matrix of the given \a matrixType.
+  //! \brief Static method creating a matrix of the given type.
   static SystemMatrix* create(Type matrixType, const LinSolParams& spar);
 
 protected:
@@ -217,6 +217,9 @@ public:
   //! \brief Creates a copy of the system matrix and returns a pointer to it.
   virtual SystemMatrix* copy() const = 0;
 
+  //! \brief Locks or unlocks the sparsity pattern.
+  virtual bool lockPattern(bool) { return false; }
+
   //! \brief Checks if the matrix is empty.
   virtual bool empty() const { return this->dim(0) == 0; }
 
@@ -225,8 +228,9 @@ public:
 
   //! \brief Initializes the element assembly process.
   //! \details Must be called once before the element assembly loop.
-  //! \param[in] sam Auxilliary data describing the FE model topology, etc.
-  virtual void initAssembly(const SAM& sam) = 0;
+  //! \param[in] sam Auxiliary data describing the FE model topology, etc.
+  //! \param[in] delayLocking If \e true, do not lock the sparsity pattern yet
+  virtual void initAssembly(const SAM& sam, bool delayLocking = false) = 0;
 
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   virtual void init() = 0;
@@ -236,24 +240,35 @@ public:
   //! \brief Ends communication step needed in parallel matrix assembly.
   virtual bool endAssembly() { return true; }
 
-  //! \brief Adds an element stiffness matrix into the system stiffness matrix.
-  //! \param[in] eM  The element stiffness matrix
-  //! \param[in] sam Auxilliary data describing the FE model topology,
+  //! \brief Adds an element matrix into the associated system matrix.
+  //! \param[in] eM  The element matrix
+  //! \param[in] sam Auxiliary data describing the FE model topology,
   //!                nodal DOF status and constraint equations
   //! \param[in] e   Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assemble(const Matrix& eM, const SAM& sam, int e) = 0;
-  //! \brief Adds an element stiffness matrix into the system stiffness matrix.
+  //! \brief Adds an element matrix into the associated system matrix.
   //! \details When multi-point constraints are present, contributions from
-  //! these are also added into the system right-hand-side load vector.
-  //! \param[in] eM  The element stiffness matrix
-  //! \param[in] sam Auxilliary data describing the FE model topology,
+  //! these are also added into the system right-hand-side vector.
+  //! \param[in] eM  The element matrix
+  //! \param[in] sam Auxiliary data describing the FE model topology,
   //!                nodal DOF status and constraint equations
-  //! \param     B   The system right-hand-side load vector
+  //! \param     B   The system right-hand-side vector
   //! \param[in] e   Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assemble(const Matrix& eM, const SAM& sam,
 			SystemVector& B, int e) = 0;
+  //! \brief Adds an element matrix into the associated system matrix.
+  //! \details When multi-point constraints are present, contributions from
+  //! these are also added into the system right-hand-side vector.
+  //! \param[in] eM   The element matrix
+  //! \param[in] sam  Auxiliary data describing the FE model topology,
+  //!                 nodal DOF status and constraint equations
+  //! \param     B    The system right-hand-side vector
+  //! \param[in] meen Matrix of element equation numbers
+  //! \return \e true on successful assembly, otherwise \e false
+  virtual bool assemble(const Matrix& eM, const SAM& sam,
+			SystemVector& B, const std::vector<int>& meen);
 
   //! \brief Augments a similar matrix symmetrically to the current matrix.
   virtual bool augment(const SystemMatrix&, size_t, size_t) { return false; }

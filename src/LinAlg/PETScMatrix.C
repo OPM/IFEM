@@ -13,6 +13,7 @@
 
 #include "PETScMatrix.h"
 #ifdef HAS_PETSC
+#include "LinSolParams.h"
 #include "SAM.h"
 #include "petscversion.h"
 #include "petscis.h"
@@ -63,7 +64,7 @@ PETScVector::PETScVector(const real* values, size_t n)
   VecSetFromOptions(x);
   VecGetArray(x,&x_array);
   *x_array = *values;
-  VecRestoreArray(x,&x_array);    
+  VecRestoreArray(x,&x_array);
   LinAlgInit::increfs();
 }
 
@@ -103,7 +104,7 @@ real* PETScVector::getPtr()
 {
   real* ptr = 0;
 
-  VecGetArray(x,&ptr); 
+  VecGetArray(x,&ptr);
   return ptr;
 }
 
@@ -196,8 +197,6 @@ PETScMatrix::PETScMatrix(const LinSolParams& spar) : solParams(spar)
 
 PETScMatrix::PETScMatrix (const PETScMatrix& B) : solParams(B.solParams)
 {
-  // Duplicate matrix. 
-  //A = MatDuplicate(B.A);
   MatDuplicate(B.A,MAT_COPY_VALUES,&A);
 
   // Create linear solver object.
@@ -218,14 +217,14 @@ PETScMatrix::PETScMatrix (const PETScMatrix& B) : solParams(B.solParams)
 PETScMatrix::~PETScMatrix ()
 {
   // Deallocation of null space
-  if (solParams.getNullSpace() == CONSTANT) 
+  if (solParams.getNullSpace() == CONSTANT)
     MatNullSpaceDestroy(PETSCMANGLE(nsp));
 
   // Deallocation of linear solver object.
   KSPDestroy(PETSCMANGLE(ksp));
 
   // Deallocation of matrix object.
-  MatDestroy(PETSCMANGLE(A));   
+  MatDestroy(PETSCMANGLE(A));
   LinAlgInit::decrefs();
 
   for (int i = 0;i < ISsize;i++)
@@ -255,9 +254,7 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
   // Cast to non-constant Matrix to modify for Dirichlet BCs
   Matrix& A = const_cast<Matrix&>(eM);
 
-  std::vector<real> uc, bc;
-  uc.resize(nedof);
-  bc.resize(nedof);
+  std::vector<real> uc(nedof), bc(nedof);
 
   bool rhsMod = false;
   for (j = 1;j <= nedof;j++) {
@@ -285,8 +282,6 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
     bc[j-1] = -uc[j-1];
     for (i = 1;i <= nedof;i++)
       A(i,j) = A(j,i) = 0.0;
-    
-    
     A(j,j) = 1.0;
   }
 
@@ -313,8 +308,8 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
 
   // Get C array
   PetscScalar* svec;
-  VecGetArray(SV.getVector(),&svec); 
-  
+  VecGetArray(SV.getVector(),&svec);
+
   // Number of degrees of freedom for element
   size_t nedof = meen.size();
 
@@ -323,7 +318,7 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
   for (i = 0; i < nedof; i++)
     l2g[i] = meen[i]-1;
 
-  // Cast to non-constant Matrix 
+  // Cast to non-constant Matrix
   Matrix& A = const_cast<Matrix&>(eM);
 
   // Add element stiffness matrix to global matrix
@@ -341,11 +336,11 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
     c0 = ttcc[jp-1];
 
     // Add contributions to SV (righthand side)
-    if (SV.dim() > 0) 
+    if (SV.dim() > 0)
       for (i = 1; i <= nedof; i++) {
 	ieq  = meen[i-1];
 	iceq = -ieq;
-	if (ieq > 0) 
+	if (ieq > 0)
 	  svec[ieq-1] -= c0*eM(i,j);
 	else if (iceq > 0)
 	  for (ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ip++)
@@ -364,9 +359,8 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
 	  ieq = meen[i-1];
 	  iceq = -ieq;
 	  if (ieq > 0)
-	    if (ieq == jeq) 
+	    if (ieq == jeq)
 	      MatSetValue(SM,ieq-1,jeq-1,(ttcc[jp]+ttcc[jp])*eM(i,j),ADD_VALUES);
-	  
 	    else {
 	      MatSetValue(SM,ieq-1,jeq-1,ttcc[jp]*eM(i,j),ADD_VALUES);
 	      MatSetValue(SM,jeq-1,ieq-1,ttcc[jp]*eM(j,i),ADD_VALUES);
@@ -380,9 +374,8 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
 	}
       }
     }
-    
   }
-   
+
   // Restore vector values
   VecRestoreArray(SV.getVector(),&svec);
 
@@ -407,7 +400,7 @@ static void assemPETSc (const Matrix& eM, Mat SM, const std::vector<int>& meen,
   for (i = 0; i < nedof; i++)
     l2g[i] = meen[i]-1;
 
-  // Cast to non-constant Matrix 
+  // Cast to non-constant Matrix
   Matrix& A = const_cast<Matrix&>(eM);
 
   // Add element stiffness matrix to global matrix
@@ -416,7 +409,7 @@ static void assemPETSc (const Matrix& eM, Mat SM, const std::vector<int>& meen,
   A.transpose();
 
   // Add (appropriately weighted) elements corresponding to constrained
-  // (dependent and prescribed) dofs in eM into SM 
+  // (dependent and prescribed) dofs in eM into SM
   for (j = 1; j <= nedof; j++) {
     jceq = -meen[j-1];
     if (jceq < 1) continue;
@@ -444,7 +437,6 @@ static void assemPETSc (const Matrix& eM, Mat SM, const std::vector<int>& meen,
 	}
       }
     }
-    
   }
 
   // Deallocate memory for l2g mapping
@@ -452,7 +444,7 @@ static void assemPETSc (const Matrix& eM, Mat SM, const std::vector<int>& meen,
 }
 
 
-void PETScMatrix::initAssembly (const SAM& sam)
+void PETScMatrix::initAssembly (const SAM& sam, bool)
 {
   // Get number of equations in linear system
   const PetscInt neq = sam.getNoEquations();
@@ -466,7 +458,7 @@ void PETScMatrix::initAssembly (const SAM& sam)
   MPI_Barrier(PETSC_COMM_WORLD);
   MatSetFromOptions(A);
 
-  // Allocation of sparse pattern.
+  // Allocation of sparsity pattern
 #ifdef PARALLEL_PETSC
   PetscInt ifirst, ilast;
   std::vector<int> d_nnz, o_nnz;
@@ -474,13 +466,12 @@ void PETScMatrix::initAssembly (const SAM& sam)
   MatGetOwnershipRange(A,&ifirst,&ilast);
   if (sam.getNoDofCouplings(ifirst,ilast,d_nnz,o_nnz))
   {
-    std::vector<PetscInt> d_Nnz;
-    std::vector<PetscInt> o_Nnz;
-    d_Nnz.resize(d_nnz.size());
-    for (size_t i=0;i<d_nnz.size();++i) 
+    size_t i;
+    std::vector<PetscInt> d_Nnz(d_nnz.size());
+    std::vector<PetscInt> o_Nnz(o_nnz.size());
+    for (i = 0; i < d_nnz.size(); i++)
       d_Nnz[i] = d_nnz[i];
-    o_Nnz.resize(o_nnz.size());
-    for (size_t i=0;i<o_nnz.size();++i) 
+    for (i = 0; i < o_nnz.size(); i++)
       o_Nnz[i] = o_nnz[i];
     MatMPIAIJSetPreallocation(A,PETSC_DEFAULT,&(d_Nnz[0]),PETSC_DEFAULT,&(o_Nnz[0]));
   }
@@ -492,12 +483,10 @@ void PETScMatrix::initAssembly (const SAM& sam)
   std::vector<int> nnz;
 
   if (sam.getNoDofCouplings(nnz)) {
-    std::vector<PetscInt> Nnz;
-    Nnz.resize(nnz.size());
-    for (size_t i=0;i<nnz.size();++i) 
+    std::vector<PetscInt> Nnz(nnz.size());
+    for (size_t i = 0; i < nnz.size(); i++)
       Nnz[i] = nnz[i];
-    PetscInt* nnzPtr = &(Nnz[0]);
-    MatSeqAIJSetPreallocation(A,PETSC_DEFAULT,nnzPtr);
+    MatSeqAIJSetPreallocation(A,PETSC_DEFAULT,&(Nnz[0]));
   }
   else {
     const PetscInt maxdofc = sam.getMaxDofCouplings();
@@ -602,7 +591,7 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
   Vec x;
   VecDuplicate(Bptr->getVector(),&x);
   VecCopy(Bptr->getVector(),x);
-  
+
   // Has lefthand side changed?
   if (!strncasecmp(solParams.getPreconditioner(),"mat",3)) {
     if (!this->makeEBEpreconditioner(A,&AebeI))
@@ -613,7 +602,7 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
     KSPSetOperators(ksp,A,A,SAME_NONZERO_PATTERN);
   else
     KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
-  
+
   solParams.setParams(ksp);
   KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
   KSPSolve(ksp,x,Bptr->getVector());
@@ -645,7 +634,7 @@ bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
     KSPSetOperators(ksp,A,A,SAME_NONZERO_PATTERN);
   else
     KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
-  
+
   solParams.setParams(ksp);
   KSPSetInitialGuessNonzero(ksp,PETSC_TRUE);
   KSPSolve(ksp,Bptr->getVector(),Xptr->getVector());
@@ -677,7 +666,7 @@ bool PETScMatrix::solve (SystemVector& B, SystemMatrix& P, bool newLHS)
     KSPSetOperators(ksp,A,Pptr->getMatrix(),SAME_NONZERO_PATTERN);
   else
     KSPSetOperators(ksp,A,Pptr->getMatrix(),SAME_PRECONDITIONER);
-  
+
   solParams.setParams(ksp);
   KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
   KSPSolve(ksp,x,Bptr->getVector());
@@ -704,9 +693,9 @@ bool PETScMatrix::solveEig (PETScMatrix& B, RealArray& val,
   EPSCreate(PETSC_COMM_WORLD,&eps);
 
   MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY); 
+  MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
   MatAssemblyBegin(B.A,MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(B.A,MAT_FINAL_ASSEMBLY); 
+  MatAssemblyEnd(B.A,MAT_FINAL_ASSEMBLY);
 
   EPSSetOperators(eps,A,B.A);
   EPSSetProblemType(eps,EPS_GHEP);
@@ -718,7 +707,7 @@ bool PETScMatrix::solveEig (PETScMatrix& B, RealArray& val,
   EPSSetFromOptions(eps);
   EPSSolve(eps);
   EPSGetConverged(eps,&nconv);
-  
+
   MatGetSize(A,&m,&n);
   if (m != n) return false;
 
@@ -732,13 +721,11 @@ bool PETScMatrix::solveEig (PETScMatrix& B, RealArray& val,
   for (int i = 0; i < nv; i++) {
     EPSGetEigenpair(eps,i,&kr,&ki,xr,xi);
     VecGetArray(xr,&xrarr);
-    
     val[i] = kr;
     vec.fillColumn(i+1,xrarr);
-    
     VecRestoreArray(xr,&xrarr);
   }
-  
+
   VecDestroy(PETSCMANGLE(xi));
   VecDestroy(PETSCMANGLE(xr));
 
@@ -790,7 +777,7 @@ bool PETScMatrix::makeElementIS(const SAM& sam)
     ISCreateGeneral(PETSC_COMM_SELF,ndof,l2g,&(elmIS[e-1]));
 #endif
   }
-   
+
   return true;
 }
 

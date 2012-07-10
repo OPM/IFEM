@@ -21,6 +21,9 @@ bool AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
 			size_t nmat, size_t nvec, bool withReactions,
 			int num_threads_SLU)
 {
+  // Using the sign of the num_threads_SLU argument to flag this (convenience)
+  bool dontLockSparsityPattern = num_threads_SLU < 0;
+
   size_t i;
   for (i = nmat; i < A.size(); i++)
     if (A[i]._A) delete A[i]._A;
@@ -38,10 +41,10 @@ bool AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
       if (spar)
 	A[i]._A = SystemMatrix::create(mtype,*spar);
       else
-	A[i]._A = SystemMatrix::create(mtype,num_threads_SLU);
+	A[i]._A = SystemMatrix::create(mtype,abs(num_threads_SLU));
     if (!A[i]._A) return false;
 
-    A[i]._A->initAssembly(sam);
+    A[i]._A->initAssembly(sam,dontLockSparsityPattern);
     A[i]._b = NULL;
   }
 

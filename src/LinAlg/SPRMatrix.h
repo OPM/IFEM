@@ -50,26 +50,26 @@ public:
   //! \details Must be called once before the element assembly loop.
   //! The SPR data structures are initialized and the all symbolic operations
   //! that are need before the actual assembly can start are performed.
-  //! \param[in] sam Auxilliary data describing the FE model topology, etc.
-  virtual void initAssembly(const SAM& sam);
+  //! \param[in] sam Auxiliary data describing the FE model topology, etc.
+  virtual void initAssembly(const SAM& sam, bool);
 
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   virtual void init();
 
-  //! \brief Adds an element stiffness matrix into the system stiffness matrix.
-  //! \param[in] eM  The element stiffness matrix
-  //! \param[in] sam Auxilliary data describing the FE model topology,
+  //! \brief Adds an element matrix into the associated system matrix.
+  //! \param[in] eM  The element matrix
+  //! \param[in] sam Auxiliary data describing the FE model topology,
   //!                nodal DOF status and constraint equations
   //! \param[in] e   Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assemble(const Matrix& eM, const SAM& sam, int e);
-  //! \brief Adds an element stiffness matrix into the system stiffness matrix.
+  //! \brief Adds an element matrix into the associated system matrix.
   //! \details When multi-point constraints are present, contributions from
-  //! these are also added into the system right-hand-side load vector.
-  //! \param[in] eM  The element stiffness matrix
-  //! \param[in] sam Auxilliary data describing the FE model topology,
+  //! these are also added into the system right-hand-side vector.
+  //! \param[in] eM  The element matrix
+  //! \param[in] sam Auxiliary data describing the FE model topology,
   //!                nodal DOF status and constraint equations
-  //! \param     B   The system right-hand-side load vector
+  //! \param     B   The system right-hand-side vector
   //! \param[in] e   Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assemble(const Matrix& eM, const SAM& sam,
@@ -103,8 +103,8 @@ public:
   //! \param[in] nev The number of eigenvalues and eigenvectors to compute
   //! \param[in] shift Eigenvalue shift
   //! \param[in] iop Option telling whether to factorize matrix \a A or \b B.
-  bool solveEig (SPRMatrix& B, RealArray& eigVal, Matrix& eigVec, int nev,
-		 real shift = 0.0, int iop = 1);
+  bool solveEig(SPRMatrix& B, RealArray& eigVal, Matrix& eigVec, int nev,
+		real shift = 0.0, int iop = 1);
 
   //! \brief Returns the L-infinity norm of the matrix.
   virtual real Linfnorm() const;

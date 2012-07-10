@@ -81,12 +81,14 @@ public:
   //! \param sysK   The system left-hand-side matrix to be initialized
   //! \param sysRHS The system right-hand-side load vector to be initialized
   //! \param reactionForces Pointer to vector of nodal reaction forces
+  //! \param[in] dontLockSP If \e true, do not lock the matrix sparsity pattern
   //! \return \e false if no free DOFs in the system, otherwise \e true
   //!
   //! \details This method must be called once before the first call to
   //! \a assembleSystem for a given load case or time step.
   bool initForAssembly(SystemMatrix& sysK, SystemVector& sysRHS,
-		       Vector* reactionForces = 0) const;
+		       Vector* reactionForces = 0,
+		       bool dontLockSP = false) const;
 
   //! \brief Initializes a system matrix prior to the element assembly.
   //! \param sysM The system left-hand-side matrix to be initialized

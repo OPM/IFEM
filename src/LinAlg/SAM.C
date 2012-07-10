@@ -360,9 +360,9 @@ bool SAM::getDofCouplings (std::vector<IntSet>& dofc) const
 
 
 bool SAM::initForAssembly (SystemMatrix& sysK, SystemVector& sysRHS,
-			   Vector* reactionForces) const
+			   Vector* reactionForces, bool dontLockSP) const
 {
-  sysK.initAssembly(*this);
+  sysK.initAssembly(*this,dontLockSP);
   return this->initForAssembly(sysRHS,reactionForces);
 }
 

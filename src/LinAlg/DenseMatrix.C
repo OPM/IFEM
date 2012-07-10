@@ -141,7 +141,7 @@ size_t DenseMatrix::dim (int idim) const
 }
 
 
-void DenseMatrix::initAssembly (const SAM& sam)
+void DenseMatrix::initAssembly (const SAM& sam, bool)
 {
   myMat.resize(sam.neq,sam.neq,true);
 }
@@ -280,7 +280,7 @@ bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
 }
 
 
-bool DenseMatrix::assemble (const Matrix& eK, const SAM& sam,
+bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam,
 			    SystemVector& B, int e)
 {
   if (myMat.rows() != (size_t)sam.neq || myMat.cols() < (size_t)sam.neq)
@@ -291,19 +291,40 @@ bool DenseMatrix::assemble (const Matrix& eK, const SAM& sam,
 
   int ierr = 0;
 #ifdef USE_F77SAM
-  int* work = new int[eK.rows()];
-  addem2_(eK.ptr(), sam.ttcc, sam.mpar,
+  int* work = new int[eM.rows()];
+  addem2_(eM.ptr(), sam.ttcc, sam.mpar,
 	  sam.madof, sam.meqn, sam.mpmnpc, sam.mmnpc, sam.mpmceq, sam.mmceq,
-	  e, eK.rows(), sam.neq, 6, 1, myMat.ptr(), Bptr->ptr(), work, ierr);
+	  e, eM.rows(), sam.neq, 6, 1, myMat.ptr(), Bptr->ptr(), work, ierr);
   delete[] work;
 #else
   std::vector<int> meen;
-  if (sam.getElmEqns(meen,e,eK.rows()))
-    assemDense(eK,myMat,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
+  if (sam.getElmEqns(meen,e,eM.rows()))
+    assemDense(eM,myMat,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
   else
     ierr = 1;
 #endif
   return ierr == 0;
+}
+
+
+bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam,
+			    SystemVector& B, const std::vector<int>& meen)
+{
+#ifndef USE_F77SAM
+  if (myMat.rows() != (size_t)sam.neq || myMat.cols() < (size_t)sam.neq)
+    return false;
+
+  if (eM.rows() < meen.size() || eM.cols() < meen.size())
+    return false;
+
+  StdVector* Bptr = dynamic_cast<StdVector*>(&B);
+  if (!Bptr) return false;
+
+  assemDense(eM,myMat,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
+  return true;
+#else
+  return false;
+#endif
 }
 
 

@@ -146,7 +146,7 @@ SPRMatrix::~SPRMatrix ()
 }
 
 
-void SPRMatrix::initAssembly (const SAM& sam)
+void SPRMatrix::initAssembly (const SAM& sam, bool)
 {
   memset(mpar,0,NS*sizeof(int));
   msica = 0;

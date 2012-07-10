@@ -116,11 +116,23 @@ bool SparseMatrix::printSLUstat = false;
 
 SparseMatrix::SparseMatrix (SparseSolver eqSolver, int nt)
 {
-  editable = true;
+  editable = 'P';
   factored = false;
   nrow = ncol = 0;
   solver = eqSolver;
   numThreads = nt;
+  slu = 0;
+}
+
+
+SparseMatrix::SparseMatrix (size_t m, size_t n)
+{
+  editable = 'P';
+  factored = false;
+  nrow = m;
+  ncol = n > 0 ? n : m;
+  solver = NONE;
+  numThreads = 0;
   slu = 0;
 }
 
@@ -147,19 +159,29 @@ SparseMatrix::~SparseMatrix ()
 }
 
 
+bool SparseMatrix::lockPattern (bool doLock)
+{
+  bool wasLocked = editable != 'P';
+  if (editable) editable = doLock ? 'V' : 'P';
+  return wasLocked;
+}
+
+
 void SparseMatrix::resize (size_t r, size_t c, bool forceEditable)
 {
-  elem.clear();
   factored = false;
-  if (r == nrow && c == ncol && !A.empty() && !forceEditable)
+  if (r == nrow && c == ncol && !forceEditable)
   {
-    // Clear the matrix content but retain the sparsity pattern
+    // Clear the matrix content but retain its sparsity pattern
+    for (ValueMap::iterator it = elem.begin(); it != elem.end(); it++)
+      it->second = real(0);
     std::fill(A.begin(),A.end(),real(0));
     return;
   }
 
   // Clear the matrix completely, including its sparsity pattern
-  editable = true;
+  editable = 'P';
+  elem.clear();
   IA.clear();
   JA.clear();
   A.clear();
@@ -168,12 +190,13 @@ void SparseMatrix::resize (size_t r, size_t c, bool forceEditable)
   ncol = c > 0 ? c : r;
 
   if (slu) delete slu;
+  slu = 0;
 }
 
 
 bool SparseMatrix::redim (size_t r, size_t c)
 {
-  if (!editable) return false;
+  if (editable != 'P') return false;
 
   nrow = r;
   ncol = c > 0 ? c : r;
@@ -211,8 +234,14 @@ real& SparseMatrix::operator () (size_t r, size_t c)
 	      << nrow <<"x"<< ncol << std::endl;
   else if (editable) {
     IJPair index(r,c);
-    if (elem.find(index) == elem.end()) elem[index] = real(0);
-    return elem[index];
+    ValueMap::iterator vit = elem.find(index);
+    if (vit != elem.end())
+      return vit->second; // This non-zero term already exists
+    else if (editable == 'P') {
+      // Editable pattern, insert a new non-zero entry
+      real& value = elem[index] = real(0);
+      return value;
+    }
   }
   else if (solver == SUPERLU) {
     // Column-oriented format with 0-based indices
@@ -229,6 +258,10 @@ real& SparseMatrix::operator () (size_t r, size_t c)
     if (it != end) return A[it - JA.begin()];
   }
 
+  // If we arrive here, we have tried to update the sparsity pattern when it is
+  // locked. The behavior then is unpredictable, especially when multithreading.
+  std::cerr <<" *** Non-existing SparseMatrix entry (r,c)="<< r <<","<< c
+	    << std::endl;
   static real anyValue = real(0);
 #if INDEX_CHECK > 1
   abort();
@@ -262,6 +295,7 @@ const real& SparseMatrix::operator () (size_t r, size_t c) const
     if (it != end) return A[it - JA.begin()];
   }
 
+  // Return zero for any non-existing non-zero term
   static const real zero = real(0);
   return zero;
 }
@@ -361,7 +395,7 @@ void SparseMatrix::printFull (std::ostream& os) const
 
 bool SparseMatrix::augment (const SystemMatrix& B, size_t r0, size_t c0)
 {
-  if (!editable) return false;
+  if (editable != 'P') return false;
 
   const SparseMatrix* Bptr = dynamic_cast<const SparseMatrix*>(&B);
   if (!Bptr) return false;
@@ -384,9 +418,9 @@ bool SparseMatrix::augment (const SystemMatrix& B, size_t r0, size_t c0)
 
 bool SparseMatrix::truncate (real threshold)
 {
-  if (!editable) return false; // Not implemented for editable matrices yet
+  if (!editable) return false; // Not implemented for non-editable matrices yet
 
-  ValueIter it;
+  ValueMap::iterator it;
   real tol = real(0);
   for (it = elem.begin(); it != elem.end(); it++)
     if (it->first.first == it->first.second)
@@ -398,13 +432,15 @@ bool SparseMatrix::truncate (real threshold)
   tol *= threshold;
   size_t nnz = elem.size();
   for (it = elem.begin(); it != elem.end();)
-    if (it->second < tol && it->second > -tol)
+    if (it->second <= -tol || it->second >= tol)
+      ++it;
+    else if (editable == 'P')
     {
       ValueIter jt = it++;
       elem.erase(jt->first);
     }
     else
-      it++;
+      (it++)->second = real(0);
 
   if (nnz > elem.size())
     std::cout <<"SparseMatrix: Truncated "<< nnz-elem.size()
@@ -420,7 +456,7 @@ bool SparseMatrix::add (const SystemMatrix& B, real alpha)
 
   if (Bptr->nrow > nrow || Bptr->ncol > ncol) return false;
 
-  if (editable && Bptr->editable)
+  if (editable == 'P' && Bptr->editable)
     for (ValueIter it = Bptr->elem.begin(); it != Bptr->elem.end(); it++)
       elem[it->first] += alpha*it->second;
 
@@ -432,7 +468,7 @@ bool SparseMatrix::add (const SystemMatrix& B, real alpha)
     else
       return false;
   }
-  else if (editable)
+  else if (editable == 'P')
   {
     if (solver == SUPERLU)
       // Column-oriented format with 0-based indices
@@ -491,7 +527,7 @@ bool SparseMatrix::multiply (const SystemVector& B, SystemVector& C)
 
 #ifdef USE_OPENMP
 /*!
-  \brief Initilizes the sparsity pattern of a system matrix.
+  \brief Initializes the sparsity pattern of a system matrix.
   \details This method is used only when assembling in parallel, where we cannot
   allow the system matrix to grow in size during the real assembly process.
 */
@@ -662,11 +698,12 @@ static void assemSparse (const RealArray& V, SparseMatrix& SM, size_t col,
 }
 
 
-void SparseMatrix::initAssembly (const SAM& sam)
+void SparseMatrix::initAssembly (const SAM& sam, bool delayLocking)
 {
   this->resize(sam.neq,sam.neq);
 #ifdef USE_OPENMP
-  if (omp_get_max_threads() < 2) return;
+  if (omp_get_max_threads() < 2)
+    return;
 
   // Dummy assembly loop to avoid matrix resizing during assembly
   std::vector<int> meen;
@@ -674,11 +711,19 @@ void SparseMatrix::initAssembly (const SAM& sam)
     if (sam.getElmEqns(meen,iel,sam.getNoElmEqns(iel)))
       preAssemble(*this,meen,sam.meqn,sam.mpmceq,sam.mmceq);
 
+  std::cout <<"\nPre-computing sparsity pattern for system matrix ("
+	    << nrow <<"x"<< ncol <<"): nNZ = "<< this->size() << std::endl;
+
+  editable = 'V'; // Temporarily lock the sparsity pattern
+  if (delayLocking)
+    return; // The final sparsity pattern is not fixed yet
+
   switch (solver) {
-  case SUPERLU: optimiseSLU(); break;
-  case S_A_M_G: optimiseSAMG(); break;
+  case SUPERLU: this->optimiseSLU(); break;
+  case S_A_M_G: this->optimiseSAMG(); break;
   default: break;
   }
+  // The sparsity pattern is now permanently locked (until resize is invoked)
 #endif
 }
 
@@ -709,6 +754,20 @@ bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam,
 
   std::vector<int> meen;
   if (!sam.getElmEqns(meen,e,eM.rows()))
+    return false;
+
+  assemSparse(eM,*this,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
+  return true;
+}
+
+
+bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam,
+			     SystemVector& B, const std::vector<int>& meen)
+{
+  StdVector* Bptr = dynamic_cast<StdVector*>(&B);
+  if (!Bptr) return false;
+
+  if (eM.rows() < meen.size() || eM.cols() < meen.size())
     return false;
 
   assemSparse(eM,*this,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);

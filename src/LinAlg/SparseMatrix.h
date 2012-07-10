@@ -41,6 +41,8 @@ public:
 
   //! \brief Default constructor creating an empty matrix.
   SparseMatrix(SparseSolver eqSolver = NONE, int nt = 1);
+  //! \brief Constructor creating a \f$m \times n\f$ matrix.
+  SparseMatrix(size_t m, size_t n = 0);
   //! \brief Copy constructor.
   SparseMatrix(const SparseMatrix& B);
   //! \brief The destructor frees the dynamically allocated arrays.
@@ -51,6 +53,11 @@ public:
 
   //! \brief Creates a copy of the system matrix and returns a pointer to it.
   virtual SystemMatrix* copy() const { return new SparseMatrix(*this); }
+
+  //! \brief Locks or unlocks the sparsity pattern.
+  //! \param[in] doLock If \e true, lock pattern, otherwise unlock it
+  //! \return \e true, if the pattern already was locked
+  virtual bool lockPattern(bool doLock);
 
   //! \brief Resizes the matrix to dimension \f$r \times c\f$.
   //! \details Will erase previous content, also if the size is unchanged.
@@ -95,34 +102,46 @@ public:
 
   //! \brief Initializes the element assembly process.
   //! \details Must be called once before the element assembly loop.
-  //! \param[in] sam Auxilliary data describing the FE model topology, etc.
-  virtual void initAssembly(const SAM& sam);
+  //! \param[in] sam Auxiliary data describing the FE model topology, etc.
+  //! \param[in] delayLocking If \e true, do not lock the sparsity pattern yet
+  virtual void initAssembly(const SAM& sam, bool delayLocking);
 
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   virtual void init();
 
-  //! \brief Adds an element stiffness matrix into the system stiffness matrix.
-  //! \param[in] eM  The element stiffness matrix
-  //! \param[in] sam Auxilliary data describing the FE model topology,
+  //! \brief Adds an element matrix into the associated system matrix.
+  //! \param[in] eM  The element matrix
+  //! \param[in] sam Auxiliary data describing the FE model topology,
   //!                nodal DOF status and constraint equations
   //! \param[in] e   Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assemble(const Matrix& eM, const SAM& sam, int e);
-  //! \brief Adds an element stiffness matrix into the system stiffness matrix.
+  //! \brief Adds an element matrix into the associated system matrix.
   //! \details When multi-point constraints are present, contributions from
-  //! these are also added into the system right-hand-side load vector.
-  //! \param[in] eM  The element stiffness matrix
-  //! \param[in] sam Auxilliary data describing the FE model topology,
+  //! these are also added into the system right-hand-side vector.
+  //! \param[in] eM  The element matrix
+  //! \param[in] sam Auxiliary data describing the FE model topology,
   //!                nodal DOF status and constraint equations
-  //! \param     B   The system right-hand-side load vector
+  //! \param     B   The system right-hand-side vector
   //! \param[in] e   Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assemble(const Matrix& eM, const SAM& sam,
 			SystemVector& B, int e);
+  //! \brief Adds an element matrix into the associated system matrix.
+  //! \details When multi-point constraints are present, contributions from
+  //! these are also added into the system right-hand-side vector.
+  //! \param[in] eM   The element matrix
+  //! \param[in] sam  Auxiliary data describing the FE model topology,
+  //!                 nodal DOF status and constraint equations
+  //! \param     B    The system right-hand-side vector
+  //! \param[in] meen Matrix of element equation numbers
+  //! \return \e true on successful assembly, otherwise \e false
+  virtual bool assemble(const Matrix& eM, const SAM& sam,
+			SystemVector& B, const std::vector<int>& meen);
 
   //! \brief Adds a nodal vector into columns of a non-symmetric sparse matrix.
   //! \param[in] V   The nodal vector
-  //! \param[in] sam Auxilliary data describing the FE model topology,
+  //! \param[in] sam Auxiliary data describing the FE model topology,
   //!                nodal DOF status and constraint equations
   //! \param[in] n   Identifier for the node that \a V belongs to
   //! \param[in] col Index of first column which should receive contributions
@@ -134,7 +153,7 @@ public:
 
   //! \brief Adds a scalar value into columns of a non-symmetric sparse matrix.
   //! \param[in] val The value to add for each DOF of the specified node
-  //! \param[in] sam Auxilliary data describing the FE model topology,
+  //! \param[in] sam Auxiliary data describing the FE model topology,
   //!                nodal DOF status and constraint equations
   //! \param[in] n   Identifier for the node that \a val belongs to
   //! \param[in] col Index of first column which should receive contributions
@@ -170,7 +189,7 @@ public:
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side vector on input, solution vector on output
-  //! \param newLHS \e true if the left-hand-side matrix has been updated
+  //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
   virtual bool solve(SystemVector& B, bool newLHS = true);
 
 protected:
@@ -206,7 +225,12 @@ public:
   static bool printSLUstat; //!< Print solution statistics for SuperLU?
 
 private:
-  bool editable; //!< \e true during element assembly, \e false after optimized
+  //! Flag for the editability of the matrix elements:
+  //!  'V' : Values may be edited but the pattern is temporarily locked
+  //!  'P' : Both values and pattern may be edited
+  //! '\0' : Values may be edited but the pattern is permanently locked
+  char editable;
+
   bool factored; //!< \e true when the matrix is factorized
   size_t nrow;   //!< Number of matrix rows
   size_t ncol;   //!< Number of matrix columns

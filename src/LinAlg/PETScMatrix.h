@@ -16,7 +16,8 @@
 #define _PETSC_MATRIX_H
 
 #include "SystemMatrix.h"
-#include "LinSolParams.h"
+
+class LinSolParams;
 
 
 /*!
@@ -87,14 +88,13 @@ public:
   //! \brief Linfinity-norm of vector.
   virtual real Linfnorm() const;
 
-  //! \brief Return PETSc vector.
+  //! \brief Returns the PETSc vector (for assignment).
   Vec& getVector() { return x; }
-
-  //! \brief Return PETSc vector.
+  //! \brief Returns the PETSc vector (for read access).
   const Vec& getVector() const { return x; }
 
 private:
-  Vec x; //!< The actual PETSc vector.
+  Vec x; //!< The actual PETSc vector
 
 #else // dummy implementation when PETSc is not included
   virtual SystemVector* copy() const { return 0; }
@@ -142,6 +142,13 @@ public:
   //! \brief Creates a copy of the system matrix and returns a pointer to it.
   virtual SystemMatrix* copy() const { return new PETScMatrix(*this); }
 
+  //! \brief Initializes the element assembly process.
+  //! \details Must be called once before the element assembly loop.
+  //! The PETSc data structures are initialized and the all symbolic operations
+  //! that are needed before the actual assembly can start are performed.
+  //! \param[in] sam Auxiliary data describing the FE model topology, etc.
+  virtual void initAssembly(const SAM& sam, bool);
+
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   virtual void init();
 
@@ -154,27 +161,20 @@ public:
   //! is completed on each processor and before the linear system is solved.
   bool endAssembly();
 
-  //! \brief Initializes the element assembly process.
-  //! \details Must be called once before the element assembly loop.
-  //! The PETSc data structures are initialized and the all symbolic operations
-  //! that are need before the actual assembly can start are performed.
-  //! \param[in] sam Auxilliary data describing the FE model topology, etc.
-  virtual void initAssembly(const SAM& sam);
-
-  //! \brief Adds an element stiffness matrix into the system stiffness matrix.
-  //! \param[in] eM  The element stiffness matrix
-  //! \param[in] sam Auxilliary data describing the FE model topology,
+  //! \brief Adds an element matrix into the associated system matrix.
+  //! \param[in] eM  The element matrix
+  //! \param[in] sam Auxiliary data describing the FE model topology,
   //!                nodal DOF status and constraint equations
   //! \param[in] e   Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assemble(const Matrix& eM, const SAM& sam, int e);
-  //! \brief Adds an element stiffness matrix into the system stiffness matrix.
+  //! \brief Adds an element matrix into the associated system matrix.
   //! \details When multi-point constraints are present, contributions from
-  //! these are also added into the system right-hand-side load vector.
-  //! \param[in] eM  The element stiffness matrix
-  //! \param[in] sam Auxilliary data describing the FE model topology,
+  //! these are also added into the system right-hand-side vector.
+  //! \param[in] eM  The element matrix
+  //! \param[in] sam Auxiliary data describing the FE model topology,
   //!                nodal DOF status and constraint equations
-  //! \param     B   The system right-hand-side load vector
+  //! \param     B   The system right-hand-side vector
   //! \param[in] e   Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assemble(const Matrix& eM, const SAM& sam,
@@ -185,17 +185,19 @@ public:
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side vector on input, solution vector on output
-  virtual bool solve(SystemVector& B, bool newLHSmatrix = true);
+  //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
+  virtual bool solve(SystemVector& B, bool newLHS = true);
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
-  //! \param b Right-hand-side vector
-  //! \param x Solution vector
-  virtual bool solve(const SystemVector& b, SystemVector& x, bool newLHSmatrix = true);
+  //! \param[in] B Right-hand-side vector
+  //! \param[out] x Solution vector
+  //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
+  virtual bool solve(const SystemVector& B, SystemVector& x, bool newLHS = true);
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
-  //! \param b Right-hand-side vector
+  //! \param b Right-hand-side vector, solution vector on output
   //! \param P Preconditioning matrix (if different than system matrix)
-  //! \param newLHS \e true if the left-hand-side matrix has been updated
+  //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
   virtual bool solve(SystemVector& b, SystemMatrix& P, bool newLHS = true);
 
   //! \brief Solves a generalized symmetric-definite eigenproblem.
@@ -216,30 +218,29 @@ public:
   //! \brief Returns the L-infinity norm of the matrix.
   virtual real Linfnorm() const;
 
-  //! \brief Return PETSc matrix.
+  //! \brief Returns the PETSc matrix (for assignment).
   Mat& getMatrix() { return A; }
-
-  //! \brief Return PETSc matrix.
+  //! \brief Returns the PETSc matrix (for read access).
   const Mat& getMatrix() const { return A; }
 
 private:
-  Mat                 A;         //!< Linear system matrix
-  KSP                 ksp;       //!< Linear solver
+  //! \brief Constructs index set needed for element-by-element preconditioner.
+  bool makeElementIS(const SAM& sam);
+
+  //! \brief Constructs the EBE preconditioner of the given matrix.
+  bool makeEBEpreconditioner(const Mat A, Mat* AeI);
+
+  Mat                 A;         //!< The actual PETSc matrix
+  KSP                 ksp;       //!< Linear equation solver
   MatNullSpace        nsp;       //!< Null-space of linear operator
   const LinSolParams& solParams; //!< Linear solver parameters
   IS*                 elmIS;     //!< Element index sets
   PetscInt            ISsize;    //!< Number of index sets/elements
 
-  //! \brief Constructs index set needed for element-by-element preconditioner
-  bool makeElementIS(const SAM& sam);
-
-  //! \brief Constructs the EBE preconditioner of the given matrix
-  bool makeEBEpreconditioner(const Mat A, Mat* AeI);
-
 #else // dummy implementation when PETSc is not included
   virtual SystemMatrix* copy() const { return 0; }
   virtual void init() {}
-  virtual void initAssembly(const SAM&) {}
+  virtual void initAssembly(const SAM&, bool) {}
   virtual bool assemble(const Matrix&, const SAM&, int) { return false; }
   virtual bool assemble(const Matrix&, const SAM&,
 			SystemVector&, int) { return false; }
