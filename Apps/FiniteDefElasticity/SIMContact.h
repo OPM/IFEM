@@ -23,12 +23,18 @@ class TiXmlElement;
 class RigidBody;
 class ASMbase;
 class IntegrandBase;
+class SystemMatrix;
+class SystemVector;
 class SAM;
 class MPC;
 
 
 /*!
-  \brief Administration of finite deformation contact analysis.
+  \brief Class for administration of finite deformation contact analysis.
+  \details The class incapsulates data and methods for the inclusion of one
+  or more rigid bodies that are in contact with the flexible body.
+  The class has no public members and can only be used to augment functionality
+  to the main FE solution driver class through inheritance.
 */
 
 class SIMContact
@@ -41,6 +47,9 @@ protected:
   SIMContact() : contactMethod(NONE) {}
   //! \brief The destructor deletes the rigid body objects and scalar functions.
   virtual ~SIMContact();
+
+  //! \brief Returns whether contact is included in this simulation or not.
+  bool withContact() const { return contactMethod > NONE && !myBodies.empty(); }
 
   //! \brief Creates a property set for contact condition on an entity set.
   //! \param[in] slaveSet Name of the slave boundary entity set
@@ -66,8 +75,8 @@ private:
   //! \param contacts Array of contact pair definitions
   //! \param[in] master The master rigid body object
   //! \param[in] slave Name of the slave entity set
-  //! \param[in] model The flexible FE model
   //! \param[in] entitys Set of all named topological entities in the model
+  //! \param[in] model The flexible FE model
   bool addContactElms(std::vector<ContactPair>& contacts, RigidBody* master,
 		      const std::string& slave, const TopologySet& entitys,
 		      const std::vector<ASMbase*>& model);
@@ -84,8 +93,8 @@ protected:
 		       const std::vector<ASMbase*>& model,
 		       const TopologySet& entitys);
 
-  //! \brief Adds Lagrangian multipliers as unknowns to the specified patch.
-  //! \param patch The patch to recieve Lagrangian multipliers
+  //! \brief Adds Lagrange multipliers as unknowns to the specified patch.
+  //! \param patch The patch that will recieve the Lagrange multipliers
   //! \param ngnod Total number of nodes in the model
   bool addLagrangeMultipliers(ASMbase* patch, int& ngnod);
 
@@ -103,11 +112,22 @@ protected:
   //! \param[in] displ Current total displacement vector in DOF order
   bool updateContactBodies(const std::vector<double>& displ);
 
+  //! \brief Assembles contributions to the tangent stiffness and residual.
+  //! \param[in] problem The integrand containing the tangent contributions
+  //! \param Ktan System tangent stiffness matrix
+  //! \param Res System residual vector
+  //!
+  //! \details This method assembles direct nodal contributions to the
+  //! system matrices emanating from the Mortar method formulation,
+  //! which cannot be assembled through the normal element assembly loop.
+  bool assembleMortarTangent(const IntegrandBase* problem,
+                             SystemMatrix* Ktan, SystemVector* Res);
+
 private:
   std::vector<RigidBody*>    myBodies; //!< All rigid bodies of the model
   std::vector<ScalarFunc*>   myFuncs;  //!< Functions for prescribed movements
   std::map<MPC*,ScalarFunc*> dMap;     //!< MPC equation to functions map
-  std::map<int,int>          myALp;    //!< Augmented Lagrangian multiplier map
+  std::map<int,int>          myALp;    //!< Augmented Lagrange multiplier map
 
   Method contactMethod; //!< Contact formulation option
 };

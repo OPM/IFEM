@@ -35,7 +35,7 @@ class MortarMats : public GlobalIntegral
 public:
   //! \brief The constructor initializes the Mortar matrices to proper size.
   //! \param[in] _sam Reference to the FE assembly management object to use
-  //! \param[in] nMast Total number of master nodes
+  //! \param[in] nMast Total number of master nodes in the model
   //! \param[in] n Number of space dimensions
   MortarMats(const SAM& _sam, int nMast, usint n);
   //! \brief Empty destructor.
@@ -51,30 +51,38 @@ public:
   //! \param[in] elmId Global number of the element associated with \a *elmObj
   virtual bool assemble(const LocalIntegral* elmObj, int elmId);
 
-  //! \brief Returns whether any nodes currently are in contact or not.
-  bool haveContact() const { return contact; }
-  //! \brief Returns the number of elements connected to a Lagrange multiplier.
-  int getALconnectivity(size_t n) const { return nNoEl[n-1]; }
   //! \brief Returns the weighted area of the given node.
   double weightedArea(size_t n) const { return AA(n); }
   //! \brief Returns the weighted gap for the given node.
   double weightedGap(size_t n) const { return gNA(n); }
   //! \brief Returns an element of the auxiliary Mortar matrix.
-  double phi(size_t i, size_t j) const { return phiA(i,j); }
+  double phi(size_t m, size_t n) const { return phiA(m,n); }
+
+  //! \brief Returns the total number of nodes for the Mortar matrices.
+  size_t getNoNodes() const { return phiA.rows() / nsd; }
+  //! \brief Returns the number of slave nodes for the Mortar matrices.
+  size_t getNoSlaves() const { return phiA.cols(); }
+
+  //! \brief Returns the SAM object associated with these Mortar matrices.
+  const SAM& getSAM() const { return sam; }
 
 private:
-  const SAM&       sam;     //!< Data for FE assembly management
-  SparseMatrix     phiA;    //!< Auxiliary constants
-  Vector           gNA;     //!< Weighted nodal gaps (non-positive if contact)
-  Vector           AA;      //!< Weighted nodal areas (zero if not contact)
-  std::vector<int> nNoEl;   //!< Number of elements contributing to each node
-  usint            nsd;     //!< Number of space dimensions
-  bool             contact; //!< If \e true, at least one node is in contact
+  const SAM&   sam;  //!< Data for FE assembly management
+  SparseMatrix phiA; //!< Matrix of auxiliary constants
+  Vector       gNA;  //!< Weighted nodal gaps
+  Vector       AA;   //!< Weighted nodal areas
+  usint        nsd;  //!< Number of space dimensions
 };
 
 
 /*!
   \brief Class representing the integrand for the weighted gap matrices.
+  \details This class actually have two purposes. First of all it implements
+  the integrand for computation of the global Mortar matrices (stored in the
+  MortarMats class). Secondly, it is a base class for the integrand classes
+  of the two formulations for calculation of residual and tangent contributions,
+  MortarPenaty and MortarAugmentedLag, where the commonality of these two
+  formulations is implemented in this class.
 */
 
 class MortarContact : public IntegrandBase
@@ -116,6 +124,9 @@ public:
   virtual bool evalBou(LocalIntegral& elmInt, const FiniteElement& fe,
                        const Vec3& X, const Vec3& normal) const;
 
+  //! \brief Assembles contributions to the tangent stiffness and residual.
+  virtual bool assemble(SystemMatrix&, SystemVector&) const { return true; }
+
 protected:
   //! \brief Accumulates displacement residual and associated tangent stiffness.
   //! \param R Residual force vector
@@ -125,25 +136,34 @@ protected:
   //! \param[in] Ns Interpolation functions of the slave surface DOFs
   //! \param[in] X Updated Cartesian coordinates of current integration point
   //! \param[in] lambda Weighted nodal gap or Lagrange multiplier values
-  //! \param[in] phi Auxiliary mortar matrix for current element
-  //! \param[in] detJxW Jacobian determinant times integration weight
   //! \param[in] epsJxW Scaled Jacobian determinant times integration weight
   void accResAndTangent(Vector& R, Matrix& Kt,
 		        Vec3& mNorm, Vector& Nm,
 		        const Vector& Ns, const Vec3& X,
-		        const Vector& lambda, const Matrix& phi,
-		        double detJxW, double epsJxW = 0.0) const;
+		        const Vector& lambda, double epsJxW) const;
+
+  //! \brief Assembles contributions to the tangent stiffness and residual.
+  //! \param Ktan System tangent stiffness matrix
+  //! \param Res System residual vector
+  //! \param[in] mortar Mortar matrices giving the tangent contributions
+  //!
+  //! \details This method assembles direct nodal contributions to the
+  //! system matrices emanating from the Mortar method formulation,
+  //! which cannot be assembled through the normal element assembly loop.
+  bool assResAndTangent(SystemMatrix& Ktan, SystemVector& Res,
+			const MortarMats& mortar) const;
 
 private:
   GlobalIntegral* myInt; //!< Pointer to resulting global integrated quantity
 
 protected:
-  RigidBody* master; //!< The rigid body to be in contact
+  RigidBody*        master;      //!< The rigid body to be in contact
+  std::vector<bool> activeSlave; //!< Array of slave node status flags
 };
 
 
 /*!
-  \brief Class representing the integrand of the Penalty-based Mortar contact.
+  \brief Class representing the integrand of the Penalty-based contact.
 */
 
 class MortarPenalty : public MortarContact
@@ -157,8 +177,15 @@ public:
   //! \brief Empty destructor.
   virtual ~MortarPenalty() {}
 
+  //! \brief Initializes the integrand for a new integration loop.
+  //! \param[in] prm Nonlinear solution algorithm parameters
+  virtual void initIntegration(const TimeDomain& prm, const Vector&);
+
   //! \brief Returns whether this integrand has explicit boundary contributions.
-  virtual bool hasBoundaryTerms() const { return mortar.haveContact(); }
+  virtual bool hasBoundaryTerms() const;
+
+  //! \brief Initializes the global node number mapping.
+  virtual void initNodeMap(const std::vector<int>& nodes) { nodMap = nodes; }
 
   //! \brief Returns a local integral container for the given element.
   //! \param[in] nen Number of nodes on element
@@ -180,8 +207,14 @@ public:
   virtual bool evalBou(LocalIntegral& elmInt, const FiniteElement& fe,
                        const Vec3& X, const Vec3& normal) const;
 
+  //! \brief Assembles contributions to the tangent stiffness and residual.
+  //! \param Ktan System tangent stiffness matrix
+  //! \param Res System residual vector
+  virtual bool assemble(SystemMatrix& Ktan, SystemVector& Res) const;
+
 private:
   const MortarMats& mortar; //!< Pre-integrated system-level Mortar matrices
+  std::vector<int>  nodMap; //!< Nodal map from patch-level to global numbering
 };
 
 
@@ -196,14 +229,11 @@ class MortarAugmentedLag : public MortarContact
   {
   public:
     //! \brief Default constructor.
-    ALElmMats(size_t nedof);
+    ALElmMats(size_t nedof = 0);
     //! \brief Empty destructor.
     virtual ~ALElmMats() {}
     //! \brief Returns the element-level Newton matrix.
     virtual const Matrix& getNewtonMatrix() const;
-    //! \brief Returns the element-level right-hand-side vector
-    //! associated with the Newton matrix.
-    virtual const Vector& getRHSVector() const;
 
     std::vector<size_t> iLag; //!< Indices for the active Lagrange multipliers
   };
@@ -212,10 +242,20 @@ public:
   //! \brief The contructor initializes the contact body of this integrand.
   //! \param[in] mst Pointer to the rigid body object to be in contact
   //! \param[in] mats Pre-integrated Mortar matrices associated with \a mst.
+  //! \param[in] alMap Nodal map for the Lagrange multipliers
   //! \param[in] nsd Number of space dimensions
-  MortarAugmentedLag(RigidBody* mst, const MortarMats& mats, usint nsd);
+  MortarAugmentedLag(RigidBody* mst, const MortarMats& mats,
+                     const std::map<int,int>& alMap, usint nsd);
   //! \brief Empty destructor.
   virtual ~MortarAugmentedLag() {}
+
+  //! \brief Initializes the integrand for a new integration loop.
+  //! \param[in] prm Nonlinear solution algorithm parameters
+  //! \param[in] psol Global primary solution vector in DOF-order
+  virtual void initIntegration(const TimeDomain& prm, const Vector& psol);
+
+  //! \brief Initializes the global node number mapping.
+  virtual void initNodeMap(const std::vector<int>& nodes) { nodMap = nodes; }
 
   //! \brief Returns a local integral container for the given element.
   virtual LocalIntegral* getLocalIntegral(size_t, size_t, bool) const;
@@ -236,11 +276,16 @@ public:
   virtual bool evalBou(LocalIntegral& elmInt, const FiniteElement& fe,
                        const Vec3& X, const Vec3& normal) const;
 
-private:
-  const MortarMats& mortar; //!< Pre-integrated system-level Mortar matrices
+  //! \brief Assembles contributions to the tangent stiffness and residual.
+  //! \param Ktan System tangent stiffness matrix
+  //! \param Res System residual vector
+  virtual bool assemble(SystemMatrix& Ktan, SystemVector& Res) const;
 
-  Matrix phiA; //!< Auxiliary constants
-  Vector LNA;  //!< Lagrange multiplier values
+private:
+  const MortarMats&        mortar; //!< Pre-integrated Mortar matrices
+  const std::map<int,int>& ALmap;  //!< Nodal map for the Lagrange multipliers
+  std::vector<int>         nodMap; //!< Nodal map from patch to global numbering
+  Vector                   lambda; //!< Lagrange multiplier values
 };
 
 #endif

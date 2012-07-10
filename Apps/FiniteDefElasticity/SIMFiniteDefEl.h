@@ -57,6 +57,9 @@ protected:
   //! \param ngnod Total number of nodal points in this model
   virtual void preprocessBeforeAsmInit(int& ngnod);
 
+  //! \brief Assembles problem-dependent discrete terms, if any.
+  virtual bool assembleDiscreteTerms(const IntegrandBase* problem);
+
 public:
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time
@@ -110,6 +113,9 @@ protected:
   //! \brief Specialized preprocessing performed before assembly initialization.
   //! \param ngnod Total number of nodal points in this model
   virtual void preprocessBeforeAsmInit(int& ngnod);
+
+  //! \brief Assembles problem-dependent discrete terms, if any.
+  virtual bool assembleDiscreteTerms(const IntegrandBase* problem);
 
 public:
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.

@@ -17,6 +17,7 @@
 #include "NeoHookeMaterial.h"
 #include "PlasticMaterial.h"
 #include "Elasticity.h"
+#include "AlgEqSystem.h"
 #include "Utilities.h"
 #include "Property.h"
 #include "tinyxml.h"
@@ -219,7 +220,13 @@ bool SIMFiniteDefEl2D::preprocess (const std::vector<int>& ignored, bool fixDup)
     return false;
 
   myInts.insert(std::make_pair(0,myProblem));
-  return this->preprocessContact(myInts,*mySam,this->getNoSpaceDim());
+  if (this->withContact())
+  {
+    opt.num_threads_SLU *= -1; // do not lock the sparsity pattern
+    return this->preprocessContact(myInts,*mySam,this->getNoSpaceDim());
+  }
+
+  return true;
 }
 
 
@@ -230,12 +237,6 @@ bool SIMFiniteDefEl2D::createContactSet (const std::string& slaveSet, int& code)
 
   this->setPropertyType(code,Property::NEUMANN_GENERIC);
   return true;
-}
-
-
-bool SIMFiniteDefEl2D::updateConfiguration (const Vector& solution)
-{
-  return this->updateContactBodies(solution);
 }
 
 
@@ -252,6 +253,20 @@ bool SIMFiniteDefEl2D::updateDirichlet (double time, const Vector* prevSol)
     this->SIMContact::updateDirichlet(time);
 
   return this->SIMbase::updateDirichlet(time,prevSol);
+}
+
+
+bool SIMFiniteDefEl2D::updateConfiguration (const Vector& solution)
+{
+  return this->updateContactBodies(solution);
+}
+
+
+bool SIMFiniteDefEl2D::assembleDiscreteTerms (const IntegrandBase* problem)
+{
+  return this->assembleMortarTangent(problem,
+				     myEqSys->getMatrix(),
+				     myEqSys->getVector());
 }
 
 
@@ -454,7 +469,13 @@ bool SIMFiniteDefEl3D::preprocess (const std::vector<int>& ignored, bool fixDup)
     return false;
 
   myInts.insert(std::make_pair(0,myProblem));
-  return this->preprocessContact(myInts,*mySam,this->getNoSpaceDim());
+  if (this->withContact())
+  {
+    opt.num_threads_SLU *= -1; // do not lock the sparsity pattern
+    return this->preprocessContact(myInts,*mySam,this->getNoSpaceDim());
+  }
+
+  return true;
 }
 
 
@@ -487,4 +508,12 @@ bool SIMFiniteDefEl3D::updateDirichlet (double time, const Vector* prevSol)
 bool SIMFiniteDefEl3D::updateConfiguration (const Vector& solution)
 {
   return this->updateContactBodies(solution);
+}
+
+
+bool SIMFiniteDefEl3D::assembleDiscreteTerms (const IntegrandBase* problem)
+{
+  return this->assembleMortarTangent(problem,
+				     myEqSys->getMatrix(),
+				     myEqSys->getVector());
 }

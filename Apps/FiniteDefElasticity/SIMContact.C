@@ -71,6 +71,15 @@ bool SIMContact::addContactElms (std::vector<ContactPair>& contacts,
 }
 
 
+/*!
+  When we use the Augmented Lagrange formulation, a set of Lagrange multipliers
+  is added as DOFs in the FE model. One multiplier (representing the contact
+  force) is added for each FE node on the slave boundary. The boundary nodes
+  are identified through a positive node number in the element connectivity of
+  the "extra-ordinary" elements of the patch (the non-boundary nodes have a
+  negative number for these elements).
+*/
+
 bool SIMContact::addLagrangeMultipliers (ASMbase* patch, int& ngnod)
 {
   if (contactMethod != AUGMENTED_LAGRANGE) return true;
@@ -78,6 +87,7 @@ bool SIMContact::addLagrangeMultipliers (ASMbase* patch, int& ngnod)
   size_t nXelm = patch->getNoXelms();
   if (nXelm == 0) return true;
 
+  // Loop over the extra-ordinary (contact) elements in the patch
   size_t nno = patch->getNoNodes();
   size_t iel = patch->getNoElms(true) - nXelm;
   IntMat::const_iterator eit = patch->begin_elm() + iel;
@@ -87,6 +97,7 @@ bool SIMContact::addLagrangeMultipliers (ASMbase* patch, int& ngnod)
     for (IntVec::const_iterator nit = eit->begin(); nit != eit->end(); nit++)
       if (*nit >= 0 && patch->getNodeType(*nit+1) == 'D')
       {
+        // This is a boundary node, assign a Lagrange multiplier to it
         int node = patch->getNodeID(*nit+1);
         std::map<int,int>::const_iterator it = myALp.find(node);
         if (it == myALp.end())
@@ -119,6 +130,7 @@ bool SIMContact::parseContactTag (const TiXmlElement* elem,
     return false;
   }
 
+  // Determine the contact formulation to use
   std::string formulation;
   utl::getAttribute(elem,"formulation",formulation,true);
   if (formulation == "penalty")
@@ -133,6 +145,7 @@ bool SIMContact::parseContactTag (const TiXmlElement* elem,
   const TiXmlElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
   {
+    // Define a new rigid master body
     utl::getAttribute(child,"R",R);
     if (!strcasecmp(child->Value(),"sphere"))
       body = new RigidSphere(R);
@@ -153,11 +166,13 @@ bool SIMContact::parseContactTag (const TiXmlElement* elem,
       const TiXmlNode* cval = c->FirstChild();
       if (!strcasecmp(c->Value(),"point") && cval && p < nMast)
       {
+	// Coordinates of the master nodes
 	std::istringstream value(cval->Value());
 	value >> points[p++];
       }
       else if (!strcasecmp(c->Value(),"slave"))
       {
+	// Identification of the slave boundary on the flexible body
 	utl::getAttribute(c,"set",slaveSet);
 	if (!this->createContactSet(slaveSet,body->code))
 	  return false;
@@ -167,6 +182,7 @@ bool SIMContact::parseContactTag (const TiXmlElement* elem,
       }
       else if (!strcasecmp(c->Value(),"dirichlet"))
       {
+	// Define the Dirichlet properties of the rigid body
 	int comp = 0;
 	std::string type;
 	utl::getAttribute(c,"comp",comp);
@@ -185,15 +201,17 @@ bool SIMContact::parseContactTag (const TiXmlElement* elem,
 	else
 	  continue;
 
+	// Map the Dirichlet properties onto the master nodes
 	std::vector<ContactPair>::iterator sit = cset.begin();
 	while ((sit = std::find_if(sit,cset.end(),hasBody(body))) != cset.end())
 	{
+	  int iMast = sit->second->getNoNodes() - nMast;
 	  for (size_t i = 1; i <= nMast; i++)
 	    if (type == "fixed")
-	      sit->second->fix(sit->second->getNoNodes()+i-nMast,comp);
+	      sit->second->fix(++iMast,comp);
 	    else
 	    {
-	      sit->second->prescribe(sit->second->getNoNodes()+i-nMast,comp,-1);
+	      sit->second->prescribe(++iMast,comp,-1);
 	      MPC* spc = sit->second->findMPC(body->getNodeID(i),comp);
 	      dMap[spc] = myFuncs.back();
 	    }
@@ -202,6 +220,7 @@ bool SIMContact::parseContactTag (const TiXmlElement* elem,
       }
       else
       {
+	// Get the penalty parameter
 	const char* value = NULL;
 	if ((value = utl::getValue(c,"eps")))
 	  body->eps = atof(value);
@@ -227,18 +246,25 @@ bool SIMContact::preprocessContact (IntegrandMap& itgs,
     nMaster += (*it)->getNoNodes();
 
   // Establish the integrands of the Mortar-based contact analysis
+  IntegrandBase* contactInt = 0;
   for (it = myBodies.begin(); it != myBodies.end(); it++)
     if ((*it)->eps > 0.0)
     {
-      int code = (*it)->code;
       MortarMats* mats = new MortarMats(sam,nMaster,nsd);
-      itgs.insert(std::make_pair(code,new MortarContact(*it,mats,nsd)));
       if (contactMethod == PENALTY)
-	itgs.insert(std::make_pair(code,new MortarPenalty(*it,*mats,nsd)));
+	contactInt = new MortarPenalty(*it,*mats,nsd);
       else if (contactMethod == AUGMENTED_LAGRANGE)
-	itgs.insert(std::make_pair(code,new MortarAugmentedLag(*it,*mats,nsd)));
+	contactInt = new MortarAugmentedLag(*it,*mats,myALp,nsd);
       else
+      {
+	delete mats;
 	return false;
+      }
+
+      // Integrand for the Mortar matrices
+      itgs.insert(std::make_pair((*it)->code,new MortarContact(*it,mats,nsd)));
+      // Integrand for the residual and tangent contributions
+      itgs.insert(std::make_pair((*it)->code,contactInt));
     }
 
   return true;
@@ -261,4 +287,22 @@ bool SIMContact::updateContactBodies (const std::vector<double>& displ)
       return false;
 
   return true;
+}
+
+
+bool SIMContact::assembleMortarTangent (const IntegrandBase* problem,
+					SystemMatrix* Ktan, SystemVector* Res)
+{
+  const MortarContact* contp = dynamic_cast<const MortarContact*>(problem);
+  if (!contp || !Ktan || !Res) return true; // silently ignore
+
+#if INT_DEBUG > 2
+  // Must assemble into a temporary matrix to see the explicit contributions
+  SparseMatrix A(Ktan->dim());
+  StdVector B(Res->size());
+  if (contp->assemble(A,B) && A.size() > 0)
+    std::cout <<"SIMContact::assembleMortarTangent: Kmain "<< A;
+#endif
+
+  return contp->assemble(*Ktan,*Res);
 }
