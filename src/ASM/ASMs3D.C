@@ -1556,10 +1556,6 @@ const Vector& ASMs3D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
 }
 
 
-/*!
-  \brief Computes the element corner coordinates.
-*/
-
 void ASMs3D::getElementCorners (int i1, int i2, int i3,
                                 std::vector<Vec3>& XC) const
 {
@@ -1681,12 +1677,6 @@ bool ASMs3D::integrate (Integrand& integrand,
   const int nel1 = n1 - p1 + 1;
   const int nel2 = n2 - p2 + 1;
 
-#ifdef USE_OPENMP
-  if (integrand.getIntegrandType() && Integrand::ELEMENT_CORNERS) {
-    std::cerr << "WARNING: Disabling multithreading due to GoTools limitations (ELEMENT_CORNERS)" << std::endl;
-    omp_set_num_threads(1);
-  }
-#endif
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -1724,9 +1714,7 @@ bool ASMs3D::integrate (Integrand& integrand,
         }
 
         if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-        {
-          this->getElementCorners(i1-1,i2-1, i3-1, fe.XC);
-        }
+          this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
 
         if (integrand.getIntegrandType() & Integrand::G_MATRIX)
         {
@@ -1981,13 +1969,6 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
                 << MNPC.size() - doXelms << std::endl;
       return false;
     }
-
-#ifdef USE_OPENMP
-  if (integrand.getIntegrandType() && Integrand::ELEMENT_CORNERS) {
-    std::cerr << "WARNING: Disabling multithreading due to GoTools limitations (ELEMENT_SIZE/ELEMENT_CORNERS)" << std::endl;
-    omp_set_num_threads(1);
-  }
-#endif
 
 
   // === Assembly loop over all elements on the patch face =====================
@@ -2653,8 +2634,17 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-void ASMs3D::generateThreadGroups (bool silence)
+void ASMs3D::generateThreadGroups (const Integrand& integrand, bool silence)
 {
+#ifdef USE_OPENMP
+  if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+  {
+    omp_set_num_threads(1);
+    std::cout <<"WARNING: Disabling multi-threading due to GoTools limitations"
+	      <<" (ELEMENT_CORNERS)."<< std::endl;
+  }
+#endif
+
   const int p1 = svol->order(0) - 1;
   const int p2 = svol->order(1) - 1;
   const int p3 = svol->order(2) - 1;

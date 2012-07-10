@@ -883,7 +883,8 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
   // Generate element groups for multi-threading
   bool silence = msgLevel < 1 || (msgLevel < 2 && myModel.size() > 1);
   for (mit = myModel.begin(); mit != myModel.end(); mit++)
-    (*mit)->generateThreadGroups(silence);
+    (*mit)->generateThreadGroups(*myProblem,silence);
+
   for (q = myProps.begin(); q != myProps.end(); q++)
     if (q->pcode == Property::NEUMANN || q->pcode == Property::NEUMANN_GENERIC)
       if (abs(q->ldim)+1 == myModel[q->patch-1]->getNoParamDim())

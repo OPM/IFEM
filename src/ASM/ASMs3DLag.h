@@ -156,7 +156,7 @@ public:
 
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] silence If \e true, suppress threading group outprint
-  virtual void generateThreadGroups(bool silence);
+  virtual void generateThreadGroups(const Integrand&, bool silence);
   //! \brief Generates element groups for multi-threading of boundary integrals.
   //! \param[in] lIndex Local index [1,6] of the boundary face
   //! \param[in] silence If \e true, suppress threading group outprint

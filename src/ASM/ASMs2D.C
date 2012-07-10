@@ -36,6 +36,7 @@
 #include <omp.h>
 #endif
 
+
 ASMs2D::ASMs2D (unsigned char n_s, unsigned char n_f)
   : ASMstruct(2,n_s,n_f), surf(NULL), nodeInd(myNodeInd)
 {
@@ -159,21 +160,22 @@ bool ASMs2D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
   else if (!surf || shareFE)
     return false;
 
-  const int p1 = surf->order_u();
-  const int p2 = surf->order_v();
-  const int n1 = surf->numCoefs_u();
-  const int n2 = surf->numCoefs_v();
-
-  nXelm = (n1-p1+1)*(n2-p2+1);
-  myMNPC.resize(2*nXelm);
-  myMLGE.resize(2*nXelm,0);
-
   for (size_t i = 0; i < nXn; i++)
   {
     if (nodes.size() == i)
       nodes.push_back(++gNod);
     myMLGN.push_back(nodes[i]);
   }
+
+  const int n1 = surf->numCoefs_u();
+  const int n2 = surf->numCoefs_v();
+
+  const int p1 = surf->order_u();
+  const int p2 = surf->order_v();
+
+  nXelm = (n1-p1+1)*(n2-p2+1);
+  myMNPC.resize(2*nXelm);
+  myMLGE.resize(2*nXelm,0);
 
   int iel = 0;
   bool skipMe = false;
@@ -236,7 +238,7 @@ size_t ASMs2D::getNodeIndex (int globalNum, bool noAddedNodes) const
   if (it == MLGN.end()) return 0;
 
   size_t inod = 1 + (it-MLGN.begin());
-  if (noAddedNodes && !xnMap.empty())
+  if (noAddedNodes && !xnMap.empty() && inod > nodeInd.size())
   {
     std::map<size_t,size_t>::const_iterator it = xnMap.find(inod);
     if (it != xnMap.end()) return it->second;
@@ -1362,12 +1364,6 @@ bool ASMs2D::integrate (Integrand& integrand,
   const int n1 = surf->numCoefs_u();
   const int nel1 = n1 - p1 + 1;
 
-#ifdef USE_OPENMP
-  if (integrand.getIntegrandType() && Integrand::ELEMENT_CORNERS) {
-    std::cerr << "WARNING: Disabling multithreading due to GoTools limitations (ELEMENT_CORNERS)" << std::endl;
-    omp_set_num_threads(1);
-  }
-#endif
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -1404,7 +1400,7 @@ bool ASMs2D::integrate (Integrand& integrand,
         }
 
         if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-          this->getElementCorners(i1-1,i2-1, fe.XC);
+          this->getElementCorners(i1-1,i2-1,fe.XC);
 
         if (integrand.getIntegrandType() & Integrand::G_MATRIX)
         {
@@ -2058,8 +2054,17 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-void ASMs2D::generateThreadGroups (bool silence)
+void ASMs2D::generateThreadGroups (const Integrand& integrand, bool silence)
 {
+#ifdef USE_OPENMP
+  if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+  {
+    omp_set_num_threads(1);
+    std::cout <<"WARNING: Disabling multi-threading due to GoTools limitations"
+	      <<" (ELEMENT_CORNERS)."<< std::endl;
+  }
+#endif
+
   const int p1 = surf->order_u() - 1;
   const int p2 = surf->order_v() - 1;
   const int n1 = surf->numCoefs_u();

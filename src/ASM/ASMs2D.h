@@ -424,10 +424,11 @@ protected:
   //! \param[in] iel Element index
   //! \param[in] dir Local index of the boundary edge
   double getParametricLength(int iel, int dir) const;
-  //! \brief Returns the characteristic element size in physical coordinates.
+
+  //! \brief Computes the element corner coordinates.
   //! \param[in] i1 Parameter index in u-direction
   //! \param[in] i2 Parameter index in v-direction
-  //! \param[in] XC On return, element corner coordinates are stored there
+  //! \param[out] XC Coordinates of the element corners
   void getElementCorners(int i1, int i2, std::vector<Vec3>& XC) const;
 
   //! \brief Returns the number of nodal points in each parameter direction.
@@ -437,8 +438,9 @@ protected:
   virtual bool getSize(int& n1, int& n2, int basis = 0) const;
 
   //! \brief Generates element groups for multi-threading of interior integrals.
+  //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] silence If \e true, suppress threading group outprint
-  virtual void generateThreadGroups(bool silence);
+  virtual void generateThreadGroups(const Integrand& integrand, bool silence);
 
   //! \brief Establishes matrices with basis functions and 1st derivatives.
   static void extractBasis(const Go::BasisDerivsSf& spline,

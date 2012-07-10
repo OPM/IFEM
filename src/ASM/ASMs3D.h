@@ -488,11 +488,11 @@ protected:
   //! \param[in] dir Local face index of the boundary face
   double getParametricArea(int iel, int dir) const;
 
-  //! \brief Returns the characteristic element size in physical coordinates.
+  //! \brief Computes the element corner coordinates.
   //! \param[in] i1 Parameter index in u-direction
   //! \param[in] i2 Parameter index in v-direction
   //! \param[in] i3 Parameter index in w-direction
-  //! \param[in] XC Element corner coordinates are stored there on return
+  //! \param[out] XC Coordinates of the element corners
   void getElementCorners(int i1, int i2, int i3, std::vector<Vec3>& XC) const;
 
   //! \brief Returns the number of nodal points in each parameter direction.
@@ -503,8 +503,9 @@ protected:
   virtual bool getSize(int& n1, int& n2, int& n3, int basis = 0) const;
 
   //! \brief Generates element groups for multi-threading of interior integrals.
+  //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] silence If \e true, suppress threading group outprint
-  virtual void generateThreadGroups(bool silence);
+  virtual void generateThreadGroups(const Integrand& integrand, bool silence);
   //! \brief Generates element groups for multi-threading of boundary integrals.
   //! \param[in] lIndex Local index [1,6] of the boundary face
   //! \param[in] silence If \e true, suppress threading group outprint

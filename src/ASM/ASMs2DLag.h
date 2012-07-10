@@ -146,7 +146,8 @@ public:
   virtual bool getSize(int& n1, int& n2, int = 0) const;
 
   //! \brief Generates element groups for multi-threading of interior integrals.
-  virtual void generateThreadGroups(bool silence);
+  //! \param[in] silence If \e true, suppress threading group outprint
+  virtual void generateThreadGroups(const Integrand&, bool silence);
 
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;

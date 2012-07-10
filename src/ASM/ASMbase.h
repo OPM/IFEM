@@ -286,7 +286,7 @@ public:
   virtual void getNoBouPoints(size_t& nPt, char ldim, char lindx) = 0;
 
   //! \brief Generates element groups for multi-threading of interior integrals.
-  virtual void generateThreadGroups(bool = false) {}
+  virtual void generateThreadGroups(const Integrand&, bool = false) {}
   //! \brief Generates element groups for multi-threading of boundary integrals.
   virtual void generateThreadGroups(char, bool = false) {}
 
