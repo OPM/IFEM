@@ -468,8 +468,12 @@ namespace utl
   //! \brief Creates a time function by parsing a character string.
   const ScalarFunc* parseTimeFunc(const char* type, char* cline = NULL,
 				  real C = real(1));
+
   //! \brief Creates a scalar-valued function by parsing a character string.
   const RealFunc* parseRealFunc(char* cline, real A = real(1));
+
+  //! \brief Creates a time function by parsing a character string.
+  ScalarFunc* parseTimeFunc(const char* func, const std::string& type);
 
   //! \brief Creates a scalar-valued function by parsing a character string.
   //! \param[in] func Character string to parse function definition from

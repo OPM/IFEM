@@ -360,6 +360,25 @@ const ScalarFunc* utl::parseTimeFunc (const char* type, char* cline, real C)
 }
 
 
+ScalarFunc* utl::parseTimeFunc (const char* func, const std::string& type)
+{
+  const ScalarFunc* sf = NULL;
+  if (type == "linear")
+    sf = parseTimeFunc(func);
+  else
+  {
+    if (type == "expression")
+      std::cout <<"(expression) ";
+    char* cstr = func ? strdup(func) : NULL;
+    sf = parseTimeFunc(type.c_str(),cstr);
+    if (cstr) free(cstr);
+  }
+  std::cout << std::endl;
+
+  return const_cast<ScalarFunc*>(sf);
+}
+
+
 RealFunc* utl::parseRealFunc (const std::string& func, const std::string& type)
 {
   if (func.empty()) return NULL;

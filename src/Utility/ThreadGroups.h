@@ -32,6 +32,8 @@ public:
   //! \brief Calculates a 2D thread group partitioning based on strips.
   //! \param[in] el1 Flags non-zero knot spans in first parameter direction
   //! \param[in] el2 Flags non-zero knot spans in second parameter direction
+  //! \param[in] p1 Polynomial degree in first parameter direction
+  //! \param[in] p2 Polynomial degree in second parameter direction
   void calcGroups(const BoolVec& el1, const BoolVec& el2,
                   int p1, int p2);
   //! \brief Calculates a 2D thread group partitioning based on strips.
@@ -44,6 +46,9 @@ public:
   //! \param[in] el1 Flags non-zero knot spans in first parameter direction
   //! \param[in] el2 Flags non-zero knot spans in second parameter direction
   //! \param[in] el3 Flags non-zero knot spans in third parameter direction
+  //! \param[in] p1 Polynomial degree in first parameter direction
+  //! \param[in] p2 Polynomial degree in second parameter direction
+  //! \param[in] p3 Polynomial degree in third parameter direction
   void calcGroups(const BoolVec& el1, const BoolVec& el2, const BoolVec& el3,
                   int p1, int p2, int p3);
   //! \brief Calculates a 3D thread group partitioning based on strips.
@@ -63,7 +68,9 @@ public:
   const IntMat& operator[](int i) const { return tg[i]; }
 
 protected:
+  //! \brief Calculates the parameter direction of the treading strips in 2D.
   static int getStripDirection(int nel1, int nel2, int parts);
+  //! \brief Calculates the parameter direction of the treading strips in 3D.
   static int getStripDirection(int nel1, int nel2, int nel3, int parts);
 
 private:
