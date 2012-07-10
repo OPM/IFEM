@@ -188,12 +188,7 @@ bool SIMLinElKL::parse (const TiXmlElement* elem)
     }
 
     else if (!strcasecmp(child->Value(),"isotropic")) {
-      std::string set;
-      utl::getAttribute(child,"set",set);
-      int code = this->getUniquePropertyCode(set,0);
-      if (code == 0) utl::getAttribute(child,"code",code);
-      if (code > 0)
-        this->setPropertyType(code,Property::MATERIAL,mVec.size());
+      int code = this->parseMaterialSet(child,mVec.size());
 
       double E = 1000.0, nu = 0.3, rho = 1.0, thk = 0.1;
       utl::getAttribute(child,"E",E);

@@ -313,12 +313,7 @@ bool SIMLinEl2D::parse (const TiXmlElement* elem)
     }
 
     else if (!strcasecmp(child->Value(),"isotropic")) {
-      std::string set;
-      utl::getAttribute(child,"set",set);
-      int code = this->getUniquePropertyCode(set,0);
-      if (code == 0) utl::getAttribute(child,"code",code);
-      if (code > 0)
-        this->setPropertyType(code,Property::MATERIAL,mVec.size());
+      int code = this->parseMaterialSet(child,mVec.size());
 
       double E = 1000.0, nu = 0.3, rho = 1.0;
       utl::getAttribute(child,"E",E);
@@ -533,17 +528,22 @@ bool SIMLinEl2D::initNeumann (size_t propInd)
 }
 
 
-std::ostream& SIMLinEl2D::printNorms(const Vectors& norms, std::ostream& os)
+std::ostream& SIMLinEl2D::printNorms (const Vectors& norms, std::ostream& os)
 {
-  NormBase* norm = getNormIntegrand();
-  os << "Energy norm " << norm->getName(1,1) << ": " << norms[0](1) << std::endl
-     << "External energy " << norm->getName(1,2) << ": " << norms[0](2) << std::endl;
-  if (haveAnaSol())
-    os << "Exact norm " << norm->getName(1,3) << ": " << norms[0](3) << std::endl
-       << "Exact error " << norm->getName(1,4) << ": " << norms[0](4) << std::endl
-       << "Exact relative error (%) : "<< 100.0*norms[0](4)/norms[0](3) << std::endl;
+  if (norms.empty()) return os;
+
+  NormBase* norm = this->getNormIntegrand();
+  const Vector& gnorm = norms.front();
+
+  os <<"Energy norm "<< norm->getName(1,1) <<": "<< gnorm(1)
+     <<"\nExternal energy "<< norm->getName(1,2) <<": "<< gnorm(2);
+
+  if (mySol)
+    os <<"\nExact norm "<< norm->getName(1,3) <<": "<< gnorm(3)
+       <<"\nExact error "<< norm->getName(1,4) <<": "<< gnorm(4)
+       <<"\nExact relative error (%) : "<< 100.0*gnorm(4)/gnorm(3);
 
   delete norm;
 
-  return os;
+  return os << std::endl;
 }

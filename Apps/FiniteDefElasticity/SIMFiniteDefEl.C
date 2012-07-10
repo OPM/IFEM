@@ -135,9 +135,9 @@ bool SIMFiniteDefEl2D::parse (const TiXmlElement* elem)
 
     else if (!strcasecmp(child->Value(),"isotropic"))
     {
-      int code = 0, matVer = -1;
-      if (utl::getAttribute(child,"code",code) && code > 0)
-        setPropertyType(code,Property::MATERIAL,mVec.size());
+      int code = this->parseMaterialSet(child,mVec.size());
+
+      int matVer = -1;
       double E = 1000.0, nu = 0.3, rho = 1.0;
       utl::getAttribute(child,"K",E);
       utl::getAttribute(child,"E",E);
@@ -159,9 +159,7 @@ bool SIMFiniteDefEl2D::parse (const TiXmlElement* elem)
 
     else if (!strcasecmp(child->Value(),"plastic"))
     {
-      int code = 0;
-      if (utl::getAttribute(child,"code",code) && code > 0)
-        setPropertyType(code,Property::MATERIAL,mVec.size());
+      int code = this->parseMaterialSet(child,mVec.size());
 
       RealArray pMAT;
       if (child->FirstChild())
@@ -385,9 +383,9 @@ bool SIMFiniteDefEl3D::parse (const TiXmlElement* elem)
 
     else if (!strcasecmp(child->Value(),"isotropic"))
     {
-      int code = 0, matVer = -1;
-      if (utl::getAttribute(child,"code",code) && code > 0)
-        setPropertyType(code,Property::MATERIAL,mVec.size());
+      int code = this->parseMaterialSet(child,mVec.size());
+
+      int matVer = -1;
       double E = 1000.0, nu = 0.3, rho = 1.0;
       utl::getAttribute(child,"K",E);
       utl::getAttribute(child,"E",E);
@@ -409,9 +407,7 @@ bool SIMFiniteDefEl3D::parse (const TiXmlElement* elem)
 
     else if (!strcasecmp(child->Value(),"plastic"))
     {
-      int code = 0;
-      if (utl::getAttribute(child,"code",code) && code > 0)
-        setPropertyType(code,Property::MATERIAL,mVec.size());
+      int code = this->parseMaterialSet(child,mVec.size());
 
       RealArray pMAT;
       if (child->FirstChild())

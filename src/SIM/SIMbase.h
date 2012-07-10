@@ -110,6 +110,12 @@ protected:
   //! \brief Returns a list of prioritized XML-tags.
   virtual const char** getPrioritizedTags() const;
 
+  //! \brief Parses the "set" attribute of a material XML-tag.
+  //! \param[in] elem The XML element extract the set name from
+  //! \param[in] mindex Index into problem-dependent material property container
+  //! \return The property code to be associated with the material
+  int parseMaterialSet(const TiXmlElement* elem, int mindex);
+
 private:
   //! \brief Parses a subelement of the \a geometry XML-tag.
   bool parseGeometryTag(const TiXmlElement* elem);
@@ -330,11 +336,9 @@ public:
   bool solutionNorms(const Vectors& psol, Matrix& eNorm, Vectors& gNorm)
   { return this->solutionNorms(TimeDomain(),psol,Vectors(),gNorm,&eNorm); }
 
-  //! \brief Print solution norms
-  virtual std::ostream& printNorms(const Vectors& norms, std::ostream& os)
-  {
-    return os;
-  }
+  //! \brief Prints integrated solution norms to the specified output stream.
+  virtual std::ostream& printNorms(const Vectors&, std::ostream& os)
+  { return os; }
 
   //! \brief Computes the total reaction forces in the model.
   //! \param[out] RF Reaction force in each spatial direction + energy
@@ -445,12 +449,12 @@ public:
   bool writeGlvP(const Vector& ssol, int iStep, int& nBlock,
 		 int idBlock = 100, const char* prefix = "Global projected");
 
-  //! \brief Writes a mode shape and associated eigenvalue to the VTF-file.
-  //! \details The eigenvalue is used as a label on the step state info
-  //! that is associated with the eigenvector.
-  //! \param[in] mode The mode shape eigenvector to output
+  //! \brief Writes a mode shape to the VTF-file.
+  //! \param[in] mode The mode shape eigenvector and associated eigenvalue
   //! \param[in] freq \e true if the eigenvalue is a frequency
   //! \param nBlock Running result block counter
+  //!
+  //! \details The eigenvalue is used as a label on the step state info.
   bool writeGlvM(const Mode& mode, bool freq, int& nBlock);
 
   //! \brief Writes element norms for a given load/time step to the VTF-file.

@@ -438,6 +438,22 @@ bool SIMbase::parse (const TiXmlElement* elem)
 }
 
 
+int SIMbase::parseMaterialSet (const TiXmlElement* elem, int mindex)
+{
+  std::string set;
+  utl::getAttribute(elem,"set",set);
+  int code = this->getUniquePropertyCode(set,0);
+
+  if (code == 0)
+    utl::getAttribute(elem,"code",code);
+
+  if (code > 0)
+    this->setPropertyType(code,Property::MATERIAL,mindex);
+
+  return code;
+}
+
+
 const char** SIMbase::getPrioritizedTags () const
 {
   // Tags to be parsed first, and in the order specified
@@ -1559,24 +1575,26 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   norm->initProjection(ssol.size());
   norm->initIntegration(nIntGP,nBouGP);
 
+  // Number of recovered solution components
   size_t nCmp = ssol.empty() ? 0 : ssol.front().size() / mySam->getNoNodes();
-  size_t nNorms=0;
-  for (size_t j=0;j<norm->getNoFields(0);++j)
-    nNorms += norm->getNoFields(1+j);
-  gNorm.resize(nNorms,true);
 
 #ifdef USE_OPENMP
   // When assembling in parallel, we must always do the norm summation
-  // at the end in a serial loop, to avoid that the threads try to update the
-  // same memory address simultaneously.
+  // at the end in a serial loop, to avoid that the threads try to update
+  // the same memory address simultaneously.
   Matrix dummy;
   if (!eNorm) eNorm = &dummy;
 #endif
 
   // Initialize norm integral classes
   gNorm.resize(norm->getNoFields(0));
-  for (size_t j=0;j<gNorm.size();++j)
-    gNorm[j].resize(norm->getNoFields(1+j),true);
+  size_t nNorms = 0;
+  for (size_t j = 0; j < gNorm.size(); ++j) {
+    size_t nNrm = norm->getNoFields(1+j);
+    gNorm[j].resize(nNrm,true);
+    nNorms += nNrm;
+  }
+
   GlbNorm globalNorm(gNorm,norm->getFinalOperation());
   LintegralVec elementNorms;
   if (eNorm)
@@ -1663,19 +1681,20 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 
   // Add problem-dependent external norm contributions
   if (norm->hasBoundaryTerms())
-    norm->addBoundaryTerms(gNorm,externalEnergy(psol));
+    norm->addBoundaryTerms(gNorm,this->externalEnergy(psol));
 
   delete norm;
 
 #ifdef PARALLEL_PETSC
-  if (nProc > 1)
+  if (nProc > 1 && !gNorm.empty())
   {
-    for (size_t i=0;i<gNorm.size();++i) {
-      double* tmp = new double[gNorm[i].size()];
-      MPI_Allreduce(gNorm[i].ptr(),tmp,gNorm[i].size(),MPI_DOUBLE,MPI_SUM,PETSC_COMM_WORLD);
+    double* tmp = new double[gNorm.front().size()];
+    for (size_t i = 0; i < gNorm.size(); ++i) {
+      MPI_Allreduce(gNorm[i].ptr(),tmp,gNorm[i].size(),
+                    MPI_DOUBLE,MPI_SUM,PETSC_COMM_WORLD);
       memcpy(gNorm[i].ptr(),tmp,gNorm[i].size()*sizeof(double));
-      delete[] tmp;
     }
+    delete[] tmp;
   }
 #endif
 
@@ -2299,7 +2318,7 @@ bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
   const size_t maxN = 20;
   std::vector<int> sID[maxN];
 
-  size_t i, j, k;
+  size_t i, j, k, l, m;
   for (i = 0; i < myModel.size(); i++)
   {
     if (myModel[i]->empty()) continue; // skip empty patches
@@ -2319,10 +2338,9 @@ bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
 	field.fillColumn(j,efield.getColumn(grid->getElmId(j)));
     }
 
-    j = 1;
-    size_t l=1;
-    size_t m;
-    for (k = m = 0; m < field.rows() && k < maxN; m++) {
+    j = l = 1;
+    for (k = m = 0; m < field.rows() && k < maxN; m++)
+    {
       if (l > norm->getNoFields(j))
         l = 1, ++j;
       if (norm->hasElementContributions(j,l++))
@@ -2334,8 +2352,7 @@ bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
   }
 
   int idBlock = 200;
-  j = 1;
-  size_t l = 1;
+  j = l = 1;
   for (k = 0; k < maxN && !sID[k].empty(); l++)
   {
     if (l > norm->getNoFields(j))
@@ -2349,7 +2366,6 @@ bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
   }
 
   delete norm;
-
   return true;
 }
 
