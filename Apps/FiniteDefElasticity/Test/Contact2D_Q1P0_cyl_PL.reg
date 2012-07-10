@@ -1,0 +1,613 @@
+Contact2D_Q1P0_cyl_PL.xinp -2D
+
+Input file: Contact2D_Q1P0_cyl_PL.xinp
+Equation solver: 2
+Number of Gauss points: 4
+Parsing input file Contact2D_Q1P0_cyl_PL.xinp
+Parsing <geometry>
+  Parsing <patchfile>
+	Reading data file square20x20.g2
+	Reading patch 1
+  Parsing <refine>
+  Parsing <topologysets>
+	Topology sets: lower (1,3,1D)
+	               upper (1,4,1D)
+	               upperLeft (1,3,0D)
+	Refining P1 1 1
+Parsing <boundaryconditions>
+  Parsing <dirichlet>
+	Dirichlet code 1: (fixed)
+  Parsing <dirichlet>
+	Dirichlet code 2 (linear): -1\*t
+Parsing <finitedeformation>
+	Material code 0: 400942 80.1938 1 (23)
+	Contact code 1000
+	Fixed contact body
+	Rigid Cylinder: R = 10, L = 1, dirC = 0 0 1
+	P1 (node 10): 0 -18 0
+	Property code: 1000
+	Penalty parameter: 100
+Parsing <discretization>
+Parsing <nonlinearsolver>
+Parsing <postprocessing>
+  Parsing <vtfformat>
+Parsing input file succeeded.
+Equation solver: 2
+Number of Gauss points: 2
+Problem definition:
+NonlinearElasticityULMX: Mixed formulation, discontinuous pressure, p=0
+NonlinearElasticityUL: Updated Lagrangian formulation
+Elasticity: 2D, gravity = 0 0
+LinIsotropic: E = 240.565, nu = 0.4999, rho = 1
+NeoHookeMaterial: mVER = 2
+Resolving Dirichlet boundary conditions
+	Constraining P1 V3 in direction(s) 1
+	Constraining P1 E4 in direction(s) 2 code = 2 
+ >>> SAM model summary <<<
+Number of elements    6
+Number of nodes       10
+Number of dofs        20
+Number of D-dofs      18
+Number of X-dofs      2
+Number of constraints 3
+Number of unknowns    14
+MortarPenalty: Mortar contact formulation (Penalty, eps=100)
+  step=1  time=0
+  Primary solution summary: L2-norm            : 0.547971
+                            Max X-displacement : 1.08001
+                            Max Y-displacement : 0.996051
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 10.0515	 a(u^h,u^h) = 101.0324639
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 242.381
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 93.7052	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 180.018	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 220.476
+  step=2  time=0.1
+  Primary solution summary: L2-norm            : 0.594191
+                            Max X-displacement : 1.24465
+                            Max Y-displacement : 0.971352
+  displacement\*reactions: (R,u) = -23.3647
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 10.9093	 a(u^h,u^h) = 119.0123645
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -4.74809	(f,u)+(t,u) = 22.54438659
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 261.685
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 100.483	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 195.418	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 239.338
+  step=3  time=0.2
+  Primary solution summary: L2-norm            : 0.658011
+                            Max X-displacement : 1.43023
+                            Max Y-displacement : 0.942598
+  displacement\*reactions: (R,u) = -49.7988
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 11.7694	 a(u^h,u^h) = 138.5196258
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -6.83201	(f,u)+(t,u) = 46.67642387
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 280.785
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 107.037	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 210.878	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 258.272
+  step=4  time=0.3
+  Primary solution summary: L2-norm            : 0.738772
+                            Max X-displacement : 1.6373
+                            Max Y-displacement : 0.908645
+  displacement\*reactions: (R,u) = -78.8959
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 12.6322	 a(u^h,u^h) = 159.57185
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -8.5015	(f,u)+(t,u) = 72.27544772
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 299.762
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 113.428	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 226.407	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 277.29
+  step=5  time=0.4
+  Primary solution summary: L2-norm            : 0.834748
+                            Max X-displacement : 1.86414
+                            Max Y-displacement : 0.868393
+  displacement\*reactions: (R,u) = -110.142
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 13.4968	 a(u^h,u^h) = 182.1630033
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -9.95954	(f,u)+(t,u) = 99.19248052
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 318.731
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 119.761	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 241.994	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 296.381
+  step=6  time=0.5
+  Primary solution summary: L2-norm            : 0.943172
+                            Max X-displacement : 2.10659
+                            Max Y-displacement : 0.821044
+  displacement\*reactions: (R,u) = -142.961
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 14.3611	 a(u^h,u^h) = 206.242418
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -11.2808	(f,u)+(t,u) = 127.2563333
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 337.809
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 126.166	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 257.607	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 315.502
+  step=7  time=0.6
+  Primary solution summary: L2-norm            : 0.992683
+                            Max X-displacement : 2.21348
+                            Max Y-displacement : 0.786141
+  displacement\*reactions: (R,u) = -182.125
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 15.174	 a(u^h,u^h) = 230.2495111
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -12.5192	(f,u)+(t,u) = 156.7295645
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 355.916
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 132.344	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 272.27	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 333.462
+  step=8  time=0.7
+  Primary solution summary: L2-norm            : 1.02943
+                            Max X-displacement : 2.28685
+                            Max Y-displacement : 0.754436
+  displacement\*reactions: (R,u) = -226.19
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 15.9838	 a(u^h,u^h) = 255.4821244
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -13.7136	(f,u)+(t,u) = 188.0630711
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 373.953
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 138.49	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 286.884	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 351.36
+  step=9  time=0.8
+  Primary solution summary: L2-norm            : 1.06946
+                            Max X-displacement : 2.36197
+                            Max Y-displacement : 0.8
+  displacement\*reactions: (R,u) = -274.131
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 16.8025	 a(u^h,u^h) = 282.3250009
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -14.8779	(f,u)+(t,u) = 221.3526433
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 392.158
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 144.661	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 301.675	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 369.475
+  step=10  time=0.9
+  Primary solution summary: L2-norm            : 1.11254
+                            Max X-displacement : 2.4389
+                            Max Y-displacement : 0.9
+  displacement\*reactions: (R,u) = -325.922
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 17.6289	 a(u^h,u^h) = 310.7772439
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -16.0185	(f,u)+(t,u) = 256.5925607
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 410.487
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 150.831	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 316.621	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 387.78
+  step=11  time=1
+  Primary solution summary: L2-norm            : 1.15843
+                            Max X-displacement : 2.51772
+                            Max Y-displacement : 1
+  displacement\*reactions: (R,u) = -381.532
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 18.4618	 a(u^h,u^h) = 340.83779
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -17.1399	(f,u)+(t,u) = 293.7759449
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 428.9
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 156.978	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 331.707	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 406.256
+  step=12  time=1.1
+  Primary solution summary: L2-norm            : 1.20693
+                            Max X-displacement : 2.59851
+                            Max Y-displacement : 1.1
+  displacement\*reactions: (R,u) = -440.926
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 19.3004	 a(u^h,u^h) = 372.5053668
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -18.2454	(f,u)+(t,u) = 332.8946714
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 447.366
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 163.08	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 346.916	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 424.884
+  step=13  time=1.2
+  Primary solution summary: L2-norm            : 1.25785
+                            Max X-displacement : 2.68134
+                            Max Y-displacement : 1.2
+  displacement\*reactions: (R,u) = -504.06
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 20.1439	 a(u^h,u^h) = 405.7784377
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -19.3375	(f,u)+(t,u) = 373.9392769
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 465.854
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 169.119	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 362.239	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 443.65
+  step=14  time=1.3
+  Primary solution summary: L2-norm            : 1.31102
+                            Max X-displacement : 2.76629
+                            Max Y-displacement : 1.3
+  displacement\*reactions: (R,u) = -570.884
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 20.9918	 a(u^h,u^h) = 440.6551297
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -20.4181	(f,u)+(t,u) = 416.8988634
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 484.34
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 175.076	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 377.665	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 462.543
+  step=15  time=1.4
+  Primary solution summary: L2-norm            : 1.3663
+                            Max X-displacement : 2.85341
+                            Max Y-displacement : 1.4
+  displacement\*reactions: (R,u) = -641.342
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 21.8434	 a(u^h,u^h) = 477.1331438
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -21.4886	(f,u)+(t,u) = 461.7610008
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 502.801
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 180.936	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 393.186	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 481.552
+  step=16  time=1.5
+  Primary solution summary: L2-norm            : 1.42357
+                            Max X-displacement : 2.94276
+                            Max Y-displacement : 1.5
+  displacement\*reactions: (R,u) = -715.367
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 22.6982	 a(u^h,u^h) = 515.2096442
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -22.5502	(f,u)+(t,u) = 508.5116282
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 521.215
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 186.683	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 408.795	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 500.67
+  step=17  time=1.6
+  Primary solution summary: L2-norm            : 1.4827
+                            Max X-displacement : 3.03441
+                            Max Y-displacement : 1.6
+  displacement\*reactions: (R,u) = -792.888
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 23.5559	 a(u^h,u^h) = 554.8811231
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -23.6037	(f,u)+(t,u) = 557.1349567
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 539.565
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 192.302	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 424.488	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 519.89
+  step=18  time=1.7
+  Primary solution summary: L2-norm            : 1.54362
+                            Max X-displacement : 3.12838
+                            Max Y-displacement : 1.7
+  displacement\*reactions: (R,u) = -873.823
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 24.416	 a(u^h,u^h) = 596.1432405
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -24.6498	(f,u)+(t,u) = 607.6133772
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 557.834
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 197.779	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 440.26	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 539.206
+  step=19  time=1.8
+  Primary solution summary: L2-norm            : 1.60623
+                            Max X-displacement : 3.22471
+                            Max Y-displacement : 1.8
+  displacement\*reactions: (R,u) = -958.08
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 25.2783	 a(u^h,u^h) = 638.9906386
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -25.6891	(f,u)+(t,u) = 659.9273724
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 576.006
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 203.102	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 456.105	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 558.613
+  step=20  time=1.9
+  Primary solution summary: L2-norm            : 1.67045
+                            Max X-displacement : 3.3234
+                            Max Y-displacement : 1.9
+  displacement\*reactions: (R,u) = -1045.56
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 26.1422	 a(u^h,u^h) = 683.4167281
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -26.7218	(f,u)+(t,u) = 714.0554412
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 594.068
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 208.256	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 472.022	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 578.106
+  step=21  time=2
+  Primary solution summary: L2-norm            : 1.73623
+                            Max X-displacement : 3.42446
+                            Max Y-displacement : 2
+  displacement\*reactions: (R,u) = -1136.15
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 27.0077	 a(u^h,u^h) = 729.4134517
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -27.7484	(f,u)+(t,u) = 769.9740342
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 612.007
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 213.231	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 488.006	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 597.683
+  step=22  time=2.1
+  Primary solution summary: L2-norm            : 1.8035
+                            Max X-displacement : 3.52786
+                            Max Y-displacement : 2.1
+  displacement\*reactions: (R,u) = -1229.74
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 27.8742	 a(u^h,u^h) = 776.9710266
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -28.769	(f,u)+(t,u) = 827.6575083
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 629.811
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 218.014	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 504.054	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 617.338
+  step=23  time=2.2
+  Primary solution summary: L2-norm            : 1.87219
+                            Max X-displacement : 3.63355
+                            Max Y-displacement : 2.2
+  displacement\*reactions: (R,u) = -1326.2
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 28.7416	 a(u^h,u^h) = 826.0776736
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -29.7839	(f,u)+(t,u) = 887.0781012
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 647.47
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 222.595	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 520.165	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 637.069
+  step=24  time=2.3
+  Primary solution summary: L2-norm            : 1.94226
+                            Max X-displacement : 3.74147
+                            Max Y-displacement : 2.3
+  displacement\*reactions: (R,u) = -1425.4
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 29.6094	 a(u^h,u^h) = 876.7193413
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -30.793	(f,u)+(t,u) = 948.2059324
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 664.975
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 226.965	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 536.333	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 656.872
+  step=25  time=2.4
+  Primary solution summary: L2-norm            : 2.01364
+                            Max X-displacement : 3.85152
+                            Max Y-displacement : 2.4
+  displacement\*reactions: (R,u) = -1527.18
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 30.4775	 a(u^h,u^h) = 928.8794374
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -31.7964	(f,u)+(t,u) = 1011.009031
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 682.32
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 231.113	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 552.558	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 676.743
+  step=26  time=2.5
+  Primary solution summary: L2-norm            : 2.08628
+                            Max X-displacement : 3.96359
+                            Max Y-displacement : 2.5
+  displacement\*reactions: (R,u) = -1631.41
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 31.3455	 a(u^h,u^h) = 982.5385807
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -32.7941	(f,u)+(t,u) = 1075.453399
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 699.496
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 235.033	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 568.835	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 696.678
+  step=27  time=2.6
+  Primary solution summary: L2-norm            : 2.1601
+                            Max X-displacement : 4.07753
+                            Max Y-displacement : 2.6
+  displacement\*reactions: (R,u) = -1737.92
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 32.213	 a(u^h,u^h) = 1037.67439
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -33.7861	(f,u)+(t,u) = 1141.503099
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 716.501
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 238.718	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 585.162	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 716.674
+  step=28  time=2.7
+  Primary solution summary: L2-norm            : 2.23506
+                            Max X-displacement : 4.19318
+                            Max Y-displacement : 2.7
+  displacement\*reactions: (R,u) = -1846.57
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 33.0796	 a(u^h,u^h) = 1094.261324
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -34.7724	(f,u)+(t,u) = 1209.120389
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 733.329
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 242.163	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 601.533	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 736.725
+  step=29  time=2.8
+  Primary solution summary: L2-norm            : 2.31107
+                            Max X-displacement : 4.31035
+                            Max Y-displacement : 2.8
+  displacement\*reactions: (R,u) = -1957.19
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 33.9451	 a(u^h,u^h) = 1152.270588
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -35.7528	(f,u)+(t,u) = 1278.265873
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 749.98
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 245.365	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 617.947	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 756.827
+  step=30  time=2.9
+  Primary solution summary: L2-norm            : 2.38807
+                            Max X-displacement : 4.42882
+                            Max Y-displacement : 2.9
+  displacement\*reactions: (R,u) = -2069.62
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 34.8091	 a(u^h,u^h) = 1211.670115
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -36.7274	(f,u)+(t,u) = 1348.8987
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 766.452
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 248.321	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 634.397	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 776.974
+  step=31  time=3
+  Primary solution summary: L2-norm            : 2.46597
+                            Max X-displacement : 4.54838
+                            Max Y-displacement : 3
+  displacement\*reactions: (R,u) = -2183.7
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 35.6711	 a(u^h,u^h) = 1272.424637
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -37.6958	(f,u)+(t,u) = 1420.976771
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 782.747
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 251.03	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 650.88	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 797.162
+  step=32  time=3.1
+  Primary solution summary: L2-norm            : 2.5447
+                            Max X-displacement : 4.66878
+                            Max Y-displacement : 3.1
+  displacement\*reactions: (R,u) = -2299.28
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 36.5308	 a(u^h,u^h) = 1334.495838
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -38.6582	(f,u)+(t,u) = 1494.456975
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 798.867
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 253.495	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 667.39	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 817.383
+  step=33  time=3.2
+  Primary solution summary: L2-norm            : 2.62416
+                            Max X-displacement : 4.78978
+                            Max Y-displacement : 3.2
+  displacement\*reactions: (R,u) = -2416.21
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 37.3877	 a(u^h,u^h) = 1397.842596
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -39.6143	(f,u)+(t,u) = 1569.295439
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 814.815
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 255.716	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 683.923	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 837.632
+  step=34  time=3.3
+  Primary solution summary: L2-norm            : 2.70429
+                            Max X-displacement : 4.91112
+                            Max Y-displacement : 3.3
+  displacement\*reactions: (R,u) = -2534.34
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 38.2416	 a(u^h,u^h) = 1462.42129
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -40.5641	(f,u)+(t,u) = 1645.447778
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 830.596
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 257.699	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 700.474	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 857.902
+  step=35  time=3.4
+  Primary solution summary: L2-norm            : 2.78497
+                            Max X-displacement : 5.03256
+                            Max Y-displacement : 3.4
+  displacement\*reactions: (R,u) = -2653.53
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 39.092	 a(u^h,u^h) = 1528.186177
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -41.5075	(f,u)+(t,u) = 1722.869351
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 846.215
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 259.448	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 717.036	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 878.186
+  step=36  time=3.5
+  Primary solution summary: L2-norm            : 2.86614
+                            Max X-displacement : 5.15384
+                            Max Y-displacement : 3.5
+  displacement\*reactions: (R,u) = -2773.65
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 39.9386	 a(u^h,u^h) = 1595.089807
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -42.4443	(f,u)+(t,u) = 1801.515496
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 861.679
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 260.969	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 733.605	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 898.479
+  step=37  time=3.6
+  Primary solution summary: L2-norm            : 2.9477
+                            Max X-displacement : 5.27474
+                            Max Y-displacement : 3.6
+  displacement\*reactions: (R,u) = -2894.59
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 40.7809	 a(u^h,u^h) = 1663.083457
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -43.3744	(f,u)+(t,u) = 1881.341762
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 876.995
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 262.271	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 750.174	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 918.772
+  step=38  time=3.7
+  Primary solution summary: L2-norm            : 3.02958
+                            Max X-displacement : 5.39501
+                            Max Y-displacement : 3.7
+  displacement\*reactions: (R,u) = -3016.22
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 41.6187	 a(u^h,u^h) = 1732.117576
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -44.2979	(f,u)+(t,u) = 1962.304116
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 892.171
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 263.362	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 766.74	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 939.061
+  step=39  time=3.8
+  Primary solution summary: L2-norm            : 3.11168
+                            Max X-displacement : 5.51445
+                            Max Y-displacement : 3.8
+  displacement\*reactions: (R,u) = -3138.44
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 42.4516	 a(u^h,u^h) = 1802.142215
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -45.2146	(f,u)+(t,u) = 2044.359126
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 907.215
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 264.251	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 783.296	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 959.338
+  step=40  time=3.9
+  Primary solution summary: L2-norm            : 3.19394
+                            Max X-displacement : 5.63286
+                            Max Y-displacement : 3.9
+  displacement\*reactions: (R,u) = -3261.16
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 43.2794	 a(u^h,u^h) = 1873.107421
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -46.1244	(f,u)+(t,u) = 2127.464112
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 922.135
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 264.947	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 799.838	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 979.598
+  step=41  time=4
+  Primary solution summary: L2-norm            : 3.27627
+                            Max X-displacement : 5.75006
+                            Max Y-displacement : 4
+  displacement\*reactions: (R,u) = -3384.28
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 44.1017	 a(u^h,u^h) = 1944.963601
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -47.0274	(f,u)+(t,u) = 2211.577282
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 936.939
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 265.461	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 816.362	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 999.835
+  step=42  time=4.1
+  Primary solution summary: L2-norm            : 3.35862
+                            Max X-displacement : 5.86589
+                            Max Y-displacement : 4.1
+  displacement\*reactions: (R,u) = -3507.72
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 44.9184	 a(u^h,u^h) = 2017.661832
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -47.9235	(f,u)+(t,u) = 2296.657829
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 951.637
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 265.804	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 832.861	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 1020.04
+  step=43  time=4.2
+  Primary solution summary: L2-norm            : 3.44092
+                            Max X-displacement : 5.9802
+                            Max Y-displacement : 4.2
+  displacement\*reactions: (R,u) = -3631.41
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 45.7291	 a(u^h,u^h) = 2091.154119
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -48.8126	(f,u)+(t,u) = 2382.666005
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 966.235
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 265.985	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 849.334	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 1040.22
+  step=44  time=4.3
+  Primary solution summary: L2-norm            : 3.52312
+                            Max X-displacement : 6.09287
+                            Max Y-displacement : 4.3
+  displacement\*reactions: (R,u) = -3755.28
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 46.5338	 a(u^h,u^h) = 2165.393605
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -49.6947	(f,u)+(t,u) = 2469.563174
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 980.743
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 266.015	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 865.774	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 1060.35
+  step=45  time=4.4
+  Primary solution summary: L2-norm            : 3.60515
+                            Max X-displacement : 6.20378
+                            Max Y-displacement : 4.4
+  displacement\*reactions: (R,u) = -3879.27
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 47.3322	 a(u^h,u^h) = 2240.334721
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -50.5699	(f,u)+(t,u) = 2557.31184
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 995.169
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 265.906	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 882.181	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 1080.45
+  step=46  time=4.5
+  Primary solution summary: L2-norm            : 3.68698
+                            Max X-displacement : 6.31285
+                            Max Y-displacement : 4.5
+  displacement\*reactions: (R,u) = -4003.31
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 48.1241	 a(u^h,u^h) = 2315.933301
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -51.4381	(f,u)+(t,u) = 2645.875651
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 1009.52
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 265.668	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 898.549	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 1100.49
+  step=47  time=4.6
+  Primary solution summary: L2-norm            : 3.76856
+                            Max X-displacement : 6.42
+                            Max Y-displacement : 4.6
+  displacement\*reactions: (R,u) = -4127.35
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 48.9096	 a(u^h,u^h) = 2392.14664
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -52.2993	(f,u)+(t,u) = 2735.219399
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 1023.8
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 265.312	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 914.876	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 1120.49
+  step=48  time=4.7
+  Primary solution summary: L2-norm            : 3.84985
+                            Max X-displacement : 6.52516
+                            Max Y-displacement : 4.7
+  displacement\*reactions: (R,u) = -4251.34
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 49.6884	 a(u^h,u^h) = 2468.933526
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -53.1536	(f,u)+(t,u) = 2825.308988
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 1038.02
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 264.848	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 931.16	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 1140.43
+  step=49  time=4.8
+  Primary solution summary: L2-norm            : 3.93082
+                            Max X-displacement : 6.62829
+                            Max Y-displacement : 4.8
+  displacement\*reactions: (R,u) = -4375.23
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 50.4604	 a(u^h,u^h) = 2546.254235
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -54.001	(f,u)+(t,u) = 2916.111407
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 1052.19
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 264.287	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 947.397	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 1160.32
+  step=50  time=4.9
+  Primary solution summary: L2-norm            : 4.01145
+                            Max X-displacement : 6.72934
+                            Max Y-displacement : 4.9
+  displacement\*reactions: (R,u) = -4498.98
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 51.2257	 a(u^h,u^h) = 2624.070498
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -54.8415	(f,u)+(t,u) = 3007.594685
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 1066.31
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 263.64	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 963.587	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 1180.15
+  step=51  time=5
+  Primary solution summary: L2-norm            : 4.0917
+                            Max X-displacement : 6.82829
+                            Max Y-displacement : 5
+  displacement\*reactions: (R,u) = -4622.52
+  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 51.9841	 a(u^h,u^h) = 2702.345455
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -55.6752	(f,u)+(t,u) = 3099.72784
+  Stress norm, L2: (sigma^h,sigma^h)^0.5 : 1080.39
+  Pressure norm, L2:       (p^h,p^h)^0.5 : 262.916	(p^h = trace(sigma^h)/3)
+  Deviatoric stress norm:  (s^d,s^d)^0.5 : 979.727	(s^d = sigma^h - p^h\*I)
+  Stress norm, von Mises: vm(sigma^h)    : 1199.92
