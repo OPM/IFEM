@@ -17,6 +17,7 @@
 #include "MatVec.h"
 #include "Tensor.h"
 #include "Vec3.h"
+#include <map>
 
 
 /*!
@@ -39,6 +40,8 @@ public:
   void initPoints(const std::vector<Vec3>& p);
   //! \brief Initializes the global node numbers of the internal points.
   void initNodes(const std::vector<int>& nodes);
+  //! \brief Renumbers the global node numbers of the internal points.
+  void renumberNodes(const std::map<int,int>& old2new);
 
   //! \brief Prints out the rigid body definition to the given stream.
   virtual void print(std::ostream& os) const;
@@ -74,7 +77,6 @@ protected:
   std::vector<Vec3> Xn;   //!< Updated coordinates of the internal points
   std::vector<int>  MLGN; //!< Matrix of Local to Global Node numbers
   unsigned char     nsd;  //!< Number of space dimensions
-  Tensor            Tr;   //!< Global-to-local transformation
 
 public:
   double eps;  //!< Penalty parameter for the contact constraint of this body
@@ -166,7 +168,7 @@ class RigidPlane : public RigidBody
 {
 public:
   //! \brief Default constructor.
-  RigidPlane(unsigned char n = 3);
+  RigidPlane(unsigned char n = 3) : RigidBody(n,n), Area(0.0) {}
   //! \brief Empty destructor.
   virtual ~RigidPlane() {}
 

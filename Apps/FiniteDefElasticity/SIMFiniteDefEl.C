@@ -242,6 +242,7 @@ bool SIMFiniteDefEl2D::createContactSet (const std::string& slaveSet, int& code)
 
 void SIMFiniteDefEl2D::preprocessBeforeAsmInit (int& ngnod)
 {
+  this->renumberContactBodies(*g2l);
   for (PatchVec::const_iterator it = myModel.begin(); it != myModel.end(); it++)
     this->addLagrangeMultipliers(*it,ngnod);
 }
@@ -491,6 +492,7 @@ bool SIMFiniteDefEl3D::createContactSet (const std::string& slaveSet, int& code)
 
 void SIMFiniteDefEl3D::preprocessBeforeAsmInit (int& ngnod)
 {
+  this->renumberContactBodies(*g2l);
   for (PatchVec::const_iterator it = myModel.begin(); it != myModel.end(); it++)
     this->addLagrangeMultipliers(*it,ngnod);
 }

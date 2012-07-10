@@ -108,6 +108,9 @@ protected:
   //! \param[in] time Current time
   void updateDirichlet(double time);
 
+  //! \brief Renumbers the nodes of the contact bodies.
+  //! \param[in] old2new Old-to-new node number mapping
+  void renumberContactBodies(const std::map<int,int>& old2new);
   //! \brief Updates the positions of the contact bodies.
   //! \param[in] displ Current total displacement vector in DOF order
   bool updateContactBodies(const std::vector<double>& displ);

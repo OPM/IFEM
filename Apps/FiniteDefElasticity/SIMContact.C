@@ -194,7 +194,7 @@ bool SIMContact::parseContactTag (const TiXmlElement* elem,
 	}
 	else if (cval && comp > 0 && comp <= 3)
 	{
-	  std::cout <<"\tPrescribed contact body";
+	  std::cout <<"\tPrescribed contact body ";
 	  myFuncs.push_back(utl::parseTimeFunc(cval->Value(),type));
 	  type = "prescribed";
 	}
@@ -277,6 +277,13 @@ void SIMContact::updateDirichlet (double time)
   for (cit = dMap.begin(); cit != dMap.end(); cit++)
     if (cit->first && cit->second)
       cit->first->setSlaveCoeff((*cit->second)(time));
+}
+
+
+void SIMContact::renumberContactBodies (const std::map<int,int>& old2new)
+{
+  for (size_t i = 0; i < myBodies.size(); i++)
+    myBodies[i]->renumberNodes(old2new);
 }
 
 

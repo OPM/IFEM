@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "RigidBody.h"
+#include "Utilities.h"
 #include "Vec3Oper.h"
 
 #ifndef epsZ
@@ -20,22 +21,14 @@
 #endif
 
 
-RigidBody::RigidBody (unsigned char n, size_t np) :  nsd(n), Tr(3)
+RigidBody::RigidBody (unsigned char n, size_t np) :  nsd(n)
 {
   X0.resize(np);
   Xn.resize(np);
   MLGN.resize(np,0);
 
-  Tr = 1.0;
-  eps = 0.0;
+  eps = 1.0;
   code = -1;
-}
-
-
-void RigidBody::initNodes (const std::vector<int>& nodes)
-{
-  for (size_t i = 0; i < MLGN.size() && i < nodes.size(); i++)
-    MLGN[i] = nodes[i];
 }
 
 
@@ -46,12 +39,25 @@ void RigidBody::initPoints (const std::vector<Vec3>& p)
 }
 
 
+void RigidBody::initNodes (const std::vector<int>& nodes)
+{
+  for (size_t i = 0; i < MLGN.size() && i < nodes.size(); i++)
+    MLGN[i] = nodes[i];
+}
+
+
+void RigidBody::renumberNodes (const std::map<int,int>& old2new)
+{
+  for (size_t i = 0; i < MLGN.size(); i++)
+    utl::renumber(MLGN[i],old2new);
+}
+
+
 void RigidBody::print (std::ostream& os) const
 {
   for (size_t i = 0; i < MLGN.size(); i++)
     os <<"\n\tP"<< i+1 <<" (node "<< MLGN[i] <<"): "<< X0[i];
-  os <<"\n\tGlobal-to-local transformation:\n"<< Tr
-     <<"\tProperty code: "<< code
+  os <<"\n\tProperty code: "<< code
      <<"\n\tPenalty parameter: "<< eps << std::endl;
 }
 
@@ -116,9 +122,9 @@ void RigidSphere::geometricStiffness (const Vec3& X, Vec3& normal,
     d = 1.0;
   }
 
-  for (unsigned char j = 1; j <= nsd; j++)
-    for (unsigned char i = 1; i <= nsd; i++)
-      Tg(i,j) = (Tr(i,j) - dX[i-1]*dX[j-1]) / d;
+  for (unsigned char j = 0; j < nsd; j++)
+    for (unsigned char i = 0; i < nsd; i++)
+      Tg(i+1,j+1) = ((i == j ? 1.0 : 0.0) - dX[i]*dX[j]) / d;
 
   N.resize(1);
   N[0] = 1.0;
@@ -156,10 +162,6 @@ bool RigidCylinder::update (const RealArray& displ)
       return false;
     }
   }
-
-  for (unsigned char j = 1; j <= nsd; j++)
-    for (unsigned char i = 1; i <= nsd; i++)
-      Tr(i,j) = (i == j ? 1.0 : 0.0) - dirC[i-1]*dirC[j-1];
 
   return true;
 }
@@ -202,9 +204,9 @@ void RigidCylinder::geometricStiffness (const Vec3& X, Vec3& normal,
     d = 1.0;
   }
 
-  for (unsigned char j = 1; j <= nsd; j++)
-    for (unsigned char i = 1; i <= nsd; i++)
-      Tg(i,j) = (Tr(i,j) - dX[i-1]*dX[j-1]) / d;
+  for (unsigned char j = 0; j < nsd; j++)
+    for (unsigned char i = 0; i < nsd; i++)
+      Tg(i+1,j+1) = ((i == j ? 1.0 : 0.0) - dirC[i]*dirC[j] - dX[i]*dX[j]) / d;
 
   N.resize(nsd-1);
   if (nsd == 2)
@@ -214,12 +216,6 @@ void RigidCylinder::geometricStiffness (const Vec3& X, Vec3& normal,
     N[0] = 1.0 - z/L;
     N[1] = z/L;
   }
-}
-
-
-RigidPlane::RigidPlane (unsigned char n) : RigidBody(n,n), Area(0.0)
-{
-  Tr = 1.0; // not used
 }
 
 
