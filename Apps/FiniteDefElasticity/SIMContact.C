@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Solution drivers for finite deformation contact analysis.
+//! \brief Administration of finite deformation contact analysis.
 //!
 //==============================================================================
 
@@ -24,15 +24,19 @@
 
 SIMContact::~SIMContact ()
 {
-  for (size_t i = 0; i < myBodies.size(); i++)
+  size_t i;
+  for (i = 0; i < myBodies.size(); i++)
     delete myBodies[i];
+  for (i = 0; i < myFuncs.size(); i++)
+    delete myFuncs[i];
 }
 
 
-bool SIMContact::addContactElms (RigidBody* master,
-				 const std::vector<ASMbase*>& model,
+bool SIMContact::addContactElms (std::vector<ContactPair>& contacts,
+				 RigidBody* master,
+				 const std::string& slave,
 				 const TopologySet& entitys,
-				 const std::string& slave)
+				 const std::vector<ASMbase*>& model)
 {
   TopologySet::const_iterator tit = entitys.find(slave);
   if (tit == entitys.end())
@@ -54,11 +58,11 @@ bool SIMContact::addContactElms (RigidBody* master,
     {
       if (!model[top->patch-1]->addXElms(top->idim,top->item,nMast,nodes))
       {
-	std::cerr <<" *** SIMContact::addContactElms: Invalid slave definition."
-		  << std::endl;
-	return false;
+        std::cerr <<" *** SIMContact::addContactElms: Invalid slave definition."
+                  << std::endl;
+        return false;
       }
-      myContacts.push_back(std::make_pair(master,model[top->patch-1]));
+      contacts.push_back(std::make_pair(master,model[top->patch-1]));
     }
 
   // Assign global master node numbers
@@ -67,12 +71,65 @@ bool SIMContact::addContactElms (RigidBody* master,
 }
 
 
+bool SIMContact::addLagrangeMultipliers (ASMbase* patch, int& ngnod)
+{
+  if (contactMethod != AUGMENTED_LAGRANGE) return true;
+
+  size_t nXelm = patch->getNoXelms();
+  if (nXelm == 0) return true;
+
+  size_t nno = patch->getNoNodes();
+  size_t iel = patch->getNoElms(true) - nXelm;
+  IntMat::const_iterator eit = patch->begin_elm() + iel;
+  for (++iel; eit != patch->end_elm(); eit++, iel++)
+  {
+    IntVec mlagel;
+    for (IntVec::const_iterator nit = eit->begin(); nit != eit->end(); nit++)
+      if (*nit >= 0 && patch->getNodeType(*nit+1) == 'D')
+      {
+        int node = patch->getNodeID(*nit+1);
+        std::map<int,int>::const_iterator it = myALp.find(node);
+        if (it == myALp.end())
+          myALp[node] = ++ngnod;
+        mlagel.push_back(myALp[node]);
+      }
+
+    if (!mlagel.empty())
+      if (!patch->addLagrangeMultipliers(iel,mlagel))
+        return false;
+  }
+
+  int nLag = patch->getNoNodes() - nno;
+  if (nLag > 0)
+    std::cout <<"\nAdded "<< nLag <<" Lagrange multipliers to patch "
+              << patch->idx+1 << std::endl;
+
+  return true;
+}
+
+
 bool SIMContact::parseContactTag (const TiXmlElement* elem,
 				  const std::vector<ASMbase*>& model,
 				  const TopologySet& entitys)
 {
+  if (contactMethod != NONE)
+  {
+    std::cerr <<" *** SIMContact::parseContactTag: Duplicated contact tags."
+              << std::endl;
+    return false;
+  }
+
+  std::string formulation;
+  utl::getAttribute(elem,"formulation",formulation,true);
+  if (formulation == "penalty")
+    contactMethod = PENALTY;
+  else
+    contactMethod = AUGMENTED_LAGRANGE;
+
   double R = 1.0;
   RigidBody* body = NULL;
+  std::vector<ContactPair> cset;
+
   const TiXmlElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
   {
@@ -90,7 +147,6 @@ bool SIMContact::parseContactTag (const TiXmlElement* elem,
     std::vector<Vec3> points(nMast);
     std::string slaveSet;
 
-    const char* value = 0;
     const TiXmlElement* c = child->FirstChildElement();
     for (; c; c = c->NextSiblingElement())
     {
@@ -106,26 +162,11 @@ bool SIMContact::parseContactTag (const TiXmlElement* elem,
 	if (!this->createContactSet(slaveSet,body->code))
 	  return false;
 	std::cout <<"\tContact code "<< body->code << std::endl;
-	if (!this->addContactElms(body,model,entitys,slaveSet))
+	if (!this->addContactElms(cset,body,slaveSet,entitys,model))
 	  return false;
       }
-      else if ((value = utl::getValue(c,"penalty")))
-	body->eps = atof(value);
-
       else if (!strcasecmp(c->Value(),"dirichlet"))
       {
-	ASMbase* slave = NULL;
-	for (size_t i = 0; i < myContacts.size() && !slave; i++)
-	  if (myContacts[i].first == body) slave = myContacts[i].second;
-
-	if (!slave)
-	{
-	  std::cerr <<" *** SIMContact::parseContactTag: No slave definition."
-		    <<"\n                                  <slave> must be "
-		    <<"specified before <dirichlet>."<< std::endl;
-	  return false;
-	}
-
 	int comp = 0;
 	std::string type;
 	utl::getAttribute(c,"comp",comp);
@@ -133,24 +174,37 @@ bool SIMContact::parseContactTag (const TiXmlElement* elem,
 	if (!cval || (atof(cval->Value()) == 0.0 && type != "expression"))
 	{
 	  std::cout <<"\tFixed contact body"<< std::endl;
-	  for (size_t i = 1; i <= nMast; i++)
-	    slave->fix(slave->getNoNodes()+i-nMast,comp);
+	  type = "fixed";
 	}
 	else if (cval && comp > 0 && comp <= 3)
 	{
 	  std::cout <<"\tPrescribed contact body";
-	  if (type == "expression") std::cout <<" (expression)";
-	  char* cstr = strdup(cval->Value());
-	  const ScalarFunc* sf = utl::parseTimeFunc(type.c_str(),cstr);
-	  std::cout << std::endl;
-	  free(cstr);
-	  myFuncs.push_back(const_cast<ScalarFunc*>(sf));
-	  for (size_t i = 1; i <= nMast; i++)
-	  {
-	    slave->prescribe(slave->getNoNodes()+i-nMast,comp,-1);
-	    dMap[slave->findMPC(body->getNodeID(i),comp)] = myFuncs.back();
-	  }
+	  myFuncs.push_back(utl::parseTimeFunc(cval->Value(),type));
+	  type = "prescribed";
 	}
+	else
+	  continue;
+
+	std::vector<ContactPair>::iterator sit = cset.begin();
+	while ((sit = std::find_if(sit,cset.end(),hasBody(body))) != cset.end())
+	{
+	  for (size_t i = 1; i <= nMast; i++)
+	    if (type == "fixed")
+	      sit->second->fix(sit->second->getNoNodes()+i-nMast,comp);
+	    else
+	    {
+	      sit->second->prescribe(sit->second->getNoNodes()+i-nMast,comp,-1);
+	      MPC* spc = sit->second->findMPC(body->getNodeID(i),comp);
+	      dMap[spc] = myFuncs.back();
+	    }
+	  ++sit;
+	}
+      }
+      else
+      {
+	const char* value = NULL;
+	if ((value = utl::getValue(c,"eps")))
+	  body->eps = atof(value);
       }
     }
 
@@ -179,7 +233,12 @@ bool SIMContact::preprocessContact (IntegrandMap& itgs,
       int code = (*it)->code;
       MortarMats* mats = new MortarMats(sam,nMaster,nsd);
       itgs.insert(std::make_pair(code,new MortarContact(*it,mats,nsd)));
-      itgs.insert(std::make_pair(code,new MortarPenalty(*it,*mats,nsd)));
+      if (contactMethod == PENALTY)
+	itgs.insert(std::make_pair(code,new MortarPenalty(*it,*mats,nsd)));
+      else if (contactMethod == AUGMENTED_LAGRANGE)
+	itgs.insert(std::make_pair(code,new MortarAugmentedLag(*it,*mats,nsd)));
+      else
+	return false;
     }
 
   return true;

@@ -49,9 +49,13 @@ protected:
   virtual bool parse(const TiXmlElement* elem);
 
   //! \brief Creates a property set for contact condition on an entity set.
-  //! \param[in] slave Name of the slave entity set
+  //! \param[in] slaveSet Name of the slave boundary entity set
   //! \param[out] code Property code associated with the contact set
   virtual bool createContactSet(const std::string& slaveSet, int& code);
+
+  //! \brief Specialized preprocessing performed before assembly initialization.
+  //! \param ngnod Total number of nodal points in this model
+  virtual void preprocessBeforeAsmInit(int& ngnod);
 
 public:
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
@@ -99,9 +103,13 @@ protected:
   virtual bool parse(const TiXmlElement* elem);
 
   //! \brief Creates a property set for contact condition on an entity set.
-  //! \param[in] slave Name of the slave entity set
+  //! \param[in] slaveSet Name of the slave boundary entity set
   //! \param[out] code Property code associated with the contact set
   virtual bool createContactSet(const std::string& slaveSet, int& code);
+
+  //! \brief Specialized preprocessing performed before assembly initialization.
+  //! \param ngnod Total number of nodal points in this model
+  virtual void preprocessBeforeAsmInit(int& ngnod);
 
 public:
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.

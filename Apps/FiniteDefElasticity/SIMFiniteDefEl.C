@@ -239,6 +239,13 @@ bool SIMFiniteDefEl2D::updateConfiguration (const Vector& solution)
 }
 
 
+void SIMFiniteDefEl2D::preprocessBeforeAsmInit (int& ngnod)
+{
+  for (PatchVec::const_iterator it = myModel.begin(); it != myModel.end(); it++)
+    this->addLagrangeMultipliers(*it,ngnod);
+}
+
+
 bool SIMFiniteDefEl2D::updateDirichlet (double time, const Vector* prevSol)
 {
   if (prevSol)
@@ -458,6 +465,13 @@ bool SIMFiniteDefEl3D::createContactSet (const std::string& slaveSet, int& code)
 
   this->setPropertyType(code,Property::NEUMANN_GENERIC);
   return true;
+}
+
+
+void SIMFiniteDefEl3D::preprocessBeforeAsmInit (int& ngnod)
+{
+  for (PatchVec::const_iterator it = myModel.begin(); it != myModel.end(); it++)
+    this->addLagrangeMultipliers(*it,ngnod);
 }
 
 
