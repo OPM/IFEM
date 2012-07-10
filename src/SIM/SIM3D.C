@@ -116,7 +116,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"topology"))
   {
-    if (this->createFEMmodel()) return false;
+    if (!this->createFEMmodel()) return false;
 
     const TiXmlElement* child = elem->FirstChildElement("connection");
     while (child)
@@ -150,7 +150,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"periodic"))
   {
-    if (this->createFEMmodel()) return false;
+    if (!this->createFEMmodel()) return false;
 
     int patch = 0, pfdir = 1;
     utl::getAttribute(elem,"patch",patch);
@@ -165,8 +165,8 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
     std::cout <<"\tPeriodic "<< char('H'+pfdir) <<"-direction P"<< patch
               << std::endl;
     static_cast<ASMs3D*>(myModel[patch-1])->closeFaces(pfdir);
-    // Cannot do multi-threaded assembly with periodicities
 #ifdef USE_OPENMP
+    // Cannot do multi-threaded assembly with periodicities
     omp_set_num_threads(1);
 #endif
   }
@@ -396,9 +396,8 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
 		<< std::endl;
       static_cast<ASMs3D*>(myModel[patch-1])->closeFaces(pfdir);
     }
-
-    // Cannot do multi-threaded assembly with periodicities
 #ifdef USE_OPENMP
+    // Cannot do multi-threaded assembly with periodicities
     omp_set_num_threads(1);
 #endif
   }
@@ -665,6 +664,7 @@ bool SIM3D::readPatch (std::istream& isp, int pchInd)
   if (checkRHSys)
     pch->checkRightHandSystem();
 
+  pch->idx = myModel.size();
   myModel.push_back(pch);
 
   return true;
@@ -674,10 +674,9 @@ bool SIM3D::readPatch (std::istream& isp, int pchInd)
 bool SIM3D::readPatches (std::istream& isp, const char* whiteSpace)
 {
   ASMs3D* pch = 0;
-
-  for (int patchNo = 1; isp.good(); patchNo++)
+  for (int pchInd = 1; isp.good(); pchInd++)
   {
-    std::cout << whiteSpace <<"Reading patch "<< patchNo << std::endl;
+    std::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
     switch (opt.discretization)
       {
       case ASM::Lagrange:
@@ -701,17 +700,37 @@ bool SIM3D::readPatches (std::istream& isp, const char* whiteSpace)
       delete pch;
       return false;
     }
-    else if (pch->empty() || this->getLocalPatchIndex(patchNo) < 1)
+    else if (pch->empty() || this->getLocalPatchIndex(pchInd) < 1)
       delete pch;
     else
     {
       if (checkRHSys)
 	pch->checkRightHandSystem();
+      pch->idx = myModel.size();
       myModel.push_back(pch);
     }
   }
 
   return true;
+}
+
+
+void SIM3D::readNodes (std::istream& isn)
+{
+  while (isn.good())
+  {
+    int patch = 0;
+    isn >> patch;
+    int pid = getLocalPatchIndex(patch+1);
+    if (pid < 0) return;
+
+    if (!this->readNodes(isn,pid-1))
+    {
+      std::cerr <<" *** SIM3D::readNodes: Failed to assign node numbers"
+		<<" for patch "<< patch+1 << std::endl;
+      return;
+    }
+  }
 }
 
 
@@ -728,7 +747,7 @@ bool SIM3D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
     isn >> n.faces[i].isnod >> n.faces[i].incrI >> n.faces[i].incrJ;
   isn >> n.iinod;
 
-  if (pchInd < 0 || !isn.good()) return true;
+  if (!isn.good() || pchInd < 0) return true;
 
   if (!oneBased)
   {
@@ -740,43 +759,4 @@ bool SIM3D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
   }
 
   return static_cast<ASMs3D*>(myModel[pchInd])->assignNodeNumbers(n,basis);
-}
-
-
-void SIM3D::readNodes (std::istream& isn)
-{
-  while (isn.good()) {
-    int patch = 0;
-    isn >> patch;
-    ++patch;
-    int pid = getLocalPatchIndex(patch);
-    if (pid < 0)
-      return;
-
-    ASMs3D::BlockNodes n;
-    for (size_t i = 0; i <  8 && isn.good(); i++)
-      isn >> n.ibnod[i];
-    for (size_t i = 0; i < 12 && isn.good(); i++)
-      isn >> n.edges[i].icnod >> n.edges[i].incr;
-    for (size_t i = 0; i <  6 && isn.good(); i++)
-      isn >> n.faces[i].isnod >> n.faces[i].incrI >> n.faces[i].incrJ;
-    isn >> n.iinod;
-
-    // We always require the node numbers to be 1-based
-    for (size_t i = 0; i <  8; i++)
-      ++n.ibnod[i];
-    for (size_t i = 0; i < 12; i++)
-      ++n.edges[i].icnod;
-    for (size_t i = 0; i <  6; i++)
-      ++n.faces[i].isnod;
-    ++n.iinod;
-
-    if (isn.good() && pid > 0) {
-      if (!static_cast<ASMs3D*>(myModel[pid-1])->assignNodeNumbers(n)) {
-        std::cerr <<" *** SIM3D::readNodes: Failed to assign node numbers"
-                  <<" for patch "<< patch << std::endl;
-        return;
-      }
-    }
-  }
 }

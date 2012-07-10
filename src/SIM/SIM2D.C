@@ -132,7 +132,7 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"topology"))
   {
-    if (this->createFEMmodel()) return false;
+    if (!this->createFEMmodel()) return false;
 
     std::vector<Interface> top;
     const TiXmlElement* child = elem->FirstChildElement("connection");
@@ -181,7 +181,7 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"periodic"))
   {
-    if (this->createFEMmodel()) return false;
+    if (!this->createFEMmodel()) return false;
 
     int patch = 0, pedir = 1;
     utl::getAttribute(elem,"patch",patch);

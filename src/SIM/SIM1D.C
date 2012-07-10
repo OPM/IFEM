@@ -100,7 +100,7 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"topology"))
   {
-    if (this->createFEMmodel()) return false;
+    if (!this->createFEMmodel()) return false;
 
     const TiXmlElement* child = elem->FirstChildElement("connection");
     while (child)
@@ -132,7 +132,7 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"periodic"))
   {
-    if (this->createFEMmodel()) return false;
+    if (!this->createFEMmodel()) return false;
 
     int patch = 0;
     utl::getAttribute(elem,"patch",patch);
@@ -373,6 +373,7 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
       static_cast<ASMs1D*>(myModel[patch-1])->constrainNode(rx,bcode);
     }
   }
+
   else
     return this->SIMbase::parse(keyWord,is);
 
@@ -436,9 +437,13 @@ bool SIM1D::readPatch (std::istream& isp, int pchInd)
     return false;
   }
   else if (pch->empty())
+  {
     delete pch;
-  else
-    myModel.push_back(pch);
+    return true;
+  }
+
+  pch->idx = myModel.size();
+  myModel.push_back(pch);
 
   return true;
 }
@@ -447,9 +452,9 @@ bool SIM1D::readPatch (std::istream& isp, int pchInd)
 bool SIM1D::readPatches (std::istream& isp, const char* whiteSpace)
 {
   ASMbase* pch = 0;
-  for (int patchNo = 1; isp.good(); patchNo++)
+  for (int pchInd = 1; isp.good(); pchInd++)
   {
-    std::cout << whiteSpace <<"Reading patch "<< patchNo << std::endl;
+    std::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
     switch (opt.discretization)
       {
       case ASM::Lagrange:
@@ -461,6 +466,7 @@ bool SIM1D::readPatches (std::istream& isp, const char* whiteSpace)
       default:
         pch = new ASMs1D(1,nf);
       }
+
     if (!pch->read(isp))
     {
       delete pch;
@@ -469,7 +475,10 @@ bool SIM1D::readPatches (std::istream& isp, const char* whiteSpace)
     else if (pch->empty())
       delete pch;
     else
+    {
+      pch->idx = myModel.size();
       myModel.push_back(pch);
+    }
   }
 
   return true;
