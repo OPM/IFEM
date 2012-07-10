@@ -26,16 +26,9 @@ void IntegrandBase::resetSolution ()
 
 
 bool IntegrandBase::initElement (const std::vector<int>& MNPC,
-				 const Vec3&, size_t, LocalIntegral& elmInt)
-{
-  return this->initElement(MNPC,elmInt);
-}
-
-
-bool IntegrandBase::initElement (const std::vector<int>& MNPC,
                                  LocalIntegral& elmInt)
 {
-  // Extract the primary solution vectors for this element
+  // Extract all primary solution vectors for this element
   int ierr = 0;
   elmInt.vec.resize(primsol.empty() ? 1 : primsol.size());
   for (size_t i = 0; i < primsol.size() && ierr == 0; i++)
@@ -50,20 +43,36 @@ bool IntegrandBase::initElement (const std::vector<int>& MNPC,
 }
 
 
-bool IntegrandBase::initElement (const std::vector<int>&,
-				 const std::vector<int>&, size_t,
-                                 LocalIntegral&)
+/*!
+  Reimplement this method if your integrand need either the element center
+  or the total number of integration points within the element.
+  The default implementation forwards to an overloaded method not taking
+  \a X0 and \a nPt as arguments.
+*/
+
+bool IntegrandBase::initElement (const std::vector<int>& MNPC,
+				 const Vec3&, size_t, LocalIntegral& elmInt)
 {
-  std::cerr <<" *** IntegrandBase::initElement must be reimplemented"
-	    <<" for mixed problems."<< std::endl;
-  return false;
+  return this->initElement(MNPC,elmInt);
+}
+
+
+/*!
+  The default implementation forwards to the single-basis version.
+*/
+
+bool IntegrandBase::initElement (const std::vector<int>& MNPC1,
+				 const std::vector<int>&, size_t,
+                                 LocalIntegral& elmInt)
+{
+  return this->initElement(MNPC1,elmInt);
 }
 
 
 bool IntegrandBase::initElementBou (const std::vector<int>& MNPC,
                                     LocalIntegral& elmInt)
 {
-  // Extract current primary solution vector for this element
+  // Extract (only) the current primary solution vector for this element
   int ierr = 0;
   elmInt.vec.resize(1);
   if (!primsol.empty() && !primsol.front().empty())
@@ -77,13 +86,15 @@ bool IntegrandBase::initElementBou (const std::vector<int>& MNPC,
 }
 
 
-bool IntegrandBase::initElementBou (const std::vector<int>&,
+/*!
+  The default implementation forwards to the single-basis version.
+*/
+
+bool IntegrandBase::initElementBou (const std::vector<int>& MNPC1,
 				    const std::vector<int>&, size_t,
-                                    LocalIntegral&)
+                                    LocalIntegral& elmInt)
 {
-  std::cerr <<" *** IntegrandBase::initElementBou must be reimplemented"
-	    <<" for mixed problems."<< std::endl;
-  return false;
+  return this->initElementBou(MNPC1,elmInt);
 }
 
 

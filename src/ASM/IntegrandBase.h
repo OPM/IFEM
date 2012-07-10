@@ -76,46 +76,39 @@ public:
 
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
-  //! \param[in] X0 Cartesian coordinates of the element center
-  //! \param[in] nPt Number of integration points in this element
-  //! \param[in] elmInt Local integral for element
-  //!
-  //! \details This method is invoked once before starting the numerical
-  //! integration loop over the Gaussian quadrature points over an element.
-  //! It is supposed to perform all the necessary internal initializations
-  //! needed before the numerical integration is started for current element.
-  //! The default implementation forwards to an overloaded method not taking
-  //! \a X0 and \a nPt as arguments.
-  virtual bool initElement(const std::vector<int>& MNPC,
-                           const Vec3& X0, size_t nPt, LocalIntegral& elmInt);
-  //! \brief Initializes current element for numerical integration.
-  //! \param[in] MNPC Matrix of nodal point correspondance for current element
-  //! \param[in] elmInt Local integral for element
+  //! \param elmInt Local integral for element
   //!
   //! \details This method is invoked once before starting the numerical
   //! integration loop over the Gaussian quadrature points over an element.
   //! It is supposed to perform all the necessary internal initializations
   //! needed before the numerical integration is started for current element.
   virtual bool initElement(const std::vector<int>& MNPC, LocalIntegral& elmInt);
+  //! \brief Initializes current element for numerical integration.
+  //! \param[in] MNPC Matrix of nodal point correspondance for current element
+  //! \param[in] X0 Cartesian coordinates of the element center
+  //! \param[in] nPt Number of integration points in this element
+  //! \param elmInt Local integral for element
+  virtual bool initElement(const std::vector<int>& MNPC,
+                           const Vec3& X0, size_t nPt, LocalIntegral& elmInt);
   //! \brief Initializes current element for numerical integration (mixed).
   //! \param[in] MNPC1 Nodal point correspondance for the basis 1
   //! \param[in] MNPC2 Nodal point correspondance for the basis 2
-  //! \param[in] n1 Number of nodes in basis 1 on this patch
-  //! \param[in] elmInt Local integral for element
+  //! \param[in] n1 Number of nodes in basis 1 on current patch
+  //! \param elmInt Local integral for element
   virtual bool initElement(const std::vector<int>& MNPC1,
                            const std::vector<int>& MNPC2, size_t n1,
                            LocalIntegral& elmInt);
 
   //! \brief Initializes current element for boundary integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
-  //! \param[in] elmInt Local integral for element
+  //! \param elmInt Local integral for element
   virtual bool initElementBou(const std::vector<int>& MNPC,
                               LocalIntegral& elmInt);
   //! \brief Initializes current element for boundary integration (mixed).
   //! \param[in] MNPC1 Nodal point correspondance for the basis 1
   //! \param[in] MNPC2 Nodal point correspondance for the basis 2
-  //! \param[in] n1 Number of nodes in basis 1 on this patch
-  //! \param[in] elmInt Local integral for element
+  //! \param[in] n1 Number of nodes in basis 1 on current patch
+  //! \param elmInt Local integral for element
   virtual bool initElementBou(const std::vector<int>& MNPC1,
                               const std::vector<int>& MNPC2, size_t n1,
                               LocalIntegral& elmInt);
@@ -277,12 +270,10 @@ public:
   virtual LocalIntegral* getLocalIntegral(size_t, size_t iEl, bool) const;
 
   //! \brief Initializes current element for numerical integration.
+  virtual bool initElement(const std::vector<int>& MNPC, LocalIntegral& elmInt);
+  //! \brief Initializes current element for numerical integration.
   virtual bool initElement(const std::vector<int>& MNPC,
                            const Vec3& X0, size_t nPt, LocalIntegral& elmInt);
-
-  //! \brief Initializes current element for numerical integration.
-  virtual bool initElement(const std::vector<int>& MNPC, LocalIntegral& elmInt);
-
   //! \brief Initializes current element for numerical integration (mixed).
   virtual bool initElement(const std::vector<int>& MNPC1,
                            const std::vector<int>& MNPC2, size_t n1,
@@ -291,7 +282,6 @@ public:
   //! \brief Initializes current element for boundary integration.
   virtual bool initElementBou(const std::vector<int>& MNPC,
                               LocalIntegral& elmInt);
-
   //! \brief Initializes current element for boundary integration (mixed).
   virtual bool initElementBou(const std::vector<int>& MNPC1,
                               const std::vector<int>& MNPC2, size_t n1,
@@ -370,12 +360,12 @@ public:
   virtual LocalIntegral* getLocalIntegral(size_t, size_t iEl, bool) const;
 
   //! \brief Dummy implementation (only boundary integration is relevant).
-  virtual bool initElement(const std::vector<int>&, const Vec3&,
-                           size_t, LocalIntegral&)
+  virtual bool initElement(const std::vector<int>&, LocalIntegral&)
   { return false; }
 
   //! \brief Dummy implementation (only boundary integration is relevant).
-  virtual bool initElement(const std::vector<int>&, LocalIntegral&)
+  virtual bool initElement(const std::vector<int>&, const Vec3&,
+                           size_t, LocalIntegral&)
   { return false; }
 
   //! \brief Dummy implementation (only boundary integration is relevant).
@@ -386,7 +376,6 @@ public:
   //! \brief Initializes current element for boundary integration.
   virtual bool initElementBou(const std::vector<int>& MNPC,
                               LocalIntegral& elmInt);
-
   //! \brief Initializes current element for boundary integration (mixed).
   virtual bool initElementBou(const std::vector<int>& MNPC1,
                               const std::vector<int>& MNPC2, size_t n1,
