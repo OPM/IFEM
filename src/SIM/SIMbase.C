@@ -1840,7 +1840,7 @@ bool SIMbase::writeGlvBC (int& nBlock, int iStep) const
 
     geomID++;
     size_t nbc = myModel[i]->getNoFields(1);
-    Matrix bc(nbc,myModel[i]->getNoNodes());
+    Matrix bc(nbc,myModel[i]->getNoNodes(-1));
     RealArray flag(3,0.0);
     ASMbase::BCVec::const_iterator bit;
     for (bit = myModel[i]->begin_BC(); bit != myModel[i]->end_BC(); bit++)
@@ -2725,6 +2725,7 @@ bool SIMbase::extractPatchSolution (IntegrandBase* problem,
   if (pindx >= myModel.size() || myModel[pindx]->empty())
     return false;
 
+  problem->initNodeMap(myModel[pindx]->getGlobalNodeNums());
   for (size_t i = 0; i < sol.size() && i < problem->getNoSolutions(); i++)
     if (!sol[i].empty())
       myModel[pindx]->extractNodeVec(sol[i],problem->getSolution(i),

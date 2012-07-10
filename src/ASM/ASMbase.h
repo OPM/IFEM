@@ -174,8 +174,10 @@ public:
   //! \brief Prints out the nodal coordinates of this patch to the given stream.
   void printNodes(std::ostream& os, const char* heading = 0) const;
 
+  //! \brief Returns the global node numbers of this patch.
+  const IntVec& getGlobalNodeNums() const { return MLGN; }
   //! \brief Returns the total number of nodes in this patch.
-  virtual size_t getNoNodes(int = 0) const { return MLGN.size(); }
+  virtual size_t getNoNodes(int basis = 0) const;
   //! \brief Returns the total number of elements in this patch.
   size_t getNoElms(bool includeZeroVolumeElms = false) const;
   //! \brief Returns the number of extra-ordinary elements in this patch.

@@ -67,6 +67,8 @@ public:
   //! the secondary solution at all result sampling points, after the converged
   //! primary solution has been found.
   virtual void initResultPoints(double) {}
+  //! \brief Initializes the global node number mapping for current patch.
+  virtual void initNodeMap(const std::vector<int>&) {}
   //! \brief Returns the system quantity to be integrated by \a *this.
   virtual GlobalIntegral& getGlobalInt(GlobalIntegral* gq) const { return *gq; }
 
@@ -250,7 +252,8 @@ class NormBase : public Integrand
 {
 protected:
   //! \brief The default constructor is protected to allow sub-classes only.
-  NormBase(IntegrandBase& p) : myProblem(p), nrcmp(0), lints(0), finalOp(ASM::SQRT) {}
+  NormBase(IntegrandBase& p) : myProblem(p), nrcmp(0), lints(0),
+                               finalOp(ASM::SQRT) {}
 
 public:
   //! \brief Empty destructor.
@@ -263,8 +266,7 @@ public:
   //! \brief Sets a vector of LocalIntegrals to be used during norm integration.
   void setLocalIntegrals(LintegralVec* elementNorms) { lints = elementNorms; }
 
-  //! \brief Returns a local integral container for the given element.
-  //! \param[in] iEl The element number
+  //! \brief Returns a local integral container for the element \a iEl.
   virtual LocalIntegral* getLocalIntegral(size_t, size_t iEl, bool) const;
 
   //! \brief Initializes current element for numerical integration.
@@ -306,10 +308,9 @@ public:
   //! \brief Accesses a projected secondary solution vector of current patch.
   Vector& getProjection(size_t i);
 
-  //! \brief Set the final operation to apply to norms
-  void setFinalOperation(ASM::FinalNormOp op) {finalOp = op; }
-
-  //! \brief Get the final operation applied to norms
+  //! \brief Sets the final operation to apply to norms.
+  void setFinalOperation(ASM::FinalNormOp op) { finalOp = op; }
+  //! \brief Returns the final operation applied to norms.
   ASM::FinalNormOp getFinalOperation() { return finalOp; }
 
 protected:
@@ -320,9 +321,9 @@ protected:
 
   Vectors prjsol; //!< Projected secondary solution vectors for current patch
 
-  unsigned short int nrcmp; //!< Number of projected solution components
-  LintegralVec*      lints; //!< Local integrals used during norm integration
-  ASM::FinalNormOp   finalOp; //!< The final operation to apply to norms after assembly
+  unsigned short int nrcmp;   //!< Number of projected solution components
+  LintegralVec*      lints;   //!< Local integrals used during norm integration
+  ASM::FinalNormOp   finalOp; //!< The final operation to apply to norms
 };
 
 
@@ -340,8 +341,7 @@ public:
   //! \brief The destructor frees the internally allocated objects.
   virtual ~ForceBase();
 
-  //! \brief Allocates internal element buffers used in multithreaded assembly.
-  //! \param[in] nel Number of elements
+  //! \brief Allocates internal element force buffers.
   bool initBuffer(size_t nel);
 
   //! \brief Assembles the global forces.
@@ -350,8 +350,7 @@ public:
   //! \brief Initializes the integrand with the number of integration points.
   virtual void initIntegration(size_t, size_t) {}
 
-  //! \brief Returns a local integral container for the given element.
-  //! \param[in] iEl The element number
+  //! \brief Returns a local integral container for the element \a iEl.
   virtual LocalIntegral* getLocalIntegral(size_t, size_t iEl, bool) const;
 
   //! \brief Dummy implementation (only boundary integration is relevant).
@@ -382,7 +381,7 @@ public:
 protected:
   IntegrandBase& myProblem; //!< The problem-specific data
   LintegralVec      eForce; //!< Local integrals used during force integration
-  double*          eBuffer; //!< Element force buffer (used when multithreading)
+  double*          eBuffer; //!< Element force buffer used during integration
 };
 
 #endif

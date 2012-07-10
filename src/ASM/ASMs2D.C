@@ -1892,8 +1892,8 @@ bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
   const int p2 = surf->order_v();
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
-  size_t nComp = locSol.size() / this->getNoNodes();
-  if (nComp*this->getNoNodes() != locSol.size())
+  size_t nComp = locSol.size() / this->getNoNodes(-1);
+  if (nComp*this->getNoNodes(-1) != locSol.size())
     return false;
 
   Matrix Xtmp;

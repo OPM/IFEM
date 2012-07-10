@@ -2467,8 +2467,8 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
   const int n1 = svol->numCoefs(0);
   const int n2 = svol->numCoefs(1);
   const int n3 = svol->numCoefs(2);
-  size_t nComp = locSol.size() / this->getNoNodes();
-  if (nComp*this->getNoNodes() != locSol.size())
+  size_t nComp = locSol.size() / this->getNoNodes(-1);
+  if (nComp*this->getNoNodes(-1) != locSol.size())
     return false;
 
   Matrix Xtmp;

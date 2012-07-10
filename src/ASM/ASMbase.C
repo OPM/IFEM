@@ -184,6 +184,12 @@ char ASMbase::getNodeType (size_t inod) const
 }
 
 
+size_t ASMbase::getNoNodes (int basis) const
+{
+  return basis < 0 && myLMs.first > 0 ? myLMs.first-1 : MLGN.size();
+}
+
+
 size_t ASMbase::getNoElms (bool includeZeroVolumeElms) const
 {
   if (includeZeroVolumeElms) return MLGE.size();

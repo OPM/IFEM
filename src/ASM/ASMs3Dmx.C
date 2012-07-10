@@ -92,7 +92,7 @@ size_t ASMs3Dmx::getNoNodes (int basis) const
     case 2: return nb2;
     }
 
-  return MLGN.size();
+  return this->ASMbase::getNoNodes(basis);
 }
 
 

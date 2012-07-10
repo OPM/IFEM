@@ -144,7 +144,7 @@ bool ASMs2D::globalL2projection (Matrix& sField,
     return false;
 
   // Set up the projection matrices
-  const size_t nnod = this->getNoNodes();
+  const size_t nnod = this->getNoNodes(1);
   const size_t ncomp = sField.rows();
   SparseMatrix A(SparseMatrix::SUPERLU);
   StdVector B(nnod*ncomp);
