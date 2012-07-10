@@ -13,6 +13,7 @@
 
 #include "LinearMaterial.h"
 #include "Tensor.h"
+#include "int_debug.h"
 
 
 double LinearMaterial::getMassDensity (const Vec3& X) const
@@ -47,7 +48,7 @@ bool LinearMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
     // sigma = 1/J * F * sigma * F^t
     sigma.transform(F);
     sigma *= 1.0/J;
-#ifdef INT_DEBUG
+#if INT_DEBUG > 1
     std::cout <<"LinearMaterial::sigma =\n"<< sigma;
 #endif
     if (iop > 1) return true;
@@ -80,7 +81,7 @@ bool LinearMaterial::evaluate (Matrix& C, SymmTensor& sigma, double& U,
   // C = 1/J * T^t * C * T
   C.multiply(T,Ctmp.multiply(C,T),true);
   C *= 1.0/J;
-#ifdef INT_DEBUG
+#if INT_DEBUG > 1
   std::cout <<"LinearMaterial::C ="<< C;
 #endif
 

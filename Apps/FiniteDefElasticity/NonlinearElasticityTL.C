@@ -17,6 +17,7 @@
 #include "ElmMats.h"
 #include "Tensor.h"
 #include "Vec3Oper.h"
+#include "int_debug.h"
 
 #ifndef epsR
 //! \brief Zero tolerance for the radial coordinate.
@@ -313,7 +314,7 @@ bool NonlinearElasticityTL::kinematics (const Vector& eV,
   // Add the dU/r term to the F(3,3)-term for axisymmetric problems
   if (axiSymmetry && r > epsR) F(3,3) += eV.dot(N,0,nsd)/r;
 
-#ifdef INT_DEBUG
+#if INT_DEBUG > 0
   std::cout <<"NonlinearElasticityTL::F =\n"<< F;
 #endif
 
@@ -356,7 +357,7 @@ bool NonlinearElasticityTL::kinematics (const Vector& eV,
 	  Bmat(INDEX(3,i),a) = F(i,1)*dNdX(a,2) + F(i,2)*dNdX(a,1);
 
   Bmat.resize(nstrc,nsd*nenod);
-#ifdef INT_DEBUG
+#if INT_DEBUG > 0
   std::cout <<"NonlinearElasticityTL::B ="<< Bmat;
 #endif
   return true;

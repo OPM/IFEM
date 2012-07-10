@@ -19,6 +19,7 @@
 #include "TimeDomain.h"
 #include "Tensor.h"
 #include "Vec3Oper.h"
+#include "int_debug.h"
 
 #ifndef epsR
 //! \brief Zero tolerance for the radial coordinate.
@@ -200,7 +201,7 @@ bool NonlinearElasticityUL::evalInt (LocalIntegral& elmInt,
       else
 	this->formBmatrix(Bmat,dNdx);
 
-#ifdef INT_DEBUG
+#if INT_DEBUG > 0
       std::cout <<"NonlinearElasticityUL::dNdx ="<< dNdx;
       std::cout <<"NonlinearElasticityUL::B ="<< Bmat;
 #endif
@@ -393,7 +394,7 @@ bool NonlinearElasticityUL::kinematics (const Vector& eV,
   // Add the dU/r term to the F(3,3)-term for axisymmetric problems
   if (axiSymmetry && r > epsR) F(3,3) += eV.dot(N,0,nsd)/r;
 
-#ifdef INT_DEBUG
+#if INT_DEBUG > 0
   std::cout <<"NonlinearElasticityUL::eV ="<< eV;
   std::cout <<"NonlinearElasticityUL::F =\n"<< F;
 #endif

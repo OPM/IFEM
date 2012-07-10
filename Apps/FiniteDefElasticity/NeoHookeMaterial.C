@@ -13,6 +13,7 @@
 
 #include "NeoHookeMaterial.h"
 #include "Tensor.h"
+#include "int_debug.h"
 
 #ifdef USE_FTNMAT
 extern "C" {
@@ -30,9 +31,6 @@ extern "C" {
 	       const double* pMAT, double* HV,
 	       double& Engy, const double* Sig, double* Cst, int& ierr);
 }
-#ifndef INT_DEBUG
-#define INT_DEBUG 0
-#endif
 #endif
 
 

@@ -309,7 +309,7 @@ void MortarPenalty::initIntegration (const TimeDomain& prm, const Vector&)
       activeSlave.resize(n,false);
       activeSlave.back() = true;
     }
-    else if (mortar.weightedGap(n) < wmin)
+    else if (mortar.weightedArea(n) > 0.0 && mortar.weightedGap(n) < wmin)
     {
       nmin = n;
       wmin = mortar.weightedGap(n);

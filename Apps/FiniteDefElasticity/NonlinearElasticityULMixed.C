@@ -18,6 +18,7 @@
 #include "ElmNorm.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
+#include "int_debug.h"
 
 #ifdef USE_FTNMAT
 extern "C" {
@@ -35,14 +36,6 @@ extern "C" {
   void acckm3d_(const int& nEN, const double* dNdx,
 		const double* D, double* eKt);
 }
-#ifdef USE_OPENMP
-#if INT_DEBUG > 0
-#undef INT_DEBUG
-#endif
-#endif
-#ifndef INT_DEBUG
-#define INT_DEBUG 0
-#endif
 #endif
 
 

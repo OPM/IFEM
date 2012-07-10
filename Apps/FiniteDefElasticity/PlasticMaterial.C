@@ -13,6 +13,7 @@
 
 #include "PlasticMaterial.h"
 #include "TimeDomain.h"
+#include "int_debug.h"
 
 #ifdef USE_FTNMAT
 extern "C" {
@@ -31,9 +32,6 @@ extern "C" {
 	       const double* be, const double& Epp, const double* Epl,
 	       const double* Sig, double* Cst, int& ierr);
 }
-#ifndef INT_DEBUG
-#define INT_DEBUG 0
-#endif
 #endif
 
 

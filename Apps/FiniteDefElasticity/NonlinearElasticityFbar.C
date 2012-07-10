@@ -20,6 +20,7 @@
 #include "Lagrange.h"
 #include "TimeDomain.h"
 #include "Tensor.h"
+#include "int_debug.h"
 
 
 /*!
@@ -247,14 +248,14 @@ bool NonlinearElasticityFbar::reducedInt (LocalIntegral& elmInt,
     if (axiSymmetry && X.x > 0.0)
       ptData.Nr = fe.N * (1.0/(X.x + eV.dot(fe.N,0,nsd)));
 
-#ifdef INT_DEBUG
+#if INT_DEBUG > 0
     std::cout <<"NonlinearElasticityFbar::J = "<< ptData.J
 	      <<"\nNonlinearElasticityFbar::dNdx ="<< ptData.dNdx;
     if (axiSymmetry)
       std::cout <<"NonlinearElasticityFbar::Nr ="<< ptData.Nr;
 #endif
   }
-#ifdef INT_DEBUG
+#if INT_DEBUG > 0
   if (fbar->iP == fbar->myVolData.size())
     std::cout <<"NonlinearElasticityFbar: Volumetric sampling points completed."
 	      <<"\n"<< std::endl;
@@ -503,7 +504,7 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral& elmInt,
     {
       // Push-forward the basis function gradients to current configuration
       dNdx.multiply(fe.dNdX,Fi); // dNdx = dNdX * F^-1
-#ifdef INT_DEBUG
+#if INT_DEBUG > 0
       std::cout <<"NonlinearElasticityFbar::J = "<< J
 		<<"\nNonlinearElasticityFbar::dNdx ="<< dNdx;
 #endif
@@ -539,7 +540,7 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral& elmInt,
 				fbar.pbar,fe.xi*fbar.scale,
 				fbar.pbar,fe.eta*fbar.scale,
 				pbar3,fe.zeta*fbar.scale)) return false;
-#ifdef INT_DEBUG
+#if INT_DEBUG > 0
     std::cout <<"NonlinearElasticityFbar::Nbar ="<< Nbar;
 #endif
 
@@ -569,7 +570,7 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral& elmInt,
 
   // Compute modified deformation gradient, Fbar
   F *= pow(fabs(Jbar/J),1.0/(double)nDF);
-#ifdef INT_DEBUG
+#if INT_DEBUG > 0
   std::cout <<"NonlinearElasticityFbar::Jbar = "<< Jbar
 	    <<"\nNonlinearElasticityFbar::dMdx ="<< dMdx
 	    <<"NonlinearElasticityFbar::Fbar =\n"<< F;
@@ -639,7 +640,7 @@ bool NonlinearElasticityFbar::evalInt (LocalIntegral& elmInt,
 	  Q(k,5) = Q(k,1);
       }
 
-#ifdef INT_DEBUG
+#if INT_DEBUG > 0
     std::cout <<"NonlinearElasticityFbar::G ="<< G
 	      <<"NonlinearElasticityFbar::Gbar ="<< Gbar
 	      <<"NonlinearElasticityFbar::A ="<< A
