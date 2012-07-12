@@ -212,9 +212,12 @@ void VTF::clearGeometryBlocks ()
 
 const ElementBlock* VTF::getBlock (int geomID) const
 {
-  if (geomID < 1 || (size_t)geomID > myBlocks.size()) return NULL;
+  if (geomID > 0 && (size_t)geomID <= myBlocks.size())
+    return myBlocks[geomID-1].second;
 
-  return myBlocks[geomID-1].second;
+  // Return a pointer to an empty block if index is out of range
+  static ElementBlock emptyBlock;
+  return &emptyBlock;
 }
 
 
