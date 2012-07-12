@@ -1626,6 +1626,9 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       return false;
     }
 
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
+  size_t firstp = iit == firstBp.end() ? 0 : iit->second;
+
   FiniteElement fe(p1*p2);
   fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
   fe.u = gpar[0](1,1);
@@ -1686,7 +1689,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       // --- Integration loop over all Gauss points along the edge -------------
 
       int ip = (t1 == 1 ? i2-p2 : i1-p1)*nGP;
-      fe.iGP = firstBp[lIndex] + ip; // Global integration point counter
+      fe.iGP = firstp + ip; // Global integration point counter
 
       for (int i = 0; i < nGP; i++, ip++, fe.iGP++)
       {

@@ -688,7 +688,8 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
       return false;
     }
 
-  fe.iGP = firstBp[lIndex];
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
+  fe.iGP = iit == firstBp.end() ? 0 : iit->second;
   fe.iel = MLGE[iel-1];
   if (fe.iel < 1) return true; // zero-length element
 

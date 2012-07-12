@@ -667,6 +667,9 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
 
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
+  size_t firstp = iit == firstBp.end() ? 0 : iit->second;
+
   MxFiniteElement fe(basis1->order_u()*basis1->order_v(),
 		     basis2->order_u()*basis2->order_v());
   fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
@@ -717,7 +720,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
       // --- Integration loop over all Gauss points along the edge -------------
 
       int ip = (t1 == 1 ? i2-p2 : i1-p1)*nGauss;
-      fe.iGP = firstBp[lIndex] + ip; // Global integration point counter
+      fe.iGP = firstp + ip; // Global integration point counter
 
       for (int i = 0; i < nGauss; i++, ip++, fe.iGP++)
       {

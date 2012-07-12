@@ -1970,6 +1970,9 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
       return false;
     }
 
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
+  size_t firstp = iit == firstBp.end() ? 0 : iit->second;
+
 
   // === Assembly loop over all elements on the patch face =====================
 
@@ -2047,7 +2050,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
         int k1, k2, k3;
         int ip = (j2*nGP*nf1 + j1)*nGP;
         int jp = (j2*nf1 + j1)*nGP*nGP;
-        fe.iGP = firstBp[lIndex] + jp; // Global integration point counter
+        fe.iGP = firstp + jp; // Global integration point counter
 
         for (int j = 0; j < nGP; j++, ip += nGP*(nf1-1))
           for (int i = 0; i < nGP; i++, ip++, fe.iGP++)
@@ -2180,6 +2183,9 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
   const int p2 = svol->order(1);
   const int p3 = svol->order(2);
 
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lEdge);
+  size_t firstp = iit == firstBp.end() ? 0 : iit->second;
+
   FiniteElement fe(p1*p2*p3);
   fe.u = gpar[0](1,1);
   fe.v = gpar[1](1,1);
@@ -2254,7 +2260,7 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 
 	// --- Integration loop over all Gauss points along the edge -----------
 
-	fe.iGP = firstBp[lEdge] + ip; // Global integration point counter
+	fe.iGP = firstp + ip; // Global integration point counter
 
 	for (int i = 0; i < nGauss; i++, ip++, fe.iGP++)
 	{

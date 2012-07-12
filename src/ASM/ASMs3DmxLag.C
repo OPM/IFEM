@@ -395,6 +395,9 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
   const int nel1 = (nx2-1)/(p1-1);
   const int nel2 = (ny2-1)/(p2-1);
 
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
+  size_t firstp = iit == firstBp.end() ? 0 : iit->second;
+
 
   // === Assembly loop over all elements on the patch face =====================
 
@@ -446,7 +449,7 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
 	// --- Integration loop over all Gauss points in each direction --------
 
         int jp = (j2*nf1 + j1)*nGauss*nGauss;
-        fe.iGP = firstBp[lIndex] + jp; // Global integration point counter
+        fe.iGP = firstp + jp; // Global integration point counter
 
 	for (int j = 0; j < nGauss; j++)
 	  for (int i = 0; i < nGauss; i++, fe.iGP++)

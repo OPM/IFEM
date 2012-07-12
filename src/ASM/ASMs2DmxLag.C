@@ -354,6 +354,9 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
   const int nelx = (nx2-1)/(q1-1);
   const int nely = (ny2-1)/(q2-1);
 
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
+  size_t firstp = iit == firstBp.end() ? 0 : iit->second;
+
   MxFiniteElement fe(p1*p2,q1*q2);
   Matrix dN1du, dN2du, Xnod, Jac;
   Vec4   X;
@@ -394,7 +397,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
       // --- Integration loop over all Gauss points along the edge -------------
 
       int jp = (t1 == 1 ? i2 : i1)*nGauss;
-      fe.iGP = firstBp[lIndex] + jp; // Global integration point counter
+      fe.iGP = firstp + jp; // Global integration point counter
 
       for (int i = 0; i < nGauss; i++, fe.iGP++)
       {

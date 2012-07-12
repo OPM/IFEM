@@ -309,7 +309,8 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
   if (!this->getElementCoordinates(Xnod,iel)) return false;
 
   // Initialize element quantities
-  fe.iGP = firstBp[lIndex];
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
+  fe.iGP = iit == firstBp.end() ? 0 : iit->second;
   fe.iel = MLGE[iel-1];
   LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
   if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;

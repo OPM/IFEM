@@ -468,6 +468,9 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
   if (vpar.empty()) this->getGridParameters(vpar,1,1);
   if (wpar.empty()) this->getGridParameters(wpar,2,1);
 
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
+  size_t firstp = iit == firstBp.end() ? 0 : iit->second;
+
 
   // === Assembly loop over all elements on the patch face =====================
 
@@ -521,7 +524,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 
 	int k1, k2, k3;
         int jp = (j2*nf1 + j1)*nGauss*nGauss;
-        fe.iGP = firstBp[lIndex] + jp; // Global integration point counter
+        fe.iGP = firstp + jp; // Global integration point counter
 
 	for (int j = 0; j < nGauss; j++)
 	  for (int i = 0; i < nGauss; i++, fe.iGP++)
@@ -639,6 +642,9 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
     case 12: xi[0] =  1.0; xi[1] =  1.0; break;
     }
 
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lEdge);
+  size_t firstp = iit == firstBp.end() ? 0 : iit->second;
+
 
   // === Assembly loop over all elements on the patch edge =====================
 
@@ -684,7 +690,7 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
 
 	// --- Integration loop over all Gauss points along the edge -----------
 
-	fe.iGP = firstBp[lEdge] + ip; // Global integration point counter
+	fe.iGP = firstp + ip; // Global integration point counter
 
 	for (int i = 0; i < nGauss; i++, fe.iGP++)
 	{

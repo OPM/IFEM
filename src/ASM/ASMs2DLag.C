@@ -422,6 +422,9 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
     fe.v = edgeDir < 0 ? surf->startparam_v() : surf->endparam_v();
   }
 
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
+  size_t firstp = iit == firstBp.end() ? 0 : iit->second;
+
   Matrix dNdu, Xnod, Jac;
   Vec4   X;
   Vec3   normal;
@@ -457,7 +460,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
       // --- Integration loop over all Gauss points along the edge -------------
 
       int jp = (t1 == 1 ? i2 : i1)*nGauss;
-      fe.iGP = firstBp[lIndex] + jp; // Global integration point counter
+      fe.iGP = firstp + jp; // Global integration point counter
 
       for (int i = 0; i < nGauss; i++, fe.iGP++)
       {
