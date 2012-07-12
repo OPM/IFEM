@@ -72,6 +72,7 @@ private:
   Vector       gNA;  //!< Weighted nodal gaps
   Vector       AA;   //!< Weighted nodal areas
   usint        nsd;  //!< Number of space dimensions
+  int          nthr; //!< Number of threads during assembly
 };
 
 

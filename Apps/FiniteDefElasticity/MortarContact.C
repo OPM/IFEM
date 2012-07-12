@@ -19,6 +19,9 @@
 #include "Vec3Oper.h"
 #include "Utilities.h"
 #include <cfloat>
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 
 
 MortarMats::MortarMats (const SAM& _sam, int nMast, usint n) : sam(_sam), nsd(n)
@@ -28,6 +31,11 @@ MortarMats::MortarMats (const SAM& _sam, int nMast, usint n) : sam(_sam), nsd(n)
   phiA.resize(nsd*nNod,nSlv);
   gNA.resize(nSlv);
   AA.resize(nSlv);
+#ifdef USE_OPENMP
+  nthr = omp_get_max_threads();
+#else
+  nthr = 1;
+#endif
 }
 
 
@@ -36,6 +44,11 @@ void MortarMats::initialize (bool)
   phiA.init();
   gNA.fill(0.0);
   AA.fill(0.0);
+#ifdef USE_OPENMP
+  // The first assembly must de done single-threaded to set the sparsity pattern
+  if (phiA.size() == 0)
+    omp_set_num_threads(1);
+#endif
 }
 
 
@@ -77,6 +90,11 @@ bool MortarMats::assemble (const LocalIntegral* elmObj, int elmId)
 
 bool MortarMats::finalize (bool)
 {
+#ifdef USE_OPENMP
+  omp_set_num_threads(nthr);
+#endif
+  phiA.lockPattern(true);
+
   for (size_t j = 1; j <= AA.size(); j++)
     if (AA(j) > 0.0)
       gNA(j) /= AA(j);
