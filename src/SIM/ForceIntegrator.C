@@ -14,8 +14,8 @@
 #include "ForceIntegrator.h"
 #include "SIMbase.h"
 #include "ASMbase.h"
-#include "GlbForce.h"
 #include "IntegrandBase.h"
+#include "GlobalIntegral.h"
 #ifdef PARALLEL_PETSC
 #include "petscversion.h"
 #if PETSC_VERSION_MAJOR == 3 && PETSC_VERSION_MINOR >= 2
@@ -37,18 +37,14 @@ Vector SIM::getBoundaryForce (const Vectors& solution, SIMbase* model, int code,
     return Vector();
   }
 
-  const std::vector<ASMbase*>& feModel = model->getFEModel();
-
   forceInt->initBuffer(model->getNoElms());
 
-  // Initialize the force integral class
-  size_t nComp = forceInt->getNoComps();
-  Vector force(nComp);
-  GlbForce globalForce(force);
+  const std::vector<ASMbase*>& feModel = model->getFEModel();
 
   // Integrate forces for given boundary segment
   bool ok = true;
   size_t prevPatch = 0;
+  GlobalIntegral dummy;
   PropertyVec::const_iterator p;
   for (p = model->begin_prop(); p != model->end_prop() && ok; p++)
     if (abs(p->pindx) == code)
@@ -60,16 +56,18 @@ Vector SIM::getBoundaryForce (const Vectors& solution, SIMbase* model, int code,
       {
         if (j != prevPatch)
           ok = model->extractPatchSolution(solution,j-1);
-        ok &= feModel[j-1]->integrate(*forceInt,abs(p->lindx),globalForce,time);
+        ok &= feModel[j-1]->integrate(*forceInt,abs(p->lindx),dummy,time);
         prevPatch = j;
       }
     }
 
-  // Perform the actual global force assembly
-  forceInt->assemble(globalForce);
+  // Assemble the element force contributions into the global force resultant
+  Vector force;
+  forceInt->assemble(force);
   delete forceInt;
 
 #ifdef PARALLEL_PETSC
+  size_t nComp = force.size();
   double* tmp = new double[nComp];
   MPI_Allreduce(force.ptr(),tmp,nComp,MPI_DOUBLE,MPI_SUM,PETSC_COMM_WORLD);
   memcpy(force.ptr(),tmp,nComp*sizeof(double));

@@ -24,7 +24,6 @@
 class NormBase;
 class ForceBase;
 class GlobalIntegral;
-class GlbForce;
 class GlbNorm;
 class AnaSol;
 class VTF;
@@ -345,7 +344,7 @@ public:
   bool initBuffer(size_t nel);
 
   //! \brief Assembles the global forces.
-  void assemble(GlbForce& force) const;
+  void assemble(RealArray& force) const;
 
   //! \brief Initializes the integrand with the number of integration points.
   virtual void initIntegration(size_t, size_t) {}

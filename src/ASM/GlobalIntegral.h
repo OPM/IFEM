@@ -23,11 +23,9 @@ class LocalIntegral;
 
 class GlobalIntegral
 {
-protected:
-  //! \brief The default constructor is protected to allow sub-classes only.
-  GlobalIntegral() {}
-
 public:
+  //! \brief The default constructor.
+  GlobalIntegral() {}
   //! \brief Empty destructor.
   virtual ~GlobalIntegral() {}
 
@@ -40,7 +38,6 @@ public:
   //! \param[in] elmObj The local integral object to add into \a *this.
   //! \param[in] elmId Global number of the element associated with elmObj
   virtual bool assemble(const LocalIntegral* elmObj, int elmId) { return true; }
-
 };
 
 #endif
