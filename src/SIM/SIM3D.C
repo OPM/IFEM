@@ -36,10 +36,6 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
 {
   if (!strcasecmp(elem->Value(),"refine"))
   {
-    bool uniform = true;
-    if (elem->Attribute("type"))
-      uniform = strcasecmp(elem->Attribute("type"),"nonuniform") != 0;
-
     int lowpatch = 1, uppatch = 2;
     if (utl::getAttribute(elem,"patch",lowpatch))
       uppatch = lowpatch;
@@ -54,7 +50,8 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
       return false;
     }
 
-    if (uniform)
+    RealArray xi;
+    if (!utl::parseKnots(elem,xi))
     {
       int addu = 0, addv = 0, addw = 0;
       utl::getAttribute(elem,"u",addu);
@@ -72,17 +69,17 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
     }
     else
     {
-      RealArray xi;
+      // Non-uniform (graded) refinement
       int dir = 1;
-      if (utl::getAttribute(elem,"dir",dir) && utl::parseKnots(elem,xi))
-        for (int j = lowpatch-1; j < uppatch; j++)
-        {
-          std::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
-          for (size_t i = 0; i < xi.size(); i++)
-            std::cout <<" "<< xi[i];
-          std::cout << std::endl;
-          static_cast<ASMs3D*>(myModel[j])->refine(dir-1,xi);
-        }
+      utl::getAttribute(elem,"dir",dir);
+      for (int j = lowpatch-1; j < uppatch; j++)
+      {
+        std::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
+        for (size_t i = 0; i < xi.size(); i++)
+          std::cout <<" "<< xi[i];
+        std::cout << std::endl;
+        static_cast<ASMs3D*>(myModel[j])->refine(dir-1,xi);
+      }
     }
   }
 

@@ -30,10 +30,6 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
 {
   if (!strcasecmp(elem->Value(),"refine"))
   {
-    bool uniform = true;
-    if (elem->Attribute("type"))
-      uniform = strcasecmp(elem->Attribute("type"),"nonuniform") != 0;
-
     int lowpatch = 1, uppatch = 2;
     if (utl::getAttribute(elem,"patch",lowpatch))
       uppatch = lowpatch;
@@ -48,7 +44,8 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
       return false;
     }
 
-    if (uniform)
+    RealArray xi;
+    if (!utl::parseKnots(elem,xi))
     {
       int addu = 0;
       utl::getAttribute(elem,"u",addu);
@@ -59,18 +56,14 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
       }
     }
     else
-    {
-      RealArray xi;
-      if (utl::parseKnots(elem,xi))
-        for (int j = lowpatch-1; j < uppatch; j++)
-        {
-          std::cout <<"\tRefining P"<< j+1;
-          for (size_t i = 0; i < xi.size(); i++)
-            std::cout <<" "<< xi[i];
-          std::cout << std::endl;
-          static_cast<ASMs1D*>(myModel[j])->refine(xi);
-        }
-    }
+      for (int j = lowpatch-1; j < uppatch; j++)
+      {
+        std::cout <<"\tRefining P"<< j+1;
+        for (size_t i = 0; i < xi.size(); i++)
+          std::cout <<" "<< xi[i];
+        std::cout << std::endl;
+        static_cast<ASMs1D*>(myModel[j])->refine(xi);
+      }
   }
 
   else if (!strcasecmp(elem->Value(),"raiseorder"))

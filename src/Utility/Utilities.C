@@ -43,15 +43,15 @@ bool utl::parseKnots (std::vector<real>& xi)
     if (xi1 < 0.0 || xi2 <= xi1 || xi2 > 1.0 || ru < 1)
       return false;
 
-    double D1 = 0.0;
-    double D2 = (xi2-xi1);
-    D2 *= (alpha <= 1.0 ? 1.0/real(ru+1) : (1.0-alpha)/(1.0-pow(alpha,ru+1)));
+    double x = xi1;
+    double D = xi2 - xi1;
+    D *= (alpha <= 1.0 ? 1.0/real(ru+1) : (1.0-alpha)/(1.0-pow(alpha,ru+1)));
     if (xi1 > 0.0) xi.push_back(xi1);
     for (int i = 0; i < ru; i++)
     {
-      xi.push_back(xi1+D1+D2);
-      D1 = D2;
-      if (alpha > 1.0) D2 = alpha*D1;
+      x += D;
+      if (alpha > 1.0) D *= alpha;
+      xi.push_back(x);
     }
     if (xi2 < 1.0) xi.push_back(xi2);
   }
@@ -100,6 +100,27 @@ bool utl::ignoreComments (std::istream& is)
   is.putback(c);
 
   return is.good();
+}
+
+
+bool utl::getAttribute (const TiXmlElement* xml, const char* att, bool& val)
+{
+  if (!xml->Attribute(att))
+    return false;
+
+  const char* value = xml->Value();
+  if (!strcasecmp(value,"true") || !strcasecmp(value,"on"))
+    val = true;
+  else if (!strcasecmp(value,"false") || !strcasecmp(value,"off"))
+    val = false;
+  else if (value[0] == '1')
+    val = true;
+  else if (value[1] == '0')
+    val = false;
+  else
+    return false;
+
+  return true;
 }
 
 
@@ -174,8 +195,11 @@ const char* utl::getValue (const TiXmlElement* xml, const char* tag)
 
 bool utl::parseKnots (const TiXmlElement* xml, std::vector<real>& xi)
 {
+  if (!xml->FirstChild())
+    return false;
+
   std::string xiVal("xi ");
-  xiVal += xml->FirstChildElement()->Value();
+  xiVal += xml->FirstChild()->Value();
   strtok(const_cast<char*>(xiVal.c_str())," ");
   return utl::parseKnots(xi);
 }

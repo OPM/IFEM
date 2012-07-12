@@ -51,10 +51,6 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
 {
   if (!strcasecmp(elem->Value(),"refine") && !isRefined)
   {
-    bool uniform = true;
-    if (elem->Attribute("type"))
-      uniform = strcasecmp(elem->Attribute("type"),"nonuniform") != 0;
-
     int lowpatch = 1, uppatch = 2;
     if (utl::getAttribute(elem,"patch",lowpatch))
       uppatch = lowpatch;
@@ -70,7 +66,8 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     }
 
     ASM2D* pch = 0;
-    if (uniform)
+    RealArray xi;
+    if (!utl::parseKnots(elem,xi))
     {
       int addu = 0, addv = 0;
       utl::getAttribute(elem,"u",addu);
@@ -86,18 +83,17 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     }
     else
     {
-      RealArray xi;
       int dir = 1;
-      if (utl::getAttribute(elem,"dir",dir) && utl::parseKnots(elem,xi))
-        for (int j = lowpatch-1; j < uppatch; j++)
-          if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
-          {
-            std::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
-            for (size_t i = 0; i < xi.size(); i++)
-              std::cout <<" "<< xi[i];
-            std::cout << std::endl;
-            pch->refine(dir-1,xi);
-          }
+      utl::getAttribute(elem,"dir",dir);
+      for (int j = lowpatch-1; j < uppatch; j++)
+        if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
+        {
+          std::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
+          for (size_t i = 0; i < xi.size(); i++)
+            std::cout <<" "<< xi[i];
+          std::cout << std::endl;
+          pch->refine(dir-1,xi);
+        }
     }
   }
 
@@ -139,14 +135,12 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     while (child)
     {
       int master = 0, slave = 0, mEdge = 0, sEdge = 0;
+      bool rever = false;
       utl::getAttribute(child,"master",master);
       utl::getAttribute(child,"medge",mEdge);
       utl::getAttribute(child,"slave",slave);
       utl::getAttribute(child,"sedge",sEdge);
-
-      bool rever = false;
-      if (child->Attribute("reverse"))
-        rever = strcasecmp(child->Attribute("reverse"),"true") == 0;
+      utl::getAttribute(child,"reverse",rever);
 
       if (master == slave ||
           master < 1 || master > (int)myModel.size() ||

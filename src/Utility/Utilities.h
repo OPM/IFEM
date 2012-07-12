@@ -49,25 +49,32 @@ namespace utl
   //! \param is File stream to read from
   bool ignoreComments(std::istream& is);
 
+  //! \brief Extracts a boolean attribute value from the specified XML-element.
+  //! \param[in] xml Pointer to XML-element to extract from
+  //! \param[in] att The attribute tag
+  //! \param[out] val The attribute value
+  //! \return \e true if the attribute \a att is found in \a xml,
+  //! otherwise \e false
+  bool getAttribute(const TiXmlElement* xml, const char* att, bool& val);
   //! \brief Extracts an integer attribute value from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
   //! \param[out] val The attribute value
-  //! \return \e true if the attribute \a att is found in \a child,
+  //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
   bool getAttribute(const TiXmlElement* xml, const char* att, int& val);
-  //! \brief Extracts an unsigned integer attribute value from the specified XML-element.
+  //! \brief Extracts a size_t attribute value from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
   //! \param[out] val The attribute value
-  //! \return \e true if the attribute \a att is found in \a child,
+  //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
   bool getAttribute(const TiXmlElement* xml, const char* att, size_t& val);
   //! \brief Extracts a real attribute value from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
   //! \param[out] val The attribute value
-  //! \return \e true if the attribute \a att is found in \a child,
+  //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
   bool getAttribute(const TiXmlElement* xml, const char* att, real& val);
   //! \brief Extracts a string attribute value from the specified XML-element.
@@ -75,7 +82,7 @@ namespace utl
   //! \param[in] att The attribute tag
   //! \param[out] val The attribute value
   //! \param[in] toLower If \e true, convert return string to lower case
-  //! \return \e true if the attribute \a att is found in \a child,
+  //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
   bool getAttribute(const TiXmlElement* xml, const char* att, std::string& val,
                     bool toLower = false);
