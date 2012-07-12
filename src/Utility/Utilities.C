@@ -33,24 +33,29 @@ void utl::parseIntegers (std::vector<int>& values, const char* argv)
 bool utl::parseKnots (std::vector<real>& xi)
 {
   char* cline = strtok(NULL," ");
-  if (toupper(cline[0]) == 'G')
+  if (!cline)
+    return false;
+  else if (isalpha(cline[0]))
   {
     // Geometric grading
+    bool  biased = toupper(cline[0]) == 'B';
     int    ru    = atoi(strtok(NULL," "));
     double alpha = atof(strtok(NULL," "));
     double xi1   = (cline = strtok(NULL," ")) ? atof(cline) : 0.0;
     double xi2   = (cline = strtok(NULL," ")) ? atof(cline) : 1.0;
     if (xi1 < 0.0 || xi2 <= xi1 || xi2 > 1.0 || ru < 1)
       return false;
+    if (biased && ru > 1 && alpha != 1.0)
+      alpha = pow(alpha,1.0/real(ru));
 
     double x = xi1;
     double D = xi2 - xi1;
-    D *= (alpha <= 1.0 ? 1.0/real(ru+1) : (1.0-alpha)/(1.0-pow(alpha,ru+1)));
+    D *= (alpha == 1.0 ? 1.0/real(ru+1) : (1.0-alpha)/(1.0-pow(alpha,ru+1)));
     if (xi1 > 0.0) xi.push_back(xi1);
     for (int i = 0; i < ru; i++)
     {
       x += D;
-      if (alpha > 1.0) D *= alpha;
+      D *= alpha;
       xi.push_back(x);
     }
     if (xi2 < 1.0) xi.push_back(xi2);
