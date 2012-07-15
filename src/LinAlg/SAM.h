@@ -179,9 +179,20 @@ public:
   //! \param[in] inod Identifier for the node to get the equation numbers for
   bool getNodeEqns(IntVec& mnen, int inod) const;
 
+  //! \brief Returns the DOF classification of a given node.
+  //! \param[in] inod Identifier for the node to get the classification for
+  char getNodeType(int inod) const
+  { return inod-- > 0 && inod < (int)nodeType.size() ? nodeType[inod] : ' '; }
+
   //! \brief Returns the first and last DOFs for a node.
   //! \param[in] inod Identifier for the node to get the DOF numbers for
   std::pair<int,int> getNodeDOFs(int inod) const;
+
+  //! \brief Returns the internal node number and local index for a global DOF.
+  //! \param[in] idof Global DOF-number in the range [1,NDOF]
+  //! \return first = internal node number in the range [1,NNOD]
+  //! \return second = local DOF number in the range [1,NNDOF]
+  std::pair<int,int> getNodeAndLocalDof(int idof) const;
 
   //! \brief Finds the equation number corresponding to a local nodal DOF.
   //! \param[in] inod Identifier for the node to get the equation number for
@@ -262,12 +273,6 @@ protected:
   //! \param[in] scaleSD Scaling factor for specified (slave) DOFs
   bool expandVector(const real* solVec, Vector& dofVec, real scaleSD) const;
 
-  //! \brief Returns the internal node number and local index for a global DOF.
-  //! \param[in] idof Global DOF-number in the range [1,NDOF]
-  //! \return first = internal node number in the range [1,NNOD]
-  //! \return second = local DOF number in the range [1,NNDOF]
-  std::pair<int,int> getNodeAndLocalDof(int idof) const;
-
 private:
   int mpar[50]; //!< Matrix of parameters
 
@@ -295,7 +300,7 @@ protected:
   int*  minex;  //!< Matrix of internal to external node numbers
   int*  meqn;   //!< Matrix of equation numbers
 
-  std::vector<char> nodeType; //!< DOF classification when using mixed methods
+  std::vector<char> nodeType; //!< Nodal DOF classification
 
   friend class DenseMatrix;
   friend class SPRMatrix;

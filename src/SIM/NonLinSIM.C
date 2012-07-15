@@ -177,8 +177,20 @@ void NonLinSIM::init (SolvePrm& param, const RealArray& initVal)
     solution[n].resize(model->getNoDOFs(),true);
 
   // Set initial conditions for time-dependent problems
-  if (initVal.size() == model->getNoDOFs())
-    solution.front() = initVal;
+  this->setInitialGuess(initVal);
+}
+
+
+void NonLinSIM::setInitialGuess (const RealArray& value)
+{
+  if (value.empty() || solution.empty())
+    return;
+
+  size_t ndim = solution.front().size();
+  if (value.size() > ndim)
+    std::copy(value.begin(),value.begin()+ndim,solution.front().begin());
+  else
+    std::copy(value.begin(),value.end(),solution.front().begin());
 }
 
 
@@ -235,7 +247,6 @@ bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode,
 	if (!this->updateConfiguration(param))
 	  return false;
 
-	model->setMode(SIM::RECOVERY);
 	if (!this->solutionNorms(param.time,compName,energyNorm,
 				 zero_tolerance,outPrec))
 	  return false;
@@ -345,27 +356,50 @@ NonLinSIM::ConvStatus NonLinSIM::checkConvergence (SolvePrm& param)
   static double prevNorm  = 0.0;
   static int    nIncrease = 0;
 
+  ConvStatus status = OK;
   double enorm, resNorm, linsolNorm;
   model->iterationNorms(linsol,residual,enorm,resNorm,linsolNorm);
   double norm = iteNorm == ENERGY ? enorm : resNorm;
 
   if (param.iter == 0)
   {
-    if (norm > param.refNorm)
-      param.refNorm = norm;
+    if (fabs(norm) > param.refNorm)
+      param.refNorm = fabs(norm);
     norm = prevNorm = 1.0;
     nIncrease = 0;
   }
   else
-    norm = fabs(norm)/param.refNorm;
+    norm /= param.refNorm;
+
+  // Check for slow convergence
+  if (param.iter > 1 && prevNorm > 0.0 && fabs(norm) > prevNorm*0.1)
+    status = SLOW;
 
   if (msgLevel > 0 && myPid == 0 && !solution.empty())
   {
+    if (status == SLOW)
+    {
+      // Find and print out the worst DOFs
+      std::map<std::pair<int,int>,RealArray> worstDOFs;
+      model->getWorstDofs(linsol,residual,param.convTol,worstDOFs);
+      std::cout <<"  ** Slow convergence detected, here are the "
+                << worstDOFs.size() <<" worst DOFs:";
+      std::map<std::pair<int,int>,RealArray>::const_iterator it;
+      for (it = worstDOFs.begin(); it != worstDOFs.end(); it++)
+        std::cout <<"\n     Node "<< it->first.first
+                  <<" Local DOF "<< it->first.second
+                  <<" ("<< model->getNodeType(it->first.first)
+                  <<") :\tEnergy = "<< it->second[0]
+                  <<"\tdu = "<< it->second[1]
+                  <<" res = "<< it->second[2];
+      std::cout << std::endl;
+    }
+
     // Print convergence history
     std::ios::fmtflags oldFlags = std::cout.flags(std::ios::scientific);
     std::streamsize oldPrec = std::cout.precision(3);
     std::cout <<"  iter="<< param.iter
-	      <<"  conv="<< norm
+	      <<"  conv="<< fabs(norm)
 	      <<"  enen="<< enorm
 	      <<"  resn="<< resNorm
 	      <<"  incn="<< linsolNorm << std::endl;
@@ -373,18 +407,16 @@ NonLinSIM::ConvStatus NonLinSIM::checkConvergence (SolvePrm& param)
     std::cout.precision(oldPrec);
   }
 
-  // Check for convergence
-  if (norm < param.convTol)
-    return CONVERGED;
-
-  // Check for divergence (increasing norm in three consequtive iterations)
-  if (norm <= prevNorm)
+  // Check for convergence or divergence
+  if (fabs(norm) < param.convTol)
+    status = CONVERGED;
+  else if (fabs(norm) <= fabs(prevNorm))
     nIncrease = 0;
-  else if (++nIncrease > 1 || norm > param.divgLim)
-    return DIVERGED;
+  else if (++nIncrease > 2 || fabs(norm) > param.divgLim)
+    status = DIVERGED;
 
   prevNorm = norm;
-  return NONE;
+  return status;
 }
 
 
@@ -418,6 +450,7 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName,
 
   if (energyNorm)
   {
+    model->setMode(SIM::RECOVERY);
     model->setQuadratureRule(model->opt.nGauss[1]);
     if (!model->solutionNorms(time,solution,gNorm))
       gNorm.clear();
@@ -443,33 +476,36 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName,
       if (utl::trunc(RF.front()) != 0.0)
 	std::cout <<"\n  "<< compName <<"*reactions: (R,u) = "<< RF.front();
     }
-    if (gNorm.size() > 0)
+    if (!gNorm.empty())
     {
-      std::cout <<"\n  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : "
-		<< utl::trunc(gNorm[0](1));
-      std::streamsize oldPrec = std::cout.precision(10);
-      std::cout <<"\t a(u^h,u^h) = "<< utl::trunc(gNorm[0](1)*gNorm[0](1));
-      std::cout.precision(oldPrec);
+      const Vector& norm = gNorm.front();
+      if (norm.size() > 0)
+      {
+        std::cout <<"\n  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : "
+                  << utl::trunc(norm(1));
+        std::streamsize oldPrec = std::cout.precision(10);
+        std::cout <<"\t a(u^h,u^h) = "<< utl::trunc(norm(1)*norm(1));
+        std::cout.precision(oldPrec);
+      }
+      if (norm.size() > 1 && utl::trunc(norm(2)) != 0.0)
+      {
+        std::cout <<"\n  External energy: ((f,u^h)+(t,u^h))^0.5 : "<< norm(2);
+        std::streamsize oldPrec = std::cout.precision(10);
+        std::cout <<"\t(f,u)+(t,u) = "<< norm(2)*norm(2);
+        std::cout.precision(oldPrec);
+      }
+      if (norm.size() > 2)
+        std::cout <<"\n  Stress norm, L2: (sigma^h,sigma^h)^0.5 : "<< norm(3);
+      if (norm.size() > 3)
+        std::cout <<"\n  Pressure norm, L2:       (p^h,p^h)^0.5 : "<< norm(4)
+                  <<"\t(p^h = trace(sigma^h)/3)";
+      if (norm.size() > 4)
+        std::cout <<"\n  Deviatoric stress norm:  (s^d,s^d)^0.5 : "<< norm(5)
+                  <<"\t(s^d = sigma^h - p^h*I)";
+      if (norm.size() > 5)
+        std::cout <<"\n  Stress norm, von Mises: vm(sigma^h)    : "<< norm(6);
+      std::cout << std::endl;
     }
-    if (gNorm.size() && gNorm[0].size() > 1 && utl::trunc(gNorm[0](2)) != 0.0)
-    {
-      std::cout <<"\n  External energy: ((f,u^h)+(t,u^h))^0.5 : "<< gNorm[0](2);
-      std::streamsize oldPrec = std::cout.precision(10);
-      std::cout <<"\t(f,u)+(t,u) = "<< gNorm[0](2)*gNorm[0](2);
-      std::cout.precision(oldPrec);
-    }
-    if (gNorm.size() && gNorm[0].size() > 2)
-      std::cout <<"\n  Stress norm, L2: (sigma^h,sigma^h)^0.5 : "<< gNorm[0](3);
-    if (gNorm.size() && gNorm[0].size() > 3)
-      std::cout <<"\n  Pressure norm, L2:       (p^h,p^h)^0.5 : "<< gNorm[0](4)
-		<<"\t(p^h = trace(sigma^h)/3)";
-    if (gNorm.size() && gNorm[0].size() > 4)
-      std::cout <<"\n  Deviatoric stress norm:  (s^d,s^d)^0.5 : "<< gNorm[0](5)
-		<<"\t(s^d = sigma^h - p^h*I)";
-    if (gNorm.size() && gNorm[0].size() > 5)
-      std::cout <<"\n  Stress norm, von Mises: vm(sigma^h)    : "<< gNorm[0](6);
-    std::cout << std::endl;
-
     utl::zero_print_tol = old_tol;
     if (stdPrec > 0) std::cout.precision(stdPrec);
   }
@@ -544,10 +580,4 @@ void NonLinSIM::dumpStep (int iStep, double time, std::ostream& os,
 bool NonLinSIM::dumpResults (double time, std::ostream& os, int precision) const
 {
   return model->dumpResults(solution.front(),time,os,true,precision);
-}
-
-
-bool NonLinSIM::project ()
-{
-  return model->project(solution.front());
 }

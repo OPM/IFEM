@@ -33,7 +33,7 @@ class VTF;
 class NonLinSIM : public SIMinput
 {
 public:
-  //! \brief The constructor initialized default solution parameters.
+  //! \brief The constructor initializes default solution parameters.
   //! \param sim Pointer to the spline FE model
   NonLinSIM(SIMbase* sim = 0);
   //! \brief The destructor frees the dynamically allocated FE model object.
@@ -45,6 +45,8 @@ public:
   public:
     //! \brief Default constructor.
     SolvePrm() : refNorm(1.0), alpha(1.0) {}
+    //! \brief Empty destructor.
+    virtual ~SolvePrm() {}
 
     int    maxit;   //!< Maximum number of iterations
     int    nupdat;  //!< Number of iterations with updated tangent
@@ -59,6 +61,11 @@ public:
   //! \param param Solution algorithm parameters
   //! \param[in] initVal Initial values of the primary solution
   virtual void init(SolvePrm& param, const RealArray& initVal = RealArray());
+
+  //! \brief Sets the initial guess in the Newton-Raphson iterations.
+  //! \param[in] value Initial values of the primary solution
+  void setInitialGuess(const RealArray& value);
+
   //! \brief Advances the time/load step one step forward.
   //! \param param Solution algorithm parameters
   //! \param[in] updateTime If \e false, the time parameters are not incremented
@@ -68,16 +75,12 @@ public:
   //! \param[in] fileName File name used to construct the VTF-file name from
   bool saveModel(char* fileName);
 
-  //! \brief Sets the initial guess in the Newton-Raphson iterations.
-  //! \param value The initial guess to use
-  void setInitialGuess(const Vector& value) { solution.front() = value; }
-
   //! \brief Solves the nonlinear equations by Newton-Raphson iterations.
   //! \param param Solution algorithm parameters
   //! \param[in] mode Solution mode to use for this step
   //! \param[in] compName Solution name to be used in the norm output
   //! \param[in] energyNorm If \e true, integrate energy norm of the solution
-  //! \param[in] zero_tolerance Truncate norm values small than this to zero
+  //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
   //! \param[in] outPrec Number of digits after the decimal point in norm print
   bool solveStep(SolvePrm& param, SIM::SolutionMode mode = SIM::STATIC,
 		 const char* compName = "displacement",
@@ -87,7 +90,7 @@ public:
   //! \brief Enum describing the norm used for convergence checks.
   enum CNORM { L2, ENERGY };
 
-  //! \brief Sets the current norm in used in iteration error estimates.
+  //! \brief Defines the norm type to use in convergence check.
   //! param[in] norm The wanted error norm
   void setErrorNorm(CNORM norm) { iteNorm = norm; }
 
@@ -95,10 +98,12 @@ public:
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param[in] compName Solution name to be used in the norm output
   //! \param[in] energyNorm If \e true, integrate energy norm of the solution
-  //! \param[in] zero_tolerance Truncate norm values small than this to zero
+  //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
   //! \param[in] outPrec Number of digits after the decimal point in norm print
-  virtual bool solutionNorms(const TimeDomain& time, const char* compName,
-			     bool energyNorm = false, double zero_tolerance = 1.0e-8,
+  virtual bool solutionNorms(const TimeDomain& time,
+			     const char* compName,
+			     bool energyNorm = false,
+			     double zero_tolerance = 1.0e-8,
 			     std::streamsize outPrec = 0);
 
   //! \brief Saves the converged results to VTF file of a given load/time step.
@@ -138,21 +143,11 @@ public:
   //! \brief Returns a const reference to current solution vector.
   const Vector& getSolution(int i = 0) const { return solution[i]; }
 
-  //! \brief Returns a const reference to current solution vector.
-  Vector& getSolution(int i = 0) { return solution[i]; }
-
-  //! \brief Projects the secondary solution onto the spline basis.
-  //! \details The secondary solution, defined through the Integrand class,
-  //! is projected onto the spline basis to obtain the control point values
-  //! of the secondary solution. These values then overwrite the current
-  //! primary solution vector.
-  bool project();
-
 protected:
   //! \brief Convergence status enum.
-  enum ConvStatus { NONE, CONVERGED, DIVERGED };
+  enum ConvStatus { OK, SLOW, CONVERGED, DIVERGED };
 
-  //! \brief Perform line search to accelerate convergence.
+  //! \brief Performs line search to accelerate convergence.
   virtual bool lineSearch(SolvePrm& param);
   //! \brief Checks whether the nonlinear iterations have converged or diverged.
   virtual ConvStatus checkConvergence(SolvePrm& param);
@@ -170,11 +165,10 @@ public:
   virtual bool parse(const TiXmlElement* elem);
 
 protected:
-  SIMbase* model; //!< The isogeometric FE model
-
-  Vector  linsol;   //!< Linear solution vector
-  Vector  residual; //!< Residual force vector
-  Vectors solution; //!< Total solution vectors
+  SIMbase* model;    //!< The isogeometric FE model
+  Vectors  solution; //!< Primary solution vectors of the last increments
+  Vector   linsol;   //!< Linear solution vector
+  Vector   residual; //!< Residual force vector
 
   // Nonlinear solution algorithm parameters
   double startTime; //!< Start time of the simulation
@@ -188,7 +182,6 @@ protected:
   int    nupdat;    //!< Number of iterations with updated tangent
   CNORM  iteNorm;   //!< The norm type used to measure the residual
 
-protected:
   // Post-processing attributes
   int     nBlock; //!< Running VTF result block counter
   Vectors gNorm;  //!< Global norms

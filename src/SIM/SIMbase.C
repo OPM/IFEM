@@ -1520,6 +1520,36 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
 }
 
 
+void SIMbase::getWorstDofs (const Vector& u, const Vector& r, double eps,
+                            std::map<std::pair<int,int>,RealArray>& worst) const
+{
+  size_t i;
+  RealArray data(3);
+  std::multimap<double,size_t> energy;
+  std::multimap<double,size_t>::reverse_iterator rit;
+
+  // Compute the energy at each DOF and insert into a map sorted on the energy
+  for (i = 0; i < u.size() && i < r.size(); i++)
+    energy.insert(std::make_pair(u[i]*r[i],i+1));
+
+  // Pick the 10 highest energies from the back of the map
+  for (i = 0, rit = energy.rbegin(); i < 10 && rit != energy.rend(); i++, rit++)
+    if (rit->first > eps)
+    {
+      data[0] = rit->first;
+      data[1] = u(rit->second);
+      data[2] = r(rit->second);
+      worst[mySam->getNodeAndLocalDof(rit->second)] = data;
+    }
+}
+
+
+char SIMbase::getNodeType (int inod) const
+{
+  return mySam ? mySam->getNodeType(inod) : ' ';
+}
+
+
 void SIMbase::iterationNorms (const Vector& u, const Vector& r,
 			      double& eNorm, double& rNorm, double& dNorm) const
 {
@@ -2623,7 +2653,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
   if (msgLevel > 1)
     std::cout <<"\nProjecting secondary solution ..."<< std::endl;
 
-  ssol.resize(0,0);
+  ssol.clear();
 
   size_t i, j, n;
   size_t ngNodes = mySam->getNoNodes();
@@ -2720,17 +2750,6 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
       for (j = 1; j <= ssol.rows(); j++)
 	ssol(j,n) /= count(n);
 
-  return true;
-}
-
-
-bool SIMbase::project (Vector& sol) const
-{
-  Matrix secsol;
-  if (!this->project(secsol,sol))
-    return false;
-
-  sol = secsol;
   return true;
 }
 

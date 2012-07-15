@@ -209,6 +209,9 @@ public:
   //! \brief Returns the visualization dump interval.
   int getDumpInterval() const { return opt.saveInc; }
 
+  //! \brief Returns the type (DOF classification) of the specified node.
+  char getNodeType(int inod) const;
+
   //! \brief Initializes time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time
   bool initDirichlet(double time = 0.0);
@@ -272,6 +275,14 @@ public:
   //! \param[in] newLHS If \e false, reuse the LHS-matrix from previous call.
   bool solveSystem(Vector& solution, int printSol = 0,
                    const char* compName = "displacement", bool newLHS = true);
+
+  //! \brief Finds the 10 worst energy DOFs in the residual.
+  //! \param[in] x Global primary solution vector
+  //! \param[in] r Global residual vector associated with the solution vector
+  //! \param[in] eps Only record the energies larger than this tolerance
+  //! \param[out] worst Node and local DOF number and values of the worst DOFs
+  void getWorstDofs(const Vector& x, const Vector& r, double eps,
+		    std::map<std::pair<int,int>,RealArray>& worst) const;
 
   //! \brief Evaluates some iteration norms for convergence assessment.
   //! \param[in] x Global primary solution vector
@@ -375,9 +386,6 @@ public:
   //! spline basis to obtain the control point values of the secondary solution.
   bool project(Matrix& ssol, const Vector& psol,
 	       SIMoptions::ProjectionMethod pMethod = SIMoptions::GLOBAL) const;
-  //! \brief Projects the secondary solution associated with a primary solution.
-  //! \param sol Control point values of primary(in)/secondary(out) solution
-  bool project(Vector& sol) const;
 
   //! \brief Evaluates the secondary solution field for specified patch.
   //! \param[out] field Control point values of the secondary solution field
