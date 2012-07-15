@@ -12,7 +12,7 @@
 //==============================================================================
 
 #include "SIMFiniteDefEl.h"
-#include "NonLinSIM.h"
+#include "NonlinearDriver.h"
 #include "ASMmxBase.h"
 #include "LinAlgInit.h"
 #include "HDF5Writer.h"
@@ -232,7 +232,7 @@ int main (int argc, char** argv)
 
   // Read in solver and model definitions
   model->opt.discretization = dummy.discretization;
-  NonLinSIM simulator(model);
+  NonlinearDriver simulator(model);
   if (!simulator.read(infile))
     return 1;
 
@@ -326,9 +326,9 @@ int main (int argc, char** argv)
       std::cout <<"\nWriting HDF5 file "<< model->opt.hdf5
 		<<".hdf5"<< std::endl;
     writer = new DataExporter(true);
-    writer->registerField("u","solution",DataExporter::SIM,
-			  static_cast<DataExporter::Results>(!skip2nd));
-    writer->setFieldValue("u",model,(void*)&simulator.getSolution());
+    writer->registerField("u","solution", DataExporter::SIM, skip2nd ?
+			  DataExporter::PRIMARY : DataExporter::SECONDARY);
+    writer->setFieldValue("u",model,&simulator.getSolution());
     writer->registerWriter(new HDF5Writer(model->opt.hdf5));
     writer->registerWriter(new XMLWriter(model->opt.hdf5));
   }
@@ -341,8 +341,8 @@ int main (int argc, char** argv)
   while (simulator.advanceStep(params))
   {
     // Solve the nonlinear FE problem at this load step
-    if (!simulator.solveStep(params,SIM::STATIC,"displacement",energy,
-			     zero_tol, outPrec > 3 ? outPrec : 0))
+    if (!simulator.solveStep(params,SIM::STATIC,energy,zero_tol,
+			     outPrec > 3 ? outPrec : 0))
       return 5;
 
     // Print solution components at the user-defined points

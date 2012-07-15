@@ -19,7 +19,7 @@
 #include <sstream>
 
 
-NonLinSIM::NonLinSIM (SIMbase* sim) : model(sim), nBlock(0)
+NonLinSIM::NonLinSIM (SIMbase* sim, CNORM n) : model(sim), iteNorm(n), nBlock(0)
 {
 #ifndef SP_DEBUG
   msgLevel = 1;   // prints the convergence history only
@@ -35,7 +35,6 @@ NonLinSIM::NonLinSIM (SIMbase* sim) : model(sim), nBlock(0)
   convTol   = 1.0e-6;
   divgLim   = 1.0;
   eta       = 0.0;
-  iteNorm   = ENERGY;
 }
 
 
@@ -205,8 +204,8 @@ bool NonLinSIM::advanceStep (SolvePrm& param, bool updateTime)
 
 
 bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode,
-			   const char* compName, bool energyNorm,
-			   double zero_tolerance, std::streamsize outPrec)
+			   bool energyNorm, double zero_tolerance,
+			   std::streamsize outPrec)
 {
   PROFILE1("NonLinSIM::solveStep");
 
@@ -229,6 +228,7 @@ bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode,
   if (!model->setMode(mode))
     return false;
 
+  bool poorConvg = false;
   bool newTangent = true;
   model->setQuadratureRule(model->opt.nGauss[0],true);
   if (!model->assembleSystem(param.time,solution,newTangent))
@@ -247,8 +247,7 @@ bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode,
 	if (!this->updateConfiguration(param))
 	  return false;
 
-	if (!this->solutionNorms(param.time,compName,energyNorm,
-				 zero_tolerance,outPrec))
+	if (!this->solutionNorms(param.time,energyNorm,zero_tolerance,outPrec))
 	  return false;
 
 	param.time.first = false;
@@ -257,6 +256,8 @@ bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode,
       case DIVERGED:
 	return false;
 
+      case SLOW:
+	poorConvg = true;
       default:
 	param.iter++;
 	if (!this->updateConfiguration(param))
@@ -274,7 +275,7 @@ bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode,
 	else
 	  model->setMode(mode);
 
-	if (!model->assembleSystem(param.time,solution,newTangent))
+	if (!model->assembleSystem(param.time,solution,newTangent,poorConvg))
 	  return false;
 
 	if (!model->extractLoadVec(residual))
@@ -285,6 +286,8 @@ bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode,
 
 	if (!this->lineSearch(param))
 	  return false;
+
+	poorConvg = false;
       }
 
   return false;
@@ -433,79 +436,33 @@ bool NonLinSIM::updateConfiguration (SolvePrm& param)
 }
 
 
-bool NonLinSIM::solutionNorms (const TimeDomain& time, const char* compName,
-			       bool energyNorm, double zero_tolerance,
-			       std::streamsize outPrec)
+bool NonLinSIM::solutionNorms (const TimeDomain& time, bool,
+			       double zero_tolerance, std::streamsize outPrec)
 {
   if (msgLevel < 0 || solution.empty()) return true;
 
-  const int nsd = model->getNoSpaceDim();
+  const size_t nf = model->getNoFields(1);
 
-  size_t iMax[nsd];
-  double dMax[nsd];
+  size_t iMax[nf];
+  double dMax[nf];
   double normL2 = model->solutionNorms(solution.front(),dMax,iMax);
-
-  RealArray RF;
-  bool haveRFs = model->getCurrentReactions(RF,solution.front());
-
-  if (energyNorm)
-  {
-    model->setMode(SIM::RECOVERY);
-    model->setQuadratureRule(model->opt.nGauss[1]);
-    if (!model->solutionNorms(time,solution,gNorm))
-      gNorm.clear();
-  }
 
   if (myPid == 0)
   {
     std::streamsize stdPrec = outPrec > 0 ? std::cout.precision(outPrec) : 0;
     double old_tol = utl::zero_print_tol;
     utl::zero_print_tol = zero_tolerance;
-    std::cout <<"  Primary solution summary: L2-norm            : "
+
+    std::cout <<"  Primary solution summary: L2-norm         : "
 	      << utl::trunc(normL2);
-    char D = 'X';
-    for (int d = 0; d < nsd; d++, D++)
+    if (nf == 1 && utl::trunc(dMax[0]) != 0.0)
+      std::cout <<"\n                            Max value       : "
+	        << dMax[0] <<" node "<< iMax[0];
+    else for (unsigned char d = 0; d < nf; d++)
       if (utl::trunc(dMax[d]) != 0.0)
-	std::cout <<"\n                            Max "<< D <<'-'<< compName
-		  <<" : "<< dMax[d] <<" node "<< iMax[d];
-    if (haveRFs)
-    {
-      std::cout <<"\n  Total reaction forces: Sum(R) =";
-      for (size_t i = 1; i < RF.size(); i++)
-        std::cout <<" "<< utl::trunc(RF[i]);
-      if (utl::trunc(RF.front()) != 0.0)
-	std::cout <<"\n  "<< compName <<"*reactions: (R,u) = "<< RF.front();
-    }
-    if (!gNorm.empty())
-    {
-      const Vector& norm = gNorm.front();
-      if (norm.size() > 0)
-      {
-        std::cout <<"\n  Energy norm:    |u^h| = a(u^h,u^h)^0.5 : "
-                  << utl::trunc(norm(1));
-        std::streamsize oldPrec = std::cout.precision(10);
-        std::cout <<"\t a(u^h,u^h) = "<< utl::trunc(norm(1)*norm(1));
-        std::cout.precision(oldPrec);
-      }
-      if (norm.size() > 1 && utl::trunc(norm(2)) != 0.0)
-      {
-        std::cout <<"\n  External energy: ((f,u^h)+(t,u^h))^0.5 : "<< norm(2);
-        std::streamsize oldPrec = std::cout.precision(10);
-        std::cout <<"\t(f,u)+(t,u) = "<< norm(2)*norm(2);
-        std::cout.precision(oldPrec);
-      }
-      if (norm.size() > 2)
-        std::cout <<"\n  Stress norm, L2: (sigma^h,sigma^h)^0.5 : "<< norm(3);
-      if (norm.size() > 3)
-        std::cout <<"\n  Pressure norm, L2:       (p^h,p^h)^0.5 : "<< norm(4)
-                  <<"\t(p^h = trace(sigma^h)/3)";
-      if (norm.size() > 4)
-        std::cout <<"\n  Deviatoric stress norm:  (s^d,s^d)^0.5 : "<< norm(5)
-                  <<"\t(s^d = sigma^h - p^h*I)";
-      if (norm.size() > 5)
-        std::cout <<"\n  Stress norm, von Mises: vm(sigma^h)    : "<< norm(6);
-      std::cout << std::endl;
-    }
+        std::cout <<"\n                            Max "<< 'X'+d
+                  <<"-component : "<< dMax[d] <<" node "<< iMax[d];
+
     utl::zero_print_tol = old_tol;
     if (stdPrec > 0) std::cout.precision(stdPrec);
   }

@@ -33,9 +33,13 @@ class VTF;
 class NonLinSIM : public SIMinput
 {
 public:
+  //! \brief Enum describing the norm used for convergence checks.
+  enum CNORM { L2, ENERGY };
+
   //! \brief The constructor initializes default solution parameters.
   //! \param sim Pointer to the spline FE model
-  NonLinSIM(SIMbase* sim = 0);
+  //! \param[in] n Which type of iteration norm to use in convergence checks
+  NonLinSIM(SIMbase* sim = 0, CNORM n = ENERGY);
   //! \brief The destructor frees the dynamically allocated FE model object.
   virtual ~NonLinSIM();
 
@@ -78,30 +82,19 @@ public:
   //! \brief Solves the nonlinear equations by Newton-Raphson iterations.
   //! \param param Solution algorithm parameters
   //! \param[in] mode Solution mode to use for this step
-  //! \param[in] compName Solution name to be used in the norm output
   //! \param[in] energyNorm If \e true, integrate energy norm of the solution
   //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
   //! \param[in] outPrec Number of digits after the decimal point in norm print
   bool solveStep(SolvePrm& param, SIM::SolutionMode mode = SIM::STATIC,
-		 const char* compName = "displacement",
 		 bool energyNorm = false, double zero_tolerance = 1.0e-8,
 		 std::streamsize outPrec = 0);
 
-  //! \brief Enum describing the norm used for convergence checks.
-  enum CNORM { L2, ENERGY };
-
-  //! \brief Defines the norm type to use in convergence check.
-  //! param[in] norm The wanted error norm
-  void setErrorNorm(CNORM norm) { iteNorm = norm; }
-
   //! \brief Computes and prints some solution norm quantities.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
-  //! \param[in] compName Solution name to be used in the norm output
   //! \param[in] energyNorm If \e true, integrate energy norm of the solution
   //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
   //! \param[in] outPrec Number of digits after the decimal point in norm print
   virtual bool solutionNorms(const TimeDomain& time,
-			     const char* compName,
 			     bool energyNorm = false,
 			     double zero_tolerance = 1.0e-8,
 			     std::streamsize outPrec = 0);
@@ -170,22 +163,22 @@ protected:
   Vector   linsol;   //!< Linear solution vector
   Vector   residual; //!< Residual force vector
 
-  // Nonlinear solution algorithm parameters
+  // Time stepping parameters
   double startTime; //!< Start time of the simulation
   double stopTime;  //!< Stop time of the simulation
   SIMparameters::TimeSteps steps; //!< Time increment specifications
 
+  // Nonlinear solution algorithm parameters
+  CNORM  iteNorm;   //!< The norm type used to measure the residual
   double convTol;   //!< Relative convergence tolerance
   double divgLim;   //!< Relative divergence limit
   double eta;       //!< Line search tolerance
   int    maxit;     //!< Maximum number of iterations in a time/load step
   int    nupdat;    //!< Number of iterations with updated tangent
-  CNORM  iteNorm;   //!< The norm type used to measure the residual
 
   // Post-processing attributes
-  int     nBlock; //!< Running VTF result block counter
-  Vectors gNorm;  //!< Global norms
-  Matrix  eNorm;  //!< Element norms
+  int    nBlock; //!< Running VTF result block counter
+  Matrix eNorm;  //!< Element norm values
 };
 
 #endif
