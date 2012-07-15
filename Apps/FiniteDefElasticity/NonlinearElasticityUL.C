@@ -134,7 +134,7 @@ void NonlinearElasticityUL::initIntegration (size_t nGp, size_t nBp)
 
 
 void NonlinearElasticityUL::initIntegration (const TimeDomain& prm,
-					     const Vector&)
+					     const Vector&, bool)
 {
   if (material)
     material->initIntegration(prm);

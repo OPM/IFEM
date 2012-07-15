@@ -60,7 +60,7 @@ public:
   //! \brief Initializes the integrand for a new integration loop.
   //! \details This method is invoked once before starting the numerical
   //! integration over the entire spatial domain.
-  virtual void initIntegration(const TimeDomain&, const Vector&) {}
+  virtual void initIntegration(const TimeDomain&, const Vector&, bool=false) {}
   //! \brief Initializes the integrand for a new result point loop.
   //! \details This method is invoked once before starting the evaluation of
   //! the secondary solution at all result sampling points, after the converged

@@ -59,7 +59,7 @@ public:
   virtual void initIntegration(size_t nGp, size_t nBp);
   //! \brief Initializes the integrand for a new integration loop.
   //! \param[in] prm Nonlinear solution algorithm parameters
-  virtual void initIntegration(const TimeDomain& prm, const Vector&);
+  virtual void initIntegration(const TimeDomain& prm, const Vector&, bool);
   //! \brief Initializes the integrand for a new result point loop.
   //! \param[in] lambda Load parameter
   virtual void initResultPoints(double lambda);

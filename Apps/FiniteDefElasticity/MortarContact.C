@@ -301,6 +301,33 @@ bool MortarContact::assResAndTangent (SystemMatrix& Ktan, SystemVector& Res,
 }
 
 
+void MortarContact::printAdditionalInfo (std::map<size_t,char>& cStat,
+					 const MortarMats& mortar) const
+{
+  std::map<size_t,char>::iterator it;
+  for (size_t n = 0; n < activeSlave.size(); n++)
+    if (activeSlave[n])
+    {
+      if ((it = cStat.find(n+1)) == cStat.end())
+	cStat[n+1] = 'A';
+      else
+	it->second = 'R';
+    }
+
+  for (it = cStat.begin(); it != cStat.end(); it++)
+  {
+    std::cout <<"  Contact node "<< it->first;
+    switch (it->second)
+      {
+      case 'A': std::cout <<" was activated"; break;
+      case 'R': std::cout <<" remains active"; break;
+      default : std::cout <<" was deactivated"; break;
+      }
+    std::cout <<", wgap = "<< mortar.weightedGap(it->first) << std::endl;
+  }
+}
+
+
 MortarPenalty::MortarPenalty (RigidBody* mst, const MortarMats& mats, usint nsd)
   : MortarContact(mst,NULL,nsd), mortar(mats)
 {
@@ -309,8 +336,17 @@ MortarPenalty::MortarPenalty (RigidBody* mst, const MortarMats& mats, usint nsd)
 }
 
 
-void MortarPenalty::initIntegration (const TimeDomain& prm, const Vector&)
+void MortarPenalty::initIntegration (const TimeDomain& prm,
+                                     const Vector&, bool poorConverg)
 {
+  // Extract some additional information in case of poor convergence
+  std::map<size_t,char> cStat;
+#ifndef INT_DEBUG
+  if (poorConverg)
+#endif
+    for (size_t n = 0; n < activeSlave.size(); n++)
+      if (activeSlave[n]) cStat[n+1] = 'P';
+
   // Initialize array of active slave nodes
   if (prm.first && prm.it == 0)
     activeSlave.resize(1,false); // Needed to initialize tangent matrix pattern
@@ -334,11 +370,16 @@ void MortarPenalty::initIntegration (const TimeDomain& prm, const Vector&)
     }
 
 #ifndef INT_DEBUG
-  if (prm.it > 0) return;
+  if (prm.it == 0 || poorConverg)
 #endif
-  std::cout <<"  "<< std::count(activeSlave.begin(),activeSlave.end(),true)
-	    <<" active contact nodes, closest non-active node "<< nmin
-	    <<": wgap = "<< wmin << std::endl;
+    std::cout <<"  "<< std::count(activeSlave.begin(),activeSlave.end(),true)
+	      <<" active contact nodes, closest non-active node "<< nmin
+	      <<": wgap = "<< wmin << std::endl;
+
+#ifndef INT_DEBUG
+  if (poorConverg)
+#endif
+    this->printAdditionalInfo(cStat,mortar);
 }
 
 
@@ -441,8 +482,16 @@ MortarAugmentedLag::MortarAugmentedLag (RigidBody* mst, const MortarMats& mats,
 
 
 void MortarAugmentedLag::initIntegration (const TimeDomain& prm,
-                                          const Vector& psol)
+                                          const Vector& psol, bool poorConverg)
 {
+  // Extract some additional information in case of poor convergence
+  std::map<size_t,char> cStat;
+#ifndef INT_DEBUG
+  if (poorConverg)
+#endif
+    for (size_t n = 0; n < activeSlave.size(); n++)
+      if (activeSlave[n]) cStat[n+1] = 'P';
+
   // Initialize array of active slave nodes and the Lagrange multipliers
   if (prm.first && prm.it == 0)
     activeSlave.resize(1,false); // Needed to initialize tangent matrix pattern
@@ -484,11 +533,17 @@ void MortarAugmentedLag::initIntegration (const TimeDomain& prm,
     }
 
 #ifndef INT_DEBUG
-  if (prm.it > 0) return;
+  if (prm.it == 0 || poorConverg)
 #endif
-  std::cout <<"  "<< std::count(activeSlave.begin(),activeSlave.end(),true)
-	    <<" active contact nodes, closest non-active node "<< nmin
-	    <<": constraint = "<< cmin << std::endl;
+    std::cout <<"  "<< std::count(activeSlave.begin(),activeSlave.end(),true)
+	      <<" active contact nodes, closest non-active node "<< nmin
+	      <<": constraint = "<< cmin << std::endl;
+
+#ifndef INT_DEBUG
+  if (poorConverg)
+#endif
+    // Print some additional information in case of poor convergence
+    this->printAdditionalInfo(cStat,mortar);
 }
 
 

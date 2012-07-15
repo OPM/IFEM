@@ -154,6 +154,12 @@ protected:
   bool assResAndTangent(SystemMatrix& Ktan, SystemVector& Res,
 			const MortarMats& mortar) const;
 
+  //! \brief Prints some additional information in case of poor convergence
+  //! \param cStat Nodal contact statuses
+  //! \param[in] mortar Mortar matrices
+  void printAdditionalInfo(std::map<size_t,char>& cStat,
+			   const MortarMats& mortar) const;
+
 private:
   GlobalIntegral* myInt; //!< Pointer to resulting global integrated quantity
 
@@ -180,7 +186,8 @@ public:
 
   //! \brief Initializes the integrand for a new integration loop.
   //! \param[in] prm Nonlinear solution algorithm parameters
-  virtual void initIntegration(const TimeDomain& prm, const Vector&);
+  virtual void initIntegration(const TimeDomain& prm, const Vector&,
+                               bool poorConverg);
 
   //! \brief Returns whether this integrand has explicit boundary contributions.
   virtual bool hasBoundaryTerms() const;
@@ -253,7 +260,8 @@ public:
   //! \brief Initializes the integrand for a new integration loop.
   //! \param[in] prm Nonlinear solution algorithm parameters
   //! \param[in] psol Global primary solution vector in DOF-order
-  virtual void initIntegration(const TimeDomain& prm, const Vector& psol);
+  virtual void initIntegration(const TimeDomain& prm, const Vector& psol,
+                               bool poorConverg);
 
   //! \brief Initializes the global node number mapping.
   virtual void initNodeMap(const std::vector<int>& nodes) { nodMap = nodes; }

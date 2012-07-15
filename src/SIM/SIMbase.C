@@ -1310,7 +1310,7 @@ bool SIMbase::updateGrid (const Vector& displ)
 
 
 bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
-			      bool newLHSmatrix)
+			      bool newLHSmatrix, bool poorConvg)
 {
   PROFILE1("Element assembly");
 
@@ -1328,7 +1328,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
     GlobalIntegral& sysQ = it->second->getGlobalInt(myEqSys);
     if (&sysQ != myEqSys) sysQ.initialize(newLHSmatrix);
 
-    it->second->initIntegration(time,prevSol.front());
+    it->second->initIntegration(time,prevSol.front(),poorConvg);
 
     // Loop over the different material regions, integrating interior
     // coefficient matrix terms for the patch associated with each material

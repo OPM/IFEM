@@ -254,8 +254,9 @@ public:
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param[in] pSol Previous primary solution vectors in DOF-order
   //! \param[in] newLHSmatrix If \e false, only integrate the RHS vector
+  //! \param[in] poorConvg If \e true, the nonlinear driver is converging poorly
   bool assembleSystem(const TimeDomain& time, const Vectors& pSol,
-                      bool newLHSmatrix = true);
+                      bool newLHSmatrix = true, bool poorConvg = false);
 
   //! \brief Administers assembly of the linear equation system.
   //! \param[in] pSol Primary solution vectors in DOF-order
