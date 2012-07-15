@@ -7,7 +7,7 @@
 //!
 //! \author Arne Morten Kvarving / SINTEF
 //!
-//! \brief Admininster and write data using DataWriters.
+//! \brief Administer and write data using DataWriters.
 //!
 //==============================================================================
 
@@ -22,7 +22,7 @@ class SIMparameters;
 
 
 /*!
-  \brief Admininster and write data using DataWriters.
+  \brief Administer and write data using DataWriters.
 
   \details This class holds a list of data writers,
   and the SIM classes or vectors to write.
@@ -46,39 +46,32 @@ class DataExporter
 
   //! \brief A structure holding information about registered fields
   struct FileEntry {
-    //! \brief The description of the field
-    std::string description;
-    //! \brief The type of the field
-    FieldType field;
-    //! \brief Which results to store
-    int results;
-    //! \brief Pointer to the primary data (e.g. a SIM class)
-    void* data;
-    //! \brief Pointer to the secondary data (e.g. a vector)
-    void* data2;
+    std::string description; //!< The description of the field
+    FieldType   field;       //!< The type of the field
+    int         results;     //!< Which results to store
+    const void* data;        //!< Pointer to the primary data (e.g. a SIM class)
+    const void* data2;       //!< Pointer to the secondary data (e.g. a vector)
   };
 
   //! \brief Default constructor.
   //! \param[in] dynWriters If \e true, delete the writers on destruction.
   //! \param[in] ndump Interval between dumps
-  //! \param[in] order The temporal order of simulations (always dumps order solutions in a row)
+  //! \param[in] order The temporal order of simulations
+  //! (always dumps order solutions in a row)
   DataExporter(bool dynWriters = false, int ndump=1, int order=1) :
-    m_delete(dynWriters), m_level(-1), m_ndump(ndump), m_order(order)
-  {
-  }
+    m_delete(dynWriters), m_level(-1), m_ndump(ndump), m_order(order) {}
 
   //! \brief The destructor deletes the writers if \a dynWriters was \e true.
   ~DataExporter();
 
   //! \brief Registers an entry for storage.
-  //! param[in] name Name of entry
-  //! param[in] description Description of entry
-  //! param[in] field Type of entry
-  //! param[in] results Which results to store
-  //! the time level to use for SIM
+  //! \param[in] name Name of entry
+  //! \param[in] description Description of entry
+  //! \param[in] field Type of entry
+  //! \param[in] results Which results to store
   bool registerField(const std::string& name,
-		     const std::string& description,
-		     FieldType field, int results=PRIMARY);
+                     const std::string& description,
+                     FieldType field, int results = PRIMARY);
 
   //! \brief Register a data writer
   //! \param[in] writer A pointer to the datawriter we want registered
@@ -88,21 +81,24 @@ class DataExporter
   //! \param[in] name Name the field is registered with
   //! \param[in] data The value to set the field to
   //! \param[in] data2 (optional) The secondary data of the field
-  bool setFieldValue(const std::string& name, void* data, void* data2=NULL);
+  bool setFieldValue(const std::string& name,
+                     const void* data,
+                     const void* data2 = NULL);
 
   //! \brief This dumps all registered fields using all registered writers
   //! \param[in] tp Current time stepping info
-  //! \param[in] geometryUpdated Whether or not geometries are updated. If true, we write new geometries
+  //! \param[in] geometryUpdated Whether or not geometries are updated
   bool dumpTimeLevel(SIMparameters* tp=NULL, bool geometryUpdated=false);
 
   //! \brief Loads last time level with first registered writer by default.
   //! \param[in] level Time level to load, defaults to last time level
-  //! \param[in] info The datawriter to read the info from (e.g. the XML writer)
-  //! \param[in] input The datawriter to read the data from (e.g. the HDF5 writer)
+  //! \param[in] info DataWriter to read the info from (e.g. the XML writer)
+  //! \param[in] input DataWriter to read the data from (e.g. the HDF5 writer)
   bool loadTimeLevel(int level=-1, DataWriter* info=NULL, DataWriter* input=NULL);
 
   //! \brief Return the current time level of the exporter
   int getTimeLevel();
+
 protected:
   //! \brief Internal helper function
   int getWritersTimeLevel() const;

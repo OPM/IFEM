@@ -7,7 +7,7 @@
 //!
 //! \author Arne Morten Kvarving / SINTEF
 //!
-//! \brief Admininster and write data using DataWriters.
+//! \brief Administer and write data using DataWriters.
 //!
 //==============================================================================
 
@@ -66,7 +66,7 @@ bool DataExporter::registerWriter (DataWriter* writer)
 
 
 bool DataExporter::setFieldValue (const std::string& name,
-				  void* data, void* data2)
+				  const void* data, const void* data2)
 {
   std::map<std::string,FileEntry>::iterator it = m_entry.find(name);
   if (it == m_entry.end())

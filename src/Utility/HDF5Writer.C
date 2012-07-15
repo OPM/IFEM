@@ -16,19 +16,19 @@
 #include "SIMparameters.h"
 #include "IntegrandBase.h"
 #include <sstream>
+
+#ifdef HAS_HDF5
 #include <numeric>
 #include <sys/stat.h>
 #include <sys/statvfs.h>
-
-#ifdef HAS_HDF5
 #include <hdf5.h>
-#endif
-
 #ifdef PARALLEL_PETSC
 #include <mpi.h>
 #endif
+#endif
 
-//! \brief If file system has less than this amount free we bail to avoid corrupting file when a new write is initiated
+//! \brief If file system has less than this amount free,
+//! we bail to avoid corrupting file when a new write is initiated.
 #define HDF5_SANITY_LIMIT 10*1024*1024LL // 10MB
 
 
@@ -215,11 +215,12 @@ void HDF5Writer::writeVector(int level, const DataEntry& entry)
 
 bool HDF5Writer::readSIM (int level, const DataEntry& entry)
 {
+  SIMbase* sim = static_cast<SIMbase*>(const_cast<void*>(entry.second.data));
+  Vector* sol = static_cast<Vector*>(const_cast<void*>(entry.second.data2));
+  if (!sim || !sol) return false;
+
   bool ok = true;
 #ifdef HAS_HDF5
-  SIMbase* sim = static_cast<SIMbase*>(entry.second.data);
-  Vector* sol = static_cast<Vector*>(entry.second.data2);
-  if (!sol) return false;
   const IntegrandBase* prob = sim->getProblem();
 
   for (int i = 0; i < sim->getNoPatches() && ok; ++i) {
@@ -295,10 +296,9 @@ bool HDF5Writer::readField(int level, const std::string& name,
 void HDF5Writer::writeSIM (int level, const DataEntry& entry,
                            bool geometryUpdated)
 {
-#ifdef HAS_HDF5
-  SIMbase* sim = static_cast<SIMbase*>(entry.second.data);
-  Vector* sol = static_cast<Vector*>(entry.second.data2);
-  if (!sol) return;
+  SIMbase* sim = static_cast<SIMbase*>(const_cast<void*>(entry.second.data));
+  const Vector* sol = static_cast<const Vector*>(entry.second.data2);
+  if (!sim || !sol) return;
 
   const IntegrandBase* prob = sim->getProblem();
   if (level == 0 || geometryUpdated) {
@@ -314,7 +314,8 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
 
   NormBase* norm = sim->getProblem()->getNormIntegrand();
 
-  size_t j, k;
+#ifdef HAS_HDF5
+  size_t j, k, l;
   for (int i = 0; i < sim->getNoPatches(); ++i) {
     std::stringstream str;
     str << level;
@@ -351,9 +352,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
       if (entry.second.results & DataExporter::NORMS) {
         Matrix patchEnorm;
         sim->extractPatchElmRes(eNorm,patchEnorm,loc-1);
-        // We need two loop indices here because getName may update the 2nd one
-        size_t l = 1;
-        j = 1;
+        l = j = 1;
         for (k = 0; k < eNorm.rows(); k++) {
           if (l > norm->getNoFields(j))
             l=1, j++;
@@ -377,9 +376,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
           writeArray(group2,prob->getField2Name(j),0,&dummy,H5T_NATIVE_DOUBLE);
       }
       if (entry.second.results & DataExporter::NORMS) {
-        // We need two loop indices here because getName may update the 2nd one
-        size_t l = 1;
-        j = 1;
+        l = j = 1;
         for (k = 0; k < eNorm.rows(); k++) {
           if (l > norm->getNoFields(j))
             l=1, j++;
@@ -391,14 +388,14 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     }
     H5Gclose(group2);
   }
-  delete norm;
 #else
-  std::cerr << "HDF5 support disabled, no data saved" << std::endl;
+  std::cout << "HDF5Writer: compiled without HDF5 support, no data written" << std::endl;
 #endif
+  delete norm;
 }
 
-void HDF5Writer::writeBasis(SIMbase* sim, const std::string& name,
-                               int basis, int level)
+void HDF5Writer::writeBasis (SIMbase* sim, const std::string& name,
+                             int basis, int level)
 {
 #ifdef HAS_HDF5
   std::stringstream str;
