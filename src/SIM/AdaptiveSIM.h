@@ -58,15 +58,10 @@ public:
   bool writeGlv(const char* infile, int iStep, int& nBlock, size_t nNormProj);
 
   //! \brief Prints out the global norms to given stream.
-  static std::ostream& printNorms(const Vectors& norms, const Matrix& eNorm,
-				  std::ostream& os, size_t adaptor,
-				  bool withExact, NormBase* norm);
-
-  std::ostream& printNorms(const Vectors& norms, const Matrix& eNorm,
-                           std::ostream& os);
+  std::ostream& printNorms(std::ostream& os) const;
 
   //! \brief Accesses the solution of the linear system.
-  Vector& getSolution() { return linsol; }
+  const Vector& getSolution() const { return linsol; }
 
 protected:
   //! \brief Parses a data section from an input stream.
@@ -81,7 +76,7 @@ private:
   SIMbase* model; //!< The isogeometric FE model
 
   bool   storeMesh;    //!< Creates a series of eps-files for intermediate steps
-  bool   linIndepTest; //!< Test all mesh for linear independence after refinement
+  bool   linIndepTest; //!< Test mesh for linear independence after refinement
   double beta;           //!< Refinement percentage in each step
   double errTol;         //!< Global error stop tolerance
   int    maxStep;        //!< Maximum number of adaptive refinements
@@ -96,10 +91,10 @@ private:
   //! 3=isotropic_functions
   int    scheme;
 
-  size_t adaptor; //!< Index to the element norm to base mesh adaption on
-  Vector linsol;  //!< Linear solution vector
-  Vectors gNorm;  //!< Global norms
-  Matrix eNorm;   //!< Element norms
+  size_t  adaptor; //!< Norm group to base the mesh adaption on
+  Vector  linsol;  //!< Linear solution vector
+  Vectors gNorm;   //!< Global norms
+  Matrix  eNorm;   //!< Element norms
 
   std::vector<Vector>      projs;  //!< Projected secondary solutions
   std::vector<const char*> prefix; //!< Norm prefices for VTF-output

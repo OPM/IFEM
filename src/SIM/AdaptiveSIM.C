@@ -144,20 +144,27 @@ bool AdaptiveSIM::parse (char* keyWord, std::istream& is)
 
 bool AdaptiveSIM::initAdaptor (size_t indxProj, size_t nNormProj)
 {
-  if (indxProj == 0) indxProj = adaptor; // use value from XML input
+  if (indxProj > 0)
+    adaptor = indxProj; // override value from XML input
 
   SIMoptions::ProjectionMap::const_iterator pit = model->opt.project.begin();
-  for (size_t j = 0; pit != model->opt.project.end(); pit++, j++)
-    if (j+1 == indxProj)
-      break;
+  for (size_t j = 1; pit != model->opt.project.end(); pit++, j++)
+    if (j == adaptor) break;
 
   std::cout <<"\n\n >>> Starting adaptive simulation based on";
   if (pit != model->opt.project.end())
-    std::cout <<"\n     "<< pit->second <<" error estimates (index="
-                << adaptor <<")";
-  if (model->haveAnaSol())
-    std::cout <<" and exact errors";
-  std::cout << "<<<\n";
+    std::cout <<"\n     "<< pit->second
+              <<" error estimates (norm group "<< adaptor <<") <<<"<< std::endl;
+  else if (model->haveAnaSol())
+  {
+    std::cout <<" exact errors <<<"<< std::endl;
+    adaptor = 0; // Assuming the exact errors are stored in the first group
+  }
+  else
+  {
+    std::cout <<" - nothing, can not do that!"<< std::endl;
+    return false;
+  }
 
   if (model->opt.format >= 0)
     prefix.reserve(model->opt.project.size()+1);
@@ -199,6 +206,8 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
   if (!model->solveSystem(linsol,1))
     return false;
 
+  eNorm.clear();
+  gNorm.clear();
   projs.clear();
   projs.reserve(model->opt.project.size());
 
@@ -223,8 +232,6 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
 
   // Evaluate solution norms
   model->setQuadratureRule(model->opt.nGauss[1]);
-  eNorm.fill(0.0);
-  gNorm.clear();
   return (model->solutionNorms(Vectors(1,linsol),projs,eNorm,gNorm) &&
 	  model->dumpResults(linsol,0.0,std::cout,true,6));
 }
@@ -239,28 +246,29 @@ typedef std::pair<double,int> IndexDouble;
 
 bool AdaptiveSIM::adaptMesh (int iStep)
 {
-  printNorms(gNorm,eNorm,std::cout);
+  this->printNorms(std::cout);
 
-  if (adaptor > gNorm.size() || adaptor > eNorm.rows())
+  if (adaptor >= gNorm.size() || adaptor >= eNorm.rows())
     return false;
 
   // Define the reference norm
-  double uNorm;
+  double refNorm;
+  const Vector& fNorm = gNorm.front();
+  const Vector& aNorm = gNorm[adaptor];
   if (model->haveAnaSol())
-    uNorm = gNorm[0](3); // Using the analytical solution, |u|_ref = |u|
+    refNorm = fNorm(3); // Using the analytical solution, |u|_ref = |u|
   else // |u|_ref = sqrt( |u^h|^2 + |e^*|^2 )
-    uNorm = sqrt(gNorm[0](1)*gNorm[0](1) + gNorm[adaptor](2)*gNorm[adaptor](2));
+    refNorm = sqrt(fNorm(1)*fNorm(1) + aNorm(2)*aNorm(2));
 
   // Check if further refinement is required
   if (iStep > maxStep || model->getNoDOFs() > (size_t)maxDOFs) return false;
-  if (eNorm.cols() < 1 || 100.0*gNorm[adaptor](2) < errTol*uNorm) return false;
+  if (eNorm.cols() < 1 || 100.0*aNorm(2) < errTol*refNorm) return false;
 
+  // Calculate eNorm row
+  size_t eRow = 0;
   NormBase* norm = model->getNormIntegrand();
-  // calculate eNorm row
-  int eRow=0;
-  for (size_t j=1;j<adaptor+1;++j)
-    eRow += norm->getNoFields(j);
-  eRow += 2;
+  for (size_t j = 0; j <= adaptor; j++)
+    eRow += norm->getNoFields(j+1);
   delete norm;
 
   std::vector<int> toBeRefined, options;
@@ -320,31 +328,33 @@ bool AdaptiveSIM::adaptMesh (int iStep)
 }
 
 
-std::ostream& AdaptiveSIM::printNorms (const Vectors& norms, const Matrix& eNorm,
-				       std::ostream& os, size_t adaptor,
-				       bool withExact, NormBase* norm)
+std::ostream& AdaptiveSIM::printNorms (std::ostream& os) const
 {
+  model->printNorms(gNorm,os);
+  NormBase* norm = model->getNormIntegrand();
+
   // TODO: This needs further work to enable print for all recovered solutions.
   // As for now we only print the norm used for the mesh adaption.
-  if (adaptor <= norms.size())
+  if (adaptor > 0 && adaptor < gNorm.size())
   {
-    os << "Error estimate " << norm->getName(adaptor,2) 
-       << ": "<< norms[adaptor](2) << std::endl;
-    if (withExact && norms[adaptor].size() > 2)
-      os <<"Projective error " << norm->getName(adaptor,3) << ": "
-                               << norms[adaptor](3) << std::endl;
-    if (withExact && norms[adaptor].size() > 3)
-      os <<"Effectivity index  : "<< norms[adaptor](2)/norms[0](4);
+    os <<"Error estimate "<< norm->getName(adaptor,2)
+       <<": "<< gNorm[adaptor](2) << std::endl;
+    if (model->haveAnaSol() && gNorm[adaptor].size() > 2)
+      os <<"Projective error "<< norm->getName(adaptor,3) <<": "
+                              << gNorm[adaptor](3) << std::endl;
+    if (model->haveAnaSol() && gNorm[adaptor].size() > 3)
+      os <<"Effectivity index  : "<< gNorm[adaptor](2)/gNorm.front()(4);
   }
-  if (eNorm.rows() < adaptor || eNorm.cols() < 1)
+
+  size_t eRow = 0;
+  for (size_t j = 0; j <= adaptor; j++)
+    eRow += norm->getNoFields(j+1);
+
+  delete norm;
+  if (eNorm.rows() < eRow || eNorm.cols() < 1)
     return os << std::endl;
 
   // Compute some additional error measures
-  int eRow=0;
-  for (size_t j=1;j<adaptor+1;++j)
-    eRow += norm->getNoFields(j);
-  eRow += 2;
-
   size_t i;
   double avg_norm = eNorm(eRow,1);
   double min_err  = avg_norm;
@@ -406,16 +416,4 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep, int& nBlock,
 
   // Write state information
   return model->writeGlvStep(iStep,iStep,1);
-}
-
-
-std::ostream& AdaptiveSIM::printNorms(const Vectors& norms, const Matrix& eNorm,
-                                      std::ostream& os)
-{
-  model->printNorms(norms,os);
-  NormBase* norm = model->getNormIntegrand();
-  std::ostream& result = printNorms(norms,eNorm,os,adaptor,
-                                    model->haveAnaSol(),norm);
-  delete norm;
-  return result;
 }
