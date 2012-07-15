@@ -196,6 +196,9 @@ namespace utl //! General utility classes and functions.
     //! \brief Constructor creating a matrix of dimension \f$r \times c\f$.
     matrix(size_t r, size_t c) : nrow(r), ncol(c), elem(r*c) {}
 
+    //! \brief Clears the matrix and sets its dimension to zero.
+    void clear() { nrow = ncol = 0; elem.clear(); }
+
     //! \brief Resize the matrix to dimension \f$r \times c\f$.
     //! \details Will erase the previous content, but only if both
     //! the total matrix size and the number of rows in the matrix are changed.
@@ -210,10 +213,7 @@ namespace utl //! General utility classes and functions.
 	if (nrow*ncol == r*c)
 	  this->fill(T(0));
 	else
-	{
-	  nrow = ncol = 0;
-	  elem.clear();
-	}
+	  this->clear();
       }
 
       if (r == nrow && c == ncol) return; // nothing to do
@@ -268,6 +268,7 @@ namespace utl //! General utility classes and functions.
     vector<T> getRow(size_t r) const
     {
       CHECK_INDEX("matrix::getRow: Row-index ",r,nrow);
+      if (nrow < 2) return elem;
       vector<T> row(ncol);
       for (size_t i = 0; i < ncol; i++)
 	row[i] = elem[r-1+nrow*i];
