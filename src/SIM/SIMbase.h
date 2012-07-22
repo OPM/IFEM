@@ -407,7 +407,7 @@ public:
   //! \param[in] fnam File name used to construct the VTF-file name from
   bool writeGlv(const char* fnam) { int n = 0; return this->writeGlvG(n,fnam); }
 
-  //! \brief Write current model geometry to the VTF-file.
+  //! \brief Writes current model geometry to the VTF-file.
   //! \param nBlock Running result block counter
   //! \param[in] inpFile File name used to construct the VTF-file name from
   //!
@@ -416,7 +416,12 @@ public:
   //! The solution fields are then evaluated at the nodal points of the
   //! generated FE mesh and written to the VTF-file as vector and scalar fields
   //! by the other \a writeGlv* methods.
-  bool writeGlvG(int& nBlock, const char* inpFile = 0);
+  virtual bool writeGlvG(int& nBlock, const char* inpFile = 0);
+
+  //! \brief Writes additional, problem-specific, results to the VTF-file.
+  //! \param nBlock Running result block counter
+  //! \param[in] iStep Load/time step identifier
+  virtual bool writeGlvA(int& nBlock, int iStep = 1) const { return true; }
 
   //! \brief Writes boundary conditions as scalar fields to the VTF-file.
   //! \param nBlock Running result block counter

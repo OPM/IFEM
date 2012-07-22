@@ -21,13 +21,15 @@
 #include <sstream>
 
 
-NonLinSIM::NonLinSIM (SIMbase* sim, CNORM n) : model(sim), iteNorm(n), nBlock(0)
+NonLinSIM::NonLinSIM (SIMbase* sim, CNORM n) : model(sim), iteNorm(n)
 {
 #ifndef SP_DEBUG
   msgLevel = 1;   // prints the convergence history only
 #elif SP_DEBUG > 2
   msgLevel = 100; // prints the linear solution vector if its size is < 100
 #endif
+
+  geoBlk = nBlock = 0;
 
   // Default solution parameters
   maxit   = 20;
@@ -428,10 +430,10 @@ bool NonLinSIM::saveModel (char* fileName)
 {
   PROFILE1("NonLinSIM::saveModel");
 
-  nBlock = 0; // initialize the result block counter
+  geoBlk = nBlock = 0; // initialize the VTF block counters
 
   // Write VTF-file with model geometry
-  if (!model->writeGlvG(nBlock,fileName))
+  if (!model->writeGlvG(geoBlk,fileName))
     return false;
 
   // Write Dirichlet boundary conditions
@@ -470,6 +472,10 @@ bool NonLinSIM::saveStep (int iStep, double time,
   if (!psolOnly)
     if (!model->writeGlvN(eNorm,iStep,nBlock))
       return false;
+
+  // Write problem-specific data (rigid body transformations, etc.)
+  if (!model->writeGlvA(nBlock,iStep))
+    return false;
 
   // Write time/load step information
   return model->writeGlvStep(iStep,time);

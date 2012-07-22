@@ -149,6 +149,7 @@ protected:
   int    prnSlow; //!< How many DOFs to print out on slow convergence
 
   // Post-processing attributes
+  int    geoBlk; //!< Running VTF geometry block counter
   int    nBlock; //!< Running VTF result block counter
   Matrix eNorm;  //!< Element norm values
 };
