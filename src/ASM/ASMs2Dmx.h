@@ -40,8 +40,10 @@ public:
   virtual ~ASMs2Dmx() {}
 
   //! \brief Returns the spline surface representing the basis of this patch.
-  virtual Go::SplineSurface* getBasis(int basis = 1) const
-  { return basis == 2 ? basis2 : basis1; }
+  virtual Go::SplineSurface* getBasis(int basis = 1) const;
+  //! \brief Returns the spline curve representing a boundary of this patch.
+  //! \param[in] dir Parameter direction defining which boundary to return
+  virtual Go::SplineCurve* getBoundary(int dir);
 
 
   // Methods for model generation

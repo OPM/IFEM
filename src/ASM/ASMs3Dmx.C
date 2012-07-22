@@ -48,6 +48,23 @@ ASMs3Dmx::ASMs3Dmx (const ASMs3Dmx& patch, char n_f1, char n_f2)
 }
 
 
+Go::SplineVolume* ASMs3Dmx::getBasis (int basis) const
+{
+  return basis == 2 ? basis2 : basis1;
+}
+
+
+Go::SplineSurface* ASMs3Dmx::getBoundary (int dir)
+{
+  if (dir < -3 || dir == 0 || dir > 3)
+    return NULL;
+
+  // The boundary surfaces are stored internally in the SplineVolume object
+  int iface = dir > 0 ? 2*dir-1 : -2*dir-2;
+  return basis1->getBoundarySurface(iface).get();
+}
+
+
 bool ASMs3Dmx::write (std::ostream& os, int basis) const
 {
   if (basis1 && basis == 1)

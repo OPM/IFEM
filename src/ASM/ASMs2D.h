@@ -98,7 +98,7 @@ public:
   Go::SplineSurface* getSurface() const { return surf; }
   //! \brief Returns the spline curve representing a boundary of this patch.
   //! \param[in] dir Parameter direction defining which boundary to return
-  Go::SplineCurve* getBoundary(int dir);
+  virtual Go::SplineCurve* getBoundary(int dir);
   //! \brief Returns the spline surface representing the basis of this patch.
   virtual Go::SplineSurface* getBasis(int = 1) const { return surf; }
 

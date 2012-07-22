@@ -50,6 +50,25 @@ ASMs2Dmx::ASMs2Dmx (const ASMs2Dmx& patch, char n_f1, char n_f2)
 }
 
 
+Go::SplineSurface* ASMs2Dmx::getBasis (int basis) const
+{
+  return basis == 2 ? basis2 : basis1;
+}
+
+
+Go::SplineCurve* ASMs2Dmx::getBoundary (int dir)
+{
+  if (dir < -2 || dir == 0 || dir > 2)
+    return NULL;
+
+  int iedge = dir > 0 ? dir : 3*dir+6;
+  if (!bou[iedge])
+    bou[iedge] = basis1->edgeCurve(iedge);
+
+  return bou[iedge];
+}
+
+
 bool ASMs2Dmx::write (std::ostream& os, int basis) const
 {
   if (basis1 && basis == 1)
