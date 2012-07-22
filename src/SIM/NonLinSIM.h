@@ -16,11 +16,11 @@
 
 #include "SIMinput.h"
 #include "SIMenums.h"
-#include "SIMparameters.h"
 #include "MatVec.h"
 
 class SIMbase;
-class VTF;
+class TimeStep;
+class TimeDomain;
 
 
 /*!
@@ -33,6 +33,8 @@ class VTF;
 class NonLinSIM : public SIMinput
 {
 public:
+  //! \brief Convergence status enum.
+  enum ConvStatus { FAILURE, OK, SLOW, CONVERGED, DIVERGED };
   //! \brief Enum describing the norm used for convergence checks.
   enum CNORM { L2, ENERGY };
 
@@ -43,51 +45,33 @@ public:
   //! \brief The destructor frees the dynamically allocated FE model object.
   virtual ~NonLinSIM();
 
-  //! \brief A class for nonlinear solution parameters.
-  class SolvePrm : public SIMparameters
-  {
-  public:
-    //! \brief Default constructor.
-    SolvePrm() : refNorm(1.0), alpha(1.0) {}
-    //! \brief Empty destructor.
-    virtual ~SolvePrm() {}
-
-    int    maxit;   //!< Maximum number of iterations
-    int    nupdat;  //!< Number of iterations with updated tangent
-    double convTol; //!< Relative convergence tolerance
-    double divgLim; //!< Relative divergence limit
-    double refNorm; //!< Reference energy norm used in convergence checks
-    double alpha;   //!< Iteration acceleration parameter (line search)
-    double eta;     //!< Line search tolerance
-  };
-
-  //! \brief Initializes the solution parameters with values read from file.
-  //! \param param Solution algorithm parameters
+  //! \brief Initializes the primary solution vectors.
   //! \param[in] initVal Initial values of the primary solution
-  virtual void init(SolvePrm& param, const RealArray& initVal = RealArray());
+  virtual void init(const RealArray& initVal = RealArray());
 
   //! \brief Sets the initial guess in the Newton-Raphson iterations.
   //! \param[in] value Initial values of the primary solution
   void setInitialGuess(const RealArray& value);
 
   //! \brief Advances the time/load step one step forward.
-  //! \param param Solution algorithm parameters
+  //! \param param Time stepping parameters
   //! \param[in] updateTime If \e false, the time parameters are not incremented
-  virtual bool advanceStep(SolvePrm& param, bool updateTime = true);
-
-  //! \brief Opens a new VTF-file and writes the model geometry to it.
-  //! \param[in] fileName File name used to construct the VTF-file name from
-  bool saveModel(char* fileName);
+  virtual bool advanceStep(TimeStep& param, bool updateTime = true);
 
   //! \brief Solves the nonlinear equations by Newton-Raphson iterations.
-  //! \param param Solution algorithm parameters
+  //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
+  //! \param[in] outPrec Number of digits after the decimal point in norm print
+  ConvStatus solve(double zero_tolerance = 1.0e-8, std::streamsize outPrec = 0);
+
+  //! \brief Solves the nonlinear equations by Newton-Raphson iterations.
+  //! \param param Time stepping parameters
   //! \param[in] mode Solution mode to use for this step
   //! \param[in] energyNorm If \e true, integrate energy norm of the solution
   //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
   //! \param[in] outPrec Number of digits after the decimal point in norm print
-  bool solveStep(SolvePrm& param, SIM::SolutionMode mode = SIM::STATIC,
-		 bool energyNorm = false, double zero_tolerance = 1.0e-8,
-		 std::streamsize outPrec = 0);
+  ConvStatus solveStep(TimeStep& param, SIM::SolutionMode mode = SIM::STATIC,
+                       bool energyNorm = false, double zero_tolerance = 1.0e-8,
+                       std::streamsize outPrec = 0);
 
   //! \brief Computes and prints some solution norm quantities.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
@@ -99,24 +83,16 @@ public:
 			     double zero_tolerance = 1.0e-8,
 			     std::streamsize outPrec = 0);
 
+  //! \brief Opens a new VTF-file and writes the model geometry to it.
+  //! \param[in] fileName File name used to construct the VTF-file name from
+  bool saveModel(char* fileName);
+
   //! \brief Saves the converged results to VTF file of a given load/time step.
   //! \param[in] iStep Load/time step identifier
   //! \param[in] time Current time/load parameter
   //! \param[in] psolOnly If \e true, skip secondary solution field output
   //! \param[in] vecName Optional name of primary solution vector field
   bool saveStep(int iStep, double time,
-		bool psolOnly = false, const char* vecName = 0)
-  {
-    return this->saveStep(iStep,time,nBlock,psolOnly,vecName);
-  }
-
-  //! \brief Saves the converged results to VTF file of a given load/time step.
-  //! \param[in] iStep Load/time step identifier
-  //! \param[in] time Current time/load parameter
-  //! \param iBlock Running result block counter
-  //! \param[in] psolOnly If \e true, skip secondary solution field output
-  //! \param[in] vecName Optional name of primary solution vector field
-  bool saveStep(int iStep, double time, int& iBlock,
 		bool psolOnly = false, const char* vecName = 0);
 
   //! \brief Dumps the primary solution for inspection.
@@ -131,21 +107,19 @@ public:
   //! \param[in] time Current time/load parameter
   //! \param[in] os The output stream to write the solution to
   //! \param[in] precision Number of digits after the decimal point
-  bool dumpResults(double time, std::ostream& os, int precision = 3) const;
+  bool dumpResults(double time, std::ostream& os,
+                   std::streamsize precision = 3) const;
 
   //! \brief Returns a const reference to current solution vector.
   const Vector& getSolution(int i = 0) const { return solution[i]; }
 
 protected:
-  //! \brief Convergence status enum.
-  enum ConvStatus { OK, SLOW, CONVERGED, DIVERGED };
-
-  //! \brief Performs line search to accelerate convergence.
-  virtual bool lineSearch(SolvePrm& param);
   //! \brief Checks whether the nonlinear iterations have converged or diverged.
-  virtual ConvStatus checkConvergence(SolvePrm& param);
+  virtual ConvStatus checkConvergence(TimeStep& param);
   //! \brief Updates configuration variables (solution vector) in an iteration.
-  virtual bool updateConfiguration(SolvePrm& param);
+  virtual bool updateConfiguration(TimeStep& param);
+  //! \brief Performs line search to accelerate convergence.
+  virtual bool lineSearch(TimeStep& param);
 
 public:
   //! \brief Parses a data section from an input stream.
@@ -163,18 +137,16 @@ protected:
   Vector   linsol;   //!< Linear solution vector
   Vector   residual; //!< Residual force vector
 
-  // Time stepping parameters
-  double startTime; //!< Start time of the simulation
-  double stopTime;  //!< Stop time of the simulation
-  SIMparameters::TimeSteps steps; //!< Time increment specifications
-
   // Nonlinear solution algorithm parameters
-  CNORM  iteNorm;   //!< The norm type used to measure the residual
-  double convTol;   //!< Relative convergence tolerance
-  double divgLim;   //!< Relative divergence limit
-  double eta;       //!< Line search tolerance
-  int    maxit;     //!< Maximum number of iterations in a time/load step
-  int    nupdat;    //!< Number of iterations with updated tangent
+  CNORM  iteNorm; //!< The norm type used to measure the residual
+  double refNorm; //!< Reference norm value used in convergence checks
+  double convTol; //!< Relative convergence tolerance
+  double divgLim; //!< Relative divergence limit
+  double eta;     //!< Line search tolerance
+  double alpha;   //!< Iteration acceleration parameter (for line search)
+  int    maxit;   //!< Maximum number of iterations in a time/load step
+  int    nupdat;  //!< Number of iterations with updated tangent
+  int    prnSlow; //!< How many DOFs to print out on slow convergence
 
   // Post-processing attributes
   int    nBlock; //!< Running VTF result block counter

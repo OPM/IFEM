@@ -25,7 +25,7 @@ struct TimeDomain
   double  dt; //!< Current time (or load parameter) increment
   double CFL; //!< Current CFL number (used by CFD simulators)
   int     it; //!< Current iteration within current time/load step
-  bool first; //!< If \e true, this is the first load/time step
+  char first; //!< If \e true, this is the first load/time step
 
   //! \brief Default constructor.
   TimeDomain(int i = 0, bool f = true) : it(i), first(f) { t = dt = CFL = 0.0; }

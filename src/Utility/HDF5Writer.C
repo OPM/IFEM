@@ -13,8 +13,8 @@
 
 #include "HDF5Writer.h"
 #include "SIMbase.h"
-#include "SIMparameters.h"
 #include "IntegrandBase.h"
+#include "TimeStep.h"
 #include <sstream>
 
 #ifdef HAS_HDF5
@@ -442,8 +442,8 @@ bool HDF5Writer::checkGroupExistence(int parent, const char* path)
 
 // TODO: implement for variable time steps.
 // (named time series to allow different timelevels for different fields)
-bool HDF5Writer::writeTimeInfo(int level, int order, int interval,
-                               SIMparameters& tp)
+bool HDF5Writer::writeTimeInfo (int level, int order, int interval,
+                                const TimeStep& tp)
 {
 #ifdef HAS_HDF5
   std::stringstream str;

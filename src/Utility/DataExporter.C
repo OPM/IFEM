@@ -12,7 +12,7 @@
 //==============================================================================
 
 #include "DataExporter.h"
-#include "SIMparameters.h"
+#include "TimeStep.h"
 #include <iostream>
 #include <algorithm>
 #ifdef PARALLEL_PETSC
@@ -78,7 +78,7 @@ bool DataExporter::setFieldValue (const std::string& name,
 }
 
 
-bool DataExporter::dumpTimeLevel (SIMparameters* tp, bool geometryUpdated)
+bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
 {
   if (tp && tp->step % m_ndump
          && tp->step % m_ndump > m_order-1)

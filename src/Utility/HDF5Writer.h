@@ -80,7 +80,7 @@ public:
   //! \param[in] interval The number of time steps between each data dump
   //! \param[in] tp The current time stepping info
   virtual bool writeTimeInfo(int level, int order, int interval,
-                             SIMparameters& tp);
+                             const TimeStep& tp);
 
   //! \brief Reads a vector field into a given SIM
   //! \param[in] level The time level to read at

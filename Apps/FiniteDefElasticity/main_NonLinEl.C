@@ -297,31 +297,24 @@ int main (int argc, char** argv)
     model->dumpGeometry(osg);
 
     // Open ASCII file for solution dump
-    strcat(strtok(infile,"."),".sol");
-    oss = new std::ofstream(infile);
-    *oss <<"#NPoints="<< model->getNoNodes() <<"\n";
+    if (form < 100)
+    {
+      strcat(strtok(infile,"."),".sol");
+      oss = new std::ofstream(infile);
+      *oss <<"#NPoints="<< model->getNoNodes() <<"\n";
+    }
   }
-
-  // Define the initial configuration
-  NonLinSIM::SolvePrm params;
-  simulator.init(params);
-
-  const double epsT = 1.0e-6;
-  if (dtDump <= 0.0) dtDump = params.stopTime + 1.0;
-  double nextDump = params.time.t + dtDump;
-  double nextSave = params.time.t + model->opt.dtSave;
-
-  int iStep = 0; // Save initial state to VTF
-  if (model->opt.format >= 0 && params.multiSteps())
-    if (!simulator.saveStep(-(++iStep),params.time.t,skip2nd))
-      return 4;
 
   if (form >= 100)
     return 0; // model check
 
+  // Define the initial configuration
+  simulator.init();
+
   DataExporter* writer = NULL;
   if (model->opt.dumpHDF5(infile))
   {
+    // Opend HDF5 result database
     if (linalg.myPid == 0)
       std::cout <<"\nWriting HDF5 file "<< model->opt.hdf5
 		<<".hdf5"<< std::endl;
@@ -333,48 +326,11 @@ int main (int argc, char** argv)
     writer->registerWriter(new XMLWriter(model->opt.hdf5));
   }
 
-  // Initialize the linear solver
-  model->initSystem(model->opt.solver,1,1);
-  model->setAssociatedRHS(0,0);
-
-  // Invoke the time/load-step loop
-  while (simulator.advanceStep(params))
-  {
-    // Solve the nonlinear FE problem at this load step
-    if (!simulator.solveStep(params,SIM::STATIC,energy,zero_tol,
-			     outPrec > 3 ? outPrec : 0))
-      return 5;
-
-    // Print solution components at the user-defined points
-    simulator.dumpResults(params.time.t,std::cout,outPrec);
-
-    if (params.time.t + epsT*params.time.dt > nextDump)
-    {
-      // Dump primary solution for inspection or external processing
-      if (dumpWithID)
-	simulator.dumpStep(params.step,params.time.t,std::cout);
-      else
-	simulator.dumpStep(params.step,params.time.t,*oss,false);
-
-      nextDump = params.time.t + dtDump;
-    }
-
-    if (params.time.t + epsT*params.time.dt > nextSave)
-    {
-      // Save solution variables to VTF for visualization
-      if (model->opt.format >= 0)
-        if (!simulator.saveStep(++iStep,params.time.t,skip2nd))
-	  return 6;
-
-      // Save solution variables to HDF5
-      if (writer)
-	writer->dumpTimeLevel();
-
-      nextSave = params.time.t + model->opt.dtSave;
-    }
-  }
+  // Now invoke the main solution driver
+  int status = simulator.solveProblem(skip2nd,energy,writer,oss,
+				      dtDump,zero_tol,outPrec);
 
   if (writer) delete writer;
   if (oss) delete oss;
-  return 0;
+  return status;
 }

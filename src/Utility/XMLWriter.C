@@ -13,8 +13,8 @@
 
 #include "XMLWriter.h"
 #include "SIMbase.h"
-#include "SIMparameters.h"
 #include "IntegrandBase.h"
+#include "TimeStep.h"
 #include "StringUtils.h"
 #include "tinyxml.h"
 #include <fstream>
@@ -212,8 +212,8 @@ void XMLWriter::addField (const std::string& name,
   m_node->InsertEndChild(element);
 }
 
-bool XMLWriter::writeTimeInfo(int level, int order, int interval,
-                              SIMparameters& tp)
+bool XMLWriter::writeTimeInfo (int level, int order, int interval,
+                               const TimeStep& tp)
 {
   m_dt = tp.time.dt;
   m_order = order;

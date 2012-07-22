@@ -13,6 +13,7 @@
 
 #include "NonLinSIM.h"
 #include "SIMbase.h"
+#include "TimeStep.h"
 #include "Profiler.h"
 #include "Utilities.h"
 #include "tinyxml.h"
@@ -28,13 +29,14 @@ NonLinSIM::NonLinSIM (SIMbase* sim, CNORM n) : model(sim), iteNorm(n), nBlock(0)
 #endif
 
   // Default solution parameters
-  maxit     = 20;
-  nupdat    = 20;
-  startTime = 0.0;
-  stopTime  = 1.0;
-  convTol   = 1.0e-6;
-  divgLim   = 1.0;
-  eta       = 0.0;
+  maxit   = 20;
+  nupdat  = 20;
+  prnSlow = 0;
+  convTol = 0.000001;
+  divgLim = 10.0;
+  refNorm = 1.0;
+  alpha   = 1.0;
+  eta     = 0.0;
 }
 
 
@@ -46,35 +48,7 @@ NonLinSIM::~NonLinSIM ()
 
 bool NonLinSIM::parse (char* keyWord, std::istream& is)
 {
-  if (!strncasecmp(keyWord,"TIME_STEPPING",13))
-  {
-    int nstep = atoi(keyWord+13);
-    if (nstep < 1) nstep = 1;
-
-    double dt;
-    steps.resize(nstep);
-    for (int i = 0; i < nstep; i++)
-    {
-      std::istringstream cline(utl::readLine(is));
-      if (i == 0) cline >> startTime;
-      cline >> steps[i].second >> dt;
-      if (cline.fail() || cline.bad()) return false;
-      if (dt > 1.0 && ceil(dt) == dt)
-      {
-	// The number of time steps are specified
-	dt = (steps[i].second - (i == 0 ? startTime : steps[i-1].second))/dt;
-	steps[i].first.push_back(dt);
-      }
-      else while (!cline.fail() && !cline.bad())
-      {
-	// The time step size(s) is/are specified
-	steps[i].first.push_back(dt);
-	cline >> dt;
-      }
-    }
-    stopTime = steps.back().second;
-  }
-  else if (!strncasecmp(keyWord,"NONLINEAR_SOLVER",16))
+  if (!strncasecmp(keyWord,"NONLINEAR_SOLVER",16))
   {
     std::istringstream cline(utl::readLine(is));
     cline >> maxit >> convTol;
@@ -111,67 +85,29 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
   const char* value = 0;
   const TiXmlElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
-
-    if (!strcasecmp(child->Value(),"timestepping")) {
-      steps.clear();
-      const TiXmlElement* step = child->FirstChildElement("step");
-      for (; step; step = step->NextSiblingElement()) {
-        double start = 0.0, end = 0.0, dt = 0.0;
-        std::pair<std::vector<double>,double> timeStep;
-	utl::getAttribute(step,"start",start);
-	utl::getAttribute(step,"end",end);
-        if (steps.empty()) startTime = start;
-        if (step->FirstChild()) {
-          std::istringstream cline(step->FirstChild()->Value());
-          cline >> dt;
-          if (dt > 1.0 && ceil(dt) == dt) {
-            // The number of steps are specified
-            dt = (end - (steps.empty() ? start : steps.back().second))/dt;
-            timeStep.first.push_back(dt);
-          }
-          else while (!cline.fail() && !cline.bad()) {
-            // The time step size(s) is/are specified
-            timeStep.first.push_back(dt);
-            cline >> dt;
-          }
-          timeStep.second = end;
-          steps.push_back(timeStep);
-        }
-      }
-      stopTime = steps.back().second;
-    }
-
-    else if ((value = utl::getValue(child,"maxits")))
+    if ((value = utl::getValue(child,"maxits")))
       maxit = atoi(value);
-
     else if ((value = utl::getValue(child,"nupdate")))
       nupdat = atoi(value);
-
     else if ((value = utl::getValue(child,"rtol")))
       convTol = atof(value);
-
     else if ((value = utl::getValue(child,"dtol")))
       divgLim = atof(value);
-
     else if ((value = utl::getValue(child,"eta")))
       eta = atof(value);
+    else if ((value = utl::getValue(child,"printSlow")))
+      prnSlow = atoi(value);
 
   return true;
 }
 
 
-void NonLinSIM::init (SolvePrm& param, const RealArray& initVal)
+void NonLinSIM::init (const RealArray& initVal)
 {
-  param.initTime(startTime,stopTime,steps);
-  param.maxit   = maxit;
-  param.nupdat  = nupdat;
-  param.convTol = convTol;
-  param.divgLim = divgLim;
-  param.eta     = eta;
-
   size_t nSols = model->getNoSolutions();
   if (nSols < 2) nSols = 2;
   solution.resize(nSols);
+
   for (size_t n = 0; n < nSols; n++)
     solution[n].resize(model->getNoDOFs(),true);
 
@@ -193,19 +129,29 @@ void NonLinSIM::setInitialGuess (const RealArray& value)
 }
 
 
-bool NonLinSIM::advanceStep (SolvePrm& param, bool updateTime)
+bool NonLinSIM::advanceStep (TimeStep& param, bool updateTime)
 {
   // Update solution vectors between time steps
   for (int n = solution.size()-1; n > 0; n--)
-    solution[n] = solution[n-1];
+    std::copy(solution[n-1].begin(),solution[n-1].end(),solution[n].begin());
 
   return updateTime ? param.increment() : true;
 }
 
 
-bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode,
-			   bool energyNorm, double zero_tolerance,
-			   std::streamsize outPrec)
+NonLinSIM::ConvStatus NonLinSIM::solve (double zero_tolerance,
+                                        std::streamsize outPrec)
+{
+  TimeStep singleStep; // Solves the nonlinear equations in one single step
+  return this->solveStep(singleStep,SIM::STATIC,false,zero_tolerance,outPrec);
+}
+
+
+NonLinSIM::ConvStatus NonLinSIM::solveStep (TimeStep& param,
+                                            SIM::SolutionMode mode,
+                                            bool energyNorm,
+                                            double zero_tolerance,
+                                            std::streamsize outPrec)
 {
   PROFILE1("NonLinSIM::solveStep");
 
@@ -220,54 +166,54 @@ bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode,
   }
 
   param.iter = 0;
-  param.alpha = 1.0;
+  alpha = 1.0;
 
   if (!model->updateDirichlet(param.time.t,&solution.front()))
-    return false;
+    return FAILURE;
 
   if (!model->setMode(mode))
-    return false;
+    return FAILURE;
 
   bool poorConvg = false;
   bool newTangent = true;
   model->setQuadratureRule(model->opt.nGauss[0],true);
   if (!model->assembleSystem(param.time,solution,newTangent))
-    return false;
+    return FAILURE;
 
   if (!model->extractLoadVec(residual))
-    return false;
+    return FAILURE;
 
   if (!model->solveSystem(linsol,msgLevel-1))
-    return false;
+    return FAILURE;
 
-  while (param.iter <= param.maxit)
+  while (param.iter <= maxit)
     switch (this->checkConvergence(param))
       {
       case CONVERGED:
 	if (!this->updateConfiguration(param))
-	  return false;
+	  return FAILURE;
 
 	if (!this->solutionNorms(param.time,energyNorm,zero_tolerance,outPrec))
-	  return false;
+	  return FAILURE;
 
 	param.time.first = false;
-	return true;
+	return CONVERGED;
 
       case DIVERGED:
-	return false;
+	return DIVERGED;
 
       case SLOW:
 	poorConvg = true;
       default:
 	param.iter++;
 	if (!this->updateConfiguration(param))
-	  return false;
+	  return FAILURE;
 
 	if (param.iter == 1)
 	  if (!model->updateDirichlet())
-	    return false;
+	    return FAILURE;
 
-	if (param.iter > param.nupdat)
+	if (param.iter > nupdat)
 	{
 	  newTangent = false;
 	  model->setMode(SIM::RHS_ONLY);
@@ -276,27 +222,27 @@ bool NonLinSIM::solveStep (SolvePrm& param, SIM::SolutionMode mode,
 	  model->setMode(mode);
 
 	if (!model->assembleSystem(param.time,solution,newTangent,poorConvg))
-	  return false;
+	  return FAILURE;
 
 	if (!model->extractLoadVec(residual))
-	  return false;
+	  return FAILURE;
 
 	if (!model->solveSystem(linsol,msgLevel-1))
-	  return false;
+	  return FAILURE;
 
 	if (!this->lineSearch(param))
-	  return false;
+	  return FAILURE;
 
 	poorConvg = false;
       }
 
-  return false;
+  return DIVERGED;
 }
 
 
-bool NonLinSIM::lineSearch (SolvePrm& param)
+bool NonLinSIM::lineSearch (TimeStep& param)
 {
-  if (param.eta <= 0.0) return true; // No line search
+  if (eta <= 0.0) return true; // No line search
 
   double s0 = residual.dot(linsol);
   double smin = fabs(s0);
@@ -306,7 +252,7 @@ bool NonLinSIM::lineSearch (SolvePrm& param)
   if (myPid == 0)
     std::cout <<"\t0: ck="<< ck <<" sk="<< s0 << std::endl;
 
-  param.alpha = 1.0;
+  alpha = 1.0;
   for (int iter = 1; iter <= 10; iter++)
   {
     if (!this->updateConfiguration(param))
@@ -322,9 +268,9 @@ bool NonLinSIM::lineSearch (SolvePrm& param)
     if (myPid == 0)
       std::cout <<"\t"<< iter <<": ck="<< ck <<" sk="<< sk << std::endl;
 
-    if (fabs(sk) < param.eta*fabs(s0))
+    if (fabs(sk) < eta*fabs(s0))
     {
-      param.alpha = 0.0;
+      alpha = 0.0;
       return true;
     }
     else if (fabs(sk) < smin)
@@ -340,21 +286,21 @@ bool NonLinSIM::lineSearch (SolvePrm& param)
     else if (ck < 0.5)
       ck = 0.5;
 
-    if (fabs(ck-cp) < 0.5*param.eta*fabs(ck+cp))
+    if (fabs(ck-cp) < 0.5*eta*fabs(ck+cp))
     {
-      param.alpha = 0.0;
+      alpha = 0.0;
       return true;
     }
 
-    param.alpha = ck - param.alpha;
+    alpha = ck - alpha;
   }
 
-  param.alpha = cmin - param.alpha;
+  alpha = cmin - alpha;
   return true;
 }
 
 
-NonLinSIM::ConvStatus NonLinSIM::checkConvergence (SolvePrm& param)
+NonLinSIM::ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
 {
   static double prevNorm  = 0.0;
   static int    nIncrease = 0;
@@ -366,13 +312,13 @@ NonLinSIM::ConvStatus NonLinSIM::checkConvergence (SolvePrm& param)
 
   if (param.iter == 0)
   {
-    if (fabs(norm) > param.refNorm)
-      param.refNorm = fabs(norm);
+    if (fabs(norm) > refNorm)
+      refNorm = fabs(norm);
     norm = prevNorm = 1.0;
     nIncrease = 0;
   }
   else
-    norm /= param.refNorm;
+    norm /= refNorm;
 
   // Check for slow convergence
   if (param.iter > 1 && prevNorm > 0.0 && fabs(norm) > prevNorm*0.1)
@@ -380,42 +326,48 @@ NonLinSIM::ConvStatus NonLinSIM::checkConvergence (SolvePrm& param)
 
   if (msgLevel > 0 && myPid == 0 && !solution.empty())
   {
-    if (status == SLOW)
-    {
-      // Find and print out the worst DOFs
-      std::map<std::pair<int,int>,RealArray> worstDOFs;
-      model->getWorstDofs(linsol,residual,param.convTol,worstDOFs);
-      std::cout <<"  ** Slow convergence detected, here are the "
-                << worstDOFs.size() <<" worst DOFs:";
-      std::map<std::pair<int,int>,RealArray>::const_iterator it;
-      for (it = worstDOFs.begin(); it != worstDOFs.end(); it++)
-        std::cout <<"\n     Node "<< it->first.first
-                  <<" Local DOF "<< it->first.second
-                  <<" ("<< model->getNodeType(it->first.first)
-                  <<") :\tEnergy = "<< it->second[0]
-                  <<"\tdu = "<< it->second[1]
-                  <<" res = "<< it->second[2];
-      std::cout << std::endl;
-    }
-
     // Print convergence history
     std::ios::fmtflags oldFlags = std::cout.flags(std::ios::scientific);
     std::streamsize oldPrec = std::cout.precision(3);
     std::cout <<"  iter="<< param.iter
-	      <<"  conv="<< fabs(norm)
-	      <<"  enen="<< enorm
-	      <<"  resn="<< resNorm
-	      <<"  incn="<< linsolNorm << std::endl;
+              <<"  conv="<< fabs(norm)
+              <<"  enen="<< enorm
+              <<"  resn="<< resNorm
+              <<"  incn="<< linsolNorm << std::endl;
+    if (status == SLOW && prnSlow > 0)
+    {
+      // Find and print out the worst DOF(s) when detecting slow convergence
+      std::map<std::pair<int,int>,RealArray> worstDOFs;
+      model->getWorstDofs(linsol,residual,prnSlow,convTol,worstDOFs);
+      std::cout <<"  ** Slow convergence detected, ";
+      if (worstDOFs.size() > 1)
+        std::cout <<"here are the "<< worstDOFs.size() <<" worst DOFs:";
+      else if (worstDOFs.size() == 1)
+        std::cout <<"here is the worst DOF:";
+      std::map<std::pair<int,int>,RealArray>::const_iterator it;
+      for (it = worstDOFs.begin(); it != worstDOFs.end(); it++)
+      {
+        std::cout <<"\n     Node "<< it->first.first
+                  <<" local DOF "<< it->first.second;
+        char nodeType = model->getNodeType(it->first.first);
+        if (nodeType != ' ')
+          std::cout <<" ("<< nodeType <<")";
+	std::cout <<" :\tEnergy = "<< it->second[0]
+                  <<"\tdu = "<< it->second[1]
+                  <<"\tres = "<< it->second[2];
+      }
+      std::cout << std::endl;
+    }
     std::cout.flags(oldFlags);
     std::cout.precision(oldPrec);
   }
 
   // Check for convergence or divergence
-  if (fabs(norm) < param.convTol)
+  if (fabs(norm) < convTol)
     status = CONVERGED;
   else if (fabs(norm) <= fabs(prevNorm))
     nIncrease = 0;
-  else if (++nIncrease > 2 || fabs(norm) > param.divgLim)
+  else if (++nIncrease > 2 || fabs(norm) > divgLim)
     status = DIVERGED;
 
   prevNorm = norm;
@@ -423,14 +375,14 @@ NonLinSIM::ConvStatus NonLinSIM::checkConvergence (SolvePrm& param)
 }
 
 
-bool NonLinSIM::updateConfiguration (SolvePrm& param)
+bool NonLinSIM::updateConfiguration (TimeStep&)
 {
   if (solution.empty()) return false;
 
   if (solution.front().empty())
     solution.front() = linsol;
-  else if (param.alpha != 0.0)
-    solution.front().add(linsol,param.alpha);
+  else if (alpha != 0.0)
+    solution.front().add(linsol,alpha);
 
   return model->updateConfiguration(solution.front());
 }
@@ -460,7 +412,7 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time, bool,
 	        << dMax[0] <<" node "<< iMax[0];
     else for (unsigned char d = 0; d < nf; d++)
       if (utl::trunc(dMax[d]) != 0.0)
-        std::cout <<"\n                            Max "<< 'X'+d
+        std::cout <<"\n                            Max "<< char('X'+d)
                   <<"-component : "<< dMax[d] <<" node "<< iMax[d];
 
     utl::zero_print_tol = old_tol;
@@ -486,7 +438,7 @@ bool NonLinSIM::saveModel (char* fileName)
 }
 
 
-bool NonLinSIM::saveStep (int iStep, double time, int& iBlock,
+bool NonLinSIM::saveStep (int iStep, double time,
 			  bool psolOnly, const char* vecName)
 {
   PROFILE1("NonLinSIM::saveStep");
@@ -499,23 +451,23 @@ bool NonLinSIM::saveStep (int iStep, double time, int& iBlock,
 
   // Write boundary tractions, if any
   if (!psolOnly)
-    if (!model->writeGlvT(iStep,iBlock))
+    if (!model->writeGlvT(iStep,nBlock))
       return false;
 
   // Write residual force vector, but only when no extra visualization points
   if (!psolOnly && model->opt.nViz[0] == 2 &&
       model->opt.nViz[1] <= 2 && model->opt.nViz[2] <= 2)
-    if (!model->writeGlvV(residual,"Residual forces",iStep,iBlock))
+    if (!model->writeGlvV(residual,"Residual forces",iStep,nBlock))
       return false;
 
   // Write solution fields
   if (!solution.empty())
-    if (!model->writeGlvS(solution.front(),iStep,iBlock,time,psolOnly,vecName))
+    if (!model->writeGlvS(solution.front(),iStep,nBlock,time,psolOnly,vecName))
       return false;
 
   // Write element norms
   if (!psolOnly)
-    if (!model->writeGlvN(eNorm,iStep,iBlock))
+    if (!model->writeGlvN(eNorm,iStep,nBlock))
       return false;
 
   // Write time/load step information
@@ -534,7 +486,8 @@ void NonLinSIM::dumpStep (int iStep, double time, std::ostream& os,
 }
 
 
-bool NonLinSIM::dumpResults (double time, std::ostream& os, int precision) const
+bool NonLinSIM::dumpResults (double time, std::ostream& os,
+                             std::streamsize precision) const
 {
   return model->dumpResults(solution.front(),time,os,true,precision);
 }

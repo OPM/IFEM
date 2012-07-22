@@ -18,7 +18,7 @@
 #include <vector>
 
 class DataWriter;
-class SIMparameters;
+class TimeStep;
 
 
 /*!
@@ -88,7 +88,7 @@ class DataExporter
   //! \brief This dumps all registered fields using all registered writers
   //! \param[in] tp Current time stepping info
   //! \param[in] geometryUpdated Whether or not geometries are updated
-  bool dumpTimeLevel(SIMparameters* tp=NULL, bool geometryUpdated=false);
+  bool dumpTimeLevel(const TimeStep* tp=NULL, bool geometryUpdated=false);
 
   //! \brief Loads last time level with first registered writer by default.
   //! \param[in] level Time level to load, defaults to last time level
@@ -179,7 +179,7 @@ public:
   //! \param[in] interval The number of time steps between each data dump
   //! \param[in] tp The current time stepping info
   virtual bool writeTimeInfo(int level, int order, int interval,
-                             SIMparameters& tp) = 0;
+                             const TimeStep& tp) = 0;
 
 protected:
   std::string m_name; //!< File name

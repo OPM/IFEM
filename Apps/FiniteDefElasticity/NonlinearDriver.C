@@ -7,23 +7,49 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Nonlinear solution driver for finite deformation FEM analysis.
+//! \brief Nonlinear driver for isogeometric finite deformation FEM analysis.
 //!
 //==============================================================================
 
 #include "NonlinearDriver.h"
 #include "SIMbase.h"
+#include "DataExporter.h"
+#include "tinyxml.h"
+
+
+bool NonlinearDriver::parse (char* keyWord, std::istream& is)
+{
+  if (!strncasecmp(keyWord,"TIME_STEPPING",13))
+    return params.parse(keyWord,is);
+
+  return this->NonLinSIM::parse(keyWord,is);
+}
+
+
+bool NonlinearDriver::parse (const TiXmlElement* elem)
+{
+  if (!strcasecmp(elem->Value(),"nonlinearsolver"))
+  {
+    const TiXmlElement* child = elem->FirstChildElement();
+    for (; child; child = child->NextSiblingElement())
+      params.parse(child);
+  }
+
+  return this->NonLinSIM::parse(elem);
+}
 
 
 bool NonlinearDriver::solutionNorms (const TimeDomain& time, bool energyNorm,
-				     double zero_tol, std::streamsize outPrec)
+                                     double zero_tol, std::streamsize outPrec)
 {
   if (msgLevel < 0 || solution.empty()) return true;
 
-  size_t nsd = model->getNoSpaceDim();
+  const size_t nsd = model->getNoSpaceDim();
+
   size_t iMax[nsd];
   double dMax[nsd];
   double normL2 = model->solutionNorms(solution.front(),dMax,iMax);
+
   RealArray RF;
   bool haveReac = model->getCurrentReactions(RF,solution.front());
 
@@ -43,13 +69,12 @@ bool NonlinearDriver::solutionNorms (const TimeDomain& time, bool energyNorm,
   utl::zero_print_tol = zero_tol;
 
   std::cout <<"  Primary solution summary: L2-norm            : "
-	    << utl::trunc(normL2);
+            << utl::trunc(normL2);
 
-  char D = 'X';
-  for (size_t d = 0; d < nsd; d++, D++)
+  for (unsigned char d = 0; d < nsd; d++)
     if (utl::trunc(dMax[d]) != 0.0)
-      std::cout <<"\n                            Max " << D
-		<<"-displacement : "<< dMax[d] <<" node "<< iMax[d];
+      std::cout <<"\n                            Max "<< char('X'+d)
+                <<"-displacement : "<< dMax[d] <<" node "<< iMax[d];
 
   if (haveReac)
   {
@@ -94,4 +119,86 @@ bool NonlinearDriver::solutionNorms (const TimeDomain& time, bool energyNorm,
   utl::zero_print_tol = old_tol;
   if (stdPrec > 0) std::cout.precision(stdPrec);
   return true;
+}
+
+
+/*!
+  This method controls the load incrementation loop of the finite deformation
+  simulation. It uses the automatic increment size adjustment of the TimeStep
+  class and supports iteration cut-back in case of divergence.
+*/
+
+int NonlinearDriver::solveProblem (bool skip2nd, bool energyNorm,
+                                   DataExporter* writer,
+                                   std::ostream* oss, double dtDump,
+                                   double zero_tol, std::streamsize outPrec)
+{
+  std::streamsize normPrec = outPrec > 3 ? outPrec : 0;
+
+  if (dtDump <= 0.0) dtDump = params.stopTime + 1.0;
+  double nextDump = params.time.t + dtDump;
+  double nextSave = params.time.t + model->opt.dtSave;
+
+  int iStep = 0; // Save initial state to VTF
+  if (model->opt.format >= 0 && params.multiSteps())
+    if (!this->saveStep(-(++iStep),params.time.t,skip2nd))
+      return 4;
+
+  // Initialize the linear solver
+  model->initSystem(model->opt.solver,1,1);
+
+  // Invoke the time-step loop
+  NonLinSIM::ConvStatus stat = NonLinSIM::OK;
+  while (this->advanceStep(params))
+  {
+    do
+    {
+      if (stat == NonLinSIM::DIVERGED)
+      {
+        // Try cut-back with a smaller time step when diverging
+        if (params.cutback())
+          std::copy(solution[1].begin(),solution[1].end(),solution[0].begin());
+        else
+          break;
+      }
+
+      // Solve the nonlinear FE problem at this load step
+      stat = this->solveStep(params,SIM::STATIC,energyNorm,zero_tol,normPrec);
+    }
+    while (stat == NonLinSIM::DIVERGED);
+
+    if (stat != NonLinSIM::CONVERGED)
+      return 5;
+
+    // Print solution components at the user-defined points
+    this->dumpResults(params.time.t,std::cout,outPrec);
+
+    if (params.hasReached(nextDump))
+    {
+      // Dump primary solution for inspection or external processing
+      if (oss)
+        this->dumpStep(params.step,params.time.t,*oss,false);
+      else
+        this->dumpStep(params.step,params.time.t,std::cout);
+
+      nextDump = params.time.t + dtDump;
+    }
+
+    if (params.hasReached(nextSave))
+    {
+      // Save solution variables to VTF for visualization
+      if (model->opt.format >= 0)
+        if (!this->saveStep(++iStep,params.time.t,skip2nd))
+          return 6;
+
+      // Save solution variables to HDF5
+      if (writer)
+        if (!writer->dumpTimeLevel())
+          return 7;
+
+      nextSave = params.time.t + model->opt.dtSave;
+    }
+  }
+
+  return 0;
 }

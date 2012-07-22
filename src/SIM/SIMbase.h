@@ -32,7 +32,7 @@ class VTF;
 class SAM;
 class AlgEqSystem;
 class LinSolParams;
-class SIMparameters;
+class TimeStep;
 
 //! Property code to integrand map
 typedef std::multimap<int,IntegrandBase*> IntegrandMap;
@@ -216,12 +216,12 @@ public:
   //! \param[in] time Current time
   bool initDirichlet(double time = 0.0);
 
-  //! \brief Initializes simulation parameters with values read from file.
-  virtual void init(SIMparameters&) {}
+  //! \brief Initializes for time-dependent simulation.
+  virtual void init(TimeStep&) {}
   //! \brief Advances the time step one step forward.
-  virtual bool advanceStep(SIMparameters&) { return false; }
+  virtual bool advanceStep(TimeStep&) { return false; }
   //! \brief Computes the solution for the current time step.
-  virtual bool solveStep(SIMparameters&) { return false; }
+  virtual bool solveStep(TimeStep&) { return false; }
   //! \brief Saves the converged results to VTF file of a given time step.
   virtual bool saveStep(int, double, int&) { return false; }
 
@@ -277,12 +277,13 @@ public:
   bool solveSystem(Vector& solution, int printSol = 0,
                    const char* compName = "displacement", bool newLHS = true);
 
-  //! \brief Finds the 10 worst energy DOFs in the residual.
+  //! \brief Finds the worst energy DOFs in the residual.
   //! \param[in] x Global primary solution vector
   //! \param[in] r Global residual vector associated with the solution vector
+  //! \param[in] nWorst How many bad DOFs to detect
   //! \param[in] eps Only record the energies larger than this tolerance
   //! \param[out] worst Node and local DOF number and values of the worst DOFs
-  void getWorstDofs(const Vector& x, const Vector& r, double eps,
+  void getWorstDofs(const Vector& x, const Vector& r, size_t nWorst, double eps,
 		    std::map<std::pair<int,int>,RealArray>& worst) const;
 
   //! \brief Evaluates some iteration norms for convergence assessment.

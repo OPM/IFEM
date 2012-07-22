@@ -17,7 +17,7 @@
 
 class TiXmlDocument;
 class TiXmlNode;
-class SIMparameters;
+class TimeStep;
 
 
 /*!
@@ -111,7 +111,7 @@ public:
   //! \param[in] interval The number of time steps between each data dump
   //! \param[in] tp The current time stepping info
   virtual bool writeTimeInfo(int level, int order, int interval,
-                             SIMparameters& tp);
+                             const TimeStep& tp);
 protected:
   //! \brief Internal helper function
   //! \param[in] name The name of the field to add
