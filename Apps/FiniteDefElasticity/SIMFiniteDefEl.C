@@ -272,6 +272,21 @@ bool SIMFiniteDefEl2D::assembleDiscreteTerms (const IntegrandBase* problem)
 }
 
 
+bool SIMFiniteDefEl2D::writeGlvG (int& nBlock, const char* inpFile)
+{
+  if (!this->SIMbase::writeGlvG(nBlock,inpFile))
+    return false;
+
+  return this->writeGlvBodies(myVtf,nBlock);
+}
+
+
+bool SIMFiniteDefEl2D::writeGlvA (int& nBlock, int iStep) const
+{
+  return this->writeGlvBodyMovements(myVtf,iStep,nBlock);
+}
+
+
 SIMFiniteDefEl3D::SIMFiniteDefEl3D (bool checkRHS,
 				    const std::vector<int>& options)
   : SIMLinEl3D(checkRHS), nlo(3)
@@ -520,4 +535,19 @@ bool SIMFiniteDefEl3D::assembleDiscreteTerms (const IntegrandBase* problem)
   return this->assembleMortarTangent(problem,
 				     myEqSys->getMatrix(),
 				     myEqSys->getVector());
+}
+
+
+bool SIMFiniteDefEl3D::writeGlvG (int& nBlock, const char* inpFile)
+{
+  if (!this->SIMbase::writeGlvG(nBlock,inpFile))
+    return false;
+
+  return this->writeGlvBodies(myVtf,nBlock);
+}
+
+
+bool SIMFiniteDefEl3D::writeGlvA (int& nBlock, int iStep) const
+{
+  return this->writeGlvBodyMovements(myVtf,iStep,nBlock);
 }

@@ -27,6 +27,7 @@ class SystemMatrix;
 class SystemVector;
 class SAM;
 class MPC;
+class VTF;
 
 
 /*!
@@ -125,6 +126,17 @@ protected:
   //! which cannot be assembled through the normal element assembly loop.
   bool assembleMortarTangent(const IntegrandBase* problem,
                              SystemMatrix* Ktan, SystemVector* Res);
+
+  //! \brief Writes the geometry of the rigid bodies to the VTF-file.
+  //! \param vtf The VTF-file to receive the geometry data
+  //! \param nBlock Running result block counter
+  bool writeGlvBodies(VTF* vtf, int& nBlock);
+
+  //! \brief Writes the current position of the rigid bodies to the VTF-file.
+  //! \param vtf The VTF-file to receive the position data
+  //! \param[in] iStep Load/time step identifier
+  //! \param nBlock Running result block counter
+  bool writeGlvBodyMovements(VTF* vtf, int iStep, int& nBlock) const;
 
 private:
   std::vector<RigidBody*>    myBodies; //!< All rigid bodies of the model

@@ -19,6 +19,8 @@
 #include "Vec3.h"
 #include <map>
 
+class ElementBlock;
+
 
 /*!
   \brief Base class representing a general rigid body for contact analysis.
@@ -43,12 +45,18 @@ public:
   //! \brief Renumbers the global node numbers of the internal points.
   void renumberNodes(const std::map<int,int>& old2new);
 
+  //! \brief Creates a tesselated geometry of the body for visualization.
+  virtual ElementBlock* tesselate() const = 0;
+
   //! \brief Prints out the rigid body definition to the given stream.
   virtual void print(std::ostream& os) const;
 
   //! \brief Updates the position of the rigid body.
   //! \param[in] displ Total displacement vector of the whole FE model
   virtual bool update(const RealArray& displ);
+
+  //! \brief Returns the current position of the rigid body.
+  Vec3 getPosition() const;
 
   //! \brief Evaluates the gap function at an integration point.
   //! \param[in] X Cartesian coordinates of current integration point
@@ -79,8 +87,9 @@ protected:
   unsigned char     nsd;  //!< Number of space dimensions
 
 public:
-  double eps;  //!< Penalty parameter for the contact constraint of this body
-  int    code; //!< Property code associated with this contact body
+  double eps;    //!< Penalty parameter for the contact constraint of this body
+  int    code;   //!< Property code associated with this contact body
+  int    gBlock; //!< Geometry block ID on the VTF file for this contact body
 };
 
 
@@ -98,6 +107,9 @@ public:
 
   //! \brief Prints out the rigid body definition to the given stream.
   virtual void print(std::ostream& os) const;
+
+  //! \brief Creates a tesselated geometry of the body for visualization.
+  virtual ElementBlock* tesselate() const;
 
   //! \brief Evaluates the gap function at an integration point.
   //! \param[in] X Cartesian coordinates of current integration point
@@ -133,6 +145,9 @@ public:
 
   //! \brief Prints out the rigid body definition to the given stream.
   virtual void print(std::ostream& os) const;
+
+  //! \brief Creates a tesselated geometry of the body for visualization.
+  virtual ElementBlock* tesselate() const;
 
   //! \brief Updates the position of the rigid body.
   //! \param[in] displ Total displacement vector of the whole FE model
@@ -174,6 +189,9 @@ public:
 
   //! \brief Prints out the rigid body definition to the given stream.
   virtual void print(std::ostream& os) const;
+
+  //! \brief Creates a tesselated geometry of the body for visualization.
+  virtual ElementBlock* tesselate() const;
 
   //! \brief Updates the position of the rigid body.
   //! \param[in] displ Total displacement vector of the whole FE model

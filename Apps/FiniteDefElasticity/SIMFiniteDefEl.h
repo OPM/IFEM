@@ -70,6 +70,19 @@ public:
   //! \param[in] solution Current primary solution vector
   virtual bool updateConfiguration(const Vector& solution);
 
+  //! \brief Write current model geometry to the VTF-file.
+  //! \param nBlock Running result block counter
+  //! \param[in] inpFile File name used to construct the VTF-file name from
+  //!
+  //! \details This method is reimplemented here to also write out the contact
+  //! bodies, if any.
+  virtual bool writeGlvG(int& nBlock, const char* inpFile);
+
+  //! \brief Writes contact body movements to the VTF-file.
+  //! \param nBlock Running result block counter
+  //! \param[in] iStep Load/time step identifier
+  virtual bool writeGlvA(int& nBlock, int iStep) const;
+
 private:
   NLoptions nlo; //!< Input options defining the nonlinear formulation
 };
@@ -126,6 +139,19 @@ public:
   //! \brief Updates Problem-dependent state based on current solution.
   //! \param[in] solution Current primary solution vector
   virtual bool updateConfiguration(const Vector& solution);
+
+  //! \brief Write current model geometry to the VTF-file.
+  //! \param nBlock Running result block counter
+  //! \param[in] inpFile File name used to construct the VTF-file name from
+  //!
+  //! \details This method is reimplemented here to also write out the contact
+  //! bodies, if any.
+  virtual bool writeGlvG(int& nBlock, const char* inpFile);
+
+  //! \brief Writes contact body movements to the VTF-file.
+  //! \param nBlock Running result block counter
+  //! \param[in] iStep Load/time step identifier
+  virtual bool writeGlvA(int& nBlock, int iStep) const;
 
 private:
   NLoptions nlo; //!< Input options defining the nonlinear formulation

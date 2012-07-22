@@ -12,7 +12,9 @@
 //==============================================================================
 
 #include "RigidBody.h"
+#include "ElementBlock.h"
 #include "Utilities.h"
+#include "Tensor.h"
 #include "Vec3Oper.h"
 
 #ifndef epsZ
@@ -86,12 +88,29 @@ bool RigidBody::update (const RealArray& displ)
 }
 
 
+Vec3 RigidBody::getPosition () const
+{
+  return Xn.front() - X0.front();
+}
+
+
 void RigidSphere::print (std::ostream& os) const
 {
   const_cast<RigidSphere*>(this)->update(RealArray());
 
   os <<"\tRigid Sphere: R = "<< R;
   this->RigidBody::print(os);
+}
+
+
+ElementBlock* RigidSphere::tesselate () const
+{
+  ElementBlock* g = new ElementBlock(4);
+
+  //TODO
+  std::cout <<"RigidSphere::tesselate: Not implemented yet"<< std::endl;
+
+  return g;
 }
 
 
@@ -144,6 +163,64 @@ void RigidCylinder::print (std::ostream& os) const
 
   os <<"\tRigid Cylinder: R = "<< R <<", L = "<< L <<", dirC = "<< dirC;
   this->RigidBody::print(os);
+}
+
+
+ElementBlock* RigidCylinder::tesselate () const
+{
+  const size_t ntheta = 180;
+
+  ElementBlock* g = new ElementBlock(4);
+  g->unStructResize(3*ntheta,2+2*ntheta);
+
+  size_t n, ip;
+  Tensor Tlg(dirC);
+  Vec3 X1 = X0.size() > 1 ? X0[1] : X0[0] + L*dirC;
+
+  g->setCoor(0,X0[0]);
+  g->setCoor(1+ntheta,X1);
+  for (n = 0; n < ntheta; n++)
+  {
+    double theta = M_PI*n*2.0/(double)ntheta;
+    Vec3 X(R*cos(theta),R*sin(theta),0.0);
+    g->setCoor(1+n,X0[0]+Tlg*X);
+    g->setCoor(2+ntheta+n,X1+Tlg*X);
+  }
+
+  for (n = ip = 0; n+1 < ntheta; n++)
+  {
+    g->setNode(ip++,0);
+    g->setNode(ip++,2+n);
+    g->setNode(ip++,1+n);
+    g->setNode(ip++,0);
+
+    g->setNode(ip++,2+n);
+    g->setNode(ip++,1+n);
+    g->setNode(ip++,2+ntheta+n);
+    g->setNode(ip++,3+ntheta+n);
+
+    g->setNode(ip++,1+ntheta);
+    g->setNode(ip++,2+ntheta+n);
+    g->setNode(ip++,3+ntheta+n);
+    g->setNode(ip++,1+ntheta);
+  }
+
+  g->setNode(ip++,0);
+  g->setNode(ip++,1);
+  g->setNode(ip++,ntheta);
+  g->setNode(ip++,0);
+
+  g->setNode(ip++,1);
+  g->setNode(ip++,ntheta);
+  g->setNode(ip++,1+ntheta+ntheta);
+  g->setNode(ip++,2+ntheta);
+
+  g->setNode(ip++,1+ntheta);
+  g->setNode(ip++,1+ntheta+ntheta);
+  g->setNode(ip++,2+ntheta);
+  g->setNode(ip++,1+ntheta);
+
+  return g;
 }
 
 
@@ -225,6 +302,31 @@ void RigidPlane::print (std::ostream& os) const
 
   os <<"\tRigid Plane: Triangle area = "<< Area <<", normal = "<< nVec;
   this->RigidBody::print(os);
+}
+
+
+ElementBlock* RigidPlane::tesselate () const
+{
+  ElementBlock* g = new ElementBlock(4);
+  g->resize(2,2);
+
+  g->setCoor(0,X0[0]);
+  g->setCoor(1,X0[1]);
+  if (X0.size() > 2)
+  {
+    g->setCoor(3,X0[2]);
+    g->setCoor(2,X0[1]+X0[2]-X0[0]);
+  }
+  else
+  {
+    Vec3 X2(X0.front()); X2.z += X0[1].x - X0[0].x;
+    g->setCoor(3,X2);
+    g->setCoor(2,X0[1]+X2-X0[0]);
+  }
+  for (int i = 0; i < 4; i++)
+    g->setNode(i,i);
+
+  return g;
 }
 
 

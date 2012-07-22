@@ -19,6 +19,7 @@
 #include "Functions.h"
 #include "Vec3Oper.h"
 #include "MPC.h"
+#include "VTF.h"
 #include "tinyxml.h"
 
 
@@ -312,4 +313,38 @@ bool SIMContact::assembleMortarTangent (const IntegrandBase* problem,
 #endif
 
   return contp->assemble(*Ktan,*Res);
+}
+
+
+bool SIMContact::writeGlvBodies (VTF* vtf, int& nBlock)
+{
+  if (myBodies.empty()) return true;
+
+  std::string bodyName("Rigid Body 1");
+  for (size_t i = 0; i < myBodies.size(); i++, bodyName.back()++)
+    if (vtf->writeGrid(myBodies[i]->tesselate(),bodyName.c_str(),++nBlock))
+      myBodies[i]->gBlock = nBlock;
+    else
+      return false;
+
+  return true;
+}
+
+
+bool SIMContact::writeGlvBodyMovements (VTF* vtf, int iStep, int& nBlock) const
+{
+  if (myBodies.empty()) return true;
+
+  std::vector<int> tID;
+  Tensor identity(3);
+  identity = 1.0;
+
+  for (size_t i = 0; i < myBodies.size(); i++)
+    if (vtf->writeTransformation(myBodies[i]->getPosition(),identity,++nBlock,
+                                 myBodies[i]->gBlock))
+      tID.push_back(nBlock);
+    else
+      return false;
+
+  return vtf->writeTblk(tID,"Body movement",700,iStep);
 }
