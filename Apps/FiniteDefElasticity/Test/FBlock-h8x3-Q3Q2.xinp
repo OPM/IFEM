@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<!-- Compression of a 2D rectangular rubber block. !-->
+<!-- Isotropic nearly-incompressible hyperelastic material. !-->
+<!-- Nonlinear analysis with cubic elements. !-->
+
+<simulation>
+
+  <geometry>
+    <patchfile>block.g2</patchfile>
+    <refine patch="1" u="7" v="2"/>
+    <raiseorder patch="1" u="2" v="2"/>
+    <topologysets>
+      <set name="sides" type="edge">
+        <item patch="1">1 2</item>
+      </set>
+      <set name="bottom" type="edge">
+        <item patch="1">3</item>
+      </set>
+      <set name="top" type="edge">
+        <item patch="1">4</item>
+      </set>
+    </topologysets>
+  </geometry>
+
+  <boundaryconditions>
+    <dirichlet comp="1" set="sides"/>
+    <dirichlet comp="2" set="bottom"/>
+    <neumann direction="2" set="top" type="StepX">-2.0 1.0 3.0 1.0</neumann>
+  </boundaryconditions>
+
+  <finitedeformation>
+    <formulation>
+      <mixed type="Qp/Qp-1"/>
+    </formulation>
+    <isotropic version="21" K="400942.0" G="80.1938"/>
+  </finitedeformation>
+
+  <discretization type="lagrange">
+    <nGauss>4</nGauss>
+  </discretization>
+
+  <nonlinearsolver>
+    <timestepping dtMin="0.1">
+      <step start="0.0" end="200.0">1.0</step>
+    </timestepping>
+    <rtol>1.0e-16</rtol>
+  </nonlinearsolver>
+
+</simulation>
