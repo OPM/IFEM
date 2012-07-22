@@ -403,6 +403,12 @@ bool NonlinearElasticityUL::kinematics (const Vector& eV,
 }
 
 
+bool NonlinearElasticityUL::diverged () const
+{
+  return material ? material->diverged() : false;
+}
+
+
 NormBase* NonlinearElasticityUL::getNormIntegrand (AnaSol*) const
 {
   return new ElasticityNormUL(const_cast<NonlinearElasticityUL&>(*this));

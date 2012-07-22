@@ -13,6 +13,7 @@
 
 #include "NonLinSIM.h"
 #include "SIMbase.h"
+#include "IntegrandBase.h"
 #include "TimeStep.h"
 #include "Profiler.h"
 #include "Utilities.h"
@@ -178,7 +179,7 @@ NonLinSIM::ConvStatus NonLinSIM::solveStep (TimeStep& param,
   bool newTangent = true;
   model->setQuadratureRule(model->opt.nGauss[0],true);
   if (!model->assembleSystem(param.time,solution,newTangent))
-    return FAILURE;
+    return model->getProblem()->diverged() ? DIVERGED : FAILURE;
 
   if (!model->extractLoadVec(residual))
     return FAILURE;
@@ -222,7 +223,7 @@ NonLinSIM::ConvStatus NonLinSIM::solveStep (TimeStep& param,
 	  model->setMode(mode);
 
 	if (!model->assembleSystem(param.time,solution,newTangent,poorConvg))
-	  return FAILURE;
+	  return model->getProblem()->diverged() ? DIVERGED : FAILURE;
 
 	if (!model->extractLoadVec(residual))
 	  return FAILURE;

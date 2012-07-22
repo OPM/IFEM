@@ -79,6 +79,9 @@ public:
   virtual int getNoIntVariables() const { return 0; }
   //! \brief Returns an internal variable associated with the material model.
   virtual double getInternalVariable(int, char* = 0) const { return 0.0; }
+
+  //! \brief Returns whether the material model has diverged.
+  virtual bool diverged() const { return false; }
 };
 
 #endif

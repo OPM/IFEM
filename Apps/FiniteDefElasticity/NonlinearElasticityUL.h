@@ -103,6 +103,9 @@ public:
                           const Vector& N, const Matrix& dNdX, double r,
 			  Matrix& B, Tensor& F, SymmTensor& E) const;
 
+  //! \brief Returns \e true if simulation diverged on integration point level.
+  virtual bool diverged() const;
+
 protected:
   //! \brief Calculates the deformation gradient at current point.
   //! \param[in] eV Element solution vector

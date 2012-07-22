@@ -507,9 +507,8 @@ C
 C       Warning: check convergence
 C
          if (.not.conv .and. iter.gt.0)          then
-            write(  *,*) ' *WARNING* No convergence in PLASFD',err,tolc
-            write(iwr,*) ' *WARNING* No convergence in PLASFD',err,tolc
-C          call plstop()
+            write(iwr,*) ' *WARNING* No convergence in PLAS3D',err,tolc
+            ierr = iter
          endif
 C
 C       Update elastic left Cauchy-Green tensor and plastic acc. strain

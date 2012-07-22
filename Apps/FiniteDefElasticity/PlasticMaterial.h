@@ -71,12 +71,15 @@ class PlasticMaterial : public Material
     //! \brief Returns a history variable.
     double getVariable(size_t i) const { return HVc[i]; }
 
+    //! \brief Returns whether this material point has diverged.
+    virtual bool diverged() const { return updated == 'd'; }
+
   private:
     const RealArray& pMAT; //!< Material property parameters
 
     double HVc[10]; //!< History variables, current configuration
     double HVp[10]; //!< History variables, previous configuration
-    bool   updated; //!< Flag indicating whether history variables are updated
+    char   updated; //!< Flag indicating whether history variables are updated
 
     // Data for path integral of strain energy
     SymmTensor Ep; //!< Strain tensor, previous configuration
@@ -137,6 +140,9 @@ public:
   //! \param[in] index Index of the internal variable
   //! \param[out] label Name of the internal variable (for result presentation)
   virtual double getInternalVariable(int index, char* label = 0) const;
+
+  //! \brief Returns whether the material model has diverged.
+  virtual bool diverged() const;
 
 private:
   friend class PlasticPoint;

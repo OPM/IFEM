@@ -236,6 +236,17 @@ double PlasticMaterial::getInternalVariable (int index, char* label) const
 }
 
 
+bool PlasticMaterial::diverged () const
+{
+  for (size_t i = 0; i < itgPoints.size(); i++)
+    if (itgPoints[i] && itgPoints[i]->diverged())
+      return true;
+
+  return false;
+}
+
+
+
 PlasticMaterial::PlasticPoint::PlasticPoint (const PlasticMaterial* prm,
 					     unsigned short int n)
   : pMAT(prm->pMAT), updated(false), Ep(0), Sp(0), Fp(n)
@@ -300,7 +311,7 @@ bool PlasticMaterial::PlasticPoint::evaluate (Matrix& C,
   std::cerr <<" *** PlasticMaterial::evaluate: Not included."<< std::endl;
 #endif
 
-  const_cast<PlasticPoint*>(this)->updated = true;
+  const_cast<PlasticPoint*>(this)->updated = ierr > 0 ? 'd' : 'c';
   return ierr == 0;
 }
 
