@@ -27,21 +27,24 @@ public:
   //! The constructor defines the number of nodes per element \a nenod.
   ElementBlock(size_t nenod = 8);
 
-  //! \brief Reallocates the internal arrays to fit a structured element block.
+  //! \brief Reallocates the internal arrays to fit a structured grid.
   //! \param[in] nI Number of element in I-direction
   //! \param[in] nJ Number of element in J-direction
   //! \param[in] nK Number of element in K-direction
   void resize(size_t nI, size_t nJ = 1, size_t nK = 1);
 
-  //! \brief Reallocates the internal arrays to fit an unstructured element block.
+  //! \brief Reallocates the internal arrays to fit an unstructured grid.
   //! \param[in] nEl  Number of elements
   //! \param[in] nPts Number of nodes
   void unStructResize(size_t nEl, size_t nPts);
 
-  //! \brief Defines the coordinates of node \a i
-  bool setCoor(size_t i, real x, real y, real z);
   //! \brief Defines the \a j'th coordinate of node \a i
   bool setCoor(size_t i, size_t j, real x);
+  //! \brief Defines the coordinates of node \a i
+  bool setCoor(size_t i, const Vec3& X);
+  //! \brief Defines the coordinates of node \a i
+  bool setCoor(size_t i, real x, real y, real z)
+  { return this->setCoor(i,Vec3(x,y,z)); }
 
   //! \brief Defines the global number of element node \a i
   bool setNode(size_t i, int nodeNumb);

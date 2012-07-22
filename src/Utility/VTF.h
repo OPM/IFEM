@@ -17,13 +17,15 @@
 #include "Function.h"
 #include <vector>
 
-struct ElementBlock;
+class ElementBlock;
 class Vec3;
 
-typedef std::pair<Vec3,Vec3> Vec3Pair; //!< A pair of two point vectors
+typedef std::pair<int,const ElementBlock*> GridBlock; //!< Convenience type
+typedef std::pair<Vec3,Vec3>               Vec3Pair;  //!< Convenience type
 
 class VTFAFile;
 class VTFAStateInfoBlock;
+class VTFATransformationBlock;
 class VTFADisplacementBlock;
 class VTFAVectorBlock;
 class VTFAScalarBlock;
@@ -35,12 +37,13 @@ class VTFXADatabase;
 class VTFXAStateInfoBlock;
 class VTFXAResultBlock;
 class VTFXAGeometryBlock;
-#define VTFAFile              VTFXAFile
-#define VTFAStateInfoBlock    VTFXAStateInfoBlock
-#define VTFADisplacementBlock VTFXAResultBlock
-#define VTFAVectorBlock       VTFXAResultBlock
-#define VTFAScalarBlock       VTFXAResultBlock
-#define VTFAGeometryBlock     VTFXAGeometryBlock
+#define VTFAFile                VTFXAFile
+#define VTFAStateInfoBlock      VTFXAStateInfoBlock
+#define VTFATransformationBlock VTFXAResultBlock
+#define VTFADisplacementBlock   VTFXAResultBlock
+#define VTFAVectorBlock         VTFXAResultBlock
+#define VTFAScalarBlock         VTFXAResultBlock
+#define VTFAGeometryBlock       VTFXAGeometryBlock
 #endif
 
 
@@ -64,6 +67,13 @@ public:
   //! \param[in] gID Geometry block identifier
   virtual bool writeGrid(const ElementBlock* g, const char* partname, int gID);
 
+  //! \brief Writes a transformation matrix to the VTF-file.
+  //! \param[in] X Position part of the transformation
+  //! \param[in] T Orientation part of the transformation
+  //! \param[in] idBlock Result block identifier
+  //! \param[in] gID Geometry block identifier
+  bool writeTransformation(const Vec3& X, const Tensor& T,
+			   int idBlock = 1, int gID = 1);
   //! \brief Writes a block of scalar nodal results to the VTF-file.
   //! \param[in] nodeResult Vector of nodal results,
   //!            length must equal the number of nodes in the geometry block
@@ -145,6 +155,13 @@ public:
   virtual bool writeDblk(const std::vector<int>& dBlockIDs,
                          const char* resultName = 0,
                          int idBlock = 1, int iStep = 1);
+  //! \brief Writes a transformation block definition to the VTF-file.
+  //! \param[in] tBlockIDs All result blocks that make the transformation block
+  //! \param[in] resultName Name of the result quantity
+  //! \param[in] idBlock Transformation block identifier
+  //! \param[in] iStep Load/Time step identifier
+  bool writeTblk(const std::vector<int>& tBlockIDs, const char* resultName = 0,
+                 int idBlock = 1, int iStep = 1);
 
   //! \brief Writes a state info block to the VTF-file.
   //! \param[in] iStep Load/Time step identifier
@@ -189,12 +206,13 @@ private:
 #endif
   VTFAStateInfoBlock* myState; //!< The state info block for this file
   VTFAGeometryBlock* myGBlock; //!< The geometry description block for this file
-  std::vector<VTFADisplacementBlock*> myDBlock; //!< Displacement blocks
-  std::vector<VTFAVectorBlock*>       myVBlock; //!< Vector field blocks
-  std::vector<VTFAScalarBlock*>       mySBlock; //!< Scalar field blocks
+  std::vector<VTFATransformationBlock*> myTBlock; //!< Transformation blocks
+  std::vector<VTFADisplacementBlock*>   myDBlock; //!< Displacement blocks
+  std::vector<VTFAVectorBlock*>         myVBlock; //!< Vector field blocks
+  std::vector<VTFAScalarBlock*>         mySBlock; //!< Scalar field blocks
 
-  int pointGeoID; //!< ID of current point vector geometry block
-  std::vector< std::pair<int,const ElementBlock*> > myBlocks; //!< FE geometry
+  int pointGeoID;                  //!< ID of point vector geometry block
+  std::vector<GridBlock> myBlocks; //!< The FE geometry of the whole model
 };
 
 #endif

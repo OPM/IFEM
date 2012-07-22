@@ -22,6 +22,7 @@
 #define VTFA_SUCCESS VTFXA_SUCCESS
 #endif
 #include "ElementBlock.h"
+#include "Tensor.h"
 #include <iostream>
 #include <cstdio>
 
@@ -85,6 +86,15 @@ VTF::~VTF ()
       showError("Error writing Geometry Block");
     delete myGBlock;
   }
+
+  for (i = 0; i < myTBlock.size(); i++)
+    if (myTBlock[i])
+    {
+      if (VTFA_FAILURE(myFile->WriteBlock(myTBlock[i])))
+	showError("Error writing Transformation Block");
+      delete myTBlock[i];
+    }
+
   for (i = 0; i < myDBlock.size(); i++)
     if (myDBlock[i])
     {
@@ -92,6 +102,7 @@ VTF::~VTF ()
 	showError("Error writing Displacement Block");
       delete myDBlock[i];
     }
+
   for (i = 0; i < myVBlock.size(); i++)
     if (myVBlock[i])
     {
@@ -127,6 +138,14 @@ VTF::~VTF ()
     delete myGBlock;
   }
 
+  for (i = 0; i < myTBlock.size(); i++)
+    if (myTBlock[i])
+    {
+      if (VTFA_FAILURE(myDatabase->WriteBlock(myTBlock[i])))
+        showError("Error writing Transformation Block");
+      delete myTBlock[i];
+    }
+
   for (i = 0; i < myDBlock.size(); i++)
     if (myDBlock[i])
     {
@@ -134,13 +153,14 @@ VTF::~VTF ()
         showError("Error writing Displacement Block");
       delete myDBlock[i];
     }
-    for (i = 0; i < myVBlock.size(); i++)
-      if (myVBlock[i])
-      {
-	if (VTFA_FAILURE(myDatabase->WriteBlock(myVBlock[i])))
-	  showError("Error writing Vector Block");
-	delete myVBlock[i];
-      }
+
+  for (i = 0; i < myVBlock.size(); i++)
+    if (myVBlock[i])
+    {
+      if (VTFA_FAILURE(myDatabase->WriteBlock(myVBlock[i])))
+        showError("Error writing Vector Block");
+      delete myVBlock[i];
+    }
 
   for (i = 0; i < mySBlock.size(); i++)
     if (mySBlock[i])
@@ -157,23 +177,21 @@ VTF::~VTF ()
     delete myState;
   }
 
-  VTFXACase* singleCase = new VTFXACase(myFile,"Single case",1,1);
+  VTFXACase                singleCase(myFile,"Single case",1,1);
   VTFXACasePropertiesBlock frameGeneratorProps(VT_CT_FRAME_GENERATOR_SETTINGS);
 
   frameGeneratorProps.AddInt(VT_PI_FG_FEM_MODEL_IDS,1);
-  singleCase->WritePropertiesBlock(&frameGeneratorProps);
+  singleCase.WritePropertiesBlock(&frameGeneratorProps);
   for (i = 0; i < myBlocks.size(); i++) {
     VTFXACasePropertiesBlock partAttr(VT_CT_PART_ATTRIBUTES);
     partAttr.SetPartID(i+1);
-    // Turn on mesh
     partAttr.AddBool(VT_PB_PA_MESH, VTFXA_FALSE);
     partAttr.AddBool(VT_PB_PA_DISPLACEMENTS, VTFXA_FALSE);
-    singleCase->WritePropertiesBlock(&partAttr);
+    singleCase.WritePropertiesBlock(&partAttr);
   }
   if (VTFA_FAILURE(myFile->CloseFile()))
     showError("Error closing VTF file");
 
-  delete singleCase;
   delete myDatabase;
   delete myFile;
 #endif
@@ -224,14 +242,47 @@ const ElementBlock* VTF::getBlock (int geomID) const
 bool VTF::writeGrid (const ElementBlock* block, const char* partname, int gID)
 {
   if (!myFile) return true;
+  if (!block) return false;
 
   myBlocks.push_back(std::make_pair(gID,block));
 
-  if (!writeNodes(gID))
+  if (!this->writeNodes(gID))
     return showError("Error writing node block",gID);
 
-  if (!writeElements(partname,gID,gID))
+  if (!this->writeElements(partname,gID,gID))
     return showError("Error writing element block",gID);
+
+  return true;
+}
+
+
+bool VTF::writeTransformation (const Vec3& X, const Tensor& T,
+			       int idBlock, int geomID)
+{
+  if (!myFile) return true;
+  if (!this->getBlock(geomID)) return false;
+
+  // Cast to float
+  float trans[12];
+  size_t i, j, k = 0;
+  for (j = 1; j <= 3; j++)
+    for (i = 1; i <= 3; i++)
+      trans[k++] = T(i,j);
+  for (j = 0; j < 3; j++)
+    trans[k++] = X[j];
+
+#if HAS_VTFAPI == 1
+  VTFAMatrixResultBlock tBlock(idBlock);
+  if (VTFA_FAILURE(tBlock.SetMatrix(trans)))
+    return showError("Error defining result block",idBlock);
+
+  tBlock.SetMapToElementBlockID(myBlocks[geomID-1].first);
+  if (VTFA_FAILURE(myFile->WriteBlock(&tBlock)))
+    return showError("Error writing result block",idBlock);
+#elif HAS_VTFAPI == 2
+  //TODO
+  std::cerr <<"VTF: Transformation not yet implemented for VTFx"<< std::endl;
+#endif
 
   return true;
 }
@@ -418,7 +469,7 @@ bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int idBlock,
   {
     // The big assumption here is that we have only one call to writeVectors
     // per time step, and that all subsequent calls are with the same points
-    pointGeoID = idBlock;
+    pointGeoID = myBlocks.empty() ? 1 : myBlocks.back().first + 1;
     myBlocks.push_back(std::make_pair(pointGeoID,new ElementBlock()));
     writePoints = true;
   }
@@ -467,11 +518,44 @@ bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int idBlock,
   if (VTFA_FAILURE(myFile->WriteBlock(&rBlock)))
     return showError("Error writing result block",idBlock);
 #elif HAS_VTFAPI == 2
-  showError("Vector points are not yet implemented for VTFx");
+  std::cerr <<"VTF: Vector points are not yet implemented for VTFx"<< std::endl;
   return true;
 #endif
 
   return iStep > 0 ? this->writeVblk(idBlock,resultName,iBlock,iStep) : true;
+}
+
+
+bool VTF::writeTblk (const std::vector<int>& tBlockIDs, const char* resultName,
+		     int idBlock, int iStep)
+{
+  if ((int)myTBlock.size() < idBlock) myTBlock.resize(idBlock,0);
+
+#if HAS_VTFAPI == 1
+  if (!myTBlock[--idBlock])
+  {
+    myTBlock[idBlock] = new VTFATransformationBlock(idBlock+1);
+    if (resultName) myTBlock[idBlock]->SetName(resultName);
+  }
+  if (VTFA_FAILURE(myTBlock[idBlock]->SetResultBlocks(&tBlockIDs.front(),
+						      tBlockIDs.size(),iStep)))
+    return showError("Error defining transformation block",idBlock);
+#elif HAS_VTFAPI == 2
+  if (!myTBlock[--idBlock])
+  {
+    myTBlock[idBlock] = new VTFXAResultBlock(idBlock+1,
+					     VTFXA_RESTYPE_TRANSFORMATION,
+					     VTFXA_RESMAP_NODE);
+    if (resultName) myTBlock[idBlock]->SetName(resultName);
+  }
+  myTBlock[idBlock]->SetResultID(idBlock);
+  if (VTFA_FAILURE(myTBlock[idBlock]->SetResultValuesBlocks(&tBlockIDs.front(),
+							    tBlockIDs.size(),
+							    iStep)))
+    return showError("Error defining transformation block",idBlock);
+#endif
+
+  return true;
 }
 
 
@@ -500,7 +584,8 @@ bool VTF::writeDblk (const std::vector<int>& dBlockIDs, const char* resultName,
   }
   myDBlock[idBlock]->SetResultID(idBlock);
   if (VTFA_FAILURE(myDBlock[idBlock]->SetResultValuesBlocks(&dBlockIDs.front(),
-						      dBlockIDs.size(),iStep)))
+							    dBlockIDs.size(),
+							    iStep)))
     return showError("Error defining displacement block",idBlock);
 #endif
 

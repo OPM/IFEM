@@ -27,6 +27,7 @@ ElementBlock::ElementBlock (size_t nenod)
   nen = nenod;
 }
 
+
 void ElementBlock::resize (size_t nI, size_t nJ, size_t nK)
 {
   coord.resize(nI*nJ*nK);
@@ -44,20 +45,12 @@ void ElementBlock::resize (size_t nI, size_t nJ, size_t nK)
   MINEX.resize(MMNPC.size()/nen,0);
 }
 
-void ElementBlock::unStructResize(size_t nEl, size_t nPts)
+
+void ElementBlock::unStructResize (size_t nEl, size_t nPts)
 {
   coord.resize(nPts);
   MMNPC.resize(nen*nEl);
   MINEX.resize(MMNPC.size()/nen,0);
-}
-
-
-bool ElementBlock::setCoor (size_t i, real x, real y, real z)
-{
-  if (i >= coord.size()) return false;
-
-  coord[i] = Vec3(x,y,z);
-  return true;
 }
 
 
@@ -66,6 +59,15 @@ bool ElementBlock::setCoor (size_t i, size_t j, real x)
   if (i >= coord.size() || j >= 3) return false;
 
   coord[i][j] = x;
+  return true;
+}
+
+
+bool ElementBlock::setCoor (size_t i, const Vec3& X)
+{
+  if (i >= coord.size()) return false;
+
+  coord[i] = X;
   return true;
 }
 
