@@ -105,6 +105,12 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
 }
 
 
+const char** NonLinSIM::getPrioritizedTags () const
+{
+  return model ? model->getPrioritizedTags() : NULL;
+}
+
+
 void NonLinSIM::init (const RealArray& initVal)
 {
   size_t nSols = model->getNoSolutions();

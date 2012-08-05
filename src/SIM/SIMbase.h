@@ -106,10 +106,10 @@ public:
   //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);
 
-protected:
   //! \brief Returns a list of prioritized XML-tags.
   virtual const char** getPrioritizedTags() const;
 
+protected:
   //! \brief Parses the "set" attribute of a material XML-tag.
   //! \param[in] elem The XML element extract the set name from
   //! \param[in] mindex Index into problem-dependent material property container

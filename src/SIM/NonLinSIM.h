@@ -131,6 +131,9 @@ public:
   //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);
 
+  //! \brief Returns a list of prioritized XML-tags.
+  virtual const char** getPrioritizedTags() const;
+
 protected:
   SIMbase* model;    //!< The isogeometric FE model
   Vectors  solution; //!< Primary solution vectors of the last increments
