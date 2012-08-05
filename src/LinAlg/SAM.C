@@ -271,6 +271,19 @@ bool SAM::initSystemEquations ()
 }
 
 
+int SAM::getNoNodes (char dofType) const
+{
+  if (dofType == 'A')
+    return nnod;
+
+  int n = 0;
+  for (int i = 0; i < nnod; i++)
+    if (nodeType[i] == dofType) n++;
+
+  return n;
+}
+
+
 int SAM::getMaxDofCouplings () const
 {
   std::vector<IntSet> dofc;
