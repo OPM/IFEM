@@ -37,6 +37,8 @@ public:
   enum ConvStatus { FAILURE, OK, SLOW, CONVERGED, DIVERGED };
   //! \brief Enum describing the norm used for convergence checks.
   enum CNORM { L2, ENERGY };
+  //! \brief Enum describing reference norm options.
+  enum NormOp { MAX, ALL };
 
   //! \brief The constructor initializes default solution parameters.
   //! \param sim Pointer to the spline FE model
@@ -107,7 +109,7 @@ public:
   //! \param[in] time Current time/load parameter
   //! \param[in] os The output stream to write the solution to
   //! \param[in] precision Number of digits after the decimal point
-  bool dumpResults(double time, std::ostream& os,
+  void dumpResults(double time, std::ostream& os,
                    std::streamsize precision = 3) const;
 
   //! \brief Returns a const reference to current solution vector.
@@ -142,6 +144,7 @@ protected:
 
   // Nonlinear solution algorithm parameters
   CNORM  iteNorm; //!< The norm type used to measure the residual
+  NormOp refNopt; //!< Reference norm option
   double refNorm; //!< Reference norm value used in convergence checks
   double convTol; //!< Relative convergence tolerance
   double divgLim; //!< Relative divergence limit

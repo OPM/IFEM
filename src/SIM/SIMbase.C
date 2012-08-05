@@ -1066,15 +1066,16 @@ size_t SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
 }
 
 
-size_t SIMbase::setVecProperty (int code, Property::Type ptype, VecFunc* field,
-				int pflag)
+size_t SIMbase::setVecProperty (int code, Property::Type ptype,
+                                VecFunc* field, int pflag)
 {
   if (field) myVectors[abs(code)] = field;
   return this->setPropertyType(code,ptype,pflag);
 }
 
 
-bool SIMbase::setTracProperty (int code, Property::Type ptype, TractionFunc* field)
+bool SIMbase::setTracProperty (int code, Property::Type ptype,
+                               TractionFunc* field)
 {
   if (field) myTracs[code] = field;
   return this->setPropertyType(code,ptype);

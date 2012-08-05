@@ -37,6 +37,7 @@ NonLinSIM::NonLinSIM (SIMbase* sim, CNORM n) : model(sim), iteNorm(n)
   prnSlow = 0;
   convTol = 0.000001;
   divgLim = 10.0;
+  refNopt = MAX;
   refNorm = 1.0;
   alpha   = 1.0;
   eta     = 0.0;
@@ -100,6 +101,13 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
       eta = atof(value);
     else if ((value = utl::getValue(child,"printSlow")))
       prnSlow = atoi(value);
+    else if ((value = utl::getValue(child,"referencenorm")))
+    {
+      if (!strcasecmp(value,"all"))
+	refNopt = ALL;
+      else if (!strcasecmp(value,"max"))
+	refNopt = MAX;
+    }
 
   return true;
 }
@@ -321,7 +329,7 @@ NonLinSIM::ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
 
   if (param.iter == 0)
   {
-    if (fabs(norm) > refNorm)
+    if (refNopt == ALL || fabs(norm) > refNorm)
       refNorm = fabs(norm);
     norm = prevNorm = 1.0;
     nIncrease = 0;
@@ -499,8 +507,9 @@ void NonLinSIM::dumpStep (int iStep, double time, std::ostream& os,
 }
 
 
-bool NonLinSIM::dumpResults (double time, std::ostream& os,
+void NonLinSIM::dumpResults (double time, std::ostream& os,
                              std::streamsize precision) const
 {
-  return model->dumpResults(solution.front(),time,os,true,precision);
+  model->dumpResults(solution.front(),time,os,true,precision);
+  model->dumpMoreResults(time,os,precision);
 }

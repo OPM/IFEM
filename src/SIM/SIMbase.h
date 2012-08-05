@@ -533,6 +533,12 @@ public:
   //! \param[in] precision Number of digits after the decimal point
   bool dumpResultCoords(double time, std::ostream& os, bool formatted = true,
 			std::streamsize precision = 3) const;
+  //! \brief Dumps additional problem-specific results in ASCII format.
+  //! \param[in] time Load/time step parameter
+  //! \param os Output stream to write the solution data to
+  //! \param[in] precision Number of digits after the decimal point
+  virtual void dumpMoreResults(double time, std::ostream& os,
+                               std::streamsize precision = 3) const {}
 
   //! \brief Dumps the primary solution in ASCII format for inspection.
   //! \param[in] psol Primary solution vector
