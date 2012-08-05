@@ -76,7 +76,7 @@ MortarAugmentedLag: Mortar contact formulation (Augmented Lagrange, eps=10)
                             Max Z-displacement : 0.211219
   displacement\*reactions: (R,u) = -110.247
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 12.3103	 a(u^h,u^h) = 151.5445919
-  External energy: ((f,u^h)+(t,u^h))^0.5 : -9.49458	(f,u)+(t,u) = 90.14703233
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -9.49458	(f,u)+(t,u) = 90.14703232
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 254.401
   Pressure norm, L2:       (p^h,p^h)^0.5 : 74.175	(p^h = trace(sigma^h)/3)
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 219.577	(s^d = sigma^h - p^h\*I)
@@ -100,7 +100,7 @@ MortarAugmentedLag: Mortar contact formulation (Augmented Lagrange, eps=10)
                             Max Z-displacement : 0.3
   displacement\*reactions: (R,u) = -573.804
   Energy norm:    |u^h| = a(u^h,u^h)^0.5 : 21.2822	 a(u^h,u^h) = 452.9327871
-  External energy: ((f,u^h)+(t,u^h))^0.5 : -19.788	(f,u)+(t,u) = 391.5667326
+  External energy: ((f,u^h)+(t,u^h))^0.5 : -19.788	(f,u)+(t,u) = 391.5667325
   Stress norm, L2: (sigma^h,sigma^h)^0.5 : 437.599
   Pressure norm, L2:       (p^h,p^h)^0.5 : 126.79	(p^h = trace(sigma^h)/3)
   Deviatoric stress norm:  (s^d,s^d)^0.5 : 378.505	(s^d = sigma^h - p^h\*I)
