@@ -68,6 +68,11 @@ void NonlinearElasticityUL::setMode (SIM::SolutionMode mode)
     case SIM::BUCKLING:
       eKm = 1;
       eKg = 2;
+      break;
+
+    case SIM::RECOVERY:
+      maxVal.clear();
+      break;
 
     default:
       ;

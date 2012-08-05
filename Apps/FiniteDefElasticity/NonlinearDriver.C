@@ -13,6 +13,7 @@
 
 #include "NonlinearDriver.h"
 #include "SIMbase.h"
+#include "Elasticity.h"
 #include "DataExporter.h"
 #include "tinyxml.h"
 
@@ -138,6 +139,7 @@ int NonlinearDriver::solveProblem (bool skip2nd, bool energyNorm,
   if (dtDump <= 0.0) dtDump = params.stopTime + 1.0;
   double nextDump = params.time.t + dtDump;
   double nextSave = params.time.t + model->opt.dtSave;
+  const Elasticity* elp = dynamic_cast<const Elasticity*>(model->getProblem());
 
   int iStep = 0; // Save initial state to VTF
   if (model->opt.format >= 0 && params.multiSteps())
@@ -156,10 +158,11 @@ int NonlinearDriver::solveProblem (bool skip2nd, bool energyNorm,
       if (stat == NonLinSIM::DIVERGED)
       {
         // Try cut-back with a smaller time step when diverging
-        if (params.cutback())
-          std::copy(solution[1].begin(),solution[1].end(),solution[0].begin());
-        else
-          break;
+        if (!params.cutback()) break;
+
+	std::copy(solution[1].begin(),solution[1].end(),solution[0].begin());
+	model->updateConfiguration(solution.front());
+	refNorm = 1.0; // Reset the reference norm
       }
 
       // Solve the nonlinear FE problem at this load step
@@ -188,8 +191,17 @@ int NonlinearDriver::solveProblem (bool skip2nd, bool energyNorm,
     {
       // Save solution variables to VTF for visualization
       if (model->opt.format >= 0)
+      {
         if (!this->saveStep(++iStep,params.time.t,skip2nd))
           return 6;
+
+	// Print out the maximum values
+	if (elp)
+	{
+	  elp->printMaxVals(std::cout,outPrec,7);
+	  elp->printMaxVals(std::cout,outPrec,8);
+	}
+      }
 
       // Save solution variables to HDF5
       if (writer)
@@ -197,6 +209,8 @@ int NonlinearDriver::solveProblem (bool skip2nd, bool energyNorm,
           return 7;
 
       nextSave = params.time.t + model->opt.dtSave;
+      if (nextSave > params.stopTime)
+        nextSave = params.stopTime; // Always save the final step
     }
   }
 

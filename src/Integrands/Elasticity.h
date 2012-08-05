@@ -142,6 +142,13 @@ public:
   //! \param[in] prefix Name prefix for all components
   virtual const char* getField2Name(size_t i, const char* prefix = 0) const;
 
+  //! \brief Prints out the maximum secondary solution values.
+  //! \param os Output stream to write the values to
+  //! \param[in] precision Number of digits after the decimal point
+  //! \param[in] comp Which component to print (0 means all)
+  void printMaxVals(std::ostream& os, std::streamsize precision,
+                    size_t comp = 0) const;
+
 protected:
   //! \brief Calculates some kinematic quantities at current point.
   //! \param[in] eV Element solution vector
@@ -222,7 +229,10 @@ protected:
   VecFunc*      fluxFld; //!< Pointer to explicit boundary traction field
   VecFunc*      bodyFld; //!< Pointer to body force field
 
-  mutable std::vector<Vec3Pair> tracVal; //!< Traction field point values
+  typedef std::pair<Vec3,double> PointValue; //!< Convenience type
+
+  mutable std::vector<PointValue> maxVal;  //!< Maximum result values
+  mutable std::vector<Vec3Pair>   tracVal; //!< Traction field point values
 
   unsigned short int nsd; //!< Number of space dimensions (1, 2 or 3)
   unsigned short int nDF; //!< Dimension on deformation gradient (2 or 3)

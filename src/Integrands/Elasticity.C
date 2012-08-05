@@ -21,6 +21,7 @@
 #include "Vec3Oper.h"
 #include "AnaSol.h"
 #include "VTF.h"
+#include <iomanip>
 
 #ifndef epsR
 //! \brief Zero tolerance for the radial coordinate.
@@ -116,6 +117,10 @@ void Elasticity::setMode (SIM::SolutionMode mode)
 
     case SIM::RHS_ONLY:
       eS = 1;
+      break;
+
+    case SIM::RECOVERY:
+      maxVal.clear();
       break;
 
     default:
@@ -523,6 +528,15 @@ bool Elasticity::evalSol (Vector& s,
   for (int i = 1; i <= material->getNoIntVariables(); i++)
     s.push_back(material->getInternalVariable(i));
 
+  // Find the maximum values for each quantity
+  if (maxVal.empty())
+    for (size_t j = 0; j < s.size(); j++)
+      maxVal.push_back(std::make_pair(X,s[j]));
+  else
+    for (size_t j = 0; j < s.size(); j++)
+      if (fabs(s[j]) > fabs(maxVal[j].second))
+	maxVal[j] = std::make_pair(X,s[j]);
+
   return true;
 }
 
@@ -628,6 +642,31 @@ const char* Elasticity::getField2Name (size_t i, const char* prefix) const
   }
 
   return name.c_str();
+}
+
+
+void Elasticity::printMaxVals (std::ostream& os,
+                               std::streamsize precision, size_t comp) const
+{
+  size_t i1 = 1, i2 = maxVal.size();
+  if (comp > i2)
+    return;
+  else if (comp > 0)
+    i1 = i2 = comp;
+
+  for (size_t i = i1; i <= i2; i++)
+  {
+    const char* name = this->getField2Name(i-1);
+    os <<"  Max "<< name <<":";
+    for (size_t j = strlen(name); j < 16; j++) std::cout <<' ';
+    std::streamsize flWidth = 8 + precision;
+    std::streamsize oldPrec = os.precision(precision);
+    std::ios::fmtflags oldF = os.flags(std::ios::scientific | std::ios::right);
+    os << std::setw(flWidth) << maxVal[i-1].second;
+    os.precision(oldPrec);
+    os.flags(oldF);
+    std::cout <<"  X = "<< maxVal[i-1].first << std::endl;
+  }
 }
 
 
