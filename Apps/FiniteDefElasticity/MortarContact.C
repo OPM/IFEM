@@ -21,12 +21,14 @@
 #include <cfloat>
 #ifdef USE_OPENMP
 #include <omp.h>
+#else
+#define NOMP_DEBUG INT_DEBUG
 #endif
 
 
 MortarMats::MortarMats (const SAM& _sam, int nMast, usint n) : sam(_sam), nsd(n)
 {
-  int nNod = sam.getNoNodes();
+  int nNod = sam.getNoNodes() - sam.getNoNodes('L');
   int nSlv = nNod - nMast;
   phiA.resize(nsd*nNod,nSlv);
   gNA.resize(nSlv);
@@ -58,7 +60,7 @@ bool MortarMats::assemble (const LocalIntegral* elmObj, int elmId)
   if (!elMat || elMat->A.size() != 1 || elMat->b.size() != 2)
     return false;
 
-#if INT_DEBUG > 2
+#if NOMP_DEBUG > 2
   std::cout <<"MortarMats: AA for element "<< elmId << elMat->b[0]
 	    <<"MortarMats: gNA for element "<< elmId << elMat->b[1]
 	    <<"MortarMats: phiA for element "<< elmId << elMat->A[0];
@@ -158,7 +160,7 @@ bool MortarContact::evalBou (LocalIntegral& elmInt,
   else
     mNorm *= fe.detJxW;
 
-#if INT_DEBUG > 3
+#if NOMP_DEBUG > 3
   std::cout <<"MortarContact::gap("<< Xd <<") = "<< gap << std::endl;
 #endif
 
@@ -166,7 +168,7 @@ bool MortarContact::evalBou (LocalIntegral& elmInt,
   ElmMats& eMat = static_cast<ElmMats&>(elmInt);
   Matrix& phiA  = eMat.A.front();
   size_t nSlave = fe.N.size();
-  for (size_t j = 1; j < nSlave; j++)
+  for (size_t j = 1; j <= nSlave; j++)
     for (size_t i = 1; i <= nSlave + Nm.size(); i++)
       for (usint k = 1; k <= npv; k++)
         if (i <= nSlave)
@@ -205,7 +207,7 @@ void MortarContact::accResAndTangent (Vector& R, Matrix& Kt,
     for (l = 0; l < npv; l++, jdof++)
       R(jdof) += p_Nint*mNorm[l] * (j <= nSlave ? -Ns(j) : Nm(j-nSlave));
 
-#if INT_DEBUG > 3
+#if NOMP_DEBUG > 3
   std::cout <<"MortarContact::p_Nint = "<< p_Nint
 	    <<"\nMortarContact::R"<< R;
 #endif
@@ -227,14 +229,14 @@ void MortarContact::accResAndTangent (Vector& R, Matrix& Kt,
       }
   }
 
-#if INT_DEBUG > 3
+#if NOMP_DEBUG > 3
   std::cout <<"MortarContact::Kt"<< Kt;
 #endif
 }
 
 
 bool MortarContact::assResAndTangent (SystemMatrix& Ktan, SystemVector& Res,
-				      const MortarMats& mortar) const
+                                      const MortarMats& mortar) const
 {
   if (activeSlave.empty()) return true;
 
@@ -250,6 +252,12 @@ bool MortarContact::assResAndTangent (SystemMatrix& Ktan, SystemVector& Res,
       continue;
     else if (!mortar.getSAM().getNodeEqns(mnen,i))
       return false;
+
+#if INT_DEBUG > 2
+    std::cout <<"MortarContact::assResAndTangent: node = "<< i <<": eqns";
+    for (j = 0; j < mnen.size(); j++) std::cout <<" "<< mnen[j];
+    std::cout << std::endl;
+#endif
 
     // Add nodal sub-matrix on the diagonal
     Matrix eK(npv,npv);
@@ -337,12 +345,12 @@ MortarPenalty::MortarPenalty (RigidBody* mst, const MortarMats& mats, usint nsd)
 
 
 void MortarPenalty::initIntegration (const TimeDomain& prm,
-                                     const Vector&, bool poorConverg)
+                                     const Vector&, bool printStatus)
 {
-  // Extract some additional information in case of poor convergence
+  // Extract some additional information
   std::map<size_t,char> cStat;
 #ifndef INT_DEBUG
-  if (poorConverg)
+  if (printStatus)
 #endif
     for (size_t n = 0; n < activeSlave.size(); n++)
       if (activeSlave[n]) cStat[n+1] = 'P';
@@ -370,15 +378,16 @@ void MortarPenalty::initIntegration (const TimeDomain& prm,
     }
 
 #ifndef INT_DEBUG
-  if (prm.it == 0 || poorConverg)
+  if (prm.it == 0 || printStatus)
 #endif
     std::cout <<"  "<< std::count(activeSlave.begin(),activeSlave.end(),true)
 	      <<" active contact nodes, closest non-active node "<< nmin
 	      <<": wgap = "<< wmin << std::endl;
 
 #ifndef INT_DEBUG
-  if (poorConverg)
+  if (printStatus)
 #endif
+    // Print some additional information (e.g., in case of poor convergence)
     this->printAdditionalInfo(cStat,mortar);
 }
 
@@ -429,7 +438,7 @@ bool MortarPenalty::initElementBou (const std::vector<int>& MNPC,
 	gNA(j) = 0.0;
     }
 
-#if INT_DEBUG > 2
+#if NOMP_DEBUG > 2
   std::cout <<"MortarPenalty::gNA"<< gNA;
 #endif
   return true;
@@ -482,12 +491,12 @@ MortarAugmentedLag::MortarAugmentedLag (RigidBody* mst, const MortarMats& mats,
 
 
 void MortarAugmentedLag::initIntegration (const TimeDomain& prm,
-                                          const Vector& psol, bool poorConverg)
+                                          const Vector& psol, bool printStatus)
 {
-  // Extract some additional information in case of poor convergence
+  // Extract some additional information
   std::map<size_t,char> cStat;
 #ifndef INT_DEBUG
-  if (poorConverg)
+  if (printStatus)
 #endif
     for (size_t n = 0; n < activeSlave.size(); n++)
       if (activeSlave[n]) cStat[n+1] = 'P';
@@ -533,16 +542,16 @@ void MortarAugmentedLag::initIntegration (const TimeDomain& prm,
     }
 
 #ifndef INT_DEBUG
-  if (prm.it == 0 || poorConverg)
+  if (prm.it == 0 || printStatus)
 #endif
     std::cout <<"  "<< std::count(activeSlave.begin(),activeSlave.end(),true)
 	      <<" active contact nodes, closest non-active node "<< nmin
 	      <<": constraint = "<< cmin << std::endl;
 
 #ifndef INT_DEBUG
-  if (poorConverg)
+  if (printStatus)
 #endif
-    // Print some additional information in case of poor convergence
+    // Print some additional information (e.g., in case of poor convergence)
     this->printAdditionalInfo(cStat,mortar);
 }
 
@@ -594,7 +603,7 @@ bool MortarAugmentedLag::initElementBou (const std::vector<int>& MNPC,
   elm.b[0].resize(nedof+nLag); // Element vector R
   elm.A[1].resize(nedof,nLag); // Element matrix Kul
 
-#if INT_DEBUG > 2
+#if NOMP_DEBUG > 2
   std::cout <<"MortarAugmentedLag::LNA"<< LNA;
 #endif
   return true;
@@ -638,7 +647,7 @@ bool MortarAugmentedLag::evalBou (LocalIntegral& elmInt,
 	  Kul(idof,jdof) -= mNorm[k] * Nm(i) * fe.N(j) * fe.detJxW;
     }
 
-#if INT_DEBUG > 3
+#if NOMP_DEBUG > 3
   std::cout <<"MortarAugmentedLag::Kul"<< Kul;
 #endif
   return true;
@@ -674,7 +683,7 @@ bool MortarAugmentedLag::assemble (SystemMatrix& Ktan, SystemVector& Res) const
       {
 	// Residual and tangent contribution for the inactive AL multiplier
 	Rl = (lambda(n)/master->eps) * AA;
-	Kl = master->eps * AA;
+	Kl = -AA / master->eps;
       }
 
       // Find the global equation number of this AL multiplier
@@ -689,7 +698,7 @@ bool MortarAugmentedLag::assemble (SystemMatrix& Ktan, SystemVector& Res) const
 		<<": Rl="<< Rl <<" Kll="<< Kl << std::endl;
 #endif
 
-      // Add into the global residual vector tangent stiffness matrix
+      // Add into the global residual vector and tangent stiffness matrix
       Rvec[mnen.front()-1] += Rl;
       if (Kl != 0.0)
 	Ktan.assemble(Kll,mortar.getSAM(),Res,mnen);
@@ -737,7 +746,7 @@ const Matrix& MortarAugmentedLag::ALElmMats::getNewtonMatrix () const
     }
   }
 
-#if INT_DEBUG > 2
+#if NOMP_DEBUG > 2
   std::cout <<"\nMortarAugmentedLag::ALElmMats: Newton matrix ="<< A.back();
 #endif
   return A.back();

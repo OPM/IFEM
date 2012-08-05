@@ -139,9 +139,9 @@ protected:
   //! \param[in] lambda Weighted nodal gap or Lagrange multiplier values
   //! \param[in] epsJxW Scaled Jacobian determinant times integration weight
   void accResAndTangent(Vector& R, Matrix& Kt,
-		        Vec3& mNorm, Vector& Nm,
-		        const Vector& Ns, const Vec3& X,
-		        const Vector& lambda, double epsJxW) const;
+                        Vec3& mNorm, Vector& Nm,
+                        const Vector& Ns, const Vec3& X,
+                        const Vector& lambda, double epsJxW) const;
 
   //! \brief Assembles contributions to the tangent stiffness and residual.
   //! \param Ktan System tangent stiffness matrix
@@ -152,13 +152,13 @@ protected:
   //! system matrices emanating from the Mortar method formulation,
   //! which cannot be assembled through the normal element assembly loop.
   bool assResAndTangent(SystemMatrix& Ktan, SystemVector& Res,
-			const MortarMats& mortar) const;
+                        const MortarMats& mortar) const;
 
   //! \brief Prints some additional information in case of poor convergence
   //! \param cStat Nodal contact statuses
   //! \param[in] mortar Mortar matrices
   void printAdditionalInfo(std::map<size_t,char>& cStat,
-			   const MortarMats& mortar) const;
+                           const MortarMats& mortar) const;
 
 private:
   GlobalIntegral* myInt; //!< Pointer to resulting global integrated quantity
@@ -186,8 +186,9 @@ public:
 
   //! \brief Initializes the integrand for a new integration loop.
   //! \param[in] prm Nonlinear solution algorithm parameters
+  //! \param[in] printStatus If \e true, print out nodal contact status
   virtual void initIntegration(const TimeDomain& prm, const Vector&,
-                               bool poorConverg);
+                               bool printStatus);
 
   //! \brief Returns whether this integrand has explicit boundary contributions.
   virtual bool hasBoundaryTerms() const;
@@ -260,8 +261,9 @@ public:
   //! \brief Initializes the integrand for a new integration loop.
   //! \param[in] prm Nonlinear solution algorithm parameters
   //! \param[in] psol Global primary solution vector in DOF-order
+  //! \param[in] printStatus If \e true, print out nodal contact status
   virtual void initIntegration(const TimeDomain& prm, const Vector& psol,
-                               bool poorConverg);
+                               bool printStatus);
 
   //! \brief Initializes the global node number mapping.
   virtual void initNodeMap(const std::vector<int>& nodes) { nodMap = nodes; }
