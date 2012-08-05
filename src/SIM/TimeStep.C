@@ -175,7 +175,7 @@ bool TimeStep::increment ()
     if (++lstep <= stepIt->first.size())
       time.dt = stepIt->first[lstep-1];
 
-  if (dtMin < dtMax && maxCFL <= 0.0 && step > 0)
+  if (dtMin < dtMax && maxCFL <= 0.0 && step > 1)
   {
     // Adjust the time step size based on the number of iterations in last step
     if (iter <= 4 && niter <= 4)
