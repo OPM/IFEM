@@ -51,6 +51,98 @@ void ASMs2DLag::clear (bool retainGeometry)
 }
 
 
+bool ASMs2DLag::addXElms (short int dim, short int item, size_t nXn,
+                          IntVec& nodes)
+{
+  if (dim != 1)
+  {
+    std::cerr <<" *** ASMs2DLag::addXElms: Invalid boundary dimension "<< dim
+              <<", only 1 (edge) is allowed."<< std::endl;
+    return false;
+  }
+  else if (!surf || shareFE)
+    return false;
+
+  for (size_t i = 0; i < nXn; i++)
+  {
+    if (nodes.size() == i)
+      nodes.push_back(++gNod);
+    myMLGN.push_back(nodes[i]);
+  }
+
+  const int p1 = surf->order_u();
+  const int p2 = surf->order_v();
+
+  // Number of elements in each direction
+  const int nelx = (nx-1)/(p1-1);
+  const int nely = (ny-1)/(p2-1);
+
+  nXelm = nelx*nely;
+  myMNPC.resize(2*nXelm);
+  myMLGE.resize(2*nXelm,0);
+
+  int iel = 0;
+  bool skipMe = false;
+  for (int i2 = 0; i2 < nely; i2++)
+    for (int i1 = 0; i1 < nelx; i1++, iel++)
+    {
+      if (MLGE[iel] < 1) continue; // Skip zero-area element
+
+      // Skip elements that are not on current boundary edge
+      switch (item)
+        {
+        case 1: skipMe = i1 > 0;      break;
+        case 2: skipMe = i1 < nelx-1; break;
+        case 3: skipMe = i2 > 0;      break;
+        case 4: skipMe = i2 < nely-1; break;
+        }
+      if (skipMe) continue;
+
+      IntVec& mnpc = myMNPC[nXelm+iel];
+      if (!mnpc.empty())
+      {
+        std::cerr <<" *** ASMs2DLag::addXElms: Only one X-edge allowed."
+                  << std::endl;
+        return false;
+      }
+
+      mnpc = MNPC[iel]; // Copy the ordinary element nodes
+
+      // Negate node numbers that are not on the boundary edge, to flag that
+      // they shall not receive any tangent and/or residual contributions
+      int lnod = 0;
+      for (int j2 = 0; j2 < p2; j2++)
+        for (int j1 = 0; j1 < p1; j1++, lnod++)
+        {
+          switch (item)
+            {
+            case 1: skipMe = j1 > 0;    break;
+            case 2: skipMe = j1 < p1-1; break;
+            case 3: skipMe = j2 > 0;    break;
+            case 4: skipMe = j2 < p2-1; break;
+	    }
+	  if (skipMe) // Hack for node 0: Using -maxint as flag instead
+	    mnpc[lnod] = mnpc[lnod] == 0 ? -2147483648 : -mnpc[lnod];
+	}
+
+      // Add connectivity to the extra-ordinary nodes
+      for (size_t i = 0; i < nXn; i++)
+        mnpc.push_back(MLGN.size()-nXn+i);
+
+      myMLGE[nXelm+iel] = ++gEl;
+    }
+
+  return true;
+}
+
+
+char ASMs2DLag::getNodeType (size_t inod) const
+{
+  if (this->isLMn(inod)) return 'L';
+  return inod > coord.size() ? 'X' : 'D';
+}
+
+
 bool ASMs2DLag::generateFEMTopology ()
 {
   if (!surf) return false;
@@ -390,8 +482,9 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
   if (!surf) return true; // silently ignore empty patches
 
   // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
+  int nGP = integrand.getBouIntegrationPoints(nGauss);
+  const double* xg = GaussQuadrature::getCoord(nGP);
+  const double* wg = GaussQuadrature::getWeight(nGP);
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the edge normal {-2,-1, 1, 2}
@@ -421,6 +514,16 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
     this->getGridParameters(upar,0,1);
     fe.v = edgeDir < 0 ? surf->startparam_v() : surf->endparam_v();
   }
+
+  // Integrate the extraordinary elements?
+  size_t doXelms = 0;
+  if (integrand.getIntegrandType() & Integrand::XO_ELEMENTS)
+    if ((doXelms = nelx*nely)*2 > MNPC.size())
+    {
+      std::cerr <<" *** ASMs2DLag::integrate: Too few XO-elements "
+                << MNPC.size() - doXelms << std::endl;
+      return false;
+    }
 
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
@@ -452,17 +555,17 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
       if (!this->getElementCoordinates(Xnod,iel)) return false;
 
       // Initialize element quantities
-      fe.iel = MLGE[iel-1];
+      fe.iel = MLGE[doXelms+iel-1];
       LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-      if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;
+      bool ok = integrand.initElementBou(MNPC[doXelms+iel-1],*A);
 
 
       // --- Integration loop over all Gauss points along the edge -------------
 
-      int jp = (t1 == 1 ? i2 : i1)*nGauss;
+      int jp = (t1 == 1 ? i2 : i1)*nGP;
       fe.iGP = firstp + jp; // Global integration point counter
 
-      for (int i = 0; i < nGauss; i++, fe.iGP++)
+      for (int i = 0; i < nGP && ok; i++, fe.iGP++)
       {
 	// Local element coordinates of current integration point
 	xi[t1-1] = edgeDir < 0 ? -1.0 : 1.0;
@@ -479,7 +582,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
 	// Compute the basis functions and their derivatives, using
 	// tensor product of one-dimensional Lagrange polynomials
 	if (!Lagrange::computeBasis(fe.N,dNdu,p1,xi[0],p2,xi[1]))
-	  return false;
+	  ok = false;
 
 	// Compute basis function derivatives and the edge normal
 	fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
@@ -493,15 +596,17 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
 
 	// Evaluate the integrand and accumulate element contributions
 	fe.detJxW *= wg[i];
-        if (!integrand.evalBou(*A,fe,time,X,normal))
-	  return false;
+        if (ok && !integrand.evalBou(*A,fe,time,X,normal))
+	  ok = false;
       }
 
       // Assembly of global system integral
-      if (!glInt.assemble(A->ref(),fe.iel))
-	return false;
+      if (ok && !glInt.assemble(A->ref(),fe.iel))
+	ok = false;
 
       A->destruct();
+
+      if (!ok) return false;
     }
 
   return true;
@@ -575,8 +680,9 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
 			      const RealArray*, bool) const
 {
   size_t nPoints = coord.size();
-  size_t nComp = locSol.size() / nPoints;
-  if (nComp*nPoints != locSol.size())
+  size_t nNodes = this->getNoNodes(-1);
+  size_t nComp = locSol.size() / nNodes;
+  if (nNodes < nPoints || nComp*nNodes != locSol.size())
     return false;
 
   sField.resize(nComp,nPoints);
@@ -613,7 +719,7 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix dNdu, dNdX, Xnod, Jac;
 
   // Evaluate the secondary solution field at each point
-  const int nel = this->getNoElms();
+  const int nel = this->getNoElms() - nXelm;
   for (int iel = 1; iel <= nel; iel++)
   {
     const IntVec& mnpc = MNPC[iel-1];

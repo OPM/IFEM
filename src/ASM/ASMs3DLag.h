@@ -47,8 +47,17 @@ public:
   //! This is used to reinitialize the patch after it has been refined.
   virtual void clear(bool retainGeometry = false);
 
-  //! \brief Returns the classification of a node.
-  virtual char getNodeType(size_t) const { return 'D'; }
+  //! \brief Adds extraordinary elements associated with a patch boundary.
+  //! \param[in] dim Dimension of the boundary (should be 1)
+  //! \param[in] item Local index of the boundary edge
+  //! \param[in] nXn Number of extraordinary nodes
+  //! \param[out] nodes Global numbers assigned to the extraordinary nodes
+  virtual bool addXElms(short int dim, short int item,
+                        size_t nXn, IntVec& nodes);
+
+  //! \brief Returns the classification of the given node.
+  //! \param[in] inod 1-based node index local to current patch
+  virtual char getNodeType(size_t inod) const;
 
   //! \brief Returns a matrix with nodal coordinates for an element.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes

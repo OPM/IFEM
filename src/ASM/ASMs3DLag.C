@@ -49,6 +49,105 @@ void ASMs3DLag::clear (bool retainGeometry)
 }
 
 
+bool ASMs3DLag::addXElms (short int dim, short int item, size_t nXn,
+                          IntVec& nodes)
+{
+  if (dim != 2)
+  {
+    std::cerr <<" *** ASMs3DLag::addXElms: Invalid boundary dimension "<< dim
+              <<", only 2 (face) is allowed."<< std::endl;
+    return false;
+  }
+  else if (!svol || shareFE)
+    return false;
+
+  for (size_t i = 0; i < nXn; i++)
+  {
+    if (nodes.size() == i)
+      nodes.push_back(++gNod);
+    myMLGN.push_back(nodes[i]);
+  }
+
+  const int p1 = svol->order(0);
+  const int p2 = svol->order(1);
+  const int p3 = svol->order(2);
+
+  const int nel1 = (nx-1)/(p1-1);
+  const int nel2 = (ny-1)/(p2-1);
+  const int nel3 = (nz-1)/(p3-1);
+
+  nXelm = nel1*nel2*nel3;
+  myMNPC.resize(2*nXelm);
+  myMLGE.resize(2*nXelm,0);
+
+  int iel = 0;
+  bool skipMe = false;
+  for (int i3 = 0; i3 < nel3; i3++)
+    for (int i2 = 0; i2 < nel2; i2++)
+      for (int i1 = 0; i1 < nel1; i1++, iel++)
+      {
+        if (MLGE[iel] < 1) continue; // Skip zero-volume element
+
+        // Skip elements that are not on current boundary face
+        switch (item)
+          {
+          case 1: skipMe = i1 > 0;      break;
+          case 2: skipMe = i1 < nel1-1; break;
+          case 3: skipMe = i2 > 0;      break;
+          case 4: skipMe = i2 < nel2-1; break;
+          case 5: skipMe = i3 > 0;      break;
+          case 6: skipMe = i3 < nel3-1; break;
+          }
+        if (skipMe) continue;
+
+        IntVec& mnpc = myMNPC[nXelm+iel];
+        if (!mnpc.empty())
+        {
+          std::cerr <<" *** ASMs3DLag::addXElms: Only one X-face allowed."
+                    << std::endl;
+          return false;
+        }
+
+        mnpc = MNPC[iel]; // Copy the ordinary element nodes
+
+        // Negate node numbers that are not on the boundary face, to flag that
+        // they shall not receive any tangent and/or residual contributions
+        int lnod = 0;
+        for (int j3 = 0; j3 < p3; j3++)
+          for (int j2 = 0; j2 < p2; j2++)
+            for (int j1 = 0; j1 < p1; j1++, lnod++)
+            {
+              switch (item)
+                {
+                case 1: skipMe = j1 > 0;    break;
+                case 2: skipMe = j1 < p1-1; break;
+                case 3: skipMe = j2 > 0;    break;
+                case 4: skipMe = j2 < p2-1; break;
+                case 5: skipMe = j3 > 0;    break;
+                case 6: skipMe = j3 < p3-1; break;
+	        }
+	      if (skipMe) // Hack for node 0: Using -maxint as flag instead
+		mnpc[lnod] = mnpc[lnod] == 0 ? -2147483648 : -mnpc[lnod];
+	    }
+
+        // Add connectivity to the extra-ordinary nodes
+        for (size_t i = 0; i < nXn; i++)
+          mnpc.push_back(MLGN.size()-nXn+i);
+
+	myMLGE[nXelm+iel] = ++gEl;
+      }
+
+  return true;
+}
+
+
+char ASMs3DLag::getNodeType (size_t inod) const
+{
+  if (this->isLMn(inod)) return 'L';
+  return inod > coord.size() ? 'X' : 'D';
+}
+
+
 bool ASMs3DLag::generateFEMTopology ()
 {
   if (!svol) return false;
@@ -435,8 +534,9 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
   const ThreadGroups& threadGrp = tit->second;
 
   // Get Gaussian quadrature points and weights
-  const double* xg = GaussQuadrature::getCoord(nGauss);
-  const double* wg = GaussQuadrature::getWeight(nGauss);
+  int nGP = integrand.getBouIntegrationPoints(nGauss);
+  const double* xg = GaussQuadrature::getCoord(nGP);
+  const double* wg = GaussQuadrature::getWeight(nGP);
   if (!xg || !wg) return false;
 
   // Find the parametric direction of the face normal {-3,-2,-1, 1, 2, 3}
@@ -454,6 +554,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
   // Number of elements in each direction
   const int nel1 = (nx-1)/(p1-1);
   const int nel2 = (ny-1)/(p2-1);
+  const int nel3 = (nz-1)/(p3-1);
 
   // Get parametric coordinates of the elements
   RealArray upar, vpar, wpar;
@@ -467,6 +568,16 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
   if (upar.empty()) this->getGridParameters(upar,0,1);
   if (vpar.empty()) this->getGridParameters(vpar,1,1);
   if (wpar.empty()) this->getGridParameters(wpar,2,1);
+
+  // Integrate the extraordinary elements?
+  size_t doXelms = 0;
+  if (integrand.getIntegrandType() & Integrand::XO_ELEMENTS)
+    if ((doXelms = nel1*nel2*nel3)*2 > MNPC.size())
+    {
+      std::cerr <<" *** ASMs2DLag::integrate: Too few XO-elements "
+                << MNPC.size() - doXelms << std::endl;
+      return false;
+    }
 
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
@@ -487,7 +598,8 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
       Vec4   X;
       Vec3   normal;
       double xi[3];
-      for (size_t l = 0; l < threadGrp[g][t].size(); ++l) {
+      for (size_t l = 0; l < threadGrp[g][t].size() && ok; ++l)
+      {
         int iel = threadGrp[g][t][l];
         int i1  =  iel % nel1;
         int i2  = (iel / nel1) % nel2;
@@ -501,10 +613,11 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
         }
 
 	// Initialize element quantities
-	fe.iel = MLGE[iel-1];
+	fe.iel = MLGE[doXelms+iel-1];
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-        if (!integrand.initElementBou(MNPC[iel-1],*A))
+        if (!integrand.initElementBou(MNPC[doXelms+iel-1],*A))
         {
+          A->destruct();
           ok = false;
           break;
         }
@@ -523,11 +636,11 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 	// --- Integration loop over all Gauss points in each direction --------
 
 	int k1, k2, k3;
-        int jp = (j2*nf1 + j1)*nGauss*nGauss;
+        int jp = (j2*nf1 + j1)*nGP*nGP;
         fe.iGP = firstp + jp; // Global integration point counter
 
-	for (int j = 0; j < nGauss; j++)
-	  for (int i = 0; i < nGauss; i++, fe.iGP++)
+	for (int j = 0; j < nGP; j++)
+	  for (int i = 0; i < nGP; i++, fe.iGP++)
 	  {
 	    // Local element coordinates of current integration point
 	    xi[t0-1] = faceDir < 0 ? -1.0 : 1.0;
@@ -556,10 +669,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 	    // Compute the basis functions and their derivatives, using
 	    // tensor product of one-dimensional Lagrange polynomials
             if (!Lagrange::computeBasis(fe.N,dNdu,p1,xi[0],p2,xi[1],p3,xi[2]))
-            {
               ok = false;
-              break;
-            }
 
 	    // Compute basis function derivatives and the face normal
 	    fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
@@ -574,18 +684,12 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 	    // Evaluate the integrand and accumulate element contributions
 	    fe.detJxW *= wg[i]*wg[j];
             if (!integrand.evalBou(*A,fe,time,X,normal))
-            {
               ok = false;
-              break;
-            }
 	  }
 
         // Assembly of global system integral
-        if (!glInt.assemble(A->ref(),fe.iel))
-        {
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
           ok = false;
-          break;
-        }
 
         A->destruct();
       }
@@ -685,14 +789,14 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
 	// Initialize element quantities
 	fe.iel = MLGE[iel-1];
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-        if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;
+        bool ok = integrand.initElementBou(MNPC[iel-1],*A);
 
 
 	// --- Integration loop over all Gauss points along the edge -----------
 
 	fe.iGP = firstp + ip; // Global integration point counter
 
-	for (int i = 0; i < nGauss; i++, fe.iGP++)
+	for (int i = 0; i < nGauss && ok; i++, fe.iGP++)
 	{
 	  // Gauss point coordinates on the edge
 	  xi[lDir] = xg[i];
@@ -700,7 +804,7 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
 	  // Compute the basis functions and their derivatives, using
 	  // tensor product of one-dimensional Lagrange polynomials
 	  if (!Lagrange::computeBasis(fe.N,dNdu,p1,xi[0],p2,xi[1],p3,xi[2]))
-	    return false;
+	    ok = false;
 
 	  // Compute basis function derivatives and the edge tangent
 	  fe.detJxW = utl::Jacobian(Jac,tangent,fe.dNdX,Xnod,dNdu,1+lDir);
@@ -712,12 +816,16 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
 
 	  // Evaluate the integrand and accumulate element contributions
           if (!integrand.evalBou(*A,fe,time,X,tangent))
-	    return false;
+	    ok = false;
 	}
 
 	// Assembly of global system integral
-	if (!glInt.assemble(A->ref(),fe.iel))
-	  return false;
+	if (ok && !glInt.assemble(A->ref(),fe.iel))
+	  ok = false;
+
+	A->destruct();
+
+	if (!ok) return false;
       }
 
   return true;
@@ -800,8 +908,9 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const Vector& locSol,
 			      const RealArray*, bool) const
 {
   size_t nPoints = coord.size();
-  size_t nComp = locSol.size() / nPoints;
-  if (nComp*nPoints != locSol.size())
+  size_t nNodes = this->getNoNodes(-1);
+  size_t nComp = locSol.size() / nNodes;
+  if (nNodes < nPoints || nComp*nNodes != locSol.size())
     return false;
 
   sField.resize(nComp,nPoints);
@@ -840,7 +949,7 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix dNdu, dNdX, Xnod, Jac;
 
   // Evaluate the secondary solution field at each point
-  const int nel = this->getNoElms();
+  const int nel = this->getNoElms() - nXelm;
   for (int iel = 1; iel <= nel; iel++)
   {
     const IntVec& mnpc = MNPC[iel-1];
