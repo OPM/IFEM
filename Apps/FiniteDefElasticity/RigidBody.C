@@ -105,10 +105,63 @@ void RigidSphere::print (std::ostream& os) const
 
 ElementBlock* RigidSphere::tesselate () const
 {
-  ElementBlock* g = new ElementBlock(4);
+  const size_t ntheta = 180; // Number of elements around equator
+  const size_t nphi   =  60; // Number of elements from pole to pole
 
-  //TODO
-  std::cout <<"RigidSphere::tesselate: Not implemented yet"<< std::endl;
+  ElementBlock* g = new ElementBlock(4);
+  g->unStructResize(nphi*ntheta,2+(nphi-1)*ntheta);
+
+  size_t m, n, ip = 2;
+  Vec3 Xo(X0.front());
+
+  g->setCoor(0,Xo.x,Xo.y,Xo.z+R);
+  g->setCoor(1,Xo.x,Xo.y,Xo.z-R);
+  for (n = 0; n < ntheta; n++)
+  {
+    double theta = M_PI*n*2.0/(double)ntheta;
+    double Rct = R*cos(theta);
+    double Rst = R*sin(theta);
+    for (m = 1; m < nphi; m++, ip++)
+    {
+      double phi = M_PI*m/(double)nphi;
+      g->setCoor(ip,Xo.x+Rct*sin(phi),Xo.y+Rst*sin(phi),Xo.z+R*cos(phi));
+    }
+  }
+
+  for (n = ip = 0; n+1 < ntheta; n++)
+  {
+    g->setNode(ip++,0);
+    g->setNode(ip++,nphi* n   -n+2);
+    g->setNode(ip++,nphi*(n+1)-n+1);
+    g->setNode(ip++,0);
+    for (m = 1; m+1 < nphi; m++)
+    {
+      g->setNode(ip++,nphi* n   -n+m+1);
+      g->setNode(ip++,nphi* n   -n+m+2);
+      g->setNode(ip++,nphi*(n+1)-n+m+1);
+      g->setNode(ip++,nphi*(n+1)-n+m);
+    }
+    g->setNode(ip++,nphi*(n+1)-n);
+    g->setNode(ip++,1);
+    g->setNode(ip++,1);
+    g->setNode(ip++,nphi*(n+2)-n-1);
+  }
+
+  g->setNode(ip++,0);
+  g->setNode(ip++,(nphi-1)*(ntheta-1)+2);
+  g->setNode(ip++,2);
+  g->setNode(ip++,0);
+  for (m = 1; m+1 < nphi; m++)
+  {
+    g->setNode(ip++,(nphi-1)*(ntheta-1)+m+1);
+    g->setNode(ip++,(nphi-1)*(ntheta-1)+m+2);
+    g->setNode(ip++,m+2);
+    g->setNode(ip++,m+1);
+  }
+  g->setNode(ip++,(nphi-1)*ntheta+1);
+  g->setNode(ip++,1);
+  g->setNode(ip++,1);
+  g->setNode(ip++,nphi);
 
   return g;
 }
@@ -168,7 +221,7 @@ void RigidCylinder::print (std::ostream& os) const
 
 ElementBlock* RigidCylinder::tesselate () const
 {
-  const size_t ntheta = 180;
+  const size_t ntheta = 180; // Number of element in circular direction
 
   ElementBlock* g = new ElementBlock(4);
   g->unStructResize(3*ntheta,2+2*ntheta);
@@ -307,6 +360,7 @@ void RigidPlane::print (std::ostream& os) const
 
 ElementBlock* RigidPlane::tesselate () const
 {
+  // One single rectangular element is sufficient
   ElementBlock* g = new ElementBlock(4);
   g->resize(2,2);
 
@@ -319,7 +373,8 @@ ElementBlock* RigidPlane::tesselate () const
   }
   else
   {
-    Vec3 X2(X0.front()); X2.z += X0[1].x - X0[0].x;
+    Vec3 X2(X0.front());
+    X2.z += X0[1].x - X0[0].x;
     g->setCoor(3,X2);
     g->setCoor(2,X0[1]+X2-X0[0]);
   }
