@@ -83,6 +83,12 @@ public:
   //! \param[in] iStep Load/time step identifier
   virtual bool writeGlvA(int& nBlock, int iStep) const;
 
+  //! \brief Dumps additional problem-specific results in ASCII format.
+  //! \param os Output stream to write the solution data to
+  //! \param[in] precision Number of digits after the decimal point
+  virtual void dumpMoreResults(double, std::ostream& os,
+                               std::streamsize prec) const;
+
 private:
   NLoptions nlo; //!< Input options defining the nonlinear formulation
 };
@@ -152,6 +158,12 @@ public:
   //! \param nBlock Running result block counter
   //! \param[in] iStep Load/time step identifier
   virtual bool writeGlvA(int& nBlock, int iStep) const;
+
+  //! \brief Dumps additional problem-specific results in ASCII format.
+  //! \param os Output stream to write the solution data to
+  //! \param[in] precision Number of digits after the decimal point
+  virtual void dumpMoreResults(double, std::ostream& os,
+                               std::streamsize prec) const;
 
 private:
   NLoptions nlo; //!< Input options defining the nonlinear formulation

@@ -18,9 +18,11 @@
 #include "Utilities.h"
 #include "Functions.h"
 #include "Vec3Oper.h"
+#include "SAM.h"
 #include "MPC.h"
 #include "VTF.h"
 #include "tinyxml.h"
+#include <iomanip>
 
 
 SIMContact::~SIMContact ()
@@ -288,7 +290,7 @@ void SIMContact::renumberContactBodies (const std::map<int,int>& old2new)
 }
 
 
-bool SIMContact::updateContactBodies (const std::vector<double>& displ)
+bool SIMContact::updateContactBodies (const RealArray& displ)
 {
   for (size_t i = 0; i < myBodies.size(); i++)
     if (!myBodies[i]->update(displ))
@@ -347,4 +349,38 @@ bool SIMContact::writeGlvBodyMovements (VTF* vtf, int iStep, int& nBlock) const
       return false;
 
   return vtf->writeTblk(tID,"Body movement",700,iStep);
+}
+
+
+void SIMContact::printBodyReactions (const SAM& sam, const Vector& RF,
+                                     std::ostream& os,
+                                     std::streamsize precision) const
+{
+  if (myBodies.empty() || RF.empty()) return;
+
+  // Formatted output, use scientific notation with fixed field width
+  std::streamsize flWidth = 8 + precision;
+  std::streamsize oldPrec = os.precision(precision);
+  std::ios::fmtflags oldF = os.flags(std::ios::scientific | std::ios::right);
+
+  std::string bodyName("Rigid Body 1");
+  for (size_t i = 0; i < myBodies.size(); i++, bodyName.back()++)
+  {
+    Vec3 react;
+    Vector vec;
+    for (size_t j = 1; j <= myBodies[i]->getNoNodes(); j++)
+      if (sam.getNodalReactions(myBodies[i]->getNodeID(j),RF,vec))
+	react += Vec3(vec);
+
+    if (!react.isZero())
+    {
+      os <<"  Total reactions for "<< bodyName <<":";
+      for (size_t k = 0; k < 3; k++)
+        os << std::setw(flWidth) << utl::trunc(react[k]);
+      os << std::endl;
+    }
+  }
+
+  os.precision(oldPrec);
+  os.flags(oldF);
 }

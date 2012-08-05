@@ -287,6 +287,15 @@ bool SIMFiniteDefEl2D::writeGlvA (int& nBlock, int iStep) const
 }
 
 
+void SIMFiniteDefEl2D::dumpMoreResults (double, std::ostream& os,
+                                        std::streamsize prec) const
+{
+  const Vector* reactionForces = myEqSys->getReactions();
+  if (reactionForces)
+    this->printBodyReactions(*mySam,*reactionForces,os,prec);
+}
+
+
 SIMFiniteDefEl3D::SIMFiniteDefEl3D (bool checkRHS,
 				    const std::vector<int>& options)
   : SIMLinEl3D(checkRHS), nlo(3)
@@ -550,4 +559,13 @@ bool SIMFiniteDefEl3D::writeGlvG (int& nBlock, const char* inpFile)
 bool SIMFiniteDefEl3D::writeGlvA (int& nBlock, int iStep) const
 {
   return this->writeGlvBodyMovements(myVtf,iStep,nBlock);
+}
+
+
+void SIMFiniteDefEl3D::dumpMoreResults (double, std::ostream& os,
+                                        std::streamsize prec) const
+{
+  const Vector* reactionForces = myEqSys->getReactions();
+  if (reactionForces)
+    this->printBodyReactions(*mySam,*reactionForces,os,prec);
 }

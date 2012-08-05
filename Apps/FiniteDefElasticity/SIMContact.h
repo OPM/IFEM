@@ -16,7 +16,7 @@
 
 #include "TopologySet.h"
 #include "Function.h"
-#include <vector>
+#include "MatVec.h"
 #include <map>
 
 class TiXmlElement;
@@ -79,8 +79,8 @@ private:
   //! \param[in] entitys Set of all named topological entities in the model
   //! \param[in] model The flexible FE model
   bool addContactElms(std::vector<ContactPair>& contacts, RigidBody* master,
-		      const std::string& slave, const TopologySet& entitys,
-		      const std::vector<ASMbase*>& model);
+                      const std::string& slave, const TopologySet& entitys,
+                      const std::vector<ASMbase*>& model);
 
 protected:
   //! Property code to integrand map
@@ -91,8 +91,8 @@ protected:
   //! \param[in] model The flexible FE model
   //! \param[in] entitys Set of all named topological entities in the model
   bool parseContactTag(const TiXmlElement* elem,
-		       const std::vector<ASMbase*>& model,
-		       const TopologySet& entitys);
+                       const std::vector<ASMbase*>& model,
+                       const TopologySet& entitys);
 
   //! \brief Adds Lagrange multipliers as unknowns to the specified patch.
   //! \param patch The patch that will recieve the Lagrange multipliers
@@ -114,7 +114,7 @@ protected:
   void renumberContactBodies(const std::map<int,int>& old2new);
   //! \brief Updates the positions of the contact bodies.
   //! \param[in] displ Current total displacement vector in DOF order
-  bool updateContactBodies(const std::vector<double>& displ);
+  bool updateContactBodies(const RealArray& displ);
 
   //! \brief Assembles contributions to the tangent stiffness and residual.
   //! \param[in] problem The integrand containing the tangent contributions
@@ -137,6 +137,14 @@ protected:
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter
   bool writeGlvBodyMovements(VTF* vtf, int iStep, int& nBlock) const;
+
+  //! \brief Dumps total reaction forces for each rigid body to a given stream.
+  //! \param[in] sam Auxiliary data for FE assembly management
+  //! \param[in] RF Compressed reaction force vector for the entire model
+  //! \param os Output stream to write the reaction forces to
+  //! \param[in] precision Number of digits after the decimal point
+  void printBodyReactions(const SAM& sam, const Vector& RF,
+                          std::ostream& os, std::streamsize precision) const;
 
 private:
   std::vector<RigidBody*>    myBodies; //!< All rigid bodies of the model
