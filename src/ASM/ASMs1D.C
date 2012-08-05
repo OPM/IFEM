@@ -576,13 +576,13 @@ bool ASMs1D::integrate (Integrand& integrand,
 
     // Initialize element matrices
     LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-    if (!integrand.initElement(MNPC[iel-1],X,nRed,*A)) return false;
+    bool ok = integrand.initElement(MNPC[iel-1],X,nRed,*A);
 
     if (xr)
     {
       // --- Selective reduced integration loop --------------------------------
 
-      for (int i = 0; i < nRed; i++)
+      for (int i = 0; i < nRed && ok; i++)
       {
 	// Local element coordinates of current integration point
 	fe.xi = xr[i];
@@ -601,8 +601,7 @@ bool ASMs1D::integrate (Integrand& integrand,
 	X.t = time.t;
 
 	// Compute the reduced integration terms of the integrand
-	if (!integrand.reducedInt(*A,fe,X))
-	  return false;
+	ok = integrand.reducedInt(*A,fe,X);
       }
     }
 
@@ -612,7 +611,7 @@ bool ASMs1D::integrate (Integrand& integrand,
     int jp = (iel-1)*nGauss;
     fe.iGP = firstIp + jp; // Global integration point counter
 
-    for (int i = 0; i < nGauss; i++, fe.iGP++)
+    for (int i = 0; i < nGauss && ok; i++, fe.iGP++)
     {
       // Local element coordinate of current integration point
       fe.xi = xg[i];
@@ -633,7 +632,7 @@ bool ASMs1D::integrate (Integrand& integrand,
       // Compute Hessian of coordinate mapping and 2nd order derivatives
       if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
 	if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
-	  return false;
+	  ok = false;
 
       // Cartesian coordinates of current integration point
       X = Xnod * fe.N;
@@ -641,19 +640,21 @@ bool ASMs1D::integrate (Integrand& integrand,
 
       // Evaluate the integrand and accumulate element contributions
       fe.detJxW *= 0.5*dL*wg[i];
-      if (!integrand.evalInt(*A,fe,time,X))
-	return false;
+      if (ok && !integrand.evalInt(*A,fe,time,X))
+	ok = false;
     }
 
     // Finalize the element quantities
-    if (!integrand.finalizeElement(*A,time,firstIp+jp))
-      return false;
+    if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
+      ok = false;
 
     // Assembly of global system integral
-    if (!glInt.assemble(A->ref(),fe.iel))
-      return false;
+    if (ok && !glInt.assemble(A->ref(),fe.iel))
+      ok = false;
 
     A->destruct();
+
+    if (!ok) return false;
   }
 
   return true;
@@ -699,7 +700,7 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
 
   // Initialize element matrices
   LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-  if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;
+  bool ok = integrand.initElementBou(MNPC[iel-1],*A);
 
   // Evaluate basis functions and corresponding derivatives
   Matrix dNdu;
@@ -720,14 +721,15 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
     normal.x = copysign(1.0,Jac(1,1));
 
   // Evaluate the integrand and accumulate element contributions
-  if (!integrand.evalBou(*A,fe,time,X,normal))
-    return false;
+  if (ok && !integrand.evalBou(*A,fe,time,X,normal))
+    ok = false;
 
   // Assembly of global system integral
-  bool result = glInt.assemble(A->ref(),fe.iel);
+  if (ok && !glInt.assemble(A->ref(),fe.iel))
+    ok = false;
 
   A->destruct();
-  return result;
+  return ok;
 }
 
 

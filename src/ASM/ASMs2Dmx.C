@@ -541,7 +541,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
                          basis2->order_u()*basis2->order_v());
       Matrix dN1du, dN2du, Xnod, Jac;
       Vec4   X;
-      for (size_t i=0;i<threadGroups[g][t].size();++i) {
+      for (size_t i = 0; i < threadGroups[g][t].size() && ok; ++i)
+      {
         int iel = threadGroups[g][t][i];
         fe.iel = MLGE[iel];
         if (fe.iel < 1) continue; // zero-area element
@@ -571,6 +572,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
         if (!integrand.initElement(IntVec(MNPC[iel-1].begin(),f2start),
                                    IntVec(f2start,MNPC[iel-1].end()),nb1,*A))
         {
+          A->destruct();
           ok = false;
           break;
         }
@@ -618,18 +620,16 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= 0.25*dA*wg[i]*wg[j];
             if (!integrand.evalIntMx(*A,fe,time,X))
-            {
               ok = false;
-              break;
-            }
           }
 
-        // Assembly of global system integral
-        if (!glInt.assemble(A->ref(),fe.iel))
-        {
+        // Finalize the element quantities
+        if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
           ok = false;
-          break;
-        }
+
+        // Assembly of global system integral
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
+          ok = false;
 
         A->destruct();
       }
@@ -731,9 +731,9 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
       IntVec::const_iterator f2start = MNPC[iel-1].begin() + fe.N1.size();
       LocalIntegral* A = integrand.getLocalIntegral(fe.N1.size(),fe.N2.size(),
 						    fe.iel,true);
-      if (!integrand.initElementBou(IntVec(MNPC[iel-1].begin(),f2start),
-				    IntVec(f2start,MNPC[iel-1].end()),nb1,*A))
-	return false;
+      bool ok = integrand.initElementBou(IntVec(MNPC[iel-1].begin(),f2start),
+                                         IntVec(f2start,MNPC[iel-1].end()),
+                                         nb1,*A);
 
 
       // --- Integration loop over all Gauss points along the edge -------------
@@ -741,7 +741,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
       int ip = (t1 == 1 ? i2-p2 : i1-p1)*nGauss;
       fe.iGP = firstp + ip; // Global integration point counter
 
-      for (int i = 0; i < nGauss; i++, ip++, fe.iGP++)
+      for (int i = 0; i < nGauss && ok; i++, ip++, fe.iGP++)
       {
 	// Parameter values of current integration point
 	if (gpar[0].size() > 1)
@@ -781,15 +781,16 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
 	// Evaluate the integrand and accumulate element contributions
 	fe.detJxW *= 0.5*dS*wg[i];
-	if (!integrand.evalBouMx(*A,fe,time,X,normal))
-	  return false;
+	ok = integrand.evalBouMx(*A,fe,time,X,normal);
       }
 
       // Assembly of global system integral
-      if (!glInt.assemble(A->ref(),fe.iel))
+      if (ok && !glInt.assemble(A->ref(),fe.iel))
 	return false;
 
       A->destruct();
+
+      if (!ok) return false;
     }
 
   return true;

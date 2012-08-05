@@ -1376,7 +1376,8 @@ bool ASMs2D::integrate (Integrand& integrand,
       Matrix3D d2Ndu2, Hess;
       double   dXidu[2];
       Vec4     X;
-      for (size_t i=0;i<threadGroups[g][t].size();++i) {
+      for (size_t i = 0; i < threadGroups[g][t].size() && ok; ++i)
+      {
         int iel = threadGroups[g][t][i];
         fe.iel = MLGE[iel];
         if (fe.iel < 1) continue; // zero-area element
@@ -1451,6 +1452,7 @@ bool ASMs2D::integrate (Integrand& integrand,
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
         if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed,*A))
         {
+          A->destruct();
           ok = false;
           break;
         }
@@ -1483,10 +1485,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 
               // Compute the reduced integration terms of the integrand
               if (!integrand.reducedInt(*A,fe,X))
-              {
                 ok = false;
-                break;
-              }
             }
         }
 
@@ -1521,10 +1520,7 @@ bool ASMs2D::integrate (Integrand& integrand,
             // Compute Hessian of coordinate mapping and 2nd order derivatives
             if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
               if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
-              {
                 ok = false;
-                break;
-              }
 
             // Compute G-matrix
             if (integrand.getIntegrandType() & Integrand::G_MATRIX)
@@ -1542,25 +1538,16 @@ bool ASMs2D::integrate (Integrand& integrand,
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= dA*wg[i]*wg[j];
             if (!integrand.evalInt(*A,fe,time,X))
-            {
               ok = false;
-              break;
-            }
           }
 
         // Finalize the element quantities
-        if (!integrand.finalizeElement(*A,time,firstIp+jp))
-        {
+        if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
           ok = false;
-          break;
-        }
 
         // Assembly of global system integral
-        if (!glInt.assemble(A->ref(),fe.iel))
-        {
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
           ok = false;
-          break;
-        }
 
         A->destruct();
       }
@@ -1668,10 +1655,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       if (!this->getElementCoordinates(Xnod,iel)) return false;
 
       if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-      {
-        // Compute element corners
         this->getElementCorners(i1-1,i2-1,fe.XC);
-      }
 
       if (integrand.getIntegrandType() & Integrand::G_MATRIX)
       {
@@ -1682,8 +1666,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-      if (!integrand.initElementBou(MNPC[doXelms+iel-1],*A))
-        return false;
+      bool ok = integrand.initElementBou(MNPC[doXelms+iel-1],*A);
 
 
       // --- Integration loop over all Gauss points along the edge -------------
@@ -1691,7 +1674,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       int ip = (t1 == 1 ? i2-p2 : i1-p1)*nGP;
       fe.iGP = firstp + ip; // Global integration point counter
 
-      for (int i = 0; i < nGP; i++, ip++, fe.iGP++)
+      for (int i = 0; i < nGP && ok; i++, ip++, fe.iGP++)
       {
 	// Local element coordinates and parameter values
 	// of current integration point
@@ -1725,15 +1708,16 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 
 	// Evaluate the integrand and accumulate element contributions
 	fe.detJxW *= dS*wg[i];
-	if (!integrand.evalBou(*A,fe,time,X,normal))
-	  return false;
+	ok = integrand.evalBou(*A,fe,time,X,normal);
       }
 
       // Assembly of global system integral
-      if (!glInt.assemble(A->ref(),fe.iel))
-	return false;
+      if (ok && !glInt.assemble(A->ref(),fe.iel))
+	ok = false;
 
       A->destruct();
+
+      if (!ok) return false;
     }
 
   return true;

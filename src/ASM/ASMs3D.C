@@ -1689,7 +1689,8 @@ bool ASMs3D::integrate (Integrand& integrand,
       Matrix3D d2Ndu2, Hess;
       double   dXidu[3];
       Vec4     X;
-      for (size_t l=0;l<threadGroupsVol[g][t].size();++l) {
+      for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; ++l)
+      {
         int iel = threadGroupsVol[g][t][l];
         fe.iel = MLGE[iel];
         if (fe.iel < 1) continue; // zero-volume element
@@ -1769,6 +1770,7 @@ bool ASMs3D::integrate (Integrand& integrand,
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
         if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed*nRed,*A))
         {
+          A->destruct();
           ok = false;
           break;
         }
@@ -1804,10 +1806,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 
                 // Compute the reduced integration terms of the integrand
                 if (!integrand.reducedInt(*A,fe,X))
-                {
                   ok = false;
-                  break;
-                }
               }
         }
 
@@ -1844,13 +1843,8 @@ bool ASMs3D::integrate (Integrand& integrand,
 
               // Compute Hessian of coordinate mapping and 2nd order derivatives
               if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-              {
                 if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
-                {
                   ok = false;
-                  break;
-                }
-              }
 
               // Compute G-matrix
               if (integrand.getIntegrandType() & Integrand::G_MATRIX)
@@ -1868,25 +1862,16 @@ bool ASMs3D::integrate (Integrand& integrand,
               // Evaluate the integrand and accumulate element contributions
               fe.detJxW *= 0.125*dV*wg[i]*wg[j]*wg[k];
               if (!integrand.evalInt(*A,fe,time,X))
-              {
                 ok = false;
-                break;
-              }
             }
 
         // Finalize the element quantities
-        if (!integrand.finalizeElement(*A,time,firstIp+jp))
-        {
+        if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
           ok = false;
-          break;
-        }
 
         // Assembly of global system integral
-        if (!glInt.assemble(A->ref(),fe.iel))
-        {
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
           ok = false;
-          break;
-        }
 
         A->destruct();
       }
@@ -1991,7 +1976,8 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
       Vec3   normal;
       double dXidu[3];
 
-      for (size_t l = 0; l < threadGrp[g][t].size(); ++l) {
+      for (size_t l = 0; l < threadGrp[g][t].size() && ok; ++l)
+      {
         int iel = threadGrp[g][t][l];
         fe.iel = MLGE[doXelms+iel];
         if (fe.iel < 1) continue; // zero-volume element
@@ -2030,6 +2016,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
         if (!integrand.initElementBou(MNPC[doXelms+iel-1],*A))
         {
+          A->destruct();
           ok = false;
           break;
         }
@@ -2100,18 +2087,12 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= 0.25*dA*wg[i]*wg[j];
             if (!integrand.evalBou(*A,fe,time,X,normal))
-            {
               ok = false;
-              break;
-            }
           }
 
         // Assembly of global system integral
-        if (!glInt.assemble(A->ref(),fe.iel))
-        {
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
           ok = false;
-          break;
-        }
 
         A->destruct();
       }
@@ -2255,14 +2236,14 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 
 	// Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-        if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;
+        bool ok = integrand.initElementBou(MNPC[iel-1],*A);
 
 
 	// --- Integration loop over all Gauss points along the edge -----------
 
 	fe.iGP = firstp + ip; // Global integration point counter
 
-	for (int i = 0; i < nGauss; i++, ip++, fe.iGP++)
+	for (int i = 0; i < nGauss && ok; i++, ip++, fe.iGP++)
 	{
 	  // Parameter values of current integration point
 	  if (gpar[0].size() > 1) fe.u = gpar[0](i+1,i1-p1+1);
@@ -2282,15 +2263,16 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 
 	  // Evaluate the integrand and accumulate element contributions
 	  fe.detJxW *= 0.5*dS*wg[i];
-          if (!integrand.evalBou(*A,fe,time,X,tang))
-	    return false;
+          ok = integrand.evalBou(*A,fe,time,X,tang);
 	}
 
 	// Assembly of global system integral
-	if (!glInt.assemble(A->ref(),fe.iel))
-	  return false;
+	if (ok && !glInt.assemble(A->ref(),fe.iel))
+	  ok = false;
 
 	A->destruct();
+
+	if (!ok) return false;
       }
 
   return true;

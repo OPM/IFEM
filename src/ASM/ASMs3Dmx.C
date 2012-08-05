@@ -571,7 +571,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
                          basis2->order(0)*basis2->order(1)*basis2->order(2));
       Matrix dN1du, dN2du, Xnod, Jac;
       Vec4   X;
-      for (size_t l=0;l<threadGroupsVol[g][t].size();++l) {
+      for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; ++l)
+      {
         int iel = threadGroupsVol[g][t][l];
         fe.iel = MLGE[iel];
         if (fe.iel < 1) continue; // zero-volume element
@@ -602,6 +603,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
         if (!integrand.initElement(IntVec(MNPC[iel-1].begin(),f2start),
                                    IntVec(f2start,MNPC[iel-1].end()),nb1,*A))
         {
+          A->destruct();
           ok = false;
           break;
         }
@@ -652,18 +654,16 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
               // Evaluate the integrand and accumulate element contributions
               fe.detJxW *= 0.125*dV*wg[i]*wg[j]*wg[k];
               if (!integrand.evalIntMx(*A,fe,time,X))
-              {
                 ok = false;
-                break;
-              }
             }
 
-        // Assembly of global system integral
-        if (!glInt.assemble(A->ref(),fe.iel))
-        {
+        // Finalize the element quantities
+        if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
           ok = false;
-          break;
-        }
+
+        // Assembly of global system integral
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
+          ok = false;
 
         A->destruct();
       }
@@ -754,7 +754,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
       Matrix dN1du, dN2du, Xnod, Jac;
       Vec4   X;
       Vec3   normal;
-      for (size_t l = 0; l < threadGrp[g][t].size(); ++l) {
+      for (size_t l = 0; l < threadGrp[g][t].size() && ok; ++l)
+      {
         int iel = threadGrp[g][t][l];
         fe.iel = MLGE[iel];
         if (fe.iel < 1) continue; // zero-volume element
@@ -785,6 +786,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 	if (!integrand.initElementBou(IntVec(MNPC[iel-1].begin(),f2start),
 				      IntVec(f2start,MNPC[iel-1].end()),nb1,*A))
         {
+          A->destruct();
           ok = false;
           break;
         }
@@ -862,18 +864,12 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= 0.25*dA*wg[i]*wg[j];
             if (!integrand.evalBouMx(*A,fe,time,X,normal))
-            {
               ok = false;
-              break;
-            }
           }
 
 	// Assembly of global system integral
-	if (!glInt.assemble(A->ref(),fe.iel))
-        {
+	if (ok && !glInt.assemble(A->ref(),fe.iel))
           ok = false;
-          break;
-        }
 
         A->destruct();
       }
