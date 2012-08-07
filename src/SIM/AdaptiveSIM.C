@@ -251,6 +251,10 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   if (adaptor >= gNorm.size() || adaptor >= eNorm.rows())
     return false;
 
+  // cannot adapt on numerical errors without an exact solution
+  if (adaptor == 0 && !model->haveAnaSol())
+    return false;
+
   // Define the reference norm
   double refNorm;
   const Vector& fNorm = gNorm.front();
@@ -260,9 +264,13 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   else // |u|_ref = sqrt( |u^h|^2 + |e^*|^2 )
     refNorm = sqrt(fNorm(1)*fNorm(1) + aNorm(2)*aNorm(2));
 
+  // we want norm 2 if we have an anasol,
+  // or norm 4 if we have no adaptor but an anasol
+  int adNorm = adaptor==0?4:2;
+
   // Check if further refinement is required
   if (iStep > maxStep || model->getNoDOFs() > (size_t)maxDOFs) return false;
-  if (eNorm.cols() < 1 || 100.0*aNorm(2) < errTol*refNorm) return false;
+  if (eNorm.cols() < 1 || 100.0*aNorm(adNorm) < errTol*refNorm) return false;
 
   // Calculate eNorm row
   size_t eRow = 0;
