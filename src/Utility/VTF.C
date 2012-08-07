@@ -281,6 +281,7 @@ bool VTF::writeTransformation (const Vec3& X, const Tensor& T,
     return showError("Error writing result block",idBlock);
 #elif HAS_VTFAPI == 2
   //TODO
+  memset(trans,0,sizeof(trans)); // to kill a compiler warning
   std::cerr <<"VTF: Transformation not yet implemented for VTFx"<< std::endl;
 #endif
 
@@ -541,18 +542,7 @@ bool VTF::writeTblk (const std::vector<int>& tBlockIDs, const char* resultName,
 						      tBlockIDs.size(),iStep)))
     return showError("Error defining transformation block",idBlock);
 #elif HAS_VTFAPI == 2
-  if (!myTBlock[--idBlock])
-  {
-    myTBlock[idBlock] = new VTFXAResultBlock(idBlock+1,
-					     VTFXA_RESTYPE_TRANSFORMATION,
-					     VTFXA_RESMAP_NODE);
-    if (resultName) myTBlock[idBlock]->SetName(resultName);
-  }
-  myTBlock[idBlock]->SetResultID(idBlock);
-  if (VTFA_FAILURE(myTBlock[idBlock]->SetResultValuesBlocks(&tBlockIDs.front(),
-							    tBlockIDs.size(),
-							    iStep)))
-    return showError("Error defining transformation block",idBlock);
+  std::cerr <<"VTF: Transformation not yet implemented for VTFx"<< std::endl;
 #endif
 
   return true;
