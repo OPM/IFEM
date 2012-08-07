@@ -8,6 +8,11 @@ FIND_PATH(SuperLU_INCLUDES
   /sima/libs/SuperLU/include
   PATH_SUFFIXES superlu
 )
+FIND_LIBRARY(SuperLU_LIBRARIES
+  NAMES superlu
+  PATHS $ENV{HOME}/lib
+  /sima/libs/SuperLU/lib
+)
 
 FIND_PATH(SuperLU_MT_INCLUDES
   NAMES pdsp_defs.h
@@ -15,13 +20,6 @@ FIND_PATH(SuperLU_MT_INCLUDES
   /sima/libs/SuperLU_MT/include
   PATH_SUFFIXES superlu_mt superlu
 )
-
-FIND_LIBRARY(SuperLU_LIBRARIES
-  NAMES superlu
-  PATHS $ENV{HOME}/lib
-  /sima/libs/SuperLU/lib
-)
-
 FIND_LIBRARY(SuperLU_MT_LIBRARIES
   NAMES superlu_mt
   PATHS $ENV{HOME}/lib
@@ -34,7 +32,7 @@ IF(SuperLU_LIBRARIES)
                                     SuperLU_INCLUDES SuperLU_LIBRARIES)
 ENDIF(SuperLU_LIBRARIES)
 IF(SuperLU_MT_LIBRARIES)
-  find_package_handle_standard_args(SuperLU DEFAULT_MSG
+  find_package_handle_standard_args(SuperLU_MT DEFAULT_MSG
                                     SuperLU_MT_INCLUDES SuperLU_MT_LIBRARIES)
 ENDIF(SuperLU_MT_LIBRARIES)
 
