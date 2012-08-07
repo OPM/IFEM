@@ -17,6 +17,12 @@
 
 #include "SystemMatrix.h"
 
+#ifdef HAS_PETSC
+#include "petscmat.h"
+#include "petscksp.h"
+#include "petscvec.h"
+#endif
+
 class LinSolParams;
 
 

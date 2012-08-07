@@ -18,6 +18,7 @@
 #ifdef HAS_PETSC
 #include "PETScMatrix.h"
 #endif
+#include "LinSolParams.h"
 
 
 SystemVector* SystemVector::create (Type vectorType)
