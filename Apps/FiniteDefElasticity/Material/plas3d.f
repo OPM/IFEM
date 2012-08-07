@@ -511,6 +511,7 @@ C
             write(iwr,9020) 'iter   = ',iter
             write(iwr,9030) 'Epp    = ',Epp
             write(iwr,9030) 'Ypr    = ',Ypr
+            call flush(iwr)
             ierr = iter
          endif
 C
@@ -632,6 +633,7 @@ C
       call rprin0(Epl , 1,   3, 'Epl   ', iwr)
       call rprin0(Sig , 1,nSig, 'Sig   ', iwr)
       call rprin0(Cst , 6,   6, 'Cst   ', iwr)
+      call flush(iwr)
                                                   go to 8010
 C
 C         Closing section
