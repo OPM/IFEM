@@ -2557,7 +2557,7 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
 
     if (points.empty()) continue; // no points in this patch
 
-    myModel[i]->extractNodeVec(psol,myProblem->getSolution(),mySam->getMADOF());
+    myModel[i]->extractNodeVec(psol,myProblem->getSolution());
     if (opt.discretization >= ASM::Spline)
     {
       // Evaluate the primary solution variables
