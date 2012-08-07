@@ -15,6 +15,9 @@
 #include "SystemMatrix.h"
 #include "Utilities.h"
 #include "tinyxml.h"
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 #include <cstring>
 #include <cstdlib>
 
@@ -23,7 +26,11 @@ SIMoptions::SIMoptions ()
 {
   discretization = ASM::Spline;
   solver = SystemMatrix::SPARSE;
+#ifdef USE_OPENMP
+  num_threads_SLU = omp_get_max_threads();
+#else
   num_threads_SLU = 1;
+#endif
 
   eig = 0;
   nev = 10;
