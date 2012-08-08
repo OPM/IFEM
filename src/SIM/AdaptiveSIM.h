@@ -63,6 +63,9 @@ public:
   //! \brief Accesses the solution of the linear system.
   const Vector& getSolution() const { return linsol; }
 
+  //! \brief Acces the norm prefixes
+  const char** getNormPrefixes() { return &prefix[0]; }
+
 protected:
   //! \brief Parses a data section from an input stream.
   //! \param[in] keyWord Keyword of current data section to read

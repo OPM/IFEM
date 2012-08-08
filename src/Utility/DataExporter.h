@@ -99,6 +99,9 @@ class DataExporter
   //! \brief Return the current time level of the exporter
   int getTimeLevel();
 
+  //! \brief Set the prefixes used for norm output
+  //! \param[in] prefix The prefixes
+  void setNormPrefixes(const char** prefix);
 protected:
   //! \brief Internal helper function
   int getWritersTimeLevel() const;
@@ -181,8 +184,17 @@ public:
   virtual bool writeTimeInfo(int level, int order, int interval,
                              const TimeStep& tp) = 0;
 
+  //! \brief Set the prefixes used for norm output
+  //! \param[in] prefix The prefixes
+  void setNormPrefixes(const char** prefix)
+  {
+    m_prefix = prefix;
+  }
+
 protected:
   std::string m_name; //!< File name
+
+  const char** m_prefix; //!< The norm prefixes
 
   int m_size; //!< Number of MPI nodes (processors)
   int m_rank; //!< MPI rank (processor ID)

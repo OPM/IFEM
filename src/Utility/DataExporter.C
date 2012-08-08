@@ -186,3 +186,11 @@ int DataExporter::getWritersTimeLevel () const
     levels.push_back((*it2)->getLastTimeLevel());
   return *min_element(levels.begin(),levels.end());
 }
+
+
+void DataExporter::setNormPrefixes(const char** prefix)
+{
+  for (std::vector<DataWriter*>::iterator it  = m_writers.begin();
+                                          it != m_writers.end(); ++it)
+    (*it)->setNormPrefixes(prefix);
+}

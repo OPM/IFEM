@@ -181,14 +181,12 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry,
   if (entry.second.results & DataExporter::NORMS) {
     // since the norm data isn't available, we have to instance the object
     NormBase* norm = sim->getNormIntegrand();
-    size_t l = 1;
-    j = 1;
-    for (i = 0; i < norm->getNoFields(); i++) {
-      if (l > norm->getNoFields(j))
-        l=1, j++;
-      if (norm->hasElementContributions(j,l))
-        addField(norm->getName(j,l),"knotspan wise norm",
-                 sim->getName()+"-1",1,sim->getNoPatches(),"knotspan");
+    for (i = 1; i <= norm->getNoFields(0); ++i) {
+      for (j = 1; j <= norm->getNoFields(i); ++j) {
+        if (norm->hasElementContributions(i,j))
+          addField(norm->getName(i,j,(i>1&&m_prefix)?m_prefix[i-2]:0),"knotspan wise norm",
+                   sim->getName()+"-1",1,sim->getNoPatches(),"knotspan");
+      }
     }
     delete norm;
   }

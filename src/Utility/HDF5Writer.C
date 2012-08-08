@@ -352,13 +352,14 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
       if (entry.second.results & DataExporter::NORMS) {
         Matrix patchEnorm;
         sim->extractPatchElmRes(eNorm,patchEnorm,loc-1);
-        l = j = 1;
-        for (k = 0; k < eNorm.rows(); k++) {
-          if (l > norm->getNoFields(j))
-            l=1, j++;
-          if (norm->hasElementContributions(j,l))
-            writeArray(group2,norm->getName(j,l),patchEnorm.cols(),
-                       patchEnorm.getRow(1+k).ptr(),H5T_NATIVE_DOUBLE);
+        l=1;
+        for (j = 1; j <= norm->getNoFields(0); ++j) {
+          for (k = 1; k <= norm->getNoFields(j); ++k) {
+            if (norm->hasElementContributions(j,k))
+              writeArray(group2,norm->getName(j,k,(j>1&&m_prefix?m_prefix[j-2]:0)),
+                         patchEnorm.cols(), patchEnorm.getRow(l++).ptr(),
+                         H5T_NATIVE_DOUBLE);
+          }
         }
       }
     }
@@ -376,13 +377,14 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
           writeArray(group2,prob->getField2Name(j),0,&dummy,H5T_NATIVE_DOUBLE);
       }
       if (entry.second.results & DataExporter::NORMS) {
-        l = j = 1;
-        for (k = 0; k < eNorm.rows(); k++) {
-          if (l > norm->getNoFields(j))
-            l=1, j++;
-          if (norm->hasElementContributions(j,l))
-            writeArray(group2,norm->getName(j,l),0,
-                       &dummy,H5T_NATIVE_DOUBLE);
+        l=1;
+        for (j = 1; j <= norm->getNoFields(0); ++j) {
+          for (k = 1; k <= norm->getNoFields(j); ++k) {
+            if (norm->hasElementContributions(j,k))
+              writeArray(group2,
+                         norm->getName(j,k,(j>1&&m_prefix?m_prefix[j-2]:0)),
+                         0,&dummy,H5T_NATIVE_DOUBLE);
+          }
         }
       }
     }
