@@ -175,6 +175,7 @@ C
       end if
 C
       Cstm = zero
+      Cst  = zero
 C
 C     Fetch material parameters  &  CONSTANT SETUP
 C
@@ -202,6 +203,14 @@ C
          else                          ! Last state requested
             dyld  = 1.0d-08*Y0
          endif
+      endif
+C
+      if (istrt .gt. 1) then
+         if (lfirst .eq. 1 .and. iter .le. istrt) then
+            state = .false.
+         else
+            istrt = 1
+         end if
       endif
 C
 C     KINEMATIC COMPUTATIONS  (Incremental Lagrangian formulation)
@@ -944,7 +953,8 @@ C
 C     NO YIELD FUNCTION SPECIFIED
 C
          yield = zero
-         write (iwr,9000)
+         write(iwr,9000)
+         call flush(iwr)
 C
       end if
 C
