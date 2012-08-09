@@ -142,7 +142,7 @@ int NonlinearDriver::solveProblem (bool skip2nd, bool energyNorm,
   const Elasticity* elp = dynamic_cast<const Elasticity*>(model->getProblem());
 
   int iStep = 0; // Save initial state to VTF
-  if (model->opt.format >= 0 && params.multiSteps())
+  if (model->opt.format >= 0 && params.multiSteps() && params.time.dt > 0.0)
     if (!this->saveStep(-(++iStep),params.time.t,skip2nd))
       return 4;
 
