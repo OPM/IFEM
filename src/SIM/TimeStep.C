@@ -162,7 +162,7 @@ bool TimeStep::multiSteps () const
 bool TimeStep::hasReached (double t) const
 {
   const double epsT = 1.0e-6;
-  return time.t + epsT*time.dt > t;
+  return time.t + epsT*std::max(epsT,time.dt) > t;
 }
 
 
