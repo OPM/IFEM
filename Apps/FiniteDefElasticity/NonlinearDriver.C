@@ -139,6 +139,7 @@ int NonlinearDriver::solveProblem (bool skip2nd, bool energyNorm,
   if (dtDump <= 0.0) dtDump = params.stopTime + 1.0;
   double nextDump = params.time.t + dtDump;
   double nextSave = params.time.t + model->opt.dtSave;
+  bool getMaxVals = !skip2nd && model->opt.format >= 0;
   const Elasticity* elp = dynamic_cast<const Elasticity*>(model->getProblem());
 
   int iStep = 0; // Save initial state to VTF
@@ -191,17 +192,8 @@ int NonlinearDriver::solveProblem (bool skip2nd, bool energyNorm,
     {
       // Save solution variables to VTF for visualization
       if (model->opt.format >= 0)
-      {
         if (!this->saveStep(++iStep,params.time.t,skip2nd))
           return 6;
-
-	// Print out the maximum values
-	if (elp)
-	{
-	  elp->printMaxVals(std::cout,outPrec,7);
-	  elp->printMaxVals(std::cout,outPrec,8);
-	}
-      }
 
       // Save solution variables to HDF5
       if (writer)
@@ -211,6 +203,16 @@ int NonlinearDriver::solveProblem (bool skip2nd, bool energyNorm,
       nextSave = params.time.t + model->opt.dtSave;
       if (nextSave > params.stopTime)
         nextSave = params.stopTime; // Always save the final step
+    }
+    else if (getMaxVals)
+      if (!model->eval2ndSolution(solution.front(),params.time.t))
+        return false;
+
+    // Print out the maximum von Mises stress and Epp, if present
+    if (getMaxVals && elp)
+    {
+      elp->printMaxVals(std::cout,outPrec,7);
+      elp->printMaxVals(std::cout,outPrec,8);
     }
   }
 

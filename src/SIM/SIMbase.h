@@ -512,6 +512,12 @@ public:
   //! \param[in] basis Which basis to dump for mixed methods (0 = geometry)
   //! \param[in] patch Which patch to dump for (0 = all)
   bool dumpBasis(std::ostream& os, int basis = 0, size_t patch = 0) const;
+  //! \brief Dumps the primary solution in ASCII format for inspection.
+  //! \param[in] psol Primary solution vector
+  //! \param os Output stream to write the solution data to
+  //! \param[in] withID If \e true, write node ID and coordinates too
+  void dumpPrimSol(const Vector& psol, std::ostream& os,
+                   bool withID = true) const;
   //! \brief Dumps the entire solution in ASCII format.
   //! \param[in] psol Primary solution vector to derive other quantities from
   //! \param os Output stream to write the solution data to
@@ -540,12 +546,16 @@ public:
   virtual void dumpMoreResults(double time, std::ostream& os,
                                std::streamsize precision = 3) const {}
 
-  //! \brief Dumps the primary solution in ASCII format for inspection.
+  //! \brief Evaluates the secondary solution for a given load/time step.
   //! \param[in] psol Primary solution vector
-  //! \param os Output stream to write the solution data to
-  //! \param[in] withID If \e true, write node ID and coordinates too
-  void dumpPrimSol(const Vector& psol, std::ostream& os,
-		   bool withID = true) const;
+  //! \param[in] time Load/time step parameter
+  //!
+  //! \details This method only evaluates the solutions fields, but does not
+  //! return any data. The method is used only for load/time steps that are not
+  //! not be saved, but the solution has to be evaluated at every increment in
+  //! any case to ensure consistency (like, when constitutive models with
+  //! history variables are in use).
+  bool eval2ndSolution(const Vector& psol, double time);
 
   //! \brief Returns whether an analytical solution is available or not.
   bool haveAnaSol() const { return mySol ? true : false; }

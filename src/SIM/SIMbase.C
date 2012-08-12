@@ -2409,6 +2409,30 @@ void SIMbase::closeGlv ()
 }
 
 
+bool SIMbase::dumpGeometry (std::ostream& os) const
+{
+  for (size_t i = 0; i < myModel.size(); i++)
+    if (!myModel[i]->empty())
+      if (!myModel[i]->write(os))
+        return false;
+
+  return true;
+}
+
+
+bool SIMbase::dumpBasis (std::ostream& os, int basis, size_t patch) const
+{
+  size_t start = patch ? patch-1 : 0;
+  size_t end = patch ? start+1 : myModel.size();
+  for (size_t i = start; i < end && i < myModel.size(); i++)
+    if (!myModel[i]->empty())
+      if (!myModel[i]->write(os,basis))
+        return false;
+
+  return true;
+}
+
+
 void SIMbase::dumpPrimSol (const Vector& psol, std::ostream& os,
 			   bool withID) const
 {
@@ -2444,30 +2468,6 @@ void SIMbase::dumpPrimSol (const Vector& psol, std::ostream& os,
   }
 
   os.flush();
-}
-
-
-bool SIMbase::dumpGeometry (std::ostream& os) const
-{
-  for (size_t i = 0; i < myModel.size(); i++)
-    if (!myModel[i]->empty())
-      if (!myModel[i]->write(os))
-	return false;
-
-  return true;
-}
-
-
-bool SIMbase::dumpBasis (std::ostream& os, int basis, size_t patch) const
-{
-  size_t start = patch ? patch-1 : 0;
-  size_t end = patch ? start+1 : myModel.size();
-  for (size_t i = start; i < end && i < myModel.size(); i++)
-    if (!myModel[i]->empty())
-      if (!myModel[i]->write(os,basis))
-	return false;
-
-  return true;
 }
 
 
@@ -2642,6 +2642,30 @@ bool SIMbase::dumpResultCoords (double time, std::ostream& os, bool formatted,
   }
   os.precision(oldPrec);
   os.flags(oldF);
+
+  return true;
+}
+
+
+bool SIMbase::eval2ndSolution (const Vector& psol, double time)
+{
+  if (psol.empty())
+    return true;
+  else if (!myProblem)
+    return false;
+
+  myProblem->initResultPoints(time);
+
+  Matrix field;
+  for (size_t i = 0; i < myModel.size(); i++)
+  {
+    if (myModel[i]->empty()) continue; // skip empty patches
+
+    LocalSystem::patch = i;
+    myModel[i]->extractNodeVec(psol,myProblem->getSolution(),0,0);
+    if (!myModel[i]->evalSolution(field,*myProblem,opt.nViz))
+      return false;
+  }
 
   return true;
 }
