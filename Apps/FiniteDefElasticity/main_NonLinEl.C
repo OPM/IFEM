@@ -285,6 +285,9 @@ int main (int argc, char** argv)
     if (twoD) model->opt.nViz[2] = 1;
     if (!simulator.saveModel(infile))
       return 3;
+    if (form >= 100)
+      if (!model->writeGlvStep(1))
+        return 3;
   }
 
   std::ostream* oss = 0;
