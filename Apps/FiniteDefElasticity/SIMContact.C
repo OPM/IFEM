@@ -364,7 +364,7 @@ void SIMContact::printBodyReactions (const SAM& sam, const Vector& RF,
   std::ios::fmtflags oldF = os.flags(std::ios::scientific | std::ios::right);
 
   std::string bodyName("Rigid Body 1");
-  for (size_t i = 0; i < myBodies.size(); i++, bodyName.back()++)
+  for (size_t i = 0; i < myBodies.size(); i++, ++(*bodyName.rbegin()))
   {
     Vec3 react;
     Vector vec;
