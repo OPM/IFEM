@@ -197,7 +197,7 @@ int NonlinearDriver::solveProblem (bool skip2nd, bool energyNorm,
 
       // Save solution variables to HDF5
       if (writer)
-        if (!writer->dumpTimeLevel())
+        if (!writer->dumpTimeLevel(&params))
           return 7;
 
       nextSave = params.time.t + model->opt.dtSave;
