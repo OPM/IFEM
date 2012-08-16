@@ -85,7 +85,7 @@ public:
 
   //! \brief Dumps additional problem-specific results in ASCII format.
   //! \param os Output stream to write the solution data to
-  //! \param[in] precision Number of digits after the decimal point
+  //! \param[in] prec Number of digits after the decimal point
   virtual void dumpMoreResults(double, std::ostream& os,
                                std::streamsize prec) const;
 
@@ -161,7 +161,7 @@ public:
 
   //! \brief Dumps additional problem-specific results in ASCII format.
   //! \param os Output stream to write the solution data to
-  //! \param[in] precision Number of digits after the decimal point
+  //! \param[in] prec Number of digits after the decimal point
   virtual void dumpMoreResults(double, std::ostream& os,
                                std::streamsize prec) const;
 

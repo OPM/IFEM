@@ -50,7 +50,7 @@ public:
   int getNoElms() const { return nel; }
   //! \brief Returns the number of FE nodes in the model.
   //! \param[in] dofType Only consider nodes of this type (default All)
-  int getNoNodes(char type = 'A') const;
+  int getNoNodes(char dofType = 'A') const;
   //! \brief Returns the total number of DOFs in the model.
   int getNoDOFs() const { return ndof; }
   //! \brief Returns the number of equations (free DOFs) in the model.
