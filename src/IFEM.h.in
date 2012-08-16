@@ -1,0 +1,20 @@
+//==============================================================================
+//!
+//! \file IFEM.h
+//!
+//! \date Aug 08 2012
+//!
+//! \author Arne Morten Kvarving / SINTEF
+//!
+//! \brief Initialization of the IFEM library.
+//!
+//==============================================================================
+
+#ifndef IFEM_H_
+#define IFEM_H_
+
+#define IFEM_VERSION_MAJOR @IFEM_VERSION_MAJOR@ //!< Major library version
+#define IFEM_VERSION_MINOR @IFEM_VERSION_MINOR@ //!< Minor library version
+#define IFEM_VERSION_PATCH @IFEM_VERSION_PATCH@ //!< Patch library version
+
+#endif

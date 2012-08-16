@@ -1,6 +1,13 @@
 PROJECT(IFEM)
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+SET(IFEM_VERSION_MAJOR 0)
+SET(IFEM_VERSION_MINOR 9)
+SET(IFEM_VERSION_PATCH 0)
+
+# Generate header with version info
+CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/src/Utility/IFEM.h.in
+               ${PROJECT_SOURCE_DIR}/src/Utility/IFEM.h)
 
 # Required defines (well, PROFILE_LEVEL is not actually required, but...)
 SET(CMAKE_CXX_FLAGS "-Dreal=double -DepsZ=1.0e-12 -DPROFILE_LEVEL=3")
