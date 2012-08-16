@@ -11,6 +11,7 @@
 //!
 //==============================================================================
 
+#include "IFEM.h"
 #include "SIMLinEl3D.h"
 #include "SIMLinElKL.h"
 #include "SIMLinElBeamC1.h"
@@ -152,7 +153,9 @@ int main (int argc, char** argv)
 	      <<"\n =====================================\n"
 	      <<"\n Executing command:\n";
     for (i = 0; i < argc; i++) std::cout <<" "<< argv[i];
-    std::cout <<"\n\nInput file: "<< infile
+    std::cout << std::endl;
+    InitIFEM(argc, argv);
+    std::cout <<"\nInput file: "<< infile
 	      <<"\nEquation solver: "<< dummy.solver
 	      <<"\nNumber of Gauss points: "<< dummy.nGauss[0];
     if (dummy.format >= 0)

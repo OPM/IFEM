@@ -17,4 +17,9 @@
 #define IFEM_VERSION_MINOR @IFEM_VERSION_MINOR@ //!< Minor library version
 #define IFEM_VERSION_PATCH @IFEM_VERSION_PATCH@ //!< Patch library version
 
+//! \brief Initialize IFEM
+//! \param argc The number of command line arguments
+//! \param argv The command line arguments
+bool InitIFEM(int argc, char** argv);
+
 #endif

@@ -11,6 +11,7 @@
 //!
 //==============================================================================
 
+#include "IFEM.h"
 #include "SIMLinEl3D.h"
 #include "LinAlgInit.h"
 #include "TimeDomain.h"
@@ -128,7 +129,8 @@ int main (int argc, char** argv)
 
   std::cout <<"\n >>> IFEM Linear Elasticity solver <<<"
 	    <<"\n ===========================================\n"
-	    <<"\nInput file: "<< infile
+    InitIFEM(argc, argv);
+  std::cout <<"\nInput file: "<< infile
 	    <<"\nEquation solver: "<< solver
 	    <<"\nNumber of Gauss points: "<< nGauss
 	    <<"\nVTF file format: "<< (format ? "BINARY":"ASCII")
