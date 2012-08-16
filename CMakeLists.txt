@@ -18,6 +18,7 @@ ENDIF(VERBOSE_DEBUG GREATER 0)
 
 ENABLE_TESTING()
 
+# Generate regtest script with correct paths
 CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/scripts/regtest.sh.in
                ${PROJECT_SOURCE_DIR}/scripts/regtest.sh)
 
@@ -110,10 +111,6 @@ IF(LRSpline_LIBRARIES AND LRSpline_INCLUDE_DIRS)
   ENDFOREACH()
 ENDIF(LRSpline_LIBRARIES AND LRSpline_INCLUDE_DIRS)
 
-IF(NOT IFEM_INSTALL_PREFIX)
-  SET(IFEM_INSTALL_PREFIX $ENV{HOME})
-ENDIF(NOT IFEM_INSTALL_PREFIX)
-
 # 'install' target
 IF(WIN32)
   # TODO
@@ -126,10 +123,10 @@ ELSE(WIN32)
   ENDIF(VTFWRITER_LIBRARIES AND VTFWRITER_INCLUDES AND
         HDF5_LIBRARIES AND VTFWRITER_LIBRARIES)
   INSTALL(TARGETS ${INSTALL_TARGETS}
-          DESTINATION ${IFEM_INSTALL_PREFIX}/bin)
+          DESTINATION bin)
 
   # lib
-  INSTALL(TARGETS IFEM DESTINATION ${IFEM_INSTALL_PREFIX}/lib)
+  INSTALL(TARGETS IFEM DESTINATION lib)
 
   # headers
   FILE(GLOB IFEM_HEADERS src/ASM/AlgEqSystem.h src/ASM/ASMbase.h
@@ -144,12 +141,12 @@ ELSE(WIN32)
                          src/Integrands/*.h src/LinAlg/*.h src/SIM/*.h
                          src/Utility/*.h)
   INSTALL(FILES ${IFEM_HEADERS}
-          DESTINATION ${IFEM_INSTALL_PREFIX}/include/IFEM)
+          DESTINATION include/IFEM)
 
   # cmake modules
   FILE(GLOB_RECURSE LOCAL_CMAKE_MODULES cmake/Modules/*.cmake)
   INSTALL(FILES ${LOCAL_CMAKE_MODULES}
-          DESTINATION ${IFEM_INSTALL_PREFIX}/share/cmake/Modules)
+          DESTINATION share/cmake/Modules)
 
   # documentation and license
   INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/doc/html DESTINATION share/doc/IFEM PATTERN *.md5 EXCLUDE)
