@@ -1,0 +1,63 @@
+#!/bin/bash
+
+# This script helps workaround current CPack (2.8.8) limitations
+# 1) Fix the main deb to drop the '-bin' postfix
+# 2) Fix -dev and -examples dependencies and descriptions
+# 3) Remove dependencies from -doc and fix the description
+#
+# It expects to be run with debs in the cwd
+
+function Unpack() {
+  mkdir tmp
+  dpkg-deb -R $1 tmp
+  cd tmp/DEBIAN
+}
+
+function Pack() {
+  cd ../..
+  dpkg-deb -b tmp $1
+  rm tmp -rf
+}
+
+path=`pwd`
+mkdir -p UbuntuDebs
+rm -f UbuntuDebs/*
+arch=`dpkg --print-architecture`
+code=`lsb_release -sc`
+version=@IFEM_VERSION_MAJOR@.@IFEM_VERSION_MINOR@.@IFEM_VERSION_PATCH@
+mkdir -p /tmp/debfixer
+cd /tmp/debfixer
+
+# Step 1
+Unpack $path/libifem_${version}_$arch-$code-bin.deb
+echo "Suggests: libifem-examples, libifem-doc" >> control
+sed -i control -e 's/-bin//g'
+sed '/^$/d' -i control
+Pack $path/UbuntuDebs/libifem_${version}_$arch-$code.deb
+rm -f $path/libifem_${version}_$arch-$code-bin.deb
+
+# Step 2
+Unpack $path/libifem_${version}_$arch-$code-dev.deb
+echo "Suggests: libifem-examples, libifem-doc" >> control
+sed -i control -e 's/Depends:.*$/Depends: libifem, libtinyxml-dev, libblas-dev, liblapack-dev, libarpack2-dev, libsuperlu3-dev/g' -e 's/\(Description: .*$\)/\1 - development headers/g'
+sed '/^$/d' -i control
+Pack $path/UbuntuDebs/libifem-dev_${version}_all-$code.deb
+rm -f $path/libifem_${version}_$arch-$code-dev.deb
+
+Unpack $path/libifem_${version}_$arch-$code-examples.deb
+echo "Suggests: libifem-doc" >> control
+sed -i control -e 's/Depends:.*$/Depends: libifem, libifem-dev/g' -e 's/\(Description: .*$\)/\1 - examples/g'
+sed '/^$/d' -i control
+Pack $path/UbuntuDebs/libifem-examples_${version}_all-$code.deb
+rm -f $path/libifem_${version}_$arch-$code-examples.deb
+
+# Step 3
+Unpack $path/libifem_${version}_$arch-$code-doc.deb
+echo -e "Suggests: libifem-examples" >> control
+sed '/^Depends:.*$/d' -i control
+sed -i control -e 's/\(Description: .*$\)/\1 - documentation/g'
+sed '/^$/d' -i control
+Pack $path/UbuntuDebs/libifem-doc_${version}_all-$code.deb
+rm -f $path/libifem_${version}_$arch-$code-doc.deb
+
+rmdir /tmp/debfixer

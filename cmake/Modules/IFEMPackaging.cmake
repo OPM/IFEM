@@ -1,0 +1,57 @@
+EXECUTE_PROCESS(COMMAND lsb_release "-sc" OUTPUT_VARIABLE CODENAME)
+STRING(REGEX REPLACE "\n" "" SYSTEM_CODENAME ${CODENAME})
+EXECUTE_PROCESS(COMMAND lsb_release "-si" OUTPUT_VARIABLE VENDOR)
+STRING(REGEX REPLACE "\n" "" SYSTEM_VENDOR ${VENDOR})
+
+IF (SYSTEM_VENDOR STREQUAL "Ubuntu" OR SYSTEM_VENDOR STREQUAL "Debian")
+  EXECUTE_PROCESS(COMMAND dpkg --print-architecture OUTPUT_VARIABLE ARCHITECTURE)
+  STRING(REGEX REPLACE "\n" "" CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${ARCHITECTURE})
+  SET(SYSTEM_ARCHITECTURE ${CPACK_DEBIAN_PACKAGE_ARCHITECTURE})
+  SET(CPACK_GENERATOR "DEB")
+  SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Arne Morten Kvarving <arne.morten.kvarving@sintef.no>")
+  SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libarpack2, liblapack3gf, libsuperlu3, libhdf5-serial-1.8.4, libtinyxml2.6.2")
+  SET(CPACK_DEB_COMPONENT_INSTALL ON)
+ENDIF (SYSTEM_VENDOR STREQUAL "Ubuntu" OR SYSTEM_VENDOR STREQUAL "Debian")
+
+IF (SYSTEM_VENDOR STREQUAL "Scientific")
+  SET(CPACK_GENERATOR "RPM")
+  EXECUTE_PROCESS(COMMAND uname "-p" OUTPUT_VARIABLE ARCHITECTURE)
+  STRING(REGEX REPLACE "\n" "" CPACK_RPM_PACKAGE_ARCHITECTURE ${ARCHITECTURE})
+  SET(SYSTEM_ARCHITECTURE ${CPACK_RPM_PACKAGE_ARCHITECTURE})
+  SET(CPACK_RPM_COMPONENT_INSTALL ON)
+  SET(CPACK_RPM_bin_PACKAGE_REQUIRES "arpack, lapack, atlas, blas, hdf5 >= 1.8")
+  SET(CPACK_RPM_devel_PACKAGE_REQUIRES "libifem-bin, arpack-devel, lapack-devel, atlas-devel, blas-devel, hdf5-devel >= 1.8")
+  SET(CPACK_RPM_examples_PACKAGE_REQUIRES "libifem-devel")
+ENDIF(SYSTEM_VENDOR STREQUAL "Scientific")
+
+# Common packaging
+SET(CPACK_PACKAGE_NAME "libifem")
+SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "IFEM - the isogemetric finite element library")
+SET(CPACK_PACKAGE_VERSION "${IFEM_VERSION}")
+SET(CPACK_PACKAGE_VERSION_MAJOR ${IFEM_VERSION_MAJOR})
+SET(CPACK_PACKAGE_VERSION_MINOR ${IFEM_VERSION_MINOR})
+SET(CPACK_PACKAGE_VERSION_PATCH ${IFEM_VERSION_PATCH})
+SET(CPACK_PACKAGE_FILE_NAME "libifem_${CPACK_PACKAGE_VERSION}_${SYSTEM_ARCHITECTURE}-${SYSTEM_CODENAME}")
+SET(CPACK_RESOURCE_FILE_LICENSE ${PROJECT_SOURCE_DIR}/COPYING)
+SET(CPACK_COMPONENTS_ALL bin doc examples ${IFEM_DEV_COMPONENT})
+SET(CPACK_STRIP_FILES "bin/Poisson;bin/LinEl;bin/HDF5toVTx;lib/libIFEM.so.${IFEM_VERSION}")
+
+INCLUDE(CPack)
+
+# For generating ubuntu packages                                
+ADD_CUSTOM_TARGET(ubuntu 
+                  COMMAND make package
+                  COMMAND ${PROJECT_SOURCE_DIR}/scripts/fixupdebs.sh
+                  COMMAND echo "All done. Packages are in UbuntuDebs/"
+                  COMMENT "Generating and fixing up Ubuntu packages" VERBATIM)
+
+# For generating RPM packages
+ADD_CUSTOM_TARGET(rpm
+                  COMMAND make package
+                  COMMAND mkdir -p RPMs
+                  COMMAND mv libifem_${CPACK_PACKAGE_VERSION}_${SYSTEM_ARCHITECTURE}-${SYSTEM_CODENAME}-bin.rpm RPMs/libifem-bin_${CPACK_PACKAGE_VERSION}_${SYSTEM_ARCHITECTURE}-${SYSTEM_CODENAME}.rpm
+                  COMMAND mv libifem_${CPACK_PACKAGE_VERSION}_${SYSTEM_ARCHITECTURE}-${SYSTEM_CODENAME}-doc.rpm RPMs/libifem-doc_${CPACK_PACKAGE_VERSION}_noarch-${SYSTEM_CODENAME}.rpm
+                  COMMAND mv libifem_${CPACK_PACKAGE_VERSION}_${SYSTEM_ARCHITECTURE}-${SYSTEM_CODENAME}-devel.rpm RPMs/libifem-devel_${CPACK_PACKAGE_VERSION}_noarch-${SYSTEM_CODENAME}.rpm
+                  COMMAND mv libifem_${CPACK_PACKAGE_VERSION}_${SYSTEM_ARCHITECTURE}-${SYSTEM_CODENAME}-examples.rpm RPMs/libifem-examples_${CPACK_PACKAGE_VERSION}_noarch-${SYSTEM_CODENAME}.rpm
+                  COMMAND echo "All done. Packages are in RPMs/"
+                  COMMENT "Generating and fixing up RPM packages" VERBATIM)
