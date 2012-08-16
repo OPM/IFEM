@@ -143,6 +143,12 @@ char ASMs2DLag::getNodeType (size_t inod) const
 }
 
 
+size_t ASMs2DLag::getNoNodes (int basis) const
+{
+  return basis > 0 ? coord.size() : this->ASMbase::getNoNodes(basis);
+}
+
+
 bool ASMs2DLag::generateFEMTopology ()
 {
   if (!surf) return false;

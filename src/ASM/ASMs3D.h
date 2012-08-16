@@ -159,6 +159,8 @@ public:
   //! \brief Returns the classification of the given node.
   //! \param[in] inod 1-based node index local to current patch
   virtual char getNodeType(size_t inod) const;
+  //! \brief Returns the total number of nodes in this patch.
+  virtual size_t getNoNodes(int basis = 0) const;
 
   //! \brief Returns a matrix with nodal coordinates for an element.
   //! \param[in] iel Element index

@@ -270,6 +270,12 @@ char ASMs2D::getNodeType (size_t inod) const
 }
 
 
+size_t ASMs2D::getNoNodes (int basis) const
+{
+  return basis > 0 ? nodeInd.size() : this->ASMbase::getNoNodes(basis);
+}
+
+
 bool ASMs2D::refine (int dir, const RealArray& xi)
 {
   if (!surf || dir < 0 || dir > 1 || xi.empty()) return false;

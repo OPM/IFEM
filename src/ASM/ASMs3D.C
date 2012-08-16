@@ -259,6 +259,12 @@ char ASMs3D::getNodeType (size_t inod) const
 }
 
 
+size_t ASMs3D::getNoNodes (int basis) const
+{
+  return basis > 0 ? nodeInd.size() : this->ASMbase::getNoNodes(basis);
+}
+
+
 bool ASMs3D::checkRightHandSystem ()
 {
   if (!svol || shareFE) return false;
