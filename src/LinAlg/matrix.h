@@ -30,7 +30,10 @@
 #include <mkl_cblas.h>
 #pragma pop_macro("real")
 #elif defined(USE_CBLAS)
+extern "C"
+{
 #include <cblas.h>
+}
 #endif
 
 #ifdef INDEX_CHECK
