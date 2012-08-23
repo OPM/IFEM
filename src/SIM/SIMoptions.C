@@ -63,24 +63,15 @@ void SIMoptions::setLinearSolver (const std::string& eqsolver)
 
 bool SIMoptions::parseEigSolTag (const TiXmlElement* elem)
 {
-  if (!strcasecmp(elem->Value(),"mode")) {
-    if (elem->FirstChild())
-      eig = atoi(elem->FirstChild()->Value());
-  }
-
-  else if (!strcasecmp(elem->Value(),"nev")) {
-    if (elem->FirstChild())
-      nev = atoi(elem->FirstChild()->Value());
-  }
-  else if (!strcasecmp(elem->Value(),"ncv")) {
-    if (elem->FirstChild())
-      ncv = atoi(elem->FirstChild()->Value());
-  }
-
-  else if (!strcasecmp(elem->Value(),"shift")) {
-    if (elem->FirstChild())
-      shift = atof(elem->FirstChild()->Value());
-  }
+  const char* value;
+  if ((value = utl::getValue(elem,"mode")))
+    eig = atoi(value);
+  else if ((value = utl::getValue(elem,"nev")))
+    nev = atoi(value);
+  else if ((value = utl::getValue(elem,"ncv")))
+    ncv = atoi(value);
+  else if ((value = utl::getValue(elem,"shift")))
+    shift = atof(value);
 
   return true;
 }
@@ -90,8 +81,7 @@ bool SIMoptions::parseDiscretizationTag (const TiXmlElement* elem)
 {
   if (!strcasecmp(elem->Value(),"discretization")) {
     std::string discr;
-    if (discretization == ASM::Spline &&
-	utl::getAttribute(elem,"type",discr,true)) {
+    if (utl::getAttribute(elem,"type",discr,true)) {
       if (discr == "lagrange")
 	discretization = ASM::Lagrange;
       else if (discr == "spectral")
@@ -111,15 +101,6 @@ bool SIMoptions::parseDiscretizationTag (const TiXmlElement* elem)
 	for (int j = i; j < 2; j++)
 	  nGauss[j] = atoi(cval);
     }
-    /* The above was not very elegant. Is there a better way of reading values
-       from a node like <nGauss>2 4</nGauss> ? At least the below did not work
-    if (elem->FirstChild())
-      nGauss[0] = atoi(elem->FirstChild()->Value());
-    if (elem->FirstChild()->NextSibling())
-      nGauss[1] = atoi(elem->FirstChild()->NextSibling()->Value());
-    else
-      nGauss[1] = nGauss[0];
-    */
   }
 
   return true;
@@ -143,8 +124,8 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
   }
 
   else if (!strcasecmp(elem->Value(),"stride")) {
-    if (utl::getValue(elem, "stride"))
-      saveInc = atoi(utl::getValue(elem,"stride"));
+    const char* value = utl::getValue(elem,"stride");
+    if (value) saveInc = atoi(value);
     utl::getAttribute(elem,"dt",dtSave);
   }
 
