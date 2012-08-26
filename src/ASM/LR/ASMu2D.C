@@ -289,9 +289,8 @@ bool ASMu2D::raiseOrder (int ru, int rv)
 	return true;
 }
 
-
-bool ASMu2D::refine (const std::vector<int>& elements,
-                     const std::vector<int>& options,
+bool ASMu2D::refine (const std::vector<double>& elementError,
+                     const std::vector<int>&    options,
                      const char* fName)
 {
 	PROFILE2("ASMu2D::refine()");
@@ -302,16 +301,14 @@ bool ASMu2D::refine (const std::vector<int>& elements,
 	double                  beta          = (options.size()>0)  ? options[0]/100.0 : 0.10;
 	int                     multiplicity  = (options.size()>1)  ? options[1]       : 1;
 	enum refinementStrategy strat         = LR_SAFE;
-	int                     symmetry      = (options.size()>3)  ? options[3]       : 1;
-	bool                    linIndepTest  = (options.size()>4)  ? options[4]!=0    : false;
-	int                     maxTjoints    = (options.size()>5)  ? options[5]       : -1;
-	double                  maxAspectRatio= (options.size()>6)  ? options[6]       : -1;
-	bool                    closeGaps     = (options.size()>7)  ? options[7]!=0    : false;
+	bool                    linIndepTest  = (options.size()>3)  ? options[3]!=0    : false;
+	int                     maxTjoints    = (options.size()>4)  ? options[4]       : -1;
+	double                  maxAspectRatio= (options.size()>5)  ? options[5]       : -1;
+	bool                    closeGaps     = (options.size()>6)  ? options[6]!=0    : false;
 
 	if(options.size() > 2) {
 		if(options[2]==1)      strat  = LR_MINSPAN;
-		else if(options[2]==2) strat  = LR_ISOTROPIC_EL;
-		else if(options[2]==3) strat  = LR_ISOTROPIC_FUNC;
+		else if(options[2]==2) strat  = LR_ISOTROPIC_FUNC;
 	}
 
 	if (multiplicity > 1)
@@ -323,13 +320,18 @@ bool ASMu2D::refine (const std::vector<int>& elements,
 		if (multiplicity > p2) multiplicity = p2;
 	}
 
-	if (!elements.empty()) {
+	if (!elementError.empty()) {
+		// set refinement parameters
 		if(maxTjoints > 0)
 			lrspline->setMaxTjoints(maxTjoints);
 		if(maxAspectRatio > 0)
 			lrspline->setMaxAspectRatio(maxAspectRatio);
 		lrspline->setCloseGaps(closeGaps);
-		lrspline->refine(elements, beta, multiplicity, strat, symmetry);
+		lrspline->setRefMultiplicity(multiplicity);
+		lrspline->setRefStrat(strat);
+
+		// do actual refinement
+		lrspline->refineByDimensionIncrease(elementError, beta);
 	}
 	if (fName)
 	{
@@ -364,8 +366,132 @@ bool ASMu2D::refine (const std::vector<int>& elements,
 		lrspline->writePostscriptFunctionSpace(paramDotMeshFile);
 		lrspline->writePostscriptMeshWithControlPoints(physicalDotMeshFile);
 		lrOut << *lrspline;
-		refineDetails  << beta << " " << multiplicity << " " << strat << " " << symmetry << std::endl;
-		refineDetails  << maxTjoints << " " << maxAspectRatio << " " << closeGaps        << std::endl;
+		refineDetails  << beta << " " << multiplicity << " " << strat << " "      << std::endl;
+		refineDetails  << maxTjoints << " " << maxAspectRatio << " " << closeGaps << std::endl;
+		refineDetails  << elementError.size() << std::endl;
+		for(size_t i=0; i<elementError.size(); i++) {
+			refineDetails << elementError[i] << std::endl;
+		}
+	}
+
+	if (!elementError.empty())
+		std::cout <<"Refined mesh: "<< lrspline->nElements()
+		          <<" elements "<< lrspline->nBasisFunctions()
+		          <<" nodes."<< std::endl;
+
+	if(linIndepTest)
+	{
+		std::cout << "Testing for linear independence....";
+		if(!lrspline->isLinearIndepByMappingMatrix(false))
+		{
+			std::cout << "FAILED!!!\n";
+			std::cerr << std::endl;
+			std::cerr << std::endl;
+			std::cerr << std::endl;
+			std::cerr << "*********************************************\n";
+			std::cerr << "\nLR B-spline is linear dependant. Continuing analysis anyway\n\n";
+			std::cerr << "*********************************************\n";
+			std::cerr << std::endl;
+			std::cerr << std::endl;
+			// exit(34532);
+			// return false;
+		}
+		std::cout << "OK\n";
+	}
+
+	// int nBasis    = lrspline->nBasisFunctions();
+	// myMLGN.resize(nBasis);
+	// for (int inod = 0; inod < nBasis; inod++)
+		// myMLGN[inod] = ++gNod;
+
+	return true;
+}
+
+bool ASMu2D::refine (const std::vector<int>& elements,
+                     const std::vector<int>& options,
+                     const char* fName)
+{
+	PROFILE2("ASMu2D::refine()");
+
+	if (!lrspline) return false;
+	if (shareFE) return true;
+
+	double                  beta          = (options.size()>0)  ? options[0]/100.0 : 0.10;
+	int                     multiplicity  = (options.size()>1)  ? options[1]       : 1;
+	enum refinementStrategy strat         = LR_SAFE;
+	bool                    linIndepTest  = (options.size()>3)  ? options[3]!=0    : false;
+	int                     maxTjoints    = (options.size()>4)  ? options[4]       : -1;
+	double                  maxAspectRatio= (options.size()>5)  ? options[5]       : -1;
+	bool                    closeGaps     = (options.size()>6)  ? options[6]!=0    : false;
+//        bool                    trueBeta      = (options.size()>7)  ? options[7]!=0    : false;
+
+	if(options.size() > 2) {
+		if(options[2]==1)      strat  = LR_MINSPAN;
+		else if(options[2]==2) strat  = LR_ISOTROPIC_FUNC;
+	}
+
+	if (multiplicity > 1)
+	{
+		int p1 = lrspline->order_u() - 1;
+		int p2 = lrspline->order_v() - 1;
+		multiplicity = options[1];
+		if (multiplicity > p1) multiplicity = p1;
+		if (multiplicity > p2) multiplicity = p2;
+	}
+
+	if (!elements.empty()) {
+		// set refinement parameters
+		if(maxTjoints > 0)
+			lrspline->setMaxTjoints(maxTjoints);
+		if(maxAspectRatio > 0)
+			lrspline->setMaxAspectRatio(maxAspectRatio);
+		lrspline->setCloseGaps(closeGaps);
+		lrspline->setRefMultiplicity(multiplicity);
+		lrspline->setRefStrat(strat);
+
+		// do actual refinement
+		if(strat == LR_ISOTROPIC_FUNC)
+			lrspline->refineBasisFunction(elements);
+		else
+			lrspline->refineElement(elements);
+// 		if(trueBeta)
+// 			lrspline->refineByDimensionIncrease(elements, beta); 
+	}
+	if (fName)
+	{
+		char fullFileName[256];
+
+		strcpy(fullFileName, "param_");
+		strcat(fullFileName, fName);
+		std::ofstream paramMeshFile(fullFileName);
+
+		strcpy(fullFileName, "physical_");
+		strcat(fullFileName, fName);
+		std::ofstream physicalMeshFile(fullFileName);
+
+		strcpy(fullFileName, "param_dot_");
+		strcat(fullFileName, fName);
+		std::ofstream paramDotMeshFile(fullFileName);
+
+		strcpy(fullFileName, "physical_dot_");
+		strcat(fullFileName, fName);
+		std::ofstream physicalDotMeshFile(fullFileName);
+
+		strcpy(fullFileName, "lrspline_");
+		strcat(fullFileName, fName);
+		std::ofstream lrOut(fullFileName);
+
+		strcpy(fullFileName, "refine_details_");
+		strcat(fullFileName, fName);
+		std::ofstream refineDetails(fullFileName);
+
+		lrspline->writePostscriptMesh(paramMeshFile);
+		lrspline->writePostscriptElements(physicalMeshFile);
+		lrspline->writePostscriptFunctionSpace(paramDotMeshFile);
+		lrspline->writePostscriptMeshWithControlPoints(physicalDotMeshFile);
+		lrOut << *lrspline;
+		refineDetails  << beta << " " << multiplicity << " " << strat << " "      << std::endl;
+		refineDetails  << maxTjoints << " " << maxAspectRatio << " " << closeGaps << std::endl;
 		refineDetails  << elements.size() << std::endl;
 		for(size_t i=0; i<elements.size(); i++) {
 			refineDetails << elements[i] << std::endl;
@@ -1317,7 +1443,7 @@ bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
 				double u = umin + (umax-umin)/(npe[0]-1)*iu;
 				double v = vmin + (vmax-vmin)/(npe[1]-1)*iv;
 				Go::Point pt;
-				lrspline->point(pt, u,v, iel);
+				lrspline->point(pt, u,v, iel, iu!=npe[0]-1, iv!=npe[1]-1);
 				for(int dim=0; dim<nsd; dim++)
 					grid.setCoor(inod, dim, pt[dim]);
 				inod++;

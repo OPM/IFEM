@@ -89,6 +89,8 @@ private:
   int    maxTjoints;     //!< Maximum number of hanging nodes on one element
   double maxAspectRatio; //!< Maximum element aspect ratio
   bool   closeGaps;      //!< Split elements with a hanging node on each side
+  bool   trueBeta;       //!< Beta measured in dimension increase of solution space
+  bool   threashold;     //!< Beta generates a threashold error/max(error)=beta
 
   //! Refinement scheme: 0=fullspan, 1=minspan, 2=isotropic_elements,
   //! 3=isotropic_functions

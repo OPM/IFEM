@@ -14,6 +14,7 @@
 #include "AdaptiveSIM.h"
 #ifdef HAS_LRSPLINE
 #include "ASMunstruct.h"
+#include "ASMu2D.h"
 #else
 #include "ASMbase.h"
 #endif
@@ -39,6 +40,8 @@ AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : model(sim)
   scheme         = 0; // fullspan
   symmetry       = 1; // no symmetry
   knot_mult      = 1; // maximum regularity (continuity)
+  trueBeta       = false; // beta measured in dimension increase
+  threashold     = false; // beta generates a threashold (err/max{err})
   adaptor        = 0;
   maxTjoints     = -1;
   maxAspectRatio = -1.0;
@@ -62,8 +65,6 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
   while (child) {
     if ((value = utl::getValue(child,"maxstep")))
       maxStep = atoi(value);
-    else if ((value = utl::getValue(child,"beta")))
-      beta = atof(value);
     else if ((value = utl::getValue(child,"maxdof")))
       maxDOFs = atoi(value);
     else if ((value = utl::getValue(child,"errtol")))
@@ -81,10 +82,8 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
         scheme = 0;
       else if (!strcasecmp(value,"minspan"))
         scheme = 1;
-      else if (!strcasecmp(value,"isotropic_element"))
-        scheme = 2;
       else if (!strcasecmp(value,"isotropic_function"))
-        scheme = 3;
+        scheme = 2;
       else
         std::cerr <<"  ** AdaptiveSIM::parse: Unknown refinement scheme \""
                   << value <<"\" (ignored)"<< std::endl;
@@ -95,6 +94,15 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
     }
     else if ((value = utl::getValue(child,"use_norm")))
       adaptor = atoi(value);
+    else if ((value = utl::getValue(child,"beta"))) {
+      beta = atof(value);
+      std::string type;
+      utl::getAttribute(child, "type", type, true);
+      if(type.compare("threashold") == 0)
+        threashold = true;
+      else if(type.compare("truebeta") == 0)
+        trueBeta = true;
+    }
 
     child = child->NextSiblingElement();
   }
@@ -282,24 +290,39 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   std::vector<int> toBeRefined, options;
   std::vector<IndexDouble> errors;
 
+
   options.reserve(8);
   options.push_back(beta);
   options.push_back(knot_mult);
   options.push_back(scheme);
-  options.push_back(symmetry);
   options.push_back(linIndepTest);
   options.push_back(maxTjoints);
   options.push_back(floor(maxAspectRatio));
   options.push_back(closeGaps);
+  options.push_back(trueBeta);
+  
+  if(trueBeta) {
+    std::cout <<"\nRefining by increasing solution space by "<< beta <<" percent\n";
+#ifdef HAS_LRSPLINE
+    ASMu2D* patch = static_cast<ASMu2D*>(model->getFEModel().front());
+    if (!storeMesh)
+      return patch->refine(eNorm.getRow(eRow),options);
+
+    char fname[13];
+    sprintf(fname,"mesh_%03d.eps",iStep);
+    return patch->refine(eNorm.getRow(eRow),options,fname);
+#endif
+  }
+
 
   size_t i;
-  if (scheme == 3)
+  if (scheme == 2)
   {
     // Sum up the total error over all supported elements for each function
     ASMbase* patch = model->getFEModel().front();
     IntMat::const_iterator eit;
     IntVec::const_iterator nit;
-    for (i = 0; i < patch->getNoNodes(); i++)
+    for (i = 0; i < patch->getNoNodes(); i++) // and by "Nodes", we mean basis functions
       errors.push_back(IndexDouble(0.0,i));
     for (i = 1, eit = patch->begin_elm(); eit < patch->end_elm(); eit++, i++)
       for (nit = eit->begin(); nit < eit->end(); nit++)
@@ -309,21 +332,47 @@ bool AdaptiveSIM::adaptMesh (int iStep)
     for (i = 0; i < eNorm.cols(); i++)
       errors.push_back(IndexDouble(eNorm(eRow,1+i),i));
 
-  // Find the list of elements to refine (the beta % with the highest error)
-  size_t ipivot = ceil(errors.size()*beta/100.0);
-  // Make ipivot a multiplum of 'symmetry' in case of symmetric problems
-  if (symmetry > 0)
-    ipivot += (symmetry-ipivot%symmetry);
-
-  if (ipivot < 1 || ipivot > errors.size()) return false;
+  // sort errors
   std::sort(errors.begin(),errors.end(),std::greater<IndexDouble>());
 
-  std::cout <<"\nRefining "<< ipivot <<" elements ("<< beta
-	    <<"\%) with errors in range ["<< errors[ipivot-1].first
-	    <<","<< errors.front().first <<"]"<< std::endl;
+  // find the list of refinable elements/basisfunctions
+  // the variable 'toBeRefined' contains one of the following:
+  //   - list of elements to be refined (if fullspan or minspan)
+  //   - list of basisfunctions to be refined (if structured mesh)
+  //   - nothing if trueBeta (function returned above)
+  size_t refineSize ;
+  std::vector<IndexDouble>::iterator it;
+  if(threashold) {
+    it = std::upper_bound(errors.begin(), errors.end(),
+                          IndexDouble(errors.front().first * beta/100.0,0),
+                          std::greater<IndexDouble>());
+    refineSize = it - errors.begin();
+  } else {
+    refineSize = ceil(errors.size()*beta/100.0);
+  }
 
-  toBeRefined.reserve(ipivot);
-  for (i = 0; i < ipivot; i++)
+  // print info message
+  if(scheme < 2)
+    std::cout <<"\nRefining "<< refineSize <<" elements ";
+  else
+    std::cout <<"\nRefining "<< refineSize <<" basisfunctions ";
+  if(threashold)
+    std::cout << "(threashold of " << beta << "\%) ";
+  else
+    std::cout << "(" << beta << "\%) ";
+  std::cout <<"with errors in range ["<< errors[refineSize-1].first
+            <<","<< errors.front().first <<"]"<< std::endl;
+  
+
+/*
+  if (symmetry > 0) // Make refineSize a multiplum of 'symmetry' in case of symmetric problems
+    refineSize += (symmetry-refineSize%symmetry);
+*/
+
+  if (refineSize < 1 || refineSize > errors.size()) return false;
+
+  toBeRefined.reserve(refineSize);
+  for (i = 0; i < refineSize; i++)
     toBeRefined.push_back(errors[i].second);
 
   // Now refine the mesh

@@ -117,6 +117,8 @@ public:
   //! \param[in] fName Optional file name for an image of the resulting mesh
   virtual bool refine(const std::vector<int>& elements,
 		      const std::vector<int>& options, const char* fName = 0);
+  virtual bool refine(const std::vector<double>& elementError,
+		      const std::vector<int>& options, const char* fName = 0);
 
 
   // Various methods for preprocessing of boundary conditions and patch topology
