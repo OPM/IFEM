@@ -9,7 +9,6 @@ IF (SYSTEM_VENDOR STREQUAL "Ubuntu" OR SYSTEM_VENDOR STREQUAL "Debian")
   SET(SYSTEM_ARCHITECTURE ${CPACK_DEBIAN_PACKAGE_ARCHITECTURE})
   SET(CPACK_GENERATOR "DEB")
   SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Arne Morten Kvarving <arne.morten.kvarving@sintef.no>")
-  SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libarpack2, liblapack3gf, libsuperlu3, libhdf5-serial-1.8.4, libtinyxml2.6.2")
   SET(CPACK_DEB_COMPONENT_INSTALL ON)
 ENDIF (SYSTEM_VENDOR STREQUAL "Ubuntu" OR SYSTEM_VENDOR STREQUAL "Debian")
 
@@ -42,6 +41,8 @@ INCLUDE(CPack)
 ADD_CUSTOM_TARGET(ubuntu 
                   COMMAND make package
                   COMMAND ${PROJECT_SOURCE_DIR}/scripts/fixupdebs.sh
+                  COMMAND equivs-build ${PROJECT_SOURCE_DIR}/doc/libifem-builddeps.control
+                  COMMAND mv ${CMAKE_BINARY_DIR}/libifem-builddeps_${IFEM_VERSION}_all.deb ${CMAKE_BINARY_DIR}/UbuntuDebs
                   COMMAND echo "All done. Packages are in UbuntuDebs/"
                   COMMENT "Generating and fixing up Ubuntu packages" VERBATIM)
 

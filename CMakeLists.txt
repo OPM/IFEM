@@ -11,6 +11,8 @@ CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/src/IFEM.h.in
                ${PROJECT_SOURCE_DIR}/src/IFEM.h @ONLY)
 CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/scripts/fixupdebs.sh.in
                ${PROJECT_SOURCE_DIR}/scripts/fixupdebs.sh @ONLY)
+CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/doc/libifem-builddeps.control.in
+               ${PROJECT_SOURCE_DIR}/doc/libifem-builddeps.control @ONLY)
 
 # Required defines (well, PROFILE_LEVEL is not actually required, but...)
 SET(CMAKE_CXX_FLAGS "-Dreal=double -DepsZ=1.0e-12 -DPROFILE_LEVEL=3")
@@ -76,7 +78,7 @@ ENDIF(NOT(LRSpline_LIBRARIES AND LRSpline_INCLUDE_DIRS))
 ADD_LIBRARY(IFEM ${IFEM_SRCS} ${TINYXML_SRCS})
 TARGET_LINK_LIBRARIES(IFEM ${IFEM_DEPLIBS})
 SET_TARGET_PROPERTIES(IFEM PROPERTIES VERSION ${IFEM_VERSION}
-                                      SOVERSION 1)
+                      SOVERSION ${IFEM_VERSION_MAJOR}.${IFEM_VERSION_MINOR})
 
 IF(HDF5_LIBRARIES AND VTFWRITER_LIBRARIES)
   FILE(GLOB_RECURSE HDF2VTF_SRCS ${PROJECT_SOURCE_DIR}/Apps/HDF5toVTx/*.C)

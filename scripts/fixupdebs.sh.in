@@ -14,6 +14,7 @@ function Unpack() {
 }
 
 function Pack() {
+  sed '/^$/d' -i control
   cd ../..
   dpkg-deb -b tmp $1
   rm tmp -rf
@@ -31,35 +32,33 @@ cd /tmp/debfixer
 # Step 1
 Unpack $path/libifem_${version}_$arch-$code-bin.deb
 echo "Suggests: libifem-examples, libifem-doc" >> control
+echo "Depends: libarpack2, liblapack3gf, libsuperlu3, libhdf5-serial-1.8.4, libtinyxml2.6.2" >> control
 sed -i control -e 's/-bin//g'
-sed '/^$/d' -i control
 Pack $path/UbuntuDebs/libifem_${version}_$arch-$code.deb
 rm -f $path/libifem_${version}_$arch-$code-bin.deb
 
 # Step 2
 Unpack $path/libifem_${version}_$arch-$code-dev.deb
 echo "Suggests: libifem-examples, libifem-doc" >> control
-sed -i control -e 's/Depends:.*$/Depends: libifem, libtinyxml-dev, libblas-dev, liblapack-dev, libarpack2-dev, libsuperlu3-dev/g' -e 's/\(Description: .*$\)/\1 - development headers/g'
-sed '/^$/d' -i control
+echo "Depends: libifem, libtinyxml-dev, libblas-dev, liblapack-dev, libarpack2-dev, libsuperlu3-dev, libvtfexpressapi-dev" >> control
+sed -i control -e 's/\(Description: .*$\)/\1 - development headers/g'
 sed -i control -e 's/\(Architecture: .*$\)/Architecture: all/g'
 Pack $path/UbuntuDebs/libifem-dev_${version}_all-$code.deb
 rm -f $path/libifem_${version}_$arch-$code-dev.deb
 
 Unpack $path/libifem_${version}_$arch-$code-examples.deb
 echo "Suggests: libifem-doc" >> control
-sed -i control -e 's/Depends:.*$/Depends: libifem, libifem-dev/g' -e 's/\(Description: .*$\)/\1 - examples/g'
+echo "Depends: libifem-dev" >> control
+sed -i control -e 's/\(Description: .*$\)/\1 - examples/g'
 sed -i control -e 's/\(Architecture: .*$\)/Architecture: all/g'
-sed '/^$/d' -i control
 Pack $path/UbuntuDebs/libifem-examples_${version}_all-$code.deb
 rm -f $path/libifem_${version}_$arch-$code-examples.deb
 
 # Step 3
 Unpack $path/libifem_${version}_$arch-$code-doc.deb
 echo -e "Suggests: libifem-examples" >> control
-sed '/^Depends:.*$/d' -i control
 sed -i control -e 's/\(Description: .*$\)/\1 - documentation/g'
 sed -i control -e 's/\(Architecture: .*$\)/Architecture: all/g'
-sed '/^$/d' -i control
 Pack $path/UbuntuDebs/libifem-doc_${version}_all-$code.deb
 rm -f $path/libifem_${version}_$arch-$code-doc.deb
 
