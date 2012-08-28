@@ -347,7 +347,8 @@ bool ASMs2DLag::integrate (Integrand& integrand,
       FiniteElement fe(p1*p2);
       Matrix dNdu, Xnod, Jac;
       Vec4   X;
-      for (size_t i=0;i<threadGroups[g][t].size();++i) {
+      for (size_t i = 0; i < threadGroups[g][t].size() && ok; ++i)
+      {
         int iel = threadGroups[g][t][i];
         int i1  = iel % nelx;
         int i2  = iel / nelx;
@@ -375,6 +376,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
         if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed,*A))
         {
+          A->destruct();
           ok = false;
           break;
         }
@@ -396,10 +398,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
               // Compute basis function derivatives at current point
               // using tensor product of one-dimensional Lagrange polynomials
               if (!Lagrange::computeBasis(fe.N,dNdu,p1,xr[i],p2,xr[j]))
-              {
                 ok = false;
-                break;
-              }
 
               // Compute Jacobian inverse and derivatives
               fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
@@ -410,10 +409,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
 
               // Compute the reduced integration terms of the integrand
               if (!integrand.reducedInt(*A,fe,X))
-              {
                 ok = false;
-                break;
-              }
             }
 
 
@@ -436,10 +432,7 @@ bool ASMs2DLag::integrate (Integrand& integrand,
             // Compute basis function derivatives at current integration point
             // using tensor product of one-dimensional Lagrange polynomials
             if (!Lagrange::computeBasis(fe.N,dNdu,p1,xg[i],p2,xg[j]))
-            {
               ok = false;
-              break;
-            }
 
             // Compute Jacobian inverse of coordinate mapping and derivatives
             fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
@@ -452,25 +445,16 @@ bool ASMs2DLag::integrate (Integrand& integrand,
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= wg[i]*wg[j];
             if (!integrand.evalInt(*A,fe,time,X))
-            {
               ok = false;
-              break;
-            }
           }
 
         // Finalize the element quantities
-        if (!integrand.finalizeElement(*A,time,firstIp+jp))
-        {
+        if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
           ok = false;
-          break;
-        }
 
         // Assembly of global system integral
-        if (!glInt.assemble(A->ref(),fe.iel))
-        {
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
           ok = false;
-          break;
-        }
 
         A->destruct();
       }

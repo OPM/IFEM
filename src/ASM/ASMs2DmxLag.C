@@ -241,7 +241,8 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
       MxFiniteElement fe(p1*p2,q1*q2);
       Matrix dN1du, dN2du, Xnod, Jac;
       Vec4   X;
-      for (size_t i=0;i<threadGroups[g][t].size();++i) {
+      for (size_t i = 0; i < threadGroups[g][t].size() && ok; ++i)
+      {
         int iel = threadGroups[g][t][i];
         int i1  = iel % nelx;
         int i2  = iel / nelx;
@@ -261,6 +262,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
         if (!integrand.initElement(IntVec(MNPC[iel-1].begin(),f2start),
                                    IntVec(f2start,MNPC[iel-1].end()),nb1,*A))
         {
+          A->destruct();
           ok = false;
           break;
         }
@@ -286,10 +288,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
             // using tensor product of one-dimensional Lagrange polynomials
             if (!Lagrange::computeBasis(fe.N1,dN1du,p1,xg[i],p2,xg[j]) ||
                 !Lagrange::computeBasis(fe.N2,dN2du,q1,xg[i],q2,xg[j]))
-            {
               ok = false;
-              break;
-            }
 
             // Compute Jacobian inverse of coordinate mapping and derivatives
             fe.detJxW = utl::Jacobian(Jac,fe.dN1dX,Xnod,dN1du);
@@ -304,18 +303,12 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= wg[i]*wg[j];
             if (!integrand.evalIntMx(*A,fe,time,X))
-            {
               ok = false;
-              break;
-            }
           }
 
         // Assembly of global system integral
-        if (!glInt.assemble(A->ref(),fe.iel))
-        {
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
           ok = false;
-          break;
-        }
 
         A->destruct();
       }
@@ -389,9 +382,9 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
       IntVec::const_iterator f2start = MNPC[iel-1].begin() + fe.N1.size();
       LocalIntegral* A = integrand.getLocalIntegral(fe.N1.size(),fe.N2.size(),
                                                     fe.iel,true);
-      if (!integrand.initElementBou(IntVec(MNPC[iel-1].begin(),f2start),
-				    IntVec(f2start,MNPC[iel-1].end()),nb1,*A))
-	return false;
+      bool ok = integrand.initElementBou(IntVec(MNPC[iel-1].begin(),f2start),
+                                         IntVec(f2start,MNPC[iel-1].end()),
+                                         nb1,*A);
 
 
       // --- Integration loop over all Gauss points along the edge -------------
@@ -399,7 +392,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
       int jp = (t1 == 1 ? i2 : i1)*nGauss;
       fe.iGP = firstp + jp; // Global integration point counter
 
-      for (int i = 0; i < nGauss; i++, fe.iGP++)
+      for (int i = 0; i < nGauss && ok; i++, fe.iGP++)
       {
 	// Gauss point coordinates along the edge
 	xi[t1-1] = edgeDir < 0 ? -1.0 : 1.0;
@@ -409,7 +402,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 	// tensor product of one-dimensional Lagrange polynomials
 	if (!Lagrange::computeBasis(fe.N1,dN1du,p1,xi[0],p2,xi[1]) ||
 	    !Lagrange::computeBasis(fe.N2,dN2du,q1,xi[0],q2,xi[1]))
-	  return false;
+	  ok = false;
 
 	// Compute basis function derivatives and the edge normal
 	fe.detJxW = utl::Jacobian(Jac,normal,fe.dN1dX,Xnod,dN1du,t1,t2);
@@ -425,15 +418,17 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 
 	// Evaluate the integrand and accumulate element contributions
 	fe.detJxW *= wg[i];
-	if (!integrand.evalBouMx(*A,fe,time,X,normal))
-	  return false;
+	if (ok && !integrand.evalBouMx(*A,fe,time,X,normal))
+	  ok = false;
       }
 
       // Assembly of global system integral
-      if (!glInt.assemble(A->ref(),fe.iel))
-	return false;
+      if (ok && !glInt.assemble(A->ref(),fe.iel))
+	ok = false;
 
       A->destruct();
+
+      if (!ok) return false;
     }
 
   return true;

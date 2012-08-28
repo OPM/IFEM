@@ -382,7 +382,8 @@ bool ASMs3DLag::integrate (Integrand& integrand,
       FiniteElement fe(p1*p2*p3);
       Matrix dNdu, Xnod, Jac;
       Vec4   X;
-      for (size_t l=0;l<threadGroupsVol[g][t].size();++l) {
+      for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; ++l)
+      {
         int iel = threadGroupsVol[g][t][l];
         int i1  =  iel % nel1;
         int i2  = (iel / nel1) % nel2;
@@ -411,6 +412,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
         if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed*nRed,*A))
         {
+          A->destruct();
           ok = false;
           break;
         }
@@ -450,10 +452,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
 
                 // Compute the reduced integration terms of the integrand
                 if (!integrand.reducedInt(*A,fe,X))
-                {
                   ok = false;
-                  break;
-                }
               }
 
 
@@ -479,10 +478,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
               // Compute basis function derivatives at current integration point
               // using tensor product of one-dimensional Lagrange polynomials
               if (!Lagrange::computeBasis(fe.N,dNdu,p1,xg[i],p2,xg[j],p3,xg[k]))
-              {
                 ok = false;
-                break;
-              }
 
               // Compute Jacobian inverse of coordinate mapping and derivatives
               fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
@@ -495,25 +491,16 @@ bool ASMs3DLag::integrate (Integrand& integrand,
               // Evaluate the integrand and accumulate element contributions
               fe.detJxW *= wg[i]*wg[j]*wg[k];
               if (!integrand.evalInt(*A,fe,time,X))
-              {
                 ok = false;
-                break;
-              }
             }
 
         // Finalize the element quantities
-        if (!integrand.finalizeElement(*A,time,firstIp+jp))
-        {
+        if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
           ok = false;
-          break;
-        }
 
         // Assembly of global system integral
-        if (!glInt.assemble(A->ref(),fe.iel))
-        {
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
           ok = false;
-          break;
-        }
 
         A->destruct();
       }
@@ -604,6 +591,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
       Vec4   X;
       Vec3   normal;
       double xi[3];
+
       for (size_t l = 0; l < threadGrp[g][t].size() && ok; ++l)
       {
         int iel = threadGrp[g][t][l];
