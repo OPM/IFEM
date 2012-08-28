@@ -645,6 +645,16 @@ SymmTensor& SymmTensor::rightCauchyGreen (const Tensor& F)
 }
 
 
+real SymmTensor::L2norm (bool doSqrt) const
+{
+  double l2n = 0.0;
+  for (t_ind i = 0; i < v.size(); i++)
+    l2n += (i < n || (i == 2 && v.size() == 4) ? 1.0 : 2.0)*v[i]*v[i];
+
+  return doSqrt ? sqrt(l2n) : l2n;
+}
+
+
 /*!
   The von Mises value of a symmetric 3D (stress) tensor is defined as follows:
   \f[ s_{\rm vm} = \sqrt{
@@ -683,13 +693,54 @@ real SymmTensor::vonMises (bool doSqrt) const
 }
 
 
-real SymmTensor::L2norm (bool doSqrt) const
+void SymmTensor::principal (Vec3& p) const
 {
-  double l2n = 0.0;
-  for (t_ind i = 0; i < v.size(); i++)
-    l2n += (i < n || (i == 2 && v.size() == 4) ? 1.0 : 2.0)*v[i]*v[i];
+  if (n < 2) return;
 
-  return doSqrt ? sqrt(l2n) : l2n;
+  // Compute mean and deviatoric (upper triangular part) tensors
+  const real tol(1.0e-12);
+
+  real b1 = this->trace() / real(3);
+  real s1 = v[0] - b1;
+  real s2 = v[1] - b1;
+  real s3 = v.size() > 3 ? v[2] - b1 : 0.0;
+  real s4 = n > 2 ? v[3] : v.back();
+  real s5 = n > 2 ? v[4] : 0.0;
+  real s6 = n > 2 ? v[5] : 0.0;
+
+  // Compute 2nd and 3rd invariants of deviator J_2 and J_3
+
+  real c1 = s4*s4;
+  real c2 = s5*s5;
+  real c3 = s6*s6;
+  real b2 = (s1*s1 + s2*s2 + s3*s3)/real(2) + c1 + c2 + c3;
+  if (b2 <= tol*b1*b1)
+  {
+    p = s1;
+    return;
+  }
+
+  real b3 = s1*s2*s3 + (s4+s4)*s5*s6 + s1*(c1-c2) + s2*(c1-c3);
+
+  // Set constants
+
+  c1 = real(2)*sqrt(b2/real(3));
+  c2 = real(4)*b3;
+  c3 = c1*c1*c1;
+  real al = atan2(sqrt(fabs(c3*c3-c2*c2)),c2)/real(3);
+  real pi23 = M_PI*real(2)/real(3);
+
+  // Set principal values
+
+  p.x = b1 + c1*cos(al);
+  p.y = b1 + c1*cos(al-pi23);
+  p.z = b1 + c1*cos(al+pi23);
+
+  // Ensure that p.x >= p.y >= p.z
+
+  if (p.x < p.y) std::swap(p.x,p.y);
+  if (p.y < p.z) std::swap(p.y,p.z);
+  if (p.x < p.y) std::swap(p.x,p.y);
 }
 
 

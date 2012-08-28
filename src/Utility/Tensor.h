@@ -214,10 +214,12 @@ public:
   //! \brief Constructs the right Cauchy-Green tensor from a deformation tensor.
   SymmTensor& rightCauchyGreen(const Tensor& F);
 
-  //! \brief Returns the von Mises value of the symmetric tensor.
-  real vonMises(bool doSqrt = true) const;
   //! \brief Returns the inner-product (L2-norm) of the symmetric tensor.
   real L2norm(bool doSqrt = true) const;
+  //! \brief Returns the von Mises value of the symmetric tensor.
+  real vonMises(bool doSqrt = true) const;
+  //! \brief Computes the principal values of the symmetric tensor.
+  void principal(Vec3& p) const;
 
   // Global operators
 
