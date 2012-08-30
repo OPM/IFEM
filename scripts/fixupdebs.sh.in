@@ -40,7 +40,7 @@ rm -f $path/libifem_${version}_$arch-$code-bin.deb
 # Step 2
 Unpack $path/libifem_${version}_$arch-$code-dev.deb
 echo "Suggests: libifem-examples, libifem-doc" >> control
-echo "Depends: libifem, libtinyxml-dev, libblas-dev, liblapack-dev, libarpack2-dev, libsuperlu3-dev, libvtfexpressapi-dev" >> control
+echo "Depends: libifem, libtinyxml-dev, libblas-dev, liblapack-dev, libarpack2-dev, libsuperlu3-dev, libvtfexpressapi-dev, libifem-cmakerules" >> control
 sed -i control -e 's/\(Description: .*$\)/\1 - development headers/g'
 sed -i control -e 's/\(Architecture: .*$\)/Architecture: all/g'
 Pack $path/UbuntuDebs/libifem-dev_${version}_all-$code.deb
@@ -48,7 +48,7 @@ rm -f $path/libifem_${version}_$arch-$code-dev.deb
 
 Unpack $path/libifem_${version}_$arch-$code-examples.deb
 echo "Suggests: libifem-doc" >> control
-echo "Depends: libifem-dev" >> control
+echo "Depends: libifem-dev, libifem-cmakerules" >> control
 sed -i control -e 's/\(Description: .*$\)/\1 - examples/g'
 sed -i control -e 's/\(Architecture: .*$\)/Architecture: all/g'
 Pack $path/UbuntuDebs/libifem-examples_${version}_all-$code.deb
