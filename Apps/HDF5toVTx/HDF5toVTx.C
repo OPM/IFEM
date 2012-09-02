@@ -1,7 +1,7 @@
 // $Id$
 //==============================================================================
 //!
-//! \file HDF5toVTF.C
+//! \file HDF5toVTx.C
 //!
 //! \date Apr 08 2011
 //!
@@ -13,29 +13,31 @@
 
 #include "HDF5Writer.h"
 #include "XMLWriter.h"
-#include "StringUtils.h"
 #include "ASMs1D.h"
 #include "ASM2D.h"
 #include "ASMs3D.h"
 #include "ElementBlock.h"
-#include "VTF.h"
 #include "VTU.h"
 #include <sstream>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
+#include <cstdlib>
 
 typedef std::map< std::string,std::vector<XMLWriter::Entry> > ProcessList;
 typedef std::map< std::string,std::vector<int> > VTFList;
 
 
-std::vector<ASMbase*> readBasis (const std::string& name, 
-				 int patches, HDF5Writer& hdf,
-				 int dim, int level)
+bool readBasis (std::vector<ASMbase*>& result, const std::string& name,
+                int patches, HDF5Writer& hdf, int dim, int level)
 {
+  result.clear();
+  if (dim < 1 || dim > 3)
+  {
+    std::cerr <<" *** readBasis: Invalid patch dimension "<< dim << std::endl;
+    return false;
+  }
+
+  result.reserve(patches);
   unsigned char nf[2] = { 1, 0 };
   ASM::Discretization ptype;
-  std::vector<ASMbase*> result;
   for (int i=0;i<patches;++i) {
     std::stringstream geom, basis;
     geom << '/' << level << "/basis/";
@@ -50,14 +52,13 @@ std::vector<ASMbase*> readBasis (const std::string& name,
       result.push_back(new ASMs1D());
     else if (dim == 2)
       result.push_back(ASM2D::create(ptype,nf));
-    else if (dim == 3)
+    else
       result.push_back(new ASMs3D(1));
-    assert(result.back());
     result.back()->read(basis);
     result.back()->generateFEMTopology();
   }
 
-  return result;
+  return true;
 }
 
 
@@ -85,7 +86,7 @@ bool writeFieldPatch(const Vector& locvec, int components,
     }
     if (!myVtf.writeNres(field.getRow(1+j),++nBlock,geomID))
       return false;
-    else 
+    else
       slist[nam].push_back(nBlock);
   }
 
@@ -94,7 +95,7 @@ bool writeFieldPatch(const Vector& locvec, int components,
 
 
 bool writeElmPatch(const Vector& locvec,
-                   ASMbase& patch, const ElementBlock* grid, 
+                   ASMbase& patch, const ElementBlock* grid,
                    int geomID, int& nBlock,
                    const std::string& name, VTFList& elist, VTF& myVtf)
 {
@@ -113,7 +114,7 @@ bool writeElmPatch(const Vector& locvec,
 
   if (!myVtf.writeEres(field.getRow(1),++nBlock,geomID))
     return false;
-  else 
+  else
     elist[name].push_back(nBlock);
 
   return true;
@@ -149,10 +150,10 @@ void writePatchGeometry(ASMbase* patch, int id, VTF& myVtf, int* nViz, int block
 }
 
 
-std::vector<RealArray*> generateFEModel(std::vector<ASMbase*> patches,
-                                        int dims, int* n)
+void generateFEModel (std::vector<RealArray*>& result,
+                      const std::vector<ASMbase*>& patches, int dims, int* n)
 {
-  std::vector<RealArray*> result;
+  result.clear();
   result.reserve(patches.size());
   for (size_t i=0;i<patches.size();++i) {
     RealArray* gpar = new RealArray[dims];
@@ -168,8 +169,6 @@ std::vector<RealArray*> generateFEModel(std::vector<ASMbase*> patches,
     }
     result.push_back(gpar);
   }
-
-  return result;
 }
 
 
@@ -276,7 +275,7 @@ int main (int argc, char** argv)
                   <<"\t"<< it->basis << std::endl;
         // always read level 0 geometries
         if (patches[it->basis].empty() && ic == 0)
-          patches[it->basis] = readBasis(it->basis,it->patches,hdf,dims,0);
+          readBasis(patches[it->basis],it->basis,it->patches,hdf,dims,0);
       }
     }
 
@@ -307,13 +306,13 @@ int main (int argc, char** argv)
           for (it = entry.begin(); it != entry.end(); ++it) {
             for (size_t l=0;l<patches[it->basis].size();++l)
               delete patches[it->basis][l];
-            patches[it->basis] = readBasis(it->basis,it->patches,hdf,dims,i);
+            readBasis(patches[it->basis],it->basis,it->patches,hdf,dims,i);
           }
           genGeometry = true;
         }
         if (genGeometry) {
           std::vector<ASMbase*> gpatches;
-          if (basis) 
+          if (basis)
             gpatches = patches[basis];
           else
             gpatches = patches.begin()->second;
@@ -322,8 +321,7 @@ int main (int argc, char** argv)
           block += pit->second[0].patches;
           for (size_t l=0;l<FEmodel.size();++l)
             delete[] FEmodel[l];
-          FEmodel.clear();
-          FEmodel = generateFEModel(gpatches,dims,n);
+          generateFEModel(FEmodel,gpatches,dims,n);
           myVtf->writeGeometryBlocks(k);
           genGeometry = false;
         }
@@ -366,17 +364,17 @@ int main (int argc, char** argv)
       }
       writeFieldBlocks(vlist,slist,*myVtf,k);
 
-      if (ok) {
-        if (processlist.begin()->second.begin()->timestep > 0) {
-          double time2 = time;
-          hdf.readDouble(i,"timeinfo","SIMbase-1",time2); //TODO!
-          myVtf->writeState(k++,"Time %g",time2,1);
-        } else {
-          double foo = k;
-          myVtf->writeState(k++,"Step %g",foo,1);
-        }
-      } else 
+      if (!ok)
         return 3;
+
+      if (processlist.begin()->second.begin()->timestep > 0) {
+        double time2 = time;
+        hdf.readDouble(i,"timeinfo","SIMbase-1",time2); //TODO!
+        myVtf->writeState(k++,"Time %g",time2,1);
+      } else {
+        double foo = k;
+        myVtf->writeState(k++,"Step %g",foo,1);
+      }
 
       pit = processlist.begin();
       time += pit->second.begin()->timestep*skip;
