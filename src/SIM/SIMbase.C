@@ -384,13 +384,15 @@ bool SIMbase::parseOutputTag (const TiXmlElement* elem)
     if (utl::getAttribute(point,"patch",patch) && patch > 0)
       thePoint.patch = patch;
     if (myPid == 0)
-      std::cout <<"\n\tPoint "<< i <<": P"<< thePoint.patch <<" xi =";
+      std::cout <<"\tPoint "<< i <<": P"<< thePoint.patch <<" xi =";
     if (utl::getAttribute(point,"u",thePoint.par[0]) && myPid == 0)
       std::cout <<' '<< thePoint.par[0];
     if (utl::getAttribute(point,"v",thePoint.par[1]) && myPid == 0)
       std::cout <<' '<< thePoint.par[1];
     if (utl::getAttribute(point,"w",thePoint.par[2]) && myPid == 0)
       std::cout <<' '<< thePoint.par[2];
+    if (myPid == 0)
+      std::cout << std::endl;
     myPoints.push_back(thePoint);
   }
   if (myPid == 0)
@@ -2019,7 +2021,7 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
   int geomID = 0;
   const size_t pMAX = 6;
   const size_t sMAX = 21;
-  std::vector<int> vID[2], dID[pMAX], sID[sMAX];
+  std::vector<int> vID[3], dID[pMAX], sID[sMAX];
   bool scalarEq = this->getNoFields() == 1 || psolOnly == 3;
   size_t nVcomp = scalarEq ? 1 : this->getNoSpaceDim();
   bool haveAsol = false;
@@ -2094,6 +2096,11 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
 	  return false;
 	else
 	  dID[k++].push_back(nBlock);
+
+      if (!myVtf->writeVres(field,++nBlock,geomID,nVcomp))
+	return false;
+      else
+	vID[1].push_back(nBlock);
     }
 
     if (psolOnly || !myProblem) continue; // skip secondary solution
@@ -2108,7 +2115,7 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
       if (!myVtf->writeVres(field,++nBlock,geomID))
 	return false;
       else
-	vID[1].push_back(nBlock);
+	vID[2].push_back(nBlock);
 
     for (j = 1, k = 0; j <= field.rows() && k < sMAX; j++)
       if (!myVtf->writeNres(field.getRow(j),++nBlock,geomID))
@@ -2173,7 +2180,16 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
       ok = myVtf->writeDblk(vID[0],pname.c_str(),idBlock,iStep);
 
   if (ok && !vID[1].empty())
-    ok = myVtf->writeVblk(vID[1],"Flux",idBlock+1,iStep);
+  {
+    std::string ename = "Exact " + pname;
+    if (pvecName)
+      ok = myVtf->writeVblk(vID[1],ename.c_str(),idBlock+1,iStep);
+    else
+      ok = myVtf->writeDblk(vID[1],ename.c_str(),idBlock+1,iStep);
+  }
+
+  if (ok && !vID[2].empty())
+    ok = myVtf->writeVblk(vID[2],"Flux",idBlock+2,iStep);
 
   size_t nf = scalarEq ? 1 : this->getNoFields();
   std::vector<std::string> xname(haveXsol ? nf : 0);
