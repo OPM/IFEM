@@ -541,7 +541,7 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix dN1du, dN2du, dN1dX, dN2dX, Xnod, Jac;
 
   // Evaluate the secondary solution field at each point
-  const int nel = this->getNoElms();
+  const int nel = this->getNoElms(true);
   for (int iel = 1; iel <= nel; iel++)
   {
     IntVec::const_iterator f2start = MNPC[iel-1].begin() + p1*p2*p3;

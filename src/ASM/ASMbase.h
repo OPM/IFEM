@@ -180,8 +180,6 @@ public:
   virtual size_t getNoNodes(int basis = 0) const;
   //! \brief Returns the total number of elements in this patch.
   size_t getNoElms(bool includeZeroVolumeElms = false) const;
-  //! \brief Returns the number of extra-ordinary elements in this patch.
-  size_t getNoXelms() const { return nXelm; }
   //! \brief Returns the total number of MPC equations in this patch.
   size_t getNoMPCs() const { return mpcs.size(); }
 
