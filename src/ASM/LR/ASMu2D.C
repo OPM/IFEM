@@ -1044,6 +1044,8 @@ bool ASMu2D::integrate (Integrand& integrand,
 				this->getGaussPointParameters(redpar[d],d,nRed,iel,xr);
 		}
 
+    if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+      this->getElementCorners(iel, fe.XC);
 
 #if 0
 		// Compute characteristic element length, if needed
@@ -1689,4 +1691,19 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 	}
 
 	return true;
+}
+
+
+void ASMu2D::getElementCorners(int iel, std::vector<Vec3>& XC)
+{
+  LR::Element* el = lrspline->getElement(iel-1);
+  double u[4] = {el->umin(), el->umax(), el->umin(), el->umax()};
+  double v[4] = {el->vmin(), el->vmin(), el->vmax(), el->vmax()};
+  XC.resize(4);
+  for (int i=0; i < 4; ++i) {
+    Go::Point point;
+    lrspline->point(point,u[i],v[i],iel-1);
+    for (unsigned char d = 0; d < 2; d++)
+      XC[i][d] = point[d];
+  }
 }

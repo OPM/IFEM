@@ -372,6 +372,7 @@ protected:
 
 protected:
   LR::LRSplineSurface* lrspline;   //!< Pointer to the LR-spline surface object
+  void getElementCorners(int iel, std::vector<Vec3>& XC);
 private:
   Go::SplineSurface* tensorspline; //!< Pointer to original tensor spline object
   // The tensor spline object is kept for backward compatability with the REFINE
