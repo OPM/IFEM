@@ -338,13 +338,22 @@ int main (int argc, char** argv)
               Matrix tmp(it->components,vec.size()/it->components);
               tmp.fill(vec.ptr());
               size_t pos = 0;
+              size_t fp = it->name.find('+');
+              std::string prefix;
+              if (fp != std::string::npos) {
+                size_t fs = it->name.find(' ');
+                if (fs < fp) {
+                  prefix = it->name.substr(0,fs+1);
+                  pos = fs+1;
+                }
+              }
               for (size_t r = 1; r <= tmp.rows() && pos < it->name.size(); r++) {
                 size_t end = it->name.find('+',pos);
 
-                ok &= writeFieldPatch(tmp.getRow(r),1,*patches[pit->first][j],
+                ok &= writeFieldPatch(tmp.getRow(r),1, *patches[pit->first][j],
                                       FEmodel[j],j+1,
-                                      block,it->name.substr(pos,end-pos),vlist,
-                                      slist,*myVtf);
+                                      block, prefix+it->name.substr(pos,end-pos),
+                                      vlist, slist, *myVtf);
                 pos = end+1;
               }
             }
