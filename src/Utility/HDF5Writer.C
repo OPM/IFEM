@@ -16,6 +16,7 @@
 #include "IntegrandBase.h"
 #include "TimeStep.h"
 #include <sstream>
+#include "ASMbase.h"
 
 #ifdef HAS_HDF5
 #include <numeric>
@@ -294,7 +295,7 @@ bool HDF5Writer::readField(int level, const std::string& name,
 }
 
 void HDF5Writer::writeSIM (int level, const DataEntry& entry,
-                           bool geometryUpdated)
+                           bool geometryUpdated, const std::string& prefix)
 {
   SIMbase* sim = static_cast<SIMbase*>(const_cast<void*>(entry.second.data));
   const Vector* sol = static_cast<const Vector*>(entry.second.data2);
@@ -335,18 +336,25 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
       {
         // Mixed methods: The primary solution vector is referring to two bases
         size_t ndof2 = psol.size() > ndof1 ? psol.size() - ndof1 : 0;
-        writeArray(group2,entry.first,psol.size(),psol.ptr(),H5T_NATIVE_DOUBLE);
-        writeArray(group2,prob->getField1Name(11),ndof1,psol.ptr(),H5T_NATIVE_DOUBLE);
-        writeArray(group2,prob->getField1Name(12),ndof2,psol.ptr()+ndof1,H5T_NATIVE_DOUBLE);
+        writeArray(group2,prefix+entry.first,psol.size(),psol.ptr(),H5T_NATIVE_DOUBLE);
+        writeArray(group2,prefix+prob->getField1Name(11),ndof1,psol.ptr(),H5T_NATIVE_DOUBLE);
+        writeArray(group2,prefix+prob->getField1Name(12),ndof2,psol.ptr()+ndof1,H5T_NATIVE_DOUBLE);
       }
       else
-        writeArray(group2,prob->getField1Name(11),ndof1,psol.ptr(),H5T_NATIVE_DOUBLE);
+        writeArray(group2,prefix+prob->getField1Name(11),ndof1,psol.ptr(),H5T_NATIVE_DOUBLE);
 
       if (entry.second.results & DataExporter::SECONDARY) {
         Matrix field;
-        sim->evalSecondarySolution(field,loc-1);
+        if (prefix.empty())
+          sim->evalSecondarySolution(field,loc-1);
+        else {
+          Vector locvec;
+          sim->getFEModel()[loc-1]->extractNodeVec(*sol,locvec,prob->getNoFields(2));
+          field.resize(prob->getNoFields(2),locvec.size()/prob->getNoFields(2));
+          field.fill(locvec.ptr());
+        }
         for (j = 0; j < prob->getNoFields(2); j++)
-          writeArray(group2,prob->getField2Name(j),field.cols(),
+          writeArray(group2,prefix+prob->getField2Name(j),field.cols(),
                      field.getRow(j+1).ptr(),H5T_NATIVE_DOUBLE);
       }
 
@@ -357,7 +365,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
           for (k = 1; k <= norm->getNoFields(j); k++)
             if (norm->hasElementContributions(j,k))
               writeArray(group2,
-                         norm->getName(j,k,(j>1&&m_prefix?m_prefix[j-2]:0)),
+                         prefix+norm->getName(j,k,(j>1&&m_prefix?m_prefix[j-2]:0)),
                          patchEnorm.cols(),patchEnorm.getRow(l++).ptr(),
                          H5T_NATIVE_DOUBLE);
       }
@@ -367,23 +375,23 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
       double dummy;
       if (prob->mixedFormulation())
       {
-        writeArray(group2,entry.first,0,&dummy,H5T_NATIVE_DOUBLE);
-        writeArray(group2,prob->getField1Name(11),0,&dummy,H5T_NATIVE_DOUBLE);
-        writeArray(group2,prob->getField1Name(12),0,&dummy,H5T_NATIVE_DOUBLE);
+        writeArray(group2,prefix+entry.first,0,&dummy,H5T_NATIVE_DOUBLE);
+        writeArray(group2,prefix+prob->getField1Name(11),0,&dummy,H5T_NATIVE_DOUBLE);
+        writeArray(group2,prefix+prob->getField1Name(12),0,&dummy,H5T_NATIVE_DOUBLE);
       }
       else
-        writeArray(group2,prob->getField1Name(11),0,&dummy,H5T_NATIVE_DOUBLE);
+        writeArray(group2,prefix+prob->getField1Name(11),0,&dummy,H5T_NATIVE_DOUBLE);
 
       if (entry.second.results & DataExporter::SECONDARY)
         for (j = 0; j < prob->getNoFields(2); j++)
-          writeArray(group2,prob->getField2Name(j),0,&dummy,H5T_NATIVE_DOUBLE);
+          writeArray(group2,prefix+prob->getField2Name(j),0,&dummy,H5T_NATIVE_DOUBLE);
 
       if (entry.second.results & DataExporter::NORMS)
         for (j = l = 1; j <= norm->getNoFields(0); j++)
           for (k = 1; k <= norm->getNoFields(j); k++)
             if (norm->hasElementContributions(j,k))
               writeArray(group2,
-                         norm->getName(j,k,(j>1&&m_prefix?m_prefix[j-2]:0)),
+                         prefix+norm->getName(j,k,(j>1&&m_prefix?m_prefix[j-2]:0)),
                          0,&dummy,H5T_NATIVE_DOUBLE);
     }
     H5Gclose(group2);

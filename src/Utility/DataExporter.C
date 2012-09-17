@@ -42,7 +42,8 @@ DataExporter::~DataExporter ()
 
 bool DataExporter::registerField (const std::string& name,
 				  const std::string& description,
-				  FieldType field, int results)
+				  FieldType field, int results,
+                                  const std::string& prefix)
 {
   if (m_entry.find(name) != m_entry.end())
     return false;
@@ -51,7 +52,10 @@ bool DataExporter::registerField (const std::string& name,
   entry.description = description;
   entry.field = field;
   entry.results = results;
-  entry.data = NULL;
+  entry.data = entry.data2 = NULL;
+  entry.prefix = prefix;
+  if (!prefix.empty())
+    entry.prefix += ' ';
   m_entry.insert(make_pair(name,entry));
 
   return true;
@@ -99,7 +103,7 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
           (*it2)->writeVector(m_level,*it);
           break;
         case SIM:
-          (*it2)->writeSIM(m_level,*it,geometryUpdated);
+          (*it2)->writeSIM(m_level,*it,geometryUpdated,it->second.prefix);
           break;
         default:
 	  std::cerr <<"DataExporter: Invalid field type registered, skipping"

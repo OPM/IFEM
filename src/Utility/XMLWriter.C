@@ -140,7 +140,7 @@ bool XMLWriter::readSIM (int level, const DataEntry& entry)
 
 
 void XMLWriter::writeSIM (int level, const DataEntry& entry,
-                          bool geometryUpdated)
+                          bool geometryUpdated, const std::string& prefix)
 {
   if (m_rank != 0)
     return;
@@ -152,28 +152,28 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry,
   if (prob->mixedFormulation())
   {
     // primary solution vector
-    addField(entry.first,entry.second.description,sim->getName()+"-1",
+    addField(prefix+entry.first,entry.second.description,sim->getName()+"-1",
              prob->getNoFields(1),sim->getNoPatches(),"restart");
 
     // Assuming that basis2 is used for secondary variables
     // primary solution fields
-    addField(prob->getField1Name(11),"primary",sim->getName()+"-1",
-	     sim->getNoFields(1),sim->getNoPatches());
-    addField(prob->getField1Name(12),"primary",sim->getName()+"-2",
-	     sim->getNoFields(2),sim->getNoPatches());
+    addField(prefix+prob->getField1Name(11),"primary",sim->getName()+"-1",
+             sim->getNoFields(1),sim->getNoPatches());
+    addField(prefix+prob->getField1Name(12),"primary",sim->getName()+"-2",
+             sim->getNoFields(2),sim->getNoPatches());
   }
   else
   {
     // primary solution
-    addField(prob->getField1Name(11),entry.second.description,sim->getName()+"-1",
-	     prob->getNoFields(1),sim->getNoPatches());
+    addField(prefix+prob->getField1Name(11),entry.second.description,sim->getName()+"-1",
+             prob->getNoFields(1),sim->getNoPatches());
   }
 
   // secondary solution fields
   size_t i, j;
   if (entry.second.results & DataExporter::SECONDARY)
     for (j = 0; j < prob->getNoFields(2); j++)
-      addField(prob->getField2Name(j),"secondary",
+      addField(prefix+prob->getField2Name(j),"secondary",
                sim->getName() + (prob->mixedFormulation() ? "-2" : "-1"),
                1,sim->getNoPatches());
 
@@ -184,7 +184,7 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry,
     for (i = 1; i <= norm->getNoFields(0); ++i) {
       for (j = 1; j <= norm->getNoFields(i); ++j) {
         if (norm->hasElementContributions(i,j))
-          addField(norm->getName(i,j,(i>1&&m_prefix)?m_prefix[i-2]:0),"knotspan wise norm",
+          addField(prefix+norm->getName(i,j,(i>1&&m_prefix)?m_prefix[i-2]:0),"knotspan wise norm",
                    sim->getName()+"-1",1,sim->getNoPatches(),"knotspan");
       }
     }

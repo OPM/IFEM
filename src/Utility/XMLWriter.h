@@ -97,8 +97,9 @@ public:
   //! \param[in] level The time level to write the data at
   //! \param[in] entry The DataEntry describing the vector
   //! \param[in] geometryUpdated Ignored
+  //! \param[in  prefix Prefix for field names
   virtual void writeSIM(int level, const DataEntry& entry,
-                        bool geometryUpdated);
+                        bool geometryUpdated, const std::string& prefix);
 
   //! \brief Read data from a file into SIM
   //! \param[in] level The time level to read the data at

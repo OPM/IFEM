@@ -51,6 +51,7 @@ class DataExporter
     int         results;     //!< Which results to store
     const void* data;        //!< Pointer to the primary data (e.g. a SIM class)
     const void* data2;       //!< Pointer to the secondary data (e.g. a vector)
+    std::string prefix;      //!< Field name prefix
   };
 
   //! \brief Default constructor.
@@ -69,9 +70,11 @@ class DataExporter
   //! \param[in] description Description of entry
   //! \param[in] field Type of entry
   //! \param[in] results Which results to store
+  //! \param[in] prefix Field name prefix
   bool registerField(const std::string& name,
                      const std::string& description,
-                     FieldType field, int results = PRIMARY);
+                     FieldType field, int results = PRIMARY,
+                     const std::string& prefix="");
 
   //! \brief Register a data writer
   //! \param[in] writer A pointer to the datawriter we want registered
@@ -168,8 +171,9 @@ public:
   //! \param[in] level The time level to write the data at
   //! \param[in] entry The DataEntry describing the vector
   //! \param[in] geometryUpdated Whether or not geometries should be written
+  //! \param[in] prefix Field name prefix
   virtual void writeSIM(int level, const DataEntry& entry,
-                        bool geometryUpdated) = 0;
+                        bool geometryUpdated, const std::string& prefix) = 0;
 
   //! \brief Read data from a file into SIM
   //! \param[in] level The time level to read the data at

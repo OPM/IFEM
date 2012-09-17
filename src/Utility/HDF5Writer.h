@@ -66,8 +66,12 @@ public:
   //! \param[in] level The time level to write the data at
   //! \param[in] entry The DataEntry describing the vector
   //! \param[in] geometryUpdated Whether or not geometries should be written
+  //! \param[in] prefix Field name prefix
+  //! \details If prefix is non-empty and we are asked to dump secondard
+  //!          solutions, we assume they come from different projections
+  //! \sa SIMbase::project
   virtual void writeSIM(int level, const DataEntry& entry,
-                        bool geometryUpdated);
+                        bool geometryUpdated, const std::string& prefix);
 
   //! \brief Read data from a file into SIM
   //! \param[in] level The time level to read the data at
