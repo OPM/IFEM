@@ -39,9 +39,9 @@ class DataExporter
 
   //! \brief An enum used to describe the results to write
   enum Results {
-    PRIMARY=0,
-    SECONDARY=1,
-    NORMS=2
+    PRIMARY=1,
+    SECONDARY=2,
+    NORMS=4
   };
 
   //! \brief A structure holding information about registered fields
