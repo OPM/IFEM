@@ -216,19 +216,18 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
 
   eNorm.clear();
   gNorm.clear();
-  projs.clear();
-  projs.reserve(model->opt.project.size());
 
   // Project the secondary solution onto the splines basis
   model->setMode(SIM::RECOVERY);
   SIMoptions::ProjectionMap::const_iterator pit;
+  int p=0;
   for (pit = model->opt.project.begin(); pit != model->opt.project.end(); pit++)
   {
     Matrix ssol;
     if (!model->project(ssol,linsol,pit->first))
       return false;
 
-    projs.push_back(ssol);
+    projs[p++] = ssol;
     if (iStep == 1 && model->opt.format >= 0)
       prefix.push_back(pit->second.c_str());
   }
@@ -473,4 +472,10 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep, int& nBlock,
 
   // Write state information
   return model->writeGlvStep(iStep,iStep,1);
+}
+
+
+void AdaptiveSIM::setupProjections()
+{
+  projs.resize(model->opt.project.size());
 }
