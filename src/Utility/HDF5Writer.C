@@ -330,18 +330,20 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     int loc = sim->getLocalPatchIndex(i+1);
     if (loc > 0) // we own the patch
     {
-      size_t ndof1 = sim->extractPatchSolution(*sol,loc-1);
-      Vector& psol = const_cast<IntegrandBase*>(prob)->getSolution();
-      if (prob->mixedFormulation())
-      {
-        // Mixed methods: The primary solution vector is referring to two bases
-        size_t ndof2 = psol.size() > ndof1 ? psol.size() - ndof1 : 0;
-        writeArray(group2,prefix+entry.first,psol.size(),psol.ptr(),H5T_NATIVE_DOUBLE);
-        writeArray(group2,prefix+prob->getField1Name(11),ndof1,psol.ptr(),H5T_NATIVE_DOUBLE);
-        writeArray(group2,prefix+prob->getField1Name(12),ndof2,psol.ptr()+ndof1,H5T_NATIVE_DOUBLE);
+      if (entry.second.results & DataExporter::PRIMARY) {
+        size_t ndof1 = sim->extractPatchSolution(*sol,loc-1);
+        Vector& psol = const_cast<IntegrandBase*>(prob)->getSolution();
+        if (prob->mixedFormulation())
+        {
+          // Mixed methods: The primary solution vector is referring to two bases
+          size_t ndof2 = psol.size() > ndof1 ? psol.size() - ndof1 : 0;
+          writeArray(group2,prefix+entry.first,psol.size(),psol.ptr(),H5T_NATIVE_DOUBLE);
+          writeArray(group2,prefix+prob->getField1Name(11),ndof1,psol.ptr(),H5T_NATIVE_DOUBLE);
+          writeArray(group2,prefix+prob->getField1Name(12),ndof2,psol.ptr()+ndof1,H5T_NATIVE_DOUBLE);
+        }
+        else
+          writeArray(group2,prefix+prob->getField1Name(11),ndof1,psol.ptr(),H5T_NATIVE_DOUBLE);
       }
-      else
-        writeArray(group2,prefix+prob->getField1Name(11),ndof1,psol.ptr(),H5T_NATIVE_DOUBLE);
 
       if (entry.second.results & DataExporter::SECONDARY) {
         Matrix field;
@@ -373,14 +375,16 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     else // must write empty dummy records for the other patches
     {
       double dummy;
-      if (prob->mixedFormulation())
-      {
-        writeArray(group2,prefix+entry.first,0,&dummy,H5T_NATIVE_DOUBLE);
-        writeArray(group2,prefix+prob->getField1Name(11),0,&dummy,H5T_NATIVE_DOUBLE);
-        writeArray(group2,prefix+prob->getField1Name(12),0,&dummy,H5T_NATIVE_DOUBLE);
+      if (entry.second.results & DataExporter::PRIMARY) {
+        if (prob->mixedFormulation())
+        {
+          writeArray(group2,prefix+entry.first,0,&dummy,H5T_NATIVE_DOUBLE);
+          writeArray(group2,prefix+prob->getField1Name(11),0,&dummy,H5T_NATIVE_DOUBLE);
+          writeArray(group2,prefix+prob->getField1Name(12),0,&dummy,H5T_NATIVE_DOUBLE);
+        }
+        else
+          writeArray(group2,prefix+prob->getField1Name(11),0,&dummy,H5T_NATIVE_DOUBLE);
       }
-      else
-        writeArray(group2,prefix+prob->getField1Name(11),0,&dummy,H5T_NATIVE_DOUBLE);
 
       if (entry.second.results & DataExporter::SECONDARY)
         for (j = 0; j < prob->getNoFields(2); j++)

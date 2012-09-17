@@ -149,24 +149,26 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry,
   const IntegrandBase* prob = sim->getProblem();
 
   std::string g2file;
-  if (prob->mixedFormulation())
-  {
-    // primary solution vector
-    addField(prefix+entry.first,entry.second.description,sim->getName()+"-1",
-             prob->getNoFields(1),sim->getNoPatches(),"restart");
+  if (entry.second.results & DataExporter::PRIMARY) {
+    if (prob->mixedFormulation())
+    {
+      // primary solution vector
+      addField(prefix+entry.first,entry.second.description,sim->getName()+"-1",
+               prob->getNoFields(1),sim->getNoPatches(),"restart");
 
-    // Assuming that basis2 is used for secondary variables
-    // primary solution fields
-    addField(prefix+prob->getField1Name(11),"primary",sim->getName()+"-1",
-             sim->getNoFields(1),sim->getNoPatches());
-    addField(prefix+prob->getField1Name(12),"primary",sim->getName()+"-2",
-             sim->getNoFields(2),sim->getNoPatches());
-  }
-  else
-  {
-    // primary solution
-    addField(prefix+prob->getField1Name(11),entry.second.description,sim->getName()+"-1",
-             prob->getNoFields(1),sim->getNoPatches());
+      // Assuming that basis2 is used for secondary variables
+      // primary solution fields
+      addField(prefix+prob->getField1Name(11),"primary",sim->getName()+"-1",
+               sim->getNoFields(1),sim->getNoPatches());
+      addField(prefix+prob->getField1Name(12),"primary",sim->getName()+"-2",
+               sim->getNoFields(2),sim->getNoPatches());
+    }
+    else
+    {
+      // primary solution
+      addField(prefix+prob->getField1Name(11),entry.second.description,sim->getName()+"-1",
+               prob->getNoFields(1),sim->getNoPatches());
+    }
   }
 
   // secondary solution fields
