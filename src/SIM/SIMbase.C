@@ -109,6 +109,7 @@ void SIMbase::clearProperties ()
   myVectors.clear();
   myTracs.clear();
   myProps.clear();
+  myPoints.clear();
 }
 
 
