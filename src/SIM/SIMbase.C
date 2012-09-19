@@ -418,6 +418,19 @@ bool SIMbase::parse (const TiXmlElement* elem)
     utl::getAttribute(elem,"mode",opt.eig);
   else if (!strcasecmp(elem->Value(),"postprocessing"))
     noDumpDataYet = lhsDump.empty() && rhsDump.empty();
+  else if (!strcasecmp(elem->Value(),"initialcondition")) {
+    std::string field;
+    std::string file;
+    int step=0;
+    int comp=1;
+    utl::getAttribute(elem,"step",step);
+    utl::getAttribute(elem,"comp",comp);
+    if (utl::getAttribute(elem,"field",field) &&
+        utl::getAttribute(elem,"file",file))
+      myICs.insert(make_pair(make_pair(field,step),make_pair(file,comp-1)));
+    else
+      result = false;
+  }
 
   const TiXmlElement* child = elem->FirstChildElement();
   while (child) {

@@ -177,6 +177,12 @@ public:
   //! \param[in] redimBuffers Toggle initialization of internal buffer arrays
   void setQuadratureRule(size_t ng, bool redimBuffers = false);
 
+  //! \brief Inject an initial condition from a file
+  virtual void injectIC(const std::pair<std::string, int>& file,
+                        utl::vector<double>& field)
+  {
+  }
+
   //! \brief Prints out problem-specific data to the given stream.
   void printProblem(std::ostream& os) const;
 

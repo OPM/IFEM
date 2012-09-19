@@ -79,6 +79,9 @@ public:
 
   //! \brief Returns the nodal vector of named field in this SIM.
   utl::vector<double>* getField(const std::string& name);
+
+  //! \brief Setup any initial conditions specified in input file
+  virtual bool setInitialConditions() { return false; }
 protected:
   //! \brief Registers a named field with associated nodal vector in this SIM.
   void registerField(const std::string& name, const utl::vector<double>& vec);
@@ -91,6 +94,11 @@ protected:
   bool extractPatchDependencies(IntegrandBase* problem,
                                 const PatchVec& model, size_t pindx);
 
+  //! \brief Initial condition container
+  //!\details maps from (field, step) -> (file, component)
+  typedef std::map<std::pair<std::string,int>,std::pair<std::string,int > > InitialCondMap;
+
+  InitialCondMap myICs; //!< Initial conditions
 private:
   FieldMap  myFields;  //!< The named fields of this SIM object
   DepVector depFields; //!< Other fields this SIM objecy depends on

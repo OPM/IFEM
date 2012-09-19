@@ -38,6 +38,12 @@ public:
   //! \param[in] g2ln Global-to-local node number mapping for the borrowed grid
   void clonePatches(const PatchVec& patches, const std::map<int,int>& g2ln);
 
+  //! \brief Setup any initial conditions specified in input file
+  virtual bool setInitialConditions();
+
+  //! \brief Inject an initial condition from a file
+  virtual void injectIC(const std::pair<std::string, int>& file,
+                         utl::vector<double>& field);
 private:
   //! \brief Parses a subelement of the \a geometry XML-tag.
   bool parseGeometryTag(const TiXmlElement* elem);

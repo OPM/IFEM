@@ -16,9 +16,11 @@
 #include "Functions.h"
 #include "Utilities.h"
 #include "tinyxml.h"
+#include "GoTools/geometry/SplineSurface.h"
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
+#include <fstream>
 
 
 /*!
@@ -686,4 +688,45 @@ bool SIM2D::refine (const std::vector<int>& elements,
 
   isRefined = true;
   return true;
+}
+
+
+bool SIM2D::setInitialConditions()
+{
+  for (InitialCondMap::const_iterator it  = myICs.begin();
+                                      it != myICs.end(); ++it) {
+    std::stringstream str;
+    str << it->first.first;
+    str << -it->first.second+1; // 0 -> 1, -1 -> 2, ...
+    utl::vector<double>* field = getField(str.str());
+    if (field)
+      injectIC(it->second, *field);
+  }
+
+  return true;
+}
+
+
+void SIM2D::injectIC(const std::pair<std::string, int>& name,
+                     utl::vector<double>& field)
+{
+  PatchVec vec;
+  std::ifstream isp(name.first.c_str());
+  readPatches(isp, vec);
+  for (size_t i=0;i<vec.size() && i < myModel.size();++i) {
+    ASMs2D* patch = dynamic_cast<ASMs2D*>(vec[i]);
+    if (patch) {
+      Go::SplineSurface* surf = patch->getSurface();
+      Vector loc;
+      loc.resize(surf->numCoefs_u()*surf->numCoefs_v());
+      size_t j=0;
+      for (std::vector<double>::const_iterator  it   = surf->coefs_begin();
+          it != surf->coefs_end();) {
+        j += name.second;
+        loc[j++] = *(it+2);
+        it += (surf->rational()?4:3)-name.second;
+      }
+      injectPatchSolution(field,loc,i,1);
+    }
+  }
 }
