@@ -75,8 +75,10 @@ public:
                           short int nvc = 1);
 
   //! \brief Returns the nodal vector of named field in this SIM.
-  const utl::vector<double>* getField(const std::string& name);
+  const utl::vector<double>* getField(const std::string& name) const;
 
+  //! \brief Returns the nodal vector of named field in this SIM.
+  utl::vector<double>* getField(const std::string& name);
 protected:
   //! \brief Registers a named field with associated nodal vector in this SIM.
   void registerField(const std::string& name, const utl::vector<double>& vec);
