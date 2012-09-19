@@ -717,16 +717,19 @@ void SIM2D::injectIC(const std::pair<std::string, int>& name,
     ASMs2D* patch = dynamic_cast<ASMs2D*>(vec[i]);
     if (patch) {
       Go::SplineSurface* surf = patch->getSurface();
-      Vector loc;
-      loc.resize(surf->numCoefs_u()*surf->numCoefs_v());
       size_t j=0;
+      int comp=((((unsigned)name.second) << 16) >> 16)-1;
+      int stride = name.second >> 16;
+      Vector loc;
+      loc.resize(surf->numCoefs_u()*surf->numCoefs_v()*stride);
       for (std::vector<double>::const_iterator  it   = surf->coefs_begin();
           it != surf->coefs_end();) {
-        j += name.second;
-        loc[j++] = *(it+2);
-        it += (surf->rational()?4:3)-name.second;
+        j += comp;
+        loc[j] = *(it+2);
+        j += stride-comp;
+        it += (surf->rational()?4:3);
       }
-      injectPatchSolution(field,loc,i,1);
+      injectPatchSolution(field,loc,i,stride);
     }
   }
 }

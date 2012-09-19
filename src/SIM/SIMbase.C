@@ -423,11 +423,14 @@ bool SIMbase::parse (const TiXmlElement* elem)
     std::string file;
     int step=0;
     int comp=1;
+    int stride=1;
     utl::getAttribute(elem,"step",step);
     utl::getAttribute(elem,"comp",comp);
+    utl::getAttribute(elem,"stride",stride);
+    comp += (stride << 16);
     if (utl::getAttribute(elem,"field",field) &&
         utl::getAttribute(elem,"file",file))
-      myICs.insert(make_pair(make_pair(field,step),make_pair(file,comp-1)));
+      myICs.insert(make_pair(make_pair(field,step),make_pair(file,comp)));
     else
       result = false;
   }
