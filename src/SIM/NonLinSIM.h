@@ -94,8 +94,8 @@ public:
   //! \param[in] time Current time/load parameter
   //! \param[in] psolOnly If \e true, skip secondary solution field output
   //! \param[in] vecName Optional name of primary solution vector field
-  bool saveStep(int iStep, double time,
-		bool psolOnly = false, const char* vecName = 0);
+  virtual bool saveStep(int iStep, double time,
+			bool psolOnly = false, const char* vecName = 0);
 
   //! \brief Dumps the primary solution for inspection.
   //! \param[in] iStep Load/time step identifier
