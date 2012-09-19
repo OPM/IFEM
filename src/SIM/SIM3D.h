@@ -53,7 +53,9 @@ protected:
   //! \brief Reads patches from given input stream.
   //! \param[in] isp The input stream to read from
   //! \param[in] whiteSpace For message formatting
-  virtual bool readPatches(std::istream& isp, const char* whiteSpace);
+  virtual bool readPatches(std::istream& isp,
+                           PatchVec& vec,
+                           const char* whiteSpace = "");
   //! \brief Reads a patch from given input stream.
   //! \param[in] isp The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read

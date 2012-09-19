@@ -668,7 +668,8 @@ bool SIM3D::readPatch (std::istream& isp, int pchInd)
 }
 
 
-bool SIM3D::readPatches (std::istream& isp, const char* whiteSpace)
+bool SIM3D::readPatches (std::istream& isp, PatchVec& myModel,
+                         const char* whiteSpace)
 {
   ASMs3D* pch = 0;
   for (int pchInd = 1; isp.good(); pchInd++)

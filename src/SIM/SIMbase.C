@@ -122,7 +122,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
       const char* file = elem->FirstChild()->Value();
       std::cout <<"\tReading data file "<< file << std::endl;
       std::ifstream isp(file);
-      this->readPatches(isp,"\t");
+      this->readPatches(isp,myModel,"\t");
 
       if (myModel.empty()) {
         std::cerr <<" *** SIMbase::parse: No patches read"<< std::endl;
@@ -506,7 +506,7 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
       size_t i = 9; while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
       std::cout <<"\nReading data file "<< keyWord+i << std::endl;
       std::ifstream isp(keyWord+i);
-      this->readPatches(isp);
+      this->readPatches(isp, myModel);
 
       if (myModel.empty())
       {

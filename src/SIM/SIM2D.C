@@ -593,7 +593,8 @@ bool SIM2D::readPatch (std::istream& isp, int pchInd)
 }
 
 
-bool SIM2D::readPatches (std::istream& isp, const char* whiteSpace)
+bool SIM2D::readPatches (std::istream& isp, PatchVec& myModel,
+                         const char* whiteSpace)
 {
   ASMbase* pch = 0;
   for (int pchInd = 1; isp.good(); pchInd++)
