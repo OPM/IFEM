@@ -370,7 +370,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
                      field.getRow(j+1).ptr(),H5T_NATIVE_DOUBLE);
       }
 
-      if (results & DataExporter::NORMS) {
+      if (results & DataExporter::NORMS && norm) {
         Matrix patchEnorm;
         sim->extractPatchElmRes(eNorm,patchEnorm,loc-1);
         for (j = l = 1; j <= norm->getNoFields(0); j++)
@@ -402,7 +402,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
         for (j = 0; j < prob->getNoFields(2); j++)
           writeArray(group2,prefix+prob->getField2Name(j),0,&dummy,H5T_NATIVE_DOUBLE);
 
-      if (results & DataExporter::NORMS)
+      if (results & DataExporter::NORMS && norm)
         for (j = l = 1; j <= norm->getNoFields(0); j++)
           for (k = 1; k <= norm->getNoFields(j); k++)
             if (norm->hasElementContributions(j,k))
