@@ -148,8 +148,15 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry,
   const SIMbase* sim = static_cast<const SIMbase*>(entry.second.data);
   const IntegrandBase* prob = sim->getProblem();
 
+  int results = entry.second.results;
+  bool usedescription=false;
+  if (results < 0) {
+    results = -results;
+    usedescription = true;
+  }
+
   std::string g2file;
-  if (entry.second.results & DataExporter::PRIMARY) {
+  if (results & DataExporter::PRIMARY) {
     if (prob->mixedFormulation())
     {
       // primary solution vector
@@ -166,21 +173,23 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry,
     else
     {
       // primary solution
-      addField(prefix+prob->getField1Name(11),entry.second.description,sim->getName()+"-1",
+      addField(usedescription ? entry.second.description:
+                                prefix+prob->getField1Name(11),
+               entry.second.description,sim->getName()+"-1",
                prob->getNoFields(1),sim->getNoPatches());
     }
   }
 
   // secondary solution fields
   size_t i, j;
-  if (entry.second.results & DataExporter::SECONDARY)
+  if (results & DataExporter::SECONDARY)
     for (j = 0; j < prob->getNoFields(2); j++)
       addField(prefix+prob->getField2Name(j),"secondary",
                sim->getName() + (prob->mixedFormulation() ? "-2" : "-1"),
                1,sim->getNoPatches());
 
   // norms
-  if (entry.second.results & DataExporter::NORMS) {
+  if (results & DataExporter::NORMS) {
     // since the norm data isn't available, we have to instance the object
     NormBase* norm = sim->getNormIntegrand();
     for (i = 1; i <= norm->getNoFields(0); ++i) {

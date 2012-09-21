@@ -315,6 +315,13 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
 
   NormBase* norm = sim->getProblem()->getNormIntegrand();
 
+  int results = entry.second.results;
+  bool usedescription=false;
+  if (results < 0) {
+    results = -results;
+    usedescription = true;
+  }
+
 #ifdef HAS_HDF5
   size_t j, k, l;
   for (int i = 0; i < sim->getNoPatches(); ++i) {
@@ -330,7 +337,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     int loc = sim->getLocalPatchIndex(i+1);
     if (loc > 0) // we own the patch
     {
-      if (entry.second.results & DataExporter::PRIMARY) {
+      if (results & DataExporter::PRIMARY) {
         size_t ndof1 = sim->extractPatchSolution(*sol,loc-1);
         Vector& psol = const_cast<IntegrandBase*>(prob)->getSolution();
         if (prob->mixedFormulation())
@@ -341,11 +348,14 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
           writeArray(group2,prefix+prob->getField1Name(11),ndof1,psol.ptr(),H5T_NATIVE_DOUBLE);
           writeArray(group2,prefix+prob->getField1Name(12),ndof2,psol.ptr()+ndof1,H5T_NATIVE_DOUBLE);
         }
-        else
-          writeArray(group2,prefix+prob->getField1Name(11),ndof1,psol.ptr(),H5T_NATIVE_DOUBLE);
+        else {
+          writeArray(group2, usedescription ? entry.second.description:
+                                              prefix+prob->getField1Name(11),
+                                       ndof1, psol.ptr(), H5T_NATIVE_DOUBLE);
+        }
       }
 
-      if (entry.second.results & DataExporter::SECONDARY) {
+      if (results & DataExporter::SECONDARY) {
         Matrix field;
         if (prefix.empty())
           sim->evalSecondarySolution(field,loc-1);
@@ -360,7 +370,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
                      field.getRow(j+1).ptr(),H5T_NATIVE_DOUBLE);
       }
 
-      if (entry.second.results & DataExporter::NORMS) {
+      if (results & DataExporter::NORMS) {
         Matrix patchEnorm;
         sim->extractPatchElmRes(eNorm,patchEnorm,loc-1);
         for (j = l = 1; j <= norm->getNoFields(0); j++)
@@ -375,7 +385,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     else // must write empty dummy records for the other patches
     {
       double dummy;
-      if (entry.second.results & DataExporter::PRIMARY) {
+      if (results & DataExporter::PRIMARY) {
         if (prob->mixedFormulation())
         {
           writeArray(group2,prefix+entry.first,0,&dummy,H5T_NATIVE_DOUBLE);
@@ -383,14 +393,16 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
           writeArray(group2,prefix+prob->getField1Name(12),0,&dummy,H5T_NATIVE_DOUBLE);
         }
         else
-          writeArray(group2,prefix+prob->getField1Name(11),0,&dummy,H5T_NATIVE_DOUBLE);
+          writeArray(group2, usedescription ? entry.second.description:
+                                              prefix+prob->getField1Name(11),
+                                              0, &dummy, H5T_NATIVE_DOUBLE);
       }
 
-      if (entry.second.results & DataExporter::SECONDARY)
+      if (results & DataExporter::SECONDARY)
         for (j = 0; j < prob->getNoFields(2); j++)
           writeArray(group2,prefix+prob->getField2Name(j),0,&dummy,H5T_NATIVE_DOUBLE);
 
-      if (entry.second.results & DataExporter::NORMS)
+      if (results & DataExporter::NORMS)
         for (j = l = 1; j <= norm->getNoFields(0); j++)
           for (k = 1; k <= norm->getNoFields(j); k++)
             if (norm->hasElementContributions(j,k))

@@ -48,7 +48,11 @@ class DataExporter
   struct FileEntry {
     std::string description; //!< The description of the field
     FieldType   field;       //!< The type of the field
-    int         results;     //!< Which results to store
+    int         results;     //!< Which results to store. 
+                             //! \details A negative value indicates that we
+                             //!          want to use the description as name
+                             //!          for the primary vector, not the name 
+                             //!          from the Integrand
     const void* data;        //!< Pointer to the primary data (e.g. a SIM class)
     const void* data2;       //!< Pointer to the secondary data (e.g. a vector)
     std::string prefix;      //!< Field name prefix
