@@ -263,11 +263,11 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"propertycodes")) {
     const TiXmlElement* code = elem->FirstChildElement("code");
-    while (code) {
+    for (; code; code = code->NextSiblingElement()) {
       int icode = 0;
       utl::getAttribute(code,"value",icode);
       const TiXmlElement* patch = code->FirstChildElement("patch");
-      while (patch) {
+      for (; patch; patch = patch->NextSiblingElement("patch")) {
         Property p;
         int ival = 0;
         p.pindx = icode;
@@ -282,9 +282,7 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
         if (utl::getAttribute(patch,"index",ival) && ival > 0)
           if (p.lindx > 0 && (p.patch = this->getLocalPatchIndex(ival)) > 0)
             myProps.push_back(p);
-        patch = patch->NextSiblingElement("patch");
       }
-      code = code->NextSiblingElement();
     }
   }
 
@@ -418,16 +416,14 @@ bool SIMbase::parse (const TiXmlElement* elem)
     utl::getAttribute(elem,"mode",opt.eig);
   else if (!strcasecmp(elem->Value(),"postprocessing"))
     noDumpDataYet = lhsDump.empty() && rhsDump.empty();
-  else if (!strcasecmp(elem->Value(),"initialcondition")) {
-    std::string field;
-    std::string file;
-    int step=0;
-    int comp=1;
-    int stride=1;
+  else if (!strcasecmp(elem->Value(),"initialcondition"))
+  {
+    int step = 0, comp = 1, stride = 1;
     utl::getAttribute(elem,"step",step);
     utl::getAttribute(elem,"comp",comp);
     utl::getAttribute(elem,"stride",stride);
     comp += (stride << 16);
+    std::string field, file;
     if (utl::getAttribute(elem,"field",field) &&
         utl::getAttribute(elem,"file",file))
       myICs.insert(make_pair(make_pair(field,step),make_pair(file,comp)));
@@ -436,7 +432,7 @@ bool SIMbase::parse (const TiXmlElement* elem)
   }
 
   const TiXmlElement* child = elem->FirstChildElement();
-  while (child) {
+  for (; child; child = child->NextSiblingElement())
     if (!strcasecmp(elem->Value(),"geometry"))
       result &= this->parseGeometryTag(child);
     else if (!strcasecmp(elem->Value(),"boundaryconditions"))
@@ -449,9 +445,6 @@ bool SIMbase::parse (const TiXmlElement* elem)
       result &= this->parseOutputTag(child);
     else if (!strcasecmp(elem->Value(),"discretization"))
       result &= opt.parseDiscretizationTag(child);
-
-    child = child->NextSiblingElement();
-  }
 
   return result;
 }
@@ -2056,7 +2049,8 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
     }
 
   bool project = (opt.discretization == ASM::Spline ||
-		  opt.discretization == ASM::SplineC1) && !opt.project.empty();
+                  opt.discretization == ASM::SplineC1) &&
+                 opt.project.find(SIMoptions::GLOBAL) != opt.project.end();
 
   for (i = 0; i < myModel.size(); i++)
   {
@@ -2719,6 +2713,13 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
 
   Matrix values;
   Vector count(myModel.size() > 1 ? ngNodes : 0);
+
+  if (pMethod == SIMoptions::DGL2 || pMethod == SIMoptions::CGL2)
+  {
+    // Reinitialize the integration point buffers within the integrands (if any)
+    const_cast<SIMbase*>(this)->setQuadratureRule(opt.nGauss[0]);
+    myProblem->initIntegration(TimeDomain(),psol);
+  }
 
   for (i = 0; i < myModel.size(); i++)
   {

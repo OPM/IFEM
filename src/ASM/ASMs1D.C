@@ -995,9 +995,10 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix Xnod, Xtmp;
   this->getNodalCoordinates(Xnod);
 
-  Vector   N(p1), solPt;
-  Matrix   dNdu, dNdX, Jac;
-  Matrix3D d2Ndu2, d2NdX2, Hess;
+  FiniteElement fe(p1);
+  Vector        solPt;
+  Matrix        dNdu, Jac;
+  Matrix3D      d2Ndu2, Hess;
 
   // Evaluate the secondary solution field at each point
   const RealArray& upar = *gpar;
@@ -1007,27 +1008,29 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     // Fetch indices of the non-zero basis functions at this point
     IntVec ip;
     scatterInd(p1,curv->basis().lastKnotInterval(),ip);
+    fe.u = upar[i];
+    fe.iGP = firstIp + i;
 
     // Fetch associated control point coordinates
     utl::gather(ip,nsd,Xnod,Xtmp);
 
     // Fetch basis function derivatives at current integration point
     if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-      this->extractBasis(upar[i],N,dNdu,d2Ndu2);
+      this->extractBasis(upar[i],fe.N,dNdu,d2Ndu2);
     else
-      this->extractBasis(upar[i],N,dNdu);
+      this->extractBasis(upar[i],fe.N,dNdu);
 
     // Compute the Jacobian inverse and derivatives
-    if (utl::Jacobian(Jac,dNdX,Xtmp,dNdu) == 0.0) // Jac = (Xtmp * dNdu)^-1
+    if (utl::Jacobian(Jac,fe.dNdX,Xtmp,dNdu) == 0.0) // Jac = (Xtmp * dNdu)^-1
       continue; // skip singular points
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
     if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-      if (!utl::Hessian(Hess,d2NdX2,Jac,Xtmp,d2Ndu2,dNdu))
+      if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xtmp,d2Ndu2,dNdu))
 	continue;
 
     // Now evaluate the solution field
-    if (!integrand.evalSol(solPt,N,dNdX,d2NdX2,Xtmp*N,ip))
+    if (!integrand.evalSol(solPt,fe,Xtmp*fe.N,ip))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);

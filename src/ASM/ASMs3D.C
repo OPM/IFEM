@@ -2583,9 +2583,10 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix Xnod, Xtmp;
   this->getNodalCoordinates(Xnod);
 
-  Vector   N(p1*p2*p3), solPt;
-  Matrix   dNdu, dNdX, Jac;
-  Matrix3D d2Ndu2, d2NdX2, Hess;
+  FiniteElement fe(p1*p2*p3);
+  Vector        solPt;
+  Matrix        dNdu, Jac;
+  Matrix3D      d2Ndu2, Hess;
 
   // Evaluate the secondary solution field at each point
   for (size_t i = 0; i < nPoints; i++)
@@ -2593,30 +2594,41 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     // Fetch indices of the non-zero basis functions at this point
     IntVec ip;
     if (use2ndDer)
+    {
       scatterInd(n1,n2,n3,p1,p2,p3,spline2[i].left_idx,ip);
+      fe.u = spline2[i].param[0];
+      fe.v = spline2[i].param[1];
+      fe.w = spline2[i].param[2];
+    }
     else
+    {
       scatterInd(n1,n2,n3,p1,p2,p3,spline1[i].left_idx,ip);
+      fe.u = spline1[i].param[0];
+      fe.v = spline1[i].param[1];
+      fe.w = spline1[i].param[2];
+    }
+    fe.iGP = firstIp + i;
 
     // Fetch associated control point coordinates
     utl::gather(ip,3,Xnod,Xtmp);
 
     // Fetch basis function derivatives at current integration point
     if (use2ndDer)
-      extractBasis(spline2[i],N,dNdu,d2Ndu2);
+      extractBasis(spline2[i],fe.N,dNdu,d2Ndu2);
     else
-      extractBasis(spline1[i],N,dNdu);
+      extractBasis(spline1[i],fe.N,dNdu);
 
     // Compute the Jacobian inverse and derivatives
-    if (utl::Jacobian(Jac,dNdX,Xtmp,dNdu) == 0.0) // Jac = (Xtmp * dNdu)^-1
+    if (utl::Jacobian(Jac,fe.dNdX,Xtmp,dNdu) == 0.0) // Jac = (Xtmp * dNdu)^-1
       continue; // skip singular points
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
     if (use2ndDer)
-      if (!utl::Hessian(Hess,d2NdX2,Jac,Xtmp,d2Ndu2,dNdu))
+      if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xtmp,d2Ndu2,dNdu))
         continue;
 
     // Now evaluate the solution field
-    if (!integrand.evalSol(solPt,N,dNdX,Xtmp*N,ip))
+    if (!integrand.evalSol(solPt,fe,Xtmp*fe.N,ip))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);

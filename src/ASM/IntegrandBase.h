@@ -160,6 +160,24 @@ public:
 		       const std::vector<int>& MNPC1,
 		       const std::vector<int>& MNPC2) const;
 
+  //! \brief Evaluates the secondary solution at a result point.
+  //! \param[out] s The solution field values at current point
+  //! \param[in] fe Finite element data at current point
+  //! \param[in] X Cartesian coordinates of current point
+  //! \param[in] MNPC Nodal point correspondance for the basis function values
+  virtual bool evalSol(Vector& s, const FiniteElement& fe, const Vec3& X,
+		       const std::vector<int>& MNPC) const;
+
+  //! \brief Evaluates the secondary solution at a result point (mixed problem).
+  //! \param[out] s The solution field values at current point
+  //! \param[in] fe Mixed finite element data at current point
+  //! \param[in] X Cartesian coordinates of current point
+  //! \param[in] MNPC1 Nodal point correspondance for the basis 1
+  //! \param[in] MNPC2 Nodal point correspondance for the basis 2
+  virtual bool evalSol(Vector& s, const MxFiniteElement& fe, const Vec3& X,
+		       const std::vector<int>& MNPC1,
+		       const std::vector<int>& MNPC2) const;
+
   //! \brief Evaluates the analytical secondary solution at a result point.
   //! \param[out] s The solution field values at current point
   //! \param[in] asol The analytical solution field (tensor field)

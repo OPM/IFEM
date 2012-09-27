@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "IntegrandBase.h"
+#include "FiniteElement.h"
 #include "ElmMats.h"
 #include "ElmNorm.h"
 #include "Utilities.h"
@@ -119,6 +120,21 @@ bool IntegrandBase::evalSol (Vector& s, const Vector& N1, const Vector&,
 			     const std::vector<int>&) const
 {
   return this->evalSol(s,N1,dN1dX,X,MNPC1);
+}
+
+
+bool IntegrandBase::evalSol (Vector& s, const FiniteElement& fe,
+                             const Vec3& X, const std::vector<int>& MNPC) const
+{
+  return this->evalSol(s,fe.N,fe.dNdX,fe.d2NdX2,X,MNPC);
+}
+
+
+bool IntegrandBase::evalSol (Vector& s, const MxFiniteElement& fe,
+                             const Vec3& X, const std::vector<int>& MNPC1,
+		             const std::vector<int>& MNPC2) const
+{
+  return this->evalSol(s,fe.N1,fe.N2,fe.dN1dX,fe.dN2dX,X,MNPC1,MNPC2);
 }
 
 
