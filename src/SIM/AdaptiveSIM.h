@@ -63,12 +63,13 @@ public:
   //! \brief Accesses the solution of the linear system.
   const Vector& getSolution() const { return linsol; }
 
-  //! \brief Accesses the projections 
+  //! \brief Accesses the projections.
   const Vector& getProjection(size_t idx) const { return projs[idx]; }
 
-  //! \brief Acces the norm prefixes
+  //! \brief Accesses the norm prefices.
   const char** getNormPrefixes() { return &prefix[0]; }
 
+  //! \brief Initializes the projections.
   void setupProjections();
 
 protected:

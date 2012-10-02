@@ -2699,7 +2699,8 @@ bool SIMbase::eval2ndSolution (const Vector& psol, double time)
 
 
 bool SIMbase::project (Matrix& ssol, const Vector& psol,
-		       SIMoptions::ProjectionMethod pMethod) const
+		       SIMoptions::ProjectionMethod pMethod,
+		       const TimeDomain& time) const
 {
   PROFILE1("Solution projection");
 
@@ -2718,7 +2719,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
   {
     // Reinitialize the integration point buffers within the integrands (if any)
     const_cast<SIMbase*>(this)->setQuadratureRule(opt.nGauss[0]);
-    myProblem->initIntegration(TimeDomain(),psol);
+    myProblem->initIntegration(time,psol);
   }
 
   for (i = 0; i < myModel.size(); i++)

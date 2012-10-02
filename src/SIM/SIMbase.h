@@ -177,11 +177,8 @@ public:
   //! \param[in] redimBuffers Toggle initialization of internal buffer arrays
   void setQuadratureRule(size_t ng, bool redimBuffers = false);
 
-  //! \brief Inject an initial condition from a file
-  virtual void injectIC(const std::pair<std::string, int>& file,
-                        utl::vector<double>& field)
-  {
-  }
+  //! \brief Injects an initial condition from a file.
+  virtual void injectIC(const std::pair<std::string,int>& file, Vector& ic) {}
 
   //! \brief Prints out problem-specific data to the given stream.
   void printProblem(std::ostream& os) const;
@@ -388,12 +385,14 @@ public:
   //! \param[out] ssol Control point values of the secondary solution
   //! \param[in] psol Control point values of the primary solution
   //! \param[in] pMethod Projection method to use
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //!
   //! \details The secondary solution, defined through the Integrand object,
   //! corresponding to the primary solution \a psol is projected onto the
   //! spline basis to obtain the control point values of the secondary solution.
   bool project(Matrix& ssol, const Vector& psol,
-	       SIMoptions::ProjectionMethod pMethod = SIMoptions::GLOBAL) const;
+               SIMoptions::ProjectionMethod pMethod = SIMoptions::GLOBAL,
+               const TimeDomain& time = TimeDomain()) const;
 
   //! \brief Evaluates the secondary solution field for specified patch.
   //! \param[out] field Control point values of the secondary solution field
@@ -693,6 +692,7 @@ protected:
 
   //! \brief Reads patches from given input stream.
   //! \param[in] isp The input stream to read from
+  //! \param[out] Array of spline patches that were read
   //! \param[in] whiteSpace For message formatting
   virtual bool readPatches(std::istream& isp, PatchVec& vec,
                            const char* whiteSpace = "") = 0;
