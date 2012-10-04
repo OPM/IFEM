@@ -337,9 +337,9 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     int loc = sim->getLocalPatchIndex(i+1);
     if (loc > 0) // we own the patch
     {
+      size_t ndof1 = sim->extractPatchSolution(*sol,loc-1);
+      Vector& psol = const_cast<IntegrandBase*>(prob)->getSolution();
       if (results & DataExporter::PRIMARY) {
-        size_t ndof1 = sim->extractPatchSolution(*sol,loc-1);
-        Vector& psol = const_cast<IntegrandBase*>(prob)->getSolution();
         if (prob->mixedFormulation())
         {
           // Mixed methods: The primary solution vector is referring to two bases
