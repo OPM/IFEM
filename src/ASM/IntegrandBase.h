@@ -237,6 +237,11 @@ public:
   //! \brief Resets the primary solution vectors.
   void resetSolution();
 
+  //! \brief Returns whether this integrand has internal point buffers or not.
+  virtual bool hasItgBuffers() const { return false; }
+  //! \brief Defines the internal processing order of the integration points.
+  virtual void setItgPtMap(int, int) const {}
+
   //! \brief Registers where we can inject a mixed-basis scalar field.
   virtual void setNamedField(const std::string&, Field*) {}
   //! \brief Registers where we can inject a mixed-basis vector field.

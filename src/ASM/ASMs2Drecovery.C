@@ -15,6 +15,7 @@
 #include "GoTools/geometry/SurfaceInterpolator.h"
 
 #include "ASMs2D.h"
+#include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "SparseMatrix.h"
@@ -138,6 +139,24 @@ bool ASMs2D::globalL2projection (Matrix& sField,
     surf->computeBasisGrid(gpar[0],gpar[1],spl1);
   else
     surf->computeBasisGrid(gpar[0],gpar[1],spl0);
+
+  if (integrand.hasItgBuffers())
+  {
+    // When the integrand has internal integration point buffers, the order
+    // in which the integration points are evaluated is significant.
+    int iel = 0;
+    int ipt = 0;
+    for (int i2 = 0; i2 < nel2; i2++)
+      for (int i1 = 0; i1 < nel1; i1++, iel++)
+      {
+	if (MLGE[iel] < 1) continue; // zero-area element
+
+	int ip = (i2*ng1*nel1 + i1)*ng2;
+	for (int j = 0; j < ng2; j++, ip += ng1*(nel1-1))
+	  for (int i = 0; i < ng1; i++)
+	    integrand.setItgPtMap(ip++,ipt++);
+      }
+  }
 
   // Evaluate the secondary solution at all integration points
   if (!this->evalSolution(sField,integrand,gpar))
