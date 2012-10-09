@@ -945,9 +945,10 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix Xnod, Xtmp;
   this->getNodalCoordinates(Xnod);
 
-  Vector N1(p1*p2), N2(q1*q2), solPt;
-  Matrix dN1du, dN1dX, dN2du, dN2dX, Jac;
-  Vec3   X;
+  MxFiniteElement fe(p1*p2,q1*q2);
+  Vector          solPt;
+  Matrix          dN1du, dN2du, Jac;
+  Vec3            X;
 
   // Evaluate the secondary solution field at each point
   size_t nPoints = spline1.size();
@@ -957,32 +958,35 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     IntVec ip1, ip2;
     scatterInd(n1,n2,p1,p2,spline1[i].left_idx,ip1);
     scatterInd(m1,m2,q1,q2,spline2[i].left_idx,ip2);
+    fe.u = spline1[i].param[0];
+    fe.v = spline1[i].param[1];
+    fe.iGP = firstIp + i;
 
     // Fetch associated control point coordinates
     utl::gather(geoUsesBasis1 ? ip1 : ip2, nsd, Xnod, Xtmp);
 
     // Fetch basis function derivatives at current integration point
-    extractBasis(spline1[i],N1,dN1du);
-    extractBasis(spline2[i],N2,dN2du);
+    extractBasis(spline1[i],fe.N1,dN1du);
+    extractBasis(spline2[i],fe.N2,dN2du);
 
     // Compute Jacobian inverse of the coordinate mapping and
     // basis function derivatives w.r.t. Cartesian coordinates
     if (geoUsesBasis1)
-      if (utl::Jacobian(Jac,dN1dX,Xtmp,dN1du) == 0.0) // Jac = (Xtmp * dN1du)^-1
+      if (utl::Jacobian(Jac,fe.dN1dX,Xtmp,dN1du) == 0.0) // Jac = (Xtmp*dN1du)^-1
 	continue; // skip singular points
       else
-	dN2dX.multiply(dN2du,Jac); // dN2dX = dN2du * J^-1
+	fe.dN2dX.multiply(dN2du,Jac); // dN2dX = dN2du * J^-1
     else
-      if (utl::Jacobian(Jac,dN2dX,Xtmp,dN2du) == 0.0) // Jac = (Xtmp * dN2du)^-1
+      if (utl::Jacobian(Jac,fe.dN2dX,Xtmp,dN2du) == 0.0) // Jac = (Xtmp*dN2du)^-1
 	continue; // skip singular points
       else
-	dN1dX.multiply(dN1du,Jac); // dN1dX = dN1du * J^-1
+	fe.dN1dX.multiply(dN1du,Jac); // dN1dX = dN1du * J^-1
 
     // Cartesian coordinates of current integration point
-    X = Xtmp * (geoUsesBasis1 ? N1 : N2);
+    X = Xtmp * (geoUsesBasis1 ? fe.N1 : fe.N2);
 
     // Now evaluate the solution field
-    if (!integrand.evalSol(solPt,N1,N2,dN1dX,dN2dX,X,ip1,ip2))
+    if (!integrand.evalSol(solPt,fe,X,ip1,ip2))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);
