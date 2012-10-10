@@ -96,7 +96,7 @@ public:
   //! \param[in] scaleSD Scaling factor for specified (slave) DOFs
   //! \return \e false if the length of \a solVec is invalid, otherwise \e true
   virtual bool expandSolution(const SystemVector& solVec, Vector& displ,
-			      real scaleSD = 1.0) const;
+			      Real scaleSD = 1.0) const;
 
   //! \brief Computes the dot-product of two vectors.
   //! \param[in] x First vector in dot-product
@@ -106,7 +106,7 @@ public:
   //!
   //! \details Both vectors are defined over all nodes in the patch, i.e.
   //! for parallel vectors the ghost entries are also included.
-  virtual real dot(const Vector& x, const Vector& y, char dofType = 'D') const;
+  virtual Real dot(const Vector& x, const Vector& y, char dofType = 'D') const;
 
   //! \brief Computes the L2-norm of a vector.
   //! \param[in] x Vector for norm computation
@@ -115,7 +115,7 @@ public:
   //!
   //! \details The vector is defined over all nodes in the patch, i.e.
   //! for parallel vectors the ghost entries are also included.
-  virtual real normL2(const Vector& x, char dofType = 'D') const;
+  virtual Real normL2(const Vector& x, char dofType = 'D') const;
 
   //! \brief Computes the inf-norm of a vector.
   //! \param[in] x Vector for norm computation
@@ -125,7 +125,7 @@ public:
   //!
   //! \details The vector is defined over all nodes in the patch, i.e.
   //! for parallel vectors the ghost entries are also included.
-  virtual real normInf(const Vector& x, size_t& comp, char dofType = 'D') const;
+  virtual Real normInf(const Vector& x, size_t& comp, char dofType = 'D') const;
 
 protected:
   //! \brief Initializes the multi-point constraint arrays

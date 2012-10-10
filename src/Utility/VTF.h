@@ -79,14 +79,14 @@ public:
   //!            length must equal the number of nodes in the geometry block
   //! \param[in] idBlock Result block identifier
   //! \param[in] gID Geometry block identifier
-  virtual bool writeNres(const std::vector<real>& nodeResult,
+  virtual bool writeNres(const std::vector<Real>& nodeResult,
                          int idBlock = 1, int gID = 1);
   //! \brief Writes a block of scalar element results to the VTF-file.
   //! \param[in] elmResult Vector of element results (one per element)
   //!            length must equal the number of elements in the geometry block
   //! \param[in] idBlock Result block identifier
   //! \param[in] gID Geometry block identifier
-  virtual bool writeEres(const std::vector<real>& elmResult,
+  virtual bool writeEres(const std::vector<Real>& elmResult,
                          int idBlock = 1, int gID = 1);
   //! \brief Writes a block of vector nodal results to the VTF-file.
   //! \param[in] nodeResult Vector of nodal results, length must be equal the
@@ -94,14 +94,14 @@ public:
   //! \param[in] idBlock Result block identifier
   //! \param[in] gID Geometry block identifier
   //! \param[in] nvc Number of components per node in \a nodeResult
-  virtual bool writeVres(const std::vector<real>& nodeResult,
+  virtual bool writeVres(const std::vector<Real>& nodeResult,
                          int idBlock = 1, int gID = 1, size_t nvc = 0);
   //! \brief Writes a block of scalar nodal function values to the VTF-file.
   //! \param[in] f The scalar function to evaluate at the grid points
   //! \param[in] time Current time
   //! \param[in] idBlock Result block identifier
   //! \param[in] gID Geometry block identifier
-  bool writeNfunc(const RealFunc& f, real time = real(0),
+  bool writeNfunc(const RealFunc& f, Real time = Real(0),
                   int idBlock = 1, int gID = 1);
   //! \brief Writes a block of point vector results to the VTF-file.
   //! \details This method creates a separate geometry block consisting of the
@@ -169,7 +169,7 @@ public:
   //! \param[in] refValue Reference value for the step (time, frequency, etc.)
   //! \param[in] refType Reference value type (0=Time, 1=Frequency, 2=Load case)
   virtual bool writeState(int iStep, const char* fmt,
-                          real refValue, int refType = 0);
+                          Real refValue, int refType = 0);
 
   //! \brief Returns the pointer to a geometry block.
   virtual const ElementBlock* getBlock(int geomID) const;
@@ -197,7 +197,7 @@ private:
   static bool showError(const char* msg, int ID = 0);
 
 public:
-  static real vecOffset[3]; //!< Optional offset for vector attack points
+  static Real vecOffset[3]; //!< Optional offset for vector attack points
 
 private:
   VTFAFile* myFile; //!< Pointer to the actual VTF-file being written

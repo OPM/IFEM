@@ -69,13 +69,13 @@ public:
   virtual void setPackage(MatSolverPackage stype) { package.assign(stype); }
 
   //! \brief Set absolute convergence tolerance
-  virtual void setAbsTolerance(real eps) { atol = eps; }
+  virtual void setAbsTolerance(Real eps) { atol = eps; }
 
   //! \brief Set relative convergence tolerance
-  virtual void setRelTolerance(real eps) { rtol = eps; }
+  virtual void setRelTolerance(Real eps) { rtol = eps; }
 
   //! \brief Set divergence tolerance
-  virtual void setDivTolerance(real eps) { dtol = eps; }
+  virtual void setDivTolerance(Real eps) { dtol = eps; }
 
   //! \brief Set maximum number of iterations
   virtual void setMaxIterations(int its) { maxIts = its; }
@@ -96,13 +96,13 @@ public:
   virtual const char* getPackage() const { return package.c_str(); }
 
   //! \brief Get absolute convergence tolerance
-  virtual real getAbsTolerance() const { return atol; }
+  virtual Real getAbsTolerance() const { return atol; }
 
   //! \brief Get relative convergence tolerance
-  virtual real getRelTolerance() const { return rtol; }
+  virtual Real getRelTolerance() const { return rtol; }
 
   //! \brief Get divergence tolerance
-  virtual real getDivTolerance() const { return dtol; }
+  virtual Real getDivTolerance() const { return dtol; }
 
   //! \brief Get maximum number of iterations
   virtual int getMaxIterations() const { return maxIts; }

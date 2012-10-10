@@ -63,18 +63,18 @@ public:
   size_t size() const { return this->dim(); }
 
   //! \brief Access through pointer.
-  virtual real* getPtr() = 0;
+  virtual Real* getPtr() = 0;
   //! \brief Reference through pointer.
-  virtual const real* getRef() const = 0;
+  virtual const Real* getRef() const = 0;
 
   //! \brief Restores the vector contents from an array.
   //! \details This method must only be implemented by sub-classes for which the
   //! getPtr and getRef methods do not return a pointer to the actual internal
   //! memory segment containing the actual vector data.
-  virtual void restore(const real*) {}
+  virtual void restore(const Real*) {}
 
   //! \brief Initializes the vector assuming it is properly dimensioned.
-  virtual void init(real value = real(0)) = 0;
+  virtual void init(Real value = Real(0)) = 0;
 
   //! \brief Copies entries from input vector \b x into \a *this.
   SystemVector& copy(const SystemVector& x);
@@ -85,16 +85,16 @@ public:
   virtual bool endAssembly() { return true; }
 
   //! \brief Multiplication with a scalar.
-  virtual void mult(real) = 0;
+  virtual void mult(Real) = 0;
 
   //! \brief L1-norm of the vector.
-  virtual real L1norm() const = 0;
+  virtual Real L1norm() const = 0;
 
   //! \brief L2-norm of the vector.
-  virtual real L2norm() const = 0;
+  virtual Real L2norm() const = 0;
 
   //! \brief Linfinity-norm of the vector.
-  virtual real Linfnorm() const = 0;
+  virtual Real Linfnorm() const = 0;
 
   //! \brief Dumps the system vector on a specified format.
   virtual void dump(std::ostream&, char, const char* = NULL) {}
@@ -115,17 +115,17 @@ protected:
   \brief Standard system vector stored as a single continuous array.
 */
 
-class StdVector : public SystemVector, public utl::vector<real>
+class StdVector : public SystemVector, public utl::vector<Real>
 {
 public:
   //! \brief Constructor creating an empty vector.
   StdVector() {}
   //! \brief Constructor creating a vector of length \a n.
-  StdVector(size_t n) : utl::vector<real>(n) {}
+  StdVector(size_t n) : utl::vector<Real>(n) {}
   //! \brief Constructor creating a vector from an array.
-  StdVector(const real* values, size_t n) : utl::vector<real>(values,n) {}
+  StdVector(const Real* values, size_t n) : utl::vector<Real>(values,n) {}
   //! \brief Overloaded copy constructor.
-  StdVector(const std::vector<real>& vec)
+  StdVector(const std::vector<Real>& vec)
   { this->insert(this->end(),vec.begin(),vec.end()); }
 
   //! \brief Returns the vector type.
@@ -135,27 +135,27 @@ public:
   virtual SystemVector* copy() const { return new StdVector(*this); }
 
   //! \brief Checks if the vector is empty.
-  virtual bool empty() const { return this->std::vector<real>::empty(); }
+  virtual bool empty() const { return this->std::vector<Real>::empty(); }
 
   //! \brief Returns the dimension of the system vector.
-  virtual size_t dim() const { return this->std::vector<real>::size(); }
+  virtual size_t dim() const { return this->std::vector<Real>::size(); }
 
   //! \brief Sets the dimension of the system vector.
-  virtual void redim(size_t n) { this->std::vector<real>::resize(n,real(0)); }
+  virtual void redim(size_t n) { this->std::vector<Real>::resize(n,Real(0)); }
 
   //! \brief Resize the vector to length \a n.
   //! \details Will erase the previous content, but only if the size changed,
   //! unless \a forceClear is \e true.
   virtual void resize(size_t n, bool forceClear = false)
-  { this->utl::vector<real>::resize(n,forceClear); }
+  { this->utl::vector<Real>::resize(n,forceClear); }
 
   //! \brief Access through pointer.
-  virtual real* getPtr() { return this->ptr(); }
+  virtual Real* getPtr() { return this->ptr(); }
   //! \brief Reference through pointer.
-  virtual const real* getRef() const { return this->ptr(); }
+  virtual const Real* getRef() const { return this->ptr(); }
 
   //! \brief Initializes the vector to a given scalar value.
-  virtual void init(real value = real(0)) { this->fill(value); }
+  virtual void init(Real value = Real(0)) { this->fill(value); }
 
   //! \brief Begins communication step needed in parallel vector assembly.
   virtual bool beginAssembly() { return true; }
@@ -163,16 +163,16 @@ public:
   virtual bool endAssembly() { return true; }
 
   //! \brief Multiplication with a scalar.
-  virtual void mult(real alpha) { this->operator*=(alpha); }
+  virtual void mult(Real alpha) { this->operator*=(alpha); }
 
   //! \brief L1-norm of the vector.
-  virtual real L1norm() const { return this->asum(); }
+  virtual Real L1norm() const { return this->asum(); }
 
   //! \brief L2-norm of the vector.
-  virtual real L2norm() const { return this->norm2(); }
+  virtual Real L2norm() const { return this->norm2(); }
 
   //! \brief Linfinity-norm of the vector.
-  virtual real Linfnorm() const { size_t off = 0; return this->normInf(off); }
+  virtual Real Linfnorm() const { size_t off = 0; return this->normInf(off); }
 
   //! \brief Dumps the system vector on a specified format.
   virtual void dump(std::ostream& os, char format, const char* label = NULL);
@@ -180,7 +180,7 @@ public:
 protected:
   //! \brief Writes the system vector to the given output stream.
   virtual std::ostream& write(std::ostream& os) const
-  { return os << static_cast<const utl::vector<real>&>(*this); }
+  { return os << static_cast<const utl::vector<Real>&>(*this); }
 };
 
 
@@ -274,13 +274,13 @@ public:
   virtual bool augment(const SystemMatrix&, size_t, size_t) { return false; }
 
   //! \brief Truncates all small matrix elements to zero.
-  virtual bool truncate(real = real(1.0e-16)) { return false; }
+  virtual bool truncate(Real = Real(1.0e-16)) { return false; }
 
   //! \brief Adds a matrix with similar structure to the current matrix.
-  virtual bool add(const SystemMatrix&, real = real(1)) { return false; }
+  virtual bool add(const SystemMatrix&, Real = Real(1)) { return false; }
 
   //! \brief Adds a constant diagonal matrix to the current matrix.
-  virtual bool add(real) { return false; }
+  virtual bool add(Real) { return false; }
 
   //! \brief Performs a matrix-vector multiplication.
   virtual bool multiply(const SystemVector&, SystemVector&) { return false; }
@@ -308,7 +308,7 @@ public:
   }
 
   //! \brief Returns the L-infinity norm of the matrix.
-  virtual real Linfnorm() const = 0;
+  virtual Real Linfnorm() const = 0;
 
   //! \brief Dumps the system matrix on a specified format.
   virtual void dump(std::ostream&, char, const char* = NULL) {}

@@ -27,33 +27,33 @@ double Vec3::comparisonTolerance = 1.0e-4;
   Extra rows (if any) in \b A are ignored.
 */
 
-Vec3 operator* (const utl::matrix<real>& A, const std::vector<real>& x)
+Vec3 operator* (const utl::matrix<Real>& A, const std::vector<Real>& x)
 {
-  std::vector<real> y(A.rows(),0.0);
+  std::vector<Real> y(A.rows(),0.0);
   A.multiply(x,y);
   return Vec3(y);
 }
 
 
-Vec3 operator* (const Vec3& a, real value)
+Vec3 operator* (const Vec3& a, Real value)
 {
   return Vec3(a.x*value, a.y*value, a.z*value);
 }
 
 
-Vec3 operator* (real value, const Vec3& a)
+Vec3 operator* (Real value, const Vec3& a)
 {
   return Vec3(a.x*value, a.y*value, a.z*value);
 }
 
 
-Vec3 operator/ (const Vec3& a, real value)
+Vec3 operator/ (const Vec3& a, Real value)
 {
   return Vec3(a.x/value, a.y/value, a.z/value);
 }
 
 
-real operator* (const Vec3& a, const Vec3& b)
+Real operator* (const Vec3& a, const Vec3& b)
 {
   return a.x*b.x + a.y*b.y + a.z*b.z;
 }

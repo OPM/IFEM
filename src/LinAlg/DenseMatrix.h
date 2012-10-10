@@ -56,9 +56,9 @@ public:
   //! \brief Access to the matrix itself.
   Matrix& getMat() { return myMat; }
   //! \brief Index-1 based element access.
-  real& operator()(size_t r, size_t c) { return myMat(r,c); }
+  Real& operator()(size_t r, size_t c) { return myMat(r,c); }
   //! \brief Index-1 based element reference.
-  const real& operator()(size_t r, size_t c) const { return myMat(r,c); }
+  const Real& operator()(size_t r, size_t c) const { return myMat(r,c); }
 
   //! \brief Dumps the system matrix on a specified format.
   virtual void dump(std::ostream&, char, const char* = NULL);
@@ -110,10 +110,10 @@ public:
   //! \brief Adds a matrix with similar dimension to the current matrix.
   //! \param[in] B     The matrix to be added
   //! \param[in] alpha Scale factor for matrix \b B
-  virtual bool add(const SystemMatrix& B, real alpha = 1.0);
+  virtual bool add(const SystemMatrix& B, Real alpha = 1.0);
 
   //! \brief Adds the diagonal matrix \f$\sigma\f$\b I to the current matrix.
-  virtual bool add(real sigma);
+  virtual bool add(Real sigma);
 
   //! \brief Performs the matrix-vector multiplication \b C = \a *this * \b B.
   virtual bool multiply(const SystemVector& B, SystemVector& C);
@@ -158,10 +158,10 @@ public:
   //! \param[in] nev The number of eigenvalues and eigenvectors to compute
   //! \param[in] shift Eigenvalue shift (unused)
   bool solveEig(DenseMatrix& B, RealArray& eigVal, Matrix& eigVec, int nev,
-		real shift = 0.0);
+		Real shift = 0.0);
 
   //! \brief Returns the L-infinity norm of the matrix.
-  virtual real Linfnorm() const { return myMat.normInf(); }
+  virtual Real Linfnorm() const { return myMat.normInf(); }
 
 protected:
   //! \brief Augments a dense matrix symmetrically to the current matrix.
@@ -183,7 +183,7 @@ protected:
   //! \brief This is the function which actually solves the equation system,
   //! using the LAPack library subroutines. The two public \a solve methods just
   //! forward to this method.
-  bool solve(real* B, size_t nrhs);
+  bool solve(Real* B, size_t nrhs);
 
   //! \brief Writes the system matrix to the given output stream.
   virtual std::ostream& write(std::ostream& os) const { return os << myMat; }

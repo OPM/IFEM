@@ -39,11 +39,11 @@ public:
   void unStructResize(size_t nEl, size_t nPts);
 
   //! \brief Defines the \a j'th coordinate of node \a i
-  bool setCoor(size_t i, size_t j, real x);
+  bool setCoor(size_t i, size_t j, Real x);
   //! \brief Defines the coordinates of node \a i
   bool setCoor(size_t i, const Vec3& X);
   //! \brief Defines the coordinates of node \a i
-  bool setCoor(size_t i, real x, real y, real z)
+  bool setCoor(size_t i, Real x, Real y, Real z)
   { return this->setCoor(i,Vec3(x,y,z)); }
 
   //! \brief Defines the global number of element node \a i

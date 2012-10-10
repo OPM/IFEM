@@ -25,10 +25,7 @@
 #include <cstring>
 #include <cmath>
 #ifdef USE_MKL
-#pragma push_macro("real")
-#undef real
 #include <mkl_cblas.h>
-#pragma pop_macro("real")
 #elif defined(USE_CBLAS)
 extern "C"
 {

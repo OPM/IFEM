@@ -17,14 +17,14 @@
 #include "matrix.h"
 
 //! A real-valued vector with algebraic operations
-typedef utl::vector<real>   Vector;
+typedef utl::vector<Real>   Vector;
 //! A real-valued matrix with algebraic operations
-typedef utl::matrix<real>   Matrix;
+typedef utl::matrix<Real>   Matrix;
 //! A real-valued three-dimensional matrix with algebraic operations
-typedef utl::matrix3d<real> Matrix3D;
+typedef utl::matrix3d<Real> Matrix3D;
 
 //! A real-valued array without algebraic operations
-typedef std::vector<real>      RealArray;
+typedef std::vector<Real>      RealArray;
 //! A real-valued two-dimensional array without algebraic operations
 typedef std::vector<RealArray> Real2DMat;
 //! A real-valued three-dimensional array without algebraic operations

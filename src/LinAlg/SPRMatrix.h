@@ -78,10 +78,10 @@ public:
   //! \brief Adds a matrix with similar sparsity pattern to the current matrix.
   //! \param[in] B     The matrix to be added
   //! \param[in] alpha Scale factor for matrix \b B
-  virtual bool add(const SystemMatrix& B, real alpha = 1.0);
+  virtual bool add(const SystemMatrix& B, Real alpha = 1.0);
 
   //! \brief Adds the diagonal matrix \f$\sigma\f$\b I to the current matrix.
-  virtual bool add(real sigma);
+  virtual bool add(Real sigma);
 
   //! \brief Performs the matrix-vector multiplication \b C = \a *this * \b B.
   virtual bool multiply(const SystemVector& B, SystemVector& C);
@@ -104,10 +104,10 @@ public:
   //! \param[in] shift Eigenvalue shift
   //! \param[in] iop Option telling whether to factorize matrix \a A or \b B.
   bool solveEig(SPRMatrix& B, RealArray& eigVal, Matrix& eigVec, int nev,
-		real shift = 0.0, int iop = 1);
+		Real shift = 0.0, int iop = 1);
 
   //! \brief Returns the L-infinity norm of the matrix.
-  virtual real Linfnorm() const;
+  virtual Real Linfnorm() const;
 
 private:
   int mpar[NS]; //!< Matrix of sparse PARameters
@@ -115,10 +115,10 @@ private:
   int* msifa;   //!< Matrix of Storage Information for FA
   int* mtrees;  //!< Matrix of elimination assembly TREES
   int* mvarnc;  //!< Matrix of VARiable to Node Correspondence
-  real* values; //!< The actual matrix VALUES
+  Real* values; //!< The actual matrix VALUES
 
   std::vector<int>  iWork; //!< Integer work array
-  std::vector<real> rWork; //!< Real work array
+  std::vector<Real> rWork; //!< Real work array
 };
 
 #endif

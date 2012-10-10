@@ -57,7 +57,7 @@ bool MPCLess::operator() (const MPC* lhs, const MPC* rhs) const
 }
 
 
-void MPC::addMaster (const DOF& dof, real tol)
+void MPC::addMaster (const DOF& dof, Real tol)
 {
   if (dof.coeff >= -tol && dof.coeff <= tol) return; // ignore if zero coeff.
 
@@ -97,7 +97,7 @@ int MPC::renumberNodes (const std::map<int,int>& old2new, bool msg)
 std::ostream& operator<< (std::ostream& s, const MPC& mpc)
 {
   s <<"Slave "<< mpc.slave.node <<","<< mpc.slave.dof;
-  if (mpc.slave.coeff != real(0))
+  if (mpc.slave.coeff != Real(0))
     s <<" = "<< mpc.slave.coeff;
   else if (mpc.master.empty())
     return s <<" = 0"<< std::endl;
@@ -106,9 +106,9 @@ std::ostream& operator<< (std::ostream& s, const MPC& mpc)
 
   for (size_t i = 0; i < mpc.master.size(); i++)
   {
-    if (i == 0 && mpc.slave.coeff == real(0))
+    if (i == 0 && mpc.slave.coeff == Real(0))
       s << mpc.master[i].coeff;
-    else if (mpc.master[i].coeff >= real(0))
+    else if (mpc.master[i].coeff >= Real(0))
       s <<" + "<< mpc.master[i].coeff;
     else
       s <<" - "<< -mpc.master[i].coeff;

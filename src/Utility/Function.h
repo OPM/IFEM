@@ -83,10 +83,10 @@ class SymmTensor;
 
 
 //! \brief Scalar-valued unary function of a scalar value.
-typedef utl::Function<real,real> ScalarFunc;
+typedef utl::Function<Real,Real> ScalarFunc;
 
 //! \brief Scalar-valued unary function of a spatial point.
-typedef utl::Function<Vec3,real> RealFunc;
+typedef utl::Function<Vec3,Real> RealFunc;
 
 //! \brief Vector-valued unary function of a spatial point.
 typedef utl::Function<Vec3,Vec3> VecFunc;
@@ -123,7 +123,7 @@ public:
   //! \brief Constructor initializing a constant pressure field.
   //! \param[in] p The constant pressure value
   //! \param[in] dir The global direction the pressure is acting in
-  PressureField(real p, int dir = 0);
+  PressureField(Real p, int dir = 0);
   //! \brief Constructor initializing the scalar pressure field function.
   //! \param[in] p The scalar field defining the spatial pressure distribution
   //! \param[in] dir The global direction the pressure is acting in

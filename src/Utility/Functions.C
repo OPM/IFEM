@@ -18,112 +18,112 @@
 #include <algorithm>
 
 
-PressureField::PressureField (real p, int dir) : pdir(dir)
+PressureField::PressureField (Real p, int dir) : pdir(dir)
 {
   pressure = new ConstFunc(p);
 }
 
 
-real RampFunc::evaluate (const real& x) const
+Real RampFunc::evaluate (const Real& x) const
 {
   return x < xmax ? fval*x/xmax : fval;
 }
 
 
-real DiracFunc::evaluate (const real& x) const
+Real DiracFunc::evaluate (const Real& x) const
 {
-  return fabs(x-xmax) < 1.0e-4 ? amp : real(0);
+  return fabs(x-xmax) < 1.0e-4 ? amp : Real(0);
 }
 
 
-real StepFunc::evaluate (const real& x) const
+Real StepFunc::evaluate (const Real& x) const
 {
-  return x >= xmax ? amp : real(0);
+  return x >= xmax ? amp : Real(0);
 }
 
 
-real SineFunc::evaluate (const real& x) const
+Real SineFunc::evaluate (const Real& x) const
 {
   return scale*sin(freq*x+phase);
 }
 
 
-real ConstTimeFunc::evaluate (const Vec3& X) const
+Real ConstTimeFunc::evaluate (const Vec3& X) const
 {
   const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
-  return (*tfunc)(Xt ? Xt->t : real(0));
+  return (*tfunc)(Xt ? Xt->t : Real(0));
 }
 
 
-real SpaceTimeFunc::evaluate (const Vec3& X) const
+Real SpaceTimeFunc::evaluate (const Vec3& X) const
 {
   const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
-  return (*sfunc)(X) * (*tfunc)(Xt ? Xt->t : real(0));
+  return (*sfunc)(X) * (*tfunc)(Xt ? Xt->t : Real(0));
 }
 
 
-real LinearXFunc::evaluate (const Vec3& X) const
+Real LinearXFunc::evaluate (const Vec3& X) const
 {
   return a*X.x + b;
 }
 
 
-real LinearYFunc::evaluate (const Vec3& X) const
+Real LinearYFunc::evaluate (const Vec3& X) const
 {
   return a*X.y + b;
 }
 
 
-real LinearZFunc::evaluate (const Vec3& X) const
+Real LinearZFunc::evaluate (const Vec3& X) const
 {
   return a*X.z + b;
 }
 
 
-real QuadraticXFunc::evaluate (const Vec3& X) const
+Real QuadraticXFunc::evaluate (const Vec3& X) const
 {
-  real val = (a-b)/real(2);
+  Real val = (a-b)/Real(2);
   return max*(a-X.x)*(X.x-b)/(val*val);
 }
 
 
-real QuadraticYFunc::evaluate (const Vec3& X) const
+Real QuadraticYFunc::evaluate (const Vec3& X) const
 {
-  real val = (a-b)/real(2);
+  Real val = (a-b)/Real(2);
   return max*(a-X.y)*(X.y-b)/(val*val);
 }
 
 
-real QuadraticZFunc::evaluate (const Vec3& X) const
+Real QuadraticZFunc::evaluate (const Vec3& X) const
 {
-  real val = (a-b)/real(2);
+  Real val = (a-b)/Real(2);
   return max*(a-X.z)*(X.z-b)/(val*val);
 }
 
 
-real LinearRotZFunc::evaluate (const Vec3& X) const
+Real LinearRotZFunc::evaluate (const Vec3& X) const
 {
   // Always return zero if the argument has no time component
   const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
-  if (!Xt) return real(0);
+  if (!Xt) return Real(0);
 
-  real x = X.x - x0;
-  real y = X.y - y0;
-  real c = cos(A*Xt->t);
-  real s = sin(A*Xt->t);
+  Real x = X.x - x0;
+  Real y = X.y - y0;
+  Real c = cos(A*Xt->t);
+  Real s = sin(A*Xt->t);
   return rX ? x*c-y*s-x : x*s+y*c-y;
 }
 
 
-real StepXFunc::evaluate (const Vec3& X) const
+Real StepXFunc::evaluate (const Vec3& X) const
 {
-  return X.x < x0 || X.x > x1 ? real(0) : fv;
+  return X.x < x0 || X.x > x1 ? Real(0) : fv;
 }
 
 
-real StepXYFunc::evaluate (const Vec3& X) const
+Real StepXYFunc::evaluate (const Vec3& X) const
 {
-  return X.x < x0 || X.x > x1 || X.y < y0 || X.y > y1 ? real(0) : fv;
+  return X.x < x0 || X.x > x1 || X.y < y0 || X.y > y1 ? Real(0) : fv;
 }
 
 
@@ -131,7 +131,7 @@ Interpolate1D::Interpolate1D (const char* file, int dir_) : dir(dir_)
 {
   std::ifstream is(file);
   while (is.good()) {
-    real x, v;
+    Real x, v;
     is >> x >> v;
     grid.push_back(x);
     values.push_back(v);
@@ -139,18 +139,18 @@ Interpolate1D::Interpolate1D (const char* file, int dir_) : dir(dir_)
 }
 
 
-real Interpolate1D::evaluate (const Vec3& X) const
+Real Interpolate1D::evaluate (const Vec3& X) const
 {
-  real x = X[dir];
-  std::vector<real>::const_iterator xb =
+  Real x = X[dir];
+  std::vector<Real>::const_iterator xb =
     std::find_if(grid.begin(),grid.end()-1,
-		 std::bind2nd(std::greater<real>(),x));
+		 std::bind2nd(std::greater<Real>(),x));
 
   size_t pos = xb-grid.begin();
-  real x1 = *(xb-1);
-  real x2 = *xb;
-  real val1 = values[pos-1];
-  real val2 = values[pos];
+  Real x1 = *(xb-1);
+  Real x2 = *xb;
+  Real val1 = values[pos-1];
+  Real val2 = values[pos];
 
   double delta = x2 - x1;
   if (fabs(delta) < 1.0e-8)
@@ -170,7 +170,7 @@ real Interpolate1D::evaluate (const Vec3& X) const
   constant in time, or a time function constant in space.
 */
 
-const RealFunc* utl::parseRealFunc (char* cline, real A)
+const RealFunc* utl::parseRealFunc (char* cline, Real A)
 {
   // Check for spatial variation
   int linear    = 0;
@@ -200,11 +200,11 @@ const RealFunc* utl::parseRealFunc (char* cline, real A)
   else if (strcasecmp(cline,"quadZ") == 0)
     quadratic = 3;
 
-  real C = A;
+  Real C = A;
   const RealFunc* f = 0;
   if (linear > 0 && (cline = strtok(NULL," ")))
   {
-    C = real(1);
+    C = Real(1);
     std::cout <<"("<< A <<"*";
     if (linear < 4)
       std::cout << char('W' + linear) <<" + "<< cline <<")";
@@ -272,10 +272,10 @@ const RealFunc* utl::parseRealFunc (char* cline, real A)
   }
   else if (quadratic > 0 && (cline = strtok(NULL," ")))
   {
-    C = real(1);
-    real a = atof(cline);
-    real b = atof(strtok(NULL," "));
-    real val = (a-b)*(a-b)/real(4);
+    C = Real(1);
+    Real a = atof(cline);
+    Real b = atof(strtok(NULL," "));
+    Real val = (a-b)*(a-b)/Real(4);
     char var = 'W' + quadratic;
     std::cout << A/val <<" * ("<< a <<"-"<< var <<")*("<< b <<"-"<< var <<")";
     switch (quadratic) {
@@ -311,7 +311,7 @@ const RealFunc* utl::parseRealFunc (char* cline, real A)
 }
 
 
-const ScalarFunc* utl::parseTimeFunc (const char* type, char* cline, real C)
+const ScalarFunc* utl::parseTimeFunc (const char* type, char* cline, Real C)
 {
   if (strncasecmp(type,"expr",4) == 0 && cline != NULL)
   {
@@ -320,28 +320,28 @@ const ScalarFunc* utl::parseTimeFunc (const char* type, char* cline, real C)
   }
   else if (strncasecmp(type,"Ramp",4) == 0 || strcmp(type,"Tinit") == 0)
   {
-    real xmax = atof(strtok(cline," "));
+    Real xmax = atof(strtok(cline," "));
     std::cout <<"Ramp(t,"<< xmax <<")";
     return new RampFunc(C,xmax);
   }
   else if (strncasecmp(type,"Dirac",5) == 0)
   {
-    real xmax = atof(strtok(cline," "));
+    Real xmax = atof(strtok(cline," "));
     std::cout <<"Dirac(t,"<< xmax <<")";
     return new DiracFunc(C,xmax);
   }
   else if (strncasecmp(type,"Step",4) == 0)
   {
-    real xmax = atof(strtok(cline," "));
+    Real xmax = atof(strtok(cline," "));
     std::cout <<"Step(t,"<< xmax <<")";
     return new StepFunc(C,xmax);
   }
   else if (strcasecmp(type,"sin") == 0)
   {
-    real freq = atof(strtok(cline," "));
+    Real freq = atof(strtok(cline," "));
     if ((cline = strtok(NULL," ")))
     {
-      real phase = atof(cline);
+      Real phase = atof(cline);
       std::cout <<"sin("<< freq <<"*t + "<< phase <<")";
       return new SineFunc(C,freq,phase);
     }
@@ -353,7 +353,7 @@ const ScalarFunc* utl::parseTimeFunc (const char* type, char* cline, real C)
   }
   else // linear in time
   {
-    real scale = atof(type);
+    Real scale = atof(type);
     std::cout << scale <<"*t";
     return new LinearFunc(C*scale);
   }
@@ -389,7 +389,7 @@ RealFunc* utl::parseRealFunc (const std::string& func, const std::string& type)
   if (func.empty()) return NULL;
 
   std::cout <<": ";
-  real p = real(0);
+  Real p = Real(0);
   if (type == "expression")
   {
     std::cout << func;
@@ -445,7 +445,7 @@ TractionFunc* utl::parseTracFunc (const std::string& func,
   if (func.empty()) return NULL;
 
   std::cout <<": ";
-  real p = real(0);
+  Real p = Real(0);
   const RealFunc* f = 0;
   if (type == "expression")
   {

@@ -158,7 +158,7 @@ public:
   //! \param reactionForces Pointer to vector of nodal reaction forces
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assembleSystem(SystemVector& sysRHS,
-			      const real* nS, int inod = 0,
+			      const Real* nS, int inod = 0,
 			      Vector* reactionForces = 0) const;
 
   //! \brief Finds the matrix of equation numbers for an element.
@@ -213,7 +213,7 @@ public:
   //! Before we can compute derived element quantities we therefore need to
   //! extract the resulting solution values also for the constrained DOFs.
   virtual bool expandSolution(const SystemVector& solVec, Vector& dofVec,
-			      real scaleSD = 1.0) const;
+			      Real scaleSD = 1.0) const;
 
   //! \brief Expands a solution vector from equation-ordering to DOF-ordering.
   //! \param[in] solVec Solution vector, length = NEQ
@@ -227,30 +227,30 @@ public:
   //! \param[in] x The first vector of the dot-product
   //! \param[in] y The second vector of the dot-product
   //! \param[in] dofType Only consider nodes of this type (for mixed methods)
-  virtual real dot(const Vector& x, const Vector& y, char dofType = 'D') const;
+  virtual Real dot(const Vector& x, const Vector& y, char dofType = 'D') const;
   //! \brief Computes the l2-norm of a vector of length NDOF.
   //! \param[in] x The vector to compute the norm of
   //! \param[in] dofType Only consider nodes of this type (for mixed methods)
-  real norm2(const Vector& x, char dofType = 'D') const
+  Real norm2(const Vector& x, char dofType = 'D') const
   { return sqrt(this->dot(x,x,dofType)); }
   //! \brief Computes the L2-norm of a vector of length NDOF.
   //! \param[in] x The vector to compute the norm of
   //! \param[in] dofType Only consider nodes of this type (for mixed methods)
-  virtual real normL2(const Vector& x, char dofType = 'D') const;
+  virtual Real normL2(const Vector& x, char dofType = 'D') const;
   //! \brief Computes the L_infinity-norm of a vector of length NDOF.
   //! \param[in] x The vector to compute the norm of
   //! \param comp Local nodal DOF on input, index of the largest value on output
   //! \param[in] dofType Only consider nodes of this type (for mixed methods)
-  virtual real normInf(const Vector& x, size_t& comp, char dofType = 'D') const;
+  virtual Real normInf(const Vector& x, size_t& comp, char dofType = 'D') const;
 
   //! \brief Computes the energy norm contributions from nodal reaction forces.
   //! \param[in] u The (incremental) nodal displacement vector
   //! \param[in] rf Compressed reaction force vector for the entire model
-  virtual real normReact(const Vector& u, const Vector& rf) const;
+  virtual Real normReact(const Vector& u, const Vector& rf) const;
   //! \brief Returns the total reaction force in the given coordinate direction.
   //! \param[in] dir 1-based coordinate direction index
   //! \param[in] rf Compressed reaction force vector for the entire model
-  virtual real getReaction(int dir, const Vector& rf) const;
+  virtual Real getReaction(int dir, const Vector& rf) const;
   //! \brief Returns a vector of reaction forces for a given node.
   //! \param[in] inod Identifier for the node to get the reaction forces for
   //! \param[in] rf Compressed reaction force vector for the entire model
@@ -272,7 +272,7 @@ protected:
   //! \param[in] solVec Pointer to solution vector, length = NEQ
   //! \param[out] dofVec Degrees of freedom vector, length = NDOF
   //! \param[in] scaleSD Scaling factor for specified (slave) DOFs
-  bool expandVector(const real* solVec, Vector& dofVec, real scaleSD) const;
+  bool expandVector(const Real* solVec, Vector& dofVec, Real scaleSD) const;
 
 private:
   int mpar[50]; //!< Matrix of parameters
@@ -297,7 +297,7 @@ protected:
   int*  msc;    //!< Matrix of status codes
   int*  mpmceq; //!< Matrix of pointers to MCEQs in MMCEQ
   int*  mmceq;  //!< Matrix of matrices of constraint equation definitions
-  real* ttcc;   //!< Table of tables of constraint equation coefficients
+  Real* ttcc;   //!< Table of tables of constraint equation coefficients
   int*  minex;  //!< Matrix of internal to external node numbers
   int*  meqn;   //!< Matrix of equation numbers
 

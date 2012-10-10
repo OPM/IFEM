@@ -43,8 +43,8 @@ struct SuperLUdata
   SuperMatrix A; //! The unfactored coefficient matrix
   SuperMatrix L; //! The lower triangle factor
   SuperMatrix U; //! The upper triangle factor
-  real*       R; //! The row scale factors for \a A
-  real*       C; //! The column scale factors for \a A
+  Real*       R; //! The row scale factors for \a A
+  Real*       C; //! The column scale factors for \a A
   int*   perm_r; //! Row permutation vector
   int*   perm_c; //! Column permutation vector
   int*    etree; //! The elimination tree
@@ -174,8 +174,8 @@ void SparseMatrix::resize (size_t r, size_t c, bool forceEditable)
   {
     // Clear the matrix content but retain its sparsity pattern
     for (ValueMap::iterator it = elem.begin(); it != elem.end(); it++)
-      it->second = real(0);
-    std::fill(A.begin(),A.end(),real(0));
+      it->second = Real(0);
+    std::fill(A.begin(),A.end(),Real(0));
     return;
   }
 
@@ -226,7 +226,7 @@ size_t SparseMatrix::dim (int idim) const
 }
 
 
-real& SparseMatrix::operator () (size_t r, size_t c)
+Real& SparseMatrix::operator () (size_t r, size_t c)
 {
   if (r < 1 || r > nrow || c < 1 || c > ncol)
     std::cerr <<"SparseMatrix::operator(): Indices ("
@@ -239,7 +239,7 @@ real& SparseMatrix::operator () (size_t r, size_t c)
       return vit->second; // This non-zero term already exists
     else if (editable == 'P') {
       // Editable pattern, insert a new non-zero entry
-      real& value = elem[index] = real(0);
+      Real& value = elem[index] = Real(0);
       return value;
     }
   }
@@ -262,7 +262,7 @@ real& SparseMatrix::operator () (size_t r, size_t c)
   // locked. The behavior then is unpredictable, especially when multithreading.
   std::cerr <<" *** Non-existing SparseMatrix entry (r,c)="<< r <<","<< c
 	    << std::endl;
-  static real anyValue = real(0);
+  static Real anyValue = Real(0);
 #if INDEX_CHECK > 1
   abort();
 #endif
@@ -270,7 +270,7 @@ real& SparseMatrix::operator () (size_t r, size_t c)
 }
 
 
-const real& SparseMatrix::operator () (size_t r, size_t c) const
+const Real& SparseMatrix::operator () (size_t r, size_t c) const
 {
   if (r < 1 || r > nrow || c < 1 || c > ncol)
     std::cerr <<"SparseMatrix::operator(): Indices ("
@@ -296,7 +296,7 @@ const real& SparseMatrix::operator () (size_t r, size_t c) const
   }
 
   // Return zero for any non-existing non-zero term
-  static const real zero = real(0);
+  static const Real zero = Real(0);
   return zero;
 }
 
@@ -416,12 +416,12 @@ bool SparseMatrix::augment (const SystemMatrix& B, size_t r0, size_t c0)
 }
 
 
-bool SparseMatrix::truncate (real threshold)
+bool SparseMatrix::truncate (Real threshold)
 {
   if (!editable) return false; // Not implemented for non-editable matrices yet
 
   ValueMap::iterator it;
-  real tol = real(0);
+  Real tol = Real(0);
   for (it = elem.begin(); it != elem.end(); it++)
     if (it->first.first == it->first.second)
       if (it->second > tol)
@@ -440,7 +440,7 @@ bool SparseMatrix::truncate (real threshold)
       elem.erase(jt->first);
     }
     else
-      (it++)->second = real(0);
+      (it++)->second = Real(0);
 
   if (nnz > elem.size())
     std::cout <<"SparseMatrix: Truncated "<< nnz-elem.size()
@@ -449,7 +449,7 @@ bool SparseMatrix::truncate (real threshold)
 }
 
 
-bool SparseMatrix::add (const SystemMatrix& B, real alpha)
+bool SparseMatrix::add (const SystemMatrix& B, Real alpha)
 {
   const SparseMatrix* Bptr = dynamic_cast<const SparseMatrix*>(&B);
   if (!Bptr) return false;
@@ -488,7 +488,7 @@ bool SparseMatrix::add (const SystemMatrix& B, real alpha)
 }
 
 
-bool SparseMatrix::add (real sigma)
+bool SparseMatrix::add (Real sigma)
 {
   for (size_t i = 1; i <= nrow && i <= ncol; i++)
     this->operator()(i,i) += sigma;
@@ -597,7 +597,7 @@ static void preAssemble (SparseMatrix& SM, const std::vector<int>& meen,
 
 static void assemSparse (const Matrix& eM, SparseMatrix& SM, Vector& SV,
 			 const std::vector<int>& meen, const int* meqn,
-			 const int* mpmceq, const int* mmceq, const real* ttcc)
+			 const int* mpmceq, const int* mmceq, const Real* ttcc)
 {
   // Add elements corresponding to free dofs in eM into SM
   int i, j, ip, nedof = meen.size();
@@ -626,7 +626,7 @@ static void assemSparse (const Matrix& eM, SparseMatrix& SM, Vector& SV,
     if (jceq < 1) continue;
 
     int jp = mpmceq[jceq-1];
-    real c0 = ttcc[jp-1];
+    Real c0 = ttcc[jp-1];
 
     // Add contributions to SV (right-hand-side)
     if (!SV.empty())
@@ -679,11 +679,11 @@ static void assemSparse (const Matrix& eM, SparseMatrix& SM, Vector& SV,
 
 static void assemSparse (const RealArray& V, SparseMatrix& SM, size_t col,
 			 const std::vector<int>& mnen, const int* meqn,
-			 const int* mpmceq, const int* mmceq, const real* ttcc)
+			 const int* mpmceq, const int* mmceq, const Real* ttcc)
 {
   for (size_t d = 0; d < mnen.size(); d++, col++)
   {
-    real vd = d < V.size() ? V[d] : V.back();
+    Real vd = d < V.size() ? V[d] : V.back();
     int ieq = mnen[d];
     int ceq = -ieq;
     if (ieq > 0)
@@ -1027,8 +1027,8 @@ bool SparseMatrix::solveSLUx (Vector& B)
     slu->equed = NOEQUIL;
     slu->perm_c = new int[ncol];
     slu->perm_r = new int[nrow];
-    slu->C = new real[ncol];
-    slu->R = new real[nrow];
+    slu->C = new Real[ncol];
+    slu->R = new Real[nrow];
     dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
 			   &A.front(), &JA.front(), &IA.front(),
 			   SLU_NC, SLU_D, SLU_GE);
@@ -1055,7 +1055,7 @@ bool SparseMatrix::solveSLUx (Vector& B)
   dCreate_Dense_Matrix(&Xmat, nrow, nrhs, X.ptr(), nrow,
 		       SLU_DN, SLU_D, SLU_GE);
 
-  real rpg[nrhs], rcond[nrhs], ferr[nrhs], berr[nrhs];
+  Real rpg[nrhs], rcond[nrhs], ferr[nrhs], berr[nrhs];
   superlu_memusage_t mem_usage;
 
   // Invoke the expert driver
@@ -1080,8 +1080,8 @@ bool SparseMatrix::solveSLUx (Vector& B)
     slu->perm_c = new int[ncol];
     slu->perm_r = new int[nrow];
     slu->etree = new int[ncol];
-    slu->C = new real[ncol];
-    slu->R = new real[nrow];
+    slu->C = new Real[ncol];
+    slu->R = new Real[nrow];
     dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
 			   &A.front(), &JA.front(), &IA.front(),
 			   SLU_NC, SLU_D, SLU_GE);
@@ -1109,7 +1109,7 @@ bool SparseMatrix::solveSLUx (Vector& B)
 
   void* work = 0;
   int  lwork = 0;
-  real rpg[nrhs], rcond[nrhs], ferr[nrhs], berr[nrhs];
+  Real rpg[nrhs], rcond[nrhs], ferr[nrhs], berr[nrhs];
   mem_usage_t mem_usage;
 
   SuperLUStat_t stat;
@@ -1156,20 +1156,20 @@ bool SparseMatrix::solveSAMG (Vector& B)
   int ndip = 1; // dummy - since nsys = 1 and no point-based approach used
   int matrix = 120; // symmetric, NO zero rowsum, NO modification of matrix
   int iscale = 1; // dummy - since nsys = 1;
-  real res_in, res_out; // output parameters
+  Real res_in, res_out; // output parameters
   int ncyc_done; // output parameters
   int nsolve = 2; // default solution strategy
                   // (this parameter can quickly become complicated to set)
   int ifirst = 1; // no initial solution guess
-  real eps = -1.0e-16; // stopping criterion
+  Real eps = -1.0e-16; // stopping criterion
   int ncyc = 110200; // define the cycling and accelleration strategy
   int iswitch = !factored ? 4140 : 1140; // No memory release in first run,
   // assuming identical coefficent matrix in all subsequent runs
-  real a_cmplx = 0.0; // l
-  real g_cmplx = 0.0; //  l  specifies preallocation of memory, etc.
-  real p_cmplx = 0.0; //  /
-  real w_avrge = 0.0; // /
-  real chktol = 0.0; // standard checking for logical correctness
+  Real a_cmplx = 0.0; // l
+  Real g_cmplx = 0.0; //  l  specifies preallocation of memory, etc.
+  Real p_cmplx = 0.0; //  /
+  Real w_avrge = 0.0; // /
+  Real chktol = 0.0; // standard checking for logical correctness
                      // @@ set this to negative value for production run
   int iout = -2; // minimal output on results and timings
   int idump = -2; // printout of coarsening history
@@ -1204,9 +1204,9 @@ bool SparseMatrix::solveSAMG (Vector& B)
 }
 
 
-real SparseMatrix::Linfnorm () const
+Real SparseMatrix::Linfnorm () const
 {
-  RealArray sums(nrow,real(0));
+  RealArray sums(nrow,Real(0));
 
   if (editable)
     for (ValueIter it = elem.begin(); it != elem.end(); ++it)

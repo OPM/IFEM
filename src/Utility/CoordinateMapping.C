@@ -21,26 +21,26 @@
 #endif
 
 
-real utl::Jacobian (matrix<real>& J, matrix<real>& dNdX,
-		    const matrix<real>& X, const matrix<real>& dNdu,
+Real utl::Jacobian (matrix<Real>& J, matrix<Real>& dNdX,
+		    const matrix<Real>& X, const matrix<Real>& dNdu,
 		    bool computeGradient)
 {
   // Compute the Jacobian matrix, J = [dXdu]
   J.multiply(X,dNdu); // J = X * dNdu
 
   // Compute the Jacobian determinant and inverse
-  real detJ = J.inverse(epsZ);
+  Real detJ = J.inverse(epsZ);
 
   // Compute the first order derivatives of the basis function, w.r.t. X
-  if (detJ != real(0) && computeGradient)
+  if (detJ != Real(0) && computeGradient)
     dNdX.multiply(dNdu,J); // dNdX = dNdu * J^-1
 
   return detJ;
 }
 
 
-real utl::Jacobian (matrix<real>& J, Vec3& t, matrix<real>& dNdX,
-		    const matrix<real>& X, const matrix<real>& dNdu,
+Real utl::Jacobian (matrix<Real>& J, Vec3& t, matrix<Real>& dNdX,
+		    const matrix<Real>& X, const matrix<Real>& dNdu,
 		    size_t tangent)
 {
   // Compute the Jacobian matrix, J = [dXdu]
@@ -50,10 +50,10 @@ real utl::Jacobian (matrix<real>& J, Vec3& t, matrix<real>& dNdX,
   t = J.getColumn(tangent);
 
   // Compute the Jacobian determinant and inverse
-  real detJ = J.inverse(epsZ);
+  Real detJ = J.inverse(epsZ);
 
   // Compute the first order derivatives of the basis function, w.r.t. X
-  if (detJ != real(0))
+  if (detJ != Real(0))
     dNdX.multiply(dNdu,J); // dNdX = dNdu * J^-1
 
   // Return the curve dilation (dS) in the tangent direction, vt
@@ -61,14 +61,14 @@ real utl::Jacobian (matrix<real>& J, Vec3& t, matrix<real>& dNdX,
 }
 
 
-real utl::Jacobian (matrix<real>& J, Vec3& n, matrix<real>& dNdX,
-		    const matrix<real>& X, const matrix<real>& dNdu,
+Real utl::Jacobian (matrix<Real>& J, Vec3& n, matrix<Real>& dNdX,
+		    const matrix<Real>& X, const matrix<Real>& dNdu,
 		    size_t t1, size_t t2)
 {
   // Compute the Jacobian matrix, J = [dXdu]
   J.multiply(X,dNdu); // J = X * dNdu
 
-  real dS;
+  Real dS;
   if (J.cols() == 2)
   {
     // Compute the face normal
@@ -88,8 +88,8 @@ real utl::Jacobian (matrix<real>& J, Vec3& n, matrix<real>& dNdX,
   }
 
   // Compute the Jacobian inverse
-  if (J.inverse(epsZ) == real(0))
-    return real(0);
+  if (J.inverse(epsZ) == Real(0))
+    return Real(0);
 
   // Compute the first order derivatives of the basis function, w.r.t. X
   dNdX.multiply(dNdu,J); // dNdX = dNdu * J^-1
@@ -98,9 +98,9 @@ real utl::Jacobian (matrix<real>& J, Vec3& n, matrix<real>& dNdX,
 }
 
 
-bool utl::Hessian (matrix3d<real>& H, matrix3d<real>& d2NdX2,
-		   const matrix<real>& Ji, const matrix<real>& X,
-		   const matrix3d<real>& d2Ndu2, const matrix<real>& dNdu,
+bool utl::Hessian (matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
+		   const matrix<Real>& Ji, const matrix<Real>& X,
+		   const matrix3d<Real>& d2Ndu2, const matrix<Real>& dNdu,
 		   bool computeGradient)
 {
   PROFILE4("utl::Hessian");
@@ -135,11 +135,11 @@ bool utl::Hessian (matrix3d<real>& H, matrix3d<real>& d2NdX2,
     for (i1 = 1; i1 <= nsd; i1++)
       for (i2 = 1; i2 <= nsd; i2++)
       {
-	real& v = d2NdX2(n,i1,i2);
+	Real& v = d2NdX2(n,i1,i2);
 	for (i3 = 1; i3 <= nsd; i3++)
 	  for (i4 = 1; i4 <= nsd; i4++)
 	  {
-	    real Ji31x42 = Ji(i3,i1)*Ji(i4,i2);
+	    Real Ji31x42 = Ji(i3,i1)*Ji(i4,i2);
 	    v += d2Ndu2(n,i3,i4)*Ji31x42;
 	    for (i5 = 1; i5 <= nsd; i5++)
 	      for (i6 = 1; i6 <= nsd; i6++)
@@ -151,7 +151,7 @@ bool utl::Hessian (matrix3d<real>& H, matrix3d<real>& d2NdX2,
 }
 
 
-void utl::getGmat (const matrix<real>& Ji, const real* du, matrix<real>& G)
+void utl::getGmat (const matrix<Real>& Ji, const Real* du, matrix<Real>& G)
 {
   size_t nsd = Ji.cols();
   G.resize(nsd,nsd,true);
@@ -159,7 +159,7 @@ void utl::getGmat (const matrix<real>& Ji, const real* du, matrix<real>& G)
   for (size_t k = 1; k <= nsd; k++)
     for (size_t l = 1; l <= nsd; l++)
     {
-      real scale = real(1)/(du[k-1]*du[l-1]);
+      Real scale = Real(1)/(du[k-1]*du[l-1]);
       for (size_t m = 1; m <= nsd; m++)
 	G(k,l) += Ji(m,k)*Ji(m,l)*scale;
     }

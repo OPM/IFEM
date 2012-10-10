@@ -41,8 +41,8 @@ SystemVector* SystemVector::create (Type vectorType)
 SystemVector& SystemVector::copy (const SystemVector& x)
 {
   this->redim(x.size());
-  real* vec = this->getPtr();
-  memcpy(vec,x.getRef(),x.dim()*sizeof(real));
+  Real* vec = this->getPtr();
+  memcpy(vec,x.getRef(),x.dim()*sizeof(Real));
   this->restore(vec);
 
   return *this;

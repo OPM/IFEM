@@ -30,7 +30,7 @@ void utl::parseIntegers (std::vector<int>& values, const char* argv)
 }
 
 
-bool utl::parseKnots (std::vector<real>& xi)
+bool utl::parseKnots (std::vector<Real>& xi)
 {
   char* cline = strtok(NULL," ");
   if (!cline)
@@ -46,11 +46,11 @@ bool utl::parseKnots (std::vector<real>& xi)
     if (xi1 < 0.0 || xi2 <= xi1 || xi2 > 1.0 || ru < 1)
       return false;
     if (biased && ru > 1 && alpha != 1.0)
-      alpha = pow(alpha,1.0/real(ru));
+      alpha = pow(alpha,1.0/Real(ru));
 
     double x = xi1;
     double D = xi2 - xi1;
-    D *= (alpha == 1.0 ? 1.0/real(ru+1) : (1.0-alpha)/(1.0-pow(alpha,ru+1)));
+    D *= (alpha == 1.0 ? 1.0/Real(ru+1) : (1.0-alpha)/(1.0-pow(alpha,ru+1)));
     if (xi1 > 0.0) xi.push_back(xi1);
     for (int i = 0; i < ru; i++)
     {
@@ -151,7 +151,7 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att, size_t& val)
 }
 
 
-bool utl::getAttribute (const TiXmlElement* xml, const char* att, real& val)
+bool utl::getAttribute (const TiXmlElement* xml, const char* att, Real& val)
 {
   if (xml->Attribute(att))
     val = atof(xml->Attribute(att));
@@ -198,7 +198,7 @@ const char* utl::getValue (const TiXmlElement* xml, const char* tag)
 }
 
 
-bool utl::parseKnots (const TiXmlElement* xml, std::vector<real>& xi)
+bool utl::parseKnots (const TiXmlElement* xml, std::vector<Real>& xi)
 {
   if (!xml->FirstChild())
     return false;
@@ -240,16 +240,16 @@ bool utl::renumber (int& num, const std::map<int,int>& old2new, bool msg)
 
 
 int utl::gather (const std::vector<int>& index, size_t nr,
-		 const std::vector<real>& in, std::vector<real>& out,
+		 const std::vector<Real>& in, std::vector<Real>& out,
 		 size_t offset_in)
 {
   int outside = 0;
   out.resize(nr*index.size());
-  const real* data = &in.front() + offset_in;
-  real* outVec = &out.front();
+  const Real* data = &in.front() + offset_in;
+  Real* outVec = &out.front();
   for (size_t i = 0; i < index.size(); i++, outVec += nr)
     if (index[i] >= 0 && offset_in+nr*index[i] < in.size())
-      memcpy(outVec,data+nr*index[i],nr*sizeof(real));
+      memcpy(outVec,data+nr*index[i],nr*sizeof(Real));
     else if (index[i] >= 0)
       outside++;
 
@@ -258,12 +258,12 @@ int utl::gather (const std::vector<int>& index, size_t nr,
 
 
 int utl::gather (const std::vector<int>& index, size_t nr,
-		 const utl::vector<real>& in, utl::matrix<real>& out,
+		 const utl::vector<Real>& in, utl::matrix<Real>& out,
 		 size_t offset_in)
 {
   int outside = 0;
   out.resize(nr,index.size());
-  const real* data = &in.front() + offset_in;
+  const Real* data = &in.front() + offset_in;
   for (size_t i = 0; i < index.size(); i++)
     if (index[i] >= 0 && offset_in+nr*index[i] < in.size())
       out.fillColumn(1+i,data+nr*index[i]);
@@ -275,7 +275,7 @@ int utl::gather (const std::vector<int>& index, size_t nr,
 
 
 int utl::gather (const std::vector<int>& index, size_t ir, size_t nr,
-                 const std::vector<real>& in, std::vector<real>& out,
+                 const std::vector<Real>& in, std::vector<Real>& out,
                  size_t offset_in, int shift_idx)
 {
   if (ir >= nr) return index.size();
@@ -313,16 +313,16 @@ size_t utl::Pascal (int p, unsigned short int nsd)
 }
 
 
-void utl::Pascal (int p, real x, real y, std::vector<real>& phi)
+void utl::Pascal (int p, Real x, Real y, std::vector<Real>& phi)
 {
   phi.clear();
   phi.reserve(Pascal(p,2));
-  phi.push_back(real(1));
+  phi.push_back(Real(1));
   for (int q = 1; q <= p; q++)
     for (int i = q; i >= 0; i--)
     {
       int k, j = q-i;
-      real a = real(1);
+      Real a = Real(1);
       for (k = 0; k < i; k++) a *= x;
       for (k = 0; k < j; k++) a *= y;
       phi.push_back(a);
@@ -330,18 +330,18 @@ void utl::Pascal (int p, real x, real y, std::vector<real>& phi)
 }
 
 
-void utl::Pascal (int p, real x, real y, real z, std::vector<real>& phi)
+void utl::Pascal (int p, Real x, Real y, Real z, std::vector<Real>& phi)
 {
   phi.clear();
   phi.reserve(Pascal(p,3));
-  phi.push_back(real(1));
+  phi.push_back(Real(1));
   for (int q = 1; q <= p; q++)
     for (int i = q; i >= 0; i--)
       for (int j = q; j >= 0; j--)
 	if (i+j <= q)
 	{
 	  int l, k = q-i-j;
-	  real a = real(1);
+	  Real a = Real(1);
 	  for (l = 0; l < i; l++) a *= x;
 	  for (l = 0; l < j; l++) a *= y;
 	  for (l = 0; l < k; l++) a *= z;
@@ -350,7 +350,7 @@ void utl::Pascal (int p, real x, real y, real z, std::vector<real>& phi)
 }
 
 
-size_t utl::find_closest (const std::vector<real>& a, real v)
+size_t utl::find_closest (const std::vector<Real>& a, Real v)
 {
   // The lower_bound function uses binary search to find the index of the value.
   // Thus, this works only when the vector a is sorted in increasing order.

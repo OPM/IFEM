@@ -28,8 +28,8 @@ namespace utl
   //! \param[in] dNdu First order derivatives of basis functions
   //! \param[in] computeGradient If \e false, skip calculation of \a dNdX
   //! \return The Jacobian determinant
-  real Jacobian(matrix<real>& J, matrix<real>& dNdX,
-		const matrix<real>& X, const matrix<real>& dNdu,
+  Real Jacobian(matrix<Real>& J, matrix<Real>& dNdX,
+		const matrix<Real>& X, const matrix<Real>& dNdu,
 		bool computeGradient = true);
 
   //! \brief Set up the Jacobian matrix of the coordinate mapping along an edge.
@@ -40,8 +40,8 @@ namespace utl
   //! \param[in] dNdu First order derivatives of basis functions
   //! \param[in] tangent Parametric tangent direction along the edge
   //! \return The curve dilation of the edge
-  real Jacobian(matrix<real>& J, Vec3& t, matrix<real>& dNdX,
-		const matrix<real>& X, const matrix<real>& dNdu,
+  Real Jacobian(matrix<Real>& J, Vec3& t, matrix<Real>& dNdX,
+		const matrix<Real>& X, const matrix<Real>& dNdu,
 		size_t tangent);
 
   //! \brief Set up the Jacobian matrix of the coordinate mapping on a boundary.
@@ -53,8 +53,8 @@ namespace utl
   //! \param[in] t1 First parametric tangent direction of the boundary
   //! \param[in] t2 Second parametric tangent direction of the boundary
   //! \return The surface/curve dilation of the boundary
-  real Jacobian(matrix<real>& J, Vec3& n, matrix<real>& dNdX,
-		const matrix<real>& X, const matrix<real>& dNdu,
+  Real Jacobian(matrix<Real>& J, Vec3& n, matrix<Real>& dNdX,
+		const matrix<Real>& X, const matrix<Real>& dNdu,
 		size_t t1, size_t t2);
 
   //! \brief Set up the Hessian matrix of the coordinate mapping.
@@ -66,16 +66,16 @@ namespace utl
   //! \param[in] dNdu First order derivatives of basis functions
   //! \param[in] computeGradient If \e false, skip calculation of \a d2NdX2
   //! \return \e false if matrix dimensions are incompatible, otherwise \e true
-  bool Hessian(matrix3d<real>& H, matrix3d<real>& d2NdX2,
-	       const matrix<real>& Ji, const matrix<real>& X,
-	       const matrix3d<real>& d2Ndu2, const matrix<real>& dNdu,
+  bool Hessian(matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
+	       const matrix<Real>& Ji, const matrix<Real>& X,
+	       const matrix3d<Real>& d2Ndu2, const matrix<Real>& dNdu,
 	       bool computeGradient = true);
 
   //! \brief Compute the stabilization matrix \b G from the Jacobian inverse.
   //! \param[in] Ji The inverse of the Jacobian matrix
   //! \param[in] du Element lengths in each parametric direction
   //! \param[out] G The stabilization matrix (used in CFD simulators)
-  void getGmat(const matrix<real>& Ji, const real* du, matrix<real>& G);
+  void getGmat(const matrix<Real>& Ji, const Real* du, matrix<Real>& G);
 }
 
 #endif

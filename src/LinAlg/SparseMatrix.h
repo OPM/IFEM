@@ -19,7 +19,7 @@
 #include <map>
 
 typedef std::pair<size_t,size_t> IJPair;    //!< 1-based matrix indices
-typedef std::map<IJPair,real>    ValueMap;  //!< Index to matrix value mapping
+typedef std::map<IJPair,Real>    ValueMap;  //!< Index to matrix value mapping
 typedef ValueMap::const_iterator ValueIter; //!< Iterator over matrix elements
 
 struct SuperLUdata;
@@ -83,9 +83,9 @@ public:
   virtual size_t dim(int idim = 1) const;
 
   //! \brief Index-1 based element access.
-  real& operator()(size_t r, size_t c);
+  Real& operator()(size_t r, size_t c);
   //! \brief Index-1 based element reference.
-  const real& operator()(size_t r, size_t c) const;
+  const Real& operator()(size_t r, size_t c) const;
 
   //! \brief For traversal of the non-zero elements of an editable matrix.
   const ValueMap& getValues() const { return elem; }
@@ -161,7 +161,7 @@ public:
   //!
   //! \details This method can be used for rectangular matrices whose rows
   //! correspond to the equation ordering og the provided \a sam object.
-  bool assembleCol(real val, const SAM& sam, int n, size_t col)
+  bool assembleCol(Real val, const SAM& sam, int n, size_t col)
   {
     return this->assembleCol(RealArray(1,val),sam,n,col);
   }
@@ -174,15 +174,15 @@ public:
 
   //! \brief Truncates all small matrix elements to zero.
   //! \param[in] threshold Zero tolerance relative to largest diagonal element
-  virtual bool truncate(real threshold = real(1.0e-16));
+  virtual bool truncate(Real threshold = Real(1.0e-16));
 
   //! \brief Adds a matrix with similar sparsity pattern to the current matrix.
   //! \param[in] B     The matrix to be added
   //! \param[in] alpha Scale factor for matrix \b B
-  virtual bool add(const SystemMatrix& B, real alpha = real(1));
+  virtual bool add(const SystemMatrix& B, Real alpha = Real(1));
 
   //! \brief Adds the diagonal matrix \f$\sigma\f$\b I to the current matrix.
-  virtual bool add(real sigma);
+  virtual bool add(Real sigma);
 
   //! \brief Performs the matrix-vector multiplication \b C = \a *this * \b B.
   virtual bool multiply(const SystemVector& B, SystemVector& C);
@@ -219,7 +219,7 @@ protected:
   virtual std::ostream& write(std::ostream& os) const;
 
   //! \brief Returns the L-infinity norm of the matrix.
-  virtual real Linfnorm() const;
+  virtual Real Linfnorm() const;
 
 public:
   static bool printSLUstat; //!< Print solution statistics for SuperLU?
@@ -237,7 +237,7 @@ private:
 
   std::vector<int> IA; //!< Identifies the beginning of each row or column
   std::vector<int> JA; //!< Specifies column/row index of each nonzero element
-  utl::vector<real> A; //!< Stores the nonzero matrix elements
+  utl::vector<Real> A; //!< Stores the nonzero matrix elements
   ValueMap       elem; //!< Stores nonzero matrix elements with index pairs
   SparseSolver solver; //!< Which equation solver to use
   SuperLUdata*    slu; //!< Matrix data for the SuperLU equation solver

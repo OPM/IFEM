@@ -60,13 +60,13 @@ public:
   struct DOF
   {
     //! \brief Default constructor.
-    DOF() : node(0), dof(0), coeff(real(0)) {}
+    DOF() : node(0), dof(0), coeff(Real(0)) {}
 
     //! \brief Convenience constructor creating a valid DOF object.
     //! \param[in] n Node number (1...NNOD)
     //! \param[in] d The local DOF number (1...3)
     //! \param[in] c Associated coefficient or constrained value
-    DOF(int n, int d, real c = real(0)) : node(n), dof(d), coeff(c) {}
+    DOF(int n, int d, Real c = Real(0)) : node(n), dof(d), coeff(c) {}
 
     //! \brief Global stream operator printing a DOF instance.
     friend std::ostream& operator<<(std::ostream& s, const DOF& dof)
@@ -82,7 +82,7 @@ public:
 
     int  node;  //!< Node number identifying this DOF
     int  dof;   //!< Local DOF number within \a node
-    real coeff; //!< The constrained value, or master DOF scaling coefficient
+    Real coeff; //!< The constrained value, or master DOF scaling coefficient
   };
 
   //! \brief Constructor creating a constraint for a specified slave DOF
@@ -91,25 +91,25 @@ public:
   //! \param[in] d The local DOF number of the slave DOF (1...3)
   //! \param[in] c The actual value that this slave DOF is constrained to
   //! when there are no master DOFs, or all master DOFs are zero
-  MPC(int n, int d, real c = real(0)) : slave(n,d,c) { iceq = -1; }
+  MPC(int n, int d, Real c = Real(0)) : slave(n,d,c) { iceq = -1; }
 
   //! \brief Adds a master DOF to the constraint equation.
   //! \param[in] dof The the master DOF and associated coefficient to be added
   //! \param[in] tol Tolerance for comparison with zero,
   //! if the coefficient \a c is zero, the master DOF is not added
-  void addMaster(const DOF& dof, real tol = real(1.0e-8));
+  void addMaster(const DOF& dof, Real tol = Real(1.0e-8));
   //! \brief Adds a master DOF to the constraint equation.
   //! \param[in] n The node number of the master DOF (1...NNOD)
   //! \param[in] d The local DOF number of the master DOF (1...3)
   //! \param[in] c The coefficient that this master should be scaled with
   //! \param[in] tol Tolerance for comparison with zero
-  void addMaster(int n, int d, real c = real(1), real tol = real(1.0e-8))
+  void addMaster(int n, int d, Real c = Real(1), Real tol = Real(1.0e-8))
   {
     this->addMaster(DOF(n,d,c),tol);
   }
 
   //! \brief Updates the coefficient of the \a pos'th master DOF.
-  void updateMaster(size_t pos, real c)
+  void updateMaster(size_t pos, Real c)
   {
     if (pos < master.size())
       master[pos].coeff = c;
@@ -132,10 +132,10 @@ public:
   int renumberNodes(const std::map<int,int>& old2new, bool msg = false);
 
   //! \brief Increments the \a c0 coefficient by a given \a offset.
-  void addOffset(real offset) { slave.coeff += offset; }
+  void addOffset(Real offset) { slave.coeff += offset; }
 
   //! \brief Assigns a new \a c0 coefficient to the constraint equation.
-  void setSlaveCoeff(real c0) { slave.coeff = c0; }
+  void setSlaveCoeff(Real c0) { slave.coeff = c0; }
 
   //! \brief Returns a reference to the slave DOF.
   const DOF& getSlave() const          { return slave; }

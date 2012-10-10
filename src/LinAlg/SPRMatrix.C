@@ -66,7 +66,7 @@ void sprrnm_(int* mspar, int* msica, int* iWork, const int& lpu, int& ierr);
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
 //! \sa SAM library documentation.
 void sprtrs_(int* mspar, int* msica, int* mtrees, const int* meqn,
-	     const int& ndof, int* iWork, real* rinfo,
+	     const int& ndof, int* iWork, Real* rinfo,
 	     const int& lpu, int& ierr);
 //! \brief Performs the symbolic factorization of the system matrix.
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
@@ -81,22 +81,22 @@ void sprpmp_(const int* msica, const int* mtrees, const int* meqn,
 //! \brief Assembles an element matrix \a EM into the system matrix \a SM.
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
 //! \sa SAM library documentation.
-void spradm_(const real* eK, const real* ttcc, const int* mpar,
+void spradm_(const Real* eK, const Real* ttcc, const int* mpar,
 	     const int* mspar, const int* madof, const int* meqn,
 	     const int* mpmnpc, const int* mmnpc, const int* mpmceq,
 	     const int* mmceq, const int* msica, const int* mtrees,
-	     const int* msifa, const int* mvarnc, real* values, real* sysRHS,
+	     const int* msifa, const int* mvarnc, Real* values, Real* sysRHS,
 	     int* work, const int& iel, const int& nedof, const int& lpu,
 	     const int& nrhs, int& ierr);
 //! \brief Adds a scalar value into the diagonal of the system matrix.
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
 //! \sa SAM library documentation.
 void sprdad_(const int* mpar, const int* mtrees, const int* msifa,
-	     real* values, const real& sigma, const int& lpu, int& ierr);
+	     Real* values, const Real& sigma, const int& lpu, int& ierr);
 //! \brief Performs a matrix-matrix multiplication.
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
 //! \sa SAM library documentation.
-void sprprm_(const real* A, const real* B, real* C, real* rWork,
+void sprprm_(const Real* A, const Real* B, Real* C, Real* rWork,
 	     const int* mspar, const int* mtrees, const int* msifa,
 	     const int& m, const int& n, const int& ksa, const int& iflag,
 	     const int& lpu, int& ierr);
@@ -104,17 +104,17 @@ void sprprm_(const real* A, const real* B, real* C, real* rWork,
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
 //! \sa SAM library documentation.
 void sprsol_(const int& iop, const int* mspar, const int* mtrees,
-	     const int* msifa, real* value, real* B,
-	     const int& ldB, const int& nrhs, real* tol,
-	     int* iWork, real* rWork, const int& lpu, int& ierr);
+	     const int* msifa, Real* value, Real* B,
+	     const int& ldB, const int& nrhs, Real* tol,
+	     int* iWork, Real* rWork, const int& lpu, int& ierr);
 //! \brief Solves the generalized eigenproblem \a A*x=(lambda)*B*x.
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
 //! \sa SAM library documentation.
-void sprlax_(real* A, real* B, const real* tol,
+void sprlax_(Real* A, Real* B, const Real* tol,
 	     const int* mparA, const int* mtreeA, const int* msifA,
 	     const int* mparB, const int* mtreeB, const int* msifB,
-	     const int& iop, real* val, real* vec, real* rWork, int* iWork,
-	     const real& shift, const int& n, const int& nv, const int& maxlan,
+	     const int& iop, Real* val, Real* vec, Real* rWork, int* iWork,
+	     const Real& shift, const int& n, const int& nv, const int& maxlan,
 	     const int& lpu, const int& ipsw, int& ierr);
 }
 
@@ -125,14 +125,14 @@ SPRMatrix::SPRMatrix (const SPRMatrix& A)
   msifa  = new int[A.mpar[2]];
   mtrees = new int[A.mpar[35]];
   mvarnc = new int[2*A.mpar[7]];
-  values = new real[A.mpar[7] + A.mpar[15]];
+  values = new Real[A.mpar[7] + A.mpar[15]];
 
   memcpy(mpar  ,A.mpar  ,NS*sizeof(int));
   memcpy(msica ,A.msica ,A.mpar[1]*sizeof(int));
   memcpy(msifa ,A.msifa ,A.mpar[2]*sizeof(int));
   memcpy(mtrees,A.mtrees,A.mpar[35]*sizeof(int));
   memcpy(mvarnc,A.mvarnc,2*A.mpar[7]*sizeof(int));
-  memcpy(values,A.values,(A.mpar[7]+A.mpar[15])*sizeof(real));
+  memcpy(values,A.values,(A.mpar[7]+A.mpar[15])*sizeof(Real));
 }
 
 
@@ -215,7 +215,7 @@ void SPRMatrix::initAssembly (const SAM& sam, bool)
   // Analyze the sparsity pattern
   mtrees = new int[mpar[35]];
   iWork.resize(mpar[37]);
-  real rinfo[4];
+  Real rinfo[4];
   sprtrs_(mpar, msica, mtrees, sam.meqn, sam.ndof,
 	  &iWork.front(), rinfo, 6, ierr);
   if (ierr < 0)
@@ -244,8 +244,8 @@ void SPRMatrix::initAssembly (const SAM& sam, bool)
   sprpmp_(msica, mtrees, sam.meqn, sam.mpar, mpar, mvarnc);
 
   // Allocate space for the matrix itself
-  values = new real[mpar[7] + mpar[15]];
-  memset(values,0,(mpar[7] + mpar[15])*sizeof(real));
+  values = new Real[mpar[7] + mpar[15]];
+  memset(values,0,(mpar[7] + mpar[15])*sizeof(Real));
 #else
   std::cerr <<"SPRMatrix: SPR solver not available"<< std::endl;
 #endif
@@ -257,7 +257,7 @@ void SPRMatrix::init ()
   if (mpar[0] < 4) return;
 
   mpar[0] = 4;
-  memset(values,0,(mpar[7] + mpar[15])*sizeof(real));
+  memset(values,0,(mpar[7] + mpar[15])*sizeof(Real));
 }
 
 
@@ -266,7 +266,7 @@ bool SPRMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
 #ifdef HAS_SPR
   iWork.resize(mpar[38]);
   int ierr;
-  real Bdummy;
+  Real Bdummy;
   spradm_(eM.ptr(), sam.ttcc, sam.mpar, mpar,
 	  sam.madof, sam.meqn, sam.mpmnpc, sam.mmnpc, sam.mpmceq, sam.mmceq,
 	  msica, mtrees, msifa, mvarnc, values, &Bdummy, &iWork.front(),
@@ -299,7 +299,7 @@ bool SPRMatrix::assemble (const Matrix& eM, const SAM& sam,
 }
 
 
-bool SPRMatrix::add (const SystemMatrix& B, real alpha)
+bool SPRMatrix::add (const SystemMatrix& B, Real alpha)
 {
   const SPRMatrix* Bptr = dynamic_cast<const SPRMatrix*>(&B);
   if (!Bptr) return false;
@@ -313,7 +313,7 @@ bool SPRMatrix::add (const SystemMatrix& B, real alpha)
 }
 
 
-bool SPRMatrix::add (real sigma)
+bool SPRMatrix::add (Real sigma)
 {
 #ifdef HAS_SPR
   int ierr;
@@ -358,7 +358,7 @@ bool SPRMatrix::solve (SystemVector& B, bool newLHS)
   if (B.getType() != SystemVector::STD) return false;
 
 #ifdef HAS_SPR
-  real tol[3] = { real(1.0e-12), real(0), real(0) };
+  Real tol[3] = { Real(1.0e-12), Real(0), Real(0) };
   iWork.resize(MAX(mpar[12],mpar[13]+1));
   rWork.resize(MAX(mpar[16],mpar[13]));
   int iop = mpar[0] < 5 ? 3 : 4;
@@ -374,7 +374,7 @@ bool SPRMatrix::solve (SystemVector& B, bool newLHS)
 
 
 bool SPRMatrix::solveEig (SPRMatrix& B, RealArray& val, Matrix& vec, int nv,
-			  real shift, int iop)
+			  Real shift, int iop)
 {
   const int n = mpar[7];
   if (n < 1 || nv == 0) return true; // No equations to solve
@@ -382,7 +382,7 @@ bool SPRMatrix::solveEig (SPRMatrix& B, RealArray& val, Matrix& vec, int nv,
 
 #if HAS_SPR > 1
   std::cout <<"  Solving sparse eigenproblem using SAM::SPRLAX"<< std::endl;
-  real tol[3] = { real(1.0e-8), real(1.0e-12), real(1.0e-8) };
+  Real tol[3] = { Real(1.0e-8), Real(1.0e-12), Real(1.0e-8) };
   int maxlan = 3*nv+12;
   if (maxlan > n) maxlan = n;
   int ierr = 0;
@@ -405,8 +405,8 @@ bool SPRMatrix::solveEig (SPRMatrix& B, RealArray& val, Matrix& vec, int nv,
 }
 
 
-real SPRMatrix::Linfnorm () const
+Real SPRMatrix::Linfnorm () const
 {
   std::cerr <<"SPRMatrix::Linfnorm not yet implemented"<< std::endl;
-  return real(0);
+  return Real(0);
 }

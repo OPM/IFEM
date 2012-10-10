@@ -171,7 +171,7 @@ bool SAMpatchPara::assembleSystem (SystemVector& sysRHS,
   RealArray eSv(eS);
   for (i = 0; i < l2g.size(); i++) {
     if (mpmceq[--l2g[i]] != 0)
-      eSv[i] = real(0);
+      eSv[i] = Real(0);
     l2g[i] = meqn[l2g[i]]-1;
   }
 
@@ -230,7 +230,7 @@ bool SAMpatchPara::getElmEqns (IntVec& meen, int iel, int nedof) const
 
 
 bool SAMpatchPara::expandSolution (const SystemVector& solVec,
-				   Vector& dofVec, real scaleSD) const
+				   Vector& dofVec, Real scaleSD) const
 {
   if (solVec.dim() < (size_t)nleq) return false;
 
@@ -258,14 +258,14 @@ bool SAMpatchPara::expandSolution (const SystemVector& solVec,
 }
 
 
-real SAMpatchPara::dot (const Vector& x, const Vector& y, char dofType) const
+Real SAMpatchPara::dot (const Vector& x, const Vector& y, char dofType) const
 {
-  real globVal = this->SAM::dot(x,y,dofType);
+  Real globVal = this->SAM::dot(x,y,dofType);
 
 #ifdef PARALLEL_PETSC
   if (nProc > 1)
   {
-    real locVal = globVal;
+    Real locVal = globVal;
 
     for (size_t i = 0; i < ghostNodes.size(); i++) {
       int inod = ghostNodes[i];
@@ -282,7 +282,7 @@ real SAMpatchPara::dot (const Vector& x, const Vector& y, char dofType) const
 }
 
 
-real SAMpatchPara::normL2 (const Vector& x, char dofType) const
+Real SAMpatchPara::normL2 (const Vector& x, char dofType) const
 {
 #ifdef PARALLEL_PETSC
   if (nProc > 1 && nnodGlob > 1)
@@ -294,9 +294,9 @@ real SAMpatchPara::normL2 (const Vector& x, char dofType) const
 }
 
 
-real SAMpatchPara::normInf (const Vector& x, size_t& comp, char dofType) const
+Real SAMpatchPara::normInf (const Vector& x, size_t& comp, char dofType) const
 {
-  real locmax = this->SAM::normInf(x,comp,dofType);
+  Real locmax = this->SAM::normInf(x,comp,dofType);
 #ifdef PARALLEL_PETSC
   if (nProc > 1)
   {
@@ -349,7 +349,7 @@ bool SAMpatchPara::initConstraintEqs (const std::vector<ASMbase*>& model)
   if (nceq < 1) return true;
 
   mmceq  = new int[nmmceq];
-  ttcc   = new real[nmmceq];
+  ttcc   = new Real[nmmceq];
   int ip = 1;
   for (j = 0; j < model.size(); j++)
     for (cit = model[j]->begin_MPC(); cit != model[j]->end_MPC(); cit++, ip++)

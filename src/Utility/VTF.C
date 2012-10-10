@@ -27,7 +27,7 @@
 #include <cstdio>
 
 
-real VTF::vecOffset[3] = { 0.0, 0.0, 0.0 };
+Real VTF::vecOffset[3] = { 0.0, 0.0, 0.0 };
 
 
 VTF::VTF (const char* filename, int type)
@@ -289,7 +289,7 @@ bool VTF::writeTransformation (const Vec3& X, const Tensor& T,
 }
 
 
-bool VTF::writeVres (const std::vector<real>& nodeResult,
+bool VTF::writeVres (const std::vector<Real>& nodeResult,
 		     int idBlock, int geomID, size_t nvc)
 {
   if (!myFile) return true;
@@ -344,7 +344,7 @@ bool VTF::writeVres (const std::vector<real>& nodeResult,
 }
 
 
-bool VTF::writeEres (const std::vector<real>& elementResult,
+bool VTF::writeEres (const std::vector<Real>& elementResult,
 		     int idBlock, int geomID)
 {
   if (!myFile) return true;
@@ -385,7 +385,7 @@ bool VTF::writeEres (const std::vector<real>& elementResult,
 }
 
 
-bool VTF::writeNres (const std::vector<real>& nodalResult,
+bool VTF::writeNres (const std::vector<Real>& nodalResult,
 		     int idBlock, int geomID)
 {
   if (!myFile) return true;
@@ -424,7 +424,7 @@ bool VTF::writeNres (const std::vector<real>& nodalResult,
 }
 
 
-bool VTF::writeNfunc (const RealFunc& f, real time, int idBlock, int geomID)
+bool VTF::writeNfunc (const RealFunc& f, Real time, int idBlock, int geomID)
 {
   if (!myFile) return true;
 
@@ -710,7 +710,7 @@ bool VTF::writeSblk (const std::vector<int>& sBlockIDs, const char* resultName,
 }
 
 
-bool VTF::writeState (int iStep, const char* fmt, real refValue, int refType)
+bool VTF::writeState (int iStep, const char* fmt, Real refValue, int refType)
 {
 
   char stepName[32];

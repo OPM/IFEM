@@ -30,7 +30,7 @@ protected:
   typedef unsigned short int t_ind; //!< Tensor index type
 
   const t_ind       n; //!< Number of spatial dimensions for the tensor
-  std::vector<real> v; //!< The actual tensor component values
+  std::vector<Real> v; //!< The actual tensor component values
 
   //! \brief Returns a 0-based array index for the given tensor indices.
   //! \details Assuming column-wise storage for non-symmetric tensors.
@@ -45,7 +45,7 @@ private:
 
 public:
   //! \brief Constructor creating a zero tensor.
-  Tensor(const t_ind nsd) : n(nsd) { v.resize(n*n,real(0)); }
+  Tensor(const t_ind nsd) : n(nsd) { v.resize(n*n,Real(0)); }
   //! \brief Constructor creating a transformation from a face normal vector.
   Tensor(const Vec3& vn);
   //! \brief Constructor creating a transformation from two tangent vectors.
@@ -56,43 +56,43 @@ public:
   Tensor(const Tensor& T);
 
   //! \brief Sets \a this to the 0-tensor.
-  void zero() { std::fill(v.begin(),v.end(),real(0)); }
+  void zero() { std::fill(v.begin(),v.end(),Real(0)); }
 
   //! \brief Type casting to a one-dimensional vector, for referencing.
-  operator const std::vector<real>&() const { return v; }
+  operator const std::vector<Real>&() const { return v; }
   //! \brief Type casting to a one-dimensional vector, for assignment.
-  operator std::vector<real>&() { return v; }
+  operator std::vector<Real>&() { return v; }
 
   //! \brief Reference through a pointer.
-  const real* ptr() const { return &v.front(); }
+  const Real* ptr() const { return &v.front(); }
 
   //! \brief Index-1 based component reference.
-  const real& operator()(t_ind i, t_ind j) const { return v[this->index(i,j)]; }
+  const Real& operator()(t_ind i, t_ind j) const { return v[this->index(i,j)]; }
   //! \brief Index-1 based component access.
-  real& operator()(t_ind i, t_ind j) { return v[this->index(i,j)]; }
+  Real& operator()(t_ind i, t_ind j) { return v[this->index(i,j)]; }
 
   //! \brief Assignment operator.
   Tensor& operator=(const Tensor& T);
   //! \brief Overloaded assignment operator.
-  Tensor& operator=(const std::vector<real>& val);
+  Tensor& operator=(const std::vector<Real>& val);
   //! \brief Overloaded assignment operator.
-  Tensor& operator=(real val);
+  Tensor& operator=(Real val);
 
   //! \brief Incrementation operator.
   Tensor& operator+=(const Tensor& T);
   //! \brief Incrementation operator.
-  Tensor& operator+=(real val);
+  Tensor& operator+=(Real val);
 
   //! \brief Decrementation operator.
   Tensor& operator-=(const Tensor& T);
   //! \brief Decrementation operator.
-  Tensor& operator-=(real val);
+  Tensor& operator-=(Real val);
 
   //! \brief Scaling operator.
-  Tensor& operator*=(real val);
+  Tensor& operator*=(Real val);
 
   //! \brief Returns the inner-product of \a *this and the given tensor.
-  real innerProd(const Tensor& T) const;
+  Real innerProd(const Tensor& T) const;
 
   //! \brief Returns the dimension of this tensor.
   t_ind dim() const { return n; }
@@ -104,7 +104,7 @@ public:
   virtual bool symmetric() const { return false; }
 
   //! brief Query whether this tensor is zero within the given tolerance.
-  bool isZero(real tol = real(1.0e-6)) const;
+  bool isZero(Real tol = Real(1.0e-6)) const;
 
   //! \brief Transposes the tensor.
   virtual Tensor& transpose();
@@ -112,15 +112,15 @@ public:
   virtual Tensor& symmetrize();
 
   //! \brief Returns the trace of the tensor.
-  virtual real trace() const;
+  virtual Real trace() const;
 
   //! \brief Returns the determinant of the tensor.
-  virtual real det() const;
+  virtual Real det() const;
 
   //! \brief Inverts the tensor.
   //! \param[in] tol Division by zero tolerance
   //! \return Determinant of the tensor
-  virtual real inverse(real tol = real(0));
+  virtual Real inverse(Real tol = Real(0));
 
   // Global operators
 
@@ -182,7 +182,7 @@ public:
   //! where the \f$\sigma_{zz}\f$ component is nonzero.
   SymmTensor(const t_ind nsd, bool with33 = false);
   //! \brief Constructor creating a symmetric tensor from a vector.
-  SymmTensor(const std::vector<real>& vec);
+  SymmTensor(const std::vector<Real>& vec);
   //! \brief Copy constructor.
   SymmTensor(const SymmTensor& T) : Tensor(0) { this->copy(T); }
 
@@ -198,15 +198,15 @@ public:
   virtual Tensor& symmetrize() { return *this; }
 
   //! \brief Returns the trace of the symmetric tensor.
-  virtual real trace() const;
+  virtual Real trace() const;
 
   //! \brief Returns the determinant of the symmetric tensor.
-  virtual real det() const;
+  virtual Real det() const;
 
   //! \brief Inverts the symmetric tensor.
   //! \param[in] tol Division by zero tolerance
   //! \return Determinant of the tensor
-  virtual real inverse(real tol = real(0));
+  virtual Real inverse(Real tol = Real(0));
 
   //! \brief Congruence transformation of a symmetric tensor.
   SymmTensor& transform(const Tensor& T);
@@ -215,21 +215,21 @@ public:
   SymmTensor& rightCauchyGreen(const Tensor& F);
 
   //! \brief Returns the inner-product (L2-norm) of the symmetric tensor.
-  real L2norm(bool doSqrt = true) const;
+  Real L2norm(bool doSqrt = true) const;
   //! \brief Returns the von Mises value of the symmetric tensor.
-  real vonMises(bool doSqrt = true) const;
+  Real vonMises(bool doSqrt = true) const;
   //! \brief Computes the principal values of the symmetric tensor.
   void principal(Vec3& p) const;
 
   // Global operators
 
   //! \brief Adding a scaled unit tensor to a symmetric tensor.
-  friend SymmTensor operator+(const SymmTensor& T, real a);
+  friend SymmTensor operator+(const SymmTensor& T, Real a);
   //! \brief Subtracting a scaled unit tensor from a symmetric tensor.
-  friend SymmTensor operator-(const SymmTensor& T, real a);
+  friend SymmTensor operator-(const SymmTensor& T, Real a);
 
   //! \brief Multiplication between a scalar and a symmetric tensor.
-  friend SymmTensor operator*(real a, const SymmTensor& T);
+  friend SymmTensor operator*(Real a, const SymmTensor& T);
 };
 
 
@@ -246,7 +246,7 @@ inline SymmTensor operator-(const SymmTensor& A, const SymmTensor& B)
 }
 
 //! \brief Inner-product of two symmetric tensors.
-inline real operator*(const SymmTensor& A, const SymmTensor& B)
+inline Real operator*(const SymmTensor& A, const SymmTensor& B)
 {
   return A.innerProd(B);
 }
@@ -262,8 +262,8 @@ class SymmTensor4
 
   t_ind                    n; //!< Number of spatial dimensions for the tensor
   t_ind                    m; //!< Dimension of the matrix representation
-  const std::vector<real>& v; //!< The actual tensor component values
-  real*                  ptr; //!< Non-const pointer to tensor component values
+  const std::vector<Real>& v; //!< The actual tensor component values
+  Real*                  ptr; //!< Non-const pointer to tensor component values
 
   //! \brief Returns a 0-based array index for the given row and column indices.
   //! \details Symmetric second-order tensors in 3D are assumed stored with the
@@ -283,12 +283,12 @@ public:
   //! \brief The constructor creates a tensor from a vector of components.
   //! \details The provided vector is assumed to contain the components of the
   //! matrix representation of the tensor, stored in a one-dimensional array.
-  SymmTensor4(const std::vector<real>& x, t_ind nsd = 3);
+  SymmTensor4(const std::vector<Real>& x, t_ind nsd = 3);
 
   //! \brief Index-1 based component reference.
-  const real& operator()(t_ind i, t_ind j, t_ind d, t_ind l) const;
+  const Real& operator()(t_ind i, t_ind j, t_ind d, t_ind l) const;
   //! \brief Index-1 based component access.
-  real& operator()(t_ind i, t_ind j, t_ind k, t_ind l);
+  Real& operator()(t_ind i, t_ind j, t_ind k, t_ind l);
 };
 
 

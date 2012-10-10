@@ -40,10 +40,10 @@ bool VTU::writeGrid(const ElementBlock* block, const char* name, int iStep)
 }
 
 
-bool VTU::writeVres(const std::vector<real>& field, int blockID, int geomID,
+bool VTU::writeVres(const std::vector<Real>& field, int blockID, int geomID,
                     int components)
 {
-  m_field[blockID].data = new std::vector<real>(field);
+  m_field[blockID].data = new std::vector<Real>(field);
   m_field[blockID].components = components;
   m_field[blockID].patch = geomID;
   m_field[blockID].cellData = false;
@@ -51,18 +51,18 @@ bool VTU::writeVres(const std::vector<real>& field, int blockID, int geomID,
 }
 
 
-bool VTU::writeNres(const std::vector<real>& field, int blockID, int geomID)
+bool VTU::writeNres(const std::vector<Real>& field, int blockID, int geomID)
 {
-  m_field[blockID].data = new std::vector<real>(field);
+  m_field[blockID].data = new std::vector<Real>(field);
   m_field[blockID].components = 1;
   m_field[blockID].patch = geomID;
   m_field[blockID].cellData = false;
   return true;
 }
 
-bool VTU::writeEres(const std::vector<real>& field, int blockID, int geomID)
+bool VTU::writeEres(const std::vector<Real>& field, int blockID, int geomID)
 {
-  m_field[blockID].data = new std::vector<real>(field);
+  m_field[blockID].data = new std::vector<Real>(field);
   m_field[blockID].components = 1;
   m_field[blockID].patch = geomID;
   m_field[blockID].cellData = true;
@@ -95,7 +95,7 @@ bool VTU::writeSblk(const std::vector<int>& sBlockIDs,
 }
 
 
-bool VTU::writeState(int iStep, const char* fmt, real refValue, int refType)
+bool VTU::writeState(int iStep, const char* fmt, Real refValue, int refType)
 {
   std::ofstream file;
   std::stringstream str;

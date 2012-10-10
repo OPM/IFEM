@@ -38,7 +38,7 @@ class EvalFunc : public ScalarFunc
   ExprEval::FunctionList*  f; //!< Pointer to list of function in the expression
   ExprEval::ValueList*     v; //!< Pointer to list of variables and constants
 
-  real* arg; //!< Pointer to the function argument
+  Real* arg; //!< Pointer to the function argument
 
 public:
   //! \brief The constructor parses the expression string.
@@ -48,7 +48,7 @@ public:
 
 protected:
   //! \brief Evaluates the function expression.
-  virtual real evaluate(const real& x) const;
+  virtual Real evaluate(const Real& x) const;
 
 private:
 #ifdef USE_OPENMP
@@ -67,10 +67,10 @@ class EvalFunction : public RealFunc
   ExprEval::FunctionList*  f; //!< Pointer to list of function in the expression
   ExprEval::ValueList*     v; //!< Pointer to list of variables and constants
 
-  real* x; //!< Pointer to the X-coordinate of the function argument
-  real* y; //!< Pointer to the Y-coordinate of the function argument
-  real* z; //!< Pointer to the Z-coordinate of the function argument
-  real* t; //!< Pointer to the time coordinate of the function argument
+  Real* x; //!< Pointer to the X-coordinate of the function argument
+  Real* y; //!< Pointer to the Y-coordinate of the function argument
+  Real* z; //!< Pointer to the Z-coordinate of the function argument
+  Real* t; //!< Pointer to the time coordinate of the function argument
 
 public:
   //! \brief The constructor parses the expression string.
@@ -80,7 +80,7 @@ public:
 
 protected:
   //! \brief Evaluates the function expression.
-  virtual real evaluate(const Vec3& X) const;
+  virtual Real evaluate(const Vec3& X) const;
 
 private:
 #ifdef USE_OPENMP

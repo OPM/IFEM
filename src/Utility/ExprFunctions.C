@@ -50,12 +50,12 @@ EvalFunc::~EvalFunc ()
 }
 
 
-real EvalFunc::evaluate (const real& x) const
+Real EvalFunc::evaluate (const Real& x) const
 {
 #ifdef USE_OPENMP
   omp_set_lock(const_cast<omp_lock_t*>(&lock));
 #endif
-  real result = real(0);
+  Real result = Real(0);
   try {
     *arg = x;
     result = expr->Evaluate();
@@ -109,18 +109,18 @@ EvalFunction::~EvalFunction ()
 }
 
 
-real EvalFunction::evaluate (const Vec3& X) const
+Real EvalFunction::evaluate (const Vec3& X) const
 {
   const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
 #ifdef USE_OPENMP
   omp_set_lock(const_cast<omp_lock_t*>(&lock));
 #endif
-  real result = real(0);
+  Real result = Real(0);
   try {
     *x = X.x;
     *y = X.y;
     *z = X.z;
-    *t = Xt ? Xt->t : real(0);
+    *t = Xt ? Xt->t : Real(0);
     result = expr->Evaluate();
   } catch(...) {
     std::cerr <<" *** Error evaluating expression function."<< std::endl;

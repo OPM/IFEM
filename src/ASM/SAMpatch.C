@@ -225,7 +225,7 @@ bool SAMpatch::initConstraintEqs (const ASMVec& model)
   if (nceq < 1) return true;
 
   mmceq  = new int[nmmceq];
-  ttcc   = new real[nmmceq];
+  ttcc   = new Real[nmmceq];
   for (j = 0; j < model.size(); j++)
     for (cit = model[j]->begin_MPC(); cit != model[j]->end_MPC(); cit++, ip++)
     {

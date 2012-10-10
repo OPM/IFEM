@@ -20,19 +20,19 @@ class Vec3;
 
 
 //! \brief Multiplication of a matrix and a vector.
-Vec3 operator*(const utl::matrix<real>& A, const std::vector<real>& x);
+Vec3 operator*(const utl::matrix<Real>& A, const std::vector<Real>& x);
 
 //! \brief Multiplication of a vector and a scalar.
-Vec3 operator*(const Vec3& a, real value);
+Vec3 operator*(const Vec3& a, Real value);
 
 //! \brief Multiplication of a scalar and a vector.
-Vec3 operator*(real value, const Vec3& a);
+Vec3 operator*(Real value, const Vec3& a);
 
 //! \brief Division of a vector by a scalar,
-Vec3 operator/(const Vec3& a, real value);
+Vec3 operator/(const Vec3& a, Real value);
 
 //! \brief Dot product between two vectors.
-real operator*(const Vec3& a, const Vec3& b);
+Real operator*(const Vec3& a, const Vec3& b);
 
 //! \brief Summation of two vectors.
 Vec3 operator+(const Vec3& a, const Vec3& b);

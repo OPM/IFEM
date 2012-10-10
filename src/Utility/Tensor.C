@@ -144,7 +144,7 @@ Tensor& Tensor::operator= (const Tensor& T)
 }
 
 
-Tensor& Tensor::operator= (const std::vector<real>& val)
+Tensor& Tensor::operator= (const std::vector<Real>& val)
 {
   if (val.size() == v.size())
     std::copy(val.begin(),val.end(),v.begin());
@@ -153,14 +153,14 @@ Tensor& Tensor::operator= (const std::vector<real>& val)
   else
   {
     std::copy(val.begin(),val.end(),v.begin());
-    std::fill(v.begin()+val.size(),v.end(),real(0));
+    std::fill(v.begin()+val.size(),v.end(),Real(0));
   }
 
   return *this;
 }
 
 
-Tensor& Tensor::operator= (real val)
+Tensor& Tensor::operator= (Real val)
 {
   this->zero();
 
@@ -189,7 +189,7 @@ Tensor& Tensor::operator+= (const Tensor& T)
 }
 
 
-Tensor& Tensor::operator+= (real val)
+Tensor& Tensor::operator+= (Real val)
 {
   t_ind i, j, inc = this->symmetric() ? 1 : n+1;
   for (i = j = 0; i < n; i++, j += inc)
@@ -216,7 +216,7 @@ Tensor& Tensor::operator-= (const Tensor& T)
 }
 
 
-Tensor& Tensor::operator-= (real val)
+Tensor& Tensor::operator-= (Real val)
 {
   t_ind i, j, inc = this->symmetric() ? 1 : n+1;
   for (i = j = 0; i < n; i++, j += inc)
@@ -229,7 +229,7 @@ Tensor& Tensor::operator-= (real val)
 }
 
 
-Tensor& Tensor::operator*= (real val)
+Tensor& Tensor::operator*= (Real val)
 {
   for (t_ind i = 0; i < v.size(); i++)
     v[i] *= val;
@@ -238,9 +238,9 @@ Tensor& Tensor::operator*= (real val)
 }
 
 
-real Tensor::innerProd (const Tensor& T) const
+Real Tensor::innerProd (const Tensor& T) const
 {
-  real value = real(0);
+  Real value = Real(0);
   if (v.size() == T.v.size())
     for (t_ind i = 0; i < v.size(); i++)
       value += v[i]*T.v[i];
@@ -260,7 +260,7 @@ real Tensor::innerProd (const Tensor& T) const
 }
 
 
-bool Tensor::isZero (real tol) const
+bool Tensor::isZero (Real tol) const
 {
   for (t_ind i = 0; i < v.size(); i++)
     if (v[i] > tol || -v[i] > tol)
@@ -302,7 +302,7 @@ Tensor& Tensor::symmetrize ()
 }
 
 
-real Tensor::trace () const
+Real Tensor::trace () const
 {
   if (n == 3)
     return v[0] + v[4] + v[8];
@@ -311,11 +311,11 @@ real Tensor::trace () const
   else if (n == 1)
     return v[0];
 
-  return real(0);
+  return Real(0);
 }
 
 
-real Tensor::det () const
+Real Tensor::det () const
 {
   if (n == 3)
     return v[0]*(v[4]*v[8] - v[5]*v[7])
@@ -326,24 +326,24 @@ real Tensor::det () const
   else if (n == 1)
     return v[0];
 
-  return real(0);
+  return Real(0);
 }
 
 
-real Tensor::inverse (real tol)
+Real Tensor::inverse (Real tol)
 {
-  real det = this->det();
+  Real det = this->det();
   if (det <= tol && det >= -tol)
   {
     std::cerr <<"Tensor::inverse: Singular tensor |T|="<< det << std::endl;
-    return real(0);
+    return Real(0);
   }
 
   if (n == 3)
   {
-    real T11 = v[0]; real T12 = v[3]; real T13 = v[6];
-    real T21 = v[1]; real T22 = v[4]; real T23 = v[7];
-    real T31 = v[2]; real T32 = v[5]; real T33 = v[8];
+    Real T11 = v[0]; Real T12 = v[3]; Real T13 = v[6];
+    Real T21 = v[1]; Real T22 = v[4]; Real T23 = v[7];
+    Real T31 = v[2]; Real T32 = v[5]; Real T33 = v[8];
     v[0] =  (T22*T33 - T32*T23) / det;
     v[1] = -(T21*T33 - T31*T23) / det;
     v[2] =  (T21*T32 - T31*T22) / det;
@@ -356,15 +356,15 @@ real Tensor::inverse (real tol)
   }
   else if (n == 2)
   {
-    real T11 = v[0]; real T12 = v[2];
-    real T21 = v[1]; real T22 = v[3];
+    Real T11 = v[0]; Real T12 = v[2];
+    Real T21 = v[1]; Real T22 = v[3];
     v[0] =  T22 / det;
     v[1] = -T21 / det;
     v[2] = -T12 / det;
     v[3] =  T11 / det;
   }
   else if (n == 1)
-    v[0] = real(1) / det;
+    v[0] = Real(1) / det;
 
   return det;
 }
@@ -442,12 +442,12 @@ bool SymmTensor::redim (const t_ind nsd, bool with33)
   if (n == nsd) return false;
 
   const_cast<t_ind&>(n) = nsd;
-  v.resize(nsd == 2 && with33 ? 4 : n*(n+1)/2, real(0));
+  v.resize(nsd == 2 && with33 ? 4 : n*(n+1)/2, Real(0));
   return true;
 }
 
 
-SymmTensor::SymmTensor (const std::vector<real>& vec) : Tensor(0)
+SymmTensor::SymmTensor (const std::vector<Real>& vec) : Tensor(0)
 {
   if (vec.size() > 5)
     this->redim(3);
@@ -478,7 +478,7 @@ SymmTensor& SymmTensor::transform (const Tensor& T)
 {
   if (T.symmetric()) return *this;
 
-  real S11, S12, S13, S21, S22, S23, S31, S32, S33;
+  Real S11, S12, S13, S21, S22, S23, S31, S32, S33;
   switch (n) {
   case 2:
     if (T.dim() > 1)
@@ -539,9 +539,9 @@ SymmTensor& SymmTensor::transform (const Tensor& T)
 }
 
 
-real SymmTensor::trace () const
+Real SymmTensor::trace () const
 {
-  real t = real(0);
+  Real t = Real(0);
 
   if (n == 3 || v.size() == 4)
     t = v[0] + v[1] + v[2];
@@ -554,9 +554,9 @@ real SymmTensor::trace () const
 }
 
 
-real SymmTensor::det () const
+Real SymmTensor::det () const
 {
-  real d = real(0);
+  Real d = Real(0);
 
   if (n == 3)
     d = v[0]*(v[1]*v[2] - v[4]*v[4])
@@ -574,20 +574,20 @@ real SymmTensor::det () const
 }
 
 
-real SymmTensor::inverse (real tol)
+Real SymmTensor::inverse (Real tol)
 {
-  real det = this->det();
+  Real det = this->det();
   if (det <= tol && det >= -tol)
   {
     std::cerr <<"SymmTensor::inverse: Singular tensor |T|="<< det << std::endl;
-    return real(0);
+    return Real(0);
   }
 
   if (n == 3)
   {
-    real T11 = v[0];
-    real T21 = v[3]; real T22 = v[1];
-    real T31 = v[5]; real T32 = v[4]; real T33 = v[2];
+    Real T11 = v[0];
+    Real T21 = v[3]; Real T22 = v[1];
+    Real T31 = v[5]; Real T32 = v[4]; Real T33 = v[2];
     v[0] =  (T22*T33 - T32*T32) / det;
     v[1] =  (T11*T33 - T31*T31) / det;
     v[2] =  (T11*T22 - T21*T21) / det;
@@ -597,8 +597,8 @@ real SymmTensor::inverse (real tol)
   }
   else if (n == 2)
   {
-    real T11 = v.front();
-    real T21 = v.back(); real T22 = v[1];
+    Real T11 = v.front();
+    Real T21 = v.back(); Real T22 = v[1];
     v.front()=  T22 / det;
     v[1]     =  T11 / det;
     v.back() = -T21 / det;
@@ -611,7 +611,7 @@ real SymmTensor::inverse (real tol)
     }
   }
   else if (n == 1)
-    v.front() = real(1) / det;
+    v.front() = Real(1) / det;
 
   return det;
 }
@@ -645,7 +645,7 @@ SymmTensor& SymmTensor::rightCauchyGreen (const Tensor& F)
 }
 
 
-real SymmTensor::L2norm (bool doSqrt) const
+Real SymmTensor::L2norm (bool doSqrt) const
 {
   double l2n = 0.0;
   for (t_ind i = 0; i < v.size(); i++)
@@ -664,7 +664,7 @@ real SymmTensor::L2norm (bool doSqrt) const
   \f]
 */
 
-real SymmTensor::vonMises (bool doSqrt) const
+Real SymmTensor::vonMises (bool doSqrt) const
 {
   double vms = 0.0;
   if (n == 3)
@@ -698,37 +698,37 @@ void SymmTensor::principal (Vec3& p) const
   if (n < 2) return;
 
   // Compute mean and deviatoric (upper triangular part) tensors
-  const real tol(1.0e-12);
+  const Real tol(1.0e-12);
 
-  real b1 = this->trace() / real(3);
-  real s1 = v[0] - b1;
-  real s2 = v[1] - b1;
-  real s3 = v.size() > 3 ? v[2] - b1 : 0.0;
-  real s4 = n > 2 ? v[3] : v.back();
-  real s5 = n > 2 ? v[4] : 0.0;
-  real s6 = n > 2 ? v[5] : 0.0;
+  Real b1 = this->trace() / Real(3);
+  Real s1 = v[0] - b1;
+  Real s2 = v[1] - b1;
+  Real s3 = v.size() > 3 ? v[2] - b1 : 0.0;
+  Real s4 = n > 2 ? v[3] : v.back();
+  Real s5 = n > 2 ? v[4] : 0.0;
+  Real s6 = n > 2 ? v[5] : 0.0;
 
   // Compute 2nd and 3rd invariants of deviator J_2 and J_3
 
-  real c1 = s4*s4;
-  real c2 = s5*s5;
-  real c3 = s6*s6;
-  real b2 = (s1*s1 + s2*s2 + s3*s3)/real(2) + c1 + c2 + c3;
+  Real c1 = s4*s4;
+  Real c2 = s5*s5;
+  Real c3 = s6*s6;
+  Real b2 = (s1*s1 + s2*s2 + s3*s3)/Real(2) + c1 + c2 + c3;
   if (b2 <= tol*b1*b1)
   {
     p = s1;
     return;
   }
 
-  real b3 = s1*s2*s3 + (s4+s4)*s5*s6 + s1*(c1-c2) + s2*(c1-c3);
+  Real b3 = s1*s2*s3 + (s4+s4)*s5*s6 + s1*(c1-c2) + s2*(c1-c3);
 
   // Set constants
 
-  c1 = real(2)*sqrt(b2/real(3));
-  c2 = real(4)*b3;
+  c1 = Real(2)*sqrt(b2/Real(3));
+  c2 = Real(4)*b3;
   c3 = c1*c1*c1;
-  real al = atan2(sqrt(fabs(c3*c3-c2*c2)),c2)/real(3);
-  real pi23 = M_PI*real(2)/real(3);
+  Real al = atan2(sqrt(fabs(c3*c3-c2*c2)),c2)/Real(3);
+  Real pi23 = M_PI*Real(2)/Real(3);
 
   // Set principal values
 
@@ -748,7 +748,7 @@ void SymmTensor::principal (Vec3& p) const
   \brief Adding a scaled unit tensor to a symmetric tensor.
 */
 
-SymmTensor operator+ (const SymmTensor& T, real a)
+SymmTensor operator+ (const SymmTensor& T, Real a)
 {
   SymmTensor S(T);
 
@@ -766,7 +766,7 @@ SymmTensor operator+ (const SymmTensor& T, real a)
   \brief Subtracting a scaled unit tensor from a symmetric tensor.
 */
 
-SymmTensor operator- (const SymmTensor& T, real a)
+SymmTensor operator- (const SymmTensor& T, Real a)
 {
   SymmTensor S(T);
 
@@ -784,7 +784,7 @@ SymmTensor operator- (const SymmTensor& T, real a)
   \brief Multiplication between a scalar and a symmetric tensor.
 */
 
-SymmTensor operator* (real a, const SymmTensor& T)
+SymmTensor operator* (Real a, const SymmTensor& T)
 {
   SymmTensor S(T.dim(), T.v.size() == 4);
 
@@ -795,7 +795,7 @@ SymmTensor operator* (real a, const SymmTensor& T)
 }
 
 
-SymmTensor4::SymmTensor4 (const std::vector<real>& x, t_ind nsd)
+SymmTensor4::SymmTensor4 (const std::vector<Real>& x, t_ind nsd)
   : n(nsd), m(0), v(x)
 {
   if (n == 3)
@@ -809,17 +809,17 @@ SymmTensor4::SymmTensor4 (const std::vector<real>& x, t_ind nsd)
     std::cerr <<" *** Invalid fourth-order tensor,"
 	      <<" matrix represention too small, size="<< v.size() << std::endl;
 
-  ptr = (real*)&v.front();
+  ptr = (Real*)&v.front();
 }
 
 
-const real& SymmTensor4::operator() (t_ind i, t_ind j, t_ind k, t_ind l) const
+const Real& SymmTensor4::operator() (t_ind i, t_ind j, t_ind k, t_ind l) const
 {
   return v[index(i,j)*m+index(k,l)];
 }
 
 
-real& SymmTensor4::operator() (t_ind i, t_ind j, t_ind k, t_ind l)
+Real& SymmTensor4::operator() (t_ind i, t_ind j, t_ind k, t_ind l)
 {
   return ptr[index(i,j)*m+index(k,l)];
 }

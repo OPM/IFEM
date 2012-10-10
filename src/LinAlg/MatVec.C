@@ -51,13 +51,13 @@ bool utl::transform (Matrix& A, const Matrix& T, size_t K)
   if (M < A.cols() || N < T.cols()) return false;
   if (K < 1 || K+N-1 > M || N > 3) return false;
 
-  real WA[3];
+  Real WA[3];
   size_t i, ii, j, jj, l, KN = K+N-1;
   for (jj = K; jj <= M; jj++)
   {
     for (i = 1; i <= N; i++)
     {
-      WA[i-1] = real(0);
+      WA[i-1] = Real(0);
       for (l = 1, ii = K; l <= N; l++, ii++)
 	WA[i-1] += T(l,i)*A(ii,jj);
     }
@@ -74,7 +74,7 @@ bool utl::transform (Matrix& A, const Matrix& T, size_t K)
     size_t JS = ii > K ? ii-K+1 : 1;
     for (j = JS; j <= N; j++)
     {
-      WA[j-1] = real(0);
+      WA[j-1] = Real(0);
       for (l = 1, jj = K; l <= N; l++, jj++)
 	WA[j-1] += A(ii,jj)*T(l,j);
     }
@@ -101,12 +101,12 @@ bool utl::transform (Vector& V, const Matrix& T, size_t K, bool transpose)
   if (N < T.cols()) return false;
   if (K < 1 || K+N-1 > M || N > 3) return false;
 
-  real WA[3];
+  Real WA[3];
   size_t i, ii, j;
   if (transpose)
     for (i = 1; i <= N; i++)
     {
-      WA[i-1] = real(0);
+      WA[i-1] = Real(0);
       for (j = 1, ii = K; j <= N; j++, ii++)
 	WA[i-1] += T(j,i)*V(ii);
     }
@@ -114,7 +114,7 @@ bool utl::transform (Vector& V, const Matrix& T, size_t K, bool transpose)
   else
     for (i = 1; i <= N; i++)
     {
-      WA[i-1] = real(0);
+      WA[i-1] = Real(0);
       for (j = 1, ii = K; j <= N; j++, ii++)
 	WA[i-1] += T(i,j)*V(ii);
     }

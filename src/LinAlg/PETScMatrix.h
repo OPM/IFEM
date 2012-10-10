@@ -16,7 +16,6 @@
 #define _PETSC_MATRIX_H
 
 #include "SystemMatrix.h"
-
 #ifdef HAS_PETSC
 #include "petscmat.h"
 #include "petscksp.h"
@@ -41,7 +40,7 @@ public:
   //! \brief Constructor creating a vector of length \a n.
   PETScVector(size_t n);
   //! \brief Constructor creating a vector from an array.
-  PETScVector(const real* values, size_t n);
+  PETScVector(const Real* values, size_t n);
   //! \brief Copy constructor.
   PETScVector(const PETScVector& vec);
   //! \brief Destructor.
@@ -62,15 +61,15 @@ public:
   virtual SystemVector* copy() const { return new PETScVector(*this); }
 
   //! \brief Access through pointer.
-  virtual real* getPtr();
+  virtual Real* getPtr();
   //! \brief Reference through pointer.
-  virtual const real* getRef() const;
+  virtual const Real* getRef() const;
 
   //! \brief Restores the vector contents from an array.
-  virtual void restore(const real* ptr);
+  virtual void restore(const Real* ptr);
 
   //! \brief Initializes the vector to a given scalar value.
-  virtual void init(real value = real(0));
+  virtual void init(Real value = Real(0));
 
   //! \brief Begins communication step needed in parallel vector assembly.
   //! \details Must be called together with endAssembly after vector assembly
@@ -83,16 +82,16 @@ public:
   bool endAssembly();
 
   //! \brief Multiplication with a scalar.
-  virtual void mult(real alpha);
+  virtual void mult(Real alpha);
 
   //! \brief L1-norm of vector.
-  virtual real L1norm() const;
+  virtual Real L1norm() const;
 
   //! \brief L2-norm of vector.
-  virtual real L2norm() const;
+  virtual Real L2norm() const;
 
   //! \brief Linfinity-norm of vector.
-  virtual real Linfnorm() const;
+  virtual Real Linfnorm() const;
 
   //! \brief Returns the PETSc vector (for assignment).
   Vec& getVector() { return x; }
@@ -106,13 +105,13 @@ private:
   virtual SystemVector* copy() const { return 0; }
   virtual size_t dim() const { return 0; }
   virtual void redim(size_t) {}
-  virtual real* getPtr() { return 0; }
-  virtual const real* getRef() const { return 0; }
-  virtual void init(real = real(0)) {}
-  virtual void mult(real) {}
-  virtual real L1norm() const { return real(0); }
-  virtual real L2norm() const { return real(0); }
-  virtual real Linfnorm() const { return real(0); }
+  virtual Real* getPtr() { return 0; }
+  virtual const Real* getRef() const { return 0; }
+  virtual void init(Real = Real(0)) {}
+  virtual void mult(Real) {}
+  virtual Real L1norm() const { return Real(0); }
+  virtual Real L2norm() const { return Real(0); }
+  virtual Real Linfnorm() const { return Real(0); }
 #endif
 };
 
@@ -219,10 +218,10 @@ public:
   //! \param[in] shift Eigenvalue shift
   //! \param[in] iop Option telling whether to factorize matrix \a A or \b B.
   bool solveEig(PETScMatrix& B, RealArray& eigVal, Matrix& eigVec, int nev,
-		real shift = real(0), int iop = 1);
+		Real shift = Real(0), int iop = 1);
 
   //! \brief Returns the L-infinity norm of the matrix.
-  virtual real Linfnorm() const;
+  virtual Real Linfnorm() const;
 
   //! \brief Returns the PETSc matrix (for assignment).
   Mat& getMatrix() { return A; }

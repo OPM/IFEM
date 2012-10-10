@@ -25,18 +25,18 @@
 
 class LinearFunc : public ScalarFunc
 {
-  real scale; //!< Scaling factor
+  Real scale; //!< Scaling factor
 
 public:
   //! \brief Constructor initializing the function parameter.
-  LinearFunc(real s = real(1)) : scale(s) {}
+  LinearFunc(Real s = Real(1)) : scale(s) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return scale == real(0); }
+  virtual bool isZero() const { return scale == Real(0); }
 
 protected:
   //! \brief Evaluates the function at \a x.
-  virtual real evaluate(const real& x) const { return scale*x; }
+  virtual Real evaluate(const Real& x) const { return scale*x; }
 };
 
 
@@ -46,19 +46,19 @@ protected:
 
 class RampFunc : public ScalarFunc
 {
-  real fval; //!< Max function value
-  real xmax; //!< Function is linear from \a x = 0 to \a x = \a xmax
+  Real fval; //!< Max function value
+  Real xmax; //!< Function is linear from \a x = 0 to \a x = \a xmax
 
 public:
   //! \brief Constructor initializing the function parameters.
-  RampFunc(real f = real(1), real x = real(1)) : fval(f), xmax(x) {}
+  RampFunc(Real f = Real(1), Real x = Real(1)) : fval(f), xmax(x) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return fval == real(0); }
+  virtual bool isZero() const { return fval == Real(0); }
 
 protected:
   //! \brief Evaluates the function at \a x.
-  virtual real evaluate(const real& x) const;
+  virtual Real evaluate(const Real& x) const;
 };
 
 
@@ -68,19 +68,19 @@ protected:
 
 class DiracFunc : public ScalarFunc
 {
-  real amp;  //!< The amplitude of the dirac function
-  real xmax; //!< Associated \a x value
+  Real amp;  //!< The amplitude of the dirac function
+  Real xmax; //!< Associated \a x value
 
 public:
   //! \brief Constructor initializing the function parameters.
-  DiracFunc(real a = real(1), real x = real(0)) : amp(a), xmax(x) {}
+  DiracFunc(Real a = Real(1), Real x = Real(0)) : amp(a), xmax(x) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return amp == real(0); }
+  virtual bool isZero() const { return amp == Real(0); }
 
 protected:
   //! \brief Evaluates the function at \a x.
-  virtual real evaluate(const real& x) const;
+  virtual Real evaluate(const Real& x) const;
 };
 
 
@@ -90,19 +90,19 @@ protected:
 
 class StepFunc : public ScalarFunc
 {
-  real amp;  //!< The amplitude of the step function
-  real xmax; //!< Associated \a x value
+  Real amp;  //!< The amplitude of the step function
+  Real xmax; //!< Associated \a x value
 
 public:
   //! \brief Constructor initializing the function parameters.
-  StepFunc(real a, real x = real(0)) : amp(a), xmax(x) {}
+  StepFunc(Real a, Real x = Real(0)) : amp(a), xmax(x) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return amp == real(0); }
+  virtual bool isZero() const { return amp == Real(0); }
 
 protected:
   //! \brief Evaluates the function at \a x.
-  virtual real evaluate(const real& x) const;
+  virtual Real evaluate(const Real& x) const;
 };
 
 
@@ -112,21 +112,21 @@ protected:
 
 class SineFunc : public ScalarFunc
 {
-  real scale; //!< Amplitude of the sine function
-  real freq;  //!< Angular frequency of the sine function
-  real phase; //!< Phase shift of the sine function
+  Real scale; //!< Amplitude of the sine function
+  Real freq;  //!< Angular frequency of the sine function
+  Real phase; //!< Phase shift of the sine function
 
 public:
   //! \brief Constructor initializing the function parameters.
-  SineFunc(real s = real(1), real f = real(1), real p = real(0))
+  SineFunc(Real s = Real(1), Real f = Real(1), Real p = Real(0))
     : scale(s), freq(f), phase(p) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return scale == real(0); }
+  virtual bool isZero() const { return scale == Real(0); }
 
 protected:
   //! \brief Evaluates the function at \a x.
-  virtual real evaluate(const real& x) const;
+  virtual Real evaluate(const Real& x) const;
 };
 
 
@@ -136,18 +136,18 @@ protected:
 
 class ConstFunc : public RealFunc
 {
-  real fval; //!< The function value
+  Real fval; //!< The function value
 
 public:
   //! \brief Constructor initializing the function value.
-  ConstFunc(real v) : fval(v) {}
+  ConstFunc(Real v) : fval(v) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return fval == real(0); }
+  virtual bool isZero() const { return fval == Real(0); }
 
 protected:
   //! \brief Evaluates the constant function.
-  virtual real evaluate(const Vec3&) const { return fval; }
+  virtual Real evaluate(const Vec3&) const { return fval; }
 };
 
 
@@ -170,7 +170,7 @@ public:
 
 protected:
   //! \brief Evaluates the time-varying function.
-  virtual real evaluate(const Vec3& X) const;
+  virtual Real evaluate(const Vec3& X) const;
 };
 
 
@@ -196,7 +196,7 @@ public:
 
 protected:
   //! \brief Evaluates the space-time function.
-  virtual real evaluate(const Vec3& X) const;
+  virtual Real evaluate(const Vec3& X) const;
 };
 
 
@@ -206,19 +206,19 @@ protected:
 
 class LinearXFunc : public RealFunc
 {
-  real a; //!< The function derivative
-  real b; //!< The function value at \a x = 0
+  Real a; //!< The function derivative
+  Real b; //!< The function value at \a x = 0
 
 public:
   //! \brief Constructor initializing the function parameters.
-  LinearXFunc(real A, real B = real(0)) : a(A), b(B) {}
+  LinearXFunc(Real A, Real B = Real(0)) : a(A), b(B) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return a == real(0) && b == real(0); }
+  virtual bool isZero() const { return a == Real(0) && b == Real(0); }
 
 protected:
   //! \brief Evaluates the linear function.
-  virtual real evaluate(const Vec3& X) const;
+  virtual Real evaluate(const Vec3& X) const;
 };
 
 
@@ -228,19 +228,19 @@ protected:
 
 class LinearYFunc : public RealFunc
 {
-  real a; //!< The function derivative
-  real b; //!< The function value at \a y = 0
+  Real a; //!< The function derivative
+  Real b; //!< The function value at \a y = 0
 
 public:
   //! \brief Constructor initializing the function parameters.
-  LinearYFunc(real A, real B = real(0)) : a(A), b(B) {}
+  LinearYFunc(Real A, Real B = Real(0)) : a(A), b(B) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return a == real(0) && b == real(0); }
+  virtual bool isZero() const { return a == Real(0) && b == Real(0); }
 
 protected:
   //! \brief Evaluates the linear function.
-  virtual real evaluate(const Vec3& X) const;
+  virtual Real evaluate(const Vec3& X) const;
 };
 
 
@@ -250,19 +250,19 @@ protected:
 
 class LinearZFunc : public RealFunc
 {
-  real a; //!< The function derivative
-  real b; //!< The function value at \a z = 0
+  Real a; //!< The function derivative
+  Real b; //!< The function value at \a z = 0
 
 public:
   //! \brief Constructor initializing the function parameters.
-  LinearZFunc(real A, real B = real(0)) : a(A), b(B) {}
+  LinearZFunc(Real A, Real B = Real(0)) : a(A), b(B) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return a == real(0) && b == real(0); }
+  virtual bool isZero() const { return a == Real(0) && b == Real(0); }
 
 protected:
   //! \brief Evaluates the linear function.
-  virtual real evaluate(const Vec3& X) const;
+  virtual Real evaluate(const Vec3& X) const;
 };
 
 
@@ -272,20 +272,20 @@ protected:
 
 class QuadraticXFunc : public RealFunc
 {
-  real max; //!< Max value of function
-  real a;   //!< First root where function is zero
-  real b;   //!< Second root where function is zero
+  Real max; //!< Max value of function
+  Real a;   //!< First root where function is zero
+  Real b;   //!< Second root where function is zero
 
 public:
   //! \brief Constructor initializing the function parameters.
-  QuadraticXFunc(real MAX, real A, real B) : max(MAX), a(A), b(B) {}
+  QuadraticXFunc(Real MAX, Real A, Real B) : max(MAX), a(A), b(B) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return max == real(0); }
+  virtual bool isZero() const { return max == Real(0); }
 
 protected:
   //! \brief Evaluates the quadratic function.
-  virtual real evaluate(const Vec3& X) const;
+  virtual Real evaluate(const Vec3& X) const;
 };
 
 
@@ -295,20 +295,20 @@ protected:
 
 class QuadraticYFunc : public RealFunc
 {
-  real max; //!< Max value of function
-  real a;   //!< First root where function is zero
-  real b;   //!< Second root where function is zero
+  Real max; //!< Max value of function
+  Real a;   //!< First root where function is zero
+  Real b;   //!< Second root where function is zero
 
 public:
   //! \brief Constructor initializing the function parameters.
-  QuadraticYFunc(real MAX, real A, real B) : max(MAX), a(A), b(B) {}
+  QuadraticYFunc(Real MAX, Real A, Real B) : max(MAX), a(A), b(B) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return max == real(0); }
+  virtual bool isZero() const { return max == Real(0); }
 
 protected:
   //! \brief Evaluates the quadratic function.
-  virtual real evaluate(const Vec3& X) const;
+  virtual Real evaluate(const Vec3& X) const;
 };
 
 
@@ -318,20 +318,20 @@ protected:
 
 class QuadraticZFunc : public RealFunc
 {
-  real max; //!< Max value of function
-  real a;   //!< First root where function is zero
-  real b;   //!< Second root where function is zero
+  Real max; //!< Max value of function
+  Real a;   //!< First root where function is zero
+  Real b;   //!< Second root where function is zero
 
 public:
   //! \brief Constructor initializing the function parameters.
-  QuadraticZFunc(real MAX, real A, real B) : max(MAX), a(A), b(B) {}
+  QuadraticZFunc(Real MAX, Real A, Real B) : max(MAX), a(A), b(B) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return max == real(0); }
+  virtual bool isZero() const { return max == Real(0); }
 
 protected:
   //! \brief Evaluates the quadratic function.
-  virtual real evaluate(const Vec3& X) const;
+  virtual Real evaluate(const Vec3& X) const;
 };
 
 
@@ -350,18 +350,18 @@ protected:
 class LinearRotZFunc : public RealFunc
 {
   bool rX; //!< Flag telling whether to return the X- (true) or Y-component
-  real A;  //!< Magnitude of the rotation
-  real x0; //!< Global X-coordinate of rotation centre
-  real y0; //!< Global Y-coordinate of rotation centre
+  Real A;  //!< Magnitude of the rotation
+  Real x0; //!< Global X-coordinate of rotation centre
+  Real y0; //!< Global Y-coordinate of rotation centre
 
 public:
   //! \brief Constructor initializing the function parameters.
-  LinearRotZFunc(bool retX, real a, real x_0 = real(0), real y_0 = real(0))
+  LinearRotZFunc(bool retX, Real a, Real x_0 = Real(0), Real y_0 = Real(0))
     : rX(retX), A(a), x0(x_0), y0(y_0) {}
 
 protected:
   //! \brief Evaluates the rotation function.
-  virtual real evaluate(const Vec3& X) const;
+  virtual Real evaluate(const Vec3& X) const;
 };
 
 
@@ -371,21 +371,21 @@ protected:
 
 class StepXFunc : public RealFunc
 {
-  real fv; //!< The non-zero function value
-  real x0; //!< Function is zero for \a x < \a x0
-  real x1; //!< Function is zero for \a x > \a x1
+  Real fv; //!< The non-zero function value
+  Real x0; //!< Function is zero for \a x < \a x0
+  Real x1; //!< Function is zero for \a x > \a x1
 
 public:
   //! \brief Constructor initializing the function parameters.
-  StepXFunc(real v, real X0 = real(0), real X1 = real(1))
+  StepXFunc(Real v, Real X0 = Real(0), Real X1 = Real(1))
     : fv(v), x0(X0), x1(X1) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return fv == real(0); }
+  virtual bool isZero() const { return fv == Real(0); }
 
 protected:
   //! \brief Evaluates the step function.
-  virtual real evaluate(const Vec3& X) const;
+  virtual Real evaluate(const Vec3& X) const;
 };
 
 
@@ -395,25 +395,25 @@ protected:
 
 class StepXYFunc : public RealFunc
 {
-  real fv; //!< The non-zero function value
-  real x0; //!< Function is zero for \a x < \a x0
-  real y0; //!< Function is zero for \a y < \a y0
-  real x1; //!< Function is zero for \a x > \a x1
-  real y1; //!< Function is zero for \a y > \a y1
+  Real fv; //!< The non-zero function value
+  Real x0; //!< Function is zero for \a x < \a x0
+  Real y0; //!< Function is zero for \a y < \a y0
+  Real x1; //!< Function is zero for \a x > \a x1
+  Real y1; //!< Function is zero for \a y > \a y1
 
 public:
   //! \brief Constructor initializing the function parameters.
-  StepXYFunc(real v,
-	     real X1 = real(1), real Y1 = real(1),
-	     real X0 = real(-1), real Y0 = real(-1))
+  StepXYFunc(Real v,
+	     Real X1 = Real(1), Real Y1 = Real(1),
+	     Real X0 = Real(-1), Real Y0 = Real(-1))
     : fv(v), x0(X0), y0(Y0), x1(X1), y1(Y1) {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return fv == real(0); }
+  virtual bool isZero() const { return fv == Real(0); }
 
 protected:
   //! \brief Evaluates the step function.
-  virtual real evaluate(const Vec3& X) const;
+  virtual Real evaluate(const Vec3& X) const;
 };
 
 
@@ -423,8 +423,8 @@ protected:
 
 class Interpolate1D : public RealFunc
 {
-  std::vector<real> grid;   //!< The (1D) grid the data is associated with
-  std::vector<real> values; //!< The (scalar) data values
+  std::vector<Real> grid;   //!< The (1D) grid the data is associated with
+  std::vector<Real> values; //!< The (scalar) data values
   int               dir;    //!< In which direction to perform the interpolation
 
 public:
@@ -438,7 +438,7 @@ public:
 
 protected:
   //! \brief Evaluates the function by interpolating the 1D grid.
-  virtual real evaluate(const Vec3& X) const;
+  virtual Real evaluate(const Vec3& X) const;
 };
 
 
@@ -467,10 +467,10 @@ namespace utl
 {
   //! \brief Creates a time function by parsing a character string.
   const ScalarFunc* parseTimeFunc(const char* type, char* cline = NULL,
-				  real C = real(1));
+				  Real C = Real(1));
 
   //! \brief Creates a scalar-valued function by parsing a character string.
-  const RealFunc* parseRealFunc(char* cline, real A = real(1));
+  const RealFunc* parseRealFunc(char* cline, Real A = Real(1));
 
   //! \brief Creates a time function by parsing a character string.
   ScalarFunc* parseTimeFunc(const char* func, const std::string& type);

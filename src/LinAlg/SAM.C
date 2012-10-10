@@ -44,19 +44,19 @@ void syseq_(const int* msc, const int* mpmceq, const int* mmceq,
 //! \brief Adds an element vector \a eS into the system vector \a sysRHS.
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
 //! \sa SAM library documentation.
-void addev2_(const real* eS, const real* ttcc, const int* mpar,
+void addev2_(const Real* eS, const Real* ttcc, const int* mpar,
 	     const int* madof, const int* meqn, const int* mpmnpc,
 	     const int* mmnpc, const int* mpmceq, const int* mmceq,
 	     const int& iel, const int& nedof, const int& lpu,
-	     real* sysRHS, int* work, int& ierr);
+	     Real* sysRHS, int* work, int& ierr);
 
 //! \brief Expands and rearranges a system vector from equation to DOF-order.
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
 //! \sa SAM library documentation.
-void expand_(const real* solVec, const real* ttcc,
+void expand_(const Real* solVec, const Real* ttcc,
 	     const int* mpmceq, const int* mmceq, const int* meqn,
-	     const real& ff, const real& fs, const int& ndof, const int& neq,
-	     real* sv);
+	     const Real& ff, const Real& fs, const int& ndof, const int& neq,
+	     Real* sv);
 }
 #endif
 
@@ -417,7 +417,7 @@ bool SAM::assembleSystem (SystemMatrix& sysK, SystemVector& sysRHS,
       if (jceq < 1) continue;
 
       int jp = mpmceq[jceq-1];
-      real c0 = ttcc[jp-1];
+      Real c0 = ttcc[jp-1];
 
       for (size_t i = 1; i <= meen.size(); i++)
 	if (meen[i-1] <= 0)
@@ -453,14 +453,14 @@ bool SAM::assembleSystem (SystemVector& sysRHS,
   // Add (appropriately weighted) terms corresponding to constrained
   // (dependent and prescribed) DOFs in eK into sysRHS and reactionForces
   Vector eS;
-  real* sysrhsPtr = sysRHS.getPtr();
+  Real* sysrhsPtr = sysRHS.getPtr();
   for (size_t j = 1; j <= meen.size(); j++)
   {
     int jceq = -meen[j-1];
     if (jceq < 1) continue;
 
     int jp = mpmceq[jceq-1];
-    real c0 = ttcc[jp-1];
+    Real c0 = ttcc[jp-1];
 
     for (size_t i = 1; i <= meen.size(); i++)
     {
@@ -496,7 +496,7 @@ bool SAM::assembleSystem (SystemVector& sysRHS,
 			  const RealArray& eS, int iel,
 			  Vector* reactionForces) const
 {
-  real* sysrhsPtr = sysRHS.getPtr();
+  Real* sysrhsPtr = sysRHS.getPtr();
   int ierr = 0;
 #ifdef USE_F77SAM
   int* work = new int[eS.size()];
@@ -531,14 +531,14 @@ bool SAM::assembleSystem (SystemVector& sysRHS,
 }
 
 
-bool SAM::assembleSystem (SystemVector& sysRHS, const real* nS, int inod,
+bool SAM::assembleSystem (SystemVector& sysRHS, const Real* nS, int inod,
 			  Vector* reactionForces) const
 {
   IntVec mnen;
   if (!this->getNodeEqns(mnen,inod))
     return false;
 
-  real* sysrhsPtr = sysRHS.getPtr();
+  Real* sysrhsPtr = sysRHS.getPtr();
   for (size_t i = 0; i < mnen.size(); i++)
   {
     int ieq = mnen[i];
@@ -705,7 +705,7 @@ int SAM::getEquation (int inod, int ldof) const
 
 
 bool SAM::expandSolution (const SystemVector& solVec, Vector& dofVec,
-			  real scaleSD) const
+			  Real scaleSD) const
 {
   if (solVec.dim() < (size_t)neq) return false;
 
@@ -721,13 +721,13 @@ bool SAM::expandVector (const Vector& solVec, Vector& dofVec) const
 }
 
 
-bool SAM::expandVector (const real* solVec, Vector& dofVec, real scaleSD) const
+bool SAM::expandVector (const Real* solVec, Vector& dofVec, Real scaleSD) const
 {
   if (!meqn) return false;
 
   dofVec.resize(ndof,true);
 #ifdef USE_F77SAM
-  expand_(solVec, ttcc, mpmceq, mmceq, meqn, real(1), scaleSD, ndof, neq,
+  expand_(solVec, ttcc, mpmceq, mmceq, meqn, Real(1), scaleSD, ndof, neq,
 	  dofVec.ptr());
 #else
   for (int idof = 0; idof < ndof; idof++)
@@ -755,14 +755,14 @@ bool SAM::expandVector (const real* solVec, Vector& dofVec, real scaleSD) const
 }
 
 
-real SAM::dot (const Vector& x, const Vector& y, char dofType) const
+Real SAM::dot (const Vector& x, const Vector& y, char dofType) const
 {
   if (nodeType.empty() || dofType == 'A')
     return x.dot(y); // All nodes are of the same type, or consider all of them
 
   // Consider only the dofType nodes
   int i, j, n = x.size() < y.size() ? x.size() : y.size();
-  real retVal = real(0);
+  Real retVal = Real(0);
   for (i = 0; i < nnod; i++)
     if (nodeType[i] == dofType)
       for (j = madof[i]-1; j < madof[i+1]-1 && j < n; j++)
@@ -772,16 +772,16 @@ real SAM::dot (const Vector& x, const Vector& y, char dofType) const
 }
 
 
-real SAM::normL2 (const Vector& x, char dofType) const
+Real SAM::normL2 (const Vector& x, char dofType) const
 {
   if (x.empty())
-    return real(0);
+    return Real(0);
   else if (nodeType.empty()) // All nodes are of the same type
     return x.norm2()/sqrt(x.size());
 
   // Consider only the dofType nodes
   int count, i, j, n = x.size();
-  real retVal = real(0);
+  Real retVal = Real(0);
   for (count = i = 0; i < nnod; i++)
     if (nodeType[i] == dofType)
       for (j = madof[i]-1; j < madof[i+1]-1 && j < n; j++)
@@ -794,10 +794,10 @@ real SAM::normL2 (const Vector& x, char dofType) const
 }
 
 
-real SAM::normInf (const Vector& x, size_t& comp, char dofType) const
+Real SAM::normInf (const Vector& x, size_t& comp, char dofType) const
 {
   if (x.empty() || comp < 1)
-    return real(0);
+    return Real(0);
   else if (nodeType.empty())
   {
     // All nodes are of the same type with the same number of nodal DOFs
@@ -805,12 +805,12 @@ real SAM::normInf (const Vector& x, size_t& comp, char dofType) const
     if ((int)comp <= nndof)
       return x.normInf(--comp,nndof);
     else
-      return real(0);
+      return Real(0);
   }
 
   // Consider only the dofType nodes
   int i, k = comp-2;
-  real retVal = real(0);
+  Real retVal = Real(0);
   for (i = 0; i < nnod; i++)
     if (nodeType[i] == dofType)
     {
@@ -827,9 +827,9 @@ real SAM::normInf (const Vector& x, size_t& comp, char dofType) const
 }
 
 
-real SAM::normReact (const Vector& u, const Vector& rf) const
+Real SAM::normReact (const Vector& u, const Vector& rf) const
 {
-  real retVal = real(0);
+  Real retVal = Real(0);
 
   for (int i = 0; i < ndof; i++)
     if (msc[i] < 0 && -msc[i] <= (int)rf.size())
@@ -839,9 +839,9 @@ real SAM::normReact (const Vector& u, const Vector& rf) const
 }
 
 
-real SAM::getReaction (int dir, const Vector& rf) const
+Real SAM::getReaction (int dir, const Vector& rf) const
 {
-  real retVal = real(0);
+  Real retVal = Real(0);
 
   if (dir > 0)
     for (int i = 0; i < nnod; i++)

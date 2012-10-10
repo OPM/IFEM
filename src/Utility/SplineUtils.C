@@ -29,7 +29,7 @@ Vec3 SplineUtils::toVec3 (const Go::Point& X, int nsd)
 }
 
 
-Vec4 SplineUtils::toVec4 (const Go::Point& X, real time)
+Vec4 SplineUtils::toVec4 (const Go::Point& X, Real time)
 {
   Vec4 Y;
   for (int i = 0; i < X.size() && i < 3; i++) Y[i] = X[i];
@@ -39,7 +39,7 @@ Vec4 SplineUtils::toVec4 (const Go::Point& X, real time)
 
 
 Go::SplineCurve* SplineUtils::project (const Go::SplineCurve* curve,
-				       const RealFunc& f, real time)
+				       const RealFunc& f, Real time)
 {
   if (!curve) return NULL;
 
@@ -70,7 +70,7 @@ Go::SplineCurve* SplineUtils::project (const Go::SplineCurve* curve,
 
 
 Go::SplineCurve* SplineUtils::project(const Go::SplineCurve* curve,
-				      const VecFunc& f, int nComp, real time)
+				      const VecFunc& f, int nComp, Real time)
 {
   if (!curve || nComp < 1 || nComp > 3) return NULL;
 
@@ -105,7 +105,7 @@ Go::SplineCurve* SplineUtils::project(const Go::SplineCurve* curve,
 
 
 Go::SplineSurface* SplineUtils::project (const Go::SplineSurface* surface,
-					 const RealFunc& f, real time)
+					 const RealFunc& f, Real time)
 {
   if (!surface) return NULL;
 
@@ -148,7 +148,7 @@ Go::SplineSurface* SplineUtils::project (const Go::SplineSurface* surface,
 
 
 Go::SplineSurface* SplineUtils::project (const Go::SplineSurface* surface,
-					 const VecFunc& f, int nComp, real time)
+					 const VecFunc& f, int nComp, Real time)
 {
   if (!surface || nComp < 1 || nComp > 3) return NULL;
 

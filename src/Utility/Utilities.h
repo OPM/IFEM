@@ -38,7 +38,7 @@ namespace utl
   //! space-separated numbers and assumes that (at least one) call to strtok
   //! with the first argument different from NULL has been made before
   //! invoking this method.
-  bool parseKnots(std::vector<real>& xi);
+  bool parseKnots(std::vector<Real>& xi);
 
   //! \brief Reads one line, ignoring comment lines and leading blanks.
   //! \details The data read is kept in an internal static buffer.
@@ -76,7 +76,7 @@ namespace utl
   //! \param[out] val The attribute value
   //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
-  bool getAttribute(const TiXmlElement* xml, const char* att, real& val);
+  bool getAttribute(const TiXmlElement* xml, const char* att, Real& val);
   //! \brief Extracts a string attribute value from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
@@ -94,7 +94,7 @@ namespace utl
   //! \brief Parses a sequence of knot values from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
   //! \param xi The knot value(s) is/are appended to this vector
-  bool parseKnots(const TiXmlElement* xml, std::vector<real>& xi);
+  bool parseKnots(const TiXmlElement* xml, std::vector<Real>& xi);
 
   //! \brief Transforms the integer value \a num into a unique range.
   //! \details This method is invoked on a series of (non-unique) values.
@@ -121,7 +121,7 @@ namespace utl
   //! \param[out] out The output array stored column-wise in a 1D array
   //! \param[in] offset_in Optional start offset for the \a in vector
   int gather(const std::vector<int>& index, size_t nr,
-	     const std::vector<real>& in, std::vector<real>& out,
+	     const std::vector<Real>& in, std::vector<Real>& out,
 	     size_t offset_in = 0);
 
   //! \brief Compresses the rows of a 2D array based on given scatter indices.
@@ -131,7 +131,7 @@ namespace utl
   //! \param[out] out The output array stored as a 2D matrix
   //! \param[in] offset_in Optional start offset for the \a in vector
   int gather(const std::vector<int>& index, size_t nr,
-	     const utl::vector<real>& in, utl::matrix<real>& out,
+	     const utl::vector<Real>& in, utl::matrix<Real>& out,
 	     size_t offset_in = 0);
 
   //! \brief Compresses a row of a 2D array based on given scatter indices.
@@ -143,7 +143,7 @@ namespace utl
   //! \param[in] offset_in Optional start offset for the \a in vector
   //! \param[in] shift_idx Optional constant shift in the scatter indices
   int gather(const std::vector<int>& index, size_t ir, size_t nr,
-             const std::vector<real>& in, std::vector<real>& out,
+             const std::vector<Real>& in, std::vector<Real>& out,
              size_t offset_in = 0, int shift_idx = 0);
 
   //! \brief Returns the number of monomials in Pascal's triangle.
@@ -151,9 +151,9 @@ namespace utl
   //! \param[in] nsd Number of spatial dimensions (2 or 3)
   size_t Pascal(int p, unsigned short int nsd);
   //! \brief Evaluates the monomials of Pascal's triangle in 2D for order \a p.
-  void Pascal(int p, real x, real y, std::vector<real>& phi);
+  void Pascal(int p, Real x, Real y, std::vector<Real>& phi);
   //! \brief Evaluates the monomials of Pascal's triangle in 3D for order \a p.
-  void Pascal(int p, real x, real y, real z, std::vector<real>& phi);
+  void Pascal(int p, Real x, Real y, Real z, std::vector<Real>& phi);
 
   //! \brief Searches for a real value in an ordered array of reals.
   //! \param[in] a The array of real values
@@ -161,7 +161,7 @@ namespace utl
   //! \return 0-based index of the closest array value.
   //! \note It is assumed that the array \a a is sorted in encreasing order on
   //! input. If this is not the case the method will deliver incorrect result.
-  size_t find_closest(const std::vector<real>& a, real v);
+  size_t find_closest(const std::vector<Real>& a, Real v);
 }
 
 #endif

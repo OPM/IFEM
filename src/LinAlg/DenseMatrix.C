@@ -40,66 +40,66 @@ extern "C" {
 //! \brief Adds an element matrix \a eK into the system matrix \a sysK.
 //! \details This is a FORTRAN-77 subroutine in the SAM library.
 //! \sa SAM library documentation.
-void addem2_(const real* eK, const real* ttcc, const int* mpar,
+void addem2_(const Real* eK, const Real* ttcc, const int* mpar,
              const int* madof, const int* meqn, const int* mpmnpc,
              const int* mmnpc, const int* mpmceq, const int* mmceq,
              const int& iel, const int& nedof, const int& neq,
-             const int& lpu, const int& nrhs, real* sysK, real* sysRHS,
+             const int& lpu, const int& nrhs, Real* sysK, Real* sysRHS,
              int* work, int& ierr);
 
 //! \brief Solves the linear equation system \a A*x=b.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
 void dgesv_(const int& n, const int& nrhs,
-	    real* A, const int& lda, int* ipiv,
-	    real* B, const int& ldb, int& info);
+	    Real* A, const int& lda, int* ipiv,
+	    Real* B, const int& ldb, int& info);
 
 //! \brief Solves the equation system \a A*x=b when \a A is already factorized.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
 void dgetrs_(const char& trans, const int& n, const int& nrhs,
-	     real* A, const int& lda, int* ipiv,
-	     real* B, const int& ldb, int& info);
+	     Real* A, const int& lda, int* ipiv,
+	     Real* B, const int& ldb, int& info);
 
 //! \brief Solves the symmetric linear equation system \a A*x=b.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
 void dposv_(const char& uplo, const int& n, const int& nrhs,
-            real* A, const int& lda, real* B, const int& ldb, int& info);
+            Real* A, const int& lda, Real* B, const int& ldb, int& info);
 
 //! \brief Solves the symmetric equation system \a A*x=b for prefactored \b A.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
 void dpotrs_(const char& uplo, const int& n, const int& nrhs,
-             real* A, const int& lda, real* B, const int& ldb, int& info);
+             Real* A, const int& lda, Real* B, const int& ldb, int& info);
 
 //! \brief Solves the standard eigenproblem \a A*x=(lambda)*x.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
 void dsyevx_(const char& jobz, const char& range, const char& uplo,
-	     const int& n, real* a, const int& lda,
-	     const real& vl, const real& vu, const int& il, const int& iu,
-	     const real& abstol, const int& m, real* w, real* z, const int& ldz,
-	     real* work, const int& lwork, int* iwork, int* ifail, int& info);
+	     const int& n, Real* a, const int& lda,
+	     const Real& vl, const Real& vu, const int& il, const int& iu,
+	     const Real& abstol, const int& m, Real* w, Real* z, const int& ldz,
+	     Real* work, const int& lwork, int* iwork, int* ifail, int& info);
 
 //! \brief Solves the generalized eigenproblem \a A*x=(lambda)*B*x.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
 void dsygvx_(const int& itype, const char& jobz, const char& range,
-	     const char& uplo, const int& n, real* a, const int& lda,
-	     real* b, const int& ldb, const real& vl, const real& vu,
-	     const int& il, const int& iu, const real& abstol,
-	     const int& m, real* w, real* z, const int& ldz,
-	     real* work, const int& lwork, int* iwork, int* ifail, int& info);
+	     const char& uplo, const int& n, Real* a, const int& lda,
+	     Real* b, const int& ldb, const Real& vl, const Real& vu,
+	     const int& il, const int& iu, const Real& abstol,
+	     const int& m, Real* w, Real* z, const int& ldz,
+	     Real* work, const int& lwork, int* iwork, int* ifail, int& info);
 
 //! \brief Solves the non-symmetric eigenproblem \a A*x=(lambda)*x.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
 void dgeev_(const char& jobvl, const char& jobvr,
-            const int& n, real* a, const int& lda,
-            real* wr, real* wi, real* vl, const int& ldvl,
-            real* vr, const int& ldvr,
-            real* work, const int& lwork, int& info);
+            const int& n, Real* a, const int& lda,
+            Real* wr, Real* wi, Real* vl, const int& ldvl,
+            Real* vr, const int& ldvr,
+            Real* work, const int& lwork, int& info);
 }
 
 
@@ -125,7 +125,7 @@ DenseMatrix::DenseMatrix (const RealArray& data, size_t nrows) : ipiv(0)
   size_t ncols = nrows ? ndata/nrows : 0;
 
   myMat.resize(nrows,ncols);
-  memcpy(myMat.ptr(),&data.front(),nrows*ncols*sizeof(real));
+  memcpy(myMat.ptr(),&data.front(),nrows*ncols*sizeof(Real));
   symm = false;
 }
 
@@ -149,7 +149,7 @@ void DenseMatrix::initAssembly (const SAM& sam, bool)
 
 void DenseMatrix::init ()
 {
-  myMat.fill(real(0));
+  myMat.fill(Real(0));
 
   // Delete pivotation vector of old factorization, if any
   delete[] ipiv;
@@ -180,7 +180,7 @@ void DenseMatrix::dump (std::ostream& os, char format, const char* label)
 #ifndef USE_F77SAM
 static void assemDense (const Matrix& eM, Matrix& SM, Vector& SV,
 			const std::vector<int>& meen, const int* meqn,
-			const int* mpmceq, const int* mmceq, const real* ttcc)
+			const int* mpmceq, const int* mmceq, const Real* ttcc)
 {
   // Add elements corresponding to free dofs in eM into SM
   int i, j, ip, nedof = meen.size();
@@ -209,7 +209,7 @@ static void assemDense (const Matrix& eM, Matrix& SM, Vector& SV,
     if (jceq < 1) continue;
 
     int jp = mpmceq[jceq-1];
-    real c0 = ttcc[jp-1];
+    Real c0 = ttcc[jp-1];
 
     // Add contributions to SV (right-hand-side)
     if (!SV.empty())
@@ -262,7 +262,7 @@ bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
 
   int ierr = 0;
 #ifdef USE_F77SAM
-  real dummyRHS;
+  Real dummyRHS;
   int* work = new int[eM.rows()];
   addem2_(eM.ptr(), sam.ttcc, sam.mpar,
 	  sam.madof, sam.meqn, sam.mpmnpc, sam.mmnpc, sam.mpmceq, sam.mmceq,
@@ -400,7 +400,7 @@ bool DenseMatrix::redim (size_t r, size_t c)
 }
 
 
-bool DenseMatrix::add (const SystemMatrix& B, real alpha)
+bool DenseMatrix::add (const SystemMatrix& B, Real alpha)
 {
   const DenseMatrix* Bptr = dynamic_cast<const DenseMatrix*>(&B);
   if (!Bptr) return false;
@@ -413,9 +413,9 @@ bool DenseMatrix::add (const SystemMatrix& B, real alpha)
 }
 
 
-bool DenseMatrix::add (real sigma)
+bool DenseMatrix::add (Real sigma)
 {
-  real* v = myMat.ptr();
+  Real* v = myMat.ptr();
   size_t inc = myMat.rows()+1;
   for (size_t i = 0; i < myMat.size(); i += inc)
     v[i] += sigma;
@@ -447,7 +447,7 @@ bool DenseMatrix::solve (Matrix& B)
 }
 
 
-bool DenseMatrix::solve (real* B, size_t nrhs)
+bool DenseMatrix::solve (Real* B, size_t nrhs)
 {
   const size_t n = myMat.rows();
   if (n < 1 || nrhs < 1) return true; // Nothing to solve
@@ -498,8 +498,8 @@ bool DenseMatrix::solveEig (RealArray& val, Matrix& vec, int nv)
 #ifdef USE_CBLAS
   std::cout <<"  Solving dense eigenproblem using LAPACK::DSYEVX"<< std::endl;
   int m, info = 0;
-  real dummy = 0.0;
-  real abstol = 0.0;
+  Real dummy = 0.0;
+  Real abstol = 0.0;
   // Invoke with Lwork = -1 to estimate work space size
   dsyevx_('V','I','U',n,myMat.ptr(),n,dummy,dummy,1,nv,
           abstol,m,&val.front(),vec.ptr(),n,&dummy,-1,0,0,info);
@@ -508,7 +508,7 @@ bool DenseMatrix::solveEig (RealArray& val, Matrix& vec, int nv)
   {
     // Allocate work space
     int  Lwork = int(dummy);
-    real* work = new real[Lwork];
+    Real* work = new Real[Lwork];
     int* Iwork = new int[6*n];
     val.resize(n);
     vec.resize(n,nv);
@@ -534,7 +534,7 @@ bool DenseMatrix::solveEig (RealArray& val, Matrix& vec, int nv)
 
 
 bool DenseMatrix::solveEig (DenseMatrix& B, RealArray& val, Matrix& vec, int nv,
-			    real)
+			    Real)
 {
   const size_t n = myMat.rows();
   if (n < 1 || nv < 1) return true; // No equations to solve
@@ -543,8 +543,8 @@ bool DenseMatrix::solveEig (DenseMatrix& B, RealArray& val, Matrix& vec, int nv,
 #ifdef USE_CBLAS
   std::cout <<"  Solving dense eigenproblem using LAPACK::DSYGVX"<< std::endl;
   int m, info = 0;
-  real dummy = 0.0;
-  real abstol = 0.0;
+  Real dummy = 0.0;
+  Real abstol = 0.0;
   // Invoke with Lwork = -1 to estimate work space size
   dsygvx_(1,'V','I','U',n,myMat.ptr(),n,B.myMat.ptr(),n,
           dummy,dummy,1,nv,abstol,m,&val.front(),vec.ptr(),n,
@@ -554,7 +554,7 @@ bool DenseMatrix::solveEig (DenseMatrix& B, RealArray& val, Matrix& vec, int nv,
   {
     // Allocate work space
     int  Lwork = int(dummy);
-    real* work = new real[Lwork];
+    Real* work = new Real[Lwork];
     int* Iwork = new int[6*n];
     val.resize(n);
     vec.resize(n,nv);
@@ -590,7 +590,7 @@ bool DenseMatrix::solveEigNon (RealArray& r_val, RealArray& c_val)
 
 #ifdef USE_CBLAS
   int  info  = 0;
-  real dummy = 0.0;
+  Real dummy = 0.0;
   // Invoke with Lwork = -1 to estimate work space size
   dgeev_('N','N',n,myMat.ptr(),n,&r_val.front(),&c_val.front(),
 	 &dummy,1,&dummy,1,&dummy,-1,info);
@@ -599,7 +599,7 @@ bool DenseMatrix::solveEigNon (RealArray& r_val, RealArray& c_val)
   {
     // Allocate work space
     int  Lwork = int(dummy);
-    real* work = new real[Lwork];
+    Real* work = new Real[Lwork];
     r_val.resize(n);
     c_val.resize(n);
     // Solve the eigenproblem

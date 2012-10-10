@@ -25,20 +25,20 @@
 
 class Vec3
 {
-  real v[3]; //!< The actual point vector
+  Real v[3]; //!< The actual point vector
 
 public:
-  real& x; //!< Reference to X-component
-  real& y; //!< Reference to Y-component
-  real& z; //!< Reference to Z-component
+  Real& x; //!< Reference to X-component
+  Real& y; //!< Reference to Y-component
+  Real& z; //!< Reference to Z-component
 
   //! \brief Default constructor creating a point at origin.
   Vec3() : x(v[0]), y(v[1]), z(v[2]) { x = y = z = 0.0; }
   //! \brief Constructor creating a point at the specified location.
-  Vec3(real X, real Y, real Z) : x(v[0]), y(v[1]), z(v[2])
+  Vec3(Real X, Real Y, Real Z) : x(v[0]), y(v[1]), z(v[2])
   { x = X; y = Y; z = Z; }
   //! \brief Constructor creating a point from the given \a std::vector.
-  Vec3(const std::vector<real>& X) : x(v[0]), y(v[1]), z(v[2])
+  Vec3(const std::vector<Real>& X) : x(v[0]), y(v[1]), z(v[2])
   { for (size_t i = 0; i < 3; i++) v[i] = i < X.size() ? X[i] : 0.0; }
   //! \brief Copy constructor.
   Vec3(const Vec3& X) : x(v[0]), y(v[1]), z(v[2])
@@ -50,20 +50,20 @@ public:
   //! \brief Assignment operator.
   Vec3& operator=(const Vec3& X) { x = X.x; y = X.y; z = X.z; return *this; }
   //! \brief Overloaded assignment operator.
-  Vec3& operator=(real val) { x = y = z = val; return *this; }
+  Vec3& operator=(Real val) { x = y = z = val; return *this; }
 
   //! \brief Indexing operator for component reference.
-  const real& operator[](int i) const { return v[i]; }
+  const Real& operator[](int i) const { return v[i]; }
   //! \brief Indexing operator for component assignment.
-  real& operator[](int i) { return v[i]; }
+  Real& operator[](int i) { return v[i]; }
 
   //! \brief Reference through a pointer.
-  const real* ptr() const { return v; }
+  const Real* ptr() const { return v; }
 
   //! \brief Multiplication with a scalar.
-  Vec3& operator*=(real c) { x *= c; y *= c; z *= c; return *this; }
+  Vec3& operator*=(Real c) { x *= c; y *= c; z *= c; return *this; }
   //! \brief Division by a scalar.
-  Vec3& operator/=(real d) { x /= d; y /= d; z /= d; return *this; }
+  Vec3& operator/=(Real d) { x /= d; y /= d; z /= d; return *this; }
 
   //! \brief Add the given vector \b X to \a *this.
   Vec3& operator+=(const Vec3& X)
@@ -84,13 +84,13 @@ public:
   }
 
   //! \brief Return the sum of the vector.
-  real sum() const { return x+y+z; }
+  Real sum() const { return x+y+z; }
 
   //! \brief Return the length of the vector.
-  real length() const { return sqrt(x*x+y*y+z*z); }
+  Real length() const { return sqrt(x*x+y*y+z*z); }
 
   //! \brief Normalize the vector and return its length.
-  real normalize(double tol = 1.0e-16)
+  Real normalize(double tol = 1.0e-16)
   {
     register double len = sqrt(x*x+y*y+z*z);
     if (len <= tol) return len;
@@ -176,16 +176,16 @@ public:
 class Vec4 : public Vec3
 {
 public:
-  real t; //!< The time coordinate
+  Real t; //!< The time coordinate
 
   //! \brief Default constructor creating a point at origin.
   Vec4() { t = 0.0; }
   //! \brief Constructor creating a point at the specified location.
-  Vec4(real X, real Y, real Z, real T = 0.0) : Vec3(X,Y,Z) { t = T; }
+  Vec4(Real X, Real Y, Real Z, Real T = 0.0) : Vec3(X,Y,Z) { t = T; }
   //! \brief Constructor creating a point at the specified location.
-  Vec4(const Vec3& X, real T = 0.0) : Vec3(X) { t = T; }
+  Vec4(const Vec3& X, Real T = 0.0) : Vec3(X) { t = T; }
   //! \brief Constructor creating a point from the given \a std::vector.
-  Vec4(const std::vector<real>& X) : Vec3(X) { t = X.size() > 3 ? X[3] : 0.0; }
+  Vec4(const std::vector<Real>& X) : Vec3(X) { t = X.size() > 3 ? X[3] : 0.0; }
   //! \brief Copy constructor.
   Vec4(const Vec4& X) : Vec3(X) { t = X.t; }
 
@@ -193,7 +193,7 @@ public:
   Vec4& operator=(const Vec4& X)
   { x = X.x; y = X.y; z = X.z; t = X.t; return *this; }
   //! \brief Overloaded assignment operator.
-  Vec4& operator=(real val) { x = y = z = val; return *this; }
+  Vec4& operator=(Real val) { x = y = z = val; return *this; }
 
   //! \brief Assignment method.
   Vec4& assign(const Vec3& X)

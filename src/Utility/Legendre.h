@@ -35,13 +35,13 @@ namespace Legendre
   //! \param[in] n Polynomial degree
   //! \param[in] x Evaluation point
   //! \param[out] retval Polynomial value at point \a x
-  bool LegendreEval(int n, real x, real& retval);
+  bool LegendreEval(int n, Real x, Real& retval);
 
   //! \brief Evaluates the first derivative of the \a n-th Legendre polynomial.
   //! \param[in] n Polynomial degree
   //! \param[in] x Evaluation point
   //! \param[out] retval Value of the first derivative at point \a x
-  bool LegendreDerEval(int n, real x, real& retval);
+  bool LegendreDerEval(int n, Real x, Real& retval);
 
   //! \brief Evaluates first derivatives of the \a n one-dimensional
   //! Lagrange interpolation polynomials through \a n GLL-points.

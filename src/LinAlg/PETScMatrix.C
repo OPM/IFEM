@@ -55,7 +55,7 @@ PETScVector::PETScVector(size_t n)
 }
 
 
-PETScVector::PETScVector(const real* values, size_t n)
+PETScVector::PETScVector(const Real* values, size_t n)
 {
   PetscScalar *x_array;
 
@@ -100,29 +100,29 @@ void PETScVector::redim(size_t n)
 }
 
 
-real* PETScVector::getPtr()
+Real* PETScVector::getPtr()
 {
-  real* ptr = 0;
+  Real* ptr = 0;
 
   VecGetArray(x,&ptr);
   return ptr;
 }
 
 
-const real* PETScVector::getRef() const
+const Real* PETScVector::getRef() const
 {
   return const_cast<PETScVector*>(this)->getPtr();
 }
 
 
-void PETScVector::restore(const real* ptr)
+void PETScVector::restore(const Real* ptr)
 {
   PetscScalar* pptr = (PetscScalar*) ptr;
   VecRestoreArray(x,&pptr);
 }
 
 
-void PETScVector::init(real value)
+void PETScVector::init(Real value)
 {
   VecSet(x,value);
 }
@@ -142,13 +142,13 @@ bool PETScVector::endAssembly()
 }
 
 
-void PETScVector::mult(real alpha)
+void PETScVector::mult(Real alpha)
 {
   VecScale(x,alpha);
 }
 
 
-real PETScVector::L1norm() const
+Real PETScVector::L1norm() const
 {
   PetscReal val;
 
@@ -157,7 +157,7 @@ real PETScVector::L1norm() const
 }
 
 
-real PETScVector::L2norm() const
+Real PETScVector::L2norm() const
 {
   PetscReal val;
 
@@ -166,7 +166,7 @@ real PETScVector::L2norm() const
 }
 
 
-real PETScVector::Linfnorm() const
+Real PETScVector::Linfnorm() const
 {
   PetscReal val;
 
@@ -237,9 +237,9 @@ PETScMatrix::~PETScMatrix ()
 static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
                         const std::vector<int>& meen, const int* meqn,
                         const int* mpmceq, const int* mmceq,
-                        const real* ttcc)
+                        const Real* ttcc)
 {
-  real   c0;
+  Real   c0;
   size_t i, j;
   int    jp, jceq;
 
@@ -254,7 +254,7 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
   // Cast to non-constant Matrix to modify for Dirichlet BCs
   Matrix& A = const_cast<Matrix&>(eM);
 
-  std::vector<real> uc(nedof), bc(nedof);
+  std::vector<Real> uc(nedof), bc(nedof);
 
   bool rhsMod = false;
   for (j = 1;j <= nedof;j++) {
@@ -300,9 +300,9 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
 
 static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
 			const std::vector<int>& meen, const int* meqn,
-			const int* mpmceq, const int* mmceq, const real* ttcc)
+			const int* mpmceq, const int* mmceq, const Real* ttcc)
 {
-  real   c0;
+  Real   c0;
   size_t i, j;
   int    ieq, jeq, ip, jp, iceq, jceq;
 
@@ -387,7 +387,7 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
 
 static void assemPETSc (const Matrix& eM, Mat SM, const std::vector<int>& meen,
 			const int* meqn, const int* mpmceq, const int* mmceq,
-			const real* ttcc)
+			const Real* ttcc)
 {
   size_t i, j;
   int    ieq, jeq, ip, jp, iceq, jceq;
@@ -680,7 +680,7 @@ bool PETScMatrix::solve (SystemVector& B, SystemMatrix& P, bool newLHS)
 }
 
 bool PETScMatrix::solveEig (PETScMatrix& B, RealArray& val,
-			    Matrix& vec, int nv, real shift, int iop)
+			    Matrix& vec, int nv, Real shift, int iop)
 {
 #ifdef HAS_SLEPC
   ST          st;
@@ -737,7 +737,7 @@ bool PETScMatrix::solveEig (PETScMatrix& B, RealArray& val,
 }
 
 
-real PETScMatrix::Linfnorm () const
+Real PETScMatrix::Linfnorm () const
 {
   PetscReal norm;
   MatNorm(A,NORM_INFINITY,&norm);

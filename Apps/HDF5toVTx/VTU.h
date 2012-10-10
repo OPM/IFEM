@@ -29,10 +29,10 @@ class VTU : public VTF {
 
     bool writeGrid(const ElementBlock* lvb, const char* name, int iStep=1);
 
-    bool writeVres(const std::vector<real>& field, int blockID,
+    bool writeVres(const std::vector<Real>& field, int blockID,
                    int geomID, int components);
-    bool writeNres(const std::vector<real>& vec, int blockID, int geomID);
-    bool writeEres(const std::vector<real>& vec, int blockID, int geomID);
+    bool writeNres(const std::vector<Real>& vec, int blockID, int geomID);
+    bool writeEres(const std::vector<Real>& vec, int blockID, int geomID);
 
     bool writeVblk(const std::vector<int>& vBlockIDs,
                    const char* resultName, int idBlock, int iStep=1);
@@ -42,7 +42,7 @@ class VTU : public VTF {
                    const char* resultName, int idBlock, int iStep=1,
                    bool elementData=false);
 
-    bool writeState(int iStep, const char* fmt, real refValue, int refType=0);
+    bool writeState(int iStep, const char* fmt, Real refValue, int refType=0);
 
     const ElementBlock* getBlock(int geomID) const { return m_geom[geomID-1]; }
 
@@ -50,7 +50,7 @@ class VTU : public VTF {
     std::string m_base;
     std::vector<const ElementBlock*> m_geom;
     struct FieldInfo {
-      std::vector<real>* data;
+      std::vector<Real>* data;
       int components;
       int patch;
       bool cellData;

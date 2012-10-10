@@ -54,7 +54,7 @@ void ElementBlock::unStructResize (size_t nEl, size_t nPts)
 }
 
 
-bool ElementBlock::setCoor (size_t i, size_t j, real x)
+bool ElementBlock::setCoor (size_t i, size_t j, Real x)
 {
   if (i >= coord.size() || j >= 3) return false;
 
