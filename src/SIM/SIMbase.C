@@ -1346,7 +1346,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
   IntegrandMap::const_iterator it;
   for (it = myInts.begin(); it != myInts.end() && ok; it++)
   {
-    if (msgLevel > 1)
+    if (msgLevel > 1 && myPid == 0)
       std::cout <<"\n\nProcessing integrand associated with code "<< it->first
 		<< std::endl;
 
