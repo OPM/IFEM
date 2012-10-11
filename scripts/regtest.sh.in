@@ -6,7 +6,7 @@
 #
 # Parameters: $1 = Application binary
 #             $2 = Regression test file
-#
+#             $3 = If given, number of MPI nodes
 # A regression test file is of the format:
 # parameters to application
 # blank line
@@ -16,6 +16,7 @@ mysim=$1
 
 cd `dirname $2`
 readarray < $2
+test -n "$3" && mysim="mpirun -np $3 $mysim"
 $mysim $MAPFILE 2>&1 > templog
 globres=1
 IFS=$'\n'
