@@ -14,6 +14,7 @@
 #include "SIMbase.h"
 #include "SIMoptions.h"
 #include "ASMs2DC1.h"
+#include "ASMunstruct.h"
 #ifdef PARALLEL_PETSC
 #include "SAMpatchPara.h"
 #include "petscsys.h"
@@ -295,6 +296,10 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
     if (type == "anasol") {
       std::cout <<"\tNeumann code "<< code <<" (analytic)" << std::endl;
       this->setPropertyType(code,Property::NEUMANN_ANASOL);
+    }
+    else if (type == "generic") {
+      std::cout <<"\tNeumann code "<< code <<" (generic)" << std::endl;
+      this->setPropertyType(code,Property::NEUMANN_GENERIC);
     }
     else if (elem->FirstChild()) {
       int ndir = 0;
@@ -737,6 +742,9 @@ bool SIMbase::parseLinSolTag (const TiXmlElement* elem)
 
 bool SIMbase::createFEMmodel ()
 {
+  ASMstruct::resetNumbering();
+  ASMunstruct::resetNumbering();
+
   for (size_t i = 0; i < myModel.size(); i++)
     if (!myModel[i]->generateFEMTopology())
       return false;
