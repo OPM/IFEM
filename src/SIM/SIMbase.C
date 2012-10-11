@@ -14,7 +14,9 @@
 #include "SIMbase.h"
 #include "SIMoptions.h"
 #include "ASMs2DC1.h"
+#ifdef HAS_LRSPLINE
 #include "ASMunstruct.h"
+#endif
 #ifdef PARALLEL_PETSC
 #include "SAMpatchPara.h"
 #include "petscsys.h"
@@ -743,7 +745,9 @@ bool SIMbase::parseLinSolTag (const TiXmlElement* elem)
 bool SIMbase::createFEMmodel ()
 {
   ASMstruct::resetNumbering();
+#ifdef HAS_LRSPLINE
   ASMunstruct::resetNumbering();
+#endif
 
   for (size_t i = 0; i < myModel.size(); i++)
     if (!myModel[i]->generateFEMTopology())

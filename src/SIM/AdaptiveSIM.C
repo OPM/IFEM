@@ -13,7 +13,6 @@
 
 #include "AdaptiveSIM.h"
 #ifdef HAS_LRSPLINE
-#include "ASMunstruct.h"
 #include "ASMu2D.h"
 #else
 #include "ASMbase.h"
@@ -187,9 +186,6 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
     SIMoptions opt = model->opt;
     // Re-generate the FE model after the refinement
     model->clearProperties();
-#ifdef HAS_LRSPLINE
-    ASMunstruct::resetNumbering();
-#endif
     // Caution: If we are using XML-input and have specified old command-line
     // options in order to override simulation options read from the input file,
     // those options will not be overridden here, so please don't do that..
