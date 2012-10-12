@@ -162,6 +162,13 @@ namespace utl
   //! \note It is assumed that the array \a a is sorted in encreasing order on
   //! input. If this is not the case the method will deliver incorrect result.
   size_t find_closest(const std::vector<Real>& a, Real v);
+
+  //! \brief Prints a string stream to a ostream, making sure to flush
+  //!        the ostream across all processes up front
+  //! \param[in/out] out The ostream to print to
+  //! \param[in] str The string stream to print
+  //! \param[in] pid The PID of this process. Only process 0 will print
+  void printSyncronized(std::ostream& out, const std::stringstream& str, int pid);
 }
 
 #endif

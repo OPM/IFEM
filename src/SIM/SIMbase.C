@@ -1489,7 +1489,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
     }
 
   // Solve the linear system of equations
-  if (msgLevel > 1)
+  if (msgLevel > 1 && myPid == 0)
     std::cout <<"\nSolving the equation system ..."<< std::endl;
   {
     PROFILE1("Equation solving");
@@ -1506,22 +1506,24 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
   double dMax[nf];
   double dNorm = this->solutionNorms(solution,dMax,iMax,nf);
 
+  std::stringstream str;
   if (myPid == 0)
   {
-    std::cout <<"\n >>> Solution summary <<<\n"
-	      <<"\nL2-norm            : "<< utl::trunc(dNorm);
+    str <<"\n >>> Solution summary <<<\n"
+        <<"\nL2-norm            : "<< utl::trunc(dNorm);
     if (nf == 1 && utl::trunc(dMax[0]) != 0.0)
-      std::cout <<"\nMax "<< compName <<"   : "<< dMax[0] <<" node "<< iMax[0];
+      str <<"\nMax "<< compName <<"   : "<< dMax[0] <<" node "<< iMax[0];
     else if (nf > 1)
     {
       char D = 'X';
       for (size_t d = 0; d < nf; d++, D++)
 	if (utl::trunc(dMax[d]) != 0.0)
-	  std::cout <<"\nMax "<< D <<'-'<< compName <<" : "
+	  str <<"\nMax "<< D <<'-'<< compName <<" : "
 		    << dMax[d] <<" node "<< iMax[d];
     }
-    std::cout << std::endl;
+    str << std::endl;
   }
+  utl::printSyncronized(std::cout, str, myPid);
 
   // Print entire solution vector if it is small enough
   if (mySam->getNoEquations() < printSol)

@@ -15,6 +15,9 @@
 #include "tinyxml.h"
 #include <cstdlib>
 
+#ifdef PARALLEL_PETSC
+#include <petsc.h>
+#endif
 
 void utl::parseIntegers (std::vector<int>& values, const char* argv)
 {
@@ -361,4 +364,15 @@ size_t utl::find_closest (const std::vector<Real>& a, Real v)
     return 0;
   else
     return i-1;
+}
+
+
+void utl::printSyncronized(std::ostream& out, const std::stringstream& str, int pid)
+{
+  out << std::flush;
+#ifdef PARALLEL_PETSC
+  MPI_Barrier(PETSC_COMM_WORLD);
+#endif
+  if (pid == 0)
+    out << str.str();
 }
