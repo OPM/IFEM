@@ -262,6 +262,7 @@ bool VTF::writeTransformation (const Vec3& X, const Tensor& T,
   if (!myFile) return true;
   if (!this->getBlock(geomID)) return false;
 
+#if HAS_VTFAPI == 1 || HAS_VTFAPI == 2
   // Cast to float
   float trans[12];
   size_t i, j, k = 0;
@@ -270,6 +271,7 @@ bool VTF::writeTransformation (const Vec3& X, const Tensor& T,
       trans[k++] = T(i,j);
   for (j = 0; j < 3; j++)
     trans[k++] = X[j];
+#endif
 
 #if HAS_VTFAPI == 1
   VTFAMatrixResultBlock tBlock(idBlock);
