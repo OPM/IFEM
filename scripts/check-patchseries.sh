@@ -17,8 +17,10 @@
 
 branch=`git branch|grep \*|awk -F ' ' '{print $2}'`
 base=$CHECK_BASE
+head=$CHECK_HEAD
 test -z $base && base=trunk
-for rev in `git rev-list $base..HEAD --reverse`; do
+test -z $head && last=HEAD
+for rev in `git rev-list $base..$last --reverse`; do
   git checkout $rev
   if ! scripts/doregtests.sh $@
   then
