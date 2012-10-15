@@ -91,6 +91,20 @@ ADD_CUSTOM_TARGET(doc doxygen
                   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                   COMMENT "Generating API documentation" VERBATIM)
 
+# For testing commits
+ADD_CUSTOM_TARGET(check-commits scripts/check-patchseries.sh
+                                "${CMAKE_BUILD_TYPE}" "." 
+                  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+                  COMMENT "Checking commits" VERBATIM)
+
+ADD_CUSTOM_TARGET(check-commits-all scripts/check-patchseries.sh 
+                                    "${CMAKE_BUILD_TYPE}" "."
+                                    "Apps/FSWallDistance"
+                                    "Apps/Elasticity/FiniteDeformation"
+                                    "Apps/Stokes"
+                  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+                  COMMENT "Checking commits" VERBATIM)
+
 # Regression tests
 IF(IFEM_USE_PARALLEL_PETSC)
   # Add parallel tests for LinEl / Poisson here
