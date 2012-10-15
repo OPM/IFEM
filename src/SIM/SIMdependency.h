@@ -64,9 +64,9 @@ public:
   //! \param[in] nvc Number of components in field
   //! \param[in] patches The geometry the field is defined over
   //! \param[in] diffBasis Different basis for the SIM class and the field
-  void registerDependency(SIMdependency* sim, const std::string& name,
-                          short int nvc, const PatchVec& patches,
-			  bool diffBasis = false);
+  virtual void registerDependency(SIMdependency* sim, const std::string& name,
+                                  short int nvc, const PatchVec& patches,
+                                  bool diffBasis = false);
   //! \brief Registers a dependency on a field from another SIM object.
   //! \param[in] sim The SIM object holding the field we depend on
   //! \param[in] name Name of field we depend on
