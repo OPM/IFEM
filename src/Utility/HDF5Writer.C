@@ -315,6 +315,8 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
 
   NormBase* norm = sim->getProblem()->getNormIntegrand();
 
+#ifdef HAS_HDF5
+
   int results = entry.second.results;
   bool usedescription=false;
   if (results < 0) {
@@ -322,7 +324,6 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     usedescription = true;
   }
 
-#ifdef HAS_HDF5
   size_t j, k, l;
   for (int i = 0; i < sim->getNoPatches(); ++i) {
     std::stringstream str;
