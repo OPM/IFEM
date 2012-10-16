@@ -24,7 +24,7 @@
 #endif
 
 
-SIM3D::SIM3D (bool checkRHS, unsigned char n1, unsigned char n2)
+SIM3D::SIM3D (unsigned char n1, unsigned char n2, bool checkRHS)
 {
   nf[0] = n1;
   nf[1] = n2;

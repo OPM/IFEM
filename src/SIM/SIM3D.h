@@ -30,10 +30,10 @@ public:
   enum { dimension = 3 };
 
   //! \brief Default constructor.
-  //! \param[in] check If \e true, ensure the model is in a right-hand system
   //! \param[in] n1 Dimension of the primary solution field
   //! \param[in] n2 Dimension of the second solution field (mixed method)
-  SIM3D(bool check = false, unsigned char n1 = 3, unsigned char n2 = 0);
+  //! \param[in] check If \e true, ensure the model is in a right-hand system
+  SIM3D(unsigned char n1 = 3, unsigned char n2 = 0, bool check = false);
   //! \brief Empty destructor.
   virtual ~SIM3D() {}
 
