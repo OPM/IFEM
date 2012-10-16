@@ -24,6 +24,9 @@
 class SIM1D : public SIMbase
 {
 public:
+  //! \brief Announce dimensionality
+  enum { dimension = 1 };
+
   //! \brief Default constructor.
   //! \param[in] n_f Number of components in the primary solution field
   SIM1D(unsigned char n_f = 1);

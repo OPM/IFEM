@@ -26,6 +26,9 @@
 class SIM2D : public SIMbase
 {
 public:
+  //! \brief Announce dimensionality
+  enum { dimension = 2 };
+
   //! \brief Default constructor.
   //! \param[in] n1 Dimension of the primary solution field
   //! \param[in] n2 Dimension of the second solution field (mixed method)

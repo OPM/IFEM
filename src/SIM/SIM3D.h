@@ -26,6 +26,9 @@
 class SIM3D : public SIMbase
 {
 public:
+  //! \brief Announce dimensionality
+  enum { dimension = 3 };
+
   //! \brief Default constructor.
   //! \param[in] check If \e true, ensure the model is in a right-hand system
   //! \param[in] n1 Dimension of the primary solution field
