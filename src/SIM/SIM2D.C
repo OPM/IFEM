@@ -42,7 +42,7 @@ struct Interface
 };
 
 
-SIM2D::SIM2D (unsigned char n1, unsigned char n2) : isRefined(false)
+SIM2D::SIM2D (unsigned char n1, unsigned char n2, bool dummy) : isRefined(false)
 {
   nf[0] = n1;
   nf[1] = n2;

@@ -20,7 +20,7 @@
 #include "tinyxml.h"
 
 
-SIM1D::SIM1D (unsigned char n_f)
+SIM1D::SIM1D (unsigned char n_f, unsigned char dummy1, bool dummy2)
 {
   nf = n_f;
 }

@@ -32,7 +32,8 @@ public:
   //! \brief Default constructor.
   //! \param[in] n1 Dimension of the primary solution field
   //! \param[in] n2 Dimension of the second solution field (mixed method)
-  SIM2D(unsigned char n1 = 2, unsigned char n2 = 0);
+  //! \param[in] check Dummy
+  SIM2D(unsigned char n1 = 2, unsigned char n2 = 0, bool check = false);
   //! \brief Empty destructor.
   virtual ~SIM2D() {}
 

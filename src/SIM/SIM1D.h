@@ -29,7 +29,9 @@ public:
 
   //! \brief Default constructor.
   //! \param[in] n_f Number of components in the primary solution field
-  SIM1D(unsigned char n_f = 1);
+  //! \param[in] n2 Dummy
+  //! \param[in] check Dummy
+  SIM1D(unsigned char n_f = 1, unsigned char n2 = 0, bool check = false);
   //! \brief Empty destructor.
   virtual ~SIM1D() {}
 
