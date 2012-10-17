@@ -36,6 +36,8 @@ public:
   //! \brief Empty destructor.
   virtual ~ASMs1D() {}
 
+  //! \brief Returns the spline surface representing the geometry of this patch.
+  Go::SplineCurve* getCurve() const { return curv; }
 
   // Methods for model generation
   // ============================

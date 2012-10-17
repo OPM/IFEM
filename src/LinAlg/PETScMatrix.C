@@ -14,7 +14,7 @@
 #include "PETScMatrix.h"
 #ifdef HAS_PETSC
 #include "LinSolParams.h"
-#include "SAM.h"
+#include "SAMpatch.h"
 #include "petscversion.h"
 #include "petscis.h"
 #include "petscsys.h"
@@ -190,6 +190,7 @@ PETScMatrix::PETScMatrix(const LinSolParams& spar) : solParams(spar)
   }
   LinAlgInit::increfs();
 
+  setParams = true;
   elmIS = 0;
   ISsize = 0;
 }
@@ -209,6 +210,7 @@ PETScMatrix::PETScMatrix (const PETScMatrix& B) : solParams(B.solParams)
   }
   LinAlgInit::increfs();
 
+  setParams = true;
   elmIS = 0;
   ISsize = 0;
 }
@@ -231,7 +233,6 @@ PETScMatrix::~PETScMatrix ()
     ISDestroy(PETSCMANGLE(elmIS[i]));
   delete elmIS;
 }
-
 
 #ifdef PARALLEL_PETSC
 static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
@@ -352,7 +353,6 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
 
     // Add contributions to SM
     for (jp = mpmceq[jceq-1]; jp < mpmceq[jceq]-1; jp++) {
-      std::cout << "jp = " << jp << std::endl;
       if (mmceq[jp] > 0) {
 	jeq = meqn[mmceq[jp]-1];
 	for (i = 1; i <= nedof; i++) {
@@ -446,12 +446,20 @@ static void assemPETSc (const Matrix& eM, Mat SM, const std::vector<int>& meen,
 
 void PETScMatrix::initAssembly (const SAM& sam, bool)
 {
+  const SAMpatch* sampch = dynamic_cast<const SAMpatch*>(&sam);
+
+  int nx = solParams.getLocalPartitioning(0);
+  int ny = solParams.getLocalPartitioning(1);
+  int nz = solParams.getLocalPartitioning(2);
+  int overlap = solParams.getOverlap();
+
+  if (nx+ny+nz > 0) {
+    sampch->getLocalSubdomains(locSubdDofs,nx,ny,nz);
+    sampch->getSubdomains(subdDofs,overlap,nx,ny,nz);
+  }
+
   // Get number of equations in linear system
   const PetscInt neq = sam.getNoEquations();
-
-  // RUNAR
-  if (!strncasecmp(solParams.getPreconditioner(),"mat",3))
-    std::cout << "EBE = " << this->makeElementIS(sam) << std::endl;
 
   // Set correct number of rows and columns for matrix.
   MatSetSizes(A,neq,neq,PETSC_DECIDE,PETSC_DECIDE);
@@ -484,7 +492,7 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
 
   if (sam.getNoDofCouplings(nnz)) {
     std::vector<PetscInt> Nnz(nnz.size());
-    for (size_t i = 0; i < nnz.size(); i++)
+    for (size_t i = 0; i < nnz.size(); i++) 
       Nnz[i] = nnz[i];
     MatSeqAIJSetPreallocation(A,PETSC_DEFAULT,&(Nnz[0]));
   }
@@ -603,7 +611,10 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
   else
     KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
 
-  solParams.setParams(ksp);
+  if (setParams) {
+    solParams.setParams(ksp,locSubdDofs,subdDofs);
+    setParams = false;
+  }
   KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
   KSPSolve(ksp,x,Bptr->getVector());
 
@@ -635,7 +646,10 @@ bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
   else
     KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
 
-  solParams.setParams(ksp);
+  if (setParams) {
+    solParams.setParams(ksp,locSubdDofs,subdDofs);
+    setParams = false;
+  }
   KSPSetInitialGuessNonzero(ksp,PETSC_TRUE);
   KSPSolve(ksp,Bptr->getVector(),Xptr->getVector());
 
@@ -667,7 +681,10 @@ bool PETScMatrix::solve (SystemVector& B, SystemMatrix& P, bool newLHS)
   else
     KSPSetOperators(ksp,A,Pptr->getMatrix(),SAME_PRECONDITIONER);
 
-  solParams.setParams(ksp);
+  if (setParams) {
+    solParams.setParams(ksp,locSubdDofs,subdDofs);
+    setParams = false;
+  }
   KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
   KSPSolve(ksp,x,Bptr->getVector());
 

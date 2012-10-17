@@ -531,3 +531,74 @@ bool SAMpatchPara::initSystemEquations ()
 
   return true;
 }
+
+
+bool SAMpatchPara::getLocalSubdomains(std::vector<IntVec>& locSubds,
+				      int nx, int ny, int nz) const
+{
+  // Define some parameters
+  const int npatch = patch.size();
+  const int nsd    = patch[0]->getNoSpaceDim();
+
+  // Find min and max node for each patch on this processor
+  IntVec maxNodeId, minNodeId;
+  maxNodeId.resize(npatch,true);
+  minNodeId.resize(npatch,true);
+
+  for (int n = 0;n < npatch;n++) {
+    const IntVec& MLGN = patch[n]->getGlobalNodeNums();
+  
+    int min = 0;
+    int max = 0;
+    for (size_t i = 0;i < MLGN.size();i++) {
+      if (MLGN[i] > max)
+	max = MLGN[i];
+      if (MLGN[i] < min)
+	min = MLGN[i];
+    }
+    minNodeId[n] = min;
+    maxNodeId[n] = max;
+  }
+  
+  minNodeId[0] = 1;
+  for (int n = 1;n < npatch;n++)
+    minNodeId[n] = maxNodeId[n-1] + 1;
+  
+#ifdef PARALLEL_PETSC
+  // Adjust for parallel
+  int myRank, nProc;
+  MPI_Status status;
+  MPI_Comm_rank(PETSC_COMM_WORLD,&myRank);
+  MPI_Comm_size(PETSC_COMM_WORLD,&nProc);
+  if (myRank < nProc-1)
+    MPI_Send(&maxNodeId[npatch-1],1,MPI_INT,myRank+1,101,PETSC_COMM_WORLD);
+  if (myRank > 0) {
+    MPI_Recv(&minNodeId[0],1,MPI_INT,myRank-1,101,PETSC_COMM_WORLD,&status);
+    minNode[0]++;
+  }
+#endif  
+
+  switch (nsd) {
+  case 1:
+  {
+    IntVec nxVec; 
+    nxVec.assign(npatch,nx);
+    return this->getLocalSubdomains1D(nxVec,minNodeId,maxNodeId,locSubds);
+  }
+  case 2:
+  {
+    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
+    IntVec nyVec(npatch); nyVec.assign(npatch,ny);
+    return this->getLocalSubdomains2D(nxVec,nyVec,minNodeId,maxNodeId,locSubds);
+  }
+  case 3:
+  {
+    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
+    IntVec nyVec(npatch); nyVec.assign(npatch,ny);
+    IntVec nzVec(npatch); nzVec.assign(npatch,nz);
+    return this->getLocalSubdomains3D(nxVec,nyVec,nzVec,minNodeId,maxNodeId,locSubds);
+  }
+  default:
+    return false;
+  }
+}

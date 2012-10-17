@@ -19,6 +19,7 @@
 #include <iostream>
 #ifdef HAS_PETSC
 #include <string>
+#include <vector>
 #include "petscksp.h"
 #endif
 
@@ -83,6 +84,10 @@ public:
   //! \brief Set number of overlap
   virtual void setOverlap(int olap) { overlap = olap; }
 
+  //! \brief Set number of local subdomains for each patch
+  virtual void setLocalPartitioning(size_t nx = 0, size_t ny = 0, size_t nz = 0)
+  { npart[0] = nx; npart[1] = ny; npart[2] = nz; }
+
   //! \brief Set null-space of matrix
   virtual void setNullSpace(NullSpace nspc) { nullspc = nspc; }
 
@@ -110,11 +115,15 @@ public:
   //! \brief Get number of overlaps
   virtual int getOverlap() const { return overlap; }
 
+  //! \brief Get local partitioning
+  virtual int getLocalPartitioning(size_t dir = 0) const { return npart[dir]; }
+
   //! \brief Get number of overlaps
   virtual NullSpace getNullSpace() const { return nullspc; }
 
   //! \brief Set linear solver parameters for KSP object
-  virtual void setParams(KSP& ksp) const;
+  virtual void setParams(KSP& ksp, std::vector<std::vector<int>>& locSubdDofs,
+			 std::vector<std::vector<int>>& subdDofs) const;
 
 private:
   std::string method;      // Linear solver method
@@ -127,6 +136,7 @@ private:
   PetscInt  levels;        // Number of levels of fill to use
   PetscInt  maxIts;        // Maximum number of iterations
   PetscInt  overlap;       // Number of overlaps
+  int       npart[3];      // Number of local subdomains for each patch
   NullSpace nullspc;       // Null-space for matrix
   bool      asmlu;         // If LU-factorization should be used on subdomains
 #endif // HAS_PETSC

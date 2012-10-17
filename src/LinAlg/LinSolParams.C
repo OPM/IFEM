@@ -39,6 +39,7 @@ void LinSolParams::setDefault ()
   package   = DEFAULTSOLVER;
   levels    = 0;
   overlap   = 1;
+  npart[0] = npart[1] = npart[2] = 0;
   nullspc   = NONE;
   asmlu     = false;
 
@@ -60,6 +61,9 @@ void LinSolParams::copy (const LinSolParams& spar)
   package   = spar.package;
   levels    = spar.levels;
   overlap   = spar.overlap;
+  npart[0]  = spar.npart[0];
+  npart[1]  = spar.npart[1];
+  npart[2]  = spar.npart[2];               
   nullspc   = spar.nullspc;
   asmlu     = spar.asmlu;
 
@@ -134,9 +138,25 @@ bool LinSolParams::read (std::istream& is, int nparam)
       char* c = strchr(cline,'=');
       dtol = atof(++c);
     }
+
     else if (!strncasecmp(cline,"maxits",6)) {
       char* c = strchr(cline,'=');
       maxIts = atoi(++c);
+    }
+
+    else if (!strncasecmp(cline,"nx",2)) {
+      char* c = strchr(cline,'=');
+      npart[0] = atoi(++c);
+    }
+
+    else if (!strncasecmp(cline,"ny",2)) {
+      char* c = strchr(cline,'=');
+      npart[1] = atoi(++c);
+    }
+
+    else if (!strncasecmp(cline,"nz",2)) {
+      char* c = strchr(cline,'=');
+      npart[2] = atoi(++c);
     }
 
     else if (!strncasecmp(cline,"nullspace",6)) {
@@ -188,6 +208,12 @@ bool LinSolParams::read (const TiXmlElement* child)
     dtol = atof(value);
   else if ((value = utl::getValue(child,"maxits")))
     maxIts = atoi(value);
+  else if ((value = utl::getValue(child,"nx")))
+    npart[0] = atoi(value);
+  else if ((value = utl::getValue(child,"ny")))
+    npart[1] = atoi(value);
+  else if ((value = utl::getValue(child,"nz")))
+    npart[2] = atoi(value);
   else if ((value = utl::getValue(child,"nullspace"))) {
     if (!strcasecmp(value,"constant"))
       nullspc = CONSTANT;
@@ -213,7 +239,8 @@ bool LinSolParams::read (const char* filename)
 
 
 #ifdef HAS_PETSC
-void LinSolParams::setParams (KSP& ksp) const
+void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<int>>& locSubdDofs,
+			      std::vector<std::vector<int>>& subdDofs) const
 {
   // Set linear solver method
   KSPSetType(ksp,method.c_str());
@@ -235,6 +262,17 @@ void LinSolParams::setParams (KSP& ksp) const
   if (!strncasecmp(prec.c_str(),"asm",3) ||!strncasecmp(prec.c_str(),"gasm",4)) {
     PCASMSetType(pc,PC_ASM_BASIC);
     PCASMSetOverlap(pc,overlap);
+  }
+
+  if (!locSubdDofs.empty() && !subdDofs.empty()) {
+    const size_t nsubds = subdDofs.size();
+
+    IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
+    for (size_t i = 0;i < nsubds;i++) {
+      ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofs[i].size(),&(locSubdDofs[i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
+      ISCreateGeneral(PETSC_COMM_WORLD,subdDofs[i].size(),&(subdDofs[i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
+    }
+    PCASMSetLocalSubdomains(pc,nsubds,isSubdDofs,isLocSubdDofs);
   }
 
   PCFactorSetMatSolverPackage(pc,package.c_str());

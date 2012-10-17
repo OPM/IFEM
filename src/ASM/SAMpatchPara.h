@@ -127,6 +127,12 @@ public:
   //! for parallel vectors the ghost entries are also included.
   virtual Real normInf(const Vector& x, size_t& comp, char dofType = 'D') const;
 
+  //! \brief Split the local dofs into a number of unique subdomains
+  //! \param[out] locSubds Global node number for each of the subdomains
+  //! \param[in]  nx, ny, nz Number of paritionings in each direction
+  virtual bool getLocalSubdomains(std::vector<IntVec>& locSubds,
+				  int nx = 1, int ny = 1, int nz = 1) const;
+
 protected:
   //! \brief Initializes the multi-point constraint arrays
   //! \a MPMCEQ, \a MMCEQ and \a TTCC.

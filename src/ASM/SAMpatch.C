@@ -13,11 +13,19 @@
 
 #include "SAMpatch.h"
 #include "ASMbase.h"
+#include "ASMs1D.h"
+#include "ASMs2D.h"
+#include "ASMs3D.h"
 #include "MPC.h"
-
+#include "GoTools/geometry/SplineCurve.h"
+#include "GoTools/geometry/SplineSurface.h"
+#include "GoTools/trivariate/SplineVolume.h"
 
 bool SAMpatch::init (const ASMVec& model, int numNod)
 {
+  // Get local 2 global node mapping for each patch
+  patch = model;
+
   // Initialize some model size parameters
   nnod = numNod;
   for (size_t i = 0; i < model.size(); i++)
@@ -326,5 +334,481 @@ bool SAMpatch::updateConstraintEqs (const ASMVec& model, const Vector* prevSol)
       }
     }
 
+  return true;
+}
+
+
+bool SAMpatch::getLocalSubdomains(std::vector<IntVec>& locSubds,
+				  int nx, int ny, int nz) const
+{
+  // Define some parameters
+  const int npatch = patch.size();
+  const int nsd    = patch[0]->getNoSpaceDim();
+
+  // Find min and max node for each patch on this processor
+  IntVec maxNodeId, minNodeId;
+  maxNodeId.resize(npatch,true);
+  minNodeId.resize(npatch,true);
+
+  for (int n = 0;n < npatch;n++) {
+    const IntVec& MLGN = patch[n]->getGlobalNodeNums();
+  
+    int min = 0;
+    int max = 0;
+    for (size_t i = 0;i < MLGN.size();i++) {
+      if (MLGN[i] > max)
+	max = MLGN[i];
+      if (MLGN[i] < min)
+	min = MLGN[i];
+    }
+    minNodeId[n] = min;
+    maxNodeId[n] = max;
+  }
+  
+  minNodeId[0] = 1;
+  for (int n = 1;n < npatch;n++)
+    minNodeId[n] = maxNodeId[n-1] + 1;
+  
+  switch (nsd) {
+  case 1:
+  {
+    IntVec nxVec; 
+    nxVec.assign(npatch,nx);
+    return this->getLocalSubdomains1D(nxVec,minNodeId,maxNodeId,locSubds);
+  }
+  case 2:
+  {
+    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
+    IntVec nyVec(npatch); nyVec.assign(npatch,ny);
+    return this->getLocalSubdomains2D(nxVec,nyVec,minNodeId,maxNodeId,locSubds);
+  }
+  case 3:
+  {
+    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
+    IntVec nyVec(npatch); nyVec.assign(npatch,ny);
+    IntVec nzVec(npatch); nzVec.assign(npatch,nz);
+    return this->getLocalSubdomains3D(nxVec,nyVec,nzVec,minNodeId,maxNodeId,locSubds);
+  }
+  default:
+    return false;
+  }
+}
+
+
+bool SAMpatch::getSubdomains(std::vector<IntVec>& subds, int overlap,
+				  int nx, int ny, int nz) const
+{
+  // Define some parameters
+  const int npatch = patch.size();
+  const int nsd    = patch[0]->getNoSpaceDim();
+
+  switch (nsd) {
+  case 1:
+  {
+    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
+    return this->getSubdomains1D(nxVec,overlap,subds);
+  }
+  case 2:
+  {
+    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
+    IntVec nyVec(npatch); nyVec.assign(npatch,ny);
+    return this->getSubdomains2D(nxVec,nyVec,overlap,subds);
+  }
+  case 3:
+  {
+    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
+    IntVec nyVec(npatch); nyVec.assign(npatch,ny);
+    IntVec nzVec(npatch); nzVec.assign(npatch,nz);
+    return this->getSubdomains3D(nxVec,nyVec,nzVec,overlap,subds);
+  }
+  default:
+    return false;
+  }
+}
+
+
+bool SAMpatch::getLocalSubdomains1D(IntVec& nxvec, IntVec& minNodeId, IntVec& maxNodeId, 
+				    std::vector<IntVec>& locSubds)  const
+{
+  // Define some parameters
+  const size_t npatch = patch.size();
+
+  if (nxvec.size() != npatch)
+    return false;
+
+  // Split the patches into smaller subdomains
+  for (size_t n = 0;n < npatch;n++) {
+    int nnod;
+    ASMs1D* pch1 = dynamic_cast<ASMs1D*>(patch[n]);
+    if (pch1)
+	nnod = pch1->getCurve()->numCoefs();
+      else
+	return false;
+
+    int nx = nxvec[n];
+    int n1 = nnod/nx;
+    
+    const IntVec& MLGN = patch[n]->getGlobalNodeNums();
+    for (int p1 = 0;p1 < nx;p1++) {
+      IntVec subdDofs;
+      
+      int i1 = p1*n1;
+      int i2 = (p1+1)*n1;
+      if ((p1 == nx-1) && (i2 < nnod)) i2 = nnod;
+      
+      for (int i = i1;i < i2;i++) {
+	int globNode = MLGN[i];
+	
+	if (globNode >= minNodeId[n] && globNode <= maxNodeId[n]) {
+	  int nodedof = madof[globNode-1];
+	  int nnodedof = patch[n]->getNodalDOFs(i+1);
+	  for (int m = 0;m < nnodedof;m++) {
+	    int ieq = meqn[nodedof+m-1];
+	    if (ieq > 0)
+	      subdDofs.push_back(ieq-1);
+	  }
+	}
+      }
+      
+      locSubds.push_back(subdDofs);
+    }
+  }
+  
+  return true;
+}
+
+
+bool SAMpatch::getLocalSubdomains2D(IntVec& nxvec, IntVec& nyvec, IntVec& minNodeId, 
+				    IntVec& maxNodeId, std::vector<IntVec>& locSubds) const 
+{
+  // Define some parameters
+  const size_t npatch = patch.size();
+
+  if (nxvec.size() != npatch || nyvec.size() != npatch)
+    return false;
+
+  // Split the patches into smaller subdomains
+  for (size_t n = 0;n < npatch;n++) {
+    int nnod1, nnod2;
+    ASMs2D* pch2 = dynamic_cast<ASMs2D*>(patch[n]);
+    if (pch2) {
+      nnod1 = pch2->getSurface()->numCoefs_u();
+      nnod2 = pch2->getSurface()->numCoefs_v();
+    }
+    else
+      return false;
+
+    int nx = nxvec[n];
+    int ny = nyvec[n];
+    int n1 = nnod1/nx;
+    int n2 = nnod2/ny;
+    
+    const IntVec& MLGN = patch[n]->getGlobalNodeNums();
+    for (int p2 = 0;p2 < ny;p2++) {
+      int j1 = p2*n2;
+      int j2 = (p2+1)*n2;
+      if ((p2 == ny-1) && (j2 < nnod2)) j2 = nnod2;
+      
+      for (int p1 = 0;p1 < nx;p1++) {
+	IntVec subdDofs;
+	
+	int i1 = p1*n1;
+	int i2 = (p1+1)*n1;
+	if ((p1 == nx-1) && (i2 < nnod1)) i2 = nnod1;
+
+	for (int j = j1;j < j2;j++)
+	  for (int i = i1;i < i2;i++) {
+	    int locNode = j*nnod1 + i;
+	    int globNode = MLGN[locNode];
+	    
+	    if (globNode >= minNodeId[n] && globNode <= maxNodeId[n]) {
+	      int nodedof = madof[globNode-1];
+	      int nnodedof = patch[n]->getNodalDOFs(locNode+1);
+	      for (int m = 0;m < nnodedof;m++) {
+		int ieq = meqn[nodedof+m-1];
+		if (ieq > 0)
+		  subdDofs.push_back(ieq-1);
+	      }
+	    }
+	  }
+	
+	locSubds.push_back(subdDofs);
+      }
+    }
+  }
+
+  return true;
+}
+
+
+bool SAMpatch::getLocalSubdomains3D(IntVec& nxvec, IntVec& nyvec, IntVec& nzvec,
+				    IntVec& minNodeId, IntVec& maxNodeId, 
+				    std::vector<IntVec>& locSubds)  const  
+{
+  // Define some parameters
+  const size_t npatch = patch.size();
+
+  if (nxvec.size() != npatch || nyvec.size() != npatch || nzvec.size() != npatch)
+    return false;
+
+  // Split the patches into smaller subdomains
+  for (size_t n = 0;n < npatch;n++) {
+    int nnod1, nnod2, nnod3;
+    ASMs3D* pch3 = dynamic_cast<ASMs3D*>(patch[n]);
+    if (pch3) {
+      nnod1 = pch3->getVolume()->numCoefs(0);
+      nnod2 = pch3->getVolume()->numCoefs(1);
+      nnod3 = pch3->getVolume()->numCoefs(2);
+    }
+    else
+      return false;
+	
+    int nx = nxvec[n];
+    int ny = nyvec[n];
+    int nz = nzvec[n];
+    int n1 = nnod1/nx;
+    int n2 = nnod2/ny;
+    int n3 = nnod3/nz;
+    
+    const IntVec& MLGN = patch[n]->getGlobalNodeNums();
+    for (int p3 = 0;p3 < nz;p3++) {
+      int k1 = p3*n3;
+      int k2 = (p3+1)*n3;
+      if ((p3 == nz-1) && (k2 < nnod3)) k2 = nnod3;
+
+      for (int p2 = 0;p2 < ny;p2++) {
+	int j1 = p2*n2;
+	int j2 = (p2+1)*n2;
+	if ((p2 == ny-1) && (j2 < nnod2)) j2 = nnod2;
+
+	for (int p1 = 0;p1 < nx;p1++) {
+	  IntVec subdDofs;
+
+	  int i1 = p1*n1;
+	  int i2 = (p1+1)*n1;
+	  if ((p1 == nx-1) && (i2 < nnod1)) i2 = nnod1;
+
+	  for (int k = k1;k < k2;k++)
+	    for (int j = j1;j < j2;j++)
+	      for (int i = i1;i < i2;i++) {
+		int locNode = k*nnod3*nnod2 + j*nnod1 + i;
+		int globNode = MLGN[locNode];
+		
+		if (globNode >= minNodeId[n] && globNode <= maxNodeId[n]) {
+		  int nodedof = madof[globNode-1];
+		  int nnodedof = patch[n]->getNodalDOFs(locNode+1);
+		  for (int m = 0;m < nnodedof;m++) {
+		    int ieq = meqn[nodedof+m-1];
+		    if (ieq > 0)
+		      subdDofs.push_back(ieq-1);
+		  }
+		}
+	      }
+	    
+	    locSubds.push_back(subdDofs);
+	}
+      }
+    }
+  }
+  
+  return true;
+}
+
+
+bool SAMpatch::getSubdomains1D(IntVec& nxvec, int overlap, std::vector<IntVec>& subds)  const
+{
+  // Define some parameters
+  const size_t npatch = patch.size();
+
+  if (nxvec.size() != npatch)
+    return false;
+
+  // Overlap
+  int olow  = overlap/2;
+  int ohigh = overlap/2 + overlap%2; 
+    
+  // Split the patches into smaller subdomains
+  for (size_t n = 0;n < npatch;n++) {
+    int nnod;
+    ASMs1D* pch1 = dynamic_cast<ASMs1D*>(patch[n]);
+    if (pch1)
+	nnod = pch1->getCurve()->numCoefs();
+      else
+	return false;
+
+    int nx = nxvec[n];
+    int n1 = nnod/nx;
+    
+    const IntVec& MLGN = patch[n]->getGlobalNodeNums();
+    for (int p1 = 0;p1 < nx;p1++) {
+      IntVec subdDofs;
+      
+      int min = 0;
+      int i1 = std::max(p1*n1 - olow,min);
+      int i2 = std::min((p1+1)*n1+ohigh,nnod);
+      if ((p1 == nx-1) && (i2 < nnod)) i2 = nnod;
+      
+      for (int i = i1;i < i2;i++) {
+	int globNode = MLGN[i];
+	
+	int nodedof = madof[globNode-1];
+	int nnodedof = patch[n]->getNodalDOFs(i+1);
+	for (int m = 0;m < nnodedof;m++) {
+	  int ieq = meqn[nodedof+m-1];
+	  if (ieq > 0)
+	    subdDofs.push_back(ieq-1);
+	}
+      }
+    
+      subds.push_back(subdDofs);
+    }
+  }
+
+  return true;
+}
+
+
+bool SAMpatch::getSubdomains2D(IntVec& nxvec, IntVec& nyvec, int overlap,
+			       std::vector<IntVec>& subds) const 
+{
+  // Define some parameters
+  const size_t npatch = patch.size();
+
+  if (nxvec.size() != npatch || nyvec.size() != npatch)
+    return false;
+
+  // Overlap
+  int olow  = overlap/2;
+  int ohigh = overlap/2 + overlap%2; 
+
+  // Split the patches into smaller subdomains
+  for (size_t n = 0;n < npatch;n++) {
+    int nnod1, nnod2;
+    ASMs2D* pch2 = dynamic_cast<ASMs2D*>(patch[n]);
+    if (pch2) {
+      nnod1 = pch2->getSurface()->numCoefs_u();
+      nnod2 = pch2->getSurface()->numCoefs_v();
+    }
+    else
+      return false;
+ 	
+    int nx = nxvec[n];
+    int ny = nyvec[n];
+    int n1 = nnod1/nx;
+    int n2 = nnod2/ny;
+    
+    const IntVec& MLGN = patch[n]->getGlobalNodeNums();
+    for (int p2 = 0;p2 < ny;p2++) {
+      int jmin = 0;
+      int j1 = std::max(p2*n2-olow,jmin);
+      int j2 = std::min((p2+1)*n2+ohigh,nnod2);
+      if ((p2 == ny-1) && (j2 < nnod2)) j2 = nnod2;
+
+      for (int p1 = 0;p1 < nx;p1++) {
+	IntVec subdDofs;
+	
+	int imin = 0;
+	int i1 = std::max(p1*n1-olow,imin);
+	int i2 = std::min((p1+1)*n1+ohigh,nnod1);
+	if ((p1 == nx-1) && (i2 < nnod1)) i2 = nnod1;
+	
+	for (int j = j1;j < j2;j++)
+	  for (int i = i1;i < i2;i++) {
+	    int locNode = j*nnod1 + i;
+	    int globNode = MLGN[locNode];
+	    
+	    int nodedof = madof[globNode-1];
+	    int nnodedof = patch[n]->getNodalDOFs(locNode+1);
+	    for (int m = 0;m < nnodedof;m++) {
+	      int ieq = meqn[nodedof+m-1];
+	      if (ieq > 0)
+		subdDofs.push_back(ieq-1);
+	    }
+	  }
+      
+	subds.push_back(subdDofs);
+      }
+    }
+    
+  }
+
+  return true;
+}
+
+
+bool SAMpatch::getSubdomains3D(IntVec& nxvec, IntVec& nyvec, IntVec& nzvec,
+			       int overlap, std::vector<IntVec>& subds)  const  
+{
+  // Define some parameters
+  const size_t npatch = patch.size();
+
+  if (nxvec.size() != npatch || nyvec.size() != npatch || nzvec.size() != npatch)
+    return false;
+
+  // Overlap
+  int olow  = overlap/2;
+  int ohigh = overlap/2 + overlap%2; 
+
+  // Split the patches into smaller subdomains
+  for (size_t n = 0;n < npatch;n++) {
+    int nnod1, nnod2, nnod3;
+    ASMs3D* pch3 = dynamic_cast<ASMs3D*>(patch[n]);
+    if (pch3) {
+      nnod1 = pch3->getVolume()->numCoefs(0);
+      nnod2 = pch3->getVolume()->numCoefs(1);
+      nnod3 = pch3->getVolume()->numCoefs(2);
+    }
+    else
+      return false;
+	
+    int nx = nxvec[n];
+    int ny = nyvec[n];
+    int nz = nzvec[n];
+    int n1 = nnod1/nx;
+    int n2 = nnod2/ny;
+    int n3 = nnod3/nz;
+    
+    const IntVec& MLGN = patch[n]->getGlobalNodeNums();
+    for (int p3 = 0;p3 < nz;p3++) {
+      int kmin = 0;
+      int k1 = std::max(p3*n3-olow,kmin);
+      int k2 = std::min((p3+1)*n3+ohigh,nnod3);
+      if ((p3 == nz-1) && (k2 < nnod3)) k2 = nnod3;
+
+      for (int p2 = 0;p2 < ny;p2++) {
+	int jmin = 0;
+	int j1 = std::max(p2*n2-olow,jmin);
+	int j2 = std::min((p2+1)*n2+ohigh,nnod2);
+	if ((p2 == ny-1) && (j2 < nnod2)) j2 = nnod2;
+
+	for (int p1 = 0;p1 < nx;p1++) {
+	  IntVec subdDofs;
+
+	  int imin = 0;
+	  int i1 = std::max(p1*n1-olow,imin);
+	  int i2 = std::min((p1+1)*n1+ohigh,nnod1);
+	  if ((p1 == nx-1) && (i2 < nnod1)) i2 = nnod1;
+
+	  for (int k = k1;k < k2;k++)
+	    for (int j = j1;j < j2;j++)
+	      for (int i = i1;i < i2;i++) {
+		int locNode = k*nnod3*nnod2 + j*nnod1 + i;
+		int globNode = MLGN[locNode];
+		
+		int nodedof = madof[globNode-1];
+		int nnodedof = patch[n]->getNodalDOFs(locNode+1);
+		for (int m = 0;m < nnodedof;m++) {
+		  int ieq = meqn[nodedof+m-1];
+		  if (ieq > 0)
+		    subdDofs.push_back(ieq-1);
+		}
+	      }
+	  
+	  subds.push_back(subdDofs);
+	}
+      }
+    }
+  }
+  
   return true;
 }

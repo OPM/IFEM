@@ -24,7 +24,6 @@
 
 class LinSolParams;
 
-
 /*!
   \brief Class for representing the system vector in PETSc format.
   \details It is an interface to PETSc modules for assembling and solving
@@ -229,18 +228,23 @@ public:
   const Mat& getMatrix() const { return A; }
 
 private:
+  typedef std::vector<int> IntVec; //!< General integer vector
+
   //! \brief Constructs index set needed for element-by-element preconditioner.
   bool makeElementIS(const SAM& sam);
 
   //! \brief Constructs the EBE preconditioner of the given matrix.
   bool makeEBEpreconditioner(const Mat A, Mat* AeI);
 
-  Mat                 A;         //!< The actual PETSc matrix
-  KSP                 ksp;       //!< Linear equation solver
-  MatNullSpace        nsp;       //!< Null-space of linear operator
-  const LinSolParams& solParams; //!< Linear solver parameters
-  IS*                 elmIS;     //!< Element index sets
-  PetscInt            ISsize;    //!< Number of index sets/elements
+  Mat                 A;           //!< The actual PETSc matrix
+  KSP                 ksp;          //!< Linear equation solver
+  MatNullSpace        nsp;          //!< Null-space of linear operator
+  const LinSolParams& solParams;    //!< Linear solver parameters
+  IS*                 elmIS;        //!< Element index sets
+  PetscInt            ISsize;       //!< Number of index sets/elements
+  bool                setParams;    //!< If the linear solver parameters should be set
+  std::vector<IntVec> locSubdDofs;  //!< Degrees of freedom for unique subdomains
+  std::vector<IntVec> subdDofs;     //!< Degrees of freedom for subdomains
 
 #else // dummy implementation when PETSc is not included
   virtual SystemMatrix* copy() const { return 0; }
