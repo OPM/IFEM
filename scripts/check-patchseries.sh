@@ -18,6 +18,11 @@
 branch=`git branch|grep \*|awk -F ' ' '{print $2}'`
 base=$CHECK_BASE
 head=$CHECK_HEAD
+if [ -z $base ]
+then
+  git branch --list --remote|grep trunk && base=trunk
+  git branch --list --remote|grep git-svn && base=git-svn
+fi
 test -z $base && base=trunk
 test -z $head && last=HEAD
 for rev in `git rev-list $base..$last --reverse`; do
