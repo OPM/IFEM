@@ -15,7 +15,6 @@
 #include "GoTools/geometry/SurfaceInterpolator.h"
 
 #include "ASMs2D.h"
-#include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "SparseMatrix.h"
@@ -71,7 +70,7 @@ Go::SplineSurface* ASMs2D::projectSolution (const IntegrandBase& integrnd) const
 
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
-  if (!this->evalSolution(sValues,integrnd,gpar))
+  if (!this->evalSolution(sValues,integrnd,gpar) || sValues.rows() == 0)
     return 0;
 
   // Project the results onto the spline basis to find control point
@@ -140,27 +139,13 @@ bool ASMs2D::globalL2projection (Matrix& sField,
   else
     surf->computeBasisGrid(gpar[0],gpar[1],spl0);
 
-  if (integrand.hasItgBuffers())
-  {
-    // When the integrand has internal integration point buffers, the order
-    // in which the integration points are evaluated is significant.
-    int iel = 0;
-    int ipt = 0;
-    for (int i2 = 0; i2 < nel2; i2++)
-      for (int i1 = 0; i1 < nel1; i1++, iel++)
-      {
-	if (MLGE[iel] < 1) continue; // zero-area element
-
-	int ip = (i2*ng1*nel1 + i1)*ng2;
-	for (int j = 0; j < ng2; j++, ip += ng1*(nel1-1))
-	  for (int i = 0; i < ng1; i++)
-	    integrand.setItgPtMap(ip++,ipt++);
-      }
-  }
-
   // Evaluate the secondary solution at all integration points
   if (!this->evalSolution(sField,integrand,gpar))
+  {
+    std::cerr <<" *** ASMs2D::globalL2projection: Failed for patch "<< idx+1
+	      <<" nPoints="<< gpar[0].size()*gpar[1].size() << std::endl;
     return false;
+  }
 
   // Set up the projection matrices
   const size_t nnod = this->getNoNodes(1);
@@ -169,9 +154,9 @@ bool ASMs2D::globalL2projection (Matrix& sField,
   StdVector B(nnod*ncomp);
   A.redim(nnod,nnod);
 
-  double dA = 0.0;
+  double dA = 1.0;
   Vector phi(p1*p2);
-  Matrix dNdu, Xnod, Jac;
+  Matrix dNdu, Xnod, J;
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -206,7 +191,7 @@ bool ASMs2D::globalL2projection (Matrix& sField,
 	  double dJw = 1.0;
 	  if (continuous)
 	  {
-	    dJw = dA*wg[i]*wg[j]*utl::Jacobian(Jac,dNdu,Xnod,dNdu,false);
+	    dJw = dA*wg[i]*wg[j]*utl::Jacobian(J,dNdu,Xnod,dNdu,false);
 	    if (dJw == 0.0) continue; // skip singular points
 	  }
 
@@ -404,54 +389,47 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 // L2-Projection: Least-square approximation; global approximation
 Go::SplineSurface* ASMs2D::projectSolutionLeastSquare (const IntegrandBase& integrand) const
 {
-  // Secondary solution evaluated at Gauss-Interpolation points
-  // Compute parameter values of the result sampling points (Gauss-Interpl. points)
+  if (!surf) return false;
 
+  // Compute parameter values of the result sampling points (Gauss-Interpl. points)
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
   const double* wg = GaussQuadrature::getWeight(nGauss);
   if (!xg || !wg) return false;
-  
+
   Matrix ggpar[2];
   for (int dir = 0; dir < 2; dir++)
     this->getGaussPointParameters(ggpar[dir],dir,nGauss,xg);
-  
+
   std::vector<double> par_u;
   par_u = ggpar[0];
   std::vector<double> par_v;
   par_v = ggpar[1];
-  
+
   // gauss weights at parameter values
   std::vector<double> wgpar_u;
   std::vector<double> wgpar_v;
-  double d;
   for (int dir = 0; dir < 2; dir++){
-    if (!surf) return false;
     const Go::BsplineBasis& basis = surf->basis(dir);
-    RealArray::const_iterator knotit = surf->basis(dir).begin();
+    RealArray::const_iterator knotit = basis.begin();
     std::vector<double> tmp;
     tmp.reserve(nGauss*(basis.numCoefs()-basis.order()));
     for (size_t i = 0; i<=(basis.numCoefs()-basis.order());i++)
-      {
-	d = knotit[i+basis.order()]-knotit[i+basis.order()-1];
-	if (d > 0)
-	  {for (int j = 0;j<nGauss;j++)
-	      tmp.push_back(wg[j]/(2/d));
-	  }
-	else if (d == 0)
-	  {for (int j = 0;j<nGauss;j++)
-	      tmp.push_back(0);}	
-      }
+    {
+      double d = knotit[i+basis.order()]-knotit[i+basis.order()-1];
+      for (int j = 0; j < nGauss; j++)
+        tmp.push_back(d > 0.0 ? wg[j]*d*0.5 : 0.0);
+    }
     if (dir == 0)
       wgpar_u = tmp;
     else if (dir == 1)
       wgpar_v = tmp;
   }
-  
+
   RealArray gpar[2];
   gpar[0] = par_u;
   gpar[1] = par_v;
-  
+
   // Evaluate the secondary solution at all sampling points (Gauss points)
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,gpar))
@@ -477,21 +455,21 @@ Go::SplineSurface* ASMs2D::projectSolutionLocal (const IntegrandBase& integrand)
 {
   // Secondary solution evaluated at Quasi-Interpolation points
   // Compute parameter values of the result sampling points (Quasi-Interpl. points)
-  
+
   RealArray gpar[2];
   for (int dir = 0; dir < 2; dir++)
     if (!this->getQuasiInterplParameters(gpar[dir],dir))
       return 0;
-  
+
   // Evaluate the secondary solution at all sampling points (Quasi-Interpl. points)
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,gpar))
     return 0;
-  
+
   RealArray weights;
   if (surf->rational())
     surf->getWeights(weights);
-  
+
   return quasiInterpolation(surf->basis(0),
 			    surf->basis(1),
 			    gpar[0], gpar[1],
@@ -510,7 +488,7 @@ Go::SplineSurface* ASMs2D::projectSolutionLocalApprox(const IntegrandBase& integ
   for (int dir = 0; dir < 2; dir++)
     if (!this->getGrevilleParameters(gpar[dir],dir))
       return 0;
-  
+
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,gpar))

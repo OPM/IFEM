@@ -15,7 +15,6 @@
 #include "GoTools/trivariate/VolumeInterpolator.h"
 
 #include "ASMs3D.h"
-#include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "SparseMatrix.h"
@@ -39,7 +38,7 @@ bool ASMs3D::getGrevilleParameters (RealArray& prm, int dir) const
 
 bool ASMs3D::getQuasiInterplParameters (RealArray& prm, int dir) const
 {
-  if (!svol) return false;
+  if (!svol || dir < 0 || dir > 2) return false;
 
   const Go::BsplineBasis& basis = svol->basis(dir);
 
@@ -60,7 +59,7 @@ bool ASMs3D::getQuasiInterplParameters (RealArray& prm, int dir) const
 
 Go::SplineVolume* ASMs3D::projectSolution (const IntegrandBase& integrand) const
 {
-  PROFILE1("ASMs3D::projectSolution");
+  PROFILE2("ASMs3D::projectSolution");
 
   // Compute parameter values of the result sampling points (Greville points)
   RealArray gpar[3];
@@ -146,29 +145,14 @@ bool ASMs3D::globalL2projection (Matrix& sField,
   else
     svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spl0);
 
-  if (integrand.hasItgBuffers())
-  {
-    // When the integrand has internal integration point buffers, the order
-    // in which the integration points are evaluated is significant.
-    int iel = 0;
-    int ipt = 0;
-    for (int i3 = 0; i3 < nel3; i3++)
-      for (int i2 = 0; i2 < nel2; i2++)
-	for (int i1 = 0; i1 < nel1; i1++, iel++)
-	{
-	  if (MLGE[iel] < 1) continue; // zero-volume element
-
-	  int ip = ((i3*ng2*nel2 + i2)*ng1*nel1 + i1)*ng3;
-	  for (int k = 0; k < ng3; k++, ip += ng2*(nel2-1)*ng1*nel1)
-	    for (int j = 0; j < ng2; j++, ip += ng1*(nel1-1))
-	      for (int i = 0; i < ng1; i++, ip++)
-		integrand.setItgPtMap(ip++,ipt++);
-	}
-  }
-
   // Evaluate the secondary solution at all integration points
   if (!this->evalSolution(sField,integrand,gpar))
+  {
+    std::cerr <<" *** ASMs3D::globalL2projection: Failed for patch "<< idx+1
+	      <<" nPoints="<< gpar[0].size()*gpar[1].size()*gpar[2].size()
+	      << std::endl;
     return false;
+  }
 
   // Set up the projection matrices
   const size_t nnod = this->getNoNodes(1);
@@ -251,6 +235,8 @@ bool ASMs3D::globalL2projection (Matrix& sField,
 
 Go::SplineVolume* ASMs3D::projectSolutionLeastSquare (const IntegrandBase& integrand) const
 {
+  if (!svol) return false;
+
   PROFILE1("test L2- projection");
   // Compute parameter values of the result sampling points (Gauss-Interpl. points)
   // Get Gaussian quadrature points and weights
@@ -273,26 +259,19 @@ Go::SplineVolume* ASMs3D::projectSolutionLeastSquare (const IntegrandBase& integ
   std::vector<double> wgpar_u;
   std::vector<double> wgpar_v;
   std::vector<double> wgpar_w;
-  double d;
   for (int dir = 0; dir < 3; dir++){
-    if (!svol) return false;
     const Go::BsplineBasis& basis = svol->basis(dir);
-    RealArray::const_iterator knotit = svol->basis(dir).begin();
+    RealArray::const_iterator knotit = basis.begin();
     std::vector<double> tmp;
     tmp.reserve(nGauss*(basis.numCoefs()-basis.order()));
     for (size_t i = 0; i<=(basis.numCoefs()-basis.order());i++)
     {
-      d = knotit[i+basis.order()]-knotit[i+basis.order()-1];
-      if (d > 0)
-      {for (int j = 0;j<nGauss;j++)
-        tmp.push_back(wg[j]/(2/d));
-      }
-      else if (d == 0)
-      {for (int j = 0;j<nGauss;j++)
-        tmp.push_back(0);}
-    }  
-    if (dir == 0) 
-      wgpar_u = tmp; 
+      double d = knotit[i+basis.order()]-knotit[i+basis.order()-1];
+      for (int j = 0; j < nGauss; j++)
+        tmp.push_back(d > 0.0 ? wg[j]*d*0.5 : 0.0);
+    }
+    if (dir == 0)
+      wgpar_u = tmp;
     else if (dir == 1)
       wgpar_v = tmp;
     else if (dir == 2)
@@ -333,20 +312,20 @@ Go::SplineVolume* ASMs3D::projectSolutionLocal (const IntegrandBase& integrand) 
   for (int dir = 0; dir < 2; dir++)
     if (!this->getQuasiInterplParameters(gpar[dir],dir))
       return 0;
-  
+
   for (int dir = 2; dir < 3; dir++)
     if (!this->getGrevilleParameters(gpar[dir],dir))
       return 0;
-  
+
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,gpar))
     return 0;
-  
+
   RealArray weights;
   if (svol->rational())
     svol->getWeights(weights);
-  
+
   return quasiInterpolation(svol->basis(0),
 			    svol->basis(1),
 			    svol->basis(2),
@@ -360,13 +339,13 @@ Go::SplineVolume* ASMs3D::projectSolutionLocal (const IntegrandBase& integrand) 
 
 Go::SplineVolume* ASMs3D::projectSolutionLocalApprox(const IntegrandBase& integrand) const
 {
-  PROFILE1("test VDSA projection");      
+  PROFILE1("test VDSA projection");
   // Compute parameter values of the result sampling points (Greville points)
   RealArray gpar[3];
   for (int dir = 0; dir < 3; dir++)
     if (!this->getGrevilleParameters(gpar[dir],dir))
       return 0;
-  
+
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,gpar))
