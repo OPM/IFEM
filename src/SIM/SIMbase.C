@@ -2769,7 +2769,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     case SIMoptions::CGL2:
       if (msgLevel > 1 && i == 0)
         std::cout <<"\tContinuous global L2-projection"<< std::endl;
-      if (!myModel[i]->globalL2projection(values,*myProblem,true))
+      if (!myModel[i]->L2projection(values,*myProblem))
         return false;
       break;
 

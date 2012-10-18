@@ -396,13 +396,25 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
 			    const RealArray* gpar, bool regular = true) const;
 
-  //! \brief Projects the secondary solution using a (discrete) global L2-norm.
+  //! \brief Projects the secondary solution using a (discrete) global L2-fit.
   //! \param[out] sField Secondary solution field control point values
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] continuous If \e true, a continuous L2-projection is used
   virtual bool globalL2projection(Matrix& sField,
 				  const IntegrandBase& integrand,
 				  bool continuous = false) const;
+
+  //! \brief Projects the secondary solution using a continuous global L2-fit.
+  //! \param[out] sField Secondary solution field control point values
+  //! \param[in] integrand Object with problem-specific data and methods
+  //!
+  //! \details This method uses the \a integrate interface to perform numerical
+  //! integration of the projection matrices. It should use the same integration
+  //! scheme as \a SIMbase::assembleSystem and is therefore suitable for
+  //! problems using internal integration point buffers (with history-dependent
+  //! data, etc.) and that must be traveresed in the same sequence each time.
+  //! \note The implementation of this method is placed in GlbL2projector.C
+  bool L2projection(Matrix& sField, IntegrandBase& integrand);
 
 
   // Methods for result extraction
