@@ -239,8 +239,8 @@ bool LinSolParams::read (const char* filename)
 
 
 #ifdef HAS_PETSC
-void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<int>>& locSubdDofs,
-			      std::vector<std::vector<int>>& subdDofs) const
+void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& locSubdDofs,
+			      std::vector<std::vector<PetscInt> >& subdDofs) const
 {
   // Set linear solver method
   KSPSetType(ksp,method.c_str());

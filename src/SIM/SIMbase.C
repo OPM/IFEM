@@ -17,7 +17,7 @@
 #ifdef HAS_LRSPLINE
 #include "ASMunstruct.h"
 #endif
-#ifdef PARALLEL_PETSC
+#ifdef HAS_PETSC
 #include "SAMpatchPara.h"
 #include "petscsys.h"
 #else
@@ -62,10 +62,11 @@ SIMbase::SIMbase () : g2l(&myGlb2Loc)
 
   MPCLess::compareSlaveDofOnly = true; // to avoid multiple slave definitions
 
-#ifdef PARALLEL_PETSC
+#ifdef HAS_PETSC
   // In parallel simulations, we need to retain all DOFs in the equation system.
   // The fixed DOFs (if any) will receive a homogeneous constraint instead.
-  ASMbase::fixHomogeneousDirichlet = false;
+  if (opt.solver == SystemMatrix::PETSC) 
+    ASMbase::fixHomogeneousDirichlet = false;
 #endif
 }
 
@@ -961,8 +962,11 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 
   // Initialize data structures for the algebraic system
   if (mySam) delete mySam;
-#ifdef PARALLEL_PETSC
-  mySam = new SAMpatchPara(*g2l);
+#ifdef HAS_PETSC
+  if (opt.solver == SystemMatrix::PETSC)
+    mySam = new SAMpatchPara(*g2l);
+  else
+    mySam = new SAMpatch();
 #else
   mySam = new SAMpatch();
 #endif

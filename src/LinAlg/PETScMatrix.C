@@ -14,7 +14,7 @@
 #include "PETScMatrix.h"
 #ifdef HAS_PETSC
 #include "LinSolParams.h"
-#include "SAMpatch.h"
+#include "SAMpatchPara.h"
 #include "petscversion.h"
 #include "petscis.h"
 #include "petscsys.h"
@@ -234,7 +234,7 @@ PETScMatrix::~PETScMatrix ()
   delete elmIS;
 }
 
-#ifdef PARALLEL_PETSC
+#ifdef HAS_PETSC
 static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
                         const std::vector<int>& meen, const int* meqn,
                         const int* mpmceq, const int* mmceq,
@@ -446,7 +446,7 @@ static void assemPETSc (const Matrix& eM, Mat SM, const std::vector<int>& meen,
 
 void PETScMatrix::initAssembly (const SAM& sam, bool)
 {
-  const SAMpatch* sampch = dynamic_cast<const SAMpatch*>(&sam);
+  const SAMpatchPara* sampch = dynamic_cast<const SAMpatchPara*>(&sam);
 
   int nx = solParams.getLocalPartitioning(0);
   int ny = solParams.getLocalPartitioning(1);
@@ -490,16 +490,17 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
 #else
   std::vector<int> nnz;
 
-  if (sam.getNoDofCouplings(nnz)) {
-    std::vector<PetscInt> Nnz(nnz.size());
-    for (size_t i = 0; i < nnz.size(); i++) 
-      Nnz[i] = nnz[i];
-    MatSeqAIJSetPreallocation(A,PETSC_DEFAULT,&(Nnz[0]));
-  }
-  else {
+  // RUNAR
+  // if (sam.getNoDofCouplings(nnz)) {
+  //   std::vector<PetscInt> Nnz(nnz.size());
+  //   for (size_t i = 0; i < nnz.size(); i++) 
+  //     Nnz[i] = nnz[i];
+  //   MatSeqAIJSetPreallocation(A,PETSC_DEFAULT,&(Nnz[0]));
+  // }
+  // else {
     const PetscInt maxdofc = sam.getMaxDofCouplings();
     MatSeqAIJSetPreallocation(A,maxdofc,PETSC_NULL);
-  }
+    //}
 #ifdef USE_OPENMP
   // dummy assembly loop to avoid matrix resizes during assembly
   if (omp_get_max_threads() > 1) {

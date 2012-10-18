@@ -122,8 +122,8 @@ public:
   virtual NullSpace getNullSpace() const { return nullspc; }
 
   //! \brief Set linear solver parameters for KSP object
-  virtual void setParams(KSP& ksp, std::vector<std::vector<int>>& locSubdDofs,
-			 std::vector<std::vector<int>>& subdDofs) const;
+  virtual void setParams(KSP& ksp, std::vector<std::vector<PetscInt> >& locSubdDofs,
+			 std::vector<std::vector<PetscInt> >& subdDofs) const;
 
 private:
   std::string method;      // Linear solver method

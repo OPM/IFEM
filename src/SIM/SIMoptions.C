@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "SIMoptions.h"
+#include "ASMbase.h"
 #include "SystemMatrix.h"
 #include "Utilities.h"
 #include "tinyxml.h"
@@ -194,8 +195,10 @@ bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
   }
   else if (!strcmp(argv[i],"-samg"))
     solver = SystemMatrix::SAMG;
-  else if (!strcmp(argv[i],"-petsc"))
+  else if (!strcmp(argv[i],"-petsc")) {
     solver = SystemMatrix::PETSC;
+    ASMbase::fixHomogeneousDirichlet = false;
+  }
   else if (!strncmp(argv[i],"-lag",4))
     discretization = ASM::Lagrange;
   else if (!strncmp(argv[i],"-spec",5))

@@ -228,7 +228,7 @@ public:
   const Mat& getMatrix() const { return A; }
 
 private:
-  typedef std::vector<int> IntVec; //!< General integer vector
+  typedef std::vector<PetscInt> PetscIntVec; //!< General integer vector
 
   //! \brief Constructs index set needed for element-by-element preconditioner.
   bool makeElementIS(const SAM& sam);
@@ -243,8 +243,8 @@ private:
   IS*                 elmIS;        //!< Element index sets
   PetscInt            ISsize;       //!< Number of index sets/elements
   bool                setParams;    //!< If the linear solver parameters should be set
-  std::vector<IntVec> locSubdDofs;  //!< Degrees of freedom for unique subdomains
-  std::vector<IntVec> subdDofs;     //!< Degrees of freedom for subdomains
+  std::vector<PetscIntVec> locSubdDofs;  //!< Degrees of freedom for unique subdomains
+  std::vector<PetscIntVec> subdDofs;     //!< Degrees of freedom for subdomains
 
 #else // dummy implementation when PETSc is not included
   virtual SystemMatrix* copy() const { return 0; }
