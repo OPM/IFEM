@@ -43,7 +43,7 @@ public:
   //! \brief The constructor initializes default solution parameters.
   //! \param sim Pointer to the spline FE model
   //! \param[in] n Which type of iteration norm to use in convergence checks
-  NonLinSIM(SIMbase* sim = 0, CNORM n = ENERGY);
+  NonLinSIM(SIMbase& sim, CNORM n = ENERGY);
   //! \brief The destructor frees the dynamically allocated FE model object.
   virtual ~NonLinSIM();
 
@@ -137,7 +137,7 @@ public:
   virtual const char** getPrioritizedTags() const;
 
 protected:
-  SIMbase* model;    //!< The isogeometric FE model
+  SIMbase& model;    //!< The isogeometric FE model
   Vectors  solution; //!< Primary solution vectors of the last increments
   Vector   linsol;   //!< Linear solution vector
   Vector   residual; //!< Residual force vector

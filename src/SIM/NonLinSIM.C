@@ -21,7 +21,7 @@
 #include <sstream>
 
 
-NonLinSIM::NonLinSIM (SIMbase* sim, CNORM n) : model(sim), iteNorm(n)
+NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : model(sim), iteNorm(n)
 {
 #ifndef SP_DEBUG
   msgLevel = 1;   // prints the convergence history only
@@ -46,7 +46,6 @@ NonLinSIM::NonLinSIM (SIMbase* sim, CNORM n) : model(sim), iteNorm(n)
 
 NonLinSIM::~NonLinSIM ()
 {
-  if (model) delete model;
 }
 
 
@@ -75,7 +74,7 @@ bool NonLinSIM::parse (char* keyWord, std::istream& is)
       eta = tmp;
   }
   else
-    return model->parse(keyWord,is);
+    return model.parse(keyWord,is);
 
   return true;
 }
@@ -84,7 +83,7 @@ bool NonLinSIM::parse (char* keyWord, std::istream& is)
 bool NonLinSIM::parse (const TiXmlElement* elem)
 {
   if (strcasecmp(elem->Value(),"nonlinearsolver"))
-    return model->parse(elem);
+    return model.parse(elem);
 
   const char* value = 0;
   const TiXmlElement* child = elem->FirstChildElement();
@@ -115,18 +114,18 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
 
 const char** NonLinSIM::getPrioritizedTags () const
 {
-  return model ? model->getPrioritizedTags() : NULL;
+  return model.getPrioritizedTags();
 }
 
 
 void NonLinSIM::init (const RealArray& initVal)
 {
-  size_t nSols = model->getNoSolutions();
+  size_t nSols = model.getNoSolutions();
   if (nSols < 2) nSols = 2;
   solution.resize(nSols);
 
   for (size_t n = 0; n < nSols; n++)
-    solution[n].resize(model->getNoDOFs(),true);
+    solution[n].resize(model.getNoDOFs(),true);
 
   // Set initial conditions for time-dependent problems
   this->setInitialGuess(initVal);
@@ -185,22 +184,22 @@ NonLinSIM::ConvStatus NonLinSIM::solveStep (TimeStep& param,
   param.iter = 0;
   alpha = 1.0;
 
-  if (!model->updateDirichlet(param.time.t,&solution.front()))
+  if (!model.updateDirichlet(param.time.t,&solution.front()))
     return FAILURE;
 
-  if (!model->setMode(mode))
+  if (!model.setMode(mode))
     return FAILURE;
 
   bool poorConvg = false;
   bool newTangent = true;
-  model->setQuadratureRule(model->opt.nGauss[0],true);
-  if (!model->assembleSystem(param.time,solution,newTangent))
-    return model->getProblem()->diverged() ? DIVERGED : FAILURE;
+  model.setQuadratureRule(model.opt.nGauss[0],true);
+  if (!model.assembleSystem(param.time,solution,newTangent))
+    return model.getProblem()->diverged() ? DIVERGED : FAILURE;
 
-  if (!model->extractLoadVec(residual))
+  if (!model.extractLoadVec(residual))
     return FAILURE;
 
-  if (!model->solveSystem(linsol,msgLevel-1))
+  if (!model.solveSystem(linsol,msgLevel-1))
     return FAILURE;
 
   while (param.iter <= maxit)
@@ -227,24 +226,24 @@ NonLinSIM::ConvStatus NonLinSIM::solveStep (TimeStep& param,
 	  return FAILURE;
 
 	if (param.iter == 1)
-	  if (!model->updateDirichlet())
+	  if (!model.updateDirichlet())
 	    return FAILURE;
 
 	if (param.iter > nupdat)
 	{
 	  newTangent = false;
-	  model->setMode(SIM::RHS_ONLY);
+	  model.setMode(SIM::RHS_ONLY);
 	}
 	else
-	  model->setMode(mode);
+	  model.setMode(mode);
 
-	if (!model->assembleSystem(param.time,solution,newTangent,poorConvg))
-	  return model->getProblem()->diverged() ? DIVERGED : FAILURE;
+	if (!model.assembleSystem(param.time,solution,newTangent,poorConvg))
+	  return model.getProblem()->diverged() ? DIVERGED : FAILURE;
 
-	if (!model->extractLoadVec(residual))
+	if (!model.extractLoadVec(residual))
 	  return FAILURE;
 
-	if (!model->solveSystem(linsol,msgLevel-1))
+	if (!model.solveSystem(linsol,msgLevel-1))
 	  return FAILURE;
 
 	if (!this->lineSearch(param))
@@ -275,10 +274,10 @@ bool NonLinSIM::lineSearch (TimeStep& param)
     if (!this->updateConfiguration(param))
       return false;
 
-    if (!model->assembleSystem(param.time,solution,false))
+    if (!model.assembleSystem(param.time,solution,false))
       return false;
 
-    if (!model->extractLoadVec(residual))
+    if (!model.extractLoadVec(residual))
       return false;
 
     double sk = residual.dot(linsol);
@@ -324,7 +323,7 @@ NonLinSIM::ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
 
   ConvStatus status = OK;
   double enorm, resNorm, linsolNorm;
-  model->iterationNorms(linsol,residual,enorm,resNorm,linsolNorm);
+  model.iterationNorms(linsol,residual,enorm,resNorm,linsolNorm);
   double norm = iteNorm == ENERGY ? enorm : resNorm;
 
   if (param.iter == 0)
@@ -355,7 +354,7 @@ NonLinSIM::ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
     {
       // Find and print out the worst DOF(s) when detecting slow convergence
       std::map<std::pair<int,int>,RealArray> worstDOFs;
-      model->getWorstDofs(linsol,residual,prnSlow,convTol,worstDOFs);
+      model.getWorstDofs(linsol,residual,prnSlow,convTol,worstDOFs);
       std::cout <<"  ** Slow convergence detected, ";
       if (worstDOFs.size() > 1)
         std::cout <<"here are the "<< worstDOFs.size() <<" worst DOFs:";
@@ -366,7 +365,7 @@ NonLinSIM::ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
       {
         std::cout <<"\n     Node "<< it->first.first
                   <<" local DOF "<< it->first.second;
-        char nodeType = model->getNodeType(it->first.first);
+        char nodeType = model.getNodeType(it->first.first);
         if (nodeType != ' ')
           std::cout <<" ("<< nodeType <<")";
 	std::cout <<" :\tEnergy = "<< it->second[0]
@@ -401,7 +400,7 @@ bool NonLinSIM::updateConfiguration (TimeStep&)
   else if (alpha != 0.0)
     solution.front().add(linsol,alpha);
 
-  return model->updateConfiguration(solution.front());
+  return model.updateConfiguration(solution.front());
 }
 
 
@@ -410,11 +409,11 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time, bool,
 {
   if (msgLevel < 0 || solution.empty()) return true;
 
-  const size_t nf = model->getNoFields(1);
+  const size_t nf = model.getNoFields(1);
 
   size_t iMax[nf];
   double dMax[nf];
-  double normL2 = model->solutionNorms(solution.front(),dMax,iMax);
+  double normL2 = model.solutionNorms(solution.front(),dMax,iMax);
 
   if (myPid == 0)
   {
@@ -447,11 +446,11 @@ bool NonLinSIM::saveModel (char* fileName)
   geoBlk = nBlock = 0; // initialize the VTF block counters
 
   // Write VTF-file with model geometry
-  if (!model->writeGlvG(geoBlk,fileName))
+  if (!model.writeGlvG(geoBlk,fileName))
     return false;
 
   // Write Dirichlet boundary conditions
-  return model->writeGlvBC(nBlock);
+  return model.writeGlvBC(nBlock);
 }
 
 
@@ -461,38 +460,38 @@ bool NonLinSIM::saveStep (int iStep, double time,
   PROFILE1("NonLinSIM::saveStep");
 
   // Negative iStep means we are saving the initial state only
-  if (!model->setMode(iStep < 0 ? SIM::INIT : SIM::RECOVERY))
+  if (!model.setMode(iStep < 0 ? SIM::INIT : SIM::RECOVERY))
     return false;
   else if (iStep < 0)
     iStep = -iStep;
 
   // Write boundary tractions, if any
   if (!psolOnly)
-    if (!model->writeGlvT(iStep,nBlock))
+    if (!model.writeGlvT(iStep,nBlock))
       return false;
 
   // Write residual force vector, but only when no extra visualization points
-  if (!psolOnly && model->opt.nViz[0] == 2 &&
-      model->opt.nViz[1] <= 2 && model->opt.nViz[2] <= 2)
-    if (!model->writeGlvV(residual,"Residual forces",iStep,nBlock))
+  if (!psolOnly && model.opt.nViz[0] == 2 &&
+      model.opt.nViz[1] <= 2 && model.opt.nViz[2] <= 2)
+    if (!model.writeGlvV(residual,"Residual forces",iStep,nBlock))
       return false;
 
   // Write solution fields
   if (!solution.empty())
-    if (!model->writeGlvS(solution.front(),iStep,nBlock,time,psolOnly,vecName))
+    if (!model.writeGlvS(solution.front(),iStep,nBlock,time,psolOnly,vecName))
       return false;
 
   // Write element norms
   if (!psolOnly)
-    if (!model->writeGlvN(eNorm,iStep,nBlock))
+    if (!model.writeGlvN(eNorm,iStep,nBlock))
       return false;
 
   // Write problem-specific data (rigid body transformations, etc.)
-  if (!model->writeGlvA(nBlock,iStep))
+  if (!model.writeGlvA(nBlock,iStep))
     return false;
 
   // Write time/load step information
-  return model->writeGlvStep(iStep,time);
+  return model.writeGlvStep(iStep,time);
 }
 
 
@@ -503,13 +502,13 @@ void NonLinSIM::dumpStep (int iStep, double time, std::ostream& os,
     os <<"\n\n# Dump of primary solution at Step "<< iStep
        <<", Time="<< time <<"\n";
 
-  model->dumpPrimSol(solution.front(),os,withID);
+  model.dumpPrimSol(solution.front(),os,withID);
 }
 
 
 void NonLinSIM::dumpResults (double time, std::ostream& os,
                              std::streamsize precision) const
 {
-  model->dumpResults(solution.front(),time,os,true,precision);
-  model->dumpMoreResults(time,os,precision);
+  model.dumpResults(solution.front(),time,os,true,precision);
+  model.dumpMoreResults(time,os,precision);
 }
