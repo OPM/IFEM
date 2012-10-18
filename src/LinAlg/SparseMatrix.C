@@ -245,16 +245,16 @@ Real& SparseMatrix::operator () (size_t r, size_t c)
   }
   else if (solver == SUPERLU) {
     // Column-oriented format with 0-based indices
-    std::vector<int>::const_iterator begin = JA.begin() + IA[c-1];
-    std::vector<int>::const_iterator end = JA.begin() + IA[c];
-    std::vector<int>::const_iterator it = std::find(begin, end, r-1);
+    IntVec::const_iterator begin = JA.begin() + IA[c-1];
+    IntVec::const_iterator end = JA.begin() + IA[c];
+    IntVec::const_iterator it = std::find(begin, end, r-1);
     if (it != end) return A[it - JA.begin()];
   }
   else {
     // Row-oriented format with 1-based indices
-    std::vector<int>::const_iterator begin = JA.begin() + (IA[r-1]-1);
-    std::vector<int>::const_iterator end = JA.begin() + (IA[r]-1);
-    std::vector<int>::const_iterator it = std::find(begin, end, c);
+    IntVec::const_iterator begin = JA.begin() + (IA[r-1]-1);
+    IntVec::const_iterator end = JA.begin() + (IA[r]-1);
+    IntVec::const_iterator it = std::find(begin, end, c);
     if (it != end) return A[it - JA.begin()];
   }
 
@@ -282,16 +282,16 @@ const Real& SparseMatrix::operator () (size_t r, size_t c) const
   }
   else if (solver == SUPERLU) {
     // Column-oriented format with 0-based indices
-    std::vector<int>::const_iterator begin = JA.begin() + IA[c-1];
-    std::vector<int>::const_iterator end = JA.begin() + IA[c];
-    std::vector<int>::const_iterator it = std::find(begin, end, r-1);
+    IntVec::const_iterator begin = JA.begin() + IA[c-1];
+    IntVec::const_iterator end = JA.begin() + IA[c];
+    IntVec::const_iterator it = std::find(begin, end, r-1);
     if (it != end) return A[it - JA.begin()];
   }
   else {
     // Row-oriented format with 1-based indices
-    std::vector<int>::const_iterator begin = JA.begin() + (IA[r-1]-1);
-    std::vector<int>::const_iterator end = JA.begin() + (IA[r]-1);
-    std::vector<int>::const_iterator it = std::find(begin, end, c);
+    IntVec::const_iterator begin = JA.begin() + (IA[r-1]-1);
+    IntVec::const_iterator end = JA.begin() + (IA[r]-1);
+    IntVec::const_iterator it = std::find(begin, end, c);
     if (it != end) return A[it - JA.begin()];
   }
 
@@ -367,14 +367,14 @@ void SparseMatrix::printSparsity (std::ostream& os) const
 	os << (elem.find(IJPair(r,c)) == elem.end() ? '.' : 'X');
       else if (solver == SUPERLU) {
 	// Column-oriented format with 0-based indices
-	std::vector<int>::const_iterator begin = JA.begin() + IA[c-1];
-	std::vector<int>::const_iterator end = JA.begin() + IA[c];
+	IntVec::const_iterator begin = JA.begin() + IA[c-1];
+	IntVec::const_iterator end = JA.begin() + IA[c];
 	os << (std::find(begin,end,r-1) == end ? '.' : 'X');
       }
       else {
 	// Row-oriented format with 1-based indices
-	std::vector<int>::const_iterator begin = JA.begin() + (IA[r-1]-1);
-	std::vector<int>::const_iterator end = JA.begin() + (IA[r]-1);
+	IntVec::const_iterator begin = JA.begin() + (IA[r-1]-1);
+	IntVec::const_iterator end = JA.begin() + (IA[r]-1);
 	os << (std::find(begin,end,c) == end ? '.' : 'X');
       }
     os <<'\n';
@@ -532,7 +532,7 @@ bool SparseMatrix::multiply (const SystemVector& B, SystemVector& C)
   allow the system matrix to grow in size during the real assembly process.
 */
 
-static void preAssemble (SparseMatrix& SM, const std::vector<int>& meen,
+static void preAssemble (SparseMatrix& SM, const IntVec& meen,
 			 const int* meqn, const int* mpmceq, const int* mmceq)
 {
   // Add elements corresponding to free dofs in eM into SM
@@ -541,6 +541,7 @@ static void preAssemble (SparseMatrix& SM, const std::vector<int>& meen,
   for (j = 1; j <= nedof; j++)
   {
     int jeq = meen[j-1];
+    if (!meqn) ++jeq;
     if (jeq < 1) continue;
 
     SM(jeq,jeq) = 0.0;
@@ -548,12 +549,14 @@ static void preAssemble (SparseMatrix& SM, const std::vector<int>& meen,
     for (i = 1; i < j; i++)
     {
       int ieq = meen[i-1];
+      if (!meqn) ++ieq;
       if (ieq < 1) continue;
 
       SM(ieq,jeq) = 0.0;
       SM(jeq,ieq) = 0.0;
     }
   }
+  if (!meqn) return;
 
   // Add elements corresponding to constrained dofs in eM into SM
   for (j = 1; j <= nedof; j++)
@@ -596,7 +599,7 @@ static void preAssemble (SparseMatrix& SM, const std::vector<int>& meen,
 */
 
 static void assemSparse (const Matrix& eM, SparseMatrix& SM, Vector& SV,
-			 const std::vector<int>& meen, const int* meqn,
+			 const IntVec& meen, const int* meqn,
 			 const int* mpmceq, const int* mmceq, const Real* ttcc)
 {
   // Add elements corresponding to free dofs in eM into SM
@@ -678,7 +681,7 @@ static void assemSparse (const Matrix& eM, SparseMatrix& SM, Vector& SV,
 */
 
 static void assemSparse (const RealArray& V, SparseMatrix& SM, size_t col,
-			 const std::vector<int>& mnen, const int* meqn,
+			 const IntVec& mnen, const int* meqn,
 			 const int* mpmceq, const int* mmceq, const Real* ttcc)
 {
   for (size_t d = 0; d < mnen.size(); d++, col++)
@@ -706,10 +709,10 @@ void SparseMatrix::initAssembly (const SAM& sam, bool delayLocking)
     return;
 
   // Dummy assembly loop to avoid matrix resizing during assembly
-  std::vector<int> meen;
+  IntVec meen;
   for (int iel = 1; iel <= sam.nel; iel++)
     if (sam.getElmEqns(meen,iel,sam.getNoElmEqns(iel)))
-      preAssemble(*this,meen,sam.meqn,sam.mpmceq,sam.mmceq);
+      ::preAssemble(*this,meen,sam.meqn,sam.mpmceq,sam.mmceq);
 
   std::cout <<"\nPre-computing sparsity pattern for system matrix ("
 	    << nrow <<"x"<< ncol <<"): nNZ = "<< this->size() << std::endl;
@@ -728,6 +731,27 @@ void SparseMatrix::initAssembly (const SAM& sam, bool delayLocking)
 }
 
 
+void SparseMatrix::preAssemble (const std::vector<IntVec>& MMNPC, size_t nel)
+{
+#ifdef USE_OPENMP
+  if (omp_get_max_threads() < 2)
+    return;
+
+  // Dummy assembly loop to avoid matrix resizing during assembly
+  IntVec meen;
+  for (size_t iel = 0; iel < nel; iel++)
+    if (!MMNPC[iel].empty())
+      ::preAssemble(*this,MMNPC[iel],NULL,NULL,NULL);
+
+  switch (solver) {
+  case SUPERLU: this->optimiseSLU(); break;
+  case S_A_M_G: this->optimiseSAMG(); break;
+  default: break;
+  }
+#endif
+}
+
+
 void SparseMatrix::init ()
 {
   this->resize(nrow,ncol);
@@ -736,7 +760,7 @@ void SparseMatrix::init ()
 
 bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
 {
-  std::vector<int> meen;
+  IntVec meen;
   if (!sam.getElmEqns(meen,e,eM.rows()))
     return false;
 
@@ -752,7 +776,7 @@ bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam,
   StdVector* Bptr = dynamic_cast<StdVector*>(&B);
   if (!Bptr) return false;
 
-  std::vector<int> meen;
+  IntVec meen;
   if (!sam.getElmEqns(meen,e,eM.rows()))
     return false;
 
@@ -762,7 +786,7 @@ bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam,
 
 
 bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam,
-			     SystemVector& B, const std::vector<int>& meen)
+			     SystemVector& B, const IntVec& meen)
 {
   StdVector* Bptr = dynamic_cast<StdVector*>(&B);
   if (!Bptr) return false;
@@ -780,7 +804,7 @@ bool SparseMatrix::assembleCol (const RealArray& V, const SAM& sam,
 {
   if (V.empty() || col > ncol) return false;
 
-  std::vector<int> mnen;
+  IntVec mnen;
   if (!sam.getNodeEqns(mnen,n)) return false;
 
   assemSparse(V,*this,col,mnen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);

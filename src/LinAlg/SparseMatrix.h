@@ -18,6 +18,7 @@
 #include <iostream>
 #include <map>
 
+typedef std::vector<int>         IntVec;    //!< General integer vector
 typedef std::pair<size_t,size_t> IJPair;    //!< 1-based matrix indices
 typedef std::map<IJPair,Real>    ValueMap;  //!< Index to matrix value mapping
 typedef ValueMap::const_iterator ValueIter; //!< Iterator over matrix elements
@@ -106,6 +107,11 @@ public:
   //! \param[in] delayLocking If \e true, do not lock the sparsity pattern yet
   virtual void initAssembly(const SAM& sam, bool delayLocking);
 
+  //! \brief Initializes the element sparsity pattern based on node connections.
+  //! \param[in] MMNPC Matrix of matrices of nodal point correspondances
+  //! \param[in] nel Number of elements
+  void preAssemble(const std::vector<IntVec>& MMNPC, size_t nel);
+
   //! \brief Initializes the matrix to zero assuming it is properly dimensioned.
   virtual void init();
 
@@ -137,7 +143,7 @@ public:
   //! \param[in] meen Matrix of element equation numbers
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assemble(const Matrix& eM, const SAM& sam,
-			SystemVector& B, const std::vector<int>& meen);
+			SystemVector& B, const IntVec& meen);
 
   //! \brief Adds a nodal vector into columns of a non-symmetric sparse matrix.
   //! \param[in] V   The nodal vector
@@ -235,9 +241,9 @@ private:
   size_t nrow;   //!< Number of matrix rows
   size_t ncol;   //!< Number of matrix columns
 
-  std::vector<int> IA; //!< Identifies the beginning of each row or column
-  std::vector<int> JA; //!< Specifies column/row index of each nonzero element
-  utl::vector<Real> A; //!< Stores the nonzero matrix elements
+  IntVec IA; //!< Identifies the beginning of each row or column
+  IntVec JA; //!< Specifies column/row index of each nonzero element
+  Vector  A; //!< Stores the nonzero matrix elements
   ValueMap       elem; //!< Stores nonzero matrix elements with index pairs
   SparseSolver solver; //!< Which equation solver to use
   SuperLUdata*    slu; //!< Matrix data for the SuperLU equation solver
