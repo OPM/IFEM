@@ -618,7 +618,8 @@ protected:
   virtual void preprocessBeforeAsmInit(int&) {}
 
   //! \brief Creates the computational FEM model from the spline patches.
-  bool createFEMmodel();
+  //! \param[in] resetNumb If \e true, start element and node numbers from zero
+  bool createFEMmodel(bool resetNumb = true);
 
 private:
   //! \brief Extracts all local solution vector(s) for a specified patch.
@@ -692,7 +693,7 @@ protected:
 
   //! \brief Reads patches from given input stream.
   //! \param[in] isp The input stream to read from
-  //! \param[out] Array of spline patches that were read
+  //! \param[out] vec Array of spline patches that were read
   //! \param[in] whiteSpace For message formatting
   virtual bool readPatches(std::istream& isp, PatchVec& vec,
                            const char* whiteSpace = "") = 0;

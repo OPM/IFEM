@@ -183,7 +183,7 @@ bool SAMpatch::initElementConn (const ASMVec& model)
       sortedElms[elmId[i]] = std::make_pair(mpmnpc[i]-1,mpmnpc[i+1]-mpmnpc[i]);
     else
     {
-      std::cerr <<" *** SAMpatch::initElementConn: Multiple elements with "
+      std::cerr <<" *** SAMpatch::initElementConn: Multiple elements with"
 		<<" external ID "<< elmId[i] <<" detected."<< std::endl;
       return false;
     }
