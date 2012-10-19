@@ -19,13 +19,7 @@
 #include "petscis.h"
 #include "petscsys.h"
 
-#if PETSC_VERSION_MAJOR == 3 && PETSC_VERSION_MINOR >= 2
 #include "petscpcmg.h"
-#define PETSCMANGLE(x) &x
-#else
-#include "petscmg.h"
-#define PETSCMANGLE(x) x
-#endif
 
 #ifdef HAS_SLEPC
 #include "slepceps.h"
@@ -80,7 +74,7 @@ PETScVector::PETScVector(const PETScVector& vec)
 PETScVector::~PETScVector()
 {
   // Deallocation of vector
-  VecDestroy(PETSCMANGLE(x));
+  VecDestroy(&x);
   LinAlgInit::decrefs();
 }
 
@@ -220,17 +214,17 @@ PETScMatrix::~PETScMatrix ()
 {
   // Deallocation of null space
   if (solParams.getNullSpace() == CONSTANT)
-    MatNullSpaceDestroy(PETSCMANGLE(nsp));
+    MatNullSpaceDestroy(&nsp);
 
   // Deallocation of linear solver object.
-  KSPDestroy(PETSCMANGLE(ksp));
+  KSPDestroy(&ksp);
 
   // Deallocation of matrix object.
-  MatDestroy(PETSCMANGLE(A));
+  MatDestroy(&A);
   LinAlgInit::decrefs();
 
   for (int i = 0;i < ISsize;i++)
-    ISDestroy(PETSCMANGLE(elmIS[i]));
+    ISDestroy(&elmIS[i]);
   delete elmIS;
 }
 
@@ -622,10 +616,10 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
   PetscInt its;
   KSPGetIterationNumber(ksp,&its);
   PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getMethod(),its);
-  VecDestroy(PETSCMANGLE(x));
+  VecDestroy(&x);
 
   if (ISsize > 0)
-    MatDestroy(PETSCMANGLE(AebeI));
+    MatDestroy(&AebeI);
 
   return true;
 }
@@ -692,7 +686,7 @@ bool PETScMatrix::solve (SystemVector& B, SystemMatrix& P, bool newLHS)
   PetscInt its;
   KSPGetIterationNumber(ksp,&its);
   PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getMethod(),its);
-  VecDestroy(PETSCMANGLE(x));
+  VecDestroy(&x);
 
   return true;
 }
@@ -744,10 +738,10 @@ bool PETScMatrix::solveEig (PETScMatrix& B, RealArray& val,
     VecRestoreArray(xr,&xrarr);
   }
 
-  VecDestroy(PETSCMANGLE(xi));
-  VecDestroy(PETSCMANGLE(xr));
+  VecDestroy(&xi);
+  VecDestroy(&xr);
 
-  EPSDestroy(PETSCMANGLE(eps));
+  EPSDestroy(&eps);
 
   return true;
 #endif
@@ -789,11 +783,7 @@ bool PETScMatrix::makeElementIS(const SAM& sam)
       if (meen[i] >= 0)
 	l2g[ndof++] = meen[i];
 
-#if PETSC_VERSION_MAJOR == 3 && PETSC_VERSION_MINOR >= 2
     ISCreateGeneral(PETSC_COMM_SELF,ndof,l2g,PETSC_COPY_VALUES,&(elmIS[e-1]));
-#else
-    ISCreateGeneral(PETSC_COMM_SELF,ndof,l2g,&(elmIS[e-1]));
-#endif
   }
 
   return true;

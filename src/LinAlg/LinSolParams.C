@@ -16,15 +16,7 @@
 #include <fstream>
 #ifdef HAS_PETSC
 #include "petscversion.h"
-
-#if PETSC_VERSION_MAJOR == 3 && PETSC_VERSION_MINOR >= 2
 #include "petscpcmg.h"
-#define DEFAULTSOLVER MATSOLVERPETSC
-#else
-#include "petscmg.h"
-#define DEFAULTSOLVER MAT_SOLVER_PETSC
-#endif
-
 #endif
 #include "tinyxml.h"
 
@@ -36,7 +28,7 @@ void LinSolParams::setDefault ()
   method    = KSPGMRES;
   hypretype = "boomeramg";
   prec      = PCILU;
-  package   = DEFAULTSOLVER;
+  package   = MATSOLVERPETSC;
   levels    = 0;
   overlap   = 1;
   npart[0] = npart[1] = npart[2] = 0;
