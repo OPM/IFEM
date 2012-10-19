@@ -12,8 +12,11 @@
 //==============================================================================
 
 #include "SIMinput.h"
+#include "IFEM.h"
 #include "Utilities.h"
 #include "tinyxml.h"
+#include "SystemMatrix.h"
+#include "ASMbase.h"
 #ifdef PARALLEL_PETSC
 #include "petscsys.h"
 #endif
@@ -37,10 +40,23 @@ SIMinput::SIMinput ()
 
 bool SIMinput::read (const char* fileName)
 {
+  opt = IFEM_cmdOptions;
+  std::cout << "solver " << opt.solver << std::endl;
+#ifdef HAS_PETSC
+  // In parallel simulations, we need to retain all DOFs in the equation system.
+  // The fixed DOFs (if any) will receive a homogeneous constraint instead.
+  if (opt.solver == SystemMatrix::PETSC) 
+    ASMbase::fixHomogeneousDirichlet = false;
+#endif
+  bool result;
   if (strcasestr(fileName,".xinp"))
-    return this->readXML(fileName);
+    result = this->readXML(fileName);
   else
-    return this->readFlat(fileName);
+    result = this->readFlat(fileName);
+  for (int i=1; i < IFEM_argc; ++i)
+    opt.parseOldOptions(IFEM_argc, IFEM_argv, i);
+
+  return result;
 }
 
 

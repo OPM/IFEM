@@ -13,6 +13,7 @@
 
 #include "NonLinSIM.h"
 #include "SIMbase.h"
+#include "IFEM.h"
 #include "IntegrandBase.h"
 #include "TimeStep.h"
 #include "Profiler.h"
@@ -46,6 +47,17 @@ NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : model(sim), iteNorm(n)
 
 NonLinSIM::~NonLinSIM ()
 {
+}
+
+
+bool NonLinSIM::read(const char* fileName)
+{
+  model.opt = IFEM_cmdOptions;
+  bool result = SIMinput::read(fileName);
+  for (int i=1; i < IFEM_argc; ++i)
+    model.opt.parseOldOptions(IFEM_argc, IFEM_argv, i);
+
+  return result;
 }
 
 

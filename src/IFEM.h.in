@@ -17,9 +17,16 @@
 #define IFEM_VERSION_MINOR @IFEM_VERSION_MINOR@ //!< Minor library version
 #define IFEM_VERSION_PATCH @IFEM_VERSION_PATCH@ //!< Patch library version
 
+#include "SIMoptions.h"
+
 //! \brief Initialize IFEM
 //! \param argc The number of command line arguments
 //! \param argv The command line arguments
-bool InitIFEM(int argc, char** argv);
+//! \param myId The MPI process ID
+bool InitIFEM(int argc, char** argv, int myId);
+
+extern SIMoptions IFEM_cmdOptions; //!< Common command line options
+extern int IFEM_argc;
+extern char** IFEM_argv;
 
 #endif

@@ -124,6 +124,8 @@ protected:
   virtual bool lineSearch(TimeStep& param);
 
 public:
+  //! \brief Reads model data from the specified input file \a *fileName.
+  virtual bool read(const char* fileName);
   //! \brief Parses a data section from an input stream.
   //! \param[in] keyWord Keyword of current data section to read
   //! \param is The file stream to read from

@@ -16,7 +16,6 @@
 
 #include "SIMinput.h"
 #include "SIMdependency.h"
-#include "SIMoptions.h"
 #include "TimeDomain.h"
 #include "TopologySet.h"
 #include "Property.h"
@@ -723,8 +722,6 @@ protected:
 public:
   static bool ignoreDirichlet; //!< Set to \e true for free vibration analysis
   static bool preserveNOrder;  //!< Set to \e true to preserve node ordering
-
-  SIMoptions opt; //!< Simulation control parameters
 
 protected:
   //! \brief Scalar field container

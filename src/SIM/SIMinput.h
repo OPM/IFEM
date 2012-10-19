@@ -17,6 +17,8 @@
 #include <iostream>
 #include <vector>
 
+#include "SIMoptions.h"
+
 class TiXmlElement;
 
 
@@ -37,6 +39,7 @@ public:
   //! \brief Reads model data from the specified input file \a *fileName.
   virtual bool read(const char* fileName);
 
+  SIMoptions opt; //!< Simulation control parameters
 private:
   //! \brief Reads a flat text input file.
   bool readFlat(const char* fileName);

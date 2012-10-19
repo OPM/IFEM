@@ -15,9 +15,21 @@
 
 #include <iostream>
 
-bool InitIFEM(int argc, char** argv)
+SIMoptions IFEM_cmdOptions;
+int IFEM_argc;
+char** IFEM_argv;
+
+bool InitIFEM(int argc, char** argv, int myId)
 {
+  IFEM_argc = argc;
+  IFEM_argv = argv;
   LinAlgInit::Init(argc,argv);
+  for (int i=1; i < argc; ++i)
+    IFEM_cmdOptions.parseOldOptions(argc, argv, i);
+
+  if (myId != 0)
+    return true;
+
   std::cout << "\n===== IFEM v" << IFEM_VERSION_MAJOR << "." 
                                 << IFEM_VERSION_MINOR << "." 
                                 << IFEM_VERSION_PATCH << " initialized =====" << std::endl;
