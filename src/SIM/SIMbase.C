@@ -61,13 +61,6 @@ SIMbase::SIMbase () : g2l(&myGlb2Loc)
   nIntGP = nBouGP = 0;
 
   MPCLess::compareSlaveDofOnly = true; // to avoid multiple slave definitions
-
-#ifdef HAS_PETSC
-  // In parallel simulations, we need to retain all DOFs in the equation system.
-  // The fixed DOFs (if any) will receive a homogeneous constraint instead.
-  if (opt.solver == SystemMatrix::PETSC) 
-    ASMbase::fixHomogeneousDirichlet = false;
-#endif
 }
 
 
