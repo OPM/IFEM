@@ -35,7 +35,9 @@ Build() {
     cd $1
     cmake $3
   fi
-  if ! make -j3
+  threads=$CHECK_THREADS
+  test -z $thread && threads=3
+  if ! make -j$threads
   then
     globres=1
     return
