@@ -119,13 +119,15 @@ bool GlbL2::solve (Matrix& sField)
 }
 
 
-bool ASMbase::L2projection (Matrix& sField, IntegrandBase& integrand)
+bool ASMbase::L2projection (Matrix& sField,
+			    const IntegrandBase& integrand,
+			    const TimeDomain& time)
 {
   PROFILE2("ASMbase::L2projection");
 
-  GlbL2 gl2(integrand,this->getNoNodes(1));
+  GlbL2 gl2(const_cast<IntegrandBase&>(integrand),this->getNoNodes(1));
   GlobalIntegral dummy;
 
   gl2.preAssemble(MNPC,this->getNoElms(true));
-  return this->integrate(gl2,dummy,TimeDomain()) && gl2.solve(sField);
+  return this->integrate(gl2,dummy,time) && gl2.solve(sField);
 }
