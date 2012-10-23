@@ -2076,6 +2076,7 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
     // 1. Evaluate primary solution variables
 
     Vector& locvec = myProblem ? myProblem->getSolution() : lovec;
+    extractPatchDependencies(myProblem, myModel, i);
     myModel[i]->extractNodeVec(psol,locvec,psolComps,0);
     if (!myModel[i]->evalSolution(field,locvec,opt.nViz))
       return false;
