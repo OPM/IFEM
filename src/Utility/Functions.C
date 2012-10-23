@@ -15,6 +15,7 @@
 #include "Vec3Oper.h"
 #include <cstring>
 #include <fstream>
+#include <sstream>
 #include <algorithm>
 
 
@@ -130,9 +131,14 @@ Real StepXYFunc::evaluate (const Vec3& X) const
 Interpolate1D::Interpolate1D (const char* file, int dir_) : dir(dir_)
 {
   std::ifstream is(file);
-  while (is.good()) {
+  while (is.good() && !is.eof()) {
+    char temp[1024];
+    is.getline(temp, 1024);
+    if (is.eof())
+      continue;
+    std::stringstream str(temp);
     Real x, v;
-    is >> x >> v;
+    str >> x >> v;
     grid.push_back(x);
     values.push_back(v);
   }
@@ -153,10 +159,9 @@ Real Interpolate1D::evaluate (const Vec3& X) const
   Real val2 = values[pos];
 
   double delta = x2 - x1;
-  if (fabs(delta) < 1.0e-8)
-    return val1;
+  double alpha = (x2-x)/delta;
 
-  return (val1*(x-x1) + val2*(x2-x)) / delta;
+  return (val1*alpha + val2*(1-alpha));
 }
 
 
