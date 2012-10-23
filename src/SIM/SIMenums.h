@@ -18,14 +18,15 @@
 namespace SIM //! Simulation scope
 {
   //! \brief Enum defining various solution formulations that may occur.
+  //! \details Used as a bit field - power of two values only
   enum Formulation
   {
     NONE      = 0,
     LINEAR    = 1,
     NONLINEAR = 2,
-    LAPLACE   = 10,
-    STRESS    = 11,
-    RANS      = 12
+    LAPLACE   = 4,
+    STRESS    = 8,
+    RANS      = 16
   };
 
   //! \brief Enum defining the various solution modes that may occur.
