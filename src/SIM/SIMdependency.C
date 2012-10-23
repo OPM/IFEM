@@ -57,6 +57,18 @@ utl::vector<double>* SIMdependency::getField (const std::string& name)
 }
 
 
+SIMdependency::DepVector::const_iterator 
+        SIMdependency::getDependency(const std::string& name)
+{
+  std::vector<Dependency>::const_iterator it;
+  for (it = depFields.begin(); it != depFields.end(); ++it)
+    if (it->name == name)
+      return it;
+
+  return depFields.end();
+}
+
+
 void SIMdependency::registerField (const std::string& name,
                                    const utl::vector<double>& vec)
 {

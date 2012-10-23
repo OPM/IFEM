@@ -80,6 +80,11 @@ public:
   //! \brief Returns the nodal vector of named field in this SIM.
   utl::vector<double>* getField(const std::string& name);
 
+  //! \brief Returns a dependency by name
+  DepVector::const_iterator getDependency(const std::string& name);
+
+  DepVector::const_iterator depEnd() { return depFields.end(); }
+
   //! \brief Setup any initial conditions specified in input file
   virtual bool setInitialConditions() { return false; }
 protected:
