@@ -23,8 +23,8 @@ then
   git branch --list --remote|grep trunk && base=trunk
   git branch --list --remote|grep git-svn && base=git-svn
 fi
-test -z $base && base=trunk
-test -z $head && last=HEAD
+test -z $base && base="trunk"
+test -z $head && last="HEAD"
 for rev in `git rev-list $base..$last --reverse`; do
   git checkout $rev
   if ! scripts/doregtests.sh $@

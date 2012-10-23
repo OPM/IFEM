@@ -41,7 +41,6 @@ SIMinput::SIMinput ()
 bool SIMinput::read (const char* fileName)
 {
   opt = IFEM_cmdOptions;
-  std::cout << "solver " << opt.solver << std::endl;
 #ifdef HAS_PETSC
   // In parallel simulations, we need to retain all DOFs in the equation system.
   // The fixed DOFs (if any) will receive a homogeneous constraint instead.
