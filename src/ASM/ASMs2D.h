@@ -433,12 +433,6 @@ protected:
   //! \param[out] XC Coordinates of the element corners
   void getElementCorners(int i1, int i2, std::vector<Vec3>& XC) const;
 
-  //! \brief Returns the number of nodal points in each parameter direction.
-  //! \param[out] n1 Number of nodes in first (u) direction
-  //! \param[out] n2 Number of nodes in second (v) direction
-  //! \param[in] basis Which basis to return size parameters for (mixed methods)
-  virtual bool getSize(int& n1, int& n2, int basis = 0) const;
-
   //! \brief Generates element groups for multi-threading of interior integrals.
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] silence If \e true, suppress threading group outprint
@@ -470,6 +464,11 @@ public:
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 
+  //! \brief Returns the number of nodal points in each parameter direction.
+  //! \param[out] n1 Number of nodes in first (u) direction
+  //! \param[out] n2 Number of nodes in second (v) direction
+  //! \param[in] basis Which basis to return size parameters for (mixed methods)
+  virtual bool getSize(int& n1, int& n2, int basis = 0) const;
 private:
   //! \brief Returns an index into the internal coefficient array for a node.
   //! \param[in] inod 0-based node index local to current patch
