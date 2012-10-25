@@ -110,11 +110,11 @@ Go::SplineSurface* SplineUtils::project (const Go::SplineSurface* surface,
   if (!surface) return NULL;
 
   const Go::BsplineBasis& ubas = surface->basis(0);
-  const Go::BsplineBasis& vbas = surface->basis(0);
+  const Go::BsplineBasis& vbas = surface->basis(1);
   const int nu = ubas.numCoefs();
   const int nv = vbas.numCoefs();
 
-  RealArray upar(nu), vpar(nu);
+  RealArray upar(nu), vpar(nv);
 
   // Compute parameter values of the function sampling points (Greville points)
   int i, j;
@@ -153,11 +153,11 @@ Go::SplineSurface* SplineUtils::project (const Go::SplineSurface* surface,
   if (!surface || nComp < 1 || nComp > 3) return NULL;
 
   const Go::BsplineBasis& ubas = surface->basis(0);
-  const Go::BsplineBasis& vbas = surface->basis(0);
+  const Go::BsplineBasis& vbas = surface->basis(1);
   const int nu = ubas.numCoefs();
   const int nv = vbas.numCoefs();
 
-  RealArray upar(nu), vpar(nu);
+  RealArray upar(nu), vpar(nv);
 
   // Compute parameter values of the function sampling points (Greville points)
   int i, j;
