@@ -71,14 +71,14 @@ public:
   //! \param[in] sim The SIM object holding the field we depend on
   //! \param[in] name Name of field we depend on
   //! \param[in] nvc Number of components in field
-  void registerDependency(SIMdependency* sim, const std::string& name,
-                          short int nvc = 1);
+  virtual void registerDependency(SIMdependency* sim, const std::string& name,
+                                  short int nvc = 1);
 
   //! \brief Returns the nodal vector of named field in this SIM.
-  const utl::vector<double>* getField(const std::string& name) const;
+  virtual const utl::vector<double>* getField(const std::string& name) const;
 
   //! \brief Returns the nodal vector of named field in this SIM.
-  utl::vector<double>* getField(const std::string& name);
+  virtual utl::vector<double>* getField(const std::string& name);
 
   //! \brief Returns a dependency by name
   DepVector::const_iterator getDependency(const std::string& name);
