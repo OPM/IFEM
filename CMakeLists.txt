@@ -102,6 +102,7 @@ ADD_CUSTOM_TARGET(check-commits-all scripts/check-patchseries.sh
                                     "Apps/FSWallDistance"
                                     "Apps/Elasticity/FiniteDeformation"
                                     "Apps/Stokes"
+                                    "Apps/AdvectionDiffusion"
                   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                   COMMENT "Checking commits" VERBATIM)
 
