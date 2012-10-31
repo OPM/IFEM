@@ -21,12 +21,13 @@ namespace SIM //! Simulation scope
   //! \details Used as a bit field - power of two values only
   enum Formulation
   {
-    NONE      = 0,
-    LINEAR    = 1,
-    NONLINEAR = 2,
-    LAPLACE   = 4,
-    STRESS    = 8,
-    RANS      = 16
+    NONE       = 0,
+    LINEAR     = 1,
+    NONLINEAR  = 2,
+    LAPLACE    = 4,
+    STRESS     = 8,
+    RANS       = 16,
+    BOUSSINESQ = 32
   };
 
   //! \brief Enum defining the various solution modes that may occur.
