@@ -116,7 +116,7 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att, bool& val)
   if (!xml->Attribute(att))
     return false;
 
-  const char* value = xml->Value();
+  const char* value = xml->Attribute(att);
   if (!strcasecmp(value,"true") || !strcasecmp(value,"on"))
     val = true;
   else if (!strcasecmp(value,"false") || !strcasecmp(value,"off"))
