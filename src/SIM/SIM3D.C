@@ -627,7 +627,7 @@ bool SIM3D::addConstraint (int patch, int lndx, int line, double xi, int dirs)
 }
 
 
-bool SIM3D::readPatch (std::istream& isp, int pchInd)
+ASMbase* SIM3D::readPatch (std::istream& isp, int pchInd) const
 {
   ASMs3D* pch = 0;
   switch (opt.discretization) {
@@ -648,23 +648,16 @@ bool SIM3D::readPatch (std::istream& isp, int pchInd)
   }
 
   if (!pch->read(isp))
-  {
-    delete pch;
-    return false;
-  }
+    delete pch, pch = NULL;
   else if (pch->empty() || this->getLocalPatchIndex(pchInd+1) < 1)
-  {
-    delete pch;
-    return true;
-  }
+    delete pch, pch = NULL;
 
-  if (checkRHSys)
+  if (pch && checkRHSys)
     pch->checkRightHandSystem();
+  if (pch)
+    pch->idx = myModel.size();
 
-  pch->idx = myModel.size();
-  myModel.push_back(pch);
-
-  return true;
+  return pch;
 }
 
 

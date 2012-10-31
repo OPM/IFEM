@@ -42,12 +42,11 @@ public:
   //! \param[in] g2ln Global-to-local node number mapping for the borrowed grid
   void clonePatches(const PatchVec& patches, const std::map<int,int>& g2ln);
 
-  //! \brief Setup any initial conditions specified in input file
-  virtual bool setInitialConditions();
+  //! \brief Reads a patch from given input stream.
+  //! \param[in] isp The input stream to read from
+  //! \param[in] pchInd 0-based index of the patch to read
+  virtual ASMbase* readPatch(std::istream& isp, int pchInd) const;
 
-  //! \brief Inject an initial condition from a file
-  virtual void injectIC(const std::pair<std::string, int>& file,
-                         utl::vector<double>& field);
 private:
   //! \brief Parses a subelement of the \a geometry XML-tag.
   bool parseGeometryTag(const TiXmlElement* elem);
@@ -69,10 +68,6 @@ protected:
   //! \param[in] whiteSpace For message formatting
   virtual bool readPatches(std::istream& isp, PatchVec& vec,
                            const char* whiteSpace = "");
-  //! \brief Reads a patch from given input stream.
-  //! \param[in] isp The input stream to read from
-  //! \param[in] pchInd 0-based index of the patch to read
-  virtual bool readPatch(std::istream& isp, int pchInd);
   //! \brief Reads global node data for a patch from given input stream.
   //! \param[in] isn The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read node data for

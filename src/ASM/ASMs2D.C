@@ -15,6 +15,7 @@
 #include "GoTools/geometry/SplineCurve.h"
 #include "GoTools/geometry/SplineSurface.h"
 #include "GoTools/geometry/CurveInterpolator.h"
+#include "GoTools/geometry/SurfaceInterpolator.h"
 
 #include "ASMs2D.h"
 #include "TimeDomain.h"
@@ -1885,9 +1886,10 @@ bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
   const int p2 = surf->order_v();
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
-  size_t nComp = locSol.size() / this->getNoNodes(-1);
-  if (nComp*this->getNoNodes(-1) != locSol.size())
-    return false;
+//  size_t nComp = locSol.size() / this->getNoNodes(-1);
+//  if (nComp*this->getNoNodes(-1) != locSol.size())
+//    return false;
+  size_t nComp = locSol.size() / (n1*n2);
 
   Matrix Xtmp;
   Vector Ytmp;
@@ -2124,4 +2126,44 @@ void ASMs2D::generateThreadGroups (const Integrand& integrand, bool silence)
     }
   }
   std::cout << std::endl;
+}
+
+
+bool ASMs2D::evaluate (const ASMbase* input, const Vector& locVec, Vector& vec)
+{
+  ASMs2D* pch = (ASMs2D*)input;
+  // Compute parameter values of the result sampling points (Greville points)
+  RealArray gpar[2];
+  for (int dir = 0; dir < 2; dir++)
+    if (!this->getGrevilleParameters(gpar[dir],dir))
+      return false;
+
+  Matrix sValues;
+  pch->evalSolution(sValues, locVec, gpar, true);
+
+  // Project the results onto the spline basis to find control point
+  // values based on the result values evaluated at the Greville points.
+  // Note that we here implicitly assume that the number of Greville points
+  // equals the number of control points such that we don't have to resize
+  // the result array. Think that is always the case, but beware if trying
+  // other projection schemes later.
+
+  RealArray weights;
+  if (surf->rational())
+    surf->getWeights(weights);
+
+  const Vector& vec2 = sValues;
+  Go::SplineSurface* surf_new = 
+         Go::SurfaceInterpolator::regularInterpolation(surf->basis(0),
+						       surf->basis(1),
+						       gpar[0], gpar[1],
+						       const_cast<Vector&>(vec2),
+						       sValues.rows(),
+						       surf->rational(),
+						       weights);
+  vec.resize(surf_new->coefs_end()-surf_new->coefs_begin());
+  std::copy(surf_new->coefs_begin(), surf_new->coefs_end(), vec.begin());
+  delete surf_new;
+
+  return true;
 }

@@ -37,6 +37,11 @@ public:
   //! \brief Empty destructor.
   virtual ~SIM3D() {}
 
+  //! \brief Reads a patch from given input stream.
+  //! \param[in] isp The input stream to read from
+  //! \param[in] pchInd 0-based index of the patch to read
+  virtual ASMbase* readPatch(std::istream& isp, int pchInd) const;
+
 private:
   //! \brief Parses a subelement of the \a geometry XML-tag.
   bool parseGeometryTag(const TiXmlElement* elem);
@@ -59,10 +64,6 @@ protected:
   virtual bool readPatches(std::istream& isp,
                            PatchVec& vec,
                            const char* whiteSpace = "");
-  //! \brief Reads a patch from given input stream.
-  //! \param[in] isp The input stream to read from
-  //! \param[in] pchInd 0-based index of the patch to read
-  virtual bool readPatch(std::istream& isp, int pchInd);
   //! \brief Reads global node data for a patch from given input stream.
   //! \param[in] isn The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read node data for

@@ -32,6 +32,20 @@ public:
   //! \brief Spline patch container
   typedef std::vector<ASMbase*> PatchVec;
 
+  //! \brief Initial condition container
+  struct ICInfo {
+    ICInfo()
+    {
+      sim_level = file_level = 0;
+    }
+
+    int sim_level; //!< The time level for the field in the SIM class
+    int file_level; //!< The time level for the field in the file
+    std::string sim_field; //!< The name of the field in the SIM class
+    std::string file_field; //!< The name of the field in the file
+  };
+  typedef std::map< std::string,std::vector<ICInfo> > InitialCondMap;
+
 private:
   //! \brief Struct holding information about an inter-SIM dependency.
   struct Dependency
@@ -53,6 +67,8 @@ private:
 protected:
   //! \brief The constructor is protected to allow sub-class instances only.
   SIMdependency() {}
+
+  InitialCondMap myICs; //!< Initial conditions
 
 public:
   //! \brief Empty destructor.
@@ -85,8 +101,7 @@ public:
 
   DepVector::const_iterator depEnd() { return depFields.end(); }
 
-  //! \brief Setup any initial conditions specified in input file
-  virtual bool setInitialConditions() { return false; }
+  const InitialCondMap& getICs() const { return myICs; }
 protected:
   //! \brief Registers a named field with associated nodal vector in this SIM.
   void registerField(const std::string& name, const utl::vector<double>& vec);
@@ -98,12 +113,6 @@ protected:
   //! \param[in] pindx Local patch index to extract solution vectors for
   bool extractPatchDependencies(IntegrandBase* problem,
                                 const PatchVec& model, size_t pindx);
-
-  //! \brief Initial condition container
-  //!\details maps from (field, step) -> (file, component)
-  typedef std::map<std::pair<std::string,int>,std::pair<std::string,int > > InitialCondMap;
-
-  InitialCondMap myICs; //!< Initial conditions
 private:
   FieldMap  myFields;  //!< The named fields of this SIM object
   DepVector depFields; //!< Other fields this SIM objecy depends on

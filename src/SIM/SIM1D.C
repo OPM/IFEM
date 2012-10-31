@@ -410,7 +410,7 @@ bool SIM1D::addConstraint (int patch, int lndx, int, int dirs, int code, int&)
 }
 
 
-bool SIM1D::readPatch (std::istream& isp, int pchInd)
+ASMbase* SIM1D::readPatch (std::istream& isp, int pchInd) const
 {
   ASMs1D* pch = 0;
   switch (opt.discretization) {
@@ -425,20 +425,14 @@ bool SIM1D::readPatch (std::istream& isp, int pchInd)
   }
 
   if (!pch->read(isp))
-  {
-    delete pch;
-    return false;
-  }
+    delete pch, pch = NULL;
   else if (pch->empty())
-  {
-    delete pch;
-    return true;
-  }
+    delete pch, pch = NULL;
 
-  pch->idx = myModel.size();
-  myModel.push_back(pch);
+  if (pch)
+    pch->idx = myModel.size();
 
-  return true;
+  return pch;
 }
 
 

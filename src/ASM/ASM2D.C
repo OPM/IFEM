@@ -22,7 +22,7 @@
 
 
 ASMbase* ASM2D::create (ASM::Discretization discretization,
-			unsigned char* nf, bool mixedFEM)
+			const unsigned char* nf, bool mixedFEM)
 {
   switch (discretization) {
   case ASM::SplineC1:

@@ -176,9 +176,6 @@ public:
   //! \param[in] redimBuffers Toggle initialization of internal buffer arrays
   void setQuadratureRule(size_t ng, bool redimBuffers = false);
 
-  //! \brief Injects an initial condition from a file.
-  virtual void injectIC(const std::pair<std::string,int>& file, Vector& ic) {}
-
   //! \brief Prints out problem-specific data to the given stream.
   void printProblem(std::ostream& os) const;
 
@@ -682,6 +679,11 @@ public:
   //! \brief Returns the end of the property array.
   PropertyVec::const_iterator end_prop() const { return myProps.end(); }
 
+  //! \brief Reads a patch from given input stream.
+  //! \param[in] isp The input stream to read from
+  //! \param[in] pchInd 0-based index of the patch to read
+  virtual ASMbase* readPatch(std::istream& isp, int pchInd) const = 0;
+
 protected:
   //! \brief Initializes material properties for integration of interior terms.
   virtual bool initMaterial(size_t) { return true; }
@@ -696,10 +698,6 @@ protected:
   //! \param[in] whiteSpace For message formatting
   virtual bool readPatches(std::istream& isp, PatchVec& vec,
                            const char* whiteSpace = "") = 0;
-  //! \brief Reads a patch from given input stream.
-  //! \param[in] isp The input stream to read from
-  //! \param[in] pchInd 0-based index of the patch to read
-  virtual bool readPatch(std::istream& isp, int pchInd) = 0;
   //! \brief Reads global node data for a patch from given input stream.
   //! \param[in] isn The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read node data for

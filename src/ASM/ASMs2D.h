@@ -384,6 +384,13 @@ public:
 				  const IntegrandBase& integrand,
 				  bool continuous = false) const;
 
+  //! \brief Evaluate and interpolate a field over a given geometry
+  //! \param[in] input The basis of the field to evaluate
+  //! \param[in] locVec The coefficients of the field
+  //! \param[out] vec The obtained coefficients after interpolation
+  virtual bool evaluate(const ASMbase* input,
+                        const Vector& locVec, Vector& vec);
+
 protected:
 
   // Internal utility methods

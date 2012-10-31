@@ -419,16 +419,15 @@ bool SIMbase::parse (const TiXmlElement* elem)
     noDumpDataYet = lhsDump.empty() && rhsDump.empty();
   else if (!strcasecmp(elem->Value(),"initialcondition"))
   {
-    int step = 0, comp = 1, stride = 1;
-    utl::getAttribute(elem,"step",step);
-    utl::getAttribute(elem,"comp",comp);
-    utl::getAttribute(elem,"stride",stride);
-    comp += (stride << 16);
-    std::string field, file;
-    if (utl::getAttribute(elem,"field",field) &&
-        utl::getAttribute(elem,"file",file))
-      myICs.insert(make_pair(make_pair(field,step),make_pair(file,comp)));
-    else
+    ICInfo info;
+    utl::getAttribute(elem, "level", info.sim_level);
+    utl::getAttribute(elem, "file_level", info.file_level);
+    std::string file;
+    if (utl::getAttribute(elem, "field", info.sim_field) &&
+        utl::getAttribute(elem, "file_field", info.file_field) &&
+        utl::getAttribute(elem, "file", file)) {
+      myICs[file].push_back(info);
+    } else
       result = false;
   }
 
@@ -490,7 +489,9 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
 	if (is.good())
 	{
 	  std::cout <<"\nReading patch file "<< cline << std::endl;
-	  this->readPatch(is,i);
+	  ASMbase* pch = readPatch(is,i);
+          if (pch)
+            myModel.push_back(pch);
 	}
 	else
 	  std::cerr <<" *** SIMbase: Failure opening patch file"
@@ -516,7 +517,7 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
       size_t i = 9; while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
       std::cout <<"\nReading data file "<< keyWord+i << std::endl;
       std::ifstream isp(keyWord+i);
-      this->readPatches(isp, myModel);
+      this->readPatches(isp, myModel); 
 
       if (myModel.empty())
       {
