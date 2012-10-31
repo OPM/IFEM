@@ -9,6 +9,9 @@
 //! \brief Helper functions for BDF based time stepping.
 //!
 //==============================================================================
+#ifndef BDF_H_
+#define BDF_H_
+
 #include <vector>
 
 #include "MatVec.h"
@@ -38,6 +41,11 @@ class BDF {
     //! \brief Returns the BDF coefficients
     const std::vector<double>& getCoefs() const;
 
+    double operator[](int idx) const
+    {
+      return getCoefs()[idx];
+    }
+
     //! \brief Extrapolate value
     //! \param[in] values The values to extrapolate based on
     //! \return The extrapolated value
@@ -47,3 +55,5 @@ class BDF {
     std::vector<double> coefs1;
     int step;
 };
+
+#endif
