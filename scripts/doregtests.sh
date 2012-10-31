@@ -68,9 +68,12 @@ then
     fi
     if test $globres -eq 0
     then
-      if ! make test
+      if [ "$CHECKMODE" != "buildonly" ]
       then
-        globres=1
+        if ! make test
+        then
+          globres=1
+        fi
       fi
     fi
   done
