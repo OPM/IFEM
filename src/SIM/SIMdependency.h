@@ -102,6 +102,8 @@ public:
   DepVector::const_iterator depEnd() { return depFields.end(); }
 
   const InitialCondMap& getICs() const { return myICs; }
+
+  virtual size_t getNoSpaceDim() const = 0;
 protected:
   //! \brief Registers a named field with associated nodal vector in this SIM.
   void registerField(const std::string& name, const utl::vector<double>& vec);
