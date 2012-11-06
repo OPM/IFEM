@@ -24,7 +24,9 @@
 #include "GoTools/trivariate/SplineVolume.h"
 
 #ifdef HAS_PETSC
-#include "PETScMatrix.h"
+// RUNAR
+//#include "PETScMatrix.h"
+#include "PETScBlockMatrix.h"
 #include "petscversion.h"
 #if PETSC_VERSION_MAJOR == 3 && PETSC_VERSION_MINOR >= 2
 #define PETSCMANGLE(x) &x
@@ -66,6 +68,28 @@ bool SAMpatchPara::init (const ASMVec& model, int numNod)
   patch = model;
 
   return SAMpatch::init(model,numNod);
+}
+
+
+bool SAMpatchPara::getEqns(IntVec& eqns, int f1, int f2) const
+{
+  int nf    = ndof/nnod;    
+  int nbf   = f2-f1+1;
+  int nbdof = nnod*nbf;
+
+  if (f1 > f2 || f1 < 0 || f2 > nf-1)
+    return false;
+
+  eqns.resize(nbdof);
+  for (int n = 0;n < nnod;n++) {
+    int dof  = nnod*nf + f1;
+    int bdof = nnod*nbf;
+    
+    for (int k = 0;k < nbf;k++, dof++, bdof++)
+      eqns[bdof] = meqn[dof];
+  }
+
+  return true;
 }
 
 
@@ -153,6 +177,171 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
 }
 
 
+
+bool SAMpatchPara::getNoDofCouplings(int ifirst, int ilast, IntVec ncomps,
+				     std::vector<std::vector<IntVec> >& d_nnz, 
+				     std::vector<std::vector<IntVec> >& o_nnz) const
+{
+  // Find number of dofs per row for each submatrix
+  size_t nblock = ncomps.size();
+  size_t nf = 0;
+  for (size_t n = 0;n < nblock;n++)
+    nf += ncomps[n];
+  size_t nlocnode = (ilast-ifirst)/nf;
+
+  // Must have same number of dofs per node, i.e. not mixed
+  if (ndof%nf > 0)
+    return false;
+   
+  std::vector<std::vector<std::vector<IntSet> > > d_dofc, o_dofc;
+
+  // Resize vectors for each submatrix
+  d_dofc.resize(nblock); 
+  for (size_t i = 0;i < nblock;i++) {
+    d_dofc[i].resize(nblock);
+    for (size_t j = 0;j < nblock;j++) {
+      d_dofc[i][j].resize(nnod*ncomps[i]);
+    }
+  }
+
+#ifdef PARALLEL_CODE
+  o_dofc.resize(nblock); 
+  for (size_t i = 0;i < nblock;i++) {
+    o_dofc[i].resize(nblock);
+    for (size_t j = 0;j < nblock;j++) 
+      o_dofc[i][j].resize(nnod*ncomps[i]);
+  }
+#endif
+
+  IntVec meenI, meenJ;
+  for (int iel = 1;iel <= nel;iel++) {
+    size_t if1 = 0;
+    for (size_t i = 0;i < nblock;i++)  {
+      size_t if2 = if1 + ncomps[i];
+    
+      this->getElmEqns(meenI,iel,if1,if2-1,true);
+
+      size_t jf1 = 0;
+      for (size_t j = 0;j < nblock;j++) {
+	size_t jf2 = jf1 + ncomps[j];
+	
+	this->getElmEqns(meenJ,iel,jf1,jf2-1,true);
+	
+	for (size_t k = 0;k < meenI.size();k++) {
+	  if (meenI[k] > 0) {
+	    int d_ldof = meenI[k]-1;
+	    int d_gdof = meqn[d_ldof]-1;
+	    
+	    int d_lbdof = (d_ldof/nf)*ncomps[i] + (d_ldof%nf)-if1;
+     
+	    if (d_gdof >= ifirst && d_gdof < ilast) {
+	      for (size_t l = 0; l < meenJ.size(); l++)
+		if (meenJ[l] > 0) {
+		  int o_ldof = meenJ[l]-1;
+		  int o_gdof = meqn[o_ldof]-1;
+
+		  int o_lbdof = (o_ldof/nf)*ncomps[j] + (o_ldof%nf)-jf1;		  
+		  if (o_gdof >= ifirst && o_gdof < ilast)
+		    d_dofc[i][j][d_lbdof].insert(o_lbdof);
+		  else
+		    o_dofc[i][j][d_lbdof].insert(o_lbdof);
+		}
+	    }
+	    else 
+	      for (size_t l = 0; l < meenJ.size(); l++)
+		if (meenJ[l] > 0) {
+		  int o_ldof = meenJ[l]-1;
+		  int o_gdof = meqn[o_ldof]-1;
+
+		  int o_lbdof = (o_ldof/nf)*ncomps[j] + (o_ldof%nf)-jf1;		  
+		  if (o_gdof >= ifirst && o_gdof < ilast)
+		    o_dofc[i][j][d_lbdof].insert(o_lbdof);
+	    }
+	  }
+	}
+      }
+    }
+  }
+
+  // Generate nnz for diagonal blocks
+  d_nnz.resize(nblock);
+  size_t if1 = 0;
+  for (size_t i = 0;i < nblock;i++) {
+    d_nnz[i].resize(nblock);
+
+    for (size_t j = 0;j < nblock;j++) {
+      d_nnz[i][j].resize(nlocnode*ncomps[i]);
+      for (int k = 0; k < nnod; k++) {
+	int bdof = k*ncomps[i];
+	int dof  = k*nf + if1;
+	for (int l = 0;l < ncomps[i];l++, bdof++, dof++) {
+	  int d_gdof = meqn[dof]-1;
+	  int beq = (d_gdof-ifirst)/nf*ncomps[i] + l;
+	  if (d_gdof >= ifirst && d_gdof < ilast) 
+	    d_nnz[i][j][beq] = d_dofc[i][j][bdof].size();
+	}
+      }
+    }      
+
+    if1 += ncomps[i];
+  }
+
+#ifdef PARALLEL_CODE
+  // Generate nnz for off-diagonal block);
+  o_nnz.resize(nblock);
+  if1 = 0;
+  for (size_t i = 0;i < nblock;i++) {
+    o_nnz[i].resize(nblock);
+    for (size_t j = 0;j < nblock;j++) {
+      o_nnz[i][j].resize(nlocnode*ncomps[i]);
+    
+      RealArray nnz(nnod*comps[i]);
+      std::vector<PetscInt> l2g(nnod*ncomps[i]);
+
+      for (size_t k = 0; k < nnod; k++) {
+	size_t bdof = k*ncomps[i];
+        size_t dof  = k*nf + f1;
+        for (size_t l = 0;l < ncomps[i];l++, bdof++, dof++) {
+          size_t d_gdof = meqn[dof]-1;
+          if (d_gdof >= ifirst && d_gdof < ilast) { 
+            nnz[bdof] = d_dofc[i][j][bdof].size();
+	    l2g[bdof] = (d_gdof/nf)*ncomps[i] + l; 
+	  }
+        }
+      }
+      
+      size_t locsize = nlocnode*ncomps[i];
+      size_t nldof   = nnod*ncomps[i];
+
+      Vec x;
+      VecCreate(PETSC_COMM_WORLD,&x);
+      VecSetSizes(x,locsize,PETSC_DECIDE);
+      VecSetFromOptions(x);
+      VecSet(x,0.0);
+      VecSetValues(x,nldof,&l2g[0],&(nnz[i][j][0]),ADD_VALUES);
+      VecAssemblyBegin(x);
+      VecAssemblyEnd(x);
+      
+      PetscScalar* vec;
+      VecGetArray(x,&vec);
+      
+      o_nnz[i][j].resize(locsize);
+      for (k = 0; k < locsize; k++)
+	o_nnz[i][j][k] = ceil(vec[k]);
+      
+      VecRestoreArray(x,&vec);
+      VecDestroy(PETSCMANGLE(x));
+    }
+    
+    if1 += ncomps[i];
+  }
+#endif
+
+  return true;
+}
+
+
+
 bool SAMpatchPara::initForAssembly (SystemVector& sysRHS,
 				    Vector* reactionForces) const
 {
@@ -190,15 +379,19 @@ bool SAMpatchPara::assembleSystem (SystemVector& sysRHS,
     l2g[i] = meqn[l2g[i]]-1;
   }
 
+  // RUNAR
   PETScVector* pvec = dynamic_cast<PETScVector*>(&sysRHS);
+  //PETScBlockVector* pvec = dynamic_cast<PETScBlockVector*>(&sysRHS);
   if (!pvec) return false;
 
   std::vector<PetscInt> L2g(l2g.size());
   for (i = 0; i < l2g.size(); i++)
     L2g[i] = l2g[i];
 
+  // RUNAR
   // Add contributions to SV (righthand side)
   VecSetValues(pvec->getVector(),eSv.size(),&L2g[0],&eSv[0],ADD_VALUES);
+  //VecSetValues(pvec->getVector(0),eSv.size(),&L2g[0],&eSv[0],ADD_VALUES);
 
   // Add contributions to reaction forces
   if (reactionForces)
@@ -244,6 +437,50 @@ bool SAMpatchPara::getElmEqns (IntVec& meen, int iel, int nedof) const
 }
 
 
+bool SAMpatchPara::getElmEqns (IntVec& meen, int iel, int f1, int f2, bool globalEq, int nedof) const
+{
+  if (iel < 1 || iel > nel)
+  {
+    std::cerr <<"SAMpatchPara::getElmEqns: Element "<< iel
+	      <<" is out of range [1,"<< nel <<"]"<< std::endl;
+    return false;
+  }
+
+  int ip = mpmnpc[iel-1];
+  int nenod = mpmnpc[iel] - ip;
+  int oldof = nedof;
+  if (nedof < 1) nedof = nenod*ndof/nnod;
+
+  int nf      = ndof/nnod;
+  int nbf     = f2-f1+1; 
+  int nebdof  = nenod*nbf; 
+  int stride  = (globalEq) ? nf : nbf;
+
+  // Fields must be correct
+  if (f2 < f1 || f1 < 0 || f2 >= nf)
+    return false;
+
+  meen.clear();
+  meen.reserve(nebdof);
+  for (int i = 0; i < nenod; i++, ip++)
+  {
+    int node = mmnpc[ip-1];
+    if (node > 0) {
+      int dof = (globalEq) ? madof[node-1] : (node-1)*nbf + 1 + f1;
+      for (int j = f1; j <= f2; j++, dof++)
+        meen.push_back(dof);
+    }
+    else if (node < 0) 
+      meen.insert(meen.end(),f2-f1+1,0);
+  }
+  if ((int)meen.size() == nebdof || oldof < 1) return true;
+
+  std::cerr <<"SAMpatchPara::getElmEqns: Invalid element matrix dimension "
+	    << nedof <<" (should have been "<< meen.size() <<")"<< std::endl;
+  return false;
+}
+
+
 bool SAMpatchPara::expandSolution (const SystemVector& solVec,
 				   Vector& dofVec, Real scaleSD) const
 {
@@ -268,7 +505,11 @@ bool SAMpatchPara::expandSolution (const SystemVector& solVec,
 
   return true;
 #else
+  // RUNAR
   return this->expandVector(solVec.getRef(),dofVec,scaleSD);
+  //SystemVector* sv  = const_cast<SystemVector*>(&solVec);
+  //PETScBlockVector* sb = dynamic_cast<PETScBlockVector*>(sv);  
+  //return this->expandVector(sb->getRef(0),dofVec,scaleSD);
 #endif
 }
 
@@ -619,6 +860,77 @@ bool SAMpatchPara::getLocalSubdomains(std::vector<PetscIntVec>& locSubds,
 }
 
 
+bool SAMpatchPara::getLocalSubdomainsBlock(std::vector<PetscIntVec>& locSubds, int f1, int f2,
+					   int nx, int ny, int nz) const
+{
+  // Define some parameters
+  const int npatch = patch.size();
+  const int nsd    = patch[0]->getNoSpaceDim();
+
+  // Find min and max node for each patch on this processor
+  IntVec maxNodeId, minNodeId;
+  maxNodeId.resize(npatch,true);
+  minNodeId.resize(npatch,true);
+
+  for (int n = 0;n < npatch;n++) {
+    const IntVec& MLGN = patch[n]->getGlobalNodeNums();
+  
+    int min = 0;
+    int max = 0;
+    for (size_t i = 0;i < MLGN.size();i++) {
+      if (MLGN[i] > max)
+	max = MLGN[i];
+      if (MLGN[i] < min)
+	min = MLGN[i];
+    }
+    minNodeId[n] = min;
+    maxNodeId[n] = max;
+  }
+  
+  minNodeId[0] = 1;
+  for (int n = 1;n < npatch;n++)
+    minNodeId[n] = maxNodeId[n-1] + 1;
+  
+#ifdef PARALLEL_PETSC
+  // Adjust for parallel
+  int myRank, nProc;
+  MPI_Status status;
+  MPI_Comm_rank(PETSC_COMM_WORLD,&myRank);
+  MPI_Comm_size(PETSC_COMM_WORLD,&nProc);
+  if (myRank < nProc-1)
+    MPI_Send(&maxNodeId[npatch-1],1,MPI_INT,myRank+1,101,PETSC_COMM_WORLD);
+  if (myRank > 0) {
+    MPI_Recv(&minNodeId[0],1,MPI_INT,myRank-1,101,PETSC_COMM_WORLD,&status);
+    minNodeId[0]++;
+  }
+#endif  
+
+  switch (nsd) {
+  case 1:
+  {
+    IntVec nxVec; 
+    nxVec.assign(npatch,nx);
+    return this->getLocalSubdomains1D(locSubds,nxVec,minNodeId,maxNodeId,f1,f2);
+  }
+  case 2:
+  {
+    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
+    IntVec nyVec(npatch); nyVec.assign(npatch,ny);
+    return this->getLocalSubdomains2D(locSubds,nxVec,nyVec,minNodeId,maxNodeId,f1,f2);
+  }
+  case 3:
+  {
+    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
+    IntVec nyVec(npatch); nyVec.assign(npatch,ny);
+    IntVec nzVec(npatch); nzVec.assign(npatch,nz);
+    return this->getLocalSubdomains3D(locSubds,nxVec,nyVec,nzVec,minNodeId,maxNodeId,f1,f2);
+  }
+  default:
+    return false;
+  }
+}
+
+
 bool SAMpatchPara::getSubdomains(std::vector<PetscIntVec>& subds, int overlap,
 				 int nx, int ny, int nz) const
 {
@@ -644,6 +956,38 @@ bool SAMpatchPara::getSubdomains(std::vector<PetscIntVec>& subds, int overlap,
     IntVec nyVec(npatch); nyVec.assign(npatch,ny);
     IntVec nzVec(npatch); nzVec.assign(npatch,nz);
     return this->getSubdomains3D(nxVec,nyVec,nzVec,overlap,subds);
+  }
+  default:
+    return false;
+  }
+}
+
+
+bool SAMpatchPara::getSubdomainsBlock(std::vector<PetscIntVec>& subds, int f1, int f2, 
+				      int overlap, int nx, int ny, int nz) const
+{
+  // Define some parameters
+  const int npatch = patch.size();
+  const int nsd    = patch[0]->getNoSpaceDim();
+
+  switch (nsd) {
+  case 1:
+  {
+    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
+    return this->getSubdomains1D(subds,nxVec,overlap,f1,f2);
+  }
+  case 2:
+  {
+    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
+    IntVec nyVec(npatch); nyVec.assign(npatch,ny);
+    return this->getSubdomains2D(subds,nxVec,nyVec,overlap,f1,f2);
+  }
+  case 3:
+  {
+    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
+    IntVec nyVec(npatch); nyVec.assign(npatch,ny);
+    IntVec nzVec(npatch); nzVec.assign(npatch,nz);
+    return this->getSubdomains3D(subds,nxVec,nyVec,nzVec,overlap,f1,f2);
   }
   default:
     return false;
@@ -1025,6 +1369,419 @@ bool SAMpatchPara::getSubdomains3D(IntVec& nxvec, IntVec& nyvec, IntVec& nzvec,
 		  PetscInt ieq = meqn[nodedof+m-1];
 		  if (ieq > 0)
 		    subdDofs.push_back(ieq-1);
+		}
+	      }
+	  
+	  subds.push_back(subdDofs);
+	}
+      }
+    }
+  }
+  
+  return true;
+}
+
+
+bool SAMpatchPara::getLocalSubdomains1D(std::vector<PetscIntVec>& locSubds, IntVec& nxvec, 
+					IntVec& minNodeId, IntVec& maxNodeId, int f1, int f2)  const
+{
+  // Define some parameters
+  const size_t npatch = patch.size();
+
+  if (nxvec.size() != npatch)
+    return false;
+
+  // Split the patches into smaller subdomains
+  for (size_t n = 0;n < npatch;n++) {
+    int nnod;
+    ASMs1D* pch1 = dynamic_cast<ASMs1D*>(patch[n]);
+    if (pch1)
+	nnod = pch1->getCurve()->numCoefs();
+      else
+	return false;
+
+    int nx = nxvec[n];
+    int n1 = nnod/nx;
+    
+    int nfield   = f2-f1+1;
+
+    const IntVec& MLGN = patch[n]->getGlobalNodeNums();
+    for (int p1 = 0;p1 < nx;p1++) {
+      PetscIntVec subdDofs;
+      
+      int i1 = p1*n1;
+      int i2 = (p1+1)*n1;
+      if ((p1 == nx-1) && (i2 < nnod)) i2 = nnod;
+      
+      for (int i = i1;i < i2;i++) {
+	int globNode = MLGN[i];
+	
+	if (globNode >= minNodeId[n] && globNode <= maxNodeId[n]) {
+	  int nodedof   = madof[globNode-1];
+	  int gdof      = meqn[nodedof-1];
+	  int nnodedof  = patch[n]->getNodalDOFs(i+1);
+	  int gbnodedof = (gdof-1)/nnodedof;
+	  for (int m = 0;m < nfield;m++) {
+	    PetscInt ieq = gbnodedof*nfield+m;
+	    if (ieq > -1)
+	      subdDofs.push_back(ieq);
+	  }
+	}
+      }
+      
+      locSubds.push_back(subdDofs);
+    }
+  }
+  
+  return true;
+}
+
+
+bool SAMpatchPara::getLocalSubdomains2D(std::vector<PetscIntVec>& locSubds, IntVec& nxvec, IntVec& nyvec, 
+					IntVec& minNodeId, IntVec& maxNodeId, int f1, int f2) const 
+{
+  // Define some parameters
+  const size_t npatch = patch.size();
+
+  if (nxvec.size() != npatch || nyvec.size() != npatch)
+    return false;
+
+  // Split the patches into smaller subdomains
+  for (size_t n = 0;n < npatch;n++) {
+    int nnod1, nnod2;
+    ASMs2D* pch2 = dynamic_cast<ASMs2D*>(patch[n]);
+    if (pch2) {
+      nnod1 = pch2->getSurface()->numCoefs_u();
+      nnod2 = pch2->getSurface()->numCoefs_v();
+    }
+    else
+      return false;
+
+    int nx = nxvec[n];
+    int ny = nyvec[n];
+    int n1 = nnod1/nx;
+    int n2 = nnod2/ny;
+    
+    int nfield = f2-f1+1;
+
+    const IntVec& MLGN = patch[n]->getGlobalNodeNums();
+    for (int p2 = 0;p2 < ny;p2++) {
+      int j1 = p2*n2;
+      int j2 = (p2+1)*n2;
+      if ((p2 == ny-1) && (j2 < nnod2)) j2 = nnod2;
+      
+      for (int p1 = 0;p1 < nx;p1++) {
+	PetscIntVec subdDofs;
+	
+	int i1 = p1*n1;
+	int i2 = (p1+1)*n1;
+	if ((p1 == nx-1) && (i2 < nnod1)) i2 = nnod1;
+
+	for (int j = j1;j < j2;j++)
+	  for (int i = i1;i < i2;i++) {
+	    int locNode = j*nnod1 + i;
+	    int globNode = MLGN[locNode];
+	    
+	    if (globNode >= minNodeId[n] && globNode <= maxNodeId[n]) {
+	      int nodedof  = madof[globNode-1];
+	      int gdof      = meqn[nodedof-1];
+	      int nnodedof  = patch[n]->getNodalDOFs(locNode+1);
+	      int gbnodedof = (gdof-1)/nnodedof;
+	      for (int m = 0;m < nfield;m++) {
+		PetscInt ieq = gbnodedof*nfield+m;
+		if (ieq > -1)
+		  subdDofs.push_back(ieq);
+	      }
+	    }
+	  }
+	
+	locSubds.push_back(subdDofs);
+      }
+    }
+  }
+
+  return true;
+}
+
+
+bool SAMpatchPara::getLocalSubdomains3D(std::vector<PetscIntVec>& locSubds, IntVec& nxvec, IntVec& nyvec, IntVec& nzvec,
+					IntVec& minNodeId, IntVec& maxNodeId, int f1, int f2)  const  
+{
+  // Define some parameters
+  const size_t npatch = patch.size();
+
+  if (nxvec.size() != npatch || nyvec.size() != npatch || nzvec.size() != npatch)
+    return false;
+
+  // Split the patches into smaller subdomains
+  for (size_t n = 0;n < npatch;n++) {
+    int nnod1, nnod2, nnod3;
+    ASMs3D* pch3 = dynamic_cast<ASMs3D*>(patch[n]);
+    if (pch3) {
+      nnod1 = pch3->getVolume()->numCoefs(0);
+      nnod2 = pch3->getVolume()->numCoefs(1);
+      nnod3 = pch3->getVolume()->numCoefs(2);
+    }
+    else
+      return false;
+	
+    int nx = nxvec[n];
+    int ny = nyvec[n];
+    int nz = nzvec[n];
+    int n1 = nnod1/nx;
+    int n2 = nnod2/ny;
+    int n3 = nnod3/nz;
+    
+    int nfield = f2-f1+1;
+
+    const IntVec& MLGN = patch[n]->getGlobalNodeNums();
+    for (int p3 = 0;p3 < nz;p3++) {
+      int k1 = p3*n3;
+      int k2 = (p3+1)*n3;
+      if ((p3 == nz-1) && (k2 < nnod3)) k2 = nnod3;
+
+      for (int p2 = 0;p2 < ny;p2++) {
+	int j1 = p2*n2;
+	int j2 = (p2+1)*n2;
+	if ((p2 == ny-1) && (j2 < nnod2)) j2 = nnod2;
+
+	for (int p1 = 0;p1 < nx;p1++) {
+	  PetscIntVec subdDofs;
+
+	  int i1 = p1*n1;
+	  int i2 = (p1+1)*n1;
+	  if ((p1 == nx-1) && (i2 < nnod1)) i2 = nnod1;
+
+	  for (int k = k1;k < k2;k++)
+	    for (int j = j1;j < j2;j++)
+	      for (int i = i1;i < i2;i++) {
+		int locNode = k*nnod3*nnod2 + j*nnod1 + i;
+		int globNode = MLGN[locNode];
+		
+		if (globNode >= minNodeId[n] && globNode <= maxNodeId[n]) {
+		  int nodedof = madof[globNode-1];
+		  int gdof      = meqn[nodedof-1];
+		  int nnodedof = patch[n]->getNodalDOFs(locNode+1);
+		  int gbnodedof = (gdof-1)/nnodedof;
+		  for (int m = 0;m < nfield;m++) {
+		    PetscInt ieq = gbnodedof*nfield+m;
+		    if (ieq > -1)
+		      subdDofs.push_back(ieq);
+		  }
+		}
+	      }
+	    
+	    locSubds.push_back(subdDofs);
+	}
+      }
+    }
+  }
+  
+  return true;
+}
+
+
+bool SAMpatchPara::getSubdomains1D(std::vector<PetscIntVec>& subds, IntVec& nxvec, int overlap, int f1, int f2)  const
+{
+  // Define some parameters
+  const size_t npatch = patch.size();
+
+  if (nxvec.size() != npatch)
+    return false;
+
+  // Overlap
+  int olow  = overlap/2;
+  int ohigh = overlap/2 + overlap%2; 
+    
+  // Split the patches into smaller subdomains
+  for (size_t n = 0;n < npatch;n++) {
+    int nnod;
+    ASMs1D* pch1 = dynamic_cast<ASMs1D*>(patch[n]);
+    if (pch1)
+	nnod = pch1->getCurve()->numCoefs();
+      else
+	return false;
+
+    int nx = nxvec[n];
+    int n1 = nnod/nx;
+    
+    int nfield = f2-f1+1;
+
+    const IntVec& MLGN = patch[n]->getGlobalNodeNums();
+    for (int p1 = 0;p1 < nx;p1++) {
+      PetscIntVec subdDofs;
+      
+      int min = 0;
+      int i1 = std::max(p1*n1 - olow,min);
+      int i2 = std::min((p1+1)*n1+ohigh,nnod);
+      if ((p1 == nx-1) && (i2 < nnod)) i2 = nnod;
+      
+      for (int i = i1;i < i2;i++) {
+	int globNode = MLGN[i];	
+	int nodedof = madof[globNode-1];
+	int gdof      = meqn[nodedof-1];
+	int nnodedof = patch[n]->getNodalDOFs(i+1);
+	int gbnodedof = (gdof-1)/nnodedof;
+	for (int m = 0;m < nfield;m++) {
+	  PetscInt ieq = gbnodedof*nfield+m;
+	  if (ieq > -1)
+	    subdDofs.push_back(ieq);
+	}
+      }
+    
+      subds.push_back(subdDofs);
+    }
+  }
+
+  return true;
+}
+
+
+bool SAMpatchPara::getSubdomains2D(std::vector<PetscIntVec>& subds, IntVec& nxvec, IntVec& nyvec, 
+				   int overlap, int f1, int f2) const 
+{
+  // Define some parameters
+  const size_t npatch = patch.size();
+
+  if (nxvec.size() != npatch || nyvec.size() != npatch)
+    return false;
+
+  // Overlap
+  int olow  = overlap/2;
+  int ohigh = overlap/2 + overlap%2; 
+
+  // Split the patches into smaller subdomains
+  for (size_t n = 0;n < npatch;n++) {
+    int nnod1, nnod2;
+    ASMs2D* pch2 = dynamic_cast<ASMs2D*>(patch[n]);
+    if (pch2) {
+      nnod1 = pch2->getSurface()->numCoefs_u();
+      nnod2 = pch2->getSurface()->numCoefs_v();
+    }
+    else
+      return false;
+ 	
+    int nx = nxvec[n];
+    int ny = nyvec[n];
+    int n1 = nnod1/nx;
+    int n2 = nnod2/ny;
+    
+    int nfield = f2-f1+1;
+
+    const IntVec& MLGN = patch[n]->getGlobalNodeNums();
+    for (int p2 = 0;p2 < ny;p2++) {
+      int jmin = 0;
+      int j1 = std::max(p2*n2-olow,jmin);
+      int j2 = std::min((p2+1)*n2+ohigh,nnod2);
+      if ((p2 == ny-1) && (j2 < nnod2)) j2 = nnod2;
+
+      for (int p1 = 0;p1 < nx;p1++) {
+	PetscIntVec subdDofs;
+	
+	int imin = 0;
+	int i1 = std::max(p1*n1-olow,imin);
+	int i2 = std::min((p1+1)*n1+ohigh,nnod1);
+	if ((p1 == nx-1) && (i2 < nnod1)) i2 = nnod1;
+	
+	for (int j = j1;j < j2;j++)
+	  for (int i = i1;i < i2;i++) {
+	    int locNode = j*nnod1 + i;
+	    int globNode = MLGN[locNode];
+	    
+	    int nodedof = madof[globNode-1];
+	    int nnodedof = patch[n]->getNodalDOFs(locNode+1);
+
+	    int gdof      = meqn[nodedof-1];
+	    int gbnodedof = (gdof-1)/nnodedof;
+
+	    for (int m = 0;m < nfield;m++) {
+	      PetscInt ieq = gbnodedof*nfield+m;
+	      if (ieq > -1)
+		subdDofs.push_back(ieq);
+	    }
+	  }
+      
+	subds.push_back(subdDofs);
+      }
+    }
+    
+  }
+
+  return true;
+}
+
+
+bool SAMpatchPara::getSubdomains3D(std::vector<PetscIntVec>& subds, IntVec& nxvec, IntVec& nyvec, IntVec& nzvec,
+				   int overlap, int f1, int f2)  const  
+{
+  // Define some parameters
+  const size_t npatch = patch.size();
+
+  if (nxvec.size() != npatch || nyvec.size() != npatch || nzvec.size() != npatch)
+    return false;
+
+  // Overlap
+  int olow  = overlap/2;
+  int ohigh = overlap/2 + overlap%2; 
+
+  // Split the patches into smaller subdomains
+  for (size_t n = 0;n < npatch;n++) {
+    int nnod1, nnod2, nnod3;
+    ASMs3D* pch3 = dynamic_cast<ASMs3D*>(patch[n]);
+    if (pch3) {
+      nnod1 = pch3->getVolume()->numCoefs(0);
+      nnod2 = pch3->getVolume()->numCoefs(1);
+      nnod3 = pch3->getVolume()->numCoefs(2);
+    }
+    else
+      return false;
+	
+    int nx = nxvec[n];
+    int ny = nyvec[n];
+    int nz = nzvec[n];
+    int n1 = nnod1/nx;
+    int n2 = nnod2/ny;
+    int n3 = nnod3/nz;
+    
+    int nfield = f2-f2+1;
+
+    const IntVec& MLGN = patch[n]->getGlobalNodeNums();
+    for (int p3 = 0;p3 < nz;p3++) {
+      int kmin = 0;
+      int k1 = std::max(p3*n3-olow,kmin);
+      int k2 = std::min((p3+1)*n3+ohigh,nnod3);
+      if ((p3 == nz-1) && (k2 < nnod3)) k2 = nnod3;
+
+      for (int p2 = 0;p2 < ny;p2++) {
+	int jmin = 0;
+	int j1 = std::max(p2*n2-olow,jmin);
+	int j2 = std::min((p2+1)*n2+ohigh,nnod2);
+	if ((p2 == ny-1) && (j2 < nnod2)) j2 = nnod2;
+
+	for (int p1 = 0;p1 < nx;p1++) {
+	  PetscIntVec subdDofs;
+
+	  int imin = 0;
+	  int i1 = std::max(p1*n1-olow,imin);
+	  int i2 = std::min((p1+1)*n1+ohigh,nnod1);
+	  if ((p1 == nx-1) && (i2 < nnod1)) i2 = nnod1;
+
+	  for (int k = k1;k < k2;k++)
+	    for (int j = j1;j < j2;j++)
+	      for (int i = i1;i < i2;i++) {
+		int locNode = k*nnod3*nnod2 + j*nnod1 + i;
+		int globNode = MLGN[locNode];
+		
+		int nodedof = madof[globNode-1];
+		int nnodedof = patch[n]->getNodalDOFs(locNode+1);
+
+		int gdof      = meqn[nodedof-1];
+		int gbnodedof = (gdof-1)/nnodedof;
+
+		for (int m = 0;m < nfield;m++) {
+		  PetscInt ieq = gbnodedof*nfield+m;
+		  if (ieq > -1)
+		    subdDofs.push_back(ieq);
 		}
 	      }
 	  

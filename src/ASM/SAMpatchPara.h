@@ -46,6 +46,9 @@ public:
   //! \brief Returns the number of equations (free DOFs) on this processor.
   virtual int getNoEquations() const { return nleq; }
 
+  //! \brief Returns equation numbers
+  virtual bool getEqns(IntVec& eqns, int f1, int f2) const;
+
   //! \brief Computes number of couplings for each local dof
   //! in a distributed matrix.
   //! \param[in] ifirst Global number of first local DOF
@@ -55,6 +58,17 @@ public:
   //! \return \e false if number of couplings is not computed, otherwise \e true
   virtual bool getNoDofCouplings(int ifirst, int ilast,
 				 IntVec& d_nnz, IntVec& o_nnz) const;
+
+  //! \brief Computes number of couplings for each local dof
+  //! in a distributed matrix.
+  //! \param[in] ifirst First equation number
+  //! \param[in] ilast  Last equation number
+  //! \param[out] d_nnz Number of diagonal couplings for each local DOF
+  //! \param[out] o_nnz Number of off-diagonal couplings for each local DOF
+  //! \return \e false if number of couplings is not computed, otherwise \e true
+  virtual bool getNoDofCouplings(int ifirst, int ilast, IntVec ncomps,
+				 std::vector<std::vector<IntVec> >& d_nnz, 
+				 std::vector<std::vector<IntVec> >& o_nnz) const;
 
   //! \brief Initializes the system load vector prior to the element assembly.
   //! \param sysRHS The system right-hand-side load vector to be initialized
@@ -92,6 +106,14 @@ public:
   //! \param[in] nedof Number of degrees of freedom in the element
   //! (used for internal consistency checking, unless zero)
   virtual bool getElmEqns(IntVec& meen, int iel, int nedof = 0) const;
+  //! \brief Finds the matrix of equation numbers for an element.
+  //! \param[out] meen Matrix of element equation numbers
+  //! \param[in] iel Identifier for the element to get the equation numbers for
+  //! \param[in] f1, f2 Field numbers (extract eqn numbers for field f1 to f2
+  //! \param[in] nedof Number of degrees of freedom in the element
+  //! (used for internal consistency checking, unless zero)
+  virtual bool getElmEqns (IntVec& meen, int iel, int f1, int f2, bool globalEq = false, int nedof = 0) const;
+
 
   //! \brief Updates the multi-point constraint array \a TTCC.
   //! \param[in] model All spline patches in the model
@@ -148,6 +170,21 @@ public:
   //! \param[in]  nx, ny, nz Number of paritionings in each direction
   virtual bool getSubdomains(std::vector<PetscIntVec>& locSubds, int overlap = 1,
 			     int nx = 1, int ny = 1, int nz = 1) const;
+
+  //! \brief Split the local dofs corresponding to given fields into a number of unique subdomains
+  //! \param[out] locSubds Global node number for each of the subdomains
+  //! \param[in]  f1, f2 First and last field to extract dofs from
+  //! \param[in]  nx, ny, nz Number of paritionings in each direction
+  virtual bool getLocalSubdomainsBlock(std::vector<PetscIntVec>& locSubds, int f1 = 0, int f2 = 0,
+				  int nx = 1, int ny = 1, int nz = 1) const;
+
+  //! \brief Split the local dofs corresponding to given fields into a number of unique subdomains
+  //! \param[out] subds Global node number for each of the subdomains
+  //! \param[in]  f1, f2 First and last field to extract dofs from
+  //! \param[in]  overlap Overlap between subdomains
+  //! \param[in]  nx, ny, nz Number of paritionings in each direction
+  virtual bool getSubdomainsBlock(std::vector<PetscIntVec>& locSubds, int f1 = 0, int f2 = 0, 
+				  int overlap = 1, int nx = 1, int ny = 1, int nz = 1) const;
 
 protected:
   //! \brief Initializes the multi-point constraint arrays
@@ -215,6 +252,62 @@ private:
   //! \param[out] locSubds Global node number for each of the subdomains
   bool getSubdomains3D(IntVec& nx, IntVec& ny, IntVec& nz, int overlap,
 		       std::vector<PetscIntVec>& locSubds) const;
+
+    //! \brief Split the local dofs into a number of unique subdomains (1D problem)
+  //! \param[in] nx Split each patch in npart smaller subdomains
+  //! \param[in] minNodeId Minimum node number for each patch
+  //! \param[in] maxNodeId Maximum node number for each patch
+  //! \param[in] f1 First field to compute subdomains for
+  //! \param[in] f2 Last field to compute subdomains for
+  //! \param[out] locSubds Global node number for each of the subdomains
+  bool getLocalSubdomains1D(std::vector<PetscIntVec>& locSubds, IntVec& nx, IntVec& minNodeId, 
+			    IntVec& maxNodeId, int f1, int f2) const;
+
+  //! \brief Split the local dofs into a number of unique subdomains (1D problem)
+  //! \param[in] nx, ny Split each patch in npart smaller subdomains
+  //! \param[in] minNodeId Minimum node number for each patch
+  //! \param[in] maxNodeId Maximum node number for each patch
+  //! \param[in] f1 First field to compute subdomains for
+  //! \param[in] f2 Last field to compute subdomains for
+  //! \param[out] locSubds Global node number for each of the subdomains
+  bool getLocalSubdomains2D(std::vector<PetscIntVec>& locSubds, IntVec& nx, IntVec& ny, 
+			    IntVec& minNodeId, IntVec& maxNodeId, int f1, int f2) const;
+
+  //! \brief Split the local dofs into a number of unique subdomains (1D problem)
+  //! \param[in] nx, ny, nz Split each patch in npart smaller subdomains
+  //! \param[in] minNodeId Minimum node number for each patch
+  //! \param[in] maxNodeId Maximum node number for each patch
+  //! \param[in] f1 First field to compute subdomains for
+  //! \param[in] f2 Last field to compute subdomains for
+  //! \param[out] locSubds Global node number for each of the subdomains
+  bool getLocalSubdomains3D(std::vector<PetscIntVec>& locSubds, IntVec& nx, IntVec& ny, IntVec& nz, 
+			    IntVec& minNodeId, IntVec& maxNodeId, int f1, int f2) const;
+
+   //! \brief Split the dofs into a number of overlapping subdomains (1D problem)
+  //! \param[in] nx Split each patch in npart smaller subdomains
+  //! \param[in] overlap Overlap for subdomains
+  //! \param[in] f1 First field to compute subdomains for
+  //! \param[in] f2 Last field to compute subdomains for
+  //! \param[out] locSubds Global node number for each of the subdomains
+  bool getSubdomains1D(std::vector<PetscIntVec>& locSubds, IntVec& nx, int overlap, int f1, int f2) const;
+
+  //! \brief Split the local dofs into a number of unique subdomains (1D problem)
+  //! \param[in] nx, ny Split each patch in npart smaller subdomains
+  //! \param[in] overlap Overlap for subdomains
+  //! \param[in] f1 First field to compute subdomains for
+  //! \param[in] f2 Last field to compute subdomains for
+  //! \param[out] locSubds Global node number for each of the subdomains
+  bool getSubdomains2D(std::vector<PetscIntVec>& locSubds, IntVec& nx, IntVec& ny, 
+		       int overlap, int f1, int f2) const;
+
+  //! \brief Split the local dofs into a number of unique subdomains (1D problem)
+  //! \param[in] nx, ny, nz Split each patch in npart smaller subdomains
+  //! \param[in] overlap Overlap for subdomains
+  //! \param[in] f1 First field to compute subdomains for
+  //! \param[in] f2 Last field to compute subdomains for
+  //! \param[out] locSubds Global node number for each of the subdomains
+  bool getSubdomains3D(std::vector<PetscIntVec>& locSubds, IntVec& nx, IntVec& ny, IntVec& nz, 
+		       int overlap, int f1, int f2) const;
 };
 
 #endif
