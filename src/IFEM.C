@@ -15,23 +15,20 @@
 #include "LinAlgInit.h"
 #include <iostream>
 
+int IFEM::argc;
+char** IFEM::argv;
+SIMoptions IFEM::cmdOptions;
 
-SIMoptions IFEM_cmdOptions;
-int        IFEM_argc;
-char**     IFEM_argv;
 
-
-int InitIFEM (int argc, char** argv)
+int IFEM::Init(int argc_, char** argv_)
 {
-  IFEM_argc = argc;
-  IFEM_argv = argv;
-  int  myId = LinAlgInit::Init(argc,argv).myPid;
+  argc = argc_;
+  argv = argv_;
+  LinAlgInit& linalg = LinAlgInit::Init(argc,argv);
+  applyCommandLineOptions(cmdOptions);
 
-  for (int i=1; i < argc; ++i)
-    IFEM_cmdOptions.parseOldOptions(argc, argv, i);
-
-  if (myId != 0)
-    return myId;
+  if (linalg.myPid != 0 || argc < 2)
+    return linalg.myPid;
 
   std::cout <<"\n ===== IFEM v"<< IFEM_VERSION_MAJOR <<"."
                                << IFEM_VERSION_MINOR <<"."
@@ -86,8 +83,13 @@ int InitIFEM (int argc, char** argv)
 #endif
 
   std::cout << std::endl;
+
   return 0;
 }
 
-//TODO (kmo): Remove this and update all main programs accordingly...
-bool InitIFEM(int argc, char** argv, int) { return InitIFEM(argc,argv); }
+
+void IFEM::applyCommandLineOptions(SIMoptions& opt)
+{
+  for (int i=1; i < argc; ++i)
+    opt.parseOldOptions(argc, argv, i);
+}

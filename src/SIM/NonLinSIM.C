@@ -52,10 +52,9 @@ NonLinSIM::~NonLinSIM ()
 
 bool NonLinSIM::read(const char* fileName)
 {
-  model.opt = IFEM_cmdOptions;
+  model.opt = IFEM::getOptions();
   bool result = SIMinput::read(fileName);
-  for (int i=1; i < IFEM_argc; ++i)
-    model.opt.parseOldOptions(IFEM_argc, IFEM_argv, i);
+  IFEM::applyCommandLineOptions(model.opt);
 
   return result;
 }
