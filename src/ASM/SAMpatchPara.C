@@ -454,7 +454,6 @@ bool SAMpatchPara::getElmEqns (IntVec& meen, int iel, int f1, int f2, bool globa
   int nf      = ndof/nnod;
   int nbf     = f2-f1+1; 
   int nebdof  = nenod*nbf; 
-  int stride  = (globalEq) ? nf : nbf;
 
   // Fields must be correct
   if (f2 < f1 || f1 < 0 || f2 >= nf)
@@ -496,7 +495,7 @@ bool SAMpatchPara::expandSolution (const SystemVector& solVec,
   PETScVector* svec = dynamic_cast<PETScVector*>(sv);
   if (!svec) return false;
 
-  VecCreateSeqWithArray(PETSC_COMM_SELF,dofVec.size(),&dofVec[0],&solution);
+  VecCreateSeqWithArray(PETSC_COMM_SELF,1,dofVec.size(),&dofVec[0],&solution);
   VecScatterCreate(svec->getVector(),iglob,solution,iloc,&ctx);
   VecScatterBegin(ctx,svec->getVector(),solution,INSERT_VALUES,SCATTER_FORWARD);
   VecScatterEnd(ctx,svec->getVector(),solution,INSERT_VALUES,SCATTER_FORWARD);
