@@ -1,3 +1,4 @@
+// $Id$
 //==============================================================================
 //!
 //! \file IFEM.h
@@ -19,14 +20,18 @@
 
 #include "SIMoptions.h"
 
-//! \brief Initialize IFEM
-//! \param argc The number of command line arguments
-//! \param argv The command line arguments
-//! \param myId The MPI process ID
-bool InitIFEM(int argc, char** argv, int myId);
 
-extern SIMoptions IFEM_cmdOptions; //!< Common command line options
-extern int IFEM_argc;
-extern char** IFEM_argv;
+//! \brief Initializes the IFEM library.
+//! \param argc The number of command-line arguments
+//! \param argv The command-line arguments
+//! \return The MPI process ID
+int InitIFEM(int argc, char** argv);
+
+extern SIMoptions IFEM_cmdOptions; //!< General input options
+extern int        IFEM_argc;       //!< The number of command-line arguments
+extern char**     IFEM_argv;       //!< The command-line arguments
+
+//! TODO (kmo): Remove this and update all main programs accordingly..
+bool InitIFEM(int argc, char** argv, int);
 
 #endif

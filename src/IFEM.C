@@ -1,3 +1,4 @@
+// $Id$
 //==============================================================================
 //!
 //! \file IFEM.C
@@ -12,75 +13,81 @@
 
 #include "IFEM.h"
 #include "LinAlgInit.h"
-
 #include <iostream>
 
-SIMoptions IFEM_cmdOptions;
-int IFEM_argc;
-char** IFEM_argv;
 
-bool InitIFEM(int argc, char** argv, int myId)
+SIMoptions IFEM_cmdOptions;
+int        IFEM_argc;
+char**     IFEM_argv;
+
+
+int InitIFEM (int argc, char** argv)
 {
   IFEM_argc = argc;
   IFEM_argv = argv;
-  LinAlgInit::Init(argc,argv);
+  int  myId = LinAlgInit::Init(argc,argv).myPid;
+
   for (int i=1; i < argc; ++i)
     IFEM_cmdOptions.parseOldOptions(argc, argv, i);
 
   if (myId != 0)
-    return true;
+    return myId;
 
-  std::cout << "\n===== IFEM v" << IFEM_VERSION_MAJOR << "." 
-                                << IFEM_VERSION_MINOR << "." 
-                                << IFEM_VERSION_PATCH << " initialized =====" << std::endl;
+  std::cout <<"\n ===== IFEM v"<< IFEM_VERSION_MAJOR <<"."
+                               << IFEM_VERSION_MINOR <<"."
+                               << IFEM_VERSION_PATCH <<" initialized =====";
 
-  std::cout << "       HDF5 support: " <<
+  std::cout <<"\n       HDF5 support: "<<
 #if HAS_HDF5
-    "enabled\n";
+    "enabled";
 #else
-    "disabled\n";
+    "disabled";
 #endif
 
-  std::cout << "  LR spline support: " <<
+  std::cout <<"\n  LR spline support: "<<
 #if HAS_LRSPLINE
-    "enabled\n";
+    "enabled";
 #else
-    "disabled\n";
+    "disabled";
 #endif
 
-  std::cout << "     OpenMP support: " <<
+  std::cout <<"\n     OpenMP support: "<<
 #if USE_OPENMP
-    "enabled\n";
+    "enabled";
 #else
-    "disabled\n";
+    "disabled";
 #endif
 
-  std::cout << "      PETSc support: " <<
+  std::cout <<"\n      PETSc support: "<<
 #if PARALLEL_PETSC
-    "enabled (MPI)\n";
+    "enabled (MPI)";
 #elif HAS_PETSC
-    "enabled\n";
+    "enabled";
 #else
-    "disabled\n";
+    "disabled";
 #endif
 
-  std::cout << "    SuperLU support: " << 
+  std::cout <<"\n    SuperLU support: "<<
 #if HAS_SUPERLU
-    "enabled (serial)\n";
+    "enabled (serial)";
 #elif HAS_SUPERLU_MT
-    "enabled (multi-threaded)\n";
+    "enabled (multi-threaded)";
 #else
-    "disabled\n";
+    "disabled";
 #endif
 
-  std::cout << "        VTF support: " << 
+  std::cout <<"\n        VTF support: "<<
 #if HAS_VTFAPI == 2
-    "enabled (v2)\n";
+    "enabled (v2)";
 #elif HAS_VTFAPI == 1
-    "enabled (v1)\n";
+    "enabled (v1)";
 #else
-    "disabled\n";
+    "disabled";
 #endif
 
-  return true;
+  std::cout << std::endl;
+  return 0;
 }
+
+//TODO (kmo): Remove this and update all main programs accordingly...
+bool InitIFEM(int argc, char** argv, int) { return InitIFEM(argc,argv); }
