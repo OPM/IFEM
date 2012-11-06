@@ -14,6 +14,11 @@
 #include "LinSolParams.h"
 #include "Utilities.h"
 #include <fstream>
+#include <string>
+#include <iostream>
+#include <sstream>
+#include <utility>
+#include <iterator>
 #ifdef HAS_PETSC
 #include "petscversion.h"
 #include "petscpcmg.h"
@@ -34,6 +39,11 @@ void LinSolParams::setDefault ()
   npart[0] = npart[1] = npart[2] = 0;
   nullspc   = NONE;
   asmlu     = false;
+  nblock    = 1;
+  ncomps.resize(2); 
+  ncomps[0] = 2;
+  ncomps[1] = 1;
+    
 
   atol      = 1.0e-6;
   rtol      = 1.0e-6;
@@ -58,6 +68,8 @@ void LinSolParams::copy (const LinSolParams& spar)
   npart[2]  = spar.npart[2];               
   nullspc   = spar.nullspc;
   asmlu     = spar.asmlu;
+  nblock    = spar.nblock;
+  ncomps    = spar.ncomps;
 
   atol   = spar.atol;
   rtol   = spar.rtol;
@@ -151,6 +163,14 @@ bool LinSolParams::read (std::istream& is, int nparam)
       npart[2] = atoi(++c);
     }
 
+    else if (!strncasecmp(cline,"ncomponents",11)) {
+      char* c = strchr(cline,'=');
+      std::istringstream this_line(c);
+      std::istream_iterator<int> begin(this_line), end;
+      ncomps.assign(begin, end);
+      nblock = ncomps.size();
+    }
+
     else if (!strncasecmp(cline,"nullspace",6)) {
       char* c = strchr(cline,'=');
       if (!strncasecmp(c,"CONSTANT",8))
@@ -206,6 +226,12 @@ bool LinSolParams::read (const TiXmlElement* child)
     npart[1] = atoi(value);
   else if ((value = utl::getValue(child,"nz")))
     npart[2] = atoi(value);
+  else if ((value = utl::getValue(child,"ncomponents"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<int> begin(this_line), end;
+    ncomps.assign(begin, end);
+    nblock = ncomps.size();
+  }
   else if ((value = utl::getValue(child,"nullspace"))) {
     if (!strcasecmp(value,"constant"))
       nullspc = CONSTANT;
@@ -268,6 +294,8 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
   }
 
   PCFactorSetMatSolverPackage(pc,package.c_str());
+  // RUNAR
+  //PCFactorSetShiftType(pc,MAT_SHIFT_NONZERO);
   PCSetFromOptions(pc);
   PCSetUp(pc);
 

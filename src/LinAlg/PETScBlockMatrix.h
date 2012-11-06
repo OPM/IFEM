@@ -16,6 +16,9 @@
 #define _PETSC_BLOCK_MATRIX_H
 
 #include "PETScMatrix.h"
+#ifndef HAS_PETSC
+#define IS int // to avoid compilation failures
+#endif
 
 typedef std::vector<int>                        IntVec;            //!< Vector of integers
 typedef std::vector<std::vector<PetscIntVec> >  PetscIntVecVecVec; //!< Vector of vector of vector of PetscInt
@@ -154,7 +157,7 @@ public:
   virtual ~PETScBlockMatrix();
 #else
   //! \brief Constructor.
-  PETScBlockMatrix(const LinSolParams&) {}
+  PETScBlockMatrix(const LinSolParams& spar) : PETScMatrix(spar) {}
 #endif
 
   //! \brief Returns the matrix type.

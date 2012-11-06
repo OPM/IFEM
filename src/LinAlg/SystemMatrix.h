@@ -28,7 +28,7 @@ class SystemVector
 {
 public:
   //! \brief The available system vector formats.
-  enum Type { STD = 0, PETSC = 1 };
+  enum Type { STD = 0, PETSC = 1, PETSCBLOCK = 2 };
 
   //! \brief Static method creating a vector of the given type.
   static SystemVector* create(Type vectorType = STD);
@@ -75,6 +75,11 @@ public:
 
   //! \brief Initializes the vector assuming it is properly dimensioned.
   virtual void init(Real value = Real(0)) = 0;
+
+  //! \brief Initializes the element assembly process.
+  //! \details Must be called once before the element assembly loop.
+  //! \param[in] sam Auxiliary data describing the FE model topology, etc.
+  virtual void initAssembly(const SAM& sam) {};
 
   //! \brief Copies entries from input vector \b x into \a *this.
   SystemVector& copy(const SystemVector& x);
@@ -196,7 +201,7 @@ class SystemMatrix
 {
 public:
   //! \brief The available system matrix formats.
-  enum Type { DENSE = 0, SPR = 1, SPARSE = 2, SAMG = 3, PETSC = 4 };
+  enum Type { DENSE = 0, SPR = 1, SPARSE = 2, SAMG = 3, PETSC = 4, PETSCBLOCK = 5 };
 
   //! \brief Static method creating a matrix of the given type.
   static SystemMatrix* create(Type matrixType, int num_thread_SLU = 1);

@@ -118,6 +118,12 @@ public:
   //! \brief Get local partitioning
   virtual int getLocalPartitioning(size_t dir = 0) const { return npart[dir]; }
 
+  //! \brief Number of blocks in matrix system
+  virtual int getNoBlocks() const { return nblock; }
+
+  //! \brief Number of components in a matrix block
+  virtual const std::vector<int>& getComponents() const { return ncomps; }
+
   //! \brief Get number of overlaps
   virtual NullSpace getNullSpace() const { return nullspc; }
 
@@ -139,6 +145,11 @@ private:
   int       npart[3];      // Number of local subdomains for each patch
   NullSpace nullspc;       // Null-space for matrix
   bool      asmlu;         // If LU-factorization should be used on subdomains
+  int       nblock;        // Number of block
+  std::vector<int> ncomps; // Components for each fields
+
+  friend class PETScMatrix;
+  friend class PETScBlockMatrix;
 #endif // HAS_PETSC
 };
 

@@ -57,13 +57,15 @@ public:
   virtual int getNoEquations() const { return neq; }
   //! \brief Returns the Matrix of Accumulated DOFs.
   const int* getMADOF() const { return madof; }
+  //! \brief Returns the Vector of global equation numbers
+  const int* getMEQN() const { return meqn; }
 
   //! \brief Returns max number of DOF couplings in the model.
   int getMaxDofCouplings() const;
 
   //! \brief Computes number of couplings for each free DOF in the model.
   //! \param[out] nnz Number of couplings (non-zeroes) for each DOF
-  bool getNoDofCouplings(IntVec& nnz) const;
+  virtual bool getNoDofCouplings(IntVec& nnz) const;
   //! \brief Interface to computation of DOF couplings for distributed matrices.
   virtual bool getNoDofCouplings(int, int, IntVec&, IntVec&) const
   { return false; }
@@ -301,12 +303,13 @@ protected:
   int*  minex;  //!< Matrix of internal to external node numbers
   int*  meqn;   //!< Matrix of equation numbers
 
-  std::vector<char> nodeType; //!< Nodal DOF classification
+  std::vector<char>   nodeType;     //!< Nodal DOF classification
 
   friend class DenseMatrix;
   friend class SPRMatrix;
   friend class SparseMatrix;
   friend class PETScMatrix;
+  friend class PETScBlockMatrix;
 };
 
 #endif

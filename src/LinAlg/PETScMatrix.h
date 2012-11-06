@@ -20,9 +20,13 @@
 #include "petscmat.h"
 #include "petscksp.h"
 #include "petscvec.h"
+#else
+typedef int PetscInt; // to avoid compilation failures
 #endif
 
 class LinSolParams;
+
+typedef std::vector<PetscInt> PetscIntVec; //!< General integer vector
 
 /*!
   \brief Class for representing the system vector in PETSc format.
@@ -73,12 +77,12 @@ public:
   //! \brief Begins communication step needed in parallel vector assembly.
   //! \details Must be called together with endAssembly after vector assembly
   //! is completed on each processor and before the linear system is solved.
-  bool beginAssembly();
+  virtual bool beginAssembly();
 
   //! \brief Ends communication step needed in parallel vector assembly.
   //! \details Must be called together with beginAssembly after vector assembly
   //! is completed on each processor and before the linear system is solved.
-  bool endAssembly();
+  virtual bool endAssembly();
 
   //! \brief Multiplication with a scalar.
   virtual void mult(Real alpha);
@@ -93,11 +97,11 @@ public:
   virtual Real Linfnorm() const;
 
   //! \brief Returns the PETSc vector (for assignment).
-  Vec& getVector() { return x; }
+  virtual Vec& getVector() { return x; }
   //! \brief Returns the PETSc vector (for read access).
-  const Vec& getVector() const { return x; }
+  virtual const Vec& getVector() const { return x; }
 
-private:
+protected:
   Vec x; //!< The actual PETSc vector
 
 #else // dummy implementation when PETSc is not included
@@ -159,11 +163,11 @@ public:
   //! \brief Begins communication step needed in parallel matrix assembly.
   //! \details Must be called together with endAssembly after matrix assembly
   //! is completed on each processor and before the linear system is solved.
-  bool beginAssembly();
+  virtual bool beginAssembly();
   //! \brief Ends communication step needed in parallel matrix assembly.
   //! \details Must be called together with beginAssembly after matrix assembly
   //! is completed on each processor and before the linear system is solved.
-  bool endAssembly();
+  virtual bool endAssembly();
 
   //! \brief Adds an element matrix into the associated system matrix.
   //! \param[in] eM  The element matrix
@@ -216,20 +220,18 @@ public:
   //! \param[in] nev The number of eigenvalues and eigenvectors to compute
   //! \param[in] shift Eigenvalue shift
   //! \param[in] iop Option telling whether to factorize matrix \a A or \b B.
-  bool solveEig(PETScMatrix& B, RealArray& eigVal, Matrix& eigVec, int nev,
-		Real shift = Real(0), int iop = 1);
+  virtual bool solveEig(PETScMatrix& B, RealArray& eigVal, Matrix& eigVec, 
+			int nev, Real shift = Real(0), int iop = 1);
 
   //! \brief Returns the L-infinity norm of the matrix.
   virtual Real Linfnorm() const;
 
   //! \brief Returns the PETSc matrix (for assignment).
-  Mat& getMatrix() { return A; }
+  virtual Mat& getMatrix() { return A; }
   //! \brief Returns the PETSc matrix (for read access).
-  const Mat& getMatrix() const { return A; }
+  virtual const Mat& getMatrix() const { return A; }
 
-private:
-  typedef std::vector<PetscInt> PetscIntVec; //!< General integer vector
-
+protected:
   //! \brief Constructs index set needed for element-by-element preconditioner.
   bool makeElementIS(const SAM& sam);
 
@@ -240,9 +242,9 @@ private:
   KSP                 ksp;          //!< Linear equation solver
   MatNullSpace        nsp;          //!< Null-space of linear operator
   const LinSolParams& solParams;    //!< Linear solver parameters
+  bool                setParams;    //!< If linear solver parameters are set
   IS*                 elmIS;        //!< Element index sets
   PetscInt            ISsize;       //!< Number of index sets/elements
-  bool                setParams;    //!< If the linear solver parameters should be set
   std::vector<PetscIntVec> locSubdDofs;  //!< Degrees of freedom for unique subdomains
   std::vector<PetscIntVec> subdDofs;     //!< Degrees of freedom for subdomains
 
