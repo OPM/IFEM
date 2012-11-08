@@ -24,8 +24,6 @@
 #include "GoTools/trivariate/SplineVolume.h"
 
 #ifdef HAS_PETSC
-// RUNAR
-//#include "PETScMatrix.h"
 #include "PETScBlockMatrix.h"
 #include "petscversion.h"
 #if PETSC_VERSION_MAJOR == 3 && PETSC_VERSION_MINOR >= 2
@@ -126,9 +124,10 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
 	  for (k = 0; k < meen.size(); k++)
 	    if (meen[k] > 0) {
 	      o_ldof = meen[k]-1;
-	      o_gdof = meqn[o_ldof]-1;
-	      if (o_gdof >= ifirst && o_gdof < ilast)
-		o_dofc[d_ldof].insert(o_ldof);
+	      // RUNAR: This gives a small overestimation for some nodes
+	      //o_gdof = meqn[o_ldof]-1;
+	      //if (o_gdof >= ifirst && o_gdof < ilast)
+	      o_dofc[d_ldof].insert(o_ldof);
 	    }
 	}
       }
@@ -153,7 +152,7 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
 
   Vec x;
   VecCreate(PETSC_COMM_WORLD,&x);
-  VecSetSizes(x,locsize,PETSC_DECIDE);
+  VecSetSizes(x,locsize,PETSC_DETERMINE);
   VecSetFromOptions(x);
   VecSet(x,0.0);
   VecSetValues(x,ndof,&l2g[0],&nnz[0],ADD_VALUES);
@@ -173,6 +172,7 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
   this->SAM::getNoDofCouplings(d_nnz);
   o_nnz = IntVec(ndof,0);
 #endif
+
   return true;
 }
 
@@ -204,7 +204,7 @@ bool SAMpatchPara::getNoDofCouplings(int ifirst, int ilast, IntVec ncomps,
     }
   }
 
-#ifdef PARALLEL_CODE
+#ifdef PARALLEL_PETSC
   o_dofc.resize(nblock); 
   for (size_t i = 0;i < nblock;i++) {
     o_dofc[i].resize(nblock);
@@ -251,11 +251,11 @@ bool SAMpatchPara::getNoDofCouplings(int ifirst, int ilast, IntVec ncomps,
 	      for (size_t l = 0; l < meenJ.size(); l++)
 		if (meenJ[l] > 0) {
 		  int o_ldof = meenJ[l]-1;
-		  int o_gdof = meqn[o_ldof]-1;
-
-		  int o_lbdof = (o_ldof/nf)*ncomps[j] + (o_ldof%nf)-jf1;		  
-		  if (o_gdof >= ifirst && o_gdof < ilast)
-		    o_dofc[i][j][d_lbdof].insert(o_lbdof);
+		  int o_lbdof = (o_ldof/nf)*ncomps[j] + (o_ldof%nf)-jf1;
+		  // RUNAR: This gives a small overestimation for some nodes
+		  // int o_gdof = meqn[o_ldof]-1;
+ 		  // if (o_gdof >= ifirst && o_gdof < ilast)
+		  o_dofc[i][j][d_lbdof].insert(o_lbdof);
 	    }
 	  }
 	}
@@ -286,7 +286,7 @@ bool SAMpatchPara::getNoDofCouplings(int ifirst, int ilast, IntVec ncomps,
     if1 += ncomps[i];
   }
 
-#ifdef PARALLEL_CODE
+#ifdef PARALLEL_PETSC
   // Generate nnz for off-diagonal block);
   o_nnz.resize(nblock);
   if1 = 0;
@@ -295,14 +295,14 @@ bool SAMpatchPara::getNoDofCouplings(int ifirst, int ilast, IntVec ncomps,
     for (size_t j = 0;j < nblock;j++) {
       o_nnz[i][j].resize(nlocnode*ncomps[i]);
     
-      RealArray nnz(nnod*comps[i]);
+      RealArray nnz(nnod*ncomps[i]);
       std::vector<PetscInt> l2g(nnod*ncomps[i]);
 
-      for (size_t k = 0; k < nnod; k++) {
+      for (int k = 0; k < nnod; k++) {
 	size_t bdof = k*ncomps[i];
-        size_t dof  = k*nf + f1;
-        for (size_t l = 0;l < ncomps[i];l++, bdof++, dof++) {
-          size_t d_gdof = meqn[dof]-1;
+        size_t dof  = k*nf + if1;
+        for (int l = 0;l < ncomps[i];l++, bdof++, dof++) {
+          int d_gdof = meqn[dof]-1;
           if (d_gdof >= ifirst && d_gdof < ilast) { 
             nnz[bdof] = d_dofc[i][j][bdof].size();
 	    l2g[bdof] = (d_gdof/nf)*ncomps[i] + l; 
@@ -315,10 +315,10 @@ bool SAMpatchPara::getNoDofCouplings(int ifirst, int ilast, IntVec ncomps,
 
       Vec x;
       VecCreate(PETSC_COMM_WORLD,&x);
-      VecSetSizes(x,locsize,PETSC_DECIDE);
+      VecSetSizes(x,locsize,PETSC_DETERMINE);
       VecSetFromOptions(x);
       VecSet(x,0.0);
-      VecSetValues(x,nldof,&l2g[0],&(nnz[i][j][0]),ADD_VALUES);
+      VecSetValues(x,nldof,&l2g[0],&(nnz[0]),ADD_VALUES);
       VecAssemblyBegin(x);
       VecAssemblyEnd(x);
       
@@ -326,7 +326,7 @@ bool SAMpatchPara::getNoDofCouplings(int ifirst, int ilast, IntVec ncomps,
       VecGetArray(x,&vec);
       
       o_nnz[i][j].resize(locsize);
-      for (k = 0; k < locsize; k++)
+      for (size_t k = 0; k < locsize; k++)
 	o_nnz[i][j][k] = ceil(vec[k]);
       
       VecRestoreArray(x,&vec);
@@ -379,19 +379,15 @@ bool SAMpatchPara::assembleSystem (SystemVector& sysRHS,
     l2g[i] = meqn[l2g[i]]-1;
   }
 
-  // RUNAR
   PETScVector* pvec = dynamic_cast<PETScVector*>(&sysRHS);
-  //PETScBlockVector* pvec = dynamic_cast<PETScBlockVector*>(&sysRHS);
   if (!pvec) return false;
 
   std::vector<PetscInt> L2g(l2g.size());
   for (i = 0; i < l2g.size(); i++)
     L2g[i] = l2g[i];
 
-  // RUNAR
   // Add contributions to SV (righthand side)
   VecSetValues(pvec->getVector(),eSv.size(),&L2g[0],&eSv[0],ADD_VALUES);
-  //VecSetValues(pvec->getVector(0),eSv.size(),&L2g[0],&eSv[0],ADD_VALUES);
 
   // Add contributions to reaction forces
   if (reactionForces)
@@ -430,6 +426,7 @@ bool SAMpatchPara::getElmEqns (IntVec& meen, int iel, int nedof) const
       meen.insert(meen.end(),madof[-node]-madof[-node-1],0);
   }
   if ((int)meen.size() == nedof || oldof < 1) return true;
+
 
   std::cerr <<"SAMpatchPara::getElmEqns: Invalid element matrix dimension "
 	    << nedof <<" (should have been "<< meen.size() <<")"<< std::endl;
@@ -504,11 +501,7 @@ bool SAMpatchPara::expandSolution (const SystemVector& solVec,
 
   return true;
 #else
-  // RUNAR
   return this->expandVector(solVec.getRef(),dofVec,scaleSD);
-  //SystemVector* sv  = const_cast<SystemVector*>(&solVec);
-  //PETScBlockVector* sb = dynamic_cast<PETScBlockVector*>(sv);  
-  //return this->expandVector(sb->getRef(0),dofVec,scaleSD);
 #endif
 }
 
@@ -713,45 +706,44 @@ bool SAMpatchPara::initSystemEquations ()
 {
   int i, j;
 
+  const int nndof = madof[1]-madof[0];
+
   // Initialize matrix-of-equation-numbers
   meqn = new int[ndof];
   if (!l2gn.empty())
   {
-    int min = l2gn.front();
-    int max = min;
+    ieqmin = l2gn.front();
+    ieqmax = ieqmin;
 
     for (i = 1; i < nnod; i++)
       if (madof[i] < madof[i+1])
-	if (l2gn[i] < min)
-	  min = l2gn[i];
-	else if (max < l2gn[i])
-	  max = l2gn[i];
+	if (l2gn[i] < ieqmin)
+	  ieqmin = l2gn[i];
+	else if (ieqmax < l2gn[i])
+	  ieqmax = l2gn[i];
 
 #ifdef PARALLEL_PETSC
-    int myRank, nProc;
+    int myRank;
     MPI_Status status;
     MPI_Comm_rank(PETSC_COMM_WORLD,&myRank);
-    MPI_Comm_size(PETSC_COMM_WORLD,&nProc);
     if (myRank < nProc-1)
-      MPI_Send(&max,1,MPI_INT,myRank+1,101,PETSC_COMM_WORLD);
+      MPI_Send(&ieqmax,1,MPI_INT,myRank+1,101,PETSC_COMM_WORLD);
     if (myRank > 0) {
-      MPI_Recv(&min,1,MPI_INT,myRank-1,101,PETSC_COMM_WORLD,&status);
-      min++;
+      MPI_Recv(&ieqmin,1,MPI_INT,myRank-1,101,PETSC_COMM_WORLD,&status);
+      ieqmin++;
     }
 
     // Find number of global nodes
-    MPI_Allreduce(&max,&nnodGlob,1,MPI_INT,MPI_MAX,PETSC_COMM_WORLD);
+    MPI_Allreduce(&ieqmax,&nnodGlob,1,MPI_INT,MPI_MAX,PETSC_COMM_WORLD);
 
     // Generate list of ghost nodes
-    int m = 1;
     for (size_t k = 0; k < l2gn.size(); k++)
       if (madof[k] < madof[k+1])
-	if (l2gn[k] < min) ghostNodes.push_back(m++);
+	if (l2gn[k] < ieqmin) ghostNodes.push_back(k+1);
 #endif
 
     // TODO: Fix this for mixed methods (varying DOFs per node)
-    int nndof = madof[1]-madof[0];
-    nleq = (max-min+1)*nndof;
+    nleq = (ieqmax-ieqmin+1)*nndof;
     int l = 0;
     for (i = 0; i < nnod; i++)
       if (madof[i] < madof[i+1]) {
@@ -765,6 +757,10 @@ bool SAMpatchPara::initSystemEquations ()
     for (i = 0; i < ndof; i++)
       meqn[i] = i+1;
   }
+
+  // Convert from node numbers to equation numbers
+  ieqmin = (ieqmin-1)*nndof + 1;
+  ieqmax *= nndof;
 
 #ifdef PARALLEL_PETSC
   // Generate 0-based local-to-global dof mapping

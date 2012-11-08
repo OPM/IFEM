@@ -46,6 +46,13 @@ public:
   //! \brief Returns the number of equations (free DOFs) on this processor.
   virtual int getNoEquations() const { return nleq; }
 
+  //! \brief Returns min global equation number for this process.
+  virtual int getMinEqNumber() const { return ieqmin; }
+
+  //! \brief Returns max global equation number for this process.
+  virtual int getMaxEqNumber() const { return ieqmax; }
+  
+
   //! \brief Returns equation numbers
   virtual bool getEqns(IntVec& eqns, int f1, int f2) const;
 
@@ -204,6 +211,8 @@ private:
   int    nnodGlob;   //!< Number of global nodes;
   IntVec ghostNodes; //!< Indices for the ghost nodes
   IntVec l2gn;       //!< Local-to-global node numbers for this processor
+  int    ieqmin;     //!< Minium equation number
+  int    ieqmax;     //!< Maximun equation number
 #ifdef PARALLEL_PETSC
   IS     iglob;      //!< Index set for global numbering
   IS     iloc;       //!< Index set for local numbering
