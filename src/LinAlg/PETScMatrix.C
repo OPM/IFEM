@@ -43,7 +43,7 @@ PETScVector::PETScVector()
 PETScVector::PETScVector(size_t n)
 {
   VecCreate(PETSC_COMM_WORLD,&x);
-  VecSetSizes(x,n,PETSC_DECIDE);
+  VecSetSizes(x,n,PETSC_DETERMINE);
   VecSetFromOptions(x);
   LinAlgInit::increfs();
 }
@@ -54,7 +54,7 @@ PETScVector::PETScVector(const Real* values, size_t n)
   PetscScalar *x_array;
 
   VecCreate(PETSC_COMM_WORLD,&x);
-  VecSetSizes(x,n,PETSC_DECIDE);
+  VecSetSizes(x,n,PETSC_DETERMINE);
   VecSetFromOptions(x);
   VecGetArray(x,&x_array);
   *x_array = *values;
@@ -90,7 +90,7 @@ size_t PETScVector::dim() const
 
 void PETScVector::redim(size_t n)
 {
-  VecSetSizes(x,n,PETSC_DECIDE);
+  VecSetSizes(x,n,PETSC_DETERMINE);
 }
 
 
@@ -456,16 +456,20 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
   const PetscInt neq = sam.getNoEquations();
 
   // Set correct number of rows and columns for matrix.
-  MatSetSizes(A,neq,neq,PETSC_DECIDE,PETSC_DECIDE);
+  MatSetSizes(A,neq,neq,PETSC_DETERMINE,PETSC_DETERMINE);
   MPI_Barrier(PETSC_COMM_WORLD);
   MatSetFromOptions(A);
-
+  
   // Allocation of sparsity pattern
 #ifdef PARALLEL_PETSC
   PetscInt ifirst, ilast;
   std::vector<int> d_nnz, o_nnz;
 
-  MatGetOwnershipRange(A,&ifirst,&ilast);
+  // Determine rows owned by this process
+  ifirst = sampch->getMinEqNumber();
+  ifirst--;
+  ilast  = sampch->getMaxEqNumber();
+
   if (sam.getNoDofCouplings(ifirst,ilast,d_nnz,o_nnz))
   {
     size_t i;
@@ -724,7 +728,7 @@ bool PETScMatrix::solveEig (PETScMatrix& B, RealArray& val,
   if (m != n) return false;
 
   VecCreate(PETSC_COMM_WORLD,&xr);
-  VecSetSizes(xr,n,PETSC_DECIDE);
+  VecSetSizes(xr,n,PETSC_DETERMINE);
   VecSetFromOptions(xr);
   VecDuplicate(xr,&xi);
 
