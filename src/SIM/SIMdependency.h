@@ -32,18 +32,18 @@ public:
   //! \brief Spline patch container
   typedef std::vector<ASMbase*> PatchVec;
 
-  //! \brief Initial condition container
-  struct ICInfo {
-    ICInfo()
-    {
-      sim_level = file_level = 0;
-    }
-
-    int sim_level; //!< The time level for the field in the SIM class
+  //! \brief Struct holding information about an initial condition.
+  struct ICInfo
+  {
+    int sim_level;  //!< The time level for the field in the SIM class
     int file_level; //!< The time level for the field in the file
-    std::string sim_field; //!< The name of the field in the SIM class
+    std::string sim_field;  //!< The name of the field in the SIM class
     std::string file_field; //!< The name of the field in the file
+    //! \brief Default constructor.
+    ICInfo() : sim_level(0), file_level(0) {}
   };
+
+  //! \brief Initial condition container
   typedef std::map< std::string,std::vector<ICInfo> > InitialCondMap;
 
 private:
@@ -68,8 +68,6 @@ protected:
   //! \brief The constructor is protected to allow sub-class instances only.
   SIMdependency() {}
 
-  InitialCondMap myICs; //!< Initial conditions
-
 public:
   //! \brief Empty destructor.
   virtual ~SIMdependency() {}
@@ -92,23 +90,24 @@ public:
 
   //! \brief Returns the nodal vector of named field in this SIM.
   virtual const utl::vector<double>* getField(const std::string& name) const;
-
   //! \brief Returns the nodal vector of named field in this SIM.
   virtual utl::vector<double>* getField(const std::string& name);
 
-  //! \brief Returns a dependency by name
-  DepVector::const_iterator getDependency(const std::string& name);
+  //! \brief Returns an iterator pointing to a named dependency.
+  DepVector::const_iterator getDependency(const std::string& name) const;
+  //! \brief Return the end iterator of the dependency container.
+  DepVector::const_iterator depEnd() const { return depFields.end(); }
 
-  DepVector::const_iterator depEnd() { return depFields.end(); }
-
+  //! \brief Returns a const reference to the initial condition container.
   const InitialCondMap& getICs() const { return myICs; }
 
+  //! \brief Returns the number of spatial dimensions in the model.
   virtual size_t getNoSpaceDim() const = 0;
+
 protected:
   //! \brief Registers a named field with associated nodal vector in this SIM.
   void registerField(const std::string& name, const utl::vector<double>& vec);
 
-protected:
   //! \brief Extracts local solution vector(s) for all dependent fields.
   //! \param problem Object with problem-specific data and methods
   //! \param[in] model Patch geometry of this SIM object
@@ -118,6 +117,9 @@ protected:
 private:
   FieldMap  myFields;  //!< The named fields of this SIM object
   DepVector depFields; //!< Other fields this SIM objecy depends on
+
+protected:
+  InitialCondMap myICs; //!< The initial conditions
 };
 
 #endif
