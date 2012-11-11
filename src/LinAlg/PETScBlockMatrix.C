@@ -465,10 +465,6 @@ void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
   int nz = solParams.getLocalPartitioning(2);
   int overlap = solParams.getOverlap();
 
-  // if (nx+ny+nz > 0) {
-  //   sampch->getLocalSubdomains(locSubdDofs,nx,ny,nz);
-  //   sampch->getSubdomains(subdDofs,overlap,nx,ny,nz);
-  // }
   if (nx+ny+nz > 0) {
     locSubdDofsBlock.resize(nblocks);
     subdDofsBlock.resize(nblocks);
@@ -480,20 +476,6 @@ void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
       sampch->getSubdomainsBlock(subdDofsBlock[k],f1,f2,overlap,nx,ny,nz);
       f1 = f2+1;
     }
-  }
-
-  for (size_t i = 0;i < locSubdDofsBlock[1].size();i++) {
-    int min = 100000;
-    int max = 0;
-
-    for (size_t j = 0;j < locSubdDofsBlock[1][i].size();j++) {
-      int id = locSubdDofsBlock[1][i][j];
-      if (id < min) min = id;
-      if (id > max) max = id;
-    }
-
-    // RUNAR
-    std::cout << "Subdomain " << i << " min = " << min << " max = " << max << std::endl;
   }
 
   // Get number of equations in linear system
@@ -509,27 +491,30 @@ void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
   // Set size of matrices
    int k = 0;
   for (size_t m = 0;m < nblocks;m++)
-    for (size_t n = 0;n < nblocks;n++)
-       MatSetSizes(matvec[k++],nnod*ncomps[m],nnod*ncomps[n],PETSC_DECIDE,PETSC_DECIDE);
+    for (size_t n = 0;n < nblocks;n++, k++) {
+      MatSetSizes(matvec[k],nnod*ncomps[m],nnod*ncomps[n],PETSC_DETERMINE,PETSC_DETERMINE);
+      MatSetFromOptions(matvec[k]);
+    }
 
   // Equation numbers 
-  int ifirst = 0;
-  int ilast  = neq;
+  int ifirst = sampch->getMinEqNumber();
+  ifirst--;
+  int ilast  = sampch->getMaxEqNumber();
 
   // Allocation of sparsity pattern
   std::vector<std::vector<IntVec> > d_nnz, o_nnz;  
 #ifdef PARALLEL_PETSC
   int myRank, nProc;
-   MPI_Status status;
-   MPI_Comm_rank(PETSC_COMM_WORLD,&myRank);
-   MPI_Comm_size(PETSC_COMM_WORLD,&nProc);
-   if (myRank < nProc-1)
-     MPI_Send(&ilast,1,MPI_INT,myRank+1,101,PETSC_COMM_WORLD);
-   if (myRank > 0) {
-     MPI_Recv(&ifirst,1,MPI_INT,myRank-1,101,PETSC_COMM_WORLD,&status);
-    }
-
-   if (sampch->getNoDofCouplings(ifirst,ilast,ncomps,d_nnz,o_nnz)) {
+  MPI_Status status;
+  MPI_Comm_rank(PETSC_COMM_WORLD,&myRank);
+  MPI_Comm_size(PETSC_COMM_WORLD,&nProc);
+  if (myRank < nProc-1)
+    MPI_Send(&ilast,1,MPI_INT,myRank+1,101,PETSC_COMM_WORLD);
+  if (myRank > 0) {
+    MPI_Recv(&ifirst,1,MPI_INT,myRank-1,101,PETSC_COMM_WORLD,&status);
+  }
+  
+  if (sampch->getNoDofCouplings(ifirst,ilast,ncomps,d_nnz,o_nnz)) {
     std::vector<PetscInt> d_Nnz;
     std::vector<PetscInt> o_Nnz;
     int id = 0;
@@ -539,30 +524,30 @@ void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
 	d_Nnz.resize(dsize);	
 	for (size_t i = 0; i < dsize; i++)
 	  d_Nnz[i] = d_nnz[m][n][i];
-
+	
 	size_t osize = o_nnz[m][n].size();
 	o_Nnz.resize(osize);
 	for (size_t i = 0; i < osize; i++)
 	  o_Nnz[i] = o_nnz[m][n][i];
-      }	  
-
+	
 	MatMPIAIJSetPreallocation(matvec[id++],PETSC_DEFAULT,&(d_Nnz[0]),PETSC_DEFAULT,&(o_Nnz[0]));
       }
+  }
 #else
-   if (sampch->getNoDofCouplings(ifirst,ilast,ncomps,d_nnz,o_nnz)) {
-     std::vector<PetscInt> d_Nnz;
-     int id = 0;
-     for (size_t m = 0;m < nblocks;m++) {
-       for (size_t n = 0;n < nblocks;n++) {
-	 size_t dsize = d_nnz[m][n].size();
-	 d_Nnz.resize(dsize);	
-	 for (size_t i = 0; i < dsize; i++)
-	   d_Nnz[i] = d_nnz[m][n][i];
-	 
-	 MatSeqAIJSetPreallocation(matvec[id++],PETSC_DEFAULT,&(d_Nnz[0]));
-       }	  
-     }
-   }
+  if (sampch->getNoDofCouplings(ifirst,ilast,ncomps,d_nnz,o_nnz)) {
+    std::vector<PetscInt> d_Nnz;
+    int id = 0;
+    for (size_t m = 0;m < nblocks;m++) {
+      for (size_t n = 0;n < nblocks;n++) {
+	size_t dsize = d_nnz[m][n].size();
+	d_Nnz.resize(dsize);	
+	for (size_t i = 0; i < dsize; i++)
+	  d_Nnz[i] = d_nnz[m][n][i];
+	
+	MatSeqAIJSetPreallocation(matvec[id++],PETSC_DEFAULT,&(d_Nnz[0]));
+      }	  
+    }
+  }
 #endif
   // Initialize the block matrix
   PetscIntVec  idx;
@@ -594,6 +579,7 @@ bool PETScBlockMatrix::beginAssembly()
   
   // Starts parallel assembly process
   MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
+
   return true;
 }
 
@@ -613,7 +599,7 @@ bool PETScBlockMatrix::endAssembly()
 void PETScBlockMatrix::init ()
 {
   // Set all matrix elements to zero for each submatrix
-  for (size_t m = 0;m < nblocks*nblocks;m++)
+  for (size_t m = 0;m < nblocks*nblocks;m++) 
     MatZeroEntries(matvec[m]);
 
   // Set all matrix elements to zero
@@ -630,6 +616,7 @@ bool PETScBlockMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
 bool PETScBlockMatrix::assemble (const Matrix& eM, const SAM& sam,
 		    	    SystemVector& B, int e)
 {
+
   // Get mapping "meen" between local degrees of freedom in element e
   // and global degrees of freedom.
   std::vector<int> meen;
@@ -903,9 +890,13 @@ void PETScBlockMatrix::setParameters()
     PC   subpc;
     Mat Sp, S;
     Vec diagA00;
-    MatGetSize(matvec[0],&m1,&n1);
-    MatGetSize(matvec[3],&m2,&n2);
+    MatGetLocalSize(matvec[0],&m1,&n1);
+    MatGetLocalSize(matvec[3],&m2,&n2);
+#ifdef PARALLEL_PETSC
+    VecCreateMPI(PETSC_COMM_WORLD,m1,PETSC_DETERMINE,&diagA00);
+#else
     VecCreateSeq(PETSC_COMM_SELF,m1,&diagA00);
+#endif
     MatGetDiagonal(matvec[0],diagA00);
     VecReciprocal(diagA00);
     VecScale(diagA00,-1.0);
@@ -925,11 +916,10 @@ void PETScBlockMatrix::setParameters()
     PCSetUp(pc);
     PCFieldSplitGetSubKSP(pc,&nsplit,&subksp);
     KSPGetPC(subksp[0],&subpc);
-    PCSetType(subpc,"ilu");
+    PCSetType(subpc,PCASM);
     KSPSetType(subksp[0],"preonly");
 
-    // Schwarz preconditioner for Schur system
-    
+    // Schwarz preconditioner for Schur system    
     KSPGetPC(subksp[1],&subpc);
     PCSetType(subpc,PCASM);
     PCASMSetType(subpc,PC_ASM_BASIC);

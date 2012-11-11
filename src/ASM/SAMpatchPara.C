@@ -187,8 +187,8 @@ bool SAMpatchPara::getNoDofCouplings(int ifirst, int ilast, IntVec ncomps,
   size_t nf = 0;
   for (size_t n = 0;n < nblock;n++)
     nf += ncomps[n];
-  size_t nlocnode = (ilast-ifirst)/nf;
-
+  int nlocnode = (ilast-ifirst)/nf;
+  
   // Must have same number of dofs per node, i.e. not mixed
   if (ndof%nf > 0)
     return false;
@@ -241,9 +241,9 @@ bool SAMpatchPara::getNoDofCouplings(int ifirst, int ilast, IntVec ncomps,
 		  int o_gdof = meqn[o_ldof]-1;
 
 		  int o_lbdof = (o_ldof/nf)*ncomps[j] + (o_ldof%nf)-jf1;		  
-		  if (o_gdof >= ifirst && o_gdof < ilast)
+		  if (o_gdof >= ifirst && o_gdof < ilast) 
 		    d_dofc[i][j][d_lbdof].insert(o_lbdof);
-		  else
+		  else 
 		    o_dofc[i][j][d_lbdof].insert(o_lbdof);
 		}
 	    }
@@ -303,10 +303,8 @@ bool SAMpatchPara::getNoDofCouplings(int ifirst, int ilast, IntVec ncomps,
         size_t dof  = k*nf + if1;
         for (int l = 0;l < ncomps[i];l++, bdof++, dof++) {
           int d_gdof = meqn[dof]-1;
-          if (d_gdof >= ifirst && d_gdof < ilast) { 
-            nnz[bdof] = d_dofc[i][j][bdof].size();
-	    l2g[bdof] = (d_gdof/nf)*ncomps[i] + l; 
-	  }
+	  nnz[bdof] = o_dofc[i][j][bdof].size();
+	  l2g[bdof] = (d_gdof/nf)*ncomps[i] + l; 
         }
       }
       
@@ -328,7 +326,7 @@ bool SAMpatchPara::getNoDofCouplings(int ifirst, int ilast, IntVec ncomps,
       o_nnz[i][j].resize(locsize);
       for (size_t k = 0; k < locsize; k++)
 	o_nnz[i][j][k] = ceil(vec[k]);
-      
+
       VecRestoreArray(x,&vec);
       VecDestroy(PETSCMANGLE(x));
     }
