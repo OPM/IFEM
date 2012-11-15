@@ -24,7 +24,8 @@ namespace CFD //! CFD scope
     LAPLACE    = 1,
     STRESS     = 2,
     RANS       = 4,
-    BOUSSINESQ = 8 
+    BOUSSINESQ = 8,
+    ALE        = 16
   };
 }
 
