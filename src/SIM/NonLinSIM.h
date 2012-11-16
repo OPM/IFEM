@@ -138,6 +138,8 @@ public:
   //! \brief Returns a list of prioritized XML-tags.
   virtual const char** getPrioritizedTags() const;
 
+  //! \brief Wrapper used to handle hierarchy issues
+  virtual void setOptions(SIMoptions& opt2);
 protected:
   SIMbase& model;    //!< The isogeometric FE model
   Vectors  solution; //!< Primary solution vectors of the last increments

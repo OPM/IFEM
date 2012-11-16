@@ -523,3 +523,9 @@ void NonLinSIM::dumpResults (double time, std::ostream& os,
   model.dumpResults(solution.front(),time,os,true,precision);
   model.dumpMoreResults(time,os,precision);
 }
+
+
+void NonLinSIM::setOptions(SIMoptions& opt2)
+{ 
+  model.opt = opt = opt2;
+}

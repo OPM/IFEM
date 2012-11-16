@@ -72,6 +72,9 @@ public:
   //! \brief Initializes the projections.
   void setupProjections();
 
+  //! \brief Wrapper used to handle hierarchy issues
+  virtual void setOptions(SIMoptions& opt2);
+
 protected:
   //! \brief Parses a data section from an input stream.
   //! \param[in] keyWord Keyword of current data section to read

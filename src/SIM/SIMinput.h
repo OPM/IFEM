@@ -40,6 +40,9 @@ public:
   virtual bool read(const char* fileName);
 
   SIMoptions opt; //!< Simulation control parameters
+
+  //! \brief Wrapper used to handle hierarchy issues
+  virtual void setOptions(SIMoptions& opt2) { opt = opt2; }
 private:
   //! \brief Reads a flat text input file.
   bool readFlat(const char* fileName);

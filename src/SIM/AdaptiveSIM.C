@@ -469,3 +469,9 @@ void AdaptiveSIM::setupProjections()
 {
   projs.resize(model->opt.project.size());
 }
+
+
+void AdaptiveSIM::setOptions(SIMoptions& opt2)
+{
+  model->opt = opt = opt2;
+}

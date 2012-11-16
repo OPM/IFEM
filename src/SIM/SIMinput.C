@@ -40,7 +40,7 @@ SIMinput::SIMinput ()
 
 bool SIMinput::read (const char* fileName)
 {
-  opt = IFEM::getOptions();
+  setOptions(IFEM::getOptions());
 #ifdef HAS_PETSC
   // In parallel simulations, we need to retain all DOFs in the equation system.
   // The fixed DOFs (if any) will receive a homogeneous constraint instead.
