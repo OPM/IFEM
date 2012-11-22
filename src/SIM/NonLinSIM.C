@@ -529,22 +529,3 @@ void NonLinSIM::setOptions(SIMoptions& opt2)
 { 
   model.opt = opt = opt2;
 }
-
-
-int NonLinSIM::getUniquePropertyCode(const std::string& setName, int comp)
-{
-  return model.getUniquePropertyCode(setName, comp);
-}
-
-
-bool NonLinSIM::createPropertySet(const std::string& setName, int pc)
-{
-  return model.createPropertySet(setName, pc);
-}
-
-
-size_t NonLinSIM::setVecProperty(int code, Property::Type ptype,
-                                 VecFunc* field, int pflag)
-{
-  return model.setVecProperty(code, ptype, field, pflag);
-}
