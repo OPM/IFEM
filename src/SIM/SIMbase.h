@@ -215,15 +215,6 @@ public:
   //! \param[in] time Current time
   bool initDirichlet(double time = 0.0);
 
-  //! \brief Initializes for time-dependent simulation.
-  virtual void init(TimeStep&) {}
-  //! \brief Advances the time step one step forward.
-  virtual bool advanceStep(TimeStep&) { return false; }
-  //! \brief Computes the solution for the current time step.
-  virtual bool solveStep(TimeStep&) { return false; }
-  //! \brief Saves the converged results to VTF file of a given time step.
-  virtual bool saveStep(int, double, int&) { return false; }
-
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time
   //! \param[in] prevSol Pointer to previous primary solution in DOF-order
