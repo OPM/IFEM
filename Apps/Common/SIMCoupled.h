@@ -66,10 +66,9 @@ public:
     return true;
   }
 
-  //! \brief Returns a const reference to the time stepping parameters.
-  const TimeStep& getTimePrm() const
+  bool init(const TimeStep& tp)
   {
-    return S1.getTimePrm();
+    return S1.init(tp) && S1.init(tp);
   }
 
   //! \brief Registers a dependency on a field from another SIM object.

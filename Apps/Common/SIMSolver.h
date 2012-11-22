@@ -20,7 +20,7 @@
          loop with data output.
 */
   template<class T1>
-class SIMSolver
+class SIMSolver : public SIMinput
 {
 public:
   //! \brief Constructor 
@@ -34,12 +34,20 @@ public:
   {
   }
 
+  bool advanceStep()
+  {
+    return S1.advanceStep(tp) && tp.increment();
+  }
+
+  void fastForward(int steps)
+  {
+    for (int i=0;i<steps;++i)
+      advanceStep();
+  }
+
   //! \brief Solves the problem up to the final time.
   virtual bool solveProblem(char* infile, DataExporter* exporter = NULL)
   {
-    // Save initial step to VTF
-    TimeStep tp = S1.getTimePrm();
-
     // Save FE model to VTF file for visualization
     int nBlock;
     if (!S1.saveModel(infile, nBlock))
@@ -50,7 +58,7 @@ public:
       return false;
 
     // Solve for each time step up to final time
-    for (int iStep = 1; S1.advanceStep(tp); iStep++)
+    for (int iStep = 1; advanceStep(); iStep++)
     {
       if (!S1.solveStep(tp))
         return false;
@@ -62,7 +70,26 @@ public:
 
     return true;
   }
+
+  //! \brief Parses a data section from an input stream.
+  virtual bool parse(char* keyWord, std::istream& is)
+  {
+    return false;
+  }
+
+  //! \brief Parses a data section from an XML element.
+  virtual bool parse(const TiXmlElement* elem)
+  {
+    if (strcasecmp(elem->Value(),"timestepping") == 0)
+      tp.parse(elem);
+
+    return true;
+  }
+
+  const TimeStep& getTimePrm() const { return tp; }
+
 protected:
+  TimeStep tp; //<! Time stepping information
   T1& S1; //!< Solver
 };
 
