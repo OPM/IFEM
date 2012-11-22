@@ -69,10 +69,11 @@ Go::SplineCurve* SplineUtils::project (const Go::SplineCurve* curve,
 }
 
 
-Go::SplineCurve* SplineUtils::project(const Go::SplineCurve* curve,
-				      const VecFunc& f, int nComp, Real time)
+Go::SplineCurve* SplineUtils::project (const Go::SplineCurve* curve,
+				       const VecFunc& f, int nComp, Real time)
 {
-  if (!curve || nComp < 1 || nComp > 3) return NULL;
+  if (!curve || nComp < 1) return NULL;
+  if (nComp > 3) nComp = 3;
 
   const Go::BsplineBasis& basis = curve->basis();
   const int nPoints = basis.numCoefs();
@@ -150,7 +151,8 @@ Go::SplineSurface* SplineUtils::project (const Go::SplineSurface* surface,
 Go::SplineSurface* SplineUtils::project (const Go::SplineSurface* surface,
 					 const VecFunc& f, int nComp, Real time)
 {
-  if (!surface || nComp < 1 || nComp > 3) return NULL;
+  if (!surface || nComp < 1) return NULL;
+  if (nComp > 3) nComp = 3;
 
   const Go::BsplineBasis& ubas = surface->basis(0);
   const Go::BsplineBasis& vbas = surface->basis(1);

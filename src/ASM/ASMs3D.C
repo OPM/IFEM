@@ -896,7 +896,7 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
 
   if (swapW && t1 == 0) dir = -dir; // Account for swapped parameter direction
 
-  // Find the curve representing the edge geometry (for tangent evaluation)
+  // Find the surface representing the face geometry (for tangent evaluation)
   Go::SplineSurface* face = this->getBoundary(dir);
   if (!face) return 0;
 
@@ -1256,7 +1256,7 @@ bool ASMs3D::updateDirichlet (const std::map<int,RealFunc*>& func,
 
   for (size_t i = 0; i < dirich.size(); i++)
   {
-    // Project the function onto the spline curve basis
+    // Project the function onto the spline surface basis
     Go::SplineSurface* dsurf = 0;
     if ((fit = func.find(dirich[i].code)) != func.end())
       dsurf = SplineUtils::project(dirich[i].surf,*fit->second,time);
@@ -1275,7 +1275,7 @@ bool ASMs3D::updateDirichlet (const std::map<int,RealFunc*>& func,
       return false;
     }
 
-    // Loop over the (interior) nodes (control points) of this boundary curve
+    // Loop over the (interior) nodes (control points) of this boundary surface
     for (nit = dirich[i].nodes.begin(); nit != dirich[i].nodes.end(); nit++)
       for (int dofs = dirich[i].dof; dofs > 0; dofs /= 10)
       {
@@ -1283,12 +1283,7 @@ bool ASMs3D::updateDirichlet (const std::map<int,RealFunc*>& func,
         // Find the constraint equation for current (node,dof)
         MPC pDOF(MLGN[nit->second-1],dof);
         MPCIter mit = mpcs.find(&pDOF);
-        if (mit == mpcs.end())
-        {
-	  std::cerr <<" *** ASMs3D::updateDirichlet: Invalid slave in MPC: "
-                    << pDOF << std::endl;
-          return false;
-        }
+        if (mit == mpcs.end()) continue; // probably a deleted constraint
 
         // Find index to the control point value for this (node,dof) in dsurf
         RealArray::const_iterator cit = dsurf->coefs_begin();

@@ -981,12 +981,7 @@ bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
 	// Find the constraint equation for current (node,dof)
 	MPC pDOF(MLGN[nit->second-1],dof);
 	MPCIter mit = mpcs.find(&pDOF);
-	if (mit == mpcs.end())
-	{
-	  std::cerr <<" *** ASMs2D::updateDirichlet: Invalid slave in MPC: "
-		    << pDOF << std::endl;
-	  return false;
-	}
+	if (mit == mpcs.end()) continue; // probably a deleted constraint
 
 	// Find index to the control point value for this (node,dof) in dcrv
 	RealArray::const_iterator cit = dcrv->coefs_begin();
