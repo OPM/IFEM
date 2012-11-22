@@ -109,6 +109,12 @@ class DataExporter
   //! \brief Return the current time level of the exporter
   int getTimeLevel();
 
+  //! \brief Calculate the real time level, taking order and ndump into account
+  int realTimeLevel(int filelevel) const;
+
+  //! \brief Calculate the real time level, taking order and ndump into account
+  int realTimeLevel(int filelevel, int order, int interval) const;
+
   //! \brief Set the prefixes used for norm output
   //! \param[in] prefix The prefixes
   void setNormPrefixes(const char** prefix);

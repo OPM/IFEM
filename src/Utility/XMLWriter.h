@@ -62,12 +62,6 @@ public:
   //! \brief Return the last time level stored in file
   virtual int getLastTimeLevel();
 
-  //! \brief Calculate the real time level, taking order and ndump into account
-  int realTimeLevel(int filelevel) const;
-
-  //! \brief Calculate the real time level, taking order and ndump into account
-  int realTimeLevel(int filelevel, int order, int interval) const;
-
   //! \brief Read info from file
   void readInfo();
 

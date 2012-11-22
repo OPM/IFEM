@@ -17,6 +17,8 @@
 #include "SIMinput.h"
 #include "SIMenums.h"
 #include "MatVec.h"
+#include "Property.h"
+#include "Function.h"
 
 class SIMbase;
 class TimeStep;
@@ -114,6 +116,28 @@ public:
 
   //! \brief Returns a const reference to current solution vector.
   const Vector& getSolution(int i = 0) const { return solution[i]; }
+
+  //! \brief Returns a unique integer code for a Property set.
+  //! \param[in] setName Name of the topology set the property is defined on
+  //! \param[in] comp The solution components on which the property is applied
+  //!
+  //! \details The actual Property objects are also created (one for each entity
+  //! in the topology set) and their type is set to UNDEFINED. The method
+  //! setPropertyType must be used to assign the actual Property type.
+  int getUniquePropertyCode(const std::string& setName, int comp = 0);
+
+  //! \brief Creates a set of Property objects.
+  //! \param[in] setName Name of the topology set the property is defined on
+  //! \param[in] pc The property code to be associated with this set
+  bool createPropertySet(const std::string& setName, int pc);
+
+  //! \brief Defines a vector field property.
+  //! \param[in] code The property code to be associated with the property
+  //! \param[in] ptype The property type to be associated with the given code
+  //! \param[in] field The vector field representing the physical property
+  //! \param[in] pflag Flag for local axis directions (see setPropertyType)
+  size_t setVecProperty(int code, Property::Type ptype, VecFunc* field = NULL,
+			int pflag = -1);
 
 protected:
   //! \brief Checks whether the nonlinear iterations have converged or diverged.

@@ -11,6 +11,10 @@
 #ifndef SIM_COUPLED_H_
 #define SIM_COUPLED_H_
 
+#include "DataExporter.h"
+#include "SIMdependency.h"
+#include "TimeStep.h"
+
   template<class T1, class T2>
 class SIMCoupled
 {
@@ -91,6 +95,43 @@ public:
   {
     S1.registerDependency(sim, name, nvc);
     S2.registerDependency(sim, name, nvc);
+  }
+
+  //! \brief Returns a unique integer code for a Property set.
+  //! \param[in] setName Name of the topology set the property is defined on
+  //! \param[in] comp The solution components on which the property is applied
+  //!
+  //! \details The actual Property objects are also created (one for each entity
+  //! in the topology set) and their type is set to UNDEFINED. The method
+  //! setPropertyType must be used to assign the actual Property type.
+  int getUniquePropertyCode(const std::string& setName, int comp = 0)
+  {
+    return S1.getUniquePropertyCode(setName, comp);
+  }
+
+  //! \brief Creates a set of Property objects.
+  //! \param[in] setName Name of the topology set the property is defined on
+  //! \param[in] pc The property code to be associated with this set
+  bool createPropertySet(const std::string& setName, int pc)
+  {
+    return S1.createPropertySet(setName, pc);
+  }
+
+  //! \brief Defines a vector field property.
+  //! \param[in] code The property code to be associated with the property
+  //! \param[in] ptype The property type to be associated with the given code
+  //! \param[in] field The vector field representing the physical property
+  //! \param[in] pflag Flag for local axis directions (see setPropertyType)
+  size_t setVecProperty(int code, Property::Type ptype, VecFunc* field = NULL,
+			int pflag = -1)
+  {
+    return S1.setVecProperty(code, ptype, field, pflag);
+  }
+
+  void registerFields(DataExporter& exporter)
+  {
+    S1.registerFields(exporter);
+    S2.registerFields(exporter);
   }
 
 protected:

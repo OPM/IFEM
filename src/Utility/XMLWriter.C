@@ -223,6 +223,7 @@ void XMLWriter::addField (const std::string& name,
   m_node->InsertEndChild(element);
 }
 
+
 bool XMLWriter::writeTimeInfo (int level, int order, int interval,
                                const TimeStep& tp)
 {
@@ -230,14 +231,4 @@ bool XMLWriter::writeTimeInfo (int level, int order, int interval,
   m_order = order;
   m_interval = interval;
   return true;
-}
-
-int XMLWriter::realTimeLevel(int filelevel) const
-{
-  return realTimeLevel(filelevel,m_order,m_interval);
-}
-
-int XMLWriter::realTimeLevel(int filelevel, int order, int interval) const
-{
-  return filelevel/order*interval;
 }

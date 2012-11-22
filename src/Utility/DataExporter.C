@@ -208,3 +208,15 @@ void DataExporter::setNormPrefixes(const char** prefix)
                                           it != m_writers.end(); ++it)
     (*it)->setNormPrefixes(prefix);
 }
+
+
+int DataExporter::realTimeLevel(int filelevel) const
+{
+  return realTimeLevel(filelevel,m_order,m_ndump);
+}
+
+
+int DataExporter::realTimeLevel(int filelevel, int order, int interval) const
+{
+  return filelevel/order*interval;
+}
