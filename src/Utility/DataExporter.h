@@ -64,7 +64,8 @@ class DataExporter
   //! \param[in] order The temporal order of simulations
   //! (always dumps order solutions in a row)
   DataExporter(bool dynWriters = false, int ndump=1, int order=1) :
-    m_delete(dynWriters), m_level(-1), m_ndump(ndump), m_order(order) {}
+    m_delete(dynWriters), m_level(-1), m_ndump(ndump), m_order(order),
+    m_infoReader(0), m_dataReader(0) {}
 
   //! \brief The destructor deletes the writers if \a dynWriters was \e true.
   ~DataExporter();
@@ -82,7 +83,9 @@ class DataExporter
 
   //! \brief Register a data writer
   //! \param[in] writer A pointer to the datawriter we want registered
-  bool registerWriter(DataWriter* writer);
+  //! \param info If true, set as default info reader
+  //! \param reader If true, set as default data reader
+  bool registerWriter(DataWriter* writer, bool info=false, bool reader=false);
 
   //! \brief Set the data values for a registered field
   //! \param[in] name Name the field is registered with
@@ -125,6 +128,9 @@ protected:
   int m_ndump;
   //! \brief The temporal order used. We need this to facilitate restart of > first order simulations.
   int m_order;
+
+  DataWriter* m_infoReader;
+  DataWriter* m_dataReader;
 };
 
 //! \brief Convenience type

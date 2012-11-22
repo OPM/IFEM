@@ -62,9 +62,15 @@ bool DataExporter::registerField (const std::string& name,
 }
 
 
-bool DataExporter::registerWriter (DataWriter* writer)
+bool DataExporter::registerWriter (DataWriter* writer, bool info, bool data)
 {
   m_writers.push_back(writer);
+
+  if (info)
+    m_infoReader = writer;
+  if (data)
+    m_dataReader = writer;
+
   return true;
 }
 
@@ -127,14 +133,18 @@ bool DataExporter::loadTimeLevel (int level, DataWriter* info,
   if (!input)
     if (m_writers.empty())
       return false;
+    else if (m_dataReader)
+      input = m_dataReader;
     else
       input = m_writers.front();
 
   if (!info)
-    if (m_writers.empty())
+    if (m_infoReader)
+      info = m_infoReader;
+    else if (m_writers.size() < 2)
       return false;
     else
-      info = m_writers.front();
+      info = m_writers[1];
 
   int level2=level;
   if (level == -1)
