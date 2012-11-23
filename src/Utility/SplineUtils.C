@@ -131,7 +131,7 @@ Go::SplineSurface* SplineUtils::project (const Go::SplineSurface* surface,
   for (j = 0; j < nv; j++)
     for (i = 0; i < nu; i++, k++)
     {
-      surface->point(X,upar[i],vpar[i]);
+      surface->point(X,upar[i],vpar[j]);
       fval[k] = f(toVec4(X,time));
     }
 
@@ -176,7 +176,7 @@ Go::SplineSurface* SplineUtils::project (const Go::SplineSurface* surface,
   for (j = 0; j < nv; j++)
     for (i = 0; i < nu; i++)
     {
-      surface->point(X,upar[i],vpar[i]);
+      surface->point(X,upar[i],vpar[j]);
       fOfX = f(toVec4(X,time));
       for (int l = 0; l < nComp; l++, k++)
 	fval[k] = fOfX[l];
