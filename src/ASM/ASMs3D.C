@@ -1901,6 +1901,13 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
   }
   const ThreadGroups& threadGrp = tit->second;
 
+#ifdef USE_OPENMP
+  int threads=omp_get_max_threads();
+  // GoTools objects cannot be used in parallel sections
+  if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+    omp_set_num_threads(1);
+#endif
+
   // Get Gaussian quadrature points and weights
   int nGP = integrand.getBouIntegrationPoints(nGauss);
   const double* xg = GaussQuadrature::getCoord(nGP);
@@ -2100,6 +2107,9 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
       }
     }
   }
+#ifdef USE_OPENMP
+  omp_set_num_threads(threads);
+#endif
 
   return ok;
 }
