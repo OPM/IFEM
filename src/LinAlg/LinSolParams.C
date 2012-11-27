@@ -30,19 +30,25 @@ void LinSolParams::setDefault ()
 {
 #ifdef HAS_PETSC
   // Use GMRES with ILU preconditioner as default
-  method    = KSPGMRES;
-  hypretype = "boomeramg";
-  prec      = PCILU;
-  package   = MATSOLVERPETSC;
-  levels    = 0;
-  overlap   = 1;
-  npart[0] = npart[1] = npart[2] = 0;
-  nullspc   = NONE;
-  asmlu     = false;
-  nblock    = 1;
+  method      = KSPGMRES;
+  hypretype   = "boomeramg";
+  prec        = PCILU;
+  subprec.resize(2);
+  subprec[0]  = PCILU;
+  subprec[1]  = PCILU;
+  package     = MATSOLVERPETSC;
+  levels      = 0;
+  overlap     = 1;
+  npart[0]    = npart[1] = npart[2] = 0;
+  nullspc     = NONE;
+  asmlu       = false;
+  subasmlu.resize(2);
+  subasmlu[0] = false;
+  subasmlu[1] = false;
+  nblock      = 1;
   ncomps.resize(2); 
-  ncomps[0] = 2;
-  ncomps[1] = 1;
+  ncomps[0]   = 2;
+  ncomps[1]   = 1;
     
 
   atol      = 1.0e-6;
@@ -57,19 +63,25 @@ void LinSolParams::copy (const LinSolParams& spar)
 {
 #ifdef HAS_PETSC
   // Copy linear solver parameters
-  method    = spar.method;
-  hypretype = spar.hypretype;
-  prec      = spar.prec;
-  package   = spar.package;
-  levels    = spar.levels;
-  overlap   = spar.overlap;
-  npart[0]  = spar.npart[0];
-  npart[1]  = spar.npart[1];
-  npart[2]  = spar.npart[2];               
-  nullspc   = spar.nullspc;
-  asmlu     = spar.asmlu;
-  nblock    = spar.nblock;
-  ncomps    = spar.ncomps;
+  method      = spar.method;
+  hypretype   = spar.hypretype;
+  prec        = spar.prec;
+  subprec.resize(2);
+  subprec[0]  = spar.subprec[0];
+  subprec[1]  = spar.subprec[1];
+  package     = spar.package;
+  levels      = spar.levels;
+  overlap     = spar.overlap;
+  npart[0]    = spar.npart[0];
+  npart[1]    = spar.npart[1];
+  npart[2]    = spar.npart[2];               
+  nullspc     = spar.nullspc;
+  asmlu       = spar.asmlu;
+  subasmlu.resize(2);
+  subasmlu[0] = spar.subasmlu[0];
+  subasmlu[1] = spar.subasmlu[1];
+  nblock      = spar.nblock;
+  ncomps      = spar.ncomps;
 
   atol   = spar.atol;
   rtol   = spar.rtol;
@@ -163,6 +175,26 @@ bool LinSolParams::read (std::istream& is, int nparam)
       npart[2] = atoi(++c);
     }
 
+    else if (!strncasecmp(cline,"subpc1",6)) {
+      char* c = strchr(cline,'=');
+      for (++c; *c == ' '; c++);
+      int j = 0;
+      while (c[j] != EOF && c[j] != '\n' && c[j] != ' ' && c[j] != '\0') j++;
+      subprec[0].assign(c,j);
+      if ((subasmlu[0] = (subprec[0].substr(0,5) == "asmlu")))
+	subprec[0] = "asm";
+    }
+
+    else if (!strncasecmp(cline,"subpc2",6)) {
+      char* c = strchr(cline,'=');
+      for (++c; *c == ' '; c++);
+      int j = 0;
+      while (c[j] != EOF && c[j] != '\n' && c[j] != ' ' && c[j] != '\0') j++;
+      subprec[1].assign(c,j);
+      if ((subasmlu[1] = (subprec[1].substr(0,5) == "asmlu")))
+	subprec[1] = "asm";
+    }
+
     else if (!strncasecmp(cline,"ncomponents",11)) {
       char* c = strchr(cline,'=');
       std::istringstream this_line(c);
@@ -231,6 +263,17 @@ bool LinSolParams::read (const TiXmlElement* child)
     std::istream_iterator<int> begin(this_line), end;
     ncomps.assign(begin, end);
     nblock = ncomps.size();
+  }
+  else if ((value = utl::getValue(child,"subpc"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<std::string> begin(this_line), end;
+    subprec.assign(begin, end);
+    subasmlu.resize(subprec.size());
+    for (size_t i = 0;i < subprec.size();i++)
+      if (!strncasecmp(subprec[i].c_str(),"asmlu",5)) {
+	subasmlu[i] = true;
+	subprec[i] = "asm";
+      }
   }
   else if ((value = utl::getValue(child,"nullspace"))) {
     if (!strcasecmp(value,"constant"))

@@ -146,7 +146,9 @@ private:
   NullSpace nullspc;       // Null-space for matrix
   bool      asmlu;         // If LU-factorization should be used on subdomains
   int       nblock;        // Number of block
-  std::vector<int> ncomps; // Components for each fields
+  std::vector<std::string> subprec; // Preconditioner for blocks in block matrix
+  std::vector<bool> subasmlu;       // If LU-factorization should be used on subdomains for blocks
+  std::vector<int> ncomps;          // Components for each fields
 
   friend class PETScMatrix;
   friend class PETScBlockMatrix;
