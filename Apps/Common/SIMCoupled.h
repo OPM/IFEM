@@ -37,7 +37,7 @@ public:
   //! \brief Advances the time step one step forward.
   virtual bool advanceStep(TimeStep& tp)
   {
-    return S2.advanceStep(tp) && S1.advanceStep(tp);
+    return S1.advanceStep(tp) && S2.advanceStep(tp);
   }
 
   //! \brief Computes the solution for the current time step.
@@ -68,7 +68,7 @@ public:
 
   bool init(const TimeStep& tp)
   {
-    return S1.init(tp) && S1.init(tp);
+    return S1.init(tp) && S2.init(tp);
   }
 
   //! \brief Registers a dependency on a field from another SIM object.
@@ -85,6 +85,7 @@ public:
     S1.registerDependency(sim, name, nvc, patches, diffBasis);
     S2.registerDependency(sim, name, nvc, patches, diffBasis);
   }
+
   //! \brief Registers a dependency on a field from another SIM object.
   //! \param[in] sim The SIM object holding the field we depend on
   //! \param[in] name Name of field we depend on
