@@ -152,7 +152,9 @@ protected:
   CNORM  iteNorm; //!< The norm type used to measure the residual
   NormOp refNopt; //!< Reference norm option
   double refNorm; //!< Reference norm value used in convergence checks
-  double convTol; //!< Relative convergence tolerance
+  double convTol; //!< Convergence tolerance
+  double rTol;    //!< Relative convergence tolerance
+  double aTol;    //!< Absolute convergence tolerance
   double divgLim; //!< Relative divergence limit
   double eta;     //!< Line search tolerance
   double alpha;   //!< Iteration acceleration parameter (for line search)

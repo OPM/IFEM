@@ -36,7 +36,8 @@ NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : model(sim), iteNorm(n)
   maxit   = 20;
   nupdat  = 20;
   prnSlow = 0;
-  convTol = 0.000001;
+  rTol    = 0.000001;
+  aTol    = 0.0;
   divgLim = 10.0;
   refNopt = MAX;
   refNorm = 1.0;
@@ -65,7 +66,7 @@ bool NonLinSIM::parse (char* keyWord, std::istream& is)
   if (!strncasecmp(keyWord,"NONLINEAR_SOLVER",16))
   {
     std::istringstream cline(utl::readLine(is));
-    cline >> maxit >> convTol;
+    cline >> maxit >> rTol;
     if (cline.fail() || cline.bad()) return false;
 
     double tmp;
@@ -104,7 +105,9 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
     else if ((value = utl::getValue(child,"nupdate")))
       nupdat = atoi(value);
     else if ((value = utl::getValue(child,"rtol")))
-      convTol = atof(value);
+      rTol = atof(value);
+    else if ((value = utl::getValue(child,"atol")))
+      aTol = atof(value);
     else if ((value = utl::getValue(child,"dtol")))
       divgLim = atof(value);
     else if ((value = utl::getValue(child,"eta")))
@@ -341,7 +344,16 @@ NonLinSIM::ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
   {
     if (refNopt == ALL || fabs(norm) > refNorm)
       refNorm = fabs(norm);
-    norm = prevNorm = 1.0;
+    if (refNorm*rTol > aTol) {
+      convTol = rTol;
+      norm = prevNorm = 1.0;
+    }
+    else {
+      refNorm = 1.0;
+      prevNorm = norm;
+      convTol = aTol;
+    }
+
     nIncrease = 0;
   }
   else
