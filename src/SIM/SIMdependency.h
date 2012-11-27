@@ -59,8 +59,6 @@ private:
     Dependency() : sim(NULL), components(1), differentBasis(false) {}
   };
 
-  //! \brief SIM dependency container
-  typedef std::vector<Dependency> DepVector;
   //! \brief Field name to nodal values map
   typedef std::map<std::string,const utl::vector<double>*> FieldMap;
 
@@ -69,6 +67,9 @@ protected:
   SIMdependency() {}
 
 public:
+  //! \brief SIM dependency container
+  typedef std::vector<Dependency> DepVector;
+
   //! \brief Empty destructor.
   virtual ~SIMdependency() {}
 
