@@ -46,7 +46,7 @@ public:
   }
 
   //! \brief Solves the problem up to the final time.
-  virtual bool solveProblem(char* infile, DataExporter* exporter = NULL)
+  virtual bool solveProblem(char* infile, DataExporter* exporter = NULL, int maxIter = 1)
   {
     // Save FE model to VTF file for visualization
     int nBlock;
@@ -60,8 +60,19 @@ public:
     // Solve for each time step up to final time
     for (int iStep = 1; advanceStep(); iStep++)
     {
-      if (!S1.solveStep(tp))
-        return false;
+      // Possible non-linear iteration loop
+      int iter = 0;
+      bool converged = false;
+      while ((iter < maxIter) && (!converged)) {
+	converged = S1.solveStep(tp);
+	iter++;
+      }
+
+      // Return if not converged
+      if (!converged) 
+	return false;
+
+      // Save solution
       if (!S1.saveStep(tp, nBlock))
         return false;
       if (exporter)
