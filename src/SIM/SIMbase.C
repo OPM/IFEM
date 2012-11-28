@@ -1506,8 +1506,17 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
 
   // Expand solution vector from equation ordering to DOF-ordering
   if (!mySam->expandSolution(*b,solution)) return false;
-  if (printSol < 1) return true;
 
+  if (printSol > 0)
+    printSolutionSummary(solution, printSol, compName);
+
+  return true;
+}
+
+
+void SIMbase::printSolutionSummary(const Vector& solution, int printSol,
+                                   const char* compName)
+{
   // Compute and print solution norms
   const size_t nf = this->getNoFields(1);
   size_t iMax[nf];
@@ -1548,10 +1557,9 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
   }
 #if SP_DEBUG > 2
   else
-    std::cout <<"\nSolution vector:"<< *b;
+    std::cout <<"\nSolution vector:"<< *myEqSys->getVector();
+;
 #endif
-
-  return true;
 }
 
 

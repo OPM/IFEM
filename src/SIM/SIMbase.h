@@ -347,6 +347,12 @@ public:
   virtual std::ostream& printNorms(const Vectors&, std::ostream& os)
   { return os; }
 
+  //! \brief Print a summary of the calculated solution
+  //! \param[in] solution The solution
+  //! \param[in] printSol Printing level. \sa solveSystem
+  void printSolutionSummary(const Vector& solution, int printSol,
+                            const char* compName);
+
   //! \brief Computes the total reaction forces in the model.
   //! \param[out] RF Reaction force in each spatial direction + energy
   //! \param[in] psol Primary solution vector
