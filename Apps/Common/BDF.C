@@ -1,4 +1,17 @@
+//==============================================================================
+//!
+//! \file BDF.C
+//!
+//! \date Oct 29 2012
+//!
+//! \author Arne Morten Kvarving / SINTEF
+//!
+//! \brief Helper functions for BDF based time stepping.
+//!
+//==============================================================================
 #include "BDF.h"
+
+namespace TimeIntegration {
 
 BDF::BDF(int order)
 {
@@ -28,4 +41,6 @@ double BDF::extrapolate(const double* values) const
   }
 
   return result;
+}
+
 }

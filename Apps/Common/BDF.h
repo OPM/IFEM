@@ -20,6 +20,8 @@
   \details Keeps track of coefficients, extrapolation and startup
 !*/
 
+namespace TimeIntegration {
+
 class BDF {
   public:
     //! \brief Constructor
@@ -55,5 +57,7 @@ class BDF {
     std::vector<double> coefs1;
     int step;
 };
+
+}
 
 #endif
