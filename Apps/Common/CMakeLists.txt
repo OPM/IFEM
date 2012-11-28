@@ -47,4 +47,5 @@ SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 
 # Common Navier-Stokes application sources
 ADD_LIBRARY(CommonIFEM STATIC
-                       StabilizationUtils.C)
+                       StabilizationUtils.C
+                       TimeIntUtils.C)
