@@ -913,9 +913,13 @@ void PETScBlockMatrix::setParameters()
     PC   subpc;
     Mat Sp;
     Vec diagA00;
-    MatGetSize(matvec[0],&m1,&n1);
-    MatGetSize(matvec[3],&m2,&n2);
+    MatGetLocalSize(matvec[0],&m1,&n1);
+    MatGetLocalSize(matvec[3],&m2,&n2);
+#ifdef PARALLEL_PETSC
+    VecCreateMPI(PETSC_COMM_WORLD,m1,PETSC_DETERMINE,&diagA00);
+#else
     VecCreateSeq(PETSC_COMM_SELF,m1,&diagA00);
+#endif
     MatGetDiagonal(matvec[0],diagA00);
     VecReciprocal(diagA00);
     VecScale(diagA00,-1.0);
