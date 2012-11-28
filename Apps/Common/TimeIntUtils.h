@@ -20,15 +20,26 @@
 namespace TimeIntegration //!< Time integration scope
 {
   //! \brief Enum defining various solution methods.
+  // The BE and HEUNEULER methods are used as starting markers for implicit
+  // methods and embedded methods. Keep them first in these groups
   enum Method
   {
-    NONE  = 0,  //!< No time integration
-    EULER = 1,  //!< Forward Euler, explicit
-    HEUN  = 2,  //!< Heun-Euler, explicit
-    RK3   = 3,  //!< Kutta's third order method, explicit
-    RK4   = 4,  //!< Kutta's fourth order method, explicit
-    BE    = 5,  //!< Backward Euler, implicit
-    BDF2  = 6   //!< Second order backward differencing, implicit
+    NONE             = 0,  //!< No time integration
+
+    // Explicit methods
+    EULER            = 1,  //!< Forward Euler, explicit
+    HEUN             = 2,  //!< Heun-Euler, explicit
+    RK3              = 3,  //!< Kutta's third order method, explicit
+    RK4              = 4,  //!< Kutta's fourth order method, explicit
+
+    // Implicit methods
+    BE               = 5,  //!< Backward Euler, implicit
+    BDF2             = 6,  //!< Second order backward differencing, implicit
+
+    // Embedded, explicit methods
+    HEUNEULER        = 7,  //!< Heun-Euler embedded order 1(2)
+    BOGACKISHAMPINE  = 8,  //!< Bogacki-Shampine order 2(3)
+    FEHLBERG         = 9   //!< Runge-Kutta-Fehlberg order 4(5)
   };
 
   //! \brief Struct holding a Runge-Kutta tableaux

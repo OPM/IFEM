@@ -75,10 +75,19 @@ public:
   {
     std::cout <<"\n  step = "<< tp.step <<"  time = "<< tp.time.t << std::endl;
 
-    std::vector<Vector> stages(RK.b.size());
+    std::vector<Vector> stages;
+    return solveRK(stages, tp);
 
+    return true;
+  }
+
+  bool solveRK(std::vector<Vector>& stages, TimeStep& tp)
+  {
     TimeDomain time(tp.time);
     Vector dum;
+
+    stages.resize(RK.b.size());
+
     for (size_t i=0;i<stages.size();++i) {
       Vector tmp(solver.getSolution());
       for (size_t j=0;j<i;++j)
@@ -86,16 +95,18 @@ public:
       time.t = tp.time.t+tp.time.dt*(RK.c[i]-1.0);
       solver.updateDirichlet(time.t, &dum);
       solver.applyDirichlet(tmp);
-      solver.assembleSystem(time, Vectors(1, tmp));
+      if (!solver.assembleSystem(time, Vectors(1, tmp)))
+        return false;
+
       // solve Mu = Au + f
-      solver.solveSystem(stages[i]);
+      if (!solver.solveSystem(stages[i]))
+        return false;
     }
 
     // finally construct solution as weighted stages
     solver.updateDirichlet(tp.time.t, &dum);
-    for (int i=0;i<RK.order;++i)
+    for (size_t i=0;i<RK.b.size();++i)
       solver.getSolution().add(stages[i], tp.time.dt*RK.b[i]);
-
     solver.applyDirichlet(solver.getSolution());
 
     solver.printSolutionSummary(solver.getSolution(), 
