@@ -225,6 +225,11 @@ public:
   //! \details This version is typically used to expand eigenvectors.
   bool expandVector(const Vector& solVec, Vector& dofVec) const;
 
+  //! \brief Apply non-homogenous Dirichlet B.C's to vector
+  //! \param[out] dofVec Degrees of freedom vector, length = NDOF
+  //! \details This is typically used with explicit time integration.
+  bool applyDirichlet(Vector& dofVec) const;
+
   //! \brief Computes the dot-product of two vectors of length NDOF.
   //! \param[in] x The first vector of the dot-product
   //! \param[in] y The second vector of the dot-product

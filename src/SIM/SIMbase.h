@@ -259,6 +259,10 @@ public:
   //! \param[out] loadVec Global load vector in DOF-order
   bool extractLoadVec(Vector& loadVec) const;
 
+  //! \brief Apply dirichlet conditions to vector
+  //! \param[out] loadVec Global vector in DOF-order
+  bool applyDirichlet(Vector& loadVec) const;
+
   //! \brief Solves the assembled linear system of equations for a given load.
   //! \param[out] solution Global primary solution vector
   //! \param[in] printSol Print solution if its size is less than \a printSol

@@ -755,6 +755,25 @@ bool SAM::expandVector (const Real* solVec, Vector& dofVec, Real scaleSD) const
 }
 
 
+bool SAM::applyDirichlet (Vector& dofVec) const
+{
+  if (!meqn) return false;
+
+  for (int idof = 0; idof < ndof; idof++)
+  {
+    int iceq = -meqn[idof];
+    if (iceq > 0)
+    {
+      int ip = mpmceq[iceq-1];
+      dofVec[idof] = ttcc[ip-1];
+    }
+  }
+
+  return true;
+}
+
+
+
 Real SAM::dot (const Vector& x, const Vector& y, char dofType) const
 {
   if (nodeType.empty() || dofType == 'A')

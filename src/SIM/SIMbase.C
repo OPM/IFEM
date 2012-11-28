@@ -1461,6 +1461,13 @@ bool SIMbase::extractLoadVec (Vector& loadVec) const
 }
 
 
+bool SIMbase::applyDirichlet (Vector& loadVec) const
+{
+  // Apply non-homogenous Dirichlet B.C's to vector
+  return mySam->applyDirichlet(loadVec);
+}
+
+
 bool SIMbase::solveSystem (Vector& solution, int printSol,
 			   const char* compName, bool newLHS)
 {
