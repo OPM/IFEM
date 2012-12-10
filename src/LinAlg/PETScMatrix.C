@@ -514,6 +514,11 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
   }
 #endif
 #endif
+
+#ifndef SP_DEBUG > 0
+  // Do not abort program for allocation error in release mode
+  MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE);
+#endif
 }
 
 
