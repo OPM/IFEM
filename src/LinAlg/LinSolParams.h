@@ -66,8 +66,11 @@ public:
   //! \brief Set preconditioner
   virtual void setPreconditioner(PCType type) { prec.assign(type); }
 
+  //! \brief Set preconditioner for sub-block
+  virtual void setSubPreconditioner(PCType type, size_t i = 0) { subprec[i].assign(type); }
+
   //! \brief Set linear solver package
-  virtual void setPackage(MatSolverPackage stype) { package.assign(stype); }
+  virtual void setPackage(MatSolverPackage stype, size_t i = 0) { package[i].assign(stype); }
 
   //! \brief Set absolute convergence tolerance
   virtual void setAbsTolerance(Real eps) { atol = eps; }
@@ -82,23 +85,26 @@ public:
   virtual void setMaxIterations(int its) { maxIts = its; }
 
   //! \brief Set number of overlap
-  virtual void setOverlap(int olap) { overlap = olap; }
+  virtual void setOverlap(int olap, size_t i = 0) { overlap[i] = olap; }
 
   //! \brief Set number of local subdomains for each patch
-  virtual void setLocalPartitioning(size_t nx = 0, size_t ny = 0, size_t nz = 0)
-  { npart[0] = nx; npart[1] = ny; npart[2] = nz; }
+  virtual void setLocalPartitioning(size_t NX = 0, size_t NY = 0, size_t NZ = 0, size_t i = 0)
+  { nx[i] = NX; ny[i] = NY; nz[i] = NZ; }
 
   //! \brief Set null-space of matrix
-  virtual void setNullSpace(NullSpace nspc) { nullspc = nspc; }
+  virtual void setNullSpace(NullSpace nspc, size_t i = 0) { nullspc[i] = nspc; }
 
   //! \brief Get linear solver method
   virtual const char* getMethod() const { return method.c_str(); }
 
   //! \brief Get preconditioner
-  virtual const char* getPreconditioner() const { return prec.c_str(); }
+  virtual const char* getPreconditioner(size_t i = 0) const { return prec.c_str(); }
+
+  //! \brief Get preconditioner
+  virtual const char* getSubPreconditioner(size_t i = 0) const { return subprec[i].c_str(); }
 
   //! \brief Get linear solver package
-  virtual const char* getPackage() const { return package.c_str(); }
+  virtual const char* getPackage(size_t i = 0) const { return package[i].c_str(); }
 
   //! \brief Get absolute convergence tolerance
   virtual Real getAbsTolerance() const { return atol; }
@@ -113,10 +119,23 @@ public:
   virtual int getMaxIterations() const { return maxIts; }
 
   //! \brief Get number of overlaps
-  virtual int getOverlap() const { return overlap; }
+  virtual int getOverlap(int i = 0) const { return overlap[i]; }
 
   //! \brief Get local partitioning
-  virtual int getLocalPartitioning(size_t dir = 0) const { return npart[dir]; }
+  virtual int getLocalPartitioning(size_t dir = 0, size_t i = 0) const 
+  {
+    switch (dir) 
+    {
+      case 0:
+	return nx[i];
+      case 1:
+	return ny[i];
+      case 2:
+	return nz[i];
+      default:
+	return 0;
+    }
+  }  
 
   //! \brief Number of blocks in matrix system
   virtual int getNoBlocks() const { return nblock; }
@@ -125,30 +144,38 @@ public:
   virtual const std::vector<int>& getComponents() const { return ncomps; }
 
   //! \brief Get number of overlaps
-  virtual NullSpace getNullSpace() const { return nullspc; }
+  virtual NullSpace getNullSpace(size_t i = 0) const { return nullspc[i]; }
 
   //! \brief Set linear solver parameters for KSP object
   virtual void setParams(KSP& ksp, std::vector<std::vector<PetscInt> >& locSubdDofs,
 			 std::vector<std::vector<PetscInt> >& subdDofs) const;
 
 private:
-  std::string method;      // Linear solver method
-  std::string hypretype;   // Type of hypre preconditioner
-  std::string prec;        // Preconditioner
-  std::string package;     // Linear software package (petsc, superlu_dist, ...)
   PetscReal atol;          // Absolute tolerance
   PetscReal rtol;          // Relative tolerance
   PetscReal dtol;          // Divergence tolerance
-  PetscInt  levels;        // Number of levels of fill to use
   PetscInt  maxIts;        // Maximum number of iterations
-  PetscInt  overlap;       // Number of overlaps
-  int       npart[3];      // Number of local subdomains for each patch
-  NullSpace nullspc;       // Null-space for matrix
-  bool      asmlu;         // If LU-factorization should be used on subdomains
   int       nblock;        // Number of block
-  std::vector<std::string> subprec; // Preconditioner for blocks in block matrix
-  std::vector<bool> subasmlu;       // If LU-factorization should be used on subdomains for blocks
-  std::vector<int> ncomps;          // Components for each fields
+  bool      schur;         // Schur complement solver 
+  std::string                method;           // Linear solver method
+  std::string                prec;             // Preconditioner
+  std::vector<std::string>   subprec;          // Preconditioners for block-system
+  std::vector<std::string>   hypretype;        // Type of hypre preconditioner
+  std::vector<std::string>   package;          // Linear software package (petsc, superlu_dist, ...)
+  std::vector<bool>          asmlu;            // Use lu as subdomain solver
+  std::vector<int>           ncomps;           // Components for each fields in block-vector
+  std::vector<PetscInt>      overlap;          // Number of overlap in ASM
+  std::vector<PetscInt>      levels;           // Number of levels of fill to use
+  std::vector<PetscInt>      mglevels;         // Number of levels for MG
+  std::vector<PetscInt>      noPreSmooth;      // Number of presmoothings for AMG
+  std::vector<PetscInt>      noPostSmooth;     // Number of postsmoothings for AMG
+  std::vector<std::string>   presmoother;      // Presmoother for AMG
+  std::vector<std::string>   postsmoother;     // Postsmoother for AMG
+  std::vector<int>           maxCoarseSize;    // Max number of DOFS for coarse AMG system
+  std::vector<int>           nx;               // Number of local subdomains in first parameter direction
+  std::vector<int>           ny;               // Number of local subdomains in second parameter direction
+  std::vector<int>           nz;               // Number of local subdomains in third parameter direction
+  std::vector<NullSpace>     nullspc;           // Null-space for matrix
 
   friend class PETScMatrix;
   friend class PETScBlockMatrix;

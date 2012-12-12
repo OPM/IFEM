@@ -31,26 +31,27 @@ void LinSolParams::setDefault ()
 #ifdef HAS_PETSC
   // Use GMRES with ILU preconditioner as default
   method      = KSPGMRES;
-  hypretype   = "boomeramg";
   prec        = PCILU;
-  subprec.resize(2);
-  subprec[0]  = PCILU;
-  subprec[1]  = PCILU;
-  package     = MATSOLVERPETSC;
-  levels      = 0;
-  overlap     = 1;
-  npart[0]    = npart[1] = npart[2] = 0;
-  nullspc     = NONE;
-  asmlu       = false;
-  subasmlu.resize(2);
-  subasmlu[0] = false;
-  subasmlu[1] = false;
-  nblock      = 1;
-  ncomps.resize(2); 
-  ncomps[0]   = 2;
-  ncomps[1]   = 1;
+  subprec.resize(1,PCILU);
+  hypretype.resize(1,"boomeramg");
+  package.resize(1,MATSOLVERPETSC);
+  levels.resize(1,0);
+  mglevels.resize(1,1);
+  presmoother.resize(1,PCILU);
+  noPreSmooth.resize(1,1);
+  postsmoother.resize(1,PCILU);
+  noPostSmooth.resize(1,1);
+  maxCoarseSize.resize(1,1000);
+  overlap.resize(1,1);
+  nx.resize(1,0);
+  ny.resize(1,0);
+  nz.resize(1,0);
+  nullspc.resize(1,NONE);
+  asmlu.resize(1,false);
+  nblock   = 1;
+  schur    = false;
+  ncomps.resize(2); ncomps[0]   = 2; ncomps[1]   = 1;
     
-
   atol      = 1.0e-6;
   rtol      = 1.0e-6;
   dtol      = 1.0e3;
@@ -63,25 +64,27 @@ void LinSolParams::copy (const LinSolParams& spar)
 {
 #ifdef HAS_PETSC
   // Copy linear solver parameters
-  method      = spar.method;
-  hypretype   = spar.hypretype;
-  prec        = spar.prec;
-  subprec.resize(2);
-  subprec[0]  = spar.subprec[0];
-  subprec[1]  = spar.subprec[1];
-  package     = spar.package;
-  levels      = spar.levels;
-  overlap     = spar.overlap;
-  npart[0]    = spar.npart[0];
-  npart[1]    = spar.npart[1];
-  npart[2]    = spar.npart[2];               
-  nullspc     = spar.nullspc;
-  asmlu       = spar.asmlu;
-  subasmlu.resize(2);
-  subasmlu[0] = spar.subasmlu[0];
-  subasmlu[1] = spar.subasmlu[1];
-  nblock      = spar.nblock;
-  ncomps      = spar.ncomps;
+  method        = spar.method;
+  prec          = spar.prec;
+  subprec       = spar.subprec;
+  hypretype     = spar.hypretype;
+  package       = spar.package;
+  overlap       = spar.overlap;
+  levels        = spar.levels;
+  mglevels      = spar.mglevels;
+  presmoother   = spar.presmoother;
+  postsmoother  = spar.postsmoother;
+  noPreSmooth   = spar.noPreSmooth;
+  noPostSmooth  = spar.noPostSmooth;
+  maxCoarseSize = spar.maxCoarseSize;
+  overlap       = spar.overlap;
+  nx            = spar.nx;
+  ny            = spar.ny;
+  nz            = spar.nz;
+  nullspc       = spar.nullspc;
+  asmlu         = spar.asmlu;
+  nblock        = spar.nblock;
+  ncomps        = spar.ncomps;
 
   atol   = spar.atol;
   rtol   = spar.rtol;
@@ -110,7 +113,7 @@ bool LinSolParams::read (std::istream& is, int nparam)
       int j = 0;
       while (c[j] != EOF && c[j] != '\n' && c[j] != ' ' && c[j] != '\0') j++;
       prec.assign(c,j);
-      if ((asmlu = (prec.substr(0,5) == "asmlu")))
+      if ((asmlu[0] = (prec.substr(0,5) == "asmlu")))
 	prec = "asm";
     }
 
@@ -119,7 +122,7 @@ bool LinSolParams::read (std::istream& is, int nparam)
       for (++c; *c == ' '; c++);
       int j = 0;
       while (c[j] != EOF && c[j] != '\n' && c[j] != ' ' && c[j] != '\0') j++;
-      hypretype.assign(c,j);
+      hypretype[0].assign(c,j);
     }
 
     else if (!strncasecmp(cline,"package",7)) {
@@ -127,17 +130,17 @@ bool LinSolParams::read (std::istream& is, int nparam)
       for (++c; *c == ' '; c++);
       int j = 0;
       while (c[j] != EOF && c[j] != '\n' && c[j] != ' ' && c[j] != '\0') j++;
-      package.assign(c,j);
+      package[0].assign(c,j);
     }
 
     else if (!strncasecmp(cline,"levels",6)) {
       char* c = strchr(cline,'=');
-      levels = atoi(++c);
+      levels[0] = atoi(++c);
     }
 
     else if (!strncasecmp(cline,"overlap",7)) {
       char* c = strchr(cline,'=');
-      overlap = atoi(++c);
+      overlap[0] = atoi(++c);
     }
 
     else if (!strncasecmp(cline,"atol",4)) {
@@ -162,37 +165,17 @@ bool LinSolParams::read (std::istream& is, int nparam)
 
     else if (!strncasecmp(cline,"nx",2)) {
       char* c = strchr(cline,'=');
-      npart[0] = atoi(++c);
+      nx[0] = atoi(++c);
     }
 
     else if (!strncasecmp(cline,"ny",2)) {
       char* c = strchr(cline,'=');
-      npart[1] = atoi(++c);
+      ny[0] = atoi(++c);
     }
 
     else if (!strncasecmp(cline,"nz",2)) {
       char* c = strchr(cline,'=');
-      npart[2] = atoi(++c);
-    }
-
-    else if (!strncasecmp(cline,"subpc1",6)) {
-      char* c = strchr(cline,'=');
-      for (++c; *c == ' '; c++);
-      int j = 0;
-      while (c[j] != EOF && c[j] != '\n' && c[j] != ' ' && c[j] != '\0') j++;
-      subprec[0].assign(c,j);
-      if ((subasmlu[0] = (subprec[0].substr(0,5) == "asmlu")))
-	subprec[0] = "asm";
-    }
-
-    else if (!strncasecmp(cline,"subpc2",6)) {
-      char* c = strchr(cline,'=');
-      for (++c; *c == ' '; c++);
-      int j = 0;
-      while (c[j] != EOF && c[j] != '\n' && c[j] != ' ' && c[j] != '\0') j++;
-      subprec[1].assign(c,j);
-      if ((subasmlu[1] = (subprec[1].substr(0,5) == "asmlu")))
-	subprec[1] = "asm";
+      nz[0] = atoi(++c);
     }
 
     else if (!strncasecmp(cline,"ncomponents",11)) {
@@ -206,11 +189,11 @@ bool LinSolParams::read (std::istream& is, int nparam)
     else if (!strncasecmp(cline,"nullspace",6)) {
       char* c = strchr(cline,'=');
       if (!strncasecmp(c,"CONSTANT",8))
-	nullspc = CONSTANT;
+	nullspc[0] = CONSTANT;
       else if (!strncasecmp(c,"RIGID_BODY",10))
-	nullspc = RIGID_BODY;
+	nullspc[0] = RIGID_BODY;
       else
-	nullspc = NONE;
+	nullspc[0] = NONE;
     }
     else {
       std::cerr <<" *** LinSolParams::read: Unknown keyword: "
@@ -231,19 +214,84 @@ bool LinSolParams::read (const TiXmlElement* child)
   const char* value = 0;
   if ((value = utl::getValue(child,"type")))
     method = value;
-  else if ((value = utl::getValue(child,"pc")))
-  {
-    asmlu = !strncasecmp(value,"asmlu",5);
-    prec  = asmlu ? "asm" : value;
+  else if ((value = utl::getValue(child,"pc"))) {
+    prec = value;
+    if (!strncasecmp(prec.c_str(),"asmlu",5)) {
+      prec = "asm";
+      asmlu[0] = true;
+    }
   }
-  else if ((value = utl::getValue(child,"hypretype")))
-    hypretype = value;
-  else if ((value = utl::getValue(child,"package")))
-    package = value;
-  else if ((value = utl::getValue(child,"levels")))
-    levels = atoi(value);
-  else if ((value = utl::getValue(child,"overlap")))
-    overlap = atoi(value);
+  else if ((value = utl::getValue(child,"subpc"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<std::string> begin(this_line), end;
+    subprec.assign(begin,end);
+    asmlu.resize(subprec.size());
+    for (size_t i = 0;i < subprec.size();i++)
+      if (!strncasecmp(subprec[i].c_str(),"asmlu",5)) {
+	asmlu[i] = true;
+	subprec[i] = "asm";
+      }
+  }
+  else if ((value = utl::getValue(child,"hypretype"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<std::string> begin(this_line), end;
+    hypretype.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"package"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<std::string> begin(this_line), end;
+    package.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"levels"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<int> begin(this_line), end;
+    levels.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"mglevels"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<int> begin(this_line), end;
+    mglevels.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"noPreSmooth"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscInt> begin(this_line), end;
+    noPreSmooth.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"noPostSmooth"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscInt> begin(this_line), end;
+    noPostSmooth.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"presmoother"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<std::string> begin(this_line), end;
+    presmoother.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"postsmoother"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<std::string> begin(this_line), end;
+    postsmoother.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"overlap"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<int> begin(this_line), end;
+    overlap.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"nx"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<int> begin(this_line), end;
+    nx.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"ny"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<int> begin(this_line), end;
+    ny.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"nz"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<int> begin(this_line), end;
+    nz.assign(begin, end);
+  }
   else if ((value = utl::getValue(child,"atol")))
     atol = atof(value);
   else if ((value = utl::getValue(child,"rtol")))
@@ -252,34 +300,27 @@ bool LinSolParams::read (const TiXmlElement* child)
     dtol = atof(value);
   else if ((value = utl::getValue(child,"maxits")))
     maxIts = atoi(value);
-  else if ((value = utl::getValue(child,"nx")))
-    npart[0] = atoi(value);
-  else if ((value = utl::getValue(child,"ny")))
-    npart[1] = atoi(value);
-  else if ((value = utl::getValue(child,"nz")))
-    npart[2] = atoi(value);
+  else if ((value = utl::getValue(child,"maxCoarseSize"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<int> begin(this_line), end;
+    maxCoarseSize.assign(begin, end);
+  }
   else if ((value = utl::getValue(child,"ncomponents"))) {
     std::istringstream this_line(value);
     std::istream_iterator<int> begin(this_line), end;
     ncomps.assign(begin, end);
     nblock = ncomps.size();
   }
-  else if ((value = utl::getValue(child,"subpc"))) {
+  else if ((value = utl::getValue(child,"nullspace"))) {
     std::istringstream this_line(value);
     std::istream_iterator<std::string> begin(this_line), end;
-    subprec.assign(begin, end);
-    subasmlu.resize(subprec.size());
-    for (size_t i = 0;i < subprec.size();i++)
-      if (!strncasecmp(subprec[i].c_str(),"asmlu",5)) {
-	subasmlu[i] = true;
-	subprec[i] = "asm";
-      }
-  }
-  else if ((value = utl::getValue(child,"nullspace"))) {
-    if (!strcasecmp(value,"constant"))
-      nullspc = CONSTANT;
-    else if (!strcasecmp(value,"rigid_body"))
-      nullspc = RIGID_BODY;
+    std::istream_iterator<std::string> it;
+    for (it = begin;it != end;it++) {
+      if (!strcasecmp(it->c_str(),"constant"))
+	nullspc.push_back(CONSTANT);
+      else if (!strcasecmp(value,"rigid_body"))
+	nullspc.push_back(RIGID_BODY);
+    }
   }
   else
   {
@@ -312,17 +353,17 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
   PC pc;
   KSPGetPC(ksp,&pc);
   //PCSetType(pc,prec.c_str());
-  //PCFactorSetLevels(pc,levels);
-  //PCMGSetLevels(pc,levels,PETSC_NULL);
+  //PCFactorSetLevels(pc,levels[0]);
+  //PCMGSetLevels(pc,levels[0],PETSC_NULL);
   //PCMGSetType(pc,PC_MG_MULTIPLICATIVE);
   PCSetType(pc,prec.c_str());
 #if PETSC_HAVE_HYPRE
   if (!strncasecmp(prec.c_str(),"hypre",5))
-    PCHYPRESetType(pc,hypretype.c_str());
+    PCHYPRESetType(pc,hypretype[0].c_str());
 #endif
   if (!strncasecmp(prec.c_str(),"asm",3) ||!strncasecmp(prec.c_str(),"gasm",4)) {
     PCASMSetType(pc,PC_ASM_BASIC);
-    PCASMSetOverlap(pc,overlap);
+    PCASMSetOverlap(pc,overlap[0]);
   }
 
   if (!locSubdDofs.empty() && !subdDofs.empty()) {
@@ -336,14 +377,14 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
     PCASMSetLocalSubdomains(pc,nsubds,isSubdDofs,isLocSubdDofs);
   }
 
-  PCFactorSetMatSolverPackage(pc,package.c_str());
+  PCFactorSetMatSolverPackage(pc,package[0].c_str());
   // RUNAR
   //PCFactorSetShiftType(pc,MAT_SHIFT_NONZERO);
   PCSetFromOptions(pc);
   PCSetUp(pc);
 
   // If LU factorization is used on each subdomain
-  if (asmlu) {
+  if (asmlu[0]) {
     KSP* subksp;
     PC   subpc;
     PetscInt first, nlocal;
