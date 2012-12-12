@@ -1426,7 +1426,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             else
               ok = false;
 
-          else if (abs(p->ldim)+2 == myModel[j-1]->getNoSpaceDim())
+          else if ((abs(p->ldim) > 0) && (abs(p->ldim)+2 == myModel[j-1]->getNoSpaceDim()))
             if (it->first == 0 && this->initNeumann(p->pindx))
             {
               if (msgLevel > 1)
