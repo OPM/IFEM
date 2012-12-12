@@ -489,16 +489,16 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
   std::vector<int> nnz;
 
   // RUNAR
-  // if (sam.getNoDofCouplings(nnz)) {
-  //   std::vector<PetscInt> Nnz(nnz.size());
-  //   for (size_t i = 0; i < nnz.size(); i++) 
-  //     Nnz[i] = nnz[i];
-  //   MatSeqAIJSetPreallocation(A,PETSC_DEFAULT,&(Nnz[0]));
-  // }
-  // else {
+  if (sam.getNoDofCouplings(nnz)) {
+    std::vector<PetscInt> Nnz(nnz.size());
+    for (size_t i = 0; i < nnz.size(); i++) 
+      Nnz[i] = nnz[i];
+    MatSeqAIJSetPreallocation(A,PETSC_DEFAULT,&(Nnz[0]));
+  }
+  else {
     const PetscInt maxdofc = sam.getMaxDofCouplings();
     MatSeqAIJSetPreallocation(A,maxdofc,PETSC_NULL);
-    //}
+  }
 #ifdef USE_OPENMP
   // dummy assembly loop to avoid matrix resizes during assembly
   if (omp_get_max_threads() > 1) {
@@ -515,7 +515,7 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
 #endif
 #endif
 
-#ifndef SP_DEBUG > 0
+#ifndef SP_DEBUG 
   // Do not abort program for allocation error in release mode
   MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE);
 #endif

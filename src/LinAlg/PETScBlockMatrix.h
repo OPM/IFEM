@@ -262,6 +262,7 @@ public:
   { return matvec[i*nblocks+j]; }
 
  protected:
+  Mat    Sp;                          //!< Preconditioner for Schur block
   size_t nblocks;                     //!< Number of blocks
   IntVec ncomps;                      //!< Number of components
   IS* isvec;                          //!< Index set for blocks

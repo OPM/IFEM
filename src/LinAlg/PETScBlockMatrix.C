@@ -355,6 +355,9 @@ PETScBlockMatrix::~PETScBlockMatrix ()
   MatDestroy(PETSCMANGLE(A));
   LinAlgInit::decrefs();
 
+  // Deallocation of Schur matrix
+  MatDestroy(PETSCMANGLE(Sp));
+
   for (int i = 0;i < ISsize;i++)
     ISDestroy(PETSCMANGLE(elmIS[i]));
   delete elmIS;
@@ -585,6 +588,13 @@ void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
   }
 
   MatCreateNest(PETSC_COMM_WORLD,nblocks,isvec,nblocks,isvec,matvec,&A);
+
+#ifndef SP_DEBUG 
+  // Do not abort program for allocation error in release mode
+  for (size_t i = 0;i < nblocks*nblocks;i++)
+    MatSetOption(matvec[i],MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE);
+#endif
+
 }
 
 
@@ -906,12 +916,11 @@ void PETScBlockMatrix::setParameters()
   PC pc;
   KSPGetPC(ksp,&pc);
   PCSetType(pc,solParams.prec.c_str());
-  PCFactorSetMatSolverPackage(pc,solParams.package.c_str());
+  //PCFactorSetMatSolverPackage(pc,solParams.package[0].c_str());
   if (!strncasecmp(solParams.prec.c_str(),"fieldsplit",10)) {
     PetscInt m1, m2, n1, n2, nr, nc, nsplit;
-    KSP* subksp;
-    PC   subpc;
-    Mat Sp;
+    KSP  *subksp;
+    PC   subpc[2];
     Vec diagA00;
     MatGetLocalSize(matvec[0],&m1,&n1);
     MatGetLocalSize(matvec[3],&m2,&n2);
@@ -934,78 +943,87 @@ void PETScBlockMatrix::setParameters()
     PCFieldSplitSetIS(pc,"p",isvec[1]);
     PCFieldSplitSetType(pc,PC_COMPOSITE_SCHUR);
     PCFieldSplitSetSchurFactType(pc,PC_FIELDSPLIT_SCHUR_FACT_UPPER);
-    PCFieldSplitSchurPrecondition(pc,PC_FIELDSPLIT_SCHUR_PRE_USER,Sp);
+    //PCFieldSplitSchurPrecondition(pc,PC_FIELDSPLIT_SCHUR_PRE_USER,Sp);
     PCSetFromOptions(pc);
     PCSetUp(pc);
     PCFieldSplitGetSubKSP(pc,&nsplit,&subksp);
-    KSPGetPC(subksp[0],&subpc);
-    PCSetType(subpc,solParams.subprec[0].c_str());
-    PCFactorSetLevels(subpc,solParams.levels);
-    KSPSetType(subksp[0],"preonly");
-    if (!strncasecmp(solParams.subprec[0].c_str(),"asm",3)) {
-      PCASMSetType(subpc,PC_ASM_BASIC);
-      PCASMSetOverlap(subpc,solParams.overlap);
-      if (!locSubdDofsBlock.empty() && !subdDofsBlock.empty()) {
-	const size_t nsubds = subdDofsBlock[0].size();
-	
-	IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
-	for (size_t i = 0;i < nsubds;i++) {
-	  ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofsBlock[0][i].size(),&(locSubdDofsBlock[0][i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
-	  ISCreateGeneral(PETSC_COMM_WORLD,subdDofsBlock[0][i].size(),&(subdDofsBlock[0][i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
-	}
-	PCASMSetLocalSubdomains(subpc,nsubds,isSubdDofs,isLocSubdDofs);
-      }
+    KSPSetOperators(subksp[1],Sp,Sp,SAME_PRECONDITIONER);
 
-      if (solParams.subasmlu[0]) {
-	KSP* subksp;
-	PC   subsubpc;
-	PetscInt first, nlocal;
-	PCSetUp(subpc);
-	PCASMGetSubKSP(subpc,&nlocal,&first,&subksp);
+    // Preconditioner for block 1
+    for (size_t m = 0;m < nsplit;m++) {
+      KSPSetType(subksp[m],"preonly");
+      KSPGetPC(subksp[m],&subpc[m]);
+      PCSetType(subpc[m],solParams.subprec[m].c_str());
+      PCFactorSetLevels(subpc[m],solParams.levels[m]);
+      if (!strncasecmp(solParams.subprec[m].c_str(),"asm",3)) {
+	PCASMSetType(subpc[m],PC_ASM_BASIC);
+	PCASMSetOverlap(subpc[m],solParams.overlap[m]);
+	if (!locSubdDofsBlock.empty() && !subdDofsBlock.empty()) {
+	  const size_t nsubds = subdDofsBlock[m].size();
+	  
+	  IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
+	  for (size_t i = 0;i < nsubds;i++) {
+	    ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofsBlock[1][i].size(),&(locSubdDofsBlock[1][i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
+	    ISCreateGeneral(PETSC_COMM_WORLD,subdDofsBlock[1][i].size(),&(subdDofsBlock[1][i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
+	  }
+	  PCASMSetLocalSubdomains(subpc[m],nsubds,isSubdDofs,isLocSubdDofs);
+	}
 	
-	for (int i = 0; i < nlocal; i++) {
-	  KSPGetPC(subksp[i],&subsubpc);
-	  PCSetType(subsubpc,PCLU);
-	  KSPSetType(subksp[i],KSPPREONLY);
+	if (solParams.asmlu[m]) {
+	  KSP* subksp;
+	  PC   subsubpc;
+	  PetscInt first, nlocal;
+	  PCSetUp(subpc[m]);
+	  PCASMGetSubKSP(subpc[m],&nlocal,&first,&subksp);
+	  
+	  for (int i = 0; i < nlocal; i++) {
+	    KSPGetPC(subksp[i],&subsubpc);
+	    PCSetType(subsubpc,PCLU);
+	    KSPSetType(subksp[i],KSPPREONLY);
+	  }
 	}
       }
+      else if (!strncasecmp(solParams.subprec[m].c_str(),"ml",2)) {
+	PetscInt n;
+	
+	PCMGSetLevels(subpc[m],solParams.mglevels[m], PETSC_NULL);
+	//PetscOptionsSetValue("-pc_mg_levels","2");
+	//PCMGSetType(subpc[1],PC_MG_ADDITIVE);
+	//PCMGSetNumberSmoothDown(subpc[m],noPreSmooth[m]);
+	//PCMGSetNumberSmoothUp(subpc[m],noPostSmooth[m]);
+	//PetscOptionsSetValue("-fieldsplit_p_pc_ml_maxNLevels","2");
+	PetscOptionsSetValue("-fieldsplit_p_pc_ml_maxCoarseSize","20000");
+	PCSetFromOptions(subpc[m]);
+	PCSetUp(subpc[m]);
+	KSPSetUp(subksp[m]);
+	PCMGGetLevels(subpc[m],&n);
+	
+	for (int i = 1;i < n;i++) {
+	  KSP preksp;
+	  PC  prepc;
+	  // Not working for some reason
+	  //PCMGGetSmootherDown(subpc[m],i,&preksp);
+	  PCMGGetSmoother(subpc[m],i,&preksp);
+	  KSPSetType(preksp,"richardson");
+	  KSPSetTolerances(preksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,solParams.noPreSmooth[m]);
+	  KSPGetPC(preksp,&prepc);
+	  PCSetType(prepc,solParams.presmoother[m].c_str());
+	  PCFactorSetLevels(prepc,solParams.levels[m]);
+	  KSPSetUp(preksp);
+	  
+	  KSP postksp;
+	  PC  postpc;
+	  PCMGGetSmootherUp(subpc[m],i,&postksp);
+	  KSPSetType(postksp,"richardson");
+	  KSPSetTolerances(postksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,solParams.noPostSmooth[m]);
+	  KSPGetPC(postksp,&postpc);
+	  PCSetType(postpc,solParams.postsmoother[m].c_str());
+	  PCFactorSetLevels(postpc,solParams.levels[m]);
+	  KSPSetUp(postksp);
+	}
+      }      
     }
-
-    // Schwarz preconditioner for Schur system
-    
-    KSPGetPC(subksp[1],&subpc);
-    PCSetType(subpc,solParams.subprec[1].c_str());
-    PCFactorSetLevels(subpc,solParams.levels);
-    KSPSetType(subksp[1],"preonly");
-    if (!strncasecmp(solParams.subprec[1].c_str(),"asm",3)) {
-      PCASMSetType(subpc,PC_ASM_BASIC);
-      PCASMSetOverlap(subpc,solParams.overlap);
-      if (!locSubdDofsBlock.empty() && !subdDofsBlock.empty()) {
-	const size_t nsubds = subdDofsBlock[1].size();
-	
-	IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
-	for (size_t i = 0;i < nsubds;i++) {
-	  ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofsBlock[1][i].size(),&(locSubdDofsBlock[1][i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
-	  ISCreateGeneral(PETSC_COMM_WORLD,subdDofsBlock[1][i].size(),&(subdDofsBlock[1][i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
-	}
-	PCASMSetLocalSubdomains(subpc,nsubds,isSubdDofs,isLocSubdDofs);
-      }
-
-      if (solParams.subasmlu[1]) {
-	KSP* subksp;
-	PC   subsubpc;
-	PetscInt first, nlocal;
-	PCSetUp(subpc);
-	PCASMGetSubKSP(subpc,&nlocal,&first,&subksp);
-	
-	for (int i = 0; i < nlocal; i++) {
-	  KSPGetPC(subksp[i],&subsubpc);
-	  PCSetType(subsubpc,PCLU);
-	  KSPSetType(subksp[i],KSPPREONLY);
-	}
-      }
-    }
-  } 
+  }
   else {
     PCSetFromOptions(pc);
     PCSetUp(pc);
