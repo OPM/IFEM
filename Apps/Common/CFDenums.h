@@ -25,7 +25,9 @@ namespace CFD //! CFD scope
     STRESS     = 2,
     RANS       = 4,
     BOUSSINESQ = 8,
-    ALE        = 16
+    ALE        = 16,
+    SUPG       = 32,
+    VMS        = 64
   };
 }
 
