@@ -28,10 +28,9 @@ public:
   enum { dimension = 1 };
 
   //! \brief Default constructor.
-  //! \param[in] n_f Number of components in the primary solution field
-  //! \param[in] n2 Dummy
-  //! \param[in] check Dummy
-  SIM1D(unsigned char n_f = 1, unsigned char n2 = 0, bool check = false);
+  //! \param[in] n1 Dimension of the primary solution field
+  //! \param[in] n2 Dimension of the second solution field (mixed method)
+  SIM1D(unsigned char n1 = 1, unsigned char n2 = 0, bool = false);
   //! \brief Empty destructor.
   virtual ~SIM1D() {}
 
@@ -58,8 +57,9 @@ protected:
 
   //! \brief Reads patches from given input stream.
   //! \param[in] isp The input stream to read from
+  //! \param[out] patches Array of patches that were read
   //! \param[in] whiteSpace For message formatting
-  virtual bool readPatches(std::istream& isp, PatchVec& vec,
+  virtual bool readPatches(std::istream& isp, PatchVec& patches,
                            const char* whiteSpace);
 
   //! \brief Preprocesses a user-defined Dirichlet boundary property.

@@ -37,9 +37,9 @@ public:
   //! \brief Destruction method to clean up after numerical integration.
   virtual void destruct() { delete elmData; delete this; }
 
-  GlbL2&         gl2Int;  //! The global L2 projection integrand
-  LocalIntegral* elmData; //! Element data associated with the problem integrand
-  IntVec         mnpc;    //! Matrix of element nodal correspondance
+  GlbL2&         gl2Int;  //!< The global L2 projection integrand
+  LocalIntegral* elmData; //!< Element data associated with problem integrand
+  IntVec         mnpc;    //!< Matrix of element nodal correspondance
 };
 
 

@@ -28,12 +28,12 @@ namespace ASM //! Assembly scope
     SplineC1 = 4
   };
 
-  //! \brief Operations to applied after summing norm element contributions.
+  //! \brief Operations to be applied after summing norm element contributions.
   enum FinalNormOp
-  { 
-    NONE,
-    ABS, 
-    SQRT
+  {
+    NONE = 0,
+    ABS  = 1,
+    SQRT = 2
   };
 }
 

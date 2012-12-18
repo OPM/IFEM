@@ -259,9 +259,9 @@ public:
   //! \param[out] loadVec Global load vector in DOF-order
   bool extractLoadVec(Vector& loadVec) const;
 
-  //! \brief Apply dirichlet conditions to vector
-  //! \param[out] loadVec Global vector in DOF-order
-  bool applyDirichlet(Vector& loadVec) const;
+  //! \brief Applies the Dirichlet conditions to given vector.
+  //! \param[out] glbVec Global vector in DOF-order
+  bool applyDirichlet(Vector& glbVec) const;
 
   //! \brief Solves the assembled linear system of equations for a given load.
   //! \param[out] solution Global primary solution vector
@@ -347,9 +347,10 @@ public:
   virtual std::ostream& printNorms(const Vectors&, std::ostream& os)
   { return os; }
 
-  //! \brief Print a summary of the calculated solution
-  //! \param[in] solution The solution
+  //! \brief Prints a summary of the calculated solution to std::cout.
+  //! \param[in] solution The solution vector
   //! \param[in] printSol Printing level. \sa solveSystem
+  //! \param[in] compName Solution name to be used in norm output
   void printSolutionSummary(const Vector& solution, int printSol,
                             const char* compName);
 
@@ -698,9 +699,9 @@ protected:
 
   //! \brief Reads patches from given input stream.
   //! \param[in] isp The input stream to read from
-  //! \param[out] vec Array of spline patches that were read
+  //! \param[out] patches Array of patches that were read
   //! \param[in] whiteSpace For message formatting
-  virtual bool readPatches(std::istream& isp, PatchVec& vec,
+  virtual bool readPatches(std::istream& isp, PatchVec& patches,
                            const char* whiteSpace = "") = 0;
   //! \brief Reads global node data for a patch from given input stream.
   //! \param[in] isn The input stream to read from

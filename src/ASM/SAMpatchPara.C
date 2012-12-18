@@ -143,7 +143,7 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
   }
 
   // Generate nnz for off-diagonal block
-  std::vector<PetscInt> l2g(ndof);
+  PetscIntVec l2g(ndof);
   RealArray nnz(ndof);
   for (i = 0; i < ndof; i++) {
     l2g[i] = meqn[i]-1;
@@ -178,9 +178,10 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
 
 
 
-bool SAMpatchPara::getNoDofCouplings(int ifirst, int ilast, IntVec ncomps,
-				     std::vector<std::vector<IntVec> >& d_nnz, 
-				     std::vector<std::vector<IntVec> >& o_nnz) const
+bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
+				      const IntVec& ncomps,
+				      std::vector<IntMat>& d_nnz,
+				      std::vector<IntMat>& o_nnz) const
 {
   // Find number of dofs per row for each submatrix
   size_t nblock = ncomps.size();
@@ -296,7 +297,7 @@ bool SAMpatchPara::getNoDofCouplings(int ifirst, int ilast, IntVec ncomps,
       o_nnz[i][j].resize(nlocnode*ncomps[i]);
     
       RealArray nnz(nnod*ncomps[i]);
-      std::vector<PetscInt> l2g(nnod*ncomps[i]);
+      PetscIntVec l2g(nnod*ncomps[i]);
 
       for (int k = 0; k < nnod; k++) {
 	size_t bdof = k*ncomps[i];
@@ -380,7 +381,7 @@ bool SAMpatchPara::assembleSystem (SystemVector& sysRHS,
   PETScVector* pvec = dynamic_cast<PETScVector*>(&sysRHS);
   if (!pvec) return false;
 
-  std::vector<PetscInt> L2g(l2g.size());
+  PetscIntVec L2g(l2g.size());
   for (i = 0; i < l2g.size(); i++)
     L2g[i] = l2g[i];
 
@@ -762,7 +763,7 @@ bool SAMpatchPara::initSystemEquations ()
 
 #ifdef PARALLEL_PETSC
   // Generate 0-based local-to-global dof mapping
-  std::vector<PetscInt> l2g(ndof);
+  PetscIntVec l2g(ndof);
   for (i = 0; i < ndof; i++)
     l2g[i] = meqn[i]-1;
 
@@ -782,8 +783,8 @@ bool SAMpatchPara::initSystemEquations ()
 }
 
 
-bool SAMpatchPara::getLocalSubdomains(std::vector<PetscIntVec>& locSubds,
-				      int nx, int ny, int nz) const
+bool SAMpatchPara::getLocalSubdomains (PetscIntMat& locSubds,
+				       int nx, int ny, int nz) const
 {
   // Define some parameters
   const int npatch = patch.size();
@@ -853,8 +854,9 @@ bool SAMpatchPara::getLocalSubdomains(std::vector<PetscIntVec>& locSubds,
 }
 
 
-bool SAMpatchPara::getLocalSubdomainsBlock(std::vector<PetscIntVec>& locSubds, int f1, int f2,
-					   int nx, int ny, int nz) const
+bool SAMpatchPara::getLocalSubdomainsBlock (PetscIntMat& locSubds,
+					    int f1, int f2,
+					    int nx, int ny, int nz) const
 {
   // Define some parameters
   const int npatch = patch.size();
@@ -924,8 +926,8 @@ bool SAMpatchPara::getLocalSubdomainsBlock(std::vector<PetscIntVec>& locSubds, i
 }
 
 
-bool SAMpatchPara::getSubdomains(std::vector<PetscIntVec>& subds, int overlap,
-				 int nx, int ny, int nz) const
+bool SAMpatchPara::getSubdomains (PetscIntMat& subds, int overlap,
+				  int nx, int ny, int nz) const
 {
   // Define some parameters
   const int npatch = patch.size();
@@ -956,8 +958,8 @@ bool SAMpatchPara::getSubdomains(std::vector<PetscIntVec>& subds, int overlap,
 }
 
 
-bool SAMpatchPara::getSubdomainsBlock(std::vector<PetscIntVec>& subds, int f1, int f2, 
-				      int overlap, int nx, int ny, int nz) const
+bool SAMpatchPara::getSubdomainsBlock (PetscIntMat& subds, int f1, int f2,
+				       int overlap, int nx, int ny, int nz) const
 {
   // Define some parameters
   const int npatch = patch.size();
@@ -988,8 +990,10 @@ bool SAMpatchPara::getSubdomainsBlock(std::vector<PetscIntVec>& subds, int f1, i
 }
 
 
-bool SAMpatchPara::getLocalSubdomains1D(IntVec& nxvec, IntVec& minNodeId, IntVec& maxNodeId, 
-					std::vector<PetscIntVec>& locSubds)  const
+bool SAMpatchPara::getLocalSubdomains1D (const IntVec& nxvec,
+					 const IntVec& minNodeId,
+					 const IntVec& maxNodeId,
+					 PetscIntMat& locSubds) const
 {
   // Define some parameters
   const size_t npatch = patch.size();
@@ -1039,8 +1043,11 @@ bool SAMpatchPara::getLocalSubdomains1D(IntVec& nxvec, IntVec& minNodeId, IntVec
 }
 
 
-bool SAMpatchPara::getLocalSubdomains2D(IntVec& nxvec, IntVec& nyvec, IntVec& minNodeId, 
-					IntVec& maxNodeId, std::vector<PetscIntVec>& locSubds) const 
+bool SAMpatchPara::getLocalSubdomains2D (const IntVec& nxvec,
+					 const IntVec& nyvec,
+					 const IntVec& minNodeId,
+					 const IntVec& maxNodeId,
+					 PetscIntMat& locSubds) const
 {
   // Define some parameters
   const size_t npatch = patch.size();
@@ -1102,9 +1109,12 @@ bool SAMpatchPara::getLocalSubdomains2D(IntVec& nxvec, IntVec& nyvec, IntVec& mi
 }
 
 
-bool SAMpatchPara::getLocalSubdomains3D(IntVec& nxvec, IntVec& nyvec, IntVec& nzvec,
-					IntVec& minNodeId, IntVec& maxNodeId, 
-					std::vector<PetscIntVec>& locSubds)  const  
+bool SAMpatchPara::getLocalSubdomains3D (const IntVec& nxvec,
+					 const IntVec& nyvec,
+					 const IntVec& nzvec,
+					 const IntVec& minNodeId,
+					 const IntVec& maxNodeId,
+					 PetscIntMat& locSubds) const
 {
   // Define some parameters
   const size_t npatch = patch.size();
@@ -1176,7 +1186,8 @@ bool SAMpatchPara::getLocalSubdomains3D(IntVec& nxvec, IntVec& nyvec, IntVec& nz
 }
 
 
-bool SAMpatchPara::getSubdomains1D(IntVec& nxvec, int overlap, std::vector<PetscIntVec>& subds)  const
+bool SAMpatchPara::getSubdomains1D (const IntVec& nxvec, int overlap,
+				    PetscIntMat& subds) const
 {
   // Define some parameters
   const size_t npatch = patch.size();
@@ -1229,8 +1240,9 @@ bool SAMpatchPara::getSubdomains1D(IntVec& nxvec, int overlap, std::vector<Petsc
 }
 
 
-bool SAMpatchPara::getSubdomains2D(IntVec& nxvec, IntVec& nyvec, int overlap,
-				   std::vector<PetscIntVec>& subds) const 
+bool SAMpatchPara::getSubdomains2D (const IntVec& nxvec,
+				    const IntVec& nyvec, int overlap,
+				    PetscIntMat& subds) const
 {
   // Define some parameters
   const size_t npatch = patch.size();
@@ -1297,8 +1309,10 @@ bool SAMpatchPara::getSubdomains2D(IntVec& nxvec, IntVec& nyvec, int overlap,
 }
 
 
-bool SAMpatchPara::getSubdomains3D(IntVec& nxvec, IntVec& nyvec, IntVec& nzvec,
-				   int overlap, std::vector<PetscIntVec>& subds)  const  
+bool SAMpatchPara::getSubdomains3D (const IntVec& nxvec,
+				    const IntVec& nyvec,
+				    const IntVec& nzvec, int overlap,
+				    PetscIntMat& subds) const
 {
   // Define some parameters
   const size_t npatch = patch.size();
@@ -1375,8 +1389,11 @@ bool SAMpatchPara::getSubdomains3D(IntVec& nxvec, IntVec& nyvec, IntVec& nzvec,
 }
 
 
-bool SAMpatchPara::getLocalSubdomains1D(std::vector<PetscIntVec>& locSubds, IntVec& nxvec, 
-					IntVec& minNodeId, IntVec& maxNodeId, int f1, int f2)  const
+bool SAMpatchPara::getLocalSubdomains1D (PetscIntMat& locSubds,
+					 const IntVec& nxvec,
+					 const IntVec& minNodeId,
+					 const IntVec& maxNodeId,
+					 int f1, int f2) const
 {
   // Define some parameters
   const size_t npatch = patch.size();
@@ -1430,8 +1447,12 @@ bool SAMpatchPara::getLocalSubdomains1D(std::vector<PetscIntVec>& locSubds, IntV
 }
 
 
-bool SAMpatchPara::getLocalSubdomains2D(std::vector<PetscIntVec>& locSubds, IntVec& nxvec, IntVec& nyvec, 
-					IntVec& minNodeId, IntVec& maxNodeId, int f1, int f2) const 
+bool SAMpatchPara::getLocalSubdomains2D (PetscIntMat& locSubds,
+					 const IntVec& nxvec,
+					 const IntVec& nyvec,
+					 const IntVec& minNodeId,
+					 const IntVec& maxNodeId,
+					 int f1, int f2) const
 {
   // Define some parameters
   const size_t npatch = patch.size();
@@ -1497,8 +1518,13 @@ bool SAMpatchPara::getLocalSubdomains2D(std::vector<PetscIntVec>& locSubds, IntV
 }
 
 
-bool SAMpatchPara::getLocalSubdomains3D(std::vector<PetscIntVec>& locSubds, IntVec& nxvec, IntVec& nyvec, IntVec& nzvec,
-					IntVec& minNodeId, IntVec& maxNodeId, int f1, int f2)  const  
+bool SAMpatchPara::getLocalSubdomains3D (PetscIntMat& locSubds,
+					 const IntVec& nxvec,
+					 const IntVec& nyvec,
+					 const IntVec& nzvec,
+					 const IntVec& minNodeId,
+					 const IntVec& maxNodeId,
+					 int f1, int f2) const
 {
   // Define some parameters
   const size_t npatch = patch.size();
@@ -1574,7 +1600,9 @@ bool SAMpatchPara::getLocalSubdomains3D(std::vector<PetscIntVec>& locSubds, IntV
 }
 
 
-bool SAMpatchPara::getSubdomains1D(std::vector<PetscIntVec>& subds, IntVec& nxvec, int overlap, int f1, int f2)  const
+bool SAMpatchPara::getSubdomains1D (PetscIntMat& subds,
+				    const IntVec& nxvec,
+				    int overlap, int f1, int f2) const
 {
   // Define some parameters
   const size_t npatch = patch.size();
@@ -1630,8 +1658,10 @@ bool SAMpatchPara::getSubdomains1D(std::vector<PetscIntVec>& subds, IntVec& nxve
 }
 
 
-bool SAMpatchPara::getSubdomains2D(std::vector<PetscIntVec>& subds, IntVec& nxvec, IntVec& nyvec, 
-				   int overlap, int f1, int f2) const 
+bool SAMpatchPara::getSubdomains2D (PetscIntMat& subds,
+				    const IntVec& nxvec,
+				    const IntVec& nyvec,
+				    int overlap, int f1, int f2) const
 {
   // Define some parameters
   const size_t npatch = patch.size();
@@ -1704,8 +1734,11 @@ bool SAMpatchPara::getSubdomains2D(std::vector<PetscIntVec>& subds, IntVec& nxve
 }
 
 
-bool SAMpatchPara::getSubdomains3D(std::vector<PetscIntVec>& subds, IntVec& nxvec, IntVec& nyvec, IntVec& nzvec,
-				   int overlap, int f1, int f2)  const  
+bool SAMpatchPara::getSubdomains3D (PetscIntMat& subds,
+				    const IntVec& nxvec,
+				    const IntVec& nyvec,
+				    const IntVec& nzvec,
+				    int overlap, int f1, int f2) const
 {
   // Define some parameters
   const size_t npatch = patch.size();

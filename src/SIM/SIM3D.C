@@ -661,7 +661,7 @@ ASMbase* SIM3D::readPatch (std::istream& isp, int pchInd) const
 }
 
 
-bool SIM3D::readPatches (std::istream& isp, PatchVec& myModel,
+bool SIM3D::readPatches (std::istream& isp, PatchVec& patches,
                          const char* whiteSpace)
 {
   ASMs3D* pch = 0;
@@ -697,8 +697,8 @@ bool SIM3D::readPatches (std::istream& isp, PatchVec& myModel,
     {
       if (checkRHSys)
 	pch->checkRightHandSystem();
-      pch->idx = myModel.size();
-      myModel.push_back(pch);
+      pch->idx = patches.size();
+      patches.push_back(pch);
     }
   }
 

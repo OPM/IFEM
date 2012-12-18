@@ -32,8 +32,7 @@ public:
   //! \brief Default constructor.
   //! \param[in] n1 Dimension of the primary solution field
   //! \param[in] n2 Dimension of the second solution field (mixed method)
-  //! \param[in] check Dummy
-  SIM2D(unsigned char n1 = 2, unsigned char n2 = 0, bool check = false);
+  SIM2D(unsigned char n1 = 2, unsigned char n2 = 0, bool = false);
   //! \brief Empty destructor.
   virtual ~SIM2D() {}
 
@@ -65,9 +64,10 @@ protected:
 
   //! \brief Reads patches from given input stream.
   //! \param[in] isp The input stream to read from
+  //! \param[out] patches Array of patches that were read
   //! \param[in] whiteSpace For message formatting
-  virtual bool readPatches(std::istream& isp, PatchVec& vec,
-                           const char* whiteSpace = "");
+  virtual bool readPatches(std::istream& isp, PatchVec& patches,
+                           const char* whiteSpace);
   //! \brief Reads global node data for a patch from given input stream.
   //! \param[in] isn The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read node data for

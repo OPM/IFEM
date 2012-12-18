@@ -20,9 +20,9 @@
 #include "tinyxml.h"
 
 
-SIM1D::SIM1D (unsigned char n_f, unsigned char dummy1, bool dummy2)
+SIM1D::SIM1D (unsigned char n1, unsigned char n2, bool)
 {
-  nf = n_f;
+  nf = n1;
 }
 
 
@@ -436,7 +436,7 @@ ASMbase* SIM1D::readPatch (std::istream& isp, int pchInd) const
 }
 
 
-bool SIM1D::readPatches (std::istream& isp, PatchVec& myModel,
+bool SIM1D::readPatches (std::istream& isp, PatchVec& patches,
                          const char* whiteSpace)
 {
   ASMbase* pch = 0;
@@ -464,8 +464,8 @@ bool SIM1D::readPatches (std::istream& isp, PatchVec& myModel,
       delete pch;
     else
     {
-      pch->idx = myModel.size();
-      myModel.push_back(pch);
+      pch->idx = patches.size();
+      patches.push_back(pch);
     }
   }
 

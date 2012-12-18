@@ -42,7 +42,7 @@ struct Interface
 };
 
 
-SIM2D::SIM2D (unsigned char n1, unsigned char n2, bool dummy) : isRefined(false)
+SIM2D::SIM2D (unsigned char n1, unsigned char n2, bool) : isRefined(false)
 {
   nf[0] = n1;
   nf[1] = n2;
@@ -580,7 +580,7 @@ ASMbase* SIM2D::readPatch (std::istream& isp, int pchInd) const
     if (!pch->read(isp))
       delete pch, pch = NULL;
     else if (pch->empty() || this->getLocalPatchIndex(pchInd+1) < 1)
-      delete pch, pch=NULL;
+      delete pch, pch = NULL;
     else
       pch->idx = myModel.size();
   }
@@ -589,7 +589,7 @@ ASMbase* SIM2D::readPatch (std::istream& isp, int pchInd) const
 }
 
 
-bool SIM2D::readPatches (std::istream& isp, PatchVec& myModel,
+bool SIM2D::readPatches (std::istream& isp, PatchVec& patches,
                          const char* whiteSpace)
 {
   ASMbase* pch = 0;
@@ -606,8 +606,8 @@ bool SIM2D::readPatches (std::istream& isp, PatchVec& myModel,
         delete pch;
       else
       {
-        pch->idx = myModel.size();
-        myModel.push_back(pch);
+        pch->idx = patches.size();
+        patches.push_back(pch);
       }
     }
 

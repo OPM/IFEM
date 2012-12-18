@@ -15,6 +15,7 @@
 #include "ASMbase.h"
 #include "MPC.h"
 
+
 bool SAMpatch::init (const ASMVec& model, int numNod)
 {
   // Initialize some model size parameters
@@ -123,9 +124,8 @@ bool SAMpatch::initNodeDofs (const ASMVec& model)
 
   if (ierr == 0) return true;
 
-  std::cerr <<" *** SAMpatch::initNodeDOFs: Detected "<< ierr <<" nodes"
-	    <<" nodes with conflicting number of DOFs in adjacent patches."
-	    << std::endl;
+  std::cerr <<" *** SAMpatch::initNodeDOFs: Detected "<< ierr <<" nodes with"
+	    <<" conflicting number of DOFs in adjacent patches."<< std::endl;
   return false;
 }
 
@@ -327,4 +327,3 @@ bool SAMpatch::updateConstraintEqs (const ASMVec& model, const Vector* prevSol)
 
   return true;
 }
-

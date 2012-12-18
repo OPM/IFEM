@@ -163,12 +163,15 @@ namespace utl
   //! input. If this is not the case the method will deliver incorrect result.
   size_t find_closest(const std::vector<Real>& a, Real v);
 
-  //! \brief Prints a string stream to a ostream, making sure to flush
-  //!        the ostream across all processes up front
-  //! \param[in/out] out The ostream to print to
+  //! \brief Prints a string stream to an output stream.
+  //! \param out The output stream to print to
   //! \param[in] str The string stream to print
-  //! \param[in] pid The PID of this process. Only process 0 will print
-  void printSyncronized(std::ostream& out, const std::stringstream& str, int pid);
+  //! \param[in] pid The PID of this process. Only process 0 will print.
+  //!
+  //! \details This method makes sure to flush the output stream
+  //! across all processes up front.
+  void printSyncronized(std::ostream& out,
+                        const std::stringstream& str, int pid);
 }
 
 #endif

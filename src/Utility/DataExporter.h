@@ -48,18 +48,17 @@ class DataExporter
   struct FileEntry {
     std::string description; //!< The description of the field
     FieldType   field;       //!< The type of the field
-    int         results;     //!< Which results to store. 
+    int         results;     //!< \brief Which results to store.
                              //! \details A negative value indicates that we
-                             //!          want to use the description as name
-                             //!          for the primary vector, not the name 
-                             //!          from the Integrand
+                             //! want to use the description as name for the
+                             //! primary vector, not the name of the Integrand.
     const void* data;        //!< Pointer to the primary data (e.g. a SIM class)
     const void* data2;       //!< Pointer to the secondary data (e.g. a vector)
     std::string prefix;      //!< Field name prefix
   };
 
   //! \brief Default constructor.
-  //! \param[in] dynWriters If \e true, delete the writers on destruction.
+  //! \param[in] dynWriters If \e true, delete the writers on destruction
   //! \param[in] ndump Interval between dumps
   //! \param[in] order The temporal order of simulations
   //! (always dumps order solutions in a row)
@@ -78,24 +77,24 @@ class DataExporter
   //! \param[in] prefix Field name prefix
   bool registerField(const std::string& name,
                      const std::string& description,
-                     FieldType field, int results = PRIMARY,
+                     FieldType field, int results=PRIMARY,
                      const std::string& prefix="");
 
-  //! \brief Register a data writer
-  //! \param[in] writer A pointer to the datawriter we want registered
-  //! \param info If true, set as default info reader
-  //! \param reader If true, set as default data reader
+  //! \brief Registers a data writer.
+  //! \param[in] writer A pointer to the data writer we want registered
+  //! \param info If \e true, set as default info reader
+  //! \param reader If \e true, set as default data reader
   bool registerWriter(DataWriter* writer, bool info=false, bool reader=false);
 
-  //! \brief Set the data values for a registered field
+  //! \brief Sets the data values for a registered field.
   //! \param[in] name Name the field is registered with
   //! \param[in] data The value to set the field to
   //! \param[in] data2 (optional) The secondary data of the field
   bool setFieldValue(const std::string& name,
                      const void* data,
-                     const void* data2 = NULL);
+                     const void* data2=NULL);
 
-  //! \brief This dumps all registered fields using all registered writers
+  //! \brief Dumps all registered fields using the registered writers.
   //! \param[in] tp Current time stepping info
   //! \param[in] geometryUpdated Whether or not geometries are updated
   bool dumpTimeLevel(const TimeStep* tp=NULL, bool geometryUpdated=false);
@@ -104,39 +103,36 @@ class DataExporter
   //! \param[in] level Time level to load, defaults to last time level
   //! \param[in] info DataWriter to read the info from (e.g. the XML writer)
   //! \param[in] input DataWriter to read the data from (e.g. the HDF5 writer)
-  bool loadTimeLevel(int level=-1, DataWriter* info=NULL, DataWriter* input=NULL);
+  bool loadTimeLevel(int level=-1,
+                     DataWriter* info=NULL, DataWriter* input=NULL);
 
-  //! \brief Return the current time level of the exporter
+  //! \brief Returns the current time level of the exporter.
   int getTimeLevel();
 
-  //! \brief Calculate the real time level, taking order and ndump into account
+  //! \brief Calculates the real time level taking order and ndump into account.
   int realTimeLevel(int filelevel) const;
-
-  //! \brief Calculate the real time level, taking order and ndump into account
+  //! \brief Calculates the real time level taking order and ndump into account.
   int realTimeLevel(int filelevel, int order, int interval) const;
 
-  //! \brief Set the prefixes used for norm output
-  //! \param[in] prefix The prefixes
+  //! \brief Sets the prefices used for norm output.
   void setNormPrefixes(const char** prefix);
+
 protected:
-  //! \brief Internal helper function
+  //! \brief Internal helper function.
   int getWritersTimeLevel() const;
 
-  //! \brief A map of field names -> field info structures
+  //! A map of field names -> field info structures
   std::map<std::string,FileEntry> m_entry;
-  //! \brief A vector of registered data writers
-  std::vector<DataWriter*> m_writers;
-  //! \brief If true, we are in charge of freeing up datawriters
-  bool m_delete;
-  //! \brief Current time level
-  int m_level;
-  //! \brief A stride for dumping. We dump at every m_ndump'th time level
-  int m_ndump;
-  //! \brief The temporal order used. We need this to facilitate restart of > first order simulations.
-  int m_order;
+  //! A vector of registered data writers
+  std::vector<DataWriter*>        m_writers;
 
-  DataWriter* m_infoReader;
-  DataWriter* m_dataReader;
+  bool m_delete; //!< If true, we are in charge of freeing up datawriters
+  int  m_level;  //!< Current time level
+  int  m_ndump;  //!< Time level stride for dumping
+  int  m_order;  //!< The temporal order used (neede to facilitate restart)
+
+  DataWriter* m_infoReader; //!< DataWriter to read data information from
+  DataWriter* m_dataReader; //!< DataWriter to read numerical data from
 };
 
 //! \brief Convenience type
@@ -144,46 +140,46 @@ typedef std::pair<std::string,DataExporter::FileEntry> DataEntry;
 
 
 /*!
- \brief Stores and reads data from a file
+  \brief Stores and reads data from a file.
 
- \details A DataWriter is a backend for the DataExporter,
- they abstract different file formats.
+  \details A DataWriter is a backend for the DataExporter,
+  they abstract different file formats.
 */
 
 class DataWriter
 {
 protected:
-  //! \brief Protected constructor as this is a purely virtual class
+  //! \brief Protected constructor as this is a purely virtual class.
   DataWriter(const std::string& name);
 
 public:
-  //! \brief Empty destructor
+  //! \brief Empty destructor.
   virtual ~DataWriter() {}
 
-  //! \brief Return the last time level stored in file
+  //! \brief Returns the last time level stored in file.
   virtual int getLastTimeLevel() = 0;
 
-  //! \brief Open the file at a given time level
+  //! \brief Opens the file at a given time level.
   //! \param[in] level The requested time level
   virtual void openFile(int level) = 0;
 
-  //! \brief Close the file
+  //! \brief Closes the file.
   //! \param[in] level Level we just wrote to the file
   //! \param[in] force If true, we always close the actual file,
   //                   else it's up to the individual writers
   virtual void closeFile(int level, bool force=false) = 0;
 
-  //! \brief Write a vector to file
+  //! \brief Writes a vector to file.
   //! \param[in] level The time level to write the vector at
   //! \param[in] entry The DataEntry describing the vector
   virtual void writeVector(int level, const DataEntry& entry) = 0;
 
-  //! \brief Read a vector from file
+  //! \brief Reads a vector from file.
   //! \param[in] level The time level to read the vector at
   //! \param[in] entry The DataEntry describing the vector
   virtual bool readVector(int level, const DataEntry& entry) = 0;
 
-  //! \brief Write data from a SIM to file
+  //! \brief Writes data from a SIM object to file.
   //! \param[in] level The time level to write the data at
   //! \param[in] entry The DataEntry describing the vector
   //! \param[in] geometryUpdated Whether or not geometries should be written
@@ -191,12 +187,12 @@ public:
   virtual void writeSIM(int level, const DataEntry& entry,
                         bool geometryUpdated, const std::string& prefix) = 0;
 
-  //! \brief Read data from a file into SIM
+  //! \brief Reads data from a file into s SIM object.
   //! \param[in] level The time level to read the data at
   //! \param[in] entry The DataEntry describing the SIM
   virtual bool readSIM(int level, const DataEntry& entry) = 0;
 
-  //! \brief Write time stepping info to file (currently a dummy)
+  //! \brief Writes time stepping info to file.
   //! \param[in] level The time level to write the info at
   //! \param[in] order The temporal order
   //! \param[in] interval The number of time steps between each data dump
@@ -204,16 +200,11 @@ public:
   virtual bool writeTimeInfo(int level, int order, int interval,
                              const TimeStep& tp) = 0;
 
-  //! \brief Set the prefixes used for norm output
-  //! \param[in] prefix The prefixes
-  void setNormPrefixes(const char** prefix)
-  {
-    m_prefix = prefix;
-  }
+  //! \brief Sets the prefices used for norm output.
+  void setNormPrefixes(const char** prefix) { m_prefix = prefix; }
 
 protected:
-  std::string m_name; //!< File name
-
+  std::string  m_name;   //!< File name
   const char** m_prefix; //!< The norm prefixes
 
   int m_size; //!< Number of MPI nodes (processors)

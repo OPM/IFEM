@@ -15,7 +15,9 @@
 #define _SAM_PATCH_H
 
 #include "SAM.h"
-#include "ASMbase.h"
+
+class ASMbase;
+
 
 /*!
   \brief This is a sub-class of SAM with added functionality for spline models.
