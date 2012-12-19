@@ -364,6 +364,13 @@ public:
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
 			    const RealArray* gpar, bool regular = true) const;
 
+  //! \brief Evaluates and interpolates a field over a given geometry.
+  //! \param[in] basis The basis of the field to evaluate
+  //! \param[in] locVec The coefficients of the field to evaluate
+  //! \param[out] vec The obtained coefficients after interpolation
+  virtual bool evaluate(const ASMbase* basis, const Vector& locVec,
+                        Vector& vec) const { return false; }
+
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
@@ -413,19 +420,12 @@ public:
   //! integration of the projection matrices. It should use the same integration
   //! scheme as \a SIMbase::assembleSystem and is therefore suitable for
   //! problems using internal integration point buffers (with history-dependent
-  //! data, etc.) and that must be traveresed in the same sequence each time.
+  //! data, etc.) and that must be traversed in the same sequence each time.
   //! \note The implementation of this method is placed in GlbL2projector.C
   bool L2projection(Matrix& sField,
                     const IntegrandBase& integrand,
                     const TimeDomain& time);
 
- 
-  //! \brief Evaluate and interpolate a field over a given geometry
-  //! \param[in] input The basis of the field to evaluate
-  //! \param[in] locVec The coefficients of the field
-  //! \param[out] vec The obtained coefficients after interpolation
-  virtual bool evaluate(const ASMbase* input,
-                        const Vector& locVec, Vector& vec) { return false; }
 
   // Methods for result extraction
   // =============================

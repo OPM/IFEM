@@ -57,6 +57,55 @@ bool ASMs3D::getQuasiInterplParameters (RealArray& prm, int dir) const
 }
 
 
+bool ASMs3D::evaluate (const ASMbase* basis, const Vector& locVec,
+		       Vector& vec) const
+{
+  const ASMs3D* pch = dynamic_cast<const ASMs3D*>(basis);
+  if (!pch) return false;
+
+  // Compute parameter values of the result sampling points (Greville points)
+  RealArray gpar[3];
+  for (int dir = 0; dir < 3; dir++)
+    if (!this->getGrevilleParameters(gpar[dir],dir))
+      return false;
+
+  // Evaluate the result field at all sampling points.
+  // Note: it is here assumed that *basis and *this have spline bases
+  // defined over the same parameter domain.
+  Matrix sValues;
+  if (!pch->evalSolution(sValues,locVec,gpar))
+    return false;
+
+  // Project the results onto the spline basis to find control point
+  // values based on the result values evaluated at the Greville points.
+  // Note that we here implicitly assume that the number of Greville points
+  // equals the number of control points such that we don't have to resize
+  // the result array. Think that is always the case, but beware if trying
+  // other projection schemes later.
+
+  RealArray weights;
+  if (svol->rational())
+    svol->getWeights(weights);
+
+  const Vector& vec2 = sValues;
+  Go::SplineVolume* vol_new =
+    Go::VolumeInterpolator::regularInterpolation(svol->basis(0),
+						 svol->basis(1),
+						 svol->basis(2),
+						 gpar[0], gpar[1], gpar[2],
+						 const_cast<Vector&>(vec2),
+						 sValues.rows(),
+						 svol->rational(),
+						 weights);
+
+  vec.resize(vol_new->coefs_end()-vol_new->coefs_begin());
+  std::copy(vol_new->coefs_begin(),vol_new->coefs_end(),vec.begin());
+  delete vol_new;
+
+  return true;
+}
+
+
 Go::SplineVolume* ASMs3D::projectSolution (const IntegrandBase& integrand) const
 {
   PROFILE2("ASMs3D::projectSolution");

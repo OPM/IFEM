@@ -58,6 +58,54 @@ bool ASMs2D::getQuasiInterplParameters (RealArray& prm, int dir) const
 }
 
 
+bool ASMs2D::evaluate (const ASMbase* basis, const Vector& locVec,
+		       Vector& vec) const
+{
+  const ASMs2D* pch = dynamic_cast<const ASMs2D*>(basis);
+  if (!pch) return false;
+
+  // Compute parameter values of the result sampling points (Greville points)
+  RealArray gpar[2];
+  for (int dir = 0; dir < 2; dir++)
+    if (!this->getGrevilleParameters(gpar[dir],dir))
+      return false;
+
+  // Evaluate the result field at all sampling points.
+  // Note: it is here assumed that *basis and *this have spline bases
+  // defined over the same parameter domain.
+  Matrix sValues;
+  if (!pch->evalSolution(sValues,locVec,gpar))
+    return false;
+
+  // Project the results onto the spline basis to find control point
+  // values based on the result values evaluated at the Greville points.
+  // Note that we here implicitly assume that the number of Greville points
+  // equals the number of control points such that we don't have to resize
+  // the result array. Think that is always the case, but beware if trying
+  // other projection schemes later.
+
+  RealArray weights;
+  if (surf->rational())
+    surf->getWeights(weights);
+
+  const Vector& vec2 = sValues;
+  Go::SplineSurface* surf_new =
+    Go::SurfaceInterpolator::regularInterpolation(surf->basis(0),
+						  surf->basis(1),
+						  gpar[0], gpar[1],
+						  const_cast<Vector&>(vec2),
+						  sValues.rows(),
+						  surf->rational(),
+						  weights);
+
+  vec.resize(surf_new->coefs_end()-surf_new->coefs_begin());
+  std::copy(surf_new->coefs_begin(),surf_new->coefs_end(),vec.begin());
+  delete surf_new;
+
+  return true;
+}
+
+
 Go::SplineSurface* ASMs2D::projectSolution (const IntegrandBase& integrnd) const
 {
   PROFILE2("ASMs2D::projectSolution");

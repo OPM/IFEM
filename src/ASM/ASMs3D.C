@@ -15,7 +15,6 @@
 #include "GoTools/geometry/SplineSurface.h"
 #include "GoTools/trivariate/SplineVolume.h"
 #include "GoTools/geometry/SurfaceInterpolator.h"
-#include "GoTools/trivariate/VolumeInterpolator.h"
 
 #include "ASMs3D.h"
 #include "TimeDomain.h"
@@ -1901,13 +1900,6 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
   }
   const ThreadGroups& threadGrp = tit->second;
 
-#ifdef USE_OPENMP
-  int threads=omp_get_max_threads();
-  // GoTools objects cannot be used in parallel sections
-  if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-    omp_set_num_threads(1);
-#endif
-
   // Get Gaussian quadrature points and weights
   int nGP = integrand.getBouIntegrationPoints(nGauss);
   const double* xg = GaussQuadrature::getCoord(nGP);
@@ -1969,6 +1961,13 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 
 
   // === Assembly loop over all elements on the patch face =====================
+
+#ifdef USE_OPENMP
+  // Workaround: GoTools objects cannot be used in parallel sections
+  int threads = omp_get_max_threads();
+  if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+    omp_set_num_threads(1);
+#endif
 
   bool ok = true;
   for (size_t g = 0; g < threadGrp.size() && ok; ++g) {
@@ -2789,45 +2788,4 @@ void ASMs3D::generateThreadGroups (char lIndex, bool silence)
 	std::cout <<"\n\tthread "<< j+1
 		  << ": "<< fGrp[i][j].size() <<" elements";
     }
-}
-
-
-bool ASMs3D::evaluate (const ASMbase* input, const Vector& locVec, Vector& vec)
-{
-  ASMs3D* pch = (ASMs3D*)input;
-  // Compute parameter values of the result sampling points (Greville points)
-  RealArray gpar[3];
-  for (int dir = 0; dir < 3; dir++)
-    if (!this->getGrevilleParameters(gpar[dir],dir))
-      return false;
-
-  Matrix sValues;
-  pch->evalSolution(sValues, locVec, gpar, true);
-
-  // Project the results onto the spline basis to find control point
-  // values based on the result values evaluated at the Greville points.
-  // Note that we here implicitly assume that the number of Greville points
-  // equals the number of control points such that we don't have to resize
-  // the result array. Think that is always the case, but beware if trying
-  // other projection schemes later.
-
-  RealArray weights;
-  if (svol->rational())
-    svol->getWeights(weights);
-
-  const Vector& vec2 = sValues;
-  Go::SplineVolume* vol_new = 
-         Go::VolumeInterpolator::regularInterpolation(svol->basis(0),
-						      svol->basis(1),
-						      svol->basis(2),
-                                                      gpar[0], gpar[1], gpar[2],
-						       const_cast<Vector&>(vec2),
-						       sValues.rows(),
-						       svol->rational(),
-						       weights);
-  vec.resize(vol_new->coefs_end()-vol_new->coefs_begin());
-  std::copy(vol_new->coefs_begin(), vol_new->coefs_end(), vec.begin());
-  delete vol_new;
-
-  return true;
 }

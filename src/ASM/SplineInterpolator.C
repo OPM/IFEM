@@ -1,3 +1,4 @@
+// $Id$
 //==============================================================================
 //!
 //! \file SplineInterpolator.C
@@ -6,16 +7,14 @@
 //!
 //! \author Anette Stahl
 //!
-//! \brief Implementation of interpolation/projection schemes for B-splines
+//! \brief Implementation of interpolation/projection schemes for B-splines.
 //!
 //==============================================================================
 
-
-#include <vector>
-#include "GoTools/geometry/BsplineBasis.h"
-#include "ASMstruct.h"
-#include "DenseMatrix.h"
 #include "SplineInterpolator.h"
+#include "DenseMatrix.h"
+
+#include "GoTools/geometry/BsplineBasis.h"
 
 
 //Global interpolation
@@ -34,7 +33,7 @@ void SplineInterpolator::interpolate(const std::vector<double>& params,
 
   coefs.resize(dimension*num_coefs);
 
-  int i, j;
+  int i, j, ki;
 
   DenseMatrix A(num_coefs, num_coefs);
   Matrix b(num_coefs, dimension);
@@ -45,7 +44,7 @@ void SplineInterpolator::interpolate(const std::vector<double>& params,
   for (i = 0; i < num_points; ++i) {
     bool der = false;
     double par = params[i];
-    int ki = basis.knotIntervalFuzzy(par); // knot-interval of param.
+    ki = basis.knotIntervalFuzzy(par); // knot-interval of param.
     basis.computeBasisValues(params[i], &tmp[0], 1);
 
     for (j = 0; j < order; ++j)
@@ -59,18 +58,16 @@ void SplineInterpolator::interpolate(const std::vector<double>& params,
   }
 
   // generating right-hand side
-  for (i = 0; i < num_coefs; ++i) {
-    for (int k=0;k<dimension;++k)
-      b(i+1,k+1) = points[i*dimension+k];
-  }
+  for (i = 0; i < num_coefs; ++i)
+    for (j = 0; j < dimension; ++j)
+      b(i+1,j+1) = points[i*dimension+j];
 
   // Now we are ready to solve Ac = b.  b will be overwritten by solution
   A.solve(b);
-  // copy results
-  int k=0;
-  for (int i=0;i<num_coefs;++i)
-    for (int j=0;j<dimension;++j)
-      coefs[k++] = b(i+1,j+1);
+
+  for (i = ki = 0; i <num_coefs; ++i)
+    for (j = 0; j < dimension; ++j)
+      coefs[ki++] = b(i+1,j+1);
 }
 
 
@@ -90,7 +87,7 @@ void SplineInterpolator::quasiinterpolate(const std::vector<double>& params,
       "Insufficient number of points.");
 
   coefs.resize(dimension*num_coefs);
-  int i, j;
+  int i, j, ki;
   DenseMatrix A(num_coefs, num_coefs);
   Matrix b(num_coefs, dimension);
 
@@ -99,34 +96,31 @@ void SplineInterpolator::quasiinterpolate(const std::vector<double>& params,
   for (i = 0; i < num_points; ++i) {
     bool der = false;
     double par = params[i];
-    int ki = basis.knotIntervalFuzzy(par);
+    ki = basis.knotIntervalFuzzy(par);
 
     basis.computeBasisValues(params[i], &tmp[0], 1);
     for (j = 0; j < order; ++j)
-    {
-      if((ki-order+1+j-index>=0) && (ki-order+1+j-index<num_coefs)) 
+      if((ki-order+1+j-index>=0) && (ki-order+1+j-index<num_coefs))
       {
         A(i+1,ki-order+1+j-index+1) = tmp[2*j];
         if (der)
           A(i+1+1,ki-order+1+j+1) = tmp[2*j+1];
       }
-    }
   }
 
   // generating right-hand side
-  for (i = 0; i < num_coefs; ++i) {
-    for (int k=0;k<dimension;++k)
-      b(i+1,k+1) = points[i*dimension+k];
-  }
+  for (i = 0; i < num_coefs; ++i)
+    for (j = 0; j < dimension; ++j)
+      b(i+1,j+1) = points[i*dimension+j];
 
   A.solve(b);
-  int k=0;
-  for (int i=0;i<num_coefs;++i)
-    for (int j=0;j<dimension;++j)
-      coefs[k++] = b(i+1,j+1);
+
+  for (i = ki = 0; i < num_coefs; ++i)
+    for (j = 0; j < dimension; ++j)
+      coefs[ki++] = b(i+1,j+1);
 }
-  
-  
+
+
 //Global Approxiamtion - Least-Square Method
 void SplineInterpolator::leastsquare_approximation(const std::vector<double>& params,
                                                    const std::vector<double>& paramsweights,
@@ -144,8 +138,7 @@ void SplineInterpolator::leastsquare_approximation(const std::vector<double>& pa
       "Insufficient number of points.");
 
   coefs.resize(dimension*num_coefs);
-  //std::cout << " dimension" << dimension << std::endl;
-  int i, j;
+  int i, j, ki;
 
   Matrix A(num_points, num_coefs);
   Matrix b(num_points, dimension);
@@ -153,23 +146,20 @@ void SplineInterpolator::leastsquare_approximation(const std::vector<double>& pa
   // setting up interpolation matrix A
   int ti = 0; // index to first unused element of tangent_points
   std::vector<double> tmp(2*order);
-  for (i = 0; i < num_points; ++i) {
-
+  for (i = 0; i < num_points; ++i)
+  {
     double par = params[i];
-    int ki = basis.knotIntervalFuzzy(par); // knot-interval of param.
+    ki = basis.knotIntervalFuzzy(par); // knot-interval of param.
     basis.computeBasisValues(params[i], &tmp[0], 1);
     for (j = 0; j < order; ++j)
-      if ((ki+1+j>=order) && (ki-order+1+j<num_coefs)) {
+      if ((ki+1+j>=order) && (ki-order+1+j<num_coefs))
         A(i+ti+1,ki-order+1+j+1) = tmp[2*j];
-      }
   }
 
   // generating right-hand side
-  ti = 0;
-  for (i = 0; i < num_points; ++i) {
-    for (int k=0;k<dimension;++k)
-      b(i+1,k+1) = points[i*dimension+k];
-  }
+  for (i = 0; i < num_points; ++i)
+    for (j = 0; j < dimension; ++j)
+      b(i+1,j+1) = points[i*dimension+j];
 
   DenseMatrix Amass(num_points,num_points);
   Matrix bw(num_coefs,dimension);
@@ -179,14 +169,12 @@ void SplineInterpolator::leastsquare_approximation(const std::vector<double>& pa
 
   // create Mass Matrix and weighted A Matrix
   for (i = 1; i <= num_points; ++i)
-  {      
     for (j = 1; j <= num_coefs; ++j)
     {
       AwT(j,i) = paramsweights[i-1]*A(i,j);
       Aws(i,j) = sqrt(paramsweights[i-1])*A(i,j);
       AwsT(j,i) = Aws(i,j);
     }
-  }
 
   Amass.getMat() = AwsT*Aws;
 
@@ -194,8 +182,8 @@ void SplineInterpolator::leastsquare_approximation(const std::vector<double>& pa
 
   // Now we are ready to solve Ac = b.  b will be overwritten by solution
   Amass.solve(bw);
-  int k=0;
-  for (int i=0;i<num_coefs;++i)
-    for (int j=0;j<dimension;++j)
-      coefs[k++] = bw(i+1,j+1);
+
+  for (i = ki = 0; i < num_coefs; ++i)
+    for (j = 0; j < dimension; ++j)
+      coefs[ki++] = bw(i+1,j+1);
 }

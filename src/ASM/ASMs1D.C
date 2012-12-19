@@ -874,7 +874,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
 			   const RealArray* gpar, bool) const
 {
   const int p1 = curv->order();
-  
+
 //  size_t nComp = locSol.size() / this->getNoNodes();
 //  if (nComp*this->getNoNodes() != locSol.size())
 //    return false;

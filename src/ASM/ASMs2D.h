@@ -320,6 +320,13 @@ public:
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
 			    const RealArray* gpar, bool regular = true) const;
 
+  //! \brief Evaluates and interpolates a field over a given geometry.
+  //! \param[in] basis The basis of the field to evaluate
+  //! \param[in] locVec The coefficients of the field to evaluate
+  //! \param[out] vec The obtained coefficients after interpolation
+  virtual bool evaluate(const ASMbase* basis, const Vector& locVec,
+                        Vector& vec) const;
+
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
@@ -383,13 +390,6 @@ public:
   virtual bool globalL2projection(Matrix& sField,
 				  const IntegrandBase& integrand,
 				  bool continuous = false) const;
-
-  //! \brief Evaluate and interpolate a field over a given geometry
-  //! \param[in] input The basis of the field to evaluate
-  //! \param[in] locVec The coefficients of the field
-  //! \param[out] vec The obtained coefficients after interpolation
-  virtual bool evaluate(const ASMbase* input,
-                        const Vector& locVec, Vector& vec);
 
 protected:
 
