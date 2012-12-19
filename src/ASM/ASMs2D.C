@@ -973,7 +973,7 @@ bool ASMs2D::updateDirichlet (const std::map<int,RealFunc*>& func,
     }
 
     // Loop over the (interior) nodes (control points) of this boundary curve
-    for (nit = dirich[i].nodes.begin(); nit != dirich[i].nodes.end(); nit++)
+    for (nit = dirich[i].nodes.begin(); nit != dirich[i].nodes.end(); ++nit)
       for (int dofs = dirich[i].dof; dofs > 0; dofs /= 10)
       {
 	int dof = dofs%10;
@@ -1103,7 +1103,7 @@ Vec3 ASMs2D::getCoord (size_t inod) const
   if (ip < 0) return X;
 
   RealArray::const_iterator cit = surf->coefs_begin() + ip;
-  for (unsigned char i = 0; i < nsd; i++, cit++)
+  for (unsigned char i = 0; i < nsd; i++, ++cit)
     X[i] = *cit;
 
   return X;
@@ -1187,6 +1187,13 @@ bool ASMs2D::getOrder (int& p1, int& p2) const
 }
 
 
+bool ASMs2D::getOrder (int& p1, int& p2, int& p3) const
+{
+  p3 = 0;
+  return this->getOrder(p1,p2);
+}
+
+
 bool ASMs2D::getSize (int& n1, int& n2, int) const
 {
   if (!surf) return false;
@@ -1226,7 +1233,7 @@ const Vector& ASMs2D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
   uGP.resize(nGauss,nCol);
 
   double ucurr, uprev = *(uit++);
-  for (int j = 1; j <= nCol; uit++, j++)
+  for (int j = 1; j <= nCol; ++uit, j++)
   {
     ucurr = *uit;
     for (int i = 1; i <= nGauss; i++)
@@ -1368,16 +1375,18 @@ bool ASMs2D::integrate (Integrand& integrand,
 
   // === Assembly loop over all elements in the patch ==========================
 
-  bool ok=true;
-  for (size_t g=0;g<threadGroups.size() && ok;++g) {
+  bool ok = true;
+  for (size_t g = 0; g < threadGroups.size() && ok; g++)
+  {
 #pragma omp parallel for schedule(static)
-    for (size_t t=0;t<threadGroups[g].size();++t) {
+    for (size_t t = 0; t < threadGroups[g].size(); t++)
+    {
       FiniteElement fe(p1*p2);
       Matrix   dNdu, Xnod, Jac;
       Matrix3D d2Ndu2, Hess;
       double   dXidu[2];
       Vec4     X;
-      for (size_t i = 0; i < threadGroups[g][t].size() && ok; ++i)
+      for (size_t i = 0; i < threadGroups[g][t].size() && ok; i++)
       {
         int iel = threadGroups[g][t][i];
         fe.iel = MLGE[iel];
@@ -1544,6 +1553,178 @@ bool ASMs2D::integrate (Integrand& integrand,
 
         // Finalize the element quantities
         if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
+          ok = false;
+
+        // Assembly of global system integral
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
+          ok = false;
+
+        A->destruct();
+      }
+    }
+  }
+
+  return ok;
+}
+
+
+bool ASMs2D::integrate (Integrand& integrand,
+                        GlobalIntegral& glInt,
+                        const TimeDomain& time,
+                        const Real3DMat& itgPts)
+{
+  if (!surf) return true; // silently ignore empty patches
+
+  if (integrand.getReducedIntegration() != 0)
+  {
+    std::cerr <<" *** ASMs2D::integrate(Integrand&,GlobalIntegral&,"
+              <<"const TimeDomain&,const Real3DMat&): Available for standard"
+              <<" integrands only."<< std::endl;
+    return false;
+  }
+
+  PROFILE2("ASMs2D::integrate(I)");
+
+  // Evaluate basis function derivatives at all integration points
+  size_t i, j, k;
+  std::vector<size_t> MPitg(itgPts.size()+1,0);
+  for (i = MPitg.front() = 0; i < itgPts.size(); i++)
+    MPitg[i+1] = MPitg[i] + itgPts[i].size();
+  size_t nPoints = MPitg.back();
+  bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
+  std::vector<Go::BasisDerivsSf>  spline(use2ndDer ? 0 : nPoints);
+  std::vector<Go::BasisDerivsSf2> spline2(!use2ndDer ? 0 : nPoints);
+  for (i = k = 0; i < itgPts.size(); i++)
+    for (j = 0; j < itgPts[i].size(); j++, k++)
+      if (use2ndDer)
+        surf->computeBasis(itgPts[i][j][0],itgPts[i][j][1],spline2[k]);
+      else
+        surf->computeBasis(itgPts[i][j][0],itgPts[i][j][1],spline[k]);
+
+#if SP_DEBUG > 4
+  for (i = 0; i < spline.size(); i++)
+    std::cout <<"\nBasis functions at integration point "<< 1+i << spline[i];
+#endif
+
+  const int p1 = surf->order_u();
+  const int p2 = surf->order_v();
+  const int nel1 = surf->numCoefs_u() - p1 + 1;
+
+
+  // === Assembly loop over all elements in the patch ==========================
+
+  bool ok = true;
+  for (size_t g = 0; g < threadGroups.size() && ok; g++)
+  {
+#pragma omp parallel for schedule(static)
+    for (size_t t = 0; t < threadGroups[g].size(); t++)
+    {
+      FiniteElement fe(p1*p2);
+      Matrix   dNdu, Xnod, Jac;
+      Matrix3D d2Ndu2, Hess;
+      double   dXidu[2];
+      Vec4     X;
+      for (i = 0; i < threadGroups[g][t].size() && ok; i++)
+      {
+        int iel = threadGroups[g][t][i];
+        if (itgPts[iel].empty()) continue; // no points in this element
+
+        fe.iel = MLGE[iel];
+        if (fe.iel < 1) continue; // zero-area element
+
+        int i1 = p1 + iel % nel1;
+        int i2 = p2 + iel / nel1;
+
+        // Get element area in the parameter space
+        double dA = 0.25*this->getParametricArea(++iel);
+        if (dA < 0.0) // topology error (probably logic error)
+        {
+          ok = false;
+          break;
+        }
+
+        // Set up control point (nodal) coordinates for current element
+        if (!this->getElementCoordinates(Xnod,iel))
+        {
+          ok = false;
+          break;
+        }
+
+        if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+          this->getElementCorners(i1-1,i2-1,fe.XC);
+
+        if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+        {
+          // Element size in parametric space
+          dXidu[0] = surf->knotSpan(0,i1-1);
+          dXidu[1] = surf->knotSpan(1,i2-1);
+        }
+
+        if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
+        {
+          // Compute the element center
+          this->getElementCorners(i1-1,i2-1,fe.XC);
+          X = 0.25*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]);
+        }
+
+        // Initialize element quantities
+        LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
+        if (!integrand.initElement(MNPC[iel-1],X,0,*A))
+        {
+          A->destruct();
+          ok = false;
+          break;
+        }
+
+
+        // --- Integration loop over all quadrature points in this element -----
+
+        size_t jp = MPitg[iel-1]; // Patch-wise integration point counter
+        fe.iGP = firstIp + jp;    // Global integration point counter
+
+        const Real2DMat& elmPts = itgPts[iel-1]; // points for current element
+        for (j = 0; j < elmPts.size(); j++, jp++, fe.iGP++)
+        {
+          // Parameter values of current integration point
+          fe.u = elmPts[j][0];
+          fe.v = elmPts[j][1];
+
+          // Fetch basis function derivatives at current integration point
+          if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+            extractBasis(spline2[jp],fe.N,dNdu,d2Ndu2);
+          else
+            extractBasis(spline[jp],fe.N,dNdu);
+
+          // Compute Jacobian inverse of coordinate mapping and derivatives
+          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+          if (fe.detJxW == 0.0) continue; // skip singular points
+
+          // Compute Hessian of coordinate mapping and 2nd order derivatives
+          if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+            if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
+              ok = false;
+
+          // Compute G-matrix
+          if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+            utl::getGmat(Jac,dXidu,fe.G);
+
+#if SP_DEBUG > 4
+          std::cout <<"\niel, ip = "<< iel <<" "<< jp
+                    <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX << std::endl;
+#endif
+
+          // Cartesian coordinates of current integration point
+          X = Xnod * fe.N;
+          X.t = time.t;
+
+          // Evaluate the integrand and accumulate element contributions
+          fe.detJxW *= dA*elmPts[j][2];
+          if (!integrand.evalInt(*A,fe,time,X))
+            ok = false;
+        }
+
+        // Finalize the element quantities
+        if (ok && !integrand.finalizeElement(*A,time,firstIp+MPitg[iel]))
           ok = false;
 
         // Assembly of global system integral
@@ -1741,7 +1922,7 @@ int ASMs2D::evalPoint (const double* xi, double* param, Vec3& X) const
   Vec3 Xnod;
   size_t inod = 1;
   RealArray::const_iterator cit = surf->coefs_begin();
-  for (int i = 0; cit != surf->coefs_end(); cit++, i++)
+  for (int i = 0; cit != surf->coefs_end(); ++cit, i++)
   {
     if (i < nsd) Xnod[i] = *cit;
     if (i+1 == surf->dimension())
@@ -1926,7 +2107,7 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     // Compute parameter values of the result sampling points
     RealArray gpar[2];
     if (this->getGridParameters(gpar[0],0,npe[0]-1) &&
-	this->getGridParameters(gpar[1],1,npe[1]-1))
+        this->getGridParameters(gpar[1],1,npe[1]-1))
     {
       if (!project)
         // Evaluate the secondary solution directly at all sampling points
@@ -1982,9 +2163,9 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   {
     for (size_t i = 0; i < nPoints; i++)
       if (use2ndDer)
-	surf->computeBasis(gpar[0][i],gpar[1][i],spline2[i]);
+        surf->computeBasis(gpar[0][i],gpar[1][i],spline2[i]);
       else
-	surf->computeBasis(gpar[0][i],gpar[1][i],spline1[i]);
+        surf->computeBasis(gpar[0][i],gpar[1][i],spline1[i]);
   }
   else
     return false;
@@ -2038,7 +2219,7 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     // Compute Hessian of coordinate mapping and 2nd order derivatives
     if (use2ndDer)
       if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xtmp,d2Ndu2,dNdu))
-	continue;
+        continue;
 
     // Now evaluate the solution field
     if (!integrand.evalSol(solPt,fe,Xtmp*fe.N,ip))
@@ -2060,7 +2241,7 @@ void ASMs2D::generateThreadGroups (const Integrand& integrand, bool silence)
   {
     omp_set_num_threads(1);
     std::cout <<"WARNING: Disabling multi-threading due to GoTools limitations"
-	      <<" (ELEMENT_CORNERS)."<< std::endl;
+              <<" (ELEMENT_CORNERS)."<< std::endl;
   }
 #endif
 

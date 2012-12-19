@@ -267,6 +267,14 @@ public:
   virtual bool integrate(Integrand& integrand,
 			 GlobalIntegral& glbInt, const TimeDomain& time);
 
+  //! \brief Evaluates an integral over the interior patch domain.
+  //! \param integrand Object with problem-specific data and methods
+  //! \param glbInt The integrated quantity
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
+  //! \param[in] itgPts Parameters and weights of the integration points
+  virtual bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
+			 const TimeDomain& time, const Real3DMat& itgPts);
+
   //! \brief Evaluates a boundary integral over a patch edge.
   //! \param integrand Object with problem-specific data and methods
   //! \param[in] lIndex Local index of the boundary edge
@@ -465,17 +473,17 @@ public:
   //! \param[out] p1 Order in first (u) direction
   //! \param[out] p2 Order in second (v) direction
   //! \param[out] p3 Order in third (w) direction (always zero)
-  virtual bool getOrder(int& p1, int& p2, int& p3) const
-  { p3 = 0; return this->getOrder(p1,p2); }
-
-  //! \brief Returns the number of elements on a boundary.
-  virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
+  virtual bool getOrder(int& p1, int& p2, int& p3) const;
 
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction
   //! \param[out] n2 Number of nodes in second (v) direction
   //! \param[in] basis Which basis to return size parameters for (mixed methods)
   virtual bool getSize(int& n1, int& n2, int basis = 0) const;
+
+  //! \brief Returns the number of elements on a boundary.
+  virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
+
 private:
   //! \brief Returns an index into the internal coefficient array for a node.
   //! \param[in] inod 0-based node index local to current patch

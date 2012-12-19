@@ -325,6 +325,14 @@ public:
   virtual bool integrate(Integrand& integrand,
 			 GlobalIntegral& glbInt, const TimeDomain& time);
 
+  //! \brief Evaluates an integral over the interior patch domain.
+  //! \param integrand Object with problem-specific data and methods
+  //! \param glbInt The integrated quantity
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
+  //! \param[in] itgPts Parameters and weights of the integration points
+  virtual bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
+			 const TimeDomain& time, const Real3DMat& itgPts);
+
   //! \brief Evaluates a boundary integral over a patch face.
   //! \param integrand Object with problem-specific data and methods
   //! \param[in] lIndex Local index [1,6] of the boundary face
@@ -531,15 +539,15 @@ public:
   //! \param[out] p3 Order in third (w) direction
   virtual bool getOrder(int& p1, int& p2, int& p3) const;
 
-  //! \brief Returns the number of elements on a boundary.
-  virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
-
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction
   //! \param[out] n2 Number of nodes in second (v) direction
   //! \param[out] n3 Number of nodes in third (w) direction
   //! \param[in] basis Which basis to return size parameters for (mixed methods)
   virtual bool getSize(int& n1, int& n2, int& n3, int basis = 0) const;
+
+  //! \brief Returns the number of elements on a boundary.
+  virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 
 private:
   //! \brief Returns an index into the internal coefficient array for a node.
@@ -560,7 +568,7 @@ protected:
   std::vector<DirichletFace> dirich;
 
   //! Element groups for multi-threaded volume assembly
-  ThreadGroups threadGroupsVol;
+  ThreadGroups                threadGroupsVol;
   //! Element groups for multi-threaded face assembly
   std::map<char,ThreadGroups> threadGroupsFace;
 };

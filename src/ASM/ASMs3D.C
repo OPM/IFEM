@@ -1275,7 +1275,7 @@ bool ASMs3D::updateDirichlet (const std::map<int,RealFunc*>& func,
     }
 
     // Loop over the (interior) nodes (control points) of this boundary surface
-    for (nit = dirich[i].nodes.begin(); nit != dirich[i].nodes.end(); nit++)
+    for (nit = dirich[i].nodes.begin(); nit != dirich[i].nodes.end(); ++nit)
       for (int dofs = dirich[i].dof; dofs > 0; dofs /= 10)
       {
         int dof = dofs%10;
@@ -1545,7 +1545,7 @@ const Vector& ASMs3D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
   uGP.resize(nGauss,nCol);
 
   double ucurr, uprev = *(uit++);
-  for (int j = 1; j <= nCol; uit++, j++)
+  for (int j = 1; j <= nCol; ++uit, j++)
   {
     ucurr = *uit;
     for (int i = 1; i <= nGauss; i++)
@@ -1681,16 +1681,18 @@ bool ASMs3D::integrate (Integrand& integrand,
 
   // === Assembly loop over all elements in the patch ==========================
 
-  bool ok=true;
-  for (size_t g=0;g<threadGroupsVol.size() && ok;++g) {
+  bool ok = true;
+  for (size_t g = 0; g < threadGroupsVol.size() && ok; g++)
+  {
 #pragma omp parallel for schedule(static)
-    for (size_t t=0;t<threadGroupsVol[g].size();++t) {
+    for (size_t t = 0; t < threadGroupsVol[g].size(); t++)
+    {
       FiniteElement fe(p1*p2*p3);
       Matrix   dNdu, Xnod, Jac;
       Matrix3D d2Ndu2, Hess;
       double   dXidu[3];
       Vec4     X;
-      for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; ++l)
+      for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; l++)
       {
         int iel = threadGroupsVol[g][t][l];
         fe.iel = MLGE[iel];
@@ -1726,7 +1728,7 @@ bool ASMs3D::integrate (Integrand& integrand,
           dXidu[2] = svol->knotSpan(2,i3-1);
         }
 
-        else if (integrand.getIntegrandType() & Integrand::AVERAGE)
+        if (integrand.getIntegrandType() & Integrand::AVERAGE)
         {
           // --- Compute average value of basis functions over the element -----
 
@@ -1754,7 +1756,7 @@ bool ASMs3D::integrate (Integrand& integrand,
           fe.Navg /= vol;
         }
 
-        else if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
+        if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
         {
           // Compute the element center
           Go::Point X0;
@@ -1883,6 +1885,190 @@ bool ASMs3D::integrate (Integrand& integrand,
 }
 
 
+bool ASMs3D::integrate (Integrand& integrand,
+			GlobalIntegral& glInt,
+			const TimeDomain& time,
+                        const Real3DMat& itgPts)
+{
+  if (!svol) return true; // silently ignore empty patches
+
+  if (integrand.getReducedIntegration() != 0)
+  {
+    std::cerr <<" *** ASMs3D::integrate(Integrand&,GlobalIntegral&,"
+              <<"const TimeDomain&,const Matrix&): Available for standard"
+              <<" integrands only."<< std::endl;
+    return false;
+  }
+
+  PROFILE2("ASMs3D::integrate(I)");
+
+  // Evaluate basis function derivatives at all integration points
+  size_t i, j, k;
+  std::vector<size_t> MPitg(itgPts.size()+1,0);
+  for (i = MPitg.front() = 0; i < itgPts.size(); i++)
+    MPitg[i+1] = MPitg[i] + itgPts[i].size();
+  size_t nPoints = MPitg.back();
+  bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
+  std::vector<Go::BasisDerivs>  spline(use2ndDer ? 0 : nPoints);
+  std::vector<Go::BasisDerivs2> spline2(!use2ndDer ? 0 : nPoints);
+  for (i = k = 0; i < itgPts.size(); i++)
+    for (j = 0; j < itgPts[i].size(); j++, k++)
+    {
+      const RealArray& itgPt = itgPts[i][j];
+      if (use2ndDer)
+        svol->computeBasis(itgPt[0],itgPt[1],itgPt[2],spline2[k]);
+      else
+        svol->computeBasis(itgPt[0],itgPt[1],itgPt[2],spline[k]);
+    }
+
+#if SP_DEBUG > 4
+  for (i = 0; i < spline.size(); i++)
+    std::cout <<"\nBasis functions at integration point "<< 1+i << spline[i];
+#endif
+
+  const int n1 = svol->numCoefs(0);
+  const int n2 = svol->numCoefs(1);
+
+  const int p1 = svol->order(0);
+  const int p2 = svol->order(1);
+  const int p3 = svol->order(2);
+
+  const int nel1 = n1 - p1 + 1;
+  const int nel2 = n2 - p2 + 1;
+
+
+  // === Assembly loop over all elements in the patch ==========================
+
+  bool ok = true;
+  for (size_t g = 0; g < threadGroupsVol.size() && ok; g++)
+  {
+#pragma omp parallel for schedule(static)
+    for (size_t t = 0; t < threadGroupsVol[g].size(); t++)
+    {
+      FiniteElement fe(p1*p2*p3);
+      Matrix   dNdu, Xnod, Jac;
+      Matrix3D d2Ndu2, Hess;
+      double   dXidu[3];
+      Vec4     X;
+      for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; l++)
+      {
+        int iel = threadGroupsVol[g][t][l];
+        if (itgPts[iel].empty()) continue; // no points in this element
+
+        fe.iel = MLGE[iel];
+        if (fe.iel < 1) continue; // zero-volume element
+
+        int i1 = p1 + iel % nel1;
+        int i2 = p2 + (iel / nel1) % nel2;
+        int i3 = p3 + iel / (nel1*nel2);
+
+        // Get element volume in the parameter space
+        double dV = this->getParametricVolume(++iel);
+        if (dV < 0.0)
+        {
+          ok = false; // topology error (probably logic error)
+          break;
+        }
+
+        // Set up control point (nodal) coordinates for current element
+        if (!this->getElementCoordinates(Xnod,iel))
+        {
+          ok = false;
+          break;
+        }
+
+        if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+          this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
+
+        if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+        {
+          // Element size in parametric space
+          dXidu[0] = svol->knotSpan(0,i1-1);
+          dXidu[1] = svol->knotSpan(1,i2-1);
+          dXidu[2] = svol->knotSpan(2,i3-1);
+        }
+
+        if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
+        {
+          // Compute the element center
+          this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
+	  X = 0.125*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]+
+		     fe.XC[4]+fe.XC[5]+fe.XC[6]+fe.XC[7]);
+        }
+
+        // Initialize element quantities
+        LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
+        if (!integrand.initElement(MNPC[iel-1],X,0,*A))
+        {
+          A->destruct();
+          ok = false;
+          break;
+        }
+
+
+        // --- Integration loop over all quadrature points in this element -----
+
+        size_t jp = MPitg[iel]; // Patch-wise integration point counter
+        fe.iGP = firstIp + jp;  // Global integration point counter
+
+        for (j = 0; j < itgPts[iel].size(); j++, jp++, fe.iGP++)
+        {
+          // Parameter values of current integration point
+          fe.u = itgPts[iel][j][0];
+          fe.v = itgPts[iel][j][1];
+          fe.w = itgPts[iel][j][2];
+
+          // Fetch basis function derivatives at current integration point
+          if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+            extractBasis(spline2[jp],fe.N,dNdu,d2Ndu2);
+          else
+            extractBasis(spline[jp],fe.N,dNdu);
+
+          // Compute Jacobian inverse of coordinate mapping and derivatives
+          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+          if (fe.detJxW == 0.0) continue; // skip singular points
+
+          // Compute Hessian of coordinate mapping and 2nd order derivatives
+          if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+            if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
+              ok = false;
+
+          // Compute G-matrix
+          if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+            utl::getGmat(Jac,dXidu,fe.G);
+
+#if SP_DEBUG > 4
+          std::cout <<"\niel, jp = "<< iel <<" "<< jp
+                    <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX << std::endl;
+#endif
+
+          // Cartesian coordinates of current integration point
+          X = Xnod * fe.N;
+          X.t = time.t;
+
+          // Evaluate the integrand and accumulate element contributions
+          fe.detJxW *= 0.125*dV*itgPts[iel][j][3];
+          if (!integrand.evalInt(*A,fe,time,X))
+            ok = false;
+        }
+
+        // Finalize the element quantities
+        if (ok && !integrand.finalizeElement(*A,time,firstIp+MPitg[iel]))
+          ok = false;
+
+        // Assembly of global system integral
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
+          ok = false;
+
+        A->destruct();
+      }
+    }
+  }
+
+  return ok;
+}
+
+
 bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 			GlobalIntegral& glInt,
 			const TimeDomain& time)
@@ -1970,9 +2156,11 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 #endif
 
   bool ok = true;
-  for (size_t g = 0; g < threadGrp.size() && ok; ++g) {
+  for (size_t g = 0; g < threadGrp.size() && ok; g++)
+  {
 #pragma omp parallel for schedule(static)
-    for (size_t t = 0; t < threadGrp[g].size(); ++t) {
+    for (size_t t = 0; t < threadGrp[g].size(); t++)
+    {
       FiniteElement fe(p1*p2*p3);
       fe.xi = fe.eta = fe.zeta = faceDir < 0 ? -1.0 : 1.0;
       fe.u = gpar[0](1,1);
@@ -1984,7 +2172,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
       Vec3   normal;
       double dXidu[3];
 
-      for (size_t l = 0; l < threadGrp[g][t].size() && ok; ++l)
+      for (size_t l = 0; l < threadGrp[g][t].size() && ok; l++)
       {
         int iel = threadGrp[g][t][l];
         fe.iel = MLGE[doXelms+iel];
@@ -2151,7 +2339,7 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
       double ucurr, uprev = *(uit++);
       int nCol = svol->numCoefs(d) - pm1;
       gpar[d].resize(nGauss,nCol);
-      for (int j = 1; j <= nCol; uit++, j++)
+      for (int j = 1; j <= nCol; ++uit, j++)
       {
 	ucurr = *uit;
 	for (int i = 1; i <= nGauss; i++)
@@ -2307,7 +2495,7 @@ int ASMs3D::evalPoint (const double* xi, double* param, Vec3& X) const
   Vec3 Xnod;
   size_t inod = 1;
   RealArray::const_iterator cit = svol->coefs_begin();
-  for (i = 0; cit != svol->coefs_end(); cit++, i++)
+  for (i = 0; cit != svol->coefs_end(); ++cit, i++)
   {
     if (i < 3) Xnod[i] = *cit;
     if (i+1 == svol->dimension())
