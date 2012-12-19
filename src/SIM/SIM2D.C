@@ -46,6 +46,7 @@ SIM2D::SIM2D (unsigned char n1, unsigned char n2, bool) : isRefined(false)
 {
   nf[0] = n1;
   nf[1] = n2;
+  nf[2] = 0;
 }
 
 
@@ -232,6 +233,24 @@ bool SIM2D::parseBCTag (const TiXmlElement* elem)
 
 bool SIM2D::parse (const TiXmlElement* elem)
 {
+  if (!strcasecmp(elem->Value(),"geometry"))
+  {
+    // Check for immersed boundary calculation.
+    // This code must be placed here (and not in parseGeometryTag)
+    // due to instanciation of the ASMs2DIB class.
+    const TiXmlElement* child = elem->FirstChildElement();
+    for (; child; child = child->NextSiblingElement())
+      if (!strcasecmp(child->Value(),"immersedboundary"))
+      {
+	nf[1] = 'I';
+	int maxDepth = 5;
+	utl::getAttribute(child,"max_depth",maxDepth);
+	std::cout <<"  Parsing <immersedboundary>\n"
+		  <<"\tMax refinement depth : "<< maxDepth << std::endl;
+	nf[2] = maxDepth;
+      }
+  }
+
   bool result = this->SIMbase::parse(elem);
 
   const TiXmlElement* child = elem->FirstChildElement();

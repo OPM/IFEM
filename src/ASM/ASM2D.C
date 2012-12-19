@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "ASM2D.h"
+#include "ASMs2DIB.h"
 #include "ASMs2DC1.h"
 #include "ASMs2Dmx.h"
 #include "ASMs2DmxLag.h"
@@ -43,7 +44,9 @@ ASMbase* ASM2D::create (ASM::Discretization discretization,
 #endif
 
   default:
-    if (nf[1] > 0 || mixedFEM)
+    if (nf[1] == 'I') // hack for immersed boundary approach
+      return new ASMs2DIB(2,nf[0],nf[2]);
+    else if (nf[1] > 0 || mixedFEM)
       return new ASMs2Dmx(2,nf[0],nf[1]);
     else
       return new ASMs2D(2,nf[0]);
@@ -67,6 +70,7 @@ ASMbase* ASM2D::clone (unsigned char* nf) const
   TRY_CLONE1(ASMs2DSpec,nf)
   TRY_CLONE1(ASMs2DLag,nf)
   TRY_CLONE1(ASMs2DC1,nf)
+  TRY_CLONE1(ASMs2DIB,nf)
   TRY_CLONE1(ASMs2D,nf)
 #ifdef HAS_LRSPLINE
   TRY_CLONE1(ASMu2D,nf)

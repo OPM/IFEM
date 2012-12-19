@@ -19,14 +19,14 @@
 
 /*!
   \brief Driver class for 2D NURBS-based FEM solver.
-  \details The class implements the parse method of the parent class, and can
-  be used for any 2D continuum or shell problem.
+  \details The class implements the parse method of the parent class,
+  and can be used for any 2D continuum or shell problem.
 */
 
 class SIM2D : public SIMbase
 {
 public:
-  //! \brief Announce dimensionality
+  //! \brief Enum announcing the dimensionality (used for template writing).
   enum { dimension = 2 };
 
   //! \brief Default constructor.
@@ -79,7 +79,7 @@ protected:
 
   //! \brief Reads node numbers from given input stream.
   //! \param[in] isn The file stream to read from
-  void readNodes(std::istream& isn);
+  virtual void readNodes(std::istream& isn);
 
   //! \brief Refines a list of elements.
   //! \param[in] elements 1-based indices of the elements to refine
@@ -103,7 +103,7 @@ private:
   bool isRefined; //!< If \e true, the model has been adaptively refined
 
 protected:
-  unsigned char nf[2]; //!< Number of scalar fields
+  unsigned char nf[3]; //!< Number of scalar fields
 };
 
 #endif
