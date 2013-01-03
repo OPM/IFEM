@@ -75,16 +75,22 @@ bool ASMs2DIB::generateFEMTopology ()
     double ucurr, uprev = *(uit++);
     for (i1 = p1-1; i1 < n1; i1++, ++uit, e++)
     {
+#if SP_DEBUG > 1
       std::cout <<"\n Element "<< MLGE[e] <<":\n";
+#endif
       ucurr = *uit;
       for (i = 0; i < quadPoints[e].size(); i++)
       {
 	double& xi  = quadPoints[e][i][0];
 	double& eta = quadPoints[e][i][1];
+#if SP_DEBUG > 1
 	std::cout <<"\tItg.point "<< i+1 <<": xi,eta = "<< xi <<" "<< eta;
+#endif
 	xi  = 0.5*((ucurr-uprev)*xi  + ucurr+uprev);
 	eta = 0.5*((vcurr-vprev)*eta + vcurr+vprev);
+#if SP_DEBUG > 1
 	std::cout <<" --> u,v = "<< xi <<" "<< eta << std::endl;
+#endif
       }
       uprev = ucurr;
     }
@@ -96,7 +102,7 @@ bool ASMs2DIB::generateFEMTopology ()
   for (e = 0; e < quadPoints.size(); e++)
     if (quadPoints[e].empty())
       std::cout <<"\n Element "<< MLGE[e] <<" is completely outside the domain";
-    else for ( n = 0; n < MNPC[e].size(); n++)
+    else for (n = 0; n < MNPC[e].size(); n++)
       activeNodes.insert(MNPC[e][n]+1);
   std::cout <<"\n"<< std::endl;
 

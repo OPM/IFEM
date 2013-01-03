@@ -121,7 +121,8 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
       std::ifstream isp(file);
       this->readPatches(isp,myModel,"\t");
 
-      if (myModel.empty()) {
+      if (myModel.empty())
+      {
         std::cerr <<" *** SIMbase::parse: No patches read"<< std::endl;
         return false;
       }
@@ -425,9 +426,9 @@ bool SIMbase::parse (const TiXmlElement* elem)
     std::string file;
     if (utl::getAttribute(elem, "field", info.sim_field) &&
         utl::getAttribute(elem, "file_field", info.file_field) &&
-        utl::getAttribute(elem, "file", file)) {
+        utl::getAttribute(elem, "file", file))
       myICs[file].push_back(info);
-    } else
+    else
       result = false;
   }
 
@@ -489,9 +490,9 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
 	if (is.good())
 	{
 	  std::cout <<"\nReading patch file "<< cline << std::endl;
-	  ASMbase* pch = readPatch(is,i);
-          if (pch)
-            myModel.push_back(pch);
+	  ASMbase* pch = this->readPatch(is,i);
+	  if (pch)
+	    myModel.push_back(pch);
 	}
 	else
 	  std::cerr <<" *** SIMbase: Failure opening patch file"
@@ -517,7 +518,7 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
       size_t i = 9; while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
       std::cout <<"\nReading data file "<< keyWord+i << std::endl;
       std::ifstream isp(keyWord+i);
-      this->readPatches(isp, myModel); 
+      this->readPatches(isp,myModel);
 
       if (myModel.empty())
       {
@@ -748,8 +749,12 @@ bool SIMbase::createFEMmodel (bool resetNumb)
   }
 
   for (size_t i = 0; i < myModel.size(); i++)
+  {
+    myModel[i]->setGauss(opt.nGauss[0]); // in the case of immersed boundaries,
+    // the number of Gauss quadrature points must be known at this point
     if (!myModel[i]->generateFEMTopology())
       return false;
+  }
 
   if (nGlPatches == 0 && nProc == 1)
     nGlPatches = myModel.size();
@@ -1205,7 +1210,7 @@ void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers)
 {
   nIntGP = nBouGP = 0;
   for (size_t i = 0; i < myModel.size(); i++)
-    if (!myModel.empty())
+    if (!myModel[i]->empty())
     {
       myModel[i]->setGauss(ng);
       // Count the interior integration points
@@ -1426,7 +1431,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             else
               ok = false;
 
-          else if ((abs(p->ldim) > 0) && (abs(p->ldim)+2 == myModel[j-1]->getNoSpaceDim()))
+          else if (abs(p->ldim) == 1 && myModel[j-1]->getNoSpaceDim() == 3)
             if (it->first == 0 && this->initNeumann(p->pindx))
             {
               if (msgLevel > 1)
@@ -1508,14 +1513,14 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
   if (!mySam->expandSolution(*b,solution)) return false;
 
   if (printSol > 0)
-    printSolutionSummary(solution, printSol, compName);
+    this->printSolutionSummary(solution,printSol,compName);
 
   return true;
 }
 
 
-void SIMbase::printSolutionSummary(const Vector& solution, int printSol,
-                                   const char* compName)
+void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
+                                    const char* compName)
 {
   // Compute and print solution norms
   const size_t nf = this->getNoFields(1);
@@ -1540,7 +1545,7 @@ void SIMbase::printSolutionSummary(const Vector& solution, int printSol,
     }
     str << std::endl;
   }
-  utl::printSyncronized(std::cout, str, myPid);
+  utl::printSyncronized(std::cout,str,myPid);
 
   // Print entire solution vector if it is small enough
   if (mySam->getNoEquations() < printSol)
@@ -1558,7 +1563,6 @@ void SIMbase::printSolutionSummary(const Vector& solution, int printSol,
 #if SP_DEBUG > 2
   else
     std::cout <<"\nSolution vector:"<< *myEqSys->getVector();
-;
 #endif
 }
 
@@ -2092,8 +2096,8 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
     // 1. Evaluate primary solution variables
 
     Vector& locvec = myProblem ? myProblem->getSolution() : lovec;
-    extractPatchDependencies(myProblem, myModel, i);
     myModel[i]->extractNodeVec(psol,locvec,psolComps,0);
+    this->extractPatchDependencies(myProblem,myModel,i);
     if (!myModel[i]->evalSolution(field,locvec,opt.nViz))
       return false;
 
