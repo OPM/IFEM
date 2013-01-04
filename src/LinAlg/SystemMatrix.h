@@ -311,6 +311,16 @@ public:
   {
     return false;
   }
+  //! \brief Solves the linear system of equations for a given right-hand-side.
+  //! \param b Right-hand-side vector on input, solution vector on output
+  //! \param P Preconditioning matrix (if different than system matrix)
+  //! \param Pb Diagonal scaling
+  //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
+  virtual bool solve(SystemVector& b, SystemMatrix& P, SystemVector& Pb, bool newLHS = true)
+  {
+    return false;
+  }
+  
 
   //! \brief Returns the L-infinity norm of the matrix.
   virtual Real Linfnorm() const = 0;

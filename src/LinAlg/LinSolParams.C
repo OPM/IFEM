@@ -50,6 +50,7 @@ void LinSolParams::setDefault ()
   asmlu.resize(1,false);
   nblock   = 1;
   schur    = false;
+  schurPrec = SIMPLE;
   ncomps.resize(2); ncomps[0]   = 2; ncomps[1]   = 1;
     
   atol      = 1.0e-6;
@@ -84,6 +85,8 @@ void LinSolParams::copy (const LinSolParams& spar)
   nullspc       = spar.nullspc;
   asmlu         = spar.asmlu;
   nblock        = spar.nblock;
+  schur         = spar.schur;
+  schurPrec     = spar.schurPrec;
   ncomps        = spar.ncomps;
 
   atol   = spar.atol;
@@ -220,6 +223,14 @@ bool LinSolParams::read (const TiXmlElement* child)
       prec = "asm";
       asmlu[0] = true;
     }
+  }
+  else if ((value = utl::getValue(child,"schurpc"))) {
+    if (!strncasecmp(value,"SIMPLE",6))
+      schurPrec = SIMPLE;
+    else if (!strncasecmp(value,"MSIMPLER",8))
+      schurPrec = MSIMPLER;
+    else if (!strncasecmp(value,"PCD",3))
+      schurPrec = PCD;
   }
   else if ((value = utl::getValue(child,"subpc"))) {
     std::istringstream this_line(value);

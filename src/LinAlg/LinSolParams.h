@@ -30,6 +30,9 @@ class TiXmlElement;
 //! \brief Null-space for matrix operator
 enum NullSpace { NONE, CONSTANT, RIGID_BODY };
 
+//! \brief Schur preconditioner methods
+enum SchurPrec { SIMPLE, MSIMPLER, PCD };
+
 /*!
   \brief Class for linear solver parameters.
   \details It contains information about solver method, preconditioner
@@ -157,6 +160,7 @@ private:
   PetscInt  maxIts;        // Maximum number of iterations
   int       nblock;        // Number of block
   bool      schur;         // Schur complement solver 
+  SchurPrec schurPrec;     // Preconditioner for Schur system 
   std::string                method;           // Linear solver method
   std::string                prec;             // Preconditioner
   std::vector<std::string>   subprec;          // Preconditioners for block-system

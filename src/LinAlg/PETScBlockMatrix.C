@@ -479,7 +479,7 @@ void PETScBlockMatrix::getBlockElmMatData(const Matrix& Amat, const PetscIntVec&
 void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
 {
   const SAMpatchPara* sampch = dynamic_cast<const SAMpatchPara*>(&sam);
-
+  
   int nx = solParams.getLocalPartitioning(0);
   int ny = solParams.getLocalPartitioning(1);
   int nz = solParams.getLocalPartitioning(2);
@@ -750,7 +750,7 @@ bool PETScBlockMatrix::solve (const SystemVector& b, SystemVector& x, bool newLH
 }
 
 
-bool PETScBlockMatrix::solve (SystemVector& B, SystemMatrix& P, bool newLHS)
+bool PETScBlockMatrix::solve (SystemVector& B, SystemMatrix& P, SystemVector& Pb, bool newLHS)
 {
   PETScVector* Bptr = dynamic_cast<PETScVector*>(&B);
   if (!Bptr)
@@ -760,19 +760,27 @@ bool PETScBlockMatrix::solve (SystemVector& B, SystemMatrix& P, bool newLHS)
   if (!Pptr)
     return false;
 
+  PETScVector* Pbptr = dynamic_cast<PETScVector*>(&Pb);
+  if (!Pbptr)
+    return false;
+
   Vec x;
   VecDuplicate(Bptr->getVector(),&x);
   VecCopy(Bptr->getVector(),x);
   this->renumberRHS(Bptr->getVector(),x,true);
 
   // Has lefthand side changed?
-  if (newLHS)
-    KSPSetOperators(ksp,A,Pptr->getMatrix(),SAME_NONZERO_PATTERN);
-  else
-    KSPSetOperators(ksp,A,Pptr->getMatrix(),SAME_PRECONDITIONER);
+  static int firstIt = true;
+  //if (newLHS)
+  if (firstIt)
+    KSPSetOperators(ksp,A,A,SAME_NONZERO_PATTERN);
+  //else
+  //  KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
+  firstIt = false;
 
   if (setParams)
-    this->setParameters();
+    if (!this->setParameters(Pptr,Pbptr))
+      return false;
   KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
   KSPSolve(ksp,x,Bptr->getVector());
 
@@ -906,7 +914,7 @@ Real PETScBlockMatrix::Linfnorm () const
 }
 
 
-void PETScBlockMatrix::setParameters()
+bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 {
   // Set linear solver method
   KSPSetType(ksp,solParams.method.c_str());
@@ -929,13 +937,21 @@ void PETScBlockMatrix::setParameters()
 #else
     VecCreateSeq(PETSC_COMM_SELF,m1,&diagA00);
 #endif
-    MatGetDiagonal(matvec[0],diagA00);
+
+    if (!P || (solParams.schurPrec == SIMPLE)) {
+      MatGetDiagonal(matvec[0],diagA00);
+    }
+    else { 
+      MatGetDiagonal(P->getMatrixBlock(0,0),diagA00);
+    }
+
     VecReciprocal(diagA00);
     VecScale(diagA00,-1.0);
     MatDiagonalScale(matvec[1],diagA00,PETSC_NULL);
     MatMatMult(matvec[2],matvec[1],MAT_INITIAL_MATRIX,PETSC_DEFAULT,&Sp);
     VecReciprocal(diagA00);
     MatDiagonalScale(matvec[1],diagA00,PETSC_NULL);
+    VecDestroy(&diagA00);
     MatGetSize(Sp,&nr,&nc);
     MatAXPY(Sp,1.0,matvec[3],DIFFERENT_NONZERO_PATTERN);
     //MatCreateSchurComplement(matvec[0],matvec[0],matvec[1],matvec[2],matvec[3],&S);
@@ -949,7 +965,44 @@ void PETScBlockMatrix::setParameters()
     PCFieldSplitGetSubKSP(pc,&nsplit,&subksp);
     KSPSetOperators(subksp[1],Sp,Sp,SAME_PRECONDITIONER);
 
-    // Preconditioner for block 1
+    if (P && Pb && (solParams.schurPrec == PCD)) {
+      Vec QpL;
+      
+      KSPSetType(subksp[1],"preonly");
+      KSPGetPC(subksp[1],&subpc[1]);
+      PCSetType(subpc[1],PCSHELL);
+#ifdef PARALLEL_PETSC
+      PCCreate(PETSC_COMM_WORLD,&S);
+      PCCreate(PETSC_COMM_WORLD,&Fp);
+#else
+      PCCreate(PETSC_COMM_SELF,&S);
+      PCCreate(PETSC_COMM_SELF,&Fp);
+#endif
+      PCSetType(S,PCLU);
+      PCSetType(Fp,PCMAT);
+      Vec Pbr;
+      VecDuplicate(Pb->getVector(),&Pbr);
+      VecCopy(Pb->getVector(),Pbr);
+      this->renumberRHS(Pb->getVector(),Pbr,true);
+      VecGetSubVector(Pbr,isvec[1],&QpL);
+      VecReciprocal(QpL);
+      MatDiagonalScale(P->getMatrixBlock(1,1),PETSC_NULL,QpL);
+      VecRestoreSubVector(Pbr,isvec[1],&QpL);
+      VecDestroy(&Pbr);
+      PCSetOperators(S,Sp,Sp,SAME_PRECONDITIONER);
+      PCSetOperators(Fp,P->getMatrixBlock(1,1),P->getMatrixBlock(1,1),SAME_NONZERO_PATTERN);
+      
+      PCProdCreate(&pcprod);
+      PCShellSetApply(subpc[1],PCProdApply);
+      PCShellSetContext(subpc[1],pcprod);
+      PCShellSetDestroy(subpc[1],PCProdDestroy);
+      PCShellSetName(subpc[1],"PCD");
+
+      PCProdSetUp(subpc[1],&Fp,&S);
+      nsplit--;
+    }
+
+    // Preconditioner for blocks
     for (size_t m = 0;m < nsplit;m++) {
       KSPSetType(subksp[m],"preonly");
       KSPGetPC(subksp[m],&subpc[m]);
@@ -963,8 +1016,8 @@ void PETScBlockMatrix::setParameters()
 	  
 	  IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
 	  for (size_t i = 0;i < nsubds;i++) {
-	    ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofsBlock[1][i].size(),&(locSubdDofsBlock[1][i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
-	    ISCreateGeneral(PETSC_COMM_WORLD,subdDofsBlock[1][i].size(),&(subdDofsBlock[1][i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
+	    ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofsBlock[m][i].size(),&(locSubdDofsBlock[m][i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
+	    ISCreateGeneral(PETSC_COMM_WORLD,subdDofsBlock[m][i].size(),&(subdDofsBlock[m][i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
 	  }
 	  PCASMSetLocalSubdomains(subpc[m],nsubds,isSubdDofs,isLocSubdDofs);
 	}
@@ -986,14 +1039,16 @@ void PETScBlockMatrix::setParameters()
       else if (!strncasecmp(solParams.subprec[m].c_str(),"ml",2)) {
 	PetscInt n;
 	
-	PCMGSetLevels(subpc[m],solParams.mglevels[m], PETSC_NULL);
+	//PCMGSetLevels(subpc[m],solParams.mglevels[m], PETSC_NULL);
 	//PetscOptionsSetValue("-pc_mg_levels","2");
 	//PCMGSetType(subpc[1],PC_MG_ADDITIVE);
 	//PCMGSetNumberSmoothDown(subpc[m],noPreSmooth[m]);
 	//PCMGSetNumberSmoothUp(subpc[m],noPostSmooth[m]);
 	//PetscOptionsSetValue("-fieldsplit_p_pc_ml_maxNLevels","2");
-	PetscOptionsSetValue("-fieldsplit_p_pc_ml_maxCoarseSize","20000");
-	PCSetFromOptions(subpc[m]);
+	//PetscOptionsSetValue("-fieldsplit_p_pc_ml_maxCoarseSize","20000");
+	//PCSetFromOptions(subpc[m]);
+	PCGAMGSetNlevels(subpc[m],solParams.mglevels[m]);
+	PCGAMGSetCoarseEqLim(subpc[m],solParams.maxCoarseSize[m]);
 	PCSetUp(subpc[m]);
 	KSPSetUp(subksp[m]);
 	PCMGGetLevels(subpc[m],&n);
@@ -1010,17 +1065,37 @@ void PETScBlockMatrix::setParameters()
 	  PCSetType(prepc,solParams.presmoother[m].c_str());
 	  PCFactorSetLevels(prepc,solParams.levels[m]);
 	  KSPSetUp(preksp);
-	  
-	  KSP postksp;
-	  PC  postpc;
-	  PCMGGetSmootherUp(subpc[m],i,&postksp);
-	  KSPSetType(postksp,"richardson");
-	  KSPSetTolerances(postksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,solParams.noPostSmooth[m]);
-	  KSPGetPC(postksp,&postpc);
-	  PCSetType(postpc,solParams.postsmoother[m].c_str());
-	  PCFactorSetLevels(postpc,solParams.levels[m]);
-	  KSPSetUp(postksp);
 	}
+
+	// for (int i = 1;i < n;i++) {
+	//   KSP postksp;
+	//   PC  postpc;
+	//   PCMGGetSmootherUp(subpc[m],i,&postksp);
+	//   //PCMGGetSmoother(subpc[m],i,&postksp);
+	//   KSPSetType(postksp,"richardson");
+	//   KSPSetTolerances(postksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,solParams.noPostSmooth[m]);
+	//   KSPGetPC(postksp,&postpc);
+	//   PCSetType(postpc,solParams.postsmoother[m].c_str());
+	//   PCFactorSetLevels(postpc,solParams.levels[m]);
+	//   KSPSetUp(postksp);
+	// }
+
+	//     if (!strncasecmp(solParams.postsmoother[m].c_str(),"asm",3)) {
+	//       PCASMSetType(postpc,PC_ASM_BASIC);
+	//       PCASMSetOverlap(postpc,solParams.overlap[m]);
+	//       if (!locSubdDofsBlock.empty() && !subdDofsBlock.empty()) {
+	// 	const size_t nsubds = subdDofsBlock[m].size();
+		
+	// 	IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
+	// 	for (size_t i = 0;i < nsubds;i++) {
+	// 	  ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofsBlock[m][i].size(),&(locSubdDofsBlock[m][i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
+	// 	  ISCreateGeneral(PETSC_COMM_WORLD,subdDofsBlock[m][i].size(),&(subdDofsBlock[m][i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
+	// 	}
+	// 	PCASMSetLocalSubdomains(postpc,nsubds,isSubdDofs,isLocSubdDofs);
+	//       }
+	//     }
+	//   } 
+	// }
       }      
     }
   }
@@ -1028,9 +1103,11 @@ void PETScBlockMatrix::setParameters()
     PCSetFromOptions(pc);
     PCSetUp(pc);
   }
-  
+
   KSPSetFromOptions(ksp);
   KSPSetUp(ksp);  
+
+  return true;
 }
 
 

@@ -16,6 +16,7 @@
 #define _PETSC_BLOCK_MATRIX_H
 
 #include "PETScMatrix.h"
+#include "PCProd.h"
 #ifndef HAS_PETSC
 #define IS int // to avoid compilation failures
 #endif
@@ -230,7 +231,15 @@ public:
   //! \param b Right-hand-side vector, solution vector on output
   //! \param P Preconditioning matrix (if different than system matrix)
   //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
-  virtual bool solve(SystemVector& b, SystemMatrix& P, bool newLHS = true);
+  virtual bool solve(SystemVector& b, SystemMatrix& P, bool newLHS = true)
+  { return false; }
+
+  //! \brief Solves the linear system of equations for a given right-hand-side.
+  //! \param b Right-hand-side vector, solution vector on output
+  //! \param P Preconditioning matrix (if different than system matrix)
+  //! \param Pb Diagonal scaling 
+  //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
+  virtual bool solve(SystemVector& b, SystemMatrix& P, SystemVector& Pb, bool newLHS = true);
 
   //! \brief Solves a generalized symmetric-definite eigenproblem.
   //! \details The eigenproblem is assumed to be on the form
@@ -263,6 +272,8 @@ public:
 
  protected:
   Mat    Sp;                          //!< Preconditioner for Schur block
+  PC     S, Fp;                       //!< Preconditioners for pressure-convection-diffusion pc
+  PCProd *pcprod;                     //!< PCD preconditioner
   size_t nblocks;                     //!< Number of blocks
   IntVec ncomps;                      //!< Number of components
   IS* isvec;                          //!< Index set for blocks
@@ -287,7 +298,7 @@ public:
 
   void renumberRHS(const Vec& b, Vec& bnew, bool renum2block = true);
 
-  void setParameters();
+  bool setParameters(PETScBlockMatrix* P = NULL, PETScVector *Pb = NULL);
 #endif
 };
 
