@@ -22,7 +22,8 @@
 #include <sstream>
 
 
-NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : model(sim), iteNorm(n)
+NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n, int nSols) 
+  : model(sim), nSolutions(nSols), iteNorm(n)
 {
 #ifndef SP_DEBUG
   msgLevel = 1;   // prints the convergence history only
@@ -135,10 +136,10 @@ const char** NonLinSIM::getPrioritizedTags () const
 void NonLinSIM::init (const RealArray& initVal)
 {
   size_t nSols = model.getNoSolutions();
-  if (nSols < 2) nSols = 2;
-  solution.resize(nSols);
+  if (nSols > nSolutions) nSolutions = nSols;
+  solution.resize(nSolutions);
 
-  for (size_t n = 0; n < nSols; n++)
+  for (size_t n = 0; n < nSolutions; n++)
     solution[n].resize(model.getNoDOFs(),true);
 
   // Set initial conditions for time-dependent problems

@@ -45,7 +45,8 @@ public:
   //! \brief The constructor initializes default solution parameters.
   //! \param sim Pointer to the spline FE model
   //! \param[in] n Which type of iteration norm to use in convergence checks
-  NonLinSIM(SIMbase& sim, CNORM n = ENERGY);
+  //! \param[in] nSols Number of timesteps stored
+  NonLinSIM(SIMbase& sim, CNORM n = ENERGY, int nSols = 2);
   //! \brief The destructor frees the dynamically allocated FE model object.
   virtual ~NonLinSIM();
 
@@ -143,10 +144,11 @@ public:
   //! \brief Wrapper used to handle hierarchy issues
   virtual void setOptions(SIMoptions& opt2);
 protected:
-  SIMbase& model;    //!< The isogeometric FE model
-  Vectors  solution; //!< Primary solution vectors of the last increments
-  Vector   linsol;   //!< Linear solution vector
-  Vector   residual; //!< Residual force vector
+  SIMbase& model;      //!< The isogeometric FE model
+  Vectors  solution;   //!< Primary solution vectors of the last increments
+  Vector   linsol;     //!< Linear solution vector
+  Vector   residual;   //!< Residual force vector
+  int      nSolutions; //!< Number of solution vectors
 
   // Nonlinear solution algorithm parameters
   CNORM  iteNorm; //!< The norm type used to measure the residual
