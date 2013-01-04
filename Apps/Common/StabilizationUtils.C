@@ -35,7 +35,7 @@ double getElementSize(const std::vector<Vec3>& XC, int nsd)
     for (size_t j = 1;j <= G.cols();j++)  
       Gnorm2 += G(i,j)*G(i,j);
 
-  return 1.0/sqrt( Ct/pow(dt,2) + U.dot(G*U) + Cl*mu*Gnorm2);
+  return 1.0/sqrt( Ct/pow(dt,2) + U.dot(G*U) + Cl*mu*mu*Gnorm2);
 }
 
 
@@ -48,6 +48,16 @@ bool getTauNSPt(double dt, double mu, const Vector& U, const Matrix& G, double &
     Gtrace += G(i,i);
 
   tauC = 1.0/(tauM*Gtrace);
+
+  return true;
+}
+
+
+bool getTauNSALEPt(double dt, double mu, const Vector& U, const Matrix& G, double & tauM, double& tauC)
+{
+  tauM = getTauPt(dt,mu,U,G);
+
+  tauC = tauM*(U.dot(U));
 
   return true;
 }

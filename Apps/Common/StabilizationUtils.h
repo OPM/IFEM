@@ -29,6 +29,17 @@ namespace StabilizationUtils {
   //! \details Stabilization parameters in integration point
   bool getTauNSPt(double dt, double mu, const Vector& U, const Matrix& G,
 		  double& tauM, double& tauC); 
+
+  //! \brief Computes stabilization parameters for Navier-Stokes equations
+  //! \param[in] dt The timestep size
+  //! \param[in] mu Diffusion/viscosity parameter
+  //! \param[in] U  Velocity vector
+  //! \param[in] G  The G matrix
+  //! \param[out] tauM Stabilization parameter for momentum
+  //! \param[out] tauC Stabilization parameter for continuity
+  //! \details Stabilization parameters in integration point
+  bool getTauNSALEPt(double dt, double mu, const Vector& U, const Matrix& G,
+		     double& tauM, double& tauC); 
 }
 
 #endif
