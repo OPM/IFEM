@@ -453,10 +453,13 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
   }
 
   // Get number of equations in linear system
-  const PetscInt neq = sam.getNoEquations();
+  const PetscInt neq   = sam.getNoEquations();
+  const PetscInt nnod  = sam.getNoNodes();
+  const PetscInt bsize = neq/nnod;
 
   // Set correct number of rows and columns for matrix.
   MatSetSizes(A,neq,neq,PETSC_DETERMINE,PETSC_DETERMINE);
+  MatSetBlockSize(A,bsize);
   MPI_Barrier(PETSC_COMM_WORLD);
   MatSetFromOptions(A);
   

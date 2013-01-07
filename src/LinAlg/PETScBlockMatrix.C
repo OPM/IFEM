@@ -513,6 +513,7 @@ void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
   for (size_t m = 0;m < nblocks;m++)
     for (size_t n = 0;n < nblocks;n++, k++) {
       MatSetSizes(matvec[k],nnod*ncomps[m],nnod*ncomps[n],PETSC_DETERMINE,PETSC_DETERMINE);
+      MatSetBlockSize(matvec[k],ncomps[n]);
       MatSetFromOptions(matvec[k]);
     }
 
