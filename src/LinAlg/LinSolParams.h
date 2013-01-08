@@ -175,7 +175,11 @@ private:
   std::vector<PetscInt>      noPostSmooth;     // Number of postsmoothings for AMG
   std::vector<std::string>   presmoother;      // Presmoother for AMG
   std::vector<std::string>   postsmoother;     // Postsmoother for AMG
+  std::vector<std::string>   finesmoother;     // Smoother on finest grid
   std::vector<int>           maxCoarseSize;    // Max number of DOFS for coarse AMG system
+  std::vector<PetscInt>      MLCoarsenScheme;  // Coarsening scheme for ML
+  std::vector<PetscReal>     MLThreshold;      // Smoother drop toleranse for ML
+  std::vector<PetscReal>     MLDampingFactor;  // Damping factor
   std::vector<int>           nx;               // Number of local subdomains in first parameter direction
   std::vector<int>           ny;               // Number of local subdomains in second parameter direction
   std::vector<int>           nz;               // Number of local subdomains in third parameter direction

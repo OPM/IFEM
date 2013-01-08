@@ -283,6 +283,11 @@ bool LinSolParams::read (const TiXmlElement* child)
     std::istream_iterator<std::string> begin(this_line), end;
     postsmoother.assign(begin, end);
   }
+  else if ((value = utl::getValue(child,"finesmoother"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<std::string> begin(this_line), end;
+    finesmoother.assign(begin, end);
+  }
   else if ((value = utl::getValue(child,"overlap"))) {
     std::istringstream this_line(value);
     std::istream_iterator<int> begin(this_line), end;
@@ -315,6 +320,21 @@ bool LinSolParams::read (const TiXmlElement* child)
     std::istringstream this_line(value);
     std::istream_iterator<int> begin(this_line), end;
     maxCoarseSize.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"MLCoarsenScheme"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscInt> begin(this_line), end;
+    MLCoarsenScheme.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"MLThreshold"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscReal> begin(this_line), end;
+    MLThreshold.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"MLDampingFactor"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscReal> begin(this_line), end;
+    MLDampingFactor.assign(begin, end);
   }
   else if ((value = utl::getValue(child,"ncomponents"))) {
     std::istringstream this_line(value);
@@ -363,11 +383,9 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
   // Set preconditioner
   PC pc;
   KSPGetPC(ksp,&pc);
-  //PCSetType(pc,prec.c_str());
-  //PCFactorSetLevels(pc,levels[0]);
-  //PCMGSetLevels(pc,levels[0],PETSC_NULL);
-  //PCMGSetType(pc,PC_MG_MULTIPLICATIVE);
   PCSetType(pc,prec.c_str());
+  //PCFactorSetMatSolverPackage(pc,package[0].c_str());
+  //PCFactorSetLevels(pc,levels[0]);
 #if PETSC_HAVE_HYPRE
   if (!strncasecmp(prec.c_str(),"hypre",5))
     PCHYPRESetType(pc,hypretype[0].c_str());
@@ -375,40 +393,192 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
   if (!strncasecmp(prec.c_str(),"asm",3) ||!strncasecmp(prec.c_str(),"gasm",4)) {
     PCASMSetType(pc,PC_ASM_BASIC);
     PCASMSetOverlap(pc,overlap[0]);
-  }
 
-  if (!locSubdDofs.empty() && !subdDofs.empty()) {
-    const size_t nsubds = subdDofs.size();
-
-    IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
-    for (size_t i = 0;i < nsubds;i++) {
-      ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofs[i].size(),&(locSubdDofs[i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
-      ISCreateGeneral(PETSC_COMM_WORLD,subdDofs[i].size(),&(subdDofs[i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
+    if (!locSubdDofs.empty() && !subdDofs.empty()) {
+      const size_t nsubds = subdDofs.size();
+      
+      IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
+      for (size_t i = 0;i < nsubds;i++) {
+	ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofs[i].size(),&(locSubdDofs[i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
+	ISCreateGeneral(PETSC_COMM_WORLD,subdDofs[i].size(),&(subdDofs[i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
+      }
+      PCASMSetLocalSubdomains(pc,nsubds,isSubdDofs,isLocSubdDofs);
     }
-    PCASMSetLocalSubdomains(pc,nsubds,isSubdDofs,isLocSubdDofs);
-  }
 
-  PCFactorSetMatSolverPackage(pc,package[0].c_str());
-  // RUNAR
-  //PCFactorSetShiftType(pc,MAT_SHIFT_NONZERO);
-  PCSetFromOptions(pc);
-  PCSetUp(pc);
-
-  // If LU factorization is used on each subdomain
-  if (asmlu[0]) {
-    KSP* subksp;
-    PC   subpc;
-    PetscInt first, nlocal;
-    PCASMGetSubKSP(pc,&nlocal,&first,&subksp);
-
-    for (int i = 0; i < nlocal; i++) {
-      KSPGetPC(subksp[i],&subpc);
-      PCSetType(subpc,PCLU);
-      KSPSetType(subksp[i],KSPPREONLY);
+    // If LU factorization is used on each subdomain
+    if (asmlu[0]) {
+      KSP* subksp;
+      PC   subpc;
+      PetscInt first, nlocal;
+      PCASMGetSubKSP(pc,&nlocal,&first,&subksp);
+      
+      for (int i = 0; i < nlocal; i++) {
+	KSPGetPC(subksp[i],&subpc);
+	PCSetType(subpc,PCLU);
+	KSPSetType(subksp[i],KSPPREONLY);
+      }
     }
   }
+  else if (!strncasecmp(prec.c_str(),"ml",2)) {
+        PetscInt n;
 
+        //PCMGSetLevels(pc,mglevels[0], PETSC_NULL);
+        //PCMGSetNumberSmoothDown(pc,noPreSmooth[0]);
+        //PCMGSetNumberSmoothUp(pc,noPostSmooth[0]);
+	std::stringstream maxLevel;
+	maxLevel << mglevels[0];
+        PetscOptionsSetValue("-pc_ml_maxNLevels",maxLevel.str().c_str());
+	std::stringstream maxCoarseDof;
+	maxCoarseDof << maxCoarseSize[0];
+        PetscOptionsSetValue("-pc_ml_maxCoarseSize",maxCoarseDof.str().c_str());
+	if (!MLCoarsenScheme.empty()) {
+	  std::stringstream coarsenScheme;
+	  coarsenScheme << MLCoarsenScheme[0];
+	  PetscOptionsSetValue("-pc_ml_CoarsenScheme",coarsenScheme.str().c_str());
+	}
+	if (!MLThreshold.empty()) {
+	  std::stringstream threshold;
+	  threshold << MLThreshold[0];
+	  PetscOptionsSetValue("-pc_ml_Threshold",threshold.str().c_str());
+	}
+	if (!MLDampingFactor.empty()) {
+	  std::stringstream damping;
+	  damping << MLDampingFactor[0];
+	  PetscOptionsSetValue("-pc_ml_DampingFactor",damping.str().c_str());
+	}
+        //PCGAMGSetNlevels(pc,mglevels[0]);
+        //PCGAMGSetCoarseEqLim(pc,maxCoarseSize[0]);
+
+	PCSetFromOptions(pc);
+        PCSetUp(pc);
+
+        PCMGGetLevels(pc,&n);
+	// Presmoother settings
+	for (int i = 1;i < n;i++) {
+          KSP preksp;
+          PC  prepc;
+          // Not working for some reason
+          //PCMGGetSmootherDown(pc,i,&preksp);
+          PCMGGetSmoother(pc,i,&preksp);
+          KSPSetType(preksp,"richardson");
+          KSPSetTolerances(preksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,noPreSmooth[0]);
+          KSPGetPC(preksp,&prepc);
+
+	  // Set smoother
+	  std::string smoother;
+
+          if ((i == n-1) && (!finesmoother.empty())) 	    
+            smoother = finesmoother[0];
+          else
+	    smoother = presmoother[0];
+
+	  if (smoother == "asm" || smoother == "asmlu") {
+	    PCSetType(prepc,"asm");
+	    PCASMSetType(prepc,PC_ASM_BASIC);
+	    PCASMSetOverlap(prepc,overlap[0]);
+	    
+	    if (!locSubdDofs.empty() && !subdDofs.empty()) {
+	      const size_t nsubds = subdDofs.size();
+
+	      IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
+	      for (size_t i = 0;i < nsubds;i++) {
+		ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofs[i].size(),&(locSubdDofs[i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
+		ISCreateGeneral(PETSC_COMM_WORLD,subdDofs[i].size(),&(subdDofs[i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
+	      }
+	      PCASMSetLocalSubdomains(prepc,nsubds,isSubdDofs,isLocSubdDofs);
+	    }
+
+	    // If LU factorization is used on each subdomain
+	    if (smoother == "asmlu") {
+	      KSP* subksp;
+	      PC   subpc;
+	      PetscInt first, nlocal;
+	      PCSetFromOptions(prepc);
+	      PCSetUp(prepc);
+	      PCASMGetSubKSP(prepc,&nlocal,&first,&subksp);
+	      
+	      for (int i = 0; i < nlocal; i++) {
+		KSPGetPC(subksp[i],&subpc);
+		PCSetType(subpc,PCLU);
+		PCFactorSetShiftType(prepc,MAT_SHIFT_NONZERO);
+		KSPSetType(subksp[i],KSPPREONLY);
+	      }
+	    }
+	  }
+	  else
+	    PCSetType(prepc,smoother.c_str());
+
+	  PCFactorSetLevels(prepc,levels[0]); 
+          KSPSetUp(preksp);
+	}
+
+	// Postsmoother settings
+	// for (int i = 1;i < n;i++) {
+        //   KSP postksp;
+        //   PC  postpc;
+        //   // Not working for some reason
+        //   //PCMGGetSmootherUp(pc,i,&postksp);
+        //   PCMGGetSmoother(pc,i,&postksp);
+        //   KSPSetType(postksp,"richardson");
+        //   KSPSetTolerances(postksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,noPostSmooth[0]);
+        //   KSPGetPC(postksp,&postpc);
+
+	//   // Set smoother
+	//   std::string smoother;
+        //   if ((i == n-1) && (!finesmoother.empty())) 	    
+        //     smoother = finesmoother[0];
+        //   else
+	//     smoother = postsmoother[0];
+
+	//   if (smoother == "asm" || smoother == "asmlu") {
+	//     PCSetType(postpc,"asm");
+	//     PCASMSetType(postpc,PC_ASM_BASIC);
+	//     PCASMSetOverlap(postpc,overlap[0]);
+	    
+	//     if (!locSubdDofs.empty() && !subdDofs.empty()) {
+	//       const size_t nsubds = subdDofs.size();
+
+	//       IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
+	//       for (size_t i = 0;i < nsubds;i++) {
+	// 	ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofs[i].size(),&(locSubdDofs[i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
+	// 	ISCreateGeneral(PETSC_COMM_WORLD,subdDofs[i].size(),&(subdDofs[i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
+	//       }
+	//       PCASMSetLocalSubdomains(postpc,nsubds,isSubdDofs,isLocSubdDofs);
+	//     }
+
+	//     // If LU factorization is used on each subdomain
+	//     if (smoother == "asmlu") {
+	//       KSP* subksp;
+	//       PC   subpc;
+	//       PetscInt first, nlocal;
+	//       PCSetFromOptions(postpc);
+	//       PCSetUp(postpc);
+	//       PCASMGetSubKSP(postpc,&nlocal,&first,&subksp);
+	      
+	//       for (int i = 0; i < nlocal; i++) {
+	// 	KSPGetPC(subksp[i],&subpc);
+	// 	PCSetType(subpc,PCLU);
+	// 	PCFactorSetShiftType(postpc,MAT_SHIFT_NONZERO);
+	// 	KSPSetType(subksp[i],KSPPREONLY);
+	//       }
+	//     }
+	//   }
+	//   else
+	//     PCSetType(postpc,smoother.c_str());
+
+	//   PCFactorSetLevels(postpc,levels[0]); 
+        //   KSPSetUp(postksp);
+	// }
+  }
+  else {
+    PCSetFromOptions(pc);
+    PCSetUp(pc);
+  }
+  
   KSPSetFromOptions(ksp);
   KSPSetUp(ksp);
+
+  // RUNAR
+  PCView(pc,PETSC_VIEWER_STDOUT_SELF);
 }
 #endif
