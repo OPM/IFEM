@@ -455,7 +455,7 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
   // Get number of equations in linear system
   const PetscInt neq   = sam.getNoEquations();
   const PetscInt nnod  = sam.getNoNodes();
-  const PetscInt bsize = neq/nnod;
+  const PetscInt bsize = sam.getNoDOFs()/nnod;
 
   // Set correct number of rows and columns for matrix.
   MatSetSizes(A,neq,neq,PETSC_DETERMINE,PETSC_DETERMINE);
