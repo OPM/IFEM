@@ -390,6 +390,9 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
   if (!strncasecmp(prec.c_str(),"hypre",5))
     PCHYPRESetType(pc,hypretype[0].c_str());
 #endif
+  PCSetFromOptions(pc);
+  PCSetUp(pc);
+
   if (!strncasecmp(prec.c_str(),"asm",3) ||!strncasecmp(prec.c_str(),"gasm",4)) {
     PCASMSetType(pc,PC_ASM_BASIC);
     PCASMSetOverlap(pc,overlap[0]);
@@ -404,19 +407,15 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
       }
       PCASMSetLocalSubdomains(pc,nsubds,isSubdDofs,isLocSubdDofs);
     }
-
-    // If LU factorization is used on each subdomain
-    if (asmlu[0]) {
-      KSP* subksp;
-      PC   subpc;
-      PetscInt first, nlocal;
-      PCASMGetSubKSP(pc,&nlocal,&first,&subksp);
+    KSP* subksp;
+    PC   subpc;
+    PetscInt first, nlocal;
+    PCASMGetSubKSP(pc,&nlocal,&first,&subksp);
       
-      for (int i = 0; i < nlocal; i++) {
-	KSPGetPC(subksp[i],&subpc);
-	PCSetType(subpc,PCLU);
-	KSPSetType(subksp[i],KSPPREONLY);
-      }
+    for (int i = 0; i < nlocal; i++) {
+      KSPGetPC(subksp[i],&subpc);
+      PCSetType(subpc,PCLU);
+      KSPSetType(subksp[i],KSPPREONLY);
     }
   }
   else if (!strncasecmp(prec.c_str(),"ml",2)) {
@@ -448,9 +447,6 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
 	}
         //PCGAMGSetNlevels(pc,mglevels[0]);
         //PCGAMGSetCoarseEqLim(pc,maxCoarseSize[0]);
-
-	PCSetFromOptions(pc);
-        PCSetUp(pc);
 
         PCMGGetLevels(pc,&n);
 	// Presmoother settings
@@ -569,10 +565,6 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
 	//   PCFactorSetLevels(postpc,levels[0]); 
         //   KSPSetUp(postksp);
 	// }
-  }
-  else {
-    PCSetFromOptions(pc);
-    PCSetUp(pc);
   }
   
   KSPSetFromOptions(ksp);
