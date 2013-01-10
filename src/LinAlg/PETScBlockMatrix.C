@@ -1060,9 +1060,9 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	  threshold << solParams.MLThreshold[m];
 	  PetscOptionsSetValue("-pc_ml_Threshold",threshold.str().c_str());
 	}
-	if (!MLDampingFactor.empty()) {
+	if (!solParams.MLDampingFactor.empty()) {
 	  std::stringstream damping;
-	  damping << MLDampingFactor[m];
+	  damping << solParams.MLDampingFactor[m];
 	  PetscOptionsSetValue("-pc_ml_DampingFactor",damping.str().c_str());
 	}
 
