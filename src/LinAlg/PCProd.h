@@ -1,5 +1,5 @@
 #ifndef PCProd_H_IS_INCLUDED
-#define PCProd_IS_INCLUDED
+#define PCProd_H_IS_INCLUDED
 
 #include "petscksp.h"
 

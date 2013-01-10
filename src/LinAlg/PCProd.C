@@ -1,5 +1,7 @@
+#ifdef HAS_PETSC
 #include "PCProd.h"
 #include <iostream>
+
 
 PetscErrorCode PCProdCreate(PCProd **pcprod)
 {
@@ -17,7 +19,7 @@ PetscErrorCode PCProdCreate(PCProd **pcprod)
 PetscErrorCode PCProdSetUp(PC pc,PC *prec1, PC *prec2)
 {
   PCProd *shell;
-  
+
   PCShellGetContext(pc,(void**) &shell);
   shell->pc1 = prec1;
   shell->pc2 = prec2;
@@ -36,7 +38,7 @@ PetscErrorCode PCProdApply(PC pc, Vec x, Vec y)
   PCApply(*(shell->pc1),x,y);
   VecCopy(y,x);
   PCApply(*(shell->pc2),x,y);
-  
+
   return 0;
 }
 
@@ -44,7 +46,7 @@ PetscErrorCode PCProdApply(PC pc, Vec x, Vec y)
 PetscErrorCode PCProdDestroy(PC pc)
 {
   PCProd *shell;
-  
+
   PCShellGetContext(pc,(void**)&shell);
   if (shell->pc1)
     PCDestroy(shell->pc1);
@@ -54,3 +56,5 @@ PetscErrorCode PCProdDestroy(PC pc)
 
   return 0;
 }
+
+#endif

@@ -16,8 +16,9 @@
 #define _PETSC_BLOCK_MATRIX_H
 
 #include "PETScMatrix.h"
+#ifdef HAS_PETSC
 #include "PCProd.h"
-#ifndef HAS_PETSC
+#else
 #define IS int // to avoid compilation failures
 #endif
 
@@ -56,7 +57,7 @@ public:
   //! \brief Returns the dimension of the system vector.
   virtual size_t dim() const;
 
-//! \brief Returns the dimension of one block in the vector.
+  //! \brief Returns the dimension of one block in the vector.
   virtual size_t dim(size_t n) const;
 
   //! \brief Sets the dimension of the system vector.
