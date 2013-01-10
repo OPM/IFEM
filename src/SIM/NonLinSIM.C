@@ -135,11 +135,11 @@ const char** NonLinSIM::getPrioritizedTags () const
 
 void NonLinSIM::init (const RealArray& initVal)
 {
-  size_t nSols = model.getNoSolutions();
+  int nSols = model.getNoSolutions();
   if (nSols > nSolutions) nSolutions = nSols;
   solution.resize(nSolutions);
 
-  for (size_t n = 0; n < nSolutions; n++)
+  for (int n = 0; n < nSolutions; n++)
     solution[n].resize(model.getNoDOFs(),true);
 
   // Set initial conditions for time-dependent problems
