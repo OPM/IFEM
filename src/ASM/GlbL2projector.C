@@ -104,11 +104,16 @@ void GlbL2::preAssemble (const std::vector<IntVec>& MMNPC, size_t nel)
 
 bool GlbL2::solve (Matrix& sField)
 {
+  // Insert a 1.0 value on the diagonal for equations with no contributions.
+  // Needed in immersed boundary calculations with "totally outside" elements.
+  size_t nnod = A.dim();
+  for (size_t j = 1; j <= nnod; j++)
+    if (A(j,j) == 0.0) A(j,j) = 1.0;
+
   // Solve the patch-global equation system
   if (!A.solve(B)) return false;
 
   // Store the nodal values of the projected field
-  size_t nnod = A.dim();
   size_t ncomp = B.dim() / nnod;
   sField.resize(ncomp,nnod);
   for (size_t i = 1; i <= nnod; i++)
