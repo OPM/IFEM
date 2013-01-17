@@ -1950,9 +1950,9 @@ bool ASMs3D::integrate (Integrand& integrand,
       Matrix3D d2Ndu2, Hess;
       double   dXidu[3];
       Vec4     X;
-      for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; l++)
+      for (size_t e = 0; e < threadGroupsVol[g][t].size() && ok; e++)
       {
-        int iel = threadGroupsVol[g][t][l];
+        int iel = threadGroupsVol[g][t][e];
         if (itgPts[iel].empty()) continue; // no points in this element
 
         fe.iel = MLGE[iel];
@@ -2011,12 +2011,12 @@ bool ASMs3D::integrate (Integrand& integrand,
         size_t jp = MPitg[iel]; // Patch-wise integration point counter
         fe.iGP = firstIp + jp;  // Global integration point counter
 
-        for (j = 0; j < itgPts[iel].size(); j++, jp++, fe.iGP++)
+        for (size_t ip = 0; ip < itgPts[iel].size(); ip++, jp++, fe.iGP++)
         {
           // Parameter values of current integration point
-          fe.u = itgPts[iel][j][0];
-          fe.v = itgPts[iel][j][1];
-          fe.w = itgPts[iel][j][2];
+          fe.u = itgPts[iel][ip][0];
+          fe.v = itgPts[iel][ip][1];
+          fe.w = itgPts[iel][ip][2];
 
           // Fetch basis function derivatives at current integration point
           if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
@@ -2047,7 +2047,7 @@ bool ASMs3D::integrate (Integrand& integrand,
           X.t = time.t;
 
           // Evaluate the integrand and accumulate element contributions
-          fe.detJxW *= 0.125*dV*itgPts[iel][j][3];
+          fe.detJxW *= 0.125*dV*itgPts[iel][ip][3];
           if (!integrand.evalInt(*A,fe,time,X))
             ok = false;
         }

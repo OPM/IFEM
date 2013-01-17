@@ -1624,9 +1624,9 @@ bool ASMs2D::integrate (Integrand& integrand,
       Matrix3D d2Ndu2, Hess;
       double   dXidu[2];
       Vec4     X;
-      for (i = 0; i < threadGroups[g][t].size() && ok; i++)
+      for (size_t e = 0; e < threadGroups[g][t].size() && ok; e++)
       {
-        int iel = threadGroups[g][t][i];
+        int iel = threadGroups[g][t][e];
         if (itgPts[iel].empty()) continue; // no points in this element
 
         fe.iel = MLGE[iel];
@@ -1683,11 +1683,11 @@ bool ASMs2D::integrate (Integrand& integrand,
         fe.iGP = firstIp + jp;    // Global integration point counter
 
         const Real2DMat& elmPts = itgPts[iel-1]; // points for current element
-        for (j = 0; j < elmPts.size(); j++, jp++, fe.iGP++)
+        for (size_t ip = 0; ip < elmPts.size(); ip++, jp++, fe.iGP++)
         {
           // Parameter values of current integration point
-          fe.u = elmPts[j][0];
-          fe.v = elmPts[j][1];
+          fe.u = elmPts[ip][0];
+          fe.v = elmPts[ip][1];
 
           // Fetch basis function derivatives at current integration point
           if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
@@ -1709,7 +1709,7 @@ bool ASMs2D::integrate (Integrand& integrand,
             utl::getGmat(Jac,dXidu,fe.G);
 
 #if SP_DEBUG > 4
-          std::cout <<"\niel, ip = "<< iel <<" "<< jp
+          std::cout <<"\niel, jp = "<< iel <<" "<< jp
                     <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX << std::endl;
 #endif
 
@@ -1718,7 +1718,7 @@ bool ASMs2D::integrate (Integrand& integrand,
           X.t = time.t;
 
           // Evaluate the integrand and accumulate element contributions
-          fe.detJxW *= dA*elmPts[j][2];
+          fe.detJxW *= dA*elmPts[ip][2];
           if (!integrand.evalInt(*A,fe,time,X))
             ok = false;
         }
