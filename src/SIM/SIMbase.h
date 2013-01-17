@@ -235,6 +235,9 @@ public:
   //! \brief Updates the grid coordinates.
   //! \param[in] displ The displacement increment to update the grid with
   bool updateGrid(const Vector& displ);
+  //! \brief Updates the grid coordinates.
+  //! \param[in] field Name of the displacement increment field to update with
+  bool updateGrid(const std::string& field);
 
 
   // Computational methods
@@ -349,7 +352,7 @@ public:
 
   //! \brief Prints a summary of the calculated solution to std::cout.
   //! \param[in] solution The solution vector
-  //! \param[in] printSol Printing level. \sa solveSystem
+  //! \param[in] printSol Print solution only if size is less than this value
   //! \param[in] compName Solution name to be used in norm output
   void printSolutionSummary(const Vector& solution, int printSol,
                             const char* compName);

@@ -1340,6 +1340,17 @@ bool SIMbase::updateGrid (const Vector& displ)
 }
 
 
+bool SIMbase::updateGrid (const std::string& field)
+{
+  const Vector* displ = this->getDependentField(field);
+  if (displ) return this->updateGrid(*displ);
+
+  std::cerr <<" *** SIMbase::updateGrid: No such field \""<< field
+	    <<"\"."<< std::endl;
+  return false;
+}
+
+
 bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 			      bool newLHSmatrix, bool poorConvg)
 {
@@ -1466,10 +1477,9 @@ bool SIMbase::extractLoadVec (Vector& loadVec) const
 }
 
 
-bool SIMbase::applyDirichlet (Vector& loadVec) const
+bool SIMbase::applyDirichlet (Vector& glbVec) const
 {
-  // Apply non-homogenous Dirichlet B.C's to vector
-  return mySam->applyDirichlet(loadVec);
+  return mySam->applyDirichlet(glbVec);
 }
 
 
@@ -1758,8 +1768,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   }
 
   // Add problem-dependent external norm contributions
-  if (norm->hasBoundaryTerms())
-    norm->addBoundaryTerms(gNorm,this->externalEnergy(psol));
+  norm->addBoundaryTerms(gNorm,this->externalEnergy(psol));
 
   delete norm;
 

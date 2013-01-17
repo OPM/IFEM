@@ -66,10 +66,34 @@ SIMdependency::getDependency (const std::string& name) const
 {
   std::vector<Dependency>::const_iterator it;
   for (it = depFields.begin(); it != depFields.end(); ++it)
-    if (it->name == name)
-      return it;
+    if (it->name == name) break;
 
-  return depFields.end();
+  return it;
+}
+
+
+const utl::vector<double>*
+SIMdependency::getDependentField (const std::string& name) const
+{
+  DepVector::const_iterator it = this->getDependency(name);
+  if (it == depFields.end())
+    return NULL;
+
+  return it->sim->getField(name);
+}
+
+
+ASMbase* SIMdependency::getDependentPatch (const std::string& name,
+					   int pindx) const
+{
+  DepVector::const_iterator it = this->getDependency(name);
+  if (it == depFields.end())
+    return NULL;
+
+  if (pindx < 0 || (size_t)pindx >= it->patches.size())
+    return NULL;
+
+  return it->patches[pindx];
 }
 
 

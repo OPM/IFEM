@@ -59,6 +59,8 @@ private:
     Dependency() : sim(NULL), components(1), differentBasis(false) {}
   };
 
+  //! \brief SIM dependency container
+  typedef std::vector<Dependency> DepVector;
   //! \brief Field name to nodal values map
   typedef std::map<std::string,const utl::vector<double>*> FieldMap;
 
@@ -67,11 +69,14 @@ protected:
   SIMdependency() {}
 
 public:
-  //! \brief SIM dependency container
-  typedef std::vector<Dependency> DepVector;
-
   //! \brief Empty destructor.
   virtual ~SIMdependency() {}
+
+  //! \brief Returns a const reference to the initial condition container.
+  const InitialCondMap& getICs() const { return myICs; }
+
+  //! \brief Returns the number of spatial dimensions in the model.
+  virtual size_t getNoSpaceDim() const = 0;
 
   //! \brief Registers a dependency on a field from another SIM object.
   //! \param[in] sim The SIM object holding the field we depend on
@@ -93,17 +98,14 @@ public:
   virtual const utl::vector<double>* getField(const std::string& name) const;
   //! \brief Returns the nodal vector of named field in this SIM.
   virtual utl::vector<double>* getField(const std::string& name);
+  //! \brief Returns the nodal vector of named field in a dependent SIM.
+  const utl::vector<double>* getDependentField(const std::string& name) const;
+  //! \brief Returns a spline patch associated with a dependent field.
+  ASMbase* getDependentPatch(const std::string& name, int pindx) const;
 
+private:
   //! \brief Returns an iterator pointing to a named dependency.
   DepVector::const_iterator getDependency(const std::string& name) const;
-  //! \brief Return the end iterator of the dependency container.
-  DepVector::const_iterator depEnd() const { return depFields.end(); }
-
-  //! \brief Returns a const reference to the initial condition container.
-  const InitialCondMap& getICs() const { return myICs; }
-
-  //! \brief Returns the number of spatial dimensions in the model.
-  virtual size_t getNoSpaceDim() const = 0;
 
 protected:
   //! \brief Registers a named field with associated nodal vector in this SIM.
