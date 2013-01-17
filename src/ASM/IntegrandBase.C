@@ -16,6 +16,8 @@
 #include "ElmMats.h"
 #include "ElmNorm.h"
 #include "Utilities.h"
+#include <cstring>
+#include <cstdio>
 
 
 void IntegrandBase::resetSolution ()
@@ -51,7 +53,7 @@ bool IntegrandBase::initElement (const std::vector<int>& MNPC,
 */
 
 bool IntegrandBase::initElement (const std::vector<int>& MNPC,
-				 const Vec3&, size_t, LocalIntegral& elmInt)
+                                 const Vec3&, size_t, LocalIntegral& elmInt)
 {
   return this->initElement(MNPC,elmInt);
 }
@@ -62,7 +64,7 @@ bool IntegrandBase::initElement (const std::vector<int>& MNPC,
 */
 
 bool IntegrandBase::initElement (const std::vector<int>& MNPC1,
-				 const std::vector<int>&, size_t,
+                                 const std::vector<int>&, size_t,
                                  LocalIntegral& elmInt)
 {
   return this->initElement(MNPC1,elmInt);
@@ -91,7 +93,7 @@ bool IntegrandBase::initElementBou (const std::vector<int>& MNPC,
 */
 
 bool IntegrandBase::initElementBou (const std::vector<int>& MNPC1,
-				    const std::vector<int>&, size_t,
+                                    const std::vector<int>&, size_t,
                                     LocalIntegral& elmInt)
 {
   return this->initElementBou(MNPC1,elmInt);
@@ -124,14 +126,14 @@ bool IntegrandBase::evalSol (Vector& s, const Vector& N1, const Vector&,
 
 
 bool IntegrandBase::evalSol (Vector& s, const FiniteElement& fe,
-                             const Vec3& X, const std::vector<int>& MNPC) const
+			     const Vec3& X, const std::vector<int>& MNPC) const
 {
   return this->evalSol(s,fe.N,fe.dNdX,fe.d2NdX2,X,MNPC);
 }
 
 
 bool IntegrandBase::evalSol (Vector& s, const MxFiniteElement& fe,
-                             const Vec3& X, const std::vector<int>& MNPC1,
+			     const Vec3& X, const std::vector<int>& MNPC1,
 		             const std::vector<int>& MNPC2) const
 {
   return this->evalSol(s,fe.N1,fe.N2,fe.dN1dX,fe.dN2dX,X,MNPC1,MNPC2);
@@ -218,7 +220,7 @@ LocalIntegral* NormBase::getLocalIntegral (size_t, size_t iEl, bool) const
 
 
 bool NormBase::initElement (const std::vector<int>& MNPC,
-			    const Vec3& Xc, size_t nPt,
+                            const Vec3& Xc, size_t nPt,
                             LocalIntegral& elmInt)
 {
   return this->initProjection(MNPC,elmInt) &&
@@ -235,7 +237,7 @@ bool NormBase::initElement (const std::vector<int>& MNPC,
 
 
 bool NormBase::initElement (const std::vector<int>& MNPC1,
-			    const std::vector<int>& MNPC2, size_t n1,
+                            const std::vector<int>& MNPC2, size_t n1,
                             LocalIntegral& elmInt)
 {
   return this->initProjection(MNPC1,elmInt) &&
@@ -251,17 +253,27 @@ bool NormBase::initElementBou (const std::vector<int>& MNPC,
 
 
 bool NormBase::initElementBou (const std::vector<int>& MNPC1,
-			       const std::vector<int>& MNPC2, size_t n1,
+                               const std::vector<int>& MNPC2, size_t n1,
                                LocalIntegral& elmInt)
 {
   return myProblem.initElementBou(MNPC1,MNPC2,n1,elmInt);
 }
 
 
-const char* NormBase::getName (size_t i, size_t j, const char*)
+const char* NormBase::getName (size_t i, size_t j, const char* prefix) const
 {
-  static char comp[16];
-  sprintf(comp,"norm_%lu.%lu",1+i,1+j);
+  static char comp[32];
+  sprintf(comp,"norm_%lu.%lu",i,j);
+  if (prefix)
+  {
+    std::string tmp(comp);
+    if (strlen(prefix)+1+tmp.size() < sizeof(comp))
+      strcpy(comp,prefix);
+    else
+      strncpy(comp,prefix,sizeof(comp)-1-tmp.size());
+    strcat(comp," ");
+    strcat(comp,tmp.c_str());
+  }
 
   return comp;
 }

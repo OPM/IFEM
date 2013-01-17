@@ -237,11 +237,6 @@ public:
   //! \brief Resets the primary solution vectors.
   void resetSolution();
 
-  //! \brief Returns whether this integrand has internal point buffers or not.
-  virtual bool hasItgBuffers() const { return false; }
-  //! \brief Defines the internal processing order of the integration points.
-  virtual void setItgPtMap(int, int) const {}
-
   //! \brief Registers where we can inject a mixed-basis scalar field.
   virtual void setNamedField(const std::string&, Field*) {}
   //! \brief Registers where we can inject a mixed-basis vector field.
@@ -316,7 +311,7 @@ public:
   virtual bool hasBoundaryTerms() const { return false; }
 
   //! \brief Adds external energy terms to relevant norms.
-  virtual void addBoundaryTerms(Vectors&, double) {}
+  virtual void addBoundaryTerms(Vectors&, double) const {}
 
   //! \brief Returns the number of norm groups or size of a specified group.
   virtual size_t getNoFields(int group = 0) const { return 0; }
@@ -324,11 +319,11 @@ public:
   //! \brief Returns the name of a norm quantity.
   //! \param[in] i The norm group
   //! \param[in] j The norm number
-  //! \param[in] prefix A prefix to be used the norm name
-  virtual const char* getName(size_t i, size_t j, const char* prefix = 0);
+  //! \param[in] prefix Common prefix for all norm names
+  virtual const char* getName(size_t i, size_t j, const char* prefix = 0) const;
 
-  //! \brief Returns whether a norm component stores element contributions.
-  virtual bool hasElementContributions(size_t i, size_t j) { return false; }
+  //! \brief Returns whether a norm quantity stores element contributions.
+  virtual bool hasElementContributions(size_t, size_t) const { return true; }
 
   //! \brief Accesses a projected secondary solution vector of current patch.
   Vector& getProjection(size_t i);
