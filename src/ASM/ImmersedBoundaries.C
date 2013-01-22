@@ -46,7 +46,7 @@ struct cell
 
 /*!
   \brief 1D Gauss coordinates and weights in parametric space [-1,1].
-  \details This function provides Gauss point information from order 1 to 9.
+  \details This function provides the Gauss point information from order 1 to 9.
   You can replace it with your own function, if you want.
   I provided a bit more orders so that you can play with different strategies
   to integrate cut elements (either using higher p or increasing the depth).
@@ -60,7 +60,7 @@ static bool FillLocalGP (int GO, RealArray& GPxi, RealArray& GPw)
   case 1:
     GPxi.push_back( 0.00000000000000e-01);  GPw.push_back(2.000000000000000e+00);
     break;
-  case  2 :
+  case 2:
     GPxi.push_back(-5.773502691896258e-01); GPw.push_back(1.000000000000000e+00);
     GPxi.push_back( 5.773502691896258e-01); GPw.push_back(1.000000000000000e+00);
     break;
@@ -121,8 +121,92 @@ static bool FillLocalGP (int GO, RealArray& GPxi, RealArray& GPw)
     GPxi.push_back( 9.681602395076261e-01); GPw.push_back(8.127438836157441e-02);
     break;
   default:
-    std::cerr <<" *** Immersed::FillLocalGP: Gauss order exceeds maximum of 9!"
-              << std::endl;
+    std::cerr <<" *** Immersed::FillLocalGP: Gauss order "<< GO
+              <<" exceeds maximum of 9!"<< std::endl;
+    return false;
+  }
+
+  return true;
+}
+
+// ---------------------------------------
+// 2.a FUNCTION FillLocalGLP:
+// ---------------------------------------
+
+/*!
+  \brief 1D Gauss-Lobatto coordinates and weights in parametric space [-1,1].
+  \details This function provides the Gauss-Lobatto point information
+  from order 2 to 9.
+*/
+
+static bool FillLocalGLP (int GO, RealArray& GPxi, RealArray& GPw)
+{
+  GPxi.reserve(GO); GPw.reserve(GO);
+
+  switch (GO) {
+  case 2:
+    GPxi.push_back(-1.000000000000000000); GPw.push_back(1.000000000000000e+00);
+    GPxi.push_back( 1.000000000000000000); GPw.push_back(1.000000000000000e+00);
+    break;
+  case 3:
+    GPxi.push_back(-1.000000000000000000); GPw.push_back(0.333333333333333310);
+    GPxi.push_back( 0.000000000000000000); GPw.push_back(1.333333333333333300);
+    GPxi.push_back( 1.000000000000000000); GPw.push_back(0.333333333333333310);
+    break;
+  case 4:
+    GPxi.push_back(-1.000000000000000000); GPw.push_back(0.166666666666666660);
+    GPxi.push_back(-0.447213595499957930); GPw.push_back(0.833333333333333370);
+    GPxi.push_back( 0.447213595499957930); GPw.push_back(0.833333333333333370);
+    GPxi.push_back( 1.000000000000000000); GPw.push_back(0.166666666666666660);
+    break;
+  case 5:
+    GPxi.push_back(-1.000000000000000000); GPw.push_back(0.100000000000000010);
+    GPxi.push_back(-0.654653670707977090); GPw.push_back(0.544444444444444400);
+    GPxi.push_back( 0.000000000000000000); GPw.push_back(0.711111111111111140);
+    GPxi.push_back( 0.654653670707977090); GPw.push_back(0.544444444444444400);
+    GPxi.push_back( 1.000000000000000000); GPw.push_back(0.100000000000000010);
+    break;
+  case 6:
+    GPxi.push_back(-1.000000000000000000); GPw.push_back(0.066666666666666666);
+    GPxi.push_back(-0.765055323929464740); GPw.push_back(0.378474956297846940);
+    GPxi.push_back(-0.285231516480645100); GPw.push_back(0.554858377035486460);
+    GPxi.push_back( 0.285231516480645100); GPw.push_back(0.554858377035486460);
+    GPxi.push_back( 0.765055323929464740); GPw.push_back(0.378474956297846940);
+    GPxi.push_back( 1.000000000000000000); GPw.push_back(0.066666666666666666);
+    break;
+  case 7:
+    GPxi.push_back(-1.000000000000000000); GPw.push_back(0.047619047619047616);
+    GPxi.push_back(-0.830223896278566960); GPw.push_back(0.276826047361565910);
+    GPxi.push_back(-0.468848793470714230); GPw.push_back(0.431745381209862610);
+    GPxi.push_back( 0.000000000000000000); GPw.push_back(0.487619047619047620);
+    GPxi.push_back( 0.468848793470714230); GPw.push_back(0.431745381209862610);
+    GPxi.push_back( 0.830223896278566960); GPw.push_back(0.276826047361565910);
+    GPxi.push_back( 1.000000000000000000); GPw.push_back(0.047619047619047616);
+    break;
+  case 8:
+    GPxi.push_back(-1.000000000000000000); GPw.push_back(0.035714285714285712);
+    GPxi.push_back(-0.871740148509606570); GPw.push_back(0.210704227143506150);
+    GPxi.push_back(-0.591700181433142290); GPw.push_back(0.341122692483504410);
+    GPxi.push_back(-0.209299217902478850); GPw.push_back(0.412458794658703720);
+    GPxi.push_back( 0.209299217902478850); GPw.push_back(0.412458794658703720);
+    GPxi.push_back( 0.591700181433142290); GPw.push_back(0.341122692483504410);
+    GPxi.push_back( 0.871740148509606570); GPw.push_back(0.210704227143506150);
+    GPxi.push_back( 1.000000000000000000); GPw.push_back(0.035714285714285712);
+    break;
+  case 9:
+    GPxi.push_back(-1.000000000000000000); GPw.push_back(0.027777777777777776);
+    GPxi.push_back(-0.899757995411460180); GPw.push_back(0.165495361560805580);
+    GPxi.push_back(-0.677186279510737730); GPw.push_back(0.274538712500161650);
+    GPxi.push_back(-0.363117463826178160); GPw.push_back(0.346428510973046170);
+    GPxi.push_back( 0.000000000000000000); GPw.push_back(0.371519274376417240);
+    GPxi.push_back( 0.363117463826178160); GPw.push_back(0.346428510973046170);
+    GPxi.push_back( 0.677186279510737730); GPw.push_back(0.274538712500161650);
+    GPxi.push_back( 0.899757995411460180); GPw.push_back(0.165495361560805580);
+    GPxi.push_back( 1.000000000000000000); GPw.push_back(0.027777777777777776);
+    break;
+  default:
+    std::cerr <<" *** Immersed::FillLocalGLP: Gauss-Lobatto order "<< GO
+              <<" outside legal range [2,9]!"<< std::endl;
     return false;
   }
 
@@ -197,7 +281,8 @@ bool Immersed::getQuadraturePoints (double x1, double y1,
   // Initialize some data
   std::vector<cell> CellSet(1); // Vector that will contain the cells
   RealArray LocGPxi, LocGPw; // Gauss coordinates and weights in 1D in [-1,1]
-  if (!FillLocalGP(p+1,LocGPxi,LocGPw)) // Fill Gauss point information
+  //if (!FillLocalGLP(p+1,LocGPxi,LocGPw)) // Fill Gauss-Lobatto point information
+  if (!FillLocalGP(p,LocGPxi,LocGPw)) // Fill Gauss point information
     return false;
 
   // Fill initial cell of depth 0
@@ -221,7 +306,7 @@ bool Immersed::getQuadraturePoints (double x1, double y1,
   double hy = CellSet[0].CellVerts2[3]-CellSet[0].CellVerts2[0];
 
   // Loop over levels
-  for (int i_depth = 1; i_depth<=max_depth; i_depth++) {
+  for (int i_depth = 1; i_depth <= max_depth; i_depth++) {
 
     // Define epsilon of current depth
     // epsilon defines the off-set from each vertex during the inside-outside test
@@ -250,49 +335,46 @@ bool Immersed::getQuadraturePoints (double x1, double y1,
       // First cell (push_back to vector of cells)
       // ---------------------------------------------------------------------------
       CellSet.push_back(CellSet[i_cell]);
-      int indx = CellSet.size()-1;
-      CellSet[indx].depth = i_depth;
-      CellSet[indx].CellVerts1[1] = CellSet[i_cell].MidGlob1;
-      CellSet[indx].CellVerts1[2] = CellSet[i_cell].MidGlob1;
-      CellSet[indx].CellVerts2[2] = CellSet[i_cell].MidGlob2;
-      CellSet[indx].CellVerts2[3] = CellSet[i_cell].MidGlob2;
-      CellSet[indx].MidGlob1 = CellSet[i_cell].MidGlob1 - hx/(pow(2.0,double(i_depth+1)));
-      CellSet[indx].MidGlob2 = CellSet[i_cell].MidGlob2 - hy/(pow(2.0,double(i_depth+1)));
+      CellSet.back().depth = i_depth;
+      CellSet.back().CellVerts1[1] = CellSet[i_cell].MidGlob1;
+      CellSet.back().CellVerts1[2] = CellSet[i_cell].MidGlob1;
+      CellSet.back().CellVerts2[2] = CellSet[i_cell].MidGlob2;
+      CellSet.back().CellVerts2[3] = CellSet[i_cell].MidGlob2;
+      CellSet.back().MidGlob1 = CellSet[i_cell].MidGlob1 - hx/(pow(2.0,double(i_depth+1)));
+      CellSet.back().MidGlob2 = CellSet[i_cell].MidGlob2 - hy/(pow(2.0,double(i_depth+1)));
 
-      CellSet[indx].MidLoc1  = CellSet[i_cell].MidLoc1 - 2.0/(pow(2.0,double(i_depth+1)));
-      CellSet[indx].MidLoc2  = CellSet[i_cell].MidLoc2 - 2.0/(pow(2.0,double(i_depth+1)));
+      CellSet.back().MidLoc1  = CellSet[i_cell].MidLoc1 - 2.0/(pow(2.0,double(i_depth+1)));
+      CellSet.back().MidLoc2  = CellSet[i_cell].MidLoc2 - 2.0/(pow(2.0,double(i_depth+1)));
 
       // Second cell (push_back to vector of cells)
       // -------------------------------------------------------------------
       CellSet.push_back(CellSet[i_cell]);
-      indx = CellSet.size()-1;
-      CellSet[indx].depth = i_depth;
-      CellSet[indx].CellVerts1[0] = CellSet[i_cell].MidGlob1;
-      CellSet[indx].CellVerts2[2] = CellSet[i_cell].MidGlob2;
-      CellSet[indx].CellVerts1[3] = CellSet[i_cell].MidGlob1;
-      CellSet[indx].CellVerts2[3] = CellSet[i_cell].MidGlob2;
+      CellSet.back().depth = i_depth;
+      CellSet.back().CellVerts1[0] = CellSet[i_cell].MidGlob1;
+      CellSet.back().CellVerts2[2] = CellSet[i_cell].MidGlob2;
+      CellSet.back().CellVerts1[3] = CellSet[i_cell].MidGlob1;
+      CellSet.back().CellVerts2[3] = CellSet[i_cell].MidGlob2;
 
-      CellSet[indx].MidGlob1 = CellSet[i_cell].MidGlob1 + hx/(pow(2.0,double(i_depth+1)));
-      CellSet[indx].MidGlob2 = CellSet[i_cell].MidGlob2 - hy/(pow(2.0,double(i_depth+1)));
+      CellSet.back().MidGlob1 = CellSet[i_cell].MidGlob1 + hx/(pow(2.0,double(i_depth+1)));
+      CellSet.back().MidGlob2 = CellSet[i_cell].MidGlob2 - hy/(pow(2.0,double(i_depth+1)));
 
-      CellSet[indx].MidLoc1  = CellSet[i_cell].MidLoc1 + 2.0/(pow(2.0,double(i_depth+1)));
-      CellSet[indx].MidLoc2  = CellSet[i_cell].MidLoc2 - 2.0/(pow(2.0,double(i_depth+1)));
+      CellSet.back().MidLoc1  = CellSet[i_cell].MidLoc1 + 2.0/(pow(2.0,double(i_depth+1)));
+      CellSet.back().MidLoc2  = CellSet[i_cell].MidLoc2 - 2.0/(pow(2.0,double(i_depth+1)));
 
       // Third cell (push_back to vector of cells)
       // --------------------------------------------------------------------------------
       CellSet.push_back(CellSet[i_cell]);
-      indx = CellSet.size()-1;
-      CellSet[indx].depth = i_depth;
-      CellSet[indx].CellVerts1[0] = CellSet[i_cell].MidGlob1;
-      CellSet[indx].CellVerts2[0] = CellSet[i_cell].MidGlob2;
-      CellSet[indx].CellVerts2[1] = CellSet[i_cell].MidGlob2;
-      CellSet[indx].CellVerts1[3] = CellSet[i_cell].MidGlob1;
+      CellSet.back().depth = i_depth;
+      CellSet.back().CellVerts1[0] = CellSet[i_cell].MidGlob1;
+      CellSet.back().CellVerts2[0] = CellSet[i_cell].MidGlob2;
+      CellSet.back().CellVerts2[1] = CellSet[i_cell].MidGlob2;
+      CellSet.back().CellVerts1[3] = CellSet[i_cell].MidGlob1;
 
-      CellSet[indx].MidGlob1 = CellSet[i_cell].MidGlob1 + hx/(pow(2.0,double(i_depth+1)));
-      CellSet[indx].MidGlob2 = CellSet[i_cell].MidGlob2 + hy/(pow(2.0,double(i_depth+1)));
+      CellSet.back().MidGlob1 = CellSet[i_cell].MidGlob1 + hx/(pow(2.0,double(i_depth+1)));
+      CellSet.back().MidGlob2 = CellSet[i_cell].MidGlob2 + hy/(pow(2.0,double(i_depth+1)));
 
-      CellSet[indx].MidLoc1  = CellSet[i_cell].MidLoc1 + 2.0/(pow(2.0,double(i_depth+1)));
-      CellSet[indx].MidLoc2  = CellSet[i_cell].MidLoc2 + 2.0/(pow(2.0,double(i_depth+1)));
+      CellSet.back().MidLoc1  = CellSet[i_cell].MidLoc1 + 2.0/(pow(2.0,double(i_depth+1)));
+      CellSet.back().MidLoc2  = CellSet[i_cell].MidLoc2 + 2.0/(pow(2.0,double(i_depth+1)));
 
       // Fourth cell (change data in current cell -> automatically deletes old cell)
       // --------------------------------------------------------------------------------------
@@ -312,15 +394,15 @@ bool Immersed::getQuadraturePoints (double x1, double y1,
 
   // Compute Gauss points
   // Loop over all cells
-  for (int i_cell = 0; i_cell < int(CellSet.size()); i_cell++)
-    for (int jGP = 0; jGP < p+1; jGP++)
-      for (int iGP = 0; iGP < p+1; iGP++) {
+  for (size_t i_cell = 0; i_cell < CellSet.size(); i_cell++)
+    for (size_t jGP = 0; jGP < LocGPxi.size(); jGP++)
+      for (size_t iGP = 0; iGP < LocGPxi.size(); iGP++) {
 
 	// Compute global x,y-coordinates of current Gauss point
 	double GlobGP1 = CellSet[i_cell].MidGlob1 + LocGPxi[iGP]*(hx/pow(2.0,double(CellSet[i_cell].depth+1)));
 	double GlobGP2 = CellSet[i_cell].MidGlob2 + LocGPxi[jGP]*(hy/pow(2.0,double(CellSet[i_cell].depth+1)));
-				
-	// Do inside-outside test, if Gauss point is inside -> append to list						
+
+	// Do inside-outside test, if Gauss point is inside -> append to list
 	if (FindAlpha(GlobGP1,GlobGP2) > 0.0) {
 	  GP1.push_back(CellSet[i_cell].MidLoc1 + LocGPxi[iGP]*(2.0/(pow(2.0,double(CellSet[i_cell].depth+1)))));
 	  GP2.push_back(CellSet[i_cell].MidLoc2 + LocGPxi[jGP]*(2.0/(pow(2.0,double(CellSet[i_cell].depth+1)))));
@@ -373,7 +455,8 @@ bool Immersed::getQuadraturePoints (const Real3DMat& elmCorner,
   int nsd = 0;
   bool ok = true;
   quadPoints.resize(elmCorner.size());
-  for (size_t e = 0; e < elmCorner.size() && ok; e++) {
+  for (size_t e = 0; e < elmCorner.size() && ok; e++)
+  {
     RealArray GP[4];
     const Real2DMat& X = elmCorner[e];
     switch (X.size()) {
@@ -405,8 +488,9 @@ bool Immersed::getQuadraturePoints (const Real3DMat& elmCorner,
     }
 
     // Store the quadrature points
-    RealArray xg(4);
-    for (size_t i = 0; i < GP[0].size(); i++) {
+    RealArray xg(nsd+1);
+    for (size_t i = 0; i < GP[0].size(); i++)
+    {
       for (int d = 0; d < nsd; d++)
 	xg[d] = GP[d+1][i];
       xg[nsd] = GP[0][i];
