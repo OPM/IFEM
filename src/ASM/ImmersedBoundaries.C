@@ -332,6 +332,8 @@ bool Immersed::getQuadraturePoints (double x1, double y1,
 
       // If all tests are passed, cell needs to be refined
       // Refine in the usual order (as suggested by Trond)
+      double cellScale = pow(2.0,double(i_depth+1));
+
       // First cell (push_back to vector of cells)
       // ---------------------------------------------------------------------------
       CellSet.push_back(CellSet[i_cell]);
@@ -340,11 +342,12 @@ bool Immersed::getQuadraturePoints (double x1, double y1,
       CellSet.back().CellVerts1[2] = CellSet[i_cell].MidGlob1;
       CellSet.back().CellVerts2[2] = CellSet[i_cell].MidGlob2;
       CellSet.back().CellVerts2[3] = CellSet[i_cell].MidGlob2;
-      CellSet.back().MidGlob1 = CellSet[i_cell].MidGlob1 - hx/(pow(2.0,double(i_depth+1)));
-      CellSet.back().MidGlob2 = CellSet[i_cell].MidGlob2 - hy/(pow(2.0,double(i_depth+1)));
 
-      CellSet.back().MidLoc1  = CellSet[i_cell].MidLoc1 - 2.0/(pow(2.0,double(i_depth+1)));
-      CellSet.back().MidLoc2  = CellSet[i_cell].MidLoc2 - 2.0/(pow(2.0,double(i_depth+1)));
+      CellSet.back().MidGlob1 = CellSet[i_cell].MidGlob1 - hx/cellScale;
+      CellSet.back().MidGlob2 = CellSet[i_cell].MidGlob2 - hy/cellScale;
+
+      CellSet.back().MidLoc1  = CellSet[i_cell].MidLoc1 - 2.0/cellScale;
+      CellSet.back().MidLoc2  = CellSet[i_cell].MidLoc2 - 2.0/cellScale;
 
       // Second cell (push_back to vector of cells)
       // -------------------------------------------------------------------
@@ -355,11 +358,11 @@ bool Immersed::getQuadraturePoints (double x1, double y1,
       CellSet.back().CellVerts1[3] = CellSet[i_cell].MidGlob1;
       CellSet.back().CellVerts2[3] = CellSet[i_cell].MidGlob2;
 
-      CellSet.back().MidGlob1 = CellSet[i_cell].MidGlob1 + hx/(pow(2.0,double(i_depth+1)));
-      CellSet.back().MidGlob2 = CellSet[i_cell].MidGlob2 - hy/(pow(2.0,double(i_depth+1)));
+      CellSet.back().MidGlob1 = CellSet[i_cell].MidGlob1 + hx/cellScale;
+      CellSet.back().MidGlob2 = CellSet[i_cell].MidGlob2 - hy/cellScale;
 
-      CellSet.back().MidLoc1  = CellSet[i_cell].MidLoc1 + 2.0/(pow(2.0,double(i_depth+1)));
-      CellSet.back().MidLoc2  = CellSet[i_cell].MidLoc2 - 2.0/(pow(2.0,double(i_depth+1)));
+      CellSet.back().MidLoc1  = CellSet[i_cell].MidLoc1 + 2.0/cellScale;
+      CellSet.back().MidLoc2  = CellSet[i_cell].MidLoc2 - 2.0/cellScale;
 
       // Third cell (push_back to vector of cells)
       // --------------------------------------------------------------------------------
@@ -370,11 +373,11 @@ bool Immersed::getQuadraturePoints (double x1, double y1,
       CellSet.back().CellVerts2[1] = CellSet[i_cell].MidGlob2;
       CellSet.back().CellVerts1[3] = CellSet[i_cell].MidGlob1;
 
-      CellSet.back().MidGlob1 = CellSet[i_cell].MidGlob1 + hx/(pow(2.0,double(i_depth+1)));
-      CellSet.back().MidGlob2 = CellSet[i_cell].MidGlob2 + hy/(pow(2.0,double(i_depth+1)));
+      CellSet.back().MidGlob1 = CellSet[i_cell].MidGlob1 + hx/cellScale;
+      CellSet.back().MidGlob2 = CellSet[i_cell].MidGlob2 + hy/cellScale;
 
-      CellSet.back().MidLoc1  = CellSet[i_cell].MidLoc1 + 2.0/(pow(2.0,double(i_depth+1)));
-      CellSet.back().MidLoc2  = CellSet[i_cell].MidLoc2 + 2.0/(pow(2.0,double(i_depth+1)));
+      CellSet.back().MidLoc1  = CellSet[i_cell].MidLoc1 + 2.0/cellScale;
+      CellSet.back().MidLoc2  = CellSet[i_cell].MidLoc2 + 2.0/cellScale;
 
       // Fourth cell (change data in current cell -> automatically deletes old cell)
       // --------------------------------------------------------------------------------------
@@ -384,32 +387,33 @@ bool Immersed::getQuadraturePoints (double x1, double y1,
       CellSet[i_cell].CellVerts2[1] = CellSet[i_cell].MidGlob2;
       CellSet[i_cell].CellVerts1[2] = CellSet[i_cell].MidGlob1;
 
-      CellSet[i_cell].MidGlob1 = CellSet[i_cell].MidGlob1 - hx/(pow(2.0,double(i_depth+1)));
-      CellSet[i_cell].MidGlob2 = CellSet[i_cell].MidGlob2 + hy/(pow(2.0,double(i_depth+1)));
+      CellSet[i_cell].MidGlob1 = CellSet[i_cell].MidGlob1 - hx/cellScale;
+      CellSet[i_cell].MidGlob2 = CellSet[i_cell].MidGlob2 + hy/cellScale;
 
-      CellSet[i_cell].MidLoc1  = CellSet[i_cell].MidLoc1 - 2.0/(pow(2.0,double(i_depth+1)));
-      CellSet[i_cell].MidLoc2  = CellSet[i_cell].MidLoc2 + 2.0/(pow(2.0,double(i_depth+1)));
+      CellSet[i_cell].MidLoc1  = CellSet[i_cell].MidLoc1 - 2.0/cellScale;
+      CellSet[i_cell].MidLoc2  = CellSet[i_cell].MidLoc2 + 2.0/cellScale;
     }
   }
 
   // Compute Gauss points
   // Loop over all cells
-  for (size_t i_cell = 0; i_cell < CellSet.size(); i_cell++)
+  for (size_t i_cell = 0; i_cell < CellSet.size(); i_cell++) {
+    double cellScale = pow(2.0,double(CellSet[i_cell].depth+1));
     for (size_t jGP = 0; jGP < LocGPxi.size(); jGP++)
       for (size_t iGP = 0; iGP < LocGPxi.size(); iGP++) {
 
 	// Compute global x,y-coordinates of current Gauss point
-	double GlobGP1 = CellSet[i_cell].MidGlob1 + LocGPxi[iGP]*(hx/pow(2.0,double(CellSet[i_cell].depth+1)));
-	double GlobGP2 = CellSet[i_cell].MidGlob2 + LocGPxi[jGP]*(hy/pow(2.0,double(CellSet[i_cell].depth+1)));
+	double GlobGP1 = CellSet[i_cell].MidGlob1 + LocGPxi[iGP]*hx/cellScale;
+	double GlobGP2 = CellSet[i_cell].MidGlob2 + LocGPxi[jGP]*hy/cellScale;
 
 	// Do inside-outside test, if Gauss point is inside -> append to list
 	if (FindAlpha(GlobGP1,GlobGP2) > 0.0) {
-	  GP1.push_back(CellSet[i_cell].MidLoc1 + LocGPxi[iGP]*(2.0/(pow(2.0,double(CellSet[i_cell].depth+1)))));
-	  GP2.push_back(CellSet[i_cell].MidLoc2 + LocGPxi[jGP]*(2.0/(pow(2.0,double(CellSet[i_cell].depth+1)))));
-	  GPw.push_back(LocGPw[iGP]*LocGPw[jGP]*1.0/pow(2.0,double(CellSet[i_cell].depth))*
-			1.0/pow(2.0,double(CellSet[i_cell].depth)));
+	  GP1.push_back(CellSet[i_cell].MidLoc1 + LocGPxi[iGP]*2.0/cellScale);
+	  GP2.push_back(CellSet[i_cell].MidLoc2 + LocGPxi[jGP]*2.0/cellScale);
+	  GPw.push_back(LocGPw[iGP]*LocGPw[jGP]*4.0/(cellScale*cellScale));
 	}
       }
+  }
 
   return true;
 }
@@ -464,20 +468,20 @@ bool Immersed::getQuadraturePoints (const Real3DMat& elmCorner,
       nsd = 2;
       ok = getQuadraturePoints(X[0][0],X[0][1],
 			       X[1][0],X[1][1],
-			       X[2][0],X[2][1],
-			       X[3][0],X[3][1],max_depth,p,
+			       X[3][0],X[3][1],
+			       X[2][0],X[2][1],max_depth,p,
 			       GP[1],GP[2],GP[0]);
       break;
     case 8: // 3D element
       nsd = 3;
       ok = getQuadraturePoints(X[0][0],X[0][1],X[0][2],
 			       X[1][0],X[1][1],X[1][2],
-			       X[2][0],X[2][1],X[2][2],
 			       X[3][0],X[3][1],X[3][2],
+			       X[2][0],X[2][1],X[2][2],
 			       X[4][0],X[4][1],X[4][2],
 			       X[5][0],X[5][1],X[5][2],
-			       X[6][0],X[6][1],X[6][2],
-			       X[7][0],X[7][1],X[7][2],max_depth,p,
+			       X[7][0],X[7][1],X[7][2],
+			       X[6][0],X[6][1],X[6][2],max_depth,p,
 			       GP[1],GP[2],GP[3],GP[0]);
       break;
     default:
