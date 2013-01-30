@@ -52,6 +52,8 @@ SIM2D::SIM2D (unsigned char n1, unsigned char n2, bool) : isRefined(false)
 
 bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
 {
+  std::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
+
   if (!strcasecmp(elem->Value(),"refine") && !isRefined)
   {
     int lowpatch = 1, uppatch = 2;
@@ -135,7 +137,7 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
 
     std::vector<Interface> top;
     const TiXmlElement* child = elem->FirstChildElement("connection");
-    while (child)
+    for (; child; child = child->NextSiblingElement())
     {
       int master = 0, slave = 0, mEdge = 0, sEdge = 0;
       bool rever = false;
@@ -163,8 +165,6 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       else if (opt.discretization == ASM::SplineC1)
         top.push_back(Interface(static_cast<ASMs2DC1*>(mpch),mEdge,
                                 static_cast<ASMs2DC1*>(spch),sEdge,rever));
-
-      child = child->NextSiblingElement();
     }
 
     // Second pass for C1-continuous patches, to set up additional constraints
@@ -197,6 +197,27 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     // Cannot do multi-threaded assembly with periodicities
     omp_set_num_threads(1);
 #endif
+  }
+
+  else if (!strcasecmp(elem->Value(),"immersedboundary"))
+  {
+    if (myModel.size() != 1)
+    {
+      std::cerr <<" *** SIM2D::parse: Immersed boundaries is available"
+                <<" for single-patch models only."<< std::endl;
+      return false;
+    }
+
+    const TiXmlElement* child = elem->FirstChildElement();
+    for (; child; child = child->NextSiblingElement())
+      if (!strcasecmp(child->Value(),"Hole"))
+      {
+        double R = 1.0, Xc = 0.0, Yc = 0.0;
+        utl::getAttribute(child,"R",R);
+        utl::getAttribute(child,"Xc",Xc);
+        utl::getAttribute(child,"Yc",Yc);
+        myModel.front()->addHole(R,Xc,Yc);
+      }
   }
 
   return true;
@@ -248,6 +269,9 @@ bool SIM2D::parse (const TiXmlElement* elem)
 	std::cout <<"  Parsing <immersedboundary>\n"
 		  <<"\tMax refinement depth : "<< maxDepth << std::endl;
 	nf[2] = maxDepth;
+	// Immersed boundary cannot be combined with C1-continuous multi-patches
+	if (opt.discretization == ASM::SplineC1)
+	  opt.discretization = ASM::Spline;
       }
   }
 

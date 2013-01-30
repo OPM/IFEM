@@ -94,6 +94,9 @@ public:
   //! \brief Writes the geometry/basis of the patch to the given stream.
   virtual bool write(std::ostream& os, int basis = 0) const = 0;
 
+  //! \brief Adds a circular immersed boundary in the physical geometry.
+  virtual void addHole(double, double, double) {}
+
   //! \brief Generates the finite element topology data for this patch.
   virtual bool generateFEMTopology() = 0;
 

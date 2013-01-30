@@ -30,7 +30,28 @@ typedef std::vector<Real2DMat> Real3DMat;
 
 namespace Immersed //! Utilities for immersed boundary calculations
 {
+  //! \brief Interface class representing a geometric object.
+  class Geometry
+  {
+  protected:
+    //! \brief The default constructor is protected to allow sub-classes only.
+    Geometry() {}
+  public:
+    //! \brief Empty destructor.
+    virtual ~Geometry() {}
+
+    //! \brief Performs the inside-outside test for the geometric object.
+    //! \details Alpha is used as an indicator here:
+    //! Alpha = 0.0 if the point is lying outside the physical domain
+    //! Alpha = 0.0 if the point is lying directly on the boundary
+    //! Alpha = 1.0 if the point is lying inside the physical domain
+    virtual double Alpha(double X, double Y, double Z = 0.0) const = 0;
+  };
+
   //! \brief Returns the coordinates and weights for the quadrature points.
+  //! \param[in] geo Object describing the boundary of the physical geometry.
+  //! The objects returns the inside/outside status of a given spatial points
+  //! through its virtual member function \a Alpha.
   //! \param[in] elmCorner Cartesian coordinates of the element corners;
   //! first index is the element counter (0 to number of elements minus 1),
   //! second index is the corner point counter (0 to 3 in 2D, 0 to 7 in 3D),
@@ -51,19 +72,22 @@ namespace Immersed //! Utilities for immersed boundary calculations
   //! The coordinates returned are assumed to be referring to the bi-unit square
   //! (tri-unit cube in 3D) of each element, and the weights are standard Gauss
   //! quadrature weights, which summs to 2 in the power of number of dimensions.
-  bool getQuadraturePoints(const Real3DMat& elmCorner,
+  bool getQuadraturePoints(const Geometry& geo,
+			   const Real3DMat& elmCorner,
 			   int max_depth, int p,
 			   Real3DMat& quadPoints);
 
   //! \brief Returns the quadrature points for a 2D element.
-  bool getQuadraturePoints(double x1, double y1, double x2, double y2,
+  bool getQuadraturePoints(const Geometry& geo,
+			   double x1, double y1, double x2, double y2,
 			   double x3, double y3, double x4, double y4,
-			   int max_depth, int p,
+			   int max_depth, int nGauss,
 			   RealArray& GP1, RealArray& GP2,
 			   RealArray& GPw);
 
   //! \brief Returns the quadrature points for a 3D element.
-  bool getQuadraturePoints(double x1, double y1, double z1,
+  bool getQuadraturePoints(const Geometry& geo,
+			   double x1, double y1, double z1,
 			   double x2, double y2, double z2,
 			   double x3, double y3, double z3,
 			   double x4, double y4, double z4,
@@ -71,7 +95,7 @@ namespace Immersed //! Utilities for immersed boundary calculations
 			   double x6, double y6, double z6,
 			   double x7, double y7, double z7,
 			   double x8, double y8, double z8,
-			   int max_depth, int p,
+			   int max_depth, int nGauss,
 			   RealArray& GP1, RealArray& GP2, RealArray& GP3,
 			   RealArray& GPw);
 }
