@@ -32,38 +32,41 @@ public:
   //! \brief Empty destructor.
   virtual ~GlbL2() {}
 
+  //! \brief Defines which FE quantities are needed by the integrand.
+  virtual int getIntegrandType() const { return problem.getIntegrandType(); }
+
   //! \brief Returns a local integral contribution object for the given element.
   //! \param[in] nen Number of nodes on element
   //! \param[in] iEl Global element number (1-based)
   //! \param[in] neumann Whether or not we are assembling Neumann BCs
-  virtual LocalIntegral* getLocalIntegral (size_t nen, size_t iEl,
-					   bool neumann) const;
+  virtual LocalIntegral* getLocalIntegral(size_t nen, size_t iEl,
+                                          bool neumann) const;
 
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param[in] X0 Cartesian coordinates of the element center
   //! \param[in] nPt Number of integration points in this element
   //! \param elmInt Local integral for element
-  virtual bool initElement (const IntVec& MNPC, const Vec3& X0, size_t nPt,
-			    LocalIntegral& elmInt);
+  virtual bool initElement(const IntVec& MNPC, const Vec3& X0, size_t nPt,
+                           LocalIntegral& elmInt);
 
   //! \brief Dummy implementation.
   virtual bool initElement(const IntVec&, LocalIntegral&) { return false; }
   //! \brief Dummy implementation.
   virtual bool initElement(const IntVec&, const IntVec&, size_t,
-			   LocalIntegral&) { return false; }
+                           LocalIntegral&) { return false; }
   //! \brief Dummy implementation.
   virtual bool initElementBou(const IntVec&, LocalIntegral&) { return false; }
   //! \brief Dummy implementation.
   virtual bool initElementBou(const IntVec&, const IntVec&, size_t,
-			      LocalIntegral&) { return false; }
+                              LocalIntegral&) { return false; }
 
   //! \brief Evaluates the integrand at an interior point.
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Finite element data of current integration point
   //! \param[in] X Cartesian coordinates of current integration point
   virtual bool evalInt(LocalIntegral& elmInt,
-		       const FiniteElement& fe, const Vec3& X) const;
+                       const FiniteElement& fe, const Vec3& X) const;
 
   //! \brief Pre-computes the sparsity pattern of the projection matrix \b A.
   //! \param[in] MMNPC Matrix of matrices of nodal point correspondances
