@@ -38,15 +38,15 @@ public:
   //! \param[in] nPts Number of nodes
   void unStructResize(size_t nEl, size_t nPts);
 
-  //! \brief Defines the \a j'th coordinate of node \a i
+  //! \brief Defines the \a j'th coordinate of node \a i.
   bool setCoor(size_t i, size_t j, Real x);
-  //! \brief Defines the coordinates of node \a i
+  //! \brief Defines the coordinates of node \a i.
   bool setCoor(size_t i, const Vec3& X);
-  //! \brief Defines the coordinates of node \a i
+  //! \brief Defines the coordinates of node \a i.
   bool setCoor(size_t i, Real x, Real y, Real z)
   { return this->setCoor(i,Vec3(x,y,z)); }
 
-  //! \brief Defines the global number of element node \a i
+  //! \brief Defines the global number of element node \a i.
   bool setNode(size_t i, int nodeNumb);
 
   //! \brief Assigns an external id to an element.
@@ -68,6 +68,8 @@ public:
   std::vector<Vec3>::const_iterator begin_XYZ() const { return coord.begin(); }
   //! \brief Returns the end of the coord array.
   std::vector<Vec3>::const_iterator end_XYZ() const { return coord.end(); }
+  //! \brief Returns the coordinate of a given node.
+  const Vec3& getCoord(size_t i) const { return coord[i]; }
 
   //! \brief Returns a pointer to the element connectivity array.
   const int* getElements() const { return &MMNPC.front(); }

@@ -2267,7 +2267,8 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
 
 
 bool SIMbase::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
-			 int idBlock, const char* prefix)
+			 int idBlock, const char* prefix,
+			 std::vector<PointValue>* maxVal)
 {
   if (ssol.empty())
     return true;
@@ -2294,12 +2295,25 @@ bool SIMbase::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
       return false;
 
     // Write out to VTF-file as scalar fields
-    geomID++;
+    const ElementBlock* grid = myVtf->getBlock(++geomID);
     for (j = 0; j < field.rows(); j++)
-      if (!myVtf->writeNres(field.getRow(1+j),++nBlock,geomID))
+    {
+      Vector comp(field.getRow(1+j));
+      if (!myVtf->writeNres(comp,++nBlock,geomID))
 	return false;
       else
 	sID[j].push_back(nBlock);
+
+      if (maxVal && j < maxVal->size())
+      {
+        // Update extremal values
+        size_t indx = 0;
+        double cmax = comp.normInf(indx);
+        PointValue& pv = (*maxVal)[j];
+        if (fabs(cmax) > fabs(pv.second))
+          pv = std::make_pair(grid->getCoord(indx-1),cmax);
+      }
+    }
   }
 
   // Write result block identifications
@@ -2836,6 +2850,43 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     if (count(n) > 1.0)
       for (j = 1; j <= ssol.rows(); j++)
 	ssol(j,n) /= count(n);
+
+  return true;
+}
+
+
+bool SIMbase::evalProjSolution (const Vector& ssol,
+				std::vector<PointValue>& maxVal)
+{
+  if (ssol.empty())
+    return true;
+  else if (!myVtf)
+    return true;
+
+  Matrix field;
+  Vector lovec;
+  size_t i, j;
+  int geomID = 0;
+
+  for (i = 0; i < myModel.size(); i++)
+  {
+    if (myModel[i]->empty()) continue; // skip empty patches
+
+    // Evaluate the solution variables at the visualization points
+    myModel[i]->extractNodeVec(ssol,lovec,myProblem->getNoFields(2));
+    if (!myModel[i]->evalSolution(field,lovec,opt.nViz))
+      return false;
+
+    const ElementBlock* grid = myVtf->getBlock(++geomID);
+    for (j = 0; j < field.rows() && j < maxVal.size(); j++)
+    {
+      // Update extremal values
+      size_t indx = 0;
+      double cmax = field.getRow(1+j).normInf(indx);
+      if (fabs(cmax) > fabs(maxVal[j].second))
+        maxVal[j] = std::make_pair(grid->getCoord(indx-1),cmax);
+    }
+  }
 
   return true;
 }

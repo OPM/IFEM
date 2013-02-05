@@ -67,6 +67,7 @@ struct ResultPoint
 };
 
 typedef std::vector<ResultPoint> ResPointVec; //!< Result point container
+typedef std::pair<Vec3,double>   PointValue;  //!< Convenience type
 
 
 /*!
@@ -467,8 +468,10 @@ public:
   //! \param nBlock Running result block counter
   //! \param[in] idBlock Starting value of result block numbering
   //! \param[in] prefix Common prefix for the field components
+  //! \param[in] maxVal Optional array of maximum values
   bool writeGlvP(const Vector& ssol, int iStep, int& nBlock,
-		 int idBlock = 100, const char* prefix = "Global projected");
+                 int idBlock = 100, const char* prefix = "Global projected",
+                 std::vector<PointValue>* maxVal = NULL);
 
   //! \brief Writes a mode shape to the VTF-file.
   //! \param[in] mode The mode shape eigenvector and associated eigenvalue
@@ -556,12 +559,20 @@ public:
   //! \param[in] psol Primary solution vector
   //! \param[in] time Load/time step parameter
   //!
-  //! \details This method only evaluates the solutions fields, but does not
-  //! return any data. The method is used only for load/time steps that are not
-  //! not be saved, but the solution has to be evaluated at every increment in
-  //! any case to ensure consistency (like, when constitutive models with
-  //! history variables are in use).
+  //! \details This method only evaluates the solutions fields, and does not
+  //! return any data. It is used only for load/time steps that are not saved
+  //! when the solution has to be evaluated at every increment in any case to
+  //! ensure consistency (e.g., when material models with history variables
+  //! are in use).
   bool eval2ndSolution(const Vector& psol, double time);
+
+  //! \brief Evaluates the projected solution for a given load/time step.
+  //! \param[in] ssol Secondary solution vector (control point values)
+  //! \param[in] maxVal Array of maximum values
+  //!
+  //! \details This method only evaluates/updates the maximum values of the
+  //! secondary solution fields (i.e. same as writeGlvP but without VTF output).
+  bool evalProjSolution(const Vector& ssol, std::vector<PointValue>& maxVal);
 
   //! \brief Returns whether an analytical solution is available or not.
   bool haveAnaSol() const { return mySol ? true : false; }
