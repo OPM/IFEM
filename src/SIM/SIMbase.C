@@ -1120,12 +1120,6 @@ bool SIMbase::setNeumann (const std::string& prop, const std::string& type,
     RealFunc* f = utl::parseRealFunc(prop,type);
     if (!f)
       return false;
-    else if (f->isZero())
-    {
-      std::cout <<"\n  * Ignoring homogeneous Neumann condition, value="<< prop;
-      delete f;
-      return false;
-    }
     else
       myScalars[code] = f;
   }
@@ -1134,12 +1128,6 @@ bool SIMbase::setNeumann (const std::string& prop, const std::string& type,
     VecFunc* f = utl::parseVecFunc(prop,type);
     if (!f)
       return false;
-    else if (f->isZero())
-    {
-      std::cout <<"\n  * Ignoring homogeneous Neumann condition, value="<< prop;
-      delete f;
-      return false;
-    }
     else
       myVectors[code] = f;
   }
@@ -1148,12 +1136,6 @@ bool SIMbase::setNeumann (const std::string& prop, const std::string& type,
     TractionFunc* f = utl::parseTracFunc(prop,type,direction);
     if (!f)
       return false;
-    else if (f->isZero())
-    {
-      std::cout <<"\n  * Ignoring homogeneous Neumann condition, value="<< prop;
-      delete f;
-      return false;
-    }
     else
       myTracs[code] = f;
   }
