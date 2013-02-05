@@ -40,26 +40,29 @@
 struct SuperLUdata
 {
 #if defined(HAS_SUPERLU) || defined(HAS_SUPERLU_MT)
-  SuperMatrix A; //! The unfactored coefficient matrix
-  SuperMatrix L; //! The lower triangle factor
-  SuperMatrix U; //! The upper triangle factor
-  Real*       R; //! The row scale factors for \a A
-  Real*       C; //! The column scale factors for \a A
-  int*   perm_r; //! Row permutation vector
-  int*   perm_c; //! Column permutation vector
-  int*    etree; //! The elimination tree
-  sluop_t* opts; //! Input options for the SuperLU driver routine
+  SuperMatrix A; //!< The unfactored coefficient matrix
+  SuperMatrix L; //!< The lower triangle factor
+  SuperMatrix U; //!< The upper triangle factor
+  Real*       R; //!< The row scale factors for \a A
+  Real*       C; //!< The column scale factors for \a A
+  int*   perm_r; //!< Row permutation vector
+  int*   perm_c; //!< Column permutation vector
+  int*    etree; //!< The elimination tree
+  sluop_t* opts; //!< Input options for the SuperLU driver routine
 #ifdef HAS_SUPERLU_MT
-  equed_t equed; //! Specifies the form of equilibration that was done
+  equed_t equed; //!< Specifies the form of equilibration that was done
 #else
-  char equed[1]; //! Specifies the form of equilibration that was done
+  char equed[1]; //!< Specifies the form of equilibration that was done
 #endif
+  Real    rcond; //!< Reciprocal condition number
+  Real      rpg; //!< Reciprocal pivot growth
 
   //! \brief The constructor initializes the default input options.
   SuperLUdata(int numThreads = 0)
   {
     R = C = 0;
     perm_r = perm_c = etree = 0;
+    rcond = rpg = 0.0;
     if (numThreads > 0)
     {
       opts = new sluop_t;
@@ -812,9 +815,6 @@ bool SparseMatrix::assembleCol (const RealArray& V, const SAM& sam,
 }
 
 
-// Converts an editable sparse matrix to a non-editable row-oriented storage
-// format suitable for the SAMG equation solver.
-
 bool SparseMatrix::optimiseSAMG (bool transposed)
 {
   if (!editable) return false;
@@ -871,9 +871,9 @@ bool SparseMatrix::optimiseSAMG (bool transposed)
 }
 
 
-// Converts an editable sparse matrix to a non-editable column-oriented storage
-// format suitable for the SuperLU equation solver. This method is based on
-// the function dreadtriple() from the SuperLU package.
+/*!
+  This method is based on the function dreadtriple() from the SuperLU package.
+*/
 
 bool SparseMatrix::optimiseSLU ()
 {
@@ -919,8 +919,6 @@ bool SparseMatrix::optimiseSLU ()
 }
 
 
-// Invokes the linear equation solver for the given right-hand-side vector, B.
-
 bool SparseMatrix::solve (SystemVector& B, bool)
 {
   if (this->size() < 1) return true; // No equations to solve
@@ -954,8 +952,7 @@ bool SparseMatrix::solveSLU (Vector& B)
 			   &A.front(), &JA.front(), &IA.front(),
 			   SLU_NC, SLU_D, SLU_GE);
   }
-  else
-  {
+  else {
     Destroy_SuperMatrix_Store(&slu->A);
     Destroy_SuperNode_Matrix(&slu->L);
     Destroy_CompCol_Matrix(&slu->U);
@@ -999,8 +996,7 @@ bool SparseMatrix::solveSLU (Vector& B)
   }
   else if (factored)
     slu->opts->Fact = FACTORED; // Re-use previous factorization
-  else
- {
+  else {
     Destroy_SuperMatrix_Store(&slu->A);
     Destroy_SuperNode_Matrix(&slu->L);
     Destroy_CompCol_Matrix(&slu->U);
@@ -1079,13 +1075,13 @@ bool SparseMatrix::solveSLUx (Vector& B)
   dCreate_Dense_Matrix(&Xmat, nrow, nrhs, X.ptr(), nrow,
 		       SLU_DN, SLU_D, SLU_GE);
 
-  Real rpg[nrhs], rcond[nrhs], ferr[nrhs], berr[nrhs];
+  Real ferr[nrhs], berr[nrhs];
   superlu_memusage_t mem_usage;
 
   // Invoke the expert driver
   pdgssvx(numThreads, slu->opts, &slu->A, slu->perm_c, slu->perm_r,
 	  &slu->equed, slu->R, slu->C, &slu->L, &slu->U, &Bmat, &Xmat,
-	  rpg, rcond, ferr, berr, &mem_usage, &ierr);
+	  &slu->rpg, &slu->rcond, ferr, berr, &mem_usage, &ierr);
 
   B.swap(X);
 
@@ -1112,8 +1108,7 @@ bool SparseMatrix::solveSLUx (Vector& B)
   }
   else if (factored)
     slu->opts->Fact = FACTORED; // Re-use previous factorization
-  else
-  {
+  else {
     Destroy_SuperMatrix_Store(&slu->A);
     Destroy_SuperNode_Matrix(&slu->L);
     Destroy_CompCol_Matrix(&slu->U);
@@ -1131,9 +1126,12 @@ bool SparseMatrix::solveSLUx (Vector& B)
   dCreate_Dense_Matrix(&Xmat, nrow, nrhs, X.ptr(), nrow,
 		       SLU_DN, SLU_D, SLU_GE);
 
+  slu->opts->ConditionNumber = printSLUstat ? YES : NO;
+  slu->opts->PivotGrowth = printSLUstat ? YES : NO;
+
   void* work = 0;
   int  lwork = 0;
-  Real rpg[nrhs], rcond[nrhs], ferr[nrhs], berr[nrhs];
+  Real ferr[nrhs], berr[nrhs];
   mem_usage_t mem_usage;
 
   SuperLUStat_t stat;
@@ -1142,7 +1140,7 @@ bool SparseMatrix::solveSLUx (Vector& B)
   // Invoke the expert driver
   dgssvx(slu->opts, &slu->A, slu->perm_c, slu->perm_r, slu->etree, slu->equed,
 	 slu->R, slu->C, &slu->L, &slu->U, work, lwork, &Bmat, &Xmat,
-	 rpg, rcond, ferr, berr, &mem_usage, &stat, &ierr);
+	 &slu->rpg, &slu->rcond, ferr, berr, &mem_usage, &stat, &ierr);
 
   B.swap(X);
 
@@ -1152,7 +1150,11 @@ bool SparseMatrix::solveSLUx (Vector& B)
     factored = true;
 
   if (printSLUstat)
+  {
     StatPrint(&stat);
+    std::cout <<"Reciprocal condition number = "<< slu->rcond
+              <<"\nReciprocal pivot growth = "<< slu->rpg << std::endl;
+  }
   StatFree(&stat);
 
   Destroy_SuperMatrix_Store(&Bmat);
