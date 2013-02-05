@@ -213,7 +213,7 @@ public:
   virtual bool hasTractionValues() const { return false; }
 
   //! \brief Returns \e true if simulation diverged on integration point level.
-  virtual bool diverged() const { return false; }
+  virtual bool diverged(size_t = 0) const { return false; }
 
   //! \brief Returns a pointer to an Integrand for solution norm evaluation.
   virtual NormBase* getNormIntegrand(AnaSol* = 0) const { return 0; }

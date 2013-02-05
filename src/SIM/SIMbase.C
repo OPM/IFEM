@@ -2756,59 +2756,59 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     myModel[i]->extractNodeVec(psol,myProblem->getSolution(),mySam->getMADOF());
 
     // Project the secondary solution and retrieve control point values
+    bool ok = false;
     switch (pMethod) {
     case SIMoptions::GLOBAL:
       if (msgLevel > 1 && i == 0)
         std::cout <<"\tGreville point projection"<< std::endl;
-      if (!myModel[i]->evalSolution(values,*myProblem))
-        return false;
+      ok = myModel[i]->evalSolution(values,*myProblem);
       break;
 
     case SIMoptions::DGL2:
       if (msgLevel > 1 && i == 0)
         std::cout <<"\tDiscrete global L2-projection"<< std::endl;
-      if (!myModel[i]->globalL2projection(values,*myProblem))
-        return false;
+      ok = myModel[i]->globalL2projection(values,*myProblem);
       break;
 
     case SIMoptions::CGL2:
       if (msgLevel > 1 && i == 0)
         std::cout <<"\tContinuous global L2-projection"<< std::endl;
-      if (!myModel[i]->L2projection(values,*myProblem,time))
-        return false;
+      ok = myModel[i]->L2projection(values,*myProblem,time);
       break;
 
     case SIMoptions::SCR:
       if (msgLevel > 1 && i == 0)
         std::cout <<"\tSuperconvergent recovery"<< std::endl;
-      if (!myModel[i]->evalSolution(values,*myProblem,NULL,'S'))
-        return false;
+      ok = myModel[i]->evalSolution(values,*myProblem,NULL,'S');
       break;
 
     case SIMoptions::VDSA:
       if (msgLevel > 1 && i == 0)
         std::cout <<"\tVariation diminishing projection"<< std::endl;
-      if (!myModel[i]->evalSolution(values,*myProblem,NULL,'A'))
-        return false;
+      ok = myModel[i]->evalSolution(values,*myProblem,NULL,'A');
       break;
 
     case SIMoptions::QUASI:
       if (msgLevel > 1 && i == 0)
         std::cout <<"\tQuasi interpolation"<< std::endl;
-      if (!myModel[i]->evalSolution(values,*myProblem,NULL,'L'))
-        return false;
+      ok = myModel[i]->evalSolution(values,*myProblem,NULL,'L');
       break;
 
     case SIMoptions::LEASTSQ:
       if (msgLevel > 1 && i == 0)
-         std::cout <<"\tLeast squares projection"<< std::endl;
-      if (!myModel[i]->evalSolution(values,*myProblem,NULL,'W'))
-        return false;
+	std::cout <<"\tLeast squares projection"<< std::endl;
+      ok = myModel[i]->evalSolution(values,*myProblem,NULL,'W');
       break;
 
     default:
       std::cerr <<" *** SIMbase::project: Projection method "<< pMethod
                 <<" not implemented."<< std::endl;
+    }
+
+    if (!ok)
+    {
+      std::cerr <<" *** SIMbase::project: Failure when projecting patch "
+                << myModel[i]->idx <<"."<< std::endl;
       return false;
     }
 

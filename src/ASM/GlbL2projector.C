@@ -77,7 +77,8 @@ bool GlbL2::evalInt (LocalIntegral& elmInt,
 
   Vector solPt;
   if (!problem.evalSol(solPt,fe,X,gl2.mnpc))
-    return false;
+    if (!problem.diverged(fe.iGP+1))
+      return false;
 
   size_t a, b, nnod = A.dim();
   for (a = 0; a < fe.N.size(); a++)
