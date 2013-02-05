@@ -49,5 +49,33 @@ void handleRestart(Simulator& simulator, Solver& solver,
 }
 
 
+//! \brief Handle application data output
+//! \param[template] Simulator The top SIM of your application
+//! \param[template] Solver The SIMSolver of your application
+//! \param[in] Simulator The top SIM instance of your application
+//! \param[in] Simulator The SIMSolver instance of your application
+//! \param[in] append Whether or not to append to file
+//! \param[in] hdf5file The file to save to
+//! \param[in] interval The stride in the input file
+//! \param[in] steps The number of timesteps to load
+  template<class Simulator, class Solver>
+DataExporter* handleDataOutput(Simulator& simulator, Solver& solver,
+                               bool append,
+                               const std::string& hdf5file,
+                               int interval,
+                               int steps)
+{
+  DataExporter* writer = new DataExporter(true, interval, steps);
+  simulator.registerFields(*writer);
+  XMLWriter* xml = new XMLWriter(hdf5file);
+  HDF5Writer* hdf = new HDF5Writer(hdf5file, append);
+  writer->registerWriter(xml);
+  writer->registerWriter(hdf);
+  if (!append)
+    writer->dumpTimeLevel(&solver.getTimePrm()); // initial state
+
+  return writer;
+}
+
 }
 #endif
