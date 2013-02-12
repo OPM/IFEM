@@ -30,9 +30,8 @@ bool ASMu2D::getGrevilleParameters (RealArray& prm, int dir) const
 
   prm.clear();
   prm.reserve(lrspline->nBasisFunctions());
-  std::vector<LR::Basisfunction*>::const_iterator bit;
-  for (bit = lrspline->basisBegin(); bit != lrspline->basisEnd(); bit++)
-    prm.push_back((*bit)->getGrevilleParameter()[dir]);
+  for(LR::Basisfunction *b : lrspline->getAllBasisfunctions())
+    prm.push_back(b->getGrevilleParameter()[dir]);
 
   return true;
 }
@@ -267,13 +266,10 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
 
   // Loop over all Greville points (one for each basis function)
   size_t k, l, ip = 0;
-  LR::Basisfunction *b;
-  std::vector<LR::Basisfunction*>::iterator bit;
   std::vector<LR::Element*>::iterator elStart, elEnd, el;
   std::vector<LR::Element*> supportElements;
-  for(bit = lrspline->basisBegin(); bit != lrspline->basisEnd(); bit++, ip++)
+  for(LR::Basisfunction *b : lrspline->getAllBasisfunctions())
   {
-    b = *bit;
 #if SP_DEBUG > 2
     std::cout << "Basis: " << *b  << std::endl;
     std::cout << "  ng1 =" << ng1  << std::endl;
@@ -385,6 +381,7 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
 	std::cout <<" "<< sValues(k,ip);
       std::cout << std::endl;
 #endif
+	ip++;
     }
 
   // Project the Greville point results onto the spline basis
@@ -445,8 +442,9 @@ LR::LRSplineSurface* ASMu2D::regularInterpolation(LR::LRSplineSurface *basis,
     if(!A.solve(B))
       return NULL;
 
-    for(size_t j=0; j<nBasis; j++)
-      ans->getBasisfunction(j)->controlpoint_[i] = B(j+1);
+	int j=0;
+	for(LR::Basisfunction *b : ans->getAllBasisfunctions()) 
+      b->cp()[i] = B(++j);
   }
 
   return ans;

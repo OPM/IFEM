@@ -571,16 +571,16 @@ bool ASMu2D::generateFEMTopology ()
 	lrspline->generateIDs();
 
 	std::vector<LR::Element*>::iterator el_it = lrspline->elementBegin();
-	std::vector<LR::Basisfunction*>::iterator b_it;
 	for (int iel=0; iel<nElements; iel++, el_it++)
 	{
-		int nSupportFunctions = (*el_it)->nBasisFunctions();
+		LR::Element *el = *el_it;
+		int nSupportFunctions = el->nBasisFunctions();
 		myMLGE[iel] = ++gEl; // global element number over all patches
 		myMNPC[iel].resize(nSupportFunctions);
 
-		b_it = (*el_it)->supportBegin();
-		for(int lnod=0; lnod<nSupportFunctions; lnod++, b_it++)
-			myMNPC[iel][lnod] = (*b_it)->getId();
+		int lnod = 0;
+		for(LR::Basisfunction *b : el->support())
+			myMNPC[iel][lnod++] = b->getId();
 	}
 
 	for (int inod = 0; inod < nBasis; inod++)
@@ -851,12 +851,14 @@ bool ASMu2D::getElementCoordinates (Matrix& X, int iel) const
 	}
 #endif
 
-	int nSupportFunctions = lrspline->getElement(iel-1)->nBasisFunctions();
+	LR::Element *el = lrspline->getElement(iel-1);
+	int nSupportFunctions = el->nBasisFunctions();
 	X.resize(nsd,nSupportFunctions);
 
-	std::vector<LR::Basisfunction*>::iterator bit = lrspline->getElement(iel-1)->supportBegin();
-	for (int n = 1; n <= nSupportFunctions; n++, bit++)
-	  X.fillColumn(n,(*bit)->controlpoint_);
+	int n=1;
+	for (LR::Basisfunction* b : el->support() ) {
+		X.fillColumn(n++,&(*b->cp()));
+	}
 
 #if SP_DEBUG > 2
 	std::cout <<"\nCoordinates for element "<< iel << X << std::endl;
@@ -870,9 +872,9 @@ void ASMu2D::getNodalCoordinates (Matrix& X) const
 	const int nBasis = lrspline->nBasisFunctions();
 	X.resize(nsd,nBasis);
 
-	std::vector<LR::Basisfunction*>::iterator bit = lrspline->basisBegin();
-	for (int inod = 1; inod <= nBasis; inod++, bit++)
-	  X.fillColumn(inod,(*bit)->controlpoint_);
+	int inod = 1;
+	for(LR::Basisfunction *b : lrspline->getAllBasisfunctions() )
+		X.fillColumn(inod++,&(*b->cp()));
 }
 
 
@@ -881,7 +883,7 @@ Vec3 ASMu2D::getCoord (size_t inod) const
 	Vec3 X;
 	LR::Basisfunction* basis = lrspline->getBasisfunction(inod-1);
 	for (unsigned char i = 0; i < nsd; i++)
-		X[i] = basis->controlpoint_[i];
+		X[i] = basis->cp()[i];
 
 	return X;
 }
@@ -1593,7 +1595,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     sField.resize(s->dimension(),s->nBasisFunctions());
     for(int i=0; i<s->nBasisFunctions(); i++)
       for(int d=0; d<s->dimension(); d++)
-      	sField(d+1,i+1) = s->getBasisfunction(i)->controlpoint_[d];
+      	sField(d+1,i+1) = s->getBasisfunction(i)->cp()[d];
     delete s;
     return true;
   }
