@@ -20,7 +20,7 @@ namespace Go {
   class GeomObject;
 }
 namespace LR {
-  class LRSplineSurface;
+  class LRSpline;
 }
 
 
@@ -58,7 +58,7 @@ public:
   virtual void getNoBouPoints(size_t& nPt, char, char) { nPt = 0; } // later...
 
 protected:
-  LR::LRSplineSurface* geo; //!< Pointer to the actual spline geometry object
+  LR::LRSpline* geo; //!< Pointer to the actual spline geometry object (surface or volume)
 
   static int gEl;  //!< Global element counter
   static int gNod; //!< Global node counter

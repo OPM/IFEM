@@ -366,7 +366,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
           field.resize(prob->getNoFields(2),locvec.size()/prob->getNoFields(2));
           field.fill(locvec.ptr());
         }
-        for (j = 0; j < prob->getNoFields(2); j++)
+        for (j = 0; j < field.rows(); j++)
           writeArray(group2,prefix+prob->getField2Name(j),field.cols(),
                      field.getRow(j+1).ptr(),H5T_NATIVE_DOUBLE);
       }

@@ -1,0 +1,77 @@
+// $Id$
+//==============================================================================
+//!
+//! \file ASM3D.C
+//!
+//! \date January 2013
+//!
+//! \author Kjetil A. Johannessen / NTNU
+//!
+//! \brief Abstract interface for 3D patches.
+//!
+//==============================================================================
+
+#include "ASM3D.h"
+#include "ASMs3DSpec.h"
+#include "ASMs3Dmx.h"
+#include "ASMs3DLag.h"
+#include "ASMs3DmxLag.h"
+#ifdef HAS_LRSPLINE
+#include "LR/ASMu3D.h"
+#endif
+
+
+ASMbase* ASM3D::create (ASM::Discretization discretization,
+                        const unsigned char* nf, bool mixedFEM)
+{
+  switch (discretization) {
+
+  case ASM::Lagrange:
+    if (nf[1] > 0 || mixedFEM)
+      return new ASMs3DmxLag(nf[0],nf[1]);
+    else
+      return new ASMs3DLag(nf[0]);
+
+  case ASM::Spectral:
+    return new ASMs3DSpec(nf[0]);
+
+#ifdef HAS_LRSPLINE
+  case ASM::LRSpline:
+    return new ASMu3D(nf[0]);
+#endif
+
+  default:
+    if (nf[1] > 0 || mixedFEM)
+      return new ASMs3Dmx(nf[0],nf[1]);
+    else
+      return new ASMs3D(nf[0]);
+  }
+}
+
+
+#define TRY_CLONE1(classType,n) {					\
+    const classType* p = dynamic_cast<const classType*>(this);		\
+    if (p) return n ? new classType(*p,n[0]) : new classType(*p);	\
+  }
+#define TRY_CLONE2(classType,n) {					\
+    const classType* p = dynamic_cast<const classType*>(this);		\
+    if (p) return n ? new classType(*p,n[0],n[1]) : new classType(*p);	\
+  }
+
+ASMbase* ASM3D::clone (unsigned char* nf) const
+{
+  TRY_CLONE2(ASMs3DmxLag,nf)
+  TRY_CLONE2(ASMs3Dmx,nf)
+  TRY_CLONE1(ASMs3DSpec,nf)
+  TRY_CLONE1(ASMs3DLag,nf)
+  TRY_CLONE1(ASMs3D,nf)
+#ifdef HAS_LRSPLINE
+  TRY_CLONE1(ASMu3D,nf)
+#endif
+
+  std::cerr <<" *** ASM3D::clone: Failure, probably not a 3D patch"<< std::endl;
+  return 0;
+}
+
+#undef TRY_CLONE1
+#undef TRY_CLONE2

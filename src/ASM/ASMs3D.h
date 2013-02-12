@@ -14,6 +14,7 @@
 #ifndef _ASM_S3D_H
 #define _ASM_S3D_H
 
+#include "ASM3D.h"
 #include "ASMstruct.h"
 #include "ThreadGroups.h"
 
@@ -30,7 +31,7 @@ namespace Go {
   \details This class contains methods common for structured 3D spline patches.
 */
 
-class ASMs3D : public ASMstruct
+class ASMs3D : public ASMstruct, public ASM3D
 {
   //! \brief Struct for nodal point data.
   struct IJK

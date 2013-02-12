@@ -100,8 +100,8 @@ bool ASMu2D::globalL2projection (Matrix& sField,
 
   PROFILE2("ASMu2D::globalL2");
 
-  const int p1 = lrspline->order_u();
-  const int p2 = lrspline->order_v();
+  const int p1 = lrspline->order(0);
+  const int p2 = lrspline->order(1);
 
   // Get Gaussian quadrature points
   const int ng1 = continuous ? nGauss : p1 - 1;
@@ -242,8 +242,8 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
 {
   PROFILE2("ASMu2D::scRecovery");
 
-  const int p1 = lrspline->order_u();
-  const int p2 = lrspline->order_v();
+  const int p1 = lrspline->order(0);
+  const int p2 = lrspline->order(1);
 
   // Get Gaussian quadrature point coordinates
   const int ng1 = p1 - 1;

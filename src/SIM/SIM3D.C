@@ -12,6 +12,8 @@
 //==============================================================================
 
 #include "SIM3D.h"
+#include "ASM3D.h"
+#include "ASMs3D.h"
 #include "ASMs3Dmx.h"
 #include "ASMs3DmxLag.h"
 #include "ASMs3DSpec.h"
@@ -21,6 +23,9 @@
 #include <fstream>
 #ifdef USE_OPENMP
 #include <omp.h>
+#endif
+#ifdef HAS_LRSPLINE
+#include "ASMu3D.h"
 #endif
 
 
@@ -61,7 +66,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
       {
         std::cout <<"\tRefining P"<< j+1
                   <<" "<< addu <<" "<< addv <<" "<< addw << std::endl;
-        ASMs3D* pch = static_cast<ASMs3D*>(myModel[j]);
+        ASM3D* pch = dynamic_cast<ASM3D*>(myModel[j]);
         pch->uniformRefine(0,addu);
         pch->uniformRefine(1,addv);
         pch->uniformRefine(2,addw);
@@ -78,7 +83,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
         for (size_t i = 0; i < xi.size(); i++)
           std::cout <<" "<< xi[i];
         std::cout << std::endl;
-        static_cast<ASMs3D*>(myModel[j])->refine(dir-1,xi);
+        dynamic_cast<ASM3D*>(myModel[j])->refine(dir-1,xi);
       }
     }
   }
@@ -107,7 +112,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
     {
       std::cout <<"\tRaising order of P"<< j+1
                 <<" "<< addu <<" "<< addv  <<" " << addw << std::endl;
-      static_cast<ASMs3D*>(myModel[j])->raiseOrder(addu,addv,addw);
+      dynamic_cast<ASM3D*>(myModel[j])->raiseOrder(addu,addv,addw);
     }
   }
 
@@ -191,7 +196,7 @@ bool SIM3D::parseBCTag (const TiXmlElement* elem)
     std::cout <<"\tConstraining P"<< patch
               <<" point at "<< rx <<" "<< ry <<" "<< rz
               <<" with code "<< code << std::endl;
-    static_cast<ASMs3D*>(myModel[pid-1])->constrainNode(rx,ry,rz,code);
+    dynamic_cast<ASM3D*>(myModel[pid-1])->constrainNode(rx,ry,rz,code);
   }
 
   return true;
@@ -226,44 +231,44 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
       int patch = atoi(strtok(cline," "));
       if (patch == 0 || abs(patch) > (int)myModel.size())
       {
-	std::cerr <<" *** SIM3D::parse: Invalid patch index "
-		  << patch << std::endl;
-	return false;
+        std::cerr <<" *** SIM3D::parse: Invalid patch index "
+                  << patch << std::endl;
+        return false;
       }
       int ipatch = patch-1;
       if (patch < 0)
       {
-	ipatch = 0;
-	patch = -patch;
+        ipatch = 0;
+        patch = -patch;
       }
       if (uniform)
       {
-	int addu = atoi(strtok(NULL," "));
-	int addv = atoi(strtok(NULL," "));
-	int addw = atoi(strtok(NULL," "));
-	for (int j = ipatch; j < patch; j++)
-	{
-	  std::cout <<"\tRefining P"<< j+1
-		    <<" "<< addu <<" "<< addv <<" "<< addw << std::endl;
-	  ASMs3D* pch = static_cast<ASMs3D*>(myModel[j]);
-	  pch->uniformRefine(0,addu);
-	  pch->uniformRefine(1,addv);
-	  pch->uniformRefine(2,addw);
-	}
+        int addu = atoi(strtok(NULL," "));
+        int addv = atoi(strtok(NULL," "));
+        int addw = atoi(strtok(NULL," "));
+        for (int j = ipatch; j < patch; j++)
+        {
+          std::cout <<"\tRefining P"<< j+1
+                    <<" "<< addu <<" "<< addv <<" "<< addw << std::endl;
+          ASM3D* pch = dynamic_cast<ASM3D*>(myModel[j]);
+          pch->uniformRefine(0,addu);
+          pch->uniformRefine(1,addv);
+          pch->uniformRefine(2,addw);
+        }
       }
       else
       {
-	RealArray xi;
-	int dir = atoi(strtok(NULL," "));
-	if (utl::parseKnots(xi))
-	  for (int j = ipatch; j < patch; j++)
-	  {
-	    std::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
-	    for (size_t i = 0; i < xi.size(); i++)
-	      std::cout <<" "<< xi[i];
-	    std::cout << std::endl;
-	    static_cast<ASMs3D*>(myModel[j])->refine(dir-1,xi);
-	  }
+        RealArray xi;
+        int dir = atoi(strtok(NULL," "));
+        if (utl::parseKnots(xi))
+          for (int j = ipatch; j < patch; j++)
+          {
+            std::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
+            for (size_t i = 0; i < xi.size(); i++)
+              std::cout <<" "<< xi[i];
+            std::cout << std::endl;
+            dynamic_cast<ASM3D*>(myModel[j])->refine(dir-1,xi);
+          }
       }
     }
   }
@@ -280,21 +285,21 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
       int addw  = atoi(strtok(NULL," "));
       if (patch == 0 || abs(patch) > (int)myModel.size())
       {
-	std::cerr <<" *** SIM3D::parse: Invalid patch index "
-		  << patch << std::endl;
-	return false;
+        std::cerr <<" *** SIM3D::parse: Invalid patch index "
+                  << patch << std::endl;
+        return false;
       }
       int ipatch = patch-1;
       if (patch < 0)
       {
-	ipatch = 0;
-	patch = -patch;
+        ipatch = 0;
+        patch = -patch;
       }
       for (int j = ipatch; j < patch; j++)
       {
-	std::cout <<"\tRaising order of P"<< j+1
-		  <<" "<< addu <<" "<< addv <<" "<< addw << std::endl;
-	static_cast<ASMs3D*>(myModel[j])->raiseOrder(addu,addv,addw);
+        std::cout <<"\tRaising order of P"<< j+1
+                  <<" "<< addu <<" "<< addv <<" "<< addw << std::endl;
+        dynamic_cast<ASM3D*>(myModel[j])->raiseOrder(addu,addv,addw);
       }
     }
   }
@@ -310,7 +315,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
     else
     {
       std::cerr <<" *** SIM3D::read: Failure opening input file "
-		<< std::string(keyWord+i) << std::endl;
+                << std::string(keyWord+i) << std::endl;
       return false;
     }
 
@@ -325,20 +330,20 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
       int rev_v  = atoi(strtok(NULL," "));
       int orient = 4*swapd+2*rev_u+rev_v;
       if (master == slave ||
-	  master < 1 || master > (int)myModel.size() ||
-	  slave  < 1 || slave  > (int)myModel.size())
+          master < 1 || master > (int)myModel.size() ||
+          slave  < 1 || slave  > (int)myModel.size())
       {
-	std::cerr <<" *** SIM3D::parse: Invalid patch indices "
-		  << master <<" "<< slave << std::endl;
-	return false;
+        std::cerr <<" *** SIM3D::parse: Invalid patch indices "
+                  << master <<" "<< slave << std::endl;
+        return false;
       }
       std::cout <<"\tConnecting P"<< slave <<" F"<< sFace
-		<<" to P"<< master <<" F"<< mFace
-		<<" orient "<< orient << std::endl;
+                <<" to P"<< master <<" F"<< mFace
+                <<" orient "<< orient << std::endl;
       ASMs3D* spch = static_cast<ASMs3D*>(myModel[slave-1]);
       ASMs3D* mpch = static_cast<ASMs3D*>(myModel[master-1]);
       if (!spch->connectPatch(sFace,*mpch,mFace,orient))
-	return false;
+        return false;
     }
   }
 
@@ -356,20 +361,20 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
       int sFace  = atoi(strtok(NULL," "));
       int orient = (cline = strtok(NULL," ")) ? atoi(cline) : 0;
       if (master == slave ||
-	  master < 1 || master > (int)myModel.size() ||
-	  slave  < 1 || slave  > (int)myModel.size())
+          master < 1 || master > (int)myModel.size() ||
+          slave  < 1 || slave  > (int)myModel.size())
       {
-	std::cerr <<" *** SIM3D::parse: Invalid patch indices "
-		  << master <<" "<< slave << std::endl;
-	return false;
+        std::cerr <<" *** SIM3D::parse: Invalid patch indices "
+                  << master <<" "<< slave << std::endl;
+        return false;
       }
       std::cout <<"\tConnecting P"<< slave <<" F"<< sFace
-		<<" to P"<< master <<" F"<< mFace
-		<<" orient "<< orient << std::endl;
+                <<" to P"<< master <<" F"<< mFace
+                <<" orient "<< orient << std::endl;
       ASMs3D* spch = static_cast<ASMs3D*>(myModel[slave-1]);
       ASMs3D* mpch = static_cast<ASMs3D*>(myModel[master-1]);
       if (!spch->connectPatch(sFace,*mpch,mFace,orient))
-	return false;
+        return false;
     }
   }
 
@@ -385,12 +390,12 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
       int pfdir = atoi(strtok(NULL," "));
       if (patch < 1 || patch > (int)myModel.size())
       {
-	std::cerr <<" *** SIM3D::parse: Invalid patch index "
-		  << patch << std::endl;
-	return false;
+        std::cerr <<" *** SIM3D::parse: Invalid patch index "
+                  << patch << std::endl;
+        return false;
       }
       std::cout <<"\tPeriodic "<< char('H'+pfdir) <<"-direction P"<< patch
-		<< std::endl;
+                << std::endl;
       static_cast<ASMs3D*>(myModel[patch-1])->closeFaces(pfdir);
     }
 #ifdef USE_OPENMP
@@ -419,27 +424,27 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
 
       if (pface > 10)
       {
-	if (!this->addConstraint(patch,pface%10,pface/10,pd,bcode))
-	  return false;
+        if (!this->addConstraint(patch,pface%10,pface/10,pd,bcode))
+          return false;
       }
       else if (pd == 0.0)
       {
-	int ldim = pface < 0 ? 0 : 2;
-	if (!this->addConstraint(patch,abs(pface),ldim,bcode%1000,0,ngno))
-	  return false;
+        int ldim = pface < 0 ? 0 : 2;
+        if (!this->addConstraint(patch,abs(pface),ldim,bcode%1000,0,ngno))
+          return false;
       }
       else
       {
-	int ldim = pface < 0 ? 0 : 2;
-	int code = 1000 + bcode;
-	while (myScalars.find(code) != myScalars.end())
-	  code += 1000;
+        int ldim = pface < 0 ? 0 : 2;
+        int code = 1000 + bcode;
+        while (myScalars.find(code) != myScalars.end())
+          code += 1000;
 
-	if (!this->addConstraint(patch,abs(pface),ldim,bcode%1000,-code,ngno))
-	  return false;
+        if (!this->addConstraint(patch,abs(pface),ldim,bcode%1000,-code,ngno))
+          return false;
 
-	cline = strtok(NULL," ");
-	myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,pd));
+        cline = strtok(NULL," ");
+        myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,pd));
       }
       if (pface < 10) std::cout << std::endl;
     }
@@ -464,9 +469,9 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
       if (pid < 1) continue;
 
       std::cout <<"\tConstraining P"<< patch
-		<<" point at "<< rx <<" "<< ry <<" "<< rz
-		<<" with code "<< bcode << std::endl;
-      static_cast<ASMs3D*>(myModel[pid-1])->constrainNode(rx,ry,rz,bcode);
+                <<" point at "<< rx <<" "<< ry <<" "<< rz
+                <<" with code "<< bcode << std::endl;
+      dynamic_cast<ASM3D*>(myModel[pid-1])->constrainNode(rx,ry,rz,bcode);
     }
   }
 
@@ -489,7 +494,7 @@ static bool constrError (const char* lab, int idx)
 
 
 bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
-			   int& ngnod)
+                           int& ngnod)
 {
   if (patch < 1 || patch > (int)myModel.size())
     return constrError("patch index ",patch);
@@ -501,75 +506,75 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
   if (lndx < 0 && aldim > 3) aldim = 2; // local tangent direction is indicated
 
   std::cout <<"\tConstraining P"<< patch
-	    << (ldim == 0 ? " V" : (aldim == 1 ? " E": " F")) << lndx
-	    <<" in direction(s) "<< dirs;
+            << (ldim == 0 ? " V" : (aldim == 1 ? " E": " F")) << lndx
+            <<" in direction(s) "<< dirs;
   if (lndx < 0) std::cout << (project ? " (local projected)" : " (local)");
   if (code != 0) std::cout <<" code = "<< abs(code) <<" ";
 #if SP_DEBUG > 1
   std::cout << std::endl;
 #endif
 
-  ASMs3D* pch = static_cast<ASMs3D*>(myModel[patch-1]);
+  ASM3D* pch = dynamic_cast<ASM3D*>(myModel[patch-1]);
   switch (aldim)
     {
     case 0: // Vertex constraints
       switch (lndx)
-	{
-	case 1: pch->constrainCorner(-1,-1,-1,dirs,abs(code)); break;
-	case 2: pch->constrainCorner( 1,-1,-1,dirs,abs(code)); break;
-	case 3: pch->constrainCorner(-1, 1,-1,dirs,abs(code)); break;
-	case 4: pch->constrainCorner( 1, 1,-1,dirs,abs(code)); break;
-	case 5: pch->constrainCorner(-1,-1, 1,dirs,abs(code)); break;
-	case 6: pch->constrainCorner( 1,-1, 1,dirs,abs(code)); break;
-	case 7: pch->constrainCorner(-1, 1, 1,dirs,abs(code)); break;
-	case 8: pch->constrainCorner( 1, 1, 1,dirs,abs(code)); break;
-	default:
-	  std::cout << std::endl;
-	  return constrError("vertex index ",lndx);
-	}
+        {
+        case 1: pch->constrainCorner(-1,-1,-1,dirs,abs(code)); break;
+        case 2: pch->constrainCorner( 1,-1,-1,dirs,abs(code)); break;
+        case 3: pch->constrainCorner(-1, 1,-1,dirs,abs(code)); break;
+        case 4: pch->constrainCorner( 1, 1,-1,dirs,abs(code)); break;
+        case 5: pch->constrainCorner(-1,-1, 1,dirs,abs(code)); break;
+        case 6: pch->constrainCorner( 1,-1, 1,dirs,abs(code)); break;
+        case 7: pch->constrainCorner(-1, 1, 1,dirs,abs(code)); break;
+        case 8: pch->constrainCorner( 1, 1, 1,dirs,abs(code)); break;
+        default:
+          std::cout << std::endl;
+          return constrError("vertex index ",lndx);
+        }
       break;
 
     case 1: // Edge constraints
       if (lndx > 0 && lndx <= 12)
-	pch->constrainEdge(lndx,open,dirs,code);
+        pch->constrainEdge(lndx,open,dirs,code);
       else
       {
-	std::cout << std::endl;
-	return constrError("edge index ",lndx);
+        std::cout << std::endl;
+        return constrError("edge index ",lndx);
       }
       break;
 
     case 2:
       switch (lndx)
-	{
-	case  1: pch->constrainFace(-1,open,dirs,code); break;
-	case  2: pch->constrainFace( 1,open,dirs,code); break;
-	case  3: pch->constrainFace(-2,open,dirs,code); break;
-	case  4: pch->constrainFace( 2,open,dirs,code); break;
-	case  5: pch->constrainFace(-3,open,dirs,code); break;
-	case  6: pch->constrainFace( 3,open,dirs,code); break;
-	case -1:
-	  ngnod += pch->constrainFaceLocal(-1,open,dirs,code,project,ldim);
-	  break;
-	case -2:
-	  ngnod += pch->constrainFaceLocal( 1,open,dirs,code,project,ldim);
-	  break;
-	case -3:
-	  ngnod += pch->constrainFaceLocal(-2,open,dirs,code,project,ldim);
-	  break;
-	case -4:
-	  ngnod += pch->constrainFaceLocal( 2,open,dirs,code,project,ldim);
-	  break;
-	case -5:
-	  ngnod += pch->constrainFaceLocal(-3,open,dirs,code,project,ldim);
-	  break;
-	case -6:
-	  ngnod += pch->constrainFaceLocal( 3,open,dirs,code,project,ldim);
-	  break;
-	default:
-	  std::cout << std::endl;
-	  return constrError("face index ",lndx);
-	}
+        {
+        case  1: pch->constrainFace(-1,open,dirs,code); break;
+        case  2: pch->constrainFace( 1,open,dirs,code); break;
+        case  3: pch->constrainFace(-2,open,dirs,code); break;
+        case  4: pch->constrainFace( 2,open,dirs,code); break;
+        case  5: pch->constrainFace(-3,open,dirs,code); break;
+        case  6: pch->constrainFace( 3,open,dirs,code); break;
+        case -1:
+          ngnod += pch->constrainFaceLocal(-1,open,dirs,code,project,ldim);
+          break;
+        case -2:
+          ngnod += pch->constrainFaceLocal( 1,open,dirs,code,project,ldim);
+          break;
+        case -3:
+          ngnod += pch->constrainFaceLocal(-2,open,dirs,code,project,ldim);
+          break;
+        case -4:
+          ngnod += pch->constrainFaceLocal( 2,open,dirs,code,project,ldim);
+          break;
+        case -5:
+          ngnod += pch->constrainFaceLocal(-3,open,dirs,code,project,ldim);
+          break;
+        case -6:
+          ngnod += pch->constrainFaceLocal( 3,open,dirs,code,project,ldim);
+          break;
+        default:
+          std::cout << std::endl;
+          return constrError("face index ",lndx);
+        }
       break;
 
     default:
@@ -587,36 +592,36 @@ bool SIM3D::addConstraint (int patch, int lndx, int line, double xi, int dirs)
     return constrError("patch index ",patch);
 
   std::cout <<"\tConstraining P"<< patch
-	    <<" F"<< lndx <<" L"<< line <<" at xi="<< xi
-	    <<" in direction(s) "<< dirs << std::endl;
+            <<" F"<< lndx <<" L"<< line <<" at xi="<< xi
+            <<" in direction(s) "<< dirs << std::endl;
 
-  ASMs3D* pch = static_cast<ASMs3D*>(myModel[patch-1]);
+  ASM3D* pch = dynamic_cast<ASM3D*>(myModel[patch-1]);
   switch (line)
     {
     case 1: // Face line constraints in local I-direction
       switch (lndx)
-	{
-	case 1: pch->constrainLine(-1,2,xi,dirs); break;
-	case 2: pch->constrainLine( 1,2,xi,dirs); break;
-	case 3: pch->constrainLine(-2,3,xi,dirs); break;
-	case 4: pch->constrainLine( 2,3,xi,dirs); break;
-	case 5: pch->constrainLine(-3,1,xi,dirs); break;
-	case 6: pch->constrainLine( 3,1,xi,dirs); break;
-	default: return constrError("face index ",lndx);
-	}
+        {
+        case 1: pch->constrainLine(-1,2,xi,dirs); break;
+        case 2: pch->constrainLine( 1,2,xi,dirs); break;
+        case 3: pch->constrainLine(-2,3,xi,dirs); break;
+        case 4: pch->constrainLine( 2,3,xi,dirs); break;
+        case 5: pch->constrainLine(-3,1,xi,dirs); break;
+        case 6: pch->constrainLine( 3,1,xi,dirs); break;
+        default: return constrError("face index ",lndx);
+        }
       break;
 
     case 2: // Face line constraints in local J-direction
       switch (lndx)
-	{
-	case 1: pch->constrainLine(-1,3,xi,dirs); break;
-	case 2: pch->constrainLine( 1,3,xi,dirs); break;
-	case 3: pch->constrainLine(-2,1,xi,dirs); break;
-	case 4: pch->constrainLine( 2,1,xi,dirs); break;
-	case 5: pch->constrainLine(-3,2,xi,dirs); break;
-	case 6: pch->constrainLine( 3,2,xi,dirs); break;
-	default: return constrError("face index ",lndx);
-	}
+        {
+        case 1: pch->constrainLine(-1,3,xi,dirs); break;
+        case 2: pch->constrainLine( 1,3,xi,dirs); break;
+        case 3: pch->constrainLine(-2,1,xi,dirs); break;
+        case 4: pch->constrainLine( 2,1,xi,dirs); break;
+        case 5: pch->constrainLine(-3,2,xi,dirs); break;
+        case 6: pch->constrainLine( 3,2,xi,dirs); break;
+        default: return constrError("face index ",lndx);
+        }
       break;
 
     default:
@@ -629,33 +634,20 @@ bool SIM3D::addConstraint (int patch, int lndx, int line, double xi, int dirs)
 
 ASMbase* SIM3D::readPatch (std::istream& isp, int pchInd) const
 {
-  ASMs3D* pch = 0;
-  switch (opt.discretization) {
-  case ASM::Lagrange:
-    if (nf[1] > 0)
-      pch = new ASMs3DmxLag(nf[0],nf[1]);
-    else
-      pch = new ASMs3DLag(nf[0]);
-    break;
-  case ASM::Spectral:
-    pch = new ASMs3DSpec(nf[0]);
-    break;
-  default:
-    if (nf[1] > 0)
-      pch = new ASMs3Dmx(nf[0],nf[1]);
-    else
-      pch = new ASMs3D(nf[0]);
-  }
-
-  if (!pch->read(isp))
-    delete pch, pch = NULL;
-  else if (pch->empty() || this->getLocalPatchIndex(pchInd+1) < 1)
-    delete pch, pch = NULL;
-
-  if (pch && checkRHSys)
-    pch->checkRightHandSystem();
+  ASMbase* pch = ASM3D::create(opt.discretization,nf,nf[1] > 0);
   if (pch)
-    pch->idx = myModel.size();
+  {
+    if (!pch->read(isp))
+      delete pch, pch = NULL;
+    else if (pch->empty() || this->getLocalPatchIndex(pchInd+1) < 1)
+      delete pch, pch = NULL;
+    else
+      pch->idx = myModel.size();
+  }
+  if (checkRHSys) {
+    ASM3D *pch3 = dynamic_cast<ASM3D*>(pch);
+    pch3->checkRightHandSystem();
+  }
 
   return pch;
 }
@@ -664,42 +656,27 @@ ASMbase* SIM3D::readPatch (std::istream& isp, int pchInd) const
 bool SIM3D::readPatches (std::istream& isp, PatchVec& patches,
                          const char* whiteSpace)
 {
-  ASMs3D* pch = 0;
+  ASMbase* pch = 0;
   for (int pchInd = 1; isp.good(); pchInd++)
-  {
-    std::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
-    switch (opt.discretization)
+    if ((pch = ASM3D::create(opt.discretization,nf,nf[1] > 0)))
+    {
+      std::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
+      if (!pch->read(isp))
       {
-      case ASM::Lagrange:
-        if (nf[1] > 0)
-          pch = new ASMs3DmxLag(nf[0],nf[1]);
-        else
-          pch = new ASMs3DLag(nf[0]);
-        break;
-      case ASM::Spectral:
-        pch = new ASMs3DSpec(nf[0]);
-        break;
-      default:
-        if (nf[1] > 0)
-          pch = new ASMs3Dmx(nf[0],nf[1]);
-        else
-          pch = new ASMs3D(nf[0]);
+        delete pch;
+        return false;
       }
-
-    if (!pch->read(isp))
-    {
-      delete pch;
-      return false;
-    }
-    else if (pch->empty() || this->getLocalPatchIndex(pchInd) < 1)
-      delete pch;
-    else
-    {
-      if (checkRHSys)
-	pch->checkRightHandSystem();
-      pch->idx = patches.size();
-      patches.push_back(pch);
-    }
+      else if (pch->empty() || this->getLocalPatchIndex(pchInd) < 1)
+        delete pch;
+      else
+      {
+        pch->idx = patches.size();
+        patches.push_back(pch);
+        if (checkRHSys) {
+          ASM3D *pch3 = dynamic_cast<ASM3D*>(pch);
+          pch3->checkRightHandSystem();
+        }
+      }
   }
 
   return true;
@@ -718,7 +695,7 @@ void SIM3D::readNodes (std::istream& isn)
     if (!this->readNodes(isn,pid-1))
     {
       std::cerr <<" *** SIM3D::readNodes: Failed to assign node numbers"
-		<<" for patch "<< patch+1 << std::endl;
+                <<" for patch "<< patch+1 << std::endl;
       return;
     }
   }

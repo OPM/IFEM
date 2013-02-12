@@ -17,6 +17,7 @@
 #include <vector>
 #include <iostream>
 #include <cmath>
+#include <GoTools/utils/Point.h>
 
 
 /*!
@@ -37,6 +38,9 @@ public:
   //! \brief Constructor creating a point at the specified location.
   Vec3(Real X, Real Y, Real Z) : x(v[0]), y(v[1]), z(v[2])
   { x = X; y = Y; z = Z; }
+  //! \brief Constructor creating a point at the specified location.
+  Vec3(Go::Point &p) : x(v[0]), y(v[1]), z(v[2])
+  { x = p[0]; y = p[1]; z = p[2]; }
   //! \brief Constructor creating a point from the given \a std::vector.
   Vec3(const std::vector<Real>& X) : x(v[0]), y(v[1]), z(v[2])
   { for (size_t i = 0; i < 3; i++) v[i] = i < X.size() ? X[i] : 0.0; }

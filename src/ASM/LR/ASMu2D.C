@@ -49,7 +49,7 @@ ASMu2D::ASMu2D (const ASMu2D& patch, unsigned char n_f)
 bool ASMu2D::read (std::istream& is)
 {
 	if (shareFE) return false;
-	delete lrspline;
+	if(lrspline) delete lrspline;
 
 	// read inputfile as either an LRSpline file directly or a tensor product B-spline and convert
 	char firstline[256];
@@ -154,8 +154,8 @@ bool ASMu2D::diagonalRefine (int minBasisfunctions)
 	if (!lrspline) return false;
 	if (shareFE) return true;
 
-	double end1 = lrspline->endparam_u();
-	double end2 = lrspline->endparam_v();
+	double end1 = lrspline->endparam(0);
+	double end2 = lrspline->endparam(1);
 	double h = 1.0;
 	int iter = 0;
 	double u = h/2.0;
@@ -184,8 +184,8 @@ bool ASMu2D::uniformRefine (int minBasisfunctions)
 	if (!lrspline) return false;
 	if (shareFE) return true;
 
-	double end1 = lrspline->endparam_u();
-	double end2 = lrspline->endparam_v();
+	double end1 = lrspline->endparam(0);
+	double end2 = lrspline->endparam(1);
 	double h = 1.0;
 	bool step_u = true;
 	double u = h/2.0;
@@ -272,7 +272,7 @@ bool ASMu2D::refine (int dir, const RealArray& xi)
 	else
 		tensorspline->insertKnot_v(extraKnots);
 
-	delete lrspline;
+	if(lrspline) delete lrspline;
 	geo = lrspline = new LR::LRSplineSurface(tensorspline);
 
 	return true;
@@ -313,8 +313,8 @@ bool ASMu2D::refine (const std::vector<double>& elementError,
 
 	if (multiplicity > 1)
 	{
-		int p1 = lrspline->order_u() - 1;
-		int p2 = lrspline->order_v() - 1;
+		int p1 = lrspline->order(0) - 1;
+		int p2 = lrspline->order(1) - 1;
 		multiplicity = options[1];
 		if (multiplicity > p1) multiplicity = p1;
 		if (multiplicity > p2) multiplicity = p2;
@@ -443,8 +443,8 @@ bool ASMu2D::refine (const std::vector<int>& elements,
 
 	if (multiplicity > 1)
 	{
-		int p1 = lrspline->order_u() - 1;
-		int p2 = lrspline->order_v() - 1;
+		int p1 = lrspline->order(0) - 1;
+		int p2 = lrspline->order(1) - 1;
 		multiplicity = options[1];
 		if (multiplicity > p1) multiplicity = p1;
 		if (multiplicity > p2) multiplicity = p2;
@@ -579,8 +579,8 @@ bool ASMu2D::generateFEMTopology ()
 	else if (shareFE)
 		return true;
 
-	const int p1 = lrspline->order_u();
-	const int p2 = lrspline->order_v();
+	const int p1 = lrspline->order(0);
+	const int p2 = lrspline->order(1);
 
 	// Consistency checks, just to be fool-proof
 	if (nBasis < 4)       return false;
@@ -1022,6 +1022,7 @@ bool ASMu2D::integrate (Integrand& integrand,
                         GlobalIntegral& glInt,
                         const TimeDomain& time)
 {
+	std::cout <<"YEAH BABY, arrived at ASMu2D::integrate(I)" << std::endl;
 	if (!lrspline) return true; // silently ignore empty patches
 
 	PROFILE2("ASMu2D::integrate(I)");
@@ -1248,12 +1249,12 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 		if (-1-d == edgeDir)
 		{
 			gpar[d].resize(nGauss);
-			gpar[d].fill(d == 0 ? lrspline->startparam_u() : lrspline->startparam_v());
+			gpar[d].fill(d == 0 ? lrspline->startparam(0) : lrspline->startparam(1));
 		}
 		else if (1+d == edgeDir)
 		{
 			gpar[d].resize(nGauss);
-			gpar[d].fill(d == 0 ? lrspline->endparam_u() : lrspline->endparam_v());
+			gpar[d].fill(d == 0 ? lrspline->endparam(0) : lrspline->endparam(1));
 		}
 
 	Matrix dNdu, Xnod, Jac;
@@ -1269,10 +1270,10 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
 		bool skipMe = false;
 		switch (edgeDir)
 		{
-			case -1: if ((**el).umin() != lrspline->startparam_u()) skipMe = true; break;
-			case  1: if ((**el).umax() != lrspline->endparam_u()  ) skipMe = true; break;
-			case -2: if ((**el).vmin() != lrspline->startparam_v()) skipMe = true; break;
-			case  2: if ((**el).vmax() != lrspline->endparam_v()  ) skipMe = true; break;
+			case -1: if ((**el).umin() != lrspline->startparam(0)) skipMe = true; break;
+			case  1: if ((**el).umax() != lrspline->endparam(0)  ) skipMe = true; break;
+			case -2: if ((**el).vmin() != lrspline->startparam(1)) skipMe = true; break;
+			case  2: if ((**el).vmax() != lrspline->endparam(1)  ) skipMe = true; break;
 		}
 		if (skipMe) continue;
 
@@ -1345,8 +1346,8 @@ int ASMu2D::evalPoint (const double* xi, double* param, Vec3& X) const
 {
 	if (!lrspline) return -2;
 
-	param[0] = (1.0-xi[0])*lrspline->startparam_u() + xi[0]*lrspline->endparam_u();
-	param[1] = (1.0-xi[1])*lrspline->startparam_v() + xi[1]*lrspline->endparam_v();
+	param[0] = (1.0-xi[0])*lrspline->startparam(0) + xi[0]*lrspline->endparam(0);
+	param[1] = (1.0-xi[1])*lrspline->startparam(1) + xi[1]*lrspline->endparam(1);
 
 	Go::Point X0;
 	lrspline->point(X0,param[0],param[1]);
