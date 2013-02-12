@@ -59,23 +59,17 @@ ASMu3D::ASMu3D (const ASMu3D& patch, unsigned char n_f)
 
 size_t ASMu3D::getNodeIndex (int globalNum, bool noAddedNodes) const
 {
-	std::cerr << "ASM3D::getNodeIndex not implemented properly\n";
-	exit(123213);
-
-#if 0
 	IntVec::const_iterator it = std::find(MLGN.begin(),MLGN.end(),globalNum);
 	if (it == MLGN.end()) return 0;
 	
 	size_t inod = 1 + (it-MLGN.begin());
-	if (noAddedNodes && !xnMap.empty() && inod > nodeInd.size())
+	if (noAddedNodes && !xnMap.empty() ) 
 	{
 		std::map<size_t,size_t>::const_iterator it = xnMap.find(inod);
 		if (it != xnMap.end()) return it->second;
 	}
 	
 	return inod;
-#endif
-	return 0;
 }
 
 /*
@@ -623,7 +617,7 @@ void ASMu3D::constrainEdge (int lEdge, bool open, int dof, int code)
 
 	// enforce the boundary conditions
 	for(LR::Basisfunction* b  : thisEdge)
-		this->prescribe(b->getId(),dof,code);
+		this->prescribe(b->getId()+1,dof,code);
 }
 
 
@@ -758,11 +752,11 @@ void ASMu3D::constrainNode (double xi, double eta, double zeta,
 */
 
 bool ASMu3D::updateDirichlet (const std::map<int,RealFunc*>& func,
-			      const std::map<int,VecFunc*>& vfunc, double time)
+                              const std::map<int,VecFunc*>& vfunc, double time)
 {
 	// std::cerr << "ASMu3D::updateDirichlet not implemented properly yet\n";
 	std::cerr << "\nWARNING: ASMu3D::updateDirichlet ignored due to non-projecting boundary condition implementation" << std::endl;
-	return true;
+	return this->ASMbase::updateDirichlet(func,vfunc,time);
 	#if 0
 	std::map<int,RealFunc*>::const_iterator fit;
 	std::map<int,VecFunc*>::const_iterator vfit;
@@ -818,12 +812,10 @@ bool ASMu3D::updateDirichlet (const std::map<int,RealFunc*>& func,
 
 	// The parent class method takes care of the corner nodes with direct
 	// evaluation of the Dirichlet functions (since they are interpolatory)
-	return this->ASMbase::updateDirichlet(func,vfunc,time);
 	#endif
 }
 
-#if 0
-
+#define DERR -999.99
 double ASMu3D::getParametricArea (int iel, int dir) const
 {
 #ifdef INDEX_CHECK
@@ -837,31 +829,25 @@ double ASMu3D::getParametricArea (int iel, int dir) const
 	if (MNPC[iel-1].empty())
 		return 0.0;
 
-	int inod1 = MNPC[iel-1].back();
-#ifdef INDEX_CHECK
-	if (inod1 < 0 || (size_t)inod1 >= nodeInd.size())
-	{
-		std::cerr <<" *** ASMu3D::getParametricArea: Node index "<< inod1
-	      <<" out of range [0,"<< nodeInd.size() <<">."<< std::endl;
-		return DERR;
-	}
-#endif
-
-	const int ni = nodeInd[inod1].I;
-	const int nj = nodeInd[inod1].J;
-	const int nk = nodeInd[inod1].K;
+	LR::Element *el = lrspline->getElement(iel-1);
+	double du = el->getParmax(0) - el->getParmin(0);
+	double dv = el->getParmax(1) - el->getParmin(1);
+	double dw = el->getParmax(2) - el->getParmin(2);
 	switch (dir)
 		{
-		case 1: return lrspline->knotSpan(1,nj)*lrspline->knotSpan(2,nk);
-		case 2: return lrspline->knotSpan(0,ni)*lrspline->knotSpan(2,nk);
-		case 3: return lrspline->knotSpan(0,ni)*lrspline->knotSpan(1,nj);
+		case 1: return dv * dw;
+		case 2: return du * dw;
+		case 3: return du * dv;
 		}
 
 	std::cerr <<" *** ASMu3D::getParametricArea: Invalid face direction "
 	    << dir << std::endl;
 	return DERR;
 }
+#undef DERR
 
+
+#if 0
 
 int ASMu3D::coeffInd (size_t inod) const
 {
@@ -1046,39 +1032,39 @@ void ASMu3D::getElementCorners (int iEl, std::vector<Vec3>& XC) const
 }
 
 
-void ASMu3D::evaluateBasis (const FiniteElement &el, Vector &N, Matrix &dNdu)
+void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu) const
 {
 	PROFILE2("Spline evaluation");
-	size_t nBasis = lrspline->getElement(el.iel)->nBasisFunctions();
+	size_t nBasis = lrspline->getElement(el.iel-1)->nBasisFunctions();
 
 	std::vector<std::vector<double> > result;
-	lrspline->computeBasis(el.u, el.v, el.w, result, 1, el.iel );
+	lrspline->computeBasis(el.u, el.v, el.w, result, 1, el.iel-1);
 
-	N.resize(nBasis);
+	el.N.resize(nBasis);
 	dNdu.resize(nBasis,3);
 	size_t jp, n = 1;
 	for (jp = 0; jp < nBasis; jp++, n++) {
-		N     (n)     = result[jp][0];
+		el.N     (n)  = result[jp][0];
 		dNdu (n,1)    = result[jp][1];
 		dNdu (n,2)    = result[jp][2];
 		dNdu (n,3)    = result[jp][3];
 	}
 }
 
-void ASMu3D::evaluateBasis (const FiniteElement &el, Vector &N, Matrix &dNdu, Matrix3D &d2Ndu2)
+void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu, Matrix3D &d2Ndu2) const
 {
 	PROFILE2("Spline evaluation");
-	size_t nBasis = lrspline->getElement(el.iel)->nBasisFunctions();
+	size_t nBasis = lrspline->getElement(el.iel-1)->nBasisFunctions();
 
 	std::vector<std::vector<double> > result;
-	lrspline->computeBasis(el.u, el.v, el.w, result, 2, el.iel );
+	lrspline->computeBasis(el.u, el.v, el.w, result, 2, el.iel-1 );
 
-	N.resize(nBasis);
+	el.N.resize(nBasis);
 	dNdu.resize(nBasis,3);
 	d2Ndu2.resize(nBasis,3,3);
 	size_t jp, n = 1;
 	for (jp = 0; jp < nBasis; jp++, n++) {
-		N   (n)       = result[jp][0];
+		el.N   (n)    = result[jp][0];
 		dNdu (n,1)    = result[jp][1];
 		dNdu (n,2)    = result[jp][2];
 		dNdu (n,3)    = result[jp][3];
@@ -1091,13 +1077,13 @@ void ASMu3D::evaluateBasis (const FiniteElement &el, Vector &N, Matrix &dNdu, Ma
 	}
 }
 
-void ASMu3D::evaluateBasis (FiniteElement &el, int derivs)
+void ASMu3D::evaluateBasis (FiniteElement &el, int derivs) const
 {
 	PROFILE2("Spline evaluation");
-	size_t nBasis = lrspline->getElement(el.iel)->nBasisFunctions();
+	size_t nBasis = lrspline->getElement(el.iel-1)->nBasisFunctions();
 
 	std::vector<std::vector<double> > result;
-	lrspline->computeBasis(el.u, el.v, el.w, result, derivs, el.iel );
+	lrspline->computeBasis(el.u, el.v, el.w, result, derivs, el.iel-1 );
 
 	el.N.resize(nBasis);
 	el.dNdX.resize(nBasis,3);
@@ -1122,10 +1108,10 @@ void ASMu3D::evaluateBasis (FiniteElement &el, int derivs)
 }
 
 bool ASMu3D::integrate (Integrand& integrand,
-			GlobalIntegral& glInt,
-			const TimeDomain& time)
+                        GlobalIntegral& glInt,
+                        const TimeDomain& time)
 {
-	std::cout << "YEAH BABY! We arrived at ASMu3D::integrate()" << std::endl;
+	std::cout << "YEAH BABY! We arrived at ASMu3D::integrate(I)" << std::endl;
 	if (!lrspline) return true; // silently ignore empty patches
 
 	PROFILE2("ASMu3D::integrate(I)");
@@ -1151,7 +1137,7 @@ bool ASMu3D::integrate (Integrand& integrand,
 		int iEl = el->getId();
 		int nBasis = el->nBasisFunctions();
 		FiniteElement fe(nBasis);
-		fe.iel = iEl;
+		fe.iel = iEl+1;
 
 		Vector   N;
 		Matrix   dNdu, Xnod, Jac;
@@ -1204,7 +1190,7 @@ bool ASMu3D::integrate (Integrand& integrand,
 					for (int i = 0; i < nGauss; i++)
 					{
 						// Fetch basis function derivatives at current integration point
-						evaluateBasis(fe, N, dNdu);
+						evaluateBasis(fe, dNdu);
 
 						// Compute Jacobian determinant of coordinate mapping
 						// and multiply by weight of current integration point
@@ -1300,9 +1286,9 @@ bool ASMu3D::integrate (Integrand& integrand,
 
 					// Fetch basis function derivatives at current integration point
 					if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-						evaluateBasis(fe, N, dNdu, d2Ndu2);
+						evaluateBasis(fe, dNdu, d2Ndu2);
 					else
-						evaluateBasis(fe, N, dNdu) ;
+						evaluateBasis(fe, dNdu) ;
 
 					// Compute Jacobian inverse of coordinate mapping and derivatives
 					fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
@@ -1349,31 +1335,13 @@ bool ASMu3D::integrate (Integrand& integrand,
 
 
 bool ASMu3D::integrate (Integrand& integrand, int lIndex,
-			GlobalIntegral& glInt,
-			const TimeDomain& time)
+                        GlobalIntegral& glInt,
+                        const TimeDomain& time)
 {
-	std::cerr << "ASMu3D::integrate(...) is not properly implemented yet :(" << std::endl;
-	exit(776654);
-#if 0
 	if (!lrspline) return true; // silently ignore empty patches
 
+	std::cout << "YEAH BABY! We arrived at ASMu3D::integrate(B) " << std::endl;
 	PROFILE2("ASMu3D::integrate(B)");
-
-	std::map<char,ThreadGroups>::const_iterator tit;
-	if ((tit = threadGroupsFace.find(lIndex)) == threadGroupsFace.end())
-	{
-		std::cerr <<" *** ASMu3D::integrate: No thread groups for face "<< lIndex
-				      << std::endl;
-		return false;
-	}
-	const ThreadGroups& threadGrp = tit->second;
-
-#ifdef USE_OPENMP
-	int threads=omp_get_max_threads();
-	// GoTools objects cannot be used in parallel sections
-	if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-		omp_set_num_threads(1);
-#endif
 
 	// Get Gaussian quadrature points and weights
 	int nGP = integrand.getBouIntegrationPoints(nGauss);
@@ -1387,206 +1355,156 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
 	const int t1 = 1 + abs(faceDir)%3; // first tangent direction
 	const int t2 = 1 + t1%3;           // second tangent direction
 
-	// Compute parameter values of the Gauss points over the whole patch face
-	Matrix gpar[3];
-	for (int d = 0; d < 3; d++)
-		if (-1-d == faceDir)
-		{
-			gpar[d].resize(1,1);
-			gpar[d].fill(lrspline->startparam(d));
-		}
-		else if (1+d == faceDir)
-		{
-			gpar[d].resize(1,1);
-			gpar[d].fill(lrspline->endparam(d));
-		}
-		else
-			this->getGaussPointParameters(gpar[d],d,nGP,xg);
+	
+	int edge = LR::NONE;
+	if(lIndex == 1) 
+		edge = LR::WEST;
+	else if(lIndex == 2) 
+		edge = LR::EAST;
+	else if(lIndex == 3) 
+		edge = LR::SOUTH;
+	else if(lIndex == 4) 
+		edge = LR::NORTH;
+	else if(lIndex == 5) 
+		edge = LR::BOTTOM;
+	else if(lIndex == 6) 
+		edge = LR::TOP;
+	
+	// fetch all elements along the chosen edge
+	std::vector<LR::Element*> edgeElms;
+	lrspline->getEdgeElements(edgeElms, (LR::parameterEdge) edge);
 
-	// Evaluate basis function derivatives at all integration points
-	std::vector<Go::BasisDerivs> spline;
-	{
-		PROFILE2("Spline evaluation");
-		lrspline->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline);
-	}
-
-	const int n1 = lrspline->numCoefs(0);
-	const int n2 = lrspline->numCoefs(1);
-	const int n3 = lrspline->numCoefs(2);
-
-	const int p1 = lrspline->order(0);
-	const int p2 = lrspline->order(1);
-	const int p3 = lrspline->order(2);
-
-	const int nel1 = n1 - p1 + 1;
-	const int nel2 = n2 - p2 + 1;
-
-	// Integrate the extraordinary elements?
-	size_t doXelms = 0;
-	if (integrand.getIntegrandType() & Integrand::XO_ELEMENTS)
-		if ((doXelms = (n1-p1+1)*(n2-p2+1)*(n3-p3+1))*2 > MNPC.size())
-		{
-			std::cerr <<" *** ASMu3D::integrate: Too few XO-elements "
-				        << MNPC.size() - doXelms << std::endl;
-			return false;
-		}
-
-	std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
-	size_t firstp = iit == firstBp.end() ? 0 : iit->second;
-
-
-	// === Assembly loop over all elements on the patch face =====================
-
+	// iterate over all edge elements
 	bool ok = true;
-	for (size_t g = 0; g < threadGrp.size() && ok; ++g) {
-#pragma omp parallel for schedule(static)
-		for (size_t t = 0; t < threadGrp[g].size(); ++t) {
-			FiniteElement fe(p1*p2*p3);
-			fe.xi = fe.eta = fe.zeta = faceDir < 0 ? -1.0 : 1.0;
-			fe.u = gpar[0](1,1);
-			fe.v = gpar[1](1,1);
-			fe.w = gpar[2](1,1);
+	for(LR::Element *el : edgeElms) {
+		int iEl = el->getId();
+		int nBasis = el->nBasisFunctions();
+		FiniteElement fe(nBasis);
+		fe.iel = iEl+1;
 
-			Matrix dNdu, Xnod, Jac;
-			Vec4   X;
-			Vec3   normal;
-			double dXidu[3];
-
-			for (size_t l = 0; l < threadGrp[g][t].size() && ok; ++l)
+		// Compute parameter values of the Gauss points over the whole element
+		Vector gpar[3];
+		for (int d = 0; d < 3; d++)
+			if (-1-d == faceDir)
 			{
-				int iel = threadGrp[g][t][l];
-				fe.iel = MLGE[doXelms+iel];
-				if (fe.iel < 1) continue; // zero-volume element
+				gpar[d].resize(1);
+				gpar[d].fill(lrspline->startparam(d));
+			}
+			else if (1+d == faceDir)
+			{
+				gpar[d].resize(1);
+				gpar[d].fill(lrspline->endparam(d));
+			}
+			else
+				this->getGaussPointParameters(gpar[d],d,nGP,iEl,xg);
 
-				int i1 = p1 + iel % nel1;
-				int i2 = p2 + (iel / nel1) % nel2;
-				int i3 = p3 + iel / (nel1*nel2);
+		fe.xi = fe.eta = fe.zeta = faceDir < 0 ? -1.0 : 1.0;
+		fe.u = gpar[0](1);
+		fe.v = gpar[1](1);
+		fe.w = gpar[2](1);
 
-				// Get element face area in the parameter space
-				double dA = this->getParametricArea(++iel,abs(faceDir));
-				if (dA < 0.0) // topology error (probably logic error)
-				{
-				  ok = false;
-				  break;
-				}
+		Matrix dNdu, Xnod, Jac;
+		Vec4   X;
+		Vec3   normal;
+		double dXidu[3];
 
-				// Set up control point coordinates for current element
-				if (!this->getElementCoordinates(Xnod,iel))
-				{
-				  ok = false;
-				  break;
-				}
+		// Get element face area in the parameter space
+		double dA = this->getParametricArea(iEl+1,abs(faceDir));
+		if (dA < 0.0) // topology error (probably logic error)
+		{
+		  ok = false;
+		  break;
+		}
 
-				if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-				  this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
+		// Set up control point coordinates for current element
+		if (!this->getElementCoordinates(Xnod,iEl+1))
+		{
+		  ok = false;
+		  break;
+		}
 
-				if (integrand.getIntegrandType() & Integrand::G_MATRIX)
-				{
-				  // Element size in parametric space
-				  dXidu[0] = lrspline->knotSpan(0,i1-1);
-				  dXidu[1] = lrspline->knotSpan(1,i2-1);
-				  dXidu[2] = lrspline->knotSpan(2,i3-1);
-				}
+		if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+		  this->getElementCorners(iEl,fe.XC);
 
-				// Initialize element quantities
-				LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-				if (!integrand.initElementBou(MNPC[doXelms+iel-1],*A))
-				{
-				  A->destruct();
-				  ok = false;
-				  break;
-				}
+		if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+		{
+		  // Element size in parametric space
+		  dXidu[0] = el->getParmax(0) - el->getParmin(0);   
+		  dXidu[1] = el->getParmax(1) - el->getParmin(1); 
+		  dXidu[2] = el->getParmax(2) - el->getParmin(2);
+		}
 
-				// Define some loop control variables depending on which face we are on
-				int nf1, j1, j2;
+        // Initialize element quantities
+        LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
+
+		// --- Integration loop over all Gauss points in each direction --------
+
+		int k1,k2,k3;
+		for (int j = 0; j < nGP; j++)
+			for (int i = 0; i < nGP; i++)
+			{
+				// Local element coordinates and parameter values
+				// of current integration point
 				switch (abs(faceDir))
 				{
-				  case 1: nf1 = nel2; j2 = i3-p3; j1 = i2-p2; break;
-				  case 2: nf1 = nel1; j2 = i3-p3; j1 = i1-p1; break;
-				  case 3: nf1 = nel1; j2 = i2-p2; j1 = i1-p1; break;
-				  default: nf1 = j1 = j2 = 0;
+					case 1: k2 = i; k3 = j; k1 = 0; break;
+					case 2: k1 = i; k3 = j; k2 = 0; break;
+					case 3: k1 = i; k2 = j; k3 = 0; break;
+					default: k1 = k2 = k3 = 0;
+				}
+				if (gpar[0].size() > 1)
+				{
+					fe.xi = xg[k1];
+					fe.u = gpar[0](k1+1);
+				}
+				if (gpar[1].size() > 1)
+				{
+					fe.eta = xg[k2];
+					fe.v = gpar[1](k2+1);
+				}
+				if (gpar[2].size() > 1)
+				{
+					fe.zeta = xg[k3];
+					fe.w = gpar[2](k3+1);
 				}
 
+				// Fetch basis function derivatives at current integration point
+				evaluateBasis(fe, dNdu);
 
-				// --- Integration loop over all Gauss points in each direction --------
+				// Compute basis function derivatives and the face normal
+				fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
+				if (fe.detJxW == 0.0) continue; // skip singular points
 
-				int k1, k2, k3;
-				int ip = (j2*nGP*nf1 + j1)*nGP;
-				int jp = (j2*nf1 + j1)*nGP*nGP;
-				fe.iGP = firstp + jp; // Global integration point counter
+				if (faceDir < 0) normal *= -1.0;
 
-				for (int j = 0; j < nGP; j++, ip += nGP*(nf1-1))
-				  for (int i = 0; i < nGP; i++, ip++, fe.iGP++)
-				  {
-				    // Local element coordinates and parameter values
-				    // of current integration point
-				    switch (abs(faceDir))
-				    {
-				      case 1: k2 = i+1; k3 = j+1; k1 = 0; break;
-				      case 2: k1 = i+1; k3 = j+1; k2 = 0; break;
-				      case 3: k1 = i+1; k2 = j+1; k3 = 0; break;
-				      default: k1 = k2 = k3 = 0;
-				    }
-				    if (gpar[0].size() > 1)
-				    {
-				      fe.xi = xg[k1];
-				      fe.u = gpar[0](k1,i1-p1+1);
-				    }
-				    if (gpar[1].size() > 1)
-				    {
-				      fe.eta = xg[k2];
-				      fe.v = gpar[1](k2,i2-p2+1);
-				    }
-				    if (gpar[2].size() > 1)
-				    {
-				      fe.zeta = xg[k3];
-				      fe.w = gpar[2](k3,i3-p3+1);
-				    }
+				// Compute G-matrix
+				if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+					utl::getGmat(Jac,dXidu,fe.G);
 
-				    // Fetch basis function derivatives at current integration point
-				    evaluateBasis(fe, N, dNdu);
+				// Cartesian coordinates of current integration point
+				X = Xnod * fe.N;
+				X.t = time.t;
 
-				    // Compute basis function derivatives and the face normal
-				    fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
-				    if (fe.detJxW == 0.0) continue; // skip singular points
-
-				    if (faceDir < 0) normal *= -1.0;
-
-				    // Compute G-matrix
-				    if (integrand.getIntegrandType() & Integrand::G_MATRIX)
-				      utl::getGmat(Jac,dXidu,fe.G);
-
-				    // Cartesian coordinates of current integration point
-				    X = Xnod * fe.N;
-				    X.t = time.t;
-
-				    // Evaluate the integrand and accumulate element contributions
-				    fe.detJxW *= 0.25*dA*wg[i]*wg[j];
-				    if (!integrand.evalBou(*A,fe,time,X,normal))
-				      ok = false;
-				  }
-
-				// Assembly of global system integral
-				if (ok && !glInt.assemble(A->ref(),fe.iel))
-				  ok = false;
-
-				A->destruct();
-			}
+				// Evaluate the integrand and accumulate element contributions
+				fe.detJxW *= 0.25*dA*wg[i]*wg[j];
+				if (!integrand.evalBou(*A,fe,time,X,normal))
+					ok = false;
 		}
+
+		// Assembly of global system integral
+		if (ok && !glInt.assemble(A->ref(),fe.iel))
+			ok = false;
+		A->destruct();
+
 	}
-#ifdef USE_OPENMP
-	omp_set_num_threads(threads);
-#endif
 
 	return ok;
-#endif
-	return false;
 }
 
 
 bool ASMu3D::integrateEdge (Integrand& integrand, int lEdge,
-			    GlobalIntegral& glInt,
-			    const TimeDomain& time)
+                            GlobalIntegral& glInt,
+                            const TimeDomain& time)
 {
 	std::cerr << "ASMu3D::integrateEdge(...) is not properly implemented yet :(" << std::endl;
 	exit(776654);
@@ -1719,8 +1637,8 @@ bool ASMu3D::integrateEdge (Integrand& integrand, int lEdge,
 	if (!this->getElementCoordinates(Xnod,iel)) return false;
 
 	// Initialize element quantities
-				LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-				bool ok = integrand.initElementBou(MNPC[iel-1],*A);
+	LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
+	bool ok = integrand.initElementBou(MNPC[iel-1],*A);
 
 
 	// --- Integration loop over all Gauss points along the edge -----------
@@ -1735,7 +1653,7 @@ bool ASMu3D::integrateEdge (Integrand& integrand, int lEdge,
 	  if (gpar[2].size() > 1) fe.w = gpar[2](i+1,i3-p3+1);
 
 	  // Fetch basis function derivatives at current integration point
-	  evaluateBasis(fe, N, dNdu);
+	  evaluateBasis(fe, dNdu);
 
 	  // Compute basis function derivatives and the edge tang
 	  fe.detJxW = utl::Jacobian(Jac,tang,fe.dNdX,Xnod,dNdu,1+(lEdge-1)/4);
@@ -1757,7 +1675,7 @@ bool ASMu3D::integrateEdge (Integrand& integrand, int lEdge,
 	A->destruct();
 
 	if (!ok) return false;
-			}
+	}
 
 	return true;
 #endif
@@ -1806,125 +1724,113 @@ int ASMu3D::evalPoint (const double* xi, double* param, Vec3& X) const
 
 bool ASMu3D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 {
-	std::cerr << "ASMu3D::getGridParameters not implemented properly yet" << std::endl;
-	exit(776654);
-	#if 0
 	if (!lrspline) return false;
 
-	if (nSegPerSpan < 1)
-	{
-		std::cerr <<" *** ASMu3D::getGridParameters: Too few knot-span points "
-	      << nSegPerSpan+1 <<" in direction "<< dir << std::endl;
-		return false;
-	}
+	// output is written once for each element resulting in a lot of unnecessary storage
+	// this is preferable to figuring out all element topology information
 
-	RealArray::const_iterator uit = lrspline->basis(dir).begin();
-	double ucurr = 0.0, uprev = *(uit++);
-	while (uit != lrspline->basis(dir).end())
-	{
-		ucurr = *(uit++);
-		if (ucurr > uprev)
-			if (nSegPerSpan == 1)
-	prm.push_back(uprev);
-			else for (int i = 0; i < nSegPerSpan; i++)
-			{
-	double xg = (double)(2*i-nSegPerSpan)/(double)nSegPerSpan;
-	prm.push_back(0.5*(ucurr*(1.0+xg) + uprev*(1.0-xg)));
+	for(LR::Element *el : lrspline->getAllElements() ) {
+		// evaluate element at element corner points
+		double umin = el->umin();
+		double umax = el->umax();
+		double vmin = el->vmin();
+		double vmax = el->vmax();
+		double wmin = el->wmin();
+		double wmax = el->wmax();
+		for(int iw=0; iw<=nSegPerSpan; iw++) {
+			for(int iv=0; iv<=nSegPerSpan; iv++) {
+				for(int iu=0; iu<=nSegPerSpan; iu++) {
+					double u = umin + (umax-umin)/nSegPerSpan*iu;
+					double v = vmin + (vmax-vmin)/nSegPerSpan*iv;
+					double w = wmin + (wmax-wmin)/nSegPerSpan*iw;
+					if(dir==0)
+						prm.push_back(u);
+					else if(dir==1)
+						prm.push_back(v);
+					else
+						prm.push_back(w);
+				}
 			}
-		uprev = ucurr;
+		}
 	}
-
-	if (ucurr > prm.back())
-		prm.push_back(ucurr);
-
-	#endif
-
 	return true;
 }
 
 bool ASMu3D::tesselate (ElementBlock& grid, const int* npe) const
 {
-	std::cerr << "ASMu3D::tesselate(...) is not properly implemented yet :(" << std::endl;
-	exit(776654);
-#if 0
-	// Compute parameter values of the nodal points
-	RealArray gpar[3];
-	for (int dir = 0; dir < 3; dir++)
-		if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
-			return false;
+	if(!lrspline) return false;
 
-	// Evaluate the spline volume at all points
-	size_t nx = gpar[0].size();
-	size_t ny = gpar[1].size();
-	size_t nz = gpar[2].size();
-	RealArray XYZ(lrspline->dimension()*nx*ny*nz);
-	lrspline->gridEvaluator(gpar[0],gpar[1],gpar[2],XYZ);
+	if(npe[0] != npe[1] || npe[0] != npe[2]) {
+		std::cerr << "ASMu2D::tesselate does not support different tesselation resolution in "
+		          << "u- and v-direction. nviz u = " << npe[0] << ", nviz v = " << npe[1] 
+		          << ", nviz w = " << npe[2] << std::endl;
+		return false;
+	}
 
-	// Establish the block grid coordinates
-	size_t i, j, k, l;
-	grid.resize(nx,ny,nz);
-	for (i = j = 0; i < grid.getNoNodes(); i++, j += lrspline->dimension())
-		grid.setCoor(i,XYZ[j],XYZ[j+1],XYZ[j+2]);
+	int nNodesPerElement =  npe[0]   * npe[1]   * npe[2];
+	int nSubElPerElement = (npe[0]-1)*(npe[1]-1)*(npe[2]-1);
+	int nElements        = lrspline->nElements();
 
-	// Establish the block grid topology
-	int ie, nse1 = npe[0] - 1;
-	int je, nse2 = npe[1] - 1;
-	int ke, nse3 = npe[2] - 1;
-	int nel1 = (nx-1)/nse1;
-	int nel2 = (ny-1)/nse2;
-	int n[8], ip = 0;
-	for (k = ke = 1, n[2] = 0; k < nz; k++)
-	{
-		for (j = je = 1, n[1] = n[2]; j < ny; j++)
-		{
-			n[0] = n[1];
-			n[1] = n[0] + 1;
-			n[2] = n[1] + nx;
-			n[3] = n[1] + nx-1;
-			n[4] = n[0] + nx*ny;
-			n[5] = n[4] + 1;
-			n[6] = n[5] + nx;
-			n[7] = n[5] + nx-1;
-			for (i = ie = 1; i < nx; i++)
-			{
-	for (l = 0; l < 8; l++)
-	  grid.setNode(ip++,n[l]++);
-	grid.setElmId(((k-1)*(ny-1)+j-1)*(nx-1)+i,((ke-1)*nel2+je-1)*nel1+ie);
-	if (i%nse1 == 0) ie++;
+	// output is written once for each element resulting in a lot of unnecessary storage
+	// this is preferable to figuring out all element topology information
+	grid.unStructResize(nElements * nSubElPerElement,
+	                    nElements * nNodesPerElement);
+
+	std::vector<LR::Element*>::iterator el;
+	int inod = 0;
+	int iel = 0;
+	for(el=lrspline->elementBegin(); el<lrspline->elementEnd(); el++, iel++) {
+		// evaluate element at element corner points
+		double umin = (**el).umin();
+		double umax = (**el).umax();
+		double vmin = (**el).vmin();
+		double vmax = (**el).vmax();
+		double wmin = (**el).wmin();
+		double wmax = (**el).wmax();
+		for(int iw=0; iw<npe[2]; iw++) {
+			for(int iv=0; iv<npe[1]; iv++) {
+				for(int iu=0; iu<npe[0]; iu++) {
+					double u = umin + (umax-umin)/(npe[0]-1)*iu;
+					double v = vmin + (vmax-vmin)/(npe[1]-1)*iv;
+					double w = wmin + (wmax-wmin)/(npe[2]-1)*iw;
+					Go::Point pt;
+					lrspline->point(pt, u,v,w, iel, iu!=npe[0]-1, iv!=npe[1]-1, iw!=npe[2]-1);
+					for(int dim=0; dim<nsd; dim++)
+						grid.setCoor(inod, dim, pt[dim]);
+					inod++;
+				}
 			}
-			if (j%nse2 == 0) je++;
 		}
-		if (k%nse3 == 0) ke++;
+	}
+
+	int ip = 0;
+	iel = 0;
+	for(int i=0; i<lrspline->nElements(); i++) {
+		int iStart = i*nNodesPerElement;
+		for(int iw=0; iw<npe[2]-1; iw++) {
+			for(int iv=0; iv<npe[1]-1; iv++) {
+				for(int iu=0; iu<npe[0]-1; iu++, iel++) {
+					// enumerate nodes counterclockwise around the hex
+					grid.setNode(ip++, iStart + (iw  )*npe[0]*npe[1] + (iv  )*npe[0] + (iu  ) );
+					grid.setNode(ip++, iStart + (iw  )*npe[0]*npe[1] + (iv  )*npe[0] + (iu+1) );
+					grid.setNode(ip++, iStart + (iw  )*npe[0]*npe[1] + (iv+1)*npe[0] + (iu+1) );
+					grid.setNode(ip++, iStart + (iw  )*npe[0]*npe[1] + (iv+1)*npe[0] + (iu  ) );
+					grid.setNode(ip++, iStart + (iw+1)*npe[0]*npe[1] + (iv  )*npe[0] + (iu  ) );
+					grid.setNode(ip++, iStart + (iw+1)*npe[0]*npe[1] + (iv  )*npe[0] + (iu+1) );
+					grid.setNode(ip++, iStart + (iw+1)*npe[0]*npe[1] + (iv+1)*npe[0] + (iu+1) );
+					grid.setNode(ip++, iStart + (iw+1)*npe[0]*npe[1] + (iv+1)*npe[0] + (iu  ) );
+					grid.setElmId(iel+1, i+1);
+				}
+			}
+		}
 	}
 
 	return true;
-#endif
-	return false;
 }
-
-
-void ASMu3D::scatterInd (int n1, int n2, int n3, int p1, int p2, int p3,
-			 const int* start, IntVec& index)
-{
-	std::cerr << "ASMu3D::scatterInd(...) is not properly implemented yet :(" << std::endl;
-	exit(776654);
-#if 0
-	index.reserve(p1*p2*p3);
-	int ip = ((start[2]-p3+1)*n2 + (start[1]-p2+1))*n1 + (start[0]-p1+1);
-	for (int i3 = 0; i3 < p3; i3++, ip += n1*(n2-p2))
-		for (int i2 = 0; i2 < p2; i2++, ip += n1-p1)
-			for (int i1 = 0; i1 < p1; i1++, ip++)
-				index.push_back(ip);
-			#endif
-}
-
 
 bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
-			   const int* npe) const
+                           const int* npe) const
 {
-	std::cerr << "ASMu3D::evalSolution(...) is not properly implemented yet :(" << std::endl;
-	exit(776654);
-#if 0
 	// Compute parameter values of the result sampling points
 	RealArray gpar[3];
 	for (int dir = 0; dir < 3; dir++)
@@ -1933,72 +1839,60 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
 
 	// Evaluate the primary solution at all sampling points
 	return this->evalSolution(sField,locSol,gpar);
-#endif
-	return false;
 }
 
 
 bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
-			   const RealArray* gpar, bool regular) const
+                           const RealArray* gpar, bool regular) const
 {
-	std::cerr << "ASMu3D::evalSolution(...) is not properly implemented yet :(" << std::endl;
-	exit(776672);
-#if 0
-	// Evaluate the basis functions at all points
-	std::vector<Go::BasisPts> spline;
-	if (regular)
-	{
-		PROFILE2("Spline evaluation");
-		lrspline->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline);
-	}
-	else if (gpar[0].size() == gpar[1].size() && gpar[0].size() == gpar[2].size())
-	{
-		PROFILE2("Spline evaluation");
-		spline.resize(gpar[0].size());
-		for (size_t i = 0; i < spline.size(); i++)
-			lrspline->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline[i]);
-	}
-	else
+	size_t nComp = locSol.size() / this->getNoNodes();
+	if (nComp*this->getNoNodes() != locSol.size())
 		return false;
 
-	const int p1 = lrspline->order(0);
-	const int p2 = lrspline->order(1);
-	const int p3 = lrspline->order(2);
-	const int n1 = lrspline->numCoefs(0);
-	const int n2 = lrspline->numCoefs(1);
-	const int n3 = lrspline->numCoefs(2);
-//  size_t nComp = locSol.size() / this->getNoNodes(-1);
-//  if (nComp*this->getNoNodes(-1) != locSol.size())
-//    return false;
-	size_t nComp = locSol.size() / (n1*n2*n3);
+	if(gpar[0].size() != gpar[1].size() || gpar[0].size() != gpar[2].size())
+		return false;
 
 	Matrix Xtmp;
 	Vector Ytmp;
 
 	// Evaluate the primary solution field at each point
-	size_t nPoints = spline.size();
+	size_t nPoints   = gpar[0].size();
 	sField.resize(nComp,nPoints);
 	for (size_t i = 0; i < nPoints; i++)
 	{
-		IntVec ip;
-		scatterInd(n1,n2,n3,p1,p2,p3,spline[i].left_idx,ip);
+		// fetch element containing evaluation point
+		// int iel = i/nPtsPerElement; // points are always listed in the same order as the elemnts
+		int iel = (workingEl>=0) ? workingEl : lrspline->getElementContaining(gpar[0][i], gpar[1][i], gpar[2][i]); // sadly, they are not always ordered in the same way as the elements
+		if(iel < 0) {
+			std::cerr << "Logical error in evaluating results. Element at point (" << gpar[0][i] << ", " 
+			          << gpar[1][i] << ", " <<  gpar[2][i] << ") not found" << std::endl;
+			return false;
+		}
 
+		// fetch index of non-zero basis functions on this element
+		const IntVec& ip = myMNPC[iel];
+
+		// evaluate the basis functions at current parametric point
+		Go::BasisPts spline;
+		lrspline->computeBasis(gpar[0][i], gpar[1][i], gpar[2][i], spline, iel);
+
+		// Now evaluate the solution field
 		utl::gather(ip,nComp,locSol,Xtmp);
-		Xtmp.multiply(spline[i].basisValues,Ytmp);
+		Xtmp.multiply(spline.basisValues,Ytmp);
 		sField.fillColumn(1+i,Ytmp);
 	}
 
 	return true;
-#endif
-	return false;
 }
 
 
 bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			   const int* npe, char project) const
+                           const int* npe, char project) const
 {
+	std::cerr << "Fuck it... its the one with the projection in it\n";
 	std::cerr << "ASMu3D::evalSolution(...) is not properly implemented yet :(" << std::endl;
-	exit(776658);
+	return true;
+	// exit(776658);
 #if 0
 	// Project the secondary solution onto the spline basis
 	Go::SplineVolume* v = NULL;
@@ -2056,96 +1950,66 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 
 bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			   const RealArray* gpar, bool regular) const
+                           const RealArray* gpar, bool regular) const
 {
-	std::cerr << "ASMu3D::evalSolution(...) is not properly implemented yet :(" << std::endl;
-	exit(776655);
-#if 0
+#ifdef SP_DEBUG
+	std::cout <<"ASMu3D::evalSolution(Matrix&,const Integrand&,const RealArray*,bool)\n";
+#endif
+
 	sField.resize(0,0);
 
-	// Evaluate the basis functions and their derivatives at all points
-	size_t nPoints = gpar[0].size();
-	bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
-	std::vector<Go::BasisDerivs>  spline1(regular ||  use2ndDer ? 0 : nPoints);
-	std::vector<Go::BasisDerivs2> spline2(regular || !use2ndDer ? 0 : nPoints);
-	if (regular)
-	{
-		PROFILE2("Spline evaluation");
-		nPoints *= gpar[1].size()*gpar[2].size();
-		if (use2ndDer)
-			lrspline->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline2);
-		else
-			lrspline->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline1);
-	}
-	else if (nPoints == gpar[1].size() && nPoints == gpar[2].size())
-	{
-		PROFILE2("Spline evaluation");
-		for (size_t i = 0; i < nPoints; i++)
-			if (use2ndDer)
-				lrspline->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline2[i]);
-			else
-				lrspline->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline1[i]);
-	}
-	else
+	// TODO: investigate the possibility of doing "regular" refinement by
+	//       uniform tesselation grid and ignoring LR mesh lines
+
+	if (gpar[0].size() != gpar[1].size() || gpar[0].size() != gpar[2].size())
 		return false;
 
-	const int p1 = lrspline->order(0);
-	const int p2 = lrspline->order(1);
-	const int p3 = lrspline->order(2);
-	const int n1 = lrspline->numCoefs(0);
-	const int n2 = lrspline->numCoefs(1);
-	const int n3 = lrspline->numCoefs(2);
+	Vector   solPt;
+	Matrix   dNdu, dNdX, Jac, Xnod;
+	Matrix3D d2Ndu2, d2NdX2, Hess;
 
-	// Fetch nodal (control point) coordinates
-	Matrix Xnod, Xtmp;
-	this->getNodalCoordinates(Xnod);
-
-	FiniteElement fe(p1*p2*p3);
-	Vector        solPt;
-	Matrix        dNdu, Jac;
-	Matrix3D      d2Ndu2, Hess;
+	size_t nPoints = gpar[0].size();
+	bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
 
 	// Evaluate the secondary solution field at each point
 	for (size_t i = 0; i < nPoints; i++)
 	{
-		// Fetch indices of the non-zero basis functions at this point
-		IntVec ip;
-		if (use2ndDer)
-		{
-			scatterInd(n1,n2,n3,p1,p2,p3,spline2[i].left_idx,ip);
-			fe.u = spline2[i].param[0];
-			fe.v = spline2[i].param[1];
-			fe.w = spline2[i].param[2];
+		// Fetch element containing evaluation point. Points are always listed
+		int iel = (workingEl>=0) ? workingEl : lrspline->getElementContaining(gpar[0][i], gpar[1][i], gpar[2][i]); // sadly, they are not always ordered in the same way as the elements
+
+		if(iel < 0) {
+			std::cerr << "Logical error in evaluating results. Element at point (" << gpar[0][i] << ", " 
+			          << gpar[1][i] << ", " <<  gpar[2][i] << ") not found" << std::endl;
+			return false;
 		}
-		else
-		{
-			scatterInd(n1,n2,n3,p1,p2,p3,spline1[i].left_idx,ip);
-			fe.u = spline1[i].param[0];
-			fe.v = spline1[i].param[1];
-			fe.w = spline1[i].param[2];
-		}
-		fe.iGP = firstIp + i;
+		int nBasis = lrspline->getElement(iel)->nBasisFunctions();
 
-		// Fetch associated control point coordinates
-		utl::gather(ip,3,Xnod,Xtmp);
+		FiniteElement fe(nBasis);
+		fe.u   = gpar[0][i];
+		fe.v   = gpar[1][i];
+		fe.w   = gpar[2][i];
+		fe.iel = iel+1;
 
-		// Fetch basis function derivatives at current integration point
+		// Evaluate the basis functions at current parametric point
 		if (use2ndDer)
-			evaluateBasis(fe, N, dNdu, d2Ndu2);
+			evaluateBasis(fe, dNdu, d2Ndu2);
 		else
-			evaluateBasis(fe, N, dNdu);
+			evaluateBasis(fe, dNdu);
 
-		// Compute the Jacobian inverse and derivatives
-		if (utl::Jacobian(Jac,fe.dNdX,Xtmp,dNdu) == 0.0) // Jac = (Xtmp * dNdu)^-1
+		// Set up control point (nodal) coordinates for current element
+		if (!this->getElementCoordinates(Xnod,fe.iel)) return false;
+
+		// Compute the Jacobian inverse
+		if (utl::Jacobian(Jac,dNdX,Xnod,dNdu) == 0.0) // Jac = (Xnod * dNdu)^-1
 			continue; // skip singular points
 
 		// Compute Hessian of coordinate mapping and 2nd order derivatives
 		if (use2ndDer)
-			if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xtmp,d2Ndu2,dNdu))
+			if (!utl::Hessian(Hess,d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
 				continue;
 
 		// Now evaluate the solution field
-		if (!integrand.evalSol(solPt,fe,Xtmp*fe.N,ip))
+		if (!integrand.evalSol(solPt,fe.N,dNdX,d2NdX2,Xnod*fe.N,myMNPC[iel]))
 			return false;
 		else if (sField.empty())
 			sField.resize(solPt.size(),nPoints,true);
@@ -2154,8 +2018,6 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 	}
 
 	return true;
-#endif
-	return false;
 }
 
 

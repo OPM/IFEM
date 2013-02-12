@@ -110,6 +110,7 @@ public:
 	//! \param[in] inod 1-based node index local to current patch
 	virtual Vec3 getCoord(size_t inod) const;
 
+
 	//! \brief Updates the nodal coordinates for this patch.
 	//! \param[in] displ Incremental displacements to update the coordinates with
 	virtual bool updateCoords(const Vector& displ);
@@ -409,19 +410,16 @@ protected:
 	void getElementCorners(int iel, std::vector<Vec3>& XC) const;
 
 	//! \brief Evaluate all basis functions and /a derivs number of derivatives on one element
-	virtual void evaluateBasis(FiniteElement &el, int derivs) ;
+	virtual void evaluateBasis(FiniteElement &el, int derivs) const;
 
 	//! \brief Evaluate all basis functions and first derivatives on one element
-	virtual void evaluateBasis(const FiniteElement &el, Vector &N,
-	                           Matrix &dNdu) ;
+	virtual void evaluateBasis(FiniteElement &el, Matrix &dNdu) const ;
+	                           
 
 	//! \brief Evaluate all basis functions and second order derivatives on one element
-	virtual void evaluateBasis(const FiniteElement &el, Vector &N,
-	                           Matrix &dNdu, Matrix3D& d2Ndu2) ;
+	virtual void evaluateBasis(FiniteElement &el, Matrix &dNdu, Matrix3D& d2Ndu2) const;
+	                           
 public:
-	//! \brief Auxilliary function for computation of basis function indices.
-	static void scatterInd(int n1, int n2, int n3, int p1, int p2, int p3,
-	                       const int* start, IntVec& index);
 
 	//! \brief Returns the polynomial order in each parameter direction.
 	//! \param[out] p1 Order in first (u) direction
