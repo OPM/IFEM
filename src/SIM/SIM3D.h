@@ -73,6 +73,14 @@ protected:
   virtual bool readNodes(std::istream& isn, int pchInd, int basis = 0,
 			 bool oneBased = false);
 
+  //! \brief Refines a list of elements.
+  //! \param[in] elements 1-based indices of the elements to refine
+  //! \param[in] options Input options to refinement algorithm
+  //! \param[in] fName Optional mesh output file (Encapsulated PostScript)
+  virtual bool refine(const std::vector<int>& elements,
+		      const std::vector<int>& options,
+		      const char* fName = 0);
+
   //! \brief Reads node numbers from given input stream.
   //! \param[in] isn The file stream to read from
   void readNodes(std::istream& isn);
@@ -94,6 +102,9 @@ protected:
   //! \param[in] xi Relative coordinate [0,1] defining the line placement
   //! \param[in] dirs Which local DOFs to constrain
   bool addConstraint(int patch, int lndx, int line, double xi, int dirs);
+
+private:
+  bool isRefined; //!< If \e true, the model has been adaptively refined
 
 protected:
   unsigned char nf[2]; //!< Number of scalar fields

@@ -728,3 +728,16 @@ bool SIM3D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
 
   return static_cast<ASMs3D*>(myModel[pchInd])->assignNodeNumbers(n,basis);
 }
+
+bool SIM3D::refine (const std::vector<int>& elements,
+                    const std::vector<int>& options, const char* fName)
+{
+  ASM3D* pch = 0;
+  for (size_t i = 0; i < myModel.size(); i++)
+    if (!myModel[i]->empty() && (pch = dynamic_cast<ASM3D*>(myModel[i])))
+      if (!pch->refine(elements,options,fName))
+        return false;
+
+  isRefined = true;
+  return true;
+}

@@ -13,7 +13,7 @@
 
 #include "AdaptiveSIM.h"
 #ifdef HAS_LRSPLINE
-#include "ASMu2D.h"
+#include "ASMunstruct.h"
 #else
 #include "ASMbase.h"
 #endif
@@ -268,9 +268,16 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   // Use norm 4 when adapting on exact errors, otherwise use norm 2
   int adNorm = adaptor == 0 ? 4 : 2;
 
+  std::cout << " 100.0*aNorm(adNorm) < errTol*refNormA == \""
+            <<   100.0*aNorm(adNorm) << " < " <<  errTol*refNorm << "\"\n";
+  std::cout << "model->getNoDOFs() > (size_t)maxDOFs) == \""
+            <<  model->getNoDOFs() << " > " <<  (size_t)maxDOFs << "\"\n";
+
   // Check if further refinement is required
   if (iStep > maxStep || model->getNoDOFs() > (size_t)maxDOFs) return false;
   if (eNorm.cols() < 1 || 100.0*aNorm(adNorm) < errTol*refNorm) return false;
+
+  std::cout << "Checkpoint #1\n";
 
   // Calculate row index in eNorm of the error norm to adapt based on
   size_t i, eRow = adNorm;
@@ -292,16 +299,19 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   options.push_back(closeGaps);
   options.push_back(trueBeta);
 
+  std::cout << "Checkpoint #1.5\n";
 #ifdef HAS_LRSPLINE
   if (trueBeta) {
     std::cout <<"\nRefining by increasing solution space by "<< beta <<" percent\n";
-    ASMu2D* patch = static_cast<ASMu2D*>(model->getFEModel().front());
+    ASMunstruct* patch = static_cast<ASMunstruct*>(model->getFEModel().front());
     if (!storeMesh)
       return patch->refine(eNorm.getRow(eRow),options);
+    std::cout << "Checkpoint #2\n";
 
     char fname[13];
     sprintf(fname,"mesh_%03d.eps",iStep);
     return patch->refine(eNorm.getRow(eRow),options,fname);
+    std::cout << "Checkpoint #3\n";
   }
 #endif
 
@@ -353,6 +363,8 @@ bool AdaptiveSIM::adaptMesh (int iStep)
 
   if (refineSize < 1 || refineSize > errors.size()) return false;
 
+  std::cout << "Checkpoint #4\n";
+
   toBeRefined.reserve(refineSize);
   for (i = 0; i < refineSize; i++)
     toBeRefined.push_back(errors[i].second);
@@ -360,6 +372,7 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   // Now refine the mesh
   if (!storeMesh)
     return model->refine(toBeRefined,options);
+  std::cout << "Checkpoint #5\n";
 
   char fname[13];
   sprintf(fname,"mesh_%03d.eps",iStep);

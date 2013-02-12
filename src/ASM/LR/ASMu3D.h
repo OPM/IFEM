@@ -133,6 +133,12 @@ public:
 	//! \param[in] rw Number of times to raise the order in w-direction
 	bool raiseOrder(int ru, int rv, int rw);
 
+	bool refine(const std::vector<int>& elements,
+	            const std::vector<int>& options, const char* fName = 0) {
+		std::cout << "ASMu3D::refine()" << std::endl;
+		return ASMunstruct::refine(elements, options, fName);
+	}
+
 
 	// Various methods for preprocessing of boundary conditions and patch topology
 	// ===========================================================================
