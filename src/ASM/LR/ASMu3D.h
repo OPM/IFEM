@@ -18,6 +18,8 @@
 #include "ASMunstruct.h"
 #include "FiniteElement.h"
 
+#include <GoTools/geometry/BsplineBasis.h>
+
 namespace Go {
 	class SplineSurface;
 	class SplineVolume;
@@ -415,11 +417,15 @@ protected:
 	//! \param[out] XC Coordinates of the element corners
 	void getElementCorners(int iel, std::vector<Vec3>& XC) const;
 
+	Go::BsplineBasis getBezierBasis(int p) const;
+
 	//! \brief Evaluate all basis functions and /a derivs number of derivatives on one element
 	virtual void evaluateBasis(FiniteElement &el, int derivs) const;
 
 	//! \brief Evaluate all basis functions and first derivatives on one element
-	virtual void evaluateBasis(FiniteElement &el, Matrix &dNdu) const ;
+	virtual void evaluateBasis(FiniteElement &el, Matrix &dNdu, Matrix &C, Matrix &B) const ;
+
+	virtual void evaluateBasis(FiniteElement &el, Matrix &dNdu) const;
 	                           
 
 	//! \brief Evaluate all basis functions and second order derivatives on one element
@@ -467,6 +473,7 @@ protected:
 
 	std::map<size_t,size_t> xnMap; //!< Node index map used by \a getCoord
 	std::map<size_t,size_t> nxMap; //!< Node index map used by \a getNodeID
+	std::vector<Matrix> bezierExtract; //!< The Bezier exctraction matrices for all elements
 
 
 private:

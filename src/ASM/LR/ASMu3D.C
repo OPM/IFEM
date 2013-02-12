@@ -304,8 +304,10 @@ bool ASMu3D::generateFEMTopology ()
 	myMLGN.resize(nBasis);
 	myMLGE.resize(nElements);
 	myMNPC.resize(nElements);
+	bezierExtract.resize(nElements);
 	lrspline->generateIDs();
 
+	std::vector<double> extrMat ;
 	std::vector<LR::Element*>::iterator el_it = lrspline->elementBegin();
 	for (int iel=0; iel<nElements; iel++, el_it++)
 	{
@@ -317,6 +319,24 @@ bool ASMu3D::generateFEMTopology ()
 		int lnod = 0;
 		for(LR::Basisfunction *b : el->support())
 			myMNPC[iel][lnod++] = b->getId();
+
+
+		{
+		PROFILE("Bezier extraction");
+
+		// get bezier extraction matrix 
+		lrspline->getBezierExtraction(iel, extrMat);
+		int width  = p1*p2*p3;
+		int height = nSupportFunctions;
+
+		// wrap the extraction data into a Matrix class
+		Matrix newM(height, width);
+		for(int c=1; c<=width; c++) 
+			newM.fillColumn(c, &extrMat[(c-1)*height]);
+
+		// keep it for use later
+		bezierExtract[iel] = newM;
+		}
 	}
 
 	for (int inod = 0; inod < nBasis; inod++)
@@ -1031,11 +1051,20 @@ void ASMu3D::getElementCorners (int iEl, std::vector<Vec3>& XC) const
 	}
 }
 
+Go::BsplineBasis ASMu3D::getBezierBasis(int p) const {
+	double knot[2*p];
+	std::fill(knot,   knot+p,  -1.0);
+	std::fill(knot+p, knot+2*p, 1.0);
+	Go::BsplineBasis result(p,p, knot);
+	return result;
+}
 
 void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu) const
 {
 	PROFILE2("Spline evaluation");
 	size_t nBasis = lrspline->getElement(el.iel-1)->nBasisFunctions();
+	el.N.resize(nBasis);
+	dNdu.resize(nBasis,3);
 
 	std::vector<std::vector<double> > result;
 	lrspline->computeBasis(el.u, el.v, el.w, result, 1, el.iel-1);
@@ -1049,6 +1078,18 @@ void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu) const
 		dNdu (n,2)    = result[jp][2];
 		dNdu (n,3)    = result[jp][3];
 	}
+}
+
+void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu, Matrix &C, Matrix &B) const
+{
+	PROFILE2("BeSpline evaluation");
+	Matrix N = C*B;
+	size_t nBasis = lrspline->getElement(el.iel-1)->nBasisFunctions();
+	el.N = N.getColumn(1);
+	dNdu.resize(nBasis,3);
+	dNdu.fillColumn(1,N.getColumn(2));
+	dNdu.fillColumn(2,N.getColumn(3));
+	dNdu.fillColumn(3,N.getColumn(4));
 }
 
 void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu, Matrix3D &d2Ndu2) const
@@ -1121,6 +1162,45 @@ bool ASMu3D::integrate (Integrand& integrand,
 	const double* wg = GaussQuadrature::getWeight(nGauss);
 	if (!xg || !wg) return false;
 
+	// evaluate all gauss points on the bezier patch (-1, 1)
+	int p1 = lrspline->order(0);
+	int p2 = lrspline->order(1);
+	int p3 = lrspline->order(2);
+	Go::BsplineBasis basis1 = getBezierBasis(p1);
+	Go::BsplineBasis basis2 = getBezierBasis(p2);
+	Go::BsplineBasis basis3 = getBezierBasis(p3);
+
+	Matrix BN(   p1*p2*p3, nGauss*nGauss*nGauss);
+	Matrix BdNdu(p1*p2*p3, nGauss*nGauss*nGauss);
+	Matrix BdNdv(p1*p2*p3, nGauss*nGauss*nGauss);
+	Matrix BdNdw(p1*p2*p3, nGauss*nGauss*nGauss);
+	int ig=1; // gauss point iterator
+	for(int zeta=0; zeta<nGauss; zeta++) {
+		for(int eta=0; eta<nGauss; eta++) {
+			for(int xi=0; xi<nGauss; xi++, ig++) {
+				double u[2*p1];
+				double v[2*p2];
+				double w[2*p3];
+				basis1.computeBasisValues(xg[xi],   u, 1); 
+				basis2.computeBasisValues(xg[eta],  v, 1);
+				basis3.computeBasisValues(xg[zeta], w, 1);
+				int ib=1; // basis function iterator
+				double sum = 0;
+				for(int k=0; k<p3; k++) {
+					for(int j=0; j<p2; j++) {
+						for(int i=0; i<p1; i++, ib++) {
+							BN(ib,ig)    = u[2*i  ]*v[2*j  ]*w[2*k  ];
+							BdNdu(ib,ig) = u[2*i+1]*v[2*j  ]*w[2*k  ];
+							BdNdv(ib,ig) = u[2*i  ]*v[2*j+1]*w[2*k  ];
+							BdNdw(ib,ig) = u[2*i  ]*v[2*j  ]*w[2*k+1];
+							sum += BN(ib,ig);
+						}
+					}
+				}
+			}
+		}
+	}
+
 	// Get the reduced integration quadrature points, if needed
 	const double* xr = 0;
 	int nRed = integrand.getReducedIntegration();
@@ -1139,7 +1219,7 @@ bool ASMu3D::integrate (Integrand& integrand,
 		FiniteElement fe(nBasis);
 		fe.iel = iEl+1;
 
-		Vector   N;
+		Matrix   C = bezierExtract[iEl];
 		Matrix   dNdu, Xnod, Jac;
 		Matrix3D d2Ndu2, Hess;
 		double   dXidu[3];
@@ -1270,9 +1350,11 @@ bool ASMu3D::integrate (Integrand& integrand,
 
 		fe.iGP = iEl*nGauss*nGauss; // Global integration point counter
 
+		Matrix B(p1*p2*p3, 4); // Bezier evaluation points and derivatives
+		ig = 1;
 		for (int k = 0; k < nGauss; k++) 
 			for (int j = 0; j < nGauss; j++) 
-				for (int i = 0; i < nGauss; i++, fe.iGP++)
+				for (int i = 0; i < nGauss; i++, fe.iGP++, ig++)
 				{
 					// Local element coordinates of current integration point
 					fe.xi   = xg[i];
@@ -1284,11 +1366,17 @@ bool ASMu3D::integrate (Integrand& integrand,
 					fe.v = gpar[1](j+1);
 					fe.w = gpar[2](k+1);
 
+					// Extract bezier basis functions
+					B.fillColumn(1, BN.getColumn(ig));
+					B.fillColumn(2, BdNdu.getColumn(ig));
+					B.fillColumn(3, BdNdv.getColumn(ig));
+					B.fillColumn(4, BdNdw.getColumn(ig));
+
 					// Fetch basis function derivatives at current integration point
 					if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
 						evaluateBasis(fe, dNdu, d2Ndu2);
 					else
-						evaluateBasis(fe, dNdu) ;
+						evaluateBasis(fe, dNdu, C, B) ;
 
 					// Compute Jacobian inverse of coordinate mapping and derivatives
 					fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
