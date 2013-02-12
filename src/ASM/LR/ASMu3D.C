@@ -1152,7 +1152,6 @@ bool ASMu3D::integrate (Integrand& integrand,
                         GlobalIntegral& glInt,
                         const TimeDomain& time)
 {
-	std::cout << "YEAH BABY! We arrived at ASMu3D::integrate(I)" << std::endl;
 	if (!lrspline) return true; // silently ignore empty patches
 
 	PROFILE2("ASMu3D::integrate(I)");
@@ -1378,6 +1377,48 @@ bool ASMu3D::integrate (Integrand& integrand,
 					else
 						evaluateBasis(fe, dNdu, C, B) ;
 
+					// look for errors in bezier extraction
+					/*
+					int N    = nBasis;
+					int allP = p1*p2*p3;
+					double sum = 0;
+					for(int qq=1; qq<=N; qq++) sum+= fe.N(qq);
+					if(fabs(sum-1) > 1e-10) {
+						std::cerr << "fe.N not sums to one at integration point #" << ig << std::endl;
+						exit(123);
+					}
+					sum = 0;
+					for(int qq=1; qq<=N; qq++) sum+= dNdu(qq,1);
+					if(fabs(sum) > 1e-10) {
+						std::cerr << "dNdu not sums to zero at integration point #" << ig << std::endl;
+						exit(123);
+					}
+					sum = 0;
+					for(int qq=1; qq<=N; qq++) sum+= dNdu(qq,2);
+					if(fabs(sum) > 1e-10) {
+						std::cerr << "dNdv not sums to zero at integration point #" << ig << std::endl;
+						exit(123);
+					}
+					sum = 0;
+					for(int qq=1; qq<=N; qq++) sum+= dNdu(qq,3);
+					if(fabs(sum) > 1e-10) {
+						std::cerr << "dNdw not sums to zero at integration point #" << ig << std::endl;
+						exit(123);
+					}
+					sum = 0;
+					for(int qq=1; qq<=allP; qq++) sum+= B(qq,1);
+					if(fabs(sum-1) > 1e-10) {
+						std::cerr << "Bezier basis not sums to one at integration point #" << ig << std::endl;
+						exit(123);
+					}
+					sum = 0;
+					for(int qq=1; qq<=allP; qq++) sum+= B(qq,2);
+					if(fabs(sum) > 1e-10) {
+						std::cerr << "Bezier derivatives not sums to zero at integration point #" << ig << std::endl;
+						exit(123);
+					}
+					*/
+
 					// Compute Jacobian inverse of coordinate mapping and derivatives
 					fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
 					if (fe.detJxW == 0.0) continue; // skip singular points
@@ -1390,11 +1431,6 @@ bool ASMu3D::integrate (Integrand& integrand,
 					// Compute G-matrix
 					if (integrand.getIntegrandType() & Integrand::G_MATRIX)
 						utl::getGmat(Jac,dXidu,fe.G);
-
-#if SP_DEBUG > 4
-					std::cout <<"\niel, "<< iEl <<" "
-					          <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX << std::endl;
-#endif
 
 					// Cartesian coordinates of current integration point
 					X   = Xnod * fe.N;
@@ -1428,7 +1464,6 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
 {
 	if (!lrspline) return true; // silently ignore empty patches
 
-	std::cout << "YEAH BABY! We arrived at ASMu3D::integrate(B) " << std::endl;
 	PROFILE2("ASMu3D::integrate(B)");
 
 	// Get Gaussian quadrature points and weights
