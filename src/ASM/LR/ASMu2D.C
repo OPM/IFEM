@@ -381,22 +381,33 @@ bool ASMu2D::refine (const std::vector<double>& elementError,
 
 	if(linIndepTest)
 	{
-		std::cout << "Testing for linear independence....";
-		if(!lrspline->isLinearIndepByMappingMatrix(false))
+		std::cout << "Testing for linear independence by overloading " << std::endl;
+		bool isLinIndep = lrspline->isLinearIndepByOverloading(false);
+		if(!isLinIndep) {
+			std::cout << "Inconclusive..." << std::endl;
+			std::cout << "Testing for linear independence by full tensor expansion " << std::endl;
+			isLinIndep = lrspline->isLinearIndepByMappingMatrix(false);
+		}
+		if(!isLinIndep)
 		{
 			std::cout << "FAILED!!!\n";
+			/*
 			std::cerr << std::endl;
 			std::cerr << std::endl;
 			std::cerr << std::endl;
-			std::cerr << "*********************************************\n";
+			std::cerr << "*****************************************************************\n";
 			std::cerr << "\nLR B-spline is linear dependant. Continuing analysis anyway\n\n";
-			std::cerr << "*********************************************\n";
+			std::cerr << "*****************************************************************\n";
 			std::cerr << std::endl;
 			std::cerr << std::endl;
-			// exit(34532);
+			*/
+			exit(228);
 			// return false;
 		}
-		std::cout << "OK\n";
+		else
+		{
+			std::cout << "...Passed\n";
+		}
 	}
 
 	// int nBasis    = lrspline->nBasisFunctions();
@@ -505,22 +516,33 @@ bool ASMu2D::refine (const std::vector<int>& elements,
 
 	if(linIndepTest)
 	{
-		std::cout << "Testing for linear independence....";
-		if(!lrspline->isLinearIndepByMappingMatrix(false))
+		std::cout << "Testing for linear independence by overloading " << std::endl;
+		bool isLinIndep = lrspline->isLinearIndepByOverloading(false);
+		if(!isLinIndep) {
+			std::cout << "Inconclusive..." << std::endl;
+			std::cout << "Testing for linear independence by full tensor expansion " << std::endl;
+			isLinIndep = lrspline->isLinearIndepByMappingMatrix(false);
+		}
+		if(!isLinIndep)
 		{
 			std::cout << "FAILED!!!\n";
+			/*
 			std::cerr << std::endl;
 			std::cerr << std::endl;
 			std::cerr << std::endl;
-			std::cerr << "*********************************************\n";
+			std::cerr << "*****************************************************************\n";
 			std::cerr << "\nLR B-spline is linear dependant. Continuing analysis anyway\n\n";
-			std::cerr << "*********************************************\n";
+			std::cerr << "*****************************************************************\n";
 			std::cerr << std::endl;
 			std::cerr << std::endl;
-			// exit(34532);
+			*/
+			exit(228);
 			// return false;
 		}
-		std::cout << "OK\n";
+		else
+		{
+			std::cout << "...Passed\n";
+		}
 	}
 
 	// int nBasis    = lrspline->nBasisFunctions();
