@@ -26,23 +26,27 @@ class FiniteElement
 {
 public:
   //! \brief Default constructor.
-  FiniteElement(size_t nb = 0) : iel(0), iGP(0), N(nb), detJxW(1.0) {}
+  FiniteElement(size_t n = 0, size_t i = 0) : iel(0), iGP(i), N(n), detJxW(1.0)
+  { u = v = w = xi = eta = zeta = 0.0; }
 
-  int      iel;         //!< Element identifier
-  size_t   iGP;         //!< Global integration point counter
-  double   u;           //!< First parameter of current point
-  double   v;           //!< Second parameter of current point
-  double   w;           //!< Third parameter of current point
-  double   xi;          //!< First local coordinate of current integration point
-  double   eta;         //!< Second local coordinate of current integration point
-  double   zeta;        //!< Third local coordinate of current integration point
-  Vector   N;           //!< Basis function values
-  Vector   Navg;        //!< Volume-averaged basis function values
-  Matrix   dNdX;        //!< First derivatives (gradient) of the basis functions
-  Matrix3D d2NdX2;      //!< Second derivatives of the basis functions
-  Matrix   G;           //!< Matrix used for stabilized methods
-  std::vector<Vec3> XC; //!< Matrix with element corner coordinates
-  double   detJxW;      //!< Weighted determinant of the coordinate mapping
+  //! \brief Empty destructor.
+  virtual ~FiniteElement() {}
+
+  int      iel;    //!< Element identifier
+  size_t   iGP;    //!< Global integration point counter
+  double   u;      //!< First parameter of current point
+  double   v;      //!< Second parameter of current point
+  double   w;      //!< Third parameter of current point
+  double   xi;     //!< First local coordinate of current integration point
+  double   eta;    //!< Second local coordinate of current integration point
+  double   zeta;   //!< Third local coordinate of current integration point
+  Vector   N;      //!< Basis function values
+  Vector   Navg;   //!< Volume-averaged basis function values
+  Matrix   dNdX;   //!< First derivatives (gradient) of the basis functions
+  Matrix3D d2NdX2; //!< Second derivatives of the basis functions
+  Matrix   G;      //!< Matrix used for stabilized methods
+  Vec3Vec  XC;     //!< Matrix with element corner coordinates
+  double   detJxW; //!< Weighted determinant of the coordinate mapping
 };
 
 
@@ -56,6 +60,9 @@ public:
   //! \brief Default constructor.
   MxFiniteElement(size_t nb1 = 0, size_t nb2 = 0) : FiniteElement(nb1),
     N1(N), N2(nb2), dN1dX(dNdX) {}
+
+  //! \brief Empty destructor.
+  virtual ~MxFiniteElement() {}
 
   Vector&  N1;     //!< Basis function values for the first basis
   Vector   N2;     //!< Basis function values for the second basis

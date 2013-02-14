@@ -218,5 +218,6 @@ public:
 
 
 typedef std::pair<Vec3,Vec3> Vec3Pair; //!< A pair of two point vectors
+typedef std::vector<Vec3>    Vec3Vec;  //!< An array of point vectors
 
 #endif
