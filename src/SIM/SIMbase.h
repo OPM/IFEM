@@ -633,7 +633,7 @@ protected:
   //! \param[in] resetNumb If \e true, start element and node numbers from zero
   bool createFEMmodel(bool resetNumb = true);
 
-private:
+protected:
   //! \brief Extracts all local solution vector(s) for a specified patch.
   //! \param[in] problem Integrand to receive the patch-level solution vectors
   //! \param[in] sol Global primary solution vectors in DOF-order
@@ -644,8 +644,8 @@ private:
   //! quantities needed by the Integrand. This also includes any dependent
   //! vectors from other simulator classes that have been registered.
   //! All patch-level vectors are stored within the provided Integrand \a *p.
-  bool extractPatchSolution(IntegrandBase* problem,
-                            const Vectors& sol, size_t pindx);
+  virtual bool extractPatchSolution(IntegrandBase* problem,
+                                    const Vectors& sol, size_t pindx);
 
 public:
   //! \brief Extracts all local solution vector(s) for a specified patch.

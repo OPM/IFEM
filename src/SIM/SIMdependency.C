@@ -43,11 +43,14 @@ void SIMdependency::registerDependency (SIMdependency* sim,
 }
 
 
-const utl::vector<double>*
-SIMdependency::getField (const std::string& name) const
+bool SIMdependency::fillField (const std::string& name,
+                               const std::vector<double>& values)
 {
-  FieldMap::const_iterator it = myFields.find(name);
-  return it == myFields.end() ? NULL : it->second;
+  FieldMap::iterator it = myFields.find(name);
+  if (it == myFields.end()) return false;
+
+  *const_cast<utl::vector<double>*>(it->second) = values;
+  return true;
 }
 
 
@@ -58,6 +61,14 @@ SIMdependency::getField (const std::string& name)
   if (it == myFields.end()) return NULL;
 
   return const_cast<utl::vector<double>*>(it->second);
+}
+
+
+const utl::vector<double>*
+SIMdependency::getField (const std::string& name) const
+{
+  FieldMap::const_iterator it = myFields.find(name);
+  return it == myFields.end() ? NULL : it->second;
 }
 
 

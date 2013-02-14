@@ -94,10 +94,12 @@ public:
   virtual void registerDependency(SIMdependency* sim, const std::string& name,
                                   short int nvc = 1);
 
-  //! \brief Returns the nodal vector of named field in this SIM.
-  virtual const utl::vector<double>* getField(const std::string& name) const;
+  //! \brief Initializes the nodal vector of named field in this SIM.
+  bool fillField(const std::string& name, const std::vector<double>& values);
   //! \brief Returns the nodal vector of named field in this SIM.
   virtual utl::vector<double>* getField(const std::string& name);
+  //! \brief Returns the nodal vector of named field in this SIM.
+  virtual const utl::vector<double>* getField(const std::string& name) const;
   //! \brief Returns the nodal vector of named field in a dependent SIM.
   const utl::vector<double>* getDependentField(const std::string& name) const;
   //! \brief Returns a spline patch associated with a dependent field.
