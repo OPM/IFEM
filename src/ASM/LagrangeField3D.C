@@ -20,7 +20,7 @@
 
 
 LagrangeField3D::LagrangeField3D (const ASMs3DLag* patch, const RealArray& v,
-				  const char* name) : Field(3,name)
+				  const char* name) : FieldBase(3,name)
 {
   patch->getNodalCoordinates(coord);
   patch->getSize(n1,n2,n3);

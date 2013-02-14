@@ -14,7 +14,7 @@
 #ifndef _LAGRANGE_FIELD_3D_H
 #define _LAGRANGE_FIELD_3D_H
 
-#include "Field.h"
+#include "FieldBase.h"
 
 class ASMs3DLag;
 
@@ -26,7 +26,7 @@ class ASMs3DLag;
   scalar field at a given point in parametrical or physical coordinates.
 */
 
-class LagrangeField3D : public Field
+class LagrangeField3D : public FieldBase
 {
 public:
   //! \brief The constructor sets the number of space dimensions and fields.

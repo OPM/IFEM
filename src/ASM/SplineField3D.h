@@ -14,7 +14,7 @@
 #ifndef _SPLINE_FIELD_3D_H
 #define _SPLINE_FIELD_3D_H
 
-#include "Field.h"
+#include "FieldBase.h"
 
 class ASMs3D;
 
@@ -30,7 +30,7 @@ namespace Go {
   spline scalar field at a given point in parametrical or physical coordinates.
 */
 
-class SplineField3D : public Field
+class SplineField3D : public FieldBase
 {
 public:
   //! \brief The constructor sets the number of space dimensions and fields.
@@ -47,25 +47,30 @@ public:
 
   //! \brief Computes the value in a given node/control point.
   //! \param[in] node Node number
-  double valueNode(size_t node) const;
+  virtual double valueNode(size_t node) const;
 
   //! \brief Computes the value at a given local coordinate.
   //! \param[in] fe Finite element definition
-  double valueFE(const FiniteElement& fe) const;
+  virtual double valueFE(const FiniteElement& fe) const;
 
   //! \brief Computes the value at a given global coordinate.
   //! \param[in] x Global/physical coordinate for point
-  double valueCoor(const Vec3& x) const;
+  virtual double valueCoor(const Vec3& x) const;
+
+  //! \brief Computes the value at a grid of visualization points.
+  //! \param[out] val Field values at the visualization points
+  //! \param[in] npe Number of visualization nodes over each knot span
+  virtual bool valueGrid(RealArray& val, const int* npe) const;
 
   //! \brief Computes the gradient for a given local coordinate.
   //! \param[in] fe Finite element
   //! \param[out] grad Gradient of solution in a given local coordinate
-  bool gradFE(const FiniteElement& fe, Vector& grad) const;
+  virtual bool gradFE(const FiniteElement& fe, Vector& grad) const;
 
   //! \brief Computes the gradient for a given global/physical coordinate.
   //! \param[in] x Global coordinate
   //! \param[out] grad Gradient of solution in a given global coordinate
-  bool gradCoor(const Vec3& x, Vector& grad) const;
+  virtual bool gradCoor(const Vec3& x, Vector& grad) const;
 
 protected:
   const Go::SplineVolume* basis; //!< Spline basis description

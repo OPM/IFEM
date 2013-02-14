@@ -23,7 +23,7 @@
 
 SplineField3D::SplineField3D (const ASMs3D* patch,
                               const RealArray& v, const char* name)
-  : Field(3,name), basis(patch->getBasis()), vol(patch->getVolume())
+  : FieldBase(3,name), basis(patch->getBasis()), vol(patch->getVolume())
 {
   const int n1 = basis->numCoefs(0);
   const int n2 = basis->numCoefs(1);
@@ -54,10 +54,11 @@ double SplineField3D::valueFE (const FiniteElement& fe) const
 
   // Evaluate the basis functions at the given point
   Go::BasisPts spline;
+#pragma omp critical
   basis->computeBasis(fe.u,fe.v,fe.w,spline);
 
   // Evaluate the solution field at the given point
-  std::vector<int> ip;
+  IntVec ip;
   ASMs3D::scatterInd(basis->numCoefs(0),basis->numCoefs(1),basis->numCoefs(2),
 		     basis->order(0),basis->order(1),basis->order(2),
 		     spline.left_idx,ip);
@@ -75,6 +76,61 @@ double SplineField3D::valueCoor (const Vec3& x) const
 }
 
 
+bool SplineField3D::valueGrid (RealArray& val, const int* npe) const
+{
+  val.clear();
+  if (!basis) return false;
+
+  // Compute parameter values of the visualization points
+  RealArray gpar[3];
+  for (int dir = 0; dir < 3; dir++)
+  {
+    int nSegPerSpan = npe[dir] - 1;
+    if (nSegPerSpan < 1) return false;
+
+    RealArray::const_iterator uit = basis->basis(dir).begin();
+    double ucurr = 0.0, uprev = *(uit++);
+    while (uit != basis->basis(dir).end())
+    {
+      ucurr = *(uit++);
+      if (ucurr > uprev)
+        if (nSegPerSpan == 1)
+          gpar[dir].push_back(uprev);
+        else for (int i = 0; i < nSegPerSpan; i++)
+        {
+          double xg = (double)(2*i-nSegPerSpan)/(double)nSegPerSpan;
+          gpar[dir].push_back(0.5*(ucurr*(1.0+xg) + uprev*(1.0-xg)));
+        }
+      uprev = ucurr;
+    }
+
+    if (ucurr > gpar[dir].back())
+      gpar[dir].push_back(ucurr);
+  }
+
+  // Evaluate the field in the visualization points
+  val.reserve(gpar[0].size()*gpar[1].size()*gpar[2].size());
+  for (size_t k = 0; k < gpar[2].size(); k++)
+    for (size_t j = 0; j < gpar[1].size(); j++)
+      for (size_t i = 0; i < gpar[0].size(); i++)
+      {
+        Go::BasisPts spline;
+        basis->computeBasis(gpar[0][i],gpar[1][j],gpar[2][k],spline);
+
+        IntVec ip;
+        ASMs3D::scatterInd(basis->numCoefs(0),basis->numCoefs(1),
+                           basis->numCoefs(2),basis->order(0),
+                           basis->order(1),basis->order(2),spline.left_idx,ip);
+
+        Vector Vnod;
+        utl::gather(ip,1,values,Vnod);
+        val.push_back(Vnod.dot(spline.basisValues));
+      }
+
+  return true;
+}
+
+
 bool SplineField3D::gradFE (const FiniteElement& fe, Vector& grad) const
 {
   if (!basis) return false;
@@ -82,6 +138,7 @@ bool SplineField3D::gradFE (const FiniteElement& fe, Vector& grad) const
 
   // Evaluate the basis functions at the given point
   Go::BasisDerivs spline;
+#pragma omp critical
   vol->computeBasis(fe.u,fe.v,fe.w,spline);
 
   const int uorder = vol->order(0);
@@ -97,7 +154,7 @@ bool SplineField3D::gradFE (const FiniteElement& fe, Vector& grad) const
     dNdu(n,3) = spline.basisDerivs_w[n-1];
   }
 
-  std::vector<int> ip;
+  IntVec ip;
   ASMs3D::scatterInd(vol->numCoefs(0),vol->numCoefs(1),vol->numCoefs(2),
 		     uorder,vorder,worder,spline.left_idx,ip);
 

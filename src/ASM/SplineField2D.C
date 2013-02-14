@@ -23,7 +23,7 @@
 
 SplineField2D::SplineField2D (const ASMs2D* patch,
                               const RealArray& v, const char* name)
-  : Field(2,name), basis(patch->getBasis()), surf(patch->getSurface())
+  : FieldBase(2,name), basis(patch->getBasis()), surf(patch->getSurface())
 {
   const int n1 = basis->numCoefs_u();
   const int n2 = basis->numCoefs_v();
@@ -52,10 +52,11 @@ double SplineField2D::valueFE (const FiniteElement& fe) const
 
   // Evaluate the basis functions at the given point
   Go::BasisPtsSf spline;
+#pragma omp critical
   basis->computeBasis(fe.u,fe.v,spline);
 
   // Evaluate the solution field at the given point
-  std::vector<int> ip;
+  IntVec ip;
   ASMs2D::scatterInd(basis->numCoefs_u(),basis->numCoefs_v(),
 		     basis->order_u(),basis->order_v(),
 		     spline.left_idx,ip);
@@ -73,6 +74,60 @@ double SplineField2D::valueCoor (const Vec3& x) const
 }
 
 
+bool SplineField2D::valueGrid (RealArray& val, const int* npe) const
+{
+  val.clear();
+  if (!basis) return false;
+
+  // Compute parameter values of the visualization points
+  RealArray gpar[2];
+  for (int dir = 0; dir < 2; dir++)
+  {
+    int nSegPerSpan = npe[dir] - 1;
+    if (nSegPerSpan < 1) return false;
+
+    RealArray::const_iterator uit = basis->basis(dir).begin();
+    double ucurr = 0.0, uprev = *(uit++);
+    while (uit != basis->basis(dir).end())
+    {
+      ucurr = *(uit++);
+      if (ucurr > uprev)
+        if (nSegPerSpan == 1)
+          gpar[dir].push_back(uprev);
+        else for (int i = 0; i < nSegPerSpan; i++)
+        {
+          double xg = (double)(2*i-nSegPerSpan)/(double)nSegPerSpan;
+          gpar[dir].push_back(0.5*(ucurr*(1.0+xg) + uprev*(1.0-xg)));
+        }
+      uprev = ucurr;
+    }
+
+    if (ucurr > gpar[dir].back())
+      gpar[dir].push_back(ucurr);
+  }
+
+  // Evaluate the field in the visualization points
+  val.reserve(gpar[0].size()*gpar[1].size());
+  for (size_t j = 0; j < gpar[1].size(); j++)
+    for (size_t i = 0; i < gpar[0].size(); i++)
+    {
+      Go::BasisPtsSf spline;
+      basis->computeBasis(gpar[0][i],gpar[1][j],spline);
+
+      IntVec ip;
+      ASMs2D::scatterInd(basis->numCoefs_u(),basis->numCoefs_v(),
+			 basis->order_u(),basis->order_v(),
+			 spline.left_idx,ip);
+
+      Vector Vnod;
+      utl::gather(ip,1,values,Vnod);
+      val.push_back(Vnod.dot(spline.basisValues));
+    }
+
+  return true;
+}
+
+
 bool SplineField2D::gradFE (const FiniteElement& fe, Vector& grad) const
 {
   if (!basis) return false;
@@ -80,6 +135,7 @@ bool SplineField2D::gradFE (const FiniteElement& fe, Vector& grad) const
 
   // Evaluate the basis functions at the given point
   Go::BasisDerivsSf spline;
+#pragma omp critical
   surf->computeBasis(fe.u,fe.v,spline);
 
   const int uorder = surf->order_u();
@@ -93,7 +149,7 @@ bool SplineField2D::gradFE (const FiniteElement& fe, Vector& grad) const
     dNdu(n,2) = spline.basisDerivs_v[n-1];
   }
 
-  std::vector<int> ip;
+  IntVec ip;
   ASMs2D::scatterInd(surf->numCoefs_u(),surf->numCoefs_v(),
 		     uorder,vorder,spline.left_idx,ip);
 
@@ -107,6 +163,7 @@ bool SplineField2D::gradFE (const FiniteElement& fe, Vector& grad) const
   if (basis != surf)
   {
     // Mixed formulation, the solution uses a different basis than the geometry
+#pragma omp critical
     basis->computeBasis(fe.u,fe.v,spline);
 
     const size_t nbf = basis->order_u()*basis->order_v();

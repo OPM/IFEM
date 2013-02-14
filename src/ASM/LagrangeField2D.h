@@ -14,7 +14,7 @@
 #ifndef _LAGRANGE_FIELD_2D_H
 #define _LAGRANGE_FIELD_2D_H
 
-#include "Field.h"
+#include "FieldBase.h"
 
 class ASMs2DLag;
 
@@ -26,7 +26,7 @@ class ASMs2DLag;
   scalar field at a given point in parametrical or physical coordinates.
 */
 
-class LagrangeField2D : public Field
+class LagrangeField2D : public FieldBase
 {
 public:
   //! \brief The constructor sets the number of space dimensions and fields.

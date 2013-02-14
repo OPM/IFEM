@@ -20,7 +20,7 @@
 
 
 LagrangeField2D::LagrangeField2D (const ASMs2DLag* patch, const RealArray& v,
-				  const char* name) : Field(2,name)
+				  const char* name) : FieldBase(2,name)
 {
   patch->getNodalCoordinates(coord);
   patch->getSize(n1,n2);
