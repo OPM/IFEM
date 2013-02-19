@@ -195,6 +195,18 @@ namespace utl //! General utility classes and functions.
     matrix() : nrow(0), ncol(0) {}
     //! \brief Constructor creating a matrix of dimension \f$r \times c\f$.
     matrix(size_t r, size_t c) : nrow(r), ncol(c), elem(r*c) {}
+    //! \brief Copy constructor, optionally creates the transpose of \a mat.
+    matrix(const matrix<T>& mat, bool transposed = false) : elem(mat.size())
+    {
+      nrow = transposed ? mat.ncol : mat.nrow;
+      ncol = transposed ? mat.nrow : mat.ncol;
+      if (transposed)
+        for (size_t r = 0; r < nrow; r++)
+          for (size_t c = 0; c < ncol; c++)
+            elem[c+ncol*r] = mat.elem[r+nrow*c];
+      else
+        elem.fill(mat.elem.ptr());
+    }
 
     //! \brief Clears the matrix and sets its dimension to zero.
     void clear() { nrow = ncol = 0; elem.clear(); }
