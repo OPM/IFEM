@@ -1559,6 +1559,27 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
 }
 
 
+void SIMbase::printNorms (const Vectors& norms, std::ostream& os,
+                          size_t w) const
+{
+  if (norms.empty()) return;
+
+  NormBase* norm = this->getNormIntegrand();
+  const Vector& n = norms.front();
+
+  os <<"Energy norm"<< utl::adjustRight(w-11,norm->getName(1,1)) << n(1)
+     <<"\nExternal energy"<< utl::adjustRight(w-15,norm->getName(1,2)) << n(2);
+
+  if (mySol)
+    os <<"\nExact norm"<< utl::adjustRight(w-10,norm->getName(1,3)) << n(3)
+       <<"\nExact error"<< utl::adjustRight(w-11,norm->getName(1,4)) << n(4)
+       <<"\nExact relative error (%) : "<< 100.0*n(4)/n(3);
+
+  os << std::endl;
+  delete norm;
+}
+
+
 void SIMbase::getWorstDofs (const Vector& u, const Vector& r,
                             size_t nWorst, double eps,
                             std::map<std::pair<int,int>,RealArray>& worst) const

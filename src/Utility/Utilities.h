@@ -15,6 +15,8 @@
 #define _UTILITIES_H
 
 #include "matrix.h"
+#include <string>
+#include <sstream>
 #include <iostream>
 #include <vector>
 #include <map>
@@ -166,12 +168,17 @@ namespace utl
   //! \brief Prints a string stream to an output stream.
   //! \param out The output stream to print to
   //! \param[in] str The string stream to print
-  //! \param[in] pid The PID of this process. Only process 0 will print.
+  //! \param[in] pid The PID of this process (only process 0 will print)
   //!
   //! \details This method makes sure to flush the output stream
   //! across all processes up front.
   void printSyncronized(std::ostream& out,
                         const std::stringstream& str, int pid);
+
+  //! \brief Right-justifies the input string to the given total \a width.
+  std::string adjustRight(size_t width, const std::string& s,
+                          const std::string& suffix = " : ");
+
 }
 
 #endif

@@ -367,7 +367,8 @@ size_t utl::find_closest (const std::vector<Real>& a, Real v)
 }
 
 
-void utl::printSyncronized(std::ostream& out, const std::stringstream& str, int pid)
+void utl::printSyncronized (std::ostream& out, const std::stringstream& str,
+                            int pid)
 {
   out << std::flush;
 #ifdef PARALLEL_PETSC
@@ -375,4 +376,14 @@ void utl::printSyncronized(std::ostream& out, const std::stringstream& str, int 
 #endif
   if (pid == 0)
     out << str.str();
+}
+
+
+std::string utl::adjustRight (size_t width, const std::string& s,
+                              const std::string& suffix)
+{
+  if (s.size() >= width) return s + suffix;
+
+  static std::string blank(32,' ');
+  return blank.substr(0,width-s.size()) + s + suffix;
 }

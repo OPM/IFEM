@@ -348,8 +348,11 @@ public:
   { return this->solutionNorms(TimeDomain(),psol,Vectors(),gNorm,&eNorm); }
 
   //! \brief Prints integrated solution norms to the specified output stream.
-  virtual std::ostream& printNorms(const Vectors&, std::ostream& os)
-  { return os; }
+  //! \param[in] norms
+  //! \param os The stream to print to
+  //! \param[in] w Total number of characters in the norm labels
+  virtual void printNorms(const Vectors& norms, std::ostream& os,
+                          size_t w = 36) const;
 
   //! \brief Prints a summary of the calculated solution to std::cout.
   //! \param[in] solution The solution vector

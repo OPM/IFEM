@@ -368,9 +368,9 @@ bool AdaptiveSIM::adaptMesh (int iStep)
 }
 
 
-std::ostream& AdaptiveSIM::printNorms (std::ostream& os) const
+std::ostream& AdaptiveSIM::printNorms (std::ostream& os, size_t w) const
 {
-  model->printNorms(gNorm,os);
+  model->printNorms(gNorm,os,w);
 
   // TODO: This needs further work to enable print for all recovered solutions.
   // As for now we only print the norm used for the mesh adaption.
@@ -385,14 +385,15 @@ std::ostream& AdaptiveSIM::printNorms (std::ostream& os) const
     // Define the reference norm, |u|_ref = sqrt( |u^h|^2 + |e^*|^2 )
     double refNorm = sqrt(fNorm(1)*fNorm(1) + aNorm(2)*aNorm(2));
 
-    os <<"Error estimate "<< norm->getName(adaptor,2) <<": "<< aNorm(2)
-       <<"\nRelative error (%) : "<< 100.0*aNorm(2)/refNorm;
+    size_t g = adaptor+1;
+    os <<"Error estimate"<< utl::adjustRight(w-14,norm->getName(g,2))
+       << aNorm(2) <<"\nRelative error (%) : "<< 100.0*aNorm(2)/refNorm;
     if (model->haveAnaSol() && aNorm.size() > 2)
-      os <<"Projective error "<< norm->getName(adaptor,3) <<": "
-                              << aNorm(3) << std::endl;
+      os <<"\nProjective error"<< utl::adjustRight(w-16,norm->getName(g,3))
+         << aNorm(3);
     if (model->haveAnaSol() && fNorm.size() > 3)
-      os <<"Effectivity index  : "<< aNorm(2)/fNorm(4);
-
+      os <<"\nEffectivity index  : "<< aNorm(2)/fNorm(4);
+    os << std::endl;
     for (i = 0, eRow = 2; i < adaptor; i++)
       eRow += norm->getNoFields(i+1);
 
@@ -466,13 +467,13 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep, int& nBlock,
 }
 
 
-void AdaptiveSIM::setupProjections()
+void AdaptiveSIM::setupProjections ()
 {
   projs.resize(model->opt.project.size());
 }
 
 
-void AdaptiveSIM::setOptions(SIMoptions& opt2)
+void AdaptiveSIM::setOptions (SIMoptions& opt2)
 {
   model->opt = opt = opt2;
 }
