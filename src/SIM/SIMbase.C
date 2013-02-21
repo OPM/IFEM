@@ -14,9 +14,7 @@
 #include "SIMbase.h"
 #include "SIMoptions.h"
 #include "ASMs2DC1.h"
-#ifdef HAS_LRSPLINE
 #include "ASMunstruct.h"
-#endif
 #ifdef HAS_PETSC
 #include "SAMpatchPara.h"
 #include "petscsys.h"
@@ -51,6 +49,7 @@ bool SIMbase::ignoreDirichlet = false;
 
 SIMbase::SIMbase () : g2l(&myGlb2Loc)
 {
+  isRefined = false;
   myProblem = 0;
   mySol = 0;
   myVtf = 0;
@@ -743,9 +742,7 @@ bool SIMbase::createFEMmodel (bool resetNumb)
   if (resetNumb)
   {
     ASMstruct::resetNumbering();
-#ifdef HAS_LRSPLINE
     ASMunstruct::resetNumbering();
-#endif
   }
 
   for (size_t i = 0; i < myModel.size(); i++)
@@ -2966,4 +2963,36 @@ bool SIMbase::extractPatchElmRes (const Matrix& globRes, Matrix& elmRes,
 
   myModel[pindx]->extractElmRes(globRes,elmRes);
   return true;
+}
+
+
+bool SIMbase::refine (const std::vector<int>& elements,
+                      const std::vector<int>& options, const char* fName)
+{
+  isRefined = false;
+  ASMunstruct* pch = NULL;
+  for (size_t i = 0; i < myModel.size(); i++)
+    if (!myModel[i]->empty() && (pch = dynamic_cast<ASMunstruct*>(myModel[i])))
+      if (pch->refine(elements,options,fName))
+        isRefined = true;
+      else
+        return false;
+
+  return isRefined;
+}
+
+
+bool SIMbase::refine (const RealArray& elementError,
+                      const std::vector<int>& options, const char* fName)
+{
+  isRefined = false;
+  ASMunstruct* pch = NULL;
+  for (size_t i = 0; i < myModel.size(); i++)
+    if (!myModel[i]->empty() && (pch = dynamic_cast<ASMunstruct*>(myModel[i])))
+      if (pch->refine(elementError,options,fName))
+        isRefined = true;
+      else
+        return false;
+
+  return isRefined;
 }

@@ -12,12 +12,8 @@
 //==============================================================================
 
 #include "AdaptiveSIM.h"
-#ifdef HAS_LRSPLINE
-#include "ASMunstruct.h"
-#else
-#include "ASMbase.h"
-#endif
 #include "IntegrandBase.h"
+#include "ASMbase.h"
 #include "SIMbase.h"
 #include "SIMenums.h"
 #include "SystemMatrix.h"
@@ -172,7 +168,7 @@ bool AdaptiveSIM::initAdaptor (size_t indxProj, size_t nNormProj)
   }
 
   if (model->opt.format >= 0)
-    prefix.reserve(model->opt.project.size()+1);
+    prefix.reserve(model->opt.project.size());
 
   return true;
 }
@@ -213,20 +209,17 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
 
   // Project the secondary solution onto the splines basis
   model->setMode(SIM::RECOVERY);
-  SIMoptions::ProjectionMap::const_iterator pit;
-  int p=0;
-  for (pit = model->opt.project.begin(); pit != model->opt.project.end(); pit++)
+  SIMoptions::ProjectionMap::const_iterator pit = model->opt.project.begin();
+  for (size_t i = 0; pit != model->opt.project.end(); i++, pit++)
   {
     Matrix ssol;
     if (!model->project(ssol,linsol,pit->first))
       return false;
 
-    projs[p++] = ssol;
+    projs[i] = ssol;
     if (iStep == 1 && model->opt.format >= 0)
       prefix.push_back(pit->second.c_str());
   }
-  if (iStep == 1 && model->opt.format >= 0)
-    prefix.push_back(NULL);
 
   if (msgLevel > 1 && !projs.empty())
     std::cout << std::endl;
@@ -279,9 +272,7 @@ bool AdaptiveSIM::adaptMesh (int iStep)
     eRow += norm->getNoFields(i+1);
   delete norm;
 
-  std::vector<int> toBeRefined, options;
-  std::vector<IndexDouble> errors;
-
+  std::vector<int> options;
   options.reserve(8);
   options.push_back(beta);
   options.push_back(knot_mult);
@@ -292,26 +283,26 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   options.push_back(closeGaps);
   options.push_back(trueBeta);
 
-#ifdef HAS_LRSPLINE
-  if (trueBeta) {
-    std::cout <<"\nRefining by increasing solution space by "<< beta <<" percent\n";
-    ASMunstruct* patch = static_cast<ASMunstruct*>(model->getFEModel().front());
+  if (trueBeta)
+  {
+    std::cout <<"\nRefining by increasing solution space by "<< beta
+              <<" percent."<< std::endl;
     if (!storeMesh)
-      return patch->refine(eNorm.getRow(eRow),options);
+      return model->refine(eNorm.getRow(eRow),options);
 
     char fname[13];
     sprintf(fname,"mesh_%03d.eps",iStep);
-    return patch->refine(eNorm.getRow(eRow),options,fname);
+    return model->refine(eNorm.getRow(eRow),options,fname);
   }
-#endif
 
+  std::vector<IndexDouble> errors;
   if (scheme == 2)
   {
     // Sum up the total error over all supported elements for each function
     ASMbase* patch = model->getFEModel().front();
     IntMat::const_iterator eit;
     IntVec::const_iterator nit;
-    for (i = 0; i < patch->getNoNodes(); i++) // and by "Nodes", we mean basis functions
+    for (i = 0; i < patch->getNoNodes(); i++) // Loop over basis functions
       errors.push_back(IndexDouble(0.0,i));
     for (i = 1, eit = patch->begin_elm(); eit < patch->end_elm(); eit++, i++)
       for (nit = eit->begin(); nit < eit->end(); nit++)
@@ -321,7 +312,7 @@ bool AdaptiveSIM::adaptMesh (int iStep)
     for (i = 0; i < eNorm.cols(); i++)
       errors.push_back(IndexDouble(eNorm(eRow,1+i),i));
 
-  // sort errors
+  // Sort the elements in the sequence of decreasing errors
   std::sort(errors.begin(),errors.end(),std::greater<IndexDouble>());
 
   // find the list of refinable elements/basisfunctions
@@ -345,7 +336,6 @@ bool AdaptiveSIM::adaptMesh (int iStep)
             << (threashold ? " (threshold of " : " (") << beta <<"\%)"
             <<" with errors in range ["<< errors[refineSize-1].first
             <<","<< errors.front().first <<"]"<< std::endl;
-
 /*
   if (symmetry > 0) // Make refineSize a multiplum of 'symmetry' in case of symmetric problems
     refineSize += (symmetry-refineSize%symmetry);
@@ -353,7 +343,7 @@ bool AdaptiveSIM::adaptMesh (int iStep)
 
   if (refineSize < 1 || refineSize > errors.size()) return false;
 
-
+  std::vector<int> toBeRefined;
   toBeRefined.reserve(refineSize);
   for (i = 0; i < refineSize; i++)
     toBeRefined.push_back(errors[i].second);

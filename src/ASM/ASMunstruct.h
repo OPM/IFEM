@@ -16,9 +16,6 @@
 
 #include "ASMbase.h"
 
-namespace Go {
-  class GeomObject;
-}
 namespace LR {
   class LRSpline;
 }
@@ -60,13 +57,17 @@ public:
   //! options[4] is nonzero if testing for linear independence at all iterations
   //! options[5] is the maximum number of T-joints allowed in the model
   //! options[6] is the maximum allowed parametric aspect ratio of an element
-  //! options[7] is one if all "gaps" are to be closed 
+  //! options[7] is one if all "gaps" are to be closed
   //! options[8] is one if using true beta
   //! \param[in] fName Optional file name for an image of the resulting mesh
-  bool refine(const std::vector<int>& elements,
-              const std::vector<int>& options, const char* fName = 0);
-  bool refine(const std::vector<double>& elementError,
-              const std::vector<int>& options, const char* fName = 0);
+  bool refine(const IntVec& elements, const IntVec& options,
+              const char* fName = NULL);
+  //! \brief Refines a set of elements based on a list of element errors.
+  //! \param[in] elementError Element-wise errors
+  //! \param[in] options Additional input parameters to control the refinement
+  //! \param[in] fName Optional file name for an image of the resulting mesh
+  bool refine(const RealArray& elementError, const IntVec& options,
+              const char* fName = NULL);
 
   //! \brief Resets global element and node counters.
   static void resetNumbering() { gEl = gNod = 0; }
@@ -77,11 +78,10 @@ public:
   virtual void getNoBouPoints(size_t& nPt, char, char) { nPt = 0; } // later...
 
 protected:
-  LR::LRSpline* geo; //!< Pointer to the actual spline geometry object (surface or volume)
+  LR::LRSpline* geo; //!< Pointer to the actual spline geometry object
 
   static int gEl;  //!< Global element counter
   static int gNod; //!< Global node counter
-
 };
 
 #endif

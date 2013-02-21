@@ -78,12 +78,6 @@ public:
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
   virtual bool refine(int dir, const std::vector<double>& xi) = 0;
-  //! \brief Refines a specified list of elements.
-  virtual bool refine(const std::vector<int>&, const std::vector<int>&,
-                      const char* = 0) {
-    std::cout << "ASMu3D::refine()" << std::endl;
-    return false;
-  }
 
   //! \brief Constrains all DOFs on a given boundary face.
   //! \param[in] dir Parameter direction defining the face to constrain

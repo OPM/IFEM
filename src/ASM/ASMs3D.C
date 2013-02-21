@@ -32,10 +32,6 @@
 #include "Tensor.h"
 #include "MPC.h"
 
-#ifdef HAS_LRSPLINE
-#include "LR/ASMu3D.h"
-#endif
-
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif

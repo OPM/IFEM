@@ -1,7 +1,7 @@
 // $Id$
 //==============================================================================
 //!
-//! \file ASMunstruct.C
+//! \file ASMLRSpline.C
 //!
 //! \date December 2010
 //!
@@ -11,35 +11,20 @@
 //!
 //==============================================================================
 
-#include "Profiler.h"
 #include "ASMunstruct.h"
-#include "GoTools/geometry/GeomObject.h"
+#include "Profiler.h"
 #include "LRSpline/LRSplineSurface.h"
 #include <fstream>
 
 
-int ASMunstruct::gEl = 0;
-int ASMunstruct::gNod = 0;
-
-
-ASMunstruct::ASMunstruct (unsigned char n_p, unsigned char n_s,
-			  unsigned char n_f)
-  : ASMbase(n_p,n_s,n_f)
+ASMunstruct::~ASMunstruct ()
 {
-  geo = 0;
+	if (geo) delete geo;
 }
 
 
-ASMunstruct::ASMunstruct (const ASMunstruct& patch, unsigned char n_f)
-  : ASMbase(patch,n_f)
-{
-  nGauss = patch.nGauss;
-  geo = patch.geo;
-}
-
-bool ASMunstruct::refine (const std::vector<double>& elementError,
-                          const std::vector<int>&    options,
-                          const char* fName)
+bool ASMunstruct::refine (const RealArray& elementError,
+                          const IntVec& options, const char* fName)
 {
 	PROFILE2("ASMunstruct::refine()");
 
@@ -47,21 +32,20 @@ bool ASMunstruct::refine (const std::vector<double>& elementError,
 	if (shareFE) return true;
 
 	// to pick up if LR splines get stuck while doing refinement print entry and exit point of this function
-	std::cout << "Starting refinement... " << std::endl;
 
-	double                  beta          = (options.size()>0)  ? options[0]/100.0 : 0.10;
-	int                     multiplicity  = (options.size()>1)  ? options[1]       : 1;
-	enum refinementStrategy strat         = LR_FULLSPAN;
-	bool                    linIndepTest  = (options.size()>3)  ? options[3]!=0    : false;
-	int                     maxTjoints    = (options.size()>4)  ? options[4]       : -1;
-	double                  maxAspectRatio= (options.size()>5)  ? options[5]       : -1;
-	bool                    closeGaps     = (options.size()>6)  ? options[6]!=0    : false;
-	bool                    isVol         = geo->nVariate()==3;
-
-	if(options.size() > 2) {
-		if(options[2]==1)      strat  = LR_MINSPAN;
-		else if(options[2]==2) strat  = LR_STRUCTURED_MESH;
-	}
+	double beta          = (options.size()>0)  ? options[0]/100.0 : 0.10;
+	int    multiplicity  = (options.size()>1)  ? options[1]       : 1;
+	enum refinementStrategy strat = LR_FULLSPAN;
+	if (options.size() > 2)
+	  switch (options[2]) {
+	  case 1: strat = LR_MINSPAN; break;
+	  case 2: strat = LR_STRUCTURED_MESH; break;
+	  }
+	bool   linIndepTest  = (options.size()>3)  ? options[3]!=0    : false;
+	int    maxTjoints    = (options.size()>4)  ? options[4]       : -1;
+	double maxAspectRatio= (options.size()>5)  ? options[5]       : -1;
+	bool   closeGaps     = (options.size()>6)  ? options[6]!=0    : false;
+	bool   isVol         = geo->nVariate()==3;
 
 	if (multiplicity > 1)
 	{
@@ -169,9 +153,9 @@ bool ASMunstruct::refine (const std::vector<double>& elementError,
 	return true;
 }
 
-bool ASMunstruct::refine (const std::vector<int>& elements,
-                          const std::vector<int>& options,
-                          const char* fName)
+
+bool ASMunstruct::refine (const IntVec& elements,
+                          const IntVec& options, const char* fName)
 {
 	PROFILE2("ASMunstruct::refine()");
 
@@ -179,21 +163,19 @@ bool ASMunstruct::refine (const std::vector<int>& elements,
 	if (shareFE) return true;
 
 	// to pick up if LR splines get stuck while doing refinement print entry and exit point of this function
-	std::cout << "Starting refinement... " << std::endl;
 
-	double                  beta          = (options.size()>0)  ? options[0]/100.0 : 0.10;
-	int                     multiplicity  = (options.size()>1)  ? options[1]       : 1;
-	enum refinementStrategy strat         = LR_FULLSPAN;
-	bool                    linIndepTest  = (options.size()>3)  ? options[3]!=0    : false;
-	int                     maxTjoints    = (options.size()>4)  ? options[4]       : -1;
-	double                  maxAspectRatio= (options.size()>5)  ? options[5]       : -1;
-	bool                    closeGaps     = (options.size()>6)  ? options[6]!=0    : false;
-	bool                    isVol         = geo->nVariate()==3;
-
-	if(options.size() > 2) {
-		if(options[2]==1)      strat  = LR_MINSPAN;
-		else if(options[2]==2) strat  = LR_STRUCTURED_MESH;
-	}
+	int    multiplicity  = (options.size()>1)  ? options[1]       : 1;
+	enum refinementStrategy strat = LR_FULLSPAN;
+	if (options.size() > 2)
+	  switch (options[2]) {
+	  case 1: strat = LR_MINSPAN; break;
+	  case 2: strat = LR_STRUCTURED_MESH; break;
+	  }
+	bool   linIndepTest  = (options.size()>3)  ? options[3]!=0    : false;
+	int    maxTjoints    = (options.size()>4)  ? options[4]       : -1;
+	double maxAspectRatio= (options.size()>5)  ? options[5]       : -1;
+	bool   closeGaps     = (options.size()>6)  ? options[6]!=0    : false;
+	bool   isVol         = geo->nVariate()==3;
 
 	if (multiplicity > 1)
 	{
@@ -302,10 +284,3 @@ bool ASMunstruct::refine (const std::vector<int>& elements,
 
 	return true;
 }
-
-
-ASMunstruct::~ASMunstruct ()
-{
-  if (geo) delete geo;
-}
-

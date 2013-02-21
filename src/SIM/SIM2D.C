@@ -42,7 +42,7 @@ struct Interface
 };
 
 
-SIM2D::SIM2D (unsigned char n1, unsigned char n2, bool) : isRefined(false)
+SIM2D::SIM2D (unsigned char n1, unsigned char n2, bool)
 {
   nf[0] = n1;
   nf[1] = n2;
@@ -711,18 +711,4 @@ void SIM2D::clonePatches (const PatchVec& patches,
       myModel.push_back(pch->clone(nf));
 
   g2l = &glb2locN;
-}
-
-
-bool SIM2D::refine (const std::vector<int>& elements,
-		    const std::vector<int>& options, const char* fName)
-{
-  ASM2D* pch = 0;
-  for (size_t i = 0; i < myModel.size(); i++)
-    if (!myModel[i]->empty() && (pch = dynamic_cast<ASM2D*>(myModel[i])))
-      if (!pch->refine(elements,options,fName))
-	return false;
-
-  isRefined = true;
-  return true;
 }

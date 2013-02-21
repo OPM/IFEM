@@ -131,8 +131,17 @@ public:
   virtual void clonePatches(const PatchVec&, const std::map<int,int>&) {}
 
   //! \brief Refines a list of elements.
-  virtual bool refine(const std::vector<int>&, const std::vector<int>&,
-		      const char* = 0) { return false; }
+  //! \param[in] elements 0-based indices of the elements to refine
+  //! \param[in] options Input options to refinement algorithm
+  //! \param[in] fName Optional mesh output file (Encapsulated PostScript)
+  bool refine(const std::vector<int>& elements, const std::vector<int>& options,
+              const char* fName = NULL);
+  //! \brief Refines a set of elements based on a list of element errors.
+  //! \param[in] elementError Element-wise errors
+  //! \param[in] options Input options to refinement algorithm
+  //! \param[in] fName Optional mesh output file (Encapsulated PostScript)
+  bool refine(const RealArray& elementError, const std::vector<int>& options,
+              const char* fName = NULL);
 
   //! \brief Performs some pre-processing tasks on the FE model.
   //! \param[in] ignored Indices of patches to ignore in the analysis
@@ -752,6 +761,7 @@ protected:
   typedef std::map<int,TractionFunc*> TracFuncMap;
 
   // Model attributes
+  bool           isRefined; //!< Indicates if the model is adaptively refined
   PatchVec       myModel;   //!< The actual NURBS/spline model
   PropertyVec    myProps;   //!< Physical property mapping
   TopologySet    myEntitys; //!< Set of named topological entities

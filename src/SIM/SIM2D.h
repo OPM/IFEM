@@ -81,14 +81,6 @@ protected:
   //! \param[in] isn The file stream to read from
   virtual void readNodes(std::istream& isn);
 
-  //! \brief Refines a list of elements.
-  //! \param[in] elements 1-based indices of the elements to refine
-  //! \param[in] options Input options to refinement algorithm
-  //! \param[in] fName Optional mesh output file (Encapsulated PostScript)
-  virtual bool refine(const std::vector<int>& elements,
-		      const std::vector<int>& options,
-		      const char* fName = 0);
-
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   //! \param[in] patch 1-based index of the patch to receive the property
   //! \param[in] lndx Local index of the boundary item to receive the property
@@ -98,9 +90,6 @@ protected:
   //! \param ngnod Total number of global nodes in the model (might be updated)
   virtual bool addConstraint(int patch, int lndx, int ldim,
 			     int dirs, int code, int& ngnod);
-
-private:
-  bool isRefined; //!< If \e true, the model has been adaptively refined
 
 protected:
   unsigned char nf[3]; //!< Number of scalar fields
