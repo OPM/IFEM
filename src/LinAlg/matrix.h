@@ -201,9 +201,9 @@ namespace utl //! General utility classes and functions.
       nrow = transposed ? mat.ncol : mat.nrow;
       ncol = transposed ? mat.nrow : mat.ncol;
       if (transposed)
-        for (size_t r = 0; r < nrow; r++)
-          for (size_t c = 0; c < ncol; c++)
-            elem[c+ncol*r] = mat.elem[r+nrow*c];
+        for (size_t r = 0; r < ncol; r++)
+          for (size_t c = 0; c < nrow; c++)
+            elem[c+nrow*r] = mat.elem[r+ncol*c];
       else
         elem.fill(mat.elem.ptr());
     }

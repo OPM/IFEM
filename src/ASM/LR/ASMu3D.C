@@ -586,7 +586,7 @@ void ASMu3D::constrainFace (int dir, bool open, int dof, int code)
 		this->prescribe(b->getId()+1,dof,bcode);
 }
 
-size_t constrainFaceLocal(int dir, bool open, int dof, int code, bool project, char T1)
+size_t ASMu3D::constrainFaceLocal(int dir, bool open, int dof, int code, bool project, char T1)
 {
 	std::cerr << "ASMu3D::constrainFaceLocal not implemented properly yet" << std::endl;
 	exit(776654);
@@ -1020,44 +1020,50 @@ size_t ASMu3D::getNoBoundaryElms (char lIndex, char ldim) const
 
 
 void ASMu3D::getGaussPointParameters (RealArray& uGP, int dir, int nGauss,
-				                              int iEl, const double* xi) const
+				      int iEl, const double* xi) const
 {
-	LR::Element *el = lrspline->getElement(iEl);
-	double start = el->getParmin(dir);
-	double stop  = el->getParmax(dir);
+  LR::Element* el = lrspline->getElement(iEl);
+  double start = el->getParmin(dir);
+  double stop  = el->getParmax(dir);
 
-	uGP.resize(nGauss);
-	
-	for(int i=0; i< nGauss; i++)	
-		uGP[i] = 0.5*((stop-start)*xi[i] + stop+start);
+  uGP.resize(nGauss);
+  for (int i = 0; i < nGauss; i++)
+    uGP[i] = 0.5*((stop-start)*xi[i] + stop+start);
 }
 
 
-void ASMu3D::getElementCorners (int iEl, std::vector<Vec3>& XC) const
+void ASMu3D::getElementCorners (int iEl, Vec3Vec& XC) const
 {
-	LR::Element *el = lrspline->getElement(iEl);
-	double u[] = { el->getParmin(0), el->getParmax(0) };
-	double v[] = { el->getParmin(1), el->getParmax(1) };
-	double w[] = { el->getParmin(2), el->getParmax(2) };
+  LR::Element* el = lrspline->getElement(iEl);
+  double u[2] = { el->getParmin(0), el->getParmax(0) };
+  double v[2] = { el->getParmin(1), el->getParmax(1) };
+  double w[2] = { el->getParmin(2), el->getParmax(2) };
 
-	XC.resize(8);
-	int ip=0;
-	for(int k=0; k<2; k++) 
-		for(int j=0; j<2; j++) 
-			for(int i=0; i<2; i++) {
-				Go::Point pt;
-				lrspline->point(pt, u[i], v[j], w[k], iEl);
-				XC[ip++] = Vec3(pt);
-	}
+  XC.clear();
+  XC.reserve(8);
+  Go::Point pt;
+
+  for (int k = 0; k < 2; k++)
+    for (int j = 0; j < 2; j++)
+      for (int i = 0; i < 2; i++)
+      {
+	lrspline->point(pt,u[i],v[j],w[k],iEl);
+	XC.push_back(SplineUtils::toVec3(pt));
+      }
 }
 
-Go::BsplineBasis ASMu3D::getBezierBasis(int p) const {
+/*!
+  \brief Returns a Bezier basis of order \a p.
+*/
+
+static Go::BsplineBasis getBezierBasis (int p)
+{
 	double knot[2*p];
 	std::fill(knot,   knot+p,  -1.0);
 	std::fill(knot+p, knot+2*p, 1.0);
-	Go::BsplineBasis result(p,p, knot);
-	return result;
+	return Go::BsplineBasis(p,p,knot);
 }
+
 
 void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu) const
 {
@@ -1293,7 +1299,7 @@ bool ASMu3D::integrate (Integrand& integrand,
 			double v0 = 0.5*(el->getParmin(1) + el->getParmax(1));
 			double w0 = 0.5*(el->getParmin(2) + el->getParmax(2));
 			lrspline->point(X0,u0,v0,w0);
-			X = Vec3(X0);
+			X = SplineUtils::toVec3(X0);
 		}
 
 		// Initialize element quantities

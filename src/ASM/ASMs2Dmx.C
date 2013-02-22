@@ -22,6 +22,7 @@
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
+#include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
 #include "Vec3Oper.h"
@@ -596,8 +597,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
             fe.v = gpar[1](j+1,i2-p2+1);
 
             // Fetch basis function derivatives at current integration point
-            extractBasis(spline1[ip],fe.N1,dN1du);
-            extractBasis(spline2[ip],fe.N2,dN2du);
+            SplineUtils::extractBasis(spline1[ip],fe.N1,dN1du);
+            SplineUtils::extractBasis(spline2[ip],fe.N2,dN2du);
 
             // Compute Jacobian inverse of the coordinate mapping and
             // basis function derivatives w.r.t. Cartesian coordinates
@@ -756,8 +757,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 	}
 
 	// Fetch basis function derivatives at current integration point
-	extractBasis(spline1[ip],fe.N1,dN1du);
-	extractBasis(spline2[ip],fe.N2,dN2du);
+	SplineUtils::extractBasis(spline1[ip],fe.N1,dN1du);
+	SplineUtils::extractBasis(spline2[ip],fe.N2,dN2du);
 
 	// Compute Jacobian inverse of the coordinate mapping and
 	// basis function derivatives w.r.t. Cartesian coordinates
@@ -966,8 +967,8 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     utl::gather(geoUsesBasis1 ? ip1 : ip2, nsd, Xnod, Xtmp);
 
     // Fetch basis function derivatives at current integration point
-    extractBasis(spline1[i],fe.N1,dN1du);
-    extractBasis(spline2[i],fe.N2,dN2du);
+    SplineUtils::extractBasis(spline1[i],fe.N1,dN1du);
+    SplineUtils::extractBasis(spline2[i],fe.N2,dN2du);
 
     // Compute Jacobian inverse of the coordinate mapping and
     // basis function derivatives w.r.t. Cartesian coordinates

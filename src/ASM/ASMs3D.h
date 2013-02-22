@@ -21,8 +21,6 @@
 namespace Go {
   class SplineSurface;
   class SplineVolume;
-  class BasisDerivs;
-  class BasisDerivs2;
 }
 
 
@@ -521,13 +519,6 @@ protected:
   //! \param[in] lIndex Local index [1,6] of the boundary face
   //! \param[in] silence If \e true, suppress threading group outprint
   virtual void generateThreadGroups(char lIndex, bool silence);
-
-  //! \brief Establishes matrices with basis functions and 1st derivatives.
-  static void extractBasis(const Go::BasisDerivs& spline,
-			   Vector& N, Matrix& dNdu);
-  //! \brief Establishes matrices with basis functions, 1st and 2nd derivatives.
-  static void extractBasis(const Go::BasisDerivs2& spline,
-			   Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2);
 
 public:
   //! \brief Auxilliary function for computation of basis function indices.

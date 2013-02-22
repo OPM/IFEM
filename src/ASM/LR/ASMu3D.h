@@ -16,15 +16,12 @@
 
 #include "ASM3D.h"
 #include "ASMunstruct.h"
-#include "FiniteElement.h"
 
-#include <GoTools/geometry/BsplineBasis.h>
+class FiniteElement;
 
 namespace Go {
 	class SplineSurface;
 	class SplineVolume;
-	class BasisDerivs;
-	class BasisDerivs2;
 }
 
 namespace LR {
@@ -90,22 +87,18 @@ public:
 	//! \param[in] noAddedNodes If \e true, use \a xnMap to find the real node
 	virtual size_t getNodeIndex(int globalNum, bool noAddedNodes = false) const;
 
-	//! \brief Returns the classification of the given node.
-	//! \param[in] inod 1-based node index local to current patch
-	// virtual char getNodeType(size_t inod) const;
-
 	//! \brief Returns the total number of nodes in this patch.
 	virtual size_t getNoNodes(int basis = 0) const;
 
 	//! \brief Returns a matrix with nodal coordinates for an element.
 	//! \param[in] iel Element index
-	//! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
-	//! in one element
+	//! \param[out] X 3\f$\times\f$n-matrix,
+	//! where \a n is the number of nodes in one element
 	virtual bool getElementCoordinates(Matrix& X, int iel) const;
 
 	//! \brief Returns a matrix with all nodal coordinates within the patch.
-	//! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
-	//! in the patch
+	//! \param[out] X 3\f$\times\f$n-matrix,
+	//! where \a n is the number of nodes in the patch
 	virtual void getNodalCoordinates(Matrix& X) const;
 
 	//! \brief Returns the global coordinates for the given node.
@@ -160,7 +153,7 @@ public:
 	//! \param[in] T1 Desired global direction of first local tangent direction
 	//! \return Number of additional nodes added due to local axis constraints
 	size_t constrainFaceLocal(int dir, bool open, int dof = 3, int code = 0,
-	                          bool project = false, char T1 = '\0') { return 0; }
+	                          bool project = false, char T1 = '\0');
 
 	//! \brief Constrains all DOFs on a given boundary edge.
 	//! \param[in] lEdge Local index [1,12] of the edge to constrain
@@ -417,22 +410,19 @@ protected:
 	//! \param[out] XC Coordinates of the element corners
 	void getElementCorners(int iel, std::vector<Vec3>& XC) const;
 
-	Go::BsplineBasis getBezierBasis(int p) const;
-
-	//! \brief Evaluate all basis functions and /a derivs number of derivatives on one element
+	//! \brief Evaluate all basis functions and \a derivs number of derivatives on one element
 	virtual void evaluateBasis(FiniteElement &el, int derivs) const;
 
 	//! \brief Evaluate all basis functions and first derivatives on one element
 	virtual void evaluateBasis(FiniteElement &el, Matrix &dNdu, Matrix &C, Matrix &B) const ;
 
+	//! \brief Evaluate all basis functions and first derivatives on one element
 	virtual void evaluateBasis(FiniteElement &el, Matrix &dNdu) const;
-	                           
 
 	//! \brief Evaluate all basis functions and second order derivatives on one element
 	virtual void evaluateBasis(FiniteElement &el, Matrix &dNdu, Matrix3D& d2Ndu2) const;
-	                           
-public:
 
+public:
 	//! \brief Returns the polynomial order in each parameter direction.
 	//! \param[out] p1 Order in first (u) direction
 	//! \param[out] p2 Order in second (v) direction

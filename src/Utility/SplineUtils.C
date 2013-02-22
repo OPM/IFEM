@@ -17,6 +17,7 @@
 
 #include "GoTools/geometry/SplineCurve.h"
 #include "GoTools/geometry/SplineSurface.h"
+#include "GoTools/trivariate/SplineVolume.h"
 #include "GoTools/geometry/CurveInterpolator.h"
 #include "GoTools/geometry/SurfaceInterpolator.h"
 
@@ -35,6 +36,79 @@ Vec4 SplineUtils::toVec4 (const Go::Point& X, Real time)
   for (int i = 0; i < X.size() && i < 3; i++) Y[i] = X[i];
   Y.t = time;
   return Y;
+}
+
+
+void SplineUtils::extractBasis (const Go::BasisDerivsSf& spline,
+                                Vector& N, Matrix& dNdu)
+{
+  dNdu.resize(N.size(),2);
+
+  size_t jp, n = 1;
+  for (jp = 0; jp < N.size(); jp++, n++)
+  {
+     N  (n)   = spline.basisValues[jp];
+    dNdu(n,1) = spline.basisDerivs_u[jp];
+    dNdu(n,2) = spline.basisDerivs_v[jp];
+  }
+}
+
+
+void SplineUtils::extractBasis (const Go::BasisDerivsSf2& spline,
+                                Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2)
+{
+   dNdu .resize(N.size(),2);
+  d2Ndu2.resize(N.size(),2,2);
+
+  size_t jp, n = 1;
+  for (jp = 0; jp < N.size(); jp++, n++)
+  {
+      N   (n)     = spline.basisValues[jp];
+     dNdu (n,1)   = spline.basisDerivs_u[jp];
+     dNdu (n,2)   = spline.basisDerivs_v[jp];
+    d2Ndu2(n,1,1) = spline.basisDerivs_uu[jp];
+    d2Ndu2(n,1,2) = d2Ndu2(n,2,1) = spline.basisDerivs_uv[jp];
+    d2Ndu2(n,2,2) = spline.basisDerivs_vv[jp];
+  }
+}
+
+
+void SplineUtils::extractBasis (const Go::BasisDerivs& spline,
+                                Vector& N, Matrix& dNdu)
+{
+  dNdu.resize(N.size(),3);
+
+  size_t jp, n = 1;
+  for (jp = 0; jp < N.size(); jp++, n++)
+  {
+     N  (n)   = spline.basisValues[jp];
+    dNdu(n,1) = spline.basisDerivs_u[jp];
+    dNdu(n,2) = spline.basisDerivs_v[jp];
+    dNdu(n,3) = spline.basisDerivs_w[jp];
+  }
+}
+
+
+void SplineUtils::extractBasis (const Go::BasisDerivs2& spline,
+                                Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2)
+{
+   dNdu .resize(N.size(),3);
+  d2Ndu2.resize(N.size(),3,3);
+
+  size_t jp, n = 1;
+  for (jp = 0; jp < N.size(); jp++, n++)
+  {
+      N   (n)     = spline.basisValues[jp];
+     dNdu (n,1)   = spline.basisDerivs_u[jp];
+     dNdu (n,2)   = spline.basisDerivs_v[jp];
+     dNdu (n,3)   = spline.basisDerivs_w[jp];
+    d2Ndu2(n,1,1) = spline.basisDerivs_uu[jp];
+    d2Ndu2(n,1,2) = d2Ndu2(n,2,1) = spline.basisDerivs_uv[jp];
+    d2Ndu2(n,1,3) = d2Ndu2(n,3,1) = spline.basisDerivs_uw[jp];
+    d2Ndu2(n,2,2) = spline.basisDerivs_vv[jp];
+    d2Ndu2(n,2,3) = d2Ndu2(n,3,2) = spline.basisDerivs_vw[jp];
+    d2Ndu2(n,3,3) = spline.basisDerivs_ww[jp];
+  }
 }
 
 

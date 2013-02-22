@@ -21,8 +21,6 @@
 namespace Go {
   class SplineCurve;
   class SplineSurface;
-  class BasisDerivsSf;
-  class BasisDerivsSf2;
 }
 
 
@@ -452,13 +450,6 @@ protected:
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] silence If \e true, suppress threading group outprint
   virtual void generateThreadGroups(const Integrand& integrand, bool silence);
-
-  //! \brief Establishes matrices with basis functions and 1st derivatives.
-  static void extractBasis(const Go::BasisDerivsSf& spline,
-			   Vector& N, Matrix& dNdu);
-  //! \brief Establishes matrices with basis functions, 1st and 2nd derivatives.
-  static void extractBasis(const Go::BasisDerivsSf2& spline,
-			   Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2);
 
 public:
   //! \brief Auxilliary function for computation of basis function indices.

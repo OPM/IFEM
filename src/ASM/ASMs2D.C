@@ -1249,7 +1249,7 @@ const Vector& ASMs2D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
   \brief Computes the element corner coordinates
 */
 
-void ASMs2D::getElementCorners (int i1, int i2, std::vector<Vec3>& XC) const
+void ASMs2D::getElementCorners (int i1, int i2, Vec3Vec& XC) const
 {
   RealArray::const_iterator uit = surf->basis(0).begin();
   RealArray::const_iterator vit = surf->basis(1).begin();
@@ -1267,44 +1267,11 @@ void ASMs2D::getElementCorners (int i1, int i2, std::vector<Vec3>& XC) const
   RealArray XYZ(dim*4);
   surf->gridEvaluator(XYZ,u,v);
 
-  XC.resize(4);
-  for (int i = 0; i < 4; i++)
-    for (unsigned char d = 0; d < nsd; d++)
-      XC[i][d] = XYZ[dim*i+d];
-}
-
-
-void ASMs2D::extractBasis (const Go::BasisDerivsSf& spline,
-			   Vector& N, Matrix& dNdu)
-{
-  dNdu.resize(N.size(),2);
-
-  size_t jp, n = 1;
-  for (jp = 0; jp < N.size(); jp++, n++)
-  {
-     N  (n)   = spline.basisValues[jp];
-    dNdu(n,1) = spline.basisDerivs_u[jp];
-    dNdu(n,2) = spline.basisDerivs_v[jp];
-  }
-}
-
-
-void ASMs2D::extractBasis (const Go::BasisDerivsSf2& spline,
-			   Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2)
-{
-   dNdu .resize(N.size(),2);
-  d2Ndu2.resize(N.size(),2,2);
-
-  size_t jp, n = 1;
-  for (jp = 0; jp < N.size(); jp++, n++)
-  {
-      N   (n)     = spline.basisValues[jp];
-     dNdu (n,1)   = spline.basisDerivs_u[jp];
-     dNdu (n,2)   = spline.basisDerivs_v[jp];
-    d2Ndu2(n,1,1) = spline.basisDerivs_uu[jp];
-    d2Ndu2(n,1,2) = d2Ndu2(n,2,1) = spline.basisDerivs_uv[jp];
-    d2Ndu2(n,2,2) = spline.basisDerivs_vv[jp];
-  }
+  XC.clear();
+  XC.reserve(4);
+  const double* pt = &XYZ.front();
+  for (int i = 0; i < 4; i++, pt += dim)
+    XC.push_back(Vec3(pt,dim));
 }
 
 
@@ -1431,7 +1398,7 @@ bool ASMs2D::integrate (Integrand& integrand,
             for (int i = 0; i < nGauss; i++, ip++)
             {
               // Fetch basis function derivatives at current integration point
-              extractBasis(spline[ip],fe.N,dNdu);
+              SplineUtils::extractBasis(spline[ip],fe.N,dNdu);
 
               // Compute Jacobian determinant of coordinate mapping
               // and multiply by weight of current integration point
@@ -1484,7 +1451,7 @@ bool ASMs2D::integrate (Integrand& integrand,
               fe.v = redpar[1](j+1,i2-p2+1);
 
               // Fetch basis function derivatives at current point
-              extractBasis(splineRed[ip],fe.N,dNdu);
+              SplineUtils::extractBasis(splineRed[ip],fe.N,dNdu);
 
               // Compute Jacobian inverse and derivatives
               fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
@@ -1519,9 +1486,9 @@ bool ASMs2D::integrate (Integrand& integrand,
 
             // Fetch basis function derivatives at current integration point
             if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-              extractBasis(spline2[ip],fe.N,dNdu,d2Ndu2);
+              SplineUtils::extractBasis(spline2[ip],fe.N,dNdu,d2Ndu2);
             else
-              extractBasis(spline[ip],fe.N,dNdu);
+              SplineUtils::extractBasis(spline[ip],fe.N,dNdu);
 
             // Compute Jacobian inverse of coordinate mapping and derivatives
             fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
@@ -1691,9 +1658,9 @@ bool ASMs2D::integrate (Integrand& integrand,
 
           // Fetch basis function derivatives at current integration point
           if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-            extractBasis(spline2[jp],fe.N,dNdu,d2Ndu2);
+            SplineUtils::extractBasis(spline2[jp],fe.N,dNdu,d2Ndu2);
           else
-            extractBasis(spline[jp],fe.N,dNdu);
+            SplineUtils::extractBasis(spline[jp],fe.N,dNdu);
 
           // Compute Jacobian inverse of coordinate mapping and derivatives
           fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
@@ -1872,7 +1839,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
 	}
 
 	// Fetch basis function derivatives at current integration point
-	extractBasis(spline[ip],fe.N,dNdu);
+	SplineUtils::extractBasis(spline[ip],fe.N,dNdu);
 
 	// Compute basis function derivatives and the edge normal
 	fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
@@ -2208,9 +2175,9 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Fetch basis function derivatives at current integration point
     if (use2ndDer)
-      extractBasis(spline2[i],fe.N,dNdu,d2Ndu2);
+      SplineUtils::extractBasis(spline2[i],fe.N,dNdu,d2Ndu2);
     else
-      extractBasis(spline1[i],fe.N,dNdu);
+      SplineUtils::extractBasis(spline1[i],fe.N,dNdu);
 
     // Compute the Jacobian inverse and derivatives
     if (utl::Jacobian(Jac,fe.dNdX,Xtmp,dNdu) == 0.0) // Jac = (Xtmp * dNdu)^-1

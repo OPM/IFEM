@@ -19,6 +19,7 @@
 #include "GaussQuadrature.h"
 #include "SparseMatrix.h"
 #include "DenseMatrix.h"
+#include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
 
@@ -231,7 +232,7 @@ bool ASMs2D::globalL2projection (Matrix& sField,
 	for (int i = 0; i < ng1; i++, ip++)
 	{
 	  if (continuous)
-	    extractBasis(spl1[ip],phi,dNdu);
+	    SplineUtils::extractBasis(spl1[ip],phi,dNdu);
 	  else
 	    phi = spl0[ip].basisValues;
 

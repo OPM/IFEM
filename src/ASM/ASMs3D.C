@@ -1557,8 +1557,7 @@ const Vector& ASMs3D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
 }
 
 
-void ASMs3D::getElementCorners (int i1, int i2, int i3,
-                                std::vector<Vec3>& XC) const
+void ASMs3D::getElementCorners (int i1, int i2, int i3, Vec3Vec& XC) const
 {
   RealArray::const_iterator uit = svol->basis(0).begin();
   RealArray::const_iterator vit = svol->basis(1).begin();
@@ -1578,49 +1577,11 @@ void ASMs3D::getElementCorners (int i1, int i2, int i3,
   RealArray XYZ(dim*8);
   svol->gridEvaluator(u,v,w,XYZ);
 
-  XC.resize(8);
-  for (unsigned char d = 0; d < nsd; d++)
-    for (int i = 0; i < 8; i++)
-      XC[i][d] = XYZ[dim*i+d];
-}
-
-
-void ASMs3D::extractBasis (const Go::BasisDerivs& spline,
-			   Vector& N, Matrix& dNdu)
-{
-  dNdu.resize(N.size(),3);
-
-  size_t jp, n = 1;
-  for (jp = 0; jp < N.size(); jp++, n++)
-  {
-     N  (n)   = spline.basisValues[jp];
-    dNdu(n,1) = spline.basisDerivs_u[jp];
-    dNdu(n,2) = spline.basisDerivs_v[jp];
-    dNdu(n,3) = spline.basisDerivs_w[jp];
-  }
-}
-
-
-void ASMs3D::extractBasis (const Go::BasisDerivs2& spline,
-			   Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2)
-{
-   dNdu .resize(N.size(),3);
-  d2Ndu2.resize(N.size(),3,3);
-
-  size_t jp, n = 1;
-  for (jp = 0; jp < N.size(); jp++, n++)
-  {
-      N   (n)     = spline.basisValues[jp];
-     dNdu (n,1)   = spline.basisDerivs_u[jp];
-     dNdu (n,2)   = spline.basisDerivs_v[jp];
-     dNdu (n,3)   = spline.basisDerivs_w[jp];
-    d2Ndu2(n,1,1) = spline.basisDerivs_uu[jp];
-    d2Ndu2(n,1,2) = d2Ndu2(n,2,1) = spline.basisDerivs_uv[jp];
-    d2Ndu2(n,1,3) = d2Ndu2(n,3,1) = spline.basisDerivs_uw[jp];
-    d2Ndu2(n,2,2) = spline.basisDerivs_vv[jp];
-    d2Ndu2(n,2,3) = d2Ndu2(n,3,2) = spline.basisDerivs_vw[jp];
-    d2Ndu2(n,3,3) = spline.basisDerivs_ww[jp];
-  }
+  XC.clear();
+  XC.reserve(8);
+  const double* pt = &XYZ.front();
+  for (int i = 0; i < 8; i++, pt += dim)
+    XC.push_back(Vec3(pt,dim));
 }
 
 
@@ -1740,7 +1701,7 @@ bool ASMs3D::integrate (Integrand& integrand,
               for (int i = 0; i < nGauss; i++, ip++)
               {
                 // Fetch basis function derivatives at current integration point
-                extractBasis(spline[ip],fe.N,dNdu);
+                SplineUtils::extractBasis(spline[ip],fe.N,dNdu);
 
                 // Compute Jacobian determinant of coordinate mapping
                 // and multiply by weight of current integration point
@@ -1798,7 +1759,7 @@ bool ASMs3D::integrate (Integrand& integrand,
                 fe.w = redpar[2](k+1,i3-p3+1);
 
                 // Fetch basis function derivatives at current point
-                extractBasis(splineRed[ip],fe.N,dNdu);
+                SplineUtils::extractBasis(splineRed[ip],fe.N,dNdu);
 
                 // Compute Jacobian inverse and derivatives
                 fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
@@ -1836,9 +1797,9 @@ bool ASMs3D::integrate (Integrand& integrand,
 
               // Fetch basis function derivatives at current integration point
               if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-                extractBasis(spline2[ip],fe.N,dNdu,d2Ndu2);
+                SplineUtils::extractBasis(spline2[ip],fe.N,dNdu,d2Ndu2);
               else
-                extractBasis(spline[ip],fe.N,dNdu);
+                SplineUtils::extractBasis(spline[ip],fe.N,dNdu);
 
               // Compute Jacobian inverse of coordinate mapping and derivatives
               fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
@@ -2020,9 +1981,9 @@ bool ASMs3D::integrate (Integrand& integrand,
 
           // Fetch basis function derivatives at current integration point
           if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-            extractBasis(spline2[jp],fe.N,dNdu,d2Ndu2);
+            SplineUtils::extractBasis(spline2[jp],fe.N,dNdu,d2Ndu2);
           else
-            extractBasis(spline[jp],fe.N,dNdu);
+            SplineUtils::extractBasis(spline[jp],fe.N,dNdu);
 
           // Compute Jacobian inverse of coordinate mapping and derivatives
           fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
@@ -2264,7 +2225,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
             }
 
             // Fetch basis function derivatives at current integration point
-            extractBasis(spline[ip],fe.N,dNdu);
+            SplineUtils::extractBasis(spline[ip],fe.N,dNdu);
 
             // Compute basis function derivatives and the face normal
             fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
@@ -2450,7 +2411,7 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 	  if (gpar[2].size() > 1) fe.w = gpar[2](i+1,i3-p3+1);
 
 	  // Fetch basis function derivatives at current integration point
-	  extractBasis(spline[ip],fe.N,dNdu);
+	  SplineUtils::extractBasis(spline[ip],fe.N,dNdu);
 
 	  // Compute basis function derivatives and the edge tang
 	  fe.detJxW = utl::Jacobian(Jac,tang,fe.dNdX,Xnod,dNdu,1+(lEdge-1)/4);
@@ -2808,9 +2769,9 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Fetch basis function derivatives at current integration point
     if (use2ndDer)
-      extractBasis(spline2[i],fe.N,dNdu,d2Ndu2);
+      SplineUtils::extractBasis(spline2[i],fe.N,dNdu,d2Ndu2);
     else
-      extractBasis(spline1[i],fe.N,dNdu);
+      SplineUtils::extractBasis(spline1[i],fe.N,dNdu);
 
     // Compute the Jacobian inverse and derivatives
     if (utl::Jacobian(Jac,fe.dNdX,Xtmp,dNdu) == 0.0) // Jac = (Xtmp * dNdu)^-1
