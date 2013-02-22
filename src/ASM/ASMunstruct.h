@@ -72,6 +72,10 @@ public:
   //! \brief Resets global element and node counters.
   static void resetNumbering() { gEl = gNod = 0; }
 
+  //! \brief Projects the secondary solution field onto the primary basis.
+  //! \param[in] integrand Object with problem-specific data and methods
+  virtual LR::LRSpline* evalSolution(const IntegrandBase& integrand) const = 0;
+
   //! \brief Computes the total number of integration points in this patch.
   virtual void getNoIntPoints(size_t& nPt) { nPt = 0; } // later...
   //! \brief Computes the number of boundary integration points in this patch.

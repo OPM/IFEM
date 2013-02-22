@@ -22,6 +22,7 @@ namespace Go {
   class BasisDerivsSf;
   class BasisDerivsSf2;
 }
+
 namespace LR {
   class LRSplineSurface;
 }
@@ -63,6 +64,17 @@ public:
   //! \param[in] retainGeometry If \e true, the spline geometry is not cleared.
   //! This is used to reinitialize the patch after it has been refined.
   virtual void clear(bool retainGeometry = false);
+
+  //! \brief Returns a matrix with nodal coordinates for an element.
+  //! \param[in] iel Element index
+  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
+  //! in one element
+  virtual bool getElementCoordinates(Matrix& X, int iel) const;
+
+  //! \brief Returns a matrix with all nodal coordinates within the patch.
+  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
+  //! in the patch
+  virtual void getNodalCoordinates(Matrix& X) const;
 
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
@@ -149,8 +161,7 @@ public:
   //! and \a n is the number of nodes along that parameter direction.
   virtual void constrainNode(double xi, double eta, int dof, int code = 0);
 
-// More multipatch stuff
-#if 0
+  /* More multipatch stuff, maybe later...
   //! \brief Connects all matching nodes on two adjacent boundary edges.
   //! \param[in] edge Local edge index of this patch, in range [1,4]
   //! \param neighbor The neighbor patch
@@ -164,7 +175,7 @@ public:
   //! \param[in] basis Which basis to connect (mixed methods), 0 means both
   //! \param[in] master 1-based index of the first master node in this basis
   virtual void closeEdges(int dir, int basis = 0, int master = 1);
-#endif
+  */
 
 
   // Methods for integration of finite element quantities.
@@ -197,6 +208,12 @@ public:
   //! \return Local node number within the patch that matches the point, if any
   //! \return 0 if no node (control point) matches this point
   virtual int evalPoint(const double* xi, double* param, Vec3& X) const;
+
+  //! \brief Calculates parameter values for visualization nodal points.
+  //! \param[out] prm Parameter values in given direction for all points
+  //! \param[in] dir Parameter direction (0,1)
+  //! \param[in] nSegSpan Number of visualization segments over each knot-span
+  virtual bool getGridParameters(RealArray& prm, int dir, int nSegSpan) const;
 
   //! \brief Creates a quad element model of this patch for visualization.
   //! \param[out] grid The generated quadrilateral grid
@@ -242,6 +259,28 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
 			    const int* npe = 0, char project = false) const;
 
+private:
+  //! \brief Projects the secondary solution field onto the primary basis.
+  //! \param[in] integrand Object with problem-specific data and methods
+  LR::LRSplineSurface* projectSolution(const IntegrandBase& integrand) const;
+  //! \brief Projects the secondary solution using a superconvergent approach.
+  //! \param[in] integrand Object with problem-specific data and methods
+  LR::LRSplineSurface* scRecovery(const IntegrandBase& integrand) const;
+
+  //! \brief Interpolates an LR spline at a given set of parametric coordinates.
+  //! \param[in] upar Parametric interpolation points in the u-direction
+  //! \param[in] vpar Parametric interpolation points in the v-direction
+  //! \param[in] points Interpolation values stored as one point per matrix row
+  //! \return A LRSplineSurface representation of the interpolated points
+  LR::LRSplineSurface* regularInterpolation(const RealArray& upar,
+                                            const RealArray& vpar,
+                                            const Matrix& points) const;
+
+public:
+  //! \brief Projects the secondary solution field onto the primary basis.
+  //! \param[in] integrand Object with problem-specific data and methods
+  virtual LR::LRSpline* evalSolution(const IntegrandBase& integrand) const;
+
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
@@ -258,16 +297,6 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
                             const RealArray* gpar, bool regular = true) const;
 
-  //! \brief Projects the secondary solution field onto the primary basis.
-  //! \param[in] integrand Object with problem-specific data and methods
-  LR::LRSplineSurface* projectSolution(const IntegrandBase& integrand) const;
-  //! \brief Projects the secondary solution field onto the primary basis.
-  //! \param[in] integrand Object with problem-specific data and methods
-  virtual LR::LRSplineSurface* evalSolution(const IntegrandBase& integrand) const;
-  //! \brief Projects the secondary solution using a superconvergent approach.
-  //! \param[in] integrand Object with problem-specific data and methods
-  LR::LRSplineSurface* scRecovery(const IntegrandBase& integrand) const;
-
   //! \brief Projects the secondary solution using a discrete global L2-norm.
   //! \param[out] sField Secondary solution field control point values
   //! \param[in] integrand Object with problem-specific data and methods
@@ -275,25 +304,6 @@ public:
   virtual bool globalL2projection(Matrix& sField,
 				  const IntegrandBase& integrand,
 				  bool continuous = false) const;
-
-  //! \brief Calculates parameter values for visualization nodal points.
-  //! \param[out] prm Parameter values in given direction for all points
-  //! \param[in] dir Parameter direction (0,1)
-  //! \param[in] nSegSpan Number of visualization segments over each knot-span
-  virtual bool getGridParameters(RealArray& prm, int dir, int nSegSpan) const;
-
-  //! \brief Interpolate an LR spline at a given set of parametric coordinates
-  //! \param[in] basis LR B-spline describing the parametrization (i.e. the mesh and the basis functions)
-  //! \param[in] upar parametric interpolation points in the u-direction
-  //! \param[in] vpar parametric interpolation points in the v-direction (must be same size as \a upar)
-  //! \param[in] points interpolation values stored as one point per matrix row (number of rows equal to \a upar size)
-  //! \param[in] dim number of components in points (i.e. the number of columns)
-  //! \return A LRSplineSurface representation of the interpolated points
-  LR::LRSplineSurface* regularInterpolation(LR::LRSplineSurface *basis,
-					    const std::vector<double>& upar,
-					    const std::vector<double>& vpar,
-					    const Matrix& points,
-					    size_t dim) const;
 
 protected:
 
@@ -332,15 +342,11 @@ protected:
   //! \param[in] iel Element index
   //! \param[in] dir Local index of the boundary edge
   double getParametricLength(int iel, int dir) const;
-  //! \brief Returns a matrix with nodal coordinates for an element.
+
+  //! \brief Computes the element corner coordinates.
   //! \param[in] iel Element index
-  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
-  //! in one element
-  virtual bool getElementCoordinates(Matrix& X, int iel) const;
-  //! \brief Returns a matrix with all nodal coordinates within the patch.
-  //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes
-  //! in the patch
-  virtual void getNodalCoordinates(Matrix& X) const;
+  //! \param[out] XC Coordinates of the element corners
+  void getElementCorners(int iel, std::vector<Vec3>& XC);
 
   //! \brief Establishes matrices with basis functions and 1st derivatives.
   static void extractBasis(const Go::BasisDerivsSf& spline,
@@ -349,16 +355,9 @@ protected:
   static void extractBasis(const Go::BasisDerivsSf2& spline,
                            Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2);
 
-  //! \brief Expands a tensor parametrization point to an unstructured one
-  //! \details takes as input a tensor mesh for instance in[0]={0,1,2} in[1]={2,3,5}
-  //§          and expands this to an unstructred representation, i.e. 
-  //§          out[0] = {0,1,2,0,1,2,0,1,2}
-  //§          out[1] = {2,2,2,3,3,3,5,5,5}
-  void expandTensorGrid(RealArray *in, RealArray *out) const ;
-
 protected:
-  LR::LRSplineSurface* lrspline;   //!< Pointer to the LR-spline surface object
-  void getElementCorners(int iel, std::vector<Vec3>& XC);
+  LR::LRSplineSurface* lrspline; //!< Pointer to the LR-spline surface object
+
 private:
   Go::SplineSurface* tensorspline; //!< Pointer to original tensor spline object
   // The tensor spline object is kept for backward compatability with the REFINE

@@ -15,6 +15,7 @@
 #include "GoTools/geometry/SurfaceInterpolator.h"
 
 #include "ASMs2D.h"
+#include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "SparseMatrix.h"
@@ -115,12 +116,12 @@ Go::SplineSurface* ASMs2D::projectSolution (const IntegrandBase& integrnd) const
   RealArray gpar[2];
   for (int dir = 0; dir < 2; dir++)
     if (!this->getGrevilleParameters(gpar[dir],dir))
-      return 0;
+      return NULL;
 
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
   if (!this->evalSolution(sValues,integrnd,gpar) || sValues.rows() == 0)
-    return 0;
+    return NULL;
 
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.
@@ -170,7 +171,7 @@ bool ASMs2D::globalL2projection (Matrix& sField,
   const int ng2 = continuous ? nGauss : p2 - 1;
   const double* xg = GaussQuadrature::getCoord(ng1);
   const double* yg = GaussQuadrature::getCoord(ng2);
-  const double* wg = continuous ? GaussQuadrature::getWeight(nGauss) : 0;
+  const double* wg = continuous ? GaussQuadrature::getWeight(nGauss) : NULL;
   if (!xg || !yg) return false;
   if (continuous && !wg) return false;
 
@@ -304,16 +305,17 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 {
   PROFILE2("ASMs2D::scRecovery");
 
+  const int m = integrand.derivativeOrder();
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
   const int nel1 = surf->numCoefs_u() - p1 + 1;
 
   // Get Gaussian quadrature point coordinates
-  const int ng1 = p1 - 1;
-  const int ng2 = p2 - 1;
+  const int ng1 = p1 - m;
+  const int ng2 = p2 - m;
   const double* xg = GaussQuadrature::getCoord(ng1);
   const double* yg = GaussQuadrature::getCoord(ng2);
-  if (!xg || !yg) return 0;
+  if (!xg || !yg) return NULL;
 
   // Compute parameter values of the Gauss points over the whole patch
   Matrix gaussPt[2];
@@ -324,21 +326,24 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 #if SP_DEBUG > 2
   for (size_t j = 0; j < gpar[1].size(); j++)
     for (size_t i = 0; i < gpar[0].size(); i++)
-      std::cout <<"Gassian point "<< i <<","<< j <<" = "
+      std::cout <<"Gauss point "<< i <<","<< j <<" = "
 		<< gpar[0][i] <<" "<< gpar[1][j] << std::endl;
 #endif
 
   // Evaluate the secondary solution at all Gauss points
   Matrix sField;
   if (!this->evalSolution(sField,integrand,gpar))
-    return 0;
+    return NULL;
 
   // Compute parameter values of the Greville points
-  if (!this->getGrevilleParameters(gpar[0],0)) return 0;
-  if (!this->getGrevilleParameters(gpar[1],1)) return 0;
+  if (!this->getGrevilleParameters(gpar[0],0)) return NULL;
+  if (!this->getGrevilleParameters(gpar[1],1)) return NULL;
+
+  const int n1 = p1 - m + 1; // Patch size in first parameter direction
+  const int n2 = p2 - m + 1; // Patch size in second parameter direction
 
   const size_t nCmp = sField.rows(); // Number of result components
-  const size_t nPol = (p1+1)*(p2+1); // Number of terms in polynomial expansion
+  const size_t nPol = (n1+1)*(n2+1); // Number of terms in polynomial expansion
 
   Matrix sValues(nCmp,gpar[0].size()*gpar[1].size());
   Vector P(nPol);
@@ -363,15 +368,20 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
       // Physical coordinates of current Greville point
       surf->point(G,gpar[0][ig],gpar[1][jg]);
 
+#if SP_DEBUG > 1
+      std::cout <<"\nGreville point "<< ig <<","<< jg <<" (u,v) = "
+		<< gpar[0][ig] <<" "<< gpar[1][jg] <<" X = "<< G << std::endl;
+#endif
+
       // Set up the local projection matrices
       DenseMatrix A(nPol,nPol,true);
       Matrix B(nPol,nCmp);
 
       // Loop over all non-zero knot-spans in the support of
       // the basis function associated with current Greville point
-      for (int js = jstart; js < jstart+p2; js++)
+      for (int js = jstart; js < jstart+n2; js++)
 	if (js >= p2-1 && surf->knotSpan(1,js) > 0.0)
-	  for (int is = istart; is < istart+p1; is++)
+	  for (int is = istart; is < istart+n1; is++)
 	    if (is >= p1-1 && surf->knotSpan(0,is) > 0.0)
 	    {
 	      // Loop over the Gauss points in current knot-span
@@ -385,7 +395,12 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 
 		  // Evaluate the polynomial expansion at current Gauss point
 		  surf->point(X,u,v);
-		  evalMonomials(p1+1,p2+1,X[0]-G[0],X[1]-G[1],P);
+		  evalMonomials(n1+1,n2+1,X[0]-G[0],X[1]-G[1],P);
+
+#if SP_DEBUG > 1
+		  std::cout <<"Itg. point "<< i <<","<< j <<" (u,v) = "
+			    << u <<" "<< v <<" X = "<< X <<" P-matrix:"<< P;
+#endif
 
 		  for (k = 1; k <= nPol; k++)
 		  {
@@ -400,6 +415,13 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 		}
 	    }
 
+#if SP_DEBUG > 2
+      std::cout <<"---- Matrix A -----"<< A
+                <<"-------------------"<< std::endl;
+      std::cout <<"---- Vector B -----"<< B
+                <<"-------------------"<< std::endl;
+#endif
+
       // Solve the local equation system
       if (!A.solve(B)) return false;
 
@@ -408,8 +430,7 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 	sValues(l,ip) = B(1,l);
 
 #if SP_DEBUG > 1
-      std::cout <<"Greville point "<< ig <<","<< jg <<" (u,v) = "
-		<< gpar[0][ig] <<" "<< gpar[1][jg] <<" :";
+      std::cout <<"Greville point "<< ig <<","<< jg <<" :";
       for (k = 1; k <= nCmp; k++)
 	std::cout <<" "<< sValues(k,ip);
       std::cout << std::endl;
@@ -440,12 +461,12 @@ Go::SplineSurface* ASMs2D::projectSolutionLeastSquare (const IntegrandBase& inte
 {
   if (!surf) return false;
 
-  // Compute parameter values of the result sampling points (Gauss-Interpl. points)
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
   const double* wg = GaussQuadrature::getWeight(nGauss);
   if (!xg || !wg) return false;
 
+  // Compute parameter values of the result sampling points (Gauss points)
   Matrix ggpar[2];
   for (int dir = 0; dir < 2; dir++)
     this->getGaussPointParameters(ggpar[dir],dir,nGauss,xg);
@@ -482,7 +503,7 @@ Go::SplineSurface* ASMs2D::projectSolutionLeastSquare (const IntegrandBase& inte
   // Evaluate the secondary solution at all sampling points (Gauss points)
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,gpar))
-    return 0;
+    return NULL;
 
   RealArray weights;
   if (surf->rational())
@@ -502,18 +523,17 @@ Go::SplineSurface* ASMs2D::projectSolutionLeastSquare (const IntegrandBase& inte
 // Quasi-Interpolation; local interpolation method
 Go::SplineSurface* ASMs2D::projectSolutionLocal (const IntegrandBase& integrand) const
 {
-  // Secondary solution evaluated at Quasi-Interpolation points
-  // Compute parameter values of the result sampling points (Quasi-Interpl. points)
-
+  // Compute parameter values of the result sampling points
+  // (the Quasi-Interpolation points)
   RealArray gpar[2];
   for (int dir = 0; dir < 2; dir++)
     if (!this->getQuasiInterplParameters(gpar[dir],dir))
-      return 0;
+      return NULL;
 
-  // Evaluate the secondary solution at all sampling points (Quasi-Interpl. points)
+  // Evaluate the secondary solution at all sampling points
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,gpar))
-    return 0;
+    return NULL;
 
   RealArray weights;
   if (surf->rational())
@@ -530,18 +550,18 @@ Go::SplineSurface* ASMs2D::projectSolutionLocal (const IntegrandBase& integrand)
 
 
 // Variation Diminishing Spline Approximation (VDSA); local approx. method
-Go::SplineSurface* ASMs2D::projectSolutionLocalApprox(const IntegrandBase& integrand) const
+Go::SplineSurface* ASMs2D::projectSolutionLocalApprox (const IntegrandBase& integrand) const
 {
   // Compute parameter values of the result sampling points (Greville points)
   RealArray gpar[2];
   for (int dir = 0; dir < 2; dir++)
     if (!this->getGrevilleParameters(gpar[dir],dir))
-      return 0;
+      return NULL;
 
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,gpar))
-    return 0;
+    return NULL;
 
   RealArray weights;
   if (surf->rational())

@@ -327,7 +327,7 @@ public:
 public:
 	//! \brief Projects the secondary solution field onto the primary basis.
 	//! \param[in] integrand Object with problem-specific data and methods
-	virtual Go::GeomObject* evalSolution(const IntegrandBase& integrand) const { return NULL; }
+	virtual LR::LRSpline* evalSolution(const IntegrandBase& integrand) const { return NULL; }
 
 	//! \brief Evaluates the secondary solution field at the given points.
 	//! \param[out] sField Solution field

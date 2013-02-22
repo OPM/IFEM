@@ -203,6 +203,9 @@ public:
   // Various service methods
   // =======================
 
+  //! \brief Returns the derivative order of the differential operator.
+  virtual int derivativeOrder() const { return 1; }
+
   //! \brief Returns whether a mixed formulation is used.
   virtual bool mixedFormulation() const { return false; }
 
