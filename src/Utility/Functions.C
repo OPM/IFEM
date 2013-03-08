@@ -148,6 +148,8 @@ Interpolate1D::Interpolate1D (const char* file, int dir_) : dir(dir_)
 Real Interpolate1D::evaluate (const Vec3& X) const
 {
   Real x = X[dir];
+  if (x < *grid.begin())
+    x = *grid.begin();
   std::vector<Real>::const_iterator xb =
     std::find_if(grid.begin(),grid.end()-1,
 		 std::bind2nd(std::greater<Real>(),x));
