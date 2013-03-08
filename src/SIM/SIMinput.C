@@ -97,7 +97,7 @@ static void injectIncludeFiles (TiXmlElement* tag)
     else if (elem->FirstChild() && elem->FirstChild()->Value()) {
       TiXmlDocument doc;
       if (doc.LoadFile(elem->FirstChild()->Value()))
-	tag->ReplaceChild(elem,*doc.RootElement());
+        elem = tag->ReplaceChild(elem,*doc.RootElement())->ToElement();
       else
 	std::cerr << __PRETTY_FUNCTION__ <<": Failed to load "
 		  << elem->FirstChild()->Value()
