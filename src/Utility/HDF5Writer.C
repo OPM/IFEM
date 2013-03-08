@@ -151,12 +151,12 @@ void HDF5Writer::readString(const std::string& name, std::string& out)
 #ifdef HAS_HDF5
   openFile(0);
   hid_t set = H5Dopen2(m_file,name.c_str(),H5P_DEFAULT);
-  hsize_t siz = H5Dget_storage_size(set);
-  char* temp = new char[siz+1];
+  hid_t space = H5Dget_space(set);
+  hsize_t siz = H5Sget_simple_extent_npoints(space);
+  char* temp = new char[siz];
   out.resize(siz);
   H5Dread(set,H5T_NATIVE_CHAR,H5S_ALL,H5S_ALL,H5P_DEFAULT,temp);
-  temp[siz] = '\0';
-  out = temp;
+  out.assign(temp, siz);
   delete[] temp;
   H5Dclose(set);
   closeFile(0);
