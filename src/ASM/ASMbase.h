@@ -27,7 +27,7 @@ typedef std::set<MPC*,MPCLess> MPCSet;  //!< Sorted set of MPC equations
 typedef MPCSet::const_iterator MPCIter; //!< Iterator over an MPC equation set
 
 struct TimeDomain;
-struct ElementBlock;
+class ElementBlock;
 class GlobalIntegral;
 class IntegrandBase;
 class Integrand;
@@ -183,8 +183,15 @@ public:
   virtual size_t getNoNodes(int basis = 0) const;
   //! \brief Returns the total number of elements in this patch.
   size_t getNoElms(bool includeZeroVolumeElms = false) const;
+  //! \brief Returns the number of elements on a boundary.
+  virtual size_t getNoBoundaryElms(char, char) const { return 0; }
   //! \brief Returns the total number of MPC equations in this patch.
   size_t getNoMPCs() const { return mpcs.size(); }
+
+  //! \brief Computes the total number of integration points in this patch.
+  virtual void getNoIntPoints(size_t& nPt);
+  //! \brief Computes the number of boundary integration points in this patch.
+  virtual void getNoBouPoints(size_t& nPt, char ldim, char lindx);
 
   //! \brief Returns the beginning of the BC array.
   BCVec::const_iterator begin_BC() const { return BCode.begin(); }
@@ -283,11 +290,6 @@ public:
   //! \brief Initializes the patch level MADOF array for mixed problems.
   virtual void initMADOF(const int*) {}
 
-  //! \brief Computes the total number of integration points in this patch.
-  virtual void getNoIntPoints(size_t& nPt) = 0;
-  //! \brief Computes the number of boundary integration points in this patch.
-  virtual void getNoBouPoints(size_t& nPt, char ldim, char lindx) = 0;
-
   //! \brief Generates element groups for multi-threading of interior integrals.
   virtual void generateThreadGroups(const Integrand&, bool = false) {}
   //! \brief Generates element groups for multi-threading of boundary integrals.
@@ -347,6 +349,8 @@ public:
   //! \param[in] npe Number of visualization nodes over each knot span
   //! \note The number of element nodes must be set in \a grid on input.
   virtual bool tesselate(ElementBlock& grid, const int* npe) const = 0;
+  //! \brief Returns an additional geometry to visualize (immersed boundaries).
+  virtual ElementBlock* immersedGeometry() const { return NULL; }
 
   //! \brief Extract the primary solution field at the specified nodes.
   //! \param[out] sField Solution field
@@ -560,6 +564,10 @@ protected:
   IntVec myMLGE; //!< The actual Matrix of Local to Global Element numbers
   IntVec myMLGN; //!< The actual Matrix of Local to Global Node numbers
   IntMat myMNPC; //!< The actual Matrix of Nodal Point Correspondance
+
+  size_t firstIp; //!< Global index to first interior integration point
+  //! Global indices to first integration point for the Neumann boundaries
+  std::map<char,size_t> firstBp;
 
   size_t nXelm;  //!< Number of extra-ordinary elements
 

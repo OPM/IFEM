@@ -19,8 +19,6 @@
 
 namespace Go {
   class SplineSurface;
-  class BasisDerivsSf;
-  class BasisDerivsSf2;
 }
 
 namespace LR {
@@ -57,7 +55,7 @@ public:
 
   //! \brief Generates the finite element topology data for the patch.
   //! \details The data generated are the element-to-node connectivity array,
-  //! the node-to-IJ-index array, as well as global node and element numbers.
+  //! and the arrays of global node and element numbers.
   virtual bool generateFEMTopology();
 
   //! \brief Clears the contents of the patch, making it empty.
@@ -136,7 +134,7 @@ public:
   //! \param[in] project If \e true, the local axis directions are projected
   //! \return Number of additional nodes added due to local axis constraints
   virtual size_t constrainEdgeLocal(int dir, bool open, int dof, int code = 0,
-				    bool project = false);
+				    bool project = '\0');
 
   //! \brief Constrains a corner node identified by the two parameter indices.
   //! \param[in] I Parameter index in u-direction
@@ -188,6 +186,14 @@ public:
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   virtual bool integrate(Integrand& integrand,
                          GlobalIntegral& glbInt, const TimeDomain& time);
+
+  //! \brief Evaluates an integral over the interior patch domain.
+  //! \param integrand Object with problem-specific data and methods
+  //! \param glbInt The integrated quantity
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
+  //! \param[in] itgPts Parameters and weights of the integration points
+  virtual bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
+			 const TimeDomain& time, const Real3DMat& itgPts);
 
   //! \brief Evaluates a boundary integral over a patch edge.
   //! \param integrand Object with problem-specific data and methods
@@ -346,14 +352,11 @@ protected:
   //! \brief Computes the element corner coordinates.
   //! \param[in] iel Element index
   //! \param[out] XC Coordinates of the element corners
-  void getElementCorners(int iel, std::vector<Vec3>& XC);
+  void getElementCorners(int iel, std::vector<Vec3>& XC) const;
 
-  //! \brief Establishes matrices with basis functions and 1st derivatives.
-  static void extractBasis(const Go::BasisDerivsSf& spline,
-                           Vector& N, Matrix& dNdu);
-  //! \brief Establishes matrices with basis functions, 1st and 2nd derivatives.
-  static void extractBasis(const Go::BasisDerivsSf2& spline,
-                           Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2);
+public:
+  //! \brief Returns the number of elements on a boundary.
+  virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 
 protected:
   LR::LRSplineSurface* lrspline; //!< Pointer to the LR-spline surface object
@@ -364,8 +367,6 @@ private:
   // and RAISEORDER key-words, although we take note that there is a possibility
   // of optimization since all mapping values and Jacobians may be performed on
   // this object for increased efficiency.
-
-  mutable int workingEl; //!< here to keep track of element across function calls (to avoid topological searches all the time)
 };
 
 #endif

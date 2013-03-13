@@ -27,6 +27,7 @@
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "ElementBlock.h"
+#include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
 #include "Vec3Oper.h"
@@ -34,14 +35,14 @@
 
 
 ASMu2D::ASMu2D (unsigned char n_s, unsigned char n_f)
-	: ASMunstruct(2,n_s,n_f), lrspline(0), tensorspline(0), workingEl(-1)
+  : ASMunstruct(2,n_s,n_f), lrspline(0), tensorspline(0)
 {
   ASMunstruct::resetNumbering(); // Replace this when going multi-patch...
 }
 
 
 ASMu2D::ASMu2D (const ASMu2D& patch, unsigned char n_f)
-	: ASMunstruct(patch,n_f), lrspline(patch.lrspline), tensorspline(0), workingEl(-1)
+  : ASMunstruct(patch,n_f), lrspline(patch.lrspline), tensorspline(0)
 {
 }
 
@@ -316,14 +317,6 @@ bool ASMu2D::generateFEMTopology ()
 	else if (shareFE)
 		return true;
 
-	const int p1 = lrspline->order(0);
-	const int p2 = lrspline->order(1);
-
-	// Consistency checks, just to be fool-proof
-	if (nBasis < 4)       return false;
-	if (p1 < 1 || p1 < 1) return false;
-	if (p1*p2 > nBasis)   return false;
-
 	myMLGN.resize(nBasis);
 	myMLGE.resize(nElements);
 	myMNPC.resize(nElements);
@@ -332,13 +325,11 @@ bool ASMu2D::generateFEMTopology ()
 	std::vector<LR::Element*>::iterator el_it = lrspline->elementBegin();
 	for (int iel=0; iel<nElements; iel++, el_it++)
 	{
-		LR::Element *el = *el_it;
-		int nSupportFunctions = el->nBasisFunctions();
 		myMLGE[iel] = ++gEl; // global element number over all patches
-		myMNPC[iel].resize(nSupportFunctions);
+		myMNPC[iel].resize((*el_it)->nBasisFunctions());
 
 		int lnod = 0;
-		for(LR::Basisfunction *b : el->support())
+		for (LR::Basisfunction *b : (*el_it)->support())
 			myMNPC[iel][lnod++] = b->getId();
 	}
 
@@ -348,10 +339,9 @@ bool ASMu2D::generateFEMTopology ()
 	return true;
 }
 
+/*
 // this is connecting multiple patches and handling deformed geometries.
 // We'll deal with at a later time, for now we only allow single patch models
-
-#if 0
 
 bool ASMu2D::connectPatch (int edge, ASMu2D& neighbor, int nedge, bool revers)
 {
@@ -467,33 +457,31 @@ void ASMu2D::closeEdges (int dir, int basis, int master)
 			break;
 		}
 }
-
-#endif
+*/
 
 
 void ASMu2D::constrainEdge (int dir, bool open, int dof, int code)
 {
-	std::vector<LR::Basisfunction*> edgeFunctions;
-	switch (dir)
-		{
-		case  1: // Right edge (positive I-direction)
-			lrspline->getEdgeFunctions(edgeFunctions, LR::EAST);
-			break;
-		case -1: // Left edge (negative I-direction)
-			lrspline->getEdgeFunctions(edgeFunctions, LR::WEST);
-			break;
-		case  2: // Back edge (positive J-direction)
-			lrspline->getEdgeFunctions(edgeFunctions, LR::NORTH);
-			break;
-		case -2: // Front edge (negative J-direction)
-			lrspline->getEdgeFunctions(edgeFunctions, LR::SOUTH);
-			break;
-		}
+  std::vector<LR::Basisfunction*> edgeFunctions;
+  switch (dir)
+  {
+  case  1: // Right edge (positive I-direction)
+    lrspline->getEdgeFunctions(edgeFunctions, LR::EAST);
+    break;
+  case -1: // Left edge (negative I-direction)
+    lrspline->getEdgeFunctions(edgeFunctions, LR::WEST);
+    break;
+  case  2: // Back edge (positive J-direction)
+    lrspline->getEdgeFunctions(edgeFunctions, LR::NORTH);
+    break;
+  case -2: // Front edge (negative J-direction)
+    lrspline->getEdgeFunctions(edgeFunctions, LR::SOUTH);
+    break;
+  }
 
   // Skip the first and last function if we are requesting an open boundary.
   // I here assume the edgeFunctions are ordered such that the physical
   // end points are represented by the first and last edgeFunction.
-  // TODO: Please verify that, Kjetil...
   for (size_t i = 0; i < edgeFunctions.size(); i++)
     if (!open || (i > 0 && i+1 < edgeFunctions.size()))
       this->prescribe(edgeFunctions[i]->getId()+1,dof,code);
@@ -526,13 +514,15 @@ void ASMu2D::constrainCorner (int I, int J, int dof, int code)
   }
 
   if (edgeFunctions.empty())
-    std::cerr <<" *** ASMu2D::constrainCorner: Invalid corner I,J="<< I <<","<< J << std::endl;
+    std::cerr <<" *** ASMu2D::constrainCorner: Invalid corner I,J="
+              << I <<","<< J << std::endl;
   else
     this->prescribe(edgeFunctions.front()->getId()+1,dof,code);
 
   if (edgeFunctions.size() > 1)
     std::cerr <<"  ** ASMu2D::constrainCorner: "<< edgeFunctions.size()
-	      <<" corners were returned from lrspline->getEdgeFunctions()"<< std::endl;
+	      <<" corners returned from LRSplineSurface::getEdgeFunctions()"
+              << std::endl;
 }
 
 
@@ -563,88 +553,81 @@ void ASMu2D::constrainNode (double xi, double eta, int dof, int code)
 double ASMu2D::getParametricArea (int iel) const
 {
 #ifdef INDEX_CHECK
-	if (iel < 1 || iel > lrspline->nElements())
-	{
-		std::cerr <<" *** ASMu2D::getParametricArea: Element index "<< iel
-		          <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
-		return DERR;
-	}
+  if (iel < 1 || iel > lrspline->nElements())
+  {
+    std::cerr <<" *** ASMu2D::getParametricArea: Element index "<< iel
+              <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
+    return DERR;
+  }
 #endif
 
-	return lrspline->getElement(iel-1)->area();
+  return lrspline->getElement(iel-1)->area();
 }
 
 
 double ASMu2D::getParametricLength (int iel, int dir) const
 {
 #ifdef INDEX_CHECK
-	if (iel < 1 || (size_t)iel > lrspline->nElements())
-	{
-		std::cerr <<" *** ASMu2D::getParametricLength: Element index "<< iel
-		          <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
-		return DERR;
-	}
+  if (iel < 1 || (size_t)iel > lrspline->nElements())
+  {
+    std::cerr <<" *** ASMu2D::getParametricLength: Element index "<< iel
+              <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
+    return DERR;
+  }
 #endif
 
-	LR::Element *el = lrspline->getElement(iel-1);
-	switch (dir)
-		{
-		case 1: return el->vmax() - el->vmin();
-		case 2: return el->umax() - el->umin();
-		}
+  LR::Element* el = lrspline->getElement(iel-1);
+  switch (dir)
+  {
+  case 1: return el->vmax() - el->vmin();
+  case 2: return el->umax() - el->umin();
+  }
 
-	std::cerr <<" *** ASMu2D::getParametricLength: Invalid edge direction "
-	          << dir << std::endl;
-	return DERR;
+  std::cerr <<" *** ASMu2D::getParametricLength: Invalid edge direction "
+            << dir << std::endl;
+  return DERR;
 }
 
 
 bool ASMu2D::getElementCoordinates (Matrix& X, int iel) const
 {
 #ifdef INDEX_CHECK
-	if (iel < 1 || iel > lrspline->nElements())
-	{
-		std::cerr <<" *** ASMu2D::getElementCoordinates: Element index "<< iel
-		          <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
-		return false;
-	}
+  if (iel < 1 || iel > lrspline->nElements())
+  {
+    std::cerr <<" *** ASMu2D::getElementCoordinates: Element index "<< iel
+              <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
+    return false;
+  }
 #endif
 
-	LR::Element *el = lrspline->getElement(iel-1);
-	int nSupportFunctions = el->nBasisFunctions();
-	X.resize(nsd,nSupportFunctions);
+  LR::Element* el = lrspline->getElement(iel-1);
+  X.resize(nsd,el->nBasisFunctions());
 
-	int n=1;
-	for (LR::Basisfunction* b : el->support() ) {
-		X.fillColumn(n++,&(*b->cp()));
-	}
+  int n = 1;
+  for (LR::Basisfunction* b : el->support())
+    X.fillColumn(n++,&(*b->cp()));
 
 #if SP_DEBUG > 2
-	std::cout <<"\nCoordinates for element "<< iel << X << std::endl;
+  std::cout <<"\nCoordinates for element "<< iel << X << std::endl;
 #endif
-	return true;
+  return true;
 }
 
 
 void ASMu2D::getNodalCoordinates (Matrix& X) const
 {
-	const int nBasis = lrspline->nBasisFunctions();
-	X.resize(nsd,nBasis);
+  X.resize(nsd,lrspline->nBasisFunctions());
 
-	int inod = 1;
-	for(LR::Basisfunction *b : lrspline->getAllBasisfunctions() )
-		X.fillColumn(inod++,&(*b->cp()));
+  int inod = 1;
+  for (LR::Basisfunction* b : lrspline->getAllBasisfunctions())
+    X.fillColumn(inod++,&(*b->cp()));
 }
 
 
 Vec3 ASMu2D::getCoord (size_t inod) const
 {
-	Vec3 X;
-	LR::Basisfunction* basis = lrspline->getBasisfunction(inod-1);
-	for (unsigned char i = 0; i < nsd; i++)
-		X[i] = basis->cp()[i];
-
-	return X;
+  LR::Basisfunction* basis = lrspline->getBasisfunction(inod-1);
+  return Vec3(&(*basis->cp()),nsd);
 }
 
 
@@ -655,103 +638,77 @@ bool ASMu2D::updateCoords (const Vector& displ)
 }
 
 
+size_t ASMu2D::getNoBoundaryElms (char lIndex, char ldim) const
+{
+  if (!lrspline)
+    return 0;
+  else if (ldim < 1 && lIndex > 0)
+    return 1;
+
+  // Maybe there is a more elegent way to count the boundary elements, Kjetil?
+  size_t nbel = 0;
+  std::vector<LR::Element*>::iterator el = lrspline->elementBegin();
+  for (; el != lrspline->elementEnd(); el++)
+  {
+    switch (lIndex)
+    {
+    case 1: if ((*el)->umin() == lrspline->startparam(0)) nbel++; break;
+    case 2: if ((*el)->umax() == lrspline->endparam(0))   nbel++; break;
+    case 3: if ((*el)->vmin() == lrspline->startparam(1)) nbel++; break;
+    case 4: if ((*el)->vmax() == lrspline->endparam(1))   nbel++; break;
+    }
+  }
+
+  return nbel;
+}
+
+
 void ASMu2D::getGaussPointParameters (RealArray& uGP, int dir, int nGauss,
                                       int iel, const double* xi) const
 {
 #ifdef INDEX_CHECK
-	if (iel < 1 || iel > lrspline->nElements())
-	{
-		std::cerr <<" *** ASMu2D::getGaussPointParameters: Element index "<< iel
-		          <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
-		return;
-	}
-#endif
-	LR::Element* el = lrspline->getElement(iel-1);
-
-	uGP.resize(nGauss);
-	double ustart = (dir==0) ? el->umin() : el->vmin();
-	double ustop  = (dir==0) ? el->umax() : el->vmax();
-
-	for (int i = 0; i < nGauss; i++)
-		uGP[i] = 0.5*((ustop-ustart)*xi[i] + ustop+ustart);
-}
-
-
-/*!
-  \brief Computes the characteristic element length from nodal coordinates.
-*/
-
-#if 0
-static double getElmSize (int p1, int p2, const Matrix& X)
-{
-	int n = X.rows();
-	int i, j, id1, id2;
-	double value, v1, h = 1.0e12;
-
-	// Y-direction
-	for (i = 1; i <= p1; i++)
-	{
-		id1 = i;
-		id2 = id1 + (p2-1)*p1;
-		value = 0.0;
-		for (j = 1; j <= n; j++)
-		{
-			v1 = X(j,id2) - X(j,id1);
-			value += v1*v1;
-		}
-		if (value < h) h = value;
-	}
-
-	// X-direction
-	for (j = 0; j < p2; j++)
-	{
-		id1 = j*p1 + 1;
-		id2 = id1 + p1 - 1;
-		value = 0.0;
-		for (i = 1; i <= n; i++)
-		{
-			v1 = X(i,id2) - X(i,id1);
-			value += v1*v1;
-		}
-		if (value < h) h = value;
-	}
-
-	return sqrt(h);
-}
+  if (iel < 1 || iel > lrspline->nElements())
+  {
+    std::cerr <<" *** ASMu2D::getGaussPointParameters: Element index "<< iel
+             <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
+    return;
+  }
 #endif
 
+  LR::Element* el = lrspline->getElement(iel-1);
+  double ustart = dir == 0 ? el->umin() : el->vmin();
+  double ustop  = dir == 0 ? el->umax() : el->vmax();
 
-void ASMu2D::extractBasis (const Go::BasisDerivsSf& spline,
-                           Vector& N, Matrix& dNdu)
-{
-	dNdu.resize(N.size(),2);
-
-	size_t jp, n = 1;
-	for (jp = 0; jp < N.size(); jp++, n++)
-	{
-		 N  (n)   = spline.basisValues[jp];
-		dNdu(n,1) = spline.basisDerivs_u[jp];
-		dNdu(n,2) = spline.basisDerivs_v[jp];
-	}
+  uGP.resize(nGauss);
+  for (int i = 0; i < nGauss; i++)
+    uGP[i] = 0.5*((ustop-ustart)*xi[i] + ustop+ustart);
 }
 
 
-void ASMu2D::extractBasis (const Go::BasisDerivsSf2& spline,
-                           Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2)
+void ASMu2D::getElementCorners (int iel, Vec3Vec& XC) const
 {
-	 dNdu .resize(N.size(),2);
-	d2Ndu2.resize(N.size(),2,2);
+#ifdef INDEX_CHECK
+  if (iel < 1 || iel > lrspline->nElements())
+  {
+    std::cerr <<" *** ASMu2D::getElementCorners: Element index "<< iel
+             <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
+    return;
+  }
+#endif
 
-	size_t jp, n = 1;
-	for (jp = 0; jp < N.size(); jp++, n++)
-	{
-			N   (n)     = spline.basisValues[jp];
-		 dNdu (n,1)   = spline.basisDerivs_u[jp];
-		 dNdu (n,2)   = spline.basisDerivs_v[jp];
-		d2Ndu2(n,1,1) = spline.basisDerivs_uu[jp];
-		d2Ndu2(n,1,2) = d2Ndu2(n,2,1) = spline.basisDerivs_uv[jp];
-		d2Ndu2(n,2,2) = spline.basisDerivs_vv[jp];
-	}
+  LR::Element* el = lrspline->getElement(iel-1);
+  double u[4] = { el->umin(), el->umax(), el->umin(), el->umax() };
+  double v[4] = { el->vmin(), el->vmin(), el->vmax(), el->vmax() };
+
+  XC.clear();
+  XC.reserve(4);
+  Go::Point point;
+
+  for (int i = 0; i < 4; i++)
+  {
+    lrspline->point(point,u[i],v[i],iel-1);
+    XC.push_back(SplineUtils::toVec3(point,nsd));
+  }
 }
 
 
@@ -759,205 +716,296 @@ bool ASMu2D::integrate (Integrand& integrand,
                         GlobalIntegral& glInt,
                         const TimeDomain& time)
 {
-	std::cout <<"YEAH BABY, arrived at ASMu2D::integrate(I)" << std::endl;
-	if (!lrspline) return true; // silently ignore empty patches
+  if (!lrspline) return true; // silently ignore empty patches
 
-	PROFILE2("ASMu2D::integrate(I)");
+  PROFILE2("ASMu2D::integrate(I)");
 
-	// Get Gaussian quadrature points and weights
-	const double* xg = GaussQuadrature::getCoord(nGauss);
-	const double* wg = GaussQuadrature::getWeight(nGauss);
-	if (!xg || !wg) return false;
+  // Get Gaussian quadrature points and weights
+  const double* xg = GaussQuadrature::getCoord(nGauss);
+  const double* wg = GaussQuadrature::getWeight(nGauss);
+  if (!xg || !wg) return false;
 
-	// Get the reduced integration quadrature points, if needed
-	const double* xr = 0;
-	int nRed = integrand.getReducedIntegration();
-	if (nRed < 0)
-	  nRed = nGauss; // The integrand needs to know nGauss
-	else if (nRed > 0 && !(xr = GaussQuadrature::getCoord(nRed)))
-	  return false;
+  // Get the reduced integration quadrature points, if needed
+  const double* xr = 0;
+  int nRed = integrand.getReducedIntegration();
+  if (nRed < 0)
+    nRed = nGauss; // The integrand needs to know nGauss
+  else if (nRed > 0 && !(xr = GaussQuadrature::getCoord(nRed)))
+    return false;
 
-	Matrix   dNdu, Xnod, Jac;
-	Matrix3D d2Ndu2, Hess;
-	Vec4     X;
+  Matrix   dNdu, Xnod, Jac;
+  Matrix3D d2Ndu2, Hess;
+  Vec4     X;
 
 
-	// === Assembly loop over all elements in the patch ==========================
+  // === Assembly loop over all elements in the patch ==========================
 
-	std::vector<LR::Element*>::iterator el = lrspline->elementBegin();
-	for (int iel = 1; el != lrspline->elementEnd(); el++, iel++)
-	{
-		FiniteElement fe(myMNPC[iel-1].size());
-		fe.iel = MLGE[iel-1];
+  std::vector<LR::Element*>::iterator el = lrspline->elementBegin();
+  for (int iel = 1; el != lrspline->elementEnd(); el++, iel++)
+  {
+    FiniteElement fe(MNPC[iel-1].size());
+    fe.iel = MLGE[iel-1];
 
-		// Get element area in the parameter space
-		double dA = this->getParametricArea(iel);
-		if (dA < 0.0) return false; // topology error (probably logic error)
+    // Get element area in the parameter space
+    double dA = this->getParametricArea(iel);
+    if (dA < 0.0) return false; // topology error (probably logic error)
 
-		// Set up control point (nodal) coordinates for current element
-		if (!this->getElementCoordinates(Xnod,iel)) return false;
+    // Set up control point (nodal) coordinates for current element
+    if (!this->getElementCoordinates(Xnod,iel)) return false;
 
-		// Compute parameter values of the Gauss points over this element
-		RealArray gpar[2], redpar[2];
-		for (int d = 0; d < 2; d++)
-		{
-			this->getGaussPointParameters(gpar[d],d,nGauss,iel,xg);
-			if (xr)
-				this->getGaussPointParameters(redpar[d],d,nRed,iel,xr);
-		}
+    // Compute parameter values of the Gauss points over this element
+    RealArray gpar[2], redpar[2];
+    for (int d = 0; d < 2; d++)
+    {
+      this->getGaussPointParameters(gpar[d],d,nGauss,iel,xg);
+      if (xr)
+	this->getGaussPointParameters(redpar[d],d,nRed,iel,xr);
+    }
 
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-      this->getElementCorners(iel, fe.XC);
+      this->getElementCorners(iel,fe.XC);
 
-#if 0
-		// Compute characteristic element length, if needed
-		if (integrand.getIntegrandType() == 2)
-			fe.h = getElmSize(p1,p2,Xnod);
+    if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
+    {
+      // Compute the element center
+      Go::Point X0;
+      double u0 = 0.5*(gpar[0].front() + gpar[0].back());
+      double v0 = 0.5*(gpar[1].front() + gpar[1].back());
+      lrspline->point(X0,u0,v0);
+      for (unsigned char i = 0; i < nsd; i++)
+        X[i] = X0[i];
+    }
 
-		else if (integrand.getIntegrandType() == 3)
-		{
-		// --- Compute average value of basis functions over the element -------
+    // Initialize element quantities
+    LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
+    if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed,*A)) return false;
 
-			fe.Navg.resize(p1*p2,true);
-			double area = 0.0;
-			int ip = ((i2-p2)*nGauss*nel1 + i1-p1)*nGauss;
-			for (int j = 0; j < nGauss; j++, ip += nGauss*(nel1-1))
-				for (int i = 0; i < nGauss; i++, ip++)
-				{
-				// Fetch basis function derivatives at current integration point
-					extractBasis(spline[ip],fe.N,dNdu);
+    if (xr)
+    {
+      // --- Selective reduced integration loop --------------------------------
 
-					// Compute Jacobian determinant of coordinate mapping
-					// and multiply by weight of current integration point
-					double detJac = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu,false);
-					double weight = 0.25*dA*wg[i]*wg[j];
+      for (int j = 0; j < nRed; j++)
+	for (int i = 0; i < nRed; i++)
+	{
+	  // Local element coordinates of current integration point
+	  fe.xi  = xr[i];
+	  fe.eta = xr[j];
 
-					// Numerical quadrature
-					fe.Navg.add(fe.N,detJac*weight);
-					area += detJac*weight;
-				}
+	  // Parameter values of current integration point
+	  fe.u = redpar[0][i];
+	  fe.v = redpar[1][j];
 
-			// Divide by element area
-			fe.Navg /= area;
-		}
+	  // Compute basis function derivatives at current point
+	  Go::BasisDerivsSf spline;
+	  lrspline->computeBasis(fe.u,fe.v,spline,iel-1);
+	  SplineUtils::extractBasis(spline,fe.N,dNdu);
 
-		else if (integrand.getIntegrandType() == 4)
-		{
-		// Compute the element center
-			Go::Point X0;
-			double u0 = 0.5*(gpar[0](1,i1-p1+1) + gpar[0](nGauss,i1-p1+1));
-			double v0 = 0.5*(gpar[1](1,i2-p2+1) + gpar[1](nGauss,i2-p2+1));
-			lrspline->point(X0,u0,v0);
-			for (unsigned char i = 0; i < nsd; i++)
-				X[i] = X0[i];
-		}
-#endif
+	  // Compute Jacobian inverse and derivatives
+	  fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
 
-		// Initialize element quantities
-                LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-                if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed,*A)) return false;
+	  // Cartesian coordinates of current integration point
+	  X = Xnod * fe.N;
+	  X.t = time.t;
 
-		if (xr)
-		{
-		// --- Selective reduced integration loop ------------------------------
+	  // Compute the reduced integration terms of the integrand
+	  if (!integrand.reducedInt(*A,fe,X))
+	    return false;
+	}
+    }
 
-			for (int j = 0; j < nRed; j++)
-				for (int i = 0; i < nRed; i++)
-				{
-					// Local element coordinates of current integration point
-					fe.xi  = xr[i];
-					fe.eta = xr[j];
+    // --- Integration loop over all Gauss points in each direction ------------
 
-					// Parameter values of current integration point
-					fe.u = redpar[0][i];
-					fe.v = redpar[1][j];
+    int jp = (iel-1)*nGauss*nGauss;
+    fe.iGP = firstIp + jp; // Global integration point counter
 
-					// Compute basis function derivatives at current point
-					Go::BasisDerivsSf spline;
-					lrspline->computeBasis(fe.u,fe.v,spline,iel-1);
-					extractBasis(spline,fe.N,dNdu);
+    for (int j = 0; j < nGauss; j++)
+      for (int i = 0; i < nGauss; i++, fe.iGP++)
+      {
+	// Local element coordinates of current integration point
+	fe.xi  = xg[i];
+	fe.eta = xg[j];
 
-					// Compute Jacobian inverse and derivatives
-					fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+	// Parameter values of current integration point
+	fe.u = gpar[0][i];
+	fe.v = gpar[1][j];
 
-					// Cartesian coordinates of current integration point
-					X = Xnod * fe.N;
-					X.t = time.t;
-
-					// Compute the reduced integration terms of the integrand
-					if (!integrand.reducedInt(*A,fe,X))
-					  return false;
-				}
-		}
-
-		// --- Integration loop over all Gauss points in each direction ----------
-
-		for (int j = 0; j < nGauss; j++)
-			for (int i = 0; i < nGauss; i++)
-			{
-				// Local element coordinates of current integration point
-				fe.xi  = xg[i];
-				fe.eta = xg[j];
-
-				// Parameter values of current integration point
-				fe.u = gpar[0][i];
-				fe.v = gpar[1][j];
-
-				// Compute basis function derivatives at current integration point
-				if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES) {
-					Go::BasisDerivsSf2 spline;
-					lrspline->computeBasis(fe.u,fe.v,spline, iel-1);
-					extractBasis(spline,fe.N,dNdu,d2Ndu2);
-				}
-				else {
-					Go::BasisDerivsSf spline;
-					lrspline->computeBasis(fe.u,fe.v,spline, iel-1);
-					extractBasis(spline,fe.N,dNdu);
+	// Compute basis function derivatives at current integration point
+	if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES) {
+	  Go::BasisDerivsSf2 spline;
+	  lrspline->computeBasis(fe.u,fe.v,spline,iel-1);
+	  SplineUtils::extractBasis(spline,fe.N,dNdu,d2Ndu2);
+	}
+	else {
+	  Go::BasisDerivsSf spline;
+	  lrspline->computeBasis(fe.u,fe.v,spline, iel-1);
+	  SplineUtils::extractBasis(spline,fe.N,dNdu);
 #if SP_DEBUG > 4
-					std::cout <<"\nBasis functions at a integration point ";
-					std::cout <<" : (u,v) = "<< spline.param[0] <<" "<< spline.param[1]
-						  <<"  left_idx = "<< spline.left_idx[0] <<" "<< spline.left_idx[1] << std::endl;
-					for (size_t ii = 0; ii < spline.basisValues.size(); ii++)
-					  std::cout << 1+ii <<'\t'<< spline.basisValues[ii] <<'\t'
-						    << spline.basisDerivs_u[ii] <<'\t'<< spline.basisDerivs_v[ii] << std::endl;
+	  std::cout <<"\nBasis functions at a integration point "
+		    <<" : (u,v) = "<< spline.param[0] <<" "<< spline.param[1]
+		    <<"  left_idx = "<< spline.left_idx[0] <<" "<< spline.left_idx[1];
+	  for (size_t ii = 0; ii < spline.basisValues.size(); ii++)
+	    std::cout <<'\n'<< 1+ii <<'\t' << spline.basisValues[ii] <<'\t'
+		      << spline.basisDerivs_u[ii] <<'\t'<< spline.basisDerivs_v[ii];
+	  std::cout << std::endl;
 #endif
-				}
-
-				// Compute Jacobian inverse of coordinate mapping and derivatives
-				fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
-				if (fe.detJxW == 0.0) continue; // skip singular points
-		
-				// Compute Hessian of coordinate mapping and 2nd order derivatives
-				if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-					if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
-					  return false;
-
-#if SP_DEBUG > 4
-				std::cout  <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX << std::endl;
-#endif
-
-				// Cartesian coordinates of current integration point
-				X = Xnod * fe.N;
-				X.t = time.t;
-
-				// Evaluate the integrand and accumulate element contributions
-				fe.detJxW *= 0.25*dA*wg[i]*wg[j];
-                                if (!integrand.evalInt(*A,fe,time,X))
-				return false;
-			}
-
-		// Finalize the element quantities
-		if (!integrand.finalizeElement(*A,time))
-			return false;
-
-		// Assembly of global system integral
-		if (!glInt.assemble(A->ref(),fe.iel))
-			return false;
-
-                A->destruct();
 	}
 
-	return true;
+	// Compute Jacobian inverse of coordinate mapping and derivatives
+	fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+	if (fe.detJxW == 0.0) continue; // skip singular points
+
+	// Compute Hessian of coordinate mapping and 2nd order derivatives
+	if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+	  if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
+	    return false;
+
+#if SP_DEBUG > 4
+	std::cout <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
+#endif
+
+	// Cartesian coordinates of current integration point
+	X = Xnod * fe.N;
+	X.t = time.t;
+
+	// Evaluate the integrand and accumulate element contributions
+	fe.detJxW *= 0.25*dA*wg[i]*wg[j];
+	PROFILE3("Integrand::evalInt");
+	if (!integrand.evalInt(*A,fe,time,X))
+	  return false;
+      }
+
+    // Finalize the element quantities
+    if (!integrand.finalizeElement(*A,time,firstIp+jp))
+      return false;
+
+    // Assembly of global system integral
+    if (!glInt.assemble(A->ref(),fe.iel))
+      return false;
+
+    A->destruct();
+  }
+
+  return true;
+}
+
+
+bool ASMu2D::integrate (Integrand& integrand,
+                        GlobalIntegral& glInt,
+                        const TimeDomain& time,
+                        const Real3DMat& itgPts)
+{
+  if (!lrspline) return true; // silently ignore empty patches
+
+  if (integrand.getReducedIntegration() != 0)
+  {
+    std::cerr <<" *** ASMu2D::integrate(Integrand&,GlobalIntegral&,"
+              <<"const TimeDomain&,const Real3DMat&): Available for standard"
+              <<" integrands only."<< std::endl;
+    return false;
+  }
+
+  PROFILE2("ASMu2D::integrate(I)");
+
+  std::vector<size_t> MPitg(itgPts.size()+1,0);
+  for (size_t i = MPitg.front() = 0; i < itgPts.size(); i++)
+    MPitg[i+1] = MPitg[i] + itgPts[i].size();
+
+  Matrix   dNdu, Xnod, Jac;
+  Matrix3D d2Ndu2, Hess;
+  Vec4     X;
+
+
+  // === Assembly loop over all elements in the patch ==========================
+
+  std::vector<LR::Element*>::iterator el = lrspline->elementBegin();
+  for (int iel = 1; el != lrspline->elementEnd(); el++, iel++)
+  {
+    FiniteElement fe(MNPC[iel-1].size());
+    fe.iel = MLGE[iel-1];
+
+    // Get element area in the parameter space
+    double dA = this->getParametricArea(iel);
+    if (dA < 0.0) return false; // topology error (probably logic error)
+
+    // Set up control point (nodal) coordinates for current element
+    if (!this->getElementCoordinates(Xnod,iel)) return false;
+
+    if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+      this->getElementCorners(iel,fe.XC);
+
+    if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
+    {
+      // Compute the element center
+      this->getElementCorners(iel,fe.XC);
+      X = 0.25*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]);
+    }
+
+    // Initialize element quantities
+    LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
+    if (!integrand.initElement(MNPC[iel-1],X,0,*A)) return false;
+
+
+    // --- Integration loop over all quadrature points in this element ---------
+
+    size_t jp = MPitg[iel-1]; // Patch-wise integration point counter
+    fe.iGP = firstIp + jp;    // Global integration point counter
+
+    const Real2DMat& elmPts = itgPts[iel-1]; // points for current element
+    for (size_t ip = 0; ip < elmPts.size(); ip++, jp++, fe.iGP++)
+    {
+      // Parameter values of current integration point
+      fe.u = elmPts[ip][0];
+      fe.v = elmPts[ip][1];
+
+	// Compute basis function derivatives at current integration point
+      if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES) {
+	Go::BasisDerivsSf2 spline;
+	lrspline->computeBasis(fe.u,fe.v,spline,iel-1);
+	SplineUtils::extractBasis(spline,fe.N,dNdu,d2Ndu2);
+      }
+      else {
+	Go::BasisDerivsSf spline;
+	lrspline->computeBasis(fe.u,fe.v,spline,iel-1);
+	SplineUtils::extractBasis(spline,fe.N,dNdu);
+      }
+
+      // Compute Jacobian inverse of coordinate mapping and derivatives
+      fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+      if (fe.detJxW == 0.0) continue; // skip singular points
+
+      // Compute Hessian of coordinate mapping and 2nd order derivatives
+      if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+	if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
+	  return false;
+
+#if SP_DEBUG > 4
+      std::cout <<"\niel, ip = "<< iel <<" "<< ip
+		<<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
+#endif
+
+      // Cartesian coordinates of current integration point
+      X = Xnod * fe.N;
+      X.t = time.t;
+
+      // Evaluate the integrand and accumulate element contributions
+      fe.detJxW *= 0.25*dA*elmPts[ip][2];
+      PROFILE3("Integrand::evalInt");
+      if (!integrand.evalInt(*A,fe,time,X))
+	return false;
+    }
+
+    // Finalize the element quantities
+    if (!integrand.finalizeElement(*A,time,firstIp+MPitg[iel]))
+      return false;
+
+    // Assembly of global system integral
+    if (!glInt.assemble(A->ref(),fe.iel))
+      return false;
+
+    A->destruct();
+  }
+
+  return true;
 }
 
 
@@ -965,117 +1013,128 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
                         GlobalIntegral& glInt,
                         const TimeDomain& time)
 {
-	if (!lrspline) return true; // silently ignore empty patches
+  if (!lrspline) return true; // silently ignore empty patches
 
-	PROFILE2("ASMu2D::integrate(B)");
+  PROFILE2("ASMu2D::integrate(B)");
 
-	// Get Gaussian quadrature points and weights
-	const double* xg = GaussQuadrature::getCoord(nGauss);
-	const double* wg = GaussQuadrature::getWeight(nGauss);
-	if (!xg || !wg) return false;
+  // Get Gaussian quadrature points and weights
+  int nGP = integrand.getBouIntegrationPoints(nGauss);
+  const double* xg = GaussQuadrature::getCoord(nGP);
+  const double* wg = GaussQuadrature::getWeight(nGP);
+  if (!xg || !wg) return false;
 
-	// Find the parametric direction of the edge normal {-2,-1, 1, 2}
-	const int edgeDir = (lIndex+1)/(lIndex%2 ? -2 : 2);
+  // Find the parametric direction of the edge normal {-2,-1, 1, 2}
+  const int edgeDir = (lIndex+1)/(lIndex%2 ? -2 : 2);
 
-	const int t1 = abs(edgeDir);   // Tangent direction normal to the patch edge
-	const int t2 = 3-abs(edgeDir); // Tangent direction along the patch edge
+  const int t1 = abs(edgeDir);   // Tangent direction normal to the patch edge
+  const int t2 = 3-abs(edgeDir); // Tangent direction along the patch edge
 
-	// Compute const edge parameter values of the Gauss points along the whole patch edge
-	Vector gpar[2];
-	for (int d = 0; d < 2; d++)
-		if (-1-d == edgeDir)
-		{
-			gpar[d].resize(nGauss);
-			gpar[d].fill(d == 0 ? lrspline->startparam(0) : lrspline->startparam(1));
-		}
-		else if (1+d == edgeDir)
-		{
-			gpar[d].resize(nGauss);
-			gpar[d].fill(d == 0 ? lrspline->endparam(0) : lrspline->endparam(1));
-		}
+  Vector gpar[2];
+  for (int d = 0; d < 2; d++)
+    if (-1-d == edgeDir)
+    {
+      gpar[d].resize(1);
+      gpar[d].fill(d == 0 ? lrspline->startparam(0) : lrspline->startparam(1));
+    }
+    else if (1+d == edgeDir)
+    {
+      gpar[d].resize(1);
+      gpar[d].fill(d == 0 ? lrspline->endparam(0) : lrspline->endparam(1));
+    }
 
-	Matrix dNdu, Xnod, Jac;
-	Vec4   X;
-	Vec3   normal;
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
+  size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
-	// === Assembly loop over all elements on the patch edge =====================
+  Matrix dNdu, Xnod, Jac;
+  Vec4   X;
+  Vec3   normal;
 
-	std::vector<LR::Element*>::iterator el = lrspline->elementBegin();
-	for (int iel = 1; el != lrspline->elementEnd(); el++, iel++)
-	{
-		// Skip elements that are not on current boundary edge
-		bool skipMe = false;
-		switch (edgeDir)
-		{
-			case -1: if ((**el).umin() != lrspline->startparam(0)) skipMe = true; break;
-			case  1: if ((**el).umax() != lrspline->endparam(0)  ) skipMe = true; break;
-			case -2: if ((**el).vmin() != lrspline->startparam(1)) skipMe = true; break;
-			case  2: if ((**el).vmax() != lrspline->endparam(1)  ) skipMe = true; break;
-		}
-		if (skipMe) continue;
 
-		// Get element edge length in the parameter space
-		double dS = this->getParametricLength(iel,t1);
-		if (dS < 0.0) return false; // topology error (probably logic error)
+  // === Assembly loop over all elements on the patch edge =====================
 
-		// Set up control point coordinates for current element
-		if (!this->getElementCoordinates(Xnod,iel)) return false;
+  std::vector<LR::Element*>::iterator el = lrspline->elementBegin();
+  for (int iel = 1; el != lrspline->elementEnd(); el++, iel++)
+  {
+    // Skip elements that are not on current boundary edge
+    bool skipMe = false;
+    switch (edgeDir)
+    {
+    case -1: if ((*el)->umin() != lrspline->startparam(0)) skipMe = true; break;
+    case  1: if ((*el)->umax() != lrspline->endparam(0)  ) skipMe = true; break;
+    case -2: if ((*el)->vmin() != lrspline->startparam(1)) skipMe = true; break;
+    case  2: if ((*el)->vmax() != lrspline->endparam(1)  ) skipMe = true; break;
+    }
+    if (skipMe) continue;
 
-		// Initialize element quantities
-		FiniteElement fe((**el).nBasisFunctions());
-		fe.iel = MLGE[iel-1];
-		fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
-                LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-                if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;
+    // Get element edge length in the parameter space
+    double dS = this->getParametricLength(iel,t1);
+    if (dS < 0.0) return false; // topology error (probably logic error)
 
-		// get integration gauss points over this element
-		int dim = 2-abs(edgeDir);
-		this->getGaussPointParameters(gpar[dim],dim,nGauss,iel,xg);
+    // Set up control point coordinates for current element
+    if (!this->getElementCoordinates(Xnod,iel)) return false;
 
-		// --- Integration loop over all Gauss points along the edge -------------
+    // Initialize element quantities
+    FiniteElement fe((**el).nBasisFunctions());
+    fe.iel = MLGE[iel-1];
+    fe.xi = fe.eta = edgeDir < 0 ? -1.0 : 1.0;
+    LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
+    if (!integrand.initElementBou(MNPC[iel-1],*A)) return false;
 
-		for (int i = 0; i < nGauss; i++)
-		{
-			// Local element coordinates and parameter values
-			// of current integration point
-			if(dim==0)
-				fe.xi = xg[i];
-			else
-				fe.eta = xg[i];
-			fe.u = gpar[0][i];
-			fe.v = gpar[1][i];
+    // Get integration gauss points over this element
+    this->getGaussPointParameters(gpar[t2-1],t2-1,nGP,iel,xg);
 
-			// Evaluate basis function derivatives at current integration points
-			Go::BasisDerivsSf spline;
-			lrspline->computeBasis(fe.u, fe.v, spline, iel-1);
 
-			// Fetch basis function derivatives at current integration point
-			extractBasis(spline,fe.N,dNdu);
+    // --- Integration loop over all Gauss points along the edge -------------
 
-			// Compute basis function derivatives and the edge normal
-			fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
-			if (fe.detJxW == 0.0) continue; // skip singular points
+    fe.iGP = firstp; // Global integration point counter
+    firstp += nGP;
 
-			if (edgeDir < 0) normal *= -1.0;
+    for (int i = 0; i < nGP; i++)
+    {
+      // Local element coordinates and parameter values
+      // of current integration point
+      if (t2 == 1)
+      {
+	fe.xi = xg[i];
+	fe.u = gpar[0][i];
+      }
+      else
+      {
+	fe.eta = xg[i];
+	fe.v = gpar[1][i];
+      }
 
-			// Cartesian coordinates of current integration point
-			X = Xnod * fe.N;
-			X.t = time.t;
+      // Evaluate basis function derivatives at current integration points
+      Go::BasisDerivsSf spline;
+      lrspline->computeBasis(fe.u, fe.v, spline, iel-1);
 
-			// Evaluate the integrand and accumulate element contributions
-			fe.detJxW *= 0.5*dS*wg[i];
-                        if (!integrand.evalBou(*A,fe,time,X,normal))
-				return false;
-		}
+      // Fetch basis function derivatives at current integration point
+      SplineUtils::extractBasis(spline,fe.N,dNdu);
 
-		// Assembly of global system integral
-		if (!glInt.assemble(A,fe.iel))
-			return false;
+      // Compute basis function derivatives and the edge normal
+      fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
+      if (fe.detJxW == 0.0) continue; // skip singular points
 
-		A->destruct();
-	}
+      if (edgeDir < 0) normal *= -1.0;
 
-	return true;
+      // Cartesian coordinates of current integration point
+      X = Xnod * fe.N;
+      X.t = time.t;
+
+      // Evaluate the integrand and accumulate element contributions
+      fe.detJxW *= 0.5*dS*wg[i];
+      if (!integrand.evalBou(*A,fe,time,X,normal))
+	return false;
+    }
+
+    // Assembly of global system integral
+    if (!glInt.assemble(A,fe.iel))
+      return false;
+
+    A->destruct();
+  }
+
+  return true;
 }
 
 
@@ -1239,16 +1298,16 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
                            const int* npe) const
 {
 #ifdef SP_DEBUG
-	std::cout << "ASMu2D::evalSolution(Matrix, Vector, int* )\n";
+  std::cout <<"ASMu2D::evalSolution(Matrix&,const Vector&,const int*)\n";
 #endif
-	// Compute parameter values of the result sampling points
-	RealArray gpar[2];
-	for (int dir = 0; dir < 2; dir++)
-		if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
-			return false;
+  // Compute parameter values of the result sampling points
+  RealArray gpar[2];
+  for (int dir = 0; dir < 2; dir++)
+    if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
+      return false;
 
-	// Evaluate the primary solution at all sampling points
-	return this->evalSolution(sField,locSol,gpar);
+  // Evaluate the primary solution at all sampling points
+  return this->evalSolution(sField,locSol,gpar);
 }
 
 
@@ -1256,7 +1315,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
                            const RealArray* gpar, bool) const
 {
 #ifdef SP_DEBUG
-	std::cout <<"ASMu2D::evalSolution(Matrix&,const Vector&,const RealArray*,bool)\n";
+  std::cout <<"ASMu2D::evalSolution(Matrix&,const Vector&,const RealArray*,bool)\n";
 #endif
 	size_t nComp = locSol.size() / this->getNoNodes();
 	if (nComp*this->getNoNodes() != locSol.size())
@@ -1273,21 +1332,18 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 	sField.resize(nComp,nPoints);
 	for (size_t i = 0; i < nPoints; i++)
 	{
-		// fetch element containing evaluation point
-		// int iel = i/nPtsPerElement; // points are always listed in the same order as the elemnts
-		int iel = (workingEl>=0) ? workingEl : lrspline->getElementContaining(gpar[0][i], gpar[1][i]); // sadly, they are not always ordered in the same way as the elements
+	  // fetch element containing evaluation point
+	  // sadly, points are not always ordered in the same way as elements
+	  int iel = lrspline->getElementContaining(gpar[0][i], gpar[1][i]);
 
-		// fetch index of non-zero basis functions on this element
-		const IntVec& ip = myMNPC[iel];
+	  // evaluate the basis functions at current parametric point
+	  Go::BasisPtsSf spline;
+	  lrspline->computeBasis(gpar[0][i], gpar[1][i], spline, iel);
 
-		// evaluate the basis functions at current parametric point
-		Go::BasisPtsSf spline;
-		lrspline->computeBasis(gpar[0][i], gpar[1][i], spline, iel);
-
-		// Now evaluate the solution field
-		utl::gather(ip,nComp,locSol,Xtmp);
-		Xtmp.multiply(spline.basisValues,Ytmp);
-		sField.fillColumn(1+i,Ytmp);
+	  // Now evaluate the solution field
+	  utl::gather(MNPC[iel],nComp,locSol,Xtmp);
+	  Xtmp.multiply(spline.basisValues,Ytmp);
+	  sField.fillColumn(1+i,Ytmp);
 		// std::cout << "u(" << gpar[0][i] << ", " << gpar[1][i] << ") = " << Ytmp << "\n";
 		// std::cout << "Xtmp = " << Xtmp << std::endl;
 		// std::cout << "ip   = [" ;
@@ -1369,103 +1425,65 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                            const RealArray* gpar, bool) const
 {
 #ifdef SP_DEBUG
-	std::cout <<"ASMu2D::evalSolution(Matrix&,const Integrand&,const RealArray*,bool)\n";
+  std::cout <<"ASMu2D::evalSolution(Matrix&,const IntegrandBase&,const RealArray*,bool)\n";
 #endif
 
-	sField.resize(0,0);
+  sField.resize(0,0);
 
-	// TODO: investigate the possibility of doing "regular" refinement by
-	//       uniform tesselation grid and ignoring LR mesh lines
+  // TODO: investigate the possibility of doing "regular" refinement by
+  //       uniform tesselation grid and ignoring LR mesh lines
 
-	if (gpar[0].size() != gpar[1].size())
-		return false;
+  size_t nPoints = gpar[0].size();
+  bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
+  if (nPoints != gpar[1].size())
+    return false;
 
-	Vector   solPt;
-	Matrix   dNdu, dNdX, Jac, Xnod;
-	Matrix3D d2Ndu2, d2NdX2, Hess;
+  Vector   solPt;
+  Matrix   dNdu, Jac, Xnod;
+  Matrix3D d2Ndu2, Hess;
 
-	size_t nPoints = gpar[0].size();
-	bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
+  // Evaluate the secondary solution field at each point
+  for (size_t i = 0; i < nPoints; i++)
+  {
+    // Fetch element containing evaluation point
+    // sadly, points are not always ordered in the same way as the elements
+    int iel = lrspline->getElementContaining(gpar[0][i],gpar[1][i]);
 
-	// Evaluate the secondary solution field at each point
-	for (size_t i = 0; i < nPoints; i++)
-	{
-		// Fetch element containing evaluation point. Points are always listed
-		// int iel = i/nPtsPerElement; // in the same order as the elements
-		int iel = (workingEl>=0) ? workingEl : lrspline->getElementContaining(gpar[0][i], gpar[1][i]); // sadly, they are not always ordered in the same way as the elements
-		double u = gpar[0][i];
-		double v = gpar[1][i];
-		/*
-		if( i%npe == npe-1 )
-			u -= edge_epsilon*du;
-		if( (i%nPtsPerElement) / npe == npe-1)
-			v -= edge_epsilon*dv;
-		*/
+    // Evaluate the basis functions at current parametric point
+    FiniteElement fe(lrspline->getElement(iel)->nBasisFunctions());
+    if (use2ndDer)
+    {
+      Go::BasisDerivsSf2 spline;
+      lrspline->computeBasis(gpar[0][i],gpar[1][i],spline,iel);
+      SplineUtils::extractBasis(spline,fe.N,dNdu,d2Ndu2);
+    }
+    else
+    {
+      Go::BasisDerivsSf spline;
+      lrspline->computeBasis(gpar[0][i],gpar[1][i],spline,iel);
+      SplineUtils::extractBasis(spline,fe.N,dNdu);
+    }
 
-		// Evaluate the basis functions at current parametric point
-		Vector N(lrspline->getElement(iel)->nBasisFunctions());
-		if (use2ndDer)
-		{
-			Go::BasisDerivsSf2 spline;
-			lrspline->computeBasis(u, v, spline,iel);
-			extractBasis(spline,N,dNdu,d2Ndu2);
-		}
-		else
-		{
-			Go::BasisDerivsSf spline;
-			lrspline->computeBasis(u, v, spline,iel);
-			extractBasis(spline,N,dNdu);
-			/*
-			if(u==1.0 ) {
-				std::cout << "*** Evaluating at u==1 ***\n";
-				printf("(%.3f, %.3f) in element #%d\n", u,v, iel);
-				el->write(std::cout);
-				std::cout << std::endl;
-				std::vector<LR::Basisfunction*>::iterator b;
-				for(b=el->supportBegin(); b!=el->supportEnd(); b++) {
-					std::cout << "   ";
-					(*b)->write(std::cout);
-					std::cout << std::endl;
-				}
-			}
-			*/
-		}
+    // Set up control point (nodal) coordinates for current element
+    if (!this->getElementCoordinates(Xnod,iel+1)) return false;
 
-		// Set up control point (nodal) coordinates for current element
-		if (!this->getElementCoordinates(Xnod,iel+1)) return false;
+    // Compute the Jacobian inverse
+    if (utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu) == 0.0) // Jac = (Xnod * dNdu)^-1
+      continue; // skip singular points
 
-		// Compute the Jacobian inverse
-		if (utl::Jacobian(Jac,dNdX,Xnod,dNdu) == 0.0) // Jac = (Xnod * dNdu)^-1
-			continue; // skip singular points
+    // Compute Hessian of coordinate mapping and 2nd order derivatives
+    if (use2ndDer)
+      if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
+	continue;
 
-		// Compute Hessian of coordinate mapping and 2nd order derivatives
-		if (use2ndDer)
-			if (!utl::Hessian(Hess,d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
-				continue;
+    // Now evaluate the solution field
+    if (!integrand.evalSol(solPt,fe,Xnod*fe.N,MNPC[iel]))
+      return false;
+    else if (sField.empty())
+      sField.resize(solPt.size(),nPoints,true);
 
-		// Now evaluate the solution field
-		if (!integrand.evalSol(solPt,N,dNdX,d2NdX2,Xnod*N,myMNPC[iel]))
-			return false;
-		else if (sField.empty())
-			sField.resize(solPt.size(),nPoints,true);
-
-		sField.fillColumn(1+i,solPt);
-	}
-
-	return true;
-}
-
-
-void ASMu2D::getElementCorners(int iel, std::vector<Vec3>& XC)
-{
-  LR::Element* el = lrspline->getElement(iel-1);
-  double u[4] = {el->umin(), el->umax(), el->umin(), el->umax()};
-  double v[4] = {el->vmin(), el->vmin(), el->vmax(), el->vmax()};
-  XC.resize(4);
-  for (int i=0; i < 4; ++i) {
-    Go::Point point;
-    lrspline->point(point,u[i],v[i],iel-1);
-    for (unsigned char d = 0; d < 2; d++)
-      XC[i][d] = point[d];
+    sField.fillColumn(1+i,solPt);
   }
+
+  return true;
 }

@@ -1816,7 +1816,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 
 #if SP_DEBUG > 4
               std::cout <<"\niel, ip = "<< iel <<" "<< ip
-                        <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX << std::endl;
+                        <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
 #endif
 
               // Cartesian coordinates of current integration point
@@ -1856,7 +1856,7 @@ bool ASMs3D::integrate (Integrand& integrand,
   if (integrand.getReducedIntegration() != 0)
   {
     std::cerr <<" *** ASMs3D::integrate(Integrand&,GlobalIntegral&,"
-              <<"const TimeDomain&,const Matrix&): Available for standard"
+              <<"const TimeDomain&,const Real3DMat&): Available for standard"
               <<" integrands only."<< std::endl;
     return false;
   }
@@ -1881,11 +1881,6 @@ bool ASMs3D::integrate (Integrand& integrand,
       else
         svol->computeBasis(itgPt[0],itgPt[1],itgPt[2],spline[k]);
     }
-
-#if SP_DEBUG > 4
-  for (i = 0; i < spline.size(); i++)
-    std::cout <<"\nBasis functions at integration point "<< 1+i << spline[i];
-#endif
 
   const int n1 = svol->numCoefs(0);
   const int n2 = svol->numCoefs(1);
@@ -2000,7 +1995,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 
 #if SP_DEBUG > 4
           std::cout <<"\niel, jp = "<< iel <<" "<< jp
-                    <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX << std::endl;
+                    <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
 #endif
 
           // Cartesian coordinates of current integration point

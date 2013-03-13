@@ -14,7 +14,10 @@
 #include "ASMunstruct.h"
 
 #ifndef HAS_LRSPLINE
-namespace LR { class LRSpline {}; }
+namespace LR {
+  //! \brief Dummy class, referred only when built without LR-Spline support.
+  class LRSpline {};
+}
 #endif
 
 

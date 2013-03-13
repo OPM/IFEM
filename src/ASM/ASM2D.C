@@ -18,7 +18,7 @@
 #include "ASMs2DmxLag.h"
 #include "ASMs2DSpec.h"
 #ifdef HAS_LRSPLINE
-#include "LR/ASMu2D.h"
+#include "LR/ASMu2DIB.h"
 #endif
 
 
@@ -40,7 +40,10 @@ ASMbase* ASM2D::create (ASM::Discretization discretization,
 
 #ifdef HAS_LRSPLINE
   case ASM::LRSpline:
-    return new ASMu2D(2,nf[0]);
+    if (nf[1] == 'I') // hack for immersed boundary approach
+      return new ASMu2DIB(2,nf[0],nf[2]);
+    else
+      return new ASMu2D(2,nf[0]);
 #endif
 
   default:
@@ -73,6 +76,7 @@ ASMbase* ASM2D::clone (unsigned char* nf) const
   TRY_CLONE1(ASMs2DIB,nf)
   TRY_CLONE1(ASMs2D,nf)
 #ifdef HAS_LRSPLINE
+  TRY_CLONE1(ASMu2DIB,nf)
   TRY_CLONE1(ASMu2D,nf)
 #endif
 

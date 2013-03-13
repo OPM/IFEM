@@ -41,7 +41,9 @@ ASMbase::ASMbase (unsigned char n_p, unsigned char n_s, unsigned char n_f)
   nsd = n_s > 3 ? 3 : n_s;
   ndim = n_p > nsd ? nsd : n_p;
   nLag = 0;
+  nGauss = 0;
   idx = 0;
+  firstIp = 0;
   nXelm = 0;
   myLMs.first = myLMs.second = 0;
 }
@@ -54,7 +56,9 @@ ASMbase::ASMbase (const ASMbase& patch, unsigned char n_f)
   nsd = patch.nsd;
   ndim = patch.ndim;
   nLag = patch.nLag;
+  nGauss = patch.nGauss;
   idx = patch.idx;
+  firstIp = patch.firstIp;
   nXelm = patch.nXelm;
   myLMs = patch.myLMs;
   // Note: Properties are _not_ copied
@@ -200,6 +204,30 @@ size_t ASMbase::getNoElms (bool includeZeroVolumeElms) const
     if (MLGE[i] > 0) nel++;
 
   return nel;
+}
+
+
+void ASMbase::getNoIntPoints (size_t& nPt)
+{
+  size_t nGp = 1;
+  for (unsigned char d = 0; d < ndim; d++)
+    nGp *= nGauss;
+
+  firstIp = nPt;
+
+  nPt += this->getNoElms(true)*nGp; // Note: Includes also the 0-span elements
+}
+
+
+void ASMbase::getNoBouPoints (size_t& nPt, char ldim, char lindx)
+{
+  size_t nGp = 1;
+  for (char d = 0; d < ldim; d++)
+    nGp *= nGauss;
+
+  firstBp[lindx] = nPt;
+
+  nPt += this->getNoBoundaryElms(lindx,ldim)*nGp; // Includes 0-span elements
 }
 
 

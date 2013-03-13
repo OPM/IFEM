@@ -76,11 +76,6 @@ public:
   //! \param[in] integrand Object with problem-specific data and methods
   virtual LR::LRSpline* evalSolution(const IntegrandBase& integrand) const = 0;
 
-  //! \brief Computes the total number of integration points in this patch.
-  virtual void getNoIntPoints(size_t& nPt) { nPt = 0; } // later...
-  //! \brief Computes the number of boundary integration points in this patch.
-  virtual void getNoBouPoints(size_t& nPt, char, char) { nPt = 0; } // later...
-
 protected:
   LR::LRSpline* geo; //!< Pointer to the actual spline geometry object
 
@@ -89,4 +84,3 @@ protected:
 };
 
 #endif
-

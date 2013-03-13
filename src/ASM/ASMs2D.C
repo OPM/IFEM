@@ -1505,7 +1505,9 @@ bool ASMs2D::integrate (Integrand& integrand,
 
 #if SP_DEBUG > 4
             std::cout <<"\niel, ip = "<< iel <<" "<< ip
-                      <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX << std::endl;
+                      <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
+            if (!fe.d2NdX2.empty())
+              std::cout <<"d2NdX2 ="<< fe.d2NdX2;
 #endif
 
             // Cartesian coordinates of current integration point
@@ -1514,6 +1516,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= dA*wg[i]*wg[j];
+            PROFILE3("Integrand::evalInt");
             if (!integrand.evalInt(*A,fe,time,X))
               ok = false;
           }
@@ -1677,7 +1680,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 
 #if SP_DEBUG > 4
           std::cout <<"\niel, jp = "<< iel <<" "<< jp
-                    <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX << std::endl;
+                    <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
 #endif
 
           // Cartesian coordinates of current integration point
@@ -1686,6 +1689,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 
           // Evaluate the integrand and accumulate element contributions
           fe.detJxW *= dA*elmPts[ip][2];
+          PROFILE3("Integrand::evalInt");
           if (!integrand.evalInt(*A,fe,time,X))
             ok = false;
         }
