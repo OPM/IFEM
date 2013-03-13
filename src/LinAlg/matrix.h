@@ -620,10 +620,12 @@ namespace utl //! General utility classes and functions.
     //! \brief Constructor creating an empty matrix.
     matrix3d() { n[0] = n[1] = n[2] = 0; }
     //! \brief Constructor creating a matrix of dimension
-    // \f$n_1 \times n_2 \times n_3\f$.
-    matrix3d(size_t n_1, size_t n_2, size_t n_3)
+    //! \f$n_1 \times n_2 \times n_3\f$.
+    matrix3d(size_t n_1, size_t n_2, size_t n_3) : elem(n_1*n_2*n_3)
     {
-      n[0] = n_1; n[1] = n_2; n[2] = n_3; elem.resize(n_1*n_2*n_3);
+      n[0] = n_1;
+      n[1] = n_2;
+      n[2] = n_3;
     }
 
     //! \brief Resize the matrix to dimension \f$n_1 \times n_2 \times n_3\f$.
@@ -1351,7 +1353,8 @@ namespace utl //! General utility classes and functions.
   //! is used as a tolerance in this method.
   template<class T> inline T trunc(const T& v)
   {
-    return v > T(zero_print_tol) || v < T(-zero_print_tol) ? v : T(0);
+    return v > T(zero_print_tol) || v < T(-zero_print_tol) || std::isnan(v) ?
+           v : T(0);
   }
 
   //! \brief Print the vector \b X to the stream \a s.
@@ -1387,6 +1390,27 @@ namespace utl //! General utility classes and functions.
     }
 
     return s << std::endl;
+  }
+
+  //! \brief Print the 3D matrix \b A to the stream \a s.
+  //! \details The matrix is priinted as a set of 2D sub-matrices
+  //! based on the first two indices.
+  template<class T> std::ostream& operator<<(std::ostream& s,
+					     const matrix3d<T>& A)
+  {
+    if (A.empty())
+      return s <<" (empty)"<< std::endl;
+
+    matrix<T> B(A.dim(1),A.dim(2));
+    const T* Aptr = A.ptr();
+    for (size_t k = 0; k < A.dim(3); k++, Aptr += B.size())
+    {
+      B.fill(Aptr);
+      if (k == 0) s <<"\n";
+      s <<"i3="<< k+1 <<":"<< B;
+    }
+
+    return s;
   }
 
   //! \brief Print the vector \b X to the stream \a s in matlab format.

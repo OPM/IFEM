@@ -791,6 +791,7 @@ protected:
 
   std::vector<DumpData> lhsDump; //!< Coefficient matrix dump specifications
   std::vector<DumpData> rhsDump; //!< Right-hand-side vector dump specifications
+  std::vector<DumpData> solDump; //!< Solution vector dump specifications
 
   // Parallel computing attributes
   int               nGlPatches; //!< Number of global patches

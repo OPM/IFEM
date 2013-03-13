@@ -359,7 +359,8 @@ bool SIMbase::parseOutputTag (const TiXmlElement* elem)
   std::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
   if (!strcasecmp(elem->Value(),"dump_lhs_matrix") ||
-      !strcasecmp(elem->Value(),"dump_rhs_vector")) {
+      !strcasecmp(elem->Value(),"dump_rhs_vector") ||
+      !strcasecmp(elem->Value(),"dump_sol_vector")) {
     if (elem->FirstChild() && noDumpDataYet) {
       DumpData dmp;
       std::string format;
@@ -368,9 +369,11 @@ bool SIMbase::parseOutputTag (const TiXmlElement* elem)
       dmp.format = format[0];
       dmp.fname = elem->FirstChild()->Value();
       if (toupper(elem->Value()[5]) == 'R')
-	rhsDump.push_back(dmp);
+        rhsDump.push_back(dmp);
+      else if (toupper(elem->Value()[5]) == 'L')
+        lhsDump.push_back(dmp);
       else
-	lhsDump.push_back(dmp);
+        solDump.push_back(dmp);
     }
   }
   else if (strcasecmp(elem->Value(),"resultpoints"))
@@ -1497,6 +1500,15 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
     PROFILE1("Equation solving");
     if (!A->solve(*b,newLHS)) return false;
   }
+
+  // Dump solution vector to file, if requested
+  for (it = solDump.begin(); it != solDump.end(); it++)
+    if (it->doDump()) {
+      std::cout <<"\nDumping solution vector to file "<< it->fname << std::endl;
+      std::ofstream os(it->fname.c_str());
+      os << std::setprecision(17);
+      b->dump(os,it->format,"b");
+    }
 
   // Expand solution vector from equation ordering to DOF-ordering
   if (!mySam->expandSolution(*b,solution)) return false;
