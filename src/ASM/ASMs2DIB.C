@@ -61,6 +61,12 @@ void ASMs2DIB::addHole (double R, double Xc, double Yc)
 }
 
 
+ElementBlock* ASMs2DIB::immersedGeometry () const
+{
+  return myGeometry ? myGeometry->tesselate() : NULL;
+}
+
+
 void ASMs2DIB::getNoIntPoints (size_t& nPt)
 {
   nPt = 0;

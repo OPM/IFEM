@@ -1920,7 +1920,7 @@ bool SIMbase::writeGlvG (int& nBlock, const char* inpFile)
     myVtf->clearGeometryBlocks();
 
   // Convert and write model geometry
-  char pname[16];
+  char pname[32];
   for (size_t i = 0; i < myModel.size(); i++)
   {
     if (myModel[i]->empty()) continue; // skip empty patches
@@ -1935,6 +1935,13 @@ bool SIMbase::writeGlvG (int& nBlock, const char* inpFile)
     sprintf(pname,"Patch %ld",i+1);
     if (!myVtf->writeGrid(lvb,pname,++nBlock))
       return false;
+
+    if ((lvb = myModel[i]->immersedGeometry()))
+    {
+      sprintf(pname,"Immersed boundary %ld",i+1);
+      if (!myVtf->writeGrid(lvb,pname,++nBlock))
+        return false;
+    }
   }
 
   // Do not write the geometry blocks to file yet, writeVectors might create

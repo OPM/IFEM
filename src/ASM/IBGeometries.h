@@ -48,6 +48,9 @@ public:
   //! Alpha = 1.0 if the point is lying inside the physical domain
   virtual double Alpha(double X, double Y, double = 0.0) const;
 
+  //! \brief Creates a finite element model of the geometry for visualization.
+  virtual ElementBlock* tesselate() const;
+
 private:
   double R;  //!< Hole radius
   double Xc; //!< X-coordinate of hole center
@@ -74,6 +77,9 @@ public:
 
   //! \brief Performs the inside-outside test for the perforated plate object.
   virtual double Alpha(double X, double Y, double = 0.0) const;
+
+  //! \brief Creates a finite element model of the geometry for visualization.
+  virtual ElementBlock* tesselate() const;
 
 private:
   std::vector<Hole2D> holes; //!< The holes that perforate the plate

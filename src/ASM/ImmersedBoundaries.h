@@ -20,6 +20,8 @@
 
 #include <vector>
 
+class ElementBlock;
+
 //! A real-valued array without algebraic operations
 typedef std::vector<Real>      RealArray;
 //! A real-valued two-dimensional array without algebraic operations
@@ -46,6 +48,9 @@ namespace Immersed //! Utilities for immersed boundary calculations
     //! Alpha = 0.0 if the point is lying directly on the boundary
     //! Alpha = 1.0 if the point is lying inside the physical domain
     virtual double Alpha(double X, double Y, double Z = 0.0) const = 0;
+
+    //! \brief Creates a finite element model of the geometry for visualization.
+    virtual ElementBlock* tesselate() const { return 0; }
   };
 
   //! \brief Returns the coordinates and weights for the quadrature points.

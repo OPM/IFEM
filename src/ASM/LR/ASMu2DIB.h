@@ -39,6 +39,9 @@ public:
   //! \param[in] Yc Y-coordinate of the hole centre
   virtual void addHole(double R, double Xc, double Yc);
 
+  //! \brief Returns an additional geometry to visualize (immersed boundaries).
+  virtual ElementBlock* immersedGeometry() const;
+
   //! \brief Computes the total number of integration points in this patch.
   virtual void getNoIntPoints(size_t& nPt);
 

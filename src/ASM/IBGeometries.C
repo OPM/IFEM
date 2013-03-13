@@ -13,7 +13,7 @@
 //==============================================================================
 
 #include "IBGeometries.h"
-#include <cstddef>
+#include "ElementBlock.h"
 
 
 double Hole2D::Alpha (double X, double Y, double) const
@@ -41,4 +41,46 @@ double PerforatedPlate2D::Alpha (double X, double Y, double) const
     alpha = holes[i].Alpha(X,Y);
 
   return alpha;
+}
+
+
+ElementBlock* Hole2D::tesselate () const
+{
+  size_t i, nseg = 360;
+  double theta = 0.0, dt = 2.0*M_PI/(double)nseg;
+
+  ElementBlock* grid = new ElementBlock(2);
+  grid->unStructResize(nseg,nseg);
+
+  for (i = 0; i < nseg; i++, theta += dt)
+    grid->setCoor(i,Xc+R*cos(theta),Yc+R*sin(theta),0.01);
+
+  int n[2] = { 0, 1 };
+  int l, ip = 0;
+  for (i = 1; i < nseg; i++)
+    for (l = 0; l < 2; l++)
+      grid->setNode(ip++,n[l]++);
+
+  grid->setNode(ip++,n[0]);
+  grid->setNode(ip++,0);
+
+  return grid;
+}
+
+
+ElementBlock* PerforatedPlate2D::tesselate () const
+{
+  if (holes.empty())
+    return new ElementBlock(2);
+
+  ElementBlock* grid = holes.front().tesselate();
+  for (size_t i = 1; i < holes.size(); i++)
+  {
+    ElementBlock* g2 = holes[i].tesselate();
+    std::vector<int> nodes;
+    grid->merge(g2,nodes);
+    delete g2;
+  }
+
+  return grid;
 }

@@ -62,6 +62,12 @@ void ASMu2DIB::addHole (double R, double Xc, double Yc)
 }
 
 
+ElementBlock* ASMu2DIB::immersedGeometry () const
+{
+  return myGeometry ? myGeometry->tesselate() : NULL;
+}
+
+
 void ASMu2DIB::getNoIntPoints (size_t& nPt)
 {
   nPt = 0;
