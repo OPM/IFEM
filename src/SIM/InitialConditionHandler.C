@@ -41,7 +41,8 @@ bool SIM::setInitialConditions (SIMbase& sim, SIMdependency* fieldHolder)
       // do we have this field?
       std::stringstream str;
       str << it2->sim_field;
-      str << -it2->sim_level+1; // 0 -> 1, -1 -> 2, ...
+      if (it2->sim_level > -1)
+        str << -it2->sim_level+1; // 0 -> 1, -1 -> 2, ...
       utl::vector<double>* field = fieldHolder->getField(str.str());
       if (!field)
         continue;
