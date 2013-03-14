@@ -75,6 +75,8 @@ public:
   //! \brief Returns a const reference to the initial condition container.
   const InitialCondMap& getICs() const { return myICs; }
 
+  virtual bool hasIC(const std::string& name) const;
+
   //! \brief Returns the number of spatial dimensions in the model.
   virtual size_t getNoSpaceDim() const = 0;
 

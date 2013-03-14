@@ -148,3 +148,18 @@ bool SIMdependency::extractPatchDependencies (IntegrandBase* problem,
 
   return true;
 }
+
+
+bool SIMdependency::hasIC(const std::string& name) const
+{  
+  for (InitialCondMap::const_iterator it  = getICs().begin(); 
+                                      it != getICs().end(); ++it) {
+    for (std::vector<ICInfo>::const_iterator it2  = it->second.begin();
+                                             it2 != it->second.end(); ++it2) {
+      if (it2->sim_field == name)
+        return true;
+    }
+  }
+
+  return false;
+}
