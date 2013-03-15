@@ -33,7 +33,8 @@ bool SIM::setInitialConditions (SIMbase& sim, SIMdependency* fieldHolder)
   for (it = sim.getICs().begin(); it != sim.getICs().end(); ++it) {
     XMLWriter xmlreader(it->first);
     xmlreader.readInfo();
-    HDF5Writer hdf5reader(it->first,true);
+    HDF5Writer hdf5reader(it->first, true, true);
+    hdf5reader.openFile(0);
     std::map<std::string, SIMdependency::PatchVec> basis;
     // loops over ic's
     std::vector<SIMdependency::ICInfo>::const_iterator it2;
@@ -66,6 +67,9 @@ bool SIM::setInitialConditions (SIMbase& sim, SIMdependency* fieldHolder)
       if (basis.find(it3->basis) == basis.end()) {
         SIMdependency::PatchVec vec;
         for (int i=0;i<it3->patches;++i) {
+          int p = sim.getLocalPatchIndex(i+1);
+          if (p < 1)
+            continue;
           std::stringstream str;
           str << it2->file_level << "/basis/" << it3->basis << "/" << i+1;
           std::string pg2;
@@ -95,6 +99,7 @@ bool SIM::setInitialConditions (SIMbase& sim, SIMdependency* fieldHolder)
     for (it3 = basis.begin(); it3 != basis.end(); ++it3)
       for (size_t i=0;i<it3->second.size();++i)
         delete it3->second[i];
+    hdf5reader.closeFile(0,true);
   }
 
   return result;
