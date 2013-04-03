@@ -1807,7 +1807,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 
               // Compute Hessian of coordinate mapping and 2nd order derivatives
               if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-                if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
+                if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,fe.dNdX))
                   ok = false;
 
               // Compute G-matrix
@@ -1986,7 +1986,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 
           // Compute Hessian of coordinate mapping and 2nd order derivatives
           if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-            if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
+            if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,fe.dNdX))
               ok = false;
 
           // Compute G-matrix
@@ -2774,7 +2774,7 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
     if (use2ndDer)
-      if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xtmp,d2Ndu2,dNdu))
+      if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xtmp,d2Ndu2,fe.dNdX))
         continue;
 
     // Now evaluate the solution field
