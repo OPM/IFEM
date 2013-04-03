@@ -100,7 +100,7 @@ Real utl::Jacobian (matrix<Real>& J, Vec3& n, matrix<Real>& dNdX,
 
 bool utl::Hessian (matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
 		   const matrix<Real>& Ji, const matrix<Real>& X,
-		   const matrix3d<Real>& d2Ndu2, const matrix<Real>& dNdu,
+		   const matrix3d<Real>& d2Ndu2, const matrix<Real>& dNdX,
 		   bool computeGradient)
 {
   PROFILE4("utl::Hessian");
@@ -120,10 +120,10 @@ bool utl::Hessian (matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
 	      << Ji.rows() <<","<< Ji.cols() <<"), nsd="<< nsd << std::endl;
     return false;
   }
-  else if (dNdu.rows() != nnod || dNdu.cols() != nsd)
+  else if (dNdX.rows() != nnod || dNdX.cols() != nsd)
   {
-    std::cerr <<"Hessian: Invalid dimension on basis function matrix, dNdu("
-	      << dNdu.rows() <<","<< dNdu.cols() <<"), nnod="<< nnod
+    std::cerr <<"Hessian: Invalid dimension on basis function matrix, dNdX("
+	      << dNdX.rows() <<","<< dNdX.cols() <<"), nnod="<< nnod
 	      <<", nsd="<< nsd << std::endl;
     return false;
   }
@@ -131,9 +131,9 @@ bool utl::Hessian (matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
   // Compute the second order derivatives of the basis functions, w.r.t. X
   d2NdX2.resize(nnod,nsd,nsd,true);
   size_t i1, i2, i3, i4, i5, i6;
-  for (size_t n = 1; n <= nnod; n++)
+  for (size_t n = 1; n <= nnod; n++) 
     for (i1 = 1; i1 <= nsd; i1++)
-      for (i2 = 1; i2 <= nsd; i2++)
+      for (i2 = 1; i2 <= i1; i2++)
       {
 	Real& v = d2NdX2(n,i1,i2);
 	for (i3 = 1; i3 <= nsd; i3++)
@@ -141,10 +141,11 @@ bool utl::Hessian (matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
 	  {
 	    Real Ji31x42 = Ji(i3,i1)*Ji(i4,i2);
 	    v += d2Ndu2(n,i3,i4)*Ji31x42;
-	    for (i5 = 1; i5 <= nsd; i5++)
-	      for (i6 = 1; i6 <= nsd; i6++)
-		v -= dNdu(n,i5)*H(i6,i3,i4)*Ji31x42*Ji(i5,i6);
+	    for (i6 = 1; i6 <= nsd; i6++)
+	      v -= dNdX(n,i6)*H(i6,i3,i4)*Ji31x42;
 	  }
+
+	d2NdX2(n,i2,i1) = v;
       }
 
   return true;
