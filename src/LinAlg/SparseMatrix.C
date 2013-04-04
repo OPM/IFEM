@@ -233,8 +233,8 @@ Real& SparseMatrix::operator () (size_t r, size_t c)
 {
   if (r < 1 || r > nrow || c < 1 || c > ncol)
     std::cerr <<"SparseMatrix::operator(): Indices ("
-	      << r <<","<< c <<") out of range "
-	      << nrow <<"x"<< ncol << std::endl;
+              << r <<","<< c <<") out of range "
+              << nrow <<"x"<< ncol << std::endl;
   else if (editable) {
     IJPair index(r,c);
     ValueMap::iterator vit = elem.find(index);
@@ -264,7 +264,7 @@ Real& SparseMatrix::operator () (size_t r, size_t c)
   // If we arrive here, we have tried to update the sparsity pattern when it is
   // locked. The behavior then is unpredictable, especially when multithreading.
   std::cerr <<" *** Non-existing SparseMatrix entry (r,c)="<< r <<","<< c
-	    << std::endl;
+            << std::endl;
   static Real anyValue = Real(0);
 #if INDEX_CHECK > 1
   abort();
@@ -277,8 +277,8 @@ const Real& SparseMatrix::operator () (size_t r, size_t c) const
 {
   if (r < 1 || r > nrow || c < 1 || c > ncol)
     std::cerr <<"SparseMatrix::operator(): Indices ("
-	      << r <<","<< c <<") out of range "
-	      << nrow <<"x"<< ncol << std::endl;
+              << r <<","<< c <<") out of range "
+              << nrow <<"x"<< ncol << std::endl;
   else if (editable) {
     ValueIter vit = elem.find(IJPair(r,c));
     if (vit != elem.end()) return vit->second;
@@ -306,7 +306,7 @@ const Real& SparseMatrix::operator () (size_t r, size_t c) const
 
 void SparseMatrix::dump (std::ostream& os, char format, const char* label)
 {
-  if (label) os << label <<" =\n";
+  if (label) os << label <<" = [\n";
   switch (format)
     {
     case 'M':
@@ -314,17 +314,25 @@ void SparseMatrix::dump (std::ostream& os, char format, const char* label)
       if (editable)
         for (ValueIter it = elem.begin(); it != elem.end(); it++)
           os << it->first.first <<' '<< it->first.second <<" "<< it->second
-             <<'\n';
-      else if (solver == SUPERLU)
+             <<";\n";
+      else if (solver == SUPERLU) {
         // Column-oriented format with 0-based indices
+        os << JA[0]+1 <<" 1 "<< A[0];
         for (size_t j = 1; j <= ncol; j++)
-          for (int i = IA[j-1]; i < IA[j]; i++)
-            os << JA[i]+1 <<' '<< j <<' '<< A[i] <<'\n';
-      else
+          for (int i = IA[j-1]; i < IA[j]; i++) {
+            if(j==1 && i==IA[0]) continue;
+            os << ";\n" << JA[i]+1 <<' '<< j <<' '<< A[i] ;
+        }
+      } else {
         // Row-oriented format with 1-based indices
+        os << "1 " << JA[0] <<' '<< A[0] ;
         for (size_t i = 1; i <= nrow; i++)
-          for (int j = IA[i-1]; j < IA[i]; j++)
-            os << i <<' '<< JA[j-1] <<' '<< A[i-1] <<'\n';
+          for (int j = IA[i-1]; j < IA[i]; j++) {
+            if(i==1 && j==IA[0]) continue;
+            os << ";\n" << i <<' '<< JA[j-1] <<' '<< A[i-1] ;
+        }
+      }
+      os << "];\n";
       break;
 
     default:
@@ -367,18 +375,18 @@ void SparseMatrix::printSparsity (std::ostream& os) const
     os << r <<'\t';
     for (c = 1; c <= ncol; c++)
       if (editable)
-	os << (elem.find(IJPair(r,c)) == elem.end() ? '.' : 'X');
+        os << (elem.find(IJPair(r,c)) == elem.end() ? '.' : 'X');
       else if (solver == SUPERLU) {
-	// Column-oriented format with 0-based indices
-	IntVec::const_iterator begin = JA.begin() + IA[c-1];
-	IntVec::const_iterator end = JA.begin() + IA[c];
-	os << (std::find(begin,end,r-1) == end ? '.' : 'X');
+        // Column-oriented format with 0-based indices
+        IntVec::const_iterator begin = JA.begin() + IA[c-1];
+        IntVec::const_iterator end = JA.begin() + IA[c];
+        os << (std::find(begin,end,r-1) == end ? '.' : 'X');
       }
       else {
-	// Row-oriented format with 1-based indices
-	IntVec::const_iterator begin = JA.begin() + (IA[r-1]-1);
-	IntVec::const_iterator end = JA.begin() + (IA[r]-1);
-	os << (std::find(begin,end,c) == end ? '.' : 'X');
+        // Row-oriented format with 1-based indices
+        IntVec::const_iterator begin = JA.begin() + (IA[r-1]-1);
+        IntVec::const_iterator end = JA.begin() + (IA[r]-1);
+        os << (std::find(begin,end,c) == end ? '.' : 'X');
       }
     os <<'\n';
   }
@@ -428,9 +436,9 @@ bool SparseMatrix::truncate (Real threshold)
   for (it = elem.begin(); it != elem.end(); it++)
     if (it->first.first == it->first.second)
       if (it->second > tol)
-	tol = it->second;
+        tol = it->second;
       else if (it->second < -tol)
-	tol = -it->second;
+        tol = -it->second;
 
   tol *= threshold;
   size_t nnz = elem.size();
@@ -447,7 +455,7 @@ bool SparseMatrix::truncate (Real threshold)
 
   if (nnz > elem.size())
     std::cout <<"SparseMatrix: Truncated "<< nnz-elem.size()
-	      <<" matrix elements smaller than "<< tol <<" to zero"<< std::endl;
+              <<" matrix elements smaller than "<< tol <<" to zero"<< std::endl;
   return true;
 }
 
@@ -476,13 +484,13 @@ bool SparseMatrix::add (const SystemMatrix& B, Real alpha)
     if (solver == SUPERLU)
       // Column-oriented format with 0-based indices
       for (size_t j = 1; j <= Bptr->ncol; j++)
-	for (int i = Bptr->IA[j-1]; i < Bptr->IA[j]; i++)
-	  elem[IJPair(Bptr->JA[i]+1,j)] += alpha*Bptr->A[i];
+        for (int i = Bptr->IA[j-1]; i < Bptr->IA[j]; i++)
+          elem[IJPair(Bptr->JA[i]+1,j)] += alpha*Bptr->A[i];
     else
       // Row-oriented format with 1-based indices
       for (size_t i = 1; i <= Bptr->nrow; i++)
-	for (int j = Bptr->IA[i-1]; j < Bptr->IA[i]; j++)
-	  elem[IJPair(i,Bptr->JA[j-1])] += alpha*Bptr->A[j-1];
+        for (int j = Bptr->IA[i-1]; j < Bptr->IA[i]; j++)
+          elem[IJPair(i,Bptr->JA[j-1])] += alpha*Bptr->A[j-1];
   }
   else
     return false;
@@ -517,12 +525,12 @@ bool SparseMatrix::multiply (const SystemVector& B, SystemVector& C)
     // Column-oriented format with 0-based indices
     for (size_t j = 1; j <= ncol; j++)
       for (int i = IA[j-1]; i < IA[j]; i++)
-	(*Cptr)(JA[i]+1) += A[i]*(*Bptr)(j);
+        (*Cptr)(JA[i]+1) += A[i]*(*Bptr)(j);
   else
     // Row-oriented format with 1-based indices
     for (size_t i = 1; i <= nrow; i++)
       for (int j = IA[i-1]; j < IA[i]; j++)
-	(*Cptr)(i) += A[j-1]*(*Bptr)(JA[j-1]);
+        (*Cptr)(i) += A[j-1]*(*Bptr)(JA[j-1]);
 
   return true;
 }
@@ -536,7 +544,7 @@ bool SparseMatrix::multiply (const SystemVector& B, SystemVector& C)
 */
 
 static void preAssemble (SparseMatrix& SM, const IntVec& meen,
-			 const int* meqn, const int* mpmceq, const int* mmceq)
+                         const int* meqn, const int* mpmceq, const int* mmceq)
 {
   // Add elements corresponding to free dofs in eM into SM
   int i, j, ip, jp;
@@ -571,24 +579,24 @@ static void preAssemble (SparseMatrix& SM, const IntVec& meen,
     for (jp = mpmceq[jceq-1]; jp < mpmceq[jceq]-1; jp++)
       if (mmceq[jp] > 0)
       {
-	int jeq = meqn[mmceq[jp]-1];
-	for (i = 1; i <= nedof; i++)
-	{
-	  int ieq = meen[i-1];
-	  int iceq = -ieq;
-	  if (ieq > 0)
-	  {
-	    SM(ieq,jeq) = 0.0;
-	    SM(jeq,ieq) = 0.0;
-	  }
-	  else if (iceq > 0)
-	    for (ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ip++)
-	      if (mmceq[ip] > 0)
-	      {
-		ieq = meqn[mmceq[ip]-1];
-		SM(ieq,jeq) = 0.0;
-	      }
-	}
+        int jeq = meqn[mmceq[jp]-1];
+        for (i = 1; i <= nedof; i++)
+        {
+          int ieq = meen[i-1];
+          int iceq = -ieq;
+          if (ieq > 0)
+          {
+            SM(ieq,jeq) = 0.0;
+            SM(jeq,ieq) = 0.0;
+          }
+          else if (iceq > 0)
+            for (ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ip++)
+              if (mmceq[ip] > 0)
+              {
+                ieq = meqn[mmceq[ip]-1];
+                SM(ieq,jeq) = 0.0;
+              }
+        }
       }
   }
 }
@@ -602,8 +610,8 @@ static void preAssemble (SparseMatrix& SM, const IntVec& meen,
 */
 
 static void assemSparse (const Matrix& eM, SparseMatrix& SM, Vector& SV,
-			 const IntVec& meen, const int* meqn,
-			 const int* mpmceq, const int* mmceq, const Real* ttcc)
+                         const IntVec& meen, const int* meqn,
+                         const int* mpmceq, const int* mmceq, const Real* ttcc)
 {
   // Add elements corresponding to free dofs in eM into SM
   int i, j, ip, nedof = meen.size();
@@ -638,41 +646,41 @@ static void assemSparse (const Matrix& eM, SparseMatrix& SM, Vector& SV,
     if (!SV.empty())
       for (i = 1; i <= nedof; i++)
       {
-	int ieq = meen[i-1];
-	int iceq = -ieq;
-	if (ieq > 0)
-	  SV(ieq) -= c0*eM(i,j);
-	else if (iceq > 0)
-	  for (ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ip++)
-	    if (mmceq[ip] > 0)
-	    {
-	      ieq = meqn[mmceq[ip]-1];
-	      SV(ieq) -= c0*ttcc[ip]*eM(i,j);
-	    }
+        int ieq = meen[i-1];
+        int iceq = -ieq;
+        if (ieq > 0)
+          SV(ieq) -= c0*eM(i,j);
+        else if (iceq > 0)
+          for (ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ip++)
+            if (mmceq[ip] > 0)
+            {
+              ieq = meqn[mmceq[ip]-1];
+              SV(ieq) -= c0*ttcc[ip]*eM(i,j);
+            }
       }
 
     // Add contributions to SM
     for (jp = mpmceq[jceq-1]; jp < mpmceq[jceq]-1; jp++)
       if (mmceq[jp] > 0)
       {
-	int jeq = meqn[mmceq[jp]-1];
-	for (i = 1; i <= nedof; i++)
-	{
-	  int ieq = meen[i-1];
-	  int iceq = -ieq;
-	  if (ieq > 0)
-	  {
-	    SM(ieq,jeq) += ttcc[jp]*eM(i,j);
-	    SM(jeq,ieq) += ttcc[jp]*eM(j,i);
-	  }
-	  else if (iceq > 0)
-	    for (ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ip++)
-	      if (mmceq[ip] > 0)
-	      {
-		ieq = meqn[mmceq[ip]-1];
-		SM(ieq,jeq) += ttcc[ip]*ttcc[jp]*eM(i,j);
-	      }
-	}
+        int jeq = meqn[mmceq[jp]-1];
+        for (i = 1; i <= nedof; i++)
+        {
+          int ieq = meen[i-1];
+          int iceq = -ieq;
+          if (ieq > 0)
+          {
+            SM(ieq,jeq) += ttcc[jp]*eM(i,j);
+            SM(jeq,ieq) += ttcc[jp]*eM(j,i);
+          }
+          else if (iceq > 0)
+            for (ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ip++)
+              if (mmceq[ip] > 0)
+              {
+                ieq = meqn[mmceq[ip]-1];
+                SM(ieq,jeq) += ttcc[ip]*ttcc[jp]*eM(i,j);
+              }
+        }
       }
   }
 }
@@ -684,8 +692,8 @@ static void assemSparse (const Matrix& eM, SparseMatrix& SM, Vector& SV,
 */
 
 static void assemSparse (const RealArray& V, SparseMatrix& SM, size_t col,
-			 const IntVec& mnen, const int* meqn,
-			 const int* mpmceq, const int* mmceq, const Real* ttcc)
+                         const IntVec& mnen, const int* meqn,
+                         const int* mpmceq, const int* mmceq, const Real* ttcc)
 {
   for (size_t d = 0; d < mnen.size(); d++, col++)
   {
@@ -697,8 +705,8 @@ static void assemSparse (const RealArray& V, SparseMatrix& SM, size_t col,
     else if (ceq > 0)
       for (int ip = mpmceq[ceq-1]; ip < mpmceq[ceq]-1; ip++)
       {
-	ieq = meqn[mmceq[ip]-1];
-	SM(ieq,col) += vd;
+        ieq = meqn[mmceq[ip]-1];
+        SM(ieq,col) += vd;
       }
   }
 }
@@ -718,7 +726,7 @@ void SparseMatrix::initAssembly (const SAM& sam, bool delayLocking)
       ::preAssemble(*this,meen,sam.meqn,sam.mpmceq,sam.mmceq);
 
   std::cout <<"\nPre-computing sparsity pattern for system matrix ("
-	    << nrow <<"x"<< ncol <<"): nNZ = "<< this->size() << std::endl;
+            << nrow <<"x"<< ncol <<"): nNZ = "<< this->size() << std::endl;
 
   editable = 'V'; // Temporarily lock the sparsity pattern
   if (delayLocking)
@@ -774,7 +782,7 @@ bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
 
 
 bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam,
-			     SystemVector& B, int e)
+                             SystemVector& B, int e)
 {
   StdVector* Bptr = dynamic_cast<StdVector*>(&B);
   if (!Bptr) return false;
@@ -789,7 +797,7 @@ bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam,
 
 
 bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam,
-			     SystemVector& B, const IntVec& meen)
+                             SystemVector& B, const IntVec& meen)
 {
   StdVector* Bptr = dynamic_cast<StdVector*>(&B);
   if (!Bptr) return false;
@@ -803,7 +811,7 @@ bool SparseMatrix::assemble (const Matrix& eM, const SAM& sam,
 
 
 bool SparseMatrix::assembleCol (const RealArray& V, const SAM& sam,
-				int n, size_t col)
+                                int n, size_t col)
 {
   if (V.empty() || col > ncol) return false;
 
@@ -858,12 +866,12 @@ bool SparseMatrix::optimiseSAMG (bool transposed)
     // looking for diagonal element
     for (int diag_ix = rstart; diag_ix < rend; diag_ix++)
       if (JA[diag_ix] == (int)(1+r)) {
-	// swapping (if necessary) with first element on this row
-	if (diag_ix > rstart) {
-	  std::swap(A[rstart],A[diag_ix]);
-	  std::swap(JA[rstart],JA[diag_ix]);
-	}
-	break;
+        // swapping (if necessary) with first element on this row
+        if (diag_ix > rstart) {
+          std::swap(A[rstart],A[diag_ix]);
+          std::swap(JA[rstart],JA[diag_ix]);
+        }
+        break;
       }
   }
 
@@ -949,16 +957,16 @@ bool SparseMatrix::solveSLU (Vector& B)
     slu->perm_c = new int[ncol];
     slu->perm_r = new int[nrow];
     dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
-			   &A.front(), &JA.front(), &IA.front(),
-			   SLU_NC, SLU_D, SLU_GE);
+                           &A.front(), &JA.front(), &IA.front(),
+                           SLU_NC, SLU_D, SLU_GE);
   }
   else {
     Destroy_SuperMatrix_Store(&slu->A);
     Destroy_SuperNode_Matrix(&slu->L);
     Destroy_CompCol_Matrix(&slu->U);
     dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
-			   &A.front(), &JA.front(), &IA.front(),
-			   SLU_NC, SLU_D, SLU_GE);
+                           &A.front(), &JA.front(), &IA.front(),
+                           SLU_NC, SLU_D, SLU_GE);
   }
 
   // Get column permutation vector perm_c[], according to permc_spec:
@@ -973,11 +981,11 @@ bool SparseMatrix::solveSLU (Vector& B)
   size_t nrhs = B.size() / nrow;
   SuperMatrix Bmat;
   dCreate_Dense_Matrix(&Bmat, nrow, nrhs, B.ptr(), nrow,
-		       SLU_DN, SLU_D, SLU_GE);
+                       SLU_DN, SLU_D, SLU_GE);
 
   // Invoke the simple driver
   pdgssv(numThreads, &slu->A, slu->perm_c, slu->perm_r,
-	 &slu->L, &slu->U, &Bmat, &ierr);
+         &slu->L, &slu->U, &Bmat, &ierr);
 
   if (ierr > 0)
     std::cerr <<"SuperLU_MT Failure "<< ierr << std::endl;
@@ -991,8 +999,8 @@ bool SparseMatrix::solveSLU (Vector& B)
     slu->perm_c = new int[ncol];
     slu->perm_r = new int[nrow];
     dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
-			   &A.front(), &JA.front(), &IA.front(),
-			   SLU_NC, SLU_D, SLU_GE);
+                           &A.front(), &JA.front(), &IA.front(),
+                           SLU_NC, SLU_D, SLU_GE);
   }
   else if (factored)
     slu->opts->Fact = FACTORED; // Re-use previous factorization
@@ -1001,22 +1009,22 @@ bool SparseMatrix::solveSLU (Vector& B)
     Destroy_SuperNode_Matrix(&slu->L);
     Destroy_CompCol_Matrix(&slu->U);
     dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
-			   &A.front(), &JA.front(), &IA.front(),
-			   SLU_NC, SLU_D, SLU_GE);
+                           &A.front(), &JA.front(), &IA.front(),
+                           SLU_NC, SLU_D, SLU_GE);
   }
 
   // Create right-hand-side/solution vector(s)
   size_t nrhs = B.size() / nrow;
   SuperMatrix Bmat;
   dCreate_Dense_Matrix(&Bmat, nrow, nrhs, B.ptr(), nrow,
-		       SLU_DN, SLU_D, SLU_GE);
+                       SLU_DN, SLU_D, SLU_GE);
 
   SuperLUStat_t stat;
   StatInit(&stat);
 
   // Invoke the simple driver
   dgssv(slu->opts, &slu->A, slu->perm_c, slu->perm_r,
-	&slu->L, &slu->U, &Bmat, &stat, &ierr);
+        &slu->L, &slu->U, &Bmat, &stat, &ierr);
 
   if (ierr > 0)
     std::cerr <<"SuperLU Failure "<< ierr << std::endl;
@@ -1050,8 +1058,8 @@ bool SparseMatrix::solveSLUx (Vector& B)
     slu->C = new Real[ncol];
     slu->R = new Real[nrow];
     dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
-			   &A.front(), &JA.front(), &IA.front(),
-			   SLU_NC, SLU_D, SLU_GE);
+                           &A.front(), &JA.front(), &IA.front(),
+                           SLU_NC, SLU_D, SLU_GE);
 
     // Get column permutation vector perm_c[], according to permc_spec:
     //   permc_spec = 0: natural ordering
@@ -1071,17 +1079,17 @@ bool SparseMatrix::solveSLUx (Vector& B)
   SuperMatrix Bmat, Xmat;
   const size_t nrhs = B.size() / nrow;
   dCreate_Dense_Matrix(&Bmat, nrow, nrhs, B.ptr(), nrow,
-		       SLU_DN, SLU_D, SLU_GE);
+                       SLU_DN, SLU_D, SLU_GE);
   dCreate_Dense_Matrix(&Xmat, nrow, nrhs, X.ptr(), nrow,
-		       SLU_DN, SLU_D, SLU_GE);
+                       SLU_DN, SLU_D, SLU_GE);
 
   Real ferr[nrhs], berr[nrhs];
   superlu_memusage_t mem_usage;
 
   // Invoke the expert driver
   pdgssvx(numThreads, slu->opts, &slu->A, slu->perm_c, slu->perm_r,
-	  &slu->equed, slu->R, slu->C, &slu->L, &slu->U, &Bmat, &Xmat,
-	  &slu->rpg, &slu->rcond, ferr, berr, &mem_usage, &ierr);
+          &slu->equed, slu->R, slu->C, &slu->L, &slu->U, &Bmat, &Xmat,
+          &slu->rpg, &slu->rcond, ferr, berr, &mem_usage, &ierr);
 
   B.swap(X);
 
@@ -1103,8 +1111,8 @@ bool SparseMatrix::solveSLUx (Vector& B)
     slu->C = new Real[ncol];
     slu->R = new Real[nrow];
     dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
-			   &A.front(), &JA.front(), &IA.front(),
-			   SLU_NC, SLU_D, SLU_GE);
+                           &A.front(), &JA.front(), &IA.front(),
+                           SLU_NC, SLU_D, SLU_GE);
   }
   else if (factored)
     slu->opts->Fact = FACTORED; // Re-use previous factorization
@@ -1113,8 +1121,8 @@ bool SparseMatrix::solveSLUx (Vector& B)
     Destroy_SuperNode_Matrix(&slu->L);
     Destroy_CompCol_Matrix(&slu->U);
     dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
-			   &A.front(), &JA.front(), &IA.front(),
-			   SLU_NC, SLU_D, SLU_GE);
+                           &A.front(), &JA.front(), &IA.front(),
+                           SLU_NC, SLU_D, SLU_GE);
   }
 
   // Create right-hand-side vector and solution vector
@@ -1122,9 +1130,9 @@ bool SparseMatrix::solveSLUx (Vector& B)
   SuperMatrix Bmat, Xmat;
   const  size_t nrhs = B.size() / nrow;
   dCreate_Dense_Matrix(&Bmat, nrow, nrhs, B.ptr(), nrow,
-		       SLU_DN, SLU_D, SLU_GE);
+                       SLU_DN, SLU_D, SLU_GE);
   dCreate_Dense_Matrix(&Xmat, nrow, nrhs, X.ptr(), nrow,
-		       SLU_DN, SLU_D, SLU_GE);
+                       SLU_DN, SLU_D, SLU_GE);
 
   slu->opts->ConditionNumber = printSLUstat ? YES : NO;
   slu->opts->PivotGrowth = printSLUstat ? YES : NO;
@@ -1139,8 +1147,8 @@ bool SparseMatrix::solveSLUx (Vector& B)
 
   // Invoke the expert driver
   dgssvx(slu->opts, &slu->A, slu->perm_c, slu->perm_r, slu->etree, slu->equed,
-	 slu->R, slu->C, &slu->L, &slu->U, work, lwork, &Bmat, &Xmat,
-	 &slu->rpg, &slu->rcond, ferr, berr, &mem_usage, &stat, &ierr);
+         slu->R, slu->C, &slu->L, &slu->U, work, lwork, &Bmat, &Xmat,
+         &slu->rpg, &slu->rcond, ferr, berr, &mem_usage, &stat, &ierr);
 
   B.swap(X);
 
@@ -1241,12 +1249,12 @@ Real SparseMatrix::Linfnorm () const
     // Column-oriented format with 0-based row-indices
     for (size_t j = 1; j <= ncol; j++)
       for (int i = IA[j-1]; i < IA[j]; i++)
-	sums[JA[i]] += fabs(A[i]);
+        sums[JA[i]] += fabs(A[i]);
   else
     // Row-oriented format with 1-based row-indices
     for (size_t i = 1; i <= nrow; i++)
       for (int j = IA[i-1]; j < IA[i]; j++)
-	sums[i-1] += fabs(A[j-1]);
+        sums[i-1] += fabs(A[j-1]);
 
   return *std::max_element(sums.begin(),sums.end());
 }
