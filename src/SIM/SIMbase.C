@@ -297,12 +297,16 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
       std::cout <<"\tNeumann code "<< code <<" (generic)" << std::endl;
       this->setPropertyType(code,Property::NEUMANN_GENERIC);
     }
-    else if (elem->FirstChild()) {
+    else {
       int ndir = 0;
+      std::string val = "0.0";
+      if (elem->FirstChild() && elem->FirstChild()->Value())
+        val = elem->FirstChild()->Value();
+
       utl::getAttribute(elem,"direction",ndir);
       std::cout <<"\tNeumann code "<< code <<" direction "<< ndir;
       if (!type.empty()) std::cout <<" ("<< type <<")";
-      this->setNeumann(elem->FirstChild()->Value(),type,ndir,code);
+      this->setNeumann(val.c_str(),type,ndir,code);
       std::cout << std::endl;
     }
   }
