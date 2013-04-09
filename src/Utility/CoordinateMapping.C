@@ -117,21 +117,21 @@ bool utl::Hessian (matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
   if (Ji.rows() != nsd || Ji.cols() != nsd)
   {
     std::cerr <<"Hessian: Invalid dimension on Jacobian inverse, Ji("
-	      << Ji.rows() <<","<< Ji.cols() <<"), nsd="<< nsd << std::endl;
+              << Ji.rows() <<","<< Ji.cols() <<"), nsd="<< nsd << std::endl;
     return false;
   }
   else if (dNdX.rows() != nnod || dNdX.cols() != nsd)
   {
     std::cerr <<"Hessian: Invalid dimension on basis function matrix, dNdX("
-	      << dNdX.rows() <<","<< dNdX.cols() <<"), nnod="<< nnod
-	      <<", nsd="<< nsd << std::endl;
+              << dNdX.rows() <<","<< dNdX.cols() <<"), nnod="<< nnod
+              <<", nsd="<< nsd << std::endl;
     return false;
   }
 
   // Compute the second order derivatives of the basis functions, w.r.t. X
   d2NdX2.resize(nnod,nsd,nsd,true);
-  size_t i1, i2, i3, i4, i5, i6;
-  for (size_t n = 1; n <= nnod; n++) 
+  size_t i1, i2, i3, i4, i6;
+  for (size_t n = 1; n <= nnod; n++)
     for (i1 = 1; i1 <= nsd; i1++)
       for (i2 = 1; i2 <= i1; i2++)
       {
@@ -145,7 +145,8 @@ bool utl::Hessian (matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
 	      v -= dNdX(n,i6)*H(i6,i3,i4)*Ji31x42;
 	  }
 
-	d2NdX2(n,i2,i1) = v;
+	if (i2 < i1)
+	  d2NdX2(n,i2,i1) = v; // symmetry
       }
 
   return true;
@@ -162,6 +163,6 @@ void utl::getGmat (const matrix<Real>& Ji, const Real* du, matrix<Real>& G)
     {
       Real scale = Real(1)/(du[k-1]*du[l-1]);
       for (size_t m = 1; m <= nsd; m++)
-	G(k,l) += Ji(m,k)*Ji(m,l)*scale;
+        G(k,l) += Ji(m,k)*Ji(m,l)*scale;
     }
 }
