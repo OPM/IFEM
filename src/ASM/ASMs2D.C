@@ -1516,7 +1516,9 @@ bool ASMs2D::integrate (Integrand& integrand,
 
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= dA*wg[i]*wg[j];
+#ifndef USE_OPENMP
             PROFILE3("Integrand::evalInt");
+#endif
             if (!integrand.evalInt(*A,fe,time,X))
               ok = false;
           }
@@ -1689,7 +1691,9 @@ bool ASMs2D::integrate (Integrand& integrand,
 
           // Evaluate the integrand and accumulate element contributions
           fe.detJxW *= dA*elmPts[ip][2];
+#ifndef USE_OPENMP
           PROFILE3("Integrand::evalInt");
+#endif
           if (!integrand.evalInt(*A,fe,time,X))
             ok = false;
         }
