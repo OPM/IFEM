@@ -13,7 +13,6 @@
 
 #include "BDF.h"
 
-
 TimeIntegration::BDF::BDF (int order)
 {
   coefs1.resize(2);
@@ -30,6 +29,21 @@ TimeIntegration::BDF::BDF (int order)
   }
 
   step = 0;
+}
+
+
+void TimeIntegration::BDF::advanceStep(double dt, double dtn)
+{
+  if ((coefs.size() == 3) && (step > 0)) {
+    double tau = dt/dtn;
+    double taup1 = tau + 1.0;
+
+    coefs[0] = (1.0+2.0*tau)/taup1;
+    coefs[1] = -taup1;
+    coefs[2] = tau*tau/taup1;
+  }
+
+  this->advanceStep();
 }
 
 

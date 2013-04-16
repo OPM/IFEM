@@ -40,6 +40,9 @@ namespace TimeIntegration //! Utilities for time integration.
     //! \brief Advances the time stepping scheme.
     void advanceStep() { step++; }
 
+    //! \brief Advances the time stepping scheme.
+    void advanceStep(double dt, double dtn);
+
     //! \brief Returns the BDF coefficients.
     const std::vector<double>& getCoefs() const;
 

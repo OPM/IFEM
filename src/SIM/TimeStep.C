@@ -168,6 +168,8 @@ bool TimeStep::hasReached (double t) const
 
 bool TimeStep::increment ()
 {
+  time.dtn = time.dt;
+
   if (maxCFL > 0.0 && time.CFL > 1.0e-12)
     // Adjust time step size according to CFL number
     time.dt *= maxCFL/time.CFL;
