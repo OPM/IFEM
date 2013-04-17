@@ -1781,7 +1781,10 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
       IFEM::cout <<"\nDumping system matrix to file "<< it->fname << std::endl;
       std::ofstream os(it->fname.c_str());
       os << std::setprecision(17);
-      A->dump(os,it->format,"A");
+      SystemMatrix* M=myEqSys->getMatrix(0);
+      char matName[] = {'A'};
+      for(int i=0; M;  M=myEqSys->getMatrix(++i), ++matName[0])
+        M->dump(os,it->format,matName); // label matrices as A,B,C,...
     }
 
   // Dump right-hand-side vector to file, if requested
@@ -1790,7 +1793,10 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
       IFEM::cout <<"\nDumping RHS vector to file "<< it->fname << std::endl;
       std::ofstream os(it->fname.c_str());
       os << std::setprecision(17);
-      b->dump(os,it->format,"b");
+      SystemVector* c=myEqSys->getVector(0);
+      char vecName[] = {'b'};
+      for(int i=0; c;  c=myEqSys->getVector(++i), ++vecName[0])
+        c->dump(os,it->format,vecName); // label vectors as b,c,d,...
     }
 
   // Solve the linear system of equations
