@@ -19,6 +19,14 @@ TimeIntegration::BDF::BDF (int order)
   coefs1[0] =  1.0;
   coefs1[1] = -1.0;
 
+  setOrder(order);
+
+  step = 0;
+}
+
+
+void TimeIntegration::BDF::setOrder(int order)
+{
   if (order == 1)
     coefs = coefs1;
   else if (order == 2) {
@@ -27,8 +35,6 @@ TimeIntegration::BDF::BDF (int order)
     coefs[1] = -2.0;
     coefs[2] =  0.5;
   }
-
-  step = 0;
 }
 
 

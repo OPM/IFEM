@@ -37,6 +37,9 @@ namespace TimeIntegration //! Utilities for time integration.
     //! \brief Returns order of the schemes.
     int getActualOrder() const { return coefs.size()-1; }
 
+    //! \brief Set the order
+    void setOrder(int order);
+
     //! \brief Advances the time stepping scheme.
     void advanceStep() { step++; }
 
