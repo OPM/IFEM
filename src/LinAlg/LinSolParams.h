@@ -173,6 +173,7 @@ private:
   std::vector<PetscInt>      mglevels;         // Number of levels for MG
   std::vector<PetscInt>      noPreSmooth;      // Number of presmoothings for AMG
   std::vector<PetscInt>      noPostSmooth;     // Number of postsmoothings for AMG
+  std::vector<PetscInt>      noFineSmooth;     // Number of fine grid smoothings for AMG
   std::vector<std::string>   presmoother;      // Presmoother for AMG
   std::vector<std::string>   postsmoother;     // Postsmoother for AMG
   std::vector<std::string>   finesmoother;     // Smoother on finest grid

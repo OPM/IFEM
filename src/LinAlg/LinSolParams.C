@@ -41,6 +41,7 @@ void LinSolParams::setDefault ()
   noPreSmooth.resize(1,1);
   postsmoother.resize(1,PCILU);
   noPostSmooth.resize(1,1);
+  noFineSmooth.resize(1,1);
   maxCoarseSize.resize(1,1000);
   overlap.resize(1,1);
   nx.resize(1,0);
@@ -273,6 +274,11 @@ bool LinSolParams::read (const TiXmlElement* child)
     std::istream_iterator<PetscInt> begin(this_line), end;
     noPostSmooth.assign(begin, end);
   }
+  else if ((value = utl::getValue(child,"noFineSmooth"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscInt> begin(this_line), end;
+    noFineSmooth.assign(begin, end);
+  }
   else if ((value = utl::getValue(child,"presmoother"))) {
     std::istringstream this_line(value);
     std::istream_iterator<std::string> begin(this_line), end;
@@ -390,8 +396,6 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
   if (!strncasecmp(prec.c_str(),"hypre",5))
     PCHYPRESetType(pc,hypretype[0].c_str());
 #endif
-  PCSetFromOptions(pc);
-  PCSetUp(pc);
 
   if (!strncasecmp(prec.c_str(),"asm",3) ||!strncasecmp(prec.c_str(),"gasm",4)) {
     PCASMSetType(pc,PC_ASM_BASIC);
@@ -407,6 +411,10 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
       }
       PCASMSetLocalSubdomains(pc,nsubds,isSubdDofs,isLocSubdDofs);
     }
+
+    PCSetFromOptions(pc);
+    PCSetUp(pc);
+
     KSP* subksp;
     PC   subpc;
     PetscInt first, nlocal;
@@ -448,6 +456,9 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
         //PCGAMGSetNlevels(pc,mglevels[0]);
         //PCGAMGSetCoarseEqLim(pc,maxCoarseSize[0]);
 
+	PCSetFromOptions(pc);
+	PCSetUp(pc);
+
         PCMGGetLevels(pc,&n);
 	// Presmoother settings
 	for (int i = 1;i < n;i++) {
@@ -455,18 +466,25 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
           PC  prepc;
           // Not working for some reason
           //PCMGGetSmootherDown(pc,i,&preksp);
-          PCMGGetSmoother(pc,i,&preksp);
-          KSPSetType(preksp,"richardson");
-          KSPSetTolerances(preksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,noPreSmooth[0]);
-          KSPGetPC(preksp,&prepc);
 
 	  // Set smoother
 	  std::string smoother;
-
-          if ((i == n-1) && (!finesmoother.empty())) 	    
+	  PetscInt noSmooth;
+	  
+	  PCMGGetSmoother(pc,i,&preksp);
+	  KSPSetType(preksp,"richardson");
+	  
+	  if ((i == n-1) && (!finesmoother.empty())) {
             smoother = finesmoother[0];
-          else
+	    noSmooth = noFineSmooth[0];
+	  }
+	  else {
 	    smoother = presmoother[0];
+	    noSmooth = noPreSmooth[0];
+	  }
+	  
+	  KSPSetTolerances(preksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,noSmooth);
+	  KSPGetPC(preksp,&prepc);
 
 	  if (smoother == "asm" || smoother == "asmlu") {
 	    PCSetType(prepc,"asm");
@@ -565,6 +583,10 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
 	//   PCFactorSetLevels(postpc,levels[0]); 
         //   KSPSetUp(postksp);
 	// }
+  }
+  else {
+    PCSetFromOptions(pc);
+    PCSetUp(pc);
   }
   
   KSPSetFromOptions(ksp);

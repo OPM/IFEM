@@ -48,9 +48,14 @@ PETScBlockMatrix::PETScBlockMatrix(const LinSolParams& spar) : PETScMatrix(spar)
   matvec = (Mat*) malloc(sizeof(Mat)*nblocks*nblocks);
   for (size_t m = 0;m < nblocks*nblocks;m++) {
     MatCreate(PETSC_COMM_WORLD,&matvec[m]);
+    MatSetOption(matvec[m],MAT_STRUCTURALLY_SYMMETRIC,PETSC_TRUE);
     MatSetFromOptions(matvec[m]);
   }
   
+  S  = NULL;
+  Sp = NULL;
+  Fp = NULL;
+
   LinAlgInit::increfs();
 }
 
@@ -613,8 +618,6 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
     KSPSetOperators(subksp[1],Sp,Sp,SAME_PRECONDITIONER);
 
     if (P && Pb && (solParams.schurPrec == PCD)) {
-      Vec QpL;
-      
       KSPSetType(subksp[1],"preonly");
       KSPGetPC(subksp[1],&subpc[1]);
       PCSetType(subpc[1],PCSHELL);
@@ -625,19 +628,21 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
       PCCreate(PETSC_COMM_SELF,&S);
       PCCreate(PETSC_COMM_SELF,&Fp);
 #endif
-      PCSetType(S,PCLU);
+      PCSetType(S,solParams.subprec[1].c_str());
       PCSetType(Fp,PCMAT);
       Vec Pbr;
       VecDuplicate(Pb->getVector(),&Pbr);
       VecCopy(Pb->getVector(),Pbr);
       this->renumberRHS(Pb->getVector(),Pbr,true);
-      VecGetSubVector(Pbr,isvec[1],&QpL);
+      Vec QpLvec;
+      VecGetSubVector(Pbr,isvec[1],&QpLvec);
+      VecDuplicate(QpLvec,&QpL);
+      VecCopy(QpLvec,QpL);
       VecReciprocal(QpL);
-      MatDiagonalScale(P->getMatrixBlock(1,1),PETSC_NULL,QpL);
-      VecRestoreSubVector(Pbr,isvec[1],&QpL);
+      //MatDiagonalScale(P->getMatrixBlock(1,1),PETSC_NULL,QpL);
+      VecRestoreSubVector(Pbr,isvec[1],&QpLvec);
       VecDestroy(&Pbr);
       PCSetOperators(S,Sp,Sp,SAME_PRECONDITIONER);
-      PCSetOperators(Fp,P->getMatrixBlock(1,1),P->getMatrixBlock(1,1),SAME_NONZERO_PATTERN);
       
       PCProdCreate(&pcprod);
       PCShellSetApply(subpc[1],PCProdApply);
@@ -645,10 +650,141 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
       PCShellSetDestroy(subpc[1],PCProdDestroy);
       PCShellSetName(subpc[1],"PCD");
 
-      PCProdSetUp(subpc[1],&Fp,&S);
+      KSPSetType(subksp[1],"preonly");
+      PCSetType(S,solParams.subprec[1].c_str());
+      PCFactorSetLevels(S,solParams.levels[1]);
+      if (!strncasecmp(solParams.subprec[1].c_str(),"asm",3)) {
+	PCASMSetType(S,PC_ASM_BASIC);
+	PCASMSetOverlap(S,solParams.overlap[1]);
+	if (!locSubdDofsBlock.empty() && !subdDofsBlock.empty()) {
+	  const size_t nsubds = subdDofsBlock[1].size();
+	  
+	  IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
+	  for (size_t i = 0;i < nsubds;i++) {
+	    ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofsBlock[1][i].size(),&(locSubdDofsBlock[1][i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
+	    ISCreateGeneral(PETSC_COMM_WORLD,subdDofsBlock[1][i].size(),&(subdDofsBlock[1][i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
+	  }
+	  PCASMSetLocalSubdomains(S,nsubds,isSubdDofs,isLocSubdDofs);
+	}
+	
+	if (solParams.asmlu[1]) {
+	  KSP* subksp;
+	  PC   subsubpc;
+	  PetscInt first, nlocal;
+	  PCSetUp(S);
+	  PCASMGetSubKSP(S,&nlocal,&first,&subksp);
+	  
+	  for (int i = 0; i < nlocal; i++) {
+	    KSPGetPC(subksp[i],&subsubpc);
+	    PCSetType(subsubpc,PCLU);
+	    KSPSetType(subksp[i],KSPPREONLY);
+	  }
+	}
+      }
+      else if (!strncasecmp(solParams.subprec[1].c_str(),"ml",2)) {
+	PetscInt n;
+	
+	//PCMGSetNumberSmoothDown(subpc[1],noPreSmooth[1]);
+	//PCMGSetNumberSmoothUp(subpc[1],noPostSmooth[1]);
+	//PCGAMGSetNlevels(subpc[1],solParams.mglevels[1]);
+	//PCGAMGSetCoarseEqLim(subpc[1],solParams.maxCoarseSize[1]);
+	std::stringstream maxLevel;
+	maxLevel << solParams.mglevels[1];
+        PetscOptionsSetValue("-fieldsplt_p_pc_ml_maxNLevels",maxLevel.str().c_str());
+	std::stringstream maxCoarseDof;
+	maxCoarseDof << solParams.maxCoarseSize[1];
+        PetscOptionsSetValue("fieldsplit_p_pc_ml_maxCoarseSize",maxCoarseDof.str().c_str());
+	if (!solParams.MLCoarsenScheme.empty()) {
+	  std::stringstream coarsenScheme;
+	  coarsenScheme << solParams.MLCoarsenScheme[1];
+	  PetscOptionsSetValue("-fieldsplit_p_pc_ml_CoarsenScheme",coarsenScheme.str().c_str());
+	}
+	if (!solParams.MLThreshold.empty()) {
+	  std::stringstream threshold;
+	  threshold << solParams.MLThreshold[1];
+	  PetscOptionsSetValue("-fieldsplit_p_pc_ml_Threshold",threshold.str().c_str());
+	}
+	if (!solParams.MLDampingFactor.empty()) {
+	  std::stringstream damping;
+	  damping << solParams.MLDampingFactor[1];
+	  PetscOptionsSetValue("-fieldsplit_p_pc_ml_DampingFactor",damping.str().c_str());
+	}
+	
+	PCSetFromOptions(S);
+	PCSetUp(S);
+	//KSPSetUp(subksp[1]);
+	
+	PCMGGetLevels(S,&n);
+	// Presmoother
+	for (int i = 1;i < n;i++) {
+	  KSP preksp;
+	  PC  prepc;
+	  // Not working for some reason
+	  //PCMGGetSmootherDown(subpc[1],i,&preksp);
+	  
+	  // Set smoother
+	  std::string smoother;
+	  PetscInt noSmooth;
+
+	  PCMGGetSmoother(S,i,&preksp);
+	  KSPSetType(preksp,"richardson");
+
+          if ((i == n-1) && (!solParams.finesmoother.empty())) {
+            smoother = solParams.finesmoother[1];
+	    noSmooth = solParams.noFineSmooth[1];
+	  }
+          else {
+	    smoother = solParams.presmoother[1];
+	    noSmooth = solParams.noPreSmooth[1];
+	  }
+
+	  KSPSetTolerances(preksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,noSmooth);
+	  KSPGetPC(preksp,&prepc); 
+
+	  if (smoother == "asm" || smoother == "asmlu" ) {
+	    PCSetType(prepc,"asm");
+	    PCASMSetType(prepc,PC_ASM_BASIC);
+	    PCASMSetOverlap(prepc,solParams.overlap[1]);
+	    
+	    if (!locSubdDofs.empty() && !subdDofs.empty()) {
+	      const size_t nsubds = subdDofs.size();
+	      
+	      IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
+	      for (size_t i = 0;i < nsubds;i++) {
+		ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofs[i].size(),&(locSubdDofs[i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
+		ISCreateGeneral(PETSC_COMM_WORLD,subdDofs[i].size(),&(subdDofs[i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
+	      }
+	      PCASMSetLocalSubdomains(prepc,nsubds,isSubdDofs,isLocSubdDofs);
+	    }
+	    
+	    // If LU factorization is used on each subdomain
+	    if (smoother == "asmlu") {
+	      KSP* subksp;
+	      PC   subpc;
+	      PetscInt first, nlocal;
+	      PCSetFromOptions(prepc);
+	      PCSetUp(prepc);
+	      PCASMGetSubKSP(prepc,&nlocal,&first,&subksp);
+	      
+	      for (int i = 0; i < nlocal; i++) {
+		KSPGetPC(subksp[i],&subpc);
+		PCSetType(subpc,PCLU);
+		KSPSetType(subksp[i],KSPPREONLY);
+	      }
+	    }
+	  }
+	  else
+	    PCSetType(prepc,smoother.c_str());
+	  
+          PCFactorSetLevels(prepc,solParams.levels[1]);
+          KSPSetUp(preksp);
+	}
+      }
+
+      PCProdSetUp(subpc[1],&QpL,&Fp,&S);
       nsplit--;
     }
-
+      
     // Preconditioner for blocks
     for (int m = 0;m < nsplit;m++) {
       KSPSetType(subksp[m],"preonly");
@@ -690,31 +826,44 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	//PCMGSetNumberSmoothUp(subpc[m],noPostSmooth[m]);
 	//PCGAMGSetNlevels(subpc[m],solParams.mglevels[m]);
 	//PCGAMGSetCoarseEqLim(subpc[m],solParams.maxCoarseSize[m]);
+	std::string prefix;
+	if (m == 0)
+	  prefix = "-fieldsplit_u_";
+	else
+	  prefix = "-fieldsplit_p_";
+	    
 	std::stringstream maxLevel;
 	maxLevel << solParams.mglevels[m];
-        PetscOptionsSetValue("-pc_ml_maxNLevels",maxLevel.str().c_str());
+	std::string mlMaxNLevels = prefix + std::string("pc_ml_maxNLevels");
+	PetscOptionsSetValue(mlMaxNLevels.c_str(),maxLevel.str().c_str());
+        //PetscOptionsSetValue("-fieldsplit_p_pc_ml_maxNLevels",maxLevel.str().c_str());
 	std::stringstream maxCoarseDof;
 	maxCoarseDof << solParams.maxCoarseSize[m];
-        PetscOptionsSetValue("-pc_ml_maxCoarseSize",maxCoarseDof.str().c_str());
+	std::string mlMaxCoarseSize = prefix + std::string("pc_ml_maxCoarseSize");
+	PetscOptionsSetValue(mlMaxCoarseSize.c_str(),maxCoarseDof.str().c_str());
+        //PetscOptionsSetValue("-fieldsplit_p_pc_ml_maxCoarseSize",maxCoarseDof.str().c_str());
 	if (!solParams.MLCoarsenScheme.empty()) {
 	  std::stringstream coarsenScheme;
 	  coarsenScheme << solParams.MLCoarsenScheme[m];
-	  PetscOptionsSetValue("-pc_ml_CoarsenScheme",coarsenScheme.str().c_str());
+	  std::string mlCoarsenScheme = prefix + std::string("pc_ml_CoarsenScheme");
+	  PetscOptionsSetValue(mlCoarsenScheme.c_str(),coarsenScheme.str().c_str());
 	}
 	if (!solParams.MLThreshold.empty()) {
 	  std::stringstream threshold;
 	  threshold << solParams.MLThreshold[m];
-	  PetscOptionsSetValue("-pc_ml_Threshold",threshold.str().c_str());
+	  std::string mlThreshold = prefix + std::string("pc_ml_Threshold");
+	  PetscOptionsSetValue(mlThreshold.c_str(),threshold.str().c_str());
 	}
 	if (!solParams.MLDampingFactor.empty()) {
 	  std::stringstream damping;
 	  damping << solParams.MLDampingFactor[m];
-	  PetscOptionsSetValue("-pc_ml_DampingFactor",damping.str().c_str());
+	  std::string mlDampingFactor = prefix + std::string("pc_ml_DampingFactor");
+	  PetscOptionsSetValue(mlDampingFactor.c_str(),damping.str().c_str());
 	}
 
-	PCSetFromOptions(pc);
+	PCSetFromOptions(subpc[m]);
 	PCSetUp(subpc[m]);
-	//KSPSetUp(subksp[m]);
+	KSPSetUp(subksp[m]);
 
 	PCMGGetLevels(subpc[m],&n);
 	// Presmoother
@@ -738,35 +887,39 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 
 	  if (smoother == "asm" || smoother == "asmlu" ) {
 	    PCSetType(prepc,"asm");
-	    PCASMSetType(prepc,PC_ASM_BASIC);
+	    //PCASMSetType(prepc,PC_ASM_BASIC);
 	    PCASMSetOverlap(prepc,solParams.overlap[m]);
-	    
-	    if (!locSubdDofs.empty() && !subdDofs.empty()) {
-	      const size_t nsubds = subdDofs.size();
+	
+	    if (!locSubdDofsBlock.empty() && !subdDofsBlock.empty()) {
+	      const size_t nsubds = subdDofsBlock[m].size();
 	      
 	      IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
 	      for (size_t i = 0;i < nsubds;i++) {
-		ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofs[i].size(),&(locSubdDofs[i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
-		ISCreateGeneral(PETSC_COMM_WORLD,subdDofs[i].size(),&(subdDofs[i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
+		ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofsBlock[m][i].size(),&(locSubdDofsBlock[m][i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
+		ISCreateGeneral(PETSC_COMM_WORLD,subdDofsBlock[m][i].size(),&(subdDofsBlock[m][i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
 	      }
+
 	      PCASMSetLocalSubdomains(prepc,nsubds,isSubdDofs,isLocSubdDofs);
 	    }
 
+	    PCSetFromOptions(prepc);
+	    PCSetUp(prepc);
+
 	    // If LU factorization is used on each subdomain
 	    if (smoother == "asmlu") {
-	      KSP* subksp;
-	      PC   subpc;
+	      KSP* subdksp;
+	      PC   subdpc;
 	      PetscInt first, nlocal;
-	      PCSetFromOptions(prepc);
-	      PCSetUp(prepc);
-	      PCASMGetSubKSP(prepc,&nlocal,&first,&subksp);
-	      
+	      PCASMGetSubKSP(prepc,&nlocal,&first,&subdksp);
+
 	      for (int i = 0; i < nlocal; i++) {
-		KSPGetPC(subksp[i],&subpc);
-		PCSetType(subpc,PCLU);
-		KSPSetType(subksp[i],KSPPREONLY);
+		KSPGetPC(subdksp[i],&subdpc);
+		PCSetType(subdpc,PCLU);
 	      }
 	    }
+
+	    PCSetFromOptions(prepc);
+	    PCSetUp(prepc);
 	  }
 	  else 
 	    PCSetType(prepc,smoother.c_str());

@@ -18,6 +18,7 @@
 #include "PETScMatrix.h"
 #ifdef HAS_PETSC
 #include "PCProd.h"
+#include "PCScale.h"
 #else
 #define IS int // to avoid compilation failures
 #endif
@@ -120,6 +121,7 @@ public:
 
  protected:
   Mat    Sp;                          //!< Preconditioner for Schur block
+  Vec    QpL;                         //!< Vector with lumoed pressure mass 
   PC     S, Fp;                       //!< Preconditioners for pressure-convection-diffusion pc
   PCProd *pcprod;                     //!< PCD preconditioner
   size_t nblocks;                     //!< Number of blocks
