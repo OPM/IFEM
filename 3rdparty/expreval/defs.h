@@ -15,7 +15,7 @@ namespace ExprEval
 } // namespace ExprEval
 
 // CHANGED from original code: due to auto_ptr deprecation in c++0x
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
+#if defined(__GXX_EXPERIMENTAL_CXX0X__) && !defined(__INTEL_COMPILER)
 #define aptr(x) std::unique_ptr<x>
 #else
 #define aptr(x) std::auto_ptr<x>
