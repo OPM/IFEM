@@ -661,8 +661,8 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	  
 	  IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
 	  for (size_t i = 0;i < nsubds;i++) {
-	    ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofsBlock[1][i].size(),&(locSubdDofsBlock[1][i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
-	    ISCreateGeneral(PETSC_COMM_WORLD,subdDofsBlock[1][i].size(),&(subdDofsBlock[1][i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
+	    ISCreateGeneral(PETSC_COMM_SELF,locSubdDofsBlock[1][i].size(),&(locSubdDofsBlock[1][i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
+	    ISCreateGeneral(PETSC_COMM_SELF,subdDofsBlock[1][i].size(),&(subdDofsBlock[1][i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
 	  }
 	  PCASMSetLocalSubdomains(S,nsubds,isSubdDofs,isLocSubdDofs);
 	}
@@ -751,8 +751,8 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	      
 	      IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
 	      for (size_t i = 0;i < nsubds;i++) {
-		ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofs[i].size(),&(locSubdDofs[i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
-		ISCreateGeneral(PETSC_COMM_WORLD,subdDofs[i].size(),&(subdDofs[i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
+		ISCreateGeneral(PETSC_COMM_SELF,locSubdDofs[i].size(),&(locSubdDofs[i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
+		ISCreateGeneral(PETSC_COMM_SELF,subdDofs[i].size(),&(subdDofs[i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
 	      }
 	      PCASMSetLocalSubdomains(prepc,nsubds,isSubdDofs,isLocSubdDofs);
 	    }
@@ -799,8 +799,8 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	  
 	  IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
 	  for (size_t i = 0;i < nsubds;i++) {
-	    ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofsBlock[m][i].size(),&(locSubdDofsBlock[m][i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
-	    ISCreateGeneral(PETSC_COMM_WORLD,subdDofsBlock[m][i].size(),&(subdDofsBlock[m][i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
+	    ISCreateGeneral(PETSC_COMM_SELF,locSubdDofsBlock[m][i].size(),&(locSubdDofsBlock[m][i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
+	    ISCreateGeneral(PETSC_COMM_SELF,subdDofsBlock[m][i].size(),&(subdDofsBlock[m][i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
 	  }
 	  PCASMSetLocalSubdomains(subpc[m],nsubds,isSubdDofs,isLocSubdDofs);
 	}
@@ -895,8 +895,8 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	      
 	      IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
 	      for (size_t i = 0;i < nsubds;i++) {
-		ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofsBlock[m][i].size(),&(locSubdDofsBlock[m][i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
-		ISCreateGeneral(PETSC_COMM_WORLD,subdDofsBlock[m][i].size(),&(subdDofsBlock[m][i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
+		ISCreateGeneral(PETSC_COMM_SELF,locSubdDofsBlock[m][i].size(),&(locSubdDofsBlock[m][i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
+		ISCreateGeneral(PETSC_COMM_SELF,subdDofsBlock[m][i].size(),&(subdDofsBlock[m][i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
 	      }
 
 	      PCASMSetLocalSubdomains(prepc,nsubds,isSubdDofs,isLocSubdDofs);
