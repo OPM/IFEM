@@ -798,13 +798,15 @@ bool SAMpatchPara::getLocalSubdomains (PetscIntMat& locSubds,
   for (int n = 0;n < npatch;n++) {
     const IntVec& MLGN = patch[n]->getGlobalNodeNums();
   
-    int min = 0;
+    int min = 1e9;
     int max = 0;
+    int ieq;
     for (size_t i = 0;i < MLGN.size();i++) {
-      if (MLGN[i] > max)
-	max = MLGN[i];
-      if (MLGN[i] < min)
-	min = MLGN[i];
+      ieq = l2gn[MLGN[i]-1];
+      if (ieq > max)
+	max = ieq;
+      if (ieq < min)
+	min = ieq;
     }
     minNodeId[n] = min;
     maxNodeId[n] = max;
@@ -827,7 +829,7 @@ bool SAMpatchPara::getLocalSubdomains (PetscIntMat& locSubds,
     minNodeId[0]++;
   }
 #endif  
-
+    
   switch (nsd) {
   case 1:
   {
@@ -872,11 +874,13 @@ bool SAMpatchPara::getLocalSubdomainsBlock (PetscIntMat& locSubds,
   
     int min = 0;
     int max = 0;
+    int ieq;
     for (size_t i = 0;i < MLGN.size();i++) {
-      if (MLGN[i] > max)
-	max = MLGN[i];
-      if (MLGN[i] < min)
-	min = MLGN[i];
+      ieq = l2gn[MLGN[i]-1];
+      if (ieq > max)
+	max = ieq;
+      if (ieq < min)
+	min = ieq;
     }
     minNodeId[n] = min;
     maxNodeId[n] = max;
@@ -1022,10 +1026,11 @@ bool SAMpatchPara::getLocalSubdomains1D (const IntVec& nxvec,
       if ((p1 == nx-1) && (i2 < nnod)) i2 = nnod;
       
       for (int i = i1;i < i2;i++) {
-	int globNode = MLGN[i];
-	
+	int procNode = MLGN[i];
+	int globNode = l2gn[procNode-1];
+
 	if (globNode >= minNodeId[n] && globNode <= maxNodeId[n]) {
-	  int nodedof = madof[globNode-1];
+	  int nodedof = madof[procNode-1];
 	  int nnodedof = patch[n]->getNodalDOFs(i+1);
 	  for (int m = 0;m < nnodedof;m++) {
 	    PetscInt ieq = meqn[nodedof+m-1];
@@ -1034,7 +1039,8 @@ bool SAMpatchPara::getLocalSubdomains1D (const IntVec& nxvec,
 	  }
 	}
       }
-      
+
+      std::sort(subdDofs.begin(),subdDofs.end());
       locSubds.push_back(subdDofs);
     }
   }
@@ -1070,7 +1076,7 @@ bool SAMpatchPara::getLocalSubdomains2D (const IntVec& nxvec,
     int ny = nyvec[n];
     int n1 = nnod1/nx;
     int n2 = nnod2/ny;
-    
+
     const IntVec& MLGN = patch[n]->getGlobalNodeNums();
     for (int p2 = 0;p2 < ny;p2++) {
       int j1 = p2*n2;
@@ -1087,10 +1093,11 @@ bool SAMpatchPara::getLocalSubdomains2D (const IntVec& nxvec,
 	for (int j = j1;j < j2;j++)
 	  for (int i = i1;i < i2;i++) {
 	    int locNode = j*nnod1 + i;
-	    int globNode = MLGN[locNode];
-	    
+	    int procNode = MLGN[locNode];
+	    int globNode = l2gn[procNode-1];
+
 	    if (globNode >= minNodeId[n] && globNode <= maxNodeId[n]) {
-	      int nodedof = madof[globNode-1];
+	      int nodedof = madof[procNode-1];
 	      int nnodedof = patch[n]->getNodalDOFs(locNode+1);
 	      for (int m = 0;m < nnodedof;m++) {
 		PetscInt ieq = meqn[nodedof+m-1];
@@ -1099,7 +1106,8 @@ bool SAMpatchPara::getLocalSubdomains2D (const IntVec& nxvec,
 	      }
 	    }
 	  }
-	
+
+	std::sort(subdDofs.begin(),subdDofs.end());
 	locSubds.push_back(subdDofs);
       }
     }
@@ -1163,10 +1171,11 @@ bool SAMpatchPara::getLocalSubdomains3D (const IntVec& nxvec,
 	    for (int j = j1;j < j2;j++)
 	      for (int i = i1;i < i2;i++) {
 		int locNode = k*nnod3*nnod2 + j*nnod1 + i;
-		int globNode = MLGN[locNode];
-		
+		int procNode = MLGN[locNode];
+		int globNode = l2gn[procNode-1];
+
 		if (globNode >= minNodeId[n] && globNode <= maxNodeId[n]) {
-		  int nodedof = madof[globNode-1];
+		  int nodedof = madof[procNode-1];
 		  int nnodedof = patch[n]->getNodalDOFs(locNode+1);
 		  for (int m = 0;m < nnodedof;m++) {
 		    PetscInt ieq = meqn[nodedof+m-1];
@@ -1175,8 +1184,9 @@ bool SAMpatchPara::getLocalSubdomains3D (const IntVec& nxvec,
 		  }
 		}
 	      }
-	    
-	    locSubds.push_back(subdDofs);
+
+	  std::sort(subdDofs.begin(),subdDofs.end());
+	  locSubds.push_back(subdDofs);
 	}
       }
     }
@@ -1232,6 +1242,7 @@ bool SAMpatchPara::getSubdomains1D (const IntVec& nxvec, int overlap,
 	}
       }
     
+      std::sort(subdDofs.begin(),subdDofs.end());
       subds.push_back(subdDofs);
     }
   }
@@ -1298,13 +1309,13 @@ bool SAMpatchPara::getSubdomains2D (const IntVec& nxvec,
 		subdDofs.push_back(ieq-1);
 	    }
 	  }
-      
+
+	std::sort(subdDofs.begin(),subdDofs.end());
 	subds.push_back(subdDofs);
       }
     }
-    
   }
-
+   
   return true;
 }
 
@@ -1379,6 +1390,7 @@ bool SAMpatchPara::getSubdomains3D (const IntVec& nxvec,
 		}
 	      }
 	  
+	  std::sort(subdDofs.begin(),subdDofs.end());
 	  subds.push_back(subdDofs);
 	}
       }
@@ -1424,10 +1436,11 @@ bool SAMpatchPara::getLocalSubdomains1D (PetscIntMat& locSubds,
       if ((p1 == nx-1) && (i2 < nnod)) i2 = nnod;
       
       for (int i = i1;i < i2;i++) {
-	int globNode = MLGN[i];
-	
+	int procNode = MLGN[i];
+	int globNode = l2gn[procNode-1];
+
 	if (globNode >= minNodeId[n] && globNode <= maxNodeId[n]) {
-	  int nodedof   = madof[globNode-1];
+	  int nodedof   = madof[procNode-1];
 	  int gdof      = meqn[nodedof-1];
 	  int nnodedof  = patch[n]->getNodalDOFs(i+1);
 	  int gbnodedof = (gdof-1)/nnodedof;
@@ -1439,6 +1452,7 @@ bool SAMpatchPara::getLocalSubdomains1D (PetscIntMat& locSubds,
 	}
       }
       
+      std::sort(subdDofs.begin(),subdDofs.end());
       locSubds.push_back(subdDofs);
     }
   }
@@ -1494,10 +1508,11 @@ bool SAMpatchPara::getLocalSubdomains2D (PetscIntMat& locSubds,
 	for (int j = j1;j < j2;j++)
 	  for (int i = i1;i < i2;i++) {
 	    int locNode = j*nnod1 + i;
-	    int globNode = MLGN[locNode];
-	    
+	    int procNode = MLGN[locNode];
+	    int globNode = l2gn[procNode-1];
+
 	    if (globNode >= minNodeId[n] && globNode <= maxNodeId[n]) {
-	      int nodedof  = madof[globNode-1];
+	      int nodedof  = madof[procNode-1];
 	      int gdof      = meqn[nodedof-1];
 	      int nnodedof  = patch[n]->getNodalDOFs(locNode+1);
 	      int gbnodedof = (gdof-1)/nnodedof;
@@ -1508,7 +1523,8 @@ bool SAMpatchPara::getLocalSubdomains2D (PetscIntMat& locSubds,
 	      }
 	    }
 	  }
-	
+
+	std::sort(subdDofs.begin(),subdDofs.end());
 	locSubds.push_back(subdDofs);
       }
     }
@@ -1575,10 +1591,11 @@ bool SAMpatchPara::getLocalSubdomains3D (PetscIntMat& locSubds,
 	    for (int j = j1;j < j2;j++)
 	      for (int i = i1;i < i2;i++) {
 		int locNode = k*nnod3*nnod2 + j*nnod1 + i;
-		int globNode = MLGN[locNode];
-		
+		int procNode = MLGN[locNode];
+		int globNode = l2gn[procNode-1];
+
 		if (globNode >= minNodeId[n] && globNode <= maxNodeId[n]) {
-		  int nodedof = madof[globNode-1];
+		  int nodedof = madof[procNode-1];
 		  int gdof      = meqn[nodedof-1];
 		  int nnodedof = patch[n]->getNodalDOFs(locNode+1);
 		  int gbnodedof = (gdof-1)/nnodedof;
@@ -1589,8 +1606,9 @@ bool SAMpatchPara::getLocalSubdomains3D (PetscIntMat& locSubds,
 		  }
 		}
 	      }
-	    
-	    locSubds.push_back(subdDofs);
+	
+	  std::sort(subdDofs.begin(),subdDofs.end());
+	  locSubds.push_back(subdDofs);
 	}
       }
     }
@@ -1650,6 +1668,7 @@ bool SAMpatchPara::getSubdomains1D (PetscIntMat& subds,
 	}
       }
     
+      std::sort(subdDofs.begin(),subdDofs.end());
       subds.push_back(subdDofs);
     }
   }
@@ -1724,6 +1743,7 @@ bool SAMpatchPara::getSubdomains2D (PetscIntMat& subds,
 	    }
 	  }
       
+	std::sort(subdDofs.begin(),subdDofs.end());
 	subds.push_back(subdDofs);
       }
     }
@@ -1811,6 +1831,7 @@ bool SAMpatchPara::getSubdomains3D (PetscIntMat& subds,
 		}
 	      }
 	  
+	  std::sort(subdDofs.begin(),subdDofs.end());
 	  subds.push_back(subdDofs);
 	}
       }
