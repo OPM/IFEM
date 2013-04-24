@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 #include <sys/statvfs.h>
 #include <hdf5.h>
+#include <unistd.h>
 #ifdef PARALLEL_PETSC
 #include <mpi.h>
 #endif
