@@ -415,15 +415,17 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
     PCSetFromOptions(pc);
     PCSetUp(pc);
 
-    KSP* subksp;
-    PC   subpc;
-    PetscInt first, nlocal;
-    PCASMGetSubKSP(pc,&nlocal,&first,&subksp);
+    if (asmlu[0]) {
+      KSP* subksp;
+      PC   subpc;
+      PetscInt first, nlocal;
+      PCASMGetSubKSP(pc,&nlocal,&first,&subksp);
       
-    for (int i = 0; i < nlocal; i++) {
-      KSPGetPC(subksp[i],&subpc);
-      PCSetType(subpc,PCLU);
-      KSPSetType(subksp[i],KSPPREONLY);
+      for (int i = 0; i < nlocal; i++) {
+	KSPGetPC(subksp[i],&subpc);
+	PCSetType(subpc,PCLU);
+	KSPSetType(subksp[i],KSPPREONLY);
+      }
     }
   }
   else if (!strncasecmp(prec.c_str(),"ml",2)) {
@@ -591,8 +593,5 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
   
   KSPSetFromOptions(ksp);
   KSPSetUp(ksp);
-
-  // RUNAR
-  PCView(pc,PETSC_VIEWER_STDOUT_SELF);
 }
 #endif
