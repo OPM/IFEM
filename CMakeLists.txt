@@ -9,8 +9,6 @@ SET(IFEM_VERSION "${IFEM_VERSION_MAJOR}.${IFEM_VERSION_MINOR}.${IFEM_VERSION_PAT
 # Generate header with version info
 CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/src/IFEM.h.in
                ${PROJECT_SOURCE_DIR}/src/IFEM.h @ONLY)
-CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/scripts/fixupdebs.sh.in
-               ${PROJECT_SOURCE_DIR}/scripts/fixupdebs.sh @ONLY)
 CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/doc/libifem-builddeps.control.in
                ${PROJECT_SOURCE_DIR}/doc/libifem-builddeps.control @ONLY)
 
@@ -178,6 +176,3 @@ ELSE(WIN32)
   INSTALL(FILES ${PROJECT_SOURCE_DIR}/COPYING DESTINATION share/doc/IFEM COMPONENT doc)
   INSTALL(FILES ${PROJECT_SOURCE_DIR}/doc/Tutorials/GettingStarted.pdf DESTINATION share/doc/IFEM COMPONENT doc)
 ENDIF(WIN32)
-
-#Packaging
-INCLUDE(IFEMPackaging)
