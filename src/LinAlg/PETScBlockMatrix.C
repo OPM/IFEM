@@ -890,7 +890,7 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	    //PCASMSetType(prepc,PC_ASM_BASIC);
 	    PCASMSetOverlap(prepc,solParams.overlap[m]);
 	
-	    if (!locSubdDofsBlock.empty() && !subdDofsBlock.empty()) {
+	    if (!locSubdDofsBlock.empty() && !subdDofsBlock.empty() && (i==n-1)) {
 	      const size_t nsubds = subdDofsBlock[m].size();
 	      
 	      IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
