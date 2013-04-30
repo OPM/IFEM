@@ -166,9 +166,7 @@ ELSE(WIN32)
     DESTINATION include/IFEM COMPONENT ${IFEM_DEV_COMPONENT})
 
   # cmake modules
-  FILE(GLOB LOCAL_CMAKE_MODULES cmake/Modules/Find*.cmake)
-  INSTALL(FILES ${LOCAL_CMAKE_MODULES}
-          DESTINATION ${CMAKE_ROOT}/Modules COMPONENT bin)
+  INSTALL(FILES cmake/Modules/FindIFEM.cmake DESTINATION lib/IFEM RENAME IFEMConfig.cmake)
 
   # documentation and license
   INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/doc/html DESTINATION share/doc/IFEM 
