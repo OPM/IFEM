@@ -182,8 +182,8 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
           idim = 0;
         else
           utl::getAttribute(set,"dimension",idim);
-	if (idim > 0 && utl::getAttribute(set,"closure",type,true))
-	  if (type == "open") idim = -idim; // i.e. excluding its boundary
+        if (idim > 0 && utl::getAttribute(set,"closure",type,true))
+          if (type == "open") idim = -idim; // i.e. excluding its boundary
 
         TopEntity& top = myEntitys[name];
         const TiXmlElement* item = set->FirstChildElement("item");
@@ -331,7 +331,7 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
       // Check for definition of first tangent direction (relevant for 3D only)
       utl::getAttribute(elem,"t1",axes,true);
       if (axes[0] >= 'x' && axes[0] <= 'z')
-	comp -= 10*(axes[0]-'w');
+        comp -= 10*(axes[0]-'w');
     }
     const TiXmlNode* dval = elem->FirstChild();
     if (type == "anasol") {
@@ -930,12 +930,13 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
   // Generate element groups for multi-threading
   bool silence = msgLevel < 1 || (msgLevel < 2 && myModel.size() > 1);
   for (mit = myModel.begin(); mit != myModel.end(); mit++)
-    (*mit)->generateThreadGroups(*myProblem,silence);
+    if (!(*mit)->empty())
+      (*mit)->generateThreadGroups(*myProblem,silence);
 
   for (q = myProps.begin(); q != myProps.end(); q++)
     if (q->pcode == Property::NEUMANN || q->pcode == Property::NEUMANN_GENERIC)
       if (abs(q->ldim)+1 == myModel[q->patch-1]->getNoParamDim())
-	myModel[q->patch-1]->generateThreadGroups(q->lindx,silence);
+        myModel[q->patch-1]->generateThreadGroups(q->lindx,silence);
 
   // Preprocess the result points
   for (ResPointVec::iterator p = myPoints.begin(); p != myPoints.end();)
@@ -1156,7 +1157,8 @@ bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, bool withRF)
   std::string heading("\n\nNodal coordinates for Patch 1");
   size_t i, j = heading.size()-1;
   for (i = 0; i < myModel.size() && i < 9; i++, heading[j]++)
-    myModel[i]->printNodes(std::cout,heading.c_str());
+    if (!myModel[i]->empty())
+      myModel[i]->printNodes(std::cout,heading.c_str());
 #endif
 
   if (myEqSys) delete myEqSys;
@@ -2936,7 +2938,7 @@ bool SIMbase::evalProjSolution (const Vector& ssol,
 bool SIMbase::extractPatchSolution (IntegrandBase* problem,
                                     const Vectors& sol, size_t pindx)
 {
-  if (pindx >= myModel.size() || myModel[pindx]->empty())
+  if (pindx >= myModel.size())
     return false;
 
   problem->initNodeMap(myModel[pindx]->getGlobalNodeNums());
