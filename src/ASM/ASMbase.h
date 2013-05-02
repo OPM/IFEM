@@ -266,15 +266,22 @@ public:
 
   //! \brief Resolves (possibly multi-level) chaining in MPC equations.
   //! \param[in] allMPCs All multi-point constraint equations in the model
+  //! \param[in] setPtrOnly If \e true, only set pointer to next MPC in chain
   //!
   //! \details If a master DOF in one MPC (multi-point constraint) equation
   //! is specified as slave by another MPC, it is replaced by the master(s) of
   //! that other equation. Since an MPC-equation may couple nodes belonging to
   //! different patches, this method must have access to all patches.
-  static void resolveMPCchains(const MPCSet& allMPCs);
+  static void resolveMPCchains(const MPCSet& allMPCs, bool setPtrOnly = false);
 
   //! \brief Initializes the multi-point constraint coefficients.
   virtual bool initConstraints() { return true;}
+
+  //! \brief Checks for time-dependent in-homogeneous Dirichlet conditions.
+  //! \param[in] func Scalar property fields
+  //! \param[in] vfunc Vector property fields
+  bool hasTimeDependentDirichlet (const std::map<int,RealFunc*>& func,
+                                  const std::map<int,VecFunc*>& vfunc);
 
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] func Scalar property fields

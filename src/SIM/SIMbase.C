@@ -945,7 +945,8 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
   if (!this->initDirichlet()) return false;
 
   // Resolve possibly chaining of the MPC equations
-  if (!allMPCs.empty()) ASMbase::resolveMPCchains(allMPCs);
+  if (!allMPCs.empty())
+    ASMbase::resolveMPCchains(allMPCs,this->hasTimeDependentDirichlet());
 
   // Generate element groups for multi-threading
   bool silence = msgLevel < 1 || (msgLevel < 2 && myModel.size() > 1);
@@ -1321,6 +1322,16 @@ size_t SIMbase::getNoElms () const
 size_t SIMbase::getNoSolutions () const
 {
   return myProblem ? myProblem->getNoSolutions() : 0;
+}
+
+
+bool SIMbase::hasTimeDependentDirichlet () const
+{
+  for (size_t i = 0; i < myModel.size(); i++)
+    if (myModel[i]->hasTimeDependentDirichlet(myScalars,myVectors))
+      return true;
+
+  return false;
 }
 
 

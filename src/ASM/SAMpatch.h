@@ -15,6 +15,7 @@
 #define _SAM_PATCH_H
 
 #include "SAM.h"
+#include "MPC.h"
 
 class ASMbase;
 
@@ -41,17 +42,25 @@ public:
   //! \brief Updates the multi-point constraint array \a TTCC.
   //! \param[in] model All spline patches in the model
   //! \param[in] prevSol Previous primary solution vector in DOF-order
-  virtual bool updateConstraintEqs(const std::vector<ASMbase*>& model,
-				   const Vector* prevSol = 0);
+  bool updateConstraintEqs(const std::vector<ASMbase*>& model,
+                           const Vector* prevSol = 0);
 
 protected:
   //! \brief Initializes the nodal arrays \a MINEX, \a MADOF and \a MSC.
   bool initNodeDofs(const std::vector<ASMbase*>& model);
   //! \brief Initializes the element topology arrays \a MPMNPC and \a MMNPC.
   bool initElementConn(const std::vector<ASMbase*>& model);
-  //! \brief Initializes the multi-point constraint arrays
+  //! \brief Initializes the multi-point constraint arrays.
   //! \a MPMCEQ, \a MMCEQ and \a TTCC.
   virtual bool initConstraintEqs(const std::vector<ASMbase*>& model);
+
+private:
+  //! \brief Recursive helper method used by \a initConstraintEqs.
+  bool initConstraintEqMaster(const MPC::DOF& master, const MPC::DOF& slave,
+                              Real& offset, int ip, Real scale = Real(1));
+  //! \brief Recursive helper method used by \a updateConstraintEqs.
+  void updateConstraintEqMaster(const MPC::DOF& master,
+                                Real& offset, int& ipeq, Real scale = 1.0);
 };
 
 #endif

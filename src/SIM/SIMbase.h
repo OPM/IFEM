@@ -224,6 +224,8 @@ public:
   //! \brief Initializes time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time
   bool initDirichlet(double time = 0.0);
+  //! \brief Checks for time-dependent in-homogeneous Dirichlet conditions.
+  bool hasTimeDependentDirichlet() const;
 
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time

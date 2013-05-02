@@ -71,12 +71,16 @@ class EvalFunction : public RealFunc
   Real* y; //!< Pointer to the Y-coordinate of the function argument
   Real* z; //!< Pointer to the Z-coordinate of the function argument
   Real* t; //!< Pointer to the time coordinate of the function argument
+  bool  IAmConstant; //!< Indicates whether the time coordinate is given or not
 
 public:
   //! \brief The constructor parses the expression string.
   EvalFunction(const char* function);
   //! \brief The destructor frees the dynamically allocated objects.
   virtual ~EvalFunction();
+
+  //! \brief Returns whether the function is time-independent or not.
+  virtual bool isConstant() const { return IAmConstant; }
 
 protected:
   //! \brief Evaluates the function expression.
@@ -123,6 +127,14 @@ public:
   {
     for (size_t i = 0; i < p.size(); i++)
       delete p[i];
+  }
+
+  //! \brief Returns whether the function is time-independent or not.
+  virtual bool isConstant() const
+  {
+    for (size_t i = 0; i < p.size(); i++)
+      if (!p[i]->isConstant()) return false;
+    return true;
   }
 
 protected:

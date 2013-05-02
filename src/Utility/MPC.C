@@ -57,6 +57,19 @@ bool MPCLess::operator() (const MPC* lhs, const MPC* rhs) const
 }
 
 
+size_t MPC::getNoMaster (bool recursive) const
+{
+  size_t nMaster = master.size();
+
+  if (recursive)
+    for (size_t i = 0; i < master.size(); i++)
+      if (master[i].nextc)
+	nMaster += master[i].nextc->getNoMaster(true) - 1;
+
+  return nMaster;
+}
+
+
 void MPC::addMaster (const DOF& dof, Real tol)
 {
   if (dof.coeff >= -tol && dof.coeff <= tol) return; // ignore if zero coeff.

@@ -20,7 +20,7 @@
 
 
 /*!
-  \brief A class for representing a general multi-point constraint equation.
+  \brief A class representing a general multi-point constraint equation.
 
   \details A multi-point constraint (MPC) equation is used to introduce
   additional coupling between the degrees of freedom (DOF) in a FE grid.
@@ -44,9 +44,8 @@
   prescribed (\f$c_0\ne0\f$) dof.
 
   One or more of the master dofs may also be a slave in another constraint
-  equation (chained constrains). In this case the two equations are combined
-  to eliminate the master dof that is constrained. This is done while
-  preprocessing the model by the Grid::resolveMPCchains function.
+  equation (chained constraints). In this case the two equations are combined
+  during model preprocessing, to eliminate the master dof that is constrained.
 */
 
 class MPC
@@ -54,19 +53,19 @@ class MPC
 public:
 
   /*!
-    \brief A struct for representing one term (DOF number and associated
-    coefficient) in a MPC equation.
+    \brief A struct representing one term in a multi-point constraint equation.
+    \details Each term consits of the DOF number and an associated coefficient.
   */
   struct DOF
   {
     //! \brief Default constructor.
-    DOF() : node(0), dof(0), coeff(Real(0)) {}
+    DOF() : node(0), dof(0), coeff(Real(0)), nextc(0) {}
 
     //! \brief Convenience constructor creating a valid DOF object.
     //! \param[in] n Node number (1...NNOD)
     //! \param[in] d The local DOF number (1...3)
     //! \param[in] c Associated coefficient or constrained value
-    DOF(int n, int d, Real c = Real(0)) : node(n), dof(d), coeff(c) {}
+    DOF(int n, int d, Real c = Real(0)) : node(n), dof(d), coeff(c), nextc(0) {}
 
     //! \brief Global stream operator printing a DOF instance.
     friend std::ostream& operator<<(std::ostream& s, const DOF& dof)
@@ -83,6 +82,7 @@ public:
     int  node;  //!< Node number identifying this DOF
     int  dof;   //!< Local DOF number within \a node
     Real coeff; //!< The constrained value, or master DOF scaling coefficient
+    MPC* nextc; //!< Points to another MPC in case of chained constraints
   };
 
   //! \brief Constructor creating a constraint for a specified slave DOF
@@ -115,6 +115,13 @@ public:
       master[pos].coeff = c;
   }
 
+  //! \brief Updates the next chain element of the \a pos'th master DOF.
+  void updateMaster(size_t pos, MPC* m)
+  {
+    if (pos < master.size())
+      master[pos].nextc = m;
+  }
+
   //! \brief Removes the \a pos'th master DOF from the constraint equation.
   void removeMaster(size_t pos)
   {
@@ -143,12 +150,13 @@ public:
   const DOF& getMaster(size_t i) const { return master[i]; }
 
   //! \brief Returns the number of master DOFs.
-  size_t getNoMaster() const { return master.size(); }
+  size_t getNoMaster(bool recursive = false) const;
 
   //! \brief Global stream operator printing a constraint equation.
   friend std::ostream& operator<<(std::ostream& s, const MPC& mpc);
 
-  int              iceq;   //!< Global constraint equation identifier
+  int iceq; //!< Global constraint equation identifier
+
 private:
   DOF              slave;  //!< The slave DOF of this constraint equation
   std::vector<DOF> master; //!< The master DOFs of this constraint equation

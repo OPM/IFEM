@@ -167,6 +167,8 @@ public:
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return tfunc->isZero(); }
+  //! \brief Returns whether the function is time-independent or not.
+  virtual bool isConstant() const { return false; }
 
 protected:
   //! \brief Evaluates the time-varying function.
@@ -193,6 +195,8 @@ public:
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return sfunc->isZero() || tfunc->isZero(); }
+  //! \brief Returns whether the function is time-independent or not.
+  virtual bool isConstant() const { return false; }
 
 protected:
   //! \brief Evaluates the space-time function.
@@ -358,6 +362,9 @@ public:
   //! \brief Constructor initializing the function parameters.
   LinearRotZFunc(bool retX, Real a, Real x_0 = Real(0), Real y_0 = Real(0))
     : rX(retX), A(a), x0(x_0), y0(y_0) {}
+
+  //! \brief Returns whether the function is time-independent or not.
+  virtual bool isConstant() const { return false; }
 
 protected:
   //! \brief Evaluates the rotation function.

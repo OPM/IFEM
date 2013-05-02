@@ -611,7 +611,18 @@ void ASMbase::mergeAndGetAllMPCs (const ASMVec& model, MPCSet& allMPCs)
 }
 
 
-void ASMbase::resolveMPCchains (const MPCSet& allMPCs)
+/*!
+  If \a setPtrOnly is \e true, the MPC equations are not modified. Instead
+  the pointers to the next MPC in the chain is assigned for the master DOFs
+  which are slaves in other MPCs.
+
+  This is used in time-dependent/nonlinear simulators where the constraint
+  coefficients might be updated due to time variation. The resolving is then
+  done directly in the MMCEQ/TTCC arrays of the SAM data object.
+  \sa SAMpatch::updateConstraintEqs.
+*/
+
+void ASMbase::resolveMPCchains (const MPCSet& allMPCs, bool setPtrOnly)
 {
 #if SP_DEBUG > 1
   std::cout <<"\nResolving MPC chains"<< std::endl;
@@ -620,16 +631,27 @@ void ASMbase::resolveMPCchains (const MPCSet& allMPCs)
 
   int nresolved = 0;
   for (MPCIter cit = allMPCs.begin(); cit != allMPCs.end(); cit++)
-    if (ASMbase::resolveMPCchain(allMPCs,*cit)) nresolved++;
+    if (setPtrOnly)
+      for (size_t i = 0; i < (*cit)->getNoMaster(); i++)
+      {
+        MPC master((*cit)->getMaster(i).node,(*cit)->getMaster(i).dof);
+        MPCIter chain = allMPCs.find(&master);
+        if (chain != allMPCs.end())
+          (*cit)->updateMaster(i,*chain); // Set pointer to next MPC in chain
+      }
+    else if (ASMbase::resolveMPCchain(allMPCs,*cit))
+      nresolved++;
 
   if (nresolved > 0)
     std::cout <<"Resolved "<< nresolved <<" MPC chains."<< std::endl;
 }
 
 
-// Recursive method to resolve (possibly multi-level) chaining in multi-point
-// constraint equations (MPCs). If a master dof in one MPC is specified as a
-// slave by another MPC, it is replaced by the master(s) of that other equation.
+/*!
+  Recursive resolving of (possibly multi-level) chaining in multi-point
+  constraint equations (MPCs). If a master dof in one MPC is specified as a
+  slave by another MPC, it is replaced by the master(s) of that other equation.
+*/
 
 bool ASMbase::resolveMPCchain (const MPCSet& allMPCs, MPC* mpc)
 {
@@ -669,6 +691,27 @@ bool ASMbase::resolveMPCchain (const MPCSet& allMPCs, MPC* mpc)
   if (resolved) std::cout <<"Resolved constraint: "<< *mpc;
 #endif
   return resolved;
+}
+
+
+bool ASMbase::hasTimeDependentDirichlet (const std::map<int,RealFunc*>& func,
+                                         const std::map<int,VecFunc*>& vfunc)
+{
+  std::map<int,RealFunc*>::const_iterator fit;
+  std::map<int,VecFunc*>::const_iterator vfit;
+  for (MPCMap::iterator cit = dCode.begin(); cit != dCode.end(); cit++)
+    if ((fit = func.find(cit->second)) != func.end())
+    {
+      if (!fit->second->isConstant())
+        return true;
+    }
+    else if ((vfit = vfunc.find(cit->second)) != vfunc.end())
+    {
+      if (!vfit->second->isConstant())
+        return true;
+    }
+
+  return false;
 }
 
 

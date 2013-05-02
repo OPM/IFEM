@@ -13,7 +13,6 @@
 
 #include "SAMpatch.h"
 #include "ASMbase.h"
-#include "MPC.h"
 
 
 bool SAMpatch::init (const ASMVec& model, int numNod)
@@ -216,7 +215,7 @@ bool SAMpatch::initConstraintEqs (const ASMVec& model)
   MPCIter cit;
   for (j = 0; j < model.size(); j++)
     for (cit = model[j]->begin_MPC(); cit != model[j]->end_MPC(); cit++)
-      nmmceq += 1 + (*cit)->getNoMaster();
+      nmmceq += 1 + (*cit)->getNoMaster(true);
 
   // Initialize the constraint equation arrays
   mpmceq = new int[nceq+1];
@@ -243,13 +242,15 @@ bool SAMpatch::initConstraintEqs (const ASMVec& model)
       }
       else if (msc[idof-1] < 0)
       {
-	std::cerr <<"SAM: Ignoring constraint equation for dof "
-		  << idof <<" ("<< (*cit)->getSlave()
-		  <<").\n     This dof is already marked as SLAVE."<< std::endl;
+	std::cerr <<"SAM: Ignoring constraint equation for dof "<< idof
+		  <<" ("<< (*cit)->getSlave() <<").\n"
+		  <<"     This dof is already marked as SLAVE."<< std::endl;
 	ip--;
 	nceq--;
 	continue;
       }
+
+      (*cit)->iceq = ip-1; // index into mpmceq for this MPC equation
 
       int ipslv = (mpmceq[ip]++) - 1;
       mmceq[ipslv] = idof;
@@ -258,34 +259,56 @@ bool SAMpatch::initConstraintEqs (const ASMVec& model)
 
       // Master dofs ...
       for (size_t i = 0; i < (*cit)->getNoMaster(); i++)
-      {
-	idof = madof[(*cit)->getMaster(i).node-1] + (*cit)->getMaster(i).dof-1;
-	if (msc[idof-1] > 0)
+	if (!this->initConstraintEqMaster((*cit)->getMaster(i),
+					  (*cit)->getSlave(),
+					  ttcc[ipslv],ip))
 	{
-	  int ipmst = (mpmceq[ip]++) - 1;
-	  mmceq[ipmst] = idof;
-	  ttcc[ipmst] = (*cit)->getMaster(i).coeff;
-	}
-	else if (msc[idof-1] < 0)
-	{
-	  // Master dof is constrained (unresolved chaining)
-	  std::cerr <<"SAM: Chained MPCs detected"
-		    <<", slave "<< (*cit)->getSlave()
-		    <<", master "<< (*cit)->getMaster(i)
-		    <<" (ignored)."<< std::endl;
+	  // Something is wrong, ignore this constraint equation
+	  (*cit)->iceq = -1;
 	  mpmceq[ip] = mpmceq[ip-1];
 	  ip--;
 	  nceq--;
 	  break;
 	}
-      }
-
-      (*cit)->iceq = ip-1; // index into mpmceq for this MPC equation
     }
 
   // Reset the negative values in msc before calling SYSEQ
   for (ip = 0; ip < ndof; ip++)
     if (msc[ip] < 0) msc[ip] = 0;
+
+  return true;
+}
+
+
+bool SAMpatch::initConstraintEqMaster (const MPC::DOF& master,
+				       const MPC::DOF& slave,
+				       Real& offset, int ip, Real scale)
+{
+  int idof = madof[master.node-1] + master.dof - 1;
+  if (msc[idof-1] > 0)
+  {
+    int ipmst = (mpmceq[ip]++) - 1;
+    mmceq[ipmst] = idof;
+    ttcc[ipmst] = master.coeff*scale;
+  }
+  else if (msc[idof-1] < 0)
+    // This master dof is constrained (unresolved chaining)
+    if (!master.nextc)
+    {
+      std::cerr <<" SAM: Chained MPCs detected, slave "<< slave
+		<<", master "<< master <<" (ignored)."<< std::endl;
+      return false;
+    }
+    else
+    {
+      scale *= master.coeff;
+      offset += master.nextc->getSlave().coeff*scale;
+      for (size_t i = 0; i < master.nextc->getNoMaster(); i++)
+	if (!this->initConstraintEqMaster(master.nextc->getMaster(i),
+					  master.nextc->getSlave(),
+					  offset,ip,scale))
+	  return false;
+    }
 
   return true;
 }
@@ -306,24 +329,48 @@ bool SAMpatch::updateConstraintEqs (const ASMVec& model, const Vector* prevSol)
       int ipeq = mpmceq[(*cit)->iceq] - 1;
       if (msc[idof-1] > 0 || mmceq[ipeq] != idof)
       {
-	std::cerr <<" *** Corrupted SAM arrays detected in update."<< std::endl;
+	std::cerr <<" *** SAM: Failed to update constraint equations from "
+		  << *cit << std::endl;
 	return false;
       }
-      else if (!prevSol)
-	ttcc[ipeq] = 0.0;
-      else if (idof <= (int)prevSol->size())
-	ttcc[ipeq] = (*cit)->getSlave().coeff - (*prevSol)(idof);
-      else
-	ttcc[ipeq] = (*cit)->getSlave().coeff;
+
+      int jpeq = ipeq;
+      Real c0 = (*cit)->getSlave().coeff;
 
       // Master dofs ...
       for (size_t i = 0; prevSol && i < (*cit)->getNoMaster(); i++)
-      {
-	idof = madof[(*cit)->getMaster(i).node-1] + (*cit)->getMaster(i).dof-1;
-	if (msc[idof-1] > 0 && mmceq[++ipeq] == idof)
-	  ttcc[ipeq] = (*cit)->getMaster(i).coeff;
-      }
+	this->updateConstraintEqMaster((*cit)->getMaster(i),c0,ipeq);
+
+      // Update the constant term of the constraint equation
+      if (!prevSol)
+	ttcc[jpeq] = 0.0;
+      else if (idof <= (int)prevSol->size())
+	ttcc[jpeq] = c0 - (*prevSol)(idof);
+      else
+	ttcc[jpeq] = c0;
+
+#if SP_DEBUG > 1
+      std::cout <<"Updated constraint value for dof="<< idof <<": "<< ttcc[jpeq]
+                <<" from "<< **cit;
+#endif
     }
 
   return true;
+}
+
+
+void SAMpatch::updateConstraintEqMaster (const MPC::DOF& master,
+					 Real& offset, int& ipeq, Real scale)
+{
+  int idof = madof[master.node-1] + master.dof - 1;
+  if (msc[idof-1] > 0 && mmceq[++ipeq] == idof)
+    ttcc[ipeq] = master.coeff*scale;
+  else if (master.nextc)
+  {
+    scale *= master.coeff;
+    offset += master.nextc->getSlave().coeff*scale;
+    for (size_t i = 0; i < master.nextc->getNoMaster(); i++)
+      this->updateConstraintEqMaster(master.nextc->getMaster(i),
+				     offset,ipeq,scale);
+  }
 }

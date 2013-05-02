@@ -36,6 +36,8 @@ namespace utl
 
     //! \brief Returns whether the function is identically zero or not.
     virtual bool isZero() const { return false; }
+    //! \brief Returns whether the function is time-independent or not.
+    virtual bool isConstant() const { return true; }
 
   protected:
     //! \brief Evaluates the function for the argument \a x.
