@@ -48,6 +48,13 @@ public:
   //! \brief Resets the global element and node counters.
   static void resetNumbering(int nnod = 0);
 
+  //! \brief Returns the number of nodal points in each parameter direction.
+  //! \param[out] n1 Number of nodes in first (u) direction
+  //! \param[out] n2 Number of nodes in second (v) direction
+  //! \param[out] n3 Number of nodes in third (w) direction
+  //! \param[in] basis Which basis to return size parameters for (mixed methods)
+  virtual bool getSize(int& n1, int& n2, int& n3, int basis = 0) const = 0;
+
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integr Object with problem-specific data and methods
   virtual Go::GeomObject* evalSolution(const IntegrandBase& integr) const = 0;

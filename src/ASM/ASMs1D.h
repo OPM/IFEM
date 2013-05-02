@@ -269,6 +269,13 @@ public:
   //! \param[out] p3 Order in third (w) direction (always zero)
   virtual bool getOrder(int& p1, int& p2, int& p3) const;
 
+  //! \brief Returns the number of nodal points in each parameter direction.
+  //! \param[out] n1 Number of nodes in first (u) direction
+  //! \param[out] n2 Number of nodes in second (v) direction
+  //! \param[out] n3 Number of nodes in third (w) direction
+  //! \param[in] basis Which basis to return size parameters for (mixed methods)
+  virtual bool getSize(int& n1, int& n2, int& n3, int basis) const;
+
 protected:
   Go::SplineCurve* curv; //!< Pointer to the actual spline curve object
 };

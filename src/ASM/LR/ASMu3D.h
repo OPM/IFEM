@@ -105,14 +105,12 @@ public:
 	//! \param[in] inod 1-based node index local to current patch
 	virtual Vec3 getCoord(size_t inod) const;
 
-
 	//! \brief Updates the nodal coordinates for this patch.
 	//! \param[in] displ Incremental displacements to update the coordinates with
 	virtual bool updateCoords(const Vector& displ);
 
 	//! \brief Checks that the patch is modelled in a right-hand-side system.
-	//! \details If it isn't, the w-parameter direction is swapped.
-	bool checkRightHandSystem();
+	virtual bool checkRightHandSystem();
 
 	//! \brief Refines the parametrization by inserting extra knots.
 	//! \param[in] dir Parameter direction to refine
@@ -429,17 +427,8 @@ public:
 	//! \param[out] p3 Order in third (w) direction
 	virtual bool getOrder(int& p1, int& p2, int& p3) const;
 
-#if 0
 	//! \brief Returns the number of elements on a boundary.
 	virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
-
-	//! \brief Returns the number of nodal points in each parameter direction.
-	//! \param[out] n1 Number of nodes in first (u) direction
-	//! \param[out] n2 Number of nodes in second (v) direction
-	//! \param[out] n3 Number of nodes in third (w) direction
-	//! \param[in] basis Which basis to return size parameters for (mixed methods)
-	virtual bool getSize(int& n1, int& n2, int& n3, int basis = 0) const;
-#endif
 
 	// int getNodeID(size_t inod, bool = false)          const { return inod; };
 	// unsigned char getNodalDOFs(size_t inod)           const { return 0; };
@@ -452,19 +441,13 @@ public:
 	// bool injectNodeVec(const Vector& nodeVec, Vector& globVec,
 	//                    unsigned char nndof = 0) const { return false;};
 
-private:
-	//! \brief Returns an index into the internal coefficient array for a node.
-	//! \param[in] inod 0-based node index local to current patch
-	int coeffInd(size_t inod) const;
-
 protected:
 	LR::LRSplineVolume* lrspline;  //!< Pointer to the actual spline volume object
-	bool                 swapW; //!< Has the w-parameter direction been swapped?
 
 	std::map<size_t,size_t> xnMap; //!< Node index map used by \a getCoord
 	std::map<size_t,size_t> nxMap; //!< Node index map used by \a getNodeID
-	std::vector<Matrix> bezierExtract; //!< The Bezier exctraction matrices for all elements
 
+	std::vector<Matrix> bezierExtract; //!< The Bezier exctraction matrices for all elements
 
 private:
 	Go::SplineVolume* tensorspline; //!< Pointer to original tensor spline object
@@ -472,8 +455,6 @@ private:
 	// and RAISEORDER key-words, although we take note that there is a possibility
 	// of optimization since all mapping values and Jacobians may be performed on
 	// this object for increased efficiency.
-
-	mutable int workingEl; //!< here to keep track of element across function calls (to avoid topological searches all the time)
 };
 
 #endif

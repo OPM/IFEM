@@ -1198,6 +1198,13 @@ bool ASMs2D::getOrder (int& p1, int& p2, int& p3) const
 }
 
 
+bool ASMs2D::getSize (int& n1, int& n2, int& n3, int basis) const
+{
+  n3 = 0;
+  return this->getSize(n1,n2,basis);
+}
+
+
 bool ASMs2D::getSize (int& n1, int& n2, int) const
 {
   if (!surf) return false;

@@ -14,14 +14,7 @@
 #include "SAMpatchPara.h"
 #include "SystemMatrix.h"
 #include "LinAlgInit.h"
-#include "ASMbase.h"
-#include "ASMs1D.h"
-#include "ASMs2D.h"
-#include "ASMs3D.h"
-#include "MPC.h"
-#include "GoTools/geometry/SplineCurve.h"
-#include "GoTools/geometry/SplineSurface.h"
-#include "GoTools/trivariate/SplineVolume.h"
+#include "ASMstruct.h"
 
 #ifdef HAS_PETSC
 #include "PETScBlockMatrix.h"
@@ -66,28 +59,6 @@ bool SAMpatchPara::init (const ASMVec& model, int numNod)
   patch = model;
 
   return SAMpatch::init(model,numNod);
-}
-
-
-bool SAMpatchPara::getEqns(IntVec& eqns, int f1, int f2) const
-{
-  int nf    = ndof/nnod;    
-  int nbf   = f2-f1+1;
-  int nbdof = nnod*nbf;
-
-  if (f1 > f2 || f1 < 0 || f2 > nf-1)
-    return false;
-
-  eqns.resize(nbdof);
-  for (int n = 0;n < nnod;n++) {
-    int dof  = nnod*nf + f1;
-    int bdof = nnod*nbf;
-    
-    for (int k = 0;k < nbf;k++, dof++, bdof++)
-      eqns[bdof] = meqn[dof];
-  }
-
-  return true;
 }
 
 
@@ -578,125 +549,32 @@ Real SAMpatchPara::normInf (const Vector& x, size_t& comp, char dofType) const
 }
 
 
-bool SAMpatchPara::initConstraintEqs (const std::vector<ASMbase*>& model)
+bool SAMpatchPara::initConstraintEqs (const ASMVec& model)
 {
-  // TODO: Rewrite this calling the parent-class method, and then replacing
-  // the mpmceq array into the ndof-sized array used here (why is it needed?)
+  if (!this->SAMpatch::initConstraintEqs(model))
+    return false;
 
-  // Estimate the size of the constraint equation array
-  size_t j;
-  MPCIter cit;
-  for (j = 0; j < model.size(); j++)
-    for (cit = model[j]->begin_MPC(); cit != model[j]->end_MPC(); cit++)
-      nmmceq += 1 + (*cit)->getNoMaster();
+  // Replace the mpmceq array by an equivalent ndof-sized array (why?)
+  int* new_mpmceq = new int[ndof];
+  memset(new_mpmceq,0,ndof*sizeof(int));
 
-  // Initialize the constraint equation arrays
-  mpmceq = new int[ndof];
-  memset(mpmceq,0,ndof*sizeof(int));
-  if (nceq < 1) return true;
-
-  mmceq  = new int[nmmceq];
-  ttcc   = new Real[nmmceq];
-  int ip = 1;
-  for (j = 0; j < model.size(); j++)
-    for (cit = model[j]->begin_MPC(); cit != model[j]->end_MPC(); cit++, ip++)
-    {
-      // Slave dof ...
-      int idof = madof[(*cit)->getSlave().node-1] + (*cit)->getSlave().dof - 1;
-
-      if (msc[idof-1] == 0)
+  if (nceq > 0)
+  {
+    int ip = 0;
+    MPCIter cit;
+    for (size_t j = 0; j < model.size(); j++)
+      for (cit = model[j]->begin_MPC(); cit != model[j]->end_MPC(); ++cit, ip++)
       {
-	std::cerr <<"SAM: Ignoring constraint equation for dof "
-		  << idof <<" ("<< (*cit)->getSlave()
-		  <<").\n     This dof is already marked as FIXED."<< std::endl;
-	ip--;
-	nceq--;
-	continue;
+	// Slave dof ...
+	int idof = madof[(*cit)->getSlave().node-1] + (*cit)->getSlave().dof-2;
+	(*cit)->iceq = idof; // index into mpmceq for this MPC equation
+	new_mpmceq[idof] = mpmceq[ip];
       }
-      else if (msc[idof-1] < 0)
-      {
-	std::cerr <<"SAM: Ignoring constraint equation for dof "
-		  << idof <<" ("<< (*cit)->getSlave()
-		  <<").\n     This dof is already marked as SLAVE."<< std::endl;
-	ip--;
-	nceq--;
-	continue;
-      }
+  }
 
-      mpmceq[idof-1] = ip;
-      int ipslv = ip - 1;
-
-      mmceq[ipslv] = idof;
-      ttcc[ipslv] = (*cit)->getSlave().coeff;
-      msc[idof-1] = -ip;
-
-      // Master dofs ...
-      for (size_t i = 0; i < (*cit)->getNoMaster(); i++)
-      {
-	idof = madof[(*cit)->getMaster(i).node-1] + (*cit)->getMaster(i).dof-1;
-	if (msc[idof-1] > 0)
-	{
-	  int ipmst = (mpmceq[idof]++) - 1;
-	  mmceq[ipmst] = idof;
-	  ttcc[ipmst] = (*cit)->getMaster(i).coeff;
-	}
-	else if (msc[idof-1] < 0)
-	{
-	  // Master dof is constrained (unresolved chaining)
-	  std::cerr <<"SAM: Chained MPCs detected"
-		    <<", slave "<< (*cit)->getSlave()
-		    <<", master "<< (*cit)->getMaster(i)
-		    <<" (ignored)."<< std::endl;
-	  mpmceq[idof] = mpmceq[idof-1];
-	  ip--;
-	  nceq--;
-	  break;
-	}
-      }
-    }
-
-  // Reset the negative values in msc before calling SYSEQ
-  for (ip = 0; ip < ndof; ip++)
-    if (msc[ip] < 0) msc[ip] = 0;
-
-  return true;
-}
-
-
-bool SAMpatchPara::updateConstraintEqs (const std::vector<ASMbase*>& model,
-					const Vector* prevSol)
-{
-  if (nceq < 1) return true; // No constraints in this model
-
-  MPCIter cit;
-  for (size_t j = 0; j < model.size(); j++)
-    for (cit = model[j]->begin_MPC(); cit != model[j]->end_MPC(); cit++)
-    {
-      // Slave dof ...
-      int idof = madof[(*cit)->getSlave().node-1] + (*cit)->getSlave().dof - 1;
-      int ipeq = mpmceq[idof-1] - 1;
-
-      if (msc[idof-1] > 0 || mmceq[ipeq] != idof)
-      {
-        std::cerr <<" *** Corrupted SAM arrays detected in update."<< std::endl;
-        return false;
-      }
-      else if (!prevSol)
-        ttcc[ipeq] = 0.0;
-      else if (idof <= (int)prevSol->size())
-        ttcc[ipeq] = (*cit)->getSlave().coeff - (*prevSol)(idof);
-      else
-        ttcc[ipeq] = (*cit)->getSlave().coeff;
-
-      // Master dofs ...
-      for (size_t i = 0; prevSol && i < (*cit)->getNoMaster(); i++)
-      {
-        idof = madof[(*cit)->getMaster(i).node-1] + (*cit)->getMaster(i).dof-1;
-        if (msc[idof-1] > 0 && mmceq[++ipeq] == idof)
-          ttcc[ipeq] = (*cit)->getMaster(i).coeff;
-      }
-    }
-
+  // Swap the mpmceq array with the new one
+  delete[] mpmceq;
+  mpmceq = new_mpmceq;
   return true;
 }
 
@@ -828,7 +706,7 @@ bool SAMpatchPara::getLocalSubdomains (PetscIntMat& locSubds,
     MPI_Recv(&minNodeId[0],1,MPI_INT,myRank-1,101,PETSC_COMM_WORLD,&status);
     minNodeId[0]++;
   }
-#endif  
+#endif
     
   switch (nsd) {
   case 1:
@@ -902,7 +780,7 @@ bool SAMpatchPara::getLocalSubdomainsBlock (PetscIntMat& locSubds,
     MPI_Recv(&minNodeId[0],1,MPI_INT,myRank-1,101,PETSC_COMM_WORLD,&status);
     minNodeId[0]++;
   }
-#endif  
+#endif
 
   switch (nsd) {
   case 1:
@@ -999,20 +877,15 @@ bool SAMpatchPara::getLocalSubdomains1D (const IntVec& nxvec,
 					 const IntVec& maxNodeId,
 					 PetscIntMat& locSubds) const
 {
-  // Define some parameters
-  const size_t npatch = patch.size();
-
-  if (nxvec.size() != npatch)
+  if (nxvec.size() != patch.size())
     return false;
 
   // Split the patches into smaller subdomains
-  for (size_t n = 0;n < npatch;n++) {
-    int nnod;
-    ASMs1D* pch1 = dynamic_cast<ASMs1D*>(patch[n]);
-    if (pch1)
-	nnod = pch1->getCurve()->numCoefs();
-      else
-	return false;
+  for (size_t n = 0; n < patch.size(); n++) {
+
+    int nnod, n2, n3;
+    if (!static_cast<ASMstruct*>(patch[n])->getSize(nnod,n2,n3) || n2 || n3)
+      return false;
 
     int nx = nxvec[n];
     int n1 = nnod/nx;
@@ -1057,21 +930,14 @@ bool SAMpatchPara::getLocalSubdomains2D (const IntVec& nxvec,
 					 const IntVec& maxNodeId,
 					 PetscIntMat& locSubds) const
 {
-  // Define some parameters
-  const size_t npatch = patch.size();
-
-  if (nxvec.size() != npatch || nyvec.size() != npatch)
+  if (nxvec.size() != patch.size() || nyvec.size() != patch.size())
     return false;
 
   // Split the patches into smaller subdomains
-  for (size_t n = 0;n < npatch;n++) {
-    int nnod1, nnod2;
-    ASMs2D* pch2 = dynamic_cast<ASMs2D*>(patch[n]);
-    if (pch2) {
-      nnod1 = pch2->getSurface()->numCoefs_u();
-      nnod2 = pch2->getSurface()->numCoefs_v();
-    }
-    else
+  for (size_t n = 0; n < patch.size(); n++) {
+
+    int nnod1, nnod2, n3;
+    if (!static_cast<ASMstruct*>(patch[n])->getSize(nnod1,nnod2,n3) || n3)
       return false;
 
     int nx = nxvec[n];
@@ -1128,22 +994,16 @@ bool SAMpatchPara::getLocalSubdomains3D (const IntVec& nxvec,
 					 const IntVec& maxNodeId,
 					 PetscIntMat& locSubds) const
 {
-  // Define some parameters
-  const size_t npatch = patch.size();
-
-  if (nxvec.size() != npatch || nyvec.size() != npatch || nzvec.size() != npatch)
+  if (nxvec.size() != patch.size() ||
+      nyvec.size() != patch.size() ||
+      nzvec.size() != patch.size())
     return false;
 
   // Split the patches into smaller subdomains
-  for (size_t n = 0;n < npatch;n++) {
+  for (size_t n = 0; n < patch.size(); n++) {
+
     int nnod1, nnod2, nnod3;
-    ASMs3D* pch3 = dynamic_cast<ASMs3D*>(patch[n]);
-    if (pch3) {
-      nnod1 = pch3->getVolume()->numCoefs(0);
-      nnod2 = pch3->getVolume()->numCoefs(1);
-      nnod3 = pch3->getVolume()->numCoefs(2);
-    }
-    else
+    if (!static_cast<ASMstruct*>(patch[n])->getSize(nnod1,nnod2,nnod3))
       return false;
 	
     int nx = nxvec[n];
@@ -1205,10 +1065,7 @@ bool SAMpatchPara::getLocalSubdomains3D (const IntVec& nxvec,
 bool SAMpatchPara::getSubdomains1D (const IntVec& nxvec, int overlap,
 				    PetscIntMat& subds) const
 {
-  // Define some parameters
-  const size_t npatch = patch.size();
-
-  if (nxvec.size() != npatch)
+  if (nxvec.size() != patch.size())
     return false;
 
   // Overlap
@@ -1216,13 +1073,11 @@ bool SAMpatchPara::getSubdomains1D (const IntVec& nxvec, int overlap,
   int ohigh = overlap/2 + overlap%2; 
     
   // Split the patches into smaller subdomains
-  for (size_t n = 0;n < npatch;n++) {
-    int nnod;
-    ASMs1D* pch1 = dynamic_cast<ASMs1D*>(patch[n]);
-    if (pch1)
-	nnod = pch1->getCurve()->numCoefs();
-      else
-	return false;
+  for (size_t n = 0; n < patch.size(); n++) {
+
+    int nnod, n2, n3;
+    if (!static_cast<ASMstruct*>(patch[n])->getSize(nnod,n2,n3) || n2 || n3)
+      return false;
 
     int nx = nxvec[n];
     int n1 = nnod/nx;
@@ -1263,10 +1118,7 @@ bool SAMpatchPara::getSubdomains2D (const IntVec& nxvec,
 				    const IntVec& nyvec, int overlap,
 				    PetscIntMat& subds) const
 {
-  // Define some parameters
-  const size_t npatch = patch.size();
-
-  if (nxvec.size() != npatch || nyvec.size() != npatch)
+  if (nxvec.size() != patch.size() || nyvec.size() != patch.size())
     return false;
 
   // Overlap
@@ -1274,21 +1126,17 @@ bool SAMpatchPara::getSubdomains2D (const IntVec& nxvec,
   int ohigh = overlap/2 + overlap%2; 
 
   // Split the patches into smaller subdomains
-  for (size_t n = 0;n < npatch;n++) {
-    int nnod1, nnod2;
-    ASMs2D* pch2 = dynamic_cast<ASMs2D*>(patch[n]);
-    if (pch2) {
-      nnod1 = pch2->getSurface()->numCoefs_u();
-      nnod2 = pch2->getSurface()->numCoefs_v();
-    }
-    else
+  for (size_t n = 0; n < patch.size(); n++) {
+
+    int nnod1, nnod2, n3;
+    if (!static_cast<ASMstruct*>(patch[n])->getSize(nnod1,nnod2,n3) || n3)
       return false;
- 	
+
     int nx = nxvec[n];
     int ny = nyvec[n];
     int n1 = nnod1/nx;
     int n2 = nnod2/ny;
-    
+
     const IntVec& MLGN = patch[n]->getGlobalNodeNums();
     for (int p2 = 0;p2 < ny;p2++) {
       int jmin = 0;
@@ -1335,10 +1183,9 @@ bool SAMpatchPara::getSubdomains3D (const IntVec& nxvec,
 				    const IntVec& nzvec, int overlap,
 				    PetscIntMat& subds) const
 {
-  // Define some parameters
-  const size_t npatch = patch.size();
-
-  if (nxvec.size() != npatch || nyvec.size() != npatch || nzvec.size() != npatch)
+  if (nxvec.size() != patch.size() ||
+      nyvec.size() != patch.size() ||
+      nzvec.size() != patch.size())
     return false;
 
   // Overlap
@@ -1346,24 +1193,19 @@ bool SAMpatchPara::getSubdomains3D (const IntVec& nxvec,
   int ohigh = overlap/2 + overlap%2; 
 
   // Split the patches into smaller subdomains
-  for (size_t n = 0;n < npatch;n++) {
+  for (size_t n = 0; n < patch.size(); n++) {
+
     int nnod1, nnod2, nnod3;
-    ASMs3D* pch3 = dynamic_cast<ASMs3D*>(patch[n]);
-    if (pch3) {
-      nnod1 = pch3->getVolume()->numCoefs(0);
-      nnod2 = pch3->getVolume()->numCoefs(1);
-      nnod3 = pch3->getVolume()->numCoefs(2);
-    }
-    else
+    if (!static_cast<ASMstruct*>(patch[n])->getSize(nnod1,nnod2,nnod3))
       return false;
-	
+
     int nx = nxvec[n];
     int ny = nyvec[n];
     int nz = nzvec[n];
     int n1 = nnod1/nx;
     int n2 = nnod2/ny;
     int n3 = nnod3/nz;
-    
+
     const IntVec& MLGN = patch[n]->getGlobalNodeNums();
     for (int p3 = 0;p3 < nz;p3++) {
       int kmin = 0;
@@ -1419,20 +1261,15 @@ bool SAMpatchPara::getLocalSubdomains1D (PetscIntMat& locSubds,
 					 const IntVec& maxNodeId,
 					 int f1, int f2) const
 {
-  // Define some parameters
-  const size_t npatch = patch.size();
-
-  if (nxvec.size() != npatch)
+  if (nxvec.size() != patch.size())
     return false;
 
   // Split the patches into smaller subdomains
-  for (size_t n = 0;n < npatch;n++) {
-    int nnod;
-    ASMs1D* pch1 = dynamic_cast<ASMs1D*>(patch[n]);
-    if (pch1)
-	nnod = pch1->getCurve()->numCoefs();
-      else
-	return false;
+  for (size_t n = 0; n < patch.size(); n++) {
+
+    int nnod, n2, n3;
+    if (!static_cast<ASMstruct*>(patch[n])->getSize(nnod,n2,n3) || n2 || n3)
+      return false;
 
     int nx = nxvec[n];
     int n1 = nnod/nx;
@@ -1482,21 +1319,14 @@ bool SAMpatchPara::getLocalSubdomains2D (PetscIntMat& locSubds,
 					 const IntVec& maxNodeId,
 					 int f1, int f2) const
 {
-  // Define some parameters
-  const size_t npatch = patch.size();
-
-  if (nxvec.size() != npatch || nyvec.size() != npatch)
+  if (nxvec.size() != patch.size() || nyvec.size() != patch.size())
     return false;
 
   // Split the patches into smaller subdomains
-  for (size_t n = 0;n < npatch;n++) {
-    int nnod1, nnod2;
-    ASMs2D* pch2 = dynamic_cast<ASMs2D*>(patch[n]);
-    if (pch2) {
-      nnod1 = pch2->getSurface()->numCoefs_u();
-      nnod2 = pch2->getSurface()->numCoefs_v();
-    }
-    else
+  for (size_t n = 0; n < patch.size(); n++) {
+
+    int nnod1, nnod2, n3;
+    if (!static_cast<ASMstruct*>(patch[n])->getSize(nnod1,nnod2,n3) || n3)
       return false;
 
     int nx = nxvec[n];
@@ -1559,31 +1389,25 @@ bool SAMpatchPara::getLocalSubdomains3D (PetscIntMat& locSubds,
 					 const IntVec& maxNodeId,
 					 int f1, int f2) const
 {
-  // Define some parameters
-  const size_t npatch = patch.size();
-
-  if (nxvec.size() != npatch || nyvec.size() != npatch || nzvec.size() != npatch)
+  if (nxvec.size() != patch.size() ||
+      nyvec.size() != patch.size() ||
+      nzvec.size() != patch.size())
     return false;
 
   // Split the patches into smaller subdomains
-  for (size_t n = 0;n < npatch;n++) {
+  for (size_t n = 0; n < patch.size(); n++) {
+
     int nnod1, nnod2, nnod3;
-    ASMs3D* pch3 = dynamic_cast<ASMs3D*>(patch[n]);
-    if (pch3) {
-      nnod1 = pch3->getVolume()->numCoefs(0);
-      nnod2 = pch3->getVolume()->numCoefs(1);
-      nnod3 = pch3->getVolume()->numCoefs(2);
-    }
-    else
+    if (!static_cast<ASMstruct*>(patch[n])->getSize(nnod1,nnod2,nnod3))
       return false;
-	
+
     int nx = nxvec[n];
     int ny = nyvec[n];
     int nz = nzvec[n];
     int n1 = nnod1/nx;
     int n2 = nnod2/ny;
     int n3 = nnod3/nz;
-    
+
     int nfield = f2-f1+1;
 
     const IntVec& MLGN = patch[n]->getGlobalNodeNums();
@@ -1641,24 +1465,19 @@ bool SAMpatchPara::getSubdomains1D (PetscIntMat& subds,
 				    const IntVec& nxvec,
 				    int overlap, int f1, int f2) const
 {
-  // Define some parameters
-  const size_t npatch = patch.size();
-
-  if (nxvec.size() != npatch)
+  if (nxvec.size() != patch.size())
     return false;
 
   // Overlap
   int olow  = overlap/2;
   int ohigh = overlap/2 + overlap%2; 
-    
+
   // Split the patches into smaller subdomains
-  for (size_t n = 0;n < npatch;n++) {
-    int nnod;
-    ASMs1D* pch1 = dynamic_cast<ASMs1D*>(patch[n]);
-    if (pch1)
-	nnod = pch1->getCurve()->numCoefs();
-      else
-	return false;
+  for (size_t n = 0; n < patch.size(); n++) {
+
+    int nnod, n2, n3;
+    if (!static_cast<ASMstruct*>(patch[n])->getSize(nnod,n2,n3) || n2 || n3)
+      return false;
 
     int nx = nxvec[n];
     int n1 = nnod/nx;
@@ -1703,10 +1522,7 @@ bool SAMpatchPara::getSubdomains2D (PetscIntMat& subds,
 				    const IntVec& nyvec,
 				    int overlap, int f1, int f2) const
 {
-  // Define some parameters
-  const size_t npatch = patch.size();
-
-  if (nxvec.size() != npatch || nyvec.size() != npatch)
+  if (nxvec.size() != patch.size() || nyvec.size() != patch.size())
     return false;
 
   // Overlap
@@ -1714,21 +1530,17 @@ bool SAMpatchPara::getSubdomains2D (PetscIntMat& subds,
   int ohigh = overlap/2 + overlap%2; 
 
   // Split the patches into smaller subdomains
-  for (size_t n = 0;n < npatch;n++) {
-    int nnod1, nnod2;
-    ASMs2D* pch2 = dynamic_cast<ASMs2D*>(patch[n]);
-    if (pch2) {
-      nnod1 = pch2->getSurface()->numCoefs_u();
-      nnod2 = pch2->getSurface()->numCoefs_v();
-    }
-    else
+  for (size_t n = 0; n < patch.size(); n++) {
+
+    int nnod1, nnod2, n3;
+    if (!static_cast<ASMstruct*>(patch[n])->getSize(nnod1,nnod2,n3) || n3)
       return false;
- 	
+
     int nx = nxvec[n];
     int ny = nyvec[n];
     int n1 = nnod1/nx;
     int n2 = nnod2/ny;
-    
+
     int nfield = f2-f1+1;
 
     const IntVec& MLGN = patch[n]->getGlobalNodeNums();
@@ -1783,10 +1595,9 @@ bool SAMpatchPara::getSubdomains3D (PetscIntMat& subds,
 				    const IntVec& nzvec,
 				    int overlap, int f1, int f2) const
 {
-  // Define some parameters
-  const size_t npatch = patch.size();
-
-  if (nxvec.size() != npatch || nyvec.size() != npatch || nzvec.size() != npatch)
+  if (nxvec.size() != patch.size() ||
+      nyvec.size() != patch.size() ||
+      nzvec.size() != patch.size())
     return false;
 
   // Overlap
@@ -1794,24 +1605,19 @@ bool SAMpatchPara::getSubdomains3D (PetscIntMat& subds,
   int ohigh = overlap/2 + overlap%2; 
 
   // Split the patches into smaller subdomains
-  for (size_t n = 0;n < npatch;n++) {
+  for (size_t n = 0; n < patch.size(); n++) {
+
     int nnod1, nnod2, nnod3;
-    ASMs3D* pch3 = dynamic_cast<ASMs3D*>(patch[n]);
-    if (pch3) {
-      nnod1 = pch3->getVolume()->numCoefs(0);
-      nnod2 = pch3->getVolume()->numCoefs(1);
-      nnod3 = pch3->getVolume()->numCoefs(2);
-    }
-    else
+    if (!static_cast<ASMstruct*>(patch[n])->getSize(nnod1,nnod2,nnod3))
       return false;
-	
+
     int nx = nxvec[n];
     int ny = nyvec[n];
     int nz = nzvec[n];
     int n1 = nnod1/nx;
     int n2 = nnod2/ny;
     int n3 = nnod3/nz;
-    
+
     int nfield = f2-f1+1;
 
     const IntVec& MLGN = patch[n]->getGlobalNodeNums();

@@ -462,6 +462,14 @@ bool ASMs1D::getOrder (int& p1, int& p2, int& p3) const
 }
 
 
+bool ASMs1D::getSize (int& n1, int& n2, int& n3, int basis) const
+{
+  n1 = this->getSize(basis);
+  n2 = n3 = 0;
+  return true;
+}
+
+
 int ASMs1D::getSize (int) const
 {
   if (!curv) return 0;

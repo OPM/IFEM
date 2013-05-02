@@ -44,17 +44,15 @@
 
 
 ASMu3D::ASMu3D (unsigned char n_f)
-	: ASMunstruct(3,3,n_f), lrspline(0), tensorspline(0), workingEl(-1)
+	: ASMunstruct(3,3,n_f), lrspline(0), tensorspline(0)
 {
 	ASMunstruct::resetNumbering(); // Replace this when going multi-patch...
-	swapW = false;
 }
 
 
 ASMu3D::ASMu3D (const ASMu3D& patch, unsigned char n_f)
-	: ASMunstruct(patch,n_f), lrspline(patch.lrspline), tensorspline(0), workingEl(-1)
+	: ASMunstruct(patch,n_f), lrspline(patch.lrspline), tensorspline(0)
 {
-	swapW = patch.swapW;
 }
 
 size_t ASMu3D::getNodeIndex (int globalNum, bool noAddedNodes) const
@@ -63,7 +61,7 @@ size_t ASMu3D::getNodeIndex (int globalNum, bool noAddedNodes) const
 	if (it == MLGN.end()) return 0;
 	
 	size_t inod = 1 + (it-MLGN.begin());
-	if (noAddedNodes && !xnMap.empty() ) 
+	if (noAddedNodes && !xnMap.empty())
 	{
 		std::map<size_t,size_t>::const_iterator it = xnMap.find(inod);
 		if (it != xnMap.end()) return it->second;
@@ -172,34 +170,17 @@ void ASMu3D::clear (bool retainGeometry)
 	nxMap.clear();
 }
 
+
 size_t ASMu3D::getNoNodes (int basis) const
 {
 	return lrspline->nBasisFunctions();
 }
 
+
 bool ASMu3D::checkRightHandSystem ()
 {
-	if (!lrspline || shareFE) return false;
-	std::cerr << "ASMu3D::checkRightHandSystem() not properly implemented yet" << std::endl;
-	exit(776654);
-
-	// Evaluate the spline volume at its center
-	double u = 0.5*(lrspline->startparam(0) + lrspline->endparam(0));
-	double v = 0.5*(lrspline->startparam(1) + lrspline->endparam(1));
-	double w = 0.5*(lrspline->startparam(2) + lrspline->endparam(2));
-	std::vector<Go::Point> pts;
-	lrspline->point(pts,u,v,w,1);
-
-	// Check that |J| = (dXdu x dXdv) * dXdw > 0.0
-	if ((pts[1] % pts[2]) * pts[3] > 0.0) return false;
-
-	// This patch has a negative Jacobian determinant. Probably it is modelled
-	// in a left-hand-system. Swap the w-parameter direction to correct for this.
-
-	// lrspline->reverseParameterDirection(2);
-
-	std::cout <<"\tSwapped."<< std::endl;
-	return swapW = true;
+  std::cout <<"ASMu3D::checkRightHandSystem(): Not available for LR-splines (ignored)." << std::endl;
+  return false;
 }
 
 
@@ -349,18 +330,7 @@ bool ASMu3D::generateFEMTopology ()
 
 bool ASMu3D::connectPatch (int face, ASMu3D& neighbor, int nface, int norient)
 {
-	std::cerr << "ASMu3D::connectPatch(...) is not properly implemented yet :(" << std::endl;
-	exit(776654);
-#if 0
-	if (swapW && face > 4) // Account for swapped parameter direction
-		face = 11-face;
-
-	if (neighbor.swapW && face > 4) // Account for swapped parameter direction
-		nface = 11-nface;
-
-	return this->connectBasis(face,neighbor,nface,norient);
-#endif
-	return false;
+  return this->connectBasis(face,neighbor,nface,norient);
 }
 
 
@@ -537,7 +507,7 @@ void ASMu3D::closeFaces (int dir, int basis, int master)
 	  this->makePeriodic(master,master+n1*n2*(n3-1));
 			break;
 		}
-	#endif
+#endif
 }
 
 /*!
@@ -549,9 +519,6 @@ void ASMu3D::closeFaces (int dir, int basis, int master)
 
 void ASMu3D::constrainFace (int dir, bool open, int dof, int code)
 {
-	if (swapW) // Account for swapped parameter direction
-		if (dir == 3 || dir == -3) dir = -dir;
-	
 	if(open)
 		std::cerr << "\nWARNING: ASMu3D::constrainFace, open boundary conditions not supported yet. Treating it as closed" << std::endl;
 
@@ -598,9 +565,6 @@ void ASMu3D::constrainEdge (int lEdge, bool open, int dof, int code)
 	if(open)
 		std::cerr << "\nWARNING: ASMu3D::constrainEdge, open boundary conditions not supported yet. Treating it as closed" << std::endl;
 
-	if (swapW && lEdge <= 8) // Account for swapped parameter direction
-		lEdge += (lEdge-1)%4 < 2 ? 2 : -2;
-
 	// lEdge = 1-4, running index is u (vmin,wmin), (vmax,wmin), (vmin,wmax), (vmax,wmax)
 	// lEdge = 5-8, running index is v (umin,wmin), (umax,wmin), (umin,wmax), (umax,wmax)
 	// lEdge = 9-12, running index is w 
@@ -645,14 +609,11 @@ void ASMu3D::constrainLine (int fdir, int ldir, double xi, int dof, int code)
 {
 	std::cerr << "ASMu3D::constrainLine not implemented properly yet" << std::endl;
 	exit(776654);
-	#if 0
+#if 0
 	if (xi < 0.0 || xi > 1.0) return;
 
 	int n1, n2, n3, node = 1;
 	if (!this->getSize(n1,n2,n3,1)) return;
-
-	if (swapW) // Account for swapped parameter direction
-		if (fdir == 3 || fdir == -3) fdir = -fdir;
 
 	switch (fdir)
 		{
@@ -662,7 +623,7 @@ void ASMu3D::constrainLine (int fdir, int ldir, double xi, int dof, int code)
 			if (ldir == 2)
 			{
 	// Line goes in J-direction
-	node += n1*n2*int(0.5+(n3-1)*(swapW ? 1.0-xi : xi));
+	node += n1*n2*int(0.5+(n3-1)*xi);
 	for (int i2 = 1; i2 <= n2; i2++, node += n1)
 	  this->prescribe(node,dof,code);
 			}
@@ -681,7 +642,7 @@ void ASMu3D::constrainLine (int fdir, int ldir, double xi, int dof, int code)
 			if (ldir == 1)
 			{
 	// Line goes in I-direction
-	node += n1*n2*int(0.5+(n3-1)*(swapW ? 1.0-xi : xi));
+	node += n1*n2*int(0.5+(n3-1)*xi);
 	for (int i1 = 1; i1 <= n1; i1++, node++)
 	  this->prescribe(node,dof,code);
 			}
@@ -713,7 +674,7 @@ void ASMu3D::constrainLine (int fdir, int ldir, double xi, int dof, int code)
 			}
 			break;
 		}
-	#endif
+#endif
 }
 
 
@@ -721,12 +682,9 @@ void ASMu3D::constrainCorner (int I, int J, int K, int dof, int code)
 {
 	std::cerr << "ASMu3D::constrainCorner not implemented properly yet" << std::endl;
 	exit(776654);
-	#if 0
+#if 0
 	int n1, n2, n3;
 	if (!this->getSize(n1,n2,n3,1)) return;
-
-	if (swapW) // Account for swapped parameter direction
-		K = -K;
 
 	int node = 1;
 	if (I > 0) node += n1-1;
@@ -734,7 +692,7 @@ void ASMu3D::constrainCorner (int I, int J, int K, int dof, int code)
 	if (K > 0) node += n1*n2*(n3-1);
 
 	this->prescribe(node,dof,code);
-	#endif
+#endif
 }
 
 
@@ -746,9 +704,6 @@ void ASMu3D::constrainNode (double xi, double eta, double zeta,
 	if (xi   < 0.0 || xi   > 1.0) return;
 	if (eta  < 0.0 || eta  > 1.0) return;
 	if (zeta < 0.0 || zeta > 1.0) return;
-
-	if (swapW) // Account for swapped parameter direction
-		zeta = 1.0-zeta;
 
 #if 0
 	int n1, n2, n3;
@@ -777,7 +732,7 @@ bool ASMu3D::updateDirichlet (const std::map<int,RealFunc*>& func,
 	// std::cerr << "ASMu3D::updateDirichlet not implemented properly yet\n";
 	std::cerr << "\nWARNING: ASMu3D::updateDirichlet ignored due to non-projecting boundary condition implementation" << std::endl;
 	return this->ASMbase::updateDirichlet(func,vfunc,time);
-	#if 0
+#if 0
 	std::map<int,RealFunc*>::const_iterator fit;
 	std::map<int,VecFunc*>::const_iterator vfit;
 	std::vector<DirichletFace>::const_iterator dit;
@@ -832,7 +787,7 @@ bool ASMu3D::updateDirichlet (const std::map<int,RealFunc*>& func,
 
 	// The parent class method takes care of the corner nodes with direct
 	// evaluation of the Dirichlet functions (since they are interpolatory)
-	#endif
+#endif
 }
 
 #define DERR -999.99
@@ -976,24 +931,17 @@ bool ASMu3D::getOrder (int& p1, int& p2, int& p3) const
 }
 
 
-#if  0
-bool ASMu3D::getSize (int& n1, int& n2, int& n3, int) const
-{
-	if (!lrspline) return false;
-
-	n1 = lrspline->nBasisFunctions();
-	n2 = lrspline->nBasisFunctions();
-	n3 = lrspline->nBasisFunctions();
-	return true;
-}
-
-
 size_t ASMu3D::getNoBoundaryElms (char lIndex, char ldim) const
 {
 	if (!lrspline) return 0;
 
 	if (ldim < 1 && lIndex > 0)
 		return 1;
+
+	std::cerr <<"ASMu3D::getNoBoundaryElms not implemented properly yet" << std::endl;
+	exit(776654);
+
+#if  0
 	else if (ldim < 2 && lIndex > 0 && lIndex <= 12)
 		return lrspline->numCoefs((lIndex-1)/4) - lrspline->order((lIndex-1)/4) + 1;
 
@@ -1013,10 +961,10 @@ size_t ASMu3D::getNoBoundaryElms (char lIndex, char ldim) const
 		case 6:
 			return n1*n2;
 		}
+#endif
 
 	return 0;
 }
-#endif
 
 
 void ASMu3D::getGaussPointParameters (RealArray& uGP, int dir, int nGauss,
@@ -1315,7 +1263,7 @@ bool ASMu3D::integrate (Integrand& integrand,
 		{
 			std::cerr << "Haven't really figured out what this part does yet\n";
 			exit(42142);
-			#if 0
+#if 0
 			// --- Selective reduced integration loop ----------------------------
 
 			int ip = (((i3-p3)*nRed*nel2 + i2-p2)*nRed*nel1 + i1-p1)*nRed;
@@ -1347,7 +1295,7 @@ bool ASMu3D::integrate (Integrand& integrand,
 						if (!integrand.reducedInt(*A,fe,X))
 							ok = false;
 			}
-			#endif
+#endif
 		}
 
 
@@ -1990,8 +1938,8 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
 	for (size_t i = 0; i < nPoints; i++)
 	{
 		// fetch element containing evaluation point
-		// int iel = i/nPtsPerElement; // points are always listed in the same order as the elemnts
-		int iel = (workingEl>=0) ? workingEl : lrspline->getElementContaining(gpar[0][i], gpar[1][i], gpar[2][i]); // sadly, they are not always ordered in the same way as the elements
+		// sadly, points are not always ordered in the same way as the elements
+		int iel = lrspline->getElementContaining(gpar[0][i], gpar[1][i], gpar[2][i]);
 		if(iel < 0) {
 			std::cerr << "Logical error in evaluating results. Element at point (" << gpar[0][i] << ", " 
 			          << gpar[1][i] << ", " <<  gpar[2][i] << ") not found" << std::endl;
@@ -2104,7 +2052,8 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 	for (size_t i = 0; i < nPoints; i++)
 	{
 		// Fetch element containing evaluation point. Points are always listed
-		int iel = (workingEl>=0) ? workingEl : lrspline->getElementContaining(gpar[0][i], gpar[1][i], gpar[2][i]); // sadly, they are not always ordered in the same way as the elements
+		// sadly, points not always ordered in the same way as the elements
+		int iel = lrspline->getElementContaining(gpar[0][i], gpar[1][i], gpar[2][i]);
 
 		if(iel < 0) {
 			std::cerr << "Logical error in evaluating results. Element at point (" << gpar[0][i] << ", " 

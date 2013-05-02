@@ -53,8 +53,6 @@ public:
   virtual int getMinEqNumber() const { return ieqmin; }
   //! \brief Returns max global equation number for this process.
   virtual int getMaxEqNumber() const { return ieqmax; }
-  //! \brief Returns equation numbers.
-  virtual bool getEqns(IntVec& eqns, int f1, int f2) const;
 
   //! \brief Computes number of couplings for each local dof
   //! in a distributed matrix.
@@ -125,12 +123,6 @@ public:
   //! (used for internal consistency checking, unless zero)
   virtual bool getElmEqns(IntVec& meen, int iel, int f1, int f2,
 			  bool globalEq = false, int nedof = 0) const;
-
-  //! \brief Updates the multi-point constraint array \a TTCC.
-  //! \param[in] model All spline patches in the model
-  //! \param[in] prevSol Previous primary solution vector in DOF-order
-  virtual bool updateConstraintEqs(const std::vector<ASMbase*>& model,
-				   const Vector* prevSol = NULL);
 
   //! \brief Expands a solution vector from equation-ordering to DOF-ordering.
   //! \param[in] solVec Solution vector, length = NEQ
