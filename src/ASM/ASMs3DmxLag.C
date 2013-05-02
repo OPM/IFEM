@@ -201,8 +201,12 @@ bool ASMs3DmxLag::connectPatch (int face, ASMs3D& neighbor,
   if (neighMx->swapW && face > 4) // Account for swapped parameter direction
     nface = 11-nface;
 
-  return this->connectBasis(face,neighbor,nface,norient,1,0,0)
-    &&   this->connectBasis(face,neighbor,nface,norient,2,nb1,neighMx->nb1);
+  if (!this->connectBasis(face,neighbor,nface,norient,1,0,0) ||
+      !this->connectBasis(face,neighbor,nface,norient,2,nb1,neighMx->nb1))
+    return false;
+
+  this->addNeighbor(neighMx);
+  return true;
 }
 
 

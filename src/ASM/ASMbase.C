@@ -238,7 +238,7 @@ void ASMbase::printNodes (std::ostream& os, const char* heading) const
   if (heading) os << heading;
   for (size_t inod = 1; inod <= X.cols(); inod++)
   {
-    os <<'\n'<< MLGN[inod-1] <<':';
+    os <<'\n'<< inod <<' '<< MLGN[inod-1] <<':';
     for (size_t i = 1; i <= X.rows(); i++)
       os <<' '<< X(i,inod);
   }
@@ -711,6 +711,16 @@ bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func,
 }
 
 
+void ASMbase::addNeighbor (ASMbase* pch)
+{
+  if (std::find(neighbors.begin(),neighbors.end(),pch) != neighbors.end())
+    return;
+
+  neighbors.push_back(pch);
+  pch->neighbors.push_back(this);
+}
+
+
 bool ASMbase::collapseNodes (ASMbase& pch1, int node1, ASMbase& pch2, int node2)
 {
   if (node1 < 1 || (size_t)node1 > pch1.myMLGN.size()) return false;
@@ -722,6 +732,13 @@ bool ASMbase::collapseNodes (ASMbase& pch1, int node1, ASMbase& pch2, int node2)
     pch2.mergeNodes(node2,pch1.myMLGN[node1-1],true);
   else
     return false;
+
+#if SP_DEBUG > 1
+  std::cout <<"Node "<< node1 <<" in P"<< pch1.idx+1
+            <<" and Node "<< node2 <<" in P"<< pch2.idx+1
+            <<" assigned common global node number "
+            << pch1.MLGN[node1-1] << std::endl;
+#endif
 
   return true;
 }
@@ -742,6 +759,9 @@ bool ASMbase::mergeNodes (size_t inod, int globalNum, bool silence)
 
   std::map<int,int> old2New;
   myMLGN[inod-1] = old2New[oldNum] = globalNum;
+  for (ASMVec::iterator it = neighbors.begin(); it != neighbors.end(); ++it)
+    (*it)->renumberNodes(old2New,true);
+
   return this->renumberNodes(old2New);
 }
 
@@ -786,7 +806,7 @@ int ASMbase::renumberNodes (std::map<int,int>& old2new, int& nnod)
 }
 
 
-bool ASMbase::renumberNodes (const std::map<int,int>& old2new)
+bool ASMbase::renumberNodes (const std::map<int,int>& old2new, bool renumNodes)
 {
 #ifdef SP_DEBUG
   bool printInvalidNodes = old2new.size() > 1;
@@ -795,6 +815,12 @@ bool ASMbase::renumberNodes (const std::map<int,int>& old2new)
 #endif
 
   int invalid = 0;
+  if (renumNodes)
+    for (size_t j = 0; j < myMLGN.size(); j++)
+      if (!utl::renumber(myMLGN[j],old2new,printInvalidNodes))
+	if (old2new.size() > 1)
+	  invalid++;
+
   for (BCVec::iterator bit = BCode.begin(); bit != BCode.end();)
     if (utl::renumber(bit->node,old2new,printInvalidNodes))
       bit++;

@@ -241,7 +241,11 @@ bool ASMs1D::generateFEMTopology ()
 
 bool ASMs1D::connectPatch (int vertex, ASMs1D& neighbor, int nvertex)
 {
-  return this->connectBasis(vertex,neighbor,nvertex);
+  if (!this->connectBasis(vertex,neighbor,nvertex))
+    return false;
+
+  this->addNeighbor(&neighbor);
+  return true;
 }
 
 

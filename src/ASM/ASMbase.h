@@ -229,7 +229,7 @@ public:
   //!
   //! \details After the renumbering, the global node numbers are in the range
   //! [1,\a nnod ], where \a nnod is the number of unique nodes in the model.
-  //! The new node numbers computed by this methid preserve the relative
+  //! The new node numbers computed by this method preserve the relative
   //! ordering of the nodes. That is not the case when the non-static version
   //! is used.
   static int renumberNodes(const ASMVec& model, std::map<int,int>& old2new);
@@ -245,12 +245,13 @@ public:
 
   //! \brief Renumbers the global node numbers referred by this patch.
   //! \param[in] old2new Old-to-new node number mapping
+  //! \param[in] renumNodes If \e true, the node number array is renumberd too
   //!
   //! \details The node numbers referred by boundary condition and
   //! multi-point constraint objects in the patch are renumbered.
-  //! The nodes themselves are assumed already to be up to date.
-  //! \param[in] old2new Old-to-new node number mapping
-  bool renumberNodes(const std::map<int,int>& old2new);
+  //! The nodes themselves are assumed already to be up to date,
+  //! unless \a renumNodes is \e true.
+  bool renumberNodes(const std::map<int,int>& old2new, bool renumNodes = false);
 
   //! \brief Computes the set of all MPCs over the whole model.
   //! \param[in] model All spline patches in the model
@@ -515,6 +516,9 @@ protected:
   //! \param[in] slave 1-based local index of the slave node to constrain
   //! \param[in] dirs Which local DOFs to constrain (1, 2, 3, 12, 23, 123)
   void makePeriodic(size_t master, size_t slave, int dirs = 123);
+  //! \brief Adds a patch to the list of neighbors of this patch.
+  //! \param[in] pch Pointer to the neighboring patch
+  void addNeighbor(ASMbase* pch);
 
 public:
   //! \brief Constrains DOFs in the given node to the given value.
@@ -570,6 +574,8 @@ protected:
   std::map<char,size_t> firstBp;
 
   size_t nXelm;  //!< Number of extra-ordinary elements
+
+  ASMVec neighbors; //!< Patches having nodes in common with this one
 
 private:
   std::pair<size_t,size_t> myLMs; //!< Nodal range of the Lagrange multipliers

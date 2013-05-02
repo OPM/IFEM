@@ -398,8 +398,12 @@ bool ASMs2Dmx::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool revers)
   ASMs2Dmx* neighMx = dynamic_cast<ASMs2Dmx*>(&neighbor);
   if (!neighMx) return false;
 
-  return this->connectBasis(edge,neighbor,nedge,revers,1,0,0)
-    &&   this->connectBasis(edge,neighbor,nedge,revers,2,nb1,neighMx->nb1);
+  if (!this->connectBasis(edge,neighbor,nedge,revers,1,0,0) ||
+      !this->connectBasis(edge,neighbor,nedge,revers,2,nb1,neighMx->nb1))
+    return false;
+
+  this->addNeighbor(neighMx);
+  return true;
 }
 
 

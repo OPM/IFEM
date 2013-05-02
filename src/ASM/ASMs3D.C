@@ -616,7 +616,11 @@ bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
   if (neighbor.swapW && face > 4) // Account for swapped parameter direction
     nface = 11-nface;
 
-  return this->connectBasis(face,neighbor,nface,norient);
+  if (!this->connectBasis(face,neighbor,nface,norient))
+    return false;
+
+  this->addNeighbor(&neighbor);
+  return true;
 }
 
 

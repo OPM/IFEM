@@ -835,6 +835,26 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
       std::cout <<"   * "<< nDupl <<" duplicated nodes merged."<< std::endl;
   }
 
+#if SP_DEBUG > 2
+  typedef std::pair<int,int> Ipair;
+  typedef std::vector<Ipair> Ipairs;
+  std::map<int,Ipairs> nodeInfo;
+  for (mit = myModel.begin(), patch = 1; mit != myModel.end(); mit++, patch++)
+    if (!(*mit)->empty())
+      for (size_t n = 1; n <= (*mit)->getNoNodes(); n++)
+        nodeInfo[(*mit)->getNodeID(n)].push_back(std::make_pair(patch,n));
+
+  std::map<int,Ipairs>::const_iterator nit;
+  for (nit = nodeInfo.begin(); nit != nodeInfo.end(); nit++)
+    if (nit->second.size() > 1)
+    {
+      std::cout <<"\nConnectivity for node "<< nit->first <<":";
+      for (size_t n = 0; n < nit->second.size(); n++)
+	std::cout <<" P"<< nit->second[n].first <<","<< nit->second[n].second;
+    }
+  std::cout << std::endl;
+#endif
+
   // Renumber the nodes to account for overlapping nodes and erased patches.
   // In parallel simulations, the resulting global-to-local node number mapping
   // will map the global node numbers to local node numbers on the current
@@ -1152,13 +1172,31 @@ bool SIMbase::setNeumann (const std::string& prop, const std::string& type,
 bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, bool withRF)
 {
   if (!mySam) return false;
+
 #if SP_DEBUG > 2
   mySam->print(std::cout);
   std::string heading("\n\nNodal coordinates for Patch 1");
-  size_t i, j = heading.size()-1;
+  size_t n, i, j = heading.size()-1;
+  typedef std::pair<int,int> Ipair;
+  typedef std::vector<Ipair> Ipairs;
+  std::map<int,Ipairs> nodeInfo;
+  std::map<int,Ipairs>::const_iterator it;
   for (i = 0; i < myModel.size() && i < 9; i++, heading[j]++)
     if (!myModel[i]->empty())
+    {
       myModel[i]->printNodes(std::cout,heading.c_str());
+      for (n = 1; n <= myModel[i]->getNoNodes(); n++)
+	nodeInfo[myModel[i]->getNodeID(n)].push_back(std::make_pair(i+1,n));
+    }
+
+  for (it = nodeInfo.begin(); it != nodeInfo.end(); ++it)
+    if (it->second.size() > 1)
+    {
+      std::cout <<"\nConnectivity for node "<< it->first <<":";
+      for (n = 0; n < it->second.size(); n++)
+	std::cout <<" P"<< it->second[n].first <<","<< it->second[n].second;
+    }
+  std::cout << std::endl;
 #endif
 
   if (myEqSys) delete myEqSys;
@@ -2339,7 +2377,7 @@ bool SIMbase::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
 
     // Write out to VTF-file as scalar fields
     const ElementBlock* grid = myVtf->getBlock(++geomID);
-    for (j = 0; j < field.rows(); j++)
+    for (j = 0; j < field.rows() && j < nf; j++)
     {
       Vector comp(field.getRow(1+j));
       if (!myVtf->writeNres(comp,++nBlock,geomID))

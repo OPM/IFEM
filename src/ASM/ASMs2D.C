@@ -511,7 +511,11 @@ bool ASMs2D::assignNodeNumbers (BlockNodes& nodes, int basis)
 
 bool ASMs2D::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool revers)
 {
-  return this->connectBasis(edge,neighbor,nedge,revers);
+  if (!this->connectBasis(edge,neighbor,nedge,revers))
+    return false;
+
+  this->addNeighbor(&neighbor);
+  return true;
 }
 
 
