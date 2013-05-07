@@ -14,12 +14,9 @@
 #ifndef _SIM_INPUT_H
 #define _SIM_INPUT_H
 
+#include "SIMoptions.h"
 #include <iostream>
 #include <vector>
-
-#include "SIMoptions.h"
-
-class TiXmlElement;
 
 
 /*!
@@ -29,8 +26,8 @@ class TiXmlElement;
 class SIMinput
 {
 protected:
-  //! \brief The default constructor initializes \a myPid and \a nProc.
-  SIMinput();
+  //! \brief The constructor initializes \a myPid, \a nProc and \a myHeading.
+  SIMinput(const char* heading = NULL);
 
 public:
   //! \brief Empty destructor.
@@ -39,10 +36,9 @@ public:
   //! \brief Reads model data from the specified input file \a *fileName.
   virtual bool read(const char* fileName);
 
-  SIMoptions opt; //!< Simulation control parameters
-
-  //! \brief Wrapper used to handle hierarchy issues
+  //! \brief Wrapper used to handle hierarchy issues.
   virtual void setOptions(SIMoptions& opt2) { opt = opt2; }
+
 private:
   //! \brief Reads a flat text input file.
   bool readFlat(const char* fileName);
@@ -66,17 +62,23 @@ protected:
   //! \brief Returns a list of prioritized XML-tags.
   virtual const char** getPrioritizedTags() const { return NULL; }
 
-public:
   //! \brief Parses a data section from an input stream.
   virtual bool parse(char* keyWord, std::istream& is) = 0;
   //! \brief Parses a data section from an XML element.
   virtual bool parse(const TiXmlElement* elem) = 0;
 
+  //! \brief Prints the heading of this (sub-step) solver, if any, to std::cout.
+  void printHeading(int supStep) const;
+
+public:
   static int msgLevel; //!< Controls the amount of console output during solving
+  SIMoptions opt;      //!< Simulation control parameters
 
 protected:
   int myPid; //!< Processor ID in parallel simulations
   int nProc; //!< Number of processors in parallel simulations
+
+  std::string myHeading; //!< Heading written before reading the input file
 };
 
 #endif

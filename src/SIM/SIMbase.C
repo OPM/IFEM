@@ -111,12 +111,14 @@ void SIMbase::clearProperties ()
 
 bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
 {
-  std::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
+  if (myPid == 0)
+    std::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
   if (!strcasecmp(elem->Value(),"patchfile") && elem->FirstChild()) {
     if (myModel.empty()) {
       const char* file = elem->FirstChild()->Value();
-      std::cout <<"\tReading data file "<< file << std::endl;
+      if (myPid == 0)
+        std::cout <<"\tReading data file "<< file << std::endl;
       std::ifstream isp(file);
       this->readPatches(isp,myModel,"\t");
 
@@ -139,7 +141,8 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
       return false;
     }
 
-    std::cout <<"\tReading data file "<< file << std::endl;
+    if (myPid == 0)
+      std::cout <<"\tReading data file "<< file << std::endl;
     this->readNodes(isn);
   }
 
@@ -204,7 +207,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
         }
       }
 
-    if (!myEntitys.empty()) {
+    if (myPid == 0 && !myEntitys.empty()) {
       std::cout <<"\tTopology sets: ";
       TopologySet::const_iterator it;
       for (it = myEntitys.begin(); it != myEntitys.end(); it++) {
@@ -230,7 +233,8 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
 
 bool SIMbase::parseBCTag (const TiXmlElement* elem)
 {
-  std::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
+  if (myPid == 0)
+    std::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
   if (!strcasecmp(elem->Value(),"propertyfile") && elem->FirstChild()) {
     const char* file = elem->FirstChild()->Value();
@@ -241,7 +245,8 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
                 << file << std::endl;
       return false;
     }
-    std::cout <<"\tReading data file "<< file << std::endl;
+    if (myPid == 0)
+      std::cout <<"\tReading data file "<< file << std::endl;
     while (isp.good())
     {
       Property p;
@@ -360,7 +365,8 @@ static bool noDumpDataYet = true; //!< To read only once in adaptive loops
 
 bool SIMbase::parseOutputTag (const TiXmlElement* elem)
 {
-  std::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
+  if (myPid == 0)
+    std::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
   if (!strcasecmp(elem->Value(),"dump_lhs_matrix") ||
       !strcasecmp(elem->Value(),"dump_rhs_vector") ||
@@ -489,13 +495,15 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
     int npatch = atoi(keyWord+7);
     if (myModel.empty())
     {
-      std::cout <<"\nNumber of patches: "<< npatch << std::endl;
+      if (myPid == 0)
+	std::cout <<"\nNumber of patches: "<< npatch << std::endl;
       for (int i = 0; i < npatch && (cline = utl::readLine(is)); i++)
       {
 	std::ifstream is(cline);
 	if (is.good())
 	{
-	  std::cout <<"\nReading patch file "<< cline << std::endl;
+	  if (myPid == 0)
+	    std::cout <<"\nReading patch file "<< cline << std::endl;
 	  ASMbase* pch = this->readPatch(is,i);
 	  if (pch)
 	    myModel.push_back(pch);
@@ -522,7 +530,8 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
     if (myModel.empty())
     {
       size_t i = 9; while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
-      std::cout <<"\nReading data file "<< keyWord+i << std::endl;
+      if (myPid == 0)
+        std::cout <<"\nReading data file "<< keyWord+i << std::endl;
       std::ifstream isp(keyWord+i);
       this->readPatches(isp,myModel);
 
@@ -557,10 +566,13 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
 	return false;
       }
 
-      if (basis < 2) std::cout <<"\n";
-      std::cout <<"Reading data file "<< filename;
-      if (basis > 0) std::cout <<" (basis "<< basis <<")";
-      std::cout << std::endl;
+      if (myPid == 0)
+      {
+        if (basis < 2) std::cout <<"\n";
+        std::cout <<"Reading data file "<< filename;
+        if (basis > 0) std::cout <<" (basis "<< basis <<")";
+        std::cout << std::endl;
+      }
 
       while (isn.good())
       {
@@ -593,7 +605,8 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
       return false;
     }
 
-    std::cout <<"\nReading data file "<< keyWord+i << std::endl;
+    if (myPid == 0)
+      std::cout <<"\nReading data file "<< keyWord+i << std::endl;
     while (isp.good())
     {
       Property p;
@@ -788,6 +801,9 @@ int SIMbase::getLocalPatchIndex (int patchNo) const
 
 bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 {
+  static int substep = 10;
+  this->printHeading(++substep);
+
   if (!this->createFEMmodel()) return false;
 
   PatchVec::const_iterator mit;
@@ -1267,6 +1283,8 @@ void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers)
 
 void SIMbase::printProblem (std::ostream& os) const
 {
+  if (myPid > 0) return;
+
   if (myProblem)
   {
     std::cout <<"\nProblem definition:"<< std::endl;
@@ -1400,7 +1418,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
   IntegrandMap::const_iterator it;
   for (it = myInts.begin(); it != myInts.end() && ok; it++)
   {
-    if (msgLevel > 1 && myPid == 0)
+    if (msgLevel > 1)
       std::cout <<"\n\nProcessing integrand associated with code "<< it->first
 		<< std::endl;
 
@@ -1973,7 +1991,8 @@ bool SIMbase::writeGlvG (int& nBlock, const char* inpFile)
     else
       strcat(vtfName,ext);
 
-    std::cout <<"\nWriting VTF-file "<< vtfName << std::endl;
+    if (myPid == 0)
+      std::cout <<"\nWriting VTF-file "<< vtfName << std::endl;
     myVtf = new VTF(vtfName,opt.format);
     delete[] vtfName;
   }

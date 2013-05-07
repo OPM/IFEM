@@ -26,7 +26,7 @@
 int SIMinput::msgLevel = 2;
 
 
-SIMinput::SIMinput ()
+SIMinput::SIMinput (const char* heading)
 {
 #ifdef PARALLEL_PETSC
   MPI_Comm_rank(PETSC_COMM_WORLD,&myPid);
@@ -35,25 +35,45 @@ SIMinput::SIMinput ()
   myPid = 0;
   nProc = 1;
 #endif
+  if (heading) myHeading = heading;
+}
+
+
+void SIMinput::printHeading (int subStep) const
+{
+  if (myHeading.empty() || myPid > 0)
+    return;
+
+  size_t n = myHeading.find_last_of('\n');
+  if (n+1 < myHeading.size()) n = myHeading.size()-n;
+  std::cout <<"\n"<< subStep <<". "<< myHeading <<"\n";
+  for (size_t i = 0; i < 3+n && i < 3+myHeading.size(); i++) std::cout <<'=';
+  if (subStep > 9) std::cout <<'=';
+  std::cout << std::endl;
 }
 
 
 bool SIMinput::read (const char* fileName)
 {
-  setOptions(IFEM::getOptions());
+  this->setOptions(IFEM::getOptions());
+
 #ifdef HAS_PETSC
   // In parallel simulations, we need to retain all DOFs in the equation system.
   // The fixed DOFs (if any) will receive a homogeneous constraint instead.
-  if (opt.solver == SystemMatrix::PETSC) 
+  if (opt.solver == SystemMatrix::PETSC)
     ASMbase::fixHomogeneousDirichlet = false;
 #endif
+
+  static int substep = 0;
+  this->printHeading(++substep);
+
   bool result;
   if (strcasestr(fileName,".xinp"))
     result = this->readXML(fileName);
   else
     result = this->readFlat(fileName);
-  IFEM::applyCommandLineOptions(opt);
 
+  IFEM::applyCommandLineOptions(opt);
   return result;
 }
 
@@ -61,14 +81,15 @@ bool SIMinput::read (const char* fileName)
 bool SIMinput::readFlat (const char* fileName)
 {
   std::ifstream is(fileName);
-  if (is)
-    std::cout <<"\nReading input file "<< fileName << std::endl;
-  else
+  if (!is)
   {
     std::cerr <<"\n *** SIMinput::read: Failure opening input file "
 	      << fileName << std::endl;
     return false;
   }
+
+  if (myPid == 0)
+    std::cout <<"\nReading input file "<< fileName << std::endl;
 
   char* keyWord = 0;
   while (is.good() && (keyWord = utl::readLine(is)))
@@ -79,7 +100,9 @@ bool SIMinput::readFlat (const char* fileName)
       return false;
     }
 
-  std::cout <<"\nReading input file succeeded."<< std::endl;
+  if (myPid == 0)
+    std::cout <<"\nReading input file succeeded."<< std::endl;
+
   return true;
 }
 
@@ -124,7 +147,9 @@ bool SIMinput::readXML (const char* fileName)
     return false;
   }
 
-  std::cout <<"\nParsing input file "<< fileName << std::endl;
+  if (myPid == 0)
+    std::cout <<"\nParsing input file "<< fileName << std::endl;
+
   injectIncludeFiles(const_cast<TiXmlElement*>(tag));
 
   std::vector<const TiXmlElement*> parsed;
@@ -133,7 +158,8 @@ bool SIMinput::readXML (const char* fileName)
 
   for (tag = tag->FirstChildElement(); tag; tag = tag->NextSiblingElement())
     if (std::find(parsed.begin(),parsed.end(),tag) == parsed.end()) {
-      std::cout <<"\nParsing <"<< tag->Value() <<">"<< std::endl;
+      if (myPid == 0)
+        std::cout <<"\nParsing <"<< tag->Value() <<">"<< std::endl;
       if (!this->parse(tag)) {
         std::cerr <<" *** SIMinput::read: Failure occured while parsing \""
                   << tag->Value() <<"\""<< std::endl;
@@ -141,7 +167,9 @@ bool SIMinput::readXML (const char* fileName)
       }
     }
 
-  std::cout <<"\nParsing input file succeeded."<< std::endl;
+  if (myPid == 0)
+    std::cout <<"\nParsing input file succeeded."<< std::endl;
+
   return true;
 }
 
@@ -154,7 +182,8 @@ bool SIMinput::handlePriorityTags (const TiXmlElement* base,
 
   for (const TiXmlElement* elem = 0; *q; q++)
     if ((elem = base->FirstChildElement(*q))) {
-      std::cout <<"\nParsing <"<< elem->Value() <<">"<< std::endl;
+      if (myPid == 0)
+        std::cout <<"\nParsing <"<< elem->Value() <<">"<< std::endl;
       if (!this->parse(elem)) {
         std::cerr <<" *** SIMinput::read: Failure occured while parsing \""
                   << elem->Value() <<"\""<< std::endl;
