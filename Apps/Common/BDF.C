@@ -13,21 +13,20 @@
 
 #include "BDF.h"
 
-TimeIntegration::BDF::BDF (int order)
+
+TimeIntegration::BDF::BDF (int order) : step(0)
 {
-  coefs1.resize(2);
-  coefs1[0] =  1.0;
-  coefs1[1] = -1.0;
+  coefs1.resize(order > 0 ? 2 : 1, 1.0);
+  if (order > 0)
+    coefs1[1] = -1.0;
 
-  setOrder(order);
-
-  step = 0;
+  this->setOrder(order);
 }
 
 
-void TimeIntegration::BDF::setOrder(int order)
+void TimeIntegration::BDF::setOrder (int order)
 {
-  if (order == 1)
+  if (order <= 1)
     coefs = coefs1;
   else if (order == 2) {
     coefs.resize(3);
@@ -38,9 +37,9 @@ void TimeIntegration::BDF::setOrder(int order)
 }
 
 
-void TimeIntegration::BDF::advanceStep(double dt, double dtn)
+void TimeIntegration::BDF::advanceStep (double dt, double dtn)
 {
-  if ((coefs.size() == 3) && (step > 0)) {
+  if (++step > 1 && coefs.size() == 3) {
     double tau = dt/dtn;
     double taup1 = tau + 1.0;
 
@@ -48,8 +47,6 @@ void TimeIntegration::BDF::advanceStep(double dt, double dtn)
     coefs[1] = -taup1;
     coefs[2] = tau*tau/taup1;
   }
-
-  this->advanceStep();
 }
 
 
@@ -61,7 +58,7 @@ const std::vector<double>& TimeIntegration::BDF::getCoefs () const
 
 double TimeIntegration::BDF::extrapolate (const double* values) const
 {
-  if (coefs.size() == 3 && step > 1) // second order
+  if (step > 1 && coefs.size() == 3) // second order
     return 2.0*values[0] - values[1];
   else // first order
     return values[0];

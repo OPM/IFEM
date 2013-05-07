@@ -11,8 +11,8 @@
 //!
 //==============================================================================
 
-#ifndef BDF_H_
-#define BDF_H_
+#ifndef _BDF_H_
+#define _BDF_H_
 
 #include <vector>
 
@@ -28,21 +28,19 @@ namespace TimeIntegration //! Utilities for time integration.
   {
   public:
     //! \brief The constructor initializes the coefficients.
-    //! \param[in] order The order of the BDF scheme (1,2 currently)
-    BDF(int order);
+    //! \param[in] order The order of the BDF scheme
+    BDF(int order = 0);
 
-    //! \brief Returns order to be used for current time step.
-    int getOrder() const { return step < 2 ? 1 : coefs.size()-1; }
-
-    //! \brief Returns order of the schemes.
-    int getActualOrder() const { return coefs.size()-1; }
-
-    //! \brief Set the order
+    //! \brief Sets the order of the scheme.
     void setOrder(int order);
 
-    //! \brief Advances the time stepping scheme.
-    void advanceStep() { step++; }
+    //! \brief Returns the order to be used for current time step.
+    int getOrder() const { return step < 2 ? coefs1.size()-1 : coefs.size()-1; }
+    //! \brief Returns the order of the scheme.
+    int getActualOrder() const { return coefs.size()-1; }
 
+    //! \brief Advances the time stepping scheme.
+    void advanceStep() { ++step; }
     //! \brief Advances the time stepping scheme.
     void advanceStep(double dt, double dtn);
 
@@ -53,7 +51,7 @@ namespace TimeIntegration //! Utilities for time integration.
     double operator[](int idx) const { return this->getCoefs()[idx]; }
 
     //! \brief Extrapolates values.
-    //! \param[in] values The values to extrapolate based on
+    //! \param[in] values The values to extrapolate
     //! \return The extrapolated value
     double extrapolate(const double* values) const;
 
