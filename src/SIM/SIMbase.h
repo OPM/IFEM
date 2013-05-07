@@ -168,7 +168,8 @@ public:
   //! \param[in] nMats Number of system matrices
   //! \param[in] nVec Number of system right-hand-side vectors
   //! \param[in] withRF Whether nodal reaction forces should be computed or not
-  bool initSystem(int mType, size_t nMats, size_t nVec, bool withRF = true);
+  bool initSystem(int mType, size_t nMats = 1, size_t nVec = 1,
+                  bool withRF = true);
 
   //! \brief Associates a system vector to a system matrix.
   //! \sa AlgEqSystem::setAssociatedVector
@@ -601,6 +602,11 @@ public:
   //! manually deleted before the variable receiving the pointer value goes
   //! out of scope.
   ForceBase* getBoundaryForceIntegrand(const Vec3* X0 = NULL) const;
+  //! \brief Returns a pointer to a force integrand object for this simulator.
+  //! \note The object is allocated dynamically and has therefore to be
+  //! manually deleted before the variable receiving the pointer value goes
+  //! out of scope.
+  ForceBase* getNodalForceIntegrand() const;
 
   //! \brief Returns a unique integer code for a Property set.
   //! \param[in] setName Name of the topology set the property is defined on

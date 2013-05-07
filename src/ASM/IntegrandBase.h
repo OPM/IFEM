@@ -221,8 +221,10 @@ public:
   //! \brief Returns a pointer to an Integrand for solution norm evaluation.
   virtual NormBase* getNormIntegrand(AnaSol* = 0) const { return 0; }
   //! \brief Returns a pointer to an Integrand for boundary force evaluation.
-  virtual ForceBase* getForceIntegrand(const Vec3* = 0, AnaSol* = 0) const
+  virtual ForceBase* getForceIntegrand(const Vec3*, AnaSol* = 0) const
   { return 0; }
+  //! \brief Returns a pointer to an Integrand for nodal force evaluation.
+  virtual ForceBase* getForceIntegrand() const { return 0; }
 
   //! \brief Returns the number of primary/secondary solution field components.
   virtual size_t getNoFields(int = 2) const { return 0; }
@@ -374,7 +376,8 @@ public:
   virtual void initIntegration(size_t, size_t) {}
 
   //! \brief Returns a local integral container for the element \a iEl.
-  virtual LocalIntegral* getLocalIntegral(size_t, size_t iEl, bool) const;
+  virtual LocalIntegral* getLocalIntegral(size_t nen, size_t iEl,
+                                          bool = false) const;
 
   //! \brief Dummy implementation (only boundary integration is relevant).
   virtual bool initElement(const std::vector<int>&, LocalIntegral&)

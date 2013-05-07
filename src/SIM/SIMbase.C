@@ -1711,6 +1711,12 @@ ForceBase* SIMbase::getBoundaryForceIntegrand (const Vec3* X0) const
 }
 
 
+ForceBase* SIMbase::getNodalForceIntegrand () const
+{
+  return myProblem->getForceIntegrand();
+}
+
+
 bool SIMbase::solutionNorms (const TimeDomain& time,
 			     const Vectors& psol, const Vectors& ssol,
 			     Vectors& gNorm, Matrix* eNorm)
