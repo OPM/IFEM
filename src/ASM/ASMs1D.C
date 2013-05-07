@@ -452,6 +452,21 @@ bool ASMs1D::updateCoords (const Vector& displ)
 }
 
 
+void ASMs1D::getBoundaryNodes (int lIndex, IntVec& glbNodes) const
+{
+  if (!curv) return; // silently ignore empty patches
+
+  int iel = lIndex == 1 ? 0 : this->getNoElms()-1;
+  if (MLGE[iel] > 0)
+  {
+    if (lIndex == 1)
+      glbNodes.push_back(MLGN[MNPC[iel].back()]);
+    else if (lIndex == 2)
+      glbNodes.push_back(MLGN[MNPC[iel].front()]);
+  }
+}
+
+
 bool ASMs1D::getOrder (int& p1, int& p2, int& p3) const
 {
   p2 = p3 = 0;

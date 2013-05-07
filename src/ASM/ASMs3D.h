@@ -180,6 +180,11 @@ public:
   //! \param[in] displ Incremental displacements to update the coordinates with
   virtual bool updateCoords(const Vector& displ);
 
+  //! \brief Finds the global numbers of the nodes on a patch boundary.
+  //! \param[in] lIndex Local index of the boundary face
+  //! \param glbNodes Array of global boundary node numbers
+  virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes) const;
+
   //! \brief Assigns new global node numbers for all nodes of the patch.
   //! \param nodes Object with global nodes numbers to assign to this patch
   //! \param[in] basis Which basis to assign node numbers for in mixed methods

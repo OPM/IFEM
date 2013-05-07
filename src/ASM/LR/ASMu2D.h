@@ -82,6 +82,11 @@ public:
   //! \param[in] displ Incremental displacements to update the coordinates with
   virtual bool updateCoords(const Vector& displ);
 
+  //! \brief Finds the global numbers of the nodes on a patch boundary.
+  //! \param[in] lIndex Local index of the boundary edge
+  //! \param glbNodes Array of global boundary node numbers
+  virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes) const;
+
   //! \brief Refines along the diagonal of the LR-spline patch.
   //! \details Progressively refine until the LR-spline object contains at least
   //! \a minBasisfunctions basis functions.

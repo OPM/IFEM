@@ -44,55 +44,15 @@
 
 
 ASMu3D::ASMu3D (unsigned char n_f)
-	: ASMunstruct(3,3,n_f), lrspline(0), tensorspline(0)
+  : ASMunstruct(3,3,n_f), lrspline(0), tensorspline(0)
 {
-	ASMunstruct::resetNumbering(); // Replace this when going multi-patch...
+  ASMunstruct::resetNumbering(); // Replace this when going multi-patch...
 }
 
 
 ASMu3D::ASMu3D (const ASMu3D& patch, unsigned char n_f)
-	: ASMunstruct(patch,n_f), lrspline(patch.lrspline), tensorspline(0)
+  : ASMunstruct(patch,n_f), lrspline(patch.lrspline), tensorspline(0)
 {
-}
-
-size_t ASMu3D::getNodeIndex (int globalNum, bool noAddedNodes) const
-{
-	IntVec::const_iterator it = std::find(MLGN.begin(),MLGN.end(),globalNum);
-	if (it == MLGN.end()) return 0;
-	
-	size_t inod = 1 + (it-MLGN.begin());
-	if (noAddedNodes && !xnMap.empty())
-	{
-		std::map<size_t,size_t>::const_iterator it = xnMap.find(inod);
-		if (it != xnMap.end()) return it->second;
-	}
-	
-	return inod;
-}
-
-/*
-char ASMu3D::getNodeType (size_t inod) const
-{
-	std::cerr << "ASM3D::getNodeType not implemented properly\n";
-	exit(123213);
-	if (this->isLMn(inod)) return 'L';
-	// return inod > nodeInd.size() ? 'X' : 'D';
-	return 0;
-}
-*/
-
-
-LR::LRSplineSurface* ASMu3D::getBoundary (int dir)
-{
-	std::cerr << "ASMu3D::getBoundary not implemented properly yet" << std::endl;
-	exit(776654);
-	if (dir < -3 || dir == 0 || dir > 3)
-		return NULL;
-
-	// The boundary surfaces are stored internally in the SplineVolume object
-	// int iface = dir > 0 ? 2*dir-1 : -2*dir-2;
-	return NULL;
-	// return lrspline->getBoundarySurface(iface).get();
 }
 
 
@@ -166,14 +126,6 @@ void ASMu3D::clear (bool retainGeometry)
 
 	// Erase the FE data
 	this->ASMbase::clear(retainGeometry);
-	xnMap.clear();
-	nxMap.clear();
-}
-
-
-size_t ASMu3D::getNoNodes (int basis) const
-{
-	return lrspline->nBasisFunctions();
 }
 
 
@@ -327,6 +279,9 @@ bool ASMu3D::generateFEMTopology ()
 }
 
 
+/*
+// this is connecting multiple patches and handling deformed geometries.
+// We'll deal with at a later time, for now we only allow single patch models
 
 bool ASMu3D::connectPatch (int face, ASMu3D& neighbor, int nface, int norient)
 {
@@ -337,9 +292,6 @@ bool ASMu3D::connectPatch (int face, ASMu3D& neighbor, int nface, int norient)
 bool ASMu3D::connectBasis (int face, ASMu3D& neighbor, int nface, int norient,
 				                   int basis, int slave, int master)
 {
-	std::cerr << "ASMu3D::connectBasis(...) is not properly implemented yet :(" << std::endl;
-	exit(776654);
-#if 0
 	if (shareFE && neighbor.shareFE)
 		return true;
 	else if (shareFE || neighbor.shareFE)
@@ -473,16 +425,11 @@ bool ASMu3D::connectBasis (int face, ASMu3D& neighbor, int nface, int norient,
 		}
 
 	return true;
-#endif
-	return false;
 }
 
 
 void ASMu3D::closeFaces (int dir, int basis, int master)
 {
-	std::cerr << "ASMu3D::closeFaces(...) is not properly implemented yet :(" << std::endl;
-	exit(776654);
-#if 0
 	int n1, n2, n3;
 	if (basis < 1) basis = 1;
 	if (!this->getSize(n1,n2,n3,basis)) return;
@@ -507,8 +454,9 @@ void ASMu3D::closeFaces (int dir, int basis, int master)
 	  this->makePeriodic(master,master+n1*n2*(n3-1));
 			break;
 		}
-#endif
 }
+*/
+
 
 /*!
 	A negative \a code value implies direct evaluation of the Dirichlet condition
@@ -719,78 +667,8 @@ void ASMu3D::constrainNode (double xi, double eta, double zeta,
 }
 
 
-/*!
-	This method projects the function describing the in-homogeneous Dirichlet
-	boundary condition onto the spline basis defining the boundary surface,
-	in order to find the control point values which are used as the prescribed
-	values of the boundary DOFs.
-*/
-
-bool ASMu3D::updateDirichlet (const std::map<int,RealFunc*>& func,
-                              const std::map<int,VecFunc*>& vfunc, double time)
-{
-	// std::cerr << "ASMu3D::updateDirichlet not implemented properly yet\n";
-	std::cerr << "\nWARNING: ASMu3D::updateDirichlet ignored due to non-projecting boundary condition implementation" << std::endl;
-	return this->ASMbase::updateDirichlet(func,vfunc,time);
-#if 0
-	std::map<int,RealFunc*>::const_iterator fit;
-	std::map<int,VecFunc*>::const_iterator vfit;
-	std::vector<DirichletFace>::const_iterator dit;
-	std::vector<Ipair>::const_iterator nit;
-
-	for (size_t i = 0; i < dirich.size(); i++)
-	{
-		// Project the function onto the spline surface basis
-		Go::SplineSurface* dsurf = 0;
-		if ((fit = func.find(dirich[i].code)) != func.end())
-			dsurf = SplineUtils::project(dirich[i].surf,*fit->second,time);
-		else if ((vfit = vfunc.find(dirich[i].code)) != vfunc.end())
-			dsurf = SplineUtils::project(dirich[i].surf,*vfit->second,nf,time);
-		else
-		{
-			std::cerr <<" *** ASMu3D::updateDirichlet: Code "<< dirich[i].code
-		<<" is not associated with any function."<< std::endl;
-			return false;
-		}
-		if (!dsurf)
-		{
-			std::cerr <<" *** ASMu3D::updateDirichlet: Projection failure."
-		<< std::endl;
-			return false;
-		}
-
-		// Loop over the (interior) nodes (control points) of this boundary surface
-		for (nit = dirich[i].nodes.begin(); nit != dirich[i].nodes.end(); nit++)
-			for (int dofs = dirich[i].dof; dofs > 0; dofs /= 10)
-			{
-				int dof = dofs%10;
-				// Find the constraint equation for current (node,dof)
-				MPC pDOF(MLGN[nit->second-1],dof);
-				MPCIter mit = mpcs.find(&pDOF);
-				if (mit == mpcs.end()) continue; // probably a deleted constraint
-
-				// Find index to the control point value for this (node,dof) in dsurf
-				RealArray::const_iterator cit = dsurf->coefs_begin();
-				if (dsurf->dimension() > 1) // A vector field is specified
-				  cit += (nit->first-1)*dsurf->dimension() + (dof-1);
-				else // A scalar field is specified at this dof
-				  cit += (nit->first-1);
-
-				// Now update the prescribed value in the constraint equation
-				(*mit)->setSlaveCoeff(*cit);
-#if SP_DEBUG > 1
-				std::cout <<"Updated constraint: "<< **mit;
-#endif
-			}
-		delete dsurf;
-	}
-
-	// The parent class method takes care of the corner nodes with direct
-	// evaluation of the Dirichlet functions (since they are interpolatory)
-#endif
-}
-
 #define DERR -999.99
+
 double ASMu3D::getParametricArea (int iel, int dir) const
 {
 #ifdef INDEX_CHECK
@@ -822,119 +700,61 @@ double ASMu3D::getParametricArea (int iel, int dir) const
 #undef DERR
 
 
-#if 0
-
-int ASMu3D::coeffInd (size_t inod) const
-{
-#ifdef INDEX_CHECK
-	if (inod >= nodeInd.size())
-	{
-		std::cerr <<" *** ASMu3D::coeffInd: Node index "<< inod
-	      <<" out of range [0,"<< nodeInd.size() <<">."<< std::endl;
-		return -1;
-	}
-#endif
-
-	const int ni = nodeInd[inod].I;
-	const int nj = nodeInd[inod].J;
-	const int nk = nodeInd[inod].K;
-	return (nk*lrspline->numCoefs(1) + nj)*lrspline->numCoefs(0) + ni;
-}
-#endif
-
-Vec3 ASMu3D::getCoord (size_t inod) const
-{
-	if (inod <= MLGN.size())
-	{
-		// This is a node added due to constraints in local directions.
-		// Find the corresponding original node (see constrainEdgeLocal)
-		std::map<size_t,size_t>::const_iterator it = xnMap.find(inod);
-		if (it != xnMap.end()) inod = it->second;
-	}
-	
-	if (inod == 0) return Vec3();
-	LR::Basisfunction *b = lrspline->getBasisfunction(inod-1);
-
-	RealArray::const_iterator cit = b->cp();
-	return Vec3(*cit,*(cit+1),*(cit+2));
-}
-
-
 bool ASMu3D::getElementCoordinates (Matrix& X, int iel) const
 {
 #ifdef INDEX_CHECK
-	if (iel < 1 || (size_t)iel > MNPC.size())
-	{
-		std::cerr <<" *** ASMu3D::getElementCoordinates: Element index "<< iel
-		          <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
-		return false;
-	}
+  if (iel < 1 || (size_t)iel > MNPC.size())
+  {
+    std::cerr <<" *** ASMu3D::getElementCoordinates: Element index "<< iel
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+    return false;
+  }
 #endif
 
-	const IntVec& mnpc = MNPC[iel-1];
-	X.resize(3,mnpc.size());
+  LR::Element* el = lrspline->getElement(iel-1);
+  X.resize(3,el->nBasisFunctions());
 
-	int n = 1;
-	for (LR::Basisfunction *b : lrspline->getElement(iel-1)->support() ) {
-		for (size_t i = 1; i <= 3; i++)
-			X(i,n) = b->cp(i-1);
-		n++;
-	}
+  int n = 1;
+  for (LR::Basisfunction* b : el->support())
+    X.fillColumn(n++,&(*b->cp()));
 
 #if SP_DEBUG > 2
-	std::cout <<"\nCoordinates for element "<< iel << X << std::endl;
+  std::cout <<"\nCoordinates for element "<< iel << X << std::endl;
 #endif
-	return true;
+  return true;
 }
 
 
 void ASMu3D::getNodalCoordinates (Matrix& X) const
 {
-	const int n = lrspline->nBasisFunctions();
-	X.resize(3,n);
+  X.resize(3,lrspline->nBasisFunctions());
 
-	size_t inod = 1;
-	for(LR::Basisfunction *b : lrspline->getAllBasisfunctions() )
-		for (size_t i = 0; i < 3; i++)
-			X(i+1,inod++) = b->cp(i);
+  size_t inod = 1;
+  for (LR::Basisfunction* b : lrspline->getAllBasisfunctions())
+    X.fillColumn(inod++,&(*b->cp()));
+}
+
+
+Vec3 ASMu3D::getCoord (size_t inod) const
+{
+  LR::Basisfunction* basis = lrspline->getBasisfunction(inod-1);
+
+  RealArray::const_iterator cit = basis->cp();
+  return Vec3(*cit,*(cit+1),*(cit+2));
 }
 
 
 bool ASMu3D::updateCoords (const Vector& displ)
 {
-	std::cerr <<"ASMu3D::updateCoords not implemented properly yet" << std::endl;
-	exit(776654);
-	if (!lrspline) return true; // silently ignore empty patches
-	if (shareFE) return true;
-
-	if (displ.size() != 3*MLGN.size())
-	{
-		std::cerr <<" *** ASMu3D::updateCoords: Invalid dimension "
-		          << displ.size() <<" on displacement vector, should be "
-		          << 3*MLGN.size() << std::endl;
-		return false;
-	}
-
-	// lrspline->deform(displ,3);
-	return true;
-}
-
-
-bool ASMu3D::getOrder (int& p1, int& p2, int& p3) const
-{
-	if (!lrspline) return false;
-
-	p1 = lrspline->order(0);
-	p2 = lrspline->order(1);
-	p3 = lrspline->order(2);
-	return true;
+  std::cerr <<" *** ASMu3D::updateCoords not implemented!"<< std::endl;
+  return false;
 }
 
 
 size_t ASMu3D::getNoBoundaryElms (char lIndex, char ldim) const
 {
 	if (!lrspline) return 0;
-
+	/*TODO fix later (see ASMu2D::getNoBoundaryElms)
 	if (ldim < 1 && lIndex > 0)
 		return 1;
 
@@ -962,7 +782,7 @@ size_t ASMu3D::getNoBoundaryElms (char lIndex, char ldim) const
 			return n1*n2;
 		}
 #endif
-
+	*/
 	return 0;
 }
 
@@ -2099,144 +1919,7 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-bool ASMu3D::evaluate (const ASMbase* input, const Vector& locVec, Vector& vec)
+void ASMu3D::getBoundaryNodes (int lIndex, IntVec& nodes) const
 {
-	std::cerr << "ASMu3D::evaluate(...) is not properly implemented yet :(" << std::endl;
-	exit(776654);
-#if 0
-	ASMu3D* pch = (ASMu3D*)input;
-	// Compute parameter values of the result sampling points (Greville points)
-	RealArray gpar[3];
-	for (int dir = 0; dir < 3; dir++)
-		if (!this->getGrevilleParameters(gpar[dir],dir))
-			return false;
-
-	Matrix sValues;
-	pch->evalSolution(sValues, locVec, gpar, true);
-
-	// Project the results onto the spline basis to find control point
-	// values based on the result values evaluated at the Greville points.
-	// Note that we here implicitly assume that the number of Greville points
-	// equals the number of control points such that we don't have to resize
-	// the result array. Think that is always the case, but beware if trying
-	// other projection schemes later.
-
-	RealArray weights;
-	if (lrspline->rational())
-		lrspline->getWeights(weights);
-
-	const Vector& vec2 = sValues;
-	Go::SplineVolume* vol_new =
-	          Go::VolumeInterpolator::regularInterpolation(lrspline->basis(0),
-	                                                       lrspline->basis(1),
-	                                                       lrspline->basis(2),
-	                                                       gpar[0], gpar[1], gpar[2],
-	                                                       const_cast<Vector&>(vec2),
-	                                                       sValues.rows(),
-	                                                       lrspline->rational(),
-	                                                       weights);
-	vec.resize(vol_new->coefs_end()-vol_new->coefs_begin());
-	std::copy(vol_new->coefs_begin(), vol_new->coefs_end(), vec.begin());
-	delete vol_new;
-
-	return true;
-#endif
-	return false;
+  // TODO: Implement this before attempting FSI simulations with LR B-splines
 }
-
-bool ASMu3D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
-{
-	std::cerr << "ASMu3D::addXElms not implemented properly yet\n";
-	exit(776654);
-#if 0
-	if (dim != 2)
-	{
-		std::cerr <<" *** ASMu3D::addXElms: Invalid boundary dimension "<< dim
-				      <<", only 2 (face) is allowed."<< std::endl;
-		return false;
-	}
-	else if (!svol || shareFE)
-		return false;
-
-	for (size_t i = 0; i < nXn; i++)
-	{
-		if (nodes.size() == i)
-			nodes.push_back(++gNod);
-		myMLGN.push_back(nodes[i]);
-	}
-
-	const int n1 = svol->numCoefs(0);
-	const int n2 = svol->numCoefs(1);
-	const int n3 = svol->numCoefs(2);
-
-	const int p1 = svol->order(0);
-	const int p2 = svol->order(1);
-	const int p3 = svol->order(2);
-
-	nXelm = (n1-p1+1)*(n2-p2+1)*(n3-p3+1);
-	myMNPC.resize(2*nXelm);
-	myMLGE.resize(2*nXelm,0);
-
-	int iel = 0;
-	bool skipMe = false;
-	for (int i3 = p3; i3 <= n3; i3++)
-		for (int i2 = p2; i2 <= n2; i2++)
-			for (int i1 = p1; i1 <= n1; i1++, iel++)
-			{
-				if (MLGE[iel] < 1) continue; // Skip zero-volume element
-
-				// Skip elements that are not on current boundary face
-				switch (item)
-				  {
-				  case 1: skipMe = i1 > p1; break;
-				  case 2: skipMe = i1 < n1; break;
-				  case 3: skipMe = i2 > p2; break;
-				  case 4: skipMe = i2 < n2; break;
-				  case 5: skipMe = i3 > p3; break;
-				  case 6: skipMe = i3 < n3; break;
-				  }
-				if (skipMe) continue;
-
-				IntVec& mnpc = myMNPC[nXelm+iel];
-				if (!mnpc.empty())
-				{
-				  std::cerr <<" *** ASMu3D::addXElms: Only one X-face allowed."
-				            << std::endl;
-				  return false;
-				}
-
-				mnpc = MNPC[iel]; // Copy the ordinary element nodes
-
-				// Negate node numbers that are not on the boundary face, to flag that
-				// they shall not receive any tangent and/or residual contributions
-				int lnod = 0;
-				for (int j3 = 0; j3 < p3; j3++)
-				  for (int j2 = 0; j2 < p2; j2++)
-				    for (int j1 = 0; j1 < p1; j1++, lnod++)
-				    {
-				      switch (item)
-				        {
-				        case 1: skipMe = j1 > 0;    break;
-				        case 2: skipMe = j1 < p1-1; break;
-				        case 3: skipMe = j2 > 0;    break;
-				        case 4: skipMe = j2 < p2-1; break;
-				        case 5: skipMe = j3 > 0;    break;
-				        case 6: skipMe = j3 < p3-1; break;
-	        }
-	      if (skipMe) // Hack for node 0: Using -maxint as flag instead
-		mnpc[lnod] = mnpc[lnod] == 0 ? -2147483648 : -mnpc[lnod];
-	    }
-
-				// Add connectivity to the extra-ordinary nodes
-				for (size_t i = 0; i < nXn; i++)
-				  mnpc.push_back(MLGN.size()-nXn+i);
-
-	myMLGE[nXelm+iel] = ++gEl;
-			}
-
-#endif
-
-	return true;
-
-}
-

@@ -1487,6 +1487,12 @@ bool ASMs3D::updateCoords (const Vector& displ)
 }
 
 
+void ASMs3D::getBoundaryNodes (int lIndex, IntVec& nodes) const
+{
+  // TODO: Implement this before attempting 3D FSI simulations
+}
+
+
 bool ASMs3D::getOrder (int& p1, int& p2, int& p3) const
 {
   if (!svol) return false;

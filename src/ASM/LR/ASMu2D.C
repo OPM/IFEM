@@ -291,7 +291,6 @@ bool ASMu2D::raiseOrder (int ru, int rv)
 }
 
 
-
 bool ASMu2D::generateFEMTopology ()
 {
 	// At this point we are through with the tensor spline object.
@@ -1486,4 +1485,10 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   }
 
   return true;
+}
+
+
+void ASMu2D::getBoundaryNodes (int lIndex, IntVec& nodes) const
+{
+  // TODO: Implement this before attempting FSI simulations with LR B-splines
 }

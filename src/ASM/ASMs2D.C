@@ -1181,6 +1181,56 @@ bool ASMs2D::updateCoords (const Vector& displ)
 }
 
 
+void ASMs2D::getBoundaryNodes (int lIndex, IntVec& nodes) const
+{
+  if (!surf) return; // silently ignore empty patches
+
+  const int p1 = surf->order_u();
+  const int p2 = surf->order_v();
+  const int n1 = surf->numCoefs_u();
+  const int n2 = surf->numCoefs_v();
+#if SP_DEBUG > 1
+  size_t last = nodes.size();
+#endif
+
+  int iel = 0;
+  for (int i2 = p2; i2 <= n2; i2++)
+    for (int i1 = p1; i1 <= n1; i1++, iel++)
+      if (surf->knotSpan(0,i1-1) > 0.0)
+	if (surf->knotSpan(1,i2-1) > 0.0)
+        {
+	  int inod = 0, lnod = 0;
+	  for (int j2 = p2; j2 > 0; j2--)
+	    for (int j1 = p1; j1 > 0; j1--, lnod++)
+	    {
+	      if      (lIndex == 1 && i1 == p1 && j1 == p1)
+		inod = MNPC[iel][lnod]; // left edge
+	      else if (lIndex == 3 && i2 == p2 && j2 == p2)
+		inod = MNPC[iel][lnod]; // bottom edge
+	      else if (lIndex == 2 && i1 == n1 && j1 == 1)
+		inod = MNPC[iel][lnod]; // right edge
+	      else if (lIndex == 4 && i2 == n2 && j2 == 1)
+		inod = MNPC[iel][lnod]; // top edge
+	      else
+		continue;
+
+	      inod = MLGN[inod];
+	      if (std::find(nodes.begin(),nodes.end(),inod) == nodes.end())
+		nodes.push_back(inod);
+	    }
+	}
+
+#if SP_DEBUG > 1
+  std::cout <<"Boundary nodes in patch "<< idx+1 <<" edge "<< lIndex <<":";
+  if (nodes.size() == last)
+    std::cout <<" (none)";
+  else for (size_t i = last; i < nodes.size(); i++)
+    std::cout <<" "<< nodes[i];
+  std::cout << std::endl;
+#endif
+}
+
+
 bool ASMs2D::getOrder (int& p1, int& p2) const
 {
   if (!surf) return false;

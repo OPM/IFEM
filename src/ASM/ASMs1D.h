@@ -36,8 +36,9 @@ public:
   //! \brief Empty destructor.
   virtual ~ASMs1D() {}
 
-  //! \brief Returns the spline surface representing the geometry of this patch.
+  //! \brief Returns the spline curve representing the geometry of this patch.
   Go::SplineCurve* getCurve() const { return curv; }
+
 
   // Methods for model generation
   // ============================
@@ -75,6 +76,11 @@ public:
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with
   virtual bool updateCoords(const Vector& displ);
+
+  //! \brief Finds the global number of the node on a patch end.
+  //! \param[in] lIndex Local index of the end point
+  //! \param glbNodes Array of global boundary node numbers
+  virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes) const;
 
   //! \brief Refines the parametrization by inserting extra knots.
   //! \param[in] xi Relative positions of added knots in each existing knot span

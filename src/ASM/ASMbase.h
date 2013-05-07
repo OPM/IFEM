@@ -174,6 +174,11 @@ public:
   //! in one element
   virtual bool getElementCoordinates(Matrix& X, int iel) const = 0;
 
+  //! \brief Finds the global numbers of the nodes on a patch boundary.
+  //! \param[in] lIndex Local index of the boundary face/edge
+  //! \param glbNodes Array of global boundary node numbers
+  virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes) const = 0;
+
   //! \brief Prints out the nodal coordinates of this patch to the given stream.
   void printNodes(std::ostream& os, const char* heading = 0) const;
 
