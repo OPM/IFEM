@@ -799,7 +799,7 @@ int SIMbase::getLocalPatchIndex (int patchNo) const
 }
 
 
-bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
+bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 {
   static int substep = 10;
   this->printHeading(++substep);
@@ -814,14 +814,14 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
   size_t patch;
 
   // Erase all patches that should be ignored in the analysis
-  std::vector<int>::const_iterator it;
+  IntVec::const_iterator it;
   for (it = ignored.begin(); it != ignored.end(); it++)
     if (*it > 0 && (size_t)*it <= myModel.size())
       myModel[*it-1]->clear();
 
   // If material properties are specified for at least one patch, assign the
   // property code 999999 to all patches with no material property code yet
-  std::vector<ASMbase*> pchWthMat;
+  PatchVec pchWthMat;
   for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); p++)
     if (p->pcode == Property::MATERIAL && !myModel[p->patch-1]->empty())
       pchWthMat.push_back(myModel[p->patch-1]);
@@ -1413,6 +1413,30 @@ bool SIMbase::updateGrid (const std::string& field)
 }
 
 
+void SIMbase::getBoundaryNodes (int pcode, IntVec& glbNodes, Vec3Vec* XYZ) const
+{
+  glbNodes.clear();
+  if (XYZ) XYZ->clear();
+
+  int node;
+  size_t i, last = 0;
+  PropertyVec::const_iterator p;
+  for (p = myProps.begin(); p != myProps.end(); p++)
+    if (abs(p->pindx) == pcode && p->patch > 0 && p->patch <= myModel.size())
+      if (abs(p->ldim)+1 == myModel[p->patch-1]->getNoSpaceDim())
+      {
+        ASMbase* pch = myModel[p->patch-1];
+        pch->getBoundaryNodes(abs(p->lindx),glbNodes);
+        for (i = last; XYZ && i < glbNodes.size(); i++)
+          if ((node = pch->getNodeIndex(glbNodes[i],true)))
+            XYZ->push_back(pch->getCoord(node));
+          else
+            XYZ->push_back(Vec3());
+        last = glbNodes.size();
+      }
+}
+
+
 bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 			      bool newLHSmatrix, bool poorConvg)
 {
@@ -1700,6 +1724,17 @@ char SIMbase::getNodeType (int inod) const
 }
 
 
+Vec3 SIMbase::getNodeCoord (int inod) const
+{
+  size_t node = 0;
+  for (PatchVec::const_iterator it = myModel.begin(); it != myModel.end(); ++it)
+    if ((node = (*it)->getNodeIndex(inod,true)))
+      return (*it)->getCoord(node);
+
+  return Vec3();
+}
+
+
 void SIMbase::iterationNorms (const Vector& u, const Vector& r,
 			      double& eNorm, double& rNorm, double& dNorm) const
 {
@@ -1775,7 +1810,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   // Initialize norm integral classes
   gNorm.resize(norm->getNoFields(0));
   size_t nNorms = 0;
-  for (size_t j = 0; j < gNorm.size(); ++j) {
+  for (size_t j = 0; j < gNorm.size(); j++) {
     size_t nNrm = norm->getNoFields(1+j);
     gNorm[j].resize(nNrm,true);
     nNorms += nNrm;
@@ -1874,7 +1909,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   if (nProc > 1 && !gNorm.empty())
   {
     double* tmp = new double[gNorm.front().size()];
-    for (size_t i = 0; i < gNorm.size(); ++i) {
+    for (size_t i = 0; i < gNorm.size(); i++) {
       MPI_Allreduce(gNorm[i].ptr(),tmp,gNorm[i].size(),
                     MPI_DOUBLE,MPI_SUM,PETSC_COMM_WORLD);
       memcpy(gNorm[i].ptr(),tmp,gNorm[i].size()*sizeof(double));
@@ -2042,10 +2077,10 @@ bool SIMbase::writeGlvBC (int& nBlock, int iStep) const
   if (!myVtf) return false;
 
   Matrix field;
+  IntVec dID[3];
+
   size_t i, j;
   int node, geomID = 0;
-  std::vector<int> dID[3];
-
   for (i = 0; i < myModel.size(); i++)
   {
     if (myModel[i]->empty()) continue; // skip empty patches
@@ -2123,9 +2158,9 @@ bool SIMbase::writeGlvV (const Vector& vec, const char* fieldName,
 
   Matrix field;
   Vector lovec;
-  int geomID = 0;
-  std::vector<int> vID;
+  IntVec vID;
 
+  int geomID = 0;
   for (size_t i = 0; i < myModel.size(); i++)
   {
     if (myModel[i]->empty()) continue; // skip empty patches
@@ -2176,11 +2211,9 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
 
   Matrix field;
   Vector lovec;
-  size_t i, j, k;
-  int geomID = 0;
   const size_t pMAX = 6;
   const size_t sMAX = 21;
-  std::vector<int> vID[3], dID[pMAX], sID[sMAX];
+  IntVec vID[3], dID[pMAX], sID[sMAX];
   bool scalarEq = this->getNoFields() == 1 || psolOnly == 3;
   size_t nVcomp = scalarEq ? 1 : this->getNoSpaceDim();
   bool haveAsol = false;
@@ -2201,6 +2234,8 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
                   opt.discretization == ASM::SplineC1) &&
                  opt.project.find(SIMoptions::GLOBAL) != opt.project.end();
 
+  size_t i, j, k;
+  int geomID = 0;
   for (i = 0; i < myModel.size(); i++)
   {
     if (myModel[i]->empty()) continue; // skip empty patches
@@ -2237,7 +2272,7 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
       // 1.a Evaluate exact primary solution
 
       const ElementBlock* grid = myVtf->getBlock(geomID);
-      std::vector<Vec3>::const_iterator cit = grid->begin_XYZ();
+      Vec3Vec::const_iterator cit = grid->begin_XYZ();
       field.fill(0.0);
       if (scalarEq)
       {
@@ -2306,7 +2341,7 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
 	std::cout <<"Writing exact solution for patch "<< i+1 << std::endl;
 
       const ElementBlock* grid = myVtf->getBlock(geomID);
-      std::vector<Vec3>::const_iterator cit = grid->begin_XYZ();
+      Vec3Vec::const_iterator cit = grid->begin_XYZ();
       field.fill(0.0);
       for (j = 1; cit != grid->end_XYZ() && haveAsol; j++, cit++)
       {
@@ -2402,7 +2437,7 @@ bool SIMbase::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
   Matrix field;
   Vector lovec;
   const size_t nf = myProblem->getNoFields(2);
-  std::vector<int> sID[nf];
+  IntVec sID[nf];
 
   size_t i, j;
   int geomID = 0;
@@ -2454,8 +2489,9 @@ bool SIMbase::writeGlvF (const RealFunc& f, const char* fname,
 {
   if (!myVtf) return false;
 
+  IntVec sID;
+
   int geomID = 0;
-  std::vector<int> sID;
   for (size_t i = 0; i < myModel.size(); i++)
   {
     if (myModel[i]->empty()) continue; // skip empty patches
@@ -2497,9 +2533,9 @@ bool SIMbase::writeGlvM (const Mode& mode, bool freq, int& nBlock)
 
   Vector displ;
   Matrix field;
-  int geomID = 0;
-  std::vector<int> vID;
+  IntVec vID;
 
+  int geomID = 0;
   for (size_t i = 0; i < myModel.size(); i++)
   {
     if (myModel[i]->empty()) continue; // skip empty patches
@@ -2537,11 +2573,11 @@ bool SIMbase::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
   NormBase* norm = myProblem->getNormIntegrand(mySol);
 
   Matrix field;
-  int geomID = 0;
   const size_t maxN = 20;
-  std::vector<int> sID[maxN];
+  IntVec sID[maxN];
 
   size_t i, j, k, l, m;
+  int geomID = 0;
   for (i = 0; i < myModel.size(); i++)
   {
     if (myModel[i]->empty()) continue; // skip empty patches
@@ -2731,8 +2767,8 @@ bool SIMbase::dumpResults (const Vector& psol, double time, std::ostream& os,
     if (myModel[i]->empty()) continue; // skip empty patches
 
     ResPointVec::const_iterator p;
-    std::vector<int> points;
     RealArray params[3];
+    IntVec points;
 
     // Find all evaluation points within this patch, if any
     for (j = 0, p = myPoints.begin(); p != myPoints.end(); j++, p++)
@@ -2989,9 +3025,9 @@ bool SIMbase::evalProjSolution (const Vector& ssol,
 
   Matrix field;
   Vector lovec;
+
   size_t i, j;
   int geomID = 0;
-
   for (i = 0; i < myModel.size(); i++)
   {
     if (myModel[i]->empty()) continue; // skip empty patches
@@ -3072,8 +3108,8 @@ bool SIMbase::extractPatchElmRes (const Matrix& globRes, Matrix& elmRes,
 }
 
 
-bool SIMbase::refine (const std::vector<int>& elements,
-                      const std::vector<int>& options, const char* fName)
+bool SIMbase::refine (const IntVec& elements,
+                      const IntVec& options, const char* fName)
 {
   isRefined = false;
   ASMunstruct* pch = NULL;
@@ -3089,7 +3125,7 @@ bool SIMbase::refine (const std::vector<int>& elements,
 
 
 bool SIMbase::refine (const RealArray& elementError,
-                      const std::vector<int>& options, const char* fName)
+                      const IntVec& options, const char* fName)
 {
   isRefined = false;
   ASMunstruct* pch = NULL;

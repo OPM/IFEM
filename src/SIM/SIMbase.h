@@ -219,8 +219,17 @@ public:
   //! \brief Returns the visualization dump interval.
   int getDumpInterval() const { return opt.saveInc; }
 
-  //! \brief Returns the type (DOF classification) of the specified node.
+  //! \brief Returns the type (DOF classification) of the specified global node.
   char getNodeType(int inod) const;
+  //! \brief Returns the spatial coordinates of the specified global node.
+  Vec3 getNodeCoord(int inod) const;
+
+  //! \brief Finds the list of global nodes associated with a boundary.
+  //! \param[in] pcode Property code identifying the boundary
+  //! \param[out] glbNodes Global node numbers on the boundary
+  //! \param[out] XYZ Spatial coordinates of the boundary nodes (optional)
+  void getBoundaryNodes(int pcode, std::vector<int>& glbNodes,
+                        std::vector<Vec3>* XYZ = NULL) const;
 
   //! \brief Initializes time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time
