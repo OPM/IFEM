@@ -804,6 +804,10 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
   static int substep = 10;
   this->printHeading(++substep);
 
+  // Perform some sub-class specific pre-preprocessing, if any
+  this->preprocessA();
+
+  // Create the classical FE data structures
   if (!this->createFEMmodel()) return false;
 
   PatchVec::const_iterator mit;
@@ -1014,8 +1018,11 @@ bool SIMbase::preprocess (const std::vector<int>& ignored, bool fixDup)
 #else
   mySam = new SAMpatch();
 #endif
+  if (!static_cast<SAMpatch*>(mySam)->init(myModel,ngnod))
+    return false;
 
-  return static_cast<SAMpatch*>(mySam)->init(myModel,ngnod) && ierr == 0;
+  // Now perform the sub-class specific final preprocessing, if any
+  return this->preprocessB() && ierr == 0;
 }
 
 

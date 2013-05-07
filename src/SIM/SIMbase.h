@@ -146,8 +146,8 @@ public:
   //! \brief Performs some pre-processing tasks on the FE model.
   //! \param[in] ignored Indices of patches to ignore in the analysis
   //! \param[in] fixDup Merge duplicated FE nodes on patch interfaces?
-  virtual bool preprocess(const std::vector<int>& ignored = std::vector<int>(),
-			  bool fixDup = false);
+  bool preprocess(const std::vector<int>& ignored = std::vector<int>(),
+                  bool fixDup = false);
 
   //! \brief Defines a vector field property.
   //! \param[in] code The property code to be associated with the property
@@ -636,6 +636,10 @@ protected:
   bool setNeumann(const std::string& prop, const std::string& type,
 		  int ndir, int code);
 
+  //! \brief Creates the computational FEM model from the spline patches.
+  //! \param[in] resetNumb If \e true, start element and node numbers from zero
+  bool createFEMmodel(bool resetNumb = true);
+
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   //! \param[in] patch 1-based index of the patch to receive the property
   //! \param[in] lndx Local index of the boundary item to receive the property
@@ -646,14 +650,13 @@ protected:
   virtual bool addConstraint(int patch, int lndx, int ldim,
 			     int dirs, int code, int& ngnod) = 0;
 
+  //! \brief Preprocessing performed before the FEM model generation.
+  virtual void preprocessA() {}
   //! \brief Specialized preprocessing performed before assembly initialization.
   virtual void preprocessBeforeAsmInit(int&) {}
+  //! \brief Preprocessing performed after the system assembly initialization.
+  virtual bool preprocessB() { return true; }
 
-  //! \brief Creates the computational FEM model from the spline patches.
-  //! \param[in] resetNumb If \e true, start element and node numbers from zero
-  bool createFEMmodel(bool resetNumb = true);
-
-protected:
   //! \brief Extracts all local solution vector(s) for a specified patch.
   //! \param[in] problem Integrand to receive the patch-level solution vectors
   //! \param[in] sol Global primary solution vectors in DOF-order
