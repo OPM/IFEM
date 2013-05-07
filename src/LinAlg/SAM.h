@@ -57,7 +57,7 @@ public:
   virtual int getNoEquations() const { return neq; }
   //! \brief Returns the Matrix of Accumulated DOFs.
   const int* getMADOF() const { return madof; }
-  //! \brief Returns the Vector of global equation numbers
+  //! \brief Returns the Matrix of EQuation Numbers.
   const int* getMEQN() const { return meqn; }
 
   //! \brief Returns max number of DOF couplings in the model.
@@ -163,7 +163,7 @@ public:
 			      const Real* nS, int inod = 0,
 			      Vector* reactionForces = 0) const;
 
-  //! \brief Finds the matrix of equation numbers for an element.
+  //! \brief Finds the matrix of nodal point correspondance for an element.
   //! \param[out] mnpc Matrix of nodal point correspondance
   //! \param[in] iel Identifier for the element to get the node numbers for
   bool getElmNodes(IntVec& mnpc, int iel) const;
@@ -225,9 +225,10 @@ public:
   //! \details This version is typically used to expand eigenvectors.
   bool expandVector(const Vector& solVec, Vector& dofVec) const;
 
-  //! \brief Apply non-homogenous Dirichlet B.C's to vector
-  //! \param[out] dofVec Degrees of freedom vector, length = NDOF
-  //! \details This is typically used with explicit time integration.
+  //! \brief Applies the non-homogenous Dirichlet BCs to the given vector.
+  //! \param dofVec Degrees of freedom vector, length = NDOF
+  //!
+  //! \details This method is typically used with explicit time integration.
   bool applyDirichlet(Vector& dofVec) const;
 
   //! \brief Computes the dot-product of two vectors of length NDOF.
@@ -308,7 +309,7 @@ protected:
   int*  minex;  //!< Matrix of internal to external node numbers
   int*  meqn;   //!< Matrix of equation numbers
 
-  std::vector<char>   nodeType;     //!< Nodal DOF classification
+  std::vector<char> nodeType; //!< Nodal DOF classification
 
   friend class DenseMatrix;
   friend class SPRMatrix;
