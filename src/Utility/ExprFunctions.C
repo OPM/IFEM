@@ -95,6 +95,11 @@ EvalFunction::EvalFunction (const char* function)
   } catch(...) {
     std::cerr <<" *** Error parsing function: "<< function << std::endl;
   }
+
+  // Checking if the expression is time-independent
+  // Note, this will also catch tings like tan(x), but...
+  std::string expr(function);
+  IAmConstant = expr.find_first_of('t') > expr.size();
 }
 
 
