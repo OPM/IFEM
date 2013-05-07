@@ -1,3 +1,4 @@
+// $Id$
 //==============================================================================
 //!
 //! \file PETScBlockMatrix.h
@@ -6,8 +7,7 @@
 //!
 //! \author Runar Holdahl / SINTEF
 //!
-//! \brief Representation of the system matrix in PETSc block format with 
-//! interface
+//! \brief Representation of the system matrix in block format with interface
 //! to PETSc routines for assembling and solving linear equation systems.
 //!
 //==============================================================================
@@ -20,15 +20,16 @@
 #include "PCProd.h"
 #include "PCScale.h"
 #else
-#define IS int // to avoid compilation failures
+#define IS int //!< To avoid compilation failures
 #endif
 
-typedef std::vector<int>                        IntVec;            //!< Vector of integers
-typedef std::vector<std::vector<PetscIntVec> >  PetscIntVecVecVec; //!< Vector of vector of vector of PetscInt
-typedef std::vector<IS>                         ISVec;             //!< Vector of PETSc index sets
+typedef std::vector<int>         IntVec;            //!< Vector of integers
+typedef std::vector<IS>          ISVec;             //!< PETSc index set vector
+typedef std::vector<PetscIntMat> PetscIntVecVecVec; //!< 3D PETSc integer matrix
+
 
 /*!
-  \brief Class for representing the system matrix in PETSc format.
+  \brief Class for representing the system matrix in PETSc block format.
   \details It is an interface to PETSc modules for assembling and solving
   linear systems of equations.
 */
@@ -39,12 +40,10 @@ public:
 #ifdef HAS_PETSC
   //! \brief Constructor.
   PETScBlockMatrix(const LinSolParams& spar);
-  //! \brief Copy constructor.
-  //PETScBlockMatrix(const PETScBlockMatrix& A);
-  //! \brief Constructor defining the blocks
+  //! \brief Constructor defining the blocks.
   //! \param[in] ncomp Number of components in each block
   //! \param[in] spar Linear solver parameters
-  PETScBlockMatrix(IntVec ncomp, const LinSolParams& spar);
+  PETScBlockMatrix(const IntVec& ncomp, const LinSolParams& spar);
   //! \brief Destructor
   virtual ~PETScBlockMatrix();
 #else
@@ -56,15 +55,12 @@ public:
   virtual Type getType() const { return PETSCBLOCK; }
 
 #ifdef HAS_PETSC
-  //! \brief Returns the dimension of the system matrix.
-  //virtual size_t dim(int i = 1) const;
-
   //! \brief Creates a copy of the system matrix and returns a pointer to it.
   virtual SystemMatrix* copy() const { return new PETScBlockMatrix(*this); }
 
-  //! \brief Initialize blocks
+  //! \brief Initialize blocks.
   //! \param[in] nc Number of components for blocks
-  virtual void setBlocks(IntVec nc) { ncomps = nc; }
+  void setBlocks(const IntVec& nc) { ncomps = nc; }
 
   //! \brief Initializes the element assembly process.
   //! \details Must be called once before the element assembly loop.
@@ -109,46 +105,48 @@ public:
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param b Right-hand-side vector, solution vector on output
   //! \param P Preconditioning matrix (if different than system matrix)
-  //! \param Pb Diagonal scaling 
+  //! \param Pb Diagonal scaling
   //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
   virtual bool solve(SystemVector& b, SystemMatrix& P, SystemVector& Pb, bool newLHS = true);
 
-  //! \brief Returns matrix block
-  virtual Mat& getMatrixBlock(size_t i, size_t j) { return matvec[i*nblocks+j]; }
+  //! \brief Returns matrix block (for assignment).
+  virtual Mat& getMatrixBlock(size_t i, size_t j)
+  { return matvec[i*nblocks+j]; }
   //! \brief Returns matrix block (for read access).
   virtual const Mat& getMatrixBlock(size_t i, size_t j) const
   { return matvec[i*nblocks+j]; }
 
- protected:
+protected:
   Mat    Sp;                          //!< Preconditioner for Schur block
   Vec    QpL;                         //!< Vector with lumoed pressure mass 
   PC     S, Fp;                       //!< Preconditioners for pressure-convection-diffusion pc
   PCProd *pcprod;                     //!< PCD preconditioner
   size_t nblocks;                     //!< Number of blocks
   IntVec ncomps;                      //!< Number of components
-  IS* isvec;                          //!< Index set for blocks
-  Mat* matvec;                        //!< Vector of matrix blocks 
+  IS*    isvec;                       //!< Index set for blocks
+  Mat*   matvec;                      //!< Vector of matrix blocks
   PetscIntVecVecVec locSubdDofsBlock; //!< Dofs for subdomains for block matrix
   PetscIntVecVecVec subdDofsBlock;    //!< Dofs for subdomains for block matrix
 
+  //! \brief Auxiliary method for assembly of block matrices.
+  void assemPETSc(const Matrix& eM, PETScVector& SV,
+		  const std::vector<int>& meen, const int* meqn,
+		  const int* mpmceq, const int* mmceq, const Real* ttcc);
 
-  void assemPETScBlock(const Matrix& eM, Mat SM, PETScVector& SV,
-		       const std::vector<int>& meen, const int* meqn,
-		       const int* mpmceq, const int* mmceq,
-		       const Real* ttcc);
-  
-  //! \brief Function to decompose element matrix into different blocks
-  //! \param[in] eM     Element system for coupled problem
+  //! \brief Decomposes an element matrix into different blocks.
+  //! \param[in] eM    Element system for coupled problem
   //! \param[in] l2g   Local to global mapping for element degrees of freedom
   //! \param[out] eMb  Element block matrices
-  //! \param[out] l2gb Local to global mapping for block element degrees for freedom
-  void getBlockElmMatData(const Matrix& eM, const PetscIntVec& l2g, 
-			  std::vector<std::vector<Matrix> >& eMb, 
-			  std::vector<PetscIntVec>& l2gb) const;
+  //! \param[out] l2gb Local to global mapping for block element DOFs
+  void getBlockElmMatData(const Matrix& eM, const PetscIntVec& l2g,
+			  std::vector< std::vector<Matrix> >& eMb,
+			  PetscIntMat& l2gb) const;
 
+  //! \brief Renumbers a given right-hand-side vector.
   void renumberRHS(const Vec& b, Vec& bnew, bool renum2block = true);
 
-  bool setParameters(PETScBlockMatrix* P = NULL, PETScVector *Pb = NULL);
+  //! \brief Initializes the block matrix.
+  bool setParameters(PETScBlockMatrix* P = NULL, PETScVector* Pb = NULL);
 #endif
 };
 

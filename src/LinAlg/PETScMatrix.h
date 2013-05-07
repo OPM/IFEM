@@ -21,12 +21,14 @@
 #include "petscksp.h"
 #include "petscvec.h"
 #else
-typedef int PetscInt; // to avoid compilation failures
+typedef int PetscInt; //!< To avoid compilation failures
 #endif
 
 class LinSolParams;
 
-typedef std::vector<PetscInt> PetscIntVec; //!< General integer vector
+typedef std::vector<PetscInt>    PetscIntVec; //!< PETSc integer vector
+typedef std::vector<PetscIntVec> PetscIntMat; //!< PETSc integer matrix
+
 
 /*!
   \brief Class for representing the system vector in PETSc format.
@@ -186,7 +188,7 @@ public:
   //! \param[in] e   Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assemble(const Matrix& eM, const SAM& sam,
-			SystemVector& B, int e);
+                        SystemVector& B, int e);
 
   //! \brief Performs the matrix-vector multiplication \b C = \a *this * \b B.
   virtual bool multiply(const SystemVector& B, SystemVector& C);
@@ -228,7 +230,7 @@ public:
   //! \param[in] nev The number of eigenvalues and eigenvectors to compute
   //! \param[in] shift Eigenvalue shift
   //! \param[in] iop Option telling whether to factorize matrix \a A or \b B.
-  virtual bool solveEig(PETScMatrix& B, RealArray& eigVal, Matrix& eigVec, 
+  virtual bool solveEig(PETScMatrix& B, RealArray& eigVal, Matrix& eigVec,
 			int nev, Real shift = Real(0), int iop = 1);
 
   //! \brief Returns the L-infinity norm of the matrix.
@@ -247,14 +249,14 @@ protected:
   bool makeEBEpreconditioner(const Mat A, Mat* AeI);
 
   Mat                 A;           //!< The actual PETSc matrix
-  KSP                 ksp;          //!< Linear equation solver
-  MatNullSpace        nsp;          //!< Null-space of linear operator
-  const LinSolParams& solParams;    //!< Linear solver parameters
-  bool                setParams;    //!< If linear solver parameters are set
-  IS*                 elmIS;        //!< Element index sets
-  PetscInt            ISsize;       //!< Number of index sets/elements
-  std::vector<PetscIntVec> locSubdDofs;  //!< Degrees of freedom for unique subdomains
-  std::vector<PetscIntVec> subdDofs;     //!< Degrees of freedom for subdomains
+  KSP                 ksp;         //!< Linear equation solver
+  MatNullSpace        nsp;         //!< Null-space of linear operator
+  const LinSolParams& solParams;   //!< Linear solver parameters
+  bool                setParams;   //!< If linear solver parameters are set
+  IS*                 elmIS;       //!< Element index sets
+  PetscInt            ISsize;      //!< Number of index sets/elements
+  PetscIntMat         locSubdDofs; //!< Degrees of freedom for unique subdomains
+  PetscIntMat         subdDofs;    //!< Degrees of freedom for subdomains
 
 #else // dummy implementation when PETSc is not included
   virtual SystemMatrix* copy() const { return 0; }

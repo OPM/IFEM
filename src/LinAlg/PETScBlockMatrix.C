@@ -1,3 +1,4 @@
+// $Id$
 //==============================================================================
 //!
 //! \file PETScMatrix.C
@@ -13,6 +14,7 @@
 #include "PETScBlockMatrix.h"
 #ifdef HAS_PETSC
 #include "LinSolParams.h"
+#include "LinAlgInit.h"
 #include "SAMpatchPara.h"
 #include "petscversion.h"
 #include "petscis.h"
@@ -34,15 +36,13 @@
 #include <omp.h>
 #endif
 
-#include "LinAlgInit.h"
 
-
-PETScBlockMatrix::PETScBlockMatrix(const LinSolParams& spar) : PETScMatrix(spar) 
+PETScBlockMatrix::PETScBlockMatrix (const LinSolParams& par) : PETScMatrix(par)
 {
-  ncomps.resize(spar.ncomps.size());
+  ncomps.resize(par.ncomps.size());
   nblocks = ncomps.size();
   for (size_t i = 0;i < nblocks;i++)
-    ncomps[i]  = spar.ncomps[i];
+    ncomps[i] = par.ncomps[i];
   
   isvec = (IS*) malloc(sizeof(IS)*nblocks);
   matvec = (Mat*) malloc(sizeof(Mat)*nblocks*nblocks);
@@ -60,7 +60,8 @@ PETScBlockMatrix::PETScBlockMatrix(const LinSolParams& spar) : PETScMatrix(spar)
 }
 
 
-PETScBlockMatrix::PETScBlockMatrix(IntVec nc, const LinSolParams& spar) : PETScMatrix(spar)
+PETScBlockMatrix::PETScBlockMatrix (const IntVec& nc, const LinSolParams& par)
+  : PETScMatrix(par)
 {
   nblocks = nc.size();
   ncomps.resize(nblocks);
@@ -120,15 +121,17 @@ PETScBlockMatrix::~PETScBlockMatrix ()
   // Deallocation of Schur matrix
   MatDestroy(PETSCMANGLE(Sp));
 
-  for (int i = 0;i < ISsize;i++)
+  for (PetscInt i = 0; i < ISsize; i++)
     ISDestroy(PETSCMANGLE(elmIS[i]));
+
   delete elmIS;
 }
 
-void PETScBlockMatrix::assemPETScBlock (const Matrix& eM, Mat SM, PETScVector& SV,
-					const std::vector<int>& meen, const int* meqn,
-					const int* mpmceq, const int* mmceq,
-					const Real* ttcc)
+
+void PETScBlockMatrix::assemPETSc (const Matrix& eM, PETScVector& SV,
+				   const std::vector<int>& meen, const int* meqn,
+				   const int* mpmceq, const int* mmceq,
+				   const Real* ttcc)
 {
   Real   c0;
   size_t i, j;
@@ -178,9 +181,9 @@ void PETScBlockMatrix::assemPETScBlock (const Matrix& eM, Mat SM, PETScVector& S
 
   // Add contributions to SV (righthand side)
   VecSetValues(SV.getVector(),nedof,&(l2g[0]),&(bc.front()),ADD_VALUES);
-  
-  std::vector<std::vector<Matrix> > eMb;
-  std::vector<PetscIntVec> l2gb;
+
+  std::vector< std::vector<Matrix> > eMb;
+  PetscIntMat l2gb;
   this->getBlockElmMatData(eM,l2g,eMb,l2gb);
 
   int m = 0;
@@ -192,9 +195,10 @@ void PETScBlockMatrix::assemPETScBlock (const Matrix& eM, Mat SM, PETScVector& S
 }
 
 
-void PETScBlockMatrix::getBlockElmMatData(const Matrix& Amat, const PetscIntVec& l2g, 
-					  std::vector<std::vector<Matrix> >& Ab, 
-					  std::vector<PetscIntVec>& l2gb) const
+void PETScBlockMatrix::getBlockElmMatData(const Matrix& Amat,
+					  const PetscIntVec& l2g,
+					  std::vector< std::vector<Matrix> >& Ab,
+					  PetscIntMat& l2gb) const
 {
   int nf = 0;
   for (size_t i = 0;i < nblocks;i++)
@@ -298,8 +302,8 @@ void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
   }
   
   if (sampch->getNoDofCouplings(ifirst,ilast,ncomps,d_nnz,o_nnz)) {
-    std::vector<PetscInt> d_Nnz;
-    std::vector<PetscInt> o_Nnz;
+    PetscVec d_Nnz;
+    PetscVec o_Nnz;
     int id = 0;
     for (size_t m = 0;m < nblocks;m++)
       for (size_t n = 0;n < nblocks;n++) {
@@ -318,7 +322,7 @@ void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
   }
 #else
   if (sampch->getNoDofCouplings(ifirst,ilast,ncomps,d_nnz,o_nnz)) {
-    std::vector<PetscInt> d_Nnz;
+    PetscIntVec d_Nnz;
     int id = 0;
     for (size_t m = 0;m < nblocks;m++) {
       for (size_t n = 0;n < nblocks;n++) {
@@ -352,7 +356,7 @@ void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
 
   MatCreateNest(PETSC_COMM_WORLD,nblocks,isvec,nblocks,isvec,matvec,&A);
 
-#ifndef SP_DEBUG 
+#ifndef SP_DEBUG
   // Do not abort program for allocation error in release mode
   for (size_t i = 0;i < nblocks*nblocks;i++)
     MatSetOption(matvec[i],MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE);
@@ -373,7 +377,7 @@ void PETScBlockMatrix::init ()
 
 
 bool PETScBlockMatrix::assemble (const Matrix& eM, const SAM& sam,
-		    	         SystemVector& B, int e)
+                                 SystemVector& B, int e)
 {
   // Get mapping "meen" between local degrees of freedom in element e
   // and global degrees of freedom.
@@ -386,7 +390,7 @@ bool PETScBlockMatrix::assemble (const Matrix& eM, const SAM& sam,
     return false;
 
   // Assemble local stiffness matrix into global system.
-  assemPETScBlock(eM,A,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
+  this->assemPETSc(eM,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
 
   return true;
 }
@@ -786,7 +790,7 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
     }
       
     // Preconditioner for blocks
-    for (int m = 0;m < nsplit;m++) {
+    for (PetscInt m = 0; m < nsplit; m++) {
       KSPSetType(subksp[m],"preonly");
       KSPGetPC(subksp[m],&subpc[m]);
       PCSetType(subpc[m],solParams.subprec[m].c_str());
@@ -998,6 +1002,5 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 
   return true;
 }
-
 
 #endif // HAS_PETSC

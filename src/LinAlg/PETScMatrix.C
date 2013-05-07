@@ -14,11 +14,11 @@
 #include "PETScMatrix.h"
 #ifdef HAS_PETSC
 #include "LinSolParams.h"
+#include "LinAlgInit.h"
 #include "SAMpatchPara.h"
 #include "petscversion.h"
 #include "petscis.h"
 #include "petscsys.h"
-
 #include "petscpcmg.h"
 
 #ifdef HAS_SLEPC
@@ -28,8 +28,6 @@
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
-
-#include "LinAlgInit.h"
 
 
 PETScVector::PETScVector()
@@ -223,16 +221,16 @@ PETScMatrix::~PETScMatrix ()
   MatDestroy(&A);
   LinAlgInit::decrefs();
 
-  for (int i = 0;i < ISsize;i++)
+  for (PetscInt i = 0; i < ISsize; i++)
     ISDestroy(&elmIS[i]);
+
   delete elmIS;
 }
 
-#ifdef HAS_PETSC
+
 static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
                         const std::vector<int>& meen, const int* meqn,
-                        const int* mpmceq, const int* mmceq,
-                        const Real* ttcc)
+                        const int* mpmceq, const int* mmceq, const Real* ttcc)
 {
   Real   c0;
   size_t i, j;
@@ -290,9 +288,12 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
 
   delete[] l2g;
 }
-#else
 
 
+/* kmo: This static method is never compiled, even when building without PETSc.
+   It used to be within an #ifndef HAS_PETSC but since the whole file content
+   is within an #ifdef HAS_PETSC it will never be in action.
+   SO PLEASE DELETE IT, UNLESS THERE IS SOMETHING HERE I'VE MISSED....
 static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
 			const std::vector<int>& meen, const int* meqn,
 			const int* mpmceq, const int* mmceq, const Real* ttcc)
@@ -376,12 +377,12 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
   // Deallocate memory for l2g mapping
   delete [] l2g;
 }
-#endif
+*/
 
 
-static void assemPETSc (const Matrix& eM, Mat SM, const std::vector<int>& meen,
-			const int* meqn, const int* mpmceq, const int* mmceq,
-			const Real* ttcc)
+static void assemPETSc (const Matrix& eM, Mat SM,
+			const std::vector<int>& meen, const int* meqn,
+			const int* mpmceq, const int* mmceq, const Real* ttcc)
 {
   size_t i, j;
   int    ieq, jeq, ip, jp, iceq, jceq;
@@ -462,7 +463,7 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
   MatSetBlockSize(A,bsize);
   MPI_Barrier(PETSC_COMM_WORLD);
   MatSetFromOptions(A);
-  
+
   // Allocation of sparsity pattern
 #ifdef PARALLEL_PETSC
   PetscInt ifirst, ilast;
@@ -476,8 +477,8 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
   if (sam.getNoDofCouplings(ifirst,ilast,d_nnz,o_nnz))
   {
     size_t i;
-    std::vector<PetscInt> d_Nnz(d_nnz.size());
-    std::vector<PetscInt> o_Nnz(o_nnz.size());
+    PetscIntVec d_Nnz(d_nnz.size());
+    PetscIntVec o_Nnz(o_nnz.size());
     for (i = 0; i < d_nnz.size(); i++)
       d_Nnz[i] = d_nnz[i];
     for (i = 0; i < o_nnz.size(); i++)
@@ -493,8 +494,8 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
 
   // RUNAR
   if (sam.getNoDofCouplings(nnz)) {
-    std::vector<PetscInt> Nnz(nnz.size());
-    for (size_t i = 0; i < nnz.size(); i++) 
+    PetscIntVec Nnz(nnz.size());
+    for (size_t i = 0; i < nnz.size(); i++)
       Nnz[i] = nnz[i];
     MatSeqAIJSetPreallocation(A,PETSC_DEFAULT,&(Nnz[0]));
   }
@@ -507,7 +508,7 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
   if (omp_get_max_threads() > 1) {
     std::vector<int> irow;
     std::vector<int> jcol;
-    std::vector<PetscInt> col;
+    PetscIntVec col;
     sam.getDofCouplings(irow,jcol);
     for (size_t i=0;i<jcol.size();++i)
       col.push_back(jcol[i]-1);
@@ -518,7 +519,7 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
 #endif
 #endif
 
-#ifndef SP_DEBUG 
+#ifndef SP_DEBUG
   // Do not abort program for allocation error in release mode
   MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE);
 #endif
@@ -558,7 +559,6 @@ bool PETScMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
 
   // Assemble local stiffness matrix into global system.
   assemPETSc(eM,A,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
-
   return true;
 }
 
@@ -776,7 +776,7 @@ bool PETScMatrix::makeElementIS(const SAM& sam)
   ISsize = sam.getNoElms();
 
   elmIS = new IS[ISsize];
-  for (int e = 1;e <= ISsize;e++) {
+  for (PetscInt e = 1; e <= ISsize; e++) {
     if (!sam.getElmEqns(meen,e))
       return false;
     std::sort(meen.begin(),meen.end());
@@ -804,10 +804,10 @@ bool PETScMatrix::makeElementIS(const SAM& sam)
 
 bool PETScMatrix::makeEBEpreconditioner(const Mat A, Mat* AeI)
 {
-  PetscInt         nedof;
-  const PetscInt*  indx;
-  Vector           vals;
-  std::vector<PetscInt> locidx;
+  PetscInt        nedof;
+  const PetscInt* indx;
+  Vector          vals;
+  PetscIntVec     locidx;
 
   if (!elmIS)
     return false;
@@ -819,7 +819,7 @@ bool PETScMatrix::makeEBEpreconditioner(const Mat A, Mat* AeI)
   MatZeroEntries(*AeI);
 
   Matrix elmMat;
-  for (PetscInt e = 0;e < ISsize;e++) {
+  for (PetscInt e = 0; e < ISsize; e++) {
     ISGetSize(elmIS[e],&nedof);
 
     locidx.resize(nedof);
