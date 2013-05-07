@@ -17,8 +17,6 @@
 #include "SIMinput.h"
 #include "SIMenums.h"
 #include "MatVec.h"
-#include "Property.h"
-#include "Function.h"
 
 class SIMbase;
 class TimeStep;
@@ -45,14 +43,14 @@ public:
   //! \brief The constructor initializes default solution parameters.
   //! \param sim Pointer to the spline FE model
   //! \param[in] n Which type of iteration norm to use in convergence checks
-  //! \param[in] nSols Number of timesteps stored
-  NonLinSIM(SIMbase& sim, CNORM n = ENERGY, int nSols = 2);
-  //! \brief The destructor frees the dynamically allocated FE model object.
-  virtual ~NonLinSIM();
+  NonLinSIM(SIMbase& sim, CNORM n = ENERGY);
+  //! \brief Empty destructor.
+  virtual ~NonLinSIM() {}
 
   //! \brief Initializes the primary solution vectors.
+  //! \param[in] nSol Number of consequtive solutions stored
   //! \param[in] initVal Initial values of the primary solution
-  virtual void init(const RealArray& initVal = RealArray());
+  virtual void init(size_t nSol = 2, const RealArray& initVal = RealArray());
 
   //! \brief Sets the initial guess in the Newton-Raphson iterations.
   //! \param[in] value Initial values of the primary solution
@@ -129,6 +127,7 @@ protected:
 public:
   //! \brief Reads model data from the specified input file \a *fileName.
   virtual bool read(const char* fileName);
+
   //! \brief Parses a data section from an input stream.
   //! \param[in] keyWord Keyword of current data section to read
   //! \param is The file stream to read from
@@ -141,14 +140,14 @@ public:
   //! \brief Returns a list of prioritized XML-tags.
   virtual const char** getPrioritizedTags() const;
 
-  //! \brief Wrapper used to handle hierarchy issues
+  //! \brief Wrapper used to handle hierarchy issues.
   virtual void setOptions(SIMoptions& opt2);
+
 protected:
-  SIMbase& model;      //!< The isogeometric FE model
-  Vectors  solution;   //!< Primary solution vectors of the last increments
-  Vector   linsol;     //!< Linear solution vector
-  Vector   residual;   //!< Residual force vector
-  int      nSolutions; //!< Number of solution vectors
+  SIMbase& model;    //!< The isogeometric FE model
+  Vectors  solution; //!< Primary solution vectors of the last increments
+  Vector   linsol;   //!< Linear solution vector
+  Vector   residual; //!< Residual force vector
 
   // Nonlinear solution algorithm parameters
   CNORM  iteNorm; //!< The norm type used to measure the residual

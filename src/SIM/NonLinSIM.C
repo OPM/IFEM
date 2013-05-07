@@ -22,8 +22,7 @@
 #include <sstream>
 
 
-NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n, int nSols) 
-  : model(sim), nSolutions(nSols), iteNorm(n)
+NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : model(sim), iteNorm(n)
 {
 #ifndef SP_DEBUG
   msgLevel = 1;   // prints the convergence history only
@@ -47,17 +46,11 @@ NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n, int nSols)
 }
 
 
-NonLinSIM::~NonLinSIM ()
-{
-}
-
-
-bool NonLinSIM::read(const char* fileName)
+bool NonLinSIM::read (const char* fileName)
 {
   model.opt = IFEM::getOptions();
-  bool result = SIMinput::read(fileName);
+  bool result = this->SIMinput::read(fileName);
   IFEM::applyCommandLineOptions(model.opt);
-
   return result;
 }
 
@@ -133,13 +126,19 @@ const char** NonLinSIM::getPrioritizedTags () const
 }
 
 
-void NonLinSIM::init (const RealArray& initVal)
-{
-  int nSols = model.getNoSolutions();
-  if (nSols > nSolutions) nSolutions = nSols;
-  solution.resize(nSolutions);
+void NonLinSIM::setOptions (SIMoptions& opt2)
+{ 
+  model.opt = opt = opt2;
+}
 
-  for (int n = 0; n < nSolutions; n++)
+
+void NonLinSIM::init (size_t nSol, const RealArray& initVal)
+{
+  size_t nSols = model.getNoSolutions();
+  if (nSols > nSol) nSol = nSols;
+  solution.resize(nSol);
+
+  for (size_t n = 0; n < nSol; n++)
     solution[n].resize(model.getNoDOFs(),true);
 
   // Set initial conditions for time-dependent problems
@@ -535,10 +534,4 @@ void NonLinSIM::dumpResults (double time, std::ostream& os,
 {
   model.dumpResults(solution.front(),time,os,true,precision);
   model.dumpMoreResults(time,os,precision);
-}
-
-
-void NonLinSIM::setOptions(SIMoptions& opt2)
-{ 
-  model.opt = opt = opt2;
 }
