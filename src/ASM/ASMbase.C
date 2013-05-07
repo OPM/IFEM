@@ -730,7 +730,7 @@ bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func,
       return false;
     }
 
-    Vec4 X(this->getCoord(inod),time);
+    Vec4 X(this->getCoord(inod),time,cit->first->getSlave().node);
     if ((fit = func.find(cit->second)) != func.end())
     {
       RealFunc& g = *fit->second;

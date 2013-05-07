@@ -19,15 +19,30 @@
 
 Vec3 NodeVecFunc::evaluate (const Vec3& xp) const
 {
-  int idx = this->getPointIndex(xp);
+  int idx = this->getPointIndex(xp) - 1;
   if (idx < 0) return Vec3();
 
-  return Vec3(&value.front()+model.getNoFields()*idx);
+  size_t nf = model.getNoFields();
+  return Vec3(&value.front()+nf*idx,nf);
 }
 
 
 int NodeVecFunc::getPointIndex (const Vec3& xp) const
 {
+  // Check if the nodal index is stored in the Vec3 object itself
+  const Vec4* x4 = dynamic_cast<const Vec4*>(&xp);
+  if (x4 && x4->idx > 0)
+    if (idMap.empty())
+      return x4->idx; // No index map provided, assume 1:1 mapping
+    else
+    {
+      std::map<int,int>::const_iterator it = idMap.find(x4->idx);
+      if (it != idMap.end()) return it->second;
+
+      std::cerr <<" *** NodeVecFunc::getPointIndex: Point "<< xp
+                <<" is not present in the index map."<< std::endl;
+    }
+
   // Search among the earlier nodes found
   std::map<Vec3,int>::const_iterator it = ptMap.find(xp);
   if (it != ptMap.end()) return it->second;
@@ -37,11 +52,7 @@ int NodeVecFunc::getPointIndex (const Vec3& xp) const
   for (size_t i = 0; (pch = model.getPatch(i)); i++)
     for (size_t inod = 1; inod <= pch->getNoNodes(); inod++)
       if (xp.equal(pch->getCoord(inod)))
-      {
-	int node = pch->getNodeID(inod);
-	ptMap[xp] = node;
-	return node;
-      }
+        return ptMap[xp] = pch->getNodeID(inod);
 
   std::cerr <<" *** NodeVecFunc::getPointIndex: No nodes matches the point "
             << xp << std::endl;

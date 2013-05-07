@@ -179,22 +179,24 @@ public:
 class Vec4 : public Vec3
 {
 public:
-  Real t; //!< The time coordinate
+  Real t;   //!< The time coordinate
+  int  idx; //!< Nodal point index
 
   //! \brief Default constructor creating a point at origin.
-  Vec4() { t = 0.0; }
+  Vec4() { t = 0.0; idx = -1; }
   //! \brief Constructor creating a point at the specified location.
-  Vec4(Real X, Real Y, Real Z, Real T = 0.0) : Vec3(X,Y,Z) { t = T; }
+  Vec4(Real X, Real Y, Real Z, Real T = 0.0) : Vec3(X,Y,Z) { t = T; idx = -1; }
   //! \brief Constructor creating a point at the specified location.
-  Vec4(const Vec3& X, Real T = 0.0) : Vec3(X) { t = T; }
+  Vec4(const Vec3& X, Real T = 0.0, int id = -1) : Vec3(X) { t = T; idx = id; }
   //! \brief Constructor creating a point from the given \a std::vector.
-  Vec4(const std::vector<Real>& X) : Vec3(X) { t = X.size() > 3 ? X[3] : 0.0; }
+  Vec4(const std::vector<Real>& X) : Vec3(X)
+  { t = X.size() > 3 ? X[3] : 0.0; idx = -1; }
   //! \brief Copy constructor.
-  Vec4(const Vec4& X) : Vec3(X) { t = X.t; }
+  Vec4(const Vec4& X) : Vec3(X) { t = X.t; idx = X.idx; }
 
   //! \brief Assignment operator.
   Vec4& operator=(const Vec4& X)
-  { x = X.x; y = X.y; z = X.z; t = X.t; return *this; }
+  { x = X.x; y = X.y; z = X.z; t = X.t; idx = X.idx; return *this; }
   //! \brief Overloaded assignment operator.
   Vec4& operator=(Real val) { x = y = z = val; return *this; }
 
@@ -203,13 +205,14 @@ public:
   {
     x = X.x; y = X.y; z = X.z;
     const Vec4* x4 = dynamic_cast<const Vec4*>(&X);
-    if (x4) t = x4->t;
+    if (x4) { t = x4->t; idx = x4->idx; }
     return *this;
   }
 
   //! \brief Print out a vector.
   virtual std::ostream& print(std::ostream& os, double tol = 1.0e-12) const
   {
+    if (idx >= 0) os <<"(idx="<< idx <<") ";
     this->Vec3::print(os,tol);
     return os <<" "<< t;
   }

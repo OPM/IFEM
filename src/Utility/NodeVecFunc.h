@@ -29,7 +29,12 @@ class NodeVecFunc : public VecFunc
 {
 public:
   //! \brief The constructor initializes the references.
-  NodeVecFunc(SIMbase& m, const std::vector<Real>& v) : model(m), value(v) {}
+  NodeVecFunc(SIMbase& m, const std::vector<Real>& v)
+    : idMap(dummy), model(m), value(v) {}
+  //! \brief This constructor provides a node number map in addition.
+  NodeVecFunc(SIMbase& m, const std::vector<Real>& v,
+	      const std::map<int,int>& nodeIdMap)
+    : idMap(nodeIdMap), model(m), value(v) {}
   //! \brief Empty destructor.
   virtual ~NodeVecFunc() {}
 
@@ -44,6 +49,8 @@ private:
   //! \brief Returns the node index (if any) matching the given coordinates.
   int getPointIndex(const Vec3& xp) const;
 
+  const std::map<int,int>    dummy; //!< Dummy empty map
+  const std::map<int,int>&   idMap; //!< Map of node indices
   mutable std::map<Vec3,int> ptMap; //!< Map of evaluated nodal points
   SIMbase&                   model; //!< FE model on which the field is defined
   const std::vector<Real>&   value; //!< The nodal field values
