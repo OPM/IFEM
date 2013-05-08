@@ -1,0 +1,3 @@
+usr/include/*
+usr/lib/*/libIFEM.so
+usr/lib/IFEM/*

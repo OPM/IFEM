@@ -1,0 +1,193 @@
+Source: ifem
+Priority: extra
+Maintainer: Arne Morten Kvarving <arne.morten.kvarving@sintef.no>
+Build-Depends: debhelper (>= 8.0.0), cmake, libgotools-core-dev,
+               libgotools-trivariate-dev, libifem-cmakerules,
+               libarpack2-dev, libsuperlu3-dev, libtinyxml-dev,
+               libvtfexpresswriter-dev, gfortran, liblrspline1-dev,
+               liblapack-dev, libblas-dev, libboost-dev, lsb-release,
+               libhdf5-serial-dev, doxygen, graphviz,
+               texlive-latex-extra, texlive-latex-recommended, ghostscript
+Standards-Version: 3.9.2
+Section: libs
+Homepage: <insert the upstream URL, if relevant>
+
+Package: libifem1-dev
+Section: libdevel
+Architecture: any
+Multi-Arch: same
+Provides: libifem-dev
+Depends: libifem1 (= ${binary:Version})
+Description: IFEM - the isogeometric finite element library -- development files
+ IFEM - the isogeometric finite element library
+
+Package: libifem1
+Section: libs
+Architecture: any
+Multi-Arch: same
+Provides: libifem
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: IFEM - the isogeometric finite element library
+ IFEM - the isogeometric finite element library
+
+Package: libifem1-dbg
+Section: debug
+Architecture: any
+Multi-Arch: same
+Provides: libifem-dbg
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: IFEM - the isogeometric finite element library -- debug symbols
+ IFEM - the isogeometric finite element library
+
+Package: libifem1-doc
+Section: doc
+Architecture: all
+Multi-Arch: foreign
+Description: IFEM - the isogeometric finite element library -- documentation
+ IFEM - the isogeometric finite element library
+
+Package: libifem-common1-dev
+Section: libdevel
+Architecture: any
+Multi-Arch: same
+Provides: libifem-common-dev
+Depends: libifem1-dev (=${binary:Version}), libifem-common1 (= ${binary:Version})
+Description: IFEM - common application library -- development files
+ IFEM - the isogeometric finite element library - common application library
+
+Package: libifem-common1
+Section: libs
+Architecture: any
+Multi-Arch: same
+Provides: libifem-common
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: IFEM - common application library
+ IFEM - the isogeometric finite element library - common application library
+
+Package: libifem-common1-dbg
+Section: debug
+Architecture: any
+Multi-Arch: same
+Provides: libifem-common-dbg
+Depends: libifem-common1 (= ${binary:Version})
+Description: IFEM - common application library -- debug symbols
+ IFEM - the isogeometric finite element library - common application library
+
+Package: libifem-poisson
+Section: science
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: IFEM - Poisson application
+ IFEM - the isogeometric finite element library - Poisson application
+
+Package: libifem-poisson-dbg
+Section: debug
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: IFEM - Poisson application -- debug symbols
+ IFEM - the isogeometric finite element library - Poisson application
+
+Package: libifem-linel
+Section: science
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: IFEM - linear elasticity application
+ IFEM - the isogeometric finite element library - linear elasticity application
+
+Package: libifem-linel-dbg
+Section: debug
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: IFEM - linear elasticity application -- debug symbols
+ IFEM - the isogeometric finite element library - linear elasticity application
+
+Package: libifem-finitedef
+Section: science
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: IFEM - finite deformation elasticity application -- documentation
+ IFEM - the isogeometric finite element library - finite deformation elasticity application
+
+Package: libifem-finitedef-dbg
+Section: debug
+Architecture: any
+Multi-Arch: same
+Depends: libifem-finitedef (= ${binary:Version})
+Description: IFEM - finite deformation elasticity application -- debug symbols
+ IFEM - the isogeometric finite element library - finite deformation elasticity application
+
+Package: libifem-finitedef-doc
+Section: science
+Architecture: all
+Multi-Arch: foreign
+Description: IFEM - finite deformation elasticity application
+ IFEM - the isogeometric finite element library - finite deformation elasticity application
+
+Package: libifem-adr
+Section: science
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: IFEM - advection-diffusion-reaction application
+ IFEM - the isogeometric finite element library - advection-diffusion-reaction application
+
+Package: libifem-adr-dbg
+Section: debug
+Architecture: any
+Multi-Arch: same
+Depends: libifem-adr (= ${binary:Version})
+Description: IFEM - advection-diffusion-reaction application -- debug symbols
+ IFEM - the isogeometric finite element library - advection-diffusion-reaction application
+
+Package: libifem-cfd-chorin
+Section: science
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: IFEM - Chorin-based CFD applications
+ IFEM - the isogeometric finite element library - Chorin-based CFD applications
+
+Package: libifem-cfd-chorin-dbg
+Section: debug
+Architecture: any
+Multi-Arch: same
+Depends: libifem-cfd-chorin (= ${binary:Version})
+Description: IFEM - Chorin-based CFD applications -- debug symbols
+ IFEM - the isogeometric finite element library - Chorin-based CFD applications
+
+Package: libifem-cfd-vms
+Section: science
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: IFEM - VMS-based CFD applications
+ IFEM - the isogeometric finite element library - VMS-based CFD applications
+
+Package: libifem-cfd-vms-dbg
+Section: debug
+Architecture: any
+Multi-Arch: same
+Depends: libifem-cfd-vms (= ${binary:Version})
+Description: IFEM - VMS-based CFD applications -- debug symbols
+ IFEM - the isogeometric finite element library - VMS-based CFD applications
+
+Package: libifem-utils
+Section: science
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: IFEM - utilities
+ IFEM - the isogeometric finite element library - utility applications
+
+Package: libifem-utils-dbg
+Section: science
+Architecture: any
+Multi-Arch: same
+Depends: libifem-utils (= ${binary:Version})
+Description: IFEM - utilities -- debug symbols
+ IFEM - the isogeometric finite element library - utility applications
