@@ -22,6 +22,7 @@
 
 #if PETSC_VERSION_MAJOR == 3 && PETSC_VERSION_MINOR >= 2
 #include "petscpcmg.h"
+#include "petscvec.h"
 #define PETSCMANGLE(x) &x
 #else
 #include "petscmg.h"
@@ -302,8 +303,8 @@ void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
   }
   
   if (sampch->getNoDofCouplings(ifirst,ilast,ncomps,d_nnz,o_nnz)) {
-    PetscVec d_Nnz;
-    PetscVec o_Nnz;
+    PetscIntVec d_Nnz;
+    PetscIntVec o_Nnz;
     int id = 0;
     for (size_t m = 0;m < nblocks;m++)
       for (size_t n = 0;n < nblocks;n++) {
