@@ -38,7 +38,7 @@ PROJECT_NUMBER         = 90A354
 # If a relative path is entered, it will be relative to the location 
 # where doxygen was started. If left blank the current directory will be used.
 
-OUTPUT_DIRECTORY       = doc
+OUTPUT_DIRECTORY       = @CMAKE_BINARY_DIR@/doc
 
 # If the CREATE_SUBDIRS tag is set to YES, then doxygen will create 
 # 4096 sub-directories (in 2 levels) under the output directory of each output 
@@ -564,8 +564,7 @@ WARN_LOGFILE           =
 # directories like "/usr/src/myproject". Separate the files or directories 
 # with spaces.
 
-INPUT                  = doc Apps/HDF5toVTx Apps/Poisson \
-                         Apps/Elasticity Apps/Elasticity/Linear \
+INPUT                  = doc src \
 			 src/SIM src/ASM src/ASM/LR \
 			 src/Eig src/LinAlg src/Utility
 
