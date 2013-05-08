@@ -46,25 +46,24 @@ Build() {
 
 globres=0
 
-ROOT=`readlink -f $0`
-ROOT=`dirname $ROOT`/..
-
+ROOT=@PROJECT_SOURCE_DIR@/
 rm -f $ROOT/failed.log
 
 # Build root lib
-rootconfig=$ROOT/$1
-test -d $rootconfig || rootconfig=$ROOT
+rootconfig=@IFEM_PATH@/../$1
+test -d $rootconfig || rootconfig=@IFEM_PATH@/..
 cd $rootconfig
-Build $rootconfig $rootconfig $ROOT
+Build $rootconfig $rootconfig $rootconfig/..
 
 if test $globres -eq 0
 then
-  for param in ${@:2}; do
-    test -d $ROOT/$1 && builddir=$ROOT/$param/$1
-    test -d $ROOT/$1 || builddir=$ROOT/$param
+  for param in $CHECK_DIRS; do
+    test -d $ROOT/$1 && builddir=$param/$1
+    test -d $ROOT/$1 || builddir=$param
+    echo $param
     if [ "$param" != "." ]
     then
-      Build $builddir $rootconfig $ROOT/$param
+      Build $builddir $rootconfig $ROOT
     fi
     if test $globres -eq 0
     then

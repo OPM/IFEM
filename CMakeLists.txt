@@ -24,10 +24,6 @@ ENDIF(VERBOSE_DEBUG GREATER 0)
 
 ENABLE_TESTING()
 
-# Generate regtest script with correct paths
-CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/scripts/regtest.sh.in
-               ${PROJECT_SOURCE_DIR}/scripts/regtest.sh)
-
 # Add local modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
                       ${CMAKE_SOURCE_DIR}/cmake/Modules)
@@ -98,21 +94,6 @@ ENDIF(HDF5_LIBRARIES AND VTFWRITER_LIBRARIES)
 ADD_CUSTOM_TARGET(doc doxygen ${CMAKE_BINARY_DIR}/Doxyfile
                   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                   COMMENT "Generating API documentation" VERBATIM)
-
-# For testing commits
-ADD_CUSTOM_TARGET(check-commits scripts/check-patchseries.sh
-                                "${CMAKE_BUILD_TYPE}" "." 
-                  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-                  COMMENT "Checking commits" VERBATIM)
-
-ADD_CUSTOM_TARGET(check-commits-all scripts/check-patchseries.sh 
-                                    "${CMAKE_BUILD_TYPE}" "."
-                                    "Apps/FSWallDistance"
-                                    "Apps/Elasticity/FiniteDeformation"
-                                    "Apps/Stokes"
-                                    "Apps/AdvectionDiffusion"
-                  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-                  COMMENT "Checking commits" VERBATIM)
 
 # Regression tests
 IF(IFEM_USE_PARALLEL_PETSC)

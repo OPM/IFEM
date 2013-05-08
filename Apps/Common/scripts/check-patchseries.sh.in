@@ -27,7 +27,7 @@ test -z $base && base="trunk"
 test -z $head && last="HEAD"
 for rev in `git rev-list $base..$last --reverse`; do
   git checkout $rev
-  if ! scripts/doregtests.sh $@
+  if ! @CMAKE_BINARY_DIR@/doregtests.sh $@
   then
     echo "Something failed for rev $rev"
     git checkout $branch
