@@ -32,7 +32,7 @@ CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/scripts/regtest.sh.in
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
                       ${CMAKE_SOURCE_DIR}/cmake/Modules)
 
-INCLUDE(cmake/Modules/UseMultiArch.cmake)
+INCLUDE(Apps/Common/cmake/UseMultiArch.cmake)
 
 FIND_PACKAGE(IFEMDeps)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${IFEM_BUILD_CXX_FLAGS}")
