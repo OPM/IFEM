@@ -9,8 +9,6 @@ SET(IFEM_VERSION "${IFEM_VERSION_MAJOR}.${IFEM_VERSION_MINOR}.${IFEM_VERSION_PAT
 # Generate header with version info
 CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/src/IFEM.h.in
                IFEM.h @ONLY)
-CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/doc/libifem-builddeps.control.in
-               ${PROJECT_SOURCE_DIR}/doc/libifem-builddeps.control @ONLY)
 
 # Required defines (well, PROFILE_LEVEL is not actually required, but...)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DReal=double -DepsZ=1.0e-12 -DPROFILE_LEVEL=3")
