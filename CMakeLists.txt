@@ -33,31 +33,33 @@ INCLUDE(Apps/Common/cmake/UseMultiArch.cmake)
 FIND_PACKAGE(IFEMDeps)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${IFEM_BUILD_CXX_FLAGS}")
 
-# Required include directories
-SET(INCLUDES
-  ${IFEM_DEPINCLUDES}
-  ${PROJECT_SOURCE_DIR}/src
-  ${PROJECT_SOURCE_DIR}/src/ASM
-  ${PROJECT_SOURCE_DIR}/src/Eig
-  ${PROJECT_SOURCE_DIR}/src/LinAlg
-  ${PROJECT_SOURCE_DIR}/src/SIM
-  ${PROJECT_SOURCE_DIR}/src/Utility
-  ${PROJECT_SOURCE_DIR}/3rdparty/expreval
-  ${CMAKE_BINARY_DIR}
-)
-
 IF(NOT IFEM_USE_SYSTEM_TINYXML)
-  SET(INCLUDES ${INCLUDES}
-               ${PROJECT_SOURCE_DIR}/3rdparty/tinyxml)
+  SET(IFEM_INCLUDES ${IFEM_INCLUDES}
+                    ${PROJECT_SOURCE_DIR}/3rdparty/tinyxml)
   FILE(GLOB_RECURSE TINYXML_SRCS ${PROJECT_SOURCE_DIR}/3rdparty/tinyxml/*.C)
 ENDIF(NOT IFEM_USE_SYSTEM_TINYXML)
 
 IF(LRSpline_LIBRARIES AND LRSpline_INCLUDE_DIRS)
-  SET(INCLUDES ${INCLUDES}
-               ${PROJECT_SOURCE_DIR}/src/ASM/LR)
+  SET(IFEM_INCLUDES ${IFEM_INCLUDES}
+                    ${PROJECT_SOURCE_DIR}/src/ASM/LR)
 ENDIF(LRSpline_LIBRARIES AND LRSpline_INCLUDE_DIRS)
 
-INCLUDE_DIRECTORIES(${INCLUDES})
+
+# Required include directories
+SET(IFEM_INCLUDES
+    ${IFEM_INCLUDES}
+    ${IFEM_DEPINCLUDES}
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/src/ASM
+    ${PROJECT_SOURCE_DIR}/src/Eig
+    ${PROJECT_SOURCE_DIR}/src/LinAlg
+    ${PROJECT_SOURCE_DIR}/src/SIM
+    ${PROJECT_SOURCE_DIR}/src/Utility
+    ${PROJECT_SOURCE_DIR}/3rdparty/expreval
+    ${PROJECT_BINARY_DIR}
+)
+
+INCLUDE_DIRECTORIES(${IFEM_INCLUDES})
 
 SET(EXECUTABLE_OUTPUT_PATH bin)
 SET(LIBRARY_OUTPUT_PATH lib)
@@ -73,6 +75,10 @@ IF(NOT WIN32)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-parentheses")
 ENDIF(NOT WIN32)
 
+# Generate build flags in build tree
+CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/cmake/Modules/IFEMFlags.cmake.in
+               IFEMFlags.cmake @ONLY)
+
 # Make the IFEM library
 FILE(GLOB_RECURSE IFEM_SRCS ${PROJECT_SOURCE_DIR}/src/*.[Cf]
                             ${PROJECT_SOURCE_DIR}/3rdparty/expreval/*.cpp)
@@ -85,7 +91,7 @@ SET_TARGET_PROPERTIES(IFEM PROPERTIES VERSION ${IFEM_VERSION}
                            SOVERSION ${IFEM_ABI_VERSION})
 
 # For generating the doxy
-ADD_CUSTOM_TARGET(doc doxygen ${CMAKE_BINARY_DIR}/Doxyfile
+ADD_CUSTOM_TARGET(doc doxygen ${PROJECT_BINARY_DIR}/Doxyfile
                   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                   COMMENT "Generating API documentation" VERBATIM)
 
@@ -108,7 +114,7 @@ ELSE(WIN32)
                          src/ASM/GlobalIntegral.h src/ASM/IntegrandBase.h
                          src/ASM/Integrand.h src/ASM/Lagrange.h
                          src/ASM/LocalIntegral.h src/ASM/SAMpatch.h
-                         src/ASM/TimeDomain.h
+                         src/ASM/TimeDomain.h src/ASM/ASMs?D.h src/ASM/ASM?D.h
                          src/Integrands/*.h src/LinAlg/*.h src/SIM/*.h
                          src/Utility/*.h
                          ${CMAKE_BINARY_DIR}/IFEM.h)
@@ -121,9 +127,10 @@ ELSE(WIN32)
   # documentation and license
   IF(INSTALL_DOXY)
     INSTALL(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_BUILD_TOOL} doc WORKING_DIRECTORY \"${CMAKE_CURRENT_BINARY_DIR}\")" COMPONENT doc)
-    INSTALL(DIRECTORY ${CMAKE_BINARY_DIR}/doc/html DESTINATION ${CMAKE_INSTALL_DOCDIR}
+    INSTALL(DIRECTORY ${PROJECT_BINARY_DIR}/doc/html DESTINATION ${CMAKE_INSTALL_DOCDIR}
             COMPONENT doc
             PATTERN *.md5 EXCLUDE
             PATTERN *.map EXCLUDE)
+    INSTALL(FILES doc/petsc.pdf doc/sim-input.pdf doc/Tutorial/GettingStarted.pdf DESTINATION ${CMAKE_INSTALL_DOCDIR})
   ENDIF(INSTALL_DOXY)
 ENDIF(WIN32)

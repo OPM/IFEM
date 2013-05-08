@@ -16,7 +16,7 @@ mysim=$1
 
 cd `dirname $2`
 readarray < $2
-test -n "$3" && mysim="mpirun -np $3 $mysim"
+test -n "$3" && mysim="$PETSC_DIR/bin/petscmpiexec -n $3 $mysim"
 $mysim $MAPFILE 2>&1 > templog
 globres=1
 IFS=$'\n'

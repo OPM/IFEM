@@ -32,8 +32,11 @@ Build() {
     cmake $3 $cmakeopt
   else
     # Make sure build system is up to date
-    cd $1
-    cmake $3
+    if [ "$4" == "OFF" ] || [ "$4" == "0" ]
+    then
+      cd $1
+      cmake $3
+    fi
   fi
   threads=$CHECK_THREADS
   test -z $thread && threads=3
@@ -50,32 +53,29 @@ ROOT=@PROJECT_SOURCE_DIR@/
 rm -f $ROOT/failed.log
 
 # Build root lib
-rootconfig=@IFEM_PATH@/../$1
-test -d $rootconfig || rootconfig=@IFEM_PATH@/..
-cd $rootconfig
-Build $rootconfig $rootconfig $rootconfig/..
+if [ "$3" == "OFF" ] || [ "$3" == "0" ]
+then
+  rootconfig=@IFEM_PATH@/$1
+  test -d $rootconfig || rootconfig=@IFEM_PATH@/
+  cd $rootconfig
+  Build "$rootconfig" "$rootconfig" "$rootconfig/.."
+fi
 
 if test $globres -eq 0
 then
-  for param in $CHECK_DIRS; do
-    test -d $ROOT/$1 && builddir=$param/$1
-    test -d $ROOT/$1 || builddir=$param
-    echo $param
-    if [ "$param" != "." ]
+  test -d $ROOT/$1 && builddir=$2/$1
+  test -d $ROOT/$1 || builddir=$2
+  Build "$builddir" "$rootconfig" "$ROOT" "$3"
+  if test $globres -eq 0
+  then
+    if [ "$CHECKMODE" != "buildonly" ]
     then
-      Build $builddir $rootconfig $ROOT
-    fi
-    if test $globres -eq 0
-    then
-      if [ "$CHECKMODE" != "buildonly" ]
+      if ! make test
       then
-        if ! make test
-        then
-          globres=1
-        fi
+        globres=1
       fi
     fi
-  done
+  fi
 fi
 
 if test $globres -eq 1
