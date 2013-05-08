@@ -1,25 +1,34 @@
 IF(NOT IFEM_FORCE_SYSTEM_LIB)
   FIND_PATH(IFEM_PATH
+    NAMES ${CMAKE_BUILD_TYPE}/IFEM.h
+    PATHS ${PROJECT_SOURCE_DIR}/../../
+          ${PROJECT_SOURCE_DIR}/../../../ NO_DEFAULT_PATHS)
+    SET(IFEM_H_PATH ${IFEM_PATH}/${CMAKE_BUILD_TYPE})
+  IF(NOT IFEM_PATH)
+  FIND_PATH(IFEM_PATH
     NAMES IFEM.h
-    PATHS ${PROJECT_SOURCE_DIR}/../../src/
-          ${PROJECT_SOURCE_DIR}/../../../src/)
+    PATHS ${PROJECT_SOURCE_DIR}/../../
+          ${PROJECT_SOURCE_DIR}/../../../ NO_DEFAULT_PATHS)
+    SET(IFEM_H_PATH ${IFEM_PATH})
+  ENDIF(NOT IFEM_PATH)
 ENDIF(NOT IFEM_FORCE_SYSTEM_LIB)
 
+MESSAGE(STATUS "Path ${IFEM_PATH}")
 IF(IFEM_PATH)
   # Build is in-tree
   MESSAGE(STATUS "Using in-tree libIFEM")
 
-  SET(IFEM_INCLUDES ${IFEM_PATH}
-                    ${IFEM_PATH}/ASM
-                    ${IFEM_PATH}/Eig
-                    ${IFEM_PATH}/LinAlg
-                    ${IFEM_PATH}/SIM
-                    ${IFEM_PATH}/Utility)
+  SET(IFEM_INCLUDES ${IFEM_H_PATH}
+                    ${IFEM_PATH}/src/ASM
+                    ${IFEM_PATH}/src/Eig
+                    ${IFEM_PATH}/src/LinAlg
+                    ${IFEM_PATH}/src/SIM
+                    ${IFEM_PATH}/src/Utility)
 
   FIND_LIBRARY(IFEM_LIBRARIES
     NAMES IFEM
-    PATHS ${IFEM_PATH}/../${IFEM_BUILD_TYPE}/lib
-          ${IFEM_PATH}/../lib
+    PATHS ${IFEM_PATH}/${CMAKE_BUILD_TYPE}/lib
+          ${IFEM_PATH}/lib
     NO_DEFAULT_PATH)
   IF(NOT IFEM_LIBRARIES)
     MESSAGE(WARNING "Could not find the in-tree libIFEM library, "
@@ -34,7 +43,6 @@ IF(IFEM_PATH)
     SET(IFEM_INCLUDES ${IFEM_INCLUDES}
                       ${IFEM_PATH}/../3rdparty/tinyxml)
   ENDIF(NOT IFEM_USE_SYSTEM_TINYXML)
-  SET(IFEM_H ${IFEM_PATH}/IFEM.h)
 ELSE(IFEM_PATH)
   IF(NOT DEFINED FORCE_SYSTEM_IFEM OR NOT "${FORCE_SYSTEM_IFEM}")
     MESSAGE(STATUS "No in-tree libIFEM found, looking for system library")
@@ -52,7 +60,7 @@ ELSE(IFEM_PATH)
   # system lib always uses system tixml
   FIND_PACKAGE(TinyXML REQUIRED)
   SET(IFEM_DEPLIBS ${IFEM_DEPLIBS} ${TINYXML_LIBRARIES})
-  SET(IFEM_H ${IFEM_INCLUDES}/IFEM/IFEM.h)
+  SET(IFEM_H_PATH ${IFEM_INCLUDES})
 ENDIF(IFEM_PATH)
 
 INCLUDE(FindPackageHandleStandardArgs)
@@ -61,7 +69,7 @@ find_package_handle_standard_args(IFEM DEFAULT_MSG
 
 # Export version information
 IF(IFEM_INCLUDES)
-  EXECUTE_PROCESS(COMMAND cat "${IFEM_H}" OUTPUT_VARIABLE IFEM_HEADER)
+  EXECUTE_PROCESS(COMMAND cat "${IFEM_H_PATH}/IFEM.h" OUTPUT_VARIABLE IFEM_HEADER)
   STRING(REGEX MATCH "IFEM_VERSION_MAJOR ([0-9]+)" IFEM_VERSION_MAJOR ${IFEM_HEADER})
   STRING(REGEX REPLACE "IFEM_VERSION_MAJOR ([0-9]+)" "\\1" IFEM_VERSION_MAJOR "${IFEM_VERSION_MAJOR}")
   STRING(REGEX MATCH "IFEM_VERSION_MINOR ([0-9]+)" IFEM_VERSION_MINOR ${IFEM_HEADER})

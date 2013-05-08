@@ -8,7 +8,7 @@ SET(IFEM_VERSION "${IFEM_VERSION_MAJOR}.${IFEM_VERSION_MINOR}.${IFEM_VERSION_PAT
 
 # Generate header with version info
 CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/src/IFEM.h.in
-               ${PROJECT_SOURCE_DIR}/src/IFEM.h @ONLY)
+               IFEM.h @ONLY)
 CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/doc/libifem-builddeps.control.in
                ${PROJECT_SOURCE_DIR}/doc/libifem-builddeps.control @ONLY)
 
@@ -44,6 +44,7 @@ SET(INCLUDES
   ${PROJECT_SOURCE_DIR}/src/SIM
   ${PROJECT_SOURCE_DIR}/src/Utility
   ${PROJECT_SOURCE_DIR}/3rdparty/expreval
+  ${CMAKE_BINARY_DIR}
 )
 
 IF(NOT IFEM_USE_SYSTEM_TINYXML)
@@ -165,7 +166,7 @@ ELSE(WIN32)
                          src/ASM/TimeDomain.h
                          src/Integrands/*.h src/LinAlg/*.h src/SIM/*.h
                          src/Utility/*.h
-                         src/IFEM.h)
+                         ${CMAKE_BINARY_DIR}/IFEM.h)
   INSTALL(FILES ${IFEM_HEADERS}
     DESTINATION include/IFEM COMPONENT ${IFEM_DEV_COMPONENT})
 
