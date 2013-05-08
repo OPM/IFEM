@@ -45,9 +45,17 @@ ENDIF(NOT IFEM_CONFIGURED)
 
 SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 
+INCLUDE(cmake/UseMultiArch.cmake)
+
 # Common Navier-Stokes application sources
-ADD_LIBRARY(CommonIFEM STATIC
-                       BDF.C
+ADD_LIBRARY(CommonIFEM BDF.C
                        Spalding.C
                        StabilizationUtils.C
                        TimeIntUtils.C)
+TARGET_LINK_LIBRARIES(CommonIFEM ${IFEM_LIBRARIES})
+SET_TARGET_PROPERTIES(CommonIFEM PROPERTIES
+                      VERSION ${IFEM_VERSION}
+                      SOVERSION ${IFEM_ABI_VERSION})
+INSTALL(TARGETS CommonIFEM DESTINATION ${CMAKE_INSTALL_LIBDIR})
+FILE(GLOB HEADERS *.h)
+INSTALL(FILES ${HEADERS} DESTINATION include/IFEM)
