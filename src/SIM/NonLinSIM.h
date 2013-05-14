@@ -36,7 +36,7 @@ public:
   //! \brief Convergence status enum.
   enum ConvStatus { FAILURE, OK, SLOW, CONVERGED, DIVERGED };
   //! \brief Enum describing the norm used for convergence checks.
-  enum CNORM { L2, ENERGY };
+  enum CNORM { NONE, L2, ENERGY };
   //! \brief Enum describing reference norm options.
   enum NormOp { MAX, ALL };
 

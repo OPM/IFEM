@@ -210,8 +210,9 @@ NonLinSIM::ConvStatus NonLinSIM::solveStep (TimeStep& param,
   if (!model.assembleSystem(param.time,solution,newTangent))
     return model.getProblem()->diverged() ? DIVERGED : FAILURE;
 
-  if (!model.extractLoadVec(residual))
-    return FAILURE;
+  if (iteNorm != NONE)
+    if (!model.extractLoadVec(residual))
+      return FAILURE;
 
   if (!model.solveSystem(linsol,msgLevel-1))
     return FAILURE;
@@ -332,6 +333,9 @@ bool NonLinSIM::lineSearch (TimeStep& param)
 
 NonLinSIM::ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
 {
+  if (iteNorm == NONE)
+    return CONVERGED; // No iterations, we are solving a linear problem
+
   static double prevNorm  = 0.0;
   static int    nIncrease = 0;
 
