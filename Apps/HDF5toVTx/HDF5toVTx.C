@@ -21,10 +21,30 @@
 #include <sstream>
 #include <cstdlib>
 
+//! \brief Maps from basis name -> fields
 typedef std::map< std::string,std::vector<XMLWriter::Entry> > ProcessList;
-typedef std::map< std::string,std::vector<int> > VTFList;
+
+//! \brief Maps from field name -> VTF blocks
+typedef std::map< std::string, std::vector<int> > VTFList;
+
+//! \brief Struct encapsulating information for a given basis
+struct BasisInfo {
+  std::vector<ASMbase*>   Patch;      //!< Vector with spline bases
+  std::vector<RealArray*> FakeModel;  //!< Vector with fake finite element model evaluation points
+  int                     StartPart;  //!< Starting part for fake finite element model
+};
+
+//! \brief Maps from (basis name -> basis info)
+typedef std::map<std::string, BasisInfo> PatchMap;
 
 
+//! \brief Read a basis from HDF5 into a vector of patch objects
+//! \param result The resulting vector of patch objects
+//! \param name The name of the basis
+//! \param patches The number of patches to read
+//! \param hdf The HDF5 reader to read from
+//! \param dim The dimensionality of the basis
+//! \param level The level the basis is stored at in the file
 bool readBasis (std::vector<ASMbase*>& result, const std::string& name,
                 int patches, HDF5Writer& hdf, int dim, int level)
 {
@@ -62,13 +82,23 @@ bool readBasis (std::vector<ASMbase*>& result, const std::string& name,
 }
 
 
+//! \brief Write a field to VTF/VTU file
+//! \param locvec The patch-level basis coefficients
+//! \param components Number of components in field
+//! \param patch The patch the field is defined on
+//! \param model The evaluation points for this part of the fake finite element model
+//! \param geomID The ID associated with this patch
+//! \param name Name of field
+//! \param vlist List of vector fields stored in VTF/VTU
+//! \param slist List of scalar fields stored in VTF/VTU
+//! \param myVtf The VTF/VTU file to write to
 bool writeFieldPatch(const Vector& locvec, int components,
                      ASMbase& patch, RealArray* model, int geomID, int& nBlock,
                      const std::string& name, VTFList& vlist, VTFList& slist,
                      VTF& myVtf)
 {
   Matrix field;
-  if (!patch.evalSolution(field,locvec,model))
+  if (!patch.evalSolution(field, locvec, model))
     return false;
 
   if (components > 1) {
@@ -94,6 +124,14 @@ bool writeFieldPatch(const Vector& locvec, int components,
 }
 
 
+//! \brief Write a per-element field to VTF/VTU file
+//! \param patch The patch the field is defined on
+//! \param grid The (fake) finite elements associated with this patch
+//! \param geomID The ID associated with this patch
+//! \param nBlock Running VTF block counter
+//! \param name Name of field
+//! \param elist List of per-element fields stored in VTF/VTU
+//! \param myVtf The VTF/VTU file to write to
 bool writeElmPatch(const Vector& locvec,
                    ASMbase& patch, const ElementBlock* grid,
                    int geomID, int& nBlock,
@@ -121,6 +159,11 @@ bool writeElmPatch(const Vector& locvec,
 }
 
 
+//! \brief Write field blocks to VTF/VTU file
+//! \param vlist List of vector fields
+//! \param slist List of scalar fields
+//! \param myvtf The VTF/VTU file to write to
+//! \param iStep The level in file to write
 void writeFieldBlocks(VTFList& vlist, VTFList& slist, VTF& myvtf,
                       int iStep)
 {
@@ -138,6 +181,12 @@ void writeFieldBlocks(VTFList& vlist, VTFList& slist, VTF& myvtf,
 }
 
 
+//! \brief Write a fake finite element model to VTU/VTF file
+//! \param patch The patch the fake finite element model is associated with
+//! \param id The ID associated with this patch
+//! \param myVtf The VTF/VTU file to write to
+//! \param nViz The number of visualization points per knot-span
+//! \param block Running VTF block counter
 void writePatchGeometry(ASMbase* patch, int id, VTF& myVtf, int* nViz, int block)
 {
   std::stringstream str;
@@ -150,8 +199,13 @@ void writePatchGeometry(ASMbase* patch, int id, VTF& myVtf, int* nViz, int block
 }
 
 
+//! \brief Generate evaluation points for fake finite element model
+//! \param result The resulting evaluation points
+//! \param patches The patches to generate the fake finite element model for
+//! \param dims The dimensionality of the patches
+//! \param nViz The number of visualization points per knot-span
 void generateFEModel (std::vector<RealArray*>& result,
-                      const std::vector<ASMbase*>& patches, int dims, int* n)
+                      const std::vector<ASMbase*>& patches, int dims, int* nViz)
 {
   result.clear();
   result.reserve(patches.size());
@@ -160,11 +214,11 @@ void generateFEModel (std::vector<RealArray*>& result,
     for (int k=0;k<dims;++k) {
       if (dims == 2) {
         ASM2D* patch = dynamic_cast<ASM2D*>(patches[i]);
-        if (patch) patch->getGridParameters(gpar[k],k,n[k]-1);
+        if (patch) patch->getGridParameters(gpar[k],k,nViz[k]-1);
       }
       else if (dims == 3) {
         ASMs3D* patch = dynamic_cast<ASMs3D*>(patches[i]);
-        if (patch) patch->getGridParameters(gpar[k],k,n[k]-1);
+        if (patch) patch->getGridParameters(gpar[k],k,nViz[k]-1);
       }
     }
     result.push_back(gpar);
@@ -172,18 +226,76 @@ void generateFEModel (std::vector<RealArray*>& result,
 }
 
 
+//! \brief Free up the memory allocated in the PatchMap, making sure to avoid double free's
+//! \param map The map to free up
+void freePatchMap(PatchMap& map)
+{
+  std::vector<RealArray*> free;
+  for (PatchMap::iterator it = map.begin(); it != map.end(); ++it) {
+    for (size_t i = 0; i < it->second.Patch.size(); ++i)
+      delete it->second.Patch[i];
+    free.insert(free.end(), it->second.FakeModel.begin(), it->second.FakeModel.end());
+  }
+
+  std::vector<RealArray*>::iterator it = std::unique(free.begin(), free.end());
+  for (std::vector<RealArray*>::iterator it2 = free.begin(); it2 != it; ++it2)
+    delete *it2;
+
+  map.clear();
+}
+
+
+//! \brief Setup up for our basis.
+//! \details Bases with the same size is collapsed to one, while different sizes bases are appended
+//! \param plist The process list with bases and fields
+//! \param level The file level to load bases from
+//! \param hdf The HDF5 file reader to use
+//! \param dims The dimensionality of the basis
+//! \param n The number of points in each direction per knot span in the tesselation
+//! \param vtf The VTF/VTU file to write to
+//! \param block Running VTF block counter
+//! \param vtflevel The time level / load case in the VTF file
+PatchMap setupPatchMap(const ProcessList& plist, int level, HDF5Writer& hdf, int dims, int* n,
+                       VTF& vtf, int& block, int vtflevel)
+{
+  vtf.clearGeometryBlocks();
+  int start=1;
+  std::map<int, BasisInfo> created;
+  PatchMap result;
+  for (ProcessList::const_iterator it  = plist.begin();
+                                   it != plist.end(); ++it) {
+    readBasis(result[it->first].Patch, it->second[0].basis, it->second[0].patches, hdf, dims, level);
+    std::map<int, BasisInfo>::iterator loc = created.find(it->second[0].patches);
+    // tesselate some more patches
+    if (loc == created.end()) {
+      generateFEModel(created[it->second[0].patches].FakeModel, result[it->first].Patch, dims, n);
+      loc = created.find(it->second[0].patches);
+      loc->second.StartPart = start;
+      for (size_t l=0;l<result[it->first].Patch.size();++l)
+        writePatchGeometry(result[it->first].Patch[l], start+l, vtf, n, ++block);
+      start += it->second[0].patches;
+    }
+
+    result[it->first].StartPart = loc->second.StartPart;
+    result[it->first].FakeModel = loc->second.FakeModel;
+  }
+  vtf.writeGeometryBlocks(vtflevel);
+
+  return result;
+}
+
+
 int main (int argc, char** argv)
 {
   int format = 1;
-  int n[3] = { 5, 5, 5 };
+  int n[3] = { 2, 2, 2 };
   int dims = 3;
   int skip=1;
   int start=0;
   int end=-1;
   bool last=false;
-  std::vector<char*> infile;
+  char* infile = 0;
   char* vtffile = 0;
-  char* basis = 0;
   float starttime = -1, endtime = -1;
 
   for (int i = 1; i < argc; i++)
@@ -213,34 +325,27 @@ int main (int argc, char** argv)
       endtime = atof(argv[++i]);
     else if (!strcmp(argv[i],"-ndump") && i < argc-1)
       skip = atoi(argv[++i]);
-    else if (!strcmp(argv[i],"-basis") && i < argc-1)
-      basis = argv[i++];
-    else if (!strcmp(argv[i],"-input") && i < argc-1)
-      infile.push_back(argv[++i]);
-    else if (infile.empty())
-      infile.push_back(argv[i]);
+    else if (!infile)
+      infile = argv[i];
     else if (!vtffile)
       vtffile = argv[i];
     else
       std::cerr <<"  ** Unknown option ignored: "<< argv[i] << std::endl;
 
-  if (infile.empty()) {
+  if (!infile) {
     std::cout <<"usage: "<< argv[0]
               <<" <inputfile> [<vtffile>|<vtufile>] [-nviz <nviz>] \n"
               << "[-ndump <ndump>] [-last] [-start <level>] [-end <level>]\n"
-              << "[-starttime <time>] [-endtime <time>] [-basis <basis>] [-1D|-2D]\n"
+              << "[-starttime <time>] [-endtime <time>] [-1D|-2D]\n"
               << "[-format <0|1|ASCII|BINARY>]\n";
     return 0;
   }
   else if (!vtffile)
-    vtffile = infile.front();
+    vtffile = infile;
 
   std::cout <<"\n >>> IFEM HDF5 to VTF converter <<<"
             <<"\n ==================================\n"
-            <<"\nInput file:";
-
-  for (size_t i=0;i<infile.size();++i)
-    std::cout <<" "<< infile[i];
+            <<"\nInput file: " << infile;
 
   std::cout <<"\nOutput file: "<< vtffile
             <<"\nNumber of visualization points: "
@@ -252,144 +357,123 @@ int main (int argc, char** argv)
   else
     myVtf = new VTU(vtffile,last?1:0);
 
-  int k=1;
-  int block = 0;
-  std::map<std::string, std::vector<ASMbase*> > patches;
-  std::vector<RealArray*> FEmodel;
-  for (size_t ic=0;ic<infile.size();++ic) {
-    HDF5Writer hdf(strtok(infile[ic],"."),true,true);
-    XMLWriter xml(infile[ic]);
-    xml.readInfo();
+  // Process XML - establish fields and collapse bases
+  PatchMap patches;
 
-    int levels = xml.getLastTimeLevel();
-    std::cout <<"Reading "<< infile[ic] <<": Time levels = "<< levels << std::endl;
+  HDF5Writer hdf(strtok(infile,"."),true,true);
+  XMLWriter xml(infile);
+  xml.readInfo();
 
-    const std::vector<XMLWriter::Entry>& entry = xml.getEntries();
-    std::vector<XMLWriter::Entry>::const_iterator it;
+  int levels = xml.getLastTimeLevel();
+  std::cout <<"Reading "<< infile <<": Time levels = "<< levels << std::endl;
 
-    ProcessList processlist;
-    for (it = entry.begin(); it != entry.end(); ++it) {
-      if (!it->basis.empty() && it->type != "restart") {
-        processlist[it->basis].push_back(*it);
-        std::cout << it->name <<"\t"<< it->description <<"\tnc="<< it->components
-                  <<"\t"<< it->basis << std::endl;
-        // always read level 0 geometries
-        if (patches[it->basis].empty() && ic == 0)
-          readBasis(patches[it->basis],it->basis,it->patches,hdf,dims,0);
-      }
+  const std::vector<XMLWriter::Entry>& entry = xml.getEntries();
+  std::vector<XMLWriter::Entry>::const_iterator it;
+
+  ProcessList processlist;
+  for (it = entry.begin(); it != entry.end(); ++it) {
+    if (!it->basis.empty() && it->type != "restart") {
+      processlist[it->basis].push_back(*it);
+      std::cout << it->name <<"\t"<< it->description <<"\tnc="<< it->components
+                <<"\t"<< it->basis << std::endl;
     }
-
-    ProcessList::const_iterator pit = processlist.begin();
-
-    double time = 0.0;
-    if (ic == 0) {
-      // setup step boundaries and initial time
-      if (starttime > 0)
-        start = (int)(floor(starttime/pit->second.begin()->timestep));
-      if (endtime > 0)
-        end = int(endtime/pit->second.begin()->timestep+0.5f);
-      if (end == -1)
-        end = levels;
-      time=last?end  *pit->second.begin()->timestep:
-                start*pit->second.begin()->timestep;
-    } else
-      start = 1; // skip initial state in new file - matches last in previous
-
-    bool ok = true;
-    bool genGeometry=ic==0?true:false;
-    for (int i = last?end:start; i <= end && ok; i += skip) {
-      if (levels > 0) std::cout <<"\nTime level "<< i << " (t=" << time << ")" << std::endl;
-      VTFList vlist, slist;
-      for (pit = processlist.begin(); pit != processlist.end(); ++pit) {
-        if (i != 0 && hdf.hasGeometries(i)) {
-          myVtf->clearGeometryBlocks();
-          for (it = entry.begin(); it != entry.end(); ++it) {
-            for (size_t l=0;l<patches[it->basis].size();++l)
-              delete patches[it->basis][l];
-            readBasis(patches[it->basis],it->basis,it->patches,hdf,dims,i);
-          }
-          genGeometry = true;
-        }
-        if (genGeometry) {
-          std::vector<ASMbase*> gpatches;
-          if (basis)
-            gpatches = patches[basis];
-          else
-            gpatches = patches.begin()->second;
-          for (int l=0;l<pit->second[0].patches;++l)
-            writePatchGeometry(gpatches[l],l+1,*myVtf,n,++block);
-          block += pit->second[0].patches;
-          for (size_t l=0;l<FEmodel.size();++l)
-            delete[] FEmodel[l];
-          generateFEModel(FEmodel,gpatches,dims,n);
-          myVtf->writeGeometryBlocks(k);
-          genGeometry = false;
-        }
-        for (it = pit->second.begin(); it != pit->second.end() && ok; ++it) {
-          std::cout <<"Reading \""<< it->name <<"\""<< std::endl;
-          for( int j=0;j<pit->second[0].patches;++j) {
-            Vector vec;
-            ok = hdf.readVector(i,it->name,j+1,vec);
-
-            if (it->name.find('+') != std::string::npos) {
-              // Temporary hack to split a vector into scalar fields.
-              // The big assumption here is that the individual scalar names
-              // are separated by '+'-characters in the vector field name
-              Matrix tmp(it->components,vec.size()/it->components);
-              tmp.fill(vec.ptr());
-              size_t pos = 0;
-              size_t fp = it->name.find('+');
-              std::string prefix;
-              if (fp != std::string::npos) {
-                size_t fs = it->name.find(' ');
-                if (fs < fp) {
-                  prefix = it->name.substr(0,fs+1);
-                  pos = fs+1;
-                }
-              }
-              for (size_t r = 1; r <= tmp.rows() && pos < it->name.size(); r++) {
-                size_t end = it->name.find('+',pos);
-
-                ok &= writeFieldPatch(tmp.getRow(r),1, *patches[pit->first][j],
-                                      FEmodel[j],j+1,
-                                      block, prefix+it->name.substr(pos,end-pos),
-                                      vlist, slist, *myVtf);
-                pos = end+1;
-              }
-            }
-            else {
-              if (it->type == "knotspan") {
-                ok &= writeElmPatch(vec,*patches[pit->first][j],myVtf->getBlock(j+1),
-                              j+1,block,it->name,slist,*myVtf);
-              } else {
-                ok &= writeFieldPatch(vec,it->components,
-                                      *patches[pit->first][j],
-                                      FEmodel[j],j+1,
-                                      block,it->name,vlist,slist,*myVtf);
-              }
-            }
-          }
-        }
-      }
-      writeFieldBlocks(vlist,slist,*myVtf,k);
-
-      if (!ok)
-        return 3;
-
-      if (processlist.begin()->second.begin()->timestep > 0) {
-        double time2 = time;
-        hdf.readDouble(i,"timeinfo","SIMbase-1",time2); //TODO!
-        myVtf->writeState(k++,"Time %g",time2,1);
-      } else {
-        double foo = k;
-        myVtf->writeState(k++,"Step %g",foo,1);
-      }
-
-      pit = processlist.begin();
-      time += pit->second.begin()->timestep*skip;
-    }
-    hdf.closeFile(levels,true);
   }
+
+  ProcessList::const_iterator pit = processlist.begin();
+
+  double time = 0.0;
+
+  // setup step boundaries and initial time
+  if (starttime > 0)
+    start = (int)(floor(starttime/pit->second.begin()->timestep));
+  if (endtime > 0)
+    end = int(endtime/pit->second.begin()->timestep+0.5f);
+  if (end == -1)
+    end = levels;
+  time=last?end  *pit->second.begin()->timestep:
+            start*pit->second.begin()->timestep;
+
+  bool ok = true;
+  int block = 0;
+  int k = 1;
+  for (int i = last?end:start; i <= end && ok; i += skip) {
+    if (levels > 0)
+      std::cout <<"\nTime level "<< i << " (t=" << time << ")" << std::endl;
+    VTFList vlist, slist;
+    if (hdf.hasGeometries(i) || i == 0) {
+      freePatchMap(patches);
+      patches = setupPatchMap(processlist, i, hdf, dims, n, *myVtf, block, k);
+    }
+
+    for (pit = processlist.begin(); pit != processlist.end(); ++pit) {
+      for (it = pit->second.begin(); it != pit->second.end() && ok; ++it) {
+        std::cout <<"Reading \""<< it->name <<"\""<< std::endl;
+        for( int j=0;j<pit->second[0].patches;++j) {
+          Vector vec;
+          ok = hdf.readVector(i,it->name,j+1,vec);
+
+          if (it->name.find('+') != std::string::npos) {
+            /*
+            Temporary hack to split a vector into scalar fields.
+            The big assumption here is that the individual scalar names
+            are separated by '+'-characters in the vector field name
+            */
+            Matrix tmp(it->components,vec.size()/it->components);
+            tmp.fill(vec.ptr());
+            size_t pos = 0;
+            size_t fp = it->name.find('+');
+            std::string prefix;
+            if (fp != std::string::npos) {
+              size_t fs = it->name.find(' ');
+              if (fs < fp) {
+                prefix = it->name.substr(0,fs+1);
+                pos = fs+1;
+              }
+            }
+            for (size_t r = 1; r <= tmp.rows() && pos < it->name.size(); r++) {
+              size_t end = it->name.find('+',pos);
+
+              ok &= writeFieldPatch(tmp.getRow(r),1, *patches[pit->first].Patch[j],
+                                    patches[pit->first].FakeModel[j],
+                                    patches[pit->first].StartPart+j,
+                                    block, prefix+it->name.substr(pos,end-pos),
+                                    vlist, slist, *myVtf);
+              pos = end+1;
+            }
+          }
+          else {
+            if (it->type == "knotspan") {
+              ok &= writeElmPatch(vec,*patches[pit->first].Patch[j],myVtf->getBlock(j+1),
+                            patches[pit->first].StartPart+j,block,it->name,slist,*myVtf);
+            } else {
+              ok &= writeFieldPatch(vec,it->components,
+                                    *patches[pit->first].Patch[j],
+                                    patches[pit->first].FakeModel[j],
+                                    patches[pit->first].StartPart+j,
+                                    block,it->name,vlist,slist,*myVtf);
+            }
+          }
+        }
+      }
+    }
+    writeFieldBlocks(vlist,slist,*myVtf,k);
+
+    if (!ok)
+      return 3;
+
+    if (processlist.begin()->second.begin()->timestep > 0) {
+      double time2 = time;
+      hdf.readDouble(i,"timeinfo","SIMbase-1",time2); //TODO!
+      myVtf->writeState(k++,"Time %g",time2,1);
+    } else {
+      double foo = k;
+      myVtf->writeState(k++,"Step %g",foo,1);
+    }
+
+    pit = processlist.begin();
+    time += pit->second.begin()->timestep*skip;
+  }
+  hdf.closeFile(levels,true);
   delete myVtf;
 
   return 0;
