@@ -16,7 +16,6 @@
 #include "IntegrandBase.h"
 #include "TimeStep.h"
 #include <sstream>
-#include "ASMbase.h"
 
 #ifdef HAS_HDF5
 #include <numeric>
@@ -339,11 +338,9 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     int loc = sim->getLocalPatchIndex(i+1);
     if (loc > 0) // we own the patch
     {
-      sim->extractPatchSolution(Vectors(1,*sol), loc-1);
-      // order is important - do this last to ensure correct vector is loaded
-      size_t ndof1 = sim->extractPatchSolution(*sol,loc-1);
-      Vector& psol = const_cast<IntegrandBase*>(prob)->getSolution();
       if (results & DataExporter::PRIMARY) {
+        Vector psol;
+        size_t ndof1 = sim->extractPatchSolution(*sol,psol,loc-1);
         if (prob->mixedFormulation())
         {
           // Mixed methods: The primary solution vector is referring to two bases
@@ -361,11 +358,13 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
 
       if (results & DataExporter::SECONDARY) {
         Matrix field;
-        if (prefix.empty())
+        if (prefix.empty()) {
+          sim->extractPatchSolution(Vectors(1,*sol), loc-1);
           sim->evalSecondarySolution(field,loc-1);
+        }
         else {
           Vector locvec;
-          sim->getFEModel()[loc-1]->extractNodeVec(*sol,locvec,prob->getNoFields(2));
+          sim->extractPatchSolution(*sol,locvec,loc-1,prob->getNoFields(2));
           field.resize(prob->getNoFields(2),locvec.size()/prob->getNoFields(2));
           field.fill(locvec.ptr());
         }

@@ -193,7 +193,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
         for (; item; item = item->NextSiblingElement("item")) {
           int patch = 0;
           utl::getAttribute(item,"patch",patch);
-          if ((patch = getLocalPatchIndex(patch)) > 0) {
+          if ((patch = this->getLocalPatchIndex(patch)) > 0) {
             if (abs(idim) == (int)this->getNoSpaceDim())
               top.insert(TopItem(patch,0,idim));
             else if (item->FirstChild())
@@ -799,6 +799,12 @@ int SIMbase::getLocalPatchIndex (int patchNo) const
 }
 
 
+int SIMbase::getPatchIdx (size_t i) const
+{
+  return i < myModel.size() ? myModel[i]->idx+1 : 0;
+}
+
+
 bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 {
   static int substep = 10;
@@ -976,8 +982,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 
   for (q = myProps.begin(); q != myProps.end(); q++)
     if (q->pcode == Property::NEUMANN || q->pcode == Property::NEUMANN_GENERIC)
-      if (abs(q->ldim)+1 == myModel[q->patch-1]->getNoParamDim())
-        myModel[q->patch-1]->generateThreadGroups(q->lindx,silence);
+      this->generateThreadGroups(*q,silence);
 
   // Preprocess the result points
   for (ResPointVec::iterator p = myPoints.begin(); p != myPoints.end();)
@@ -1023,6 +1028,14 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 
   // Now perform the sub-class specific final preprocessing, if any
   return this->preprocessB() && ierr == 0;
+}
+
+
+void SIMbase::generateThreadGroups (const Property& p, bool silence)
+{
+  if (p.patch > 0 && p.patch <= myModel.size())
+    if (abs(p.ldim)+1 == myModel[p.patch-1]->getNoParamDim())
+      myModel[p.patch-1]->generateThreadGroups(p.lindx,silence);
 }
 
 
@@ -3053,7 +3066,7 @@ bool SIMbase::evalProjSolution (const Vector& ssol,
 
 
 bool SIMbase::extractPatchSolution (IntegrandBase* problem,
-                                    const Vectors& sol, size_t pindx)
+                                    const Vectors& sol, size_t pindx) const
 {
   if (pindx >= myModel.size())
     return false;
@@ -3068,23 +3081,24 @@ bool SIMbase::extractPatchSolution (IntegrandBase* problem,
 }
 
 
-size_t SIMbase::extractPatchSolution (const Vector& sol, int pindx)
+size_t SIMbase::extractPatchSolution (const Vector& sol, Vector& vec,
+                                      int pindx, unsigned char nndof) const
 {
   if (pindx < 0 || (size_t)pindx >= myModel.size() || sol.empty())
     return 0;
 
-  myModel[pindx]->extractNodeVec(sol,myProblem->getSolution());
+  myModel[pindx]->extractNodeVec(sol,vec,nndof);
   return myModel[pindx]->getNoFields(1)*myModel[pindx]->getNoNodes(1);
 }
 
 
-bool SIMbase::injectPatchSolution (Vector& sol, const Vector& locSol,
-				   int pindx, unsigned char nndof)
+bool SIMbase::injectPatchSolution (Vector& sol, const Vector& vec, 
+                                   int pindx, unsigned char nndof) const
 {
   if (pindx < 0 || (size_t)pindx >= myModel.size())
     return false;
 
-  return myModel[pindx]->injectNodeVec(locSol,sol,nndof);
+  return myModel[pindx]->injectNodeVec(vec,sol,nndof);
 }
 
 
@@ -3097,13 +3111,13 @@ bool SIMbase::evalSecondarySolution (Matrix& field, int pindx) const
 }
 
 
-bool SIMbase::extractPatchElmRes (const Matrix& globRes, Matrix& elmRes,
-				  int pindx)
+bool SIMbase::extractPatchElmRes (const Matrix& glbRes, Matrix& elRes,
+				  int pindx) const
 {
-  if (pindx < 0 || (size_t)pindx >= myModel.size() || globRes.empty())
+  if (pindx < 0 || (size_t)pindx >= myModel.size() || glbRes.empty())
     return false;
 
-  myModel[pindx]->extractElmRes(globRes,elmRes);
+  myModel[pindx]->extractElmRes(glbRes,elRes);
   return true;
 }
 

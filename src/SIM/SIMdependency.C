@@ -117,7 +117,7 @@ void SIMdependency::registerField (const std::string& name,
 
 bool SIMdependency::extractPatchDependencies (IntegrandBase* problem,
                                               const PatchVec& model,
-                                              size_t pindx)
+                                              size_t pindx) const
 {
   ASMbase* patch;
   DepVector::const_iterator it;
@@ -151,15 +151,14 @@ bool SIMdependency::extractPatchDependencies (IntegrandBase* problem,
 
 
 bool SIMdependency::hasIC(const std::string& name) const
-{  
-  for (InitialCondMap::const_iterator it  = getICs().begin(); 
-                                      it != getICs().end(); ++it) {
-    for (std::vector<ICInfo>::const_iterator it2  = it->second.begin();
-                                             it2 != it->second.end(); ++it2) {
+{
+  InitialCondMap::const_iterator it;
+  std::vector<ICInfo>::const_iterator it2;
+
+  for (it = myICs.begin(); it != myICs.end(); ++it)
+    for (it2 = it->second.begin(); it2 != it->second.end(); ++it2)
       if (it2->sim_field == name)
         return true;
-    }
-  }
 
   return false;
 }

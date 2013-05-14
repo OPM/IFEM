@@ -535,7 +535,8 @@ namespace utl //! General utility classes and functions.
     //! \brief Check dimension compatibility for matrix-vector multiplication.
     bool compatible(const std::vector<T>& X, bool transA) const
     {
-      if ((transA ? nrow : ncol) == X.size()) return true;
+      if (nrow > 0 && ncol > 0)
+        if ((transA ? nrow : ncol) == X.size()) return true;
 
       std::cerr <<"matrix::multiply: Incompatible matrices: A("
                 << nrow <<','<< ncol <<"), X("<< X.size() <<")\n"

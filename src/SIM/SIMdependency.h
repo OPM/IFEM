@@ -75,6 +75,7 @@ public:
   //! \brief Returns a const reference to the initial condition container.
   const InitialCondMap& getICs() const { return myICs; }
 
+  //! \brief Checks whether a named initial condition is present.
   virtual bool hasIC(const std::string& name) const;
 
   //! \brief Returns the number of spatial dimensions in the model.
@@ -120,7 +121,7 @@ protected:
   //! \param[in] model Patch geometry of this SIM object
   //! \param[in] pindx Local patch index to extract solution vectors for
   bool extractPatchDependencies(IntegrandBase* problem,
-                                const PatchVec& model, size_t pindx);
+                                const PatchVec& model, size_t pindx) const;
 private:
   FieldMap  myFields;  //!< The named fields of this SIM object
   DepVector depFields; //!< Other fields this SIM objecy depends on

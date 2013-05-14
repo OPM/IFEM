@@ -675,40 +675,39 @@ protected:
   //! on the the specified path, in order to extract all patch-level vector
   //! quantities needed by the Integrand. This also includes any dependent
   //! vectors from other simulator classes that have been registered.
-  //! All patch-level vectors are stored within the provided Integrand \a *p.
+  //! All patch-level vectors are stored within the provided integrand.
   virtual bool extractPatchSolution(IntegrandBase* problem,
-                                    const Vectors& sol, size_t pindx);
+                                    const Vectors& sol, size_t pindx) const;
 
 public:
   //! \brief Extracts all local solution vector(s) for a specified patch.
   //! \param[in] sol Global primary solution vectors in DOF-order
   //! \param[in] pindx Local patch index to extract solution vectors for
-  bool extractPatchSolution(const Vectors& sol, size_t pindx)
+  bool extractPatchSolution(const Vectors& sol, size_t pindx) const
   { return this->extractPatchSolution(myProblem,sol,pindx); }
 
   //! \brief Extracts a local solution vector for a specified patch.
   //! \param[in] sol Global primary solution vector in DOF-order
+  //! \param[out] vec Local solution vector associated with specified patch
   //! \param[in] pindx Local patch index to extract solution vector for
+  //! \param[in] nndof Number of DOFs per node (optional)
   //! \return Total number of DOFs in the patch (first basis only if mixed)
-  //!
-  //! \details The extracted patch-level solution vector is stored within the
-  //! Integrand \a *myProblem such that \a evalSolution can be invoked to get
-  //! the secondary solution field values within the same patch afterwards.
-  size_t extractPatchSolution(const Vector& sol, int pindx);
+  size_t extractPatchSolution(const Vector& sol, Vector& vec, int pindx,
+                              unsigned char nndof = 0) const;
 
   //! \brief Injects a patch-wise solution vector into the global vector.
   //! \param sol Global primary solution vector in DOF-order
-  //! \param[in] locSol Local solution vector associated with specified patch
+  //! \param[in] vec Local solution vector associated with specified patch
   //! \param[in] pindx Local patch index to inject solution vector for
   //! \param[in] nndof Number of DOFs per node (optional)
-  bool injectPatchSolution(Vector& sol, const Vector& locSol,
-			   int pindx, unsigned char nndof = 0);
+  bool injectPatchSolution(Vector& sol, const Vector& vec, int pindx,
+                           unsigned char nndof = 0) const;
 
   //! \brief Extracts element results for a specified patch.
-  //! \param[in] globRes Global element result array
-  //! \param[out] elmRes Patch-level element result array
+  //! \param[in] glbRes Global element result array
+  //! \param[out] elRes Patch-level element result array
   //! \param[in] pindx Local patch index to extract element results for
-  bool extractPatchElmRes(const Matrix& globRes, Matrix& elmRes, int pindx);
+  bool extractPatchElmRes(const Matrix& glbRes, Matrix& elRes, int pindx) const;
 
   //! \brief Returns the local patch index for the given global patch number.
   //! \details For serial applications this is an identity mapping only, whereas
@@ -721,6 +720,8 @@ public:
   const PatchVec& getFEModel() const { return myModel; }
   //! \brief Returns a pointer to a specified patch of our FEM model.
   ASMbase* getPatch(size_t i) { return i < myModel.size() ? myModel[i] : NULL; }
+  //! \brief Returns a one-based global index of a specified patch in our model.
+  int getPatchIdx(size_t i) const;
 
   //! \brief Returns a const reference to our global-to-local node mapping.
   const std::map<int,int>& getGlob2LocMap() const { return myGlb2Loc; }
@@ -767,6 +768,11 @@ protected:
   virtual bool assembleDiscreteTerms(const IntegrandBase*) { return true; }
   //! \brief Computes (possibly problem-dependent) external energy contribution.
   virtual double externalEnergy(const Vectors& psol) const;
+
+  //! \brief Generates element groups for multi-threading of boundary integrals.
+  //! \param[in] p Property object identifying a patch boundary
+  //! \param[in] silence If \e true, suppress threading group outprint
+  void generateThreadGroups(const Property& p, bool silence = false);
 
 public:
   static bool ignoreDirichlet; //!< Set to \e true for free vibration analysis
