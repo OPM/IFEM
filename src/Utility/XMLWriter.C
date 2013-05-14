@@ -93,7 +93,8 @@ void XMLWriter::readInfo()
   TiXmlElement* timestep = handle.FirstChild("info").FirstChild("timestep").ToElement();
   while (elem) {
     if (strcasecmp(elem->Attribute("type"),"field") == 0 ||
-        strcasecmp(elem->Attribute("type"),"knotspan") == 0) {
+        strcasecmp(elem->Attribute("type"),"knotspan") == 0 ||
+        strcasecmp(elem->Attribute("type"),"displacement") == 0) {
       Entry entry;
       entry.name = elem->Attribute("name");
       entry.description = elem->Attribute("description");
@@ -177,6 +178,23 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry,
                                 prefix+prob->getField1Name(11),
                entry.second.description,sim->getName()+"-1",
                prob->getNoFields(1),sim->getNoPatches());
+    }
+  }
+
+  if (results & DataExporter::DISPLACEMENT) {
+    if (prob->mixedFormulation())
+    {
+      // primary solution vector
+      addField(prefix+entry.first,entry.second.description,sim->getName()+"-1",
+               prob->getNoFields(1),sim->getNoPatches(),"displacement");
+    }
+    else
+    {
+      // primary solution
+      addField(usedescription ? entry.second.description:
+                                prefix+prob->getField1Name(11),
+               entry.second.description,sim->getName()+"-1",
+               prob->getNoFields(1),sim->getNoPatches(), "displacement");
     }
   }
 
