@@ -24,8 +24,15 @@
 //! \brief Maps from basis name -> fields
 typedef std::map< std::string,std::vector<XMLWriter::Entry> > ProcessList;
 
-//! \brief Maps from field name -> VTF blocks
-typedef std::map< std::string, std::vector<int> > VTFList;
+//! \brief Struct encapsulation information for a given output field
+struct VTFFieldInfo {
+  std::string Type;        //!< The type of the field (displacement, field)
+  std::string Name;        //!< The name of the field
+  std::vector<int> Blocks; //!< The block numbers in the file
+};
+
+//! \brief Maps from field description -> (type, VTF blocks)
+typedef std::map< std::string, VTFFieldInfo> VTFList;
 
 //! \brief Struct encapsulating information for a given basis
 struct BasisInfo {
@@ -95,7 +102,7 @@ bool readBasis (std::vector<ASMbase*>& result, const std::string& name,
 bool writeFieldPatch(const Vector& locvec, int components,
                      ASMbase& patch, RealArray* model, int geomID, int& nBlock,
                      const std::string& name, VTFList& vlist, VTFList& slist,
-                     VTF& myVtf)
+                     VTF& myVtf, const std::string& description, const std::string& type)
 {
   Matrix field;
   if (!patch.evalSolution(field, locvec, model))
@@ -104,8 +111,11 @@ bool writeFieldPatch(const Vector& locvec, int components,
   if (components > 1) {
     if (!myVtf.writeVres(field,++nBlock,geomID,components))
       return false;
-    else
-      vlist[name].push_back(nBlock);
+    else {
+      vlist[description].Type = type;
+      vlist[description].Name = name;
+      vlist[description].Blocks.push_back(nBlock);
+    }
   }
 
   for (size_t j = 0; j < field.rows(); j++) {
@@ -116,8 +126,10 @@ bool writeFieldPatch(const Vector& locvec, int components,
     }
     if (!myVtf.writeNres(field.getRow(1+j),++nBlock,geomID))
       return false;
-    else
-      slist[nam].push_back(nBlock);
+    else {
+      slist[nam].Name = nam;
+      slist[nam].Blocks.push_back(nBlock);
+    }
   }
 
   return true;
@@ -130,11 +142,12 @@ bool writeFieldPatch(const Vector& locvec, int components,
 //! \param geomID The ID associated with this patch
 //! \param nBlock Running VTF block counter
 //! \param name Name of field
+//! \param description Description of field
 //! \param elist List of per-element fields stored in VTF/VTU
 //! \param myVtf The VTF/VTU file to write to
 bool writeElmPatch(const Vector& locvec,
                    ASMbase& patch, const ElementBlock* grid,
-                   int geomID, int& nBlock,
+                   int geomID, int& nBlock, const std::string& description,
                    const std::string& name, VTFList& elist, VTF& myVtf)
 {
   Matrix field;
@@ -152,8 +165,11 @@ bool writeElmPatch(const Vector& locvec,
 
   if (!myVtf.writeEres(field.getRow(1),++nBlock,geomID))
     return false;
-  else
-    elist[name].push_back(nBlock);
+  else {
+    elist[description].Type = "knotspan";
+    elist[description].Name = name;
+    elist[description].Blocks.push_back(nBlock);
+  }
 
   return true;
 }
@@ -169,14 +185,14 @@ void writeFieldBlocks(VTFList& vlist, VTFList& slist, VTF& myvtf,
 {
   int idBlock = 20;
   for (VTFList::iterator it = vlist.begin(); it != vlist.end(); ++it) {
-    if (it->first == "displacement")
-      myvtf.writeDblk(it->second,it->first.c_str(),10,iStep);
+    if (it->second.Type == "displacement")
+      myvtf.writeDblk(it->second.Blocks,"displacement",10,iStep);
     else
-      myvtf.writeVblk(it->second,it->first.c_str(),idBlock++,iStep);
+      myvtf.writeVblk(it->second.Blocks,it->second.Name.c_str(),idBlock++,iStep);
   }
   for (VTFList::iterator it = slist.begin(); it != slist.end(); ++it) {
-    myvtf.writeSblk(it->second,
-                    it->first.c_str(),idBlock++,iStep);
+    myvtf.writeSblk(it->second.Blocks,
+                    it->second.Name.c_str(),idBlock++,iStep);
   }
 }
 
@@ -437,20 +453,21 @@ int main (int argc, char** argv)
                                     patches[pit->first].FakeModel[j],
                                     patches[pit->first].StartPart+j,
                                     block, prefix+it->name.substr(pos,end-pos),
-                                    vlist, slist, *myVtf);
+                                    vlist, slist, *myVtf, it->description, it->type);
               pos = end+1;
             }
           }
           else {
             if (it->type == "knotspan") {
               ok &= writeElmPatch(vec,*patches[pit->first].Patch[j],myVtf->getBlock(j+1),
-                            patches[pit->first].StartPart+j,block,it->name,slist,*myVtf);
+                                  patches[pit->first].StartPart+j,block,
+                                  it->description, it->name, slist, *myVtf);
             } else {
               ok &= writeFieldPatch(vec,it->components,
                                     *patches[pit->first].Patch[j],
                                     patches[pit->first].FakeModel[j],
                                     patches[pit->first].StartPart+j,
-                                    block,it->name,vlist,slist,*myVtf);
+                                    block,it->name,vlist,slist,*myVtf, it->description, it->type);
             }
           }
         }
