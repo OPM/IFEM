@@ -54,9 +54,19 @@ public:
   //! \param[in] node 1-based global node number to return the forces for
   Vec3 getForce(int node) const;
 
+  //! \brief Returns the global nodal force vector for a specified node.
+  //! \param[in] indx 0-based node index to return the forces for
+  //! \param[out] force The force at the sepcified node
+  //! \return Global node number of the specified node, or zero if out-of-range
+  int getForce(size_t indx, Vec3& force) const;
+
+  //! \brief Returns the size in terms of number of nodes with nodal forces.
+  size_t size() const { return nodeMap.size(); }
+
 private:
   const SAM&           sam;     //!< Data for FE assembly management
   Matrix               F;       //!< Global nodal forces
+  std::vector<int>     nodeNum; //!< Global node numbers with forces
   std::map<int,size_t> nodeMap; //!< Maps from global node number to force index
 };
 

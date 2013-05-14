@@ -23,6 +23,7 @@
 bool GlbForceVec::initNodeMap (const std::vector<int>& globalNodes, size_t nfc)
 {
   nodeMap.clear();
+  nodeNum = globalNodes;
 
   int illegal = 0, nnod = sam.getNoNodes();
   for (size_t i = 0; i < globalNodes.size(); i++)
@@ -71,7 +72,7 @@ bool GlbForceVec::assemble (const LocalIntegral* elmObj, int elmId)
     if ((nit = nodeMap.find(mnpc[i])) == nodeMap.end())
       ninod++;
     else for (j = 0; j < nfc; j++)
-      F(j+1,nit->second) += ES[k+j];
+      F(j+1,nit->second) -= ES[k+j];
 
   if (ninod < mnpc.size())
     return true;
@@ -100,4 +101,18 @@ Vec3 GlbForceVec::getForce (int node) const
   std::cout <<"Force in node "<< node <<": "<< force << std::endl;
 #endif
   return force;
+}
+
+
+int GlbForceVec::getForce (size_t indx, Vec3& force) const
+{
+  if (indx < F.cols() && indx < nodeNum.size())
+    force = Vec3(F.getColumn(indx+1));
+  else
+    return 0;
+
+#if SP_DEBUG > 1
+  std::cout <<"Force in node "<< nodeNum[indx] <<": "<< force << std::endl;
+#endif
+  return nodeNum[indx];
 }
