@@ -32,16 +32,16 @@ do
   then 
     if test $globres -eq 1
     then
-      echo "-------- $2 --------" >> @PROJECT_SOURCE_DIR@/failed.log
+      echo "-------- $2 --------" >> @CMAKE_BINARY_DIR@/failed.log
     fi
     globres=0
-    echo Failed to find output: $line >> @PROJECT_SOURCE_DIR@/failed.log
+    echo Failed to find output: $line >> @CMAKE_BINARY_DIR@/failed.log
   fi
 done
 
 if test $globres -eq 0
 then
-  cat templog >> @PROJECT_SOURCE_DIR@/failed.log
+  cat templog >> @CMAKE_BINARY_DIR@/failed.log
   rm templog
   exit 1
 fi
