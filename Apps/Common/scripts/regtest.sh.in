@@ -46,5 +46,18 @@ then
   exit 1
 fi
 
+if [ "@IFEM_TEST_MEMCHECK@" == "1" ] || [ "@IFEM_TEST_MEMCHECK@" == "ON" ]
+then
+  if ! grep -q "ERROR SUMMARY: 0 errors" valgrindlog
+  then
+    cat templog >> @CMAKE_BINARY_DIR@/failed.log
+    cat valgrindlog >> @CMAKE_BINARY_DIR@/failed.log
+    rm templog
+    rm valgrindlog
+    exit 1
+  fi
+fi
+
 rm templog
+rm -f valgrindlog
 exit 0
