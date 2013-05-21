@@ -299,8 +299,13 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
       this->setPropertyType(code,Property::NEUMANN_ANASOL);
     }
     else if (type == "generic") {
-      std::cout <<"\tNeumann code "<< code <<" (generic)" << std::endl;
+      std::cout <<"\tNeumann code "<< code <<" (generic)";
       this->setPropertyType(code,Property::NEUMANN_GENERIC);
+      if (elem->FirstChild() && elem->FirstChild()->Value()) {
+        std::string val = elem->FirstChild()->Value();
+        this->setNeumann(val.c_str(),"expression",0,code);
+      } else
+        std::cout << std::endl;
     }
     else {
       int ndir = 0;
