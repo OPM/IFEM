@@ -106,6 +106,7 @@ void SIMbase::clearProperties ()
   myTracs.clear();
   myProps.clear();
   myPoints.clear();
+  myInts.clear();
 }
 
 
