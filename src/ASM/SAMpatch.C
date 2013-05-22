@@ -330,7 +330,7 @@ bool SAMpatch::updateConstraintEqs (const ASMVec& model, const Vector* prevSol)
       if (msc[idof-1] > 0 || mmceq[ipeq] != idof)
       {
 	std::cerr <<" *** SAM: Failed to update constraint equations from "
-		  << *cit << std::endl;
+		  << **cit << std::endl;
 	return false;
       }
 

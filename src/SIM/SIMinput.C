@@ -39,14 +39,14 @@ SIMinput::SIMinput (const char* heading)
 }
 
 
-void SIMinput::printHeading (int subStep) const
+void SIMinput::printHeading (int& subStep) const
 {
   if (myHeading.empty() || myPid > 0)
     return;
 
   size_t n = myHeading.find_last_of('\n');
   if (n+1 < myHeading.size()) n = myHeading.size()-n;
-  std::cout <<"\n"<< subStep <<". "<< myHeading <<"\n";
+  std::cout <<"\n"<< ++subStep <<". "<< myHeading <<"\n";
   for (size_t i = 0; i < 3+n && i < 3+myHeading.size(); i++) std::cout <<'=';
   if (subStep > 9) std::cout <<'=';
   std::cout << std::endl;
@@ -65,7 +65,7 @@ bool SIMinput::read (const char* fileName)
 #endif
 
   static int substep = 0;
-  this->printHeading(++substep);
+  this->printHeading(substep);
 
   bool result;
   if (strcasestr(fileName,".xinp"))

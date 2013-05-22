@@ -295,30 +295,26 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
     int code = this->getUniquePropertyCode(set);
     if (code == 0) utl::getAttribute(elem,"code",code);
     if (type == "anasol") {
-      std::cout <<"\tNeumann code "<< code <<" (analytic)" << std::endl;
+      std::cout <<"\tNeumann code "<< code <<" (analytic)";
       this->setPropertyType(code,Property::NEUMANN_ANASOL);
     }
     else if (type == "generic") {
       std::cout <<"\tNeumann code "<< code <<" (generic)";
       this->setPropertyType(code,Property::NEUMANN_GENERIC);
-      if (elem->FirstChild() && elem->FirstChild()->Value()) {
-        std::string val = elem->FirstChild()->Value();
-        this->setNeumann(val.c_str(),"expression",0,code);
-      } else
-        std::cout << std::endl;
+      if (elem->FirstChild())
+        this->setNeumann(elem->FirstChild()->Value(),"expression",0,code);
     }
     else {
       int ndir = 0;
-      std::string val = "0.0";
-      if (elem->FirstChild() && elem->FirstChild()->Value())
-        val = elem->FirstChild()->Value();
-
       utl::getAttribute(elem,"direction",ndir);
       std::cout <<"\tNeumann code "<< code <<" direction "<< ndir;
       if (!type.empty()) std::cout <<" ("<< type <<")";
-      this->setNeumann(val.c_str(),type,ndir,code);
-      std::cout << std::endl;
+      if (elem->FirstChild())
+	this->setNeumann(elem->FirstChild()->Value(),type,ndir,code);
+      else
+	this->setNeumann("0.0",type,ndir,code);
     }
+    std::cout << std::endl;
   }
 
   else if (!strcasecmp(elem->Value(),"dirichlet") && !ignoreDirichlet) {
@@ -812,8 +808,16 @@ int SIMbase::getPatchIdx (size_t i) const
 
 bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 {
+  if (mySam && !isRefined)
+  {
+    std::cerr <<" *** SIMbase::preprocess: Logic error, invoked more the once"
+              <<" for "<< (myHeading.empty() ? this->getName() : myHeading)
+              << std::endl;
+    return false;
+  }
+
   static int substep = 10;
-  this->printHeading(++substep);
+  this->printHeading(substep);
 
   // Perform some sub-class specific pre-preprocessing, if any
   this->preprocessA();

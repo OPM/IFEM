@@ -68,7 +68,7 @@ protected:
   virtual bool parse(const TiXmlElement* elem) = 0;
 
   //! \brief Prints the heading of this (sub-step) solver, if any, to std::cout.
-  void printHeading(int supStep) const;
+  void printHeading(int& supStep) const;
 
 public:
   static int msgLevel; //!< Controls the amount of console output during solving
