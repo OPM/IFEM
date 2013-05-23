@@ -79,6 +79,7 @@ protected:
   int nProc; //!< Number of processors in parallel simulations
 
   std::string myHeading; //!< Heading written before reading the input file
+  std::string inputFile; //!< The parsed input file
 };
 
 #endif

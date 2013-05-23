@@ -74,6 +74,8 @@ bool SIMinput::read (const char* fileName)
     result = this->readFlat(fileName);
 
   IFEM::applyCommandLineOptions(opt);
+
+  inputFile = fileName;
   return result;
 }
 
