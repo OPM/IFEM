@@ -120,6 +120,25 @@ public:
     S2.registerFields(exporter);
   }
 
+  void setInitialConditions()
+  {
+    S1.setInitialConditions();
+    S2.setInitialConditions();
+  }
+
+  bool hasIC(const std::string& name) const
+  {
+    return S1.hasIC(name) || S2.hasIC(name);
+  }
+
+  utl::vector<double>* getField(const std::string& name)
+  {
+    utl::vector<double>* result = S1.getField(name);
+    if (!result)
+      result = S2.getField(name);
+
+    return result;
+  }
 protected:
   T1& S1; //!< First substep
   T2& S2; //!< Second substep
