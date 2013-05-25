@@ -38,6 +38,9 @@ public:
   //! \brief Empty destructor.
   virtual ~NodeVecFunc() {}
 
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return idMap.empty() && (&idMap != &dummy); }
+ 
   //! \brief Returns whether the function is time-independent or not.
   virtual bool isConstant() const { return false; }
 

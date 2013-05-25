@@ -726,7 +726,7 @@ bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func,
     if (inod < 1)
     {
       std::cerr <<" *** ASMbase::updateDirichlet: Invalid slave node in MPC, "
-		<< *cit->first;
+                << *cit->first;
       return false;
     }
 
@@ -734,18 +734,24 @@ bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func,
     if ((fit = func.find(cit->second)) != func.end())
     {
       RealFunc& g = *fit->second;
-      cit->first->setSlaveCoeff(g(X));
+      if (g.isZero())
+        cit->first->setSlaveCoeff(0.0);
+      else
+        cit->first->setSlaveCoeff(g(X));
     }
     else if ((vfit = vfunc.find(cit->second)) != vfunc.end())
     {
       int idof = cit->first->getSlave().dof;
       VecFunc& g = *vfit->second;
-      cit->first->setSlaveCoeff(g(X)[idof-1]);
+      if (g.isZero())
+        cit->first->setSlaveCoeff(0.0);
+      else
+        cit->first->setSlaveCoeff(g(X)[idof-1]);
     }
     else
     {
       std::cerr <<" *** ASMbase::updateDirichlet: Code "<< cit->second
-		<<" is not associated with any function."<< std::endl;
+                <<" is not associated with any function."<< std::endl;
       return false;
     }
   }

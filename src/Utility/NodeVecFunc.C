@@ -23,6 +23,13 @@ Vec3 NodeVecFunc::evaluate (const Vec3& xp) const
   if (idx < 0) return Vec3();
 
   size_t nf = model.getNoFields();
+  if (nf*idx+nf > value.size())
+  {
+    std::cerr <<" *** NodeVecFunc::evaluate: Index "<< nf*idx+nf
+              <<" is out of range [1,"<< value.size() <<"]."<< std::endl;
+    return Vec3();
+  }
+
   return Vec3(&value.front()+nf*idx,nf);
 }
 
