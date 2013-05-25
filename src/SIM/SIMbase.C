@@ -1216,6 +1216,20 @@ bool SIMbase::setNeumann (const std::string& prop, const std::string& type,
 }
 
 
+VecFunc* SIMbase::getVecFunc (size_t patch, Property::Type ptype) const
+{
+  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); p++)
+    if (p->patch == patch)
+      if (p->pcode == ptype || ptype == Property::UNDEFINED)
+      {
+        VecFuncMap::const_iterator it = myVectors.find(p->pindx);
+        if (it != myVectors.end()) return it->second;
+      }
+
+  return NULL;
+}
+
+
 bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, bool withRF)
 {
   if (!mySam) return false;
@@ -2064,30 +2078,35 @@ bool SIMbase::writeGlvG (int& nBlock, const char* inpFile)
   else
     myVtf->clearGeometryBlocks();
 
-  // Convert and write model geometry
+  ElementBlock* lvb;
   char pname[32];
-  for (size_t i = 0; i < myModel.size(); i++)
+  size_t i;
+
+  // Convert and write model geometry
+  for (i = 0; i < myModel.size(); i++)
   {
     if (myModel[i]->empty()) continue; // skip empty patches
 
     if (msgLevel > 0)
       std::cout <<"Writing geometry for patch "<< i+1 << std::endl;
     size_t nd = myModel[i]->getNoParamDim();
-    ElementBlock* lvb = new ElementBlock(nd == 3 ? 8 : (nd == 2 ? 4 : 2));
+    lvb = new ElementBlock(nd == 3 ? 8 : (nd == 2 ? 4 : 2));
     if (!myModel[i]->tesselate(*lvb,opt.nViz))
       return false;
 
     sprintf(pname,"Patch %ld",i+1);
     if (!myVtf->writeGrid(lvb,pname,++nBlock))
       return false;
+  }
 
+  // Additional geometry for immersed boundaries
+  for (i = 0; i < myModel.size(); i++)
     if ((lvb = myModel[i]->immersedGeometry()))
     {
       sprintf(pname,"Immersed boundary %ld",i+1);
       if (!myVtf->writeGrid(lvb,pname,++nBlock))
         return false;
     }
-  }
 
   // Do not write the geometry blocks to file yet, writeVectors might create
   // an additional block for the point vectors, see method VTF::writeVectors
@@ -3102,7 +3121,7 @@ size_t SIMbase::extractPatchSolution (const Vector& sol, Vector& vec,
 }
 
 
-bool SIMbase::injectPatchSolution (Vector& sol, const Vector& vec, 
+bool SIMbase::injectPatchSolution (Vector& sol, const Vector& vec,
                                    int pindx, unsigned char nndof) const
 {
   if (pindx < 0 || (size_t)pindx >= myModel.size())

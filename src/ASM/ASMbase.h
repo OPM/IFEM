@@ -96,6 +96,8 @@ public:
 
   //! \brief Adds a circular immersed boundary in the physical geometry.
   virtual void addHole(double, double, double) {}
+  //! \brief Adds an oval immersed boundary in the physical geometry.
+  virtual void addHole(double, double, double, double, double) {}
 
   //! \brief Generates the finite element topology data for this patch.
   virtual bool generateFEMTopology() = 0;

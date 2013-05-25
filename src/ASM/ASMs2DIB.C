@@ -52,11 +52,35 @@ void ASMs2DIB::addHole (double R, double Xc, double Yc)
     if (!plate)
     {
       Hole2D* hole = dynamic_cast<Hole2D*>(myGeometry);
-      if (!hole) return;
-      myGeometry = plate = new PerforatedPlate2D(*hole);
-      delete hole;
+      if (hole)
+        myGeometry = plate = new PerforatedPlate2D(hole);
+      else
+        return;
     }
     plate->addHole(R,Xc,Yc);
+  }
+}
+
+
+void ASMs2DIB::addHole (double R, double X1, double Y1, double X2, double Y2)
+{
+  std::cout <<"\tOval X1={"<< X1 <<","<< Y1
+            <<"} X2={"<< X2 <<","<< Y2 <<"} R="<< R << std::endl;
+
+  if (!myGeometry)
+    myGeometry = new Oval2D(R,X1,Y1,X2,Y2);
+  else
+  {
+    PerforatedPlate2D* plate = dynamic_cast<PerforatedPlate2D*>(myGeometry);
+    if (!plate)
+    {
+      Hole2D* hole = dynamic_cast<Hole2D*>(myGeometry);
+      if (hole)
+        myGeometry = plate = new PerforatedPlate2D(hole);
+      else
+        return;
+    }
+    plate->addHole(R,X1,Y1,X2,Y2);
   }
 }
 
@@ -81,15 +105,10 @@ void ASMs2DIB::getNoIntPoints (size_t& nPt)
 
 bool ASMs2DIB::generateFEMTopology ()
 {
-  if (!myGeometry)
-  {
-    std::cerr <<" *** ASMs2DIB::generateFEMTopology: No geometry description."
-              << std::endl;
-    return false;
-  }
-
   if (!this->ASMs2D::generateFEMTopology())
     return false;
+  else if (!myGeometry)
+    return true;
 
   size_t i, e, n;
   int i1, i2, inod;
@@ -172,5 +191,8 @@ bool ASMs2DIB::generateFEMTopology ()
 bool ASMs2DIB::integrate (Integrand& integrand,
                           GlobalIntegral& glbInt, const TimeDomain& time)
 {
-  return this->ASMs2D::integrate(integrand,glbInt,time,quadPoints);
+  if (quadPoints.empty())
+    return this->ASMs2D::integrate(integrand,glbInt,time);
+  else
+    return this->ASMs2D::integrate(integrand,glbInt,time,quadPoints);
 }

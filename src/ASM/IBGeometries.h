@@ -51,10 +51,36 @@ public:
   //! \brief Creates a finite element model of the geometry for visualization.
   virtual ElementBlock* tesselate() const;
 
-private:
+protected:
   double R;  //!< Hole radius
   double Xc; //!< X-coordinate of hole center
   double Yc; //!< Y-coordinate of hole center
+};
+
+
+/*!
+  \brief Class representing a plate perforated by an oval hole.
+*/
+
+class Oval2D : public Hole2D
+{
+public:
+  //! \brief Default constructor initializing the radius and center of the hole.
+  Oval2D(double r, double x0, double y0, double x1, double y1);
+  //! \brief Empty destructor.
+  virtual ~Oval2D() {}
+
+  //! \brief Performs the inside-outside test for the perforated plate object.
+  virtual double Alpha(double X, double Y, double = 0.0) const;
+
+  //! \brief Creates a finite element model of the geometry for visualization.
+  virtual ElementBlock* tesselate() const;
+
+private:
+  double X1; //!< X-coordinate of second circle center
+  double Y1; //!< Y-coordinate of second circle center
+  double L;  //!< Length between the two circle centers
+  double D2; //!< Auxilliary parameter used by method Alpha
 };
 
 
@@ -68,12 +94,14 @@ public:
   //! \brief Default constructor.
   PerforatedPlate2D() {}
   //! \brief Constructor creating a single hole.
-  PerforatedPlate2D(const Hole2D& hole) { holes.resize(1,hole); }
-  //! \brief Empty destructor.
-  virtual ~PerforatedPlate2D() {}
+  PerforatedPlate2D(Hole2D* hole) { holes.resize(1,hole); }
+  //! \brief The destructor deletes the holes.
+  virtual ~PerforatedPlate2D();
 
   //! \brief Adds a hole to the perforated plate.
-  void addHole(double r, double x, double y) { holes.push_back(Hole2D(r,x,y)); }
+  void addHole(double r, double x, double y);
+  //! \brief Adds a hole to the perforated plate.
+  void addHole(double r, double x0, double y0, double x1, double y1);
 
   //! \brief Performs the inside-outside test for the perforated plate object.
   virtual double Alpha(double X, double Y, double = 0.0) const;
@@ -82,7 +110,7 @@ public:
   virtual ElementBlock* tesselate() const;
 
 private:
-  std::vector<Hole2D> holes; //!< The holes that perforate the plate
+  std::vector<Hole2D*> holes; //!< The holes that perforate the plate
 };
 
 #endif

@@ -38,6 +38,13 @@ public:
   //! \param[in] Xc X-coordinate of the hole centre
   //! \param[in] Yc Y-coordinate of the hole centre
   virtual void addHole(double R, double Xc, double Yc);
+  //! \brief Adds an oval hole in the physical geometry.
+  //! \param[in] R Hole radius
+  //! \param[in] X1 X-coordinate of the first circle centre
+  //! \param[in] Y1 Y-coordinate of the first circle centre
+  //! \param[in] X2 X-coordinate of the second circle centre
+  //! \param[in] Y2 Y-coordinate of the second circle centre
+  virtual void addHole(double R, double X1, double Y1, double X2, double Y2);
 
   //! \brief Returns an additional geometry to visualize (immersed boundaries).
   virtual ElementBlock* immersedGeometry() const;

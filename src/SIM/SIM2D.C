@@ -201,22 +201,35 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"immersedboundary"))
   {
-    if (myModel.size() != 1)
-    {
-      std::cerr <<" *** SIM2D::parse: Immersed boundaries is available"
-                <<" for single-patch models only."<< std::endl;
-      return false;
-    }
+    int patch = 0;
+    utl::getAttribute(elem,"patch",patch);
 
     const TiXmlElement* child = elem->FirstChildElement();
     for (; child; child = child->NextSiblingElement())
-      if (!strcasecmp(child->Value(),"Hole"))
+      if (!strcasecmp(child->Value(),"Hole") ||
+          !strcasecmp(child->Value(),"Circle"))
       {
         double R = 1.0, Xc = 0.0, Yc = 0.0;
         utl::getAttribute(child,"R",R);
         utl::getAttribute(child,"Xc",Xc);
         utl::getAttribute(child,"Yc",Yc);
-        myModel.front()->addHole(R,Xc,Yc);
+        if (patch > 0 && patch <= (int)myModel.size())
+          myModel[patch-1]->addHole(R,Xc,Yc);
+        else
+          myModel.front()->addHole(R,Xc,Yc);
+      }
+      else if (!strcasecmp(child->Value(),"Oval"))
+      {
+        double R = 1.0, X1 = 0.0, Y1 = 0.0, X2 = 0.0, Y2 = 0.0;
+        utl::getAttribute(child,"R",R);
+        utl::getAttribute(child,"X1",X1);
+        utl::getAttribute(child,"Y1",Y1);
+        utl::getAttribute(child,"X2",X2);
+        utl::getAttribute(child,"Y2",Y2);
+        if (patch > 0 && patch <= (int)myModel.size())
+          myModel[patch-1]->addHole(R,X1,Y1,X2,Y2);
+        else
+          myModel.front()->addHole(R,X1,Y1,X2,Y2);
       }
   }
 
@@ -259,19 +272,19 @@ bool SIM2D::parse (const TiXmlElement* elem)
     // Check for immersed boundary calculation.
     // This code must be placed here (and not in parseGeometryTag)
     // due to instanciation of the ASMs2DIB class.
+    int maxDepth = 0;
     const TiXmlElement* child = elem->FirstChildElement();
     for (; child; child = child->NextSiblingElement())
       if (!strcasecmp(child->Value(),"immersedboundary"))
-      {
-	nf[1] = 'I';
-	int maxDepth = 5;
-	utl::getAttribute(child,"max_depth",maxDepth);
-	std::cout <<"  Parsing <immersedboundary>\n"
-		  <<"\tMax refinement depth : "<< maxDepth << std::endl;
-	nf[2] = maxDepth;
-	// Immersed boundary cannot be combined with C1-continuous multi-patches
-	if (opt.discretization == ASM::SplineC1)
-	  opt.discretization = ASM::Spline;
+        if (utl::getAttribute(child,"max_depth",maxDepth))
+        {
+          nf[1] = 'I';
+          nf[2] = maxDepth;
+          std::cout <<"  Parsing <immersedboundary>\n"
+                    <<"\tMax refinement depth : "<< maxDepth << std::endl;
+          // Immersed boundary cannot be used with C1-continuous multi-patches
+          if (opt.discretization == ASM::SplineC1)
+            opt.discretization = ASM::Spline;
       }
   }
 

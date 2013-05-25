@@ -645,6 +645,11 @@ protected:
   bool setNeumann(const std::string& prop, const std::string& type,
 		  int ndir, int code);
 
+  //! \brief Returns a vector function associated with given patch and property.
+  //! \param[in] patch 1-based index of the patch to retrieve property for
+  //! \param[in] ptype The property type associated with the vector function
+  VecFunc* getVecFunc(size_t patch, Property::Type ptype) const;
+
   //! \brief Creates the computational FEM model from the spline patches.
   //! \param[in] resetNumb If \e true, start element and node numbers from zero
   bool createFEMmodel(bool resetNumb = true);
