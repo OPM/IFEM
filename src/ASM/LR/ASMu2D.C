@@ -1492,3 +1492,12 @@ void ASMu2D::getBoundaryNodes (int lIndex, IntVec& nodes) const
 {
   // TODO: Implement this before attempting FSI simulations with LR B-splines
 }
+
+
+bool ASMu2D::getOrder(int& p1, int& p2, int&p3) const
+{
+  p1 = geo->order(0);
+  p2 = geo->order(1);
+
+  return true;
+}

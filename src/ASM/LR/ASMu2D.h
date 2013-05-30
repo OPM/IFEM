@@ -78,6 +78,12 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
 
+  //! \brief Returns the polynomial order in each parameter direction.
+  //! \param[out] p1 Order in first (u) direction
+  //! \param[out] p2 Order in second (v) direction
+  //! \param[out] p3 Order in third (w) direction
+  virtual bool getOrder(int& p1, int& p2, int& p3) const;
+
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with
   virtual bool updateCoords(const Vector& displ);
