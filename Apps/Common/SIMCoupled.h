@@ -49,7 +49,7 @@ public:
   }
 
   //! \brief Computes the solution for the current time step.
-  bool solveStep(TimeStep& tp)
+  virtual bool solveStep(TimeStep& tp)
   {
     return S1.solveStep(tp) && S2.solveStep(tp);
   }
