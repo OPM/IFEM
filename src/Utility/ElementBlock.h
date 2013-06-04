@@ -49,6 +49,9 @@ public:
   //! \brief Defines the global number of element node \a i.
   bool setNode(size_t i, int nodeNumb);
 
+  //! \brief Adds a line element to the grid, assuming \a nen is equal to two.
+  bool addLine(Real x1, Real y1, Real z1, Real x2, Real y2, Real z2);
+
   //! \brief Assigns an external id to an element.
   void setElmId(size_t i, int iel) { MINEX[i-1] = iel; }
   //! \brief Returns the external id of an element.

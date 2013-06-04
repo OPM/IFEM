@@ -104,16 +104,19 @@ public:
   bool writeNfunc(const RealFunc& f, Real time = Real(0),
                   int idBlock = 1, int gID = 1);
   //! \brief Writes a block of point vector results to the VTF-file.
-  //! \details This method creates a separate geometry block consisting of the
-  //! attack points of the result vectors, since they are independent of the
-  //! FE geometry created by the \a writeGrid method.
   //! \param[in] pntResult A set of result vectors with associated attack points
   //! \param[in] idBlock Result block identifier
   //! \param[in] resultName Name of the result quantity
   //! \param[in] iStep Load/Time step identifier
   //! \param[in] iBlock Vector block identifier
+  //!
+  //! \details This method creates a separate geometry block consisting of the
+  //! attack points of the result vectors, since they are independent of the
+  //! FE geometry created by the \a writeGrid method.
   bool writeVectors(const std::vector<Vec3Pair>& pntResult, int idBlock = 1,
                     const char* resultName = 0, int iStep = 0, int iBlock = 1);
+  //! \brief Writes a block of points (no results) to the VTF-file.
+  bool writePoints(const std::vector<Vec3>& points);
 
   //! \brief Writes a scalar block definition to the VTF-file.
   //! \param[in] sBlockID The result block that makes up this scalar block

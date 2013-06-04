@@ -69,6 +69,7 @@ namespace Immersed //! Utilities for immersed boundary calculations
   //! of quadrature points minus 1 for element identified by the first index),
   //! third index is the coordinate/weight index (0=xi, 1=eta, 2=weight in 2D,
   //! 0=xi, 1=eta, 2=zeta, 3=weight in 3D)
+  //! \param grid Points to an \a ElementBlock plotting the added grid lines
   //!
   //! \details The element corner points are ordered according to a standard
   //! tensor-product definition of the element, i.e., the index runs fastest
@@ -80,7 +81,7 @@ namespace Immersed //! Utilities for immersed boundary calculations
   bool getQuadraturePoints(const Geometry& geo,
 			   const Real3DMat& elmCorner,
 			   int max_depth, int p,
-			   Real3DMat& quadPoints);
+			   Real3DMat& quadPoints, ElementBlock* grid = 0);
 
   //! \brief Returns the quadrature points for a 2D element.
   bool getQuadraturePoints(const Geometry& geo,
@@ -88,7 +89,7 @@ namespace Immersed //! Utilities for immersed boundary calculations
 			   double x3, double y3, double x4, double y4,
 			   int max_depth, int nGauss,
 			   RealArray& GP1, RealArray& GP2,
-			   RealArray& GPw);
+			   RealArray& GPw, ElementBlock* grid = 0);
 
   //! \brief Returns the quadrature points for a 3D element.
   bool getQuadraturePoints(const Geometry& geo,
@@ -103,6 +104,8 @@ namespace Immersed //! Utilities for immersed boundary calculations
 			   int max_depth, int nGauss,
 			   RealArray& GP1, RealArray& GP2, RealArray& GP3,
 			   RealArray& GPw);
+
+  extern bool plotCells; //!< Flags whether subcells should be plotted or not
 }
 
 #endif

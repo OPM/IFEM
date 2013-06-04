@@ -81,6 +81,20 @@ bool ElementBlock::setNode (size_t i, int nodeNumb)
 }
 
 
+bool ElementBlock::addLine (Real x1, Real y1, Real z1,
+                            Real x2, Real y2, Real z2)
+{
+  if (nen != 2) return false;
+
+  coord.push_back(Vec3(x1,y1,z1));
+  coord.push_back(Vec3(x2,y2,z2));
+  MMNPC.push_back(coord.size()-2);
+  MMNPC.push_back(coord.size()-1);
+  MINEX.push_back(MINEX.size()+1);
+  return true;
+}
+
+
 void ElementBlock::merge (const ElementBlock* other, std::vector<int>& nodeNums)
 {
   nodeNums.resize(other->coord.size());

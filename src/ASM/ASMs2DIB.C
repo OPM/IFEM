@@ -15,6 +15,7 @@
 
 #include "ASMs2DIB.h"
 #include "IBGeometries.h"
+#include "ElementBlock.h"
 #include "Vec3.h"
 
 
@@ -23,6 +24,7 @@ ASMs2DIB::ASMs2DIB (unsigned char n_s, unsigned char n_f, int max_depth)
 {
   maxDepth = max_depth;
   myGeometry = NULL;
+  myLines = NULL;
 }
 
 
@@ -30,13 +32,15 @@ ASMs2DIB::ASMs2DIB (const ASMs2DIB& patch, unsigned char n_f)
   : ASMs2D(patch,n_f)
 {
   quadPoints = patch.quadPoints;
-  myGeometry = NULL; // because we don't allow multiple patches (yet)
+  myGeometry = NULL;
+  myLines = NULL;
 }
 
 
 ASMs2DIB::~ASMs2DIB ()
 {
   delete myGeometry;
+  delete myLines;
 }
 
 
@@ -87,15 +91,29 @@ void ASMs2DIB::addHole (double R, double X1, double Y1, double X2, double Y2)
 
 ElementBlock* ASMs2DIB::immersedGeometry () const
 {
-  return myGeometry ? myGeometry->tesselate() : NULL;
+  if (!myGeometry) return NULL;
+
+  ElementBlock* geo = myGeometry->tesselate();
+  if (myLines)
+  {
+    std::vector<int> nodes;
+    geo->merge(myLines,nodes);
+  }
+
+  return geo;
 }
 
 
 void ASMs2DIB::getNoIntPoints (size_t& nPt)
 {
-  nPt = 0;
-  for (size_t e = 0; e < quadPoints.size(); e++)
-    nPt += quadPoints[e].size();
+  if (!myGeometry)
+    this->ASMbase::getNoIntPoints(nPt);
+  else
+  {
+    firstIp = nPt;
+    for (size_t e = 0; e < quadPoints.size(); e++)
+      nPt += quadPoints[e].size();
+  }
 
 #ifdef SP_DEBUG
   std::cout <<"\nTotal number of quadrature points "<< nPt << std::endl;
@@ -135,8 +153,10 @@ bool ASMs2DIB::generateFEMTopology ()
     }
 
   // Calculate coordinates and weights of the integration points
+  if (Immersed::plotCells)
+    myLines = new ElementBlock(2);
   bool ok = Immersed::getQuadraturePoints(*myGeometry,elmCorners,
-                                          maxDepth,nGauss,quadPoints);
+                                          maxDepth,nGauss,quadPoints,myLines);
 
   // Map Gauss point coordinates from bi-unit square to parameter domain (u,v)
   RealArray::const_iterator vit = surf->basis(1).begin() + p2-1;
@@ -191,7 +211,7 @@ bool ASMs2DIB::generateFEMTopology ()
 bool ASMs2DIB::integrate (Integrand& integrand,
                           GlobalIntegral& glbInt, const TimeDomain& time)
 {
-  if (quadPoints.empty())
+  if (!myGeometry)
     return this->ASMs2D::integrate(integrand,glbInt,time);
   else
     return this->ASMs2D::integrate(integrand,glbInt,time,quadPoints);
