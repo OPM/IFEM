@@ -19,8 +19,9 @@
 Oval2D::Oval2D (double r, double x0, double y0, double x1, double y1)
   : Hole2D(r,x0,y0), X1(x1), Y1(y1)
 {
-  L = sqrt((X1-Xc)*(X1-Xc) + (Y1-Yc)*(Y1-Yc));
+  double L = sqrt((X1-Xc)*(X1-Xc) + (Y1-Yc)*(Y1-Yc));
   D2 = L*L + R*R;
+  LR = L*R;
 }
 
 
@@ -52,8 +53,8 @@ double Oval2D::Alpha (double X, double Y, double) const
   if (r2 <= R*R) return 0.0;
 
   // Check if point is outside the extended rectangular domain
-  double d = fabs((X1-Xc)*(Y1-Y) - (X1-X)*(Y1-Yc));
-  if (d > L*R) return 1.0;
+  double d = (X1-Xc)*(Y1-Y) - (X1-X)*(Y1-Yc);
+  if (d > LR || d < -LR) return 1.0;
 
   // Finally, check of point is within the two end points
   return r1 <= D2 && r2 <= D2 ? 0.0 : 1.0;
@@ -80,7 +81,7 @@ ElementBlock* Hole2D::tesselate () const
   grid->unStructResize(nseg,nseg);
 
   for (i = 0; i < nseg; i++, theta += dt)
-    grid->setCoor(i,Xc+R*cos(theta),Yc+R*sin(theta),0.01);
+    grid->setCoor(i,Xc+R*cos(theta),Yc+R*sin(theta),0.001);
 
   int n[2] = { 0, 1 };
   int l, ip = 0;
@@ -105,10 +106,10 @@ ElementBlock* Oval2D::tesselate () const
   grid->unStructResize(nseg+2,nseg+2);
 
   for (i = 0; i < nseg/2; i++, theta += dt)
-    grid->setCoor(i,Xc+R*cos(theta),Yc+R*sin(theta),0.01);
-  grid->setCoor(i,Xc+R*cos(theta),Yc+R*sin(theta),0.01);
+    grid->setCoor(i,Xc+R*cos(theta),Yc+R*sin(theta),0.001);
+  grid->setCoor(i,Xc+R*cos(theta),Yc+R*sin(theta),0.001);
   for (++i; i < nseg+2; i++, theta += dt)
-    grid->setCoor(i,X1+R*cos(theta),Y1+R*sin(theta),0.01);
+    grid->setCoor(i,X1+R*cos(theta),Y1+R*sin(theta),0.001);
 
   int n[2] = { 0, 1 };
   int l, ip = 0;

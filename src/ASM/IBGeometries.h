@@ -79,8 +79,8 @@ public:
 private:
   double X1; //!< X-coordinate of second circle center
   double Y1; //!< Y-coordinate of second circle center
-  double L;  //!< Length between the two circle centers
   double D2; //!< Auxilliary parameter used by method Alpha
+  double LR; //!< Auxilliary parameter used by method Alpha
 };
 
 

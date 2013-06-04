@@ -18,24 +18,46 @@
 
 
 /*!
+  \brief A struct representing a point in 2D space.
+*/
+
+struct vertex
+{
+  double x; //! Global x-coordinate
+  double y; //! Global y-coordinate
+
+  //! \brief Default constructor.
+  vertex(double X = 0.0, double Y = 0.0) : x(X), y(Y) {}
+};
+
+//! \brief Addition of two points.
+vertex operator+ (const vertex& a, const vertex& b)
+{
+  return vertex(a.x+b.x,a.y+b.y);
+}
+
+//! \brief Scaling a point coordinate.
+vertex operator* (double a, const vertex& b)
+{
+  return vertex(a*b.x,a*b.y);
+}
+
+
+/*!
   \brief A struct representing an integration cell.
   \details This struct represents the components of each integration cell that
   are stored during refinement of one element.
-  Note that index 1 (as e.g. in MidGlob1) denotes a quantity in x or xi
-  direction, index 2 in y or eta direction.
 */
 
 struct cell
 {
-  int    depth;         //!< Depth of the current integration cell
-  double MidGlob1;      //!< x-coordinate of the cell midpoint
-  double MidGlob2;      //!< y-coordinate of the cell midpoint
-  double MidLoc1;       //!< xi-coordinate of the cell midpoint
-  double MidLoc2;       //!< eta-coordinate of the cell midpoint
-  double CellVerts1[4]; //!< x-coordinates of the cell vertices
-  double CellVerts2[4]; //!< y-coordinates of the cell vertices
+  int    depth;        //!< Depth of the current integration cell
+  double xi;           //!< xi-coordinate of the cell midpoint
+  double eta;          //!< eta-coordinate of the cell midpoint
+  vertex CellVerts[4]; //!< Global coordinates of the cell vertices
+
   //! \brief Default constructor.
-  cell() : depth(0), MidGlob1(0.0), MidGlob2(0.0), MidLoc1(0.0), MidLoc2(0.0) {}
+  cell(int level = 0) : depth(level), xi(0.0), eta(0.0) {}
 };
 
 
@@ -71,24 +93,21 @@ bool Immersed::getQuadraturePoints (const Geometry& geo,
   const double* LocGPw = GaussQuadrature::getWeight(nGauss);
   if (!LocGPxi || !LocGPw) return false;
 
-  std::vector<cell> CellSet(1); // Vector that will contain the cells
-
   // Fill initial cell of depth 0
-  CellSet[0].CellVerts1[0] = x1;
-  CellSet[0].CellVerts2[0] = y1;
-  CellSet[0].CellVerts1[1] = x2;
-  CellSet[0].CellVerts2[1] = y2;
-  CellSet[0].CellVerts1[2] = x3;
-  CellSet[0].CellVerts2[2] = y3;
-  CellSet[0].CellVerts1[3] = x4;
-  CellSet[0].CellVerts2[3] = y4;
+  cell cell0;
+  cell0.CellVerts[0] = vertex(x1,y1);
+  cell0.CellVerts[1] = vertex(x2,y2);
+  cell0.CellVerts[2] = vertex(x3,y3);
+  cell0.CellVerts[3] = vertex(x4,y4);
 
-  CellSet[0].MidGlob1 = (CellSet[0].CellVerts1[0]+CellSet[0].CellVerts1[1]) / 2.0;
-  CellSet[0].MidGlob2 = (CellSet[0].CellVerts2[0]+CellSet[0].CellVerts2[3]) / 2.0;
+  std::vector<cell> CellSet; // Vector that will contain the cells
+  CellSet.push_back(cell0);
 
   // Find length of element edges in physical space
-  double hx = CellSet[0].CellVerts1[1]-CellSet[0].CellVerts1[0];
-  double hy = CellSet[0].CellVerts2[3]-CellSet[0].CellVerts2[0];
+  double hx1 = hypot(x2-x1,y2-y1);
+  double hx2 = hypot(x3-x4,y3-y4);
+  double hy1 = hypot(x4-x1,y4-y1);
+  double hy2 = hypot(x3-x2,y3-y2);
 
   // Loop over levels
   for (int i_depth = 1; i_depth <= max_depth; i_depth++) {
@@ -96,105 +115,102 @@ bool Immersed::getQuadraturePoints (const Geometry& geo,
     // Define epsilon of current depth
     // epsilon defines the off-set from each vertex during the inside-outside test
     // The off-set prevents that the cell will be refined when the boundary touches only one vertex.
-    double eps1 = 0.001*hx/double(i_depth);
-    double eps2 = 0.001*hy/double(i_depth);
+    double epsx = 0.0005*(hx1+hx2)/double(i_depth);
+    double epsy = 0.0005*(hy1+hy2)/double(i_depth);
 
     // Loop over all cells of the current depth
     for (int i_cell = CellSet.size()-1; i_cell >= 0; i_cell--) {
+      cell& curCell = CellSet[i_cell];
 
       // Check depth
       // If the cell is not part of the current depth -> continue
-      if (CellSet[i_cell].depth != i_depth-1) continue;
+      if (curCell.depth != i_depth-1) continue;
 
       // Inside-outside test
       // Check, if vertices are all inside or all outside -> otherwise: Refine!
       int counter = 0;
-      double alpha_start = geo.Alpha(CellSet[i_cell].CellVerts1[0]+eps1,CellSet[i_cell].CellVerts2[0]+eps2);
-      if (alpha_start == geo.Alpha(CellSet[i_cell].CellVerts1[1]-eps1,CellSet[i_cell].CellVerts2[1]+eps2)) counter++;
-      if (alpha_start == geo.Alpha(CellSet[i_cell].CellVerts1[2]-eps1,CellSet[i_cell].CellVerts2[2]-eps2)) counter++;
-      if (alpha_start == geo.Alpha(CellSet[i_cell].CellVerts1[3]+eps1,CellSet[i_cell].CellVerts2[3]-eps2)) counter++;
+      double alpha_start = geo.Alpha(curCell.CellVerts[0].x+epsx,curCell.CellVerts[0].y+epsy);
+      if (alpha_start == geo.Alpha(curCell.CellVerts[1].x-epsx,curCell.CellVerts[1].y+epsy)) counter++;
+      if (alpha_start == geo.Alpha(curCell.CellVerts[2].x-epsx,curCell.CellVerts[2].y-epsy)) counter++;
+      if (alpha_start == geo.Alpha(curCell.CellVerts[3].x+epsx,curCell.CellVerts[3].y-epsy)) counter++;
       if (counter == 3) continue;
 
       // If all tests are passed, cell needs to be refined
       // Refine in the usual order (as suggested by Trond)
       double cellScale = pow(2.0,double(i_depth+1));
 
-      // First cell (push_back to vector of cells)
-      // ---------------------------------------------------------------------------
-      CellSet.push_back(CellSet[i_cell]);
-      CellSet.back().depth = i_depth;
-      CellSet.back().CellVerts1[1] = CellSet[i_cell].MidGlob1;
-      CellSet.back().CellVerts1[2] = CellSet[i_cell].MidGlob1;
-      CellSet.back().CellVerts2[2] = CellSet[i_cell].MidGlob2;
-      CellSet.back().CellVerts2[3] = CellSet[i_cell].MidGlob2;
+      // First cell
+      // ----------
+      cell cell1(i_depth);
+      cell1.CellVerts[0] = curCell.CellVerts[0];
+      cell1.CellVerts[1] = 0.50*(curCell.CellVerts[0]+curCell.CellVerts[1]);
+      cell1.CellVerts[2] = 0.25*(curCell.CellVerts[0]+curCell.CellVerts[1]+curCell.CellVerts[2]+curCell.CellVerts[3]);
+      cell1.CellVerts[3] = 0.50*(curCell.CellVerts[0]+curCell.CellVerts[3]);
 
-      CellSet.back().MidGlob1 = CellSet[i_cell].MidGlob1 - hx/cellScale;
-      CellSet.back().MidGlob2 = CellSet[i_cell].MidGlob2 - hy/cellScale;
+      cell1.xi  = curCell.xi  - 2.0/cellScale;
+      cell1.eta = curCell.eta - 2.0/cellScale;
 
-      CellSet.back().MidLoc1  = CellSet[i_cell].MidLoc1 - 2.0/cellScale;
-      CellSet.back().MidLoc2  = CellSet[i_cell].MidLoc2 - 2.0/cellScale;
+      // Second cell
+      // -----------
+      cell cell2(i_depth);
+      cell2.CellVerts[0] = cell1.CellVerts[1];
+      cell2.CellVerts[1] = curCell.CellVerts[1];
+      cell2.CellVerts[2] = 0.5*(curCell.CellVerts[1]+curCell.CellVerts[2]);
+      cell2.CellVerts[3] = cell1.CellVerts[2];
 
-      // Second cell (push_back to vector of cells)
-      // -------------------------------------------------------------------
-      CellSet.push_back(CellSet[i_cell]);
-      CellSet.back().depth = i_depth;
-      CellSet.back().CellVerts1[0] = CellSet[i_cell].MidGlob1;
-      CellSet.back().CellVerts2[2] = CellSet[i_cell].MidGlob2;
-      CellSet.back().CellVerts1[3] = CellSet[i_cell].MidGlob1;
-      CellSet.back().CellVerts2[3] = CellSet[i_cell].MidGlob2;
+      cell2.xi  = curCell.xi  + 2.0/cellScale;
+      cell2.eta = curCell.eta - 2.0/cellScale;
 
-      CellSet.back().MidGlob1 = CellSet[i_cell].MidGlob1 + hx/cellScale;
-      CellSet.back().MidGlob2 = CellSet[i_cell].MidGlob2 - hy/cellScale;
+      // Third cell
+      // ----------
+      cell cell3(i_depth);
+      cell3.CellVerts[0] = cell2.CellVerts[3];
+      cell3.CellVerts[1] = cell2.CellVerts[2];
+      cell3.CellVerts[2] = curCell.CellVerts[2];
+      cell3.CellVerts[3] = 0.5*(curCell.CellVerts[2]+curCell.CellVerts[3]);
 
-      CellSet.back().MidLoc1  = CellSet[i_cell].MidLoc1 + 2.0/cellScale;
-      CellSet.back().MidLoc2  = CellSet[i_cell].MidLoc2 - 2.0/cellScale;
-
-      // Third cell (push_back to vector of cells)
-      // --------------------------------------------------------------------------------
-      CellSet.push_back(CellSet[i_cell]);
-      CellSet.back().depth = i_depth;
-      CellSet.back().CellVerts1[0] = CellSet[i_cell].MidGlob1;
-      CellSet.back().CellVerts2[0] = CellSet[i_cell].MidGlob2;
-      CellSet.back().CellVerts2[1] = CellSet[i_cell].MidGlob2;
-      CellSet.back().CellVerts1[3] = CellSet[i_cell].MidGlob1;
-
-      CellSet.back().MidGlob1 = CellSet[i_cell].MidGlob1 + hx/cellScale;
-      CellSet.back().MidGlob2 = CellSet[i_cell].MidGlob2 + hy/cellScale;
-
-      CellSet.back().MidLoc1  = CellSet[i_cell].MidLoc1 + 2.0/cellScale;
-      CellSet.back().MidLoc2  = CellSet[i_cell].MidLoc2 + 2.0/cellScale;
+      cell3.xi  = curCell.xi  + 2.0/cellScale;
+      cell3.eta = curCell.eta + 2.0/cellScale;
 
       // Fourth cell (change data in current cell -> automatically deletes old cell)
-      // --------------------------------------------------------------------------------------
-      CellSet[i_cell].depth = i_depth;
-      CellSet[i_cell].CellVerts2[0] = CellSet[i_cell].MidGlob2;
-      CellSet[i_cell].CellVerts1[1] = CellSet[i_cell].MidGlob1;
-      CellSet[i_cell].CellVerts2[1] = CellSet[i_cell].MidGlob2;
-      CellSet[i_cell].CellVerts1[2] = CellSet[i_cell].MidGlob1;
+      // ---------------------------------------------------------------------------
+      curCell.depth = i_depth;
+      curCell.CellVerts[0] = cell1.CellVerts[3];
+      curCell.CellVerts[1] = cell3.CellVerts[0];
+      curCell.CellVerts[2] = cell3.CellVerts[3];
 
-      CellSet[i_cell].MidGlob1 = CellSet[i_cell].MidGlob1 - hx/cellScale;
-      CellSet[i_cell].MidGlob2 = CellSet[i_cell].MidGlob2 + hy/cellScale;
+      curCell.xi  = curCell.xi  - 2.0/cellScale;
+      curCell.eta = curCell.eta + 2.0/cellScale;
 
-      CellSet[i_cell].MidLoc1  = CellSet[i_cell].MidLoc1 - 2.0/cellScale;
-      CellSet[i_cell].MidLoc2  = CellSet[i_cell].MidLoc2 + 2.0/cellScale;
+      // Push-back the new cells, must do that here to not invalidate the curCell reference
+      CellSet.push_back(cell1);
+      CellSet.push_back(cell2);
+      CellSet.push_back(cell3);
     }
   }
 
   // Compute Gauss points
   // Loop over all cells
   for (size_t i_cell = 0; i_cell < CellSet.size(); i_cell++) {
-    double cellScale = pow(2.0,double(CellSet[i_cell].depth+1));
+    const cell& c = CellSet[i_cell];
+    double cellScale = pow(2.0,double(c.depth+1));
     for (int jGP = 0; jGP < nGauss; jGP++)
       for (int iGP = 0; iGP < nGauss; iGP++) {
 
 	// Compute global x,y-coordinates of current Gauss point
-	double GlobGP1 = CellSet[i_cell].MidGlob1 + LocGPxi[iGP]*hx/cellScale;
-	double GlobGP2 = CellSet[i_cell].MidGlob2 + LocGPxi[jGP]*hy/cellScale;
+	// Using the bilinear interpolation functions, N1...N4
+	double xi  = LocGPxi[iGP];
+	double eta = LocGPxi[jGP];
+	double N1  = 0.25*(1.0-xi)*(1.0-eta);
+	double N2  = 0.25*(xi+1.0)*(1.0-eta);
+	double N3  = 0.25*(1.0-xi)*(eta+1.0);
+	double N4  = 0.25*(xi+1.0)*(eta+1.0);
+	vertex Xg  = N1*c.CellVerts[0] + N2*c.CellVerts[1] + N3*c.CellVerts[2] + N4*c.CellVerts[3];
 
 	// Do inside-outside test, if Gauss point is inside -> append to list
-	if (geo.Alpha(GlobGP1,GlobGP2) > 0.0) {
-	  GP1.push_back(CellSet[i_cell].MidLoc1 + LocGPxi[iGP]*2.0/cellScale);
-	  GP2.push_back(CellSet[i_cell].MidLoc2 + LocGPxi[jGP]*2.0/cellScale);
+	if (geo.Alpha(Xg.x,Xg.y) > 0.0) {
+	  GP1.push_back(CellSet[i_cell].xi  + LocGPxi[iGP]*2.0/cellScale);
+	  GP2.push_back(CellSet[i_cell].eta + LocGPxi[jGP]*2.0/cellScale);
 	  GPw.push_back(LocGPw[iGP]*LocGPw[jGP]*4.0/(cellScale*cellScale));
 	}
       }
