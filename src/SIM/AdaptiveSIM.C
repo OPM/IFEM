@@ -195,14 +195,16 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
 
   // Assemble the linear FE equation system
   model->setMode(SIM::STATIC,true);
-  model->initSystem(iStep == 1 ? SystemMatrix::DENSE : model->opt.solver, 1, 1);
+  model->initSystem(iStep == 1 ? SystemMatrix::DENSE : model->opt.solver, 1, model->getNoRHS());
   model->setQuadratureRule(model->opt.nGauss[0],true);
   if (!model->assembleSystem())
     return false;
 
   // Solve the linear system of equations
-  if (!model->solveSystem(linsol,1))
+  if (!model->solveMatrixSystem(totalSolution,1))
     return false;
+
+  linsol = totalSolution.front();
 
   eNorm.clear();
   gNorm.clear();

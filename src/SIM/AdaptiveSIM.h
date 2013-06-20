@@ -107,6 +107,7 @@ private:
 
   size_t  adaptor; //!< Norm group to base the mesh adaption on
   Vector  linsol;  //!< Linear solution vector
+  Vectors totalSolution; //!< All solutions (galerkin projections)
   Vectors gNorm;   //!< Global norms
   Matrix  eNorm;   //!< Element norms
 
