@@ -218,6 +218,8 @@ public:
   size_t getNoResultPoints() const { return myPoints.size(); }
   //! \brief Returns the visualization dump interval.
   int getDumpInterval() const { return opt.saveInc; }
+  //! \brief Returns the number of right hand sides
+  virtual size_t getNoRHS() const { return 1; }
 
   //! \brief Returns the type (DOF classification) of the specified global node.
   char getNodeType(int inod) const;
