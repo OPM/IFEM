@@ -1607,10 +1607,10 @@ bool SIMbase::applyDirichlet (Vector& glbVec) const
 
 
 bool SIMbase::solveSystem (Vector& solution, int printSol,
-			   const char* compName, bool newLHS)
+			   const char* compName, bool newLHS, size_t rhs)
 {
   SystemMatrix* A = myEqSys->getMatrix();
-  SystemVector* b = myEqSys->getVector();
+  SystemVector* b = myEqSys->getVector(rhs);
   if (!A) std::cerr <<" *** SIMbase::solveSystem: No LHS matrix"<< std::endl;
   if (!b) std::cerr <<" *** SIMbase::solveSystem: No RHS vector"<< std::endl;
   if (!A || !b) return false;
@@ -1658,6 +1658,26 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
     this->printSolutionSummary(solution,printSol,compName);
 
   return true;
+}
+
+
+bool SIMbase::solveMatrixSystem (Vectors& solution, int printSol,
+			         const char* compName, bool newLHS)
+{
+  Vector solvec;
+  solution.clear();
+  bool result=true;
+  size_t i=0;
+  while (myEqSys->getVector(i) && result) {
+    result &= solveSystem(solvec, printSol && i == 0,
+                          compName, newLHS && i == 0, i);
+    if (result) {
+      solution.push_back(solvec);
+      i++;
+    }
+  }
+
+  return result;
 }
 
 

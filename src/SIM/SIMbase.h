@@ -294,7 +294,17 @@ public:
   //! \param[in] compName Solution name to be used in norm output
   //! \param[in] newLHS If \e false, reuse the LHS-matrix from previous call.
   bool solveSystem(Vector& solution, int printSol = 0,
-                   const char* compName = "displacement", bool newLHS = true);
+                   const char* compName = "displacement", bool newLHS = true,
+                   size_t rhs = 0);
+
+  //! \brief Solves the assembled linear system of equations for all right hand sides.
+  //! \param[out] solution Global primary solution vector
+  //! \param[in] printSol Print solution if its size is less than \a printSol
+  //! \param[in] compName Solution name to be used in norm output
+  //! \param[in] newLHS If \e false, reuse the LHS-matrix from previous call
+  bool solveMatrixSystem(Vectors& solution, int printSol = 0,
+                         const char* compName = "displacement",
+                         bool newLHS = true);
 
   //! \brief Finds the worst energy DOFs in the residual.
   //! \param[in] x Global primary solution vector
