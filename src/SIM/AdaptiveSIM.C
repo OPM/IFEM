@@ -23,30 +23,30 @@
 #include <cstdio>
 
 
-AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : model(sim)
+AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : SIMinput(*sim), model(sim)
 {
   // Default grid adaptation parameters
-  storeMesh      = false;
-  linIndepTest   = false;
-  beta           = 10.0;
-  errTol         = 1.0;
-  maxStep        = 10;
-  maxDOFs        = 1000000;
-  scheme         = 0; // fullspan
-  symmetry       = 1; // no symmetry
-  knot_mult      = 1; // maximum regularity (continuity)
-  trueBeta       = false; // beta measured in dimension increase
-  threashold     = false; // beta generates a threshold (err/max{err})
-  adaptor        = 0;
-  maxTjoints     = -1;
-  maxAspectRatio = -1.0;
-  closeGaps      = false;
+  storeMesh    = false;
+  linIndepTest = false;
+  beta         = 10.0;
+  errTol       = 1.0;
+  maxStep      = 10;
+  maxDOFs      = 1000000;
+  scheme       = 0; // fullspan
+  symmetry     = 1; // no symmetry
+  knot_mult    = 1; // maximum regularity (continuity)
+  trueBeta     = false; // beta measured in dimension increase
+  threashold   = false; // beta generates a threshold (err/max{err})
+  adaptor      = 0;
+  maxTjoints   = -1;
+  maxAspRatio  = -1.0;
+  closeGaps    = false;
 }
 
 
 AdaptiveSIM::~AdaptiveSIM ()
 {
-  if (model) delete model;
+  delete model;
 }
 
 
@@ -84,7 +84,7 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
         std::cerr <<"  ** AdaptiveSIM::parse: Unknown refinement scheme \""
                   << value <<"\" (ignored)"<< std::endl;
       utl::getAttribute(child, "maxTjoints", maxTjoints);
-      utl::getAttribute(child, "maxAspectRatio", maxAspectRatio);
+      utl::getAttribute(child, "maxAspectRatio", maxAspRatio);
       if (child->Attribute("closeGaps"))
         closeGaps = true;
     }
@@ -148,12 +148,12 @@ bool AdaptiveSIM::initAdaptor (size_t indxProj, size_t nNormProj)
   if (indxProj > 0)
     adaptor = indxProj; // override value from XML input
 
-  SIMoptions::ProjectionMap::const_iterator pit = model->opt.project.begin();
-  for (size_t j = 1; pit != model->opt.project.end(); pit++, j++)
+  SIMoptions::ProjectionMap::const_iterator pit = opt.project.begin();
+  for (size_t j = 1; pit != opt.project.end(); pit++, j++)
     if (j == adaptor) break;
 
   std::cout <<"\n\n >>> Starting adaptive simulation based on";
-  if (pit != model->opt.project.end())
+  if (pit != opt.project.end())
     std::cout <<"\n     "<< pit->second
               <<" error estimates (norm group "<< adaptor <<") <<<"<< std::endl;
   else if (model->haveAnaSol())
@@ -167,8 +167,8 @@ bool AdaptiveSIM::initAdaptor (size_t indxProj, size_t nNormProj)
     return false;
   }
 
-  if (model->opt.format >= 0)
-    prefix.reserve(model->opt.project.size());
+  if (opt.format >= 0)
+    prefix.reserve(opt.project.size());
 
   return true;
 }
@@ -179,7 +179,7 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
   std::cout <<"\nAdaptive step "<< iStep << std::endl;
   if (iStep > 1)
   {
-    SIMoptions opt = model->opt;
+    SIMoptions oldOpt(opt);
     // Re-generate the FE model after the refinement
     model->clearProperties();
     // Caution: If we are using XML-input and have specified old command-line
@@ -187,7 +187,7 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
     // those options will not be overridden here, so please don't do that..
     if (!model->read(inputfile) || !model->preprocess())
       return false;
-    model->opt = opt;
+    opt = oldOpt;
   }
   else if (storeMesh)
     // Output the initial grid to eps-file
@@ -195,31 +195,30 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
 
   // Assemble the linear FE equation system
   model->setMode(SIM::STATIC,true);
-  model->initSystem(iStep == 1 ? SystemMatrix::DENSE : model->opt.solver, 1, model->getNoRHS());
-  model->setQuadratureRule(model->opt.nGauss[0],true);
+  model->initSystem(iStep == 1 ? SystemMatrix::DENSE : opt.solver,
+                    1, model->getNoRHS());
+  model->setQuadratureRule(opt.nGauss[0],true);
   if (!model->assembleSystem())
     return false;
 
   // Solve the linear system of equations
-  if (!model->solveMatrixSystem(totalSolution,1))
+  if (!model->solveMatrixSystem(solution,1))
     return false;
-
-  linsol = totalSolution.front();
 
   eNorm.clear();
   gNorm.clear();
 
   // Project the secondary solution onto the splines basis
   model->setMode(SIM::RECOVERY);
-  SIMoptions::ProjectionMap::const_iterator pit = model->opt.project.begin();
-  for (size_t i = 0; pit != model->opt.project.end(); i++, pit++)
+  SIMoptions::ProjectionMap::const_iterator pit = opt.project.begin();
+  for (size_t i = 0; pit != opt.project.end(); i++, pit++)
   {
     Matrix ssol;
-    if (!model->project(ssol,linsol,pit->first))
+    if (!model->project(ssol,solution.front(),pit->first))
       return false;
 
     projs[i] = ssol;
-    if (iStep == 1 && model->opt.format >= 0)
+    if (iStep == 1 && opt.format >= 0)
       prefix.push_back(pit->second.c_str());
   }
 
@@ -227,9 +226,9 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
     std::cout << std::endl;
 
   // Evaluate solution norms
-  model->setQuadratureRule(model->opt.nGauss[1]);
-  return (model->solutionNorms(Vectors(1,linsol),projs,eNorm,gNorm) &&
-	  model->dumpResults(linsol,0.0,std::cout,true,6));
+  model->setQuadratureRule(opt.nGauss[1]);
+  return (model->solutionNorms(solution,projs,eNorm,gNorm) &&
+	  model->dumpResults(solution.front(),0.0,std::cout,true,6));
 }
 
 
@@ -281,7 +280,7 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   options.push_back(scheme);
   options.push_back(linIndepTest);
   options.push_back(maxTjoints);
-  options.push_back(floor(maxAspectRatio));
+  options.push_back(floor(maxAspRatio));
   options.push_back(closeGaps);
   options.push_back(trueBeta);
 
@@ -425,7 +424,7 @@ std::ostream& AdaptiveSIM::printNorms (std::ostream& os, size_t w) const
 bool AdaptiveSIM::writeGlv (const char* infile, int iStep, int& nBlock,
 			    size_t nNormProj)
 {
-  if (model->opt.format < 0) return true;
+  if (opt.format < 0) return true;
 
   // Write VTF-file with model geometry
   if (!model->writeGlvG(nBlock, iStep == 1 ? infile : 0))
@@ -440,11 +439,11 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep, int& nBlock,
     return false;
 
   // Write solution fields
-  if (!model->writeGlvS(linsol,iStep,nBlock))
+  if (!model->writeGlvS(solution.front(),iStep,nBlock))
     return false;
 
   // Write projected solution fields
-  SIMoptions::ProjectionMap::const_iterator pit = model->opt.project.begin();
+  SIMoptions::ProjectionMap::const_iterator pit = opt.project.begin();
   for (size_t i = 0; i < projs.size(); i++, pit++)
     if (!model->writeGlvP(projs[i],iStep,nBlock,100+10*i,pit->second.c_str()))
       return false;
@@ -461,11 +460,5 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep, int& nBlock,
 
 void AdaptiveSIM::setupProjections ()
 {
-  projs.resize(model->opt.project.size());
-}
-
-
-void AdaptiveSIM::setOptions (SIMoptions& opt2)
-{
-  model->opt = opt = opt2;
+  projs.resize(opt.project.size());
 }

@@ -26,7 +26,7 @@
 int SIMinput::msgLevel = 2;
 
 
-SIMinput::SIMinput (const char* heading)
+SIMinput::SIMinput (const char* heading) : opt(myOpts)
 {
 #ifdef PARALLEL_PETSC
   MPI_Comm_rank(PETSC_COMM_WORLD,&myPid);
@@ -36,6 +36,13 @@ SIMinput::SIMinput (const char* heading)
   nProc = 1;
 #endif
   if (heading) myHeading = heading;
+}
+
+
+SIMinput::SIMinput (SIMinput& anotherSIM) : opt(anotherSIM.myOpts)
+{
+  myPid = anotherSIM.myPid;
+  nProc = anotherSIM.nProc;
 }
 
 
@@ -55,7 +62,8 @@ void SIMinput::printHeading (int& subStep) const
 
 bool SIMinput::read (const char* fileName)
 {
-  this->setOptions(IFEM::getOptions());
+  opt = IFEM::getOptions();
+  inputFile = fileName;
 
 #ifdef HAS_PETSC
   // In parallel simulations, we need to retain all DOFs in the equation system.
@@ -73,9 +81,9 @@ bool SIMinput::read (const char* fileName)
   else
     result = this->readFlat(fileName);
 
+  // Let command-line options override settings on the input file
   IFEM::applyCommandLineOptions(opt);
 
-  inputFile = fileName;
   return result;
 }
 

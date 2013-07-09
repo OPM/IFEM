@@ -32,7 +32,7 @@ class AdaptiveSIM : public SIMinput
 public:
   //! \brief The constructor initializes default adaptation parameters.
   //! \param sim Pointer to the spline FE model
-  AdaptiveSIM(SIMbase* sim = 0);
+  AdaptiveSIM(SIMbase* sim = NULL);
   //! \brief The destructor frees the dynamically allocated FE model object.
   virtual ~AdaptiveSIM();
 
@@ -61,7 +61,7 @@ public:
   std::ostream& printNorms(std::ostream& os, size_t w = 36) const;
 
   //! \brief Accesses the solution of the linear system.
-  const Vector& getSolution() const { return linsol; }
+  const Vector& getSolution(size_t idx = 0) const { return solution[idx]; }
 
   //! \brief Accesses the projections.
   const Vector& getProjection(size_t idx) const { return projs[idx]; }
@@ -71,9 +71,6 @@ public:
 
   //! \brief Initializes the projections.
   void setupProjections();
-
-  //! \brief Wrapper used to handle hierarchy issues
-  virtual void setOptions(SIMoptions& opt2);
 
 protected:
   //! \brief Parses a data section from an input stream.
@@ -89,27 +86,26 @@ private:
 
   bool   storeMesh;    //!< Creates a series of eps-files for intermediate steps
   bool   linIndepTest; //!< Test mesh for linear independence after refinement
-  double beta;           //!< Refinement percentage in each step
-  double errTol;         //!< Global error stop tolerance
-  int    maxStep;        //!< Maximum number of adaptive refinements
-  int    maxDOFs;        //!< Maximum number of degrees of freedom
-  int    symmetry;       //!< Always refine a multiplum of this
-  int    knot_mult;      //!< Knotline multiplicity
-  int    maxTjoints;     //!< Maximum number of hanging nodes on one element
-  double maxAspectRatio; //!< Maximum element aspect ratio
-  bool   closeGaps;      //!< Split elements with a hanging node on each side
-  bool   trueBeta;       //!< Beta measured in dimension increase of solution space
-  bool   threashold;     //!< Beta generates a threashold error/max(error)=beta
+  double beta;         //!< Refinement percentage in each step
+  double errTol;       //!< Global error stop tolerance
+  int    maxStep;      //!< Maximum number of adaptive refinements
+  int    maxDOFs;      //!< Maximum number of degrees of freedom
+  int    symmetry;     //!< Always refine a multiplum of this
+  int    knot_mult;    //!< Knotline multiplicity
+  int    maxTjoints;   //!< Maximum number of hanging nodes on one element
+  double maxAspRatio;  //!< Maximum element aspect ratio
+  bool   closeGaps;    //!< Split elements with a hanging node on each side
+  bool   trueBeta;     //!< Beta measured in solution space dimension increase
+  bool   threashold;   //!< Beta generates a threashold error/max(error)=beta
 
   //! Refinement scheme: 0=fullspan, 1=minspan, 2=isotropic_elements,
   //! 3=isotropic_functions
   int    scheme;
 
-  size_t  adaptor; //!< Norm group to base the mesh adaption on
-  Vector  linsol;  //!< Linear solution vector
-  Vectors totalSolution; //!< All solutions (galerkin projections)
-  Vectors gNorm;   //!< Global norms
-  Matrix  eNorm;   //!< Element norms
+  size_t  adaptor;  //!< Norm group to base the mesh adaption on
+  Vectors solution; //!< All solutions (galerkin projections)
+  Vectors gNorm;    //!< Global norms
+  Matrix  eNorm;    //!< Element norms
 
   std::vector<Vector>      projs;  //!< Projected secondary solutions
   std::vector<const char*> prefix; //!< Norm prefices for VTF-output

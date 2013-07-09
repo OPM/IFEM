@@ -22,7 +22,7 @@
 #include <sstream>
 
 
-NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : model(sim), iteNorm(n)
+NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : SIMinput(sim), model(sim)
 {
 #ifndef SP_DEBUG
   msgLevel = 1;   // prints the convergence history only
@@ -33,6 +33,7 @@ NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : model(sim), iteNorm(n)
   geoBlk = nBlock = 0;
 
   // Default solution parameters
+  iteNorm = n;
   maxit   = 20;
   nupdat  = 20;
   prnSlow = 0;
@@ -43,15 +44,6 @@ NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : model(sim), iteNorm(n)
   refNorm = 1.0;
   alpha   = 1.0;
   eta     = 0.0;
-}
-
-
-bool NonLinSIM::read (const char* fileName)
-{
-  model.opt = IFEM::getOptions();
-  bool result = this->SIMinput::read(fileName);
-  IFEM::applyCommandLineOptions(model.opt);
-  return result;
 }
 
 
@@ -123,12 +115,6 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
 const char** NonLinSIM::getPrioritizedTags () const
 {
   return model.getPrioritizedTags();
-}
-
-
-void NonLinSIM::setOptions (SIMoptions& opt2)
-{ 
-  model.opt = opt = opt2;
 }
 
 
@@ -206,7 +192,7 @@ NonLinSIM::ConvStatus NonLinSIM::solveStep (TimeStep& param,
 
   bool poorConvg = false;
   bool newTangent = true;
-  model.setQuadratureRule(model.opt.nGauss[0],true);
+  model.setQuadratureRule(opt.nGauss[0],true);
   if (!model.assembleSystem(param.time,solution,newTangent))
     return model.getProblem()->diverged() ? DIVERGED : FAILURE;
 
@@ -498,8 +484,7 @@ bool NonLinSIM::saveStep (int iStep, double time,
       return false;
 
   // Write residual force vector, but only when no extra visualization points
-  if (!psolOnly && model.opt.nViz[0] == 2 &&
-      model.opt.nViz[1] <= 2 && model.opt.nViz[2] <= 2)
+  if (!psolOnly && opt.nViz[0] == 2 && opt.nViz[1] <= 2 && opt.nViz[2] <= 2)
     if (!model.writeGlvV(residual,"Residual forces",iStep,nBlock))
       return false;
 

@@ -28,6 +28,8 @@ class SIMinput
 protected:
   //! \brief The constructor initializes \a myPid, \a nProc and \a myHeading.
   SIMinput(const char* heading = NULL);
+  //! \brief Constructor using control parameters from another SIMinput object.
+  SIMinput(SIMinput& anotherSIM);
 
 public:
   //! \brief Empty destructor.
@@ -35,9 +37,6 @@ public:
 
   //! \brief Reads model data from the specified input file \a *fileName.
   virtual bool read(const char* fileName);
-
-  //! \brief Wrapper used to handle hierarchy issues.
-  virtual void setOptions(SIMoptions& opt2) { opt = opt2; }
 
 private:
   //! \brief Reads a flat text input file.
@@ -72,7 +71,10 @@ protected:
 
 public:
   static int msgLevel; //!< Controls the amount of console output during solving
-  SIMoptions opt;      //!< Simulation control parameters
+  SIMoptions& opt;     //!< Simulation control parameters
+
+private:
+  SIMoptions myOpts; //!< The actual control parameters owned by this simulator
 
 protected:
   int myPid; //!< Processor ID in parallel simulations

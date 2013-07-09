@@ -96,7 +96,7 @@ public:
   //! \param[in] psolOnly If \e true, skip secondary solution field output
   //! \param[in] vecName Optional name of primary solution vector field
   virtual bool saveStep(int iStep, double time,
-			bool psolOnly = false, const char* vecName = 0);
+			bool psolOnly = false, const char* vecName = NULL);
 
   //! \brief Dumps the primary solution for inspection.
   //! \param[in] iStep Load/time step identifier
@@ -125,9 +125,6 @@ protected:
   virtual bool lineSearch(TimeStep& param);
 
 public:
-  //! \brief Reads model data from the specified input file \a *fileName.
-  virtual bool read(const char* fileName);
-
   //! \brief Parses a data section from an input stream.
   //! \param[in] keyWord Keyword of current data section to read
   //! \param is The file stream to read from
@@ -139,9 +136,6 @@ public:
 
   //! \brief Returns a list of prioritized XML-tags.
   virtual const char** getPrioritizedTags() const;
-
-  //! \brief Wrapper used to handle hierarchy issues.
-  virtual void setOptions(SIMoptions& opt2);
 
 protected:
   SIMbase& model;    //!< The isogeometric FE model
