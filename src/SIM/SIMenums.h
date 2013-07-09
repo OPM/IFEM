@@ -18,12 +18,12 @@
 namespace SIM //! Simulation scope
 {
   //! \brief Enum defining various solution formulations that may occur.
-  //! \details Used as a bit field - power of two values only
+  //! \details Used as a bit field - power of two values only.
   enum Formulation
   {
-    NONE       = 0,
-    LINEAR     = 1,
-    NONLINEAR  = 2
+    NONE      = 0,
+    LINEAR    = 1,
+    NONLINEAR = 2
   };
 
   //! \brief Enum defining the various solution modes that may occur.
@@ -38,6 +38,16 @@ namespace SIM //! Simulation scope
     MASS_ONLY,
     RHS_ONLY,
     RECOVERY
+  };
+
+  //! \brief Enum defining the various convergence statuses that amy occur.
+  enum ConvStatus
+  {
+    FAILURE,
+    OK,
+    SLOW,
+    CONVERGED,
+    DIVERGED
   };
 }
 

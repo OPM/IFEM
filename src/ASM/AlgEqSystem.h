@@ -71,6 +71,9 @@ public:
   //! \param[in] elmId Global number of the element associated with \a *elmObj
   virtual bool assemble(const LocalIntegral* elmObj, int elmId);
 
+  //! \brief Returns the number of right-hand-side vectors allocated.
+  size_t getNoRHS() const { return b.size(); }
+
   //! \brief Returns the \a i'th matrix of the equation system.
   SystemMatrix* getMatrix(size_t i = 0) { return i < A.size() ? A[i]._A : 0; }
   //! \brief Returns the \a i'th right-hand-side vector of the equation system.

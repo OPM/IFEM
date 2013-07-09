@@ -27,8 +27,8 @@ bool Immersed::plotCells = false;
 
 struct vertex
 {
-  double x; //! Global x-coordinate
-  double y; //! Global y-coordinate
+  double x; //!< Global x-coordinate
+  double y; //!< Global y-coordinate
 
   //! \brief Default constructor.
   vertex(double X = 0.0, double Y = 0.0) : x(X), y(Y) {}

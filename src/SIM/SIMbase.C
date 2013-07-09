@@ -1293,6 +1293,12 @@ bool SIMbase::setMode (int mode, bool resetSol)
 }
 
 
+void SIMbase::setIntegrationPrm (int id, double prm)
+{
+  myProblem->setIntegrationPrm(id,prm);
+}
+
+
 void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers)
 {
   nIntGP = nBouGP = 0;
@@ -1488,7 +1494,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
   {
     if (msgLevel > 1)
       std::cout <<"\n\nProcessing integrand associated with code "<< it->first
-		<< std::endl;
+                << std::endl;
 
     GlobalIntegral& sysQ = it->second->getGlobalInt(myEqSys);
     if (&sysQ != myEqSys) sysQ.initialize(newLHSmatrix);
@@ -1503,7 +1509,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
     {
       for (p = myProps.begin(); p != myProps.end() && ok; p++)
         if (p->pcode == Property::MATERIAL &&
-	    (it->first == 0 || it->first == p->pindx))
+            (it->first == 0 || it->first == p->pindx))
           if ((j = p->patch) < 1 || j > myModel.size())
           {
             std::cerr <<" *** SIMbase::assembleSystem: Patch index "<< j
@@ -1543,7 +1549,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
     if (it->second->hasBoundaryTerms() && myEqSys->getVector())
       for (p = myProps.begin(); p != myProps.end() && ok; p++)
         if ((p->pcode == Property::NEUMANN && it->first == 0) ||
-	    (p->pcode == Property::NEUMANN_GENERIC && it->first == p->pindx))
+            (p->pcode == Property::NEUMANN_GENERIC && it->first == p->pindx))
           if ((j = p->patch) < 1 || j > myModel.size())
           {
             std::cerr <<" *** SIMbase::assembleSystem: Patch index "<< j
@@ -1576,7 +1582,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
               ok &= myModel[j-1]->integrateEdge(*it->second,p->lindx,sysQ,time);
               lp = j;
             }
-	    else
+            else
               ok = false;
 
     if (ok) ok = this->assembleDiscreteTerms(it->second);
@@ -1607,10 +1613,10 @@ bool SIMbase::applyDirichlet (Vector& glbVec) const
 
 
 bool SIMbase::solveSystem (Vector& solution, int printSol,
-			   const char* compName, bool newLHS, size_t rhs)
+                           const char* compName, bool newLHS, size_t idxRHS)
 {
   SystemMatrix* A = myEqSys->getMatrix();
-  SystemVector* b = myEqSys->getVector(rhs);
+  SystemVector* b = myEqSys->getVector(idxRHS);
   if (!A) std::cerr <<" *** SIMbase::solveSystem: No LHS matrix"<< std::endl;
   if (!b) std::cerr <<" *** SIMbase::solveSystem: No RHS vector"<< std::endl;
   if (!A || !b) return false;
@@ -1662,22 +1668,16 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
 
 
 bool SIMbase::solveMatrixSystem (Vectors& solution, int printSol,
-			         const char* compName, bool newLHS)
+                                 const char* compName)
 {
-  Vector solvec;
-  solution.clear();
-  bool result=true;
-  size_t i=0;
-  while (myEqSys->getVector(i) && result) {
-    result &= solveSystem(solvec, printSol && i == 0,
-                          compName, newLHS && i == 0, i);
-    if (result) {
-      solution.push_back(solvec);
-      i++;
-    }
-  }
+  solution.resize(myEqSys->getNoRHS());
+  for (size_t i = 0; i < solution.size(); i++)
+    if (!this->solveSystem(solution[i],printSol,compName,i==0,i))
+      return false;
+    else
+      printSol = 0; // Print summary only for the first solution
 
-  return result;
+  return true;
 }
 
 

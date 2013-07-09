@@ -182,6 +182,9 @@ public:
   //! \param[in] resetSol If \e true, the internal solution vectors are cleared
   bool setMode(int mode, bool resetSol = false);
 
+  //! \brief Defines an integration parameter for the integrand.
+  void setIntegrationPrm(int id, double prm);
+
   //! \brief Defines the spatial numerical integration scheme to use.
   //! \param[in] ng Number of Gauss points in each parameter direction
   //! \param[in] redimBuffers Toggle initialization of internal buffer arrays
@@ -218,7 +221,7 @@ public:
   size_t getNoResultPoints() const { return myPoints.size(); }
   //! \brief Returns the visualization dump interval.
   int getDumpInterval() const { return opt.saveInc; }
-  //! \brief Returns the number of right hand sides
+  //! \brief Returns the number of right-hand-sides.
   virtual size_t getNoRHS() const { return 1; }
 
   //! \brief Returns the type (DOF classification) of the specified global node.
@@ -295,18 +298,17 @@ public:
   //! \param[in] printSol Print solution if its size is less than \a printSol
   //! \param[in] compName Solution name to be used in norm output
   //! \param[in] newLHS If \e false, reuse the LHS-matrix from previous call.
+  //! \param[in] idxRHS Index to the right-hand-side vector to solve for
   bool solveSystem(Vector& solution, int printSol = 0,
                    const char* compName = "displacement", bool newLHS = true,
-                   size_t rhs = 0);
+                   size_t idxRHS = 0);
 
-  //! \brief Solves the assembled linear system of equations for all right hand sides.
+  //! \brief Solves a linear system of equations with multiple right-hand-sides.
   //! \param[out] solution Global primary solution vector
   //! \param[in] printSol Print solution if its size is less than \a printSol
   //! \param[in] compName Solution name to be used in norm output
-  //! \param[in] newLHS If \e false, reuse the LHS-matrix from previous call
   bool solveMatrixSystem(Vectors& solution, int printSol = 0,
-                         const char* compName = "displacement",
-                         bool newLHS = true);
+                         const char* compName = "displacement");
 
   //! \brief Finds the worst energy DOFs in the residual.
   //! \param[in] x Global primary solution vector
