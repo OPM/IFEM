@@ -32,6 +32,7 @@ class SAM;
 class AlgEqSystem;
 class LinSolParams;
 class TimeStep;
+class SystemVector;
 
 //! Property code to integrand map
 typedef std::multimap<int,IntegrandBase*> IntegrandMap;
@@ -754,6 +755,11 @@ public:
   //! \param[in] isp The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read
   virtual ASMbase* readPatch(std::istream& isp, int pchInd) const = 0;
+
+  //! \brief Returns current system light-hand-side vector.
+  SystemVector* getRHSvector(size_t idx = 0, bool copy = false) const;
+  //! \brief Adds a system vector to the given right-hand-side vector.
+  void addToRHSvector(size_t idx, const SystemVector& vec, double scale = 1.0);
 
 protected:
   //! \brief Initializes material properties for integration of interior terms.

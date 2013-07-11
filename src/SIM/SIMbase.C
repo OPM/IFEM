@@ -1792,6 +1792,22 @@ Vec3 SIMbase::getNodeCoord (int inod) const
 }
 
 
+SystemVector* SIMbase::getRHSvector (size_t idx, bool copy) const
+{
+  SystemVector* rhs = myEqSys->getVector(idx);
+  return rhs && copy ? rhs->copy() : rhs;
+}
+
+
+void SIMbase::addToRHSvector (size_t idx, const SystemVector& vec, double scale)
+{
+  SystemVector* rhs = myEqSys->getVector(idx);
+  if (!rhs || scale == 0.0) return;
+
+  rhs->add(vec,scale);
+}
+
+
 void SIMbase::iterationNorms (const Vector& u, const Vector& r,
 			      double& eNorm, double& rNorm, double& dNorm) const
 {
