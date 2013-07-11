@@ -23,16 +23,8 @@
 enum { iD, iV, iA, nSOL };
 
 
-NewmarkSIM::NewmarkSIM (SIMbase& sim) : SIMinput(sim), model(sim)
+NewmarkSIM::NewmarkSIM (SIMbase& sim) : MultiStepSIM(sim)
 {
-#ifndef SP_DEBUG
-  msgLevel = 1;   // prints the convergence history only
-#elif SP_DEBUG > 2
-  msgLevel = 100; // prints the linear solution vector if its size is < 100
-#endif
-
-  geoBlk = nBlock = 0;
-
   // Default Newmark parameters
   beta = 0.25;
   gamma = 0.5;
@@ -77,6 +69,26 @@ bool NewmarkSIM::parse (const TiXmlElement* elem)
         predictor = 'a';
 
   return true;
+}
+
+
+void NewmarkSIM::printProblem (std::ostream& os) const
+{
+  model.printProblem(os);
+  if (myPid > 0) return;
+
+  os <<"Newmark predictor/multicorrector: beta="<< beta <<" gamma="<< gamma;
+  switch (predictor) {
+  case 'd': os <<"\n- using constant displacement predictor"; break;
+  case 'v': os <<"\n- using constant velocity predictor"; break;
+  case 'a': os <<"\n- using zero acceleration predictor"; break;
+  }
+
+  if (alpha1 > 0.0)
+    os<<"\nMass-proportional damping (alpha1): "<< alpha1;
+  if (alpha2 > 0.0)
+    os<<"\nStiffness-proportional damping (alpha2): "<< alpha2;
+  os <<"\n"<< std::endl;
 }
 
 
@@ -144,7 +156,7 @@ bool NewmarkSIM::predictStep (TimeStep& param)
 }
 
 
-bool NewmarkSIM::correctStep (TimeStep& param)
+bool NewmarkSIM::correctStep (TimeStep& param, bool)
 {
   const double dt = param.time.dt;
 
@@ -190,6 +202,8 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param,
   if (!model.assembleSystem(param.time,solution))
     return SIM::FAILURE;
 
+  this->finalizeRHSvector();
+
   if (!model.extractLoadVec(residual))
     return SIM::FAILURE;
 
@@ -200,7 +214,7 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param,
     switch (this->checkConvergence(param))
       {
       case SIM::CONVERGED:
-        if (!this->correctStep(param))
+        if (!this->correctStep(param,true))
           return SIM::FAILURE;
 
         if (!this->solutionNorms(zero_tolerance,outPrec))
@@ -222,6 +236,8 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param,
 
         if (!model.assembleSystem(param.time,solution))
           return SIM::FAILURE;
+
+        this->finalizeRHSvector();
 
         if (!model.extractLoadVec(residual))
           return SIM::FAILURE;
@@ -284,12 +300,16 @@ bool NewmarkSIM::solutionNorms (double zero_tolerance, std::streamsize outPrec)
 {
   if (msgLevel < 0 || solution.size() < nSOL) return true;
 
+  // Cannot use the enums here because this method is inherited
+  size_t a = solution.size()-1;
+  size_t v = solution.size()-2;
+
   size_t d, nf = model.getNoFields(1);
   size_t iMax[nf], jMax[nf], kMax[nf];
   double dMax[nf], vMax[nf], aMax[nf];
-  double disL2 = model.solutionNorms(solution[iD],dMax,iMax);
-  double velL2 = model.solutionNorms(solution[iV],vMax,jMax);
-  double accL2 = model.solutionNorms(solution[iA],aMax,kMax);
+  double disL2 = model.solutionNorms(solution[0],dMax,iMax);
+  double velL2 = model.solutionNorms(solution[v],vMax,jMax);
+  double accL2 = model.solutionNorms(solution[a],aMax,kMax);
 
   if (myPid > 0) return true;
 
@@ -320,51 +340,4 @@ bool NewmarkSIM::solutionNorms (double zero_tolerance, std::streamsize outPrec)
   if (stdPrec > 0) std::cout.precision(stdPrec);
 
   return true;
-}
-
-
-bool NewmarkSIM::saveModel (char* fileName)
-{
-  PROFILE1("NewmarkSIM::saveModel");
-
-  geoBlk = nBlock = 0; // initialize the VTF block counters
-
-  // Write VTF-file with model geometry
-  if (!model.writeGlvG(geoBlk,fileName))
-    return false;
-
-  // Write Dirichlet boundary conditions
-  return model.writeGlvBC(nBlock);
-}
-
-
-bool NewmarkSIM::saveStep (int iStep, double time,
-                           bool psolOnly, const char* vecName)
-{
-  PROFILE1("NewmarkSIM::saveStep");
-
-  if (!model.setMode(SIM::RECOVERY))
-    return false;
-
-  // Write boundary tractions, if any
-  if (!psolOnly)
-    if (!model.writeGlvT(iStep,nBlock))
-      return false;
-
-  // Write residual force vector, but only when no extra visualization points
-  if (!psolOnly && opt.nViz[0] == 2 && opt.nViz[1] <= 2 && opt.nViz[2] <= 2)
-    if (!model.writeGlvV(residual,"Residual forces",iStep,nBlock))
-      return false;
-
-  // Write solution fields
-  if (!solution.empty())
-    if (!model.writeGlvS(solution.front(),iStep,nBlock,time,psolOnly,vecName))
-      return false;
-
-  // Write any problem-specific data (rigid body transformations, etc.)
-  if (!model.writeGlvA(nBlock,iStep))
-    return false;
-
-  // Write time step information
-  return model.writeGlvStep(iStep,time);
 }

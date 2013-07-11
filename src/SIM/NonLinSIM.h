@@ -14,11 +14,9 @@
 #ifndef _NONLIN_SIM_H
 #define _NONLIN_SIM_H
 
-#include "SIMinput.h"
+#include "MultiStepSIM.h"
 #include "SIMenums.h"
-#include "MatVec.h"
 
-class SIMbase;
 class TimeStep;
 class TimeDomain;
 
@@ -30,11 +28,9 @@ class TimeDomain;
   Newton-Raphson iterations.
 */
 
-class NonLinSIM : public SIMinput
+class NonLinSIM : public MultiStepSIM
 {
 public:
-  //! \brief Convergence status enum.
-  enum ConvStatus { FAILURE, OK, SLOW, CONVERGED, DIVERGED };
   //! \brief Enum describing the norm used for convergence checks.
   enum CNORM { NONE, L2, ENERGY };
   //! \brief Enum describing reference norm options.
@@ -62,9 +58,10 @@ public:
   virtual bool advanceStep(TimeStep& param, bool updateTime = true);
 
   //! \brief Solves the nonlinear equations by Newton-Raphson iterations.
-  //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
+  //! \param[in] zero_toler Truncate norm values smaller than this to zero
   //! \param[in] outPrec Number of digits after the decimal point in norm print
-  ConvStatus solve(double zero_tolerance = 1.0e-8, std::streamsize outPrec = 0);
+  SIM::ConvStatus solve(double zero_toler = 1.0e-8,
+                        std::streamsize outPrec = 0);
 
   //! \brief Solves the nonlinear equations by Newton-Raphson iterations.
   //! \param param Time stepping parameters
@@ -72,9 +69,11 @@ public:
   //! \param[in] energyNorm If \e true, integrate energy norm of the solution
   //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
   //! \param[in] outPrec Number of digits after the decimal point in norm print
-  ConvStatus solveStep(TimeStep& param, SIM::SolutionMode mode = SIM::STATIC,
-                       bool energyNorm = false, double zero_tolerance = 1.0e-8,
-                       std::streamsize outPrec = 0);
+  SIM::ConvStatus solveStep(TimeStep& param,
+                            SIM::SolutionMode mode = SIM::STATIC,
+                            bool energyNorm = false,
+                            double zero_tolerance = 1.0e-8,
+                            std::streamsize outPrec = 0);
 
   //! \brief Computes and prints some solution norm quantities.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
@@ -86,39 +85,9 @@ public:
 			     double zero_tolerance = 1.0e-8,
 			     std::streamsize outPrec = 0);
 
-  //! \brief Opens a new VTF-file and writes the model geometry to it.
-  //! \param[in] fileName File name used to construct the VTF-file name from
-  bool saveModel(char* fileName);
-
-  //! \brief Saves the converged results to VTF file of a given load/time step.
-  //! \param[in] iStep Load/time step identifier
-  //! \param[in] time Current time/load parameter
-  //! \param[in] psolOnly If \e true, skip secondary solution field output
-  //! \param[in] vecName Optional name of primary solution vector field
-  virtual bool saveStep(int iStep, double time,
-			bool psolOnly = false, const char* vecName = NULL);
-
-  //! \brief Dumps the primary solution for inspection.
-  //! \param[in] iStep Load/time step identifier
-  //! \param[in] time Current time/load parameter
-  //! \param[in] os The output stream to write the solution to
-  //! \param[in] withID If \e true, write node ID and coordinates too
-  void dumpStep(int iStep, double time, std::ostream& os,
-		bool withID = true) const;
-
-  //! \brief Dumps solution variables at user-defined points.
-  //! \param[in] time Current time/load parameter
-  //! \param[in] os The output stream to write the solution to
-  //! \param[in] precision Number of digits after the decimal point
-  void dumpResults(double time, std::ostream& os,
-                   std::streamsize precision = 3) const;
-
-  //! \brief Returns a const reference to current solution vector.
-  const Vector& getSolution(int i = 0) const { return solution[i]; }
-
 protected:
   //! \brief Checks whether the nonlinear iterations have converged or diverged.
-  virtual ConvStatus checkConvergence(TimeStep& param);
+  virtual SIM::ConvStatus checkConvergence(TimeStep& param);
   //! \brief Updates configuration variables (solution vector) in an iteration.
   virtual bool updateConfiguration(TimeStep& param);
   //! \brief Performs line search to accelerate convergence.
@@ -134,16 +103,7 @@ public:
   //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);
 
-  //! \brief Returns a list of prioritized XML-tags.
-  virtual const char** getPrioritizedTags() const;
-
 protected:
-  SIMbase& model;    //!< The isogeometric FE model
-  Vectors  solution; //!< Primary solution vectors of the last increments
-  Vector   linsol;   //!< Linear solution vector
-  Vector   residual; //!< Residual force vector
-
-  // Nonlinear solution algorithm parameters
   CNORM  iteNorm; //!< The norm type used to measure the residual
   NormOp refNopt; //!< Reference norm option
   double refNorm; //!< Reference norm value used in convergence checks
@@ -156,11 +116,6 @@ protected:
   int    maxit;   //!< Maximum number of iterations in a time/load step
   int    nupdat;  //!< Number of iterations with updated tangent
   int    prnSlow; //!< How many DOFs to print out on slow convergence
-
-  // Post-processing attributes
-  int    geoBlk; //!< Running VTF geometry block counter
-  int    nBlock; //!< Running VTF result block counter
-  Matrix eNorm;  //!< Element norm values
 };
 
 #endif
