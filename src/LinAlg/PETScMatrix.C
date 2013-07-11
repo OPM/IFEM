@@ -49,14 +49,10 @@ PETScVector::PETScVector(size_t n)
 
 PETScVector::PETScVector(const Real* values, size_t n)
 {
-  PetscScalar *x_array;
-
   VecCreate(PETSC_COMM_WORLD,&x);
   VecSetSizes(x,n,PETSC_DETERMINE);
   VecSetFromOptions(x);
-  VecGetArray(x,&x_array);
-  *x_array = *values;
-  VecRestoreArray(x,&x_array);
+  this->restore(values);
   LinAlgInit::increfs();
 }
 
@@ -71,7 +67,6 @@ PETScVector::PETScVector(const PETScVector& vec)
 
 PETScVector::~PETScVector()
 {
-  // Deallocation of vector
   VecDestroy(&x);
   LinAlgInit::decrefs();
 }
@@ -109,7 +104,8 @@ const Real* PETScVector::getRef() const
 
 void PETScVector::restore(const Real* ptr)
 {
-  PetscScalar* pptr = (PetscScalar*) ptr;
+  PetscScalar* pptr = (PetscScalar*)ptr;
+
   VecRestoreArray(x,&pptr);
 }
 
@@ -167,7 +163,7 @@ Real PETScVector::Linfnorm() const
 }
 
 
-PETScMatrix::PETScMatrix(const LinSolParams& spar) : solParams(spar)
+PETScMatrix::PETScMatrix (const LinSolParams& spar) : solParams(spar)
 {
   // Create matrix object, by default the matrix type is AIJ
   MatCreate(PETSC_COMM_WORLD,&A);
@@ -228,13 +224,18 @@ PETScMatrix::~PETScMatrix ()
 }
 
 
-static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
+/*!
+  \brief This is a C++ version of the F77 subroutine ADDEM2 (SAM library).
+  \details It performs exactly the same tasks, except that \a NRHS always is 1.
+  and that the system matrix \a SM here is an object of the PETScMatrix class.
+  \note This function does not account for multi-point constraint equations.
+*/
+
+static bool assemPETSc (const Matrix& eM, Mat SM, PETScVector* SV,
                         const std::vector<int>& meen, const int* meqn,
-                        const int* mpmceq, const int* mmceq, const Real* ttcc)
+                        const int* mpmceq, const Real* ttcc)
 {
-  Real   c0;
   size_t i, j;
-  int    jp, jceq;
 
   // Number of degrees of freedom for element
   size_t nedof = meen.size();
@@ -242,51 +243,49 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
   // Convert meen to 0-based C array
   PetscInt* l2g = new PetscInt[nedof];
   for (i = 0; i < nedof; i++)
-    l2g[i] = meqn[meen[i]-1]-1;
+    l2g[i] = meqn[meen[i]-1] - 1;
 
-  // Cast to non-constant Matrix to modify for Dirichlet BCs
-  Matrix& A = const_cast<Matrix&>(eM);
+  // Make a (transposed) copy of eM to modify for Dirichlet BCs
+  Matrix A(eM,true);
 
-  std::vector<Real> uc(nedof), bc(nedof);
-
+  // Get vector of prescribed degrees of freedom for this element
   bool rhsMod = false;
-  for (j = 1;j <= nedof;j++) {
-    uc[j-1] = bc[j-1] = 0.0;
-    jceq = mpmceq[meen[j-1]-1];
-    if (jceq < 1) continue;
-
-    jp = jceq-1;
-    c0 = ttcc[jp];
-
-    if (c0 != 0.0) {
-      uc[j-1] = -c0;
-      rhsMod = true;
+  Vector uc(SV ? nedof : 0), bc;
+  for (j = 1; j <= uc.size(); j++) {
+    int jceq = mpmceq[meen[j-1]-1];
+    if (mpmceq[meen[j-1]] > jceq+1) {
+      std::cerr <<" *** assemPETSc: Multi-point constraints are not supported."
+                << std::endl;
+      return false;
     }
+    else if (jceq > 0)
+      if ((uc(j) = -ttcc[jceq-1]) != Real(0))
+	rhsMod = true;
   }
 
+  // Multiply element matrix with prescribed values to get the RHS-contributions
   if (rhsMod)
-    A.multiply(uc,bc);
+    eM.multiply(uc,bc);
 
-  // Eliminate constrained dofs from element matrix
-  for (j = 1;j <= nedof;j++) {
-    jceq = mpmceq[meen[j-1]-1];
-    if (jceq < 1) continue;
+  // Eliminate constrained degrees of freedom from element matrix
+  for (j = 1; j <= nedof; j++)
+    if (mpmceq[meen[j-1]-1] > 0) {
+      for (i = 1; i <= nedof; i++)
+        A(i,j) = A(j,i) = Real(0);
+      A(j,j) = Real(1);
 
-    bc[j-1] = -uc[j-1];
-    for (i = 1;i <= nedof;i++)
-      A(i,j) = A(j,i) = 0.0;
-    A(j,j) = 1.0;
-  }
+      if (rhsMod)
+        bc(j) = -uc(j);
+    }
 
-  // Add contributions to SV (righthand side)
-  VecSetValues(SV.getVector(),nedof,l2g,&(bc.front()),ADD_VALUES);
+  if (rhsMod) // Add contributions to right-hand side vector (SV)
+    VecSetValues(SV->getVector(),nedof,l2g,bc.ptr(),ADD_VALUES);
 
   // Add element stiffness matrix to global matrix
-  A.transpose();
   MatSetValues(SM,nedof,l2g,nedof,l2g,A.ptr(),ADD_VALUES);
-  A.transpose();
 
   delete[] l2g;
+  return true;
 }
 
 
@@ -294,7 +293,7 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
    It used to be within an #ifndef HAS_PETSC but since the whole file content
    is within an #ifdef HAS_PETSC it will never be in action.
    SO PLEASE DELETE IT, UNLESS THERE IS SOMETHING HERE I'VE MISSED....
-static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
+static void assemPETSc (const Matrix& eM, Mat SM, PETScVector* SV,
 			const std::vector<int>& meen, const int* meqn,
 			const int* mpmceq, const int* mmceq, const Real* ttcc)
 {
@@ -303,8 +302,9 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
   int    ieq, jeq, ip, jp, iceq, jceq;
 
   // Get C array
-  PetscScalar* svec;
-  VecGetArray(SV.getVector(),&svec);
+  PetscScalar* svec = NULL;
+  if (SV && SV->dim() > 0)
+    VecGetArray(SV->getVector(),&svec);
 
   // Number of degrees of freedom for element
   size_t nedof = meen.size();
@@ -312,15 +312,11 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
   // Convert meen to 0-based C array
   PetscInt* l2g = new PetscInt[nedof];
   for (i = 0; i < nedof; i++)
-    l2g[i] = meen[i]-1;
-
-  // Cast to non-constant Matrix
-  Matrix& A = const_cast<Matrix&>(eM);
+    l2g[i] = meqn[meen[i]-1] - 1;
 
   // Add element stiffness matrix to global matrix
-  A.transpose();
-  MatSetValues(SM,nedof,l2g,nedof,l2g,eM.ptr(),ADD_VALUES);
-  A.transpose();
+  Matrix A(eM,true); // A = eM^t
+  MatSetValues(SM,nedof,l2g,nedof,l2g,A.ptr(),ADD_VALUES);
 
   // Add (appropriately weighted) elements corresponding to constrained
   // (dependent and prescribed) dofs in eM into SM and/or SV
@@ -331,8 +327,8 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
     jp = mpmceq[jceq-1];
     c0 = ttcc[jp-1];
 
-    // Add contributions to SV (righthand side)
-    if (SV.dim() > 0)
+    // Add contributions to right-hand side vector (SV)
+    if (svec)
       for (i = 1; i <= nedof; i++) {
 	ieq  = meen[i-1];
 	iceq = -ieq;
@@ -372,72 +368,13 @@ static void assemPETSc (const Matrix& eM, Mat SM, PETScVector& SV,
   }
 
   // Restore vector values
-  VecRestoreArray(SV.getVector(),&svec);
+  if (svec)
+    VecRestoreArray(SV->getVector(),&svec);
 
   // Deallocate memory for l2g mapping
   delete [] l2g;
 }
 */
-
-
-static void assemPETSc (const Matrix& eM, Mat SM,
-			const std::vector<int>& meen, const int* meqn,
-			const int* mpmceq, const int* mmceq, const Real* ttcc)
-{
-  size_t i, j;
-  int    ieq, jeq, ip, jp, iceq, jceq;
-
-  // Number of degrees of freedom for element
-  size_t nedof = meen.size();
-
-  // Convert meen to 0-based C array
-  PetscInt* l2g = new PetscInt[nedof];
-  for (i = 0; i < nedof; i++)
-    l2g[i] = meen[i]-1;
-
-  // Cast to non-constant Matrix
-  Matrix& A = const_cast<Matrix&>(eM);
-
-  // Add element stiffness matrix to global matrix
-  A.transpose();
-  MatSetValues(SM,nedof,l2g,nedof,l2g,eM.ptr(),ADD_VALUES);
-  A.transpose();
-
-  // Add (appropriately weighted) elements corresponding to constrained
-  // (dependent and prescribed) dofs in eM into SM
-  for (j = 1; j <= nedof; j++) {
-    jceq = -meen[j-1];
-    if (jceq < 1) continue;
-
-    jp = mpmceq[jceq-1];
-
-    // Add contributions to SM
-    for (jp = mpmceq[jceq-1]; jp < mpmceq[jceq]-1; jp++) {
-      std::cout << "jp = " << jp << std::endl;
-      if (mmceq[jp] > 0) {
-	jeq = meqn[mmceq[jp]-1];
-	for (i = 1; i <= nedof; i++) {
-	  ieq = meen[i-1];
-	  iceq = -ieq;
-	  if (ieq > 0) {
-	      MatSetValue(SM,ieq-1,jeq-1,ttcc[jp]*eM(i,j),ADD_VALUES);
-	      MatSetValue(SM,jeq-1,ieq-1,ttcc[jp]*eM(j,i),ADD_VALUES);
-	  }
-	  else if (iceq > 0)
-	    for (ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ip++)
-	      if (mmceq[ip] > 0) {
-		ieq = meqn[mmceq[ip]-1];
-		MatSetValue(SM,ieq-1,jeq-1,ttcc[ip]*ttcc[jp]*eM(i,j),ADD_VALUES);
-	      }
-	}
-      }
-    }
-  }
-
-  // Deallocate memory for l2g mapping
-  delete [] l2g;
-}
-
 
 void PETScMatrix::initAssembly (const SAM& sam, bool)
 {
@@ -477,8 +414,8 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
   if (sam.getNoDofCouplings(ifirst,ilast,d_nnz,o_nnz))
   {
     size_t i;
-    PetscIntVec d_Nnz(d_nnz.size());
-    PetscIntVec o_Nnz(o_nnz.size());
+    Petscstd::vector<int> d_Nnz(d_nnz.size());
+    Petscstd::vector<int> o_Nnz(o_nnz.size());
     for (i = 0; i < d_nnz.size(); i++)
       d_Nnz[i] = d_nnz[i];
     for (i = 0; i < o_nnz.size(); i++)
@@ -558,8 +495,7 @@ bool PETScMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
     return false;
 
   // Assemble local stiffness matrix into global system.
-  assemPETSc(eM,A,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
-  return true;
+  return assemPETSc(eM,A,NULL,meen,sam.meqn,sam.mpmceq,sam.ttcc);
 }
 
 
@@ -577,8 +513,7 @@ bool PETScMatrix::assemble (const Matrix& eM, const SAM& sam,
     return false;
 
   // Assemble local stiffness matrix into global system.
-  assemPETSc(eM,A,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
-  return true;
+  return assemPETSc(eM,A,Bptr,meen,sam.meqn,sam.mpmceq,sam.ttcc);
 }
 
 
@@ -597,8 +532,6 @@ bool PETScMatrix::multiply (const SystemVector& B, SystemVector& C)
 
 bool PETScMatrix::solve (SystemVector& B, bool newLHS)
 {
-  Mat AebeI;
-
   const PETScVector* Bptr = dynamic_cast<PETScVector*>(&B);
   if (!Bptr)
     return false;
@@ -607,16 +540,13 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
   VecDuplicate(Bptr->getVector(),&x);
   VecCopy(Bptr->getVector(),x);
 
-  // Has lefthand side changed?
-  if (!strncasecmp(solParams.getPreconditioner(),"mat",3)) {
-    if (!this->makeEBEpreconditioner(A,&AebeI))
-      return false;
+  Mat AebeI;
+  if (strncasecmp(solParams.getPreconditioner(),"mat",3))
+    KSPSetOperators(ksp,A,A, newLHS ? SAME_NONZERO_PATTERN:SAME_PRECONDITIONER);
+  else if (this->makeEBEpreconditioner(A,&AebeI))
     KSPSetOperators(ksp,A,AebeI,SAME_NONZERO_PATTERN);
-  }
-  else if (newLHS)
-    KSPSetOperators(ksp,A,A,SAME_NONZERO_PATTERN);
   else
-    KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
+    return false;
 
   if (setParams) {
     solParams.setParams(ksp,locSubdDofs,subdDofs);
@@ -624,14 +554,14 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
   }
   KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
   KSPSolve(ksp,x,Bptr->getVector());
+  VecDestroy(&x);
+  if (ISsize > 0)
+    MatDestroy(&AebeI);
 
   PetscInt its;
   KSPGetIterationNumber(ksp,&its);
-  PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getMethod(),its);
-  VecDestroy(&x);
-
-  if (ISsize > 0)
-    MatDestroy(&AebeI);
+  PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",
+              solParams.getMethod(),its);
 
   return true;
 }
@@ -639,19 +569,15 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
 
 bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
 {
-  SystemVector* Bp = const_cast<SystemVector*>(&b);
-  PETScVector* Bptr = dynamic_cast<PETScVector*>(Bp);
+  const PETScVector* Bptr = dynamic_cast<const PETScVector*>(&b);
   if (!Bptr)
     return false;
+
   PETScVector* Xptr = dynamic_cast<PETScVector*>(&x);
   if (!Xptr)
     return false;
 
-  // Has lefthand side changed?
-  if (newLHS)
-    KSPSetOperators(ksp,A,A,SAME_NONZERO_PATTERN);
-  else
-    KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
+  KSPSetOperators(ksp,A,A, newLHS ? SAME_NONZERO_PATTERN : SAME_PRECONDITIONER);
 
   if (setParams) {
     solParams.setParams(ksp,locSubdDofs,subdDofs);
@@ -662,7 +588,8 @@ bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
 
   PetscInt its;
   KSPGetIterationNumber(ksp,&its);
-  PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getMethod(),its);
+  PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",
+              solParams.getMethod(),its);
 
   return true;
 }
@@ -682,11 +609,8 @@ bool PETScMatrix::solve (SystemVector& B, SystemMatrix& P, bool newLHS)
   VecDuplicate(Bptr->getVector(),&x);
   VecCopy(Bptr->getVector(),x);
 
-  // Has lefthand side changed?
-  if (newLHS)
-    KSPSetOperators(ksp,A,Pptr->getMatrix(),SAME_NONZERO_PATTERN);
-  else
-    KSPSetOperators(ksp,A,Pptr->getMatrix(),SAME_PRECONDITIONER);
+  KSPSetOperators(ksp,A,Pptr->getMatrix(),
+                  newLHS ? SAME_NONZERO_PATTERN : SAME_PRECONDITIONER);
 
   if (setParams) {
     solParams.setParams(ksp,locSubdDofs,subdDofs);
@@ -694,14 +618,16 @@ bool PETScMatrix::solve (SystemVector& B, SystemMatrix& P, bool newLHS)
   }
   KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
   KSPSolve(ksp,x,Bptr->getVector());
+  VecDestroy(&x);
 
   PetscInt its;
   KSPGetIterationNumber(ksp,&its);
-  PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getMethod(),its);
-  VecDestroy(&x);
+  PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",
+              solParams.getMethod(),its);
 
   return true;
 }
+
 
 bool PETScMatrix::solveEig (PETScMatrix& B, RealArray& val,
 			    Matrix& vec, int nv, Real shift, int iop)

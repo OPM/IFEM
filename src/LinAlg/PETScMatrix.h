@@ -89,6 +89,9 @@ public:
   //! \brief Multiplication with a scalar.
   virtual void mult(Real alpha);
 
+  //! \brief Addition of another system vector.
+  virtual void add(const SystemVector& vec, double s) {} // add this later...
+
   //! \brief L1-norm of vector.
   virtual Real L1norm() const;
 

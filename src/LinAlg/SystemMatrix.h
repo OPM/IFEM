@@ -76,11 +76,6 @@ public:
   //! \brief Initializes the vector assuming it is properly dimensioned.
   virtual void init(Real value = Real(0)) = 0;
 
-  //! \brief Initializes the element assembly process.
-  //! \details Must be called once before the element assembly loop.
-  //! \param[in] sam Auxiliary data describing the FE model topology, etc.
-  virtual void initAssembly(const SAM& sam) {};
-
   //! \brief Copies entries from input vector \b x into \a *this.
   SystemVector& copy(const SystemVector& x);
 
@@ -91,6 +86,9 @@ public:
 
   //! \brief Multiplication with a scalar.
   virtual void mult(Real) = 0;
+
+  //! \brief Addition of another system vector to this one.
+  virtual void add(const SystemVector& vec, Real scale = Real(1)) = 0;
 
   //! \brief L1-norm of the vector.
   virtual Real L1norm() const = 0;
@@ -162,13 +160,12 @@ public:
   //! \brief Initializes the vector to a given scalar value.
   virtual void init(Real value = Real(0)) { this->fill(value); }
 
-  //! \brief Begins communication step needed in parallel vector assembly.
-  virtual bool beginAssembly() { return true; }
-  //! \brief Ends communication step needed in parallel vector assembly.
-  virtual bool endAssembly() { return true; }
-
   //! \brief Multiplication with a scalar.
   virtual void mult(Real alpha) { this->operator*=(alpha); }
+
+  //! \brief Addition of another system vector to this one.
+  virtual void add(const SystemVector& vec, Real scale)
+  { this->utl::vector<Real>::add(static_cast<const StdVector&>(vec),scale); }
 
   //! \brief L1-norm of the vector.
   virtual Real L1norm() const { return this->asum(); }
@@ -201,7 +198,8 @@ class SystemMatrix
 {
 public:
   //! \brief The available system matrix formats.
-  enum Type { DENSE = 0, SPR = 1, SPARSE = 2, SAMG = 3, PETSC = 4, PETSCBLOCK = 5 };
+  enum Type { DENSE = 0, SPR = 1, SPARSE = 2, SAMG = 3,
+              PETSC = 4, PETSCBLOCK = 5 };
 
   //! \brief Static method creating a matrix of the given type.
   static SystemMatrix* create(Type matrixType, int num_thread_SLU = 1);
@@ -293,7 +291,7 @@ public:
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param b Right-hand-side vector on input, solution vector on output
   //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
-  virtual bool solve(SystemVector& b, bool newLHS = true) { return false; }
+  virtual bool solve(SystemVector& b, bool newLHS = true) = 0;
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param[in] b Right-hand-side vector
@@ -303,24 +301,6 @@ public:
   {
     return this->solve(x.copy(b),newLHS);
   }
-  //! \brief Solves the linear system of equations for a given right-hand-side.
-  //! \param b Right-hand-side vector on input, solution vector on output
-  //! \param P Preconditioning matrix (if different than system matrix)
-  //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
-  virtual bool solve(SystemVector& b, SystemMatrix& P, bool newLHS = true)
-  {
-    return false;
-  }
-  //! \brief Solves the linear system of equations for a given right-hand-side.
-  //! \param b Right-hand-side vector on input, solution vector on output
-  //! \param P Preconditioning matrix (if different than system matrix)
-  //! \param Pb Diagonal scaling
-  //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
-  virtual bool solve(SystemVector& b, SystemMatrix& P, SystemVector& Pb, bool newLHS = true)
-  {
-    return false;
-  }
-  
 
   //! \brief Returns the L-infinity norm of the matrix.
   virtual Real Linfnorm() const = 0;

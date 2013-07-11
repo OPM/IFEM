@@ -323,7 +323,7 @@ bool DenseMatrix::assemble (const Matrix& eM, const SAM& sam,
   assemDense(eM,myMat,*Bptr,meen,sam.meqn,sam.mpmceq,sam.mmceq,sam.ttcc);
   return true;
 #else
-  return false;
+  return this->SystemMatrix::assemble(eM,sam,B,meen); // for error message
 #endif
 }
 

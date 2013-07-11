@@ -18,24 +18,24 @@
 #ifdef HAS_PETSC
 #include "PETScMatrix.h"
 #include "PETScBlockMatrix.h"
-#endif
 #include "LinSolParams.h"
+#endif
 
 
 SystemVector* SystemVector::create (Type vectorType)
 {
   switch (vectorType)
     {
-    case STD        : return new StdVector();
+    case STD   : return new StdVector();
 #ifdef HAS_PETSC
-      case PETSC      : return new PETScVector();
+    case PETSC : return new PETScVector();
 #endif
     default:
       std::cerr <<"SystemVector::create: Unsupported vector type "
-		<< vectorType << std::endl;
+                << vectorType << std::endl;
     }
 
-  return 0;
+  return NULL;
 }
 
 
@@ -73,11 +73,10 @@ SystemMatrix* SystemMatrix::create (Type matrixType, const LinSolParams& spar)
     if (spar.getNoBlocks() > 1)
       return new PETScBlockMatrix(spar.getComponents(),spar);
     else
-    return new PETScMatrix(spar);
+      return new PETScMatrix(spar);
   }
-  else if (matrixType == PETSCBLOCK) {
+  else if (matrixType == PETSCBLOCK)
     return new PETScBlockMatrix(spar);
-  }
 #endif
 
   return SystemMatrix::create(matrixType);
@@ -89,7 +88,7 @@ SystemMatrix* SystemMatrix::create (Type matrixType, int num_thread_SLU)
 #ifndef HAS_PETSC
   if (matrixType == PETSC || matrixType == PETSCBLOCK) {
     std::cerr <<"SystemMatrix::create: PETSc not compiled in, bailing out..."
-	      << std::endl;
+              << std::endl;
     exit(1);
   }
 #endif
@@ -116,7 +115,7 @@ SystemMatrix* SystemMatrix::create (Type matrixType, int num_thread_SLU)
 #endif
     default:
       std::cerr <<"SystemMatrix::create: Unsupported matrix type "
-		<< matrixType << std::endl;
+                << matrixType << std::endl;
     }
 
   return 0;
