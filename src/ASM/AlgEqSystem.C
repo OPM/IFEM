@@ -14,7 +14,6 @@
 #include "AlgEqSystem.h"
 #include "ElmMats.h"
 #include "SAM.h"
-#include "LinSolParams.h"
 
 
 bool AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
@@ -58,13 +57,14 @@ bool AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
     if (!b[i]) return false;
   }
 
-  if (A.size() == 1 && b.size() == 1)
-    return sam.initForAssembly(*b.front(), withReactions ? &R : NULL);
+  bool ok = true;
+  if (A.size() == 1 && !b.empty())
+    ok = sam.initForAssembly(*b.front(), withReactions ? &R : NULL);
 
   for (i = 0; i < b.size(); i++)
     b[i]->redim(sam.getNoEquations());
 
-  return true;
+  return ok;
 }
 
 
@@ -115,8 +115,9 @@ bool AlgEqSystem::assemble (const LocalIntegral* elmObj, int elmId)
   const ElmMats* elMat = dynamic_cast<const ElmMats*>(elmObj);
   if (!elMat) return false;
 
+  size_t i;
   bool status = true;
-  if (A.size() == 1 && b.size() == 1)
+  if (A.size() == 1 && !b.empty())
   {
     // The algebraic system consists of one system matrix and one RHS-vector.
     // Extract the element-level Newton matrix and associated RHS-vector for
@@ -130,10 +131,13 @@ bool AlgEqSystem::assemble (const LocalIntegral* elmObj, int elmId)
       else // we want both the LHS system matrix and the RHS system vector
 	status = sam.assembleSystem(*A.front()._A, *b.front(),
 				    elMat->getNewtonMatrix(), elmId, reac);
+
+    // Assembly of additional system right-hand-side vectors
+    for (i = 1; i < b.size() && i < elMat->b.size() && status; i++)
+      status = sam.assembleSystem(*b[i], elMat->b[i], elmId);
   }
   else
   {
-    size_t i;
 #if SP_DEBUG > 2
     if (elMat->withLHS && !elMat->rhsOnly)
       for (i = 0; i < elMat->A.size() && i < A.size(); i++)
