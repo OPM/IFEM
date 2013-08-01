@@ -105,7 +105,7 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
 }
 
 
-void NonLinSIM::init (size_t nSol, const RealArray& initVal)
+void NonLinSIM::init (size_t nSol)
 {
   size_t nSols = model.getNoSolutions();
   if (nSols > nSol) nSol = nSols;
@@ -113,14 +113,12 @@ void NonLinSIM::init (size_t nSol, const RealArray& initVal)
 
   for (size_t n = 0; n < nSol; n++)
     solution[n].resize(model.getNoDOFs(),true);
-
-  // Set initial conditions for time-dependent problems
-  this->setInitialGuess(initVal);
 }
 
 
-void NonLinSIM::setInitialGuess (const RealArray& value)
+void NonLinSIM::init (size_t nSol, const RealArray& value)
 {
+  this->init(nSol);
   if (value.empty() || solution.empty())
     return;
 
@@ -145,12 +143,11 @@ bool NonLinSIM::advanceStep (TimeStep& param, bool updateTime)
 ConvStatus NonLinSIM::solve (double zero_tolerance, std::streamsize outPrec)
 {
   TimeStep singleStep; // Solves the nonlinear equations in one single step
-  return this->solveStep(singleStep,STATIC,false,zero_tolerance,outPrec);
+  return this->solveStep(singleStep,STATIC,zero_tolerance,outPrec);
 }
 
 
-ConvStatus NonLinSIM::solveStep (TimeStep& param,
-                                 SolutionMode mode, bool energyNorm,
+ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
                                  double zero_tolerance, std::streamsize outPrec)
 {
   PROFILE1("NonLinSIM::solveStep");
@@ -194,7 +191,7 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param,
 	if (!this->updateConfiguration(param))
 	  return FAILURE;
 
-	if (!this->solutionNorms(param.time,energyNorm,zero_tolerance,outPrec))
+	if (!this->solutionNorms(param.time,zero_tolerance,outPrec))
 	  return FAILURE;
 
 	param.time.first = false;
@@ -401,7 +398,7 @@ bool NonLinSIM::updateConfiguration (TimeStep&)
 }
 
 
-bool NonLinSIM::solutionNorms (const TimeDomain& time, bool,
+bool NonLinSIM::solutionNorms (const TimeDomain& time,
                                double zero_tolerance, std::streamsize outPrec)
 {
   if (msgLevel < 0 || solution.empty()) return true;

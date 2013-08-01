@@ -58,7 +58,7 @@ bool NewmarkNLSIM::parse (const TiXmlElement* elem)
 }
 
 
-void NewmarkNLSIM::init ()
+void NewmarkNLSIM::init (size_t)
 {
   model.setIntegrationPrm(0,alpha1);
   model.setIntegrationPrm(1,alpha2);

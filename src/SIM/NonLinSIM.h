@@ -15,9 +15,7 @@
 #define _NONLIN_SIM_H
 
 #include "MultiStepSIM.h"
-#include "SIMenums.h"
 
-class TimeStep;
 class TimeDomain;
 
 
@@ -45,12 +43,12 @@ public:
 
   //! \brief Initializes the primary solution vectors.
   //! \param[in] nSol Number of consequtive solutions stored
-  //! \param[in] initVal Initial values of the primary solution
-  virtual void init(size_t nSol = 2, const RealArray& initVal = RealArray());
+  virtual void init(size_t nSol = 2);
 
-  //! \brief Sets the initial guess in the Newton-Raphson iterations.
-  //! \param[in] value Initial values of the primary solution
-  void setInitialGuess(const RealArray& value);
+  //! \brief Initializes the primary solution vectors.
+  //! \param[in] nSol Number of consequtive solutions stored
+  //! \param[in] initVal Initial values of the primary solution
+  void init(size_t nSol, const RealArray& initVal);
 
   //! \brief Advances the time/load step one step forward.
   //! \param param Time stepping parameters
@@ -66,24 +64,20 @@ public:
   //! \brief Solves the nonlinear equations by Newton-Raphson iterations.
   //! \param param Time stepping parameters
   //! \param[in] mode Solution mode to use for this step
-  //! \param[in] energyNorm If \e true, integrate energy norm of the solution
   //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
   //! \param[in] outPrec Number of digits after the decimal point in norm print
-  SIM::ConvStatus solveStep(TimeStep& param,
-                            SIM::SolutionMode mode = SIM::STATIC,
-                            bool energyNorm = false,
-                            double zero_tolerance = 1.0e-8,
-                            std::streamsize outPrec = 0);
+  virtual SIM::ConvStatus solveStep(TimeStep& param,
+                                    SIM::SolutionMode mode = SIM::STATIC,
+                                    double zero_tolerance = 1.0e-8,
+                                    std::streamsize outPrec = 0);
 
   //! \brief Computes and prints some solution norm quantities.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
-  //! \param[in] energyNorm If \e true, integrate energy norm of the solution
   //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
   //! \param[in] outPrec Number of digits after the decimal point in norm print
   virtual bool solutionNorms(const TimeDomain& time,
-			     bool energyNorm = false,
-			     double zero_tolerance = 1.0e-8,
-			     std::streamsize outPrec = 0);
+                             double zero_tolerance = 1.0e-8,
+                             std::streamsize outPrec = 0);
 
 protected:
   //! \brief Checks whether the nonlinear iterations have converged or diverged.

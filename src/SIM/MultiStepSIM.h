@@ -15,9 +15,11 @@
 #define _MULTI_STEP_SIM_H
 
 #include "SIMinput.h"
+#include "SIMenums.h"
 #include "MatVec.h"
 
 class SIMbase;
+class TimeStep;
 
 
 /*!
@@ -26,15 +28,38 @@ class SIMbase;
 
 class MultiStepSIM : public SIMinput
 {
-public:
+protected:
   //! \brief The constructor initializes the FE model reference.
   //! \param sim The FE model
   MultiStepSIM(SIMbase& sim);
+
+public:
   //! \brief Empty destructor.
   virtual ~MultiStepSIM() {}
 
+  //! \brief Prints out problem-specific data to the given stream.
+  virtual void printProblem(std::ostream& os) const;
+
   //! \brief Returns a list of prioritized XML-tags.
   virtual const char** getPrioritizedTags() const;
+
+  //! \brief Initializes primary solution vectors.
+  //! \param[in] nSol Number of consequtive solutions stored
+  virtual void init(size_t nSol = 1) = 0;
+
+  //! \brief Advances the time step one step forward.
+  //! \param param Time stepping parameters
+  //! \param[in] updateTime If \e false, the time parameters are not incremented
+  virtual bool advanceStep(TimeStep& param, bool updateTime = true) = 0;
+
+  //! \brief Solves the FE equations at current time/load step.
+  //! \param param Time stepping parameters
+  //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
+  //! \param[in] outPrec Number of digits after the decimal point in norm print
+  virtual SIM::ConvStatus solveStep(TimeStep& param,
+                                    SIM::SolutionMode = SIM::STATIC,
+                                    double zero_tolerance = 1.0e-8,
+                                    std::streamsize outPrec = 0) = 0;
 
   //! \brief Opens a new VTF-file and writes the model geometry to it.
   //! \param[in] fileName File name used to construct the VTF-file name from

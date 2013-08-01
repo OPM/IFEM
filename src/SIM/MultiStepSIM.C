@@ -13,7 +13,6 @@
 
 #include "MultiStepSIM.h"
 #include "SIMbase.h"
-#include "SIMenums.h"
 #include "Profiler.h"
 
 
@@ -26,6 +25,12 @@ MultiStepSIM::MultiStepSIM (SIMbase& sim) : SIMinput(sim), model(sim)
 #endif
 
   geoBlk = nBlock = 0;
+}
+
+
+void MultiStepSIM::printProblem (std::ostream& os) const
+{
+  model.printProblem(os);
 }
 
 

@@ -61,11 +61,13 @@ protected:
   //! \brief Returns a list of prioritized XML-tags.
   virtual const char** getPrioritizedTags() const { return NULL; }
 
+public:
   //! \brief Parses a data section from an input stream.
   virtual bool parse(char* keyWord, std::istream& is) = 0;
   //! \brief Parses a data section from an XML element.
   virtual bool parse(const TiXmlElement* elem) = 0;
 
+protected:
   //! \brief Prints the heading of this (sub-step) solver, if any, to std::cout.
   void printHeading(int& supStep) const;
 

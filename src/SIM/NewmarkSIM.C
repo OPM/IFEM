@@ -92,7 +92,7 @@ void NewmarkSIM::printProblem (std::ostream& os) const
 }
 
 
-void NewmarkSIM::init ()
+void NewmarkSIM::init (size_t)
 {
   model.setIntegrationPrm(0,alpha1);
   model.setIntegrationPrm(1,alpha2);
@@ -173,7 +173,7 @@ bool NewmarkSIM::correctStep (TimeStep& param, bool)
 }
 
 
-SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param,
+SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
                                        double zero_tolerance,
                                        std::streamsize outPrec)
 {

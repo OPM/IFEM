@@ -37,7 +37,8 @@ public:
   virtual bool parse(const TiXmlElement* elem);
 
   //! \brief Initializes primary solution vectors and integration parameters.
-  virtual void init();
+  //! \param[in] nSol Number of consequtive solutions stored
+  virtual void init(size_t nSol = 3);
 
   //! \brief Advances the time step one step forward.
   //! \param param Time stepping parameters
@@ -54,7 +55,6 @@ protected:
 
 private:
   SystemVector* Finert; //!< Actual inertia forces in last converged time step
-
 };
 
 #endif

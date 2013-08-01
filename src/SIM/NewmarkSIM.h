@@ -15,9 +15,6 @@
 #define _NEWMARK_SIM_H
 
 #include "MultiStepSIM.h"
-#include "SIMenums.h"
-
-class TimeStep;
 
 
 /*!
@@ -43,7 +40,8 @@ public:
   virtual void printProblem(std::ostream& os) const;
 
   //! \brief Initializes primary solution vectors and integration parameters.
-  virtual void init();
+  //! \param[in] nSol Number of consequtive solutions stored
+  virtual void init(size_t nSol = 3);
 
   //! \brief Advances the time step one step forward.
   //! \param param Time stepping parameters
@@ -54,16 +52,18 @@ public:
   //! \param param Time stepping parameters
   //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
   //! \param[in] outPrec Number of digits after the decimal point in norm print
-  SIM::ConvStatus solveStep(TimeStep& param, double zero_tolerance = 1.0e-8,
-                            std::streamsize outPrec = 0);
+  virtual SIM::ConvStatus solveStep(TimeStep& param,
+                                    SIM::SolutionMode = SIM::STATIC,
+                                    double zero_tolerance = 1.0e-8,
+                                    std::streamsize outPrec = 0);
 
+protected:
   //! \brief Computes and prints some solution norm quantities.
   //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
   //! \param[in] outPrec Number of digits after the decimal point in norm print
   virtual bool solutionNorms(double zero_tolerance = 1.0e-8,
                              std::streamsize outPrec = 0);
 
-protected:
   //! \brief Checks whether the corrector iterations have converged or diverged.
   SIM::ConvStatus checkConvergence(TimeStep& param);
   //! \brief Calculates predicted velocities and accelerations.
