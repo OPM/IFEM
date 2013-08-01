@@ -24,6 +24,9 @@ MultiStepSIM::MultiStepSIM (SIMbase& sim) : SIMinput(sim), model(sim)
   msgLevel = 100; // prints the linear solution vector if its size is < 100
 #endif
 
+  refNopt = MAX;
+  refNorm = 1.0;
+
   geoBlk = nBlock = 0;
 }
 
@@ -37,6 +40,12 @@ void MultiStepSIM::printProblem (std::ostream& os) const
 const char** MultiStepSIM::getPrioritizedTags () const
 {
   return model.getPrioritizedTags();
+}
+
+
+bool MultiStepSIM::initEqSystem (bool withRF)
+{
+  return model.initSystem(opt.solver,1,1,withRF);
 }
 
 

@@ -33,8 +33,6 @@ NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : MultiStepSIM(sim), iteNorm(n)
   rTol    = 0.000001;
   aTol    = 0.0;
   divgLim = 10.0;
-  refNopt = MAX;
-  refNorm = 1.0;
   alpha   = 1.0;
   eta     = 0.0;
 }
@@ -98,7 +96,7 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
       if (!strcasecmp(value,"all"))
         refNopt = ALL;
       else if (!strcasecmp(value,"max"))
-       refNopt = MAX;
+        refNopt = MAX;
     }
 
   return true;
@@ -303,6 +301,7 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
   if (iteNorm == NONE)
     return CONVERGED; // No iterations, we are solving a linear problem
 
+  static double convTol   = 0.0;
   static double prevNorm  = 0.0;
   static int    nIncrease = 0;
 

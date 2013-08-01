@@ -37,7 +37,6 @@ NewmarkSIM::NewmarkSIM (SIMbase& sim) : MultiStepSIM(sim)
   maxit   = 20;
   convTol = 0.000001;
   divgLim = 10.0;
-  refNorm = 1.0;
 }
 
 
@@ -60,13 +59,22 @@ bool NewmarkSIM::parse (const TiXmlElement* elem)
       convTol = atof(value);
     else if ((value = utl::getValue(child,"dtol")))
       divgLim = atof(value);
+    else if ((value = utl::getValue(child,"referencenorm")))
+    {
+      if (!strcasecmp(value,"all"))
+        refNopt = ALL;
+      else if (!strcasecmp(value,"max"))
+        refNopt = MAX;
+    }
     else if ((value = utl::getValue(child,"predictor")))
+    {
       if (!strncasecmp(value,"constant dis",12))
         predictor = 'd';
       else if (!strncasecmp(value,"constant vel",12))
         predictor = 'v';
       else if (!strncasecmp(value,"zero acc",8))
         predictor = 'a';
+    }
 
   return true;
 }
@@ -264,8 +272,9 @@ SIM::ConvStatus NewmarkSIM::checkConvergence (TimeStep& param)
     norm = resNorm / refNorm;
   else
   {
-    refNorm = fabs(resNorm);
-    prevNorm = 1.0;
+    if (refNopt == ALL || fabs(resNorm) > refNorm)
+      refNorm = fabs(resNorm);
+    prevNorm  = 1.0;
     nIncrease = 0;
   }
 

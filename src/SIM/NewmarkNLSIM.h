@@ -40,6 +40,10 @@ public:
   //! \param[in] nSol Number of consequtive solutions stored
   virtual void init(size_t nSol = 3);
 
+  //! \brief Allocates the FE system matrices.
+  //! \param[in] withRF Whether nodal reaction forces should be computed or not
+  virtual bool initEqSystem(bool withRF = true);
+
   //! \brief Advances the time step one step forward.
   //! \param param Time stepping parameters
   //! \param[in] updateTime If \e false, the time parameters are not incremented

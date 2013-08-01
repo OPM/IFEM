@@ -53,6 +53,13 @@ bool NewmarkNLSIM::parse (const TiXmlElement* elem)
       convTol = atof(value);
     else if ((value = utl::getValue(child,"dtol")))
       divgLim = atof(value);
+    else if ((value = utl::getValue(child,"referencenorm")))
+    {
+      if (!strcasecmp(value,"all"))
+        refNopt = ALL;
+      else if (!strcasecmp(value,"max"))
+        refNopt = MAX;
+    }
 
   return true;
 }
@@ -67,6 +74,12 @@ void NewmarkNLSIM::init (size_t)
   solution.resize(nSOL);
   for (Vectors::iterator it = solution.begin(); it != solution.end(); ++it)
     it->resize(model.getNoDOFs(),true);
+}
+
+
+bool NewmarkNLSIM::initEqSystem (bool withRF)
+{
+  return model.initSystem(opt.solver,1,2,withRF);
 }
 
 

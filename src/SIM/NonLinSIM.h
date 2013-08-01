@@ -31,8 +31,6 @@ class NonLinSIM : public MultiStepSIM
 public:
   //! \brief Enum describing the norm used for convergence checks.
   enum CNORM { NONE, L2, ENERGY };
-  //! \brief Enum describing reference norm options.
-  enum NormOp { MAX, ALL };
 
   //! \brief The constructor initializes default solution parameters.
   //! \param sim Pointer to the spline FE model
@@ -99,9 +97,6 @@ public:
 
 protected:
   CNORM  iteNorm; //!< The norm type used to measure the residual
-  NormOp refNopt; //!< Reference norm option
-  double refNorm; //!< Reference norm value used in convergence checks
-  double convTol; //!< Convergence tolerance
   double rTol;    //!< Relative convergence tolerance
   double aTol;    //!< Absolute convergence tolerance
   double divgLim; //!< Relative divergence limit

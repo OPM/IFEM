@@ -85,7 +85,6 @@ protected:
   int    maxit;     //!< Maximum number of iterations in a time step
   double convTol;   //!< Convergence tolerance
   double divgLim;   //!< Relative divergence limit
-  double refNorm;   //!< Reference norm value used in convergence checks
 };
 
 #endif

@@ -29,6 +29,9 @@ class TimeStep;
 class MultiStepSIM : public SIMinput
 {
 protected:
+  //! \brief Enum describing reference norm options.
+  enum NormOp { MAX, ALL };
+
   //! \brief The constructor initializes the FE model reference.
   //! \param sim The FE model
   MultiStepSIM(SIMbase& sim);
@@ -43,9 +46,13 @@ public:
   //! \brief Returns a list of prioritized XML-tags.
   virtual const char** getPrioritizedTags() const;
 
-  //! \brief Initializes primary solution vectors.
+  //! \brief Initializes primary solution vectors and integration parameters.
   //! \param[in] nSol Number of consequtive solutions stored
   virtual void init(size_t nSol = 1) = 0;
+
+  //! \brief Allocates the FE system matrices.
+  //! \param[in] withRF Whether nodal reaction forces should be computed or not
+  virtual bool initEqSystem(bool withRF = true);
 
   //! \brief Advances the time step one step forward.
   //! \param param Time stepping parameters
@@ -97,6 +104,9 @@ protected:
   Vector   residual; //!< Residual force vector
   Vector   linsol;   //!< Linear solution vector
   Vectors  solution; //!< Primary solution vectors
+
+  NormOp refNopt; //!< Reference norm option
+  double refNorm; //!< Reference norm value used in convergence checks
 
   int geoBlk; //!< Running VTF geometry block counter
   int nBlock; //!< Running VTF result block counter
