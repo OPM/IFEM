@@ -26,7 +26,8 @@ typedef int PetscInt; //!< To avoid compilation failures
 
 class LinSolParams;
 
-typedef std::vector<PetscInt>    PetscIntVec; //!< PETSc integer vector
+typedef std::vector<PetscInt> PetscIntVec;   //!< General integer vector
+typedef std::vector<PetscReal> PetscRealVec; //!< General integer vector
 typedef std::vector<PetscIntVec> PetscIntMat; //!< PETSc integer matrix
 
 
@@ -252,14 +253,16 @@ protected:
   bool makeEBEpreconditioner(const Mat A, Mat* AeI);
 
   Mat                 A;           //!< The actual PETSc matrix
-  KSP                 ksp;         //!< Linear equation solver
-  MatNullSpace        nsp;         //!< Null-space of linear operator
-  const LinSolParams& solParams;   //!< Linear solver parameters
-  bool                setParams;   //!< If linear solver parameters are set
-  IS*                 elmIS;       //!< Element index sets
-  PetscInt            ISsize;      //!< Number of index sets/elements
-  PetscIntMat         locSubdDofs; //!< Degrees of freedom for unique subdomains
-  PetscIntMat         subdDofs;    //!< Degrees of freedom for subdomains
+  KSP                 ksp;          //!< Linear equation solver
+  MatNullSpace        nsp;          //!< Null-space of linear operator
+  const LinSolParams& solParams;    //!< Linear solver parameters
+  bool                setParams;    //!< If linear solver parameters are set
+  IS*                 elmIS;        //!< Element index sets
+  PetscInt            ISsize;       //!< Number of index sets/elements
+  PetscInt            nsd;          //!< Number of space dimensions
+  std::vector<PetscIntVec> locSubdDofs;  //!< Degrees of freedom for unique subdomains
+  std::vector<PetscIntVec> subdDofs;     //!< Degrees of freedom for subdomains
+  PetscRealVec        coords;       //!< Coordinates of local nodes (x[0],y[0],z[0],x[1],y[1],...)
 
 #else // dummy implementation when PETSc is not included
   virtual SystemMatrix* copy() const { return 0; }

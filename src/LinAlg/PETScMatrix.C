@@ -253,13 +253,8 @@ static bool assemPETSc (const Matrix& eM, Mat SM, PETScVector* SV,
   Vector uc(SV ? nedof : 0), bc;
   for (j = 1; j <= uc.size(); j++) {
     int jceq = mpmceq[meen[j-1]-1];
-    if (mpmceq[meen[j-1]] > jceq+1) {
-      std::cerr <<" *** assemPETSc: Multi-point constraints are not supported."
-                << std::endl;
-      return false;
-    }
-    else if (jceq > 0)
-      if ((uc(j) = -ttcc[jceq-1]) != Real(0))
+
+      if ((jceq > 0) && ((uc(j) = -ttcc[jceq-1]) != Real(0)))
 	rhsMod = true;
   }
 
@@ -268,7 +263,7 @@ static bool assemPETSc (const Matrix& eM, Mat SM, PETScVector* SV,
     eM.multiply(uc,bc);
 
   // Eliminate constrained degrees of freedom from element matrix
-  for (j = 1; j <= nedof; j++)
+  for (j = 1; j <= nedof; j++) 
     if (mpmceq[meen[j-1]-1] > 0) {
       for (i = 1; i <= nedof; i++)
         A(i,j) = A(j,i) = Real(0);
@@ -283,7 +278,7 @@ static bool assemPETSc (const Matrix& eM, Mat SM, PETScVector* SV,
 
   // Add element stiffness matrix to global matrix
   MatSetValues(SM,nedof,l2g,nedof,l2g,A.ptr(),ADD_VALUES);
-
+  
   delete[] l2g;
   return true;
 }
@@ -414,8 +409,8 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
   if (sam.getNoDofCouplings(ifirst,ilast,d_nnz,o_nnz))
   {
     size_t i;
-    Petscstd::vector<int> d_Nnz(d_nnz.size());
-    Petscstd::vector<int> o_Nnz(o_nnz.size());
+    PetscIntVec d_Nnz(d_nnz.size());
+    PetscIntVec o_Nnz(o_nnz.size());
     for (i = 0; i < d_nnz.size(); i++)
       d_Nnz[i] = d_nnz[i];
     for (i = 0; i < o_nnz.size(); i++)
