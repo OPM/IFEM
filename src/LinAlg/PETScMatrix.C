@@ -254,8 +254,8 @@ static bool assemPETSc (const Matrix& eM, Mat SM, PETScVector* SV,
   for (j = 1; j <= uc.size(); j++) {
     int jceq = mpmceq[meen[j-1]-1];
 
-      if ((jceq > 0) && ((uc(j) = -ttcc[jceq-1]) != Real(0)))
-	rhsMod = true;
+    if ((jceq > 0) && ((uc(j) = -ttcc[jceq-1]) != Real(0)))
+      rhsMod = true;
   }
 
   // Multiply element matrix with prescribed values to get the RHS-contributions
@@ -544,7 +544,7 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
     return false;
 
   if (setParams) {
-    solParams.setParams(ksp,locSubdDofs,subdDofs);
+    solParams.setParams(ksp,locSubdDofs,subdDofs,coords,nsd);
     setParams = false;
   }
   KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
@@ -575,7 +575,7 @@ bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
   KSPSetOperators(ksp,A,A, newLHS ? SAME_NONZERO_PATTERN : SAME_PRECONDITIONER);
 
   if (setParams) {
-    solParams.setParams(ksp,locSubdDofs,subdDofs);
+    solParams.setParams(ksp,locSubdDofs,subdDofs,coords,nsd);
     setParams = false;
   }
   KSPSetInitialGuessNonzero(ksp,PETSC_TRUE);
@@ -608,7 +608,7 @@ bool PETScMatrix::solve (SystemVector& B, SystemMatrix& P, bool newLHS)
                   newLHS ? SAME_NONZERO_PATTERN : SAME_PRECONDITIONER);
 
   if (setParams) {
-    solParams.setParams(ksp,locSubdDofs,subdDofs);
+    solParams.setParams(ksp,locSubdDofs,subdDofs,coords,nsd);
     setParams = false;
   }
   KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);

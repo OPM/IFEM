@@ -23,8 +23,9 @@ typedef int PetscInt; //!< To avoid compilation failures
 #endif
 #include <map>
 
-typedef std::vector<PetscInt>    PetscIntVec; //!< PETSc integer vector
-typedef std::vector<PetscIntVec> PetscIntMat; //!< PETSc integer matrix
+typedef std::vector<PetscInt>    PetscIntVec;  //!< PETSc integer vector
+typedef std::vector<PetscReal>   PetscRealVec; //!< PETSc real vector
+typedef std::vector<PetscIntVec> PetscIntMat;  //!< PETSc integer matrix
 
 
 /*!
@@ -191,6 +192,13 @@ public:
   bool getSubdomainsBlock(PetscIntMat& locSubds, int f1 = 0, int f2 = 0,
 			  int overlap = 1, int nx = 1, int ny = 1, int nz = 1) const;
 
+  //! \brief Extracts the node coordinates of all local nodes.
+  //! \param[out] coords Coordinates of local nodes stored as [x0,y0,z0,x1,y1,z1,...]
+  bool getLocalNodeCoordinates(PetscRealVec& coords) const;
+
+  //! \brief Get number of space dimensions
+  size_t getNoSpaceDim() const;
+
 protected:
   //! \brief Initializes the multi-point constraint arrays
   //! \a MPMCEQ, \a MMCEQ and \a TTCC.
@@ -327,6 +335,12 @@ private:
   bool getSubdomains3D(PetscIntMat& locSubds,
 		       const IntVec& nx, const IntVec& ny, const IntVec& nz,
 		       int overlap, int f1, int f2) const;
+
+  //! \brief Compute min and max global node number for each patch
+  //! \param[out] minNodeId Min node number on all patches
+  //! \param[out] maxNodeId Max node number on all patches
+  bool getMinMaxNode(IntVec& minNodeId, IntVec& maxNodeId) const;
 };
+
 
 #endif

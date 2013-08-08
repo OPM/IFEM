@@ -151,7 +151,8 @@ public:
 
   //! \brief Set linear solver parameters for KSP object
   virtual void setParams(KSP& ksp, std::vector<std::vector<PetscInt> >& locSubdDofs,
-			 std::vector<std::vector<PetscInt> >& subdDofs) const;
+			 std::vector<std::vector<PetscInt> >& subdDofs,
+			 std::vector<PetscReal>& coords, PetscInt nsd) const;
 
 private:
   PetscReal atol;          // Absolute tolerance

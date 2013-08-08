@@ -247,6 +247,10 @@ void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
 {
   const SAMpatchPara* sampch = dynamic_cast<const SAMpatchPara*>(&sam);
   
+  nsd = sampch->getNoSpaceDim();
+  if (!strncasecmp(solParams.getPreconditioner(),"gamg",4))
+    sampch->getLocalNodeCoordinates(coords);
+
   int nx = solParams.getLocalPartitioning(0);
   int ny = solParams.getLocalPartitioning(1);
   int nz = solParams.getLocalPartitioning(2);
@@ -785,6 +789,10 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
           KSPSetUp(preksp);
 	}
       }
+      else if (!strncasecmp(solParams.subprec[1].c_str(),"gamg",4)) {
+        PetscInt nloc = coords.size()/3;
+        PCSetCoordinates(pc,nsd,nloc,&coords[0]);
+      }
 
       PCProdSetUp(subpc[1],&QpL,&Fp,&S);
       nsplit--;
@@ -990,7 +998,11 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
         //   PCFactorSetLevels(postpc,solParams.levels[m]);
         //   KSPSetUp(postksp);
 	// }
-      }      
+      }
+      else if (!strncasecmp(solParams.subprec[m].c_str(),"gamg",4)) {
+        PetscInt nloc = coords.size()/3;
+        PCSetCoordinates(subpc[m],nsd,nloc,&coords[0]);
+      }
     }
   }
   else {

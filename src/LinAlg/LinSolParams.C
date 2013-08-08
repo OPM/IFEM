@@ -379,7 +379,8 @@ bool LinSolParams::read (const char* filename)
 
 #ifdef HAS_PETSC
 void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& locSubdDofs,
-			      std::vector<std::vector<PetscInt> >& subdDofs) const
+			      std::vector<std::vector<PetscInt> >& subdDofs,
+			      std::vector<PetscReal>& coords, PetscInt nsd) const
 {
   // Set linear solver method
   KSPSetType(ksp,method.c_str());
@@ -396,6 +397,11 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
   if (!strncasecmp(prec.c_str(),"hypre",5))
     PCHYPRESetType(pc,hypretype[0].c_str());
 #endif
+
+  if (!strncasecmp(prec.c_str(),"gamg",4)) {
+    PetscInt nloc = coords.size()/3;
+    PCSetCoordinates(pc,nsd,nloc,&coords[0]);
+  }
 
   if (!strncasecmp(prec.c_str(),"asm",3) ||!strncasecmp(prec.c_str(),"gasm",4)) {
     PCASMSetType(pc,PC_ASM_BASIC);
