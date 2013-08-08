@@ -27,7 +27,9 @@ namespace CFD //! CFD scope
     BOUSSINESQ = 8,
     ALE        = 16,
     SUPG       = 32,
-    VMS        = 64
+    VMS        = 64,
+    SPALDING   = 128,
+    SA         = 256
   };
 }
 

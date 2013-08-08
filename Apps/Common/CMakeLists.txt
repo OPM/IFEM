@@ -39,6 +39,7 @@ INCLUDE(cmake/UseMultiArch.cmake)
 # Common Navier-Stokes application sources
 ADD_LIBRARY(CommonIFEM BDF.C
                        Spalding.C
+		       SAWallLaw.C
                        StabilizationUtils.C
                        TimeIntUtils.C)
 TARGET_LINK_LIBRARIES(CommonIFEM ${IFEM_LIBRARIES})
