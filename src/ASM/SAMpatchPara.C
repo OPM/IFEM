@@ -1621,16 +1621,16 @@ bool SAMpatchPara::getLocalNodeCoordinates(PetscRealVec& coords) const
   int nlocnod = max-min+1;
 
   coords.resize(nlocnod*nsd,true);
-  for (size_t n = 0;n < npatch;n++) {    
+  for (int n = 0;n < npatch;n++) {    
     const IntVec& MLGN = patch[n]->getGlobalNodeNums();
     
     for (size_t i = 0;i < MLGN.size();i++) {
-      size_t gnod = MLGN[i];
+      int gnod = MLGN[i];
       if ((gnod >= min) && (gnod <= max))
       {
 	Vec3 X = patch[n]->getCoord(i+1);
 	size_t locnode = gnod-min+1;
-	for (size_t k = 0;k < nsd;k++)
+	for (int k = 0;k < nsd;k++)
 	  coords[(locnode-1)*nsd + k] = X[k];
       }
     }
@@ -1651,13 +1651,12 @@ bool SAMpatchPara::getMinMaxNode(IntVec& minNodeId, IntVec& maxNodeId) const
 {
   // Define some parameters
   const int npatch = patch.size();
-  const int nsd    = patch[0]->getNoSpaceDim();
 
   // Find min and max node for each patch on this processor
   maxNodeId.resize(npatch,true);
   minNodeId.resize(npatch,true);
 
-  for (size_t n = 0;n < npatch;n++) {
+  for (int n = 0;n < npatch;n++) {
     const IntVec& MLGN = patch[n]->getGlobalNodeNums();
   
     int min = 1e9;
