@@ -20,6 +20,7 @@
 #include "petscsys.h"
 #else
 typedef int PetscInt; //!< To avoid compilation failures
+typedef double PetscReal; //!< To avoid compilation failures
 #endif
 #include <map>
 

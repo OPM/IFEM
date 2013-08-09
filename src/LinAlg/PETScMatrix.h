@@ -22,12 +22,13 @@
 #include "petscvec.h"
 #else
 typedef int PetscInt; //!< To avoid compilation failures
+typedef double PetscReal; //!< To avoid compilation failures
 #endif
 
 class LinSolParams;
 
 typedef std::vector<PetscInt> PetscIntVec;   //!< General integer vector
-typedef std::vector<PetscReal> PetscRealVec; //!< General integer vector
+typedef std::vector<PetscReal> PetscRealVec; //!< General real vector
 typedef std::vector<PetscIntVec> PetscIntMat; //!< PETSc integer matrix
 
 
