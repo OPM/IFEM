@@ -245,9 +245,9 @@ public:
   void resetSolution();
 
   //! \brief Registers where we can inject a mixed-basis scalar field.
-  virtual void setNamedField(const std::string&, Field*) {}
+  virtual void setNamedField(const std::string&, Field*);
   //! \brief Registers where we can inject a mixed-basis vector field.
-  virtual void setNamedFields(const std::string&, Fields*) {}
+  virtual void setNamedFields(const std::string&, Fields*);
 
   //! \brief Returns a vector where we can store a named field.
   Vector* getNamedVector(const std::string& name) const;
