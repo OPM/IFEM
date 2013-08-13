@@ -790,7 +790,7 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	}
       }
       else if (!strncasecmp(solParams.subprec[1].c_str(),"gamg",4)) {
-        PetscInt nloc = coords.size()/3;
+        PetscInt nloc = coords.size()/nsd;
         PCSetCoordinates(pc,nsd,nloc,&coords[0]);
       }
 
@@ -1000,7 +1000,7 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	// }
       }
       else if (!strncasecmp(solParams.subprec[m].c_str(),"gamg",4)) {
-        PetscInt nloc = coords.size()/3;
+        PetscInt nloc = coords.size()/nsd;
         PCSetCoordinates(subpc[m],nsd,nloc,&coords[0]);
       }
     }

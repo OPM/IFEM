@@ -399,7 +399,7 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
 #endif
 
   if (!strncasecmp(prec.c_str(),"gamg",4)) {
-    PetscInt nloc = coords.size()/3;
+    PetscInt nloc = coords.size()/nsd;
     PCSetCoordinates(pc,nsd,nloc,&coords[0]);
   }
 
@@ -461,6 +461,7 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
 	  damping << MLDampingFactor[0];
 	  PetscOptionsSetValue("-pc_ml_DampingFactor",damping.str().c_str());
 	}
+      
         //PCGAMGSetNlevels(pc,mglevels[0]);
         //PCGAMGSetCoarseEqLim(pc,maxCoarseSize[0]);
 

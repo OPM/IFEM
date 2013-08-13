@@ -41,7 +41,7 @@ PETScVector::PETScVector()
 PETScVector::PETScVector(size_t n)
 {
   VecCreate(PETSC_COMM_WORLD,&x);
-  VecSetSizes(x,n,PETSC_DETERMINE);
+  VecSetSizes(x,n,PETSC_DECIDE);
   VecSetFromOptions(x);
   LinAlgInit::increfs();
 }
@@ -50,7 +50,7 @@ PETScVector::PETScVector(size_t n)
 PETScVector::PETScVector(const Real* values, size_t n)
 {
   VecCreate(PETSC_COMM_WORLD,&x);
-  VecSetSizes(x,n,PETSC_DETERMINE);
+  VecSetSizes(x,n,PETSC_DECIDE);
   VecSetFromOptions(x);
   this->restore(values);
   LinAlgInit::increfs();
@@ -83,7 +83,10 @@ size_t PETScVector::dim() const
 
 void PETScVector::redim(size_t n)
 {
-  VecSetSizes(x,n,PETSC_DETERMINE);
+  VecDestroy(&x);
+  VecCreate(PETSC_COMM_WORLD,&x);
+  VecSetSizes(x,n,PETSC_DECIDE);
+  VecSetFromOptions(x);
 }
 
 
@@ -375,6 +378,10 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
 {
   const SAMpatchPara* sampch = dynamic_cast<const SAMpatchPara*>(&sam);
 
+  nsd = sampch->getNoSpaceDim();
+  if (!strncasecmp(solParams.getPreconditioner(),"gamg",4))
+    sampch->getLocalNodeCoordinates(coords);
+
   int nx = solParams.getLocalPartitioning(0);
   int ny = solParams.getLocalPartitioning(1);
   int nz = solParams.getLocalPartitioning(2);
@@ -391,7 +398,7 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
   const PetscInt bsize = sam.getNoDOFs()/nnod;
 
   // Set correct number of rows and columns for matrix.
-  MatSetSizes(A,neq,neq,PETSC_DETERMINE,PETSC_DETERMINE);
+  MatSetSizes(A,neq,neq,PETSC_DECIDE,PETSC_DECIDE);
   MatSetBlockSize(A,bsize);
   MPI_Barrier(PETSC_COMM_WORLD);
   MatSetFromOptions(A);
