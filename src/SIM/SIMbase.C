@@ -136,7 +136,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
 
     const char* file = elem->FirstChild()->Value();
     std::ifstream isn(file);
-    if (!isn) {
+    if (!isn.good()) {
       std::cerr <<" *** SIMbase::read: Failure opening input file "
                 << file << std::endl;
       return false;
@@ -561,7 +561,7 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
       if (basis == 0 && filenames.good()) basis = 1;
 
       std::ifstream isn(filename.c_str());
-      if (!isn)
+      if (!isn.good())
       {
 	std::cerr <<" *** SIMbase::read: Failure opening input file "
 		  << filename << std::endl;
