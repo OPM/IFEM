@@ -16,6 +16,8 @@
 #include "ElmMats.h"
 #include "ElmNorm.h"
 #include "Utilities.h"
+#include "Field.h"
+#include "Fields.h"
 #include <cstring>
 #include <cstdio>
 
