@@ -34,7 +34,6 @@
 #include "Profiler.h"
 #include "ElementBlock.h"
 #include "VTF.h"
-#include "Functions.h"
 #include "Utilities.h"
 #include "tinyxml.h"
 #include <fstream>
@@ -1585,7 +1584,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             else
               ok = false;
 
-    if (ok) ok = this->assembleDiscreteTerms(it->second);
+    if (ok) ok = this->assembleDiscreteTerms(it->second,time);
     if (ok && &sysQ != myEqSys) ok = sysQ.finalize(newLHSmatrix);
   }
   if (ok && myEqSys->finalize(newLHSmatrix))
@@ -1598,11 +1597,15 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
 
 bool SIMbase::extractLoadVec (Vector& loadVec) const
 {
-  SystemVector* b = myEqSys->getVector();
-  if (!b) return false;
-
   // Expand load vector from equation ordering to DOF-ordering
-  return mySam->expandSolution(*b,loadVec,0.0);
+  SystemVector* b = myEqSys->getVector();
+  if (!b || !mySam->expandSolution(*b,loadVec,0.0))
+    return false;
+
+#if SP_DEBUG > 1
+  std::cout <<"\nLoad vector:"<< loadVec;
+#endif
+  return true;
 }
 
 
@@ -2378,6 +2381,7 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
     }
 
     if (psolOnly || !myProblem) continue; // skip secondary solution
+    if (myProblem->getNoFields(2) < 1) continue; // no secondary solution
 
     // 2. Direct evaluation of secondary solution variables
 
@@ -2397,7 +2401,7 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
       else
 	sID[k++].push_back(nBlock);
 
-    if (project && myProblem->getNoFields(2) > 0)
+    if (project)
     {
       // 3. Projection of secondary solution variables (tensorial splines only)
 

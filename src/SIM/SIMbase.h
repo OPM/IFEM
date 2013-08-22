@@ -790,7 +790,9 @@ protected:
   void readLinSolParams(std::istream& is, int npar);
 
   //! \brief Assembles problem-dependent discrete terms, if any.
-  virtual bool assembleDiscreteTerms(const IntegrandBase*) { return true; }
+  virtual bool assembleDiscreteTerms(const IntegrandBase*,
+                                     const TimeDomain&) { return true; }
+
   //! \brief Computes (possibly problem-dependent) external energy contribution.
   virtual double externalEnergy(const Vectors& psol) const;
 
