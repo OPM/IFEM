@@ -378,7 +378,7 @@ public:
   virtual void initIntegration(size_t, size_t) {}
 
   //! \brief Returns a local integral container for the element \a iEl.
-  virtual LocalIntegral* getLocalIntegral(size_t nen, size_t iEl,
+  virtual LocalIntegral* getLocalIntegral(size_t, size_t iEl,
                                           bool = false) const;
 
   //! \brief Dummy implementation (only boundary integration is relevant).

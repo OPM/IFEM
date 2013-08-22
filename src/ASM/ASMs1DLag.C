@@ -160,6 +160,21 @@ bool ASMs1DLag::updateCoords (const Vector& displ)
 }
 
 
+/*!
+  \brief Extracts the element end points from the element coordinates.
+*/
+
+static void getEndPoints (const Matrix& Xnod, Vec3Vec& XC)
+{
+  XC.resize(2);
+  for (size_t i = 0; i < Xnod.cols(); i++)
+  {
+    XC[0][i] = Xnod(i+1,1);
+    XC[1][i] = Xnod(i+1,Xnod.rows());
+  }
+}
+
+
 bool ASMs1DLag::integrate (Integrand& integrand,
 			   GlobalIntegral& glInt,
 			   const TimeDomain& time)
@@ -199,6 +214,9 @@ bool ASMs1DLag::integrate (Integrand& integrand,
     // Set up nodal point coordinates for current element
     if (!this->getElementCoordinates(Xnod,iel)) return false;
 
+    if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+      getEndPoints(Xnod,fe.XC);
+
     // Initialize element quantities
     fe.iel = MLGE[iel-1];
     LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
@@ -216,19 +234,22 @@ bool ASMs1DLag::integrate (Integrand& integrand,
 	// Parameter value of current integration point
 	fe.u = 0.5*(gpar[iel-1]*(1.0-xr[i]) + gpar[iel]*(1.0+xr[i]));
 
-	// Compute basis function derivatives at current integration point
-	if (!Lagrange::computeBasis(fe.N,dNdu,p1,xr[i]))
-	  return false;
-
-	// Compute Jacobian inverse and derivatives
-	fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+        if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
+          ok = Lagrange::computeBasis(fe.N,p1,xr[i]);
+        else
+        {
+          // Compute basis function derivatives at current integration point
+          ok = Lagrange::computeBasis(fe.N,dNdu,p1,xr[i]);
+          // Compute Jacobian inverse and derivatives
+          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+	}
 
 	// Cartesian coordinates of current integration point
 	X = Xnod * fe.N;
 	X.t = time.t;
 
 	// Compute the reduced integration terms of the integrand
-	ok = integrand.reducedInt(*A,fe,X);
+	ok &= integrand.reducedInt(*A,fe,X);
       }
 
 
@@ -245,20 +266,22 @@ bool ASMs1DLag::integrate (Integrand& integrand,
       // Parameter value of current integration point
       fe.u = 0.5*(gpar[iel-1]*(1.0-xg[i]) + gpar[iel]*(1.0+xg[i]));
 
-      // Compute basis function derivatives at current integration point
-      if (!Lagrange::computeBasis(fe.N,dNdu,p1,xg[i]))
-	ok = false;
-
-      // Compute Jacobian inverse of coordinate mapping and derivatives
-      fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu)*wg[i];
+      if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
+        ok = Lagrange::computeBasis(fe.N,p1,xg[i]);
+      else
+      {
+        // Compute basis function derivatives at current integration point
+        ok = Lagrange::computeBasis(fe.N,dNdu,p1,xg[i]);
+        // Compute Jacobian inverse of coordinate mapping and derivatives
+        fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu)*wg[i];
+      }
 
       // Cartesian coordinates of current integration point
       X = Xnod * fe.N;
       X.t = time.t;
 
       // Evaluate the integrand and accumulate element contributions
-      if (!integrand.evalInt(*A,fe,time,X))
-	ok = false;
+      ok &= integrand.evalInt(*A,fe,time,X);
     }
 
     // Finalize the element quantities
@@ -309,6 +332,9 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
   Matrix Xnod;
   if (!this->getElementCoordinates(Xnod,iel)) return false;
 
+  if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+    getEndPoints(Xnod,fe.XC);
+
   // Initialize element quantities
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
   fe.iGP = iit == firstBp.end() ? 0 : iit->second;
@@ -317,22 +343,25 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
   bool ok = integrand.initElementBou(MNPC[iel-1],*A);
 
   // Evaluate basis functions and corresponding derivatives
-  Matrix dNdu, Jac;
-  if (!Lagrange::computeBasis(fe.N,dNdu,curv->order(),fe.xi))
-    ok = false;
+  Vec3 normal;
+  if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
+    ok &= Lagrange::computeBasis(fe.N,curv->order(),fe.xi);
+  else
+  {
+    // Compute basis function derivatives
+    Matrix dNdu, Jac;
+    ok &= Lagrange::computeBasis(fe.N,dNdu,curv->order(),fe.xi);
+    utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+
+    // Set up the normal vector
+    if (lIndex == 1)
+      normal.x = -copysign(1.0,Jac(1,1));
+    else
+      normal.x = copysign(1.0,Jac(1,1));
+  }
 
   // Cartesian coordinates of current integration point
   Vec4 X(Xnod*fe.N,time.t);
-
-  // Compute basis function derivatives
-  utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
-
-  // Set up the normal vector
-  Vec3 normal;
-  if (lIndex == 1)
-    normal.x = -copysign(1.0,Jac(1,1));
-  else
-    normal.x = copysign(1.0,Jac(1,1));
 
   // Evaluate the integrand and accumulate element contributions
   if (ok && !integrand.evalBou(*A,fe,time,X,normal))
@@ -455,12 +484,20 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     for (int loc = 0; loc < p1; loc++)
     {
       double xi = -1.0 + loc*incx;
-      if (!Lagrange::computeBasis(N,dNdu,p1,xi))
-	return false;
+      if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
+      {
+        if (!Lagrange::computeBasis(N,p1,xi))
+          return false;
+      }
+      else
+      {
+        if (!Lagrange::computeBasis(N,dNdu,p1,xi))
+          return false;
 
-      // Compute the Jacobian inverse
-      if (utl::Jacobian(Jac,dNdX,Xnod,dNdu) == 0.0) // Jac = (Xnod * dNdu)^-1
-	continue; // skip singular points
+        // Compute the Jacobian inverse
+        if (utl::Jacobian(Jac,dNdX,Xnod,dNdu) == 0.0) // Jac = (Xnod * dNdu)^-1
+          continue; // skip singular points
+      }
 
       // Now evaluate the solution field
       if (!integrand.evalSol(solPt,N,dNdX,Xnod*N,mnpc))

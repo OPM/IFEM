@@ -77,7 +77,7 @@ bool ASMs1D::read (std::istream& is)
   else if (curv->dimension() < nsd)
   {
     std::cout <<"  ** ASMs1D::read: The dimension of this curve patch "
-	      << curv->dimension() <<" is less than nsd="<< nsd
+	      << curv->dimension() <<" is less than nsd="<< (int)nsd
 	      <<".\n                   Resetting nsd to "<< curv->dimension()
 	      <<" for this patch."<< std::endl;
     nsd = curv->dimension();
@@ -515,6 +515,28 @@ const Vector& ASMs1D::getGaussPointParameters (Matrix& uGP, int nGauss,
 }
 
 
+void ASMs1D::getElementEnds (int i, Vec3Vec& XC) const
+{
+  RealArray::const_iterator uit = curv->basis().begin();
+
+  // Fetch parameter values of the element ends (knots)
+  RealArray u(2);
+  u[0] = uit[i];
+  u[1] = uit[i+1];
+
+  // Evaluate the spline curve at the knots to find physical coordinates
+  int dim = curv->dimension();
+  RealArray XYZ(dim*2);
+  curv->gridEvaluator(XYZ,u);
+
+  XC.clear();
+  XC.reserve(2);
+  const double* pt = &XYZ.front();
+  for (int j = 0; j < 2; j++, pt += dim)
+    XC.push_back(Vec3(pt,dim));
+}
+
+
 void ASMs1D::extractBasis (double u, Vector& N, Matrix& dNdu) const
 {
   int p1 = curv->order();
@@ -601,6 +623,9 @@ bool ASMs1D::integrate (Integrand& integrand,
     // Set up control point coordinates for current element
     if (!this->getElementCoordinates(Xnod,iel)) return false;
 
+    if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+      this->getElementEnds(i1-1,fe.XC);
+
     // Initialize element matrices
     LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
     bool ok = integrand.initElement(MNPC[iel-1],X,nRed,*A);
@@ -617,11 +642,15 @@ bool ASMs1D::integrate (Integrand& integrand,
 	// Parameter values of current integration point
 	fe.u = redpar(i+1,iel);
 
-	// Fetch basis function derivatives at current point
-	this->extractBasis(fe.u,fe.N,dNdu);
-
-	// Compute Jacobian inverse and derivatives
-	fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+        if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
+          curv->basis().computeBasisValues(fe.u,fe.N.ptr());
+        else
+        {
+          // Fetch basis function derivatives at current point
+          this->extractBasis(fe.u,fe.N,dNdu);
+          // Compute Jacobian inverse and derivatives
+          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+        }
 
 	// Cartesian coordinates of current integration point
 	X = Xnod * fe.N;
@@ -647,19 +676,24 @@ bool ASMs1D::integrate (Integrand& integrand,
       fe.u = gpar(i+1,iel);
 
       // Compute basis functions and derivatives
-      if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+      if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
+	curv->basis().computeBasisValues(fe.u,fe.N.ptr());
+      else if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
 	this->extractBasis(fe.u,fe.N,dNdu,d2Ndu2);
       else
 	this->extractBasis(fe.u,fe.N,dNdu);
 
-      // Compute derivatives in terms of physical co-ordinates
-      fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
-      if (fe.detJxW == 0.0) continue; // skip singular points
+      if (!dNdu.empty())
+      {
+        // Compute derivatives in terms of physical co-ordinates
+        fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+        if (fe.detJxW == 0.0) continue; // skip singular points
 
-      // Compute Hessian of coordinate mapping and 2nd order derivatives
-      if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-	if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,fe.dNdX))
-	  ok = false;
+        // Compute Hessian of coordinate mapping and 2nd order derivatives
+        if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+          if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,fe.dNdX))
+            ok = false;
+      }
 
       // Cartesian coordinates of current integration point
       X = Xnod * fe.N;
@@ -725,27 +759,34 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
   Matrix Xnod;
   if (!this->getElementCoordinates(Xnod,iel)) return false;
 
+  if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+    this->getElementEnds(iel+curv->order()-2,fe.XC);
+
   // Initialize element matrices
   LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
   bool ok = integrand.initElementBou(MNPC[iel-1],*A);
 
+  Vec3 normal;
+
   // Evaluate basis functions and corresponding derivatives
-  Matrix dNdu;
-  this->extractBasis(fe.u,fe.N,dNdu);
+  if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
+    curv->basis().computeBasisValues(fe.u,fe.N.ptr());
+  else
+  {
+    // Compute basis function derivatives
+    Matrix dNdu, Jac;
+    this->extractBasis(fe.u,fe.N,dNdu);
+    utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+
+    // Set up the normal vector
+    if (lIndex == 1)
+      normal.x = -copysign(1.0,Jac(1,1));
+    else
+      normal.x = copysign(1.0,Jac(1,1));
+  }
 
   // Cartesian coordinates of current integration point
   Vec4 X(Xnod*fe.N,time.t);
-
-  // Compute basis function derivatives
-  Matrix Jac, dNdX;
-  utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
-
-  // Set up the normal vector
-  Vec3 normal;
-  if (lIndex == 1)
-    normal.x = -copysign(1.0,Jac(1,1));
-  else
-    normal.x = copysign(1.0,Jac(1,1));
 
   // Evaluate the integrand and accumulate element contributions
   if (ok && !integrand.evalBou(*A,fe,time,X,normal))
@@ -1044,19 +1085,24 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     utl::gather(ip,nsd,Xnod,Xtmp);
 
     // Fetch basis function derivatives at current integration point
-    if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+    if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
+      curv->basis().computeBasisValues(fe.u,fe.N.ptr());
+    else if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
       this->extractBasis(upar[i],fe.N,dNdu,d2Ndu2);
     else
       this->extractBasis(upar[i],fe.N,dNdu);
 
-    // Compute the Jacobian inverse and derivatives
-    if (utl::Jacobian(Jac,fe.dNdX,Xtmp,dNdu) == 0.0) // Jac = (Xtmp * dNdu)^-1
-      continue; // skip singular points
+    if (!dNdu.empty())
+    {
+      // Compute the Jacobian inverse and derivatives
+      if (utl::Jacobian(Jac,fe.dNdX,Xtmp,dNdu) == 0.0) // Jac = (Xtmp * dNdu)^-1
+        continue; // skip singular points
 
-    // Compute Hessian of coordinate mapping and 2nd order derivatives
-    if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-      if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xtmp,d2Ndu2,fe.dNdX))
-	continue;
+      // Compute Hessian of coordinate mapping and 2nd order derivatives
+      if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+        if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xtmp,d2Ndu2,fe.dNdX))
+          continue;
+    }
 
     // Now evaluate the solution field
     if (!integrand.evalSol(solPt,fe,Xtmp*fe.N,ip))

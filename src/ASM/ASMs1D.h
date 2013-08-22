@@ -265,6 +265,11 @@ protected:
   //! \brief Returns the parametric length on the \a i'th knot-span
   double getKnotSpan(int i) const;
 
+  //! \brief Computes the element end coordinates.
+  //! \param[in] i Parameter index for the knot-span element
+  //! \param[out] XC Coordinates of the element corners
+  void getElementEnds(int i, std::vector<Vec3>& XC) const;
+
 public:
   //! \brief Auxilliary function for computation of basis function indices.
   static void scatterInd(int p1, int start, IntVec& index);

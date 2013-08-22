@@ -109,7 +109,7 @@ bool ASMs2D::read (std::istream& is)
   else if (surf->dimension() < nsd)
   {
     std::cout <<"  ** ASMs2D::read: The dimension of this surface patch "
-	      << surf->dimension() <<" is less than nsd="<< nsd
+	      << surf->dimension() <<" is less than nsd="<< (int)nsd
 	      <<".\n                   Resetting nsd to "<< surf->dimension()
 	      <<" for this patch."<< std::endl;
     nsd = surf->dimension();
@@ -1305,10 +1305,6 @@ const Vector& ASMs2D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
   return uGP;
 }
 
-
-/*!
-  \brief Computes the element corner coordinates
-*/
 
 void ASMs2D::getElementCorners (int i1, int i2, Vec3Vec& XC) const
 {

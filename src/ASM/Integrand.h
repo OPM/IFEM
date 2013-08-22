@@ -69,8 +69,7 @@ public:
   //! The default implementation just forwards to the single-basis version.
   //! Reimplement this method if your mixed formulation requires specialized
   //! local integral objects.
-  virtual LocalIntegral* getLocalIntegral(size_t nen1, size_t nen2,
-                                          size_t iEl,
+  virtual LocalIntegral* getLocalIntegral(size_t nen1, size_t nen2, size_t iEl,
                                           bool neumann = false) const
   {
     return this->getLocalIntegral(nen1,iEl,neumann);
@@ -133,13 +132,14 @@ public:
 
   //! \brief Enum defining the additional terms that an Integrand may require.
   enum Traits {
-    STANDARD           = 0, //!< Default integrand type, no special terms
-    SECOND_DERIVATIVES = 1, //!< Integrand wants second derivatives
-    AVERAGE            = 2, //!< Integrand wants basis function averages
-    ELEMENT_CORNERS    = 4, //!< Integrand wants element corner coordinates
-    G_MATRIX           = 8, //!< Integrand wants the G matrix
+    STANDARD           = 0, //!< Default integrand type (first derivatives only)
+    NO_DERIVATIVES     = 1, //!< Integrand don't want any derivatives
+    SECOND_DERIVATIVES = 2, //!< Integrand wants second derivatives
+    AVERAGE            = 4, //!< Integrand wants basis function averages
+    ELEMENT_CORNERS    = 8, //!< Integrand wants element corner coordinates
     ELEMENT_CENTER     = 16,//!< Integrand wants element center coordinates
-    XO_ELEMENTS        = 32 //!< Integrand is defined on extraordinary elements
+    G_MATRIX           = 32,//!< Integrand wants the G matrix
+    XO_ELEMENTS        = 64 //!< Integrand is defined on extraordinary elements
   };
 
   //! \brief Defines which FE quantities are needed by the integrand.

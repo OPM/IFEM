@@ -15,7 +15,6 @@
 #define _ASM_3D_H
 
 #include "ASMenums.h"
-#include "ASMbase.h"
 #include <vector>
 #include <cstddef>
 
@@ -29,7 +28,7 @@ class ASMbase;
   need to type-cast the patch object to the actual class type.
 */
 
-class ASM3D 
+class ASM3D
 {
 protected:
   //! \brief The constructor is protected to allow objects of sub-classes only.
@@ -39,7 +38,7 @@ public:
   //! \brief Empty destructor.
   virtual ~ASM3D() {}
 
-  //! \brief Creates a two-parametric patch of specified discretization type.
+  //! \brief Creates a three-parametric patch of specified discretization type.
   //! \param[in] type The discretization method to use
   //! \param[in] nf Number of unknown per basis function in the patch
   //! \param[in] mixedFEM If \e true, force mixed formulation even if \a nf[1]=0
@@ -57,13 +56,7 @@ public:
   ASMbase* clone(unsigned char* nf = 0) const;
 
   //! \brief Checks that the patch is modelled in a right-hand-side system.
-  //! \details If it isn't, the w-parameter direction is swapped.
   virtual bool checkRightHandSystem() = 0;
-
-  //! \brief Clears the contents of the patch, making it empty.
-  //! \param[in] retainGeometry If \e true, the spline geometry is not cleared.
-  //! This is used to reinitialize the patch after it has been refined.
-  virtual void clear(bool retainGeometry = false) = 0;
 
   //! \brief Refines the parametrization by inserting extra knots uniformly.
   //! \param[in] dir Parameter direction to refine
@@ -84,7 +77,7 @@ public:
   //! \param[in] open If \e true, exclude all points along the face boundary
   //! \param[in] dof Which DOFs to constrain at each node on the face
   //! \param[in] code Inhomogeneous dirichlet condition code
-  virtual void constrainFace(int dir, bool open, int dof = 123, int code = 0) = 0;
+  virtual void constrainFace(int dir, bool open, int dof, int code = 0) = 0;
   //! \brief Constrains all DOFs in local directions on a given boundary face.
   //! \param[in] dir Parameter direction defining the face to constrain
   //! \param[in] open If \e true, exclude all points along the face boundary
@@ -93,7 +86,7 @@ public:
   //! \param[in] project If \e true, the local axis directions are projected
   //! \param[in] T1 Desired global direction of first local tangent direction
   //! \return Number of additional nodes added due to local axis constraints
-  virtual size_t constrainFaceLocal(int dir, bool open, int dof = 3, int code = 0,
+  virtual size_t constrainFaceLocal(int dir, bool open, int dof, int code = 0,
                                     bool project = false, char T1 = '\0') = 0;
 
   //! \brief Constrains all DOFs on a given boundary edge.
@@ -101,7 +94,7 @@ public:
   //! \param[in] open If \e true, exclude the end points of the edge
   //! \param[in] dof Which DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
-  virtual void constrainEdge(int lEdge, bool open, int dof = 123, int code = 0) = 0;
+  virtual void constrainEdge(int lEdge, bool open, int dof, int code = 0) = 0;
 
   //! \brief Constrains all DOFs along a line on a given boundary face.
   //! \param[in] fdir Parameter direction defining the face to constrain
@@ -153,15 +146,6 @@ public:
   //! \param[in] nSegSpan Number of visualization segments over each knot-span
   virtual bool getGridParameters(std::vector<double>& prm,
                                  int dir, int nSegSpan) const = 0;
-
-  // Methods for model generation
-  // ============================
-
-  //! \brief Creates an instance by reading the given input stream.
-  virtual bool read(std::istream&) = 0;
-  //! \brief Writes the geometry of the SplineVolume object to given stream.
-  virtual bool write(std::ostream&, int = 0) const = 0;
-
 };
 
 #endif
