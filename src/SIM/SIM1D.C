@@ -20,14 +20,17 @@
 #include "tinyxml.h"
 
 
-SIM1D::SIM1D (unsigned char n1, unsigned char n2, bool)
+SIM1D::SIM1D (unsigned char n1, unsigned char, bool)
 {
+  nd = 1;
   nf = n1;
 }
 
 
 bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
 {
+  std::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
+
   if (!strcasecmp(elem->Value(),"refine"))
   {
     int lowpatch = 1, uppatch = 2;
@@ -96,7 +99,7 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
     if (!this->createFEMmodel()) return false;
 
     const TiXmlElement* child = elem->FirstChildElement("connection");
-    while (child)
+    for (; child; child = child->NextSiblingElement())
     {
       int master = 0, slave = 0, mVert = 0, sVert = 0;
       utl::getAttribute(child,"master",master);
@@ -118,8 +121,6 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
       ASMs1D* mpch = static_cast<ASMs1D*>(myModel[master-1]);
       if (!spch->connectPatch(sVert,*mpch,mVert))
         return false;
-
-      child = child->NextSiblingElement();
     }
   }
 
@@ -400,8 +401,8 @@ bool SIM1D::addConstraint (int patch, int lndx, int, int dirs, int code, int&)
   ASMs1D* pch = static_cast<ASMs1D*>(myModel[patch-1]);
   switch (lndx) // Vertex constraints
     {
-    case 1: pch->constrainNode(0.0,code); break;
-    case 2: pch->constrainNode(1.0,code); break;
+    case 1: pch->constrainNode(0.0,dirs,code); break;
+    case 2: pch->constrainNode(1.0,dirs,code); break;
     default: std::cout << std::endl;
       return constrError("vertex index ",lndx);
     }
@@ -415,13 +416,13 @@ ASMbase* SIM1D::readPatch (std::istream& isp, int pchInd) const
   ASMs1D* pch = 0;
   switch (opt.discretization) {
   case ASM::Lagrange:
-    pch = new ASMs1DLag(1,nf);
+    pch = new ASMs1DLag(nd,nf);
     break;
   case ASM::Spectral:
-    pch = new ASMs1DSpec(1,nf);
+    pch = new ASMs1DSpec(nd,nf);
     break;
   default:
-    pch = new ASMs1D(1,nf);
+    pch = new ASMs1D(nd,nf);
   }
 
   if (!pch->read(isp))
@@ -446,13 +447,13 @@ bool SIM1D::readPatches (std::istream& isp, PatchVec& patches,
     switch (opt.discretization)
       {
       case ASM::Lagrange:
-        pch = new ASMs1DLag(1,nf);
+        pch = new ASMs1DLag(nd,nf);
         break;
       case ASM::Spectral:
-        pch = new ASMs1DSpec(1,nf);
+        pch = new ASMs1DSpec(nd,nf);
         break;
       default:
-        pch = new ASMs1D(1,nf);
+        pch = new ASMs1D(nd,nf);
       }
 
     if (!pch->read(isp))

@@ -20,6 +20,27 @@
 
 
 /*!
+  \brief A scalar-valued constant function.
+*/
+
+class ConstantFunc : public ScalarFunc
+{
+  Real fval; //!< The function value
+
+public:
+  //! \brief Constructor initializing the function value.
+  ConstantFunc(Real v) : fval(v) {}
+
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return fval == Real(0); }
+
+protected:
+  //! \brief Evaluates the constant function.
+  virtual Real evaluate(const Real&) const { return fval; }
+};
+
+
+/*!
   \brief A scalar-valued linear function.
 */
 

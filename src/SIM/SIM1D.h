@@ -29,8 +29,7 @@ public:
 
   //! \brief Default constructor.
   //! \param[in] n1 Dimension of the primary solution field
-  //! \param[in] n2 Dimension of the second solution field (mixed method)
-  SIM1D(unsigned char n1 = 1, unsigned char n2 = 0, bool = false);
+  SIM1D(unsigned char n1 = 1, unsigned char = 0, bool = false);
   //! \brief Empty destructor.
   virtual ~SIM1D() {}
 
@@ -72,6 +71,7 @@ protected:
 			     int dirs, int code, int&);
 
 protected:
+  unsigned char nd; //!< Number of spatial dimensions
   unsigned char nf; //!< Number of scalar fields
 };
 
