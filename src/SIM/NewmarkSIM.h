@@ -73,6 +73,12 @@ protected:
   //! \brief Finalizes the right-hand-side vector on the system level.
   virtual void finalizeRHSvector() {}
 
+public:
+  //! \brief Returns a const reference to current velocity vector.
+  const Vector& getVelocity() const { return solution[solution.size()-2]; }
+  //! \brief Returns a const reference to current velocity vector.
+  const Vector& getAcceleration() const { return solution[solution.size()-1]; }
+
 protected:
   // Time integration parameters
   double alpha1; //!< Mass-proportional damping parameter
