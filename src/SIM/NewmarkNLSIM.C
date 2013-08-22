@@ -15,12 +15,7 @@
 #include "SystemMatrix.h"
 #include "SIMbase.h"
 #include "TimeStep.h"
-#include "Utilities.h"
 #include "tinyxml.h"
-
-
-//! \brief Convenience enum defining total solution vector indices.
-enum { iD=0, iV=2, iA=3, nSOL=4 };
 
 
 NewmarkNLSIM::NewmarkNLSIM (SIMbase& sim) : NewmarkSIM(sim), Finert(NULL)
@@ -28,52 +23,44 @@ NewmarkNLSIM::NewmarkNLSIM (SIMbase& sim) : NewmarkSIM(sim), Finert(NULL)
   // Default Newmark parameters (alpha = -0.1)
   beta = 0.3025;
   gamma = 0.6;
+
+  predictor = 'd'; // default predictor (constant displacement)
 }
 
 
 bool NewmarkNLSIM::parse (const TiXmlElement* elem)
 {
-  if (strcasecmp(elem->Value(),"newmarksolver"))
-    return model.parse(elem);
+  bool ok = this->NewmarkSIM::parse(elem);
 
-  double alpha = -0.1;
-  utl::getAttribute(elem,"alpha",alpha);
-  beta = 0.25*(1.0-alpha)*(1.0-alpha);
-  gamma = 0.5 - alpha;
+  if (!strcasecmp(elem->Value(),"newmarksolver"))
+  {
+    const char* attr = elem->Attribute("alpha");
+    double alpha = attr ? atof(attr) : -0.1;
+    beta = 0.25*(1.0-alpha)*(1.0-alpha);
+    gamma = 0.5 - alpha;
+  }
 
-  utl::getAttribute(elem,"alpha1",alpha1);
-  utl::getAttribute(elem,"alpha2",alpha2);
-
-  const char* value = 0;
-  const TiXmlElement* child = elem->FirstChildElement();
-  for (; child; child = child->NextSiblingElement())
-    if ((value = utl::getValue(child,"maxits")))
-      maxit = atoi(value);
-    else if ((value = utl::getValue(child,"rtol")))
-      convTol = atof(value);
-    else if ((value = utl::getValue(child,"dtol")))
-      divgLim = atof(value);
-    else if ((value = utl::getValue(child,"referencenorm")))
-    {
-      if (!strcasecmp(value,"all"))
-        refNopt = ALL;
-      else if (!strcasecmp(value,"max"))
-        refNopt = MAX;
-    }
-
-  return true;
+  return ok;
 }
 
 
-void NewmarkNLSIM::init (size_t)
+void NewmarkNLSIM::init (size_t nSol)
 {
   model.setIntegrationPrm(0,alpha1);
   model.setIntegrationPrm(1,alpha2);
   model.setIntegrationPrm(2,0.5-gamma);
 
-  solution.resize(nSOL);
+  size_t nDOFs = model.getNoDOFs();
+  size_t nSols = model.getNoSolutions();
+  if (nSols > nSol) nSol = nSols;
+  solution.resize(nSol);
+
   for (Vectors::iterator it = solution.begin(); it != solution.end(); ++it)
-    it->resize(model.getNoDOFs(),true);
+    it->resize(nDOFs,true);
+
+  incDis.resize(nDOFs,true);
+  predVel.resize(nDOFs,true);
+  predAcc.resize(nDOFs,true);
 }
 
 
@@ -102,18 +89,32 @@ void NewmarkNLSIM::finalizeRHSvector ()
 
 bool NewmarkNLSIM::predictStep (TimeStep& param)
 {
-  if (solution.size() < nSOL) return false;
+  if (solution.size() < 3) return false;
 
-  Vector v(solution[iV]);
-  Vector a(solution[iA]);
+  size_t iA = solution.size() - 1;
+  size_t iV = solution.size() - 2;
 
   // Predicted new velocity
-  solution[iV] *= gamma/beta - 1.0;
-  solution[iV].add(a,(0.5*gamma/beta-1.0)*param.time.dt);
+  predVel = solution[iV];
+  predVel *= gamma/beta - 1.0;
+  predVel.add(solution[iA],(0.5*gamma/beta-1.0)*param.time.dt);
 
   // Predicted new acceleration
-  solution[iA] *= 0.5/beta - 1.0;
-  solution[iA].add(v,1.0/(beta*param.time.dt));
+  predAcc = solution[iA];
+  predAcc *= 0.5/beta - 1.0;
+  predAcc.add(solution[iV],1.0/(beta*param.time.dt));
+
+#if SP_DEBUG > 1
+  std::cout <<"\nPredicted velocity:"<< predVel;
+  std::cout <<"Predicted acceleration:"<< predAcc;
+#endif
+
+  solution[iV] = predVel;
+  solution[iA] = predAcc;
+
+  incDis.fill(0.0);
+  predVel *= -1.0;
+  predAcc *= -1.0;
 
   return true;
 }
@@ -121,12 +122,19 @@ bool NewmarkNLSIM::predictStep (TimeStep& param)
 
 bool NewmarkNLSIM::correctStep (TimeStep& param, bool converged)
 {
-  if (solution.size() < nSOL) return false;
+  if (solution.size() < 3) return false;
+
+  size_t iD = 0;
+  size_t iA = solution.size() - 1;
+  size_t iV = solution.size() - 2;
 
   // Update current displacement, velocity and acceleration solutions
+  incDis.add(linsol,1.0);
   solution[iD].add(linsol,1.0);
-  solution[iV].add(linsol,gamma/(beta*param.time.dt));
-  solution[iA].add(linsol,1.0/(beta*param.time.dt*param.time.dt));
+  solution[iV] = predVel;
+  solution[iV].add(incDis,gamma/(beta*param.time.dt));
+  solution[iA] = predAcc;
+  solution[iA].add(incDis,1.0/(beta*param.time.dt*param.time.dt));
 
   if (converged)
   {
@@ -134,6 +142,19 @@ bool NewmarkNLSIM::correctStep (TimeStep& param, bool converged)
     delete Finert;
     Finert = model.getRHSvector(1,true);
   }
+
+#if SP_DEBUG > 1
+  std::cout <<"\nCorrected displacement:"<< solution[iD]
+            <<"Corrected velocity:"<< solution[iV]
+            <<"Corrected acceleration:"<< solution[iA];
+  if (converged && Finert)
+    std::cout <<"Actual inertia force:"<< *Finert;
+#elif defined(SP_DEBUG)
+  if (converged && solution[iD].size() < 100)
+    std::cout <<"\nConverged displacement:"<< solution[iD]
+              <<"Converged velocity:"<< solution[iV]
+              <<"Converged acceleration:"<< solution[iA];
+#endif
 
   return model.updateConfiguration(solution[iD]);
 }

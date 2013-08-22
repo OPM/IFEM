@@ -24,10 +24,12 @@ GenAlphaMats::GenAlphaMats (double alpha, double a, double b) : NewmarkMats(a,b)
 const Matrix& GenAlphaMats::getNewtonMatrix () const
 {
   Matrix& N = const_cast<Matrix&>(A.front());
+  double alphaPlus1 = 1.5 - gamma; // = 1.0 + alpha
 
   N = A[3];
-  N.add(A[2],1.0 + alpha2*gamma/(beta*h));
-  N.add(A[1],(gamma*alpha1 + 1.0/h)/(beta*h));
+  N.multiply(alphaPlus1);
+  N.add(A[2],alphaPlus1*(1.0 + alpha2*gamma/(beta*h)));
+  N.add(A[1],(alphaPlus1*gamma*alpha1 + 1.0/h)/(beta*h));
 
 #if SP_DEBUG > 2
   std::cout <<"\nElement mass matrix"<< A[1];
@@ -45,6 +47,11 @@ const Vector& GenAlphaMats::getRHSVector () const
   int ia = vec.size() - 1; // index to element acceleration vector (a)
   int iv = vec.size() - 2; // index to element velocity vector (v)
 
+#if SP_DEBUG > 2
+  std::cout <<"GenAlphaMats::getRHSVector "
+            << (isPredictor ? "predictor" : "corrector") << std::endl;
+#endif
+
   if (A.size() > 2 && b.size() > 1 && vec.size() > 2)
   {
     Vector& Fi = const_cast<Vector&>(b[1]);
@@ -55,30 +62,37 @@ const Vector& GenAlphaMats::getRHSVector () const
     if (alpha1 > 0.0 && iv > 0)
       Fi.add(A[1]*vec[iv],-alpha1); // Fi -= alpha1*M*v
     if (alpha2 > 0.0 && iv > 0)
-      Fi.add(A[2]*vec[iv],-alpha2); // Ri -= alpha2*K*v
+      Fi.add(A[2]*vec[iv],-alpha2); // Fi -= alpha2*K*v
 
 #if SP_DEBUG > 2
-    std::cout <<"\nElement inertia vector"<< Fi;
+    std::cout <<"Element inertia vector"<< Fi;
 #endif
   }
 
-  if (A.size() > 2 && !b.empty() && vec.size() > 2)
+  if (A.size() > 2 && vec.size() > 2)
   {
     Vector& RHS = const_cast<Vector&>(b.front());
+#if SP_DEBUG > 2
+    std::cout <<"\nElement velocity vector"<< vec[iv];
+    std::cout <<"Element acceleration vector"<< vec[ia];
+    std::cout <<"S_ext - S_int"<< b.front();
+    std::cout <<"S_i"<< A[1]*vec[ia];
+#endif
 
     // Find the right-hand-side vector
     double alphaPlus1 = 1.5 - gamma;
     RHS *= alphaPlus1;
     if (alpha1 > 0.0)
-      RHS.add(A[1]*vec[iv], alpha1*(isPredictor ? -alphaPlus1 : alphaPlus1));
+      RHS.add(A[1]*vec[iv], alpha1*(isPredictor ? alphaPlus1 : -alphaPlus1));
     if (alpha2 > 0.0)
-      RHS.add(A[2]*vec[iv], alpha2*(isPredictor ? -alphaPlus1 : alphaPlus1));
+      RHS.add(A[2]*vec[iv], alpha2*(isPredictor ? alphaPlus1 : -alphaPlus1));
 
     RHS.add(A[1]*vec[ia], isPredictor ? 1.0 : -1.0);
-#if SP_DEBUG > 2
-    std::cout <<"\nElement right-hand-side vector"<< RHS;
-#endif
   }
+
+#if SP_DEBUG > 2
+  std::cout <<"\nElement right-hand-side vector"<< b.front();
+#endif
 
   return b.front();
 }

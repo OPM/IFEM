@@ -37,6 +37,12 @@ const Matrix& NewmarkMats::getNewtonMatrix () const
 
   N.add(A[2],(alpha2*gamma + beta*h)*h); // [N] += (alpha2*gamma+beta*h)*h*[K]
 
+#if SP_DEBUG > 2
+  std::cout <<"\nElement mass matrix"<< A[1];
+  std::cout <<"Element stiffness matrix"<< A[2];
+  std::cout <<"Resulting Newton matrix"<< A[0];
+#endif
+
   return A.front();
 }
 
@@ -49,6 +55,15 @@ const Vector& NewmarkMats::getRHSVector () const
 
     int ia = vec.size() - 1; // index to element acceleration vector (a)
     int iv = vec.size() - 2; // index to element velocity vector (v)
+#if SP_DEBUG > 2
+    std::cout <<"\nf_ext"<< dF;
+    std::cout <<"f_i = M*a"<< A[1]*vec[ia];
+    if (alpha1 > 0.0)
+      std::cout <<"f_d1/alpha1 = M*v (alpha1="<< alpha1 <<")"<< A[1]*vec[iv];
+    if (alpha2 > 0.0)
+      std::cout <<"f_d2/alpha2 = K*v (alpha2="<< alpha2 <<")"<< A[2]*vec[iv];
+    std::cout <<"f_s = K*d"<< A[2]*vec.front();
+#endif
 
     dF.add(A[1]*vec[ia],-1.0);      // dF = Fext - M*a
 
@@ -60,6 +75,10 @@ const Vector& NewmarkMats::getRHSVector () const
 
     dF.add(A[2]*vec.front(),-1.0);  // dF -= K*d
   }
+
+#if SP_DEBUG > 2
+  std::cout <<"\nElement right-hand-side vector"<< b.front();
+#endif
 
   return b.front();
 }

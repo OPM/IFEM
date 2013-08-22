@@ -53,11 +53,15 @@ protected:
   //! \brief Calculates predicted velocities and accelerations.
   virtual bool predictStep(TimeStep& param);
   //! \brief Updates configuration variables (solution vector) in an iteration.
-  virtual bool correctStep(TimeStep& param, bool = false);
+  virtual bool correctStep(TimeStep& param, bool converged = false);
   //! \brief Finalizes the right-hand-side vector on the system level.
   virtual void finalizeRHSvector();
 
 private:
+  Vector incDis;  //!< Incremental displacements
+  Vector predVel; //!< Predicted velocity vector
+  Vector predAcc; //!< Predicted acceleration vector
+
   SystemVector* Finert; //!< Actual inertia forces in last converged time step
 };
 
