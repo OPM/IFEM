@@ -406,7 +406,7 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time,
 
   size_t iMax[nf];
   double dMax[nf];
-  double normL2 = model.solutionNorms(solution.front(),dMax,iMax);
+  double normL2 = model.solutionNorms(solution.front(),dMax,iMax,nf);
 
   if (myPid == 0)
   {

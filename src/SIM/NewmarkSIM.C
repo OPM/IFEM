@@ -85,7 +85,7 @@ void NewmarkSIM::printProblem (std::ostream& os) const
   model.printProblem(os);
   if (myPid > 0) return;
 
-  os <<"Newmark predictor/multicorrector: beta="<< beta <<" gamma="<< gamma;
+  os <<"Newmark predictor/multicorrector: beta = "<< beta <<" gamma = "<< gamma;
   switch (predictor) {
   case 'd': os <<"\n- using constant displacement predictor"; break;
   case 'v': os <<"\n- using constant velocity predictor"; break;
@@ -93,9 +93,10 @@ void NewmarkSIM::printProblem (std::ostream& os) const
   }
 
   if (alpha1 > 0.0)
-    os<<"\nMass-proportional damping (alpha1): "<< alpha1;
+    os <<"\nMass-proportional damping (alpha1): "<< alpha1;
   if (alpha2 > 0.0)
-    os<<"\nStiffness-proportional damping (alpha2): "<< alpha2;
+    os <<"\nStiffness-proportional damping (alpha2): "<< alpha2;
+
   os <<"\n"<< std::endl;
 }
 
@@ -122,6 +123,7 @@ bool NewmarkSIM::advanceStep (TimeStep& param, bool updateTime)
 bool NewmarkSIM::predictStep (TimeStep& param)
 {
   const double dt = param.time.dt;
+  Vector velocity;
 
   switch (predictor) {
   case 'a': // zero acceleration predictor
@@ -135,7 +137,7 @@ bool NewmarkSIM::predictStep (TimeStep& param)
 
     // Predicted new acceleration (zero)
     solution[iA].fill(0.0);
-    return true;
+    break;
 
   case 'v': // constant velocity predictor
 
@@ -145,10 +147,10 @@ bool NewmarkSIM::predictStep (TimeStep& param)
 
     // Predicted new acceleration
     solution[iA] *= 1.0 - 1.0/gamma;
-    return true;
+    break;
 
   case 'd': // constant displacement predictor
-    Vector velocity(solution[iV]);
+    velocity = solution[iV];
 
     // Predicted new velocity
     solution[iV] *= 1.0 - gamma/beta;
@@ -157,10 +159,19 @@ bool NewmarkSIM::predictStep (TimeStep& param)
     // Predicted new acceleration
     solution[iA] *= 1.0 - 0.5/beta;
     solution[iA].add(velocity,-1.0/(beta*dt));
-    return true;
+    break;
+
+  default:
+    return false;
   }
 
-  return false;
+#if SP_DEBUG > 1
+  std::cout <<"Predicted displacement:"<< solution[iD];
+  std::cout <<"Predicted velocity:"<< solution[iV];
+  std::cout <<"Predicted acceleration:"<< solution[iA];
+#endif
+
+  return true;
 }
 
 
@@ -176,6 +187,12 @@ bool NewmarkSIM::correctStep (TimeStep& param, bool)
 
   // Corrected acceleration
   solution[iA].add(linsol,1.0);
+
+#if SP_DEBUG > 1
+  std::cout <<"Corrected displacement:"<< solution[iD];
+  std::cout <<"Corrected velocity:"<< solution[iV];
+  std::cout <<"Corrected acceleration:"<< solution[iA];
+#endif
 
   return model.updateConfiguration(solution[iD]);
 }
@@ -200,6 +217,7 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
   if (!model.updateDirichlet(param.time.t,&solution.front()))
     return SIM::FAILURE;
 
+  param.iter = 0;
   if (!this->predictStep(param))
     return SIM::FAILURE;
 
@@ -218,7 +236,7 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
   if (!model.solveSystem(linsol,msgLevel-1))
     return SIM::FAILURE;
 
-  for (param.iter = 0; param.iter <= maxit;)
+  while (param.iter <= maxit)
     switch (this->checkConvergence(param))
       {
       case SIM::CONVERGED:
@@ -316,9 +334,9 @@ bool NewmarkSIM::solutionNorms (double zero_tolerance, std::streamsize outPrec)
   size_t d, nf = model.getNoFields(1);
   size_t iMax[nf], jMax[nf], kMax[nf];
   double dMax[nf], vMax[nf], aMax[nf];
-  double disL2 = model.solutionNorms(solution[0],dMax,iMax);
-  double velL2 = model.solutionNorms(solution[v],vMax,jMax);
-  double accL2 = model.solutionNorms(solution[a],aMax,kMax);
+  double disL2 = model.solutionNorms(solution[0],dMax,iMax,nf);
+  double velL2 = model.solutionNorms(solution[v],vMax,jMax,nf);
+  double accL2 = model.solutionNorms(solution[a],aMax,kMax,nf);
 
   if (myPid > 0) return true;
 
