@@ -454,12 +454,14 @@ class Interpolate1D : public RealFunc
   std::vector<Real> grid;   //!< The (1D) grid the data is associated with
   std::vector<Real> values; //!< The (scalar) data values
   int               dir;    //!< In which direction to perform the interpolation
+  double            time;   //!< Ramp-up time
 
 public:
   //! \brief The constructor initializes the function parameters from a file.
   //! \param[in] file Name of file to read grid and function data from
   //! \param[in] dir_ Coordinate direction of the spatial variation
-  Interpolate1D(const char* file, int dir_);
+  //! \param[in] ramp Ramp-up time 
+  Interpolate1D(const char* file, int dir_, double ramp);
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return values.empty(); }

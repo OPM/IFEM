@@ -128,7 +128,8 @@ Real StepXYFunc::evaluate (const Vec3& X) const
 }
 
 
-Interpolate1D::Interpolate1D (const char* file, int dir_) : dir(dir_)
+Interpolate1D::Interpolate1D (const char* file, int dir_, double ramp) :
+  dir(dir_), time(ramp)
 {
   std::ifstream is(file);
   while (is.good() && !is.eof()) {
@@ -163,7 +164,12 @@ Real Interpolate1D::evaluate (const Vec3& X) const
   double delta = x2 - x1;
   double alpha = (x2-x)/delta;
 
-  return (val1*alpha + val2*(1-alpha));
+  double res = (val1*alpha + val2*(1-alpha));
+  const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
+  if (time > 0 && Xt)
+    res *= std::min(1.0, Xt->t/time);
+
+  return res;
 }
 
 
@@ -270,8 +276,12 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
     case 8:
       {
         int dir = atoi(strtok(NULL, " "));
-        std::cout <<"Interpolate1D("<< cline <<","<< (char)('X'+dir) <<")";
-        f = new Interpolate1D(cline,dir);
+        const char* t = strtok(NULL, " ");
+        double time = 0;
+        if (t)
+          time = atof(t);
+        std::cout <<"Interpolate1D("<< cline <<","<< (char)('X'+dir) <<")*Ramp(" << time << ")";
+        f = new Interpolate1D(cline,dir,time);
         cline = strtok(NULL," ");
       }
       break;
