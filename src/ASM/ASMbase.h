@@ -284,6 +284,11 @@ public:
   //! \brief Initializes the multi-point constraint coefficients.
   virtual bool initConstraints() { return true;}
 
+  void assignNodeNumbers(const std::vector<int>& nodes, int basis)
+  {
+    myMLGN = nodes;
+  }
+
   //! \brief Checks for time-dependent in-homogeneous Dirichlet conditions.
   //! \param[in] func Scalar property fields
   //! \param[in] vfunc Vector property fields

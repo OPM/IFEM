@@ -40,6 +40,9 @@
 #include <sstream>
 #include <iomanip>
 #include <iterator>
+#ifdef HAS_HDF5
+#include "HDF5Writer.h"
+#endif
 
 
 bool SIMbase::preserveNOrder  = false;
@@ -134,16 +137,38 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
     if (!this->createFEMmodel()) return false;
 
     const char* file = elem->FirstChild()->Value();
-    std::ifstream isn(file);
-    if (!isn.good()) {
-      std::cerr <<" *** SIMbase::read: Failure opening input file "
-                << file << std::endl;
-      return false;
-    }
+    if (strstr(file,".gno")) {
+      std::ifstream isn(file);
+      if (!isn.good()) {
+        std::cerr <<" *** SIMbase::read: Failure opening input file "
+                  << file << std::endl;
+        return false;
+      }
 
-    if (myPid == 0)
-      std::cout <<"\tReading data file "<< file << std::endl;
-    this->readNodes(isn);
+      if (myPid == 0)
+        std::cout <<"\tReading data file "<< file << std::endl;
+      this->readNodes(isn);
+    } 
+#ifdef HAS_HDF5
+    else if (strstr(file, ".hdf5")) { // read nodes from HDF5
+      const char* f = strrchr(file,'.');
+      if (myPid == 0)
+        std::cout <<"\tReading nodes from "<< file << std::endl;
+      char temp[1024];
+      strncpy(temp, file, f-file);
+      temp[f-file] = '\0';
+      HDF5Writer hdf5(temp, true, true);
+      const char* field = elem->Attribute("field");
+
+      for (int i=0;i<getNoPatches();++i) {
+        std::vector<int> nodes;
+        std::stringstream str;
+        int k = getLocalPatchIndex(i+1);
+        if (k > 0 && hdf5.readVector(0, field?field:"node numbers", k, nodes))
+          getFEModel()[k-1]->assignNodeNumbers(nodes, 0);
+      }
+    }
+#endif
   }
 
   else if (!strcasecmp(elem->Value(),"partitioning")) {
