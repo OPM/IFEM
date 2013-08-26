@@ -1261,6 +1261,19 @@ bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, bool withRF)
 
   if (myEqSys) delete myEqSys;
   myEqSys = new AlgEqSystem(*mySam);
+
+  // workaround superlu bug
+  if (getFEModel().size() < 2 && mType == SystemMatrix::SPARSE) {
+    const ASMstruct* a = dynamic_cast<const ASMstruct*>(getFEModel()[0]);
+    if (a) {
+      int n1, n2, n3;
+      a->getNoStructElms(n1, n2, n3);
+      if (n1 < 3 || (n2 > 0 && n2 < 3) || (n3 > 0 && n3 < 3)) {
+        std::cerr << "System too small for SLU, falling back to dense" << std::endl;
+        mType = SystemMatrix::DENSE;
+      }
+    }
+  }
   return myEqSys->init(static_cast<SystemMatrix::Type>(mType),
 		       mySolParams,nMats,nVec,withRF,opt.num_threads_SLU);
 }
