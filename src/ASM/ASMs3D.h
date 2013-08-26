@@ -543,6 +543,12 @@ public:
   //! \param[in] basis Which basis to return size parameters for (mixed methods)
   virtual bool getSize(int& n1, int& n2, int& n3, int basis = 0) const;
 
+  //! \brief Returns the number of elements in each parameter direction.
+  //! \param[out] n1 Number of nodes in first (u) direction
+  //! \param[out] n2 Number of nodes in second (v) direction
+  //! \param[out] n3 Number of nodes in third (w) direction
+  virtual bool getNoStructElms(int& n1, int& n2, int& n3) const;
+
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 

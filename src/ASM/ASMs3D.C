@@ -2943,3 +2943,20 @@ void ASMs3D::generateThreadGroups (char lIndex, bool silence)
 		  << ": "<< fGrp[i][j].size() <<" elements";
     }
 }
+
+
+bool ASMs3D::getNoStructElms(int& n1, int& n2, int& n3) const
+{
+  const int p1 = svol->order(0);
+  const int p2 = svol->order(1);
+  const int p3 = svol->order(2);
+  const int u = svol->numCoefs(0);
+  const int v = svol->numCoefs(1);
+  const int w = svol->numCoefs(2);
+
+  n1 = u-p1;
+  n2 = v-p2;
+  n3 = w-p3;
+
+  return true;
+}

@@ -1189,3 +1189,12 @@ bool ASMs1D::globalL2projection (Matrix& sField,
 
   return true;
 }
+
+
+bool ASMs1D::getNoStructElms(int& n1, int& n2, int& n3) const
+{
+  n1 = getNoElms();
+  n2 = n3 = 0;
+
+  return true;
+}

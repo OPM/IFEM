@@ -2334,3 +2334,17 @@ void ASMs2D::generateThreadGroups (const Integrand& integrand, bool silence)
   }
   std::cout << std::endl;
 }
+
+
+bool ASMs2D::getNoStructElms(int& n1, int& n2, int& n3) const
+{
+  const int p1 = surf->order_u() - 1;
+  const int p2 = surf->order_v() - 1;
+  const int u = surf->numCoefs_u();
+  const int v = surf->numCoefs_v();
+
+  n1 = u-p1;
+  n2 = v-p2;
+  n3 = 0;
+  return true;
+}
