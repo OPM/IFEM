@@ -146,6 +146,23 @@ void HDF5Writer::readArray(int group, const std::string& name,
 #endif
 }
 
+
+void HDF5Writer::readArray(int group, const std::string& name,
+                              int& len,  int*& data)
+{
+#ifdef HAS_HDF5
+  hid_t set = H5Dopen2(group,name.c_str(),H5P_DEFAULT);
+  hsize_t siz = H5Dget_storage_size(set) / sizeof(int);
+  len = siz;
+  data = new int[siz];
+  H5Dread(set,H5T_NATIVE_INT,H5S_ALL,H5S_ALL,H5P_DEFAULT,data);
+  H5Dclose(set);
+#else
+  len = 0;
+  std::cout << "HDF5Writer: compiled without HDF5 support, no data read" << std::endl;
+#endif
+}
+
 void HDF5Writer::readString(const std::string& name, std::string& out)
 {
 #ifdef HAS_HDF5
@@ -515,4 +532,26 @@ bool HDF5Writer::readDouble(int level, const std::string& group,
   }
 #endif
   return false;
+}
+
+
+bool HDF5Writer::readVector(int level, const std::string& name,
+                            int patch, std::vector<int>& vec)
+{
+  bool ok=true;
+  openFile(level);
+#ifdef HAS_HDF5
+  std::stringstream str;
+  str << level;
+  str << '/';
+  str << patch;
+  hid_t group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
+  int* tmp = NULL; int siz = 0;
+  readArray(group2,name,siz,tmp);
+  vec.assign(tmp, tmp + siz);
+  delete[] tmp;
+  H5Gclose(group2);
+#endif
+  closeFile(level);
+  return ok;
 }

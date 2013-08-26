@@ -108,6 +108,14 @@ public:
   bool readVector(int level, const std::string& name,
                   int patch, Vector& vec);
 
+  //! \brief Reads a integer vector
+  //! \param[in] level The time level to read at
+  //! \param[in] name The name (path in HDF5 file) to the string
+  //! \param[in] patch The patch to read
+  //! \param[out] vec The vector to read data into
+  bool readVector(int level, const std::string& name,
+                  int patch, std::vector<int>& vec);
+
   //! \brief Reads a double.
   //! \param[in] level The time level to read at
   //! \param[in] name The name (path in HDF5 file) to the array
@@ -143,6 +151,13 @@ protected:
   //! \param[in] len The length of the data to read
   //! \param[out] data The array to read data into
   void readArray(int group, const std::string& name, int& len, double*& data);
+
+  //! \brief Internal helper function. Reads an array into a array of integers.
+  //! \param[in] group The HDF5 group to read data from
+  //! \param[in] name The name of the array
+  //! \param[in] len The length of the data to read
+  //! \param[out] data The array to read data into
+  void readArray(int group, const std::string& name, int& len, int*& data);
 
   //! \brief Internal helper function. Check if a group exists in the HDF5 file
   //! \param[in] parent The HDF5 group of the parent
