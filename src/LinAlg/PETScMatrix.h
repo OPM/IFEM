@@ -21,15 +21,15 @@
 #include "petscksp.h"
 #include "petscvec.h"
 #else
-typedef int PetscInt; //!< To avoid compilation failures
+typedef int    PetscInt;  //!< To avoid compilation failures
 typedef double PetscReal; //!< To avoid compilation failures
 #endif
 
 class LinSolParams;
 
-typedef std::vector<PetscInt> PetscIntVec;   //!< General integer vector
-typedef std::vector<PetscReal> PetscRealVec; //!< General real vector
-typedef std::vector<PetscIntVec> PetscIntMat; //!< PETSc integer matrix
+typedef std::vector<PetscInt>    PetscIntVec;  //!< PETSc integer vector
+typedef std::vector<PetscIntVec> PetscIntMat;  //!< PETSc integer matrix
+typedef std::vector<PetscReal>   PetscRealVec; //!< PETSc real vector
 
 
 /*!
@@ -254,16 +254,16 @@ protected:
   bool makeEBEpreconditioner(const Mat A, Mat* AeI);
 
   Mat                 A;           //!< The actual PETSc matrix
-  KSP                 ksp;          //!< Linear equation solver
-  MatNullSpace        nsp;          //!< Null-space of linear operator
-  const LinSolParams& solParams;    //!< Linear solver parameters
-  bool                setParams;    //!< If linear solver parameters are set
-  IS*                 elmIS;        //!< Element index sets
-  PetscInt            ISsize;       //!< Number of index sets/elements
-  PetscInt            nsd;          //!< Number of space dimensions
-  std::vector<PetscIntVec> locSubdDofs;  //!< Degrees of freedom for unique subdomains
-  std::vector<PetscIntVec> subdDofs;     //!< Degrees of freedom for subdomains
-  PetscRealVec        coords;       //!< Coordinates of local nodes (x[0],y[0],z[0],x[1],y[1],...)
+  KSP                 ksp;         //!< Linear equation solver
+  MatNullSpace        nsp;         //!< Null-space of linear operator
+  const LinSolParams& solParams;   //!< Linear solver parameters
+  bool                setParams;   //!< If linear solver parameters are set
+  IS*                 elmIS;       //!< Element index sets
+  PetscInt            ISsize;      //!< Number of index sets/elements
+  PetscInt            nsd;         //!< Number of space dimensions
+  PetscIntMat         locSubdDofs; //!< Degrees of freedom for unique subdomains
+  PetscIntMat         subdDofs;    //!< Degrees of freedom for subdomains
+  PetscRealVec        coords;      //!< Coordinates of local nodes (x0,y0,z0,x1,y1,...)
 
 #else // dummy implementation when PETSc is not included
   virtual SystemMatrix* copy() const { return 0; }

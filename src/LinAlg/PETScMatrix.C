@@ -266,7 +266,7 @@ static bool assemPETSc (const Matrix& eM, Mat SM, PETScVector* SV,
     eM.multiply(uc,bc);
 
   // Eliminate constrained degrees of freedom from element matrix
-  for (j = 1; j <= nedof; j++) 
+  for (j = 1; j <= nedof; j++)
     if (mpmceq[meen[j-1]-1] > 0) {
       for (i = 1; i <= nedof; i++)
         A(i,j) = A(j,i) = Real(0);
@@ -281,7 +281,7 @@ static bool assemPETSc (const Matrix& eM, Mat SM, PETScVector* SV,
 
   // Add element stiffness matrix to global matrix
   MatSetValues(SM,nedof,l2g,nedof,l2g,A.ptr(),ADD_VALUES);
-  
+
   delete[] l2g;
   return true;
 }
