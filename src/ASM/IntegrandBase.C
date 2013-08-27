@@ -23,8 +23,8 @@
 
 
 /*!
-  The default implementation returns and ElmMats object with one left-hand-side
-  matrix (unless we hare doing a boundary integral) and one right-hand-side
+  The default implementation returns an ElmMats object with one left-hand-side
+  matrix (unless we are doing a boundary integral) and one right-hand-side
   vector. The dimension of the element matrices are assumed to be \a npv*nen.
   Reimplement this method if your integrand needs more element matrices.
 */
@@ -32,7 +32,8 @@
 LocalIntegral* IntegrandBase::getLocalIntegral (size_t nen, size_t,
                                                 bool neumann) const
 {
-  ElmMats* result = new ElmMats(!neumann);
+  ElmMats* result = new ElmMats(!neumann && m_mode != SIM::RECOVERY);
+  result->rhsOnly = m_mode == SIM::RHS_ONLY || m_mode == SIM::RECOVERY;
   result->resize(neumann ? 0 : 1, 1);
   result->redim(npv*nen);
 
