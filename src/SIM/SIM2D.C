@@ -21,6 +21,7 @@
 #include <omp.h>
 #endif
 #include <fstream>
+#include <sstream>
 
 
 /*!
@@ -77,7 +78,7 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       return false;
     }
 
-    ASM2D* pch = 0;
+    ASM2D* pch = NULL;
     RealArray xi;
     if (!utl::parseKnots(elem,xi))
     {
@@ -125,7 +126,7 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       return false;
     }
 
-    ASM2D* pch = 0;
+    ASM2D* pch = NULL;
     int addu = 0, addv = 0;
     utl::getAttribute(elem,"u",addu);
     utl::getAttribute(elem,"v",addv);
@@ -310,7 +311,7 @@ bool SIM2D::parse (const TiXmlElement* elem)
 
 bool SIM2D::parse (char* keyWord, std::istream& is)
 {
-  char* cline = 0;
+  char* cline = NULL;
   if (!strncasecmp(keyWord,"REFINE",6))
   {
     int nref = atoi(keyWord+6);
@@ -318,7 +319,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
       for (int i = 0; i < nref && utl::readLine(is); i++);
     else
     {
-      ASM2D* pch = 0;
+      ASM2D* pch = NULL;
       std::cout <<"\nNumber of patch refinements: "<< nref << std::endl;
       for (int i = 0; i < nref && (cline = utl::readLine(is)); i++)
       {
@@ -375,7 +376,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
       for (int i = 0; i < nref && utl::readLine(is); i++);
     else
     {
-      ASM2D* pch = 0;
+      ASM2D* pch = NULL;
       std::cout <<"\nNumber of order raise: "<< nref << std::endl;
       for (int i = 0; i < nref && (cline = utl::readLine(is)); i++)
       {
@@ -524,7 +525,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
     if (ignoreDirichlet) return true; // Ignore all boundary conditions
     if (!this->createFEMmodel()) return false;
 
-    ASM2D* pch = 0;
+    ASM2D* pch = NULL;
     int nfix = atoi(keyWord+9);
     std::cout <<"\nNumber of fixed points: "<< nfix << std::endl;
     for (int i = 0; i < nfix && (cline = utl::readLine(is)); i++)
@@ -655,7 +656,7 @@ ASMbase* SIM2D::readPatch (std::istream& isp, int pchInd) const
 bool SIM2D::readPatches (std::istream& isp, PatchVec& patches,
                          const char* whiteSpace)
 {
-  ASMbase* pch = 0;
+  ASMbase* pch = NULL;
   for (int pchInd = 1; isp.good(); pchInd++)
     if ((pch = ASM2D::create(opt.discretization,nf,nf[1] > 0)))
     {
@@ -725,12 +726,26 @@ bool SIM2D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
 void SIM2D::clonePatches (const PatchVec& patches,
 			  const std::map<int,int>& glb2locN)
 {
-  ASM2D* pch = 0;
+  ASM2D* pch = NULL;
   for (size_t i = 0; i < patches.size(); i++)
     if ((pch = dynamic_cast<ASM2D*>(patches[i])))
       myModel.push_back(pch->clone(nf));
 
   g2l = &glb2locN;
+}
+
+
+ASMbase* SIM2D::createDefaultGeometry () const
+{
+  std::istringstream unitSquare("200 1 0 0\n2 0\n"
+				"2 2\n0 0 1 1\n"
+				"2 2\n0 0 1 1\n"
+				"0 0\n"
+				"1 0\n"
+				"0 1\n"
+				"1 1\n");
+
+  return this->readPatch(unitSquare,1);
 }
 
 

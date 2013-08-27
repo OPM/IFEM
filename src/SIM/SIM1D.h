@@ -37,6 +37,9 @@ public:
   //! \brief Empty destructor.
   virtual ~SIM1D() {}
 
+  //! \brief Returns the number of parameter dimensions in the model.
+  unsigned short int getNoParamDim() const { return 1; }
+
   //! \brief Reads a patch from given input stream.
   //! \param[in] isp The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read
@@ -82,6 +85,9 @@ protected:
   //! \param[in] code In-homegeneous Dirichlet condition property code
   virtual bool addConstraint(int patch, int lndx, int ldim,
 			     int dirs, int code, int&);
+
+  //! \brief Creates a default single-patch geometry.
+  virtual ASMbase* createDefaultGeometry() const;
 
 protected:
   unsigned char nd; //!< Number of spatial dimensions

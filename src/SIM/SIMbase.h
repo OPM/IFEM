@@ -203,6 +203,8 @@ public:
   //! for the result fields associated with each simulator in the HDF5 output.
   virtual std::string getName() const { return "SIMbase"; }
 
+  //! \brief Returns the number of parameter dimensions in the model.
+  virtual unsigned short int getNoParamDim() const = 0;
   //! \brief Returns the number of primary solution fields.
   //! \param[in] basis Which basis to condsider when mixed methods (0 = both)
   size_t getNoFields(int basis = 0) const;
@@ -751,17 +753,20 @@ public:
   //! \brief Returns the end of the property array.
   PropertyVec::const_iterator end_prop() const { return myProps.end(); }
 
-  //! \brief Reads a patch from given input stream.
-  //! \param[in] isp The input stream to read from
-  //! \param[in] pchInd 0-based index of the patch to read
-  virtual ASMbase* readPatch(std::istream& isp, int pchInd) const = 0;
-
   //! \brief Returns current system light-hand-side vector.
   SystemVector* getRHSvector(size_t idx = 0, bool copy = false) const;
   //! \brief Adds a system vector to the given right-hand-side vector.
   void addToRHSvector(size_t idx, const SystemVector& vec, double scale = 1.0);
 
+  //! \brief Reads a patch from given input stream.
+  //! \param[in] isp The input stream to read from
+  //! \param[in] pchInd 0-based index of the patch to read
+  virtual ASMbase* readPatch(std::istream& isp, int pchInd) const = 0;
+
 protected:
+  //! \brief Creates a default single-patch geometry.
+  virtual ASMbase* createDefaultGeometry() const = 0;
+
   //! \brief Initializes material properties for integration of interior terms.
   virtual bool initMaterial(size_t) { return true; }
   //! \brief Initializes the body load properties for current patch.

@@ -18,6 +18,7 @@
 #include "Functions.h"
 #include "Utilities.h"
 #include "tinyxml.h"
+#include <sstream>
 
 
 SIM1D::SIM1D (unsigned char n1, unsigned char, bool)
@@ -163,12 +164,10 @@ bool SIM1D::parseBCTag (const TiXmlElement* elem)
     utl::getAttribute(elem,"patch",patch);
     utl::getAttribute(elem,"code",code);
     utl::getAttribute(elem,"rx",rx);
-    int pid = this->getLocalPatchIndex(patch);
-    if (pid < 1) return pid == 0;
 
     std::cout <<"\tConstraining P"<< patch
               <<" point at "<< rx <<" with code "<< code << std::endl;
-    static_cast<ASMs1D*>(myModel[pid-1])->constrainNode(rx,code);
+    static_cast<ASMs1D*>(myModel[patch-1])->constrainNode(rx,code);
   }
 
   return true;
@@ -192,7 +191,7 @@ bool SIM1D::parse (const TiXmlElement* elem)
 
 bool SIM1D::parse (char* keyWord, std::istream& is)
 {
-  char* cline = 0;
+  char* cline = NULL;
   if (!strncasecmp(keyWord,"REFINE",6))
   {
     int nref = atoi(keyWord+6);
@@ -418,9 +417,9 @@ bool SIM1D::addConstraint (int patch, int lndx, int, int dirs, int code, int&)
 }
 
 
-ASMbase* SIM1D::readPatch (std::istream& isp, int pchInd) const
+ASMbase* SIM1D::readPatch (std::istream& isp, int) const
 {
-  ASMs1D* pch = 0;
+  ASMs1D* pch = NULL;
   switch (opt.discretization) {
   case ASM::Lagrange:
     pch = new ASMs1DLag(nd,nf);
@@ -433,21 +432,23 @@ ASMbase* SIM1D::readPatch (std::istream& isp, int pchInd) const
   }
 
   if (!pch->read(isp))
-    delete pch, pch = NULL;
+    delete pch;
   else if (pch->empty())
-    delete pch, pch = NULL;
-
-  if (pch)
+    delete pch;
+  else
+  {
     pch->idx = myModel.size();
+    return pch;
+  }
 
-  return pch;
+  return NULL;
 }
 
 
 bool SIM1D::readPatches (std::istream& isp, PatchVec& patches,
                          const char* whiteSpace)
 {
-  ASMbase* pch = 0;
+  ASMbase* pch = NULL;
   for (int pchInd = 1; isp.good(); pchInd++)
   {
     std::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
@@ -478,6 +479,14 @@ bool SIM1D::readPatches (std::istream& isp, PatchVec& patches,
   }
 
   return true;
+}
+
+
+ASMbase* SIM1D::createDefaultGeometry () const
+{
+  std::istringstream unitLine("100 1 0 0\n1 0\n2 2\n0 0 1 1\n0\n1\n");
+
+  return this->readPatch(unitLine,1);
 }
 
 

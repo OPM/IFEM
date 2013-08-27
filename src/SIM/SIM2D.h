@@ -40,6 +40,9 @@ public:
   //! \brief Empty destructor.
   virtual ~SIM2D() {}
 
+  //! \brief Returns the number of parameter dimensions in the model.
+  unsigned short int getNoParamDim() const { return 2; }
+
   //! \brief Creates the FE model by copying the given patches.
   //! \param[in] patches List of patches to borrow the grid from
   //! \param[in] g2ln Global-to-local node number mapping for the borrowed grid
@@ -104,6 +107,9 @@ protected:
   //! \param ngnod Total number of global nodes in the model (might be updated)
   virtual bool addConstraint(int patch, int lndx, int ldim,
 			     int dirs, int code, int& ngnod);
+
+  //! \brief Creates a default single-patch geometry.
+  virtual ASMbase* createDefaultGeometry() const;
 
 protected:
   unsigned char nf[3]; //!< Number of scalar fields

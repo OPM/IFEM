@@ -42,6 +42,9 @@ public:
   //! \brief Empty destructor.
   virtual ~SIM3D() {}
 
+  //! \brief Returns the number of parameter dimensions in the model.
+  unsigned short int getNoParamDim() const { return 3; }
+
   //! \brief Reads a patch from given input stream.
   //! \param[in] isp The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read
@@ -110,6 +113,9 @@ protected:
   //! \param[in] xi Relative coordinate [0,1] defining the line placement
   //! \param[in] dirs Which local DOFs to constrain
   bool addConstraint(int patch, int lndx, int line, double xi, int dirs);
+
+  //! \brief Creates a default single-patch geometry.
+  virtual ASMbase* createDefaultGeometry() const;
 
 protected:
   unsigned char nf[2]; //!< Number of scalar fields

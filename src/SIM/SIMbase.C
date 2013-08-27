@@ -468,6 +468,15 @@ bool SIMbase::parse (const TiXmlElement* elem)
       result = false;
   }
 
+  // Create the default geometry of no patchfile is specified
+  if (myModel.empty() && !strcasecmp(elem->Value(),"geometry"))
+    if (!elem->FirstChildElement("patchfile"))
+    {
+      std::cout <<"  Using default geometry on unit domain [0,1]^"
+                << this->getNoParamDim() << std::endl;
+      myModel.resize(1,this->createDefaultGeometry());
+    }
+
   const TiXmlElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
     if (!strcasecmp(elem->Value(),"geometry"))

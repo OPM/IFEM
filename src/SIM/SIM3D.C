@@ -20,6 +20,7 @@
 #include <omp.h>
 #endif
 #include <fstream>
+#include <sstream>
 
 
 SIM3D::SIM3D (unsigned char n1, unsigned char n2, bool check)
@@ -58,7 +59,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
       return false;
     }
 
-    ASM3D* pch = 0;
+    ASM3D* pch = NULL;
     RealArray xi;
     if (!utl::parseKnots(elem,xi))
     {
@@ -109,7 +110,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
       return false;
     }
 
-    ASM3D* pch = 0;
+    ASM3D* pch = NULL;
     int addu = 0, addv = 0, addw = 0;
     utl::getAttribute(elem,"u",addu);
     utl::getAttribute(elem,"v",addv);
@@ -227,7 +228,7 @@ bool SIM3D::parse (const TiXmlElement* elem)
 
 bool SIM3D::parse (char* keyWord, std::istream& is)
 {
-  char* cline = 0;
+  char* cline = NULL;
   if (!strncasecmp(keyWord,"REFINE",6))
   {
     int nref = atoi(keyWord+6);
@@ -235,7 +236,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
       for (int i = 0; i < nref && utl::readLine(is); i++);
     else
     {
-      ASM3D* pch = 0;
+      ASM3D* pch = NULL;
       std::cout <<"\nNumber of patch refinements: "<< nref << std::endl;
       for (int i = 0; i < nref && (cline = utl::readLine(is)); i++)
       {
@@ -294,7 +295,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
       for (int i = 0; i < nref && utl::readLine(is); i++);
     else
     {
-      ASM3D* pch = 0;
+      ASM3D* pch = NULL;
       std::cout <<"\nNumber of order raise: "<< nref << std::endl;
       for (int i = 0; i < nref && (cline = utl::readLine(is)); i++)
       {
@@ -476,7 +477,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
     if (ignoreDirichlet) return true; // Ignore all boundary conditions
     if (!this->createFEMmodel()) return false;
 
-    ASM3D* pch = 0;
+    ASM3D* pch = NULL;
     int nfix = atoi(keyWord+9);
     std::cout <<"\nNumber of fixed points: "<< nfix << std::endl;
     for (int i = 0; i < nfix && (cline = utl::readLine(is)); i++)
@@ -678,7 +679,7 @@ ASMbase* SIM3D::readPatch (std::istream& isp, int pchInd) const
 bool SIM3D::readPatches (std::istream& isp, PatchVec& patches,
                          const char* whiteSpace)
 {
-  ASMbase* pch = 0;
+  ASMbase* pch = NULL;
   for (int pchInd = 1; isp.good(); pchInd++)
     if ((pch = ASM3D::create(opt.discretization,nf,nf[1] > 0)))
     {
@@ -747,6 +748,25 @@ bool SIM3D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
   }
 
   return static_cast<ASMs3D*>(myModel[pchInd])->assignNodeNumbers(n,basis);
+}
+
+
+ASMbase* SIM3D::createDefaultGeometry () const
+{
+  std::istringstream unitCube("700 1 0 0\n3 0\n"
+			      "2 2\n0 0 1 1\n"
+			      "2 2\n0 0 1 1\n"
+			      "2 2\n0 0 1 1\n"
+			      "0 0 0\n"
+			      "1 0 0\n"
+			      "0 1 0\n"
+			      "1 1 0\n"
+			      "0 0 1\n"
+			      "1 0 1\n"
+			      "0 1 1\n"
+			      "1 1 1\n");
+
+  return this->readPatch(unitCube,1);
 }
 
 
