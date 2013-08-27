@@ -63,6 +63,10 @@ public:
   //! \brief Reference through a pointer.
   const Real* ptr() const { return v; }
 
+  //! \brief Conversion to std::vector.
+  std::vector<Real> vec(size_t n = 3) const
+  { return std::vector<Real>(v, v + (n < 3 ? n : 3)); }
+
   //! \brief Multiplication with a scalar.
   Vec3& operator*=(Real c) { x *= c; y *= c; z *= c; return *this; }
   //! \brief Division by a scalar.

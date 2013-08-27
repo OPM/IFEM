@@ -34,7 +34,7 @@ class ElmMats : public LocalIntegral
 {
 public:
   //! \brief Default constructor.
-  ElmMats() { rhsOnly = withLHS = false; }
+  ElmMats(bool lhs = true) : rhsOnly(false), withLHS(lhs) {}
   //! \brief Empty destructor.
   virtual ~ElmMats() {}
 
@@ -43,32 +43,16 @@ public:
   //! \param[in] nB Number of element vectors
   void resize(size_t nA, size_t nB) { A.resize(nA); b.resize(nB); }
 
+  //! \brief Sets the dimension of the element matrices and vectors.
+  //! \param[in] ndim Number of rows and columns in the matrices/vectors
+  void redim(size_t ndim);
+
   //! \brief Returns the element-level Newton matrix.
-  virtual const Matrix& getNewtonMatrix() const
-  {
-    if (A.empty())
-      std::cerr <<" *** ElMats::getNewtonMatrix: No element matrices!"
-		<< std::endl;
-#if SP_DEBUG > 2 || INT_DEBUG > 0
-    else
-      std::cout <<"\nElement coefficient matrix"<< A.front();
-#endif
-    return A.front();
-  }
+  virtual const Matrix& getNewtonMatrix() const;
 
   //! \brief Returns the element-level right-hand-side vector
   //! associated with the Newton matrix.
-  virtual const Vector& getRHSVector() const
-  {
-    if (b.empty())
-      std::cerr <<" *** ElMats::getNewtonMatrix: No element vectors!"
-		<< std::endl;
-#if SP_DEBUG > 2 || INT_DEBUG > 0
-    else
-      std::cout <<"\nElement right-hand-side vector"<< b.front();
-#endif
-    return b.front();
-  }
+  virtual const Vector& getRHSVector() const;
 
   std::vector<Matrix> A; //!< The element coefficient matrices
   std::vector<Vector> b; //!< The element right-hand-side vectors

@@ -22,10 +22,21 @@
 #include <cstdio>
 
 
-void IntegrandBase::resetSolution ()
+/*!
+  The default implementation returns and ElmMats object with one left-hand-side
+  matrix (unless we hare doing a boundary integral) and one right-hand-side
+  vector. The dimension of the element matrices are assumed to be \a npv*nen.
+  Reimplement this method if your integrand needs more element matrices.
+*/
+
+LocalIntegral* IntegrandBase::getLocalIntegral (size_t nen, size_t,
+                                                bool neumann) const
 {
-  for (size_t i = 0; i < primsol.size(); i++)
-    primsol[i].clear();
+  ElmMats* result = new ElmMats(!neumann);
+  result->resize(neumann ? 0 : 1, 1);
+  result->redim(npv*nen);
+
+  return result;
 }
 
 
@@ -163,6 +174,13 @@ bool IntegrandBase::evalSol (Vector&, const VecFunc&, const Vec3&) const
 }
 
 
+void IntegrandBase::resetSolution ()
+{
+  for (Vectors::iterator it = primsol.begin(); it != primsol.end(); ++it)
+    it->clear();
+}
+
+
 void IntegrandBase::registerVector (const std::string& name, Vector* vec)
 {
   myFields[name] = vec;
@@ -227,7 +245,7 @@ LocalIntegral* NormBase::getLocalIntegral (size_t, size_t iEl, bool) const
   size_t norms = 0;
   size_t groups = this->getNoFields(0);
   for (size_t j = 1; j <= groups; ++j)
-    norms += getNoFields(j);
+    norms += this->getNoFields(j);
 
   return new ElmNorm(norms);
 }
