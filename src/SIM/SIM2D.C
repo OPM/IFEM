@@ -50,6 +50,13 @@ SIM2D::SIM2D (unsigned char n1, unsigned char n2, bool)
 }
 
 
+SIM2D::SIM2D (IntegrandBase* itg, unsigned char n) : SIMgeneric(itg)
+{
+  nf[0] = n;
+  nf[1] = nf[2] = 0;
+}
+
+
 bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
 {
   std::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
@@ -724,4 +731,12 @@ void SIM2D::clonePatches (const PatchVec& patches,
       myModel.push_back(pch->clone(nf));
 
   g2l = &glb2locN;
+}
+
+
+Vector SIM2D::getSolution (const Vector& psol, double u, double v,
+                           int deriv, int patch) const
+{
+  double par[2] = { u, v };
+  return this->SIMgeneric::getSolution(psol,par,deriv,patch);
 }

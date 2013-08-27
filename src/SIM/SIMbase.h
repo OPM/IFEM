@@ -83,7 +83,7 @@ class SIMbase : public SIMinput, public SIMdependency
 {
 protected:
   //! \brief The constructor initializes the pointers to dynamic data members.
-  SIMbase();
+  SIMbase(IntegrandBase* itg = NULL);
 
 public:
   //! \brief The destructor frees the dynamically allocated objects.

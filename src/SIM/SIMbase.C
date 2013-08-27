@@ -49,10 +49,10 @@ bool SIMbase::preserveNOrder  = false;
 bool SIMbase::ignoreDirichlet = false;
 
 
-SIMbase::SIMbase () : g2l(&myGlb2Loc)
+SIMbase::SIMbase (IntegrandBase* itg) : g2l(&myGlb2Loc)
 {
   isRefined = false;
-  myProblem = 0;
+  myProblem = itg;
   mySol = 0;
   myVtf = 0;
   myEqSys = 0;
@@ -148,16 +148,14 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
       if (myPid == 0)
         std::cout <<"\tReading data file "<< file << std::endl;
       this->readNodes(isn);
-    } 
+    }
 #ifdef HAS_HDF5
-    else if (strstr(file, ".hdf5")) { // read nodes from HDF5
-      const char* f = strrchr(file,'.');
+    else if (strstr(file,".hdf5")) { // read nodes from HDF5
       if (myPid == 0)
         std::cout <<"\tReading nodes from "<< file << std::endl;
       char temp[1024];
-      strncpy(temp, file, f-file);
-      temp[f-file] = '\0';
-      HDF5Writer hdf5(temp, true, true);
+      strcpy(temp,file);
+      HDF5Writer hdf5(strtok(temp,"."),true,true);
       const char* field = elem->Attribute("field");
 
       for (int i=0;i<getNoPatches();++i) {
@@ -165,7 +163,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
         std::stringstream str;
         int k = getLocalPatchIndex(i+1);
         if (k > 0 && hdf5.readVector(0, field?field:"node numbers", k, nodes))
-          getFEModel()[k-1]->assignNodeNumbers(nodes, 0);
+          myModel[k-1]->assignNodeNumbers(nodes, 0);
       }
     }
 #endif
@@ -1287,18 +1285,20 @@ bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, bool withRF)
   if (myEqSys) delete myEqSys;
   myEqSys = new AlgEqSystem(*mySam);
 
-  // workaround superlu bug
-  if (getFEModel().size() < 2 && mType == SystemMatrix::SPARSE) {
-    const ASMstruct* a = dynamic_cast<const ASMstruct*>(getFEModel()[0]);
+  // Workaround SuperLU bug for tiny systems
+  if (myModel.size() == 1 && mType == SystemMatrix::SPARSE) {
+    const ASMstruct* a = dynamic_cast<const ASMstruct*>(myModel.front());
     if (a) {
       int n1, n2, n3;
       a->getNoStructElms(n1, n2, n3);
       if (n1 < 3 || (n2 > 0 && n2 < 3) || (n3 > 0 && n3 < 3)) {
-        std::cerr << "System too small for SLU, falling back to dense" << std::endl;
+        std::cerr <<" ** System too small for SuperLU, falling back to dense."
+                  << std::endl;
         mType = SystemMatrix::DENSE;
       }
     }
   }
+
   return myEqSys->init(static_cast<SystemMatrix::Type>(mType),
 		       mySolParams,nMats,nVec,withRF,opt.num_threads_SLU);
 }
@@ -2334,7 +2334,10 @@ bool SIMbase::writeGlvS (const Vector& psol, int iStep, int& nBlock,
   const size_t sMAX = 21;
   IntVec vID[3], dID[pMAX], sID[sMAX];
   bool scalarEq = this->getNoFields() == 1 || psolOnly == 3;
-  size_t nVcomp = scalarEq ? 1 : this->getNoSpaceDim();
+  size_t nVcomp = scalarEq ? 1 : this->getNoFields();
+  if (nVcomp > this->getNoSpaceDim())
+    nVcomp = this->getNoSpaceDim();
+
   bool haveAsol = false;
   bool haveXsol = false;
   if (mySol)

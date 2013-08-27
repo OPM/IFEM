@@ -14,7 +14,7 @@
 #ifndef _SIM_3D_H
 #define _SIM_3D_H
 
-#include "SIMbase.h"
+#include "SIMgeneric.h"
 
 
 /*!
@@ -23,7 +23,7 @@
   be used for any 3D continuum problem.
 */
 
-class SIM3D : public SIMbase
+class SIM3D : public SIMgeneric
 {
 public:
   //! \brief Announce dimensionality
@@ -34,6 +34,11 @@ public:
   //! \param[in] n2 Dimension of the second solution field (mixed method)
   //! \param[in] check If \e true, ensure the model is in a right-hand system
   SIM3D(unsigned char n1 = 3, unsigned char n2 = 0, bool check = false);
+  //! \brief Constructor that also initializes the integrand pointer.
+  //! \param[in] itg Pointer to the integrand of the problem to solve
+  //! \param[in] n Dimension of the primary solution field
+  //! \param[in] check If \e true, ensure the model is in a right-hand system
+  SIM3D(IntegrandBase* itg, unsigned char n = 3, bool check = false);
   //! \brief Empty destructor.
   virtual ~SIM3D() {}
 
@@ -41,6 +46,17 @@ public:
   //! \param[in] isp The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read
   virtual ASMbase* readPatch(std::istream& isp, int pchInd) const;
+
+  //! \brief Evaluates the primary solution at the given point.
+  //! \param[in] psol Primary solution vector
+  //! \param[in] u First parameter of the point to evaluate at
+  //! \param[in] v Second parameter of the point to evaluate at
+  //! \param[in] w Third parameter of the point to evaluate at
+  //! \param[in] deriv Derivative order of the solution
+  //! \param[in] patch 1-based patch index contining the evaluation point
+  //! \return Evaluated solution values
+  Vector getSolution(const Vector& psol, double u, double v, double w,
+                     int deriv = 0, int patch = 1) const;
 
 private:
   //! \brief Parses a subelement of the \a geometry XML-tag.

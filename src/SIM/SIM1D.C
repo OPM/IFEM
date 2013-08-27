@@ -27,6 +27,13 @@ SIM1D::SIM1D (unsigned char n1, unsigned char, bool)
 }
 
 
+SIM1D::SIM1D (IntegrandBase* itg, unsigned char n) : SIMgeneric(itg)
+{
+  nd = 1;
+  nf = n;
+}
+
+
 bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
 {
   std::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
@@ -471,4 +478,11 @@ bool SIM1D::readPatches (std::istream& isp, PatchVec& patches,
   }
 
   return true;
+}
+
+
+Vector SIM1D::getSolution (const Vector& psol, double u,
+                           int deriv, int patch) const
+{
+  return this->SIMgeneric::getSolution(psol,&u,deriv,patch);
 }

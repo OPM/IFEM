@@ -14,7 +14,7 @@
 #ifndef _SIM_2D_H
 #define _SIM_2D_H
 
-#include "SIMbase.h"
+#include "SIMgeneric.h"
 
 
 /*!
@@ -23,7 +23,7 @@
   and can be used for any 2D continuum or shell problem.
 */
 
-class SIM2D : public SIMbase
+class SIM2D : public SIMgeneric
 {
 public:
   //! \brief Enum announcing the dimensionality (used for template writing).
@@ -33,6 +33,10 @@ public:
   //! \param[in] n1 Dimension of the primary solution field
   //! \param[in] n2 Dimension of the second solution field (mixed method)
   SIM2D(unsigned char n1 = 2, unsigned char n2 = 0, bool = false);
+  //! \brief Constructor that also initializes the integrand pointer.
+  //! \param[in] itg Pointer to the integrand of the problem to solve
+  //! \param[in] n Dimension of the primary solution field
+  SIM2D(IntegrandBase* itg, unsigned char n = 2);
   //! \brief Empty destructor.
   virtual ~SIM2D() {}
 
@@ -45,6 +49,16 @@ public:
   //! \param[in] isp The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read
   virtual ASMbase* readPatch(std::istream& isp, int pchInd) const;
+
+  //! \brief Evaluates the primary solution at the given point.
+  //! \param[in] psol Primary solution vector
+  //! \param[in] u First parameter of the point to evaluate at
+  //! \param[in] v Second parameter of the point to evaluate at
+  //! \param[in] deriv Derivative order of the solution
+  //! \param[in] patch 1-based patch index contining the evaluation point
+  //! \return Evaluated solution values
+  Vector getSolution(const Vector& psol, double u, double v,
+                     int deriv = 0, int patch = 1) const;
 
 private:
   //! \brief Parses a subelement of the \a geometry XML-tag.

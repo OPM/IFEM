@@ -22,11 +22,19 @@
 #include <fstream>
 
 
-SIM3D::SIM3D (unsigned char n1, unsigned char n2, bool checkRHS)
+SIM3D::SIM3D (unsigned char n1, unsigned char n2, bool check)
 {
   nf[0] = n1;
   nf[1] = n2;
-  checkRHSys = checkRHS;
+  checkRHSys = check;
+}
+
+
+SIM3D::SIM3D (IntegrandBase* itg, unsigned char n, bool check) : SIMgeneric(itg)
+{
+  nf[0] = n;
+  nf[1] = 0;
+  checkRHSys = check;
 }
 
 
@@ -739,4 +747,12 @@ bool SIM3D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
   }
 
   return static_cast<ASMs3D*>(myModel[pchInd])->assignNodeNumbers(n,basis);
+}
+
+
+Vector SIM3D::getSolution (const Vector& psol, double u, double v, double w,
+                           int deriv, int patch) const
+{
+  double par[3] = { u, v, w };
+  return this->SIMgeneric::getSolution(psol,par,deriv,patch);
 }

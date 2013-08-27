@@ -14,14 +14,14 @@
 #ifndef _SIM_1D_H
 #define _SIM_1D_H
 
-#include "SIMbase.h"
+#include "SIMgeneric.h"
 
 
 /*!
   \brief Driver class for 1D NURBS-based FEM solver.
 */
 
-class SIM1D : public SIMbase
+class SIM1D : public SIMgeneric
 {
 public:
   //! \brief Announce dimensionality
@@ -30,6 +30,10 @@ public:
   //! \brief Default constructor.
   //! \param[in] n1 Dimension of the primary solution field
   SIM1D(unsigned char n1 = 1, unsigned char = 0, bool = false);
+  //! \brief Constructor that also initializes the integrand pointer.
+  //! \param[in] itg Pointer to the integrand of the problem to solve
+  //! \param[in] n Dimension of the primary solution field
+  SIM1D(IntegrandBase* itg, unsigned char n = 1);
   //! \brief Empty destructor.
   virtual ~SIM1D() {}
 
@@ -37,6 +41,15 @@ public:
   //! \param[in] isp The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read
   virtual ASMbase* readPatch(std::istream& isp, int pchInd) const;
+
+  //! \brief Evaluates the primary solution at the given point.
+  //! \param[in] psol Primary solution vector
+  //! \param[in] u Parameter of the point to evaluate at
+  //! \param[in] deriv Derivative order of the solution
+  //! \param[in] patch 1-based patch index contining the evaluation point
+  //! \return Evaluated solution values
+  Vector getSolution(const Vector& psol, double u,
+                     int deriv = 0, int patch = 1) const;
 
 private:
   //! \brief Parses a subelement of the \a geometry XML-tag.
