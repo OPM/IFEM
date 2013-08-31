@@ -30,7 +30,8 @@ class LinSolParams;
 typedef std::vector<PetscInt>    PetscIntVec;  //!< PETSc integer vector
 typedef std::vector<PetscIntVec> PetscIntMat;  //!< PETSc integer matrix
 typedef std::vector<PetscReal>   PetscRealVec; //!< PETSc real vector
-
+typedef std::vector<IS>          ISVec;        //!< Index set vector
+typedef std::vector<ISVec>       ISMat;        //!< Index set matrix
 
 /*!
   \brief Class for representing the system vector in PETSc format.
@@ -264,6 +265,7 @@ protected:
   PetscIntMat         locSubdDofs; //!< Degrees of freedom for unique subdomains
   PetscIntMat         subdDofs;    //!< Degrees of freedom for subdomains
   PetscRealVec        coords;      //!< Coordinates of local nodes (x0,y0,z0,x1,y1,...)
+  ISMat               dirIndexSet; //!< Direction ordering
 
 #else // dummy implementation when PETSc is not included
   virtual SystemMatrix* copy() const { return 0; }

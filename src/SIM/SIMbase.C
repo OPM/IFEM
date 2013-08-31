@@ -162,8 +162,12 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
         std::vector<int> nodes;
         std::stringstream str;
         int k = getLocalPatchIndex(i+1);
-        if (k > 0 && hdf5.readVector(0, field?field:"node numbers", k, nodes))
+        if (k > 0 && hdf5.readVector(0, field?field:"node numbers", k, nodes)) {
+	  // Make node numbers 1-based
+	  for (size_t n = 0;n < nodes.size();n++)
+	    nodes[n]++;
           myModel[k-1]->assignNodeNumbers(nodes, 0);
+	}
       }
     }
 #endif

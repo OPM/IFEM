@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "LinSolParams.h"
+#include "PCPerm.h"
 #include "Utilities.h"
 #include <fstream>
 #include <string>
@@ -78,6 +79,8 @@ void LinSolParams::copy (const LinSolParams& spar)
   postsmoother  = spar.postsmoother;
   noPreSmooth   = spar.noPreSmooth;
   noPostSmooth  = spar.noPostSmooth;
+  dirsmoother   = spar.dirsmoother;
+  dirOrder      = spar.dirOrder;
   maxCoarseSize = spar.maxCoarseSize;
   overlap       = spar.overlap;
   nx            = spar.nx;
@@ -294,6 +297,28 @@ bool LinSolParams::read (const TiXmlElement* child)
     std::istream_iterator<std::string> begin(this_line), end;
     finesmoother.assign(begin, end);
   }
+  else if (!strcasecmp(child->Value(),"dirsmoother")) {
+    size_t block, order;
+    std::string type;
+
+    if (!utl::getAttribute(child,"block",block))
+      return false;
+    if (!utl::getAttribute(child,"type",type))
+      return false;
+    if (!utl::getAttribute(child,"order",order))
+      return false;
+
+    if (block < 1)
+      return false;
+
+    if (dirsmoother.empty() || (dirsmoother.size() < block))
+      dirsmoother.resize(std::max(subprec.size(),block));
+    dirsmoother[block-1].push_back(type);
+
+    if (dirOrder.empty() || (dirOrder.size() < block))
+      dirOrder.resize(std::max(subprec.size(),block));
+    dirOrder[block-1].push_back(order);
+  }
   else if ((value = utl::getValue(child,"overlap"))) {
     std::istringstream this_line(value);
     std::istream_iterator<int> begin(this_line), end;
@@ -378,9 +403,9 @@ bool LinSolParams::read (const char* filename)
 
 
 #ifdef HAS_PETSC
-void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& locSubdDofs,
-			      std::vector<std::vector<PetscInt> >& subdDofs,
-			      std::vector<PetscReal>& coords, PetscInt nsd) const
+void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
+			      PetscIntMat& subdDofs, PetscRealVec& coords, 
+			      PetscInt nsd, ISMat& dirIndexSet) const
 {
   // Set linear solver method
   KSPSetType(ksp,method.c_str());
@@ -390,7 +415,16 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
   // Set preconditioner
   PC pc;
   KSPGetPC(ksp,&pc);
-  PCSetType(pc,prec.c_str());
+  if (!strncasecmp(prec.c_str(),"compositedir",12)) {
+    Mat mat;
+    Mat Pmat;
+    MatStructure flag;
+    PCGetOperators(pc,&mat,&Pmat,&flag);
+    
+    this->addDirSmoother(pc,Pmat,dirIndexSet);
+  }
+  else
+    PCSetType(pc,prec.c_str());
   //PCFactorSetMatSolverPackage(pc,package[0].c_str());
   //PCFactorSetLevels(pc,levels[0]);
 #if PETSC_HAVE_HYPRE
@@ -417,6 +451,8 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
       }
       PCASMSetLocalSubdomains(pc,nsubds,isSubdDofs,isLocSubdDofs);
     }
+
+    
 
     PCSetFromOptions(pc);
     PCSetUp(pc);
@@ -500,13 +536,13 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
 	    PCASMSetType(prepc,PC_ASM_BASIC);
 	    PCASMSetOverlap(prepc,overlap[0]);
 	    
-	    if (!locSubdDofs.empty() && !subdDofs.empty()) {
+	    if (!locSubdDofs.empty() && !subdDofs.empty() && (i==n-1)) {
 	      const size_t nsubds = subdDofs.size();
 
 	      IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
-	      for (size_t i = 0;i < nsubds;i++) {
-		ISCreateGeneral(PETSC_COMM_SELF,locSubdDofs[i].size(),&(locSubdDofs[i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
-		ISCreateGeneral(PETSC_COMM_SELF,subdDofs[i].size(),&(subdDofs[i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
+	      for (size_t k = 0;k < nsubds;k++) {
+		ISCreateGeneral(PETSC_COMM_SELF,locSubdDofs[k].size(),&(locSubdDofs[k][0]),PETSC_USE_POINTER,&(isLocSubdDofs[k]));
+		ISCreateGeneral(PETSC_COMM_SELF,subdDofs[k].size(),&(subdDofs[k][0]),PETSC_USE_POINTER,&(isSubdDofs[k]));
 	      }
 	      PCASMSetLocalSubdomains(prepc,nsubds,isSubdDofs,isLocSubdDofs);
 	    }
@@ -520,13 +556,21 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
 	      PCSetUp(prepc);
 	      PCASMGetSubKSP(prepc,&nlocal,&first,&subksp);
 	      
-	      for (int i = 0; i < nlocal; i++) {
-		KSPGetPC(subksp[i],&subpc);
+	      for (int k = 0; k < nlocal; k++) {
+		KSPGetPC(subksp[k],&subpc);
 		PCSetType(subpc,PCLU);
 		PCFactorSetShiftType(prepc,MAT_SHIFT_NONZERO);
-		KSPSetType(subksp[i],KSPPREONLY);
+		KSPSetType(subksp[k],KSPPREONLY);
 	      }
 	    }
+	  }
+	  else if (smoother == "compositedir" && (i==n-1)) {
+	    Mat mat;
+	    Mat Pmat;
+	    MatStructure flag;
+	    PCGetOperators(prepc,&mat,&Pmat,&flag);
+    
+	    this->addDirSmoother(prepc,Pmat,dirIndexSet);
 	  }
 	  else
 	    PCSetType(prepc,smoother.c_str());
@@ -601,4 +645,26 @@ void LinSolParams::setParams (KSP& ksp, std::vector<std::vector<PetscInt> >& loc
   KSPSetFromOptions(ksp);
   KSPSetUp(ksp);
 }
+
+bool LinSolParams::addDirSmoother(PC pc, Mat P, ISMat& dirIndexSet) const
+{
+  PCSetType(pc,"composite");
+  PCCompositeSetType(pc,PC_COMPOSITE_MULTIPLICATIVE);
+  for (size_t k = 0;k < dirsmoother[0].size();k++)
+    PCCompositeAddPC(pc,"shell");
+  for (size_t k = 0;k < dirsmoother[0].size();k++) {
+    PC dirpc;
+    PCCompositeGetPC(pc,k,&dirpc);
+    PCPerm *pcperm;
+    PCPermCreate(&pcperm);
+    PCShellSetApply(dirpc,PCPermApply);
+    PCShellSetContext(dirpc,pcperm);
+    PCShellSetDestroy(dirpc,PCPermDestroy);
+    PCShellSetName(dirpc,"dir");
+    PCPermSetUp(dirpc,&dirIndexSet[0][k],P,dirsmoother[0][k].c_str());
+   }
+  
+  return true;
+}
+
 #endif

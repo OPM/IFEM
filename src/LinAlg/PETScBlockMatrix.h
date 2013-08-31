@@ -23,9 +23,8 @@
 #define IS int //!< To avoid compilation failures
 #endif
 
-typedef std::vector<int>         IntVec;            //!< Vector of integers
-typedef std::vector<IS>          ISVec;             //!< PETSc index set vector
-typedef std::vector<PetscIntMat> PetscIntVecVecVec; //!< 3D PETSc integer matrix
+typedef std::vector<int>         IntVec;        //!< 3D PETSc integer matrix
+typedef std::vector<PetscIntMat> PetscIntMat3D; //!< 3D PETSc integer matrix
 
 
 /*!
@@ -120,13 +119,13 @@ protected:
   Mat    Sp;                          //!< Preconditioner for Schur block
   Vec    QpL;                         //!< Vector with lumoed pressure mass 
   PC     S, Fp;                       //!< Preconditioners for pressure-convection-diffusion pc
-  PCProd *pcprod;                     //!< PCD preconditioner
-  size_t nblocks;                     //!< Number of blocks
-  IntVec ncomps;                      //!< Number of components
-  IS*    isvec;                       //!< Index set for blocks
-  Mat*   matvec;                      //!< Vector of matrix blocks
-  PetscIntVecVecVec locSubdDofsBlock; //!< Dofs for subdomains for block matrix
-  PetscIntVecVecVec subdDofsBlock;    //!< Dofs for subdomains for block matrix
+  PCProd*  pcprod;                      //!< PCD preconditioner
+  size_t   nblocks;                     //!< Number of blocks
+  IntVec   ncomps;                      //!< Number of components
+  IS*      isvec;                       //!< Index set for blocks
+  Mat*     matvec;                      //!< Vector of matrix blocks
+  PetscIntMat3D locSubdDofsBlock; //!< Dofs for subdomains for block matrix
+  PetscIntMat3D subdDofsBlock;    //!< Dofs for subdomains for block matrix
 
   //! \brief Auxiliary method for assembly of block matrices.
   void assemPETSc(const Matrix& eM, PETScVector& SV,
@@ -147,6 +146,9 @@ protected:
 
   //! \brief Initializes the block matrix.
   bool setParameters(PETScBlockMatrix* P = NULL, PETScVector* Pb = NULL);
+
+  //! \brief Adds directional smoother
+  bool addDirSmoother(PC pc, Mat P, int block);
 #endif
 };
 

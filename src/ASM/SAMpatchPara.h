@@ -163,6 +163,13 @@ public:
   //! for parallel vectors the ghost entries are also included.
   virtual Real normInf(const Vector& x, size_t& comp, char dofType = 'D') const;
 
+  //! \brief Gets the mapping for ordering the local DOFs in line ordering
+  //!  Assumes initial XYZ ordering.
+  //! \param[out] order Index set with mapping from old to new ordering
+  //! \param[in]  dir   Direction of line ordering (ex. 213)
+  //! \param[in]  nf    Number of fields
+  bool getDirOrdering(IntVec& order, int dir, int nf = 0) const;
+
   //! \brief Splits the local dofs into a number of unique subdomains.
   //! \param[out] locSubds Global node number for each of the subdomains
   //! \param[in]  nx, ny, nz Number of paritionings in each direction

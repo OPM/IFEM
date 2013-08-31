@@ -26,6 +26,16 @@
 
 class TiXmlElement;
 
+typedef std::vector<PetscInt>    PetscIntVec;  //!< PETSc integer vector
+typedef std::vector<PetscIntVec> PetscIntMat;  //!< PETSc integer matrix
+typedef std::vector<PetscReal>   PetscRealVec; //!< PETSc real vector
+typedef std::vector<int>         IntVec;       //!< Integer vector
+typedef std::vector<IntVec>      IntMat;       //!< Integer matrix
+typedef std::vector<std::string> StringVec;    //!< String vector
+typedef std::vector<StringVec>   StringMat;    //!< String matrix
+typedef std::vector<bool>        BoolVec;      //!< Boolean vector
+typedef std::vector<IS>          ISVec;        //!< Index set vector
+typedef std::vector<ISVec>       ISMat;        //!< Index set matrix
 
 //! \brief Null-space for matrix operator
 enum NullSpace { NONE, CONSTANT, RIGID_BODY };
@@ -150,42 +160,47 @@ public:
   virtual NullSpace getNullSpace(size_t i = 0) const { return nullspc[i]; }
 
   //! \brief Set linear solver parameters for KSP object
-  virtual void setParams(KSP& ksp, std::vector<std::vector<PetscInt> >& locSubdDofs,
-			 std::vector<std::vector<PetscInt> >& subdDofs,
-			 std::vector<PetscReal>& coords, PetscInt nsd) const;
+  virtual void setParams(KSP& ksp, PetscIntMat& locSubdDofs,
+			 PetscIntMat& subdDofs, PetscRealVec& coords, 
+			 PetscInt nsd, ISMat& dirIndexSet) const;
+
+  //! \brief Set directional smoother
+  bool addDirSmoother(PC pc, Mat P, ISMat& dirIndexSet) const;
 
 private:
-  PetscReal atol;          // Absolute tolerance
-  PetscReal rtol;          // Relative tolerance
-  PetscReal dtol;          // Divergence tolerance
-  PetscInt  maxIts;        // Maximum number of iterations
-  int       nblock;        // Number of block
-  bool      schur;         // Schur complement solver 
-  SchurPrec schurPrec;     // Preconditioner for Schur system 
-  std::string                method;           // Linear solver method
-  std::string                prec;             // Preconditioner
-  std::vector<std::string>   subprec;          // Preconditioners for block-system
-  std::vector<std::string>   hypretype;        // Type of hypre preconditioner
-  std::vector<std::string>   package;          // Linear software package (petsc, superlu_dist, ...)
-  std::vector<bool>          asmlu;            // Use lu as subdomain solver
-  std::vector<int>           ncomps;           // Components for each fields in block-vector
-  std::vector<PetscInt>      overlap;          // Number of overlap in ASM
-  std::vector<PetscInt>      levels;           // Number of levels of fill to use
-  std::vector<PetscInt>      mglevels;         // Number of levels for MG
-  std::vector<PetscInt>      noPreSmooth;      // Number of presmoothings for AMG
-  std::vector<PetscInt>      noPostSmooth;     // Number of postsmoothings for AMG
-  std::vector<PetscInt>      noFineSmooth;     // Number of fine grid smoothings for AMG
-  std::vector<std::string>   presmoother;      // Presmoother for AMG
-  std::vector<std::string>   postsmoother;     // Postsmoother for AMG
-  std::vector<std::string>   finesmoother;     // Smoother on finest grid
-  std::vector<int>           maxCoarseSize;    // Max number of DOFS for coarse AMG system
-  std::vector<PetscInt>      MLCoarsenScheme;  // Coarsening scheme for ML
-  std::vector<PetscReal>     MLThreshold;      // Smoother drop toleranse for ML
-  std::vector<PetscReal>     MLDampingFactor;  // Damping factor
-  std::vector<int>           nx;               // Number of local subdomains in first parameter direction
-  std::vector<int>           ny;               // Number of local subdomains in second parameter direction
-  std::vector<int>           nz;               // Number of local subdomains in third parameter direction
-  std::vector<NullSpace>     nullspc;           // Null-space for matrix
+  PetscReal              atol;             // Absolute tolerance
+  PetscReal              rtol;             // Relative tolerance
+  PetscReal              dtol;             // Divergence tolerance
+  PetscInt               maxIts;           // Maximum number of iterations
+  int                    nblock;           // Number of block
+  bool                   schur;            // Schur complement solver 
+  SchurPrec              schurPrec;        // Preconditioner for Schur system 
+  std::string            method;           // Linear solver method
+  std::string            prec;             // Preconditioner
+  StringVec              subprec;          // Preconditioners for block-system
+  StringVec              hypretype;        // Type of hypre preconditioner
+  StringVec              package;          // Linear software package (petsc, superlu_dist, ...)
+  BoolVec                asmlu;            // Use lu as subdomain solver
+  IntVec                 ncomps;           // Components for each fields in block-vector
+  PetscIntVec            overlap;          // Number of overlap in ASM
+  PetscIntVec            levels;           // Number of levels of fill to use
+  PetscIntVec            mglevels;         // Number of levels for MG
+  PetscIntVec            noPreSmooth;      // Number of presmoothings for AMG
+  PetscIntVec            noPostSmooth;     // Number of postsmoothings for AMG
+  PetscIntVec            noFineSmooth;     // Number of fine grid smoothings for AMG
+  StringVec              presmoother;      // Presmoother for AMG
+  StringVec              postsmoother;     // Postsmoother for AMG
+  StringVec              finesmoother;     // Smoother on finest grid
+  IntVec                 maxCoarseSize;    // Max number of DOFS for coarse AMG system
+  PetscIntVec            MLCoarsenScheme;  // Coarsening scheme for ML
+  PetscRealVec           MLThreshold;      // Smoother drop toleranse for ML
+  PetscRealVec           MLDampingFactor;  // Damping factor
+  IntVec                 nx;               // Number of local subdomains in first parameter direction
+  IntVec                 ny;               // Number of local subdomains in second parameter direction
+  IntVec                 nz;               // Number of local subdomains in third parameter direction
+  StringMat              dirsmoother;  // Directional smoother types
+  IntMat                 dirOrder;     // Direction smoother orders/numberings
+  std::vector<NullSpace> nullspc;           // Null-space for matrix
 
   friend class PETScMatrix;
   friend class PETScBlockMatrix;

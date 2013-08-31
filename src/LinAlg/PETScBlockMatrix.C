@@ -16,6 +16,7 @@
 #include "LinSolParams.h"
 #include "LinAlgInit.h"
 #include "SAMpatchPara.h"
+#include "PCPerm.h"
 #include "petscversion.h"
 #include "petscis.h"
 #include "petscsys.h"
@@ -248,8 +249,34 @@ void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
   const SAMpatchPara* sampch = dynamic_cast<const SAMpatchPara*>(&sam);
   
   nsd = sampch->getNoSpaceDim();
-  if (!strncasecmp(solParams.getPreconditioner(),"gamg",4))
+  bool getcoords = false;
+  if (!strncasecmp(solParams.prec.c_str(),"gamg",4))
+    getcoords = true;
+  else
+    for (size_t i = 0;i < solParams.subprec.size();i++)
+      if (!strncasecmp(solParams.subprec[i].c_str(),"gamg",4))
+	getcoords = true;
+  if (getcoords)
     sampch->getLocalNodeCoordinates(coords);
+
+  if (!solParams.dirOrder.empty()) {
+    dirIndexSet.resize(solParams.dirOrder.size());
+    for (size_t i = 0;i < solParams.dirOrder.size();i++)
+      for (size_t j = 0;j < solParams.dirOrder[i].size();j++) {
+	IS permIndex;
+	if (solParams.dirOrder[i][j] != 123) {
+	  PetscIntVec perm;
+	  sampch->getDirOrdering(perm,solParams.dirOrder[i][j],solParams.ncomps[i]);
+	  ISCreateGeneral(PETSC_COMM_WORLD,perm.size(),&(perm[0]),PETSC_COPY_VALUES,&permIndex);
+	  ISSetPermutation(permIndex);
+	}
+	else {
+	  ISCreate(PETSC_COMM_WORLD,&permIndex);
+	  ISSetIdentity(permIndex);
+	}
+	dirIndexSet[i].push_back(permIndex);
+      }
+  }
 
   int nx = solParams.getLocalPartitioning(0);
   int ny = solParams.getLocalPartitioning(1);
@@ -292,7 +319,7 @@ void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
   int ifirst = sampch->getMinEqNumber();
   ifirst--;
   int ilast  = sampch->getMaxEqNumber();
-
+  
   // Allocation of sparsity pattern
   std::vector<std::vector<IntVec> > d_nnz, o_nnz;  
 #ifdef PARALLEL_PETSC
@@ -585,6 +612,10 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
   PC pc;
   KSPGetPC(ksp,&pc);
   PCSetType(pc,solParams.prec.c_str());
+  if (!strncasecmp(solParams.prec.c_str(),"gamg",4)) {
+    PetscInt nloc = coords.size()/nsd;
+    PCSetCoordinates(pc,nsd,nloc,&coords[0]);
+  }
   //PCFactorSetMatSolverPackage(pc,solParams.package[0].c_str());
   if (!strncasecmp(solParams.prec.c_str(),"fieldsplit",10)) {
     PetscInt m1, m2, n1, n2, nr, nc, nsplit;
@@ -637,7 +668,12 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
       PCCreate(PETSC_COMM_SELF,&S);
       PCCreate(PETSC_COMM_SELF,&Fp);
 #endif
-      PCSetType(S,solParams.subprec[1].c_str());
+      if (!strncasecmp(solParams.subprec[1].c_str(),"compositedir",12)) {
+	if (!this->addDirSmoother(S,Sp,1))
+	  return false;
+      }
+      else
+	PCSetType(S,solParams.subprec[1].c_str());
       PCSetType(Fp,PCMAT);
       Vec Pbr;
       VecDuplicate(Pb->getVector(),&Pbr);
@@ -660,7 +696,12 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
       PCShellSetName(subpc[1],"PCD");
 
       KSPSetType(subksp[1],"preonly");
-      PCSetType(S,solParams.subprec[1].c_str());
+      if (!strncasecmp(solParams.subprec[1].c_str(),"compositedir",12)) {
+	if (!this->addDirSmoother(S,Sp,1))
+	  return false;
+      }
+      else
+	PCSetType(S,solParams.subprec[1].c_str());
       PCFactorSetLevels(S,solParams.levels[1]);
       if (!strncasecmp(solParams.subprec[1].c_str(),"asm",3)) {
 	PCASMSetType(S,PC_ASM_BASIC);
@@ -759,9 +800,9 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	      const size_t nsubds = subdDofs.size();
 	      
 	      IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
-	      for (size_t i = 0;i < nsubds;i++) {
-		ISCreateGeneral(PETSC_COMM_SELF,locSubdDofs[i].size(),&(locSubdDofs[i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
-		ISCreateGeneral(PETSC_COMM_SELF,subdDofs[i].size(),&(subdDofs[i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
+	      for (size_t k = 0;k < nsubds;k++) {
+		ISCreateGeneral(PETSC_COMM_SELF,locSubdDofs[k].size(),&(locSubdDofs[k][0]),PETSC_USE_POINTER,&(isLocSubdDofs[k]));
+		ISCreateGeneral(PETSC_COMM_SELF,subdDofs[k].size(),&(subdDofs[i][0]),PETSC_USE_POINTER,&(isSubdDofs[k]));
 	      }
 	      PCASMSetLocalSubdomains(prepc,nsubds,isSubdDofs,isLocSubdDofs);
 	    }
@@ -775,12 +816,16 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	      PCSetUp(prepc);
 	      PCASMGetSubKSP(prepc,&nlocal,&first,&subksp);
 	      
-	      for (int i = 0; i < nlocal; i++) {
+	      for (int k = 0; k < nlocal; k++) {
 		KSPGetPC(subksp[i],&subpc);
 		PCSetType(subpc,PCLU);
-		KSPSetType(subksp[i],KSPPREONLY);
+		KSPSetType(subksp[k],KSPPREONLY);
 	      }
 	    }
+	  }
+	  else if (!strncasecmp(smoother.c_str(),"compositeDir",12) && (i==n-1)) {
+	    if (!this->addDirSmoother(prepc,Sp,1))
+	      return false;
 	  }
 	  else
 	    PCSetType(prepc,smoother.c_str());
@@ -802,7 +847,18 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
     for (PetscInt m = 0; m < nsplit; m++) {
       KSPSetType(subksp[m],"preonly");
       KSPGetPC(subksp[m],&subpc[m]);
-      PCSetType(subpc[m],solParams.subprec[m].c_str());
+      if (!strncasecmp(solParams.subprec[m].c_str(),"compositedir",12)) {
+	Mat mat;
+	Mat Pmat;
+	MatStructure flag;
+	PCGetOperators(subpc[m],&mat,&Pmat,&flag);
+	
+	if (!this->addDirSmoother(subpc[m],Pmat,m))
+	  return false;
+      }
+      else
+	PCSetType(subpc[m],solParams.subprec[m].c_str());
+      
       PCFactorSetLevels(subpc[m],solParams.levels[m]);
       if (!strncasecmp(solParams.subprec[m].c_str(),"asm",3)) {
 	PCASMSetType(subpc[m],PC_ASM_BASIC);
@@ -907,9 +963,9 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	      const size_t nsubds = subdDofsBlock[m].size();
 	      
 	      IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
-	      for (size_t i = 0;i < nsubds;i++) {
-		ISCreateGeneral(PETSC_COMM_SELF,locSubdDofsBlock[m][i].size(),&(locSubdDofsBlock[m][i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
-		ISCreateGeneral(PETSC_COMM_SELF,subdDofsBlock[m][i].size(),&(subdDofsBlock[m][i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
+	      for (size_t k = 0;k < nsubds;k++) {
+		ISCreateGeneral(PETSC_COMM_SELF,locSubdDofsBlock[m][k].size(),&(locSubdDofsBlock[m][k][0]),PETSC_USE_POINTER,&(isLocSubdDofs[k]));
+		ISCreateGeneral(PETSC_COMM_SELF,subdDofsBlock[m][k].size(),&(subdDofsBlock[m][k][0]),PETSC_USE_POINTER,&(isSubdDofs[k]));
 	      }
 
 	      PCASMSetLocalSubdomains(prepc,nsubds,isSubdDofs,isLocSubdDofs);
@@ -925,8 +981,8 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	      PetscInt first, nlocal;
 	      PCASMGetSubKSP(prepc,&nlocal,&first,&subdksp);
 
-	      for (int i = 0; i < nlocal; i++) {
-		KSPGetPC(subdksp[i],&subdpc);
+	      for (int k = 0; k < nlocal; k++) {
+		KSPGetPC(subdksp[k],&subdpc);
 		PCSetType(subdpc,PCLU);
 	      }
 	    }
@@ -934,6 +990,10 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	    PCSetFromOptions(prepc);
 	    PCSetUp(prepc);
 	  }
+	  else if (smoother == "compositedir" && (i==n-1)) {
+	    if (!this->addDirSmoother(prepc,Sp,m))
+	      return false;
+	  } 
 	  else 
 	    PCSetType(prepc,smoother.c_str());
 
@@ -1013,6 +1073,28 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
   KSPSetFromOptions(ksp);
   KSPSetUp(ksp);  
 
+  return true;
+}
+
+
+bool PETScBlockMatrix::addDirSmoother(PC pc, Mat P, int block)
+{
+  PCSetType(pc,"composite");
+  PCCompositeSetType(pc,PC_COMPOSITE_MULTIPLICATIVE);
+  for (size_t k = 0;k < solParams.dirsmoother[block].size();k++)
+    PCCompositeAddPC(pc,"shell");
+  for (size_t k = 0;k < solParams.dirsmoother[block].size();k++) {
+    PC dirpc;
+    PCCompositeGetPC(pc,k,&dirpc);
+    PCPerm *pcperm;
+    PCPermCreate(&pcperm);
+    PCShellSetApply(dirpc,PCPermApply);
+    PCShellSetContext(dirpc,pcperm);
+    PCShellSetDestroy(dirpc,PCPermDestroy);
+    PCShellSetName(dirpc,"dir");
+    PCPermSetUp(dirpc,&dirIndexSet[block][k],P,solParams.dirsmoother[block][k].c_str());
+   }
+  
   return true;
 }
 

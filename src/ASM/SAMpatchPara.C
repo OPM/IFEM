@@ -550,6 +550,55 @@ Real SAMpatchPara::normInf (const Vector& x, size_t& comp, char dofType) const
 }
 
 
+bool SAMpatchPara::getDirOrdering(IntVec& order, int perm, int nf) const
+{
+  int nfield = (nf==0) ? madof[1]-madof[0] : nf;
+
+  int dir[3];
+  dir[0] = perm/100-1;
+  dir[1] = (perm%100)/10-1;
+  dir[2] = perm%10-1;
+
+  IntVec maxNodeId, minNodeId;
+  if (!this->getMinMaxNode(minNodeId,maxNodeId))
+    return false;
+
+  int firstDof = minNodeId[0]-1;
+  int gidx     = firstDof;
+
+  int nlocdof  = (maxNodeId[maxNodeId.size()-1]-minNodeId[0]+1)*nfield;
+  
+  order.resize(nlocdof,0);
+  // Split the patches into smaller subdomains
+  for (size_t n = 0; n < patch.size(); n++) {
+    int nnod[3];
+    if (!static_cast<ASMstruct*>(patch[n])->getSize(nnod[0],nnod[1],nnod[2]))
+      return false;
+    if (!nnod[2]) nnod[2] = 1;
+    
+    const IntVec& MLGN = patch[n]->getGlobalNodeNums();
+    int id[3] = {0,0,0};
+    for (id[2] = 0;id[2] < nnod[dir[2]];id[2]++)
+      for (id[1] = 0;id[1] < nnod[dir[1]];id[1]++)
+	for (id[0] = 0;id[0] < nnod[dir[0]];id[0]++) {
+	  int locNode  = id[dir[2]]*nnod[0]*nnod[1] + id[dir[1]]*nnod[0] + id[dir[0]];
+	  int procNode = MLGN[locNode];
+	  int globNode = l2gn[procNode-1];
+
+	  if (globNode >= minNodeId[n] && globNode <= maxNodeId[n]) 
+	    for (int m = 0;m < nfield;m++) {
+	      int globDof = (globNode-1)*nfield+m;
+	      int locDof  = globDof-firstDof;
+	      order[locDof] = gidx++;
+	    }
+	}
+  }
+
+  return true;
+}
+
+
+
 bool SAMpatchPara::initConstraintEqs (const ASMVec& model)
 {
   if (!this->SAMpatch::initConstraintEqs(model))

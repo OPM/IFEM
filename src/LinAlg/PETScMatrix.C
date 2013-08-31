@@ -223,6 +223,13 @@ PETScMatrix::~PETScMatrix ()
   for (PetscInt i = 0; i < ISsize; i++)
     ISDestroy(&elmIS[i]);
 
+  // Deallocation of index sets
+  if (!dirIndexSet.empty()) {
+    for (size_t i = 0;i < dirIndexSet.size();i++)
+      for (size_t j = 0;j < dirIndexSet[i].size();j++)
+	ISDestroy(&dirIndexSet[i][j]);
+  }
+
   delete elmIS;
 }
 
@@ -381,6 +388,24 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
   nsd = sampch->getNoSpaceDim();
   if (!strncasecmp(solParams.getPreconditioner(),"gamg",4))
     sampch->getLocalNodeCoordinates(coords);
+
+  if (!solParams.dirOrder.empty()) {
+    dirIndexSet.resize(1);
+    for (size_t j = 0;j < solParams.dirOrder[0].size();j++) {
+      IS permIndex;
+      if (solParams.dirOrder[0][j] != 123) {
+	PetscIntVec perm;
+	sampch->getDirOrdering(perm,solParams.dirOrder[0][j]);
+	ISCreateGeneral(PETSC_COMM_WORLD,perm.size(),&(perm[0]),PETSC_COPY_VALUES,&permIndex);
+	ISSetPermutation(permIndex);
+      }
+      else {
+	ISCreate(PETSC_COMM_WORLD,&permIndex);
+	ISSetIdentity(permIndex);
+      }
+      dirIndexSet[0].push_back(permIndex);
+    }
+  }
 
   int nx = solParams.getLocalPartitioning(0);
   int ny = solParams.getLocalPartitioning(1);
@@ -551,7 +576,7 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
     return false;
 
   if (setParams) {
-    solParams.setParams(ksp,locSubdDofs,subdDofs,coords,nsd);
+    solParams.setParams(ksp,locSubdDofs,subdDofs,coords,nsd,dirIndexSet);
     setParams = false;
   }
   KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
@@ -582,7 +607,7 @@ bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
   KSPSetOperators(ksp,A,A, newLHS ? SAME_NONZERO_PATTERN : SAME_PRECONDITIONER);
 
   if (setParams) {
-    solParams.setParams(ksp,locSubdDofs,subdDofs,coords,nsd);
+    solParams.setParams(ksp,locSubdDofs,subdDofs,coords,nsd,dirIndexSet);
     setParams = false;
   }
   KSPSetInitialGuessNonzero(ksp,PETSC_TRUE);
@@ -615,7 +640,7 @@ bool PETScMatrix::solve (SystemVector& B, SystemMatrix& P, bool newLHS)
                   newLHS ? SAME_NONZERO_PATTERN : SAME_PRECONDITIONER);
 
   if (setParams) {
-    solParams.setParams(ksp,locSubdDofs,subdDofs,coords,nsd);
+    solParams.setParams(ksp,locSubdDofs,subdDofs,coords,nsd,dirIndexSet);
     setParams = false;
   }
   KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
