@@ -55,8 +55,12 @@ public:
   //! \brief Overloaded assignment operator.
   Vec3& operator=(Real val) { x = y = z = val; return *this; }
 
-  //! \brief Indexing operator for component reference.
+  //! \brief Indexing operator for component reference (1-based).
+  const Real& operator()(int i) const { return v[i-1]; }
+  //! \brief Indexing operator for component reference (0-based).
   const Real& operator[](int i) const { return v[i]; }
+  //! \brief Indexing operator for component assignment.
+  Real& operator()(int i) { return v[i-1]; }
   //! \brief Indexing operator for component assignment.
   Real& operator[](int i) { return v[i]; }
 
@@ -94,7 +98,10 @@ public:
   Real sum() const { return x+y+z; }
 
   //! \brief Return the length of the vector.
-  Real length() const { return sqrt(x*x+y*y+z*z); }
+  Real length() const { return sqrt(length2()); }
+
+  //! \brief Return the square of the length of the vector.
+  Real length2() const { return x*x+y*y+z*z; }
 
   //! \brief Normalize the vector and return its length.
   Real normalize(double tol = 1.0e-16)
