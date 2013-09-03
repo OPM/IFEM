@@ -1,9 +1,9 @@
 #ifndef PCPERM_H_IS_INCLUDED
 #define PCPERM_H_IS_INCLUDED
+#ifdef HAS_PETSC
 
 #include "petscksp.h"
 
-#ifdef HAS_PETSC
 
 /* Define context for user-defined preconditioner */
 typedef struct {
@@ -20,5 +20,4 @@ extern PetscErrorCode PCPermApply(PC pc, Vec x, Vec y);
 extern PetscErrorCode PCPermDestroy(PC pc);
 
 #endif
-
 #endif

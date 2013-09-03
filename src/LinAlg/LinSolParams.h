@@ -21,10 +21,6 @@
 #include <string>
 #include <vector>
 #include "petscksp.h"
-#endif
-
-
-class TiXmlElement;
 
 typedef std::vector<PetscInt>    PetscIntVec;  //!< PETSc integer vector
 typedef std::vector<PetscIntVec> PetscIntMat;  //!< PETSc integer matrix
@@ -43,10 +39,18 @@ enum NullSpace { NONE, CONSTANT, RIGID_BODY };
 //! \brief Schur preconditioner methods
 enum SchurPrec { SIMPLE, MSIMPLER, PCD };
 
+#endif
+
+class TiXmlElement;
+
+
 /*!
   \brief Class for linear solver parameters.
   \details It contains information about solver method, preconditioner
   and convergence criteria.
+
+  TODO: Why are all the member functions declared virtual when no sub-class?
+  What a waste of vtable's. Consider removing.
 */
 
 class LinSolParams
@@ -135,9 +139,9 @@ public:
   virtual int getOverlap(int i = 0) const { return overlap[i]; }
 
   //! \brief Get local partitioning
-  virtual int getLocalPartitioning(size_t dir = 0, size_t i = 0) const 
+  virtual int getLocalPartitioning(size_t dir = 0, size_t i = 0) const
   {
-    switch (dir) 
+    switch (dir)
     {
       case 0:
 	return nx[i];
@@ -148,7 +152,7 @@ public:
       default:
 	return 0;
     }
-  }  
+  }
 
   //! \brief Number of blocks in matrix system
   virtual int getNoBlocks() const { return nblock; }
@@ -161,7 +165,7 @@ public:
 
   //! \brief Set linear solver parameters for KSP object
   virtual void setParams(KSP& ksp, PetscIntMat& locSubdDofs,
-			 PetscIntMat& subdDofs, PetscRealVec& coords, 
+			 PetscIntMat& subdDofs, PetscRealVec& coords,
 			 PetscInt nsd, ISMat& dirIndexSet) const;
 
   //! \brief Set directional smoother
@@ -173,8 +177,8 @@ private:
   PetscReal              dtol;             // Divergence tolerance
   PetscInt               maxIts;           // Maximum number of iterations
   int                    nblock;           // Number of block
-  bool                   schur;            // Schur complement solver 
-  SchurPrec              schurPrec;        // Preconditioner for Schur system 
+  bool                   schur;            // Schur complement solver
+  SchurPrec              schurPrec;        // Preconditioner for Schur system
   std::string            method;           // Linear solver method
   std::string            prec;             // Preconditioner
   StringVec              subprec;          // Preconditioners for block-system

@@ -23,6 +23,7 @@
 #else
 typedef int    PetscInt;  //!< To avoid compilation failures
 typedef double PetscReal; //!< To avoid compilation failures
+typedef int    IS;        //!< To avoid compilation failures
 #endif
 
 class LinSolParams;
@@ -32,6 +33,7 @@ typedef std::vector<PetscIntVec> PetscIntMat;  //!< PETSc integer matrix
 typedef std::vector<PetscReal>   PetscRealVec; //!< PETSc real vector
 typedef std::vector<IS>          ISVec;        //!< Index set vector
 typedef std::vector<ISVec>       ISMat;        //!< Index set matrix
+
 
 /*!
   \brief Class for representing the system vector in PETSc format.
