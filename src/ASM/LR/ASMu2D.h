@@ -78,12 +78,6 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
 
-  //! \brief Returns the polynomial order in each parameter direction.
-  //! \param[out] p1 Order in first (u) direction
-  //! \param[out] p2 Order in second (v) direction
-  //! \param[out] p3 Order in third (w) direction
-  virtual bool getOrder(int& p1, int& p2, int& p3) const;
-
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with
   virtual bool updateCoords(const Vector& displ);
@@ -92,6 +86,12 @@ public:
   //! \param[in] lIndex Local index of the boundary edge
   //! \param glbNodes Array of global boundary node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes) const;
+  
+  //! \brief Returns the polynomial order in each parameter direction.
+  //! \param[out] p1 Order in first (u) direction
+  //! \param[out] p2 Order in second (v) direction
+  //! \param[out] p3 Order in third (w) direction
+  virtual bool getOrder(int& p1, int& p2, int& p3) const;
 
   //! \brief Refines along the diagonal of the LR-spline patch.
   //! \details Progressively refine until the LR-spline object contains at least
@@ -250,6 +250,7 @@ public:
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] gpar Parameter values of the result sampling points
   //! \param[in] regular Flag indicating how the sampling points are defined
+  //! \param[in] deriv Derivative order to return
   //!
   //! \details When \a regular is \e true, it is assumed that the parameter
   //! value array \a gpar forms a regular tensor-product point grid of dimension
@@ -257,7 +258,8 @@ public:
   //! Otherwise, we assume that it contains the \a u and \a v parameters
   //! directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const RealArray* gpar, bool regular = false) const;
+                            const RealArray* gpar, bool regular = false,
+                            int deriv = 0) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field

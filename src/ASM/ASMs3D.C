@@ -2595,21 +2595,50 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
-			   const RealArray* gpar, bool regular) const
+                           const RealArray* gpar, bool regular, int deriv) const
 {
-  // Evaluate the basis functions at all points
-  std::vector<Go::BasisPts> spline;
+  sField.resize(0,0);
+
+  // Evaluate the basis functions and/or their derivatives at all points
+  size_t nPoints = gpar[0].size();
+  std::vector<Go::BasisPts>     spline0(regular || deriv != 0 ? 0 : nPoints);
+  std::vector<Go::BasisDerivs>  spline1(regular || deriv != 1 ? 0 : nPoints);
+  std::vector<Go::BasisDerivs2> spline2(regular || deriv != 2 ? 0 : nPoints);
   if (regular)
   {
     PROFILE2("Spline evaluation");
-    svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline);
+    nPoints *= gpar[1].size()*gpar[2].size();
+    switch (deriv) {
+    case 0:
+      svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline0);
+      break;
+    case 1:
+      svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline1);
+      break;
+    case 2:
+      svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline2);
+      break;
+    default:
+      return false;
+    }
   }
-  else if (gpar[0].size() == gpar[1].size() && gpar[0].size() == gpar[2].size())
+  else if (nPoints == gpar[1].size() && nPoints == gpar[2].size())
   {
     PROFILE2("Spline evaluation");
-    spline.resize(gpar[0].size());
-    for (size_t i = 0; i < spline.size(); i++)
-      svol->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline[i]);
+    for (size_t i = 0; i < nPoints; i++)
+      switch (deriv) {
+      case 0:
+        svol->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline0[i]);
+        break;
+      case 1:
+        svol->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline1[i]);
+        break;
+      case 2:
+        svol->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline2[i]);
+        break;
+      default:
+        return false;
+      }
   }
   else
     return false;
@@ -2620,25 +2649,50 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
   const int n1 = svol->numCoefs(0);
   const int n2 = svol->numCoefs(1);
   const int n3 = svol->numCoefs(2);
-//  size_t nComp = locSol.size() / this->getNoNodes(-1);
-//  if (nComp*this->getNoNodes(-1) != locSol.size())
-//    return false;
   size_t nComp = locSol.size() / (n1*n2*n3);
 
-  Matrix Xtmp;
-  Vector Ytmp;
+  Vector   ptSol;
+  Matrix   dNdu, dNdX, Xnod, Xtmp, Jac, eSol, ptDer;
+  Matrix3D d2Ndu2, d2NdX2, Hess, ptDer2;
+
+  // Fetch nodal (control point) coordinates
+  this->getNodalCoordinates(Xnod);
 
   // Evaluate the primary solution field at each point
-  size_t nPoints = spline.size();
-  sField.resize(nComp,nPoints);
+  sField.resize(nComp*int(pow(3.0,deriv)),nPoints);
   for (size_t i = 0; i < nPoints; i++)
   {
     IntVec ip;
-    scatterInd(n1,n2,n3,p1,p2,p3,spline[i].left_idx,ip);
+    switch (deriv) {
 
-    utl::gather(ip,nComp,locSol,Xtmp);
-    Xtmp.multiply(spline[i].basisValues,Ytmp);
-    sField.fillColumn(1+i,Ytmp);
+    case 0: // Evaluate the solution
+      scatterInd(n1,n2,n3,p1,p2,p3,spline0[i].left_idx,ip);
+      utl::gather(ip,nComp,locSol,Xtmp);
+      Xtmp.multiply(spline0[i].basisValues,ptSol);
+      sField.fillColumn(1+i,ptSol);
+      break;
+
+    case 1: // Evaluate first derivatives of the solution
+      scatterInd(n1,n2,n3,p1,p2,p3,spline1[i].left_idx,ip);
+      SplineUtils::extractBasis(spline1[i],ptSol,dNdu);
+      utl::gather(ip,3,Xnod,Xtmp);
+      utl::Jacobian(Jac,dNdX,Xtmp,dNdu);
+      utl::gather(ip,nComp,locSol,Xtmp);
+      ptDer.multiply(Xtmp,dNdX);
+      sField.fillColumn(1+i,ptDer);
+      break;
+
+    case 2: // Evaluate second derivatives of the solution
+      scatterInd(n1,n2,n3,p1,p2,p3,spline2[i].left_idx,ip);
+      SplineUtils::extractBasis(spline2[i],ptSol,dNdu,d2Ndu2);
+      utl::gather(ip,3,Xnod,Xtmp);
+      utl::Jacobian(Jac,dNdX,Xtmp,dNdu);
+      utl::Hessian(Hess,d2NdX2,Jac,Xtmp,d2Ndu2,dNdX);
+      utl::gather(ip,nComp,locSol,Xtmp);
+      ptDer2.multiply(Xtmp,d2NdX2);
+      sField.fillColumn(1+i,ptDer2);
+      break;
+    }
   }
 
   return true;
@@ -2945,18 +2999,11 @@ void ASMs3D::generateThreadGroups (char lIndex, bool silence)
 }
 
 
-bool ASMs3D::getNoStructElms(int& n1, int& n2, int& n3) const
+bool ASMs3D::getNoStructElms (int& n1, int& n2, int& n3) const
 {
-  const int p1 = svol->order(0);
-  const int p2 = svol->order(1);
-  const int p3 = svol->order(2);
-  const int u = svol->numCoefs(0);
-  const int v = svol->numCoefs(1);
-  const int w = svol->numCoefs(2);
-
-  n1 = u-p1;
-  n2 = v-p2;
-  n3 = w-p3;
+  n1 = svol->numCoefs(0) - svol->order(0) + 1;
+  n2 = svol->numCoefs(1) - svol->order(1) + 1;
+  n3 = svol->numCoefs(2) - svol->order(2) + 1;
 
   return true;
 }

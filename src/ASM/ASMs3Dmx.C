@@ -920,7 +920,7 @@ int ASMs3Dmx::evalPoint (const double* xi, double* param, Vec3& X) const
 
 
 bool ASMs3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
-			     const RealArray* gpar, bool regular) const
+                             const RealArray* gpar, bool regular, int) const
 {
   if (!basis1 || !basis2) return false;
 

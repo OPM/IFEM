@@ -1015,9 +1015,9 @@ bool ASMbase::evalSolution (Matrix&, const Vector&, const int*) const
 
 
 bool ASMbase::evalSolution (Matrix&, const Vector&,
-			    const RealArray*, bool) const
+			    const RealArray*, bool, int) const
 {
-  return Aerror("evalSolution(Matrix&,const Vector&,const RealArray*,bool)");
+  return Aerror("evalSolution(Matrix&,const Vector&,const RealArray*,bool,int)");
 }
 
 

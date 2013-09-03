@@ -939,32 +939,54 @@ bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
-			   const RealArray* gpar, bool) const
+                           const RealArray* gpar, bool, int deriv) const
 {
   const int p1 = curv->order();
-
-//  size_t nComp = locSol.size() / this->getNoNodes();
-//  if (nComp*this->getNoNodes() != locSol.size())
-//    return false;
   size_t nComp = locSol.size() / curv->numCoefs();
 
-  Matrix Xtmp;
-  Vector Ytmp, basis(p1);
+  Vector   basis(p1), ptSol;
+  Matrix   dNdu, dNdX, Xnod, Xtmp, Jac, eSol, ptDer;
+  Matrix3D d2Ndu2, d2NdX2, Hess, ptDer2;
+
+  // Fetch nodal (control point) coordinates
+  this->getNodalCoordinates(Xnod);
 
   // Evaluate the primary solution field at each point
   const RealArray& upar = *gpar;
   size_t nPoints = upar.size();
-  sField.resize(nComp,nPoints);
+  sField.resize(nComp*int(pow(nsd,deriv)),nPoints);
   for (size_t i = 0; i < nPoints; i++)
   {
-    curv->basis().computeBasisValues(upar[i],&basis.front());
-
     IntVec ip;
     scatterInd(p1,curv->basis().lastKnotInterval(),ip);
+    switch (deriv) {
 
-    utl::gather(ip,nComp,locSol,Xtmp);
-    Xtmp.multiply(basis,Ytmp);
-    sField.fillColumn(i+1,Ytmp);
+    case 0: // Evaluate the solution
+      curv->basis().computeBasisValues(upar[i],&basis.front());
+      utl::gather(ip,nComp,locSol,Xtmp);
+      Xtmp.multiply(basis,ptSol);
+      sField.fillColumn(1+i,ptSol);
+      break;
+
+    case 1: // Evaluate first derivatives of the solution
+      this->extractBasis(upar[i],basis,dNdu);
+      utl::gather(ip,nsd,Xnod,Xtmp);
+      utl::Jacobian(Jac,dNdX,Xtmp,dNdu);
+      utl::gather(ip,nComp,locSol,Xtmp);
+      ptDer.multiply(Xtmp,dNdX);
+      sField.fillColumn(1+i,ptDer);
+      break;
+
+    case 2: // Evaluate second derivatives of the solution
+      this->extractBasis(upar[i],basis,dNdu,d2Ndu2);
+      utl::gather(ip,nsd,Xnod,Xtmp);
+      utl::Jacobian(Jac,dNdX,Xtmp,dNdu);
+      utl::Hessian(Hess,d2NdX2,Jac,Xtmp,d2Ndu2,dNdX);
+      utl::gather(ip,nComp,locSol,Xtmp);
+      ptDer2.multiply(Xtmp,d2NdX2);
+      sField.fillColumn(1+i,ptDer2);
+      break;
+    }
   }
 
   return true;

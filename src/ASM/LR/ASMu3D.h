@@ -89,6 +89,12 @@ public:
   //! \param glbNodes Array of global boundary node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes) const;
 
+  //! \brief Returns the polynomial order in each parameter direction.
+  //! \param[out] p1 Order in first (u) direction
+  //! \param[out] p2 Order in second (v) direction
+  //! \param[out] p3 Order in third (w) direction
+  virtual bool getOrder(int& p1, int& p2, int& p3) const;
+
   //! \brief Checks that the patch is modelled in a right-hand-side system.
   virtual bool checkRightHandSystem();
 
@@ -264,6 +270,7 @@ public:
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] gpar Parameter values of the result sampling points
   //! \param[in] regular Flag indicating how the sampling points are defined
+  //! \param[in] deriv Derivative order to return
   //!
   //! \details When \a regular is \e true, it is assumed that the parameter
   //! value array \a gpar forms a regular tensor-product point grid of dimension
@@ -271,7 +278,8 @@ public:
   //! Otherwise, we assume that it contains the \a u, \a v and \a w parameters
   //! directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-                            const RealArray* gpar, bool regular = true) const;
+                            const RealArray* gpar, bool regular = true,
+                            int deriv = 0) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field

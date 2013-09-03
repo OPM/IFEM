@@ -435,7 +435,7 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs1DLag::evalSolution (Matrix& sField, const Vector& locSol,
-			      const RealArray*, bool) const
+                              const RealArray*, bool, int) const
 {
   size_t nPoints = coord.size();
   size_t nComp = locSol.size() / nPoints;

@@ -440,7 +440,7 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 
 
 bool ASMs2DmxLag::evalSolution (Matrix& sField, const Vector& locSol,
-				const RealArray*, bool) const
+                                const RealArray*, bool, int) const
 {
   size_t nc1 = nf1;
   size_t nc2 = 0;

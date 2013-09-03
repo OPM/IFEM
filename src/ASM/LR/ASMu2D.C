@@ -1311,49 +1311,73 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
-                           const RealArray* gpar, bool) const
+                           const RealArray* gpar, bool, int deriv) const
 {
 #ifdef SP_DEBUG
-  std::cout <<"ASMu2D::evalSolution(Matrix&,const Vector&,const RealArray*,bool)\n";
+  std::cout <<"ASMu2D::evalSolution(Matrix&,const Vector&,const RealArray*,"
+	    <<"bool,int)"<< std::endl;
 #endif
-	size_t nComp = locSol.size() / this->getNoNodes();
-	if (nComp*this->getNoNodes() != locSol.size())
-		return false;
+  size_t nComp = locSol.size() / this->getNoNodes();
+  if (nComp*this->getNoNodes() != locSol.size())
+    return false;
 
-	if(gpar[0].size() != gpar[1].size())
-		return false;
+  size_t nPoints = gpar[0].size();
+  if (nPoints != gpar[1].size())
+    return false;
 
-	Matrix Xtmp;
-	Vector Ytmp;
+  Vector   ptSol;
+  Matrix   dNdu, dNdX, Jac, Xnod, eSol, ptDer;
+  Matrix3D d2Ndu2, d2NdX2, Hess, ptDer2;
 
-	// Evaluate the primary solution field at each point
-	size_t nPoints   = gpar[0].size();
-	sField.resize(nComp,nPoints);
-	for (size_t i = 0; i < nPoints; i++)
-	{
-	  // fetch element containing evaluation point
-	  // sadly, points are not always ordered in the same way as elements
-	  int iel = lrspline->getElementContaining(gpar[0][i], gpar[1][i]);
+  Go::BasisPtsSf     spline0;
+  Go::BasisDerivsSf  spline1;
+  Go::BasisDerivsSf2 spline2;
 
-	  // evaluate the basis functions at current parametric point
-	  Go::BasisPtsSf spline;
-	  lrspline->computeBasis(gpar[0][i], gpar[1][i], spline, iel);
+  // Evaluate the primary solution field at each point
+  sField.resize(nComp,nPoints);
+  for (size_t i = 0; i < nPoints; i++)
+  {
+    // Fetch element containing evaluation point.
+    // Sadly, points are not always ordered in the same way as elements.
+    int iel = lrspline->getElementContaining(gpar[0][i],gpar[1][i]);
+    utl::gather(MNPC[iel],nComp,locSol,eSol);
 
-	  // Now evaluate the solution field
-	  utl::gather(MNPC[iel],nComp,locSol,Xtmp);
-	  Xtmp.multiply(spline.basisValues,Ytmp);
-	  sField.fillColumn(1+i,Ytmp);
-		// std::cout << "u(" << gpar[0][i] << ", " << gpar[1][i] << ") = " << Ytmp << "\n";
-		// std::cout << "Xtmp = " << Xtmp << std::endl;
-		// std::cout << "ip   = [" ;
-		// for(uint i=0; i<ip.size(); i++) std::cout << ip[i] << ", ";
-		// std::cout << "]\n";
-		// std::vector<LR::Basisfunction*>::iterator it;
-		// for(it=lrspline->getElement(iel)->supportBegin(); it<lrspline->getElement(iel)->supportEnd(); it++)
-			// std::cout << **it << std::endl;
-	}
+    // Set up control point (nodal) coordinates for current element
+    if (deriv > 0 && !this->getElementCoordinates(Xnod,iel+1))
+      return false;
 
-	return true;
+    // Evaluate basis function values/derivatives at current parametric point
+    // and mulitiply with control point values to get the point-wise solution
+    switch (deriv) {
+
+    case 0: // Evaluate the solution
+      lrspline->computeBasis(gpar[0][i],gpar[1][i],spline0,iel);
+      eSol.multiply(spline0.basisValues,ptSol);
+      sField.fillColumn(1+i,ptSol);
+
+    case 1: // Evaluate first derivatives of the solution
+      lrspline->computeBasis(gpar[0][i],gpar[1][i],spline1,iel);
+      SplineUtils::extractBasis(spline1,ptSol,dNdu);
+      utl::Jacobian(Jac,dNdX,Xnod,dNdu);
+      ptDer.multiply(eSol,dNdX);
+      sField.fillColumn(1+i,ptDer);
+      break;
+
+    case 2: // Evaluate second derivatives of the solution
+      lrspline->computeBasis(gpar[0][i],gpar[1][i],spline2,iel);
+      SplineUtils::extractBasis(spline2,ptSol,dNdu,d2Ndu2);
+      utl::Jacobian(Jac,dNdX,Xnod,dNdu);
+      utl::Hessian(Hess,d2NdX2,Jac,Xnod,d2Ndu2,dNdu);
+      ptDer2.multiply(eSol,d2NdX2);
+      sField.fillColumn(1+i,ptDer2);
+      break;
+
+    default:
+      return false;
+    }
+  }
+
+  return true;
 }
 
 
@@ -1393,9 +1417,8 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 	for(size_t i=0; i<gpar[0].size(); i++) {
 	  if(i+1 % npe[0] == 0)
 	    iel++;
-	  s->point(p, gpar[0][i], gpar[1][i], iel);
-	  for(int d=0; d<s->dimension(); d++)
-	    sField(i+1, d+1) = p[d];
+          s->point(p,gpar[0][i],gpar[1][i],iel);
+          sField.fillColumn(i+1,p.begin());
 	}
 	delete s;
 	return true;
@@ -1408,9 +1431,8 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   {
     // Extract control point values from the spline object
     sField.resize(s->dimension(),s->nBasisFunctions());
-    for(int i=0; i<s->nBasisFunctions(); i++)
-      for(int d=0; d<s->dimension(); d++)
-      	sField(d+1,i+1) = s->getBasisfunction(i)->cp()[d];
+    for (int i = 0; i < s->nBasisFunctions(); i++)
+      sField.fillColumn(i+1,&(*s->getBasisfunction(i)->cp()));
     delete s;
     return true;
   }
@@ -1494,10 +1516,11 @@ void ASMu2D::getBoundaryNodes (int lIndex, IntVec& nodes) const
 }
 
 
-bool ASMu2D::getOrder(int& p1, int& p2, int&p3) const
+bool ASMu2D::getOrder (int& p1, int& p2, int& p3) const
 {
   p1 = geo->order(0);
   p2 = geo->order(1);
+  p3 = 0;
 
   return true;
 }

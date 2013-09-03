@@ -168,8 +168,10 @@ public:
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] gpar Parameter values of the result sampling points
+  //! \param[in] deriv Derivative order to return
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-			    const RealArray* gpar, bool = true) const;
+                            const RealArray* gpar, bool = true,
+                            int deriv = 0) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field

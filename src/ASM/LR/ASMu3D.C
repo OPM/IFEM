@@ -131,7 +131,7 @@ void ASMu3D::clear (bool retainGeometry)
 
 bool ASMu3D::checkRightHandSystem ()
 {
-  std::cout <<"ASMu3D::checkRightHandSystem(): Not available for LR-splines (ignored)." << std::endl;
+  std::cout <<"ASMu3D::checkRightHandSystem(): Not available for LR-splines (ignored)."<< std::endl;
   return false;
 }
 
@@ -1740,46 +1740,74 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
-                           const RealArray* gpar, bool regular) const
+                           const RealArray* gpar, bool regular, int deriv) const
 {
-	size_t nComp = locSol.size() / this->getNoNodes();
-	if (nComp*this->getNoNodes() != locSol.size())
-		return false;
+  size_t nComp = locSol.size() / this->getNoNodes();
+  if (nComp*this->getNoNodes() != locSol.size())
+    return false;
 
-	if(gpar[0].size() != gpar[1].size() || gpar[0].size() != gpar[2].size())
-		return false;
+  size_t nPoints = gpar[0].size();
+  if (nPoints != gpar[1].size() || nPoints != gpar[2].size())
+    return false;
 
-	Matrix Xtmp;
-	Vector Ytmp;
+  Vector   ptSol;
+  Matrix   dNdu, dNdX, Jac, Xnod, eSol, ptDer;
+  Matrix3D d2Ndu2, d2NdX2, Hess, ptDer2;
 
-	// Evaluate the primary solution field at each point
-	size_t nPoints   = gpar[0].size();
-	sField.resize(nComp,nPoints);
-	for (size_t i = 0; i < nPoints; i++)
-	{
-		// fetch element containing evaluation point
-		// sadly, points are not always ordered in the same way as the elements
-		int iel = lrspline->getElementContaining(gpar[0][i], gpar[1][i], gpar[2][i]);
-		if(iel < 0) {
-			std::cerr << "Logical error in evaluating results. Element at point (" << gpar[0][i] << ", " 
-			          << gpar[1][i] << ", " <<  gpar[2][i] << ") not found" << std::endl;
-			return false;
-		}
+  Go::BasisPts     spline0;
+  Go::BasisDerivs  spline1;
+  Go::BasisDerivs2 spline2;
 
-		// fetch index of non-zero basis functions on this element
-		const IntVec& ip = myMNPC[iel];
+  // Evaluate the primary solution field at each point
+  sField.resize(nComp,nPoints);
+  for (size_t i = 0; i < nPoints; i++)
+  {
+    // Fetch element containing evaluation point.
+    // Sadly, points are not always ordered in the same way as the elements.
+    int iel = lrspline->getElementContaining(gpar[0][i],gpar[1][i],gpar[2][i]);
+    if (iel < 0) {
+      std::cerr <<" *** ASMu3D::evalSolution: Element at point ("<< gpar[0][i] <<", "
+                << gpar[1][i] <<", "<< gpar[2][i] <<") not found."<< std::endl;
+      return false;
+    }
+    utl::gather(MNPC[iel],nComp,locSol,eSol);
 
-		// evaluate the basis functions at current parametric point
-		Go::BasisPts spline;
-		lrspline->computeBasis(gpar[0][i], gpar[1][i], gpar[2][i], spline, iel);
+    // Set up control point (nodal) coordinates for current element
+    if (deriv > 0 && !this->getElementCoordinates(Xnod,iel+1))
+      return false;
 
-		// Now evaluate the solution field
-		utl::gather(ip,nComp,locSol,Xtmp);
-		Xtmp.multiply(spline.basisValues,Ytmp);
-		sField.fillColumn(1+i,Ytmp);
-	}
+    // Evaluate basis function values/derivatives at current parametric point
+    // and mulitiply with control point values to get the point-wise solution
+    switch (deriv) {
 
-	return true;
+    case 0: // Evaluate the solution
+      lrspline->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline0,iel);
+      eSol.multiply(spline0.basisValues,ptSol);
+      sField.fillColumn(1+i,ptSol);
+
+    case 1: // Evaluate first derivatives of the solution
+      lrspline->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline1,iel);
+      SplineUtils::extractBasis(spline1,ptSol,dNdu);
+      utl::Jacobian(Jac,dNdX,Xnod,dNdu);
+      ptDer.multiply(eSol,dNdX);
+      sField.fillColumn(1+i,ptDer);
+      break;
+
+    case 2: // Evaluate second derivatives of the solution
+      lrspline->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline2,iel);
+      SplineUtils::extractBasis(spline2,ptSol,dNdu,d2Ndu2);
+      utl::Jacobian(Jac,dNdX,Xnod,dNdu);
+      utl::Hessian(Hess,d2NdX2,Jac,Xnod,d2Ndu2,dNdu);
+      ptDer2.multiply(eSol,d2NdX2);
+      sField.fillColumn(1+i,ptDer2);
+      break;
+
+    default:
+      return false;
+    }
+  }
+
+  return true;
 }
 
 
@@ -1922,4 +1950,14 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 void ASMu3D::getBoundaryNodes (int lIndex, IntVec& nodes) const
 {
   // TODO: Implement this before attempting FSI simulations with LR B-splines
+}
+
+
+bool ASMu3D::getOrder (int& p1, int& p2, int& p3) const
+{
+  p1 = geo->order(0);
+  p2 = geo->order(1);
+  p3 = geo->order(2);
+
+  return true;
 }

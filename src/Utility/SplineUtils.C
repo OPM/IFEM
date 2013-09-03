@@ -42,6 +42,7 @@ Vec4 SplineUtils::toVec4 (const Go::Point& X, Real time)
 void SplineUtils::extractBasis (const Go::BasisDerivsSf& spline,
                                 Vector& N, Matrix& dNdu)
 {
+   N  .resize(spline.basisValues.size());
   dNdu.resize(N.size(),2);
 
   size_t jp, n = 1;
@@ -57,6 +58,7 @@ void SplineUtils::extractBasis (const Go::BasisDerivsSf& spline,
 void SplineUtils::extractBasis (const Go::BasisDerivsSf2& spline,
                                 Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2)
 {
+    N   .resize(spline.basisValues.size());
    dNdu .resize(N.size(),2);
   d2Ndu2.resize(N.size(),2,2);
 
@@ -76,6 +78,7 @@ void SplineUtils::extractBasis (const Go::BasisDerivsSf2& spline,
 void SplineUtils::extractBasis (const Go::BasisDerivs& spline,
                                 Vector& N, Matrix& dNdu)
 {
+   N  .resize(spline.basisValues.size());
   dNdu.resize(N.size(),3);
 
   size_t jp, n = 1;
@@ -92,6 +95,7 @@ void SplineUtils::extractBasis (const Go::BasisDerivs& spline,
 void SplineUtils::extractBasis (const Go::BasisDerivs2& spline,
                                 Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2)
 {
+    N   .resize(spline.basisValues.size());
    dNdu .resize(N.size(),3);
   d2Ndu2.resize(N.size(),3,3);
 

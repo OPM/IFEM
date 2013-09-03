@@ -282,12 +282,10 @@ public:
   static void resolveMPCchains(const MPCSet& allMPCs, bool setPtrOnly = false);
 
   //! \brief Initializes the multi-point constraint coefficients.
-  virtual bool initConstraints() { return true;}
+  virtual bool initConstraints() { return true; }
 
-  void assignNodeNumbers(const std::vector<int>& nodes, int basis)
-  {
-    myMLGN = nodes;
-  }
+  //! \brief Assigns global node numbers for this patch.
+  void assignNodeNumbers(const std::vector<int>& nodes, int) { myMLGN = nodes; }
 
   //! \brief Checks for time-dependent in-homogeneous Dirichlet conditions.
   //! \param[in] func Scalar property fields
@@ -391,6 +389,7 @@ public:
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] gpar Parameter values of the result sampling points
   //! \param[in] regular Flag indicating how the sampling points are defined
+  //! \param[in] deriv Derivative order to return
   //!
   //! \details When \a regular is \e true, it is assumed that the parameter
   //! value array \a gpar forms a regular tensor-product point grid of dimension
@@ -398,7 +397,8 @@ public:
   //! Otherwise, we assume that it contains the \a u, \a v and \a w parameters
   //! directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-			    const RealArray* gpar, bool regular = true) const;
+                            const RealArray* gpar, bool regular = true,
+                            int deriv = 0) const;
 
   //! \brief Evaluates and interpolates a field over a given geometry.
   //! \param[in] basis The basis of the field to evaluate

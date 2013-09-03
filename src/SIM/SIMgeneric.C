@@ -22,7 +22,7 @@ Vector SIMgeneric::getSolution (const Vector& psol, const double* par,
     return Vector();
 
   patch = this->getLocalPatchIndex(patch);
-  if (patch < 1 || (size_t)patch >= myModel.size())
+  if (patch < 1 || (size_t)patch > myModel.size())
     return Vector();
 
   ASMbase* pch = myModel[patch-1];
@@ -34,7 +34,7 @@ Vector SIMgeneric::getSolution (const Vector& psol, const double* par,
   Matrix tmpVal;
   Vector localVec;
   pch->extractNodeVec(psol,localVec);
-  if (!pch->evalSolution(tmpVal,localVec,params,false))
+  if (!pch->evalSolution(tmpVal,localVec,params,false,deriv))
     return Vector();
 
   return tmpVal.getColumn(1);

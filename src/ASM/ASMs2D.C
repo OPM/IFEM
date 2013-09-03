@@ -2077,15 +2077,47 @@ bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
-			   const RealArray* gpar, bool regular) const
+                           const RealArray* gpar, bool regular, int deriv) const
 {
   // Evaluate the basis functions at all points
-  std::vector<Go::BasisPtsSf> spline(regular ? 0 : gpar[0].size());
+  size_t nPoints = gpar[0].size();
+  std::vector<Go::BasisPtsSf>     spline0(regular || deriv != 0 ? 0 : nPoints);
+  std::vector<Go::BasisDerivsSf>  spline1(regular || deriv != 1 ? 0 : nPoints);
+  std::vector<Go::BasisDerivsSf2> spline2(regular || deriv != 2 ? 0 : nPoints);
   if (regular)
-    surf->computeBasisGrid(gpar[0],gpar[1],spline);
-  else if (gpar[0].size() == gpar[1].size())
-    for (size_t i = 0; i < spline.size(); i++)
-      surf->computeBasis(gpar[0][i],gpar[1][i],spline[i]);
+  {
+    nPoints *= gpar[1].size();
+    switch (deriv) {
+    case 0:
+      surf->computeBasisGrid(gpar[0],gpar[1],spline0);
+      break;
+    case 1:
+      surf->computeBasisGrid(gpar[0],gpar[1],spline1);
+      break;
+    case 2:
+      surf->computeBasisGrid(gpar[0],gpar[1],spline2);
+      break;
+    default:
+      return false;
+    }
+  }
+  else if (nPoints == gpar[1].size())
+  {
+    for (size_t i = 0; i < nPoints; i++)
+      switch (deriv) {
+      case 0:
+        surf->computeBasis(gpar[0][i],gpar[1][i],spline0[i]);
+        break;
+      case 1:
+        surf->computeBasis(gpar[0][i],gpar[1][i],spline1[i]);
+        break;
+      case 2:
+        surf->computeBasis(gpar[0][i],gpar[1][i],spline2[i]);
+        break;
+      default:
+        return false;
+      }
+  }
   else
     return false;
 
@@ -2093,25 +2125,51 @@ bool ASMs2D::evalSolution (Matrix& sField, const Vector& locSol,
   const int p2 = surf->order_v();
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
-//  size_t nComp = locSol.size() / this->getNoNodes(-1);
-//  if (nComp*this->getNoNodes(-1) != locSol.size())
-//    return false;
   size_t nComp = locSol.size() / (n1*n2);
 
-  Matrix Xtmp;
-  Vector Ytmp;
+  Vector   ptSol;
+  Matrix   dNdu, dNdX, Xnod, Xtmp, Jac, eSol, ptDer;
+  Matrix3D d2Ndu2, d2NdX2, Hess, ptDer2;
+
+  // Fetch nodal (control point) coordinates
+  this->getNodalCoordinates(Xnod);
 
   // Evaluate the primary solution field at each point
-  size_t nPoints = spline.size();
+  sField.resize(nComp*int(pow(nsd,deriv)),nPoints);
   sField.resize(nComp,nPoints);
   for (size_t i = 0; i < nPoints; i++)
   {
     IntVec ip;
-    scatterInd(n1,n2,p1,p2,spline[i].left_idx,ip);
+    switch (deriv) {
 
-    utl::gather(ip,nComp,locSol,Xtmp);
-    Xtmp.multiply(spline[i].basisValues,Ytmp);
-    sField.fillColumn(1+i,Ytmp);
+    case 0: // Evaluate the solution
+      scatterInd(n1,n2,p1,p2,spline0[i].left_idx,ip);
+      utl::gather(ip,nComp,locSol,Xtmp);
+      Xtmp.multiply(spline0[i].basisValues,ptSol);
+      sField.fillColumn(1+i,ptSol);
+      break;
+
+    case 1: // Evaluate first derivatives of the solution
+      scatterInd(n1,n2,p1,p2,spline1[i].left_idx,ip);
+      SplineUtils::extractBasis(spline1[i],ptSol,dNdu);
+      utl::gather(ip,nsd,Xnod,Xtmp);
+      utl::Jacobian(Jac,dNdX,Xtmp,dNdu);
+      utl::gather(ip,nComp,locSol,Xtmp);
+      ptDer.multiply(Xtmp,dNdX);
+      sField.fillColumn(1+i,ptDer);
+      break;
+
+    case 2: // Evaluate second derivatives of the solution
+      scatterInd(n1,n2,p1,p2,spline2[i].left_idx,ip);
+      SplineUtils::extractBasis(spline2[i],ptSol,dNdu,d2Ndu2);
+      utl::gather(ip,nsd,Xnod,Xtmp);
+      utl::Jacobian(Jac,dNdX,Xtmp,dNdu);
+      utl::Hessian(Hess,d2NdX2,Jac,Xtmp,d2Ndu2,dNdX);
+      utl::gather(ip,nComp,locSol,Xtmp);
+      ptDer2.multiply(Xtmp,d2NdX2);
+      sField.fillColumn(1+i,ptDer2);
+      break;
+    }
   }
 
   return true;
@@ -2336,15 +2394,11 @@ void ASMs2D::generateThreadGroups (const Integrand& integrand, bool silence)
 }
 
 
-bool ASMs2D::getNoStructElms(int& n1, int& n2, int& n3) const
+bool ASMs2D::getNoStructElms (int& n1, int& n2, int& n3) const
 {
-  const int p1 = surf->order_u() - 1;
-  const int p2 = surf->order_v() - 1;
-  const int u = surf->numCoefs_u();
-  const int v = surf->numCoefs_v();
-
-  n1 = u-p1;
-  n2 = v-p2;
+  n1 = surf->numCoefs_u() - surf->order_u() + 1;
+  n2 = surf->numCoefs_v() - surf->order_v() + 1;
   n3 = 0;
+
   return true;
 }

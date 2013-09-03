@@ -113,7 +113,8 @@ public:
   //! \param[in] gpar Parameter values of the result sampling points
   //! \param[in] regular Flag indicating how the sampling points are defined
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-			    const RealArray* gpar, bool regular = true) const;
+                            const RealArray* gpar, bool regular = true,
+                            int = 0) const;
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field

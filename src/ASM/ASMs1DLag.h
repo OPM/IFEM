@@ -116,7 +116,7 @@ public:
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] gpar Parameter values of the result sampling points
   virtual bool evalSolution(Matrix& sField, const Vector& locSol,
-			    const RealArray* gpar, bool = true) const;
+                            const RealArray* gpar, bool = true, int = 0) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \details The number of visualization points is the same as the order of

@@ -667,7 +667,7 @@ bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMs2DLag::evalSolution (Matrix& sField, const Vector& locSol,
-			      const RealArray*, bool) const
+                              const RealArray*, bool, int) const
 {
   size_t nPoints = coord.size();
   size_t nNodes = this->getNoNodes(-1);

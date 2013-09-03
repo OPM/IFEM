@@ -836,7 +836,7 @@ int ASMs2Dmx::evalPoint (const double* xi, double* param, Vec3& X) const
 
 
 bool ASMs2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
-			     const RealArray* gpar, bool regular) const
+                             const RealArray* gpar, bool regular, int) const
 {
   if (!basis1 || !basis2) return false;
 
