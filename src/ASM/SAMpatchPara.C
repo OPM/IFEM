@@ -550,7 +550,7 @@ Real SAMpatchPara::normInf (const Vector& x, size_t& comp, char dofType) const
 }
 
 
-bool SAMpatchPara::getDirOrdering(IntVec& order, int perm, int nf) const
+bool SAMpatchPara::getDirOrdering(PetscIntVec& order, int perm, int nf) const
 {
   int nfield = (nf==0) ? madof[1]-madof[0] : nf;
 

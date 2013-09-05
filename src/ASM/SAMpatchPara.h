@@ -168,7 +168,7 @@ public:
   //! \param[out] order Index set with mapping from old to new ordering
   //! \param[in]  dir   Direction of line ordering (ex. 213)
   //! \param[in]  nf    Number of fields
-  bool getDirOrdering(IntVec& order, int dir, int nf = 0) const;
+  bool getDirOrdering(PetscIntVec& order, int dir, int nf = 0) const;
 
   //! \brief Splits the local dofs into a number of unique subdomains.
   //! \param[out] locSubds Global node number for each of the subdomains
