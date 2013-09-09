@@ -18,7 +18,7 @@
 #include "SystemMatrix.h"
 #include "ASMbase.h"
 #ifdef PARALLEL_PETSC
-#include "petscsys.h"
+#include "PETScSupport.h"
 #endif
 #include <fstream>
 

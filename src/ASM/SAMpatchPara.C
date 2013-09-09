@@ -17,15 +17,8 @@
 #include "ASMstruct.h"
 #include "Vec3.h"
 
-#ifdef HAS_PETSC
-#include "PETScBlockMatrix.h"
-#include "petscversion.h"
-#if PETSC_VERSION_MAJOR == 3 && PETSC_VERSION_MINOR >= 2
-#define PETSCMANGLE(x) &x
-#else
-#define PETSCMANGLE(x) x
-#endif
-#endif
+#include "PETScSupport.h"
+#include "PETScMatrix.h"
 
 
 SAMpatchPara::SAMpatchPara (const std::map<int,int>& g2ln)

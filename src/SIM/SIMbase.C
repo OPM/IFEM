@@ -16,8 +16,8 @@
 #include "ASMs2DC1.h"
 #include "ASMunstruct.h"
 #ifdef HAS_PETSC
+#include "PETScSupport.h"
 #include "SAMpatchPara.h"
-#include "petscsys.h"
 #else
 #include "SAMpatch.h"
 #endif

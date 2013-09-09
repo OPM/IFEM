@@ -20,10 +20,6 @@
 #include <sstream>
 #include <utility>
 #include <iterator>
-#ifdef HAS_PETSC
-#include "petscversion.h"
-#include "petscpcmg.h"
-#endif
 #include "tinyxml.h"
 
 

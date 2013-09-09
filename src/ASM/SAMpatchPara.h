@@ -15,18 +15,8 @@
 #define _SAM_PATCH_PARA_H
 
 #include "SAMpatch.h"
-#ifdef HAS_PETSC
-#include "petscksp.h"
-#include "petscsys.h"
-#else
-typedef int PetscInt; //!< To avoid compilation failures
-typedef double PetscReal; //!< To avoid compilation failures
-#endif
+#include "PETScSupport.h"
 #include <map>
-
-typedef std::vector<PetscInt>    PetscIntVec;  //!< PETSc integer vector
-typedef std::vector<PetscReal>   PetscRealVec; //!< PETSc real vector
-typedef std::vector<PetscIntVec> PetscIntMat;  //!< PETSc integer matrix
 
 
 /*!

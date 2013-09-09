@@ -12,13 +12,7 @@
 //==============================================================================
 
 #include "LinAlgInit.h"
-#ifdef HAS_PETSC
-#include "petscksp.h"
-#endif
-#ifdef HAS_SLEPC
-#include "slepceps.h"
-#endif
-
+#include "PETScSupport.h"
 
 LinAlgInit* LinAlgInit::instance = 0;
 int         LinAlgInit::refs = 0;

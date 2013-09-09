@@ -16,15 +16,7 @@
 #define _PETSC_MATRIX_H
 
 #include "SystemMatrix.h"
-#ifdef HAS_PETSC
-#include "petscmat.h"
-#include "petscksp.h"
-#include "petscvec.h"
-#else
-typedef int    PetscInt;  //!< To avoid compilation failures
-typedef double PetscReal; //!< To avoid compilation failures
-typedef int    IS;        //!< To avoid compilation failures
-#endif
+#include "PETScSupport.h"
 
 class LinSolParams;
 

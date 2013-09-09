@@ -17,10 +17,10 @@
 #define _LINSOLPARAMS_MATRIX_H
 
 #include <iostream>
-#ifdef HAS_PETSC
 #include <string>
 #include <vector>
-#include "petscksp.h"
+#ifdef HAS_PETSC
+#include "PETScSupport.h"
 
 typedef std::vector<PetscInt>    PetscIntVec;  //!< PETSc integer vector
 typedef std::vector<PetscIntVec> PetscIntMat;  //!< PETSc integer matrix

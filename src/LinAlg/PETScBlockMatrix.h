@@ -18,9 +18,6 @@
 #include "PETScMatrix.h"
 #ifdef HAS_PETSC
 #include "PCProd.h"
-#include "PCScale.h"
-#else
-#define IS int //!< To avoid compilation failures
 #endif
 
 typedef std::vector<int>         IntVec;        //!< 3D PETSc integer matrix

@@ -17,12 +17,7 @@
 #include "IntegrandBase.h"
 #include "GlbForceVec.h"
 #ifdef PARALLEL_PETSC
-#include "petscversion.h"
-#if PETSC_VERSION_MAJOR == 3 && PETSC_VERSION_MINOR >= 2
-#include "petscpcmg.h"
-#else
-#include "petscmg.h"
-#endif
+#include "PETScSupport.h"
 #include <mpi.h>
 #endif
 

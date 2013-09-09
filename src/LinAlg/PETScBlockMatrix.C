@@ -17,22 +17,7 @@
 #include "LinAlgInit.h"
 #include "SAMpatchPara.h"
 #include "PCPerm.h"
-#include "petscversion.h"
-#include "petscis.h"
-#include "petscsys.h"
-
-#if PETSC_VERSION_MAJOR == 3 && PETSC_VERSION_MINOR >= 2
-#include "petscpcmg.h"
-#include "petscvec.h"
-#define PETSCMANGLE(x) &x
-#else
-#include "petscmg.h"
-#define PETSCMANGLE(x) x
-#endif
-
-#ifdef HAS_SLEPC
-#include "slepceps.h"
-#endif
+#include "PCScale.h"
 
 #ifdef USE_OPENMP
 #include <omp.h>

@@ -16,14 +16,6 @@
 #include "LinSolParams.h"
 #include "LinAlgInit.h"
 #include "SAMpatchPara.h"
-#include "petscversion.h"
-#include "petscis.h"
-#include "petscsys.h"
-#include "petscpcmg.h"
-
-#ifdef HAS_SLEPC
-#include "slepceps.h"
-#endif
 
 #ifdef USE_OPENMP
 #include <omp.h>
