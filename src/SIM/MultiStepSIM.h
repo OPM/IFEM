@@ -69,9 +69,16 @@ public:
                                     double zero_tolerance = 1.0e-8,
                                     std::streamsize outPrec = 0) = 0;
 
+  //! \brief Initializes the geometry block counter.
+  void setStartGeo(int gID);
+
   //! \brief Opens a new VTF-file and writes the model geometry to it.
   //! \param[in] fileName File name used to construct the VTF-file name from
   bool saveModel(char* fileName);
+
+  //! \brief Opens a new VTF-file and writes the model geometry to it.
+  //! \param[in] fileName File name used to construct the VTF-file name from
+  bool saveModel(int& geoBlk, int& nBock, char* fileName = NULL);
 
   //! \brief Saves the converged results to VTF file of a given time step.
   //! \param[in] iStep Time/load step identifier
@@ -80,6 +87,12 @@ public:
   //! \param[in] vecName Optional name of primary solution vector field
   bool saveStep(int iStep, double time,
                 bool psolOnly = false, const char* vecName = NULL);
+
+  //! \brief Saves the converged solution to VTF file of a given time step.
+  //! \param[in] iStep Time/load step identifier
+  //! \param nBlock Running result block counter
+  //! \param[in] vecName Name of primary solution vector field
+  bool saveStep(int iStep, int& nBlock, const char* vecName);
 
   //! \brief Dumps the primary solution for inspection.
   //! \param[in] iStep Time/load step identifier

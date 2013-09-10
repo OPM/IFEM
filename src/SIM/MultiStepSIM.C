@@ -50,18 +50,29 @@ bool MultiStepSIM::initEqSystem (bool withRF)
 }
 
 
+void MultiStepSIM::setStartGeo (int gID)
+{
+  model.setStartGeo(gID);
+}
+
+
 bool MultiStepSIM::saveModel (char* fileName)
+{
+  geoBlk = nBlock = 0; // initialize the VTF block counters
+  return this->saveModel(geoBlk,nBlock,fileName);
+}
+
+
+bool MultiStepSIM::saveModel (int& gBlk, int& rBlk, char* fileName)
 {
   PROFILE1("MultiStepSIM::saveModel");
 
-  geoBlk = nBlock = 0; // initialize the VTF block counters
-
   // Write VTF-file with model geometry
-  if (!model.writeGlvG(geoBlk,fileName))
+  if (!model.writeGlvG(gBlk,fileName))
     return false;
 
   // Write Dirichlet boundary conditions
-  return model.writeGlvBC(nBlock);
+  return model.writeGlvBC(rBlk);
 }
 
 
@@ -97,6 +108,18 @@ bool MultiStepSIM::saveStep (int iStep, double time,
 
   // Write time step information
   return model.writeGlvStep(iStep,time);
+}
+
+
+/*!
+  This method only writes the primary solution vector as a vector field.
+  It is mainly used when this simulator is a component in a coupled simulation,
+  and where the secondary solution is of minor interest.
+*/
+
+bool MultiStepSIM::saveStep (int iStep, int& nBlock, const char* vecName)
+{
+  return model.writeGlvV(solution.front(),vecName,iStep,nBlock);
 }
 
 
