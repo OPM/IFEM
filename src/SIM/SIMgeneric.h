@@ -14,7 +14,7 @@
 #ifndef _SIM_GENERIC_H_
 #define _SIM_GENERIC_H_
 
-#include "SIMbase.h"
+#include "SIMoutput.h"
 
 
 /*!
@@ -24,11 +24,11 @@
   on a more flexible way.
 */
 
-class SIMgeneric : public SIMbase
+class SIMgeneric : public SIMoutput
 {
 protected:
   //! \brief Default constructor.
-  SIMgeneric(IntegrandBase* itg = NULL) : SIMbase(itg) {}
+  SIMgeneric(IntegrandBase* itg = NULL) : SIMoutput(itg) {}
 
 public:
   //! \brief Emptry destructor.

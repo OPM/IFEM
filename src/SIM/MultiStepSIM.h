@@ -19,6 +19,7 @@
 #include "MatVec.h"
 
 class SIMbase;
+class SIMoutput;
 class TimeStep;
 
 
@@ -100,10 +101,10 @@ public:
   const Vector& getSolution(int idx = 0) const { return solution[idx]; }
 
 protected:
-  SIMbase& model;    //!< The isogeometric FE model
-  Vector   residual; //!< Residual force vector
-  Vector   linsol;   //!< Linear solution vector
-  Vectors  solution; //!< Primary solution vectors
+  SIMoutput& model;    //!< The isogeometric FE model
+  Vector     residual; //!< Residual force vector
+  Vector     linsol;   //!< Linear solution vector
+  Vectors    solution; //!< Primary solution vectors
 
   NormOp refNopt; //!< Reference norm option
   double refNorm; //!< Reference norm value used in convergence checks

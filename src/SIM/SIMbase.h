@@ -27,7 +27,6 @@ class IntegrandBase;
 class NormBase;
 class ForceBase;
 class AnaSol;
-class VTF;
 class SAM;
 class AlgEqSystem;
 class LinSolParams;
@@ -50,25 +49,6 @@ struct Mode
   // \brief Default constructor.
   Mode() : eigNo(0), eigVal(0.0) {}
 };
-
-
-/*!
-  \brief Struct defining a result sampling point.
-*/
-
-struct ResultPoint
-{
-  unsigned char npar;   //!< Number of parameters
-  size_t        patch;  //!< Patch index [0,nPatch>
-  int           inod;   //!< Local node number of the closest node
-  double        par[3]; //!< Parameters of the point (u,v,w)
-  Vec3          X;      //!< Spatial coordinates of the point
-  // \brief Default constructor.
-  ResultPoint() : npar(0), patch(0), inod(0) { par[0] = par[1] = par[2] = 0.0; }
-};
-
-typedef std::vector<ResultPoint> ResPointVec; //!< Result point container
-typedef std::pair<Vec3,double>   PointValue;  //!< Convenience type
 
 
 /*!
@@ -116,14 +96,14 @@ protected:
   //! \param[in] mindex Index into problem-dependent material property container
   //! \return The property code to be associated with the material
   int parseMaterialSet(const TiXmlElement* elem, int mindex);
+  //! \brief Parses a subelement of the \a resultoutput XML-tag.
+  virtual bool parseOutputTag(const TiXmlElement* elem);
 
 private:
   //! \brief Parses a subelement of the \a geometry XML-tag.
   bool parseGeometryTag(const TiXmlElement* elem);
   //! \brief Parses a subelement of the \a boundaryconditions XML-tag.
   bool parseBCTag(const TiXmlElement* elem);
-  //! \brief Parses a subelement of the \a resultoutput XML-tag.
-  bool parseOutputTag(const TiXmlElement* elem);
   //! \brief Parses a subelement of the \a linearsolver XML-tag.
   bool parseLinSolTag(const TiXmlElement* elem);
 
@@ -220,8 +200,6 @@ public:
   size_t getNoSolutions() const;
   //! \brief Returns the total number of patches in the model.
   int getNoPatches() const { return nGlPatches; }
-  //! \brief Returns the number of registered result points.
-  size_t getNoResultPoints() const { return myPoints.size(); }
   //! \brief Returns the visualization dump interval.
   int getDumpInterval() const { return opt.saveInc; }
   //! \brief Returns the number of right-hand-sides.
@@ -237,7 +215,7 @@ public:
   //! \param[out] glbNodes Global node numbers on the boundary
   //! \param[out] XYZ Spatial coordinates of the boundary nodes (optional)
   void getBoundaryNodes(int pcode, std::vector<int>& glbNodes,
-                        std::vector<Vec3>* XYZ = NULL) const;
+                        Vec3Vec* XYZ = NULL) const;
 
   //! \brief Initializes time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time
@@ -424,6 +402,10 @@ public:
     return this->systemModes(solution,opt.nev,opt.ncv,opt.eig,opt.shift,iA,iB);
   }
 
+
+  // Post-processing methods
+  // =======================
+
   //! \brief Projects the secondary solution associated with a primary solution.
   //! \param[out] ssol Control point values of the secondary solution
   //! \param[in] psol Control point values of the primary solution
@@ -446,174 +428,6 @@ public:
   //! The solution is evaluated at the Greville points and then projected onto
   //! the spline basis to obtain the control point values.
   bool evalSecondarySolution(Matrix& field, int pindx) const;
-
-
-  // Post-processing methods
-  // =======================
-
-  //! \brief Opens a new VTF-file and writes the model geometry to it.
-  //! \param[in] fnam File name used to construct the VTF-file name from
-  bool writeGlv(const char* fnam) { int n = 0; return this->writeGlvG(n,fnam); }
-
-  //! \brief Writes current model geometry to the VTF-file.
-  //! \param nBlock Running result block counter
-  //! \param[in] inpFile File name used to construct the VTF-file name from
-  //!
-  //! \details The spline patches are tesselated into linear finite elements
-  //! with a fixed number of elements within each knot-span of non-zero length.
-  //! The solution fields are then evaluated at the nodal points of the
-  //! generated FE mesh and written to the VTF-file as vector and scalar fields
-  //! by the other \a writeGlv* methods.
-  virtual bool writeGlvG(int& nBlock, const char* inpFile = 0);
-
-  //! \brief Writes additional, problem-specific, results to the VTF-file.
-  //! \param nBlock Running result block counter
-  //! \param[in] iStep Load/time step identifier
-  virtual bool writeGlvA(int& nBlock, int iStep = 1) const { return true; }
-
-  //! \brief Writes boundary conditions as scalar fields to the VTF-file.
-  //! \param nBlock Running result block counter
-  //! \param[in] iStep Load/time step identifier
-  bool writeGlvBC(int& nBlock, int iStep = 1) const;
-
-  //! \brief Writes boundary tractions for a given time step to the VTF-file.
-  //! \param[in] iStep Load/time step identifier
-  //! \param nBlock Running result block counter
-  bool writeGlvT(int iStep, int& nBlock) const;
-
-  //! \brief Writes a vector field for a given load/time step to the VTF-file.
-  //! \param[in] vec The vector field to output (nodal values in DOF-order)
-  //! \param[in] fieldName Name identifying the vector field
-  //! \param[in] iStep Load/time step identifier
-  //! \param nBlock Running result block counter
-  //! \param[in] idBlock Starting value of result block numbering
-  bool writeGlvV(const Vector& vec, const char* fieldName,
-		 int iStep, int& nBlock, int idBlock = 2) const;
-
-  //! \brief Writes solution fields for a given load/time step to the VTF-file.
-  //! \param[in] psol Primary solution vector
-  //! \param[in] iStep Load/time step identifier
-  //! \param nBlock Running result block counter
-  //! \param[in] time Load/time step parameter
-  //! \param[in] psolOnly If \e true, skip secondary solution field evaluation
-  //! \param[in] pvecName Optional name of the primary vector field solution
-  //! \param[in] idBlock Starting value of result block numbering
-  //! \param[in] psolComps Optional number of primary solution components
-  bool writeGlvS(const Vector& psol, int iStep, int& nBlock, double time = 0.0,
-		 char psolOnly = 0, const char* pvecName = 0,
-		 int idBlock = 10, int psolComps = 0);
-
-  //! \brief Writes projected solutions for a given time step to the VTF-file.
-  //! \param[in] ssol Secondary solution vector (control point values)
-  //! \param[in] iStep Load/time step identifier
-  //! \param nBlock Running result block counter
-  //! \param[in] idBlock Starting value of result block numbering
-  //! \param[in] prefix Common prefix for the field components
-  //! \param[in] maxVal Optional array of maximum values
-  bool writeGlvP(const Vector& ssol, int iStep, int& nBlock,
-                 int idBlock = 100, const char* prefix = "Global projected",
-                 std::vector<PointValue>* maxVal = NULL);
-
-  //! \brief Writes a mode shape to the VTF-file.
-  //! \param[in] mode The mode shape eigenvector and associated eigenvalue
-  //! \param[in] freq \e true if the eigenvalue is a frequency
-  //! \param nBlock Running result block counter
-  //!
-  //! \details The eigenvalue is used as a label on the step state info.
-  bool writeGlvM(const Mode& mode, bool freq, int& nBlock);
-
-  //! \brief Writes element norms for a given load/time step to the VTF-file.
-  //! \param[in] norms The element norms to output
-  //! \param[in] iStep Load/time step identifier
-  //! \param nBlock Running result block counter
-  //! \param[in] prefix Prefices for projected solutions
-  bool writeGlvN(const Matrix& norms, int iStep, int& nBlock,
-		 const char** prefix = 0);
-  //! \brief Writes a scalar function to the VTF-file.
-  //! \param[in] f The function to output
-  //! \param[in] fname Name of the function
-  //! \param[in] iStep Load/time step identifier
-  //! \param[in] idBlock Starting value of result block numbering
-  //! \param nBlock Running result block counter
-  //! \param[in] idBlock Starting value of result block numbering
-  //! \param[in] time Load/time step parameter
-  bool writeGlvF(const RealFunc& f, const char* fname,
-		 int iStep, int& nBlock, int idBlock = 50, double time = 0.0);
-
-  //! \brief Writes time/load step info to the VTF-file.
-  //! \param[in] iStep Load/time step identifier
-  //! \param[in] value Time or load parameter of the step
-  //! \param[in] itype Type identifier of the step
-  bool writeGlvStep(int iStep, double value = 0.0, int itype = 0);
-
-  //! \brief Closes the current VTF-file.
-  void closeGlv();
-
-  //! \brief Returns the current VTF-file object.
-  VTF* getVTF() const { return myVtf; }
-  //! \brief Defines the VTF-file for subsequent results output.
-  void setVTF(VTF* vtf) { myVtf = vtf; }
-
-  //! \brief Dumps the (possibly refined) geometry in g2-format.
-  //! \param os Output stream to write the geometry data to
-  bool dumpGeometry(std::ostream& os) const;
-  //! \brief Dumps the (possibly refined) spline basis in g2-format.
-  //! \param os Output stream to write the spline data to
-  //! \param[in] basis Which basis to dump for mixed methods (0 = geometry)
-  //! \param[in] patch Which patch to dump for (0 = all)
-  bool dumpBasis(std::ostream& os, int basis = 0, size_t patch = 0) const;
-  //! \brief Dumps the primary solution in ASCII format for inspection.
-  //! \param[in] psol Primary solution vector
-  //! \param os Output stream to write the solution data to
-  //! \param[in] withID If \e true, write node ID and coordinates too
-  void dumpPrimSol(const Vector& psol, std::ostream& os,
-                   bool withID = true) const;
-  //! \brief Dumps the entire solution in ASCII format.
-  //! \param[in] psol Primary solution vector to derive other quantities from
-  //! \param os Output stream to write the solution data to
-  bool dumpSolution(const Vector& psol, std::ostream& os) const;
-  //! \brief Dumps solution results at specified points in ASCII format.
-  //! \param[in] psol Primary solution vector to derive other quantities from
-  //! \param[in] time Load/time step parameter
-  //! \param os Output stream to write the solution data to
-  //! \param[in] formatted If \e false, write all result points on a single line
-  //!            without point identifications, but with time as first column
-  //! \param[in] precision Number of digits after the decimal point
-  bool dumpResults(const Vector& psol, double time, std::ostream& os,
-		   bool formatted = true, std::streamsize precision = 3) const;
-  //! \brief Dumps coordinate at specified points in ASCII format.
-  //! \param[in] time Load/time step parameter
-  //! \param os Output stream to write the solution data to
-  //! \param[in] formatted If \e false, write all result points on a single line
-  //!            without point identifications, but with time as first column
-  //! \param[in] precision Number of digits after the decimal point
-  bool dumpResultCoords(double time, std::ostream& os, bool formatted = true,
-			std::streamsize precision = 3) const;
-  //! \brief Dumps additional problem-specific results in ASCII format.
-  //! \param[in] time Load/time step parameter
-  //! \param os Output stream to write the solution data to
-  //! \param[in] precision Number of digits after the decimal point
-  virtual void dumpMoreResults(double time, std::ostream& os,
-                               std::streamsize precision = 3) const {}
-
-  //! \brief Evaluates the secondary solution for a given load/time step.
-  //! \param[in] psol Primary solution vector
-  //! \param[in] time Load/time step parameter
-  //!
-  //! \details This method only evaluates the solutions fields, and does not
-  //! return any data. It is used only for load/time steps that are not saved
-  //! when the solution has to be evaluated at every increment in any case to
-  //! ensure consistency (e.g., when material models with history variables
-  //! are in use).
-  bool eval2ndSolution(const Vector& psol, double time);
-
-  //! \brief Evaluates the projected solution for a given load/time step.
-  //! \param[in] ssol Secondary solution vector (control point values)
-  //! \param[in] maxVal Array of maximum values
-  //!
-  //! \details This method only evaluates/updates the maximum values of the
-  //! secondary solution fields (i.e. same as writeGlvP but without VTF output).
-  bool evalProjSolution(const Vector& ssol, std::vector<PointValue>& maxVal);
 
   //! \brief Returns whether an analytical solution is available or not.
   bool haveAnaSol() const { return mySol ? true : false; }
@@ -687,6 +501,8 @@ protected:
   virtual void preprocessBeforeAsmInit(int&) {}
   //! \brief Preprocessing performed after the system assembly initialization.
   virtual bool preprocessB() { return true; }
+  //! \brief Preprocesses the result sampling points.
+  virtual void preprocessResultPoints() = 0;
 
   //! \brief Extracts all local solution vector(s) for a specified patch.
   //! \param[in] problem Integrand to receive the patch-level solution vectors
@@ -844,9 +660,6 @@ protected:
   };
 
   // Post-processing attributes
-  ResPointVec myPoints; //!< User-defined result sampling points
-  VTF*        myVtf;    //!< VTF-file for result visualization
-
   std::vector<DumpData> lhsDump; //!< Coefficient matrix dump specifications
   std::vector<DumpData> rhsDump; //!< Right-hand-side vector dump specifications
   std::vector<DumpData> solDump; //!< Solution vector dump specifications

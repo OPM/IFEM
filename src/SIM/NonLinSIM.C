@@ -12,7 +12,7 @@
 //==============================================================================
 
 #include "NonLinSIM.h"
-#include "SIMbase.h"
+#include "SIMoutput.h"
 #include "IFEM.h"
 #include "IntegrandBase.h"
 #include "TimeStep.h"

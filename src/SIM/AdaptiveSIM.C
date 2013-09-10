@@ -14,7 +14,7 @@
 #include "AdaptiveSIM.h"
 #include "IntegrandBase.h"
 #include "ASMbase.h"
-#include "SIMbase.h"
+#include "SIMoutput.h"
 #include "SIMenums.h"
 #include "SystemMatrix.h"
 #include "Utilities.h"
@@ -23,8 +23,10 @@
 #include <cstdio>
 
 
-AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : SIMinput(*sim), model(sim)
+AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : SIMinput(*sim)
 {
+  model = dynamic_cast<SIMoutput*>(sim);
+
   // Default grid adaptation parameters
   storeMesh    = false;
   linIndepTest = false;

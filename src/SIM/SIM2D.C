@@ -296,7 +296,7 @@ bool SIM2D::parse (const TiXmlElement* elem)
       }
   }
 
-  bool result = this->SIMbase::parse(elem);
+  bool result = this->SIMgeneric::parse(elem);
 
   const TiXmlElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
@@ -547,7 +547,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
   }
 
   else
-    return this->SIMbase::parse(keyWord,is);
+    return this->SIMgeneric::parse(keyWord,is);
 
   return true;
 }

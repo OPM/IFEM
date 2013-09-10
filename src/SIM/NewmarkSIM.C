@@ -12,7 +12,7 @@
 //==============================================================================
 
 #include "NewmarkSIM.h"
-#include "SIMbase.h"
+#include "SIMoutput.h"
 #include "TimeStep.h"
 #include "Profiler.h"
 #include "Utilities.h"

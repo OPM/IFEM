@@ -12,7 +12,7 @@
 //==============================================================================
 
 #include "HDF5Writer.h"
-#include "SIMbase.h"
+#include "SIMoutput.h"
 #include "IntegrandBase.h"
 #include "TimeStep.h"
 #include <sstream>
@@ -457,13 +457,12 @@ void HDF5Writer::writeBasis (SIMbase* sim, const std::string& name,
   }
   hid_t group2 = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
 
-  for (int i=0;i<sim->getNoPatches();++i) {
-    std::stringstream str;
-    int loc = sim->getLocalPatchIndex(i+1);
+  for (int i = 1; i <= sim->getNoPatches(); i++) {
+    std::stringstream str, str2;
+    int loc = sim->getLocalPatchIndex(i);
     if (loc > 0)
-      sim->dumpBasis(str,basis,loc);
-    std::stringstream str2;
-    str2 << i+1;
+      static_cast<SIMoutput*>(sim)->dumpBasis(str,basis,loc);
+    str2 << i;
     writeArray(group2, str2.str(), str.str().size(), str.str().c_str(),
                H5T_NATIVE_CHAR);
   }

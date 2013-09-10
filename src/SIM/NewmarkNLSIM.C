@@ -13,7 +13,7 @@
 
 #include "NewmarkNLSIM.h"
 #include "SystemMatrix.h"
-#include "SIMbase.h"
+#include "SIMoutput.h"
 #include "TimeStep.h"
 #include "tinyxml.h"
 

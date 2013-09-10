@@ -18,6 +18,7 @@
 #include "MatVec.h"
 
 class SIMbase;
+class SIMoutput;
 class NormBase;
 
 
@@ -82,7 +83,7 @@ protected:
   virtual bool parse(const TiXmlElement* elem);
 
 private:
-  SIMbase* model; //!< The isogeometric FE model
+  SIMoutput* model; //!< The isogeometric FE model
 
   bool   storeMesh;    //!< Creates a series of eps-files for intermediate steps
   bool   linIndepTest; //!< Test mesh for linear independence after refinement
