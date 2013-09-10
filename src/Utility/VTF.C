@@ -20,6 +20,9 @@
 #include "VTOAPIPropertyIDs.h"
 #define VTFA_FAILURE VTFXA_FAILURE
 #define VTFA_SUCCESS VTFXA_SUCCESS
+#else
+#define VTFA_FAILURE(x) x <= 0
+#define VTFA_SUCCESS(x) x > 0
 #endif
 #include "ElementBlock.h"
 #include "Tensor.h"
@@ -578,18 +581,22 @@ bool VTF::writeTblk (const std::vector<int>& tBlockIDs, const char* resultName,
 {
   if ((int)myTBlock.size() < idBlock) myTBlock.resize(idBlock,0);
 
+  int status = 1;
 #if HAS_VTFAPI == 1
   if (!myTBlock[--idBlock])
   {
     myTBlock[idBlock] = new VTFATransformationBlock(idBlock+1);
     if (resultName) myTBlock[idBlock]->SetName(resultName);
+    status = myTBlock[idBlock]->SetResultBlocks(&tBlockIDs.front(),
+                                                tBlockIDs.size(),iStep);
   }
-  if (VTFA_FAILURE(myTBlock[idBlock]->SetResultBlocks(&tBlockIDs.front(),
-						      tBlockIDs.size(),iStep)))
-    return showError("Error defining transformation block",idBlock);
+  else for (size_t i = 0; i < tBlockIDs.size() && VTFA_SUCCESS(status); i++)
+    status = myTBlock[idBlock]->AddResultBlock(tBlockIDs[i],iStep);
 #elif HAS_VTFAPI == 2
   std::cerr <<"VTF: Transformation not yet implemented for VTFx"<< std::endl;
 #endif
+  if (VTFA_FAILURE(status))
+    return showError("Error defining transformation block",idBlock);
 
   return true;
 }
@@ -600,16 +607,18 @@ bool VTF::writeDblk (const std::vector<int>& dBlockIDs, const char* resultName,
 {
   if ((int)myDBlock.size() < idBlock) myDBlock.resize(idBlock,0);
 
+  int status = 1;
 #if HAS_VTFAPI == 1
   if (!myDBlock[--idBlock])
   {
     myDBlock[idBlock] = new VTFADisplacementBlock(idBlock+1);
     if (resultName) myDBlock[idBlock]->SetName(resultName);
     myDBlock[idBlock]->SetRelativeDisplacementResults(1);
+    status = myDBlock[idBlock]->SetResultBlocks(&dBlockIDs.front(),
+                                                dBlockIDs.size(),iStep);
   }
-  if (VTFA_FAILURE(myDBlock[idBlock]->SetResultBlocks(&dBlockIDs.front(),
-						      dBlockIDs.size(),iStep)))
-    return showError("Error defining displacement block",idBlock);
+  else for (size_t i = 0; i < dBlockIDs.size() && VTFA_SUCCESS(status); i++)
+    status = myDBlock[idBlock]->AddResultBlock(dBlockIDs[i],iStep);
 #elif HAS_VTFAPI == 2
   if (!myDBlock[--idBlock])
   {
@@ -619,11 +628,11 @@ bool VTF::writeDblk (const std::vector<int>& dBlockIDs, const char* resultName,
     if (resultName) myDBlock[idBlock]->SetName(resultName);
   }
   myDBlock[idBlock]->SetResultID(idBlock);
-  if (VTFA_FAILURE(myDBlock[idBlock]->SetResultValuesBlocks(&dBlockIDs.front(),
-							    dBlockIDs.size(),
-							    iStep)))
-    return showError("Error defining displacement block",idBlock);
+  status = myDBlock[idBlock]->SetResultValuesBlocks(&dBlockIDs.front(),
+                                                    dBlockIDs.size(),iStep);
 #endif
+  if (VTFA_FAILURE(status))
+    return showError("Error defining displacement block",idBlock);
 
   return true;
 }
@@ -634,14 +643,16 @@ bool VTF::writeVblk (int vBlockID, const char* resultName,
 {
   if ((int)myVBlock.size() < idBlock) myVBlock.resize(idBlock,0);
 
+  int status = 1;
 #if HAS_VTFAPI == 1
   if (!myVBlock[--idBlock])
   {
     myVBlock[idBlock] = new VTFAVectorBlock(idBlock+1);
     if (resultName) myVBlock[idBlock]->SetName(resultName);
+    status = myVBlock[idBlock]->SetResultBlocks(&vBlockID,1,iStep);
   }
-  if (VTFA_FAILURE(myVBlock[idBlock]->SetResultBlocks(&vBlockID,1,iStep)))
-    return showError("Error defining vector block",idBlock);
+  else
+    status = myVBlock[idBlock]->AddResultBlock(vBlockID,iStep);
 #elif HAS_VTFAPI == 2
   if (!myVBlock[--idBlock])
   {
@@ -651,9 +662,10 @@ bool VTF::writeVblk (int vBlockID, const char* resultName,
     if (resultName) myVBlock[idBlock]->SetName(resultName);
   }
   myVBlock[idBlock]->SetResultID(idBlock);
-  if (VTFA_FAILURE(myVBlock[idBlock]->SetResultValuesBlocks(&vBlockID,1,iStep)))
-    return showError("Error defining vector block",idBlock);
+  status = myVBlock[idBlock]->SetResultValuesBlocks(&vBlockID,1,iStep);
 #endif
+  if (VTFA_FAILURE(status))
+    return showError("Error defining vector block",idBlock);
 
   return true;
 }
@@ -663,15 +675,18 @@ bool VTF::writeVblk (const std::vector<int>& vBlockIDs, const char* resultName,
 		     int idBlock, int iStep)
 {
   if ((int)myVBlock.size() < idBlock) myVBlock.resize(idBlock,0);
+
+  int status = 1;
 #if HAS_VTFAPI == 1
   if (!myVBlock[--idBlock])
   {
     myVBlock[idBlock] = new VTFAVectorBlock(idBlock+1);
     if (resultName) myVBlock[idBlock]->SetName(resultName);
+    status = myVBlock[idBlock]->SetResultBlocks(&vBlockIDs.front(),
+                                                vBlockIDs.size(),iStep);
   }
-  if (VTFA_FAILURE(myVBlock[idBlock]->SetResultBlocks(&vBlockIDs.front(),
-						      vBlockIDs.size(),iStep)))
-    return showError("Error defining vector block",idBlock);
+  else for (size_t i = 0; i < vBlockIDs.size() && VTFA_SUCCESS(status); i++)
+    status = myVBlock[idBlock]->AddResultBlock(vBlockIDs[i],iStep);
 #elif HAS_VTFAPI == 2
   if (!myVBlock[--idBlock])
   {
@@ -681,11 +696,11 @@ bool VTF::writeVblk (const std::vector<int>& vBlockIDs, const char* resultName,
     if (resultName) myVBlock[idBlock]->SetName(resultName);
   }
   myVBlock[idBlock]->SetResultID(idBlock);
-  if (VTFA_FAILURE(myVBlock[idBlock]->SetResultValuesBlocks(&vBlockIDs.front(),
-							    vBlockIDs.size(),
-							    iStep)))
-    return showError("Error defining vector block",idBlock);
+  status = myVBlock[idBlock]->SetResultValuesBlocks(&vBlockIDs.front(),
+                                                    vBlockIDs.size(),iStep);
 #endif
+  if (VTFA_FAILURE(status))
+    return showError("Error defining vector block",idBlock);
 
   return true;
 }
@@ -694,19 +709,19 @@ bool VTF::writeVblk (const std::vector<int>& vBlockIDs, const char* resultName,
 bool VTF::writeSblk (int sBlockID, const char* resultName,
 		     int idBlock, int iStep, bool elementData)
 {
-#if HAS_VTFAPI == 1
   if ((int)mySBlock.size() < idBlock) mySBlock.resize(idBlock,0);
 
+  int status = 1;
+#if HAS_VTFAPI == 1
   if (!mySBlock[--idBlock])
   {
     mySBlock[idBlock] = new VTFAScalarBlock(idBlock+1);
     if (resultName) mySBlock[idBlock]->SetName(resultName);
+    status = mySBlock[idBlock]->SetResultBlocks(&sBlockID,1,iStep);
   }
-  if (VTFA_FAILURE(mySBlock[idBlock]->SetResultBlocks(&sBlockID,1,iStep)))
-    return showError("Error defining scalar block",idBlock);
+  else
+    status = mySBlock[idBlock]->AddResultBlock(sBlockID,iStep);
 #elif HAS_VTFAPI == 2
-  if ((int)mySBlock.size() < idBlock) mySBlock.resize(idBlock,0);
-
   if (!mySBlock[--idBlock])
   {
     int type = elementData?VTFXA_RESMAP_ELEMENT:VTFXA_RESMAP_NODE;
@@ -715,9 +730,10 @@ bool VTF::writeSblk (int sBlockID, const char* resultName,
     if (resultName) mySBlock[idBlock]->SetName(resultName);
   }
   mySBlock[idBlock]->SetResultID(idBlock);
-  if (VTFA_FAILURE(mySBlock[idBlock]->SetResultValuesBlocks(&sBlockID,1,iStep)))
-    return showError("Error defining scalar block",idBlock);
+  status = mySBlock[idBlock]->SetResultValuesBlocks(&sBlockID,1,iStep);
 #endif
+  if (VTFA_FAILURE(status))
+    return showError("Error defining scalar block",idBlock);
 
   return true;
 }
@@ -728,15 +744,17 @@ bool VTF::writeSblk (const std::vector<int>& sBlockIDs, const char* resultName,
 {
   if ((int)mySBlock.size() < idBlock) mySBlock.resize(idBlock,0);
 
+  int status = 1;
 #if HAS_VTFAPI == 1
   if (!mySBlock[--idBlock])
   {
     mySBlock[idBlock] = new VTFAScalarBlock(idBlock+1);
     if (resultName) mySBlock[idBlock]->SetName(resultName);
+    status = mySBlock[idBlock]->SetResultBlocks(&sBlockIDs.front(),
+                                                sBlockIDs.size(),iStep);
   }
-  if (VTFA_FAILURE(mySBlock[idBlock]->SetResultBlocks(&sBlockIDs.front(),
-						      sBlockIDs.size(),iStep)))
-    return showError("Error defining scalar block",idBlock);
+  else for (size_t i = 0; i < sBlockIDs.size() && VTFA_SUCCESS(status); i++)
+    status = mySBlock[idBlock]->AddResultBlock(sBlockIDs[i],iStep);
 #elif HAS_VTFAPI == 2
   if (!mySBlock[--idBlock])
   {
@@ -746,11 +764,11 @@ bool VTF::writeSblk (const std::vector<int>& sBlockIDs, const char* resultName,
     if (resultName) mySBlock[idBlock]->SetName(resultName);
   }
   mySBlock[idBlock]->SetResultID(idBlock);
-  if (VTFA_FAILURE(mySBlock[idBlock]->SetResultValuesBlocks(&sBlockIDs.front(),
-							    sBlockIDs.size(),
-							    iStep)))
-    return showError("Error defining scalar block",idBlock);
+  status = mySBlock[idBlock]->SetResultValuesBlocks(&sBlockIDs.front(),
+                                                    sBlockIDs.size(),iStep);
 #endif
+  if (VTFA_FAILURE(status))
+    return showError("Error defining scalar block",idBlock);
 
   return true;
 }

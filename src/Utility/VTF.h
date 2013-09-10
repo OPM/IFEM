@@ -73,7 +73,7 @@ public:
   //! \param[in] idBlock Result block identifier
   //! \param[in] gID Geometry block identifier
   bool writeTransformation(const Vec3& X, const Tensor& T,
-			   int idBlock = 1, int gID = 1);
+                           int idBlock = 1, int gID = 1);
   //! \brief Writes a block of scalar nodal results to the VTF-file.
   //! \param[in] nodeResult Vector of nodal results,
   //!            length must equal the number of nodes in the geometry block
@@ -195,9 +195,9 @@ private:
   bool writeElements(const char* partName, int blockID, int nodesID);
   //! \brief Prints an error message to \a std::cerr.
   //! \param[in] msg The message to print
-  //! \param[in] ID If non-zero, the value is appended to the printed message
+  //! \param[in] ID If non-negative, the value is appended to the message
   //! \return \e false (always)
-  static bool showError(const char* msg, int ID = 0);
+  static bool showError(const char* msg, int ID = -1);
 
 public:
   static Real vecOffset[3]; //!< Optional offset for vector attack points
