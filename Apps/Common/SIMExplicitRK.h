@@ -23,8 +23,7 @@ namespace TimeIntegration {
 class SIMExplicitRK
 {
 public:
-  SIMExplicitRK(Solver& solv, Method type) : 
-    solver(solv)
+  SIMExplicitRK(Solver& solv, Method type) : solver(solv)
   {
     if (type == EULER) {
       RK.order = 1;
@@ -109,8 +108,8 @@ public:
       solver.getSolution().add(stages[i], tp.time.dt*RK.b[i]);
     solver.applyDirichlet(solver.getSolution());
 
-    solver.printSolutionSummary(solver.getSolution(), 
-                                0, solver.getProblem()->getField1Name(1));
+    solver.printSolutionSummary(solver.getSolution(), 0,
+                                solver.getProblem()->getField1Name(1));
 
     return true;
   }
@@ -120,9 +119,9 @@ public:
     return solver.advanceStep(tp);
   }
 
-  bool saveModel(char* fileName, int& nBlock)
+  bool saveModel(char* fileName, int& geoBlk, int& nBlock)
   {
-    return solver.saveModel(fileName, nBlock);
+    return solver.saveModel(fileName, geoBlk, nBlock);
   }
 
   bool saveStep(const TimeStep& tp, int& nBlock)

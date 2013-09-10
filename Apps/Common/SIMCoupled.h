@@ -14,7 +14,7 @@
 #ifndef _SIM_COUPLED_H_
 #define _SIM_COUPLED_H_
 
-#include "SIMdependency.h"
+#include "ISolver.h"
 
 class DataExporter;
 class TimeStep;
@@ -24,7 +24,7 @@ class TimeStep;
   \brief Template class for coupled simulators.
 */
 
-template<class T1, class T2> class SIMCoupled
+template<class T1, class T2> class SIMCoupled : public ISolver
 {
 public:
   //! \brief The constructor initializes the references to the two solvers.
@@ -43,7 +43,7 @@ public:
   }
 
   //! \brief Advances the time step one step forward.
-  bool advanceStep(TimeStep& tp)
+  virtual bool advanceStep(TimeStep& tp)
   {
     return S1.advanceStep(tp) && S2.advanceStep(tp);
   }
@@ -55,15 +55,15 @@ public:
   }
 
   //! \brief Saves the converged results to VTF-file of a given time step.
-  bool saveStep(const TimeStep& tp, int& nBlock)
+  virtual bool saveStep(const TimeStep& tp, int& nBlock)
   {
     return S2.saveStep(tp,nBlock) && S1.saveStep(tp,nBlock);
   }
 
   //! \brief Opens a new VTF-file and writes the model geometry to it.
-  bool saveModel(char* fileName, int& nBlock)
+  virtual bool saveModel(char* fileName, int& geoBlk, int& nBlock)
   {
-    if (!S1.saveModel(fileName,nBlock))
+    if (!S1.saveModel(fileName,geoBlk,nBlock))
       return false;
 
     S2.setVTF(S1.getVTF());

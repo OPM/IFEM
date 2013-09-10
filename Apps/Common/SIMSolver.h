@@ -48,10 +48,11 @@ public:
   virtual bool solveProblem(char* infile, DataExporter* exporter = NULL,
                             int maxIter = 1, const char* heading = NULL)
   {
+    int geoBlk = 0;
     int nBlock = 0;
 
     // Save FE model to VTF file for visualization
-    if (!S1.saveModel(infile,nBlock))
+    if (!S1.saveModel(infile,geoBlk,nBlock))
       return false;
 
     // Save the initial configuration to VTF file
