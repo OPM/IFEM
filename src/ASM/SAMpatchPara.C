@@ -556,7 +556,7 @@ bool SAMpatchPara::getDirOrdering(PetscIntVec& order, int perm, int nf) const
   if (!this->getMinMaxNode(minNodeId,maxNodeId))
     return false;
 
-  int firstDof = minNodeId[0]-1;
+  int firstDof = (minNodeId[0]-1)*nfield;
   int gidx     = firstDof;
 
   int nlocdof  = (maxNodeId[maxNodeId.size()-1]-minNodeId[0]+1)*nfield;
