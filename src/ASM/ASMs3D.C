@@ -1106,10 +1106,10 @@ void ASMs3D::constrainEdge (int lEdge, bool open, int dof, int code)
       node = n1;
       break;
     case  2:
-    case 12:
+    case 11:
       node = n1*(n2-1) + 1;
       break;
-    case 11:
+    case 12:
       node = n1*n2;
       break;
     case  3:
