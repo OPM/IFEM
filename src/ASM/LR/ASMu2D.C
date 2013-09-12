@@ -1338,7 +1338,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
   for (size_t i = 0; i < nPoints; i++)
   {
     // Fetch element containing evaluation point.
-    // Sadly, points are not always ordered in the same way as elements.
+    // Sadly, points are not always ordered in the same way as the elements.
     int iel = lrspline->getElementContaining(gpar[0][i],gpar[1][i]);
     utl::gather(MNPC[iel],nComp,locSol,eSol);
 
@@ -1354,6 +1354,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
       lrspline->computeBasis(gpar[0][i],gpar[1][i],spline0,iel);
       eSol.multiply(spline0.basisValues,ptSol);
       sField.fillColumn(1+i,ptSol);
+      break;
 
     case 1: // Evaluate first derivatives of the solution
       lrspline->computeBasis(gpar[0][i],gpar[1][i],spline1,iel);
@@ -1382,7 +1383,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			   const int* npe, char project) const
+                           const int* npe, char project) const
 {
   // sanity check on input
   if(npe != NULL && (npe[0] != npe[1])) {
@@ -1495,7 +1496,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     // Compute Hessian of coordinate mapping and 2nd order derivatives
     if (use2ndDer)
       if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
-	continue;
+        continue;
 
     // Now evaluate the solution field
     if (!integrand.evalSol(solPt,fe,Xnod*fe.N,MNPC[iel]))

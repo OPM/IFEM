@@ -1725,22 +1725,23 @@ bool ASMu3D::tesselate (ElementBlock& grid, const int* npe) const
 	return true;
 }
 
+
 bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
                            const int* npe) const
 {
-	// Compute parameter values of the result sampling points
-	RealArray gpar[3];
-	for (int dir = 0; dir < 3; dir++)
-		if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
-			return false;
+  // Compute parameter values of the result sampling points
+  RealArray gpar[3];
+  for (int dir = 0; dir < 3; dir++)
+    if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
+      return false;
 
-	// Evaluate the primary solution at all sampling points
-	return this->evalSolution(sField,locSol,gpar);
+  // Evaluate the primary solution at all sampling points
+  return this->evalSolution(sField,locSol,gpar);
 }
 
 
 bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
-                           const RealArray* gpar, bool regular, int deriv) const
+                           const RealArray* gpar, bool, int deriv) const
 {
   size_t nComp = locSol.size() / this->getNoNodes();
   if (nComp*this->getNoNodes() != locSol.size())
@@ -1784,6 +1785,7 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
       lrspline->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline0,iel);
       eSol.multiply(spline0.basisValues,ptSol);
       sField.fillColumn(1+i,ptSol);
+      break;
 
     case 1: // Evaluate first derivatives of the solution
       lrspline->computeBasis(gpar[0][i],gpar[1][i],gpar[2][i],spline1,iel);
@@ -1875,75 +1877,72 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 
 bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-                           const RealArray* gpar, bool regular) const
+                           const RealArray* gpar, bool) const
 {
 #ifdef SP_DEBUG
-	std::cout <<"ASMu3D::evalSolution(Matrix&,const Integrand&,const RealArray*,bool)\n";
+  std::cout <<"ASMu3D::evalSolution(Matrix&,const IntegrandBase&,const RealArray*,bool)\n";
 #endif
 
-	sField.resize(0,0);
+  sField.resize(0,0);
 
-	// TODO: investigate the possibility of doing "regular" refinement by
-	//       uniform tesselation grid and ignoring LR mesh lines
+  // TODO: investigate the possibility of doing "regular" refinement by
+  //       uniform tesselation grid and ignoring LR mesh lines
 
-	if (gpar[0].size() != gpar[1].size() || gpar[0].size() != gpar[2].size())
-		return false;
+  size_t nPoints = gpar[0].size();
+  bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
+  if (nPoints != gpar[1].size() || nPoints != gpar[2].size())
+    return false;
 
-	Vector   solPt;
-	Matrix   dNdu, dNdX, Jac, Xnod;
-	Matrix3D d2Ndu2, d2NdX2, Hess;
+  Vector   solPt;
+  Matrix   dNdu, Jac, Xnod;
+  Matrix3D d2Ndu2, Hess;
 
-	size_t nPoints = gpar[0].size();
-	bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
+  // Evaluate the secondary solution field at each point
+  for (size_t i = 0; i < nPoints; i++)
+  {
+    // Fetch element containing evaluation point
+    // sadly, points are not always ordered in the same way as the elements
+    int iel = lrspline->getElementContaining(gpar[0][i],gpar[1][i],gpar[2][i]);
+    if (iel < 0) {
+      std::cerr <<" *** ASMu3D::evalSolution: Element at point ("
+                << gpar[0][i] <<", "<< gpar[1][i] <<", "<< gpar[2][i]
+                <<") not found."<< std::endl;
+      return false;
+    }
 
-	// Evaluate the secondary solution field at each point
-	for (size_t i = 0; i < nPoints; i++)
-	{
-		// Fetch element containing evaluation point. Points are always listed
-		// sadly, points not always ordered in the same way as the elements
-		int iel = lrspline->getElementContaining(gpar[0][i], gpar[1][i], gpar[2][i]);
+    // Evaluate the basis functions at current parametric point
+    FiniteElement fe(lrspline->getElement(iel)->nBasisFunctions());
+    fe.u   = gpar[0][i];
+    fe.v   = gpar[1][i];
+    fe.w   = gpar[2][i];
+    fe.iel = iel+1;
+    if (use2ndDer)
+      evaluateBasis(fe, dNdu, d2Ndu2);
+    else
+      evaluateBasis(fe, dNdu);
 
-		if(iel < 0) {
-			std::cerr << "Logical error in evaluating results. Element at point (" << gpar[0][i] << ", " 
-			          << gpar[1][i] << ", " <<  gpar[2][i] << ") not found" << std::endl;
-			return false;
-		}
-		int nBasis = lrspline->getElement(iel)->nBasisFunctions();
+    // Set up control point (nodal) coordinates for current element
+    if (!this->getElementCoordinates(Xnod,iel+1)) return false;
 
-		FiniteElement fe(nBasis);
-		fe.u   = gpar[0][i];
-		fe.v   = gpar[1][i];
-		fe.w   = gpar[2][i];
-		fe.iel = iel+1;
+    // Compute the Jacobian inverse
+    if (utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu) == 0.0) // Jac = (Xnod * dNdu)^-1
+      continue; // skip singular points
 
-		// Evaluate the basis functions at current parametric point
-		if (use2ndDer)
-			evaluateBasis(fe, dNdu, d2Ndu2);
-		else
-			evaluateBasis(fe, dNdu);
+    // Compute Hessian of coordinate mapping and 2nd order derivatives
+    if (use2ndDer)
+      if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
+        continue;
 
-		// Set up control point (nodal) coordinates for current element
-		if (!this->getElementCoordinates(Xnod,fe.iel)) return false;
+    // Now evaluate the solution field
+    if (!integrand.evalSol(solPt,fe,Xnod*fe.N,MNPC[iel]))
+      return false;
+    else if (sField.empty())
+      sField.resize(solPt.size(),nPoints,true);
 
-		// Compute the Jacobian inverse
-		if (utl::Jacobian(Jac,dNdX,Xnod,dNdu) == 0.0) // Jac = (Xnod * dNdu)^-1
-			continue; // skip singular points
+    sField.fillColumn(1+i,solPt);
+  }
 
-		// Compute Hessian of coordinate mapping and 2nd order derivatives
-		if (use2ndDer)
-			if (!utl::Hessian(Hess,d2NdX2,Jac,Xnod,d2Ndu2,dNdu))
-				continue;
-
-		// Now evaluate the solution field
-		if (!integrand.evalSol(solPt,fe.N,dNdX,d2NdX2,Xnod*fe.N,myMNPC[iel]))
-			return false;
-		else if (sField.empty())
-			sField.resize(solPt.size(),nPoints,true);
-
-		sField.fillColumn(1+i,solPt);
-	}
-
-	return true;
+  return true;
 }
 
 
