@@ -21,7 +21,9 @@ class ElementBlock;
 class Vec3;
 
 typedef std::pair<int,const ElementBlock*> GridBlock; //!< Convenience type
+#ifndef _VEC3_H
 typedef std::pair<Vec3,Vec3>               Vec3Pair;  //!< Convenience type
+#endif
 
 class VTFAFile;
 class VTFAStateInfoBlock;
@@ -54,7 +56,7 @@ class VTFXAGeometryBlock;
 class VTF
 {
 public:
-  //! \brief Constructor which opens a new VTF-file.
+  //! \brief The constructor opens a new VTF-file.
   //! \param[in] filename Name of the VTF-file
   //! \param[in] type     File type (0 = ASCII, 1 = BINARY)
   VTF(const char* filename, int type = 0);
@@ -105,6 +107,7 @@ public:
                   int idBlock = 1, int gID = 1);
   //! \brief Writes a block of point vector results to the VTF-file.
   //! \param[in] pntResult A set of result vectors with associated attack points
+  //! \param gID Running geometry block identifier
   //! \param[in] idBlock Result block identifier
   //! \param[in] resultName Name of the result quantity
   //! \param[in] iStep Load/Time step identifier
@@ -113,10 +116,13 @@ public:
   //! \details This method creates a separate geometry block consisting of the
   //! attack points of the result vectors, since they are independent of the
   //! FE geometry created by the \a writeGrid method.
-  bool writeVectors(const std::vector<Vec3Pair>& pntResult, int idBlock = 1,
-                    const char* resultName = 0, int iStep = 0, int iBlock = 1);
+  bool writeVectors(const std::vector<Vec3Pair>& pntResult, int& gID,
+                    int idBlock = 1, const char* resultName = 0,
+                    int iStep = 0, int iBlock = 1);
   //! \brief Writes a block of points (no results) to the VTF-file.
-  bool writePoints(const std::vector<Vec3>& points);
+  //! \param[in] points Vector of point coordinates
+  //! \param gID Running geometry block identifier
+  bool writePoints(const std::vector<Vec3>& points, int& gID);
 
   //! \brief Writes a scalar block definition to the VTF-file.
   //! \param[in] sBlockID The result block that makes up this scalar block

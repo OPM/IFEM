@@ -54,8 +54,6 @@ public:
 
   //! \brief Defines the solution mode before the element assembly is started.
   virtual void setMode(SIM::SolutionMode mode) { m_mode = mode; }
-  //! \brief Get the current solution mode
-  SIM::SolutionMode getMode() const { return m_mode; }
   //! \brief Initializes an integration parameter for the integrand.
   virtual void setIntegrationPrm(int, double) {}
   //! \brief Initializes the integrand with the number of integration points.
@@ -221,7 +219,7 @@ public:
   virtual bool mixedFormulation() const { return false; }
 
   //! \brief Writes surface tractions/fluxes for a given time step to VTF-file.
-  virtual bool writeGlvT(VTF*, int, int&) const { return true; }
+  virtual bool writeGlvT(VTF*, int, int&, int&) const { return true; }
 
   //! \brief Returns whether there are any traction/flux values to write to VTF.
   virtual bool hasTractionValues() const { return false; }

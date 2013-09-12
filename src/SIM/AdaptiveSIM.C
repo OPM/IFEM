@@ -26,6 +26,7 @@
 AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : SIMinput(*sim)
 {
   model = dynamic_cast<SIMoutput*>(sim);
+  geoBlk = nBlock = 0;
 
   // Default grid adaptation parameters
   storeMesh    = false;
@@ -57,7 +58,7 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
   if (strcasecmp(elem->Value(),"adaptive"))
     return model->parse(elem);
 
-  const char* value = 0;
+  const char* value = NULL;
   const TiXmlElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
 
@@ -243,6 +244,9 @@ typedef std::pair<double,int> IndexDouble;
 
 bool AdaptiveSIM::adaptMesh (int iStep)
 {
+  if (iStep < 2)
+    return true;
+
   this->printNorms(std::cout);
 
   if (adaptor >= gNorm.size() || adaptor >= eNorm.rows())
@@ -423,17 +427,16 @@ std::ostream& AdaptiveSIM::printNorms (std::ostream& os, size_t w) const
 }
 
 
-bool AdaptiveSIM::writeGlv (const char* infile, int iStep, int& nBlock,
-			    size_t nNormProj)
+bool AdaptiveSIM::writeGlv (const char* infile, int iStep, size_t nNormProj)
 {
   if (opt.format < 0) return true;
 
   // Write VTF-file with model geometry
-  if (!model->writeGlvG(nBlock, iStep == 1 ? infile : 0))
+  if (!model->writeGlvG(geoBlk, iStep == 1 ? infile : NULL))
     return false;
 
   // Write boundary tractions, if any
-  if (!model->writeGlvT(iStep,nBlock))
+  if (!model->writeGlvT(iStep,geoBlk,nBlock))
     return false;
 
   // Write Dirichlet boundary conditions

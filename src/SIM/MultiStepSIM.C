@@ -68,7 +68,7 @@ bool MultiStepSIM::saveModel (int& gBlk, int& rBlk, char* fileName)
   PROFILE1("MultiStepSIM::saveModel");
 
   // Write VTF-file with model geometry
-  if (!model.writeGlvG(gBlk,fileName))
+  if (!model.writeGlvG(gBlk,fileName,gBlk==0))
     return false;
 
   // Write Dirichlet boundary conditions
@@ -89,7 +89,7 @@ bool MultiStepSIM::saveStep (int iStep, double time,
 
   // Write boundary tractions, if any
   if (!psolOnly)
-    if (!model.writeGlvT(iStep,nBlock))
+    if (!model.writeGlvT(iStep,geoBlk,nBlock))
       return false;
 
   // Write residual force vector, but only when no extra visualization points

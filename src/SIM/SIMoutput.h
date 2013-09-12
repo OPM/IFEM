@@ -49,7 +49,7 @@ typedef std::pair<Vec3,double>   PointValue;  //!< Convenience type
 class SIMoutput : public SIMbase
 {
 protected:
-  //! \brief The constructor forwards to the base class constructor.
+  //! \brief The constructor just forwards to the base class constructor.
   SIMoutput(IntegrandBase* itg) : SIMbase(itg), myGeomID(0), myVtf(NULL) {}
 
 public:
@@ -76,13 +76,14 @@ public:
   //! \brief Writes current model geometry to the VTF-file.
   //! \param nBlock Running result block counter
   //! \param[in] inpFile File name used to construct the VTF-file name from
+  //! \param[in] doClear If \e true, clear geometry block if \a inpFile is NULL
   //!
   //! \details The spline patches are tesselated into linear finite elements
   //! with a fixed number of elements within each knot-span of non-zero length.
   //! The solution fields are then evaluated at the nodal points of the
   //! generated FE mesh and written to the VTF-file as vector and scalar fields
   //! by the other \a writeGlv* methods.
-  virtual bool writeGlvG(int& nBlock, const char* inpFile = NULL);
+  virtual bool writeGlvG(int& nBlock, const char* inpFile, bool doClear = true);
 
   //! \brief Writes additional, problem-specific, results to the VTF-file.
   //! \param nBlock Running result block counter
@@ -96,8 +97,9 @@ public:
 
   //! \brief Writes boundary tractions for a given time step to the VTF-file.
   //! \param[in] iStep Load/time step identifier
+  //! \param geoBlk Running geometry block counter
   //! \param nBlock Running result block counter
-  bool writeGlvT(int iStep, int& nBlock) const;
+  bool writeGlvT(int iStep, int& geoBlk, int& nBlock) const;
 
   //! \brief Writes a vector field for a given load/time step to the VTF-file.
   //! \param[in] vec The vector field to output (nodal values in DOF-order)

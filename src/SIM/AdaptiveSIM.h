@@ -54,9 +54,8 @@ public:
   //! \brief Writes current mesh and results to the VTF-file.
   //! \param[in] infile File name used to construct the VTF-file name from
   //! \param[in] iStep  Refinement step identifier
-  //! \param     nBlock Running result block counter
   //! \param[in] nNormProj Number of element norms per projection method
-  bool writeGlv(const char* infile, int iStep, int& nBlock, size_t nNormProj);
+  bool writeGlv(const char* infile, int iStep, size_t nNormProj);
 
   //! \brief Prints out the global norms to given stream.
   std::ostream& printNorms(std::ostream& os, size_t w = 36) const;
@@ -107,6 +106,9 @@ private:
   Vectors solution; //!< All solutions (galerkin projections)
   Vectors gNorm;    //!< Global norms
   Matrix  eNorm;    //!< Element norms
+
+  int geoBlk; //!< Running VTF geometry block counter
+  int nBlock; //!< Running VTF result block counter
 
   std::vector<Vector>      projs;  //!< Projected secondary solutions
   std::vector<const char*> prefix; //!< Norm prefices for VTF-output

@@ -142,7 +142,7 @@ void SIMoutput::preprocessResultPoints ()
 }
 
 
-bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile)
+bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
 {
   if (inpFile)
   {
@@ -167,7 +167,7 @@ bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile)
     myVtf = new VTF(vtfName,opt.format);
     delete[] vtfName;
   }
-  else if (nBlock == 0)
+  else if (doClear)
     myVtf->clearGeometryBlocks();
 
   ElementBlock* lvb;
@@ -269,13 +269,13 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
 }
 
 
-bool SIMoutput::writeGlvT (int iStep, int& nBlock) const
+bool SIMoutput::writeGlvT (int iStep, int& geoBlk, int& nBlock) const
 {
   if (myProblem->hasTractionValues())
   {
     if (msgLevel > 1)
       std::cout <<"Writing boundary tractions"<< std::endl;
-    return myProblem->writeGlvT(myVtf,iStep,nBlock);
+    return myProblem->writeGlvT(myVtf,iStep,geoBlk,nBlock);
   }
 
   return true;

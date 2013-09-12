@@ -462,8 +462,9 @@ bool VTF::writeNfunc (const RealFunc& f, Real time, int idBlock, int geomID)
 }
 
 
-bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int idBlock,
-                        const char* resultName, int iStep, int iBlock)
+bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int& gID,
+                        int idBlock, const char* resultName,
+                        int iStep, int iBlock)
 {
 #if HAS_VTFAPI == 1
   bool writePoints = false;
@@ -471,7 +472,7 @@ bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int idBlock,
   {
     // The big assumption here is that we have only one call to writeVectors
     // per time step, and that all subsequent calls are with the same points
-    pointGeoID = myBlocks.empty() ? 1 : myBlocks.back().first + 1;
+    pointGeoID = gID < 0 && !myBlocks.empty() ? myBlocks.back().first+1 : ++gID;
     myBlocks.push_back(std::make_pair(pointGeoID,new ElementBlock()));
     writePoints = true;
   }
@@ -528,21 +529,16 @@ bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int idBlock,
 }
 
 
-bool VTF::writePoints (const Vec3Vec& points)
+bool VTF::writePoints (const Vec3Vec& points, int& gID)
 {
-  std::cout <<"VTF::writePoints: "<< points.size() << std::endl;
 #if HAS_VTFAPI == 1
-  static int pointsID = 0;
-  if (pointsID > 0) return true; // Only one call to writePoints is allowed
+  myBlocks.push_back(std::make_pair(++gID,new ElementBlock()));
 
-  pointsID = myBlocks.empty() ? 1 : myBlocks.back().first + 1;
-  myBlocks.push_back(std::make_pair(pointsID,new ElementBlock()));
-
-  VTFANodeBlock nBlock(pointsID,0);
+  VTFANodeBlock nBlock(gID,0);
 
   size_t i, np = points.size();
   if (VTFA_FAILURE(nBlock.SetNumNodes(np)))
-    return showError("Error defining node block",pointsID);
+    return showError("Error defining node block",gID);
 
   int* mnpc = new int[np];
   Vec3Vec::const_iterator cit;
@@ -550,23 +546,23 @@ bool VTF::writePoints (const Vec3Vec& points)
     if (VTFA_FAILURE(nBlock.AddNode(vecOffset[0]+cit->x,
 				    vecOffset[1]+cit->y,
 				    vecOffset[2]+cit->z)))
-      return showError("Error adding node to block",pointsID);
+      return showError("Error adding node to block",gID);
     else
       mnpc[i] = i;
 
   // We must define an element block (with point elements) also,
   // otherwise GLview does not visualize the points
-  VTFAElementBlock eBlock(pointsID,0,0);
-  eBlock.SetPartID(pointsID);
-  eBlock.SetNodeBlockID(pointsID);
+  VTFAElementBlock eBlock(gID,0,0);
+  eBlock.SetPartID(gID);
+  eBlock.SetNodeBlockID(gID);
   if (VTFA_FAILURE(eBlock.AddElements(VTFA_POINTS,mnpc,np)))
-    return showError("Error defining element block",pointsID);
+    return showError("Error defining element block",gID);
   delete[] mnpc;
 
   if (VTFA_FAILURE(myFile->WriteBlock(&nBlock)))
-    return showError("Error writing node block",pointsID);
+    return showError("Error writing node block",gID);
   else if (VTFA_FAILURE(myFile->WriteBlock(&eBlock)))
-    return showError("Error writing element block",pointsID);
+    return showError("Error writing element block",gID);
 #elif HAS_VTFAPI == 2
   std::cerr <<"VTF: Points are not yet implemented for VTFx"<< std::endl;
   return true;
