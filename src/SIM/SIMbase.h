@@ -209,6 +209,8 @@ public:
   char getNodeType(int inod) const;
   //! \brief Returns the spatial coordinates of the specified global node.
   Vec3 getNodeCoord(int inod) const;
+  //! \brief Returns \e true if all DOFs in the specified global node are fixed.
+  bool isFixed(int inod, int dof = 123) const;
 
   //! \brief Finds the list of global nodes associated with a boundary.
   //! \param[in] pcode Property code identifying the boundary

@@ -276,9 +276,16 @@ public:
 };
 
 
-bool ASMbase::isFixed (int node, int dof) const
+bool ASMbase::isFixed (int node, int dof, bool all) const
 {
-  return std::find_if(BCode.begin(),BCode.end(),fixed(node,dof)) != BCode.end();
+  BCVec::const_iterator bit = BCode.begin();
+  if (dof < 10 || !all)
+    bit = std::find_if(BCode.begin(),BCode.end(),fixed(node,dof));
+  else for (int d = dof; d > 0 && bit != BCode.end(); d /= 10)
+    if (d <= nf)
+      bit = std::find_if(BCode.begin(),BCode.end(),fixed(node,d%10));
+
+  return bit != BCode.end();
 }
 
 

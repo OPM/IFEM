@@ -498,10 +498,6 @@ protected:
   // Internal methods for preprocessing of boundary conditions
   // =========================================================
 
-  //! \brief Checks wether a given DOF is fixed or not.
-  //! \param[in] node Global node number of the DOF to check
-  //! \param[in] dof Local index of the DOF to check
-  bool isFixed(int node, int dof) const;
   //! \brief Adds a general multi-point-constraint (MPC) equation to this patch.
   //! \param mpc Pointer to an MPC-object
   //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
@@ -549,6 +545,11 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   //! \param[in] dirs Which local DOFs to constrain (1, 2, 3, 12, 23, 123)
   void fix(size_t inod, int dirs = 123);
+  //! \brief Checks whether given DOFs are fixed or not.
+  //! \param[in] node Global node number of the DOF to check
+  //! \param[in] dof Local indices of the DOFs to check
+  //! \param[in] all Returns \e true only if all DOFs are fixed
+  bool isFixed(int node, int dof, bool all = false) const;
 
 private:
   //! \brief Recursive method used by \a resolveMPCchains.

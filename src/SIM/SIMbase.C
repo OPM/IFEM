@@ -1766,6 +1766,17 @@ Vec3 SIMbase::getNodeCoord (int inod) const
 }
 
 
+bool SIMbase::isFixed (int inod, int dof) const
+{
+  size_t node = 0;
+  for (PatchVec::const_iterator it = myModel.begin(); it != myModel.end(); ++it)
+    if ((node = (*it)->getNodeIndex(inod,true)))
+      return (*it)->isFixed(node,dof,true);
+
+  return true;
+}
+
+
 SystemVector* SIMbase::getRHSvector (size_t idx, bool copy) const
 {
   SystemVector* rhs = myEqSys->getVector(idx);
