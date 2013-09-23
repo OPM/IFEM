@@ -316,7 +316,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
         f = new FieldFunction(Field::create(pch, coefs));
 #else
         std::cerr << "WARNING: Compiled without HDF5 support, field function not instanced" << std::endl;
-        f = new ConstantFunc(0.0);
+        f = new ConstFunc(0.0);
 #endif
       }
       break;
