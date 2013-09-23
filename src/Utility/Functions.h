@@ -18,6 +18,8 @@
 #include "ExprFunctions.h"
 #include "Vec3.h"
 
+class Field;
+
 
 /*!
   \brief A scalar-valued constant function.
@@ -469,6 +471,19 @@ public:
 protected:
   //! \brief Evaluates the function by interpolating the 1D grid.
   virtual Real evaluate(const Vec3& X) const;
+};
+
+
+class FieldFunction : public RealFunc
+{
+public:
+  FieldFunction(Field* field_);
+
+  virtual ~FieldFunction();
+protected:
+    Field* field;
+
+    virtual Real evaluate(const Vec3& X) const;
 };
 
 

@@ -17,6 +17,13 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include "ASM2D.h"
+#include "ASMbase.h"
+#include "Field.h"
+#ifdef HAS_HDF5
+#include "HDF5Writer.h"
+#endif
+#include <cassert>
 
 
 PressureField::PressureField (Real p, int dir) : pdir(dir)
@@ -206,6 +213,8 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
     linear = 7;
   else if (strcasecmp(cline,"Interpolate1D") == 0)
     linear = 8;
+  else if (strcasecmp(cline,"Field") == 0)
+    linear = 9;
   else if (strcasecmp(cline,"quadX") == 0)
     quadratic = 1;
   else if (strcasecmp(cline,"quadY") == 0)
@@ -283,6 +292,32 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
         std::cout <<"Interpolate1D("<< cline <<","<< (char)('X'+dir) <<")*Ramp(" << time << ")";
         f = new Interpolate1D(cline,dir,time);
         cline = strtok(NULL," ");
+      }
+      break;
+    case 9:
+      {
+#ifdef HAS_HDF5
+        std::string file, basis, field;
+        file = cline; 
+        basis = cline = strtok(NULL, " ");
+        field = cline = strtok(NULL, " ");
+        cline = strtok(NULL, " ");
+        HDF5Writer hdf5(file, true, true);
+        basis = std::string("0/basis/")+basis+std::string("/1");
+        std::string g2;
+        hdf5.readString(basis, g2);
+        std::stringstream str;
+        str << g2;
+        static const unsigned char nf[] = {1,0};
+        ASMbase* pch = ASM2D::create(ASM::Spline, nf);
+        pch->read(str);
+        Vector coefs;
+        hdf5.readVector(0, field, 1, coefs);
+        f = new FieldFunction(Field::create(pch, coefs));
+#else
+        std::cerr << "WARNING: Compiled without HDF5 support, field function not instanced" << std::endl;
+        f = new ConstantFunc(0.0);
+#endif
       }
       break;
     }
@@ -488,4 +523,26 @@ TractionFunc* utl::parseTracFunc (const std::string& func,
   }
 
   return f ? new PressureField(f,dir) : new PressureField(p,dir);
+}
+
+
+FieldFunction::FieldFunction(Field* field_) : field(field_)
+{
+  
+}
+
+
+FieldFunction::~FieldFunction()
+{
+  delete field;
+}
+
+
+Real FieldFunction::evaluate(const Vec3& X) const
+{
+  const Vec4* x4 = dynamic_cast<const Vec4*>(&X);
+  if (x4 && x4->idx > 0)
+    return field->valueNode(x4->idx);
+
+  return field->valueCoor(X);
 }

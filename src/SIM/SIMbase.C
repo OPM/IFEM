@@ -365,7 +365,9 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
       this->setPropertyType(code,Property::DIRICHLET_ANASOL);
       std::cout <<"\tDirichlet code "<< code <<": (analytic)"<< std::endl;
     }
-    else if (!dval || (type != "expression" && atof(dval->Value()) == 0.0)) {
+    // this is a horrible hack
+    else if (!dval || (type != "expression" &&
+                       type != "field" && atof(dval->Value()) == 0.0)) {
       this->setPropertyType(code,Property::DIRICHLET,comp);
       std::cout <<"\tDirichlet code "<< code <<": (fixed)"<< std::endl;
     }
