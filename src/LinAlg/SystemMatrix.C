@@ -120,10 +120,27 @@ SystemMatrix* SystemMatrix::create (const ProcessAdm& padm, Type matrixType,
 
 
 bool SystemMatrix::assemble (const Matrix&, const SAM&,
-			     SystemVector&, const std::vector<int>&)
+                             SystemVector&, const std::vector<int>&)
 {
   std::cerr <<"SystemMatrix::assemble(const Matrix&,const SAM&,"
-	    <<"SystemVector&,const std::vector<int>&): "
-	    <<"Not implemented for the chosen matrix type."<< std::endl;
+            <<"SystemVector&,const std::vector<int>&): "
+            <<"Not implemented for the chosen matrix type."<< std::endl;
   return false;
 }
+
+//! \brief Matrix-vector product
+StdVector SystemMatrix::operator*(const StdVector& b) const
+{
+  StdVector results;
+  multiply(b, results);
+  return results;
+}
+
+//! \brief Solve linear system
+StdVector SystemMatrix::operator/(const StdVector& b)
+{
+  StdVector results;
+  solve(b, results);
+  return results;
+}
+

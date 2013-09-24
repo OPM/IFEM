@@ -508,7 +508,7 @@ bool SparseMatrix::add (Real sigma)
 }
 
 
-bool SparseMatrix::multiply (const SystemVector& B, SystemVector& C)
+bool SparseMatrix::multiply (const SystemVector& B, SystemVector& C) const
 {
   C.resize(nrow,true);
   if (B.dim() < ncol) return false;

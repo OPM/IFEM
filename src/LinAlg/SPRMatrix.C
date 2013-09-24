@@ -324,7 +324,7 @@ bool SPRMatrix::add (Real sigma)
 }
 
 
-bool SPRMatrix::multiply (const SystemVector& B, SystemVector& C)
+bool SPRMatrix::multiply (const SystemVector& B, SystemVector& C) const
 {
   const int n = mpar[7];
   if (n < 1) return true;

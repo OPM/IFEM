@@ -108,9 +108,9 @@ namespace utl //! General utility classes and functions.
     }
 
     //! \brief Multiplication with a scalar.
-    vector<T>& operator*=(const T& c);
+    vector<T>& operator*=(T c);
     //! \brief Division by a scalar.
-    vector<T>& operator/=(const T& d) { return this->operator*=(T(1)/d); }
+    vector<T>& operator/=(T d) { return this->operator*=(T(1)/d); }
 
     //! \brief Component-wise multiplication with a vector.
     vector<T>& operator*=(const std::vector<T>& X)
@@ -131,6 +131,7 @@ namespace utl //! General utility classes and functions.
     vector<T>& operator+=(const vector<T>& X) { return this->add(X); }
     //! \brief Subtract the given vector \b X from \a *this.
     vector<T>& operator-=(const vector<T>& X) { return this->add(X,T(-1)); }
+
     //! \brief Add the given vector \b X scaled by \a alfa to \a *this.
     vector<T>& add(const std::vector<T>& X, T alfa = T(1));
 
@@ -490,11 +491,11 @@ namespace utl //! General utility classes and functions.
     matrix<T>& add(const matrix<T>& A, T alfa = T(1));
 
     //! \brief Multiplication with a scalar.
-    matrix<T>& operator*=(const T& c) { return this->multiply(c); }
+    matrix<T>& operator*=(T c) { return this->multiply(c); }
     //! \brief Division by a scalar.
-    matrix<T>& operator/=(const T& d) { return this->multiply(T(1)/d); }
+    matrix<T>& operator/=(T d) { return this->multiply(T(1)/d); }
     //! \brief Multiplication of this matrix by a scalar \a c.
-    matrix<T>& multiply(const T& c);
+    matrix<T>& multiply(T c);
 
     /*! \brief Matrix-matrix multiplication.
       \details Performs one of the following operations (\b C = \a *this):
@@ -813,14 +814,14 @@ namespace utl //! General utility classes and functions.
   //============================================================================
 
   template<> inline
-  vector<float>& vector<float>::operator*=(const float& c)
+  vector<float>& vector<float>::operator*=(float c)
   {
     cblas_sscal(this->size(),c,this->ptr(),1);
     return *this;
   }
 
   template<> inline
-  vector<double>& vector<double>::operator*=(const double& c)
+  vector<double>& vector<double>::operator*=(double c)
   {
     cblas_dscal(this->size(),c,this->ptr(),1);
     return *this;
@@ -929,14 +930,14 @@ namespace utl //! General utility classes and functions.
   }
 
   template<> inline
-  matrix<float>& matrix<float>::multiply(const float& c)
+  matrix<float>& matrix<float>::multiply(float c)
   {
     cblas_sscal(this->size(),c,this->ptr(),1);
     return *this;
   }
 
   template<> inline
-  matrix<double>& matrix<double>::multiply(const double& c)
+  matrix<double>& matrix<double>::multiply(double c)
   {
     cblas_dscal(this->size(),c,this->ptr(),1);
     return *this;
@@ -1371,69 +1372,37 @@ namespace utl //! General utility classes and functions.
 
   //! \brief Multiplication of a vector and a scalar.
   //! \return \f$ {\bf Y} = c {\bf X} \f$
-  template<class T> vector<T> operator*(const vector<T>& X, const T& c)
-  {
-    vector<T> Y(X.size());
-    for (size_t i = 0; i < X.size(); i++)
-      Y[i] = X[i]*c;
-    return Y;
-  }
+  vector<Real> operator*(const vector<Real>& X, Real c);
+  vector<Real> operator*(Real c, const vector<Real>& X) ;
 
   //! \brief Division of a vector by a scalar.
   //! \return \f$ {\bf Y} = \frac{1}{d} {\bf X} \f$
-  template<class T> vector<T> operator/(const vector<T>& X, const T& d)
-  {
-    vector<T> Y(X.size());
-    T c = T(1) / d;
-    for (size_t i = 0; i < X.size(); i++)
-      Y[i] = X[i]*c;
-    return Y;
-  }
+  vector<Real> operator/(const vector<Real>& X, Real d);
 
   //! \brief Addition of two vectors.
   //! \return \f$ {\bf Z} = {\bf X} + {\bf Y} \f$
-  template<class T> vector<T> operator+(const vector<T>& X, const vector<T>& Y)
-  {
-    vector<T> Z(X.size());
-    for (size_t i = 0; i < X.size() && i < Y.size(); i++)
-      Z[i] = X[i] + Y[i];
-    return Z;
-  }
+  vector<Real> operator+(const vector<Real>& X, const vector<Real>& Y);
 
   //! \brief Subtraction of two vectors.
   //! \return \f$ {\bf Z} = {\bf X} - {\bf Y} \f$
-  template<class T> vector<T> operator-(const vector<T>& X, const vector<T>& Y)
-  {
-    vector<T> Z(X.size());
-    for (size_t i = 0; i < X.size() && i < Y.size(); i++)
-      Z[i] = X[i] - Y[i];
-    return Z;
-  }
+  vector<Real> operator-(const vector<Real>& X, const vector<Real>& Y);
 
   //! \brief Multiplication of a matrix and a scalar.
   //! \return \f$ {\bf B} = c {\bf A} \f$
-  template<class T> matrix<T> operator*(const matrix<T>& A, const T& c)
-  {
-    matrix<T> B(A);
-    return B.multiply(c);
-  }
+  matrix<Real> operator*(const matrix<Real>& A, Real c);
+  matrix<Real> operator*(Real c, const matrix<Real>& A);
+
+  //! \brief Dot product of two vectors 
+  //! \return \f$ a = {\bf X^T} {\bf Y} \f$
+  Real operator*(const vector<Real>& X, const vector<Real>& Y);
 
   //! \brief Multiplication of a matrix and a vector.
   //! \return \f$ {\bf Y} = {\bf A} {\bf X} \f$
-  template<class T> vector<T> operator*(const matrix<T>& A, const vector<T>& X)
-  {
-    vector<T> Y;
-    A.multiply(X,Y);
-    return Y;
-  }
+  vector<Real> operator*(const matrix<Real>& A, const vector<Real>& X);
 
   //! \brief Multiplication of two matrices.
   //! \return \f$ {\bf C} = {\bf A} {\bf B} \f$
-  template<class T> matrix<T> operator*(const matrix<T>& A, const matrix<T>& B)
-  {
-    matrix<T> C;
-    return C.multiply(A,B);
-  }
+  matrix<Real> operator*(const matrix<Real>& A, const matrix<Real>& B);
 
   extern double zero_print_tol; //!< Zero tolerance for printing numbers
   extern int    nval_per_line;  //!< Number of values to print per line
@@ -1541,6 +1510,7 @@ namespace utl //! General utility classes and functions.
     }
     s <<" ];"<< std::endl;
   }
+  
 }
 
 #undef THIS

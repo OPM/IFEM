@@ -116,7 +116,7 @@ public:
   virtual bool add(Real sigma);
 
   //! \brief Performs the matrix-vector multiplication \b C = \a *this * \b B.
-  virtual bool multiply(const SystemVector& B, SystemVector& C);
+  virtual bool multiply(const SystemVector& B, SystemVector& C) const;
 
   using SystemMatrix::solve;
   //! \brief Solves the linear system of equations for a given right-hand-side.
@@ -196,5 +196,8 @@ private:
   int*   ipiv;  //!< Pivot indices used in \a solve
   bool   symm;  //!< Flags whether the matrix is symmetric or not
 };
+
+DenseMatrix operator*(Real alpha, const DenseMatrix& A);
+DenseMatrix operator*(const DenseMatrix& A, Real alpha);
 
 #endif

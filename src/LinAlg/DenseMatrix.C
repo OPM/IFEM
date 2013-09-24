@@ -438,7 +438,7 @@ bool DenseMatrix::add (Real sigma)
 }
 
 
-bool DenseMatrix::multiply (const SystemVector& B, SystemVector& C)
+bool DenseMatrix::multiply (const SystemVector& B, SystemVector& C) const
 {
   const StdVector* Bptr = dynamic_cast<const StdVector*>(&B);
   if (!Bptr) return false;
@@ -640,4 +640,18 @@ bool DenseMatrix::solveEigNon (RealArray& r_val, RealArray& c_val)
   std::cerr <<"DGEEV not available - built without LAPack/BLAS"<< std::endl;
 #endif
   return false;
+}
+
+DenseMatrix operator*(Real alpha, const DenseMatrix& A)
+{
+  DenseMatrix B(A);
+  B.getMat() *= alpha;
+  return B;
+}
+
+DenseMatrix operator*(const DenseMatrix& A, Real alpha)
+{
+  DenseMatrix B(A);
+  B.getMat() *= alpha;
+  return B;
 }

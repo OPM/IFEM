@@ -493,7 +493,7 @@ bool PETScMatrix::assemble (const Matrix& eM, const SAM& sam,
 }
 
 
-bool PETScMatrix::multiply (const SystemVector& B, SystemVector& C)
+bool PETScMatrix::multiply (const SystemVector& B, SystemVector& C) const
 {
   const PETScVector* Bptr = dynamic_cast<const PETScVector*>(&B);
         PETScVector* Cptr = dynamic_cast<PETScVector*>(&C);
@@ -734,6 +734,22 @@ bool PETScMatrix::setParameters(PETScMatrix* P, PETScVector* Pb)
 {
   solParams.setParams(ksp,locSubdDofs,subdDofs,coords,dirIndexSet);
   return true;
+}
+
+
+PETScVector operator*(const SystemMatrix& A, const PETScVector& b)
+{
+  PETScVector results(b.getAdm());
+  A.multiply(b, results);
+  return results;
+}
+
+
+PETScVector operator/(SystemMatrix& A, const PETScVector& b)
+{
+  PETScVector results(b.getAdm());
+  A.solve(b, results);
+  return results;
 }
 
 #endif // HAS_PETSC

@@ -104,6 +104,8 @@ public:
   //! \brief Returns the PETSc vector (for read access).
   virtual const Vec& getVector() const { return x; }
 
+  //! \brief Return associated process administrator
+  const ProcessAdm& getAdm() const { return adm; }
 protected:
   Vec x;                  //!< The actual PETSc vector
   const ProcessAdm& adm;  //!< Process administrator
@@ -194,7 +196,7 @@ public:
                         SystemVector& B, int e);
 
   //! \brief Performs the matrix-vector multiplication \b C = \a *this * \b B.
-  virtual bool multiply(const SystemVector& B, SystemVector& C);
+  virtual bool multiply(const SystemVector& B, SystemVector& C) const;
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side vector on input, solution vector on output
@@ -269,5 +271,14 @@ protected:
 			SystemVector&, int) { return false; }
 #endif
 };
+
+
+#ifdef HAS_PETSC
+//! \brief Matrix-vector product
+PETScVector operator*(const SystemMatrix& A, const PETScVector& b);
+
+//! \brief Solve linear system
+PETScVector operator/(const SystemMatrix& A, const PETScVector& b);
+#endif
 
 #endif

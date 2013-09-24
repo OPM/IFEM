@@ -145,6 +145,9 @@ public:
   //! \brief Returns the dimension of the system vector.
   virtual size_t dim() const { return this->std::vector<Real>::size(); }
 
+  //! \brief Returns the dimension of the system vector.
+  virtual size_t size() const { return this->std::vector<Real>::size(); }
+
   //! \brief Sets the dimension of the system vector.
   virtual void redim(size_t n) { this->std::vector<Real>::resize(n,Real(0)); }
 
@@ -186,7 +189,6 @@ protected:
   virtual std::ostream& write(std::ostream& os) const
   { return os << static_cast<const utl::vector<Real>&>(*this); }
 };
-
 
 /*!
   \brief Base class for representing a system matrix on different formats.
@@ -292,7 +294,7 @@ public:
   virtual bool add(Real) { return false; }
 
   //! \brief Performs a matrix-vector multiplication.
-  virtual bool multiply(const SystemVector&, SystemVector&) { return false; }
+  virtual bool multiply(const SystemVector&, SystemVector&) const { return false; }
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param b Right-hand-side vector on input, solution vector on output
@@ -315,6 +317,12 @@ public:
   //! \brief Dumps the system matrix on a specified format.
   virtual void dump(std::ostream&, char, const char* = NULL) {}
 
+  //! \brief Matrix-vector product
+  StdVector operator*(const StdVector& b) const ;
+
+  //! \brief Solve linear system
+  StdVector operator/(const StdVector& b) ;
+
 protected:
   //! \brief Writes the system matrix to the given output stream.
   virtual std::ostream& write(std::ostream& os) const { return os; }
@@ -325,5 +333,6 @@ protected:
     return A.write(os);
   }
 };
+
 
 #endif
