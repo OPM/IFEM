@@ -547,11 +547,6 @@ bool SAMpatchPara::getDirOrdering(PetscIntVec& order, int perm, int nf) const
 {
   int nfield = (nf==0) ? madof[1]-madof[0] : nf;
 
-  int dir[3];
-  dir[0] = perm/100-1;
-  dir[1] = (perm%100)/10-1;
-  dir[2] = perm%10-1;
-
   IntVec maxNodeId, minNodeId;
   if (!this->getMinMaxNode(minNodeId,maxNodeId))
     return false;
@@ -568,24 +563,119 @@ bool SAMpatchPara::getDirOrdering(PetscIntVec& order, int perm, int nf) const
     if (!static_cast<ASMstruct*>(patch[n])->getSize(nnod[0],nnod[1],nnod[2]))
       return false;
     if (!nnod[2]) nnod[2] = 1;
-    
-    const IntVec& MLGN = patch[n]->getGlobalNodeNums();
-    int id[3] = {0,0,0};
-    for (id[2] = 0;id[2] < nnod[dir[2]];id[2]++)
-      for (id[1] = 0;id[1] < nnod[dir[1]];id[1]++)
-	for (id[0] = 0;id[0] < nnod[dir[0]];id[0]++) {
-	  int locNode  = id[dir[2]]*nnod[0]*nnod[1] + id[dir[1]]*nnod[0] + id[dir[0]];
-	  int procNode = MLGN[locNode];
-	  int globNode = l2gn[procNode-1];
 
-	  if (globNode >= minNodeId[n] && globNode <= maxNodeId[n]) 
-	    for (int m = 0;m < nfield;m++) {
-	      int globDof = (globNode-1)*nfield+m;
-	      int locDof  = globDof-firstDof;
-	      order[locDof] = gidx++;
-	    }
-	}
-  }
+    const IntVec& MLGN = patch[n]->getGlobalNodeNums();
+    switch (perm) {
+    case(123):
+    {
+      for (int k = 0;k < nnod[2];k++)
+	for (int j = 0;j < nnod[1];j++)
+	  for (int i = 0;i < nnod[0];i++) {
+	    int locNode  = k*nnod[0]*nnod[1] + j*nnod[0] + i;
+	    int procNode = MLGN[locNode];
+	    int globNode = l2gn[procNode-1];
+	    
+	    if (globNode >= minNodeId[n] && globNode <= maxNodeId[n])  
+	      for (int m = 0;m < nfield;m++) {
+		int globDof = (globNode-1)*nfield+m;
+		int locDof  = globDof-firstDof;
+		order[locDof] = gidx++;
+	      }
+	  }
+      break;
+    }
+    case(132):
+    {
+      for (int j = 0;j < nnod[1];j++)
+	for (int k = 0;k < nnod[2];k++)
+	  for (int i = 0;i < nnod[0];i++) {
+	    int locNode  = k*nnod[0]*nnod[1] + j*nnod[0] + i;
+	    int procNode = MLGN[locNode];
+	    int globNode = l2gn[procNode-1];
+	    
+	    if (globNode >= minNodeId[n] && globNode <= maxNodeId[n])  
+	      for (int m = 0;m < nfield;m++) {
+		int globDof = (globNode-1)*nfield+m;
+		int locDof  = globDof-firstDof;
+		order[locDof] = gidx++;
+	      }
+	  }
+      break;
+    }
+    case(213):
+    {
+      for (int k = 0;k < nnod[2];k++)
+	for (int i = 0;i < nnod[0];i++)
+	  for (int j = 0;j < nnod[1];j++) {
+	    int locNode  = k*nnod[0]*nnod[1] + j*nnod[0] + i;
+	    int procNode = MLGN[locNode];
+	    int globNode = l2gn[procNode-1];
+	    
+	    if (globNode >= minNodeId[n] && globNode <= maxNodeId[n])  
+	      for (int m = 0;m < nfield;m++) {
+		int globDof = (globNode-1)*nfield+m;
+		int locDof  = globDof-firstDof;
+		order[locDof] = gidx++;
+	      }
+	  }
+      break;
+    }
+    case(231):
+    {
+      for (int i = 0;i < nnod[0];i++)
+	for (int k = 0;k < nnod[2];k++)
+	  for (int j = 0;j < nnod[1];j++) {
+	    int locNode  = k*nnod[0]*nnod[1] + j*nnod[0] + i;
+	    int procNode = MLGN[locNode];
+	    int globNode = l2gn[procNode-1];
+	    
+	    if (globNode >= minNodeId[n] && globNode <= maxNodeId[n])  
+	      for (int m = 0;m < nfield;m++) {
+		int globDof = (globNode-1)*nfield+m;
+		int locDof  = globDof-firstDof;
+		order[locDof] = gidx++;
+	      }
+	  }
+      break;
+    }
+    case(312):
+    {
+      for (int j = 0;j < nnod[1];j++)
+	for (int i = 0;i < nnod[0];i++)
+	  for (int k = 0;k < nnod[2];k++) {
+	    int locNode  = k*nnod[0]*nnod[1] + j*nnod[0] + i;
+	    int procNode = MLGN[locNode];
+	    int globNode = l2gn[procNode-1];
+	    
+	    if (globNode >= minNodeId[n] && globNode <= maxNodeId[n])  
+	      for (int m = 0;m < nfield;m++) {
+		int globDof = (globNode-1)*nfield+m;
+		int locDof  = globDof-firstDof;
+		order[locDof] = gidx++;
+	      }
+	  }
+      break;
+    }
+    case(321):
+    {
+      for (int i = 0;i < nnod[0];i++)
+	for (int j = 0;j < nnod[1];j++)
+	  for (int k = 0;k < nnod[2];k++) {
+	    int locNode  = k*nnod[0]*nnod[1] + j*nnod[0] + i;
+	    int procNode = MLGN[locNode];
+	    int globNode = l2gn[procNode-1];
+	    
+	    if (globNode >= minNodeId[n] && globNode <= maxNodeId[n])  
+	      for (int m = 0;m < nfield;m++) {
+		int globDof = (globNode-1)*nfield+m;
+		int locDof  = globDof-firstDof;
+		order[locDof] = gidx++;
+	      }
+	  }
+      break;
+    }
+    }
+  }    
 
   return true;
 }
@@ -1662,13 +1752,13 @@ bool SAMpatchPara::getLocalNodeCoordinates(PetscRealVec& coords) const
   int max = maxNodeId[npatch-1];
   int nlocnod = max-min+1;
 
-  coords.resize(nlocnod*nsd,true);
+  coords.resize(nlocnod*nsd,0.0);
   for (int n = 0;n < npatch;n++) {    
     const IntVec& MLGN = patch[n]->getGlobalNodeNums();
     
     for (size_t i = 0;i < MLGN.size();i++) {
-      int gnod = MLGN[i];
-      if ((gnod >= min) && (gnod <= max))
+      int gnod = l2gn[MLGN[i]-1];
+      if ((gnod >= minNodeId[n]) && (gnod <= maxNodeId[n]))
       {
 	Vec3 X = patch[n]->getCoord(i+1);
 	size_t locnode = gnod-min+1;
@@ -1677,7 +1767,7 @@ bool SAMpatchPara::getLocalNodeCoordinates(PetscRealVec& coords) const
       }
     }
   }  
-  
+
   return true;
 }
 
