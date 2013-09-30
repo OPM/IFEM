@@ -378,7 +378,7 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
   const SAMpatchPara* sampch = dynamic_cast<const SAMpatchPara*>(&sam);
 
   nsd = sampch->getNoSpaceDim();
-  if (!strncasecmp(solParams.getPreconditioner(),"gamg",4))
+  if (!strncasecmp(solParams.getPreconditioner(),"gamg",4) || !strncasecmp(solParams.getPreconditioner(),"ml",4))
     sampch->getLocalNodeCoordinates(coords);
 
   if (!solParams.dirOrder.empty()) {

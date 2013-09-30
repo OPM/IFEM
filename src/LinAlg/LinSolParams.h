@@ -30,6 +30,7 @@ typedef std::vector<IntVec>      IntMat;       //!< Integer matrix
 typedef std::vector<std::string> StringVec;    //!< String vector
 typedef std::vector<StringVec>   StringMat;    //!< String matrix
 typedef std::vector<bool>        BoolVec;      //!< Boolean vector
+typedef std::vector<PetscBool>   PetscBoolVec; //!< Petsc boolean vector
 typedef std::vector<IS>          ISVec;        //!< Index set vector
 typedef std::vector<ISVec>       ISMat;        //!< Index set matrix
 
@@ -172,38 +173,53 @@ public:
   bool addDirSmoother(PC pc, Mat P, ISMat& dirIndexSet) const;
 
 private:
-  PetscReal              atol;             // Absolute tolerance
-  PetscReal              rtol;             // Relative tolerance
-  PetscReal              dtol;             // Divergence tolerance
-  PetscInt               maxIts;           // Maximum number of iterations
-  int                    nblock;           // Number of block
-  bool                   schur;            // Schur complement solver
-  SchurPrec              schurPrec;        // Preconditioner for Schur system
-  std::string            method;           // Linear solver method
-  std::string            prec;             // Preconditioner
-  StringVec              subprec;          // Preconditioners for block-system
-  StringVec              hypretype;        // Type of hypre preconditioner
-  StringVec              package;          // Linear software package (petsc, superlu_dist, ...)
-  BoolVec                asmlu;            // Use lu as subdomain solver
-  IntVec                 ncomps;           // Components for each fields in block-vector
-  PetscIntVec            overlap;          // Number of overlap in ASM
-  PetscIntVec            levels;           // Number of levels of fill to use
-  PetscIntVec            mglevels;         // Number of levels for MG
-  PetscIntVec            noPreSmooth;      // Number of presmoothings for AMG
-  PetscIntVec            noPostSmooth;     // Number of postsmoothings for AMG
-  PetscIntVec            noFineSmooth;     // Number of fine grid smoothings for AMG
-  StringVec              presmoother;      // Presmoother for AMG
-  StringVec              postsmoother;     // Postsmoother for AMG
-  StringVec              finesmoother;     // Smoother on finest grid
-  IntVec                 maxCoarseSize;    // Max number of DOFS for coarse AMG system
-  PetscIntVec            MLCoarsenScheme;  // Coarsening scheme for ML
-  PetscRealVec           MLThreshold;      // Smoother drop toleranse for ML
-  PetscRealVec           MLDampingFactor;  // Damping factor
-  IntVec                 nx;               // Number of local subdomains in first parameter direction
-  IntVec                 ny;               // Number of local subdomains in second parameter direction
-  IntVec                 nz;               // Number of local subdomains in third parameter direction
-  StringMat              dirsmoother;  // Directional smoother types
-  IntMat                 dirOrder;     // Direction smoother orders/numberings
+  PetscReal              atol;              // Absolute tolerance
+  PetscReal              rtol;              // Relative tolerance
+  PetscReal              dtol;              // Divergence tolerance
+  PetscInt               maxIts;            // Maximum number of iterations
+  int                    nblock;            // Number of block
+  bool                   schur;             // Schur complement solver
+  SchurPrec              schurPrec;         // Preconditioner for Schur system
+  std::string            method;            // Linear solver method
+  std::string            prec;              // Preconditioner
+  StringVec              subprec;           // Preconditioners for block-system
+  StringVec              hypretype;         // Type of hypre preconditioner
+  StringVec              package;           // Linear software package (petsc, superlu_dist, ...)
+  BoolVec                asmlu;             // Use lu as subdomain solver
+  IntVec                 ncomps;            // Components for each fields in block-vector
+  PetscIntVec            overlap;           // Number of overlap in ASM
+  PetscIntVec            levels;            // Number of levels of fill to use
+  PetscIntVec            mglevels;          // Number of levels for MG
+  PetscIntVec            noPreSmooth;       // Number of presmoothings for AMG
+  PetscIntVec            noPostSmooth;      // Number of postsmoothings for AMG
+  PetscIntVec            noFineSmooth;      // Number of fine grid smoothings for AMG
+  StringVec              presmoother;       // Presmoother for AMG
+  StringVec              postsmoother;      // Postsmoother for AMG
+  StringVec              finesmoother;      // Smoother on finest grid
+  IntVec                 maxCoarseSize;     // Max number of DOFS for coarse AMG system
+  StringVec              MLCoarsePackage;   // Coarse matrix solver package
+  StringVec              MLCoarseSolver;    // DD type coarse solver for ML
+  PetscIntVec            MLCoarsenScheme;   // Coarsening scheme for ML
+  PetscIntVec            MLSymmetrize;      // Symmetrize aggregation
+  PetscIntVec            MLReuseInterp;     // Reuse interpolation operators between solves
+  PetscIntVec            MLBlockScaling;    // Scale all dofs at each node together
+  PetscIntVec            MLPutOnSingleProc; // If below assign to a sigle processor 
+  PetscRealVec           MLThreshold;       // Smoother drop toleranse for ML
+  PetscRealVec           MLDampingFactor;   // Damping factor
+  PetscRealVec           MLRepartitionRatio;// Max-min ratio for repartitioning
+  PetscIntVec            MLRepartition;     // Repartitioning
+  PetscIntVec            MLReusable;        // Store intermediate datastructures such that the MG hierarchy is reusable
+  PetscIntVec            MLKeepAggInfo;     // Allow ML preconditioner to be reused
+  PetscIntVec            MLAux;             // Use auxillary coordinate based laplacian for aggregation
+  StringVec              GAMGtype;          // Type for GAMG multigrid method ("geo" or "agg") ("geo")
+  PetscIntVec            GAMGprocEqLimit;   // Limit number of equation on each process on coarse grid
+  PetscIntVec            GAMGrepartition;   // Repartition coarse grid for GAMG preconditioner (0 = false, 1 = true)
+  PetscIntVec            GAMGuseAggGasm;    // Use aggregation aggregates for GASM smoother     (0 = false, 1 = true)
+  IntVec                 nx;                // Number of local subdomains in first parameter direction
+  IntVec                 ny;                // Number of local subdomains in second parameter direction
+  IntVec                 nz;                // Number of local subdomains in third parameter direction
+  StringMat              dirsmoother;       // Directional smoother types
+  IntMat                 dirOrder;          // Direction smoother orders/numberings
   std::vector<NullSpace> nullspc;           // Null-space for matrix
 
   friend class PETScMatrix;

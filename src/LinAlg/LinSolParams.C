@@ -40,6 +40,9 @@ void LinSolParams::setDefault ()
   noPostSmooth.resize(1,1);
   noFineSmooth.resize(1,1);
   maxCoarseSize.resize(1,1000);
+  GAMGtype.resize(1,"geo");
+  GAMGrepartition.resize(1,PETSC_FALSE);
+  GAMGuseAggGasm.resize(1,PETSC_FALSE);
   overlap.resize(1,1);
   nx.resize(1,0);
   ny.resize(1,0);
@@ -63,31 +66,35 @@ void LinSolParams::copy (const LinSolParams& spar)
 {
 #ifdef HAS_PETSC
   // Copy linear solver parameters
-  method        = spar.method;
-  prec          = spar.prec;
-  subprec       = spar.subprec;
-  hypretype     = spar.hypretype;
-  package       = spar.package;
-  overlap       = spar.overlap;
-  levels        = spar.levels;
-  mglevels      = spar.mglevels;
-  presmoother   = spar.presmoother;
-  postsmoother  = spar.postsmoother;
-  noPreSmooth   = spar.noPreSmooth;
-  noPostSmooth  = spar.noPostSmooth;
-  dirsmoother   = spar.dirsmoother;
-  dirOrder      = spar.dirOrder;
-  maxCoarseSize = spar.maxCoarseSize;
-  overlap       = spar.overlap;
-  nx            = spar.nx;
-  ny            = spar.ny;
-  nz            = spar.nz;
-  nullspc       = spar.nullspc;
-  asmlu         = spar.asmlu;
-  nblock        = spar.nblock;
-  schur         = spar.schur;
-  schurPrec     = spar.schurPrec;
-  ncomps        = spar.ncomps;
+  method          = spar.method;
+  prec            = spar.prec;
+  subprec         = spar.subprec;
+  hypretype       = spar.hypretype;
+  package         = spar.package;
+  overlap         = spar.overlap;
+  levels          = spar.levels;
+  mglevels        = spar.mglevels;
+  presmoother     = spar.presmoother;
+  postsmoother    = spar.postsmoother;
+  noPreSmooth     = spar.noPreSmooth;
+  noPostSmooth    = spar.noPostSmooth;
+  dirsmoother     = spar.dirsmoother;
+  dirOrder        = spar.dirOrder;
+  maxCoarseSize   = spar.maxCoarseSize;
+  GAMGtype        = spar.GAMGtype;
+  GAMGprocEqLimit = spar.GAMGprocEqLimit;
+  GAMGrepartition = spar.GAMGrepartition;
+  GAMGuseAggGasm  = spar.GAMGuseAggGasm;
+  overlap         = spar.overlap;
+  nx              = spar.nx;
+  ny              = spar.ny;
+  nz              = spar.nz;
+  nullspc         = spar.nullspc;
+  asmlu           = spar.asmlu;
+  nblock          = spar.nblock;
+  schur           = spar.schur;
+  schurPrec       = spar.schurPrec;
+  ncomps          = spar.ncomps;
 
   atol   = spar.atol;
   rtol   = spar.rtol;
@@ -348,10 +355,75 @@ bool LinSolParams::read (const TiXmlElement* child)
     std::istream_iterator<int> begin(this_line), end;
     maxCoarseSize.assign(begin, end);
   }
+  else if ((value = utl::getValue(child,"GAMGtype"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<std::string> begin(this_line), end;
+    GAMGtype.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"GAMGrepartition"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscInt> begin(this_line), end;
+    GAMGrepartition.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"GAMGuseAggGasm"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscInt> begin(this_line), end;
+    GAMGuseAggGasm.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"GAMGprocEqLimit"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscInt> begin(this_line), end;
+    GAMGprocEqLimit.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"MLCoarsePackage"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<std::string> begin(this_line), end;
+    MLCoarsePackage.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"MLCoarseSolver"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<std::string> begin(this_line), end;
+    MLCoarseSolver.assign(begin, end);
+  }
   else if ((value = utl::getValue(child,"MLCoarsenScheme"))) {
     std::istringstream this_line(value);
     std::istream_iterator<PetscInt> begin(this_line), end;
     MLCoarsenScheme.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"MLSymmetrize"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscInt> begin(this_line), end;
+    MLSymmetrize.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"MLRepartition"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscInt> begin(this_line), end;
+    MLRepartition.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"MLBlockScaling"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscInt> begin(this_line), end;
+    MLBlockScaling.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"MLPutOnSingleProc"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscInt> begin(this_line), end;
+    MLPutOnSingleProc.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"MLReuseInterpolation"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscInt> begin(this_line), end;
+    MLReuseInterp.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"MLReuseable"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscInt> begin(this_line), end;
+    MLReusable.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"MLKeepAggInfo"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscInt> begin(this_line), end;
+    MLKeepAggInfo.assign(begin, end);
   }
   else if ((value = utl::getValue(child,"MLThreshold"))) {
     std::istringstream this_line(value);
@@ -362,6 +434,16 @@ bool LinSolParams::read (const TiXmlElement* child)
     std::istringstream this_line(value);
     std::istream_iterator<PetscReal> begin(this_line), end;
     MLDampingFactor.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"MLRepartitionRatio"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscReal> begin(this_line), end;
+    MLRepartitionRatio.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"MLAux"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscInt> begin(this_line), end;
+    MLAux.assign(begin, end);
   }
   else if ((value = utl::getValue(child,"ncomponents"))) {
     std::istringstream this_line(value);
@@ -428,9 +510,9 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
     PCHYPRESetType(pc,hypretype[0].c_str());
 #endif
 
-  if (!strncasecmp(prec.c_str(),"gamg",4)) {
+  if (!strncasecmp(prec.c_str(),"gamg",4) || !strncasecmp(prec.c_str(),"ml",2) ) {
     PetscInt nloc = coords.size()/nsd;
-    PCSetCoordinates(pc,nsd,nloc,&coords[0]);
+    PCSetCoordinates(pc,nsd,nloc,coords.data());
   }
 
   if (!strncasecmp(prec.c_str(),"asm",3) ||!strncasecmp(prec.c_str(),"gasm",4)) {
@@ -466,39 +548,135 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
       }
     }
   }
-  else if (!strncasecmp(prec.c_str(),"ml",2)) {
+  else if (!strncasecmp(prec.c_str(),"ml",2) || !strncasecmp(prec.c_str(),"gamg",4)) {
         PetscInt n;
 
         //PCMGSetLevels(pc,mglevels[0], PETSC_NULL);
         //PCMGSetNumberSmoothDown(pc,noPreSmooth[0]);
         //PCMGSetNumberSmoothUp(pc,noPostSmooth[0]);
-	std::stringstream maxLevel;
-	maxLevel << mglevels[0];
-        PetscOptionsSetValue("-pc_ml_maxNLevels",maxLevel.str().c_str());
-	std::stringstream maxCoarseDof;
-	maxCoarseDof << maxCoarseSize[0];
-        PetscOptionsSetValue("-pc_ml_maxCoarseSize",maxCoarseDof.str().c_str());
-	if (!MLCoarsenScheme.empty()) {
-	  std::stringstream coarsenScheme;
-	  coarsenScheme << MLCoarsenScheme[0];
-	  PetscOptionsSetValue("-pc_ml_CoarsenScheme",coarsenScheme.str().c_str());
+	if (!strncasecmp(prec.c_str(),"ml",2)) {
+	  std::stringstream maxLevel;
+	  maxLevel << mglevels[0];
+	  PetscOptionsSetValue("-pc_ml_maxNLevels",maxLevel.str().c_str());
+	  std::stringstream maxCoarseDof;
+	  maxCoarseDof << maxCoarseSize[0];
+	  PetscOptionsSetValue("-pc_ml_maxCoarseSize",maxCoarseDof.str().c_str());
+	  if (!MLCoarsenScheme.empty()) {
+	    std::stringstream coarsenScheme;
+	    coarsenScheme << MLCoarsenScheme[0];
+	    PetscOptionsSetValue("-pc_ml_CoarsenScheme",coarsenScheme.str().c_str());
+	  }
+	  if (!MLThreshold.empty()) {
+	    std::stringstream threshold;
+	    threshold << MLThreshold[0];
+	    PetscOptionsSetValue("-pc_ml_Threshold",threshold.str().c_str());
+	  }
+	  if (!MLDampingFactor.empty()) {
+	    std::stringstream damping;
+	    damping << MLDampingFactor[0];
+	    PetscOptionsSetValue("-pc_ml_DampingFactor",damping.str().c_str());
+	  }
+	  if (!MLRepartitionRatio.empty()) {
+	    std::stringstream repartitionRatio;
+	    repartitionRatio << MLRepartitionRatio[0];
+	    PetscOptionsSetValue("-pc_ml_repartitionMaxMinRatio",repartitionRatio.str().c_str());
+	  }
+	  if (!MLSymmetrize.empty()) {
+	    std::stringstream symmetrize;
+	    symmetrize << MLSymmetrize[0];
+	    PetscOptionsSetValue("-pc_ml_Symmetrize",symmetrize.str().c_str());
+	  }
+	  if (!MLRepartition.empty()) {
+	    std::stringstream repartition;
+	    repartition << MLRepartition[0];
+	    PetscOptionsSetValue("-pc_ml_repartition",repartition.str().c_str());
+	  }
+	  if (!MLBlockScaling.empty()) {
+	    std::stringstream blockScaling;
+	    blockScaling << MLBlockScaling[0];
+	    PetscOptionsSetValue("-pc_ml_BlockScaling",blockScaling.str().c_str());
+	  }
+	  if (!MLPutOnSingleProc.empty()) {
+	    std::stringstream putOnSingleProc;
+	    putOnSingleProc << MLPutOnSingleProc[0];
+	    PetscOptionsSetValue("-pc_ml_repartitionPutOnSingleProc ",putOnSingleProc.str().c_str());
+	  }
+	  if (!MLReuseInterp.empty()) {
+	    std::stringstream reuseInterp;
+	    reuseInterp << MLReuseInterp[0];
+	    PetscOptionsSetValue("-pc_ml_reuse_interpolation",reuseInterp.str().c_str());
+	  }
+	  if (!MLKeepAggInfo.empty()) {
+	    std::stringstream keepAggInfo;
+	    keepAggInfo << MLKeepAggInfo[0];
+	    PetscOptionsSetValue("-pc_ml_KeepAggInfo",keepAggInfo.str().c_str());
+	  }
+	  if (!MLReusable.empty()) {
+	    std::stringstream reusable;
+	    reusable << MLReusable[0];
+	    PetscOptionsSetValue("-pc_ml_Reusable",reusable.str().c_str());
+	  }
+	  if (!MLAux.empty()) {
+	    std::stringstream aux;
+	    aux << MLAux[0];
+	    PetscOptionsSetValue("-pc_ml_Aux",aux.str().c_str());
+	    if (!MLThreshold.empty()) {
+	      std::stringstream threshold;
+	      threshold << MLThreshold[0];
+	      PetscOptionsSetValue("-pc_ml_AuxThreshold",threshold.str().c_str());
+	    }
+	  }
 	}
-	if (!MLThreshold.empty()) {
-	  std::stringstream threshold;
-	  threshold << MLThreshold[0];
-	  PetscOptionsSetValue("-pc_ml_Threshold",threshold.str().c_str());
+	else if (!strncasecmp(prec.c_str(),"gamg",4)) {
+	  if (!maxCoarseSize.empty()) {
+	    std::stringstream maxCoarseDof;
+	    maxCoarseDof << maxCoarseSize[0];
+	    PetscOptionsSetValue("-pc_gamg_coarse_eq_limit",maxCoarseDof.str().c_str());
+	  }	    
+
+	  if (!GAMGprocEqLimit.empty()) {
+	    std::stringstream procEqLimit;
+	    procEqLimit << GAMGprocEqLimit[0];
+	    PetscOptionsSetValue("-pc_gamg_process_eq_limit",procEqLimit.str().c_str());
+	  }	    
+
+	  if (!GAMGtype.empty())
+	    PetscOptionsSetValue("-pc_gamg_type",GAMGtype[0].c_str());
+
+	  if (!GAMGrepartition.empty()) {
+	    std::stringstream repartition;
+	    repartition << GAMGrepartition[0];
+	    PetscOptionsSetValue("-pc_gamg_repartition",repartition.str().c_str());
+	  }
+	  
+	  if (!GAMGuseAggGasm.empty()) {
+	    std::stringstream useAggGasm;
+	    useAggGasm << GAMGuseAggGasm[0];
+	    PetscOptionsSetValue("-pc_gamg_use_agg_gasm",useAggGasm.str().c_str());
+	  }	    
+
+	  if (!MLThreshold.empty()) {
+	    std::stringstream threshold;
+	    threshold << MLThreshold[0];
+	    PetscOptionsSetValue("-pc_gamg_threshold",threshold.str().c_str());
+	  }	  
 	}
-	if (!MLDampingFactor.empty()) {
-	  std::stringstream damping;
-	  damping << MLDampingFactor[0];
-	  PetscOptionsSetValue("-pc_ml_DampingFactor",damping.str().c_str());
-	}
-      
+
         //PCGAMGSetNlevels(pc,mglevels[0]);
         //PCGAMGSetCoarseEqLim(pc,maxCoarseSize[0]);
 
 	PCSetFromOptions(pc);
 	PCSetUp(pc);
+
+	// Set coarse solver package
+	if (!MLCoarsePackage.empty()) {
+	  KSP cksp;
+	  PC  cpc;
+	  PCMGGetCoarseSolve(pc,&cksp);
+	  KSPGetPC(cksp,&cpc);
+	  PCFactorSetMatSolverPackage(cpc,MLCoarsePackage[0].c_str());
+	}
+	
 
         PCMGGetLevels(pc,&n);
 	// Presmoother settings
@@ -633,6 +811,22 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
         //   KSPSetUp(postksp);
 	// }
   }
+  // else if (!strncasecmp(prec.c_str(),"hypre",5) && !strncasecmp(hypretype[0].c_str(),"boomeramg",9)) {
+  //   // std::stringstream maxLevel;
+  //   // maxLevel << mglevels[0];
+  //   // PetscOptionsSetValue("-pc_hypre_boomeramg_max_levels",maxLevel.str().c_str());
+
+  //   if (!MLCoarsenScheme.empty()) {
+  //     std::stringstream coarsenScheme;
+  //     coarsenScheme << MLCoarsenScheme[0];
+  //     PetscOptionsSetValue("-pc_hypre_boomeramg_coarsen_type",coarsenScheme.str().c_str());
+  //   }
+  //   if (!MLThreshold.empty()) {
+  //     std::stringstream threshold;
+  //     threshold << MLThreshold[0];
+  //     PetscOptionsSetValue("-pc_hypre_boomeramg_strong_threshold",threshold.str().c_str());
+  //   }
+  // }
   else {
     PCSetFromOptions(pc);
     PCSetUp(pc);
