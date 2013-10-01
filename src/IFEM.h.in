@@ -21,6 +21,14 @@
 #include "SIMoptions.h"
 
 
+#ifndef NDEBUG 
+#include "ScopedLogger.h"
+#define SCOPED_LOG ScopedLogger no_conflict_logger(__PRETTY_FUNCTION__);
+#else
+#define SCOPED_LOG
+#endif
+
+
 class IFEM
 {
 public:

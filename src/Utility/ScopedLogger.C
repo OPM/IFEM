@@ -1,0 +1,24 @@
+#include "ScopedLogger.h"
+#ifdef PARALLEL_PETSC
+#include "PETScSupport.h"
+#endif
+
+ScopedLogger::ScopedLogger(const char* name_, std::ostream& stream_) :
+  name(name_), stream(stream_)
+{
+#ifdef PARALLEL_PETSC
+  MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+  stream << "[" << rank << "]: Entering \"" << name << "\"" << std::endl;
+#else
+  rank = -1;
+  stream << "Entering " << name << std::endl;
+#endif
+}
+
+ScopedLogger::~ScopedLogger()
+{
+  if (rank == -1)
+    stream << "Exiting " << name << std::endl;
+  else
+    stream << "[" << rank << "] Exiting \"" << name << "\"" << std::endl;
+}
