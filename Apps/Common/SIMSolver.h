@@ -17,6 +17,7 @@
 #include "SIMinput.h"
 #include "DataExporter.h"
 #include "TimeStep.h"
+#include "IFEM.h"
 
 
 /*!
@@ -91,6 +92,7 @@ public:
 
       if (exporter)
         exporter->dumpTimeLevel(&tp);
+      IFEM::pollControllerFifo();
     }
 
     return true;

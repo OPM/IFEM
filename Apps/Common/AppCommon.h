@@ -16,6 +16,7 @@
 
 #include "HDF5Writer.h"
 #include "XMLWriter.h"
+#include "IFEM.h"
 
 
 namespace SIM
@@ -74,6 +75,8 @@ namespace SIM
     writer->registerWriter(hdf);
     if (!append)
       writer->dumpTimeLevel(&solver.getTimePrm()); // initial state
+
+    IFEM::registerCallback(*writer);
 
     return writer;
   }

@@ -56,6 +56,7 @@ bool DataExporter::registerField (const std::string& name,
   entry.prefix = prefix;
   if (!prefix.empty())
     entry.prefix += ' ';
+  entry.enabled = true;
   m_entry.insert(make_pair(name,entry));
 
   return true;
@@ -104,6 +105,8 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
     for (it = m_entry.begin(); it != m_entry.end(); ++it) {
       if (!it->second.data)
         return false;
+      if (!it->second.enabled)
+        continue;
       switch (it->second.field) {
         case VECTOR:
           (*it2)->writeVector(m_level,*it);
@@ -219,4 +222,31 @@ int DataExporter::realTimeLevel(int filelevel) const
 int DataExporter::realTimeLevel(int filelevel, int order, int interval) const
 {
   return filelevel/order*interval;
+}
+
+
+void DataExporter::OnControl(const TiXmlElement* context)
+{
+  for (const TiXmlElement* child = context->FirstChildElement(); child; 
+                           child = child->NextSiblingElement())
+  {
+    if(strcasecmp(child->Value(),"enable_field") == 0) {
+      std::string name;
+      bool enable=true;
+      if (child->Attribute("name"))
+        name = child->Attribute("name");
+      if (child->Attribute("enable"))
+        enable = strcasecmp(child->Attribute("enable"), "true") == 0 ||
+                 strcasecmp(child->Attribute("enable"), "1") == 0;
+      if (m_entry.find(name) != m_entry.end()) {
+        std::cout << "DataWriter: " << (enable?"Enabled ":"Disabled ") << name << std::endl;
+        m_entry[name].enabled = enable;
+      }
+    } else if (strcasecmp(child->Value(),"set_stride") == 0) {
+      if (child->Attribute("value")) {
+        m_ndump = atoi(child->Attribute("value"));
+        std::cout << "DataWriter: set stride " <<  m_ndump << std::endl;
+      }
+    }
+  }
 }

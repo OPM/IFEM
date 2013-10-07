@@ -16,6 +16,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "ControlFIFO.h"
 
 class DataWriter;
 class TimeStep;
@@ -28,7 +29,7 @@ class TimeStep;
   and the SIM classes or vectors to write.
 */
 
-class DataExporter
+class DataExporter : public ControlCallback
 {
  public:
    //! \brief Supported field types
@@ -56,6 +57,7 @@ class DataExporter
     const void* data;        //!< Pointer to the primary data (e.g. a SIM class)
     const void* data2;       //!< Pointer to the secondary data (e.g. a vector)
     std::string prefix;      //!< Field name prefix
+    bool enabled;            //!< Whether or not field is enabled
   };
 
   //! \brief Default constructor.
@@ -118,6 +120,11 @@ class DataExporter
   //! \brief Sets the prefices used for norm output.
   void setNormPrefixes(const char** prefix);
 
+  //! \brief External controller handling
+  void OnControl(const TiXmlElement* context);
+
+  //! \brief External controller context name
+  std::string GetContext() { return "datawriter"; }
 protected:
   //! \brief Internal helper function.
   int getWritersTimeLevel() const;

@@ -19,6 +19,7 @@
 #define IFEM_VERSION_PATCH @IFEM_VERSION_PATCH@ //!< Patch library version
 
 #include "SIMoptions.h"
+#include "ControlFIFO.h"
 
 
 #ifndef NDEBUG 
@@ -41,10 +42,20 @@ public:
   static void applyCommandLineOptions(SIMoptions& opt);
   static SIMoptions& getOptions() { return cmdOptions; }
 
+  //! \brief Register a fifo instruction callback
+  //! \brief callback The callback to register
+  static void registerCallback(ControlCallback& callback)
+  { 
+    fifo.registerCallback(callback);
+  }
+
+  //! \brief Poll the control fifo for instructions
+  static void pollControllerFifo() { fifo.poll(); }
 protected:
   static SIMoptions cmdOptions; //!< General input options
   static int argc;              //!< The number of command-line arguments
   static char** argv;           //!< The command-line arguments
+  static ControlFIFO fifo;      //!< Control fifo helper class
 };
 
 #endif

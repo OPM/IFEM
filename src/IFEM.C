@@ -18,6 +18,7 @@
 int IFEM::argc;
 char** IFEM::argv;
 SIMoptions IFEM::cmdOptions;
+ControlFIFO IFEM::fifo;
 
 
 int IFEM::Init(int argc_, char** argv_)
@@ -81,6 +82,9 @@ int IFEM::Init(int argc_, char** argv_)
 #else
     "disabled";
 #endif
+
+  if (cmdOptions.enableController && fifo.open())
+    std::cout << "\n External controller enabled";
 
   std::cout << std::endl;
 

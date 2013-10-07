@@ -41,6 +41,7 @@ SIMoptions::SIMoptions ()
   format  = -1;
   saveInc =  1;
   dtSave  =  0.0;
+  enableController = false;
 
   nGauss[0] = nGauss[1] = 4;
   nViz[0] = nViz[1] = nViz[2] = 2;
@@ -248,6 +249,8 @@ bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
     project[QUASI] = "Quasi-interpolated";
   else if (!strcasecmp(argv[i],"-lsq"))
     project[LEASTSQ] = "Least-square projected";
+  else if (!strcasecmp(argv[i],"-controller"))
+    enableController = true;
   else
     return false;
 
