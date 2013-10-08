@@ -1084,6 +1084,6 @@ bool SIMoutput::savePoints (const std::string& fileName,
     }
   }
 
-  std::ofstream f(fileName, step == 1 ? std::ios::out : std::ios::app);
+  std::ofstream f(fileName.c_str(), step == 1 ? std::ios::out : std::ios::app);
   return this->dumpResults(psol,time,f,false,precision);
 }
