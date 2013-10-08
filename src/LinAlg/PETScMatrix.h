@@ -38,11 +38,11 @@ class PETScVector : public SystemVector
 public:
 #ifdef HAS_PETSC
   //! \brief Constructor creating an empty vector.
-  PETScVector();
+  PETScVector(const ProcessAdm& padm);
   //! \brief Constructor creating a vector of length \a n.
-  PETScVector(size_t n);
+  PETScVector(const ProcessAdm& padm, size_t n);
   //! \brief Constructor creating a vector from an array.
-  PETScVector(const Real* values, size_t n);
+  PETScVector(const ProcessAdm& padm, const Real* values, size_t n);
   //! \brief Copy constructor.
   PETScVector(const PETScVector& vec);
   //! \brief Destructor.
@@ -104,7 +104,8 @@ public:
   virtual const Vec& getVector() const { return x; }
 
 protected:
-  Vec x; //!< The actual PETSc vector
+  Vec x;                  //!< The actual PETSc vector
+  const ProcessAdm& adm;  //!< Process administrator
 
 #else // dummy implementation when PETSc is not included
   virtual SystemVector* copy() const { return 0; }
@@ -132,14 +133,14 @@ class PETScMatrix : public SystemMatrix
 public:
 #ifdef HAS_PETSC
   //! \brief Constructor.
-  PETScMatrix(const LinSolParams& spar);
+  PETScMatrix(const ProcessAdm& padm, const LinSolParams& spar);
   //! \brief Copy constructor.
   PETScMatrix(const PETScMatrix& A);
   //! \brief The destructor frees the dynamically allocated arrays.
   virtual ~PETScMatrix();
 #else
   //! \brief Constructor.
-  PETScMatrix(const LinSolParams&) {}
+  PETScMatrix(const ProcessAdm&, const LinSolParams&) {}
 #endif
 
   //! \brief Returns the matrix type.
@@ -251,6 +252,7 @@ protected:
   Mat                 A;           //!< The actual PETSc matrix
   KSP                 ksp;         //!< Linear equation solver
   MatNullSpace        nsp;         //!< Null-space of linear operator
+  const ProcessAdm&   adm;         //!< Process administrator
   const LinSolParams& solParams;   //!< Linear solver parameters
   bool                setParams;   //!< If linear solver parameters are set
   IS*                 elmIS;       //!< Element index sets
@@ -260,6 +262,8 @@ protected:
   PetscIntMat         subdDofs;    //!< Degrees of freedom for subdomains
   PetscRealVec        coords;      //!< Coordinates of local nodes (x0,y0,z0,x1,y1,...)
   ISMat               dirIndexSet; //!< Direction ordering
+  int                 nIts;        //!< Total number of iterations
+  int                 nLinSolves;  //!< Number of linear solves
 
 #else // dummy implementation when PETSc is not included
   virtual SystemMatrix* copy() const { return 0; }

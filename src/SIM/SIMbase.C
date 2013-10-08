@@ -983,8 +983,8 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   // Initialize data structures for the algebraic system
   if (mySam) delete mySam;
 #ifdef HAS_PETSC
-  if (opt.solver == SystemMatrix::PETSC)
-    mySam = new SAMpatchPara(*g2l);
+  if (opt.solver == SystemMatrix::PETSC) 
+    mySam = new SAMpatchPara(*g2l,*adm);
   else
     mySam = new SAMpatch();
 #else
@@ -1218,7 +1218,7 @@ bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, bool withRF)
 #endif
 
   if (myEqSys) delete myEqSys;
-  myEqSys = new AlgEqSystem(*mySam);
+  myEqSys = new AlgEqSystem(*mySam,*adm);
 
   // Workaround SuperLU bug for tiny systems
   if (myModel.size() == 1 && mType == SystemMatrix::SPARSE) {
@@ -1965,18 +1965,9 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 
   delete norm;
 
-#ifdef PARALLEL_PETSC
-  if (nProc > 1 && !gNorm.empty())
-  {
-    double* tmp = new double[gNorm.front().size()];
-    for (size_t i = 0; i < gNorm.size(); i++) {
-      MPI_Allreduce(gNorm[i].ptr(),tmp,gNorm[i].size(),
-                    MPI_DOUBLE,MPI_SUM,PETSC_COMM_WORLD);
-      memcpy(gNorm[i].ptr(),tmp,gNorm[i].size()*sizeof(double));
-    }
-    delete[] tmp;
-  }
-#endif
+  if (adm->isParallel() && !gNorm.empty())
+    for (size_t i = 0; i < gNorm.size(); i++) 
+      adm->allReduce(gNorm[i],MPI_SUM);
 
   return ok;
 }

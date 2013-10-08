@@ -24,7 +24,7 @@
 #endif
 
 
-PETScBlockMatrix::PETScBlockMatrix (const LinSolParams& par) : PETScMatrix(par)
+PETScBlockMatrix::PETScBlockMatrix (const ProcessAdm& padm, const LinSolParams& par) : PETScMatrix(padm,par)
 {
   ncomps.resize(par.ncomps.size());
   nblocks = ncomps.size();
@@ -34,7 +34,7 @@ PETScBlockMatrix::PETScBlockMatrix (const LinSolParams& par) : PETScMatrix(par)
   isvec = (IS*) malloc(sizeof(IS)*nblocks);
   matvec = (Mat*) malloc(sizeof(Mat)*nblocks*nblocks);
   for (size_t m = 0;m < nblocks*nblocks;m++) {
-    MatCreate(PETSC_COMM_WORLD,&matvec[m]);
+    MatCreate(*adm.getCommunicator(),&matvec[m]);
     MatSetOption(matvec[m],MAT_STRUCTURALLY_SYMMETRIC,PETSC_TRUE);
     MatSetFromOptions(matvec[m]);
   }
@@ -47,8 +47,8 @@ PETScBlockMatrix::PETScBlockMatrix (const LinSolParams& par) : PETScMatrix(par)
 }
 
 
-PETScBlockMatrix::PETScBlockMatrix (const IntVec& nc, const LinSolParams& par)
-  : PETScMatrix(par)
+PETScBlockMatrix::PETScBlockMatrix (const ProcessAdm& padm, const IntVec& nc, const LinSolParams& par)
+  : PETScMatrix(padm,par)
 {
   nblocks = nc.size();
   ncomps.resize(nblocks);
@@ -58,7 +58,7 @@ PETScBlockMatrix::PETScBlockMatrix (const IntVec& nc, const LinSolParams& par)
   isvec = (IS*) malloc(sizeof(IS)*nblocks);
   matvec = (Mat*) malloc(sizeof(Mat)*nblocks*nblocks);
   for (size_t m = 0;m < nblocks*nblocks;m++) {
-    MatCreate(PETSC_COMM_WORLD,&matvec[m]);
+    MatCreate(*adm.getCommunicator(),&matvec[m]);
     MatSetFromOptions(matvec[m]);
   }
 
@@ -71,11 +71,11 @@ PETScBlockMatrix::PETScBlockMatrix (const IntVec& nc, const LinSolParams& par)
 //   MatDuplicate(B.A,MAT_COPY_VALUES,&A);
 //
   // // Create linear solver object.
-  // KSPCreate(PETSC_COMM_WORLD,&ksp);
+  // KSPCreate(adm.getCommunicator(),&ksp);
 
   // // Create null space, if any
   // if (solParams.getNullSpace() == CONSTANT) {
-  //   MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_TRUE,0,0,&nsp);
+  //   MatNullSpaceCreate(adm.getCommunicator(),PETSC_TRUE,0,0,&nsp);
   //   KSPSetNullSpace(ksp,nsp);
   // }
   // LinAlgInit::increfs();
@@ -252,11 +252,11 @@ void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
 	if (solParams.dirOrder[i][j] != 123) {
 	  PetscIntVec perm;
 	  sampch->getDirOrdering(perm,solParams.dirOrder[i][j],solParams.ncomps[i]);
-	  ISCreateGeneral(PETSC_COMM_WORLD,perm.size(),&(perm[0]),PETSC_COPY_VALUES,&permIndex);
+	  ISCreateGeneral(*adm.getCommunicator(),perm.size(),&(perm[0]),PETSC_COPY_VALUES,&permIndex);
 	  ISSetPermutation(permIndex);
 	}
 	else {
-	  ISCreate(PETSC_COMM_WORLD,&permIndex);
+	  ISCreate(*adm.getCommunicator(),&permIndex);
 	  ISSetIdentity(permIndex);
 	}
 	dirIndexSet[i].push_back(permIndex);
@@ -267,9 +267,6 @@ void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
   int ny = solParams.getLocalPartitioning(1);
   int nz = solParams.getLocalPartitioning(2);
   int overlap = solParams.getOverlap();
-
-  int Pid;
-  MPI_Comm_rank(PETSC_COMM_WORLD,&Pid);
 
   if (nx+ny+nz > 0) {
     locSubdDofsBlock.resize(nblocks);
@@ -310,52 +307,52 @@ void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
   
   // Allocation of sparsity pattern
   std::vector<std::vector<IntVec> > d_nnz, o_nnz;  
-#ifdef PARALLEL_PETSC
-  int myRank, nProc;
-  MPI_Status status;
-  MPI_Comm_rank(PETSC_COMM_WORLD,&myRank);
-  MPI_Comm_size(PETSC_COMM_WORLD,&nProc);
-  if (myRank < nProc-1)
-    MPI_Send(&ilast,1,MPI_INT,myRank+1,101,PETSC_COMM_WORLD);
-  if (myRank > 0) {
-    MPI_Recv(&ifirst,1,MPI_INT,myRank-1,101,PETSC_COMM_WORLD,&status);
-  }
-  
-  if (sampch->getNoDofCouplings(ifirst,ilast,ncomps,d_nnz,o_nnz)) {
-    PetscIntVec d_Nnz;
-    PetscIntVec o_Nnz;
-    int id = 0;
-    for (size_t m = 0;m < nblocks;m++)
-      for (size_t n = 0;n < nblocks;n++) {
-	size_t dsize = d_nnz[m][n].size();
-	d_Nnz.resize(dsize);	
-	for (size_t i = 0; i < dsize; i++)
-	  d_Nnz[i] = d_nnz[m][n][i];
-	
-	size_t osize = o_nnz[m][n].size();
-	o_Nnz.resize(osize);
-	for (size_t i = 0; i < osize; i++)
-	  o_Nnz[i] = o_nnz[m][n][i];
-	
-	MatMPIAIJSetPreallocation(matvec[id++],PETSC_DEFAULT,&(d_Nnz[0]),PETSC_DEFAULT,&(o_Nnz[0]));
-      }
-  }
-#else
-  if (sampch->getNoDofCouplings(ifirst,ilast,ncomps,d_nnz,o_nnz)) {
-    PetscIntVec d_Nnz;
-    int id = 0;
-    for (size_t m = 0;m < nblocks;m++) {
-      for (size_t n = 0;n < nblocks;n++) {
-	size_t dsize = d_nnz[m][n].size();
-	d_Nnz.resize(dsize);	
-	for (size_t i = 0; i < dsize; i++)
-	  d_Nnz[i] = d_nnz[m][n][i];
-	
-	MatSeqAIJSetPreallocation(matvec[id++],PETSC_DEFAULT,&(d_Nnz[0]));
-      }	  
+  if (adm.isParallel()) {
+    int myRank = adm.getProcId(); 
+    int nProc  = adm.getNoProcs();
+    if (myRank < nProc-1)
+      adm.send(ilast,myRank+1);
+    if (myRank > 0) {
+      adm.receive(ifirst,myRank-1);
+    }
+    
+    if (sampch->getNoDofCouplings(ifirst,ilast,ncomps,d_nnz,o_nnz)) {
+      PetscIntVec d_Nnz;
+      PetscIntVec o_Nnz;
+      int id = 0;
+      for (size_t m = 0;m < nblocks;m++)
+	for (size_t n = 0;n < nblocks;n++) {
+	  size_t dsize = d_nnz[m][n].size();
+	  d_Nnz.resize(dsize);	
+	  for (size_t i = 0; i < dsize; i++)
+	    d_Nnz[i] = d_nnz[m][n][i];
+	  
+	  size_t osize = o_nnz[m][n].size();
+	  o_Nnz.resize(osize);
+	  for (size_t i = 0; i < osize; i++)
+	    o_Nnz[i] = o_nnz[m][n][i];
+	  
+	  MatMPIAIJSetPreallocation(matvec[id++],PETSC_DEFAULT,&(d_Nnz[0]),PETSC_DEFAULT,&(o_Nnz[0]));
+	}
     }
   }
-#endif
+  else {
+    if (sampch->getNoDofCouplings(ifirst,ilast,ncomps,d_nnz,o_nnz)) {
+      PetscIntVec d_Nnz;
+      int id = 0;
+      for (size_t m = 0;m < nblocks;m++) {
+	for (size_t n = 0;n < nblocks;n++) {
+	  size_t dsize = d_nnz[m][n].size();
+	  d_Nnz.resize(dsize);	
+	  for (size_t i = 0; i < dsize; i++)
+	    d_Nnz[i] = d_nnz[m][n][i];
+	  
+	  MatSeqAIJSetPreallocation(matvec[id++],PETSC_DEFAULT,&(d_Nnz[0]));
+	}	  
+      }
+    }
+  }
+
   // Initialize the block matrix
   PetscIntVec  idx;
 
@@ -371,10 +368,10 @@ void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
 	idx[lidx++] = gidx++; 
     }
 
-    ISCreateGeneral(PETSC_COMM_WORLD,nentry,&(idx[0]),PETSC_COPY_VALUES,&(isvec[i]));
+    ISCreateGeneral(*adm.getCommunicator(),nentry,&(idx[0]),PETSC_COPY_VALUES,&(isvec[i]));
   }
 
-  MatCreateNest(PETSC_COMM_WORLD,nblocks,isvec,nblocks,isvec,matvec,&A);
+  MatCreateNest(*adm.getCommunicator(),nblocks,isvec,nblocks,isvec,matvec,&A);
 
 #ifndef SP_DEBUG
   // Do not abort program for allocation error in release mode
@@ -418,6 +415,16 @@ bool PETScBlockMatrix::assemble (const Matrix& eM, const SAM& sam,
 
 bool PETScBlockMatrix::solve (SystemVector& B, bool newLHS)
 {
+  // Reset linear solver
+  if (nLinSolves && solParams.nResetSolver)
+    if (nLinSolves%solParams.nResetSolver == 0) {
+      KSPDestroy(&ksp);
+      KSPCreate(*adm.getCommunicator(),&ksp);
+      if (solParams.schur)
+	MatDestroy(&Sp);
+      setParams = true;
+    }
+
   PETScVector* Bptr = dynamic_cast<PETScVector*>(&B);
   if (!Bptr)
     return false;
@@ -436,8 +443,10 @@ bool PETScBlockMatrix::solve (SystemVector& B, bool newLHS)
     KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
   firstIt = false;
 
-  if (setParams) 
+  if (setParams) {
     this->setParameters();
+    setParams = false;
+  }
   KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
   KSPSolve(ksp,x,Bptr->getVector());
 
@@ -449,7 +458,8 @@ bool PETScBlockMatrix::solve (SystemVector& B, bool newLHS)
   PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getMethod(),its);
   VecDestroy(PETSCMANGLE(x));
 
-  setParams = false;
+  nIts += its;
+  nLinSolves++;
 
   return true;
 }
@@ -457,6 +467,14 @@ bool PETScBlockMatrix::solve (SystemVector& B, bool newLHS)
 
 bool PETScBlockMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
 {
+  // Reset linear solver
+  if (solParams.nResetSolver)
+    if (nLinSolves%solParams.nResetSolver == 0) {
+      KSPDestroy(&ksp);
+      KSPCreate(*adm.getCommunicator(),&ksp);
+      setParams = true;
+    }
+  
   SystemVector* Bp = const_cast<SystemVector*>(&b);
   PETScVector* Bptr = dynamic_cast<PETScVector*>(Bp);
   if (!Bptr)
@@ -474,8 +492,11 @@ bool PETScBlockMatrix::solve (const SystemVector& b, SystemVector& x, bool newLH
   else
     KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
 
-  if (setParams)
+  if (setParams) {
     this->setParameters();
+    setParams = false;
+  }
+
   KSPSetInitialGuessNonzero(ksp,PETSC_TRUE);
   KSPSolve(ksp,Bptr->getVector(),Xptr->getVector());
 
@@ -486,7 +507,8 @@ bool PETScBlockMatrix::solve (const SystemVector& b, SystemVector& x, bool newLH
   KSPGetIterationNumber(ksp,&its);
   PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getMethod(),its);
 
-  setParams = false;
+  nIts += its;
+  nLinSolves++;
 
   return true;
 }
@@ -494,6 +516,14 @@ bool PETScBlockMatrix::solve (const SystemVector& b, SystemVector& x, bool newLH
 
 bool PETScBlockMatrix::solve (SystemVector& B, SystemMatrix& P, SystemVector& Pb, bool newLHS)
 {
+  // Reset linear solver
+  if (solParams.nResetSolver)
+    if (nLinSolves%solParams.nResetSolver == 0) {
+      KSPDestroy(&ksp);
+      KSPCreate(*adm.getCommunicator(),&ksp);
+      setParams = true;
+    }
+
   PETScVector* Bptr = dynamic_cast<PETScVector*>(&B);
   if (!Bptr)
     return false;
@@ -520,9 +550,11 @@ bool PETScBlockMatrix::solve (SystemVector& B, SystemMatrix& P, SystemVector& Pb
   //  KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
   firstIt = false;
 
-  if (setParams)
+  if (setParams) {
     if (!this->setParameters(Pptr,Pbptr))
       return false;
+    setParams = false;
+  }
   KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
   KSPSolve(ksp,x,Bptr->getVector());
 
@@ -534,7 +566,8 @@ bool PETScBlockMatrix::solve (SystemVector& B, SystemMatrix& P, SystemVector& Pb
   PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getMethod(),its);
   VecDestroy(PETSCMANGLE(x));
 
-  setParams = false;
+  nIts += its;
+  nLinSolves++;
 
   return true;
 }
@@ -612,11 +645,10 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
     Vec diagA00;
     MatGetLocalSize(matvec[0],&m1,&n1);
     MatGetLocalSize(matvec[3],&m2,&n2);
-#ifdef PARALLEL_PETSC
-    VecCreateMPI(PETSC_COMM_WORLD,m1,PETSC_DETERMINE,&diagA00);
-#else
-    VecCreateSeq(PETSC_COMM_SELF,m1,&diagA00);
-#endif
+    if (adm.isParallel())
+      VecCreateMPI(*adm.getCommunicator(),m1,PETSC_DETERMINE,&diagA00);
+    else
+      VecCreateSeq(PETSC_COMM_SELF,m1,&diagA00);
 
     if (!P || (solParams.schurPrec == SIMPLE)) {
       MatGetDiagonal(matvec[0],diagA00);
@@ -649,13 +681,9 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
       KSPSetType(subksp[1],"preonly");
       KSPGetPC(subksp[1],&subpc[1]);
       PCSetType(subpc[1],PCSHELL);
-#ifdef PARALLEL_PETSC
-      PCCreate(PETSC_COMM_WORLD,&S);
-      PCCreate(PETSC_COMM_WORLD,&Fp);
-#else
-      PCCreate(PETSC_COMM_SELF,&S);
-      PCCreate(PETSC_COMM_SELF,&Fp);
-#endif
+      PCCreate(*adm.getCommunicator(),&S);
+      PCCreate(*adm.getCommunicator(),&Fp);
+
       if (!strncasecmp(solParams.subprec[1].c_str(),"compositedir",12)) {
 	if (!this->addDirSmoother(S,Sp,1))
 	  return false;
@@ -1206,8 +1234,8 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	      
 	//       IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
 	//       for (size_t i = 0;i < nsubds;i++) {
-	// 	ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofs[i].size(),&(locSubdDofs[i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
-	// 	ISCreateGeneral(PETSC_COMM_WORLD,subdDofs[i].size(),&(subdDofs[i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
+	// 	ISCreateGeneral(adm.getCommunicator(),locSubdDofs[i].size(),&(locSubdDofs[i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
+	// 	ISCreateGeneral(adm.getCommunicator(),subdDofs[i].size(),&(subdDofs[i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
 	//       }
 	//       PCASMSetLocalSubdomains(postpc,nsubds,isSubdDofs,isLocSubdDofs);
 	//     }

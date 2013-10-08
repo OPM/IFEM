@@ -29,18 +29,20 @@ int SIMinput::msgLevel = 2;
 SIMinput::SIMinput (const char* heading) : opt(myOpts)
 {
 #ifdef PARALLEL_PETSC
-  MPI_Comm_rank(PETSC_COMM_WORLD,&myPid);
-  MPI_Comm_size(PETSC_COMM_WORLD,&nProc);
+  adm  = new ProcessAdm(PETSC_COMM_WORLD);
 #else
-  myPid = 0;
-  nProc = 1;
+  adm = new ProcessAdm();
 #endif
+  myPid = adm->getProcId();
+  nProc = adm->getNoProcs();
+
   if (heading) myHeading = heading;
 }
 
 
 SIMinput::SIMinput (SIMinput& anotherSIM) : opt(anotherSIM.myOpts)
 {
+  adm = anotherSIM.adm;
   myPid = anotherSIM.myPid;
   nProc = anotherSIM.nProc;
 }

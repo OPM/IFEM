@@ -18,6 +18,7 @@
 
 class SAM;
 class LinSolParams;
+class ProcessAdm;
 
 
 /*!
@@ -31,7 +32,7 @@ public:
   enum Type { STD = 0, PETSC = 1, PETSCBLOCK = 2 };
 
   //! \brief Static method creating a vector of the given type.
-  static SystemVector* create(Type vectorType = STD);
+  static SystemVector* create(const ProcessAdm& padm, Type vectorType = STD);
 
 protected:
   //! \brief The default constructor is protected to allow sub-classes only.
@@ -202,9 +203,9 @@ public:
               PETSC = 4, PETSCBLOCK = 5 };
 
   //! \brief Static method creating a matrix of the given type.
-  static SystemMatrix* create(Type matrixType, int num_thread_SLU = 1);
+  static SystemMatrix* create(const ProcessAdm& padm, Type matrixType, int num_thread_SLU = 1);
   //! \brief Static method creating a matrix of the given type.
-  static SystemMatrix* create(Type matrixType, const LinSolParams& spar);
+  static SystemMatrix* create(const ProcessAdm& padm, Type matrixType, const LinSolParams& spar);
 
 protected:
   //! \brief Default constructor.

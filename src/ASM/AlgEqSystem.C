@@ -38,9 +38,9 @@ bool AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
   {
     if (!A[i]._A)
       if (spar)
-	A[i]._A = SystemMatrix::create(mtype,*spar);
+	A[i]._A = SystemMatrix::create(adm,mtype,*spar);
       else
-	A[i]._A = SystemMatrix::create(mtype,abs(num_threads_SLU));
+	A[i]._A = SystemMatrix::create(adm,mtype,abs(num_threads_SLU));
     if (!A[i]._A) return false;
 
     A[i]._A->initAssembly(sam,dontLockSparsityPattern);
@@ -51,9 +51,9 @@ bool AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
   {
     if (!b[i])
       if (mtype == SystemMatrix::PETSC)
-	b[i] = SystemVector::create(SystemVector::PETSC);
+	b[i] = SystemVector::create(adm,SystemVector::PETSC);
       else
-	b[i] = SystemVector::create(SystemVector::STD);
+	b[i] = SystemVector::create(adm,SystemVector::STD);
     if (!b[i]) return false;
   }
 

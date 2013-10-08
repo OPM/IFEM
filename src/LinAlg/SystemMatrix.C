@@ -22,13 +22,13 @@
 #endif
 
 
-SystemVector* SystemVector::create (Type vectorType)
+SystemVector* SystemVector::create (const ProcessAdm& adm, Type vectorType)
 {
   switch (vectorType)
     {
     case STD   : return new StdVector();
 #ifdef HAS_PETSC
-    case PETSC : return new PETScVector();
+    case PETSC : return new PETScVector(adm);
 #endif
     default:
       std::cerr <<"SystemVector::create: Unsupported vector type "
@@ -66,24 +66,24 @@ void StdVector::dump (std::ostream& os, char format, const char* label)
 }
 
 
-SystemMatrix* SystemMatrix::create (Type matrixType, const LinSolParams& spar)
+SystemMatrix* SystemMatrix::create (const ProcessAdm& padm, Type matrixType, const LinSolParams& spar)
 {
 #ifdef HAS_PETSC
   if (matrixType == PETSC) {
     if (spar.getNoBlocks() > 1)
-      return new PETScBlockMatrix(spar.getComponents(),spar);
+      return new PETScBlockMatrix(padm,spar.getComponents(),spar);
     else
-      return new PETScMatrix(spar);
+      return new PETScMatrix(padm,spar);
   }
   else if (matrixType == PETSCBLOCK)
-    return new PETScBlockMatrix(spar);
+    return new PETScBlockMatrix(padm,spar);
 #endif
 
-  return SystemMatrix::create(matrixType);
+  return SystemMatrix::create(padm,matrixType);
 }
 
 
-SystemMatrix* SystemMatrix::create (Type matrixType, int num_thread_SLU)
+SystemMatrix* SystemMatrix::create (const ProcessAdm& padm, Type matrixType, int num_thread_SLU)
 {
 #ifndef HAS_PETSC
   if (matrixType == PETSC || matrixType == PETSCBLOCK) {
@@ -104,13 +104,13 @@ SystemMatrix* SystemMatrix::create (Type matrixType, int num_thread_SLU)
     {
       // Use default PETSc settings when no parameters are provided by user
       static LinSolParams defaultPar;
-      return new PETScMatrix(defaultPar);
+      return new PETScMatrix(padm,defaultPar);
      }
     case PETSCBLOCK :
     {
       // Use default PETSc settings when no parameters are provided by user
       static LinSolParams defaultPar;
-      return new PETScBlockMatrix(defaultPar);
+      return new PETScBlockMatrix(padm,defaultPar);
     }
 #endif
     default:

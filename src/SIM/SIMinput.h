@@ -15,6 +15,7 @@
 #define _SIM_INPUT_H
 
 #include "SIMoptions.h"
+#include "ProcessAdm.h"
 #include <iostream>
 #include <vector>
 
@@ -79,8 +80,9 @@ private:
   SIMoptions myOpts; //!< The actual control parameters owned by this simulator
 
 protected:
-  int myPid; //!< Processor ID in parallel simulations
-  int nProc; //!< Number of processors in parallel simulations
+  ProcessAdm* adm; //!< Parallel administrator
+  int myPid;       //!< Processor ID in parallel simulations
+  int nProc;       //!< Number of processors in parallel simulations
 
   std::string myHeading; //!< Heading written before reading the input file
   std::string inputFile; //!< The parsed input file

@@ -35,16 +35,16 @@ class PETScBlockMatrix : public PETScMatrix
 public:
 #ifdef HAS_PETSC
   //! \brief Constructor.
-  PETScBlockMatrix(const LinSolParams& spar);
+  PETScBlockMatrix(const ProcessAdm& padm, const LinSolParams& spar);
   //! \brief Constructor defining the blocks.
   //! \param[in] ncomp Number of components in each block
   //! \param[in] spar Linear solver parameters
-  PETScBlockMatrix(const IntVec& ncomp, const LinSolParams& spar);
+  PETScBlockMatrix(const ProcessAdm& padm, const IntVec& ncomp, const LinSolParams& spar);
   //! \brief Destructor
   virtual ~PETScBlockMatrix();
 #else
   //! \brief Constructor.
-  PETScBlockMatrix(const LinSolParams& spar) : PETScMatrix(spar) {}
+ PETScBlockMatrix(const ProcessAdm& padm, const LinSolParams& spar) : PETScMatrix(padm,spar) {}
 #endif
 
   //! \brief Returns the matrix type.

@@ -73,14 +73,6 @@ Vector SIM::getBoundaryForce (const Vectors& solution, SIMbase* model, int code,
   forceInt->assemble(force);
   delete forceInt;
 
-#ifdef PARALLEL_PETSC
-  size_t nComp = force.size();
-  double* tmp = new double[nComp];
-  MPI_Allreduce(force.ptr(),tmp,nComp,MPI_DOUBLE,MPI_SUM,PETSC_COMM_WORLD);
-  memcpy(force.ptr(),tmp,nComp*sizeof(double));
-  delete[] tmp;
-#endif
-
   if (ok) return force;
 
   std::cerr <<" *** SIM::getBoundaryForce: Failed to evaluate boundary force"

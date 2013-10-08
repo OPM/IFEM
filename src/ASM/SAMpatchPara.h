@@ -15,6 +15,7 @@
 #define _SAM_PATCH_PARA_H
 
 #include "SAMpatch.h"
+#include "ProcessAdm.h"
 #include "PETScSupport.h"
 #include <map>
 
@@ -30,7 +31,8 @@ class SAMpatchPara : public SAMpatch
 public:
   //! \brief The constructor initializes the \a l2gn array.
   //! \param[in] g2ln Global-to-local node numbers for this processor
-  SAMpatchPara(const std::map<int,int>& g2ln);
+  //! \param[in] padm Parallel process administrator
+  SAMpatchPara(const std::map<int,int>& g2ln, const ProcessAdm& padm);
   //! \brief The destructor destroys the index set arrays.
   virtual ~SAMpatchPara();
 
@@ -214,10 +216,13 @@ private:
   IntVec l2gn;       //!< Local-to-global node numbers for this processor
   int    ieqmin;     //!< Minium equation number
   int    ieqmax;     //!< Maximun equation number
-#ifdef PARALLEL_PETSC
+#ifdef HAS_PETSC
   IS     iglob;      //!< Index set for global numbering
   IS     iloc;       //!< Index set for local numbering
 #endif
+
+  // Parallel process administrator
+  const ProcessAdm& adm;
 
   // For domain decomposition preconditioner
   std::vector<ASMbase*> patch; //!< The spline patches

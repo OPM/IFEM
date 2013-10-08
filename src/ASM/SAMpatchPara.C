@@ -21,28 +21,24 @@
 #include "PETScMatrix.h"
 
 
-SAMpatchPara::SAMpatchPara (const std::map<int,int>& g2ln)
+SAMpatchPara::SAMpatchPara (const std::map<int,int>& g2ln, const ProcessAdm& padm) : adm(padm)
 {
   l2gn.resize(g2ln.size(),0);
   std::map<int,int>::const_iterator it;
   for (it = g2ln.begin(); it != g2ln.end(); it++)
     l2gn[it->second-1] = it->first;
 
-#ifdef PARALLEL_PETSC
-  MPI_Comm_size(PETSC_COMM_WORLD,&nProc);
-#else
-  nProc = 1;
-#endif
+  nProc = adm.getNoProcs();
   LinAlgInit::increfs();
 }
 
 
 SAMpatchPara::~SAMpatchPara ()
 {
-#ifdef PARALLEL_PETSC
-  ISDestroy(PETSCMANGLE(iglob));
-  ISDestroy(PETSCMANGLE(iloc));
-#endif
+  if (adm.isParallel()) {
+    ISDestroy(PETSCMANGLE(iglob));
+    ISDestroy(PETSCMANGLE(iloc));
+  }
   LinAlgInit::decrefs();
 }
 
@@ -59,84 +55,84 @@ bool SAMpatchPara::init (const ASMVec& model, int numNod)
 bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
 				      IntVec& d_nnz, IntVec& o_nnz) const
 {
-#ifdef PARALLEL_PETSC
-  int d_ldof, d_gdof, o_ldof, o_gdof;
-  size_t j, k;
-
-  // Find number of dof couplings for each node
-  std::vector<IntSet> d_dofc(ndof), o_dofc(ndof);
-  for (int iel = 1; iel <= nel; iel++)
-  {
-    IntVec meen;
-    this->getElmEqns(meen,iel);
-
-    for (j = 0; j < meen.size(); j++)
-      if (meen[j] > 0) {
-	d_ldof = meen[j]-1;
-	d_gdof = meqn[d_ldof]-1;
-	if (d_gdof >= ifirst && d_gdof < ilast) {
-	  for (k = 0; k < meen.size(); k++)
-	    if (meen[k] > 0) {
-	      o_ldof = meen[k]-1;
-	      o_gdof = meqn[o_ldof]-1;
-	      if (o_gdof >= ifirst && o_gdof < ilast)
-		d_dofc[d_ldof].insert(o_ldof);
-	      else
+  if (adm.isParallel()) {
+    int d_ldof, d_gdof, o_ldof, o_gdof;
+    size_t j, k;
+    
+    // Find number of dof couplings for each node
+    std::vector<IntSet> d_dofc(ndof), o_dofc(ndof);
+    for (int iel = 1; iel <= nel; iel++) {
+      IntVec meen;
+      this->getElmEqns(meen,iel);
+      
+      for (j = 0; j < meen.size(); j++)
+	if (meen[j] > 0) {
+	  d_ldof = meen[j]-1;
+	  d_gdof = meqn[d_ldof]-1;
+	  if (d_gdof >= ifirst && d_gdof < ilast) {
+	    for (k = 0; k < meen.size(); k++)
+	      if (meen[k] > 0) {
+		o_ldof = meen[k]-1;
+		o_gdof = meqn[o_ldof]-1;
+		if (o_gdof >= ifirst && o_gdof < ilast)
+		  d_dofc[d_ldof].insert(o_ldof);
+		else
+		  o_dofc[d_ldof].insert(o_ldof);
+	      }
+	  }
+	  else {
+	    for (k = 0; k < meen.size(); k++)
+	      if (meen[k] > 0) {
+		o_ldof = meen[k]-1;
+		// RUNAR: This gives a small overestimation for some nodes
+		//o_gdof = meqn[o_ldof]-1;
+		//if (o_gdof >= ifirst && o_gdof < ilast)
 		o_dofc[d_ldof].insert(o_ldof);
-	    }
+	      }
+	  }
 	}
-	else {
-	  for (k = 0; k < meen.size(); k++)
-	    if (meen[k] > 0) {
-	      o_ldof = meen[k]-1;
-	      // RUNAR: This gives a small overestimation for some nodes
-	      //o_gdof = meqn[o_ldof]-1;
-	      //if (o_gdof >= ifirst && o_gdof < ilast)
-	      o_dofc[d_ldof].insert(o_ldof);
-	    }
-	}
-      }
+    }
+    
+    // Generate nnz for diagonal block
+    int i, locsize = ilast-ifirst;
+    d_nnz.resize(locsize,0);
+    for (i = 0; i < ndof; i++) {
+      d_gdof = meqn[i]-1;
+      if (d_gdof >= ifirst && d_gdof < ilast)
+	d_nnz[d_gdof-ifirst] = d_dofc[i].size();
+    }
+    
+    // Generate nnz for off-diagonal block
+    PetscIntVec l2g(ndof);
+    RealArray nnz(ndof);
+    for (i = 0; i < ndof; i++) {
+      l2g[i] = meqn[i]-1;
+      nnz[i] = o_dofc[i].size();
+    }
+    
+    Vec x;
+    VecCreate(*adm.getCommunicator(),&x);
+    VecSetSizes(x,locsize,PETSC_DETERMINE);
+    VecSetFromOptions(x);
+    VecSet(x,0.0);
+    VecSetValues(x,ndof,&l2g[0],&nnz[0],ADD_VALUES);
+    VecAssemblyBegin(x);
+    VecAssemblyEnd(x);
+    
+    PetscScalar* vec;
+    VecGetArray(x,&vec);
+    
+    o_nnz.resize(locsize);
+    for (i = 0; i < locsize; i++)
+      o_nnz[i] = ceil(vec[i]);
+    
+    VecRestoreArray(x,&vec);
+    VecDestroy(PETSCMANGLE(x));
   }
-
-  // Generate nnz for diagonal block
-  int i, locsize = ilast-ifirst;
-  d_nnz.resize(locsize,0);
-  for (i = 0; i < ndof; i++) {
-    d_gdof = meqn[i]-1;
-    if (d_gdof >= ifirst && d_gdof < ilast)
-      d_nnz[d_gdof-ifirst] = d_dofc[i].size();
+  else {
+    this->SAM::getNoDofCouplings(d_nnz);
+    o_nnz = IntVec(ndof,0);
   }
-
-  // Generate nnz for off-diagonal block
-  PetscIntVec l2g(ndof);
-  RealArray nnz(ndof);
-  for (i = 0; i < ndof; i++) {
-    l2g[i] = meqn[i]-1;
-    nnz[i] = o_dofc[i].size();
-  }
-
-  Vec x;
-  VecCreate(PETSC_COMM_WORLD,&x);
-  VecSetSizes(x,locsize,PETSC_DETERMINE);
-  VecSetFromOptions(x);
-  VecSet(x,0.0);
-  VecSetValues(x,ndof,&l2g[0],&nnz[0],ADD_VALUES);
-  VecAssemblyBegin(x);
-  VecAssemblyEnd(x);
-
-  PetscScalar* vec;
-  VecGetArray(x,&vec);
-
-  o_nnz.resize(locsize);
-  for (i = 0; i < locsize; i++)
-    o_nnz[i] = ceil(vec[i]);
-
-  VecRestoreArray(x,&vec);
-  VecDestroy(PETSCMANGLE(x));
-#else
-  this->SAM::getNoDofCouplings(d_nnz);
-  o_nnz = IntVec(ndof,0);
-#endif
 
   return true;
 }
@@ -170,14 +166,14 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
     }
   }
 
-#ifdef PARALLEL_PETSC
-  o_dofc.resize(nblock); 
-  for (size_t i = 0;i < nblock;i++) {
-    o_dofc[i].resize(nblock);
-    for (size_t j = 0;j < nblock;j++) 
-      o_dofc[i][j].resize(nnod*ncomps[i]);
+  if (adm.isParallel()) {
+    o_dofc.resize(nblock); 
+    for (size_t i = 0;i < nblock;i++) {
+      o_dofc[i].resize(nblock);
+      for (size_t j = 0;j < nblock;j++) 
+	o_dofc[i][j].resize(nnod*ncomps[i]);
+    }
   }
-#endif
 
   IntVec meenI, meenJ;
   for (int iel = 1;iel <= nel;iel++) {
@@ -252,54 +248,54 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
     if1 += ncomps[i];
   }
 
-#ifdef PARALLEL_PETSC
-  // Generate nnz for off-diagonal block);
-  o_nnz.resize(nblock);
-  if1 = 0;
-  for (size_t i = 0;i < nblock;i++) {
-    o_nnz[i].resize(nblock);
-    for (size_t j = 0;j < nblock;j++) {
-      o_nnz[i][j].resize(nlocnode*ncomps[i]);
-    
-      RealArray nnz(nnod*ncomps[i]);
-      PetscIntVec l2g(nnod*ncomps[i]);
-
-      for (int k = 0; k < nnod; k++) {
-	size_t bdof = k*ncomps[i];
-        size_t dof  = k*nf + if1;
-        for (int l = 0;l < ncomps[i];l++, bdof++, dof++) {
-          int d_gdof = meqn[dof]-1;
-	  nnz[bdof] = o_dofc[i][j][bdof].size();
-	  l2g[bdof] = (d_gdof/nf)*ncomps[i] + l; 
-        }
+  if (adm.isParallel()) {
+    // Generate nnz for off-diagonal block);
+    o_nnz.resize(nblock);
+    if1 = 0;
+    for (size_t i = 0;i < nblock;i++) {
+      o_nnz[i].resize(nblock);
+      for (size_t j = 0;j < nblock;j++) {
+	o_nnz[i][j].resize(nlocnode*ncomps[i]);
+	
+	RealArray nnz(nnod*ncomps[i]);
+	PetscIntVec l2g(nnod*ncomps[i]);
+	
+	for (int k = 0; k < nnod; k++) {
+	  size_t bdof = k*ncomps[i];
+	  size_t dof  = k*nf + if1;
+	  for (int l = 0;l < ncomps[i];l++, bdof++, dof++) {
+	    int d_gdof = meqn[dof]-1;
+	    nnz[bdof] = o_dofc[i][j][bdof].size();
+	    l2g[bdof] = (d_gdof/nf)*ncomps[i] + l; 
+	  }
+	}
+	
+	size_t locsize = nlocnode*ncomps[i];
+	size_t nldof   = nnod*ncomps[i];
+	
+	Vec x;
+	VecCreate(*adm.getCommunicator(),&x);
+	VecSetSizes(x,locsize,PETSC_DETERMINE);
+	VecSetFromOptions(x);
+	VecSet(x,0.0);
+	VecSetValues(x,nldof,&l2g[0],&(nnz[0]),ADD_VALUES);
+	VecAssemblyBegin(x);
+	VecAssemblyEnd(x);
+	
+	PetscScalar* vec;
+	VecGetArray(x,&vec);
+	
+	o_nnz[i][j].resize(locsize);
+	for (size_t k = 0; k < locsize; k++)
+	  o_nnz[i][j][k] = ceil(vec[k]);
+	
+	VecRestoreArray(x,&vec);
+	VecDestroy(PETSCMANGLE(x));
       }
       
-      size_t locsize = nlocnode*ncomps[i];
-      size_t nldof   = nnod*ncomps[i];
-
-      Vec x;
-      VecCreate(PETSC_COMM_WORLD,&x);
-      VecSetSizes(x,locsize,PETSC_DETERMINE);
-      VecSetFromOptions(x);
-      VecSet(x,0.0);
-      VecSetValues(x,nldof,&l2g[0],&(nnz[0]),ADD_VALUES);
-      VecAssemblyBegin(x);
-      VecAssemblyEnd(x);
-      
-      PetscScalar* vec;
-      VecGetArray(x,&vec);
-      
-      o_nnz[i][j].resize(locsize);
-      for (size_t k = 0; k < locsize; k++)
-	o_nnz[i][j][k] = ceil(vec[k]);
-
-      VecRestoreArray(x,&vec);
-      VecDestroy(PETSCMANGLE(x));
+      if1 += ncomps[i];
     }
-    
-    if1 += ncomps[i];
   }
-#endif
 
   return true;
 }
@@ -446,27 +442,27 @@ bool SAMpatchPara::expandSolution (const SystemVector& solVec,
 {
   if (solVec.dim() < (size_t)nleq) return false;
 
-#ifdef PARALLEL_PETSC
-  Vec solution;
-  VecScatter ctx;
+  if (adm.isParallel()) {
+    Vec solution;
+    VecScatter ctx;
+    
+    dofVec.resize(ndof,true);
 
-  dofVec.resize(ndof,true);
+    SystemVector* sv  = const_cast<SystemVector*>(&solVec);
+    PETScVector* svec = dynamic_cast<PETScVector*>(sv);
+    if (!svec) return false;
+    
+    VecCreateSeqWithArray(PETSC_COMM_SELF,1,dofVec.size(),&dofVec[0],&solution);
+    VecScatterCreate(svec->getVector(),iglob,solution,iloc,&ctx);
+    VecScatterBegin(ctx,svec->getVector(),solution,INSERT_VALUES,SCATTER_FORWARD);
+    VecScatterEnd(ctx,svec->getVector(),solution,INSERT_VALUES,SCATTER_FORWARD);
+    VecScatterDestroy(PETSCMANGLE(ctx));
+    VecDestroy(PETSCMANGLE(solution));
+    
+    return true;
+  }
 
-  SystemVector* sv  = const_cast<SystemVector*>(&solVec);
-  PETScVector* svec = dynamic_cast<PETScVector*>(sv);
-  if (!svec) return false;
-
-  VecCreateSeqWithArray(PETSC_COMM_SELF,1,dofVec.size(),&dofVec[0],&solution);
-  VecScatterCreate(svec->getVector(),iglob,solution,iloc,&ctx);
-  VecScatterBegin(ctx,svec->getVector(),solution,INSERT_VALUES,SCATTER_FORWARD);
-  VecScatterEnd(ctx,svec->getVector(),solution,INSERT_VALUES,SCATTER_FORWARD);
-  VecScatterDestroy(PETSCMANGLE(ctx));
-  VecDestroy(PETSCMANGLE(solution));
-
-  return true;
-#else
   return this->expandVector(solVec.getRef(),dofVec,scaleSD);
-#endif
 }
 
 
@@ -474,9 +470,7 @@ Real SAMpatchPara::dot (const Vector& x, const Vector& y, char dofType) const
 {
   Real globVal = this->SAM::dot(x,y,dofType);
 
-#ifdef PARALLEL_PETSC
-  if (nProc > 1)
-  {
+  if (adm.isParallel()) {
     Real locVal = globVal;
 
     for (size_t i = 0; i < ghostNodes.size(); i++) {
@@ -486,9 +480,8 @@ Real SAMpatchPara::dot (const Vector& x, const Vector& y, char dofType) const
 	  locVal -= x(j)*y(j);
     }
 
-    MPI_Allreduce(&locVal,&globVal,1,MPI_DOUBLE,MPI_SUM,PETSC_COMM_WORLD);
+    globVal = adm.allReduce(locVal,MPI_SUM);
   }
-#endif
 
   return globVal;
 }
@@ -496,12 +489,10 @@ Real SAMpatchPara::dot (const Vector& x, const Vector& y, char dofType) const
 
 Real SAMpatchPara::normL2 (const Vector& x, char dofType) const
 {
-#ifdef PARALLEL_PETSC
-  if (nProc > 1 && nnodGlob > 1)
+  if (adm.isParallel() && nnodGlob > 1)
     return this->norm2(x,dofType)/sqrt((madof[1]-madof[0])*nnodGlob);
   // TODO,kmo: The above is not correct for mixed methods. We need to find the
   // global number of DOFs of type dofType and use that in the denominator.
-#endif
   return this->SAM::normL2(x,dofType);
 }
 
@@ -509,12 +500,7 @@ Real SAMpatchPara::normL2 (const Vector& x, char dofType) const
 Real SAMpatchPara::normInf (const Vector& x, size_t& comp, char dofType) const
 {
   Real locmax = this->SAM::normInf(x,comp,dofType);
-#ifdef PARALLEL_PETSC
-  if (nProc > 1)
-  {
-    int myRank;
-    MPI_Comm_rank(PETSC_COMM_WORLD,&myRank);
-
+  if (adm.isParallel()) {
     int nndof = madof[1]-madof[0];
     for (size_t i = 0; i < nodeType.size(); i++)
       if (nodeType[i] == dofType)
@@ -526,11 +512,12 @@ Real SAMpatchPara::normInf (const Vector& x, size_t& comp, char dofType) const
     // TODO,kmo: Don't think this is correct in case of mixed methods
     comp = meqn[(comp-1)*nndof]/nndof+1;
 
-    RealArray locval(2*nProc,0.0), globval(2*nProc,0.0);
-    locval[2*myRank]   = locmax;
-    locval[2*myRank+1] = 1.0*comp;
-    MPI_Allreduce(&locval[0],&globval[0],2*nProc,MPI_DOUBLE,MPI_MAX,PETSC_COMM_WORLD);
-
+    int myRank = adm.getProcId();
+    RealArray globval(2*nProc,0.0);
+    globval[2*myRank]   = locmax;
+    globval[2*myRank+1] = 1.0*comp;
+    adm.allReduce(globval,MPI_MAX);
+    
     // TODO,kmo: Is this calculation of comp correct? I doubth it...
     for (int n = 0; n < nProc; n++)
       if (globval[2*n] > locmax) {
@@ -538,7 +525,7 @@ Real SAMpatchPara::normInf (const Vector& x, size_t& comp, char dofType) const
 	comp   = (size_t)globval[2*n+1];
       }
   }
-#endif
+
   return locmax;
 }
 
@@ -732,26 +719,24 @@ bool SAMpatchPara::initSystemEquations ()
 	else if (ieqmax < l2gn[i])
 	  ieqmax = l2gn[i];
 
-#ifdef PARALLEL_PETSC
-    int myRank;
-    MPI_Status status;
-    MPI_Comm_rank(PETSC_COMM_WORLD,&myRank);
-    if (myRank < nProc-1)
-      MPI_Send(&ieqmax,1,MPI_INT,myRank+1,101,PETSC_COMM_WORLD);
-    if (myRank > 0) {
-      MPI_Recv(&ieqmin,1,MPI_INT,myRank-1,101,PETSC_COMM_WORLD,&status);
-      ieqmin++;
+    if (adm.isParallel()) {
+      int myRank = adm.getProcId();
+      if (myRank < nProc-1)
+	adm.send(ieqmax,myRank+1);
+      if (myRank > 0) {
+	adm.receive(ieqmin,myRank-1);
+	ieqmin++;
+      }
+      
+      // Find number of global nodes
+      nnodGlob = adm.allReduce(ieqmax,MPI_MAX);
+      
+      // Generate list of ghost nodes
+      for (size_t k = 0; k < l2gn.size(); k++)
+	if (madof[k] < madof[k+1])
+	  if (l2gn[k] < ieqmin) ghostNodes.push_back(k+1);
     }
-
-    // Find number of global nodes
-    MPI_Allreduce(&ieqmax,&nnodGlob,1,MPI_INT,MPI_MAX,PETSC_COMM_WORLD);
-
-    // Generate list of ghost nodes
-    for (size_t k = 0; k < l2gn.size(); k++)
-      if (madof[k] < madof[k+1])
-	if (l2gn[k] < ieqmin) ghostNodes.push_back(k+1);
-#endif
-
+    
     // TODO: Fix this for mixed methods (varying DOFs per node)
     nleq = (ieqmax-ieqmin+1)*nndof;
     int l = 0;
@@ -767,25 +752,25 @@ bool SAMpatchPara::initSystemEquations ()
     for (i = 0; i < ndof; i++)
       meqn[i] = i+1;
   }
-
+  
   // Convert from node numbers to equation numbers
   ieqmin = (ieqmin-1)*nndof + 1;
   ieqmax *= nndof;
-
-#ifdef PARALLEL_PETSC
-  // Generate 0-based local-to-global dof mapping
-  PetscIntVec l2g(ndof);
-  for (i = 0; i < ndof; i++)
-    l2g[i] = meqn[i]-1;
-
-  // Generate global and local index sets
+  
+  if (adm.isParallel()) {
+    // Generate 0-based local-to-global dof mapping
+    PetscIntVec l2g(ndof);
+    for (i = 0; i < ndof; i++)
+      l2g[i] = meqn[i]-1;
+    
+    // Generate global and local index sets
 #if PETSC_VERSION_MAJOR == 3 && PETSC_VERSION_MINOR >= 2
-  ISCreateGeneral(PETSC_COMM_WORLD,ndof,&l2g[0],PETSC_COPY_VALUES,&iglob);
+    ISCreateGeneral(*adm.getCommunicator(),ndof,&l2g[0],PETSC_COPY_VALUES,&iglob);
 #else
-  ISCreateGeneral(PETSC_COMM_WORLD,ndof,&l2g[0],&iglob);
+    ISCreateGeneral(*adm.getCommunicator(),ndof,&l2g[0],&iglob);
 #endif
-  ISCreateStride(PETSC_COMM_WORLD,ndof,0,1,&iloc);
-#endif
+    ISCreateStride(*adm.getCommunicator(),ndof,0,1,&iloc);
+  }
 
   // Number of equations equals number of dofs
   neq = ndof;
@@ -1809,19 +1794,16 @@ bool SAMpatchPara::getMinMaxNode(IntVec& minNodeId, IntVec& maxNodeId) const
   for (int n = 1;n < npatch;n++)
     minNodeId[n] = maxNodeId[n-1] + 1;
   
-#ifdef PARALLEL_PETSC
-  // Adjust for parallel
-  int myRank, nProc;
-  MPI_Status status;
-  MPI_Comm_rank(PETSC_COMM_WORLD,&myRank);
-  MPI_Comm_size(PETSC_COMM_WORLD,&nProc);
-  if (myRank < nProc-1)
-    MPI_Send(&maxNodeId[npatch-1],1,MPI_INT,myRank+1,101,PETSC_COMM_WORLD);
-  if (myRank > 0) {
-    MPI_Recv(&minNodeId[0],1,MPI_INT,myRank-1,101,PETSC_COMM_WORLD,&status);
-    minNodeId[0]++;
+  if (adm.isParallel()) {
+    int myRank = adm.getProcId();
+    
+    if (myRank < nProc-1)
+      adm.send(maxNodeId[npatch-1],myRank+1);
+    if (myRank > 0) {
+      adm.receive(minNodeId[0],myRank-1);
+      minNodeId[0]++;
+    }
   }
-#endif  
 
   return true;
 }

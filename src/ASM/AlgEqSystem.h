@@ -18,8 +18,10 @@
 #include "SystemMatrix.h"
 
 class SAM;
+class ProcessAdm;
 class LinSolParams;
 class LocalIntegral;
+
 
 
 /*!
@@ -30,7 +32,7 @@ class AlgEqSystem : public GlobalIntegral
 {
 public:
   //! \brief The constructor only sets its reference to the SAM object.
-  AlgEqSystem(const SAM& _sam) : sam(_sam) {}
+ AlgEqSystem(const SAM& _sam, const ProcessAdm& padm) : sam(_sam), adm(padm) {}
 
   //! \brief The destructor frees the dynamically allocated objects.
   virtual ~AlgEqSystem() { this->clear(); }
@@ -96,7 +98,8 @@ private:
   std::vector<SystemVector*> b; //!< The actual right-hand-side vectors
   Vector                     R; //!< Nodal reaction forces
 
-  const SAM& sam; //!< Data for FE assembly management
+  const SAM&        sam; //!< Data for FE assembly management
+  const ProcessAdm& adm; //!< Parallel process administrator
 };
 
 #endif
