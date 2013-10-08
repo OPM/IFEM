@@ -29,7 +29,8 @@ public:
 
   //! \brief Default constructor.
   //! \param[in] n1 Dimension of the primary solution field
-  SIM1D(unsigned char n1 = 1, unsigned char = 0, bool = false);
+  //! \param[in] n2 Dummy argument, present only to aid template writing
+  SIM1D(unsigned char n1 = 1, unsigned char n2 = 0, bool = false);
   //! \brief Constructor that also initializes the integrand pointer.
   //! \param[in] itg Pointer to the integrand of the problem to solve
   //! \param[in] n Dimension of the primary solution field

@@ -224,15 +224,7 @@ public:
   //!            without point identifications, but with time as first column
   //! \param[in] precision Number of digits after the decimal point
   bool dumpResults(const Vector& psol, double time, std::ostream& os,
-                   bool formatted = true, std::streamsize precision = 3) const;
-  //! \brief Dumps coordinate at specified points in ASCII format.
-  //! \param[in] time Load/time step parameter
-  //! \param os Output stream to write the solution data to
-  //! \param[in] formatted If \e false, write all result points on a single line
-  //!            without point identifications, but with time as first column
-  //! \param[in] precision Number of digits after the decimal point
-  bool dumpResultCoords(double time, std::ostream& os, bool formatted = true,
-                        std::streamsize precision = 3) const;
+                   bool formatted = false, std::streamsize precision = 3) const;
   //! \brief Dumps additional problem-specific results in ASCII format.
   //! \param[in] time Load/time step parameter
   //! \param os Output stream to write the solution data to
@@ -247,6 +239,16 @@ protected:
 public:
   //! \brief Returns the number of registered result points.
   size_t getNoResultPoints() const { return myPoints.size(); }
+
+  //! \brief Saves point solution to file for a given time step.
+  //! \param[in] fileName Name of output file for point results
+  //! \param[in] psol Primary solution vector
+  //! \param[in] time Load/time step parameter
+  //! \param[in] step Load/time step counter
+  //! \param[in] precision Number of digits after the decimal point
+  bool savePoints(const std::string& fileName,
+                  const Vector& psol, double time, int step,
+                  std::streamsize precision = 3) const;
 
 private:
   ResPointVec myPoints; //!< User-defined result sampling points

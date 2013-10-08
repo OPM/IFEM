@@ -24,6 +24,7 @@
 #include "VTF.h"
 #include "Utilities.h"
 #include "tinyxml.h"
+#include <fstream>
 #include <iomanip>
 
 
@@ -1051,26 +1052,38 @@ bool SIMoutput::dumpResults (const Vector& psol, double time, std::ostream& os,
 }
 
 
-bool SIMoutput::dumpResultCoords (double time, std::ostream& os, bool formatted,
-                                  std::streamsize precision) const
+bool SIMoutput::savePoints (const std::string& fileName,
+                            const Vector& psol, double time, int step,
+                            std::streamsize precision) const
 {
-  size_t i, k;
+  if (step < 1 || myPoints.empty() || fileName.empty())
+    return true;
 
-  // Formatted output, use scientific notation with fixed field width
-  std::streamsize flWidth = 8 + precision;
-  std::streamsize oldPrec = os.precision(precision);
-  std::ios::fmtflags oldF = os.flags(std::ios::scientific | std::ios::right);
-
-  for (i = 0; i < myPoints.size(); i++)
+  if (step == 1)
   {
-    if (!formatted)
-      os << time <<" ";
-    for (k = 0; k < myPoints[i].npar; k++)
-      os << std::setw(flWidth) << myPoints[i].X[k];
-    os << std::endl;
-  }
-  os.precision(oldPrec);
-  os.flags(oldF);
+    // Dump result point coordinates to file
+    std::string coordfile(fileName);
+    size_t idot = fileName.find_last_of('.');
+    if (idot < coordfile.size())
+      coordfile.insert(idot,"_coord");
+    else
+      coordfile.append("_coord");
 
-  return true;
+    // Formatted output, use scientific notation with fixed field width
+    std::streamsize flWidth = 8 + precision;
+    std::ofstream f(coordfile.c_str(),std::ios::out);
+    f.flags(std::ios::scientific | std::ios::right);
+    f.precision(precision);
+
+    for (size_t i = 0; i < myPoints.size(); i++)
+    {
+      f << time <<" ";
+      for (unsigned char k = 0; k < myPoints[i].npar; k++)
+        f << std::setw(flWidth) << myPoints[i].X[k];
+      f << std::endl;
+    }
+  }
+
+  std::ofstream f(fileName, step == 1 ? std::ios::out : std::ios::app);
+  return this->dumpResults(psol,time,f,false,precision);
 }

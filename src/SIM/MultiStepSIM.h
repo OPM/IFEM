@@ -77,8 +77,10 @@ public:
   bool saveModel(char* fileName);
 
   //! \brief Opens a new VTF-file and writes the model geometry to it.
+  //! \param geoBlk Running geometry block counter
+  //! \param nBlock Running result block counter
   //! \param[in] fileName File name used to construct the VTF-file name from
-  bool saveModel(int& geoBlk, int& nBock, char* fileName = NULL);
+  bool saveModel(int& geoBlk, int& nBlock, char* fileName = NULL);
 
   //! \brief Saves the converged results to VTF file of a given time step.
   //! \param[in] iStep Time/load step identifier
