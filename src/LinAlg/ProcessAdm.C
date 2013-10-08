@@ -1,0 +1,187 @@
+//==============================================================================
+//!
+//! \file ProcessAdm.C
+//!
+//! \date Sep 30, 2013
+//!
+//! \author Runar Holdahl / SINTEF
+//!
+//! \brief Class for administration MPI processes used by the IFEM library,
+//! in particular parallel linear algebra using PETSc.
+//!
+//==============================================================================
+
+#include "ProcessAdm.h"
+#include <iostream>
+
+ProcessAdm::ProcessAdm()
+{
+  MPI_Comm_dup(PETSC_COMM_SELF,&comm);
+  myPid = 0;
+  nProc = 1;
+  parallel = false;
+}
+
+#ifdef HAS_PETSC
+ProcessAdm::ProcessAdm(MPI_Comm& mpi_comm)
+{
+#ifdef PARALLEL_PETSC
+  MPI_Comm_dup(mpi_comm,&comm);
+  MPI_Comm_rank(comm,&myPid);
+  MPI_Comm_size(comm,&nProc);
+  parallel = true;
+#else
+  MPI_Comm_dup(PETSC_COMM_SELF,&comm);
+  myPid = 0;
+  nProc = 1;
+  parallel = false;
+#endif
+}
+#endif
+
+
+ProcessAdm::~ProcessAdm()
+{
+  myPid = nProc = 0;
+#ifdef HAS_PETSC
+  if (parallel)
+    MPI_Comm_free(&comm);
+#endif  
+  parallel = false;
+}
+
+#ifdef HAS_PETSC
+const MPI_Comm* ProcessAdm::getCommunicator() const
+{
+  return &comm;
+}
+
+
+void ProcessAdm::send(int value, int dest) const
+{
+#ifdef PARALLEL_PETSC
+  if ((dest >= 0) && (dest < nProc))
+    MPI_Send(&value,1,MPI_INT,dest,101,comm);
+#endif
+}
+
+
+void ProcessAdm::send(std::vector<int>& ivec, int dest) const
+{
+#ifdef PARALLEL_PETSC
+  int n = ivec.size();
+  if ((dest >= 0) && (dest < nProc))
+    MPI_Send(&(ivec[0]),n,MPI_INT,dest,102,comm);
+#endif
+}
+
+void ProcessAdm::send(double value, int dest) const
+{
+#ifdef PARALLEL_PETSC
+  if ((dest >= 0) && (dest < nProc))
+    MPI_Send(&value,1,MPI_DOUBLE,dest,103,comm);
+#endif
+}
+
+
+void ProcessAdm::send(std::vector<double>& rvec, int dest) const
+{
+#ifdef PARALLEL_PETSC
+  int n = rvec.size();
+  if ((dest >= 0) && (dest < nProc))
+    MPI_Send(&(rvec[0]),n,MPI_DOUBLE,dest,104,comm);
+#endif
+}
+
+
+void ProcessAdm::receive(int& value, int source) const
+{
+#ifdef PARALLEL_PETSC
+  value = 0;
+  MPI_Status status;
+  if ((source >= 0) && (source < nProc))
+    MPI_Recv(&value,1,MPI_INT,source,101,comm,&status);
+#endif
+}
+
+
+void ProcessAdm::receive(std::vector<int>& ivec, int source) const
+{
+#ifdef PARALLEL_PETSC
+  int n = ivec.size();
+  MPI_Status status;
+  if ((source >= 0) && (source < nProc))
+    MPI_Recv(&(ivec[0]),n,MPI_INT,source,102,comm,&status);
+#endif
+}
+
+
+void ProcessAdm::receive(double& value, int source) const
+{
+#ifdef PARALLEL_PETSC
+  value = 0.0;
+  MPI_Status status;
+  if ((source >= 0) && (source < nProc))
+    MPI_Recv(&value,1,MPI_DOUBLE,source,103,comm,&status);
+#endif
+}
+
+
+void ProcessAdm::receive(std::vector<double>& rvec, int source) const
+{
+#ifdef PARALLEL_PETSC
+  int n = rvec.size();
+  MPI_Status status;
+  if ((source >= 0) && (source < nProc))
+    MPI_Recv(&(rvec[0]),n,MPI_DOUBLE,source,104,comm,&status);
+#endif
+}
+
+
+int ProcessAdm::allReduce(int value, MPI_Op oper) const
+{
+  int tmp;
+#ifdef PARALLEL_PETSC
+  MPI_Allreduce(&value,&tmp,1,MPI_INT,oper,comm);
+#else
+  tmp = value;
+#endif
+  return tmp;
+}
+
+
+void ProcessAdm::allReduce(std::vector<int>& ivec, MPI_Op oper) const
+{
+#ifdef PARALLEL_PETSC
+  int n = ivec.size();
+  std::vector<int> tmp;
+  tmp.resize(n);
+  MPI_Allreduce(&(ivec[0]),&(tmp[0]),n,MPI_INT,oper,comm);
+  ivec = tmp;
+#endif
+}
+
+double ProcessAdm::allReduce(double value, MPI_Op oper) const
+{
+  double tmp;
+#ifdef PARALLEL_PETSC
+  MPI_Allreduce(&value,&tmp,1,MPI_DOUBLE,oper,comm);
+#else
+  tmp = value;
+#endif
+  return tmp;
+}
+
+
+void ProcessAdm::allReduce(std::vector<double>& rvec, MPI_Op oper) const
+{
+#ifdef PARALLEL_PETSC
+  int n = rvec.size();
+  std::vector<double> tmp;
+  tmp.resize(n);
+  MPI_Allreduce(&(rvec[0]),&(tmp[0]),n,MPI_DOUBLE,oper,comm);
+  rvec = tmp;
+#endif
+}
+
+#endif
