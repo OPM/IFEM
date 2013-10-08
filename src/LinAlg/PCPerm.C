@@ -56,8 +56,8 @@ PetscErrorCode PCPermDestroy(PC pc)
   PCPerm *shell;
 
   PCShellGetContext(pc,(void**)&shell);
-  if (shell->order)
-    ISDestroy(shell->order);
+  //if (shell->order)
+  //  ISDestroy(shell->order);
   if (shell->pc)
     PCDestroy(&(shell->pc));
   PetscFree(shell);
