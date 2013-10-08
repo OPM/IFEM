@@ -26,6 +26,8 @@
 void LinSolParams::setDefault ()
 {
 #ifdef HAS_PETSC
+  nResetSolver = 0;
+
   // Use GMRES with ILU preconditioner as default
   method      = KSPGMRES;
   prec        = PCILU;
@@ -65,6 +67,8 @@ void LinSolParams::setDefault ()
 void LinSolParams::copy (const LinSolParams& spar)
 {
 #ifdef HAS_PETSC
+  nResetSolver = spar.nResetSolver;
+
   // Copy linear solver parameters
   method          = spar.method;
   prec            = spar.prec;
@@ -231,6 +235,8 @@ bool LinSolParams::read (const TiXmlElement* child)
       asmlu[0] = true;
     }
   }
+  else if (value = utl::getValue(child,"noStepBeforeReset"))
+    nResetSolver = atoi(value);
   else if ((value = utl::getValue(child,"schurpc"))) {
     if (!strncasecmp(value,"SIMPLE",6))
       schurPrec = SIMPLE;
@@ -512,7 +518,7 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
 
   if (!strncasecmp(prec.c_str(),"gamg",4) || !strncasecmp(prec.c_str(),"ml",2) ) {
     PetscInt nloc = coords.size()/nsd;
-    PCSetCoordinates(pc,nsd,nloc,coords.data());
+    PCSetCoordinates(pc,nsd,nloc,&coords[0]);
   }
 
   if (!strncasecmp(prec.c_str(),"asm",3) ||!strncasecmp(prec.c_str(),"gasm",4)) {
@@ -529,8 +535,6 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
       }
       PCASMSetLocalSubdomains(pc,nsubds,isSubdDofs,isLocSubdDofs);
     }
-
-    
 
     PCSetFromOptions(pc);
     PCSetUp(pc);
@@ -549,273 +553,275 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
     }
   }
   else if (!strncasecmp(prec.c_str(),"ml",2) || !strncasecmp(prec.c_str(),"gamg",4)) {
-        PetscInt n;
-
-        //PCMGSetLevels(pc,mglevels[0], PETSC_NULL);
-        //PCMGSetNumberSmoothDown(pc,noPreSmooth[0]);
-        //PCMGSetNumberSmoothUp(pc,noPostSmooth[0]);
-	if (!strncasecmp(prec.c_str(),"ml",2)) {
-	  std::stringstream maxLevel;
-	  maxLevel << mglevels[0];
-	  PetscOptionsSetValue("-pc_ml_maxNLevels",maxLevel.str().c_str());
-	  std::stringstream maxCoarseDof;
-	  maxCoarseDof << maxCoarseSize[0];
-	  PetscOptionsSetValue("-pc_ml_maxCoarseSize",maxCoarseDof.str().c_str());
-	  if (!MLCoarsenScheme.empty()) {
-	    std::stringstream coarsenScheme;
-	    coarsenScheme << MLCoarsenScheme[0];
-	    PetscOptionsSetValue("-pc_ml_CoarsenScheme",coarsenScheme.str().c_str());
+    PetscInt n;
+    
+    //PCMGSetLevels(pc,mglevels[0], PETSC_NULL);
+    //PCMGSetNumberSmoothDown(pc,noPreSmooth[0]);
+    //PCMGSetNumberSmoothUp(pc,noPostSmooth[0]);
+    if (!strncasecmp(prec.c_str(),"ml",2)) {
+      std::stringstream maxLevel;
+      maxLevel << mglevels[0];
+      PetscOptionsSetValue("-pc_ml_maxNLevels",maxLevel.str().c_str());
+      std::stringstream maxCoarseDof;
+      maxCoarseDof << maxCoarseSize[0];
+      PetscOptionsSetValue("-pc_ml_maxCoarseSize",maxCoarseDof.str().c_str());
+      if (!MLCoarsenScheme.empty()) {
+	std::stringstream coarsenScheme;
+	coarsenScheme << MLCoarsenScheme[0];
+	PetscOptionsSetValue("-pc_ml_CoarsenScheme",coarsenScheme.str().c_str());
+      }
+      if (!MLThreshold.empty()) {
+	std::stringstream threshold;
+	threshold << MLThreshold[0];
+	PetscOptionsSetValue("-pc_ml_Threshold",threshold.str().c_str());
+      }
+      if (!MLDampingFactor.empty()) {
+	std::stringstream damping;
+	damping << MLDampingFactor[0];
+	PetscOptionsSetValue("-pc_ml_DampingFactor",damping.str().c_str());
+      }
+      if (!MLRepartitionRatio.empty()) {
+	std::stringstream repartitionRatio;
+	repartitionRatio << MLRepartitionRatio[0];
+	PetscOptionsSetValue("-pc_ml_repartitionMaxMinRatio",repartitionRatio.str().c_str());
+      }
+      if (!MLSymmetrize.empty()) {
+	std::stringstream symmetrize;
+	symmetrize << MLSymmetrize[0];
+	PetscOptionsSetValue("-pc_ml_Symmetrize",symmetrize.str().c_str());
+      }
+      if (!MLRepartition.empty()) {
+	std::stringstream repartition;
+	repartition << MLRepartition[0];
+	PetscOptionsSetValue("-pc_ml_repartition",repartition.str().c_str());
+      }
+      if (!MLBlockScaling.empty()) {
+	std::stringstream blockScaling;
+	blockScaling << MLBlockScaling[0];
+	PetscOptionsSetValue("-pc_ml_BlockScaling",blockScaling.str().c_str());
+      }
+      if (!MLPutOnSingleProc.empty()) {
+	std::stringstream putOnSingleProc;
+	putOnSingleProc << MLPutOnSingleProc[0];
+	PetscOptionsSetValue("-pc_ml_repartitionPutOnSingleProc ",putOnSingleProc.str().c_str());
+      }
+      if (!MLReuseInterp.empty()) {
+	std::stringstream reuseInterp;
+	reuseInterp << MLReuseInterp[0];
+	PetscOptionsSetValue("-pc_ml_reuse_interpolation",reuseInterp.str().c_str());
+      }
+      if (!MLKeepAggInfo.empty()) {
+	std::stringstream keepAggInfo;
+	keepAggInfo << MLKeepAggInfo[0];
+	PetscOptionsSetValue("-pc_ml_KeepAggInfo",keepAggInfo.str().c_str());
 	  }
-	  if (!MLThreshold.empty()) {
-	    std::stringstream threshold;
-	    threshold << MLThreshold[0];
-	    PetscOptionsSetValue("-pc_ml_Threshold",threshold.str().c_str());
-	  }
-	  if (!MLDampingFactor.empty()) {
-	    std::stringstream damping;
-	    damping << MLDampingFactor[0];
-	    PetscOptionsSetValue("-pc_ml_DampingFactor",damping.str().c_str());
-	  }
-	  if (!MLRepartitionRatio.empty()) {
-	    std::stringstream repartitionRatio;
-	    repartitionRatio << MLRepartitionRatio[0];
-	    PetscOptionsSetValue("-pc_ml_repartitionMaxMinRatio",repartitionRatio.str().c_str());
-	  }
-	  if (!MLSymmetrize.empty()) {
-	    std::stringstream symmetrize;
-	    symmetrize << MLSymmetrize[0];
-	    PetscOptionsSetValue("-pc_ml_Symmetrize",symmetrize.str().c_str());
-	  }
-	  if (!MLRepartition.empty()) {
-	    std::stringstream repartition;
-	    repartition << MLRepartition[0];
-	    PetscOptionsSetValue("-pc_ml_repartition",repartition.str().c_str());
-	  }
-	  if (!MLBlockScaling.empty()) {
-	    std::stringstream blockScaling;
-	    blockScaling << MLBlockScaling[0];
-	    PetscOptionsSetValue("-pc_ml_BlockScaling",blockScaling.str().c_str());
-	  }
-	  if (!MLPutOnSingleProc.empty()) {
-	    std::stringstream putOnSingleProc;
-	    putOnSingleProc << MLPutOnSingleProc[0];
-	    PetscOptionsSetValue("-pc_ml_repartitionPutOnSingleProc ",putOnSingleProc.str().c_str());
-	  }
-	  if (!MLReuseInterp.empty()) {
-	    std::stringstream reuseInterp;
-	    reuseInterp << MLReuseInterp[0];
-	    PetscOptionsSetValue("-pc_ml_reuse_interpolation",reuseInterp.str().c_str());
-	  }
-	  if (!MLKeepAggInfo.empty()) {
-	    std::stringstream keepAggInfo;
-	    keepAggInfo << MLKeepAggInfo[0];
-	    PetscOptionsSetValue("-pc_ml_KeepAggInfo",keepAggInfo.str().c_str());
-	  }
-	  if (!MLReusable.empty()) {
-	    std::stringstream reusable;
-	    reusable << MLReusable[0];
-	    PetscOptionsSetValue("-pc_ml_Reusable",reusable.str().c_str());
-	  }
-	  if (!MLAux.empty()) {
-	    std::stringstream aux;
-	    aux << MLAux[0];
-	    PetscOptionsSetValue("-pc_ml_Aux",aux.str().c_str());
-	    if (!MLThreshold.empty()) {
-	      std::stringstream threshold;
-	      threshold << MLThreshold[0];
-	      PetscOptionsSetValue("-pc_ml_AuxThreshold",threshold.str().c_str());
-	    }
-	  }
+      if (!MLReusable.empty()) {
+	std::stringstream reusable;
+	reusable << MLReusable[0];
+	PetscOptionsSetValue("-pc_ml_Reusable",reusable.str().c_str());
+      }
+      if (!MLAux.empty()) {
+	std::stringstream aux;
+	aux << MLAux[0];
+	PetscOptionsSetValue("-pc_ml_Aux",aux.str().c_str());
+	if (!MLThreshold.empty()) {
+	  std::stringstream threshold;
+	  threshold << MLThreshold[0];
+	  PetscOptionsSetValue("-pc_ml_AuxThreshold",threshold.str().c_str());
 	}
-	else if (!strncasecmp(prec.c_str(),"gamg",4)) {
-	  if (!maxCoarseSize.empty()) {
-	    std::stringstream maxCoarseDof;
-	    maxCoarseDof << maxCoarseSize[0];
-	    PetscOptionsSetValue("-pc_gamg_coarse_eq_limit",maxCoarseDof.str().c_str());
-	  }	    
-
-	  if (!GAMGprocEqLimit.empty()) {
-	    std::stringstream procEqLimit;
-	    procEqLimit << GAMGprocEqLimit[0];
-	    PetscOptionsSetValue("-pc_gamg_process_eq_limit",procEqLimit.str().c_str());
-	  }	    
-
-	  if (!GAMGtype.empty())
-	    PetscOptionsSetValue("-pc_gamg_type",GAMGtype[0].c_str());
-
-	  if (!GAMGrepartition.empty()) {
-	    std::stringstream repartition;
+      }
+    }
+    else if (!strncasecmp(prec.c_str(),"gamg",4)) {
+      if (!maxCoarseSize.empty()) {
+	std::stringstream maxCoarseDof;
+	maxCoarseDof << maxCoarseSize[0];
+	PetscOptionsSetValue("-pc_gamg_coarse_eq_limit",maxCoarseDof.str().c_str());
+      }	    
+      
+      if (!GAMGprocEqLimit.empty()) {
+	std::stringstream procEqLimit;
+	procEqLimit << GAMGprocEqLimit[0];
+	PetscOptionsSetValue("-pc_gamg_process_eq_limit",procEqLimit.str().c_str());
+      }	    
+      
+      if (!GAMGtype.empty())
+	PetscOptionsSetValue("-pc_gamg_type",GAMGtype[0].c_str());
+      
+      if (!GAMGrepartition.empty()) {
+	std::stringstream repartition;
 	    repartition << GAMGrepartition[0];
 	    PetscOptionsSetValue("-pc_gamg_repartition",repartition.str().c_str());
-	  }
-	  
-	  if (!GAMGuseAggGasm.empty()) {
-	    std::stringstream useAggGasm;
+      }
+      
+      if (!GAMGuseAggGasm.empty()) {
+	std::stringstream useAggGasm;
 	    useAggGasm << GAMGuseAggGasm[0];
 	    PetscOptionsSetValue("-pc_gamg_use_agg_gasm",useAggGasm.str().c_str());
-	  }	    
-
-	  if (!MLThreshold.empty()) {
-	    std::stringstream threshold;
-	    threshold << MLThreshold[0];
-	    PetscOptionsSetValue("-pc_gamg_threshold",threshold.str().c_str());
-	  }	  
-	}
-
-        //PCGAMGSetNlevels(pc,mglevels[0]);
-        //PCGAMGSetCoarseEqLim(pc,maxCoarseSize[0]);
-
-	PCSetFromOptions(pc);
-	PCSetUp(pc);
-
-	// Set coarse solver package
-	if (!MLCoarsePackage.empty()) {
-	  KSP cksp;
-	  PC  cpc;
-	  PCMGGetCoarseSolve(pc,&cksp);
-	  KSPGetPC(cksp,&cpc);
-	  PCFactorSetMatSolverPackage(cpc,MLCoarsePackage[0].c_str());
+      }	    
+      
+      if (!MLThreshold.empty()) {
+	std::stringstream threshold;
+	threshold << MLThreshold[0];
+	PetscOptionsSetValue("-pc_gamg_threshold",threshold.str().c_str());
+      }	  
+    }
+    
+    //PCGAMGSetNlevels(pc,mglevels[0]);
+    //PCGAMGSetCoarseEqLim(pc,maxCoarseSize[0]);
+    
+    PCSetFromOptions(pc);
+    PCSetUp(pc);
+    
+    // Set coarse solver package
+    if (!MLCoarsePackage.empty()) {
+      KSP cksp;
+      PC  cpc;
+      PCMGGetCoarseSolve(pc,&cksp);
+      KSPGetPC(cksp,&cpc);
+      PCSetType(cpc,PCLU);
+      PCFactorSetMatSolverPackage(cpc,MLCoarsePackage[0].c_str());
+      PCSetUp(cpc);
+    }
+    
+    
+    PCMGGetLevels(pc,&n);
+    // Presmoother settings
+    for (int i = 1;i < n;i++) {
+      KSP preksp;
+      PC  prepc;
+      // Not working for some reason
+      //PCMGGetSmootherDown(pc,i,&preksp);
+      
+      // Set smoother
+      std::string smoother;
+      PetscInt noSmooth;
+      
+      PCMGGetSmoother(pc,i,&preksp);
+      KSPSetType(preksp,"richardson");
+      
+      if ((i == n-1) && (!finesmoother.empty())) {
+	smoother = finesmoother[0];
+	noSmooth = noFineSmooth[0];
+      }
+      else {
+	smoother = presmoother[0];
+	noSmooth = noPreSmooth[0];
+      }
+      
+      KSPSetTolerances(preksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,noSmooth);
+      KSPGetPC(preksp,&prepc);
+      
+      if (smoother == "asm" || smoother == "asmlu") {
+	PCSetType(prepc,"asm");
+	PCASMSetType(prepc,PC_ASM_BASIC);
+	PCASMSetOverlap(prepc,overlap[0]);
+	
+	if (!locSubdDofs.empty() && !subdDofs.empty() && (i==n-1)) {
+	  const size_t nsubds = subdDofs.size();
+	  
+	  IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
+	  for (size_t k = 0;k < nsubds;k++) {
+	    ISCreateGeneral(PETSC_COMM_SELF,locSubdDofs[k].size(),&(locSubdDofs[k][0]),PETSC_USE_POINTER,&(isLocSubdDofs[k]));
+	    ISCreateGeneral(PETSC_COMM_SELF,subdDofs[k].size(),&(subdDofs[k][0]),PETSC_USE_POINTER,&(isSubdDofs[k]));
+	  }
+	  PCASMSetLocalSubdomains(prepc,nsubds,isSubdDofs,isLocSubdDofs);
 	}
 	
-
-        PCMGGetLevels(pc,&n);
-	// Presmoother settings
-	for (int i = 1;i < n;i++) {
-          KSP preksp;
-          PC  prepc;
-          // Not working for some reason
-          //PCMGGetSmootherDown(pc,i,&preksp);
-
-	  // Set smoother
-	  std::string smoother;
-	  PetscInt noSmooth;
+	// If LU factorization is used on each subdomain
+	if (smoother == "asmlu") {
+	  KSP* subksp;
+	  PC   subpc;
+	  PetscInt first, nlocal;
+	  PCSetFromOptions(prepc);
+	  PCSetUp(prepc);
+	  PCASMGetSubKSP(prepc,&nlocal,&first,&subksp);
 	  
-	  PCMGGetSmoother(pc,i,&preksp);
-	  KSPSetType(preksp,"richardson");
-	  
-	  if ((i == n-1) && (!finesmoother.empty())) {
-            smoother = finesmoother[0];
-	    noSmooth = noFineSmooth[0];
+	  for (int k = 0; k < nlocal; k++) {
+	    KSPGetPC(subksp[k],&subpc);
+	    PCSetType(subpc,PCLU);
+	    PCFactorSetShiftType(prepc,MAT_SHIFT_NONZERO);
+	    KSPSetType(subksp[k],KSPPREONLY);
 	  }
-	  else {
-	    smoother = presmoother[0];
-	    noSmooth = noPreSmooth[0];
-	  }
-	  
-	  KSPSetTolerances(preksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,noSmooth);
-	  KSPGetPC(preksp,&prepc);
-
-	  if (smoother == "asm" || smoother == "asmlu") {
-	    PCSetType(prepc,"asm");
-	    PCASMSetType(prepc,PC_ASM_BASIC);
-	    PCASMSetOverlap(prepc,overlap[0]);
-	    
-	    if (!locSubdDofs.empty() && !subdDofs.empty() && (i==n-1)) {
-	      const size_t nsubds = subdDofs.size();
-
-	      IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
-	      for (size_t k = 0;k < nsubds;k++) {
-		ISCreateGeneral(PETSC_COMM_SELF,locSubdDofs[k].size(),&(locSubdDofs[k][0]),PETSC_USE_POINTER,&(isLocSubdDofs[k]));
-		ISCreateGeneral(PETSC_COMM_SELF,subdDofs[k].size(),&(subdDofs[k][0]),PETSC_USE_POINTER,&(isSubdDofs[k]));
-	      }
-	      PCASMSetLocalSubdomains(prepc,nsubds,isSubdDofs,isLocSubdDofs);
-	    }
-
-	    // If LU factorization is used on each subdomain
-	    if (smoother == "asmlu") {
-	      KSP* subksp;
-	      PC   subpc;
-	      PetscInt first, nlocal;
-	      PCSetFromOptions(prepc);
-	      PCSetUp(prepc);
-	      PCASMGetSubKSP(prepc,&nlocal,&first,&subksp);
-	      
-	      for (int k = 0; k < nlocal; k++) {
-		KSPGetPC(subksp[k],&subpc);
-		PCSetType(subpc,PCLU);
-		PCFactorSetShiftType(prepc,MAT_SHIFT_NONZERO);
-		KSPSetType(subksp[k],KSPPREONLY);
-	      }
-	    }
-	  }
-	  else if (smoother == "compositedir" && (i==n-1)) {
-	    Mat mat;
-	    Mat Pmat;
-	    MatStructure flag;
-	    PCGetOperators(prepc,&mat,&Pmat,&flag);
-    
-	    this->addDirSmoother(prepc,Pmat,dirIndexSet);
-	  }
-	  else
-	    PCSetType(prepc,smoother.c_str());
-
-	  PCFactorSetLevels(prepc,levels[0]); 
-          KSPSetUp(preksp);
 	}
-
-	// Postsmoother settings
-	// for (int i = 1;i < n;i++) {
-        //   KSP postksp;
-        //   PC  postpc;
-        //   // Not working for some reason
-        //   //PCMGGetSmootherUp(pc,i,&postksp);
-        //   PCMGGetSmoother(pc,i,&postksp);
-        //   KSPSetType(postksp,"richardson");
-        //   KSPSetTolerances(postksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,noPostSmooth[0]);
-        //   KSPGetPC(postksp,&postpc);
-
-	//   // Set smoother
-	//   std::string smoother;
-        //   if ((i == n-1) && (!finesmoother.empty())) 	    
-        //     smoother = finesmoother[0];
-        //   else
-	//     smoother = postsmoother[0];
-
-	//   if (smoother == "asm" || smoother == "asmlu") {
-	//     PCSetType(postpc,"asm");
-	//     PCASMSetType(postpc,PC_ASM_BASIC);
-	//     PCASMSetOverlap(postpc,overlap[0]);
-	    
-	//     if (!locSubdDofs.empty() && !subdDofs.empty()) {
-	//       const size_t nsubds = subdDofs.size();
-
-	//       IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
-	//       for (size_t i = 0;i < nsubds;i++) {
-	// 	ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofs[i].size(),&(locSubdDofs[i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
-	// 	ISCreateGeneral(PETSC_COMM_WORLD,subdDofs[i].size(),&(subdDofs[i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
-	//       }
-	//       PCASMSetLocalSubdomains(postpc,nsubds,isSubdDofs,isLocSubdDofs);
-	//     }
-
-	//     // If LU factorization is used on each subdomain
-	//     if (smoother == "asmlu") {
-	//       KSP* subksp;
-	//       PC   subpc;
-	//       PetscInt first, nlocal;
-	//       PCSetFromOptions(postpc);
-	//       PCSetUp(postpc);
-	//       PCASMGetSubKSP(postpc,&nlocal,&first,&subksp);
-	      
-	//       for (int i = 0; i < nlocal; i++) {
-	// 	KSPGetPC(subksp[i],&subpc);
-	// 	PCSetType(subpc,PCLU);
-	// 	PCFactorSetShiftType(postpc,MAT_SHIFT_NONZERO);
-	// 	KSPSetType(subksp[i],KSPPREONLY);
-	//       }
-	//     }
-	//   }
-	//   else
-	//     PCSetType(postpc,smoother.c_str());
-
-	//   PCFactorSetLevels(postpc,levels[0]); 
-        //   KSPSetUp(postksp);
-	// }
+      }
+      else if (smoother == "compositedir" && (i==n-1)) {
+	Mat mat;
+	Mat Pmat;
+	MatStructure flag;
+	PCGetOperators(prepc,&mat,&Pmat,&flag);
+	
+	this->addDirSmoother(prepc,Pmat,dirIndexSet);
+      }
+      else
+	PCSetType(prepc,smoother.c_str());
+      
+      PCFactorSetLevels(prepc,levels[0]); 
+      KSPSetUp(preksp);
+    }
+    
+    // Postsmoother settings
+    // for (int i = 1;i < n;i++) {
+    //   KSP postksp;
+    //   PC  postpc;
+    //   // Not working for some reason
+    //   //PCMGGetSmootherUp(pc,i,&postksp);
+    //   PCMGGetSmoother(pc,i,&postksp);
+    //   KSPSetType(postksp,"richardson");
+    //   KSPSetTolerances(postksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,noPostSmooth[0]);
+    //   KSPGetPC(postksp,&postpc);
+    
+    //   // Set smoother
+    //   std::string smoother;
+    //   if ((i == n-1) && (!finesmoother.empty())) 	    
+    //     smoother = finesmoother[0];
+    //   else
+    //     smoother = postsmoother[0];
+    
+    //   if (smoother == "asm" || smoother == "asmlu") {
+    //     PCSetType(postpc,"asm");
+    //     PCASMSetType(postpc,PC_ASM_BASIC);
+    //     PCASMSetOverlap(postpc,overlap[0]);
+    
+    //     if (!locSubdDofs.empty() && !subdDofs.empty()) {
+    //       const size_t nsubds = subdDofs.size();
+    
+    //       IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
+    //       for (size_t i = 0;i < nsubds;i++) {
+    // 	ISCreateGeneral(PETSC_COMM_WORLD,locSubdDofs[i].size(),&(locSubdDofs[i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
+    // 	ISCreateGeneral(PETSC_COMM_WORLD,subdDofs[i].size(),&(subdDofs[i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
+    //       }
+    //       PCASMSetLocalSubdomains(postpc,nsubds,isSubdDofs,isLocSubdDofs);
+    //     }
+    
+    //     // If LU factorization is used on each subdomain
+    //     if (smoother == "asmlu") {
+    //       KSP* subksp;
+    //       PC   subpc;
+    //       PetscInt first, nlocal;
+    //       PCSetFromOptions(postpc);
+    //       PCSetUp(postpc);
+    //       PCASMGetSubKSP(postpc,&nlocal,&first,&subksp);
+    
+    //       for (int i = 0; i < nlocal; i++) {
+    // 	KSPGetPC(subksp[i],&subpc);
+    // 	PCSetType(subpc,PCLU);
+    // 	PCFactorSetShiftType(postpc,MAT_SHIFT_NONZERO);
+    // 	KSPSetType(subksp[i],KSPPREONLY);
+    //       }
+    //     }
+    //   }
+    //   else
+    //     PCSetType(postpc,smoother.c_str());
+    
+    //   PCFactorSetLevels(postpc,levels[0]); 
+    //   KSPSetUp(postksp);
+    // }
   }
   // else if (!strncasecmp(prec.c_str(),"hypre",5) && !strncasecmp(hypretype[0].c_str(),"boomeramg",9)) {
   //   // std::stringstream maxLevel;
   //   // maxLevel << mglevels[0];
   //   // PetscOptionsSetValue("-pc_hypre_boomeramg_max_levels",maxLevel.str().c_str());
-
+  
   //   if (!MLCoarsenScheme.empty()) {
   //     std::stringstream coarsenScheme;
   //     coarsenScheme << MLCoarsenScheme[0];
@@ -832,6 +838,9 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
     PCSetUp(pc);
   }
   
+  // RUNAR
+  PCView(pc,PETSC_VIEWER_STDOUT_WORLD); 
+
   KSPSetFromOptions(ksp);
   KSPSetUp(ksp);
 }

@@ -173,10 +173,13 @@ public:
   bool addDirSmoother(PC pc, Mat P, ISMat& dirIndexSet) const;
 
 private:
+  int                    nLinSolves;        // Counter for linear solver
+
   PetscReal              atol;              // Absolute tolerance
   PetscReal              rtol;              // Relative tolerance
   PetscReal              dtol;              // Divergence tolerance
   PetscInt               maxIts;            // Maximum number of iterations
+  PetscInt               nResetSolver;      // Number of linear solves before reset of KSP/PC
   int                    nblock;            // Number of block
   bool                   schur;             // Schur complement solver
   SchurPrec              schurPrec;         // Preconditioner for Schur system
