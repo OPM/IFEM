@@ -15,10 +15,10 @@
 #define _SAM_PATCH_PARA_H
 
 #include "SAMpatch.h"
-#include "ProcessAdm.h"
 #include "PETScSupport.h"
 #include <map>
 
+class ProcessAdm;
 
 /*!
   \brief This is a sub-class of SAMpatch with support for parallel processing.

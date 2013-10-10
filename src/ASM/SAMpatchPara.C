@@ -19,6 +19,7 @@
 
 #include "PETScSupport.h"
 #include "PETScMatrix.h"
+#include "ProcessAdm.h"
 
 
 SAMpatchPara::SAMpatchPara (const std::map<int,int>& g2ln, const ProcessAdm& padm) : adm(padm)

@@ -16,6 +16,7 @@
 #include "LinSolParams.h"
 #include "LinAlgInit.h"
 #include "SAMpatchPara.h"
+#include "ProcessAdm.h"
 
 #ifdef USE_OPENMP
 #include <omp.h>

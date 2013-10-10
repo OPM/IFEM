@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "PETScBlockMatrix.h"
+#include "ProcessAdm.h"
 #ifdef HAS_PETSC
 #include "LinSolParams.h"
 #include "LinAlgInit.h"
