@@ -36,10 +36,13 @@ SAMpatchPara::SAMpatchPara (const std::map<int,int>& g2ln, const ProcessAdm& pad
 
 SAMpatchPara::~SAMpatchPara ()
 {
+#ifdef HAS_PETSC
   if (adm.isParallel()) {
     ISDestroy(PETSCMANGLE(iglob));
     ISDestroy(PETSCMANGLE(iloc));
   }
+#endif
+
   LinAlgInit::decrefs();
 }
 
@@ -56,6 +59,7 @@ bool SAMpatchPara::init (const ASMVec& model, int numNod)
 bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
 				      IntVec& d_nnz, IntVec& o_nnz) const
 {
+#ifdef HAS_PETSC
   if (adm.isParallel()) {
     int d_ldof, d_gdof, o_ldof, o_gdof;
     size_t j, k;
@@ -110,7 +114,7 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
       l2g[i] = meqn[i]-1;
       nnz[i] = o_dofc[i].size();
     }
-    
+
     Vec x;
     VecCreate(*adm.getCommunicator(),&x);
     VecSetSizes(x,locsize,PETSC_DETERMINE);
@@ -134,6 +138,7 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
     this->SAM::getNoDofCouplings(d_nnz);
     o_nnz = IntVec(ndof,0);
   }
+#endif
 
   return true;
 }
@@ -249,6 +254,7 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
     if1 += ncomps[i];
   }
 
+#ifdef HAS_PETSC
   if (adm.isParallel()) {
     // Generate nnz for off-diagonal block);
     o_nnz.resize(nblock);
@@ -273,7 +279,7 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
 	
 	size_t locsize = nlocnode*ncomps[i];
 	size_t nldof   = nnod*ncomps[i];
-	
+
 	Vec x;
 	VecCreate(*adm.getCommunicator(),&x);
 	VecSetSizes(x,locsize,PETSC_DETERMINE);
@@ -297,6 +303,7 @@ bool SAMpatchPara::getNoDofCouplings (int ifirst, int ilast,
       if1 += ncomps[i];
     }
   }
+#endif
 
   return true;
 }
@@ -443,6 +450,7 @@ bool SAMpatchPara::expandSolution (const SystemVector& solVec,
 {
   if (solVec.dim() < (size_t)nleq) return false;
 
+#ifdef HAS_PETSC
   if (adm.isParallel()) {
     Vec solution;
     VecScatter ctx;
@@ -462,6 +470,7 @@ bool SAMpatchPara::expandSolution (const SystemVector& solVec,
     
     return true;
   }
+#endif
 
   return this->expandVector(solVec.getRef(),dofVec,scaleSD);
 }
@@ -471,6 +480,7 @@ Real SAMpatchPara::dot (const Vector& x, const Vector& y, char dofType) const
 {
   Real globVal = this->SAM::dot(x,y,dofType);
 
+#ifdef HAS_PETSC
   if (adm.isParallel()) {
     Real locVal = globVal;
 
@@ -483,6 +493,7 @@ Real SAMpatchPara::dot (const Vector& x, const Vector& y, char dofType) const
 
     globVal = adm.allReduce(locVal,MPI_SUM);
   }
+#endif
 
   return globVal;
 }
@@ -501,6 +512,8 @@ Real SAMpatchPara::normL2 (const Vector& x, char dofType) const
 Real SAMpatchPara::normInf (const Vector& x, size_t& comp, char dofType) const
 {
   Real locmax = this->SAM::normInf(x,comp,dofType);
+
+#ifdef HAS_PETSC
   if (adm.isParallel()) {
     int nndof = madof[1]-madof[0];
     for (size_t i = 0; i < nodeType.size(); i++)
@@ -526,6 +539,7 @@ Real SAMpatchPara::normInf (const Vector& x, size_t& comp, char dofType) const
 	comp   = (size_t)globval[2*n+1];
       }
   }
+#endif
 
   return locmax;
 }
@@ -720,6 +734,7 @@ bool SAMpatchPara::initSystemEquations ()
 	else if (ieqmax < l2gn[i])
 	  ieqmax = l2gn[i];
 
+#ifdef HAS_PETSC
     if (adm.isParallel()) {
       int myRank = adm.getProcId();
       if (myRank < nProc-1)
@@ -728,7 +743,7 @@ bool SAMpatchPara::initSystemEquations ()
 	adm.receive(ieqmin,myRank-1);
 	ieqmin++;
       }
-      
+
       // Find number of global nodes
       nnodGlob = adm.allReduce(ieqmax,MPI_MAX);
       
@@ -737,6 +752,7 @@ bool SAMpatchPara::initSystemEquations ()
 	if (madof[k] < madof[k+1])
 	  if (l2gn[k] < ieqmin) ghostNodes.push_back(k+1);
     }
+#endif
     
     // TODO: Fix this for mixed methods (varying DOFs per node)
     nleq = (ieqmax-ieqmin+1)*nndof;
@@ -758,6 +774,7 @@ bool SAMpatchPara::initSystemEquations ()
   ieqmin = (ieqmin-1)*nndof + 1;
   ieqmax *= nndof;
   
+#ifdef HAS_PETSC
   if (adm.isParallel()) {
     // Generate 0-based local-to-global dof mapping
     PetscIntVec l2g(ndof);
@@ -772,6 +789,7 @@ bool SAMpatchPara::initSystemEquations ()
 #endif
     ISCreateStride(*adm.getCommunicator(),ndof,0,1,&iloc);
   }
+#endif
 
   // Number of equations equals number of dofs
   neq = ndof;
@@ -1794,7 +1812,8 @@ bool SAMpatchPara::getMinMaxNode(IntVec& minNodeId, IntVec& maxNodeId) const
   minNodeId[0] = 1;
   for (int n = 1;n < npatch;n++)
     minNodeId[n] = maxNodeId[n-1] + 1;
-  
+
+#ifdef HAS_PETSC  
   if (adm.isParallel()) {
     int myRank = adm.getProcId();
     
@@ -1805,6 +1824,7 @@ bool SAMpatchPara::getMinMaxNode(IntVec& minNodeId, IntVec& maxNodeId) const
       minNodeId[0]++;
     }
   }
+#endif
 
   return true;
 }
