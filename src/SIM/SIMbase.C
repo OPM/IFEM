@@ -215,11 +215,11 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
           int patch = 0;
           utl::getAttribute(item,"patch",patch);
           if ((patch = this->getLocalPatchIndex(patch)) > 0) {
-            if (abs(idim) == (int)this->getNoSpaceDim())
+	    if (abs(idim) == (int)this->getNoSpaceDim()) 
               top.insert(TopItem(patch,0,idim));
             else if (item->FirstChild())
-            {
-              std::string value(item->FirstChild()->Value());
+	    {
+	      std::string value(item->FirstChild()->Value());
               char* cval = strtok(const_cast<char*>(value.c_str())," ");
               for (; cval; cval = strtok(NULL," "))
                 top.insert(TopItem(patch,atoi(cval),idim));
@@ -1965,9 +1965,11 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 
   delete norm;
 
+#ifdef HAS_PETSC
   if (adm->isParallel() && !gNorm.empty())
     for (size_t i = 0; i < gNorm.size(); i++) 
       adm->allReduce(gNorm[i],MPI_SUM);
+#endif
 
   return ok;
 }
