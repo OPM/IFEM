@@ -89,6 +89,7 @@ void LinSolParams::copy (const LinSolParams& spar)
   GAMGprocEqLimit = spar.GAMGprocEqLimit;
   GAMGrepartition = spar.GAMGrepartition;
   GAMGuseAggGasm  = spar.GAMGuseAggGasm;
+  GAMGreuseInterp = spar.GAMGreuseInterp;
   overlap         = spar.overlap;
   nx              = spar.nx;
   ny              = spar.ny;
@@ -381,6 +382,11 @@ bool LinSolParams::read (const TiXmlElement* child)
     std::istream_iterator<PetscInt> begin(this_line), end;
     GAMGprocEqLimit.assign(begin, end);
   }
+  else if ((value = utl::getValue(child,"GAMGreuseInterpolation"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscInt> begin(this_line), end;
+    GAMGreuseInterp.assign(begin, end);
+  }
   else if ((value = utl::getValue(child,"MLCoarsePackage"))) {
     std::istringstream this_line(value);
     std::istream_iterator<std::string> begin(this_line), end;
@@ -646,21 +652,33 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
       
       if (!GAMGrepartition.empty()) {
 	std::stringstream repartition;
-	    repartition << GAMGrepartition[0];
-	    PetscOptionsSetValue("-pc_gamg_repartition",repartition.str().c_str());
+	repartition << GAMGrepartition[0];
+	PetscOptionsSetValue("-pc_gamg_repartition",repartition.str().c_str());
       }
       
       if (!GAMGuseAggGasm.empty()) {
 	std::stringstream useAggGasm;
-	    useAggGasm << GAMGuseAggGasm[0];
-	    PetscOptionsSetValue("-pc_gamg_use_agg_gasm",useAggGasm.str().c_str());
+	useAggGasm << GAMGuseAggGasm[0];
+	PetscOptionsSetValue("-pc_gamg_use_agg_gasm",useAggGasm.str().c_str());
       }	    
+      
+      if (!GAMGreuseInterp.empty()) {
+	std::stringstream reuseInterp;
+	reuseInterp << GAMGreuseInterp[0];
+	PetscOptionsSetValue("-pc_gamg_reuse_interpolation",reuseInterp.str().c_str());
+      }	   
       
       if (!MLThreshold.empty()) {
 	std::stringstream threshold;
 	threshold << MLThreshold[0];
 	PetscOptionsSetValue("-pc_gamg_threshold",threshold.str().c_str());
       }	  
+
+      if (!mglevels.empty()) {
+	std::stringstream levels;
+	levels << mglevels[0];
+	PetscOptionsSetValue("-pc_mg_levels",levels.str().c_str());
+      }
     }
     
     //PCGAMGSetNlevels(pc,mglevels[0]);
@@ -888,11 +906,11 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
     PCSetUp(pc);
   }
   
-  // RUNAR
-  PCView(pc,PETSC_VIEWER_STDOUT_WORLD); 
-
   KSPSetFromOptions(ksp);
   KSPSetUp(ksp);
+
+  // RUNAR
+  PCView(pc,PETSC_VIEWER_STDOUT_WORLD); 
 }
 
 bool LinSolParams::addDirSmoother(PC pc, Mat P, ISMat& dirIndexSet) const

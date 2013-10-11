@@ -218,6 +218,7 @@ private:
   PetscIntVec            GAMGprocEqLimit;   // Limit number of equation on each process on coarse grid
   PetscIntVec            GAMGrepartition;   // Repartition coarse grid for GAMG preconditioner (0 = false, 1 = true)
   PetscIntVec            GAMGuseAggGasm;    // Use aggregation aggregates for GASM smoother     (0 = false, 1 = true)
+  PetscIntVec            GAMGreuseInterp;   // Reuse interpolation
   IntVec                 nx;                // Number of local subdomains in first parameter direction
   IntVec                 ny;                // Number of local subdomains in second parameter direction
   IntVec                 nz;                // Number of local subdomains in third parameter direction
