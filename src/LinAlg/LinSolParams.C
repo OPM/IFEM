@@ -393,7 +393,7 @@ bool LinSolParams::read (const TiXmlElement* child)
   }
   else if ((value = utl::getValue(child,"MLCoarsenScheme"))) {
     std::istringstream this_line(value);
-    std::istream_iterator<PetscInt> begin(this_line), end;
+    std::istream_iterator<std::string> begin(this_line), end;
     MLCoarsenScheme.assign(begin, end);
   }
   else if ((value = utl::getValue(child,"MLSymmetrize"))) {
@@ -565,11 +565,8 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
       std::stringstream maxCoarseDof;
       maxCoarseDof << maxCoarseSize[0];
       PetscOptionsSetValue("-pc_ml_maxCoarseSize",maxCoarseDof.str().c_str());
-      if (!MLCoarsenScheme.empty()) {
-	std::stringstream coarsenScheme;
-	coarsenScheme << MLCoarsenScheme[0];
-	PetscOptionsSetValue("-pc_ml_CoarsenScheme",coarsenScheme.str().c_str());
-      }
+      if (!MLCoarsenScheme.empty()) 
+	PetscOptionsSetValue("-pc_ml_CoarsenScheme",MLCoarsenScheme[0].c_str());
       if (!MLThreshold.empty()) {
 	std::stringstream threshold;
 	threshold << MLThreshold[0];
@@ -672,7 +669,62 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
     PCSetFromOptions(pc);
     PCSetUp(pc);
     
-    // Set coarse solver package
+    // Settings for coarse solver
+    if (!MLCoarseSolver.empty()) {
+      if (MLCoarseSolver[0] == "OneLevelSchwarz") {
+	KSP cksp;
+	PC  cpc;
+	PCMGGetCoarseSolve(pc,&cksp);
+	KSPSetType(cksp,"gmres");
+	KSPSetTolerances(cksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,1);
+	KSPGetPC(cksp,&cpc);
+	PCSetType(cpc,"asm");
+	PCSetUp(cpc);
+	
+	KSP* subcksp;
+	PC   subcpc;
+	PetscInt first, nlocal;
+	PCASMGetSubKSP(cpc,&nlocal,&first,&subcksp);
+	for (int k = 0; k < nlocal; k++) {
+	  KSPGetPC(subcksp[k],&subcpc);
+	  PCSetType(subcpc,PCLU);
+	  KSPSetType(subcksp[k],KSPPREONLY);
+	}
+      }
+      else if (MLCoarseSolver[0] == "TwoLevelSchwarz") {
+	KSP cksp;
+	PC  cpc;
+	PCMGGetCoarseSolve(pc,&cksp);
+	KSPSetType(cksp,"richardson");
+	KSPSetTolerances(cksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,1);
+	KSPGetPC(cksp,&cpc);
+	PCSetType(cpc,"ml");
+	
+	std::string mlCoarseMaxNLevels = std::string("-mg_coarse_pc_ml_maxNLevels");
+	PetscOptionsSetValue(mlCoarseMaxNLevels.c_str(),"2");	
+	PCSetFromOptions(cpc);
+	
+	PCSetUp(cpc);
+	KSP csksp;
+	PC cspc;
+	PCMGGetSmoother(cpc,1,&csksp);
+	KSPSetType(csksp,"richardson");
+	KSPGetPC(csksp,&cspc);
+	PCSetType(cspc,"asm");
+	PCSetUp(cspc);
+	
+	KSP* subcsksp;
+	PC   subcspc;
+	PetscInt first, nlocal;
+	PCASMGetSubKSP(cspc,&nlocal,&first,&subcsksp);
+	for (int k = 0; k < nlocal; k++) {
+	  KSPGetPC(subcsksp[k],&subcspc);
+	  PCSetType(subcspc,PCLU);
+	  KSPSetType(subcsksp[k],KSPPREONLY);
+	}
+      }
+    }
+    
     if (!MLCoarsePackage.empty()) {
       KSP cksp;
       PC  cpc;
@@ -823,9 +875,7 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
   //   // PetscOptionsSetValue("-pc_hypre_boomeramg_max_levels",maxLevel.str().c_str());
   
   //   if (!MLCoarsenScheme.empty()) {
-  //     std::stringstream coarsenScheme;
-  //     coarsenScheme << MLCoarsenScheme[0];
-  //     PetscOptionsSetValue("-pc_hypre_boomeramg_coarsen_type",coarsenScheme.str().c_str());
+  //     PetscOptionsSetValue("-pc_hypre_boomeramg_coarsen_type",MLCoarsenScheme.c_str());
   //   }
   //   if (!MLThreshold.empty()) {
   //     std::stringstream threshold;

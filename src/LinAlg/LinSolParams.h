@@ -202,7 +202,7 @@ private:
   IntVec                 maxCoarseSize;     // Max number of DOFS for coarse AMG system
   StringVec              MLCoarsePackage;   // Coarse matrix solver package
   StringVec              MLCoarseSolver;    // DD type coarse solver for ML
-  PetscIntVec            MLCoarsenScheme;   // Coarsening scheme for ML
+  StringVec              MLCoarsenScheme;   // Coarsening scheme for ML
   PetscIntVec            MLSymmetrize;      // Symmetrize aggregation
   PetscIntVec            MLReuseInterp;     // Reuse interpolation operators between solves
   PetscIntVec            MLBlockScaling;    // Scale all dofs at each node together

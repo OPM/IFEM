@@ -761,11 +761,8 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	std::stringstream maxCoarseDof;
 	maxCoarseDof << solParams.maxCoarseSize[1];
         PetscOptionsSetValue("-fieldsplit_p_pc_ml_maxCoarseSize",maxCoarseDof.str().c_str());
-	if (!solParams.MLCoarsenScheme.empty()) {
-	  std::stringstream coarsenScheme;
-	  coarsenScheme << solParams.MLCoarsenScheme[1];
-	  PetscOptionsSetValue("-fieldsplit_p_pc_ml_CoarsenScheme",coarsenScheme.str().c_str());
-	}
+	if (!solParams.MLCoarsenScheme.empty()) 
+	  PetscOptionsSetValue("-fieldsplit_p_pc_ml_CoarsenScheme",solParams.MLCoarsenScheme[1].c_str());
 	if (!solParams.MLThreshold.empty()) {
 	  std::stringstream threshold;
 	  threshold << solParams.MLThreshold[1];
@@ -1083,7 +1080,7 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	    PC  cpc;
 	    PCMGGetCoarseSolve(subpc[m],&cksp);
 	    KSPSetType(cksp,"gmres");
-	    KSPSetTolerances(cksp,1.0e-4,1.0e-8,10.0,PETSC_DEFAULT);
+	    KSPSetTolerances(cksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,5);
 	    KSPGetPC(cksp,&cpc);
 	    PCSetType(cpc,"asm");
 	    PCSetUp(cpc);
@@ -1103,7 +1100,7 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	    PC  cpc;
 	    PCMGGetCoarseSolve(subpc[m],&cksp);
 	    KSPSetType(cksp,"gmres");
-	    KSPSetTolerances(cksp,1.0e-4,1.0e-8,10.0,100);
+	    KSPSetTolerances(cksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,1);
 	    KSPGetPC(cksp,&cpc);
 	    PCSetType(cpc,"ml");
 	    
@@ -1137,6 +1134,7 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	  PCMGGetCoarseSolve(subpc[m],&cksp);
 	  KSPGetPC(cksp,&cpc);
 	  PCFactorSetMatSolverPackage(cpc,solParams.MLCoarsePackage[m].c_str());
+	  PCFactorSetUpMatSolverPackage(cpc);
 	}
 	
 	PCMGGetLevels(subpc[m],&n);
