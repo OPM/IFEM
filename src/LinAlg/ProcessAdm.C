@@ -16,7 +16,9 @@
 
 ProcessAdm::ProcessAdm()
 {
+#ifdef HAS_PETSC
   MPI_Comm_dup(PETSC_COMM_SELF,&comm);
+#endif
   myPid = 0;
   nProc = 1;
   parallel = false;
