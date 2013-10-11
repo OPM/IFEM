@@ -683,7 +683,7 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
     
     //PCGAMGSetNlevels(pc,mglevels[0]);
     //PCGAMGSetCoarseEqLim(pc,maxCoarseSize[0]);
-    
+
     PCSetFromOptions(pc);
     PCSetUp(pc);
     
@@ -740,6 +740,15 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
 	  PCSetType(subcspc,PCLU);
 	  KSPSetType(subcsksp[k],KSPPREONLY);
 	}
+      }
+      else if (MLCoarseSolver[0] == "redundant") {
+	KSP cksp;
+	PC  cpc;
+	PCMGGetCoarseSolve(pc,&cksp);
+	KSPSetType(cksp,"preonly");
+	KSPGetPC(cksp,&cpc);
+	PCSetType(cpc,"redundant");
+	PCSetUp(cpc);	
       }
     }
     
