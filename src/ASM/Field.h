@@ -72,6 +72,12 @@ public:
   //! \param[out] grad Gradient of solution in a given local coordinate
   virtual bool gradFE(const FiniteElement& fe, Vector& grad) const = 0;
 
+  //! \brief Computes the hessian for a given local coordinate.
+  //! \param[in] fe Finite element quantities
+  //! \param[out] d2UdX2 Hessian of solution in a given local coordinate
+  virtual bool hessianFE(const FiniteElement& fe, Matrix& d2UdX2) const
+  { return false; }
+
   //! \brief Computes the gradient for a given global/physical coordinate.
   //! \param[in] x Global coordinate
   //! \param[out] grad Gradient of solution in a given global coordinate
