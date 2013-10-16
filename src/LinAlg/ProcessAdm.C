@@ -12,10 +12,12 @@
 //==============================================================================
 
 #include "ProcessAdm.h"
+#include "LinAlgInit.h"
 #include <iostream>
 
 ProcessAdm::ProcessAdm()
 {
+  LinAlgInit::increfs();
 #ifdef HAS_PETSC
   MPI_Comm_dup(PETSC_COMM_SELF,&comm);
 #endif
@@ -38,6 +40,7 @@ ProcessAdm::ProcessAdm(MPI_Comm& mpi_comm)
   nProc = 1;
   parallel = false;
 #endif
+  LinAlgInit::decrefs();
 }
 #endif
 
