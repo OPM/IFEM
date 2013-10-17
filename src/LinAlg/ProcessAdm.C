@@ -29,6 +29,7 @@ ProcessAdm::ProcessAdm()
 #ifdef HAS_PETSC
 ProcessAdm::ProcessAdm(MPI_Comm& mpi_comm)
 {
+  LinAlgInit::increfs();
 #ifdef PARALLEL_PETSC
   MPI_Comm_dup(mpi_comm,&comm);
   MPI_Comm_rank(comm,&myPid);
@@ -40,7 +41,6 @@ ProcessAdm::ProcessAdm(MPI_Comm& mpi_comm)
   nProc = 1;
   parallel = false;
 #endif
-  LinAlgInit::decrefs();
 }
 #endif
 
@@ -53,6 +53,7 @@ ProcessAdm::~ProcessAdm()
     MPI_Comm_free(&comm);
 #endif  
   parallel = false;
+  LinAlgInit::decrefs();
 }
 
 #ifdef HAS_PETSC
