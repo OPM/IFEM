@@ -21,6 +21,7 @@ TimeStep::TimeStep () : step(0), iter(time.it), lstep(0)
   starTime = time.t = 0.0;
   stopTime = time.dt = 1.0;
   dtMin = dtMax = 1.0;
+  nInitStep = 0;
   maxCFL = 0.0;
   f1 = 1.5;
   f2 = 0.25;
@@ -38,6 +39,7 @@ TimeStep& TimeStep::operator= (const TimeStep& ts)
   dtMin = ts.dtMin;
   dtMax = ts.dtMax;
   maxCFL = ts.maxCFL;
+  nInitStep = ts.nInitStep;
   f1 = ts.f1;
   f2 = ts.f2;
   maxStep = ts.maxStep;
@@ -101,6 +103,7 @@ bool TimeStep::parse (const TiXmlElement* elem)
   utl::getAttribute(elem,"dtMin",dtMin);
   utl::getAttribute(elem,"dtMax",dtMax);
   utl::getAttribute(elem,"maxCFL",maxCFL);
+  utl::getAttribute(elem,"nInitStep",nInitStep);
   utl::getAttribute(elem,"maxStep",maxStep);
   utl::getAttribute(elem,"f1",f1);
   utl::getAttribute(elem,"f2",f2);
@@ -170,9 +173,18 @@ bool TimeStep::increment ()
 {
   time.dtn = time.dt;
 
-  if (maxCFL > 0.0 && time.CFL > 1.0e-12)
-    // Adjust time step size according to CFL number
-    time.dt *= maxCFL/time.CFL;
+  if (maxCFL > 0.0 && time.CFL > 1.0e-12) {
+    // Increase CFL by a given factor
+    if (step > nInitStep) {
+      double dt = maxCFL/time.CFL;
+      if (dt > time.dt*f1)
+	time.dt *= f1;
+      else {
+	time.dt = dt;
+	maxCFL *= f1;
+      }
+    }
+  }
   else if (stepIt != mySteps.end())
     if (++lstep <= stepIt->first.size())
       time.dt = stepIt->first[lstep-1];
