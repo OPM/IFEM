@@ -42,7 +42,7 @@ void LinSolParams::setDefault ()
   noPostSmooth.resize(1,1);
   noFineSmooth.resize(1,1);
   maxCoarseSize.resize(1,1000);
-  GAMGtype.resize(1,"geo");
+  GAMGtype.resize(1,"agg");
   GAMGrepartition.resize(1,PETSC_FALSE);
   GAMGuseAggGasm.resize(1,PETSC_FALSE);
   overlap.resize(1,1);
