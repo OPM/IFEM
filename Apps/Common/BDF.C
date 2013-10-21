@@ -39,7 +39,7 @@ void TimeIntegration::BDF::setOrder (int order)
 
 void TimeIntegration::BDF::advanceStep (double dt, double dtn)
 {
-  if (++step > 1 && coefs.size() == 3) {
+  if (++step > 2 && coefs.size() == 3) {
     double tau = dt/dtn;
     double taup1 = tau + 1.0;
 

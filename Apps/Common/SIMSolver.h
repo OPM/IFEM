@@ -35,7 +35,7 @@ public:
   virtual ~SIMSolver() {}
 
   //! \brief Advances the time step one step forward.
-  bool advanceStep() { return S1.advanceStep(tp) && tp.increment(); }
+  bool advanceStep() { return tp.increment() && S1.advanceStep(tp); }
   //! \brief Advances the time step \a n steps forward.
   void fastForward(int n) { for (int i = 0; i < n; i++) this->advanceStep(); }
 
