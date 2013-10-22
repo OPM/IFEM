@@ -375,14 +375,16 @@ bool ASMs3DLag::integrate (Integrand& integrand,
 
   // === Assembly loop over all elements in the patch ==========================
 
-  bool ok=true;
-  for (size_t g=0;g<threadGroupsVol.size() && ok;++g) {
+  bool ok = true;
+  for (size_t g = 0; g < threadGroupsVol.size() && ok; g++)
+  {
 #pragma omp parallel for schedule(static)
-    for (size_t t=0;t<threadGroupsVol[g].size();++t) {
+    for (size_t t = 0; t < threadGroupsVol[g].size(); t++)
+    {
       FiniteElement fe(p1*p2*p3);
       Matrix dNdu, Xnod, Jac;
       Vec4   X;
-      for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; ++l)
+      for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; l++)
       {
         int iel = threadGroupsVol[g][t][l];
         int i1  =  iel % nel1;
@@ -579,9 +581,11 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
   // === Assembly loop over all elements on the patch face =====================
 
   bool ok = true;
-  for (size_t g = 0; g < threadGrp.size() && ok; ++g) {
+  for (size_t g = 0; g < threadGrp.size() && ok; g++)
+  {
 #pragma omp parallel for schedule(static)
-    for (size_t t = 0; t < threadGrp[g].size(); ++t) {
+    for (size_t t = 0; t < threadGrp[g].size(); t++)
+    {
       FiniteElement fe(p1*p2*p3);
       fe.u = upar.front();
       fe.v = vpar.front();
@@ -592,7 +596,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
       Vec3   normal;
       double xi[3];
 
-      for (size_t l = 0; l < threadGrp[g][t].size() && ok; ++l)
+      for (size_t l = 0; l < threadGrp[g][t].size() && ok; l++)
       {
         int iel = threadGrp[g][t][l];
         int i1  =  iel % nel1;
@@ -938,9 +942,10 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   size_t nPoints = coord.size();
   IntVec check(nPoints,0);
 
-  Vector N(p1*p2*p3), solPt;
-  std::vector<Vector> globSolPt(nPoints);
-  Matrix dNdu, dNdX, Xnod, Jac;
+  FiniteElement fe(p1*p2*p3);
+  Vector        solPt;
+  Vectors       globSolPt(nPoints);
+  Matrix        dNdu, Xnod, Jac;
 
   // Evaluate the secondary solution field at each point
   const int nel = this->getNoElms(true);
@@ -954,18 +959,18 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       for (j = 0; j < p2; j++)
 	for (i = 0; i < p1; i++, loc++)
 	{
-	  double xi   = -1.0 + i*incx;
-	  double eta  = -1.0 + j*incy;
-	  double zeta = -1.0 + k*incz;
-	  if (!Lagrange::computeBasis(N,dNdu,p1,xi,p2,eta,p3,zeta))
+	  fe.xi   = -1.0 + i*incx;
+	  fe.eta  = -1.0 + j*incy;
+	  fe.zeta = -1.0 + k*incz;
+	  if (!Lagrange::computeBasis(fe.N,dNdu,p1,fe.xi,p2,fe.eta,p3,fe.zeta))
 	    return false;
 
 	  // Compute the Jacobian inverse
-	  if (utl::Jacobian(Jac,dNdX,Xnod,dNdu) == 0.0) // Jac = (Xnod*dNdu)^-1
+	  if (utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu) == 0.0) // Jac = (X*dNdu)^-1
 	    continue; // skip singular points
 
 	  // Now evaluate the solution field
-	  if (!integrand.evalSol(solPt,N,dNdX,Xnod*N,mnpc))
+	  if (!integrand.evalSol(solPt,fe,Xnod*fe.N,mnpc))
 	    return false;
 	  else if (sField.empty())
 	    sField.resize(solPt.size(),nPoints,true);
@@ -978,7 +983,7 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   }
 
   for (size_t i = 0; i < nPoints; i++)
-    sField.fillColumn(1+i,globSolPt[i]/=check[i]);
+    sField.fillColumn(1+i,globSolPt[i] /= check[i]);
 
   return true;
 }

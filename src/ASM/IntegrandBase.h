@@ -134,43 +134,6 @@ public:
 
   //! \brief Evaluates the secondary solution at a result point.
   //! \param[out] s The solution field values at current point
-  //! \param[in] N Basis function values at current point
-  //! \param[in] dNdX Basis function gradients at current point
-  //! \param[in] X Cartesian coordinates of current point
-  //! \param[in] MNPC Nodal point correspondance for the basis function values
-  virtual bool evalSol(Vector& s,
-		       const Vector& N, const Matrix& dNdX,
-		       const Vec3& X, const std::vector<int>& MNPC) const;
-
-  //! \brief Evaluates the secondary solution at a result point.
-  //! \param[out] s The solution field values at current point
-  //! \param[in] N Basis function values at current point
-  //! \param[in] dNdX Basis function gradients at current point
-  //! \param[in] d2NdX2 Basis function 2nd derivatives at current point
-  //! \param[in] X Cartesian coordinates of current point
-  //! \param[in] MNPC Nodal point correspondance for the basis function values
-  virtual bool evalSol(Vector& s,
-		       const Vector& N, const Matrix& dNdX,
-		       const Matrix3D& d2NdX2,
-		       const Vec3& X, const std::vector<int>& MNPC) const;
-
-  //! \brief Evaluates the secondary solution at a result point (mixed problem).
-  //! \param[out] s The solution field values at current point
-  //! \param[in] N1 Basis function values at current point, field 1
-  //! \param[in] N2 Basis function values at current point, field 2
-  //! \param[in] dN1dX Basis function gradients at current point, field 1
-  //! \param[in] dN2dX Basis function gradients at current point, field 2
-  //! \param[in] X Cartesian coordinates of current point
-  //! \param[in] MNPC1 Nodal point correspondance for the basis 1
-  //! \param[in] MNPC2 Nodal point correspondance for the basis 2
-  virtual bool evalSol(Vector& s,
-		       const Vector& N1, const Vector& N2,
-		       const Matrix& dN1dX, const Matrix& dN2dX, const Vec3& X,
-		       const std::vector<int>& MNPC1,
-		       const std::vector<int>& MNPC2) const;
-
-  //! \brief Evaluates the secondary solution at a result point.
-  //! \param[out] s The solution field values at current point
   //! \param[in] fe Finite element data at current point
   //! \param[in] X Cartesian coordinates of current point
   //! \param[in] MNPC Nodal point correspondance for the basis function values

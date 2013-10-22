@@ -23,6 +23,17 @@
 
 
 /*!
+  \brief Convenience function writing error message for non-implemented methods.
+*/
+
+static bool Ierror (const char* name)
+{
+  std::cerr <<" *** IntegrandBase::"<< name <<" not implemented."<< std::endl;
+  return false;
+}
+
+
+/*!
   The default implementation returns an ElmMats object with one left-hand-side
   matrix (unless we are doing a boundary integral) and one right-hand-side
   vector. The dimension of the element matrices are assumed to be \a npv*nen.
@@ -114,64 +125,36 @@ bool IntegrandBase::initElementBou (const std::vector<int>& MNPC1,
 }
 
 
-bool IntegrandBase::evalSol (Vector&, const Vector&, const Matrix&,
-			     const Vec3&, const std::vector<int>&) const
-{
-  std::cerr <<" *** IntegrandBase::evalSol not implemented."<< std::endl;
-  return false;
-}
-
-
-bool IntegrandBase::evalSol (Vector& s, const Vector& N,
-			     const Matrix& dNdX, const Matrix3D&,
-			     const Vec3& X, const std::vector<int>& MNPC) const
-{
-  return this->evalSol(s,N,dNdX,X,MNPC);
-}
-
-
-bool IntegrandBase::evalSol (Vector& s, const Vector& N1, const Vector&,
-			     const Matrix& dN1dX, const Matrix&, const Vec3& X,
-			     const std::vector<int>& MNPC1,
-			     const std::vector<int>&) const
-{
-  return this->evalSol(s,N1,dN1dX,X,MNPC1);
-}
-
-
 bool IntegrandBase::evalSol (Vector& s, const FiniteElement& fe,
 			     const Vec3& X, const std::vector<int>& MNPC) const
 {
-  return this->evalSol(s,fe.N,fe.dNdX,fe.d2NdX2,X,MNPC);
+  return Ierror("evalSol");
 }
 
 
 bool IntegrandBase::evalSol (Vector& s, const MxFiniteElement& fe,
 			     const Vec3& X, const std::vector<int>& MNPC1,
-		             const std::vector<int>& MNPC2) const
+		             const std::vector<int>&) const
 {
-  return this->evalSol(s,fe.N1,fe.N2,fe.dN1dX,fe.dN2dX,X,MNPC1,MNPC2);
+  return this->evalSol(s,fe,X,MNPC1);
 }
 
 
 bool IntegrandBase::evalSol (Vector&, const TensorFunc&, const Vec3&) const
 {
-  std::cerr <<" *** IntegrandBase::evalSol not implemented."<< std::endl;
-  return false;
+  return Ierror("evalSol(Vector&,const TensorFunc&, const Vec3&)");
 }
 
 
 bool IntegrandBase::evalSol (Vector&, const STensorFunc&, const Vec3&) const
 {
-  std::cerr <<" *** IntegrandBase::evalSol not implemented."<< std::endl;
-  return false;
+  return Ierror("evalSol(Vector&,const STensorFunc&, const Vec3&)");
 }
 
 
 bool IntegrandBase::evalSol (Vector&, const VecFunc&, const Vec3&) const
 {
-  std::cerr <<" *** IntegrandBase::evalSol not implemented."<< std::endl;
-  return false;
+  return Ierror("evalSol(Vector&,const VecFunc&, const Vec3&)");
 }
 
 
@@ -188,13 +171,13 @@ void IntegrandBase::registerVector (const std::string& name, Vector* vec)
 }
 
 
-void IntegrandBase::setNamedField(const std::string&, Field* f)
+void IntegrandBase::setNamedField (const std::string&, Field* f)
 {
   delete f;
 }
 
 
-void IntegrandBase::setNamedFields(const std::string&, Fields* f)
+void IntegrandBase::setNamedFields (const std::string&, Fields* f)
 {
   delete f;
 }

@@ -166,10 +166,10 @@ bool ASMs1DSpec::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   size_t nPoints = this->getNoNodes();
   IntVec check(nPoints,0);
 
-  Vector N(p1), solPt;
-  std::vector<Vector> globSolPt;
-  globSolPt.resize(nPoints);
-  Matrix dNdu(p1,1), dNdX, Xnod, Jac;
+  FiniteElement fe(p1);
+  Vector        solPt;
+  Vectors       globSolPt(nPoints);
+  Matrix        dNdu(p1,1), Xnod, Jac;
 
   // Evaluate the secondary solution field at each point
   const int nel = this->getNoElms();
@@ -180,16 +180,16 @@ bool ASMs1DSpec::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     for (int i = 0; i < p1; i++)
     {
-      N.fill(0.0);
-      N(i+1) = 1.0;
+      fe.N.fill(0.0);
+      fe.N(i+1) = 1.0;
       dNdu.fillColumn(1,D1.getRow(i+1));
 
       // Compute the Jacobian inverse
-      if (utl::Jacobian(Jac,dNdX,Xnod,dNdu) == 0.0) // Jac = (Xnod * dNdu)^-1
+      if (utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu) == 0.0) // Jac = (Xnod*dNdu)^-1
         continue; // skip singular points
 
       // Now evaluate the solution field
-      if (!integrand.evalSol(solPt,N,dNdX,Xnod.getColumn(i+1),mnpc))
+      if (!integrand.evalSol(solPt,fe,Xnod.getColumn(i+1),mnpc))
 	return false;
       else if (sField.empty())
 	sField.resize(solPt.size(),nPoints,true);
@@ -202,7 +202,7 @@ bool ASMs1DSpec::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   }
 
   for (size_t i = 0; i < nPoints; i++)
-    sField.fillColumn(1+i,globSolPt[i]/=check[i]);
+    sField.fillColumn(1+i,globSolPt[i] /= check[i]);
 
   return true;
 }

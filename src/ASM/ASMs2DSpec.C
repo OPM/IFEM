@@ -99,14 +99,17 @@ bool ASMs2DSpec::integrate (Integrand& integrand,
 
   // === Assembly loop over all elements in the patch ==========================
 
-  bool ok=true;
-  for (size_t g=0;g<threadGroups.size() && ok;++g) {
+  bool ok = true;
+  for (size_t g = 0; g < threadGroups.size() && ok; g++)
+  {
 #pragma omp parallel for schedule(static)
-    for (size_t t=0;t<threadGroups[g].size();++t) {
+    for (size_t t = 0; t < threadGroups[g].size(); t++)
+    {
       FiniteElement fe(p1*p2);
       Matrix dNdu(p1*p2,2), Xnod, Jac;
       Vec4   X;
-      for (size_t e=0;e<threadGroups[g][t].size();++e) {
+      for (size_t e = 0; e < threadGroups[g][t].size(); e++)
+      {
         int iel = threadGroups[g][t][e]+1;
 
         // Set up control point coordinates for current element
@@ -121,6 +124,7 @@ bool ASMs2DSpec::integrate (Integrand& integrand,
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
         if (!integrand.initElement(MNPC[iel-1],*A))
         {
+          A->destruct();
           ok = false;
           break;
         }
@@ -148,18 +152,12 @@ bool ASMs2DSpec::integrate (Integrand& integrand,
             // Evaluate the integrand and accumulate element contributions
             fe.detJxW *= wg1(i)*wg2(j);
             if (!integrand.evalInt(*A,fe,time,X))
-            {
               ok = false;
-              break;
-            }
           }
 
         // Assembly of global system integral
-        if (!glInt.assemble(A->ref(),fe.iel))
-        {
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
           ok = false;
-          break;
-        }
 
         A->destruct();
       }
@@ -297,9 +295,10 @@ bool ASMs2DSpec::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   size_t nPoints = this->getNoNodes();
   IntVec check(nPoints,0);
 
-  Vector N(p1*p2), solPt;
-  std::vector<Vector> globSolPt(nPoints);
-  Matrix dNdu(p1*p2,2), dNdX, Xnod, Jac;
+  FiniteElement fe(p1*p2);
+  Vector        solPt;
+  Vectors       globSolPt(nPoints);
+  Matrix        dNdu(p1*p2,2), Xnod, Jac;
 
   // Evaluate the secondary solution field at each point
   const int nel = this->getNoElms();
@@ -312,14 +311,14 @@ bool ASMs2DSpec::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     for (j = 0; j < p2; j++)
       for (i = 0; i < p1; i++, loc++)
       {
-	evalBasis(i+1,j+1,p1,p2,D1,D2,N,dNdu);
+	evalBasis(i+1,j+1,p1,p2,D1,D2,fe.N,dNdu);
 
 	// Compute the Jacobian inverse
-	if (utl::Jacobian(Jac,dNdX,Xnod,dNdu) == 0.0) // Jac = (Xnod * dNdu)^-1
+	if (utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu) == 0.0) // Jac = (Xnod*dNdu)^-1
 	  continue; // skip singular points
 
 	// Now evaluate the solution field
-	if (!integrand.evalSol(solPt,N,dNdX,Xnod.getColumn(loc+1),mnpc))
+	if (!integrand.evalSol(solPt,fe,Xnod.getColumn(loc+1),mnpc))
 	  return false;
 	else if (sField.empty())
 	  sField.resize(solPt.size(),nPoints,true);
@@ -332,7 +331,7 @@ bool ASMs2DSpec::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   }
 
   for (size_t i = 0; i < nPoints; i++)
-    sField.fillColumn(1+i,globSolPt[i]/=check[i]);
+    sField.fillColumn(1+i,globSolPt[i] /= check[i]);
 
   return true;
 }

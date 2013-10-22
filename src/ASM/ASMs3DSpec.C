@@ -104,14 +104,17 @@ bool ASMs3DSpec::integrate (Integrand& integrand,
 
   // === Assembly loop over all elements in the patch ==========================
 
-  bool ok=true;
-  for (size_t g=0;g<threadGroupsVol.size() && ok;++g) {
+  bool ok = true;
+  for (size_t g = 0; g < threadGroupsVol.size() && ok; g++)
+  {
 #pragma omp parallel for schedule(static)
-    for (size_t t=0;t<threadGroupsVol[g].size();++t) {
+    for (size_t t = 0; t < threadGroupsVol[g].size(); t++)
+    {
       FiniteElement fe(p1*p2*p3);
       Matrix   dNdu(p1*p2*p3,3), Xnod, Jac;
       Vec4     X;
-      for (size_t l=0;l<threadGroupsVol[g][t].size();++l) {
+      for (size_t l = 0; l < threadGroupsVol[g][t].size(); l++)
+      {
         int iel = threadGroupsVol[g][t][l]+1;
 
         // Set up nodal point coordinates for current element
@@ -126,6 +129,7 @@ bool ASMs3DSpec::integrate (Integrand& integrand,
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
         if (!integrand.initElement(MNPC[iel-1],*A))
         {
+          A->destruct();
           ok = false;
           break;
         }
@@ -155,18 +159,12 @@ bool ASMs3DSpec::integrate (Integrand& integrand,
               // Evaluate the integrand and accumulate element contributions
               fe.detJxW *= wg1(i)*wg2(j)*wg3(k);
               if (!integrand.evalInt(*A,fe,time,X))
-              {
                 ok = false;
-                break;
-              }
             }
 
 	// Assembly of global system integral
-	if (!glInt.assemble(A->ref(),fe.iel))
-        {
+	if (ok && !glInt.assemble(A->ref(),fe.iel))
           ok = false;
-          break;
-        }
 
         A->destruct();
       }
@@ -223,15 +221,18 @@ bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
   // === Assembly loop over all elements on the patch face =====================
 
   bool ok = true;
-  for (size_t g = 0; g < threadGrp.size() && ok; ++g) {
+  for (size_t g = 0; g < threadGrp.size() && ok; g++)
+  {
 #pragma omp parallel for schedule(static)
-    for (size_t t = 0; t < threadGrp[g].size(); ++t) {
+    for (size_t t = 0; t < threadGrp[g].size(); t++)
+    {
       FiniteElement fe(nen);
       Matrix dNdu(nen,3), Xnod, Jac;
       Vec4   X;
       Vec3   normal;
       int    xi[3];
-      for (size_t l = 0; l < threadGrp[g][t].size(); ++l) {
+      for (size_t l = 0; l < threadGrp[g][t].size(); l++)
+      {
         int iel = threadGrp[g][t][l];
 
 	// Set up nodal point coordinates for current element
@@ -246,6 +247,7 @@ bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
         LocalIntegral* A = integrand.getLocalIntegral(nen,fe.iel,true);
         if (!integrand.initElementBou(MNPC[iel-1],*A))
         {
+          A->destruct();
           ok = false;
           break;
         }
@@ -278,18 +280,12 @@ bool ASMs3DSpec::integrate (Integrand& integrand, int lIndex,
 	    // Evaluate the integrand and accumulate element contributions
 	    fe.detJxW *=  wg[t1-1][i]*wg[t2-1][j];
             if (!integrand.evalBou(*A,fe,time,X,normal))
-            {
               ok = false;
-              break;
-            }
 	  }
 
 	// Assembly of global system integral
-        if (!glInt.assemble(A->ref(),fe.iel))
-        {
+        if (ok && !glInt.assemble(A->ref(),fe.iel))
           ok = false;
-          break;
-        }
 
         A->destruct();
       }
@@ -451,9 +447,10 @@ bool ASMs3DSpec::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   size_t nPoints = this->getNoNodes();
   IntVec check(nPoints,0);
 
-  Vector  N(p1*p2*p3), solPt;
-  Vectors globSolPt(nPoints);
-  Matrix  dNdu(p1*p2*p3,3), dNdX, Xnod, Jac;
+  FiniteElement fe(p1*p2*p3);
+  Vector        solPt;
+  Vectors       globSolPt(nPoints);
+  Matrix        dNdu(p1*p2*p3,3), Xnod, Jac;
 
   // Evaluate the secondary solution field at each point
   const int nel = this->getNoElms();
@@ -467,14 +464,14 @@ bool ASMs3DSpec::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       for (j = 0; j < p2; j++)
 	for (i = 0; i < p1; i++, loc++)
 	{
-	  evalBasis(i+1,j+1,k+1,p1,p2,p3,D1,D2,D3,N,dNdu);
+	  evalBasis(i+1,j+1,k+1,p1,p2,p3,D1,D2,D3,fe.N,dNdu);
 
 	  // Compute the Jacobian inverse
-	  if (utl::Jacobian(Jac,dNdX,Xnod,dNdu) == 0.0) // Jac = (Xnod*dNdu)^-1
+	  if (utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu) == 0.0) // Jac = (X*dNdu)^-1
 	    continue; // skip singular points
 
 	  // Now evaluate the solution field
-	  if (!integrand.evalSol(solPt,N,dNdX,Xnod.getColumn(loc+1),mnpc))
+	  if (!integrand.evalSol(solPt,fe,Xnod.getColumn(loc+1),mnpc))
 	    return false;
 	  else if (sField.empty())
 	    sField.resize(solPt.size(),nPoints,true);
@@ -487,7 +484,7 @@ bool ASMs3DSpec::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   }
 
   for (size_t i = 0; i < nPoints; i++)
-    sField.fillColumn(1+i,globSolPt[i]/=check[i]);
+    sField.fillColumn(1+i,globSolPt[i] /= check[i]);
 
   return true;
 }

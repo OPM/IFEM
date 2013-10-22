@@ -470,9 +470,10 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   size_t nPoints = coord.size();
   IntVec check(nPoints,0);
 
-  Vector N(p1), solPt;
-  std::vector<Vector> globSolPt(nPoints);
-  Matrix dNdu, dNdX, Xnod, Jac;
+  FiniteElement fe(p1);
+  Vector        solPt;
+  Vectors       globSolPt(nPoints);
+  Matrix        dNdu, Xnod, Jac;
 
   // Evaluate the secondary solution field at each point
   const int nel = this->getNoElms(true);
@@ -483,24 +484,24 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     for (int loc = 0; loc < p1; loc++)
     {
-      double xi = -1.0 + loc*incx;
+      fe.xi = -1.0 + loc*incx;
       if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
       {
-        if (!Lagrange::computeBasis(N,p1,xi))
+        if (!Lagrange::computeBasis(fe.N,p1,fe.xi))
           return false;
       }
       else
       {
-        if (!Lagrange::computeBasis(N,dNdu,p1,xi))
+        if (!Lagrange::computeBasis(fe.N,dNdu,p1,fe.xi))
           return false;
 
         // Compute the Jacobian inverse
-        if (utl::Jacobian(Jac,dNdX,Xnod,dNdu) == 0.0) // Jac = (Xnod * dNdu)^-1
+        if (utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu) == 0.0) // Jac = (Xnod*dNdu)^-1
           continue; // skip singular points
       }
 
       // Now evaluate the solution field
-      if (!integrand.evalSol(solPt,N,dNdX,Xnod*N,mnpc))
+      if (!integrand.evalSol(solPt,fe,Xnod*fe.N,mnpc))
 	return false;
       else if (sField.empty())
 	sField.resize(solPt.size(),nPoints,true);
@@ -513,7 +514,7 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   }
 
   for (size_t i = 0; i < nPoints; i++)
-    sField.fillColumn(1+i,globSolPt[i]/=check[i]);
+    sField.fillColumn(1+i,globSolPt[i] /= check[i]);
 
   return true;
 }

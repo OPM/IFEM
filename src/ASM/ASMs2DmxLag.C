@@ -238,10 +238,12 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
 
   // === Assembly loop over all elements in the patch ==========================
 
-  bool ok=true;
-  for (size_t g=0;g<threadGroups.size() && ok;++g) {
+  bool ok = true;
+  for (size_t g = 0; g < threadGroups.size() && ok; g++)
+  {
 #pragma omp parallel for schedule(static)
-    for (size_t t=0;t<threadGroups[g].size();++t) {
+    for (size_t t = 0; t < threadGroups[g].size(); t++)
+    {
       MxFiniteElement fe(p1*p2,q1*q2);
       Matrix dN1du, dN2du, Xnod, Jac;
       Vec4   X;
@@ -481,9 +483,10 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   size_t nPoints = nb1;
   IntVec check(nPoints,0);
 
-  Vector N1(p1*p2), N2(q1*q2), solPt;
-  std::vector<Vector> globSolPt(nPoints);
-  Matrix dN1du, dN2du, dN1dX, dN2dX, Xnod, Jac;
+  MxFiniteElement fe(p1*p2,q1*q2);
+  Vector          solPt;
+  Vectors         globSolPt(nPoints);
+  Matrix          dN1du, dN2du, Xnod, Jac;
 
   // Evaluate the secondary solution field at each point
   const int nel = this->getNoElms(true);
@@ -501,18 +504,18 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       {
 	double xi  = -1.0 + i*incx;
 	double eta = -1.0 + j*incy;
-	if (!Lagrange::computeBasis(N1,dN1du,p1,xi,p2,eta) ||
-	    !Lagrange::computeBasis(N2,dN2du,q1,xi,q2,eta))
+	if (!Lagrange::computeBasis(fe.N1,dN1du,p1,xi,p2,eta) ||
+	    !Lagrange::computeBasis(fe.N2,dN2du,q1,xi,q2,eta))
 	  return false;
 
 	// Compute the Jacobian inverse
-	if (utl::Jacobian(Jac,dN1dX,Xnod,dN1du) == 0.0) // Jac = (Xnod*dN1du)^-1
+	if (utl::Jacobian(Jac,fe.dN1dX,Xnod,dN1du) == 0.0) // Jac = (X*dN1du)^-1
 	  continue; // skip singular points
 	else
-	  dN2dX.multiply(dN2du,Jac); // dN2dX = dN2du * J^-1
+	  fe.dN2dX.multiply(dN2du,Jac); // dN2dX = dN2du * J^-1
 
 	// Now evaluate the solution field
-	if (!integrand.evalSol(solPt,N1,N2,dN1dX,dN2dX,Xnod*N1,mnpc1,mnpc2))
+	if (!integrand.evalSol(solPt,fe,Xnod*fe.N1,mnpc1,mnpc2))
 	  return false;
 	else if (sField.empty())
 	  sField.resize(solPt.size(),nPoints,true);
@@ -525,7 +528,7 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   }
 
   for (size_t i = 0; i < nPoints; i++)
-    sField.fillColumn(1+i,globSolPt[i]/=check[i]);
+    sField.fillColumn(1+i,globSolPt[i] /= check[i]);
 
   return true;
 }

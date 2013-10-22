@@ -263,14 +263,16 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
 
   // === Assembly loop over all elements in the patch ==========================
 
-  bool ok=true;
-  for (size_t g=0;g<threadGroupsVol.size() && ok;++g) {
+  bool ok = true;
+  for (size_t g = 0; g < threadGroupsVol.size() && ok; g++)
+  {
 #pragma omp parallel for schedule(static)
-    for (size_t t=0;t<threadGroupsVol[g].size();++t) {
+    for (size_t t = 0; t < threadGroupsVol[g].size(); t++)
+    {
       MxFiniteElement fe(p1*p2*p3,q1*q2*q3);
       Matrix dN1du, dN2du, Xnod, Jac;
       Vec4   X;
-      for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; ++l)
+      for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; l++)
       {
         int iel = threadGroupsVol[g][t][l];
         int i1  =  iel % nelx;
@@ -319,8 +321,10 @@ bool ASMs3DmxLag::integrate (Integrand& integrand,
 
               // Compute basis function derivatives at current integration point
               // using tensor product of one-dimensional Lagrange polynomials
-              if (!Lagrange::computeBasis(fe.N1,dN1du,p1,x[i],p2,x[j],p3,x[k]) ||
-                  !Lagrange::computeBasis(fe.N2,dN2du,q1,x[i],q2,x[j],q3,x[k]))
+              if (!Lagrange::computeBasis(fe.N1,dN1du,
+                                          p1,x[i],p2,x[j],p3,x[k]) ||
+                  !Lagrange::computeBasis(fe.N2,dN2du,
+                                          q1,x[i],q2,x[j],q3,x[k]))
                 ok = false;
 
               // Compute Jacobian inverse of coordinate mapping and derivatives
@@ -399,16 +403,19 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
   // === Assembly loop over all elements on the patch face =====================
 
   bool ok = true;
-  for (size_t g = 0; g < threadGrp.size() && ok; ++g) {
+  for (size_t g = 0; g < threadGrp.size() && ok; g++)
+  {
 #pragma omp parallel for schedule(static)
-    for (size_t t = 0; t < threadGrp[g].size(); ++t) {
+    for (size_t t = 0; t < threadGrp[g].size(); t++)
+    {
       MxFiniteElement fe(p1*p2*p3,q1*q2*q3);
       Matrix dN1du, dN2du, Xnod, Jac;
       Vec4   X;
       Vec3   normal;
       double xi[3];
 
-      for (size_t l = 0; l < threadGrp[g][t].size() && ok; ++l) {
+      for (size_t l = 0; l < threadGrp[g][t].size() && ok; l++)
+      {
         int iel = threadGrp[g][t][l];
         int i1  =  iel % nel1;
         int i2  = (iel / nel1) % nel2;
@@ -460,8 +467,10 @@ bool ASMs3DmxLag::integrate (Integrand& integrand, int lIndex,
 
 	    // Compute the basis functions and their derivatives, using
 	    // tensor product of one-dimensional Lagrange polynomials
-	    if (!Lagrange::computeBasis(fe.N1,dN1du,p1,xi[0],p2,xi[1],p3,xi[2]) ||
-		!Lagrange::computeBasis(fe.N2,dN2du,q1,xi[0],q2,xi[1],q3,xi[2]))
+	    if (!Lagrange::computeBasis(fe.N1,dN1du,
+                                        p1,xi[0],p2,xi[1],p3,xi[2]) ||
+		!Lagrange::computeBasis(fe.N2,dN2du,
+                                        q1,xi[0],q2,xi[1],q3,xi[2]))
               ok = false;
 
 	    // Compute basis function derivatives and the edge normal
@@ -540,9 +549,10 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   size_t nPoints = nb1;
   IntVec check(nPoints,0);
 
-  Vector N1(p1*p2*p3), N2(q1*q2*q3), solPt;
-  std::vector<Vector> globSolPt(nPoints);
-  Matrix dN1du, dN2du, dN1dX, dN2dX, Xnod, Jac;
+  MxFiniteElement fe(p1*p2*p3,q1*q2*q3);
+  Vector          solPt;
+  Vectors         globSolPt(nPoints);
+  Matrix          dN1du, dN2du, Xnod, Jac;
 
   // Evaluate the secondary solution field at each point
   const int nel = this->getNoElms(true);
@@ -559,21 +569,23 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       for (j = 0; j < p2; j++)
 	for (i = 0; i < p1; i++, loc++)
 	{
-	  double xi   = -1.0 + i*incx;
-	  double eta  = -1.0 + j*incy;
-	  double zeta = -1.0 + k*incz;
-	  if (!Lagrange::computeBasis(N1,dN1du,p1,xi,p2,eta,p3,zeta) ||
-	      !Lagrange::computeBasis(N2,dN2du,q1,xi,q2,eta,q3,zeta))
+	  fe.xi   = -1.0 + i*incx;
+	  fe.eta  = -1.0 + j*incy;
+	  fe.zeta = -1.0 + k*incz;
+	  if (!Lagrange::computeBasis(fe.N1,dN1du,
+                                      p1,fe.xi,p2,fe.eta,p3,fe.zeta) ||
+	      !Lagrange::computeBasis(fe.N2,dN2du,
+                                      q1,fe.xi,q2,fe.eta,q3,fe.zeta))
 	    return false;
 
 	  // Compute the Jacobian inverse
-	  if (utl::Jacobian(Jac,dN1dX,Xnod,dN1du) == 0.0) // Jac=(Xnod*dN1du)^-1
+	  if (utl::Jacobian(Jac,fe.dN1dX,Xnod,dN1du) == 0.0) // Jac=(X*dN1du)^-1
 	    continue; // skip singular points
 	  else
-	    dN2dX.multiply(dN2du,Jac); // dN2dX = dN2du * J^-1
+	    fe.dN2dX.multiply(dN2du,Jac); // dN2dX = dN2du * J^-1
 
 	  // Now evaluate the solution field
-	  if (!integrand.evalSol(solPt,N1,N2,dN1dX,dN2dX,Xnod*N1,mnpc1,mnpc2))
+	  if (!integrand.evalSol(solPt,fe,Xnod*fe.N1,mnpc1,mnpc2))
 	    return false;
 	  else if (sField.empty())
 	    sField.resize(solPt.size(),nPoints,true);
@@ -586,7 +598,7 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   }
 
   for (size_t i = 0; i < nPoints; i++)
-    sField.fillColumn(1+i,globSolPt[i]/=check[i]);
+    sField.fillColumn(1+i,globSolPt[i] /= check[i]);
 
   return true;
 }
