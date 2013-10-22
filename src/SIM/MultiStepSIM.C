@@ -26,7 +26,7 @@ MultiStepSIM::MultiStepSIM (SIMbase& sim)
 #endif
 
   refNopt = MAX;
-  refNorm = 1.0;
+  refNorm = 0.0;
 
   geoBlk = nBlock = 0;
 }
