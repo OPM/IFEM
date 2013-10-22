@@ -1065,15 +1065,20 @@ bool SIMoutput::savePoints (const std::string& fileName,
   if (step < 1 || myPoints.empty() || fileName.empty())
     return true;
 
+  // Append extension .dat if nothing yet
+  std::string datafile(fileName);
+  size_t idot = datafile.find_last_of('.');
+  if (idot == std::string::npos)
+  {
+    idot = datafile.size();
+    datafile.append(".dat");
+  }
+
   if (step == 1)
   {
     // Dump result point coordinates to file
-    std::string coordfile(fileName);
-    size_t idot = fileName.find_last_of('.');
-    if (idot < coordfile.size())
-      coordfile.insert(idot,"_coord");
-    else
-      coordfile.append("_coord");
+    std::string coordfile(datafile);
+    coordfile.insert(idot,"_coord");
 
     // Formatted output, use scientific notation with fixed field width
     std::streamsize flWidth = 8 + precision;
@@ -1090,6 +1095,6 @@ bool SIMoutput::savePoints (const std::string& fileName,
     }
   }
 
-  std::ofstream f(fileName.c_str(), step == 1 ? std::ios::out : std::ios::app);
+  std::ofstream f(datafile.c_str(), step == 1 ? std::ios::out : std::ios::app);
   return this->dumpResults(psol,time,f,false,precision);
 }
