@@ -369,6 +369,8 @@ public:
   virtual bool tesselate(ElementBlock& grid, const int* npe) const = 0;
   //! \brief Returns an additional geometry to visualize (immersed boundaries).
   virtual ElementBlock* immersedGeometry() const { return NULL; }
+  //! \brief Filters out result point values that are outside physical domain.
+  virtual void filterResults(Matrix&, const ElementBlock*) const {}
 
   //! \brief Extract the primary solution field at the specified nodes.
   //! \param[out] sField Solution field

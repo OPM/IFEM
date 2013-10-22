@@ -65,6 +65,11 @@ public:
   virtual bool integrate(Integrand& integrand,
                          GlobalIntegral& glbInt, const TimeDomain& time);
 
+  //! \brief Filters out result point values that are outside physical domain.
+  //! \param field Array of result values
+  //! \param[in] grid The visualization grid
+  virtual void filterResults(Matrix& field, const ElementBlock* grid) const;
+
 private:
   Immersed::Geometry* myGeometry; //!< The physical geometry description
   ElementBlock*       myLines;    //!< Sub-cell grid lines (for plotting)

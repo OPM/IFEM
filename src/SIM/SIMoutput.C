@@ -389,6 +389,8 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
     if (!myModel[i]->evalSolution(field,locvec,opt.nViz))
       return false;
 
+    myModel[i]->filterResults(field,myVtf->getBlock(geomID+1));
+
     if (psolOnly > 1 || (nVcomp == 1 && pvecName))
       geomID++; // skip output as vector field
     else if (!myVtf->writeVres(field,++nBlock,++geomID,nVcomp))
@@ -446,6 +448,8 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
     if (!myModel[i]->evalSolution(field,*myProblem,opt.nViz))
       return false;
 
+    myModel[i]->filterResults(field,myVtf->getBlock(geomID));
+
     if (scalarEq && field.rows() == this->getNoSpaceDim())
       if (!myVtf->writeVres(field,++nBlock,geomID))
         return false;
@@ -464,6 +468,8 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
 
       if (!myModel[i]->evalSolution(field,*myProblem,opt.nViz,'D'))
         return false;
+
+      myModel[i]->filterResults(field,myVtf->getBlock(geomID));
 
       for (j = 1; j <= field.rows() && k < sMAX; j++)
         if (!myVtf->writeNres(field.getRow(j),++nBlock,geomID))

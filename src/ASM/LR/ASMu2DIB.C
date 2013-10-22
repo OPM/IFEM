@@ -16,6 +16,7 @@
 
 #include "ASMu2DIB.h"
 #include "IBGeometries.h"
+#include "ElementBlock.h"
 #include "Vec3.h"
 
 
@@ -185,4 +186,16 @@ bool ASMu2DIB::integrate (Integrand& integrand,
                           GlobalIntegral& glbInt, const TimeDomain& time)
 {
   return this->ASMu2D::integrate(integrand,glbInt,time,quadPoints);
+}
+
+
+void ASMu2DIB::filterResults (Matrix& field, const ElementBlock* grid) const
+{
+  if (!myGeometry) return;
+
+  Vec3Vec::const_iterator it = grid->begin_XYZ();
+  for (size_t c = 1; c <= field.cols() && it != grid->end_XYZ(); c++, ++it)
+    if (myGeometry->Alpha(it->x,it->y) < 1.0)
+      for (size_t r = 1; r <= field.rows(); r++)
+        field(r,c) = 0.0;
 }
