@@ -291,6 +291,7 @@ namespace utl //! General utility classes and functions.
     vector<T> getColumn(size_t c) const
     {
       CHECK_INDEX("matrix::getColumn: Column-index ",c,ncol);
+      if (ncol < 2) return elem;
       vector<T> col(nrow);
       memcpy(col.ptr(),this->ptr(c-1),nrow*sizeof(T));
       return col;
@@ -519,6 +520,9 @@ namespace utl //! General utility classes and functions.
       return true;
     }
 
+    //! \brief Return the Euclidean norm of the matrix.
+    T norm2() const { return elem.norm2(); }
+
     //! \brief Return the infinite norm of the matrix.
     T normInf() const
     {
@@ -705,6 +709,9 @@ namespace utl //! General utility classes and functions.
     //! \brief Fill the matrix with a scalar value.
     void fill(const T& s) { std::fill(elem.begin(),elem.end(),s); }
 
+    //! \brief Multiplication of this matrix by a scalar \a c.
+    matrix3d<T>& multiply(const T& c);
+
     /*! \brief Matrix-matrix multiplication.
       \details Performs one of the following operations (\b C = \a *this):
       -# \f$ {\bf C} = {\bf A} {\bf B} \f$
@@ -868,6 +875,20 @@ namespace utl //! General utility classes and functions.
 
   template<> inline
   matrix<double>& matrix<double>::multiply(const double& c)
+  {
+    cblas_dscal(this->size(),c,this->ptr(),1);
+    return *this;
+  }
+
+  template<> inline
+  matrix3d<float>& matrix3d<float>::multiply(const float& c)
+  {
+    cblas_sscal(this->size(),c,this->ptr(),1);
+    return *this;
+  }
+
+  template<> inline
+  matrix3d<double>& matrix3d<double>::multiply(const double& c)
   {
     cblas_dscal(this->size(),c,this->ptr(),1);
     return *this;
@@ -1171,6 +1192,14 @@ namespace utl //! General utility classes and functions.
   }
 
   template<class T> inline
+  matrix3d<T>& matrix3d<T>::multiply(const T& c)
+  {
+    for (size_t i = 0; i < elem.size(); i++)
+      elem[i] *= c;
+    return *this;
+  }
+
+  template<class T> inline
   bool matrix<T>::multiply(const std::vector<T>& X, std::vector<T>& Y,
                            bool transA, bool addTo) const
   {
@@ -1394,10 +1423,10 @@ namespace utl //! General utility classes and functions.
   }
 
   //! \brief Print the 3D matrix \b A to the stream \a s.
-  //! \details The matrix is priinted as a set of 2D sub-matrices
+  //! \details The matrix is printed as a set of 2D sub-matrices
   //! based on the first two indices.
   template<class T> std::ostream& operator<<(std::ostream& s,
-					     const matrix3d<T>& A)
+                                             const matrix3d<T>& A)
   {
     if (A.empty())
       return s <<" (empty)"<< std::endl;
