@@ -96,6 +96,7 @@ public:
   virtual bool parse(const TiXmlElement* elem);
 
 protected:
+  bool   fromIni; //!< If \e true, always solve from initial configuration
   CNORM  iteNorm; //!< The norm type used to measure the residual
   double rTol;    //!< Relative convergence tolerance
   double aTol;    //!< Absolute convergence tolerance

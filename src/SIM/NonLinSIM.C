@@ -28,6 +28,7 @@ using namespace SIM;
 NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : MultiStepSIM(sim), iteNorm(n)
 {
   // Default solution parameters
+  fromIni = false;
   maxit   = 20;
   nupdat  = 20;
   prnSlow = 0;
@@ -118,6 +119,8 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
       else if (!strcasecmp(value,"max"))
         refNopt = MAX;
     }
+    else if (!strcasecmp(child->Value(),"fromZero"))
+      fromIni = true;
 
   return true;
 }
@@ -185,6 +188,8 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
 
   param.iter = 0;
   alpha = 1.0;
+  if (fromIni) // Always solve from initial configuration
+    solution.front().fill(0.0);
 
   if (!model.updateDirichlet(param.time.t,&solution.front()))
     return FAILURE;
@@ -338,14 +343,15 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
   {
     if (refNopt == ALL || fabs(norm) > refNorm)
       refNorm = fabs(norm);
+
     if (refNorm*rTol > aTol) {
       convTol = rTol;
-      norm = prevNorm = 1.0;
+      prevNorm = (norm /= refNorm);
     }
     else {
+      convTol = aTol;
       refNorm = 1.0;
       prevNorm = norm;
-      convTol = aTol;
     }
 
     nIncrease = 0;
@@ -403,7 +409,7 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
   }
 
   // Check for convergence or divergence
-  if (fabs(norm) < convTol)
+  if (fabs(norm) < convTol && (param.iter > 0 || refNopt == ALL))
     status = CONVERGED;
   else if (fabs(norm) <= fabs(prevNorm))
     nIncrease = 0;

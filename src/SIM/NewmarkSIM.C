@@ -292,7 +292,9 @@ SIM::ConvStatus NewmarkSIM::checkConvergence (TimeStep& param)
   {
     if (refNopt == ALL || fabs(resNorm) > refNorm)
       refNorm = fabs(resNorm);
-    prevNorm  = 1.0;
+    else
+      norm = resNorm / refNorm;
+    prevNorm = norm;
     nIncrease = 0;
   }
 
