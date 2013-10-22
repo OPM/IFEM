@@ -15,10 +15,11 @@
 #define _PROCESS_ADM_H
 
 #ifdef HAS_PETSC
-#include "mpi.h"
-#include <vector>
 #include "petscsys.h"
+#include "mpi.h"
 #endif
+#include <vector>
+
 
 /*!
   \brief Class for administration of MPI processes in IFEM library.
@@ -90,23 +91,33 @@ class ProcessAdm
   //! \param[in]  source Process id for source
   void receive(std::vector<double>& rvec, int source) const;
 
-  //! \brief AllReduce for integer
+  //! \brief AllReduce for integer value.
   //! \param[in] value Integer to be reduced
-  //! \param[in] oper  MPI operator (ex. MPI_MIN, MPI_MAX, MPI_SUM, MPI_PROD, ..)
+  //! \param[in] oper MPI operator (MPI_MIN, MPI_MAX, MPI_SUM, MPI_PROD, etc.)
   int allReduce(int value, MPI_Op oper) const;
-  //! \brief AllReduce for integer vector
-  //! \param[inout] ivec  Integer array to be reduced
-  //! \param[in]    oper  MPI operator (ex. MPI_MIN, MPI_MAX, MPI_SUM, MPI_PROD, ..)
-  void allReduce(std::vector<int>& ivec, MPI_Op oper) const;
-  //! \brief AllReduce for double
+  //! \brief AllReduce for integer vector.
+  //! \param vec Integer array to be reduced
+  //! \param[in] oper MPI operator (MPI_MIN, MPI_MAX, MPI_SUM, MPI_PROD, etc.)
+  void allReduce(std::vector<int>& vec, MPI_Op oper) const;
+
+  //! \brief AllReduce for double value.
   //! \param[in] value Double to be reduced
-  //! \param[in] oper  MPI operator (ex. MPI_MIN, MPI_MAX, MPI_SUM, MPI_PROD, ..)
+  //! \param[in] oper MPI operator (MPI_MIN, MPI_MAX, MPI_SUM, MPI_PROD, etc.)
   double allReduce(double value, MPI_Op oper) const;
-  //! \brief AllReduce for double vector
-  //! \param[inout] rvec  Double array to be reduced
-  //! \param[in]    oper  MPI operator (ex. MPI_MIN, MPI_MAX, MPI_SUM, MPI_PROD, ..)
-  void allReduce(std::vector<double>& ivec, MPI_Op oper) const;
+  //! \brief AllReduce for double vector.
+  //! \param vec Double array to be reduced
+  //! \param[in] oper MPI operator (MPI_MIN, MPI_MAX, MPI_SUM, MPI_PROD, etc.)
+  void allReduce(std::vector<double>& vec, MPI_Op oper) const;
 #endif
+
+  //! \brief AllReduce with MPI_SUM for a vector.
+  template<class T> void allReduceAsSum(std::vector<T>& vec) const
+  {
+#ifdef HAS_PETSC
+    if (parallel)
+      this->allReduce(vec,MPI_SUM);
+#endif
+  }
 };
 
 #endif

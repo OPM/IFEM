@@ -16,7 +16,6 @@
 #include "ASMs2DC1.h"
 #include "ASMunstruct.h"
 #ifdef HAS_PETSC
-#include "mpi.h"
 #include "SAMpatchPara.h"
 #else
 #include "SAMpatch.h"
@@ -215,7 +214,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
           int patch = 0;
           utl::getAttribute(item,"patch",patch);
           if ((patch = this->getLocalPatchIndex(patch)) > 0) {
-	    if (abs(idim) == (int)this->getNoSpaceDim()) 
+	    if (abs(idim) == (int)this->getNoSpaceDim())
               top.insert(TopItem(patch,0,idim));
             else if (item->FirstChild())
 	    {
@@ -983,7 +982,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   // Initialize data structures for the algebraic system
   if (mySam) delete mySam;
 #ifdef HAS_PETSC
-  if (opt.solver == SystemMatrix::PETSC) 
+  if (opt.solver == SystemMatrix::PETSC)
     mySam = new SAMpatchPara(*g2l,*adm);
   else
     mySam = new SAMpatch();
@@ -1965,11 +1964,8 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 
   delete norm;
 
-#ifdef HAS_PETSC
-  if (adm->isParallel() && !gNorm.empty())
-    for (size_t i = 0; i < gNorm.size(); i++) 
-      adm->allReduce(gNorm[i],MPI_SUM);
-#endif
+  for (size_t i = 0; i < gNorm.size(); i++)
+    adm->allReduceAsSum(gNorm[i]);
 
   return ok;
 }
