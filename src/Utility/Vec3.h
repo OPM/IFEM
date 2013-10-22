@@ -218,7 +218,8 @@ public:
   {
     if (idx >= 0) os <<"(idx="<< idx <<") ";
     this->Vec3::print(os,tol);
-    return os <<" "<< t;
+    if (t > 0.0) os <<" "<< t;
+    return os;
   }
 };
 

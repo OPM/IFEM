@@ -36,8 +36,8 @@ public:
   //! \param sim Pointer to the spline FE model
   //! \param[in] n Which type of iteration norm to use in convergence checks
   NonLinSIM(SIMbase& sim, CNORM n = ENERGY);
-  //! \brief Empty destructor.
-  virtual ~NonLinSIM() {}
+  //! \brief The destructor prints out the slow-converging nodes, if any.
+  virtual ~NonLinSIM();
 
   //! \brief Initializes the primary solution vectors.
   //! \param[in] nSol Number of consequtive solutions stored
@@ -105,6 +105,8 @@ protected:
   int    maxit;   //!< Maximum number of iterations in a time/load step
   int    nupdat;  //!< Number of iterations with updated tangent
   int    prnSlow; //!< How many DOFs to print out on slow convergence
+
+  std::map<int,int> slowNodes; //!< Nodes for which slow convergence is detected
 };
 
 #endif

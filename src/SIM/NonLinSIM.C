@@ -20,6 +20,7 @@
 #include "Utilities.h"
 #include "tinyxml.h"
 #include <sstream>
+#include <iomanip>
 
 using namespace SIM;
 
@@ -35,6 +36,25 @@ NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : MultiStepSIM(sim), iteNorm(n)
   divgLim = 10.0;
   alpha   = 1.0;
   eta     = 0.0;
+}
+
+
+NonLinSIM::~NonLinSIM ()
+{
+  if (slowNodes.empty()) return;
+
+  std::map<int,int>::const_iterator nit;
+  std::cout <<"\n *** Here are the nodal points flagged with slow convergence"
+            <<"\n     ======================================================="
+            <<"\n     Node  Count  Patch  Coordinates\n";
+  for (nit = slowNodes.begin(); nit != slowNodes.end(); ++nit)
+  {
+    Vec4 X = model.getNodeCoord(nit->first);
+    std::cout << std::setw(9) << nit->first
+              << std::setw(5) << nit->second
+              << std::setw(7) << X.idx <<"    ";
+    X.Vec3::print(std::cout) << std::endl;
+  }
 }
 
 
@@ -155,12 +175,11 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
     std::streamsize oldPrec = 0;
     double digits = log10(param.time.t)-log10(param.time.dt);
     if (digits > 6.0) oldPrec = std::cout.precision(ceil(digits));
-    if (param.maxCFL > 0.0) 
-      std::cout <<"\n  step="<< param.step <<"  time="<< param.time.t
-                <<"  CFL = "<< param.time.CFL << std::endl;
-    else 
-      std::cout <<"\n  step="<< param.step
-		<<"  time="<< param.time.t << std::endl;
+    std::cout <<"\n  step="<< param.step <<"  time="<< param.time.t;
+    if (param.maxCFL > 0.0)
+      std::cout <<"  CFL = "<< param.time.CFL << std::endl;
+    else
+      std::cout << std::endl;
     if (oldPrec > 0) std::cout.precision(oldPrec);
   }
 
@@ -204,6 +223,7 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
 
       case SLOW:
 	poorConvg = true;
+
       default:
 	param.iter++;
 	if (!this->updateConfiguration(param))
@@ -351,12 +371,14 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
     {
       // Find and print out the worst DOF(s) when detecting slow convergence
       std::map<std::pair<int,int>,RealArray> worstDOFs;
-      model.getWorstDofs(linsol,residual,prnSlow,convTol,worstDOFs);
-      std::cout <<"  ** Slow convergence detected, ";
+      model.getWorstDofs(linsol,residual,prnSlow,convTol*refNorm,worstDOFs);
+      std::cout <<"  ** Slow convergence detected";
       if (worstDOFs.size() > 1)
-        std::cout <<"here are the "<< worstDOFs.size() <<" worst DOFs:";
+        std::cout <<", here are the "<< worstDOFs.size() <<" worst DOFs:";
       else if (worstDOFs.size() == 1)
-        std::cout <<"here is the worst DOF:";
+        std::cout <<", here is the worst DOF:";
+      else
+        std::cout <<".";
       std::map<std::pair<int,int>,RealArray>::const_iterator it;
       for (it = worstDOFs.begin(); it != worstDOFs.end(); it++)
       {
@@ -368,6 +390,11 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
         std::cout <<" :\tEnergy = "<< it->second[0]
                   <<"\tdu = "<< it->second[1]
                   <<"\tres = "<< it->second[2];
+        std::map<int,int>::iterator nit = slowNodes.find(it->first.first);
+        if (nit == slowNodes.end())
+          slowNodes.insert(std::make_pair(it->first.first,1));
+        else
+          ++nit->second;
       }
       std::cout << std::endl;
     }

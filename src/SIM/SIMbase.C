@@ -16,7 +16,7 @@
 #include "ASMs2DC1.h"
 #include "ASMunstruct.h"
 #ifdef HAS_PETSC
-#include "PETScSupport.h"
+#include "mpi.h"
 #include "SAMpatchPara.h"
 #else
 #include "SAMpatch.h"
@@ -32,14 +32,14 @@
 #include "Functions.h"
 #include "Profiler.h"
 #include "Utilities.h"
+#ifdef HAS_HDF5
+#include "HDF5Writer.h"
+#endif
 #include "tinyxml.h"
 #include <fstream>
 #include <sstream>
 #include <iomanip>
 #include <iterator>
-#ifdef HAS_HDF5
-#include "HDF5Writer.h"
-#endif
 
 
 bool SIMbase::preserveNOrder  = false;
@@ -1736,7 +1736,7 @@ void SIMbase::getWorstDofs (const Vector& u, const Vector& r,
 
   // Compute the energy at each DOF and insert into a map sorted on the energy
   for (i = 0; i < u.size() && i < r.size(); i++)
-    energy.insert(std::make_pair(u[i]*r[i],i+1));
+    energy.insert(std::make_pair(fabs(u[i]*r[i]),i+1));
 
   // Pick the nWorst highest energies from the back of the map
   std::multimap<double,size_t>::reverse_iterator rit = energy.rbegin();
@@ -1757,14 +1757,14 @@ char SIMbase::getNodeType (int inod) const
 }
 
 
-Vec3 SIMbase::getNodeCoord (int inod) const
+Vec4 SIMbase::getNodeCoord (int inod) const
 {
   size_t node = 0;
   for (PatchVec::const_iterator it = myModel.begin(); it != myModel.end(); ++it)
     if ((node = (*it)->getNodeIndex(inod,true)))
-      return (*it)->getCoord(node);
+      return Vec4((*it)->getCoord(node),0.0,(*it)->idx);
 
-  return Vec3();
+  return Vec4();
 }
 
 
