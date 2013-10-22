@@ -17,13 +17,6 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
-#include "ASM2D.h"
-#include "ASMbase.h"
-#include "Field.h"
-#ifdef HAS_HDF5
-#include "HDF5Writer.h"
-#endif
-#include <cassert>
 
 
 PressureField::PressureField (Real p, int dir) : pdir(dir)
@@ -135,15 +128,14 @@ Real StepXYFunc::evaluate (const Vec3& X) const
 }
 
 
-Interpolate1D::Interpolate1D (const char* file, int dir_, double ramp) :
+Interpolate1D::Interpolate1D (const char* file, int dir_, Real ramp) :
   dir(dir_), time(ramp)
 {
   std::ifstream is(file);
   while (is.good() && !is.eof()) {
     char temp[1024];
-    is.getline(temp, 1024);
-    if (is.eof())
-      continue;
+    is.getline(temp,1024);
+    if (is.eof()) return;
     std::stringstream str(temp);
     Real x, v;
     str >> x >> v;
@@ -155,26 +147,25 @@ Interpolate1D::Interpolate1D (const char* file, int dir_, double ramp) :
 
 Real Interpolate1D::evaluate (const Vec3& X) const
 {
-  Real x = X[dir];
-  if (x < *grid.begin())
-    x = *grid.begin();
+  if (grid.empty())
+    return Real(0);
+  else if (grid.size() == 1 || X[dir] <= grid.front())
+    return values.front();
+
   std::vector<Real>::const_iterator xb =
     std::find_if(grid.begin(),grid.end()-1,
-		 std::bind2nd(std::greater<Real>(),x));
+		 std::bind2nd(std::greater<Real>(),X[dir]));
 
-  size_t pos = xb-grid.begin();
+  size_t pos = xb - grid.begin();
   Real x1 = *(xb-1);
   Real x2 = *xb;
-  Real val1 = values[pos-1];
-  Real val2 = values[pos];
-
-  double delta = x2 - x1;
-  double alpha = (x2-x)/delta;
-
-  double res = (val1*alpha + val2*(1-alpha));
+  Real v1 = values[pos-1];
+  Real v2 = values[pos];
+  Real alpha = (x2-X[dir])/(x2-x1);
+  Real res = (v1-v2)*alpha + v2;
   const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
-  if (time > 0 && Xt)
-    res *= std::min(1.0, Xt->t/time);
+  if (Xt && time > Real(0) && Xt->t < time)
+    res *= Xt->t/time;
 
   return res;
 }
@@ -235,23 +226,18 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
     switch (linear) {
     case 1:
       f = new LinearXFunc(A,atof(cline));
-      cline = strtok(NULL," ");
       break;
     case 2:
       f = new LinearYFunc(A,atof(cline));
-      cline = strtok(NULL," ");
       break;
     case 3:
       f = new LinearZFunc(A,atof(cline));
-      cline = strtok(NULL," ");
       break;
     case 4:
       f = new LinearRotZFunc(true,A,atof(cline),atof(strtok(NULL," ")));
-      cline = strtok(NULL," ");
       break;
     case 5:
       f = new LinearRotZFunc(false,A,atof(cline),atof(strtok(NULL," ")));
-      cline = strtok(NULL," ");
       break;
     case 6:
       {
@@ -260,7 +246,6 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
 	std::cout <<"StepX("<< x0 <<","<< x1 <<"))";
 	f = new StepXFunc(A,x0,x1);
       }
-      cline = strtok(NULL," ");
       break;
     case 7:
       {
@@ -271,9 +256,8 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
 	{
 	  double x1 = atof(strtok(NULL," "));
 	  double y1 = atof(strtok(NULL," "));
-	  std::cout <<"StepXY(["<< x0<<","<<x1 <<"]x["<< y0<<","<<y1 <<"]))";
+	  std::cout <<"StepXY(["<< x0 <<","<< x1 <<"]x["<< y0 <<","<<y1 <<"]))";
 	  f = new StepXYFunc(A,x1,y1,x0,y0);
-	  cline = strtok(NULL," ");
 	}
 	else
 	{
@@ -284,43 +268,31 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
       break;
     case 8:
       {
-        int dir = atoi(strtok(NULL, " "));
-        const char* t = strtok(NULL, " ");
-        double time = 0;
-        if (t)
-          time = atof(t);
-        std::cout <<"Interpolate1D("<< cline <<","<< (char)('X'+dir) <<")*Ramp(" << time << ")";
-        f = new Interpolate1D(cline,dir,time);
-        cline = strtok(NULL," ");
+        int dir = atoi(strtok(NULL," "));
+        std::cout <<"Interpolate1D("<< cline <<","<< (char)('X'+dir);
+        const char* t = strtok(NULL," ");
+        if (t) {
+          double time = atof(t);
+          std::cout <<")*Ramp("<< time;
+          f = new Interpolate1D(cline,dir,time);
+        }
+        else
+          f = new Interpolate1D(cline,dir);
+	std::cout <<")";
       }
       break;
     case 9:
       {
-#ifdef HAS_HDF5
-        std::string file, basis, field;
-        file = cline; 
-        basis = cline = strtok(NULL, " ");
-        field = cline = strtok(NULL, " ");
-        cline = strtok(NULL, " ");
-        HDF5Writer hdf5(file, true, true);
-        basis = std::string("0/basis/")+basis+std::string("/1");
-        std::string g2;
-        hdf5.readString(basis, g2);
-        std::stringstream str;
-        str << g2;
-        static const unsigned char nf[] = {1,0};
-        ASMbase* pch = ASM2D::create(ASM::Spline, nf);
-        pch->read(str);
-        Vector coefs;
-        hdf5.readVector(0, field, 1, coefs);
-        f = new FieldFunction(Field::create(pch, coefs));
-#else
-        std::cerr << "WARNING: Compiled without HDF5 support, field function not instanced" << std::endl;
-        f = new ConstFunc(0.0);
-#endif
+        std::string basis, field;
+        basis = strtok(NULL, " ");
+        field = strtok(NULL, " ");
+        std::cout <<"Field("<< cline <<","<< basis <<","<< field <<")";
+        f = new FieldFunction(cline,basis,field);
       }
       break;
     }
+    if (cline && (linear != 7 || cline[0] == 't'))
+      cline = strtok(NULL," ");
   }
   else if (quadratic > 0 && (cline = strtok(NULL," ")))
   {
@@ -523,26 +495,4 @@ TractionFunc* utl::parseTracFunc (const std::string& func,
   }
 
   return f ? new PressureField(f,dir) : new PressureField(p,dir);
-}
-
-
-FieldFunction::FieldFunction(Field* field_) : field(field_)
-{
-  
-}
-
-
-FieldFunction::~FieldFunction()
-{
-  delete field;
-}
-
-
-Real FieldFunction::evaluate(const Vec3& X) const
-{
-  const Vec4* x4 = dynamic_cast<const Vec4*>(&X);
-  if (x4 && x4->idx > 0)
-    return field->valueNode(x4->idx);
-
-  return field->valueCoor(X);
 }

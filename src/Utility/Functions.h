@@ -16,9 +16,8 @@
 
 #include "Function.h"
 #include "ExprFunctions.h"
+#include "FieldFunctions.h"
 #include "Vec3.h"
-
-class Field;
 
 
 /*!
@@ -191,7 +190,7 @@ public:
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return tfunc->isZero(); }
   //! \brief Returns whether the function is time-independent or not.
-  virtual bool isConstant() const { return false; }
+  virtual bool isConstant() const { return tfunc->isZero(); }
 
 protected:
   //! \brief Evaluates the time-varying function.
@@ -219,7 +218,7 @@ public:
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return sfunc->isZero() || tfunc->isZero(); }
   //! \brief Returns whether the function is time-independent or not.
-  virtual bool isConstant() const { return false; }
+  virtual bool isConstant() const { return this->isZero(); }
 
 protected:
   //! \brief Evaluates the space-time function.
@@ -386,8 +385,10 @@ public:
   LinearRotZFunc(bool retX, Real a, Real x_0 = Real(0), Real y_0 = Real(0))
     : rX(retX), A(a), x0(x_0), y0(y_0) {}
 
+  //! \brief Returns whether the function is identically zero or not.
+  virtual bool isZero() const { return A == Real(0); }
   //! \brief Returns whether the function is time-independent or not.
-  virtual bool isConstant() const { return false; }
+  virtual bool isConstant() const { return A == Real(0); }
 
 protected:
   //! \brief Evaluates the rotation function.
@@ -456,34 +457,23 @@ class Interpolate1D : public RealFunc
   std::vector<Real> grid;   //!< The (1D) grid the data is associated with
   std::vector<Real> values; //!< The (scalar) data values
   int               dir;    //!< In which direction to perform the interpolation
-  double            time;   //!< Ramp-up time
+  Real              time;   //!< Ramp-up time
 
 public:
   //! \brief The constructor initializes the function parameters from a file.
   //! \param[in] file Name of file to read grid and function data from
   //! \param[in] dir_ Coordinate direction of the spatial variation
-  //! \param[in] ramp Ramp-up time 
-  Interpolate1D(const char* file, int dir_, double ramp);
+  //! \param[in] ramp Ramp-up time
+  Interpolate1D(const char* file, int dir_, Real ramp = Real(0));
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return values.empty(); }
+  //! \brief Returns whether the function is time-independent or not.
+  virtual bool isConstant() const { return time <= Real(0) || grid.size() < 2; }
 
 protected:
   //! \brief Evaluates the function by interpolating the 1D grid.
   virtual Real evaluate(const Vec3& X) const;
-};
-
-
-class FieldFunction : public RealFunc
-{
-public:
-  FieldFunction(Field* field_);
-
-  virtual ~FieldFunction();
-protected:
-    Field* field;
-
-    virtual Real evaluate(const Vec3& X) const;
 };
 
 
