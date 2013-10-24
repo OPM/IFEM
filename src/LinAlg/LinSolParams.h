@@ -49,9 +49,6 @@ class TiXmlElement;
   \brief Class for linear solver parameters.
   \details It contains information about solver method, preconditioner
   and convergence criteria.
-
-  TODO: Why are all the member functions declared virtual when no sub-class?
-  What a waste of vtable's. Consider removing.
 */
 
 class LinSolParams
@@ -61,86 +58,90 @@ public:
   LinSolParams() { this->setDefault(); }
   //! \brief Copy constructor.
   LinSolParams(const LinSolParams& spar) { this->copy(spar); }
+  
+  //! \brief Virtual destructor
+  ~LinSolParams() {}
+  
 
   //! \brief Set default values.
-  virtual void setDefault();
+  void setDefault();
 
   //! \brief Copy linear solver parameters.
-  virtual void copy(const LinSolParams& spar);
+  void copy(const LinSolParams& spar);
 
   //! \brief Read linear solver parameters from stream.
-  virtual bool read(std::istream& is, int nparams = 10);
+  bool read(std::istream& is, int nparams = 10);
 
   //! \brief Read linear solver parameters from XML document.
-  virtual bool read(const TiXmlElement* elem);
+  bool read(const TiXmlElement* elem);
 
   //! \brief Read linear solver parameters from file.
-  virtual bool read(const char* filename);
+  bool read(const char* filename);
 
 #ifdef HAS_PETSC
   //! \brief Set linear solver method
-  virtual void setMethod(KSPType type) { method.assign(type); }
+  void setMethod(KSPType type) { method.assign(type); }
 
   //! \brief Set preconditioner
-  virtual void setPreconditioner(PCType type) { prec.assign(type); }
+  void setPreconditioner(PCType type) { prec.assign(type); }
 
   //! \brief Set preconditioner for sub-block
-  virtual void setSubPreconditioner(PCType type, size_t i = 0) { subprec[i].assign(type); }
+  void setSubPreconditioner(PCType type, size_t i = 0) { subprec[i].assign(type); }
 
   //! \brief Set linear solver package
-  virtual void setPackage(MatSolverPackage stype, size_t i = 0) { package[i].assign(stype); }
+  void setPackage(MatSolverPackage stype, size_t i = 0) { package[i].assign(stype); }
 
   //! \brief Set absolute convergence tolerance
-  virtual void setAbsTolerance(Real eps) { atol = eps; }
+  void setAbsTolerance(Real eps) { atol = eps; }
 
   //! \brief Set relative convergence tolerance
-  virtual void setRelTolerance(Real eps) { rtol = eps; }
+  void setRelTolerance(Real eps) { rtol = eps; }
 
   //! \brief Set divergence tolerance
-  virtual void setDivTolerance(Real eps) { dtol = eps; }
+  void setDivTolerance(Real eps) { dtol = eps; }
 
   //! \brief Set maximum number of iterations
-  virtual void setMaxIterations(int its) { maxIts = its; }
+  void setMaxIterations(int its) { maxIts = its; }
 
   //! \brief Set number of overlap
-  virtual void setOverlap(int olap, size_t i = 0) { overlap[i] = olap; }
+  void setOverlap(int olap, size_t i = 0) { overlap[i] = olap; }
 
   //! \brief Set number of local subdomains for each patch
-  virtual void setLocalPartitioning(size_t NX = 0, size_t NY = 0, size_t NZ = 0, size_t i = 0)
+  void setLocalPartitioning(size_t NX = 0, size_t NY = 0, size_t NZ = 0, size_t i = 0)
   { nx[i] = NX; ny[i] = NY; nz[i] = NZ; }
 
   //! \brief Set null-space of matrix
-  virtual void setNullSpace(NullSpace nspc, size_t i = 0) { nullspc[i] = nspc; }
+  void setNullSpace(NullSpace nspc, size_t i = 0) { nullspc[i] = nspc; }
 
   //! \brief Get linear solver method
-  virtual const char* getMethod() const { return method.c_str(); }
+  const char* getMethod() const { return method.c_str(); }
 
   //! \brief Get preconditioner
-  virtual const char* getPreconditioner(size_t i = 0) const { return prec.c_str(); }
+  const char* getPreconditioner(size_t i = 0) const { return prec.c_str(); }
 
   //! \brief Get preconditioner
-  virtual const char* getSubPreconditioner(size_t i = 0) const { return subprec[i].c_str(); }
+  const char* getSubPreconditioner(size_t i = 0) const { return subprec[i].c_str(); }
 
   //! \brief Get linear solver package
-  virtual const char* getPackage(size_t i = 0) const { return package[i].c_str(); }
+  const char* getPackage(size_t i = 0) const { return package[i].c_str(); }
 
   //! \brief Get absolute convergence tolerance
-  virtual Real getAbsTolerance() const { return atol; }
+  Real getAbsTolerance() const { return atol; }
 
   //! \brief Get relative convergence tolerance
-  virtual Real getRelTolerance() const { return rtol; }
+  Real getRelTolerance() const { return rtol; }
 
   //! \brief Get divergence tolerance
-  virtual Real getDivTolerance() const { return dtol; }
+  Real getDivTolerance() const { return dtol; }
 
   //! \brief Get maximum number of iterations
-  virtual int getMaxIterations() const { return maxIts; }
+  int getMaxIterations() const { return maxIts; }
 
   //! \brief Get number of overlaps
-  virtual int getOverlap(int i = 0) const { return overlap[i]; }
+  int getOverlap(int i = 0) const { return overlap[i]; }
 
   //! \brief Get local partitioning
-  virtual int getLocalPartitioning(size_t dir = 0, size_t i = 0) const
+  int getLocalPartitioning(size_t dir = 0, size_t i = 0) const
   {
     switch (dir)
     {
@@ -156,16 +157,16 @@ public:
   }
 
   //! \brief Number of blocks in matrix system
-  virtual int getNoBlocks() const { return nblock; }
+  int getNoBlocks() const { return nblock; }
 
   //! \brief Number of components in a matrix block
-  virtual const std::vector<int>& getComponents() const { return ncomps; }
+  const std::vector<int>& getComponents() const { return ncomps; }
 
   //! \brief Get number of overlaps
-  virtual NullSpace getNullSpace(size_t i = 0) const { return nullspc[i]; }
+  NullSpace getNullSpace(size_t i = 0) const { return nullspc[i]; }
 
   //! \brief Set linear solver parameters for KSP object
-  virtual void setParams(KSP& ksp, PetscIntMat& locSubdDofs,
+  void setParams(KSP& ksp, PetscIntMat& locSubdDofs,
 			 PetscIntMat& subdDofs, PetscRealVec& coords,
 			 PetscInt nsd, ISMat& dirIndexSet) const;
 
