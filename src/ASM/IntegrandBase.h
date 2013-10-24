@@ -196,7 +196,7 @@ public:
   virtual ForceBase* getForceIntegrand(const Vec3*, AnaSol* = 0) const
   { return 0; }
   //! \brief Returns a pointer to an Integrand for nodal force evaluation.
-  virtual ForceBase* getForceIntegrand() const { return 0; }
+  virtual ForceBase* getForceIntegrand(bool robin = false) const { return 0; }
 
   //! \brief Returns the number of primary/secondary solution field components.
   virtual size_t getNoFields(int = 2) const { return 0; }

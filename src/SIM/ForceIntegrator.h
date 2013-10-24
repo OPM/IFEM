@@ -48,9 +48,10 @@ namespace SIM
   //! \param[in] model The isogeometric finite element model
   //! \param[in] code Code indentifying the boundary subjected to integration
   //! \param[in] time Parameters for nonlinear and time-dependent simulations
+  //! \param[in] alpha Robin coefficient (alpha = 0.0 gives forces)
   //! \param force Global nodal force container (compressed storage)
   bool getNodalForces(const Vectors& solution, SIMbase* model, int code,
-                      const TimeDomain& time, GlbForceVec& force);
+                      const TimeDomain& time, double alpha, GlbForceVec& force);
 
   //! \brief Detects the global nodes that reside on a specified boundary.
   //! \param[in] model The isogeometric finite element model
