@@ -67,6 +67,9 @@ public:
   virtual bool parse(char* keyWord, std::istream& is) = 0;
   //! \brief Parses a data section from an XML element.
   virtual bool parse(const TiXmlElement* elem) = 0;
+  
+  //! \brief Returns process administrator 
+  const ProcessAdm& getProcessAdm() const { return *adm; }
 
 protected:
   //! \brief Prints the heading of this (sub-step) solver, if any, to std::cout.
