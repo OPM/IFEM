@@ -367,7 +367,6 @@ bool SAMpatchPara::assembleSystem (SystemVector& sysRHS,
 #endif
 }
 
-
 bool SAMpatchPara::getElmEqns (IntVec& meen, int iel, int nedof) const
 {
   if (iel < 1 || iel > nel)
@@ -1830,4 +1829,34 @@ bool SAMpatchPara::getMinMaxNode(IntVec& minNodeId, IntVec& maxNodeId) const
 }
 
 
+bool SAMpatchPara::isDirichlet(int inod, int dof) const
+{
+  std::vector<int> idofs;
+
+  int nnodedof = madof[inod]-madof[inod-1];
+
+  int idof = dof;
+  int rdof;
+  if (rdof = idof/100) {
+    if (rdof <= nnodedof)
+      idofs.push_back(rdof);
+    idof = idof%100;
+  }
+  if (rdof = idof/10) {
+    if (rdof <= nnodedof)
+      idofs.push_back(rdof);
+    idof =idof%10;
+  }
+  if (idof <= nnodedof)
+    idofs.push_back(idof);
+
+  bool fixed = false;
+  for (size_t i = 0;i < idofs.size();i++) {
+    idof = idofs[i];
+    if (mpmceq[madof[inod-1]+idof-2] != 0)
+      fixed = true;
+  }
+
+  return fixed;
+}
 

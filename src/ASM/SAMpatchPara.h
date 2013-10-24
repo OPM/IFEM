@@ -199,6 +199,13 @@ public:
   //! \brief Get number of space dimensions
   size_t getNoSpaceDim() const;
 
+  //! \brief If a given dof in a given node is subject to non-homogeneous
+  //! Dirichlet condition
+  //! \param[in] inod Node number
+  //! \param[in] dof  Local dof in node
+  //! \details This method is typically used with explicit time integration.
+  virtual bool isDirichlet(int inod, int dof) const;
+
 protected:
   //! \brief Initializes the multi-point constraint arrays
   //! \a MPMCEQ, \a MMCEQ and \a TTCC.
