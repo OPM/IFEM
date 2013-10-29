@@ -40,7 +40,7 @@ namespace SIM //! Simulation scope
     RECOVERY
   };
 
-  //! \brief Enum defining the various convergence statuses that amy occur.
+  //! \brief Enum defining the various convergence statuses that may occur.
   enum ConvStatus
   {
     FAILURE,
