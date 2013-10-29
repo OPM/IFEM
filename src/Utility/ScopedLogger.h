@@ -1,3 +1,14 @@
+//==============================================================================
+//!
+//! \file ScopedLogger.h
+//!
+//! \date Sep 20 2013
+//!
+//! \author Arne Morten Kvarving / SINTEF
+//!
+//! \brief Scoped logger.
+//!
+//==============================================================================
 #ifndef SCOPED_LOGGER_H_
 #define SCOPED_LOGGER_H_
 

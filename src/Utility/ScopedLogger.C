@@ -1,3 +1,14 @@
+//==============================================================================
+//!
+//! \file ScopedLogger.C
+//!
+//! \date Sep 20 2013
+//!
+//! \author Arne Morten Kvarving / SINTEF
+//!
+//! \brief Scoped logger implementations.
+//!
+//==============================================================================
 #include "ScopedLogger.h"
 #ifdef PARALLEL_PETSC
 #include "PETScSupport.h"
