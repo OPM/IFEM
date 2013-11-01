@@ -70,7 +70,7 @@ class DataExporter : public ControlCallback
     m_infoReader(0), m_dataReader(0) {}
 
   //! \brief The destructor deletes the writers if \a dynWriters was \e true.
-  ~DataExporter();
+  virtual ~DataExporter();
 
   //! \brief Registers an entry for storage.
   //! \param[in] name Name of entry
