@@ -19,10 +19,6 @@
 #include "tinyxml.h"
 
 
-//! \brief Convenience enum defining total solution vector indices.
-enum { iD, iV, iA, nSOL };
-
-
 NewmarkSIM::NewmarkSIM (SIMbase& sim) : MultiStepSIM(sim)
 {
   // Default Newmark parameters
@@ -101,14 +97,14 @@ void NewmarkSIM::printProblem (std::ostream& os) const
 }
 
 
-void NewmarkSIM::init (size_t)
+void NewmarkSIM::init (size_t nSol)
 {
   model.setIntegrationPrm(0,alpha1);
   model.setIntegrationPrm(1,alpha2);
   model.setIntegrationPrm(2,beta);
   model.setIntegrationPrm(3,gamma);
 
-  solution.resize(nSOL);
+  solution.resize(nSol);
   for (Vectors::iterator it = solution.begin(); it != solution.end(); ++it)
     it->resize(model.getNoDOFs(),true);
 }
@@ -122,8 +118,14 @@ bool NewmarkSIM::advanceStep (TimeStep& param, bool updateTime)
 
 bool NewmarkSIM::predictStep (TimeStep& param)
 {
+  if (solution.size() < 3) return false;
+
   const double dt = param.time.dt;
   Vector velocity;
+
+  size_t iD = 0;
+  size_t iA = solution.size() - 1;
+  size_t iV = solution.size() - 2;
 
   switch (predictor) {
   case 'a': // zero acceleration predictor
@@ -178,6 +180,10 @@ bool NewmarkSIM::predictStep (TimeStep& param)
 bool NewmarkSIM::correctStep (TimeStep& param, bool)
 {
   const double dt = param.time.dt;
+
+  size_t iD = 0;
+  size_t iA = solution.size() - 1;
+  size_t iV = solution.size() - 2;
 
   // Corrected displacement
   solution[iD].add(linsol,beta*dt*dt);
@@ -327,7 +333,7 @@ SIM::ConvStatus NewmarkSIM::checkConvergence (TimeStep& param)
 
 bool NewmarkSIM::solutionNorms (double zero_tolerance, std::streamsize outPrec)
 {
-  if (msgLevel < 0 || solution.size() < nSOL) return true;
+  if (msgLevel < 0 || solution.size() < 3) return true;
 
   // Cannot use the enums here because this method is inherited
   size_t a = solution.size()-1;
