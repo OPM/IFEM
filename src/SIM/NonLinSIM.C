@@ -126,20 +126,9 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
 }
 
 
-void NonLinSIM::init (size_t nSol)
-{
-  size_t nSols = model.getNoSolutions();
-  if (nSols > nSol) nSol = nSols;
-  solution.resize(nSol);
-
-  for (size_t n = 0; n < nSol; n++)
-    solution[n].resize(model.getNoDOFs(),true);
-}
-
-
 void NonLinSIM::init (size_t nSol, const RealArray& value)
 {
-  this->init(nSol);
+  this->MultiStepSIM::init(nSol);
   if (value.empty() || solution.empty())
     return;
 

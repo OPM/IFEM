@@ -50,14 +50,8 @@ void NewmarkNLSIM::init (size_t nSol)
   model.setIntegrationPrm(1,alpha2);
   model.setIntegrationPrm(2,0.5-gamma);
 
+  this->MultiStepSIM::init(nSol);
   size_t nDOFs = model.getNoDOFs();
-  size_t nSols = model.getNoSolutions();
-  if (nSols > nSol) nSol = nSols;
-  solution.resize(nSol);
-
-  for (Vectors::iterator it = solution.begin(); it != solution.end(); ++it)
-    it->resize(nDOFs,true);
-
   incDis.resize(nDOFs,true);
   predVel.resize(nDOFs,true);
   predAcc.resize(nDOFs,true);

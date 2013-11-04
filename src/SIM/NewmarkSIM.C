@@ -104,9 +104,7 @@ void NewmarkSIM::init (size_t nSol)
   model.setIntegrationPrm(2,beta);
   model.setIntegrationPrm(3,gamma);
 
-  solution.resize(nSol);
-  for (Vectors::iterator it = solution.begin(); it != solution.end(); ++it)
-    it->resize(model.getNoDOFs(),true);
+  this->MultiStepSIM::init(nSol);
 }
 
 
