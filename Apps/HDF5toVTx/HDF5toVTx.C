@@ -104,6 +104,8 @@ bool writeFieldPatch(const Vector& locvec, int components,
                      const std::string& name, VTFList& vlist, VTFList& slist,
                      VTF& myVtf, const std::string& description, const std::string& type)
 {
+  if (dynamic_cast<VTU*>(&myVtf) && type == "displacement")
+    return true;
   Matrix field;
   if (!patch.evalSolution(field, locvec, model))
     return false;
