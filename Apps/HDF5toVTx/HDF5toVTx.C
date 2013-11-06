@@ -478,13 +478,18 @@ int main (int argc, char** argv)
     if (!ok)
       return 3;
 
+    bool res;
     if (processlist.begin()->second.begin()->timestep > 0) {
       double time2 = time;
       hdf.readDouble(i,"timeinfo","SIMbase-1",time2); //TODO!
-      myVtf->writeState(k++,"Time %g",time2,1);
+      res=myVtf->writeState(k++,"Time %g",time2,1);
     } else {
       double foo = k;
-      myVtf->writeState(k++,"Step %g",foo,1);
+      res=myVtf->writeState(k++,"Step %g",foo,1);
+    }
+    if (!res) {
+      std::cerr << "Error writing state" << std::endl;
+      return 4;
     }
 
     pit = processlist.begin();

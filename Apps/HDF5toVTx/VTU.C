@@ -104,6 +104,8 @@ bool VTU::writeState(int iStep, const char* fmt, Real refValue, int refType)
     str << "-" << std::setfill('0') << std::setw(5) << iStep-1;
   str << ".vtu";
   file.open(str.str().c_str());
+  if (!file.good())
+    return false;
 
   file << "<?xml version=\"1.0\"?>" << std::endl;
   file << "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">" << std::endl;
