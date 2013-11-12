@@ -13,18 +13,16 @@
 //!
 //==============================================================================
 
-#ifndef _LINSOLPARAMS_MATRIX_H
-#define _LINSOLPARAMS_MATRIX_H
+#ifndef _LINSOLPARAMS_H
+#define _LINSOLPARAMS_H
 
 #include <iostream>
 #include <string>
 #include <vector>
-#ifdef HAS_PETSC
 #include "PETScSupport.h"
 
-typedef std::vector<PetscInt>    PetscIntVec;  //!< PETSc integer vector
-typedef std::vector<PetscIntVec> PetscIntMat;  //!< PETSc integer matrix
-typedef std::vector<PetscReal>   PetscRealVec; //!< PETSc real vector
+#ifdef HAS_PETSC
+
 typedef std::vector<int>         IntVec;       //!< Integer vector
 typedef std::vector<IntVec>      IntMat;       //!< Integer matrix
 typedef std::vector<std::string> StringVec;    //!< String vector
@@ -167,8 +165,8 @@ public:
 
   //! \brief Set linear solver parameters for KSP object
   void setParams(KSP& ksp, PetscIntMat& locSubdDofs,
-			 PetscIntMat& subdDofs, PetscRealVec& coords,
-			 PetscInt nsd, ISMat& dirIndexSet) const;
+                 PetscIntMat& subdDofs, PetscRealVec& coords,
+                 PetscInt nsd, ISMat& dirIndexSet) const;
 
   //! \brief Set directional smoother
   bool addDirSmoother(PC pc, Mat P, ISMat& dirIndexSet) const;
