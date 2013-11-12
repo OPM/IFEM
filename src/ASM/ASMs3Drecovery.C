@@ -285,14 +285,14 @@ bool ASMs3D::globalL2projection (Matrix& sField,
 
 Go::SplineVolume* ASMs3D::projectSolutionLeastSquare (const IntegrandBase& integrand) const
 {
-  if (!svol) return false;
+  if (!svol) return NULL;
 
   PROFILE1("test L2- projection");
   // Compute parameter values of the result sampling points (Gauss-Interpl. points)
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
   const double* wg = GaussQuadrature::getWeight(nGauss);
-  if (!xg || !wg) return false;
+  if (!xg || !wg) return NULL;
 
   Matrix ggpar[3];
   for (int dir = 0; dir < 3; dir++)

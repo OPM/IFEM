@@ -367,7 +367,7 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
 #endif
 
     // Solve the local equation system
-    if (!A.solve(B)) return false;
+    if (!A.solve(B)) return NULL;
 
     // Evaluate the projected field at current Greville point (first row of B)
     ip++;

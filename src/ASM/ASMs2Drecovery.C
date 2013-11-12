@@ -423,7 +423,7 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 #endif
 
       // Solve the local equation system
-      if (!A.solve(B)) return false;
+      if (!A.solve(B)) return NULL;
 
       // Evaluate the projected field at current Greville point (first row of B)
       for (l = 1; l <= nCmp; l++)
@@ -459,12 +459,12 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 // L2-Projection: Least-square approximation; global approximation
 Go::SplineSurface* ASMs2D::projectSolutionLeastSquare (const IntegrandBase& integrand) const
 {
-  if (!surf) return false;
+  if (!surf) return NULL;
 
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
   const double* wg = GaussQuadrature::getWeight(nGauss);
-  if (!xg || !wg) return false;
+  if (!xg || !wg) return NULL;
 
   // Compute parameter values of the result sampling points (Gauss points)
   Matrix ggpar[2];
