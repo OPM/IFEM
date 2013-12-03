@@ -759,7 +759,7 @@ bool SIMbase::createFEMmodel (bool resetNumb)
       return false;
   }
 
-  if (nGlPatches == 0 && nProc == 1)
+  if (nGlPatches == 0 && !adm->isParallel())
     nGlPatches = myModel.size();
 
   return true;
