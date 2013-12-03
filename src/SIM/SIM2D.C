@@ -574,8 +574,9 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
   bool project = lndx < -10;
   if (project) lndx += 10;
 
+  int aldim = abs(ldim);
   std::cout <<"\tConstraining P"<< patch
-            << (ldim == 0 ? " V" : " E") << abs(lndx)
+            << (aldim == 0 ? " V" : aldim == 1 ?" E": " Face") << abs(lndx)
 	    <<" in direction(s) "<< dirs;
   if (lndx < 0) std::cout << (project ? " (local projected)" : " (local)");
   if (code != 0) std::cout <<" code = "<< abs(code) <<" ";
@@ -626,7 +627,9 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 	  return constrError("edge index ",lndx);
 	}
       break;
-
+    case 2:
+      pch->constrainFace(open,dirs,code);
+      break;
     default:
       std::cout << std::endl;
       return constrError("local dimension switch ",ldim);

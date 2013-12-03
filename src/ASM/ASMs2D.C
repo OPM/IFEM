@@ -644,6 +644,13 @@ void ASMs2D::closeEdges (int dir, int basis, int master)
   non-constant functions).
 */
 
+void ASMs2D::constrainFace(bool open, int dof, int code)
+{
+  for (size_t node = 0; node < getNoNodes(); ++node)
+    this->prescribe(node, dof, code);
+}
+
+
 void ASMs2D::constrainEdge (int dir, bool open, int dof, int code)
 {
   int n1, n2, node = 1;

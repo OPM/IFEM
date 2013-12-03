@@ -529,8 +529,9 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
   if (project) lndx += 10;
   if (lndx < 0 && aldim > 3) aldim = 2; // local tangent direction is indicated
 
+  std::cout << aldim << std::endl;
   std::cout <<"\tConstraining P"<< patch
-            << (ldim == 0 ? " V" : (aldim == 1 ? " E": " F")) << lndx
+            << (aldim == 0 ? " V" : (aldim == 1 ? " E": (aldim == 2 ? " F" : " Vol"))) << lndx
             <<" in direction(s) "<< dirs;
   if (lndx < 0) std::cout << (project ? " (local projected)" : " (local)");
   if (code != 0) std::cout <<" code = "<< abs(code) <<" ";
@@ -600,6 +601,10 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
           std::cout << std::endl;
           return constrError("face index ",lndx);
         }
+      break;
+
+    case 3: // Volume constrain
+      pch->constrainVolume(open,dirs,code);
       break;
 
     default:

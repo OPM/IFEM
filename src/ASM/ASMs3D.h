@@ -221,6 +221,12 @@ public:
   // Various methods for preprocessing of boundary conditions and patch topology
   // ===========================================================================
 
+  //! \brief Constrains all DOFs on a given volume patch.
+  //! \param[in] open If \e true, exclude all points on boundary faces
+  //! \param[in] dof Which DOFs to constrain at each node in the volume
+  //! \param[in] code Inhomogeneous dirichlet condition code
+  virtual void constrainVolume(bool open, int dof, int code = 0);
+
   //! \brief Constrains all DOFs on a given boundary face.
   //! \param[in] dir Parameter direction defining the face to constrain
   //! \param[in] open If \e true, exclude all points along the face boundary
