@@ -266,6 +266,11 @@ public:
   //! \return \e true if the specified node has reaction forces
   bool getNodalReactions(int inod, const Vector& rf, Vector& nrf) const;
 
+  //! \brief Add reaction forces to a system vector
+  //! \param reac The vector of reaction forces
+  //! \param[in] S The load vector
+  void assembleReactions(SystemVector& rhs, const RealArray& load) const;
+
 protected:
   //! \brief Initializes the DOF-to-equation connectivity array \a MEQN.
   virtual bool initSystemEquations();

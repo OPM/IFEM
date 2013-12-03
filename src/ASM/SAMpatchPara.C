@@ -367,6 +367,7 @@ bool SAMpatchPara::assembleSystem (SystemVector& sysRHS,
 #endif
 }
 
+
 bool SAMpatchPara::getElmEqns (IntVec& meen, int iel, int nedof) const
 {
   if (iel < 1 || iel > nel)

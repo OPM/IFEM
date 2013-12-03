@@ -585,6 +585,20 @@ void SAM::assembleReactions (Vector& reac, const RealArray& eS, int iel) const
 }
 
 
+void SAM::assembleReactions (SystemVector& rhs, const RealArray& S) const
+{
+  int k=0, ipR;
+  Real* sysrhsPtr = rhs.getPtr();
+  for (int node = 1; node <= getNoNodes(); ++node)
+  {
+    for (int j = madof[node-1]; j < madof[node]; j++)
+      if ((ipR = -msc[j-1]) > 0 && (size_t)ipR <= S.size())
+        sysrhsPtr[ipR-1] += S[k++];
+  }
+  rhs.restore(sysrhsPtr);
+}
+
+
 bool SAM::getElmNodes (IntVec& mnpc, int iel) const
 {
   mnpc.clear();
