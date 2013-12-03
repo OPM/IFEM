@@ -54,6 +54,9 @@ public:
   //! \param[in] node 1-based global node number to return the forces for
   Vec3 getForce(int node) const;
 
+  //! \brief Returns the sum of the nodal forces, i.e. total force
+  Vec3 getTotalForce() const;
+
   //! \brief Returns the global nodal force vector for a specified node.
   //! \param[in] indx 0-based node index to return the forces for
   //! \param[out] force The force at the sepcified node

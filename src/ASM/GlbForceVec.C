@@ -104,6 +104,17 @@ Vec3 GlbForceVec::getForce (int node) const
 }
 
 
+Vec3 GlbForceVec::getTotalForce () const
+{
+  Vec3 force;
+  for (size_t j = 1;j <= F.cols();j++)
+    for (size_t i = 1;i <= F.rows();i++)
+      force[i-1] += F(i,j);
+
+  return force;
+}
+
+
 int GlbForceVec::getForce (size_t indx, Vec3& force) const
 {
   if (indx < F.cols() && indx < nodeNum.size())
