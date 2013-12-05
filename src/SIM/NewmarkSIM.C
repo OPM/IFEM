@@ -218,11 +218,11 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
     if (digits > 6.0) std::cout.precision(oldPrec);
   }
 
-  if (!model.updateDirichlet(param.time.t,&solution.front()))
+  if (subiter&FIRST && !model.updateDirichlet(param.time.t,&solution.front()))
     return SIM::FAILURE;
 
   param.iter = 0;
-  if (!this->predictStep(param))
+  if (subiter&FIRST && !this->predictStep(param))
     return SIM::FAILURE;
 
   if (!model.setMode(SIM::DYNAMIC))
@@ -244,13 +244,13 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
     switch (this->checkConvergence(param))
       {
       case SIM::CONVERGED:
-        if (!this->correctStep(param,true))
+        if (!this->correctStep(param,subiter&LAST))
           return SIM::FAILURE;
 
         if (!this->solutionNorms(zero_tolerance,outPrec))
           return SIM::FAILURE;
 
-        param.time.first = false;
+        if (subiter&LAST) param.time.first = false;
         return SIM::CONVERGED;
 
       case SIM::DIVERGED:
@@ -261,7 +261,7 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
         if (!this->correctStep(param))
           return SIM::FAILURE;
 
-        if (param.iter == 1 && !model.updateDirichlet())
+        if (subiter&FIRST && param.iter == 1 && !model.updateDirichlet())
           return SIM::FAILURE;
 
         if (!model.assembleSystem(param.time,solution))

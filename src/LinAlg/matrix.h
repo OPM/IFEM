@@ -138,6 +138,14 @@ namespace utl //! General utility classes and functions.
     //! 1-based index of the largest vector component on output
     //! \param[in] inc Increment in the vector component indices
     T normInf(size_t& off, int inc = 1) const;
+    //! \brief Return the infinite norm of the vector (no index offset).
+    //! \param[in] inc Increment in the vector component indices
+    T normInf(int inc = 1) const { size_t o = 0; return this->normInf(o,inc); }
+
+    //! \brief Return the largest element of the vector.
+    T max() const { return *std::max_element(this->begin(),this->end()); }
+    //! \brief Return the smallest element of the vector.
+    T min() const { return *std::min_element(this->begin(),this->end()); }
 
     //! \brief Return the sum of the absolute value of the vector elements.
     //! \param[in] off Index offset relative to the first vector component

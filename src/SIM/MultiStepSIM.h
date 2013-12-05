@@ -114,6 +114,16 @@ public:
 
   //! \brief Returns a const reference to current solution vector.
   const Vector& getSolution(int idx = 0) const { return solution[idx]; }
+  //! \brief Modifies the current solution vector (used by sub-iterations only).
+  void setSolution(const Vector& news, int idx = 0) { solution[idx] = news; }
+
+  //! \brief Enum describing sub-iteration status.
+  enum SubIt { ITER = 0, FIRST = 1, LAST = 2, NONE = 3 };
+
+  //! \brief Updates the sub-iteration flag.
+  void setSubIteration(SubIt flag) { subiter = flag; }
+  //! \brief Returns the sub-iteration flag.
+  SubIt getSubIteration() const { return subiter; }
 
 protected:
   SIMoutput& model;    //!< The isogeometric FE model
@@ -123,6 +133,7 @@ protected:
 
   NormOp refNopt; //!< Reference norm option
   double refNorm; //!< Reference norm value used in convergence checks
+  SubIt  subiter; //!< Subiteration flag
 
   int geoBlk; //!< Running VTF geometry block counter
   int nBlock; //!< Running VTF result block counter
