@@ -529,10 +529,10 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
   if (project) lndx += 10;
   if (lndx < 0 && aldim > 3) aldim = 2; // local tangent direction is indicated
 
-  std::cout << aldim << std::endl;
-  std::cout <<"\tConstraining P"<< patch
-            << (aldim == 0 ? " V" : (aldim == 1 ? " E": (aldim == 2 ? " F" : " Vol"))) << lndx
-            <<" in direction(s) "<< dirs;
+  std::cout <<"\tConstraining P"<< patch;
+  if (aldim < 3)
+    std::cout << (ldim == 0 ? " V" : (aldim == 1 ? " E" : " F")) << lndx;
+  std::cout <<" in direction(s) "<< dirs;
   if (lndx < 0) std::cout << (project ? " (local projected)" : " (local)");
   if (code != 0) std::cout <<" code = "<< abs(code) <<" ";
 #if SP_DEBUG > 1
@@ -570,7 +570,7 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
       }
       break;
 
-    case 2:
+    case 2: // Face constraints
       switch (lndx)
         {
         case  1: pch->constrainFace(-1,open,dirs,code); break;
@@ -603,8 +603,8 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
         }
       break;
 
-    case 3: // Volume constrain
-      pch->constrainVolume(open,dirs,code);
+    case 3: // Volume constraints
+      myModel[patch-1]->constrainPatch(dirs,code);
       break;
 
     default:

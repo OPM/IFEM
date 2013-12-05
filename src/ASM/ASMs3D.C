@@ -799,13 +799,6 @@ void ASMs3D::closeFaces (int dir, int basis, int master)
   non-constant functions).
 */
 
-void ASMs3D::constrainVolume(bool open, int dof, int code)
-{
-  for (size_t node=1;node <= getNoNodes(); ++node)
-    this->prescribe(node, dof, code);
-}
-
-
 void ASMs3D::constrainFace (int dir, bool open, int dof, int code)
 {
   int n1, n2, n3, node = 1;

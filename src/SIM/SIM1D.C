@@ -392,20 +392,25 @@ static bool constrError (const char* lab, int idx)
 }
 
 
-bool SIM1D::addConstraint (int patch, int lndx, int, int dirs, int code, int&)
+bool SIM1D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
+                           int&)
 {
   if (patch < 1 || patch > (int)myModel.size())
     return constrError("patch index ",patch);
 
-  std::cout <<"\tConstraining P"<< patch
-	    << " V" << lndx <<" in direction(s) "<< dirs;
+  std::cout <<"\tConstraining P"<< patch;
+  if (ldim == 0)
+    std::cout << " V" << lndx;
+  std::cout <<" in direction(s) "<< dirs;
   if (code) std::cout <<" code = "<< code <<" ";
 #if SP_DEBUG > 1
   std::cout << std::endl;
 #endif
 
   ASMs1D* pch = static_cast<ASMs1D*>(myModel[patch-1]);
-  switch (lndx) // Vertex constraints
+  if (abs(ldim) > 0)
+    pch->constrainPatch(dirs,code);
+  else switch (lndx) // Vertex constraints
     {
     case 1: pch->constrainNode(0.0,dirs,code); break;
     case 2: pch->constrainNode(1.0,dirs,code); break;

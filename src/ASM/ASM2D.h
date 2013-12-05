@@ -71,12 +71,6 @@ public:
   virtual bool refine(const std::vector<int>&, const std::vector<int>&,
 		      const char* = 0) { return false; }
 
-  //! \brief Constrains all DOFs on the face.
-  //! \param[in] open If \e true, exclude the end points of the face
-  //! \param[in] dof Which DOFs to constrain at each node on the face
-  //! \param[in] code Inhomogeneous dirichlet condition code
-  virtual void constrainFace(bool open, int dof, int code = 0) {}
-
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
   //! \param[in] open If \e true, exclude the end points of the edge

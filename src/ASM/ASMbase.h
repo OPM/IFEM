@@ -538,6 +538,10 @@ protected:
   void addNeighbor(ASMbase* pch);
 
 public:
+  //! \brief Constrains all nodes in the patch.
+  //! \param[in] dof Which DOFs to constrain at each node in the patch
+  //! \param[in] code Inhomogeneous dirichlet condition code
+  void constrainPatch(int dof, int code = 0);
   //! \brief Constrains DOFs in the given node to the given value.
   //! \param[in] inod 1-based node index local to current patch
   //! \param[in] dirs Which local DOFs to constrain (1, 2, 3, 12, 23, 123)

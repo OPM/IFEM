@@ -432,6 +432,13 @@ void ASMbase::makePeriodic (size_t master, size_t slave, int dirs)
 }
 
 
+void ASMbase::constrainPatch (int dof, int code)
+{
+  for (size_t node = 1; node <= this->getNoNodes(1); node++)
+    this->prescribe(node,dof,code);
+}
+
+
 void ASMbase::prescribe (size_t inod, int dirs, int code)
 {
   if (code == 0 && fixHomogeneousDirichlet)
