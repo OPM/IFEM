@@ -434,26 +434,28 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time,
   double dMax[nf];
   double normL2 = model.solutionNorms(solution.front(),dMax,iMax,nf);
 
+  std::stringstream str;
   if (myPid == 0)
   {
-    std::streamsize stdPrec = outPrec > 0 ? std::cout.precision(outPrec) : 0;
+    std::streamsize stdPrec = outPrec > 0 ? str.precision(outPrec) : 0;
     double old_tol = utl::zero_print_tol;
     utl::zero_print_tol = zero_tolerance;
 
-    std::cout <<"  Primary solution summary: L2-norm         : "
-              << utl::trunc(normL2);
+    str   <<"  Primary solution summary: L2-norm         : "
+          << utl::trunc(normL2);
     if (nf == 1 && utl::trunc(dMax[0]) != 0.0)
-      std::cout <<"\n                            Max value       : "
-                << dMax[0] <<" node "<< iMax[0];
+      str  <<"\n                            Max value       : "
+           << dMax[0] <<" node "<< iMax[0];
     else for (unsigned char d = 0; d < nf; d++)
       if (utl::trunc(dMax[d]) != 0.0)
-        std::cout <<"\n                            Max "<< char('X'+d)
-                  <<"-component : "<< dMax[d] <<" node "<< iMax[d];
+        str  <<"\n                            Max "<< char('X'+d)
+             <<"-component : "<< dMax[d] <<" node "<< iMax[d];
 
-    std::cout << std::endl;
+    str << std::endl;
     utl::zero_print_tol = old_tol;
-    if (stdPrec > 0) std::cout.precision(stdPrec);
+    if (stdPrec > 0) str.precision(stdPrec);
   }
+  utl::printSyncronized(std::cout,str,myPid);
 
   return true;
 }
