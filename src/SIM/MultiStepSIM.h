@@ -109,8 +109,18 @@ public:
   //! \param[in] os The output stream to write the solution to
   //! \param[in] precision Number of digits after the decimal point
   //! \param[in] formatted If \e false, write all result points on a single line
-  void dumpResults(double time, std::ostream& os,
-                   std::streamsize precision = 3, bool formatted = true) const;
+  virtual void dumpResults(double time, std::ostream& os,
+                           std::streamsize precision = 3,
+                           bool formatted = true) const;
+
+  //! \brief Saves point solution to file for a given time step.
+  //! \param[in] fileName Name of output file for point results
+  //! \param[in] time Load/time step parameter
+  //! \param[in] step Load/time step counter
+  //! \param[in] precision Number of digits after the decimal point
+  virtual bool savePoints(const std::string& fileName,
+                          double time, int step,
+                          std::streamsize precision = 3) const;
 
   //! \brief Returns a const reference to current solution vector.
   const Vector& getSolution(int idx = 0) const { return solution[idx]; }

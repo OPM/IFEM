@@ -374,3 +374,13 @@ bool NewmarkSIM::solutionNorms (double zero_tolerance, std::streamsize outPrec)
 
   return true;
 }
+
+
+void NewmarkSIM::dumpResults (double time, std::ostream& os,
+                              std::streamsize precision, bool formatted) const
+{
+  model.dumpResults(solution.front(),time,os,formatted,precision);
+  model.dumpMoreResults(time,os,precision);
+  if (formatted)
+    model.dumpVector(this->getVelocity(),"velocity",os,precision);
+}

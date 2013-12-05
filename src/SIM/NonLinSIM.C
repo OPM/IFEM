@@ -450,6 +450,7 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time,
         std::cout <<"\n                            Max "<< char('X'+d)
                   <<"-component : "<< dMax[d] <<" node "<< iMax[d];
 
+    std::cout << std::endl;
     utl::zero_print_tol = old_tol;
     if (stdPrec > 0) std::cout.precision(stdPrec);
   }

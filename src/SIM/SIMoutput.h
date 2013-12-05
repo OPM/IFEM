@@ -225,6 +225,12 @@ public:
   //! \param[in] precision Number of digits after the decimal point
   bool dumpResults(const Vector& psol, double time, std::ostream& os,
                    bool formatted = false, std::streamsize precision = 3) const;
+  //! \brief Dumps vector solution at specified points in ASCII format.
+  //! \param[in] vsol Solution vector
+  //! \param os Output stream to write the solution data to
+  //! \param[in] precision Number of digits after the decimal point
+  bool dumpVector(const Vector& vsol, const char* fname,
+                  std::ostream& os, std::streamsize precision = 3) const;
   //! \brief Dumps additional problem-specific results in ASCII format.
   //! \param[in] time Load/time step parameter
   //! \param os Output stream to write the solution data to

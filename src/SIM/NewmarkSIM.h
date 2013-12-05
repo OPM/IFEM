@@ -79,6 +79,15 @@ public:
   //! \brief Returns a const reference to current velocity vector.
   const Vector& getAcceleration() const { return solution[solution.size()-1]; }
 
+  //! \brief Dumps solution variables at user-defined points.
+  //! \param[in] time Current time/load parameter
+  //! \param[in] os The output stream to write the solution to
+  //! \param[in] precision Number of digits after the decimal point
+  //! \param[in] formatted If \e false, write all result points on a single line
+  virtual void dumpResults(double time, std::ostream& os,
+                           std::streamsize precision = 3,
+                           bool formatted = true) const;
+
 protected:
   // Time integration parameters
   double alpha1; //!< Mass-proportional damping parameter

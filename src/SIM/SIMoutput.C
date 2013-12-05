@@ -1058,6 +1058,79 @@ bool SIMoutput::dumpResults (const Vector& psol, double time, std::ostream& os,
 }
 
 
+bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
+                            std::ostream& os, std::streamsize precision) const
+{
+  if (vsol.empty() || myPoints.empty())
+    return true;
+
+  size_t i, j, k;
+  Matrix sol1;
+  Vector lsol;
+
+  for (i = 0; i < myModel.size(); i++)
+  {
+    if (myModel[i]->empty()) continue; // skip empty patches
+
+    ResPointVec::const_iterator p;
+    RealArray params[3];
+    IntVec points;
+
+    // Find all evaluation points within this patch, if any
+    for (j = 0, p = myPoints.begin(); p != myPoints.end(); j++, p++)
+      if (this->getLocalPatchIndex(p->patch) == (int)(i+1))
+        if (opt.discretization >= ASM::Spline)
+        {
+          points.push_back(p->inod > 0 ? p->inod : -(j+1));
+          for (k = 0; k < myModel[i]->getNoParamDim(); k++)
+            params[k].push_back(p->par[k]);
+        }
+        else if (p->inod > 0)
+          points.push_back(p->inod);
+
+    if (points.empty()) continue; // no points in this patch
+
+    // Evaluate/extracto nodal solution variables
+    myModel[i]->extractNodeVec(vsol,lsol);
+    if (opt.discretization >= ASM::Spline)
+    {
+      if (!myModel[i]->evalSolution(sol1,lsol,params,false))
+        return false;
+    }
+    else
+    {
+      if (!myModel[i]->getSolution(sol1,lsol,points))
+        return false;
+    }
+
+    // Formatted output, use scientific notation with fixed field width
+    std::streamsize flWidth = 8 + precision;
+    std::streamsize oldPrec = os.precision(precision);
+    std::ios::fmtflags oldF = os.flags(std::ios::scientific | std::ios::right);
+    for (j = 0; j < points.size(); j++)
+    {
+      if (points[j] < 0)
+        os <<"  Point #"<< -points[j];
+      else
+      {
+        points[j] = myModel[i]->getNodeID(points[j]);
+        os <<"  Node #"<< points[j];
+      }
+
+      os <<":\t"<< fname <<" =";
+      for (k = 1; k <= sol1.rows(); k++)
+        os << std::setw(flWidth) << utl::trunc(sol1(k,j+1));
+
+      os << std::endl;
+    }
+    os.precision(oldPrec);
+    os.flags(oldF);
+  }
+
+  return true;
+}
+
+
 bool SIMoutput::savePoints (const std::string& fileName,
                             const Vector& psol, double time, int step,
                             std::streamsize precision) const
