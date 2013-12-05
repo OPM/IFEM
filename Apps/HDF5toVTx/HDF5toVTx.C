@@ -110,7 +110,7 @@ bool writeFieldPatch(const Vector& locvec, int components,
   if (!patch.evalSolution(field, locvec, model))
     return false;
 
-  if (components > 1) {
+  if (components > 1 || type == "eigenmodes") {
     if (!myVtf.writeVres(field,++nBlock,geomID,components))
       return false;
     else {
@@ -119,6 +119,9 @@ bool writeFieldPatch(const Vector& locvec, int components,
       vlist[description].Blocks.push_back(nBlock);
     }
   }
+
+  if (type == "eigenmodes")
+    return true;
 
   for (size_t j = 0; j < field.rows(); j++) {
     std::string nam = name;
@@ -189,6 +192,8 @@ void writeFieldBlocks(VTFList& vlist, VTFList& slist, VTF& myvtf,
   for (VTFList::iterator it = vlist.begin(); it != vlist.end(); ++it) {
     if (it->second.Type == "displacement")
       myvtf.writeDblk(it->second.Blocks,"displacement",10,iStep);
+    else if (it->second.Type == "eigenmodes")
+      myvtf.writeDblk(it->second.Blocks, "Mode Shape", idBlock++, iStep);
     else
       myvtf.writeVblk(it->second.Blocks,it->second.Name.c_str(),idBlock++,iStep);
   }
@@ -264,7 +269,7 @@ void freePatchMap(PatchMap& map)
 
 
 //! \brief Setup up for our basis.
-//! \details Bases with the same size is collapsed to one, while different sizes bases are appended
+//! \details Bases with the same size is collapsed to one, while different sized bases are appended
 //! \param plist The process list with bases and fields
 //! \param level The file level to load bases from
 //! \param hdf The HDF5 file reader to use
@@ -395,6 +400,15 @@ int main (int argc, char** argv)
       std::cout << it->name <<"\t"<< it->description <<"\tnc="<< it->components
                 <<"\t"<< it->basis << std::endl;
     }
+    if (it->type == "eigenmodes") {
+      levels = it->components-1;
+      processlist[it->basis].back().components = 1;
+    }
+  }
+
+  if (processlist.empty()) {
+    std::cout << "No fields to process, bailing" << std::endl;
+    exit(1);
   }
 
   ProcessList::const_iterator pit = processlist.begin();
@@ -464,6 +478,12 @@ int main (int argc, char** argv)
               ok &= writeElmPatch(vec,*patches[pit->first].Patch[j],myVtf->getBlock(j+1),
                                   patches[pit->first].StartPart+j,block,
                                   it->description, it->name, slist, *myVtf);
+            } else if (it->type == "eigenmodes") {
+              ok &= writeFieldPatch(vec,it->components,
+                                    *patches[pit->first].Patch[j],
+                                    patches[pit->first].FakeModel[j],
+                                    patches[pit->first].StartPart+j,
+                                    block,it->name,vlist,slist,*myVtf, it->description, it->type);
             } else {
               ok &= writeFieldPatch(vec,it->components,
                                     *patches[pit->first].Patch[j],
@@ -481,13 +501,21 @@ int main (int argc, char** argv)
       return 3;
 
     bool res;
-    if (processlist.begin()->second.begin()->timestep > 0) {
+    if (processlist.begin()->second.begin()->type == "eigenmodes") {
+      double val;
+      bool freq=false;
+      if (!hdf.readDouble(i, "1", "eigenval", val)) {
+        freq = true;
+        hdf.readDouble(i, "1", "eigenfrequency", val);
+      }
+      res=myVtf->writeState(k++, freq?"Frequency %g" : "Eigenvalue %g", val, 1);
+    } else if (processlist.begin()->second.begin()->timestep > 0) {
       double time2 = time;
       hdf.readDouble(i,"timeinfo","SIMbase-1",time2); //TODO!
-      res=myVtf->writeState(k++,"Time %g",time2,1);
+      res=myVtf->writeState(k++,"Time %g",time2,0);
     } else {
       double foo = k;
-      res=myVtf->writeState(k++,"Step %g",foo,1);
+      res=myVtf->writeState(k++,"Step %g", foo, 0);
     }
     if (!res) {
       std::cerr << "Error writing state" << std::endl;

@@ -94,7 +94,8 @@ void XMLWriter::readInfo()
   while (elem) {
     if (strcasecmp(elem->Attribute("type"),"field") == 0 ||
         strcasecmp(elem->Attribute("type"),"knotspan") == 0 ||
-        strcasecmp(elem->Attribute("type"),"displacement") == 0) {
+        strcasecmp(elem->Attribute("type"),"displacement") == 0 ||
+        strcasecmp(elem->Attribute("type"), "eigenmodes") == 0) {
       Entry entry;
       entry.name = elem->Attribute("name");
       entry.description = elem->Attribute("description");
@@ -220,6 +221,11 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry,
       }
       delete norm;
     }
+  }
+
+  if (results & DataExporter::EIGENMODES) {
+    const std::vector<Mode>* vec = static_cast<const std::vector<Mode>* >(entry.second.data2);
+    addField(prefix+"eigenmode", "eigenmode", sim->getName()+"-1", vec->size(), sim->getNoPatches(), "eigenmodes");
   }
 }
 

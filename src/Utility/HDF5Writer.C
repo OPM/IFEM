@@ -134,6 +134,10 @@ void HDF5Writer::readArray(int group, const std::string& name,
                            int& len, double*& data)
 {
 #ifdef HAS_HDF5
+  if (!checkGroupExistence(group, name.c_str())) {
+    len = 0;
+    return;
+  }
   hid_t set = H5Dopen2(group,name.c_str(),H5P_DEFAULT);
   hsize_t siz = H5Dget_storage_size(set) / 8;
   len = siz;
@@ -401,6 +405,38 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
                          patchEnorm.cols(),patchEnorm.getRow(l++).ptr(),
                          H5T_NATIVE_DOUBLE);
       }
+      if (results & DataExporter::EIGENMODES) {
+        const std::vector<Mode>* vec2 = static_cast<const std::vector<Mode>* >(entry.second.data2);
+        const std::vector<Mode>& vec = static_cast<const std::vector<Mode>& >(*vec2);
+        H5Gclose(group2);
+        for (k = 0; k < vec.size(); ++k) {
+          Vector psol;
+          size_t ndof1 = sim->extractPatchSolution(vec[k].eigVec,psol,loc-1);
+          std::stringstream name;
+          name << entry.second.description << "-" << k+1;
+          std::stringstream str;
+          str << k;
+          if (!checkGroupExistence(m_file,str.str().c_str())) {
+            group2 = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
+            H5Gclose(group2);
+          }
+          str << '/';
+          str << i+1;
+          if (checkGroupExistence(m_file,str.str().c_str()))
+            group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
+          else
+            group2 = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
+          writeArray(group2, "eigenmode",
+                     ndof1, psol.ptr(), H5T_NATIVE_DOUBLE);
+          bool isFreq = sim->opt.eig==3 || sim->opt.eig==4 || sim->opt.eig==6;
+          if (isFreq)
+            writeArray(group2, "eigenfrequency", 1, &vec[k].eigVal, H5T_NATIVE_DOUBLE);
+          else
+            writeArray(group2, "eigenval", 1, &vec[k].eigVal, H5T_NATIVE_DOUBLE);
+          if (k != vec.size()-1)
+            H5Gclose(group2);
+        }
+      }
     }
     else // must write empty dummy records for the other patches
     {
@@ -520,6 +556,9 @@ bool HDF5Writer::readDouble(int level, const std::string& group,
 #ifdef HAS_HDF5
   std::stringstream str;
   str << "/" << level << "/" << group;
+  if (!checkGroupExistence(m_file,str.str().c_str()))
+    return false;
+
   hid_t group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
   int len=1;
   double* data2;

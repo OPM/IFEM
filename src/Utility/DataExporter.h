@@ -43,7 +43,8 @@ class DataExporter : public ControlCallback
     PRIMARY      = 1,
     DISPLACEMENT = 2,
     SECONDARY    = 4,
-    NORMS        = 8
+    NORMS        = 8,
+    EIGENMODES   = 16
   };
 
   //! \brief A structure holding information about registered fields
