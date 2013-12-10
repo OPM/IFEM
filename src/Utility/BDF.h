@@ -70,7 +70,7 @@ namespace TimeIntegration //! Utilities for time integration.
     \brief Helper class for BDF methods for 2nd order problems
     \details Keeps track of coefficients, extrapolation and startup.
   */
-  class BDFD2 : public BDF
+  class BDFD2
   {
   public:
     //! \brief The constructor initializes the coefficients.
@@ -105,7 +105,10 @@ namespace TimeIntegration //! Utilities for time integration.
     double extrapolate(const double* values) const;
 
   protected:
+    std::vector<double> coefs;  //!< The BDF coefficients
+    std::vector<double> coefs1; //!< BDF coefficients for first time step
     std::vector<double> coefs2; //!< BDF coefficients for second time step
+    int                 step;   //!< Time step counter
   };
 }
 
