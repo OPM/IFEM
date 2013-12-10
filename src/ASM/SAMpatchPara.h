@@ -100,6 +100,14 @@ public:
   virtual bool assembleSystem(SystemVector& sysRHS,
 			      const RealArray& eS, int iel = 0,
 			      Vector* reactionForces = NULL) const;
+  
+  // we only partially overload
+  using SAMpatch::assembleReactions;
+
+  //! \brief Add reaction forces to a system vector
+  //! \param reac The vector of reaction forces
+  //! \param[in] S The load vector
+  virtual void assembleReactions(SystemVector& rhs, const RealArray& load) const;
 
   //! \brief Finds the matrix of equation numbers for an element.
   //! \param[out] meen Matrix of element equation numbers

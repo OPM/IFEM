@@ -269,7 +269,7 @@ public:
   //! \brief Add reaction forces to a system vector
   //! \param reac The vector of reaction forces
   //! \param[in] S The load vector
-  void assembleReactions(SystemVector& rhs, const RealArray& load) const;
+  virtual void assembleReactions(SystemVector& rhs, const RealArray& load) const;
 
 protected:
   //! \brief Initializes the DOF-to-equation connectivity array \a MEQN.
@@ -279,7 +279,7 @@ protected:
   //! \param reac The vector of reaction forces
   //! \param[in] eS  The element load vector
   //! \param[in] iel Identifier for the element that \a eS belongs to
-  void assembleReactions(Vector& reac, const RealArray& eS, int iel) const;
+  virtual void assembleReactions(Vector& reac, const RealArray& eS, int iel) const;
 
   //! \brief Expands a solution vector from equation-ordering to DOF-ordering.
   //! \param[in] solVec Pointer to solution vector, length = NEQ
