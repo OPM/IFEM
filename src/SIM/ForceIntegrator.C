@@ -82,11 +82,11 @@ Vector SIM::getBoundaryForce (const Vectors& solution, SIMbase* model, int code,
 
 
 bool SIM::getNodalForces (const Vectors& solution, SIMbase* model, int code,
-                          const TimeDomain& time, double alpha, GlbForceVec& force)
+                          const TimeDomain& time, GlbForceVec& force)
 {
   force.initialize();
 
-  ForceBase* forceInt = model->getNodalForceIntegrand(alpha);
+  ForceBase* forceInt = model->getNodalForceIntegrand();
   if (!forceInt)
   {
     std::cerr <<" *** SIM::getNodalForces: No force integrand."<< std::endl;

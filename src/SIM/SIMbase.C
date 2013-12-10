@@ -1837,9 +1837,9 @@ ForceBase* SIMbase::getBoundaryForceIntegrand (const Vec3* X0) const
 }
 
 
-ForceBase* SIMbase::getNodalForceIntegrand (double alpha) const
+ForceBase* SIMbase::getNodalForceIntegrand () const
 {
-  return myProblem->getForceIntegrand(alpha);
+  return myProblem->getForceIntegrand();
 }
 
 

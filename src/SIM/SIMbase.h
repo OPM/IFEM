@@ -448,7 +448,7 @@ public:
   //! \note The object is allocated dynamically and has therefore to be
   //! manually deleted before the variable receiving the pointer value goes
   //! out of scope.
-  ForceBase* getNodalForceIntegrand(double alpha = 0.0) const;
+  ForceBase* getNodalForceIntegrand() const;
 
   //! \brief Returns a unique integer code for a Property set.
   //! \param[in] setName Name of the topology set the property is defined on
