@@ -197,9 +197,9 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
       if (utl::getAttribute(set,"name",name)) {
         int idim = 3;
         utl::getAttribute(set,"type",type,true);
-	if (type == "volume")
-	  idim = 3;
-        if (type == "face")
+        if (type == "volume")
+          idim = 3;
+        else if (type == "face")
           idim = 2;
         else if (type == "edge")
           idim = 1;
@@ -1772,13 +1772,13 @@ Vec4 SIMbase::getNodeCoord (int inod) const
 bool SIMbase::isFixed (int inod, int dof) const
 {
 #ifdef HAS_PETSC
-  if ((opt.solver == SystemMatrix::PETSC) || (opt.solver == SystemMatrix::PETSCBLOCK))
-    return static_cast<SAMpatchPara*>(mySam)->isDirichlet(inod,dof);
+  SAMpatchPara* pSam = dynamic_cast<SAMpatchPara*>(mySam);
+  if (pSam) return pSam->isDirichlet(inod,dof);
 #endif
 
   size_t node = 0;
   for (PatchVec::const_iterator it = myModel.begin(); it != myModel.end(); ++it)
-    if ((node = (*it)->getNodeIndex(inod,true))) 
+    if ((node = (*it)->getNodeIndex(inod,true)))
       return (*it)->isFixed(node,dof,true);
 
   return true;
