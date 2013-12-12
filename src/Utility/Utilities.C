@@ -187,12 +187,13 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att,
   \verbatim <name value="myValue"/> \endverbatim
 */
 
-const char* utl::getValue (const TiXmlElement* xml, const char* tag)
+const char* utl::getValue (const TiXmlNode* xml, const char* tag)
 {
   if (xml->Value() && !strcasecmp(xml->Value(),tag))
   {
-    if (xml->Attribute("value"))
-      return xml->Attribute("value");
+    const TiXmlElement* elm = dynamic_cast<const TiXmlElement*>(xml);
+    if (elm && elm->Attribute("value"))
+      return elm->Attribute("value");
     else if (xml->FirstChild())
       return xml->FirstChild()->Value();
   }
@@ -201,7 +202,7 @@ const char* utl::getValue (const TiXmlElement* xml, const char* tag)
 }
 
 
-bool utl::parseKnots (const TiXmlElement* xml, std::vector<Real>& xi)
+bool utl::parseKnots (const TiXmlNode* xml, std::vector<Real>& xi)
 {
   if (!xml->FirstChild())
     return false;

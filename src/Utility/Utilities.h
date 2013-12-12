@@ -22,6 +22,7 @@
 #include <map>
 
 class TiXmlElement;
+class TiXmlNode;
 
 
 namespace utl
@@ -88,15 +89,15 @@ namespace utl
   //! otherwise \e false
   bool getAttribute(const TiXmlElement* xml, const char* att, std::string& val,
                     bool toLower = false);
-  //! \brief Returns the value (if any) of the specified XML-element.
-  //! \param[in] xml Pointer to XML-element to extract the value from
+  //! \brief Returns the value (if any) of the specified XML-node.
+  //! \param[in] xml Pointer to XML-node to extract the value from
   //! \param[in] tag The name of the XML-element to extract the value from
-  const char* getValue(const TiXmlElement* xml, const char* tag);
+  const char* getValue(const TiXmlNode* xml, const char* tag);
 
-  //! \brief Parses a sequence of knot values from the specified XML-element.
-  //! \param[in] xml Pointer to XML-element to extract from
+  //! \brief Parses a sequence of knot values from the specified XML-node.
+  //! \param[in] xml Pointer to XML-node to extract from
   //! \param xi The knot value(s) is/are appended to this vector
-  bool parseKnots(const TiXmlElement* xml, std::vector<Real>& xi);
+  bool parseKnots(const TiXmlNode* xml, std::vector<Real>& xi);
 
   //! \brief Transforms the integer value \a num into a unique range.
   //! \details This method is invoked on a series of (non-unique) values.
@@ -123,8 +124,8 @@ namespace utl
   //! \param[out] out The output array stored column-wise in a 1D array
   //! \param[in] offset_in Optional start offset for the \a in vector
   int gather(const std::vector<int>& index, size_t nr,
-	     const std::vector<Real>& in, std::vector<Real>& out,
-	     size_t offset_in = 0);
+             const std::vector<Real>& in, std::vector<Real>& out,
+             size_t offset_in = 0);
 
   //! \brief Compresses the rows of a 2D array based on given scatter indices.
   //! \param[in] index Scatter indices of the columns that should be retained
@@ -133,8 +134,8 @@ namespace utl
   //! \param[out] out The output array stored as a 2D matrix
   //! \param[in] offset_in Optional start offset for the \a in vector
   int gather(const std::vector<int>& index, size_t nr,
-	     const utl::vector<Real>& in, utl::matrix<Real>& out,
-	     size_t offset_in = 0);
+             const utl::vector<Real>& in, utl::matrix<Real>& out,
+             size_t offset_in = 0);
 
   //! \brief Compresses a row of a 2D array based on given scatter indices.
   //! \param[in] index Scatter indices of the columns that should be retained
@@ -178,7 +179,6 @@ namespace utl
   //! \brief Right-justifies the input string to the given total \a width.
   std::string adjustRight(size_t width, const std::string& s,
                           const std::string& suffix = " : ");
-
 }
 
 #endif
