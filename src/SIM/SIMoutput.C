@@ -136,6 +136,8 @@ void SIMoutput::preprocessResultPoints ()
         std::cout <<','<< p->par[c];
       if (p->npar > 1) std::cout <<')';
       if (p->inod > 0) std::cout <<", node #"<< p->inod;
+      if (p->inod > 0 && myModel.size() > 1)
+	std::cout <<", global #"<< myModel[pid-1]->getNodeID(p->inod);
       std::cout <<", X = "<< p->X << std::endl;
       p++;
     }
