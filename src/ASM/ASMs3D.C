@@ -1585,6 +1585,7 @@ void ASMs3D::getElementCorners (int i1, int i2, int i3, Vec3Vec& XC) const
   // Evaluate the spline volume at the corners to find physical coordinates
   int dim = svol->dimension();
   RealArray XYZ(dim*8);
+#pragma omp critical
   svol->gridEvaluator(u,v,w,XYZ);
 
   XC.clear();
@@ -1602,6 +1603,9 @@ bool ASMs3D::integrate (Integrand& integrand,
   if (!svol) return true; // silently ignore empty patches
 
   PROFILE2("ASMs3D::integrate(I)");
+
+  bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
+  bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
 
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
@@ -1631,7 +1635,7 @@ bool ASMs3D::integrate (Integrand& integrand,
   std::vector<Go::BasisDerivs>  splineRed;
   {
     PROFILE2("Spline evaluation");
-    if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+    if (use2ndDer)
       svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline2);
     else
       svol->computeBasisGrid(gpar[0],gpar[1],gpar[2],spline);
@@ -1688,7 +1692,7 @@ bool ASMs3D::integrate (Integrand& integrand,
           break;
         }
 
-        if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+        if (useElmVtx)
           this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
 
         if (integrand.getIntegrandType() & Integrand::G_MATRIX)
@@ -1730,14 +1734,18 @@ bool ASMs3D::integrate (Integrand& integrand,
         if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
         {
           // Compute the element center
-          Go::Point X0;
           double u0 = 0.5*(gpar[0](1,i1-p1+1) + gpar[0](nGauss,i1-p1+1));
           double v0 = 0.5*(gpar[1](1,i2-p2+1) + gpar[1](nGauss,i2-p2+1));
           double w0 = 0.5*(gpar[2](1,i3-p3+1) + gpar[2](nGauss,i3-p3+1));
-          svol->point(X0,u0,v0,w0);
-          X.x = X0[0];
-          X.y = X0[1];
-          X.z = X0[2];
+          SplineUtils::point(X,u0,v0,w0,svol);
+          if (!useElmVtx)
+          {
+            // When element corner coordinates are not needed, store coordinates
+            // and parameters of the element center in XC, for material usage
+            fe.XC.resize(2);
+            fe.XC.front() = X;
+            fe.XC.back() = Vec3(u0,v0,w0);
+          }
         }
 
         // Initialize element quantities
@@ -1806,7 +1814,7 @@ bool ASMs3D::integrate (Integrand& integrand,
               fe.w = gpar[2](k+1,i3-p3+1);
 
               // Fetch basis function derivatives at current integration point
-              if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+              if (use2ndDer)
                 SplineUtils::extractBasis(spline2[ip],fe.N,dNdu,d2Ndu2);
               else
                 SplineUtils::extractBasis(spline[ip],fe.N,dNdu);
@@ -1816,7 +1824,7 @@ bool ASMs3D::integrate (Integrand& integrand,
               if (fe.detJxW == 0.0) continue; // skip singular points
 
               // Compute Hessian of coordinate mapping and 2nd order derivatives
-              if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+              if (use2ndDer)
                 if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,fe.dNdX))
                   ok = false;
 
@@ -1873,13 +1881,15 @@ bool ASMs3D::integrate (Integrand& integrand,
 
   PROFILE2("ASMs3D::integrate(I)");
 
+  bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
+  bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
+
   // Evaluate basis function derivatives at all integration points
   size_t i, j, k;
   std::vector<size_t> MPitg(itgPts.size()+1,0);
   for (i = MPitg.front() = 0; i < itgPts.size(); i++)
     MPitg[i+1] = MPitg[i] + itgPts[i].size();
   size_t nPoints = MPitg.back();
-  bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   std::vector<Go::BasisDerivs>  spline(use2ndDer ? 0 : nPoints);
   std::vector<Go::BasisDerivs2> spline2(!use2ndDer ? 0 : nPoints);
   for (i = k = 0; i < itgPts.size(); i++)
@@ -1943,7 +1953,14 @@ bool ASMs3D::integrate (Integrand& integrand,
           break;
         }
 
-        if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+        if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
+        {
+          // Compute the element center
+          this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
+	  X = 0.125*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]+
+		     fe.XC[4]+fe.XC[5]+fe.XC[6]+fe.XC[7]);
+        }
+        else if (useElmVtx)
           this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
 
         if (integrand.getIntegrandType() & Integrand::G_MATRIX)
@@ -1952,14 +1969,6 @@ bool ASMs3D::integrate (Integrand& integrand,
           dXidu[0] = svol->knotSpan(0,i1-1);
           dXidu[1] = svol->knotSpan(1,i2-1);
           dXidu[2] = svol->knotSpan(2,i3-1);
-        }
-
-        if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
-        {
-          // Compute the element center
-          this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
-	  X = 0.125*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]+
-		     fe.XC[4]+fe.XC[5]+fe.XC[6]+fe.XC[7]);
         }
 
         // Initialize element quantities
@@ -1985,7 +1994,7 @@ bool ASMs3D::integrate (Integrand& integrand,
           fe.w = itgPts[iel][ip][2];
 
           // Fetch basis function derivatives at current integration point
-          if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+          if (use2ndDer)
             SplineUtils::extractBasis(spline2[jp],fe.N,dNdu,d2Ndu2);
           else
             SplineUtils::extractBasis(spline[jp],fe.N,dNdu);
@@ -1995,7 +2004,7 @@ bool ASMs3D::integrate (Integrand& integrand,
           if (fe.detJxW == 0.0) continue; // skip singular points
 
           // Compute Hessian of coordinate mapping and 2nd order derivatives
-          if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+          if (use2ndDer)
             if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,fe.dNdX))
               ok = false;
 
@@ -2113,13 +2122,6 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
 
 
   // === Assembly loop over all elements on the patch face =====================
-
-#ifdef USE_OPENMP
-  // Workaround: GoTools objects cannot be used in parallel sections
-  int threads = omp_get_max_threads();
-  if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-    omp_set_num_threads(1);
-#endif
 
   bool ok = true;
   for (size_t g = 0; g < threadGrp.size() && ok; g++)
@@ -2260,9 +2262,6 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
       }
     }
   }
-#ifdef USE_OPENMP
-  omp_set_num_threads(threads);
-#endif
 
   return ok;
 }
@@ -2452,10 +2451,7 @@ int ASMs3D::evalPoint (const double* xi, double* param, Vec3& X) const
   for (i = 0; i < 3; i++)
     param[i] = (1.0-xi[i])*svol->startparam(i) + xi[i]*svol->endparam(i);
 
-  Go::Point X0;
-  svol->point(X0,param[0],param[1],param[2]);
-  for (i = 0; i < 3 && i < svol->dimension(); i++)
-    X[i] = X0[i];
+  SplineUtils::point(X,param[0],param[1],param[2],svol);
 
   // Check if this point matches any of the control points (nodes)
   Vec3 Xnod;
@@ -2856,15 +2852,6 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 void ASMs3D::generateThreadGroups (const Integrand& integrand, bool silence)
 {
-#ifdef USE_OPENMP
-  if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-  {
-    omp_set_num_threads(1);
-    std::cout <<"WARNING: Disabling multi-threading due to GoTools limitations"
-	      <<" (ELEMENT_CORNERS)."<< std::endl;
-  }
-#endif
-
   const int p1 = svol->order(0) - 1;
   const int p2 = svol->order(1) - 1;
   const int p3 = svol->order(2) - 1;

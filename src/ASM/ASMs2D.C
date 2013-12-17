@@ -216,10 +216,10 @@ bool ASMs2D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
             case 2: skipMe = j1 < p1-1; break;
             case 3: skipMe = j2 > 0;    break;
             case 4: skipMe = j2 < p2-1; break;
-	    }
-	  if (skipMe) // Hack for node 0: Using -maxint as flag instead
-	    mnpc[lnod] = mnpc[lnod] == 0 ? -2147483648 : -mnpc[lnod];
-	}
+            }
+          if (skipMe) // Hack for node 0: Using -maxint as flag instead
+            mnpc[lnod] = mnpc[lnod] == 0 ? -2147483648 : -mnpc[lnod];
+        }
 
       // Add connectivity to the extra-ordinary nodes
       for (size_t i = 0; i < nXn; i++)
@@ -1102,15 +1102,10 @@ Vec3 ASMs2D::getCoord (size_t inod) const
     if (it != xnMap.end()) inod = it->second;
   }
 
-  Vec3 X;
   int ip = this->coeffInd(inod-1)*surf->dimension();
-  if (ip < 0) return X;
+  if (ip < 0) return Vec3();
 
-  RealArray::const_iterator cit = surf->coefs_begin() + ip;
-  for (unsigned char i = 0; i < nsd; i++, ++cit)
-    X[i] = *cit;
-
-  return X;
+  return Vec3(&(*(surf->coefs_begin()+ip)),nsd);
 }
 
 
@@ -1322,6 +1317,7 @@ void ASMs2D::getElementCorners (int i1, int i2, Vec3Vec& XC) const
   // Evaluate the spline surface at the corners to find physical coordinates
   int dim = surf->dimension();
   RealArray XYZ(dim*4);
+#pragma omp critical
   surf->gridEvaluator(XYZ,u,v);
 
   XC.clear();
@@ -1353,6 +1349,9 @@ bool ASMs2D::integrate (Integrand& integrand,
 
   PROFILE2("ASMs2D::integrate(I)");
 
+  bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
+  bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
+
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
   const double* wg = GaussQuadrature::getWeight(nGauss);
@@ -1379,7 +1378,7 @@ bool ASMs2D::integrate (Integrand& integrand,
   std::vector<Go::BasisDerivsSf>  spline;
   std::vector<Go::BasisDerivsSf2> spline2;
   std::vector<Go::BasisDerivsSf>  splineRed;
-  if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+  if (use2ndDer)
     surf->computeBasisGrid(gpar[0],gpar[1],spline2);
   else
     surf->computeBasisGrid(gpar[0],gpar[1],spline);
@@ -1434,7 +1433,7 @@ bool ASMs2D::integrate (Integrand& integrand,
           break;
         }
 
-        if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+        if (useElmVtx)
           this->getElementCorners(i1-1,i2-1,fe.XC);
 
         if (integrand.getIntegrandType() & Integrand::G_MATRIX)
@@ -1474,12 +1473,17 @@ bool ASMs2D::integrate (Integrand& integrand,
         if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
         {
           // Compute the element center
-          Go::Point X0;
           double u0 = 0.5*(gpar[0](1,i1-p1+1) + gpar[0](nGauss,i1-p1+1));
           double v0 = 0.5*(gpar[1](1,i2-p2+1) + gpar[1](nGauss,i2-p2+1));
-          surf->point(X0,u0,v0);
-          for (unsigned char i = 0; i < nsd; i++)
-            X[i] = X0[i];
+          SplineUtils::point(X,u0,v0,surf);
+          if (!useElmVtx)
+          {
+            // When element corner coordinates are not needed, store coordinates
+            // and parameters of the element center in XC, for material usage
+            fe.XC.resize(2);
+            fe.XC.front() = X;
+            fe.XC.back() = Vec3(u0,v0,0.0);
+          }
         }
 
         // Initialize element quantities
@@ -1542,7 +1546,7 @@ bool ASMs2D::integrate (Integrand& integrand,
             fe.v = gpar[1](j+1,i2-p2+1);
 
             // Fetch basis function derivatives at current integration point
-            if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+            if (use2ndDer)
               SplineUtils::extractBasis(spline2[ip],fe.N,dNdu,d2Ndu2);
             else
               SplineUtils::extractBasis(spline[ip],fe.N,dNdu);
@@ -1552,7 +1556,7 @@ bool ASMs2D::integrate (Integrand& integrand,
             if (fe.detJxW == 0.0) continue; // skip singular points
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
-            if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+            if (use2ndDer)
               if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,fe.dNdX))
                 ok = false;
 
@@ -1614,13 +1618,15 @@ bool ASMs2D::integrate (Integrand& integrand,
 
   PROFILE2("ASMs2D::integrate(I)");
 
+  bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
+  bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
+
   // Evaluate basis function derivatives at all integration points
   size_t i, j, k;
   std::vector<size_t> MPitg(itgPts.size()+1,0);
   for (i = MPitg.front() = 0; i < itgPts.size(); i++)
     MPitg[i+1] = MPitg[i] + itgPts[i].size();
   size_t nPoints = MPitg.back();
-  bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   std::vector<Go::BasisDerivsSf>  spline(use2ndDer ? 0 : nPoints);
   std::vector<Go::BasisDerivsSf2> spline2(!use2ndDer ? 0 : nPoints);
   for (i = k = 0; i < itgPts.size(); i++)
@@ -1679,7 +1685,13 @@ bool ASMs2D::integrate (Integrand& integrand,
           break;
         }
 
-        if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+        if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
+        {
+          // Compute the element center
+          this->getElementCorners(i1-1,i2-1,fe.XC);
+          X = 0.25*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]);
+        }
+        else if (useElmVtx)
           this->getElementCorners(i1-1,i2-1,fe.XC);
 
         if (integrand.getIntegrandType() & Integrand::G_MATRIX)
@@ -1687,13 +1699,6 @@ bool ASMs2D::integrate (Integrand& integrand,
           // Element size in parametric space
           dXidu[0] = surf->knotSpan(0,i1-1);
           dXidu[1] = surf->knotSpan(1,i2-1);
-        }
-
-        if (integrand.getIntegrandType() & Integrand::ELEMENT_CENTER)
-        {
-          // Compute the element center
-          this->getElementCorners(i1-1,i2-1,fe.XC);
-          X = 0.25*(fe.XC[0]+fe.XC[1]+fe.XC[2]+fe.XC[3]);
         }
 
         // Initialize element quantities
@@ -1719,7 +1724,7 @@ bool ASMs2D::integrate (Integrand& integrand,
           fe.v = elmPts[ip][1];
 
           // Fetch basis function derivatives at current integration point
-          if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+          if (use2ndDer)
             SplineUtils::extractBasis(spline2[jp],fe.N,dNdu,d2Ndu2);
           else
             SplineUtils::extractBasis(spline[jp],fe.N,dNdu);
@@ -1729,7 +1734,7 @@ bool ASMs2D::integrate (Integrand& integrand,
           if (fe.detJxW == 0.0) continue; // skip singular points
 
           // Compute Hessian of coordinate mapping and 2nd order derivatives
-          if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+          if (use2ndDer)
             if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,fe.dNdX))
               ok = false;
 
@@ -1944,11 +1949,7 @@ int ASMs2D::evalPoint (const double* xi, double* param, Vec3& X) const
 
   param[0] = (1.0-xi[0])*surf->startparam_u() + xi[0]*surf->endparam_u();
   param[1] = (1.0-xi[1])*surf->startparam_v() + xi[1]*surf->endparam_v();
-
-  Go::Point X0;
-  surf->point(X0,param[0],param[1]);
-  for (unsigned char d = 0; d < nsd; d++)
-    X[d] = X0[d];
+  SplineUtils::point(X,param[0],param[1],surf);
 
   // Check if this point matches any of the control points (nodes)
   Vec3 Xnod;
@@ -2326,15 +2327,6 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 void ASMs2D::generateThreadGroups (const Integrand& integrand, bool silence)
 {
-#ifdef USE_OPENMP
-  if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-  {
-    omp_set_num_threads(1);
-    std::cout <<"WARNING: Disabling multi-threading due to GoTools limitations"
-              <<" (ELEMENT_CORNERS)."<< std::endl;
-  }
-#endif
-
   const int p1 = surf->order_u() - 1;
   const int p2 = surf->order_v() - 1;
   const int n1 = surf->numCoefs_u();

@@ -25,6 +25,7 @@
 #include "GaussQuadrature.h"
 #include "SparseMatrix.h"
 #include "ElementBlock.h"
+#include "SplineUtils.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
 
@@ -375,15 +376,10 @@ double ASMs1D::getKnotSpan (int i) const
 
 Vec3 ASMs1D::getCoord (size_t inod) const
 {
-  Vec3 X;
   int ip = (inod-1)*curv->dimension();
-  if (ip < 0) return X;
+  if (ip < 0) return Vec3();
 
-  RealArray::const_iterator cit = curv->coefs_begin() + ip;
-  for (unsigned char i = 0; i < nsd; i++, cit++)
-    X[i] = *cit;
-
-  return X;
+  return Vec3(&(*(curv->coefs_begin()+ip)),nsd);
 }
 
 
@@ -806,11 +802,7 @@ int ASMs1D::evalPoint (const double* xi, double* param, Vec3& X) const
   if (!curv) return -1;
 
   param[0] = (1.0-xi[0])*curv->startparam() + xi[0]*curv->endparam();
-
-  Go::Point X0;
-  curv->point(X0,param[0]);
-  for (unsigned char d = 0; d < nsd; d++)
-    X[d] = X0[d];
+  SplineUtils::point(X,param[0],curv);
 
   // Check if this point matches any of the control points (nodes)
   Vec3 Xnod;
