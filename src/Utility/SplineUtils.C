@@ -39,6 +39,33 @@ Vec4 SplineUtils::toVec4 (const Go::Point& X, Real time)
 }
 
 
+void SplineUtils::point (Vec3& X, double u, Go::SplineCurve* curve)
+{
+  Go::Point Y;
+#pragma omp critical
+  curve->point(Y,u);
+  for (int i = 0; i < Y.size() && i < 3; i++) X[i] = Y[i];  
+}
+
+
+void SplineUtils::point (Vec3& X, double u, double v, Go::SplineSurface* surf)
+{
+  Go::Point Y;
+#pragma omp critical
+  surf->point(Y,u,v);
+  for (int i = 0; i < Y.size() && i < 3; i++) X[i] = Y[i];  
+}
+
+
+void SplineUtils::point (Vec3& X, double u, double v, double w, Go::SplineVolume* vol)
+{
+  Go::Point Y;
+#pragma omp critical
+  vol->point(Y,u,v,w);
+  for (int i = 0; i < Y.size() && i < 3; i++) X[i] = Y[i];  
+}
+
+
 void SplineUtils::extractBasis (const Go::BasisDerivsSf& spline,
                                 Vector& N, Matrix& dNdu)
 {

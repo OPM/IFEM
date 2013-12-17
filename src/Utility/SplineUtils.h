@@ -27,6 +27,7 @@ namespace Go {
   class BasisDerivs2;
   class SplineCurve;
   class SplineSurface;
+  class SplineVolume;
 }
 
 
@@ -36,6 +37,13 @@ namespace SplineUtils //! Various utility functions on spline objects.
   Vec3 toVec3(const Go::Point& X, int nsd = 3);
   //! \brief Helper method for casting a \a Go::Point and time object to Vec4.
   Vec4 toVec4(const Go::Point& X, Real time = Real(0));
+
+  //! \brief Evaluates given spline curve at a parametric point.
+  void point(Vec3& X, double u, Go::SplineCurve* curve);
+  //! \brief Evaluates given spline surface at a parametric point.
+  void point(Vec3& X, double u, double v, Go::SplineSurface* surf);
+  //! \brief Evaluates given spline colume at a parametric point.
+  void point(Vec3& X, double u, double v, double w, Go::SplineVolume* vol);
 
   //! \brief Establishes matrices with basis functions and 1st derivatives.
   void extractBasis(const Go::BasisDerivsSf& spline,
