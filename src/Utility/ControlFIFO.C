@@ -22,6 +22,7 @@ ControlFIFO::~ControlFIFO()
 
 bool ControlFIFO::open(const std::string& name)
 {
+#if !defined(__MINGW64__) || !defined(__MINGW32__)
   fifo_name = name;
   unlink(fifo_name.c_str());
   if (mkfifo(fifo_name.c_str(), S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH)) {
@@ -34,6 +35,8 @@ bool ControlFIFO::open(const std::string& name)
   fifo = ::open("ifem-control", O_RDONLY | O_NONBLOCK);
 
   return true;
+#endif
+  return false;
 }
 
 

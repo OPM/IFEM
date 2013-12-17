@@ -16,7 +16,7 @@
 #include "SAM.h"
 
 
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(__MINGW32__) && !defined(__MINGW64__)
 #define addem2_ ADDEM2
 #define dgesv_  DGESV
 #define dgetrs_ DGETRS

@@ -16,7 +16,7 @@
 #include "SPRMatrix.h"
 #include "PETScMatrix.h"
 
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(__MINGW32__) && !defined(__MINGW64__)
 #define eig_av_   EIG_AV
 #define eig_mv_   EIG_MV
 #define eig_sol_  EIG_SOL

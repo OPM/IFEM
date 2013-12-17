@@ -16,7 +16,7 @@
 
 #include "MatVec.h"
 
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(__MINGW32__) && !defined(__MINGW64__)
 #define dgetrf_ DGETRF
 #define dgetri_ DGITRI
 #elif defined(_AIX)

@@ -29,6 +29,10 @@ ELSE(CMAKE_CXX_COMPILER_ID MATCHES Intel)
   FIND_PACKAGE(LAPACK REQUIRED)
 ENDIF(CMAKE_CXX_COMPILER_ID MATCHES Intel)
 
+if(MINGW)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++ -static-libgfortran -static")
+endif()
+
 INCLUDE(TestCXXAcceptsFlag)
 
 IF(${CMAKE_BUILD_TYPE} MATCHES "Release")

@@ -78,7 +78,11 @@ bool SIMinput::read (const char* fileName)
   this->printHeading(substep);
 
   bool result;
+#if defined(__MINGW32__) || defined(__MINGW64__)
+  if (strstr(fileName,".xinp"))
+#else
   if (strcasestr(fileName,".xinp"))
+#endif
     result = this->readXML(fileName);
   else
     result = this->readFlat(fileName);

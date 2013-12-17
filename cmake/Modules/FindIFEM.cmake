@@ -43,6 +43,9 @@ IF(IFEM_PATH OR IFEM_AS_SUBMODULE)
   IF(IFEM_AS_SUBMODULE)
     # Build wants IFEM as a submodule
     MESSAGE(STATUS "Building IFEM as a submodule")
+    IF(CMAKE_CROSSCOMPILING)
+      set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE)
+    endif()
     FIND_PATH(IFEM_PATH NAMES src/IFEM.h.in
                         PATHS ${PROJECT_SOURCE_DIR}/..
                               ${PROJECT_SOURCE_DIR}/../..
@@ -50,6 +53,9 @@ IF(IFEM_PATH OR IFEM_AS_SUBMODULE)
     IF(NOT IFEM_PATH)
       MESSAGE(FATAL_ERROR "IFEM cannot be located, and we want it as a submodule")
     ENDIF(NOT IFEM_PATH)
+    IF(CMAKE_CROSSCOMPILING)
+      set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+    endif()
     ADD_SUBDIRECTORY(${IFEM_PATH} IFEM.dir)
 
     INCLUDE(${CMAKE_BINARY_DIR}/IFEM.dir/IFEMFlags.cmake)
