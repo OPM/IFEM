@@ -41,6 +41,9 @@ public:
     std::string file_field; //!< The name of the field in the file
     //! \brief Default constructor.
     ICInfo() : sim_level(0), file_level(0) {}
+    //! \brief Constructor providing the field name.
+    ICInfo(const std::string& f) : sim_level(0), file_level(0),
+                                   sim_field(f), file_field(f) {}
   };
 
   //! \brief Initial condition container

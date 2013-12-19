@@ -432,14 +432,21 @@ bool SIMbase::parse (const TiXmlElement* elem)
     noDumpDataYet = lhsDump.empty() && rhsDump.empty();
   else if (!strcasecmp(elem->Value(),"initialcondition"))
   {
-    ICInfo info;
-    utl::getAttribute(elem, "level", info.sim_level);
-    utl::getAttribute(elem, "file_level", info.file_level);
-    std::string file;
-    if (utl::getAttribute(elem, "field", info.sim_field) &&
-        utl::getAttribute(elem, "file_field", info.file_field) &&
-        utl::getAttribute(elem, "file", file))
+    std::string field, file;
+    if (utl::getAttribute(elem,"field",field) &&
+        utl::getAttribute(elem,"file",file))
+    {
+      ICInfo info(field);
+      utl::getAttribute(elem,"file_field",info.file_field);
+      utl::getAttribute(elem,"file_level",info.file_level);
+      utl::getAttribute(elem,"level",info.sim_level);
+      std::cout <<"\tInitial condition file: "<< file
+                <<"\n\tField name: \""<< info.sim_field
+                <<"\" (on file \""<< info.file_field
+                <<"\")\n\tTime level: "<< info.sim_level
+                <<" (on file "<< info.file_level <<")"<< std::endl;
       myICs[file].push_back(info);
+    }
     else
       result = false;
   }
