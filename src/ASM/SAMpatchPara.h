@@ -215,6 +215,13 @@ public:
   virtual bool isDirichlet(int inod, int dof) const;
 
 protected:
+  //! \brief Assembles reaction forces for the fixed and prescribed DOFs.
+  //! \param reac The vector of reaction forces
+  //! \param[in] eS  The element load vector
+  //! \param[in] iel Identifier for the element that \a eS belongs to
+  virtual void assembleReactions(Vector& reac, const RealArray& eS, int iel) const
+  { SAM::assembleReactions(reac,eS,iel); }
+
   //! \brief Initializes the multi-point constraint arrays
   //! \a MPMCEQ, \a MMCEQ and \a TTCC.
   virtual bool initConstraintEqs(const std::vector<ASMbase*>& model);
