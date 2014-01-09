@@ -808,6 +808,12 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
     return false;
   }
 
+  if (nProc > 1 && myPatches.size() == 0) {
+    std::cerr << "No partitioning information for " << 
+              nProc << " processors found" << std::endl;
+    return false;
+  }
+
   static int substep = 10;
   this->printHeading(substep);
 
