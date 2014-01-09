@@ -331,7 +331,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
 
   Matrix eNorm;
   Vectors gNorm;
-  if (entry.second.results & DataExporter::NORMS)
+  if (abs(entry.second.results) & DataExporter::NORMS)
     sim->solutionNorms(Vectors(1,*sol),eNorm,gNorm);
 
   NormBase* norm = sim->getProblem()->getNormIntegrand();
@@ -359,7 +359,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     int loc = sim->getLocalPatchIndex(i+1);
     if (loc > 0) // we own the patch
     {
-      if (results & DataExporter::PRIMARY) {
+      if (abs(results) & DataExporter::PRIMARY) {
         Vector psol;
         size_t ndof1 = sim->extractPatchSolution(*sol,psol,loc-1);
         if (prob->mixedFormulation())
@@ -377,7 +377,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
         }
       }
 
-      if (results & DataExporter::SECONDARY) {
+      if (abs(results) & DataExporter::SECONDARY) {
         Matrix field;
         if (prefix.empty()) {
           sim->extractPatchSolution(Vectors(1,*sol), loc-1);
@@ -394,7 +394,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
                      field.getRow(j+1).ptr(),H5T_NATIVE_DOUBLE);
       }
 
-      if (results & DataExporter::NORMS && norm) {
+      if (abs(results) & DataExporter::NORMS && norm) {
         Matrix patchEnorm;
         sim->extractPatchElmRes(eNorm,patchEnorm,loc-1);
         for (j = l = 1; j <= norm->getNoFields(0); j++)
@@ -405,7 +405,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
                          patchEnorm.cols(),patchEnorm.getRow(l++).ptr(),
                          H5T_NATIVE_DOUBLE);
       }
-      if (results & DataExporter::EIGENMODES) {
+      if (abs(results) & DataExporter::EIGENMODES) {
         const std::vector<Mode>* vec2 = static_cast<const std::vector<Mode>* >(entry.second.data2);
         const std::vector<Mode>& vec = static_cast<const std::vector<Mode>& >(*vec2);
         H5Gclose(group2);
@@ -454,11 +454,11 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
                                               0, &dummy, H5T_NATIVE_DOUBLE);
       }
 
-      if (results & DataExporter::SECONDARY)
+      if (abs(results) & DataExporter::SECONDARY)
         for (j = 0; j < prob->getNoFields(2); j++)
           writeArray(group2,prefix+prob->getField2Name(j),0,&dummy,H5T_NATIVE_DOUBLE);
 
-      if (results & DataExporter::NORMS && norm)
+      if (abs(results) & DataExporter::NORMS && norm)
         for (j = l = 1; j <= norm->getNoFields(0); j++)
           for (k = 1; k <= norm->getNoFields(j); k++)
             if (norm->hasElementContributions(j,k))

@@ -26,9 +26,9 @@
 int SIMinput::msgLevel = 2;
 
 
-SIMinput::SIMinput (const char* heading) : opt(myOpts),
+SIMinput::SIMinput (const char* heading) : opt(myOpts)
 #ifdef PARALLEL_PETSC
-  adm(PETSC_COMM_WORLD)
+  , adm(PETSC_COMM_WORLD)
 #endif
 {
   myPid = adm.getProcId();
