@@ -26,15 +26,13 @@
 int SIMinput::msgLevel = 2;
 
 
-SIMinput::SIMinput (const char* heading) : opt(myOpts)
-{
+SIMinput::SIMinput (const char* heading) : opt(myOpts),
 #ifdef PARALLEL_PETSC
-  adm  = new ProcessAdm(PETSC_COMM_WORLD);
-#else
-  adm = new ProcessAdm();
+  adm(PETSC_COMM_WORLD)
 #endif
-  myPid = adm->getProcId();
-  nProc = adm->getNoProcs();
+{
+  myPid = adm.getProcId();
+  nProc = adm.getNoProcs();
 
   if (heading) myHeading = heading;
 }

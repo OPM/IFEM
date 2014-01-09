@@ -63,6 +63,19 @@ const MPI_Comm* ProcessAdm::getCommunicator() const
 }
 
 
+ProcessAdm& ProcessAdm::operator=(const ProcessAdm& adm2)
+{
+#ifdef HAS_PETSC
+  MPI_Comm_dup(adm2.comm,&comm);
+#endif
+  myPid = adm2.myPid;
+  nProc = adm2.nProc;
+  parallel = adm2.parallel;
+
+  return *this;
+}
+
+
 void ProcessAdm::send(int value, int dest) const
 {
 #ifdef PARALLEL_PETSC

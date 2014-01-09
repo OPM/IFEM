@@ -57,6 +57,8 @@ class ProcessAdm
   //! \brief Return MPI communicator
   const MPI_Comm* getCommunicator() const;
 
+  ProcessAdm& operator=(const ProcessAdm&);
+
   //! \brief Blocking send of an integer
   //! \param[in] value Integer to be sent
   //! \param[in] dest  Process id for destination

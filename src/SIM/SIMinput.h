@@ -69,7 +69,7 @@ public:
   virtual bool parse(const TiXmlElement* elem) = 0;
   
   //! \brief Returns process administrator 
-  const ProcessAdm& getProcessAdm() const { return *adm; }
+  const ProcessAdm& getProcessAdm() const { return adm; }
 
 protected:
   //! \brief Prints the heading of this (sub-step) solver, if any, to std::cout.
@@ -83,7 +83,7 @@ private:
   SIMoptions myOpts; //!< The actual control parameters owned by this simulator
 
 protected:
-  ProcessAdm* adm; //!< Parallel administrator
+  ProcessAdm adm; //!< Parallel administrator
   int myPid;       //!< Processor ID in parallel simulations
   int nProc;       //!< Number of processors in parallel simulations
 

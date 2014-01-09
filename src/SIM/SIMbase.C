@@ -766,7 +766,7 @@ bool SIMbase::createFEMmodel (bool resetNumb)
       return false;
   }
 
-  if (nGlPatches == 0 && !adm->isParallel())
+  if (nGlPatches == 0 && !adm.isParallel())
     nGlPatches = myModel.size();
 
   return true;
@@ -998,7 +998,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   if (mySam) delete mySam;
 #ifdef HAS_PETSC
   if (opt.solver == SystemMatrix::PETSC)
-    mySam = new SAMpatchPara(*g2l,*adm);
+    mySam = new SAMpatchPara(*g2l,adm);
   else
     mySam = new SAMpatch();
 #else
@@ -1232,7 +1232,7 @@ bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, bool withRF)
 #endif
 
   if (myEqSys) delete myEqSys;
-  myEqSys = new AlgEqSystem(*mySam,*adm);
+  myEqSys = new AlgEqSystem(*mySam,adm);
 
   // Workaround SuperLU bug for tiny systems
   if (myModel.size() == 1 && mType == SystemMatrix::SPARSE) {
@@ -1985,7 +1985,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   delete norm;
 
   for (size_t i = 0; i < gNorm.size(); i++)
-    adm->allReduceAsSum(gNorm[i]);
+    adm.allReduceAsSum(gNorm[i]);
 
   return ok;
 }
