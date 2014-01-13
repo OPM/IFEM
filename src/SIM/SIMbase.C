@@ -808,7 +808,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
     return false;
   }
 
-  if (nProc > 1 && myPatches.size() == 0) {
+  if (nProc > 1 && myPatches.size() == 0 && adm.isParallel()) {
     std::cerr << "No partitioning information for " << 
               nProc << " processors found" << std::endl;
     return false;
