@@ -82,6 +82,7 @@ CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/cmake/Modules/IFEMFlags.cmake.in
 # Make the IFEM library
 FILE(GLOB_RECURSE IFEM_SRCS ${PROJECT_SOURCE_DIR}/src/*.[Cf]
                             ${PROJECT_SOURCE_DIR}/3rdparty/expreval/*.cpp)
+string(REGEX REPLACE "${PROJECT_SOURCE_DIR}/src/ASM/ASMs.DInterpolate.C" "" IFEM_SRCS "${IFEM_SRCS}")
 IF(NOT(LRSpline_LIBRARIES AND LRSpline_INCLUDE_DIRS))
   string(REGEX REPLACE "${PROJECT_SOURCE_DIR}/src/ASM/LR/[^;]*" "" IFEM_SRCS "${IFEM_SRCS}")
 ENDIF(NOT(LRSpline_LIBRARIES AND LRSpline_INCLUDE_DIRS))
