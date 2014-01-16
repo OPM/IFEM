@@ -24,7 +24,7 @@ class TimeStep;
   \brief Template class for coupled simulators.
 */
 
-template<class T1, class T2> class SIMCoupled : public ISolver
+template<class T1, class T2> class SIMCoupled
 {
 public:
   //! \brief The constructor initializes the references to the two solvers.
