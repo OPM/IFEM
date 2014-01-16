@@ -463,6 +463,9 @@ public:
   //! \param[in] pc The property code to be associated with this set
   bool createPropertySet(const std::string& setName, int pc);
 
+  //! \brief Returns the SAM object for this SIM
+  const SAM* getSAM() const { return mySam; }
+
 protected:
   //! \brief Defines the type of a property set.
   //! \param[in] code The property code to be associated with the property type
