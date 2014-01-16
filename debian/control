@@ -144,37 +144,21 @@ Depends: libifem-adr (= ${binary:Version})
 Description: IFEM - advection-diffusion-reaction application -- debug symbols
  IFEM - the isogeometric finite element library - advection-diffusion-reaction application
 
-Package: libifem-cfd-chorin
+Package: libifem-cfd
 Section: science
 Architecture: any
 Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: IFEM - Chorin-based CFD applications
- IFEM - the isogeometric finite element library - Chorin-based CFD applications
+Description: IFEM - CFD applications
+ IFEM - the isogeometric finite element library - CFD applications
 
-Package: libifem-cfd-chorin-dbg
+Package: libifem-cfd-dbg
 Section: debug
 Architecture: any
 Multi-Arch: same
-Depends: libifem-cfd-chorin (= ${binary:Version})
-Description: IFEM - Chorin-based CFD applications -- debug symbols
- IFEM - the isogeometric finite element library - Chorin-based CFD applications
-
-Package: libifem-cfd-vms
-Section: science
-Architecture: any
-Multi-Arch: same
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: IFEM - VMS-based CFD applications
- IFEM - the isogeometric finite element library - VMS-based CFD applications
-
-Package: libifem-cfd-vms-dbg
-Section: debug
-Architecture: any
-Multi-Arch: same
-Depends: libifem-cfd-vms (= ${binary:Version})
-Description: IFEM - VMS-based CFD applications -- debug symbols
- IFEM - the isogeometric finite element library - VMS-based CFD applications
+Depends: libifem-cfd (= ${binary:Version})
+Description: IFEM - CFD applications -- debug symbols
+ IFEM - the isogeometric finite element library - CFD applications
 
 Package: libifem-utils
 Section: science
