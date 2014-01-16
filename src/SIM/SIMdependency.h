@@ -110,15 +110,13 @@ public:
   const utl::vector<double>* getDependentField(const std::string& name) const;
   //! \brief Returns a spline patch associated with a dependent field.
   ASMbase* getDependentPatch(const std::string& name, int pindx) const;
-
+  //! \brief Registers a named field with associated nodal vector in this SIM.
+  void registerField(const std::string& name, const utl::vector<double>& vec);
 private:
   //! \brief Returns an iterator pointing to a named dependency.
   DepVector::const_iterator getDependency(const std::string& name) const;
 
 protected:
-  //! \brief Registers a named field with associated nodal vector in this SIM.
-  void registerField(const std::string& name, const utl::vector<double>& vec);
-
   //! \brief Extracts local solution vector(s) for all dependent fields.
   //! \param problem Object with problem-specific data and methods
   //! \param[in] model Patch geometry of this SIM object
