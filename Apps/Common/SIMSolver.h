@@ -20,6 +20,23 @@
 #include "IFEM.h"
 
 
+//! \brief Structure for configuring a given simulator
+//! \details Your SIM need to specialize this for its type
+template<class T>
+struct SolverConfigurator {
+  int setup(T& sim, typename T::SetupProps& props, char* infile);
+};
+
+
+//! \brief Configuration template
+template<class T>
+int ConfigureSIM(T& t, typename T::SetupProps& p, char* infile)
+{
+  SolverConfigurator<T> setup;
+  return setup.setup(t, p, infile);
+}
+
+
 /*!
   \brief Template class for simulator drivers.
   \details This template can be instanciated over any type implementing the

@@ -14,6 +14,7 @@
 #define SIM_EXPLICIT_RK_H_
 
 #include "TimeIntUtils.h"
+#include "TimeStep.h"
 
 namespace TimeIntegration {
 
