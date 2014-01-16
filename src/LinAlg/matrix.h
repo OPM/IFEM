@@ -247,7 +247,7 @@ namespace utl //! General utility classes and functions.
       // If the number of rows is changed the previous content must be cleared
       if (!forceClear && r != oldNrow) elem.clear();
 
-      elem.std::vector<T>::resize(r*c,T(0));
+      elem.std::template vector<T>::resize(r*c,T(0));
     }
 
     //! \brief Query number of matrix rows.
@@ -676,7 +676,7 @@ namespace utl //! General utility classes and functions.
       // the previous content must be cleared
       if (!forceClear && (n[0] != oldn1 || n[1] != oldn2)) elem.clear();
 
-      elem.std::vector<T>::resize(n[0]*n[1]*n[2],T(0));
+      elem.std::template vector<T>::resize(n[0]*n[1]*n[2],T(0));
     }
 
     //! \brief Query dimensions.

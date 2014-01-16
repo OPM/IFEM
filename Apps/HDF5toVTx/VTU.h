@@ -29,6 +29,7 @@ class VTU : public VTF {
 
     bool writeGrid(const ElementBlock* lvb, const char* name, int iStep=1);
 
+    using VTF::writeVres;
     bool writeVres(const std::vector<Real>& field, int blockID,
                    int geomID, int components);
     bool writeNres(const std::vector<Real>& vec, int blockID, int geomID);

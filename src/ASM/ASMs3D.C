@@ -2878,7 +2878,7 @@ void ASMs3D::generateThreadGroups (const Integrand& integrand, bool silence)
   std::cout <<"\nMultiple threads are utilized during element assembly.";
   for (size_t i = 0; i < threadGroupsVol.size(); i++)
   {
-    std::set<int> nodes[threadGroupsVol[i].size()];
+    std::vector< std::set<int> > nodes(threadGroupsVol[i].size());
     std::set<int>::const_iterator nit;
 
     std::cout <<"\n Thread group "<< i+1;

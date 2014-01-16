@@ -16,7 +16,7 @@
 
 #include "MultiStepSIM.h"
 
-class TimeDomain;
+struct TimeDomain;
 
 
 /*!

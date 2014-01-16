@@ -78,7 +78,7 @@ bool SAMpatch::initNodeDofs (const ASMVec& model)
   madof = new int[nnod+1];
   memset(madof,0,(nnod+1)*sizeof(int));
 
-  bool ierr = 0;
+  int ierr = 0;
   for (i = 0; i < model.size(); i++)
     for (j = 0; j < model[i]->getNoNodes(); j++)
       if ((n = model[i]->getNodeID(j+1)) > 0 && n <= nnod)

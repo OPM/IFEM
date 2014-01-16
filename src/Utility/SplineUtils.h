@@ -21,10 +21,10 @@ class Vec4;
 
 namespace Go {
   class Point;
-  class BasisDerivsSf;
-  class BasisDerivsSf2;
-  class BasisDerivs;
-  class BasisDerivs2;
+  struct BasisDerivsSf;
+  struct BasisDerivsSf2;
+  struct BasisDerivs;
+  struct BasisDerivs2;
   class SplineCurve;
   class SplineSurface;
   class SplineVolume;

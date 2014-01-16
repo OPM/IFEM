@@ -26,9 +26,9 @@ class Vec3;
 
 class Tensor
 {
-protected:
+public:
   typedef unsigned short int t_ind; //!< Tensor index type
-
+protected:
   const t_ind       n; //!< Number of spatial dimensions for the tensor
   std::vector<Real> v; //!< The actual tensor component values
 

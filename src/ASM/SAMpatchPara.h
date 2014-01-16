@@ -48,6 +48,8 @@ public:
   //! \brief Returns max global equation number for this process.
   virtual int getMaxEqNumber() const { return ieqmax; }
 
+  using SAMpatch::getNoDofCouplings;
+
   //! \brief Computes number of couplings for each local dof
   //! in a distributed matrix.
   //! \param[in] ifirst Global number of first local DOF

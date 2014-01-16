@@ -72,6 +72,7 @@ public:
   //! \brief Resets global element and node counters.
   static void resetNumbering() { gEl = gNod = 0; }
 
+  using ASMbase::evalSolution;
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods
   virtual LR::LRSpline* evalSolution(const IntegrandBase& integrand) const = 0;

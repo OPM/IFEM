@@ -611,7 +611,7 @@ bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
   Matrix field;
   Vector lovec;
   const size_t nf = myProblem->getNoFields(2);
-  IntVec sID[nf];
+  std::vector<IntVec> sID(nf);
 
   size_t i, j;
   int geomID = myGeomID;

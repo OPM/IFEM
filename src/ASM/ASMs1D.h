@@ -211,6 +211,7 @@ public:
   //! \param[in] nSegSpan Number of visualization segments over each knot-span
   virtual bool getGridParameters(RealArray& prm, int nSegSpan) const;
 
+  using ASMstruct::globalL2projection;
   //! \brief Projects the secondary solution using a discrete global L2-norm.
   //! \param[out] sField Secondary solution field control point values
   //! \param[in] integrand Object with problem-specific data and methods

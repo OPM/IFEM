@@ -17,7 +17,7 @@
 #include "MatVec.h"
 
 class SIMbase;
-class TimeDomain;
+struct TimeDomain;
 class Vec3;
 class GlbForceVec;
 

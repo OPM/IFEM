@@ -136,6 +136,7 @@ public:
                             const RealArray* gpar, bool regular = true,
                             int = 0) const;
 
+  using ASMs2D::evalSolution;
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \details The number of visualization points is the same as the order of
   //! the Lagrange elements by default.

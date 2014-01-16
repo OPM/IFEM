@@ -62,6 +62,7 @@ public:
   //! \param[in] basis Which basis to return size parameters for (mixed methods)
   virtual bool getNoStructElms(int& n1, int& n2, int& n3) const = 0;
 
+  using ASMbase::evalSolution;
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integr Object with problem-specific data and methods
   virtual Go::GeomObject* evalSolution(const IntegrandBase& integr) const = 0;

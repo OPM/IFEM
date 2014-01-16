@@ -126,6 +126,7 @@ public:
   //! \note The number of element nodes must be set in \a grid on input.
   virtual bool tesselate(ElementBlock& grid, const int* npe) const;
 
+  using ASMs3D::evalSolution;
   //! \brief Evaluates the primary solution field at all visualization points.
   //! \details The number of visualization points is the same as the order of
   //! the Lagrange elements by default.
