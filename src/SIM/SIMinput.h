@@ -79,6 +79,9 @@ public:
   static int msgLevel; //!< Controls the amount of console output during solving
   SIMoptions& opt;     //!< Simulation control parameters
 
+  const std::string& getHeading() { return myHeading; }
+  void setHeading(const std::string& heading) { myHeading = heading; }
+
 private:
   SIMoptions myOpts; //!< The actual control parameters owned by this simulator
 
