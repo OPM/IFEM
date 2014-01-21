@@ -17,7 +17,7 @@
 #include <vector>
 
 
-namespace TimeIntegration //!< Time integration scope
+namespace TimeIntegration //! Time integration scope
 {
   //! \brief Enum defining various solution methods.
   // The BE and HEUNEULER methods are used as starting markers for implicit

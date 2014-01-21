@@ -92,9 +92,13 @@ SET_TARGET_PROPERTIES(IFEM PROPERTIES VERSION ${IFEM_VERSION}
                            SOVERSION ${IFEM_ABI_VERSION})
 
 # For generating the doxy
-ADD_CUSTOM_TARGET(doc doxygen ${PROJECT_BINARY_DIR}/Doxyfile
+ADD_CUSTOM_TARGET(lib_doc doxygen ${PROJECT_BINARY_DIR}/Doxyfile
                   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                   COMMENT "Generating API documentation" VERBATIM)
+if(NOT TARGET doc)
+  add_custom_target(doc)
+endif()
+add_dependencies(doc lib_doc)
 
 # 'install' target
 # Have install force doc build
