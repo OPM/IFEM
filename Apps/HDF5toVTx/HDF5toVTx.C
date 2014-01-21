@@ -191,7 +191,7 @@ void writeFieldBlocks(VTFList& vlist, VTFList& slist, VTF& myvtf,
   int idBlock = 20;
   for (VTFList::iterator it = vlist.begin(); it != vlist.end(); ++it) {
     if (it->second.Type == "displacement")
-      myvtf.writeDblk(it->second.Blocks,"displacement",10,iStep);
+      myvtf.writeDblk(it->second.Blocks,"displacement",idBlock++,iStep);
     else if (it->second.Type == "eigenmodes")
       myvtf.writeDblk(it->second.Blocks, "Mode Shape", idBlock++, iStep);
     else
