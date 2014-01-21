@@ -71,6 +71,10 @@ public:
   //! \brief Returns process administrator 
   const ProcessAdm& getProcessAdm() const { return adm; }
 
+  //! \brief Returns the global process ID
+  //! \details Note that this may not be the process ID used in the equation solver
+  int getGlobalProcessID() { return myPid; }
+
 protected:
   //! \brief Prints the heading of this (sub-step) solver, if any, to std::cout.
   void printHeading(int& supStep) const;
