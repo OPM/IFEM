@@ -17,12 +17,14 @@
 
 namespace TimeIntegration {
 
-  //! \brief Template can be instanced over any SIM implementing ISolver,
-  //         and which derive from SIMbase
+  //! \brief Explicit embedded Runge-Kutta based time stepping for SIM classes.
+  //! \details Template can be instanced over any SIM implementing ISolver,
+  //            and which derive from SIMbase.
   template<class Solver>
 class SIMExplicitRKE : public SIMExplicitRK<Solver>
 {
 public:
+  //! \copydoc SIMExplicitRK::SIMExplicitRK()
   SIMExplicitRKE(Solver& solv, Method type) : 
     SIMExplicitRK<Solver>(solv, NONE)
   {
@@ -96,6 +98,7 @@ public:
     }
   }
 
+  //! \copydoc ISolver::solveStep(TimeStep&)
   bool solveStep(TimeStep& tp)
   {
     std::cout <<"\n  step = "<< tp.step <<"  time = "<< tp.time.t << std::endl;
@@ -120,7 +123,7 @@ public:
     return ok;
   }
 private:
-  std::vector<double> bs;
+  std::vector<double> bs; //!< Runge-Kutta coefficients for embedded method
 };
 
 }

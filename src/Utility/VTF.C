@@ -18,11 +18,11 @@
 #elif HAS_VTFAPI == 2
 #include "VTFXAPI.h"
 #include "VTOAPIPropertyIDs.h"
-#define VTFA_FAILURE VTFXA_FAILURE
-#define VTFA_SUCCESS VTFXA_SUCCESS
+#define VTFA_FAILURE VTFXA_FAILURE //!< Convenience macro
+#define VTFA_SUCCESS VTFXA_SUCCESS //!< Convenience macro
 #else
-#define VTFA_FAILURE(x) x <= 0
-#define VTFA_SUCCESS(x) x > 0
+#define VTFA_FAILURE(x) x <= 0 //!< Convenience macro
+#define VTFA_SUCCESS(x) x > 0  //!< Convenience macro
 #endif
 #include "ElementBlock.h"
 #include "Tensor.h"

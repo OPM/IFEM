@@ -267,8 +267,8 @@ public:
   bool getNodalReactions(int inod, const Vector& rf, Vector& nrf) const;
 
   //! \brief Add reaction forces to a system vector
-  //! \param reac The vector of reaction forces
-  //! \param[in] S The load vector
+  //! \param rhs The vector to receive reaction forces
+  //! \param[in] load The load vector
   virtual void assembleReactions(SystemVector& rhs, const RealArray& load) const;
 
 protected:

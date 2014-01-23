@@ -32,8 +32,7 @@ public:
   virtual bool saveModel(char* fileName, int& geoBlk, int& nBlock) = 0;
 
   //! \brief Saves the converged results to VTF file of a given time step.
-  //! \param[in] iStep Time step identifier
-  //! \param[in] time Current time step info
+  //! \param[in] tp Time stepping parameters
   //! \param[in] nBlock Running VTF block counter
   virtual bool saveStep(const TimeStep& tp, int& nBlock) = 0;
 
@@ -46,6 +45,14 @@ public:
   //! \param[in] tp Time step structure to advance
   //! \return True on success
   virtual bool solveStep(TimeStep& tp) = 0;
+
+  //! \brief Initialize the simulator timestepping loop
+  //! \param[in] tp Time step structure with initial parameters
+  virtual bool init(const TimeStep& tp) = 0;
+
+  //! \brief Register fields for output to a data exporter
+  //! \brief exporter The dataexporter to register fields in
+  virtual void registerFields(DataExporter& exporter) = 0;
 };
 
 #endif

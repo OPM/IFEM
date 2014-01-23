@@ -29,6 +29,7 @@
 #define SCOPED_LOG
 #endif
 
+/*! \brief Class holding global IFEM configuration */
 
 class IFEM
 {

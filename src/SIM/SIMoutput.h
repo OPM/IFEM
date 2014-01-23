@@ -227,6 +227,7 @@ public:
                    bool formatted = false, std::streamsize precision = 3) const;
   //! \brief Dumps vector solution at specified points in ASCII format.
   //! \param[in] vsol Solution vector
+  //! \param fname The filename to write to
   //! \param os Output stream to write the solution data to
   //! \param[in] precision Number of digits after the decimal point
   bool dumpVector(const Vector& vsol, const char* fname,

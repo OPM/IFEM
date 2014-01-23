@@ -27,20 +27,19 @@
 class SAWallLaw 
 {
  protected:
-  // Function defining Spalart-Allmaras parametrization
+  //! \brief Function defining Spalart-Allmaras parametrization
   class f_SA_wall_law
   {
   protected:
-    //! Model constants
-    const double B;
-    const double a1;
-    const double a2;
-    const double b1;
-    const double b2;
-    const double c1;
-    const double c2;
-    const double c3;
-    const double c4;
+    const double B;  //!< Model constant
+    const double a1; //!< Model constant
+    const double a2; //!< Model constant
+    const double b1; //!< Model constant
+    const double b2; //!< Model constant
+    const double c1; //!< Model constant
+    const double c2; //!< Model constant
+    const double c3; //!< Model constant
+    const double c4; //!< Model constant
     
   public:
     //! \brief Constructor defining constants
@@ -63,6 +62,8 @@ class SAWallLaw
       return up;
     }
     
+    //! \brief Spalart-Allmaras derivative definition
+    //! \param[in] yp y plus parameter
     double dupdyp(double yp) const
     {
       double yppa1 = yp + a1;
@@ -79,28 +80,55 @@ class SAWallLaw
   
  protected:
   // Newton-Raphson parameters
-  double rtol;                // Residual tolerance
-  int    maxit;               // Maximal number of iterations
+  double rtol;                //!< Residual tolerance
+  int    maxit;               //!< Maximal number of iterations
   
   // Parameters
-  const double K;             // von Karman constant
+  const double K;             //!< von Karman constant
   
   // Function definition
-  f_SA_wall_law SA;           // Spalart-Allmaras parametrization
+  f_SA_wall_law SA;           //!< Spalart-Allmaras parametrization
 
  public:
   //! \brief The default constructor initializes parameters.
+  //! \param eps Relative tolerance in Newton-Raphson loop
+  //! \param mit Maximum number of Newton iterations
  SAWallLaw(double eps = 1.0e-10, int mit = 400) : rtol(eps), maxit(mit), K(0.41) {}
   
   //! \brief Empty destructor
   virtual ~SAWallLaw() {}
 
+  //! \brief Compute the y-plus value
+  //! \param y The y (wall distance) value
+  //! \param nu The viscosity
+  //! \param utan The tangential velocity
+  //! \param[out] yplus The yplus value
+  //! \return True if value was obtained
   bool computeYplus(double y, double nu, double utan, double& yplus) const;
-  bool computeUstar(double y, double nu, double utan, double& ustar) const;
-  bool computeTauB(double y, double nu, double utan, double& tauB) const;
-  bool computeNu(double y, double nu, double utan, double& nuwall) const;
 
- 
+  //! \brief Compute the u-star value
+  //! \param y The y (wall distance) value
+  //! \param nu The viscosity
+  //! \param utan The tangential velocity
+  //! \param[out] ustar The ustar value
+  //! \return True if value was obtained
+  bool computeUstar(double y, double nu, double utan, double& ustar) const;
+
+  //! \brief Compute the tau-b value
+  //! \param y The y (wall distance) value
+  //! \param nu The viscosity
+  //! \param utan The tangential velocity
+  //! \param[out] tauB The tau-b value
+  //! \return True if value was obtained
+  bool computeTauB(double y, double nu, double utan, double& tauB) const;
+
+  //! \brief Compute the wall-viscosity value
+  //! \param y The y (wall distance) value
+  //! \param nu The viscosity
+  //! \param utan The tangential velocity
+  //! \param[out] nuwall The nuwall value
+  //! \return True if value was obtained
+  bool computeNu(double y, double nu, double utan, double& nuwall) const;
 };    
 
 #endif

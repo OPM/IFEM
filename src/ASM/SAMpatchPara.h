@@ -107,8 +107,8 @@ public:
   using SAMpatch::assembleReactions;
 
   //! \brief Add reaction forces to a system vector
-  //! \param reac The vector of reaction forces
-  //! \param[in] S The load vector
+  //! \param rhs The vector to receive reaction forces
+  //! \param[in] load The load vector
   virtual void assembleReactions(SystemVector& rhs, const RealArray& load) const;
 
   //! \brief Finds the matrix of equation numbers for an element.
@@ -245,8 +245,7 @@ private:
   IS     iloc;       //!< Index set for local numbering
 #endif
 
-  // Parallel process administrator
-  const ProcessAdm& adm;
+  const ProcessAdm& adm; //!< Parallel process administrator
 
   // For domain decomposition preconditioner
   std::vector<ASMbase*> patch; //!< The spline patches

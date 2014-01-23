@@ -37,7 +37,7 @@ class Spalding
   bool computeTauB(double hb, double CbI, double nu, double ut, double& tauB) const;
 
  protected:
-  // Function defining Spaling parametrization
+  //! \brief Function defining Spaling parametrization
   class f_Spalding 
   {
   public:
@@ -68,7 +68,7 @@ class Spalding
     { return this->evaluate(up); }
   };
 
-  // Function defining derivative of Spaling parametrization wrt. tauB
+  //! \brief Function defining derivative of Spaling parametrization wrt. tauB
   class drdtauB_Spalding
   {
   public:
@@ -106,12 +106,12 @@ class Spalding
 
 
   // Newton-Raphson parameters
-  double rtol;                // Residual tolerance
-  int    maxit;               // Maximal number of iterations
+  double rtol;                //!< Residual tolerance
+  int    maxit;               //!< Maximal number of iterations
   
   // Function definition
-  f_Spalding        f;              // Spalding parametrization
-  drdtauB_Spalding  drdtauB;        // Residual of Spalding differentiated wrt. tauB
+  f_Spalding        f;              //!< Spalding parametrization
+  drdtauB_Spalding  drdtauB;        //!< Residual of Spalding differentiated wrt. tauB
 };
 
 #endif

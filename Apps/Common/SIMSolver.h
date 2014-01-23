@@ -24,6 +24,10 @@
 //! \details Your SIM need to specialize this for its type
 template<class T>
 struct SolverConfigurator {
+  //! \brief Configure a simulator
+  //! \param sim The simulator to configure
+  //! \param props The setup properties for the simulator
+  //! \param infile The input file to parse
   int setup(T& sim, typename T::SetupProps& props, char* infile);
 };
 

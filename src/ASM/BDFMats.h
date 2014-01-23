@@ -39,7 +39,7 @@ public:
   virtual const Vector& getRHSVector() const;
 
 protected:
-  TimeIntegration::BDFD2 bdf;    //! < BDF time integration scheme  
+  TimeIntegration::BDFD2 bdf;    //!< BDF time integration scheme  
 };
 
 #endif

@@ -120,17 +120,20 @@ public:
     S2.registerFields(exporter);
   }
 
+  //! \brief Set the initial conditions for the simulators
   void setInitialConditions()
   {
     S1.setInitialConditions();
     S2.setInitialConditions();
   }
 
+  //! \copydoc SIMdependency::hasIC(const std::string&) const
   bool hasIC(const std::string& name) const
   {
     return S1.hasIC(name) || S2.hasIC(name);
   }
 
+  //! \copydoc SIMdependency::getField(const std::string&)
   utl::vector<double>* getField(const std::string& name)
   {
     utl::vector<double>* result = S1.getField(name);

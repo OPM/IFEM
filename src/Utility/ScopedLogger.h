@@ -14,14 +14,21 @@
 
 #include <iostream>
 
+/*! \brief Scoped logging class used for logging function entry/departures
+*/
+
 class ScopedLogger {
   public:
+    //! \brief Constructor
+    //! \param name_ The name of the function
+    //! \param _stream The stream to log to
     ScopedLogger(const char* name_, std::ostream& _stream=std::cout);
 
+    //! \brief Destructor
     ~ScopedLogger();
   protected:
-    const char* name;
-    std::ostream& stream;
-    int rank;
+    const char* name;     //!< The name of the function
+    std::ostream& stream; //!< The stream to log to
+    int rank;             //!< Process rank (MPI)
 };
 #endif
