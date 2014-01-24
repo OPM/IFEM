@@ -118,6 +118,11 @@ bool writeFieldPatch(const Vector& locvec, int components,
       vlist[description].Name = name;
       vlist[description].Blocks.push_back(nBlock);
     }
+    if (type == "displacement") {
+      vlist["combined displacement"].Type = type;
+      vlist["combined displacement"].Name = "combined displacements";
+      vlist["combined displacement"].Blocks.push_back(nBlock);
+    }
   }
 
   if (type == "eigenmodes")
