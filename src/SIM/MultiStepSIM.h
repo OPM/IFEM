@@ -125,7 +125,7 @@ public:
   //! \brief Returns a const reference to current solution vector.
   const Vector& getSolution(int idx = 0) const { return solution[idx]; }
   //! \brief Modifies the current solution vector (used by sub-iterations only).
-  void setSolution(const Vector& news, int idx = 0) { solution[idx] = news; }
+  virtual void setSolution(const Vector& s, int idx = 0) { solution[idx] = s; }
 
   //! \brief Enum describing sub-iteration status.
   enum SubIt { ITER = 0, FIRST = 1, LAST = 2, NONE = 3 };

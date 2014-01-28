@@ -49,11 +49,14 @@ public:
   //! \param[in] updateTime If \e false, the time parameters are not incremented
   virtual bool advanceStep(TimeStep& param, bool updateTime = true);
 
+  //! \brief Modifies the current solution vector (used by sub-iterations only).
+  virtual void setSolution(const Vector& newSol, int idx);
+
 protected:
   //! \brief Calculates predicted velocities and accelerations.
   virtual bool predictStep(TimeStep& param);
   //! \brief Updates configuration variables (solution vector) in an iteration.
-  virtual bool correctStep(TimeStep& param, bool converged = false);
+  virtual bool correctStep(TimeStep& param, bool converged);
   //! \brief Finalizes the right-hand-side vector on the system level.
   virtual void finalizeRHSvector();
 

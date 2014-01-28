@@ -85,6 +85,10 @@ bool NewmarkNLSIM::predictStep (TimeStep& param)
 {
   if (solution.size() < 3) return false;
 
+#ifdef SP_DEBUG
+  std::cout <<"\nNewmarkNLSIM::predictStep";
+#endif
+
   size_t iA = solution.size() - 1;
   size_t iV = solution.size() - 2;
 
@@ -98,9 +102,19 @@ bool NewmarkNLSIM::predictStep (TimeStep& param)
   predAcc *= 0.5/beta - 1.0;
   predAcc.add(solution[iV],1.0/(beta*param.time.dt));
 
+#ifdef SP_DEBUG
+  std::cout <<"\nPredicted velocity:";
 #if SP_DEBUG > 1
-  std::cout <<"\nPredicted velocity:"<< predVel;
-  std::cout <<"Predicted acceleration:"<< predAcc;
+  std::cout << predVel;
+#else
+  std::cout << predVel.max() <<"\n";
+#endif
+  std::cout <<"Predicted acceleration:";
+#if SP_DEBUG > 1
+  std::cout << predAcc;
+#else
+  std::cout << predAcc.max() << std::endl;
+#endif
 #endif
 
   solution[iV] = predVel;
@@ -117,6 +131,11 @@ bool NewmarkNLSIM::predictStep (TimeStep& param)
 bool NewmarkNLSIM::correctStep (TimeStep& param, bool converged)
 {
   if (solution.size() < 3) return false;
+
+#ifdef SP_DEBUG
+  std::cout <<"\nNewmarkNLSIM::correctStep(converged="
+            << std::boolalpha << converged <<")";
+#endif
 
   size_t iD = 0;
   size_t iA = solution.size() - 1;
@@ -144,11 +163,25 @@ bool NewmarkNLSIM::correctStep (TimeStep& param, bool converged)
   if (converged && Finert)
     std::cout <<"Actual inertia force:"<< *Finert;
 #elif defined(SP_DEBUG)
-  if (converged && solution[iD].size() < 100)
-    std::cout <<"\nConverged displacement:"<< solution[iD]
-              <<"Converged velocity:"<< solution[iV]
-              <<"Converged acceleration:"<< solution[iA];
+  if (converged)
+    std::cout <<"\nConverged displacement:"<< solution[iD].max()
+              <<"\nConverged velocity:"<< solution[iV].max()
+              <<"\nConverged acceleration:"<< solution[iA].max() << std::endl;
 #endif
 
   return model.updateConfiguration(solution[iD]);
+}
+
+
+void NewmarkNLSIM::setSolution (const Vector& newSol, int idx)
+{
+  if (idx == 0)
+  {
+    // When updating the displacements within sub-iterations, we must also
+    // update the incremental displacement accordingly (well spotted, Knut)
+    incDis.add(solution.front(),-1.0);
+    incDis.add(newSol,1.0);
+  }
+
+  solution[idx] = newSol;
 }
