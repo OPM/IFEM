@@ -1,3 +1,4 @@
+// $Id$
 //==============================================================================
 //!
 //! \file BDFMats.h
@@ -16,6 +17,7 @@
 #include "NewmarkMats.h"
 #include "BDF.h"
 
+
 /*!
   \brief Class representing the element matrices for a dynamic FEM problem
   based on Newmark time integration.
@@ -26,12 +28,9 @@ class BDFMats : public NewmarkMats
 public:
   //! \brief The constructor initializes the time integration parameters.
   //! param[in] bdfscheme BDF time discretization scheme
- BDFMats(const TimeIntegration::BDFD2& bdfscheme) : bdf(bdfscheme) {}
+  BDFMats(const TimeIntegration::BDFD2& bdfscheme) : bdf(bdfscheme) {}
   //! \brief Empty destructor.
   virtual ~BDFMats() {}
-
-  //! \brief Updates the time step size and the \a isPredictor flag.
-  void setStepSize(double dt, int iter = 0) { h = dt; }
 
   //! \brief Returns the element-level Newton matrix.
   virtual const Matrix& getNewtonMatrix() const;
@@ -39,7 +38,7 @@ public:
   virtual const Vector& getRHSVector() const;
 
 protected:
-  TimeIntegration::BDFD2 bdf;    //!< BDF time integration scheme  
+  TimeIntegration::BDFD2 bdf; //!< BDF time integration scheme
 };
 
 #endif

@@ -67,13 +67,18 @@ public:
   virtual bool parse(char* keyWord, std::istream& is) = 0;
   //! \brief Parses a data section from an XML element.
   virtual bool parse(const TiXmlElement* elem) = 0;
-  
-  //! \brief Returns process administrator 
+
+  //! \brief Returns the parallel process administrator.
   const ProcessAdm& getProcessAdm() const { return adm; }
 
-  //! \brief Returns the global process ID
-  //! \details Note that this may not be the process ID used in the equation solver
-  int getGlobalProcessID() { return myPid; }
+  //! \brief Returns the global process ID.
+  //! \note May be different from the process ID used in the equation solver.
+  int getGlobalProcessID() const { return myPid; }
+
+  //! \brief Returns the simulator heading.
+  const std::string& getHeading() const { return myHeading; }
+  //! \brief Defines the simulator heading.
+  void setHeading(const std::string& heading) { myHeading = heading; }
 
 protected:
   //! \brief Prints the heading of this (sub-step) solver, if any, to std::cout.
@@ -83,20 +88,13 @@ public:
   static int msgLevel; //!< Controls the amount of console output during solving
   SIMoptions& opt;     //!< Simulation control parameters
 
-  //! \brief Get the heading for the simulator
-  const std::string& getHeading() { return myHeading; }
-
-  //! \brief Set the heading for the simulator
-  //! \param heading The new heading
-  void setHeading(const std::string& heading) { myHeading = heading; }
-
 private:
   SIMoptions myOpts; //!< The actual control parameters owned by this simulator
 
 protected:
   ProcessAdm adm; //!< Parallel administrator
-  int myPid;       //!< Processor ID in parallel simulations
-  int nProc;       //!< Number of processors in parallel simulations
+  int myPid;      //!< Processor ID in parallel simulations
+  int nProc;      //!< Number of processors in parallel simulations
 
   std::string myHeading; //!< Heading written before reading the input file
   std::string inputFile; //!< The parsed input file
