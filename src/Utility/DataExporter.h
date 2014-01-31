@@ -35,10 +35,11 @@ class DataExporter : public ControlCallback
    //! \brief Supported field types
   enum FieldType {
     VECTOR,
-    SIM
+    SIM,
+    NODALFORCES
   };
 
-  //! \brief An enum used to describe the results to write
+  //! \brief An enum used to describe the results to write from a SIM
   enum Results {
     PRIMARY      = 1,
     DISPLACEMENT = 2,
@@ -195,6 +196,11 @@ public:
   //! \param[in] prefix Field name prefix
   virtual void writeSIM(int level, const DataEntry& entry,
                         bool geometryUpdated, const std::string& prefix) = 0;
+
+  //! \brief Write nodal forces to file
+  //! \param[in] The time level to write the data at
+  //! \param[in] entry The DataEntry describing the vector
+  virtual void writeNodalForces(int level, const DataEntry& entry) = 0;
 
   //! \brief Reads data from a file into s SIM object.
   //! \param[in] level The time level to read the data at

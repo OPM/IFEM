@@ -114,6 +114,9 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
         case SIM:
           (*it2)->writeSIM(m_level,*it,geometryUpdated,it->second.prefix);
           break;
+        case NODALFORCES:
+          (*it2)->writeNodalForces(m_level,*it);
+          break;
         default:
 	  std::cerr <<"DataExporter: Invalid field type registered, skipping"
 		    << std::endl;

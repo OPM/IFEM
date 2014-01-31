@@ -292,6 +292,8 @@ PatchMap setupPatchMap(const ProcessList& plist, int level, HDF5Writer& hdf, int
   PatchMap result;
   for (ProcessList::const_iterator it  = plist.begin();
                                    it != plist.end(); ++it) {
+    if (it->first == "nodalforces")
+      continue;
     readBasis(result[it->first].Patch, it->second[0].basis, it->second[0].patches, hdf, dims, level);
     std::map<int, BasisInfo>::iterator loc = created.find(it->second[0].patches);
     // tesselate some more patches
@@ -307,7 +309,6 @@ PatchMap setupPatchMap(const ProcessList& plist, int level, HDF5Writer& hdf, int
     result[it->first].StartPart = loc->second.StartPart;
     result[it->first].FakeModel = loc->second.FakeModel;
   }
-  vtf.writeGeometryBlocks(vtflevel);
 
   return result;
 }
@@ -409,6 +410,8 @@ int main (int argc, char** argv)
       levels = it->components-1;
       processlist[it->basis].back().components = 1;
     }
+    if (it->type == "nodalforces")
+      processlist["nodalforces"].push_back(*it);
   }
 
   if (processlist.empty()) {
@@ -437,14 +440,26 @@ int main (int argc, char** argv)
     if (levels > 0)
       std::cout <<"\nTime level "<< i << " (t=" << time << ")" << std::endl;
     VTFList vlist, slist;
-    if (hdf.hasGeometries(i) || i == 0) {
-      freePatchMap(patches);
+    if (hdf.hasGeometries(i) || i == 0)
       patches = setupPatchMap(processlist, i, hdf, dims, n, *myVtf, block, k);
-    }
 
     for (pit = processlist.begin(); pit != processlist.end(); ++pit) {
       for (it = pit->second.begin(); it != pit->second.end() && ok; ++it) {
         std::cout <<"Reading \""<< it->name <<"\""<< std::endl;
+        if (pit->first == "nodalforces") {
+          Vector vec;
+          hdf.readVector(i, it->name, -1, vec);
+          std::vector<Vec3Pair> pts(vec.size()/6);
+          for (size_t j=0;j<vec.size()/6;++j) {
+            for (int l=0;l<3;++l) {
+              pts[j].first[l] = vec[6*j+l];
+              pts[j].second[l] = vec[6*j+l+3];
+            }
+          }
+          int geoBlck=-1;
+          ok = myVtf->writeVectors(pts,geoBlck,++block,it->name.c_str(),k);
+          continue;
+        }
         for( int j=0;j<pit->second[0].patches;++j) {
           Vector vec;
           ok = hdf.readVector(i,it->name,j+1,vec);
@@ -500,6 +515,8 @@ int main (int argc, char** argv)
         }
       }
     }
+    if (hdf.hasGeometries(i) || i == 0)
+      myVtf->writeGeometryBlocks(k);
     writeFieldBlocks(vlist,slist,*myVtf,k);
 
     if (!ok)

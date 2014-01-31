@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "HDF5Writer.h"
+#include "GlbForceVec.h"
 #include "SIMoutput.h"
 #include "IntegrandBase.h"
 #include "TimeStep.h"
@@ -274,8 +275,10 @@ bool HDF5Writer::readVector(int level, const std::string& name,
 #ifdef HAS_HDF5
   std::stringstream str;
   str << level;
-  str << '/';
-  str << patch;
+  if (patch > -1) {
+    str << '/';
+    str << patch;
+  }
   hid_t group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
   double* tmp = NULL; int siz = 0;
   readArray(group2,name,siz,tmp);
@@ -442,7 +445,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     else // must write empty dummy records for the other patches
     {
       double dummy;
-      if (results & DataExporter::PRIMARY) {
+      if (abs(results) & DataExporter::PRIMARY) {
         if (prob->mixedFormulation())
         {
           writeArray(group2,prefix+entry.first,0,&dummy,H5T_NATIVE_DOUBLE);
@@ -544,6 +547,44 @@ bool HDF5Writer::writeTimeInfo (int level, int order, int interval,
   return true;
 }
 
+
+void HDF5Writer::writeNodalForces(int level, const DataEntry& entry)
+{
+#ifdef HAS_HDF5
+  std::stringstream str;
+  str << level;
+  hid_t group2;
+  if (checkGroupExistence(m_file,str.str().c_str()))
+    group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
+  else
+    group2 = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
+
+  if (m_rank == 0) {
+    SIMbase* sim = static_cast<SIMbase*>(const_cast<void*>(entry.second.data));
+    const GlbForceVec* forces = static_cast<const GlbForceVec*>(entry.second.data2);
+    Vector results(forces->size()*6);
+    Vec3 coord, val;
+    for (size_t i = 0; i < forces->size(); i++)
+    {
+      int inod = forces->getForce(i,val);
+      coord = sim->getNodeCoord(inod);
+      for (int j=0;j<3;++j) {
+        results[i*6+j] = coord[j];
+        results[i*6+j+3] = val[j];
+      }
+    }
+    writeArray(group2,entry.first,results.size(),results.data(),H5T_NATIVE_DOUBLE);
+  } else {
+    double dummy;
+    writeArray(group2,entry.first,0,&dummy,H5T_NATIVE_DOUBLE);
+  }
+  H5Gclose(group2);
+#else
+  std::cout << "HDF5Writer: compiled without HDF5 support, no data written" << std::endl;
+#endif
+}
+
+
 bool HDF5Writer::hasGeometries(int level)
 {
   std::stringstream str;
@@ -582,8 +623,10 @@ bool HDF5Writer::readVector(int level, const std::string& name,
 #ifdef HAS_HDF5
   std::stringstream str;
   str << level;
-  str << '/';
-  str << patch;
+  if (patch > -1) {
+    str << '/';
+    str << patch;
+  }
   hid_t group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
   int* tmp = NULL; int siz = 0;
   readArray(group2,name,siz,tmp);

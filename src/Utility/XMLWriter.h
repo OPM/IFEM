@@ -95,6 +95,9 @@ public:
   virtual void writeSIM(int level, const DataEntry& entry,
                         bool geometryUpdated, const std::string& prefix);
 
+  //! \copydoc DataWriter::writeNodalForces(int,const DataEntry&)
+  virtual void writeNodalForces(int level, const DataEntry& entry);
+
   //! \brief Read data from a file into SIM
   //! \param[in] level The time level to read the data at
   //! \param[in] entry The DataEntry describing the SIM

@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "XMLWriter.h"
+#include "GlbForceVec.h"
 #include "SIMbase.h"
 #include "IntegrandBase.h"
 #include "TimeStep.h"
@@ -95,12 +96,15 @@ void XMLWriter::readInfo()
     if (strcasecmp(elem->Attribute("type"),"field") == 0 ||
         strcasecmp(elem->Attribute("type"),"knotspan") == 0 ||
         strcasecmp(elem->Attribute("type"),"displacement") == 0 ||
-        strcasecmp(elem->Attribute("type"), "eigenmodes") == 0) {
+        strcasecmp(elem->Attribute("type"), "eigenmodes") == 0 ||
+        strcasecmp(elem->Attribute("type"), "nodalforces") == 0) {
       Entry entry;
       entry.name = elem->Attribute("name");
       entry.description = elem->Attribute("description");
-      entry.patches = atoi(elem->Attribute("patches"));
-      entry.components = atoi(elem->Attribute("components"));
+      if (elem->Attribute("patches"))
+        entry.patches = atoi(elem->Attribute("patches"));
+      if (elem->Attribute("components"))
+        entry.components = atoi(elem->Attribute("components"));
       entry.type = elem->Attribute("type");
       if (timestep)
         entry.timestep = atof(timestep->FirstChild()->Value());
@@ -130,6 +134,21 @@ void XMLWriter::writeVector(int level, const DataEntry& entry)
   element.SetAttribute("description",entry.second.description.c_str());
   element.SetAttribute("type","vector");
   Vector* vec = (Vector*)entry.second.data;
+  element.SetAttribute("size",vec->size());
+  m_node->InsertEndChild(element);
+}
+
+
+void XMLWriter::writeNodalForces(int level, const DataEntry& entry)
+{
+  if (m_rank != 0)
+    return;
+
+  TiXmlElement element("entry");
+  element.SetAttribute("name",entry.first.c_str());
+  element.SetAttribute("description",entry.second.description.c_str());
+  element.SetAttribute("type","nodalforces");
+  GlbForceVec* vec = (GlbForceVec*)entry.second.data;
   element.SetAttribute("size",vec->size());
   m_node->InsertEndChild(element);
 }
