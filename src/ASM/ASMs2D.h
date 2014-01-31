@@ -99,7 +99,8 @@ public:
   virtual Go::SplineCurve* getBoundary(int dir);
   //! \brief Returns the spline surface representing the basis of this patch.
   virtual Go::SplineSurface* getBasis(int = 1) const { return surf; }
-
+  //! \copydoc ASMbase::copyParameterDomain(ASMbase*)
+  virtual void copyParameterDomain(const ASMbase* other);
 
   // Methods for model generation
   // ============================

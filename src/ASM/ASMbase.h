@@ -222,6 +222,10 @@ public:
 
   // Various preprocessing methods
   // =============================
+  
+  //! \brief Copy the parameter domain from another ASM
+  //! \param other The ASM to copy parameter domain from
+  virtual void copyParameterDomain(const ASMbase* other) {}
 
   //! \brief Merges a given node in this patch with a given global node.
   //! \param[in] inod 1-based node index local to current patch

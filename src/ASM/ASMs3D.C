@@ -62,6 +62,16 @@ Go::SplineSurface* ASMs3D::getBoundary (int dir)
 }
 
 
+void ASMs3D::copyParameterDomain(const ASMbase* other)
+{
+  const ASMs3D* o = dynamic_cast<const ASMs3D*>(other);
+  if (o) {
+    Go::Array<double, 6> dom = o->getBasis()->parameterSpan();
+    getBasis()->setParameterDomain(dom[0], dom[1], dom[2], dom[3], dom[4], dom[5]);
+  }
+}
+
+
 bool ASMs3D::read (std::istream& is)
 {
   if (shareFE) return true;

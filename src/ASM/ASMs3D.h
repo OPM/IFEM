@@ -118,7 +118,8 @@ public:
   virtual Go::SplineSurface* getBoundary(int dir);
   //! \brief Returns the spline volume representing the basis of this patch.
   virtual Go::SplineVolume* getBasis(int = 1) const { return svol; }
-
+  //! \copydoc ASMbase::copyParameterDomain(const ASMbase*)
+  virtual void copyParameterDomain(const ASMbase* other);
 
   // Methods for model generation
   // ============================

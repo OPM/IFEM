@@ -15,6 +15,7 @@
 #include "GoTools/geometry/SplineCurve.h"
 #include "GoTools/geometry/SplineSurface.h"
 #include "GoTools/geometry/CurveInterpolator.h"
+#include "GoTools/geometry/RectDomain.h"
 
 #include "ASMs2D.h"
 #include "TimeDomain.h"
@@ -70,6 +71,16 @@ Go::SplineCurve* ASMs2D::getBoundary (int dir)
     bou[iedge] = surf->edgeCurve(iedge);
 
   return bou[iedge];
+}
+
+
+void ASMs2D::copyParameterDomain(const ASMbase* other)
+{
+  const ASMs2D* o = dynamic_cast<const ASMs2D*>(other);
+  if (o) {
+    Go::RectDomain dom = o->getBasis()->parameterDomain();
+    getBasis()->setParameterDomain(dom.umin(), dom.umax(), dom.vmin(), dom.vmax());
+  }
 }
 
 
