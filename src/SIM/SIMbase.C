@@ -2222,7 +2222,7 @@ size_t SIMbase::extractPatchSolution (const Vector& sol, Vector& vec,
     return 0;
 
   myModel[pindx]->extractNodeVec(sol,vec,nndof);
-  return myModel[pindx]->getNoFields(1)*myModel[pindx]->getNoNodes(1);
+  return (nndof>0?nndof:myModel[pindx]->getNoFields(1))*myModel[pindx]->getNoNodes(1);
 }
 
 
