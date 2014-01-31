@@ -15,6 +15,7 @@
 #include "InitialConditionHandler.h"
 
 #include "ASMbase.h"
+#include "ASMs2D.h"
 #include "HDF5Writer.h"
 #include "XMLWriter.h"
 
@@ -89,6 +90,7 @@ bool SIM::setInitialConditions (SIMbase& sim, SIMdependency* fieldHolder)
           continue;
         Vector loc, newloc;
         hdf5reader.readVector(it2->file_level, it2->file_field, i+1, loc);
+        basis[it3->basis][p-1]->copyParameterDomain(sim.getFEModel()[p-1]);
         sim.getFEModel()[p-1]->evaluate(basis[it3->basis][p-1], loc, newloc);
         sim.getFEModel()[p-1]->injectNodeVec(newloc, *field, it3->components);
       }
