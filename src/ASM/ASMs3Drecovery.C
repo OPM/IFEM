@@ -15,6 +15,8 @@
 #include "GoTools/trivariate/VolumeInterpolator.h"
 
 #include "ASMs3D.h"
+#include "FiniteElement.h"
+#include "Field.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "SparseMatrix.h"
@@ -282,6 +284,60 @@ bool ASMs3D::globalL2projection (Matrix& sField,
 }
 
 #include "ASMs3DInterpolate.C" // TODO: inline these methods instead...
+
+bool ASMs3D::evaluate (const Field* field, Vector& vec) const
+{
+  // Compute parameter values of the result sampling points (Greville points)
+  RealArray gpar[3];
+  for (int dir = 0; dir < 3; dir++)
+    if (!this->getGrevilleParameters(gpar[dir],dir))
+      return false;
+
+  // Evaluate the result field at all sampling points.
+  // Note: it is here assumed that *basis and *this have spline bases
+  // defined over the same parameter domain.
+  Vector sValues(gpar[0].size()*gpar[1].size());
+  Vector::iterator it=sValues.begin();
+  for (size_t l=0;l<gpar[2].size();++l) {
+    FiniteElement fe;
+    fe.w = gpar[2][l];
+    for (size_t j=0;j<gpar[1].size();++j) {
+      fe.v = gpar[1][j];
+      for (size_t i=0;i<gpar[0].size();++i) {
+        fe.u = gpar[0][i];
+        *it++ = field->valueFE(fe);
+      }
+    }
+  }
+
+  // Project the results onto the spline basis to find control point
+  // values based on the result values evaluated at the Greville points.
+  // Note that we here implicitly assume that the number of Greville points
+  // equals the number of control points such that we don't have to resize
+  // the result array. Think that is always the case, but beware if trying
+  // other projection schemes later.
+
+  RealArray weights;
+  if (svol->rational())
+    svol->getWeights(weights);
+
+  Go::SplineVolume* vol_new =
+        VariationDiminishingSplineApproximation(svol->basis(0),
+                                                svol->basis(1),
+                                                svol->basis(2),
+                                                gpar[0], gpar[1], gpar[2],
+                                                sValues,
+                                                1,
+                                                svol->rational(),
+                                                weights);
+
+  vec.resize(vol_new->coefs_end()-vol_new->coefs_begin());
+  std::copy(vol_new->coefs_begin(),vol_new->coefs_end(),vec.begin());
+  delete vol_new;
+
+  return true;
+}
+
 
 Go::SplineVolume* ASMs3D::projectSolutionLeastSquare (const IntegrandBase& integrand) const
 {

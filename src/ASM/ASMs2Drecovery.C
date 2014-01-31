@@ -15,6 +15,8 @@
 #include "GoTools/geometry/SurfaceInterpolator.h"
 
 #include "ASMs2D.h"
+#include "FiniteElement.h"
+#include "Field.h"
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
@@ -455,6 +457,56 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 
 
 #include "ASMs2DInterpolate.C" // TODO: inline these methods instead...
+
+
+bool ASMs2D::evaluate (const Field* field, Vector& vec) const
+{
+  // Compute parameter values of the result sampling points (Greville points)
+  RealArray gpar[2];
+  for (int dir = 0; dir < 2; dir++)
+    if (!this->getGrevilleParameters(gpar[dir],dir))
+      return false;
+
+  // Evaluate the result field at all sampling points.
+  // Note: it is here assumed that *basis and *this have spline bases
+  // defined over the same parameter domain.
+  Vector sValues(gpar[0].size()*gpar[1].size());
+  Vector::iterator it=sValues.begin();
+  for (size_t j=0;j<gpar[1].size();++j) {
+    FiniteElement fe;
+    fe.v = gpar[1][j];
+    for (size_t i=0;i<gpar[0].size();++i) {
+      fe.u = gpar[0][i];
+      *it++ = field->valueFE(fe);
+    }
+  }
+  // Project the results onto the spline basis to find control point
+  // values based on the result values evaluated at the Greville points.
+  // Note that we here implicitly assume that the number of Greville points
+  // equals the number of control points such that we don't have to resize
+  // the result array. Think that is always the case, but beware if trying
+  // other projection schemes later.
+
+  RealArray weights;
+  if (surf->rational())
+    surf->getWeights(weights);
+
+  Go::SplineSurface* surf_new =
+        VariationDiminishingSplineApproximation(surf->basis(0),
+                                                surf->basis(1),
+                                                gpar[0], gpar[1],
+                                                sValues,
+                                                1,
+                                                surf->rational(),
+                                                weights);
+
+  vec.resize(surf_new->coefs_end()-surf_new->coefs_begin());
+  std::copy(surf_new->coefs_begin(),surf_new->coefs_end(),vec.begin());
+  delete surf_new;
+
+  return true;
+}
+
 
 // L2-Projection: Least-square approximation; global approximation
 Go::SplineSurface* ASMs2D::projectSolutionLeastSquare (const IntegrandBase& integrand) const

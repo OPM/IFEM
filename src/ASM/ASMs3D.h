@@ -408,6 +408,11 @@ public:
   virtual bool evaluate(const ASMbase* basis, const Vector& locVec,
                         Vector& vec) const;
 
+  //! \copydoc ASMbase::evaluate(const Field*,Vector&)
+  //! \details Note a VDSA is used as the regular interpolation method in
+  //!          GoTools only works with uniform knots.
+  virtual bool evaluate(const Field* field, Vector& vec) const;
+
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods

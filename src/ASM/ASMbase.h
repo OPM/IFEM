@@ -28,6 +28,7 @@ typedef MPCSet::const_iterator MPCIter; //!< Iterator over an MPC equation set
 
 struct TimeDomain;
 class ElementBlock;
+class Field;
 class GlobalIntegral;
 class IntegrandBase;
 class Integrand;
@@ -412,6 +413,11 @@ public:
   //! \param[out] vec The obtained coefficients after interpolation
   virtual bool evaluate(const ASMbase* basis, const Vector& locVec,
                         Vector& vec) const { return false; }
+
+  //! \brief Evaluates and interpolates a field over a given geometry.
+  //! \param[in] field The field to evaluate
+  //! \param[out] vec The obtained coefficients after interpolation
+  virtual bool evaluate(const Field* field, Vector& vec) const { return false; }
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field
