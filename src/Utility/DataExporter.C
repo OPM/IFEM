@@ -43,7 +43,8 @@ DataExporter::~DataExporter ()
 bool DataExporter::registerField (const std::string& name,
 				  const std::string& description,
 				  FieldType field, int results,
-                                  const std::string& prefix)
+                                  const std::string& prefix,
+                                  int ncmps)
 {
   if (m_entry.find(name) != m_entry.end())
     return false;
@@ -57,6 +58,7 @@ bool DataExporter::registerField (const std::string& name,
   if (!prefix.empty())
     entry.prefix += ' ';
   entry.enabled = true;
+  entry.ncmps = ncmps;
   m_entry.insert(make_pair(name,entry));
 
   return true;
@@ -105,8 +107,6 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
     for (it = m_entry.begin(); it != m_entry.end(); ++it) {
       if (!it->second.data)
         return false;
-      if (!it->second.enabled)
-        continue;
       switch (it->second.field) {
         case VECTOR:
           (*it2)->writeVector(m_level,*it);
@@ -128,6 +128,12 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
     (*it2)->closeFile(m_level);
   }
   m_level++;
+
+  // disable fields marks as once
+  for (it = m_entry.begin(); it != m_entry.end(); ++it) {
+    if (abs(it->second.results) & ONCE)
+      it->second.enabled = false;
+  }
 
   return true;
 }

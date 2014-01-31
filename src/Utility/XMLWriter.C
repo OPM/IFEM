@@ -103,9 +103,17 @@ void XMLWriter::readInfo()
       entry.description = elem->Attribute("description");
       if (elem->Attribute("patches"))
         entry.patches = atoi(elem->Attribute("patches"));
+      else
+        entry.patches = 0;
       if (elem->Attribute("components"))
         entry.components = atoi(elem->Attribute("components"));
+      else
+        entry.components = 0;
       entry.type = elem->Attribute("type");
+      if (elem->Attribute("once") && strcasecmp(elem->Attribute("once"),"true") == 0)
+        entry.once = true;
+      else
+        entry.once = false;
       if (timestep)
         entry.timestep = atof(timestep->FirstChild()->Value());
       else
@@ -178,18 +186,19 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry,
 
   std::string g2file;
   if (results & DataExporter::PRIMARY) {
+    int cmps = entry.second.ncmps>0?entry.second.ncmps:prob->getNoFields(1);
     if (prob->mixedFormulation())
     {
       // primary solution vector
       addField(prefix+entry.first,entry.second.description,sim->getName()+"-1",
-               prob->getNoFields(1),sim->getNoPatches(),"restart");
+               cmps,sim->getNoPatches(),"restart");
 
       // Assuming that basis2 is used for secondary variables
       // primary solution fields
       addField(prefix+prob->getField1Name(11),"primary",sim->getName()+"-1",
-               sim->getNoFields(1),sim->getNoPatches());
+               cmps,sim->getNoPatches(),"field",results & DataExporter::ONCE?true:false);
       addField(prefix+prob->getField1Name(12),"primary",sim->getName()+"-2",
-               sim->getNoFields(2),sim->getNoPatches());
+               cmps,sim->getNoPatches(), "field",results & DataExporter::ONCE?true:false);
     }
     else
     {
@@ -197,7 +206,7 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry,
       addField(usedescription ? entry.second.description:
                                 prefix+prob->getField1Name(11),
                entry.second.description,sim->getName()+"-1",
-               prob->getNoFields(1),sim->getNoPatches());
+               cmps,sim->getNoPatches(),"field",results & DataExporter::ONCE?true:false);
     }
   }
 
@@ -253,7 +262,7 @@ void XMLWriter::addField (const std::string& name,
                           const std::string& description,
                           const std::string& basis,
                           int components, int patches,
-                          const std::string& type)
+                          const std::string& type, bool once)
 {
   TiXmlElement element("entry");
   element.SetAttribute("name",name.c_str());
@@ -263,6 +272,8 @@ void XMLWriter::addField (const std::string& name,
     element.SetAttribute("basis",basis.c_str());
   element.SetAttribute("patches",patches);
   element.SetAttribute("components",components);
+  if (once)
+    element.SetAttribute("once","true");
   m_node->InsertEndChild(element);
 }
 

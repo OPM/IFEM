@@ -41,11 +41,12 @@ class DataExporter : public ControlCallback
 
   //! \brief An enum used to describe the results to write from a SIM
   enum Results {
-    PRIMARY      = 1,
-    DISPLACEMENT = 2,
-    SECONDARY    = 4,
-    NORMS        = 8,
-    EIGENMODES   = 16
+    PRIMARY      = 1,  //!< Storage of primary solutions
+    DISPLACEMENT = 2,  //!< Storage of vector fields as displacements
+    SECONDARY    = 4,  //!< Storage of secondary field
+    NORMS        = 8,  //!< Storage of norms
+    EIGENMODES   = 16, //!< Storage of eigenmodes
+    ONCE         = 32  //!< Only write field once
   };
 
   //! \brief A structure holding information about registered fields
@@ -60,6 +61,7 @@ class DataExporter : public ControlCallback
     const void* data2;       //!< Pointer to the secondary data (e.g. a vector)
     std::string prefix;      //!< Field name prefix
     bool enabled;            //!< Whether or not field is enabled
+    int  ncmps;              //!< Number of components. Use to override SIM info
   };
 
   //! \brief Default constructor.
@@ -83,7 +85,8 @@ class DataExporter : public ControlCallback
   bool registerField(const std::string& name,
                      const std::string& description,
                      FieldType field, int results=PRIMARY,
-                     const std::string& prefix="");
+                     const std::string& prefix="",
+                     int ncmps=0);
 
   //! \brief Registers a data writer.
   //! \param[in] writer A pointer to the data writer we want registered

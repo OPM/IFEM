@@ -321,6 +321,9 @@ bool HDF5Writer::readField(int level, const std::string& name,
 void HDF5Writer::writeSIM (int level, const DataEntry& entry,
                            bool geometryUpdated, const std::string& prefix)
 {
+  if (!entry.second.enabled)
+    return;
+
   SIMbase* sim = static_cast<SIMbase*>(const_cast<void*>(entry.second.data));
   const Vector* sol = static_cast<const Vector*>(entry.second.data2);
   if (!sim || !sol) return;
@@ -365,7 +368,8 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     {
       if (abs(results) & DataExporter::PRIMARY) {
         Vector psol;
-        size_t ndof1 = sim->extractPatchSolution(*sol,psol,loc-1);
+        int ncmps = entry.second.ncmps;
+        size_t ndof1 = sim->extractPatchSolution(*sol,psol,loc-1,ncmps);
         if (prob->mixedFormulation())
         {
           // Mixed methods: The primary solution vector is referring to two bases

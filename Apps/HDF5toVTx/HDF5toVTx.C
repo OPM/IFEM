@@ -445,6 +445,8 @@ int main (int argc, char** argv)
 
     for (pit = processlist.begin(); pit != processlist.end(); ++pit) {
       for (it = pit->second.begin(); it != pit->second.end() && ok; ++it) {
+        if (it->once && k > 1)
+          continue;
         std::cout <<"Reading \""<< it->name <<"\""<< std::endl;
         if (pit->first == "nodalforces") {
           Vector vec;

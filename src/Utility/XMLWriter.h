@@ -48,6 +48,8 @@ public:
     int order;
     //! \brief The dumping interval for the field
     int interval;
+    //! \brief If true, field is only stored once (at first time level)
+    bool once;
     //! \brief The type of the field
     std::string type;
   };
@@ -120,7 +122,7 @@ protected:
   //! \param[in] type The type of the field
   void addField(const std::string& name, const std::string& description,
                 const std::string& geometry, int components, int patches,
-                const std::string& type="field");
+                const std::string& type="field", bool once=false);
 
   //! \brief A vector of entries read from file
   std::vector<Entry> m_entry;
