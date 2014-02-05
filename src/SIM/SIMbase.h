@@ -376,8 +376,8 @@ public:
   //! \param[in] solution The solution vector
   //! \param[in] printSol Print solution only if size is less than this value
   //! \param[in] compName Solution name to be used in norm output
-  void printSolutionSummary(const Vector& solution, int printSol,
-                            const char* compName);
+  virtual void printSolutionSummary(const Vector& solution, int printSol,
+                                    const char* compName);
 
   //! \brief Computes the total reaction forces in the model.
   //! \param[out] RF Reaction force in each spatial direction + energy
