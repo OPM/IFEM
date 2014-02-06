@@ -823,6 +823,7 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
 
   int idBlock = 200;
   j = l = 1;
+  char tmp[1024];
   for (k = 0; k < maxN && !sID[k].empty(); l++)
   {
     if (l > norm->getNoFields(j))
@@ -830,7 +831,13 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
     if (!norm->hasElementContributions(j,l))
       continue;
 
-    const char* normName = norm->getName(j,l,j>1?prefix[j-2]:0);
+    const char* normName;
+    if (!prefix && j > 1) {
+      sprintf(tmp,"norm%lu %s", j, norm->getName(j,l,NULL));
+      normName = tmp;
+    } else
+      normName = norm->getName(j,l,j>1?prefix[j-2]:0);
+
     if (!myVtf->writeSblk(sID[k++],normName,++idBlock,iStep,true))
       return false;
   }
