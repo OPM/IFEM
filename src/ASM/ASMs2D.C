@@ -74,13 +74,13 @@ Go::SplineCurve* ASMs2D::getBoundary (int dir)
 }
 
 
-void ASMs2D::copyParameterDomain(const ASMbase* other)
+void ASMs2D::copyParameterDomain (const ASMbase* other)
 {
   const ASMs2D* o = dynamic_cast<const ASMs2D*>(other);
-  if (o) {
-    Go::RectDomain dom = o->getBasis()->parameterDomain();
-    getBasis()->setParameterDomain(dom.umin(), dom.umax(), dom.vmin(), dom.vmax());
-  }
+  if (!o) return;
+
+  Go::RectDomain pd = o->getBasis()->parameterDomain();
+  this->getBasis()->setParameterDomain(pd.umin(),pd.umax(),pd.vmin(),pd.vmax());
 }
 
 
@@ -676,8 +676,10 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code)
       node += n1;
       for (int i2 = 2; i2 < n2; i2++, node += n1)
       {
-	this->prescribe(node,dof,-code);
-	if (code > 0)
+	// If the Dirchlet condition is to be projected, add this node to
+	// the set of nodes to receive prescribed value from the projection
+	// **unless this node already has a homogeneous constraint**
+	if (this->prescribe(node,dof,-code) == 0 && code > 0)
 	  dirich.back().nodes.push_back(std::make_pair(i2,node));
       }
       if (!open)
@@ -692,8 +694,10 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code)
       node++;
       for (int i1 = 2; i1 < n1; i1++, node++)
       {
-	this->prescribe(node,dof,-code);
-	if (code > 0)
+	// If the Dirchlet condition is to be projected, add this node to
+	// the set of nodes to receive prescribed value from the projection
+	// **unless this node already has a homogeneous constraint**
+	if (this->prescribe(node,dof,-code) == 0 && code > 0)
 	  dirich.back().nodes.push_back(std::make_pair(i1,node));
       }
       if (!open)

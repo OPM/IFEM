@@ -62,13 +62,13 @@ Go::SplineSurface* ASMs3D::getBoundary (int dir)
 }
 
 
-void ASMs3D::copyParameterDomain(const ASMbase* other)
+void ASMs3D::copyParameterDomain (const ASMbase* other)
 {
   const ASMs3D* o = dynamic_cast<const ASMs3D*>(other);
-  if (o) {
-    Go::Array<double, 6> dom = o->getBasis()->parameterSpan();
-    getBasis()->setParameterDomain(dom[0], dom[1], dom[2], dom[3], dom[4], dom[5]);
-  }
+  if (!o) return;
+
+  Go::Array<double,6> pd = o->getBasis()->parameterSpan();
+  this->getBasis()->setParameterDomain(pd[0],pd[1],pd[2],pd[3],pd[4],pd[5]);
 }
 
 
@@ -836,8 +836,10 @@ void ASMs3D::constrainFace (int dir, bool open, int dof, int code)
 	    this->prescribe(node,dof,bcode); // corner node
 	  else
 	  {
-	    this->prescribe(node,dof,-code);
-	    if (code > 0)
+	    // If the Dirchlet condition is to be projected, add this node to
+	    // the set of nodes to receive prescribed value from the projection
+	    // **unless this node already has a homogeneous constraint**
+	    if (this->prescribe(node,dof,-code) == 0 && code > 0)
 	      dirich.back().nodes.push_back(std::make_pair(n2*(i3-1)+i2,node));
 	  }
       break;
@@ -853,8 +855,10 @@ void ASMs3D::constrainFace (int dir, bool open, int dof, int code)
 	    this->prescribe(node,dof,bcode); // corner node
 	  else
 	  {
-	    this->prescribe(node,dof,-code);
-	    if (code > 0)
+	    // If the Dirchlet condition is to be projected, add this node to
+	    // the set of nodes to receive prescribed value from the projection
+	    // **unless this node already has a homogeneous constraint**
+	    if (this->prescribe(node,dof,-code) == 0 && code > 0)
 	      dirich.back().nodes.push_back(std::make_pair(n1*(i3-1)+i1,node));
 	  }
       break;
@@ -870,8 +874,10 @@ void ASMs3D::constrainFace (int dir, bool open, int dof, int code)
 	    this->prescribe(node,dof,bcode); // corner node
 	  else
 	  {
-	    this->prescribe(node,dof,-code);
-	    if (code > 0)
+	    // If the Dirchlet condition is to be projected, add this node to
+	    // the set of nodes to receive prescribed value from the projection
+	    // **unless this node already has a homogeneous constraint**
+	    if (this->prescribe(node,dof,-code) == 0 && code > 0)
 	      dirich.back().nodes.push_back(std::make_pair(n1*(i2-1)+i1,node));
 	  }
       break;
