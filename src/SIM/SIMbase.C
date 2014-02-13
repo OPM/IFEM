@@ -808,9 +808,10 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
     return false;
   }
 
-  if (nProc > 1 && myPatches.size() == 0 && adm.isParallel()) {
-    std::cerr << "No partitioning information for " << 
-              nProc << " processors found" << std::endl;
+  if (nProc > 1 && myPatches.size() == 0 && adm.isParallel())
+  {
+    std::cerr <<" *** SIMbase::preprocess: No partitioning information for "
+              << nProc <<" processors found."<< std::endl;
     return false;
   }
 
@@ -930,7 +931,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
       {
         nprop++;
         code = q->pindx;
-        dofs = abs(code%1000);
+        dofs = abs(code%1000000);
         switch (q->pcode) {
         case Property::DIRICHLET:
           code = 0;
@@ -1042,7 +1043,7 @@ int SIMbase::getUniquePropertyCode (const std::string& setName, int code)
 {
   if (setName.empty()) return 0;
 
-  int cinc = code < 0 ? -1000 : 1000;
+  int cinc = code < 0 ? -1000000 : 1000000;
   if (code == 0) code = cinc;
   PropertyVec::const_iterator pit = myProps.begin();
   for (int trial = 0; pit != myProps.end(); trial++)
@@ -1690,10 +1691,10 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
     else if (nf > 1)
     {
       char D = 'X';
-      for (size_t d = 0; d < nf; d++, D++)
-	if (utl::trunc(dMax[d]) != 0.0)
-	  str <<"\nMax "<< D <<'-'<< compName <<" : "
-		    << dMax[d] <<" node "<< iMax[d];
+      for (size_t d = 0; d < nf; d++, D=='Z' ? D='x' : D++)
+        if (utl::trunc(dMax[d]) != 0.0)
+          str <<"\nMax "<< D <<'-'<< compName <<" : "
+              << dMax[d] <<" node "<< iMax[d];
     }
     str << std::endl;
   }
@@ -2222,7 +2223,11 @@ size_t SIMbase::extractPatchSolution (const Vector& sol, Vector& vec,
     return 0;
 
   myModel[pindx]->extractNodeVec(sol,vec,nndof);
-  return (nndof>0?nndof:myModel[pindx]->getNoFields(1))*myModel[pindx]->getNoNodes(1);
+
+  if (nndof > 0)
+    return nndof*myModel[pindx]->getNoNodes(1);
+
+  return myModel[pindx]->getNoFields(1)*myModel[pindx]->getNoNodes(1);
 }
 
 

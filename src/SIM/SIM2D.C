@@ -501,16 +501,16 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 
       if (pd == 0.0)
       {
-	if (!this->addConstraint(patch,pedge,ldim,bcode%1000,0,ngno))
+	if (!this->addConstraint(patch,pedge,ldim,bcode%1000000,0,ngno))
 	  return false;
       }
       else
       {
-	int code = 1000 + bcode;
+	int code = 1000000 + bcode;
 	while (myScalars.find(code) != myScalars.end())
-	  code += 1000;
+	  code += 1000000;
 
-	if (!this->addConstraint(patch,pedge,ldim,bcode%1000,-code,ngno))
+	if (!this->addConstraint(patch,pedge,ldim,bcode%1000000,-code,ngno))
 	  return false;
 
 	cline = strtok(NULL," ");

@@ -331,16 +331,16 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
       double pd = (cline = strtok(NULL," ")) ? atof(cline) : 0.0;
       if (pd == 0.0)
       {
-	if (!this->addConstraint(patch,pvert,0,bcode%1000,0,ngno))
+	if (!this->addConstraint(patch,pvert,0,bcode%1000000,0,ngno))
 	  return false;
       }
       else
       {
-	int code = 1000 + bcode;
+	int code = 1000000 + bcode;
 	while (myScalars.find(code) != myScalars.end())
-	  code += 1000;
+	  code += 1000000;
 
-	if (!this->addConstraint(patch,pvert,0,bcode%1000,code,ngno))
+	if (!this->addConstraint(patch,pvert,0,bcode%1000000,code,ngno))
 	  return false;
 
 	cline = strtok(NULL," ");

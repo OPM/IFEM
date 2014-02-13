@@ -90,7 +90,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
             std::cout <<" "<< xi[i];
           std::cout << std::endl;
           pch->refine(dir-1,xi);
-	}
+        }
     }
   }
 
@@ -316,7 +316,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
           patch = -patch;
         }
         for (int j = ipatch; j < patch; j++)
-	  if ((pch = dynamic_cast<ASM3D*>(myModel[j])))
+          if ((pch = dynamic_cast<ASM3D*>(myModel[j])))
           {
             std::cout <<"\tRaising order of P"<< j+1
                       <<" "<< addu <<" "<< addv <<" "<< addw << std::endl;
@@ -444,6 +444,9 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
       patch = this->getLocalPatchIndex(patch);
       if (patch < 1) continue;
 
+      int ldim = pface < 0 ? 0 : 2;
+      if (pface < 0) pface = -pface;
+
       if (pface > 10)
       {
         if (!this->addConstraint(patch,pface%10,pface/10,pd,bcode))
@@ -451,18 +454,16 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
       }
       else if (pd == 0.0)
       {
-        int ldim = pface < 0 ? 0 : 2;
-        if (!this->addConstraint(patch,abs(pface),ldim,bcode%1000,0,ngno))
+        if (!this->addConstraint(patch,pface,ldim,bcode%1000000,0,ngno))
           return false;
       }
       else
       {
-        int ldim = pface < 0 ? 0 : 2;
-        int code = 1000 + bcode;
+        int code = 1000000 + bcode;
         while (myScalars.find(code) != myScalars.end())
-          code += 1000;
+          code += 1000000;
 
-        if (!this->addConstraint(patch,abs(pface),ldim,bcode%1000,-code,ngno))
+        if (!this->addConstraint(patch,pface,ldim,bcode%1000000,-code,ngno))
           return false;
 
         cline = strtok(NULL," ");
