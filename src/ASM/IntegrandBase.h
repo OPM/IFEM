@@ -95,10 +95,12 @@ public:
   virtual bool initElement(const std::vector<int>& MNPC, LocalIntegral& elmInt);
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
+  //! \param[in] fe Nodal and integration point data for current element
   //! \param[in] X0 Cartesian coordinates of the element center
   //! \param[in] nPt Number of integration points in this element
   //! \param elmInt Local integral for element
   virtual bool initElement(const std::vector<int>& MNPC,
+                           const FiniteElement& fe,
                            const Vec3& X0, size_t nPt, LocalIntegral& elmInt);
   //! \brief Initializes current element for numerical integration (mixed).
   //! \param[in] MNPC1 Nodal point correspondance for the basis 1
@@ -270,6 +272,7 @@ public:
   virtual bool initElement(const std::vector<int>& MNPC, LocalIntegral& elmInt);
   //! \brief Initializes current element for numerical integration.
   virtual bool initElement(const std::vector<int>& MNPC,
+                           const FiniteElement& fe,
                            const Vec3& X0, size_t nPt, LocalIntegral& elmInt);
   //! \brief Initializes current element for numerical integration (mixed).
   virtual bool initElement(const std::vector<int>& MNPC1,
@@ -356,8 +359,8 @@ public:
   { return false; }
 
   //! \brief Dummy implementation (only boundary integration is relevant).
-  virtual bool initElement(const std::vector<int>&, const Vec3&,
-                           size_t, LocalIntegral&)
+  virtual bool initElement(const std::vector<int>&, const FiniteElement&,
+                           const Vec3&, size_t, LocalIntegral&)
   { return false; }
 
   //! \brief Dummy implementation (only boundary integration is relevant).

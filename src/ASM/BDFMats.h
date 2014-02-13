@@ -20,8 +20,8 @@
 
 /*!
   \brief Class representing the element matrices for a dynamic FEM problem
-  based on Newmark time integration.
-*/ 
+  using backward difference formulae (BDF).
+*/
 
 class BDFMats : public NewmarkMats
 {

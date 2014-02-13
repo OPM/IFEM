@@ -58,13 +58,14 @@ LocalIntegral* GlbL2::getLocalIntegral (size_t nen, size_t iEl,
 }
 
 
-bool GlbL2::initElement (const IntVec& MNPC, const Vec3& Xc, size_t nPt,
+bool GlbL2::initElement (const IntVec& MNPC, const FiniteElement& fe,
+                         const Vec3& Xc, size_t nPt,
                          LocalIntegral& elmInt)
 {
   L2Mats& gl2 = static_cast<L2Mats&>(elmInt);
 
   gl2.mnpc = MNPC;
-  return problem.initElement(MNPC,Xc,nPt,*gl2.elmData);
+  return problem.initElement(MNPC,fe,Xc,nPt,*gl2.elmData);
 }
 
 

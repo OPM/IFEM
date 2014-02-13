@@ -412,7 +412,7 @@ bool ASMs3DLag::integrate (Integrand& integrand,
         // Initialize element quantities
         fe.iel = MLGE[iel-1];
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-        if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed*nRed,*A))
+        if (!integrand.initElement(MNPC[iel-1],fe,X,nRed*nRed*nRed,*A))
         {
           A->destruct();
           ok = false;

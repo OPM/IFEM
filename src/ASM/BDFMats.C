@@ -1,3 +1,4 @@
+// $Id$
 //==============================================================================
 //!
 //! \file BDFMats.C
@@ -6,25 +7,21 @@
 //!
 //! \author Runar Holdahl / SINTEF
 //!
-//! \brief Representation of the element matrices for a dynamic FEM problem
-//! using backward difference formulae (BDF)
+//! \brief Representation of the element matrices for a dynamic FEM problem.
 //!
 //==============================================================================
 
 #include "BDFMats.h"
 
+
 const Matrix& BDFMats::getNewtonMatrix () const
 {
   Matrix& N = const_cast<Matrix&>(A.front());
-
-  double dtcoeff = h;
-  if (bdf.getDegree() == 2)
-    dtcoeff *= h;
+  double dtcoeff = bdf.getDegree() == 2 ? h*h : h;
 
   N = A[1];
-  N.multiply(bdf[0]/dtcoeff);    // [N]  = (bdf[0]/dt*dt)*[M]
-
-  N.add(A[2]); // [N] += [K]
+  N.multiply(bdf[0]/dtcoeff); // [N] = (bdf[0]/dt*dt)*[M]
+  N.add(A[2]);                // [N] += [K]
 
 #if SP_DEBUG > 2
   std::cout <<"\nElement mass matrix"<< A[1];
@@ -41,13 +38,10 @@ const Vector& BDFMats::getRHSVector () const
   if (!A.empty() && vec.size() > 3)
   {
     Vector& db = const_cast<Vector&>(b.front());
+    double dtcoeff = bdf.getDegree() == 2 ? h*h : h;
 
-    double dtcoeff = h;
-    if (bdf.getDegree() == 2)
-      dtcoeff *= h;
-
-    const size_t ncoeff = bdf.getCoefs().size();
-    for (size_t i = 0;i < ncoeff;i++) 
+    size_t ncoeff = bdf.getCoefs().size();
+    for (size_t i = 0; i < ncoeff; i++)
       db.add(A[1]*vec[i],-bdf[i]/dtcoeff);
   }
 

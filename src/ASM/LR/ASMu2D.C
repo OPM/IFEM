@@ -777,7 +777,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 
     // Initialize element quantities
     LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-    if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed,*A)) return false;
+    if (!integrand.initElement(MNPC[iel-1],fe,X,nRed*nRed,*A)) return false;
 
     if (xr)
     {
@@ -941,7 +941,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 
     // Initialize element quantities
     LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-    if (!integrand.initElement(MNPC[iel-1],X,0,*A)) return false;
+    if (!integrand.initElement(MNPC[iel-1],fe,X,0,*A)) return false;
 
 
     // --- Integration loop over all quadrature points in this element ---------

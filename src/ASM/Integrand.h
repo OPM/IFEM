@@ -77,6 +77,7 @@ public:
 
   //! \brief Initializes current element for numerical integration.
   //! \param[in] MNPC Matrix of nodal point correspondance for current element
+  //! \param[in] fe Nodal and integration point data for current element
   //! \param[in] X0 Cartesian coordinates of the element center
   //! \param[in] nPt Number of integration points in this element
   //! \param elmInt Local integral for element
@@ -88,6 +89,7 @@ public:
   //! Reimplement this method for problems requiring the element center and/or
   //! the number of integration points during/before the integrand evaluations.
   virtual bool initElement(const std::vector<int>& MNPC,
+			   const FiniteElement& fe,
 			   const Vec3& X0, size_t nPt,
 			   LocalIntegral& elmInt) = 0;
   //! \brief Initializes current element for numerical integration.

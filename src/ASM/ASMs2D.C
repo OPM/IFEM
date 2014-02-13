@@ -1499,7 +1499,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-        if (!integrand.initElement(MNPC[iel-1],X,nRed*nRed,*A))
+        if (!integrand.initElement(MNPC[iel-1],fe,X,nRed*nRed,*A))
         {
           A->destruct();
           ok = false;
@@ -1714,7 +1714,7 @@ bool ASMs2D::integrate (Integrand& integrand,
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-        if (!integrand.initElement(MNPC[iel-1],X,0,*A))
+        if (!integrand.initElement(MNPC[iel-1],fe,X,0,*A))
         {
           A->destruct();
           ok = false;

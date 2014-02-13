@@ -71,14 +71,15 @@ bool IntegrandBase::initElement (const std::vector<int>& MNPC,
 
 
 /*!
-  Reimplement this method if your integrand need either the element center
-  or the total number of integration points within the element.
-  The default implementation forwards to an overloaded method not taking
-  \a X0 and \a nPt as arguments.
+  Reimplement this method if your integrand need either the FiniteElement object
+  itself, the element center, or the total number of integration points within
+  the element. The default implementation forwards to an overloaded method
+  not taking any of \a fe, \a X0 or \a nPt as arguments.
 */
 
 bool IntegrandBase::initElement (const std::vector<int>& MNPC,
-                                 const Vec3&, size_t, LocalIntegral& elmInt)
+                                 const FiniteElement&, const Vec3&, size_t,
+                                 LocalIntegral& elmInt)
 {
   return this->initElement(MNPC,elmInt);
 }
@@ -236,11 +237,12 @@ LocalIntegral* NormBase::getLocalIntegral (size_t, size_t iEl, bool) const
 
 
 bool NormBase::initElement (const std::vector<int>& MNPC,
+                            const FiniteElement& fe,
                             const Vec3& Xc, size_t nPt,
                             LocalIntegral& elmInt)
 {
   return this->initProjection(MNPC,elmInt) &&
-         myProblem.initElement(MNPC,Xc,nPt,elmInt);
+         myProblem.initElement(MNPC,fe,Xc,nPt,elmInt);
 }
 
 

@@ -220,7 +220,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
     // Initialize element quantities
     fe.iel = MLGE[iel-1];
     LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-    bool ok = integrand.initElement(MNPC[iel-1],X,nRed,*A);
+    bool ok = integrand.initElement(MNPC[iel-1],fe,X,nRed,*A);
 
     if (xr)
 
