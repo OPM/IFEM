@@ -388,3 +388,14 @@ std::string utl::adjustRight (size_t width, const std::string& s,
   static std::string blank(32,' ');
   return blank.substr(0,width-s.size()) + s + suffix;
 }
+
+
+std::set<int> utl::getDigits (int num)
+{
+  std::set<int> digits;
+
+  for (; num != 0; num /= 10)
+    digits.insert(num%10);
+
+  return digits;
+}

@@ -31,13 +31,13 @@
 
 
 ASMs1D::ASMs1D (unsigned char n_s, unsigned char n_f)
-  : ASMstruct(1,n_s,n_f), curv(0)
+  : ASMstruct(1,n_s,n_f), curv(0), nodalT(myT), elmCS(myCS)
 {
 }
 
 
 ASMs1D::ASMs1D (const ASMs1D& patch, unsigned char n_f)
-  : ASMstruct(patch,n_f), curv(patch.curv)
+  : ASMstruct(patch,n_f), curv(patch.curv), nodalT(patch.myT), elmCS(patch.myCS)
 {
 }
 
@@ -211,6 +211,12 @@ bool ASMs1D::generateFEMTopology ()
   myMLGE.resize(n1-p1+1,0);
   myMLGN.resize(n1);
   myMNPC.resize(myMLGE.size());
+  if (nsd == 3 && nf == 6)
+  {
+    // This is a 3D beam problem, allocation rotation tensors
+    myT.resize(n1,Tensor(3,true));
+    myCS.resize(n1-p1+1,Tensor(3));
+  }
 
   int iel = 0;
   int inod = 0;
@@ -236,6 +242,15 @@ bool ASMs1D::generateFEMTopology ()
 #ifdef SP_DEBUG
   std::cout <<"NEL = "<< iel <<" NNOD = "<< inod << std::endl;
 #endif
+
+  // Calculate local element axes for 3D beam elements
+  for (size_t i = 0; i < myCS.size(); i++)
+  {
+    Vec3 X1 = this->getCoord(1+MNPC[i].back());
+    Vec3 X2 = this->getCoord(1+MNPC[i].front());
+    myCS[i] = Tensor(X2-X1).shift();
+  }
+
   return true;
 }
 
@@ -414,6 +429,32 @@ bool ASMs1D::getElementCoordinates (Matrix& X, int iel) const
 }
 
 
+bool ASMs1D::getElementNodalRotations (TensorVec& T, int iel) const
+{
+#ifdef INDEX_CHECK
+  if (iel < 1 || (size_t)iel > MNPC.size())
+  {
+    std::cerr <<" *** ASMs1D::getElementNodalRotations: Element index "<< iel
+	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+    return false;
+  }
+#endif
+
+  T.clear();
+  if (nodalT.empty())
+    return true;
+
+  const IntVec& mnpc = MNPC[iel-1];
+  Tensor Tgl(elmCS[iel-1],true);
+
+  T.reserve(mnpc.size());
+  for (size_t i = 0; i < mnpc.size(); i++)
+    T.push_back(Tgl*nodalT[mnpc[i]]);
+
+  return true;
+}
+
+
 void ASMs1D::getNodalCoordinates (Matrix& X) const
 {
   const int n1 = curv->numCoefs();
@@ -444,6 +485,25 @@ bool ASMs1D::updateCoords (const Vector& displ)
   }
 
   curv->deform(displ,nsd);
+  return true;
+}
+
+
+bool ASMs1D::updateRotations (const Vector& displ)
+{
+  if (shareFE || nf != 6) return true;
+
+  if (displ.size() != 6*myT.size())
+  {
+    std::cerr <<" *** ASMs1D::updateRotations: Invalid dimension "
+	      << displ.size() <<" on displ, should be "
+	      << 6*myT.size() << std::endl;
+    return false;
+  }
+
+  for (size_t i = 0; i < myT.size(); i++)
+    myT[i] *= Tensor(displ[6*i+3],displ[6*i+4],displ[6*i+5]);
+
   return true;
 }
 
@@ -563,9 +623,9 @@ void ASMs1D::extractBasis (double u, Vector& N, Matrix& dNdu,
   d2Ndu2.resize(p1,1,1);
   for (int i = 1; i <= p1; i++)
   {
-      N(i)         = bas[3*i-3];
-     dNdu(i,1)     = bas[3*i-2];
-     d2Ndu2(i,1,1) = bas[3*i-1];
+      N(i)        = bas[3*i-3];
+     dNdu(i,1)    = bas[3*i-2];
+    d2Ndu2(i,1,1) = bas[3*i-1];
   }
 }
 
@@ -622,6 +682,9 @@ bool ASMs1D::integrate (Integrand& integrand,
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
       this->getElementEnds(i1-1,fe.XC);
 
+    if (integrand.getIntegrandType() & Integrand::NODAL_ROTATIONS)
+      this->getElementNodalRotations(fe.T,iel);
+
     // Initialize element matrices
     LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
     bool ok = integrand.initElement(MNPC[iel-1],fe,X,nRed,*A);
@@ -673,11 +736,11 @@ bool ASMs1D::integrate (Integrand& integrand,
 
       // Compute basis functions and derivatives
       if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
-	curv->basis().computeBasisValues(fe.u,fe.N.ptr());
+        curv->basis().computeBasisValues(fe.u,fe.N.ptr());
       else if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-	this->extractBasis(fe.u,fe.N,dNdu,d2Ndu2);
+        this->extractBasis(fe.u,fe.N,dNdu,d2Ndu2);
       else
-	this->extractBasis(fe.u,fe.N,dNdu);
+        this->extractBasis(fe.u,fe.N,dNdu);
 
       if (!dNdu.empty())
       {
@@ -698,7 +761,7 @@ bool ASMs1D::integrate (Integrand& integrand,
       // Evaluate the integrand and accumulate element contributions
       fe.detJxW *= 0.5*dL*wg[i];
       if (ok && !integrand.evalInt(*A,fe,time,X))
-	ok = false;
+        ok = false;
     }
 
     // Finalize the element quantities
@@ -950,11 +1013,11 @@ bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
   for (size_t i = 0; i < nPoints; i++)
   {
     IntVec ip;
-    scatterInd(p1,curv->basis().lastKnotInterval(),ip);
     switch (deriv) {
 
     case 0: // Evaluate the solution
       curv->basis().computeBasisValues(upar[i],&basis.front());
+      scatterInd(p1,curv->basis().lastKnotInterval(),ip);
       utl::gather(ip,nComp,locSol,Xtmp);
       Xtmp.multiply(basis,ptSol);
       sField.fillColumn(1+i,ptSol);
@@ -962,6 +1025,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
 
     case 1: // Evaluate first derivatives of the solution
       this->extractBasis(upar[i],basis,dNdu);
+      scatterInd(p1,curv->basis().lastKnotInterval(),ip);
       utl::gather(ip,nsd,Xnod,Xtmp);
       utl::Jacobian(Jac,dNdX,Xtmp,dNdu);
       utl::gather(ip,nComp,locSol,Xtmp);
@@ -971,6 +1035,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
 
     case 2: // Evaluate second derivatives of the solution
       this->extractBasis(upar[i],basis,dNdu,d2Ndu2);
+      scatterInd(p1,curv->basis().lastKnotInterval(),ip);
       utl::gather(ip,nsd,Xnod,Xtmp);
       utl::Jacobian(Jac,dNdX,Xtmp,dNdu);
       utl::Hessian(Hess,d2NdX2,Jac,Xtmp,d2Ndu2,dNdX);
@@ -1132,15 +1197,23 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 
 bool ASMs1D::globalL2projection (Matrix& sField,
-				 const IntegrandBase& integrand) const
+				 const IntegrandBase& integrand,
+				 bool continuous) const
 {
   if (!curv) return true; // silently ignore empty patches
+
+  if (continuous)
+  {
+    std::cerr <<" *** ASMs1D::globalL2projection: Only discrete L2-projection"
+              <<" is available in this method.\n                            "
+              <<"     Use ASMbase::L2projection instead."<< std::endl;
+  }
 
   const int p1 = curv->order();
   const int n1 = curv->numCoefs();
   const int nel = n1 - p1 + 1;
 
-  // Get Gaussian quadrature points
+  // Get Gaussian quadrature point coordinates
   const int ng1 = p1 - 1;
   const double* xg = GaussQuadrature::getCoord(ng1);
   if (!xg) return false;
@@ -1205,9 +1278,9 @@ bool ASMs1D::globalL2projection (Matrix& sField,
 }
 
 
-bool ASMs1D::getNoStructElms(int& n1, int& n2, int& n3) const
+bool ASMs1D::getNoStructElms (int& n1, int& n2, int& n3) const
 {
-  n1 = getNoElms();
+  n1 = curv->numCoefs() - curv->order() + 1;
   n2 = n3 = 0;
 
   return true;

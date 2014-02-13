@@ -16,6 +16,7 @@
 
 #include "MatVec.h"
 #include "Vec3.h"
+#include "Tensor.h"
 
 
 /*!
@@ -26,7 +27,7 @@ class FiniteElement
 {
 public:
   //! \brief Default constructor.
-  FiniteElement(size_t n = 0, size_t i = 0) : iel(0), iGP(i), N(n), detJxW(1.0)
+  FiniteElement(size_t n = 0, size_t i = 0) : iel(0), iGP(i), detJxW(1.0), N(n)
   { u = v = w = xi = eta = zeta = 0.0; }
 
   //! \brief Empty destructor.
@@ -40,13 +41,15 @@ public:
   double   xi;     //!< First local coordinate of current integration point
   double   eta;    //!< Second local coordinate of current integration point
   double   zeta;   //!< Third local coordinate of current integration point
+  double   detJxW; //!< Weighted determinant of the coordinate mapping
   Vector   N;      //!< Basis function values
   Vector   Navg;   //!< Volume-averaged basis function values
   Matrix   dNdX;   //!< First derivatives (gradient) of the basis functions
   Matrix3D d2NdX2; //!< Second derivatives of the basis functions
   Matrix   G;      //!< Matrix used for stabilized methods
   Vec3Vec  XC;     //!< Matrix with element corner coordinates
-  double   detJxW; //!< Weighted determinant of the coordinate mapping
+
+  std::vector<Tensor> T; //!< Array of nodal rotation matrices
 };
 
 

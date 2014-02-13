@@ -26,9 +26,9 @@ class Vec3;
 
 class Tensor
 {
-public:
-  typedef unsigned short int t_ind; //!< Tensor index type
 protected:
+  typedef unsigned short int t_ind; //!< Tensor index type (for convenience)
+
   const t_ind       n; //!< Number of spatial dimensions for the tensor
   std::vector<Real> v; //!< The actual tensor component values
 
@@ -44,16 +44,18 @@ private:
   void define3Dtransform(const Vec3& v1, const Vec3& v2, const Vec3& v3);
 
 public:
-  //! \brief Constructor creating a zero tensor.
-  Tensor(const t_ind nsd) : n(nsd) { v.resize(n*n,Real(0)); }
+  //! \brief Constructor creating a zero or identity tesnor.
+  Tensor(const t_ind nsd, bool identity = false);
   //! \brief Constructor creating a transformation from a face normal vector.
   Tensor(const Vec3& vn);
   //! \brief Constructor creating a transformation from two tangent vectors.
   Tensor(const Vec3& t1, const Vec3& t2, bool t1isZ = false);
   //! \brief Constructor creating a transformation from three unit vectors.
   Tensor(const Vec3& v1, const Vec3& v2, const Vec3& v3);
-  //! \brief Copy constructor.
-  Tensor(const Tensor& T);
+  //! \brief Constructor creating a transformation from three rotation angles.
+  Tensor(Real a1, Real a2, Real a3);
+  //! \brief Copy constructor, optionally creating the transpose of \b T.
+  Tensor(const Tensor& T, bool transpose = false);
 
   //! \brief Sets \a this to the 0-tensor.
   void zero() { std::fill(v.begin(),v.end(),Real(0)); }
@@ -70,6 +72,8 @@ public:
   const Real& operator()(t_ind i, t_ind j) const { return v[this->index(i,j)]; }
   //! \brief Index-1 based component access.
   Real& operator()(t_ind i, t_ind j) { return v[this->index(i,j)]; }
+  //! \brief Index-0 based column reference.
+  Vec3 operator[](t_ind i) const;
 
   //! \brief Assignment operator.
   Tensor& operator=(const Tensor& T);
@@ -90,6 +94,8 @@ public:
 
   //! \brief Scaling operator.
   Tensor& operator*=(Real val);
+  //! \brief Post-multiplication with another Tensor.
+  Tensor& operator*=(const Tensor& B);
 
   //! \brief Returns the inner-product of \a *this and the given tensor.
   Real innerProd(const Tensor& T) const;
@@ -110,6 +116,8 @@ public:
   virtual Tensor& transpose();
   //! \brief Makes the tensor symmetric.
   virtual Tensor& symmetrize();
+  //! \brief Performs a cyclic permutation of the tensor columns.
+  Tensor& shift(short int idx = 1);
 
   //! \brief Returns the trace of the tensor.
   virtual Real trace() const;
@@ -128,6 +136,8 @@ public:
   friend Vec3 operator*(const Tensor& T, const Vec3& v);
   //! \brief Multiplication between a point vector and transpose of a tensor.
   friend Vec3 operator*(const Vec3& v, const Tensor& T);
+  //! \brief Multiplication between two tensors.
+  friend Tensor operator*(const Tensor& A, const Tensor& B);
 
   //! \brief Output stream operator.
   friend std::ostream& operator<<(std::ostream& os, const Tensor& T)

@@ -13,6 +13,12 @@
 
 #include "Tensor.h"
 #include "Vec3.h"
+#include <algorithm>
+
+#ifndef epsZ
+//! \brief Zero tolerance for the incremental rotations.
+#define epsZ 1.0e-16
+#endif
 
 
 std::ostream& Tensor::print (std::ostream& os) const
@@ -30,6 +36,16 @@ std::ostream& Tensor::print (std::ostream& os) const
   }
 
   return os;
+}
+
+
+Tensor::Tensor (const t_ind nsd, bool identity) : n(nsd)
+{
+  v.resize(n*n,Real(0));
+
+  if (identity)
+    for (t_ind i = 0; i < n*n; i += n+1)
+      v[i] = Real(1);
 }
 
 
@@ -101,10 +117,43 @@ Tensor::Tensor (const Vec3& v1, const Vec3& v2, const Vec3& v3) : n(3)
 }
 
 
-Tensor::Tensor (const Tensor& T) : n(T.n)
+/*!
+  This constructor computes an incremental rotation tensor from the given
+  rotation angles via a quaternion representation of the rotation.
+  The angles provided are those related to a Rodrigues parameterization.
+*/
+
+Tensor::Tensor (Real a1, Real a2, Real a3) : n(3)
+{
+  Vec3 q(a1,a2,a3);
+  double theta = q.length();
+  q  *= (theta < epsZ ? 0.5 : sin(0.5*theta)/theta);
+  Real q0 = cos(0.5*theta);
+  Real ql = sqrt(q0*q0 + q.x*q.x + q.y*q.y + q.z*q.z);
+  q0 /= ql;
+  q  /= ql;
+
+  v[0] = 2.0*(q.x*q.x + q0*q0) - 1.0;
+  v[4] = 2.0*(q.y*q.y + q0*q0) - 1.0;
+  v[8] = 2.0*(q.z*q.z + q0*q0) - 1.0;
+
+  v[3] = 2.0*(q.x*q.y - q.z*q0);
+  v[6] = 2.0*(q.x*q.z + q.y*q0);
+  v[7] = 2.0*(q.y*q.z - q.x*q0);
+
+  v[1] = 2.0*(q.y*q.x + q.z*q0);
+  v[2] = 2.0*(q.z*q.x - q.y*q0);
+  v[4] = 2.0*(q.z*q.y + q.x*q0);
+}
+
+
+Tensor::Tensor (const Tensor& T, bool transpose) : n(T.n)
 {
   v.resize(n*n);
-  this->operator=(T);
+  std::copy(T.v.begin(),T.v.end(),v.begin());
+
+  if (transpose)
+    this->transpose();
 }
 
 
@@ -117,6 +166,15 @@ void Tensor::define3Dtransform (const Vec3& v1, const Vec3& v2, const Vec3& v3)
     v[3+i] = v2[i];
     v[6+i] = v3[i];
   }
+}
+
+
+Vec3 Tensor::operator[] (t_ind i) const
+{
+  if (i >= n)
+    return Vec3();
+
+  return Vec3(&v[0]+n*i,n);
 }
 
 
@@ -238,6 +296,34 @@ Tensor& Tensor::operator*= (Real val)
 }
 
 
+Tensor& Tensor::operator*= (const Tensor& B)
+{
+  switch (std::min(n,B.n)) {
+  case 1:
+    v[0] *= B.v[0];
+    break;
+  case 2:
+    {
+      Tensor A(*this);
+      for (int i = 1; i <= 2; i++)
+        for (int j = 1; j <= 2; j++)
+          v[this->index(i,j)] = A(i,1)*B(1,j) + A(i,2)*B(2,j);
+      break;
+    }
+  case 3:
+    {
+      Tensor A(*this);
+      for (int i = 1; i <= 3; i++)
+        for (int j = 1; j <= 3; j++)
+          v[this->index(i,j)] = A(i,1)*B(1,j) + A(i,2)*B(2,j) + A(i,3)*B(3,j);
+      break;
+    }
+  }
+
+  return *this;
+}
+
+
 Real Tensor::innerProd (const Tensor& T) const
 {
   Real value = Real(0);
@@ -296,6 +382,30 @@ Tensor& Tensor::symmetrize ()
     v[1] = v[3] = 0.5*(v[1]+v[3]);
     v[2] = v[6] = 0.5*(v[2]+v[6]);
     v[5] = v[7] = 0.5*(v[5]+v[7]);
+  }
+
+  return *this;
+}
+
+
+Tensor& Tensor::shift (short int idx)
+{
+  if (this->symmetric() || idx <= -n || (n+idx)%n == 0)
+    return *this;
+
+  if (n == 2)
+  {
+    std::swap(v[0],v[2]);
+    std::swap(v[1],v[3]);
+  }
+  else if (n == 3)
+  {
+    t_ind j = (3+idx)%3;
+    for (t_ind r = 0; r < 3; r++)
+    {
+      std::swap(v[r],v[r+3*j]);
+      std::swap(v[r],v[r-3*j+9]);
+    }
   }
 
   return *this;
@@ -378,7 +488,7 @@ Vec3 operator* (const Tensor& T, const Vec3& v)
 {
   switch (T.n) {
   case 1:
-    return Vec3(T(1,1)*v.x, v.y, v.z);
+    return Vec3(T.v[0]*v.x, v.y, v.z);
   case 2:
     return Vec3(T(1,1)*v.x + T(1,2)*v.y,
 		T(2,1)*v.x + T(2,2)*v.y, v.z);
@@ -399,7 +509,7 @@ Vec3 operator* (const Vec3& v, const Tensor& T)
 {
   switch (T.n) {
   case 1:
-    return Vec3(T(1,1)*v.x, v.y, v.z);
+    return Vec3(T.v[0]*v.x, v.y, v.z);
   case 2:
     return Vec3(T(1,1)*v.x + T(2,1)*v.y,
 		T(1,2)*v.x + T(2,2)*v.y, v.z);
@@ -409,6 +519,34 @@ Vec3 operator* (const Vec3& v, const Tensor& T)
 		T(1,3)*v.x + T(2,3)*v.y + T(3,3)*v.z);
   }
   return v;
+}
+
+
+/*!
+  \brief Multiplication between two Tensors.
+*/
+
+Tensor operator* (const Tensor& A, const Tensor& B)
+{
+  Tensor C(std::min(A.n,B.n));
+
+  switch (C.n) {
+  case 1:
+    C.v[0] = A.v[0]*B.v[0];
+    break;
+  case 2:
+    for (int i = 1; i <= 2; i++)
+      for (int j = 1; j <= 2; j++)
+        C(i,j) = A(i,1)*B(1,j) + A(i,2)*B(2,j);
+    break;
+  case 3:
+    for (int i = 1; i <= 3; i++)
+      for (int j = 1; j <= 3; j++)
+        C(i,j) = A(i,1)*B(1,j) + A(i,2)*B(2,j) + A(i,3)*B(3,j);
+    break;
+  }
+
+  return C;
 }
 
 
@@ -703,10 +841,10 @@ void SymmTensor::principal (Vec3& p) const
   Real b1 = this->trace() / Real(3);
   Real s1 = v[0] - b1;
   Real s2 = v[1] - b1;
-  Real s3 = v.size() > 3 ? v[2] - b1 : 0.0;
+  Real s3 = v.size() > 3 ? v[2] - b1 : Real(0);
   Real s4 = n > 2 ? v[3] : v.back();
-  Real s5 = n > 2 ? v[4] : 0.0;
-  Real s6 = n > 2 ? v[5] : 0.0;
+  Real s5 = n > 2 ? v[4] : Real(0);
+  Real s6 = n > 2 ? v[5] : Real(0);
 
   // Compute 2nd and 3rd invariants of deviator J_2 and J_3
 
@@ -752,7 +890,7 @@ SymmTensor operator+ (const SymmTensor& T, Real a)
 {
   SymmTensor S(T);
 
-  for (Tensor::t_ind i = 0; i < S.n; i++)
+  for (unsigned short int i = 0; i < S.n; i++)
     S.v[i] += a;
 
   if (S.v.size() == 4)
@@ -770,7 +908,7 @@ SymmTensor operator- (const SymmTensor& T, Real a)
 {
   SymmTensor S(T);
 
-  for (Tensor::t_ind i = 0; i < S.n; i++)
+  for (unsigned short int i = 0; i < S.n; i++)
     S.v[i] -= a;
 
   if (S.v.size() == 4)
@@ -788,7 +926,7 @@ SymmTensor operator* (Real a, const SymmTensor& T)
 {
   SymmTensor S(T.dim(), T.v.size() == 4);
 
-  for (Tensor::t_ind i = 0; i < T.v.size(); i++)
+  for (size_t i = 0; i < T.v.size(); i++)
     S.v[i] = a*T.v[i];
 
   return S;
@@ -815,13 +953,13 @@ SymmTensor4::SymmTensor4 (const std::vector<Real>& x, t_ind nsd)
 
 const Real& SymmTensor4::operator() (t_ind i, t_ind j, t_ind k, t_ind l) const
 {
-  return v[index(i,j)*m+index(k,l)];
+  return v[this->index(i,j)*m+this->index(k,l)];
 }
 
 
 Real& SymmTensor4::operator() (t_ind i, t_ind j, t_ind k, t_ind l)
 {
-  return ptr[index(i,j)*m+index(k,l)];
+  return ptr[this->index(i,j)*m+this->index(k,l)];
 }
 
 

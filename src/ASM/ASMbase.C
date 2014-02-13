@@ -270,6 +270,9 @@ public:
 	  case 1: return bc.CX == 0;
 	  case 2: return bc.CY == 0;
 	  case 3: return bc.CZ == 0;
+	  case 4: return bc.RX == 0;
+	  case 5: return bc.RY == 0;
+	  case 6: return bc.RZ == 0;
 	  }
     return false;
   }
@@ -353,15 +356,6 @@ bool ASMbase::add3PC (int slave, int dir, int master1, int master2, int code)
 }
 
 
-bool ASMbase::addSPC (int node, int dir, int code)
-{
-  if (dir < 1 || dir > nf) return true;
-
-  MPC* mpc = new MPC(node,dir);
-  return this->addMPC(mpc,code);
-}
-
-
 MPC* ASMbase::findMPC (int node, int dof) const
 {
   MPC slave(node,dof);
@@ -394,41 +388,12 @@ bool ASMbase::addPeriodicity (size_t master, size_t slave, int dir)
 
 void ASMbase::makePeriodic (size_t master, size_t slave, int dirs)
 {
-  switch (dirs)
-    {
-    case 1:
-    case 2:
-    case 3:
-      this->addPeriodicity(master,slave,dirs);
-      break;
-    case 12:
-    case 21:
-      for (int dir = 1; dir <= 2; dir++)
-	this->addPeriodicity(master,slave,dir);
-      break;
-    case 13:
-    case 31:
-      for (int dir = 1; dir <= 3; dir += 2)
-	this->addPeriodicity(master,slave,dir);
-      break;
-    case 23:
-    case 32:
-      for (int dir = 2; dir <= 3; dir++)
-	this->addPeriodicity(master,slave,dir);
-      break;
-    default:
-      std::cerr <<"  ** ASMbase::makePeriodic: Invalid DOF code "<< dirs
-		<<" replaced by 123"<< std::endl;
-    case 0:
-    case 123:
-    case 132:
-    case 213:
-    case 231:
-    case 312:
-    case 321:
-      // If all DOFs are going to be coupled, assign a common global node number
-      ASMbase::collapseNodes(*this,master,*this,slave);
-    }
+  std::set<int> dofs(utl::getDigits(dirs));
+  if (dofs.size() == nf && *dofs.rbegin() == nf)
+    // If all DOFs are going to be coupled, assign a common global node number
+    ASMbase::collapseNodes(*this,master,*this,slave);
+  else for (std::set<int>::iterator it = dofs.begin(); it != dofs.end(); ++it)
+    this->addPeriodicity(master,slave,*it);
 }
 
 
@@ -439,48 +404,43 @@ void ASMbase::constrainPatch (int dof, int code)
 }
 
 
-void ASMbase::prescribe (size_t inod, int dirs, int code)
+int ASMbase::prescribe (size_t inod, int dirs, int code)
 {
   if (code == 0 && fixHomogeneousDirichlet)
     return this->fix(inod,dirs);
 
   int node = this->getNodeID(inod);
-  if (node < 1) return;
+  if (node < 1 || dirs < 1) return dirs;
 
-  switch (dirs)
+  int ignoredDirs = 0;
+  std::set<int> dofs(utl::getDigits(dirs));
+  for (std::set<int>::const_iterator it = dofs.begin(); it != dofs.end(); ++it)
+    if (*it <= nf)
     {
-    case 1:
-    case 2:
-    case 3:
-      this->addSPC(node,dirs,code);
-      break;
-    case 12:
-    case 21:
-      for (int dir = 1; dir <= 2; dir++)
-	this->addSPC(node,dir,code);
-      break;
-    case 13:
-    case 31:
-      for (int dir = 1; dir <= 3; dir += 2)
-	this->addSPC(node,dir,code);
-      break;
-    case 23:
-    case 32:
-      for (int dir = 2; dir <= 3; dir++)
-	this->addSPC(node,dir,code);
-      break;
-    default:
-      std::cerr <<"  ** ASMbase::prescribe: Invalid DOF code "<< dirs
-		<<" replaced by 123"<< std::endl;
-    case 123:
-    case 132:
-    case 213:
-    case 231:
-    case 312:
-    case 321:
-      for (int dir = 1; dir <= 3; dir++)
-	this->addSPC(node,dir,code);
+      MPC* mpc = new MPC(node,*it);
+      if (!this->addMPC(mpc,code))
+        ignoredDirs = 10*ignoredDirs + *it;
     }
+    else
+    {
+      ignoredDirs = 10*ignoredDirs + *it;
+      std::cerr <<"  ** ASMbase::prescribe: Ignoring invalid DOF code "<< *it
+                << std::endl;
+    }
+
+  return ignoredDirs;
+}
+
+
+/*!
+  \brief Equality operator for BC objects comparing node numbers and DOF codes.
+*/
+
+bool operator== (const ASMbase::BC& rhs, const ASMbase::BC& lhs)
+{
+  return (rhs.node == lhs.node &&
+          rhs.CX == lhs.CX && rhs.CY == lhs.CY && rhs.CZ == lhs.CZ &&
+          rhs.RX == lhs.RX && rhs.RY == lhs.RY && rhs.RZ == lhs.RZ);
 }
 
 
@@ -494,10 +454,10 @@ bool operator== (const ASMbase::BC& rhs, const int& lhs)
 }
 
 
-void ASMbase::fix (size_t inod, int dirs)
+int ASMbase::fix (size_t inod, int dirs)
 {
   int node = this->getNodeID(inod);
-  if (node < 1) return;
+  if (node < 1 || dirs < 1) return dirs;
 
   BCVec::iterator bit = std::find(BCode.begin(),BCode.end(),node);
   if (bit == BCode.end())
@@ -506,52 +466,34 @@ void ASMbase::fix (size_t inod, int dirs)
     bit = BCode.end()-1;
   }
 
-  switch (dirs)
+#if SP_DEBUG > 1
+  BC old = *bit;
+#endif
+
+  int invalidDOFs = 0;
+  std::set<int> dofs(utl::getDigits(dirs));
+  for (std::set<int>::const_iterator it = dofs.begin(); it != dofs.end(); ++it)
+    if (*it <= nf)
+      switch (*it) {
+      case 1: bit->CX = 0; break;
+      case 2: bit->CY = 0; break;
+      case 3: bit->CZ = 0; break;
+      case 4: bit->RX = 0; break;
+      case 5: bit->RY = 0; break;
+      case 6: bit->RZ = 0; break;
+      }
+    else
     {
-    case 1:
-      if (bit->CX == 0) return;
-      bit->CX = 0;
-      break;
-    case 2:
-      if (bit->CY == 0) return;
-      bit->CY = 0;
-      break;
-    case 3:
-      if (bit->CZ == 0) return;
-      bit->CZ = 0;
-      break;
-    case 12:
-    case 21:
-      if (bit->CX + bit->CY == 0) return;
-      bit->CX = bit->CY = 0;
-      break;
-    case 13:
-    case 31:
-      if (bit->CX + bit->CZ == 0) return;
-      bit->CX = bit->CZ = 0;
-      break;
-    case 23:
-    case 32:
-      if (bit->CY + bit->CZ == 0) return;
-      bit->CY = bit->CZ = 0;
-      break;
-    default:
-      std::cerr <<"  ** ASMbase::fix: Invalid DOF code "<< dirs
-		<<" replaced by 123"<< std::endl;
-      dirs = 123;
-    case 123:
-    case 132:
-    case 213:
-    case 231:
-    case 312:
-    case 321:
-      if (bit->CX + bit->CY + bit->CZ == 0) return;
-      bit->CX = bit->CY = bit->CZ = 0;
+      invalidDOFs = 10*invalidDOFs + *it;
+      std::cerr <<"  ** ASMbase::fix: Ignoring invalid DOF code "<< *it
+                << std::endl;
     }
 
 #if SP_DEBUG > 1
-  std::cout <<"\tFixed node: "<< node <<" "<< dirs << std::endl;
+  if (!(old == *bit))
+    std::cout <<"\tFixed node: "<< node <<" "<< dirs << std::endl;
 #endif
+  return invalidDOFs;
 }
 
 

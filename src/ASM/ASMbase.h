@@ -60,8 +60,11 @@ public:
     char CX;  //!< Boundary condition code for X-translation
     char CY;  //!< Boundary condition code for Y-translation
     char CZ;  //!< Boundary condition code for Z-translation
+    char RX;  //!< Boundary condition code for X-rotation
+    char RY;  //!< Boundary condition code for Y-rotation
+    char RZ;  //!< Boundary condition code for Z-rotation
     //! \brief Constructor initializing a BC instance.
-    BC(int n) : node(n), CX(1), CY(1), CZ(1) {}
+    BC(int n) : node(n), CX(1), CY(1), CZ(1), RX(1), RY(1), RZ(1) {}
   };
 
   typedef std::vector<BC> BCVec; //!< Nodal boundary condition container
@@ -127,6 +130,11 @@ public:
   //! \param[in] ng Number of Gauss points in each parameter direction
   void setGauss(int ng) { nGauss = ng; }
 
+  //! \brief Defines the number of solution fields \a nf in the patch.
+  //! \brief This method is to be used by simulators where \a nf is not known
+  //! when the patch is constructed, e.g., it depends on the input file content.
+  //! It must be invoked only before the SIMbase::preprocess is invoked.
+  void setNoFields(unsigned char n) { nf = n; }
 
   // Service methods for query of various model data
   // ===============================================
@@ -223,9 +231,9 @@ public:
 
   // Various preprocessing methods
   // =============================
-  
-  //! \brief Copy the parameter domain from another ASM
-  //! \param other The ASM to copy parameter domain from
+
+  //! \brief Copies the parameter domain from another patch.
+  //! \param[in] other The patch to copy parameter domain from
   virtual void copyParameterDomain(const ASMbase* other) {}
 
   //! \brief Merges a given node in this patch with a given global node.
@@ -528,11 +536,6 @@ protected:
   //! \param[in] master2 Global node number of 2nd master node of the constraint
   //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
   bool add3PC(int slave, int dir, int master1, int master2, int code = 0);
-  //! \brief Creates and adds a single-point constraint to this patch.
-  //! \param[in] node Global node number of the node to constrain
-  //! \param[in] dir Which local DOF to constrain (1, 2, 3)
-  //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
-  bool addSPC(int node, int dir, int code);
   //! \brief Creates and adds a periodicity constraint to this patch.
   //! \param[in] master 1-based local index of the master node
   //! \param[in] slave 1-based local index of the slave node to constrain
@@ -556,11 +559,13 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   //! \param[in] dirs Which local DOFs to constrain (1, 2, 3, 12, 23, 123)
   //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
-  void prescribe(size_t inod, int dirs, int code);
+  //! \return Invalid local DOFs, or DOFs that already are constrained
+  int prescribe(size_t inod, int dirs, int code);
   //! \brief Constrains DOFs in the given node to zero.
   //! \param[in] inod 1-based node index local to current patch
   //! \param[in] dirs Which local DOFs to constrain (1, 2, 3, 12, 23, 123)
-  void fix(size_t inod, int dirs = 123);
+  //! \return Invalid local DOFs
+  int fix(size_t inod, int dirs = 123);
   //! \brief Checks whether given DOFs are fixed or not.
   //! \param[in] node Global node number of the DOF to check
   //! \param[in] dof Local indices of the DOFs to check

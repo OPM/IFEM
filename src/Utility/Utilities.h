@@ -20,6 +20,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <set>
 
 class TiXmlElement;
 class TiXmlNode;
@@ -179,6 +180,9 @@ namespace utl
   //! \brief Right-justifies the input string to the given total \a width.
   std::string adjustRight(size_t width, const std::string& s,
                           const std::string& suffix = " : ");
+
+  //! \brief Splits an integer into its (unique) digits in ascending order.
+  std::set<int> getDigits(int value);
 }
 
 #endif

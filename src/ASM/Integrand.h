@@ -141,7 +141,8 @@ public:
     ELEMENT_CORNERS    = 8, //!< Integrand wants element corner coordinates
     ELEMENT_CENTER     = 16,//!< Integrand wants element center coordinates
     G_MATRIX           = 32,//!< Integrand wants the G matrix
-    XO_ELEMENTS        = 64 //!< Integrand is defined on extraordinary elements
+    NODAL_ROTATIONS    = 64,//!< Integrand wants nodal rotation tesnros
+    XO_ELEMENTS        = 128//!< Integrand is defined on extraordinary elements
   };
 
   //! \brief Defines which FE quantities are needed by the integrand.

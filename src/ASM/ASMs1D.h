@@ -15,6 +15,9 @@
 #define _ASM_S1D_H
 
 #include "ASMstruct.h"
+#include "Tensor.h"
+
+typedef std::vector<Tensor> TensorVec; //!< An array of non-symmetric tensors
 
 namespace Go {
   class SplineCurve;
@@ -76,6 +79,10 @@ public:
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with
   virtual bool updateCoords(const Vector& displ);
+
+  //! \brief Updates the nodal rotations for this patch.
+  //! \param[in] displ Incremental displacements to update the rotations with
+  bool updateRotations(const Vector& displ);
 
   //! \brief Finds the global number of the node on a patch end.
   //! \param[in] lIndex Local index of the end point
@@ -211,12 +218,13 @@ public:
   //! \param[in] nSegSpan Number of visualization segments over each knot-span
   virtual bool getGridParameters(RealArray& prm, int nSegSpan) const;
 
-  using ASMstruct::globalL2projection;
   //! \brief Projects the secondary solution using a discrete global L2-norm.
   //! \param[out] sField Secondary solution field control point values
   //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] continuous If \e true, a continuous L2-projection is used
   virtual bool globalL2projection(Matrix& sField,
-				  const IntegrandBase& integrand) const;
+				  const IntegrandBase& integrand,
+				  bool continuous = false) const;
 
 protected:
 
@@ -273,6 +281,11 @@ protected:
   //! \param[out] XC Coordinates of the element corners
   void getElementEnds(int i, std::vector<Vec3>& XC) const;
 
+  //! \brief Returns nodal rotation matrices for an element, if any.
+  //! \param[out] T Array of nodal rotation matrices
+  //! \param[in] iel Element index
+  bool getElementNodalRotations(TensorVec& T, int iel) const;
+
 public:
   //! \brief Auxilliary function for computation of basis function indices.
   static void scatterInd(int p1, int start, IntVec& index);
@@ -285,19 +298,25 @@ public:
 
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction
-  //! \param[out] n2 Number of nodes in second (v) direction
-  //! \param[out] n3 Number of nodes in third (w) direction
+  //! \param[out] n2 Number of nodes in second (v) direction (always zero)
+  //! \param[out] n3 Number of nodes in third (w) direction (always zero)
   //! \param[in] basis Which basis to return size parameters for (mixed methods)
   virtual bool getSize(int& n1, int& n2, int& n3, int basis) const;
 
   //! \brief Returns the number of elements in each parameter direction.
-  //! \param[out] n1 Number of nodes in first (u) direction
-  //! \param[out] n2 Number of nodes in second (v) direction
-  //! \param[out] n3 Number of nodes in third (w) direction
+  //! \param[out] n1 Number of elements in first (u) direction
+  //! \param[out] n2 Number of elements in second (v) direction (always zero)
+  //! \param[out] n3 Number of elements in third (w) direction (always zero)
   virtual bool getNoStructElms(int& n1, int& n2, int& n3) const;
 
 protected:
   Go::SplineCurve* curv; //!< Pointer to the actual spline curve object
+
+  const TensorVec& nodalT; //!< Nodal rotation tensors (for 3D beams)
+  const TensorVec& elmCS;  //!< Element coordinate systems (for 3D beams)
+
+  TensorVec myT;  //!< The actual nodal rotation tensors
+  TensorVec myCS; //!< The actual element coordinate systems
 };
 
 #endif

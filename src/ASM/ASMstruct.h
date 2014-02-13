@@ -56,9 +56,9 @@ public:
   virtual bool getSize(int& n1, int& n2, int& n3, int basis = 0) const = 0;
 
   //! \brief Returns the number of elements in each parameter direction.
-  //! \param[out] n1 Number of nodes in first (u) direction
-  //! \param[out] n2 Number of nodes in second (v) direction
-  //! \param[out] n3 Number of nodes in third (w) direction
+  //! \param[out] n1 Number of elements in first (u) direction
+  //! \param[out] n2 Number of elements in second (v) direction
+  //! \param[out] n3 Number of elements in third (w) direction
   virtual bool getNoStructElms(int& n1, int& n2, int& n3) const = 0;
 
   using ASMbase::evalSolution;

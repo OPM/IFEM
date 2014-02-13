@@ -119,6 +119,9 @@ bool SAMpatch::initNodeDofs (const ASMVec& model)
       if (nndof > 0) msc[idof1-1] *= bit->CX;
       if (nndof > 1) msc[idof1  ] *= bit->CY;
       if (nndof > 2) msc[idof1+1] *= bit->CZ;
+      if (nndof > 3) msc[idof1+2] *= bit->RX;
+      if (nndof > 4) msc[idof1+3] *= bit->RY;
+      if (nndof > 5) msc[idof1+4] *= bit->RZ;
     }
 
   if (ierr == 0) return true;
