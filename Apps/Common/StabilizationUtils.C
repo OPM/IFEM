@@ -25,11 +25,8 @@ double getElementSize(const std::vector<Vec3>& XC, int nsd)
 }
 
 
-  double getTauPt(double dt, double mu, const Vector& U, const Matrix& G)
+  double getTauPt(double dt, double mu, const Vector& U, const Matrix& G, const double Ct, const double Cl)
 {
-  double Ct = 2.0;
-  double Cl = 36.0;
-
   double Gnorm2 = 0.0;
   for (size_t i = 1;i <= G.rows();i++)
     for (size_t j = 1;j <= G.cols();j++)  
@@ -39,9 +36,9 @@ double getElementSize(const std::vector<Vec3>& XC, int nsd)
 }
 
 
-bool getTauNSPt(double dt, double mu, const Vector& U, const Matrix& G, double & tauM, double& tauC)
+bool getTauNSPt(double dt, double mu, const Vector& U, const Matrix& G, double & tauM, double& tauC, const double Ct, const double Cl)
 {
-  tauM = getTauPt(dt,mu,U,G);
+  tauM = getTauPt(dt,mu,U,G,Ct,Cl);
 
   double Gtrace = 0.0;
   for (size_t i = 1;i <= G.rows();i++)
@@ -53,9 +50,9 @@ bool getTauNSPt(double dt, double mu, const Vector& U, const Matrix& G, double &
 }
 
 
-bool getTauNSALEPt(double dt, double mu, const Vector& U, const Matrix& G, double & tauM, double& tauC)
+bool getTauNSALEPt(double dt, double mu, const Vector& U, const Matrix& G, double & tauM, double& tauC, const double Ct, const double Cl)
 {
-  tauM = getTauPt(dt,mu,U,G);
+  tauM = getTauPt(dt,mu,U,G,Ct,Cl);
 
   tauC = tauM*(U.dot(U));
 

@@ -16,8 +16,11 @@ namespace StabilizationUtils {
   //! \param[in] mu Diffusion/viscosity parameter
   //! \param[in] U  Velocity vector
   //! \param[in] G  G matrix
+  //! \param[in] Ct VMS parameter
+  //! \param[in] Cl VMS parameter
   //! \details Stabilization parameter in integration point
-  double getTauPt(double dt, double mu, const Vector& U, const Matrix& G);
+  double getTauPt(double dt, double mu, const Vector& U, const Matrix& G,
+      const double Ct=2.0, const double Cl=36.0);
  		  
   //! \brief Computes stabilization parameters for Navier-Stokes equations
   //! \param[in] dt The timestep size
@@ -26,9 +29,11 @@ namespace StabilizationUtils {
   //! \param[in] G  The G matrix
   //! \param[out] tauM Stabilization parameter for momentum
   //! \param[out] tauC Stabilization parameter for continuity
+  //! \param[in] Ct VMS parameter
+  //! \param[in] Cl VMS parameter
   //! \details Stabilization parameters in integration point
   bool getTauNSPt(double dt, double mu, const Vector& U, const Matrix& G,
-		  double& tauM, double& tauC); 
+		  double& tauM, double& tauC, const double Ct=2.0, const double Cl=36.0);
 
   //! \brief Computes stabilization parameters for Navier-Stokes equations
   //! \param[in] dt The timestep size
@@ -39,7 +44,7 @@ namespace StabilizationUtils {
   //! \param[out] tauC Stabilization parameter for continuity
   //! \details Stabilization parameters in integration point
   bool getTauNSALEPt(double dt, double mu, const Vector& U, const Matrix& G,
-		     double& tauM, double& tauC); 
+		     double& tauM, double& tauC, const double Ct=2.0, const double Cl=36.0);
 }
 
 #endif
