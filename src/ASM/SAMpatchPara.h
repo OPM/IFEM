@@ -102,14 +102,11 @@ public:
   virtual bool assembleSystem(SystemVector& sysRHS,
 			      const RealArray& eS, int iel = 0,
 			      Vector* reactionForces = NULL) const;
-  
-  // we only partially overload
-  using SAMpatch::assembleReactions;
 
-  //! \brief Add reaction forces to a system vector
-  //! \param rhs The vector to receive reaction forces
-  //! \param[in] load The load vector
-  virtual void assembleReactions(SystemVector& rhs, const RealArray& load) const;
+  //! \brief Adds a global load vector into the system load vector.
+  //! \param sysRHS The right-hand-side system load vector
+  //! \param[in] S  The global load vector
+  virtual void addToRHS(SystemVector& sysRHS, const RealArray& S) const;
 
   //! \brief Finds the matrix of equation numbers for an element.
   //! \param[out] meen Matrix of element equation numbers
@@ -203,7 +200,8 @@ public:
 			  int overlap = 1, int nx = 1, int ny = 1, int nz = 1) const;
 
   //! \brief Extracts the node coordinates of all local nodes.
-  //! \param[out] coords Coordinates of local nodes stored as [x0,y0,z0,x1,y1,z1,...]
+  //! \param[out] coords Coordinates of local nodes
+  //! stored as [x0,y0,z0,x1,y1,z1,...]
   bool getLocalNodeCoordinates(PetscRealVec& coords) const;
 
   //! \brief Get number of space dimensions
@@ -217,13 +215,6 @@ public:
   virtual bool isDirichlet(int inod, int dof) const;
 
 protected:
-  //! \brief Assembles reaction forces for the fixed and prescribed DOFs.
-  //! \param reac The vector of reaction forces
-  //! \param[in] eS  The element load vector
-  //! \param[in] iel Identifier for the element that \a eS belongs to
-  virtual void assembleReactions(Vector& reac, const RealArray& eS, int iel) const
-  { SAM::assembleReactions(reac,eS,iel); }
-
   //! \brief Initializes the multi-point constraint arrays
   //! \a MPMCEQ, \a MMCEQ and \a TTCC.
   virtual bool initConstraintEqs(const std::vector<ASMbase*>& model);
@@ -367,6 +358,5 @@ private:
   //! \param[out] maxNodeId Max node number on all patches
   bool getMinMaxNode(IntVec& minNodeId, IntVec& maxNodeId) const;
 };
-
 
 #endif

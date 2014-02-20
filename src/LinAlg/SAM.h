@@ -163,6 +163,11 @@ public:
 			      const Real* nS, int inod = 0,
 			      Vector* reactionForces = 0) const;
 
+  //! \brief Adds a global load vector into the system load vector.
+  //! \param sysRHS The right-hand-side system load vector
+  //! \param[in] S  The global load vector
+  virtual void addToRHS(SystemVector& sysRHS, const RealArray& S) const;
+
   //! \brief Finds the matrix of nodal point correspondance for an element.
   //! \param[out] mnpc Matrix of nodal point correspondance
   //! \param[in] iel Identifier for the element to get the node numbers for
@@ -266,11 +271,6 @@ public:
   //! \return \e true if the specified node has reaction forces
   bool getNodalReactions(int inod, const Vector& rf, Vector& nrf) const;
 
-  //! \brief Add reaction forces to a system vector
-  //! \param rhs The vector to receive reaction forces
-  //! \param[in] load The load vector
-  virtual void assembleReactions(SystemVector& rhs, const RealArray& load) const;
-
 protected:
   //! \brief Initializes the DOF-to-equation connectivity array \a MEQN.
   virtual bool initSystemEquations();
@@ -279,7 +279,7 @@ protected:
   //! \param reac The vector of reaction forces
   //! \param[in] eS  The element load vector
   //! \param[in] iel Identifier for the element that \a eS belongs to
-  virtual void assembleReactions(Vector& reac, const RealArray& eS, int iel) const;
+  void assembleReactions(Vector& reac, const RealArray& eS, int iel) const;
 
   //! \brief Expands a solution vector from equation-ordering to DOF-ordering.
   //! \param[in] solVec Pointer to solution vector, length = NEQ

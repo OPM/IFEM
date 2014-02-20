@@ -368,13 +368,13 @@ bool SAMpatchPara::assembleSystem (SystemVector& sysRHS,
 }
 
 
-void SAMpatchPara::assembleReactions(SystemVector& rhs, const RealArray& S) const
+void SAMpatchPara::addToRHS (SystemVector& sysRHS, const RealArray& S) const
 {
-  Real* sysrhsPtr = rhs.getPtr();
+  Real* sysrhsPtr = sysRHS.getPtr();
   for (size_t i = 0; i < S.size(); i++) 
     if (mpmceq[i] == 0)
       sysrhsPtr[i] += S[i];
-  rhs.restore(sysrhsPtr);
+  sysRHS.restore(sysrhsPtr);
 }
 
 

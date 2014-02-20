@@ -567,35 +567,42 @@ bool SAM::assembleSystem (SystemVector& sysRHS, const Real* nS, int inod,
 }
 
 
+void SAM::addToRHS (SystemVector& sysRHS, const RealArray& S) const
+{
+  if (ndof < 1) return;
+
+  Real* sysrhsPtr = sysRHS.getPtr();
+  for (size_t i = 0; i < S.size() && i < (size_t)ndof; i++)
+  {
+    int ieq = meqn[i];
+    int iceq = -ieq;
+    if (ieq > 0)
+      sysrhsPtr[ieq-1] += S[i];
+    else if (iceq > 0)
+      for (int ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ip++)
+        if (mmceq[ip] > 0)
+        {
+          ieq = meqn[mmceq[ip]-1];
+          sysrhsPtr[ieq-1] += ttcc[ip]*S[i];
+        }
+  }
+
+  sysRHS.restore(sysrhsPtr);
+}
+
+
 void SAM::assembleReactions (Vector& reac, const RealArray& eS, int iel) const
 {
-  int i, j, k, ipR;
+  int i, j, k, ipR, node;
   int ip = mpmnpc[iel-1];
   int nenod = mpmnpc[iel] - ip;
   for (i = k = 0; i < nenod; i++, ip++)
-  {
-    int node = mmnpc[ip-1];
-    if (node < 0)
+    if ((node = mmnpc[ip-1]) < 0)
       k += madof[-node] - madof[-node-1];
     else if (node > 0)
       for (j = madof[node-1]; j < madof[node]; j++, k++)
         if ((ipR = -msc[j-1]) > 0 && (size_t)ipR <= reac.size())
           reac(ipR) += eS[k];
-  }
-}
-
-
-void SAM::assembleReactions (SystemVector& rhs, const RealArray& S) const
-{
-  int k=0, ipR;
-  Real* sysrhsPtr = rhs.getPtr();
-  for (int node = 1; node <= getNoNodes(); ++node)
-  {
-    for (int j = madof[node-1]; j < madof[node]; j++)
-      if ((ipR = -msc[j-1]) > 0 && (size_t)ipR <= S.size())
-        sysrhsPtr[ipR-1] += S[k++];
-  }
-  rhs.restore(sysrhsPtr);
 }
 
 
