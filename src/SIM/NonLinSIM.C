@@ -28,7 +28,7 @@ using namespace SIM;
 NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : MultiStepSIM(sim), iteNorm(n)
 {
   // Default solution parameters
-  fromIni = false;
+  fromIni = iteNorm == NONE;
   maxit   = 20;
   nupdat  = 20;
   prnSlow = 0;
@@ -414,7 +414,7 @@ bool NonLinSIM::updateConfiguration (TimeStep&)
 {
   if (solution.empty()) return false;
 
-  if (solution.front().empty())
+  if (solution.front().empty() || iteNorm == NONE)
     solution.front() = linsol;
   else if (alpha != 0.0)
     solution.front().add(linsol,alpha);
