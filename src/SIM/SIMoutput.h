@@ -15,6 +15,7 @@
 #define _SIM_OUTPUT_H
 
 #include "SIMbase.h"
+#include "Vec3.h"
 
 class VTF;
 

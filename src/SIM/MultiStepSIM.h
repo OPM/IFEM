@@ -122,6 +122,8 @@ public:
                           double time, int step,
                           std::streamsize precision = 3) const;
 
+  //! \brief Returns a const reference to the solution vectors.
+  const Vectors& getSolutions() const { return solution; }
   //! \brief Returns a const reference to current solution vector.
   const Vector& getSolution(int idx = 0) const { return solution[idx]; }
   //! \brief Modifies the current solution vector (used by sub-iterations only).

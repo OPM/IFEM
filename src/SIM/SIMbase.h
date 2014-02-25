@@ -21,7 +21,6 @@
 #include "Property.h"
 #include "Function.h"
 #include "MatVec.h"
-#include "Vec3.h"
 
 class IntegrandBase;
 class NormBase;
@@ -32,6 +31,7 @@ class AlgEqSystem;
 class LinSolParams;
 class TimeStep;
 class SystemVector;
+class Vec4;
 
 //! Property code to integrand map
 typedef std::multimap<int,IntegrandBase*> IntegrandMap;
@@ -217,7 +217,7 @@ public:
   //! \param[out] glbNodes Global node numbers on the boundary
   //! \param[out] XYZ Spatial coordinates of the boundary nodes (optional)
   void getBoundaryNodes(int pcode, std::vector<int>& glbNodes,
-                        Vec3Vec* XYZ = NULL) const;
+                        std::vector<Vec3>* XYZ = NULL) const;
 
   //! \brief Initializes time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time
@@ -366,7 +366,7 @@ public:
   { return this->solutionNorms(TimeDomain(),psol,Vectors(),gNorm,&eNorm); }
 
   //! \brief Prints integrated solution norms to the specified output stream.
-  //! \param[in] norms
+  //! \param[in] norms The norm values
   //! \param os The stream to print to
   //! \param[in] w Total number of characters in the norm labels
   virtual void printNorms(const Vectors& norms, std::ostream& os,
@@ -376,8 +376,10 @@ public:
   //! \param[in] solution The solution vector
   //! \param[in] printSol Print solution only if size is less than this value
   //! \param[in] compName Solution name to be used in norm output
-  virtual void printSolutionSummary(const Vector& solution, int printSol,
-                                    const char* compName);
+  //! \param[in] outPrec Number of digits after the decimal point in norm print
+  virtual void printSolutionSummary(const Vector& solution, int printSol = 0,
+                                    const char* compName = NULL,
+                                    std::streamsize outPrec = 0);
 
   //! \brief Computes the total reaction forces in the model.
   //! \param[out] RF Reaction force in each spatial direction + energy

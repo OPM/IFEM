@@ -980,7 +980,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 
   // Generate element groups for multi-threading
   bool silence = msgLevel < 1 || (msgLevel < 2 && myModel.size() > 1);
-  for (mit = myModel.begin(); mit != myModel.end(); mit++)
+  for (mit = myModel.begin(); mit != myModel.end() && myProblem; ++mit)
     if (!(*mit)->empty())
       (*mit)->generateThreadGroups(*myProblem,silence);
 
@@ -1003,6 +1003,13 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 #endif
   if (!static_cast<SAMpatch*>(mySam)->init(myModel,ngnod))
     return false;
+
+  if (!myProblem)
+  {
+    std::cerr <<"\n *** SIMbase::preprocess(): No problem integrand for the "
+              << this->getName() <<"-simulator."<< std::endl;
+    return false;
+  }
 
   // Now perform the sub-class specific final preprocessing, if any
   return this->preprocessB() && ierr == 0;
@@ -1434,7 +1441,7 @@ bool SIMbase::updateGrid (const std::string& field)
   if (displ) return this->updateGrid(*displ);
 
   std::cerr <<" *** SIMbase::updateGrid: No such field \""<< field
-	    <<"\"."<< std::endl;
+	    <<"\" registered for \""<< this->getName() <<"\"."<< std::endl;
   return false;
 }
 
@@ -1670,7 +1677,8 @@ bool SIMbase::solveMatrixSystem (Vectors& solution, int printSol,
 
 
 void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
-                                    const char* compName)
+                                    const char* compName,
+                                    std::streamsize outPrec)
 {
   // Compute and print solution norms
   const size_t nf = this->getNoFields(1);
@@ -1681,24 +1689,42 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
   std::stringstream str;
   if (myPid == 0)
   {
-    str <<"\n >>> Solution summary <<<\n"
-        <<"\nL2-norm            : "<< utl::trunc(dNorm);
+    if (outPrec > 0) str.precision(outPrec);
+
+    if (compName)
+      str <<"\n >>> Solution summary <<<\n\nL2-norm            : ";
+    else
+      str <<"  Primary solution summary: L2-norm         : ";
+    str << utl::trunc(dNorm);
+
     if (nf == 1 && utl::trunc(dMax[0]) != 0.0)
-      str <<"\nMax "<< compName <<"   : "<< dMax[0] <<" node "<< iMax[0];
+    {
+      if (compName)
+        str <<"\nMax "<< compName <<"   : ";
+      else
+        str <<"\n                            Max value       : ";
+      str << dMax[0] <<" node "<< iMax[0];
+    }
     else if (nf > 1)
     {
       char D = 'X';
       for (size_t d = 0; d < nf; d++, D=='Z' ? D='x' : D++)
         if (utl::trunc(dMax[d]) != 0.0)
-          str <<"\nMax "<< D <<'-'<< compName <<" : "
-              << dMax[d] <<" node "<< iMax[d];
+        {
+          if (compName)
+            str <<"\nMax "<< D <<'-'<< compName <<" : ";
+          else
+            str <<"\n                            Max "<< D <<"-component : ";
+          str << dMax[d] <<" node "<< iMax[d];
+        }
     }
     str << std::endl;
   }
+
   utl::printSyncronized(std::cout,str,myPid);
 
   // Print entire solution vector if it is small enough
-  if (mySam->getNoEquations() < printSol)
+  if (myPid == 0 && mySam->getNoEquations() < printSol)
   {
     std::cout <<"\nSolution vector:";
     for (int inod = 1; inod <= mySam->getNoNodes(); inod++)
@@ -1706,7 +1732,7 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
       std::cout <<"\nNode "<< inod <<":";
       std::pair<int,int> dofs = mySam->getNodeDOFs(inod);
       for (int d = dofs.first-1; d < dofs.second; d++)
-	std::cout <<" "<< utl::trunc(solution[d]);
+        std::cout <<" "<< utl::trunc(solution[d]);
     }
     std::cout << std::endl;
   }

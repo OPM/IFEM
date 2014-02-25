@@ -428,32 +428,10 @@ bool NonLinSIM::solutionNorms (const TimeDomain& time,
 {
   if (msgLevel < 0 || solution.empty()) return true;
 
-  const size_t nf = model.getNoFields(1);
-
-  size_t iMax[nf];
-  double dMax[nf];
-  double normL2 = model.solutionNorms(solution.front(),dMax,iMax,nf);
-
-  std::stringstream str;
-  if (myPid == 0)
-  {
-    if (outPrec > 0) str.precision(outPrec);
-    double old_tol = utl::zero_print_tol;
-    utl::zero_print_tol = zero_tolerance;
-
-    str <<"  Primary solution summary: L2-norm         : "<< utl::trunc(normL2);
-    if (nf == 1 && utl::trunc(dMax[0]) != 0.0)
-      str <<"\n                            Max value       : "
-          << dMax[0] <<" node "<< iMax[0];
-    else for (unsigned char d = 0; d < nf; d++)
-      if (utl::trunc(dMax[d]) != 0.0)
-        str <<"\n                            Max "<< char('X'+d)
-            <<"-component : "<< dMax[d] <<" node "<< iMax[d];
-
-    str << std::endl;
-    utl::zero_print_tol = old_tol;
-  }
-  utl::printSyncronized(std::cout,str,myPid);
+  double old_zero_tol = utl::zero_print_tol;
+  utl::zero_print_tol = zero_tolerance;
+  model.printSolutionSummary(solution.front(),0,NULL,outPrec);
+  utl::zero_print_tol = old_zero_tol;
 
   return true;
 }
