@@ -11,10 +11,10 @@
 //!
 //==============================================================================
 
-#pragma once
+#ifndef _HDF5_WRITER_H
+#define _HDF5_WRITER_H
 
 #include "DataExporter.h"
-#include "MatVec.h"
 
 class SIMbase;
 
@@ -73,13 +73,15 @@ public:
   virtual void writeSIM(int level, const DataEntry& entry,
                         bool geometryUpdated, const std::string& prefix);
 
-  //! \copydoc DataWriter::writeNodalForces(int,const DataEntry&)
-  virtual void writeNodalForces(int level, const DataEntry& entry);
-
   //! \brief Read data from a file into SIM
   //! \param[in] level The time level to read the data at
   //! \param[in] entry The DataEntry describing the SIM
   virtual bool readSIM(int level, const DataEntry& entry);
+
+  //! \brief Writes nodal forces to file.
+  //! \param[in] level The time level to write the data at
+  //! \param[in] entry The DataEntry describing the vector
+  virtual void writeNodalForces(int level, const DataEntry& entry);
 
   //! \brief Write time stepping info to file (currently a dummy)
   //! \param[in] level The time level to write the info at
@@ -89,6 +91,7 @@ public:
   virtual bool writeTimeInfo(int level, int order, int interval,
                              const TimeStep& tp);
 
+  /* Not used, remove?
   //! \brief Reads a vector field into a given SIM
   //! \param[in] level The time level to read at
   //! \param[in] name The name of the field
@@ -97,21 +100,22 @@ public:
   //! \param[in] components The number of components in the field
   bool readField(int level, const std::string& name,
                  Vector& vec, SIMbase* sim, int components);
+  */
 
   //! \brief Reads a text string
   //! \param[in] name The name (path in HDF5 file) to the string
   //! \param[out] out The string to read data into
   void readString(const std::string& name, std::string& out);
 
-  //! \brief Reads a vector
+  //! \brief Reads a double vector.
   //! \param[in] level The time level to read at
   //! \param[in] name The name (path in HDF5 file) to the string
   //! \param[in] patch The patch to read
   //! \param[out] vec The vector to read data into
   bool readVector(int level, const std::string& name,
-                  int patch, Vector& vec);
+                  int patch, std::vector<double>& vec);
 
-  //! \brief Reads a integer vector
+  //! \brief Reads an integer vector.
   //! \param[in] level The time level to read at
   //! \param[in] name The name (path in HDF5 file) to the string
   //! \param[in] patch The patch to read
@@ -119,7 +123,7 @@ public:
   bool readVector(int level, const std::string& name,
                   int patch, std::vector<int>& vec);
 
-  //! \brief Reads a double.
+  //! \brief Reads a double value.
   //! \param[in] level The time level to read at
   //! \param[in] name The name (path in HDF5 file) to the array
   //! \param[in] group The HDF5 group to read from
@@ -173,3 +177,5 @@ private:
   unsigned int m_flag; //!< The file flags to open HDF5 file with
   bool     m_keepOpen; //!< If \e true, we always keep the file open
 };
+
+#endif

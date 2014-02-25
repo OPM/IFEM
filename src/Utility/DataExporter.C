@@ -12,7 +12,9 @@
 //==============================================================================
 
 #include "DataExporter.h"
+#include "Utilities.h"
 #include "TimeStep.h"
+#include "tinyxml.h"
 #include <iostream>
 #include <algorithm>
 #ifdef PARALLEL_PETSC
@@ -20,8 +22,14 @@
 #endif
 
 
-DataWriter::DataWriter (const std::string& name) : m_name(name)
+DataWriter::DataWriter (const std::string& name, const char* defaultExt)
 {
+  if (defaultExt && name.find_last_of('.') == std::string::npos)
+    m_name = name + defaultExt;
+  else
+    m_name = name;
+
+  m_prefix = NULL;
 #ifdef PARALLEL_PETSC
   MPI_Comm_size(MPI_COMM_WORLD,&m_size);
   MPI_Comm_rank(MPI_COMM_WORLD,&m_rank);
@@ -59,7 +67,7 @@ bool DataExporter::registerField (const std::string& name,
     entry.prefix += ' ';
   entry.enabled = true;
   entry.ncmps = ncmps;
-  m_entry.insert(make_pair(name,entry));
+  m_entry.insert(std::make_pair(name,entry));
 
   return true;
 }
@@ -93,8 +101,7 @@ bool DataExporter::setFieldValue (const std::string& name,
 
 bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
 {
-  if (tp && tp->step % m_ndump
-         && tp->step % m_ndump > m_order-1)
+  if (tp && tp->step % m_ndump && tp->step % m_ndump > m_order-1)
     return true;
 
   if (m_level == -1)
@@ -118,8 +125,8 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
           (*it2)->writeNodalForces(m_level,*it);
           break;
         default:
-	  std::cerr <<"DataExporter: Invalid field type registered, skipping"
-		    << std::endl;
+          std::cerr <<"  ** DataExporter: Invalid field type registered "
+                    << it->second.field <<", skipping"<< std::endl;
           break;
       }
     }
@@ -130,10 +137,9 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
   m_level++;
 
   // disable fields marks as once
-  for (it = m_entry.begin(); it != m_entry.end(); ++it) {
+  for (it = m_entry.begin(); it != m_entry.end(); ++it)
     if (abs(it->second.results) & ONCE)
       it->second.enabled = false;
-  }
 
   return true;
 }
@@ -236,26 +242,21 @@ int DataExporter::realTimeLevel(int filelevel, int order, int interval) const
 
 void DataExporter::OnControl(const TiXmlElement* context)
 {
-  for (const TiXmlElement* child = context->FirstChildElement(); child; 
-                           child = child->NextSiblingElement())
-  {
-    if(strcasecmp(child->Value(),"enable_field") == 0) {
+  const TiXmlElement* child = context->FirstChildElement();
+  for (; child; child = child->NextSiblingElement())
+    if (strcasecmp(child->Value(),"enable_field") == 0) {
       std::string name;
-      bool enable=true;
-      if (child->Attribute("name"))
-        name = child->Attribute("name");
-      if (child->Attribute("enable"))
-        enable = strcasecmp(child->Attribute("enable"), "true") == 0 ||
-                 strcasecmp(child->Attribute("enable"), "1") == 0;
-      if (m_entry.find(name) != m_entry.end()) {
-        std::cout << "DataWriter: " << (enable?"Enabled ":"Disabled ") << name << std::endl;
-        m_entry[name].enabled = enable;
-      }
-    } else if (strcasecmp(child->Value(),"set_stride") == 0) {
-      if (child->Attribute("value")) {
-        m_ndump = atoi(child->Attribute("value"));
-        std::cout << "DataWriter: set stride " <<  m_ndump << std::endl;
+      bool enable = true;
+      utl::getAttribute(child,"name",name);
+      utl::getAttribute(child,"enable",enable);
+      std::map<std::string,FileEntry>::iterator it = m_entry.find(name);
+      if (it != m_entry.end()) {
+        std::cout <<"  * DataWriter: "<< (enable ? "Enabled " : "Disabled ")
+                  << name << std::endl;
+        it->second.enabled = enable;
       }
     }
-  }
+    else if (strcasecmp(child->Value(),"set_stride") == 0)
+      if (utl::getAttribute(child,"value",m_ndump))
+        std::cout <<"  * DataWriter: set stride "<< m_ndump << std::endl;
 }

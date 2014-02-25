@@ -16,6 +16,7 @@
 #include "SIMoutput.h"
 #include "IntegrandBase.h"
 #include "TimeStep.h"
+#include "Vec3.h"
 #include <sstream>
 
 #ifdef HAS_HDF5
@@ -35,7 +36,7 @@
 
 
 HDF5Writer::HDF5Writer (const std::string& name, bool append, bool keepOpen)
-  : DataWriter(name+".hdf5"), m_file(0), m_keepOpen(keepOpen)
+  : DataWriter(name,".hdf5"), m_file(0), m_keepOpen(keepOpen)
 {
 #ifdef HAS_HDF5
   struct stat temp;
@@ -65,12 +66,16 @@ int HDF5Writer::getLastTimeLevel ()
 #endif
 
   m_file = H5Fopen(m_name.c_str(),m_flag,acc_tpl);
-  while (1) {
+  if (m_file <= 0)
+  {
+    std::cerr <<" *** HDF5Writer: Failed to open "<< m_name << std::endl;
+    return -2;
+  }
+
+  for (bool ok = true; ok; result++) {
     std::stringstream str;
     str << '/' << result;
-    if (!checkGroupExistence(m_file,str.str().c_str()))
-      break;
-    result++;
+    ok = checkGroupExistence(m_file,str.str().c_str());
   }
   H5Fclose(m_file);
   m_file = 0;
@@ -107,6 +112,11 @@ void HDF5Writer::openFile(int level)
       free(cwd);
     }
     m_file = H5Fopen(m_name.c_str(),m_flag,acc_tpl);
+  }
+  if (m_file <= 0)
+  {
+    std::cerr <<" *** HDF5Writer: Failed to open "<< m_name << std::endl;
+    return;
   }
 
   std::stringstream str;
@@ -268,10 +278,11 @@ bool HDF5Writer::readSIM (int level, const DataEntry& entry)
 }
 
 bool HDF5Writer::readVector(int level, const std::string& name,
-                            int patch, Vector& vec)
+                            int patch, std::vector<double>& vec)
 {
   bool ok=true;
   openFile(level);
+  vec.clear();
 #ifdef HAS_HDF5
   std::stringstream str;
   str << level;
@@ -282,7 +293,7 @@ bool HDF5Writer::readVector(int level, const std::string& name,
   hid_t group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
   double* tmp = NULL; int siz = 0;
   readArray(group2,name,siz,tmp);
-  vec.fill(tmp,siz);
+  vec.insert(vec.begin(),tmp,tmp+siz);
   delete[] tmp;
   H5Gclose(group2);
 #endif
@@ -290,6 +301,7 @@ bool HDF5Writer::readVector(int level, const std::string& name,
   return ok;
 }
 
+/* not used, remove?
 bool HDF5Writer::readField(int level, const std::string& name,
                            Vector& vec, SIMbase* sim, int components)
 {
@@ -317,6 +329,7 @@ bool HDF5Writer::readField(int level, const std::string& name,
   closeFile(level);
   return ok;
 }
+*/
 
 void HDF5Writer::writeSIM (int level, const DataEntry& entry,
                            bool geometryUpdated, const std::string& prefix)

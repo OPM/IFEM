@@ -18,6 +18,7 @@
 #include "DataExporter.h"
 #include "TimeStep.h"
 #include "IFEM.h"
+#include "tinyxml.h"
 
 
 //! \brief Structure for configuring a given simulator

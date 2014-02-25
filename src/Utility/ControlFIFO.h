@@ -1,50 +1,71 @@
+// $Id$
+//==============================================================================
+//!
+//! \file ControlFIFO.h
+//!
+//! \date Oct 7 2013
+//!
+//! \author Arne Morten Kvarving / SINTEF
+//!
+//! \brief Application control over a FIFO.
+//!
+//==============================================================================
+
 #ifndef CONTROL_FIFO_H_
 #define CONTROL_FIFO_H_
 
-#include <map>
 #include <string>
-#include <tinyxml.h>
+#include <map>
+
+class TiXmlElement;
 
 
-/*! \brief Callback for FIFO option handling */
-class ControlCallback {
-  public:
-    //! \brief Callback on receiving a control block
-    //! \param[in] context The XML block to parse
-    virtual void OnControl(const TiXmlElement* context) = 0;
+/*!
+  \brief Callback for FIFO option handling.
+*/
 
-    //! \brief Get context name for callback
-    virtual std::string GetContext() = 0;
+class ControlCallback
+{
+public:
+  //! \brief Callback on receiving a XML control block.
+  virtual void OnControl(const TiXmlElement* context) = 0;
+  //! \brief Returns context name for callback.
+  virtual std::string GetContext() const = 0;
 };
 
-/*! \brief This class enables simple app control over a FIFO.
- *  \details A fifo is opened, and users can write instructions to the fifo
- *           in XML format. These are then processed between time steps */
-class ControlFIFO {
-  public:
-    //! \brief Default constructor
-    ControlFIFO();
 
-    //! \brief Default destructor. Tears down the opened fifo and removes the
-    //         filesystem entry
-    ~ControlFIFO();
+/*!
+  \brief This class enables simple application control over a FIFO.
 
-    //! \brief Register a callback handler
-    //! \param[in] callback The callback handler to register
-    void registerCallback(ControlCallback& callback);
+  \details A fifo is opened, and users can write instructions to the fifo
+           in XML format. These are then processed between time steps.
+*/
 
-    //! \brief Open the fifo and prepare for receiving
-    //! \param[in] name The name of the filesystem entry for the fifo
-    bool open(const std::string& name="ifem-control");
+class ControlFIFO
+{
+public:
+  //! \brief Default constructor.
+  ControlFIFO() : fifo(-1) {}
 
-    //! \brief Poll for new data in the fifo
-    void poll();
+  //! \brief The destructor tears down the opened fifo and removes the file.
+  ~ControlFIFO();
 
-  protected:
-    std::string fifo_name; //!< The filesystem entry of our fifo
-    int fifo;              //!< fifo handle
-    typedef std::map<std::string, ControlCallback*> CallbackMap; //!< A map of callbacks
-    CallbackMap callbacks; //!< Map of registered callbacks
+  //! \brief Registers a callback handler.
+  //! \param[in] callback The callback handler to register
+  void registerCallback(ControlCallback& callback);
+
+  //! \brief Opens the fifo and prepares for receiving.
+  //! \param[in] name The name of the filesystem entry for the fifo
+  bool open(const char* name = "ifem-control");
+
+  //! \brief Polls for new data in the fifo.
+  void poll();
+
+private:
+  std::string fifo_name; //!< Name of filesystem entry of our fifo
+  int         fifo;      //!< fifo handle
+
+  std::map<std::string,ControlCallback*> callbacks; //!< Registered callbacks
 };
 
 #endif

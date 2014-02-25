@@ -11,7 +11,8 @@
 //!
 //==============================================================================
 
-#pragma once
+#ifndef _XML_WRITER_H
+#define _XML_WRITER_H
 
 #include "DataExporter.h"
 
@@ -30,82 +31,72 @@ class TimeStep;
 class XMLWriter : public DataWriter
 {
 public:
-  //! \brief A structure used when reading info from the file
+  //! \brief A structure used when reading info from the file.
   struct Entry {
-    //! \brief Name of field
-    std::string name;
-    //! \brief Description of field
-    std::string description;
-    //! \brief The name of the basis the field is associated with
-    std::string basis;
-    //! \brief Number of patches in field
-    int patches;
-    //! \brief Number of components in field
-    int components;
-    //! \brief The timestep associated with the field
-    double timestep;
-    //! \brief The temporal order associated with the field
-    int order;
-    //! \brief The dumping interval for the field
-    int interval;
-    //! \brief If true, field is only stored once (at first time level)
-    bool once;
-    //! \brief The type of the field
-    std::string type;
+    std::string name;        //!< Field name
+    std::string description; //!< Field description
+    std::string basis;       //!< Name of the basis associated with the field
+    std::string type;        //!< Field type
+    int    patches;    //!< Number of patches in field
+    int    components; //!< Number of components in field
+    double timestep;   //!< The time step associated with the field
+    int    order;      //!< The temporal order associated with the field
+    int    interval;   //!< The dumping interval for the field
+    bool   once;       //!< If true, field is only stored at first time level
   };
 
-  //! \brief Default constructor
-  //! \param[in] name The name (filename without extension) of data file
+  //! \brief The constructor assigns the file name storing this field.
+  //! \param[in] name The name (file name without extension) of data file
   XMLWriter(const std::string& name);
 
-  //! \brief Empty destructor
+  //! \brief Empty destructor.
   virtual ~XMLWriter() {}
 
-  //! \brief Return the last time level stored in file
+  //! \brief Returns the last time level stored in file.
   virtual int getLastTimeLevel();
 
-  //! \brief Read info from file
+  //! \brief Reads information from file.
   void readInfo();
 
   //! \brief Returns a const vector to the entries (\sa readInfo)
   const std::vector<Entry>& getEntries() const { return m_entry; }
 
-  //! \brief Open the file at a given time level
+  //! \brief Opens the file at a given time level.
   //! \param[in] level The requested time level
   virtual void openFile(int level);
 
-  //! \brief Close the file
+  //! \brief Closes the file.
   //! \param[in] level Level we just wrote to the file
-  //! \param[in] force Ignored
-  virtual void closeFile(int level, bool force=false);
+  virtual void closeFile(int level, bool = false);
 
-  //! \brief Write a vector to file
+  //! \brief Writes a vector to file.
   //! \param[in] level The time level to write the vector at
   //! \param[in] entry The DataEntry describing the vector
   virtual void writeVector(int level, const DataEntry& entry);
 
-  //! \brief Read a vector from file
+  //! \brief Reads a vector from file.
   //! \param[in] level The time level to read the vector at
   //! \param[in] entry The DataEntry describing the vector
   virtual bool readVector(int level, const DataEntry& entry);
 
-  //! \brief Write data from a SIM to file
+  //! \brief Writes data from a SIM to file.
   //! \param[in] level The time level to write the data at
-  //! \param[in] entry The DataEntry describing the vector
-  //! \param[in] geometryUpdated Ignored
+  //! \param[in] entry The data entry describing the vector
   //! \param[in] prefix Prefix for field names
   virtual void writeSIM(int level, const DataEntry& entry,
-                        bool geometryUpdated, const std::string& prefix);
+                        bool, const std::string& prefix);
 
-  //! \copydoc DataWriter::writeNodalForces(int,const DataEntry&)
-  virtual void writeNodalForces(int level, const DataEntry& entry);
-
-  //! \brief Read data from a file into SIM
+  //! \brief Reads data from a file into SIM.
   //! \param[in] level The time level to read the data at
   //! \param[in] entry The DataEntry describing the SIM
   virtual bool readSIM(int level, const DataEntry& entry);
 
-  //! \brief Write time stepping info to file (currently a dummy)
+  //! \brief Writes nodal forces to file.
+  //! \param[in] level The time level to write the data at
+  //! \param[in] entry The DataEntry describing the vector
+  virtual void writeNodalForces(int level, const DataEntry& entry);
+
+  //! \brief Writes time stepping info to file.
   //! \param[in] level The time level to write the info at
   //! \param[in] order The temporal order
   //! \param[in] interval The number of time steps between each data dump
@@ -113,28 +104,27 @@ public:
   virtual bool writeTimeInfo(int level, int order, int interval,
                              const TimeStep& tp);
 protected:
-  //! \brief Internal helper function
+  //! \brief Internal helper function adding an XML-element to the file
   //! \param[in] name The name of the field to add
   //! \param[in] description The description of the field to add
   //! \param[in] geometry The name of the geometry the field uses
   //! \param[in] components Number of components in the field
   //! \param[in] patches Number of patches in the field
   //! \param[in] type The type of the field
+  //! \param[in] once If \e true, write field only once
   void addField(const std::string& name, const std::string& description,
                 const std::string& geometry, int components, int patches,
-                const std::string& type="field", bool once=false);
+                const std::string& type = "field", bool once = false);
 
-  //! \brief A vector of entries read from file
-  std::vector<Entry> m_entry;
+private:
+  std::vector<Entry> m_entry; //!< A vector of entries read from file
 
-  //! \brief Our xml document
-  TiXmlDocument* m_doc;
-  //! \brief The document's root node
-  TiXmlNode* m_node;
-  //! \brief The current (constant) timestep
-  double m_dt;
-  //! \brief The temporal order
-  int m_order;
-  //! \brief A stride for dumping. We dump at every m_interval'th time level
-  int m_interval;
+  TiXmlDocument* m_doc;  //!< Our XML document
+  TiXmlNode*     m_node; //!< The document's root node
+
+  double m_dt;       //!< The current (constant) time step size
+  int    m_order;    //!< The temporal order
+  int    m_interval; //!< Stride for dumping (dump at every m_interval'th level)
 };
+
+#endif

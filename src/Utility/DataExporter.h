@@ -11,12 +11,12 @@
 //!
 //==============================================================================
 
-#pragma once
+#ifndef _DATA_EXPORTER_H
+#define _DATA_EXPORTER_H
 
-#include <map>
-#include <string>
-#include <vector>
 #include "ControlFIFO.h"
+#include <vector>
+#include <map>
 
 class DataWriter;
 class TimeStep;
@@ -31,7 +31,7 @@ class TimeStep;
 
 class DataExporter : public ControlCallback
 {
- public:
+public:
    //! \brief Supported field types
   enum FieldType {
     VECTOR,
@@ -82,11 +82,11 @@ class DataExporter : public ControlCallback
   //! \param[in] field Type of entry
   //! \param[in] results Which results to store
   //! \param[in] prefix Field name prefix
+  //! \param[in] ncmps Number of field components
   bool registerField(const std::string& name,
                      const std::string& description,
-                     FieldType field, int results=PRIMARY,
-                     const std::string& prefix="",
-                     int ncmps=0);
+                     FieldType field, int results = PRIMARY,
+                     const std::string& prefix = "", int ncmps = 0);
 
   //! \brief Registers a data writer.
   //! \param[in] writer A pointer to the data writer we want registered
@@ -125,11 +125,11 @@ class DataExporter : public ControlCallback
   //! \brief Sets the prefices used for norm output.
   void setNormPrefixes(const char** prefix);
 
-  //! \brief External controller handling
-  void OnControl(const TiXmlElement* context);
+  //! \brief Callback on receiving a XML control block from external controller.
+  virtual void OnControl(const TiXmlElement* context);
+  //! \brief Returns context name for callback for external controller.
+  virtual std::string GetContext() const { return "datawriter"; }
 
-  //! \brief External controller context name
-  std::string GetContext() { return "datawriter"; }
 protected:
   //! \brief Internal helper function.
   int getWritersTimeLevel() const;
@@ -142,7 +142,7 @@ protected:
   bool m_delete; //!< If true, we are in charge of freeing up datawriters
   int  m_level;  //!< Current time level
   int  m_ndump;  //!< Time level stride for dumping
-  int  m_order;  //!< The temporal order used (neede to facilitate restart)
+  int  m_order;  //!< The temporal order used (needed to facilitate restart)
 
   DataWriter* m_infoReader; //!< DataWriter to read data information from
   DataWriter* m_dataReader; //!< DataWriter to read numerical data from
@@ -163,7 +163,7 @@ class DataWriter
 {
 protected:
   //! \brief Protected constructor as this is a purely virtual class.
-  DataWriter(const std::string& name);
+  DataWriter(const std::string& name, const char* defaultExt = NULL);
 
 public:
   //! \brief Empty destructor.
@@ -179,8 +179,8 @@ public:
   //! \brief Closes the file.
   //! \param[in] level Level we just wrote to the file
   //! \param[in] force If true, we always close the actual file,
-  //                   else it's up to the individual writers
-  virtual void closeFile(int level, bool force=false) = 0;
+  //! otherwise it's up to the individual writers
+  virtual void closeFile(int level, bool force = false) = 0;
 
   //! \brief Writes a vector to file.
   //! \param[in] level The time level to write the vector at
@@ -200,8 +200,8 @@ public:
   virtual void writeSIM(int level, const DataEntry& entry,
                         bool geometryUpdated, const std::string& prefix) = 0;
 
-  //! \brief Write nodal forces to file
-  //! \param[in] The time level to write the data at
+  //! \brief Writes nodal forces to file.
+  //! \param[in] level The time level to write the data at
   //! \param[in] entry The DataEntry describing the vector
   virtual void writeNodalForces(int level, const DataEntry& entry) = 0;
 
@@ -228,3 +228,5 @@ protected:
   int m_size; //!< Number of MPI nodes (processors)
   int m_rank; //!< MPI rank (processor ID)
 };
+
+#endif

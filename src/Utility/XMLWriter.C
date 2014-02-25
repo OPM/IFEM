@@ -22,7 +22,7 @@
 #include <cstdio>
 
 
-XMLWriter::XMLWriter(const std::string& name) : DataWriter(name+".xml")
+XMLWriter::XMLWriter (const std::string& name) : DataWriter(name,".xml")
 {
   m_doc = NULL;
   m_node = NULL;
@@ -56,7 +56,7 @@ void XMLWriter::openFile(int level)
 }
 
 
-void XMLWriter::closeFile(int level, bool close)
+void XMLWriter::closeFile(int level, bool)
 {
   if (!m_doc || m_rank != 0)
     return;
@@ -132,6 +132,7 @@ bool XMLWriter::readVector(int level, const DataEntry& entry)
   return true;
 }
 
+
 void XMLWriter::writeVector(int level, const DataEntry& entry)
 {
   if (m_rank != 0)
@@ -168,8 +169,8 @@ bool XMLWriter::readSIM (int level, const DataEntry& entry)
 }
 
 
-void XMLWriter::writeSIM (int level, const DataEntry& entry,
-                          bool geometryUpdated, const std::string& prefix)
+void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
+                          const std::string& prefix)
 {
   if (m_rank != 0)
     return;
@@ -258,10 +259,19 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry,
 }
 
 
+bool XMLWriter::writeTimeInfo (int level, int order, int interval,
+                               const TimeStep& tp)
+{
+  m_dt = tp.time.dt;
+  m_order = order;
+  m_interval = interval;
+  return true;
+}
+
+
 void XMLWriter::addField (const std::string& name,
                           const std::string& description,
-                          const std::string& basis,
-                          int components, int patches,
+                          const std::string& basis, int components, int patches,
                           const std::string& type, bool once)
 {
   TiXmlElement element("entry");
@@ -274,15 +284,6 @@ void XMLWriter::addField (const std::string& name,
   element.SetAttribute("components",components);
   if (once)
     element.SetAttribute("once","true");
+
   m_node->InsertEndChild(element);
-}
-
-
-bool XMLWriter::writeTimeInfo (int level, int order, int interval,
-                               const TimeStep& tp)
-{
-  m_dt = tp.time.dt;
-  m_order = order;
-  m_interval = interval;
-  return true;
 }
