@@ -562,9 +562,7 @@ public:
   //! \brief Returns a const reference to our FEM model.
   const PatchVec& getFEModel() const { return myModel; }
   //! \brief Returns a pointer to a specified patch of our FEM model.
-  ASMbase* getPatch(size_t i) { return i < myModel.size() ? myModel[i] : NULL; }
-  //! \brief Returns a one-based global index of a specified patch in our model.
-  int getPatchIdx(size_t i) const;
+  ASMbase* getPatch(size_t idx) const;
 
   //! \brief Returns a const reference to our global-to-local node mapping.
   const std::map<int,int>& getGlob2LocMap() const { return myGlb2Loc; }

@@ -650,6 +650,15 @@ bool ASMbase::resolveMPCchain (const MPCSet& allMPCs, MPC* mpc)
 }
 
 
+void ASMbase::assignNodeNumbers (const std::vector<int>& nodes, bool zeroBased)
+{
+  myMLGN = nodes;
+  if (zeroBased)
+    for (size_t i = 0; i < myMLGN.size(); i++)
+      myMLGN[i] ++; // Make node numbers 1-based
+}
+
+
 bool ASMbase::hasTimeDependentDirichlet (const std::map<int,RealFunc*>& func,
                                          const std::map<int,VecFunc*>& vfunc)
 {

@@ -233,8 +233,7 @@ public:
   // =============================
 
   //! \brief Copies the parameter domain from another patch.
-  //! \param[in] other The patch to copy parameter domain from
-  virtual void copyParameterDomain(const ASMbase* other) {}
+  virtual void copyParameterDomain(const ASMbase*) {}
 
   //! \brief Merges a given node in this patch with a given global node.
   //! \param[in] inod 1-based node index local to current patch
@@ -298,13 +297,13 @@ public:
   virtual bool initConstraints() { return true; }
 
   //! \brief Assigns global node numbers for this patch.
-  void assignNodeNumbers(const std::vector<int>& nodes, int) { myMLGN = nodes; }
+  void assignNodeNumbers(const std::vector<int>& nodes, bool zeroBased = false);
 
   //! \brief Checks for time-dependent in-homogeneous Dirichlet conditions.
   //! \param[in] func Scalar property fields
   //! \param[in] vfunc Vector property fields
-  bool hasTimeDependentDirichlet (const std::map<int,RealFunc*>& func,
-                                  const std::map<int,VecFunc*>& vfunc);
+  bool hasTimeDependentDirichlet(const std::map<int,RealFunc*>& func,
+                                 const std::map<int,VecFunc*>& vfunc);
 
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] func Scalar property fields

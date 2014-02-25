@@ -41,9 +41,9 @@ struct Property
   };
 
   Type   pcode; //!< Physical property code
-  int    pindx; //!< Physical property index
-  size_t patch; //!< Patch index [0,nPatch>
-  char   lindx; //!< Local entity index which is assigned the property
+  int    pindx; //!< Physical property index (1-based)
+  size_t patch; //!< Patch index [1,nPatch]
+  char   lindx; //!< Local entity index (1-based) which is assigned the property
   char   ldim;  //!< Local entity dimension flag [0,3]
 
   //! \brief Default constructor.

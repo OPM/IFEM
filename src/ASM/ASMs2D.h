@@ -99,7 +99,7 @@ public:
   virtual Go::SplineCurve* getBoundary(int dir);
   //! \brief Returns the spline surface representing the basis of this patch.
   virtual Go::SplineSurface* getBasis(int = 1) const { return surf; }
-  //! \copydoc ASMbase::copyParameterDomain(ASMbase*)
+  //! \brief Copies the parameter domain from the \a other patch.
   virtual void copyParameterDomain(const ASMbase* other);
 
   // Methods for model generation
@@ -341,9 +341,12 @@ public:
   virtual bool evaluate(const ASMbase* basis, const Vector& locVec,
                         Vector& vec) const;
 
-  //! \copydoc ASMbase::evaluate(const Field*,Vector&)
-  //! \details Note a VDSA is used as the regular interpolation method in
-  //!          GoTools only works with uniform knots.
+  //! \brief Evaluates and interpolates a field over a given geometry.
+  //! \param[in] field The field to evaluate
+  //! \param[out] vec The obtained coefficients after interpolation
+  //!
+  //! \note A Variation Diminishing Spline Approximation is used as the
+  //! regular interpolation method in GoTools only works with uniform knots.
   virtual bool evaluate(const Field* field, Vector& vec) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.

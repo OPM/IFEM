@@ -16,10 +16,7 @@
 #include "ASMbase.h"
 #include "IntegrandBase.h"
 #include "GlbForceVec.h"
-#ifdef PARALLEL_PETSC
-#include "PETScSupport.h"
-#include <mpi.h>
-#endif
+#include "Vec3.h"
 
 
 Vector SIM::getBoundaryForce (const Vectors& solution, SIMbase* model, int code,

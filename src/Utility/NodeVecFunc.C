@@ -56,7 +56,7 @@ int NodeVecFunc::getPointIndex (const Vec3& xp) const
 
   // Not found, search among all nodes in the model
   const ASMbase* pch = NULL;
-  for (size_t i = 0; (pch = model.getPatch(i)); i++)
+  for (size_t i = 1; (pch = model.getPatch(i)); i++)
     for (size_t inod = 1; inod <= pch->getNoNodes(); inod++)
       if (xp.equal(pch->getCoord(inod)))
         return ptMap[xp] = pch->getNodeID(inod);
