@@ -1,3 +1,4 @@
+// $Id$
 //==============================================================================
 //!
 //! \file SIMOverride.h
@@ -6,67 +7,76 @@
 //!
 //! \author Arne Morten Kvarving / SINTEF
 //!
-//! \brief Template overriding methods for wrapping template purposes
+//! \brief Template overriding methods for wrapping template purposes.
 //!
 //==============================================================================
 
 #ifndef SIM_OVERRIDE_H_
 #define SIM_OVERRIDE_H_
 
-#include "Vec3.h"
-#include "VTF.h"
+#include "SIMdependency.h"
+#include "Property.h"
+#include "Function.h"
 
 class ProcessAdm;
+class Vec3;
+class VTF;
 
-/*! \brief Overrides methods commonly used in applications.
- *  \details This template overrides a subset of SIMbase,
- *           a subset of SIMdependency and parts of the SIMSolver concept.
- *           Used when augmenting classes through a wrapping template.
- */
+
+/*!
+  \brief Overrides methods commonly used in applications.
+
+  \details This template overrides a subset of SIMbase and SIMdependency,
+  and parts of the SIMSolver concept.
+  Used when augmenting classes through a wrapping template.
+*/
+
 template<class T> class SIMOverride : public SIMdependency
 {
+  T& base; //!< Reference to wrapped simulator
+
 public:
-  //! \brief Constructor
+  //! \brief The constructor initializes the reference to the wrapped simulator.
   //! \param t The simulator to wrap
   SIMOverride(T& t) : base(t) {}
 
-  //! \brief Empty destructor
+  //! \brief Empty destructor.
   virtual ~SIMOverride() {}
 
-  //! \copydoc SIMbase::read(const char*)
-  bool read( const char* fileName)
-  { 
+  //! \copydoc SIMinput::read(const char*)
+  bool read(const char* fileName)
+  {
     return base.read(fileName);
   }
 
-  //! \brief Set initial conditions
+  //! \copydoc ISolver::setInitialConditions()
   void setInitialConditions()
-  { 
+  {
     base.setInitialConditions();
   }
 
   //! \copydoc SIMdependency::hasIC(const std::string&) const
-  bool hasIC(const std::string& name) const
-  { 
+  virtual bool hasIC(const std::string& name) const
+  {
     return base.hasIC(name);
   }
 
   //! \copydoc SIMbase::getNoSpaceDim()
-  size_t getNoSpaceDim() const
-  { 
+  virtual size_t getNoSpaceDim() const
+  {
     return base.getNoSpaceDim();
   }
 
-  //! \copydoc SIMbase::getBoundaryNodes(int,std::vector<int>&,Vec3Vec*) const
+  //! \copydoc SIMbase::getBoundaryNodes(int,std::vector<int>&,std::vector<Vec3>*) const
   void getBoundaryNodes(int pcode, std::vector<int>& glbNodes,
-                        Vec3Vec* XYZ = NULL) const
-  { 
+                        std::vector<Vec3>* XYZ = NULL) const
+  {
     return base.getBoundaryNodes(pcode, glbNodes, XYZ);
   }
 
   //! \copydoc SIMbase::getFEModel() const
   const PatchVec& getFEModel() const
-  { 
+  {
     return base.getFEModel();
   }
 
@@ -80,29 +90,19 @@ public:
   size_t setVecProperty(int code, Property::Type ptype,
                         VecFunc* field = NULL,
                         int pflag = -1)
-  { 
+  {
     return base.setVecProperty(code, ptype, field, pflag);
   }
 
-  //! \brief Open VTF and save model
-  //! \param fileName The filename of the VTF file
-  bool saveModel(char* fileName)
-  { 
-    return base.saveModel(fileName);
-  }
-
-  //! \brief Save model to an possibly already opened VTF file
-  //! \param fileName The filename of the VTF file
-  //! \param[out] geoBlk The starting geometry part for this model
-  //! \param[out] nBlock Running VTF block counter
+  //! \copydoc ISolver::saveModel(char*,int&,int&)
   bool saveModel(char* fileName, int& geoBlk, int& nBlock)
-  { 
+  {
     return base.saveModel(fileName, geoBlk, nBlock);
   }
 
   //! \copydoc SIMoutput::getVTF() const
   VTF* getVTF() const
-  { 
+  {
     return base.getVTF();
   }
 
@@ -110,16 +110,16 @@ public:
   const ProcessAdm& getProcessAdm() const { return base.getProcessAdm(); }
 
   //! \copydoc SIMdependency::registerDependency(SIMdependency*,const std::string&,short int,const PatchVec&,bool)
-  void registerDependency(SIMdependency* sim, const std::string& name,
-                          short int nvc, const PatchVec& patches,
-                          bool diffBasis = false)
+  virtual void registerDependency(SIMdependency* sim, const std::string& name,
+                                  short int nvc, const PatchVec& patches,
+                                  bool diffBasis = false)
   {
     base.registerDependency(sim, name, nvc, patches, diffBasis);
   }
 
   //! \copydoc SIMdependency::registerDependency(SIMdependency*,const std::string&,short int)
-  void registerDependency(SIMdependency* sim, const std::string& name,
-                          short int nvc=1)
+  virtual void registerDependency(SIMdependency* sim, const std::string& name,
+                                  short int nvc = 1)
   {
     base.registerDependency(sim, name, nvc);
   }
@@ -131,30 +131,24 @@ public:
   }
 
   //! \copydoc SIMdependency::getField(const std::string&)
-  utl::vector<double>* getField(const std::string& name)
+  virtual utl::vector<double>* getField(const std::string& name)
   {
     return base.getField(name);
   }
 
   //! \copydoc SIMdependency::getField(const std::string&) const
-  const utl::vector<double>* getField(const std::string& name) const
+  virtual const utl::vector<double>* getField(const std::string& name) const
   {
     return base.getField(name);
   }
 
-  //! \copydoc SIMdependency::getDependentField(const std::string&) const 
+  //! \copydoc SIMdependency::getDependentField(const std::string&) const
   const utl::vector<double>* getDependentField(const std::string& name) const
-  { 
+  {
     return base.getDependentField(name);
   }
 
-  //! \copydoc SIMdependency::getDependentPatch(const std::string&,int) const
-  ASMbase* getDependentPatch(const std::string& name, int pindx) const
-  {
-    return base.getDependentPatch(name, pindx);
-  }
-
-  //! \brief Setup inter-SIM dependencies
+  //! \copydoc ISolver::setupDependencies()
   void setupDependencies()
   {
     base.setupDependencies();
@@ -162,29 +156,27 @@ public:
 
   //! \copydoc ISolver::init(const TimeStep&)
   bool init(const TimeStep& tp)
-  { 
+  {
     return base.init(tp);
   }
 
   //! \copydoc ISolver::registerFields(DataExporter&)
   void registerFields(DataExporter& exporter)
-  { 
+  {
     base.registerFields(exporter);
   }
 
   //! \copydoc ISolver::saveStep(const TimeStep&,int&)
   bool saveStep(const TimeStep& tp, int& nBlock)
-  { 
+  {
     return base.saveStep(tp, nBlock);
   }
 
   //! \copydoc ISolver::advanceStep(TimeStep&)
   bool advanceStep(TimeStep& tp)
-  { 
+  {
     return base.advanceStep(tp);
   }
-protected:
-  T& base; //!< Reference to wrapper simulator
 };
 
 #endif

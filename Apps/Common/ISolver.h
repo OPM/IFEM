@@ -31,28 +31,28 @@ public:
   //! \param[out] nBlock Running result block counter
   virtual bool saveModel(char* fileName, int& geoBlk, int& nBlock) = 0;
 
-  //! \brief Saves the converged results to VTF file of a given time step.
+  //! \brief Saves the converged results of a given time step to VTF file.
   //! \param[in] tp Time stepping parameters
   //! \param[in] nBlock Running VTF block counter
   virtual bool saveStep(const TimeStep& tp, int& nBlock) = 0;
 
+  //! \brief Initializes the simulator time stepping loop.
+  virtual bool init(const TimeStep& tp) = 0;
+
   //! \brief Advances the time step one step forward.
-  //! \param[in] tp Time step structure to advance
-  //! \return True if new solution step is to be performed
   virtual bool advanceStep(TimeStep& tp) = 0;
 
   //! \brief Computes the solution for the current time step.
-  //! \param[in] tp Time step structure to advance
-  //! \return True on success
   virtual bool solveStep(TimeStep& tp) = 0;
 
-  //! \brief Initialize the simulator timestepping loop
-  //! \param[in] tp Time step structure with initial parameters
-  virtual bool init(const TimeStep& tp) = 0;
-
-  //! \brief Register fields for output to a data exporter
-  //! \brief exporter The dataexporter to register fields in
+  //! \brief Registers fields for output to a data exporter.
   virtual void registerFields(DataExporter& exporter) = 0;
+
+  //! \brief Sets initial conditions for the solution field.
+  virtual void setInitialConditions() = 0;
+
+  //! \brief Initializes and sets up field dependencies.
+  virtual void setupDependencies() = 0;
 };
 
 #endif
