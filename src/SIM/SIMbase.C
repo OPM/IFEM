@@ -179,10 +179,12 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
     }
 
     // If equal number of blocks per processor
-    if (myPatches.empty())
+    if (myPatches.empty()) {
       if (utl::getAttribute(elem,"nperproc",proc))
         for (int j = 1; j <= proc; j++)
           myPatches.push_back(myPid*proc+j);
+      nGlPatches = nProc*proc;
+    }
   }
 
   else if (!strcasecmp(elem->Value(),"topologysets")) {
