@@ -918,6 +918,12 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
       
     // Preconditioner for blocks
     for (PetscInt m = 0; m < nsplit; m++) {
+      std::string prefix;
+      if (m == 0)
+	prefix = "-fieldsplit_u_";
+      else
+	prefix = "-fieldsplit_p_";
+
       KSPSetType(subksp[m],"preonly");
       KSPGetPC(subksp[m],&subpc[m]);
       if (!strncasecmp(solParams.subprec[m].c_str(),"compositedir",12)) {
@@ -973,11 +979,6 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	//PCMGSetNumberSmoothUp(subpc[m],noPostSmooth[m]);
 	//PCGAMGSetNlevels(subpc[m],solParams.mglevels[m]);
 	//PCGAMGSetCoarseEqLim(subpc[m],solParams.maxCoarseSize[m]);
-	std::string prefix;
-	if (m == 0)
-	  prefix = "-fieldsplit_u_";
-	else
-	  prefix = "-fieldsplit_p_";
 	    
 	std::stringstream maxLevel;
 	maxLevel << solParams.mglevels[m];
@@ -1277,6 +1278,61 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
         //   PCFactorSetLevels(postpc,solParams.levels[m]);
         //   KSPSetUp(postksp);
 	// }
+      }
+      else if (!strncasecmp(solParams.subprec[m].c_str(),"hypre",5)) {
+	std::stringstream hypretype;
+        hypretype << solParams.hypretype[m];
+        std::string hypreType = prefix + std::string("pc_hypre_type");
+        PetscOptionsSetValue(hypreType.c_str(),hypretype.str().c_str());
+
+        std::stringstream maxLevel;
+        maxLevel << solParams.mglevels[m];
+        std::string hypreMaxNLevels = prefix + std::string("pc_hypre_boomeramg_max_levels");
+        PetscOptionsSetValue(hypreMaxNLevels.c_str(),maxLevel.str().c_str());
+
+        std::string hypreMaxIter = prefix + std::string("pc_hypre_boomeramg_max_iter");
+        PetscOptionsSetValue(hypreMaxIter.c_str(),"1");
+
+        std::string hypreTol = prefix + std::string("pc_hypre_boomeramg_tol");
+        PetscOptionsSetValue(hypreTol.c_str(),"0.0");
+
+        if (!solParams.HypreThreshold.empty()) {
+          std::stringstream threshold;
+          threshold << solParams.HypreThreshold[m];
+          std::string hypreThreshold = prefix + std::string("pc_hypre_boomeramg_strong_threshold");
+          PetscOptionsSetValue(hypreThreshold.c_str(),threshold.str().c_str());
+        }
+
+	if (!solParams.HypreCoarsenScheme.empty()) {
+          std::stringstream coarsenScheme;
+          coarsenScheme << solParams.HypreCoarsenScheme[m];
+          std::string hypreCoarsenScheme = prefix + std::string("pc_hypre_boomeramg_coarsen_type");
+          PetscOptionsSetValue(hypreCoarsenScheme.c_str(),coarsenScheme.str().c_str());
+        }       
+
+        if (!solParams.HypreNoAggCoarse.empty()) {
+          std::stringstream noAggCoarse;
+          noAggCoarse << solParams.HypreNoAggCoarse[m];
+          std::string hypreNoAggCoarse = prefix + std::string("pc_hypre_boomeramg_agg_nl");
+          PetscOptionsSetValue(hypreNoAggCoarse.c_str(),noAggCoarse.str().c_str());
+        }
+
+        if (!solParams.HypreNoPathAggCoarse.empty()) {
+          std::stringstream noPathAggCoarse;
+          noPathAggCoarse << solParams.HypreNoPathAggCoarse[m];
+          std::string hypreNoPathAggCoarse = prefix + std::string("pc_hypre_boomeramg_agg_num_paths");
+          PetscOptionsSetValue(hypreNoPathAggCoarse.c_str(),noPathAggCoarse.str().c_str());
+        }
+
+	if (!solParams.HypreTruncation.empty()) {
+          std::stringstream truncation;
+          truncation << solParams.HypreTruncation[m];
+          std::string hypreTruncation = prefix + std::string("pc_hypre_boomeramg_truncfactor");
+          PetscOptionsSetValue(hypreTruncation.c_str(),truncation.str().c_str());
+        }
+
+        //PCSetFromOptions(subpc[m]);
+        //PCSetUp(subpc[m]);
       }
     }
   }

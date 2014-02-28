@@ -457,6 +457,31 @@ bool LinSolParams::read (const TiXmlElement* child)
     std::istream_iterator<PetscInt> begin(this_line), end;
     MLAux.assign(begin, end);
   }
+  else if ((value = utl::getValue(child,"HypreNoAggCoarse"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscInt> begin(this_line), end;
+    HypreNoAggCoarse.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"HypreNoPathAggCoarse"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscInt> begin(this_line), end;
+    HypreNoPathAggCoarse.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"HypreTruncation"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscReal> begin(this_line), end;
+    HypreTruncation.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"HypreThreshold"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<PetscReal> begin(this_line), end;
+    HypreThreshold.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"HypreCoarsenScheme"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<std::string> begin(this_line), end;
+    HypreCoarsenScheme.assign(begin, end);
+  }
   else if ((value = utl::getValue(child,"ncomponents"))) {
     std::istringstream this_line(value);
     std::istream_iterator<int> begin(this_line), end;

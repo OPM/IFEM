@@ -218,6 +218,11 @@ private:
   PetscIntVec            GAMGrepartition;   // Repartition coarse grid for GAMG preconditioner (0 = false, 1 = true)
   PetscIntVec            GAMGuseAggGasm;    // Use aggregation aggregates for GASM smoother     (0 = false, 1 = true)
   PetscIntVec            GAMGreuseInterp;   // Reuse interpolation
+  PetscIntVec            HypreNoAggCoarse; // Number of levels of aggressive coarsening
+  PetscIntVec            HypreNoPathAggCoarse; // Number of paths for aggressive coarsening
+  PetscRealVec           HypreTruncation;   // Truncation factor for interpolation
+  PetscRealVec           HypreThreshold;    // Drop tolerance for Hypre
+  StringVec              HypreCoarsenScheme;// Coarsening scheme for Hypre
   IntVec                 nx;                // Number of local subdomains in first parameter direction
   IntVec                 ny;                // Number of local subdomains in second parameter direction
   IntVec                 nz;                // Number of local subdomains in third parameter direction
