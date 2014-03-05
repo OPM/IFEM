@@ -18,6 +18,7 @@
 #include "TimeStep.h"
 #include "Vec3.h"
 #include <sstream>
+#include "ASMbase.h"
 
 #ifdef HAS_HDF5
 #include <numeric>
@@ -178,7 +179,7 @@ void HDF5Writer::readArray(int group, const std::string& name,
 #endif
 }
 
-void HDF5Writer::readString(const std::string& name, std::string& out)
+void HDF5Writer::readString(const std::string& name, std::string& out, bool close)
 {
 #ifdef HAS_HDF5
   openFile(0);
@@ -191,7 +192,8 @@ void HDF5Writer::readString(const std::string& name, std::string& out)
   out.assign(temp, siz);
   delete[] temp;
   H5Dclose(set);
-  closeFile(0);
+  if (close)
+    closeFile(0);
 #else
   std::cout << "HDF5Writer: compiled without HDF5 support, no data read" << std::endl;
 #endif
@@ -251,6 +253,8 @@ bool HDF5Writer::readSIM (int level, const DataEntry& entry)
   SIMbase* sim = static_cast<SIMbase*>(const_cast<void*>(entry.second.data));
   Vector* sol = static_cast<Vector*>(const_cast<void*>(entry.second.data2));
   if (!sim || !sol) return false;
+  if (!(abs(entry.second.results) & DataExporter::RESTART))
+    return true;
 
   bool ok = true;
 #ifdef HAS_HDF5
@@ -266,9 +270,18 @@ bool HDF5Writer::readSIM (int level, const DataEntry& entry)
       if (prob->mixedFormulation())
         readArray(group2,entry.first,siz,tmp);
       else
-        readArray(group2,prob->getField1Name(11),siz,tmp);
+        readArray(group2,entry.second.description+" restart",siz,tmp);
       ok = sim->injectPatchSolution(*sol,Vector(tmp,siz),
                                     loc-1);
+      if (hasGeometries(level, sim->getName()+"-1")) {
+        std::string out;
+        std::stringstream geom;
+        geom << '/' << level << "/basis/" << sim->getName() << "-1" << "/" << i+1;
+        readString(geom.str(), out, false);
+        std::stringstream str;
+        str << out;
+        sim->getFEModel()[i]->read(str);
+      }
       delete[] tmp;
     }
     H5Gclose(group2);
@@ -342,7 +355,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
   if (!sim || !sol) return;
 
   const IntegrandBase* prob = sim->getProblem();
-  if (level == 0 || geometryUpdated) {
+  if (level == 0 || geometryUpdated || (abs(entry.second.results) & DataExporter::GRID)) {
     writeBasis(sim,sim->getName()+"-1",1,level);
     if (prob->mixedFormulation())
       writeBasis(sim,sim->getName()+"-2",2,level);
@@ -379,6 +392,13 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     if (loc > 0 && (sim->getProcessAdm().isParallel() ||
                     sim->getGlobalProcessID() == 0)) // we own the patch
     {
+      if (abs(results) & DataExporter::RESTART) {
+        Vector psol;
+        int ncmps = entry.second.ncmps;
+        size_t ndof1 = sim->extractPatchSolution(*sol,psol,loc-1,ncmps);
+        writeArray(group2, entry.second.description+" restart",
+                           ndof1, psol.ptr(), H5T_NATIVE_DOUBLE);
+      }
       if (abs(results) & DataExporter::PRIMARY) {
         Vector psol;
         int ncmps = entry.second.ncmps;
@@ -462,6 +482,10 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     else // must write empty dummy records for the other patches
     {
       double dummy;
+      if (abs(results) & DataExporter::RESTART) {
+        writeArray(group2, entry.second.description+" restart",
+                   0, &dummy, H5T_NATIVE_DOUBLE);
+      }
       if (abs(results) & DataExporter::PRIMARY) {
         if (prob->mixedFormulation())
         {
@@ -602,10 +626,12 @@ void HDF5Writer::writeNodalForces(int level, const DataEntry& entry)
 }
 
 
-bool HDF5Writer::hasGeometries(int level)
+bool HDF5Writer::hasGeometries(int level, const std::string& basisName)
 {
   std::stringstream str;
   str << '/' << level << "/basis";
+  if (!basisName.empty())
+    str << '/' << basisName;
   return checkGroupExistence(m_file,str.str().c_str());
 }
 

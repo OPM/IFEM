@@ -185,9 +185,15 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
     usedescription = true;
   }
 
-  std::string g2file;
+  int cmps = entry.second.ncmps>0?entry.second.ncmps:prob->getNoFields(1);
+
+  // restart vector
+  if (results & DataExporter::RESTART) {
+    addField("restart",entry.second.description,sim->getName()+"-1",
+             cmps,sim->getNoPatches(),"restart");
+  }
+
   if (results & DataExporter::PRIMARY) {
-    int cmps = entry.second.ncmps>0?entry.second.ncmps:prob->getNoFields(1);
     if (prob->mixedFormulation())
     {
       // primary solution vector

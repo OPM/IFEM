@@ -105,7 +105,7 @@ public:
   //! \brief Reads a text string
   //! \param[in] name The name (path in HDF5 file) to the string
   //! \param[out] out The string to read data into
-  void readString(const std::string& name, std::string& out);
+  void readString(const std::string& name, std::string& out, bool close=true);
 
   //! \brief Reads a double vector.
   //! \param[in] level The time level to read at
@@ -133,7 +133,8 @@ public:
 
   //! \brief Check if updated geometries exists in file at given time level
   //! \param[in] level The time level to check
-  bool hasGeometries(int level);
+  //! \param[in] basisName Check for a particular basis
+  bool hasGeometries(int level, const std::string& basisName = "");
 
 protected:
   //! \brief Internal helper function. Writes a data array to HDF5 file.

@@ -101,7 +101,7 @@ bool DataExporter::setFieldValue (const std::string& name,
 
 bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
 {
-  if (tp && tp->step % m_ndump && tp->step % m_ndump > m_order-1)
+  if (tp && tp->step % m_ndump && tp->step % m_ndump > m_order)
     return true;
 
   if (m_level == -1)
@@ -174,23 +174,18 @@ bool DataExporter::loadTimeLevel (int level, DataWriter* info,
   bool ok = true;
   input->openFile(level2);
   std::map<std::string,FileEntry>::iterator it;
-  for (it = m_entry.begin(); it != m_entry.end() && ok; ++it)
+  for (it = m_entry.begin(); it != m_entry.end() && ok; ++it) {
     if (!it->second.data)
       ok = false;
     else switch (it->second.field)
     {
-      case VECTOR:
-        ok = input->readVector(level2,*it);
-        break;
       case SIM:
         ok = input->readSIM(level2,*it);
         break;
       default:
-        ok = false;
-	std::cerr <<" *** DataExporter: Invalid field type registered "
-		  << it->second.field << std::endl;
         break;
     }
+  }
   input->closeFile(level2);
   // if we load the last time level, we want to advance
   // if we load a specified time level, we do not want to advance
