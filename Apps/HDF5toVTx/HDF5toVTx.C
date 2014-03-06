@@ -34,6 +34,8 @@ struct VTFFieldInfo {
 //! \brief Maps from field description -> (type, VTF blocks)
 typedef std::map< std::string, VTFFieldInfo> VTFList;
 
+typedef std::map<std::string, int> VTFFieldBlocks; //!< Maps name<> designated ID block in VTF
+
 //! \brief Struct encapsulating information for a given basis
 struct BasisInfo {
   std::vector<ASMbase*>   Patch;      //!< Vector with spline bases
@@ -191,20 +193,24 @@ bool writeElmPatch(const Vector& locvec,
 //! \param myvtf The VTF/VTU file to write to
 //! \param iStep The level in file to write
 void writeFieldBlocks(VTFList& vlist, VTFList& slist, VTF& myvtf,
-                      int iStep)
+                      int iStep, VTFFieldBlocks& fieldBlocks)
 {
-  int idBlock = 20;
+  static int idBlock = 20;
   for (VTFList::iterator it = vlist.begin(); it != vlist.end(); ++it) {
+    if (fieldBlocks.find(it->second.Name) == fieldBlocks.end())
+      fieldBlocks[it->second.Name] = idBlock++;
     if (it->second.Type == "displacement")
-      myvtf.writeDblk(it->second.Blocks,it->second.Name.c_str(),idBlock++,iStep);
+      myvtf.writeDblk(it->second.Blocks,it->second.Name.c_str(),fieldBlocks[it->second.Name],iStep);
     else if (it->second.Type == "eigenmodes")
-      myvtf.writeDblk(it->second.Blocks, "Mode Shape", idBlock++, iStep);
+      myvtf.writeDblk(it->second.Blocks, "Mode Shape", fieldBlocks[it->second.Name], iStep);
     else
-      myvtf.writeVblk(it->second.Blocks,it->second.Name.c_str(),idBlock++,iStep);
+      myvtf.writeVblk(it->second.Blocks,it->second.Name.c_str(),fieldBlocks[it->second.Name],iStep);
   }
   for (VTFList::iterator it = slist.begin(); it != slist.end(); ++it) {
+    if (fieldBlocks.find(it->second.Name) == fieldBlocks.end())
+      fieldBlocks[it->second.Name] = idBlock++;
     myvtf.writeSblk(it->second.Blocks,
-                    it->second.Name.c_str(),idBlock++,iStep);
+                    it->second.Name.c_str(),fieldBlocks[it->second.Name],iStep);
   }
 }
 
@@ -435,12 +441,14 @@ int main (int argc, char** argv)
 
   bool ok = true;
   int block = 0;
+  VTFFieldBlocks fieldBlocks;
   int k = 1;
   for (int i = last?end:start; i <= end && ok; i += skip) {
     if (levels > 0)
       std::cout <<"\nTime level "<< i << " (t=" << time << ")" << std::endl;
     VTFList vlist, slist;
-    if (hdf.hasGeometries(i) || i == 0)
+    // TODO: Fix time dependent geometries in FSI
+    if (/*hdf.hasGeometries(i) ||*/ i == 0)
       patches = setupPatchMap(processlist, i, hdf, dims, n, *myVtf, block, k);
 
     for (pit = processlist.begin(); pit != processlist.end(); ++pit) {
@@ -517,9 +525,10 @@ int main (int argc, char** argv)
         }
       }
     }
-    if (hdf.hasGeometries(i) || i == 0)
+    // TODO: Fix time dependent geometries in FSI
+    if (/*hdf.hasGeometries(i) ||*/ i == 0)
       myVtf->writeGeometryBlocks(k);
-    writeFieldBlocks(vlist,slist,*myVtf,k);
+    writeFieldBlocks(vlist,slist,*myVtf,k,fieldBlocks);
 
     if (!ok)
       return 3;
