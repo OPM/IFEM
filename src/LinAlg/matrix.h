@@ -158,7 +158,8 @@ namespace utl //! General utility classes and functions.
     T sum(size_t off = 0, int inc = 1) const
     {
       T xsum = T(0);
-      if (inc < 1) return xsum;
+      if (inc < 1 || this->empty())
+        return xsum;
 
       const T* v = this->ptr();
       for (size_t i = off; i < this->size(); i += inc)
@@ -811,7 +812,8 @@ namespace utl //! General utility classes and functions.
   template<> inline
   float vector<float>::normInf(size_t& off, int inc) const
   {
-    if (inc < 1) return 0.0f;
+    if (inc < 1 || this->empty())
+      return 0.0f;
 
     const float* v = this->ptr() + off;
     off = 1 + cblas_isamax(this->size()/inc,v,inc);
@@ -821,7 +823,8 @@ namespace utl //! General utility classes and functions.
   template<> inline
   double vector<double>::normInf(size_t& off, int inc) const
   {
-    if (inc < 1) return 0.0;
+    if (inc < 1 || this->empty())
+      return 0.0;
 
     const double* v = this->ptr() + off;
     off = 1 + cblas_idamax(this->size()/inc,v,inc);
