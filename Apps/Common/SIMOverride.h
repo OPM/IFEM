@@ -177,6 +177,11 @@ public:
   {
     return base.advanceStep(tp);
   }
+
+  void postSolve(const TimeStep& tp)
+  {
+    base.postSolve(tp);
+  }
 };
 
 #endif

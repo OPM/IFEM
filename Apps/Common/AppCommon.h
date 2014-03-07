@@ -38,14 +38,13 @@ namespace SIM
     reader.registerWriter(xml);
     reader.registerWriter(hdf);
     int max = reader.getTimeLevel();
-    if (steps == 2 && reader.getTimeLevel() > -1) {
-      reader.loadTimeLevel(reader.getTimeLevel()-1,xml,hdf);
+    solver.fastForward(reader.realTimeLevel(max-steps));
+    for (size_t i=steps;i>=0;--i) {
+      reader.loadTimeLevel(max-i,xml,hdf);
+      solver.postSolve(solver.getTimePrm());
       solver.advanceStep();
     }
-    if (max > -1 && reader.loadTimeLevel(-1,xml,hdf)) {
-      xml->writeTimeInfo(0, interval, steps, solver.getTimePrm());
-      solver.fastForward(reader.realTimeLevel(max));
-    }
+    xml->writeTimeInfo(0, interval, steps, solver.getTimePrm());
   }
 
   //! \brief Handles application restarts.

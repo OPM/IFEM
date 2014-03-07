@@ -54,6 +54,12 @@ public:
     return S1.solveStep(tp) && S2.solveStep(tp);
   }
 
+  void postSolve(const TimeStep& tp)
+  {
+    S1.postSolve(tp);
+    S2.postSolve(tp);
+  }
+
   //! \brief Saves the converged results to VTF-file of a given time step.
   virtual bool saveStep(const TimeStep& tp, int& nBlock)
   {
