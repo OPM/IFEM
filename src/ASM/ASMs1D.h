@@ -65,6 +65,10 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
 
+  //! \brief Returns the current rotation tensor the given node.
+  //! \param[in] inod 1-based node index local to current patch
+  Tensor getRotation(size_t inod) const;
+
   //! \brief Returns a matrix with nodal coordinates for an element.
   //! \param[in] iel Element index
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes

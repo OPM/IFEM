@@ -199,8 +199,8 @@ bool ASMs1D::generateFEMTopology ()
   std::cout <<"numCoefs: "<< n1;
   std::cout <<"\norder: "<< p1;
   std::cout <<"\ndu:";
-  for (int i = 0; i < n1; i++)
-    std::cout <<' '<< this->getKnotSpan(i);
+  for (int j = 0; j < n1; j++)
+    std::cout <<' '<< this->getKnotSpan(j);
   std::cout << std::endl;
 #endif
   // Consistency checks, just to be fool-proof
@@ -213,8 +213,10 @@ bool ASMs1D::generateFEMTopology ()
   myMNPC.resize(myMLGE.size());
   if (nsd == 3 && nf == 6)
   {
-    // This is a 3D beam problem, allocation rotation tensors
-    myT.resize(n1,Tensor(3,true));
+    // This is a 3D beam problem, allocate the nodal/element rotation tensors.
+    // The nodal rotations are updated during the simulation according to the
+    // deformation state, whereas the element tensors are kept constant.
+    myT.resize(n1,Tensor(3,true)); // Initialize nodal rotations to unity
     myCS.resize(n1-p1+1,Tensor(3));
   }
 
@@ -246,9 +248,13 @@ bool ASMs1D::generateFEMTopology ()
   // Calculate local element axes for 3D beam elements
   for (size_t i = 0; i < myCS.size(); i++)
   {
-    Vec3 X1 = this->getCoord(1+MNPC[i].back());
-    Vec3 X2 = this->getCoord(1+MNPC[i].front());
+    Vec3 X1 = this->getCoord(1+MNPC[i].front());
+    Vec3 X2 = this->getCoord(1+MNPC[i].back());
     myCS[i] = Tensor(X2-X1).shift();
+#ifdef SP_DEBUG
+    std::cout <<"Local axes for beam element "<< i+1
+              <<", from "<< X1 <<" to "<< X2 <<":\n"<< myCS[i];
+#endif
   }
 
   return true;
@@ -398,6 +404,12 @@ Vec3 ASMs1D::getCoord (size_t inod) const
 }
 
 
+Tensor ASMs1D::getRotation (size_t inod) const
+{
+  return inod < 1 || inod > nodalT.size() ? Tensor(nsd,true) : nodalT[inod-1];
+}
+
+
 bool ASMs1D::getElementCoordinates (Matrix& X, int iel) const
 {
 #ifdef INDEX_CHECK
@@ -516,9 +528,9 @@ void ASMs1D::getBoundaryNodes (int lIndex, IntVec& glbNodes) const
   if (MLGE[iel] > 0)
   {
     if (lIndex == 1)
-      glbNodes.push_back(MLGN[MNPC[iel].back()]);
-    else if (lIndex == 2)
       glbNodes.push_back(MLGN[MNPC[iel].front()]);
+    else if (lIndex == 2)
+      glbNodes.push_back(MLGN[MNPC[iel].back()]);
   }
 }
 
