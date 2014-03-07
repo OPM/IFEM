@@ -128,7 +128,7 @@ Real StepXYFunc::evaluate (const Vec3& X) const
 }
 
 
-Interpolate1D::Interpolate1D (const char* file, int dir_, Real ramp) :
+Interpolate1D::Interpolate1D (const char* file, int dir_, int col, Real ramp) :
   dir(dir_), time(ramp)
 {
   std::ifstream is(file);
@@ -136,9 +136,14 @@ Interpolate1D::Interpolate1D (const char* file, int dir_, Real ramp) :
     char temp[1024];
     is.getline(temp,1024);
     if (is.eof()) return;
+    if (temp[0] == '#') continue;
     std::stringstream str(temp);
     Real x, v;
     str >> x >> v;
+    if (col < 2)
+      std::swap(x,v);
+    else for (int i = 2; i < col; i++)
+      str >> v;
     grid.push_back(x);
     values.push_back(v);
   }
@@ -152,17 +157,17 @@ Real Interpolate1D::evaluate (const Vec3& X) const
   else if (grid.size() == 1 || X[dir] <= grid.front())
     return values.front();
 
-  std::vector<Real>::const_iterator xb =
-    std::find_if(grid.begin(),grid.end()-1,
-		 std::bind2nd(std::greater<Real>(),X[dir]));
+  std::vector<Real>::const_iterator xb = std::lower_bound(grid.begin(),
+                                                          grid.end(),X[dir]);
+  if (xb == grid.end())
+    return values.back();
 
   size_t pos = xb - grid.begin();
   Real x1 = *(xb-1);
   Real x2 = *xb;
   Real v1 = values[pos-1];
   Real v2 = values[pos];
-  Real alpha = (x2-X[dir])/(x2-x1);
-  Real res = (v1-v2)*alpha + v2;
+  Real res = v1 + (v2-v1)*(X[dir]-x1)/(x2-x1);
   const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
   if (Xt && time > Real(0) && Xt->t < time)
     res *= Xt->t/time;
@@ -268,16 +273,22 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
       break;
     case 8:
       {
-        int dir = atoi(strtok(NULL," "));
-        std::cout <<"Interpolate1D("<< cline <<","<< (char)('X'+dir);
+        int dir = atoi(strtok(NULL," ")), col = 2;
+        std::cout <<"Interpolate1D("<< cline;
         const char* t = strtok(NULL," ");
+	if (t && t[0] == 'c') {
+	  col = atoi(t+1);
+	  t = strtok(NULL," ");
+	  std::cout <<",column #"<< col;
+	}
+	std::cout <<","<< (char)('X'+dir);
         if (t) {
           double time = atof(t);
           std::cout <<")*Ramp("<< time;
-          f = new Interpolate1D(cline,dir,time);
+          f = new Interpolate1D(cline,dir,col,time);
         }
         else
-          f = new Interpolate1D(cline,dir);
+          f = new Interpolate1D(cline,dir,col);
 	std::cout <<")";
       }
       break;

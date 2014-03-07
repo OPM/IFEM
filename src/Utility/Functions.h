@@ -463,8 +463,9 @@ public:
   //! \brief The constructor initializes the function parameters from a file.
   //! \param[in] file Name of file to read grid and function data from
   //! \param[in] dir_ Coordinate direction of the spatial variation
+  //! \param[in] col Which column of the file to read function values from 
   //! \param[in] ramp Ramp-up time
-  Interpolate1D(const char* file, int dir_, Real ramp = Real(0));
+  Interpolate1D(const char* file, int dir_, int col = 2, Real ramp = Real(0));
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return values.empty(); }
