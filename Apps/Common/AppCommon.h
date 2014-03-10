@@ -38,7 +38,13 @@ namespace SIM
     reader.registerWriter(xml);
     reader.registerWriter(hdf);
     int max = reader.getTimeLevel();
-    solver.fastForward(reader.realTimeLevel(max-steps));
+    // correct loaded level if we stopped in the middle of a "stride" level
+    if ((max+1) % (steps+1))
+      max -= (max % (steps+1))+steps;
+    double time;
+    hdf->openFile(max-steps);
+    hdf->readDouble(max-steps,"timeinfo","SIMbase-1",time);
+    solver.fastForward(time/solver.getTimePrm().time.dt);
     for (int i=steps;i>=0;--i) {
       reader.loadTimeLevel(max-i,xml,hdf);
       solver.postSolve(solver.getTimePrm());
