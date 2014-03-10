@@ -47,7 +47,7 @@ namespace SIM
     solver.fastForward(time/solver.getTimePrm().time.dt);
     for (int i=steps;i>=0;--i) {
       reader.loadTimeLevel(max-i,xml,hdf);
-      solver.postSolve(solver.getTimePrm());
+      solver.postSolve(solver.getTimePrm(),true);
       solver.advanceStep();
     }
     xml->writeTimeInfo(0, interval, steps, solver.getTimePrm());
