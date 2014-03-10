@@ -648,6 +648,7 @@ bool HDF5Writer::readDouble(int level, const std::string& group,
   int len=1;
   double* data2;
   readArray(group2,name,len,data2);
+  H5Gclose(group2);
   if (len > 0) {
     data = data2[0];
     delete[] data2;
