@@ -490,7 +490,7 @@ protected:
 
   //! \brief Creates the computational FEM model from the spline patches.
   //! \param[in] resetNumb If \e true, start element and node numbers from zero
-  bool createFEMmodel(bool resetNumb = true);
+  virtual bool createFEMmodel(bool resetNumb = true);
 
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   //! \param[in] patch 1-based index of the patch to receive the property

@@ -261,6 +261,30 @@ bool ASMs1D::generateFEMTopology ()
 }
 
 
+bool ASMs1D::generateTwistedFEModel (const RealFunc& twist)
+{
+  if (!this->generateFEMTopology())
+    return false;
+
+  // Update the local element axes for 3D beam elements
+  Tensor rotX(3);
+  for (size_t i = 0; i < myCS.size(); i++)
+  {
+    Vec3 X1 = this->getCoord(1+MNPC[i].front());
+    Vec3 X2 = this->getCoord(1+MNPC[i].back());
+    double alpha = twist(0.5*(X1+X2)); // twist angle in the element mid-point
+    myCS[i] *= Tensor(alpha*M_PI/180.0,1); // rotate about local X-axis
+#ifdef SP_DEBUG
+    std::cout <<"Twisted axes for beam element "<< i+1
+              <<", from "<< X1 <<" to "<< X2 <<":\n"<< myCS[i];
+#endif
+  }
+
+  return true;
+}
+
+
+
 bool ASMs1D::connectPatch (int vertex, ASMs1D& neighbor, int nvertex)
 {
   if (!this->connectBasis(vertex,neighbor,nvertex))

@@ -35,8 +35,8 @@ public:
   //! \param[in] itg Pointer to the integrand of the problem to solve
   //! \param[in] n Dimension of the primary solution field
   SIM1D(IntegrandBase* itg, unsigned char n = 1);
-  //! \brief Empty destructor.
-  virtual ~SIM1D() {}
+  //! \brief The destructor deletes the twist angle function.
+  virtual ~SIM1D() { delete twist; }
 
   //! \brief Returns the number of parameter dimensions in the model.
   unsigned short int getNoParamDim() const { return 1; }
@@ -62,6 +62,9 @@ private:
   bool parseBCTag(const TiXmlElement* elem);
 
 protected:
+  //! \brief Parses the twist angle description along the curve.
+  bool parseTwist(const TiXmlElement* elem);
+
   //! \brief Parses a data section from an XML document.
   //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);
@@ -85,7 +88,11 @@ protected:
   //! \param[in] dirs Which local DOFs to constrain
   //! \param[in] code In-homegeneous Dirichlet condition property code
   virtual bool addConstraint(int patch, int lndx, int ldim,
-			     int dirs, int code, int&);
+                             int dirs, int code, int&);
+
+  //! \brief Creates the computational FEM model from the spline patches.
+  //! \details Reimplemented to account for twist angle in beam problems.
+  virtual bool createFEMmodel(bool = true);
 
   //! \brief Creates a default single-patch geometry.
   virtual ASMbase* createDefaultGeometry() const;
@@ -93,6 +100,9 @@ protected:
 protected:
   unsigned char nd; //!< Number of spatial dimensions
   unsigned char nf; //!< Number of scalar fields
+
+private:
+  RealFunc* twist; //!< Twist angle (for 3D beam problems only)
 };
 
 #endif

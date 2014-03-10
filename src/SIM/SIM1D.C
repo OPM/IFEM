@@ -25,6 +25,7 @@ SIM1D::SIM1D (unsigned char n1, unsigned char, bool)
 {
   nd = 1;
   nf = n1;
+  twist = NULL;
 }
 
 
@@ -32,6 +33,7 @@ SIM1D::SIM1D (IntegrandBase* itg, unsigned char n) : SIMgeneric(itg)
 {
   nd = 1;
   nf = n;
+  twist = NULL;
 }
 
 
@@ -169,6 +171,28 @@ bool SIM1D::parseBCTag (const TiXmlElement* elem)
               <<" point at "<< rx <<" with code "<< code << std::endl;
     static_cast<ASMs1D*>(myModel[patch-1])->constrainNode(rx,code);
   }
+
+  return true;
+}
+
+
+/*!
+  The twist angle is used to define the local element axes of beam elements
+  along the spline curves. The angle described the rotation of the local
+  Y-axis, relative to the globalized Y-axis of the beam.
+*/
+
+bool SIM1D::parseTwist (const TiXmlElement* elem)
+{
+  if (!elem->FirstChild())
+    return false;
+
+  std::string type;
+  utl::getAttribute(elem,"type",type);
+  std::cout <<"    Continuous twist angle:";
+  if (!type.empty()) std::cout <<" ("<< type <<")";
+  twist = utl::parseRealFunc(elem->FirstChild()->Value(),type);
+  std::cout << std::endl;
 
   return true;
 }
@@ -484,6 +508,23 @@ bool SIM1D::readPatches (std::istream& isp, PatchVec& patches,
   }
 
   return true;
+}
+
+
+bool SIM1D::createFEMmodel (bool)
+{
+  bool ok = true;
+  ASMstruct::resetNumbering();
+  for (size_t i = 0; i < myModel.size() && ok; i++)
+    if (twist)
+      ok = static_cast<ASMs1D*>(myModel[i])->generateTwistedFEModel(*twist);
+    else
+      ok = myModel[i]->generateFEMTopology();
+
+  if (nGlPatches == 0 && !adm.isParallel())
+    nGlPatches = myModel.size();
+
+  return ok;
 }
 
 

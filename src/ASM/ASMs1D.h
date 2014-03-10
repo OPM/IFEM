@@ -56,6 +56,10 @@ public:
   //! and the global node and element numbers.
   virtual bool generateFEMTopology();
 
+  //! \brief Generates a twisted beam finite element model for the patch.
+  //! \param[in] twist Function describing the twist angle along the beam
+  bool generateTwistedFEModel(const RealFunc& twist);
+
   //! \brief Clears the contents of the patch, making it empty.
   //! \param[in] retainGeometry If \e true, the spline geometry is not cleared.
   //! This is used to reinitialize the patch after it has been refined.
