@@ -1892,9 +1892,9 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   if (!norm)
   {
 #ifdef SP_DEBUG
-    std::cerr <<" *** SIMbase::solutionNorms: No integrand."<< std::endl;
+    std::cerr <<"  ** SIMbase::solutionNorms: No integrand."<< std::endl;
 #endif
-    return false;
+    return true; // Silently ignore when no norm integrand is provided
   }
 
   myProblem->initIntegration(time,psol.front());
