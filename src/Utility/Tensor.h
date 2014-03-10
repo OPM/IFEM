@@ -54,8 +54,12 @@ public:
   Tensor(const Vec3& v1, const Vec3& v2, const Vec3& v3);
   //! \brief Constructor creating a transformation from three rotation angles.
   Tensor(Real a1, Real a2, Real a3);
+  //! \brief Constructor creating a rotation tensor about given coordinate axis.
+  Tensor(Real alpha, t_ind axis);
   //! \brief Copy constructor, optionally creating the transpose of \b T.
   Tensor(const Tensor& T, bool transpose = false);
+  //! \brief Constructor copying its content from a one-dimensional array.
+  Tensor(const std::vector<Real>& a, bool transpose = false);
 
   //! \brief Sets \a this to the 0-tensor.
   void zero() { std::fill(v.begin(),v.end(),Real(0)); }

@@ -147,10 +147,53 @@ Tensor::Tensor (Real a1, Real a2, Real a3) : n(3)
 }
 
 
+Tensor::Tensor (Real alpha, t_ind axis) : n(3)
+{
+  v.resize(9,Real(0));
+  for (t_ind i = 0; i < 9; i += 4)
+    v[i] = Real(1);
+
+  double ca = cos(alpha);
+  double sa = sin(alpha);
+
+  switch (axis) {
+  case 1:
+    v[4] = v[8] = ca;
+    v[5] = sa;
+    v[7] = -sa;
+    break;
+  case 2:
+    v[0] = v[8] = ca;
+    v[2] = -sa;
+    v[6] = -sa;
+    break;
+  case 3:
+    v[0] = v[4] = ca;
+    v[1] = sa;
+    v[3] = -sa;
+    break;
+  }
+}
+
+
 Tensor::Tensor (const Tensor& T, bool transpose) : n(T.n)
 {
   v.resize(n*n);
   std::copy(T.v.begin(),T.v.end(),v.begin());
+
+  if (transpose)
+    this->transpose();
+}
+
+
+Tensor::Tensor (const std::vector<Real>& a, bool transpose) : n(sqrt(a.size()))
+{
+  if (size_t(n*n) < a.size() || n > 3)
+    std::cerr <<" *** Tensor(const std::vector<Real>&): Invalid value size "
+              << a.size() << std::endl;
+
+  v.resize(n*n);
+  this->operator=(a);
 
   if (transpose)
     this->transpose();
