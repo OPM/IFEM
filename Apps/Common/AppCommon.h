@@ -39,7 +39,7 @@ namespace SIM
     reader.registerWriter(hdf);
     int max = reader.getTimeLevel();
     solver.fastForward(reader.realTimeLevel(max-steps));
-    for (size_t i=steps;i>=0;--i) {
+    for (int i=steps;i>=0;--i) {
       reader.loadTimeLevel(max-i,xml,hdf);
       solver.postSolve(solver.getTimePrm());
       solver.advanceStep();
