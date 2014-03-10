@@ -280,7 +280,7 @@ bool HDF5Writer::readSIM (int level, const DataEntry& entry)
         readString(geom.str(), out, false);
         std::stringstream str;
         str << out;
-        sim->getFEModel()[i]->read(str);
+        sim->getFEModel()[loc-1]->read(str);
       }
       delete[] tmp;
     }
