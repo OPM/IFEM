@@ -41,7 +41,7 @@ int NodeVecFunc::getPointIndex (const Vec3& xp) const
   if (x4 && x4->idx > 0)
     if (idMap.empty())
       return x4->idx; // No index map provided, assume 1:1 mapping
-    else
+    else if (x4)
     {
       std::map<int,int>::const_iterator it = idMap.find(x4->idx);
       if (it != idMap.end()) return it->second;
