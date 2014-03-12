@@ -250,7 +250,7 @@ bool ASMs1D::generateFEMTopology ()
   {
     Vec3 X1 = this->getCoord(1+MNPC[i].front());
     Vec3 X2 = this->getCoord(1+MNPC[i].back());
-    myCS[i] = Tensor(X2-X1).shift();
+    myCS[i] = Tensor(X2-X1,true);
 #ifdef SP_DEBUG
     std::cout <<"Local axes for beam element "<< i+1
               <<", from "<< X1 <<" to "<< X2 <<":\n"<< myCS[i];

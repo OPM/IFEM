@@ -54,35 +54,52 @@ Tensor::Tensor (const t_ind nsd, bool identity) : n(nsd)
   The local X- and Y-axes are then defined by projecting either the global X-
   or Y-axis onto the normal plane, depending on whether \a vn points mostly in
   the global Y- or X-direction, respectively.
+
+  If \a vnIsX is \e true, \a vn is taken as the local X-axis instead and the
+  other two axes are shifted accordingly.
 */
 
-Tensor::Tensor (const Vec3& vn) : n(3)
+Tensor::Tensor (const Vec3& vn, bool vnIsX) : n(3)
 {
   Vec3 v1, v2, v3(vn);
   v3.normalize();
 
-  if (fabs(v3.y) > fabs(v3.x))
+  if (fabs(v3.y) < fabs(v3.x))
   {
-    // Define the X-axis by projecting global X-axis onto the tangent plane
+    // Define the Y-axis by projecting global Y-axis onto the normal plane of v3
+    v2.x = -v3.y*v3.x;
+    v2.y =  v3.x*v3.x + v3.z*v3.z;
+    v2.z = -v3.y*v3.z;
+    if (vnIsX) // Define the Z-axis as the cross product of X-axis and Y-axis
+      v1.cross(v3,v2);
+    else       // Define the X-axis as the cross product of Y-axis and Z-axis
+      v1.cross(v2,v3);
+  }
+  else if (vnIsX)
+  {
+    // Define the Z-axis by projecting global Z-axis onto the normal plane of v3
+    v1.x = -v3.z*v3.x;
+    v1.y = -v3.z*v3.y;
+    v1.z =  v3.x*v3.x + v3.y*v3.y;
+    // Define the Y-axis as the cross product of Z-axis and X-axis
+    v2.cross(v1,v3);
+  }
+  else
+  {
+    // Define the X-axis by projecting global X-axis onto the normal plane of v3
     v1.x =  v3.y*v3.y + v3.z*v3.z;
     v1.y = -v3.x*v3.y;
     v1.z = -v3.x*v3.z;
     // Define the Y-axis as the cross product of Z-axis and X-axis
     v2.cross(v3,v1);
   }
-  else
-  {
-    // Define the Y-axis by projecting global Y-axis onto the tangent plane
-    v2.x = -v3.y*v3.x;
-    v2.y =  v3.x*v3.x + v3.z*v3.z;
-    v2.z = -v3.y*v3.z;
-    // Define the X-axis as the cross product of Y-axis and Z-axis
-    v1.cross(v2,v3);
-  }
   v1.normalize();
   v2.normalize();
 
-  this->define3Dtransform(v1,v2,v3);
+  if (vnIsX)
+    this->define3Dtransform(v3,v2,v1);
+  else
+    this->define3Dtransform(v1,v2,v3);
 }
 
 
