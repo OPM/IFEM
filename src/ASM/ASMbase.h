@@ -147,6 +147,7 @@ public:
   //! It must be invoked only before the SIMbase::preprocess is invoked.
   void setNoFields(unsigned char n) { nf = n; }
 
+
   // Service methods for query of various model data
   // ===============================================
 
@@ -200,6 +201,10 @@ public:
   //! \param[in] lIndex Local index of the boundary face/edge
   //! \param glbNodes Array of global boundary node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes) const = 0;
+
+  //! \brief Finds the node that is closest to the given point.
+  virtual std::pair<size_t,double> findClosestNode(const Vec3&) const
+  { return std::make_pair(0,-1.0); }
 
   //! \brief Prints out the nodal coordinates of this patch to the given stream.
   void printNodes(std::ostream& os, const char* heading = 0) const;

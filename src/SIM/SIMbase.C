@@ -179,10 +179,9 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
     }
 
     // If equal number of blocks per processor
-    if (myPatches.empty()) {
-      if (utl::getAttribute(elem,"nperproc",proc))
-        for (int j = 1; j <= proc; j++)
-          myPatches.push_back(myPid*proc+j);
+    if (myPatches.empty() && utl::getAttribute(elem,"nperproc",proc)) {
+      for (int j = 1; j <= proc; j++)
+        myPatches.push_back(myPid*proc+j);
       nGlPatches = nProc*proc;
     }
   }
@@ -1486,6 +1485,33 @@ void SIMbase::getBoundaryNodes (int pcode, IntVec& glbNodes, Vec3Vec* XYZ) const
             XYZ->push_back(Vec3());
         last = glbNodes.size();
       }
+}
+
+
+int SIMbase::findClosestNode (const Vec3& X) const
+{
+  if (myModel.empty()) return -1;
+
+  ASMbase* closestPch = NULL;
+  std::pair<size_t,double> closest(0,1.0e99);
+  for (size_t i = 0; i < myModel.size(); i++)
+  {
+    std::pair<size_t,double> node = myModel[i]->findClosestNode(X);
+    if (node.first > 0 && node.second < closest.second)
+    {
+      closest = node;
+      closestPch = myModel[i];
+    }
+  }
+  if (!closestPch) return -2;
+
+#ifdef SP_DEBUG
+  std::cout <<"SIMbase::findClosestNode("<< X <<") -> Node "<< closest.first
+            <<" in Patch "<< closestPch->idx+1 <<" distance="<< closest.second
+            << std::endl;
+#endif
+
+  return closestPch->getNodeID(closest.first);
 }
 
 

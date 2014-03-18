@@ -97,6 +97,11 @@ public:
   //! \param glbNodes Array of global boundary node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes) const;
 
+  //! \brief Finds the node that is closest to the given point.
+  //! \param[in] X Global coordinates of point to search for
+  //! \return 1-based nodal index and distance to to the found node
+  virtual std::pair<size_t,double> findClosestNode(const Vec3& X) const;
+
   //! \brief Refines the parametrization by inserting extra knots.
   //! \param[in] xi Relative positions of added knots in each existing knot span
   bool refine(const RealArray& xi);

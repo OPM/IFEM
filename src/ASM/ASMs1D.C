@@ -558,6 +558,45 @@ void ASMs1D::getBoundaryNodes (int lIndex, IntVec& glbNodes) const
 }
 
 
+std::pair<size_t,double> ASMs1D::findClosestNode (const Vec3& X) const
+{
+  if (!curv) return std::make_pair(0,-1.0); // silently ignore empty patches
+
+  // Find the closest point on the spline curve
+  double param, dist;
+  Go::Point Xtarget(X.x,X.y,X.z), Xfound;
+  curv->ParamCurve::closestPoint(Xtarget,param,Xfound,dist);
+
+  // Check if point is inside parameter domain
+  if (param <= curv->startparam())
+    return std::make_pair(1,dist);
+  else if (param >= curv->endparam())
+    return std::make_pair(this->getNoNodes(),dist);
+
+  // We are inside, now find which knot-span we are in and find closest node
+  RealArray::iterator u0 = curv->basis().begin();
+  RealArray::iterator u2 = std::lower_bound(u0,curv->basis().end(),param);
+  RealArray::iterator u1 = u2-1;
+
+  Go::Point X1, X2;
+  curv->point(X1,*u1);
+  curv->point(X2,*u2);
+  double d1 = X1.dist2(Xfound);
+  double d2 = X2.dist2(Xfound);
+#ifdef SP_DEBUG
+  std::cout <<"ASMs1D::findClosestNode("<< X
+            <<"): Found "<< Xfound <<" at u="<< param
+            <<" in ["<< *u1 <<","<< *u2
+            <<"] d"<< u1-u0 <<"="<< d1 <<" d"<< u2-u0 <<"="<< d2 << std::endl;
+#endif
+
+  if (d1 < d2)
+    return std::make_pair((u1-u0) - (curv->order()-2), sqrt(d1));
+  else
+    return std::make_pair((u2-u0) - (curv->order()-2), sqrt(d2));
+}
+
+
 bool ASMs1D::getOrder (int& p1, int& p2, int& p3) const
 {
   p2 = p3 = 0;

@@ -219,6 +219,9 @@ public:
   void getBoundaryNodes(int pcode, std::vector<int>& glbNodes,
                         std::vector<Vec3>* XYZ = NULL) const;
 
+  //! \brief Finds the node that is closest to the given point \b X.
+  int findClosestNode(const Vec3&) const;
+
   //! \brief Initializes time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] time Current time
   bool initDirichlet(double time = 0.0);
