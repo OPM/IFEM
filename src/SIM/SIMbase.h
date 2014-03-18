@@ -489,8 +489,8 @@ protected:
   VecFunc* getVecFunc(size_t patch, Property::Type ptype) const;
 
   //! \brief Creates the computational FEM model from the spline patches.
-  //! \param[in] resetNumb If \e true, start element and node numbers from zero
-  virtual bool createFEMmodel(bool resetNumb = true);
+  //! \param[in] resetNumb If \e 'y', start element and node numbers from zero
+  virtual bool createFEMmodel(char resetNumb = 'y');
 
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   //! \param[in] patch 1-based index of the patch to receive the property

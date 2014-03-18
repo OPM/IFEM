@@ -36,7 +36,19 @@ ASMs3DLag::ASMs3DLag (unsigned char n_f) : ASMs3D(n_f), coord(myCoord)
 ASMs3DLag::ASMs3DLag (const ASMs3DLag& patch, unsigned char n_f)
   : ASMs3D(patch,n_f), coord(patch.myCoord)
 {
-  nx = ny = nz = 0;
+  nx = patch.nx;
+  ny = patch.ny;
+  nz = patch.nz;
+}
+
+
+ASMs3DLag::ASMs3DLag (const ASMs3DLag& patch)
+  : ASMs3D(patch), coord(myCoord)
+{
+  nx = patch.nx;
+  ny = patch.ny;
+  nz = patch.nz;
+  myCoord = patch.coord;
 }
 
 
@@ -58,7 +70,7 @@ bool ASMs3DLag::addXElms (short int dim, short int item, size_t nXn,
               <<", only 2 (face) is allowed."<< std::endl;
     return false;
   }
-  else if (!svol || shareFE)
+  else if (!svol || shareFE == 'F')
     return false;
 
   for (size_t i = 0; i < nXn; i++)
@@ -76,9 +88,8 @@ bool ASMs3DLag::addXElms (short int dim, short int item, size_t nXn,
   const int nel2 = (ny-1)/(p2-1);
   const int nel3 = (nz-1)/(p3-1);
 
-  nXelm = nel1*nel2*nel3;
-  myMNPC.resize(2*nXelm);
-  myMLGE.resize(2*nXelm,0);
+  myMNPC.resize(2*nel);
+  myMLGE.resize(2*nel,0);
 
   int iel = 0;
   bool skipMe = false;
@@ -100,7 +111,7 @@ bool ASMs3DLag::addXElms (short int dim, short int item, size_t nXn,
           }
         if (skipMe) continue;
 
-        IntVec& mnpc = myMNPC[nXelm+iel];
+        IntVec& mnpc = myMNPC[nel+iel];
         if (!mnpc.empty())
         {
           std::cerr <<" *** ASMs3DLag::addXElms: Only one X-face allowed."
@@ -134,23 +145,10 @@ bool ASMs3DLag::addXElms (short int dim, short int item, size_t nXn,
         for (size_t i = 0; i < nXn; i++)
           mnpc.push_back(MLGN.size()-nXn+i);
 
-	myMLGE[nXelm+iel] = ++gEl;
+	myMLGE[nel+iel] = ++gEl;
       }
 
   return true;
-}
-
-
-char ASMs3DLag::getNodeType (size_t inod) const
-{
-  if (this->isLMn(inod)) return 'L';
-  return inod > coord.size() ? 'X' : 'D';
-}
-
-
-size_t ASMs3DLag::getNoNodes (int basis) const
-{
-  return basis > 0 ? coord.size() : this->ASMbase::getNoNodes(basis);
 }
 
 
@@ -173,9 +171,11 @@ bool ASMs3DLag::generateFEMTopology ()
   nx = gpar[0].size();
   ny = gpar[1].size();
   nz = gpar[2].size();
+  // Number of nodes in the patch
+  nnod = nx*ny*nz;
 
   if (!coord.empty())
-    return coord.size() == nx*ny*nz;
+    return coord.size() == nnod;
 
   // Number of elements in each direction
   const int nelx = (nx-1)/(p1-1);
@@ -183,12 +183,12 @@ bool ASMs3DLag::generateFEMTopology ()
   const int nelz = (nz-1)/(p3-1);
 
   // Evaluate the nodal coordinates in the physical space
-  RealArray XYZ(svol->dimension()*nx*ny*nz);
+  RealArray XYZ(svol->dimension()*nnod);
   svol->gridEvaluator(gpar[0],gpar[1],gpar[2],XYZ);
 
   size_t i1, j1;
-  myMLGN.resize(nx*ny*nz);
-  myCoord.resize(nx*ny*nz);
+  myMLGN.resize(nnod);
+  myCoord.resize(nnod);
   for (i1 = j1 = 0; i1 < coord.size(); i1++)
   {
     myMLGN[i1] = ++gNod;
@@ -198,7 +198,7 @@ bool ASMs3DLag::generateFEMTopology ()
   }
 
   // Number of elements in patch
-  const int nel = nelx*nely*nelz;
+  nel = nelx*nely*nelz;
   // Number of nodes per element
   const int nen = p1*p2*p3;
   // Number of nodes in a xy-surface of an element

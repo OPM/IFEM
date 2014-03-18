@@ -87,8 +87,10 @@ private:
 public:
   //! \brief Default constructor.
   ASMs2D(unsigned char n_s = 2, unsigned char n_f = 2);
-  //! \brief Copy constructor.
-  ASMs2D(const ASMs2D& patch, unsigned char n_f = 0);
+  //! \brief Special copy constructor for sharing of FE data.
+  ASMs2D(const ASMs2D& patch, unsigned char n_f);
+  //! \brief Default copy constructor copying everything.
+  ASMs2D(const ASMs2D& patch);
   //! \brief The destructor frees the dynamically allocated boundary curves.
   virtual ~ASMs2D();
 
@@ -137,11 +139,6 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   //! \param[in] noAddedNodes If \e true, use \a nxMap to find the real node
   virtual int getNodeID(size_t inod, bool noAddedNodes = false) const;
-  //! \brief Returns the classification of the given node.
-  //! \param[in] inod 1-based node index local to current patch
-  virtual char getNodeType(size_t inod) const;
-  //! \brief Returns the total number of nodes in this patch.
-  virtual size_t getNoNodes(int basis = 0) const;
 
   //! \brief Returns a matrix with nodal coordinates for an element.
   //! \param[in] iel Element index

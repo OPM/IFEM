@@ -53,6 +53,17 @@ ASMs2D::ASMs2D (const ASMs2D& patch, unsigned char n_f)
 }
 
 
+ASMs2D::ASMs2D (const ASMs2D& patch)
+  : ASMstruct(patch), surf(patch.surf), nodeInd(myNodeInd)
+{
+  for (int i = 0; i < 4; i++)
+    bou[i] = patch.bou[i];
+
+  myNodeInd = patch.nodeInd;
+  dirich = patch.dirich;
+}
+
+
 ASMs2D::~ASMs2D ()
 {
   if (!shareFE)
@@ -168,7 +179,7 @@ bool ASMs2D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
               <<", only 1 (edge) is allowed."<< std::endl;
     return false;
   }
-  else if (!surf || shareFE)
+  else if (!surf || shareFE == 'F')
     return false;
 
   for (size_t i = 0; i < nXn; i++)
@@ -184,9 +195,8 @@ bool ASMs2D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
 
-  nXelm = (n1-p1+1)*(n2-p2+1);
-  myMNPC.resize(2*nXelm);
-  myMLGE.resize(2*nXelm,0);
+  myMNPC.resize(2*nel);
+  myMLGE.resize(2*nel,0);
 
   int iel = 0;
   bool skipMe = false;
@@ -205,7 +215,7 @@ bool ASMs2D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
         }
       if (skipMe) continue;
 
-      IntVec& mnpc = myMNPC[nXelm+iel];
+      IntVec& mnpc = myMNPC[nel+iel];
       if (!mnpc.empty())
       {
         std::cerr <<" *** ASMs2D::addXElms: Only one X-edge allowed."
@@ -236,7 +246,7 @@ bool ASMs2D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
       for (size_t i = 0; i < nXn; i++)
         mnpc.push_back(MLGN.size()-nXn+i);
 
-      myMLGE[nXelm+iel] = ++gEl;
+      myMLGE[nel+iel] = ++gEl;
     }
 
   return true;
@@ -249,7 +259,7 @@ size_t ASMs2D::getNodeIndex (int globalNum, bool noAddedNodes) const
   if (it == MLGN.end()) return 0;
 
   size_t inod = 1 + (it-MLGN.begin());
-  if (noAddedNodes && !xnMap.empty() && inod > nodeInd.size())
+  if (noAddedNodes && !xnMap.empty() && inod > nnod)
   {
     std::map<size_t,size_t>::const_iterator it = xnMap.find(inod);
     if (it != xnMap.end()) return it->second;
@@ -271,19 +281,6 @@ int ASMs2D::getNodeID (size_t inod, bool noAddedNodes) const
     return 0;
 
   return MLGN[inod-1];
-}
-
-
-char ASMs2D::getNodeType (size_t inod) const
-{
-  if (this->isLMn(inod)) return 'L';
-  return inod > nodeInd.size() ? 'X' : 'D';
-}
-
-
-size_t ASMs2D::getNoNodes (int basis) const
-{
-  return basis > 0 ? nodeInd.size() : this->ASMbase::getNoNodes(basis);
 }
 
 
@@ -365,6 +362,13 @@ bool ASMs2D::generateFEMTopology ()
   const int n2 = surf->numCoefs_v();
   if (!nodeInd.empty())
   {
+    if (shareFE == 'F')
+    {
+      // Must store the global node numbers anyway, in case
+      // the patch sharing from gets extraordinary nodes later
+      myMLGN = MLGN;
+      gNod += n1*n2;
+    }
     if (nodeInd.size() == (size_t)n1*n2) return true;
     std::cerr <<" *** ASMs2D::generateFEMTopology: Inconsistency between the"
 	      <<" number of FE nodes "<< nodeInd.size()
@@ -372,7 +376,7 @@ bool ASMs2D::generateFEMTopology ()
 	      <<" in the patch."<< std::endl;
     return false;
   }
-  else if (shareFE)
+  else if (shareFE == 'F')
     return true;
 
   const int p1 = surf->order_u();
@@ -398,34 +402,33 @@ bool ASMs2D::generateFEMTopology ()
   myMNPC.resize(myMLGE.size());
   myNodeInd.resize(myMLGN.size());
 
-  int iel = 0;
-  int inod = 0;
+  nnod = nel = 0;
   for (int i2 = 1; i2 <= n2; i2++)
     for (int i1 = 1; i1 <= n1; i1++)
     {
-      myNodeInd[inod].I = i1-1;
-      myNodeInd[inod].J = i2-1;
+      myNodeInd[nnod].I = i1-1;
+      myNodeInd[nnod].J = i2-1;
       if (i1 >= p1 && i2 >= p2)
       {
-	if (surf->knotSpan(0,i1-1) > 0.0)
-	  if (surf->knotSpan(1,i2-1) > 0.0)
+        if (surf->knotSpan(0,i1-1) > 0.0)
+          if (surf->knotSpan(1,i2-1) > 0.0)
           {
-	    myMLGE[iel] = ++gEl; // global element number over all patches
-	    myMNPC[iel].resize(p1*p2,0);
+            myMLGE[nel] = ++gEl; // global element number over all patches
+            myMNPC[nel].resize(p1*p2,0);
 
-	    int lnod = 0;
-	    for (int j2 = p2-1; j2 >= 0; j2--)
-	      for (int j1 = p1-1; j1 >= 0; j1--)
-		myMNPC[iel][lnod++] = inod - n1*j2 - j1;
-	  }
+            int lnod = 0;
+            for (int j2 = p2-1; j2 >= 0; j2--)
+              for (int j1 = p1-1; j1 >= 0; j1--)
+                myMNPC[nel][lnod++] = nnod - n1*j2 - j1;
+          }
 
-	iel++;
+        nel++;
       }
-      myMLGN[inod++] = ++gNod; // global node number over all patches
+      myMLGN[nnod++] = ++gNod; // global node number over all patches
     }
 
 #ifdef SP_DEBUG
-  std::cout <<"NEL = "<< iel <<" NNOD = "<< inod << std::endl;
+  std::cout <<"NEL = "<< nel <<" NNOD = "<< nnod << std::endl;
 #endif
   return true;
 }
@@ -457,7 +460,7 @@ int ASMs2D::BlockNodes::next ()
 
 bool ASMs2D::assignNodeNumbers (BlockNodes& nodes, int basis)
 {
-  if (shareFE) return true;
+  if (shareFE == 'F') return true;
 
   int n1, n2;
   if (!this->getSize(n1,n2,basis))
@@ -533,12 +536,12 @@ bool ASMs2D::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool revers)
 bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
 			   int basis, int slave, int master)
 {
-  if (shareFE && neighbor.shareFE)
+  if (this->isShared() && neighbor.isShared())
     return true;
-  else if (shareFE || neighbor.shareFE)
+  else if (this->isShared() || neighbor.isShared())
   {
     std::cerr <<" *** ASMs2D::connectPatch: Logic error, cannot"
-	      <<" connect a sharedFE patch with an unshared one"<< std::endl;
+	      <<" connect a shared patch with an unshared one"<< std::endl;
     return false;
   }
 
@@ -742,6 +745,13 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code)
 size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
 				   bool project)
 {
+  if (shareFE == 'F')
+  {
+    std::cerr <<"\n *** ASMs2D::constrainEdgeLocal: Logic error, can not have"
+	      <<" constraints in local CSs for shared patches."<< std::endl;
+    return 0;
+  }
+
   int ndir = abs(dir); // normal parameter direction (1,2) for the edge
   int tdir = 2 - ndir; // tangent parameter direction (0,1) for the edge
   double u[2] = { 0.0, 0.0 }; // running surface parameters along the edge
@@ -761,7 +771,7 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
 
   // We need to add extra nodes, check that the global node counter is good.
   // If not, we cannot do anything here
-  if (!shareFE && gNod < *std::max_element(MLGN.begin(),MLGN.end()))
+  if (gNod < *std::max_element(MLGN.begin(),MLGN.end()))
   {
     std::cerr <<"\n *** ASMs2D::constrainEdgeLocal: Logic error, gNod = "<< gNod
 	      <<" is too small!"<< std::endl;
@@ -846,31 +856,26 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
     if (this->isFixed(MLGN[iSnod],dof)) continue;
 
     // We need an extra node representing the local (master) DOFs at this point
+    int iMnod = myMLGN.size();
     std::map<int,int>::const_iterator xit = xNode.end();
-    int iMnod = shareFE ? nodeInd.size()+myMLGN.size() : myMLGN.size();
-    if (shareFE) // Store the index into MLGN in myMLGN
-      myMLGN.push_back(iMnod);
+    // Create an extra node for the local DOFs. The new node, for which
+    // the Dirichlet boundary conditions will be defined, then inherits
+    // the global node number of the original node. The original node, which
+    // do not enter the equation system, receives a new global node number.
+    if (i > 0 && i+1 < gpar.size())
+      // This is not a corner node
+      myMLGN.push_back(++gNod);
+    else if ((xit = xNode.find(MLGN[iSnod])) != xNode.end())
+      // This is a corner node already processed by another patch
+      myMLGN.push_back(xit->second);
     else
     {
-      // Create an extra node for the local DOFs. The new node, for which
-      // the Dirichlet boundary conditions will be defined, then inherits
-      // the global node number of the original node. The original node, which
-      // do not enter the equation system, receives a new global node number.
-      if (i > 0 && i+1 < gpar.size())
-        // This is not a corner node
-        myMLGN.push_back(++gNod);
-      else if ((xit = xNode.find(MLGN[iSnod])) != xNode.end())
-        // This is a corner node already processed by another patch
-        myMLGN.push_back(xit->second);
-      else
-      {
-        // This is a corner node, store its original-to-extra node number
-        // mapping in ASMstruct::xNode
-        myMLGN.push_back(++gNod);
-        xNode[MLGN[iSnod]] = gNod;
-      }
-      std::swap(myMLGN[iMnod],myMLGN[iSnod]);
+      // This is a corner node, store its original-to-extra node number
+      // mapping in ASMstruct::xNode
+      myMLGN.push_back(++gNod);
+      xNode[MLGN[iSnod]] = gNod;
     }
+    std::swap(myMLGN[iMnod],myMLGN[iSnod]);
 
     xnMap[1+iMnod] = 1+iSnod; // Store nodal connection needed by getCoord
     nxMap[1+iSnod] = 1+iMnod; // Store nodal connection needed by getNodeID
@@ -1040,10 +1045,10 @@ double ASMs2D::getParametricArea (int iel) const
 
   int inod1 = MNPC[iel-1].back();
 #ifdef INDEX_CHECK
-  if (inod1 < 0 || (size_t)inod1 >= nodeInd.size())
+  if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
     std::cerr <<" *** ASMs2D::getParametricArea: Node index "<< inod1
-	      <<" out of range [0,"<< nodeInd.size() <<">."<< std::endl;
+	      <<" out of range [0,"<< nnod <<">."<< std::endl;
     return DERR;
   }
 #endif
@@ -1070,10 +1075,10 @@ double ASMs2D::getParametricLength (int iel, int dir) const
 
   int inod1 = MNPC[iel-1].back();
 #ifdef INDEX_CHECK
-  if (inod1 < 0 || (size_t)inod1 >= nodeInd.size())
+  if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
     std::cerr <<" *** ASMs2D::getParametricLength: Node index "<< inod1
-	      <<" out of range [0,"<< nodeInd.size() <<">."<< std::endl;
+	      <<" out of range [0,"<< nnod <<">."<< std::endl;
     return DERR;
   }
 #endif
@@ -1093,10 +1098,10 @@ double ASMs2D::getParametricLength (int iel, int dir) const
 int ASMs2D::coeffInd (size_t inod) const
 {
 #ifdef INDEX_CHECK
-  if (inod >= nodeInd.size())
+  if (inod >= nnod)
   {
     std::cerr <<" *** ASMs2D::coeffInd: Node index "<< inod
-	      <<" out of range [0,"<< nodeInd.size() <<">."<< std::endl;
+	      <<" out of range [0,"<< nnod <<">."<< std::endl;
     return -1;
   }
 #endif
@@ -1109,7 +1114,7 @@ int ASMs2D::coeffInd (size_t inod) const
 
 Vec3 ASMs2D::getCoord (size_t inod) const
 {
-  if (inod > nodeInd.size() && inod <= MLGN.size())
+  if (inod > nnod && inod <= MLGN.size())
   {
     // This is a node added due to constraints in local directions.
     // Find the corresponding original node (see constrainEdgeLocal)

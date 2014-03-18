@@ -28,8 +28,10 @@ class ASMs3DLag : public ASMs3D
 public:
   //! \brief Default constructor.
   ASMs3DLag(unsigned char n_f = 3);
-  //! \brief Copy constructor.
-  ASMs3DLag(const ASMs3DLag& patch, unsigned char n_f = 0);
+  //! \brief Special copy constructor for sharing of FE data.
+  ASMs3DLag(const ASMs3DLag& patch, unsigned char n_f);
+  //! \brief Default copy constructor copying everything.
+  ASMs3DLag(const ASMs3DLag& patch);
   //! \brief Empty destructor.
   virtual ~ASMs3DLag() {}
 
@@ -54,13 +56,6 @@ public:
   //! \param[out] nodes Global numbers assigned to the extraordinary nodes
   virtual bool addXElms(short int dim, short int item,
                         size_t nXn, IntVec& nodes);
-
-  //! \brief Returns the classification of the given node.
-  //! \param[in] inod 1-based node index local to current patch
-  virtual char getNodeType(size_t inod) const;
-
-  //! \brief Returns the total number of nodes in this patch.
-  virtual size_t getNoNodes(int basis = 0) const;
 
   //! \brief Returns a matrix with nodal coordinates for an element.
   //! \param[out] X 3\f$\times\f$n-matrix, where \a n is the number of nodes

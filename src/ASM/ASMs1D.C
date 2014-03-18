@@ -220,29 +220,28 @@ bool ASMs1D::generateFEMTopology ()
     myCS.resize(n1-p1+1,Tensor(3));
   }
 
-  int iel = 0;
-  int inod = 0;
+  nnod = nel = 0;
   for (int i1 = 1; i1 <= n1; i1++)
   {
     if (i1 >= p1)
     {
       if (this->getKnotSpan(i1-1) > 0.0)
       {
-	myMLGE[iel] = ++gEl; // global element number over all patches
-	myMNPC[iel].resize(p1,0);
+	myMLGE[nel] = ++gEl; // global element number over all patches
+	myMNPC[nel].resize(p1,0);
 
 	int lnod = 0;
 	for (int j1 = p1-1; j1 >= 0; j1--)
-	  myMNPC[iel][lnod++] = inod - j1;
+	  myMNPC[nel][lnod++] = nnod - j1;
       }
 
-      iel++;
+      nel++;
     }
-    myMLGN[inod++] = ++gNod; // global node number over all patches
+    myMLGN[nnod++] = ++gNod; // global node number over all patches
   }
 
 #ifdef SP_DEBUG
-  std::cout <<"NEL = "<< iel <<" NNOD = "<< inod << std::endl;
+  std::cout <<"NEL = "<< nel <<" NNOD = "<< nnod << std::endl;
 #endif
 
   // Calculate local element axes for 3D beam elements

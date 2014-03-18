@@ -106,8 +106,10 @@ private:
 public:
   //! \brief Default constructor.
   ASMs3D(unsigned char n_f = 3);
-  //! \brief Copy constructor.
-  ASMs3D(const ASMs3D& patch, unsigned char n_f = 0);
+  //! \brief Special copy constructor for sharing of FE data.
+  ASMs3D(const ASMs3D& patch, unsigned char n_f);
+  //! \brief Default copy constructor copying everything.
+  ASMs3D(const ASMs3D& patch);
   //! \brief Empty destructor.
   virtual ~ASMs3D() {}
 
@@ -156,11 +158,6 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   //! \param[in] noAddedNodes If \e true, use \a nxMap to find the real node
   virtual int getNodeID(size_t inod, bool noAddedNodes = false) const;
-  //! \brief Returns the classification of the given node.
-  //! \param[in] inod 1-based node index local to current patch
-  virtual char getNodeType(size_t inod) const;
-  //! \brief Returns the total number of nodes in this patch.
-  virtual size_t getNoNodes(int basis = 0) const;
 
   //! \brief Returns a matrix with nodal coordinates for an element.
   //! \param[in] iel Element index

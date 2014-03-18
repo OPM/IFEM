@@ -40,9 +40,9 @@ ASMstruct::~ASMstruct ()
 }
 
 
-void ASMstruct::resetNumbering (int nnod)
+void ASMstruct::resetNumbering (int n)
 {
   gEl = 0;
-  gNod = nnod;
+  gNod = n;
   xNode.clear();
 }

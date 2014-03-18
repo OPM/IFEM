@@ -511,7 +511,7 @@ bool SIM1D::readPatches (std::istream& isp, PatchVec& patches,
 }
 
 
-bool SIM1D::createFEMmodel (bool)
+bool SIM1D::createFEMmodel (char)
 {
   bool ok = true;
   ASMstruct::resetNumbering();

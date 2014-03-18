@@ -747,7 +747,7 @@ bool SIMbase::parseLinSolTag (const TiXmlElement* elem)
 }
 
 
-bool SIMbase::createFEMmodel (bool resetNumb)
+bool SIMbase::createFEMmodel (char resetNumb)
 {
   if (resetNumb)
   {
@@ -759,8 +759,25 @@ bool SIMbase::createFEMmodel (bool resetNumb)
   {
     myModel[i]->setGauss(opt.nGauss[0]); // in the case of immersed boundaries,
     // the number of Gauss quadrature points must be known at this point
-    if (!myModel[i]->generateFEMTopology())
+
+    if (myModel[i]->isShared() && myModel[i]->hasXNodes())
+    {
+      // This patch shares its FE data with another patch, but has been assigned
+      // additional nodes due to constraints in local coordinate systems,
+      // Lagrange multipliers, etc. Need therefore to unshare the FE data.
+      ASMbase* newPatch = myModel[i]->cloneUnShared();
+      if (newPatch)
+      {
+        std::cout <<"\tNote: Unsharing FE data of P"<< 1+i << std::endl;
+        newPatch->assignNodeNumbers(myModel[i]->getMyNodeNums());
+        delete myModel[i];
+        myModel[i] = newPatch;
+      }
+    }
+    else if (!myModel[i]->generateFEMTopology())
       return false;
+    else if (myModel[i]->isShared() && resetNumb == 'Y')
+      myModel[i]->assignNodeNumbers(IntVec());
   }
 
   if (nGlPatches == 0 && !adm.isParallel())
@@ -819,7 +836,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   this->preprocessA();
 
   // Create the classical FE data structures
-  if (!this->createFEMmodel()) return false;
+  if (!this->createFEMmodel('Y')) return false;
 
   PatchVec::const_iterator mit;
   IntVec::const_iterator it;

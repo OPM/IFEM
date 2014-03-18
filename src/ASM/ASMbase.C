@@ -12,6 +12,8 @@
 //==============================================================================
 
 #include "ASMbase.h"
+#include "ASM2D.h"
+#include "ASM3D.h"
 #include "MPC.h"
 #include "Vec3.h"
 #include "Vec3Oper.h"
@@ -35,33 +37,76 @@ static bool Aerror (const char* name)
 
 
 ASMbase::ASMbase (unsigned char n_p, unsigned char n_s, unsigned char n_f)
-  : MLGE(myMLGE), MLGN(myMLGN), MNPC(myMNPC), shareFE(false)
+  : MLGE(myMLGE), MLGN(myMLGN), MNPC(myMNPC), shareFE(0)
 {
   nf = n_f;
   nsd = n_s > 3 ? 3 : n_s;
   ndim = n_p > nsd ? nsd : n_p;
   nLag = 0;
   nGauss = 0;
+  nel = nnod = 0;
   idx = 0;
   firstIp = 0;
-  nXelm = 0;
   myLMs.first = myLMs.second = 0;
 }
 
 
 ASMbase::ASMbase (const ASMbase& patch, unsigned char n_f)
-  : MLGE(patch.myMLGE), MLGN(patch.myMLGN), MNPC(patch.myMNPC), shareFE(true)
+  : MLGE(patch.MLGE), MLGN(patch.MLGN), MNPC(patch.MNPC), shareFE('F')
 {
   nf = n_f > 0 ? n_f : patch.nf;
   nsd = patch.nsd;
   ndim = patch.ndim;
   nLag = patch.nLag;
   nGauss = patch.nGauss;
+  nel = patch.nel;
+  nnod = patch.nnod;
   idx = patch.idx;
   firstIp = patch.firstIp;
-  nXelm = patch.nXelm;
+  firstBp = patch.firstBp;
   myLMs = patch.myLMs;
   // Note: Properties are _not_ copied
+}
+
+
+ASMbase::ASMbase (const ASMbase& patch)
+  : MLGE(myMLGE), MLGN(myMLGN), MNPC(myMNPC), shareFE('S')
+{
+  nf = patch.nf;
+  nsd = patch.nsd;
+  ndim = patch.ndim;
+  nGauss = patch.nGauss;
+  nel = patch.nel;
+  nnod = patch.nnod;
+  idx = patch.idx;
+  firstIp = patch.firstIp;
+  firstBp = patch.firstBp;
+  BCode = patch.BCode;
+
+  // Only copy the regular part of the FE data, leave out any extraordinaries
+
+  if (patch.MLGE.size() > nel)
+    myMLGE.insert(myMLGE.begin(),patch.MLGE.begin(),patch.MLGE.begin()+nel);
+  else
+    myMLGE = patch.MLGE;
+
+  if (patch.MLGN.size() > nnod)
+    myMLGN.insert(myMLGN.begin(),patch.MLGN.begin(),patch.MLGN.begin()+nnod);
+  else
+    myMLGN = patch.MLGN;
+
+  if (patch.MNPC.size() > nel)
+    myMNPC.insert(myMNPC.begin(),patch.MNPC.begin(),patch.MNPC.begin()+nel);
+  else
+    myMNPC = patch.MNPC;
+
+  // Can not copy pointers as it might cause problems on destruction
+  if (!patch.dCode.empty() || !patch.mpcs.empty())
+    std::cerr <<"  ** ASMbase copy constructor: The copied patch has"
+              <<" multi-point constraints, these are not copied.\n";
+
+  nLag = 0; // Lagrange multipliers are not copied
+  myLMs.first = myLMs.second = 0;
 }
 
 
@@ -69,6 +114,18 @@ ASMbase::~ASMbase ()
 {
   for (MPCIter it = mpcs.begin(); it != mpcs.end(); it++)
     delete *it;
+}
+
+
+ASMbase* ASMbase::cloneUnShared() const
+{
+  const ASM2D* patch2 = dynamic_cast<const ASM2D*>(this);
+  if (patch2) return patch2->clone();
+
+  const ASM3D* patch3 = dynamic_cast<const ASM3D*>(this);
+  if (patch3) return patch3->clone();
+
+  return NULL;
 }
 
 
@@ -111,7 +168,7 @@ bool ASMbase::addLagrangeMultipliers (size_t iel, const IntVec& mGLag,
               <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return false;
   }
-  else if (shareFE)
+  else if (shareFE == 'F')
     return false;
 
   if (nLag == 0)
@@ -184,26 +241,31 @@ unsigned char ASMbase::getNodalDOFs (size_t inod) const
 
 char ASMbase::getNodeType (size_t inod) const
 {
-  return this->isLMn(inod) ? 'L' : 'D';
+  return this->isLMn(inod) ? 'L' : (inod > nnod ? 'X' : 'D');
 }
 
 
 size_t ASMbase::getNoNodes (int basis) const
 {
-  return basis < 0 && myLMs.first > 0 ? myLMs.first-1 : MLGN.size();
+  if (basis > 0)
+    return nnod;
+  else if (basis < 0 && myLMs.first > 0)
+    return myLMs.first - 1;
+  else
+    return MLGN.size();
 }
 
 
 size_t ASMbase::getNoElms (bool includeZeroVolumeElms) const
 {
   if (includeZeroVolumeElms)
-    return MLGE.size() - nXelm;
+    return nel;
 
-  size_t nel = 0;
+  size_t numels = 0;
   for (size_t i = 0; i < MLGE.size(); i++)
-    if (MLGE[i] > 0) nel++;
+    if (MLGE[i] > 0) numels++;
 
-  return nel;
+  return numels;
 }
 
 
@@ -786,8 +848,9 @@ int ASMbase::renumberNodes (const ASMVec& model, std::map<int,int>& old2new)
   std::map<int,int>::iterator nit;
 
   for (it = model.begin(); it != model.end(); it++)
-    for (size_t i = 0; i < (*it)->myMLGN.size(); i++)
-      old2new[(*it)->myMLGN[i]] = (*it)->myMLGN[i];
+    if (!(*it)->shareFE)
+      for (size_t i = 0; i < (*it)->myMLGN.size(); i++)
+        old2new[(*it)->myMLGN[i]] = (*it)->myMLGN[i];
 
   int n, renum = 0;
   for (n = 1, nit = old2new.begin(); nit != old2new.end(); nit++, n++)
@@ -806,15 +869,17 @@ int ASMbase::renumberNodes (const ASMVec& model, std::map<int,int>& old2new)
 }
 
 
-int ASMbase::renumberNodes (std::map<int,int>& old2new, int& nnod)
+int ASMbase::renumberNodes (std::map<int,int>& old2new, int& nNod)
 {
+  if (shareFE) return 0;
+
   int renum = 0;
   for (size_t j = 0; j < myMLGN.size(); j++)
-    if (utl::renumber(myMLGN[j],nnod,old2new))
+    if (utl::renumber(myMLGN[j],nNod,old2new))
       renum++;
 
   if (renum == 0)
-    nnod = std::max(nnod,*std::max_element(MLGN.begin(),MLGN.end()));
+    nNod = std::max(nNod,*std::max_element(MLGN.begin(),MLGN.end()));
 
   return renum;
 }

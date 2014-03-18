@@ -140,10 +140,11 @@ bool ASMs2DmxLag::generateFEMTopology ()
   nb1 = MLGN.size();
   nb2 = nx2*ny2;
 
-  if (shareFE) return true;
+  if (shareFE == 'F') return true;
 
   // Add nodes for second basis (coordinates are not needed)
-  myMLGN.reserve(nb1+nb2);
+  nnod += nb2;
+  myMLGN.reserve(nnod);
   for (size_t i2 = 0; i2 < ny2; i2++)
     for (size_t i1 = 0; i1 < nx2; i1++)
       myMLGN.push_back(++gNod);
@@ -489,8 +490,7 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix          dN1du, dN2du, Xnod, Jac;
 
   // Evaluate the secondary solution field at each point
-  const int nel = this->getNoElms(true);
-  for (int iel = 1; iel <= nel; iel++)
+  for (size_t iel = 1; iel <= nel; iel++)
   {
     IntVec::const_iterator f2start = MNPC[iel-1].begin() + p1*p2;
     IntVec mnpc1(MNPC[iel-1].begin(),f2start);

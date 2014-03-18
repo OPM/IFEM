@@ -246,7 +246,7 @@ bool ASMs3Dmx::generateFEMTopology ()
   nb1 = n1*n2*n3; // Number of functions in first basis
   nb2 = m1*m2*m3; // Number of functions in second basis
 
-  if (shareFE) return true;
+  if (shareFE == 'F') return true;
 
   const int p1 = basis1->order(0);
   const int p2 = basis1->order(1);
@@ -276,10 +276,14 @@ bool ASMs3Dmx::generateFEMTopology ()
   if (p1 > n1 || p2 > n2 || p3 > n3) return false;
   if (q1 > m1 || q2 > m2 || q3 > m3) return false;
 
-  myMLGE.resize((n1-p1+1)*(n2-p2+1)*(n3-p3+1),0);
-  myMLGN.resize(nb1 + nb2);
-  myMNPC.resize(myMLGE.size());
-  myNodeInd.resize(myMLGN.size());
+  nel = geoUsesBasis1 ? (n1-p1+1)*(n2-p2+1)*(n3-p3+1):
+                        (m1-q1+1)*(m2-q2+1)*(m3-q3+1);
+  nnod = nb1 + nb2;
+
+  myMLGE.resize(nel,0);
+  myMLGN.resize(nnod);
+  myMNPC.resize(nel);
+  myNodeInd.resize(nnod);
 
   int i1, i2, i3, j1, j2, j3;
   size_t iel, inod = 0;
@@ -400,7 +404,7 @@ bool ASMs3Dmx::generateFEMTopology ()
   }
 
 #ifdef SP_DEBUG
-  std::cout <<"NEL = "<< MLGE.size() <<" NNOD = "<< MLGN.size() << std::endl;
+  std::cout <<"NEL = "<< nel <<" NNOD = "<< nnod << std::endl;
 #endif
   return true;
 }

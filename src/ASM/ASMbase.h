@@ -75,20 +75,31 @@ protected:
   //! \param[in] n_s Number of spatial dimensions
   //! \param[in] n_f Number of primary solution fields
   ASMbase(unsigned char n_p, unsigned char n_s, unsigned char n_f);
-  //! \brief Copy constructor.
+  //! \brief Special copy constructor for sharing of FE data.
   //! \param[in] patch The patch to use FE data from
   //! \param[in] n_f Number of primary solution fields
   //!
-  //! \details The default copy constructor is overridden, such that this patch
-  //! shares the FE data (including the basis functions) with the provided
-  //! \a patch. The boundary conditions and constraint equations are however
-  //! not copied, as the copy constructor is typically used for multi-stage
-  //! simulators with different sub-problems discretized on the same grid.
-  ASMbase(const ASMbase& patch, unsigned char n_f = 0);
+  //! \details This copy constructor makes this patch sharing the FE data
+  //! (including the basis functions) with the provided \a patch.
+  //! The boundary conditions and constraint equations are however not copied,
+  //! as this copy constructor is typically used for multi-stage simulators
+  //! with different sub-problems discretized on the same grid.
+  ASMbase(const ASMbase& patch, unsigned char n_f);
+  //! \brief Default copy constructor, copying everything except \a neighbors.
+  //! \param[in] patch The patch to copy
+  ASMbase(const ASMbase& patch);
 
 public:
   //! \brief The destructor frees the dynamically allocated data objects.
   virtual ~ASMbase();
+
+  //! \brief Returns a copy of this patch with identical FE discretization.
+  //! \note The copied patch shares the spline data structures with the copy,
+  //! in order to save memory. Thus, the copy cannot be read from file, refined,
+  //! or changed in other ways that affect the FE geometry and/or topology.
+  //! The other properties of the patch (FE topology, boundary conditions,
+  //! constraints, loads, etc.) are however not copied.
+  ASMbase* cloneUnShared() const;
 
   //! \brief Checks if this patch is empty.
   virtual bool empty() const = 0;
@@ -114,9 +125,9 @@ public:
   //! \brief Adds extraordinary elements associated with a patch boundary.
   //! \param[in] dim Dimension of the boundary (should be \a nsd - 1)
   //! \param[in] item Local index of the boundary face/edge
-  //! \param[in] nXnod Number of extraordinary nodes
+  //! \param[in] nXn Number of extraordinary nodes
   //! \param[out] nodes Global numbers assigned to the extraordinary nodes
-  virtual bool addXElms(short int dim, short int item, size_t nXnod,
+  virtual bool addXElms(short int dim, short int item, size_t nXn,
                         std::vector<int>& nodes);
 
   //! \brief Adds a set of Lagrange multipliers to the specified element.
@@ -195,6 +206,8 @@ public:
 
   //! \brief Returns the global node numbers of this patch.
   const IntVec& getGlobalNodeNums() const { return MLGN; }
+  //! \brief Returns the actual global node numbers of this patch.
+  const IntVec& getMyNodeNums() const { return myMLGN; }
   //! \brief Returns the total number of nodes in this patch.
   virtual size_t getNoNodes(int basis = 0) const;
   //! \brief Returns the total number of elements in this patch.
@@ -228,6 +241,11 @@ public:
   //! \param[in] dof Which local DOF which is constrained (1, 2, 3)
   MPC* findMPC(int node, int dof) const;
 
+  //! \brief Returns \e true if this patch shares FE data with another patch.
+  bool isShared() const { return shareFE == 'F'; }
+  //! \brief Returns \e true if this patch has additional (extraordinary) nodes.
+  bool hasXNodes() const { return MLGN.size() > nnod; }
+
 
   // Various preprocessing methods
   // =============================
@@ -247,7 +265,7 @@ public:
   //! \return The number of unique nodes in the model
   //!
   //! \details After the renumbering, the global node numbers are in the range
-  //! [1,\a nnod ], where \a nnod is the number of unique nodes in the model.
+  //! [1,\a nNod ], where \a nNod is the number of unique nodes in the model.
   //! The new node numbers computed by this method preserve the relative
   //! ordering of the nodes. That is not the case when the non-static version
   //! is used.
@@ -255,12 +273,12 @@ public:
 
   //! \brief Renumbers the global node numbers in this patch.
   //! \param old2new Old-to-new node number mapping
-  //! \param nnod Number of unique nodes found so far
+  //! \param nNod Number of unique nodes found so far
   //! \return The number of renumbered nodes in this patch
   //!
   //! \details After the renumbering, the global node numbers are in the range
-  //! [1,\a nnod ], where \a nnod is the number of unique nodes in the model.
-  int renumberNodes(std::map<int,int>& old2new, int& nnod);
+  //! [1,\a nNod ], where \a nNod is the number of unique nodes in the model.
+  int renumberNodes(std::map<int,int>& old2new, int& nNod);
 
   //! \brief Renumbers the global node numbers referred by this patch.
   //! \param[in] old2new Old-to-new node number mapping
@@ -595,11 +613,17 @@ protected:
   unsigned char nf;     //!< Number of primary solution fields (1 or larger)
   unsigned char nLag;   //!< Number of Lagrange multipliers per node
   int           nGauss; //!< Numerical integration scheme
+  size_t        nel;    //!< Number of regular elements in this patch
+  size_t        nnod;   //!< Number of regular nodes in this patch
 
   const IntVec& MLGE; //!< Matrix of Local to Global Element numbers
   const IntVec& MLGN; //!< Matrix of Local to Global Node numbers
   const IntMat& MNPC; //!< Matrix of Nodal Point Correspondance
-  const bool shareFE; //!< If \e true, this patch uses FE data of another patch
+
+  //! \brief Flag telling whether this patch shares its data with another patch
+  //! \details 'S' means this patch uses spline geometry of another patch.
+  //! 'F' means this patch uses FE data and spline geometry of another patch.
+  const char shareFE; //!< If \e true, this patch uses FE data of another patch
 
   BCVec  BCode; //!< Array of Boundary condition codes
   MPCMap dCode; //!< Inhomogeneous Dirichlet condition codes for the MPCs
@@ -610,10 +634,9 @@ protected:
   IntMat myMNPC; //!< The actual Matrix of Nodal Point Correspondance
 
   size_t firstIp; //!< Global index to first interior integration point
+
   //! Global indices to first integration point for the Neumann boundaries
   std::map<char,size_t> firstBp;
-
-  size_t nXelm;  //!< Number of extra-ordinary elements
 
   ASMVec neighbors; //!< Patches having nodes in common with this one
 

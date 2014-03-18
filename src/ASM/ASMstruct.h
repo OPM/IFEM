@@ -33,10 +33,10 @@ protected:
   //! \param[in] n_s Number of spatial dimensions
   //! \param[in] n_f Number of primary solution fields
   ASMstruct(unsigned char n_p, unsigned char n_s, unsigned char n_f);
-  //! \brief Copy constructor.
+  //! \brief Special copy constructor for sharing of FE data.
   //! \param[in] patch The patch to use FE data from
   //! \param[in] n_f Number of primary solution fields
-  ASMstruct(const ASMstruct& patch, unsigned char n_f = 0);
+  ASMstruct(const ASMstruct& patch, unsigned char n_f);
 
 public:
   //! \brief The destructor frees the dynamically allocated spline object.
@@ -46,7 +46,7 @@ public:
   virtual bool empty() const { return geo == 0; }
 
   //! \brief Resets the global element and node counters.
-  static void resetNumbering(int nnod = 0);
+  static void resetNumbering(int n = 0);
 
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction

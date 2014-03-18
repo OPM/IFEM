@@ -92,7 +92,7 @@ protected:
 
   //! \brief Creates the computational FEM model from the spline patches.
   //! \details Reimplemented to account for twist angle in beam problems.
-  virtual bool createFEMmodel(bool = true);
+  virtual bool createFEMmodel(char = 'y');
 
   //! \brief Creates a default single-patch geometry.
   virtual ASMbase* createDefaultGeometry() const;
