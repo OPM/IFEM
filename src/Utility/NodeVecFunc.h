@@ -40,7 +40,7 @@ public:
 
   //! \brief Returns whether the function is identically zero or not.
   virtual bool isZero() const { return idMap.empty() && (&idMap != &dummy); }
- 
+
   //! \brief Returns whether the function is time-independent or not.
   virtual bool isConstant() const { return false; }
 
@@ -48,15 +48,17 @@ protected:
   //! \brief Evaluates the function at the point \a xp.
   virtual Vec3 evaluate(const Vec3& x) const;
 
-private:
   //! \brief Returns the node index (if any) matching the given coordinates.
-  int getPointIndex(const Vec3& xp) const;
+  std::pair<int,int> getPointIndex(const Vec3& xp) const;
 
+private:
   const std::map<int,int>    dummy; //!< Dummy empty map
   const std::map<int,int>&   idMap; //!< Map of node indices
   mutable std::map<Vec3,int> ptMap; //!< Map of evaluated nodal points
-  SIMbase&                   model; //!< FE model on which the field is defined
-  const std::vector<Real>&   value; //!< The nodal field values
+
+protected:
+  SIMbase&                 model; //!< FE model on which the field is defined
+  const std::vector<Real>& value; //!< The nodal field values
 };
 
 #endif

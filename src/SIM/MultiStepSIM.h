@@ -129,6 +129,9 @@ public:
   //! \brief Modifies the current solution vector (used by sub-iterations only).
   virtual void setSolution(const Vector& s, int idx = 0) { solution[idx] = s; }
 
+  //! \brief Returns a const reference to the FEmodel.
+  const SIMoutput& getModel() const { return model; }
+
   //! \brief Enum describing sub-iteration status.
   enum SubIt { ITER = 0, FIRST = 1, LAST = 2, NONE = 3 };
 

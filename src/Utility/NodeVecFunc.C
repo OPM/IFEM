@@ -19,7 +19,7 @@
 
 Vec3 NodeVecFunc::evaluate (const Vec3& xp) const
 {
-  int idx = this->getPointIndex(xp) - 1;
+  int idx = this->getPointIndex(xp).second - 1;
   if (idx < 0) return Vec3();
 
   size_t nf = model.getNoFields();
@@ -34,34 +34,37 @@ Vec3 NodeVecFunc::evaluate (const Vec3& xp) const
 }
 
 
-int NodeVecFunc::getPointIndex (const Vec3& xp) const
+std::pair<int,int> NodeVecFunc::getPointIndex (const Vec3& xp) const
 {
   // Check if the nodal index is stored in the Vec3 object itself
   const Vec4* x4 = dynamic_cast<const Vec4*>(&xp);
   if (x4 && x4->idx > 0)
+  {
     if (idMap.empty())
-      return x4->idx; // No index map provided, assume 1:1 mapping
-    else if (x4)
+      return std::make_pair(x4->idx,x4->idx); // Assume 1:1 mapping
+    else
     {
       std::map<int,int>::const_iterator it = idMap.find(x4->idx);
-      if (it != idMap.end()) return it->second;
+      if (it != idMap.end()) return *it;
 
       std::cerr <<" *** NodeVecFunc::getPointIndex: Point "<< xp
                 <<" is not present in the index map."<< std::endl;
     }
+  }
 
   // Search among the earlier nodes found
   std::map<Vec3,int>::const_iterator it = ptMap.find(xp);
-  if (it != ptMap.end()) return it->second;
+  if (it != ptMap.end()) return std::make_pair(x4 ? x4->idx : 0, it->second);
 
   // Not found, search among all nodes in the model
   const ASMbase* pch = NULL;
   for (size_t i = 1; (pch = model.getPatch(i)); i++)
     for (size_t inod = 1; inod <= pch->getNoNodes(); inod++)
       if (xp.equal(pch->getCoord(inod)))
-        return ptMap[xp] = pch->getNodeID(inod);
+        return std::make_pair(x4 ? x4->idx : 0,
+                              ptMap[xp] = pch->getNodeID(inod));
 
   std::cerr <<" *** NodeVecFunc::getPointIndex: No nodes matches the point "
             << xp << std::endl;
-  return -1;
+  return std::make_pair(0,0);
 }
