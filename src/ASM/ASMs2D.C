@@ -679,7 +679,7 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code)
       node += n1;
       for (int i2 = 2; i2 < n2; i2++, node += n1)
       {
-	// If the Dirchlet condition is to be projected, add this node to
+	// If the Dirichlet condition is to be projected, add this node to
 	// the set of nodes to receive prescribed value from the projection
 	// **unless this node already has a homogeneous constraint**
 	if (this->prescribe(node,dof,-code) == 0 && code > 0)
@@ -697,7 +697,7 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code)
       node++;
       for (int i1 = 2; i1 < n1; i1++, node++)
       {
-	// If the Dirchlet condition is to be projected, add this node to
+	// If the Dirichlet condition is to be projected, add this node to
 	// the set of nodes to receive prescribed value from the projection
 	// **unless this node already has a homogeneous constraint**
 	if (this->prescribe(node,dof,-code) == 0 && code > 0)
