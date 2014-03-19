@@ -29,7 +29,7 @@ struct TimeDomain
   char first; //!< If \e true, this is the first load/time step
 
   //! \brief Default constructor.
-  TimeDomain(int i = 0, bool f = true) : it(i), first(f)
+  explicit TimeDomain(int i = 0, bool f = true) : it(i), first(f)
   { t = dt = dtn = CFL = 0.0; }
 };
 
