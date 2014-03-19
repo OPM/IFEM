@@ -82,6 +82,19 @@ public:
                              double zero_tolerance = 1.0e-8,
                              std::streamsize outPrec = 0);
 
+  //! \brief Return solver configuration parameters
+  //! \param atol Absolute residual norm tolerance
+  //! \param rtol Relative residual norm tolerance
+  //! \param dtol Relative divergence limit
+  //! \param maxIts Maximum number of iterations
+  void getTolerances(double& atol, double& rtol, double& dtol, int& maxIts)
+  {
+    atol = aTol;
+    rtol = rTol;
+    dtol = divgLim;
+    maxIts = maxit;
+  }
+
 protected:
   //! \brief Checks whether the nonlinear iterations have converged or diverged.
   virtual SIM::ConvStatus checkConvergence(TimeStep& param);
