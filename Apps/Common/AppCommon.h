@@ -53,13 +53,6 @@ namespace SIM
     xml->writeTimeInfo(0, interval, steps, solver.getTimePrm());
   }
 
-  //! \brief Handles application restarts.
-  //TODO: Remove this later. Obsolete wrapper.
-  template<class Simulator, class Solver>
-  void handleRestart(Simulator& simulator, Solver& solver,
-		     int interval, int steps, const char* restartfile)
-  { return handleRestart(simulator,solver,restartfile,interval,steps); }
-
   //! \brief Handles application data output.
   //! \param[in] simulator The top SIMbase instance of your application
   //! \param[in] solver The SIMSolver instance of your application
@@ -85,14 +78,6 @@ namespace SIM
 
     return writer;
   }
-
-  //! \brief Handles application data output.
-  //TODO: Remove this later. Obsolete wrapper.
-  template<class Simulator, class Solver>
-  DataExporter* handleDataOutput(Simulator& simulator, Solver& solver,
-				 bool append, const std::string& hdf5file,
-				 int interval, int steps)
-  { return handleDataOutput(simulator,solver,hdf5file,append,interval,steps); }
 }
 
 #endif
