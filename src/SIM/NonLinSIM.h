@@ -69,6 +69,11 @@ public:
                                     double zero_tolerance = 1.0e-8,
                                     std::streamsize outPrec = 0);
 
+  //! \brief Solve the linearized system once
+  //! \param[in] tp Time stepping parameters
+  //! \param     norm The norm of the residual
+  bool solveLinearizedSystem(const TimeStep& tp, double& norm);
+
   //! \brief Computes and prints some solution norm quantities.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param[in] zero_tolerance Truncate norm values smaller than this to zero

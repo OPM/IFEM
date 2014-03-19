@@ -254,6 +254,27 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
 }
 
 
+bool NonLinSIM::solveLinearizedSystem(const TimeStep& tp, double& norm)
+{
+  if (!model.assembleSystem(tp.time, solution))
+    return false;
+
+  Vector inc;
+  model.extractLoadVec(inc);
+  size_t ind[4];
+  double inf[4];
+  const size_t nf = model.getNoFields(1);
+  norm = model.solutionNorms(inc,inf,ind,nf);
+
+  if (!model.solveSystem(inc,0,"increment"))
+    return false;
+
+  solution[0] += inc;
+
+  return true;
+}
+
+
 bool NonLinSIM::lineSearch (TimeStep& param)
 {
   if (eta <= 0.0) return true; // No line search
