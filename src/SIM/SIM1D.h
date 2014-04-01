@@ -103,6 +103,7 @@ protected:
 
 private:
   RealFunc* twist; //!< Twist angle (for 3D beam problems only)
+  Vec3      XZp;   //!< Local Z-direction vector
 };
 
 #endif

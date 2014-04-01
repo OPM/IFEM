@@ -49,7 +49,8 @@ public:
   //! \brief Constructor creating a transformation from a face normal vector.
   Tensor(const Vec3& vn, bool vnIsX = false);
   //! \brief Constructor creating a transformation from two tangent vectors.
-  Tensor(const Vec3& t1, const Vec3& t2, bool t1isZ = false);
+  Tensor(const Vec3& t1, const Vec3& t2,
+         bool t1isZ = false, bool t2isXZ = false);
   //! \brief Constructor creating a transformation from three unit vectors.
   Tensor(const Vec3& v1, const Vec3& v2, const Vec3& v3);
   //! \brief Constructor creating a transformation from three rotation angles.

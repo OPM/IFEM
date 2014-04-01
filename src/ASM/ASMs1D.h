@@ -56,9 +56,14 @@ public:
   //! and the global node and element numbers.
   virtual bool generateFEMTopology();
 
+  //! \brief Generates a beam finite element model for the patch.
+  //! \param[in] Zaxis Vector defining a point in the local XZ-plane
+  bool generateOrientedFEModel(const Vec3& Zaxis);
+
   //! \brief Generates a twisted beam finite element model for the patch.
   //! \param[in] twist Function describing the twist angle along the beam
-  bool generateTwistedFEModel(const RealFunc& twist);
+  //! \param[in] Zaxis Vector defining a point in the local XZ-plane
+  bool generateTwistedFEModel(const RealFunc& twist, const Vec3& Zaxis);
 
   //! \brief Clears the contents of the patch, making it empty.
   //! \param[in] retainGeometry If \e true, the spline geometry is not cleared.
@@ -90,7 +95,8 @@ public:
 
   //! \brief Updates the nodal rotations for this patch.
   //! \param[in] displ Incremental displacements to update the rotations with
-  bool updateRotations(const Vector& displ);
+  //! \param[in] reInit If \e true, reinitialize rotations from unity
+  bool updateRotations(const Vector& displ, bool reInit = false);
 
   //! \brief Finds the global number of the node on a patch end.
   //! \param[in] lIndex Local index of the end point

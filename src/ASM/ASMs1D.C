@@ -179,6 +179,12 @@ bool ASMs1D::raiseOrder (int ru)
 
 bool ASMs1D::generateFEMTopology ()
 {
+  return this->generateOrientedFEModel(Vec3());
+}
+
+
+bool ASMs1D::generateOrientedFEModel (const Vec3& Zaxis)
+{
   if (!curv) return false;
 
   const int n1 = curv->numCoefs();
@@ -249,7 +255,10 @@ bool ASMs1D::generateFEMTopology ()
   {
     Vec3 X1 = this->getCoord(1+MNPC[i].front());
     Vec3 X2 = this->getCoord(1+MNPC[i].back());
-    myCS[i] = Tensor(X2-X1,true);
+    if (Zaxis.isZero())
+      myCS[i] = Tensor(X2-X1,true);
+    else
+      myCS[i] = Tensor(X2-X1,Zaxis,false,true);
 #ifdef SP_DEBUG
     std::cout <<"Local axes for beam element "<< i+1
               <<", from "<< X1 <<" to "<< X2 <<":\n"<< myCS[i];
@@ -260,9 +269,9 @@ bool ASMs1D::generateFEMTopology ()
 }
 
 
-bool ASMs1D::generateTwistedFEModel (const RealFunc& twist)
+bool ASMs1D::generateTwistedFEModel (const RealFunc& twist, const Vec3& Zaxis)
 {
-  if (!this->generateFEMTopology())
+  if (!this->generateOrientedFEModel(Zaxis))
     return false;
 
   // Update the local element axes for 3D beam elements
@@ -524,7 +533,7 @@ bool ASMs1D::updateCoords (const Vector& displ)
 }
 
 
-bool ASMs1D::updateRotations (const Vector& displ)
+bool ASMs1D::updateRotations (const Vector& displ, bool reInit)
 {
   if (shareFE || nf != 6) return true;
 
@@ -537,7 +546,10 @@ bool ASMs1D::updateRotations (const Vector& displ)
   }
 
   for (size_t i = 0; i < myT.size(); i++)
-    myT[i] *= Tensor(displ[6*i+3],displ[6*i+4],displ[6*i+5]);
+    if (reInit)
+      myT[i] = Tensor(displ[6*i+3],displ[6*i+4],displ[6*i+5]);
+    else
+      myT[i] *= Tensor(displ[6*i+3],displ[6*i+4],displ[6*i+5]);
 
   return true;
 }

@@ -64,58 +64,83 @@ Tensor::Tensor (const Vec3& vn, bool vnIsX) : n(3)
   Vec3 v1, v2, v3(vn);
   v3.normalize();
 
-  if (fabs(v3.y) < fabs(v3.x))
-  {
-    // Define the Y-axis by projecting global Y-axis onto the normal plane of v3
-    v2.x = -v3.y*v3.x;
-    v2.y =  v3.x*v3.x + v3.z*v3.z;
-    v2.z = -v3.y*v3.z;
-    if (vnIsX) // Define the Z-axis as the cross product of X-axis and Y-axis
-      v1.cross(v3,v2);
-    else       // Define the X-axis as the cross product of Y-axis and Z-axis
-      v1.cross(v2,v3);
-  }
-  else if (vnIsX)
-  {
-    // Define the Z-axis by projecting global Z-axis onto the normal plane of v3
-    v1.x = -v3.z*v3.x;
-    v1.y = -v3.z*v3.y;
-    v1.z =  v3.x*v3.x + v3.y*v3.y;
-    // Define the Y-axis as the cross product of Z-axis and X-axis
-    v2.cross(v1,v3);
-  }
-  else
-  {
-    // Define the X-axis by projecting global X-axis onto the normal plane of v3
-    v1.x =  v3.y*v3.y + v3.z*v3.z;
-    v1.y = -v3.x*v3.y;
-    v1.z = -v3.x*v3.z;
-    // Define the Y-axis as the cross product of Z-axis and X-axis
-    v2.cross(v3,v1);
-  }
-  v1.normalize();
-  v2.normalize();
-
   if (vnIsX)
+  {
+    if (fabs(v3.y) < fabs(v3.z))
+    {
+      // Define the Y-axis by projecting the global Y-axis
+      // onto the normal plane of v3
+      v2.x = -v3.y*v3.x;
+      v2.y =  v3.x*v3.x + v3.z*v3.z;
+      v2.z = -v3.y*v3.z;
+      // Define the Z-axis as the cross product of X-axis and Y-axis
+      v1.cross(v3,v2);
+    }
+    else
+    {
+      // Define the Z-axis by projecting the global Z-axis
+      // onto the normal plane of v3
+      v1.x = -v3.z*v3.x;
+      v1.y = -v3.z*v3.y;
+      v1.z =  v3.x*v3.x + v3.y*v3.y;
+      // Define the Y-axis as the cross product of Z-axis and X-axis
+      v2.cross(v1,v3);
+    }
+    v1.normalize();
+    v2.normalize();
     this->define3Dtransform(v3,v2,v1);
+  }
   else
+  {
+    if (fabs(v3.y) < fabs(v3.x))
+    {
+      // Define the Y-axis by projecting global Y-axis
+      // onto the normal plane of v3
+      v2.x = -v3.y*v3.x;
+      v2.y =  v3.x*v3.x + v3.z*v3.z;
+      v2.z = -v3.y*v3.z;
+      // Define the X-axis as the cross product of Y-axis and Z-axis
+      v1.cross(v2,v3);
+    }
+    else
+    {
+      // Define the X-axis by projecting global X-axis
+      // onto the normal plane of v3
+      v1.x =  v3.y*v3.y + v3.z*v3.z;
+      v1.y = -v3.x*v3.y;
+      v1.z = -v3.x*v3.z;
+      // Define the Y-axis as the cross product of Z-axis and X-axis
+      v2.cross(v3,v1);
+    }
+    v1.normalize();
+    v2.normalize();
     this->define3Dtransform(v1,v2,v3);
+  }
 }
 
 
 /*!
   The first tangent vector \a t1 is taken as the local X-axis (or Z-axis, if
   \a t1isZ is \e true). The local Z-axis (X-axis) is then defined as the cross
-  product between \a t1 and \a t2.
+  product between \a t1 and \a t2. If \a t2isXZ is \e true, the local Y-axis is
+  instead defined as the cross product between \a t2 and \a t1.
 */
 
-Tensor::Tensor (const Vec3& t1, const Vec3& t2, bool t1isZ) : n(3)
+Tensor::Tensor (const Vec3& t1, const Vec3& t2, bool t1isZ, bool t2isXZ) : n(3)
 {
-  Vec3 v1(t1), v2(t2), v3;
+  Vec3 v1(t1), v2, v3;
 
   v1.normalize();
-  v3.cross(v1,v2).normalize();
-  v2.cross(v3,v1);
+  if (t2isXZ)
+  {
+    v2.cross(t2,t1).normalize();
+    v3.cross(v1,v2);
+  }
+  else
+  {
+    v3.cross(t1,t2).normalize();
+    v2.cross(v3,v1);
+  }
 
   if (t1isZ)
     this->define3Dtransform(v2,v3,v1);
@@ -150,6 +175,7 @@ Tensor::Tensor (Real a1, Real a2, Real a3) : n(3)
   q0 /= ql;
   q  /= ql;
 
+  v.resize(9);
   v[0] = 2.0*(q.x*q.x + q0*q0) - 1.0;
   v[4] = 2.0*(q.y*q.y + q0*q0) - 1.0;
   v[8] = 2.0*(q.z*q.z + q0*q0) - 1.0;
@@ -160,7 +186,7 @@ Tensor::Tensor (Real a1, Real a2, Real a3) : n(3)
 
   v[1] = 2.0*(q.y*q.x + q.z*q0);
   v[2] = 2.0*(q.z*q.x - q.y*q0);
-  v[4] = 2.0*(q.z*q.y + q.x*q0);
+  v[5] = 2.0*(q.z*q.y + q.x*q0);
 }
 
 

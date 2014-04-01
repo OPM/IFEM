@@ -17,6 +17,7 @@
 #include "ASMs1DSpec.h"
 #include "Functions.h"
 #include "Utilities.h"
+#include "Vec3Oper.h"
 #include "tinyxml.h"
 #include <sstream>
 
@@ -147,8 +148,16 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
                 << patch << std::endl;
       return false;
     }
-    std::cout <<"\tPeriodic P" << patch << std::endl;
+    std::cout <<"\tPeriodic P"<< patch << std::endl;
     static_cast<ASMs1D*>(myModel[patch-1])->closeEnds();
+  }
+
+  else if (!strcasecmp(elem->Value(),"Zdirection"))
+  {
+    utl::getAttribute(elem,"x",XZp.x);
+    utl::getAttribute(elem,"y",XZp.y);
+    utl::getAttribute(elem,"z",XZp.z);
+    std::cout <<"\tZ-direction vector: "<< XZp << std::endl;
   }
 
   return true;
@@ -334,7 +343,7 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
 		  << patch << std::endl;
 	return false;
       }
-      std::cout <<"\tPeriodic P" << patch << std::endl;
+      std::cout <<"\tPeriodic P"<< patch << std::endl;
       static_cast<ASMs1D*>(myModel[patch-1])->closeEnds();
     }
   }
@@ -424,7 +433,7 @@ bool SIM1D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 
   std::cout <<"\tConstraining P"<< patch;
   if (ldim == 0)
-    std::cout << " V" << lndx;
+    std::cout << " V"<< lndx;
   std::cout <<" in direction(s) "<< dirs;
   if (code) std::cout <<" code = "<< code <<" ";
 #if SP_DEBUG > 1
@@ -517,9 +526,9 @@ bool SIM1D::createFEMmodel (char)
   ASMstruct::resetNumbering();
   for (size_t i = 0; i < myModel.size() && ok; i++)
     if (twist)
-      ok = static_cast<ASMs1D*>(myModel[i])->generateTwistedFEModel(*twist);
+      ok = static_cast<ASMs1D*>(myModel[i])->generateTwistedFEModel(*twist,XZp);
     else
-      ok = myModel[i]->generateFEMTopology();
+      ok = static_cast<ASMs1D*>(myModel[i])->generateOrientedFEModel(XZp);
 
   if (nGlPatches == 0 && !adm.isParallel())
     nGlPatches = myModel.size();
