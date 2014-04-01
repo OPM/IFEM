@@ -119,11 +119,11 @@ bool NewmarkSIM::predictStep (TimeStep& param)
   if (solution.size() < 3) return false;
 
   const double dt = param.time.dt;
-  Vector velocity;
 
   size_t iD = 0;
   size_t iA = solution.size() - 1;
   size_t iV = solution.size() - 2;
+  Vector oldSol(solution[iD]);
 
   switch (predictor) {
   case 'a': // zero acceleration predictor
@@ -150,7 +150,7 @@ bool NewmarkSIM::predictStep (TimeStep& param)
     break;
 
   case 'd': // constant displacement predictor
-    velocity = solution[iV];
+    oldSol = solution[iV];
 
     // Predicted new velocity
     solution[iV] *= 1.0 - gamma/beta;
@@ -158,7 +158,7 @@ bool NewmarkSIM::predictStep (TimeStep& param)
 
     // Predicted new acceleration
     solution[iA] *= 1.0 - 0.5/beta;
-    solution[iA].add(velocity,-1.0/(beta*dt));
+    solution[iA].add(oldSol,-1.0/(beta*dt));
     break;
 
   default:
@@ -171,7 +171,11 @@ bool NewmarkSIM::predictStep (TimeStep& param)
   std::cout <<"Predicted acceleration:"<< solution[iA];
 #endif
 
-  return true;
+  if (predictor == 'd') return true;
+
+  model.updateRotations(solution[iD]-oldSol,1.0);
+
+  return model.updateConfiguration(solution[iD]);
 }
 
 
@@ -185,6 +189,7 @@ bool NewmarkSIM::correctStep (TimeStep& param, bool)
 
   // Corrected displacement
   solution[iD].add(linsol,beta*dt*dt);
+  model.updateRotations(linsol,beta*dt*dt);
 
   // Corrected velocity
   solution[iV].add(linsol,gamma*dt);

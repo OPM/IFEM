@@ -55,6 +55,12 @@ public:
   Vector getSolution(const Vector& psol, double u,
                      int deriv = 0, int patch = 1) const;
 
+  //! \brief Updates the nodal rotations for problems with rotational DOFs.
+  //! \param[in] incSol Incremental solution to update the rotations with
+  //! \param[in] alpha Scaling factor for the incremental solution.
+  //! If 0.0, reinitialize the rotations from unity
+  virtual bool updateRotations(const Vector& incSol, double alpha);
+
 private:
   //! \brief Parses a subelement of the \a geometry XML-tag.
   bool parseGeometryTag(const TiXmlElement* elem);

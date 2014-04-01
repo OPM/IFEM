@@ -242,8 +242,9 @@ public:
   virtual bool updateDirichlet(double time = 0.0, const Vector* prevSol = 0);
 
   //! \brief Updates problem-dependent state based on the current solution.
-  //! \param[in] solution Current primary solution vector in DOF-order
-  virtual bool updateConfiguration(const Vector& solution) { return true; }
+  virtual bool updateConfiguration(const Vector&) { return true; }
+  //! \brief Updates the nodal rotations for problems with rotational DOFs.
+  virtual bool updateRotations(const Vector&, double = 0.0) { return true; }
 
   //! \brief Updates the grid coordinates.
   //! \param[in] displ The displacement increment to update the grid with

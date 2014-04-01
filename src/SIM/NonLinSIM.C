@@ -254,9 +254,9 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
 }
 
 
-bool NonLinSIM::solveLinearizedSystem(const TimeStep& tp, double& norm)
+bool NonLinSIM::solveLinearizedSystem (const TimeStep& tp, double& norm)
 {
-  if (!model.assembleSystem(tp.time, solution))
+  if (!model.assembleSystem(tp.time,solution))
     return false;
 
   Vector inc;
@@ -269,7 +269,7 @@ bool NonLinSIM::solveLinearizedSystem(const TimeStep& tp, double& norm)
   if (!model.solveSystem(inc,0,"increment"))
     return false;
 
-  solution[0] += inc;
+  solution.front() += inc;
 
   return true;
 }
@@ -436,9 +436,15 @@ bool NonLinSIM::updateConfiguration (TimeStep&)
   if (solution.empty()) return false;
 
   if (solution.front().empty() || iteNorm == NONE)
+  {
     solution.front() = linsol;
+    model.updateRotations(linsol);
+  }
   else if (alpha != 0.0)
+  {
     solution.front().add(linsol,alpha);
+    model.updateRotations(linsol,alpha);
+  }
 
   return model.updateConfiguration(solution.front());
 }

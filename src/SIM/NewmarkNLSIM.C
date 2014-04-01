@@ -169,6 +169,7 @@ bool NewmarkNLSIM::correctStep (TimeStep& param, bool converged)
               <<"\nConverged acceleration:"<< solution[iA].max() << std::endl;
 #endif
 
+  model.updateRotations(linsol,1.0);
   return model.updateConfiguration(solution[iD]);
 }
 
