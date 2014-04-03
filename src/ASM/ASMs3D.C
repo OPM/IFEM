@@ -282,7 +282,7 @@ bool ASMs3D::checkRightHandSystem ()
   svol->gridEvaluator(u,v,w,X,dXdu,dXdv,dXdw);
 
   // Check that |J| = (dXdu x dXdv) * dXdw > 0.0
-  if (Vec3(dXdu,dXdv) * dXdw > 0.0) return false;
+  if (Vec3(dXdu,dXdv) * Vec3(dXdw) > 0.0) return false;
 
   // This patch has a negative Jacobian determinant. Probably it is modelled
   // in a left-hand-system. Swap the w-parameter direction to correct for this.
