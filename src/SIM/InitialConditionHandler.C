@@ -72,7 +72,7 @@ bool SIM::setInitialConditions (SIMbase& sim, SIMdependency* fieldHolder)
           if (p < 1)
             continue;
           std::stringstream str;
-          str << it2->file_level << "/basis/" << it3->basis << "/" << i+1;
+          str << it2->geo_level << "/basis/" << it3->basis << "/" << i+1;
           std::string pg2;
           hdf5reader.readString(str.str(),pg2);
           std::stringstream spg2;
