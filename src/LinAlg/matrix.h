@@ -321,6 +321,16 @@ namespace utl //! General utility classes and functions.
       memcpy(this->ptr(c-1),data,nrow*sizeof(T));
     }
 
+    //! \brief Fill a row of the matrix.
+    void fillRow(size_t r, const T* data)
+    {
+      CHECK_INDEX("matrix::fillRow: Row-index ",r,nrow);
+      if (nrow < 2)
+        elem.fill(data);
+      else for (size_t i = 0; i < ncol; i++)
+        elem[r-1+nrow*i] = data[i];
+    }
+
     //! \brief Fill the matrix with a scalar value.
     void fill(const T& s) { std::fill(elem.begin(),elem.end(),s); }
     //! \brief Fill the matrix with data from an array.

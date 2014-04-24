@@ -187,6 +187,10 @@ Tensor::Tensor (Real a1, Real a2, Real a3) : n(3)
   v[1] = 2.0*(q.y*q.x + q.z*q0);
   v[2] = 2.0*(q.z*q.x - q.y*q0);
   v[5] = 2.0*(q.z*q.y + q.x*q0);
+
+#if SP_DEBUG > 2
+  std::cout <<"Tensor("<< a1 <<","<< a2 <<","<< a3 <<"):\n" << *this;
+#endif
 }
 
 
