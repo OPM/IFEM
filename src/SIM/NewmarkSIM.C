@@ -354,23 +354,24 @@ bool NewmarkSIM::solutionNorms (double zero_tolerance, std::streamsize outPrec)
   std::streamsize stdPrec = outPrec > 0 ? std::cout.precision(outPrec) : 0;
   double old_tol = utl::zero_print_tol;
   utl::zero_print_tol = zero_tolerance;
+  char D;
 
   std::cout <<"  Displacement L2-norm            : "<< utl::trunc(disL2);
-  for (d = 0; d < nf; d++)
+  for (d = 0, D = 'X'; d < nf; d++, D=='Z' ? D='x' : D++)
     if (utl::trunc(dMax[d]) != 0.0)
-      std::cout <<"\n               Max "<< char('X'+d)
+      std::cout <<"\n               Max "<< D
                 <<"-displacement : "<< dMax[d] <<" node "<< iMax[d];
 
   std::cout <<"\n  Velocity L2-norm                : "<< utl::trunc(velL2);
-  for (d = 0; d < nf; d++)
+  for (d = 0, D = 'X'; d < nf; d++, D=='Z' ? D='x' : D++)
     if (utl::trunc(vMax[d]) != 0.0)
-      std::cout <<"\n               Max "<< char('X'+d)
+      std::cout <<"\n               Max "<< D
                 <<"-velocity     : "<< vMax[d] <<" node "<< jMax[d];
 
   std::cout <<"\n  Acceleration L2-norm            : "<< utl::trunc(accL2);
-  for (d = 0; d < nf; d++)
+  for (d = 0, D = 'X'; d < nf; d++, D=='Z' ? D='x' : D++)
     if (utl::trunc(aMax[d]) != 0.0)
-      std::cout <<"\n               Max "<< char('X'+d)
+      std::cout <<"\n               Max "<< D
                 <<"-acceleration : "<< aMax[d] <<" node "<< kMax[d];
 
   std::cout << std::endl;
