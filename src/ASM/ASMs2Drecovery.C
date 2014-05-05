@@ -536,7 +536,7 @@ Go::SplineSurface* ASMs2D::projectSolutionLeastSquare (const IntegrandBase& inte
     RealArray::const_iterator knotit = basis.begin();
     std::vector<double> tmp;
     tmp.reserve(nGauss*(basis.numCoefs()-basis.order()));
-    for (size_t i = 0; i<=(basis.numCoefs()-basis.order());i++)
+    for (int i = 0; i<=(basis.numCoefs()-basis.order());i++)
     {
       double d = knotit[i+basis.order()]-knotit[i+basis.order()-1];
       for (int j = 0; j < nGauss; j++)
