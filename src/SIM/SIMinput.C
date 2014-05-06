@@ -18,10 +18,13 @@
 #include "SystemMatrix.h"
 #include "ASMbase.h"
 #ifdef PARALLEL_PETSC
-#include "PETScSupport.h"
+#include "petscsys.h"
 #endif
 #include <fstream>
 
+#if defined(__MINGW32__) || defined(__MINGW64__)
+#define strcasestr strstr
+#endif
 
 int SIMinput::msgLevel = 2;
 
@@ -33,6 +36,8 @@ SIMinput::SIMinput (const char* heading) : opt(myOpts)
 {
   myPid = adm.getProcId();
   nProc = adm.getNoProcs();
+
+  myOpts = IFEM::getOptions(); // Initialize options from command-line arguments
 
   if (heading) myHeading = heading;
 }
@@ -62,9 +67,6 @@ void SIMinput::printHeading (int& subStep) const
 
 bool SIMinput::read (const char* fileName)
 {
-  opt = IFEM::getOptions();
-  inputFile = fileName;
-
 #ifdef HAS_PETSC
   // In parallel simulations, we need to retain all DOFs in the equation system.
   // The fixed DOFs (if any) will receive a homogeneous constraint instead.
@@ -76,11 +78,7 @@ bool SIMinput::read (const char* fileName)
   this->printHeading(substep);
 
   bool result;
-#if defined(__MINGW32__) || defined(__MINGW64__)
-  if (strstr(fileName,".xinp"))
-#else
   if (strcasestr(fileName,".xinp"))
-#endif
     result = this->readXML(fileName);
   else
     result = this->readFlat(fileName);
@@ -98,7 +96,7 @@ bool SIMinput::readFlat (const char* fileName)
   if (!is)
   {
     std::cerr <<"\n *** SIMinput::read: Failure opening input file "
-	      << fileName << std::endl;
+              << fileName << std::endl;
     return false;
   }
 
@@ -110,7 +108,7 @@ bool SIMinput::readFlat (const char* fileName)
     if (!this->parse(keyWord,is))
     {
       std::cerr <<" *** SIMinput::read: Failure occured while parsing \""
-		<< keyWord <<"\""<< std::endl;
+                << keyWord <<"\""<< std::endl;
       return false;
     }
 
@@ -118,6 +116,15 @@ bool SIMinput::readFlat (const char* fileName)
     std::cout <<"\nReading input file succeeded."<< std::endl;
 
   return true;
+}
+
+
+bool SIMinput::parse (char*, std::istream&)
+{
+  std::cerr <<" *** SIMinput::parse(char*,std::istream&):"
+            <<" The flat file format is depreciated.\n"
+            <<"     Use the XML format instead."<< std::endl;
+  return false;
 }
 
 
@@ -201,7 +208,7 @@ bool SIMinput::handlePriorityTags (const TiXmlElement* base,
       if (!this->parse(elem)) {
         std::cerr <<" *** SIMinput::read: Failure occured while parsing \""
                   << elem->Value() <<"\""<< std::endl;
-	return false;
+        return false;
       }
       parsed.push_back(elem);
     }

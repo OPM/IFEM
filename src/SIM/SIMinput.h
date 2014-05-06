@@ -27,9 +27,9 @@
 class SIMinput
 {
 protected:
-  //! \brief The constructor initializes \a myPid, \a nProc and \a myHeading.
+  //! \brief The default constructor initializes the process administrator.
   SIMinput(const char* heading = NULL);
-  //! \brief Constructor using control parameters from another SIMinput object.
+  //! \brief Copy constructor.
   SIMinput(SIMinput& anotherSIM);
 
 public:
@@ -40,7 +40,7 @@ public:
   virtual bool read(const char* fileName);
 
 private:
-  //! \brief Reads a flat text input file.
+  //! \brief Reads a flat text input file (obsolete file format).
   bool readFlat(const char* fileName);
   //! \brief Reads an XML input file.
   bool readXML(const char* fileName);
@@ -57,14 +57,14 @@ protected:
   //! In that case the \a getPrioritizedTags method should be reimplemented
   //! by the sub-class to take care of the application-specific tags.
   bool handlePriorityTags(const TiXmlElement* base,
-			  std::vector<const TiXmlElement*>& parsed);
+                          std::vector<const TiXmlElement*>& parsed);
 
   //! \brief Returns a list of prioritized XML-tags.
   virtual const char** getPrioritizedTags() const { return NULL; }
 
 public:
   //! \brief Parses a data section from an input stream.
-  virtual bool parse(char* keyWord, std::istream& is) = 0;
+  virtual bool parse(char* keyWord, std::istream& is);
   //! \brief Parses a data section from an XML element.
   virtual bool parse(const TiXmlElement* elem) = 0;
 
@@ -97,7 +97,6 @@ protected:
   int nProc;      //!< Number of processors in parallel simulations
 
   std::string myHeading; //!< Heading written before reading the input file
-  std::string inputFile; //!< The parsed input file
 };
 
 #endif
