@@ -52,28 +52,29 @@ public:
   //! \param[in] force If \e true, close even if \a keepopen was \e true
   virtual void closeFile(int level, bool force = false);
 
-  //! \brief Write a vector to file
+  //! \brief Writes a vector to file.
   //! \param[in] level The time level to write the vector at
   //! \param[in] entry The DataEntry describing the vector
   virtual void writeVector(int level, const DataEntry& entry);
 
-  //! \brief Read a vector from file
+  //! \brief Reads a vector from file.
   //! \param[in] level The time level to read the vector at
   //! \param[in] entry The DataEntry describing the vector
   virtual bool readVector(int level, const DataEntry& entry);
 
-  //! \brief Write data from a SIM to file
+  //! \brief Writes data from a SIM to file.
   //! \param[in] level The time level to write the data at
   //! \param[in] entry The DataEntry describing the vector
   //! \param[in] geometryUpdated Whether or not geometries should be written
   //! \param[in] prefix Field name prefix
-  //! \details If prefix is non-empty and we are asked to dump secondard
-  //!          solutions, we assume they come from different projections
+  //!
+  //! \details If prefix is non-empty and we are asked to dump secondary
+  //! solutions, we assume they come from different projections
   //! \sa SIMbase::project
   virtual void writeSIM(int level, const DataEntry& entry,
                         bool geometryUpdated, const std::string& prefix);
 
-  //! \brief Read data from a file into SIM
+  //! \brief Reads data from a file into a SIM.
   //! \param[in] level The time level to read the data at
   //! \param[in] entry The DataEntry describing the SIM
   virtual bool readSIM(int level, const DataEntry& entry);
@@ -83,7 +84,7 @@ public:
   //! \param[in] entry The DataEntry describing the vector
   virtual void writeNodalForces(int level, const DataEntry& entry);
 
-  //! \brief Write time stepping info to file (currently a dummy)
+  //! \brief Writes time stepping info to file.
   //! \param[in] level The time level to write the info at
   //! \param[in] order The temporal order
   //! \param[in] interval The number of time steps between each data dump
@@ -91,21 +92,11 @@ public:
   virtual bool writeTimeInfo(int level, int order, int interval,
                              const TimeStep& tp);
 
-  /* Not used, remove?
-  //! \brief Reads a vector field into a given SIM
-  //! \param[in] level The time level to read at
-  //! \param[in] name The name of the field
-  //! \param[in] vec The vector to read into
-  //! \param[in] sim The SIM this vector is associated with
-  //! \param[in] components The number of components in the field
-  bool readField(int level, const std::string& name,
-                 Vector& vec, SIMbase* sim, int components);
-  */
-
-  //! \brief Reads a text string
+  //! \brief Reads a text string.
   //! \param[in] name The name (path in HDF5 file) to the string
   //! \param[out] out The string to read data into
-  void readString(const std::string& name, std::string& out, bool close=true);
+  //! \param[in] close If \e false, keep the HDF5-file open after reading
+  void readString(const std::string& name, std::string& out, bool close = true);
 
   //! \brief Reads a double vector.
   //! \param[in] level The time level to read at
@@ -131,7 +122,7 @@ public:
   bool readDouble(int level, const std::string& group,
                   const std::string& name, double& data);
 
-  //! \brief Check if updated geometries exists in file at given time level
+  //! \brief Checks if updated geometries exist in file at given time level.
   //! \param[in] level The time level to check
   //! \param[in] basisName Check for a particular basis
   bool hasGeometries(int level, const std::string& basisName = "");
@@ -167,7 +158,7 @@ protected:
   //! \param[out] data The array to read data into
   void readArray(int group, const std::string& name, int& len, int*& data);
 
-  //! \brief Internal helper function. Check if a group exists in the HDF5 file
+  //! \brief Internal helper function. Checks if a group exists in the file.
   //! \param[in] parent The HDF5 group of the parent
   //! \param[in] group The name of the group to check for
   //! \return \e true if group exists, otherwise \e false

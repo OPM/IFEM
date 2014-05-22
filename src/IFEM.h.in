@@ -21,15 +21,18 @@
 #include "SIMoptions.h"
 #include "ControlFIFO.h"
 
-
-#ifndef NDEBUG 
+#ifndef NDEBUG
 #include "ScopedLogger.h"
+//! \brief Macro for scope logging.
 #define SCOPED_LOG ScopedLogger no_conflict_logger(__PRETTY_FUNCTION__);
 #else
 #define SCOPED_LOG
 #endif
 
-/*! \brief Class holding global IFEM configuration */
+
+/*!
+  \brief Class holding global IFEM configuration.
+*/
 
 class IFEM
 {
@@ -40,19 +43,21 @@ public:
   //! \return The MPI process ID
   static int Init(int argc, char** argv);
 
+  //! \brief Applies command-line argument values to the general input options.
   static void applyCommandLineOptions(SIMoptions& opt);
+  //! \brief Returns a reference to the general input options
   static SIMoptions& getOptions() { return cmdOptions; }
 
-  //! \brief Register a fifo instruction callback
-  //! \brief callback The callback to register
+  //! \brief Registers a fifo instruction callback.
   static void registerCallback(ControlCallback& callback)
-  { 
+  {
     fifo.registerCallback(callback);
   }
 
-  //! \brief Poll the control fifo for instructions
+  //! \brief Polls the control fifo for instructions.
   static void pollControllerFifo() { fifo.poll(); }
-protected:
+
+private:
   static SIMoptions cmdOptions; //!< General input options
   static int argc;              //!< The number of command-line arguments
   static char** argv;           //!< The command-line arguments
