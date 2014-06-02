@@ -296,7 +296,7 @@ bool ASMs3D::evaluate (const Field* field, Vector& vec) const
   // Evaluate the result field at all sampling points.
   // Note: it is here assumed that *basis and *this have spline bases
   // defined over the same parameter domain.
-  Vector sValues(gpar[0].size()*gpar[1].size());
+  Vector sValues(gpar[0].size()*gpar[1].size()*gpar[2].size());
   Vector::iterator it=sValues.begin();
   for (size_t l=0;l<gpar[2].size();++l) {
     FiniteElement fe;
