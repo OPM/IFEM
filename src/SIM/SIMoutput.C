@@ -610,8 +610,7 @@ bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
 
   Matrix field;
   Vector lovec;
-  const size_t nf = myProblem->getNoFields(2);
-  std::vector<IntVec> sID(nf);
+  std::vector<IntVec> sID(myProblem->getNoFields(2));
 
   size_t i, j;
   int geomID = myGeomID;
@@ -623,13 +622,13 @@ bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
       std::cout <<"Writing projected solution for patch "<< i+1 << std::endl;
 
     // Evaluate the solution variables at the visualization points
-    myModel[i]->extractNodeVec(ssol,lovec,nf);
+    myModel[i]->extractNodeVec(ssol,lovec,sID.size());
     if (!myModel[i]->evalSolution(field,lovec,opt.nViz))
       return false;
 
     // Write out to VTF-file as scalar fields
     const ElementBlock* grid = myVtf->getBlock(++geomID);
-    for (j = 0; j < field.rows() && j < nf; j++)
+    for (j = 0; j < field.rows() && j < sID.size(); j++)
     {
       Vector comp(field.getRow(1+j));
       if (!myVtf->writeNres(comp,++nBlock,geomID))
@@ -650,7 +649,7 @@ bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
   }
 
   // Write result block identifications
-  for (j = 0; j < nf && !sID[j].empty(); j++)
+  for (j = 0; j < sID.size() && !sID[j].empty(); j++)
     if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(j,prefix),
                           ++idBlock,iStep)) return false;
 
@@ -813,6 +812,7 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
     {
       if (l > norm->getNoFields(j))
         l = 1, ++j;
+
       if (norm->hasElementContributions(j,l++))
         if (!myVtf->writeEres(field.getRow(1+m),++nBlock,geomID))
           return false;
@@ -821,22 +821,21 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
     }
   }
 
+  const char* normName;
   int idBlock = 200;
   j = l = 1;
-  char tmp[1024];
   for (k = 0; k < maxN && !sID[k].empty(); l++)
   {
     if (l > norm->getNoFields(j))
       l = 1, ++j;
+
     if (!norm->hasElementContributions(j,l))
       continue;
 
-    const char* normName;
-    if (!prefix && j > 1) {
-      sprintf(tmp,"norm%lu %s", j, norm->getName(j,l,NULL));
-      normName = tmp;
-    } else
-      normName = norm->getName(j,l,j>1?prefix[j-2]:0);
+    if (prefix && j > 1)
+      normName = norm->getName(j,l,prefix[j-2]);
+    else
+      normName = norm->getName(j,l);
 
     if (!myVtf->writeSblk(sID[k++],normName,++idBlock,iStep,true))
       return false;
@@ -935,13 +934,13 @@ bool SIMoutput::dumpSolution (const Vector& psol, std::ostream& os) const
     size_t nf = myModel[i]->getNoFields(1);
     Vector& patchSol = myProblem->getSolution();
     myModel[i]->extractNodeVec(psol,patchSol,mySam->getMADOF());
-    for (k = 1; k <= nf; k++)
+    for (k = 0; k < nf; k++)
     {
       os << myProblem->getField1Name(k,"# FE");
       for (j = 1; j <= myModel[i]->getNoNodes(); j++)
       {
         std::pair<int,int> dofs = mySam->getNodeDOFs(j);
-        int idof = dofs.first+k-1;
+        int idof = dofs.first+k;
         if (idof <= dofs.second)
           os <<"\n"<< utl::trunc(patchSol[idof-1]);
       }
