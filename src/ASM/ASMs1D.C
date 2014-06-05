@@ -1240,22 +1240,23 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   size_t nPoints = upar.size();
   for (size_t i = 0; i < nPoints; i++)
   {
-    // Fetch indices of the non-zero basis functions at this point
-    IntVec ip;
-    scatterInd(p1,curv->basis().lastKnotInterval(),ip);
     fe.u = upar[i];
     fe.iGP = firstIp + i;
-
-    // Fetch associated control point coordinates
-    utl::gather(ip,nsd,Xnod,Xtmp);
 
     // Fetch basis function derivatives at current integration point
     if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
       curv->basis().computeBasisValues(fe.u,fe.N.ptr());
     else if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
-      this->extractBasis(upar[i],fe.N,dNdu,d2Ndu2);
+      this->extractBasis(fe.u,fe.N,dNdu,d2Ndu2);
     else
-      this->extractBasis(upar[i],fe.N,dNdu);
+      this->extractBasis(fe.u,fe.N,dNdu);
+
+    // Fetch indices of the non-zero basis functions at this point
+    IntVec ip;
+    scatterInd(p1,curv->basis().lastKnotInterval(),ip);
+
+    // Fetch associated control point coordinates
+    utl::gather(ip,nsd,Xnod,Xtmp);
 
     if (!dNdu.empty())
     {
