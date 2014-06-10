@@ -26,15 +26,19 @@ const Matrix& GenAlphaMats::getNewtonMatrix () const
   Matrix& N = const_cast<Matrix&>(A.front());
   double alphaPlus1 = 1.5 - gamma; // = 1.0 + alpha
 
-  N = A[3];
-  N.multiply(alphaPlus1);
-  N.add(A[2],alphaPlus1*(1.0 + alpha2*gamma/(beta*h)));
+  N = A[2];
+  N.multiply(alphaPlus1*(1.0 + alpha2*gamma/(beta*h)));
+  if (A.size() > 3)
+    N.add(A[3],alphaPlus1);
   N.add(A[1],(alphaPlus1*gamma*alpha1 + 1.0/h)/(beta*h));
 
 #if SP_DEBUG > 2
   std::cout <<"\nElement mass matrix"<< A[1];
-  std::cout <<"Material stiffness matrix"<< A[2];
-  std::cout <<"Geometric stiffness matrix"<< A[3];
+  if (A.size() > 3)
+    std::cout <<"Material stiffness matrix"<< A[2]
+              <<"Geometric stiffness matrix"<< A[3];
+  else
+    std::cout <<"Tangent stiffness matrix"<< A[2];
   std::cout <<"Resulting Newton matrix"<< A[0];
 #endif
 

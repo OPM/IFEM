@@ -142,7 +142,7 @@ public:
   void setGauss(int ng) { nGauss = ng; }
 
   //! \brief Defines the number of solution fields \a nf in the patch.
-  //! \brief This method is to be used by simulators where \a nf is not known
+  //! \details This method is to be used by simulators where \a nf is not known
   //! when the patch is constructed, e.g., it depends on the input file content.
   //! It must be invoked only before the SIMbase::preprocess is invoked.
   void setNoFields(unsigned char n) { nf = n; }

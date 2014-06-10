@@ -90,17 +90,17 @@ void NewmarkSIM::printProblem (std::ostream& os) const
 
   if (alpha1 > 0.0)
     os <<"\nMass-proportional damping (alpha1): "<< alpha1;
-  if (alpha2 > 0.0)
-    os <<"\nStiffness-proportional damping (alpha2): "<< alpha2;
+  if (alpha2 != 0.0)
+    os <<"\nStiffness-proportional damping (alpha2): "<< fabs(alpha2);
 
-  os <<"\n"<< std::endl;
+  os << std::endl;
 }
 
 
 void NewmarkSIM::init (size_t nSol)
 {
   model.setIntegrationPrm(0,alpha1);
-  model.setIntegrationPrm(1,alpha2);
+  model.setIntegrationPrm(1,fabs(alpha2));
   model.setIntegrationPrm(2,beta);
   model.setIntegrationPrm(3,gamma);
 

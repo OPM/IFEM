@@ -36,6 +36,9 @@ public:
   //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);
 
+  //! \brief Prints out problem-specific data to the given stream.
+  virtual void printProblem(std::ostream& os) const;
+
   //! \brief Initializes primary solution vectors and integration parameters.
   //! \param[in] nSol Number of consequtive solutions stored
   virtual void init(size_t nSol = 3);

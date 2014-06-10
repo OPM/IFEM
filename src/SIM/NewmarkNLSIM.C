@@ -44,11 +44,29 @@ bool NewmarkNLSIM::parse (const TiXmlElement* elem)
 }
 
 
+void NewmarkNLSIM::printProblem (std::ostream& os) const
+{
+  this->NewmarkSIM::printProblem(os);
+  if (myPid > 0) return;
+
+  if (alpha2 > 0.0)
+    std::cout <<"- based on the tangential stiffness matrix";
+  else if (alpha2 < 0.0)
+    std::cout <<"- based on the material stiffness matrix only";
+  else
+    return;
+
+  os <<"\n"<< std::endl;
+}
+
+
 void NewmarkNLSIM::init (size_t nSol)
 {
   model.setIntegrationPrm(0,alpha1);
-  model.setIntegrationPrm(1,alpha2);
+  model.setIntegrationPrm(1,fabs(alpha2));
   model.setIntegrationPrm(2,0.5-gamma);
+  if (alpha2 < 0.0) // Flag that stiffness-proportional damping should depend
+    model.setIntegrationPrm(3,-1.0); // on the material stiffness matrix only
 
   this->MultiStepSIM::init(nSol);
   size_t nDOFs = model.getNoDOFs();
