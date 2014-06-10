@@ -14,11 +14,11 @@
 #include "HDF5Writer.h"
 #include "GlbForceVec.h"
 #include "SIMoutput.h"
+#include "ASMbase.h"
 #include "IntegrandBase.h"
 #include "TimeStep.h"
 #include "Vec3.h"
 #include <sstream>
-#include "ASMbase.h"
 
 #ifdef HAS_HDF5
 #include <numeric>
@@ -271,8 +271,7 @@ bool HDF5Writer::readSIM (int level, const DataEntry& entry)
         readArray(group2,entry.first,siz,tmp);
       else
         readArray(group2,entry.second.description+" restart",siz,tmp);
-      ok = sim->injectPatchSolution(*sol,Vector(tmp,siz),
-                                    loc-1);
+      ok = sim->injectPatchSolution(*sol,Vector(tmp,siz),loc-1);
       if (hasGeometries(level, sim->getName()+"-1")) {
         std::string out;
         std::stringstream geom;
@@ -280,7 +279,7 @@ bool HDF5Writer::readSIM (int level, const DataEntry& entry)
         readString(geom.str(), out, false);
         std::stringstream str;
         str << out;
-        sim->getFEModel()[loc-1]->read(str);
+        sim->getPatch(loc)->read(str);
       }
       delete[] tmp;
     }

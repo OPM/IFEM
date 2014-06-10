@@ -43,8 +43,6 @@ Vector SIM::getBoundaryForce (const Vectors& solution, SIMbase* model, int code,
 
   forceInt->initBuffer(model->getNoElms());
 
-  const ASMVec& feModel = model->getFEModel();
-
   // Integrate forces for given boundary segment
   bool ok = true;
   size_t prevPatch = 0;
@@ -53,15 +51,15 @@ Vector SIM::getBoundaryForce (const Vectors& solution, SIMbase* model, int code,
   for (p = model->begin_prop(); p != model->end_prop() && ok; p++)
     if (abs(p->pindx) == code)
     {
-      size_t j = p->patch;
-      if (j < 1 || j > feModel.size())
+      ASMbase* patch = model->getPatch(p->patch);
+      if (!patch)
         ok = false;
-      else if (abs(p->ldim)+1 == feModel[j-1]->getNoSpaceDim())
+      else if (abs(p->ldim)+1 == patch->getNoParamDim())
       {
-        if (j != prevPatch)
-          ok = model->extractPatchSolution(solution,j-1);
-        ok &= feModel[j-1]->integrate(*forceInt,abs(p->lindx),dummy,time);
-        prevPatch = j;
+        if (p->patch != prevPatch)
+          ok = model->extractPatchSolution(solution,p->patch-1);
+        ok &= patch->integrate(*forceInt,abs(p->lindx),dummy,time);
+        prevPatch = p->patch;
       }
     }
 
@@ -90,8 +88,6 @@ bool SIM::getNodalForces (const Vectors& solution, SIMbase* model, int code,
     return false;
   }
 
-  const ASMVec& feModel = model->getFEModel();
-
   // Integrate nodal forces for given boundary segment
   bool ok = true;
   size_t prevPatch = 0;
@@ -99,15 +95,15 @@ bool SIM::getNodalForces (const Vectors& solution, SIMbase* model, int code,
   for (p = model->begin_prop(); p != model->end_prop() && ok; p++)
     if (abs(p->pindx) == code)
     {
-      size_t j = p->patch;
-      if (j < 1 || j > feModel.size())
+      ASMbase* patch = model->getPatch(p->patch);
+      if (!patch)
         ok = false;
-      else if (abs(p->ldim)+1 == feModel[j-1]->getNoSpaceDim())
+      else if (abs(p->ldim)+1 == patch->getNoParamDim())
       {
-        if (j != prevPatch)
-          ok = model->extractPatchSolution(solution,j-1);
-        ok &= feModel[j-1]->integrate(*forceInt,abs(p->lindx),force,time);
-        prevPatch = j;
+        if (p->patch != prevPatch)
+          ok = model->extractPatchSolution(solution,p->patch-1);
+        ok &= patch->integrate(*forceInt,abs(p->lindx),force,time);
+        prevPatch = p->patch;
       }
     }
 
@@ -123,17 +119,13 @@ bool SIM::getNodalForces (const Vectors& solution, SIMbase* model, int code,
 
 bool SIM::initBoundaryNodeMap (SIMbase* model, int code, GlbForceVec& force)
 {
-  const ASMVec& feModel = model->getFEModel();
-
+  ASMbase* patch;
   IntVec glbNodes;
   PropertyVec::const_iterator p;
   for (p = model->begin_prop(); p != model->end_prop(); p++)
-    if (abs(p->pindx) == code && p->patch > 0 && p->patch < feModel.size())
-    {
-      ASMbase* patch = feModel[p->patch-1];
-      if (abs(p->ldim)+1 == patch->getNoSpaceDim())
+    if (abs(p->pindx) == code && (patch = model->getPatch(p->patch)))
+      if (abs(p->ldim)+1 == patch->getNoParamDim())
         patch->getBoundaryNodes(abs(p->lindx),glbNodes);
-    }
 
   return force.initNodeMap(glbNodes,model->getNoSpaceDim());
 }

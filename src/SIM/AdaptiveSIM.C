@@ -306,7 +306,8 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   if (scheme == 2)
   {
     // Sum up the total error over all supported elements for each function
-    ASMbase* patch = model->getFEModel().front();
+    ASMbase* patch = model->getPatch(1);
+    if (!patch) return false;
     IntMat::const_iterator eit;
     IntVec::const_iterator nit;
     for (i = 0; i < patch->getNoNodes(); i++) // Loop over basis functions

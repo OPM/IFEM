@@ -195,11 +195,11 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
         utl::getAttribute(set,"type",type,true);
         if (type == "volume")
           idim = 3;
-        else if (type == "face")
+        else if (type == "face" || type == "surface")
           idim = 2;
-        else if (type == "edge")
+        else if (type == "edge" || type == "curve")
           idim = 1;
-        else if (type == "vertex")
+        else if (type == "vertex" || type == "point")
           idim = 0;
         else
           utl::getAttribute(set,"dimension",idim);
@@ -212,7 +212,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
           int patch = 0;
           utl::getAttribute(item,"patch",patch);
           if ((patch = this->getLocalPatchIndex(patch)) > 0) {
-	    if (abs(idim) == (int)this->getNoSpaceDim())
+	    if (abs(idim) == (int)this->getNoParamDim())
               top.insert(TopItem(patch,0,idim));
             else if (item->FirstChild())
 	    {
@@ -860,7 +860,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
     for (mit = myModel.begin(), patch = 1; mit != myModel.end(); mit++, patch++)
       if (std::find(pchWthMat.begin(),pchWthMat.end(),*mit) == pchWthMat.end())
 	myProps.push_back(Property(Property::MATERIAL,999999,patch,
-				   (*mit)->getNoSpaceDim()));
+				   (*mit)->getNoParamDim()));
 
   if (fixDup)
   {
@@ -1477,7 +1477,7 @@ void SIMbase::getBoundaryNodes (int pcode, IntVec& glbNodes, Vec3Vec* XYZ) const
   PropertyVec::const_iterator p;
   for (p = myProps.begin(); p != myProps.end(); p++)
     if (abs(p->pindx) == pcode && (pch = this->getPatch(p->patch)))
-      if (abs(p->ldim)+1 == pch->getNoSpaceDim())
+      if (abs(p->ldim)+1 == pch->getNoParamDim())
       {
         pch->getBoundaryNodes(abs(p->lindx),glbNodes);
         for (i = last; XYZ && i < glbNodes.size(); i++)
@@ -1595,7 +1595,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             ok = false;
           }
 
-          else if (abs(p->ldim)+1 == pch->getNoSpaceDim())
+          else if (abs(p->ldim)+1 == pch->getNoParamDim())
             if (it->first == p->pindx || this->initNeumann(p->pindx))
             {
               if (msgLevel > 1)
@@ -1609,7 +1609,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             else
               ok = false;
 
-          else if (abs(p->ldim) == 1 && pch->getNoSpaceDim() == 3)
+          else if (abs(p->ldim) == 1 && pch->getNoParamDim() == 3)
             if (it->first == 0 && this->initNeumann(p->pindx))
             {
               if (msgLevel > 1)
@@ -2018,7 +2018,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 	if (!(pch = this->getPatch(p->patch)))
 	  ok = false;
 
-	else if (abs(p->ldim)+1 == pch->getNoSpaceDim())
+	else if (abs(p->ldim)+1 == pch->getNoParamDim())
 	  if (this->initNeumann(p->pindx))
 	  {
 	    if (p->patch != lp)
@@ -2029,7 +2029,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 	  else
 	    ok = false;
 
-	else if (abs(p->ldim)+2 == pch->getNoSpaceDim())
+	else if (abs(p->ldim)+2 == pch->getNoParamDim())
 	  if (this->initNeumann(p->pindx))
 	  {
 	    if (p->patch != lp)

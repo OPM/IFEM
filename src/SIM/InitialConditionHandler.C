@@ -11,14 +11,10 @@
 //!
 //==============================================================================
 
-
 #include "InitialConditionHandler.h"
-
 #include "ASMbase.h"
-#include "ASMs2D.h"
 #include "HDF5Writer.h"
 #include "XMLWriter.h"
-
 #include <sstream>
 
 
@@ -57,11 +53,9 @@ bool SIM::setInitialConditions (SIMbase& sim, SIMdependency* fieldHolder)
           break;
       }
       if (it3 == xmlreader.getEntries().end()) {
-        std::cerr << "Could not find IC (" << it2->file_field 
-                                           << "," << it2->file_level
-                                           << ") -> (" << it2->sim_field
-                                           << ", " << it2->sim_level << ")"
-                                           << std::endl;
+        std::cerr <<" *** SIM::setInitialConditions: Could not find IC ("
+                  << it2->file_field <<","<< it2->file_level <<") -> ("
+                  << it2->sim_field <<", "<< it2->sim_level <<")"<< std::endl;
         return false;
       }
       // load basis
@@ -86,13 +80,13 @@ bool SIM::setInitialConditions (SIMbase& sim, SIMdependency* fieldHolder)
       // loop over patches
       for (int i=0;i<it3->patches;++i) {
         int p = sim.getLocalPatchIndex(i+1);
-        if (p < 1)
-          continue;
+        ASMbase* pch = sim.getPatch(p);
+        if (!pch) continue;
         Vector loc, newloc;
         hdf5reader.readVector(it2->file_level, it2->file_field, i+1, loc);
-        basis[it3->basis][p-1]->copyParameterDomain(sim.getFEModel()[p-1]);
-        sim.getFEModel()[p-1]->evaluate(basis[it3->basis][p-1], loc, newloc);
-        sim.getFEModel()[p-1]->injectNodeVec(newloc, *field, it3->components);
+        basis[it3->basis][p-1]->copyParameterDomain(pch);
+        pch->evaluate(basis[it3->basis][p-1], loc, newloc);
+        pch->injectNodeVec(newloc, *field, it3->components);
       }
     }
 
