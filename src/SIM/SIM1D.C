@@ -22,7 +22,7 @@
 
 SIM1D::SIM1D (unsigned char n1, unsigned char, bool)
 {
-  nd = 1;
+  nsd = 1;
   nf = n1;
   twist = NULL;
 }
@@ -30,7 +30,7 @@ SIM1D::SIM1D (unsigned char n1, unsigned char, bool)
 
 SIM1D::SIM1D (IntegrandBase* itg, unsigned char n) : SIMgeneric(itg)
 {
-  nd = 1;
+  nsd = 1;
   nf = n;
   twist = NULL;
 }
@@ -455,7 +455,7 @@ bool SIM1D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 
 ASMbase* SIM1D::readPatch (std::istream& isp, int pchInd) const
 {
-  ASMbase* pch = ASM1D::create(opt.discretization,nd,nf);
+  ASMbase* pch = ASM1D::create(opt.discretization,nsd,nf);
   if (pch)
   {
     if (!pch->read(isp))
@@ -475,7 +475,7 @@ bool SIM1D::readPatches (std::istream& isp, PatchVec& patches,
 {
   ASMbase* pch = NULL;
   for (int pchInd = 1; isp.good(); pchInd++)
-    if ((pch = ASM1D::create(opt.discretization,nd,nf)))
+    if ((pch = ASM1D::create(opt.discretization,nsd,nf)))
     {
       std::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
       if (!pch->read(isp))
@@ -515,8 +515,16 @@ bool SIM1D::createFEMmodel (char)
 
 ASMbase* SIM1D::createDefaultGeometry () const
 {
-  std::istringstream unitLine("100 1 0 0\n1 0\n2 2\n0 0 1 1\n0\n1\n");
+  std::string g2("100 1 0 0\n");
+  g2.append(1,'0'+nsd);
+  g2.append(" 0\n2 2\n0 0 1 1\n0.0");
+  unsigned char d;
+  for (d = 1; d < nsd; d++) g2.append(" 0.0");
+  g2.append("\n1.0");
+  for (d = 1; d < nsd; d++) g2.append(" 0.0");
+  g2.append("\n");
 
+  std::istringstream unitLine(g2);
   return this->readPatch(unitLine,1);
 }
 

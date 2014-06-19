@@ -185,11 +185,11 @@ public:
 
   //! \brief Returns the number of parameter dimensions in the model.
   virtual unsigned short int getNoParamDim() const = 0;
+  //! \brief Returns the number of spatial dimensions in the model.
+  virtual size_t getNoSpaceDim() const { return nsd; }
   //! \brief Returns the number of primary solution fields.
   //! \param[in] basis Which basis to condsider when mixed methods (0 = both)
   size_t getNoFields(int basis = 0) const;
-  //! \brief Returns the number of spatial dimensions in the model.
-  size_t getNoSpaceDim() const;
   //! \brief Returns the model size in terms of number of DOFs.
   size_t getNoDOFs() const;
   //! \brief Returns the model size in terms of number of (unique) nodes.
@@ -645,6 +645,7 @@ protected:
 
   // Model attributes
   bool           isRefined; //!< Indicates if the model is adaptively refined
+  unsigned char  nsd;       //!< Number of spatial dimensions
   PatchVec       myModel;   //!< The actual NURBS/spline model
   PropertyVec    myProps;   //!< Physical property mapping
   TopologySet    myEntitys; //!< Set of named topological entities

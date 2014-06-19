@@ -293,7 +293,6 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
 {
   const SAMpatchPara* sampch = dynamic_cast<const SAMpatchPara*>(&sam);
 
-  nsd = sampch->getNoSpaceDim();
   if (!strncasecmp(solParams.getPreconditioner(),"gamg",4) || !strncasecmp(solParams.getPreconditioner(),"ml",2))
     sampch->getLocalNodeCoordinates(coords);
 
@@ -340,7 +339,7 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
   if (adm.isParallel()) {
     PetscInt ifirst, ilast;
     std::vector<int> d_nnz, o_nnz;
-    
+
     // Determine rows owned by this process
     ifirst = sampch->getMinEqNumber();
     ifirst--;
@@ -362,9 +361,8 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
     }
   }
   else {
-    std::vector<int> nnz;
-    
     // RUNAR
+    std::vector<int> nnz;
     if (sam.getNoDofCouplings(nnz)) {
       PetscIntVec Nnz(nnz.size());
       for (size_t i = 0; i < nnz.size(); i++)
@@ -390,12 +388,12 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
     }
 #endif
   }
-    
+
 #ifndef SP_DEBUG
-    // Do not abort program for allocation error in release mode
-    MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE);
+  // Do not abort program for allocation error in release mode
+  MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE);
 #endif
-  }
+}
 
 
 bool PETScMatrix::beginAssembly()
@@ -485,7 +483,7 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
 
   if (setParams) {
     KSPSetOperators(ksp,A,A, newLHS ? SAME_NONZERO_PATTERN:SAME_PRECONDITIONER);
-    solParams.setParams(ksp,locSubdDofs,subdDofs,coords,nsd,dirIndexSet);
+    solParams.setParams(ksp,locSubdDofs,subdDofs,coords,dirIndexSet);
     setParams = false;
   }
   KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
@@ -523,7 +521,7 @@ bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
 
   if (setParams) {
     KSPSetOperators(ksp,A,A, newLHS ? SAME_NONZERO_PATTERN : SAME_PRECONDITIONER);
-    solParams.setParams(ksp,locSubdDofs,subdDofs,coords,nsd,dirIndexSet);
+    solParams.setParams(ksp,locSubdDofs,subdDofs,coords,dirIndexSet);
     setParams = false;
   }
   KSPSetInitialGuessNonzero(ksp,PETSC_TRUE);
@@ -565,7 +563,7 @@ bool PETScMatrix::solve (SystemVector& B, SystemMatrix& P, bool newLHS)
   if (setParams) {
     KSPSetOperators(ksp,A,Pptr->getMatrix(),
                   newLHS ? SAME_NONZERO_PATTERN : SAME_PRECONDITIONER);
-    solParams.setParams(ksp,locSubdDofs,subdDofs,coords,nsd,dirIndexSet);
+    solParams.setParams(ksp,locSubdDofs,subdDofs,coords,dirIndexSet);
     setParams = false;
   }
   KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);

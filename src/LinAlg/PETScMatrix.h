@@ -257,7 +257,6 @@ protected:
   bool                setParams;   //!< If linear solver parameters are set
   IS*                 elmIS;       //!< Element index sets
   PetscInt            ISsize;      //!< Number of index sets/elements
-  PetscInt            nsd;         //!< Number of space dimensions
   PetscIntMat         locSubdDofs; //!< Degrees of freedom for unique subdomains
   PetscIntMat         subdDofs;    //!< Degrees of freedom for subdomains
   PetscRealVec        coords;      //!< Coordinates of local nodes (x0,y0,z0,x1,y1,...)

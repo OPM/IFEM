@@ -20,7 +20,7 @@
 
 
 LagrangeField2D::LagrangeField2D (const ASMs2DLag* patch, const RealArray& v,
-				  const char* name) : FieldBase(2,name)
+				  const char* name) : FieldBase(name)
 {
   patch->getNodalCoordinates(coord);
   patch->getSize(n1,n2);
@@ -76,7 +76,7 @@ double LagrangeField2D::valueCoor (const Vec3& x) const
 
 bool LagrangeField2D::gradFE (const FiniteElement& fe, Vector& grad) const
 {
-  grad.resize(nsd,true);
+  grad.resize(2,true);
 
   Vector Vnod;
   Matrix dNdu;
@@ -92,7 +92,7 @@ bool LagrangeField2D::gradFE (const FiniteElement& fe, Vector& grad) const
   const int node2 = p2*iel2-1;
 
   const int nen = (p1+1)*(p2+1);
-  Matrix Xnod(nsd,nen);
+  Matrix Xnod(2,nen);
 
   int locNode = 1;
   for (int j = node2; j <= node2+p2; j++)

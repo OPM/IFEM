@@ -518,9 +518,21 @@ bool LinSolParams::read (const char* filename)
 
 
 #ifdef HAS_PETSC
+
+int LinSolParams::getLocalPartitioning(size_t dir, size_t i) const
+{
+  switch (dir) {
+  case 0: return nx[i];
+  case 1: return ny[i];
+  case 2: return nz[i];
+  default: return 0;
+  }
+}
+
+
 void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
 			      PetscIntMat& subdDofs, PetscRealVec& coords, 
-			      PetscInt nsd, ISMat& dirIndexSet) const
+			      ISMat& dirIndexSet) const
 {
   // Set linear solver method
   KSPSetType(ksp,method.c_str());

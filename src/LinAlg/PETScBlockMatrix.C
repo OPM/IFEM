@@ -233,8 +233,7 @@ void PETScBlockMatrix::getBlockElmMatData(const Matrix& Amat,
 void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
 {
   const SAMpatchPara* sampch = dynamic_cast<const SAMpatchPara*>(&sam);
-  
-  nsd = sampch->getNoSpaceDim();
+
   bool getcoords = false;
   if (!strncasecmp(solParams.prec.c_str(),"gamg",4) || !strncasecmp(solParams.prec.c_str(),"ml",2))
     getcoords = true;
@@ -635,8 +634,8 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
   KSPGetPC(ksp,&pc);
   PCSetType(pc,solParams.prec.c_str());
   if (!strncasecmp(solParams.prec.c_str(),"gamg",4) || !strncasecmp(solParams.prec.c_str(),"ml",2)) {
-    PetscInt nloc = coords.size()/nsd;
-    PCSetCoordinates(pc,nsd,nloc,&coords[0]);
+    PetscInt nloc = coords.size()/solParams.nsd;
+    PCSetCoordinates(pc,solParams.nsd,nloc,&coords[0]);
   }
   //PCFactorSetMatSolverPackage(pc,solParams.package[0].c_str());
   if (!strncasecmp(solParams.prec.c_str(),"fieldsplit",10)) {
@@ -908,8 +907,8 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	}
       }
       else if (!strncasecmp(solParams.subprec[1].c_str(),"gamg",4) || !strncasecmp(solParams.subprec[1].c_str(),"ml",2) ) {
-        PetscInt nloc = coords.size()/nsd;
-        PCSetCoordinates(pc,nsd,nloc,&coords[0]);
+        PetscInt nloc = coords.size()/solParams.nsd;
+        PCSetCoordinates(pc,solParams.nsd,nloc,&coords[0]);
       }
 
       PCProdSetUp(subpc[1],&QpL,&Fp,&S);
@@ -939,8 +938,8 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	PCSetType(subpc[m],solParams.subprec[m].c_str());
       
       if (!strncasecmp(solParams.subprec[m].c_str(),"gamg",4) || !strncasecmp(solParams.subprec[m].c_str(),"ml",2) ) {
-	PetscInt nloc = coords.size()/nsd;
-	PCSetCoordinates(subpc[m],nsd,nloc,&coords[0]);
+	PetscInt nloc = coords.size()/solParams.nsd;
+	PCSetCoordinates(subpc[m],solParams.nsd,nloc,&coords[0]);
       }
       
       PCFactorSetLevels(subpc[m],solParams.levels[m]);

@@ -45,6 +45,7 @@ struct Interface
 
 SIM2D::SIM2D (unsigned char n1, unsigned char n2, bool)
 {
+  nsd = 2;
   nf[0] = n1;
   nf[1] = n2;
   nf[2] = 0;
@@ -53,6 +54,7 @@ SIM2D::SIM2D (unsigned char n1, unsigned char n2, bool)
 
 SIM2D::SIM2D (IntegrandBase* itg, unsigned char n) : SIMgeneric(itg)
 {
+  nsd = 2;
   nf[0] = n;
   nf[1] = nf[2] = 0;
 }
@@ -643,7 +645,7 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 
 ASMbase* SIM2D::readPatch (std::istream& isp, int pchInd) const
 {
-  ASMbase* pch = ASM2D::create(opt.discretization,nf,nf[1] > 0);
+  ASMbase* pch = ASM2D::create(opt.discretization,nsd,nf,nf[1] > 0);
   if (pch)
   {
     if (!pch->read(isp))
@@ -663,7 +665,7 @@ bool SIM2D::readPatches (std::istream& isp, PatchVec& patches,
 {
   ASMbase* pch = NULL;
   for (int pchInd = 1; isp.good(); pchInd++)
-    if ((pch = ASM2D::create(opt.discretization,nf,nf[1] > 0)))
+    if ((pch = ASM2D::create(opt.discretization,nsd,nf,nf[1] > 0)))
     {
       std::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
       if (!pch->read(isp))
@@ -742,14 +744,16 @@ void SIM2D::clonePatches (const PatchVec& patches,
 
 ASMbase* SIM2D::createDefaultGeometry () const
 {
-  std::istringstream unitSquare("200 1 0 0\n2 0\n"
-				"2 2\n0 0 1 1\n"
-				"2 2\n0 0 1 1\n"
-				"0 0\n"
-				"1 0\n"
-				"0 1\n"
-				"1 1\n");
+  std::string g2("200 1 0 0\n");
+  g2.append(nsd > 2 ? "3" : "2");
+  g2.append(" 0\n2 2\n0 0 1 1\n2 2\n0 0 1 1");
+  g2.append("\n0.0 0.0"); if (nsd > 2) g2.append(" 0.0");
+  g2.append("\n1.0 0.0"); if (nsd > 2) g2.append(" 0.0");
+  g2.append("\n0.0 1.0"); if (nsd > 2) g2.append(" 0.0");
+  g2.append("\n1.0 1.0"); if (nsd > 2) g2.append(" 0.0");
+  g2.append("\n");
 
+  std::istringstream unitSquare(g2);
   return this->readPatch(unitSquare,1);
 }
 

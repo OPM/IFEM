@@ -104,7 +104,6 @@ protected:
   virtual ASMbase* createDefaultGeometry() const;
 
 protected:
-  unsigned char nd; //!< Number of spatial dimensions
   unsigned char nf; //!< Number of scalar fields
 
 private:

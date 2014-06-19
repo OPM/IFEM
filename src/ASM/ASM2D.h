@@ -40,10 +40,12 @@ public:
 
   //! \brief Creates a two-parametric patch of specified discretization type.
   //! \param[in] type The discretization method to use
+  //! \param[in] nd Number of spatial dimensions
   //! \param[in] nf Number of unknowns per basis function in the patch
   //! \param[in] mixedFEM If \e true, force mixed formulation even if \a nf[1]=0
-  static ASMbase* create(ASM::Discretization type, const unsigned char* nf,
-			 bool mixedFEM = false);
+  static ASMbase* create(ASM::Discretization type,
+                         unsigned char nd, const unsigned char* nf,
+                         bool mixedFEM = false);
   //! \brief Creates a two-parametric patch of specified discretization type.
   //! \param[in] type The discretization method to use
   //! \param[in] nf Number of unknowns per basis function in the patch

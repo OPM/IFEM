@@ -20,7 +20,7 @@
 
 
 LagrangeField3D::LagrangeField3D (const ASMs3DLag* patch, const RealArray& v,
-				  const char* name) : FieldBase(3,name)
+				  const char* name) : FieldBase(name)
 {
   patch->getNodalCoordinates(coord);
   patch->getSize(n1,n2,n3);
@@ -82,7 +82,7 @@ double LagrangeField3D::valueCoor (const Vec3& x) const
 
 bool LagrangeField3D::gradFE (const FiniteElement& fe, Vector& grad) const
 {
-  grad.resize(nsd,true);
+  grad.resize(3,true);
 
   Vector Vnod;
   Matrix dNdu;
@@ -103,7 +103,7 @@ bool LagrangeField3D::gradFE (const FiniteElement& fe, Vector& grad) const
   const int node3 = p3*iel3-1;
 
   const int nen = (p1+1)*(p2+1)*(p3+1);
-  Matrix Xnod(nsd,nen);
+  Matrix Xnod(3,nen);
 
   int locNode = 1;
   for (int k = node3; k <= node3+p3; k++)

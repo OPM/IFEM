@@ -34,29 +34,25 @@ class Vec3;
 class Fields
 {
 protected:
-  //! \brief The constructor sets the number of space dimensions and field name.
-  //! \param[in] n Number of space dimensions (1, 2 or 3)
+  //! \brief The constructor sets the field name.
   //! \param[in] name Name of field
-  Fields(unsigned char n, const char* name = 0) : nsd(n), nf(0), nelm(0), nno(0)
+  Fields(const char* name = 0) : nf(0), nelm(0), nno(0)
   { if (name) fname = name; }
 
 public:
   //! \brief Empty destructor.
   virtual ~Fields() {}
 
-  //! \brief Returns number of space dimensions.
-  unsigned char getNoSpaceDim() const { return nsd; }
-
-  //! \brief Returns number of field components.
+  //! \brief Returns the number of field components.
   unsigned char getNoFields() const { return nf; }
 
-  //! \brief Returns number of elements.
+  //! \brief Returns the number of elements.
   size_t getNoElm() const { return nelm; }
 
-  //! \brief Returns number of control points.
+  //! \brief Returns the number of nodal/control points.
   size_t getNoNodes() const { return nno; }
 
-  //! \brief Returns name of field.
+  //! \brief Returns the name of field.
   const char* getFieldName() const { return fname.c_str(); }
 
   //! \brief Creates a dynamically allocated field object.
@@ -101,7 +97,6 @@ public:
   virtual bool gradCoor(const Vec3& x, Matrix& grad) const = 0;
 
 protected:
-  unsigned char nsd; //!< Number of space dimensions
   unsigned char nf;  //!< Number of field components
   size_t nelm;       //!< Number of elements/knot-spans
   size_t nno;        //!< Number of nodes/control points

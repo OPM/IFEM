@@ -53,13 +53,9 @@ class LinSolParams
 {
 public:
   //! \brief Default constructor.
-  LinSolParams() { this->setDefault(); }
+  LinSolParams(const PetscInt n) : nsd(n) { this->setDefault(); }
   //! \brief Copy constructor.
-  LinSolParams(const LinSolParams& spar) { this->copy(spar); }
-  
-  //! \brief Virtual destructor
-  ~LinSolParams() {}
-  
+  LinSolParams(const LinSolParams& spar) : nsd(spar.nsd) { this->copy(spar); }
 
   //! \brief Set default values.
   void setDefault();
@@ -139,26 +135,13 @@ public:
   int getOverlap(int i = 0) const { return overlap[i]; }
 
   //! \brief Get local partitioning
-  int getLocalPartitioning(size_t dir = 0, size_t i = 0) const
-  {
-    switch (dir)
-    {
-      case 0:
-	return nx[i];
-      case 1:
-	return ny[i];
-      case 2:
-	return nz[i];
-      default:
-	return 0;
-    }
-  }
+  int getLocalPartitioning(size_t dir = 0, size_t i = 0) const;
 
   //! \brief Number of blocks in matrix system
   int getNoBlocks() const { return nblock; }
 
   //! \brief Number of components in a matrix block
-  const std::vector<int>& getComponents() const { return ncomps; }
+  const IntVec& getComponents() const { return ncomps; }
 
   //! \brief Get number of overlaps
   NullSpace getNullSpace(size_t i = 0) const { return nullspc[i]; }
@@ -166,14 +149,12 @@ public:
   //! \brief Set linear solver parameters for KSP object
   void setParams(KSP& ksp, PetscIntMat& locSubdDofs,
                  PetscIntMat& subdDofs, PetscRealVec& coords,
-                 PetscInt nsd, ISMat& dirIndexSet) const;
+                 ISMat& dirIndexSet) const;
 
   //! \brief Set directional smoother
   bool addDirSmoother(PC pc, Mat P, ISMat& dirIndexSet) const;
 
 private:
-  int                    nLinSolves;        // Counter for linear solver
-
   PetscReal              atol;              // Absolute tolerance
   PetscReal              rtol;              // Relative tolerance
   PetscReal              dtol;              // Divergence tolerance
@@ -205,7 +186,7 @@ private:
   PetscIntVec            MLSymmetrize;      // Symmetrize aggregation
   PetscIntVec            MLReuseInterp;     // Reuse interpolation operators between solves
   PetscIntVec            MLBlockScaling;    // Scale all dofs at each node together
-  PetscIntVec            MLPutOnSingleProc; // If below assign to a sigle processor 
+  PetscIntVec            MLPutOnSingleProc; // If below assign to a single processor
   PetscRealVec           MLThreshold;       // Smoother drop toleranse for ML
   PetscRealVec           MLDampingFactor;   // Damping factor
   PetscRealVec           MLRepartitionRatio;// Max-min ratio for repartitioning
@@ -229,10 +210,11 @@ private:
   StringMat              dirsmoother;       // Directional smoother types
   IntMat                 dirOrder;          // Direction smoother orders/numberings
   std::vector<NullSpace> nullspc;           // Null-space for matrix
+#endif // HAS_PETSC
+  const PetscInt         nsd;               //!< Number of space dimensions
 
   friend class PETScMatrix;
   friend class PETScBlockMatrix;
-#endif // HAS_PETSC
 };
 
 #endif

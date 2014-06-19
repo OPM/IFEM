@@ -25,41 +25,42 @@
 ASMbase* ASM2D::create (ASM::Discretization discretization, unsigned char nf)
 {
   const unsigned char nfs[2] = { nf, 0 };
-  return create(discretization,nfs,false);
+  return create(discretization,2,nfs,false);
 }
 
 
 ASMbase* ASM2D::create (ASM::Discretization discretization,
-			const unsigned char* nf, bool mixedFEM)
+                        unsigned char nd, const unsigned char* nf,
+                        bool mixedFEM)
 {
   switch (discretization) {
   case ASM::SplineC1:
-    return new ASMs2DC1(2,nf[0]);
+    return new ASMs2DC1(nd,nf[0]);
 
   case ASM::Lagrange:
     if (nf[1] > 0 || mixedFEM)
-      return new ASMs2DmxLag(2,nf[0],nf[1]);
+      return new ASMs2DmxLag(nd,nf[0],nf[1]);
     else
-      return new ASMs2DLag(2,nf[0]);
+      return new ASMs2DLag(nd,nf[0]);
 
   case ASM::Spectral:
-    return new ASMs2DSpec(2,nf[0]);
+    return new ASMs2DSpec(nd,nf[0]);
 
 #ifdef HAS_LRSPLINE
   case ASM::LRSpline:
     if (nf[1] == 'I') // hack for immersed boundary approach
-      return new ASMu2DIB(2,nf[0],nf[2]);
+      return new ASMu2DIB(nd,nf[0],nf[2]);
     else
-      return new ASMu2D(2,nf[0]);
+      return new ASMu2D(nd,nf[0]);
 #endif
 
   default:
     if (nf[1] == 'I') // hack for immersed boundary approach
-      return new ASMs2DIB(2,nf[0],nf[2]);
+      return new ASMs2DIB(nd,nf[0],nf[2]);
     else if (nf[1] > 0 || mixedFEM)
-      return new ASMs2Dmx(2,nf[0],nf[1]);
+      return new ASMs2Dmx(nd,nf[0],nf[1]);
     else
-      return new ASMs2D(2,nf[0]);
+      return new ASMs2D(nd,nf[0]);
   }
 }
 

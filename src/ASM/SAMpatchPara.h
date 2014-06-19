@@ -20,6 +20,7 @@
 
 class ProcessAdm;
 
+
 /*!
   \brief This is a sub-class of SAMpatch with support for parallel processing.
 */
@@ -204,9 +205,6 @@ public:
   //! stored as [x0,y0,z0,x1,y1,z1,...]
   bool getLocalNodeCoordinates(PetscRealVec& coords) const;
 
-  //! \brief Get number of space dimensions
-  size_t getNoSpaceDim() const;
-
   //! \brief If a given dof in a given node is subject to non-homogeneous
   //! Dirichlet condition
   //! \param[in] inod Node number
@@ -231,10 +229,8 @@ private:
   IntVec l2gn;       //!< Local-to-global node numbers for this processor
   int    ieqmin;     //!< Minium equation number
   int    ieqmax;     //!< Maximun equation number
-#ifdef HAS_PETSC
   IS     iglob;      //!< Index set for global numbering
   IS     iloc;       //!< Index set for local numbering
-#endif
 
   const ProcessAdm& adm; //!< Parallel process administrator
 

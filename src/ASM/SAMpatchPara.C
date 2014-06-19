@@ -12,12 +12,9 @@
 //==============================================================================
 
 #include "SAMpatchPara.h"
-#include "SystemMatrix.h"
 #include "LinAlgInit.h"
 #include "ASMstruct.h"
 #include "Vec3.h"
-
-#include "PETScSupport.h"
 #include "PETScMatrix.h"
 #include "ProcessAdm.h"
 
@@ -563,10 +560,9 @@ bool SAMpatchPara::getDirOrdering(PetscIntVec& order, int perm, int nf) const
   if (!this->getMinMaxNode(minNodeId,maxNodeId))
     return false;
 
-  int firstDof = (minNodeId[0]-1)*nfield;
+  int firstDof = (minNodeId.front()-1)*nfield;
   int gidx     = firstDof;
-
-  int nlocdof  = (maxNodeId[maxNodeId.size()-1]-minNodeId[0]+1)*nfield;
+  int nlocdof  = (maxNodeId.back()-minNodeId.front()+1)*nfield;
   
   order.resize(nlocdof,0);
   // Split the patches into smaller subdomains
@@ -811,33 +807,28 @@ bool SAMpatchPara::initSystemEquations ()
 bool SAMpatchPara::getLocalSubdomains (PetscIntMat& locSubds,
 				       int nx, int ny, int nz) const
 {
-  // Define some parameters
-  const int npatch = patch.size();
-  const int nsd    = patch[0]->getNoSpaceDim();
-
   // Find min and max node for each patch on this processor
   IntVec maxNodeId, minNodeId;
   if (!this->getMinMaxNode(minNodeId,maxNodeId))
     return false;
     
-  switch (nsd) {
+  switch (patch.front()->getNoSpaceDim()) {
   case 1:
   {
-    IntVec nxVec; 
-    nxVec.assign(npatch,nx);
+    IntVec nxVec(patch.size(),nx);
     return this->getLocalSubdomains1D(nxVec,minNodeId,maxNodeId,locSubds);
   }
   case 2:
   {
-    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
-    IntVec nyVec(npatch); nyVec.assign(npatch,ny);
+    IntVec nxVec(patch.size(),nx);
+    IntVec nyVec(patch.size(),ny);
     return this->getLocalSubdomains2D(nxVec,nyVec,minNodeId,maxNodeId,locSubds);
   }
   case 3:
   {
-    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
-    IntVec nyVec(npatch); nyVec.assign(npatch,ny);
-    IntVec nzVec(npatch); nzVec.assign(npatch,nz);
+    IntVec nxVec(patch.size(),nx);
+    IntVec nyVec(patch.size(),ny);
+    IntVec nzVec(patch.size(),nz);
     return this->getLocalSubdomains3D(nxVec,nyVec,nzVec,minNodeId,maxNodeId,locSubds);
   }
   default:
@@ -850,33 +841,28 @@ bool SAMpatchPara::getLocalSubdomainsBlock (PetscIntMat& locSubds,
 					    int f1, int f2,
 					    int nx, int ny, int nz) const
 {
-  // Define some parameters
-  const int npatch = patch.size();
-  const int nsd    = patch[0]->getNoSpaceDim();
-
   // Find min and max node for each patch on this processor
   IntVec maxNodeId, minNodeId;
   if (!this->getMinMaxNode(minNodeId,maxNodeId))
     return false;
 
-  switch (nsd) {
+  switch (patch.front()->getNoSpaceDim()) {
   case 1:
   {
-    IntVec nxVec; 
-    nxVec.assign(npatch,nx);
+    IntVec nxVec(patch.size(),nx);
     return this->getLocalSubdomains1D(locSubds,nxVec,minNodeId,maxNodeId,f1,f2);
   }
   case 2:
   {
-    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
-    IntVec nyVec(npatch); nyVec.assign(npatch,ny);
+    IntVec nxVec(patch.size(),nx);
+    IntVec nyVec(patch.size(),ny);
     return this->getLocalSubdomains2D(locSubds,nxVec,nyVec,minNodeId,maxNodeId,f1,f2);
   }
   case 3:
   {
-    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
-    IntVec nyVec(npatch); nyVec.assign(npatch,ny);
-    IntVec nzVec(npatch); nzVec.assign(npatch,nz);
+    IntVec nxVec(patch.size(),nx);
+    IntVec nyVec(patch.size(),ny);
+    IntVec nzVec(patch.size(),nz);
     return this->getLocalSubdomains3D(locSubds,nxVec,nyVec,nzVec,minNodeId,maxNodeId,f1,f2);
   }
   default:
@@ -888,27 +874,23 @@ bool SAMpatchPara::getLocalSubdomainsBlock (PetscIntMat& locSubds,
 bool SAMpatchPara::getSubdomains (PetscIntMat& subds, int overlap,
 				  int nx, int ny, int nz) const
 {
-  // Define some parameters
-  const int npatch = patch.size();
-  const int nsd    = patch[0]->getNoSpaceDim();
-
-  switch (nsd) {
+  switch (patch.front()->getNoSpaceDim()) {
   case 1:
   {
-    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
+    IntVec nxVec(patch.size(),nx);
     return this->getSubdomains1D(nxVec,overlap,subds);
   }
   case 2:
   {
-    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
-    IntVec nyVec(npatch); nyVec.assign(npatch,ny);
+    IntVec nxVec(patch.size(),nx);
+    IntVec nyVec(patch.size(),ny);
     return this->getSubdomains2D(nxVec,nyVec,overlap,subds);
   }
   case 3:
   {
-    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
-    IntVec nyVec(npatch); nyVec.assign(npatch,ny);
-    IntVec nzVec(npatch); nzVec.assign(npatch,nz);
+    IntVec nxVec(patch.size(),nx);
+    IntVec nyVec(patch.size(),ny);
+    IntVec nzVec(patch.size(),nz);
     return this->getSubdomains3D(nxVec,nyVec,nzVec,overlap,subds);
   }
   default:
@@ -920,27 +902,23 @@ bool SAMpatchPara::getSubdomains (PetscIntMat& subds, int overlap,
 bool SAMpatchPara::getSubdomainsBlock (PetscIntMat& subds, int f1, int f2,
 				       int overlap, int nx, int ny, int nz) const
 {
-  // Define some parameters
-  const int npatch = patch.size();
-  const int nsd    = patch[0]->getNoSpaceDim();
-
-  switch (nsd) {
+  switch (patch.front()->getNoSpaceDim()) {
   case 1:
   {
-    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
+    IntVec nxVec(patch.size(),nx);
     return this->getSubdomains1D(subds,nxVec,overlap,f1,f2);
   }
   case 2:
   {
-    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
-    IntVec nyVec(npatch); nyVec.assign(npatch,ny);
+    IntVec nxVec(patch.size(),nx);
+    IntVec nyVec(patch.size(),ny);
     return this->getSubdomains2D(subds,nxVec,nyVec,overlap,f1,f2);
   }
   case 3:
   {
-    IntVec nxVec(npatch); nxVec.assign(npatch,nx);
-    IntVec nyVec(npatch); nyVec.assign(npatch,ny);
-    IntVec nzVec(npatch); nzVec.assign(npatch,nz);
+    IntVec nxVec(patch.size(),nx);
+    IntVec nyVec(patch.size(),ny);
+    IntVec nzVec(patch.size(),nz);
     return this->getSubdomains3D(subds,nxVec,nyVec,nzVec,overlap,f1,f2);
   }
   default:
@@ -1745,31 +1723,25 @@ bool SAMpatchPara::getSubdomains3D (PetscIntMat& subds,
       }
     }
   }
-  
+
   return true;
 }
 
 
 bool SAMpatchPara::getLocalNodeCoordinates(PetscRealVec& coords) const
 {
-  // Define some parameters
-  const int npatch = patch.size();
-  const int nsd    = patch[0]->getNoSpaceDim();
-
   // Find min and max node for each patch on this processor
   IntVec maxNodeId, minNodeId;
   if (!this->getMinMaxNode(minNodeId,maxNodeId))
     return false;
 
-  // Min and max node on this process
-  int min = minNodeId[0];
-  int max = maxNodeId[npatch-1];
-  int nlocnod = max-min+1;
-
+  int min     = minNodeId.front();
+  int nlocnod = maxNodeId.back()-min+1;
+  int nsd     = patch.front()->getNoSpaceDim();
   coords.resize(nlocnod*nsd,0.0);
-  for (int n = 0;n < npatch;n++) {    
+
+  for (size_t n = 0; n < patch.size(); n++) {
     const IntVec& MLGN = patch[n]->getGlobalNodeNums();
-    
     for (size_t i = 0;i < MLGN.size();i++) {
       int gnod = l2gn[MLGN[i]-1];
       if ((gnod >= minNodeId[n]) && (gnod <= maxNodeId[n]))
@@ -1780,35 +1752,25 @@ bool SAMpatchPara::getLocalNodeCoordinates(PetscRealVec& coords) const
 	  coords[(locnode-1)*nsd + k] = X[k];
       }
     }
-  }  
+  }
 
   return true;
 }
 
 
-size_t SAMpatchPara::getNoSpaceDim() const
-{
-  size_t nsd = patch[0]->getNoSpaceDim();
-  return nsd;
-}
-
-  
 bool SAMpatchPara::getMinMaxNode(IntVec& minNodeId, IntVec& maxNodeId) const
 {
-  // Define some parameters
-  const int npatch = patch.size();
-
   // Find min and max node for each patch on this processor
+  size_t i, n, npatch = patch.size();
   maxNodeId.resize(npatch,true);
   minNodeId.resize(npatch,true);
 
-  for (int n = 0;n < npatch;n++) {
+  for (n = 0; n < npatch; n++) {
     const IntVec& MLGN = patch[n]->getGlobalNodeNums();
-  
     int min = 1e9;
     int max = 0;
     int ieq;
-    for (size_t i = 0;i < MLGN.size();i++) {
+    for (i = 0; i < MLGN.size(); i++) {
       ieq = l2gn[MLGN[i]-1];
       if (ieq > max)
 	max = ieq;
@@ -1818,15 +1780,14 @@ bool SAMpatchPara::getMinMaxNode(IntVec& minNodeId, IntVec& maxNodeId) const
     minNodeId[n] = min;
     maxNodeId[n] = max;
   }
-  
+
   minNodeId[0] = 1;
-  for (int n = 1;n < npatch;n++)
+  for (n = 1; n < npatch; n++)
     minNodeId[n] = maxNodeId[n-1] + 1;
 
-#ifdef HAS_PETSC  
+#ifdef HAS_PETSC
   if (adm.isParallel()) {
     int myRank = adm.getProcId();
-    
     if (myRank < nProc-1)
       adm.send(maxNodeId[npatch-1],myRank+1);
     if (myRank > 0) {

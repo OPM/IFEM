@@ -23,7 +23,7 @@
 
 SplineField3D::SplineField3D (const ASMs3D* patch,
                               const RealArray& v, const char* name)
-  : FieldBase(3,name), basis(patch->getBasis()), vol(patch->getVolume())
+  : FieldBase(name), basis(patch->getBasis()), vol(patch->getVolume())
 {
   const int n1 = basis->numCoefs(0);
   const int n2 = basis->numCoefs(1);
@@ -206,13 +206,11 @@ bool SplineField3D::hessianFE(const FiniteElement& fe, Matrix& H) const
   Go::BasisDerivs  spline;
   Go::BasisDerivs2 spline2;
   Matrix3D d2Ndu2;
-  Matrix dNdu, dNdX;
+  Matrix dNdu(nen,3), dNdX;
   IntVec ip;
 #pragma omp critical
   if (vol == basis) {
     vol->computeBasis(fe.u,fe.v,fe.w,spline2);
-
-    dNdu.resize(nen,3);
     d2Ndu2.resize(nen,3,3);
     for (size_t n = 1; n <= nen; n++) {
       dNdu(n,1) = spline2.basisDerivs_u[n-1];
@@ -225,20 +223,16 @@ bool SplineField3D::hessianFE(const FiniteElement& fe, Matrix& H) const
       d2Ndu2(n,2,3) = d2Ndu2(n,3,2) = spline2.basisDerivs_vw[n-1];
       d2Ndu2(n,3,3) = spline2.basisDerivs_ww[n-1];
     }
-
     ASMs3D::scatterInd(vol->numCoefs(0),vol->numCoefs(1),vol->numCoefs(2),
 		       uorder,vorder,worder,spline2.left_idx,ip);
   }
   else {
     vol->computeBasis(fe.u,fe.v,fe.w,spline);
-    
-    dNdu.resize(nen,3);
     for (size_t n = 1; n <= nen; n++) {
       dNdu(n,1) = spline.basisDerivs_u[n-1];
       dNdu(n,2) = spline.basisDerivs_v[n-1];
       dNdu(n,3) = spline.basisDerivs_w[n-1];
     }
-
     ASMs3D::scatterInd(vol->numCoefs(0),vol->numCoefs(1),vol->numCoefs(2),
 		       uorder,vorder,worder,spline.left_idx,ip);
   }
@@ -277,7 +271,7 @@ bool SplineField3D::hessianFE(const FiniteElement& fe, Matrix& H) const
 
   Vector Vnod;
   utl::gather(ip,1,values,Vnod);
-  return H.multiply(d2Ndu2,Vnod); 
+  return H.multiply(d2Ndu2,Vnod);
 }
 
 

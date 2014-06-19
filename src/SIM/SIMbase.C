@@ -46,6 +46,7 @@ bool SIMbase::ignoreDirichlet = false;
 SIMbase::SIMbase (IntegrandBase* itg) : g2l(&myGlb2Loc)
 {
   isRefined = false;
+  nsd = 3;
   myProblem = itg;
   mySol = 0;
   myEqSys = 0;
@@ -270,7 +271,7 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
       Property p;
       int ldim, lindx = 0;
       isp >> p.pindx >> p.patch >> ldim;
-      if (ldim < (int)this->getNoSpaceDim()) isp >> lindx;
+      if (ldim < (int)this->getNoParamDim()) isp >> lindx;
 
       // We always require the item indices to be 1-based
       p.ldim = ldim;
@@ -453,8 +454,9 @@ bool SIMbase::parse (const TiXmlElement* elem)
   if (myModel.empty() && !strcasecmp(elem->Value(),"geometry"))
     if (!elem->FirstChildElement("patchfile"))
     {
-      std::cout <<"  Using default geometry on unit domain [0,1]^"
-                << this->getNoParamDim() << std::endl;
+      std::cout <<"  Using default linear geometry basis on unit domain [0,1]";
+      if (this->getNoParamDim() > 1) std::cout <<"^"<< this->getNoParamDim();
+      std::cout << std::endl;
       myModel.resize(1,this->createDefaultGeometry());
     }
 
@@ -626,7 +628,7 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
       Property p;
       int ldim, lindx = 0;
       isp >> p.pindx >> p.patch >> ldim;
-      if (ldim < (int)this->getNoSpaceDim()) isp >> lindx;
+      if (ldim < (int)this->getNoParamDim()) isp >> lindx;
 
       if (!oneBasedIdx)
       {
@@ -727,7 +729,7 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
 void SIMbase::readLinSolParams (std::istream& is, int npar)
 {
   if (!mySolParams)
-    mySolParams = new LinSolParams();
+    mySolParams = new LinSolParams(nsd);
 
   mySolParams->read(is,npar);
 }
@@ -742,7 +744,7 @@ bool SIMbase::parseLinSolTag (const TiXmlElement* elem)
   }
 
   if (!mySolParams)
-    mySolParams = new LinSolParams();
+    mySolParams = new LinSolParams(nsd);
 
   return mySolParams->read(elem);
 }
@@ -1367,12 +1369,6 @@ size_t SIMbase::getNoFields (int basis) const
 }
 
 
-size_t SIMbase::getNoSpaceDim () const
-{
-  return myModel.empty() ? 0 : myModel.front()->getNoSpaceDim();
-}
-
-
 size_t SIMbase::getNoDOFs () const
 {
   return mySam ? mySam->getNoDOFs() : 0;
@@ -1897,7 +1893,7 @@ void SIMbase::iterationNorms (const Vector& u, const Vector& r,
 double SIMbase::solutionNorms (const Vector& x, double* inf,
 			       size_t* ind, size_t nf) const
 {
-  if (nf == 0) nf = this->getNoSpaceDim();
+  if (nf == 0) nf = nsd;
 
   for (size_t d = 0; d < nf; d++)
   {
@@ -2097,7 +2093,7 @@ bool SIMbase::getCurrentReactions (RealArray& RF, const Vector& psol) const
   const Vector* reactionForces = myEqSys->getReactions();
   if (!reactionForces) return false;
 
-  RF.resize(1+this->getNoSpaceDim());
+  RF.resize(1+nsd);
   RF.front() = 2.0*mySam->normReact(psol,*reactionForces);
   for (size_t dir = 1; dir < RF.size(); dir++)
     RF[dir] = mySam->getReaction(dir,*reactionForces);
