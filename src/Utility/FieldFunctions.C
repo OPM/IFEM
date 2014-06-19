@@ -29,16 +29,15 @@ FieldFunction::FieldFunction (const std::string& fileName,
 #ifdef HAS_HDF5
   HDF5Writer hdf5(fileName,true,true);
 
-  const unsigned char nf = 1;
-  pch = ASM2D::create(ASM::Spline,&nf);
-
-  std::stringstream str;
   std::string g2;
+  std::stringstream str;
+  hdf5.readString("0/basis/"+basisName+"/1",g2);
   str << g2;
+
+  pch = ASM2D::create(ASM::Spline);
   pch->read(str);
 
   Vector coefs;
-  hdf5.readString("0/basis/"+basisName+"/1",g2);
   hdf5.readVector(0,fieldName,1,coefs);
   field = Field::create(pch,coefs);
 #else

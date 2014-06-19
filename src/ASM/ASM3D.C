@@ -21,6 +21,13 @@
 #endif
 
 
+ASMbase* ASM3D::create (ASM::Discretization discretization, unsigned char nf)
+{
+  const unsigned char nfs[2] = { nf, 0 };
+  return create(discretization,nfs,false);
+}
+
+
 ASMbase* ASM3D::create (ASM::Discretization discretization,
                         const unsigned char* nf, bool mixedFEM)
 {

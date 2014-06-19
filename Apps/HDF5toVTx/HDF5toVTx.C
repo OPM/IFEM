@@ -13,9 +13,10 @@
 
 #include "HDF5Writer.h"
 #include "XMLWriter.h"
-#include "ASMs1D.h"
+#include "ASM1D.h"
 #include "ASM2D.h"
-#include "ASMs3D.h"
+#include "ASM3D.h"
+#include "ASMbase.h"
 #include "ElementBlock.h"
 #include "VTU.h"
 #include <sstream>
@@ -32,19 +33,20 @@ struct VTFFieldInfo {
 };
 
 //! \brief Maps from field description -> (type, VTF blocks)
-typedef std::map< std::string, VTFFieldInfo> VTFList;
+typedef std::map<std::string,VTFFieldInfo> VTFList;
 
-typedef std::map<std::string, int> VTFFieldBlocks; //!< Maps name<> designated ID block in VTF
+//! \brief Maps name<> designated ID block in VTF
+typedef std::map<std::string,int> VTFFieldBlocks;
 
 //! \brief Struct encapsulating information for a given basis
 struct BasisInfo {
-  std::vector<ASMbase*>   Patch;      //!< Vector with spline bases
-  std::vector<RealArray*> FakeModel;  //!< Vector with fake finite element model evaluation points
-  int                     StartPart;  //!< Starting part for fake finite element model
+  std::vector<ASMbase*>   Patch;     //!< Vector with spline bases
+  std::vector<RealArray*> FakeModel; //!< Vector with fake FE model evaluation points
+  int                     StartPart; //!< Starting part for fake FE model
 };
 
 //! \brief Maps from (basis name -> basis info)
-typedef std::map<std::string, BasisInfo> PatchMap;
+typedef std::map<std::string,BasisInfo> PatchMap;
 
 
 //! \brief Read a basis from HDF5 into a vector of patch objects
@@ -65,7 +67,6 @@ bool readBasis (std::vector<ASMbase*>& result, const std::string& name,
   }
 
   result.reserve(patches);
-  unsigned char nf[2] = { 1, 0 };
   ASM::Discretization ptype;
   for (int i=0;i<patches;++i) {
     std::stringstream geom, basis;
@@ -78,11 +79,11 @@ bool readBasis (std::vector<ASMbase*>& result, const std::string& name,
     ptype = out.substr(0,10) == "# LRSPLINE" ? ASM::LRSpline : ASM::Spline;
     basis << out;
     if (dim == 1)
-      result.push_back(new ASMs1D());
+      result.push_back(ASM1D::create(ptype));
     else if (dim == 2)
-      result.push_back(ASM2D::create(ptype,nf));
+      result.push_back(ASM2D::create(ptype));
     else
-      result.push_back(new ASMs3D(1));
+      result.push_back(ASM3D::create(ptype));
     result.back()->read(basis);
     result.back()->generateFEMTopology();
   }
@@ -95,7 +96,7 @@ bool readBasis (std::vector<ASMbase*>& result, const std::string& name,
 //! \param locvec The patch-level basis coefficients
 //! \param components Number of components in field
 //! \param patch The patch the field is defined on
-//! \param model The evaluation points for this part of the fake finite element model
+//! \param model The evaluation points for this part of the fake FE model
 //! \param geomID The ID associated with this patch
 //! \param name Name of field
 //! \param vlist List of vector fields stored in VTF/VTU
@@ -215,8 +216,8 @@ void writeFieldBlocks(VTFList& vlist, VTFList& slist, VTF& myvtf,
 }
 
 
-//! \brief Write a fake finite element model to VTU/VTF file
-//! \param patch The patch the fake finite element model is associated with
+//! \brief Write a fake FE model to VTU/VTF file
+//! \param patch The patch the fake FE model is associated with
 //! \param id The ID associated with this patch
 //! \param myVtf The VTF/VTU file to write to
 //! \param nViz The number of visualization points per knot-span
@@ -233,9 +234,9 @@ void writePatchGeometry(ASMbase* patch, int id, VTF& myVtf, int* nViz, int block
 }
 
 
-//! \brief Generate evaluation points for fake finite element model
+//! \brief Generate evaluation points for fake FE model
 //! \param result The resulting evaluation points
-//! \param patches The patches to generate the fake finite element model for
+//! \param patches The patches to generate the fake FE model for
 //! \param dims The dimensionality of the patches
 //! \param nViz The number of visualization points per knot-span
 void generateFEModel (std::vector<RealArray*>& result,
@@ -251,7 +252,7 @@ void generateFEModel (std::vector<RealArray*>& result,
         if (patch) patch->getGridParameters(gpar[k],k,nViz[k]-1);
       }
       else if (dims == 3) {
-        ASMs3D* patch = dynamic_cast<ASMs3D*>(patches[i]);
+        ASM3D* patch = dynamic_cast<ASM3D*>(patches[i]);
         if (patch) patch->getGridParameters(gpar[k],k,nViz[k]-1);
       }
     }

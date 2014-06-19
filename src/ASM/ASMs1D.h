@@ -15,6 +15,7 @@
 #define _ASM_S1D_H
 
 #include "ASMstruct.h"
+#include "ASM1D.h"
 #include "Tensor.h"
 
 typedef std::vector<Tensor> TensorVec; //!< An array of non-symmetric tensors
@@ -29,7 +30,7 @@ namespace Go {
   \details This class contains methods common for structured 1D spline patches.
 */
 
-class ASMs1D : public ASMstruct
+class ASMs1D : public ASMstruct, public ASM1D
 {
 public:
   //! \brief Default constructor.
@@ -132,7 +133,7 @@ public:
   //! in between, the actual index is taken as the integer value closest to
   //! \a r*n, where \a r denotes the given relative parameter value,
   //! and \a n is the number of nodes along that parameter direction.
-  void constrainNode(double xi, int dof = 123, int code = 0);
+  virtual void constrainNode(double xi, int dof = 123, int code = 0);
 
   //! \brief Connects matching nodes on two adjacent vertices.
   //! \param[in] vertex Local vertex index of this patch, in range [1,2]

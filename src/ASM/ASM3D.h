@@ -40,10 +40,15 @@ public:
 
   //! \brief Creates a three-parametric patch of specified discretization type.
   //! \param[in] type The discretization method to use
-  //! \param[in] nf Number of unknown per basis function in the patch
+  //! \param[in] nf Number of unknowns per basis function in the patch
   //! \param[in] mixedFEM If \e true, force mixed formulation even if \a nf[1]=0
   static ASMbase* create(ASM::Discretization type, const unsigned char* nf,
                          bool mixedFEM = false);
+
+  //! \brief Creates a three-parametric patch of specified discretization type.
+  //! \param[in] type The discretization method to use
+  //! \param[in] nf Number of unknowns per basis function in the patch
+  static ASMbase* create(ASM::Discretization type, unsigned char nf = 1);
 
   //! \brief Returns a copy of this patch with identical FE discretization.
   //! \param[in] nf Number of unknown per basis function in the patch
@@ -53,7 +58,7 @@ public:
   //! or changed in other ways that affect the FE geometry and/or topology.
   //! The other properties of the patch (boundary conditions, constraints,
   //! loads, etc.) are however not copied.
-  ASMbase* clone(unsigned char* nf = 0) const;
+  ASMbase* clone(unsigned char* nf = NULL) const;
 
   //! \brief Checks that the patch is modelled in a right-hand-side system.
   virtual bool checkRightHandSystem() = 0;
@@ -95,7 +100,6 @@ public:
   //! \param[in] dof Which DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
   virtual void constrainEdge(int lEdge, bool open, int dof, int code = 0) = 0;
-
   //! \brief Constrains all DOFs along a line on a given boundary face.
   //! \param[in] fdir Parameter direction defining the face to constrain
   //! \param[in] ldir Parameter direction defining the line to constrain

@@ -13,8 +13,6 @@
 
 #include "SIM1D.h"
 #include "ASMs1D.h"
-#include "ASMs1DLag.h"
-#include "ASMs1DSpec.h"
 #include "Functions.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
@@ -455,31 +453,20 @@ bool SIM1D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 }
 
 
-ASMbase* SIM1D::readPatch (std::istream& isp, int) const
+ASMbase* SIM1D::readPatch (std::istream& isp, int pchInd) const
 {
-  ASMs1D* pch = NULL;
-  switch (opt.discretization) {
-  case ASM::Lagrange:
-    pch = new ASMs1DLag(nd,nf);
-    break;
-  case ASM::Spectral:
-    pch = new ASMs1DSpec(nd,nf);
-    break;
-  default:
-    pch = new ASMs1D(nd,nf);
-  }
-
-  if (!pch->read(isp))
-    delete pch;
-  else if (pch->empty())
-    delete pch;
-  else
+  ASMbase* pch = ASM1D::create(opt.discretization,nd,nf);
+  if (pch)
   {
-    pch->idx = myModel.size();
-    return pch;
+    if (!pch->read(isp))
+      delete pch, pch = NULL;
+    else if (pch->empty() || this->getLocalPatchIndex(pchInd+1) < 1)
+      delete pch, pch = NULL;
+    else
+      pch->idx = myModel.size();
   }
 
-  return NULL;
+  return pch;
 }
 
 
@@ -488,33 +475,22 @@ bool SIM1D::readPatches (std::istream& isp, PatchVec& patches,
 {
   ASMbase* pch = NULL;
   for (int pchInd = 1; isp.good(); pchInd++)
-  {
-    std::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
-    switch (opt.discretization)
+    if ((pch = ASM1D::create(opt.discretization,nd,nf)))
+    {
+      std::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
+      if (!pch->read(isp))
       {
-      case ASM::Lagrange:
-        pch = new ASMs1DLag(nd,nf);
-        break;
-      case ASM::Spectral:
-        pch = new ASMs1DSpec(nd,nf);
-        break;
-      default:
-        pch = new ASMs1D(nd,nf);
+        delete pch;
+        return false;
       }
-
-    if (!pch->read(isp))
-    {
-      delete pch;
-      return false;
+      else if (pch->empty() || this->getLocalPatchIndex(pchInd+1) < 1)
+        delete pch;
+      else
+      {
+        pch->idx = patches.size();
+        patches.push_back(pch);
+      }
     }
-    else if (pch->empty())
-      delete pch;
-    else
-    {
-      pch->idx = patches.size();
-      patches.push_back(pch);
-    }
-  }
 
   return true;
 }

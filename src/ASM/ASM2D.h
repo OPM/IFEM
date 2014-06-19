@@ -40,10 +40,14 @@ public:
 
   //! \brief Creates a two-parametric patch of specified discretization type.
   //! \param[in] type The discretization method to use
-  //! \param[in] nf Number of unknown per basis function in the patch
+  //! \param[in] nf Number of unknowns per basis function in the patch
   //! \param[in] mixedFEM If \e true, force mixed formulation even if \a nf[1]=0
   static ASMbase* create(ASM::Discretization type, const unsigned char* nf,
 			 bool mixedFEM = false);
+  //! \brief Creates a two-parametric patch of specified discretization type.
+  //! \param[in] type The discretization method to use
+  //! \param[in] nf Number of unknowns per basis function in the patch
+  static ASMbase* create(ASM::Discretization type, unsigned char nf = 1);
 
   //! \brief Returns a copy of this patch with identical FE discretization.
   //! \param[in] nf Number of unknown per basis function in the patch
@@ -53,7 +57,7 @@ public:
   //! or changed in other ways that affect the FE geometry and/or topology.
   //! The other properties of the patch (boundary conditions, constraints,
   //! loads, etc.) are however not copied.
-  ASMbase* clone(unsigned char* nf = 0) const;
+  ASMbase* clone(unsigned char* nf = NULL) const;
 
   //! \brief Refines the parametrization by inserting extra knots uniformly.
   //! \param[in] dir Parameter direction to refine
@@ -67,9 +71,6 @@ public:
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
   virtual bool refine(int dir, const std::vector<double>& xi) = 0;
-  //! \brief Refines a specified list of elements.
-  virtual bool refine(const std::vector<int>&, const std::vector<int>&,
-		      const char* = 0) { return false; }
 
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
@@ -86,6 +87,7 @@ public:
   //! \return Number of additional nodes added due to local axis constraints
   virtual size_t constrainEdgeLocal(int dir, bool open, int dof, int code = 0,
                                     bool project = false) = 0;
+
   //! \brief Constrains a corner node identified by the two parameter indices.
   //! \param[in] I Parameter index in u-direction
   //! \param[in] J Parameter index in v-direction
@@ -114,7 +116,7 @@ public:
   //! \param[in] dir Parameter direction (0,1)
   //! \param[in] nSegSpan Number of visualization segments over each knot-span
   virtual bool getGridParameters(std::vector<double>& prm,
-				 int dir, int nSegSpan) const = 0;
+                                 int dir, int nSegSpan) const = 0;
 };
 
 #endif
