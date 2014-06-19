@@ -28,12 +28,23 @@ Real utl::Jacobian (matrix<Real>& J, matrix<Real>& dNdX,
   // Compute the Jacobian matrix, J = [dXdu]
   J.multiply(X,dNdu); // J = X * dNdu
 
-  // Compute the Jacobian determinant and inverse
-  Real detJ = J.inverse(epsZ);
+  Real detJ;
+  if (J.cols() == 1 && J.rows() > 1)
+  {
+    // Special treatment for one-parametric elements in multi-dimension space
+    dNdX = dNdu;
+    // Compute the length of the tangent vector {X},u
+    detJ = J.getColumn(1).norm2(); // |J| = sqrt(X,u*X,u + Y,u*Y,u + Z,u*Z,u)
+  }
+  else
+  {
+    // Compute the Jacobian determinant and inverse
+    detJ = J.inverse(epsZ);
 
-  // Compute the first order derivatives of the basis function, w.r.t. X
-  if (detJ != Real(0) && computeGradient)
-    dNdX.multiply(dNdu,J); // dNdX = dNdu * J^-1
+    // Compute the first order derivatives of the basis function, w.r.t. X
+    if (detJ != Real(0) && computeGradient)
+      dNdX.multiply(dNdu,J); // dNdX = dNdu * J^-1
+  }
 
   return detJ;
 }
@@ -100,16 +111,19 @@ Real utl::Jacobian (matrix<Real>& J, Vec3& n, matrix<Real>& dNdX,
 
 bool utl::Hessian (matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
 		   const matrix<Real>& Ji, const matrix<Real>& X,
-		   const matrix3d<Real>& d2Ndu2, const matrix<Real>& dNdX,
-		   bool computeGradient)
+		   const matrix3d<Real>& d2Ndu2, const matrix<Real>& dNdX)
 {
   PROFILE4("utl::Hessian");
 
   // Compute the Hessian matrix, H = [d2Xdu2]
   if (!H.multiply(X,d2Ndu2)) // H = X * d2Ndu2
     return false;
-  else if (!computeGradient)
+  else if (Ji.cols() == 1 && Ji.rows() > 1)
+  {
+    // Special treatment for one-parametric elements in multi-dimension space
+    d2NdX2 = d2Ndu2;
     return true;
+  }
 
   // Check that the matrix dimensions are compatible
   size_t nsd  = X.rows();

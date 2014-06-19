@@ -292,7 +292,6 @@ bool ASMs1D::generateTwistedFEModel (const RealFunc& twist, const Vec3& Zaxis)
 }
 
 
-
 bool ASMs1D::connectPatch (int vertex, ASMs1D& neighbor, int nvertex)
 {
   if (!this->connectBasis(vertex,neighbor,nvertex))
@@ -749,6 +748,9 @@ bool ASMs1D::integrate (Integrand& integrand,
   Matrix3D d2Ndu2, Hess;
   Vec4     X;
 
+  if (nsd > 1 && (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES))
+    fe.G.resize(nsd,2); // For storing d{X}/du and d2{X}/du2
+
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -830,14 +832,23 @@ bool ASMs1D::integrate (Integrand& integrand,
 
       if (!dNdu.empty())
       {
-        // Compute derivatives in terms of physical co-ordinates
+        // Compute derivatives in terms of physical coordinates
         fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
         if (fe.detJxW == 0.0) continue; // skip singular points
 
         // Compute Hessian of coordinate mapping and 2nd order derivatives
         if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+        {
           if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,fe.dNdX))
             ok = false;
+          else if (fe.G.cols() == 2)
+          {
+            // Store the first and second derivatives of {X} w.r.t.
+            // the parametric coordinate (xi), in the G-matrix
+            fe.G.fillColumn(1,Jac.ptr());
+            fe.G.fillColumn(2,Hess.ptr());
+          }
+        }
       }
 
       // Cartesian coordinates of current integration point
@@ -1235,6 +1246,9 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix        dNdu, Jac;
   Matrix3D      d2Ndu2, Hess;
 
+  if (nsd > 1 && (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES))
+    fe.G.resize(nsd,2); // For storing d{X}/du and d2{X}/du2
+
   // Evaluate the secondary solution field at each point
   const RealArray& upar = *gpar;
   size_t nPoints = upar.size();
@@ -1266,8 +1280,17 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
       // Compute Hessian of coordinate mapping and 2nd order derivatives
       if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+      {
         if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xtmp,d2Ndu2,fe.dNdX))
           continue;
+        else if (fe.G.cols() == 2)
+        {
+          // Store the first and second derivatives of {X} w.r.t.
+          // the parametric coordinate (xi), in the G-matrix 
+          fe.G.fillColumn(1,Jac.ptr());
+          fe.G.fillColumn(2,Hess.ptr());
+        }
+      }
     }
 
     // Now evaluate the solution field

@@ -64,12 +64,10 @@ namespace utl
   //! \param[in] X Matrix of element nodal coordinates
   //! \param[in] d2Ndu2 Second order derivatives of basis functions
   //! \param[in] dNdX First order derivatives of basis functions
-  //! \param[in] computeGradient If \e false, skip calculation of \a d2NdX2
   //! \return \e false if matrix dimensions are incompatible, otherwise \e true
   bool Hessian(matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
 	       const matrix<Real>& Ji, const matrix<Real>& X,
-	       const matrix3d<Real>& d2Ndu2, const matrix<Real>& dNdX,
-	       bool computeGradient = true);
+	       const matrix3d<Real>& d2Ndu2, const matrix<Real>& dNdX);
 
   //! \brief Compute the stabilization matrix \b G from the Jacobian inverse.
   //! \param[in] Ji The inverse of the Jacobian matrix
