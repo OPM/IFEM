@@ -34,8 +34,17 @@ bool NewmarkNLSIM::parse (const TiXmlElement* elem)
 
   if (!strcasecmp(elem->Value(),"newmarksolver"))
   {
+    double alpha = -0.1;
     const char* attr = elem->Attribute("alpha");
-    double alpha = attr ? atof(attr) : -0.1;
+    if (attr)
+      alpha = atof(attr);
+    else if ((attr = elem->Attribute("rho_inf")))
+    {
+      double rho = atof(attr);
+      double alpha_f = 1.0/(1.0+rho);
+      double alpha_m = (2.0-rho)/(1.0+rho);
+      alpha = alpha_f - alpha_m;
+    }
     beta = 0.25*(1.0-alpha)*(1.0-alpha);
     gamma = 0.5 - alpha;
   }
