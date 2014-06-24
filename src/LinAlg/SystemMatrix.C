@@ -91,6 +91,9 @@ SystemMatrix* SystemMatrix::create (const ProcessAdm& padm, Type matrixType, int
               << std::endl;
     exit(1);
   }
+#else
+  // Use default PETSc settings when no parameters are provided by user
+  static LinSolParams defaultPar(3);
 #endif
 
   switch (matrixType)
@@ -100,18 +103,8 @@ SystemMatrix* SystemMatrix::create (const ProcessAdm& padm, Type matrixType, int
     case SPARSE: return new SparseMatrix(SparseMatrix::SUPERLU,num_thread_SLU);
     case SAMG  : return new SparseMatrix(SparseMatrix::S_A_M_G);
 #ifdef HAS_PETSC
-    case PETSC :
-    {
-      // Use default PETSc settings when no parameters are provided by user
-      static LinSolParams defaultPar;
-      return new PETScMatrix(padm,defaultPar);
-     }
-    case PETSCBLOCK :
-    {
-      // Use default PETSc settings when no parameters are provided by user
-      static LinSolParams defaultPar;
-      return new PETScBlockMatrix(padm,defaultPar);
-    }
+    case PETSC :      return new PETScMatrix(padm,defaultPar);
+    case PETSCBLOCK : return new PETScBlockMatrix(padm,defaultPar);
 #endif
     default:
       std::cerr <<"SystemMatrix::create: Unsupported matrix type "
