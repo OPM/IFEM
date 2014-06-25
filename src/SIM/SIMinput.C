@@ -132,22 +132,30 @@ bool SIMinput::parse (char*, std::istream&)
   \brief Recursive helper method for processing the \a include XML-tags.
 */
 
-static void injectIncludeFiles (TiXmlElement* tag)
+static bool injectIncludeFiles (TiXmlElement* tag)
 {
+  bool result=false;
   TiXmlElement* elem = tag->FirstChildElement();
   for (; elem; elem = elem->NextSiblingElement())
     if (strcasecmp(elem->Value(),"include"))
-      injectIncludeFiles(elem);
+      result |= injectIncludeFiles(elem);
     else if (elem->FirstChild() && elem->FirstChild()->Value()) {
       TiXmlDocument doc;
-      if (doc.LoadFile(elem->FirstChild()->Value()))
+      if (doc.LoadFile(elem->FirstChild()->Value())) {
         elem = tag->ReplaceChild(elem,*doc.RootElement())->ToElement();
-      else
+        TiXmlElement* elem2 = doc.RootElement()->NextSiblingElement();
+        while (elem2) {
+          tag->LinkEndChild(new TiXmlElement(*elem2));
+          elem2 = elem2->NextSiblingElement();
+        }
+        result = true;
+      } else
 	std::cerr << __PRETTY_FUNCTION__ <<": Failed to load "
 		  << elem->FirstChild()->Value()
 		  <<"\n\tError at line "<< doc.ErrorRow() <<": "
 		  << doc.ErrorDesc() << std::endl;
     }
+  return result;
 }
 
 
@@ -171,7 +179,7 @@ bool SIMinput::readXML (const char* fileName)
   if (myPid == 0)
     std::cout <<"\nParsing input file "<< fileName << std::endl;
 
-  injectIncludeFiles(const_cast<TiXmlElement*>(tag));
+  while (injectIncludeFiles(const_cast<TiXmlElement*>(tag)));
 
   std::vector<const TiXmlElement*> parsed;
   if (!handlePriorityTags(doc.RootElement(),parsed))
