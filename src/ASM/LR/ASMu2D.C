@@ -335,6 +335,7 @@ bool ASMu2D::generateFEMTopology ()
 	for (int inod = 0; inod < nBasis; inod++)
 		myMLGN[inod] = ++gNod;
 
+        nnod = gNod;
 	return true;
 }
 
