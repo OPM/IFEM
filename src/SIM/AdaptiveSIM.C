@@ -44,6 +44,7 @@ AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : SIMinput(*sim)
   maxTjoints   = -1;
   maxAspRatio  = -1.0;
   closeGaps    = false;
+  solution.resize(1);
 }
 
 
