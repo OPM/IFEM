@@ -22,6 +22,8 @@
 #include <sstream>
 #include <cstdlib>
 
+bool isLR = false;
+
 //! \brief Maps from basis name -> fields
 typedef std::map< std::string,std::vector<XMLWriter::Entry> > ProcessList;
 
@@ -77,6 +79,7 @@ bool readBasis (std::vector<ASMbase*>& result, const std::string& name,
     std::string out;
     hdf.readString(geom.str(),out);
     ptype = out.substr(0,10) == "# LRSPLINE" ? ASM::LRSpline : ASM::Spline;
+    isLR = ptype == ASM::LRSpline;
     basis << out;
     if (dim == 1)
       result.push_back(ASM1D::create(ptype));
@@ -379,7 +382,7 @@ int main (int argc, char** argv)
   else if (!vtffile)
     vtffile = infile;
 
-  std::cout <<"\n >>> IFEM HDF5 to VTF converter <<<"
+  std::cout <<"\n >>> IFEM HDF5 to VT[F|U] converter <<<"
             <<"\n ==================================\n"
             <<"\nInput file: " << infile;
 
@@ -448,8 +451,8 @@ int main (int argc, char** argv)
     if (levels > 0)
       std::cout <<"\nTime level "<< i << " (t=" << time << ")" << std::endl;
     VTFList vlist, slist;
-    // TODO: Fix time dependent geometries in FSI
-    if (/*hdf.hasGeometries(i) ||*/ i == 0)
+
+    if ((isLR && hdf.hasGeometries(i)) || i == 0)
       patches = setupPatchMap(processlist, i, hdf, dims, n, *myVtf, block, k);
 
     for (pit = processlist.begin(); pit != processlist.end(); ++pit) {
@@ -526,8 +529,7 @@ int main (int argc, char** argv)
         }
       }
     }
-    // TODO: Fix time dependent geometries in FSI
-    if (/*hdf.hasGeometries(i) ||*/ i == 0)
+    if ((isLR && hdf.hasGeometries(i)) || i == 0)
       myVtf->writeGeometryBlocks(k);
     writeFieldBlocks(vlist,slist,*myVtf,k,fieldBlocks);
 

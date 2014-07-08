@@ -27,6 +27,8 @@ class VTU : public VTF {
     VTU(const char* base, bool single);
     virtual ~VTU();
 
+    void clearGeometryBlocks();
+
     bool writeGrid(const ElementBlock* lvb, const char* name, int iStep=1);
 
     using VTF::writeVres;

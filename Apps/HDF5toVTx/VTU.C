@@ -27,9 +27,7 @@ VTU::VTU(const char* base, bool single)
 
 VTU::~VTU()
 {
-  for (size_t i=0;i<m_geom.size();++i)
-    delete m_geom[i];
-  m_geom.clear();
+  clearGeometryBlocks();
 }
 
 
@@ -198,4 +196,12 @@ bool VTU::writeState(int iStep, const char* fmt, Real refValue, int refType)
   file.close();
   m_field.clear();
   return true;
+}
+
+
+void VTU::clearGeometryBlocks()
+{
+  for (size_t i=0;i<m_geom.size();++i)
+    delete m_geom[i];
+  m_geom.clear();
 }
