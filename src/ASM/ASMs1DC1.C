@@ -11,7 +11,21 @@
 //!
 //==============================================================================
 
+#include "GoTools/geometry/SplineCurve.h"
+
 #include "ASMs1DC1.h"
+
+
+bool ASMs1DC1::generateFEMTopology ()
+{
+  if (curv->order() > 2)
+    return this->ASMs1D::generateFEMTopology();
+
+  std::cerr <<" *** ASMs1DC1::generateFEMTopology: The polynomial order ("
+            << curv->order() <<") is too low.\n    "
+            <<" C1-continuity requires at least quadratic order."<< std::endl;
+  return false;
+}
 
 
 void ASMs1DC1::constrainNode (double xi, int dof, int code)

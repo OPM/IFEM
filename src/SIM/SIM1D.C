@@ -503,8 +503,10 @@ bool SIM1D::createFEMmodel (char)
   for (size_t i = 0; i < myModel.size() && ok; i++)
     if (twist)
       ok = static_cast<ASMs1D*>(myModel[i])->generateTwistedFEModel(*twist,XZp);
-    else
+    else if (!XZp.isZero())
       ok = static_cast<ASMs1D*>(myModel[i])->generateOrientedFEModel(XZp);
+    else
+      ok = myModel[i]->generateFEMTopology();
 
   if (nGlPatches == 0 && !adm.isParallel())
     nGlPatches = myModel.size();

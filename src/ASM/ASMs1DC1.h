@@ -34,6 +34,15 @@ public:
   virtual ~ASMs1DC1() {}
 
 
+  // Methods for model generation
+  // ============================
+
+  //! \brief Generates the finite element topology data for the patch.
+  //! \details This method is reimplemented to check that the patch has
+  //! sufficient polynomial order.
+  virtual bool generateFEMTopology();
+
+
   // Various methods for preprocessing of boundary conditions and patch topology
   // ===========================================================================
 

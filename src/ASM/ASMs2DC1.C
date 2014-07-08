@@ -11,6 +11,8 @@
 //!
 //==============================================================================
 
+#include "GoTools/geometry/SplineSurface.h"
+
 #include "ASMs2DC1.h"
 #include "Lagrange.h"
 #include "Vec3Oper.h"
@@ -23,6 +25,18 @@ extern "C" void dslbln_(const int& ipsw, const int& iwr, const double& eps,
 			int& nsol, double* xi, double* eta);
 
 std::map<int,ASMs2DC1*> ASMs2DC1::neighbors;
+
+
+bool ASMs2DC1::generateFEMTopology ()
+{
+  if (surf->order_u() > 2 && surf->order_v() > 2)
+    return this->ASMs2D::generateFEMTopology();
+
+  std::cerr <<" *** ASMs2DC1::generateFEMTopology: The polynomial order ("
+            << surf->order_u() <<","<< surf->order_v() <<") is too low.\n    "
+            <<" C1-continuity requires at least quadratic order."<< std::endl;
+  return false;
+}
 
 
 bool ASMs2DC1::connectC1 (int edge, ASMs2DC1* neighbor, int nedge, bool revers)
