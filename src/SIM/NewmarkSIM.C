@@ -116,7 +116,12 @@ bool NewmarkSIM::advanceStep (TimeStep& param, bool updateTime)
 
 bool NewmarkSIM::predictStep (TimeStep& param)
 {
-  if (solution.size() < 3) return false;
+  if (solution.size() < 3)
+  {
+    std::cerr <<" *** NewmarkSIM::predictStep: Too few solution vectors "
+              << solution.size() << std::endl;
+    return false;
+  }
 
   const double dt = param.time.dt;
 

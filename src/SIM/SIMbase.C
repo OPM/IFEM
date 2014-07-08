@@ -1299,7 +1299,12 @@ bool SIMbase::setMode (int mode, bool resetSol)
       if (resetSol) i->second->resetSolution();
     }
     else
+    {
+      std::cerr <<" *** SIMbase::setMode: No integrand yet";
+      if (i->first > 0) std::cerr <<", code="<< i->first;
+      std::cerr << std::endl;
       return false;
+    }
 
   return true;
 }
@@ -1307,7 +1312,11 @@ bool SIMbase::setMode (int mode, bool resetSol)
 
 void SIMbase::setIntegrationPrm (int id, double prm)
 {
-  myProblem->setIntegrationPrm(id,prm);
+  if (myProblem)
+    myProblem->setIntegrationPrm(id,prm);
+  else
+    std::cerr <<"  ** SIMbase::setIntegrationPrm: myProblem not set yet."
+              << std::endl;
 }
 
 

@@ -110,7 +110,12 @@ void NewmarkNLSIM::finalizeRHSvector ()
 
 bool NewmarkNLSIM::predictStep (TimeStep& param)
 {
-  if (solution.size() < 3) return false;
+  if (solution.size() < 3)
+  {
+    std::cerr <<" *** NewmarkNLSIM::predictStep: Too few solution vectors "
+              << solution.size() << std::endl;
+    return false;
+  }
 
 #ifdef SP_DEBUG
   std::cout <<"\nNewmarkNLSIM::predictStep";
@@ -157,7 +162,12 @@ bool NewmarkNLSIM::predictStep (TimeStep& param)
 
 bool NewmarkNLSIM::correctStep (TimeStep& param, bool converged)
 {
-  if (solution.size() < 3) return false;
+  if (solution.size() < 3)
+  {
+    std::cerr <<" *** NewmarkNLSIM::correctStep: Too few solution vectors "
+              << solution.size() << std::endl;
+    return false;
+  }
 
 #ifdef SP_DEBUG
   std::cout <<"\nNewmarkNLSIM::correctStep(converged="

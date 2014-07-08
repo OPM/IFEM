@@ -188,7 +188,7 @@ public:
   //! \brief Returns the number of spatial dimensions in the model.
   virtual size_t getNoSpaceDim() const { return nsd; }
   //! \brief Returns the number of primary solution fields.
-  //! \param[in] basis Which basis to condsider when mixed methods (0 = both)
+  //! \param[in] basis Which basis to consider when mixed methods (0 = both)
   size_t getNoFields(int basis = 0) const;
   //! \brief Returns the model size in terms of number of DOFs.
   size_t getNoDOFs() const;
