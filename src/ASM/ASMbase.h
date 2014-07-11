@@ -332,9 +332,10 @@ public:
   //! \param[in] func Scalar property fields
   //! \param[in] vfunc Vector property fields
   //! \param[in] time Current time
+  //! \param[in] g2l Global-to-local mapping to apply to node numbers
   virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
-			       const std::map<int,VecFunc*>& vfunc,
-			       double time = 0.0);
+                               const std::map<int,VecFunc*>& vfunc,
+                               double time=0.0, const std::map<int,int>* g2l=NULL);
 
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with

@@ -214,6 +214,10 @@ public:
   Vec4 getNodeCoord(int inod) const;
   //! \brief Returns \e true if all DOFs in the specified global node are fixed.
   bool isFixed(int inod, int dof = 123) const;
+  //! \brief Returns the global node number from a process-local node number
+  int getGlobalNode(int node) const;
+  //! \brief Returns the process-local node number from a global node number
+  int getLocalNode(int node) const;
 
   //! \brief Finds the list of global nodes associated with a boundary.
   //! \param[in] pcode Property code identifying the boundary

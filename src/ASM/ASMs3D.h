@@ -313,7 +313,8 @@ public:
   //! \param[in] time Current time
   virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
 			       const std::map<int,VecFunc*>& vfunc,
-			       double time = 0.0);
+			       double time = 0.0,
+                               const std::map<int,int>* g2l=NULL);
 
 
   // Methods for integration of finite element quantities.

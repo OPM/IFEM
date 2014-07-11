@@ -452,7 +452,7 @@ bool ASMs2DC1::initConstraints ()
 
 bool ASMs2DC1::updateDirichlet (const std::map<int,RealFunc*>& func,
 				const std::map<int,VecFunc*>& vfunc,
-				double time)
+                                double time, const std::map<int,int>* g2l)
 {
   neighbors.clear();
 
@@ -486,5 +486,5 @@ bool ASMs2DC1::updateDirichlet (const std::map<int,RealFunc*>& func,
       cit->first->setSlaveCoeff((this->getCoord(inod) - X).length()*tan(theta));
     }
 
-  return this->ASMs2D::updateDirichlet(func,vfunc,time);
+  return this->ASMs2D::updateDirichlet(func,vfunc,time,g2l);
 }

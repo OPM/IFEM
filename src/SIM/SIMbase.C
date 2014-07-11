@@ -1434,7 +1434,11 @@ bool SIMbase::updateDirichlet (double time, const Vector* prevSol)
 {
   if (prevSol)
     for (size_t i = 0; i < myModel.size(); i++)
+#ifdef PARALLEL_PETSC
+      if (!myModel[i]->updateDirichlet(myScalars,myVectors,time,g2l))
+#else
       if (!myModel[i]->updateDirichlet(myScalars,myVectors,time))
+#endif
 	return false;
 
   if (mySam)
@@ -1871,6 +1875,28 @@ bool SIMbase::isFixed (int inod, int dof) const
       return (*it)->isFixed(node,dof,true);
 
   return true;
+}
+
+
+int SIMbase::getGlobalNode(int node) const
+{
+ std::map<int, int>::const_iterator it =
+         std::find_if(g2l->begin(), g2l->end(),
+                     std::bind2nd(utl::map_data_compare<const std::map<int,int> >(), node));
+  if (it != g2l->end())
+    return it->first;
+
+  return -1;
+}
+
+
+int SIMbase::getLocalNode(int node) const
+{
+ std::map<int, int>::const_iterator it = g2l->find(node);
+  if (it != g2l->end())
+    return it->second;
+
+  return -1;
 }
 
 

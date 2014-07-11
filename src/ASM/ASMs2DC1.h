@@ -103,7 +103,8 @@ public:
   //! \param[in] time Current time
   virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
                                const std::map<int,VecFunc*>& vfunc,
-                               double time = 0.0);
+                               double time = 0.0,
+                               const std::map<int,int>* g2l=NULL);
 
 private:
   static std::map<int,ASMs2DC1*> neighbors; //!< Global node to patch mapping

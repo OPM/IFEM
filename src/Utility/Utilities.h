@@ -21,6 +21,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <algorithm>
 
 class TiXmlElement;
 class TiXmlNode;
@@ -183,6 +184,15 @@ namespace utl
 
   //! \brief Splits an integer into its (unique) digits in ascending order.
   std::set<int> getDigits(int value);
+
+  template<class T>
+  struct map_data_compare : public std::binary_function<typename T::value_type,
+                                                        typename T::mapped_type,
+                                                        bool>
+  {
+    bool operator() (const typename T::value_type &pair,
+                     typename T::mapped_type i) const { return pair.second == i; }
+  };
 }
 
 #endif

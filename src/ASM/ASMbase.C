@@ -743,7 +743,8 @@ bool ASMbase::hasTimeDependentDirichlet (const std::map<int,RealFunc*>& func,
 
 
 bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func,
-			       const std::map<int,VecFunc*>& vfunc, double time)
+                               const std::map<int,VecFunc*>& vfunc, double time,
+                               const std::map<int,int>* g2l)
 {
   std::map<int,RealFunc*>::const_iterator fit;
   std::map<int,VecFunc*>::const_iterator vfit;
@@ -757,7 +758,15 @@ bool ASMbase::updateDirichlet (const std::map<int,RealFunc*>& func,
       return false;
     }
 
-    Vec4 X(this->getCoord(inod),time,cit->first->getSlave().node);
+    int node = cit->first->getSlave().node;
+    if (g2l) {
+      std::map<int, int>::const_iterator it =
+               std::find_if(g2l->begin(), g2l->end(),
+                    std::bind2nd(utl::map_data_compare<const std::map<int,int> >(), node));
+      if (it != g2l->end())
+        node = it->first;
+    }
+    Vec4 X(this->getCoord(inod),time,node);
     if ((fit = func.find(cit->second)) != func.end())
     {
       RealFunc& g = *fit->second;
