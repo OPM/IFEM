@@ -162,7 +162,7 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
 {
   PROFILE1("NonLinSIM::solveStep");
 
-  if (msgLevel >= 0 && myPid == 0)
+  if (msgLevel >= 0 && adm.getProcId() == 0)
   {
     std::streamsize oldPrec = 0;
     double digits = log10(param.time.t)-log10(param.time.dt);
@@ -284,7 +284,7 @@ bool NonLinSIM::lineSearch (TimeStep& param)
   double cmin = 1.0;
   double ck = 1.0;
   double cp = 1.0;
-  if (myPid == 0)
+  if (model.getProcessAdm().getProcId() == 0)
     std::cout <<"\t0: ck="<< ck <<" sk="<< s0 << std::endl;
 
   alpha = 1.0;
@@ -300,7 +300,7 @@ bool NonLinSIM::lineSearch (TimeStep& param)
       return false;
 
     double sk = residual.dot(linsol);
-    if (myPid == 0)
+    if (adm.getProcId() == 0)
       std::cout <<"\t"<< iter <<": ck="<< ck <<" sk="<< sk << std::endl;
 
     if (fabs(sk) < eta*fabs(s0))
@@ -373,7 +373,7 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
   if (param.iter > 1 && prevNorm > 0.0 && fabs(norm) > prevNorm*0.1)
     status = SLOW;
 
-  if (msgLevel > 0 && myPid == 0 && !solution.empty())
+  if (msgLevel > 0 && model.getProcessAdm().getProcId() == 0 && !solution.empty())
   {
     // Print convergence history
     std::ios::fmtflags oldFlags = std::cout.flags(std::ios::scientific);

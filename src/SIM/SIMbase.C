@@ -160,10 +160,10 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
     int proc = 0;
     if (!utl::getAttribute(elem,"procs",proc))
       return false;
-    else if (proc != nProc) // silently ignore
+    else if (proc != getProcessAdm().getNoProcs()) // silently ignore
       return true;
     if (myPid == 0)
-      std::cout <<"\tNumber of partitions: "<< nProc << std::endl;
+      std::cout <<"\tNumber of partitions: "<< proc << std::endl;
 
     const TiXmlElement* part = elem->FirstChildElement("part");
     for (; part; part = part->NextSiblingElement("part")) {
@@ -172,7 +172,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
       utl::getAttribute(part,"lower",first);
       utl::getAttribute(part,"upper",last);
       if (last > nGlPatches) nGlPatches = last;
-      if (proc == myPid) {
+      if (proc == getProcessAdm().getProcId()) {
         myPatches.reserve(last-first+1);
         for (int j = first; j <= last && j > -1; j++)
           myPatches.push_back(j);
@@ -182,8 +182,8 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
     // If equal number of blocks per processor
     if (myPatches.empty() && utl::getAttribute(elem,"nperproc",proc)) {
       for (int j = 1; j <= proc; j++)
-        myPatches.push_back(myPid*proc+j);
-      nGlPatches = nProc*proc;
+        myPatches.push_back(getProcessAdm().getProcId()*proc+j);
+      nGlPatches = getProcessAdm().getNoProcs()*proc;
     }
   }
 

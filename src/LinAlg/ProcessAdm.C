@@ -63,6 +63,9 @@ void ProcessAdm::setCommunicator(const MPI_Comm* comm2)
   if (parallel)
     MPI_Comm_free(&comm);
   MPI_Comm_dup(*comm2, &comm);
+  MPI_Comm_rank(comm,&myPid);
+  MPI_Comm_size(comm,&nProc);
+  parallel = nProc > 1;
 }
 
 
