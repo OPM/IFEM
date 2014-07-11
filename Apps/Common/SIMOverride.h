@@ -67,31 +67,10 @@ public:
     return base.getNoSpaceDim();
   }
 
-  //! \copydoc SIMbase::getBoundaryNodes(int,std::vector<int>&,std::vector<Vec3>*) const
-  void getBoundaryNodes(int pcode, std::vector<int>& glbNodes,
-                        std::vector<Vec3>* XYZ = NULL) const
-  {
-    return base.getBoundaryNodes(pcode, glbNodes, XYZ);
-  }
-
   //! \copydoc SIMbase::getFEModel() const
   const PatchVec& getFEModel() const
   {
     return base.getFEModel();
-  }
-
-  //! \copydoc SIMbase::getUniquePropertyCode(const std::string&,int)
-  int getUniquePropertyCode(const std::string& setName, int comp = 0)
-  {
-    return base.getUniquePropertyCode(setName, comp);
-  }
-
-  //! \copydoc SIMbase::setVecProperty(int,Property::Type,VecFunc*,int)
-  size_t setVecProperty(int code, Property::Type ptype,
-                        VecFunc* field = NULL,
-                        int pflag = -1)
-  {
-    return base.setVecProperty(code, ptype, field, pflag);
   }
 
   //! \copydoc ISolver::saveModel(char*,int&,int&)
