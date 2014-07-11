@@ -43,7 +43,7 @@ bool SIMbase::preserveNOrder  = false;
 bool SIMbase::ignoreDirichlet = false;
 
 
-SIMbase::SIMbase (IntegrandBase* itg) : g2l(&myGlb2Loc)
+SIMbase::SIMbase (IntegrandBase* itg) : ownProblem(true), g2l(&myGlb2Loc)
 {
   isRefined = false;
   nsd = 3;
@@ -65,7 +65,7 @@ SIMbase::~SIMbase ()
   std::cout <<"\nEntering SIMbase destructor"<< std::endl;
 #endif
 
-  if (myProblem)   delete myProblem;
+  if (ownProblem)  delete myProblem;
   if (mySol)       delete mySol;
   if (myEqSys)     delete myEqSys;
   if (mySam)       delete mySam;
