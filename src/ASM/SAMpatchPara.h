@@ -37,6 +37,7 @@ public:
   //! \brief The destructor destroys the index set arrays.
   virtual ~SAMpatchPara();
 
+  int getNoGlobalNodes() const{ return nnodGlob; }
   //! \brief Allocates the dynamic arrays and populates them with data.
   //! \param[in] model All spline patches in the model
   //! \param[in] numNod Total number of unique nodes in the model

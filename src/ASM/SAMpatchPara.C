@@ -758,6 +758,8 @@ bool SAMpatchPara::initSystemEquations ()
 	if (madof[k] < madof[k+1])
 	  if (l2gn[k] < ieqmin) ghostNodes.push_back(k+1);
     }
+    else
+      nnodGlob = ieqmax;
 #endif
     
     // TODO: Fix this for mixed methods (varying DOFs per node)
