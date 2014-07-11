@@ -153,6 +153,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
         if (pch && hdf5.readVector(0, field?field:"node numbers", i+1, nodes))
           pch->assignNodeNumbers(nodes,true); // assuming zero-based numbers
       }
+      hdf5.closeFile(0, true);
     }
   }
 
