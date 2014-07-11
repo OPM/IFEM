@@ -182,6 +182,12 @@ public:
   {
     base.postSolve(tp);
   }
+
+  T& get() { return base; }
+  const T& get() const { return base; }
+
+  int getGlobalNode(int node) { return base.getGlobalNode(node); }
+  int getLocalNode(int node) { return base.getLocalNode(node); }
 };
 
 #endif
