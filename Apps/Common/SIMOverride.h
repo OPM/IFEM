@@ -165,8 +165,8 @@ public:
   T& get() { return base; }
   const T& get() const { return base; }
 
-  int getGlobalNode(int node) { return base.getGlobalNode(node); }
-  int getLocalNode(int node) { return base.getLocalNode(node); }
+  int getGlobalNode(int node) const { return base.getGlobalNode(node); }
+  int getLocalNode(int node) const { return base.getLocalNode(node); }
 };
 
 #endif
