@@ -1777,7 +1777,7 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
     str << std::endl;
   }
 
-  utl::printSyncronized(std::cout,str,myPid);
+  utl::printSyncronized(std::cout,str,getProcessAdm().getProcId());
 
   // Print entire solution vector if it is small enough
   if (myPid == 0 && mySam->getNoEquations() < printSol)
