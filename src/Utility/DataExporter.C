@@ -24,7 +24,7 @@
 
 DataWriter::DataWriter (const std::string& name, const char* defaultExt)
 {
-  if (defaultExt && name.find_last_of('.') == std::string::npos)
+  if (defaultExt && name.find(defaultExt) == std::string::npos)
     m_name = name + defaultExt;
   else
     m_name = name;
