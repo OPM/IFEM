@@ -84,7 +84,7 @@ FILE(GLOB_RECURSE IFEM_SRCS ${PROJECT_SOURCE_DIR}/src/*.C
                             ${PROJECT_SOURCE_DIR}/src/*.f
                             ${PROJECT_SOURCE_DIR}/3rdparty/expreval/*.cpp)
 string(REGEX REPLACE "${PROJECT_SOURCE_DIR}/src/ASM/ASMs.DInterpolate.C" "" IFEM_SRCS "${IFEM_SRCS}")
-IF(NOT LRSpline_FOUND)
+IF(NOT LRSPLINE_FOUND AND NOT LRSpline_FOUND)
   string(REGEX REPLACE "${PROJECT_SOURCE_DIR}/src/ASM/LR/[^;]*" "" IFEM_SRCS "${IFEM_SRCS}")
 ENDIF()
 ADD_LIBRARY(IFEM ${IFEM_SRCS} ${TINYXML_SRCS})
