@@ -51,15 +51,18 @@ ProcessAdm::~ProcessAdm()
 #ifdef HAS_PETSC
   if (parallel)
     MPI_Comm_free(&comm);
-#endif  
+#endif
   parallel = false;
   LinAlgInit::decrefs();
 }
 
+
 #ifdef HAS_PETSC
-const MPI_Comm* ProcessAdm::getCommunicator() const
+void ProcessAdm::setCommunicator(const MPI_Comm* comm2)
 {
-  return &comm;
+  if (parallel)
+    MPI_Comm_free(&comm);
+  MPI_Comm_dup(*comm2, &comm);
 }
 
 
@@ -93,6 +96,7 @@ void ProcessAdm::send(std::vector<int>& ivec, int dest) const
     MPI_Send(&(ivec[0]),n,MPI_INT,dest,102,comm);
 #endif
 }
+
 
 void ProcessAdm::send(double value, int dest) const
 {
@@ -202,5 +206,4 @@ void ProcessAdm::allReduce(std::vector<double>& rvec, MPI_Op oper) const
   rvec = tmp;
 #endif
 }
-
 #endif

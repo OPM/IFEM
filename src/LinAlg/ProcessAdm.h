@@ -27,7 +27,6 @@
 
 class ProcessAdm
 {
- protected:
   int myPid;       //!< Process id
   int nProc;       //!< Number of processes in communicator
   bool parallel;   //!< If Processor is parallel
@@ -36,15 +35,15 @@ class ProcessAdm
   MPI_Comm comm;   //!< MPI communicator
 #endif
 
- public:
+public:
   //! \brief Construct an empty (serial) process administrator.
   ProcessAdm();
 #ifdef HAS_PETSC
   //! \brief Construct a parallel process administrator.
   ProcessAdm(MPI_Comm& mpi_comm);
 #endif
-  //! \brief Destructor
-  virtual ~ProcessAdm();
+  //! \brief The destructor releases the process administrator.
+  ~ProcessAdm();
 
   //! \brief Return process id
   int getProcId() const  { return myPid; }
@@ -55,8 +54,15 @@ class ProcessAdm
 
 #ifdef HAS_PETSC
   //! \brief Return MPI communicator
-  const MPI_Comm* getCommunicator() const;
+  MPI_Comm* getCommunicator() { return &comm; }
+  //! \brief Return MPI communicator
+  const MPI_Comm* getCommunicator() const { return &comm; }
 
+  //! \brief Set MPI communicator
+  //! \param comm New communicator
+  void setCommunicator(const MPI_Comm* comm2);
+
+  //! \brief Assignment operator
   ProcessAdm& operator=(const ProcessAdm&);
 
   //! \brief Blocking send of an integer
