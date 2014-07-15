@@ -27,13 +27,15 @@ class FiniteElement
 {
 public:
   //! \brief Default constructor.
-  FiniteElement(size_t n = 0, size_t i = 0) : iel(0), iGP(i), detJxW(1.0), N(n)
-  { u = v = w = xi = eta = zeta = 0.0; }
+  FiniteElement(size_t n = 0, size_t i = 0) : iel(0), iGP(i), N(n), Te(3)
+  { u = v = w = xi = eta = zeta = 0.0; detJxW = 1.0; }
 
   //! \brief Empty destructor.
   virtual ~FiniteElement() {}
 
-  int      iel;    //!< Element identifier
+  int iel; //!< Element identifier
+
+  // Gauss point quantities
   size_t   iGP;    //!< Global integration point counter
   double   u;      //!< First parameter of current point
   double   v;      //!< Second parameter of current point
@@ -43,13 +45,16 @@ public:
   double   zeta;   //!< Third local coordinate of current integration point
   double   detJxW; //!< Weighted determinant of the coordinate mapping
   Vector   N;      //!< Basis function values
-  Vector   Navg;   //!< Volume-averaged basis function values
   Matrix   dNdX;   //!< First derivatives (gradient) of the basis functions
   Matrix3D d2NdX2; //!< Second derivatives of the basis functions
   Matrix   G;      //!< Matrix used for stabilized methods
-  Vec3Vec  XC;     //!< Matrix with element corner coordinates
 
-  std::vector<Tensor> T; //!< Array of nodal rotation matrices
+  // Element quantities
+  Vec3Vec             XC;   //!< Array with element corner coordinate vectors
+  Vector              Navg; //!< Volume-averaged basis function values
+  Matrix              Xn;   //!< Matrix of element nodal coordinates
+  Tensor              Te;   //!< Local-to-global element transformation matrix
+  std::vector<Tensor> Tn;   //!< Array of element nodal rotation matrices
 };
 
 

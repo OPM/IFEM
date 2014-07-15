@@ -111,7 +111,7 @@ public:
   //! \param[in] n1 Number of nodes in basis 1 on this patch
   //! \param elmInt Local integral for element
   virtual bool initElement(const std::vector<int>& MNPC1,
-			   const std::vector<int>& MNPC2, size_t n1,
+                           const std::vector<int>& MNPC2, size_t n1,
                            LocalIntegral& elmInt) = 0;
 
   //! \brief Initializes current element for boundary integration.
@@ -125,7 +125,7 @@ public:
   //! \param[in] n1 Number of nodes in basis 1 on this patch
   //! \param elmInt Local integral for element
   virtual bool initElementBou(const std::vector<int>& MNPC1,
-			      const std::vector<int>& MNPC2, size_t n1,
+                              const std::vector<int>& MNPC2, size_t n1,
                               LocalIntegral& elmInt) = 0;
 
 
@@ -196,15 +196,35 @@ public:
   }
 
   //! \brief Finalizes the element quantities after the numerical integration.
+  //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe Nodal and integration point data for current element
+  //! \param[in] time Parameters for nonlinear and time-dependent simulations
+  //! \param[in] iGP Global integration point counter of first point in element
+  //!
   //! \details This method is invoked once for each element, after the numerical
   //! integration loop over interior points is finished and before the resulting
   //! element quantities are assembled into their system level equivalents.
   //! It can also be used to implement multiple integration point loops within
   //! the same element, provided the necessary integration point values are
   //! stored internally in the object during the first integration loop.
-  virtual bool finalizeElement(LocalIntegral&, const TimeDomain&, size_t = 0)
+  //!
+  //! The default implementation forwards to the simple interface taking no
+  //! FiniteElement argument. Reimplement this method if time domain parameters,
+  //! element quantities and/or the integration point counter are needed.
+  virtual bool finalizeElement(LocalIntegral& elmInt, const FiniteElement& fe,
+                               const TimeDomain& time, size_t iGP)
   {
-    return true;
+    return this->finalizeElement(elmInt,time,iGP);
+  }
+
+  //! \brief Finalizes the element quantities after the numerical integration.
+  //! \details Simplified interface for when finite element data is not needed.
+  //! The default implementation forwards to the basic interface taking no
+  //! additional arguments. Reimplement this method if time domain parameters,
+  //! and/or the integration point counter are needed.
+  virtual bool finalizeElement(LocalIntegral& elmInt, const TimeDomain&, size_t)
+  {
+    return this->finalizeElement(elmInt);
   }
 
   //! \brief Evaluates the integrand at a boundary point.
@@ -254,6 +274,8 @@ protected:
   //! \brief Evaluates the integrand at boundary points for stationary problems.
   virtual bool evalBouMx(LocalIntegral&, const MxFiniteElement&,
 			 const Vec3&, const Vec3&) const { return false; }
+  //! \brief Finalizes the element quantities, basic interface.
+  virtual bool finalizeElement(LocalIntegral&) { return true; }
 };
 
 #endif

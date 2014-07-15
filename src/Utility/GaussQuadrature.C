@@ -199,6 +199,7 @@ static double G10[2][10] = {{
 const double* GaussQuadrature::getGauss (int n, int i)
 {
   switch (n) {
+  case  0: return  G1[0]; // dummy
   case  1: return  G1[i];
   case  2: return  G2[i];
   case  3: return  G3[i];

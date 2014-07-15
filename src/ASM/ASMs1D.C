@@ -472,13 +472,13 @@ bool ASMs1D::getElementCoordinates (Matrix& X, int iel) const
 }
 
 
-bool ASMs1D::getElementNodalRotations (TensorVec& T, int iel) const
+bool ASMs1D::getElementNodalRotations (TensorVec& T, size_t iel) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || (size_t)iel > MNPC.size())
+  if (iel >= MNPC.size())
   {
     std::cerr <<" *** ASMs1D::getElementNodalRotations: Element index "<< iel
-	      <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+	      <<" out of range [0,"<< MNPC.size() <<">."<< std::endl;
     return false;
   }
 #endif
@@ -487,8 +487,8 @@ bool ASMs1D::getElementNodalRotations (TensorVec& T, int iel) const
   if (nodalT.empty())
     return true;
 
-  const IntVec& mnpc = MNPC[iel-1];
-  Tensor Tgl(elmCS[iel-1],true);
+  const IntVec& mnpc = MNPC[iel];
+  Tensor Tgl(elmCS[iel],true);
 
   T.reserve(mnpc.size());
   for (size_t i = 0; i < mnpc.size(); i++)
@@ -558,7 +558,7 @@ void ASMs1D::getBoundaryNodes (int lIndex, IntVec& glbNodes) const
 {
   if (!curv) return; // silently ignore empty patches
 
-  int iel = lIndex == 1 ? 0 : this->getNoElms()-1;
+  size_t iel = lIndex == 1 ? 0 : nel-1;
   if (MLGE[iel] > 0)
   {
     if (lIndex == 1)
@@ -662,8 +662,8 @@ void ASMs1D::getElementEnds (int i, Vec3Vec& XC) const
 
   // Fetch parameter values of the element ends (knots)
   RealArray u(2);
-  u[0] = uit[i];
-  u[1] = uit[i+1];
+  u[0] = uit[i-1];
+  u[1] = uit[i];
 
   // Evaluate the spline curve at the knots to find physical coordinates
   int dim = curv->dimension();
@@ -671,10 +671,16 @@ void ASMs1D::getElementEnds (int i, Vec3Vec& XC) const
   curv->gridEvaluator(XYZ,u);
 
   XC.clear();
-  XC.reserve(2);
+  XC.reserve(elmCS.empty() ? 2 : 3);
   const double* pt = &XYZ.front();
   for (int j = 0; j < 2; j++, pt += dim)
     XC.push_back(Vec3(pt,dim));
+
+  if (elmCS.empty()) return;
+
+  // Add the local Z-axis as the third vector
+  int iel = i - curv->order();
+  XC.push_back(elmCS[iel][2]);
 }
 
 
@@ -741,10 +747,9 @@ bool ASMs1D::integrate (Integrand& integrand,
     this->getGaussPointParameters(redpar,nRed,xr);
 
   const int p1 = curv->order();
-  const int n1 = curv->numCoefs();
 
   FiniteElement fe(p1);
-  Matrix   dNdu, Xnod, Jac;
+  Matrix   dNdu, Jac;
   Matrix3D d2Ndu2, Hess;
   Vec4     X;
 
@@ -754,28 +759,30 @@ bool ASMs1D::integrate (Integrand& integrand,
 
   // === Assembly loop over all elements in the patch ==========================
 
-  int iel = 1;
-  for (int i1 = p1; i1 <= n1; i1++, iel++)
+  for (size_t iel = 0; iel < nel; iel++)
   {
-    fe.iel = MLGE[iel-1];
+    fe.iel = MLGE[iel];
     if (fe.iel < 1) continue; // zero-length element
 
     // Check that the current element has nonzero length
-    double dL = this->getParametricLength(iel);
+    double dL = this->getParametricLength(1+iel);
     if (dL < 0.0) return false; // topology error (probably logic error)
 
     // Set up control point coordinates for current element
-    if (!this->getElementCoordinates(Xnod,iel)) return false;
+    if (!this->getElementCoordinates(fe.Xn,1+iel)) return false;
 
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-      this->getElementEnds(i1-1,fe.XC);
+      this->getElementEnds(p1+iel,fe.XC);
 
     if (integrand.getIntegrandType() & Integrand::NODAL_ROTATIONS)
-      this->getElementNodalRotations(fe.T,iel);
+    {
+      this->getElementNodalRotations(fe.Tn,iel);
+      fe.Te = elmCS[iel];
+    }
 
     // Initialize element matrices
     LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-    bool ok = integrand.initElement(MNPC[iel-1],fe,X,nRed,*A);
+    bool ok = integrand.initElement(MNPC[iel],fe,X,nRed,*A);
 
     if (xr)
     {
@@ -787,7 +794,7 @@ bool ASMs1D::integrate (Integrand& integrand,
 	fe.xi = xr[i];
 
 	// Parameter values of current integration point
-	fe.u = redpar(i+1,iel);
+	fe.u = redpar(1+i,1+iel);
 
         if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
           curv->basis().computeBasisValues(fe.u,fe.N.ptr());
@@ -796,11 +803,11 @@ bool ASMs1D::integrate (Integrand& integrand,
           // Fetch basis function derivatives at current point
           this->extractBasis(fe.u,fe.N,dNdu);
           // Compute Jacobian inverse and derivatives
-          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
         }
 
 	// Cartesian coordinates of current integration point
-	X = Xnod * fe.N;
+	X = fe.Xn * fe.N;
 	X.t = time.t;
 
 	// Compute the reduced integration terms of the integrand
@@ -811,7 +818,7 @@ bool ASMs1D::integrate (Integrand& integrand,
 
     // --- Integration loop over all Gauss points in current element -----------
 
-    int jp = (iel-1)*nGauss;
+    int jp = iel*nGauss;
     fe.iGP = firstIp + jp; // Global integration point counter
 
     for (int i = 0; i < nGauss && ok; i++, fe.iGP++)
@@ -820,7 +827,7 @@ bool ASMs1D::integrate (Integrand& integrand,
       fe.xi = xg[i];
 
       // Parameter value of current integration point
-      fe.u = gpar(i+1,iel);
+      fe.u = gpar(1+i,1+iel);
 
       // Compute basis functions and derivatives
       if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
@@ -833,13 +840,13 @@ bool ASMs1D::integrate (Integrand& integrand,
       if (!dNdu.empty())
       {
         // Compute derivatives in terms of physical coordinates
-        fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+        fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
         if (fe.detJxW == 0.0) continue; // skip singular points
 
         // Compute Hessian of coordinate mapping and 2nd order derivatives
         if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
         {
-          if (!utl::Hessian(Hess,fe.d2NdX2,Jac,Xnod,d2Ndu2,fe.dNdX))
+          if (!utl::Hessian(Hess,fe.d2NdX2,Jac,fe.Xn,d2Ndu2,fe.dNdX))
             ok = false;
           else if (fe.G.cols() == 2)
           {
@@ -852,7 +859,7 @@ bool ASMs1D::integrate (Integrand& integrand,
       }
 
       // Cartesian coordinates of current integration point
-      X = Xnod * fe.N;
+      X = fe.Xn * fe.N;
       X.t = time.t;
 
       // Evaluate the integrand and accumulate element contributions
@@ -862,7 +869,7 @@ bool ASMs1D::integrate (Integrand& integrand,
     }
 
     // Finalize the element quantities
-    if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
+    if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+jp))
       ok = false;
 
     // Assembly of global system integral
@@ -887,19 +894,18 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
   // Integration of boundary point
 
   FiniteElement fe(curv->order());
-  int iel;
+  size_t iel = 0;
   switch (lIndex)
     {
     case 1:
       fe.xi = -1.0;
       fe.u = curv->startparam();
-      iel = 1;
       break;
 
     case 2:
       fe.xi = 1.0;
       fe.u = curv->endparam();
-      iel = this->getNoElms();
+      iel = nel-1;
       break;
 
     default:
@@ -908,19 +914,24 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
 
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
   fe.iGP = iit == firstBp.end() ? 0 : iit->second;
-  fe.iel = MLGE[iel-1];
+  fe.iel = MLGE[iel];
   if (fe.iel < 1) return true; // zero-length element
 
   // Set up control point coordinates for current element
-  Matrix Xnod;
-  if (!this->getElementCoordinates(Xnod,iel)) return false;
+  if (!this->getElementCoordinates(fe.Xn,1+iel)) return false;
 
   if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-    this->getElementEnds(iel+curv->order()-2,fe.XC);
+    this->getElementEnds(iel+curv->order(),fe.XC);
+
+  if (integrand.getIntegrandType() & Integrand::NODAL_ROTATIONS)
+  {
+    this->getElementNodalRotations(fe.Tn,iel);
+    fe.Te = elmCS[iel];
+  }
 
   // Initialize element matrices
   LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-  bool ok = integrand.initElementBou(MNPC[iel-1],*A);
+  bool ok = integrand.initElementBou(MNPC[iel],*A);
 
   Vec3 normal;
 
@@ -932,7 +943,7 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
     // Compute basis function derivatives
     Matrix dNdu, Jac;
     this->extractBasis(fe.u,fe.N,dNdu);
-    utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+    utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
 
     // Set up the normal vector
     if (lIndex == 1)
@@ -942,7 +953,7 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
   }
 
   // Cartesian coordinates of current integration point
-  Vec4 X(Xnod*fe.N,time.t);
+  Vec4 X(fe.Xn*fe.N,time.t);
 
   // Evaluate the integrand and accumulate element contributions
   if (ok && !integrand.evalBou(*A,fe,time,X,normal))
@@ -1238,13 +1249,12 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   const int p1 = curv->order();
 
   // Fetch nodal (control point) coordinates
-  Matrix Xnod, Xtmp;
-  this->getNodalCoordinates(Xnod);
-
   FiniteElement fe(p1);
-  Vector        solPt;
-  Matrix        dNdu, Jac;
-  Matrix3D      d2Ndu2, Hess;
+  this->getNodalCoordinates(fe.Xn);
+
+  Vector   solPt;
+  Matrix   dNdu, Jac, Xtmp;
+  Matrix3D d2Ndu2, Hess;
 
   if (nsd > 1 && (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES))
     fe.G.resize(nsd,2); // For storing d{X}/du and d2{X}/du2
@@ -1270,7 +1280,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     scatterInd(p1,curv->basis().lastKnotInterval(),ip);
 
     // Fetch associated control point coordinates
-    utl::gather(ip,nsd,Xnod,Xtmp);
+    utl::gather(ip,nsd,fe.Xn,Xtmp);
 
     if (!dNdu.empty())
     {
@@ -1286,7 +1296,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
         else if (fe.G.cols() == 2)
         {
           // Store the first and second derivatives of {X} w.r.t.
-          // the parametric coordinate (xi), in the G-matrix 
+          // the parametric coordinate (xi), in the G-matrix
           fe.G.fillColumn(1,Jac.ptr());
           fe.G.fillColumn(2,Hess.ptr());
         }
@@ -1320,8 +1330,6 @@ bool ASMs1D::globalL2projection (Matrix& sField,
   }
 
   const int p1 = curv->order();
-  const int n1 = curv->numCoefs();
-  const int nel = n1 - p1 + 1;
 
   // Get Gaussian quadrature point coordinates
   const int ng1 = p1 - 1;
@@ -1349,16 +1357,16 @@ bool ASMs1D::globalL2projection (Matrix& sField,
   // === Assembly loop over all elements in the patch ==========================
 
   int ip = 0;
-  for (int iel = 1; iel <= nel; iel++)
+  for (size_t iel = 0; iel < nel; iel++)
   {
-    if (MLGE[iel-1] < 1) continue; // zero-area element
+    if (MLGE[iel] < 1) continue; // zero-area element
 
     // --- Integration loop over all Gauss points in current element -----------
 
     for (int i = 1; i <= ng1; i++, ip++)
     {
       // Fetch basis function values at current integration point
-      curv->basis().computeBasisValues(gp(i,iel),&phi.front());
+      curv->basis().computeBasisValues(gp(i,1+iel),&phi.front());
 
       // Integrate the linear system A*x=B
       for (size_t ii = 0; ii < phi.size(); ii++)
@@ -1390,7 +1398,7 @@ bool ASMs1D::globalL2projection (Matrix& sField,
 
 bool ASMs1D::getNoStructElms (int& n1, int& n2, int& n3) const
 {
-  n1 = curv->numCoefs() - curv->order() + 1;
+  n1 = nel;
   n2 = n3 = 0;
 
   return true;

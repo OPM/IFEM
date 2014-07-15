@@ -313,6 +313,10 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
               ok = false;
           }
 
+        // Finalize the element quantities
+        if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
+          ok = false;
+
         // Assembly of global system integral
         if (ok && !glInt.assemble(A->ref(),fe.iel))
           ok = false;

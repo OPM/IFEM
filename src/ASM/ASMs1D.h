@@ -303,8 +303,8 @@ protected:
 
   //! \brief Returns nodal rotation matrices for an element, if any.
   //! \param[out] T Array of nodal rotation matrices
-  //! \param[in] iel Element index
-  bool getElementNodalRotations(TensorVec& T, int iel) const;
+  //! \param[in] iel 0-based element index
+  bool getElementNodalRotations(TensorVec& T, size_t iel) const;
 
 public:
   //! \brief Auxilliary function for computation of basis function indices.
