@@ -92,13 +92,18 @@ TARGET_LINK_LIBRARIES(IFEM ${IFEM_DEPLIBS})
 SET_TARGET_PROPERTIES(IFEM PROPERTIES VERSION ${IFEM_VERSION}
                            SOVERSION ${IFEM_ABI_VERSION})
 
+IF(IFEM_USE_GETBEAM)
+  FILE(GLOB_RECURSE GETB_SRCS ${PROJECT_SOURCE_DIR}/3rdparty/GETBeam/*.f)
+  ADD_LIBRARY(GETBeam ${GETB_SRCS})
+ENDIF(IFEM_USE_GETBEAM)
+
 # For generating the doxy
 ADD_CUSTOM_TARGET(lib_doc doxygen ${PROJECT_BINARY_DIR}/Doxyfile
                   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                   COMMENT "Generating API documentation" VERBATIM)
 if(NOT TARGET doc)
   add_custom_target(doc)
-endif()
+endif(NOT TARGET doc)
 add_dependencies(doc lib_doc)
 
 # 'install' target
@@ -114,14 +119,14 @@ ELSE(WIN32)
   # headers
   FILE(GLOB IFEM_HEADERS src/ASM/AlgEqSystem.h src/ASM/ASMbase.h
                          src/ASM/ASMenums.h src/ASM/ASMmxBase.h
-                         src/ASM/ASMstruct.h src/ASM/ElmMats.h src/ASM/ElmNorm.h
-                         src/ASM/Field.h src/ASM/Fields.h
+                         src/ASM/ASMstruct.h src/ASM/*Mats.h src/ASM/ElmNorm.h
+                         src/ASM/Field.h src/ASM/Fields.h src/ASM/GlbForceVec.h
                          src/ASM/FiniteElement.h src/ASM/GlbNorm.h
                          src/ASM/GlobalIntegral.h src/ASM/IntegrandBase.h
                          src/ASM/Integrand.h src/ASM/Lagrange.h
                          src/ASM/LocalIntegral.h src/ASM/SAMpatch.h
                          src/ASM/TimeDomain.h src/ASM/ASMs?D.h src/ASM/ASM?D.h
-                         src/Integrands/*.h src/LinAlg/*.h src/SIM/*.h
+                         src/LinAlg/*.h src/SIM/*.h
                          src/Utility/*.h
                          ${CMAKE_BINARY_DIR}/IFEM.h)
   INSTALL(FILES ${IFEM_HEADERS}
