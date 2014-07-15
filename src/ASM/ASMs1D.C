@@ -803,6 +803,7 @@ bool ASMs1D::integrate (Integrand& integrand,
           // Fetch basis function derivatives at current point
           this->extractBasis(fe.u,fe.N,dNdu);
           // Compute Jacobian inverse and derivatives
+          dNdu.multiply(0.5*dL); // Derivatives w.r.t. xi=[-1,1]
           fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
         }
 
@@ -840,12 +841,14 @@ bool ASMs1D::integrate (Integrand& integrand,
       if (!dNdu.empty())
       {
         // Compute derivatives in terms of physical coordinates
-        fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
+        dNdu.multiply(0.5*dL); // Derivatives w.r.t. xi=[-1,1]
+        fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu)*wg[i];
         if (fe.detJxW == 0.0) continue; // skip singular points
 
         // Compute Hessian of coordinate mapping and 2nd order derivatives
         if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
         {
+          d2Ndu2.multiply(0.25*dL*dL); // 2nd derivatives w.r.t. xi=[-1,1]
           if (!utl::Hessian(Hess,fe.d2NdX2,Jac,fe.Xn,d2Ndu2,fe.dNdX))
             ok = false;
           else if (fe.G.cols() == 2)
@@ -863,7 +866,6 @@ bool ASMs1D::integrate (Integrand& integrand,
       X.t = time.t;
 
       // Evaluate the integrand and accumulate element contributions
-      fe.detJxW *= 0.5*dL*wg[i];
       if (ok && !integrand.evalInt(*A,fe,time,X))
         ok = false;
     }
