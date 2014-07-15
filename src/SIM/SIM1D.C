@@ -515,15 +515,40 @@ bool SIM1D::createFEMmodel (char)
 }
 
 
-ASMbase* SIM1D::createDefaultGeometry () const
+ASMbase* SIM1D::createDefaultGeometry (const TiXmlElement* geo) const
 {
   std::string g2("100 1 0 0\n");
   g2.append(1,'0'+nsd);
-  g2.append(" 0\n2 2\n0 0 1 1\n0.0");
+  g2.append(" 0\n2 2\n0 0 1 1\n");
+
   unsigned char d;
-  for (d = 1; d < nsd; d++) g2.append(" 0.0");
-  g2.append("\n1.0");
-  for (d = 1; d < nsd; d++) g2.append(" 0.0");
+  std::string XYZ;
+  if (utl::getAttribute(geo,"X0",XYZ))
+  {
+    std::cout <<"\tX0 = "<< XYZ << std::endl;
+    g2.append(XYZ);
+  }
+  else
+  {
+    g2.append("0.0");
+    for (d = 1; d < nsd; d++)
+      g2.append(" 0.0");
+  }
+  g2.append("\n");
+  if (utl::getAttribute(geo,"X1",XYZ))
+  {
+    std::cout <<"\tX1 = "<< XYZ << std::endl;
+    g2.append(XYZ);
+  }
+  else
+  {
+    XYZ = "1.0";
+    if (utl::getAttribute(geo,"L",XYZ))
+      std::cout <<"\tLength scale = "<< XYZ << std::endl;
+    g2.append(XYZ);
+    for (d = 1; d < nsd; d++)
+      g2.append(" 0.0");
+  }
   g2.append("\n");
 
   std::istringstream unitLine(g2);

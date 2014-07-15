@@ -109,7 +109,7 @@ protected:
 			     int dirs, int code, int& ngnod);
 
   //! \brief Creates a default single-patch geometry.
-  virtual ASMbase* createDefaultGeometry() const;
+  virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const;
 
 protected:
   unsigned char nf[3]; //!< Number of scalar fields

@@ -115,7 +115,7 @@ protected:
   bool addConstraint(int patch, int lndx, int line, double xi, int dirs);
 
   //! \brief Creates a default single-patch geometry.
-  virtual ASMbase* createDefaultGeometry() const;
+  virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const;
 
 protected:
   unsigned char nf[2]; //!< Number of scalar fields

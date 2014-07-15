@@ -458,7 +458,7 @@ bool SIMbase::parse (const TiXmlElement* elem)
       std::cout <<"  Using default linear geometry basis on unit domain [0,1]";
       if (this->getNoParamDim() > 1) std::cout <<"^"<< this->getNoParamDim();
       std::cout << std::endl;
-      myModel.resize(1,this->createDefaultGeometry());
+      myModel.resize(1,this->createDefaultGeometry(elem));
     }
 
   const TiXmlElement* child = elem->FirstChildElement();

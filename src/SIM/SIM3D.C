@@ -757,7 +757,7 @@ bool SIM3D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
 }
 
 
-ASMbase* SIM3D::createDefaultGeometry () const
+ASMbase* SIM3D::createDefaultGeometry (const TiXmlElement*) const
 {
   std::istringstream unitCube("700 1 0 0\n3 0\n"
 			      "2 2\n0 0 1 1\n"

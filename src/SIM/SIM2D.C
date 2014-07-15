@@ -742,7 +742,7 @@ void SIM2D::clonePatches (const PatchVec& patches,
 }
 
 
-ASMbase* SIM2D::createDefaultGeometry () const
+ASMbase* SIM2D::createDefaultGeometry (const TiXmlElement*) const
 {
   std::string g2("200 1 0 0\n");
   g2.append(nsd > 2 ? "3" : "2");
