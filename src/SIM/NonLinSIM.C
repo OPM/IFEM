@@ -29,6 +29,7 @@ NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : MultiStepSIM(sim), iteNorm(n)
 {
   // Default solution parameters
   fromIni = iteNorm == NONE;
+  rotUpd  = false;
   maxit   = 20;
   nupdat  = 20;
   prnSlow = 0;
@@ -95,6 +96,10 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
   if (strcasecmp(elem->Value(),"nonlinearsolver"))
     return model.parse(elem);
 
+  std::string rotUpdate;
+  if (utl::getAttribute(elem,"rotation",rotUpdate,true))
+    rotUpd = rotUpdate.front();
+
   const char* value = 0;
   const TiXmlElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
@@ -123,6 +128,16 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
       fromIni = true;
 
   return true;
+}
+
+
+void NonLinSIM::getTolerances (double& atol, double& rtol,
+                               double& dtol, int& mxit) const
+{
+  atol = aTol;
+  rtol = rTol;
+  dtol = divgLim;
+  mxit = maxit;
 }
 
 
@@ -254,23 +269,18 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
 }
 
 
-bool NonLinSIM::solveLinearizedSystem (const TimeStep& tp, double& norm)
+bool NonLinSIM::solveLinearizedSystem (const TimeStep& param, double& norm)
 {
-  if (!model.assembleSystem(tp.time,solution))
+  if (!model.assembleSystem(param.time,solution))
     return false;
 
   Vector inc;
   model.extractLoadVec(inc);
-  size_t ind[4];
-  double inf[4];
-  const size_t nf = model.getNoFields(1);
-  norm = model.solutionNorms(inc,inf,ind,nf);
-
-  if (!model.solveSystem(inc,0,"increment"))
+  norm = model.solutionNorms(inc);
+  if (!model.solveSystem(inc))
     return false;
 
-  solution.front() += inc;
-
+  solution.front().add(inc);
   return true;
 }
 
@@ -431,7 +441,7 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
 }
 
 
-bool NonLinSIM::updateConfiguration (TimeStep&)
+bool NonLinSIM::updateConfiguration (TimeStep& time)
 {
   if (solution.empty()) return false;
 
@@ -442,8 +452,26 @@ bool NonLinSIM::updateConfiguration (TimeStep&)
   }
   else if (alpha != 0.0)
   {
+    if (time.iter == 1 && rotUpd && model.getNoFields(1) == 6)
+    {
+      // Initalize the total angular rotations for this load increment
+      Vector& psol = solution.front();
+      if (psol.size() != 6*model.getNoNodes(true))
+      {
+        std::cerr <<" *** NonLinSIM::updateConfiguration: Invalid dimension on"
+                  <<" the displacement vector "<< psol.size()
+                  <<" != "<< 6*model.getNoNodes(true) << std::endl;
+        return false;
+      }
+      for (size_t i = 3; i < psol.size(); i += 6)
+        psol[i] = psol[i+1] = psol[i+2] = 0.0;
+    }
+
     solution.front().add(linsol,alpha);
-    model.updateRotations(linsol,alpha);
+    if (rotUpd == 't')
+      model.updateRotations(solution.front(),alpha);
+    else if (rotUpd)
+      model.updateRotations(linsol,alpha);
   }
 
   return model.updateConfiguration(solution.front());

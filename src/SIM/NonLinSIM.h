@@ -11,8 +11,8 @@
 //!
 //==============================================================================
 
-#ifndef _NONLIN_SIM_H
-#define _NONLIN_SIM_H
+#ifndef _NON_LIN_SIM_H
+#define _NON_LIN_SIM_H
 
 #include "MultiStepSIM.h"
 
@@ -38,6 +38,13 @@ public:
   NonLinSIM(SIMbase& sim, CNORM n = ENERGY);
   //! \brief The destructor prints out the slow-converging nodes, if any.
   virtual ~NonLinSIM();
+
+  //! \brief Returns solver configuration parameters.
+  //! \param[out] atol Absolute residual norm tolerance
+  //! \param[out] rtol Relative residual norm tolerance
+  //! \param[out] dtol Relative divergence limit
+  //! \param[out] mxit Maximum number of iterations
+  void getTolerances(double& atol, double& rtol, double& dtol, int& mxit) const;
 
   //! \brief Initializes the primary solution vectors.
   //! \param[in] nSol Number of consequtive solutions stored
@@ -69,10 +76,10 @@ public:
                                     double zero_tolerance = 1.0e-8,
                                     std::streamsize outPrec = 0);
 
-  //! \brief Solve the linearized system once
-  //! \param[in] tp Time stepping parameters
-  //! \param     norm The norm of the residual
-  bool solveLinearizedSystem(const TimeStep& tp, double& norm);
+  //! \brief Solves the current linearized system.
+  //! \param[in] param Time stepping parameters
+  //! \param[out] norm The norm of the residual
+  bool solveLinearizedSystem(const TimeStep& param, double& norm);
 
   //! \brief Computes and prints some solution norm quantities.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
@@ -81,19 +88,6 @@ public:
   virtual bool solutionNorms(const TimeDomain& time,
                              double zero_tolerance = 1.0e-8,
                              std::streamsize outPrec = 0);
-
-  //! \brief Return solver configuration parameters
-  //! \param atol Absolute residual norm tolerance
-  //! \param rtol Relative residual norm tolerance
-  //! \param dtol Relative divergence limit
-  //! \param maxIts Maximum number of iterations
-  void getTolerances(double& atol, double& rtol, double& dtol, int& maxIts)
-  {
-    atol = aTol;
-    rtol = rTol;
-    dtol = divgLim;
-    maxIts = maxit;
-  }
 
 protected:
   //! \brief Checks whether the nonlinear iterations have converged or diverged.
@@ -115,6 +109,7 @@ public:
 
 protected:
   bool   fromIni; //!< If \e true, always solve from initial configuration
+  char   rotUpd;  //!< Option for how to update of nodal rotations
   CNORM  iteNorm; //!< The norm type used to measure the residual
   double rTol;    //!< Relative convergence tolerance
   double aTol;    //!< Absolute convergence tolerance

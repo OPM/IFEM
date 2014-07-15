@@ -1929,7 +1929,7 @@ void SIMbase::iterationNorms (const Vector& u, const Vector& r,
 double SIMbase::solutionNorms (const Vector& x, double* inf,
 			       size_t* ind, size_t nf) const
 {
-  if (nf == 0) nf = nsd;
+  if (inf && ind && nf == 0) nf = nsd;
 
   for (size_t d = 0; d < nf; d++)
   {

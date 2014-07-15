@@ -136,7 +136,7 @@ public:
   //! \param[in] field The vector field representing the physical property
   //! \param[in] pflag Flag for local axis directions (see setPropertyType)
   size_t setVecProperty(int code, Property::Type ptype, VecFunc* field = NULL,
-			int pflag = -1);
+                        int pflag = -1);
 
   //! \brief Defines a traction field property.
   //! \param[in] code The property code to be associated with the property
@@ -246,7 +246,7 @@ public:
   //! (used for the initial time step), otherwise they are set to the difference
   //! between the new values from the Dirichlet functions, and the previous
   //! values stored in the provided \a prevSol vector.
-  virtual bool updateDirichlet(double time = 0.0, const Vector* prevSol = 0);
+  virtual bool updateDirichlet(double time = 0.0, const Vector* prevSol = NULL);
 
   //! \brief Updates problem-dependent state based on the current solution.
   virtual bool updateConfiguration(const Vector&) { return true; }
@@ -328,8 +328,8 @@ public:
   //! \param[out] ind Global index of the node corresponding to the inf-value
   //! \param[in] nf Number of components in the primary solution field
   //! \return L2-norm of the solution vector
-  double solutionNorms(const Vector& x, double* inf,
-                       size_t* ind, size_t nf = 0) const;
+  double solutionNorms(const Vector& x, double* inf = NULL,
+                       size_t* ind = NULL, size_t nf = 0) const;
 
   //! \brief Integrates some solution norm quantities.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations.
@@ -344,8 +344,8 @@ public:
   //! difference between these solutions and the directly evaluated secondary
   //! solution are computed as well.
   bool solutionNorms(const TimeDomain& time,
-		     const Vectors& psol, const Vectors& ssol,
-		     Vectors& gNorm, Matrix* eNorm = 0);
+                     const Vectors& psol, const Vectors& ssol,
+                     Vectors& gNorm, Matrix* eNorm = NULL);
   //! \brief Integrates some solution norm quantities.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations.
   //! \param[in] psol Primary solution vectors
@@ -354,7 +354,7 @@ public:
   //!
   //! \details Use this version if no projected solutions are needed/available.
   bool solutionNorms(const TimeDomain& time, const Vectors& psol,
-		     Vectors& gNorm, Matrix* eNorm = 0)
+                     Vectors& gNorm, Matrix* eNorm = NULL)
   { return this->solutionNorms(time,psol,Vectors(),gNorm,eNorm); }
   //! \brief Integrates some solution norm quantities.
   //! \param[in] psol Primary solution vectors
