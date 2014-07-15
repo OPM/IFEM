@@ -28,8 +28,10 @@ class ASMs1DLag : public ASMs1D
 public:
   //! \brief Default constructor.
   ASMs1DLag(unsigned char n_s = 1, unsigned char n_f = 1);
-  //! \brief Copy constructor.
-  ASMs1DLag(const ASMs1DLag& patch, unsigned char n_f = 0);
+  //! \brief Special copy constructor for sharing of FE data.
+  ASMs1DLag(const ASMs1DLag& patch, unsigned char n_f);
+  //! \brief Default copy constructor copying everything.
+  ASMs1DLag(const ASMs1DLag& patch);
   //! \brief Empty destructor.
   virtual ~ASMs1DLag() {}
 

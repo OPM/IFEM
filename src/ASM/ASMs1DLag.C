@@ -41,6 +41,14 @@ ASMs1DLag::ASMs1DLag (const ASMs1DLag& patch, unsigned char n_f)
 }
 
 
+ASMs1DLag::ASMs1DLag (const ASMs1DLag& patch)
+  : ASMs1D(patch), coord(myCoord)
+{
+  nx = patch.nx;
+  myCoord = patch.coord;
+}
+
+
 void ASMs1DLag::clear (bool retainGeometry)
 {
   myCoord.clear();
@@ -61,21 +69,29 @@ bool ASMs1DLag::generateFEMTopology ()
   RealArray gpar;
   if (!this->getGridParameters(gpar,p1-1)) return false;
 
-  // Number of nodes
-  nx = gpar.size();
+  // Number of nodes in the patch
+  nnod = nx = gpar.size();
 
   if (!coord.empty())
-    return coord.size() == nx;
+    return coord.size() == nnod;
 
-  // Number of elements
-  const int nel = (nx-1)/(p1-1);
+  // Number of elements in the patch
+  nel = (nx-1)/(p1-1);
 
-  myMLGN.resize(nx);
-  myCoord.resize(nx);
+  myMLGN.resize(nnod);
+  myCoord.resize(nnod);
+  if (nsd == 3 && nf == 6)
+  {
+    // This is a 3D beam problem, allocate the nodal/element rotation tensors.
+    // The nodal rotations are updated during the simulation according to the
+    // deformation state, whereas the element tensors are kept constant.
+    myT.resize(nnod,Tensor(3,true)); // Initialize nodal rotations to unity
+    myCS.resize(nel,Tensor(3));
+  }
 
   // Evaluate the nodal coordinates
   Go::Point pt;
-  for (size_t i = 0; i < nx; i++)
+  for (size_t i = 0; i < nnod; i++)
   {
     curv->point(pt,gpar[i]);
     for (int k = 0; k < pt.size(); k++)
@@ -87,8 +103,7 @@ bool ASMs1DLag::generateFEMTopology ()
   myMLGE.resize(nel);
   myMNPC.resize(nel);
 
-  int a, iel;
-  for (iel = 0; iel < nel; iel++)
+  for (size_t iel = 0; iel < nel; iel++)
   {
     myMLGE[iel] = ++gEl;
     // Element array
@@ -96,8 +111,20 @@ bool ASMs1DLag::generateFEMTopology ()
     // First node in current element
     int first = (p1-1)*iel;
 
-    for (a = 0; a < p1; a++)
+    for (int a = 0; a < p1; a++)
       myMNPC[iel][a] = first + a;
+  }
+
+  // Calculate local element axes for 3D beam elements
+  for (size_t i = 0; i < myCS.size(); i++)
+  {
+    Vec3 X1 = this->getCoord(1+MNPC[i].front());
+    Vec3 X2 = this->getCoord(1+MNPC[i].back());
+    myCS[i] = Tensor(X2-X1,true);
+#ifdef SP_DEBUG
+    std::cout <<"Local axes for beam element "<< i+1
+              <<", from "<< X1 <<" to "<< X2 <<":\n"<< myCS[i];
+#endif
   }
 
   return true;
@@ -202,25 +229,31 @@ bool ASMs1DLag::integrate (Integrand& integrand,
   const int p1 = curv->order();
 
   FiniteElement fe(p1);
-  Matrix dNdu, Xnod, Jac;
+  Matrix dNdu, Jac;
   Vec4   X;
 
 
   // === Assembly loop over all elements in the patch ==========================
 
-  const int nel = this->getNoElms();
-  for (int iel = 1; iel <= nel; iel++)
+  for (size_t iel = 0; iel < nel; iel++)
   {
+    fe.iel = MLGE[iel];
+
     // Set up nodal point coordinates for current element
-    if (!this->getElementCoordinates(Xnod,iel)) return false;
+    if (!this->getElementCoordinates(fe.Xn,1+iel)) return false;
 
     if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-      getEndPoints(Xnod,fe.XC);
+      getEndPoints(fe.Xn,fe.XC);
+
+    if (integrand.getIntegrandType() & Integrand::NODAL_ROTATIONS)
+    {
+      this->getElementNodalRotations(fe.Tn,iel);
+      fe.Te = elmCS[iel];
+    }
 
     // Initialize element quantities
-    fe.iel = MLGE[iel-1];
     LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-    bool ok = integrand.initElement(MNPC[iel-1],fe,X,nRed,*A);
+    bool ok = integrand.initElement(MNPC[iel],fe,X,nRed,*A);
 
     if (xr)
 
@@ -232,7 +265,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
 	fe.xi  = xr[i];
 
 	// Parameter value of current integration point
-	fe.u = 0.5*(gpar[iel-1]*(1.0-xr[i]) + gpar[iel]*(1.0+xr[i]));
+	fe.u = 0.5*(gpar[iel]*(1.0-xr[i]) + gpar[iel+1]*(1.0+xr[i]));
 
         if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
           ok = Lagrange::computeBasis(fe.N,p1,xr[i]);
@@ -241,11 +274,11 @@ bool ASMs1DLag::integrate (Integrand& integrand,
           // Compute basis function derivatives at current integration point
           ok = Lagrange::computeBasis(fe.N,dNdu,p1,xr[i]);
           // Compute Jacobian inverse and derivatives
-          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
 	}
 
 	// Cartesian coordinates of current integration point
-	X = Xnod * fe.N;
+	X = fe.Xn * fe.N;
 	X.t = time.t;
 
 	// Compute the reduced integration terms of the integrand
@@ -255,7 +288,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
 
     // --- Integration loop over all Gauss points in each direction ------------
 
-    int jp = (iel-1)*nGauss;
+    int jp = iel*nGauss;
     fe.iGP = firstIp + jp; // Global integration point counter
 
     for (int i = 0; i < nGauss && ok; i++, fe.iGP++)
@@ -264,7 +297,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
       fe.xi = xg[i];
 
       // Parameter value of current integration point
-      fe.u = 0.5*(gpar[iel-1]*(1.0-xg[i]) + gpar[iel]*(1.0+xg[i]));
+      fe.u = 0.5*(gpar[iel]*(1.0-xg[i]) + gpar[iel+1]*(1.0+xg[i]));
 
       if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
         ok = Lagrange::computeBasis(fe.N,p1,xg[i]);
@@ -273,11 +306,11 @@ bool ASMs1DLag::integrate (Integrand& integrand,
         // Compute basis function derivatives at current integration point
         ok = Lagrange::computeBasis(fe.N,dNdu,p1,xg[i]);
         // Compute Jacobian inverse of coordinate mapping and derivatives
-        fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu)*wg[i];
+        fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu)*wg[i];
       }
 
       // Cartesian coordinates of current integration point
-      X = Xnod * fe.N;
+      X = fe.Xn * fe.N;
       X.t = time.t;
 
       // Evaluate the integrand and accumulate element contributions
@@ -285,7 +318,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
     }
 
     // Finalize the element quantities
-    if (ok && !integrand.finalizeElement(*A,time,firstIp+jp))
+    if (ok && !integrand.finalizeElement(*A,fe,time,firstIp+jp))
       ok = false;
 
     // Assembly of global system integral
@@ -310,37 +343,41 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
   // Integration of boundary point
 
   FiniteElement fe(curv->order());
-  int iel;
+  size_t iel = 0;
   switch (lIndex)
     {
     case 1:
       fe.xi = -1.0;
       fe.u = curv->startparam();
-      iel = 1;
       break;
 
     case 2:
       fe.xi = 1.0;
       fe.u = curv->endparam();
-      iel = this->getNoElms();
+      iel = nel-1;
 
     default:
       return false;
     }
 
   // Set up nodal point coordinates for current element
-  Matrix Xnod;
-  if (!this->getElementCoordinates(Xnod,iel)) return false;
+  if (!this->getElementCoordinates(fe.Xn,1+iel)) return false;
 
   if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
-    getEndPoints(Xnod,fe.XC);
+    getEndPoints(fe.Xn,fe.XC);
+
+  if (integrand.getIntegrandType() & Integrand::NODAL_ROTATIONS)
+  {
+    this->getElementNodalRotations(fe.Tn,iel);
+    fe.Te = elmCS[iel];
+  }
 
   // Initialize element quantities
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
   fe.iGP = iit == firstBp.end() ? 0 : iit->second;
-  fe.iel = MLGE[iel-1];
+  fe.iel = MLGE[iel];
   LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
-  bool ok = integrand.initElementBou(MNPC[iel-1],*A);
+  bool ok = integrand.initElementBou(MNPC[iel],*A);
 
   // Evaluate basis functions and corresponding derivatives
   Vec3 normal;
@@ -351,7 +388,7 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
     // Compute basis function derivatives
     Matrix dNdu, Jac;
     ok &= Lagrange::computeBasis(fe.N,dNdu,curv->order(),fe.xi);
-    utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+    utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
 
     // Set up the normal vector
     if (lIndex == 1)
@@ -361,7 +398,7 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
   }
 
   // Cartesian coordinates of current integration point
-  Vec4 X(Xnod*fe.N,time.t);
+  Vec4 X(fe.Xn*fe.N,time.t);
 
   // Evaluate the integrand and accumulate element contributions
   if (ok && !integrand.evalBou(*A,fe,time,X,normal))
@@ -473,14 +510,13 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   FiniteElement fe(p1);
   Vector        solPt;
   Vectors       globSolPt(nPoints);
-  Matrix        dNdu, Xnod, Jac;
+  Matrix        dNdu, Jac;
 
   // Evaluate the secondary solution field at each point
-  const int nel = this->getNoElms(true);
-  for (int iel = 1; iel <= nel; iel++)
+  for (size_t iel = 0; iel < nel; iel++)
   {
-    const IntVec& mnpc = MNPC[iel-1];
-    this->getElementCoordinates(Xnod,iel);
+    const IntVec& mnpc = MNPC[iel];
+    this->getElementCoordinates(fe.Xn,1+iel);
 
     for (int loc = 0; loc < p1; loc++)
     {
@@ -496,12 +532,12 @@ bool ASMs1DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
           return false;
 
         // Compute the Jacobian inverse
-        if (utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu) == 0.0) // Jac = (Xnod*dNdu)^-1
+        if (utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu) == 0.0) // Jac = (Xn*dNdu)^-1
           continue; // skip singular points
       }
 
       // Now evaluate the solution field
-      if (!integrand.evalSol(solPt,fe,Xnod*fe.N,mnpc))
+      if (!integrand.evalSol(solPt,fe,fe.Xn*fe.N,mnpc))
 	return false;
       else if (sField.empty())
 	sField.resize(solPt.size(),nPoints,true);
