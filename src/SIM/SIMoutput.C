@@ -385,10 +385,10 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
 
     // 1. Evaluate primary solution variables
 
-    Vector& locvec = myProblem ? myProblem->getSolution() : lovec;
-    myModel[i]->extractNodeVec(psol,locvec,psolComps,0);
+    Vector& lvec = myProblem && myProblem->getNoSolutions() ? myProblem->getSolution() : lovec;
+    myModel[i]->extractNodeVec(psol,lvec,psolComps,0);
     this->extractPatchDependencies(myProblem,myModel,i);
-    if (!myModel[i]->evalSolution(field,locvec,opt.nViz))
+    if (!myModel[i]->evalSolution(field,lvec,opt.nViz))
       return false;
 
     myModel[i]->filterResults(field,myVtf->getBlock(geomID+1));
@@ -443,6 +443,7 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
 
     if (psolOnly || !myProblem) continue; // skip secondary solution
     if (myProblem->getNoFields(2) < 1) continue; // no secondary solution
+    if (myProblem->getNoSolutions() < 1) continue; // no patch level primary solution
 
     // 2. Direct evaluation of secondary solution variables
 
