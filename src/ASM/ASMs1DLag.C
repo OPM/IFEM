@@ -248,7 +248,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
     if (integrand.getIntegrandType() & Integrand::NODAL_ROTATIONS)
     {
       this->getElementNodalRotations(fe.Tn,iel);
-      fe.Te = elmCS[iel];
+      if (!elmCS.empty()) fe.Te = elmCS[iel];
     }
 
     // Initialize element quantities
@@ -369,7 +369,7 @@ bool ASMs1DLag::integrate (Integrand& integrand, int lIndex,
   if (integrand.getIntegrandType() & Integrand::NODAL_ROTATIONS)
   {
     this->getElementNodalRotations(fe.Tn,iel);
-    fe.Te = elmCS[iel];
+    if (!elmCS.empty()) fe.Te = elmCS[iel];
   }
 
   // Initialize element quantities

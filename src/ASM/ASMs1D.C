@@ -777,7 +777,7 @@ bool ASMs1D::integrate (Integrand& integrand,
     if (integrand.getIntegrandType() & Integrand::NODAL_ROTATIONS)
     {
       this->getElementNodalRotations(fe.Tn,iel);
-      fe.Te = elmCS[iel];
+      if (!elmCS.empty()) fe.Te = elmCS[iel];
     }
 
     // Initialize element matrices
@@ -928,7 +928,7 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
   if (integrand.getIntegrandType() & Integrand::NODAL_ROTATIONS)
   {
     this->getElementNodalRotations(fe.Tn,iel);
-    fe.Te = elmCS[iel];
+    if (!elmCS.empty()) fe.Te = elmCS[iel];
   }
 
   // Initialize element matrices
