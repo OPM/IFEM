@@ -35,7 +35,7 @@ struct SolverConfigurator {
 
 //! \brief Configuration template
 template<class T>
-int ConfigureSIM(T& t, const typename T::SetupProps& p, char* infile)
+int ConfigureSIM(T& t, char* infile, const typename T::SetupProps& p=typename T::SetupProps())
 {
   SolverConfigurator<T> setup;
   return setup.setup(t, p, infile);
