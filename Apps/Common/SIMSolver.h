@@ -29,13 +29,13 @@ struct SolverConfigurator {
   //! \param sim The simulator to configure
   //! \param props The setup properties for the simulator
   //! \param infile The input file to parse
-  int setup(T& sim, typename T::SetupProps& props, char* infile);
+  int setup(T& sim, const typename T::SetupProps& props, char* infile);
 };
 
 
 //! \brief Configuration template
 template<class T>
-int ConfigureSIM(T& t, typename T::SetupProps& p, char* infile)
+int ConfigureSIM(T& t, const typename T::SetupProps& p, char* infile)
 {
   SolverConfigurator<T> setup;
   return setup.setup(t, p, infile);
