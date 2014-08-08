@@ -195,11 +195,14 @@ public:
   //! 2D tensor with the 33-term as the forth component. This is typically used
   //! to represent the symmetric stress tensor in 2D plane strain models,
   //! where the \f$\sigma_{zz}\f$ component is nonzero.
-  SymmTensor(const t_ind nsd, bool with33 = false);
+  explicit SymmTensor(const t_ind nsd, bool with33 = false);
   //! \brief Constructor creating a symmetric tensor from a vector.
   SymmTensor(const std::vector<Real>& vec);
   //! \brief Copy constructor.
   SymmTensor(const SymmTensor& T) : Tensor(0) { this->copy(T); }
+
+  //! \brief Assignment operator.
+  SymmTensor& operator=(Real val);
 
   //! \brief Copies a symmetric tensor, possibly with dimension change.
   void copy(const SymmTensor& T);

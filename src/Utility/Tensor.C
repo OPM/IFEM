@@ -312,12 +312,9 @@ Tensor& Tensor::operator= (Real val)
 {
   this->zero();
 
-  t_ind i, j, inc = this->symmetric() ? 1 : n+1;
-  for (i = j = 0; i < n; i++, j += inc)
+  t_ind i, j;
+  for (i = j = 0; i < n; i++, j += n+1)
     v[j] = val;
-
-  if (inc == 1 && v.size() == 4)
-    v[2] = val;
 
   return *this;
 }
@@ -687,6 +684,16 @@ SymmTensor::SymmTensor (const std::vector<Real>& vec) : Tensor(0)
     this->redim(0);
 
   std::copy(vec.begin(),vec.begin()+v.size(),v.begin());
+}
+
+
+
+SymmTensor& SymmTensor::operator= (Real val)
+{
+  for (t_ind i = 0; i < v.size(); i++)
+    v[i] = i < n || (i == 2 && v.size() == 4) ? val : 0.0;
+
+  return *this;
 }
 
 
