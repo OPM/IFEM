@@ -17,6 +17,7 @@ ADD_SUBDIRECTORY(Elasticity/Dynamic)
 ADD_SUBDIRECTORY(Elasticity/FiniteDeformation)
 ADD_SUBDIRECTORY(FSWallDistance)
 ADD_SUBDIRECTORY(Stokes)
+ADD_SUBDIRECTORY(ThermoElasticity)
 ADD_SUBDIRECTORY(HDF5toVTx)
 
 # Generate regtest script with correct paths
