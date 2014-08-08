@@ -97,8 +97,8 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
     return model.parse(elem);
 
   std::string rotUpdate;
-  if (utl::getAttribute(elem,"rotation",rotUpdate,true))
-    rotUpd = rotUpdate.front();
+  if (utl::getAttribute(elem,"rotation",rotUpdate,true) && !rotUpdate.empty())
+    rotUpd = rotUpdate[0];
 
   const char* value = 0;
   const TiXmlElement* child = elem->FirstChildElement();
