@@ -346,6 +346,14 @@ public:
   //! regular interpolation method in GoTools only works with uniform knots.
   virtual bool evaluate(const Field* field, Vector& vec) const;
 
+  //! \brief Evaluates and interpolates a function over a given geometry.
+  //! \param[in] func The function to evaluate
+  //! \param[out] vec The obtained coefficients after interpolation
+  //!
+  //! \note A Variation Diminishing Spline Approximation is used as the
+  //! regular interpolation method in GoTools only works with uniform knots.
+  virtual bool evaluate(const RealFunc* field, Vector& vec) const;
+
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
