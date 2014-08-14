@@ -1834,3 +1834,8 @@ bool SAMpatchPara::isDirichlet(int inod, int dof) const
   return fixed;
 }
 
+
+int SAMpatchPara::getNoSpaceDim() const
+{
+  return patch.front()->getNoSpaceDim();
+}

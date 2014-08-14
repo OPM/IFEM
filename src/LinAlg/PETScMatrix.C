@@ -169,9 +169,10 @@ PETScMatrix::PETScMatrix (const ProcessAdm& padm, const LinSolParams& spar) : ad
 
   // Create null space if any
   if (solParams.getNullSpace() == CONSTANT) {
-      MatNullSpaceCreate(*adm.getCommunicator(),PETSC_TRUE,0,0,&nsp);
-      KSPSetNullSpace(ksp,nsp);
+    MatNullSpaceCreate(*adm.getCommunicator(),PETSC_TRUE,0,0,&nsp);
+    KSPSetNullSpace(ksp,nsp);
   }
+
   LinAlgInit::increfs();
 
   setParams = true;
@@ -293,8 +294,26 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
 {
   const SAMpatchPara* sampch = dynamic_cast<const SAMpatchPara*>(&sam);
 
-  if (!strncasecmp(solParams.getPreconditioner(),"gamg",4) || !strncasecmp(solParams.getPreconditioner(),"ml",2))
+  if (!strncasecmp(solParams.getPreconditioner(),"gamg",4) ||
+      !strncasecmp(solParams.getPreconditioner(),"ml",2)   ||
+      solParams.getNullSpace(1) == RIGID_BODY)
     sampch->getLocalNodeCoordinates(coords);
+
+  if (solParams.getNullSpace(1) == RIGID_BODY) {
+#ifdef PARALLEL_PETSC
+    std::cerr << "WARNING: Rigid body null space not implemented in parallel, ignoring" << std::endl;
+#else
+    Vec coordVec;
+    VecCreate(PETSC_COMM_SELF, &coordVec);
+    VecSetBlockSize(coordVec, sampch->getNoSpaceDim());
+    VecSetSizes(coordVec, coords.size(), PETSC_DECIDE);
+    VecSetFromOptions(coordVec);
+    for (size_t i=0;i<coords.size();++i)
+      VecSetValue(coordVec, i, coords[i], INSERT_VALUES);
+    MatNullSpaceCreateRigidBody(coordVec, &nsp);
+    KSPSetNullSpace(ksp,nsp);
+#endif
+  }
 
   if (!solParams.dirOrder.empty()) {
     dirIndexSet.resize(1);

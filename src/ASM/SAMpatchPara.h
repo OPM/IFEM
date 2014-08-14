@@ -49,6 +49,8 @@ public:
   virtual int getMinEqNumber() const { return ieqmin; }
   //! \brief Returns max global equation number for this process.
   virtual int getMaxEqNumber() const { return ieqmax; }
+  //! \brief Returns the dimension
+  int getNoSpaceDim() const;
 
   using SAMpatch::getNoDofCouplings;
 
