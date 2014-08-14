@@ -103,6 +103,7 @@ void HDF5Writer::openFile(int level)
     // check free disk space - to protect against corrupting files
     // due to out of space condition
     if (m_flag == H5F_ACC_RDWR) {
+#ifdef HAVE_GET_CURRENT_DIR_NAME
       char* cwd = get_current_dir_name();
       struct statvfs vfs;
       statvfs(cwd,&vfs);
@@ -111,6 +112,7 @@ void HDF5Writer::openFile(int level)
         exit(1);
       }
       free(cwd);
+#endif
     }
     m_file = H5Fopen(m_name.c_str(),m_flag,acc_tpl);
   }
