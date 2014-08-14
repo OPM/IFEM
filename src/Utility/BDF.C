@@ -14,7 +14,7 @@
 #include "BDF.h"
 
 
-TimeIntegration::BDF::BDF (int order) : step(0)
+TimeIntegration::BDF::BDF (int order, int step_) : step(step_)
 {
   coefs1.resize(order > 0 ? 2 : 1, 1.0);
   if (order > 0)

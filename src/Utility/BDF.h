@@ -29,7 +29,8 @@ namespace TimeIntegration //! Utilities for time integration.
   public:
     //! \brief The constructor initializes the coefficients.
     //! \param[in] order The order of the BDF scheme
-    BDF(int order = 0);
+    //! \param[in] step_ Initial step position
+    BDF(int order = 0, int step_ = 0);
     
     //! \brief Destructor
     virtual ~BDF() {}
