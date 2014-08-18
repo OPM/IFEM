@@ -940,6 +940,7 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
       if (!strncasecmp(solParams.subprec[m].c_str(),"gamg",4) || !strncasecmp(solParams.subprec[m].c_str(),"ml",2) ) {
 	PetscInt nloc = coords.size()/solParams.nsd;
 	PCSetCoordinates(subpc[m],solParams.nsd,nloc,&coords[0]);
+        PCGAMGSetType(subpc[m], PCGAMGAGG); // TODO?
       }
       
       PCFactorSetLevels(subpc[m],solParams.levels[m]);

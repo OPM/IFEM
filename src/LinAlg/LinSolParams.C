@@ -562,6 +562,7 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
   if (!strncasecmp(prec.c_str(),"gamg",4) || !strncasecmp(prec.c_str(),"ml",2) ) {
     PetscInt nloc = coords.size()/nsd;
     PCSetCoordinates(pc,nsd,nloc,&coords[0]);
+    PCGAMGSetType(pc, PCGAMGAGG); // TODO?
   }
 
   if (!strncasecmp(prec.c_str(),"asm",3) ||!strncasecmp(prec.c_str(),"gasm",4)) {
