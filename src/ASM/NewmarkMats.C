@@ -15,15 +15,26 @@
 #include "NewmarkMats.h"
 
 
-NewmarkMats::NewmarkMats (double a1, double a2, double b, double c)
+NewmarkMats::NewmarkMats (double a1, double a2, double b, double c,
+                          bool generalizedAlpha) : isPredictor(true), h(0.0)
 {
   alpha1 = a1;
   alpha2 = a2;
-  beta   = b;
-  gamma  = c;
 
-  isPredictor = true;
-  h = 0.0;
+  if (generalizedAlpha)
+  {
+    alpha_m = b;
+    alpha_f = c;
+    double alpha = alpha_f - alpha_m;
+    beta = 0.25*(1.0-alpha)*(1.0-alpha);
+    gamma = 0.5 - alpha;
+  }
+  else
+  {
+    alpha_m = alpha_f = 1.0;
+    beta  = b;
+    gamma = c;
+  }
 }
 
 
@@ -32,10 +43,8 @@ const Matrix& NewmarkMats::getNewtonMatrix () const
   Matrix& N = const_cast<Matrix&>(A.front());
 
   N = A[1];
-  if (alpha1 > 0.0)
-    N.multiply(1.0 + alpha1*gamma*h);    // [N]  = (1+alpha1*gamma*h)*[M]
-
-  N.add(A[2],(alpha2*gamma + beta*h)*h); // [N] += (alpha2*gamma+beta*h)*h*[K]
+  N.multiply(alpha_m + alpha_f*alpha1*gamma*h);
+  N.add(A[2],alpha_f*(alpha2*gamma + beta*h)*h);
 
 #if SP_DEBUG > 2
   std::cout <<"\nElement mass matrix"<< A[1];
@@ -56,13 +65,12 @@ const Vector& NewmarkMats::getRHSVector () const
     int ia = vec.size() - 1; // index to element acceleration vector (a)
     int iv = vec.size() - 2; // index to element velocity vector (v)
 #if SP_DEBUG > 2
-    std::cout <<"\nf_ext"<< dF;
+    std::cout <<"\nf_ext - f_s"<< dF;
     std::cout <<"f_i = M*a"<< A[1]*vec[ia];
     if (alpha1 > 0.0)
       std::cout <<"f_d1/alpha1 = M*v (alpha1="<< alpha1 <<")"<< A[1]*vec[iv];
     if (alpha2 > 0.0)
       std::cout <<"f_d2/alpha2 = K*v (alpha2="<< alpha2 <<")"<< A[2]*vec[iv];
-    std::cout <<"f_s = K*d"<< A[2]*vec.front();
 #endif
 
     dF.add(A[1]*vec[ia],-1.0);      // dF = Fext - M*a
@@ -72,8 +80,6 @@ const Vector& NewmarkMats::getRHSVector () const
 
     if (alpha2 > 0.0)
       dF.add(A[2]*vec[iv],-alpha2); // dF -= alpha2*K*v
-
-    dF.add(A[2]*vec.front(),-1.0);  // dF -= K*d
   }
 
 #if SP_DEBUG > 2
