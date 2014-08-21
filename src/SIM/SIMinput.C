@@ -128,34 +128,39 @@ bool SIMinput::parse (char*, std::istream&)
 }
 
 
-/*!
-  \brief Recursive helper method for processing the \a include XML-tags.
-*/
-
-static bool injectIncludeFiles (TiXmlElement* tag)
+void SIMinput::injectIncludeFiles (TiXmlElement* tag) const
 {
-  bool result=false;
+  static int nLevels = 0; ++nLevels;
+  bool foundIncludes = false;
   TiXmlElement* elem = tag->FirstChildElement();
   for (; elem; elem = elem->NextSiblingElement())
     if (strcasecmp(elem->Value(),"include"))
-      result |= injectIncludeFiles(elem);
+      this->injectIncludeFiles(elem);
     else if (elem->FirstChild() && elem->FirstChild()->Value()) {
       TiXmlDocument doc;
       if (doc.LoadFile(elem->FirstChild()->Value())) {
+        if (myPid == 0) {
+          for (int i = 1; i < nLevels; i++) std::cout <<"  ";
+          std::cout <<"Loaded included file "<< elem->FirstChild()->Value()
+                    << std::endl;
+        }
         elem = tag->ReplaceChild(elem,*doc.RootElement())->ToElement();
         TiXmlElement* elem2 = doc.RootElement()->NextSiblingElement();
-        while (elem2) {
+        for (; elem2; elem2 = elem2->NextSiblingElement())
           tag->LinkEndChild(new TiXmlElement(*elem2));
-          elem2 = elem2->NextSiblingElement();
-        }
-        result = true;
-      } else
+        foundIncludes = true;
+      }
+      else
 	std::cerr << __PRETTY_FUNCTION__ <<": Failed to load "
 		  << elem->FirstChild()->Value()
 		  <<"\n\tError at line "<< doc.ErrorRow() <<": "
 		  << doc.ErrorDesc() << std::endl;
     }
-  return result;
+
+  if (foundIncludes)
+    this->injectIncludeFiles(tag);
+
+  --nLevels;
 }
 
 
@@ -179,7 +184,7 @@ bool SIMinput::readXML (const char* fileName)
   if (myPid == 0)
     std::cout <<"\nParsing input file "<< fileName << std::endl;
 
-  while (injectIncludeFiles(const_cast<TiXmlElement*>(tag)));
+  this->injectIncludeFiles(const_cast<TiXmlElement*>(tag));
 
   std::vector<const TiXmlElement*> parsed;
   if (!handlePriorityTags(doc.RootElement(),parsed))

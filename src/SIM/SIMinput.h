@@ -44,6 +44,8 @@ private:
   bool readFlat(const char* fileName);
   //! \brief Reads an XML input file.
   bool readXML(const char* fileName);
+  //! \brief Recursive helper method for processing the \a include XML-tags.
+  void injectIncludeFiles(TiXmlElement* tag) const;
 
 protected:
   //! \brief Handles the parsing order for certain XML-tags.
@@ -70,9 +72,6 @@ public:
 
   //! \brief Returns the parallel process administrator.
   const ProcessAdm& getProcessAdm() const { return adm; }
-
-  //! \brief Returns the parallel process administrator.
-  ProcessAdm& getProcessAdm() { return adm; }
 
   //! \brief Returns the global process ID.
   //! \note May be different from the process ID used in the equation solver.
