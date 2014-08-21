@@ -29,6 +29,7 @@ class AnaSol;
 class VTF;
 class Field;
 class Fields;
+class TiXmlElement;
 
 
 /*!
@@ -44,6 +45,9 @@ protected:
 public:
   //! \brief Empty destructor.
   virtual ~IntegrandBase() {}
+
+  //! \brief Parses a data section from an XML element.
+  virtual bool parse(const TiXmlElement*) { return true; }
 
   //! \brief Prints out the problem definition to the given output stream.
   virtual void print(std::ostream&) const {}
