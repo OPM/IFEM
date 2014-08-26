@@ -355,9 +355,15 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
   const Vector* sol = static_cast<const Vector*>(entry.second.data2);
   if (!sim || !sol) return;
 
+  std::string basisname;
+  if (prefix.empty())
+    basisname = sim->getName()+"-1";
+  else
+    basisname = prefix+sim->getName()+"-1";
+
   const IntegrandBase* prob = sim->getProblem();
   if (level == 0 || geometryUpdated || (abs(entry.second.results) & DataExporter::GRID)) {
-    writeBasis(sim,sim->getName()+"-1",1,level);
+    writeBasis(sim,basisname,1,level);
     if (prob->mixedFormulation())
       writeBasis(sim,sim->getName()+"-2",2,level);
   }

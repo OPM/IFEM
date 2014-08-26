@@ -187,9 +187,15 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
 
   int cmps = entry.second.ncmps>0?entry.second.ncmps:prob->getNoFields(1);
 
+  std::string basisname;
+  if (prefix.empty())
+    basisname = sim->getName()+"-1";
+  else
+    basisname = prefix+sim->getName()+"-1";
+
   // restart vector
   if (results & DataExporter::RESTART) {
-    addField("restart",entry.second.description,sim->getName()+"-1",
+    addField(prefix+"restart",entry.second.description,basisname,
              cmps,sim->getNoPatches(),"restart");
   }
 
@@ -197,7 +203,7 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
     if (prob->mixedFormulation())
     {
       // primary solution vector
-      addField(prefix+entry.first,entry.second.description,sim->getName()+"-1",
+      addField(prefix+entry.first,entry.second.description,basisname,
                cmps,sim->getNoPatches(),"restart");
 
       // Assuming that basis2 is used for secondary variables
@@ -212,7 +218,7 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
       // primary solution
       addField(usedescription ? entry.second.description:
                                 prefix+prob->getField1Name(11),
-               entry.second.description,sim->getName()+"-1",
+               entry.second.description,basisname,
                cmps,sim->getNoPatches(),"field",results & DataExporter::ONCE?true:false);
     }
   }
@@ -221,7 +227,7 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
     if (prob->mixedFormulation())
     {
       // primary solution vector
-      addField(prefix+entry.first,entry.second.description,sim->getName()+"-1",
+      addField(prefix+entry.first,entry.second.description,basisname,
                prob->getNoFields(1),sim->getNoPatches(),"displacement");
     }
     else
@@ -229,7 +235,7 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
       // primary solution
       addField(usedescription ? entry.second.description:
                                 prefix+prob->getField1Name(11),
-               entry.second.description,sim->getName()+"-1",
+               entry.second.description,basisname,
                prob->getNoFields(1),sim->getNoPatches(), "displacement");
     }
   }
@@ -238,8 +244,7 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
   size_t i, j;
   if (results & DataExporter::SECONDARY)
     for (j = 0; j < prob->getNoFields(2); j++)
-      addField(prefix+prob->getField2Name(j),"secondary",
-               sim->getName() + (prob->mixedFormulation() ? "-2" : "-1"),
+      addField(prefix+prob->getField2Name(j),"secondary", basisname,
                1,sim->getNoPatches());
 
   // norms
@@ -251,7 +256,7 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
         for (j = 1; j <= norm->getNoFields(i); ++j) {
           if (norm->hasElementContributions(i,j))
             addField(prefix+norm->getName(i,j,(i>1&&m_prefix)?m_prefix[i-2]:0),"knotspan wise norm",
-                     sim->getName()+"-1",1,sim->getNoPatches(),"knotspan");
+                     basisname,1,sim->getNoPatches(),"knotspan");
         }
       }
       delete norm;
