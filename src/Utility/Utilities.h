@@ -21,10 +21,11 @@
 #include <vector>
 #include <map>
 #include <set>
-#include <algorithm>
 
 class TiXmlElement;
 class TiXmlNode;
+
+typedef std::map<int,int> IntMap;
 
 
 namespace utl
@@ -109,7 +110,7 @@ namespace utl
   //! \param runner The last new value assigned
   //! \param old2new Mapping from old values to new values
   //! return \e true if the value of \a num changed
-  bool renumber(int& num, int& runner, std::map<int,int>& old2new);
+  bool renumber(int& num, int& runner, IntMap& old2new);
 
   //! \brief Transforms the integer value \a num according to a given mapping.
   //! \details In this method the \a old2new mapping is not updated.
@@ -117,7 +118,7 @@ namespace utl
   //! \param[in] old2new Mapping from old values to new values
   //! \param[in] msg If \e true, give error message if given value not found
   //! \return \a true if \a num was found in the \a old2new mapping
-  bool renumber(int& num, const std::map<int,int>& old2new, bool msg = false);
+  bool renumber(int& num, const IntMap& old2new, bool msg = false);
 
   //! \brief Compresses the rows of a 2D array based on given scatter indices.
   //! \param[in] index Scatter indices of the columns that should be retained
@@ -185,14 +186,11 @@ namespace utl
   //! \brief Splits an integer into its (unique) digits in ascending order.
   std::set<int> getDigits(int value);
 
-  template<class T>
-  struct map_data_compare : public std::binary_function<typename T::value_type,
-                                                        typename T::mapped_type,
-                                                        bool>
-  {
-    bool operator() (const typename T::value_type &pair,
-                     typename T::mapped_type i) const { return pair.second == i; }
-  };
+  //! \brief Returns a const iterator to the entry with value \a iVal.
+  IntMap::const_iterator findValue(const IntMap& iMap, int iVal);
+  //! \brief Returns the key corresponding to the value \a iVal.
+  //! \details If not in the map, the value \a iVal is returned.
+  int findKey(const IntMap& iMap, int iVal);
 }
 
 #endif

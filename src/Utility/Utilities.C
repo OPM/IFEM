@@ -214,9 +214,9 @@ bool utl::parseKnots (const TiXmlNode* xml, std::vector<Real>& xi)
 }
 
 
-bool utl::renumber (int& num, int& runner, std::map<int,int>& old2new)
+bool utl::renumber (int& num, int& runner, IntMap& old2new)
 {
-  std::map<int,int>::iterator it = old2new.find(num);
+  IntMap::iterator it = old2new.find(num);
   if (it == old2new.end())
     it = old2new.insert(std::make_pair(num,++runner)).first;
 
@@ -227,9 +227,9 @@ bool utl::renumber (int& num, int& runner, std::map<int,int>& old2new)
 }
 
 
-bool utl::renumber (int& num, const std::map<int,int>& old2new, bool msg)
+bool utl::renumber (int& num, const IntMap& old2new, bool msg)
 {
-  std::map<int,int>::const_iterator it = old2new.find(num);
+  IntMap::const_iterator it = old2new.find(num);
   if (it == old2new.end())
   {
     if (msg)
@@ -398,4 +398,31 @@ std::set<int> utl::getDigits (int num)
     digits.insert(num%10);
 
   return digits;
+}
+
+
+namespace utl
+{
+  struct cmpInt
+  {
+    int myValue;
+    cmpInt(int value) : myValue(value) {}
+    bool operator()(const std::pair<int,int>& value) const
+    {
+      return value.second == myValue;
+    }
+  };
+}
+
+
+IntMap::const_iterator utl::findValue (const IntMap& iMap,  int iVal)
+{
+  return std::find_if(iMap.begin(),iMap.end(),cmpInt(iVal));
+}
+
+
+int utl::findKey (const IntMap& iMap, int iVal)
+{
+  IntMap::const_iterator it = utl::findValue(iMap,iVal);
+  return it == iMap.end() ? iVal : it->first;
 }
