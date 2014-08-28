@@ -100,7 +100,11 @@ public:
   //! \brief Scaling operator.
   Tensor& operator*=(Real val);
   //! \brief Post-multiplication with another Tensor.
-  Tensor& operator*=(const Tensor& B);
+  Tensor& operator*=(const Tensor& B) { return this->postMult(B); }
+  //! \brief Post-multiplication with another Tensor.
+  Tensor& postMult(const Tensor& B);
+  //! \brief Pre-multiplication with another Tensor.
+  Tensor& preMult(const Tensor& A);
 
   //! \brief Returns the inner-product of \a *this and the given tensor.
   Real innerProd(const Tensor& T) const;

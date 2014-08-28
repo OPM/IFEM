@@ -98,6 +98,8 @@ public:
   //! \param[in] displ Incremental displacements to update the rotations with
   //! \param[in] reInit If \e true, reinitialize rotations from unity
   bool updateRotations(const Vector& displ, bool reInit = false);
+  //! \brief Updates the previous nodal rotations for this patch at convergence.
+  void updateRotations() { prevT = myT; }
 
   //! \brief Finds the global number of the node on a patch end.
   //! \param[in] lIndex Local index of the end point
@@ -214,7 +216,7 @@ public:
   //! If \a npe is not NULL and \a project is defined, the solution is also
   //! projected onto the spline basis, and then evaluated at the \a npe points.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-			    const int* npe = 0, char project = '\0') const;
+                            const int* npe = NULL, char project = '\0') const;
 
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods
@@ -293,7 +295,7 @@ protected:
   //! \param[out] d2Ndu2 Second derivatives of basis functions
   void extractBasis(double u, Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2) const;
 
-  //! \brief Returns the parametric length on the \a i'th knot-span
+  //! \brief Returns the parametric length on the \a i'th knot-span.
   double getKnotSpan(int i) const;
 
   //! \brief Computes the element end coordinates.
@@ -332,11 +334,12 @@ public:
 protected:
   Go::SplineCurve* curv; //!< Pointer to the actual spline curve object
 
-  const TensorVec& nodalT; //!< Nodal rotation tensors (for 3D beams)
   const TensorVec& elmCS;  //!< Element coordinate systems (for 3D beams)
+  const TensorVec& nodalT; //!< Nodal rotation tensors (for 3D beams)
 
-  TensorVec myT;  //!< The actual nodal rotation tensors
-  TensorVec myCS; //!< The actual element coordinate systems
+  TensorVec myCS;  //!< The actual element coordinate systems
+  TensorVec myT;   //!< The actual nodal rotation tensors
+  TensorVec prevT; //!< Nodal rotation tensors of last converged configuration
 };
 
 #endif

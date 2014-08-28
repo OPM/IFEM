@@ -207,7 +207,7 @@ public:
   { return std::make_pair(0,-1.0); }
 
   //! \brief Prints out the nodal coordinates of this patch to the given stream.
-  void printNodes(std::ostream& os, const char* heading = 0) const;
+  void printNodes(std::ostream& os, const char* heading = NULL) const;
 
   //! \brief Returns the global node numbers of this patch.
   const IntVec& getGlobalNodeNums() const { return MLGN; }
@@ -335,7 +335,8 @@ public:
   //! \param[in] g2l Global-to-local mapping to apply to node numbers
   virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
                                const std::map<int,VecFunc*>& vfunc,
-                               double time=0.0, const std::map<int,int>* g2l=NULL);
+                               double time = 0.0,
+                               const std::map<int,int>* g2l = NULL);
 
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with
@@ -450,10 +451,10 @@ public:
   //! \param[out] vec The obtained coefficients after interpolation
   virtual bool evaluate(const Field* field, Vector& vec) const { return false; }
 
-  //! \brief Evaluates and interpolates a field over a given geometry.
-  //! \param[in] field The field to evaluate
+  //! \brief Evaluates and interpolates a function over a given geometry.
+  //! \param[in] f The function to evaluate
   //! \param[out] vec The obtained coefficients after interpolation
-  virtual bool evaluate(const RealFunc* field, Vector& vec) const { return false; }
+  virtual bool evaluate(const RealFunc* f, Vector& vec) const { return false; }
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field
@@ -469,7 +470,7 @@ public:
   //! If \a npe is not NULL and \a project is defined, the solution is also
   //! projected onto the spline basis, and then evaluated at the \a npe points.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-			    const int* npe = 0, char project = '\0') const;
+                            const int* npe = NULL, char project = '\0') const;
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field

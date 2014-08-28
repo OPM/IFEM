@@ -161,6 +161,10 @@ bool NonLinSIM::advanceStep (TimeStep& param, bool updateTime)
   for (int n = solution.size()-1; n > 0; n--)
     std::copy(solution[n-1].begin(),solution[n-1].end(),solution[n].begin());
 
+  if (param.step > 0 && rotUpd == 't')
+    // Update nodal rotations of previous load step
+    model.updateRotations(Vector());
+
   return updateTime ? param.increment() : true;
 }
 
@@ -469,7 +473,7 @@ bool NonLinSIM::updateConfiguration (TimeStep& time)
 
     solution.front().add(linsol,alpha);
     if (rotUpd == 't')
-      model.updateRotations(solution.front(),alpha);
+      model.updateRotations(solution.front());
     else if (rotUpd)
       model.updateRotations(linsol,alpha);
   }

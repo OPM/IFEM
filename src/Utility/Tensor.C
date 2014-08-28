@@ -383,7 +383,7 @@ Tensor& Tensor::operator*= (Real val)
 }
 
 
-Tensor& Tensor::operator*= (const Tensor& B)
+Tensor& Tensor::postMult (const Tensor& B)
 {
   switch (std::min(n,B.n)) {
   case 1:
@@ -400,6 +400,34 @@ Tensor& Tensor::operator*= (const Tensor& B)
   case 3:
     {
       Tensor A(*this);
+      for (int i = 1; i <= 3; i++)
+        for (int j = 1; j <= 3; j++)
+          v[this->index(i,j)] = A(i,1)*B(1,j) + A(i,2)*B(2,j) + A(i,3)*B(3,j);
+      break;
+    }
+  }
+
+  return *this;
+}
+
+
+Tensor& Tensor::preMult (const Tensor& A)
+{
+  switch (std::min(n,A.n)) {
+  case 1:
+    v[0] *= A.v[0];
+    break;
+  case 2:
+    {
+      Tensor B(*this);
+      for (int i = 1; i <= 2; i++)
+        for (int j = 1; j <= 2; j++)
+          v[this->index(i,j)] = A(i,1)*B(1,j) + A(i,2)*B(2,j);
+      break;
+    }
+  case 3:
+    {
+      Tensor B(*this);
       for (int i = 1; i <= 3; i++)
         for (int j = 1; j <= 3; j++)
           v[this->index(i,j)] = A(i,1)*B(1,j) + A(i,2)*B(2,j) + A(i,3)*B(3,j);

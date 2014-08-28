@@ -31,13 +31,13 @@
 
 
 ASMs1D::ASMs1D (unsigned char n_s, unsigned char n_f)
-  : ASMstruct(1,n_s,n_f), curv(0), nodalT(myT), elmCS(myCS)
+  : ASMstruct(1,n_s,n_f), curv(NULL), elmCS(myCS), nodalT(myT)
 {
 }
 
 
 ASMs1D::ASMs1D (const ASMs1D& patch, unsigned char n_f)
-  : ASMstruct(patch,n_f), curv(patch.curv), nodalT(patch.myT), elmCS(patch.myCS)
+  : ASMstruct(patch,n_f), curv(patch.curv), elmCS(patch.myCS), nodalT(patch.myT)
 {
 }
 
@@ -64,7 +64,7 @@ bool ASMs1D::read (std::istream& is)
   {
     std::cerr <<" *** ASMs1D::read: Failure reading spline data"<< std::endl;
     delete curv;
-    curv = 0;
+    curv = NULL;
     return false;
   }
   else if (curv->dimension() < 1)
@@ -72,7 +72,7 @@ bool ASMs1D::read (std::istream& is)
     std::cerr <<" *** ASMs1D::read: Invalid spline curve patch, dim="
 	      << curv->dimension() << std::endl;
     delete curv;
-    curv = 0;
+    curv = NULL;
     return false;
   }
   else if (curv->dimension() < nsd)
@@ -106,8 +106,7 @@ void ASMs1D::clear (bool retainGeometry)
   {
     // Erase spline data
     if (curv && !shareFE) delete curv;
-    curv = 0;
-    geo = 0;
+    geo = curv = NULL;
   }
 
   // Erase the FE data
@@ -219,11 +218,11 @@ bool ASMs1D::generateOrientedFEModel (const Vec3& Zaxis)
   myMNPC.resize(myMLGE.size());
   if (nsd == 3 && nf == 6)
   {
-    // This is a 3D beam problem, allocate the nodal/element rotation tensors.
+    // This is a 3D beam problem, allocate the element/nodal rotation tensors.
     // The nodal rotations are updated during the simulation according to the
     // deformation state, whereas the element tensors are kept constant.
-    myT.resize(n1,Tensor(3,true)); // Initialize nodal rotations to unity
     myCS.resize(n1-p1+1,Tensor(3));
+    myT.resize(n1,Tensor(3,true)); // Initialize nodal rotations to unity
   }
 
   nnod = nel = 0;
@@ -544,11 +543,20 @@ bool ASMs1D::updateRotations (const Vector& displ, bool reInit)
     return false;
   }
 
-  for (size_t i = 0; i < myT.size(); i++)
-    if (reInit)
-      myT[i] = Tensor(displ[6*i+3],displ[6*i+4],displ[6*i+5]);
+  if (reInit)
+  {
+    if (prevT.empty())
+    {
+      for (size_t i = 0; i < myT.size(); i++)
+        myT[i] = Tensor(displ[6*i+3],displ[6*i+4],displ[6*i+5]);
+      return true;
+    }
     else
-      myT[i] *= Tensor(displ[6*i+3],displ[6*i+4],displ[6*i+5]);
+      myT = prevT; // Restore rotation tensors from previous step
+  }
+
+  for (size_t i = 0; i < myT.size(); i++)
+    myT[i].preMult(Tensor(displ[6*i+3],displ[6*i+4],displ[6*i+5]));
 
   return true;
 }
@@ -733,7 +741,7 @@ bool ASMs1D::integrate (Integrand& integrand,
   if (!xg || !wg) return false;
 
   // Get the reduced integration quadrature points, if needed
-  const double* xr = 0;
+  const double* xr = NULL;
   int nRed = integrand.getReducedIntegration();
   if (nRed < 0)
     nRed = nGauss; // The integrand needs to know nGauss
@@ -1216,12 +1224,12 @@ Go::SplineCurve* ASMs1D::projectSolution (const IntegrandBase& integrand) const
   // Compute parameter values of the result sampling points (Greville points)
   RealArray gpar;
   if (!this->getGrevilleParameters(gpar))
-    return 0;
+    return NULL;
 
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,&gpar))
-    return 0;
+    return NULL;
 
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.

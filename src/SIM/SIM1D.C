@@ -566,16 +566,19 @@ Vector SIM1D::getSolution (const Vector& psol, double u,
 bool SIM1D::updateRotations (const Vector& incSol, double alpha)
 {
   if (nf != 6) return true;
-  if (incSol.empty()) return false;
 
   bool ok = true;
-  Vector locSol;
   for (size_t i = 0; i < myModel.size() && ok; i++)
-  {
-    myModel[i]->extractNodeVec(incSol,locSol);
-    if (alpha != 0.0 && alpha != 1.0) locSol *= alpha;
-    ok = static_cast<ASMs1D*>(myModel[i])->updateRotations(locSol,alpha==0.0);
-  }
+    if (incSol.empty())
+      // Update the rotations of last converged load/time step
+      static_cast<ASMs1D*>(myModel[i])->updateRotations();
+    else
+    {
+      Vector locSol;
+      myModel[i]->extractNodeVec(incSol,locSol);
+      if (alpha != 0.0 && alpha != 1.0) locSol *= alpha;
+      ok = static_cast<ASMs1D*>(myModel[i])->updateRotations(locSol,alpha==0.0);
+    }
 
   return ok;
 }
