@@ -19,7 +19,6 @@
 #include "Function.h"
 
 class ProcessAdm;
-class Vec3;
 class VTF;
 
 
