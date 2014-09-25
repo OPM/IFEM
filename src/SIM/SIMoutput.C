@@ -448,6 +448,7 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
     // 2. Direct evaluation of secondary solution variables
 
     LocalSystem::patch = i;
+    this->setPatchMaterial(i+1);
     if (!myModel[i]->evalSolution(field,*myProblem,opt.nViz))
       return false;
 
@@ -592,6 +593,7 @@ bool SIMoutput::eval2ndSolution (const Vector& psol, double time, int psolComps)
     LocalSystem::patch = i;
     myModel[i]->extractNodeVec(psol,myProblem->getSolution(),psolComps,0);
     this->extractPatchDependencies(myProblem,myModel,i);
+    this->setPatchMaterial(i+1);
     if (!myModel[i]->evalSolution(field,*myProblem,opt.nViz))
       return false;
   }
@@ -950,6 +952,7 @@ bool SIMoutput::dumpSolution (const Vector& psol, std::ostream& os) const
 
     // Evaluate secondary solution variables
     LocalSystem::patch = i;
+    const_cast<SIMoutput*>(this)->setPatchMaterial(i+1);
     if (!myModel[i]->evalSolution(field,*myProblem))
       return false;
 
@@ -1012,8 +1015,11 @@ bool SIMoutput::dumpResults (const Vector& psol, double time, std::ostream& os,
       // Evaluate the secondary solution variables
       LocalSystem::patch = i;
       if (myProblem->getNoFields(2) > 0)
+      {
+        const_cast<SIMoutput*>(this)->setPatchMaterial(i+1);
         if (!myModel[i]->evalSolution(sol2,*myProblem,params,false))
           return false;
+      }
     }
     else
       // Extract nodal primary solution variables

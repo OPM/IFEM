@@ -1355,20 +1355,18 @@ void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers)
 
 void SIMbase::printProblem (std::ostream& os) const
 {
-  if (myPid > 0) return;
-
   if (myProblem)
   {
-    std::cout <<"\nProblem definition:"<< std::endl;
+    os <<"\nProblem definition:"<< std::endl;
     myProblem->print(os);
   }
 
 #if SP_DEBUG > 1
-  std::cout <<"\nProperty mapping:";
+  os <<"\nProperty mapping:";
   for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); p++)
-    std::cout <<"\n"<< p->pcode <<" "<< p->pindx <<" "<< p->patch
-	      <<" "<< (int)p->lindx <<" "<< (int)p->ldim;
-  std::cout << std::endl;
+    os <<"\n"<< p->pcode <<" "<< p->pindx <<" "<< p->patch
+       <<" "<< (int)p->lindx <<" "<< (int)p->ldim;
+  os << std::endl;
 #endif
 }
 
@@ -2209,6 +2207,9 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     // Extract the primary solution control point values for this patch
     myModel[i]->extractNodeVec(psol,myProblem->getSolution(),mySam->getMADOF());
 
+    // Initialize material properties for this patch in case of multiple regions
+    const_cast<SIMbase*>(this)->setPatchMaterial(i+1);
+
     // Project the secondary solution and retrieve control point values
     bool ok = false;
     switch (pMethod) {
@@ -2334,8 +2335,10 @@ bool SIMbase::injectPatchSolution (Vector& sol, const Vector& vec,
 bool SIMbase::evalSecondarySolution (Matrix& field, int pindx) const
 {
   ASMbase* pch = pindx >= 0 ? this->getPatch(pindx+1) : NULL;
+  if (!pch) return false;
 
-  return pch ? pch->evalSolution(field,*myProblem) : false;
+  const_cast<SIMbase*>(this)->setPatchMaterial(pindx+1);
+  return pch->evalSolution(field,*myProblem);
 }
 
 
@@ -2379,4 +2382,14 @@ bool SIMbase::refine (const RealArray& elementError,
         return false;
 
   return isRefined;
+}
+
+
+bool SIMbase::setPatchMaterial (size_t patch)
+{
+  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); p++)
+    if (p->pcode == Property::MATERIAL && p->patch == patch)
+      return this->initMaterial(p->pindx);
+
+  return false;
 }

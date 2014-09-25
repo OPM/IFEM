@@ -172,7 +172,7 @@ public:
   void setQuadratureRule(size_t ng, bool redimBuffers = false);
 
   //! \brief Prints out problem-specific data to the given stream.
-  void printProblem(std::ostream& os) const;
+  virtual void printProblem(std::ostream& os) const;
 
   //! \brief Returns a pointer to the problem-specific data object.
   const IntegrandBase* getProblem() const { return myProblem; }
@@ -576,6 +576,9 @@ public:
   const PatchVec& getFEModel() const { return myModel; }
   //! \brief Returns a pointer to a specified patch of our FEM model.
   ASMbase* getPatch(size_t idx) const;
+
+  //! \brief Initializes material properties for the given patch.
+  bool setPatchMaterial(size_t patch);
 
   //! \brief Returns a const reference to our global-to-local node mapping.
   const std::map<int,int>& getGlob2LocMap() const { return myGlb2Loc; }

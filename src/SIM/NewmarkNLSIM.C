@@ -56,16 +56,11 @@ bool NewmarkNLSIM::parse (const TiXmlElement* elem)
 void NewmarkNLSIM::printProblem (std::ostream& os) const
 {
   this->NewmarkSIM::printProblem(os);
-  if (myPid > 0) return;
 
   if (alpha2 > 0.0)
-    std::cout <<"- based on the tangential stiffness matrix";
+    os <<"- based on the tangential stiffness matrix\n" << std::endl;
   else if (alpha2 < 0.0)
-    std::cout <<"- based on the material stiffness matrix only";
-  else
-    return;
-
-  os <<"\n"<< std::endl;
+    os <<"- based on the material stiffness matrix only\n" << std::endl;
 }
 
 

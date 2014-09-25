@@ -79,7 +79,6 @@ bool NewmarkSIM::parse (const TiXmlElement* elem)
 void NewmarkSIM::printProblem (std::ostream& os) const
 {
   model.printProblem(os);
-  if (myPid > 0) return;
 
   os <<"Newmark predictor/multicorrector: beta = "<< beta <<" gamma = "<< gamma;
   switch (predictor) {
