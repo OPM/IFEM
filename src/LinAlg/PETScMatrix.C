@@ -501,7 +501,11 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
   VecCopy(Bptr->getVector(),x);
 
   if (setParams) {
+#if PETSC_VERSION_MINOR < 5
     KSPSetOperators(ksp,A,A, newLHS ? SAME_NONZERO_PATTERN:SAME_PRECONDITIONER);
+#else
+    KSPSetOperators(ksp,A,A);
+#endif
     solParams.setParams(ksp,locSubdDofs,subdDofs,coords,dirIndexSet);
     setParams = false;
   }
@@ -539,7 +543,11 @@ bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
     return false;
 
   if (setParams) {
+#if PETSC_VERSION_MINOR < 5
     KSPSetOperators(ksp,A,A, newLHS ? SAME_NONZERO_PATTERN : SAME_PRECONDITIONER);
+#else
+    KSPSetOperators(ksp,A,A);
+#endif
     solParams.setParams(ksp,locSubdDofs,subdDofs,coords,dirIndexSet);
     setParams = false;
   }
@@ -580,8 +588,12 @@ bool PETScMatrix::solve (SystemVector& B, SystemMatrix& P, bool newLHS)
   VecCopy(Bptr->getVector(),x);
 
   if (setParams) {
+#if PETSC_VERSION_MINOR < 5
     KSPSetOperators(ksp,A,Pptr->getMatrix(),
                   newLHS ? SAME_NONZERO_PATTERN : SAME_PRECONDITIONER);
+#else
+    KSPSetOperators(ksp,A,Pptr->getMatrix());
+#endif
     solParams.setParams(ksp,locSubdDofs,subdDofs,coords,dirIndexSet);
     setParams = false;
   }

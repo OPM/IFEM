@@ -545,8 +545,12 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
   if (!strncasecmp(prec.c_str(),"compositedir",12)) {
     Mat mat;
     Mat Pmat;
+#if PETSC_VERSION_MINOR < 5
     MatStructure flag;
     PCGetOperators(pc,&mat,&Pmat,&flag);
+#else
+    PCGetOperators(pc,&mat,&Pmat);
+#endif
     
     this->addDirSmoother(pc,Pmat,dirIndexSet);
   }
@@ -870,8 +874,12 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
       else if (smoother == "compositedir" && (i==n-1)) {
 	Mat mat;
 	Mat Pmat;
+#if PETSC_VERSION_MINOR < 5
 	MatStructure flag;
 	PCGetOperators(prepc,&mat,&Pmat,&flag);
+#else
+	PCGetOperators(prepc,&mat,&Pmat);
+#endif
 	
 	this->addDirSmoother(prepc,Pmat,dirIndexSet);
       }

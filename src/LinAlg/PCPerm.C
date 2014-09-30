@@ -6,7 +6,11 @@ PetscErrorCode PCPermCreate(PCPerm **pcperm)
 {
   PCPerm *newctx;
 
+#if PETSC_VERSION_MINOR < 5
   PetscNew(PCPerm,&newctx);
+#else
+  PetscNew(&newctx);
+#endif
   newctx->order = NULL;
   *pcperm = newctx;
 
@@ -27,7 +31,11 @@ PetscErrorCode PCPermSetUp(PC pc, IS *perm, Mat A, const char* type)
     shell->Aperm = A;
   PCCreate(PETSC_COMM_WORLD,&(shell->pc));
   PCSetType(shell->pc,type);
+#if PETSC_VERSION_MINOR < 5
   PCSetOperators(shell->pc,shell->Aperm,shell->Aperm,SAME_PRECONDITIONER);
+#else
+  PCSetOperators(shell->pc,shell->Aperm,shell->Aperm);
+#endif
   if (!shell->identity)
     PCFactorSetUseInPlace(shell->pc);
   PCSetUp(shell->pc);

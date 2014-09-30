@@ -19,6 +19,7 @@
 #include "SAMpatchPara.h"
 #include "PCPerm.h"
 #include "PCScale.h"
+#include <sstream>
 
 #ifdef USE_OPENMP
 #include <omp.h>
@@ -438,9 +439,17 @@ bool PETScBlockMatrix::solve (SystemVector& B, bool newLHS)
   static int firstIt = true;
   if (firstIt)
     //if (newLHS)
+#if PETSC_VERSION_MINOR < 5
     KSPSetOperators(ksp,A,A,SAME_NONZERO_PATTERN);
+#else
+    KSPSetOperators(ksp,A,A);
+#endif
   else
+#if PETSC_VERSION_MINOR < 5
     KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
+#else
+    KSPSetOperators(ksp,A,A);
+#endif
   firstIt = false;
 
   if (setParams) {
@@ -488,9 +497,17 @@ bool PETScBlockMatrix::solve (const SystemVector& b, SystemVector& x, bool newLH
 
   // Has lefthand side changed?
   if (newLHS)
+#if PETSC_VERSION_MINOR < 5
     KSPSetOperators(ksp,A,A,SAME_NONZERO_PATTERN);
+#else
+    KSPSetOperators(ksp,A,A);
+#endif
   else
+#if PETSC_VERSION_MINOR < 5
     KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
+#else
+    KSPSetOperators(ksp,A,A);
+#endif
 
   if (setParams) {
     this->setParameters();
@@ -545,7 +562,11 @@ bool PETScBlockMatrix::solve (SystemVector& B, SystemMatrix& P, SystemVector& Pb
   static int firstIt = true;
   //if (newLHS)
   if (firstIt)
+#if PETSC_VERSION_MINOR < 5
     KSPSetOperators(ksp,A,A,SAME_NONZERO_PATTERN);
+#else
+    KSPSetOperators(ksp,A,A);
+#endif
   //else
   //  KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
   firstIt = false;
@@ -675,7 +696,11 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
     PCSetFromOptions(pc);
     PCSetUp(pc);
     PCFieldSplitGetSubKSP(pc,&nsplit,&subksp);
+#if PETSC_VERSION_MINOR < 5
     KSPSetOperators(subksp[1],Sp,Sp,SAME_PRECONDITIONER);
+#else
+    KSPSetOperators(subksp[1],Sp,Sp);
+#endif
 
     if (P && Pb && (solParams.schurPrec == PCD)) {
       KSPSetType(subksp[1],"preonly");
@@ -703,7 +728,11 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
       //MatDiagonalScale(P->getMatrixBlock(1,1),PETSC_NULL,QpL);
       VecRestoreSubVector(Pbr,isvec[1],&QpLvec);
       VecDestroy(&Pbr);
+#if PETSC_VERSION_MINOR < 5
       PCSetOperators(S,Sp,Sp,SAME_PRECONDITIONER);
+#else
+      PCSetOperators(S,Sp,Sp);
+#endif
       
       PCProdCreate(&pcprod);
       PCShellSetApply(subpc[1],PCProdApply);
@@ -928,8 +957,12 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
       if (!strncasecmp(solParams.subprec[m].c_str(),"compositedir",12)) {
 	Mat mat;
 	Mat Pmat;
+#if PETSC_VERSION_MINOR < 5
 	MatStructure flag;
 	PCGetOperators(subpc[m],&mat,&Pmat,&flag);
+#else
+	PCGetOperators(subpc[m],&mat,&Pmat);
+#endif
 	
 	if (!this->addDirSmoother(subpc[m],Pmat,m))
 	  return false;

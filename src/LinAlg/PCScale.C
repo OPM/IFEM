@@ -6,7 +6,11 @@ PetscErrorCode PCScaleCreate(PCScale **pcscale)
 {
   PCScale *newctx;
 
+#if PETSC_VERSION_MINOR < 5
   PetscNew(PCScale,&newctx);
+#else
+  PetscNew(&newctx);
+#endif
   newctx->scaling  = NULL;
   *pcscale = newctx;
 

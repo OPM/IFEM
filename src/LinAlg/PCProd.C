@@ -6,7 +6,11 @@ PetscErrorCode PCProdCreate(PCProd **pcprod)
 {
   PCProd *newctx;
 
+#if PETSC_VERSION_MINOR < 5
   PetscNew(PCProd,&newctx);
+#else
+  PetscNew(&newctx);
+#endif
   newctx->pc1 = NULL;
   newctx->pc2 = NULL;
   newctx->pc3 = NULL;
