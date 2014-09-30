@@ -205,3 +205,11 @@ void VTU::clearGeometryBlocks()
     delete m_geom[i];
   m_geom.clear();
 }
+
+
+bool VTU::writeVectors(const std::vector<Vec3Pair>& pntResult, int& gID,
+                       int idBlock, const char* resultName,
+                       int iStep, int iBlock)
+{
+  return true;
+}
