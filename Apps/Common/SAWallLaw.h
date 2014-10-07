@@ -71,8 +71,8 @@ class SAWallLaw
 
       double value  = 2.0*c1*yppa1/(pow(yppa1,2.0) + pow(b1,2.0));
       value -= 2.0*c2*yppa2/(pow(yppa2,2.0) + pow(b2,2.0));
-      value -= c3/(yppa1*(1.0+pow(b1/yppa1,2.0)));
-      value -= c4/(yppa2*(1.0+pow(b2/yppa2,2.0)));
+      value += c3*b1/(pow(b1,2.0)+pow(yppa1,2.0));
+      value += c4*b2/(pow(b2,2.0)+pow(yppa2,2.0));
       
       return value;
     }
