@@ -56,6 +56,7 @@ SET(IFEM_INCLUDES
     ${PROJECT_SOURCE_DIR}/src/SIM
     ${PROJECT_SOURCE_DIR}/src/Utility
     ${PROJECT_SOURCE_DIR}/3rdparty/expreval
+    ${PROJECT_SOURCE_DIR}/3rdparty/gtest/include
     ${PROJECT_BINARY_DIR}
 )
 
@@ -84,6 +85,8 @@ FILE(GLOB_RECURSE IFEM_SRCS ${PROJECT_SOURCE_DIR}/src/*.C
                             ${PROJECT_SOURCE_DIR}/src/*.f
                             ${PROJECT_SOURCE_DIR}/3rdparty/expreval/*.cpp)
 string(REGEX REPLACE "${PROJECT_SOURCE_DIR}/src/ASM/ASMs.DInterpolate.C" "" IFEM_SRCS "${IFEM_SRCS}")
+string(REGEX REPLACE ";[^;]*/Test/[^;]*;" ";" IFEM_SRCS "${IFEM_SRCS}")
+string(REGEX REPLACE ";[^;]*IFEM-test.C;" ";" IFEM_SRCS "${IFEM_SRCS}")
 IF(NOT LRSPLINE_FOUND AND NOT LRSpline_FOUND)
   string(REGEX REPLACE "${PROJECT_SOURCE_DIR}/src/ASM/LR/[^;]*" "" IFEM_SRCS "${IFEM_SRCS}")
 ENDIF()
@@ -105,6 +108,13 @@ if(NOT TARGET doc)
   add_custom_target(doc)
 endif(NOT TARGET doc)
 add_dependencies(doc lib_doc)
+
+# Unit tests
+if(IFEM_AS_SUBMODULE OR IFEM_COMMON_APP_BUILD)
+  set(TEST_APPS ${TEST_APPS} PARENT_SCOPE)
+else()
+  add_check_target()
+endif()
 
 # 'install' target
 # Have install force doc build

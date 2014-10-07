@@ -9,6 +9,12 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
 FIND_PACKAGE(IFEM REQUIRED)
 ENABLE_TESTING()
 
+include_directories(${IFEM_INCLUDES})
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${IFEM_CXX_FLAGS}")
+SET(EXECUTABLE_OUTPUT_PATH bin)
+
+set(IFEM_COMMON_APP_BUILD 1)
+set(IFEM_PATH ${PROJECT_SOURCE_DIR}/..)
 ADD_SUBDIRECTORY(Common)
 ADD_SUBDIRECTORY(Poisson)
 ADD_SUBDIRECTORY(AdvectionDiffusion)
@@ -23,7 +29,5 @@ ADD_SUBDIRECTORY(HDF5toVTx)
 # Generate regtest script with correct paths
 CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/Common/scripts/regtest.sh.in
                regtest.sh)
-CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/Common/scripts/doregtests.sh.in
-               doregtests.sh @ONLY)
-CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/Common/scripts/check-patchseries.sh.in
-               check-patchseries.sh)
+
+add_check_target()
