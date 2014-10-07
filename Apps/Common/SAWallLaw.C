@@ -40,6 +40,7 @@ bool SAWallLaw::computeYplus(double y, double nu, double utan, double& yplus) co
   while ((fabs(r) > rtol) && (it < maxit)) {
     drdyplus = -y*utan/(nu*yplus*yplus) - SA.dupdyp(yplus);
     yplus -= r/drdyplus;
+    yplus = fabs(yplus);
     uplus = y*utan/(nu*yplus); 
     r = uplus - SA.up(yplus);
     it++;
