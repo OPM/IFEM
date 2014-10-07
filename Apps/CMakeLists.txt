@@ -26,8 +26,5 @@ ADD_SUBDIRECTORY(Stokes)
 ADD_SUBDIRECTORY(ThermoElasticity)
 ADD_SUBDIRECTORY(HDF5toVTx)
 
-# Generate regtest script with correct paths
-CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/Common/scripts/regtest.sh.in
-               regtest.sh)
-
+# Add 'check' target which builds all test applications, then executes the tests
 add_check_target()

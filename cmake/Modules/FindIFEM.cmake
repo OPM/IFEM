@@ -102,8 +102,11 @@ IF(IFEM_PATH OR IFEM_AS_SUBMODULE)
       ENDIF(GETB_LIBRARIES)
     ENDIF(IFEM_USE_GETBEAM)
   ENDIF(IFEM_AS_SUBMODULE)
-  CONFIGURE_FILE(${IFEM_PATH}/Apps/Common/cmake/CheckCommits.cmake.in CheckCommits.cmake)
-  ADD_CUSTOM_TARGET(check-commits COMMAND ${CMAKE_COMMAND} -P CheckCommits.cmake)
+  add_custom_target(check-commits
+                    COMMAND ${CMAKE_COMMAND}
+                            -DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+                            -DCMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}
+                            -P ${IFEM_PATH}/Apps/Common/cmake/CheckCommits.cmake)
 ELSE(IFEM_PATH OR IFEM_AS_SUBMODULE)
   # Build wants system IFEM
   IF(NOT DEFINED FORCE_SYSTEM_IFEM OR NOT "${FORCE_SYSTEM_IFEM}")
