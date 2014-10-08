@@ -26,7 +26,7 @@ int Order(Method method)
     return 3;
 
   if (method == RK4)
-    return 3;
+    return 4;
 
   return 0;
 }
