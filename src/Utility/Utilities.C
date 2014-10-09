@@ -113,7 +113,7 @@ bool utl::ignoreComments (std::istream& is)
 
 bool utl::getAttribute (const TiXmlElement* xml, const char* att, bool& val)
 {
-  if (!xml->Attribute(att))
+  if (!xml || !xml->Attribute(att))
     return false;
 
   const char* value = xml->Attribute(att);
@@ -134,7 +134,7 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att, bool& val)
 
 bool utl::getAttribute (const TiXmlElement* xml, const char* att, int& val)
 {
-  if (xml->Attribute(att))
+  if (xml && xml->Attribute(att))
     val = atoi(xml->Attribute(att));
   else
     return false;
@@ -145,7 +145,7 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att, int& val)
 
 bool utl::getAttribute (const TiXmlElement* xml, const char* att, size_t& val)
 {
-  if (xml->Attribute(att))
+  if (xml && xml->Attribute(att))
     val = atoi(xml->Attribute(att));
   else
     return false;
@@ -156,7 +156,7 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att, size_t& val)
 
 bool utl::getAttribute (const TiXmlElement* xml, const char* att, Real& val)
 {
-  if (xml->Attribute(att))
+  if (xml && xml->Attribute(att))
     val = atof(xml->Attribute(att));
   else
     return false;
@@ -168,7 +168,7 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att, Real& val)
 bool utl::getAttribute (const TiXmlElement* xml, const char* att,
 			std::string& val, bool toLower)
 {
-  if (!xml->Attribute(att))
+  if (!xml || !xml->Attribute(att))
     return false;
 
   val = xml->Attribute(att);
