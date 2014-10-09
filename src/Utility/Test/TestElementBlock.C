@@ -18,8 +18,8 @@ TEST(TestElementBlock, Resize)
 {
   ElementBlock block(8);
   block.resize(3, 3, 3);
-  EXPECT_EQ(block.getNoNodes(), 27);
+  EXPECT_EQ(block.getNoNodes(), 27U);
 
   block.unStructResize(3, 8);
-  EXPECT_EQ(block.getNoNodes(), 8);
+  EXPECT_EQ(block.getNoNodes(), 8U);
 }
