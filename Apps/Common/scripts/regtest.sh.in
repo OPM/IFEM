@@ -37,6 +37,7 @@ do
     fi
     globres=0
     echo Failed to find output: $line >> @CMAKE_BINARY_DIR@/failed.log
+    echo Failed to find output: $line >> /dev/stderr
   fi
 done
 
