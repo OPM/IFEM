@@ -42,6 +42,9 @@ public:
   //! \return Evaluated solution values
   Vector getSolution(const Vector& psol, const double* par,
                      int deriv = 0, int patch = 1) const;
+
+  //! \brief Create a model with the default geometry (line, plane, cube)
+  bool createDefaultModel();
 };
 
 #endif

@@ -39,3 +39,13 @@ Vector SIMgeneric::getSolution (const Vector& psol, const double* par,
 
   return tmpVal.getColumn(1);
 }
+
+
+bool SIMgeneric::createDefaultModel()
+{
+  for (size_t i=0;i<myModel.size();++i)
+    delete myModel[i];
+  myModel.resize(1,this->createDefaultGeometry(NULL));
+
+  return true;
+}
