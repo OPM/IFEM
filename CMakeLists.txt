@@ -113,6 +113,7 @@ add_dependencies(doc lib_doc)
 if(IFEM_AS_SUBMODULE OR IFEM_COMMON_APP_BUILD)
   set(TEST_APPS ${TEST_APPS} PARENT_SCOPE)
 else()
+  set(IFEM_PATH ${PROJECT_SOURCE_DIR})
   add_check_target()
 endif()
 

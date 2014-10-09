@@ -180,34 +180,7 @@ IF(VERBOSE_DEBUG GREATER 0)
 ENDIF(VERBOSE_DEBUG GREATER 0)
 SET(IFEM_CXX_FLAGS "${IFEM_CXX_FLAGS} -DReal=double")
 
-FUNCTION(IFEM_ADD_TEST name binary)
-  SEPARATE_ARGUMENTS(MEMCHECK_COMMAND)
-  IF(IFEM_TEST_EXTRA)
-    SET(test-name "${binary}+${IFEM_TEST_EXTRA}+${name}")
-  ELSE()
-    SET(test-name "${binary}+${name}")
-  ENDIF()
-  IF(IFEM_TEST_MEMCHECK)
-    ADD_TEST("${test-name}" regtest.sh "${MEMORYCHECK_COMMAND} --log-file=valgrindlog ${EXECUTABLE_OUTPUT_PATH}/${binary}" ${PROJECT_SOURCE_DIR}/${TEST_SUBDIR}/Test/${name} ${ARGN})
-  ELSE(IFEM_TEST_MEMCHECK)
-    ADD_TEST("${test-name}" regtest.sh ${EXECUTABLE_OUTPUT_PATH}/${binary} ${PROJECT_SOURCE_DIR}/${TEST_SUBDIR}/Test/${name} ${ARGN})
-  ENDIF(IFEM_TEST_MEMCHECK)
-ENDFUNCTION(IFEM_ADD_TEST)
-
 SET(IFEM_CONFIGURED 1)
-
-macro(IFEM_add_test_app path workdir name)
-  FILE(GLOB TEST_SRCS ${path})
-  add_executable(${name}-test EXCLUDE_FROM_ALL ${IFEM_PATH}/src/IFEM-test.C ${TEST_SRCS})
-  gtest_add_tests($<TARGET_FILE:${name}-test> ${workdir} ${TEST_SRCS})
-  list(APPEND TEST_APPS ${name}-test)
-  target_link_libraries(${name}-test ${ARGN} gtest)
-endmacro()
-
-macro(IFEM_add_unittests IFEM_PATH)
-  add_subdirectory(${IFEM_PATH}/3rdparty/gtest gtest EXCLUDE_FROM_ALL)
-  IFEM_add_test_app("${IFEM_PATH}/src/Utility/Test/*.C;${IFEM_PATH}/src/ASM/Test/*.C"
-                    ${IFEM_PATH}
-                    IFEM
-                    IFEM ${IFEM_DEPLIBS})
-endmacro()
+if(NOT IFEM_TESTING_INCLUDED)
+  include(IFEMTesting)
+endif()

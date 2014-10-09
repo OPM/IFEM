@@ -1,0 +1,43 @@
+macro(IFEM_add_test_app path workdir name)
+  FILE(GLOB TEST_SRCS ${path})
+  add_executable(${name}-test EXCLUDE_FROM_ALL ${IFEM_PATH}/src/IFEM-test.C ${TEST_SRCS})
+  gtest_add_tests($<TARGET_FILE:${name}-test> ${workdir} ${TEST_SRCS})
+  list(APPEND TEST_APPS ${name}-test)
+  target_link_libraries(${name}-test ${ARGN} gtest)
+endmacro()
+
+macro(IFEM_add_unittests IFEM_PATH)
+  add_subdirectory(${IFEM_PATH}/3rdparty/gtest gtest EXCLUDE_FROM_ALL)
+  IFEM_add_test_app("${IFEM_PATH}/src/Utility/Test/*.C;${IFEM_PATH}/src/ASM/Test/*.C"
+                    ${IFEM_PATH}
+                    IFEM
+                    IFEM ${IFEM_DEPLIBS})
+endmacro()
+
+function(IFEM_add_test name binary)
+  separate_arguments(MEMCHECK_COMMAND)
+  if(IFEM_TEST_EXTRA)
+    set(test-name "${binary}+${IFEM_TEST_EXTRA}+${name}")
+  else()
+    set(test-name "${binary}+${name}")
+  endif()
+  if(IFEM_TEST_MEMCHECK)
+    add_test("${test-name}" regtest.sh "${MEMORYCHECK_COMMAND} --log-file=valgrindlog ${EXECUTABLE_OUTPUT_PATH}/${binary}" ${PROJECT_SOURCE_DIR}/${TEST_SUBDIR}/Test/${name} ${ARGN})
+  else(IFEM_TEST_MEMCHECK)
+    add_test("${test-name}" regtest.sh ${EXECUTABLE_OUTPUT_PATH}/${binary} ${PROJECT_SOURCE_DIR}/${TEST_SUBDIR}/Test/${name} ${ARGN})
+  endif(IFEM_TEST_MEMCHECK)
+endfunction()
+
+macro(add_check_target)
+  ifem_add_unittests(${IFEM_PATH})
+  foreach(test_number RANGE 1 ${UNIT_TEST_NUMBER})
+    list(GET UNIT_TEST${test_number} 0 name)
+    list(GET UNIT_TEST${test_number} 1 dir)
+    list(GET UNIT_TEST${test_number} 2 -1 cmd)
+    add_test(NAME ${name} WORKING_DIRECTORY ${dir} COMMAND ${cmd})
+  endforeach()
+  add_custom_target(check ${CMAKE_CTEST_COMMAND} WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+  add_dependencies(check ${TEST_APPS})
+endmacro()
+
+set(IFEM_TESTING_INCLUDED 1)
