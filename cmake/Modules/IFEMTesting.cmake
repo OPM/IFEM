@@ -38,6 +38,7 @@ macro(add_check_target)
   endforeach()
   add_custom_target(check ${CMAKE_CTEST_COMMAND} WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
   add_dependencies(check ${TEST_APPS})
+  add_custom_target(testapps DEPENDS ${TEST_APPS})
 endmacro()
 
 set(IFEM_TESTING_INCLUDED 1)
