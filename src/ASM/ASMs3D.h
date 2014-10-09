@@ -569,6 +569,23 @@ public:
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 
+  //! \brief Establishes matrices with basis functions and 1st derivatives.
+  //! \param[in] u First parameter value of current integration point
+  //! \param[in] v Second parameter value of current integration point
+  //! \param[in] w Third parameter value of current integration point
+  //! \param[out] N Basis function values
+  //! \param[out] dNdu First derivatives of basis functions
+  void extractBasis(double u, double v, double w, Vector& N, Matrix& dNdu) const;
+  //! \brief Establishes matrices with basis functions, 1st and 2nd derivatives.
+  //! \param[in] u First parameter value of current integration point
+  //! \param[in] u Second parameter value of current integration point
+  //! \param[in] w Third parameter value of current integration point
+  //! \param[out] N Basis function values
+  //! \param[out] dNdu First derivatives of basis functions
+  //! \param[out] d2Ndu2 Second derivatives of basis functions
+  void extractBasis(double u, double v, double w, Vector& N,
+                    Matrix& dNdu, Matrix3D& d2Ndu2) const;
+
 private:
   //! \brief Returns an index into the internal coefficient array for a node.
   //! \param[in] inod 0-based node index local to current patch

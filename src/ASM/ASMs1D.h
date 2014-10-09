@@ -248,6 +248,18 @@ public:
 				  const IntegrandBase& integrand,
 				  bool continuous = false) const;
 
+  //! \brief Establishes matrices with basis functions and 1st derivatives.
+  //! \param[in] u Parameter value of current integration point
+  //! \param[out] N Basis function values
+  //! \param[out] dNdu First derivatives of basis functions
+  void extractBasis(double u, Vector& N, Matrix& dNdu) const;
+  //! \brief Establishes matrices with basis functions, 1st and 2nd derivatives.
+  //! \param[in] u Parameter value of current integration point
+  //! \param[out] N Basis function values
+  //! \param[out] dNdu First derivatives of basis functions
+  //! \param[out] d2Ndu2 Second derivatives of basis functions
+  void extractBasis(double u, Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2) const;
+
 protected:
 
   // Internal utility methods
@@ -282,18 +294,6 @@ protected:
   //! \brief Returns the number of nodal points in the patch.
   //! \param[in] basis Which basis to return size parameters for (mixed methods)
   virtual int getSize(int basis = 0) const;
-
-  //! \brief Establishes matrices with basis functions and 1st derivatives.
-  //! \param[in] u Parameter value of current integration point
-  //! \param[out] N Basis function values
-  //! \param[out] dNdu First derivatives of basis functions
-  void extractBasis(double u, Vector& N, Matrix& dNdu) const;
-  //! \brief Establishes matrices with basis functions, 1st and 2nd derivatives.
-  //! \param[in] u Parameter value of current integration point
-  //! \param[out] N Basis function values
-  //! \param[out] dNdu First derivatives of basis functions
-  //! \param[out] d2Ndu2 Second derivatives of basis functions
-  void extractBasis(double u, Vector& N, Matrix& dNdu, Matrix3D& d2Ndu2) const;
 
   //! \brief Returns the parametric length on the \a i'th knot-span.
   double getKnotSpan(int i) const;

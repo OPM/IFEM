@@ -2415,3 +2415,28 @@ bool ASMs2D::getNoStructElms (int& n1, int& n2, int& n3) const
 
   return true;
 }
+
+
+void ASMs2D::extractBasis (double u, double v, Vector& N, Matrix& dNdu) const
+{
+  std::vector<Real> upar(1, u);
+  std::vector<Real> vpar(1, v);
+  std::vector<Go::BasisDerivsSf> spline;
+
+  surf->computeBasisGrid(upar,vpar,spline);
+
+  SplineUtils::extractBasis(spline[0],N,dNdu);
+}
+
+
+void ASMs2D::extractBasis (double u, double v, Vector& N,
+                           Matrix& dNdu, Matrix3D& d2Ndu2) const
+{
+  std::vector<Real> upar(1, u);
+  std::vector<Real> vpar(1, v);
+  std::vector<Go::BasisDerivsSf2> spline2;
+
+  surf->computeBasisGrid(upar,vpar,spline2);
+
+  SplineUtils::extractBasis(spline2[0],N,dNdu,d2Ndu2);
+}
