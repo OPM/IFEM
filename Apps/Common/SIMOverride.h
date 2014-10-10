@@ -117,7 +117,7 @@ public:
   //! \copydoc SIMdependency::getField(const std::string&) const
   virtual const utl::vector<double>* getField(const std::string& name) const
   {
-    return base.getField(name);
+    return const_cast<const T&>(base).getField(name);
   }
 
   //! \copydoc SIMdependency::getDependentField(const std::string&) const

@@ -22,14 +22,14 @@ ScopedLogger::ScopedLogger(const char* name_, std::ostream& stream_) :
   stream << "[" << rank << "]: Entering \"" << name << "\"" << std::endl;
 #else
   rank = -1;
-  stream << "Entering " << name << std::endl;
+  stream << "Entering \"" << name << "\"" << std::endl;
 #endif
 }
 
 ScopedLogger::~ScopedLogger()
 {
   if (rank == -1)
-    stream << "Exiting " << name << std::endl;
+    stream << "Exiting \"" << name << "\"" << std::endl;
   else
-    stream << "[" << rank << "] Exiting \"" << name << "\"" << std::endl;
+    stream << "[" << rank << "]: Exiting \"" << name << "\"" << std::endl;
 }

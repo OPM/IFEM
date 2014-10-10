@@ -21,7 +21,7 @@
 #include "gtest/gtest.h"
 #include <fstream>
 
-Matrix readMatrix(size_t r, size_t c, const std::string& file)
+static Matrix readMatrix(size_t r, size_t c, const std::string& file)
 {
   Matrix result(r,c);
   std::ifstream f(file);
@@ -32,7 +32,7 @@ Matrix readMatrix(size_t r, size_t c, const std::string& file)
   return result;
 }
 
-Matrix3D readMatrices(size_t r, size_t c, size_t k, const std::string& file)
+static Matrix3D readMatrices(size_t r, size_t c, size_t k, const std::string& file)
 {
   Matrix3D result(r,c,k);
   std::ifstream f(file);
@@ -60,15 +60,6 @@ Matrix3D readMatrices(size_t r, size_t c, size_t k, const std::string& file)
         for (size_t k=1;k<=A.dim(3);++k) \
           ASSERT_NEAR(A(i,j,k), B(i,j,k), 1e-13); \
   } while(0);
-
-#define printMatrix(A) \
-  std::cout << "matrix is of size " << A.rows() << "x" << A.cols() << std::endl; \
-  for (size_t i=1;i<=A.rows();++i) { \
-    for (size_t j=1;j<=A.cols();++j) \
-      std::cout << A(i,j) << " ";    \
-    std::cout << std::endl; \
-  }
-
 
 TEST(TestCoordinateMapping, Jacobian1D)
 {

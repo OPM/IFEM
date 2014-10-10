@@ -81,14 +81,19 @@ CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/cmake/Modules/IFEMFlags.cmake.in
                IFEMFlags.cmake @ONLY)
 
 # Make the IFEM library
-FILE(GLOB_RECURSE IFEM_SRCS ${PROJECT_SOURCE_DIR}/src/*.C
-                            ${PROJECT_SOURCE_DIR}/src/*.f
-                            ${PROJECT_SOURCE_DIR}/3rdparty/expreval/*.cpp)
+FILE(GLOB IFEM_SRCS ${PROJECT_SOURCE_DIR}/src/IFEM.C
+                    ${PROJECT_SOURCE_DIR}/src/ASM/*.C
+                    ${PROJECT_SOURCE_DIR}/src/Eig/*.C
+                    ${PROJECT_SOURCE_DIR}/src/LinAlg/*.C
+                    ${PROJECT_SOURCE_DIR}/src/SIM/*.C
+                    ${PROJECT_SOURCE_DIR}/src/Utility/*.C
+                    ${PROJECT_SOURCE_DIR}/src/ASM/*.f
+                    ${PROJECT_SOURCE_DIR}/src/Eig/*.f
+                    ${PROJECT_SOURCE_DIR}/3rdparty/expreval/*.cpp)
 string(REGEX REPLACE "${PROJECT_SOURCE_DIR}/src/ASM/ASMs.DInterpolate.C" "" IFEM_SRCS "${IFEM_SRCS}")
-string(REGEX REPLACE ";[^;]*/Test/[^;]*;" ";" IFEM_SRCS "${IFEM_SRCS}")
-string(REGEX REPLACE ";[^;]*IFEM-test.C;" ";" IFEM_SRCS "${IFEM_SRCS}")
-IF(NOT LRSPLINE_FOUND AND NOT LRSpline_FOUND)
-  string(REGEX REPLACE "${PROJECT_SOURCE_DIR}/src/ASM/LR/[^;]*" "" IFEM_SRCS "${IFEM_SRCS}")
+IF(LRSPLINE_FOUND OR LRSpline_FOUND)
+  file(GLOB LR_SRCS ${PROJECT_SOURCE_DIR}/src/ASM/LR/*.C)
+  list(APPEND IFEM_SRCS ${LR_SRCS})
 ENDIF()
 ADD_LIBRARY(IFEM ${IFEM_SRCS} ${TINYXML_SRCS})
 TARGET_LINK_LIBRARIES(IFEM ${IFEM_DEPLIBS})

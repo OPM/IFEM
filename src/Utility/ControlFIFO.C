@@ -36,7 +36,7 @@ bool ControlFIFO::open (const char* name)
   unlink(name);
 #if !defined(__MINGW64__) || !defined(__MINGW32__)
   if (mkfifo(name, S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH) == 0) {
-    fifo = ::open("ifem-control", O_RDONLY | O_NONBLOCK);
+    fifo = ::open(name, O_RDONLY | O_NONBLOCK);
     return true;
   }
   std::cerr <<" *** Error creating control fifo '"<< fifo_name <<"'\n"
@@ -63,7 +63,8 @@ void ControlFIFO::poll ()
     return;
 
   TiXmlDocument doc;
-  if (!doc.Parse(temp) || !doc.RootElement()) {
+  doc.Parse(temp);
+  if (!doc.RootElement()) {
     std::cerr <<" *** Invalid control data received:\n"<< temp << std::endl;
     return;
   }

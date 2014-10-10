@@ -1,0 +1,12 @@
+<xml>
+  <booltrue bar="true"/>
+  <boolone bar="1"/>
+  <boolon bar="on"/>
+  <boolyes bar="yes"/>
+  <boolfalse bar="false"/>
+  <boolzero bar="0"/>
+  <booloff bar="off"/>
+  <boolno bar="no"/>
+  <intval bar="1"/>
+  <realval bar="2.01"/>
+</xml>

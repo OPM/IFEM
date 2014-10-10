@@ -16,7 +16,7 @@
 
 using namespace TimeIntegration;
 
-TEST(TimeIntUtils, Order)
+TEST(TestTimeIntUtils, Order)
 {
   EXPECT_EQ(Order(EULER), 1);
   EXPECT_EQ(Order(BE),    1);
@@ -26,7 +26,7 @@ TEST(TimeIntUtils, Order)
   EXPECT_EQ(Order(RK4),   4);
 }
 
-TEST(TimeIntUtils, Steps)
+TEST(TestTimeIntUtils, Steps)
 {
   EXPECT_EQ(Steps(EULER), 1);
   EXPECT_EQ(Steps(BE),    1);

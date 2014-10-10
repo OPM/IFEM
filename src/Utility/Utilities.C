@@ -123,7 +123,7 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att, bool& val)
     val = false;
   else if (value[0] == '1' || !strcasecmp(value,"yes"))
     val = true;
-  else if (value[1] == '0' || !strcasecmp(value,"no"))
+  else if (value[0] == '0' || !strcasecmp(value,"no"))
     val = false;
   else
     return false;
