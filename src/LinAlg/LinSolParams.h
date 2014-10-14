@@ -179,6 +179,14 @@ public:
   //! \param[in] block The index of the block to set parameters for
   void setupCoarseSolver(PC& pc, const std::string& prefix, int block) const;
 
+  //! \brief Setup the smoothers in a multigrid
+  //! \param[in] PC The preconditioner to set coarse solver for
+  //! \param[in] prefix The prefix of the block to set parameters for
+  //! \param[in] block The index of the  block to set parameters for
+  void setupSmoothers(PC& pc, int block, ISMat& dirIndexSet,
+                      const PetscIntMat& locSubdDofs,
+                      const PetscIntMat& subdDofs) const;
+
 private:
   PetscReal              atol;              // Absolute tolerance
   PetscReal              rtol;              // Relative tolerance

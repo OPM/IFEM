@@ -932,7 +932,6 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	}
       }
       else if (!strncasecmp(solParams.subprec[m].c_str(),"ml",2)) {
-	PetscInt n;
         solParams.setMLOptions(prefix, m);
 
 	PCSetFromOptions(subpc[m]);
@@ -942,69 +941,9 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	if (!solParams.MLCoarseSolver.empty())
           solParams.setupCoarseSolver(subpc[m], prefix, m);
 	
-	PCMGGetLevels(subpc[m],&n);
-	// Presmoother
-	for (int i = 1;i < n;i++) {
-	  KSP preksp;
-	  PC  prepc;
-	  PCMGGetSmoother(subpc[m],i,&preksp);
-	  KSPSetType(preksp,"richardson");
-	  KSPSetTolerances(preksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,solParams.noPreSmooth[m]);
-	  KSPGetPC(preksp,&prepc);
-
-	  // Set smoother
-	  std::string smoother;
-          if ((i == n-1) && (!solParams.finesmoother.empty())) 	    
-            smoother = solParams.finesmoother[m];
-          else
-	    smoother = solParams.presmoother[m];
-
-	  if (smoother == "asm" || smoother == "asmlu" ) {
-	    PCSetType(prepc,"asm");
-	    PCASMSetOverlap(prepc,solParams.overlap[m]);
-	
-	    if (!locSubdDofsBlock.empty() && !subdDofsBlock.empty() && (i==n-1)) {
-	      const size_t nsubds = subdDofsBlock[m].size();
-	      
-	      IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
-	      for (size_t k = 0;k < nsubds;k++) {
-		ISCreateGeneral(PETSC_COMM_SELF,locSubdDofsBlock[m][k].size(),&(locSubdDofsBlock[m][k][0]),PETSC_USE_POINTER,&(isLocSubdDofs[k]));
-		ISCreateGeneral(PETSC_COMM_SELF,subdDofsBlock[m][k].size(),&(subdDofsBlock[m][k][0]),PETSC_USE_POINTER,&(isSubdDofs[k]));
-	      }
-
-	      PCASMSetLocalSubdomains(prepc,nsubds,isSubdDofs,isLocSubdDofs);
-	    }
-
-	    PCSetFromOptions(prepc);
-	    PCSetUp(prepc);
-
-	    // If LU factorization is used on each subdomain
-	    if (smoother == "asmlu") {
-	      KSP* subdksp;
-	      PC   subdpc;
-	      PetscInt first, nlocal;
-	      PCASMGetSubKSP(prepc,&nlocal,&first,&subdksp);
-
-	      for (int k = 0; k < nlocal; k++) {
-		KSPGetPC(subdksp[k],&subdpc);
-		PCSetType(subdpc,PCLU);
-		KSPSetType(subdksp[k],KSPPREONLY);
-	      }
-	    }
-
-	    PCSetFromOptions(prepc);
-	    PCSetUp(prepc);
-	  }
-	  else if (smoother == "compositedir" && (i==n-1)) {
-	    if (!solParams.addDirSmoother(prepc,Sp,m,dirIndexSet))
-	      return false;
-	  } 
-	  else 
-	    PCSetType(prepc,smoother.c_str());
-
-          PCFactorSetLevels(prepc,solParams.levels[m]);
-          KSPSetUp(preksp);
-	}
+        solParams.setupSmoothers(subpc[m], m, dirIndexSet,
+                                 locSubdDofsBlock.empty()?PetscIntMat():locSubdDofsBlock[m],
+                                 subdDofsBlock.empty()?PetscIntMat():subdDofsBlock[m]);
       }
       else if (!strncasecmp(solParams.subprec[m].c_str(),"hypre",5))
         solParams.setHypreOptions(prefix,m);

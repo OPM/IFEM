@@ -603,8 +603,6 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
     }
   }
   else if (!strncasecmp(prec.c_str(),"ml",2) || !strncasecmp(prec.c_str(),"gamg",4)) {
-    PetscInt n;
-    
     if (!strncasecmp(prec.c_str(),"ml",2))
       setMLOptions("", 0);
     else if (!strncasecmp(prec.c_str(),"gamg",4))
@@ -616,83 +614,8 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
     // Settings for coarse solver
     if (!MLCoarseSolver.empty())
       setupCoarseSolver(pc, "", 0);
-    
-    PCMGGetLevels(pc,&n);
-    // Presmoother settings
-    for (int i = 1;i < n;i++) {
-      KSP preksp;
-      PC  prepc;
-      
-      // Set smoother
-      std::string smoother;
-      PetscInt noSmooth;
-      
-      PCMGGetSmoother(pc,i,&preksp);
-      KSPSetType(preksp,"richardson");
-      
-      if ((i == n-1) && (!finesmoother.empty())) {
-	smoother = finesmoother[0];
-	noSmooth = noFineSmooth[0];
-      }
-      else {
-	smoother = presmoother[0];
-	noSmooth = noPreSmooth[0];
-      }
-      
-      KSPSetTolerances(preksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,noSmooth);
-      KSPGetPC(preksp,&prepc);
-      
-      if (smoother == "asm" || smoother == "asmlu") {
-	PCSetType(prepc,"asm");
-	PCASMSetType(prepc,PC_ASM_BASIC);
-	PCASMSetOverlap(prepc,overlap[0]);
-	
-	if (!locSubdDofs.empty() && !subdDofs.empty() && (i==n-1)) {
-	  const size_t nsubds = subdDofs.size();
-	  
-	  IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
-	  for (size_t k = 0;k < nsubds;k++) {
-	    ISCreateGeneral(PETSC_COMM_SELF,locSubdDofs[k].size(),&(locSubdDofs[k][0]),PETSC_USE_POINTER,&(isLocSubdDofs[k]));
-	    ISCreateGeneral(PETSC_COMM_SELF,subdDofs[k].size(),&(subdDofs[k][0]),PETSC_USE_POINTER,&(isSubdDofs[k]));
-	  }
-	  PCASMSetLocalSubdomains(prepc,nsubds,isSubdDofs,isLocSubdDofs);
-	}
-	
-	// If LU factorization is used on each subdomain
-	if (smoother == "asmlu") {
-	  KSP* subksp;
-	  PC   subpc;
-	  PetscInt first, nlocal;
-	  PCSetFromOptions(prepc);
-	  PCSetUp(prepc);
-	  PCASMGetSubKSP(prepc,&nlocal,&first,&subksp);
-	  
-	  for (int k = 0; k < nlocal; k++) {
-	    KSPGetPC(subksp[k],&subpc);
-	    PCSetType(subpc,PCLU);
-	    PCFactorSetShiftType(prepc,MAT_SHIFT_NONZERO);
-	    KSPSetType(subksp[k],KSPPREONLY);
-	  }
-	}
-      }
-      else if (smoother == "compositedir" && (i==n-1)) {
-	Mat mat;
-	Mat Pmat;
-#if PETSC_VERSION_MINOR < 5
-	MatStructure flag;
-	PCGetOperators(prepc,&mat,&Pmat,&flag);
-#else
-	PCGetOperators(prepc,&mat,&Pmat);
-#endif
-	
-	this->addDirSmoother(prepc,Pmat,0,dirIndexSet);
-      }
-      else
-	PCSetType(prepc,smoother.c_str());
-      
-      PCFactorSetLevels(prepc,levels[0]); 
-      KSPSetUp(preksp);
-    }
+
+    setupSmoothers(pc, 0, dirIndexSet, locSubdDofs, subdDofs);
   } else {
     PCSetFromOptions(pc);
     PCSetUp(pc);
@@ -906,6 +829,95 @@ void LinSolParams::setupCoarseSolver(PC& pc, const std::string& prefix, int bloc
     PCSetType(cpc,PCLU);
     PCFactorSetMatSolverPackage(cpc,MLCoarsePackage[block].c_str());
     PCSetUp(cpc);
+  }
+}
+
+
+void LinSolParams::setupSmoothers(PC& pc, int block, ISMat& dirIndexSet,
+                                  const PetscIntMat& locSubdDofs,
+                                  const PetscIntMat& subdDofs) const
+{
+  PetscInt n;
+  PCMGGetLevels(pc,&n);
+
+  // Presmoother settings
+  for (int i = 1;i < n;i++) {
+    KSP preksp;
+    PC  prepc;
+
+    // Set smoother
+    std::string smoother;
+    PetscInt noSmooth;
+
+    PCMGGetSmoother(pc,i,&preksp);
+    KSPSetType(preksp,"richardson");
+
+    if ((i == n-1) && (!finesmoother.empty())) {
+      smoother = finesmoother[block];
+      noSmooth = noFineSmooth[block];
+    }
+    else {
+      smoother = presmoother[block];
+      noSmooth = noPreSmooth[block];
+    }
+
+    KSPSetTolerances(preksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,noSmooth);
+    KSPGetPC(preksp,&prepc);
+
+    if (smoother == "asm" || smoother == "asmlu") {
+      PCSetType(prepc,"asm");
+      PCASMSetType(prepc,PC_ASM_BASIC);
+      PCASMSetOverlap(prepc,overlap[block]);
+
+      if (!locSubdDofs.empty() && !subdDofs.empty() && (i==n-1)) {
+        const size_t nsubds = subdDofs.size();
+
+        IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
+        for (size_t k = 0;k < nsubds;k++) {
+          ISCreateGeneral(PETSC_COMM_SELF,locSubdDofs[k].size(),
+                          &(const_cast<PetscIntMat&>(locSubdDofs)[k][0]),
+                          PETSC_USE_POINTER, &(isLocSubdDofs[k]));
+          ISCreateGeneral(PETSC_COMM_SELF,subdDofs[k].size(),
+                          &(const_cast<PetscIntMat&>(subdDofs)[k][0]),
+                          PETSC_USE_POINTER, &(isSubdDofs[k]));
+        }
+        PCASMSetLocalSubdomains(prepc,nsubds,isSubdDofs,isLocSubdDofs);
+      }
+
+      // If LU factorization is used on each subdomain
+      if (smoother == "asmlu") {
+        KSP* subksp;
+        PC   subpc;
+        PetscInt first, nlocal;
+        PCSetFromOptions(prepc);
+        PCSetUp(prepc);
+        PCASMGetSubKSP(prepc,&nlocal,&first,&subksp);
+
+        for (int k = 0; k < nlocal; k++) {
+          KSPGetPC(subksp[k],&subpc);
+          PCSetType(subpc,PCLU);
+          PCFactorSetShiftType(prepc,MAT_SHIFT_NONZERO);
+          KSPSetType(subksp[k],KSPPREONLY);
+        }
+      }
+    }
+    else if (smoother == "compositedir" && (i==n-1)) {
+      Mat mat;
+      Mat Pmat;
+#if PETSC_VERSION_MINOR < 5
+      MatStructure flag;
+      PCGetOperators(prepc,&mat,&Pmat,&flag);
+#else
+      PCGetOperators(prepc,&mat,&Pmat);
+#endif
+
+      addDirSmoother(prepc,Pmat,block,dirIndexSet);
+    }
+    else
+      PCSetType(prepc,smoother.c_str());
+
+    PCFactorSetLevels(prepc,levels[block]);
+    KSPSetUp(preksp);
   }
 }
 
