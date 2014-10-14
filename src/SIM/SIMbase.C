@@ -2205,7 +2205,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     if (myModel[i]->empty()) continue; // skip empty patches
 
     // Extract the primary solution control point values for this patch
-    myModel[i]->extractNodeVec(psol,myProblem->getSolution(),mySam->getMADOF());
+    extractPatchSolution(myProblem,Vectors(1,psol),i);
 
     // Initialize material properties for this patch in case of multiple regions
     const_cast<SIMbase*>(this)->setPatchMaterial(i+1);
