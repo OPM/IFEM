@@ -559,8 +559,10 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
   else
     PCSetType(pc,prec.c_str());
 #if PETSC_HAVE_HYPRE
-  if (!strncasecmp(prec.c_str(),"hypre",5))
+  if (!strncasecmp(prec.c_str(),"hypre",5)) {
     PCHYPRESetType(pc,hypretype[0].c_str());
+    setHypreOptions("", 0);
+  }
 #endif
 
   if (!strncasecmp(prec.c_str(),"gamg",4) || !strncasecmp(prec.c_str(),"ml",2) ) {
