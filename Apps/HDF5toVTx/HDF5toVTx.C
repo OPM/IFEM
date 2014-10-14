@@ -448,8 +448,11 @@ int main (int argc, char** argv)
   VTFFieldBlocks fieldBlocks;
   int k = 1;
   for (int i = last?end:start; i <= end && ok; i += skip) {
-    if (levels > 0)
+    if (levels > 0) {
+      if (processlist.begin()->second.begin()->timestep > 0)
+        hdf.readDouble(i,"timeinfo","SIMbase-1",time);
       std::cout <<"\nTime level "<< i << " (t=" << time << ")" << std::endl;
+    }
     VTFList vlist, slist;
     bool geomWritten=false;
 
@@ -548,11 +551,9 @@ int main (int argc, char** argv)
         hdf.readDouble(i, "1", "eigenfrequency", val);
       }
       res=myVtf->writeState(k++, freq?"Frequency %g" : "Eigenvalue %g", val, 1);
-    } else if (processlist.begin()->second.begin()->timestep > 0) {
-      double time2 = time;
-      hdf.readDouble(i,"timeinfo","SIMbase-1",time2); //TODO!
-      res=myVtf->writeState(k++,"Time %g",time2,0);
-    } else {
+    } else if (processlist.begin()->second.begin()->timestep > 0)
+      res=myVtf->writeState(k++,"Time %g",time,0);
+    else {
       double foo = k;
       res=myVtf->writeState(k++,"Step %g", foo, 0);
     }
