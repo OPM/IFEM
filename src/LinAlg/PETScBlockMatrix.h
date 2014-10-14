@@ -143,9 +143,6 @@ protected:
 
   //! \brief Initializes the block matrix.
   bool setParameters(PETScBlockMatrix* P = NULL, PETScVector* Pb = NULL);
-
-  //! \brief Adds directional smoother
-  bool addDirSmoother(PC pc, Mat P, int block);
 #endif
 };
 

@@ -152,27 +152,31 @@ public:
                  ISMat& dirIndexSet) const;
 
   //! \brief Set directional smoother
-  bool addDirSmoother(PC pc, Mat P, ISMat& dirIndexSet) const;
+  //! \param[in] PC The preconditioner to add smoother for
+  //! \param[in] P The preconditioner matrix
+  //! \param[in] block The index of the block to add smoother to
+  //! \param[in] dirIndexSet The index set for the smoother
+  bool addDirSmoother(PC pc, Mat P, int block, ISMat& dirIndexSet) const;
 
   //! \brief Set ML options
   //! \param[in] prefix The prefix of the block to set parameters for
-  //! \param[in] block The index of the  block to set parameters for
+  //! \param[in] block The index of the block to set parameters for
   void setMLOptions(const std::string& prefix, int block) const;
 
   //! \brief Set GAMG options
   //! \param[in] prefix The prefix of the block to set parameters for
-  //! \param[in] block The index of the  block to set parameters for
+  //! \param[in] block The index of the block to set parameters for
   void setGAMGOptions(const std::string& prefix, int block) const;
 
   //! \brief Set Hypre options
   //! \param[in] prefix The prefix of the block to set parameters for
-  //! \param[in] block The index of the  block to set parameters for
+  //! \param[in] block The index of the block to set parameters for
   void setHypreOptions(const std::string& prefix, int block) const;
 
   //! \brief Setup the coarse solver in a multigrid
   //! \param[in] PC The preconditioner to set coarse solver for
   //! \param[in] prefix The prefix of the block to set parameters for
-  //! \param[in] block The index of the  block to set parameters for
+  //! \param[in] block The index of the block to set parameters for
   void setupCoarseSolver(PC& pc, const std::string& prefix, int block) const;
 
 private:

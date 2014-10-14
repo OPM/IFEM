@@ -711,7 +711,7 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
       PCCreate(*adm.getCommunicator(),&Fp);
 
       if (!strncasecmp(solParams.subprec[1].c_str(),"compositedir",12)) {
-	if (!this->addDirSmoother(S,Sp,1))
+	if (!solParams.addDirSmoother(S,Sp,1,dirIndexSet))
 	  return false;
       }
       else
@@ -743,7 +743,7 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 
       KSPSetType(subksp[1],"preonly");
       if (!strncasecmp(solParams.subprec[1].c_str(),"compositedir",12)) {
-	if (!this->addDirSmoother(S,Sp,1))
+	if (!solParams.addDirSmoother(S,Sp,1,dirIndexSet))
 	  return false;
       }
       else
@@ -851,7 +851,7 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	    }
 	  }
 	  else if (!strncasecmp(smoother.c_str(),"compositeDir",12) && (i==n-1)) {
-	    if (!this->addDirSmoother(prepc,Sp,1))
+	    if (!solParams.addDirSmoother(prepc,Sp,1,dirIndexSet))
 	      return false;
 	  }
 	  else
@@ -890,7 +890,7 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	PCGetOperators(subpc[m],&mat,&Pmat);
 #endif
 	
-	if (!this->addDirSmoother(subpc[m],Pmat,m))
+	if (!solParams.addDirSmoother(subpc[m],Pmat,m,dirIndexSet))
 	  return false;
       }
       else
@@ -996,7 +996,7 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	    PCSetUp(prepc);
 	  }
 	  else if (smoother == "compositedir" && (i==n-1)) {
-	    if (!this->addDirSmoother(prepc,Sp,m))
+	    if (!solParams.addDirSmoother(prepc,Sp,m,dirIndexSet))
 	      return false;
 	  } 
 	  else 
@@ -1022,27 +1022,4 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 
   return true;
 }
-
-
-bool PETScBlockMatrix::addDirSmoother(PC pc, Mat P, int block)
-{
-  PCSetType(pc,"composite");
-  PCCompositeSetType(pc,PC_COMPOSITE_MULTIPLICATIVE);
-  for (size_t k = 0;k < solParams.dirsmoother[block].size();k++)
-    PCCompositeAddPC(pc,"shell");
-  for (size_t k = 0;k < solParams.dirsmoother[block].size();k++) {
-    PC dirpc;
-    PCCompositeGetPC(pc,k,&dirpc);
-    PCPerm *pcperm;
-    PCPermCreate(&pcperm);
-    PCShellSetApply(dirpc,PCPermApply);
-    PCShellSetContext(dirpc,pcperm);
-    PCShellSetDestroy(dirpc,PCPermDestroy);
-    PCShellSetName(dirpc,"dir");
-    PCPermSetUp(dirpc,&dirIndexSet[block][k],P,solParams.dirsmoother[block][k].c_str());
-   }
-  
-  return true;
-}
-
 #endif // HAS_PETSC

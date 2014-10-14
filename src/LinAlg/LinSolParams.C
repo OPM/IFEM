@@ -554,7 +554,7 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
     PCGetOperators(pc,&mat,&Pmat);
 #endif
     
-    this->addDirSmoother(pc,Pmat,dirIndexSet);
+    this->addDirSmoother(pc,Pmat,0,dirIndexSet);
   }
   else
     PCSetType(pc,prec.c_str());
@@ -685,7 +685,7 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
 	PCGetOperators(prepc,&mat,&Pmat);
 #endif
 	
-	this->addDirSmoother(prepc,Pmat,dirIndexSet);
+	this->addDirSmoother(prepc,Pmat,0,dirIndexSet);
       }
       else
 	PCSetType(prepc,smoother.c_str());
@@ -705,13 +705,14 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
 }
 
 
-bool LinSolParams::addDirSmoother(PC pc, Mat P, ISMat& dirIndexSet) const
+bool LinSolParams::addDirSmoother(PC pc, Mat P, int block,
+                                  ISMat& dirIndexSet) const
 {
   PCSetType(pc,"composite");
   PCCompositeSetType(pc,PC_COMPOSITE_MULTIPLICATIVE);
-  for (size_t k = 0;k < dirsmoother[0].size();k++)
+  for (size_t k = 0;k < dirsmoother[block].size();k++)
     PCCompositeAddPC(pc,"shell");
-  for (size_t k = 0;k < dirsmoother[0].size();k++) {
+  for (size_t k = 0;k < dirsmoother[block].size();k++) {
     PC dirpc;
     PCCompositeGetPC(pc,k,&dirpc);
     PCPerm *pcperm;
@@ -720,8 +721,8 @@ bool LinSolParams::addDirSmoother(PC pc, Mat P, ISMat& dirIndexSet) const
     PCShellSetContext(dirpc,pcperm);
     PCShellSetDestroy(dirpc,PCPermDestroy);
     PCShellSetName(dirpc,"dir");
-    PCPermSetUp(dirpc,&dirIndexSet[0][k],P,dirsmoother[0][k].c_str());
-   }
+    PCPermSetUp(dirpc,&dirIndexSet[block][k],P,dirsmoother[block][k].c_str());
+  }
   
   return true;
 }
