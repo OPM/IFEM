@@ -65,6 +65,7 @@ IF(IFEM_PATH OR IFEM_AS_SUBMODULE)
   ELSE(IFEM_AS_SUBMODULE)
     # Build is in-tree
     MESSAGE(STATUS "Using in-tree IFEM")
+    SET(IFEM_INTREE_BUILD ON)
     SET(IFEM_INCLUDES ${IFEM_H_PATH}
                       ${IFEM_PATH}/src/ASM
                       ${IFEM_PATH}/src/Eig
