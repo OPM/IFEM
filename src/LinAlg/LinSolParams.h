@@ -154,6 +154,21 @@ public:
   //! \brief Set directional smoother
   bool addDirSmoother(PC pc, Mat P, ISMat& dirIndexSet) const;
 
+  //! \brief Set ML options
+  //! \param[in] prefix The prefix of the block to set parameters for
+  //! \param[in] block The index of the  block to set parameters for
+  void setMLOptions(const std::string& prefix, int block) const;
+
+  //! \brief Set GAMG options
+  //! \param[in] prefix The prefix of the block to set parameters for
+  //! \param[in] block The index of the  block to set parameters for
+  void setGAMGOptions(const std::string& prefix, int block) const;
+
+  //! \brief Set Hypre options
+  //! \param[in] prefix The prefix of the block to set parameters for
+  //! \param[in] block The index of the  block to set parameters for
+  void setHypreOptions(const std::string& prefix, int block) const;
+
 private:
   PetscReal              atol;              // Absolute tolerance
   PetscReal              rtol;              // Relative tolerance

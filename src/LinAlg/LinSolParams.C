@@ -603,122 +603,10 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
   else if (!strncasecmp(prec.c_str(),"ml",2) || !strncasecmp(prec.c_str(),"gamg",4)) {
     PetscInt n;
     
-    if (!strncasecmp(prec.c_str(),"ml",2)) {
-      std::stringstream maxLevel;
-      maxLevel << mglevels[0];
-      PetscOptionsSetValue("-pc_ml_maxNLevels",maxLevel.str().c_str());
-      std::stringstream maxCoarseDof;
-      maxCoarseDof << maxCoarseSize[0];
-      PetscOptionsSetValue("-pc_ml_maxCoarseSize",maxCoarseDof.str().c_str());
-      if (!MLCoarsenScheme.empty()) 
-	PetscOptionsSetValue("-pc_ml_CoarsenScheme",MLCoarsenScheme[0].c_str());
-      if (!MLThreshold.empty()) {
-	std::stringstream threshold;
-	threshold << MLThreshold[0];
-	PetscOptionsSetValue("-pc_ml_Threshold",threshold.str().c_str());
-      }
-      if (!MLDampingFactor.empty()) {
-	std::stringstream damping;
-	damping << MLDampingFactor[0];
-	PetscOptionsSetValue("-pc_ml_DampingFactor",damping.str().c_str());
-      }
-      if (!MLRepartitionRatio.empty()) {
-	std::stringstream repartitionRatio;
-	repartitionRatio << MLRepartitionRatio[0];
-	PetscOptionsSetValue("-pc_ml_repartitionMaxMinRatio",repartitionRatio.str().c_str());
-      }
-      if (!MLSymmetrize.empty()) {
-	std::stringstream symmetrize;
-	symmetrize << MLSymmetrize[0];
-	PetscOptionsSetValue("-pc_ml_Symmetrize",symmetrize.str().c_str());
-      }
-      if (!MLRepartition.empty()) {
-	std::stringstream repartition;
-	repartition << MLRepartition[0];
-	PetscOptionsSetValue("-pc_ml_repartition",repartition.str().c_str());
-      }
-      if (!MLBlockScaling.empty()) {
-	std::stringstream blockScaling;
-	blockScaling << MLBlockScaling[0];
-	PetscOptionsSetValue("-pc_ml_BlockScaling",blockScaling.str().c_str());
-      }
-      if (!MLPutOnSingleProc.empty()) {
-	std::stringstream putOnSingleProc;
-	putOnSingleProc << MLPutOnSingleProc[0];
-	PetscOptionsSetValue("-pc_ml_repartitionPutOnSingleProc ",putOnSingleProc.str().c_str());
-      }
-      if (!MLReuseInterp.empty()) {
-	std::stringstream reuseInterp;
-	reuseInterp << MLReuseInterp[0];
-	PetscOptionsSetValue("-pc_ml_reuse_interpolation",reuseInterp.str().c_str());
-      }
-      if (!MLKeepAggInfo.empty()) {
-	std::stringstream keepAggInfo;
-	keepAggInfo << MLKeepAggInfo[0];
-	PetscOptionsSetValue("-pc_ml_KeepAggInfo",keepAggInfo.str().c_str());
-	  }
-      if (!MLReusable.empty()) {
-	std::stringstream reusable;
-	reusable << MLReusable[0];
-	PetscOptionsSetValue("-pc_ml_Reusable",reusable.str().c_str());
-      }
-      if (!MLAux.empty()) {
-	std::stringstream aux;
-	aux << MLAux[0];
-	PetscOptionsSetValue("-pc_ml_Aux",aux.str().c_str());
-	if (!MLThreshold.empty()) {
-	  std::stringstream threshold;
-	  threshold << MLThreshold[0];
-	  PetscOptionsSetValue("-pc_ml_AuxThreshold",threshold.str().c_str());
-	}
-      }
-    }
-    else if (!strncasecmp(prec.c_str(),"gamg",4)) {
-      if (!maxCoarseSize.empty()) {
-	std::stringstream maxCoarseDof;
-	maxCoarseDof << maxCoarseSize[0];
-	PetscOptionsSetValue("-pc_gamg_coarse_eq_limit",maxCoarseDof.str().c_str());
-      }	    
-      
-      if (!GAMGprocEqLimit.empty()) {
-	std::stringstream procEqLimit;
-	procEqLimit << GAMGprocEqLimit[0];
-	PetscOptionsSetValue("-pc_gamg_process_eq_limit",procEqLimit.str().c_str());
-      }	    
-      
-      if (!GAMGtype.empty())
-	PetscOptionsSetValue("-pc_gamg_type",GAMGtype[0].c_str());
-      
-      if (!GAMGrepartition.empty()) {
-	std::stringstream repartition;
-	repartition << GAMGrepartition[0];
-	PetscOptionsSetValue("-pc_gamg_repartition",repartition.str().c_str());
-      }
-      
-      if (!GAMGuseAggGasm.empty()) {
-	std::stringstream useAggGasm;
-	useAggGasm << GAMGuseAggGasm[0];
-	PetscOptionsSetValue("-pc_gamg_use_agg_gasm",useAggGasm.str().c_str());
-      }	    
-      
-      if (!GAMGreuseInterp.empty()) {
-	std::stringstream reuseInterp;
-	reuseInterp << GAMGreuseInterp[0];
-	PetscOptionsSetValue("-pc_gamg_reuse_interpolation",reuseInterp.str().c_str());
-      }	   
-      
-      if (!MLThreshold.empty()) {
-	std::stringstream threshold;
-	threshold << MLThreshold[0];
-	PetscOptionsSetValue("-pc_gamg_threshold",threshold.str().c_str());
-      }	  
-
-      if (!mglevels.empty()) {
-	std::stringstream levels;
-	levels << mglevels[0];
-	PetscOptionsSetValue("-pc_mg_levels",levels.str().c_str());
-      }
-    }
+    if (!strncasecmp(prec.c_str(),"ml",2))
+      setMLOptions("", 0);
+    else if (!strncasecmp(prec.c_str(),"gamg",4))
+      setGAMGOptions("", 0);
     
     PCSetFromOptions(pc);
     PCSetUp(pc);
@@ -891,6 +779,7 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
   PCView(pc,PETSC_VIEWER_STDOUT_WORLD); 
 }
 
+
 bool LinSolParams::addDirSmoother(PC pc, Mat P, ISMat& dirIndexSet) const
 {
   PCSetType(pc,"composite");
@@ -910,6 +799,130 @@ bool LinSolParams::addDirSmoother(PC pc, Mat P, ISMat& dirIndexSet) const
    }
   
   return true;
+}
+
+
+/*! \brief Static helper to optionally add a prefix to a PETSc parameter */
+static std::string AddPrefix(const std::string& prefix, const std::string& data)
+{
+  if (prefix.empty())
+    return "-"+data;
+
+  return "-"+prefix+"_"+data;
+}
+
+
+/*! \brief Static helper to convert numbers to a string */
+template<class T>
+static std::string ToString(T data)
+{
+  std::stringstream str;
+  str << data;
+  return str.str();
+}
+
+
+void LinSolParams::setMLOptions(const std::string& prefix, int block) const
+{
+  PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_maxNLevels").c_str(),
+                       ToString(mglevels[block]).c_str());
+  PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_maxCoarseSize").c_str(),
+                       ToString(maxCoarseSize[block]).c_str());
+  if (!MLCoarsenScheme.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_CoarsenScheme").c_str(),
+                         MLCoarsenScheme[block].c_str());
+  if (!MLThreshold.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_Threshold").c_str(),
+                         ToString(MLThreshold[block]).c_str());
+  if (!MLDampingFactor.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_DampingFactor").c_str(),
+                         ToString(MLDampingFactor[block]).c_str());
+  if (!MLRepartitionRatio.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_repartitionMaxMinRatio").c_str(),
+                         ToString(MLRepartitionRatio[block]).c_str());
+  if (!MLSymmetrize.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_Symmetrize").c_str(),
+                         ToString(MLSymmetrize[block]).c_str());
+  if (!MLRepartition.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_repartition").c_str(),
+                         ToString(MLRepartition[block]).c_str());
+  if (!MLBlockScaling.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_BlockScaling").c_str(),
+                         ToString(MLBlockScaling[block]).c_str());
+  if (!MLPutOnSingleProc.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_repartitionPutOnSingleProc").c_str(),
+                         ToString(MLPutOnSingleProc[block]).c_str());
+  if (!MLReuseInterp.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_reuse_interpolation").c_str(),
+                         ToString(MLReuseInterp[block]).c_str());
+  if (!MLKeepAggInfo.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_KeepAggInfo").c_str(),
+                         ToString(MLKeepAggInfo[block]).c_str());
+  if (!MLReusable.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_Reusable").c_str(),
+                         ToString(MLReusable[block]).c_str());
+  if (!MLAux.empty()) {
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_Aux").c_str(),
+                         ToString(MLAux[block]).c_str());
+    if (!MLThreshold.empty())
+      PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_AuxThreshold").c_str(),
+                           ToString(MLThreshold[block]).c_str());
+  }
+}
+
+
+void LinSolParams::setGAMGOptions(const std::string& prefix, int block) const
+{
+  if (!maxCoarseSize.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_gamg_coarse_eq_limit").c_str(),
+                         ToString(maxCoarseSize[block]).c_str());
+  if (!GAMGprocEqLimit.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_gamg_process_eq_limit").c_str(),
+                         ToString(GAMGprocEqLimit[block]).c_str());
+  if (!GAMGtype.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_gamg_type").c_str(),
+                         GAMGtype[block].c_str());
+  if (!GAMGrepartition.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_gamg_repartition").c_str(),
+                         ToString(GAMGrepartition[block]).c_str());
+  if (!GAMGuseAggGasm.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_gamg_use_agg_gasm").c_str(),
+                         ToString(GAMGuseAggGasm[block]).c_str());
+  if (!GAMGreuseInterp.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_gamg_reuse_interpolation").c_str(),
+                         ToString(GAMGreuseInterp[block]).c_str());
+  if (!MLThreshold.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_gamg_threshold").c_str(),
+                         ToString(MLThreshold[block]).c_str());
+  if (!mglevels.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_mg_levels").c_str(),
+                         ToString(mglevels[block]).c_str());
+}
+
+
+void LinSolParams::setHypreOptions(const std::string& prefix, int block) const
+{
+  PetscOptionsSetValue(AddPrefix(prefix,"pc_hypre_type").c_str(),
+                       hypretype[block].c_str());
+  PetscOptionsSetValue(AddPrefix(prefix,"pc_hypre_boomeramg_max_levels").c_str(),
+                       ToString(mglevels[block]).c_str());
+  PetscOptionsSetValue(AddPrefix(prefix,"pc_hypre_boomeramg_max_iter").c_str(), "1");
+  PetscOptionsSetValue(AddPrefix(prefix,"pc_hypre_boomeramg_tol").c_str(), "0.0");;
+  if (!HypreThreshold.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_hypre_boomeramg_strong_threshold").c_str(),
+                         ToString(HypreThreshold[block]).c_str());
+  if (!HypreCoarsenScheme.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_hypre_boomeramg_coarsen_type").c_str(),
+                         ToString(HypreCoarsenScheme[block]).c_str());
+  if (!HypreNoAggCoarse.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_hypre_boomeramg_agg_nl").c_str(),
+                         ToString(HypreNoAggCoarse[block]).c_str());
+  if (!HypreNoPathAggCoarse.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_hypre_boomeramg_agg_num_paths").c_str(),
+                         ToString(HypreNoPathAggCoarse[block]).c_str());
+  if (!HypreTruncation.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,"pc_hypre_boomeramg_truncfactor").c_str(),
+                         ToString(HypreTruncation[block]).c_str());
 }
 
 #endif

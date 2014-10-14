@@ -779,76 +779,8 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
       }
       else if (!strncasecmp(solParams.subprec[1].c_str(),"ml",2)) {
 	PetscInt n;
-	
-	std::stringstream maxLevel;
-	maxLevel << solParams.mglevels[1];
-        PetscOptionsSetValue("-fieldsplit_p_pc_ml_maxNLevels",maxLevel.str().c_str());
-	std::stringstream maxCoarseDof;
-	maxCoarseDof << solParams.maxCoarseSize[1];
-        PetscOptionsSetValue("-fieldsplit_p_pc_ml_maxCoarseSize",maxCoarseDof.str().c_str());
-	if (!solParams.MLCoarsenScheme.empty()) 
-	  PetscOptionsSetValue("-fieldsplit_p_pc_ml_CoarsenScheme",solParams.MLCoarsenScheme[1].c_str());
-	if (!solParams.MLThreshold.empty()) {
-	  std::stringstream threshold;
-	  threshold << solParams.MLThreshold[1];
-	  PetscOptionsSetValue("-fieldsplit_p_pc_ml_Threshold",threshold.str().c_str());
-	}
-	if (!solParams.MLDampingFactor.empty()) {
-	  std::stringstream damping;
-	  damping << solParams.MLDampingFactor[1];
-	  PetscOptionsSetValue("-fieldsplit_p_pc_ml_DampingFactor",damping.str().c_str());
-	}
-	if (!solParams.MLRepartitionRatio.empty()) {
-	  std::stringstream repartitionRatio;
-	  repartitionRatio << solParams.MLRepartitionRatio[1];
-	  PetscOptionsSetValue("-fieldsplit_p_pc_ml_repartitionMaxMinRatio",repartitionRatio.str().c_str());
-	}
-	if (!solParams.MLSymmetrize.empty()) {
-	  std::stringstream symmetrize;
-	  symmetrize << solParams.MLSymmetrize[1];
-	  PetscOptionsSetValue("-fieldsplit_p_pc_ml_Symmetrize",symmetrize.str().c_str());
-	}
-	if (!solParams.MLRepartition.empty()) {
-	    std::stringstream repartition;
-	    repartition << solParams.MLRepartition[1];
-	    PetscOptionsSetValue("-fieldsplit_p_pc_ml_repartition",repartition.str().c_str());
-	}
-	if (!solParams.MLBlockScaling.empty()) {
-	  std::stringstream blockScaling;
-	  blockScaling << solParams.MLBlockScaling[1];
-	  PetscOptionsSetValue("-fieldsplit_p_pc_ml_BlockScaling",blockScaling.str().c_str());
-	}
-	if (!solParams.MLPutOnSingleProc.empty()) {
-	  std::stringstream putOnSingleProc;
-	  putOnSingleProc << solParams.MLPutOnSingleProc[1];
-	  PetscOptionsSetValue("-fieldsplit_p_pc_ml_repartitionPutOnSingleProc ",putOnSingleProc.str().c_str());
-	}
-	if (!solParams.MLReuseInterp.empty()) {
-	  std::stringstream reuseInterp;
-	  reuseInterp << solParams.MLReuseInterp[1];
-	  PetscOptionsSetValue("-fieldsplit_p_pc_ml_reuse_interpolation",reuseInterp.str().c_str());
-	}
-	if (!solParams.MLKeepAggInfo.empty()) {
-	  std::stringstream keepAggInfo;
-	  keepAggInfo << solParams.MLKeepAggInfo[1];
-	  PetscOptionsSetValue("-fieldsplit_p_pc_ml_KeepAggInfo",keepAggInfo.str().c_str());
-	}
-	if (!solParams.MLReusable.empty()) {
-	  std::stringstream reusable;
-	  reusable << solParams.MLReusable[1];
-	  PetscOptionsSetValue("-fieldsplit_p_pc_ml_Reusable",reusable.str().c_str());
-	}
-	if (!solParams.MLAux.empty()) {
-	  std::stringstream aux;
-	  aux << solParams.MLAux[1];
-	  PetscOptionsSetValue("-fieldsplit_p_pc_ml_Aux",aux.str().c_str());
-	  if (!solParams.MLThreshold.empty()) {
-	    std::stringstream threshold;
-	    threshold << solParams.MLThreshold[1];
-	    PetscOptionsSetValue("-fieldsplit_p_pc_ml_AuxThreshold",threshold.str().c_str());
-	  }
-	}
-	
+        solParams.setMLOptions("fieldsplit_p", 1);
+
 	PCSetFromOptions(S);
 	PCSetUp(S);
 
@@ -942,9 +874,9 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
     for (PetscInt m = 0; m < nsplit; m++) {
       std::string prefix;
       if (m == 0)
-	prefix = "-fieldsplit_u_";
+	prefix = "fieldsplit_u";
       else
-	prefix = "-fieldsplit_p_";
+	prefix = "fieldsplit_p";
 
       KSPSetType(subksp[m],"preonly");
       KSPGetPC(subksp[m],&subpc[m]);
@@ -1001,94 +933,7 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
       }
       else if (!strncasecmp(solParams.subprec[m].c_str(),"ml",2)) {
 	PetscInt n;
-	
-	std::stringstream maxLevel;
-	maxLevel << solParams.mglevels[m];
-	std::string mlMaxNLevels = prefix + std::string("pc_ml_maxNLevels");
-	PetscOptionsSetValue(mlMaxNLevels.c_str(),maxLevel.str().c_str());
-	std::stringstream maxCoarseDof;
-	maxCoarseDof << solParams.maxCoarseSize[m];
-	std::string mlMaxCoarseSize = prefix + std::string("pc_ml_maxCoarseSize");
-	PetscOptionsSetValue(mlMaxCoarseSize.c_str(),maxCoarseDof.str().c_str());
-
-	if (!solParams.MLCoarsenScheme.empty()) {
-	  std::stringstream coarsenScheme;
-	  coarsenScheme << solParams.MLCoarsenScheme[m];
-	  std::string mlCoarsenScheme = prefix + std::string("pc_ml_CoarsenScheme");
-	  PetscOptionsSetValue(mlCoarsenScheme.c_str(),coarsenScheme.str().c_str());
-	}
-	if (!solParams.MLThreshold.empty()) {
-	  std::stringstream threshold;
-	  threshold << solParams.MLThreshold[m];
-	  std::string mlThreshold = prefix + std::string("pc_ml_Threshold");
-	  PetscOptionsSetValue(mlThreshold.c_str(),threshold.str().c_str());
-	}
-	if (!solParams.MLDampingFactor.empty()) {
-	  std::stringstream damping;
-	  damping << solParams.MLDampingFactor[m];
-	  std::string mlDampingFactor = prefix + std::string("pc_ml_DampingFactor");
-	  PetscOptionsSetValue(mlDampingFactor.c_str(),damping.str().c_str());
-	}
-	if (!solParams.MLRepartitionRatio.empty()) {
-	  std::stringstream repartitionRatio;
-	  repartitionRatio << solParams.MLRepartitionRatio[m];
-	  std::string mlRepartitionRatio = prefix + std::string("pc_ml_repartitionMaxMinRatio");
-	  PetscOptionsSetValue(mlRepartitionRatio.c_str(),repartitionRatio.str().c_str());
-	}
-	if (!solParams.MLSymmetrize.empty()) {
-	    std::stringstream symmetrize;
-	    symmetrize << solParams.MLSymmetrize[m];
-	    std::string mlSymmetrize = prefix + std::string("pc_ml_Symmetrize");
-	    PetscOptionsSetValue(mlSymmetrize.c_str(),symmetrize.str().c_str());
-	}
-	if (!solParams.MLRepartition.empty()) {
-	  std::stringstream repartition;
-	  repartition << solParams.MLRepartition[m];
-	  std::string mlRepartition = prefix + std::string("pc_ml_repartition");
-	  PetscOptionsSetValue(mlRepartition.c_str(),repartition.str().c_str());
-	}
-	if (!solParams.MLBlockScaling.empty()) {
-	  std::stringstream blockScaling;
-	  blockScaling << solParams.MLBlockScaling[m];
-	  std::string mlBlockScaling = prefix + std::string("pc_ml_BlockScaling");
-	  PetscOptionsSetValue(mlBlockScaling.c_str(),blockScaling.str().c_str());
-	}
-	if (!solParams.MLPutOnSingleProc.empty()) {
-	  std::stringstream putOnSingleProc;
-	  putOnSingleProc << solParams.MLPutOnSingleProc[m];
-	  std::string mlPutOnSingleProc = prefix + std::string("pc_ml_repartitionPutOnSingleProc");
-	  PetscOptionsSetValue(mlPutOnSingleProc.c_str(),putOnSingleProc.str().c_str());
-	}
-	if (!solParams.MLReuseInterp.empty()) {
-	  std::stringstream reuseInterp;
-	  reuseInterp << solParams.MLReuseInterp[m];
-	  std::string mlReuseInterp = prefix + std::string("pc_ml_reuse_interpolation");
-	  PetscOptionsSetValue(mlReuseInterp.c_str(),reuseInterp.str().c_str());
-	}
-	if (!solParams.MLKeepAggInfo.empty()) {
-	  std::stringstream keepAggInfo;
-	  keepAggInfo << solParams.MLKeepAggInfo[m];
-	  std::string mlKeepAggInfo = prefix + std::string("pc_ml_KeepAggInfo");
-	  PetscOptionsSetValue(mlKeepAggInfo.c_str(),keepAggInfo.str().c_str());
-	}
-	if (!solParams.MLReusable.empty()) {
-	  std::stringstream reusable;
-	  reusable << solParams.MLReusable[m];
-	  std::string mlReusable = prefix + std::string("pc_ml_Reusable");
-	  PetscOptionsSetValue(mlReusable.c_str(),reusable.str().c_str());
-	}
-	if (!solParams.MLAux.empty()) {
-	  std::stringstream aux;
-	  aux << solParams.MLAux[m];
-	  std::string mlAux = prefix + std::string("pc_ml_Aux");
-	  PetscOptionsSetValue(mlAux.c_str(),aux.str().c_str());
-	  if (!solParams.MLThreshold.empty()) {
-	    std::stringstream threshold;
-	    threshold << solParams.MLThreshold[m];
-	    std::string mlThreshold = prefix + std::string("pc_ml_AuxThreshold");
-	    PetscOptionsSetValue(mlThreshold.c_str(),threshold.str().c_str());
-	  }
-	}
+        solParams.setMLOptions(prefix, m);
 
 	PCSetFromOptions(subpc[m]);
 	PCSetUp(subpc[m]);
@@ -1138,7 +983,7 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	    KSPGetPC(sksp,&spc);
 	    PCSetType(spc,PCML);
 
-	    std::string mlCoarseMaxNLevels = prefix + std::string("mg_coarse_pc_ml_maxNLevels");
+	    std::string mlCoarseMaxNLevels = "-"+prefix + std::string("_mg_coarse_pc_ml_maxNLevels");
 	    PetscOptionsSetValue(mlCoarseMaxNLevels.c_str(),"2");	
 	    PCSetFromOptions(spc);
 	    PCSetUp(spc);
@@ -1238,58 +1083,8 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
           KSPSetUp(preksp);
 	}
       }
-      else if (!strncasecmp(solParams.subprec[m].c_str(),"hypre",5)) {
-	std::stringstream hypretype;
-        hypretype << solParams.hypretype[m];
-        std::string hypreType = prefix + std::string("pc_hypre_type");
-        PetscOptionsSetValue(hypreType.c_str(),hypretype.str().c_str());
-
-        std::stringstream maxLevel;
-        maxLevel << solParams.mglevels[m];
-        std::string hypreMaxNLevels = prefix + std::string("pc_hypre_boomeramg_max_levels");
-        PetscOptionsSetValue(hypreMaxNLevels.c_str(),maxLevel.str().c_str());
-
-        std::string hypreMaxIter = prefix + std::string("pc_hypre_boomeramg_max_iter");
-        PetscOptionsSetValue(hypreMaxIter.c_str(),"1");
-
-        std::string hypreTol = prefix + std::string("pc_hypre_boomeramg_tol");
-        PetscOptionsSetValue(hypreTol.c_str(),"0.0");
-
-        if (!solParams.HypreThreshold.empty()) {
-          std::stringstream threshold;
-          threshold << solParams.HypreThreshold[m];
-          std::string hypreThreshold = prefix + std::string("pc_hypre_boomeramg_strong_threshold");
-          PetscOptionsSetValue(hypreThreshold.c_str(),threshold.str().c_str());
-        }
-
-	if (!solParams.HypreCoarsenScheme.empty()) {
-          std::stringstream coarsenScheme;
-          coarsenScheme << solParams.HypreCoarsenScheme[m];
-          std::string hypreCoarsenScheme = prefix + std::string("pc_hypre_boomeramg_coarsen_type");
-          PetscOptionsSetValue(hypreCoarsenScheme.c_str(),coarsenScheme.str().c_str());
-        }       
-
-        if (!solParams.HypreNoAggCoarse.empty()) {
-          std::stringstream noAggCoarse;
-          noAggCoarse << solParams.HypreNoAggCoarse[m];
-          std::string hypreNoAggCoarse = prefix + std::string("pc_hypre_boomeramg_agg_nl");
-          PetscOptionsSetValue(hypreNoAggCoarse.c_str(),noAggCoarse.str().c_str());
-        }
-
-        if (!solParams.HypreNoPathAggCoarse.empty()) {
-          std::stringstream noPathAggCoarse;
-          noPathAggCoarse << solParams.HypreNoPathAggCoarse[m];
-          std::string hypreNoPathAggCoarse = prefix + std::string("pc_hypre_boomeramg_agg_num_paths");
-          PetscOptionsSetValue(hypreNoPathAggCoarse.c_str(),noPathAggCoarse.str().c_str());
-        }
-
-	if (!solParams.HypreTruncation.empty()) {
-          std::stringstream truncation;
-          truncation << solParams.HypreTruncation[m];
-          std::string hypreTruncation = prefix + std::string("pc_hypre_boomeramg_truncfactor");
-          PetscOptionsSetValue(hypreTruncation.c_str(),truncation.str().c_str());
-        }
-      }
+      else if (!strncasecmp(solParams.subprec[m].c_str(),"hypre",5))
+        solParams.setHypreOptions(prefix,m);
     }
   }
   else {
