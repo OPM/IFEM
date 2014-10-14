@@ -380,6 +380,27 @@ void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
     MatSetOption(matvec[i],MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE);
 #endif
 
+  if (solParams.getNullSpace(1) == CONSTANT) {
+     Vec const_mode;
+     VecCreate(*adm.getCommunicator(), &const_mode);
+     VecSetSizes(const_mode, ilast-ifirst, PETSC_DECIDE);
+     VecSetFromOptions(const_mode);
+     std::vector<PetscInt> ix((ilast-ifirst)/4);
+     std::vector<PetscScalar> y(ix.size(), 1.0);
+     for (size_t i=0;i<ix.size();++i)
+       ix[i] = ifirst+i*4+3;
+     VecSetValues(const_mode, ix.size(), &ix[0], &y[0], INSERT_VALUES);
+     VecAssemblyBegin(const_mode);
+     VecAssemblyEnd(const_mode);
+     Vec x;
+     VecDuplicate(const_mode,&x);
+     this->renumberRHS(const_mode,x,true);
+     VecNormalize(x, NULL);
+     MatNullSpaceCreate(*adm.getCommunicator(),PETSC_FALSE,1,&x,&nsp);
+     KSPSetNullSpace(ksp,nsp);
+     VecDestroy(&x);
+     VecDestroy(&const_mode);
+  }
 }
 
 

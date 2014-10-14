@@ -144,7 +144,7 @@ public:
   const IntVec& getComponents() const { return ncomps; }
 
   //! \brief Get number of overlaps
-  NullSpace getNullSpace(size_t i = 0) const { return nullspc[i]; }
+  NullSpace getNullSpace(size_t i = 0) const { return i < nullspc.size()?nullspc[i]:NONE; }
 
   //! \brief Set linear solver parameters for KSP object
   void setParams(KSP& ksp, PetscIntMat& locSubdDofs,

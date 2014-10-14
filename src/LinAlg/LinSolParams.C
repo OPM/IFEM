@@ -492,11 +492,14 @@ bool LinSolParams::read (const TiXmlElement* child)
     std::istringstream this_line(value);
     std::istream_iterator<std::string> begin(this_line), end;
     std::istream_iterator<std::string> it;
+    nullspc.clear();
     for (it = begin;it != end;it++) {
       if (!strcasecmp(it->c_str(),"constant"))
 	nullspc.push_back(CONSTANT);
       else if (!strcasecmp(value,"rigid_body"))
 	nullspc.push_back(RIGID_BODY);
+      else
+        nullspc.push_back(NONE);
     }
   }
   else
