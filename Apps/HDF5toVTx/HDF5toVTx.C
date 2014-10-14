@@ -451,9 +451,12 @@ int main (int argc, char** argv)
     if (levels > 0)
       std::cout <<"\nTime level "<< i << " (t=" << time << ")" << std::endl;
     VTFList vlist, slist;
+    bool geomWritten=false;
 
-    if ((isLR && hdf.hasGeometries(i)) || i == 0)
-      patches = setupPatchMap(processlist, i, hdf, dims, n, *myVtf, block, k);
+    if ((isLR && hdf.hasGeometries(i)) || patches.empty()) {
+      patches = setupPatchMap(processlist, hdf.hasGeometries(i)?i:0, hdf, dims, n, *myVtf, block, k);
+      geomWritten = true;
+    }
 
     for (pit = processlist.begin(); pit != processlist.end(); ++pit) {
       for (it = pit->second.begin(); it != pit->second.end() && ok; ++it) {
@@ -529,7 +532,7 @@ int main (int argc, char** argv)
         }
       }
     }
-    if ((isLR && hdf.hasGeometries(i)) || i == 0)
+    if (geomWritten)
       myVtf->writeGeometryBlocks(k);
     writeFieldBlocks(vlist,slist,*myVtf,k,fieldBlocks);
 
