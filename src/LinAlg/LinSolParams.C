@@ -571,37 +571,8 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
     PCGAMGSetType(pc, PCGAMGAGG); // TODO?
   }
 
-  if (!strncasecmp(prec.c_str(),"asm",3) ||!strncasecmp(prec.c_str(),"gasm",4)) {
-    PCASMSetType(pc,PC_ASM_BASIC);
-    PCASMSetOverlap(pc,overlap[0]);
-
-    if (!locSubdDofs.empty() && !subdDofs.empty()) {
-      const size_t nsubds = subdDofs.size();
-      
-      IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
-      for (size_t i = 0;i < nsubds;i++) {
-	ISCreateGeneral(PETSC_COMM_SELF,locSubdDofs[i].size(),&(locSubdDofs[i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
-	ISCreateGeneral(PETSC_COMM_SELF,subdDofs[i].size(),&(subdDofs[i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
-      }
-      PCASMSetLocalSubdomains(pc,nsubds,isSubdDofs,isLocSubdDofs);
-    }
-
-    PCSetFromOptions(pc);
-    PCSetUp(pc);
-
-    if (asmlu[0]) {
-      KSP* subksp;
-      PC   subpc;
-      PetscInt first, nlocal;
-      PCASMGetSubKSP(pc,&nlocal,&first,&subksp);
-      
-      for (int i = 0; i < nlocal; i++) {
-	KSPGetPC(subksp[i],&subpc);
-	PCSetType(subpc,PCLU);
-	KSPSetType(subksp[i],KSPPREONLY);
-      }
-    }
-  }
+  if (!strncasecmp(prec.c_str(),"asm",3) ||!strncasecmp(prec.c_str(),"gasm",4))
+    setupAdditiveSchwarz(pc, overlap[0], asmlu[0], locSubdDofs, subdDofs, false);
   else if (!strncasecmp(prec.c_str(),"ml",2) || !strncasecmp(prec.c_str(),"gamg",4)) {
     if (!strncasecmp(prec.c_str(),"ml",2))
       setMLOptions("", 0);
@@ -864,43 +835,9 @@ void LinSolParams::setupSmoothers(PC& pc, int block, ISMat& dirIndexSet,
     KSPSetTolerances(preksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,noSmooth);
     KSPGetPC(preksp,&prepc);
 
-    if (smoother == "asm" || smoother == "asmlu") {
-      PCSetType(prepc,"asm");
-      PCASMSetType(prepc,PC_ASM_BASIC);
-      PCASMSetOverlap(prepc,overlap[block]);
-
-      if (!locSubdDofs.empty() && !subdDofs.empty() && (i==n-1)) {
-        const size_t nsubds = subdDofs.size();
-
-        IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
-        for (size_t k = 0;k < nsubds;k++) {
-          ISCreateGeneral(PETSC_COMM_SELF,locSubdDofs[k].size(),
-                          &(const_cast<PetscIntMat&>(locSubdDofs)[k][0]),
-                          PETSC_USE_POINTER, &(isLocSubdDofs[k]));
-          ISCreateGeneral(PETSC_COMM_SELF,subdDofs[k].size(),
-                          &(const_cast<PetscIntMat&>(subdDofs)[k][0]),
-                          PETSC_USE_POINTER, &(isSubdDofs[k]));
-        }
-        PCASMSetLocalSubdomains(prepc,nsubds,isSubdDofs,isLocSubdDofs);
-      }
-
-      // If LU factorization is used on each subdomain
-      if (smoother == "asmlu") {
-        KSP* subksp;
-        PC   subpc;
-        PetscInt first, nlocal;
-        PCSetFromOptions(prepc);
-        PCSetUp(prepc);
-        PCASMGetSubKSP(prepc,&nlocal,&first,&subksp);
-
-        for (int k = 0; k < nlocal; k++) {
-          KSPGetPC(subksp[k],&subpc);
-          PCSetType(subpc,PCLU);
-          PCFactorSetShiftType(prepc,MAT_SHIFT_NONZERO);
-          KSPSetType(subksp[k],KSPPREONLY);
-        }
-      }
-    }
+    if (smoother == "asm" || smoother == "asmlu")
+      setupAdditiveSchwarz(prepc, overlap[0], smoother == "asmlu",
+                           locSubdDofs, subdDofs, true);
     else if (smoother == "compositedir" && (i==n-1)) {
       Mat mat;
       Mat Pmat;
@@ -921,4 +858,45 @@ void LinSolParams::setupSmoothers(PC& pc, int block, ISMat& dirIndexSet,
   }
 }
 
+
+void LinSolParams::setupAdditiveSchwarz(PC& pc, int overlap, bool asmlu,
+                                        const PetscIntMat& locSubdDofs,
+                                        const PetscIntMat& subdDofs, bool smoother) const
+{
+  PCSetType(pc, PCASM);
+  if (!smoother)
+    PCASMSetType(pc,PC_ASM_BASIC);
+  PCASMSetOverlap(pc,overlap);
+
+  if (!locSubdDofs.empty() && !subdDofs.empty()) {
+    const size_t nsubds = subdDofs.size();
+
+    IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
+    for (size_t i = 0;i < nsubds;i++) {
+      ISCreateGeneral(PETSC_COMM_SELF,locSubdDofs[i].size(),
+                      &(const_cast<PetscIntMat&>(locSubdDofs)[i][0]),
+                      PETSC_USE_POINTER,&(isLocSubdDofs[i]));
+      ISCreateGeneral(PETSC_COMM_SELF,subdDofs[i].size(),
+                      &(const_cast<PetscIntMat&>(subdDofs)[i][0]),
+                      PETSC_USE_POINTER,&(isSubdDofs[i]));
+    }
+    PCASMSetLocalSubdomains(pc,nsubds,isSubdDofs,isLocSubdDofs);
+  }
+
+  PCSetFromOptions(pc);
+  PCSetUp(pc);
+
+  if (asmlu) {
+    KSP* subksp;
+    PC   subpc;
+    PetscInt first, nlocal;
+    PCASMGetSubKSP(pc,&nlocal,&first,&subksp);
+
+    for (int i = 0; i < nlocal; i++) {
+      KSPGetPC(subksp[i],&subpc);
+      PCSetType(subpc,PCLU);
+      KSPSetType(subksp[i],KSPPREONLY);
+    }
+  }
+}
 #endif

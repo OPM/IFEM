@@ -181,11 +181,24 @@ public:
 
   //! \brief Setup the smoothers in a multigrid
   //! \param[in] PC The preconditioner to set coarse solver for
-  //! \param[in] prefix The prefix of the block to set parameters for
   //! \param[in] block The index of the  block to set parameters for
+  //! \param[in] dirIndexSet The index set for direction smoothers
+  //! \param[in] locSubdDofs Local subdomain DOFs for ASM preconditioners
+  //! \param[in] subdDofs Subdomain DOFs for ASM preconditioners
   void setupSmoothers(PC& pc, int block, ISMat& dirIndexSet,
                       const PetscIntMat& locSubdDofs,
                       const PetscIntMat& subdDofs) const;
+
+  //! \brief Setup an additive Schwarz preconditioner
+  //! \param[in] PC The preconditioner to set coarse solver for
+  //! \param[in] overlap The overlap
+  //! \param[in] asmlu True to use LU subdomain solvers
+  //! \param[in] locSubdDofs Local subdomain DOFs for ASM preconditioners
+  //! \param[in] subdDofs Subdomain DOFs for ASM preconditioners
+  //! \param[in] smoother True if this is a smoother in multigrid
+  void setupAdditiveSchwarz(PC& pc, int overlap, bool asmlu,
+                            const PetscIntMat& locSubdDofs,
+                            const PetscIntMat& subdDofs, bool smoother) const;
 
 private:
   PetscReal              atol;              // Absolute tolerance

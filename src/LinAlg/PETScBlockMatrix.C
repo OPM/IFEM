@@ -750,32 +750,9 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	PCSetType(S,solParams.subprec[1].c_str());
       PCFactorSetLevels(S,solParams.levels[1]);
       if (!strncasecmp(solParams.subprec[1].c_str(),"asm",3)) {
-	PCASMSetType(S,PC_ASM_BASIC);
-	PCASMSetOverlap(S,solParams.overlap[1]);
-	if (!locSubdDofsBlock.empty() && !subdDofsBlock.empty()) {
-	  const size_t nsubds = subdDofsBlock[1].size();
-	  
-	  IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
-	  for (size_t i = 0;i < nsubds;i++) {
-	    ISCreateGeneral(PETSC_COMM_SELF,locSubdDofsBlock[1][i].size(),&(locSubdDofsBlock[1][i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
-	    ISCreateGeneral(PETSC_COMM_SELF,subdDofsBlock[1][i].size(),&(subdDofsBlock[1][i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
-	  }
-	  PCASMSetLocalSubdomains(S,nsubds,isSubdDofs,isLocSubdDofs);
-	}
-	
-	if (solParams.asmlu[1]) {
-	  KSP* subksp;
-	  PC   subsubpc;
-	  PetscInt first, nlocal;
-	  PCSetUp(S);
-	  PCASMGetSubKSP(S,&nlocal,&first,&subksp);
-	  
-	  for (int i = 0; i < nlocal; i++) {
-	    KSPGetPC(subksp[i],&subsubpc);
-	    PCSetType(subsubpc,PCLU);
-	    KSPSetType(subksp[i],KSPPREONLY);
-	  }
-	}
+        solParams.setupAdditiveSchwarz(S, solParams.overlap[1], solParams.asmlu[1],
+                                      locSubdDofsBlock.empty()?PetscIntMat():locSubdDofsBlock[1],
+                                      subdDofsBlock.empty()?PetscIntMat():subdDofsBlock[1],false);
       }
       else if (!strncasecmp(solParams.subprec[1].c_str(),"ml",2)) {
 	PetscInt n;
@@ -819,36 +796,9 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	  KSPGetPC(preksp,&prepc); 
 
 	  if (smoother == "asm" || smoother == "asmlu" ) {
-	    PCSetType(prepc,"asm");
-	    PCASMSetType(prepc,PC_ASM_BASIC);
-	    PCASMSetOverlap(prepc,solParams.overlap[1]);
-	    
-	    if (!locSubdDofs.empty() && !subdDofs.empty()) {
-	      const size_t nsubds = subdDofs.size();
-	      
-	      IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
-	      for (size_t k = 0;k < nsubds;k++) {
-		ISCreateGeneral(PETSC_COMM_SELF,locSubdDofs[k].size(),&(locSubdDofs[k][0]),PETSC_USE_POINTER,&(isLocSubdDofs[k]));
-		ISCreateGeneral(PETSC_COMM_SELF,subdDofs[k].size(),&(subdDofs[i][0]),PETSC_USE_POINTER,&(isSubdDofs[k]));
-	      }
-	      PCASMSetLocalSubdomains(prepc,nsubds,isSubdDofs,isLocSubdDofs);
-	    }
-	    
-	    // If LU factorization is used on each subdomain
-	    if (smoother == "asmlu") {
-	      KSP* subksp;
-	      PC   subpc;
-	      PetscInt first, nlocal;
-	      PCSetFromOptions(prepc);
-	      PCSetUp(prepc);
-	      PCASMGetSubKSP(prepc,&nlocal,&first,&subksp);
-	      
-	      for (int k = 0; k < nlocal; k++) {
-		KSPGetPC(subksp[i],&subpc);
-		PCSetType(subpc,PCLU);
-		KSPSetType(subksp[k],KSPPREONLY);
-	      }
-	    }
+            solParams.setupAdditiveSchwarz(prepc, solParams.overlap[1],
+                                           smoother == "asmlu",
+                                           locSubdDofs, subdDofs, true);
 	  }
 	  else if (!strncasecmp(smoother.c_str(),"compositeDir",12) && (i==n-1)) {
 	    if (!solParams.addDirSmoother(prepc,Sp,1,dirIndexSet))
@@ -904,34 +854,11 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
       
       PCFactorSetLevels(subpc[m],solParams.levels[m]);
       if (!strncasecmp(solParams.subprec[m].c_str(),"asm",3)) {
-	PCASMSetType(subpc[m],PC_ASM_BASIC);
-	PCASMSetOverlap(subpc[m],solParams.overlap[m]);
-	if (!locSubdDofsBlock.empty() && !subdDofsBlock.empty()) {
-	  const size_t nsubds = subdDofsBlock[m].size();
-	  
-	  IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
-	  for (size_t i = 0;i < nsubds;i++) {
-	    ISCreateGeneral(PETSC_COMM_SELF,locSubdDofsBlock[m][i].size(),&(locSubdDofsBlock[m][i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
-	    ISCreateGeneral(PETSC_COMM_SELF,subdDofsBlock[m][i].size(),&(subdDofsBlock[m][i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
-	  }
-	  PCASMSetLocalSubdomains(subpc[m],nsubds,isSubdDofs,isLocSubdDofs);
-	}
-	
-	if (solParams.asmlu[m]) {
-	  KSP* subksp;
-	  PC   subsubpc;
-	  PetscInt first, nlocal;
-	  PCSetUp(subpc[m]);
-	  PCASMGetSubKSP(subpc[m],&nlocal,&first,&subksp);
-	  
-	  for (int i = 0; i < nlocal; i++) {
-	    KSPGetPC(subksp[i],&subsubpc);
-	    PCSetType(subsubpc,PCLU);
-	    KSPSetType(subksp[i],KSPPREONLY);
-	  }
-	}
-      }
-      else if (!strncasecmp(solParams.subprec[m].c_str(),"ml",2)) {
+        solParams.setupAdditiveSchwarz(subpc[m], solParams.overlap[m],
+                                       solParams.asmlu[m],
+                                       locSubdDofsBlock.empty()?PetscIntMat():locSubdDofsBlock[m],
+                                       subdDofsBlock.empty()?PetscIntMat():subdDofsBlock[m],false);
+      } else if (!strncasecmp(solParams.subprec[m].c_str(),"ml",2)) {
         solParams.setMLOptions(prefix, m);
 
 	PCSetFromOptions(subpc[m]);
