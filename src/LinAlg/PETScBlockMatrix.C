@@ -68,25 +68,6 @@ PETScBlockMatrix::PETScBlockMatrix (const ProcessAdm& padm, const IntVec& nc, co
 }
 
 
-// PETScBlockMatrix::PETScBlockMatrix (const PETScBlockMatrix& B)
-// {
-//   MatDuplicate(B.A,MAT_COPY_VALUES,&A);
-//
-  // // Create linear solver object.
-  // KSPCreate(adm.getCommunicator(),&ksp);
-
-  // // Create null space, if any
-  // if (solParams.getNullSpace() == CONSTANT) {
-  //   MatNullSpaceCreate(adm.getCommunicator(),PETSC_TRUE,0,0,&nsp);
-  //   KSPSetNullSpace(ksp,nsp);
-  // }
-  // LinAlgInit::increfs();
-
-  // elmIS = 0;
-  // ISsize = 0;
-//}
-
-
 PETScBlockMatrix::~PETScBlockMatrix ()
 {
   // Deallocation of null space
@@ -228,7 +209,6 @@ void PETScBlockMatrix::getBlockElmMatData(const Matrix& Amat,
     istride += ncomps[i];
   }
 }
-//#endif
 
 
 void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
@@ -800,10 +780,6 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
       else if (!strncasecmp(solParams.subprec[1].c_str(),"ml",2)) {
 	PetscInt n;
 	
-	//PCMGSetNumberSmoothDown(subpc[1],noPreSmooth[1]);
-	//PCMGSetNumberSmoothUp(subpc[1],noPostSmooth[1]);
-	//PCGAMGSetNlevels(subpc[1],solParams.mglevels[1]);
-	//PCGAMGSetCoarseEqLim(subpc[1],solParams.maxCoarseSize[1]);
 	std::stringstream maxLevel;
 	maxLevel << solParams.mglevels[1];
         PetscOptionsSetValue("-fieldsplit_p_pc_ml_maxNLevels",maxLevel.str().c_str());
@@ -875,7 +851,6 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	
 	PCSetFromOptions(S);
 	PCSetUp(S);
-	//KSPSetUp(subksp[1]);
 
 	// Set coarse solver package
 	if (!solParams.MLCoarsePackage.empty()) {
@@ -891,8 +866,6 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	for (int i = 1;i < n;i++) {
 	  KSP preksp;
 	  PC  prepc;
-	  // Not working for some reason
-	  //PCMGGetSmootherDown(subpc[1],i,&preksp);
 	  
 	  // Set smoother
 	  std::string smoother;
@@ -1029,22 +1002,15 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
       else if (!strncasecmp(solParams.subprec[m].c_str(),"ml",2)) {
 	PetscInt n;
 	
-	//PCMGSetNumberSmoothDown(subpc[m],noPreSmooth[m]);
-	//PCMGSetNumberSmoothUp(subpc[m],noPostSmooth[m]);
-	//PCGAMGSetNlevels(subpc[m],solParams.mglevels[m]);
-	//PCGAMGSetCoarseEqLim(subpc[m],solParams.maxCoarseSize[m]);
-	    
 	std::stringstream maxLevel;
 	maxLevel << solParams.mglevels[m];
 	std::string mlMaxNLevels = prefix + std::string("pc_ml_maxNLevels");
 	PetscOptionsSetValue(mlMaxNLevels.c_str(),maxLevel.str().c_str());
-        //PetscOptionsSetValue("-fieldsplit_p_pc_ml_maxNLevels",maxLevel.str().c_str());
 	std::stringstream maxCoarseDof;
 	maxCoarseDof << solParams.maxCoarseSize[m];
 	std::string mlMaxCoarseSize = prefix + std::string("pc_ml_maxCoarseSize");
 	PetscOptionsSetValue(mlMaxCoarseSize.c_str(),maxCoarseDof.str().c_str());
 
-        //PetscOptionsSetValue("-fieldsplit_p_pc_ml_maxCoarseSize",maxCoarseDof.str().c_str());
 	if (!solParams.MLCoarsenScheme.empty()) {
 	  std::stringstream coarsenScheme;
 	  coarsenScheme << solParams.MLCoarsenScheme[m];
@@ -1213,8 +1179,6 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	for (int i = 1;i < n;i++) {
 	  KSP preksp;
 	  PC  prepc;
-	  // Not working for some reason
-	  //PCMGGetSmootherDown(subpc[m],i,&preksp);
 	  PCMGGetSmoother(subpc[m],i,&preksp);
 	  KSPSetType(preksp,"richardson");
 	  KSPSetTolerances(preksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,solParams.noPreSmooth[m]);
@@ -1229,7 +1193,6 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 
 	  if (smoother == "asm" || smoother == "asmlu" ) {
 	    PCSetType(prepc,"asm");
-	    //PCASMSetType(prepc,PC_ASM_BASIC);
 	    PCASMSetOverlap(prepc,solParams.overlap[m]);
 	
 	    if (!locSubdDofsBlock.empty() && !subdDofsBlock.empty() && (i==n-1)) {
@@ -1274,64 +1237,6 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
           PCFactorSetLevels(prepc,solParams.levels[m]);
           KSPSetUp(preksp);
 	}
-	
-	// Postsmoother
-	// for (int i = 1;i < n;i++) {
-	//   KSP postksp;
-	//   PC  postpc;
-	//   // Not working for some reason
-	//   //PCMGGetSmootherUp(subpc[m],i,&postksp);
-	//   PCMGGetSmoother(subpc[m],i,&postksp);
-	//   KSPSetType(postksp,"richardson");
-	//   KSPSetTolerances(postksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,solParams.noPostSmooth[m]);
-	//   KSPGetPC(postksp,&postpc);
-
-	//   // Set smoother
-	//   std::string smoother;
-
-        //   if ((i == n-1) && (!solParams.finesmoother.empty())) 	    
-        //     smoother = solParams.finesmoother[m];
-        //   else
-	//     smoother = solParams.postsmoother[m];
-
-	//   if (smoother == "asm" || smoother == "asmlu" ) {
-	//     PCSetType(postpc,"asm");
-	//     PCASMSetType(postpc,PC_ASM_BASIC);
-	//     PCASMSetOverlap(postpc,solParams.overlap[m]);
-	    
-	//     if (!locSubdDofs.empty() && !subdDofs.empty()) {
-	//       const size_t nsubds = subdDofs.size();
-	      
-	//       IS isLocSubdDofs[nsubds], isSubdDofs[nsubds];
-	//       for (size_t i = 0;i < nsubds;i++) {
-	// 	ISCreateGeneral(adm.getCommunicator(),locSubdDofs[i].size(),&(locSubdDofs[i][0]),PETSC_USE_POINTER,&(isLocSubdDofs[i]));
-	// 	ISCreateGeneral(adm.getCommunicator(),subdDofs[i].size(),&(subdDofs[i][0]),PETSC_USE_POINTER,&(isSubdDofs[i]));
-	//       }
-	//       PCASMSetLocalSubdomains(postpc,nsubds,isSubdDofs,isLocSubdDofs);
-	//     }
-
-	//     // If LU factorization is used on each subdomain
-	//     if (smoother == "asmlu") {
-	//       KSP* subksp;
-	//       PC   subpc;
-	//       PetscInt first, nlocal;
-	//       PCSetFromOptions(postpc);
-	//       PCSetUp(postpc);
-	//       PCASMGetSubKSP(postpc,&nlocal,&first,&subksp);
-	      
-	//       for (int i = 0; i < nlocal; i++) {
-	// 	KSPGetPC(subksp[i],&subpc);
-	// 	PCSetType(subpc,PCLU);
-	// 	KSPSetType(subksp[i],KSPPREONLY);
-	//       }
-	//     }
-	//   }
-	//   else 
-	//     PCSetType(postpc,smoother.c_str());
-
-        //   PCFactorSetLevels(postpc,solParams.levels[m]);
-        //   KSPSetUp(postksp);
-	// }
       }
       else if (!strncasecmp(solParams.subprec[m].c_str(),"hypre",5)) {
 	std::stringstream hypretype;
@@ -1384,9 +1289,6 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
           std::string hypreTruncation = prefix + std::string("pc_hypre_boomeramg_truncfactor");
           PetscOptionsSetValue(hypreTruncation.c_str(),truncation.str().c_str());
         }
-
-        //PCSetFromOptions(subpc[m]);
-        //PCSetUp(subpc[m]);
       }
     }
   }
@@ -1398,7 +1300,6 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
   KSPSetFromOptions(ksp);
   KSPSetUp(ksp);  
 
-  // RUNAR
   PCView(pc,PETSC_VIEWER_STDOUT_WORLD); 
 
   return true;
