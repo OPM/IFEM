@@ -939,85 +939,8 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
 	PCSetUp(subpc[m]);
 
 	// Settings for coarse solver
-	if (!solParams.MLCoarseSolver.empty()) {
-	  if (solParams.MLCoarseSolver[m] == "OneLevelSchwarz") {
-	    KSP cksp;
-	    PC  cpc;
-	    PCMGGetCoarseSolve(subpc[m],&cksp);
-	    KSPSetType(cksp,"preonly");
-	    KSPGetPC(cksp,&cpc);
-	    PCSetType(cpc,"redistribute");
-	    PCSetUp(cpc);
-
-	    KSP sksp;
-	    PC  spc;
-	    PCRedistributeGetKSP(cpc,&sksp);
-	    KSPSetTolerances(sksp,1.0e-2,PETSC_DEFAULT,PETSC_DEFAULT,10);
-	    KSPGetPC(sksp,&spc);
-	    PCSetType(spc,PCGASM);
-	    PCSetUp(spc);
-	    
-	    KSP* subsksp;
-	    PC   subspc;
-	    PetscInt first, nlocal;
-	    PCGASMGetSubKSP(spc,&nlocal,&first,&subsksp);
-	    for (int k = 0; k < nlocal; k++) {
-	      KSPGetPC(subsksp[k],&subspc);
-	      PCSetType(subspc,PCLU);
-	      KSPSetType(subsksp[k],KSPPREONLY);
-	    }
-	  }
-	  else if (solParams.MLCoarseSolver[m] == "TwoLevelSchwarz") {
-	    KSP cksp;
-	    PC  cpc;
-	    PCMGGetCoarseSolve(subpc[m],&cksp);
-	    KSPSetType(cksp,"preonly");
-	    KSPGetPC(cksp,&cpc);
-	    PCSetType(cpc,"redistribute");
-	    PCSetUp(cpc);
-	    
-	    KSP sksp;
-	    PC  spc;
-	    PCRedistributeGetKSP(cpc,&sksp);
-	    KSPSetTolerances(sksp,1.0e-2,PETSC_DEFAULT,PETSC_DEFAULT,10);
-	    KSPGetPC(sksp,&spc);
-	    PCSetType(spc,PCML);
-
-	    std::string mlCoarseMaxNLevels = "-"+prefix + std::string("_mg_coarse_pc_ml_maxNLevels");
-	    PetscOptionsSetValue(mlCoarseMaxNLevels.c_str(),"2");	
-	    PCSetFromOptions(spc);
-	    PCSetUp(spc);
-
-	    KSP csksp;
-	    PC cspc;
-	    PCMGGetSmoother(spc,1,&csksp);
-	    KSPSetType(csksp,"richardson");
-	    KSPGetPC(csksp,&cspc);
-	    PCSetType(cspc,"asm");
-	    PCSetUp(cspc);
-	    
-	    KSP* subcsksp;
-	    PC   subcspc;
-	    PetscInt first, nlocal;
-	    PCASMGetSubKSP(cspc,&nlocal,&first,&subcsksp);
-	    for (int k = 0; k < nlocal; k++) {
-	      KSPGetPC(subcsksp[k],&subcspc);
-	      PCSetType(subcspc,PCLU);
-	      KSPSetType(subcsksp[k],KSPPREONLY);
-	    }
-	  }
-	}
-
-	if (!solParams.MLCoarsePackage.empty()) {
-	  KSP cksp;
-	  PC  cpc;
-	  PCMGGetCoarseSolve(subpc[m],&cksp);
-	  KSPGetPC(cksp,&cpc);
-	  PCSetType(cpc,PCLU);
-	  PCFactorSetMatSolverPackage(cpc,solParams.MLCoarsePackage[m].c_str());
-	  PCSetUp(cpc);
-	}
-
+	if (!solParams.MLCoarseSolver.empty())
+          solParams.setupCoarseSolver(subpc[m], prefix, m);
 	
 	PCMGGetLevels(subpc[m],&n);
 	// Presmoother

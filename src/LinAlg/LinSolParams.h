@@ -169,6 +169,12 @@ public:
   //! \param[in] block The index of the  block to set parameters for
   void setHypreOptions(const std::string& prefix, int block) const;
 
+  //! \brief Setup the coarse solver in a multigrid
+  //! \param[in] PC The preconditioner to set coarse solver for
+  //! \param[in] prefix The prefix of the block to set parameters for
+  //! \param[in] block The index of the  block to set parameters for
+  void setupCoarseSolver(PC& pc, const std::string& prefix, int block) const;
+
 private:
   PetscReal              atol;              // Absolute tolerance
   PetscReal              rtol;              // Relative tolerance

@@ -614,85 +614,8 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
     PCSetUp(pc);
     
     // Settings for coarse solver
-    if (!MLCoarseSolver.empty()) {
-      if (MLCoarseSolver[0] == "OneLevelSchwarz") {
-	KSP cksp;
-	PC  cpc;
-	PCMGGetCoarseSolve(pc,&cksp);
-	KSPSetType(cksp,"preonly");
-	KSPGetPC(cksp,&cpc);
-	PCSetType(cpc,"redistribute");
-	PCSetUp(cpc);
-	
-	KSP sksp;
-	PC  spc;
-	PCRedistributeGetKSP(cpc,&sksp);
-	KSPSetTolerances(sksp,1.0e-2,PETSC_DEFAULT,PETSC_DEFAULT,10);
-	KSPGetPC(sksp,&spc);
-	PCSetType(spc,PCGASM);
-	PCSetUp(spc);
-	
-	KSP* subsksp;
-	PC   subspc;
-	PetscInt first, nlocal;
-	PCGASMGetSubKSP(spc,&nlocal,&first,&subsksp);
-	for (int k = 0; k < nlocal; k++) {
-	  KSPGetPC(subsksp[k],&subspc);
-	  PCSetType(subspc,PCLU);
-	  KSPSetType(subsksp[k],KSPPREONLY);
-	}
-      }
-      else if (MLCoarseSolver[0] == "TwoLevelSchwarz") {
-	KSP cksp;
-	PC  cpc;
-	PCMGGetCoarseSolve(pc,&cksp);
-	KSPSetType(cksp,"preonly");
-	KSPGetPC(cksp,&cpc);
-	PCSetType(cpc,"redistribute");
-	PCSetUp(cpc);
-	
-	KSP sksp;
-	PC  spc;
-	PCRedistributeGetKSP(cpc,&sksp);
-	KSPSetTolerances(sksp,1.0e-2,PETSC_DEFAULT,PETSC_DEFAULT,10);
-	KSPGetPC(sksp,&spc);
-	PCSetType(spc,PCML);
-	
-	std::string mlCoarseMaxNLevels = std::string("mg_coarse_pc_ml_maxNLevels");
-	PetscOptionsSetValue(mlCoarseMaxNLevels.c_str(),"2");	
-	PCSetFromOptions(spc);
-	PCSetUp(spc);
-	
-	KSP csksp;
-	PC cspc;
-	PCMGGetSmoother(spc,1,&csksp);
-	KSPSetType(csksp,"richardson");
-	KSPGetPC(csksp,&cspc);
-	PCSetType(cspc,"asm");
-	PCSetUp(cspc);
-	
-	KSP* subcsksp;
-	PC   subcspc;
-	PetscInt first, nlocal;
-	PCASMGetSubKSP(cspc,&nlocal,&first,&subcsksp);
-	for (int k = 0; k < nlocal; k++) {
-	  KSPGetPC(subcsksp[k],&subcspc);
-	  PCSetType(subcspc,PCLU);
-	  KSPSetType(subcsksp[k],KSPPREONLY);
-	}
-      }
-    }
-    
-    if (!MLCoarsePackage.empty()) {
-      KSP cksp;
-      PC  cpc;
-      PCMGGetCoarseSolve(pc,&cksp);
-      KSPGetPC(cksp,&cpc);
-      PCSetType(cpc,PCLU);
-      PCFactorSetMatSolverPackage(cpc,MLCoarsePackage[0].c_str());
-      PCSetUp(cpc);
-    }
-    
+    if (!MLCoarseSolver.empty())
+      setupCoarseSolver(pc, "", 0);
     
     PCMGGetLevels(pc,&n);
     // Presmoother settings
@@ -925,6 +848,64 @@ void LinSolParams::setHypreOptions(const std::string& prefix, int block) const
   if (!HypreTruncation.empty())
     PetscOptionsSetValue(AddPrefix(prefix,"pc_hypre_boomeramg_truncfactor").c_str(),
                          ToString(HypreTruncation[block]).c_str());
+}
+
+
+void LinSolParams::setupCoarseSolver(PC& pc, const std::string& prefix, int block) const
+{
+  if (MLCoarseSolver[block] == "OneLevelSchwarz" ||
+      MLCoarseSolver[block] == "TwoLevelSchwarz") {
+    KSP cksp;
+    PC  cpc;
+    PCMGGetCoarseSolve(pc,&cksp);
+    KSPSetType(cksp,"preonly");
+    KSPGetPC(cksp,&cpc);
+    PCSetType(cpc,"redistribute");
+    PCSetUp(cpc);
+
+    KSP sksp;
+    PC  spc;
+    PCRedistributeGetKSP(cpc,&sksp);
+    KSPSetTolerances(sksp,1.0e-2,PETSC_DEFAULT,PETSC_DEFAULT,10);
+    KSPGetPC(sksp,&spc);
+    if (MLCoarseSolver[block] == "OneLevelSchwarz") {
+      PCSetType(spc,PCGASM);
+      PCSetUp(spc);
+    } else {
+      PCSetType(spc,PCML);
+      PetscOptionsSetValue(AddPrefix(prefix,"mg_coarse_pc_ml_maxNLevels").c_str(),"2");	
+      PCSetFromOptions(spc);
+      PCSetUp(spc);
+
+      KSP csksp;
+      PC cspc;
+      PCMGGetSmoother(spc,1,&csksp);
+      KSPSetType(csksp,"richardson");
+      KSPGetPC(csksp,&cspc);
+      PCSetType(cspc,"asm");
+      PCSetUp(cspc);
+    }
+
+    KSP* subsksp;
+    PC   subspc;
+    PetscInt first, nlocal;
+    PCGASMGetSubKSP(spc,&nlocal,&first,&subsksp);
+    for (int k = 0; k < nlocal; k++) {
+      KSPGetPC(subsksp[k],&subspc);
+      PCSetType(subspc,PCLU);
+      KSPSetType(subsksp[k],KSPPREONLY);
+    }
+  }
+
+  if (!MLCoarsePackage.empty()) {
+    KSP cksp;
+    PC  cpc;
+    PCMGGetCoarseSolve(pc,&cksp);
+    KSPGetPC(cksp,&cpc);
+    PCSetType(cpc,PCLU);
+    PCFactorSetMatSolverPackage(cpc,MLCoarsePackage[block].c_str());
+    PCSetUp(cpc);
+  }
 }
 
 #endif
