@@ -250,7 +250,7 @@ protected:
   bool makeEBEpreconditioner(const Mat A, Mat* AeI);
 
   //! \brief Solve a linear system
-  bool solve(const Vec& b, Vec& x, bool newLHS);
+  bool solve(const Vec& b, Vec& x, bool newLHS, bool knoll);
 
   Mat                 A;           //!< The actual PETSc matrix
   KSP                 ksp;         //!< Linear equation solver

@@ -492,7 +492,7 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
   VecDuplicate(Bptr->getVector(),&x);
   VecCopy(Bptr->getVector(),x);
 
-  bool result = solve(x,Bptr->getVector(),newLHS);
+  bool result = solve(x,Bptr->getVector(),newLHS,true);
   VecDestroy(&x);
 
   return result;
@@ -508,10 +508,10 @@ bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
   if (!Xptr)
     return false;
 
-  return solve(Bptr->getVector(), Xptr->getVector(), newLHS);
+  return solve(Bptr->getVector(), Xptr->getVector(), newLHS, false);
 }
 
-bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS)
+bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS, bool knoll)
 {
   // Reset linear solver
   if (nLinSolves && solParams.nResetSolver)
@@ -531,7 +531,10 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS)
     solParams.setParams(ksp,locSubdDofs,subdDofs,coords,dirIndexSet);
     setParams = false;
   }
-  KSPSetInitialGuessNonzero(ksp,PETSC_TRUE);
+  if (knoll)
+    KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
+  else
+    KSPSetInitialGuessNonzero(ksp,PETSC_TRUE);
   KSPSolve(ksp,b,x);
   KSPConvergedReason reason;
   KSPGetConvergedReason(ksp,&reason);
