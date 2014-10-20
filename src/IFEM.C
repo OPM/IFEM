@@ -14,6 +14,9 @@
 #include "IFEM.h"
 #include "LinAlgInit.h"
 #include <iostream>
+#ifdef HAS_PETSC
+#include "PETScSupport.h"
+#endif
 
 int IFEM::argc;
 char** IFEM::argv;
@@ -58,9 +61,13 @@ int IFEM::Init(int argc_, char** argv_)
 
   std::cout <<"\n      PETSc support: "<<
 #if PARALLEL_PETSC
-    "enabled (MPI)";
+    "enabled (MPI) (v" << PETSC_VERSION_MAJOR << "."
+                       << PETSC_VERSION_MINOR << "."
+                       << PETSC_VERSION_PATCH << ")";
 #elif HAS_PETSC
-    "enabled";
+    "enabled (v" << PETSC_VERSION_MAJOR << "."
+                 << PETSC_VERSION_MINOR << "."
+                 << PETSC_VERSION_PATCH << ")";
 #else
     "disabled";
 #endif
