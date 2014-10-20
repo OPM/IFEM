@@ -484,15 +484,7 @@ bool PETScMatrix::multiply (const SystemVector& B, SystemVector& C)
 
 bool PETScMatrix::solve (SystemVector& B, bool newLHS)
 {
-  // Reset linear solver
-  if (nLinSolves && solParams.nResetSolver)
-    if (nLinSolves%solParams.nResetSolver == 0) {
-      KSPDestroy(&ksp);
-      KSPCreate(*adm.getCommunicator(),&ksp);
-      setParams = true;
-    }
-
-  const PETScVector* Bptr = dynamic_cast<PETScVector*>(&B);
+  PETScVector* Bptr = dynamic_cast<PETScVector*>(&B);
   if (!Bptr)
     return false;
 
@@ -500,31 +492,26 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
   VecDuplicate(Bptr->getVector(),&x);
   VecCopy(Bptr->getVector(),x);
 
-  if (setParams) {
-#if PETSC_VERSION_MINOR < 5
-    KSPSetOperators(ksp,A,A, newLHS ? SAME_NONZERO_PATTERN:SAME_PRECONDITIONER);
-#else
-    KSPSetOperators(ksp,A,A);
-#endif
-    solParams.setParams(ksp,locSubdDofs,subdDofs,coords,dirIndexSet);
-    setParams = false;
-  }
-  KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
-  KSPSolve(ksp,x,Bptr->getVector());
+  bool result = solve(x,Bptr->getVector(),newLHS);
   VecDestroy(&x);
 
-  PetscInt its;
-  KSPGetIterationNumber(ksp,&its);
-  PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",
-              solParams.getMethod(),its);
-  nIts += its;
-  nLinSolves++;
-
-  return true;
+  return result;
 }
 
-
 bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
+{
+  const PETScVector* Bptr = dynamic_cast<const PETScVector*>(&b);
+  if (!Bptr)
+    return false;
+
+  PETScVector* Xptr = dynamic_cast<PETScVector*>(&x);
+  if (!Xptr)
+    return false;
+
+  return solve(Bptr->getVector(), Xptr->getVector(), newLHS);
+}
+
+bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS)
 {
   // Reset linear solver
   if (nLinSolves && solParams.nResetSolver)
@@ -533,14 +520,6 @@ bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
       KSPCreate(*adm.getCommunicator(),&ksp);
       setParams = true;
     }
-
-  const PETScVector* Bptr = dynamic_cast<const PETScVector*>(&b);
-  if (!Bptr)
-    return false;
-
-  PETScVector* Xptr = dynamic_cast<PETScVector*>(&x);
-  if (!Xptr)
-    return false;
 
   if (setParams) {
 #if PETSC_VERSION_MINOR < 5
@@ -552,7 +531,13 @@ bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
     setParams = false;
   }
   KSPSetInitialGuessNonzero(ksp,PETSC_TRUE);
-  KSPSolve(ksp,Bptr->getVector(),Xptr->getVector());
+  KSPSolve(ksp,b,x);
+  KSPConvergedReason reason;
+  KSPGetConvergedReason(ksp,&reason);
+  if (reason < 0) {
+    PetscPrintf(PETSC_COMM_WORLD, "\n Linear solve failed with reason %s",KSPConvergedReasons[reason]);
+    return false;
+  }
 
   PetscInt its;
   KSPGetIterationNumber(ksp,&its);

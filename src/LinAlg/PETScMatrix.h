@@ -249,6 +249,9 @@ protected:
   //! \brief Constructs the EBE preconditioner of the given matrix.
   bool makeEBEpreconditioner(const Mat A, Mat* AeI);
 
+  //! \brief Solve a linear system
+  bool solve(const Vec& b, Vec& x, bool newLHS);
+
   Mat                 A;           //!< The actual PETSc matrix
   KSP                 ksp;         //!< Linear equation solver
   MatNullSpace        nsp;         //!< Null-space of linear operator
