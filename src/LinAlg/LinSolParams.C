@@ -595,7 +595,9 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
   KSPSetFromOptions(ksp);
   KSPSetUp(ksp);
 
-  PCView(pc,PETSC_VIEWER_STDOUT_WORLD); 
+  MPI_Comm comm;
+  PetscObjectGetComm((PetscObject)ksp,&comm);
+  PCView(pc,PETSC_VIEWER_STDOUT_(comm));
 }
 
 
