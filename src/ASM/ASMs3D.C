@@ -1916,6 +1916,9 @@ bool ASMs3D::integrate (Integrand& integrand,
 
               // Evaluate the integrand and accumulate element contributions
               fe.detJxW *= 0.125*dV*wg[i]*wg[j]*wg[k];
+#ifndef USE_OPENMP
+            PROFILE3("Integrand::evalInt");
+#endif
               if (!integrand.evalInt(*A,fe,time,X))
                 ok = false;
             }
@@ -2096,6 +2099,9 @@ bool ASMs3D::integrate (Integrand& integrand,
 
           // Evaluate the integrand and accumulate element contributions
           fe.detJxW *= 0.125*dV*itgPts[iel][ip][3];
+#ifndef USE_OPENMP
+          PROFILE3("Integrand::evalInt");
+#endif
           if (!integrand.evalInt(*A,fe,time,X))
             ok = false;
         }
