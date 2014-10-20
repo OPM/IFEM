@@ -701,6 +701,7 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
     KSPSetOperators(subksp[1],Sp,Sp,SAME_PRECONDITIONER);
 #else
     KSPSetOperators(subksp[1],Sp,Sp);
+    KSPSetReusePreconditioner(subksp[1], PETSC_TRUE);
 #endif
 
     if (P && Pb && (solParams.schurPrec == PCD)) {
@@ -733,6 +734,7 @@ bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
       PCSetOperators(S,Sp,Sp,SAME_PRECONDITIONER);
 #else
       PCSetOperators(S,Sp,Sp);
+      PCSetReusePreconditioner(S, PETSC_TRUE);
 #endif
       
       PCProdCreate(&pcprod);

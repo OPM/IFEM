@@ -526,6 +526,7 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS)
     KSPSetOperators(ksp,A,A, newLHS ? SAME_NONZERO_PATTERN : SAME_PRECONDITIONER);
 #else
     KSPSetOperators(ksp,A,A);
+    KSPSetReusePreconditioner(ksp, newLHS?PETSC_FALSE:PETSC_TRUE);
 #endif
     solParams.setParams(ksp,locSubdDofs,subdDofs,coords,dirIndexSet);
     setParams = false;
@@ -578,6 +579,7 @@ bool PETScMatrix::solve (SystemVector& B, SystemMatrix& P, bool newLHS)
                   newLHS ? SAME_NONZERO_PATTERN : SAME_PRECONDITIONER);
 #else
     KSPSetOperators(ksp,A,Pptr->getMatrix());
+    KSPSetReusePreconditioner(ksp, newLHS?PETSC_FALSE:PETSC_TRUE);
 #endif
     solParams.setParams(ksp,locSubdDofs,subdDofs,coords,dirIndexSet);
     setParams = false;
