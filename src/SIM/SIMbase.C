@@ -1311,10 +1311,10 @@ bool SIMbase::setMode (int mode, bool resetSol)
 }
 
 
-void SIMbase::setIntegrationPrm (int id, double prm)
+void SIMbase::setIntegrationPrm (unsigned short int i, double prm)
 {
   if (myProblem)
-    myProblem->setIntegrationPrm(id,prm);
+    myProblem->setIntegrationPrm(i,prm);
   else
     std::cerr <<"  ** SIMbase::setIntegrationPrm: myProblem not set yet."
               << std::endl;
@@ -1404,6 +1404,12 @@ size_t SIMbase::getNoElms () const
 size_t SIMbase::getNoSolutions () const
 {
   return myProblem ? myProblem->getNoSolutions() : 0;
+}
+
+
+size_t SIMbase::getNoRHS () const
+{
+  return myEqSys ? myEqSys->getNoRHS() : 1;
 }
 
 

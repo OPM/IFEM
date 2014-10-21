@@ -59,7 +59,9 @@ public:
   //! \brief Defines the solution mode before the element assembly is started.
   virtual void setMode(SIM::SolutionMode mode) { m_mode = mode; }
   //! \brief Initializes an integration parameter for the integrand.
-  virtual void setIntegrationPrm(int, double) {}
+  virtual void setIntegrationPrm(unsigned short int, double) {}
+  //! \brief Returns an integration parameter for the integrand.
+  virtual double getIntegrationPrm(unsigned short int) const { return 0.0; }
   //! \brief Initializes the integrand with the number of integration points.
   //! \details This method is invoked only once during the preprocessing stage.
   virtual void initIntegration(size_t, size_t) {}

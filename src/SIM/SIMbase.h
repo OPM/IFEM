@@ -163,8 +163,10 @@ public:
   //! \param[in] resetSol If \e true, the internal solution vectors are cleared
   bool setMode(int mode, bool resetSol = false);
 
-  //! \brief Defines an integration parameter for the integrand.
-  void setIntegrationPrm(int id, double prm);
+  //! \brief Initializes an integration parameter for the integrand.
+  //! \param[in] i Index of the integration parameter to define
+  //! \param[in] prm The parameter value to assign
+  void setIntegrationPrm(unsigned short int i, double prm);
 
   //! \brief Defines the spatial numerical integration scheme to use.
   //! \param[in] ng Number of Gauss points in each parameter direction
@@ -205,8 +207,8 @@ public:
   int getNoPatches() const { return nGlPatches; }
   //! \brief Returns the visualization dump interval.
   int getDumpInterval() const { return opt.saveInc; }
-  //! \brief Returns the number of right-hand-sides.
-  virtual size_t getNoRHS() const { return 1; }
+  //! \brief Returns the number of right-hand-side vectors.
+  virtual size_t getNoRHS() const;
 
   //! \brief Returns the type (DOF classification) of the specified global node.
   char getNodeType(int inod) const;
