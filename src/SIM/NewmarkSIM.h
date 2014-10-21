@@ -30,8 +30,7 @@ public:
   //! \brief Empty destructor.
   virtual ~NewmarkSIM() {}
 
-  //! \brief Parses a data section from an input stream (depreciated).
-  virtual bool parse(char*, std::istream&) { return false; }
+  using MultiStepSIM::parse;
   //! \brief Parses a data section from an XML document.
   //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);
@@ -97,6 +96,7 @@ protected:
 
   // Solution algorithm parameters
   char   predictor; //!< Predictor type flag
+  char   rotUpd;    //!< Option for how to update of nodal rotations
   int    maxit;     //!< Maximum number of iterations in a time step
   double convTol;   //!< Convergence tolerance
   double divgLim;   //!< Relative divergence limit

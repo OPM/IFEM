@@ -28,6 +28,7 @@ NewmarkSIM::NewmarkSIM (SIMbase& sim) : MultiStepSIM(sim)
   alpha2 = 0.0;
 
   predictor = 'a'; // default predictor (zero acceleration)
+  rotUpd = false;
 
   // Default iteration parameters
   maxit   = 20;
@@ -40,6 +41,10 @@ bool NewmarkSIM::parse (const TiXmlElement* elem)
 {
   if (strcasecmp(elem->Value(),"newmarksolver"))
     return model.parse(elem);
+
+  std::string rotUpdate;
+  if (utl::getAttribute(elem,"rotation",rotUpdate,true) && !rotUpdate.empty())
+    rotUpd = rotUpdate[0];
 
   utl::getAttribute(elem,"alpha1",alpha1);
   utl::getAttribute(elem,"alpha2",alpha2);
@@ -71,6 +76,8 @@ bool NewmarkSIM::parse (const TiXmlElement* elem)
       else if (!strncasecmp(value,"zero acc",8))
         predictor = 'a';
     }
+    else if ((value = utl::getValue(child,"rotation")))
+      rotUpd = tolower(value[0]);
 
   return true;
 }
@@ -109,6 +116,10 @@ void NewmarkSIM::init (size_t nSol)
 
 bool NewmarkSIM::advanceStep (TimeStep& param, bool updateTime)
 {
+  if (param.step > 0 && rotUpd == 't')
+    // Update nodal rotations of previous time step
+    model.updateRotations(Vector());
+
   return updateTime ? param.increment() : true;
 }
 
@@ -120,6 +131,21 @@ bool NewmarkSIM::predictStep (TimeStep& param)
     std::cerr <<" *** NewmarkSIM::predictStep: Too few solution vectors "
               << solution.size() << std::endl;
     return false;
+  }
+
+  if (rotUpd && model.getNoFields(1) == 6)
+  {
+    // Initalize the total angular rotations for this time step
+    Vector& psol = solution.front();
+    if (psol.size() != 6*model.getNoNodes(true))
+    {
+      std::cerr <<" *** NewmarkSIM::predictStep: Invalid dimension on"
+                <<" the displacement vector "<< psol.size()
+                <<" != "<< 6*model.getNoNodes(true) << std::endl;
+      return false;
+    }
+    for (size_t i = 3; i < psol.size(); i += 6)
+      psol[i] = psol[i+1] = psol[i+2] = 0.0;
   }
 
   const double dt = param.time.dt;
@@ -177,7 +203,10 @@ bool NewmarkSIM::predictStep (TimeStep& param)
 
   if (predictor == 'd') return true;
 
-  model.updateRotations(solution[iD]-oldSol,1.0);
+  if (rotUpd == 't')
+    model.updateRotations(solution[iD]);
+  else if (rotUpd)
+    model.updateRotations(solution[iD]-oldSol,1.0);
 
   return model.updateConfiguration(solution[iD]);
 }
@@ -193,7 +222,6 @@ bool NewmarkSIM::correctStep (TimeStep& param, bool)
 
   // Corrected displacement
   solution[iD].add(linsol,beta*dt*dt);
-  model.updateRotations(linsol,beta*dt*dt);
 
   // Corrected velocity
   solution[iV].add(linsol,gamma*dt);
@@ -206,6 +234,11 @@ bool NewmarkSIM::correctStep (TimeStep& param, bool)
   std::cout <<"Corrected velocity:"<< solution[iV];
   std::cout <<"Corrected acceleration:"<< solution[iA];
 #endif
+
+  if (rotUpd == 't')
+    model.updateRotations(solution[iD]);
+  else if (rotUpd)
+    model.updateRotations(linsol,beta*dt*dt);
 
   return model.updateConfiguration(solution[iD]);
 }

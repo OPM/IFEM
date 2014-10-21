@@ -92,7 +92,7 @@ bool NewmarkNLSIM::advanceStep (TimeStep& param, bool updateTime)
   for (int n = solution.size()-3; n > 0; n--)
     std::copy(solution[n-1].begin(),solution[n-1].end(),solution[n].begin());
 
-  return updateTime ? param.increment() : true;
+  return this->NewmarkSIM::advanceStep(param,updateTime);
 }
 
 
@@ -110,6 +110,21 @@ bool NewmarkNLSIM::predictStep (TimeStep& param)
     std::cerr <<" *** NewmarkNLSIM::predictStep: Too few solution vectors "
               << solution.size() << std::endl;
     return false;
+  }
+
+  if (rotUpd && model.getNoFields(1) == 6)
+  {
+    // Initalize the total angular rotations for this time step
+    Vector& psol = solution.front();
+    if (psol.size() != 6*model.getNoNodes(true))
+    {
+      std::cerr <<" *** NewmarkNLSIM::predictStep: Invalid dimension on"
+                <<" the displacement vector "<< psol.size()
+                <<" != "<< 6*model.getNoNodes(true) << std::endl;
+      return false;
+    }
+    for (size_t i = 3; i < psol.size(); i += 6)
+      psol[i] = psol[i+1] = psol[i+2] = 0.0;
   }
 
 #ifdef SP_DEBUG
@@ -201,7 +216,11 @@ bool NewmarkNLSIM::correctStep (TimeStep& param, bool converged)
               <<"\nConverged acceleration:"<< solution[iA].max() << std::endl;
 #endif
 
-  model.updateRotations(linsol,1.0);
+  if (rotUpd == 't')
+    model.updateRotations(solution[iD]);
+  else if (rotUpd)
+    model.updateRotations(linsol,1.0);
+
   return model.updateConfiguration(solution[iD]);
 }
 
