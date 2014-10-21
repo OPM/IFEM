@@ -63,11 +63,11 @@ int IFEM::Init(int argc_, char** argv_)
 #if PARALLEL_PETSC
     "enabled (MPI) (v" << PETSC_VERSION_MAJOR << "."
                        << PETSC_VERSION_MINOR << "."
-                       << PETSC_VERSION_PATCH << ")";
+                       << PETSC_VERSION_SUBMINOR << ")";
 #elif HAS_PETSC
     "enabled (v" << PETSC_VERSION_MAJOR << "."
                  << PETSC_VERSION_MINOR << "."
-                 << PETSC_VERSION_PATCH << ")";
+                 << PETSC_VERSION_SUBMINOR << ")";
 #else
     "disabled";
 #endif
