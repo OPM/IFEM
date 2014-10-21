@@ -28,6 +28,7 @@ MultiStepSIM::MultiStepSIM (SIMbase& sim)
   refNopt = MAX;
   refNorm = 0.0;
   subiter = NONE;
+  nRHSvec = 1;
 
   geoBlk = nBlock = 0;
 }
@@ -61,7 +62,7 @@ void MultiStepSIM::init (size_t nSol)
 
 bool MultiStepSIM::initEqSystem (bool withRF)
 {
-  return model.initSystem(opt.solver,1,1,withRF);
+  return model.initSystem(opt.solver,1,nRHSvec,withRF);
 }
 
 

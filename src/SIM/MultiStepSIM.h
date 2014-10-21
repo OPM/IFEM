@@ -53,7 +53,7 @@ public:
 
   //! \brief Allocates the FE system matrices.
   //! \param[in] withRF Whether nodal reaction forces should be computed or not
-  virtual bool initEqSystem(bool withRF = true);
+  bool initEqSystem(bool withRF = true);
 
   //! \brief Advances the time step one step forward.
   //! \param param Time stepping parameters
@@ -149,6 +149,7 @@ protected:
   NormOp refNopt; //!< Reference norm option
   double refNorm; //!< Reference norm value used in convergence checks
   SubIt  subiter; //!< Subiteration flag
+  size_t nRHSvec; //!< Number of right-hand-side vectors to assemble
 
   int geoBlk; //!< Running VTF geometry block counter
   int nBlock; //!< Running VTF result block counter

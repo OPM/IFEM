@@ -47,6 +47,11 @@ bool NewmarkNLSIM::parse (const TiXmlElement* elem)
     }
     beta = 0.25*(1.0-alpha)*(1.0-alpha);
     gamma = 0.5 - alpha;
+
+    const TiXmlElement* child = elem->FirstChildElement();
+    for (; child; child = child->NextSiblingElement())
+      if (!strcasecmp(child->Value(),"trueinertia"))
+        nRHSvec = 2;
   }
 
   return ok;
@@ -58,9 +63,16 @@ void NewmarkNLSIM::printProblem (std::ostream& os) const
   this->NewmarkSIM::printProblem(os);
 
   if (alpha2 > 0.0)
-    os <<"- based on the tangential stiffness matrix\n" << std::endl;
+    os <<"- based on the tangential stiffness matrix\n";
   else if (alpha2 < 0.0)
-    os <<"- based on the material stiffness matrix only\n" << std::endl;
+    os <<"- based on the material stiffness matrix only\n";
+
+  if (nRHSvec > 1)
+    os <<"- including true inertia forces from previous step in residual\n";
+  else if (alpha2 == 0.0)
+    return;
+
+  os << std::endl;
 }
 
 
@@ -77,12 +89,6 @@ void NewmarkNLSIM::init (size_t nSol)
   incDis.resize(nDOFs,true);
   predVel.resize(nDOFs,true);
   predAcc.resize(nDOFs,true);
-}
-
-
-bool NewmarkNLSIM::initEqSystem (bool withRF)
-{
-  return model.initSystem(opt.solver,1,2,withRF);
 }
 
 
