@@ -417,14 +417,14 @@ bool PETScBlockMatrix::assemble (const Matrix& eM, const SAM& sam,
 
 bool PETScBlockMatrix::solve (SystemVector& B, bool newLHS)
 {
+  newLHS = nLinSolves==0; // don't reset preconditioner unless requested
+
   // Reset linear solver
   if (nLinSolves && solParams.nResetSolver)
     if (nLinSolves%solParams.nResetSolver == 0) {
-      KSPDestroy(&ksp);
-      KSPCreate(*adm.getCommunicator(),&ksp);
       if (solParams.schur)
 	MatDestroy(&Sp);
-      setParams = true;
+      newLHS = true;
     }
 
   PETScVector* Bptr = dynamic_cast<PETScVector*>(&B);
@@ -433,102 +433,48 @@ bool PETScBlockMatrix::solve (SystemVector& B, bool newLHS)
 
   Vec x;
   VecDuplicate(Bptr->getVector(),&x);
-  VecCopy(Bptr->getVector(),x);
   this->renumberRHS(Bptr->getVector(),x,true);
 
-  // Has lefthand side changed?
-  static int firstIt = true;
-  if (firstIt)
-    //if (newLHS)
-#if PETSC_VERSION_MINOR < 5
-    KSPSetOperators(ksp,A,A,SAME_NONZERO_PATTERN);
-#else
-    KSPSetOperators(ksp,A,A);
-#endif
-  else
-#if PETSC_VERSION_MINOR < 5
-    KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
-#else
-    KSPSetOperators(ksp,A,A);
-#endif
-  firstIt = false;
-
-  if (setParams) {
-    this->setParameters();
-    setParams = false;
-  }
-  KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
-  KSPSolve(ksp,x,Bptr->getVector());
+  bool result = PETScMatrix::solve(x,Bptr->getVector(),newLHS,true);
 
   // Renumber back to usual numbering
-  this->renumberRHS(Bptr->getVector(),Bptr->getVector(),false);
+  if (result)
+    this->renumberRHS(Bptr->getVector(),Bptr->getVector(),false);
 
-  PetscInt its;
-  KSPGetIterationNumber(ksp,&its);
-  PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getMethod(),its);
-  VecDestroy(PETSCMANGLE(x));
-
-  nIts += its;
-  nLinSolves++;
-
-  return true;
+  return result;
 }
 
 
-bool PETScBlockMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
+bool PETScBlockMatrix::solve (const SystemVector& B, SystemVector& X, bool newLHS)
 {
+  newLHS = nLinSolves==0; // don't reset preconditioner unless requested
+
   // Reset linear solver
-  if (solParams.nResetSolver)
+  if (nLinSolves && solParams.nResetSolver)
     if (nLinSolves%solParams.nResetSolver == 0) {
-      KSPDestroy(&ksp);
-      KSPCreate(*adm.getCommunicator(),&ksp);
-      setParams = true;
+      if (solParams.schur)
+	MatDestroy(&Sp);
+      newLHS = true;
     }
-  
-  SystemVector* Bp = const_cast<SystemVector*>(&b);
-  PETScVector* Bptr = dynamic_cast<PETScVector*>(Bp);
-  if (!Bptr)
-    return false;
-  PETScVector* Xptr = dynamic_cast<PETScVector*>(&x);
-  if (!Xptr)
+
+  const PETScVector* Bcptr = dynamic_cast<const PETScVector*>(&B);
+  PETScVector* Xptr = dynamic_cast<PETScVector*>(&X);
+  if (!Bcptr || !Xptr)
     return false;
 
-  // Renumber RHS blockwise
+  // cast off constness
+  PETScVector* Bptr = const_cast<PETScVector*>(Bcptr);
+
   this->renumberRHS(Bptr->getVector(),Bptr->getVector(),true);
+  this->renumberRHS(Xptr->getVector(),Xptr->getVector(),true);
 
-  // Has lefthand side changed?
-  if (newLHS)
-#if PETSC_VERSION_MINOR < 5
-    KSPSetOperators(ksp,A,A,SAME_NONZERO_PATTERN);
-#else
-    KSPSetOperators(ksp,A,A);
-#endif
-  else
-#if PETSC_VERSION_MINOR < 5
-    KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
-#else
-    KSPSetOperators(ksp,A,A);
-#endif
+  bool result = PETScMatrix::solve(Bptr->getVector(),Xptr->getVector(),newLHS,false);
 
-  if (setParams) {
-    this->setParameters();
-    setParams = false;
-  }
+  // Renumber back to usual numbering
+  if (result)
+    this->renumberRHS(Xptr->getVector(),Xptr->getVector(),false);
 
-  KSPSetInitialGuessNonzero(ksp,PETSC_TRUE);
-  KSPSolve(ksp,Bptr->getVector(),Xptr->getVector());
-
-  // Renumber back 
-  this->renumberRHS(Xptr->getVector(),Xptr->getVector(),false);
-
-  PetscInt its;
-  KSPGetIterationNumber(ksp,&its);
-  PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getMethod(),its);
-
-  nIts += its;
-  nLinSolves++;
-
-  return true;
+  return result;
 }
 
 
