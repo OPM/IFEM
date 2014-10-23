@@ -17,6 +17,7 @@
 #include "Integrand.h"
 #include "SIMenums.h"
 #include "ASMenums.h"
+#include "LinAlgenums.h"
 #include "Function.h"
 #include "MatVec.h"
 #include <map>
@@ -229,6 +230,15 @@ public:
 
   //! \brief Returns a vector where we can store a named field.
   Vector* getNamedVector(const std::string& name) const;
+
+  //! \brief Defines the properties of the resulting linear system
+  //! \details This is used by PETSc to optimize assembly and
+  //!          matrix-vector products. For maximum speed always
+  //!          override this to reflect symmetry/definiteness of your operator.
+  virtual LinAlg::LinearSystemType getLinearSystemType() const
+  {
+    return LinAlg::GENERAL_MATRIX;
+  }
 
 protected:
   //! \brief Registers a vector to inject a named field into.
