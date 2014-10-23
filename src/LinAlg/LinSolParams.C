@@ -42,6 +42,7 @@ void LinSolParams::setDefault ()
   noPostSmooth.resize(1,1);
   noFineSmooth.resize(1,1);
   maxCoarseSize.resize(1,1000);
+  mgKsp.resize(1,"richardson");
   GAMGtype.resize(1,"agg");
   GAMGrepartition.resize(1,PETSC_FALSE);
   GAMGuseAggGasm.resize(1,PETSC_FALSE);
@@ -82,6 +83,7 @@ void LinSolParams::copy (const LinSolParams& spar)
   postsmoother    = spar.postsmoother;
   noPreSmooth     = spar.noPreSmooth;
   noPostSmooth    = spar.noPostSmooth;
+  mgKsp           = spar.mgKsp;
   dirsmoother     = spar.dirsmoother;
   dirOrder        = spar.dirOrder;
   maxCoarseSize   = spar.maxCoarseSize;
@@ -306,6 +308,11 @@ bool LinSolParams::read (const TiXmlElement* child)
     std::istringstream this_line(value);
     std::istream_iterator<std::string> begin(this_line), end;
     finesmoother.assign(begin, end);
+  }
+  else if ((value = utl::getValue(child,"mgksp"))) {
+    std::istringstream this_line(value);
+    std::istream_iterator<std::string> begin(this_line), end;
+    mgKsp.assign(begin, end);
   }
   else if (!strcasecmp(child->Value(),"dirsmoother")) {
     size_t block, order;
@@ -823,7 +830,10 @@ void LinSolParams::setupSmoothers(PC& pc, int block, ISMat& dirIndexSet,
     PetscInt noSmooth;
 
     PCMGGetSmoother(pc,i,&preksp);
-    KSPSetType(preksp,"richardson");
+    if (mgKsp[block] == "richardson")
+      KSPSetType(preksp,KSPRICHARDSON);
+    else if (mgKsp[block] == "chebyshev")
+      KSPSetType(preksp,KSPCHEBYSHEV);
 
     if ((i == n-1) && (!finesmoother.empty())) {
       smoother = finesmoother[block];

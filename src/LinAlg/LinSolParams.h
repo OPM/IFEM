@@ -225,6 +225,7 @@ private:
   StringVec              presmoother;       // Presmoother for AMG
   StringVec              postsmoother;      // Postsmoother for AMG
   StringVec              finesmoother;      // Smoother on finest grid
+  StringVec              mgKsp;             // KSP type on MG levels ("richardson")
   IntVec                 maxCoarseSize;     // Max number of DOFS for coarse AMG system
   StringVec              MLCoarsePackage;   // Coarse matrix solver package
   StringVec              MLCoarseSolver;    // DD type coarse solver for ML
