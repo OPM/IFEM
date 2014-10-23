@@ -42,7 +42,7 @@ void LinSolParams::setDefault ()
   noPostSmooth.resize(1,1);
   noFineSmooth.resize(1,1);
   maxCoarseSize.resize(1,1000);
-  mgKsp.resize(1,"richardson");
+  mgKsp.resize(1,"defrichardson");
   GAMGtype.resize(1,"agg");
   GAMGrepartition.resize(1,PETSC_FALSE);
   GAMGuseAggGasm.resize(1,PETSC_FALSE);
@@ -784,9 +784,19 @@ void LinSolParams::setupSmoothers(PC& pc, int block, ISMat& dirIndexSet,
     PetscInt noSmooth;
 
     PCMGGetSmoother(pc,i,&preksp);
-    if (mgKsp[block] == "richardson")
+
+    std::string compare = mgKsp[(size_t)block<mgKsp.size()-1?block:0];
+
+    // warn that richardson might break symmetry if the KSP is CG
+    if (compare == "defrichardson" && method == KSPCG)
+      std::cerr << "WARNING: Using multigrid with Richardson on sublevels.\n"
+                << "If you get divergence with KSP_DIVERGED_INDEFINITE_PC, try\n"
+                << "adding <mgksp>chebyshev</mgksp. Add <mgksp>richardson</mgksp>\n"
+                << "to quell this warning." << std::endl;
+
+    if (compare == "richardson" || compare == "defrichardson")
       KSPSetType(preksp,KSPRICHARDSON);
-    else if (mgKsp[block] == "chebyshev")
+    else if (compare == "chebyshev")
       KSPSetType(preksp,KSPCHEBYSHEV);
 
     if ((i == n-1) && (!finesmoother.empty())) {
