@@ -528,7 +528,8 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS, bool knoll)
     KSPSetOperators(ksp,A,A);
     KSPSetReusePreconditioner(ksp, newLHS?PETSC_FALSE:PETSC_TRUE);
 #endif
-    solParams.setParams(ksp,locSubdDofs,subdDofs,coords,dirIndexSet);
+    if (!setParameters())
+      return false;
     setParams = false;
   }
   if (knoll)
@@ -748,6 +749,13 @@ bool PETScMatrix::makeEBEpreconditioner(const Mat A, Mat* AeI)
    MatAssemblyEnd(*AeI,MAT_FINAL_ASSEMBLY);
 
    return true;
+}
+
+
+bool PETScMatrix::setParameters(PETScMatrix* P, PETScVector* Pb)
+{
+  solParams.setParams(ksp,locSubdDofs,subdDofs,coords,dirIndexSet);
+  return true;
 }
 
 #endif // HAS_PETSC

@@ -142,7 +142,7 @@ protected:
   void renumberRHS(const Vec& b, Vec& bnew, bool renum2block = true);
 
   //! \brief Initializes the block matrix.
-  bool setParameters(PETScBlockMatrix* P = NULL, PETScVector* Pb = NULL);
+  bool setParameters(PETScMatrix* P2 = NULL, PETScVector* Pb = NULL);
 #endif
 };
 

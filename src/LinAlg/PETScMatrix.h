@@ -242,6 +242,11 @@ public:
   //! \brief Returns the PETSc matrix (for read access).
   virtual const Mat& getMatrix() const { return A; }
 
+  //! \brief Set the linear solver parameters (solver type, preconditioner, tolerances).
+  //! \param[in] P Preconditioner  matrix (ignored here)
+  //! \param[in] Pb Preconditioner vector (ignored here)
+  //! \return True on success
+  virtual bool setParameters(PETScMatrix* P = NULL, PETScVector* Pb = NULL);
 protected:
   //! \brief Constructs index set needed for element-by-element preconditioner.
   bool makeElementIS(const SAM& sam);

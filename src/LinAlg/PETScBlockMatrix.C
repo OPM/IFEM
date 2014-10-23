@@ -645,8 +645,12 @@ void PETScBlockMatrix::renumberRHS(const Vec& b, Vec& bnew, bool renum2block)
 } 
 
 
-bool PETScBlockMatrix::setParameters(PETScBlockMatrix *P, PETScVector *Pb)
+bool PETScBlockMatrix::setParameters(PETScMatrix *P2, PETScVector *Pb)
 {
+  PETScBlockMatrix* P = dynamic_cast<PETScBlockMatrix*>(P2);
+  if (!P && P2)
+    return false;
+
   // Set linear solver method
   KSPSetType(ksp,solParams.method.c_str());
   KSPSetTolerances(ksp,solParams.rtol,solParams.atol,solParams.dtol,solParams.maxIts);
