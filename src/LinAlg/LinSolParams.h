@@ -54,14 +54,9 @@ class LinSolParams
 public:
   //! \brief Default constructor.
   LinSolParams(const PetscInt n) : nsd(n) { this->setDefault(); }
-  //! \brief Copy constructor.
-  LinSolParams(const LinSolParams& spar) : nsd(spar.nsd) { this->copy(spar); }
 
   //! \brief Set default values.
   void setDefault();
-
-  //! \brief Copy linear solver parameters.
-  void copy(const LinSolParams& spar);
 
   //! \brief Read linear solver parameters from stream.
   bool read(std::istream& is, int nparams = 10);

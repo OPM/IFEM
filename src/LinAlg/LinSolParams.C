@@ -65,52 +65,6 @@ void LinSolParams::setDefault ()
 }
 
 
-void LinSolParams::copy (const LinSolParams& spar)
-{
-#ifdef HAS_PETSC
-  nResetSolver = spar.nResetSolver;
-
-  // Copy linear solver parameters
-  method          = spar.method;
-  prec            = spar.prec;
-  subprec         = spar.subprec;
-  hypretype       = spar.hypretype;
-  package         = spar.package;
-  overlap         = spar.overlap;
-  levels          = spar.levels;
-  mglevels        = spar.mglevels;
-  presmoother     = spar.presmoother;
-  postsmoother    = spar.postsmoother;
-  noPreSmooth     = spar.noPreSmooth;
-  noPostSmooth    = spar.noPostSmooth;
-  mgKsp           = spar.mgKsp;
-  dirsmoother     = spar.dirsmoother;
-  dirOrder        = spar.dirOrder;
-  maxCoarseSize   = spar.maxCoarseSize;
-  GAMGtype        = spar.GAMGtype;
-  GAMGprocEqLimit = spar.GAMGprocEqLimit;
-  GAMGrepartition = spar.GAMGrepartition;
-  GAMGuseAggGasm  = spar.GAMGuseAggGasm;
-  GAMGreuseInterp = spar.GAMGreuseInterp;
-  overlap         = spar.overlap;
-  nx              = spar.nx;
-  ny              = spar.ny;
-  nz              = spar.nz;
-  nullspc         = spar.nullspc;
-  asmlu           = spar.asmlu;
-  nblock          = spar.nblock;
-  schur           = spar.schur;
-  schurPrec       = spar.schurPrec;
-  ncomps          = spar.ncomps;
-
-  atol   = spar.atol;
-  rtol   = spar.rtol;
-  dtol   = spar.dtol;
-  maxIts = spar.maxIts;
-#endif
-}
-
-
 bool LinSolParams::read (std::istream& is, int nparam)
 {
   char* cline = 0;
