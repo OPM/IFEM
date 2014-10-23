@@ -17,6 +17,7 @@
 #include "LinAlgInit.h"
 #include "SAMpatchPara.h"
 #include "ProcessAdm.h"
+#include "SIMenums.h"
 
 #ifdef USE_OPENMP
 #include <omp.h>
@@ -159,7 +160,9 @@ Real PETScVector::Linfnorm() const
 }
 
 
-PETScMatrix::PETScMatrix (const ProcessAdm& padm, const LinSolParams& spar) : adm(padm), solParams(spar)
+PETScMatrix::PETScMatrix (const ProcessAdm& padm, const LinSolParams& spar,
+                          LinAlg::LinearSystemType ltype) :
+  adm(padm), solParams(spar), linsysType(ltype)
 {
   // Create matrix object, by default the matrix type is AIJ
   MatCreate(*adm.getCommunicator(),&A);
@@ -353,6 +356,11 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
   MatSetBlockSize(A,bsize);
   MPI_Barrier(*adm.getCommunicator());
   MatSetFromOptions(A);
+
+  if (linsysType == LinAlg::SPD)
+    MatSetOption(A, MAT_SPD, PETSC_TRUE);
+  if (linsysType == LinAlg::SYMMETRIC)
+    MatSetOption(A, MAT_SYMMETRIC, PETSC_TRUE);
 
   // Allocation of sparsity pattern
   if (adm.isParallel()) {

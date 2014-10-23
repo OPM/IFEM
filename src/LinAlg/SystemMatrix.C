@@ -66,24 +66,28 @@ void StdVector::dump (std::ostream& os, char format, const char* label)
 }
 
 
-SystemMatrix* SystemMatrix::create (const ProcessAdm& padm, Type matrixType, const LinSolParams& spar)
+SystemMatrix* SystemMatrix::create (const ProcessAdm& padm, Type matrixType,
+                                    const LinSolParams& spar,
+                                    LinAlg::LinearSystemType ltype)
 {
 #ifdef HAS_PETSC
   if (matrixType == PETSC) {
     if (spar.getNoBlocks() > 1)
       return new PETScBlockMatrix(padm,spar.getComponents(),spar);
     else
-      return new PETScMatrix(padm,spar);
+      return new PETScMatrix(padm,spar,ltype);
   }
   else if (matrixType == PETSCBLOCK)
     return new PETScBlockMatrix(padm,spar);
 #endif
 
-  return SystemMatrix::create(padm,matrixType);
+  return SystemMatrix::create(padm,matrixType,ltype);
 }
 
 
-SystemMatrix* SystemMatrix::create (const ProcessAdm& padm, Type matrixType, int num_thread_SLU)
+SystemMatrix* SystemMatrix::create (const ProcessAdm& padm, Type matrixType,
+                                    LinAlg::LinearSystemType ltype,
+                                    int num_thread_SLU)
 {
 #ifndef HAS_PETSC
   if (matrixType == PETSC || matrixType == PETSCBLOCK) {
@@ -103,7 +107,7 @@ SystemMatrix* SystemMatrix::create (const ProcessAdm& padm, Type matrixType, int
     case SPARSE: return new SparseMatrix(SparseMatrix::SUPERLU,num_thread_SLU);
     case SAMG  : return new SparseMatrix(SparseMatrix::S_A_M_G);
 #ifdef HAS_PETSC
-    case PETSC :      return new PETScMatrix(padm,defaultPar);
+    case PETSC :      return new PETScMatrix(padm,defaultPar,ltype);
     case PETSCBLOCK : return new PETScBlockMatrix(padm,defaultPar);
 #endif
     default:

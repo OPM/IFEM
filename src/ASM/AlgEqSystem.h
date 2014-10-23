@@ -16,6 +16,7 @@
 
 #include "GlobalIntegral.h"
 #include "SystemMatrix.h"
+#include "LinAlgenums.h"
 
 class SAM;
 class ProcessAdm;
@@ -43,10 +44,11 @@ public:
   //! \param[in] nmat Number of system matrices to allocate
   //! \param[in] nvec Number of system vectors to allocate
   //! \param[in] withReactions If \e false, no reaction forces will be computed
+  //! \param[in] ltype Linear system type
   //! \param[in] num_threads_SLU Number of threads for SuperLU_MT
   bool init(SystemMatrix::Type mtype, const LinSolParams* spar,
 	    size_t nmat, size_t nvec, bool withReactions,
-	    int num_threads_SLU = 1);
+            LinAlg::LinearSystemType ltype, int num_threads_SLU = 1);
 
   //! \brief Erases the system matrices and frees dynamically allocated storage.
   void clear();

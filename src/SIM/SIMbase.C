@@ -1276,7 +1276,8 @@ bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, bool withRF)
   }
 
   return myEqSys->init(static_cast<SystemMatrix::Type>(mType),
-		       mySolParams,nMats,nVec,withRF,opt.num_threads_SLU);
+		       mySolParams,nMats,nVec,withRF,
+                       myProblem->getLinearSystemType(), opt.num_threads_SLU);
 }
 
 

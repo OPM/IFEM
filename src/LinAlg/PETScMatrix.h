@@ -17,6 +17,7 @@
 
 #include "SystemMatrix.h"
 #include "PETScSupport.h"
+#include "LinAlgenums.h"
 
 class LinSolParams;
 
@@ -133,7 +134,8 @@ class PETScMatrix : public SystemMatrix
 public:
 #ifdef HAS_PETSC
   //! \brief Constructor.
-  PETScMatrix(const ProcessAdm& padm, const LinSolParams& spar);
+  PETScMatrix(const ProcessAdm& padm, const LinSolParams& spar,
+              LinAlg::LinearSystemType ltype);
   //! \brief Copy constructor.
   PETScMatrix(const PETScMatrix& A);
   //! \brief The destructor frees the dynamically allocated arrays.
@@ -257,6 +259,7 @@ protected:
   ISMat               dirIndexSet; //!< Direction ordering
   int                 nIts;        //!< Total number of iterations
   int                 nLinSolves;  //!< Number of linear solves
+  LinAlg::LinearSystemType linsysType;  //!< Linear system type
 
 #else // dummy implementation when PETSc is not included
   virtual SystemMatrix* copy() const { return 0; }

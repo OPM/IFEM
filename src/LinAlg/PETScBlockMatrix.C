@@ -17,6 +17,7 @@
 #include "LinSolParams.h"
 #include "LinAlgInit.h"
 #include "SAMpatchPara.h"
+#include "SIMenums.h"
 #include "PCPerm.h"
 #include "PCScale.h"
 #include <sstream>
@@ -26,7 +27,8 @@
 #endif
 
 
-PETScBlockMatrix::PETScBlockMatrix (const ProcessAdm& padm, const LinSolParams& par) : PETScMatrix(padm,par)
+PETScBlockMatrix::PETScBlockMatrix (const ProcessAdm& padm, const LinSolParams& par) :
+  PETScMatrix(padm,par,LinAlg::GENERAL_MATRIX)
 {
   ncomps.resize(par.ncomps.size());
   nblocks = ncomps.size();
@@ -50,7 +52,7 @@ PETScBlockMatrix::PETScBlockMatrix (const ProcessAdm& padm, const LinSolParams& 
 
 
 PETScBlockMatrix::PETScBlockMatrix (const ProcessAdm& padm, const IntVec& nc, const LinSolParams& par)
-  : PETScMatrix(padm,par)
+  : PETScMatrix(padm,par,LinAlg::GENERAL_MATRIX)
 {
   nblocks = nc.size();
   ncomps.resize(nblocks);

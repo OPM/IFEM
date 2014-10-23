@@ -15,6 +15,7 @@
 #define _SYSTEM_MATRIX_H
 
 #include "MatVec.h"
+#include "LinAlgenums.h"
 
 class SAM;
 class LinSolParams;
@@ -203,9 +204,13 @@ public:
               PETSC = 4, PETSCBLOCK = 5 };
 
   //! \brief Static method creating a matrix of the given type.
-  static SystemMatrix* create(const ProcessAdm& padm, Type matrixType, int num_thread_SLU = 1);
+  static SystemMatrix* create(const ProcessAdm& padm, Type matrixType,
+                              LinAlg::LinearSystemType ltype,
+                              int num_thread_SLU = 1);
   //! \brief Static method creating a matrix of the given type.
-  static SystemMatrix* create(const ProcessAdm& padm, Type matrixType, const LinSolParams& spar);
+  static SystemMatrix* create(const ProcessAdm& padm, Type matrixType,
+                              const LinSolParams& spar,
+                              LinAlg::LinearSystemType ltype);
 
 protected:
   //! \brief Default constructor.

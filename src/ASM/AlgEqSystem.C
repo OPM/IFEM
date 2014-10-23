@@ -18,7 +18,7 @@
 
 bool AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
 			size_t nmat, size_t nvec, bool withReactions,
-			int num_threads_SLU)
+			LinAlg::LinearSystemType ltype, int num_threads_SLU)
 {
   // Using the sign of the num_threads_SLU argument to flag this (convenience)
   bool dontLockSparsityPattern = num_threads_SLU < 0;
@@ -38,9 +38,9 @@ bool AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
   {
     if (!A[i]._A)
       if (spar)
-	A[i]._A = SystemMatrix::create(adm,mtype,*spar);
+	A[i]._A = SystemMatrix::create(adm,mtype,*spar,ltype);
       else
-	A[i]._A = SystemMatrix::create(adm,mtype,abs(num_threads_SLU));
+	A[i]._A = SystemMatrix::create(adm,mtype,ltype,abs(num_threads_SLU));
     if (!A[i]._A) return false;
 
     A[i]._A->initAssembly(sam,dontLockSparsityPattern);
