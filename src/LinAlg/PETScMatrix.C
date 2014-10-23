@@ -555,54 +555,6 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS, bool knoll)
 }
 
 
-bool PETScMatrix::solve (SystemVector& B, SystemMatrix& P, bool newLHS)
-{
-  // Reset linear solver
-  if (nLinSolves && solParams.nResetSolver)
-    if (nLinSolves%solParams.nResetSolver == 0) {
-      KSPDestroy(&ksp);
-      KSPCreate(*adm.getCommunicator(),&ksp);
-      setParams = true;
-    }
-
-  const PETScVector* Bptr = dynamic_cast<PETScVector*>(&B);
-  if (!Bptr)
-    return false;
-
-  const PETScMatrix* Pptr = dynamic_cast<PETScMatrix*>(&P);
-  if (!Pptr)
-    return false;
-
-  Vec x;
-  VecDuplicate(Bptr->getVector(),&x);
-  VecCopy(Bptr->getVector(),x);
-
-  if (setParams) {
-#if PETSC_VERSION_MINOR < 5
-    KSPSetOperators(ksp,A,Pptr->getMatrix(),
-                  newLHS ? SAME_NONZERO_PATTERN : SAME_PRECONDITIONER);
-#else
-    KSPSetOperators(ksp,A,Pptr->getMatrix());
-    KSPSetReusePreconditioner(ksp, newLHS?PETSC_FALSE:PETSC_TRUE);
-#endif
-    solParams.setParams(ksp,locSubdDofs,subdDofs,coords,dirIndexSet);
-    setParams = false;
-  }
-  KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
-  KSPSolve(ksp,x,Bptr->getVector());
-  VecDestroy(&x);
-
-  PetscInt its;
-  KSPGetIterationNumber(ksp,&its);
-  PetscPrintf(*adm.getCommunicator(),"\n Iterations for %s = %D\n",
-		solParams.getMethod(),its);
-  nIts += its;
-  nLinSolves++;
-
-  return true;
-}
-
-
 bool PETScMatrix::solveEig (PETScMatrix& B, RealArray& val,
 			    Matrix& vec, int nv, Real shift, int iop)
 {

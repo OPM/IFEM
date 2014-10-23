@@ -205,20 +205,6 @@ public:
   //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
   virtual bool solve(const SystemVector& B, SystemVector& x, bool newLHS = true);
 
-  //! \brief Solves the linear system of equations for a given right-hand-side.
-  //! \param b Right-hand-side vector, solution vector on output
-  //! \param P Preconditioning matrix (if different than system matrix)
-  //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
-  virtual bool solve(SystemVector& b, SystemMatrix& P, bool newLHS = true);
-
-  //! \brief Solves the linear system of equations for a given right-hand-side.
-  //! \param b Right-hand-side vector, solution vector on output
-  //! \param P Preconditioning matrix (if different than system matrix)
-  //! \param Pb Diagonal scaling
-  //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
-  virtual bool solve(SystemVector& b, SystemMatrix& P, SystemVector& Pb, bool newLHS = true)
-  { return false; }
-
   //! \brief Solves a generalized symmetric-definite eigenproblem.
   //! \details The eigenproblem is assumed to be on the form
   //! \b A \b x = \f$\lambda\f$ \b B \b x where \b A ( = \a *this ) and \b B

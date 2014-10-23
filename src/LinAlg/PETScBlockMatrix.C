@@ -478,68 +478,6 @@ bool PETScBlockMatrix::solve (const SystemVector& B, SystemVector& X, bool newLH
 }
 
 
-bool PETScBlockMatrix::solve (SystemVector& B, SystemMatrix& P, SystemVector& Pb, bool newLHS)
-{
-  // Reset linear solver
-  if (solParams.nResetSolver)
-    if (nLinSolves%solParams.nResetSolver == 0) {
-      KSPDestroy(&ksp);
-      KSPCreate(*adm.getCommunicator(),&ksp);
-      setParams = true;
-    }
-
-  PETScVector* Bptr = dynamic_cast<PETScVector*>(&B);
-  if (!Bptr)
-    return false;
-
-  PETScBlockMatrix* Pptr = dynamic_cast<PETScBlockMatrix*>(&P);
-  if (!Pptr)
-    return false;
-
-  PETScVector* Pbptr = dynamic_cast<PETScVector*>(&Pb);
-  if (!Pbptr)
-    return false;
-
-  Vec x;
-  VecDuplicate(Bptr->getVector(),&x);
-  VecCopy(Bptr->getVector(),x);
-  this->renumberRHS(Bptr->getVector(),x,true);
-
-  // Has lefthand side changed?
-  static int firstIt = true;
-  //if (newLHS)
-  if (firstIt)
-#if PETSC_VERSION_MINOR < 5
-    KSPSetOperators(ksp,A,A,SAME_NONZERO_PATTERN);
-#else
-    KSPSetOperators(ksp,A,A);
-#endif
-  //else
-  //  KSPSetOperators(ksp,A,A,SAME_PRECONDITIONER);
-  firstIt = false;
-
-  if (setParams) {
-    if (!this->setParameters(Pptr,Pbptr))
-      return false;
-    setParams = false;
-  }
-  KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
-  KSPSolve(ksp,x,Bptr->getVector());
-
-  // Renumber back to usual numbering
-  this->renumberRHS(Bptr->getVector(),Bptr->getVector(),false);
-
-  PetscInt its;
-  KSPGetIterationNumber(ksp,&its);
-  PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getMethod(),its);
-  VecDestroy(PETSCMANGLE(x));
-
-  nIts += its;
-  nLinSolves++;
-
-  return true;
-}
-
 void PETScBlockMatrix::renumberRHS(const Vec& b, Vec& bnew, bool renum2block)
 {
   PetscInt low, high;

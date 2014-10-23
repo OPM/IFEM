@@ -91,20 +91,6 @@ public:
   //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
   virtual bool solve(const SystemVector& B, SystemVector& x, bool newLHS = true);
 
-  //! \brief Solves the linear system of equations for a given right-hand-side.
-  //! \param b Right-hand-side vector, solution vector on output
-  //! \param P Preconditioning matrix (if different than system matrix)
-  //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
-  virtual bool solve(SystemVector& b, SystemMatrix& P, bool newLHS = true)
-  { return false; }
-
-  //! \brief Solves the linear system of equations for a given right-hand-side.
-  //! \param b Right-hand-side vector, solution vector on output
-  //! \param P Preconditioning matrix (if different than system matrix)
-  //! \param Pb Diagonal scaling
-  //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
-  virtual bool solve(SystemVector& b, SystemMatrix& P, SystemVector& Pb, bool newLHS = true);
-
   //! \brief Returns matrix block (for assignment).
   virtual Mat& getMatrixBlock(size_t i, size_t j)
   { return matvec[i*nblocks+j]; }
