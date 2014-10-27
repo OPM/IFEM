@@ -800,7 +800,42 @@ namespace
             return new logn_FunctionNode(expr);
         }
     };
-        
+
+    class pow_FunctionNode : public FunctionNode
+    {
+    public:
+        pow_FunctionNode(Expression *expr) : FunctionNode(expr)
+        {
+            SetArgumentCount(2, 2, 0, 0);
+        }
+
+        double DoEvaluate()
+        {
+            errno = 0;
+
+            double result = pow(m_nodes[0]->Evaluate(), m_nodes[1]->Evaluate());
+
+            if(errno)
+                throw(MathException(GetName()));
+
+            return result;
+        }
+    };
+
+    class pow_FunctionFactory : public FunctionFactory
+    {
+    public:
+        string GetName() const
+        {
+            return "pow";
+        }
+
+        FunctionNode *DoCreate(Expression *expr)
+        {
+            return new pow_FunctionNode(expr);
+        }
+    };
+
     // Ceil
     //--------------------------------------------------------------------------
     class ceil_FunctionNode : public FunctionNode
@@ -1611,6 +1646,7 @@ void FunctionList::AddDefaultFunctions()
     ADDFUNCTION(ln);
     ADDFUNCTION(exp);
     ADDFUNCTION(logn);
+    ADDFUNCTION(pow);
     
     ADDFUNCTION(ceil);
     ADDFUNCTION(floor);
