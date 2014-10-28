@@ -14,16 +14,18 @@
 #include "Utilities.h"
 #include "tinyxml.h"
 #include <cstdlib>
+#include <algorithm>
 
 #ifdef PARALLEL_PETSC
 #include <petsc.h>
 #endif
 
+
 void utl::parseIntegers (std::vector<int>& values, const char* argv)
 {
   if (!argv) return;
 
-  char* endp = 0;
+  char* endp = NULL;
   int endVal = 0;
   values.push_back(strtol(argv,&endp,10));
   if (endp && *endp == ':')
@@ -403,10 +405,16 @@ std::set<int> utl::getDigits (int num)
 
 namespace utl
 {
-  struct cmpInt
+  /*!
+    \brief A helper class used to search for values in an integer map.
+  */
+  class cmpInt
   {
-    int myValue;
+    int myValue; //!< The integer value to search for
+  public:
+    //! The constructor initializes the value to search for.
     cmpInt(int value) : myValue(value) {}
+    //! \brief Returns \e true if \a value.second equals \a myValue.
     bool operator()(const std::pair<int,int>& value) const
     {
       return value.second == myValue;
@@ -415,7 +423,7 @@ namespace utl
 }
 
 
-IntMap::const_iterator utl::findValue (const IntMap& iMap,  int iVal)
+IntMap::const_iterator utl::findValue (const IntMap& iMap, int iVal)
 {
   return std::find_if(iMap.begin(),iMap.end(),cmpInt(iVal));
 }

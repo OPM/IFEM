@@ -74,8 +74,7 @@ public:
   //! in between, the actual index is taken as the integer value closest to
   //! \a r*n, where \a r denotes the given relative parameter value,
   //! and \a n is the number of nodes along that parameter direction.
-  virtual void constrainNode(double xi, double eta,
-			     int dof = 12, int code = 0);
+  virtual void constrainNode(double xi, double eta, int dof = 12, int code = 0);
 
   //! \brief Connects all matching nodes on two adjacent boundary edges.
   //! \param[in] edge Local edge index of this patch, in range [1,4]
@@ -101,10 +100,10 @@ public:
   //! \param[in] func Scalar property fields
   //! \param[in] vfunc Vector property fields
   //! \param[in] time Current time
+  //! \param[in] g2l Pointer to global-to-local node number mapping
   virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
-                               const std::map<int,VecFunc*>& vfunc,
-                               double time = 0.0,
-                               const std::map<int,int>* g2l=NULL);
+                               const std::map<int,VecFunc*>& vfunc, double time,
+                               const std::map<int,int>* g2l = NULL);
 
 private:
   static std::map<int,ASMs2DC1*> neighbors; //!< Global node to patch mapping

@@ -89,7 +89,7 @@ public:
   };
 
 private:
-  typedef std::pair<int,int> Ipair; //!< Convenience declaration
+  typedef std::pair<int,int> Ipair; //!< Convenience type
 
   //! \brief Struct representing an inhomogeneous Dirichlet boundary condition.
   struct DirichletFace
@@ -99,7 +99,7 @@ private:
     int                code;  //!< Inhomogeneous Dirichlet condition code
     std::vector<Ipair> nodes; //!< Nodes subjected to projection on the boundary
     //! \brief Default constructor.
-    DirichletFace(Go::SplineSurface* ss = 0, int d = 0, int c = 0)
+    DirichletFace(Go::SplineSurface* ss = NULL, int d = 0, int c = 0)
     : surf(ss), dof(d), code(c) {}
   };
 
@@ -311,10 +311,10 @@ public:
   //! \param[in] func Scalar property fields
   //! \param[in] vfunc Vector property fields
   //! \param[in] time Current time
+  //! \param[in] g2l Pointer to global-to-local node number mapping
   virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
-			       const std::map<int,VecFunc*>& vfunc,
-			       double time = 0.0,
-                               const std::map<int,int>* g2l=NULL);
+                               const std::map<int,VecFunc*>& vfunc, double time,
+                               const std::map<int,int>* g2l = NULL);
 
 
   // Methods for integration of finite element quantities.
@@ -437,7 +437,7 @@ public:
   //! If \a npe is not NULL and \a project is defined, the solution is also
   //! projected onto the spline basis, and then evaluated at the \a npe points.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-			    const int* npe = 0, char project = '\0') const;
+                            const int* npe = NULL, char project = '\0') const;
 
 private:
   //! \brief Projects the secondary solution field onto the primary basis.
@@ -575,10 +575,11 @@ public:
   //! \param[in] w Third parameter value of current integration point
   //! \param[out] N Basis function values
   //! \param[out] dNdu First derivatives of basis functions
-  void extractBasis(double u, double v, double w, Vector& N, Matrix& dNdu) const;
+  void extractBasis(double u, double v, double w, Vector& N,
+                    Matrix& dNdu) const;
   //! \brief Establishes matrices with basis functions, 1st and 2nd derivatives.
   //! \param[in] u First parameter value of current integration point
-  //! \param[in] u Second parameter value of current integration point
+  //! \param[in] v Second parameter value of current integration point
   //! \param[in] w Third parameter value of current integration point
   //! \param[out] N Basis function values
   //! \param[out] dNdu First derivatives of basis functions

@@ -25,7 +25,7 @@
 class TiXmlElement;
 class TiXmlNode;
 
-typedef std::map<int,int> IntMap;
+typedef std::map<int,int> IntMap; //!< Convenience type
 
 
 namespace utl
