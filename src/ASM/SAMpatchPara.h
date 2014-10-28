@@ -37,7 +37,6 @@ public:
   //! \brief The destructor destroys the index set arrays.
   virtual ~SAMpatchPara();
 
-  int getNoGlobalNodes() const{ return nnodGlob; }
   //! \brief Allocates the dynamic arrays and populates them with data.
   //! \param[in] model All spline patches in the model
   //! \param[in] numNod Total number of unique nodes in the model
@@ -49,8 +48,6 @@ public:
   virtual int getMinEqNumber() const { return ieqmin; }
   //! \brief Returns max global equation number for this process.
   virtual int getMaxEqNumber() const { return ieqmax; }
-  //! \brief Returns the dimension
-  int getNoSpaceDim() const;
 
   using SAMpatch::getNoDofCouplings;
 
@@ -206,7 +203,8 @@ public:
   //! \brief Extracts the node coordinates of all local nodes.
   //! \param[out] coords Coordinates of local nodes
   //! stored as [x0,y0,z0,x1,y1,z1,...]
-  bool getLocalNodeCoordinates(PetscRealVec& coords) const;
+  //! \return Number of spatial dimensions
+  int getLocalNodeCoordinates(PetscRealVec& coords) const;
 
   //! \brief If a given dof in a given node is subject to non-homogeneous
   //! Dirichlet condition

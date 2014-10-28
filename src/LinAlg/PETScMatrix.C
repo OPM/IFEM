@@ -298,17 +298,17 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
   const SAMpatchPara* sampch = dynamic_cast<const SAMpatchPara*>(&sam);
 
   if (!strncasecmp(solParams.getPreconditioner(),"gamg",4) ||
-      !strncasecmp(solParams.getPreconditioner(),"ml",2)   ||
-      solParams.getNullSpace(1) == RIGID_BODY)
+      !strncasecmp(solParams.getPreconditioner(),"ml",2))
     sampch->getLocalNodeCoordinates(coords);
 
-  if (solParams.getNullSpace(1) == RIGID_BODY) {
+  else if (solParams.getNullSpace(1) == RIGID_BODY) {
+    int nsd = sampch->getLocalNodeCoordinates(coords);
 #ifdef PARALLEL_PETSC
     std::cerr << "WARNING: Rigid body null space not implemented in parallel, ignoring" << std::endl;
 #else
     Vec coordVec;
     VecCreate(PETSC_COMM_SELF, &coordVec);
-    VecSetBlockSize(coordVec, sampch->getNoSpaceDim());
+    VecSetBlockSize(coordVec, nsd);
     VecSetSizes(coordVec, coords.size(), PETSC_DECIDE);
     VecSetFromOptions(coordVec);
     for (size_t i=0;i<coords.size();++i)

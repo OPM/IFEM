@@ -1730,12 +1730,12 @@ bool SAMpatchPara::getSubdomains3D (PetscIntMat& subds,
 }
 
 
-bool SAMpatchPara::getLocalNodeCoordinates(PetscRealVec& coords) const
+int SAMpatchPara::getLocalNodeCoordinates (PetscRealVec& coords) const
 {
   // Find min and max node for each patch on this processor
   IntVec maxNodeId, minNodeId;
   if (!this->getMinMaxNode(minNodeId,maxNodeId))
-    return false;
+    return 0;
 
   int min     = minNodeId.front();
   int nlocnod = maxNodeId.back()-min+1;
@@ -1756,7 +1756,7 @@ bool SAMpatchPara::getLocalNodeCoordinates(PetscRealVec& coords) const
     }
   }
 
-  return true;
+  return nsd;
 }
 
 
@@ -1832,10 +1832,4 @@ bool SAMpatchPara::isDirichlet(int inod, int dof) const
   }
 
   return fixed;
-}
-
-
-int SAMpatchPara::getNoSpaceDim() const
-{
-  return patch.front()->getNoSpaceDim();
 }
