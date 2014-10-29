@@ -1033,12 +1033,12 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
   for (int d = 0; d < 2; d++)
     if (-1-d == edgeDir)
     {
-      gpar[d].resize(1);
+      gpar[d].resize(nGP);
       gpar[d].fill(d == 0 ? lrspline->startparam(0) : lrspline->startparam(1));
     }
     else if (1+d == edgeDir)
     {
-      gpar[d].resize(1);
+      gpar[d].resize(nGP);
       gpar[d].fill(d == 0 ? lrspline->endparam(0) : lrspline->endparam(1));
     }
 
@@ -1093,16 +1093,10 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
     {
       // Local element coordinates and parameter values
       // of current integration point
-      if (t2 == 1)
-      {
-	fe.xi = xg[i];
-	fe.u = gpar[0][i];
-      }
-      else
-      {
-	fe.eta = xg[i];
-	fe.v = gpar[1][i];
-      }
+      fe.xi = xg[i];
+      fe.eta = xg[i];
+      fe.u = gpar[0][i];
+      fe.v = gpar[1][i];
 
       // Evaluate basis function derivatives at current integration points
       Go::BasisDerivsSf spline;
