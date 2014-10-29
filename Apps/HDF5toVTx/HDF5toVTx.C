@@ -482,7 +482,7 @@ int main (int argc, char** argv)
         }
         for( int j=0;j<pit->second[0].patches;++j) {
           Vector vec;
-          ok = hdf.readVector(i,it->name,j+1,vec);
+          ok = hdf.readVector(it->once?0:i,it->name,j+1,vec);
 
           if (it->name.find('+') != std::string::npos) {
             /*
