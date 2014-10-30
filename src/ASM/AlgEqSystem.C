@@ -37,25 +37,28 @@ bool AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
   for (i = 0; i < A.size(); i++)
   {
     if (!A[i]._A)
+    {
       if (spar)
-	A[i]._A = SystemMatrix::create(adm,mtype,*spar,ltype);
+        A[i]._A = SystemMatrix::create(adm,mtype,*spar,ltype);
       else
-	A[i]._A = SystemMatrix::create(adm,mtype,ltype,abs(num_threads_SLU));
-    if (!A[i]._A) return false;
+        A[i]._A = SystemMatrix::create(adm,mtype,ltype,abs(num_threads_SLU));
+      if (!A[i]._A) return false;
+    }
 
     A[i]._A->initAssembly(sam,dontLockSparsityPattern);
     A[i]._b = NULL;
   }
 
+  SystemVector::Type vtype = SystemVector::STD;
+  if (mtype == SystemMatrix::PETSC)
+    vtype = SystemVector::PETSC;
+
   for (i = 0; i < b.size(); i++)
-  {
     if (!b[i])
-      if (mtype == SystemMatrix::PETSC)
-	b[i] = SystemVector::create(adm,SystemVector::PETSC);
-      else
-	b[i] = SystemVector::create(adm,SystemVector::STD);
-    if (!b[i]) return false;
-  }
+    {
+      b[i] = SystemVector::create(adm,vtype);
+      if (!b[i]) return false;
+    }
 
   bool ok = true;
   if (A.size() == 1 && !b.empty())
@@ -125,12 +128,14 @@ bool AlgEqSystem::assemble (const LocalIntegral* elmObj, int elmId)
     Vector* reac = R.empty() ? NULL : &R;
     status = sam.assembleSystem(*b.front(), elMat->getRHSVector(), elmId, reac);
     if (status && elMat->withLHS) // we have LHS element matrices
+    {
       if (elMat->rhsOnly) // we only want the RHS system vector
 	status = sam.assembleSystem(*b.front(),
 				    elMat->getNewtonMatrix(), elmId, reac);
       else // we want both the LHS system matrix and the RHS system vector
 	status = sam.assembleSystem(*A.front()._A, *b.front(),
 				    elMat->getNewtonMatrix(), elmId, reac);
+    }
 
     // Assembly of additional system right-hand-side vectors
     for (i = 1; i < b.size() && i < elMat->b.size() && status; i++)
@@ -157,10 +162,12 @@ bool AlgEqSystem::assemble (const LocalIntegral* elmObj, int elmId)
     if (elMat->withLHS)
       for (i = 0; i < A.size() && i < elMat->A.size() && status; i++)
 	if (A[i]._b)
+	{
 	  if (elMat->rhsOnly) // we only want the RHS system vectors
 	    status = sam.assembleSystem(*A[i]._b, elMat->A[i], elmId);
 	  else // we want both LHS system matrices and RHS system vectors
 	    status = sam.assembleSystem(*A[i]._A, *A[i]._b, elMat->A[i], elmId);
+	}
 	else if (!elMat->rhsOnly) // we want LHS system matrices only
 	  status = sam.assembleSystem(*A[i]._A, elMat->A[i], elmId);
   }

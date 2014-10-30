@@ -24,7 +24,6 @@ class LinSolParams;
 class LocalIntegral;
 
 
-
 /*!
   \brief Class for storage of general algebraic system of equations.
 */
@@ -32,8 +31,8 @@ class LocalIntegral;
 class AlgEqSystem : public GlobalIntegral
 {
 public:
-  //! \brief The constructor only sets its reference to the SAM object.
- AlgEqSystem(const SAM& _sam, const ProcessAdm& padm) : sam(_sam), adm(padm) {}
+  //! \brief The constructor sets its reference to SAM and ProcessAdm objects.
+  AlgEqSystem(const SAM& _sam, const ProcessAdm& _adm) : sam(_sam), adm(_adm) {}
 
   //! \brief The destructor frees the dynamically allocated objects.
   virtual ~AlgEqSystem() { this->clear(); }
@@ -47,7 +46,7 @@ public:
   //! \param[in] ltype Linear system type
   //! \param[in] num_threads_SLU Number of threads for SuperLU_MT
   bool init(SystemMatrix::Type mtype, const LinSolParams* spar,
-	    size_t nmat, size_t nvec, bool withReactions,
+            size_t nmat, size_t nvec, bool withReactions,
             LinAlg::LinearSystemType ltype, int num_threads_SLU = 1);
 
   //! \brief Erases the system matrices and frees dynamically allocated storage.
@@ -93,7 +92,7 @@ private:
     SystemMatrix* _A; //!< The coefficient matrix
     SystemVector* _b; //!< Pointer to the associated right-hand-side vector
     //! \brief Constructor initializing the pointers to zero.
-    SysMatrixPair() : _A(0), _b(0) {}
+    SysMatrixPair() : _A(NULL), _b(NULL) {}
   };
 
   std::vector<SysMatrixPair> A; //!< The actual coefficient matrices
