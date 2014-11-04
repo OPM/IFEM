@@ -161,7 +161,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
     int proc = 0;
     if (!utl::getAttribute(elem,"procs",proc))
       return false;
-    else if (proc != getProcessAdm().getNoProcs()) // silently ignore
+    else if (proc != adm.getNoProcs()) // silently ignore
       return true;
     if (myPid == 0)
       std::cout <<"\tNumber of partitions: "<< proc << std::endl;
@@ -173,7 +173,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
       utl::getAttribute(part,"lower",first);
       utl::getAttribute(part,"upper",last);
       if (last > nGlPatches) nGlPatches = last;
-      if (proc == getProcessAdm().getProcId()) {
+      if (proc == adm.getProcId()) {
         myPatches.reserve(last-first+1);
         for (int j = first; j <= last && j > -1; j++)
           myPatches.push_back(j);
@@ -183,8 +183,8 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
     // If equal number of blocks per processor
     if (myPatches.empty() && utl::getAttribute(elem,"nperproc",proc)) {
       for (int j = 1; j <= proc; j++)
-        myPatches.push_back(getProcessAdm().getProcId()*proc+j);
-      nGlPatches = getProcessAdm().getNoProcs()*proc;
+        myPatches.push_back(adm.getProcId()*proc+j);
+      nGlPatches = adm.getNoProcs()*proc;
     }
   }
 
@@ -1262,21 +1262,15 @@ bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, bool withRF)
   myEqSys = new AlgEqSystem(*mySam,adm);
 
   // Workaround SuperLU bug for tiny systems
-  if (myModel.size() == 1 && mType == SystemMatrix::SPARSE) {
-    const ASMstruct* a = dynamic_cast<const ASMstruct*>(myModel.front());
-    if (a) {
-      int n1, n2, n3;
-      a->getNoStructElms(n1, n2, n3);
-      if (n1 < 3 || (n2 > 0 && n2 < 3) || (n3 > 0 && n3 < 3)) {
-        std::cerr <<" ** System too small for SuperLU, falling back to dense."
-                  << std::endl;
-        mType = SystemMatrix::DENSE;
-      }
-    }
+  if (mType == SystemMatrix::SPARSE && this->getNoElms() < 3)
+  {
+    std::cerr <<" ** System too small for SuperLU, falling back to Dense."
+              << std::endl;
+    mType = SystemMatrix::DENSE;
   }
 
   return myEqSys->init(static_cast<SystemMatrix::Type>(mType),
-		       mySolParams,nMats,nVec,withRF,
+                       mySolParams, nMats, nVec, withRF,
                        myProblem->getLinearSystemType(), opt.num_threads_SLU);
 }
 
@@ -1551,7 +1545,8 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
     GlobalIntegral& sysQ = it->second->getGlobalInt(myEqSys);
     if (&sysQ != myEqSys) sysQ.initialize(newLHSmatrix);
 
-    it->second->initIntegration(time,prevSol.front(),poorConvg);
+    if (!prevSol.empty())
+      it->second->initIntegration(time,prevSol.front(),poorConvg);
 
     // Loop over the different material regions, integrating interior
     // coefficient matrix terms for the patch associated with each material
@@ -1783,7 +1778,7 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
     str << std::endl;
   }
 
-  utl::printSyncronized(std::cout,str,getProcessAdm().getProcId());
+  utl::printSyncronized(std::cout,str,adm.getProcId());
 
   // Print entire solution vector if it is small enough
   if (myPid == 0 && mySam->getNoEquations() < printSol)

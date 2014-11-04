@@ -124,6 +124,15 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
       else if (!strcasecmp(value,"max"))
         refNopt = MAX;
     }
+    else if (iteNorm != NONE && (value = utl::getValue(child,"convnorm")))
+    {
+      if (!strncasecmp(value,"energ",5))
+        iteNorm = ENERGY;
+      else if (!strncasecmp(value,"res",3))
+        iteNorm = L2;
+      else if (!strncasecmp(value,"dis",3))
+        iteNorm = L2SOL;
+    }
     else if (!strcasecmp(child->Value(),"fromZero"))
       fromIni = true;
 
@@ -181,7 +190,10 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
 {
   PROFILE1("NonLinSIM::solveStep");
 
-  if (msgLevel >= 0 && adm.getProcId() == 0)
+  if (solution.empty())
+    return FAILURE;
+
+  if (msgLevel >= 0 && model.getProcessAdm().getProcId() == 0)
   {
     std::streamsize oldPrec = 0;
     double digits = log10(param.time.t)-log10(param.time.dt);
@@ -298,8 +310,9 @@ bool NonLinSIM::lineSearch (TimeStep& param)
   double cmin = 1.0;
   double ck = 1.0;
   double cp = 1.0;
-  if (model.getProcessAdm().getProcId() == 0)
-    std::cout <<"\t0: ck="<< ck <<" sk="<< s0 << std::endl;
+#ifdef SP_DEBUG
+  std::cout <<"\t0: ck="<< ck <<" sk="<< s0 << std::endl;
+#endif
 
   alpha = 1.0;
   for (int iter = 1; iter <= 10; iter++)
@@ -314,9 +327,9 @@ bool NonLinSIM::lineSearch (TimeStep& param)
       return false;
 
     double sk = residual.dot(linsol);
-    if (adm.getProcId() == 0)
-      std::cout <<"\t"<< iter <<": ck="<< ck <<" sk="<< sk << std::endl;
-
+#ifdef SP_DEBUG
+    std::cout <<"\t"<< iter <<": ck="<< ck <<" sk="<< sk << std::endl;
+#endif
     if (fabs(sk) < eta*fabs(s0))
     {
       alpha = 0.0;
@@ -362,6 +375,7 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
   double enorm, resNorm, linsolNorm;
   model.iterationNorms(linsol,residual,enorm,resNorm,linsolNorm);
   double norm = iteNorm == ENERGY ? enorm : resNorm;
+  if (iteNorm == L2SOL) norm = linsolNorm;
 
   if (param.iter == 0)
   {
@@ -387,7 +401,7 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
   if (param.iter > 1 && prevNorm > 0.0 && fabs(norm) > prevNorm*0.1)
     status = SLOW;
 
-  if (msgLevel > 0 && model.getProcessAdm().getProcId() == 0 && !solution.empty())
+  if (msgLevel > 0 && model.getProcessAdm().getProcId() == 0)
   {
     // Print convergence history
     std::ios::fmtflags oldFlags = std::cout.flags(std::ios::scientific);
@@ -447,8 +461,6 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
 
 bool NonLinSIM::updateConfiguration (TimeStep& time)
 {
-  if (solution.empty()) return false;
-
   if (solution.front().empty() || iteNorm == NONE)
   {
     solution.front() = linsol;

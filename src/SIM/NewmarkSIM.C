@@ -29,6 +29,7 @@ NewmarkSIM::NewmarkSIM (SIMbase& sim) : MultiStepSIM(sim)
 
   predictor = 'a'; // default predictor (zero acceleration)
   rotUpd = false;
+  cNorm = 1; // default convergence check, force residual
 
   // Default iteration parameters
   maxit   = 20;
@@ -66,6 +67,15 @@ bool NewmarkSIM::parse (const TiXmlElement* elem)
         refNopt = ALL;
       else if (!strcasecmp(value,"max"))
         refNopt = MAX;
+    }
+    else if ((value = utl::getValue(child,"convnorm")))
+    {
+      if (!strncasecmp(value,"energ",5))
+        cNorm = 0;
+      else if (!strncasecmp(value,"res",3))
+        cNorm = 1;
+      else if (!strncasecmp(value,"dis",3))
+        cNorm = 2;
     }
     else if ((value = utl::getValue(child,"predictor")))
     {
@@ -327,19 +337,18 @@ SIM::ConvStatus NewmarkSIM::checkConvergence (TimeStep& param)
   static double prevNorm  = 0.0;
   static int    nIncrease = 0;
 
-  SIM::ConvStatus status = SIM::OK;
-  double enorm, resNorm, linsolNorm;
-  model.iterationNorms(linsol,residual,enorm,resNorm,linsolNorm);
+  double norms[3];
+  model.iterationNorms(linsol,residual,norms[0],norms[1],norms[2]);
 
   double norm = 1.0;
   if (param.iter > 0)
-    norm = resNorm / refNorm;
+    norm = norms[cNorm] / refNorm;
   else
   {
-    if (refNopt == ALL || fabs(resNorm) > refNorm)
-      refNorm = fabs(resNorm);
-    else
-      norm = resNorm / refNorm;
+    if (refNopt == ALL || norms[cNorm] > refNorm)
+      refNorm = norms[cNorm];
+    else if (refNorm > 0.0)
+      norm = norms[cNorm] / refNorm;
     prevNorm = norm;
     nIncrease = 0;
   }
@@ -351,14 +360,15 @@ SIM::ConvStatus NewmarkSIM::checkConvergence (TimeStep& param)
     std::streamsize oldPrec = std::cout.precision(3);
     std::cout <<"  iter="<< param.iter
               <<"  conv="<< fabs(norm)
-              <<"  enen="<< enorm
-              <<"  resn="<< resNorm
-              <<"  incn="<< linsolNorm << std::endl;
+              <<"  enen="<< norms[0]
+              <<"  resn="<< norms[1]
+              <<"  incn="<< norms[2] << std::endl;
     std::cout.flags(oldFlags);
     std::cout.precision(oldPrec);
   }
 
   // Check for convergence or divergence
+  SIM::ConvStatus status = SIM::OK;
   if (fabs(norm) < convTol)
     status = SIM::CONVERGED;
   else if (fabs(norm) <= fabs(prevNorm))

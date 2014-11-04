@@ -25,21 +25,18 @@ class NewmarkSIM : public MultiStepSIM
 {
 public:
   //! \brief The constructor initializes default solution parameters.
-  //! \param sim The FE model
   NewmarkSIM(SIMbase& sim);
   //! \brief Empty destructor.
   virtual ~NewmarkSIM() {}
 
   using MultiStepSIM::parse;
   //! \brief Parses a data section from an XML document.
-  //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);
 
   //! \brief Prints out problem-specific data to the given stream.
   virtual void printProblem(std::ostream& os) const;
 
   //! \brief Initializes primary solution vectors and integration parameters.
-  //! \param[in] nSol Number of consequtive solutions stored
   virtual void init(size_t nSol = 3);
 
   //! \brief Advances the time step one step forward.
@@ -100,6 +97,7 @@ protected:
   int    maxit;     //!< Maximum number of iterations in a time step
   double convTol;   //!< Convergence tolerance
   double divgLim;   //!< Relative divergence limit
+  unsigned short int cNorm; //!< Option for which convergence norm to use
 };
 
 #endif

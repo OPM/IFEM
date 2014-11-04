@@ -30,7 +30,7 @@ class NonLinSIM : public MultiStepSIM
 {
 public:
   //! \brief Enum describing the norm used for convergence checks.
-  enum CNORM { NONE, L2, ENERGY };
+  enum CNORM { NONE, L2, L2SOL, ENERGY };
 
   //! \brief The constructor initializes default solution parameters.
   //! \param sim Pointer to the spline FE model
