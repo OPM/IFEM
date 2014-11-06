@@ -27,8 +27,6 @@ typedef std::vector<int>         IntVec;       //!< Integer vector
 typedef std::vector<IntVec>      IntMat;       //!< Integer matrix
 typedef std::vector<std::string> StringVec;    //!< String vector
 typedef std::vector<StringVec>   StringMat;    //!< String matrix
-typedef std::vector<bool>        BoolVec;      //!< Boolean vector
-typedef std::vector<PetscBool>   PetscBoolVec; //!< Petsc boolean vector
 typedef std::vector<IS>          ISVec;        //!< Index set vector
 typedef std::vector<ISVec>       ISMat;        //!< Index set matrix
 
@@ -53,7 +51,7 @@ class LinSolParams
 {
 public:
   //! \brief Default constructor.
-  LinSolParams(const PetscInt n) : nsd(n) { this->setDefault(); }
+  LinSolParams(PetscInt n, int m = 1) : nsd(n), msgLev(m) { this->setDefault(); }
 
   //! \brief Set default values.
   void setDefault();
@@ -106,10 +104,7 @@ public:
   const char* getMethod() const { return method.c_str(); }
 
   //! \brief Get preconditioner
-  const char* getPreconditioner(size_t i = 0) const { return prec.c_str(); }
-
-  //! \brief Get preconditioner
-  const char* getSubPreconditioner(size_t i = 0) const { return subprec[i].c_str(); }
+  const char* getPreconditioner(int i = -1) const;
 
   //! \brief Get linear solver package
   const char* getPackage(size_t i = 0) const { return package[i].c_str(); }
@@ -209,7 +204,6 @@ private:
   StringVec              subprec;           // Preconditioners for block-system
   StringVec              hypretype;         // Type of hypre preconditioner
   StringVec              package;           // Linear software package (petsc, superlu_dist, ...)
-  BoolVec                asmlu;             // Use lu as subdomain solver
   IntVec                 ncomps;            // Components for each fields in block-vector
   PetscIntVec            overlap;           // Number of overlap in ASM
   PetscIntVec            levels;            // Number of levels of fill to use
@@ -241,7 +235,7 @@ private:
   PetscIntVec            GAMGrepartition;   // Repartition coarse grid for GAMG preconditioner (0 = false, 1 = true)
   PetscIntVec            GAMGuseAggGasm;    // Use aggregation aggregates for GASM smoother     (0 = false, 1 = true)
   PetscIntVec            GAMGreuseInterp;   // Reuse interpolation
-  PetscIntVec            HypreNoAggCoarse; // Number of levels of aggressive coarsening
+  PetscIntVec            HypreNoAggCoarse;  // Number of levels of aggressive coarsening
   PetscIntVec            HypreNoPathAggCoarse; // Number of paths for aggressive coarsening
   PetscRealVec           HypreTruncation;   // Truncation factor for interpolation
   PetscRealVec           HypreThreshold;    // Drop tolerance for Hypre
@@ -253,7 +247,8 @@ private:
   IntMat                 dirOrder;          // Direction smoother orders/numberings
   std::vector<NullSpace> nullspc;           // Null-space for matrix
 #endif // HAS_PETSC
-  const PetscInt         nsd;               //!< Number of space dimensions
+  PetscInt               nsd;               //!< Number of space dimensions
+  int                    msgLev;            //!< Flag for extra output
 
   friend class PETScMatrix;
   friend class PETScBlockMatrix;

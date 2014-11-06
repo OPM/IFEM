@@ -257,7 +257,6 @@ protected:
   PetscIntMat         subdDofs;    //!< Degrees of freedom for subdomains
   PetscRealVec        coords;      //!< Coordinates of local nodes (x0,y0,z0,x1,y1,...)
   ISMat               dirIndexSet; //!< Direction ordering
-  int                 nIts;        //!< Total number of iterations
   int                 nLinSolves;  //!< Number of linear solves
   LinAlg::LinearSystemType linsysType;  //!< Linear system type
 

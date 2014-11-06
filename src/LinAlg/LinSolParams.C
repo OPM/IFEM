@@ -14,13 +14,11 @@
 #include "LinSolParams.h"
 #include "PCPerm.h"
 #include "Utilities.h"
+#include "tinyxml.h"
 #include <fstream>
-#include <string>
-#include <iostream>
 #include <sstream>
 #include <utility>
 #include <iterator>
-#include "tinyxml.h"
 
 
 void LinSolParams::setDefault ()
@@ -51,12 +49,12 @@ void LinSolParams::setDefault ()
   ny.resize(1,0);
   nz.resize(1,0);
   nullspc.resize(1,NONE);
-  asmlu.resize(1,false);
-  nblock   = 1;
-  schur    = false;
+  nblock = 1;
+  schur = false;
   schurPrec = SIMPLE;
-  ncomps.resize(2); ncomps[0]   = 2; ncomps[1]   = 1;
-    
+  ncomps.resize(2,1);
+  ncomps.front() = 2;
+
   atol      = 1.0e-6;
   rtol      = 1.0e-6;
   dtol      = 1.0e3;
@@ -84,8 +82,6 @@ bool LinSolParams::read (std::istream& is, int nparam)
       int j = 0;
       while (c[j] != EOF && c[j] != '\n' && c[j] != ' ' && c[j] != '\0') j++;
       prec.assign(c,j);
-      if ((asmlu[0] = (prec.substr(0,5) == "asmlu")))
-	prec = "asm";
     }
 
     else if (!strncasecmp(cline,"hypretype",9)) {
@@ -185,15 +181,10 @@ bool LinSolParams::read (const TiXmlElement* child)
   const char* value = 0;
   if ((value = utl::getValue(child,"type")))
     method = value;
-  else if ((value = utl::getValue(child,"pc"))) {
-    prec = value;
-    if (!strncasecmp(prec.c_str(),"asmlu",5)) {
-      prec = "asm";
-      asmlu[0] = true;
-    }
-  }
-  else if (value = utl::getValue(child,"noStepBeforeReset"))
+  else if ((value = utl::getValue(child,"noStepBeforeReset")))
     nResetSolver = atoi(value);
+  else if ((value = utl::getValue(child,"pc")))
+    prec = value;
   else if ((value = utl::getValue(child,"schurpc"))) {
     if (!strncasecmp(value,"SIMPLE",6))
       schurPrec = SIMPLE;
@@ -206,12 +197,6 @@ bool LinSolParams::read (const TiXmlElement* child)
     std::istringstream this_line(value);
     std::istream_iterator<std::string> begin(this_line), end;
     subprec.assign(begin,end);
-    asmlu.resize(subprec.size());
-    for (size_t i = 0;i < subprec.size();i++)
-      if (!strncasecmp(subprec[i].c_str(),"asmlu",5)) {
-	asmlu[i] = true;
-	subprec[i] = "asm";
-      }
   }
   else if ((value = utl::getValue(child,"hypretype"))) {
     std::istringstream this_line(value);
@@ -483,6 +468,13 @@ bool LinSolParams::read (const char* filename)
 
 #ifdef HAS_PETSC
 
+const char* LinSolParams::getPreconditioner (int i) const
+{
+  const char* precon = i < 0 ? prec.c_str() : subprec[i].c_str();
+  return strncasecmp(precon,"asmlu",5) == 0 ? "asm" : precon;
+}
+
+
 int LinSolParams::getLocalPartitioning(size_t dir, size_t i) const
 {
   switch (dir) {
@@ -495,7 +487,7 @@ int LinSolParams::getLocalPartitioning(size_t dir, size_t i) const
 
 
 void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
-			      PetscIntMat& subdDofs, PetscRealVec& coords, 
+			      PetscIntMat& subdDofs, PetscRealVec& coords,
 			      ISMat& dirIndexSet) const
 {
   // Set linear solver method
@@ -514,11 +506,11 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
 #else
     PCGetOperators(pc,&mat,&Pmat);
 #endif
-    
     this->addDirSmoother(pc,Pmat,0,dirIndexSet);
   }
   else
-    PCSetType(pc,prec.c_str());
+    PCSetType(pc,this->getPreconditioner());
+
 #if PETSC_HAVE_HYPRE
   if (!strncasecmp(prec.c_str(),"hypre",5)) {
     PCHYPRESetType(pc,hypretype[0].c_str());
@@ -532,27 +524,29 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
     PCGAMGSetType(pc, PCGAMGAGG); // TODO?
   }
 
-  if (!strncasecmp(prec.c_str(),"asm",3) ||!strncasecmp(prec.c_str(),"gasm",4))
-    setupAdditiveSchwarz(pc, overlap[0], asmlu[0], locSubdDofs, subdDofs, false);
+  if (!strncasecmp(prec.c_str(),"asm",3) || !strncasecmp(prec.c_str(),"gasm",4))
+    setupAdditiveSchwarz(pc, overlap[0], !strncasecmp(prec.c_str(),"asmlu",5),
+                         locSubdDofs, subdDofs, false);
   else if (!strncasecmp(prec.c_str(),"ml",2) || !strncasecmp(prec.c_str(),"gamg",4)) {
     if (!strncasecmp(prec.c_str(),"ml",2))
       setMLOptions("", 0);
     else if (!strncasecmp(prec.c_str(),"gamg",4))
       setGAMGOptions("", 0);
-    
+
     PCSetFromOptions(pc);
     PCSetUp(pc);
-    
+
     // Settings for coarse solver
     if (!MLCoarseSolver.empty())
       setupCoarseSolver(pc, "", 0);
 
     setupSmoothers(pc, 0, dirIndexSet, locSubdDofs, subdDofs);
-  } else {
+  }
+  else {
     PCSetFromOptions(pc);
     PCSetUp(pc);
   }
-  
+
   KSPSetFromOptions(ksp);
   KSPSetUp(ksp);
 
@@ -580,7 +574,7 @@ bool LinSolParams::addDirSmoother(PC pc, Mat P, int block,
     PCShellSetName(dirpc,"dir");
     PCPermSetUp(dirpc,&dirIndexSet[block][k],P,dirsmoother[block][k].c_str());
   }
-  
+
   return true;
 }
 

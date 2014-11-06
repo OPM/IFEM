@@ -181,7 +181,6 @@ PETScMatrix::PETScMatrix (const ProcessAdm& padm, const LinSolParams& spar,
   setParams = true;
   elmIS = 0;
   ISsize = 0;
-  nIts = 0;
   nLinSolves = 0;
 }
 
@@ -500,11 +499,12 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS)
   VecDuplicate(Bptr->getVector(),&x);
   VecCopy(Bptr->getVector(),x);
 
-  bool result = solve(x,Bptr->getVector(),newLHS,true);
+  bool result = this->solve(x,Bptr->getVector(),newLHS,true);
   VecDestroy(&x);
 
   return result;
 }
+
 
 bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
 {
@@ -516,8 +516,9 @@ bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
   if (!Xptr)
     return false;
 
-  return solve(Bptr->getVector(), Xptr->getVector(), newLHS, false);
+  return this->solve(Bptr->getVector(),Xptr->getVector(),newLHS,false);
 }
+
 
 bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS, bool knoll)
 {
@@ -552,11 +553,11 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS, bool knoll)
     return false;
   }
 
-  PetscInt its;
-  KSPGetIterationNumber(ksp,&its);
-  PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",
-	      solParams.getMethod(),its);
-  nIts += its;
+  if (solParams.msgLev > 1) {
+    PetscInt its;
+    KSPGetIterationNumber(ksp,&its);
+    PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getMethod(),its);
+  }
   nLinSolves++;
 
   return true;
