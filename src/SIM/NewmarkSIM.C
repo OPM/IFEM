@@ -435,5 +435,8 @@ void NewmarkSIM::dumpResults (double time, std::ostream& os,
   model.dumpResults(solution.front(),time,os,formatted,precision);
   model.dumpMoreResults(time,os,precision);
   if (formatted)
+  {
     model.dumpVector(this->getVelocity(),"velocity",os,precision);
+    model.dumpVector(this->getAcceleration(),"acceleration",os,precision);
+  }
 }
