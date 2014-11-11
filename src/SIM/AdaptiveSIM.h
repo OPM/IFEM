@@ -22,6 +22,8 @@ class SIMoutput;
 class TimeStep;
 class NormBase;
 
+enum class Threshold {NONE, MAXIMUM, AVERAGE, MINIMUM};
+
 
 /*!
   \brief Adaptive solution driver for linear isogeometric FEM simulators.
@@ -100,19 +102,19 @@ protected:
 private:
   SIMoutput* model; //!< The isogeometric FE model
 
-  bool   storeMesh;    //!< Creates a series of eps-files for intermediate steps
-  bool   linIndepTest; //!< Test mesh for linear independence after refinement
-  double beta;         //!< Refinement percentage in each step
-  double errTol;       //!< Global error stop tolerance
-  int    maxStep;      //!< Maximum number of adaptive refinements
-  int    maxDOFs;      //!< Maximum number of degrees of freedom
-  int    symmetry;     //!< Always refine a multiplum of this
-  int    knot_mult;    //!< Knotline multiplicity
-  int    maxTjoints;   //!< Maximum number of hanging nodes on one element
-  double maxAspRatio;  //!< Maximum element aspect ratio
-  bool   closeGaps;    //!< Split elements with a hanging node on each side
-  bool   trueBeta;     //!< Beta measured in solution space dimension increase
-  bool   threashold;   //!< Beta generates a threashold error/max(error)=beta
+  bool      storeMesh;    //!< Creates a series of eps-files for intermediate steps
+  bool      linIndepTest; //!< Test mesh for linear independence after refinement
+  double    beta;         //!< Refinement percentage in each step
+  double    errTol;       //!< Global error stop tolerance
+  int       maxStep;      //!< Maximum number of adaptive refinements
+  int       maxDOFs;      //!< Maximum number of degrees of freedom
+  int       symmetry;     //!< Always refine a multiplum of this
+  int       knot_mult;    //!< Knotline multiplicity
+  int       maxTjoints;   //!< Maximum number of hanging nodes on one element
+  double    maxAspRatio;  //!< Maximum element aspect ratio
+  bool      closeGaps;    //!< Split elements with a hanging node on each side
+  bool      trueBeta;     //!< Beta measured in solution space dimension increase
+  Threshold threshold;    //!< Beta generates a threshold error
 
   //! Refinement scheme: 0=fullspan, 1=minspan, 2=isotropic_elements,
   //! 3=isotropic_functions

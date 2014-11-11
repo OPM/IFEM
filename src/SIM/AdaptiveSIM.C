@@ -36,11 +36,11 @@ AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : SIMinput(*sim)
   errTol       = 1.0;
   maxStep      = 10;
   maxDOFs      = 1000000;
-  scheme       = 0; // fullspan
-  symmetry     = 1; // no symmetry
-  knot_mult    = 1; // maximum regularity (continuity)
+  scheme       = 0;     // fullspan
+  symmetry     = 1;     // no symmetry
+  knot_mult    = 1;     // maximum regularity (continuity)
   trueBeta     = false; // beta measured in dimension increase
-  threashold   = false; // beta generates a threshold (err/max{err})
+  threshold    = Threshold::NONE;
   adaptor      = 0;
   adNorm       = 0;
   maxTjoints   = -1;
@@ -103,7 +103,13 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
       std::string type;
       utl::getAttribute(child, "type", type, true);
       if (type.compare("threshold") == 0 || type.compare("threashold") == 0)
-        threashold = true;
+        threshold = Threshold::MAXIMUM;
+      else if (type.compare("maximum") == 0)
+        threshold = Threshold::MAXIMUM;
+      else if (type.compare("average") == 0)
+        threshold = Threshold::AVERAGE;
+      else if (type.compare("minimum") == 0)
+        threshold = Threshold::MINIMUM;
       else if (type.compare("truebeta") == 0)
         trueBeta = true;
     }
@@ -160,18 +166,18 @@ bool AdaptiveSIM::initAdaptor (size_t indxProj, size_t nNormProj)
   for (size_t j = 1; pit != opt.project.end(); pit++, j++)
     if (j == adaptor) break;
 
-  std::cout <<"\n\n >>> Starting adaptive simulation based on";
+  IFEM::cout <<"\n\n >>> Starting adaptive simulation based on";
   if (pit != opt.project.end())
-    std::cout <<"\n     "<< pit->second
-              <<" error estimates (norm group "<< adaptor <<") <<<"<< std::endl;
+    IFEM::cout <<"\n     "<< pit->second
+               <<" error estimates (norm group "<< adaptor <<") <<<"<< std::endl;
   else if (model->haveAnaSol())
   {
-    std::cout <<" exact errors <<<"<< std::endl;
+    IFEM::cout <<" exact errors <<<"<< std::endl;
     adaptor = 0; // Assuming the exact errors are stored in the first group
   }
   else
   {
-    std::cout <<" - nothing, can not do that!"<< std::endl;
+    IFEM::cout <<" - nothing, can not do that!"<< std::endl;
     return false;
   }
 
@@ -340,13 +346,22 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   // the variable 'toBeRefined' contains one of the following:
   //   - list of elements to be refined (if fullspan or minspan)
   //   - list of basisfunctions to be refined (if structured mesh)
-  //   - nothing if trueBeta (function returned above)
+  //   - nothing if trueBeta (function returns above)
   size_t refineSize;
-  if (threashold) {
+  double limit = 0;
+  if (threshold != Threshold::NONE) {
+    double sumErr = 0;
+    for(size_t i=0; i<errors.size(); i++) sumErr += errors[i].first;
+    switch(threshold) {
+      case Threshold::MAXIMUM: limit = errors.front().first * beta/100.0; break; // beta percent of max error (less than 100%)
+      case Threshold::AVERAGE: limit = sumErr/errors.size() * beta/100.0; break; // beta percent of avg error (typical   100%)
+      case Threshold::MINIMUM: limit = errors.back().first  * beta/100.0; break; // beta percent of min error (more than 100%)
+      default:                 limit = 0;
+    }
     std::vector<IndexDouble>::const_iterator it;
     it = std::upper_bound(errors.begin(), errors.end(),
-                          IndexDouble(errors.front().first * beta/100.0,0),
-                          std::greater<IndexDouble>());
+                          IndexDouble(limit,0),
+                          std::greater_equal<IndexDouble>());
     refineSize = it - errors.begin();
   }
   else
@@ -354,9 +369,16 @@ bool AdaptiveSIM::adaptMesh (int iStep)
 
   IFEM::cout <<"\nRefining "<< refineSize
              << (scheme < 2 ? " elements" : " basis functions")
-             << (threashold ? " (threshold of " : " (") << beta <<"\%)"
              <<" with errors in range ["<< errors[refineSize-1].first
-             <<","<< errors.front().first <<"]"<< std::endl;
+             <<","<< errors.front().first <<"] ";
+
+  switch(threshold) {
+    case Threshold::NONE   : IFEM::cout << beta <<"\% of all " << (scheme<2?"elements":"basis functions"); break;
+    case Threshold::MAXIMUM: IFEM::cout << beta <<"\% of max error ("     << limit << ")";                 break;
+    case Threshold::AVERAGE: IFEM::cout << beta <<"\% of average error (" << limit << ")";                 break;
+    case Threshold::MINIMUM: IFEM::cout << beta <<"\% of min error ("     << limit << ")";                 break;
+  }
+  IFEM::cout << std::endl;
 /*
   if (symmetry > 0) // Make refineSize a multiplum of 'symmetry' in case of symmetric problems
     refineSize += (symmetry-refineSize%symmetry);
