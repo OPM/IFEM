@@ -81,6 +81,11 @@ bool readBasis (std::vector<ASMbase*>& result, const std::string& name,
     ptype = out.substr(0,10) == "# LRSPLINE" ? ASM::LRSpline : ASM::Spline;
     isLR = ptype == ASM::LRSpline;
     basis << out;
+    if (out.substr(isLR?10:0,3) != (dim==3?"700":dim==2?"200":"100")) {
+      std::cerr << "Basis dimensionality for " << name
+                << " does not match dimension, ignoring" << std::endl;
+      continue;
+    }
     if (dim == 1)
       result.push_back(ASM1D::create(ptype));
     else if (dim == 2)
@@ -465,6 +470,11 @@ int main (int argc, char** argv)
       for (it = pit->second.begin(); it != pit->second.end() && ok; ++it) {
         if (it->once && k > 1)
           continue;
+        if (pit->first != "nodalforces" && patches[pit->first].Patch.empty()) {
+          if (k == 1)
+            std::cerr << "Ignoring \"" << it->name << "\", basis not loaded" << std::endl;
+          continue;
+        }
         std::cout <<"Reading \""<< it->name <<"\""<< std::endl;
         if (pit->first == "nodalforces") {
           Vector vec;
