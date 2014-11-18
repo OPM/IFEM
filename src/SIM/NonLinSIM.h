@@ -47,11 +47,7 @@ public:
   void getTolerances(double& atol, double& rtol, double& dtol, int& mxit) const;
 
   //! \brief Initializes the primary solution vectors.
-  //! \param[in] nSol Number of consequtive solutions stored
-  virtual void init(size_t nSol = 2) { this->MultiStepSIM::init(nSol); }
-
-  //! \brief Initializes the primary solution vectors.
-  //! \param[in] nSol Number of consequtive solutions stored
+  //! \param[in] nSol Number of consequtive solutions stored in core
   //! \param[in] initVal Initial values of the primary solution
   void init(size_t nSol, const RealArray& initVal);
 

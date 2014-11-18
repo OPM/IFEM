@@ -76,7 +76,7 @@ void NewmarkNLSIM::printProblem (std::ostream& os) const
 }
 
 
-void NewmarkNLSIM::init (size_t nSol)
+bool NewmarkNLSIM::initSol (size_t nSol)
 {
   model.setIntegrationPrm(0,alpha1);
   model.setIntegrationPrm(1,fabs(alpha2));
@@ -84,11 +84,12 @@ void NewmarkNLSIM::init (size_t nSol)
   if (alpha2 < 0.0) // Flag that stiffness-proportional damping should depend
     model.setIntegrationPrm(3,-1.0); // on the material stiffness matrix only
 
-  this->MultiStepSIM::init(nSol);
   size_t nDOFs = model.getNoDOFs();
   incDis.resize(nDOFs,true);
   predVel.resize(nDOFs,true);
   predAcc.resize(nDOFs,true);
+
+  return this->MultiStepSIM::initSol(nSol);
 }
 
 
@@ -102,7 +103,7 @@ bool NewmarkNLSIM::advanceStep (TimeStep& param, bool updateTime)
 }
 
 
-void NewmarkNLSIM::finalizeRHSvector ()
+void NewmarkNLSIM::finalizeRHSvector (bool)
 {
   if (Finert)
     model.addToRHSvector(0,*Finert,gamma-0.5);
@@ -178,13 +179,6 @@ bool NewmarkNLSIM::predictStep (TimeStep& param)
 
 bool NewmarkNLSIM::correctStep (TimeStep& param, bool converged)
 {
-  if (solution.size() < 3)
-  {
-    std::cerr <<" *** NewmarkNLSIM::correctStep: Too few solution vectors "
-              << solution.size() << std::endl;
-    return false;
-  }
-
 #ifdef SP_DEBUG
   std::cout <<"\nNewmarkNLSIM::correctStep(converged="
             << std::boolalpha << converged <<")";

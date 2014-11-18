@@ -113,14 +113,14 @@ void NewmarkSIM::printProblem (std::ostream& os) const
 }
 
 
-void NewmarkSIM::init (size_t nSol)
+bool NewmarkSIM::initSol (size_t nSol)
 {
   model.setIntegrationPrm(0,alpha1);
   model.setIntegrationPrm(1,fabs(alpha2));
   model.setIntegrationPrm(2,beta);
   model.setIntegrationPrm(3,gamma);
 
-  this->MultiStepSIM::init(nSol);
+  return this->MultiStepSIM::initSol(nSol);
 }
 
 
@@ -284,7 +284,7 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
   if (!model.assembleSystem(param.time,solution))
     return SIM::FAILURE;
 
-  this->finalizeRHSvector();
+  this->finalizeRHSvector(true);
 
   if (!model.extractLoadVec(residual))
     return SIM::FAILURE;
@@ -319,7 +319,7 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
         if (!model.assembleSystem(param.time,solution))
           return SIM::FAILURE;
 
-        this->finalizeRHSvector();
+        this->finalizeRHSvector(false);
 
         if (!model.extractLoadVec(residual))
           return SIM::FAILURE;

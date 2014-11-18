@@ -37,7 +37,7 @@ public:
   virtual void printProblem(std::ostream& os) const;
 
   //! \brief Initializes primary solution vectors and integration parameters.
-  virtual void init(size_t nSol = 3);
+  virtual bool initSol(size_t nSol = 3);
 
   //! \brief Advances the time step one step forward.
   //! \param param Time stepping parameters
@@ -67,7 +67,7 @@ protected:
   //! \brief Updates configuration variables (solution vector) in an iteration.
   virtual bool correctStep(TimeStep& param, bool = false);
   //! \brief Finalizes the right-hand-side vector on the system level.
-  virtual void finalizeRHSvector() {}
+  virtual void finalizeRHSvector(bool) {}
 
 public:
   //! \brief Returns a const reference to current velocity vector.

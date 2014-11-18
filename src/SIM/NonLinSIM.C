@@ -152,7 +152,7 @@ void NonLinSIM::getTolerances (double& atol, double& rtol,
 
 void NonLinSIM::init (size_t nSol, const RealArray& value)
 {
-  this->MultiStepSIM::init(nSol);
+  this->MultiStepSIM::initSol(nSol);
   if (value.empty() || solution.empty())
     return;
 

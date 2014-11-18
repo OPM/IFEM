@@ -46,17 +46,18 @@ const char** MultiStepSIM::getPrioritizedTags () const
 }
 
 
-void MultiStepSIM::init (size_t nSol)
+bool MultiStepSIM::initSol (size_t nSol)
 {
   if (solution.empty() && nSol > 0)
   {
-    size_t nSols = model.getNoSolutions();
-    if (nSols > nSol) nSol = nSols;
-    solution.resize(nSol);
+    size_t nSolModel = model.getNoSolutions();
+    solution.resize(nSolModel > nSol ? nSolModel : nSol);
   }
 
   for (Vectors::iterator it = solution.begin(); it != solution.end(); ++it)
     it->resize(model.getNoDOFs(),true);
+
+  return true;
 }
 
 

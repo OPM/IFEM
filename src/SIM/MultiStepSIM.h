@@ -47,9 +47,9 @@ public:
   //! \brief Returns a list of prioritized XML-tags.
   virtual const char** getPrioritizedTags() const;
 
-  //! \brief Initializes primary solution vectors and integration parameters.
-  //! \param[in] nSol Number of consequtive solutions stored
-  virtual void init(size_t nSol = 1);
+  //! \brief Initializes primary solution vectors.
+  //! \param[in] nSol Number of consequtive solutions stored in core
+  virtual bool initSol(size_t nSol = 1);
 
   //! \brief Allocates the FE system matrices.
   //! \param[in] withRF Whether nodal reaction forces should be computed or not

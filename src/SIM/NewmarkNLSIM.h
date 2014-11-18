@@ -94,8 +94,9 @@ class SystemVector;
       \f{eqnarray*}{
         {\bf N}_n^0 &=& a_n{\bf M}_n^0 + b_n{\bf C}_n^0 + c_n{\bf K}_n^0 \\
         {\bf R}_n^0 &=& (1+\alpha_H)\left[{\bf F}_n^{E,0} - {\bf F}_n^{S,0} +
-                        (\alpha_1{\bf M}_n^0+\alpha_2{\bf K}_n^0){\bf v}_n
-                        \right] + {\bf F}_n^{I,0} - \alpha_H\tilde{\bf R}_{n-1}
+                                    (\alpha_1{\bf M}_n^0 + \alpha_2{\bf K}_n^0 +
+                                     {\bf C}_n^0){\bf v}_n \right] +
+                        {\bf F}_n^{I,0} - \alpha_H\tilde{\bf R}_{n-1}
       \f} where \f{eqnarray*}{
       a_n &=& \frac{1}{\Delta t_n^2\beta} +
               (1+\alpha_H)\frac{\alpha_1\gamma}{\Delta t_n\beta} \\
@@ -144,8 +145,9 @@ class SystemVector;
         \f{eqnarray*}{
           {\bf N}_n^i &=& a_n{\bf M}_n^i + b_n{\bf C}_n^i + c_n{\bf K}_n^i \\
           {\bf R}_n^i &=& (1+\alpha_H)\left[{\bf F}_n^{E,i} - {\bf F}_n^{S,i} -
-                          (\alpha_1{\bf M}_n^i+\alpha_2{\bf K}_n^i){\bf v}_n
-                          \right] + {\bf F}_n^{I,i} -\alpha_H\tilde{\bf R}_{n-1}
+                                    (\alpha_1{\bf M}_n^i + \alpha_2{\bf K}_n^i +
+                                     {\bf C}_n^i)\dot{\bf u}_n^i \right] +
+                          {\bf F}_n^{I,i} - \alpha_H\tilde{\bf R}_{n-1}
         \f}
       </LI>
 
@@ -184,7 +186,7 @@ public:
   virtual void printProblem(std::ostream& os) const;
 
   //! \brief Initializes primary solution vectors and integration parameters.
-  virtual void init(size_t nSol = 3);
+  virtual bool initSol(size_t nSol = 3);
 
   //! \brief Advances the time step one step forward.
   virtual bool advanceStep(TimeStep& param, bool updateTime = true);
@@ -198,7 +200,7 @@ protected:
   //! \brief Updates configuration variables (solution vector) in an iteration.
   virtual bool correctStep(TimeStep& param, bool converged);
   //! \brief Finalizes the right-hand-side vector on the system level.
-  virtual void finalizeRHSvector();
+  virtual void finalizeRHSvector(bool);
 
 private:
   Vector incDis;  //!< Incremental displacements
