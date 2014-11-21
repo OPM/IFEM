@@ -849,6 +849,41 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
 }
 
 
+bool SIMoutput::writeGlvE (const Vector& vec, int iStep, int& nBlock,
+                           const char* name)
+{
+  if (!myVtf)
+    return false;
+
+  Matrix infield(1,vec.size());
+  infield.fillRow(1,vec.ptr());
+  Matrix field;
+
+  int geomID = myGeomID;
+  IntVec sID;
+  for (size_t i = 0; i < myModel.size(); i++)
+  {
+    if (myModel[i]->empty()) continue; // skip empty patches
+
+    if (msgLevel > 1)
+      std::cout <<"Writing element field " << name << " for patch "<< i+1 << std::endl;
+
+    myModel[i]->extractElmRes(infield,field);
+
+    if (!myVtf->writeEres(field.getRow(1),++nBlock,++geomID))
+      return false;
+
+    sID.push_back(nBlock);
+  }
+
+  int idBlock = 300;
+  if (!myVtf->writeSblk(sID,name,++idBlock,iStep,true))
+    return false;
+
+  return true;
+}
+
+
 void SIMoutput::closeGlv ()
 {
   if (myVtf) delete myVtf;

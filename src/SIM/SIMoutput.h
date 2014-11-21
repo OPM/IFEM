@@ -163,6 +163,14 @@ public:
   //! \details The eigenvalue is used as a label on the step state info.
   bool writeGlvM(const Mode& mode, bool freq, int& nBlock);
 
+  //! \brief Writes element field for a given load/time step to the VTF-file.
+  //! \param[in] field The element field to output
+  //! \param[in] iStep Load/time step identifier
+  //! \param nBlock Running result block counter
+  //! \param[in] name Name of field
+  bool writeGlvE(const Vector& field, int iStep, int& nBlock,
+                 const char* name);
+
   //! \brief Writes element norms for a given load/time step to the VTF-file.
   //! \param[in] norms The element norms to output
   //! \param[in] iStep Load/time step identifier
