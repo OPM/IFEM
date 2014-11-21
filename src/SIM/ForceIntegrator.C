@@ -109,11 +109,16 @@ bool SIM::integrate(const Vectors& solution, SIMbase* model, int code,
       ASMbase* patch = model->getPatch(p->patch);
       if (!patch)
         ok = false;
-      else if (abs(p->ldim)+1 == patch->getNoParamDim())
+      else if ( forceInt->hasInteriorTerms() ||
+               (forceInt->hasBoundaryTerms() &&
+                abs(p->ldim)+1 == patch->getNoParamDim()))
       {
         if (p->patch != prevPatch)
           ok = model->extractPatchSolution(solution,p->patch-1);
-        ok &= patch->integrate(*forceInt,abs(p->lindx),dummy,time);
+        if (forceInt->hasInteriorTerms())
+          ok &= patch->integrate(*forceInt,dummy,time);
+        else
+          ok &= patch->integrate(*forceInt,abs(p->lindx),dummy,time);
         prevPatch = p->patch;
       }
     }

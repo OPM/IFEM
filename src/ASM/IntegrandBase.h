@@ -395,6 +395,11 @@ public:
   //! \brief Returns the number of force components.
   virtual size_t getNoComps() const = 0;
 
+  //! \brief Returns whether this integrand has explicit interior contributions.
+  virtual bool hasInteriorTerms() const { return false; }
+  //! \brief Returns whether this integrand has explicit boundary contributions.
+  virtual bool hasBoundaryTerms() const { return true; }
+
 protected:
   IntegrandBase& myProblem; //!< The problem-specific data
   LintegralVec      eForce; //!< Local integrals used during force integration
