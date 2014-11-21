@@ -171,10 +171,8 @@ bool writeElmPatch(const Vector& locvec,
                    int geomID, int& nBlock, const std::string& description,
                    const std::string& name, VTFList& elist, VTF& myVtf)
 {
-  Matrix field;
-  Matrix tmp(1,locvec.size());
-  tmp.fill(locvec.data(),locvec.size());
-  patch.extractElmRes(tmp,field);
+  Matrix field(1,locvec.size());
+  field.fill(locvec.data(),locvec.size());
   if (grid->getNoElms() > field.cols())
   {
     // Expand the element result array
