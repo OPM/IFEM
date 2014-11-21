@@ -84,6 +84,13 @@ public:
   //! \param[in] entry The DataEntry describing the vector
   virtual void writeNodalForces(int level, const DataEntry& entry);
 
+  //! \brief Writes knot span field to file.
+  //! \param[in] level The time level to write the data at
+  //! \param[in] entry The DataEntry describing the field
+  //! \param[in] prefix Prefix for field
+  virtual void writeKnotspan(int level, const DataEntry& entry,
+                             const std::string& prefix);
+
   //! \brief Writes time stepping info to file.
   //! \param[in] level The time level to write the info at
   //! \param[in] order The temporal order

@@ -124,6 +124,9 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
         case NODALFORCES:
           (*it2)->writeNodalForces(m_level,*it);
           break;
+        case KNOTSPAN:
+          (*it2)->writeKnotspan(m_level,*it,it->second.prefix);
+          break;
         default:
           std::cerr <<"  ** DataExporter: Invalid field type registered "
                     << it->second.field <<", skipping"<< std::endl;

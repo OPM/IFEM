@@ -35,6 +35,7 @@ public:
    //! \brief Supported field types
   enum FieldType {
     VECTOR,
+    KNOTSPAN,
     SIM,
     NODALFORCES
   };
@@ -206,6 +207,13 @@ public:
   //! \param[in] level The time level to write the data at
   //! \param[in] entry The DataEntry describing the vector
   virtual void writeNodalForces(int level, const DataEntry& entry) = 0;
+
+  //! \brief Writes a knotspan field to file.
+  //! \param[in] level The time level to write the data at
+  //! \param[in] entry The DataEntry describing the field
+  //! \param[in] prefix Prefix for field
+  virtual void writeKnotspan(int level, const DataEntry& entry,
+                             const std::string& prefix) = 0;
 
   //! \brief Reads data from a file into s SIM object.
   //! \param[in] level The time level to read the data at

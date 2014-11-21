@@ -163,6 +163,24 @@ void XMLWriter::writeNodalForces(int level, const DataEntry& entry)
 }
 
 
+void XMLWriter::writeKnotspan(int level, const DataEntry& entry,
+                              const std::string& prefix)
+{
+  if (m_rank != 0)
+    return;
+
+  const SIMbase* sim = static_cast<const SIMbase*>(entry.second.data);
+  std::string basisname;
+  if (prefix.empty())
+    basisname = sim->getName()+"-1";
+  else
+    basisname = prefix+sim->getName()+"-1";
+
+  addField(prefix+entry.first,entry.second.description,
+           basisname,1,sim->getNoPatches(),"knotspan");
+}
+
+
 bool XMLWriter::readSIM (int level, const DataEntry& entry)
 {
   return true;

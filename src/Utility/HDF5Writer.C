@@ -526,6 +526,55 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
   delete norm;
 }
 
+
+void HDF5Writer::writeKnotspan (int level, const DataEntry& entry,
+                                const std::string& prefix)
+{
+  SIMbase* sim = static_cast<SIMbase*>(const_cast<void*>(entry.second.data));
+  const Vector* sol = static_cast<const Vector*>(entry.second.data2);
+  if (!sim || !sol) return;
+
+  Matrix infield(1,sol->size());
+  infield.fillRow(1,sol->ptr());
+
+  std::string basisname;
+  if (prefix.empty())
+    basisname = sim->getName()+"-1";
+  else
+    basisname = prefix+sim->getName()+"-1";
+
+#ifdef HAS_HDF5
+  for (int i = 0; i < sim->getNoPatches(); ++i) {
+    std::stringstream str;
+    str << level;
+    str << '/';
+    str << i+1;
+    hid_t group2;
+    if (checkGroupExistence(m_file,str.str().c_str()))
+      group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
+    else
+      group2 = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
+    int loc = sim->getLocalPatchIndex(i+1);
+    if (loc > 0 && (sim->getProcessAdm().isParallel() ||
+                    sim->getGlobalProcessID() == 0)) // we own the patch
+    {
+      Matrix patchEnorm;
+      sim->extractPatchElmRes(infield,patchEnorm,loc-1);
+      writeArray(group2,prefix+entry.second.description,patchEnorm.cols(),
+                 patchEnorm.getRow(1).ptr(),H5T_NATIVE_DOUBLE);
+    }
+    else { // must write empty dummy records for the other patches
+      double dummy;
+      writeArray(group2,prefix+entry.second.description,0,&dummy,H5T_NATIVE_DOUBLE);
+    }
+
+    H5Gclose(group2);
+  }
+#else
+  std::cout << "HDF5Writer: compiled without HDF5 support, no data written" << std::endl;
+#endif
+}
+
 void HDF5Writer::writeBasis (SIMbase* sim, const std::string& name,
                              int basis, int level)
 {
