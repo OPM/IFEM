@@ -113,8 +113,10 @@ bool SIM::integrate(const Vectors& solution, SIMbase* model, int code,
                (forceInt->hasBoundaryTerms() &&
                 abs(p->ldim)+1 == patch->getNoParamDim()))
       {
-        if (p->patch != prevPatch)
+        if (p->patch != prevPatch) {
           ok = model->extractPatchSolution(solution,p->patch-1);
+          model->setPatchMaterial(p->patch);
+        }
         if (forceInt->hasInteriorTerms())
           ok &= patch->integrate(*forceInt,dummy,time);
         else
