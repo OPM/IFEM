@@ -57,6 +57,7 @@ bool SplineFields2D::valueFE (const FiniteElement& fe, Vector& vals) const
 
   // Evaluate the basis functions at the given point
   Go::BasisPtsSf spline;
+#pragma omp critical
   basis->computeBasis(fe.u,fe.v,spline);
 
   // Evaluate the solution field at the given point
@@ -87,6 +88,7 @@ bool SplineFields2D::gradFE (const FiniteElement& fe, Matrix& grad) const
 
   // Evaluate the basis functions at the given point
   Go::BasisDerivsSf spline;
+#pragma omp critical
   surf->computeBasis(fe.u,fe.v,spline);
 
   const int uorder = surf->order_u();
@@ -154,8 +156,8 @@ bool SplineFields2D::hessianFE(const FiniteElement& fe, Matrix3D& H) const
   Matrix3D d2Ndu2;
   Matrix dNdu, dNdX;
   IntVec ip;
-#pragma omp critical
   if (surf == basis) {
+#pragma omp critical
     surf->computeBasis(fe.u,fe.v,spline2);
     
     dNdu.resize(nen,2);
