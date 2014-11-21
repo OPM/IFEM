@@ -19,6 +19,7 @@
 class SIMbase;
 struct TimeDomain;
 class Vec3;
+class ForceBase;
 class GlbForceVec;
 
 
@@ -57,6 +58,16 @@ namespace SIM
   //! \param[in] code Property code associated with the boundary
   //! \param[out] force Global nodal force container (compressed storage)
   bool initBoundaryNodeMap(SIMbase* model, int code, GlbForceVec& force);
+
+  //! \brief Integrates a force integrand on a specified topology set.
+  //! \param[in] solution Primary solution vectors in DOF order
+  //! \param[in] model The isogeometric finite element model
+  //! \param[in] code Code indentifying the boundary subjected to integration
+  //! \param[in] time Parameters for nonlinear and time-dependent simulations
+  //! \param[in] forceInt The force integrand to integrate
+  //! \return True if integration succeeded
+  bool integrate(const Vectors& solution, SIMbase* model, int code,
+                 const TimeDomain& time, ForceBase* forceInt);
 }
 
 #endif
