@@ -69,7 +69,7 @@ bool SIM::getNodalForces (const Vectors& solution, SIMbase* model, int code,
     return false;
   }
 
-  if (!integrate(solution,model,code,time,forceInt))
+  if (!integrate(solution,model,code,time,forceInt,&force))
   {
     std::cerr <<" *** SIM::getNodalForces: Failed to evaluate nodal forces"
               << std::endl;
@@ -96,12 +96,14 @@ bool SIM::initBoundaryNodeMap (SIMbase* model, int code, GlbForceVec& force)
 
 
 bool SIM::integrate(const Vectors& solution, SIMbase* model, int code,
-                      const TimeDomain& time, ForceBase* forceInt)
+                    const TimeDomain& time, ForceBase* forceInt,
+                    GlbForceVec* force)
 {
   // Integrate forces for given boundary segment
   bool ok = true;
   size_t prevPatch = 0;
   GlobalIntegral dummy;
+  GlobalIntegral& frc = force?*force:dummy;
   PropertyVec::const_iterator p;
   for (p = model->begin_prop(); p != model->end_prop() && ok; p++)
     if (abs(p->pindx) == code)
@@ -118,9 +120,9 @@ bool SIM::integrate(const Vectors& solution, SIMbase* model, int code,
           model->setPatchMaterial(p->patch);
         }
         if (forceInt->hasInteriorTerms())
-          ok &= patch->integrate(*forceInt,dummy,time);
+          ok &= patch->integrate(*forceInt,frc,time);
         else
-          ok &= patch->integrate(*forceInt,abs(p->lindx),dummy,time);
+          ok &= patch->integrate(*forceInt,abs(p->lindx),frc,time);
         prevPatch = p->patch;
       }
     }

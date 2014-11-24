@@ -65,9 +65,11 @@ namespace SIM
   //! \param[in] code Code indentifying the boundary subjected to integration
   //! \param[in] time Parameters for nonlinear and time-dependent simulations
   //! \param[in] forceInt The force integrand to integrate
+  //! \param[in] force If non-NULL nodal forces are stored here
   //! \return True if integration succeeded
   bool integrate(const Vectors& solution, SIMbase* model, int code,
-                 const TimeDomain& time, ForceBase* forceInt);
+                 const TimeDomain& time, ForceBase* forceInt,
+                 GlbForceVec* force=NULL);
 }
 
 #endif
