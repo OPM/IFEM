@@ -200,6 +200,7 @@ bool SIM3D::parseBCTag (const TiXmlElement* elem)
     if (pid < 1) return pid == 0;
 
     ASM3D* pch = dynamic_cast<ASM3D*>(myModel[pid-1]);
+    if (!pch) return false;
 
     std::cout <<"\tConstraining P"<< patch
               <<" point at "<< rx <<" "<< ry <<" "<< rz
@@ -757,21 +758,31 @@ bool SIM3D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
 }
 
 
-ASMbase* SIM3D::createDefaultGeometry (const TiXmlElement*) const
+ASMbase* SIM3D::createDefaultGeometry (const TiXmlElement* geo) const
 {
-  std::istringstream unitCube("700 1 0 0\n3 0\n"
-			      "2 2\n0 0 1 1\n"
-			      "2 2\n0 0 1 1\n"
-			      "2 2\n0 0 1 1\n"
-			      "0 0 0\n"
-			      "1 0 0\n"
-			      "0 1 0\n"
-			      "1 1 0\n"
-			      "0 0 1\n"
-			      "1 0 1\n"
-			      "0 1 1\n"
-			      "1 1 1\n");
+  std::string g2("700 1 0 0\n3 0\n"
+                 "2 2\n0 0 1 1\n"
+                 "2 2\n0 0 1 1\n"
+                 "2 2\n0 0 1 1\n"
+                 "0.0 0.0 0.0\n"
+                 "1.0 0.0 0.0\n"
+                 "0.0 1.0 0.0\n"
+                 "1.0 1.0 0.0\n"
+                 "0.0 0.0 1.0\n"
+                 "1.0 0.0 1.0\n"
+                 "0.0 1.0 1.0\n"
+                 "1.0 1.0 1.0\n");
 
+  std::string scale;
+  if (utl::getAttribute(geo,"scale",scale) && scale != "1.0")
+  {
+    std::cout <<"\tscale = "<< scale << std::endl;
+    size_t i = 0, j = 0, ns = scale.size();
+    for (; (i = g2.find("1.0",j)) != std::string::npos; j=i+ns)
+      g2.replace(i,3,scale);
+  }
+
+  std::istringstream unitCube(g2);
   return this->readPatch(unitCube,1);
 }
 
