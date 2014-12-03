@@ -521,12 +521,30 @@ bool SparseMatrix::multiply (const SystemVector& B, SystemVector& C)
   if (editable)
     for (ValueIter it = elem.begin(); it != elem.end(); it++)
       (*Cptr)(it->first.first) += it->second*(*Bptr)(it->first.second);
-  else if (solver == SUPERLU)
+  else if (solver == SUPERLU) {
+#ifdef USE_OPENMP
+    if (omp_get_max_threads() > 1) {
+      std::vector<Vector> V;
+      V.resize(omp_get_max_threads());
+#pragma omp parallel for schedule(static)
+      for (size_t j = 1; j <= ncol; j++) {
+        Vector& myV = V[omp_get_thread_num()];
+        if (myV.empty())
+          myV.resize(nrow);
+        for (int i = IA[j-1]; i < IA[j]; i++)
+          myV(JA[i]+1) += A[i]*(*Bptr)(j);
+      }
+      for (int j=0;j<omp_get_max_threads();++j) {
+        for (size_t i=1;i<=V[j].size();++i)
+          (*Cptr)(i) += V[j](i);
+      }
+    } else
+#endif
     // Column-oriented format with 0-based indices
     for (size_t j = 1; j <= ncol; j++)
       for (int i = IA[j-1]; i < IA[j]; i++)
         (*Cptr)(JA[i]+1) += A[i]*(*Bptr)(j);
-  else
+  } else
     // Row-oriented format with 1-based indices
     for (size_t i = 1; i <= nrow; i++)
       for (int j = IA[i-1]; j < IA[i]; j++)
