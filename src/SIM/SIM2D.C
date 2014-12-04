@@ -667,7 +667,6 @@ bool SIM2D::readPatches (std::istream& isp, PatchVec& patches,
   for (int pchInd = 1; isp.good(); pchInd++)
     if ((pch = ASM2D::create(opt.discretization,nsd,nf,nf[1] > 0)))
     {
-      std::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
       if (!pch->read(isp))
       {
 	delete pch;
@@ -677,6 +676,7 @@ bool SIM2D::readPatches (std::istream& isp, PatchVec& patches,
         delete pch;
       else
       {
+        std::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
         pch->idx = patches.size();
         patches.push_back(pch);
       }

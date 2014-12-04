@@ -690,7 +690,6 @@ bool SIM3D::readPatches (std::istream& isp, PatchVec& patches,
   for (int pchInd = 1; isp.good(); pchInd++)
     if ((pch = ASM3D::create(opt.discretization,nf,nf[1] > 0)))
     {
-      std::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
       if (!pch->read(isp))
       {
         delete pch;
@@ -700,6 +699,7 @@ bool SIM3D::readPatches (std::istream& isp, PatchVec& patches,
         delete pch;
       else
       {
+        std::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
         pch->idx = patches.size();
         patches.push_back(pch);
         if (checkRHSys)
