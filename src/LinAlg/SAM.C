@@ -465,21 +465,11 @@ bool SAM::assembleSystem (SystemVector& sysRHS,
     for (size_t i = 1; i <= meen.size(); i++)
     {
       int ieq = meen[i-1];
-      int iceq = -ieq;
-      if (ieq > 0)
-	sysrhsPtr[ieq-1] -= c0*eK(i,j);
-      else if (iceq > 0)
-	for (int ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ip++)
-	  if (mmceq[ip] > 0)
-	  {
-	    ieq = meqn[mmceq[ip]-1];
-	    sysrhsPtr[ieq-1] -= c0*ttcc[ip]*eK(i,j);
-	  }
-
-      if (reactionForces && iceq >= 0)
+      this->assembleRHS(sysrhsPtr,-c0*eK(i,j),ieq);
+      if (reactionForces && ieq <= 0)
       {
-	eS.resize(eK.rows());
-	eS(i) = -c0*eK(i,j);
+        eS.resize(eK.rows());
+        eS(i) = -c0*eK(i,j);
       }
     }
   }
@@ -508,19 +498,7 @@ bool SAM::assembleSystem (SystemVector& sysRHS,
   if (!this->getElmEqns(meen,iel,eS.size()))
     ierr = 1;
   else for (size_t i = 0; i < meen.size(); i++)
-  {
-    int ieq = meen[i];
-    int iceq = -ieq;
-    if (ieq > 0)
-      sysrhsPtr[ieq-1] += eS[i];
-    else if (iceq > 0)
-      for (int ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ip++)
-	if (mmceq[ip] > 0)
-	{
-	  ieq = meqn[mmceq[ip]-1];
-	  sysrhsPtr[ieq-1] += ttcc[ip]*eS[i];
-	}
-  }
+    this->assembleRHS(sysrhsPtr,eS[i],meen[i]);
 #endif
 
   sysRHS.restore(sysrhsPtr);
@@ -540,19 +518,7 @@ bool SAM::assembleSystem (SystemVector& sysRHS, const Real* nS, int inod,
 
   Real* sysrhsPtr = sysRHS.getPtr();
   for (size_t i = 0; i < mnen.size(); i++)
-  {
-    int ieq = mnen[i];
-    int iceq = -ieq;
-    if (ieq > 0)
-      sysrhsPtr[ieq-1] += nS[i];
-    else if (iceq > 0)
-      for (int ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ip++)
-	if (mmceq[ip] > 0)
-	{
-	  ieq = meqn[mmceq[ip]-1];
-	  sysrhsPtr[ieq-1] += ttcc[ip]*nS[i];
-	}
-  }
+    this->assembleRHS(sysrhsPtr,nS[i],mnen[i]);
   sysRHS.restore(sysrhsPtr);
 
   if (reactionForces)
@@ -560,8 +526,35 @@ bool SAM::assembleSystem (SystemVector& sysRHS, const Real* nS, int inod,
     int ipR, j, k = 0;
     for (j = madof[inod-1]; j < madof[inod]; j++, k++)
       if ((ipR = -msc[j-1]) > 0 && (size_t)ipR <= reactionForces->size())
-	(*reactionForces)(ipR) += nS[k];
+        (*reactionForces)(ipR) += nS[k];
   }
+
+  return true;
+}
+
+
+bool SAM::assembleSystem (SystemVector& sysRHS, Real S,
+                          const std::pair<int,int>& dof) const
+{
+  if (dof.first < 1 || dof.first > nnod)
+  {
+    std::cerr <<"SAM::assembleSystem: Node "<< dof.first
+              <<" is out of range [1,"<< nnod <<"]"<< std::endl;
+    return false;
+  }
+
+  int idof = madof[dof.first-1] + dof.second-1;
+  if (dof.second < 1 || idof >= madof[dof.first])
+  {
+    int nndof = madof[dof.first] - madof[dof.first-1];
+    std::cerr <<"SAM::assembleSystem: Local dof "<< dof.second
+              <<" is out of range [1,"<< nndof <<"]"<< std::endl;
+    return false;
+  }
+
+  Real* sysrhsPtr = sysRHS.getPtr();
+  this->assembleRHS(sysrhsPtr,S,meqn[idof-1]);
+  sysRHS.restore(sysrhsPtr);
 
   return true;
 }
@@ -569,25 +562,29 @@ bool SAM::assembleSystem (SystemVector& sysRHS, const Real* nS, int inod,
 
 void SAM::addToRHS (SystemVector& sysRHS, const RealArray& S) const
 {
-  if (ndof < 1) return;
+  if (ndof < 1 || S.empty()) return;
 
   Real* sysrhsPtr = sysRHS.getPtr();
+
   for (size_t i = 0; i < S.size() && i < (size_t)ndof; i++)
-  {
-    int ieq = meqn[i];
-    int iceq = -ieq;
-    if (ieq > 0)
-      sysrhsPtr[ieq-1] += S[i];
-    else if (iceq > 0)
-      for (int ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ip++)
-        if (mmceq[ip] > 0)
-        {
-          ieq = meqn[mmceq[ip]-1];
-          sysrhsPtr[ieq-1] += ttcc[ip]*S[i];
-        }
-  }
+    this->assembleRHS(sysrhsPtr,S[i],meqn[i]);
 
   sysRHS.restore(sysrhsPtr);
+}
+
+
+void SAM::assembleRHS (Real* RHS, Real value, int ieq) const
+{
+  int iceq = -ieq;
+  if (ieq > 0)
+    RHS[ieq-1] += value;
+  else if (iceq > 0)
+    for (int ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ip++)
+      if (mmceq[ip] > 0)
+      {
+        ieq = meqn[mmceq[ip]-1];
+        RHS[ieq-1] += ttcc[ip]*value;
+      }
 }
 
 

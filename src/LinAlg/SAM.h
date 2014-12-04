@@ -90,7 +90,7 @@ public:
   //! \details This method must be called once before the first call to
   //! \a assembleSystem for a given load case or time step.
   bool initForAssembly(SystemMatrix& sysK, SystemVector& sysRHS,
-		       Vector* reactionForces = 0,
+		       Vector* reactionForces = NULL,
 		       bool dontLockSP = false) const;
 
   //! \brief Initializes a system matrix prior to the element assembly.
@@ -106,7 +106,7 @@ public:
   //! \param reactionForces Pointer to vector of nodal reaction forces
   //! \return \e false if no free DOFs in the system, otherwise \e true
   virtual bool initForAssembly(SystemVector& sysRHS,
-			       Vector* reactionForces = 0) const;
+			       Vector* reactionForces = NULL) const;
 
   //! \brief Adds an element stiffness matrix into the system stiffness matrix.
   //! \param sysK    The left-hand-side system stiffness matrix
@@ -120,7 +120,7 @@ public:
   //! these are also added into the right-hand-side system load vector.
   bool assembleSystem(SystemMatrix& sysK, SystemVector& sysRHS,
 		      const Matrix& eK, int iel = 0,
-		      Vector* reactionForces = 0) const;
+		      Vector* reactionForces = NULL) const;
 
   //! \brief Adds an element matrix into the corresponding system matrix.
   //! \param sysM    The left-hand-side system matrix
@@ -141,7 +141,7 @@ public:
   //! these are added into the right-hand-side system load vector.
   virtual bool assembleSystem(SystemVector& sysRHS,
 			      const Matrix& eK, int iel = 0,
-			      Vector* reactionForces = 0) const;
+			      Vector* reactionForces = NULL) const;
 
   //! \brief Adds an element load vector into the system load vector.
   //! \param sysRHS  The right-hand-side system load vector
@@ -151,7 +151,7 @@ public:
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assembleSystem(SystemVector& sysRHS,
 			      const RealArray& eS, int iel = 0,
-			      Vector* reactionForces = 0) const;
+			      Vector* reactionForces = NULL) const;
 
   //! \brief Adds a node load vector into the system load vector.
   //! \param sysRHS The right-hand-side system load vector
@@ -159,9 +159,17 @@ public:
   //! \param[in] inod Identifier for the node that \a nS belongs to
   //! \param reactionForces Pointer to vector of nodal reaction forces
   //! \return \e true on successful assembly, otherwise \e false
-  virtual bool assembleSystem(SystemVector& sysRHS,
-			      const Real* nS, int inod = 0,
-			      Vector* reactionForces = 0) const;
+  bool assembleSystem(SystemVector& sysRHS,
+                      const Real* nS, int inod = 0,
+                      Vector* reactionForces = NULL) const;
+
+  //! \brief Adds a node load vector into the system load vector.
+  //! \param sysRHS The right-hand-side system load vector
+  //! \param[in] S The nodal load vector
+  //! \param[in] dof Node and local dof number for the load value \a S
+  //! \return \e true on successful assembly, otherwise \e false
+  bool assembleSystem(SystemVector& sysRHS, Real S,
+                      const std::pair<int,int>& dof) const;
 
   //! \brief Adds a global load vector into the system load vector.
   //! \param sysRHS The right-hand-side system load vector
@@ -274,6 +282,16 @@ public:
 protected:
   //! \brief Initializes the DOF-to-equation connectivity array \a MEQN.
   virtual bool initSystemEquations();
+
+  //! \brief Adds a scalar value into a system right hand-side vector.
+  //! \param RHS The right-hand-side system load vector
+  //! \param[in] value The scalar value to add in
+  //! \param[in] ieq Global equation number for the scalar value
+  //!
+  //! \details If \a ieq is zero, this is a fixed DOF and the value is ignored.
+  //! If \a ieq is less than zero, this is a constrained DOF and the value is
+  //! added to the master DOFs of the governing constraint equation of this DOF.
+  void assembleRHS(Real* RHS, Real value, int ieq) const;
 
   //! \brief Assembles reaction forces for the fixed and prescribed DOFs.
   //! \param reac The vector of reaction forces
