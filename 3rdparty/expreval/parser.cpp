@@ -43,7 +43,7 @@ namespace
         return (c == ' ') || (c == '\t') || (c == '\r') || (c == '\n');
     }
     
-    double expreval_atof(const char* str)
+/*    double expreval_atof(const char* str)
     {
         bool negative = false;
         long double value = 0.0;
@@ -90,6 +90,7 @@ namespace
         // The result
         return negative ? -value : value;
     }
+    */
 };
 
 
@@ -688,12 +689,15 @@ void Parser::BuildTokens(const string &exstr)
                             pos++;
                             
                         // Digits after period
-                        while(expreval_isdigit(exstr[pos]))
+                        while(expreval_isdigit(exstr[pos]) ||
+                              toupper(exstr[pos]) == 'E' ||
+                              ((exstr[pos] == '+' || exstr[pos] == '-') &&
+                               toupper(exstr[pos-1]) =='E'))
                             pos++;
                             
                         // Create token
                         string ident = exstr.substr(start, pos - start);
-                        m_tokens.push_back(Token(expreval_atof(ident.c_str()), start, pos - 1));
+                        m_tokens.push_back(Token(atof(ident.c_str()), start, pos - 1));
                         
                         // Move pos back so pos++ will set it right
                         pos--;
