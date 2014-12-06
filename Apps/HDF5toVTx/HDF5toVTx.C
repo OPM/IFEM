@@ -253,6 +253,10 @@ void generateFEModel (std::vector<RealArray*>& result,
   for (size_t i=0;i<patches.size();++i) {
     RealArray* gpar = new RealArray[dims];
     for (int k=0;k<dims;++k) {
+      if (dims == 1) {
+        ASM1D* patch = dynamic_cast<ASM1D*>(patches[i]);
+        if (patch) patch->getGridParameters(gpar[k],nViz[k]-1);
+      }
       if (dims == 2) {
         ASM2D* patch = dynamic_cast<ASM2D*>(patches[i]);
         if (patch) patch->getGridParameters(gpar[k],k,nViz[k]-1);
