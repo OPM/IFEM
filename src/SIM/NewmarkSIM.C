@@ -284,7 +284,7 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
   if (!model.assembleSystem(param.time,solution))
     return SIM::FAILURE;
 
-  this->finalizeRHSvector(true);
+  this->finalizeRHSvector(!param.time.first);
 
   if (!model.extractLoadVec(residual))
     return SIM::FAILURE;
