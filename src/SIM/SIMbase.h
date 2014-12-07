@@ -295,9 +295,9 @@ public:
   //! \param[in] compName Solution name to be used in norm output
   //! \param[in] newLHS If \e false, reuse the LHS-matrix from previous call.
   //! \param[in] idxRHS Index to the right-hand-side vector to solve for
-  bool solveSystem(Vector& solution, int printSol = 0,
-                   const char* compName = "displacement", bool newLHS = true,
-                   size_t idxRHS = 0);
+  virtual bool solveSystem(Vector& solution, int printSol = 0,
+                           const char* compName = "displacement",
+                           bool newLHS = true, size_t idxRHS = 0);
 
   //! \brief Solves a linear system of equations with multiple right-hand-sides.
   //! \param[out] solution Global primary solution vector
