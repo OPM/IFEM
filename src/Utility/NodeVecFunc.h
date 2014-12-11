@@ -29,12 +29,16 @@ class NodeVecFunc : public VecFunc
 {
 public:
   //! \brief The constructor initializes the references.
-  NodeVecFunc(SIMbase& m, const std::vector<Real>& v)
+  NodeVecFunc(SIMbase& m, const std::vector<Real>* v = NULL)
     : idMap(dummy), model(m), value(v) {}
+  //! \brief This constructor provides a node number map in addition.
+  NodeVecFunc(SIMbase& m, const std::vector<Real>* v,
+	      const std::map<int,int>& nodeIdMap)
+    : idMap(nodeIdMap), model(m), value(v) {}
   //! \brief This constructor provides a node number map in addition.
   NodeVecFunc(SIMbase& m, const std::vector<Real>& v,
 	      const std::map<int,int>& nodeIdMap)
-    : idMap(nodeIdMap), model(m), value(v) {}
+    : idMap(nodeIdMap), model(m), value(&v) {}
   //! \brief Empty destructor.
   virtual ~NodeVecFunc() {}
 
@@ -58,7 +62,7 @@ private:
 
 protected:
   SIMbase&                 model; //!< FE model on which the field is defined
-  const std::vector<Real>& value; //!< The nodal field values
+  const std::vector<Real>* value; //!< The nodal field values
 };
 
 #endif
