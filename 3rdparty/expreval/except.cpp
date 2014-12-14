@@ -6,57 +6,30 @@
 
 // Includes
 #include "except.h"
+#include <cerrno>
+#include <cstring>
 
-using namespace std;
 using namespace ExprEval;
 
 
 // Default/unknown ExprEval exception
 //------------------------------------------------------------------------------
-Exception::Exception() :
-        m_start((string::size_type)-1),
-        m_end((string::size_type)-1)
+Exception::Exception()
 {
     m_type = Type_Exception;
+
+    if (errno) m_error = strerror(errno);
+
+    m_start = m_end = (std::string::size_type)-1;
 }
 
 Exception::~Exception() throw()
 {
 }
 
-Exception::Type Exception::GetType() const
-{
-    return m_type;
-}
-
-const string &Exception::GetValue() const
-{
-    return m_value;
-}
-
-void Exception::SetStart(string::size_type start)
-{
-    m_start = start;
-}
-
-void Exception::SetEnd(string::size_type end)
-{
-    m_end = end;
-}
-
-string::size_type Exception::GetStart() const
-{
-    return m_start;
-}
-
-string::size_type Exception::GetEnd() const
-{
-    return m_end;
-}
-
 // Not found exception
 //------------------------------------------------------------------------------
-NotFoundException::NotFoundException(const string &name)
+NotFoundException::NotFoundException(const std::string& name)
 {
     m_type = Type_NotFoundException;
     m_value = name;
@@ -64,7 +37,7 @@ NotFoundException::NotFoundException(const string &name)
 
 // Already exists exception
 //------------------------------------------------------------------------------
-AlreadyExistsException::AlreadyExistsException(const string &name)
+AlreadyExistsException::AlreadyExistsException(const std::string& name)
 {
     m_type = Type_AlreadyExistsException;
     m_value = name;
@@ -72,7 +45,7 @@ AlreadyExistsException::AlreadyExistsException(const string &name)
 
 // Null pointer exception
 //------------------------------------------------------------------------------
-NullPointerException::NullPointerException(const string &method)
+NullPointerException::NullPointerException(const std::string& method)
 {
     m_type = Type_NullPointerException;
     m_value = method;
@@ -80,7 +53,7 @@ NullPointerException::NullPointerException(const string &method)
 
 // Math error exception
 //------------------------------------------------------------------------------
-MathException::MathException(const string &function)
+MathException::MathException(const std::string& function)
 {
     m_type = Type_MathException;
     m_value = function;
@@ -130,7 +103,7 @@ UnknownTokenException::UnknownTokenException()
 
 // Invalid argument count
 //------------------------------------------------------------------------------
-InvalidArgumentCountException::InvalidArgumentCountException(const string &function)
+InvalidArgumentCountException::InvalidArgumentCountException(const std::string& function)
 {
     m_type = Type_InvalidArgumentCountException;
     m_value = function;
@@ -138,7 +111,7 @@ InvalidArgumentCountException::InvalidArgumentCountException(const string &funct
 
 // Assign to constant
 //------------------------------------------------------------------------------
-ConstantAssignException::ConstantAssignException(const string &value)
+ConstantAssignException::ConstantAssignException(const std::string& value)
 {
     m_type = Type_ConstantAssignException;
     m_value = value;
@@ -146,7 +119,7 @@ ConstantAssignException::ConstantAssignException(const string &value)
 
 // Pass constant by reference
 //------------------------------------------------------------------------------
-ConstantReferenceException::ConstantReferenceException(const string &value)
+ConstantReferenceException::ConstantReferenceException(const std::string& value)
 {
     m_type = Type_ConstantReferenceException;
     m_value = value;

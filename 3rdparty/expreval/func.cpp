@@ -16,7 +16,6 @@
 #include "node.h"
 #include "except.h"
 
-using namespace std;
 using namespace ExprEval;
 
 // Anonymous namespace for items
@@ -41,7 +40,7 @@ namespace
     class abs_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "abs";
         }
@@ -64,12 +63,10 @@ namespace
     
         double DoEvaluate()
         {
-            double result;
-            
-            // Check for math errors
             errno = 0;
             
-            result = fmod(m_nodes[0]->Evaluate(), m_nodes[1]->Evaluate());
+            double result = fmod(m_nodes[0]->Evaluate(), m_nodes[1]->Evaluate());
+            
             if(errno)
                 throw(MathException(GetName()));
                 
@@ -80,7 +77,7 @@ namespace
     class mod_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "mod";
         }
@@ -114,7 +111,7 @@ namespace
     class ipart_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "ipart";
         }
@@ -146,7 +143,7 @@ namespace
     class fpart_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "fpart";
         }
@@ -169,7 +166,7 @@ namespace
     
         double DoEvaluate()
         {
-            vector<Node*>::size_type pos;
+            std::vector<Node*>::size_type pos;
             
             double result = m_nodes[0]->Evaluate();
             
@@ -187,7 +184,7 @@ namespace
     class min_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "min";
         }
@@ -210,7 +207,7 @@ namespace
     
         double DoEvaluate()
         {
-            vector<Node*>::size_type pos;
+            std::vector<Node*>::size_type pos;
             
             double result = m_nodes[0]->Evaluate();
             
@@ -228,7 +225,7 @@ namespace
     class max_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "max";
         }
@@ -265,7 +262,7 @@ namespace
     class sqrt_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "sqrt";
         }
@@ -302,7 +299,7 @@ namespace
     class sin_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "sin";
         }
@@ -339,7 +336,7 @@ namespace
     class cos_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "cos";
         }
@@ -376,7 +373,7 @@ namespace
     class tan_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "tan";
         }
@@ -413,7 +410,7 @@ namespace
     class sinh_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "sinh";
         }
@@ -450,7 +447,7 @@ namespace
     class cosh_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "cosh";
         }
@@ -487,7 +484,7 @@ namespace
     class tanh_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "tanh";
         }
@@ -524,7 +521,7 @@ namespace
     class asin_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "asin";
         }
@@ -561,7 +558,7 @@ namespace
     class acos_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "acos";
         }
@@ -598,7 +595,7 @@ namespace
     class atan_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "atan";
         }
@@ -635,7 +632,7 @@ namespace
     class atan2_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "atan2";
         }
@@ -672,7 +669,7 @@ namespace
     class log_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "log";
         }
@@ -709,7 +706,7 @@ namespace
     class ln_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "ln";
         }
@@ -733,12 +730,12 @@ namespace
         double DoEvaluate()
         {
             errno = 0;
-            
-            double result = exp(m_nodes[0]->Evaluate());
-            
-            if(errno)
+            double x = m_nodes[0]->Evaluate();
+            double result = exp(x);
+
+            if (errno && x > 0.0) // Fixed: No exception on underflow
                 throw(MathException(GetName()));
-            
+
             return result;
         }
     };
@@ -746,7 +743,7 @@ namespace
     class exp_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "exp";
         }
@@ -790,7 +787,7 @@ namespace
     class logn_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "logn";
         }
@@ -825,7 +822,7 @@ namespace
     class pow_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "pow";
         }
@@ -855,7 +852,7 @@ namespace
     class ceil_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "ceil";
         }
@@ -885,7 +882,7 @@ namespace
     class floor_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "floor";
         }
@@ -925,7 +922,7 @@ namespace
     class rand_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "rand";
         }
@@ -958,7 +955,7 @@ namespace
     class random_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "random";
         }
@@ -993,7 +990,7 @@ namespace
     class randomize_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "randomize";
         }
@@ -1023,7 +1020,7 @@ namespace
     class deg_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "deg";
         }
@@ -1053,7 +1050,7 @@ namespace
     class rad_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "rad";
         }
@@ -1081,7 +1078,7 @@ namespace
             double x = m_nodes[0]->Evaluate();
             double y = m_nodes[1]->Evaluate();
             
-            double d = sqrt(x * x + y * y);
+            double d = hypot(x, y);
             double a = atan2(y, x);
             
             if(errno)
@@ -1100,7 +1097,7 @@ namespace
     class rect2pol_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "rect2pol";
         }
@@ -1144,7 +1141,7 @@ namespace
     class pol2rect_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "pol2rect";
         }
@@ -1179,7 +1176,7 @@ namespace
     class if_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "if";
         }
@@ -1221,7 +1218,7 @@ namespace
     class select_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "select";
         }
@@ -1254,7 +1251,7 @@ namespace
     class equal_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "equal";
         }
@@ -1287,7 +1284,7 @@ namespace
     class above_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "above";
         }
@@ -1320,7 +1317,7 @@ namespace
     class below_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "below";
         }
@@ -1359,7 +1356,7 @@ namespace
     class clip_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "clip";
         }
@@ -1403,7 +1400,7 @@ namespace
     class clamp_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "clamp";
         }
@@ -1445,7 +1442,7 @@ namespace
     class rescale_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "rescale";
         }
@@ -1471,8 +1468,7 @@ namespace
             double total = 0.0;
             double curpow;
             
-            vector<Node*>::size_type pos, count;
-            count = m_nodes.size();
+            std::vector<Node*>::size_type pos, count = m_nodes.size();
             
             curpow = (double)(count - 2);
             
@@ -1497,7 +1493,7 @@ namespace
     class poly_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "poly";
         }
@@ -1530,7 +1526,7 @@ namespace
     class and_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "and";
         }
@@ -1563,7 +1559,7 @@ namespace
     class or_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "or";
         }
@@ -1596,7 +1592,7 @@ namespace
     class not_FunctionFactory : public FunctionFactory
     {
     public:
-        string GetName() const
+        std::string GetName() const
         {
             return "not";
         }

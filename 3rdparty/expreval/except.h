@@ -48,18 +48,19 @@ namespace ExprEval
         Exception();
         virtual ~Exception() throw();
 
-        Type GetType() const;
-        const ::std::string &GetValue() const;
+        Type GetType() const { return m_type; }
+        const ::std::string &GetValue() const { return m_value; }
+        const ::std::string &GetError() const { return m_error; }
 
-        void SetStart(::std::string::size_type start);
-        void SetEnd(::std::string::size_type end);
+        void SetStart(::std::string::size_type start) { m_start = start; }
+        void SetEnd(::std::string::size_type end) { m_end = end; }
 
-        ::std::string::size_type GetStart() const;
-        ::std::string::size_type GetEnd() const;
+        ::std::string::size_type GetStart() const { return m_start; }
+        ::std::string::size_type GetEnd() const { return m_end; }
 
     protected:
         Type m_type;
-        ::std::string m_value;
+        ::std::string m_value, m_error;
         ::std::string::size_type m_start, m_end;
     };
 

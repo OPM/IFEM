@@ -17,6 +17,72 @@
 #include "expreval.h"
 
 
+/*!
+  Prints an error message with the exception occured to std::cerr.
+*/
+
+static void ExprException (const ExprEval::Exception& exc, const char* task,
+                           const char* function = NULL)
+{
+  std::cerr <<" *** Error "<< task <<" function";
+  if (function)
+    std::cerr <<" \""<< function <<"\"";
+  if (!exc.GetValue().empty())
+    std::cerr <<", "<< exc.GetValue();
+
+  switch (exc.GetType()) {
+  case ExprEval::Exception::Type_NotFoundException:
+    std::cerr <<": Not found";
+    break;
+  case ExprEval::Exception::Type_AlreadyExistsException:
+    std::cerr <<": Already exists";
+    break;
+  case ExprEval::Exception::Type_NullPointerException:
+    std::cerr <<": Null pointer";
+    break;
+  case ExprEval::Exception::Type_MathException:
+    std::cerr <<": Math exception, "<< exc.GetError();
+    break;
+  case ExprEval::Exception::Type_DivideByZeroException:
+    std::cerr <<": Division by zero";
+    break;
+  case ExprEval::Exception::Type_NoValueListException:
+    std::cerr <<": No value list";
+    break;
+  case ExprEval::Exception::Type_NoFunctionListException:
+    std::cerr <<": No function list";
+    break;
+  case ExprEval::Exception::Type_AbortException:
+    std::cerr <<": Abort";
+    break;
+  case ExprEval::Exception::Type_EmptyExpressionException:
+    std::cerr <<": Empty expression";
+    break;
+  case ExprEval::Exception::Type_UnknownTokenException:
+    std::cerr <<": Unknown token";
+    break;
+  case ExprEval::Exception::Type_InvalidArgumentCountException:
+    std::cerr <<": Invalid argument count";
+    break;
+  case ExprEval::Exception::Type_ConstantAssignException:
+    std::cerr <<": Constant assign";
+    break;
+  case ExprEval::Exception::Type_ConstantReferenceException:
+    std::cerr <<": Constant reference";
+    break;
+  case ExprEval::Exception::Type_SyntaxException:
+    std::cerr <<": Syntax error";
+    break;
+  case ExprEval::Exception::Type_UnmatchedParenthesisException:
+    std::cerr <<": Unmatched parenthesis";
+    break;
+  default:
+    std::cerr <<": Unknown exception";
+  }
+  std::cerr << std::endl;
+}
+
+
 EvalFunc::EvalFunc (const char* function, const char* x)
 {
   try {
@@ -33,8 +99,9 @@ EvalFunc::EvalFunc (const char* function, const char* x)
 #ifdef USE_OPENMP
     omp_init_lock(&lock);
 #endif
-  } catch(...) {
-    std::cerr <<" *** Error parsing function: "<< function << std::endl;
+  }
+  catch (ExprEval::Exception e) {
+    ExprException(e,"parsing",function);
   }
 }
 
@@ -59,8 +126,9 @@ Real EvalFunc::evaluate (const Real& x) const
   try {
     *arg = x;
     result = expr->Evaluate();
-  } catch(...) {
-    std::cerr <<" *** Error evaluating expression function."<< std::endl;
+  }
+  catch (ExprEval::Exception e) {
+    ExprException(e,"evaluating expression");
   }
 #ifdef USE_OPENMP
   omp_unset_lock(const_cast<omp_lock_t*>(&lock));
@@ -92,8 +160,9 @@ EvalFunction::EvalFunction (const char* function)
 #ifdef USE_OPENMP
     omp_init_lock(&lock);
 #endif
-  } catch(...) {
-    std::cerr <<" *** Error parsing function: "<< function << std::endl;
+  }
+  catch (ExprEval::Exception e) {
+    ExprException(e,"parsing",function);
   }
 
   // Checking if the expression is time-independent
@@ -127,8 +196,9 @@ Real EvalFunction::evaluate (const Vec3& X) const
     *z = X.z;
     *t = Xt ? Xt->t : Real(0);
     result = expr->Evaluate();
-  } catch(...) {
-    std::cerr <<" *** Error evaluating expression function."<< std::endl;
+  }
+  catch (ExprEval::Exception e) {
+    ExprException(e,"evaluating expression");
   }
 #ifdef USE_OPENMP
   omp_unset_lock(const_cast<omp_lock_t*>(&lock));
