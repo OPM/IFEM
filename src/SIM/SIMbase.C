@@ -1854,12 +1854,18 @@ char SIMbase::getNodeType (int inod) const
 
 Vec4 SIMbase::getNodeCoord (int inod) const
 {
+  Vec4 Xnod;
   size_t node = 0;
   for (PatchVec::const_iterator it = myModel.begin(); it != myModel.end(); ++it)
     if ((node = (*it)->getNodeIndex(inod,true)))
-      return Vec4((*it)->getCoord(node),0.0,(*it)->idx);
+    {
+      Xnod = (*it)->getCoord(node);
+      if (myModel.size() > 1)
+        Xnod.idx = (*it)->idx; // Store patch index, if multi-patch model
+      break;
+    }
 
-  return Vec4();
+  return Xnod;
 }
 
 
