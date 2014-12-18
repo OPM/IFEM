@@ -35,8 +35,9 @@ bool GlbForceVec::initNodeMap (const std::vector<int>& globalNodes, size_t nfc)
   F.resize(nfc,nodeMap.size());
   if (illegal == 0) return true;
 
-  std::cerr <<" *** GlbForceVec::initNodeMap: Detected "<< illegal
-            <<" node numbers out of range."<< std::endl;
+  std::cerr <<" *** GlbForceVec::initNodeMap: "<< illegal
+            <<" node numbers (out of "<< globalNodes.size()
+            <<") are out of range [1,"<< nnod <<"]."<< std::endl;
   return false;
 }
 
@@ -107,9 +108,8 @@ Vec3 GlbForceVec::getForce (int node) const
 Vec3 GlbForceVec::getTotalForce () const
 {
   Vec3 force;
-  for (size_t j = 1;j <= F.cols();j++)
-    for (size_t i = 1;i <= F.rows();i++)
-      force[i-1] += F(i,j);
+  for (size_t j = 1; j <= F.cols(); j++)
+    force += Vec3(F.getColumn(j));
 
   return force;
 }
