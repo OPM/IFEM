@@ -28,9 +28,9 @@ bool SIM::setInitialConditions (SIMbase& sim, SIMdependency* fieldHolder)
   // loops over input files
   SIMdependency::InitialCondMap::const_iterator it;
   for (it = sim.getICs().begin(); it != sim.getICs().end(); ++it) {
-    XMLWriter xmlreader(it->first);
+    XMLWriter xmlreader(it->first,sim.getProcessAdm());
     xmlreader.readInfo();
-    HDF5Writer hdf5reader(it->first, true, true);
+    HDF5Writer hdf5reader(it->first,sim.getProcessAdm(),true,true);
     hdf5reader.openFile(0);
     std::map<std::string, SIMdependency::PatchVec> basis;
     // loops over ic's

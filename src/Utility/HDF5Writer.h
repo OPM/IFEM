@@ -34,7 +34,7 @@ public:
   //! \param[in] name The name (filename without extension) of data file
   //! \param[in] append Whether to append to or overwrite an existing file
   //! \param[in] keepopen Whether to always keep the HDF5 open
-  HDF5Writer(const std::string& name, bool append = false,
+  HDF5Writer(const std::string& name, const ProcessAdm& adm, bool append = false,
              bool keepopen = false);
 
   //! \brief Empty destructor.
@@ -175,6 +175,7 @@ private:
   int          m_file; //!< The HDF5 handle for our file
   unsigned int m_flag; //!< The file flags to open HDF5 file with
   bool     m_keepOpen; //!< If \e true, we always keep the file open
+  const ProcessAdm& m_adm;   //!< Pointer to process adm in use
 };
 
 #endif

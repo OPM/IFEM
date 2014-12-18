@@ -22,7 +22,8 @@
 #include <cstdio>
 
 
-XMLWriter::XMLWriter (const std::string& name) : DataWriter(name,".xml")
+XMLWriter::XMLWriter (const std::string& name, const ProcessAdm& adm) :
+  DataWriter(name,adm,".xml")
 {
   m_doc = NULL;
   m_node = NULL;
@@ -56,7 +57,7 @@ void XMLWriter::openFile(int level)
 }
 
 
-void XMLWriter::closeFile(int level, bool)
+void XMLWriter::closeFile(int level, bool force)
 {
   if (!m_doc || m_rank != 0)
     return;

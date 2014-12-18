@@ -144,7 +144,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
     else if (strstr(file,".hdf5")) {
       if (myPid == 0)
         std::cout <<"\tReading global node numbers from "<< file << std::endl;
-      HDF5Writer hdf5(file,true,true);
+      HDF5Writer hdf5(file,getProcessAdm(),true,true);
       const char* field = elem->Attribute("field");
       for (int i = 0; i < this->getNoPatches(); i++)
       {

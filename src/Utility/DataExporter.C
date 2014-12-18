@@ -12,17 +12,17 @@
 //==============================================================================
 
 #include "DataExporter.h"
+#include "SIMbase.h"
 #include "Utilities.h"
 #include "TimeStep.h"
 #include "tinyxml.h"
 #include <iostream>
 #include <algorithm>
-#ifdef PARALLEL_PETSC
-#include <mpi.h>
-#endif
 
 
-DataWriter::DataWriter (const std::string& name, const char* defaultExt)
+DataWriter::DataWriter (const std::string& name,
+                        const ProcessAdm& adm,
+                        const char* defaultExt)
 {
   if (defaultExt && name.find(defaultExt) == std::string::npos)
     m_name = name + defaultExt;
@@ -30,13 +30,9 @@ DataWriter::DataWriter (const std::string& name, const char* defaultExt)
     m_name = name;
 
   m_prefix = NULL;
-#ifdef PARALLEL_PETSC
-  MPI_Comm_size(MPI_COMM_WORLD,&m_size);
-  MPI_Comm_rank(MPI_COMM_WORLD,&m_rank);
-#else
-  m_size = 1;
-  m_rank = 0;
-#endif
+
+  m_size = adm.getNoProcs();
+  m_rank = adm.getProcId();
 }
 
 
@@ -135,11 +131,12 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
     }
     if (tp)
       (*it2)->writeTimeInfo(m_level,m_order,m_ndump,*tp);
+
     (*it2)->closeFile(m_level);
   }
   m_level++;
 
-  // disable fields marks as once
+  // disable fields marked as once
   for (it = m_entry.begin(); it != m_entry.end(); ++it)
     if (abs(it->second.results) & ONCE)
       it->second.enabled = false;
@@ -257,4 +254,13 @@ void DataExporter::OnControl(const TiXmlElement* context)
     else if (strcasecmp(child->Value(),"set_stride") == 0)
       if (utl::getAttribute(child,"value",m_ndump))
         std::cout <<"  * DataWriter: set stride "<< m_ndump << std::endl;
+}
+
+
+std::string DataExporter::getName() const
+{
+  if (!m_writers.empty())
+    return m_writers.front()->getName().substr(0,m_writers.front()->getName().rfind('.'));
+
+  return "";
 }

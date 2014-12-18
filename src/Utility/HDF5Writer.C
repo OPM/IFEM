@@ -36,8 +36,9 @@
 #define HDF5_SANITY_LIMIT 10*1024*1024LL // 10MB
 
 
-HDF5Writer::HDF5Writer (const std::string& name, bool append, bool keepOpen)
-  : DataWriter(name,".hdf5"), m_file(0), m_keepOpen(keepOpen)
+HDF5Writer::HDF5Writer (const std::string& name, const ProcessAdm& adm,
+                        bool append, bool keepOpen)
+  : DataWriter(name,adm,".hdf5"), m_file(0), m_keepOpen(keepOpen), m_adm(adm)
 {
 #ifdef HAS_HDF5
   struct stat temp;
@@ -63,7 +64,7 @@ int HDF5Writer::getLastTimeLevel ()
 #ifdef PARALLEL_PETSC
   MPI_Info info = MPI_INFO_NULL;
   acc_tpl = H5Pcreate(H5P_FILE_ACCESS);
-  H5Pset_fapl_mpio(acc_tpl, MPI_COMM_WORLD, info);
+  H5Pset_fapl_mpio(acc_tpl, MPI_COMM_SELF, info);
 #endif
 
   m_file = H5Fopen(m_name.c_str(),m_flag,acc_tpl);
@@ -94,7 +95,7 @@ void HDF5Writer::openFile(int level)
 #ifdef PARALLEL_PETSC
   MPI_Info info = MPI_INFO_NULL;
   acc_tpl = H5Pcreate(H5P_FILE_ACCESS);
-  H5Pset_fapl_mpio(acc_tpl, MPI_COMM_WORLD, info);
+  H5Pset_fapl_mpio(acc_tpl, *m_adm.getCommunicator(), info);
 #endif
 
   if (m_flag == H5F_ACC_TRUNC)
@@ -137,8 +138,10 @@ void HDF5Writer::closeFile(int level, bool force)
   if (m_keepOpen && !force)
     return;
 #ifdef HAS_HDF5
-  H5Fflush(m_file,H5F_SCOPE_GLOBAL);
-  H5Fclose(m_file);
+  if (m_file) {
+    H5Fflush(m_file,H5F_SCOPE_GLOBAL);
+    H5Fclose(m_file);
+  }
   m_flag = H5F_ACC_RDWR;
   m_file = 0;
 #endif
@@ -208,8 +211,8 @@ void HDF5Writer::writeArray(int group, const std::string& name,
 #ifdef PARALLEL_PETSC
   int lens[m_size], lens2[m_size];
   std::fill(lens,lens+m_size,len);
-  MPI_Barrier(MPI_COMM_WORLD);
-  MPI_Alltoall(lens,1,MPI_INT,lens2,1,MPI_INT,MPI_COMM_WORLD);
+  MPI_Barrier(*m_adm.getCommunicator());
+  MPI_Alltoall(lens,1,MPI_INT,lens2,1,MPI_INT,*m_adm.getCommunicator());
   hsize_t siz   = (hsize_t)std::accumulate(lens2,lens2+m_size,0);
   hsize_t start = (hsize_t)std::accumulate(lens2,lens2+m_rank,0);
 #else

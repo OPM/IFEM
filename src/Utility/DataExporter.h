@@ -19,6 +19,7 @@
 #include <map>
 
 class DataWriter;
+class ProcessAdm;
 class TimeStep;
 
 
@@ -134,6 +135,12 @@ public:
   //! \brief Returns context name for callback for external controller.
   virtual std::string GetContext() const { return "datawriter"; }
 
+  //! \brief Return name from data writer
+  std::string getName() const;
+
+  int getStride() const { return m_ndump; }
+  int getOrder() const { return m_order; }
+
 protected:
   //! \brief Internal helper function.
   int getWritersTimeLevel() const;
@@ -167,7 +174,8 @@ class DataWriter
 {
 protected:
   //! \brief Protected constructor as this is a purely virtual class.
-  DataWriter(const std::string& name, const char* defaultExt = NULL);
+  DataWriter(const std::string& name, const ProcessAdm& adm,
+             const char* defaultExt = NULL);
 
 public:
   //! \brief Empty destructor.
@@ -231,6 +239,9 @@ public:
 
   //! \brief Sets the prefices used for norm output.
   void setNormPrefixes(const char** prefix) { m_prefix = prefix; }
+
+  //! \brief Returns the name of the file
+  const std::string& getName() const { return m_name; }
 
 protected:
   std::string  m_name;   //!< File name

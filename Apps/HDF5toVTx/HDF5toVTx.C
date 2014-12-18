@@ -18,6 +18,7 @@
 #include "ASM3D.h"
 #include "ASMbase.h"
 #include "ElementBlock.h"
+#include "ProcessAdm.h"
 #include "VTU.h"
 #include <sstream>
 #include <cstdlib>
@@ -406,8 +407,8 @@ int main (int argc, char** argv)
   // Process XML - establish fields and collapse bases
   PatchMap patches;
 
-  HDF5Writer hdf(strtok(infile,"."),true,true);
-  XMLWriter xml(infile);
+  HDF5Writer hdf(strtok(infile,"."),ProcessAdm(),true,true);
+  XMLWriter xml(infile,ProcessAdm());
   xml.readInfo();
 
   int levels = xml.getLastTimeLevel();

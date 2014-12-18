@@ -32,11 +32,11 @@ namespace SIM
                      const std::string& restartfile, int interval, int steps)
   {
     DataExporter reader(true,interval,steps);
-    simulator.registerFields(reader);
-    XMLWriter* xml = new XMLWriter(restartfile);
-    HDF5Writer* hdf = new HDF5Writer(restartfile,true);
+    XMLWriter* xml = new XMLWriter(restartfile,solver.getProcessAdm());
+    HDF5Writer* hdf = new HDF5Writer(restartfile,solver.getProcessAdm(),true);
     reader.registerWriter(xml);
     reader.registerWriter(hdf);
+    simulator.registerFields(reader);
     int max = reader.getTimeLevel();
     // correct loaded level if we stopped in the middle of a "stride" level
     if ((max+1) % (steps+1))
@@ -66,11 +66,11 @@ namespace SIM
                                  bool append, int interval, int steps)
   {
     DataExporter* writer = new DataExporter(true,interval,steps);
-    simulator.registerFields(*writer);
-    XMLWriter* xml = new XMLWriter(hdf5file);
-    HDF5Writer* hdf = new HDF5Writer(hdf5file,append);
+    XMLWriter* xml = new XMLWriter(hdf5file,solver.getProcessAdm());
+    HDF5Writer* hdf = new HDF5Writer(hdf5file,solver.getProcessAdm(),append);
     writer->registerWriter(xml);
     writer->registerWriter(hdf);
+    simulator.registerFields(*writer);
     if (!append)
       writer->dumpTimeLevel(&solver.getTimePrm()); // initial state
 

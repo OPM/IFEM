@@ -15,6 +15,7 @@
 #include "ASMbase.h"
 #include "ASM2D.h"
 #include "Field.h"
+#include "ProcessAdm.h"
 #include "Vec3.h"
 #ifdef HAS_HDF5
 #include "HDF5Writer.h"
@@ -27,7 +28,7 @@ FieldFunction::FieldFunction (const std::string& fileName,
                               const std::string& fieldName)
 {
 #ifdef HAS_HDF5
-  HDF5Writer hdf5(fileName,true,true);
+  HDF5Writer hdf5(fileName,ProcessAdm(),true,true);
 
   std::string g2;
   std::stringstream str;
