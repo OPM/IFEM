@@ -396,7 +396,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
     else
       group2 = H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT);
     int loc = sim->getLocalPatchIndex(i+1);
-    if (loc > 0 && (sim->getProcessAdm().isParallel() ||
+    if (loc > 0 && (!(abs(results) & DataExporter::REDUNDANT) ||
                     sim->getGlobalProcessID() == 0)) // we own the patch
     {
       if (abs(results) & DataExporter::RESTART) {

@@ -49,7 +49,8 @@ public:
     EIGENMODES   = 16,  //!< Storage of eigenmodes
     ONCE         = 32,  //!< Only write field once
     RESTART      = 64,  //!< Write restart info
-    GRID         = 128  //!< Always store an updated grid
+    GRID         = 128, //!< Always store an updated grid
+    REDUNDANT    = 256  //!< Field is redundantly calculated on all processes
   };
 
   //! \brief A structure holding information about registered fields
