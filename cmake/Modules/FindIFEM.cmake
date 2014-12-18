@@ -71,7 +71,8 @@ IF(IFEM_PATH OR IFEM_AS_SUBMODULE)
                       ${IFEM_PATH}/src/Eig
                       ${IFEM_PATH}/src/LinAlg
                       ${IFEM_PATH}/src/SIM
-                      ${IFEM_PATH}/src/Utility)
+                      ${IFEM_PATH}/src/Utility
+                      ${IFEM_PATH}/3rdparty/gtest/include)
 
     FIND_LIBRARY(IFEM_LIBRARIES
       NAMES IFEM
