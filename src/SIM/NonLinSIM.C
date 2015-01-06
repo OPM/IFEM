@@ -379,6 +379,9 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
 
   if (param.iter == 0)
   {
+    if (linsolNorm == 0.0)
+      return CONVERGED; // No load on this step
+
     if (refNopt == ALL || fabs(norm) > refNorm)
       refNorm = fabs(norm);
 
