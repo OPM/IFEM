@@ -21,6 +21,7 @@
 class SIMbase;
 class SIMoutput;
 class TimeStep;
+struct TimeDomain;
 
 
 /*!
@@ -58,7 +59,7 @@ public:
   //! \brief Advances the time step one step forward.
   //! \param param Time stepping parameters
   //! \param[in] updateTime If \e false, the time parameters are not incremented
-  virtual bool advanceStep(TimeStep& param, bool updateTime = true) = 0;
+  virtual bool advanceStep(TimeStep& param, bool updateTime = true);
 
   //! \brief Solves the FE equations at current time/load step.
   //! \param param Time stepping parameters
@@ -69,6 +70,14 @@ public:
                                     double zero_tolerance = 1.0e-8,
                                     std::streamsize outPrec = 0) = 0;
 
+protected:
+  //! \brief Computes and prints some solution norm quantities.
+  //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
+  //! \param[in] outPrec Number of digits after the decimal point in norm print
+  virtual bool solutionNorms(const TimeDomain&, double zero_tolerance = 1.0e-8,
+                             std::streamsize outPrec = 0);
+
+public:
   //! \brief Initializes the geometry block counter.
   void setStartGeo(int gID);
 
@@ -150,6 +159,7 @@ protected:
   double refNorm; //!< Reference norm value used in convergence checks
   SubIt  subiter; //!< Subiteration flag
   size_t nRHSvec; //!< Number of right-hand-side vectors to assemble
+  char   rotUpd;  //!< Option for how to update of nodal rotations
 
   int geoBlk; //!< Running VTF geometry block counter
   int nBlock; //!< Running VTF result block counter

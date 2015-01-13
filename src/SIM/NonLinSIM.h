@@ -16,8 +16,6 @@
 
 #include "MultiStepSIM.h"
 
-struct TimeDomain;
-
 
 /*!
   \brief Nonlinear solution driver for isogeometric FEM simulators.
@@ -77,14 +75,6 @@ public:
   //! \param[out] norm The norm of the residual
   bool solveLinearizedSystem(const TimeStep& param, double& norm);
 
-  //! \brief Computes and prints some solution norm quantities.
-  //! \param[in] time Parameters for nonlinear/time-dependent simulations
-  //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
-  //! \param[in] outPrec Number of digits after the decimal point in norm print
-  virtual bool solutionNorms(const TimeDomain& time,
-                             double zero_tolerance = 1.0e-8,
-                             std::streamsize outPrec = 0);
-
 protected:
   //! \brief Checks whether the nonlinear iterations have converged or diverged.
   virtual SIM::ConvStatus checkConvergence(TimeStep& param);
@@ -105,7 +95,6 @@ public:
 
 protected:
   bool   fromIni; //!< If \e true, always solve from initial configuration
-  char   rotUpd;  //!< Option for how to update of nodal rotations
   CNORM  iteNorm; //!< The norm type used to measure the residual
   double rTol;    //!< Relative convergence tolerance
   double aTol;    //!< Absolute convergence tolerance

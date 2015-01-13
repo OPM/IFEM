@@ -29,7 +29,6 @@ NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : MultiStepSIM(sim), iteNorm(n)
 {
   // Default solution parameters
   fromIni = iteNorm == NONE;
-  rotUpd  = false;
   maxit   = 20;
   nupdat  = 20;
   prnSlow = 0;
@@ -170,11 +169,7 @@ bool NonLinSIM::advanceStep (TimeStep& param, bool updateTime)
   for (int n = solution.size()-1; n > 0; n--)
     std::copy(solution[n-1].begin(),solution[n-1].end(),solution[n].begin());
 
-  if (param.step > 0 && rotUpd == 't')
-    // Update nodal rotations of previous load step
-    model.updateRotations(Vector());
-
-  return updateTime ? param.increment() : true;
+  return this->MultiStepSIM::advanceStep(param,updateTime);
 }
 
 
@@ -494,18 +489,4 @@ bool NonLinSIM::updateConfiguration (TimeStep& time)
   }
 
   return model.updateConfiguration(solution.front());
-}
-
-
-bool NonLinSIM::solutionNorms (const TimeDomain& time,
-                               double zero_tolerance, std::streamsize outPrec)
-{
-  if (msgLevel < 0 || solution.empty()) return true;
-
-  double old_zero_tol = utl::zero_print_tol;
-  utl::zero_print_tol = zero_tolerance;
-  model.printSolutionSummary(solution.front(),0,NULL,outPrec);
-  utl::zero_print_tol = old_zero_tol;
-
-  return true;
 }

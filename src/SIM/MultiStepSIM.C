@@ -13,6 +13,7 @@
 
 #include "MultiStepSIM.h"
 #include "SIMoutput.h"
+#include "TimeStep.h"
 #include "Profiler.h"
 
 
@@ -29,6 +30,7 @@ MultiStepSIM::MultiStepSIM (SIMbase& sim)
   refNorm = 0.0;
   subiter = NONE;
   nRHSvec = 1;
+  rotUpd  = false;
 
   geoBlk = nBlock = 0;
 }
@@ -164,4 +166,28 @@ bool MultiStepSIM::savePoints (const std::string& fileName,
                                std::streamsize precision) const
 {
   return model.savePoints(fileName,solution.front(),time,step,precision);
+}
+
+
+bool MultiStepSIM::advanceStep (TimeStep& param, bool updateTime)
+{
+  if (param.step > 0 && rotUpd == 't')
+    // Update nodal rotations of previous time step
+    model.updateRotations(Vector());
+
+  return updateTime ? param.increment() : true;
+}
+
+
+bool MultiStepSIM::solutionNorms (const TimeDomain&, double zero_tolerance,
+                                  std::streamsize outPrec)
+{
+  if (msgLevel < 0 || solution.empty()) return true;
+
+  double old_zero_tol = utl::zero_print_tol;
+  utl::zero_print_tol = zero_tolerance;
+  model.printSolutionSummary(solution.front(),0,NULL,outPrec);
+  utl::zero_print_tol = old_zero_tol;
+
+  return true;
 }

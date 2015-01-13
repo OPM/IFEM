@@ -28,7 +28,6 @@ NewmarkSIM::NewmarkSIM (SIMbase& sim) : MultiStepSIM(sim)
   alpha2 = 0.0;
 
   predictor = 'a'; // default predictor (zero acceleration)
-  rotUpd = false;
   cNorm = 1; // default convergence check, force residual
 
   // Default iteration parameters
@@ -121,16 +120,6 @@ bool NewmarkSIM::initSol (size_t nSol)
   model.setIntegrationPrm(3,gamma);
 
   return this->MultiStepSIM::initSol(nSol);
-}
-
-
-bool NewmarkSIM::advanceStep (TimeStep& param, bool updateTime)
-{
-  if (param.step > 0 && rotUpd == 't')
-    // Update nodal rotations of previous time step
-    model.updateRotations(Vector());
-
-  return updateTime ? param.increment() : true;
 }
 
 
@@ -299,7 +288,7 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
         if (!this->correctStep(param,subiter&LAST))
           return SIM::FAILURE;
 
-        if (!this->solutionNorms(zero_tolerance,outPrec))
+        if (!this->solutionNorms(param.time,zero_tolerance,outPrec))
           return SIM::FAILURE;
 
         if (subiter&LAST) param.time.first = false;
@@ -381,7 +370,8 @@ SIM::ConvStatus NewmarkSIM::checkConvergence (TimeStep& param)
 }
 
 
-bool NewmarkSIM::solutionNorms (double zero_tolerance, std::streamsize outPrec)
+bool NewmarkSIM::solutionNorms (const TimeDomain&,
+                                double zero_tolerance, std::streamsize outPrec)
 {
   if (msgLevel < 0 || solution.size() < 3) return true;
 

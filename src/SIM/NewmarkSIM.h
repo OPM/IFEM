@@ -39,11 +39,6 @@ public:
   //! \brief Initializes primary solution vectors and integration parameters.
   virtual bool initSol(size_t nSol = 3);
 
-  //! \brief Advances the time step one step forward.
-  //! \param param Time stepping parameters
-  //! \param[in] updateTime If \e false, the time parameters are not incremented
-  virtual bool advanceStep(TimeStep& param, bool updateTime = true);
-
   //! \brief Solves the dynamic equations by a predictor/multi-corrector method.
   //! \param param Time stepping parameters
   //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
@@ -57,7 +52,7 @@ protected:
   //! \brief Computes and prints some solution norm quantities.
   //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
   //! \param[in] outPrec Number of digits after the decimal point in norm print
-  virtual bool solutionNorms(double zero_tolerance = 1.0e-8,
+  virtual bool solutionNorms(const TimeDomain&, double zero_tolerance = 1.0e-8,
                              std::streamsize outPrec = 0);
 
   //! \brief Checks whether the corrector iterations have converged or diverged.
@@ -93,7 +88,6 @@ protected:
 
   // Solution algorithm parameters
   char   predictor; //!< Predictor type flag
-  char   rotUpd;    //!< Option for how to update of nodal rotations
   int    maxit;     //!< Maximum number of iterations in a time step
   double convTol;   //!< Convergence tolerance
   double divgLim;   //!< Relative divergence limit
