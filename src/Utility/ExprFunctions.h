@@ -112,6 +112,10 @@ public:
     for (int i = 0; pos2 < functions.size(); i++)
     {
       std::string func(variables);
+
+      if (!func.empty() && func[func.size()-1] != ';')
+        func += ';';
+
       if (pos == std::string::npos)
         func += functions.substr(pos2);
       else

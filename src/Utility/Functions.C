@@ -450,14 +450,15 @@ RealFunc* utl::parseRealFunc (const std::string& func, const std::string& type)
 }
 
 
-VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type)
+VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
+                            const std::string& variables)
 {
   if (func.empty()) return NULL;
 
   if (type == "expression")
   {
     std::cout <<": "<< func;
-    return new VecFuncExpr(func.c_str());
+    return new VecFuncExpr(func, variables);
   }
   else if (type == "constant")
   {

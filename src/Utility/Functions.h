@@ -519,7 +519,9 @@ namespace utl
   //! \brief Creates a vector-valued function by parsing a character string.
   //! \param[in] func Character string to parse function definition from
   //! \param[in] type Function defintion type flag
-  VecFunc* parseVecFunc(const std::string& func, const std::string& type);
+  //! \param[in] variables Variable definition for expression functions
+  VecFunc* parseVecFunc(const std::string& func, const std::string& type,
+                        const std::string& variables="");
 
   //! \brief Creates a vector-valued function defining a surface traction.
   //! \param[in] func Character string to parse function definition from
