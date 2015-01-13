@@ -247,11 +247,31 @@ bool HDF5Writer::readVector(int level, const DataEntry& entry)
 
 void HDF5Writer::writeVector(int level, const DataEntry& entry)
 {
+  if (!entry.second.enabled)
+    return;
 #ifdef HAS_HDF5
-  Vector* vector = (Vector*)entry.second.data;
-  writeArray(level,entry.first,vector->size(),vector->data(),H5T_NATIVE_DOUBLE);
+#ifdef PARALLEL_PETSC
+  if (entry.second.results & DataExporter::REDUNDANT) {
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+    if (rank != 0)
+      return;
+  }
+#endif
+  std::stringstream str;
+  str << level;
+  hid_t group = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
+
+  if (entry.second.field == DataExporter::VECTOR) {
+    Vector* vector = (Vector*)entry.second.data;
+    writeArray(level,entry.first,vector->size(),vector->data(),H5T_NATIVE_DOUBLE);
+  } else if (entry.second.field == DataExporter::INTVECTOR) {
+    std::vector<int>* data = (std::vector<int>*)entry.second.data;
+    writeArray(group,entry.first,data->size(),&data->front(),H5T_NATIVE_INT);
+  }
+  H5Gclose(group);
 #endif
 }
+
 
 bool HDF5Writer::readSIM (int level, const DataEntry& entry)
 {

@@ -142,7 +142,10 @@ void XMLWriter::writeVector(int level, const DataEntry& entry)
   TiXmlElement element("entry");
   element.SetAttribute("name",entry.first.c_str());
   element.SetAttribute("description",entry.second.description.c_str());
-  element.SetAttribute("type","vector");
+  if (entry.second.field == DataExporter::INTVECTOR)
+    element.SetAttribute("type","intvector");
+  else
+    element.SetAttribute("type","vector");
   Vector* vec = (Vector*)entry.second.data;
   element.SetAttribute("size",vec->size());
   m_node->InsertEndChild(element);

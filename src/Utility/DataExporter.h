@@ -36,6 +36,7 @@ public:
    //! \brief Supported field types
   enum FieldType {
     VECTOR,
+    INTVECTOR,
     KNOTSPAN,
     SIM,
     NODALFORCES

@@ -111,6 +111,7 @@ bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
       if (!it->second.data)
         return false;
       switch (it->second.field) {
+        case INTVECTOR:
         case VECTOR:
           (*it2)->writeVector(m_level,*it);
           break;
