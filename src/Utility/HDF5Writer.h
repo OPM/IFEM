@@ -91,6 +91,13 @@ public:
   virtual void writeKnotspan(int level, const DataEntry& entry,
                              const std::string& prefix);
 
+  //! \brief Write a basis to file
+  //! \param[in] level The time level to write the basis at
+  //! \param[in] entry The DataEntry describing the basis
+  //! \param[in] prefix Prefix for basis
+  virtual void writeBasis(int level, const DataEntry& entry,
+                          const std::string& prefix);
+
   //! \brief Writes time stepping info to file.
   //! \param[in] level The time level to write the info at
   //! \param[in] order The temporal order

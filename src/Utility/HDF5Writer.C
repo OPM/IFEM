@@ -338,35 +338,35 @@ bool HDF5Writer::readVector(int level, const std::string& name,
   return ok;
 }
 
-/* not used, remove?
-bool HDF5Writer::readField(int level, const std::string& name,
-                           Vector& vec, SIMbase* sim, int components)
+
+void HDF5Writer::writeBasis (int level, const DataEntry& entry,
+                             const std::string& prefix)
 {
-  bool ok = true;
-  openFile(level);
+  if (!entry.second.enabled)
+    return;
 #ifdef HAS_HDF5
-  vec.resize(sim->getNoNodes()*components);
-  for (int i = 0; i < sim->getNoPatches() && ok; ++i) {
-    std::stringstream str;
-    str << level;
-    str << '/';
-    str << i+1;
-    hid_t group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
-    int loc = sim->getLocalPatchIndex(i+1);
-    if (loc > 0) {
-      double* tmp = NULL; int siz = 0;
-      readArray(group2,name,siz,tmp);
-      ok = sim->injectPatchSolution(vec,Vector(tmp,siz),
-                                    loc-1,components);
-      delete[] tmp;
-    }
-    H5Gclose(group2);
+#ifdef PARALLEL_PETSC
+  if (entry.second.results & DataExporter::REDUNDANT) {
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+    if (rank != 0)
+      return;
   }
 #endif
-  closeFile(level);
-  return ok;
+
+  SIMbase* sim = static_cast<SIMbase*>(const_cast<void*>(entry.second.data));
+  if (!sim)
+    return;
+
+  std::string basisname;
+  if (prefix.empty())
+    basisname = sim->getName()+"-1";
+  else
+    basisname = prefix+sim->getName()+"-1";
+
+  writeBasis(sim,basisname,1,level);
+#endif
 }
-*/
+
 
 void HDF5Writer::writeSIM (int level, const DataEntry& entry,
                            bool geometryUpdated, const std::string& prefix)

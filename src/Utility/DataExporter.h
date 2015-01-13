@@ -39,7 +39,8 @@ public:
     INTVECTOR,
     KNOTSPAN,
     SIM,
-    NODALFORCES
+    NODALFORCES,
+    BASIS
   };
 
   //! \brief An enum used to describe the results to write from a SIM
@@ -224,6 +225,13 @@ public:
   //! \param[in] prefix Prefix for field
   virtual void writeKnotspan(int level, const DataEntry& entry,
                              const std::string& prefix) = 0;
+
+  //! \brief Write a basis to file
+  //! \param[in] level The time level to write the basis at
+  //! \param[in] entry The DataEntry describing the basis
+  //! \param[in] prefix Prefix for basis
+  virtual void writeBasis(int level, const DataEntry& entry,
+                          const std::string& prefix) = 0;
 
   //! \brief Reads data from a file into s SIM object.
   //! \param[in] level The time level to read the data at
