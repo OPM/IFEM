@@ -2095,6 +2095,9 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 
 double SIMbase::externalEnergy (const Vectors& psol) const
 {
+  if (!myEqSys)
+    return 0.0;
+
   const Vector* reactionForces = myEqSys->getReactions();
   if (!reactionForces || psol.empty()) return 0.0;
 
