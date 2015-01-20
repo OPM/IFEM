@@ -35,10 +35,10 @@ Real VTF::vecOffset[3] = { 0.0, 0.0, 0.0 };
 
 VTF::VTF (const char* filename, int type)
 {
-  myFile = 0;
-  myState = 0;
-  myGBlock = 0;
-  pointGeoID = 0;
+  myFile = NULL;
+  myState = NULL;
+  myGBlock = NULL;
+  pointGeoID = lastStep = 0;
   if (!filename) return;
 
 #if HAS_VTFAPI == 1
@@ -61,7 +61,8 @@ VTF::VTF (const char* filename, int type)
   settings.pszVendorName = "SINTEF ICT";
   settings.iVendorID = 1001;
   settings.pszVendorCode = "Test";
-  if (!VTFA_FAILURE(myFile->CreateVTFxFile(filename,&settings))) {
+  if (!VTFA_FAILURE(myFile->CreateVTFxFile(filename,&settings)))
+  {
     myDatabase = new VTFXADatabase(myFile,"Single",1);
     return;
   }
@@ -70,7 +71,7 @@ VTF::VTF (const char* filename, int type)
 #else
   showError("Not available in this version");
 #endif
-  myFile = 0;
+  myFile = NULL;
 }
 
 
@@ -185,7 +186,8 @@ VTF::~VTF ()
 
   frameGeneratorProps.AddInt(VT_PI_FG_FEM_MODEL_IDS,1);
   singleCase.WritePropertiesBlock(&frameGeneratorProps);
-  for (i = 0; i < myBlocks.size(); i++) {
+  for (i = 0; i < myBlocks.size(); i++)
+  {
     VTFXACasePropertiesBlock partAttr(VT_CT_PART_ATTRIBUTES);
     partAttr.SetPartID(i+1);
     partAttr.AddBool(VT_PB_PA_MESH, VTFXA_FALSE);
@@ -488,7 +490,7 @@ bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int& gID,
   else
     rBlock.SetMapToBlockID(pointGeoID);
 
-  int* mnpc = writePoints ? new int[np] : 0;
+  int* mnpc = writePoints ? new int[np] : NULL;
   std::vector<Vec3Pair>::const_iterator cit;
   for (cit = pntResult.begin(); cit != pntResult.end(); cit++, i++)
     if (writePoints && VTFA_FAILURE(nBlock.AddNode(vecOffset[0]+cit->first.x,
@@ -772,7 +774,10 @@ bool VTF::writeSblk (const std::vector<int>& sBlockIDs, const char* resultName,
 
 bool VTF::writeState (int iStep, const char* fmt, Real refValue, int refType)
 {
+  if (iStep == lastStep)
+    return true;
 
+  lastStep = iStep;
   char stepName[32];
   sprintf(stepName,fmt,refValue);
 #if HAS_VTFAPI == 1
