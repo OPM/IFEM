@@ -72,7 +72,21 @@ bool EigenModeSIM::initSol (size_t nSol)
   model.setMode(SIM::VIBRATION);
   model.initSystem(opt.solver,2,0,false);
   model.setQuadratureRule(opt.nGauss[0]);
-  return model.assembleSystem() && model.systemModes(modes);
+  if (!model.assembleSystem())
+    return false;
+
+  if (!model.systemModes(modes))
+    return false;
+
+  // Scale all eigenvectors to have max amplitude equal to one,
+  // and convert the eigenvalues back to angular frequency
+  for (size_t i = 0; i < modes.size(); i++)
+  {
+    modes[i].eigVec /= modes[i].eigVec.normInf();
+    modes[i].eigVal *= 2.0*M_PI;
+  }
+
+  return true;
 }
 
 
