@@ -252,6 +252,7 @@ void HDF5Writer::writeVector(int level, const DataEntry& entry)
 #ifdef HAS_HDF5
 #ifdef PARALLEL_PETSC
   if (entry.second.results & DataExporter::REDUNDANT) {
+    int rank;
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     if (rank != 0)
       return;
@@ -347,6 +348,7 @@ void HDF5Writer::writeBasis (int level, const DataEntry& entry,
 #ifdef HAS_HDF5
 #ifdef PARALLEL_PETSC
   if (entry.second.results & DataExporter::REDUNDANT) {
+    int rank;
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     if (rank != 0)
       return;
