@@ -522,10 +522,9 @@ bool SparseMatrix::multiply (const SystemVector& B, SystemVector& C)
     for (ValueIter it = elem.begin(); it != elem.end(); it++)
       (*Cptr)(it->first.first) += it->second*(*Bptr)(it->first.second);
   else if (solver == SUPERLU) {
-#ifdef USE_OPENMP
+#ifdef notyet_USE_OPENMP // TODO: akva needs to fix this, gives wrong result!
     if (omp_get_max_threads() > 1) {
-      std::vector<Vector> V;
-      V.resize(omp_get_max_threads());
+      std::vector<Vector> V(omp_get_max_threads());
 #pragma omp parallel for schedule(static)
       for (size_t j = 1; j <= ncol; j++) {
         Vector& myV = V[omp_get_thread_num()];
@@ -534,18 +533,17 @@ bool SparseMatrix::multiply (const SystemVector& B, SystemVector& C)
         for (int i = IA[j-1]; i < IA[j]; i++)
           myV(JA[i]+1) += A[i]*(*Bptr)(j);
       }
-      for (int j=0;j<omp_get_max_threads();++j) {
-        for (size_t i=1;i<=V[j].size();++i)
+      for (int j = 0; j < omp_get_max_threads(); j++)
+        for (size_t i = 1; i <= V[j].size(); i++)
           (*Cptr)(i) += V[j](i);
-      }
     } else
 #endif
     // Column-oriented format with 0-based indices
     for (size_t j = 1; j <= ncol; j++)
       for (int i = IA[j-1]; i < IA[j]; i++)
         (*Cptr)(JA[i]+1) += A[i]*(*Bptr)(j);
-  } else
-    // Row-oriented format with 1-based indices
+  }
+  else // Row-oriented format with 1-based indices
     for (size_t i = 1; i <= nrow; i++)
       for (int j = IA[i-1]; j < IA[i]; j++)
         (*Cptr)(i) += A[j-1]*(*Bptr)(JA[j-1]);
