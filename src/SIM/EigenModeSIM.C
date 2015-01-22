@@ -18,6 +18,14 @@
 #include "tinyxml.h"
 
 
+EigenModeSIM::EigenModeSIM (SIMbase& sim) : MultiStepSIM(sim)
+{
+  rotUpd  = 't';
+  opt.eig = 4;
+  myStart = -1.0;
+}
+
+
 bool EigenModeSIM::parse (const TiXmlElement* elem)
 {
   if (strcasecmp(elem->Value(),"eigenmodes"))
@@ -94,10 +102,12 @@ SIM::ConvStatus EigenModeSIM::solveStep (TimeStep& param, SIM::SolutionMode,
                                          double zero_tolerance,
                                          std::streamsize outPrec)
 {
+  if (myStart < 0.0) myStart = param.time.t - param.time.dt;
+  double t = param.time.t - myStart; // Time since the start of this simulator
+
   solution.front().fill(0.0);
   for (size_t i = 0; i < amplitude.size() && i < modes.size(); i++)
-    solution.front().add(modes[i].eigVec,
-                         amplitude[i]*sin(modes[i].eigVal*param.time.t));
+    solution.front().add(modes[i].eigVec,amplitude[i]*sin(modes[i].eigVal*t));
 
   if (msgLevel >= 0 && myPid == 0) std::cout << std::endl;
   return this->solutionNorms(param.time,zero_tolerance,outPrec) ?
