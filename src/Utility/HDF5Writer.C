@@ -211,7 +211,6 @@ void HDF5Writer::writeArray(int group, const std::string& name,
 #ifdef PARALLEL_PETSC
   int lens[m_size], lens2[m_size];
   std::fill(lens,lens+m_size,len);
-  MPI_Barrier(*m_adm.getCommunicator());
   MPI_Alltoall(lens,1,MPI_INT,lens2,1,MPI_INT,*m_adm.getCommunicator());
   hsize_t siz   = (hsize_t)std::accumulate(lens2,lens2+m_size,0);
   hsize_t start = (hsize_t)std::accumulate(lens2,lens2+m_rank,0);
@@ -249,14 +248,11 @@ void HDF5Writer::writeVector(int level, const DataEntry& entry)
 {
   if (!entry.second.enabled)
     return;
+  int rank=0;
 #ifdef HAS_HDF5
 #ifdef PARALLEL_PETSC
-  if (entry.second.results & DataExporter::REDUNDANT) {
-    int rank;
-    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-    if (rank != 0)
-      return;
-  }
+  if (entry.second.results & DataExporter::REDUNDANT)
+    MPI_Comm_rank(*m_adm.getCommunicator(), &rank);
 #endif
   std::stringstream str;
   str << level;
@@ -264,10 +260,20 @@ void HDF5Writer::writeVector(int level, const DataEntry& entry)
 
   if (entry.second.field == DataExporter::VECTOR) {
     Vector* vector = (Vector*)entry.second.data;
-    writeArray(level,entry.first,vector->size(),vector->data(),H5T_NATIVE_DOUBLE);
+    if (!(entry.second.results & DataExporter::REDUNDANT) || rank == 0)
+      writeArray(level,entry.first,vector->size(),vector->data(),H5T_NATIVE_DOUBLE);
+    if ((entry.second.results & DataExporter::REDUNDANT) && rank != 0) {
+      double dummy;
+      writeArray(group,entry.first,0,&dummy,H5T_NATIVE_DOUBLE);
+    }
   } else if (entry.second.field == DataExporter::INTVECTOR) {
     std::vector<int>* data = (std::vector<int>*)entry.second.data;
-    writeArray(group,entry.first,data->size(),&data->front(),H5T_NATIVE_INT);
+    if (!(entry.second.results & DataExporter::REDUNDANT) || rank == 0)
+      writeArray(group,entry.first,data->size(),&data->front(),H5T_NATIVE_INT);
+    if ((entry.second.results & DataExporter::REDUNDANT) && rank != 0) {
+      int dummy;
+      writeArray(group,entry.first,0,&dummy,H5T_NATIVE_INT);
+    }
   }
   H5Gclose(group);
 #endif
@@ -345,15 +351,6 @@ void HDF5Writer::writeBasis (int level, const DataEntry& entry,
 {
   if (!entry.second.enabled)
     return;
-#ifdef HAS_HDF5
-#ifdef PARALLEL_PETSC
-  if (entry.second.results & DataExporter::REDUNDANT) {
-    int rank;
-    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-    if (rank != 0)
-      return;
-  }
-#endif
 
   SIMbase* sim = static_cast<SIMbase*>(const_cast<void*>(entry.second.data));
   if (!sim)
@@ -365,8 +362,8 @@ void HDF5Writer::writeBasis (int level, const DataEntry& entry,
   else
     basisname = prefix+sim->getName()+"-1";
 
-  writeBasis(sim,basisname,1,level);
-#endif
+  writeBasis(sim,basisname,1,level,
+             entry.second.results & DataExporter::REDUNDANT);
 }
 
 
@@ -601,11 +598,16 @@ void HDF5Writer::writeKnotspan (int level, const DataEntry& entry,
 }
 
 void HDF5Writer::writeBasis (SIMbase* sim, const std::string& name,
-                             int basis, int level)
+                             int basis, int level, bool redundant)
 {
 #ifdef HAS_HDF5
   std::stringstream str;
   str << "/" << level << "/basis";
+  int rank=0;
+#ifdef PARALLEL_PETSC
+  if (redundant)
+    MPI_Comm_rank(*m_adm.getCommunicator(), &rank);
+#endif
   int group;
   if (checkGroupExistence(m_file,str.str().c_str()))
     group = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
@@ -625,8 +627,13 @@ void HDF5Writer::writeBasis (SIMbase* sim, const std::string& name,
     if (loc > 0)
       static_cast<SIMoutput*>(sim)->dumpBasis(str,basis,loc);
     str2 << i;
-    writeArray(group2, str2.str(), str.str().size(), str.str().c_str(),
-               H5T_NATIVE_CHAR);
+    if (!redundant || rank == 0)
+      writeArray(group2, str2.str(), str.str().size(), str.str().c_str(),
+                 H5T_NATIVE_CHAR);
+    if (redundant && rank != 0) {
+      char dummy;
+      writeArray(group2, str2.str(), 0, &dummy, H5T_NATIVE_CHAR);
+    }
   }
   H5Gclose(group2);
   H5Gclose(group);

@@ -156,7 +156,9 @@ protected:
   //! \param[in] name The name of the basis
   //! \param[in] basis 1/2 Write primary or secondary basis from SIM
   //! \param[in] level The time level to write the basis at
-  void writeBasis(SIMbase* SIM, const std::string& name, int basis, int level);
+  //! \param[in] redundant Whether or not basis is redundant across processes
+  void writeBasis(SIMbase* SIM, const std::string& name, int basis,
+                  int level, bool redundant=false);
 
   //! \brief Internal helper function. Reads an array into a array of doubles.
   //! \param[in] group The HDF5 group to read data from
