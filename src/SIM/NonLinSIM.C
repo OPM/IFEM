@@ -447,6 +447,8 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
   // Check for convergence or divergence
   if (fabs(norm) < convTol && (param.iter > 0 || refNopt == ALL))
     status = CONVERGED;
+  else if (std::isnan(linsolNorm))
+    status = DIVERGED;
   else if (fabs(norm) <= fabs(prevNorm))
     nIncrease = 0;
   else if (++nIncrease > 2 || fabs(norm) > divgLim)
