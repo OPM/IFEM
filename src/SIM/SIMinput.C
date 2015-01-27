@@ -16,7 +16,6 @@
 #include "Utilities.h"
 #include "tinyxml.h"
 #include "SystemMatrix.h"
-#include "ASMbase.h"
 #ifdef PARALLEL_PETSC
 #include "petscsys.h"
 #endif
@@ -67,13 +66,6 @@ void SIMinput::printHeading (int& subStep) const
 
 bool SIMinput::read (const char* fileName)
 {
-#ifdef HAS_PETSC
-  // In parallel simulations, we need to retain all DOFs in the equation system.
-  // The fixed DOFs (if any) will receive a homogeneous constraint instead.
-  if (opt.solver == SystemMatrix::PETSC)
-    ASMbase::fixHomogeneousDirichlet = false;
-#endif
-
   static int substep = 0;
   this->printHeading(substep);
 

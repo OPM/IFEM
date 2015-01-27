@@ -144,7 +144,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
     else if (strstr(file,".hdf5")) {
       if (myPid == 0)
         std::cout <<"\tReading global node numbers from "<< file << std::endl;
-      HDF5Writer hdf5(file,getProcessAdm(),true,true);
+      HDF5Writer hdf5(file,ProcessAdm(),true,true);
       const char* field = elem->Attribute("field");
       for (int i = 0; i < this->getNoPatches(); i++)
       {
@@ -214,11 +214,11 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
           int patch = 0;
           utl::getAttribute(item,"patch",patch);
           if ((patch = this->getLocalPatchIndex(patch)) > 0) {
-	    if (abs(idim) == (int)this->getNoParamDim())
+            if (abs(idim) == (int)this->getNoParamDim())
               top.insert(TopItem(patch,0,idim));
             else if (item->FirstChild())
-	    {
-	      std::string value(item->FirstChild()->Value());
+            {
+              std::string value(item->FirstChild()->Value());
               char* cval = strtok(const_cast<char*>(value.c_str())," ");
               for (; cval; cval = strtok(NULL," "))
                 top.insert(TopItem(patch,atoi(cval),idim));
@@ -330,9 +330,9 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
       std::cout <<"\tNeumann code "<< code <<" direction "<< ndir;
       if (!type.empty()) std::cout <<" ("<< type <<")";
       if (elem->FirstChild())
-	this->setNeumann(elem->FirstChild()->Value(),type,ndir,code);
+        this->setNeumann(elem->FirstChild()->Value(),type,ndir,code);
       else
-	this->setNeumann("0.0",type,ndir,code);
+        this->setNeumann("0.0",type,ndir,code);
     }
     std::cout << std::endl;
   }
@@ -608,6 +608,7 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
       }
     }
   }
+
   else if (!strncasecmp(keyWord,"PROPERTYFILE",12))
   {
     bool oneBasedIdx = keyWord[12] == '1';
@@ -787,6 +788,14 @@ bool SIMbase::createFEMmodel (char resetNumb)
   if (nGlPatches == 0 && !adm.isParallel())
     nGlPatches = myModel.size();
 
+#ifdef HAS_PETSC
+  // When PETSc is used, we need to retain all DOFs in the equation system.
+  // The fixed DOFs (if any) will receive a homogeneous constraint instead.
+  ASMbase::fixHomogeneousDirichlet = opt.solver != SystemMatrix::PETSC;
+#else
+  ASMbase::fixHomogeneousDirichlet = true;
+#endif
+
   return true;
 }
 
@@ -903,7 +912,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
     {
       std::cout <<"\nConnectivity for node "<< nit->first <<":";
       for (size_t n = 0; n < nit->second.size(); n++)
-	std::cout <<" P"<< nit->second[n].first <<","<< nit->second[n].second;
+        std::cout <<" P"<< nit->second[n].first <<","<< nit->second[n].second;
     }
   std::cout << std::endl;
 #endif
@@ -1034,6 +1043,17 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
     return false;
   }
 
+  if (opt.solver == SystemMatrix::PETSC)
+    for (mit = myModel.begin(); mit != myModel.end() && myProblem; ++mit)
+      if ((*mit)->end_BC() != (*mit)->begin_BC())
+      {
+        std::cerr <<"\n *** SIMbase::preprocess: Patch "<< (*mit)->idx+1
+                  <<"  has boundary condition codes (eliminated DOFs).\n"
+                  <<"       This is not supported when PETSc is used,"
+                  <<" the input file must be corrected."<< std::endl;
+        return false;
+      }
+
   // Now perform the sub-class specific final preprocessing, if any
   return this->preprocessB() && ierr == 0;
 }
@@ -1129,7 +1149,7 @@ size_t SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
         ++nDefined;
         p->pcode = ptype;
 
-	if (ptype == Property::MATERIAL && pindex >= 0)
+        if (ptype == Property::MATERIAL && pindex >= 0)
           p->pindx = pindex; // Index to material property container
         else if (ptype == Property::NEUMANN_ANASOL ||
                  ptype == Property::DIRICHLET_ANASOL)
@@ -1142,7 +1162,7 @@ size_t SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
               p->pindx = abs(q->pindx);
               break;
             }
-	}
+        }
         else if (ptype >= Property::DIRICHLET && pindex <= LOCAL_AXES)
         {
           p->lindx *= -1; // flag the use of local axis directions
@@ -2274,7 +2294,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     if (!ok)
     {
       std::cerr <<" *** SIMbase::project: Failure when projecting patch "
-                << myModel[i]->idx <<"."<< std::endl;
+                << myModel[i]->idx+1 <<"."<< std::endl;
       return false;
     }
 
