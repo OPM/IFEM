@@ -461,6 +461,12 @@ void ASMbase::makePeriodic (size_t master, size_t slave, int dirs)
 
 void ASMbase::constrainPatch (int dof, int code)
 {
+  if (code > 0)
+    std::cerr <<"  ** ASMbase::constrainPatch: Projection onto the spline basis"
+              <<" not yet implemented!"<< std::endl;
+  else if (code < 0)
+    code = -code;
+
   for (size_t node = 1; node <= this->getNoNodes(1); node++)
     this->prescribe(node,dof,code);
 }

@@ -853,7 +853,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 
   PatchVec::const_iterator mit;
   IntVec::const_iterator it;
-  ASMbase* pch = NULL;
+  ASMbase* pch;
   size_t patch;
 
   // Erase all patches that should be ignored in the analysis
@@ -1500,14 +1500,12 @@ void SIMbase::getBoundaryNodes (int pcode, IntVec& glbNodes, Vec3Vec* XYZ) const
   glbNodes.clear();
   if (XYZ) XYZ->clear();
 
-  int node;
-  size_t i, last = 0;
-  ASMbase* pch = NULL;
-  PropertyVec::const_iterator p;
-  for (p = myProps.begin(); p != myProps.end(); p++)
+  ASMbase* pch;
+  size_t i, node, last = 0;
+  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); p++)
     if (abs(p->pindx) == pcode && (pch = this->getPatch(p->patch)))
-      if (abs(p->ldim)+1 == pch->getNoParamDim())
-      {
+      switch (pch->getNoParamDim() - abs(p->ldim)) {
+      case 1: // The boundary is of one dimension lower than the patch
         pch->getBoundaryNodes(abs(p->lindx),glbNodes);
         for (i = last; XYZ && i < glbNodes.size(); i++)
           if ((node = pch->getNodeIndex(glbNodes[i],true)))
@@ -1515,6 +1513,15 @@ void SIMbase::getBoundaryNodes (int pcode, IntVec& glbNodes, Vec3Vec* XYZ) const
           else
             XYZ->push_back(Vec3());
         last = glbNodes.size();
+        break;
+
+      case 0: // The boundary and the patch are of same dimension
+        for (i = 1; i <= pch->getNoNodes(); i++, last++)
+        {
+          glbNodes.push_back(pch->getNodeID(i));
+          if (XYZ) XYZ->push_back(pch->getCoord(i));
+        }
+        break;
       }
 }
 
