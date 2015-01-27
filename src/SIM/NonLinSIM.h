@@ -20,8 +20,8 @@
 /*!
   \brief Nonlinear solution driver for isogeometric FEM simulators.
   \details This class contains data and methods for computing the nonlinear
-  solution to a FE problem based on splines/NURBS basis functions, through
-  Newton-Raphson iterations.
+  solution to a FE problem based on splines/NURBS basis functions,
+  through Newton-Raphson iterations.
 */
 
 class NonLinSIM : public MultiStepSIM
@@ -36,6 +36,9 @@ public:
   NonLinSIM(SIMbase& sim, CNORM n = ENERGY);
   //! \brief The destructor prints out the slow-converging nodes, if any.
   virtual ~NonLinSIM();
+
+  //! \brief Defines which type of iteration norm to use in convergence checks.
+  void setConvNorm(CNORM n) { if ((iteNorm = n) == NONE) fromIni = true; }
 
   //! \brief Returns solver configuration parameters.
   //! \param[out] atol Absolute residual norm tolerance
