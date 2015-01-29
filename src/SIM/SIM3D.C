@@ -467,6 +467,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
         if (!this->addConstraint(patch,pface,ldim,bcode%1000000,-code,ngno))
           return false;
 
+        std::cout <<" ";
         cline = strtok(NULL," ");
         myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,pd));
       }
@@ -536,7 +537,7 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
     std::cout << (ldim == 0 ? " V" : (aldim == 1 ? " E" : " F")) << lndx;
   std::cout <<" in direction(s) "<< dirs;
   if (lndx < 0) std::cout << (project ? " (local projected)" : " (local)");
-  if (code != 0) std::cout <<" code = "<< abs(code) <<" ";
+  if (code != 0) std::cout <<" code = "<< abs(code);
 #if SP_DEBUG > 1
   std::cout << std::endl;
 #endif

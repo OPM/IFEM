@@ -515,6 +515,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 	if (!this->addConstraint(patch,pedge,ldim,bcode%1000000,-code,ngno))
 	  return false;
 
+	std::cout << std::endl;
 	cline = strtok(NULL," ");
 	myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,pd));
       }
@@ -581,7 +582,7 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
     std::cout << (ldim == 0 ? " V" : " E") << abs(lndx);
   std::cout <<" in direction(s) "<< dirs;
   if (lndx < 0) std::cout << (project ? " (local projected)" : " (local)");
-  if (code != 0) std::cout <<" code = "<< abs(code) <<" ";
+  if (code != 0) std::cout <<" code = "<< abs(code);
 #if SP_DEBUG > 1
   std::cout << std::endl;
 #endif

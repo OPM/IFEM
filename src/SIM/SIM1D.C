@@ -374,6 +374,7 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
 	if (!this->addConstraint(patch,pvert,0,bcode%1000000,code,ngno))
 	  return false;
 
+	std::cout <<" ";
 	cline = strtok(NULL," ");
 	myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,pd));
       }
@@ -433,7 +434,7 @@ bool SIM1D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
   if (ldim == 0)
     std::cout << " V"<< lndx;
   std::cout <<" in direction(s) "<< dirs;
-  if (code) std::cout <<" code = "<< code <<" ";
+  if (code) std::cout <<" code = "<< code;
 #if SP_DEBUG > 1
   std::cout << std::endl;
 #endif
@@ -445,7 +446,8 @@ bool SIM1D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
     {
     case 1: pch->constrainNode(0.0,dirs,code); break;
     case 2: pch->constrainNode(1.0,dirs,code); break;
-    default: std::cout << std::endl;
+    default:
+      std::cout << std::endl;
       return constrError("vertex index ",lndx);
     }
 
