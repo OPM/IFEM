@@ -15,6 +15,7 @@
 #define SIM_OPTIONS_H_
 
 #include "ASMenums.h"
+#include <iostream>
 #include <string>
 #include <map>
 
@@ -52,6 +53,9 @@ public:
 
   //! \brief Returns whether HDF5 output is requested or not.
   bool dumpHDF5(const char* defaultName);
+
+  //! \brief Prints out the simulation options to the given stream.
+  std::ostream& print(std::ostream& os, bool extraBlankLine = false) const;
 
 public:
   ASM::Discretization discretization; //!< Spatial discretization option

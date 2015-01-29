@@ -94,14 +94,12 @@ bool SIMoptions::parseDiscretizationTag (const TiXmlElement* elem)
     }
   }
 
-  else if (!strcasecmp(elem->Value(),"nGauss")) {
-    if (elem->FirstChild()) {
-      std::string value(elem->FirstChild()->Value());
-      char* cval = strtok(const_cast<char*>(value.c_str())," ");
-      for (int i = 0; i < 2 && cval; i++, cval = strtok(NULL," "))
-	for (int j = i; j < 2; j++)
-	  nGauss[j] = atoi(cval);
-    }
+  else if (!strcasecmp(elem->Value(),"nGauss") && elem->FirstChild()) {
+    std::string value(elem->FirstChild()->Value());
+    char* cval = strtok(const_cast<char*>(value.c_str())," ");
+    for (int i = 0; i < 2 && cval; i++, cval = strtok(NULL," "))
+      for (int j = i; j < 2; j++)
+        nGauss[j] = atoi(cval);
   }
 
   return true;
@@ -252,4 +250,56 @@ bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
     return false;
 
   return true;
+}
+
+
+std::ostream& SIMoptions::print (std::ostream& os, bool extraBlankLine) const
+{
+  if (extraBlankLine) os <<"\n";
+
+  os <<"\nEquation solver: "<< solver;
+
+  if (eig > 0)
+    os <<"\nEigenproblem solver: "<< eig
+       <<"\nNumber of eigenvalues: "<< nev
+       <<"\nNumber of Arnoldi vectors: "<< ncv
+       <<"\nShift value: "<< shift;
+
+  os <<"\nNumber of Gauss points: "<< nGauss[0];
+  if (nGauss[1] != nGauss[0]) os <<" "<< nGauss[1];
+
+  switch (discretization) {
+  case ASM::Lagrange:
+    os <<"\nLagrangian basis functions are used"; break;
+  case ASM::Spectral:
+    os <<"\nSpectral basis functions are used"; break;
+  case ASM::LRSpline:
+    os <<"\nLR-spline basis functions are used"; break;
+  case ASM::SplineC1:
+    os <<"\nSpline basis with C1-continuous patch interfaces is used"; break;
+  default: break;
+  }
+
+  if (!project.empty()) {
+    ProjectionMap::const_iterator it = project.begin();
+    os <<"\nEnabled projection(s): "<< it->second;
+    for (; it != project.end(); ++it)
+      os <<"\n                       "<< it->second;
+  }
+
+  if (format >= 0) {
+    os <<"\nVTF file format: "<< (format ? "BINARY":"ASCII")
+       <<"\nNumber of visualization points: "<< nViz[0];
+    for (int j = 1; j < 3 && nViz[j] > 1; j++) os <<" "<< nViz[j];
+  }
+
+  if (!hdf5.empty())
+    os <<"\nHDF5 result database: "<< hdf5 <<".hdf5";
+
+  if (dtSave > 0.0)
+    os <<"\nTime between each result save: "<< dtSave;
+  if (saveInc > 1)
+    os <<"\nIncrements between each result save: "<< saveInc;
+
+  return os;
 }
