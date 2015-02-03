@@ -251,18 +251,19 @@ bool ASMs1D::generateOrientedFEModel (const Vec3& Zaxis)
 
   // Calculate local element axes for 3D beam elements
   for (size_t i = 0; i < myCS.size(); i++)
-  {
-    Vec3 X1 = this->getCoord(1+MNPC[i].front());
-    Vec3 X2 = this->getCoord(1+MNPC[i].back());
-    if (Zaxis.isZero())
-      myCS[i] = Tensor(X2-X1,true);
-    else
-      myCS[i] = Tensor(X2-X1,Zaxis,false,true);
+    if (MLGE[i] > 0)
+    {
+      Vec3 X1 = this->getCoord(1+MNPC[i].front());
+      Vec3 X2 = this->getCoord(1+MNPC[i].back());
+      if (Zaxis.isZero())
+        myCS[i] = Tensor(X2-X1,true);
+      else
+        myCS[i] = Tensor(X2-X1,Zaxis,false,true);
 #ifdef SP_DEBUG
-    std::cout <<"Local axes for beam element "<< i+1
-              <<", from "<< X1 <<" to "<< X2 <<":\n"<< myCS[i];
+      std::cout <<"Local axes for beam element "<< MLGE[i]
+                <<", from "<< X1 <<" to "<< X2 <<":\n"<< myCS[i];
 #endif
-  }
+    }
 
   return true;
 }
@@ -276,16 +277,17 @@ bool ASMs1D::generateTwistedFEModel (const RealFunc& twist, const Vec3& Zaxis)
   // Update the local element axes for 3D beam elements
   Tensor rotX(3);
   for (size_t i = 0; i < myCS.size(); i++)
-  {
-    Vec3 X1 = this->getCoord(1+MNPC[i].front());
-    Vec3 X2 = this->getCoord(1+MNPC[i].back());
-    double alpha = twist(0.5*(X1+X2)); // twist angle in the element mid-point
-    myCS[i] *= Tensor(alpha*M_PI/180.0,1); // rotate about local X-axis
+    if (MLGE[i] > 0)
+    {
+      Vec3 X1 = this->getCoord(1+MNPC[i].front());
+      Vec3 X2 = this->getCoord(1+MNPC[i].back());
+      double alpha = twist(0.5*(X1+X2)); // twist angle in the element mid-point
+      myCS[i] *= Tensor(alpha*M_PI/180.0,1); // rotate about local X-axis
 #ifdef SP_DEBUG
-    std::cout <<"Twisted axes for beam element "<< i+1
-              <<", from "<< X1 <<" to "<< X2 <<":\n"<< myCS[i];
+      std::cout <<"Twisted axes for beam element "<< MLGE[i]
+                <<", from "<< X1 <<" to "<< X2 <<":\n"<< myCS[i];
 #endif
-  }
+    }
 
   return true;
 }
