@@ -132,6 +132,13 @@ Interpolate1D::Interpolate1D (const char* file, int dir_, int col, Real ramp) :
   dir(dir_), time(ramp)
 {
   std::ifstream is(file);
+  if (!is)
+  {
+    std::cerr <<" *** Interpolate1D: Failed to open file "<< file
+              <<", function will be identically zero."<< std::endl;
+    return;
+  }
+
   while (is.good() && !is.eof()) {
     char temp[1024];
     is.getline(temp,1024);
@@ -458,7 +465,7 @@ VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
   if (type == "expression")
   {
     std::cout <<": "<< func;
-    return new VecFuncExpr(func, variables);
+    return new VecFuncExpr(func,variables);
   }
   else if (type == "constant")
   {
