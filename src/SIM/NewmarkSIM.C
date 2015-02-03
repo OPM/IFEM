@@ -360,6 +360,8 @@ SIM::ConvStatus NewmarkSIM::checkConvergence (TimeStep& param)
   SIM::ConvStatus status = SIM::OK;
   if (fabs(norm) < convTol)
     status = SIM::CONVERGED;
+  else if (std::isnan(norms[2]))
+    status = SIM::DIVERGED;
   else if (fabs(norm) <= fabs(prevNorm))
     nIncrease = 0;
   else if (++nIncrease > 2 || fabs(norm) > divgLim)
