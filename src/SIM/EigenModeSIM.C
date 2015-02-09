@@ -32,6 +32,7 @@ bool EigenModeSIM::parse (const TiXmlElement* elem)
     return model.parse(elem);
 
   size_t imode = 0;
+  double freq = 0.0;
   const char* value = NULL;
   const TiXmlElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
@@ -41,6 +42,12 @@ bool EigenModeSIM::parse (const TiXmlElement* elem)
         if (imode > amplitude.size())
           amplitude.resize(imode,0.0);
         amplitude[imode-1] = atof(value);
+        if (utl::getAttribute(child,"frequency",freq) && freq > 0.0)
+        {
+          if (imode > omega.size())
+            omega.resize(imode,0.0);
+          omega[imode-1] = 2.0*M_PI*freq;
+        }
       }
 
   opt.nev = amplitude.size();
@@ -60,8 +67,13 @@ void EigenModeSIM::printProblem (std::ostream& os) const
   for (size_t i = 0; i < amplitude.size(); i++)
     if (amplitude[i] != 0.0)
     {
-      os << (multiModes ? "\n                              + ":" ")
-         << amplitude[i] <<"*v"<< i+1 <<"(x)*sin(omega"<< i+1 <<"*t)";
+      os << (multiModes ? "\n                              + ":" ");
+      os << amplitude[i] <<"*v"<< i+1 <<"(x)*sin(";
+      if (i < omega.size() && omega[i] > 0.0)
+        os << omega[i];
+      else
+        os <<"omega"<< i+1;
+      os <<"*t)";
       multiModes = true;
     }
 
@@ -91,7 +103,10 @@ bool EigenModeSIM::initSol (size_t nSol)
   for (size_t i = 0; i < modes.size(); i++)
   {
     modes[i].eigVec /= modes[i].eigVec.normInf();
-    modes[i].eigVal *= 2.0*M_PI;
+    if (i < omega.size() && omega[i] > 0.0)
+      modes[i].eigVal = omega[i];
+    else
+      modes[i].eigVal *= 2.0*M_PI;
   }
 
   return true;

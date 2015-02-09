@@ -52,6 +52,7 @@ private:
   double              myStart;   //!< The start time of this simulator
   std::vector<Mode>   modes;     //!< Eigenmode shapes and frequencies
   std::vector<double> amplitude; //!< Eigenmode shape amplitudes
+  std::vector<double> omega;     //!< Applied angular frequencies
 };
 
 #endif
