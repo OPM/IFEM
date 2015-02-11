@@ -15,6 +15,13 @@
 #include "ASMbase.h"
 
 
+void SIMgeneric::createDefaultModel ()
+{
+  if (myModel.empty())
+    myModel.resize(1,this->createDefaultGeometry(NULL));
+}
+
+
 Vector SIMgeneric::getSolution (const Vector& psol, const double* par,
                                 int deriv, int patch) const
 {
@@ -38,14 +45,4 @@ Vector SIMgeneric::getSolution (const Vector& psol, const double* par,
     return Vector();
 
   return tmpVal.getColumn(1);
-}
-
-
-bool SIMgeneric::createDefaultModel()
-{
-  for (size_t i=0;i<myModel.size();++i)
-    delete myModel[i];
-  myModel.resize(1,this->createDefaultGeometry(NULL));
-
-  return true;
 }

@@ -31,8 +31,11 @@ protected:
   SIMgeneric(IntegrandBase* itg = NULL) : SIMoutput(itg) {}
 
 public:
-  //! \brief Emptry destructor.
+  //! \brief Empty destructor.
   virtual ~SIMgeneric() {}
+
+  //! \brief Creates a model with the default geometry (line, plane, cube).
+  void createDefaultModel();
 
   //! \brief Evaluates the primary solution at the given point.
   //! \param[in] psol Primary solution vector
@@ -42,9 +45,6 @@ public:
   //! \return Evaluated solution values
   Vector getSolution(const Vector& psol, const double* par,
                      int deriv = 0, int patch = 1) const;
-
-  //! \brief Create a model with the default geometry (line, plane, cube)
-  bool createDefaultModel();
 };
 
 #endif
