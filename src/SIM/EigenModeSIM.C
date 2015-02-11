@@ -107,6 +107,9 @@ bool EigenModeSIM::initSol (size_t nSol)
       modes[i].eigVal = omega[i];
     else
       modes[i].eigVal *= 2.0*M_PI;
+#if SP_DEBUG > 1
+    std::cout <<"\nEigenvector #"<< i+1 <<":"<< modes[i].eigVec;
+#endif
   }
 
   return true;
