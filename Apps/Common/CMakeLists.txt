@@ -31,9 +31,10 @@ SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 
 INCLUDE(cmake/UseMultiArch.cmake)
 
-# Common Navier-Stokes application sources
-ADD_LIBRARY(CommonIFEM Spalding.C
-		       SAWallLaw.C
+# Common application sources
+ADD_LIBRARY(CommonIFEM MeshUtils.C
+                       Spalding.C
+                       SAWallLaw.C
                        StabilizationUtils.C
                        TimeIntUtils.C)
 TARGET_LINK_LIBRARIES(CommonIFEM ${IFEM_LIBRARIES})

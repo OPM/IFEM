@@ -1,0 +1,127 @@
+//==============================================================================
+//!
+//! \file MeshUtils.C
+//!
+//! \date Feb 16 2015
+//!
+//! \author Arne Morten Kvarving / SINTEF
+//!
+//! \brief Various mesh quality indicators
+//!
+//==============================================================================
+
+#include "MeshUtils.h"
+#include "ASMbase.h"
+#include "SIMbase.h"
+#include "Vec3.h"
+#include "Vec3Oper.h"
+
+
+//! \brief A function calculating a quantity for a single element
+typedef double(*CellFunction)(const ASMbase& patch, int iel);
+
+
+//! \brief Function running over mesh cells calling the cellfunction for each element
+static bool compute(Vector& result, const SIMbase& model,
+                    const Vector& displacement, CellFunction func)
+{
+  result.resize(model.getNoElms());
+
+  for (int l = 0; l < model.getNoPatches(); l++) {
+    Vector locvec;
+    int loc = model.getLocalPatchIndex(l+1);
+    if (loc == 0)
+      continue;
+
+    model.extractPatchSolution(displacement,locvec,loc-1);
+    const ASMbase* pch = model.getPatch(loc);
+    if (!displacement.empty()) {
+      model.extractPatchSolution(displacement,locvec,loc-1);
+      const_cast<ASMbase*>(pch)->updateCoords(locvec);
+    }
+
+   int iel = 0;
+   IntMat::const_iterator elm_it = pch->begin_elm();
+   for (size_t e = 1; elm_it != pch->end_elm(); ++elm_it, ++e)
+     if ((iel = pch->getElmID(e)) > 0)
+       result(iel) = func(*pch,e);
+
+    if (!displacement.empty()) {
+      locvec *= -1;
+      const_cast<ASMbase*>(pch)->updateCoords(locvec);
+    }
+  }
+
+  return true;
+}
+
+//! \brief Compute the aspect ratio of a cell
+//! \details The aspect ratio is defined as the longest edge divided
+//!          by the shortest edge
+static double aspectRatio(const ASMbase& patch, int iel)
+{
+  Matrix X;       // Control point coordinates in element
+  patch.getElementCoordinates(X,iel);
+
+  if (patch.getNoSpaceDim() == 2) {
+    Vec3 ll(X(1,1), X(2,1), 0.0);
+    Vec3 lr(X(1,3), X(2,3), 0.0);
+    Vec3 tl(X(1,2), X(2,2), 0.0);
+    Vec3 tr(X(1,4), X(2,4), 0.0);
+    std::vector<double> e(4);
+    e[0] = (tl-ll).length();
+    e[1] = (tr-lr).length();
+    e[2] = (lr-ll).length();
+    e[3] = (tr-tl).length();
+    return *std::max_element(e.begin(),e.end())/
+      *std::min_element(e.begin(),e.end());
+  }
+
+  return 1.0;
+}
+
+//! \brief Compute the skewness of a cell
+//! \details The skewness measures the deviance from a regular
+//!          cell in terms of angles
+static double skewness(const ASMbase& patch, int iel)
+{
+  Matrix X;       // Control point coordinates in element
+  patch.getElementCoordinates(X,iel);
+
+  if (patch.getNoSpaceDim() == 2) {
+    Vec3 ll(X(1,1), X(2,1), 0.0);
+    Vec3 lr(X(1,3), X(2,3), 0.0);
+    Vec3 tl(X(1,2), X(2,2), 0.0);
+    Vec3 tr(X(1,4), X(2,4), 0.0);
+    Vec3 v1 = tl-ll;
+    Vec3 v2 = tr-lr;
+    Vec3 v3 = lr-ll;
+    Vec3 v4 = tr-tl;
+    std::vector<double> t(4);
+    t[0] = acos(v1*v3/(v1.length()*v3.length()))/M_PI*180.0;
+    t[1] = acos(v3*v2/(v3.length()*v2.length()))/M_PI*180.0;
+    t[2] = acos(v2*v4/(v2.length()*v4.length()))/M_PI*180.0;
+    t[3] = acos(v4*v1/(v1.length()*v4.length()))/M_PI*180.0;
+    std::vector<double>::const_iterator min = std::min_element(t.begin(), t.end());
+    std::vector<double>::const_iterator max = std::max_element(t.begin(), t.end());
+    return std::max((*max-90.0)/90.0, (90.0-*min)/90.0);
+  }
+
+  return 0.0;
+}
+
+
+namespace MeshUtils
+{
+  bool computeAspectRatios(Vector& elmAspects, const SIMbase& model,
+                           const Vector& displacement)
+  {
+    return compute(elmAspects, model, displacement, aspectRatio);
+  }
+
+  bool computeMeshSkewness(Vector& elmSkewness, const SIMbase& model,
+                           const Vector& displacement)
+  {
+    return compute(elmSkewness, model, displacement, skewness);
+  }
+}
