@@ -39,10 +39,9 @@ public:
   // Methods for model generation
   // ============================
 
-  //! \brief Generates the finite element topology data for the patch.
-  //! \details The data generated are the element-to-node connectivity array,
-  //! the nodal coordinate array, as well as global node and element numbers.
-  virtual bool generateFEMTopology();
+  //! \brief Generates a beam finite element model for the patch.
+  //! \param[in] Zaxis Vector defining a point in the local XZ-plane
+  virtual bool generateOrientedFEModel(const Vec3& Zaxis);
 
   //! \brief Clears the contents of the patch, making it empty.
   //! \param[in] retainGeometry If \e true, the spline geometry is not cleared.

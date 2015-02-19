@@ -58,7 +58,7 @@ void ASMs1DLag::clear (bool retainGeometry)
 }
 
 
-bool ASMs1DLag::generateFEMTopology ()
+bool ASMs1DLag::generateOrientedFEModel (const Vec3& Zaxis)
 {
   if (!curv) return false;
 
@@ -85,8 +85,8 @@ bool ASMs1DLag::generateFEMTopology ()
     // This is a 3D beam problem, allocate the nodal/element rotation tensors.
     // The nodal rotations are updated during the simulation according to the
     // deformation state, whereas the element tensors are kept constant.
-    myT.resize(nnod,Tensor(3,true)); // Initialize nodal rotations to unity
     myCS.resize(nel,Tensor(3));
+    myT.resize(nnod,Tensor(3,true)); // Initialize nodal rotations to unity
   }
 
   // Evaluate the nodal coordinates
@@ -109,25 +109,13 @@ bool ASMs1DLag::generateFEMTopology ()
     // Element array
     myMNPC[iel].resize(p1);
     // First node in current element
-    int first = (p1-1)*iel;
+    myMNPC[iel].front() = (p1-1)*iel;
 
-    for (int a = 0; a < p1; a++)
-      myMNPC[iel][a] = first + a;
+    for (int a = 1; a < p1; a++)
+      myMNPC[iel][a] = myMNPC[iel][a-1] + 1;
   }
 
-  // Calculate local element axes for 3D beam elements
-  for (size_t i = 0; i < myCS.size(); i++)
-  {
-    Vec3 X1 = this->getCoord(1+MNPC[i].front());
-    Vec3 X2 = this->getCoord(1+MNPC[i].back());
-    myCS[i] = Tensor(X2-X1,true);
-#ifdef SP_DEBUG
-    std::cout <<"Local axes for beam element "<< i+1
-              <<", from "<< X1 <<" to "<< X2 <<":\n"<< myCS[i];
-#endif
-  }
-
-  return true;
+  return myCS.empty() ? true : this->initLocalElementAxes(Zaxis);
 }
 
 

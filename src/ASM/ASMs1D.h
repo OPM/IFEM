@@ -59,7 +59,7 @@ public:
 
   //! \brief Generates a beam finite element model for the patch.
   //! \param[in] Zaxis Vector defining a point in the local XZ-plane
-  bool generateOrientedFEModel(const Vec3& Zaxis);
+  virtual bool generateOrientedFEModel(const Vec3& Zaxis);
 
   //! \brief Generates a twisted beam finite element model for the patch.
   //! \param[in] twist Function describing the twist angle along the beam
@@ -264,6 +264,10 @@ protected:
 
   // Internal utility methods
   // ========================
+
+  //! \brief Initializes the local element axes for a patch of beam elements.
+  //! \param[in] Zaxis Vector defining a point in the local XZ-plane
+  bool initLocalElementAxes(const Vec3& Zaxis);
 
   //! \brief Connects matching nodes on two adjacent vertices.
   //! \param[in] vertex Local vertex index of this patch, in range [1,2]

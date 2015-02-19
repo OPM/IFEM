@@ -249,6 +249,12 @@ bool ASMs1D::generateOrientedFEModel (const Vec3& Zaxis)
   std::cout <<"NEL = "<< nel <<" NNOD = "<< nnod << std::endl;
 #endif
 
+  return myCS.empty() ? true : this->initLocalElementAxes(Zaxis);
+}
+
+
+bool ASMs1D::initLocalElementAxes (const Vec3& Zaxis)
+{
   // Calculate local element axes for 3D beam elements
   for (size_t i = 0; i < myCS.size(); i++)
     if (MLGE[i] > 0)
