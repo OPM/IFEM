@@ -112,12 +112,45 @@ namespace utl //! General utility classes and functions.
     //! \brief Division by a scalar.
     vector<T>& operator/=(const T& d) { return this->operator*=(T(1)/d); }
 
+    //! \brief Component-wise multiplication with a vector.
+    vector<T>& operator*=(const std::vector<T>& X)
+    {
+      for (size_t i = 0; i < this->size() && i < X.size(); i++)
+        this->operator[](i) *= X[i];
+      return *this;
+    }
+    //! \brief Component-wise division with a vector.
+    vector<T>& operator/=(const std::vector<T>& X)
+    {
+      for (size_t i = 0; i < this->size() && i < X.size(); i++)
+        this->operator[](i) *= (X[i] == T(0) ? T(0) : T(1)/X[i]);
+      return *this;
+    }
+
     //! \brief Add the given vector \b X to \a *this.
     vector<T>& operator+=(const vector<T>& X) { return this->add(X); }
     //! \brief Subtract the given vector \b X from \a *this.
     vector<T>& operator-=(const vector<T>& X) { return this->add(X,T(-1)); }
     //! \brief Add the given vector \b X scaled by \a alfa to \a *this.
     vector<T>& add(const std::vector<T>& X, T alfa = T(1));
+
+    //! \brief Perform \f${\bf Y} = \alpha{\bf Y} + (1-\alpha){\bf X} \f$
+    //! where \b Y = \a *this.
+    vector<T>& relax(T alfa, const std::vector<T>& X)
+    {
+      if (alfa != T(1))
+      {
+        this->operator*=(alfa);
+        this->add(X,T(1)-alfa);
+      }
+      return *this;
+    }
+    //! \brief Perform \f${\bf Z} = \alpha{\bf Y} + (1-\alpha){\bf X} \f$
+    //! where \b Z = \a *this.
+    vector<T>& relax(T alfa, const std::vector<T>& X, const std::vector<T>& Y)
+    {
+      return this->operator=(Y).relax(alfa,X);
+    }
 
     //! \brief Dot product between \a *this and another vector.
     //! \param[in] v The vector to dot this vector with
