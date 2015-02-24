@@ -116,6 +116,16 @@ bool EigenModeSIM::initSol (size_t nSol)
 }
 
 
+bool EigenModeSIM::advanceStep (TimeStep& param, bool updateTime)
+{
+  // Update solution vectors between time steps
+  for (int n = solution.size()-1; n > 0; n--)
+    std::copy(solution[n-1].begin(),solution[n-1].end(),solution[n].begin());
+
+  return this->MultiStepSIM::advanceStep(param,updateTime);
+}
+
+
 SIM::ConvStatus EigenModeSIM::solveStep (TimeStep& param, SIM::SolutionMode,
                                          double zero_tolerance,
                                          std::streamsize outPrec)

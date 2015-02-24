@@ -40,6 +40,9 @@ public:
   //! \brief Initializes primary solution vectors.
   virtual bool initSol(size_t nSol);
 
+  //! \brief Advances the time step one step forward.
+  virtual bool advanceStep(TimeStep& param, bool updateTime = true);
+
   //! \brief Computes the primary solution at current time step.
   //! \param param Time stepping parameters
   //! \param[in] zero_tolerance Truncate norm values smaller than this to zero
