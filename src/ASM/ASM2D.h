@@ -61,6 +61,9 @@ public:
   //! loads, etc.) are however not copied.
   ASMbase* clone(unsigned char* nf = NULL) const;
 
+  //! \brief Checks that the patch is modelled in a right-hand-side system.
+  virtual bool checkRightHandSystem() = 0;
+
   //! \brief Refines the parametrization by inserting extra knots uniformly.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] nInsert Number of extra knots to insert in each knot-span

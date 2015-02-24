@@ -209,6 +209,8 @@ public:
   //! \brief Prints out the nodal coordinates of this patch to the given stream.
   void printNodes(std::ostream& os, const char* heading = NULL) const;
 
+  //! \brief Sets the global node numbers for this patch.
+  void setGlobalNodeNums(const std::vector<int>& nodes) { myMLGN = nodes; }
   //! \brief Returns the global node numbers of this patch.
   const IntVec& getGlobalNodeNums() const { return MLGN; }
   //! \brief Returns the actual global node numbers of this patch.
@@ -319,8 +321,9 @@ public:
   //! \brief Initializes the multi-point constraint coefficients.
   virtual bool initConstraints() { return true; }
 
-  //! \brief Assigns global node numbers for this patch.
-  void assignNodeNumbers(const std::vector<int>& nodes, bool zeroBased = false);
+  //! \brief Sets the global node numbers for this patch.
+  //! \param[in] nodes Vector of zero-based node numbers of this patch
+  virtual void setNodeNumbers(const std::vector<int>& nodes);
 
   //! \brief Checks for time-dependent in-homogeneous Dirichlet conditions.
   //! \param[in] func Scalar property fields

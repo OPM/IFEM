@@ -129,6 +129,13 @@ void ASMu2D::clear (bool retainGeometry)
 }
 
 
+bool ASMu2D::checkRightHandSystem ()
+{
+  std::cout <<"ASMu2D::checkRightHandSystem(): Not available for LR-splines (ignored)."<< std::endl;
+  return false;
+}
+
+
 bool ASMu2D::cornerRefine (int minBasisfunctions)
 {
 	if (!lrspline) return false;
@@ -335,7 +342,7 @@ bool ASMu2D::generateFEMTopology ()
 	for (int inod = 0; inod < nBasis; inod++)
 		myMLGN[inod] = ++gNod;
 
-        nnod = gNod;
+	nnod = gNod;
 	return true;
 }
 

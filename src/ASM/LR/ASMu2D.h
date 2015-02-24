@@ -93,6 +93,9 @@ public:
   //! \param[out] p3 Order in third (w) direction
   virtual bool getOrder(int& p1, int& p2, int& p3) const;
 
+  //! \brief Checks that the patch is modelled in a right-hand-side system.
+  virtual bool checkRightHandSystem();
+
   //! \brief Refines along the diagonal of the LR-spline patch.
   //! \details Progressively refine until the LR-spline object contains at least
   //! \a minBasisfunctions basis functions.

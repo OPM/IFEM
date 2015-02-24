@@ -32,11 +32,13 @@ public:
   //! \brief Default constructor.
   //! \param[in] n1 Dimension of the primary solution field
   //! \param[in] n2 Dimension of the second solution field (mixed method)
-  SIM2D(unsigned char n1 = 2, unsigned char n2 = 0, bool = false);
+  //! \param[in] check If \e true, ensure the model is in a right-hand system
+  SIM2D(unsigned char n1 = 2, unsigned char n2 = 0, bool check = false);
   //! \brief Constructor that also initializes the integrand pointer.
   //! \param[in] itg Pointer to the integrand of the problem to solve
   //! \param[in] n Dimension of the primary solution field
-  SIM2D(IntegrandBase* itg, unsigned char n = 2);
+  //! \param[in] check If \e true, ensure the model is in a right-hand system
+  SIM2D(IntegrandBase* itg, unsigned char n = 2, bool check = false);
   //! \brief Empty destructor.
   virtual ~SIM2D() {}
 
@@ -113,6 +115,7 @@ protected:
 
 protected:
   unsigned char nf[3]; //!< Number of scalar fields
+  bool     checkRHSys; //!< Check if all patches are in a right-hand system
 };
 
 #endif

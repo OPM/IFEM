@@ -199,7 +199,7 @@ public:
 
   //! \brief Checks that the patch is modelled in a right-hand-side system.
   //! \details If it isn't, the w-parameter direction is swapped.
-  bool checkRightHandSystem();
+  virtual bool checkRightHandSystem();
 
   //! \brief Refines the parametrization by inserting extra knots.
   //! \param[in] dir Parameter direction to refine
@@ -306,6 +306,10 @@ public:
   //! \param[in] basis Which basis to connect (mixed methods), 0 means both
   //! \param[in] master 1-based index of the first master node in this basis
   virtual void closeFaces(int dir, int basis = 0, int master = 1);
+ 
+  //! \brief Sets the global node numbers for this patch.
+  //! \param[in] nodes Vector of global node numbers (zero-based)
+  virtual void setNodeNumbers(const std::vector<int>& nodes);
 
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] func Scalar property fields

@@ -178,6 +178,10 @@ public:
   //! patch and its edges.
   bool assignNodeNumbers(BlockNodes& nodes, int basis = 0);
 
+  //! \brief Checks that the patch is modelled in a right-hand-side system.
+  //! \details If it isn't, the v-parameter direction is swapped.
+  virtual bool checkRightHandSystem();
+
   //! \brief Refines the parametrization by inserting extra knots.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
@@ -247,6 +251,10 @@ public:
   //! \param[in] basis Which basis to connect (mixed methods), 0 means both
   //! \param[in] master 1-based index of the first master node in this basis
   virtual void closeEdges(int dir, int basis = 0, int master = 1);
+
+  //! \brief Sets the global node numbers for this patch.
+  //! \param[in] nodes Vector of global node numbers (zero-based)
+  virtual void setNodeNumbers(const std::vector<int>& nodes);
 
   //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
   //! \param[in] func Scalar property fields
@@ -533,6 +541,7 @@ private:
 protected:
   Go::SplineSurface* surf; //!< Pointer to the actual spline surface object
   Go::SplineCurve* bou[4]; //!< Pointers to the four boundary curves
+  bool              swapV; //!< Has the v-parameter direction been swapped?
 
   const IndexVec& nodeInd; //!< IJ-pairs for the control points (nodes)
   IndexVec      myNodeInd; //!< The actual IJ-pair container

@@ -624,7 +624,7 @@ bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
   if (swapW && face > 4) // Account for swapped parameter direction
     face = 11-face;
 
-  if (neighbor.swapW && face > 4) // Account for swapped parameter direction
+  if (neighbor.swapW && nface > 4) // Account for swapped parameter direction
     nface = 11-nface;
 
   if (!this->connectBasis(face,neighbor,nface,norient))
@@ -913,6 +913,7 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
 
   int t1 = abs(dir)%3; // first tangent direction [0,2]
   int t2 = (1+t1)%3;   // second tangent direction [0,2]
+  if (swapW && t1 == 0) dir = -dir; // Account for swapped parameter direction
   if (t1 == 2) std::swap(t1,t2);
 
   // Get parameter values of the Greville points on the face
@@ -921,7 +922,6 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
       !this->getGrevilleParameters(vpar,t2))
     return 0;
 
-  if (swapW && t1 == 0) dir = -dir; // Account for swapped parameter direction
 
   // Find the surface representing the face geometry (for tangent evaluation)
   Go::SplineSurface* face = this->getBoundary(dir);
@@ -1258,6 +1258,20 @@ void ASMs3D::constrainNode (double xi, double eta, double zeta,
   if (zeta > 0.0) node += n1*n2*int(0.5+(n3-1)*zeta);
 
   this->prescribe(node,dof,code);
+}
+
+
+void ASMs3D::setNodeNumbers (const std::vector<int>& nodes)
+{
+  this->ASMbase::setNodeNumbers(nodes);
+  if (!swapW) return;
+
+  // Account for swapped parameter direction
+  const int n1 = svol->numCoefs(0)*svol->numCoefs(1);
+  const int n2 = svol->numCoefs(2);
+  for (int j = 0; j < n2/2; j++)
+    for (int i = 0; i < n1; i++)
+      std::swap(myMLGN[i+n1*j],myMLGN[i+n1*(n2-j-1)]);
 }
 
 
@@ -1917,7 +1931,7 @@ bool ASMs3D::integrate (Integrand& integrand,
               // Evaluate the integrand and accumulate element contributions
               fe.detJxW *= 0.125*dV*wg[i]*wg[j]*wg[k];
 #ifndef USE_OPENMP
-            PROFILE3("Integrand::evalInt");
+              PROFILE3("Integrand::evalInt");
 #endif
               if (!integrand.evalInt(*A,fe,time,X))
                 ok = false;

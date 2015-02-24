@@ -146,12 +146,12 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
         std::cout <<"\tReading global node numbers from "<< file << std::endl;
       HDF5Writer hdf5(file,ProcessAdm(),true,true);
       const char* field = elem->Attribute("field");
-      for (int i = 0; i < this->getNoPatches(); i++)
+      for (int i = 1; i <= this->getNoPatches(); i++)
       {
         std::vector<int> nodes;
-        ASMbase* pch = this->getPatch(this->getLocalPatchIndex(i+1));
-        if (pch && hdf5.readVector(0, field?field:"node numbers", i+1, nodes))
-          pch->assignNodeNumbers(nodes,true); // assuming zero-based numbers
+        ASMbase* pch = this->getPatch(this->getLocalPatchIndex(i));
+        if (pch && hdf5.readVector(0, field ? field : "node numbers", i, nodes))
+          pch->setNodeNumbers(nodes);
       }
       hdf5.closeFile(0, true);
     }
@@ -774,7 +774,7 @@ bool SIMbase::createFEMmodel (char resetNumb)
       if (newPatch)
       {
         std::cout <<"\tNote: Unsharing FE data of P"<< 1+i << std::endl;
-        newPatch->assignNodeNumbers(myModel[i]->getMyNodeNums());
+        newPatch->setGlobalNodeNums(myModel[i]->getMyNodeNums());
         delete myModel[i];
         myModel[i] = newPatch;
       }
@@ -782,7 +782,7 @@ bool SIMbase::createFEMmodel (char resetNumb)
     else if (!myModel[i]->generateFEMTopology())
       return false;
     else if (myModel[i]->isShared() && resetNumb == 'Y')
-      myModel[i]->assignNodeNumbers(IntVec());
+      myModel[i]->setGlobalNodeNums(IntVec());
   }
 
   if (nGlPatches == 0 && !adm.isParallel())

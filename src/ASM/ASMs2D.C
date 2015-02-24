@@ -42,6 +42,7 @@ ASMs2D::ASMs2D (unsigned char n_s, unsigned char n_f)
   : ASMstruct(2,n_s,n_f), surf(NULL), nodeInd(myNodeInd)
 {
   bou[0] = bou[1] = bou[2] = bou[3] = NULL;
+  swapV = false;
 }
 
 
@@ -50,6 +51,7 @@ ASMs2D::ASMs2D (const ASMs2D& patch, unsigned char n_f)
 {
   for (int i = 0; i < 4; i++)
     bou[i] = patch.bou[i];
+  swapV = patch.swapV;
 }
 
 
@@ -59,6 +61,7 @@ ASMs2D::ASMs2D (const ASMs2D& patch)
   for (int i = 0; i < 4; i++)
     bou[i] = patch.bou[i];
 
+  swapV = patch.swapV;
   myNodeInd = patch.nodeInd;
   dirich = patch.dirich;
 }
@@ -281,6 +284,27 @@ int ASMs2D::getNodeID (size_t inod, bool noAddedNodes) const
     return 0;
 
   return MLGN[inod-1];
+}
+
+
+bool ASMs2D::checkRightHandSystem ()
+{
+  if (!surf || shareFE) return false;
+
+  // Evaluate the spline surface at its center
+  RealArray u(1,0.5*(surf->startparam_u() + surf->endparam_u()));
+  RealArray v(1,0.5*(surf->startparam_v() + surf->endparam_v()));
+  RealArray X(3), dXdu(3), dXdv(3);
+  surf->gridEvaluator(u,v,X,dXdu,dXdv);
+
+  // Check that |J| = (dXdu x dXdv) * {0,0,1} > 0.0
+  if (Vec3(dXdu,dXdv).z > 0.0) return false;
+
+  // This patch has a negative Jacobian determinant. Probably it is modelled
+  // in a left-hand-system. Swap the v-parameter direction to correct for this.
+  surf->reverseParameterDirection(false);
+  std::cout <<"\tSwapped."<< std::endl;
+  return swapV = true;
 }
 
 
@@ -525,6 +549,12 @@ bool ASMs2D::assignNodeNumbers (BlockNodes& nodes, int basis)
 
 bool ASMs2D::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool revers)
 {
+  if (swapV && edge > 2) // Account for swapped parameter direction
+    edge = 7-edge;
+
+  if (neighbor.swapV && nedge > 2) // Account for swapped parameter direction
+    nedge = 7-nedge;
+
   if (!this->connectBasis(edge,neighbor,nedge,revers))
     return false;
 
@@ -663,6 +693,9 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code)
   int n1, n2, node = 1;
   if (!this->getSize(n1,n2,1)) return;
 
+  if (swapV) // Account for swapped parameter direction
+    if (dir == 2 || dir == -2) dir = -dir;
+
   int bcode = code;
   if (code > 0) // Dirichlet projection will be performed
     dirich.push_back(DirichletEdge(this->getBoundary(dir),dof,code));
@@ -754,6 +787,7 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
 
   int ndir = abs(dir); // normal parameter direction (1,2) for the edge
   int tdir = 2 - ndir; // tangent parameter direction (0,1) for the edge
+  if (swapV && tdir == 0) dir = -dir; // Account for swapped parameter direction
   double u[2] = { 0.0, 0.0 }; // running surface parameters along the edge
   if (ndir == 1)
     u[0] = dir < 0 ? surf->startparam_u() : surf->endparam_u();
@@ -937,6 +971,9 @@ void ASMs2D::constrainCorner (int I, int J, int dof, int code)
   int n1, n2;
   if (!this->getSize(n1,n2,1)) return;
 
+  if (swapV) // Account for swapped parameter direction
+    J = -J;
+
   int node = 1;
   if (I > 0) node += n1-1;
   if (J > 0) node += n1*(n2-1);
@@ -950,6 +987,9 @@ void ASMs2D::constrainNode (double xi, double eta, int dof, int code)
   if (xi  < 0.0 || xi  > 1.0) return;
   if (eta < 0.0 || eta > 1.0) return;
 
+  if (swapV) // Account for swapped parameter direction
+    eta = 1.0-eta;
+
   int n1, n2;
   if (!this->getSize(n1,n2,1)) return;
 
@@ -957,6 +997,20 @@ void ASMs2D::constrainNode (double xi, double eta, int dof, int code)
   int J = int(0.5+(n2-1)*eta);
 
   this->prescribe(n1*J+I+1,dof,code);
+}
+
+
+void ASMs2D::setNodeNumbers (const std::vector<int>& nodes)
+{
+  this->ASMbase::setNodeNumbers(nodes);
+  if (!swapV) return;
+
+  // Account for swapped parameter direction
+  const int n1 = surf->numCoefs_u();
+  const int n2 = surf->numCoefs_v();
+  for (int j = 0; j < n2/2; j++)
+    for (int i = 0; i < n1; i++)
+      std::swap(myMLGN[i+n1*j],myMLGN[i+n1*(n2-j-1)]);
 }
 
 

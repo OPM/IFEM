@@ -43,20 +43,22 @@ struct Interface
 };
 
 
-SIM2D::SIM2D (unsigned char n1, unsigned char n2, bool)
+SIM2D::SIM2D (unsigned char n1, unsigned char n2, bool check)
 {
   nsd = 2;
   nf[0] = n1;
   nf[1] = n2;
   nf[2] = 0;
+  checkRHSys = check;
 }
 
 
-SIM2D::SIM2D (IntegrandBase* itg, unsigned char n) : SIMgeneric(itg)
+SIM2D::SIM2D (IntegrandBase* itg, unsigned char n, bool check) : SIMgeneric(itg)
 {
   nsd = 2;
   nf[0] = n;
   nf[1] = nf[2] = 0;
+  checkRHSys = check;
 }
 
 
@@ -657,6 +659,9 @@ ASMbase* SIM2D::readPatch (std::istream& isp, int pchInd) const
       pch->idx = myModel.size();
   }
 
+  if (checkRHSys && pch)
+    dynamic_cast<ASM2D*>(pch)->checkRightHandSystem();
+
   return pch;
 }
 
@@ -680,6 +685,8 @@ bool SIM2D::readPatches (std::istream& isp, PatchVec& patches,
         std::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
         pch->idx = patches.size();
         patches.push_back(pch);
+        if (checkRHSys)
+          dynamic_cast<ASM2D*>(pch)->checkRightHandSystem();
       }
     }
 

@@ -718,12 +718,10 @@ bool ASMbase::resolveMPCchain (const MPCSet& allMPCs, MPC* mpc)
 }
 
 
-void ASMbase::assignNodeNumbers (const std::vector<int>& nodes, bool zeroBased)
+void ASMbase::setNodeNumbers (const std::vector<int>& nodes)
 {
-  myMLGN = nodes;
-  if (zeroBased)
-    for (size_t i = 0; i < myMLGN.size(); i++)
-      myMLGN[i] ++; // Make node numbers 1-based
+  for (size_t i = 0; i < nodes.size() && i < myMLGN.size(); i++)
+    myMLGN[i] = 1 + nodes[i]; // Make node numbers 1-based
 }
 
 
