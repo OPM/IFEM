@@ -15,40 +15,37 @@
 #define _BDF_H_
 
 #include <vector>
-#include <iostream>
+
 
 namespace TimeIntegration //! Utilities for time integration.
 {
   /*!
-    \brief Helper class for BDF methods.
-    \details Keeps track of coefficients, extrapolation and startup.
+    \brief Helper class for BDF schemes.
+    \details Keeps track of coefficients, startup and extrapolation.
   */
 
   class BDF
   {
   public:
-    //! \brief The constructor initializes the coefficients.
+    //! \brief Default constructor.
     //! \param[in] order The order of the BDF scheme
-    //! \param[in] step_ Initial step position
-    BDF(int order = 0, int step_ = 0);
-    
-    //! \brief Destructor
+    BDF(int order = 0) : step(0), coefs1(1,1.0) { this->setOrder(order); }
+    //! \brief Empty destructor.
     virtual ~BDF() {}
-    
-    //! \brief Sets the order of the scheme.
+
+    //! \brief Initializes the coefficients for the specified \a order.
     virtual void setOrder(int order);
 
     //! \brief Returns the order to be used for current time step.
-    virtual int getOrder() const { return step < 2 ? coefs1.size()-1 : coefs.size()-1; }
+    int getOrder() const;
     //! \brief Returns the order of the scheme.
-    virtual int getActualOrder() const { return coefs.size()-1; }
-    //! \brief Returns the degree for the time derivative approximation
+    int getActualOrder() const { return coefs.size() - this->getDegree(); }
+
+    //! \brief Returns the degree for the time derivative approximation.
     virtual int getDegree() const { return 1; }
 
     //! \brief Advances the time stepping scheme.
-    virtual void advanceStep() { ++step; }
-    //! \brief Advances the time stepping scheme.
-    virtual void advanceStep(double dt, double dtn);
+    virtual void advanceStep(double dt = 0.0, double dtn = 0.0);
 
     //! \brief Returns the BDF coefficients.
     virtual const std::vector<double>& getCoefs() const;
@@ -57,59 +54,44 @@ namespace TimeIntegration //! Utilities for time integration.
     double operator[](int idx) const { return this->getCoefs()[idx]; }
 
     //! \brief Extrapolates values.
-    //! \param[in] values The values to extrapolate
-    //! \return The extrapolated value
-    virtual double extrapolate(const double* values) const;
-
-  protected:
-    std::vector<double> coefs;  //!< The BDF coefficients
-    std::vector<double> coefs1; //!< BDF coefficients for first time step
-    int                 step;   //!< Time step counter
-  };
-
-  /*!
-    \brief Helper class for BDF methods for 2nd order problems
-    \details Keeps track of coefficients, extrapolation and startup.
-  */
-  class BDFD2
-  {
-  public:
-    //! \brief The constructor initializes the coefficients.
-    //! \param[in] order The order of the BDF scheme
-    BDFD2(int order = 2);
-
-    //! \brief Destructor
-    virtual ~BDFD2() {}
-    
-    //! \brief Sets the order of the scheme.
-    void setOrder(int order);
-
-    //! \brief Returns the order to be used for current time step.
-    int getOrder() const  { return step < 3 ? 1 : coefs.size()-2; }
-    //! \brief Returns the order of the scheme.
-    int getActualOrder() const { return coefs.size()-2; }
-    //! \brief Returns the degree for the time derivative approximation
-    virtual int getDegree() const { return 2; }
-
-    //! \brief Advances the time stepping scheme.
-    void advanceStep(double dt, double dtn) { ++step; } 
-
-    //! \brief Returns the BDF coefficients.
-    const std::vector<double>& getCoefs() const;
-
-    //! \brief Indexing operator returning the idx'th coefficient.
-    double operator[](int idx) const { return this->getCoefs()[idx]; }
-
-    //! \brief Extrapolates values.
-    //! \param[in] values The values to extrapolate
+    //! \param[in] values The values to be extrapolated
     //! \return The extrapolated value
     double extrapolate(const double* values) const;
 
   protected:
+    int                 step;   //!< Time step counter
     std::vector<double> coefs;  //!< The BDF coefficients
     std::vector<double> coefs1; //!< BDF coefficients for first time step
+  };
+
+  /*!
+    \brief Helper class for BDF schemes for 2nd order problems.
+  */
+
+  class BDFD2 : public BDF
+  {
+  public:
+    //! \brief Default constructor.
+    //! \param[in] order The order of the BDF scheme
+    //! \param[in] step_ Initial step position
+    BDFD2(int order = 2, int step_ = 0) { this->setOrder(order); step = step_; }
+    //! \brief Empty destructor.
+    virtual ~BDFD2() {}
+
+    //! \brief Initializes the coefficients for the specified \a order.
+    virtual void setOrder(int order);
+
+    //! \brief Returns the degree for the time derivative approximation.
+    virtual int getDegree() const { return 2; }
+
+    //! \brief Advances the time stepping scheme.
+    virtual void advanceStep(double = 0.0, double = 0.0) { ++step; }
+
+    //! \brief Returns the BDF coefficients.
+    virtual const std::vector<double>& getCoefs() const;
+
+  protected:
     std::vector<double> coefs2; //!< BDF coefficients for second time step
-    int                 step;   //!< Time step counter
   };
 }
 
