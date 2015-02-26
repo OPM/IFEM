@@ -785,7 +785,7 @@ bool SIMbase::createFEMmodel (char resetNumb)
       myModel[i]->setGlobalNodeNums(IntVec());
   }
 
-  if (nGlPatches == 0 && !adm.isParallel())
+  if (nGlPatches == 0 && (!adm.isParallel() || adm.getNoProcs() == 1))
     nGlPatches = myModel.size();
 
 #ifdef HAS_PETSC
