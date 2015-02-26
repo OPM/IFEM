@@ -50,6 +50,8 @@ public:
 
   //! \brief Parses obsolete command-line arguments (backward compatibility).
   bool parseOldOptions(int argc, char** argv, int& i);
+  //! \brief Returns \e true if the i'th argument is obsolete.
+  static bool ignoreOldOptions(int argc, char** argv, int& i);
 
   //! \brief Returns whether HDF5 output is requested or not.
   bool dumpHDF5(const char* defaultName);

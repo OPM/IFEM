@@ -253,6 +253,13 @@ bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
 }
 
 
+bool SIMoptions::ignoreOldOptions (int argc, char** argv, int& i)
+{
+  static SIMoptions dummy;
+  return dummy.parseOldOptions(argc,argv,i);
+}
+
+
 std::ostream& SIMoptions::print (std::ostream& os, bool extraBlankLine) const
 {
   if (extraBlankLine) os <<"\n";
