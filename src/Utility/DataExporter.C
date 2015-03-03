@@ -97,8 +97,14 @@ bool DataExporter::setFieldValue (const std::string& name,
 
 bool DataExporter::dumpTimeLevel (const TimeStep* tp, bool geometryUpdated)
 {
+  // ignore multiple calls for the same time step
+  if (tp && tp->step == m_last_step)
+    return true;
+
   if (tp && tp->step % m_ndump && tp->step % m_ndump > m_order)
     return true;
+
+  m_last_step = tp->step;
 
   if (m_level == -1)
     m_level = this->getWritersTimeLevel()+1;

@@ -78,7 +78,7 @@ public:
   //! (always dumps order solutions in a row)
   DataExporter(bool dynWriters = false, int ndump=1, int order=1) :
     m_delete(dynWriters), m_level(-1), m_ndump(ndump), m_order(order),
-    m_infoReader(0), m_dataReader(0) {}
+    m_last_step(-1), m_infoReader(0), m_dataReader(0) {}
 
   //! \brief The destructor deletes the writers if \a dynWriters was \e true.
   virtual ~DataExporter();
@@ -152,10 +152,11 @@ protected:
   //! A vector of registered data writers
   std::vector<DataWriter*>        m_writers;
 
-  bool m_delete; //!< If true, we are in charge of freeing up datawriters
-  int  m_level;  //!< Current time level
-  int  m_ndump;  //!< Time level stride for dumping
-  int  m_order;  //!< The temporal order used (needed to facilitate restart)
+  bool m_delete;    //!< If true, we are in charge of freeing up datawriters
+  int  m_level;     //!< Current time level
+  int  m_ndump;     //!< Time level stride for dumping
+  int  m_order;     //!< The temporal order used (needed to facilitate restart)
+  int  m_last_step; //!< Last time step we dumped for.
 
   DataWriter* m_infoReader; //!< DataWriter to read data information from
   DataWriter* m_dataReader; //!< DataWriter to read numerical data from
