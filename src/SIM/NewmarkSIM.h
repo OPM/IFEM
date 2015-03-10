@@ -36,8 +36,8 @@ public:
   //! \brief Prints out problem-specific data to the given stream.
   virtual void printProblem(std::ostream& os) const;
 
-  //! \brief Initializes primary solution vectors and integration parameters.
-  virtual bool initSol(size_t nSol = 3);
+  //! \brief Initializes time integration parameters for the integrand.
+  virtual void initPrm();
 
   //! \brief Solves the dynamic equations by a predictor/multi-corrector method.
   //! \param param Time stepping parameters

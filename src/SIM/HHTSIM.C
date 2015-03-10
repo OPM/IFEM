@@ -70,15 +70,20 @@ void HHTSIM::printProblem (std::ostream& os) const
 }
 
 
-bool HHTSIM::initSol (size_t nSol)
+void HHTSIM::initPrm ()
 {
   model.setIntegrationPrm(0,alpha1);
   model.setIntegrationPrm(1,fabs(alpha2));
   model.setIntegrationPrm(2,0.5-gamma);
   if (alpha2 < 0.0) // Flag that stiffness-proportional damping should depend
     model.setIntegrationPrm(3,-1.0); // on the material stiffness matrix only
+  // Flag to the integrand that the Hilber-Hughes-Taylor algorithm is used
   model.setIntegrationPrm(4,1.0);
+}
 
+
+bool HHTSIM::initSol (size_t nSol)
+{
   incDis.resize(model.getNoDOFs(),true);
   this->MultiStepSIM::initSol(nSol > 0 ? nSol+2 : 0);
   if (solution.size() < 5)

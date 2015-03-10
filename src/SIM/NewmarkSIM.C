@@ -112,14 +112,12 @@ void NewmarkSIM::printProblem (std::ostream& os) const
 }
 
 
-bool NewmarkSIM::initSol (size_t nSol)
+void NewmarkSIM::initPrm ()
 {
   model.setIntegrationPrm(0,alpha1);
   model.setIntegrationPrm(1,fabs(alpha2));
   model.setIntegrationPrm(2,beta);
   model.setIntegrationPrm(3,gamma);
-
-  return this->MultiStepSIM::initSol(nSol);
 }
 
 

@@ -48,7 +48,9 @@ public:
   //! \brief Returns a list of prioritized XML-tags.
   virtual const char** getPrioritizedTags() const;
 
-  //! \brief Initializes primary solution vectors.
+  //! \brief Initializes time integration parameters for the integrand.
+  virtual void initPrm() {}
+  //! \brief Initializes the primary solution vectors.
   //! \param[in] nSol Number of consequtive solutions stored in core
   virtual bool initSol(size_t nSol = 1);
 

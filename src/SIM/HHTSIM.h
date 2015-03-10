@@ -185,7 +185,9 @@ public:
   //! \brief Prints out problem-specific data to the given stream.
   virtual void printProblem(std::ostream& os) const;
 
-  //! \brief Initializes primary solution vectors and integration parameters.
+  //! \brief Initializes time integration parameters for the integrand.
+  virtual void initPrm();
+  //! \brief Initializes the primary solution vectors.
   virtual bool initSol(size_t nSol = 3);
 
   //! \brief Advances the time step one step forward.
