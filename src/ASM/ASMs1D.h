@@ -248,6 +248,10 @@ public:
 				  const IntegrandBase& integrand,
 				  bool continuous = false) const;
 
+  //! \brief Establishes the vector with basis function values.
+  //! \param[in] u Parameter value of current integration point
+  //! \param[out] N Basis function values
+  void extractBasis(double u, Vector& N) const;
   //! \brief Establishes matrices with basis functions and 1st derivatives.
   //! \param[in] u Parameter value of current integration point
   //! \param[out] N Basis function values

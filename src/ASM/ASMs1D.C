@@ -700,20 +700,24 @@ void ASMs1D::getElementEnds (int i, Vec3Vec& XC) const
 }
 
 
+void ASMs1D::extractBasis (double u, Vector& N) const
+{
+  N.resize(curv->order());
+  RealArray basisDerivs;
+  curv->computeBasis(u,N,basisDerivs);
+}
+
+
 void ASMs1D::extractBasis (double u, Vector& N, Matrix& dNdu) const
 {
   int p1 = curv->order();
 
-  RealArray bas(p1*2);
-  curv->basis().computeBasisValues(u,&bas.front(),1);
-
   N.resize(p1);
   dNdu.resize(p1,1);
-  for (int i = 1; i <= p1; i++)
-  {
-     N(i)     = bas[2*i-2];
-    dNdu(i,1) = bas[2*i-1];
-  }
+
+  RealArray basisDerivs;
+  curv->computeBasis(u,N,basisDerivs);
+  dNdu.fillColumn(1,basisDerivs);
 }
 
 
@@ -755,6 +759,14 @@ bool ASMs1D::integrate (Integrand& integrand,
     nRed = nGauss; // The integrand needs to know nGauss
   else if (nRed > 0 && !(xr = GaussQuadrature::getCoord(nRed)))
     return false;
+
+  if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+    if (curv->rational())
+    {
+      std::cerr <<" *** ASMs1D::integrate: Second-derivatives of NURBS "
+                <<" is not implemented yet, sorry..."<< std::endl;
+      return false;
+    }
 
   // Compute parameter values of the Gauss points over the whole patch
   Matrix gpar, redpar;
@@ -813,7 +825,7 @@ bool ASMs1D::integrate (Integrand& integrand,
 	fe.u = redpar(1+i,1+iel);
 
         if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
-          curv->basis().computeBasisValues(fe.u,fe.N.ptr());
+          this->extractBasis(fe.u,fe.N);
         else
         {
           // Fetch basis function derivatives at current point
@@ -848,7 +860,7 @@ bool ASMs1D::integrate (Integrand& integrand,
 
       // Compute basis functions and derivatives
       if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
-        curv->basis().computeBasisValues(fe.u,fe.N.ptr());
+        this->extractBasis(fe.u,fe.N);
       else if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
         this->extractBasis(fe.u,fe.N,dNdu,d2Ndu2);
       else
@@ -955,7 +967,7 @@ bool ASMs1D::integrate (Integrand& integrand, int lIndex,
 
   // Evaluate basis functions and corresponding derivatives
   if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
-    curv->basis().computeBasisValues(fe.u,fe.N.ptr());
+    this->extractBasis(fe.u,fe.N);
   else
   {
     // Compute basis function derivatives
@@ -1142,7 +1154,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const Vector& locSol,
     switch (deriv) {
 
     case 0: // Evaluate the solution
-      curv->basis().computeBasisValues(upar[i],&basis.front());
+      this->extractBasis(upar[i],basis);
       scatterInd(p1,curv->basis().lastKnotInterval(),ip);
       utl::gather(ip,nComp,locSol,Xtmp);
       Xtmp.multiply(basis,ptSol);
@@ -1287,7 +1299,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Fetch basis function derivatives at current integration point
     if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
-      curv->basis().computeBasisValues(fe.u,fe.N.ptr());
+      this->extractBasis(fe.u,fe.N);
     else if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
       this->extractBasis(fe.u,fe.N,dNdu,d2Ndu2);
     else
@@ -1369,7 +1381,7 @@ bool ASMs1D::globalL2projection (Matrix& sField,
   StdVector B(nnod*ncomp);
   A.redim(nnod,nnod);
 
-  RealArray phi(p1);
+  Vector phi(p1);
 
 
   // === Assembly loop over all elements in the patch ==========================
@@ -1384,7 +1396,7 @@ bool ASMs1D::globalL2projection (Matrix& sField,
     for (int i = 1; i <= ng1; i++, ip++)
     {
       // Fetch basis function values at current integration point
-      curv->basis().computeBasisValues(gp(i,1+iel),&phi.front());
+      this->extractBasis(gp(i,1+iel),phi);
 
       // Integrate the linear system A*x=B
       for (size_t ii = 0; ii < phi.size(); ii++)
