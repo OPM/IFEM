@@ -29,21 +29,21 @@ class NodeVecFunc : public VecFunc
 {
 public:
   //! \brief The constructor initializes the references.
-  NodeVecFunc(SIMbase& m, const std::vector<Real>* v = NULL)
+  NodeVecFunc(const SIMbase& m, const std::vector<Real>* v = NULL)
     : idMap(dummy), model(m), value(v) {}
   //! \brief This constructor provides a node number map in addition.
-  NodeVecFunc(SIMbase& m, const std::vector<Real>* v,
-	      const std::map<int,int>& nodeIdMap)
+  NodeVecFunc(const SIMbase& m, const std::vector<Real>* v,
+              const std::map<int,int>& nodeIdMap)
     : idMap(nodeIdMap), model(m), value(v) {}
   //! \brief This constructor provides a node number map in addition.
-  NodeVecFunc(SIMbase& m, const std::vector<Real>& v,
-	      const std::map<int,int>& nodeIdMap)
+  NodeVecFunc(const SIMbase& m, const std::vector<Real>& v,
+              const std::map<int,int>& nodeIdMap)
     : idMap(nodeIdMap), model(m), value(&v) {}
   //! \brief Empty destructor.
   virtual ~NodeVecFunc() {}
 
   //! \brief Returns whether the function is identically zero or not.
-  virtual bool isZero() const { return idMap.empty() && (&idMap != &dummy); }
+  virtual bool isZero() const;
 
   //! \brief Returns whether the function is time-independent or not.
   virtual bool isConstant() const { return false; }
@@ -61,7 +61,7 @@ private:
   mutable std::map<Vec3,int> ptMap; //!< Map of evaluated nodal points
 
 protected:
-  SIMbase&                 model; //!< FE model on which the field is defined
+  const SIMbase&           model; //!< FE model on which the field is defined
   const std::vector<Real>* value; //!< The nodal field values
 };
 

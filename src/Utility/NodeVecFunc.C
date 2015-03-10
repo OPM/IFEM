@@ -17,6 +17,14 @@
 #include "Vec3.h"
 
 
+bool NodeVecFunc::isZero () const
+{
+  if (!value || value->empty()) return true;
+  if (&idMap != &dummy) return idMap.empty();
+  return false;
+}
+
+
 Vec3 NodeVecFunc::evaluate (const Vec3& xp) const
 {
   int idx = this->getPointIndex(xp).second - 1;
