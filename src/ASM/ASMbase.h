@@ -22,7 +22,7 @@
 
 typedef std::vector<int>       IntVec;  //!< General integer vector
 typedef std::vector<IntVec>    IntMat;  //!< General 2D integer matrix
-typedef std::map<MPC*,int>     MPCMap;  //!< MPC to function code mapping
+typedef std::map<MPC*,int,MPCLess> MPCMap; //!< MPC to function code mapping
 typedef std::set<MPC*,MPCLess> MPCSet;  //!< Sorted set of MPC equations
 typedef MPCSet::const_iterator MPCIter; //!< Iterator over an MPC equation set
 
