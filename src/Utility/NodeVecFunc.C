@@ -19,7 +19,7 @@
 
 bool NodeVecFunc::isZero () const
 {
-  if (!value || value->empty()) return true;
+  if (value && value->empty()) return true;
   if (&idMap != &dummy) return idMap.empty();
   return false;
 }
