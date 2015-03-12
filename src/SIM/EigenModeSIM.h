@@ -49,7 +49,7 @@ public:
   //! \param[in] outPrec Number of digits after the decimal point in norm print
   virtual SIM::ConvStatus solveStep(TimeStep& param, SIM::SolutionMode,
                                     double zero_tolerance,
-                                    std::streamsize outPre);
+                                    std::streamsize outPrec);
 
 private:
   double              myStart;   //!< The start time of this simulator
