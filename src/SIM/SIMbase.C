@@ -827,9 +827,12 @@ ASMbase* SIMbase::getPatch (size_t idx) const
 
 bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 {
+  if (myModel.empty())
+    return true; // Empty simulator, nothing to preprocess
+
   if (mySam && !isRefined)
   {
-    std::cerr <<" *** SIMbase::preprocess: Logic error, invoked more the once"
+    std::cerr <<" *** SIMbase::preprocess: Logic error, invoked more than once"
               <<" for "<< (myHeading.empty() ? this->getName() : myHeading)
               << std::endl;
     return false;
@@ -1470,7 +1473,7 @@ bool SIMbase::updateDirichlet (double time, const Vector* prevSol)
 
 bool SIMbase::updateGrid (const Vector& displ)
 {
-  if (displ.empty()) return false;
+  if (displ.empty()) return true; // No displacements (yet), totally fine
 
   bool ok = true;
   Vector locdisp;
