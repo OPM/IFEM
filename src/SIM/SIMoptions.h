@@ -82,6 +82,9 @@ public:
   std::string hdf5; //!< Prefix for HDF5-file
   bool enableController; //!< Whether or not to enable external program control
 
+  int printPid; //!< PID to print info to screen for
+  std::string log_prefix; //!< Prefix for process log files
+
   //! \brief Enum defining the available projection methods.
   enum ProjectionMethod { GLOBAL, DGL2, CGL2, SCR, VDSA, QUASI, LEASTSQ };
   //! \brief Projection method name mapping.

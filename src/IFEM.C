@@ -22,6 +22,7 @@ int IFEM::argc;
 char** IFEM::argv;
 SIMoptions IFEM::cmdOptions;
 ControlFIFO IFEM::fifo;
+utl::LogStream IFEM::cout(std::cout);
 
 
 int IFEM::Init(int argc_, char** argv_)
@@ -30,6 +31,8 @@ int IFEM::Init(int argc_, char** argv_)
   argv = argv_;
   LinAlgInit& linalg = LinAlgInit::Init(argc,argv);
   applyCommandLineOptions(cmdOptions);
+
+  cout.setPIDs(0, linalg.myPid);
 
   if (linalg.myPid != 0 || argc < 2)
     return linalg.myPid;

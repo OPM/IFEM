@@ -20,6 +20,7 @@
 
 #include "SIMoptions.h"
 #include "ControlFIFO.h"
+#include "LogStream.h"
 
 #ifndef NDEBUG
 #include "ScopedLogger.h"
@@ -57,6 +58,8 @@ public:
   //! \brief Polls the control fifo for instructions.
   static void pollControllerFifo() { fifo.poll(); }
 
+  //! \brief Combined standard out for all processes
+  static utl::LogStream cout;
 private:
   static SIMoptions cmdOptions; //!< General input options
   static int argc;              //!< The number of command-line arguments
