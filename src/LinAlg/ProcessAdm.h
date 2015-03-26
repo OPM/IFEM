@@ -20,6 +20,8 @@
 #endif
 #include <vector>
 
+#include "LogStream.h"
+
 
 /*!
   \brief Class for administration of MPI processes in IFEM library.
@@ -36,6 +38,8 @@ class ProcessAdm
 #endif
 
 public:
+  mutable utl::LogStream cout; //!< Combined standard out for this process group
+
   //! \brief Construct an empty (serial) process administrator.
   ProcessAdm();
 #ifdef HAS_PETSC
