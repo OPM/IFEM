@@ -37,7 +37,6 @@ ProcessAdm::ProcessAdm(MPI_Comm& mpi_comm) :
   MPI_Comm_rank(comm,&myPid);
   MPI_Comm_size(comm,&nProc);
   cout = IFEM::cout;
-  cout.setPIDs(0,myPid);
   parallel = true;
 #else
   MPI_Comm_dup(PETSC_COMM_SELF,&comm);
@@ -70,7 +69,6 @@ void ProcessAdm::setCommunicator(const MPI_Comm* comm2)
   MPI_Comm_rank(comm,&myPid);
   MPI_Comm_size(comm,&nProc);
   parallel = nProc > 1;
-  cout.setPIDs(0,myPid);
 }
 
 
@@ -83,7 +81,6 @@ ProcessAdm& ProcessAdm::operator=(const ProcessAdm& adm2)
   nProc = adm2.nProc;
   parallel = adm2.parallel;
   cout = adm2.cout;
-  cout.setPIDs(0,myPid);
 
   return *this;
 }

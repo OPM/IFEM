@@ -36,7 +36,7 @@ MultiStepSIM::MultiStepSIM (SIMbase& sim)
 }
 
 
-void MultiStepSIM::printProblem (std::ostream& os) const
+void MultiStepSIM::printProblem (utl::LogStream& os) const
 {
   model.printProblem(os);
 }
@@ -142,7 +142,7 @@ bool MultiStepSIM::saveStep (int iStep, int& nBlock, const char* vecName)
 }
 
 
-void MultiStepSIM::dumpStep (int iStep, double time, std::ostream& os,
+void MultiStepSIM::dumpStep (int iStep, double time, utl::LogStream& os,
                              bool withID) const
 {
   if (withID)
@@ -153,7 +153,7 @@ void MultiStepSIM::dumpStep (int iStep, double time, std::ostream& os,
 }
 
 
-void MultiStepSIM::dumpResults (double time, std::ostream& os,
+void MultiStepSIM::dumpResults (double time, utl::LogStream& os,
                                 std::streamsize precision, bool formatted) const
 {
   model.dumpResults(solution.front(),time,os,formatted,precision);

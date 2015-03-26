@@ -58,7 +58,7 @@ bool EigenModeSIM::parse (const TiXmlElement* elem)
 }
 
 
-void EigenModeSIM::printProblem (std::ostream& os) const
+void EigenModeSIM::printProblem (utl::LogStream& os) const
 {
   model.printProblem(os);
 

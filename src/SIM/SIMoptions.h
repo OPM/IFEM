@@ -15,6 +15,7 @@
 #define SIM_OPTIONS_H_
 
 #include "ASMenums.h"
+#include "LogStream.h"
 #include <iostream>
 #include <string>
 #include <map>
@@ -57,7 +58,7 @@ public:
   bool dumpHDF5(const char* defaultName);
 
   //! \brief Prints out the simulation options to the given stream.
-  std::ostream& print(std::ostream& os, bool extraBlankLine = false) const;
+  utl::LogStream& print(utl::LogStream& os, bool extraBlankLine = false) const;
 
 public:
   ASM::Discretization discretization; //!< Spatial discretization option

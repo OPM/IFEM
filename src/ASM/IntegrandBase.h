@@ -20,6 +20,7 @@
 #include "LinAlgenums.h"
 #include "Function.h"
 #include "MatVec.h"
+#include "LogStream.h"
 #include <map>
 
 class NormBase;
@@ -51,7 +52,7 @@ public:
   virtual bool parse(const TiXmlElement*) { return true; }
 
   //! \brief Prints out the problem definition to the given output stream.
-  virtual void print(std::ostream&) const {}
+  virtual void print(utl::LogStream&) const {}
 
 
   // Global initialization interface

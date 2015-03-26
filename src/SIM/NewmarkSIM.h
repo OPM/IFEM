@@ -34,7 +34,7 @@ public:
   virtual bool parse(const TiXmlElement* elem);
 
   //! \brief Prints out problem-specific data to the given stream.
-  virtual void printProblem(std::ostream& os) const;
+  virtual void printProblem(utl::LogStream& os) const;
 
   //! \brief Initializes time integration parameters for the integrand.
   virtual void initPrm();
@@ -75,7 +75,7 @@ public:
   //! \param[in] os The output stream to write the solution to
   //! \param[in] precision Number of digits after the decimal point
   //! \param[in] formatted If \e false, write all result points on a single line
-  virtual void dumpResults(double time, std::ostream& os,
+  virtual void dumpResults(double time, utl::LogStream& os,
                            std::streamsize precision = 3,
                            bool formatted = true) const;
 

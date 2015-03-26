@@ -43,7 +43,7 @@ public:
   virtual ~MultiStepSIM() {}
 
   //! \brief Prints out problem-specific data to the given stream.
-  virtual void printProblem(std::ostream& os) const;
+  virtual void printProblem(utl::LogStream& os) const;
 
   //! \brief Returns a list of prioritized XML-tags.
   virtual const char** getPrioritizedTags() const;
@@ -112,7 +112,7 @@ public:
   //! \param[in] time Current time/load parameter
   //! \param[in] os The output stream to write the solution to
   //! \param[in] withID If \e true, write node ID and coordinates too
-  void dumpStep(int iStep, double time, std::ostream& os,
+  void dumpStep(int iStep, double time, utl::LogStream& os,
                 bool withID = true) const;
 
   //! \brief Dumps solution variables at user-defined points.
@@ -120,7 +120,7 @@ public:
   //! \param[in] os The output stream to write the solution to
   //! \param[in] precision Number of digits after the decimal point
   //! \param[in] formatted If \e false, write all result points on a single line
-  virtual void dumpResults(double time, std::ostream& os,
+  virtual void dumpResults(double time, utl::LogStream& os,
                            std::streamsize precision = 3,
                            bool formatted = true) const;
 

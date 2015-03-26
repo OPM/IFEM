@@ -17,6 +17,7 @@
 #include "MatVec.h"
 #include "MPCLess.h"
 #include "Function.h"
+#include "LogStream.h"
 #include <map>
 #include <set>
 
@@ -107,7 +108,7 @@ public:
   //! \brief Creates an instance by reading the given input stream.
   virtual bool read(std::istream& is) = 0;
   //! \brief Writes the geometry/basis of the patch to the given stream.
-  virtual bool write(std::ostream& os, int basis = 0) const = 0;
+  virtual bool write(utl::LogStream& os, int basis = 0) const = 0;
 
   //! \brief Adds a circular immersed boundary in the physical geometry.
   virtual void addHole(double, double, double) {}

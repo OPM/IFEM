@@ -891,7 +891,7 @@ void SIMoutput::closeGlv ()
 }
 
 
-bool SIMoutput::dumpGeometry (std::ostream& os) const
+bool SIMoutput::dumpGeometry (utl::LogStream& os) const
 {
   for (size_t i = 0; i < myModel.size(); i++)
     if (!myModel[i]->empty())
@@ -902,7 +902,7 @@ bool SIMoutput::dumpGeometry (std::ostream& os) const
 }
 
 
-bool SIMoutput::dumpBasis (std::ostream& os, int basis, size_t patch) const
+bool SIMoutput::dumpBasis (utl::LogStream& os, int basis, size_t patch) const
 {
   size_t begin = patch > 0 ? patch-1 : 0;
   size_t end = patch > 0 ? patch : myModel.size();
@@ -915,7 +915,7 @@ bool SIMoutput::dumpBasis (std::ostream& os, int basis, size_t patch) const
 }
 
 
-void SIMoutput::dumpPrimSol (const Vector& psol, std::ostream& os,
+void SIMoutput::dumpPrimSol (const Vector& psol, utl::LogStream& os,
                              bool withID) const
 {
   if (psol.empty()) return;
@@ -953,7 +953,7 @@ void SIMoutput::dumpPrimSol (const Vector& psol, std::ostream& os,
 }
 
 
-bool SIMoutput::dumpSolution (const Vector& psol, std::ostream& os) const
+bool SIMoutput::dumpSolution (const Vector& psol, utl::LogStream& os) const
 {
   if (psol.empty())
     return true;
@@ -1005,7 +1005,7 @@ bool SIMoutput::dumpSolution (const Vector& psol, std::ostream& os) const
 }
 
 
-bool SIMoutput::dumpResults (const Vector& psol, double time, std::ostream& os,
+bool SIMoutput::dumpResults (const Vector& psol, double time, utl::LogStream& os,
                              bool formatted, std::streamsize precision) const
 {
   if (psol.empty() || myPoints.empty())
@@ -1109,7 +1109,7 @@ bool SIMoutput::dumpResults (const Vector& psol, double time, std::ostream& os,
 
 
 bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
-                            std::ostream& os, std::streamsize precision) const
+                            utl::LogStream& os, std::streamsize precision) const
 {
   if (vsol.empty() || myPoints.empty())
     return true;
@@ -1219,5 +1219,6 @@ bool SIMoutput::savePoints (const std::string& fileName,
   }
 
   std::ofstream f(datafile.c_str(), step == 1 ? std::ios::out : std::ios::app);
-  return this->dumpResults(psol,time,f,false,precision);
+  utl::LogStream log(f);
+  return this->dumpResults(psol,time,log,false,precision);
 }

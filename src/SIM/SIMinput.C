@@ -52,15 +52,15 @@ SIMinput::SIMinput (SIMinput& anotherSIM) : opt(anotherSIM.myOpts)
 
 void SIMinput::printHeading (int& subStep) const
 {
-  if (myHeading.empty() || myPid > 0)
+  if (myHeading.empty())
     return;
 
   size_t n = myHeading.find_last_of('\n');
   if (n+1 < myHeading.size()) n = myHeading.size()-n;
-  std::cout <<"\n"<< ++subStep <<". "<< myHeading <<"\n";
-  for (size_t i = 0; i < 3+n && i < 3+myHeading.size(); i++) std::cout <<'=';
-  if (subStep > 9) std::cout <<'=';
-  std::cout << std::endl;
+  IFEM::cout <<"\n"<< ++subStep <<". "<< myHeading <<"\n";
+  for (size_t i = 0; i < 3+n && i < 3+myHeading.size(); i++) IFEM::cout <<'=';
+  if (subStep > 9) IFEM::cout <<'=';
+  IFEM::cout << std::endl;
 }
 
 
@@ -104,8 +104,7 @@ bool SIMinput::readFlat (const char* fileName)
       return false;
     }
 
-  if (myPid == 0)
-    std::cout <<"\nReading input file succeeded."<< std::endl;
+  IFEM::cout <<"\nReading input file succeeded."<< std::endl;
 
   return true;
 }
@@ -133,8 +132,8 @@ void SIMinput::injectIncludeFiles (TiXmlElement* tag) const
       if (doc.LoadFile(elem->FirstChild()->Value())) {
         if (myPid == 0) {
           for (int i = 1; i < nLevels; i++) std::cout <<"  ";
-          std::cout <<"Loaded included file "<< elem->FirstChild()->Value()
-                    << std::endl;
+          IFEM::cout <<"Loaded included file "<< elem->FirstChild()->Value()
+                     << std::endl;
         }
         elem = tag->ReplaceChild(elem,*doc.RootElement())->ToElement();
         TiXmlElement* elem2 = doc.RootElement()->NextSiblingElement();
@@ -173,8 +172,7 @@ bool SIMinput::readXML (const char* fileName)
     return false;
   }
 
-  if (myPid == 0)
-    std::cout <<"\nParsing input file "<< fileName << std::endl;
+  IFEM::cout <<"\nParsing input file "<< fileName << std::endl;
 
   this->injectIncludeFiles(const_cast<TiXmlElement*>(tag));
 
@@ -184,8 +182,7 @@ bool SIMinput::readXML (const char* fileName)
 
   for (tag = tag->FirstChildElement(); tag; tag = tag->NextSiblingElement())
     if (std::find(parsed.begin(),parsed.end(),tag) == parsed.end()) {
-      if (myPid == 0)
-        std::cout <<"\nParsing <"<< tag->Value() <<">"<< std::endl;
+      IFEM::cout <<"\nParsing <"<< tag->Value() <<">"<< std::endl;
       if (!this->parse(tag)) {
         std::cerr <<" *** SIMinput::read: Failure occured while parsing \""
                   << tag->Value() <<"\""<< std::endl;
@@ -193,8 +190,7 @@ bool SIMinput::readXML (const char* fileName)
       }
     }
 
-  if (myPid == 0)
-    std::cout <<"\nParsing input file succeeded."<< std::endl;
+  IFEM::cout <<"\nParsing input file succeeded."<< std::endl;
 
   return true;
 }
@@ -208,8 +204,7 @@ bool SIMinput::handlePriorityTags (const TiXmlElement* base,
 
   for (const TiXmlElement* elem = 0; *q; q++)
     if ((elem = base->FirstChildElement(*q))) {
-      if (myPid == 0)
-        std::cout <<"\nParsing <"<< elem->Value() <<">"<< std::endl;
+      IFEM::cout <<"\nParsing <"<< elem->Value() <<">"<< std::endl;
       if (!this->parse(elem)) {
         std::cerr <<" *** SIMinput::read: Failure occured while parsing \""
                   << elem->Value() <<"\""<< std::endl;

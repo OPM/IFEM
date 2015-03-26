@@ -15,6 +15,7 @@
 #include "ASMs3D.h"
 #include "Functions.h"
 #include "Utilities.h"
+#include "IFEM.h"
 #include "tinyxml.h"
 #ifdef USE_OPENMP
 #include <omp.h>
@@ -41,7 +42,7 @@ SIM3D::SIM3D (IntegrandBase* itg, unsigned char n, bool check) : SIMgeneric(itg)
 
 bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
 {
-  std::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
+  IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
   if (!strcasecmp(elem->Value(),"refine") && !isRefined)
   {
@@ -70,8 +71,8 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
       for (int j = lowpatch-1; j < uppatch; j++)
         if ((pch = dynamic_cast<ASM3D*>(myModel[j])))
         {
-          std::cout <<"\tRefining P"<< j+1
-                    <<" "<< addu <<" "<< addv <<" "<< addw << std::endl;
+          IFEM::cout <<"\tRefining P"<< j+1
+                     <<" "<< addu <<" "<< addv <<" "<< addw << std::endl;
           pch->uniformRefine(0,addu);
           pch->uniformRefine(1,addv);
           pch->uniformRefine(2,addw);
@@ -85,10 +86,10 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
       for (int j = lowpatch-1; j < uppatch; j++)
         if ((pch = dynamic_cast<ASM3D*>(myModel[j])))
         {
-          std::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
+          IFEM::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
           for (size_t i = 0; i < xi.size(); i++)
-            std::cout <<" "<< xi[i];
-          std::cout << std::endl;
+            IFEM::cout <<" "<< xi[i];
+          IFEM::cout << std::endl;
           pch->refine(dir-1,xi);
         }
     }
@@ -118,8 +119,8 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
     for (int j = lowpatch-1; j < uppatch; j++)
       if ((pch = dynamic_cast<ASM3D*>(myModel[j])))
       {
-        std::cout <<"\tRaising order of P"<< j+1
-                  <<" "<< addu <<" "<< addv  <<" " << addw << std::endl;
+        IFEM::cout <<"\tRaising order of P"<< j+1
+                   <<" "<< addu <<" "<< addv  <<" " << addw << std::endl;
         pch->raiseOrder(addu,addv,addw);
       }
   }
@@ -146,9 +147,9 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
                   << master <<" "<< slave << std::endl;
         return false;
       }
-      std::cout <<"\tConnecting P"<< slave <<" F"<< sFace
-                <<" to P"<< master <<" F"<< mFace
-                <<" orient "<< orient << std::endl;
+      IFEM::cout <<"\tConnecting P"<< slave <<" F"<< sFace
+                 <<" to P"<< master <<" F"<< mFace
+                 <<" orient "<< orient << std::endl;
       ASMs3D* spch = static_cast<ASMs3D*>(myModel[slave-1]);
       ASMs3D* mpch = static_cast<ASMs3D*>(myModel[master-1]);
       if (!spch->connectPatch(sFace,*mpch,mFace,orient))
@@ -170,8 +171,8 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
                 << patch << std::endl;
       return false;
     }
-    std::cout <<"\tPeriodic "<< char('H'+pfdir) <<"-direction P"<< patch
-              << std::endl;
+    IFEM::cout <<"\tPeriodic "<< char('H'+pfdir) <<"-direction P"<< patch
+               << std::endl;
     static_cast<ASMs3D*>(myModel[patch-1])->closeFaces(pfdir);
 #ifdef USE_OPENMP
     // Cannot do multi-threaded assembly with periodicities
@@ -202,9 +203,9 @@ bool SIM3D::parseBCTag (const TiXmlElement* elem)
     ASM3D* pch = dynamic_cast<ASM3D*>(myModel[pid-1]);
     if (!pch) return false;
 
-    std::cout <<"\tConstraining P"<< patch
-              <<" point at "<< rx <<" "<< ry <<" "<< rz
-              <<" with code "<< code << std::endl;
+    IFEM::cout <<"\tConstraining P"<< patch
+               <<" point at "<< rx <<" "<< ry <<" "<< rz
+               <<" with code "<< code << std::endl;
     pch->constrainNode(rx,ry,rz,code);
   }
 
@@ -238,7 +239,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
     else
     {
       ASM3D* pch = NULL;
-      std::cout <<"\nNumber of patch refinements: "<< nref << std::endl;
+      IFEM::cout <<"\nNumber of patch refinements: "<< nref << std::endl;
       for (int i = 0; i < nref && (cline = utl::readLine(is)); i++)
       {
         bool uniform = !strchr(cline,'.');
@@ -263,8 +264,8 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
           for (int j = ipatch; j < patch; j++)
             if ((pch = dynamic_cast<ASM3D*>(myModel[j])))
             {
-              std::cout <<"\tRefining P"<< j+1
-                        <<" "<< addu <<" "<< addv <<" "<< addw << std::endl;
+              IFEM::cout <<"\tRefining P"<< j+1
+                         <<" "<< addu <<" "<< addv <<" "<< addw << std::endl;
               pch->uniformRefine(0,addu);
               pch->uniformRefine(1,addv);
               pch->uniformRefine(2,addw);
@@ -278,10 +279,10 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
             for (int j = ipatch; j < patch; j++)
               if ((pch = dynamic_cast<ASM3D*>(myModel[j])))
               {
-                std::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
+                IFEM::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
                 for (size_t i = 0; i < xi.size(); i++)
-                  std::cout <<" "<< xi[i];
-                std::cout << std::endl;
+                  IFEM::cout <<" "<< xi[i];
+                IFEM::cout << std::endl;
                 pch->refine(dir-1,xi);
               }
         }
@@ -297,7 +298,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
     else
     {
       ASM3D* pch = NULL;
-      std::cout <<"\nNumber of order raise: "<< nref << std::endl;
+      IFEM::cout <<"\nNumber of order raise: "<< nref << std::endl;
       for (int i = 0; i < nref && (cline = utl::readLine(is)); i++)
       {
         int patch = atoi(strtok(cline," "));
@@ -319,8 +320,8 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
         for (int j = ipatch; j < patch; j++)
           if ((pch = dynamic_cast<ASM3D*>(myModel[j])))
           {
-            std::cout <<"\tRaising order of P"<< j+1
-                      <<" "<< addu <<" "<< addv <<" "<< addw << std::endl;
+            IFEM::cout <<"\tRaising order of P"<< j+1
+                       <<" "<< addu <<" "<< addv <<" "<< addw << std::endl;
             pch->raiseOrder(addu,addv,addw);
           }
       }
@@ -334,7 +335,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
     size_t i = 12; while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
     std::ifstream ist(keyWord+i);
     if (ist)
-      std::cout <<"\nReading data file "<< keyWord+i << std::endl;
+      IFEM::cout <<"\nReading data file "<< keyWord+i << std::endl;
     else
     {
       std::cerr <<" *** SIM3D::read: Failure opening input file "
@@ -360,9 +361,9 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
                   << master <<" "<< slave << std::endl;
         return false;
       }
-      std::cout <<"\tConnecting P"<< slave <<" F"<< sFace
-                <<" to P"<< master <<" F"<< mFace
-                <<" orient "<< orient << std::endl;
+      IFEM::cout <<"\tConnecting P"<< slave <<" F"<< sFace
+                 <<" to P"<< master <<" F"<< mFace
+                 <<" orient "<< orient << std::endl;
       ASMs3D* spch = static_cast<ASMs3D*>(myModel[slave-1]);
       ASMs3D* mpch = static_cast<ASMs3D*>(myModel[master-1]);
       if (!spch->connectPatch(sFace,*mpch,mFace,orient))
@@ -375,7 +376,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
     if (!this->createFEMmodel()) return false;
 
     int ntop = atoi(keyWord+8);
-    std::cout <<"\nNumber of patch connections: "<< ntop << std::endl;
+    IFEM::cout <<"\nNumber of patch connections: "<< ntop << std::endl;
     for (int i = 0; i < ntop && (cline = utl::readLine(is)); i++)
     {
       int master = atoi(strtok(cline," "));
@@ -391,9 +392,9 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
                   << master <<" "<< slave << std::endl;
         return false;
       }
-      std::cout <<"\tConnecting P"<< slave <<" F"<< sFace
-                <<" to P"<< master <<" F"<< mFace
-                <<" orient "<< orient << std::endl;
+      IFEM::cout <<"\tConnecting P"<< slave <<" F"<< sFace
+                 <<" to P"<< master <<" F"<< mFace
+                 <<" orient "<< orient << std::endl;
       ASMs3D* spch = static_cast<ASMs3D*>(myModel[slave-1]);
       ASMs3D* mpch = static_cast<ASMs3D*>(myModel[master-1]);
       if (!spch->connectPatch(sFace,*mpch,mFace,orient))
@@ -406,7 +407,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
     if (!this->createFEMmodel()) return false;
 
     int nper = atoi(keyWord+8);
-    std::cout <<"\nNumber of periodicities: "<< nper << std::endl;
+    IFEM::cout <<"\nNumber of periodicities: "<< nper << std::endl;
     for (int i = 0; i < nper && (cline = utl::readLine(is)); i++)
     {
       int patch = atoi(strtok(cline," "));
@@ -417,8 +418,8 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
                   << patch << std::endl;
         return false;
       }
-      std::cout <<"\tPeriodic "<< char('H'+pfdir) <<"-direction P"<< patch
-                << std::endl;
+      IFEM::cout <<"\tPeriodic "<< char('H'+pfdir) <<"-direction P"<< patch
+                 << std::endl;
       static_cast<ASMs3D*>(myModel[patch-1])->closeFaces(pfdir);
     }
 #ifdef USE_OPENMP
@@ -434,7 +435,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
 
     int ngno = 0;
     int ncon = atoi(keyWord+11);
-    std::cout <<"\nNumber of constraints: "<< ncon << std::endl;
+    IFEM::cout <<"\nNumber of constraints: "<< ncon << std::endl;
     for (int i = 0; i < ncon && (cline = utl::readLine(is)); i++)
     {
       int patch = atoi(strtok(cline," "));
@@ -467,11 +468,11 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
         if (!this->addConstraint(patch,pface,ldim,bcode%1000000,-code,ngno))
           return false;
 
-        std::cout <<" ";
+        IFEM::cout <<" ";
         cline = strtok(NULL," ");
         myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,pd));
       }
-      if (pface < 10) std::cout << std::endl;
+      if (pface < 10) IFEM::cout << std::endl;
     }
   }
 
@@ -482,7 +483,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
 
     ASM3D* pch = NULL;
     int nfix = atoi(keyWord+9);
-    std::cout <<"\nNumber of fixed points: "<< nfix << std::endl;
+    IFEM::cout <<"\nNumber of fixed points: "<< nfix << std::endl;
     for (int i = 0; i < nfix && (cline = utl::readLine(is)); i++)
     {
       int patch = atoi(strtok(cline," "));
@@ -494,9 +495,9 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
       int pid = this->getLocalPatchIndex(patch);
       if (pid > 0 && (pch = dynamic_cast<ASM3D*>(myModel[pid-1])))
       {
-        std::cout <<"\tConstraining P"<< patch
-                  <<" point at "<< rx <<" "<< ry <<" "<< rz
-                  <<" with code "<< bcode << std::endl;
+        IFEM::cout <<"\tConstraining P"<< patch
+                   <<" point at "<< rx <<" "<< ry <<" "<< rz
+                   <<" with code "<< bcode << std::endl;
         pch->constrainNode(rx,ry,rz,bcode);
       }
     }
@@ -532,14 +533,14 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
   if (project) lndx += 10;
   if (lndx < 0 && aldim > 3) aldim = 2; // local tangent direction is indicated
 
-  std::cout <<"\tConstraining P"<< patch;
+  IFEM::cout <<"\tConstraining P"<< patch;
   if (aldim < 3)
-    std::cout << (ldim == 0 ? " V" : (aldim == 1 ? " E" : " F")) << lndx;
-  std::cout <<" in direction(s) "<< dirs;
-  if (lndx < 0) std::cout << (project ? " (local projected)" : " (local)");
-  if (code != 0) std::cout <<" code = "<< abs(code);
+    IFEM::cout << (ldim == 0 ? " V" : (aldim == 1 ? " E" : " F")) << lndx;
+  IFEM::cout <<" in direction(s) "<< dirs;
+  if (lndx < 0) IFEM::cout << (project ? " (local projected)" : " (local)");
+  if (code != 0) IFEM::cout <<" code = "<< abs(code);
 #if SP_DEBUG > 1
-  std::cout << std::endl;
+  IFEM::cout << std::endl;
 #endif
 
   // Must dynamic cast here, since ASM3D is not derived from ASMbase
@@ -558,7 +559,7 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
         case 7: pch->constrainCorner(-1, 1, 1,dirs,abs(code)); break;
         case 8: pch->constrainCorner( 1, 1, 1,dirs,abs(code)); break;
         default:
-          std::cout << std::endl;
+          IFEM::cout << std::endl;
           return constrError("vertex index ",lndx);
         }
       break;
@@ -568,7 +569,7 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
         pch->constrainEdge(lndx,open,dirs,code);
       else
       {
-        std::cout << std::endl;
+        IFEM::cout << std::endl;
         return constrError("edge index ",lndx);
       }
       break;
@@ -601,7 +602,7 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
           ngnod += pch->constrainFaceLocal( 3,open,dirs,code,project,ldim);
           break;
         default:
-          std::cout << std::endl;
+          IFEM::cout << std::endl;
           return constrError("face index ",lndx);
         }
       break;
@@ -611,7 +612,7 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
       break;
 
     default:
-      std::cout << std::endl;
+      IFEM::cout << std::endl;
       return constrError("local dimension switch ",ldim);
     }
 
@@ -624,9 +625,9 @@ bool SIM3D::addConstraint (int patch, int lndx, int line, double xi, int dirs)
   if (patch < 1 || patch > (int)myModel.size())
     return constrError("patch index ",patch);
 
-  std::cout <<"\tConstraining P"<< patch
-            <<" F"<< lndx <<" L"<< line <<" at xi="<< xi
-            <<" in direction(s) "<< dirs << std::endl;
+  IFEM::cout <<"\tConstraining P"<< patch
+             <<" F"<< lndx <<" L"<< line <<" at xi="<< xi
+             <<" in direction(s) "<< dirs << std::endl;
 
   ASM3D* pch = dynamic_cast<ASM3D*>(myModel[patch-1]);
   switch (line)
@@ -700,7 +701,7 @@ bool SIM3D::readPatches (std::istream& isp, PatchVec& patches,
         delete pch;
       else
       {
-        std::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
+        IFEM::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
         pch->idx = patches.size();
         patches.push_back(pch);
         if (checkRHSys)
@@ -777,7 +778,7 @@ ASMbase* SIM3D::createDefaultGeometry (const TiXmlElement* geo) const
   std::string scale;
   if (utl::getAttribute(geo,"scale",scale) && scale != "1.0")
   {
-    std::cout <<"\tscale = "<< scale << std::endl;
+    IFEM::cout <<"\tscale = "<< scale << std::endl;
     size_t i = 0, j = 0, ns = scale.size();
     for (; (i = g2.find("1.0",j)) != std::string::npos; j=i+ns)
       g2.replace(i,3,scale);

@@ -15,6 +15,7 @@
 #include "ASMs2DC1.h"
 #include "Functions.h"
 #include "Utilities.h"
+#include "IFEM.h"
 #include "tinyxml.h"
 #include "GoTools/geometry/SplineSurface.h"
 #ifdef USE_OPENMP
@@ -64,7 +65,7 @@ SIM2D::SIM2D (IntegrandBase* itg, unsigned char n, bool check) : SIMgeneric(itg)
 
 bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
 {
-  std::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
+  IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
   if (!strcasecmp(elem->Value(),"refine") && !isRefined)
   {
@@ -92,8 +93,8 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       for (int j = lowpatch-1; j < uppatch; j++)
         if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
         {
-          std::cout <<"\tRefining P"<< j+1
-                    <<" "<< addu <<" "<< addv << std::endl;
+          IFEM::cout <<"\tRefining P"<< j+1
+                     <<" "<< addu <<" "<< addv << std::endl;
           pch->uniformRefine(0,addu);
           pch->uniformRefine(1,addv);
         }
@@ -105,10 +106,10 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       for (int j = lowpatch-1; j < uppatch; j++)
         if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
         {
-          std::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
+          IFEM::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
           for (size_t i = 0; i < xi.size(); i++)
-            std::cout <<" "<< xi[i];
-          std::cout << std::endl;
+            IFEM::cout <<" "<< xi[i];
+          IFEM::cout << std::endl;
           pch->refine(dir-1,xi);
         }
     }
@@ -137,8 +138,8 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     for (int j = lowpatch-1; j < uppatch; j++)
       if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
       {
-        std::cout <<"\tRaising order of P"<< j+1
-                  <<" "<< addu <<" "<< addv << std::endl;
+        IFEM::cout <<"\tRaising order of P"<< j+1
+                   <<" "<< addu <<" "<< addv << std::endl;
         pch->raiseOrder(addu,addv);
       }
   }
@@ -167,9 +168,9 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
                   << master <<" "<< slave << std::endl;
         return false;
       }
-      std::cout <<"\tConnecting P"<< slave <<" E"<< sEdge
-                <<" to P"<< master <<" E"<< mEdge
-                <<" reversed? "<< rever << std::endl;
+      IFEM::cout <<"\tConnecting P"<< slave <<" E"<< sEdge
+                 <<" to P"<< master <<" E"<< mEdge
+                 <<" reversed? "<< rever << std::endl;
       ASMs2D* spch = static_cast<ASMs2D*>(myModel[slave-1]);
       ASMs2D* mpch = static_cast<ASMs2D*>(myModel[master-1]);
       if (!spch->connectPatch(sEdge,*mpch,mEdge,rever))
@@ -202,8 +203,8 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
                 << patch << std::endl;
       return false;
     }
-    std::cout <<"\tPeriodic "<< char('H'+pedir) <<"-direction P"<< patch
-              << std::endl;
+    IFEM::cout <<"\tPeriodic "<< char('H'+pedir) <<"-direction P"<< patch
+               << std::endl;
     static_cast<ASMs2D*>(myModel[patch-1])->closeEdges(pedir);
 #ifdef USE_OPENMP
     // Cannot do multi-threaded assembly with periodicities
@@ -267,9 +268,9 @@ bool SIM2D::parseBCTag (const TiXmlElement* elem)
     ASM2D* pch = dynamic_cast<ASM2D*>(myModel[pid-1]);
     if (!pch) return false;
 
-    std::cout <<"\tConstraining P"<< patch
-              <<" point at "<< rx <<" "<< ry
-              <<" with code "<< code << std::endl;
+    IFEM::cout <<"\tConstraining P"<< patch
+               <<" point at "<< rx <<" "<< ry
+               <<" with code "<< code << std::endl;
     pch->constrainNode(rx,ry,code);
   }
 
@@ -292,8 +293,8 @@ bool SIM2D::parse (const TiXmlElement* elem)
         {
           nf[1] = 'I';
           nf[2] = maxDepth;
-          std::cout <<"  Parsing <immersedboundary>\n"
-                    <<"\tMax refinement depth : "<< maxDepth << std::endl;
+          IFEM::cout <<"  Parsing <immersedboundary>\n"
+                     <<"\tMax refinement depth : "<< maxDepth << std::endl;
           // Immersed boundary cannot be used with C1-continuous multi-patches
           if (opt.discretization == ASM::SplineC1)
             opt.discretization = ASM::Spline;
@@ -324,7 +325,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
     else
     {
       ASM2D* pch = NULL;
-      std::cout <<"\nNumber of patch refinements: "<< nref << std::endl;
+      IFEM::cout <<"\nNumber of patch refinements: "<< nref << std::endl;
       for (int i = 0; i < nref && (cline = utl::readLine(is)); i++)
       {
 	bool uniform = !strchr(cline,'.');
@@ -348,8 +349,8 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 	  for (int j = ipatch; j < patch; j++)
 	    if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
 	    {
-	      std::cout <<"\tRefining P"<< j+1
-			<<" "<< addu <<" "<< addv << std::endl;
+              IFEM::cout <<"\tRefining P"<< j+1
+                         <<" "<< addu <<" "<< addv << std::endl;
 	      pch->uniformRefine(0,addu);
 	      pch->uniformRefine(1,addv);
 	    }
@@ -362,10 +363,10 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 	    for (int j = ipatch; j < patch; j++)
 	      if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
 	      {
-		std::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
+		IFEM::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
 		for (size_t i = 0; i < xi.size(); i++)
-		  std::cout <<" "<< xi[i];
-		std::cout << std::endl;
+		  IFEM::cout <<" "<< xi[i];
+		IFEM::cout << std::endl;
 		pch->refine(dir-1,xi);
 	      }
 	}
@@ -381,7 +382,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
     else
     {
       ASM2D* pch = NULL;
-      std::cout <<"\nNumber of order raise: "<< nref << std::endl;
+      IFEM::cout <<"\nNumber of order raise: "<< nref << std::endl;
       for (int i = 0; i < nref && (cline = utl::readLine(is)); i++)
       {
 	int patch = atoi(strtok(cline," "));
@@ -402,8 +403,8 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 	for (int j = ipatch; j < patch; j++)
 	  if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
 	  {
-	    std::cout <<"\tRaising order of P"<< j+1
-		      <<" "<< addu <<" "<< addv << std::endl;
+            IFEM::cout <<"\tRaising order of P"<< j+1
+                       <<" "<< addu <<" "<< addv << std::endl;
 	    pch->raiseOrder(addu,addv);
 	  }
       }
@@ -415,7 +416,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
     if (!this->createFEMmodel()) return false;
 
     int ntop = atoi(keyWord+8);
-    std::cout <<"\nNumber of patch connections: "<< ntop << std::endl;
+    IFEM::cout <<"\nNumber of patch connections: "<< ntop << std::endl;
     std::vector<Interface> top;
     if (opt.discretization == ASM::SplineC1)
       top.reserve(ntop);
@@ -435,9 +436,9 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 		  << master <<" "<< slave << std::endl;
 	return false;
       }
-      std::cout <<"\tConnecting P"<< slave <<" E"<< sEdge
-		<<" to P"<< master <<" E"<< mEdge
-		<<" reversed? "<< rever << std::endl;
+      IFEM::cout <<"\tConnecting P"<< slave <<" E"<< sEdge
+                 <<" to P"<< master <<" E"<< mEdge
+                 <<" reversed? "<< rever << std::endl;
       ASMs2D* spch = static_cast<ASMs2D*>(myModel[slave-1]);
       ASMs2D* mpch = static_cast<ASMs2D*>(myModel[master-1]);
       if (!spch->connectPatch(sEdge,*mpch,mEdge,rever))
@@ -461,7 +462,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
     if (!this->createFEMmodel()) return false;
 
     int nper = atoi(keyWord+8);
-    std::cout <<"\nNumber of periodicities: "<< nper << std::endl;
+    IFEM::cout <<"\nNumber of periodicities: "<< nper << std::endl;
     for (int i = 0; i < nper && (cline = utl::readLine(is)); i++)
     {
       int patch = atoi(strtok(cline," "));
@@ -472,8 +473,8 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 		  << patch << std::endl;
 	return false;
       }
-      std::cout <<"\tPeriodic "<< char('H'+pedir) <<"-direction P"<< patch
-		<< std::endl;
+      IFEM::cout <<"\tPeriodic "<< char('H'+pedir) <<"-direction P"<< patch
+                 << std::endl;
       static_cast<ASMs2D*>(myModel[patch-1])->closeEdges(pedir);
     }
 #ifdef USE_OPENMP
@@ -489,7 +490,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 
     int ngno = 0;
     int ncon = atoi(keyWord+11);
-    std::cout <<"\nNumber of constraints: "<< ncon << std::endl;
+    IFEM::cout <<"\nNumber of constraints: "<< ncon << std::endl;
     for (int i = 0; i < ncon && (cline = utl::readLine(is)); i++)
     {
       int patch = atoi(strtok(cline," "));
@@ -517,11 +518,11 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 	if (!this->addConstraint(patch,pedge,ldim,bcode%1000000,-code,ngno))
 	  return false;
 
-	std::cout << std::endl;
+	IFEM::cout << std::endl;
 	cline = strtok(NULL," ");
 	myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,pd));
       }
-      std::cout << std::endl;
+      IFEM::cout << std::endl;
     }
   }
 
@@ -532,7 +533,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 
     ASM2D* pch = NULL;
     int nfix = atoi(keyWord+9);
-    std::cout <<"\nNumber of fixed points: "<< nfix << std::endl;
+    IFEM::cout <<"\nNumber of fixed points: "<< nfix << std::endl;
     for (int i = 0; i < nfix && (cline = utl::readLine(is)); i++)
     {
       int patch = atoi(strtok(cline," "));
@@ -543,9 +544,9 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
       int pid = this->getLocalPatchIndex(patch);
       if (pid > 0 && (pch = dynamic_cast<ASM2D*>(myModel[pid-1])))
       {
-	std::cout <<"\tConstraining P"<< patch
-		  <<" point at "<< rx <<" "<< ry
-		  <<" with code "<< bcode << std::endl;
+        IFEM::cout <<"\tConstraining P"<< patch
+                   <<" point at "<< rx <<" "<< ry
+                   <<" with code "<< bcode << std::endl;
 	pch->constrainNode(rx,ry,bcode);
       }
     }
@@ -579,14 +580,14 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
   bool project = lndx < -10;
   if (project) lndx += 10;
 
-  std::cout <<"\tConstraining P"<< patch;
+  IFEM::cout <<"\tConstraining P"<< patch;
   if (abs(ldim) < 2)
-    std::cout << (ldim == 0 ? " V" : " E") << abs(lndx);
-  std::cout <<" in direction(s) "<< dirs;
-  if (lndx < 0) std::cout << (project ? " (local projected)" : " (local)");
-  if (code != 0) std::cout <<" code = "<< abs(code);
+    IFEM::cout << (ldim == 0 ? " V" : " E") << abs(lndx);
+  IFEM::cout <<" in direction(s) "<< dirs;
+  if (lndx < 0) IFEM::cout << (project ? " (local projected)" : " (local)");
+  if (code != 0) IFEM::cout <<" code = "<< abs(code);
 #if SP_DEBUG > 1
-  std::cout << std::endl;
+  IFEM::cout << std::endl;
 #endif
 
   // Must dynamic cast here, since ASM2D is not derived from ASMbase
@@ -603,7 +604,7 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 	case 3: pch->constrainCorner(-1, 1,dirs,abs(code)); break;
 	case 4: pch->constrainCorner( 1, 1,dirs,abs(code)); break;
 	default:
-	  std::cout << std::endl;
+	  IFEM::cout << std::endl;
 	  return constrError("vertex index ",lndx);
 	}
       break;
@@ -628,7 +629,7 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 	  ngnod += pch->constrainEdgeLocal( 2,open,dirs,code,project);
 	  break;
 	default:
-	  std::cout << std::endl;
+	  IFEM::cout << std::endl;
 	  return constrError("edge index ",lndx);
 	}
       break;
@@ -638,7 +639,7 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
       break;
 
     default:
-      std::cout << std::endl;
+      IFEM::cout << std::endl;
       return constrError("local dimension switch ",ldim);
     }
 
@@ -682,7 +683,7 @@ bool SIM2D::readPatches (std::istream& isp, PatchVec& patches,
         delete pch;
       else
       {
-        std::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
+        IFEM::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
         pch->idx = patches.size();
         patches.push_back(pch);
         if (checkRHSys)
@@ -764,7 +765,7 @@ ASMbase* SIM2D::createDefaultGeometry (const TiXmlElement* geo) const
   std::string scale;
   if (utl::getAttribute(geo,"scale",scale) && scale != "1.0")
   {
-    std::cout <<"\tscale = "<< scale << std::endl;
+    IFEM::cout <<"\tscale = "<< scale << std::endl;
     size_t i = 0, j = 0, ns = scale.size();
     for (; (i = g2.find("1.0",j)) != std::string::npos; j=i+ns)
       g2.replace(i,3,scale);

@@ -89,7 +89,7 @@ bool ASMs1D::read (std::istream& is)
 }
 
 
-bool ASMs1D::write (std::ostream& os, int) const
+bool ASMs1D::write (utl::LogStream& os, int) const
 {
   if (!curv) return false;
 

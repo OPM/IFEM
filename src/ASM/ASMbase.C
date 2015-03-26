@@ -14,6 +14,7 @@
 #include "ASMbase.h"
 #include "ASM2D.h"
 #include "ASM3D.h"
+#include "IFEM.h"
 #include "MPC.h"
 #include "Vec3.h"
 #include "Vec3Oper.h"
@@ -623,9 +624,9 @@ void ASMbase::mergeAndGetAllMPCs (const ASMVec& model, MPCSet& allMPCs)
   }
 
   if (nmerged > 0)
-    std::cout <<"Merged "<< nmerged <<" MPC equations."<< std::endl;
+    IFEM::cout <<"Merged "<< nmerged <<" MPC equations."<< std::endl;
   if (ndeleted > 0)
-    std::cout <<"Deleted "<< ndeleted <<" MPC equations."<< std::endl;
+    IFEM::cout <<"Deleted "<< ndeleted <<" MPC equations."<< std::endl;
 
 #if SP_DEBUG > 1
   if (allMPCs.empty()) return;
@@ -667,7 +668,7 @@ void ASMbase::resolveMPCchains (const MPCSet& allMPCs, bool setPtrOnly)
       nresolved++;
 
   if (nresolved > 0)
-    std::cout <<"Resolved "<< nresolved <<" MPC chains."<< std::endl;
+    IFEM::cout <<"Resolved "<< nresolved <<" MPC chains."<< std::endl;
 }
 
 
@@ -837,8 +838,8 @@ bool ASMbase::mergeNodes (size_t inod, int globalNum, bool silence)
     return false;
 
   if (!silence)
-    std::cout <<"  ** Merging duplicated nodes "<< globalNum <<" and "<< oldNum
-	      <<" at X="<< this->getCoord(inod) << std::endl;
+    IFEM::cout <<"  ** Merging duplicated nodes "<< globalNum <<" and "<< oldNum
+               <<" at X="<< this->getCoord(inod) << std::endl;
 
   std::map<int,int> old2New;
   myMLGN[inod-1] = old2New[oldNum] = globalNum;

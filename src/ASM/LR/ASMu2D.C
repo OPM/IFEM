@@ -102,7 +102,7 @@ bool ASMu2D::read (std::istream& is)
 }
 
 
-bool ASMu2D::write (std::ostream& os, int) const
+bool ASMu2D::write (utl::LogStream& os, int) const
 {
 	if (!lrspline) return false;
 

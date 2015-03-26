@@ -188,17 +188,22 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
   if (solution.empty())
     return FAILURE;
 
-  if (msgLevel >= 0 && model.getProcessAdm().getProcId() == 0)
+  if (msgLevel >= 0)
   {
     std::streamsize oldPrec = 0;
     double digits = log10(param.time.t)-log10(param.time.dt);
-    if (digits > 6.0) oldPrec = std::cout.precision(ceil(digits));
-    std::cout <<"\n  step="<< param.step <<"  time="<< param.time.t;
+    if (digits > 6.0)
+    {
+      oldPrec = std::cout.precision();
+      model.getProcessAdm().cout << std::setprecision(ceil(digits));
+    }
+    model.getProcessAdm().cout <<"\n  step="<< param.step <<"  time="<< param.time.t;
     if (param.maxCFL > 0.0)
-      std::cout <<"  CFL = "<< param.time.CFL << std::endl;
+      model.getProcessAdm().cout <<"  CFL = "<< param.time.CFL << std::endl;
     else
-      std::cout << std::endl;
-    if (oldPrec > 0) std::cout.precision(oldPrec);
+      model.getProcessAdm().cout << std::endl;
+    if (oldPrec > 0)
+      model.getProcessAdm().cout << std::setprecision(oldPrec);
   }
 
   param.iter = 0;
@@ -399,16 +404,16 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
   if (param.iter > 1 && prevNorm > 0.0 && fabs(norm) > prevNorm*0.1)
     status = SLOW;
 
-  if (msgLevel > 0 && model.getProcessAdm().getProcId() == 0)
+  if (msgLevel > 0)
   {
     // Print convergence history
     std::ios::fmtflags oldFlags = std::cout.flags(std::ios::scientific);
     std::streamsize oldPrec = std::cout.precision(3);
-    std::cout <<"  iter="<< param.iter
-              <<"  conv="<< fabs(norm)
-              <<"  enen="<< enorm
-              <<"  resn="<< resNorm
-              <<"  incn="<< linsolNorm << std::endl;
+    model.getProcessAdm().cout <<"  iter="<< param.iter
+                               <<"  conv="<< fabs(norm)
+                               <<"  enen="<< enorm
+                               <<"  resn="<< resNorm
+                               <<"  incn="<< linsolNorm << std::endl;
     if (status == SLOW && prnSlow > 0)
     {
       // Find and print out the worst DOF(s) when detecting slow convergence

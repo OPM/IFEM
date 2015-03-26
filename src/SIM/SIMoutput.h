@@ -208,23 +208,23 @@ public:
 
   //! \brief Dumps the (possibly refined) geometry in g2-format.
   //! \param os Output stream to write the geometry data to
-  bool dumpGeometry(std::ostream& os) const;
+  bool dumpGeometry(utl::LogStream& os) const;
   //! \brief Dumps the (possibly refined) spline basis in g2-format.
   //! \param os Output stream to write the spline data to
   //! \param[in] basis Which basis to dump for mixed methods (0 = geometry)
   //! \param[in] patch Which patch to dump for (0 = all)
-  bool dumpBasis(std::ostream& os, int basis = 0, size_t patch = 0) const;
+  bool dumpBasis(utl::LogStream& os, int basis = 0, size_t patch = 0) const;
 
   //! \brief Dumps the primary solution in ASCII format for inspection.
   //! \param[in] psol Primary solution vector
   //! \param os Output stream to write the solution data to
   //! \param[in] withID If \e true, write node ID and coordinates too
-  void dumpPrimSol(const Vector& psol, std::ostream& os,
+  void dumpPrimSol(const Vector& psol, utl::LogStream& os,
                    bool withID = true) const;
   //! \brief Dumps the entire solution in ASCII format.
   //! \param[in] psol Primary solution vector to derive other quantities from
   //! \param os Output stream to write the solution data to
-  bool dumpSolution(const Vector& psol, std::ostream& os) const;
+  bool dumpSolution(const Vector& psol, utl::LogStream& os) const;
   //! \brief Dumps solution results at specified points in ASCII format.
   //! \param[in] psol Primary solution vector to derive other quantities from
   //! \param[in] time Load/time step parameter
@@ -232,7 +232,7 @@ public:
   //! \param[in] formatted If \e false, write all result points on a single line
   //!            without point identifications, but with time as first column
   //! \param[in] precision Number of digits after the decimal point
-  bool dumpResults(const Vector& psol, double time, std::ostream& os,
+  bool dumpResults(const Vector& psol, double time, utl::LogStream& os,
                    bool formatted = false, std::streamsize precision = 3) const;
   //! \brief Dumps vector solution at specified points in ASCII format.
   //! \param[in] vsol Solution vector
@@ -240,12 +240,12 @@ public:
   //! \param os Output stream to write the solution data to
   //! \param[in] precision Number of digits after the decimal point
   bool dumpVector(const Vector& vsol, const char* fname,
-                  std::ostream& os, std::streamsize precision = 3) const;
+                  utl::LogStream& os, std::streamsize precision = 3) const;
   //! \brief Dumps additional problem-specific results in ASCII format.
   //! \param[in] time Load/time step parameter
   //! \param os Output stream to write the solution data to
   //! \param[in] precision Number of digits after the decimal point
-  virtual void dumpMoreResults(double time, std::ostream& os,
+  virtual void dumpMoreResults(double time, utl::LogStream& os,
                                std::streamsize precision = 3) const {}
 
 protected:

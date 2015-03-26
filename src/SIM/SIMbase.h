@@ -174,7 +174,7 @@ public:
   void setQuadratureRule(size_t ng, bool redimBuffers = false);
 
   //! \brief Prints out problem-specific data to the given stream.
-  virtual void printProblem(std::ostream& os) const;
+  virtual void printProblem(utl::LogStream& os) const;
 
   //! \brief Returns a pointer to the problem-specific data object.
   const IntegrandBase* getProblem() const { return myProblem; }
@@ -382,7 +382,7 @@ public:
   //! \param[in] norms The norm values
   //! \param os The stream to print to
   //! \param[in] w Total number of characters in the norm labels
-  virtual void printNorms(const Vectors& norms, std::ostream& os,
+  virtual void printNorms(const Vectors& norms, utl::LogStream& os,
                           size_t w = 36) const;
 
   //! \brief Prints a summary of the calculated solution to std::cout.

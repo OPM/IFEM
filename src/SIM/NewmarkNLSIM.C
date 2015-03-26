@@ -58,7 +58,7 @@ bool NewmarkNLSIM::parse (const TiXmlElement* elem)
 }
 
 
-void NewmarkNLSIM::printProblem (std::ostream& os) const
+void NewmarkNLSIM::printProblem (utl::LogStream& os) const
 {
   this->NewmarkSIM::printProblem(os);
 

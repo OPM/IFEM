@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "Functions.h"
+#include "IFEM.h"
 #include "Vec3Oper.h"
 #include <cstring>
 #include <fstream>
@@ -230,11 +231,11 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
   if (linear > 0 && (cline = strtok(NULL," ")))
   {
     C = Real(1);
-    std::cout <<"("<< A <<"*";
+    IFEM::cout <<"("<< A <<"*";
     if (linear < 4)
-      std::cout << char('W' + linear) <<" + "<< cline <<")";
+      IFEM::cout << char('W' + linear) <<" + "<< cline <<")";
     else if (linear < 6)
-      std::cout << char('W' + linear-3) <<"RotZ("<< cline <<"))";
+      IFEM::cout << char('W' + linear-3) <<"RotZ("<< cline <<"))";
     switch (linear) {
     case 1:
       f = new LinearXFunc(A,atof(cline));
@@ -255,7 +256,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
       {
 	double x0 = atof(cline);
 	double x1 = atof(strtok(NULL," "));
-	std::cout <<"StepX("<< x0 <<","<< x1 <<"))";
+	IFEM::cout <<"StepX("<< x0 <<","<< x1 <<"))";
 	f = new StepXFunc(A,x0,x1);
       }
       break;
@@ -268,12 +269,12 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
 	{
 	  double x1 = atof(strtok(NULL," "));
 	  double y1 = atof(strtok(NULL," "));
-	  std::cout <<"StepXY(["<< x0 <<","<< x1 <<"]x["<< y0 <<","<<y1 <<"]))";
+	  IFEM::cout <<"StepXY(["<< x0 <<","<< x1 <<"]x["<< y0 <<","<<y1 <<"]))";
 	  f = new StepXYFunc(A,x1,y1,x0,y0);
 	}
 	else
 	{
-	  std::cout <<"StepXY([-inf,"<< x0 <<"]x[-inf,"<< y0 <<"]))";
+	  IFEM::cout <<"StepXY([-inf,"<< x0 <<"]x[-inf,"<< y0 <<"]))";
 	  f = new StepXYFunc(A,x0,y0);
 	}
       }
@@ -281,22 +282,22 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
     case 8:
       {
         int dir = atoi(strtok(NULL," ")), col = 2;
-        std::cout <<"Interpolate1D("<< cline;
+        IFEM::cout <<"Interpolate1D("<< cline;
         const char* t = strtok(NULL," ");
 	if (t && t[0] == 'c') {
 	  col = atoi(t+1);
 	  t = strtok(NULL," ");
-	  std::cout <<",column #"<< col;
+	  IFEM::cout <<",column #"<< col;
 	}
-	std::cout <<","<< (char)('X'+dir);
+	IFEM::cout <<","<< (char)('X'+dir);
         if (t) {
           double time = atof(t);
-          std::cout <<")*Ramp("<< time;
+          IFEM::cout <<")*Ramp("<< time;
           f = new Interpolate1D(cline,dir,col,time);
         }
         else
           f = new Interpolate1D(cline,dir,col);
-	std::cout <<")";
+	IFEM::cout <<")";
       }
       break;
     case 9:
@@ -304,7 +305,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
         std::string basis, field;
         basis = strtok(NULL, " ");
         field = strtok(NULL, " ");
-        std::cout <<"Field("<< cline <<","<< basis <<","<< field <<")";
+        IFEM::cout <<"Field("<< cline <<","<< basis <<","<< field <<")";
         f = new FieldFunction(cline,basis,field);
       }
       break;
@@ -319,7 +320,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
     Real b = atof(strtok(NULL," "));
     Real val = (a-b)*(a-b)/Real(4);
     char var = 'W' + quadratic;
-    std::cout << A/val <<" * ("<< a <<"-"<< var <<")*("<< b <<"-"<< var <<")";
+    IFEM::cout << A/val <<" * ("<< a <<"-"<< var <<")*("<< b <<"-"<< var <<")";
     switch (quadratic) {
     case 1:
       f = new QuadraticXFunc(A,a,b);
@@ -335,7 +336,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
   }
   else // constant in space
   {
-    std::cout << C;
+    IFEM::cout << C;
     if (linear < 0)
       f = new ConstFunc(C);
   }
@@ -343,7 +344,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
   // Check for time variation
   if (!cline) return f; // constant in time
 
-  std::cout <<" * ";
+  IFEM::cout <<" * ";
   const ScalarFunc* s = parseTimeFunc(cline,NULL,C);
 
   if (f)
@@ -357,25 +358,25 @@ const ScalarFunc* utl::parseTimeFunc (const char* type, char* cline, Real C)
 {
   if (strncasecmp(type,"expr",4) == 0 && cline != NULL)
   {
-    std::cout << cline;
+    IFEM::cout << cline;
     return new EvalFunc(cline,"t");
   }
   else if (strncasecmp(type,"Ramp",4) == 0 || strcmp(type,"Tinit") == 0)
   {
     Real xmax = atof(strtok(cline," "));
-    std::cout <<"Ramp(t,"<< xmax <<")";
+    IFEM::cout <<"Ramp(t,"<< xmax <<")";
     return new RampFunc(C,xmax);
   }
   else if (strncasecmp(type,"Dirac",5) == 0)
   {
     Real xmax = atof(strtok(cline," "));
-    std::cout <<"Dirac(t,"<< xmax <<")";
+    IFEM::cout <<"Dirac(t,"<< xmax <<")";
     return new DiracFunc(C,xmax);
   }
   else if (strncasecmp(type,"Step",4) == 0)
   {
     Real xmax = atof(strtok(cline," "));
-    std::cout <<"Step(t,"<< xmax <<")";
+    IFEM::cout <<"Step(t,"<< xmax <<")";
     return new StepFunc(C,xmax);
   }
   else if (strcasecmp(type,"sin") == 0)
@@ -384,19 +385,19 @@ const ScalarFunc* utl::parseTimeFunc (const char* type, char* cline, Real C)
     if ((cline = strtok(NULL," ")))
     {
       Real phase = atof(cline);
-      std::cout <<"sin("<< freq <<"*t + "<< phase <<")";
+      IFEM::cout <<"sin("<< freq <<"*t + "<< phase <<")";
       return new SineFunc(C,freq,phase);
     }
     else
     {
-      std::cout <<"sin("<< freq <<"*t)";
+      IFEM::cout <<"sin("<< freq <<"*t)";
       return new SineFunc(C,freq);
     }
   }
   else // linear in time
   {
     Real scale = atof(type);
-    std::cout << scale <<"*t";
+    IFEM::cout << scale <<"*t";
     return new LinearFunc(C*scale);
   }
 }
@@ -408,7 +409,7 @@ ScalarFunc* utl::parseTimeFunc (const char* func, const std::string& type)
   const ScalarFunc* sf = NULL;
   if (type == "expression")
   {
-    std::cout <<"(expression) ";
+    IFEM::cout <<"(expression) ";
     if (func) cstr = strdup(func);
     sf = parseTimeFunc("expression",cstr);
   }
@@ -419,7 +420,7 @@ ScalarFunc* utl::parseTimeFunc (const char* func, const std::string& type)
     if (func) cstr = strdup(func);
     sf = parseTimeFunc(type.c_str(),cstr);
   }
-  std::cout << std::endl;
+  IFEM::cout << std::endl;
   if (cstr) free(cstr);
 
   return const_cast<ScalarFunc*>(sf);
@@ -430,23 +431,23 @@ RealFunc* utl::parseRealFunc (const std::string& func, const std::string& type)
 {
   if (func.empty()) return NULL;
 
-  std::cout <<": ";
+  IFEM::cout <<": ";
   Real p = Real(0);
   if (type == "expression")
   {
-    std::cout << func;
+    IFEM::cout << func;
     return new EvalFunction(func.c_str());
   }
   else if (type == "linear")
   {
     p = atof(func.c_str());
-    std::cout << p <<"*t";
+    IFEM::cout << p <<"*t";
     return new ConstTimeFunc(new LinearFunc(p));
   }
   else if (type == "constant" || func.find_first_of("\t ") == std::string::npos)
   {
     p = atof(func.c_str());
-    std::cout << p;
+    IFEM::cout << p;
     return new ConstFunc(p);
   }
 
@@ -464,7 +465,7 @@ VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
 
   if (type == "expression")
   {
-    std::cout <<": "<< func;
+    IFEM::cout <<": "<< func;
     return new VecFuncExpr(func,variables);
   }
   else if (type == "constant")
@@ -474,7 +475,7 @@ VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
     char* s = strtok(const_cast<char*>(tmp.c_str())," ");
     for (int i = 0; i < 3 && s; i++, s = strtok(NULL," "))
       v[i] = atof(s);
-    std::cout <<": "<< v;
+    IFEM::cout <<": "<< v;
     return new ConstVecFunc(v);
   }
 
@@ -487,24 +488,24 @@ TractionFunc* utl::parseTracFunc (const std::string& func,
 {
   if (func.empty()) return NULL;
 
-  std::cout <<": ";
+  IFEM::cout <<": ";
   Real p = Real(0);
   const RealFunc* f = 0;
   if (type == "expression")
   {
-    std::cout << func;
+    IFEM::cout << func;
     f = new EvalFunction(func.c_str());
   }
   else if (type == "linear")
   {
     p = atof(func.c_str());
     f = new ConstTimeFunc(new LinearFunc(p));
-    std::cout << p <<"*t";
+    IFEM::cout << p <<"*t";
   }
   else if (type == "constant" || func.find_first_of("\t ") == std::string::npos)
   {
     p = atof(func.c_str());
-    std::cout << p;
+    IFEM::cout << p;
   }
   else
   {

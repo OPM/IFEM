@@ -55,7 +55,7 @@ bool HHTSIM::parse (const TiXmlElement* elem)
 }
 
 
-void HHTSIM::printProblem (std::ostream& os) const
+void HHTSIM::printProblem (utl::LogStream& os) const
 {
   this->NewmarkSIM::printProblem(os);
 

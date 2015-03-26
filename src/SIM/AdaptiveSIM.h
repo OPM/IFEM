@@ -58,7 +58,7 @@ public:
   bool writeGlv(const char* infile, int iStep, size_t nNormProj);
 
   //! \brief Prints out the global norms to given stream.
-  std::ostream& printNorms(std::ostream& os, size_t w = 36) const;
+  utl::LogStream& printNorms(utl::LogStream& os, size_t w = 36) const;
 
   //! \brief Accesses the solution of the linear system.
   const Vector& getSolution(size_t idx = 0) const { return solution[idx]; }

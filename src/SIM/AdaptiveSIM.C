@@ -14,6 +14,7 @@
 #include "AdaptiveSIM.h"
 #include "IntegrandBase.h"
 #include "ASMbase.h"
+#include "IFEM.h"
 #include "SIMoutput.h"
 #include "SIMenums.h"
 #include "SystemMatrix.h"
@@ -180,7 +181,7 @@ bool AdaptiveSIM::initAdaptor (size_t indxProj, size_t nNormProj)
 
 bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
 {
-  std::cout <<"\nAdaptive step "<< iStep << std::endl;
+  model->getProcessAdm().cout <<"\nAdaptive step "<< iStep << std::endl;
   if (iStep > 1)
   {
     SIMoptions oldOpt(opt);
@@ -232,7 +233,8 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
   // Evaluate solution norms
   model->setQuadratureRule(opt.nGauss[1]);
   return (model->solutionNorms(solution,projs,eNorm,gNorm) &&
-	  model->dumpResults(solution.front(),0.0,std::cout,true,6));
+          model->dumpResults(solution.front(),0.0,
+                             model->getProcessAdm().cout,true,6));
 }
 
 
@@ -248,7 +250,7 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   if (iStep < 2)
     return true;
 
-  this->printNorms(std::cout);
+  this->printNorms(IFEM::cout);
 
   if (adaptor >= gNorm.size() || adaptor >= eNorm.rows())
     return false;
@@ -367,7 +369,7 @@ bool AdaptiveSIM::adaptMesh (int iStep)
 }
 
 
-std::ostream& AdaptiveSIM::printNorms (std::ostream& os, size_t w) const
+utl::LogStream& AdaptiveSIM::printNorms (utl::LogStream& os, size_t w) const
 {
   model->printNorms(gNorm,os,w);
 

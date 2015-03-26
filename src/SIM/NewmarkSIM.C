@@ -14,6 +14,7 @@
 #include "NewmarkSIM.h"
 #include "SIMoutput.h"
 #include "TimeStep.h"
+#include "IFEM.h"
 #include "Profiler.h"
 #include "Utilities.h"
 #include "tinyxml.h"
@@ -92,7 +93,7 @@ bool NewmarkSIM::parse (const TiXmlElement* elem)
 }
 
 
-void NewmarkSIM::printProblem (std::ostream& os) const
+void NewmarkSIM::printProblem (utl::LogStream& os) const
 {
   model.printProblem(os);
 
@@ -247,13 +248,13 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
 {
   PROFILE1("NewmarkSIM::solveStep");
 
-  if (msgLevel >= 0 && myPid == 0)
+  if (msgLevel >= 0)
   {
     std::streamsize oldPrec = 0;
     double digits = log10(param.time.t)-log10(param.time.dt);
     if (digits > 6.0) oldPrec = std::cout.precision(ceil(digits));
-    std::cout <<"\n  step="<< param.step
-              <<"  time="<< param.time.t << std::endl;
+    IFEM::cout <<"\n  step="<< param.step
+               <<"  time="<< param.time.t << std::endl;
     if (digits > 6.0) std::cout.precision(oldPrec);
   }
 
@@ -340,16 +341,16 @@ SIM::ConvStatus NewmarkSIM::checkConvergence (TimeStep& param)
     nIncrease = 0;
   }
 
-  if (msgLevel > 0 && myPid == 0)
+  if (msgLevel > 0)
   {
     // Print convergence history
     std::ios::fmtflags oldFlags = std::cout.flags(std::ios::scientific);
     std::streamsize oldPrec = std::cout.precision(3);
-    std::cout <<"  iter="<< param.iter
-              <<"  conv="<< fabs(norm)
-              <<"  enen="<< norms[0]
-              <<"  resn="<< norms[1]
-              <<"  incn="<< norms[2] << std::endl;
+    IFEM::cout <<"  iter="<< param.iter
+               <<"  conv="<< fabs(norm)
+               <<"  enen="<< norms[0]
+               <<"  resn="<< norms[1]
+               <<"  incn="<< norms[2] << std::endl;
     std::cout.flags(oldFlags);
     std::cout.precision(oldPrec);
   }
@@ -386,40 +387,38 @@ bool NewmarkSIM::solutionNorms (const TimeDomain&,
   double velL2 = model.solutionNorms(solution[v],vMax,jMax,nf);
   double accL2 = model.solutionNorms(solution[a],aMax,kMax,nf);
 
-  if (myPid > 0) return true;
-
-  std::streamsize stdPrec = outPrec > 0 ? std::cout.precision(outPrec) : 0;
+  std::streamsize stdPrec = outPrec > 0 ? model.getProcessAdm().cout.precision(outPrec) : 0;
   double old_tol = utl::zero_print_tol;
   utl::zero_print_tol = zero_tolerance;
   char D;
 
-  std::cout <<"  Displacement L2-norm            : "<< utl::trunc(disL2);
+  model.getProcessAdm().cout <<"  Displacement L2-norm            : "<< utl::trunc(disL2);
   for (d = 0, D = 'X'; d < nf; d++, D=='Z' ? D='x' : D++)
     if (utl::trunc(dMax[d]) != 0.0)
-      std::cout <<"\n               Max "<< D
-                <<"-displacement : "<< dMax[d] <<" node "<< iMax[d];
+      model.getProcessAdm().cout <<"\n               Max "<< D
+                                 <<"-displacement : "<< dMax[d] <<" node "<< iMax[d];
 
-  std::cout <<"\n  Velocity L2-norm                : "<< utl::trunc(velL2);
+  model.getProcessAdm().cout <<"\n  Velocity L2-norm                : "<< utl::trunc(velL2);
   for (d = 0, D = 'X'; d < nf; d++, D=='Z' ? D='x' : D++)
     if (utl::trunc(vMax[d]) != 0.0)
-      std::cout <<"\n               Max "<< D
-                <<"-velocity     : "<< vMax[d] <<" node "<< jMax[d];
+      model.getProcessAdm().cout <<"\n               Max "<< D
+                                 <<"-velocity     : "<< vMax[d] <<" node "<< jMax[d];
 
-  std::cout <<"\n  Acceleration L2-norm            : "<< utl::trunc(accL2);
+  model.getProcessAdm().cout <<"\n  Acceleration L2-norm            : "<< utl::trunc(accL2);
   for (d = 0, D = 'X'; d < nf; d++, D=='Z' ? D='x' : D++)
     if (utl::trunc(aMax[d]) != 0.0)
-      std::cout <<"\n               Max "<< D
-                <<"-acceleration : "<< aMax[d] <<" node "<< kMax[d];
+      model.getProcessAdm().cout <<"\n               Max "<< D
+                                 <<"-acceleration : "<< aMax[d] <<" node "<< kMax[d];
 
-  std::cout << std::endl;
+  model.getProcessAdm().cout << std::endl;
   utl::zero_print_tol = old_tol;
-  if (stdPrec > 0) std::cout.precision(stdPrec);
+  if (stdPrec > 0) model.getProcessAdm().cout.precision(stdPrec);
 
   return true;
 }
 
 
-void NewmarkSIM::dumpResults (double time, std::ostream& os,
+void NewmarkSIM::dumpResults (double time, utl::LogStream& os,
                               std::streamsize precision, bool formatted) const
 {
   model.dumpResults(solution.front(),time,os,formatted,precision);

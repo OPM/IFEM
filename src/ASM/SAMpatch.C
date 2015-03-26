@@ -13,6 +13,7 @@
 
 #include "SAMpatch.h"
 #include "ASMbase.h"
+#include "IFEM.h"
 
 
 bool SAMpatch::init (const ASMVec& model, int numNod)
@@ -30,10 +31,10 @@ bool SAMpatch::init (const ASMVec& model, int numNod)
   if (!this->initNodeDofs(model))
     return false;
 
-  std::cout <<"\n\n >>> SAM model summary <<<"
-	    <<"\nNumber of elements    "<< nel
-	    <<"\nNumber of nodes       "<< nnod
-	    <<"\nNumber of dofs        "<< ndof << std::endl;
+  IFEM::cout <<"\n\n >>> SAM model summary <<<"
+             <<"\nNumber of elements    "<< nel
+             <<"\nNumber of nodes       "<< nnod
+             <<"\nNumber of dofs        "<< ndof << std::endl;
 
   if (!nodeType.empty())
   {
@@ -45,8 +46,8 @@ bool SAMpatch::init (const ASMVec& model, int numNod)
       ndofs[nodeType[n]] += madof[n+1] - madof[n];
     for (it = ndofs.begin(); it != ndofs.end(); it++)
       if (it->second > 0)
-	std::cout <<"Number of "<< it->first <<"-dofs      "
-		  << it->second << std::endl;
+        IFEM::cout <<"Number of "<< it->first <<"-dofs      "
+                   << it->second << std::endl;
   }
 
   // Initialize the element connectivity arrays (mpmnpc,mmnpc)
@@ -57,11 +58,11 @@ bool SAMpatch::init (const ASMVec& model, int numNod)
   if (!this->initConstraintEqs(model))
     return false;
   else if (nceq > 0)
-    std::cout <<"Number of constraints "<< nceq << std::endl;
+    IFEM::cout <<"Number of constraints "<< nceq << std::endl;
 
   // Initialize the dof-to-equation connectivity array (meqn)
   bool status = this->initSystemEquations();
-  std::cout <<"Number of unknowns    "<< neq << std::endl;
+  IFEM::cout <<"Number of unknowns    "<< neq << std::endl;
   return status;
 }
 
@@ -176,8 +177,8 @@ bool SAMpatch::initElementConn (const ASMVec& model)
   if (outOfOrder == 0) return true;
 
   // We need to sort the elements in increasing external element numbers
-  std::cout <<"Detected "<< outOfOrder <<" elements out of order, reordering..."
-	    << std::endl;
+  IFEM::cout <<"Detected "<< outOfOrder <<" elements out of order, reordering..."
+             << std::endl;
 
   std::map<int, std::pair<int,int> > sortedElms;
   for (i = 0; i < elmId.size(); i++)

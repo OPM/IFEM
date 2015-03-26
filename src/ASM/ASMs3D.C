@@ -120,7 +120,7 @@ bool ASMs3D::read (std::istream& is)
 }
 
 
-bool ASMs3D::write (std::ostream& os, int) const
+bool ASMs3D::write (utl::LogStream& os, int) const
 {
   if (!svol) return false;
 

@@ -110,7 +110,7 @@ public:
   //! \brief Creates an instance by reading the given input stream.
   virtual bool read(std::istream&);
   //! \brief Writes the geometry of the SplineSurface object to given stream.
-  virtual bool write(std::ostream&, int = 0) const;
+  virtual bool write(utl::LogStream&, int = 0) const;
 
   //! \brief Generates the finite element topology data for the patch.
   //! \details The data generated are the element-to-node connectivity array,

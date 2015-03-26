@@ -145,7 +145,7 @@ bool ASMs2D::read (std::istream& is)
 }
 
 
-bool ASMs2D::write (std::ostream& os, int) const
+bool ASMs2D::write (utl::LogStream& os, int) const
 {
   if (!surf) return false;
 

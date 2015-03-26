@@ -183,7 +183,7 @@ public:
   virtual bool parse(const TiXmlElement* elem);
 
   //! \brief Prints out problem-specific data to the given stream.
-  virtual void printProblem(std::ostream& os) const;
+  virtual void printProblem(utl::LogStream& os) const;
 
   //! \brief Initializes time integration parameters for the integrand.
   virtual void initPrm();

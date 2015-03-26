@@ -297,7 +297,7 @@ bool SIMoptions::ignoreOldOptions (int argc, char** argv, int& i)
 }
 
 
-std::ostream& SIMoptions::print (std::ostream& os, bool extraBlankLine) const
+utl::LogStream& SIMoptions::print (utl::LogStream& os, bool extraBlankLine) const
 {
   if (extraBlankLine) os <<"\n";
 

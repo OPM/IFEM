@@ -32,6 +32,7 @@
 #include "Profiler.h"
 #include "Utilities.h"
 #include "HDF5Writer.h"
+#include "IFEM.h"
 #include "tinyxml.h"
 #include <fstream>
 #include <sstream>
@@ -62,7 +63,7 @@ SIMbase::SIMbase (IntegrandBase* itg) : ownProblem(true), g2l(&myGlb2Loc)
 SIMbase::~SIMbase ()
 {
 #ifdef SP_DEBUG
-  std::cout <<"\nEntering SIMbase destructor"<< std::endl;
+  IFEM::cout <<"\nEntering SIMbase destructor"<< std::endl;
 #endif
 
   if (ownProblem)  delete myProblem;
@@ -78,7 +79,7 @@ SIMbase::~SIMbase ()
   this->SIMbase::clearProperties();
 
 #ifdef SP_DEBUG
-  std::cout <<"Leaving SIMbase destructor"<< std::endl;
+  IFEM::cout <<"Leaving SIMbase destructor"<< std::endl;
 #endif
 }
 
@@ -106,14 +107,12 @@ void SIMbase::clearProperties ()
 
 bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
 {
-  if (myPid == 0)
-    std::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
+  IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
   if (!strcasecmp(elem->Value(),"patchfile") && elem->FirstChild()) {
     if (myModel.empty()) {
       const char* file = elem->FirstChild()->Value();
-      if (myPid == 0)
-        std::cout <<"\tReading data file "<< file << std::endl;
+      IFEM::cout <<"\tReading data file "<< file << std::endl;
       std::ifstream isp(file);
       this->readPatches(isp,myModel,"\t");
 
@@ -137,13 +136,11 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
         return false;
       }
 
-      if (myPid == 0)
-        std::cout <<"\tReading data file "<< file << std::endl;
+      IFEM::cout <<"\tReading data file "<< file << std::endl;
       this->readNodes(isn);
     }
     else if (strstr(file,".hdf5")) {
-      if (myPid == 0)
-        std::cout <<"\tReading global node numbers from "<< file << std::endl;
+      IFEM::cout <<"\tReading global node numbers from "<< file << std::endl;
       HDF5Writer hdf5(file,ProcessAdm(),true,true);
       const char* field = elem->Attribute("field");
       for (int i = 1; i <= this->getNoPatches(); i++)
@@ -163,8 +160,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
       return false;
     else if (proc != adm.getNoProcs()) // silently ignore
       return true;
-    if (myPid == 0)
-      std::cout <<"\tNumber of partitions: "<< proc << std::endl;
+    IFEM::cout <<"\tNumber of partitions: "<< proc << std::endl;
 
     const TiXmlElement* part = elem->FirstChildElement("part");
     for (; part; part = part->NextSiblingElement("part")) {
@@ -227,15 +223,15 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
         }
       }
 
-    if (myPid == 0 && !myEntitys.empty()) {
-      std::cout <<"\tTopology sets: ";
+    if (!myEntitys.empty()) {
+      IFEM::cout <<"\tTopology sets: ";
       TopologySet::const_iterator it;
       for (it = myEntitys.begin(); it != myEntitys.end(); it++) {
-        if (it != myEntitys.begin()) std::cout <<"\t               ";
-        std::cout << it->first;
-        std::copy(it->second.begin(),it->second.end(),
-                  std::ostream_iterator<TopItem>(std::cout));
-        std::cout << std::endl;
+        if (it != myEntitys.begin()) IFEM::cout <<"\t               ";
+        IFEM::cout << it->first;
+        for (const auto& it2 : it->second)
+          IFEM::cout << it2;
+        IFEM::cout << std::endl;
       }
     }
   }
@@ -253,8 +249,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
 
 bool SIMbase::parseBCTag (const TiXmlElement* elem)
 {
-  if (myPid == 0)
-    std::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
+  IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
   if (!strcasecmp(elem->Value(),"propertyfile") && elem->FirstChild()) {
     const char* file = elem->FirstChild()->Value();
@@ -265,8 +260,7 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
                 << file << std::endl;
       return false;
     }
-    if (myPid == 0)
-      std::cout <<"\tReading data file "<< file << std::endl;
+    IFEM::cout <<"\tReading data file "<< file << std::endl;
     while (isp.good())
     {
       Property p;
@@ -315,11 +309,11 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
     int code = this->getUniquePropertyCode(set);
     if (code == 0) utl::getAttribute(elem,"code",code);
     if (type == "anasol") {
-      std::cout <<"\tNeumann code "<< code <<" (analytic)";
+      IFEM::cout <<"\tNeumann code "<< code <<" (analytic)";
       this->setPropertyType(code,Property::NEUMANN_ANASOL);
     }
     else if (type == "generic") {
-      std::cout <<"\tNeumann code "<< code <<" (generic)";
+      IFEM::cout <<"\tNeumann code "<< code <<" (generic)";
       this->setPropertyType(code,Property::NEUMANN_GENERIC);
       if (elem->FirstChild())
         this->setNeumann(elem->FirstChild()->Value(),"expression",0,code);
@@ -327,14 +321,14 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
     else {
       int ndir = 0;
       utl::getAttribute(elem,"direction",ndir);
-      std::cout <<"\tNeumann code "<< code <<" direction "<< ndir;
-      if (!type.empty()) std::cout <<" ("<< type <<")";
+      IFEM::cout <<"\tNeumann code "<< code <<" direction "<< ndir;
+      if (!type.empty()) IFEM::cout <<" ("<< type <<")";
       if (elem->FirstChild())
         this->setNeumann(elem->FirstChild()->Value(),type,ndir,code);
       else
         this->setNeumann("0.0",type,ndir,code);
     }
-    std::cout << std::endl;
+    IFEM::cout << std::endl;
   }
 
   else if (!strcasecmp(elem->Value(),"dirichlet") && !ignoreDirichlet) {
@@ -362,20 +356,20 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
     const TiXmlNode* dval = elem->FirstChild();
     if (type == "anasol") {
       this->setPropertyType(code,Property::DIRICHLET_ANASOL);
-      std::cout <<"\tDirichlet code "<< code <<": (analytic)"<< std::endl;
+      IFEM::cout <<"\tDirichlet code "<< code <<": (analytic)"<< std::endl;
     }
     // this is a horrible hack
     else if (!dval || (type != "expression" &&
                        type != "field" && atof(dval->Value()) == 0.0)) {
       this->setPropertyType(code,Property::DIRICHLET,comp);
-      std::cout <<"\tDirichlet code "<< code <<": (fixed)"<< std::endl;
+      IFEM::cout <<"\tDirichlet code "<< code <<": (fixed)"<< std::endl;
     }
     else if (dval) {
       this->setPropertyType(code,Property::DIRICHLET_INHOM,comp);
-      std::cout <<"\tDirichlet code "<< code;
-      if (!type.empty()) std::cout <<" ("<< type <<")";
+      IFEM::cout <<"\tDirichlet code "<< code;
+      if (!type.empty()) IFEM::cout <<" ("<< type <<")";
       myScalars[abs(code)] = utl::parseRealFunc(dval->Value(),type);
-      std::cout << std::endl;
+      IFEM::cout << std::endl;
     }
   }
 
@@ -439,12 +433,12 @@ bool SIMbase::parse (const TiXmlElement* elem)
       utl::getAttribute(elem,"file_level",info.file_level);
       utl::getAttribute(elem,"geo_level",info.geo_level);
       utl::getAttribute(elem,"level",info.sim_level);
-      std::cout <<"\tInitial condition file: "<< file
-                <<"\n\tField name: \""<< info.sim_field
-                <<"\" (on file \""<< info.file_field
-                <<"\")\n\tTime level: "<< info.sim_level
-                <<" (on file "<< info.file_level
-                <<" with basis "<< info.geo_level <<")"<< std::endl;
+      IFEM::cout <<"\tInitial condition file: "<< file
+                 <<"\n\tField name: \""<< info.sim_field
+                 <<"\" (on file \""<< info.file_field
+                 <<"\")\n\tTime level: "<< info.sim_level
+                 <<" (on file "<< info.file_level
+                 <<" with basis "<< info.geo_level <<")"<< std::endl;
       myICs[file].push_back(info);
     }
     else
@@ -455,9 +449,9 @@ bool SIMbase::parse (const TiXmlElement* elem)
   if (myModel.empty() && !strcasecmp(elem->Value(),"geometry"))
     if (!elem->FirstChildElement("patchfile"))
     {
-      std::cout <<"  Using default linear geometry basis on unit domain [0,1]";
-      if (this->getNoParamDim() > 1) std::cout <<"^"<< this->getNoParamDim();
-      std::cout << std::endl;
+      IFEM::cout <<"  Using default linear geometry basis on unit domain [0,1]";
+      if (this->getNoParamDim() > 1) IFEM::cout <<"^"<< this->getNoParamDim();
+      IFEM::cout << std::endl;
       myModel.resize(1,this->createDefaultGeometry(elem));
     }
 
@@ -512,15 +506,13 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
     int npatch = atoi(keyWord+7);
     if (myModel.empty())
     {
-      if (myPid == 0)
-	std::cout <<"\nNumber of patches: "<< npatch << std::endl;
+      IFEM::cout <<"\nNumber of patches: "<< npatch << std::endl;
       for (int i = 0; i < npatch && (cline = utl::readLine(is)); i++)
       {
 	std::ifstream is(cline);
 	if (is.good())
 	{
-	  if (myPid == 0)
-	    std::cout <<"\nReading patch file "<< cline << std::endl;
+	  IFEM::cout <<"\nReading patch file "<< cline << std::endl;
 	  ASMbase* pch = this->readPatch(is,i);
 	  if (pch)
 	    myModel.push_back(pch);
@@ -547,8 +539,7 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
     if (myModel.empty())
     {
       size_t i = 9; while (i < strlen(keyWord) && isspace(keyWord[i])) i++;
-      if (myPid == 0)
-        std::cout <<"\nReading data file "<< keyWord+i << std::endl;
+      IFEM::cout <<"\nReading data file "<< keyWord+i << std::endl;
       std::ifstream isp(keyWord+i);
       this->readPatches(isp,myModel);
 
@@ -583,13 +574,10 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
 	return false;
       }
 
-      if (myPid == 0)
-      {
-        if (basis < 2) std::cout <<"\n";
-        std::cout <<"Reading data file "<< filename;
-        if (basis > 0) std::cout <<" (basis "<< basis <<")";
-        std::cout << std::endl;
-      }
+      if (basis < 2) IFEM::cout <<"\n";
+      IFEM::cout <<"Reading data file "<< filename;
+      if (basis > 0) IFEM::cout <<" (basis "<< basis <<")";
+      IFEM::cout << std::endl;
 
       while (isn.good())
       {
@@ -623,8 +611,7 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
       return false;
     }
 
-    if (myPid == 0)
-      std::cout <<"\nReading data file "<< keyWord+i << std::endl;
+    IFEM::cout <<"\nReading data file "<< keyWord+i << std::endl;
     while (isp.good())
     {
       Property p;
@@ -652,16 +639,16 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
     if (ignoreDirichlet) return true; // Ignore all boundary conditions
 
     int ndir = atoi(keyWord+9);
-    std::cout <<"\nNumber of Dirichlet properties: "<< ndir << std::endl;
+    IFEM::cout <<"\nNumber of Dirichlet properties: "<< ndir << std::endl;
     for (int i = 0; i < ndir && (cline = utl::readLine(is)); i++)
     {
       int code = atoi(strtok(cline," "));
       double d = (cline = strtok(NULL," ")) ? atof(cline) : 0.0;
-      std::cout <<"\tDirichlet code "<< code <<": ";
+      IFEM::cout <<"\tDirichlet code "<< code <<": ";
       if (d == 0.0)
       {
 	this->setPropertyType(code,Property::DIRICHLET);
-	std::cout <<"(fixed)";
+	IFEM::cout <<"(fixed)";
       }
       else if (code > 0)
       {
@@ -671,8 +658,8 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
 	myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,d));
       }
       else
-	std::cout <<"(ignored)";
-      std::cout << std::endl;
+	IFEM::cout <<"(ignored)";
+      IFEM::cout << std::endl;
     }
   }
 
@@ -682,8 +669,7 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
   else if (!strncasecmp(keyWord,"PARTITIONING",12))
   {
     int nproc = atoi(keyWord+12);
-    if (myPid == 0)
-      std::cout <<"\nNumber of partitions: "<< nproc << std::endl;
+    IFEM::cout <<"\nNumber of partitions: "<< nproc << std::endl;
 
     nGlPatches = 0;
     for (int i = 0; i < nproc && (cline = utl::readLine(is)); i++)
@@ -773,7 +759,7 @@ bool SIMbase::createFEMmodel (char resetNumb)
       ASMbase* newPatch = myModel[i]->cloneUnShared();
       if (newPatch)
       {
-        std::cout <<"\tNote: Unsharing FE data of P"<< 1+i << std::endl;
+        IFEM::cout <<"\tNote: Unsharing FE data of P"<< 1+i << std::endl;
         newPatch->setGlobalNodeNums(myModel[i]->getMyNodeNums());
         delete myModel[i];
         myModel[i] = newPatch;
@@ -885,7 +871,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
     for (mit = myModel.begin(), patch = 1; mit != myModel.end(); mit++, patch++)
       if (!(*mit)->empty())
       {
-	std::cout <<"   * Checking Patch "<< patch << std::endl;
+	IFEM::cout <<"   * Checking Patch "<< patch << std::endl;
 	for (size_t node = 1; node <= (*mit)->getNoNodes(); node++)
 	{
 	  Vec3 X((*mit)->getCoord(node));
@@ -897,7 +883,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 	}
       }
     if (nDupl > 0)
-      std::cout <<"   * "<< nDupl <<" duplicated nodes merged."<< std::endl;
+      IFEM::cout <<"   * "<< nDupl <<" duplicated nodes merged."<< std::endl;
   }
 
 #if SP_DEBUG > 2
@@ -913,11 +899,11 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   for (nit = nodeInfo.begin(); nit != nodeInfo.end(); nit++)
     if (nit->second.size() > 1)
     {
-      std::cout <<"\nConnectivity for node "<< nit->first <<":";
+      IFEM::cout <<"\nConnectivity for node "<< nit->first <<":";
       for (size_t n = 0; n < nit->second.size(); n++)
-        std::cout <<" P"<< nit->second[n].first <<","<< nit->second[n].second;
+        IFEM::cout <<" P"<< nit->second[n].first <<","<< nit->second[n].second;
     }
-  std::cout << std::endl;
+  IFEM::cout << std::endl;
 #endif
 
   // Renumber the nodes to account for overlapping nodes and erased patches.
@@ -937,7 +923,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
     renum += (*mit)->renumberNodes(myGlb2Loc,ngnod);
 
   if (renum > 0)
-    std::cout <<"\nRenumbered "<< renum <<" nodes."<< std::endl;
+    IFEM::cout <<"\nRenumbered "<< renum <<" nodes."<< std::endl;
 
   for (mit = myModel.begin(); mit != myModel.end(); mit++)
     (*mit)->renumberNodes(*g2l);
@@ -947,7 +933,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   // This typically involves the system-level Lagrange multipliers, etc.
   this->preprocessBeforeAsmInit(ngnod);
 
-  std::cout <<"\nResolving Dirichlet boundary conditions"<< std::endl;
+  IFEM::cout <<"\nResolving Dirichlet boundary conditions"<< std::endl;
   ASMstruct::resetNumbering(ngnod); // to account for possibly added nodes
 
   // Process the Dirichlet boundary conditions in the order of increasing
@@ -972,9 +958,9 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
         case Property::UNDEFINED:
           iwar++;
 #ifdef SP_DEBUG
-          std::cout <<"  ** SIMbase::preprocess: Undefined property set, code="
-                    << q->pindx <<" Patch="<< q->patch <<" Item="
-                    << (int)q->lindx <<" "<< (int)q->ldim <<"D"<< std::endl;
+          IFEM::cout <<"  ** SIMbase::preprocess: Undefined property set, code="
+                     << q->pindx <<" Patch="<< q->patch <<" Item="
+                     << (int)q->lindx <<" "<< (int)q->ldim <<"D"<< std::endl;
 #endif
         default:
           dofs = 0;
@@ -983,7 +969,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
 
         if (dofs > 0)
           if (this->addConstraint(q->patch,q->lindx,q->ldim,dofs,code,ngnod))
-            std::cout << std::endl;
+            IFEM::cout << std::endl;
           else
             ++ierr;
       }
@@ -1274,11 +1260,11 @@ bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, bool withRF)
   for (it = nodeInfo.begin(); it != nodeInfo.end(); ++it)
     if (it->second.size() > 1)
     {
-      std::cout <<"\nConnectivity for node "<< it->first <<":";
+      IFEM::cout <<"\nConnectivity for node "<< it->first <<":";
       for (n = 0; n < it->second.size(); n++)
-	std::cout <<" P"<< it->second[n].first <<","<< it->second[n].second;
+	IFEM::cout <<" P"<< it->second[n].first <<","<< it->second[n].second;
     }
-  std::cout << std::endl;
+  IFEM::cout << std::endl;
 #endif
 
   if (myEqSys) delete myEqSys;
@@ -1371,7 +1357,7 @@ void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers)
 }
 
 
-void SIMbase::printProblem (std::ostream& os) const
+void SIMbase::printProblem (utl::LogStream& os) const
 {
   if (myProblem)
   {
@@ -1547,9 +1533,9 @@ int SIMbase::findClosestNode (const Vec3& X) const
   if (!closestPch) return -2;
 
 #ifdef SP_DEBUG
-  std::cout <<"SIMbase::findClosestNode("<< X <<") -> Node "<< closest.first
-            <<" in Patch "<< closestPch->idx+1 <<" distance="<< closest.second
-            << std::endl;
+  IFEM::cout <<"SIMbase::findClosestNode("<< X <<") -> Node "<< closest.first
+             <<" in Patch "<< closestPch->idx+1 <<" distance="<< closest.second
+             << std::endl;
 #endif
 
   return closestPch->getNodeID(closest.first);
@@ -1569,7 +1555,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
   for (it = myInts.begin(); it != myInts.end() && ok; it++)
   {
     if (msgLevel > 1)
-      std::cout <<"\n\nProcessing integrand associated with code "<< it->first
+      IFEM::cout <<"\n\nProcessing integrand associated with code "<< it->first
                 << std::endl;
 
     GlobalIntegral& sysQ = it->second->getGlobalInt(myEqSys);
@@ -1598,7 +1584,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
           {
             lp = p->patch;
             if (msgLevel > 1)
-              std::cout <<"\nAssembling interior matrix terms for P"<< lp
+              IFEM::cout <<"\nAssembling interior matrix terms for P"<< lp
                         << std::endl;
             ok &= this->initBodyLoad(lp);
             ok &= this->extractPatchSolution(it->second,prevSol,lp-1);
@@ -1614,7 +1600,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
         {
           lp = k+1;
           if (msgLevel > 1)
-            std::cout <<"\nAssembling interior matrix terms for P"<< lp
+            IFEM::cout <<"\nAssembling interior matrix terms for P"<< lp
                       << std::endl;
           ok &= this->initBodyLoad(lp);
           ok &= this->extractPatchSolution(it->second,prevSol,k);
@@ -1639,7 +1625,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             if (it->first == p->pindx || this->initNeumann(p->pindx))
             {
               if (msgLevel > 1)
-                std::cout <<"\nAssembling Neumann matrix terms for boundary "
+                IFEM::cout <<"\nAssembling Neumann matrix terms for boundary "
                           << (int)p->lindx <<" on P"<< p->patch << std::endl;
               if (p->patch != lp)
                 ok &= this->extractPatchSolution(it->second,prevSol,p->patch-1);
@@ -1653,7 +1639,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             if (it->first == 0 && this->initNeumann(p->pindx))
             {
               if (msgLevel > 1)
-                std::cout <<"\nAssembling Neumann matrix terms for edge "
+                IFEM::cout <<"\nAssembling Neumann matrix terms for edge "
                           << (int)p->lindx <<" on P"<< p->patch << std::endl;
               if (p->patch != lp)
                 ok &= this->extractPatchSolution(it->second,prevSol,p->patch-1);
@@ -1682,7 +1668,7 @@ bool SIMbase::extractLoadVec (Vector& loadVec) const
     return false;
 
 #if SP_DEBUG > 1
-  std::cout <<"\nLoad vector:"<< loadVec;
+  IFEM::cout <<"\nLoad vector:"<< loadVec;
 #endif
   return true;
 }
@@ -1707,7 +1693,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
   std::vector<DumpData>::iterator it;
   for (it = lhsDump.begin(); it != lhsDump.end(); it++)
     if (it->doDump()) {
-      std::cout <<"\nDumping system matrix to file "<< it->fname << std::endl;
+      IFEM::cout <<"\nDumping system matrix to file "<< it->fname << std::endl;
       std::ofstream os(it->fname.c_str());
       os << std::setprecision(17);
       A->dump(os,it->format,"A");
@@ -1716,15 +1702,15 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
   // Dump right-hand-side vector to file, if requested
   for (it = rhsDump.begin(); it != rhsDump.end(); it++)
     if (it->doDump()) {
-      std::cout <<"\nDumping RHS vector to file "<< it->fname << std::endl;
+      IFEM::cout <<"\nDumping RHS vector to file "<< it->fname << std::endl;
       std::ofstream os(it->fname.c_str());
       os << std::setprecision(17);
       b->dump(os,it->format,"b");
     }
 
   // Solve the linear system of equations
-  if (msgLevel > 1 && myPid == 0)
-    std::cout <<"\nSolving the equation system ..."<< std::endl;
+  if (msgLevel > 1)
+    IFEM::cout <<"\nSolving the equation system ..."<< std::endl;
   {
     PROFILE1("Equation solving");
     if (!A->solve(*b,newLHS)) return false;
@@ -1733,7 +1719,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
   // Dump solution vector to file, if requested
   for (it = solDump.begin(); it != solDump.end(); it++)
     if (it->doDump()) {
-      std::cout <<"\nDumping solution vector to file "<< it->fname << std::endl;
+      IFEM::cout <<"\nDumping solution vector to file "<< it->fname << std::endl;
       std::ofstream os(it->fname.c_str());
       os << std::setprecision(17);
       b->dump(os,it->format,"b");
@@ -1773,67 +1759,61 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
   double dMax[nf];
   double dNorm = this->solutionNorms(solution,dMax,iMax,nf);
 
-  std::stringstream str;
-  if (myPid == 0)
-  {
-    if (outPrec > 0) str.precision(outPrec);
+  int oldPrec = std::cout.precision();
+  if (outPrec > 0)
+    adm.cout << std::setprecision(outPrec);
 
-    if (compName)
-      str <<"\n >>> Solution summary <<<\n\nL2-norm            : ";
-    else
-      str <<"  Primary solution summary: L2-norm         : ";
-    str << utl::trunc(dNorm);
-
-    if (nf == 1 && utl::trunc(dMax[0]) != 0.0)
-    {
-      if (compName)
-        str <<"\nMax "<< compName <<"   : ";
-      else
-        str <<"\n                            Max value       : ";
-      str << dMax[0] <<" node "<< iMax[0];
-    }
-    else if (nf > 1)
-    {
-      char D = 'X';
-      for (size_t d = 0; d < nf; d++, D=='Z' ? D='x' : D++)
-        if (utl::trunc(dMax[d]) != 0.0)
-        {
-          if (compName)
-            str <<"\nMax "<< D <<'-'<< compName <<" : ";
-          else
-            str <<"\n                            Max "<< D <<"-component : ";
-          str << dMax[d] <<" node "<< iMax[d];
-        }
-    }
-    str << std::endl;
-  }
-
-  if (adm.isParallel())
-    utl::printSyncronized(std::cout,str,adm.getProcId());
+  if (compName)
+    adm.cout <<"\n >>> Solution summary <<<\n\nL2-norm            : ";
   else
-    std::cout << str.str();
+    IFEM::cout <<"  Primary solution summary: L2-norm         : ";
+  adm.cout << utl::trunc(dNorm);
+
+  if (nf == 1 && utl::trunc(dMax[0]) != 0.0)
+  {
+    if (compName)
+      adm.cout <<"\nMax "<< compName <<"   : ";
+    else
+      adm.cout <<"\n                            Max value       : ";
+    adm.cout << dMax[0] <<" node "<< iMax[0];
+  }
+  else if (nf > 1)
+  {
+    char D = 'X';
+    for (size_t d = 0; d < nf; d++, D=='Z' ? D='x' : D++)
+      if (utl::trunc(dMax[d]) != 0.0)
+      {
+        if (compName)
+          IFEM::cout <<"\nMax "<< D <<'-'<< compName <<" : ";
+        else
+          adm.cout <<"\n                            Max "<< D <<"-component : ";
+        adm.cout << dMax[d] <<" node "<< iMax[d];
+      }
+  }
+  adm.cout << std::endl;
+  std::cout << std::setprecision(oldPrec);
 
   // Print entire solution vector if it is small enough
-  if (myPid == 0 && mySam->getNoEquations() < printSol)
+  if (mySam->getNoEquations() < printSol)
   {
-    std::cout <<"\nSolution vector:";
+    adm.cout <<"\nSolution vector:";
     for (int inod = 1; inod <= mySam->getNoNodes(); inod++)
     {
-      std::cout <<"\nNode "<< inod <<":";
+      adm.cout <<"\nNode "<< inod <<":";
       std::pair<int,int> dofs = mySam->getNodeDOFs(inod);
       for (int d = dofs.first-1; d < dofs.second; d++)
-        std::cout <<" "<< utl::trunc(solution[d]);
+        adm.cout <<" "<< utl::trunc(solution[d]);
     }
-    std::cout << std::endl;
+    adm.cout << std::endl;
   }
 #if SP_DEBUG > 2
   else
-    std::cout <<"\nSolution vector:"<< *myEqSys->getVector();
+    IFEM::cout <<"\nSolution vector:"<< *myEqSys->getVector();
 #endif
 }
 
 
-void SIMbase::printNorms (const Vectors& norms, std::ostream& os,
+void SIMbase::printNorms (const Vectors& norms, utl::LogStream& os,
                           size_t w) const
 {
   if (norms.empty()) return;
@@ -2186,7 +2166,7 @@ bool SIMbase::systemModes (std::vector<Mode>& solution,
   if (ncv > mySam->getNoEquations()) ncv = mySam->getNoEquations();
 
   // Solve the eigenvalue problem
-  std::cout <<"\nSolving the eigenvalue problem ..."<< std::endl;
+  IFEM::cout <<"\nSolving the eigenvalue problem ..."<< std::endl;
   SystemMatrix* A = myEqSys->getMatrix(iA);
   SystemMatrix* B = myEqSys->getMatrix(iB);
 #ifdef HAS_SLEPC
@@ -2198,8 +2178,8 @@ bool SIMbase::systemModes (std::vector<Mode>& solution,
 
   // Expand eigenvectors to DOF-ordering and print out eigenvalues
   bool freq = iop == 3 || iop == 4 || iop == 6;
-  std::cout <<"\n >>> Computed Eigenvalues <<<\n     Mode\t"
-	    << (freq ? "Frequency [Hz]" : "Eigenvalue");
+  IFEM::cout <<"\n >>> Computed Eigenvalues <<<\n     Mode\t"
+             << (freq ? "Frequency [Hz]" : "Eigenvalue");
   solution.resize(nev);
   for (int i = 1; i <= nev && ok; i++)
   {
@@ -2213,9 +2193,9 @@ bool SIMbase::systemModes (std::vector<Mode>& solution,
     else
       solution[i-1].eigVal =  sqrt( eigVal(i))*0.5/M_PI;
 
-    std::cout <<"\n     "<< i <<"\t\t"<< utl::trunc(solution[i-1].eigVal);
+    IFEM::cout <<"\n     "<< i <<"\t\t"<< utl::trunc(solution[i-1].eigVal);
   }
-  std::cout << std::endl;
+  IFEM::cout << std::endl;
   return ok;
 }
 
@@ -2227,7 +2207,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
   PROFILE1("Solution projection");
 
   if (msgLevel > 1)
-    std::cout <<"\nProjecting secondary solution ..."<< std::endl;
+    IFEM::cout <<"\nProjecting secondary solution ..."<< std::endl;
 
   ssol.clear();
 
@@ -2259,43 +2239,43 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     switch (pMethod) {
     case SIMoptions::GLOBAL:
       if (msgLevel > 1 && i == 0)
-        std::cout <<"\tGreville point projection"<< std::endl;
+        IFEM::cout <<"\tGreville point projection"<< std::endl;
       ok = myModel[i]->evalSolution(values,*myProblem);
       break;
 
     case SIMoptions::DGL2:
       if (msgLevel > 1 && i == 0)
-        std::cout <<"\tDiscrete global L2-projection"<< std::endl;
+        IFEM::cout <<"\tDiscrete global L2-projection"<< std::endl;
       ok = myModel[i]->globalL2projection(values,*myProblem);
       break;
 
     case SIMoptions::CGL2:
       if (msgLevel > 1 && i == 0)
-        std::cout <<"\tContinuous global L2-projection"<< std::endl;
+        IFEM::cout <<"\tContinuous global L2-projection"<< std::endl;
       ok = myModel[i]->L2projection(values,*myProblem,time);
       break;
 
     case SIMoptions::SCR:
       if (msgLevel > 1 && i == 0)
-        std::cout <<"\tSuperconvergent recovery"<< std::endl;
+        IFEM::cout <<"\tSuperconvergent recovery"<< std::endl;
       ok = myModel[i]->evalSolution(values,*myProblem,NULL,'S');
       break;
 
     case SIMoptions::VDSA:
       if (msgLevel > 1 && i == 0)
-        std::cout <<"\tVariation diminishing projection"<< std::endl;
+        IFEM::cout <<"\tVariation diminishing projection"<< std::endl;
       ok = myModel[i]->evalSolution(values,*myProblem,NULL,'A');
       break;
 
     case SIMoptions::QUASI:
       if (msgLevel > 1 && i == 0)
-        std::cout <<"\tQuasi interpolation"<< std::endl;
+        IFEM::cout <<"\tQuasi interpolation"<< std::endl;
       ok = myModel[i]->evalSolution(values,*myProblem,NULL,'L');
       break;
 
     case SIMoptions::LEASTSQ:
       if (msgLevel > 1 && i == 0)
-	std::cout <<"\tLeast squares projection"<< std::endl;
+	IFEM::cout <<"\tLeast squares projection"<< std::endl;
       ok = myModel[i]->evalSolution(values,*myProblem,NULL,'W');
       break;
 
