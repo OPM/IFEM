@@ -1808,7 +1808,10 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
     str << std::endl;
   }
 
-  utl::printSyncronized(std::cout,str,adm.getProcId());
+  if (adm.isParallel())
+    utl::printSyncronized(std::cout,str,adm.getProcId());
+  else
+    std::cout << str.str();
 
   // Print entire solution vector if it is small enough
   if (myPid == 0 && mySam->getNoEquations() < printSol)
