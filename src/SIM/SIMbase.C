@@ -425,21 +425,46 @@ bool SIMbase::parse (const TiXmlElement* elem)
   else if (!strcasecmp(elem->Value(),"initialcondition"))
   {
     std::string field, file;
-    if (utl::getAttribute(elem,"field",field) &&
-        utl::getAttribute(elem,"file",file))
+    if (utl::getAttribute(elem,"field",field))
     {
       ICInfo info(field);
-      utl::getAttribute(elem,"file_field",info.file_field);
-      utl::getAttribute(elem,"file_level",info.file_level);
-      utl::getAttribute(elem,"geo_level",info.geo_level);
+      std::string type("file");
+      utl::getAttribute(elem,"type", type);
+      if (type == "file") {
+        utl::getAttribute(elem,"file",file);
+        utl::getAttribute(elem,"file_field",info.file_field);
+        utl::getAttribute(elem,"file_level",info.file_level);
+        utl::getAttribute(elem,"geo_level",info.geo_level);
+      } else { // a function
+        utl::getAttribute(elem,"component",info.component);
+        info.file_field = type;
+        info.function = utl::getValue(elem,"initialcondition");
+        file = "nofile";
+      }
       utl::getAttribute(elem,"level",info.sim_level);
       utl::getAttribute(elem,"basis",info.basis);
-      IFEM::cout <<"\tInitial condition file: "<< file
-                 <<"\n\tField name: \""<< info.sim_field
-                 <<"\" (on file \""<< info.file_field
-                 <<"\")\n\tTime level: "<< info.sim_level
-                 <<" (on file "<< info.file_level
-                 <<" with basis "<< info.geo_level <<")"<< std::endl;
+
+      IFEM::cout <<"\tInitial condition";
+      if (info.component > -1)
+        IFEM::cout << " function: " << info.function;
+      else
+        IFEM::cout << " file: "<< file;
+
+      IFEM::cout <<"\n\tField name: \""<< info.sim_field;
+
+      if (info.component == -1)
+        IFEM::cout <<"\" (on file \""<< info.file_field <<"\")\n";
+      else
+        IFEM::cout << " (component " << info.component << " basis " << info.basis << ")\n";
+
+      IFEM::cout << "\tTime level: "<< info.sim_level;
+
+      if (info.component == -1)
+        IFEM::cout <<" (on file "<< info.file_level
+                   <<" with basis "<< info.geo_level <<")";
+
+      IFEM::cout << std::endl;
+
       myICs[file].push_back(info);
     }
     else

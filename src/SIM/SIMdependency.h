@@ -39,13 +39,16 @@ public:
     int file_level; //!< The time level for the field in the file
     int geo_level;  //!< The time level for the geometry in the file
     int basis;      //!< The basis to inject field into (for mixed)
+    int component;  //!< Component for field (for functions)
     std::string sim_field;  //!< The name of the field in the SIM class
-    std::string file_field; //!< The name of the field in the file
+    std::string file_field; //!< The name of the field in the file, type of function if function form
+    std::string function;   //!< Function if given in function form
     //! \brief Default constructor.
     ICInfo() : sim_level(0), file_level(0), geo_level(0) {}
     //! \brief Constructor providing the field name.
     ICInfo(const std::string& f) : sim_level(0), file_level(0), geo_level(0),
-                                   basis(1), sim_field(f), file_field(f) {}
+                                   basis(1), component(-1),
+                                   sim_field(f), file_field(f) {}
   };
 
   //! \brief Initial condition container

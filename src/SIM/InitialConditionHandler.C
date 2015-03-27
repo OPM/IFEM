@@ -12,9 +12,11 @@
 //==============================================================================
 
 #include "InitialConditionHandler.h"
+#include "Functions.h"
 #include "ASMbase.h"
 #include "HDF5Writer.h"
 #include "XMLWriter.h"
+#include <memory>
 #include <sstream>
 
 
@@ -29,9 +31,11 @@ bool SIM::setInitialConditions (SIMbase& sim, SIMdependency* fieldHolder)
   SIMdependency::InitialCondMap::const_iterator it;
   for (it = sim.getICs().begin(); it != sim.getICs().end(); ++it) {
     XMLWriter xmlreader(it->first,sim.getProcessAdm());
-    xmlreader.readInfo();
     HDF5Writer hdf5reader(it->first,sim.getProcessAdm(),true,true);
-    hdf5reader.openFile(0);
+    if (it->first != "nofile") {
+      xmlreader.readInfo();
+      hdf5reader.openFile(0);
+    }
     std::map<std::string, SIMdependency::PatchVec> basis;
     // loops over ic's
     std::vector<SIMdependency::ICInfo>::const_iterator it2;
@@ -45,49 +49,68 @@ bool SIM::setInitialConditions (SIMbase& sim, SIMdependency* fieldHolder)
       if (!field)
         continue;
 
-      std::vector<XMLWriter::Entry>::const_iterator it3;
-      // find entry in XML description file
-      for (it3  = xmlreader.getEntries().begin();
-           it3 != xmlreader.getEntries().end(); ++it3) {
-        if (it3->name == it2->file_field)
-          break;
-      }
-      if (it3 == xmlreader.getEntries().end()) {
-        std::cerr <<" *** SIM::setInitialConditions: Could not find IC ("
-                  << it2->file_field <<","<< it2->file_level <<") -> ("
-                  << it2->sim_field <<", "<< it2->sim_level <<")"<< std::endl;
-        return false;
-      }
-      // load basis
-      if (basis.find(it3->basis) == basis.end()) {
-        SIMdependency::PatchVec vec;
+      if (it->first == "nofile") {
+        std::unique_ptr<RealFunc> func(utl::parseRealFunc(it2->function, it2->file_field));
+        // loop over patches
+        for (int i=0;i<sim.getNoPatches();++i) {
+          int p = sim.getLocalPatchIndex(i+1);
+          ASMbase* pch = sim.getPatch(p);
+          if (!pch) continue;
+          Vector loc_scalar;
+          pch->evaluate(func.get(), loc_scalar, it2->basis);
+          // interleave
+          Vector loc_vector(loc_scalar.size()*sim.getNoFields(it2->basis));
+          pch->extractNodeVec(*field, loc_vector, 0, it2->basis);
+          for (size_t i=0;i<loc_scalar.size();++i) {
+            loc_vector[sim.getNoFields(it2->basis)*i+it2->component-1] = loc_scalar[i];
+          }
+          pch->injectNodeVec(loc_vector, *field, 0, it2->basis);
+        }
+      } else {
+        std::vector<XMLWriter::Entry>::const_iterator it3;
+        // find entry in XML description file
+        for (it3  = xmlreader.getEntries().begin();
+             it3 != xmlreader.getEntries().end(); ++it3) {
+          if (it3->name == it2->file_field)
+            break;
+        }
+        if (it3 == xmlreader.getEntries().end()) {
+          std::cerr <<" *** SIM::setInitialConditions: Could not find IC ("
+                    << it2->file_field <<","<< it2->file_level <<") -> ("
+                    << it2->sim_field <<", "<< it2->sim_level <<")"<< std::endl;
+          return false;
+        }
+        // load basis
+        if (basis.find(it3->basis) == basis.end()) {
+          SIMdependency::PatchVec vec;
+          for (int i=0;i<it3->patches;++i) {
+            int p = sim.getLocalPatchIndex(i+1);
+            if (p < 1)
+              continue;
+            std::stringstream str;
+            str << it2->geo_level << "/basis/" << it3->basis << "/" << i+1;
+            std::string pg2;
+            hdf5reader.readString(str.str(),pg2);
+            std::stringstream spg2;
+            spg2 << pg2;
+            std::array<unsigned char, 3> unf{(unsigned char)sim.getNoFields(it2->basis), 0, 0};
+            ASMbase* pch = sim.readPatch(spg2,i,&unf[0]);
+            if (pch)
+              vec.push_back(pch);
+          }
+          basis.insert(make_pair(it3->basis, vec));
+        }
+        // loop over patches
         for (int i=0;i<it3->patches;++i) {
           int p = sim.getLocalPatchIndex(i+1);
-          if (p < 1)
-            continue;
-          std::stringstream str;
-          str << it2->geo_level << "/basis/" << it3->basis << "/" << i+1;
-          std::string pg2;
-          hdf5reader.readString(str.str(),pg2);
-          std::stringstream spg2;
-          spg2 << pg2;
-          std::array<unsigned char, 3> unf{(unsigned char)sim.getNoFields(it2->basis), 0, 0};
-          ASMbase* pch = sim.readPatch(spg2,i,&unf[0]);
-          if (pch)
-            vec.push_back(pch);
+          ASMbase* pch = sim.getPatch(p);
+          if (!pch) continue;
+          Vector loc, newloc;
+          hdf5reader.readVector(it2->file_level, it2->file_field, i+1, loc);
+          basis[it3->basis][p-1]->copyParameterDomain(pch);
+          pch->evaluate(basis[it3->basis][p-1], loc, newloc, it2->basis);
+          pch->injectNodeVec(newloc, *field, it3->components, it2->basis);
         }
-        basis.insert(make_pair(it3->basis, vec));
-      }
-      // loop over patches
-      for (int i=0;i<it3->patches;++i) {
-        int p = sim.getLocalPatchIndex(i+1);
-        ASMbase* pch = sim.getPatch(p);
-        if (!pch) continue;
-        Vector loc, newloc;
-        hdf5reader.readVector(it2->file_level, it2->file_field, i+1, loc);
-        basis[it3->basis][p-1]->copyParameterDomain(pch);
-        pch->evaluate(basis[it3->basis][p-1], loc, newloc, it2->basis);
-        pch->injectNodeVec(newloc, *field, it3->components, it2->basis);
       }
     }
 
