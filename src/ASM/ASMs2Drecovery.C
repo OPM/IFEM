@@ -27,9 +27,11 @@
 #include "Profiler.h"
 
 
-bool ASMs2D::getGrevilleParameters (RealArray& prm, int dir) const
+bool ASMs2D::getGrevilleParameters (RealArray& prm, int dir, int basisNum) const
 {
   if (!surf || dir < 0 || dir > 1) return false;
+
+  const Go::SplineSurface* surf = this->getBasis(basisNum);
 
   const Go::BsplineBasis& basis = surf->basis(dir);
 

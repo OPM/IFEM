@@ -515,7 +515,8 @@ protected:
   //! \brief Calculates parameter values for the Greville points.
   //! \param[out] prm Parameter values in given direction for all points
   //! \param[in] dir Parameter direction (0,1,2)
-  bool getGrevilleParameters(RealArray& prm, int dir) const;
+  //! \param[in] basis Basis number (mixed)
+  bool getGrevilleParameters(RealArray& prm, int dir, int basis=1) const;
 
   //! \brief Calculates parameter values for the Quasi-Interpolation points.
   //! \param[out] prm Parameter values in given direction for all points

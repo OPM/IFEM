@@ -25,9 +25,11 @@
 #include "Profiler.h"
 
 
-bool ASMs3D::getGrevilleParameters (RealArray& prm, int dir) const
+bool ASMs3D::getGrevilleParameters (RealArray& prm, int dir, int basisNum) const
 {
   if (!svol || dir < 0 || dir > 2) return false;
+
+  Go::SplineVolume* svol = this->getBasis(basisNum);
 
   const Go::BsplineBasis& basis = svol->basis(dir);
 
