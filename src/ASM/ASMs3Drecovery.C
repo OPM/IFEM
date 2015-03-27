@@ -63,7 +63,7 @@ bool ASMs3D::getQuasiInterplParameters (RealArray& prm, int dir) const
 
 
 bool ASMs3D::evaluate (const ASMbase* basis, const Vector& locVec,
-		       Vector& vec) const
+		       Vector& vec, int basisNum) const
 {
   const ASMs3D* pch = dynamic_cast<const ASMs3D*>(basis);
   if (!pch) return false;
@@ -71,7 +71,7 @@ bool ASMs3D::evaluate (const ASMbase* basis, const Vector& locVec,
   // Compute parameter values of the result sampling points (Greville points)
   RealArray gpar[3];
   for (int dir = 0; dir < 3; dir++)
-    if (!this->getGrevilleParameters(gpar[dir],dir))
+    if (!this->getGrevilleParameters(gpar[dir],dir,basisNum))
       return false;
 
   // Evaluate the result field at all sampling points.
@@ -80,6 +80,8 @@ bool ASMs3D::evaluate (const ASMbase* basis, const Vector& locVec,
   Matrix sValues;
   if (!pch->evalSolution(sValues,locVec,gpar))
     return false;
+
+  Go::SplineVolume* svol = this->getBasis(basisNum);
 
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.
@@ -287,12 +289,12 @@ bool ASMs3D::globalL2projection (Matrix& sField,
 
 #include "ASMs3DInterpolate.C" // TODO: inline these methods instead...
 
-bool ASMs3D::evaluate (const Field* field, Vector& vec) const
+bool ASMs3D::evaluate (const Field* field, Vector& vec, int basisNum) const
 {
   // Compute parameter values of the result sampling points (Greville points)
   RealArray gpar[3];
   for (int dir = 0; dir < 3; dir++)
-    if (!this->getGrevilleParameters(gpar[dir],dir))
+    if (!this->getGrevilleParameters(gpar[dir],dir,basisNum))
       return false;
 
   // Evaluate the result field at all sampling points.
@@ -311,6 +313,8 @@ bool ASMs3D::evaluate (const Field* field, Vector& vec) const
       }
     }
   }
+
+  Go::SplineVolume* svol = this->getBasis(basisNum);
 
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.
@@ -341,12 +345,12 @@ bool ASMs3D::evaluate (const Field* field, Vector& vec) const
 }
 
 
-bool ASMs3D::evaluate (const RealFunc* func, Vector& vec) const
+bool ASMs3D::evaluate (const RealFunc* func, Vector& vec, int basisNum) const
 {
   // Compute parameter values of the result sampling points (Greville points)
   RealArray gpar[3];
   for (int dir = 0; dir < 3; dir++)
-    if (!this->getGrevilleParameters(gpar[dir],dir))
+    if (!this->getGrevilleParameters(gpar[dir],dir,basisNum))
       return false;
 
   // Evaluate the function at all sampling points.
@@ -363,6 +367,8 @@ bool ASMs3D::evaluate (const RealFunc* func, Vector& vec) const
       }
     }
   }
+
+  Go::SplineVolume* svol = this->getBasis(basisNum);
 
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.

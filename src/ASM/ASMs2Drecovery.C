@@ -65,7 +65,7 @@ bool ASMs2D::getQuasiInterplParameters (RealArray& prm, int dir) const
 
 
 bool ASMs2D::evaluate (const ASMbase* basis, const Vector& locVec,
-		       Vector& vec) const
+		       Vector& vec, int basisNum) const
 {
   const ASMs2D* pch = dynamic_cast<const ASMs2D*>(basis);
   if (!pch) return false;
@@ -73,7 +73,7 @@ bool ASMs2D::evaluate (const ASMbase* basis, const Vector& locVec,
   // Compute parameter values of the result sampling points (Greville points)
   RealArray gpar[2];
   for (int dir = 0; dir < 2; dir++)
-    if (!this->getGrevilleParameters(gpar[dir],dir))
+    if (!this->getGrevilleParameters(gpar[dir],dir,basisNum))
       return false;
 
   // Evaluate the result field at all sampling points.
@@ -82,6 +82,8 @@ bool ASMs2D::evaluate (const ASMbase* basis, const Vector& locVec,
   Matrix sValues;
   if (!pch->evalSolution(sValues,locVec,gpar))
     return false;
+
+  Go::SplineSurface* surf = this->getBasis(basisNum);
 
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.
@@ -461,12 +463,12 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 #include "ASMs2DInterpolate.C" // TODO: inline these methods instead...
 
 
-bool ASMs2D::evaluate (const Field* field, Vector& vec) const
+bool ASMs2D::evaluate (const Field* field, Vector& vec, int basisNum) const
 {
   // Compute parameter values of the result sampling points (Greville points)
   RealArray gpar[2];
   for (int dir = 0; dir < 2; dir++)
-    if (!this->getGrevilleParameters(gpar[dir],dir))
+    if (!this->getGrevilleParameters(gpar[dir],dir,basisNum))
       return false;
 
   // Evaluate the result field at all sampling points.
@@ -482,6 +484,9 @@ bool ASMs2D::evaluate (const Field* field, Vector& vec) const
       *it++ = field->valueFE(fe);
     }
   }
+
+  Go::SplineSurface* surf = this->getBasis(basisNum);
+
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.
   // Note that we here implicitly assume that the number of Greville points
@@ -510,12 +515,12 @@ bool ASMs2D::evaluate (const Field* field, Vector& vec) const
 }
 
 
-bool ASMs2D::evaluate (const RealFunc* func, Vector& vec) const
+bool ASMs2D::evaluate (const RealFunc* func, Vector& vec, int basisNum) const
 {
   // Compute parameter values of the result sampling points (Greville points)
   RealArray gpar[2];
   for (int dir = 0; dir < 2; dir++)
-    if (!this->getGrevilleParameters(gpar[dir],dir))
+    if (!this->getGrevilleParameters(gpar[dir],dir,basisNum))
       return false;
 
   // Evaluate the function at all sampling points.
@@ -532,6 +537,9 @@ bool ASMs2D::evaluate (const RealFunc* func, Vector& vec) const
       *it++ = (*func)(X);
     }
   }
+
+  Go::SplineSurface* surf = this->getBasis(basisNum);
+
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.
   // Note that we here implicitly assume that the number of Greville points

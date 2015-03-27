@@ -447,18 +447,21 @@ public:
   //! \param[in] basis The basis of the field to evaluate
   //! \param[in] locVec The coefficients of the field to evaluate
   //! \param[out] vec The obtained coefficients after interpolation
+  //! \param[in] basisNum The basis to evaluate for (mixed)
   virtual bool evaluate(const ASMbase* basis, const Vector& locVec,
-                        Vector& vec) const { return false; }
+                        Vector& vec, int basisNum = 1) const { return false; }
 
   //! \brief Evaluates and interpolates a field over a given geometry.
   //! \param[in] field The field to evaluate
   //! \param[out] vec The obtained coefficients after interpolation
-  virtual bool evaluate(const Field* field, Vector& vec) const { return false; }
+  //! \param[in] basis The basis to evaluate for (mixed)
+  virtual bool evaluate(const Field* field, Vector& vec, int basis=1) const { return false; }
 
   //! \brief Evaluates and interpolates a function over a given geometry.
   //! \param[in] f The function to evaluate
   //! \param[out] vec The obtained coefficients after interpolation
-  virtual bool evaluate(const RealFunc* f, Vector& vec) const { return false; }
+  //! \param[in] basis The basis to evaluate for (mixed)
+  virtual bool evaluate(const RealFunc* f, Vector& vec, int basis=1) const { return false; }
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field

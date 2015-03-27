@@ -407,24 +407,27 @@ public:
   //! \param[in] basis The basis of the field to evaluate
   //! \param[in] locVec The coefficients of the field to evaluate
   //! \param[out] vec The obtained coefficients after interpolation
+  //! \param[in] basisNum Basis number (mixed)
   virtual bool evaluate(const ASMbase* basis, const Vector& locVec,
-                        Vector& vec) const;
+                        Vector& vec, int basisNum=1) const;
 
   //! \brief Evaluates and interpolates a field over a given geometry.
   //! \param[in] field The field to evaluate
   //! \param[out] vec The obtained coefficients after interpolation
+  //! \param[in] basis Basis number (mixed)
   //!
   //! \note A Variation Diminishing Spline Approximation is used as the
   //! regular interpolation method in GoTools only works with uniform knots.
-  virtual bool evaluate(const Field* field, Vector& vec) const;
+  virtual bool evaluate(const Field* field, Vector& vec, int basis=1) const;
 
   //! \brief Evaluates and interpolates a function over a given geometry.
   //! \param[in] func The function to evaluate
   //! \param[out] vec The obtained coefficients after interpolation
+  //! \param[in] basis Basis number (mixed)
   //!
   //! \note A Variation Diminishing Spline Approximation is used as the
   //! regular interpolation method in GoTools only works with uniform knots.
-  virtual bool evaluate(const RealFunc* func, Vector& vec) const;
+  virtual bool evaluate(const RealFunc* func, Vector& vec, int basis=1) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field
