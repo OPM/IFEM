@@ -41,6 +41,13 @@ protected:
   void extractNodeVecMx(const Vector& globVec, Vector& nodeVec,
 			int basis = 0) const;
 
+  //! \brief Injects nodal results for this patch into a global vector.
+  //! \param[in] globVec Global solution vector in DOF-order
+  //! \param[out] nodeVec Nodal result vector for this patch
+  //! \param[in] basis Which basis to extract the nodal values for
+  void injectNodeVecMx(Vector& globVec, const Vector& nodeVec,
+                       int basis = 0) const;
+
   //! \brief Extract the primary solution field at the specified nodes.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch

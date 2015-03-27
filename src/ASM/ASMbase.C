@@ -991,7 +991,7 @@ void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
 
 
 bool ASMbase::injectNodeVec (const Vector& nodeVec, Vector& globRes,
-			     unsigned char nndof) const
+			     unsigned char nndof, int) const
 {
   if (nndof == 0) nndof = nf;
 

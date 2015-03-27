@@ -153,6 +153,14 @@ void ASMs3Dmx::extractNodeVec (const Vector& globRes, Vector& nodeVec,
 }
 
 
+bool ASMs3Dmx::injectNodeVec (const Vector& nodeRes, Vector& globRes,
+                              unsigned char, int basis) const
+{
+  this->injectNodeVecMx(globRes,nodeRes,basis);
+  return true;
+}
+
+
 bool ASMs3Dmx::getSolution (Matrix& sField, const Vector& locSol,
 			    const IntVec& nodes) const
 {

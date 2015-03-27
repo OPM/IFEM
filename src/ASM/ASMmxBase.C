@@ -63,6 +63,29 @@ void ASMmxBase::extractNodeVecMx (const Vector& globRes, Vector& nodeVec,
 }
 
 
+void ASMmxBase::injectNodeVecMx (Vector& globRes, const Vector& nodeVec,
+                                 int basis) const
+{
+  size_t i, j;
+  int idof, ldof = 0;
+  if (basis != 2)
+    for (i = 0; i < nb1; i++)
+    {
+      idof = MADOF[i];
+      for (j = 0; j < nf1; j++, ldof++)
+	globRes[idof++] = nodeVec[ldof];
+    }
+
+  if (basis != 1)
+    for (i = nb1; i < nb1+nb2; i++)
+    {
+      idof = MADOF[i];
+      for (j = 0; j < nf2; j++, ldof++)
+	globRes[idof++] = nodeVec[ldof];
+    }
+}
+
+
 bool ASMmxBase::getSolutionMx (Matrix& sField, const Vector& locSol,
 			       const std::vector<int>& nodes) const
 {

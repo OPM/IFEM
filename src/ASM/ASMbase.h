@@ -546,8 +546,9 @@ public:
   //! \param[in] nodeVec Nodal result vector for this patch
   //! \param globVec Global solution vector in DOF-order
   //! \param[in] nndof Number of DOFs per node (the default is \a nf)
+  //! \param[in] basis Which basis to inject nodal values for (mixed methods)
   virtual bool injectNodeVec(const Vector& nodeVec, Vector& globVec,
-			     unsigned char nndof = 0) const;
+			     unsigned char nndof = 0, int basis = 1) const;
 
 protected:
 

@@ -175,6 +175,13 @@ public:
   virtual void extractNodeVec(const Vector& globVec, Vector& nodeVec,
 			      unsigned char = 0, int basis = 0) const;
 
+  //! \brief Injects nodal results for this patch into a global vector.
+  //! \param[in] nodeVec Nodal result vector for this patch
+  //! \param[out] globVec Global solution vector in DOF-order
+  //! \param[in] basis Which basis (or 0 for both) to extract nodal values for
+  virtual bool injectNodeVec(const Vector& nodeVec, Vector& globVec,
+                             unsigned char = 0, int basis = 0) const;
+
 protected:
 
   // Internal utility methods
