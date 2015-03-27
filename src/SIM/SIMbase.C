@@ -433,6 +433,7 @@ bool SIMbase::parse (const TiXmlElement* elem)
       utl::getAttribute(elem,"file_level",info.file_level);
       utl::getAttribute(elem,"geo_level",info.geo_level);
       utl::getAttribute(elem,"level",info.sim_level);
+      utl::getAttribute(elem,"basis",info.basis);
       IFEM::cout <<"\tInitial condition file: "<< file
                  <<"\n\tField name: \""<< info.sim_field
                  <<"\" (on file \""<< info.file_field

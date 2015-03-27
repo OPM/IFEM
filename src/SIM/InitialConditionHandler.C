@@ -71,7 +71,8 @@ bool SIM::setInitialConditions (SIMbase& sim, SIMdependency* fieldHolder)
           hdf5reader.readString(str.str(),pg2);
           std::stringstream spg2;
           spg2 << pg2;
-          ASMbase* pch = sim.readPatch(spg2,i);
+          std::array<unsigned char, 3> unf{(unsigned char)sim.getNoFields(it2->basis), 0, 0};
+          ASMbase* pch = sim.readPatch(spg2,i,&unf[0]);
           if (pch)
             vec.push_back(pch);
         }
@@ -85,8 +86,8 @@ bool SIM::setInitialConditions (SIMbase& sim, SIMdependency* fieldHolder)
         Vector loc, newloc;
         hdf5reader.readVector(it2->file_level, it2->file_field, i+1, loc);
         basis[it3->basis][p-1]->copyParameterDomain(pch);
-        pch->evaluate(basis[it3->basis][p-1], loc, newloc);
-        pch->injectNodeVec(newloc, *field, it3->components);
+        pch->evaluate(basis[it3->basis][p-1], loc, newloc, it2->basis);
+        pch->injectNodeVec(newloc, *field, it3->components, it2->basis);
       }
     }
 
