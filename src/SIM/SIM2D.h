@@ -53,7 +53,9 @@ public:
   //! \brief Reads a patch from given input stream.
   //! \param[in] isp The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read
-  virtual ASMbase* readPatch(std::istream& isp, int pchInd) const;
+  //! \param[in] unf If non-NULL use specified number of fields
+  virtual ASMbase* readPatch(std::istream& isp, int pchInd,
+                             const unsigned char* unf=nullptr) const;
 
   //! \brief Evaluates the primary solution at the given point.
   //! \param[in] psol Primary solution vector

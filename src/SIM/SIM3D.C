@@ -666,9 +666,12 @@ bool SIM3D::addConstraint (int patch, int lndx, int line, double xi, int dirs)
 }
 
 
-ASMbase* SIM3D::readPatch (std::istream& isp, int pchInd) const
+ASMbase* SIM3D::readPatch (std::istream& isp, int pchInd,
+                           const unsigned char* unf) const
 {
-  ASMbase* pch = ASM3D::create(opt.discretization,nf,nf[1] > 0);
+  if (!unf)
+    unf = nf;
+  ASMbase* pch = ASM3D::create(opt.discretization,unf,unf[1] > 0);
   if (pch)
   {
     if (!pch->read(isp))

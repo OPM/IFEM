@@ -598,7 +598,9 @@ public:
   //! \brief Reads a patch from given input stream.
   //! \param[in] isp The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read
-  virtual ASMbase* readPatch(std::istream& isp, int pchInd) const = 0;
+  //! \param[in] unf If specified, use this for the number of fields
+  virtual ASMbase* readPatch(std::istream& isp, int pchInd,
+                             const unsigned char* unf=nullptr) const = 0;
 
 protected:
   //! \brief Creates a default single-patch geometry.

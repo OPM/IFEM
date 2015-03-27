@@ -647,9 +647,12 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 }
 
 
-ASMbase* SIM2D::readPatch (std::istream& isp, int pchInd) const
+ASMbase* SIM2D::readPatch (std::istream& isp, int pchInd,
+                           const unsigned char* unf) const
 {
-  ASMbase* pch = ASM2D::create(opt.discretization,nsd,nf,nf[1] > 0);
+  if (!unf)
+    unf = nf;
+  ASMbase* pch = ASM2D::create(opt.discretization,nsd,unf,unf[1] > 0);
   if (pch)
   {
     if (!pch->read(isp))
