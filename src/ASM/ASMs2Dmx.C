@@ -737,7 +737,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
       if (skipMe) continue;
 
       // Get element edge length in the parameter space
-      double dS = this->getParametricLength(iel,t1);
+      double dS = this->getParametricLength(iel,t2);
       if (dS < 0.0) return false; // topology error (probably logic error)
 
       // Set up control point coordinates for current element
