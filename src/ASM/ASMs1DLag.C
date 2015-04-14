@@ -201,13 +201,18 @@ bool ASMs1DLag::integrate (Integrand& integrand,
   const double* wg = GaussQuadrature::getWeight(nGauss);
   if (!xg || !wg) return false;
 
-  // Points for selective reduced integration
-  const double* xr = 0;
-  int nRed = integrand.getReducedIntegration();
-  if (nRed < 0)
+  // Get the reduced integration quadrature points, if needed
+  const double* xr = NULL;
+  const double* wr = NULL;
+  int nRed = integrand.getReducedIntegration(nGauss);
+  if (nRed > 0)
+  {
+    xr = GaussQuadrature::getCoord(nRed);
+    wr = GaussQuadrature::getWeight(nRed);
+    if (!xr || !wr) return false;
+  }
+  else if (nRed < 0)
     nRed = nGauss; // The integrand needs to know nGauss
-  else if (nRed > 0 && !(xr = GaussQuadrature::getCoord(nRed)))
-    return false;
 
   // Get parametric coordinates of the elements
   RealArray gpar;
@@ -244,7 +249,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
     bool ok = integrand.initElement(MNPC[iel],fe,X,nRed,*A);
 
     if (xr)
-
+    {
       // --- Selective reduced integration loop --------------------------------
 
       for (int i = 0; i < nRed && ok; i++)
@@ -262,7 +267,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
           // Compute basis function derivatives at current integration point
           ok = Lagrange::computeBasis(fe.N,dNdu,p1,xr[i]);
           // Compute Jacobian inverse and derivatives
-          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
+          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu)*wr[i];
 	}
 
 	// Cartesian coordinates of current integration point
@@ -272,6 +277,7 @@ bool ASMs1DLag::integrate (Integrand& integrand,
 	// Compute the reduced integration terms of the integrand
 	ok &= integrand.reducedInt(*A,fe,X);
       }
+    }
 
 
     // --- Integration loop over all Gauss points in each direction ------------

@@ -733,12 +733,17 @@ bool ASMu2D::integrate (Integrand& integrand,
   if (!xg || !wg) return false;
 
   // Get the reduced integration quadrature points, if needed
-  const double* xr = 0;
-  int nRed = integrand.getReducedIntegration();
-  if (nRed < 0)
+  const double* xr = NULL;
+  const double* wr = NULL;
+  int nRed = integrand.getReducedIntegration(nGauss);
+  if (nRed > 0)
+  {
+    xr = GaussQuadrature::getCoord(nRed);
+    wr = GaussQuadrature::getWeight(nRed);
+    if (!xr || !wr) return false;
+  }
+  else if (nRed < 0)
     nRed = nGauss; // The integrand needs to know nGauss
-  else if (nRed > 0 && !(xr = GaussQuadrature::getCoord(nRed)))
-    return false;
 
   Matrix   dNdu, Xnod, Jac;
   Matrix3D d2Ndu2, Hess;
@@ -815,6 +820,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 	  X.t = time.t;
 
 	  // Compute the reduced integration terms of the integrand
+	  fe.detJxW *= 0.25*dA*wr[i]*wr[j];
 	  if (!integrand.reducedInt(*A,fe,X))
 	    return false;
 	}
@@ -903,7 +909,7 @@ bool ASMu2D::integrate (Integrand& integrand,
 {
   if (!lrspline) return true; // silently ignore empty patches
 
-  if (integrand.getReducedIntegration() != 0)
+  if (integrand.getReducedIntegration(nGauss) != 0)
   {
     std::cerr <<" *** ASMu2D::integrate(Integrand&,GlobalIntegral&,"
               <<"const TimeDomain&,const Real3DMat&): Available for standard"

@@ -330,6 +330,18 @@ public:
   //! \brief Returns the final operation applied to norms.
   ASM::FinalNormOp getFinalOperation() { return finalOp; }
 
+  //! \brief Defines which FE quantities are needed by the integrand.
+  virtual int getIntegrandType() const;
+  //! \brief Returns the number of reduced-order integration points.
+  virtual int getReducedIntegration(int n) const;
+
+  //! \brief Evaluates reduced integration terms at an interior point.
+  //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe Finite element data of current integration point
+  //! \param[in] X Cartesian coordinates of current integration point
+  virtual bool reducedInt(LocalIntegral& elmInt,
+                          const FiniteElement& fe, const Vec3& X) const;
+
 protected:
   //! \brief Initializes the projected fields for current element.
   bool initProjection(const std::vector<int>& MNPC, LocalIntegral& elmInt);

@@ -1700,12 +1700,17 @@ bool ASMs3D::integrate (Integrand& integrand,
   if (!xg || !wg) return false;
 
   // Get the reduced integration quadrature points, if needed
-  const double* xr = 0;
-  int nRed = integrand.getReducedIntegration();
-  if (nRed < 0)
+  const double* xr = NULL;
+  const double* wr = NULL;
+  int nRed = integrand.getReducedIntegration(nGauss);
+  if (nRed > 0)
+  {
+    xr = GaussQuadrature::getCoord(nRed);
+    wr = GaussQuadrature::getWeight(nRed);
+    if (!xr || !wr) return false;
+  }
+  else if (nRed < 0)
     nRed = nGauss; // The integrand needs to know nGauss
-  else if (nRed > 0 && !(xr = GaussQuadrature::getCoord(nRed)))
-    return false;
 
   // Compute parameter values of the Gauss points over the whole patch
   Matrix gpar[3], redpar[3];
@@ -1874,6 +1879,7 @@ bool ASMs3D::integrate (Integrand& integrand,
                 X.t = time.t;
 
                 // Compute the reduced integration terms of the integrand
+                fe.detJxW *= 0.125*dV*wr[i]*wr[j]*wr[k];
                 if (!integrand.reducedInt(*A,fe,X))
                   ok = false;
               }
@@ -1961,7 +1967,7 @@ bool ASMs3D::integrate (Integrand& integrand,
 {
   if (!svol) return true; // silently ignore empty patches
 
-  if (integrand.getReducedIntegration() != 0)
+  if (integrand.getReducedIntegration(nGauss) != 0)
   {
     std::cerr <<" *** ASMs3D::integrate(Integrand&,GlobalIntegral&,"
               <<"const TimeDomain&,const Real3DMat&): Available for standard"

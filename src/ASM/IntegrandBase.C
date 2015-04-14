@@ -127,15 +127,15 @@ bool IntegrandBase::initElementBou (const std::vector<int>& MNPC1,
 
 
 bool IntegrandBase::evalSol (Vector& s, const FiniteElement& fe,
-			     const Vec3& X, const std::vector<int>& MNPC) const
+                             const Vec3& X, const std::vector<int>& MNPC) const
 {
-  return Ierror("evalSol");
+  return Ierror("evalSol(Vector&,const FiniteElement& fe,const Vec3&,...)");
 }
 
 
 bool IntegrandBase::evalSol (Vector& s, const MxFiniteElement& fe,
-			     const Vec3& X, const std::vector<int>& MNPC1,
-		             const std::vector<int>&) const
+                             const Vec3& X, const std::vector<int>& MNPC1,
+                             const std::vector<int>&) const
 {
   return this->evalSol(s,fe,X,MNPC1);
 }
@@ -143,19 +143,19 @@ bool IntegrandBase::evalSol (Vector& s, const MxFiniteElement& fe,
 
 bool IntegrandBase::evalSol (Vector&, const TensorFunc&, const Vec3&) const
 {
-  return Ierror("evalSol(Vector&,const TensorFunc&, const Vec3&)");
+  return Ierror("evalSol(Vector&,const TensorFunc&,const Vec3&)");
 }
 
 
 bool IntegrandBase::evalSol (Vector&, const STensorFunc&, const Vec3&) const
 {
-  return Ierror("evalSol(Vector&,const STensorFunc&, const Vec3&)");
+  return Ierror("evalSol(Vector&,const STensorFunc&,const Vec3&)");
 }
 
 
 bool IntegrandBase::evalSol (Vector&, const VecFunc&, const Vec3&) const
 {
-  return Ierror("evalSol(Vector&,const VecFunc&, const Vec3&)");
+  return Ierror("evalSol(Vector&,const VecFunc&,const Vec3&)");
 }
 
 
@@ -294,6 +294,25 @@ const char* NormBase::getName (size_t i, size_t j, const char* prefix) const
   }
 
   return comp;
+}
+
+
+int NormBase::getIntegrandType () const
+{
+  return myProblem.getIntegrandType();
+}
+
+
+int NormBase::getReducedIntegration (int n) const
+{
+  return myProblem.getReducedIntegration(n);
+}
+
+
+bool NormBase::reducedInt (LocalIntegral& elmInt,
+                           const FiniteElement& fe, const Vec3& X) const
+{
+  return myProblem.reducedInt(elmInt,fe,X);
 }
 
 

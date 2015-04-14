@@ -148,7 +148,7 @@ public:
   //! \brief Defines which FE quantities are needed by the integrand.
   virtual int getIntegrandType() const { return STANDARD; }
   //! \brief Returns the number of reduced-order integration points.
-  virtual int getReducedIntegration() const { return 0; }
+  virtual int getReducedIntegration(int) const { return 0; }
   //! \brief Returns the number of boundary integration points.
   virtual int getBouIntegrationPoints(int nGP) const { return nGP; }
 

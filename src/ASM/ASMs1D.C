@@ -754,11 +754,16 @@ bool ASMs1D::integrate (Integrand& integrand,
 
   // Get the reduced integration quadrature points, if needed
   const double* xr = NULL;
-  int nRed = integrand.getReducedIntegration();
-  if (nRed < 0)
+  const double* wr = NULL;
+  int nRed = integrand.getReducedIntegration(nGauss);
+  if (nRed > 0)
+  {
+    xr = GaussQuadrature::getCoord(nRed);
+    wr = GaussQuadrature::getWeight(nRed);
+    if (!xr || !wr) return false;
+  } 
+  else if (nRed < 0)
     nRed = nGauss; // The integrand needs to know nGauss
-  else if (nRed > 0 && !(xr = GaussQuadrature::getCoord(nRed)))
-    return false;
 
   if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
     if (curv->rational())
@@ -832,7 +837,7 @@ bool ASMs1D::integrate (Integrand& integrand,
           this->extractBasis(fe.u,fe.N,dNdu);
           // Compute Jacobian inverse and derivatives
           dNdu.multiply(0.5*dL); // Derivatives w.r.t. xi=[-1,1]
-          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu);
+          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,fe.Xn,dNdu)*wr[i];
         }
 
 	// Cartesian coordinates of current integration point
