@@ -66,6 +66,9 @@ SIMbase::~SIMbase ()
   IFEM::cout <<"\nEntering SIMbase destructor"<< std::endl;
 #endif
 
+  for (IntegrandMap::iterator it = myInts.begin(); it != myInts.end(); ++it)
+    if (it->second != myProblem) delete it->second;
+
   if (ownProblem)  delete myProblem;
   if (mySol)       delete mySol;
   if (myEqSys)     delete myEqSys;
@@ -1323,16 +1326,16 @@ bool SIMbase::setMode (int mode, bool resetSol)
   if (myInts.empty())
     myInts.insert(std::make_pair(0,myProblem));
 
-  for (IntegrandMap::const_iterator i = myInts.begin(); i != myInts.end(); i++)
-    if (i->second)
+  for (IntegrandMap::iterator it = myInts.begin(); it != myInts.end(); ++it)
+    if (it->second)
     {
-      i->second->setMode((SIM::SolutionMode)mode);
-      if (resetSol) i->second->resetSolution();
+      it->second->setMode((SIM::SolutionMode)mode);
+      if (resetSol) it->second->resetSolution();
     }
     else
     {
       std::cerr <<" *** SIMbase::setMode: No integrand yet";
-      if (i->first > 0) std::cerr <<", code="<< i->first;
+      if (it->first > 0) std::cerr <<", code="<< it->first;
       std::cerr << std::endl;
       return false;
     }
@@ -1343,7 +1346,10 @@ bool SIMbase::setMode (int mode, bool resetSol)
 
 void SIMbase::setIntegrationPrm (unsigned short int i, double prm)
 {
-  if (myProblem)
+  if (!myInts.empty())
+    for (IntegrandMap::iterator it = myInts.begin(); it != myInts.end(); ++it)
+      it->second->setIntegrationPrm(i,prm);
+  else if (myProblem)
     myProblem->setIntegrationPrm(i,prm);
   else
     std::cerr <<"  ** SIMbase::setIntegrationPrm: myProblem not set yet."
@@ -1364,12 +1370,12 @@ void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers)
 
   if (!myProblem) return;
 
-  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); p++)
+  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); ++p)
     if (p->pcode == Property::NEUMANN && myProblem->hasBoundaryTerms())
     {
       // Account for possibly more than one Neumann property on a boundary
       bool notCounted = true;
-      for (PropertyVec::const_iterator q = myProps.begin(); q != p; q++)
+      for (PropertyVec::const_iterator q = myProps.begin(); q != p; ++q)
 	if (q->patch == p->patch && q->lindx == p->lindx && q->pcode==p->pcode)
 	  notCounted = false;
 
@@ -1377,9 +1383,10 @@ void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers)
         myModel[p->patch-1]->getNoBouPoints(nBouGP,abs(p->ldim),p->lindx);
     }
 
-  // Let the integrand know how many integration points in total do we have
+  // Let the integrands know how many integration points in total we have
   if (redimBuffers)
-    myProblem->initIntegration(nIntGP,nBouGP);
+    for (IntegrandMap::iterator it = myInts.begin(); it != myInts.end(); ++it)
+      it->second->initIntegration(nIntGP,nBouGP);
 }
 
 
