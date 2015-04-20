@@ -182,6 +182,15 @@ public:
   virtual bool injectNodeVec(const Vector& nodeVec, Vector& globVec,
                              unsigned char = 0, int basis = 0) const;
 
+  //! \brief Generates element groups for multi-threading of interior integrals.
+  //! \param[in] integrand Object with problem-specific data and methods
+  //! \param[in] silence If \e true, suppress threading group outprint
+  virtual void generateThreadGroups(const Integrand& integrand, bool silence);
+  //! \brief Generates element groups for multi-threading of boundary integrals.
+  //! \param[in] lIndex Local index [1,6] of the boundary face
+  //! \param[in] silence If \e true, suppress threading group outprint
+  virtual void generateThreadGroups(char lIndex, bool silence);
+
 protected:
 
   // Internal utility methods

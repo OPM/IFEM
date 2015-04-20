@@ -27,6 +27,9 @@
 #include "Profiler.h"
 #include "Vec3Oper.h"
 #include "Vec3.h"
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 
 
 ASMs3Dmx::ASMs3Dmx (unsigned char n_f1, unsigned char n_f2)
@@ -1105,4 +1108,22 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   }
 
   return true;
+}
+
+
+void ASMs3Dmx::generateThreadGroups (const Integrand& integrand, bool silence)
+{
+#ifdef USE_OPENMP
+  omp_set_num_threads(1);
+#endif
+  ASMs3D::generateThreadGroups(integrand,silence);
+}
+
+
+void ASMs3Dmx::generateThreadGroups (char lIndex, bool silence)
+{
+#ifdef USE_OPENMP
+  omp_set_num_threads(1);
+#endif
+  ASMs3D::generateThreadGroups(lIndex,silence);
 }
