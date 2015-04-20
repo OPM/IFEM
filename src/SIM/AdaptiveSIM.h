@@ -19,6 +19,7 @@
 
 class SIMbase;
 class SIMoutput;
+class TimeStep;
 class NormBase;
 
 
@@ -74,6 +75,9 @@ public:
 
   //! \brief Get number of norms in adaptor group
   int getNoNorms() const;
+
+  //! \brief Dummy time stepping advance (no adaptive + time stepping yet)
+  bool advanceStep(TimeStep& tp) const { return false; }
 
 protected:
   //! \brief Parses a data section from an input stream.

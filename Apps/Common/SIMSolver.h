@@ -19,6 +19,7 @@
 #include "TimeStep.h"
 #include "IFEM.h"
 #include "tinyxml.h"
+#include "AdaptiveSIM.h"
 
 
 //! \brief Structure for configuring a given simulator
@@ -40,6 +41,101 @@ int ConfigureSIM(T& t, char* infile, const typename T::SetupProps& p=typename T:
   SolverConfigurator<T> setup;
   return setup.setup(t, p, infile);
 }
+
+
+//! \brief Structure for handling a time step for a given simulator
+template<class T>
+struct SolverHandler {
+  //! \brief Constructor.
+  SolverHandler(T& sim, char* infile) : m_sim(sim), m_infile(infile) {}
+
+  bool pre(TimeStep& tp, int& geoBlk, int& nBlock)
+  {
+    // Save FE model to VTF file for visualization
+    return m_sim.saveModel(m_infile,geoBlk,nBlock) &&
+           m_sim.saveStep(tp,nBlock);
+  }
+
+  //! \brief Solve for a single time step.
+  //! \param tp Time stepping parameters.
+  //! \param nBlock Running VTF block counter.
+  int solve(TimeStep& tp, int& nBlock, DataExporter* exporter)
+  {
+    if (!m_sim.solveStep(tp))
+      return 1;
+
+    // Save solution
+    if (!m_sim.saveStep(tp,nBlock))
+      return 1;
+
+    if (exporter)
+      exporter->dumpTimeLevel(&tp);
+
+    return 0;
+  }
+
+  //! \brief Post step for a single time step.
+  bool post(TimeStep& tp)
+  {
+    return false;
+  }
+
+  T& m_sim; //!< Reference to simulator to solve for.
+  char* m_infile; //!< Input file to parse.
+};
+
+
+//! \brief Specialization for adaptive simulators.
+template<>
+struct SolverHandler<AdaptiveSIM> {
+  //! \brief Constructor.
+  SolverHandler<AdaptiveSIM>(AdaptiveSIM& sim, char* infile) :
+    m_sim(sim), m_infile(infile), m_step(0)
+  {
+    m_norms = sim.getNoNorms();
+  }
+
+  bool pre(TimeStep& tp, int& geoBlk, int& nBlock)
+  {
+    return true;
+  }
+
+  //! \brief Solve for a adaptive level.
+  //! \param tp Time stepping parameters.
+  //! \param nBlock Running VTF block counter.
+  int solve(TimeStep& tp, int& nBlock, DataExporter* exporter)
+  {
+    if (!m_sim.solveStep(m_infile, m_step))
+      return 5;
+
+    if (!m_sim.writeGlv(m_infile,m_step,m_norms))
+      return 6;
+
+    if (exporter)
+      exporter->dumpTimeLevel(NULL, true);
+
+    return 0;
+  }
+
+  //! \brief Post step for a single adaptive loop.
+  bool post(TimeStep& tp)
+  {
+    ++m_step;
+
+    if (m_step != 1 && !m_sim.adaptMesh(m_step)) {
+      m_step = 0;
+      tp.step--; // advanceStep will increment it
+      return false;
+    }
+
+    return true;
+  }
+
+  AdaptiveSIM& m_sim; //!< Reference to adaptive simulator.
+  char* m_infile;     //!< Input file to parse.
+  size_t m_step;      //!< Current adaptive level.
+  size_t m_norms;     //!< Number of norms in adaptive group.
+};
 
 
 /*!
@@ -64,19 +160,15 @@ public:
   void fastForward(int n) { for (int i = 0; i < n; i++) this->advanceStep(); }
 
   //! \brief Solves the problem up to the final time.
-  virtual bool solveProblem(char* infile, DataExporter* exporter = NULL,
-                            const char* heading = NULL)
+  virtual int solveProblem(char* infile, DataExporter* exporter = NULL,
+                           const char* heading = NULL)
   {
     int geoBlk = 0;
     int nBlock = 0;
+    SolverHandler<T1> handler(S1,infile);
 
-    // Save FE model to VTF file for visualization
-    if (!S1.saveModel(infile,geoBlk,nBlock))
-      return false;
-
-    // Save the initial configuration to VTF file
-    if (!S1.saveStep(tp,nBlock))
-      return false;
+    if (!handler.pre(tp,geoBlk,nBlock))
+      return 1;
 
     if (heading && myPid == 0)
     {
@@ -90,22 +182,17 @@ public:
     }
 
     // Solve for each time step up to final time
-    for (int iStep = 1; this->advanceStep(); iStep++)
+    for (int iStep = 1; handler.post(tp) || this->advanceStep(); iStep++)
     {
       // Solve
-      if (!S1.solveStep(tp))
-        return false;
+      int res = handler.solve(tp,nBlock,exporter);
+      if (res)
+        return res;
 
-      // Save solution
-      if (!S1.saveStep(tp,nBlock))
-        return false;
-
-      if (exporter)
-        exporter->dumpTimeLevel(&tp);
       IFEM::pollControllerFifo();
     }
 
-    return true;
+    return 0;
   }
 
   //! \brief Parses a data section from an input stream.
