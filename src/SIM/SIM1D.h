@@ -94,9 +94,10 @@ protected:
   //! \param[in] lndx Local index of the boundary item to receive the property
   //! \param[in] ldim Dimension of the boundary item to receive the property
   //! \param[in] dirs Which local DOFs to constrain
-  //! \param[in] code In-homegeneous Dirichlet condition property code
+  //! \param[in] code In-homogeneous Dirichlet condition property code
+  //! \param basis Basis to apply constraint to (mixed methods)
   virtual bool addConstraint(int patch, int lndx, int ldim,
-                             int dirs, int code, int&);
+                             int dirs, int code, int&, char basis);
 
   //! \brief Creates the computational FEM model from the spline patches.
   //! \details Reimplemented to account for twist angle in beam problems.

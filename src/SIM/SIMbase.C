@@ -336,11 +336,13 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"dirichlet") && !ignoreDirichlet) {
     int comp = 0;
+    int basis=1;
     std::string set, type, axes;
     utl::getAttribute(elem,"comp",comp);
     utl::getAttribute(elem,"set",set);
     utl::getAttribute(elem,"type",type,true);
     utl::getAttribute(elem,"axes",axes,true);
+    utl::getAttribute(elem,"basis",basis);
     int code = this->getUniquePropertyCode(set,comp);
     if (code == 0) utl::getAttribute(elem,"code",code);
     if (axes == "local projected")
@@ -358,17 +360,17 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
     }
     const TiXmlNode* dval = elem->FirstChild();
     if (type == "anasol") {
-      this->setPropertyType(code,Property::DIRICHLET_ANASOL);
+      this->setPropertyType(code,Property::DIRICHLET_ANASOL,-1,basis);
       IFEM::cout <<"\tDirichlet code "<< code <<": (analytic)"<< std::endl;
     }
     // this is a horrible hack
     else if (!dval || (type != "expression" &&
                        type != "field" && atof(dval->Value()) == 0.0)) {
-      this->setPropertyType(code,Property::DIRICHLET,comp);
+      this->setPropertyType(code,Property::DIRICHLET,comp,basis);
       IFEM::cout <<"\tDirichlet code "<< code <<": (fixed)"<< std::endl;
     }
     else if (dval) {
-      this->setPropertyType(code,Property::DIRICHLET_INHOM,comp);
+      this->setPropertyType(code,Property::DIRICHLET_INHOM,comp,basis);
       IFEM::cout <<"\tDirichlet code "<< code;
       if (!type.empty()) IFEM::cout <<" ("<< type <<")";
       myScalars[abs(code)] = utl::parseRealFunc(dval->Value(),type);
@@ -997,7 +999,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
         }
 
         if (dofs > 0)
-          if (this->addConstraint(q->patch,q->lindx,q->ldim,dofs,code,ngnod))
+          if (this->addConstraint(q->patch,q->lindx,q->ldim,dofs,code,ngnod,q->basis))
             IFEM::cout << std::endl;
           else
             ++ierr;
@@ -1157,7 +1159,7 @@ bool SIMbase::createPropertySet (const std::string& setName, int pc)
   direction onto the spline basis, to obtain directions at control points.
 */
 
-size_t SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
+size_t SIMbase::setPropertyType (int code, Property::Type ptype, int pindex, char basis)
 {
   size_t nDefined = 0;
   for (PropertyVec::iterator p = myProps.begin(); p != myProps.end(); p++)
@@ -1166,6 +1168,7 @@ size_t SIMbase::setPropertyType (int code, Property::Type ptype, int pindex)
       {
         ++nDefined;
         p->pcode = ptype;
+        p->basis = basis;
 
         if (ptype == Property::MATERIAL && pindex >= 0)
           p->pindx = pindex; // Index to material property container

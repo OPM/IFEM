@@ -105,8 +105,9 @@ protected:
   //! \param[in] dirs Which local DOFs to constrain
   //! \param[in] code In-homegeneous Dirichlet condition property code
   //! \param ngnod Total number of global nodes in the model (might be updated)
+  //! \param basis Basis to apply property to (mixed methods)
   virtual bool addConstraint(int patch, int lndx, int ldim,
-			     int dirs, int code, int& ngnod);
+			     int dirs, int code, int& ngnod, char basis);
 
   //! \brief Constrains a parametric line on a boundary face.
   //! \param[in] patch 1-based index of the patch to receive the property
@@ -114,7 +115,9 @@ protected:
   //! \param[in] line Local direction of the line on the face (1=I, 2=J)
   //! \param[in] xi Relative coordinate [0,1] defining the line placement
   //! \param[in] dirs Which local DOFs to constrain
-  bool addConstraint(int patch, int lndx, int line, double xi, int dirs);
+  //! \param basis Basis to apply property to (mixed methods)
+  bool addConstraint(int patch, int lndx, int line, double xi,
+                     int dirs, char basis);
 
   //! \brief Creates a default single-patch geometry.
   virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const;

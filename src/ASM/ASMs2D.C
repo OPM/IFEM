@@ -688,14 +688,19 @@ void ASMs2D::closeEdges (int dir, int basis, int master)
   non-constant functions).
 */
 
-void ASMs2D::constrainEdge (int dir, bool open, int dof, int code)
+void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 {
-  int n1, n2, node = 1;
-  if (!this->getSize(n1,n2,1)) return;
+  int n1, n2, node=1;
+  if (basis > 1)
+    for (char i=1;i<basis;++i) {
+      this->getSize(n1,n2,i);
+      node += n1*n2;
+    }
 
   if (swapV) // Account for swapped parameter direction
     if (dir == 2 || dir == -2) dir = -dir;
 
+  if (!this->getSize(n1,n2,basis)) return;
   int bcode = code;
   if (code > 0) // Dirichlet projection will be performed
     dirich.push_back(DirichletEdge(this->getBoundary(dir),dof,code));

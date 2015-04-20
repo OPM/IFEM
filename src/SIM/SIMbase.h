@@ -486,7 +486,9 @@ protected:
   //! \param[in] code The property code to be associated with the property type
   //! \param[in] ptype The property type to be associated with the given code
   //! \param[in] pindex 0-based index into problem-dependent property container
-  size_t setPropertyType(int code, Property::Type ptype, int pindex = -1);
+  //! \param[in] basis 1-based index into basis associated with property
+  size_t setPropertyType(int code, Property::Type ptype, int pindex = -1,
+                         char basis = 1);
 
   //! \brief Defines a Neumann boundary condition property by parsing a string.
   //! \param[in] prop The string to parse the property definition from
@@ -512,8 +514,10 @@ protected:
   //! \param[in] dirs Which local DOFs to constrain
   //! \param[in] code In-homegeneous Dirichlet condition property code
   //! \param ngnod Total number of global nodes in the model (might be updated)
+  //! \param basis Basis to apply constraint to (mixed methods)
   virtual bool addConstraint(int patch, int lndx, int ldim,
-			     int dirs, int code, int& ngnod) = 0;
+			     int dirs, int code, int& ngnod,
+                             char basis) = 0;
 
   //! \brief Preprocessing performed before the FEM model generation.
   virtual void preprocessA() {}

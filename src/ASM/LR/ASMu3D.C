@@ -465,7 +465,7 @@ void ASMu3D::closeFaces (int dir, int basis, int master)
 	non-constant functions).
 */
 
-void ASMu3D::constrainFace (int dir, bool open, int dof, int code)
+void ASMu3D::constrainFace (int dir, bool open, int dof, int code, char)
 {
 	if(open)
 		std::cerr << "\nWARNING: ASMu3D::constrainFace, open boundary conditions not supported yet. Treating it as closed" << std::endl;
@@ -508,7 +508,7 @@ size_t ASMu3D::constrainFaceLocal(int dir, bool open, int dof, int code, bool pr
 	return 0;
 }
 
-void ASMu3D::constrainEdge (int lEdge, bool open, int dof, int code)
+void ASMu3D::constrainEdge (int lEdge, bool open, int dof, int code, char)
 {
 	if(open)
 		std::cerr << "\nWARNING: ASMu3D::constrainEdge, open boundary conditions not supported yet. Treating it as closed" << std::endl;
@@ -553,7 +553,8 @@ void ASMu3D::constrainEdge (int lEdge, bool open, int dof, int code)
 }
 
 
-void ASMu3D::constrainLine (int fdir, int ldir, double xi, int dof, int code)
+void ASMu3D::constrainLine (int fdir, int ldir, double xi, int dof,
+                            int code, char)
 {
 	std::cerr << "ASMu3D::constrainLine not implemented properly yet" << std::endl;
 	exit(776654);
@@ -626,7 +627,7 @@ void ASMu3D::constrainLine (int fdir, int ldir, double xi, int dof, int code)
 }
 
 
-void ASMu3D::constrainCorner (int I, int J, int K, int dof, int code)
+void ASMu3D::constrainCorner (int I, int J, int K, int dof, int code, char)
 {
 	std::cerr << "ASMu3D::constrainCorner not implemented properly yet" << std::endl;
 	exit(776654);
@@ -645,7 +646,7 @@ void ASMu3D::constrainCorner (int I, int J, int K, int dof, int code)
 
 
 void ASMu3D::constrainNode (double xi, double eta, double zeta,
-			    int dof, int code)
+			    int dof, int code, char)
 {
 	std::cerr << "ASMu3D::constrainNode not implemented properly yet" << std::endl;
 	exit(776654);

@@ -82,7 +82,9 @@ public:
   //! \param[in] open If \e true, exclude all points along the face boundary
   //! \param[in] dof Which DOFs to constrain at each node on the face
   //! \param[in] code Inhomogeneous dirichlet condition code
-  virtual void constrainFace(int dir, bool open, int dof, int code = 0) = 0;
+  //! \param[in] basis Basis to constrain face for
+  virtual void constrainFace(int dir, bool open, int dof,
+                             int code = 0, char basis = 1) = 0;
   //! \brief Constrains all DOFs in local directions on a given boundary face.
   //! \param[in] dir Parameter direction defining the face to constrain
   //! \param[in] open If \e true, exclude all points along the face boundary
@@ -99,13 +101,16 @@ public:
   //! \param[in] open If \e true, exclude the end points of the edge
   //! \param[in] dof Which DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
-  virtual void constrainEdge(int lEdge, bool open, int dof, int code = 0) = 0;
+  //! \param[in] basis Basis to constrain edge for
+  virtual void constrainEdge(int lEdge, bool open, int dof, int code = 0,
+                             char basis = 1) = 0;
   //! \brief Constrains all DOFs along a line on a given boundary face.
   //! \param[in] fdir Parameter direction defining the face to constrain
   //! \param[in] ldir Parameter direction defining the line to constrain
   //! \param[in] xi Parameter value defining the line to constrain
   //! \param[in] dof Which DOFs to constrain at each node along the line
   //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Basis to constrain line for
   //!
   //! \details The parameter \a xi has to be in the domain [0.0,1.0], where
   //! 0.0 means the beginning of the domain and 1.0 means the end. The line to
@@ -114,8 +119,8 @@ public:
   //! parameter direction as indicated by \a xi. The actual value of \a xi
   //! is converted to the integer value closest to \a xi*n, where \a n is the
   //! number of nodes (control points) in that parameter direction.
-  virtual void constrainLine(int fdir, int ldir, double xi,
-                             int dof = 123, int code = 0) = 0;
+  virtual void constrainLine(int fdir, int ldir, double xi, int dof = 123,
+                             int code = 0, char basis = 1) = 0;
 
   //! \brief Constrains a corner node identified by the three parameter indices.
   //! \param[in] I Parameter index in u-direction
@@ -123,18 +128,20 @@ public:
   //! \param[in] K Parameter index in w-direction
   //! \param[in] dof Which DOFs to constrain at the node
   //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Basis to constrain corner for
   //!
   //! \details The sign of the three indices is used to define whether we want
   //! the node at the beginning or the end of that parameter direction.
   //! The magnitude of the indices are not used.
-  virtual void constrainCorner(int I, int J, int K,
-                               int dof = 123, int code = 0) = 0;
+  virtual void constrainCorner(int I, int J, int K, int dof = 123,
+                               int code = 0, char basis = 1) = 0;
   //! \brief Constrains a node identified by three relative parameter values.
   //! \param[in] xi Parameter in u-direction
   //! \param[in] eta Parameter in v-direction
   //! \param[in] zeta Parameter in w-direction
   //! \param[in] dof Which DOFs to constrain at the node
   //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Basis to constrain node for
   //!
   //! \details The parameter values have to be in the domain [0.0,1.0], where
   //! 0.0 means the beginning of the domain and 1.0 means the end. For values
@@ -142,7 +149,7 @@ public:
   //! \a r*n, where \a r denotes the given relative parameter value,
   //! and \a n is the number of nodes along that parameter direction.
   virtual void constrainNode(double xi, double eta, double zeta,
-                             int dof = 123, int code = 0) = 0;
+                             int dof = 123, int code = 0, char basis = 1) = 0;
 
   //! \brief Calculates parameter values for visualization nodal points.
   //! \param[out] prm Parameter values in given direction for all points

@@ -129,13 +129,15 @@ public:
   //! \param[in] xi Parameter value along the curve
   //! \param[in] dof Which DOFs to constrain at the node
   //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis The basis to constrain node for
   //!
   //! \details The parameter value has to be in the domain [0.0,1.0], where
   //! 0.0 means the beginning of the domain and 1.0 means the end. For values
   //! in between, the actual index is taken as the integer value closest to
   //! \a r*n, where \a r denotes the given relative parameter value,
   //! and \a n is the number of nodes along that parameter direction.
-  virtual void constrainNode(double xi, int dof = 123, int code = 0);
+  virtual void constrainNode(double xi, int dof = 123,
+                             int code = 0, char basis = 1);
 
   //! \brief Connects matching nodes on two adjacent vertices.
   //! \param[in] vertex Local vertex index of this patch, in range [1,2]

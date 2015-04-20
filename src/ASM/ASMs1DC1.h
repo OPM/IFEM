@@ -56,7 +56,8 @@ public:
   //! in between, the actual index is taken as the integer value closest to
   //! \a r*n, where \a r denotes the given relative parameter value,
   //! and \a n is the number of nodes along that parameter direction.
-  virtual void constrainNode(double xi, int dof = 123, int code = 0);
+  virtual void constrainNode(double xi, int dof = 123,
+                             int code = 0, char basis = 1);
 };
 
 #endif

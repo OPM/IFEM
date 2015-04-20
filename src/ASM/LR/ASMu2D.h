@@ -139,7 +139,8 @@ public:
   //! \param[in] open If \e true, exclude the end points of the edge
   //! \param[in] dof Which DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
-  virtual void constrainEdge(int dir, bool open, int dof, int code = 0);
+  //! \param[in] basis Basis to constrain
+  virtual void constrainEdge(int dir, bool open, int dof, int code = 0, char basis=0);
   //! \brief Constrains all DOFs in local directions on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
   //! \param[in] open If \e true, exclude the end points of the edge

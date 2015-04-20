@@ -467,7 +467,7 @@ void ASMu2D::closeEdges (int dir, int basis, int master)
 */
 
 
-void ASMu2D::constrainEdge (int dir, bool open, int dof, int code)
+void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char)
 {
   std::vector<LR::Basisfunction*> edgeFunctions;
   switch (dir)

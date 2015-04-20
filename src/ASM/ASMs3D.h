@@ -224,7 +224,9 @@ public:
   //! \param[in] open If \e true, exclude all points along the face boundary
   //! \param[in] dof Which DOFs to constrain at each node on the face
   //! \param[in] code Inhomogeneous dirichlet condition code
-  void constrainFace(int dir, bool open, int dof = 123, int code = 0);
+  //! \param[in] basis Basis to constrain edge for
+  void constrainFace(int dir, bool open, int dof = 123,
+                     int code = 0, char basis = 1);
   //! \brief Constrains all DOFs in local directions on a given boundary face.
   //! \param[in] dir Parameter direction defining the face to constrain
   //! \param[in] open If \e true, exclude all points along the face boundary
@@ -232,6 +234,7 @@ public:
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] project If \e true, the local axis directions are projected
   //! \param[in] T1 Desired global direction of first local tangent direction
+  //! \param[in] basis Basis to constrain edge for
   //! \return Number of additional nodes added due to local axis constraints
   size_t constrainFaceLocal(int dir, bool open, int dof = 3, int code = 0,
 			    bool project = false, char T1 = '\0');
@@ -241,7 +244,9 @@ public:
   //! \param[in] open If \e true, exclude the end points of the edge
   //! \param[in] dof Which DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
-  void constrainEdge(int lEdge, bool open, int dof = 123, int code = 0);
+  //! \param[in] basis Basis to constrain edge for
+  void constrainEdge(int lEdge, bool open, int dof = 123,
+                     int code = 0, char basis = 1);
 
   //! \brief Constrains all DOFs along a line on a given boundary face.
   //! \param[in] fdir Parameter direction defining the face to constrain
@@ -249,6 +254,7 @@ public:
   //! \param[in] xi Parameter value defining the line to constrain
   //! \param[in] dof Which DOFs to constrain at each node along the line
   //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Basis to constrain line for
   //!
   //! \details The parameter \a xi has to be in the domain [0.0,1.0], where
   //! 0.0 means the beginning of the domain and 1.0 means the end. The line to
@@ -258,7 +264,7 @@ public:
   //! is converted to the integer value closest to \a xi*n, where \a n is the
   //! number of nodes (control points) in that parameter direction.
   void constrainLine(int fdir, int ldir, double xi,
-		     int dof = 123, int code = 0);
+		     int dof = 123, int code = 0, char basis = 1);
 
   //! \brief Constrains a corner node identified by the three parameter indices.
   //! \param[in] I Parameter index in u-direction
@@ -266,18 +272,20 @@ public:
   //! \param[in] K Parameter index in w-direction
   //! \param[in] dof Which DOFs to constrain at the node
   //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Basis to constrain corner for
   //!
   //! \details The sign of the three indices is used to define whether we want
   //! the node at the beginning or the end of that parameter direction.
   //! The magnitude of the indices are not used.
   void constrainCorner(int I, int J, int K,
-		       int dof = 123, int code = 0);
+		       int dof = 123, int code = 0, char basis = 1);
   //! \brief Constrains a node identified by three relative parameter values.
   //! \param[in] xi Parameter in u-direction
   //! \param[in] eta Parameter in v-direction
   //! \param[in] zeta Parameter in w-direction
   //! \param[in] dof Which DOFs to constrain at the node
   //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Basis to constrain node for
   //!
   //! \details The parameter values have to be in the domain [0.0,1.0], where
   //! 0.0 means the beginning of the domain and 1.0 means the end. For values
@@ -285,7 +293,7 @@ public:
   //! \a r*n, where \a r denotes the given relative parameter value,
   //! and \a n is the number of nodes along that parameter direction.
   void constrainNode(double xi, double eta, double zeta,
-		     int dof = 123, int code = 0);
+		     int dof = 123, int code = 0, char basis = 1);
 
   //! \brief Connects all matching nodes on two adjacent boundary faces.
   //! \param[in] face Local face index of this patch, in range [1,6]
@@ -599,6 +607,14 @@ private:
   //! \brief Returns an index into the internal coefficient array for a node.
   //! \param[in] inod 0-based node index local to current patch
   int coeffInd(size_t inod) const;
+
+  //! \brief Find the start node and size for a basis
+  //! \param[out] n1 Size of basis in first parameter direction
+  //! \param[out] n2 Size of basis in second parameter direction
+  //! \param[out] n3 Size of basis in third parameter direction
+  //! \param[out] node Start node for basis
+  //! \param[in] basis Basis to find data for
+  bool findStartNode(int& n1, int&n2, int& n3, int& node, char basis);
 
 protected:
   Go::SplineVolume* svol;  //!< Pointer to the actual spline volume object

@@ -110,7 +110,7 @@ protected:
   //! \param[in] code In-homegeneous Dirichlet condition property code
   //! \param ngnod Total number of global nodes in the model (might be updated)
   virtual bool addConstraint(int patch, int lndx, int ldim,
-			     int dirs, int code, int& ngnod);
+			     int dirs, int code, int& ngnod, char basis);
 
   //! \brief Creates a default single-patch geometry.
   virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const;

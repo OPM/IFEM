@@ -803,6 +803,20 @@ void ASMs3D::closeFaces (int dir, int basis, int master)
 }
 
 
+bool ASMs3D::findStartNode(int& n1, int&n2, int& n3, int& node, char basis)
+{
+  node = 1;
+  for (char i=1;i<basis;++i) {
+    this->getSize(n1,n2,n3,i);
+    node += n1*n2*n3;
+  }
+
+  if (!this->getSize(n1,n2,n3,basis)) return false;
+
+  return true;
+}
+
+
 /*!
   A negative \a code value implies direct evaluation of the Dirichlet condition
   function at the control point. Positive \a code implies projection onto the
@@ -810,10 +824,11 @@ void ASMs3D::closeFaces (int dir, int basis, int master)
   non-constant functions).
 */
 
-void ASMs3D::constrainFace (int dir, bool open, int dof, int code)
+void ASMs3D::constrainFace (int dir, bool open, int dof,
+                            int code, char basis)
 {
-  int n1, n2, n3, node = 1;
-  if (!this->getSize(n1,n2,n3,1)) return;
+  int n1, n2, n3, node;
+  if (!this->findStartNode(n1,n2,n3,node,basis)) return;
 
   if (swapW) // Account for swapped parameter direction
     if (dir == 3 || dir == -3) dir = -dir;
@@ -1097,10 +1112,12 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
 }
 
 
-void ASMs3D::constrainEdge (int lEdge, bool open, int dof, int code)
+void ASMs3D::constrainEdge (int lEdge, bool open, int dof,
+                            int code, char basis)
 {
-  int n1, n2, n3, n, node = 1, inc = 1;
-  if (!this->getSize(n1,n2,n3,1)) return;
+  int n1, n2, n3, n, node = 1, sNode, inc = 1;
+  if (!this->findStartNode(n1,n2,n3,sNode,basis)) return;
+  sNode--;
 
   if (swapW && lEdge <= 8) // Account for swapped parameter direction
     lEdge += (lEdge-1)%4 < 2 ? 2 : -2;
@@ -1146,16 +1163,18 @@ void ASMs3D::constrainEdge (int lEdge, bool open, int dof, int code)
   // Skip the first and last node if we are requesting an open boundary
   for (int i = 1; i <= n; i++, node += inc)
     if (!open || (i > 1 && i < n))
-      this->prescribe(node,dof,code);
+      this->prescribe(sNode+node,dof,code);
 }
 
 
-void ASMs3D::constrainLine (int fdir, int ldir, double xi, int dof, int code)
+void ASMs3D::constrainLine (int fdir, int ldir, double xi, int dof,
+                            int code, char basis)
 {
   if (xi < 0.0 || xi > 1.0) return;
 
-  int n1, n2, n3, node = 1;
-  if (!this->getSize(n1,n2,n3,1)) return;
+  int n1, n2, n3, node;
+  if (!this->findStartNode(n1,n2,n3,node,basis))
+    return;
 
   if (swapW) // Account for swapped parameter direction
     if (fdir == 3 || fdir == -3) fdir = -fdir;
@@ -1222,15 +1241,16 @@ void ASMs3D::constrainLine (int fdir, int ldir, double xi, int dof, int code)
 }
 
 
-void ASMs3D::constrainCorner (int I, int J, int K, int dof, int code)
+void ASMs3D::constrainCorner (int I, int J, int K, int dof,
+                              int code, char basis)
 {
-  int n1, n2, n3;
-  if (!this->getSize(n1,n2,n3,1)) return;
+  int n1, n2, n3, node;
+  if (!this->findStartNode(n1,n2,n3,node,basis))
+    return;
 
   if (swapW) // Account for swapped parameter direction
     K = -K;
 
-  int node = 1;
   if (I > 0) node += n1-1;
   if (J > 0) node += n1*(n2-1);
   if (K > 0) node += n1*n2*(n3-1);
@@ -1240,7 +1260,7 @@ void ASMs3D::constrainCorner (int I, int J, int K, int dof, int code)
 
 
 void ASMs3D::constrainNode (double xi, double eta, double zeta,
-			    int dof, int code)
+			    int dof, int code, char basis)
 {
   if (xi   < 0.0 || xi   > 1.0) return;
   if (eta  < 0.0 || eta  > 1.0) return;
@@ -1249,10 +1269,9 @@ void ASMs3D::constrainNode (double xi, double eta, double zeta,
   if (swapW) // Account for swapped parameter direction
     zeta = 1.0-zeta;
 
-  int n1, n2, n3;
-  if (!this->getSize(n1,n2,n3,1)) return;
+  int n1, n2, n3, node;
+  if (!this->findStartNode(n1,n2,n3,node,basis)) return;
 
-  int node = 1;
   if (xi   > 0.0) node += int(0.5+(n1-1)*xi);
   if (eta  > 0.0) node += n1*int(0.5+(n2-1)*eta);
   if (zeta > 0.0) node += n1*n2*int(0.5+(n3-1)*zeta);

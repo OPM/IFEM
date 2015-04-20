@@ -506,7 +506,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 
       if (pd == 0.0)
       {
-	if (!this->addConstraint(patch,pedge,ldim,bcode%1000000,0,ngno))
+	if (!this->addConstraint(patch,pedge,ldim,bcode%1000000,0,ngno,1))
 	  return false;
       }
       else
@@ -515,7 +515,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 	while (myScalars.find(code) != myScalars.end())
 	  code += 1000000;
 
-	if (!this->addConstraint(patch,pedge,ldim,bcode%1000000,-code,ngno))
+	if (!this->addConstraint(patch,pedge,ldim,bcode%1000000,-code,ngno,1))
 	  return false;
 
 	IFEM::cout << std::endl;
@@ -571,7 +571,7 @@ static bool constrError (const char* lab, int idx)
 
 
 bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
-			   int& ngnod)
+			   int& ngnod, char basis)
 {
   if (patch < 1 || patch > (int)myModel.size())
     return constrError("patch index ",patch);
@@ -586,6 +586,7 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
   IFEM::cout <<" in direction(s) "<< dirs;
   if (lndx < 0) IFEM::cout << (project ? " (local projected)" : " (local)");
   if (code != 0) IFEM::cout <<" code = "<< abs(code);
+  IFEM::cout << " basis = " << int(basis) << " ";
 #if SP_DEBUG > 1
   IFEM::cout << std::endl;
 #endif
@@ -612,10 +613,10 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
     case 1: // Edge constraints
       switch (lndx)
 	{
-	case  1: pch->constrainEdge(-1,open,dirs,code); break;
-	case  2: pch->constrainEdge( 1,open,dirs,code); break;
-	case  3: pch->constrainEdge(-2,open,dirs,code); break;
-	case  4: pch->constrainEdge( 2,open,dirs,code); break;
+	case  1: pch->constrainEdge(-1,open,dirs,code,basis); break;
+	case  2: pch->constrainEdge( 1,open,dirs,code,basis); break;
+	case  3: pch->constrainEdge(-2,open,dirs,code,basis); break;
+	case  4: pch->constrainEdge( 2,open,dirs,code,basis); break;
 	case -1:
 	  ngnod += pch->constrainEdgeLocal(-1,open,dirs,code,project);
 	  break;

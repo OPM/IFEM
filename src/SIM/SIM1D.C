@@ -363,7 +363,7 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
       double pd = (cline = strtok(NULL," ")) ? atof(cline) : 0.0;
       if (pd == 0.0)
       {
-	if (!this->addConstraint(patch,pvert,0,bcode%1000000,0,ngno))
+	if (!this->addConstraint(patch,pvert,0,bcode%1000000,0,ngno,1))
 	  return false;
       }
       else
@@ -372,7 +372,7 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
 	while (myScalars.find(code) != myScalars.end())
 	  code += 1000000;
 
-	if (!this->addConstraint(patch,pvert,0,bcode%1000000,code,ngno))
+	if (!this->addConstraint(patch,pvert,0,bcode%1000000,code,ngno,1))
 	  return false;
 
 	IFEM::cout <<" ";
@@ -426,7 +426,7 @@ static bool constrError (const char* lab, int idx)
 
 
 bool SIM1D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
-                           int&)
+                           int&, char basis)
 {
   if (patch < 1 || patch > (int)myModel.size())
     return constrError("patch index ",patch);
@@ -445,8 +445,8 @@ bool SIM1D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
     pch->constrainPatch(dirs,code);
   else switch (lndx) // Vertex constraints
     {
-    case 1: pch->constrainNode(0.0,dirs,code); break;
-    case 2: pch->constrainNode(1.0,dirs,code); break;
+    case 1: pch->constrainNode(0.0,dirs,code,basis); break;
+    case 2: pch->constrainNode(1.0,dirs,code,basis); break;
     default:
       IFEM::cout << std::endl;
       return constrError("vertex index ",lndx);

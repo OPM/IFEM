@@ -121,7 +121,7 @@ public:
   //! \param[in] open If \e true, exclude all points along the face boundary
   //! \param[in] dof Which DOFs to constrain at each node on the face
   //! \param[in] code Inhomogeneous dirichlet condition code
-  void constrainFace(int dir, bool open, int dof = 123, int code = 0);
+  void constrainFace(int dir, bool open, int dof = 123, int code = 0, char = 1);
   //! \brief Constrains all DOFs in local directions on a given boundary face.
   //! \param[in] dir Parameter direction defining the face to constrain
   //! \param[in] open If \e true, exclude all points along the face boundary
@@ -138,7 +138,7 @@ public:
   //! \param[in] open If \e true, exclude the end points of the edge
   //! \param[in] dof Which DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
-  void constrainEdge(int lEdge, bool open, int dof = 123, int code = 0);
+  void constrainEdge(int lEdge, bool open, int dof = 123, int code = 0, char = 1);
 
   //! \brief Constrains all DOFs along a line on a given boundary face.
   //! \param[in] fdir Parameter direction defining the face to constrain
@@ -155,7 +155,7 @@ public:
   //! is converted to the integer value closest to \a xi*n, where \a n is the
   //! number of nodes (control points) in that parameter direction.
   void constrainLine(int fdir, int ldir, double xi,
-                     int dof = 123, int code = 0);
+                     int dof = 123, int code = 0, char = 1);
 
   //! \brief Constrains a corner node identified by the three parameter indices.
   //! \param[in] I Parameter index in u-direction
@@ -168,7 +168,7 @@ public:
   //! the node at the beginning or the end of that parameter direction.
   //! The magnitude of the indices are not used.
   void constrainCorner(int I, int J, int K,
-                       int dof = 123, int code = 0);
+                       int dof = 123, int code = 0, char = 1);
   //! \brief Constrains a node identified by three relative parameter values.
   //! \param[in] xi Parameter in u-direction
   //! \param[in] eta Parameter in v-direction
@@ -182,7 +182,7 @@ public:
   //! \a r*n, where \a r denotes the given relative parameter value,
   //! and \a n is the number of nodes along that parameter direction.
   void constrainNode(double xi, double eta, double zeta,
-                     int dof = 123, int code = 0);
+                     int dof = 123, int code = 0, char = 1);
 
   /* More multipatch stuff, maybe later...
   //! \brief Connects all matching nodes on two adjacent boundary faces.

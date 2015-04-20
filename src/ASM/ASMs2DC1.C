@@ -170,7 +170,7 @@ void ASMs2DC1::closeEdges (int dir, int, int)
 }
 
 
-void ASMs2DC1::constrainEdge (int dir, bool open, int dof, int code)
+void ASMs2DC1::constrainEdge (int dir, bool open, int dof, int code, char)
 {
   int n1, n2, node = 1;
   if (!this->getSize(n1,n2)) return;

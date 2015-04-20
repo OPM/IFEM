@@ -451,12 +451,12 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
 
       if (pface > 10)
       {
-        if (!this->addConstraint(patch,pface%10,pface/10,pd,bcode))
+        if (!this->addConstraint(patch,pface%10,pface/10,pd,bcode,1))
           return false;
       }
       else if (pd == 0.0)
       {
-        if (!this->addConstraint(patch,pface,ldim,bcode%1000000,0,ngno))
+        if (!this->addConstraint(patch,pface,ldim,bcode%1000000,0,ngno,1))
           return false;
       }
       else
@@ -465,7 +465,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
         while (myScalars.find(code) != myScalars.end())
           code += 1000000;
 
-        if (!this->addConstraint(patch,pface,ldim,bcode%1000000,-code,ngno))
+        if (!this->addConstraint(patch,pface,ldim,bcode%1000000,-code,ngno,1))
           return false;
 
         IFEM::cout <<" ";
@@ -522,7 +522,7 @@ static bool constrError (const char* lab, int idx)
 
 
 bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
-                           int& ngnod)
+                           int& ngnod, char basis)
 {
   if (patch < 1 || patch > (int)myModel.size())
     return constrError("patch index ",patch);
@@ -539,6 +539,7 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
   IFEM::cout <<" in direction(s) "<< dirs;
   if (lndx < 0) IFEM::cout << (project ? " (local projected)" : " (local)");
   if (code != 0) IFEM::cout <<" code = "<< abs(code);
+  IFEM::cout << " basis = " << (int)basis;
 #if SP_DEBUG > 1
   IFEM::cout << std::endl;
 #endif
@@ -550,14 +551,14 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
     case 0: // Vertex constraints
       switch (lndx)
         {
-        case 1: pch->constrainCorner(-1,-1,-1,dirs,abs(code)); break;
-        case 2: pch->constrainCorner( 1,-1,-1,dirs,abs(code)); break;
-        case 3: pch->constrainCorner(-1, 1,-1,dirs,abs(code)); break;
-        case 4: pch->constrainCorner( 1, 1,-1,dirs,abs(code)); break;
-        case 5: pch->constrainCorner(-1,-1, 1,dirs,abs(code)); break;
-        case 6: pch->constrainCorner( 1,-1, 1,dirs,abs(code)); break;
-        case 7: pch->constrainCorner(-1, 1, 1,dirs,abs(code)); break;
-        case 8: pch->constrainCorner( 1, 1, 1,dirs,abs(code)); break;
+        case 1: pch->constrainCorner(-1,-1,-1,dirs,abs(code),basis); break;
+        case 2: pch->constrainCorner( 1,-1,-1,dirs,abs(code),basis); break;
+        case 3: pch->constrainCorner(-1, 1,-1,dirs,abs(code),basis); break;
+        case 4: pch->constrainCorner( 1, 1,-1,dirs,abs(code),basis); break;
+        case 5: pch->constrainCorner(-1,-1, 1,dirs,abs(code),basis); break;
+        case 6: pch->constrainCorner( 1,-1, 1,dirs,abs(code),basis); break;
+        case 7: pch->constrainCorner(-1, 1, 1,dirs,abs(code),basis); break;
+        case 8: pch->constrainCorner( 1, 1, 1,dirs,abs(code),basis); break;
         default:
           IFEM::cout << std::endl;
           return constrError("vertex index ",lndx);
@@ -566,7 +567,7 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 
     case 1: // Edge constraints
       if (lndx > 0 && lndx <= 12)
-        pch->constrainEdge(lndx,open,dirs,code);
+        pch->constrainEdge(lndx,open,dirs,code,basis);
       else
       {
         IFEM::cout << std::endl;
@@ -577,12 +578,12 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
     case 2: // Face constraints
       switch (lndx)
         {
-        case  1: pch->constrainFace(-1,open,dirs,code); break;
-        case  2: pch->constrainFace( 1,open,dirs,code); break;
-        case  3: pch->constrainFace(-2,open,dirs,code); break;
-        case  4: pch->constrainFace( 2,open,dirs,code); break;
-        case  5: pch->constrainFace(-3,open,dirs,code); break;
-        case  6: pch->constrainFace( 3,open,dirs,code); break;
+        case  1: pch->constrainFace(-1,open,dirs,code,basis); break;
+        case  2: pch->constrainFace( 1,open,dirs,code,basis); break;
+        case  3: pch->constrainFace(-2,open,dirs,code,basis); break;
+        case  4: pch->constrainFace( 2,open,dirs,code,basis); break;
+        case  5: pch->constrainFace(-3,open,dirs,code,basis); break;
+        case  6: pch->constrainFace( 3,open,dirs,code,basis); break;
         case -1:
           ngnod += pch->constrainFaceLocal(-1,open,dirs,code,project,ldim);
           break;
@@ -620,14 +621,16 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 }
 
 
-bool SIM3D::addConstraint (int patch, int lndx, int line, double xi, int dirs)
+bool SIM3D::addConstraint (int patch, int lndx, int line, double xi,
+                           int dirs, char basis)
 {
   if (patch < 1 || patch > (int)myModel.size())
     return constrError("patch index ",patch);
 
   IFEM::cout <<"\tConstraining P"<< patch
              <<" F"<< lndx <<" L"<< line <<" at xi="<< xi
-             <<" in direction(s) "<< dirs << std::endl;
+             <<" in direction(s) "<< dirs
+             <<" basis = " << (int)basis << std::endl;
 
   ASM3D* pch = dynamic_cast<ASM3D*>(myModel[patch-1]);
   switch (line)
@@ -635,12 +638,12 @@ bool SIM3D::addConstraint (int patch, int lndx, int line, double xi, int dirs)
     case 1: // Face line constraints in local I-direction
       switch (lndx)
         {
-        case 1: pch->constrainLine(-1,2,xi,dirs); break;
-        case 2: pch->constrainLine( 1,2,xi,dirs); break;
-        case 3: pch->constrainLine(-2,3,xi,dirs); break;
-        case 4: pch->constrainLine( 2,3,xi,dirs); break;
-        case 5: pch->constrainLine(-3,1,xi,dirs); break;
-        case 6: pch->constrainLine( 3,1,xi,dirs); break;
+        case 1: pch->constrainLine(-1,2,xi,dirs,0,basis); break;
+        case 2: pch->constrainLine( 1,2,xi,dirs,0,basis); break;
+        case 3: pch->constrainLine(-2,3,xi,dirs,0,basis); break;
+        case 4: pch->constrainLine( 2,3,xi,dirs,0,basis); break;
+        case 5: pch->constrainLine(-3,1,xi,dirs,0,basis); break;
+        case 6: pch->constrainLine( 3,1,xi,dirs,0,basis); break;
         default: return constrError("face index ",lndx);
         }
       break;
@@ -648,12 +651,12 @@ bool SIM3D::addConstraint (int patch, int lndx, int line, double xi, int dirs)
     case 2: // Face line constraints in local J-direction
       switch (lndx)
         {
-        case 1: pch->constrainLine(-1,3,xi,dirs); break;
-        case 2: pch->constrainLine( 1,3,xi,dirs); break;
-        case 3: pch->constrainLine(-2,1,xi,dirs); break;
-        case 4: pch->constrainLine( 2,1,xi,dirs); break;
-        case 5: pch->constrainLine(-3,2,xi,dirs); break;
-        case 6: pch->constrainLine( 3,2,xi,dirs); break;
+        case 1: pch->constrainLine(-1,3,xi,dirs,0,basis); break;
+        case 2: pch->constrainLine( 1,3,xi,dirs,0,basis); break;
+        case 3: pch->constrainLine(-2,1,xi,dirs,0,basis); break;
+        case 4: pch->constrainLine( 2,1,xi,dirs,0,basis); break;
+        case 5: pch->constrainLine(-3,2,xi,dirs,0,basis); break;
+        case 6: pch->constrainLine( 3,2,xi,dirs,0,basis); break;
         default: return constrError("face index ",lndx);
         }
       break;

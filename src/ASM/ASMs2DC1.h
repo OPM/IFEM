@@ -51,7 +51,9 @@ public:
   //! \param[in] open If \e true, exclude the end points of the edge
   //! \param[in] dof Which DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
-  virtual void constrainEdge(int dir, bool open, int dof = 12, int code = 0);
+  //! \param[in] basis Basis to constrain
+  virtual void constrainEdge(int dir, bool open, int dof = 12, int code = 0,
+                             char basis = 1);
 
   //! \brief Constrains a corner node identified by the two parameter indices.
   //! \param[in] I Parameter index in u-direction

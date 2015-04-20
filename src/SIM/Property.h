@@ -45,6 +45,7 @@ struct Property
   size_t patch; //!< Patch index [1,nPatch]
   char   lindx; //!< Local entity index (1-based) which is assigned the property
   char   ldim;  //!< Local entity dimension flag [0,3]
+  char   basis; //!< Which basis the property is defined on
 
   //! \brief Default constructor.
   Property() : pcode(UNDEFINED), pindx(0), patch(0), lindx(0), ldim(0) {}
