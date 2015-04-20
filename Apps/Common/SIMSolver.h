@@ -64,14 +64,8 @@ public:
   void fastForward(int n) { for (int i = 0; i < n; i++) this->advanceStep(); }
 
   //! \brief Solves the problem up to the final time.
-  bool solveProblem(char* infile, DataExporter* exporter, const char* heading)
-  {
-    return this->solveProblem(infile,exporter,1,heading);
-  }
-
-  //! \brief Solves the problem up to the final time.
   virtual bool solveProblem(char* infile, DataExporter* exporter = NULL,
-                            int maxIter = 1, const char* heading = NULL)
+                            const char* heading = NULL)
   {
     int geoBlk = 0;
     int nBlock = 0;
@@ -83,9 +77,6 @@ public:
     // Save the initial configuration to VTF file
     if (!S1.saveStep(tp,nBlock))
       return false;
-
-    if (maxIter < 1)
-      return true; // Data check, finish up without solving anything
 
     if (heading && myPid == 0)
     {
@@ -101,14 +92,9 @@ public:
     // Solve for each time step up to final time
     for (int iStep = 1; this->advanceStep(); iStep++)
     {
-      // Possible staggered iteration loop
-      bool converged = false;
-      for (int iter = 0; iter < maxIter && !converged; iter++)
-	converged = S1.solveStep(tp);
-
-      // Return if not converged
-      if (!converged)
-	return false;
+      // Solve
+      if (!S1.solveStep(tp))
+        return false;
 
       // Save solution
       if (!S1.saveStep(tp,nBlock))
