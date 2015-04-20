@@ -471,3 +471,13 @@ void AdaptiveSIM::setupProjections ()
 {
   projs.resize(opt.project.size());
 }
+
+
+int AdaptiveSIM::getNoNorms() const
+{
+  NormBase* norm = model->getNormIntegrand();
+  int result = norm->getNoFields(adaptor);
+  delete norm;
+
+  return result;
+}

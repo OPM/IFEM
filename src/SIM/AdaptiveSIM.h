@@ -72,6 +72,9 @@ public:
   //! \brief Initializes the projections.
   void setupProjections();
 
+  //! \brief Get number of norms in adaptor group
+  int getNoNorms() const;
+
 protected:
   //! \brief Parses a data section from an input stream.
   //! \param[in] keyWord Keyword of current data section to read
