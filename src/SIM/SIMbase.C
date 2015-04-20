@@ -2255,6 +2255,11 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
 
   if (pMethod == SIMoptions::DGL2 || pMethod == SIMoptions::CGL2)
   {
+#ifdef USE_OPENMP
+  if (!myModel.empty() && dynamic_cast<ASMunstruct*>(myModel.front()))
+    omp_set_num_threads(1);
+#endif
+
     // Reinitialize the integration point buffers within the integrands (if any)
     const_cast<SIMbase*>(this)->setQuadratureRule(opt.nGauss[0]);
     myProblem->initIntegration(time,psol);
