@@ -447,7 +447,9 @@ bool SIMbase::parse (const TiXmlElement* elem)
         file = "nofile";
       }
       utl::getAttribute(elem,"level",info.sim_level);
-      utl::getAttribute(elem,"basis",info.basis);
+      int basis;
+      utl::getAttribute(elem,"basis",basis);
+      info.basis = basis;
 
       IFEM::cout <<"\tInitial condition";
       if (info.component > -1)
@@ -460,7 +462,7 @@ bool SIMbase::parse (const TiXmlElement* elem)
       if (info.component == -1)
         IFEM::cout <<"\" (on file \""<< info.file_field <<"\")\n";
       else
-        IFEM::cout << " (component " << info.component << " basis " << info.basis << ")\n";
+        IFEM::cout << " (component " << info.component << " basis " << basis << ")\n";
 
       IFEM::cout << "\tTime level: "<< info.sim_level;
 

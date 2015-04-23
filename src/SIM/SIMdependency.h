@@ -38,7 +38,7 @@ public:
     int sim_level;  //!< The time level for the field in the SIM class
     int file_level; //!< The time level for the field in the file
     int geo_level;  //!< The time level for the geometry in the file
-    int basis;      //!< The basis to inject field into (for mixed)
+    char basis;     //!< The basis to inject field into (for mixed)
     int component;  //!< Component for field (for functions)
     std::string sim_field;  //!< The name of the field in the SIM class
     std::string file_field; //!< The name of the field in the file, type of function if function form
@@ -62,9 +62,9 @@ private:
     PatchVec       patches;        //!< Patch geometry the field is defined over
     std::string    name;           //!< Field name
     short int      components;     //!< Number of field components per node
-    bool           differentBasis; //!< Toggle usage of an independent basis
+    char           differentBasis; //!< Toggle usage of an independent basis
     //! \brief Default constructor.
-    Dependency() : sim(NULL), components(1), differentBasis(false) {}
+    Dependency() : sim(NULL), components(1), differentBasis(0) {}
   };
 
   //! \brief SIM dependency container
@@ -94,10 +94,10 @@ public:
   //! \param[in] name Name of field we depend on
   //! \param[in] nvc Number of components in field
   //! \param[in] patches The geometry the field is defined over
-  //! \param[in] diffBasis Different basis for the SIM class and the field
+  //! \param[in] diffBasis If non-null, use diffBasis base from patch vector
   virtual void registerDependency(SIMdependency* sim, const std::string& name,
                                   short int nvc, const PatchVec& patches,
-                                  bool diffBasis = false);
+                                  char diffBasis = 0);
   //! \brief Registers a dependency on a field from another SIM object.
   //! \param[in] sim The SIM object holding the field we depend on
   //! \param[in] name Name of field we depend on
