@@ -36,9 +36,10 @@ public:
   //! \brief The constructor sets the number of space dimensions and fields.
   //! \param[in] patch The spline patch on which the field is to be defined
   //! \param[in] v Array of control point field values
+  //! \param[in] basis Basis to use from patch
   //! \param[in] name Name of spline field
   SplineField3D(const ASMs3D* patch, const RealArray& v,
-                const char* name = NULL);
+                char basis = 1, const char* name = NULL);
   //! \brief Empty destructor.
   virtual ~SplineField3D() {}
 

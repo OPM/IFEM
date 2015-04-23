@@ -40,9 +40,10 @@ public:
   //! \brief Creates a dynamically allocated field object.
   //! \param[in] pch The spline patch on which the field is to be defined on
   //! \param[in] v Array of nodal/control point field values
+  //! \param[in] basis Basis to use from patch
   //! \param[in] name Name of field
   static Field* create(const ASMbase* pch, const RealArray& v,
-		       const char* name = NULL);
+		       char basis = 1, const char* name = NULL);
 
   //! \brief Returns the name of field.
   const char* getFieldName() const { return fname.c_str(); }

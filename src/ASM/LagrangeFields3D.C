@@ -19,7 +19,9 @@
 #include "Vec3.h"
 
 
-LagrangeFields3D::LagrangeFields3D (const ASMs3DLag* patch, const RealArray& v,
+LagrangeFields3D::LagrangeFields3D (const ASMs3DLag* patch,
+                                    const RealArray& v,
+                                    char basis,
 				    const char* name) : Fields(name)
 {
   patch->getNodalCoordinates(coord);

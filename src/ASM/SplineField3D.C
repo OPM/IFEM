@@ -22,8 +22,9 @@
 
 
 SplineField3D::SplineField3D (const ASMs3D* patch,
-                              const RealArray& v, const char* name)
-  : FieldBase(name), basis(patch->getBasis()), vol(patch->getVolume())
+                              const RealArray& v, char nbasis,
+                              const char* name)
+  : FieldBase(name), basis(patch->getBasis(nbasis)), vol(patch->getVolume())
 {
   const int n1 = basis->numCoefs(0);
   const int n2 = basis->numCoefs(1);
