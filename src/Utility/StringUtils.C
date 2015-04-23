@@ -11,7 +11,8 @@
 //!
 //==============================================================================
 
-#include <StringUtils.h>
+#include "StringUtils.h"
+#include <algorithm>
 
 
 // taken from cppreference.com ::replace documentation
@@ -26,4 +27,22 @@ std::string& replaceAll(std::string& context, const std::string& from,
     lookHere = foundHere + to.size();
   }
   return context;
+}
+
+
+std::vector<std::string> splitString(const std::string& str,
+                                     int delimiter(int))
+{
+  std::vector<std::string> result;
+  auto e=str.end();
+  auto i=str.begin();
+  while (i!=e) {
+    i=std::find_if_not(i,e, delimiter);
+    if (i==e)
+      break;
+    auto j=std::find_if(i,e, delimiter);
+    result.push_back(std::string(i,j));
+    i=j;
+  }
+  return result;
 }
