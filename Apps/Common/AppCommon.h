@@ -71,7 +71,7 @@ namespace SIM
     writer->registerWriter(xml);
     writer->registerWriter(hdf);
     simulator.registerFields(*writer);
-    if (!append)
+    if (!append && solver.getTimePrm().multiSteps())
       writer->dumpTimeLevel(&solver.getTimePrm()); // initial state
 
     IFEM::registerCallback(*writer);
