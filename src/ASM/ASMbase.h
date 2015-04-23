@@ -540,7 +540,7 @@ public:
   //! \param[in] nndof Number of DOFs per node (the default is \a nf)
   //! \param[in] basis Which basis to extract nodal values for (mixed methods)
   virtual void extractNodeVec(const Vector& globVec, Vector& nodeVec,
-			      unsigned char nndof = 0, int basis = 1) const;
+			      unsigned char nndof = 0, int basis = 0) const;
 
   //! \brief Injects nodal results for this patch into the global vector.
   //! \param[in] nodeVec Nodal result vector for this patch
@@ -548,7 +548,7 @@ public:
   //! \param[in] nndof Number of DOFs per node (the default is \a nf)
   //! \param[in] basis Which basis to inject nodal values for (mixed methods)
   virtual bool injectNodeVec(const Vector& nodeVec, Vector& globVec,
-			     unsigned char nndof = 0, int basis = 1) const;
+			     unsigned char nndof = 0, int basis = 0) const;
 
 protected:
 
