@@ -82,10 +82,27 @@ bool readBasis (std::vector<ASMbase*>& result, const std::string& name,
     ptype = out.substr(0,10) == "# LRSPLINE" ? ASM::LRSpline : ASM::Spline;
     isLR = ptype == ASM::LRSpline;
     basis << out;
-    if (out.substr(isLR?10:0,3) != (dim==3?"700":dim==2?"200":"100")) {
+    if (!isLR && out.substr(0,3) != (dim==3?"700":dim==2?"200":"100")) {
       std::cerr << "Basis dimensionality for " << name
                 << " does not match dimension, ignoring" << std::endl;
       continue;
+    }
+    if (isLR) {
+      std::stringstream str;
+      str << out;
+      std::string line;
+      line.resize(256);
+      str.getline(&line[0],256);
+      str.getline(&line[0],256);
+      str.getline(&line[0],256);
+      int gdim;
+      str.str(line);
+      str >> gdim >> gdim >> gdim >> gdim >> gdim >> gdim;
+      if (gdim != dim) {
+        std::cerr << "Basis dimensionality for " << name
+                  << " does not match dimension, ignoring" << std::endl;
+        continue;
+      }
     }
     if (dim == 1)
       result.push_back(ASM1D::create(ptype));
@@ -457,9 +474,14 @@ int main (int argc, char** argv)
   int k = 1;
   for (int i = last?end:start; i <= end && ok; i += skip) {
     if (levels > 0) {
-      if (processlist.begin()->second.begin()->timestep > 0)
+      if (processlist.begin()->second.begin()->timestep > 0) {
         hdf.readDouble(i,"timeinfo","SIMbase-1",time);
-      std::cout <<"\nTime level "<< i << " (t=" << time << ")" << std::endl;
+        std::cout <<"Time level "<< i;
+        std::cout << " (t=" << time << ")";
+      } else
+        std::cout << "Step " << i+1;
+
+      std::cout << std::endl;
     }
     VTFList vlist, slist;
     bool geomWritten=false;
