@@ -23,6 +23,7 @@
 #endif
 #include <fstream>
 #include <sstream>
+#include "StringUtils.h"
 
 
 /*!
@@ -760,20 +761,46 @@ ASMbase* SIM2D::createDefaultGeometry (const TiXmlElement* geo) const
   std::string g2("200 1 0 0\n");
   g2.append(nsd > 2 ? "3" : "2");
   g2.append(" 0\n2 2\n0 0 1 1\n2 2\n0 0 1 1");
-  g2.append("\n0.0 0.0"); if (nsd > 2) g2.append(" 0.0");
-  g2.append("\n1.0 0.0"); if (nsd > 2) g2.append(" 0.0");
-  g2.append("\n0.0 1.0"); if (nsd > 2) g2.append(" 0.0");
-  g2.append("\n1.0 1.0"); if (nsd > 2) g2.append(" 0.0");
-  g2.append("\n");
+  std::string X0("0.0 0.0");
+  if (nsd > 2) X0.append(" 0.0");
+  if (utl::getAttribute(geo,"X0",X0))
+    IFEM::cout << "  Corner: " << X0 << std::endl;
 
-  std::string scale;
-  if (utl::getAttribute(geo,"scale",scale) && scale != "1.0")
-  {
-    IFEM::cout <<"\tscale = "<< scale << std::endl;
-    size_t i = 0, j = 0, ns = scale.size();
-    for (; (i = g2.find("1.0",j)) != std::string::npos; j=i+ns)
-      g2.replace(i,3,scale);
+  double scale=1.0;
+  if (utl::getAttribute(geo,"scale",scale))
+    IFEM::cout << "  Scale: " << scale << std::endl;
+
+  std::vector<std::string> Xs = splitString(X0);
+  std::vector<double> X;
+  for (const auto& it : Xs) {
+    std::stringstream str;
+    str << it;
+    X.push_back(0.0);
+    str >> X.back();
   }
+
+  double Lx = 1.0;
+  double Ly = 1.0;
+  if (utl::getAttribute(geo,"Lx",Lx))
+    IFEM::cout << "  Length in X: " << Lx << std::endl;
+  Lx *= scale;
+  if (utl::getAttribute(geo,"Ly",Ly))
+    IFEM::cout << "  Length in Y: " << Ly << std::endl;
+  Ly *= scale;
+
+  std::stringstream str;
+  str << "\n" << X[0] << " " << X[1]; if (nsd > 2) str << " 0.0";
+  g2.append(str.str());
+  str.str("");
+  str << "\n" << X[0]+Lx << " " << X[1]; if (nsd > 2) str << " 0.0";
+  g2.append(str.str());
+  str.str("");
+  str << "\n" << X[0] << " " << X[1]+Ly; if (nsd > 2) str << " 0.0";
+  g2.append(str.str());
+  str.str("");
+  str << "\n" << X[0]+Lx << " " << X[1]+Ly; if (nsd > 2) str << " 0.0";
+  g2.append(str.str());
+  g2.append("\n");
 
   std::istringstream unitSquare(g2);
   return this->readPatch(unitSquare,1);
