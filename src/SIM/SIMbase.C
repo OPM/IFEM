@@ -447,7 +447,7 @@ bool SIMbase::parse (const TiXmlElement* elem)
         file = "nofile";
       }
       utl::getAttribute(elem,"level",info.sim_level);
-      int basis;
+      int basis=1;
       utl::getAttribute(elem,"basis",basis);
       info.basis = basis;
 
