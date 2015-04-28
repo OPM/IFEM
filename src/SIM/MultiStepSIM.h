@@ -42,8 +42,8 @@ public:
   //! \brief Empty destructor.
   virtual ~MultiStepSIM() {}
 
-  //! \brief Prints out problem-specific data to the given stream.
-  virtual void printProblem(utl::LogStream& os) const;
+  //! \brief Prints out problem-specific data to the log stream.
+  virtual void printProblem() const;
 
   //! \brief Returns a list of prioritized XML-tags.
   virtual const char** getPrioritizedTags() const;

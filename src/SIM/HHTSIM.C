@@ -12,9 +12,10 @@
 //==============================================================================
 
 #include "HHTSIM.h"
-#include "SystemMatrix.h"
 #include "SIMoutput.h"
+#include "SystemMatrix.h"
 #include "TimeStep.h"
+#include "IFEM.h"
 #include "tinyxml.h"
 
 
@@ -55,18 +56,18 @@ bool HHTSIM::parse (const TiXmlElement* elem)
 }
 
 
-void HHTSIM::printProblem (utl::LogStream& os) const
+void HHTSIM::printProblem () const
 {
-  this->NewmarkSIM::printProblem(os);
+  this->NewmarkSIM::printProblem();
 
   if (alpha2 > 0.0)
-    os <<"- based on the tangential stiffness matrix\n";
+    IFEM::cout <<"- based on the tangential stiffness matrix\n";
   else if (alpha2 < 0.0)
-    os <<"- based on the material stiffness matrix only\n";
+    IFEM::cout <<"- based on the material stiffness matrix only\n";
   else
     return;
 
-  os << std::endl;
+  IFEM::cout << std::endl;
 }
 
 

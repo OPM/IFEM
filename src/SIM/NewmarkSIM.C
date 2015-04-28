@@ -93,23 +93,24 @@ bool NewmarkSIM::parse (const TiXmlElement* elem)
 }
 
 
-void NewmarkSIM::printProblem (utl::LogStream& os) const
+void NewmarkSIM::printProblem () const
 {
-  model.printProblem(os);
+  model.printProblem();
 
-  os <<"Newmark predictor/multicorrector: beta = "<< beta <<" gamma = "<< gamma;
+  IFEM::cout <<"Newmark predictor/multicorrector: beta = "<< beta
+             <<" gamma = "<< gamma;
   switch (predictor) {
-  case 'd': os <<"\n- using constant displacement predictor"; break;
-  case 'v': os <<"\n- using constant velocity predictor"; break;
-  case 'a': os <<"\n- using zero acceleration predictor"; break;
+  case 'd': IFEM::cout <<"\n- using constant displacement predictor"; break;
+  case 'v': IFEM::cout <<"\n- using constant velocity predictor"; break;
+  case 'a': IFEM::cout <<"\n- using zero acceleration predictor"; break;
   }
 
   if (alpha1 > 0.0)
-    os <<"\nMass-proportional damping (alpha1): "<< alpha1;
+    IFEM::cout <<"\nMass-proportional damping (alpha1): "<< alpha1;
   if (alpha2 != 0.0)
-    os <<"\nStiffness-proportional damping (alpha2): "<< fabs(alpha2);
+    IFEM::cout <<"\nStiffness-proportional damping (alpha2): "<< fabs(alpha2);
 
-  os << std::endl;
+  IFEM::cout << std::endl;
 }
 
 
@@ -252,10 +253,10 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
   {
     std::streamsize oldPrec = 0;
     double digits = log10(param.time.t)-log10(param.time.dt);
-    if (digits > 6.0) oldPrec = std::cout.precision(ceil(digits));
+    if (digits > 6.0) oldPrec = IFEM::cout.precision(ceil(digits));
     IFEM::cout <<"\n  step="<< param.step
                <<"  time="<< param.time.t << std::endl;
-    if (digits > 6.0) std::cout.precision(oldPrec);
+    if (digits > 6.0) IFEM::cout.precision(oldPrec);
   }
 
   if (subiter&FIRST && !model.updateDirichlet(param.time.t,&solution.front()))
@@ -344,15 +345,15 @@ SIM::ConvStatus NewmarkSIM::checkConvergence (TimeStep& param)
   if (msgLevel > 0)
   {
     // Print convergence history
-    std::ios::fmtflags oldFlags = std::cout.flags(std::ios::scientific);
-    std::streamsize oldPrec = std::cout.precision(3);
+    std::ios::fmtflags oldFlags = IFEM::cout.flags(std::ios::scientific);
+    std::streamsize oldPrec = IFEM::cout.precision(3);
     IFEM::cout <<"  iter="<< param.iter
                <<"  conv="<< fabs(norm)
                <<"  enen="<< norms[0]
                <<"  resn="<< norms[1]
                <<"  incn="<< norms[2] << std::endl;
-    std::cout.flags(oldFlags);
-    std::cout.precision(oldPrec);
+    IFEM::cout.flags(oldFlags);
+    IFEM::cout.precision(oldPrec);
   }
 
   // Check for convergence or divergence
@@ -387,32 +388,33 @@ bool NewmarkSIM::solutionNorms (const TimeDomain&,
   double velL2 = model.solutionNorms(solution[v],vMax,jMax,nf);
   double accL2 = model.solutionNorms(solution[a],aMax,kMax,nf);
 
-  std::streamsize stdPrec = outPrec > 0 ? model.getProcessAdm().cout.precision(outPrec) : 0;
+  utl::LogStream& cout = model.getProcessAdm().cout;
+  std::streamsize stdPrec = outPrec > 0 ? cout.precision(outPrec) : 0;
   double old_tol = utl::zero_print_tol;
   utl::zero_print_tol = zero_tolerance;
   char D;
 
-  model.getProcessAdm().cout <<"  Displacement L2-norm            : "<< utl::trunc(disL2);
+  cout <<"  Displacement L2-norm            : "<< utl::trunc(disL2);
   for (d = 0, D = 'X'; d < nf; d++, D=='Z' ? D='x' : D++)
     if (utl::trunc(dMax[d]) != 0.0)
-      model.getProcessAdm().cout <<"\n               Max "<< D
-                                 <<"-displacement : "<< dMax[d] <<" node "<< iMax[d];
+      cout <<"\n               Max "<< D
+           <<"-displacement : "<< dMax[d] <<" node "<< iMax[d];
 
-  model.getProcessAdm().cout <<"\n  Velocity L2-norm                : "<< utl::trunc(velL2);
+  cout <<"\n  Velocity L2-norm                : "<< utl::trunc(velL2);
   for (d = 0, D = 'X'; d < nf; d++, D=='Z' ? D='x' : D++)
     if (utl::trunc(vMax[d]) != 0.0)
-      model.getProcessAdm().cout <<"\n               Max "<< D
-                                 <<"-velocity     : "<< vMax[d] <<" node "<< jMax[d];
+      cout <<"\n               Max "<< D
+           <<"-velocity     : "<< vMax[d] <<" node "<< jMax[d];
 
-  model.getProcessAdm().cout <<"\n  Acceleration L2-norm            : "<< utl::trunc(accL2);
+  cout <<"\n  Acceleration L2-norm            : "<< utl::trunc(accL2);
   for (d = 0, D = 'X'; d < nf; d++, D=='Z' ? D='x' : D++)
     if (utl::trunc(aMax[d]) != 0.0)
-      model.getProcessAdm().cout <<"\n               Max "<< D
-                                 <<"-acceleration : "<< aMax[d] <<" node "<< kMax[d];
+      cout <<"\n               Max "<< D
+           <<"-acceleration : "<< aMax[d] <<" node "<< kMax[d];
 
-  model.getProcessAdm().cout << std::endl;
+  cout << std::endl;
   utl::zero_print_tol = old_tol;
-  if (stdPrec > 0) model.getProcessAdm().cout.precision(stdPrec);
+  if (stdPrec > 0) cout.precision(stdPrec);
 
   return true;
 }

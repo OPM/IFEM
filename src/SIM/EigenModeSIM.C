@@ -15,6 +15,7 @@
 #include "SIMoutput.h"
 #include "TimeStep.h"
 #include "Utilities.h"
+#include "IFEM.h"
 #include "tinyxml.h"
 
 
@@ -58,26 +59,26 @@ bool EigenModeSIM::parse (const TiXmlElement* elem)
 }
 
 
-void EigenModeSIM::printProblem (utl::LogStream& os) const
+void EigenModeSIM::printProblem () const
 {
-  model.printProblem(os);
+  model.printProblem();
 
   bool multiModes = false;
-  os <<"EigenMode combination: u(x,t) =";
+  IFEM::cout<<"EigenMode combination: u(x,t) =";
   for (size_t i = 0; i < amplitude.size(); i++)
     if (amplitude[i] != 0.0)
     {
-      os << (multiModes ? "\n                              + ":" ");
-      os << amplitude[i] <<"*v"<< i+1 <<"(x)*sin(";
+      IFEM::cout<< (multiModes ? "\n                              + ":" ");
+      IFEM::cout<< amplitude[i] <<"*v"<< i+1 <<"(x)*sin(";
       if (i < omega.size() && omega[i] > 0.0)
-        os << omega[i];
+        IFEM::cout<< omega[i];
       else
-        os <<"omega"<< i+1;
-      os <<"*t)";
+        IFEM::cout<<"omega"<< i+1;
+      IFEM::cout<<"*t)";
       multiModes = true;
     }
 
-  os << std::endl;
+  IFEM::cout<< std::endl;
 }
 
 

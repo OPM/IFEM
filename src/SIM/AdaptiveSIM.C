@@ -12,13 +12,13 @@
 //==============================================================================
 
 #include "AdaptiveSIM.h"
-#include "IntegrandBase.h"
-#include "ASMbase.h"
-#include "IFEM.h"
 #include "SIMoutput.h"
 #include "SIMenums.h"
+#include "ASMbase.h"
+#include "IntegrandBase.h"
 #include "SystemMatrix.h"
 #include "Utilities.h"
+#include "IFEM.h"
 #include "tinyxml.h"
 #include <sstream>
 #include <cstdio>
@@ -228,7 +228,7 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
   }
 
   if (msgLevel > 1 && !projs.empty())
-    std::cout << std::endl;
+    model->getProcessAdm().cout << std::endl;
 
   // Evaluate solution norms
   model->setQuadratureRule(opt.nGauss[1]);
@@ -250,7 +250,7 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   if (iStep < 2)
     return true;
 
-  this->printNorms(IFEM::cout);
+  this->printNorms();
 
   if (adaptor >= gNorm.size() || adaptor >= eNorm.rows())
     return false;
@@ -295,8 +295,8 @@ bool AdaptiveSIM::adaptMesh (int iStep)
 
   if (trueBeta)
   {
-    std::cout <<"\nRefining by increasing solution space by "<< beta
-              <<" percent."<< std::endl;
+    IFEM::cout <<"\nRefining by increasing solution space by "<< beta
+               <<" percent."<< std::endl;
     if (!storeMesh)
       return model->refine(eNorm.getRow(eRow),options);
 
@@ -342,11 +342,11 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   else
     refineSize = ceil(errors.size()*beta/100.0);
 
-  std::cout <<"\nRefining "<< refineSize
-            << (scheme < 2 ? " elements" : " basis functions")
-            << (threashold ? " (threshold of " : " (") << beta <<"\%)"
-            <<" with errors in range ["<< errors[refineSize-1].first
-            <<","<< errors.front().first <<"]"<< std::endl;
+  IFEM::cout <<"\nRefining "<< refineSize
+             << (scheme < 2 ? " elements" : " basis functions")
+             << (threashold ? " (threshold of " : " (") << beta <<"\%)"
+             <<" with errors in range ["<< errors[refineSize-1].first
+             <<","<< errors.front().first <<"]"<< std::endl;
 /*
   if (symmetry > 0) // Make refineSize a multiplum of 'symmetry' in case of symmetric problems
     refineSize += (symmetry-refineSize%symmetry);
@@ -369,9 +369,9 @@ bool AdaptiveSIM::adaptMesh (int iStep)
 }
 
 
-utl::LogStream& AdaptiveSIM::printNorms (utl::LogStream& os, size_t w) const
+void AdaptiveSIM::printNorms (size_t w) const
 {
-  model->printNorms(gNorm,os,w);
+  model->printNorms(gNorm,w);
 
   // TODO: This needs further work to enable print for all recovered solutions.
   // As for now we only print the norm used for the mesh adaption.
@@ -387,14 +387,17 @@ utl::LogStream& AdaptiveSIM::printNorms (utl::LogStream& os, size_t w) const
     double refNorm = sqrt(fNorm(1)*fNorm(1) + aNorm(2)*aNorm(2));
 
     size_t g = adaptor+1;
-    os <<"Error estimate"<< utl::adjustRight(w-14,norm->getName(g,2))
-       << aNorm(2) <<"\nRelative error (%) : "<< 100.0*aNorm(2)/refNorm;
+    IFEM::cout <<"Error estimate"
+               << utl::adjustRight(w-14,norm->getName(g,2)) << aNorm(2)
+               <<"\nRelative error (%) : "
+               << 100.0*aNorm(2)/refNorm;
     if (model->haveAnaSol() && aNorm.size() > 2)
-      os <<"\nProjective error"<< utl::adjustRight(w-16,norm->getName(g,3))
-         << aNorm(3);
+      IFEM::cout <<"\nProjective error"
+                 << utl::adjustRight(w-16,norm->getName(g,3)) << aNorm(3);
     if (model->haveAnaSol() && fNorm.size() > 3)
-      os <<"\nEffectivity index  : "<< aNorm(2)/fNorm(4);
-    os << std::endl;
+      IFEM::cout <<"\nEffectivity index  : "<< aNorm(2)/fNorm(4);
+    IFEM::cout <<"\n"<< std::endl;
+
     for (i = 0, eRow = 2; i < adaptor; i++)
       eRow += norm->getNoFields(i+1);
 
@@ -402,7 +405,7 @@ utl::LogStream& AdaptiveSIM::printNorms (utl::LogStream& os, size_t w) const
   }
 
   if (eNorm.rows() < eRow || eNorm.cols() < 1)
-    return os << std::endl;
+    return;
 
   // Compute some additional error measures
   double avg_norm = eNorm(eRow,1);
@@ -423,11 +426,11 @@ utl::LogStream& AdaptiveSIM::printNorms (utl::LogStream& os, size_t w) const
     RMS_norm += pow(eNorm(eRow,i)-avg_norm,2.0);
   RMS_norm = sqrt(RMS_norm/eNorm.cols())/avg_norm;
 
-  os <<"\nRoot mean square (RMS) of error      : "<< RMS_norm
-     <<"\nMin element error                    : "<< min_err
-     <<"\nMax element error                    : "<< max_err
-     <<"\nAverage element error                : "<< avg_norm;
-  return os << std::endl;
+  IFEM::cout <<  "Root mean square (RMS) of error      : "<< RMS_norm
+             <<"\nMin element error                    : "<< min_err
+             <<"\nMax element error                    : "<< max_err
+             <<"\nAverage element error                : "<< avg_norm
+             << std::endl;
 }
 
 

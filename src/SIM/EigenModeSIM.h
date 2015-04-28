@@ -34,8 +34,8 @@ public:
   //! \brief Parses a data section from an XML document.
   virtual bool parse(const TiXmlElement* elem);
 
-  //! \brief Prints out problem-specific data to the given stream.
-  virtual void printProblem(utl::LogStream& os) const;
+  //! \brief Prints out problem-specific data to the log stream.
+  virtual void printProblem() const;
 
   //! \brief Initializes primary solution vectors.
   virtual bool initSol(size_t nSol);

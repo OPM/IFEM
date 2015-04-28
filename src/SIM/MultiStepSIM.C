@@ -36,9 +36,9 @@ MultiStepSIM::MultiStepSIM (SIMbase& sim)
 }
 
 
-void MultiStepSIM::printProblem (utl::LogStream& os) const
+void MultiStepSIM::printProblem () const
 {
-  model.printProblem(os);
+  model.printProblem();
 }
 
 

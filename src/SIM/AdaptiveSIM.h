@@ -58,8 +58,8 @@ public:
   //! \param[in] nNormProj Number of element norms per projection method
   bool writeGlv(const char* infile, int iStep, size_t nNormProj);
 
-  //! \brief Prints out the global norms to given stream.
-  utl::LogStream& printNorms(utl::LogStream& os, size_t w = 36) const;
+  //! \brief Prints out the global norms to the log stream.
+  void printNorms(size_t w = 36) const;
 
   //! \brief Accesses the solution of the linear system.
   const Vector& getSolution(size_t idx = 0) const { return solution[idx]; }

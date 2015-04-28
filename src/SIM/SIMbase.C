@@ -1395,20 +1395,20 @@ void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers)
 }
 
 
-void SIMbase::printProblem (utl::LogStream& os) const
+void SIMbase::printProblem () const
 {
   if (myProblem)
   {
-    os <<"\nProblem definition:"<< std::endl;
-    myProblem->print(os);
+    IFEM::cout <<"\nProblem definition:"<< std::endl;
+    myProblem->printLog();
   }
 
 #if SP_DEBUG > 1
-  os <<"\nProperty mapping:";
+  IFEM::cout <<"\nProperty mapping:";
   for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); p++)
-    os <<"\n"<< p->pcode <<" "<< p->pindx <<" "<< p->patch
+    IFEM::cout <<"\n"<< p->pcode <<" "<< p->pindx <<" "<< p->patch
        <<" "<< (int)p->lindx <<" "<< (int)p->ldim;
-  os << std::endl;
+  IFEM::cout << std::endl;
 #endif
 }
 
@@ -1623,7 +1623,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             lp = p->patch;
             if (msgLevel > 1)
               IFEM::cout <<"\nAssembling interior matrix terms for P"<< lp
-                        << std::endl;
+                         << std::endl;
             ok &= this->initBodyLoad(lp);
             ok &= this->extractPatchSolution(it->second,prevSol,lp-1);
             ok &= pch->integrate(*it->second,sysQ,time);
@@ -1639,7 +1639,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
           lp = k+1;
           if (msgLevel > 1)
             IFEM::cout <<"\nAssembling interior matrix terms for P"<< lp
-                      << std::endl;
+                       << std::endl;
           ok &= this->initBodyLoad(lp);
           ok &= this->extractPatchSolution(it->second,prevSol,k);
           ok &= myModel[k]->integrate(*it->second,sysQ,time);
@@ -1664,7 +1664,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             {
               if (msgLevel > 1)
                 IFEM::cout <<"\nAssembling Neumann matrix terms for boundary "
-                          << (int)p->lindx <<" on P"<< p->patch << std::endl;
+                           << (int)p->lindx <<" on P"<< p->patch << std::endl;
               if (p->patch != lp)
                 ok &= this->extractPatchSolution(it->second,prevSol,p->patch-1);
               ok &= pch->integrate(*it->second,p->lindx,sysQ,time);
@@ -1678,7 +1678,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             {
               if (msgLevel > 1)
                 IFEM::cout <<"\nAssembling Neumann matrix terms for edge "
-                          << (int)p->lindx <<" on P"<< p->patch << std::endl;
+                           << (int)p->lindx <<" on P"<< p->patch << std::endl;
               if (p->patch != lp)
                 ok &= this->extractPatchSolution(it->second,prevSol,p->patch-1);
               ok &= pch->integrateEdge(*it->second,p->lindx,sysQ,time);
@@ -1851,23 +1851,27 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
 }
 
 
-void SIMbase::printNorms (const Vectors& norms, utl::LogStream& os,
-                          size_t w) const
+void SIMbase::printNorms (const Vectors& norms, size_t w) const
 {
   if (norms.empty()) return;
 
   NormBase* norm = this->getNormIntegrand();
   const Vector& n = norms.front();
 
-  os <<"Energy norm"<< utl::adjustRight(w-11,norm->getName(1,1)) << n(1)
-     <<"\nExternal energy"<< utl::adjustRight(w-15,norm->getName(1,2)) << n(2);
+  IFEM::cout <<"Energy norm"
+             << utl::adjustRight(w-11,norm->getName(1,1)) << n(1)
+             <<"\nExternal energy"
+             << utl::adjustRight(w-15,norm->getName(1,2)) << n(2);
 
   if (mySol)
-    os <<"\nExact norm"<< utl::adjustRight(w-10,norm->getName(1,3)) << n(3)
-       <<"\nExact error"<< utl::adjustRight(w-11,norm->getName(1,4)) << n(4)
-       <<"\nExact relative error (%) : "<< 100.0*n(4)/n(3);
+    IFEM::cout <<"\nExact norm"
+               << utl::adjustRight(w-10,norm->getName(1,3)) << n(3)
+               <<"\nExact error"
+               << utl::adjustRight(w-11,norm->getName(1,4)) << n(4)
+               <<"\nExact relative error (%) : "
+               << 100.0*n(4)/n(3);
 
-  os << std::endl;
+  IFEM::cout << std::endl;
   delete norm;
 }
 

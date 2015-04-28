@@ -173,8 +173,8 @@ public:
   //! \param[in] redimBuffers Toggle initialization of internal buffer arrays
   void setQuadratureRule(size_t ng, bool redimBuffers = false);
 
-  //! \brief Prints out problem-specific data to the given stream.
-  virtual void printProblem(utl::LogStream& os) const;
+  //! \brief Prints out problem-specific data to the log stream.
+  virtual void printProblem() const;
 
   //! \brief Returns a pointer to the problem-specific data object.
   const IntegrandBase* getProblem() const { return myProblem; }
@@ -378,12 +378,10 @@ public:
   bool solutionNorms(const Vectors& psol, Matrix& eNorm, Vectors& gNorm)
   { return this->solutionNorms(TimeDomain(),psol,Vectors(),gNorm,&eNorm); }
 
-  //! \brief Prints integrated solution norms to the specified output stream.
+  //! \brief Prints integrated solution norms to the log stream.
   //! \param[in] norms The norm values
-  //! \param os The stream to print to
   //! \param[in] w Total number of characters in the norm labels
-  virtual void printNorms(const Vectors& norms, utl::LogStream& os,
-                          size_t w = 36) const;
+  virtual void printNorms(const Vectors& norms, size_t w = 36) const;
 
   //! \brief Prints a summary of the calculated solution to std::cout.
   //! \param[in] solution The solution vector
@@ -514,10 +512,9 @@ protected:
   //! \param[in] dirs Which local DOFs to constrain
   //! \param[in] code In-homegeneous Dirichlet condition property code
   //! \param ngnod Total number of global nodes in the model (might be updated)
-  //! \param basis Basis to apply constraint to (mixed methods)
-  virtual bool addConstraint(int patch, int lndx, int ldim,
-			     int dirs, int code, int& ngnod,
-                             char basis) = 0;
+  //! \param[in] basis Which basis to apply the constraint to (mixed methods)
+  virtual bool addConstraint(int patch, int lndx, int ldim, int dirs, int code,
+                             int& ngnod, char basis = 1) = 0;
 
   //! \brief Preprocessing performed before the FEM model generation.
   virtual void preprocessA() {}

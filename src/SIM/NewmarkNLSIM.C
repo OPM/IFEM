@@ -15,6 +15,7 @@
 #include "SystemMatrix.h"
 #include "SIMoutput.h"
 #include "TimeStep.h"
+#include "IFEM.h"
 #include "tinyxml.h"
 
 
@@ -58,21 +59,21 @@ bool NewmarkNLSIM::parse (const TiXmlElement* elem)
 }
 
 
-void NewmarkNLSIM::printProblem (utl::LogStream& os) const
+void NewmarkNLSIM::printProblem () const
 {
-  this->NewmarkSIM::printProblem(os);
+  this->NewmarkSIM::printProblem();
 
   if (alpha2 > 0.0)
-    os <<"- based on the tangential stiffness matrix\n";
+    IFEM::cout <<"- based on the tangential stiffness matrix\n";
   else if (alpha2 < 0.0)
-    os <<"- based on the material stiffness matrix only\n";
+    IFEM::cout <<"- based on the material stiffness matrix only\n";
 
   if (nRHSvec > 1)
-    os <<"- including true inertia forces from previous step in residual\n";
+    IFEM::cout <<"- including true inertia forces from previous step in residual\n";
   else if (alpha2 == 0.0)
     return;
 
-  os << std::endl;
+  IFEM::cout << std::endl;
 }
 
 

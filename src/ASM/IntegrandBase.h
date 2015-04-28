@@ -20,7 +20,6 @@
 #include "LinAlgenums.h"
 #include "Function.h"
 #include "MatVec.h"
-#include "LogStream.h"
 #include <map>
 
 class NormBase;
@@ -51,8 +50,8 @@ public:
   //! \brief Parses a data section from an XML element.
   virtual bool parse(const TiXmlElement*) { return true; }
 
-  //! \brief Prints out the problem definition to the given output stream.
-  virtual void print(utl::LogStream&) const {}
+  //! \brief Prints out the problem definition to the log stream.
+  virtual void printLog() const {}
 
 
   // Global initialization interface
@@ -232,10 +231,10 @@ public:
   //! \brief Returns a vector where we can store a named field.
   Vector* getNamedVector(const std::string& name) const;
 
-  //! \brief Defines the properties of the resulting linear system
-  //! \details This is used by PETSc to optimize assembly and
-  //!          matrix-vector products. For maximum speed always
-  //!          override this to reflect symmetry/definiteness of your operator.
+  //! \brief Defines the properties of the resulting linear system.
+  //! \details This method is used by PETSc to optimize assembly and
+  //! matrix-vector products. For maximum speed always override this method
+  //! to reflect symmetry/definiteness of your operator.
   virtual LinAlg::LinearSystemType getLinearSystemType() const
   {
     return LinAlg::GENERAL_MATRIX;
