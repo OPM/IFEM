@@ -129,7 +129,7 @@ public:
   //! \brief Creates an instance by reading the given input stream.
   virtual bool read(std::istream&);
   //! \brief Writes the geometry of the SplineVolume object to given stream.
-  virtual bool write(utl::LogStream&, int = 0) const;
+  virtual bool write(std::ostream&, int = 0) const;
 
   //! \brief Generates the finite element topology data for the patch.
   //! \details The data generated are the element-to-node connectivity array,
@@ -225,8 +225,8 @@ public:
   //! \param[in] dof Which DOFs to constrain at each node on the face
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] basis Basis to constrain edge for
-  void constrainFace(int dir, bool open, int dof = 123,
-                     int code = 0, char basis = 1);
+  virtual void constrainFace(int dir, bool open, int dof,
+                             int code = 0, char basis = 1);
   //! \brief Constrains all DOFs in local directions on a given boundary face.
   //! \param[in] dir Parameter direction defining the face to constrain
   //! \param[in] open If \e true, exclude all points along the face boundary
@@ -234,10 +234,9 @@ public:
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] project If \e true, the local axis directions are projected
   //! \param[in] T1 Desired global direction of first local tangent direction
-  //! \param[in] basis Basis to constrain edge for
   //! \return Number of additional nodes added due to local axis constraints
-  size_t constrainFaceLocal(int dir, bool open, int dof = 3, int code = 0,
-			    bool project = false, char T1 = '\0');
+  virtual size_t constrainFaceLocal(int dir, bool open, int dof, int code = 0,
+                                    bool project = false, char T1 = '\0');
 
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] lEdge Local index [1,12] of the edge to constrain
@@ -245,8 +244,8 @@ public:
   //! \param[in] dof Which DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] basis Basis to constrain edge for
-  void constrainEdge(int lEdge, bool open, int dof = 123,
-                     int code = 0, char basis = 1);
+  virtual void constrainEdge(int lEdge, bool open, int dof,
+                             int code = 0, char basis = 1);
 
   //! \brief Constrains all DOFs along a line on a given boundary face.
   //! \param[in] fdir Parameter direction defining the face to constrain
@@ -263,8 +262,8 @@ public:
   //! parameter direction as indicated by \a xi. The actual value of \a xi
   //! is converted to the integer value closest to \a xi*n, where \a n is the
   //! number of nodes (control points) in that parameter direction.
-  void constrainLine(int fdir, int ldir, double xi,
-		     int dof = 123, int code = 0, char basis = 1);
+  virtual void constrainLine(int fdir, int ldir, double xi, int dof,
+                             int code = 0, char basis = 1);
 
   //! \brief Constrains a corner node identified by the three parameter indices.
   //! \param[in] I Parameter index in u-direction
@@ -277,8 +276,8 @@ public:
   //! \details The sign of the three indices is used to define whether we want
   //! the node at the beginning or the end of that parameter direction.
   //! The magnitude of the indices are not used.
-  void constrainCorner(int I, int J, int K,
-		       int dof = 123, int code = 0, char basis = 1);
+  virtual void constrainCorner(int I, int J, int K, int dof,
+		               int code = 0, char basis = 1);
   //! \brief Constrains a node identified by three relative parameter values.
   //! \param[in] xi Parameter in u-direction
   //! \param[in] eta Parameter in v-direction
@@ -292,8 +291,8 @@ public:
   //! in between, the actual index is taken as the integer value closest to
   //! \a r*n, where \a r denotes the given relative parameter value,
   //! and \a n is the number of nodes along that parameter direction.
-  void constrainNode(double xi, double eta, double zeta,
-		     int dof = 123, int code = 0, char basis = 1);
+  virtual void constrainNode(double xi, double eta, double zeta, int dof,
+		             int code = 0, char basis = 1);
 
   //! \brief Connects all matching nodes on two adjacent boundary faces.
   //! \param[in] face Local face index of this patch, in range [1,6]
@@ -314,7 +313,7 @@ public:
   //! \param[in] basis Which basis to connect (mixed methods), 0 means both
   //! \param[in] master 1-based index of the first master node in this basis
   virtual void closeFaces(int dir, int basis = 0, int master = 1);
- 
+
   //! \brief Sets the global node numbers for this patch.
   //! \param[in] nodes Vector of global node numbers (zero-based)
   virtual void setNodeNumbers(const std::vector<int>& nodes);
@@ -417,25 +416,25 @@ public:
   //! \param[out] vec The obtained coefficients after interpolation
   //! \param[in] basisNum Basis number (mixed)
   virtual bool evaluate(const ASMbase* basis, const Vector& locVec,
-                        Vector& vec, int basisNum=1) const;
+                        Vector& vec, int basisNum) const;
 
   //! \brief Evaluates and interpolates a field over a given geometry.
   //! \param[in] field The field to evaluate
   //! \param[out] vec The obtained coefficients after interpolation
-  //! \param[in] basis Basis number (mixed)
+  //! \param[in] basisNum Basis number (mixed)
   //!
   //! \note A Variation Diminishing Spline Approximation is used as the
   //! regular interpolation method in GoTools only works with uniform knots.
-  virtual bool evaluate(const Field* field, Vector& vec, int basis=1) const;
+  virtual bool evaluate(const Field* field, Vector& vec, int basisNum) const;
 
   //! \brief Evaluates and interpolates a function over a given geometry.
   //! \param[in] func The function to evaluate
   //! \param[out] vec The obtained coefficients after interpolation
-  //! \param[in] basis Basis number (mixed)
+  //! \param[in] basisNum Basis number (mixed)
   //!
   //! \note A Variation Diminishing Spline Approximation is used as the
   //! regular interpolation method in GoTools only works with uniform knots.
-  virtual bool evaluate(const RealFunc* func, Vector& vec, int basis=1) const;
+  virtual bool evaluate(const RealFunc* func, Vector& vec, int basisNum) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field
@@ -608,13 +607,13 @@ private:
   //! \param[in] inod 0-based node index local to current patch
   int coeffInd(size_t inod) const;
 
-  //! \brief Find the start node and size for a basis
+  //! \brief Find the start node and size for a basis.
   //! \param[out] n1 Size of basis in first parameter direction
   //! \param[out] n2 Size of basis in second parameter direction
   //! \param[out] n3 Size of basis in third parameter direction
-  //! \param[out] node Start node for basis
   //! \param[in] basis Basis to find data for
-  bool findStartNode(int& n1, int&n2, int& n3, int& node, char basis);
+  //! \return 1-based index of start node for basis
+  int findStartNode(int& n1, int& n2, int& n3, char basis) const;
 
 protected:
   Go::SplineVolume* svol;  //!< Pointer to the actual spline volume object

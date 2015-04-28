@@ -51,7 +51,7 @@ public:
   //! \brief Creates an instance by reading the given input stream.
   virtual bool read(std::istream&);
   //! \brief Writes the geometry of the SplineSurface object to given stream.
-  virtual bool write(utl::LogStream&, int = 0) const;
+  virtual bool write(std::ostream&, int = 0) const;
 
   //! \brief Generates the finite element topology data for the patch.
   //! \details The data generated are the element-to-node connectivity array,
@@ -139,8 +139,7 @@ public:
   //! \param[in] open If \e true, exclude the end points of the edge
   //! \param[in] dof Which DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
-  //! \param[in] basis Basis to constrain
-  virtual void constrainEdge(int dir, bool open, int dof, int code = 0, char basis=0);
+  virtual void constrainEdge(int dir, bool open, int dof, int code, char);
   //! \brief Constrains all DOFs in local directions on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
   //! \param[in] open If \e true, exclude the end points of the edge
@@ -148,8 +147,8 @@ public:
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] project If \e true, the local axis directions are projected
   //! \return Number of additional nodes added due to local axis constraints
-  virtual size_t constrainEdgeLocal(int dir, bool open, int dof, int code = 0,
-				    bool project = '\0');
+  virtual size_t constrainEdgeLocal(int dir, bool open, int dof, int code,
+				    bool project = false);
 
   //! \brief Constrains a corner node identified by the two parameter indices.
   //! \param[in] I Parameter index in u-direction

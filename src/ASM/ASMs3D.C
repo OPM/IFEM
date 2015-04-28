@@ -120,7 +120,7 @@ bool ASMs3D::read (std::istream& is)
 }
 
 
-bool ASMs3D::write (utl::LogStream& os, int) const
+bool ASMs3D::write (std::ostream& os, int) const
 {
   if (!svol) return false;
 
@@ -803,17 +803,16 @@ void ASMs3D::closeFaces (int dir, int basis, int master)
 }
 
 
-bool ASMs3D::findStartNode(int& n1, int&n2, int& n3, int& node, char basis)
+int ASMs3D::findStartNode (int& n1, int& n2, int& n3, char basis) const
 {
-  node = 1;
-  for (char i=1;i<basis;++i) {
-    this->getSize(n1,n2,n3,i);
-    node += n1*n2*n3;
-  }
+  int node = 1;
+  for (char i = 1; i <= basis; i++)
+    if (!this->getSize(n1,n2,n3,i))
+      return 0;
+    else if (i < basis)
+      node += n1*n2*n3;
 
-  if (!this->getSize(n1,n2,n3,basis)) return false;
-
-  return true;
+  return node;
 }
 
 
@@ -827,8 +826,9 @@ bool ASMs3D::findStartNode(int& n1, int&n2, int& n3, int& node, char basis)
 void ASMs3D::constrainFace (int dir, bool open, int dof,
                             int code, char basis)
 {
-  int n1, n2, n3, node;
-  if (!this->findStartNode(n1,n2,n3,node,basis)) return;
+  int n1, n2, n3;
+  int node = this->findStartNode(n1,n2,n3,basis);
+  if (node < 1) return;
 
   if (swapW) // Account for swapped parameter direction
     if (dir == 3 || dir == -3) dir = -dir;
@@ -1115,9 +1115,9 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
 void ASMs3D::constrainEdge (int lEdge, bool open, int dof,
                             int code, char basis)
 {
-  int n1, n2, n3, n, node = 1, sNode, inc = 1;
-  if (!this->findStartNode(n1,n2,n3,sNode,basis)) return;
-  sNode--;
+  int n1, n2, n3, n, inc = 1;
+  int node = this->findStartNode(n1,n2,n3,basis);
+  if (node < 1) return;
 
   if (swapW && lEdge <= 8) // Account for swapped parameter direction
     lEdge += (lEdge-1)%4 < 2 ? 2 : -2;
@@ -1139,31 +1139,31 @@ void ASMs3D::constrainEdge (int lEdge, bool open, int dof,
     {
     case  6:
     case 10:
-      node = n1;
+      node += n1 - 1;
       break;
     case  2:
     case 11:
-      node = n1*(n2-1) + 1;
+      node += n1*(n2-1);
       break;
     case 12:
-      node = n1*n2;
+      node += n1*n2 - 1;
       break;
     case  3:
     case  7:
-      node = n1*n2*(n3-1) + 1;
+      node += n1*n2*(n3-1);
       break;
     case  8:
-      node = n1*(n2*(n3-1) + 1);
+      node += n1*(n2*(n3-1) + 1) - 1;
       break;
     case  4:
-      node = n1*(n2*n3-1) + 1;
+      node += n1*(n2*n3-1);
       break;
     }
 
   // Skip the first and last node if we are requesting an open boundary
   for (int i = 1; i <= n; i++, node += inc)
     if (!open || (i > 1 && i < n))
-      this->prescribe(sNode+node,dof,code);
+      this->prescribe(node,dof,code);
 }
 
 
@@ -1172,9 +1172,9 @@ void ASMs3D::constrainLine (int fdir, int ldir, double xi, int dof,
 {
   if (xi < 0.0 || xi > 1.0) return;
 
-  int n1, n2, n3, node;
-  if (!this->findStartNode(n1,n2,n3,node,basis))
-    return;
+  int n1, n2, n3;
+  int node = this->findStartNode(n1,n2,n3,basis);
+  if (node < 1) return;
 
   if (swapW) // Account for swapped parameter direction
     if (fdir == 3 || fdir == -3) fdir = -fdir;
@@ -1244,9 +1244,9 @@ void ASMs3D::constrainLine (int fdir, int ldir, double xi, int dof,
 void ASMs3D::constrainCorner (int I, int J, int K, int dof,
                               int code, char basis)
 {
-  int n1, n2, n3, node;
-  if (!this->findStartNode(n1,n2,n3,node,basis))
-    return;
+  int n1, n2, n3;
+  int node = this->findStartNode(n1,n2,n3,basis);
+  if (node < 1) return;
 
   if (swapW) // Account for swapped parameter direction
     K = -K;
@@ -1266,11 +1266,12 @@ void ASMs3D::constrainNode (double xi, double eta, double zeta,
   if (eta  < 0.0 || eta  > 1.0) return;
   if (zeta < 0.0 || zeta > 1.0) return;
 
+  int n1, n2, n3;
+  int node = this->findStartNode(n1,n2,n3,basis);
+  if (node < 1) return;
+
   if (swapW) // Account for swapped parameter direction
     zeta = 1.0-zeta;
-
-  int n1, n2, n3, node;
-  if (!this->findStartNode(n1,n2,n3,node,basis)) return;
 
   if (xi   > 0.0) node += int(0.5+(n1-1)*xi);
   if (eta  > 0.0) node += n1*int(0.5+(n2-1)*eta);

@@ -208,12 +208,12 @@ public:
 
   //! \brief Dumps the (possibly refined) geometry in g2-format.
   //! \param os Output stream to write the geometry data to
-  bool dumpGeometry(utl::LogStream& os) const;
+  bool dumpGeometry(std::ostream& os) const;
   //! \brief Dumps the (possibly refined) spline basis in g2-format.
   //! \param os Output stream to write the spline data to
   //! \param[in] basis Which basis to dump for mixed methods (0 = geometry)
   //! \param[in] patch Which patch to dump for (0 = all)
-  bool dumpBasis(utl::LogStream& os, int basis = 0, size_t patch = 0) const;
+  bool dumpBasis(std::ostream& os, int basis = 0, size_t patch = 0) const;
 
   //! \brief Dumps the primary solution in ASCII format for inspection.
   //! \param[in] psol Primary solution vector

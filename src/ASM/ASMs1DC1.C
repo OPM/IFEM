@@ -28,22 +28,17 @@ bool ASMs1DC1::generateFEMTopology ()
 }
 
 
-void ASMs1DC1::constrainNode (double xi, int dof, int code, char basis)
+int ASMs1DC1::constrainNode (double xi, int dof, int code, char basis)
 {
-  if (xi < 0.0 || xi > 1.0) return;
+  int node = this->ASMs1D::constrainNode(xi,dof,code,basis);
+  if (node > 0 && dof > 1000 && code == 0)
+  {
+    // Also fix the (up to two) neighboring nodes
+    if (node > 1)
+      this->prescribe(node-1,dof%1000,code);
+    if (node < this->getSize(basis))
+      this->prescribe(node+1,dof%1000,code);
+  }
 
-  int n1 = this->getSize(basis);
-  int n=0;
-  for (char i = 1; i < basis; ++i)
-    n += this->getSize(i);
-
-  int node = n+1;
-  if (xi > 0.0) node += int(0.5+(n1-1)*xi);
-
-  this->prescribe(node,dof%1000,code);
-  if (dof < 1000 || code > 0) return;
-
-  // Also fix the (up to two) neighboring nodes
-  if (node > 1)  this->prescribe(node-1,dof%1000,0);
-  if (node < n1) this->prescribe(node+1,dof%1000,0);
+  return node;
 }

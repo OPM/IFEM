@@ -89,7 +89,7 @@ bool ASMs1D::read (std::istream& is)
 }
 
 
-bool ASMs1D::write (utl::LogStream& os, int) const
+bool ASMs1D::write (std::ostream& os, int) const
 {
   if (!curv) return false;
 
@@ -381,19 +381,21 @@ void ASMs1D::closeEnds (int basis, int master)
 }
 
 
-void ASMs1D::constrainNode (double xi, int dof, int code, char basis)
+int ASMs1D::constrainNode (double xi, int dof, int code, char basis)
 {
-  if (xi < 0.0 || xi > 1.0) return;
+  if (xi < 0.0 || xi > 1.0) return 0;
 
   int n1 = this->getSize(basis);
-  int n=0;
-  for (char i = 1; i < basis; ++i)
-    n += this->getSize(i);
 
-  int node = n+1;
+  int node = 1;
+  for (char i = 1; i < basis; i++)
+    node += this->getSize(i);
+
   if (xi > 0.0) node += int(0.5+(n1-1)*xi);
 
   this->prescribe(node,dof,code);
+
+  return node;
 }
 
 
@@ -764,7 +766,7 @@ bool ASMs1D::integrate (Integrand& integrand,
     xr = GaussQuadrature::getCoord(nRed);
     wr = GaussQuadrature::getWeight(nRed);
     if (!xr || !wr) return false;
-  } 
+  }
   else if (nRed < 0)
     nRed = nGauss; // The integrand needs to know nGauss
 

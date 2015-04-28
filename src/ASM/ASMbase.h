@@ -17,7 +17,6 @@
 #include "MatVec.h"
 #include "MPCLess.h"
 #include "Function.h"
-#include "LogStream.h"
 #include <map>
 #include <set>
 
@@ -108,7 +107,7 @@ public:
   //! \brief Creates an instance by reading the given input stream.
   virtual bool read(std::istream& is) = 0;
   //! \brief Writes the geometry/basis of the patch to the given stream.
-  virtual bool write(utl::LogStream& os, int basis = 0) const = 0;
+  virtual bool write(std::ostream& os, int basis = 0) const = 0;
 
   //! \brief Adds a circular immersed boundary in the physical geometry.
   virtual void addHole(double, double, double) {}
@@ -454,14 +453,16 @@ public:
   //! \brief Evaluates and interpolates a field over a given geometry.
   //! \param[in] field The field to evaluate
   //! \param[out] vec The obtained coefficients after interpolation
-  //! \param[in] basis The basis to evaluate for (mixed)
-  virtual bool evaluate(const Field* field, Vector& vec, int basis=1) const { return false; }
+  //! \param[in] basisNum The basis to evaluate for (mixed)
+  virtual bool evaluate(const Field* field, Vector& vec, int basisNum = 1) const
+  { return false; }
 
   //! \brief Evaluates and interpolates a function over a given geometry.
   //! \param[in] f The function to evaluate
   //! \param[out] vec The obtained coefficients after interpolation
-  //! \param[in] basis The basis to evaluate for (mixed)
-  virtual bool evaluate(const RealFunc* f, Vector& vec, int basis=1) const { return false; }
+  //! \param[in] basisNum The basis to evaluate for (mixed)
+  virtual bool evaluate(const RealFunc* f, Vector& vec, int basisNum = 1) const
+  { return false; }
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field

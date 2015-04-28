@@ -891,7 +891,7 @@ void SIMoutput::closeGlv ()
 }
 
 
-bool SIMoutput::dumpGeometry (utl::LogStream& os) const
+bool SIMoutput::dumpGeometry (std::ostream& os) const
 {
   for (size_t i = 0; i < myModel.size(); i++)
     if (!myModel[i]->empty())
@@ -902,7 +902,7 @@ bool SIMoutput::dumpGeometry (utl::LogStream& os) const
 }
 
 
-bool SIMoutput::dumpBasis (utl::LogStream& os, int basis, size_t patch) const
+bool SIMoutput::dumpBasis (std::ostream& os, int basis, size_t patch) const
 {
   size_t begin = patch > 0 ? patch-1 : 0;
   size_t end = patch > 0 ? patch : myModel.size();
@@ -1005,8 +1005,9 @@ bool SIMoutput::dumpSolution (const Vector& psol, utl::LogStream& os) const
 }
 
 
-bool SIMoutput::dumpResults (const Vector& psol, double time, utl::LogStream& os,
-                             bool formatted, std::streamsize precision) const
+bool SIMoutput::dumpResults (const Vector& psol, double time,
+                             utl::LogStream& os, bool formatted,
+                             std::streamsize precision) const
 {
   if (psol.empty() || myPoints.empty())
     return true;

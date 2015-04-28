@@ -624,10 +624,8 @@ void HDF5Writer::writeBasis (SIMbase* sim, const std::string& name,
   for (int i = 1; i <= sim->getNoPatches(); i++) {
     std::stringstream str, str2;
     int loc = sim->getLocalPatchIndex(i);
-    if (loc > 0) {
-      utl::LogStream log(str);
-      static_cast<SIMoutput*>(sim)->dumpBasis(log,basis,loc);
-    }
+    if (loc > 0)
+      static_cast<SIMoutput*>(sim)->dumpBasis(str,basis,loc);
     str2 << i;
     if (!redundant || rank == 0)
       writeArray(group2, str2.str(), str.str().size(), str.str().c_str(),

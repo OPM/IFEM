@@ -110,7 +110,7 @@ public:
   //! \brief Creates an instance by reading the given input stream.
   virtual bool read(std::istream&);
   //! \brief Writes the geometry of the SplineSurface object to given stream.
-  virtual bool write(utl::LogStream&, int = 0) const;
+  virtual bool write(std::ostream&, int = 0) const;
 
   //! \brief Generates the finite element topology data for the patch.
   //! \details The data generated are the element-to-node connectivity array,
@@ -204,8 +204,8 @@ public:
   //! \param[in] open If \e true, exclude the end points of the edge
   //! \param[in] dof Which DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
-  virtual void constrainEdge(int dir, bool open, int dof, int code = 0,
-                             char basis = 1);
+  //! \param[in] basis Which basis to constrain edge for
+  virtual void constrainEdge(int dir, bool open, int dof, int code, char basis);
   //! \brief Constrains all DOFs in local directions on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
   //! \param[in] open If \e true, exclude the end points of the edge
@@ -213,7 +213,7 @@ public:
   //! \param[in] code Inhomogeneous dirichlet condition code
   //! \param[in] project If \e true, the local axis directions are projected
   //! \return Number of additional nodes added due to local axis constraints
-  virtual size_t constrainEdgeLocal(int dir, bool open, int dof, int code = 0,
+  virtual size_t constrainEdgeLocal(int dir, bool open, int dof, int code,
 				    bool project = false);
 
   //! \brief Constrains a corner node identified by the two parameter indices.
@@ -347,7 +347,7 @@ public:
   //! \param[out] vec The obtained coefficients after interpolation
   //! \param[in] basisNum Basis number (mixed)
   virtual bool evaluate(const ASMbase* basis, const Vector& locVec,
-                        Vector& vec, int basisNum=1) const;
+                        Vector& vec, int basisNum) const;
 
   //! \brief Evaluates and interpolates a field over a given geometry.
   //! \param[in] field The field to evaluate
@@ -356,7 +356,7 @@ public:
   //!
   //! \note A Variation Diminishing Spline Approximation is used as the
   //! regular interpolation method in GoTools only works with uniform knots.
-  virtual bool evaluate(const Field* field, Vector& vec, int basisNum=1) const;
+  virtual bool evaluate(const Field* field, Vector& vec, int basisNum) const;
 
   //! \brief Evaluates and interpolates a function over a given geometry.
   //! \param[in] func The function to evaluate
@@ -365,7 +365,7 @@ public:
   //!
   //! \note A Variation Diminishing Spline Approximation is used as the
   //! regular interpolation method in GoTools only works with uniform knots.
-  virtual bool evaluate(const RealFunc* func, Vector& vec, int basisNum=1) const;
+  virtual bool evaluate(const RealFunc* func, Vector& vec, int basisNum) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field
