@@ -7,7 +7,6 @@ macro(IFEM_add_test_app path workdir name)
 endmacro()
 
 macro(IFEM_add_unittests IFEM_PATH)
-  add_subdirectory(${IFEM_PATH}/3rdparty/gtest gtest EXCLUDE_FROM_ALL)
   IFEM_add_test_app("${IFEM_PATH}/src/Utility/Test/*.C;${IFEM_PATH}/src/ASM/Test/*.C"
                     ${IFEM_PATH}
                     IFEM
@@ -41,7 +40,12 @@ macro(add_check_target)
     add_library(gtest IMPORTED ${GTEST_LIBRARIES})
     include_directories(${GTEST_INCLUDE_DIRS})
   endif()
-  ifem_add_unittests(${IFEM_PATH})
+  if(IFEM_AS_SUBMODULE OR NOT IFEM_COMMON_APP_BUILD)
+    ifem_add_unittests(${IFEM_PATH})
+  endif()
+  if(NOT TARGET gtest)
+    add_subdirectory(${IFEM_PATH}/3rdparty/gtest gtest EXCLUDE_FROM_ALL)
+  endif()
   foreach(test_number RANGE 1 ${UNIT_TEST_NUMBER})
     list(GET UNIT_TEST${test_number} 0 name)
     list(GET UNIT_TEST${test_number} 1 dir)
