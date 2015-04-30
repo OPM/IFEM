@@ -30,6 +30,7 @@ endfunction()
 
 macro(add_check_target)
   add_custom_target(check ${CMAKE_CTEST_COMMAND} WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+  add_custom_command(TARGET check PRE_BUILD COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_BINARY_DIR}/failed.log)
   if(IFEM_INTREE_BUILD)
     include_directories(${IFEM_PATH}/3rdparty/gtest/include)
   elseif(NOT IFEM_AS_SUBMODULE)
