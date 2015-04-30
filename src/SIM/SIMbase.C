@@ -1661,8 +1661,14 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
                       <<" out of range [1,"<< myModel.size() <<"]"<< std::endl;
             ok = false;
           }
+          for (auto p2 = myProps.begin(); p2 != myProps.end() && ok; p2++)
+            if (p2->pcode == Property::MATERIAL && p->patch == p2->patch)
+              if (!this->initMaterial(p2->pindx)) {
+                std::cerr <<" *** SIMbase::assembleSystem: Failed to init material for patch " << p2->patch << std::endl;
+                ok = false;
+              }
 
-          else if (abs(p->ldim)+1 == pch->getNoParamDim())
+          if (abs(p->ldim)+1 == pch->getNoParamDim())
             if (p->pcode == Property::NEUMANN_GENERIC ||
                 this->initNeumann(p->pindx))
             {
