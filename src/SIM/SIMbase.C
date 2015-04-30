@@ -317,9 +317,11 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
     }
     else if (type == "generic") {
       IFEM::cout <<"\tNeumann code "<< code <<" (generic)";
-      this->setPropertyType(code,Property::NEUMANN_GENERIC);
-      if (elem->FirstChild())
+      if (elem->FirstChild()) {
+        this->setPropertyType(code,Property::ROBIN);
         this->setNeumann(elem->FirstChild()->Value(),"expression",0,code);
+      } else
+        this->setPropertyType(code,Property::NEUMANN_GENERIC);
     }
     else {
       int ndir = 0;
@@ -1651,7 +1653,8 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
     if (it->second->hasBoundaryTerms() && myEqSys->getVector())
       for (p = myProps.begin(); p != myProps.end() && ok; p++)
         if ((p->pcode == Property::NEUMANN && it->first == 0) ||
-            (p->pcode == Property::NEUMANN_GENERIC && it->first == p->pindx))
+            ((p->pcode == Property::NEUMANN_GENERIC ||
+              p->pcode == Property::ROBIN) && it->first == p->pindx)) {
           if (!(pch = this->getPatch(p->patch)))
           {
             std::cerr <<" *** SIMbase::assembleSystem: Patch index "<< p->patch
@@ -1660,7 +1663,8 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
           }
 
           else if (abs(p->ldim)+1 == pch->getNoParamDim())
-            if (it->first == p->pindx || this->initNeumann(p->pindx))
+            if (p->pcode == Property::NEUMANN_GENERIC ||
+                this->initNeumann(p->pindx))
             {
               if (msgLevel > 1)
                 IFEM::cout <<"\nAssembling Neumann matrix terms for boundary "
@@ -1674,7 +1678,8 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
               ok = false;
 
           else if (abs(p->ldim) == 1 && pch->getNoParamDim() == 3)
-            if (it->first == 0 && this->initNeumann(p->pindx))
+            if (p->pcode == Property::NEUMANN_GENERIC ||
+                this->initNeumann(p->pindx))
             {
               if (msgLevel > 1)
                 IFEM::cout <<"\nAssembling Neumann matrix terms for edge "
@@ -1686,6 +1691,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             }
             else
               ok = false;
+        }
 
     if (ok) ok = this->assembleDiscreteTerms(it->second,time);
     if (ok && &sysQ != myEqSys) ok = sysQ.finalize(newLHSmatrix);
