@@ -46,6 +46,9 @@ namespace utl
   public:
     //! \brief Operator returning the function value for the given argument.
     Result operator()(const Arg& x) const { return this->evaluate(x); }
+
+    typedef Arg Input;     //!< Input type
+    typedef Result Output; //!< Output type
   };
 
 
@@ -75,6 +78,9 @@ namespace utl
     //! \brief Operator returning the function value for the given arguments.
     Result operator()(const Arg& x, const Arg& y) const
     { return this->evaluate(x,y); }
+
+    typedef Arg Input;     //!< Input type
+    typedef Result Output; //!< Output type
   };
 }
 
