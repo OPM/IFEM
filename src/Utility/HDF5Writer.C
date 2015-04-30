@@ -248,8 +248,8 @@ void HDF5Writer::writeVector(int level, const DataEntry& entry)
 {
   if (!entry.second.enabled)
     return;
-  int rank=0;
 #ifdef HAS_HDF5
+  int rank = 0;
 #ifdef PARALLEL_PETSC
   if (entry.second.results & DataExporter::REDUNDANT)
     MPI_Comm_rank(*m_adm.getCommunicator(), &rank);
@@ -398,7 +398,6 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
   NormBase* norm = sim->getProblem()->getNormIntegrand();
 
 #ifdef HAS_HDF5
-
   int results = entry.second.results;
   bool usedescription=false;
   if (results < 0) {
@@ -603,12 +602,11 @@ void HDF5Writer::writeBasis (SIMbase* sim, const std::string& name,
 #ifdef HAS_HDF5
   std::stringstream str;
   str << "/" << level << "/basis";
-  int rank=0;
+  int group, rank = 0;
 #ifdef PARALLEL_PETSC
   if (redundant)
     MPI_Comm_rank(*m_adm.getCommunicator(), &rank);
 #endif
-  int group;
   if (checkGroupExistence(m_file,str.str().c_str()))
     group = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
   else
