@@ -35,12 +35,7 @@
 #include "Utilities.h"
 #include "Profiler.h"
 #include "Vec3Oper.h"
-#include "Tensor.h"
-#include "MPC.h"
-
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif
+#include <array>
 
 
 ASMu3D::ASMu3D (unsigned char n_f)
@@ -257,7 +252,7 @@ bool ASMu3D::generateFEMTopology ()
 		{
 		PROFILE("Bezier extraction");
 
-		// get bezier extraction matrix 
+		// get bezier extraction matrix
 		lrspline->getBezierExtraction(iel, extrMat);
 		int width  = p1*p2*p3;
 		int height = nSupportFunctions;
@@ -515,7 +510,7 @@ void ASMu3D::constrainEdge (int lEdge, bool open, int dof, int code, char)
 
 	// lEdge = 1-4, running index is u (vmin,wmin), (vmax,wmin), (vmin,wmax), (vmax,wmax)
 	// lEdge = 5-8, running index is v (umin,wmin), (umax,wmin), (umin,wmax), (umax,wmax)
-	// lEdge = 9-12, running index is w 
+	// lEdge = 9-12, running index is w
 
 	int edge = LR::NONE;
 	if(lEdge == 1) 
@@ -1019,7 +1014,7 @@ bool ASMu3D::integrate (Integrand& integrand,
 		}
 
 		// Compute parameter values of the Gauss points over the whole element
-		Vector gpar[3], redpar[3];
+		std::array<Vector,3> gpar, redpar;
 		for (int d = 0; d < 3; d++)
 		{
 			this->getGaussPointParameters(gpar[d],d,nGauss,iEl,xg);
@@ -1287,7 +1282,7 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
 		fe.iel = iEl+1;
 
 		// Compute parameter values of the Gauss points over the whole element
-		Vector gpar[3];
+		std::array<Vector,3> gpar;
 		for (int d = 0; d < 3; d++)
 			if (-1-d == faceDir)
 			{
@@ -1423,7 +1418,7 @@ bool ASMu3D::integrateEdge (Integrand& integrand, int lEdge,
 	if (!xg || !wg) return false;
 
 	// Compute parameter values of the Gauss points along the whole patch edge
-	Matrix gpar[3];
+	std::array<Matrix,3> gpar;
 	for (int d = 0; d < 3; d++)
 		if (lEdge < d*4+1 || lEdge >= d*4+5)
 		{

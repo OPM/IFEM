@@ -22,6 +22,7 @@
 #include "CoordinateMapping.h"
 #include "Vec3Oper.h"
 #include "Legendre.h"
+#include <array>
 
 
 bool ASMs2DSpec::getGridParameters (RealArray& prm, int dir,
@@ -42,7 +43,7 @@ bool ASMs2DSpec::getGridParameters (RealArray& prm, int dir,
 	      <<" (GLL points)"<< std::endl;
   }
 
-  std::vector<double>::const_iterator uit = surf->basis(dir).begin();
+  RealArray::const_iterator uit = surf->basis(dir).begin();
   double ucurr, uprev = *(uit++);
   while (uit != surf->basis(dir).end())
   {
@@ -193,14 +194,13 @@ bool ASMs2DSpec::integrate (Integrand& integrand, int lIndex,
 
   // Evaluate integration points and weights
 
-  Vector wg[2],xg1,xg2;
-  if (!Legendre::GLL(wg[0],xg1,p[0])) return false;
-  if (!Legendre::GLL(wg[1],xg2,p[1])) return false;
-
-  Matrix D1, D2;
-  if (!Legendre::basisDerivatives(p[0],D1)) return false;
-  if (!Legendre::basisDerivatives(p[1],D2)) return false;
-
+  std::array<Vector,2> wg, xg;
+  std::array<Matrix,2> D;
+  for (int d = 0; d < 2; d++)
+  {
+    if (!Legendre::GLL(wg[d],xg[d],p[d])) return false;
+    if (!Legendre::basisDerivatives(p[d],D[d])) return false;
+  }
   int nen = p[0]*p[1];
 
   FiniteElement fe(nen);
@@ -246,7 +246,7 @@ bool ASMs2DSpec::integrate (Integrand& integrand, int lIndex,
 
 	// Evaluate the basis functions and gradients using
 	// tensor product of one-dimensional Lagrange polynomials
-	evalBasis(xi[0],xi[1],p[0],p[1],D1,D2,fe.N,dNdu);
+	evalBasis(xi[0],xi[1],p[0],p[1],D[0],D[1],fe.N,dNdu);
 
 	// Compute basis function derivatives and the edge normal
 	fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);

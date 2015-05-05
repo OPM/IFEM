@@ -31,7 +31,7 @@
 #include "Vec3Oper.h"
 #include "Tensor.h"
 #include "MPC.h"
-
+#include <array>
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
@@ -1733,7 +1733,7 @@ bool ASMs3D::integrate (Integrand& integrand,
     nRed = nGauss; // The integrand needs to know nGauss
 
   // Compute parameter values of the Gauss points over the whole patch
-  Matrix gpar[3], redpar[3];
+  std::array<Matrix,3> gpar, redpar;
   for (int d = 0; d < 3; d++)
   {
     this->getGaussPointParameters(gpar[d],d,nGauss,xg);
@@ -2193,7 +2193,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
   const int t2 = 1 + t1%3;           // second tangent direction
 
   // Compute parameter values of the Gauss points over the whole patch face
-  Matrix gpar[3];
+  std::array<Matrix,3> gpar;
   for (int d = 0; d < 3; d++)
     if (-1-d == faceDir)
     {
@@ -2400,7 +2400,7 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
   if (!xg || !wg) return false;
 
   // Compute parameter values of the Gauss points along the whole patch edge
-  Matrix gpar[3];
+  std::array<Matrix,3> gpar;
   for (int d = 0; d < 3; d++)
     if (lEdge < d*4+1 || lEdge >= d*4+5)
     {

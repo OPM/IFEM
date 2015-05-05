@@ -31,6 +31,7 @@
 #include "Utilities.h"
 #include "Profiler.h"
 #include "Vec3Oper.h"
+#include <array>
 #include <fstream>
 
 
@@ -1042,7 +1043,7 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
   const int t1 = abs(edgeDir);   // Tangent direction normal to the patch edge
   const int t2 = 3-abs(edgeDir); // Tangent direction along the patch edge
 
-  Vector gpar[2];
+  std::array<Vector,2> gpar;
   for (int d = 0; d < 2; d++)
     if (-1-d == edgeDir)
     {

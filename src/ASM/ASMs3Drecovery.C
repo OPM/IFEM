@@ -23,15 +23,14 @@
 #include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
+#include <array>
 
 
 bool ASMs3D::getGrevilleParameters (RealArray& prm, int dir, int basisNum) const
 {
-  if (!svol || dir < 0 || dir > 2) return false;
+  if (dir < 0 || dir > 2) return false;
 
-  Go::SplineVolume* svol = this->getBasis(basisNum);
-
-  const Go::BsplineBasis& basis = svol->basis(dir);
+  const Go::BsplineBasis& basis = this->getBasis(basisNum)->basis(dir);
 
   prm.resize(basis.numCoefs());
   for (size_t i = 0; i < prm.size(); i++)
@@ -121,12 +120,12 @@ Go::SplineVolume* ASMs3D::projectSolution (const IntegrandBase& integrand) const
   RealArray gpar[3];
   for (int dir = 0; dir < 3; dir++)
     if (!this->getGrevilleParameters(gpar[dir],dir))
-      return 0;
+      return NULL;
 
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,gpar) || sValues.rows() == 0)
-    return 0;
+    return NULL;
 
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.
@@ -328,14 +327,12 @@ bool ASMs3D::evaluate (const Field* field, Vector& vec, int basisNum) const
     svol->getWeights(weights);
 
   Go::SplineVolume* vol_new =
-        VariationDiminishingSplineApproximation(svol->basis(0),
-                                                svol->basis(1),
-                                                svol->basis(2),
-                                                gpar[0], gpar[1], gpar[2],
-                                                sValues,
-                                                1,
-                                                svol->rational(),
-                                                weights);
+    VariationDiminishingSplineApproximation(svol->basis(0),
+                                            svol->basis(1),
+                                            svol->basis(2),
+                                            gpar[0], gpar[1], gpar[2],
+                                            sValues, 1, svol->rational(),
+                                            weights);
 
   vec.resize(vol_new->coefs_end()-vol_new->coefs_begin());
   std::copy(vol_new->coefs_begin(),vol_new->coefs_end(),vec.begin());
@@ -355,18 +352,16 @@ bool ASMs3D::evaluate (const RealFunc* func, Vector& vec, int basisNum) const
 
   // Evaluate the function at all sampling points.
   Vector sValues(gpar[0].size()*gpar[1].size()*gpar[2].size());
-  Vector::iterator it=sValues.begin();
-  for (size_t l=0;l<gpar[2].size();++l) {
-    for (size_t j=0;j<gpar[1].size();++j) {
-      for (size_t i=0;i<gpar[0].size();++i) {
+  Vector::iterator it = sValues.begin();
+  for (size_t l = 0; l < gpar[2].size(); l++)
+    for (size_t j = 0; j < gpar[1].size(); j++)
+      for (size_t i = 0; i < gpar[0].size(); i++)
+      {
         Go::Point pt;
-        Vec3 X;
-        svol->point(pt, gpar[0][i], gpar[1][j], gpar[2][l]);
-        X[0] = pt[0]; X[1] = pt[1]; X[2] = pt[2];
+        svol->point(pt,gpar[0][i],gpar[1][j],gpar[2][l]);
+        Vec3 X(pt[0],pt[1],pt[2]);
         *it++ = (*func)(X);
       }
-    }
-  }
 
   Go::SplineVolume* svol = this->getBasis(basisNum);
 
@@ -381,13 +376,13 @@ bool ASMs3D::evaluate (const RealFunc* func, Vector& vec, int basisNum) const
   if (svol->rational())
     svol->getWeights(weights);
 
-  Go::SplineVolume* vol_new = Go::VolumeInterpolator::regularInterpolation(svol->basis(0),
-                                                                           svol->basis(1),
-                                                                           svol->basis(2),
-                                                                           gpar[0], gpar[1],
-                                                                           gpar[2], sValues,
-                                                                           1, svol->rational(),
-                                                                           weights);
+  Go::SplineVolume* vol_new =
+    Go::VolumeInterpolator::regularInterpolation(svol->basis(0),
+                                                 svol->basis(1),
+                                                 svol->basis(2),
+                                                 gpar[0], gpar[1], gpar[2],
+                                                 sValues, 1, svol->rational(),
+                                                 weights);
 
   vec.resize(vol_new->coefs_end()-vol_new->coefs_begin());
   std::copy(vol_new->coefs_begin(),vol_new->coefs_end(),vec.begin());
@@ -408,49 +403,30 @@ Go::SplineVolume* ASMs3D::projectSolutionLeastSquare (const IntegrandBase& integ
   const double* wg = GaussQuadrature::getWeight(nGauss);
   if (!xg || !wg) return NULL;
 
-  Matrix ggpar[3];
+  std::array<Matrix,3> ggpar;
+  RealArray gpar[3], wgpar[3];
   for (int dir = 0; dir < 3; dir++)
+  {
     this->getGaussPointParameters(ggpar[dir],dir,nGauss,xg);
+    gpar[dir] = ggpar[dir];
 
-  std::vector<double> par_u;
-  par_u = ggpar[0];
-  std::vector<double> par_v;
-  par_v = ggpar[1];
-  std::vector<double> par_w;
-  par_w = ggpar[2];
-
-  // gauss weights at parameter values
-  std::vector<double> wgpar_u;
-  std::vector<double> wgpar_v;
-  std::vector<double> wgpar_w;
-  for (int dir = 0; dir < 3; dir++){
+    // Gauss weights at parameter values
     const Go::BsplineBasis& basis = svol->basis(dir);
     RealArray::const_iterator knotit = basis.begin();
-    std::vector<double> tmp;
+    RealArray& tmp = wgpar[dir];
     tmp.reserve(nGauss*(basis.numCoefs()-basis.order()));
-    for (int i = 0; i<=(basis.numCoefs()-basis.order());i++)
+    for (int i = basis.order(); i <= basis.numCoefs(); i++)
     {
-      double d = knotit[i+basis.order()]-knotit[i+basis.order()-1];
+      double d = knotit[i]-knotit[i-1];
       for (int j = 0; j < nGauss; j++)
         tmp.push_back(d > 0.0 ? wg[j]*d*0.5 : 0.0);
     }
-    if (dir == 0)
-      wgpar_u = tmp;
-    else if (dir == 1)
-      wgpar_v = tmp;
-    else if (dir == 2)
-      wgpar_w = tmp;
   }
-
-  RealArray gpar[3];
-  gpar[0] = par_u;
-  gpar[1] = par_v;
-  gpar[2] = par_w;
 
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,gpar))
-    return 0;
+    return NULL;
 
   RealArray weights;
   if (svol->rational())
@@ -459,8 +435,8 @@ Go::SplineVolume* ASMs3D::projectSolutionLeastSquare (const IntegrandBase& integ
   return leastsquare_approximation(svol->basis(0),
                                    svol->basis(1),
                                    svol->basis(2),
-                                   par_u, par_v, par_w,
-                                   wgpar_u, wgpar_v, wgpar_w,
+                                   gpar[0], gpar[1], gpar[2],
+                                   wgpar[0], wgpar[1], wgpar[2],
                                    sValues,
                                    sValues.rows(),
                                    svol->rational(),
@@ -475,16 +451,16 @@ Go::SplineVolume* ASMs3D::projectSolutionLocal (const IntegrandBase& integrand) 
   RealArray gpar[3];
   for (int dir = 0; dir < 2; dir++)
     if (!this->getQuasiInterplParameters(gpar[dir],dir))
-      return 0;
+      return NULL;
 
   for (int dir = 2; dir < 3; dir++)
     if (!this->getGrevilleParameters(gpar[dir],dir))
-      return 0;
+      return NULL;
 
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,gpar))
-    return 0;
+    return NULL;
 
   RealArray weights;
   if (svol->rational())
@@ -508,12 +484,12 @@ Go::SplineVolume* ASMs3D::projectSolutionLocalApprox(const IntegrandBase& integr
   RealArray gpar[3];
   for (int dir = 0; dir < 3; dir++)
     if (!this->getGrevilleParameters(gpar[dir],dir))
-      return 0;
+      return NULL;
 
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,gpar))
-    return 0;
+    return NULL;
 
   RealArray weights;
   if (svol->rational())

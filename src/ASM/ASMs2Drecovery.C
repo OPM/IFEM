@@ -25,15 +25,14 @@
 #include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
+#include <array>
 
 
 bool ASMs2D::getGrevilleParameters (RealArray& prm, int dir, int basisNum) const
 {
-  if (!surf || dir < 0 || dir > 1) return false;
+  if (dir < 0 || dir > 1) return false;
 
-  const Go::SplineSurface* surf = this->getBasis(basisNum);
-
-  const Go::BsplineBasis& basis = surf->basis(dir);
+  const Go::BsplineBasis& basis = this->getBasis(basisNum)->basis(dir);
 
   prm.resize(basis.numCoefs());
   for (size_t i = 0; i < prm.size(); i++)
@@ -324,7 +323,7 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
   if (!xg || !yg) return NULL;
 
   // Compute parameter values of the Gauss points over the whole patch
-  Matrix gaussPt[2];
+  std::array<Matrix,2> gaussPt;
   RealArray gpar[2];
   gpar[0] = this->getGaussPointParameters(gaussPt[0],0,ng1,xg);
   gpar[1] = this->getGaussPointParameters(gaussPt[1],1,ng2,yg);
@@ -499,13 +498,11 @@ bool ASMs2D::evaluate (const Field* field, Vector& vec, int basisNum) const
     surf->getWeights(weights);
 
   Go::SplineSurface* surf_new =
-        VariationDiminishingSplineApproximation(surf->basis(0),
-                                                surf->basis(1),
-                                                gpar[0], gpar[1],
-                                                sValues,
-                                                1,
-                                                surf->rational(),
-                                                weights);
+    VariationDiminishingSplineApproximation(surf->basis(0),
+                                            surf->basis(1),
+                                            gpar[0], gpar[1],
+                                            sValues, 1, surf->rational(),
+                                            weights);
 
   vec.resize(surf_new->coefs_end()-surf_new->coefs_begin());
   std::copy(surf_new->coefs_begin(),surf_new->coefs_end(),vec.begin());
@@ -525,18 +522,17 @@ bool ASMs2D::evaluate (const RealFunc* func, Vector& vec, int basisNum) const
 
   // Evaluate the function at all sampling points.
   Vector sValues(gpar[0].size()*gpar[1].size());
-  Vector::iterator it=sValues.begin();
-  for (size_t j=0;j<gpar[1].size();++j) {
-    for (size_t i=0;i<gpar[0].size();++i) {
+  Vector::iterator it = sValues.begin();
+  for (size_t j = 0; j < gpar[1].size(); j++)
+    for (size_t i = 0; i < gpar[0].size(); i++)
+    {
       Go::Point pt;
-      surf->point(pt, gpar[0][i], gpar[1][j]);
-      Vec3 X;
-      X[0] = pt[0]; X[1] = pt[1];
+      surf->point(pt,gpar[0][i],gpar[1][j]);
+      Vec3 X(pt[0],pt[1],0.0);
       if (pt.size() > 2)
-        X[2] = pt[2];
+        X.z = pt[2];
       *it++ = (*func)(X);
     }
-  }
 
   Go::SplineSurface* surf = this->getBasis(basisNum);
 
@@ -551,13 +547,12 @@ bool ASMs2D::evaluate (const RealFunc* func, Vector& vec, int basisNum) const
   if (surf->rational())
     surf->getWeights(weights);
 
-  Go::SplineSurface* surf_new = Go::SurfaceInterpolator::regularInterpolation(surf->basis(0),
-                                                                              surf->basis(1),
-                                                                              gpar[0], gpar[1],
-                                                                              sValues,
-                                                                              1,
-                                                                              surf->rational(),
-                                                                              weights);
+  Go::SplineSurface* surf_new =
+    Go::SurfaceInterpolator::regularInterpolation(surf->basis(0),
+                                                  surf->basis(1),
+                                                  gpar[0], gpar[1],
+                                                  sValues, 1, surf->rational(),
+                                                  weights);
 
   vec.resize(surf_new->coefs_end()-surf_new->coefs_begin());
   std::copy(surf_new->coefs_begin(),surf_new->coefs_end(),vec.begin());
@@ -578,38 +573,25 @@ Go::SplineSurface* ASMs2D::projectSolutionLeastSquare (const IntegrandBase& inte
   if (!xg || !wg) return NULL;
 
   // Compute parameter values of the result sampling points (Gauss points)
-  Matrix ggpar[2];
+  std::array<Matrix,2> ggpar;
+  RealArray gpar[2], wgpar[2];
   for (int dir = 0; dir < 2; dir++)
+  {
     this->getGaussPointParameters(ggpar[dir],dir,nGauss,xg);
+    gpar[dir] = ggpar[dir];
 
-  std::vector<double> par_u;
-  par_u = ggpar[0];
-  std::vector<double> par_v;
-  par_v = ggpar[1];
-
-  // gauss weights at parameter values
-  std::vector<double> wgpar_u;
-  std::vector<double> wgpar_v;
-  for (int dir = 0; dir < 2; dir++){
+    // Gauss weights at parameter values
     const Go::BsplineBasis& basis = surf->basis(dir);
     RealArray::const_iterator knotit = basis.begin();
-    std::vector<double> tmp;
+    RealArray& tmp = wgpar[dir];
     tmp.reserve(nGauss*(basis.numCoefs()-basis.order()));
-    for (int i = 0; i<=(basis.numCoefs()-basis.order());i++)
+    for (int i = basis.order(); i <= basis.numCoefs(); i++)
     {
-      double d = knotit[i+basis.order()]-knotit[i+basis.order()-1];
+      double d = knotit[i] - knotit[i-1];
       for (int j = 0; j < nGauss; j++)
         tmp.push_back(d > 0.0 ? wg[j]*d*0.5 : 0.0);
     }
-    if (dir == 0)
-      wgpar_u = tmp;
-    else if (dir == 1)
-      wgpar_v = tmp;
   }
-
-  RealArray gpar[2];
-  gpar[0] = par_u;
-  gpar[1] = par_v;
 
   // Evaluate the secondary solution at all sampling points (Gauss points)
   Matrix sValues;
@@ -622,8 +604,8 @@ Go::SplineSurface* ASMs2D::projectSolutionLeastSquare (const IntegrandBase& inte
 
   return leastsquare_approximation(surf->basis(0),
 				   surf->basis(1),
-				   par_u, par_v,
-				   wgpar_u, wgpar_v,
+				   gpar[0], gpar[1],
+				   wgpar[0], wgpar[1],
 				   sValues,
 				   sValues.rows(),
 				   surf->rational(),

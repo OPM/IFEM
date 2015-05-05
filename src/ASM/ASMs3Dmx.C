@@ -27,6 +27,7 @@
 #include "Profiler.h"
 #include "Vec3Oper.h"
 #include "Vec3.h"
+#include <array>
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
@@ -559,7 +560,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
   if (!xg || !wg) return false;
 
   // Compute parameter values of the Gauss points over the whole patch
-  Matrix gpar[3];
+  std::array<Matrix,3> gpar;
   for (int d = 0; d < 3; d++)
     this->getGaussPointParameters(gpar[d],d,nGauss,xg);
 
@@ -724,7 +725,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
   const int t2 = 1 + t1%3;           // second tangent direction
 
   // Compute parameter values of the Gauss points over the whole patch face
-  Matrix gpar[3];
+  std::array<Matrix,3> gpar;
   for (int d = 0; d < 3; d++)
     if (-1-d == faceDir)
     {

@@ -40,7 +40,7 @@ bool ASMs1DSpec::getGridParameters (RealArray& prm, int nSegPerSpan) const
 	      << nSegPerSpan <<" (GLL points)"<< std::endl;
   }
 
-  std::vector<double>::const_iterator uit = curv->basis().begin();
+  RealArray::const_iterator uit = curv->basis().begin();
   double ucurr, uprev = *(uit++);
   while (uit != curv->basis().end())
   {
