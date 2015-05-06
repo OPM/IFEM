@@ -38,7 +38,10 @@
 
 HDF5Writer::HDF5Writer (const std::string& name, const ProcessAdm& adm,
                         bool append, bool keepOpen)
-  : DataWriter(name,adm,".hdf5"), m_file(0), m_keepOpen(keepOpen), m_adm(adm)
+  : DataWriter(name,adm,".hdf5"), m_file(0), m_keepOpen(keepOpen)
+#ifdef PARALLEL_PETSC
+  , m_adm(adm)
+#endif
 {
 #ifdef HAS_HDF5
   struct stat temp;
