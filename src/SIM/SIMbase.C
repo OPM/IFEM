@@ -2382,7 +2382,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
 bool SIMbase::extractPatchSolution (IntegrandBase* problem,
                                     const Vectors& sol, size_t pindx) const
 {
-  ASMbase* pch = pindx >= 0 ? this->getPatch(pindx+1) : NULL;
+  ASMbase* pch = this->getPatch(pindx+1);
   if (!pch) return false;
 
   problem->initNodeMap(pch->getGlobalNodeNums());
