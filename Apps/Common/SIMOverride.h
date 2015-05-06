@@ -90,7 +90,7 @@ public:
   //! \copydoc SIMdependency::registerDependency(SIMdependency*,const std::string&,short int,const PatchVec&,bool)
   virtual void registerDependency(SIMdependency* sim, const std::string& name,
                                   short int nvc, const PatchVec& patches,
-                                  bool diffBasis = false)
+                                  char diffBasis = 0)
   {
     base.registerDependency(sim, name, nvc, patches, diffBasis);
   }

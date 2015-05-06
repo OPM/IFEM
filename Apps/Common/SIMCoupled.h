@@ -86,7 +86,7 @@ public:
   virtual void registerDependency(SIMdependency* sim, const std::string& name,
                                   short int nvc,
                                   const SIMdependency::PatchVec& patches,
-                                  bool diffBasis = false)
+                                  char diffBasis = 0)
   {
     S1.registerDependency(sim, name, nvc, patches, diffBasis);
     S2.registerDependency(sim, name, nvc, patches, diffBasis);
