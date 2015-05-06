@@ -99,7 +99,7 @@ public:
   //! \brief Normalize the vector and return its length.
   Real normalize(double tol = 1.0e-16)
   {
-    register double len = sqrt(x*x+y*y+z*z);
+    double len = sqrt(x*x+y*y+z*z);
     if (len <= tol) return len;
     x /= len; y /= len; z /= len;
     return len;
