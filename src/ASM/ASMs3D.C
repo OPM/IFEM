@@ -2630,7 +2630,7 @@ bool ASMs3D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 bool ASMs3D::tesselate (ElementBlock& grid, const int* npe) const
 {
   // Compute parameter values of the nodal points
-  RealArray gpar[3];
+  std::array<RealArray,3> gpar;
   for (int dir = 0; dir < 3; dir++)
     if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
       return false;
@@ -2699,13 +2699,13 @@ bool ASMs3D::evalSolution (Matrix& sField, const Vector& locSol,
 			   const int* npe) const
 {
   // Compute parameter values of the result sampling points
-  RealArray gpar[3];
+  std::array<RealArray,3> gpar;
   for (int dir = 0; dir < 3; dir++)
     if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
       return false;
 
   // Evaluate the primary solution at all sampling points
-  return this->evalSolution(sField,locSol,gpar);
+  return this->evalSolution(sField,locSol,gpar.data());
 }
 
 
@@ -2831,14 +2831,14 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   if (npe)
   {
     // Compute parameter values of the result sampling points
-    RealArray gpar[3];
+    std::array<RealArray,3> gpar;
     if (this->getGridParameters(gpar[0],0,npe[0]-1) &&
 	this->getGridParameters(gpar[1],1,npe[1]-1) &&
 	this->getGridParameters(gpar[2],2,npe[2]-1))
     {
       if (!project)
         // Evaluate the secondary solution directly at all sampling points
-        return this->evalSolution(sField,integrand,gpar);
+        return this->evalSolution(sField,integrand,gpar.data());
       else if (v)
       {
         // Evaluate the projected field at the result sampling points
@@ -3118,26 +3118,16 @@ bool ASMs3D::getNoStructElms (int& n1, int& n2, int& n3) const
 void ASMs3D::extractBasis (double u, double v, double w,
                            Vector& N, Matrix& dNdu) const
 {
-  std::vector<Real> upar(1, u);
-  std::vector<Real> vpar(1, v);
-  std::vector<Real> wpar(1, w);
-  std::vector<Go::BasisDerivs> spline;
-
-  svol->computeBasisGrid(upar,vpar,wpar,spline);
-
-  SplineUtils::extractBasis(spline[0],N,dNdu);
+  Go::BasisDerivs spline;
+  svol->computeBasis(u,v,w,spline);
+  SplineUtils::extractBasis(spline,N,dNdu);
 }
 
 
 void ASMs3D::extractBasis (double u, double v, double w, Vector& N,
                            Matrix& dNdu, Matrix3D& d2Ndu2) const
 {
-  std::vector<Real> upar(1, u);
-  std::vector<Real> vpar(1, v);
-  std::vector<Real> wpar(1, w);
-  std::vector<Go::BasisDerivs2> spline2;
-
-  svol->computeBasisGrid(upar,vpar,wpar,spline2);
-
-  SplineUtils::extractBasis(spline2[0],N,dNdu,d2Ndu2);
+  Go::BasisDerivs2 spline;
+  svol->computeBasis(u,v,w,spline);
+  SplineUtils::extractBasis(spline,N,dNdu,d2Ndu2);
 }

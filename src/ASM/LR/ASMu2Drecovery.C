@@ -23,6 +23,7 @@
 #include "Utilities.h"
 #include "Profiler.h"
 #include "IntegrandBase.h"
+#include <array>
 
 
 bool ASMu2D::getGrevilleParameters (RealArray& prm, int dir) const
@@ -67,14 +68,14 @@ LR::LRSplineSurface* ASMu2D::projectSolution (const IntegrandBase& integr) const
   PROFILE2("ASMu2D::projectSolution");
 
   // Compute parameter values of the result sampling points (Greville points)
-  RealArray gpar[2];
+  std::array<RealArray,2> gpar;
   for (int dir = 0; dir < 2; dir++)
     if (!this->getGrevilleParameters(gpar[dir],dir))
       return NULL;
 
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
-  if (!this->evalSolution(sValues,integr,gpar))
+  if (!this->evalSolution(sValues,integr,gpar.data()))
     return NULL;
 
   // Project the results onto the spline basis to find control point
@@ -144,15 +145,15 @@ bool ASMu2D::globalL2projection (Matrix& sField,
     }
 
     // Compute parameter values of the Gauss points over this element
-    RealArray gpar[2], unstrGpar[2];
+    std::array<RealArray,2> gpar, unstrGpar;
     this->getGaussPointParameters(gpar[0],0,ng1,iel,xg);
     this->getGaussPointParameters(gpar[1],1,ng2,iel,yg);
 
     // convert to unstructred mesh representation
-    expandTensorGrid(gpar, unstrGpar);
+    expandTensorGrid(gpar.data(),unstrGpar.data());
 
     // Evaluate the secondary solution at all integration points
-    if (!this->evalSolution(sField,integrand,unstrGpar))
+    if (!this->evalSolution(sField,integrand,unstrGpar.data()))
       return false;
 
     // set up basis function size (for extractBasis subroutine)
@@ -252,7 +253,7 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
   if (!xg || !yg) return NULL;
 
   // Compute parameter values of the Greville points
-  RealArray gpar[2];
+  std::array<RealArray,2> gpar;
   if (!this->getGrevilleParameters(gpar[0],0)) return NULL;
   if (!this->getGrevilleParameters(gpar[1],1)) return NULL;
 
@@ -315,7 +316,7 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
       int iel = (**el).getId()+1;
 
       // evaluate all gauss points for this element
-      RealArray gaussPt[2], unstrGauss[2];
+      std::array<RealArray,2> gaussPt, unstrGauss;
       this->getGaussPointParameters(gaussPt[0],0,ng1,iel,xg);
       this->getGaussPointParameters(gaussPt[1],1,ng2,iel,yg);
 
@@ -324,11 +325,11 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
 #endif
 
       // convert to unstructred mesh representation
-      expandTensorGrid(gaussPt, unstrGauss);
+      expandTensorGrid(gaussPt.data(),unstrGauss.data());
 
       // Evaluate the secondary solution at all Gauss points
       Matrix sField;
-      if (!this->evalSolution(sField,integrand,unstrGauss))
+      if (!this->evalSolution(sField,integrand,unstrGauss.data()))
         return NULL;
 
       // Loop over the Gauss points in current knot-span

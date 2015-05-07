@@ -70,7 +70,7 @@ bool ASMs2D::evaluate (const ASMbase* basis, const Vector& locVec,
   if (!pch) return false;
 
   // Compute parameter values of the result sampling points (Greville points)
-  RealArray gpar[2];
+  std::array<RealArray,2> gpar;
   for (int dir = 0; dir < 2; dir++)
     if (!this->getGrevilleParameters(gpar[dir],dir,basisNum))
       return false;
@@ -79,7 +79,7 @@ bool ASMs2D::evaluate (const ASMbase* basis, const Vector& locVec,
   // Note: it is here assumed that *basis and *this have spline bases
   // defined over the same parameter domain.
   Matrix sValues;
-  if (!pch->evalSolution(sValues,locVec,gpar))
+  if (!pch->evalSolution(sValues,locVec,gpar.data()))
     return false;
 
   Go::SplineSurface* surf = this->getBasis(basisNum);
@@ -118,14 +118,14 @@ Go::SplineSurface* ASMs2D::projectSolution (const IntegrandBase& integrnd) const
   PROFILE2("ASMs2D::projectSolution");
 
   // Compute parameter values of the result sampling points (Greville points)
-  RealArray gpar[2];
+  std::array<RealArray,2> gpar;
   for (int dir = 0; dir < 2; dir++)
     if (!this->getGrevilleParameters(gpar[dir],dir))
       return NULL;
 
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
-  if (!this->evalSolution(sValues,integrnd,gpar) || sValues.rows() == 0)
+  if (!this->evalSolution(sValues,integrnd,gpar.data()) || sValues.rows() == 0)
     return NULL;
 
   // Project the results onto the spline basis to find control point
@@ -182,7 +182,7 @@ bool ASMs2D::globalL2projection (Matrix& sField,
 
   // Compute parameter values of the Gauss points over the whole patch
   Matrix gp;
-  RealArray gpar[2];
+  std::array<RealArray,2> gpar;
   gpar[0] = this->getGaussPointParameters(gp,0,ng1,xg);
   gpar[1] = this->getGaussPointParameters(gp,1,ng2,yg);
 
@@ -195,7 +195,7 @@ bool ASMs2D::globalL2projection (Matrix& sField,
     surf->computeBasisGrid(gpar[0],gpar[1],spl0);
 
   // Evaluate the secondary solution at all integration points
-  if (!this->evalSolution(sField,integrand,gpar))
+  if (!this->evalSolution(sField,integrand,gpar.data()))
   {
     std::cerr <<" *** ASMs2D::globalL2projection: Failed for patch "<< idx+1
 	      <<" nPoints="<< gpar[0].size()*gpar[1].size() << std::endl;
@@ -324,7 +324,7 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 
   // Compute parameter values of the Gauss points over the whole patch
   std::array<Matrix,2> gaussPt;
-  RealArray gpar[2];
+  std::array<RealArray,2> gpar;
   gpar[0] = this->getGaussPointParameters(gaussPt[0],0,ng1,xg);
   gpar[1] = this->getGaussPointParameters(gaussPt[1],1,ng2,yg);
 
@@ -337,7 +337,7 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 
   // Evaluate the secondary solution at all Gauss points
   Matrix sField;
-  if (!this->evalSolution(sField,integrand,gpar))
+  if (!this->evalSolution(sField,integrand,gpar.data()))
     return NULL;
 
   // Compute parameter values of the Greville points
@@ -465,7 +465,7 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 bool ASMs2D::evaluate (const Field* field, Vector& vec, int basisNum) const
 {
   // Compute parameter values of the result sampling points (Greville points)
-  RealArray gpar[2];
+  std::array<RealArray,2> gpar;
   for (int dir = 0; dir < 2; dir++)
     if (!this->getGrevilleParameters(gpar[dir],dir,basisNum))
       return false;
@@ -515,7 +515,7 @@ bool ASMs2D::evaluate (const Field* field, Vector& vec, int basisNum) const
 bool ASMs2D::evaluate (const RealFunc* func, Vector& vec, int basisNum) const
 {
   // Compute parameter values of the result sampling points (Greville points)
-  RealArray gpar[2];
+  std::array<RealArray,2> gpar;
   for (int dir = 0; dir < 2; dir++)
     if (!this->getGrevilleParameters(gpar[dir],dir,basisNum))
       return false;
@@ -574,7 +574,7 @@ Go::SplineSurface* ASMs2D::projectSolutionLeastSquare (const IntegrandBase& inte
 
   // Compute parameter values of the result sampling points (Gauss points)
   std::array<Matrix,2> ggpar;
-  RealArray gpar[2], wgpar[2];
+  std::array<RealArray,2> gpar, wgpar;
   for (int dir = 0; dir < 2; dir++)
   {
     this->getGaussPointParameters(ggpar[dir],dir,nGauss,xg);
@@ -595,7 +595,7 @@ Go::SplineSurface* ASMs2D::projectSolutionLeastSquare (const IntegrandBase& inte
 
   // Evaluate the secondary solution at all sampling points (Gauss points)
   Matrix sValues;
-  if (!this->evalSolution(sValues,integrand,gpar))
+  if (!this->evalSolution(sValues,integrand,gpar.data()))
     return NULL;
 
   RealArray weights;
@@ -618,14 +618,14 @@ Go::SplineSurface* ASMs2D::projectSolutionLocal (const IntegrandBase& integrand)
 {
   // Compute parameter values of the result sampling points
   // (the Quasi-Interpolation points)
-  RealArray gpar[2];
+  std::array<RealArray,2> gpar;
   for (int dir = 0; dir < 2; dir++)
     if (!this->getQuasiInterplParameters(gpar[dir],dir))
       return NULL;
 
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
-  if (!this->evalSolution(sValues,integrand,gpar))
+  if (!this->evalSolution(sValues,integrand,gpar.data()))
     return NULL;
 
   RealArray weights;
@@ -646,14 +646,14 @@ Go::SplineSurface* ASMs2D::projectSolutionLocal (const IntegrandBase& integrand)
 Go::SplineSurface* ASMs2D::projectSolutionLocalApprox (const IntegrandBase& integrand) const
 {
   // Compute parameter values of the result sampling points (Greville points)
-  RealArray gpar[2];
+  std::array<RealArray,2> gpar;
   for (int dir = 0; dir < 2; dir++)
     if (!this->getGrevilleParameters(gpar[dir],dir))
       return NULL;
 
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
-  if (!this->evalSolution(sValues,integrand,gpar))
+  if (!this->evalSolution(sValues,integrand,gpar.data()))
     return NULL;
 
   RealArray weights;

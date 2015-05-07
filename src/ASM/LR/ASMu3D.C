@@ -1014,7 +1014,7 @@ bool ASMu3D::integrate (Integrand& integrand,
 		}
 
 		// Compute parameter values of the Gauss points over the whole element
-		std::array<Vector,3> gpar, redpar;
+		std::array<RealArray,3> gpar, redpar;
 		for (int d = 0; d < 3; d++)
 		{
 			this->getGaussPointParameters(gpar[d],d,nGauss,iEl,xg);
@@ -1137,9 +1137,9 @@ bool ASMu3D::integrate (Integrand& integrand,
 					fe.zeta = xg[k];
 
 					// Parameter values of current integration point
-					fe.u = gpar[0](i+1);
-					fe.v = gpar[1](j+1);
-					fe.w = gpar[2](k+1);
+					fe.u = gpar[0][i];
+					fe.v = gpar[1][j];
+					fe.w = gpar[2][k];
 
 					// Extract bezier basis functions
 					B.fillColumn(1, BN.getColumn(ig));
@@ -1732,13 +1732,13 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
                            const int* npe) const
 {
   // Compute parameter values of the result sampling points
-  RealArray gpar[3];
+  std::array<RealArray,3> gpar;
   for (int dir = 0; dir < 3; dir++)
     if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
       return false;
 
   // Evaluate the primary solution at all sampling points
-  return this->evalSolution(sField,locSol,gpar);
+  return this->evalSolution(sField,locSol,gpar.data());
 }
 
 
@@ -1837,14 +1837,14 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 	if (npe)
 	{
 		// Compute parameter values of the result sampling points
-		RealArray gpar[3];
+		std::array<RealArray,3> gpar;
 		if (this->getGridParameters(gpar[0],0,npe[0]-1) &&
 	this->getGridParameters(gpar[1],1,npe[1]-1) &&
 	this->getGridParameters(gpar[2],2,npe[2]-1))
 		{
 			if (!project)
 				// Evaluate the secondary solution directly at all sampling points
-				return this->evalSolution(sField,integrand,gpar);
+				return this->evalSolution(sField,integrand,gpar.data());
 			else if (v)
 			{
 				// Evaluate the projected field at the result sampling points

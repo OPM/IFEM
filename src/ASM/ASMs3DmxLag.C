@@ -129,15 +129,15 @@ bool ASMs3DmxLag::generateFEMTopology ()
   }
 
   // Evaluate the parametric values
-  RealArray gpar[3];
-  if (!this->getGridParameters(gpar[0],0,p1-1)) return false;
-  if (!this->getGridParameters(gpar[1],1,p2-1)) return false;
-  if (!this->getGridParameters(gpar[2],2,p3-1)) return false;
+  RealArray gpar1, gpar2, gpar3;
+  if (!this->getGridParameters(gpar1,0,p1-1)) return false;
+  if (!this->getGridParameters(gpar2,1,p2-1)) return false;
+  if (!this->getGridParameters(gpar3,2,p3-1)) return false;
 
   // Number of nodes in each direction
-  nx2 = gpar[0].size();
-  ny2 = gpar[1].size();
-  nz2 = gpar[2].size();
+  nx2 = gpar1.size();
+  ny2 = gpar2.size();
+  nz2 = gpar3.size();
 
   nb1 = MLGN.size();
   nb2 = nx2*ny2*nz2;

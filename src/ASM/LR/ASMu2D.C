@@ -767,7 +767,7 @@ bool ASMu2D::integrate (Integrand& integrand,
     if (!this->getElementCoordinates(Xnod,iel)) return false;
 
     // Compute parameter values of the Gauss points over this element
-    RealArray gpar[2], redpar[2];
+    std::array<RealArray,2> gpar, redpar;
     for (int d = 0; d < 2; d++)
     {
       this->getGaussPointParameters(gpar[d],d,nGauss,iel,xg);
@@ -1309,13 +1309,13 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
   std::cout <<"ASMu2D::evalSolution(Matrix&,const Vector&,const int*)\n";
 #endif
   // Compute parameter values of the result sampling points
-  RealArray gpar[2];
+  std::array<RealArray,2> gpar;
   for (int dir = 0; dir < 2; dir++)
     if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
       return false;
 
   // Evaluate the primary solution at all sampling points
-  return this->evalSolution(sField,locSol,gpar);
+  return this->evalSolution(sField,locSol,gpar.data());
 }
 
 
@@ -1410,13 +1410,13 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   if (npe)
   {
     // Compute parameter values of the result sampling points
-    RealArray gpar[2];
+    std::array<RealArray,2> gpar;
     if (this->getGridParameters(gpar[0],0,npe[0]-1) &&
 	this->getGridParameters(gpar[1],1,npe[1]-1))
     {
       if (!project)
 	// Evaluate the secondary solution directly at all sampling points
-	return this->evalSolution(sField,integrand,gpar);
+	return this->evalSolution(sField,integrand,gpar.data());
       else if (s)
       {
 	// Evaluate the projected field at the result sampling points

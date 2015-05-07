@@ -26,6 +26,7 @@
 #include "tinyxml.h"
 #include <fstream>
 #include <iomanip>
+#include <array>
 
 
 SIMoutput::~SIMoutput ()
@@ -1024,7 +1025,7 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
     if (myModel[i]->empty()) continue; // skip empty patches
 
     ResPointVec::const_iterator p;
-    RealArray params[3];
+    std::array<RealArray,3> params;
     IntVec points;
 
     // Find all evaluation points within this patch, if any
@@ -1045,7 +1046,8 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
     if (opt.discretization >= ASM::Spline)
     {
       // Evaluate the primary solution variables
-      if (!myModel[i]->evalSolution(sol1,myProblem->getSolution(),params,false))
+      if (!myModel[i]->evalSolution(sol1,myProblem->getSolution(),
+                                    params.data(),false))
         return false;
 
       // Evaluate the secondary solution variables
@@ -1053,7 +1055,7 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
       if (myProblem->getNoFields(2) > 0)
       {
         const_cast<SIMoutput*>(this)->setPatchMaterial(i+1);
-        if (!myModel[i]->evalSolution(sol2,*myProblem,params,false))
+        if (!myModel[i]->evalSolution(sol2,*myProblem,params.data(),false))
           return false;
       }
     }
@@ -1124,7 +1126,7 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
     if (myModel[i]->empty()) continue; // skip empty patches
 
     ResPointVec::const_iterator p;
-    RealArray params[3];
+    std::array<RealArray,3> params;
     IntVec points;
 
     // Find all evaluation points within this patch, if any
@@ -1145,7 +1147,7 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
     myModel[i]->extractNodeVec(vsol,lsol);
     if (opt.discretization >= ASM::Spline)
     {
-      if (!myModel[i]->evalSolution(sol1,lsol,params,false))
+      if (!myModel[i]->evalSolution(sol1,lsol,params.data(),false))
         return false;
     }
     else

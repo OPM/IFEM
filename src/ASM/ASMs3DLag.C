@@ -25,6 +25,7 @@
 #include "ElementBlock.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
+#include <array>
 
 
 ASMs3DLag::ASMs3DLag (unsigned char n_f) : ASMs3D(n_f), coord(myCoord)
@@ -162,15 +163,15 @@ bool ASMs3DLag::generateFEMTopology ()
   const int p3 = svol->order(2);
 
   // Evaluate the parametric values
-  RealArray gpar[3];
-  if (!this->getGridParameters(gpar[0],0,p1-1)) return false;
-  if (!this->getGridParameters(gpar[1],1,p2-1)) return false;
-  if (!this->getGridParameters(gpar[2],2,p3-1)) return false;
+  RealArray gpar1, gpar2, gpar3;
+  if (!this->getGridParameters(gpar1,0,p1-1)) return false;
+  if (!this->getGridParameters(gpar2,1,p2-1)) return false;
+  if (!this->getGridParameters(gpar3,2,p3-1)) return false;
 
   // Number of nodes in each direction
-  nx = gpar[0].size();
-  ny = gpar[1].size();
-  nz = gpar[2].size();
+  nx = gpar1.size();
+  ny = gpar2.size();
+  nz = gpar3.size();
   // Number of nodes in the patch
   nnod = nx*ny*nz;
 
@@ -184,7 +185,7 @@ bool ASMs3DLag::generateFEMTopology ()
 
   // Evaluate the nodal coordinates in the physical space
   RealArray XYZ(svol->dimension()*nnod);
-  svol->gridEvaluator(gpar[0],gpar[1],gpar[2],XYZ);
+  svol->gridEvaluator(gpar1,gpar2,gpar3,XYZ);
 
   size_t i1, j1;
   myMLGN.resize(nnod);
@@ -843,7 +844,7 @@ int ASMs3DLag::evalPoint (const double* xi, double* param, Vec3& X) const
   if (!svol) return -3;
 
   // Evaluate the parametric values of the point and nodes
-  RealArray u[3];
+  std::array<RealArray,3> u;
   for (int d = 0; d < 3; d++)
   {
     param[d] = (1.0-xi[d])*svol->startparam(d) + xi[d]*svol->endparam(d);

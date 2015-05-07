@@ -11,14 +11,15 @@
 //!
 //==============================================================================
 
+#include "GoTools/geometry/SplineSurface.h"
+
 #include "SplineField2D.h"
 #include "ASMs2D.h"
 #include "FiniteElement.h"
 #include "CoordinateMapping.h"
 #include "Utilities.h"
 #include "Vec3.h"
-
-#include "GoTools/geometry/SplineSurface.h"
+#include <array>
 
 
 SplineField2D::SplineField2D (const ASMs2D* patch,
@@ -93,7 +94,7 @@ bool SplineField2D::valueGrid (RealArray& val, const int* npe) const
   if (!basis) return false;
 
   // Compute parameter values of the visualization points
-  RealArray gpar[2];
+  std::array<RealArray,2> gpar;
   for (int dir = 0; dir < 2; dir++)
   {
     int nSegPerSpan = npe[dir] - 1;

@@ -15,6 +15,7 @@
 #include "GaussQuadrature.h"
 #include "ElementBlock.h"
 #include <iostream>
+#include <array>
 #include <cmath>
 
 
@@ -286,7 +287,7 @@ bool Immersed::getQuadraturePoints (const Geometry& geometry,
   for (size_t e = 0; e < elmCorner.size(); e++)
   {
     int nsd = 0;
-    RealArray GP[4];
+    std::array<RealArray,4> GP;
     const Real2DMat& X = elmCorner[e];
     switch (X.size()) {
     case 4: // 2D element

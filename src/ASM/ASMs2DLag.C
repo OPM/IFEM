@@ -153,13 +153,13 @@ bool ASMs2DLag::generateFEMTopology ()
   const int p2 = surf->order_v();
 
   // Evaluate the parametric values
-  RealArray gpar[2];
-  if (!this->getGridParameters(gpar[0],0,p1-1)) return false;
-  if (!this->getGridParameters(gpar[1],1,p2-1)) return false;
+  RealArray gpar1, gpar2;
+  if (!this->getGridParameters(gpar1,0,p1-1)) return false;
+  if (!this->getGridParameters(gpar2,1,p2-1)) return false;
 
   // Number of nodes in each direction
-  nx = gpar[0].size();
-  ny = gpar[1].size();
+  nx = gpar1.size();
+  ny = gpar2.size();
   // Number of nodes in the patch
   nnod = nx*ny;
 
@@ -172,7 +172,7 @@ bool ASMs2DLag::generateFEMTopology ()
 
   // Evaluate the nodal coordinates in the physical space
   RealArray XYZ(surf->dimension()*nnod);
-  surf->gridEvaluator(XYZ,gpar[0],gpar[1]);
+  surf->gridEvaluator(XYZ,gpar1,gpar2);
 
   size_t i1, j1;
   myMLGN.resize(nnod);

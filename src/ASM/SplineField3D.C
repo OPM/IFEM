@@ -11,14 +11,15 @@
 //!
 //==============================================================================
 
+#include "GoTools/trivariate/SplineVolume.h"
+
 #include "SplineField3D.h"
 #include "ASMs3D.h"
 #include "FiniteElement.h"
 #include "CoordinateMapping.h"
 #include "Utilities.h"
 #include "Vec3.h"
-
-#include "GoTools/trivariate/SplineVolume.h"
+#include <array>
 
 
 SplineField3D::SplineField3D (const ASMs3D* patch,
@@ -83,7 +84,7 @@ bool SplineField3D::valueGrid (RealArray& val, const int* npe) const
   if (!basis) return false;
 
   // Compute parameter values of the visualization points
-  RealArray gpar[3];
+  std::array<RealArray,3> gpar;
   for (int dir = 0; dir < 3; dir++)
   {
     int nSegPerSpan = npe[dir] - 1;
