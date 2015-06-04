@@ -914,24 +914,9 @@ int ASMs3Dmx::evalPoint (const double* xi, double* param, Vec3& X) const
   for (i = 0; i < 3 && i < svol->dimension(); i++)
     X[i] = X0[i];
 
-  // Check if this point matches any of the basis1 control points (nodes)
-  Vec3 Xnod;
-  size_t inod = 1;
-  RealArray::const_iterator cit = basis1->coefs_begin();
-  for (i = 0; cit != basis1->coefs_end(); cit++, i++)
-  {
-    if (i < 3) Xnod[i] = *cit;
-    if (i+1 == basis1->dimension())
-      if (X.equal(Xnod,0.001))
-	return inod;
-      else
-      {
-	inod++;
-	i = -1;
-      }
-  }
-
-  return 0;
+  // Check if this point matches any of the control points (nodes)
+  return this->searchCtrlPt(basis1->coefs_begin(),basis1->coefs_end(),
+                            X,basis1->dimension());
 }
 
 

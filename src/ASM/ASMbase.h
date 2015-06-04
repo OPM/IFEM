@@ -588,6 +588,15 @@ protected:
   //! \param[in] pch Pointer to the neighboring patch
   void addNeighbor(ASMbase* pch);
 
+  //! \brief Helper method used by evalPoint to search for a control point.
+  //! \param[in] Start iterator of array of control point coordinates
+  //! \param[in] End iterator of array of control point coordinates
+  //! \param[in] X Coordinates if point to search for
+  //! \param[in] dimension Number of spatial dimensions of the splines object
+  //! \param[in] tol Zero tolerance
+  int searchCtrlPt(RealArray::const_iterator cit, RealArray::const_iterator end,
+                   const Vec3& X, int dimension, double tol = 0.001) const;
+
 public:
   //! \brief Constrains all nodes in the patch.
   //! \param[in] dof Which DOFs to constrain at each node in the patch

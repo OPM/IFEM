@@ -2037,23 +2037,8 @@ int ASMs2D::evalPoint (const double* xi, double* param, Vec3& X) const
   SplineUtils::point(X,param[0],param[1],surf);
 
   // Check if this point matches any of the control points (nodes)
-  Vec3 Xnod;
-  size_t inod = 1;
-  RealArray::const_iterator cit = surf->coefs_begin();
-  for (int i = 0; cit != surf->coefs_end(); ++cit, i++)
-  {
-    if (i < nsd) Xnod[i] = *cit;
-    if (i+1 == surf->dimension())
-      if (X.equal(Xnod,0.001))
-	return inod;
-      else
-      {
-	inod++;
-	i = -1;
-      }
-  }
-
-  return 0;
+  return this->searchCtrlPt(surf->coefs_begin(),surf->coefs_end(),
+                            X,surf->dimension());
 }
 
 

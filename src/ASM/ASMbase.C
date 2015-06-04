@@ -1046,6 +1046,35 @@ bool ASMbase::getSolution (Matrix& sField, const Vector& locSol,
 }
 
 
+int ASMbase::searchCtrlPt (RealArray::const_iterator cit,
+                           RealArray::const_iterator end,
+                           const Vec3& X, int dimension, double tol) const
+{
+  Vec3 Xnod;
+  double distance = 0.0;
+  size_t inod = 0, iclose = 0;
+  for (int i = 0; cit != end; ++cit, i++)
+  {
+    if (i < nsd) Xnod[i] = *cit;
+    if (i+1 == dimension)
+    {
+      i = -1;
+      inod++;
+      if (X.equal(Xnod,tol))
+        if (iclose == 0 || (X-Xnod).length() < distance)
+        {
+          // In case of a very fine grid where several control points might
+          // be withing the tolerance, choose the closest point
+          iclose = inod;
+          distance = (X-Xnod).length();
+        }
+    }
+  }
+
+  return iclose;
+}
+
+
 bool ASMbase::evalSolution (Matrix&, const Vector&, const int*) const
 {
   return Aerror("evalSolution(Matrix&,const Vector&,const int*)");
