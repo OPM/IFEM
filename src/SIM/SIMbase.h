@@ -200,7 +200,8 @@ public:
   //! \brief Returns the model size in terms of number of (unique) nodes.
   size_t getNoNodes(bool unique = false) const;
   //! \brief Returns the model size in terms of number of elements.
-  size_t getNoElms() const;
+  //! \param[in] includeXElms If \e true, include any extra-ordinary elements
+  size_t getNoElms(bool includeXElms = false) const;
   //! \brief Returns the number of solution vectors.
   size_t getNoSolutions() const;
   //! \brief Returns the total number of patches in the model.

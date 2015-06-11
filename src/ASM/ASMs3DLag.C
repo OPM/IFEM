@@ -65,21 +65,8 @@ void ASMs3DLag::clear (bool retainGeometry)
 bool ASMs3DLag::addXElms (short int dim, short int item, size_t nXn,
                           IntVec& nodes)
 {
-  if (dim != 2)
-  {
-    std::cerr <<" *** ASMs3DLag::addXElms: Invalid boundary dimension "<< dim
-              <<", only 2 (face) is allowed."<< std::endl;
+  if (!this->addXNodes(dim,nXn,nodes))
     return false;
-  }
-  else if (!svol || shareFE == 'F')
-    return false;
-
-  for (size_t i = 0; i < nXn; i++)
-  {
-    if (nodes.size() == i)
-      nodes.push_back(++gNod);
-    myMLGN.push_back(nodes[i]);
-  }
 
   const int p1 = svol->order(0);
   const int p2 = svol->order(1);
@@ -88,9 +75,6 @@ bool ASMs3DLag::addXElms (short int dim, short int item, size_t nXn,
   const int nel1 = (nx-1)/(p1-1);
   const int nel2 = (ny-1)/(p2-1);
   const int nel3 = (nz-1)/(p3-1);
-
-  myMNPC.resize(2*nel);
-  myMLGE.resize(2*nel,0);
 
   int iel = 0;
   bool skipMe = false;
@@ -137,16 +121,16 @@ bool ASMs3DLag::addXElms (short int dim, short int item, size_t nXn,
                 case 4: skipMe = j2 < p2-1; break;
                 case 5: skipMe = j3 > 0;    break;
                 case 6: skipMe = j3 < p3-1; break;
-	        }
-	      if (skipMe) // Hack for node 0: Using -maxint as flag instead
-		mnpc[lnod] = mnpc[lnod] == 0 ? -2147483648 : -mnpc[lnod];
-	    }
+                }
+              if (skipMe) // Hack for node 0: Using -maxint as flag instead
+                mnpc[lnod] = mnpc[lnod] == 0 ? -2147483648 : -mnpc[lnod];
+            }
 
         // Add connectivity to the extra-ordinary nodes
         for (size_t i = 0; i < nXn; i++)
           mnpc.push_back(MLGN.size()-nXn+i);
 
-	myMLGE[nel+iel] = ++gEl;
+        myMLGE[nel+iel] = -(++gEl); // Extra-ordinary element => negative sign
       }
 
   return true;
@@ -612,15 +596,15 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
         int i2  = (iel / nel1) % nel2;
         int i3  =  iel / (nel1*nel2);
 
-	// Set up nodal point coordinates for current element
+        // Set up nodal point coordinates for current element
         if (!this->getElementCoordinates(Xnod,++iel))
         {
           ok = false;
           break;
         }
 
-	// Initialize element quantities
-	fe.iel = MLGE[doXelms+iel-1];
+        // Initialize element quantities
+        fe.iel = abs(MLGE[doXelms+iel-1]);
         LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
         if (!integrand.initElementBou(MNPC[doXelms+iel-1],*A))
         {
@@ -642,7 +626,7 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
 
 	// --- Integration loop over all Gauss points in each direction --------
 
-	int k1, k2, k3;
+        int k1, k2, k3;
         int jp = (j2*nf1 + j1)*nGP*nGP;
         fe.iGP = firstp + jp; // Global integration point counter
 

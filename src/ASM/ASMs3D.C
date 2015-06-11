@@ -151,21 +151,8 @@ void ASMs3D::clear (bool retainGeometry)
 
 bool ASMs3D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
 {
-  if (dim != 2)
-  {
-    std::cerr <<" *** ASMs3D::addXElms: Invalid boundary dimension "<< dim
-              <<", only 2 (face) is allowed."<< std::endl;
+  if (!this->addXNodes(dim,nXn,nodes))
     return false;
-  }
-  else if (!svol || shareFE == 'F')
-    return false;
-
-  for (size_t i = 0; i < nXn; i++)
-  {
-    if (nodes.size() == i)
-      nodes.push_back(++gNod);
-    myMLGN.push_back(nodes[i]);
-  }
 
   const int n1 = svol->numCoefs(0);
   const int n2 = svol->numCoefs(1);
@@ -174,9 +161,6 @@ bool ASMs3D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
   const int p1 = svol->order(0);
   const int p2 = svol->order(1);
   const int p3 = svol->order(2);
-
-  myMNPC.resize(2*nel);
-  myMLGE.resize(2*nel,0);
 
   int iel = 0;
   bool skipMe = false;
@@ -232,7 +216,7 @@ bool ASMs3D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
         for (size_t i = 0; i < nXn; i++)
           mnpc.push_back(MLGN.size()-nXn+i);
 
-	myMLGE[nel+iel] = ++gEl;
+	myMLGE[nel+iel] = -(++gEl); // Extra-ordinary element => negative sign
       }
 
   return true;
@@ -2262,7 +2246,7 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
       for (size_t l = 0; l < threadGrp[g][t].size() && ok; l++)
       {
         int iel = threadGrp[g][t][l];
-        fe.iel = MLGE[doXelms+iel];
+        fe.iel = abs(MLGE[doXelms+iel]);
         if (fe.iel < 1) continue; // zero-volume element
 
         int i1 = p1 + iel % nel1;

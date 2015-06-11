@@ -43,7 +43,7 @@ public:
   virtual ~ASMstruct();
 
   //! \brief Checks if the patch is empty.
-  virtual bool empty() const { return geo == 0; }
+  virtual bool empty() const { return geo == NULL; }
 
   //! \brief Resets the global element and node counters.
   static void resetNumbering(int n = 0);
@@ -65,6 +65,16 @@ public:
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integr Object with problem-specific data and methods
   virtual Go::GeomObject* evalSolution(const IntegrandBase& integr) const = 0;
+
+protected:
+  //! \brief Adds extraordinary nodes associated with a patch boundary.
+  //! \param[in] dim Dimension of the boundary
+  //! \param[in] nXn Number of extraordinary nodes
+  //! \param[out] nodes Global numbers assigned to the extraordinary nodes
+  //!
+  //! \details This method is only a helper that is used by the addXElms methods
+  //! of the dimension-specific sub-classes.
+  bool addXNodes(unsigned short int dim, size_t nXn, IntVec& nodes);
 
 protected:
   Go::GeomObject* geo; //!< Pointer to the actual spline geometry object

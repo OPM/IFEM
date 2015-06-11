@@ -1307,7 +1307,7 @@ bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, bool withRF)
   myEqSys = new AlgEqSystem(*mySam,adm);
 
   // Workaround SuperLU bug for tiny systems
-  if (mType == SystemMatrix::SPARSE && this->getNoElms() < 3)
+  if (mType == SystemMatrix::SPARSE && this->getNoElms(true) < 3)
   {
     std::cerr <<" ** System too small for SuperLU, falling back to Dense."
               << std::endl;
@@ -1439,9 +1439,16 @@ size_t SIMbase::getNoNodes (bool unique) const
 }
 
 
-size_t SIMbase::getNoElms () const
+size_t SIMbase::getNoElms (bool includeXelms) const
 {
-  return mySam ? mySam->getNoElms() : 0;
+  if (mySam && includeXelms)
+    return mySam->getNoElms();
+
+  size_t noElms = 0;
+  for (size_t i = 0; i < myModel.size(); i++)
+    noElms += myModel[i]->getNoElms(false,includeXelms);
+
+  return noElms;
 }
 
 

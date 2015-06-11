@@ -218,7 +218,12 @@ public:
   //! \brief Returns the total number of nodes in this patch.
   virtual size_t getNoNodes(int basis = 0) const;
   //! \brief Returns the total number of elements in this patch.
-  size_t getNoElms(bool includeZeroVolumeElms = false) const;
+  //! \param[in] includeZeroVolElms If \e true, count all the regular elements
+  //! in the patch, including the zero-volume elements due to multiple knots
+  //! \param[in] includeXElms If \e true, include any extra-ordinary elements
+  //! in the patch (contact and interface elements, but no zero-volume elements)
+  size_t getNoElms(bool includeZeroVolElms = false,
+                   bool includeXElms = false) const;
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char, char) const { return 0; }
   //! \brief Returns the total number of MPC equations in this patch.

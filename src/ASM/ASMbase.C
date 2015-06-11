@@ -230,7 +230,7 @@ int ASMbase::getElmID (size_t iel) const
   if (iel < 1 || iel > MLGE.size())
     return 0;
 
-  return MLGE[iel-1];
+  return abs(MLGE[iel-1]);
 }
 
 
@@ -257,14 +257,15 @@ size_t ASMbase::getNoNodes (int basis) const
 }
 
 
-size_t ASMbase::getNoElms (bool includeZeroVolumeElms) const
+size_t ASMbase::getNoElms (bool includeZeroVolElms, bool includeXElms) const
 {
-  if (includeZeroVolumeElms)
+  if (includeZeroVolElms)
     return nel;
 
   size_t numels = 0;
   for (size_t i = 0; i < MLGE.size(); i++)
-    if (MLGE[i] > 0) numels++;
+    if (MLGE[i] > 0 || (includeXElms && MLGE[i] < 0))
+      numels++;
 
   return numels;
 }

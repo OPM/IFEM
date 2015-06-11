@@ -63,31 +63,14 @@ void ASMs2DLag::clear (bool retainGeometry)
 bool ASMs2DLag::addXElms (short int dim, short int item, size_t nXn,
                           IntVec& nodes)
 {
-  if (dim != 1)
-  {
-    std::cerr <<" *** ASMs2DLag::addXElms: Invalid boundary dimension "<< dim
-              <<", only 1 (edge) is allowed."<< std::endl;
+  if (!this->addXNodes(dim,nXn,nodes))
     return false;
-  }
-  else if (!surf || shareFE == 'F')
-    return false;
-
-  for (size_t i = 0; i < nXn; i++)
-  {
-    if (nodes.size() == i)
-      nodes.push_back(++gNod);
-    myMLGN.push_back(nodes[i]);
-  }
 
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
 
-  // Number of elements in each direction
   const int nelx = (nx-1)/(p1-1);
   const int nely = (ny-1)/(p2-1);
-
-  myMNPC.resize(2*nel);
-  myMLGE.resize(2*nel,0);
 
   int iel = 0;
   bool skipMe = false;
@@ -137,7 +120,7 @@ bool ASMs2DLag::addXElms (short int dim, short int item, size_t nXn,
       for (size_t i = 0; i < nXn; i++)
         mnpc.push_back(MLGN.size()-nXn+i);
 
-      myMLGE[nel+iel] = ++gEl;
+      myMLGE[nel+iel] = -(++gEl); // Flag extraordinary element by negative sign
     }
 
   return true;
@@ -552,7 +535,7 @@ bool ASMs2DLag::integrate (Integrand& integrand, int lIndex,
       if (!this->getElementCoordinates(Xnod,iel)) return false;
 
       // Initialize element quantities
-      fe.iel = MLGE[doXelms+iel-1];
+      fe.iel = abs(MLGE[doXelms+iel-1]);
       LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
       bool ok = integrand.initElementBou(MNPC[doXelms+iel-1],*A);
 

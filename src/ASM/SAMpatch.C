@@ -22,7 +22,7 @@ bool SAMpatch::init (const ASMVec& model, int numNod)
   nnod = numNod;
   for (size_t i = 0; i < model.size(); i++)
   {
-    nel  += model[i]->getNoElms();
+    nel  += model[i]->getNoElms(false,true);
     nceq += model[i]->getNoMPCs();
     if (numNod == 0) nnod += model[i]->getNoNodes();
   }

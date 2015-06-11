@@ -46,3 +46,41 @@ void ASMstruct::resetNumbering (int n)
   gNod = n;
   xNode.clear();
 }
+
+
+bool ASMstruct::addXNodes (unsigned short int dim, size_t nXn, IntVec& nodes)
+{
+  if (dim != ndim-1)
+  {
+    std::cerr <<" *** ASMstruct::addXNodes: Invalid boundary dimension "<< dim
+              <<", only "<< (int)ndim-1 <<" is allowed."<< std::endl;
+    return false;
+  }
+  else if (!geo || shareFE == 'F')
+    return false; // logic error
+
+  else if (MNPC.size() == nel && MLGE.size() == nel)
+  {
+    // Extend the element number and element topology arrays to double size,
+    // to account for extra-ordinary elements associated with contact surfaces
+    myMLGE.resize(2*nel,0);
+    myMNPC.resize(2*nel);
+  }
+  else if (MLGE.size() != 2*nel || MNPC.size() != 2*nel)
+  {
+    // Already added interface elements, currently not allowed
+    std::cerr <<" *** ASMstruct::addXNodes: Already have interface elements."
+              << std::endl;
+    return false;
+  }
+
+  // Add nXn extra-ordinary nodes to the list of global node numbers
+  for (size_t i = 0; i < nXn; i++)
+  {
+    if (nodes.size() == i)
+      nodes.push_back(++gNod);
+    myMLGN.push_back(nodes[i]);
+  }
+
+  return true;
+}

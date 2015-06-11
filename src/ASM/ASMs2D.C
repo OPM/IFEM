@@ -176,30 +176,14 @@ void ASMs2D::clear (bool retainGeometry)
 
 bool ASMs2D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
 {
-  if (dim != 1)
-  {
-    std::cerr <<" *** ASMs2D::addXElms: Invalid boundary dimension "<< dim
-              <<", only 1 (edge) is allowed."<< std::endl;
+  if (!this->addXNodes(dim,nXn,nodes))
     return false;
-  }
-  else if (!surf || shareFE == 'F')
-    return false;
-
-  for (size_t i = 0; i < nXn; i++)
-  {
-    if (nodes.size() == i)
-      nodes.push_back(++gNod);
-    myMLGN.push_back(nodes[i]);
-  }
 
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
 
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
-
-  myMNPC.resize(2*nel);
-  myMLGE.resize(2*nel,0);
 
   int iel = 0;
   bool skipMe = false;
@@ -249,7 +233,7 @@ bool ASMs2D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
       for (size_t i = 0; i < nXn; i++)
         mnpc.push_back(MLGN.size()-nXn+i);
 
-      myMLGE[nel+iel] = ++gEl;
+      myMLGE[nel+iel] = -(++gEl); // Flag extraordinary element by negative sign
     }
 
   return true;
@@ -1937,7 +1921,7 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
   for (int i2 = p2; i2 <= n2; i2++)
     for (int i1 = p1; i1 <= n1; i1++, iel++)
     {
-      fe.iel = MLGE[doXelms+iel-1];
+      fe.iel = abs(MLGE[doXelms+iel-1]);
       if (fe.iel < 1) continue; // zero-area element
 
       // Skip elements that are not on current boundary edge
