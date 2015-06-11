@@ -24,7 +24,7 @@
 class SIM1D : public SIMgeneric
 {
 public:
-  //! \brief Announce dimensionality
+  //! \brief Enum announcing the dimensionality (used for template writing).
   enum { dimension = 1 };
 
   //! \brief Default constructor.
@@ -45,7 +45,7 @@ public:
   //! \param[in] isp The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read
   //! \param[in] unf If non-NULL use specified number of fields
-  virtual ASMbase* readPatch(std::istream& isp, int pchInd,
+  virtual ASMbase* readPatch(std::istream& isp, int pchInd = 0,
                              const unsigned char* unf=nullptr) const;
 
   //! \brief Evaluates the primary solution at the given point.
@@ -95,9 +95,9 @@ protected:
   //! \param[in] ldim Dimension of the boundary item to receive the property
   //! \param[in] dirs Which local DOFs to constrain
   //! \param[in] code In-homogeneous Dirichlet condition property code
-  //! \param basis Basis to apply constraint to (mixed methods)
+  //! \param[in] basis Which basis to apply the constraint to (mixed methods)
   virtual bool addConstraint(int patch, int lndx, int ldim,
-                             int dirs, int code, int&, char basis);
+                             int dirs, int code, int&, char basis = 1);
 
   //! \brief Creates the computational FEM model from the spline patches.
   //! \details Reimplemented to account for twist angle in beam problems.

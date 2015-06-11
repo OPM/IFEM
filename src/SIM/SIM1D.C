@@ -12,9 +12,9 @@
 //==============================================================================
 
 #include "SIM1D.h"
+#include "IFEM.h"
 #include "ASMs1D.h"
 #include "Functions.h"
-#include "IFEM.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
 #include "tinyxml.h"
@@ -363,7 +363,7 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
       double pd = (cline = strtok(NULL," ")) ? atof(cline) : 0.0;
       if (pd == 0.0)
       {
-	if (!this->addConstraint(patch,pvert,0,bcode%1000000,0,ngno,1))
+	if (!this->addConstraint(patch,pvert,0,bcode%1000000,0,ngno))
 	  return false;
       }
       else
@@ -372,7 +372,7 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
 	while (myScalars.find(code) != myScalars.end())
 	  code += 1000000;
 
-	if (!this->addConstraint(patch,pvert,0,bcode%1000000,code,ngno,1))
+	if (!this->addConstraint(patch,pvert,0,bcode%1000000,code,ngno))
 	  return false;
 
 	IFEM::cout <<" ";
@@ -435,7 +435,8 @@ bool SIM1D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
   if (ldim == 0)
     IFEM::cout << " V"<< lndx;
   IFEM::cout <<" in direction(s) "<< dirs;
-  if (code) IFEM::cout <<" code = "<< code;
+  if (code != 0) IFEM::cout <<" code = "<< code;
+  if (basis > 1) IFEM::cout <<" basis = "<< int(basis);
 #if SP_DEBUG > 1
   std::cout << std::endl;
 #endif
@@ -459,13 +460,7 @@ bool SIM1D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 ASMbase* SIM1D::readPatch (std::istream& isp, int pchInd,
                            const unsigned char* unf) const
 {
-  unsigned char unnf;
-  if (unf)
-    unnf = *unf;
-  else
-    unnf = nf;
-
-  ASMbase* pch = ASM1D::create(opt.discretization,nsd,unnf);
+  ASMbase* pch = ASM1D::create(opt.discretization,nsd, unf ? *unf : nf);
   if (pch)
   {
     if (!pch->read(isp))
@@ -562,7 +557,7 @@ ASMbase* SIM1D::createDefaultGeometry (const TiXmlElement* geo) const
   g2.append("\n");
 
   std::istringstream unitLine(g2);
-  return this->readPatch(unitLine,1);
+  return this->readPatch(unitLine);
 }
 
 

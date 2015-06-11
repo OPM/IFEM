@@ -451,12 +451,12 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
 
       if (pface > 10)
       {
-        if (!this->addConstraint(patch,pface%10,pface/10,pd,bcode,1))
+        if (!this->addConstraint(patch,pface%10,pface/10,pd,bcode))
           return false;
       }
       else if (pd == 0.0)
       {
-        if (!this->addConstraint(patch,pface,ldim,bcode%1000000,0,ngno,1))
+        if (!this->addConstraint(patch,pface,ldim,bcode%1000000,0,ngno))
           return false;
       }
       else
@@ -465,7 +465,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
         while (myScalars.find(code) != myScalars.end())
           code += 1000000;
 
-        if (!this->addConstraint(patch,pface,ldim,bcode%1000000,-code,ngno,1))
+        if (!this->addConstraint(patch,pface,ldim,bcode%1000000,-code,ngno))
           return false;
 
         IFEM::cout <<" ";
@@ -539,9 +539,9 @@ bool SIM3D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
   IFEM::cout <<" in direction(s) "<< dirs;
   if (lndx < 0) IFEM::cout << (project ? " (local projected)" : " (local)");
   if (code != 0) IFEM::cout <<" code = "<< abs(code);
-  IFEM::cout << " basis = " << (int)basis;
+  if (basis > 1) IFEM::cout <<" basis = "<< (int)basis;
 #if SP_DEBUG > 1
-  IFEM::cout << std::endl;
+  std::cout << std::endl;
 #endif
 
   // Must dynamic cast here, since ASM3D is not derived from ASMbase
@@ -685,7 +685,8 @@ ASMbase* SIM3D::readPatch (std::istream& isp, int pchInd,
       pch->idx = myModel.size();
   }
   if (checkRHSys && pch)
-    dynamic_cast<ASM3D*>(pch)->checkRightHandSystem();
+    if (dynamic_cast<ASM3D*>(pch)->checkRightHandSystem())
+      IFEM::cout <<"\tSwapped."<< std::endl;
 
   return pch;
 }
@@ -711,7 +712,8 @@ bool SIM3D::readPatches (std::istream& isp, PatchVec& patches,
         pch->idx = patches.size();
         patches.push_back(pch);
         if (checkRHSys)
-          dynamic_cast<ASM3D*>(pch)->checkRightHandSystem();
+          if (dynamic_cast<ASM3D*>(pch)->checkRightHandSystem())
+            IFEM::cout <<"\tSwapped."<< std::endl;
       }
   }
 
@@ -791,7 +793,7 @@ ASMbase* SIM3D::createDefaultGeometry (const TiXmlElement* geo) const
   }
 
   std::istringstream unitCube(g2);
-  return this->readPatch(unitCube,1);
+  return this->readPatch(unitCube);
 }
 
 

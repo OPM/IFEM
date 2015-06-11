@@ -19,14 +19,14 @@
 
 /*!
   \brief Driver class for 3D NURBS-based FEM solver.
-  \details The class implements the parse method of the parent class, and can
-  be used for any 3D continuum problem.
+  \details The class implements the parse method of the parent class,
+  and can be used for any 3D continuum problem.
 */
 
 class SIM3D : public SIMgeneric
 {
 public:
-  //! \brief Announce dimensionality
+  //! \brief Enum announcing the dimensionality (used for template writing).
   enum { dimension = 3 };
 
   //! \brief Default constructor.
@@ -49,7 +49,7 @@ public:
   //! \param[in] isp The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read
   //! \param[in] unf If non-NULL use specified number of fields
-  virtual ASMbase* readPatch(std::istream& isp, int pchInd,
+  virtual ASMbase* readPatch(std::istream& isp, int pchInd = 0,
                              const unsigned char* unf=nullptr) const;
 
   //! \brief Evaluates the primary solution at the given point.
@@ -92,11 +92,11 @@ protected:
   //! \param[in] oneBased If \e true the read node numbers are assumed
   //! one-based. If \e false they are assumed to be zero-based.
   virtual bool readNodes(std::istream& isn, int pchInd, int basis = 0,
-			 bool oneBased = false);
+                         bool oneBased = false);
 
   //! \brief Reads node numbers from given input stream.
   //! \param[in] isn The file stream to read from
-  void readNodes(std::istream& isn);
+  virtual void readNodes(std::istream& isn);
 
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   //! \param[in] patch 1-based index of the patch to receive the property
@@ -105,9 +105,9 @@ protected:
   //! \param[in] dirs Which local DOFs to constrain
   //! \param[in] code In-homegeneous Dirichlet condition property code
   //! \param ngnod Total number of global nodes in the model (might be updated)
-  //! \param basis Basis to apply property to (mixed methods)
+  //! \param[in] basis Which basis to apply the constraint to (mixed methods)
   virtual bool addConstraint(int patch, int lndx, int ldim,
-			     int dirs, int code, int& ngnod, char basis);
+                             int dirs, int code, int& ngnod, char basis = 1);
 
   //! \brief Constrains a parametric line on a boundary face.
   //! \param[in] patch 1-based index of the patch to receive the property
@@ -115,9 +115,9 @@ protected:
   //! \param[in] line Local direction of the line on the face (1=I, 2=J)
   //! \param[in] xi Relative coordinate [0,1] defining the line placement
   //! \param[in] dirs Which local DOFs to constrain
-  //! \param basis Basis to apply property to (mixed methods)
+  //! \param[in] basis Which basis to apply the constraint to (mixed methods)
   bool addConstraint(int patch, int lndx, int line, double xi,
-                     int dirs, char basis);
+                     int dirs, char basis = 1);
 
   //! \brief Creates a default single-patch geometry.
   virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const;

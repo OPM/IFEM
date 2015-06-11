@@ -54,7 +54,7 @@ public:
   //! \param[in] isp The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read
   //! \param[in] unf If non-NULL use specified number of fields
-  virtual ASMbase* readPatch(std::istream& isp, int pchInd,
+  virtual ASMbase* readPatch(std::istream& isp, int pchInd = 0,
                              const unsigned char* unf=nullptr) const;
 
   //! \brief Evaluates the primary solution at the given point.
@@ -96,7 +96,7 @@ protected:
   //! \param[in] oneBased If \e true the read node numbers are assumed
   //! one-based. If \e false they are assumed to be zero-based.
   virtual bool readNodes(std::istream& isn, int pchInd, int basis = 0,
-			 bool oneBased = false);
+                         bool oneBased = false);
 
   //! \brief Reads node numbers from given input stream.
   //! \param[in] isn The file stream to read from
@@ -109,8 +109,9 @@ protected:
   //! \param[in] dirs Which local DOFs to constrain
   //! \param[in] code In-homegeneous Dirichlet condition property code
   //! \param ngnod Total number of global nodes in the model (might be updated)
+  //! \param[in] basis Which basis to apply the constraint to (mixed methods)
   virtual bool addConstraint(int patch, int lndx, int ldim,
-			     int dirs, int code, int& ngnod, char basis);
+                             int dirs, int code, int& ngnod, char basis = 1);
 
   //! \brief Creates a default single-patch geometry.
   virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const;
