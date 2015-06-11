@@ -133,7 +133,7 @@ bool ASMs2D::read (std::istream& is)
   }
   else if (surf->dimension() < nsd)
   {
-    std::cout <<"  ** ASMs2D::read: The dimension of this surface patch "
+    std::cerr <<"  ** ASMs2D::read: The dimension of this surface patch "
 	      << surf->dimension() <<" is less than nsd="<< (int)nsd
 	      <<".\n                   Resetting nsd to "<< surf->dimension()
 	      <<" for this patch."<< std::endl;
@@ -287,7 +287,6 @@ bool ASMs2D::checkRightHandSystem ()
   // This patch has a negative Jacobian determinant. Probably it is modelled
   // in a left-hand-system. Swap the v-parameter direction to correct for this.
   surf->reverseParameterDirection(false);
-  std::cout <<"\tSwapped."<< std::endl;
   return swapV = true;
 }
 
@@ -1364,18 +1363,23 @@ const Vector& ASMs2D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
 }
 
 
-void ASMs2D::getElementCorners (int i1, int i2, Vec3Vec& XC) const
+void ASMs2D::getElementBorders (int i1, int i2, double* u, double* v) const
 {
   RealArray::const_iterator uit = surf->basis(0).begin();
   RealArray::const_iterator vit = surf->basis(1).begin();
-
-  // Fetch parameter values of the element (knot-span) corners
-  RealArray u(2), v(2);
   for (int i = 0; i < 2; i++)
   {
     u[i] = uit[i1+i];
     v[i] = vit[i2+i];
   }
+}
+
+
+void ASMs2D::getElementCorners (int i1, int i2, Vec3Vec& XC) const
+{
+  // Fetch parameter values of the element (knot-span) corners
+  RealArray u(2), v(2);
+  this->getElementBorders(i1,i2,u.data(),v.data());
 
   // Evaluate the spline surface at the corners to find physical coordinates
   int dim = surf->dimension();
@@ -1843,6 +1847,147 @@ bool ASMs2D::integrate (Integrand& integrand,
   }
 
   return ok;
+}
+
+
+bool ASMs2D::integrate (Integrand& integrand,
+                        GlobalIntegral& glInt,
+                        const TimeDomain& time,
+                        const InterfaceChecker& iChk)
+{
+  if (!surf) return true; // silently ignore empty patches
+  if (!(integrand.getIntegrandType() & Integrand::INTERFACE_TERMS)) return true;
+
+  PROFILE2("ASMs2D::integrate(J)");
+
+  // Get Gaussian quadrature points and weights
+  const double* xg = GaussQuadrature::getCoord(nGauss);
+  const double* wg = GaussQuadrature::getWeight(nGauss);
+  if (!xg || !wg) return false;
+
+  const int p1 = surf->order_u();
+  const int p2 = surf->order_v();
+  const int n1 = surf->numCoefs_u();
+  const int n2 = surf->numCoefs_v();
+
+  FiniteElement fe(p1*p2);
+  Matrix        dNdu, Xnod, Jac;
+  Vec4          X;
+  Vec3          normal;
+  double        u[2], v[2];
+
+
+  // === Assembly loop over all elements in the patch ==========================
+
+  int iel = 0;
+  for (int i2 = p2; i2 <= n2; i2++)
+    for (int i1 = p1; i1 <= n1; i1++, iel++)
+    {
+      fe.iel = MLGE[iel];
+      if (fe.iel < 1) continue; // zero-area element
+
+      short int status = iChk.hasContribution(i1,i2);
+      if (!status) continue; // no interface contributions for this element
+
+#if SP_DEBUG > 3
+      std::cout <<"\n\nIntegrating interface terms for element "<< fe.iel
+                << std::endl;
+#endif
+
+      // Set up control point (nodal) coordinates for current element
+      if (!this->getElementCoordinates(Xnod,1+iel)) return false;
+
+      // Compute parameter values of the element edges
+      this->getElementBorders(i1-1,i2-1,u,v);
+
+      if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+        this->getElementCorners(i1-1,i2-1,fe.XC);
+
+      // Initialize element quantities
+      LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
+      bool ok = integrand.initElement(MNPC[iel],*A);
+
+      // Loop over the element edges with contributions
+      for (int iedge = 1; iedge <= 4 && status > 0 && ok; iedge++, status /= 2)
+        if (status%2 == 1)
+        {
+          // Find the parametric direction of the edge normal {-2,-1, 1, 2}
+          const int edgeDir = (iedge+1)/(iedge%2 ? -2 : 2);
+          const int t1 = abs(edgeDir);   // Tangent direction normal to the edge
+          const int t2 = 3-abs(edgeDir); // Tangent direction along the edge
+
+          // Get element edge length in the parameter space
+          double dS = 0.5*this->getParametricLength(1+iel,t2);
+          if (dS < 0.0) ok = false; // topology error (probably logic error)
+
+
+          // --- Integration loop over all Gauss points along the edge ---------
+
+          for (int i = 0; i < nGauss && ok; i++)
+          {
+            // Local element coordinates and parameter values
+            // of current integration point
+            if (t1 == 1)
+            {
+              fe.xi = edgeDir;
+              fe.eta = xg[i];
+              fe.u = edgeDir > 0 ? u[1] : u[0];
+              fe.v = 0.5*((v[1]-v[0])*xg[i] + v[1]+v[0]);
+              fe.p = p1 - 1;
+            }
+            else
+            {
+              fe.xi = xg[i];
+              fe.eta = edgeDir/2;
+              fe.u = 0.5*((u[1]-u[0])*xg[i] + u[1]+u[0]);
+              fe.v = edgeDir > 0 ? v[1] : v[0];
+              fe.p = p2 - 1;
+            }
+
+            // Fetch basis function derivatives at current integration point
+            this->extractBasis(fe.u,fe.v, fe.N, dNdu, edgeDir < 0);
+
+            // Compute basis function derivatives and the edge normal
+            fe.detJxW = utl::Jacobian(Jac,normal,fe.dNdX,Xnod,dNdu,t1,t2);
+            if (fe.detJxW == 0.0) continue; // skip singular points
+
+            if (edgeDir < 0) normal *= -1.0;
+
+            // Cartesian coordinates of current integration point
+            X = Xnod * fe.N;
+            X.t = time.t;
+
+            if (integrand.getIntegrandType() & Integrand::NORMAL_DERIVS)
+            {
+              // Compute the p'th order derivative in the normal direction
+              if (fe.p == 1)
+                fe.N = dNdu.getColumn(t1);
+              else if (fe.p > 1)
+                this->extractBasis(fe.u,fe.v,t1,fe.p, fe.N, edgeDir < 0);
+
+#if SP_DEBUG > 4
+              std::cout <<"\niel, xi,eta = "<< fe.iel
+                        <<" "<< fe.xi <<" "<< fe.eta
+                        <<"\ndN ="<< fe.N <<"dNdX ="<< fe.dNdX;
+#endif
+            }
+
+            // Evaluate the integrand and accumulate element contributions
+            fe.detJxW *= dS*wg[i];
+            ok = integrand.evalInt(*A,fe,time,X,normal);
+          }
+        }
+
+      // Assembly of global system integral
+      if (ok && !glInt.assemble(A->ref(),fe.iel))
+        ok = false;
+
+      A->destruct();
+
+      if (!ok) return false;
+    }
+
+  return true;
 }
 
 
@@ -2450,18 +2595,48 @@ bool ASMs2D::getNoStructElms (int& n1, int& n2, int& n3) const
 }
 
 
-void ASMs2D::extractBasis (double u, double v, Vector& N, Matrix& dNdu) const
+void ASMs2D::extractBasis (double u, double v, Vector& N,
+                           Matrix& dNdu, bool fromRight) const
 {
   Go::BasisDerivsSf spline;
-  surf->computeBasis(u,v,spline);
+  surf->computeBasis(u,v,spline,fromRight);
   SplineUtils::extractBasis(spline,N,dNdu);
 }
 
 
 void ASMs2D::extractBasis (double u, double v, Vector& N,
-                           Matrix& dNdu, Matrix3D& d2Ndu2) const
+                           Matrix& dNdu, Matrix3D& d2Ndu2, bool fromRight) const
 {
   Go::BasisDerivsSf2 spline;
-  surf->computeBasis(u,v,spline);
+  surf->computeBasis(u,v,spline,fromRight);
   SplineUtils::extractBasis(spline,N,dNdu,d2Ndu2);
+}
+
+
+void ASMs2D::extractBasis (double u, double v, int dir, int p,
+                           Vector& dN, bool fromRight) const
+{
+  Go::BasisDerivsSfU spline;
+  surf->computeBasis(u,v,p,spline,fromRight);
+  dN.resize(spline.values.size());
+  dir += 2*p-2;
+  for (size_t i = 0; i < spline.values.size(); i++)
+    dN[i] = spline.values[i][dir];
+}
+
+
+short int ASMs2D::InterfaceChecker::hasContribution (int I, int J) const
+{
+  bool neighbor[4];
+  neighbor[0] = I > myPatch.surf->order_u();    // West neighbor
+  neighbor[1] = I < myPatch.surf->numCoefs_u(); // East neighbor
+  neighbor[2] = J > myPatch.surf->order_v();    // South neighbor
+  neighbor[3] = J < myPatch.surf->numCoefs_v(); // North neighbor
+
+  // Check for existing neighbors
+  short int status = 0, s = 1;
+  for (short int i = 0; i < 4; i++, s *= 2)
+    if (neighbor[i]) status += s;
+
+  return status;
 }

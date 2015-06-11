@@ -201,14 +201,6 @@ public:
   virtual bool integrate(Integrand& integrand,
                          GlobalIntegral& glbInt, const TimeDomain& time);
 
-  //! \brief Evaluates an integral over the interior patch domain.
-  //! \param integrand Object with problem-specific data and methods
-  //! \param glbInt The integrated quantity
-  //! \param[in] time Parameters for nonlinear/time-dependent simulations
-  //! \param[in] itgPts Parameters and weights of the integration points
-  virtual bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
-			 const TimeDomain& time, const Real3DMat& itgPts);
-
   //! \brief Evaluates a boundary integral over a patch edge.
   //! \param integrand Object with problem-specific data and methods
   //! \param[in] lIndex Local index of the boundary edge
@@ -217,6 +209,16 @@ public:
   virtual bool integrate(Integrand& integrand, int lIndex,
                          GlobalIntegral& glbInt, const TimeDomain& time);
 
+protected:
+  //! \brief Evaluates an integral over the interior patch domain.
+  //! \param integrand Object with problem-specific data and methods
+  //! \param glbInt The integrated quantity
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
+  //! \param[in] itgPts Parameters and weights of the integration points
+  bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
+                 const TimeDomain& time, const Real3DMat& itgPts);
+
+public:
 
   // Post-processing methods
   // =======================

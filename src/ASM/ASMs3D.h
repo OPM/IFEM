@@ -14,8 +14,8 @@
 #ifndef _ASM_S3D_H
 #define _ASM_S3D_H
 
-#include "ASM3D.h"
 #include "ASMstruct.h"
+#include "ASM3D.h"
 #include "ThreadGroups.h"
 
 namespace Go {
@@ -101,6 +101,23 @@ private:
     //! \brief Default constructor.
     DirichletFace(Go::SplineSurface* ss = NULL, int d = 0, int c = 0)
     : surf(ss), dof(d), code(c) {}
+  };
+
+protected:
+  //! \brief Base class that checks if an element has interface contributions.
+  class InterfaceChecker
+  {
+    const ASMs3D& myPatch; //!< Reference to the patch being integrated
+  public:
+    //! \brief The constructor initialises the reference to current patch.
+    InterfaceChecker(const ASMs3D& pch) : myPatch(pch) {}
+    //! \brief Empty destructor.
+    virtual ~InterfaceChecker() {}
+    //! \brief Returns non-zero if the specified element have contributions.
+    //! \param[in] I Index in first parameter direction of the element
+    //! \param[in] J Index in second parameter direction of the element
+    //! \param[in] K Index in third parameter direction of the element
+    virtual short int hasContribution(int I, int J, int K) const;
   };
 
 public:
@@ -277,7 +294,7 @@ public:
   //! the node at the beginning or the end of that parameter direction.
   //! The magnitude of the indices are not used.
   virtual void constrainCorner(int I, int J, int K, int dof,
-		               int code = 0, char basis = 1);
+                               int code = 0, char basis = 1);
   //! \brief Constrains a node identified by three relative parameter values.
   //! \param[in] xi Parameter in u-direction
   //! \param[in] eta Parameter in v-direction
@@ -292,7 +309,7 @@ public:
   //! \a r*n, where \a r denotes the given relative parameter value,
   //! and \a n is the number of nodes along that parameter direction.
   virtual void constrainNode(double xi, double eta, double zeta, int dof,
-		             int code = 0, char basis = 1);
+                             int code = 0, char basis = 1);
 
   //! \brief Connects all matching nodes on two adjacent boundary faces.
   //! \param[in] face Local face index of this patch, in range [1,6]
@@ -305,8 +322,7 @@ public:
   //! - left digit = 1: The u and v parameters of the neighbor face are swapped
   //! - middle digit = 1: Parameter \a u in neighbor patch face is reversed
   //! - right digit = 1: Parameter \a v in neighbor patch face is reversed
-  virtual bool connectPatch(int face, ASMs3D& neighbor, int nface,
-			    int norient = 0);
+  virtual bool connectPatch(int face, ASMs3D& neighbor, int nface, int norient);
 
   //! \brief Makes two opposite boundary faces periodic.
   //! \param[in] dir Parameter direction defining the periodic faces
@@ -337,15 +353,7 @@ public:
   //! \param glbInt The integrated quantity
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   virtual bool integrate(Integrand& integrand,
-			 GlobalIntegral& glbInt, const TimeDomain& time);
-
-  //! \brief Evaluates an integral over the interior patch domain.
-  //! \param integrand Object with problem-specific data and methods
-  //! \param glbInt The integrated quantity
-  //! \param[in] time Parameters for nonlinear/time-dependent simulations
-  //! \param[in] itgPts Parameters and weights of the integration points
-  virtual bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
-			 const TimeDomain& time, const Real3DMat& itgPts);
+                         GlobalIntegral& glbInt, const TimeDomain& time);
 
   //! \brief Evaluates a boundary integral over a patch face.
   //! \param integrand Object with problem-specific data and methods
@@ -353,7 +361,7 @@ public:
   //! \param glbInt The integrated quantity
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   virtual bool integrate(Integrand& integrand, int lIndex,
-			 GlobalIntegral& glbInt, const TimeDomain& time);
+                         GlobalIntegral& glbInt, const TimeDomain& time);
 
   //! \brief Evaluates a boundary integral over a patch edge.
   //! \param integrand Object with problem-specific data and methods
@@ -361,8 +369,26 @@ public:
   //! \param glbInt The integrated quantity
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   virtual bool integrateEdge(Integrand& integrand, int lEdge,
-			     GlobalIntegral& glbInt, const TimeDomain& time);
+                             GlobalIntegral& glbInt, const TimeDomain& time);
 
+protected:
+  //! \brief Evaluates an integral over the interior patch domain.
+  //! \param integrand Object with problem-specific data and methods
+  //! \param glbInt The integrated quantity
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
+  //! \param[in] itgPts Parameters and weights of the integration points
+  bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
+                 const TimeDomain& time, const Real3DMat& itgPts);
+
+  //! \brief Evaluates an integral over element interfaces in the patch.
+  //! \param integrand Object with problem-specific data and methods
+  //! \param glbInt The integrated quantity
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
+  //! \param[in] iChk Object checking if an element interface has contributions
+  bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
+                 const TimeDomain& time, const InterfaceChecker& iChk);
+
+public:
 
   // Post-processing methods
   // =======================
@@ -541,6 +567,16 @@ protected:
   //! \param[in] dir Local face index of the boundary face
   double getParametricArea(int iel, int dir) const;
 
+  //! \brief Computes the element border parameters.
+  //! \param[in] i1 Parameter index in u-direction
+  //! \param[in] i2 Parameter index in v-direction
+  //! \param[in] i3 Parameter index in w-direction
+  //! \param[out] u Parameter values of the west-east borders
+  //! \param[out] v Parameter values of the south-north borders
+  //! \param[out] w Parameter values of the back-front borders
+  void getElementBorders(int i1, int i2, int i3,
+                         double* u, double* v, double* w) const;
+
   //! \brief Computes the element corner coordinates.
   //! \param[in] i1 Parameter index in u-direction
   //! \param[in] i2 Parameter index in v-direction
@@ -590,8 +626,9 @@ public:
   //! \param[in] w Third parameter value of current integration point
   //! \param[out] N Basis function values
   //! \param[out] dNdu First derivatives of basis functions
-  void extractBasis(double u, double v, double w, Vector& N,
-                    Matrix& dNdu) const;
+  //! \param[in] fromRight If \e true, evaluate from right if at a knot
+  void extractBasis(double u, double v, double w, Vector& N, Matrix& dNdu,
+                    bool fromRight = true) const;
   //! \brief Establishes matrices with basis functions, 1st and 2nd derivatives.
   //! \param[in] u First parameter value of current integration point
   //! \param[in] v Second parameter value of current integration point
@@ -599,8 +636,20 @@ public:
   //! \param[out] N Basis function values
   //! \param[out] dNdu First derivatives of basis functions
   //! \param[out] d2Ndu2 Second derivatives of basis functions
+  //! \param[in] fromRight If \e true, evaluate from right if at a knot
   void extractBasis(double u, double v, double w, Vector& N,
-                    Matrix& dNdu, Matrix3D& d2Ndu2) const;
+                    Matrix& dNdu, Matrix3D& d2Ndu2,
+                    bool fromRight = true) const;
+  //! \brief Establishes a vector with basis function derivatives.
+  //! \param[in] u First parameter value of current integration point
+  //! \param[in] v Second parameter value of current integration point
+  //! \param[in] w Third parameter value of current integration point
+  //! \param[in] dir Which parameter to establish derivatives with respect to
+  //! \param[in] p The derivation order
+  //! \param[out] dN Basis function derivatives
+  //! \param[in] fromRight If \e true, evaluate from right if at a knot
+  void extractBasis(double u, double v, double w, int dir, int p, Vector& dN,
+                    bool fromRight = true) const;
 
 private:
   //! \brief Returns an index into the internal coefficient array for a node.

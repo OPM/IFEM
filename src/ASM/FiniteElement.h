@@ -27,7 +27,7 @@ class FiniteElement
 {
 public:
   //! \brief Default constructor.
-  FiniteElement(size_t n = 0, size_t i = 0) : iel(0), iGP(i), N(n), Te(3)
+  FiniteElement(size_t n = 0, size_t i = 0) : iel(0), iGP(i), N(n), p(0), Te(3)
   { u = v = w = xi = eta = zeta = 0.0; detJxW = 1.0; }
 
   //! \brief Empty destructor.
@@ -50,6 +50,7 @@ public:
   Matrix   G;      //!< Matrix used for stabilized methods
 
   // Element quantities
+  short int           p;    //!< Polynomial order of the basis functions
   Vec3Vec             XC;   //!< Array with element corner coordinate vectors
   Vector              Navg; //!< Volume-averaged basis function values
   Matrix              Xn;   //!< Matrix of element nodal coordinates

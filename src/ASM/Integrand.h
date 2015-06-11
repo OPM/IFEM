@@ -139,10 +139,12 @@ public:
     SECOND_DERIVATIVES = 2, //!< Integrand wants second derivatives
     AVERAGE            = 4, //!< Integrand wants basis function averages
     ELEMENT_CORNERS    = 8, //!< Integrand wants element corner coordinates
-    ELEMENT_CENTER     = 16,//!< Integrand wants element center coordinates
-    G_MATRIX           = 32,//!< Integrand wants the G matrix
-    NODAL_ROTATIONS    = 64,//!< Integrand wants nodal rotation tesnros
-    XO_ELEMENTS        = 128//!< Integrand is defined on extraordinary elements
+    ELEMENT_CENTER    = 16, //!< Integrand wants element center coordinates
+    G_MATRIX          = 32, //!< Integrand wants the G matrix
+    NODAL_ROTATIONS   = 64, //!< Integrand wants nodal rotation tensors
+    XO_ELEMENTS      = 128, //!< Integrand is defined on extraordinary elements
+    INTERFACE_TERMS  = 256, //!< Integrand has element interface terms
+    NORMAL_DERIVS    = 512  //!< Integrand p'th order normal derivatives
   };
 
   //! \brief Defines which FE quantities are needed by the integrand.
@@ -193,6 +195,22 @@ public:
 			 const TimeDomain& time, const Vec3& X) const
   {
     return this->evalIntMx(elmInt,fe,X);
+  }
+
+  //! \brief Evaluates the integrand at an element interface point.
+  //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe Finite element data of current integration point
+  //! \param[in] time Parameters for nonlinear and time-dependent simulations
+  //! \param[in] X Cartesian coordinates of current integration point
+  //! \param[in] normal Interface normal vector at current integration point
+  //!
+  //! \details The default implementation forwards to the stationary version.
+  //! Reimplement this method for time-dependent or non-linear problems.
+  virtual bool evalInt(LocalIntegral& elmInt, const FiniteElement& fe,
+                       const TimeDomain& time,
+                       const Vec3& X, const Vec3& normal) const
+  {
+    return this->evalInt(elmInt,fe,X,normal);
   }
 
   //! \brief Finalizes the element quantities after the numerical integration.
@@ -267,6 +285,9 @@ protected:
   //! \brief Evaluates the integrand at interior points for stationary problems.
   virtual bool evalIntMx(LocalIntegral&, const MxFiniteElement& fe,
 			 const Vec3&) const { return false; }
+  //! \brief Evaluates the integrand at interface points for stationary problems.
+  virtual bool evalInt(LocalIntegral&, const FiniteElement& fe,
+                       const Vec3&, const Vec3&) const { return false; }
 
   //! \brief Evaluates the integrand at boundary points for stationary problems.
   virtual bool evalBou(LocalIntegral&, const FiniteElement&,
@@ -274,6 +295,7 @@ protected:
   //! \brief Evaluates the integrand at boundary points for stationary problems.
   virtual bool evalBouMx(LocalIntegral&, const MxFiniteElement&,
 			 const Vec3&, const Vec3&) const { return false; }
+
   //! \brief Finalizes the element quantities, basic interface.
   virtual bool finalizeElement(LocalIntegral&) { return true; }
 };

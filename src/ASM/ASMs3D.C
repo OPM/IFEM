@@ -271,7 +271,6 @@ bool ASMs3D::checkRightHandSystem ()
   // This patch has a negative Jacobian determinant. Probably it is modelled
   // in a left-hand-system. Swap the w-parameter direction to correct for this.
   svol->reverseParameterDirection(2);
-  std::cout <<"\tSwapped."<< std::endl;
   return swapW = true;
 }
 
@@ -1658,20 +1657,27 @@ const Vector& ASMs3D::getGaussPointParameters (Matrix& uGP, int dir, int nGauss,
 }
 
 
-void ASMs3D::getElementCorners (int i1, int i2, int i3, Vec3Vec& XC) const
+void ASMs3D::getElementBorders (int i1, int i2, int i3,
+                                double* u, double* v, double* w) const
 {
   RealArray::const_iterator uit = svol->basis(0).begin();
   RealArray::const_iterator vit = svol->basis(1).begin();
   RealArray::const_iterator wit = svol->basis(2).begin();
 
-  // Fetch parameter values of the element (knot-span) corners
-  RealArray u(2), v(2), w(2);
   for (int i = 0; i < 2; i++)
   {
     u[i] = uit[i1+i];
     v[i] = vit[i2+i];
     w[i] = wit[i3+i];
   }
+}
+
+
+void ASMs3D::getElementCorners (int i1, int i2, int i3, Vec3Vec& XC) const
+{
+  // Fetch parameter values of the element (knot-span) corners
+  RealArray u(2), v(2), w(2);
+  this->getElementBorders(i1,i2,i3,u.data(),v.data(),w.data());
 
   // Evaluate the spline volume at the corners to find physical coordinates
   int dim = svol->dimension();
@@ -2144,6 +2150,19 @@ bool ASMs3D::integrate (Integrand& integrand,
   }
 
   return ok;
+}
+
+ 
+bool ASMs3D::integrate (Integrand& integrand,
+                        GlobalIntegral& glInt,
+                        const TimeDomain& time,
+                        const InterfaceChecker& iChk)
+{
+  if (!svol) return true; // silently ignore empty patches
+  if (!(integrand.getIntegrandType() & Integrand::INTERFACE_TERMS)) return true;
+
+  std::cerr << __PRETTY_FUNCTION__ <<": Not implemented yet."<< std::endl;
+  return false;
 }
 
 
@@ -3085,18 +3104,52 @@ bool ASMs3D::getNoStructElms (int& n1, int& n2, int& n3) const
 
 
 void ASMs3D::extractBasis (double u, double v, double w,
-                           Vector& N, Matrix& dNdu) const
+                           Vector& N, Matrix& dNdu, bool fromRight) const
 {
   Go::BasisDerivs spline;
-  svol->computeBasis(u,v,w,spline);
+  svol->computeBasis(u,v,w,spline,fromRight);
   SplineUtils::extractBasis(spline,N,dNdu);
 }
 
 
 void ASMs3D::extractBasis (double u, double v, double w, Vector& N,
-                           Matrix& dNdu, Matrix3D& d2Ndu2) const
+                           Matrix& dNdu, Matrix3D& d2Ndu2, bool fromRight) const
 {
   Go::BasisDerivs2 spline;
-  svol->computeBasis(u,v,w,spline);
+  svol->computeBasis(u,v,w,spline,fromRight);
   SplineUtils::extractBasis(spline,N,dNdu,d2Ndu2);
 }
+
+
+void ASMs3D::extractBasis (double u, double v, double w, int dir, int p,
+                           Vector& dN, bool fromRight) const
+{
+  /* TODO: Missing GoTools function
+  Go::BasisDerivsU spline;
+  svol->computeBasis(u,v,w,p,spline,fromRight);
+  dN.resize(spline.values.size());
+  dir += 3*p-3;
+  for (size_t i = 0; i < spline.values.size(); i++)
+    dN[i] = spline.values[i][dir];
+  */
+}
+
+
+short int ASMs3D::InterfaceChecker::hasContribution (int I, int J, int K) const
+{
+  bool neighbor[6];
+  neighbor[0] = I > myPatch.svol->order(0);    // West neighbor
+  neighbor[1] = I < myPatch.svol->numCoefs(0); // East neighbor
+  neighbor[2] = J > myPatch.svol->order(1);    // South neighbor
+  neighbor[3] = J < myPatch.svol->numCoefs(1); // North neighbor
+  neighbor[4] = K > myPatch.svol->order(2);    // Back neighbor
+  neighbor[5] = K < myPatch.svol->numCoefs(2); // Front neighbor
+
+  // Check for existing neighbors
+  short int status = 0, s = 1;
+  for (short int i = 0; i < 6; i++, s *= 2)
+    if (neighbor[i]) status += s;
+
+  return status;
+}
+

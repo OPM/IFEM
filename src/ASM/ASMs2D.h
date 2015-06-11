@@ -84,6 +84,22 @@ private:
     : curve(sc), dof(d), code(c) {}
   };
 
+protected:
+  //! \brief Base class that checks if an element has interface contributions.
+  class InterfaceChecker
+  {
+    const ASMs2D& myPatch; //!< Reference to the patch being integrated
+  public:
+    //! \brief The constructor initialises the reference to current patch.
+    InterfaceChecker(const ASMs2D& pch) : myPatch(pch) {}
+    //! \brief Empty destructor.
+    virtual ~InterfaceChecker() {}
+    //! \brief Returns non-zero if the specified element have contributions.
+    //! \param[in] I Index in first parameter direction of the element
+    //! \param[in] J Index in second parameter direction of the element
+    virtual short int hasContribution(int I, int J) const;
+  };
+
 public:
   //! \brief Default constructor.
   ASMs2D(unsigned char n_s = 2, unsigned char n_f = 2);
@@ -276,24 +292,34 @@ public:
   //! \param glbInt The integrated quantity
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   virtual bool integrate(Integrand& integrand,
-			 GlobalIntegral& glbInt, const TimeDomain& time);
+                         GlobalIntegral& glbInt, const TimeDomain& time);
 
+  //! \brief Evaluates a boundary integral over a patch edge.
+  //! \param integrand Object with problem-specific data and methods
+  //! \param[in] lIndex Local index [1,4] of the boundary edge
+  //! \param glbInt The integrated quantity
+  //! \param[in] time Parameters for nonlinear/time-dependent simulations
+  virtual bool integrate(Integrand& integrand, int lIndex,
+                         GlobalIntegral& glbInt, const TimeDomain& time);
+
+protected:
   //! \brief Evaluates an integral over the interior patch domain.
   //! \param integrand Object with problem-specific data and methods
   //! \param glbInt The integrated quantity
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   //! \param[in] itgPts Parameters and weights of the integration points
-  virtual bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
-			 const TimeDomain& time, const Real3DMat& itgPts);
+  bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
+                 const TimeDomain& time, const Real3DMat& itgPts);
 
-  //! \brief Evaluates a boundary integral over a patch edge.
+  //! \brief Evaluates an integral over element interfaces in the patch.
   //! \param integrand Object with problem-specific data and methods
-  //! \param[in] lIndex Local index of the boundary edge
   //! \param glbInt The integrated quantity
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
-  virtual bool integrate(Integrand& integrand, int lIndex,
-			 GlobalIntegral& glbInt, const TimeDomain& time);
+  //! \param[in] iChk Object checking if an element interface has contributions
+  bool integrate(Integrand& integrand, GlobalIntegral& glbInt,
+                 const TimeDomain& time, const InterfaceChecker& iChk);
 
+public:
 
   // Post-processing methods
   // =======================
@@ -475,6 +501,13 @@ protected:
   //! \param[in] dir Local index of the boundary edge
   double getParametricLength(int iel, int dir) const;
 
+  //! \brief Computes the element border parameters.
+  //! \param[in] i1 Parameter index in u-direction
+  //! \param[in] i2 Parameter index in v-direction
+  //! \param[out] u Parameter values of the west-east borders
+  //! \param[out] v Parameter values of the south-north borders
+  void getElementBorders(int i1, int i2, double* u, double* v) const;
+
   //! \brief Computes the element corner coordinates.
   //! \param[in] i1 Parameter index in u-direction
   //! \param[in] i2 Parameter index in v-direction
@@ -528,15 +561,28 @@ public:
   //! \param[in] v Second parameter value of current integration point
   //! \param[out] N Basis function values
   //! \param[out] dNdu First derivatives of basis functions
-  void extractBasis(double u, double v, Vector& N, Matrix& dNdu) const;
+  //! \param[in] fromRight If \e true, evaluate from right if at a knot
+  void extractBasis(double u, double v, Vector& N, Matrix& dNdu,
+                    bool fromRight = true) const;
   //! \brief Establishes matrices with basis functions, 1st and 2nd derivatives.
   //! \param[in] u First parameter value of current integration point
   //! \param[in] v Second parameter value of current integration point
   //! \param[out] N Basis function values
   //! \param[out] dNdu First derivatives of basis functions
   //! \param[out] d2Ndu2 Second derivatives of basis functions
+  //! \param[in] fromRight If \e true, evaluate from right if at a knot
   void extractBasis(double u, double v, Vector& N,
-                    Matrix& dNdu, Matrix3D& d2Ndu2) const;
+                    Matrix& dNdu, Matrix3D& d2Ndu2,
+                    bool fromRight = true) const;
+  //! \brief Establishes a vector with basis function derivatives.
+  //! \param[in] u First parameter value of current integration point
+  //! \param[in] v Second parameter value of current integration point
+  //! \param[in] dir Which parameter to establish derivatives with respect to
+  //! \param[in] p The derivation order
+  //! \param[out] dN Basis function derivatives
+  //! \param[in] fromRight If \e true, evaluate from right if at a knot
+  void extractBasis(double u, double v, int dir, int p, Vector& dN,
+                    bool fromRight = true) const;
 
 private:
   //! \brief Returns an index into the internal coefficient array for a node.
