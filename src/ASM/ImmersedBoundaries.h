@@ -105,6 +105,16 @@ namespace Immersed //! Utilities for immersed boundary calculations
 			   RealArray& GP1, RealArray& GP2, RealArray& GP3,
 			   RealArray& GPw);
 
+  //! \brief Enum defining different stabilizations.
+  enum Stab
+  {
+    NO_STAB = 0,
+    ALL_INTERFACES = 1,
+    SUBDIV_INTERFACES = 2
+  };
+
+  extern int stabilization; //!< Stabilization option
+
   extern bool plotCells; //!< Flags whether subcells should be plotted or not
 }
 

@@ -121,6 +121,19 @@ void ASMs2DIB::getNoIntPoints (size_t& nPt)
 }
 
 
+bool ASMs2DIB::isIntersected (int iel, bool checkIfInDomainOnly) const
+{
+  if (iel < 0 || (size_t)iel >= quadPoints.size())
+    return false;
+  else if (quadPoints[iel].empty())
+    return false;
+  else if (checkIfInDomainOnly)
+    return true;
+
+  return quadPoints[iel].size() > (size_t)nGauss*nGauss;
+}
+
+
 bool ASMs2DIB::generateFEMTopology ()
 {
   if (!this->ASMs2D::generateFEMTopology())
@@ -202,9 +215,40 @@ bool ASMs2DIB::generateFEMTopology ()
   // Automatically fix all the non-active nodes
   for (inod = 1; inod <= n1*n2; inod++)
     if (activeNodes.find(inod) == activeNodes.end())
-      this->fix(inod);
+      this->fix(inod,12);
 
   return ok;
+}
+
+
+short int ASMs2DIB::Intersected::hasContribution (int I, int J) const
+{
+  const int n1 = myPatch.surf->numCoefs_u();
+  const int n2 = myPatch.surf->numCoefs_v();
+  const int p1 = myPatch.surf->order_u();
+  const int p2 = myPatch.surf->order_v();
+
+  int iel = I-p1 + (n1-p1+1)*(J-p2); // Zero-based index of this element
+  if (myPatch.quadPoints[iel].empty())
+    return 0; // This element is completely outside the domain
+
+  int jel[4];
+  jel[0] = I > p1 ? iel - 1         : 0; // West neighbor
+  jel[1] = I < n1 ? iel + 1         : 0; // East neighbor
+  jel[2] = J > p2 ? iel - (n1-p1+1) : 0; // South neighbor
+  jel[3] = J < n2 ? iel + (n1-p1+1) : 0; // North neighbor
+
+  // Check if the element itself is intersected
+  bool isCut = myAll || myPatch.isIntersected(iel);
+
+  // Check if any of the neighboring elements are intersected, or if
+  // this element is intersected, only check if the neighbor is in the domain
+  short int status = 0, s = 1;
+  for (short int i = 0; i < 4; i++, s *= 2)
+    if (jel[i] && myPatch.isIntersected(jel[i],isCut))
+      status += s;
+
+  return status;
 }
 
 
@@ -213,8 +257,20 @@ bool ASMs2DIB::integrate (Integrand& integrand,
 {
   if (!myGeometry)
     return this->ASMs2D::integrate(integrand,glbInt,time);
-  else
-    return this->ASMs2D::integrate(integrand,glbInt,time,quadPoints);
+
+  if (!this->integrate(integrand,glbInt,time,quadPoints))
+    return false;
+
+  switch (Immersed::stabilization) {
+  case Immersed::ALL_INTERFACES:
+    return this->integrate(integrand,glbInt,time,Intersected(*this,true));
+  case Immersed::SUBDIV_INTERFACES:
+    return this->integrate(integrand,glbInt,time,Intersected(*this,false));
+  case -1:
+    return this->integrate(integrand,glbInt,time,InterfaceChecker(*this));
+  default:
+    return true;
+  }
 }
 
 

@@ -50,6 +50,13 @@ GlbL2::GlbL2 (IntegrandBase& p, size_t n) : problem(p), A(SparseMatrix::SUPERLU)
 }
 
 
+int GlbL2::getIntegrandType () const
+{
+  // Mask off the element interface flag
+  return problem.getIntegrandType() & ~INTERFACE_TERMS;
+}
+
+
 LocalIntegral* GlbL2::getLocalIntegral (size_t nen, size_t iEl,
                                         bool neumann) const
 {

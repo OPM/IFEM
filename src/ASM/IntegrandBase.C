@@ -299,7 +299,8 @@ const char* NormBase::getName (size_t i, size_t j, const char* prefix) const
 
 int NormBase::getIntegrandType () const
 {
-  return myProblem.getIntegrandType();
+  // Mask off the element interface flag, if set
+  return myProblem.getIntegrandType() & ~INTERFACE_TERMS;
 }
 
 

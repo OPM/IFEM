@@ -14,15 +14,16 @@
 #include "SIM2D.h"
 #include "IFEM.h"
 #include "ASMs2DC1.h"
+#include "ImmersedBoundaries.h"
 #include "Functions.h"
 #include "Utilities.h"
+#include "Vec3Oper.h"
 #include "tinyxml.h"
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
 #include <fstream>
 #include <sstream>
-#include "StringUtils.h"
 
 
 /*!
@@ -216,6 +217,10 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
   {
     int patch = 0;
     utl::getAttribute(elem,"patch",patch);
+    utl::getAttribute(elem,"stabilization",Immersed::stabilization);
+    if (Immersed::stabilization != 0)
+      IFEM::cout <<"\tStabilization option: "<< Immersed::stabilization
+                 << std::endl;
 
     const TiXmlElement* child = elem->FirstChildElement();
     for (; child; child = child->NextSiblingElement())
@@ -762,44 +767,41 @@ ASMbase* SIM2D::createDefaultGeometry (const TiXmlElement* geo) const
   std::string g2("200 1 0 0\n");
   g2.append(nsd > 2 ? "3" : "2");
   g2.append(" 0\n2 2\n0 0 1 1\n2 2\n0 0 1 1");
-  std::string X0("0.0 0.0");
-  if (nsd > 2) X0.append(" 0.0");
-  if (utl::getAttribute(geo,"X0",X0))
-    IFEM::cout << "  Corner: " << X0 << std::endl;
 
-  double scale=1.0;
-  if (utl::getAttribute(geo,"scale",scale))
-    IFEM::cout << "  Scale: " << scale << std::endl;
-
-  std::vector<std::string> Xs = splitString(X0);
-  std::vector<double> X;
-  for (const auto& it : Xs) {
-    std::stringstream str;
-    str << it;
-    X.push_back(0.0);
-    str >> X.back();
+  Vec3 X0;
+  std::string corner;
+  if (utl::getAttribute(geo,"X0",corner)) {
+    std::stringstream str(corner); str >> X0;
+    IFEM::cout <<"  Corner: "<< X0 << std::endl;
   }
 
-  double Lx = 1.0;
-  double Ly = 1.0;
+  double scale = 1.0;
+  if (utl::getAttribute(geo,"scale",scale))
+    IFEM::cout <<"  Scale: "<< scale << std::endl;
+
+  double Lx = 1.0, Ly = 1.0;
   if (utl::getAttribute(geo,"Lx",Lx))
-    IFEM::cout << "  Length in X: " << Lx << std::endl;
+    IFEM::cout <<"  Length in X: "<< Lx << std::endl;
   Lx *= scale;
   if (utl::getAttribute(geo,"Ly",Ly))
-    IFEM::cout << "  Length in Y: " << Ly << std::endl;
+    IFEM::cout <<"  Length in Y: "<< Ly << std::endl;
   Ly *= scale;
 
   std::stringstream str;
-  str << "\n" << X[0] << " " << X[1]; if (nsd > 2) str << " 0.0";
+  str <<"\n"<< X0.x <<" "<< X0.y;
+  if (nsd > 2) str <<" 0.0";
   g2.append(str.str());
   str.str("");
-  str << "\n" << X[0]+Lx << " " << X[1]; if (nsd > 2) str << " 0.0";
+  str <<"\n"<< X0.x+Lx <<" "<< X0.y;
+  if (nsd > 2) str <<" 0.0";
   g2.append(str.str());
   str.str("");
-  str << "\n" << X[0] << " " << X[1]+Ly; if (nsd > 2) str << " 0.0";
+  str <<"\n"<< X0.x <<" "<< X0.y+Ly;
+  if (nsd > 2) str <<" 0.0";
   g2.append(str.str());
   str.str("");
-  str << "\n" << X[0]+Lx << " " << X[1]+Ly; if (nsd > 2) str << " 0.0";
+  str <<"\n"<< X0.x+Lx <<" "<< X0.y+Ly;
+  if (nsd > 2) str <<" 0.0";
   g2.append(str.str());
   g2.append("\n");
 

@@ -58,6 +58,7 @@ public:
   //! according to the Immersed boundary scheme.
   virtual bool generateFEMTopology();
 
+  using ASMu2D::integrate;
   //! \brief Evaluates an integral over the interior patch domain.
   //! \param integrand Object with problem-specific data and methods
   //! \param glbInt The integrated quantity

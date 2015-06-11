@@ -25,6 +25,28 @@ namespace Immersed { class Geometry; }
 
 class ASMs2DIB : public ASMs2D
 {
+  /*!
+    \brief Class that checks if an element has interface contributions.
+    \details The class has one member function that checks if the specified
+    element is intersected by the immersed boundary, or if it is neighbor to
+    an element that is intersected.
+  */
+  class Intersected : public InterfaceChecker
+  {
+    const ASMs2DIB& myPatch; //!< Reference to the patch being integrated
+    bool            myAll;   //!< If \e true, consider all element interfaces
+  public:
+    //! \brief The constructor initialises the reference to current patch.
+    Intersected(const ASMs2DIB& p, bool all) : InterfaceChecker(p), myPatch(p)
+    { myAll = all; }
+    //! \brief Empty destructor.
+    virtual ~Intersected() {}
+    //! \brief Returns non-zero if the specified element have contributions.
+    //! \param[in] I Index in first parameter direction of the element
+    //! \param[in] J Index in second parameter direction of the element
+    virtual short int hasContribution(int I, int J) const;
+  };
+
 public:
   //! \brief Default constructor.
   ASMs2DIB(unsigned char n_s = 2, unsigned char n_f = 1, int max_depth = 5);
@@ -58,6 +80,12 @@ public:
   //! according to the Immersed boundary scheme.
   virtual bool generateFEMTopology();
 
+  //! \brief Returns \e true if the specified element has been sub-divided.
+  //! \param[in] iel 0-based element index
+  //! \param[in] checkIfInDomainOnly If \e true, check if element is in domain
+  bool isIntersected(int iel, bool checkIfInDomainOnly = false) const;
+
+  using ASMs2D::integrate;
   //! \brief Evaluates an integral over the interior patch domain.
   //! \param integrand Object with problem-specific data and methods
   //! \param glbInt The integrated quantity

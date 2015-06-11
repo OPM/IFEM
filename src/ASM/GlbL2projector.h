@@ -33,7 +33,7 @@ public:
   virtual ~GlbL2() {}
 
   //! \brief Defines which FE quantities are needed by the integrand.
-  virtual int getIntegrandType() const { return problem.getIntegrandType(); }
+  virtual int getIntegrandType() const;
 
   //! \brief Returns a local integral contribution object for the given element.
   //! \param[in] nen Number of nodes on element

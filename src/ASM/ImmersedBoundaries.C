@@ -19,6 +19,7 @@
 #include <cmath>
 
 
+int  Immersed::stabilization = Immersed::NO_STAB;
 bool Immersed::plotCells = false;
 
 
