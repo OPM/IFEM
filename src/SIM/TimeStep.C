@@ -13,6 +13,7 @@
 
 #include "TimeStep.h"
 #include "Utilities.h"
+#include "IFEM.h"
 #include "tinyxml.h"
 
 
@@ -178,10 +179,10 @@ bool TimeStep::increment ()
     if (step > nInitStep) {
       double dt = maxCFL/time.CFL;
       if (dt > time.dt*f1)
-	time.dt *= f1;
+        time.dt *= f1;
       else {
-	time.dt = dt;
-	maxCFL *= f1;
+        time.dt = dt;
+        maxCFL *= f1;
       }
     }
   }
@@ -206,13 +207,13 @@ bool TimeStep::increment ()
   if (this->hasReached(stopTime))
   {
     if (step > 0)
-      std::cout <<"\n  Time integration completed."<< std::endl;
+      IFEM::cout <<"\n  Time integration completed."<< std::endl;
     return false;
   }
   else if (step++ == maxStep && maxStep > 0)
   {
-    std::cout <<"\n  ** Terminating, maximum number of time steps reached."
-              << std::endl;
+    IFEM::cout <<"\n  ** Terminating, maximum number of time steps reached."
+               << std::endl;
     return false;
   }
 
@@ -254,7 +255,7 @@ bool TimeStep::cutback ()
   if (time.dt <= dtMin)
   {
     // Already reached the minimum step size, cannot do further cut-back
-    std::cout <<" *** Iterations diverged, terminating..."<< std::endl;
+    IFEM::cout <<" *** Iterations diverged, terminating..."<< std::endl;
     return false;
   }
 
@@ -271,7 +272,7 @@ bool TimeStep::cutback ()
   if (stepIt != mySteps.end())
     stepIt->first.back() = time.dt;
 
-  std::cout <<"  ** Iterations diverged, trying cut-back with dt="
-            << time.dt << std::endl;
+  IFEM::cout <<"  ** Iterations diverged, trying cut-back with dt="
+             << time.dt << std::endl;
   return true;
 }

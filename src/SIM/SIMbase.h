@@ -171,7 +171,9 @@ public:
   //! \brief Defines the spatial numerical integration scheme to use.
   //! \param[in] ng Number of Gauss points in each parameter direction
   //! \param[in] redimBuffers Toggle initialization of internal buffer arrays
-  void setQuadratureRule(size_t ng, bool redimBuffers = false);
+  //! \param[in] printQP If \e true, print out total number of quadrature points
+  void setQuadratureRule(size_t ng, bool redimBuffers = false,
+                         bool printQP = false);
 
   //! \brief Prints out problem-specific data to the log stream.
   virtual void printProblem() const;

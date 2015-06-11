@@ -50,7 +50,7 @@ public:
   virtual ElementBlock* immersedGeometry() const;
 
   //! \brief Computes the total number of integration points in this patch.
-  virtual void getNoIntPoints(size_t& nPt);
+  virtual void getNoIntPoints(size_t& nPt, size_t&);
 
   //! \brief Generates the finite element topology data for the patch.
   //! \details This method is overridden in this class, to include the

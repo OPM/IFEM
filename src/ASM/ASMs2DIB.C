@@ -104,13 +104,14 @@ ElementBlock* ASMs2DIB::immersedGeometry () const
 }
 
 
-void ASMs2DIB::getNoIntPoints (size_t& nPt)
+void ASMs2DIB::getNoIntPoints (size_t& nPt, size_t& nIPt)
 {
-  if (!myGeometry)
-    this->ASMbase::getNoIntPoints(nPt);
-  else
+  firstIp = nPt;
+  this->ASMbase::getNoIntPoints(nPt,nIPt);
+
+  if (myGeometry)
   {
-    firstIp = nPt;
+    nPt = firstIp;
     for (size_t e = 0; e < quadPoints.size(); e++)
       nPt += quadPoints[e].size();
   }

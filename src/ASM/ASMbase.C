@@ -271,15 +271,19 @@ size_t ASMbase::getNoElms (bool includeZeroVolElms, bool includeXElms) const
 }
 
 
-void ASMbase::getNoIntPoints (size_t& nPt)
+void ASMbase::getNoIntPoints (size_t& nPt, size_t& nIPt)
 {
   size_t nGp = 1;
   for (unsigned char d = 0; d < ndim; d++)
     nGp *= nGauss;
 
   firstIp = nPt;
+  nPt += nel*nGp; // Note: Includes also the 0-span elements
 
-  nPt += this->getNoElms(true)*nGp; // Note: Includes also the 0-span elements
+  // Count additional interface quadrature points
+  size_t nInterface = MLGE.size() - nel;
+  if (nInterface > 0 && nInterface != nel && nGauss > 0)
+    nIPt += nInterface*nGp/nGauss;
 }
 
 

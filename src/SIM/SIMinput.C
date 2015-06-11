@@ -92,8 +92,7 @@ bool SIMinput::readFlat (const char* fileName)
     return false;
   }
 
-  if (myPid == 0)
-    std::cout <<"\nReading input file "<< fileName << std::endl;
+  IFEM::cout <<"\nReading input file "<< fileName << std::endl;
 
   char* keyWord = 0;
   while (is.good() && (keyWord = utl::readLine(is)))
@@ -130,11 +129,9 @@ void SIMinput::injectIncludeFiles (TiXmlElement* tag) const
     else if (elem->FirstChild() && elem->FirstChild()->Value()) {
       TiXmlDocument doc;
       if (doc.LoadFile(elem->FirstChild()->Value())) {
-        if (myPid == 0) {
-          for (int i = 1; i < nLevels; i++) std::cout <<"  ";
-          IFEM::cout <<"Loaded included file "<< elem->FirstChild()->Value()
-                     << std::endl;
-        }
+        for (int i = 1; i < nLevels; i++) IFEM::cout <<"  ";
+        IFEM::cout <<"Loaded included file "<< elem->FirstChild()->Value()
+                   << std::endl;
         elem = tag->ReplaceChild(elem,*doc.RootElement())->ToElement();
         TiXmlElement* elem2 = doc.RootElement()->NextSiblingElement();
         for (; elem2; elem2 = elem2->NextSiblingElement())

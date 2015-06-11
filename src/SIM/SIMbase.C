@@ -320,7 +320,8 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
       if (elem->FirstChild()) {
         this->setPropertyType(code,Property::ROBIN);
         this->setNeumann(elem->FirstChild()->Value(),"expression",0,code);
-      } else
+      }
+      else
         this->setPropertyType(code,Property::NEUMANN_GENERIC);
     }
     else {
@@ -934,11 +935,11 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   for (nit = nodeInfo.begin(); nit != nodeInfo.end(); nit++)
     if (nit->second.size() > 1)
     {
-      IFEM::cout <<"\nConnectivity for node "<< nit->first <<":";
+      std::cout <<"\nConnectivity for node "<< nit->first <<":";
       for (size_t n = 0; n < nit->second.size(); n++)
-        IFEM::cout <<" P"<< nit->second[n].first <<","<< nit->second[n].second;
+        std::cout <<" P"<< nit->second[n].first <<","<< nit->second[n].second;
     }
-  IFEM::cout << std::endl;
+  std::cout << std::endl;
 #endif
 
   // Renumber the nodes to account for overlapping nodes and erased patches.
@@ -993,9 +994,9 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
         case Property::UNDEFINED:
           iwar++;
 #ifdef SP_DEBUG
-          IFEM::cout <<"  ** SIMbase::preprocess: Undefined property set, code="
-                     << q->pindx <<" Patch="<< q->patch <<" Item="
-                     << (int)q->lindx <<" "<< (int)q->ldim <<"D"<< std::endl;
+          std::cout <<"  ** SIMbase::preprocess: Undefined property set, code="
+                    << q->pindx <<" Patch="<< q->patch <<" Item="
+                    << (int)q->lindx <<" "<< (int)q->ldim <<"D"<< std::endl;
 #endif
         default:
           dofs = 0;
@@ -1290,17 +1291,17 @@ bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, bool withRF)
     {
       myModel[i]->printNodes(std::cout,heading.c_str());
       for (n = 1; n <= myModel[i]->getNoNodes(); n++)
-	nodeInfo[myModel[i]->getNodeID(n)].push_back(std::make_pair(i+1,n));
+        nodeInfo[myModel[i]->getNodeID(n)].push_back(std::make_pair(i+1,n));
     }
 
   for (it = nodeInfo.begin(); it != nodeInfo.end(); ++it)
     if (it->second.size() > 1)
     {
-      IFEM::cout <<"\nConnectivity for node "<< it->first <<":";
+      std::cout <<"\nConnectivity for node "<< it->first <<":";
       for (n = 0; n < it->second.size(); n++)
-	IFEM::cout <<" P"<< it->second[n].first <<","<< it->second[n].second;
+        std::cout <<" P"<< it->second[n].first <<","<< it->second[n].second;
     }
-  IFEM::cout << std::endl;
+  std::cout << std::endl;
 #endif
 
   if (myEqSys) delete myEqSys;
@@ -1364,15 +1365,15 @@ void SIMbase::setIntegrationPrm (unsigned short int i, double prm)
 }
 
 
-void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers)
+void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers, bool printQP)
 {
-  nIntGP = nBouGP = 0;
+  size_t nInterfaceGP = nIntGP = nBouGP = 0;
   for (size_t i = 0; i < myModel.size(); i++)
     if (!myModel[i]->empty())
     {
       myModel[i]->setGauss(ng);
       // Count the interior integration points
-      myModel[i]->getNoIntPoints(nIntGP);
+      myModel[i]->getNoIntPoints(nIntGP,nInterfaceGP);
     }
 
   if (!myProblem) return;
@@ -1394,6 +1395,14 @@ void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers)
   if (redimBuffers)
     for (IntegrandMap::iterator it = myInts.begin(); it != myInts.end(); ++it)
       it->second->initIntegration(nIntGP,nBouGP);
+
+  if (printQP)
+  {
+    IFEM::cout <<"Number of quadrature points "<< nIntGP;
+    if (nInterfaceGP > 0) IFEM::cout <<" "<< nInterfaceGP;
+    if (nBouGP > 0) IFEM::cout <<" "<< nBouGP;
+    IFEM::cout << std::endl;
+  }
 }
 
 
@@ -1406,11 +1415,11 @@ void SIMbase::printProblem () const
   }
 
 #if SP_DEBUG > 1
-  IFEM::cout <<"\nProperty mapping:";
+  std::cout <<"\nProperty mapping:";
   for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); p++)
-    IFEM::cout <<"\n"<< p->pcode <<" "<< p->pindx <<" "<< p->patch
-       <<" "<< (int)p->lindx <<" "<< (int)p->ldim;
-  IFEM::cout << std::endl;
+    std::cout <<"\n"<< p->pcode <<" "<< p->pindx <<" "<< p->patch
+              <<" "<< (int)p->lindx <<" "<< (int)p->ldim;
+  std::cout << std::endl;
 #endif
 }
 
@@ -1580,9 +1589,9 @@ int SIMbase::findClosestNode (const Vec3& X) const
   if (!closestPch) return -2;
 
 #ifdef SP_DEBUG
-  IFEM::cout <<"SIMbase::findClosestNode("<< X <<") -> Node "<< closest.first
-             <<" in Patch "<< closestPch->idx+1 <<" distance="<< closest.second
-             << std::endl;
+  std::cout <<"SIMbase::findClosestNode("<< X <<") -> Node "<< closest.first
+            <<" in Patch "<< closestPch->idx+1 <<" distance="<< closest.second
+            << std::endl;
 #endif
 
   return closestPch->getNodeID(closest.first);
@@ -1615,7 +1624,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
     // coefficient matrix terms for the patch associated with each material
     size_t lp = 0;
     ASMbase* pch = NULL;
-    PropertyVec::const_iterator p;
+    PropertyVec::const_iterator p, p2;
     if (it->second->hasInteriorTerms())
     {
       for (p = myProps.begin(); p != myProps.end() && ok; p++)
@@ -1661,21 +1670,24 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
       for (p = myProps.begin(); p != myProps.end() && ok; p++)
         if ((p->pcode == Property::NEUMANN && it->first == 0) ||
             ((p->pcode == Property::NEUMANN_GENERIC ||
-              p->pcode == Property::ROBIN) && it->first == p->pindx)) {
+              p->pcode == Property::ROBIN) && it->first == p->pindx))
+        {
           if (!(pch = this->getPatch(p->patch)))
           {
             std::cerr <<" *** SIMbase::assembleSystem: Patch index "<< p->patch
                       <<" out of range [1,"<< myModel.size() <<"]"<< std::endl;
             ok = false;
+            break;
           }
-          for (auto p2 = myProps.begin(); p2 != myProps.end() && ok; p2++)
+
+          for (p2 = myProps.begin(); p2 != myProps.end() && ok; ++p2)
             if (p2->pcode == Property::MATERIAL && p->patch == p2->patch)
-              if (!this->initMaterial(p2->pindx)) {
-                std::cerr <<" *** SIMbase::assembleSystem: Failed to init material for patch " << p2->patch << std::endl;
-                ok = false;
-              }
+              if (!(ok = this->initMaterial(p2->pindx)))
+                std::cerr <<" *** SIMbase::assembleSystem: Failed to initialize"
+                          <<" material for patch "<< p2->patch << std::endl;
 
           if (abs(p->ldim)+1 == pch->getNoParamDim())
+          {
             if (p->pcode == Property::NEUMANN_GENERIC ||
                 this->initNeumann(p->pindx))
             {
@@ -1689,8 +1701,9 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             }
             else
               ok = false;
-
+          }
           else if (abs(p->ldim) == 1 && pch->getNoParamDim() == 3)
+          {
             if (p->pcode == Property::NEUMANN_GENERIC ||
                 this->initNeumann(p->pindx))
             {
@@ -1704,6 +1717,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
             }
             else
               ok = false;
+          }
         }
 
     if (ok) ok = this->assembleDiscreteTerms(it->second,time);
@@ -1725,7 +1739,7 @@ bool SIMbase::extractLoadVec (Vector& loadVec) const
     return false;
 
 #if SP_DEBUG > 1
-  IFEM::cout <<"\nLoad vector:"<< loadVec;
+  std::cout <<"\nLoad vector:"<< loadVec;
 #endif
   return true;
 }
@@ -1816,14 +1830,14 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
   double dMax[nf];
   double dNorm = this->solutionNorms(solution,dMax,iMax,nf);
 
-  int oldPrec = std::cout.precision();
+  int oldPrec = adm.cout.precision();
   if (outPrec > 0)
     adm.cout << std::setprecision(outPrec);
 
   if (compName)
     adm.cout <<"\n >>> Solution summary <<<\n\nL2-norm            : ";
   else
-    IFEM::cout <<"  Primary solution summary: L2-norm         : ";
+    adm.cout <<"  Primary solution summary: L2-norm         : ";
   adm.cout << utl::trunc(dNorm);
 
   if (nf == 1 && utl::trunc(dMax[0]) != 0.0)
@@ -1841,14 +1855,14 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
       if (utl::trunc(dMax[d]) != 0.0)
       {
         if (compName)
-          IFEM::cout <<"\nMax "<< D <<'-'<< compName <<" : ";
+          adm.cout <<"\nMax "<< D <<'-'<< compName <<" : ";
         else
           adm.cout <<"\n                            Max "<< D <<"-component : ";
         adm.cout << dMax[d] <<" node "<< iMax[d];
       }
   }
   adm.cout << std::endl;
-  std::cout << std::setprecision(oldPrec);
+  adm.cout << std::setprecision(oldPrec);
 
   // Print entire solution vector if it is small enough
   if (mySam->getNoEquations() < printSol)
@@ -1865,7 +1879,7 @@ void SIMbase::printSolutionSummary (const Vector& solution, int printSol,
   }
 #if SP_DEBUG > 2
   else
-    IFEM::cout <<"\nSolution vector:"<< *myEqSys->getVector();
+    std::cout <<"\nSolution vector:"<< *myEqSys->getVector();
 #endif
 }
 

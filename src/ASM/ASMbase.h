@@ -230,7 +230,7 @@ public:
   size_t getNoMPCs() const { return mpcs.size(); }
 
   //! \brief Computes the total number of integration points in this patch.
-  virtual void getNoIntPoints(size_t& nPt);
+  virtual void getNoIntPoints(size_t& nPt, size_t& nIPt);
   //! \brief Computes the number of boundary integration points in this patch.
   virtual void getNoBouPoints(size_t& nPt, char ldim, char lindx);
 
@@ -369,15 +369,6 @@ public:
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   virtual bool integrate(Integrand& integrand,
 			 GlobalIntegral& glbInt, const TimeDomain& time) = 0;
-
-  //! \brief Evaluates an integral over the interior patch domain.
-  //! \param integrand Object with problem-specific data and methods
-  //! \param glbInt The integrated quantity
-  //! \param[in] time Parameters for nonlinear/time-dependent simulations
-  //! \param[in] itgPts Parameters and weights of the integration points
-  virtual bool integrate(Integrand& integrand,
-                         GlobalIntegral& glbInt, const TimeDomain& time,
-                         const Real3DMat& itgPts) { return false; }
 
   //! \brief Evaluates a boundary integral over a patch face/edge.
   //! \param integrand Object with problem-specific data and methods

@@ -93,15 +93,11 @@ ElementBlock* ASMu2DIB::immersedGeometry () const
 }
 
 
-void ASMu2DIB::getNoIntPoints (size_t& nPt)
+void ASMu2DIB::getNoIntPoints (size_t& nPt, size_t&)
 {
   nPt = 0;
   for (size_t e = 0; e < quadPoints.size(); e++)
     nPt += quadPoints[e].size();
-
-#ifdef SP_DEBUG
-  std::cout <<"\nTotal number of quadrature points "<< nPt << std::endl;
-#endif
 }
 
 

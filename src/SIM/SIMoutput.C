@@ -20,9 +20,10 @@
 #include "AnaSol.h"
 #include "Tensor.h"
 #include "Vec3Oper.h"
-#include "ElementBlock.h"
 #include "VTF.h"
+#include "ElementBlock.h"
 #include "Utilities.h"
+#include "IFEM.h"
 #include "tinyxml.h"
 #include <fstream>
 #include <iomanip>
@@ -44,8 +45,7 @@ void SIMoutput::clearProperties ()
 
 bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
 {
-  if (myPid == 0)
-    std::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
+  IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
   if (strcasecmp(elem->Value(),"resultpoints"))
     return this->SIMbase::parseOutputTag(elem);
@@ -57,20 +57,17 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
     ResultPoint thePoint;
     if (utl::getAttribute(point,"patch",patch) && patch > 0)
       thePoint.patch = patch;
-    if (myPid == 0)
-      std::cout <<"\tPoint "<< i <<": P"<< thePoint.patch <<" xi =";
-    if (utl::getAttribute(point,"u",thePoint.par[0]) && myPid == 0)
-      std::cout <<' '<< thePoint.par[0];
-    if (utl::getAttribute(point,"v",thePoint.par[1]) && myPid == 0)
-      std::cout <<' '<< thePoint.par[1];
-    if (utl::getAttribute(point,"w",thePoint.par[2]) && myPid == 0)
-      std::cout <<' '<< thePoint.par[2];
-    if (myPid == 0)
-      std::cout << std::endl;
+    IFEM::cout <<"\tPoint "<< i <<": P"<< thePoint.patch <<" xi =";
+    if (utl::getAttribute(point,"u",thePoint.par[0]))
+      IFEM::cout <<' '<< thePoint.par[0];
+    if (utl::getAttribute(point,"v",thePoint.par[1]))
+      IFEM::cout <<' '<< thePoint.par[1];
+    if (utl::getAttribute(point,"w",thePoint.par[2]))
+      IFEM::cout <<' '<< thePoint.par[2];
+    IFEM::cout << std::endl;
     myPoints.push_back(thePoint);
   }
-  if (myPid == 0)
-    std::cout << std::endl;
+  IFEM::cout << std::endl;
 
   return true;
 }
@@ -88,25 +85,23 @@ bool SIMoutput::parse (char* keyWord, std::istream& is)
     return this->SIMbase::parse(keyWord,is);
 
   int nres = atoi(keyWord+12);
-  if (myPid == 0 && nres > 0)
-    std::cout <<"\nNumber of result points: "<< nres;
+  if (nres > 0)
+    IFEM::cout <<"\nNumber of result points: "<< nres;
 
   char* cline = NULL;
   myPoints.resize(nres);
   for (int i = 0; i < nres && (cline = utl::readLine(is)); i++)
   {
     myPoints[i].patch = atoi(strtok(cline," "));
-    if (myPid == 0)
-      std::cout <<"\n\tPoint "<< i+1 <<": P"<< myPoints[i].patch <<" xi =";
+    IFEM::cout <<"\n\tPoint "<< i+1 <<": P"<< myPoints[i].patch <<" xi =";
     for (int j = 0; j < 3 && (cline = strtok(NULL," ")); j++)
     {
       myPoints[i].par[j] = atof(cline);
-      if (myPid == 0)
-        std::cout <<' '<< myPoints[i].par[j];
+      IFEM::cout <<' '<< myPoints[i].par[j];
     }
   }
-  if (myPid == 0 && nres > 0)
-    std::cout << std::endl;
+  if (nres > 0)
+    IFEM::cout << std::endl;
 
   return true;
 }
@@ -125,21 +120,21 @@ void SIMoutput::preprocessResultPoints ()
     {
       p->npar = myModel[pid-1]->getNoParamDim();
       int ipt = 1 + (int)(p-myPoints.begin());
-      if (ipt == 1) std::cout <<'\n';
-      std::cout <<"Result point #"<< ipt <<": patch #"<< p->patch;
+      if (ipt == 1) IFEM::cout <<'\n';
+      IFEM::cout <<"Result point #"<< ipt <<": patch #"<< p->patch;
       switch (p->npar) {
-      case 1: std::cout <<" u="; break;
-      case 2: std::cout <<" (u,v)=("; break;
-      case 3: std::cout <<" (u,v,w)=("; break;
+      case 1: IFEM::cout <<" u="; break;
+      case 2: IFEM::cout <<" (u,v)=("; break;
+      case 3: IFEM::cout <<" (u,v,w)=("; break;
       }
-      std::cout << p->par[0];
+      IFEM::cout << p->par[0];
       for (unsigned char c = 1; c < p->npar; c++)
-        std::cout <<','<< p->par[c];
-      if (p->npar > 1) std::cout <<')';
-      if (p->inod > 0) std::cout <<", node #"<< p->inod;
+        IFEM::cout <<','<< p->par[c];
+      if (p->npar > 1) IFEM::cout <<')';
+      if (p->inod > 0) IFEM::cout <<", node #"<< p->inod;
       if (p->inod > 0 && myModel.size() > 1)
-	std::cout <<", global #"<< myModel[pid-1]->getNodeID(p->inod);
-      std::cout <<", X = "<< p->X << std::endl;
+	IFEM::cout <<", global #"<< myModel[pid-1]->getNodeID(p->inod);
+      IFEM::cout <<", X = "<< p->X << std::endl;
       p++;
     }
   }
@@ -166,8 +161,7 @@ bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
     else
       strcat(vtfName,ext);
 
-    if (myPid == 0)
-      std::cout <<"\nWriting VTF-file "<< vtfName << std::endl;
+    IFEM::cout <<"\nWriting VTF-file "<< vtfName << std::endl;
     myVtf = new VTF(vtfName,opt.format);
     delete[] vtfName;
   }
@@ -184,7 +178,7 @@ bool SIMoutput::writeGlvG (int& nBlock, const char* inpFile, bool doClear)
     if (myModel[i]->empty()) continue; // skip empty patches
 
     if (msgLevel > 0)
-      std::cout <<"Writing geometry for patch "<< i+1 << std::endl;
+      IFEM::cout <<"Writing geometry for patch "<< i+1 << std::endl;
     size_t nd = myModel[i]->getNoParamDim();
     lvb = new ElementBlock(nd == 3 ? 8 : (nd == 2 ? 4 : 2));
     if (!myModel[i]->tesselate(*lvb,opt.nViz))
@@ -240,7 +234,7 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
       continue; // nothing on this patch
 
     if (msgLevel > 1)
-      std::cout <<"Writing boundary conditions for patch "<< i+1 << std::endl;
+      IFEM::cout <<"Writing boundary conditions for patch "<< i+1 << std::endl;
 
     if (!myModel[i]->evalSolution(field,bc,opt.nViz))
       return false;
@@ -278,7 +272,7 @@ bool SIMoutput::writeGlvT (int iStep, int& geoBlk, int& nBlock) const
   if (myProblem->hasTractionValues())
   {
     if (msgLevel > 1)
-      std::cout <<"Writing boundary tractions"<< std::endl;
+      IFEM::cout <<"Writing boundary tractions"<< std::endl;
     return myProblem->writeGlvT(myVtf,iStep,geoBlk,nBlock);
   }
 
@@ -304,7 +298,7 @@ bool SIMoutput::writeGlvV (const Vector& vec, const char* fieldName,
     if (myModel[i]->empty()) continue; // skip empty patches
 
     if (msgLevel > 1)
-      std::cout <<"Writing vector field for patch "<< i+1 << std::endl;
+      IFEM::cout <<"Writing vector field for patch "<< i+1 << std::endl;
 
     myModel[i]->extractNodeVec(vec,lovec);
     if (!myModel[i]->evalSolution(field,lovec,opt.nViz))
@@ -382,7 +376,7 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
     if (myModel[i]->empty()) continue; // skip empty patches
 
     if (msgLevel > 1)
-      std::cout <<"Writing FE solution for patch "<< i+1 << std::endl;
+      IFEM::cout <<"Writing FE solution for patch "<< i+1 << std::endl;
 
     // 1. Evaluate primary solution variables
 
@@ -410,7 +404,7 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
     if (haveXsol)
     {
       if (msgLevel > 1)
-        std::cout <<"Writing exact solution for patch "<< i+1 << std::endl;
+        IFEM::cout <<"Writing exact solution for patch "<< i+1 << std::endl;
 
       // 1.a Evaluate exact primary solution
 
@@ -488,7 +482,7 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
       // 4. Evaluate analytical solution variables
 
       if (msgLevel > 1)
-        std::cout <<"Writing exact solution for patch "<< i+1 << std::endl;
+        IFEM::cout <<"Writing exact solution for patch "<< i+1 << std::endl;
 
       const ElementBlock* grid = myVtf->getBlock(geomID);
       Vec3Vec::const_iterator cit = grid->begin_XYZ();
@@ -623,7 +617,7 @@ bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
     if (myModel[i]->empty()) continue; // skip empty patches
 
     if (msgLevel > 1)
-      std::cout <<"Writing projected solution for patch "<< i+1 << std::endl;
+      IFEM::cout <<"Writing projected solution for patch "<< i+1 << std::endl;
 
     // Evaluate the solution variables at the visualization points
     myModel[i]->extractNodeVec(ssol,lovec,sID.size());
@@ -711,8 +705,8 @@ bool SIMoutput::writeGlvF (const RealFunc& f, const char* fname,
     if (myModel[i]->empty()) continue; // skip empty patches
 
     if (msgLevel > 1)
-      std::cout <<"Writing function "<< fname
-                <<" for patch "<< i+1 << std::endl;
+      IFEM::cout <<"Writing function "<< fname
+                 <<" for patch "<< i+1 << std::endl;
 
     if (!myVtf->writeNfunc(f,time,++nBlock,++geomID))
       return false;
@@ -743,7 +737,7 @@ bool SIMoutput::writeGlvM (const Mode& mode, bool freq, int& nBlock)
     return false;
 
   if (msgLevel > 1)
-    std::cout <<"Writing eigenvector for Mode "<< mode.eigNo << std::endl;
+    IFEM::cout <<"Writing eigenvector for Mode "<< mode.eigNo << std::endl;
 
   Vector displ;
   Matrix field;
@@ -753,7 +747,8 @@ bool SIMoutput::writeGlvM (const Mode& mode, bool freq, int& nBlock)
   for (size_t i = 0; i < myModel.size(); i++)
   {
     if (myModel[i]->empty()) continue; // skip empty patches
-    if (myModel.size() > 1 && msgLevel > 1) std::cout <<"."<< std::flush;
+    if (myModel.size() > 1 && msgLevel > 1)
+      IFEM::cout <<"."<< std::flush;
 
     geomID++;
     myModel[i]->extractNodeVec(mode.eigVec,displ);
@@ -765,7 +760,8 @@ bool SIMoutput::writeGlvM (const Mode& mode, bool freq, int& nBlock)
     else
       vID.push_back(nBlock);
   }
-  if (myModel.size() > 1 && msgLevel > 1) std::cout << std::endl;
+  if (myModel.size() > 1 && msgLevel > 1)
+    IFEM::cout << std::endl;
 
   int idBlock = 10;
   if (!myVtf->writeDblk(vID,"Mode Shape",idBlock,mode.eigNo))
@@ -797,7 +793,7 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
     if (myModel[i]->empty()) continue; // skip empty patches
 
     if (msgLevel > 1)
-      std::cout <<"Writing element norms for patch "<< i+1 << std::endl;
+      IFEM::cout <<"Writing element norms for patch "<< i+1 << std::endl;
 
     const ElementBlock* grid = myVtf->getBlock(++geomID);
     myModel[i]->extractElmRes(norms,field);
@@ -867,7 +863,8 @@ bool SIMoutput::writeGlvE (const Vector& vec, int iStep, int& nBlock,
     if (myModel[i]->empty()) continue; // skip empty patches
 
     if (msgLevel > 1)
-      std::cout <<"Writing element field " << name << " for patch "<< i+1 << std::endl;
+      IFEM::cout <<"Writing element field "<< name
+                 <<" for patch "<< i+1 << std::endl;
 
     myModel[i]->extractElmRes(infield,field);
 
