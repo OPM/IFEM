@@ -240,6 +240,51 @@ bool ASMs2D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
 }
 
 
+bool ASMs2D::addInterfaceElms (const InterfaceChecker& iChk)
+{
+  if (!surf || shareFE == 'F') return false;
+
+  if (MNPC.size() != nel || MLGE.size() != nel)
+  {
+    // Already added extra elements, currently not allowed
+    std::cerr <<" *** ASMs2D::addInterfaceElms: Already have extra elements."
+              << std::endl;
+    return false;
+  }
+
+  const int n1 = surf->numCoefs_u();
+  const int n2 = surf->numCoefs_v();
+
+  const int p1 = surf->order_u();
+  const int p2 = surf->order_v();
+
+  int iel = 0;
+  for (int i2 = p2; i2 <= n2; i2++)
+    for (int i1 = p1; i1 <= n1; i1++, iel++)
+    {
+      if (MLGE[iel] < 1) continue; // Skip zero-area element
+
+      // Loop over the (north and east only) element edges with contributions
+      short int status = iChk.hasContribution(i1,i2);
+      for (int iedge = 1; iedge <= 4 && status > 0; iedge++, status /= 2)
+        if (iedge%2 == 0 && status%2 == 1)
+        {
+          // Find index of the neighboring element
+          int jel = iel + (iedge == 2 ? 1 : n1-p1+1);
+          if (MLGE[jel] < 1) continue; // Skip zero-area element
+
+          // Set up connectivity for the interface element
+          IntVec mnpc(MNPC[iel]);
+          utl::merge(mnpc,MNPC[jel]);
+          myMNPC.push_back(mnpc);
+          myMLGE.push_back(-(++gEl)); // Flag interface element by negative sign
+        }
+    }
+
+  return true;
+}
+
+
 size_t ASMs2D::getNodeIndex (int globalNum, bool noAddedNodes) const
 {
   IntVec::const_iterator it = std::find(MLGN.begin(),MLGN.end(),globalNum);
@@ -1872,18 +1917,22 @@ bool ASMs2D::integrate (Integrand& integrand,
 
   FiniteElement fe(p1*p2);
   Matrix        dNdu, Xnod, Jac;
+  Vector        dN;
   Vec4          X;
   Vec3          normal;
   double        u[2], v[2];
+  bool          hasInterfaceElms = MLGE.size() > nel && MLGE.size() != 2*nel;
 
 
   // === Assembly loop over all elements in the patch ==========================
 
-  int iel = 0;
+  int iel = 0, jel = nel;
   for (int i2 = p2; i2 <= n2; i2++)
     for (int i1 = p1; i1 <= n1; i1++, iel++)
     {
-      fe.iel = MLGE[iel];
+      if (!hasInterfaceElms) jel = iel;
+
+      fe.iel = abs(MLGE[jel]);
       if (fe.iel < 1) continue; // zero-area element
 
       short int status = iChk.hasContribution(i1,i2);
@@ -1904,8 +1953,8 @@ bool ASMs2D::integrate (Integrand& integrand,
         this->getElementCorners(i1-1,i2-1,fe.XC);
 
       // Initialize element quantities
-      LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel);
-      bool ok = integrand.initElement(MNPC[iel],*A);
+      LocalIntegral* A = integrand.getLocalIntegral(MNPC[jel].size(),fe.iel);
+      bool ok = hasInterfaceElms ? true : integrand.initElement(MNPC[jel],*A);
 
       // Loop over the element edges with contributions
       for (int iedge = 1; iedge <= 4 && status > 0 && ok; iedge++, status /= 2)
@@ -1918,7 +1967,13 @@ bool ASMs2D::integrate (Integrand& integrand,
 
           // Get element edge length in the parameter space
           double dS = 0.5*this->getParametricLength(1+iel,t2);
-          if (dS < 0.0) ok = false; // topology error (probably logic error)
+          if (dS < 0.0) // topology error (probably logic error)
+            ok = false;
+          else if (hasInterfaceElms) // Initialize the interface element
+            ok = integrand.initElement(MNPC[jel++],*A);
+
+          // Find index of the neighboring element
+          int kel = iel + (t1 == 1 ? 1 : n1-p1+1);
 
 
           // --- Integration loop over all Gauss points along the edge ---------
@@ -1964,6 +2019,13 @@ bool ASMs2D::integrate (Integrand& integrand,
                 fe.N = dNdu.getColumn(t1);
               else if (fe.p > 1)
                 this->extractBasis(fe.u,fe.v,t1,fe.p, fe.N, edgeDir < 0);
+
+              if (hasInterfaceElms)
+              {
+                // Compute derivative for the neighboring element
+                this->extractBasis(fe.u,fe.v,t1,fe.p, dN, edgeDir > 0);
+                utl::merge(fe.N,dN,MNPC[iel],MNPC[kel]);
+              }
 
 #if SP_DEBUG > 4
               std::cout <<"\niel, xi,eta = "<< fe.iel

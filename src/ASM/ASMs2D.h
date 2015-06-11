@@ -146,6 +146,10 @@ public:
   virtual bool addXElms(short int dim, short int item,
                         size_t nXn, IntVec& nodes);
 
+  //! \brief Adds interface elements with coupling to all element DOFs.
+  //! \param[in] iChk Object checking if an element interface has contributions
+  bool addInterfaceElms(const InterfaceChecker& iChk);
+
   //! \brief Returns local 1-based index of the node with given global number.
   //! \details If the given node number is not present, 0 is returned.
   //! \param[in] globalNum Global node number

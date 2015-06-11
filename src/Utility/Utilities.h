@@ -191,6 +191,16 @@ namespace utl
   //! \brief Returns the key corresponding to the value \a iVal.
   //! \details If not in the map, the value \a iVal is returned.
   int findKey(const IntMap& iMap, int iVal);
+
+  //! \brief Merges integer array \a a2 into array \a a1.
+  //! \details Does not require the arrays to be sorted.
+  //! The values of \a a2 not already in \a a1 are appended to \a a1.
+  void merge(std::vector<int>& a1, const std::vector<int>& a2);
+  //! \brief Merges real array \a a2 into array \a a1 based on array indices.
+  //! \details Does not require the arrays to be sorted.
+  //! The values of \a a2 not already in \a a1 are appended to \a a1.
+  void merge(std::vector<Real>& a1, const std::vector<Real>& a2,
+             const std::vector<int>& k1, const std::vector<int>& k2);
 }
 
 #endif

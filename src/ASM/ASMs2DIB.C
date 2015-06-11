@@ -116,7 +116,8 @@ void ASMs2DIB::getNoIntPoints (size_t& nPt)
   }
 
 #ifdef SP_DEBUG
-  std::cout <<"\nTotal number of quadrature points "<< nPt << std::endl;
+  std::cout <<"Number of quadrature points in patch "<< idx+1
+            <<": "<< nPt-firstIp << std::endl;
 #endif
 }
 
@@ -217,6 +218,11 @@ bool ASMs2DIB::generateFEMTopology ()
     if (activeNodes.find(inod) == activeNodes.end())
       this->fix(inod,12);
 
+  if (Immersed::stabilization == Immersed::ALL_INTERFACES)
+    ok &= this->addInterfaceElms(Intersected(*this,true));
+  else if (Immersed::stabilization == Immersed::SUBDIV_INTERFACES)
+    ok &= this->addInterfaceElms(Intersected(*this,false));
+
   return ok;
 }
 
@@ -245,8 +251,9 @@ short int ASMs2DIB::Intersected::hasContribution (int I, int J) const
   // this element is intersected, only check if the neighbor is in the domain
   short int status = 0, s = 1;
   for (short int i = 0; i < 4; i++, s *= 2)
-    if (jel[i] && myPatch.isIntersected(jel[i],isCut))
-      status += s;
+    if (alsoSW || i%2 == 1)
+      if (jel[i] && myPatch.isIntersected(jel[i],isCut))
+        status += s;
 
   return status;
 }
@@ -266,8 +273,6 @@ bool ASMs2DIB::integrate (Integrand& integrand,
     return this->integrate(integrand,glbInt,time,Intersected(*this,true));
   case Immersed::SUBDIV_INTERFACES:
     return this->integrate(integrand,glbInt,time,Intersected(*this,false));
-  case -1:
-    return this->integrate(integrand,glbInt,time,InterfaceChecker(*this));
   default:
     return true;
   }

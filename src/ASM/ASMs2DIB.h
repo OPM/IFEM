@@ -35,10 +35,11 @@ class ASMs2DIB : public ASMs2D
   {
     const ASMs2DIB& myPatch; //!< Reference to the patch being integrated
     bool            myAll;   //!< If \e true, consider all element interfaces
+    bool            alsoSW;  //!< If \e true, consider south/west neighbors too
   public:
     //! \brief The constructor initialises the reference to current patch.
-    Intersected(const ASMs2DIB& p, bool all) : InterfaceChecker(p), myPatch(p)
-    { myAll = all; }
+    Intersected(const ASMs2DIB& pch, bool all = false, bool sw = false)
+      : InterfaceChecker(pch), myPatch(pch), myAll(all), alsoSW(sw) {}
     //! \brief Empty destructor.
     virtual ~Intersected() {}
     //! \brief Returns non-zero if the specified element have contributions.

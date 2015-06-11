@@ -434,3 +434,20 @@ int utl::findKey (const IntMap& iMap, int iVal)
   IntMap::const_iterator it = utl::findValue(iMap,iVal);
   return it == iMap.end() ? iVal : it->first;
 }
+
+
+void utl::merge (std::vector<int>& a1, const std::vector<int>& a2)
+{
+  for (size_t i = 0; i < a2.size(); i++)
+    if (std::find(a1.begin(),a1.end(),a2[i]) == a1.end())
+      a1.push_back(a2[i]);
+}
+
+
+void utl::merge (std::vector<Real>& a1, const std::vector<Real>& a2,
+                 const std::vector<int>& k1, const std::vector<int>& k2)
+{
+  for (size_t i = 0; i < k2.size(); i++)
+    if (std::find(k1.begin(),k1.end(),k2[i]) == k1.end())
+      a1.push_back(a2[i]);
+}
