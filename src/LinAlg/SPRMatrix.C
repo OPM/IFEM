@@ -13,10 +13,8 @@
 
 #include "SPRMatrix.h"
 #include "SAM.h"
-#include <string.h>
 
-
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(__MINGW32__) && !defined(__MINGW64__)
 #define sprprp_ SPRPRP
 #define sprsas_ SPRSAS
 #define sprrnm_ SPRRNM
@@ -351,7 +349,7 @@ bool SPRMatrix::multiply (const SystemVector& B, SystemVector& C)
 //! \brief Convenience macro.
 #define MAX(a,b) (a) > (b) ? (a) : (b)
 
-bool SPRMatrix::solve (SystemVector& B, bool newLHS)
+bool SPRMatrix::solve (SystemVector& B, bool, Real*)
 {
   if (mpar[7] < 1) return true; // No equations to solve
 

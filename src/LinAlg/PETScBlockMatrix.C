@@ -21,7 +21,6 @@
 #include "PCPerm.h"
 #include "PCScale.h"
 #include <sstream>
-
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
@@ -415,7 +414,7 @@ bool PETScBlockMatrix::assemble (const Matrix& eM, const SAM& sam,
 }
 
 
-bool PETScBlockMatrix::solve (SystemVector& B, bool newLHS)
+bool PETScBlockMatrix::solve (SystemVector& B, bool newLHS, Real*)
 {
   newLHS = nLinSolves==0; // don't reset preconditioner unless requested
 

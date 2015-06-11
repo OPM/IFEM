@@ -18,7 +18,6 @@
 #include "SAMpatchPara.h"
 #include "ProcessAdm.h"
 #include "SIMenums.h"
-
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
@@ -489,7 +488,7 @@ bool PETScMatrix::multiply (const SystemVector& B, SystemVector& C)
 }
 
 
-bool PETScMatrix::solve (SystemVector& B, bool newLHS)
+bool PETScMatrix::solve (SystemVector& B, bool newLHS, Real*)
 {
   PETScVector* Bptr = dynamic_cast<PETScVector*>(&B);
   if (!Bptr)
@@ -535,7 +534,7 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS, bool knoll)
     KSPSetOperators(ksp,A,A, newLHS ? SAME_NONZERO_PATTERN : SAME_PRECONDITIONER);
 #else
     KSPSetOperators(ksp,A,A);
-    KSPSetReusePreconditioner(ksp, newLHS?PETSC_FALSE:PETSC_TRUE);
+    KSPSetReusePreconditioner(ksp, newLHS ? PETSC_FALSE : PETSC_TRUE);
 #endif
     if (!setParameters())
       return false;

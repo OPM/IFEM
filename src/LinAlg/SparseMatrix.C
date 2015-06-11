@@ -943,7 +943,7 @@ bool SparseMatrix::optimiseSLU ()
 }
 
 
-bool SparseMatrix::solve (SystemVector& B, bool)
+bool SparseMatrix::solve (SystemVector& B, bool, Real* rc)
 {
   if (this->size() < 1) return true; // No equations to solve
 
@@ -952,7 +952,7 @@ bool SparseMatrix::solve (SystemVector& B, bool)
 
   switch (solver)
     {
-    case SUPERLU: return this->solveSLUx(*Bptr);
+    case SUPERLU: return this->solveSLUx(*Bptr,rc);
     case S_A_M_G: return this->solveSAMG(*Bptr);
     default: std::cerr <<"SparseMatrix::solve: No equation solver"<< std::endl;
     }
@@ -1059,7 +1059,7 @@ bool SparseMatrix::solveSLU (Vector& B)
 }
 
 
-bool SparseMatrix::solveSLUx (Vector& B)
+bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
 {
   int ierr = ncol+1;
   if (!factored) this->optimiseSLU();
@@ -1099,6 +1099,8 @@ bool SparseMatrix::solveSLUx (Vector& B)
   dCreate_Dense_Matrix(&Xmat, nrow, nrhs, X.ptr(), nrow,
                        SLU_DN, SLU_D, SLU_GE);
 
+  slu->opts->ConditionNumber = rcond ? YES : NO;
+
   Real ferr[nrhs], berr[nrhs];
   superlu_memusage_t mem_usage;
 
@@ -1111,8 +1113,12 @@ bool SparseMatrix::solveSLUx (Vector& B)
 
   if (ierr > 0)
     std::cerr <<"SuperLU_MT Failure "<< ierr << std::endl;
-  else
+  else if (!factored)
+  {
     factored = true;
+    if (rcond)
+      *rcond = slu->rcond;
+  }
 
   Destroy_SuperMatrix_Store(&Bmat);
   Destroy_SuperMatrix_Store(&Xmat);
@@ -1150,7 +1156,7 @@ bool SparseMatrix::solveSLUx (Vector& B)
   dCreate_Dense_Matrix(&Xmat, nrow, nrhs, X.ptr(), nrow,
                        SLU_DN, SLU_D, SLU_GE);
 
-  slu->opts->ConditionNumber = printSLUstat ? YES : NO;
+  slu->opts->ConditionNumber = printSLUstat || rcond ? YES : NO;
   slu->opts->PivotGrowth = printSLUstat ? YES : NO;
 
   void* work = 0;
@@ -1170,8 +1176,12 @@ bool SparseMatrix::solveSLUx (Vector& B)
 
   if (ierr > 0)
     std::cerr <<"SuperLU Failure "<< ierr << std::endl;
-  else
+  else if (!factored)
+  {
     factored = true;
+    if (rcond)
+      *rcond = slu->rcond;
+  }
 
   if (printSLUstat)
   {

@@ -266,7 +266,7 @@ public:
   //! \param[in] e   Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assemble(const Matrix& eM, const SAM& sam,
-			SystemVector& B, int e) = 0;
+                        SystemVector& B, int e) = 0;
   //! \brief Adds an element matrix into the associated system matrix.
   //! \details When multi-point constraints are present, contributions from
   //! these are also added into the system right-hand-side vector.
@@ -277,7 +277,7 @@ public:
   //! \param[in] meen Matrix of element equation numbers
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assemble(const Matrix& eM, const SAM& sam,
-			SystemVector& B, const std::vector<int>& meen);
+                        SystemVector& B, const std::vector<int>& meen);
 
   //! \brief Augments a similar matrix symmetrically to the current matrix.
   virtual bool augment(const SystemMatrix&, size_t, size_t) { return false; }
@@ -297,7 +297,8 @@ public:
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param b Right-hand-side vector on input, solution vector on output
   //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
-  virtual bool solve(SystemVector& b, bool newLHS = true) = 0;
+  //! \param[out] rc Reciprocal condition number of the LHS-matrix (optional)
+  virtual bool solve(SystemVector& b, bool newLHS = true, Real* rc = NULL) = 0;
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param[in] b Right-hand-side vector

@@ -88,7 +88,7 @@ public:
   //! \param[in] e   Identifier for the element that \a eM belongs to
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assemble(const Matrix& eM, const SAM& sam,
-			SystemVector& B, int e);
+                        SystemVector& B, int e);
   //! \brief Adds an element matrix into the associated system matrix.
   //! \details When multi-point constraints are present, contributions from
   //! these are also added into the system right-hand-side vector.
@@ -99,7 +99,7 @@ public:
   //! \param[in] meen Matrix of element equation numbers
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assemble(const Matrix& eM, const SAM& sam,
-			SystemVector& B, const std::vector<int>& meen);
+                        SystemVector& B, const std::vector<int>& meen);
 
   //! \brief Augments a similar matrix symmetrically to the current matrix.
   //! \param[in] B  The matrix to be augmented
@@ -110,7 +110,7 @@ public:
   //! \brief Adds a matrix with similar dimension to the current matrix.
   //! \param[in] B     The matrix to be added
   //! \param[in] alpha Scale factor for matrix \b B
-  virtual bool add(const SystemMatrix& B, Real alpha = 1.0);
+  virtual bool add(const SystemMatrix& B, Real alpha = Real(1));
 
   //! \brief Adds the diagonal matrix \f$\sigma\f$\b I to the current matrix.
   virtual bool add(Real sigma);
@@ -121,7 +121,8 @@ public:
   using SystemMatrix::solve;
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side vector on input, solution vector on output
-  virtual bool solve(SystemVector& B, bool = true);
+  //! \param[out] rc Reciprocal condition number of the LHS-matrix (optional)
+  virtual bool solve(SystemVector& B, bool, Real* rc = NULL);
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side matrix on input, solution matrix on output
   bool solve(Matrix& B);
@@ -159,7 +160,7 @@ public:
   //! \param[in] nev The number of eigenvalues and eigenvectors to compute
   //! \param[in] shift Eigenvalue shift (unused)
   bool solveEig(DenseMatrix& B, RealArray& eigVal, Matrix& eigVec, int nev,
-		Real shift = 0.0);
+                Real shift = Real(0));
 
   //! \brief Returns the L-infinity norm of the matrix.
   virtual Real Linfnorm() const { return myMat.normInf(); }
@@ -180,11 +181,12 @@ protected:
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side vectors on input, solution vectors on output
   //! \param[in] nrhs Number of right-hand-side vectors
+  //! \param[out] rcond Reciprocal condition number of the LHS-matrix (optional)
   //!
   //! \brief This is the function which actually solves the equation system,
   //! using the LAPack library subroutines. The two public \a solve methods just
   //! forward to this method.
-  bool solve(Real* B, size_t nrhs);
+  bool solve(Real* B, size_t nrhs, Real* rcond = NULL);
 
   //! \brief Writes the system matrix to the given output stream.
   virtual std::ostream& write(std::ostream& os) const { return os << myMat; }

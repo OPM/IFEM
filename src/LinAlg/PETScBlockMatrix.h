@@ -83,13 +83,13 @@ public:
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side vector on input, solution vector on output
   //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
-  virtual bool solve(SystemVector& B, bool newLHS = true);
+  virtual bool solve(SystemVector& B, bool newLHS, Real*);
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param[in] B Right-hand-side vector
   //! \param[out] x Solution vector
   //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
-  virtual bool solve(const SystemVector& B, SystemVector& x, bool newLHS = true);
+  virtual bool solve(const SystemVector& B, SystemVector& x, bool newLHS);
 
   //! \brief Returns matrix block (for assignment).
   virtual Mat& getMatrixBlock(size_t i, size_t j)

@@ -196,7 +196,8 @@ public:
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side vector on input, solution vector on output
   //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
-  virtual bool solve(SystemVector& B, bool newLHS = true);
+  //! \param[out] rc Reciprocal condition number of the LHS-matrix (optional)
+  virtual bool solve(SystemVector& B, bool newLHS = true, Real* rc = NULL);
 
 protected:
   //! \brief Converts the matrix to an optimized row-oriented format.
@@ -219,7 +220,8 @@ protected:
   //! \brief Invokes the SuperLU equation solver for a given right-hand-side.
   //! \details This method uses the expert driver \a dgssvx.
   //! \param B Right-hand-side vector on input, solution vector on output
-  bool solveSLUx(Vector& B);
+  //! \param[out] rcond Reciprocal condition number of the LHS-matrix (optional)
+  bool solveSLUx(Vector& B, Real* rcond);
 
   //! \brief Writes the system matrix to the given output stream.
   virtual std::ostream& write(std::ostream& os) const;

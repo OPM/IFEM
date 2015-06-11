@@ -88,8 +88,7 @@ public:
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side vector on input, solution vector on output
-  //! \param newLHS \e true if the left-hand-side matrix is updated
-  virtual bool solve(SystemVector& B, bool newLHS = true);
+  virtual bool solve(SystemVector& B, bool, Real*);
 
   //! \brief Solves a generalized symmetric-definite eigenproblem.
   //! \details The eigenproblem is assumed to be on the form

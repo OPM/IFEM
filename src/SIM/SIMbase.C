@@ -1762,7 +1762,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
 
   // Dump system matrix to file, if requested
   std::vector<DumpData>::iterator it;
-  for (it = lhsDump.begin(); it != lhsDump.end(); it++)
+  for (it = lhsDump.begin(); it != lhsDump.end(); ++it)
     if (it->doDump()) {
       IFEM::cout <<"\nDumping system matrix to file "<< it->fname << std::endl;
       std::ofstream os(it->fname.c_str());
@@ -1771,7 +1771,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
     }
 
   // Dump right-hand-side vector to file, if requested
-  for (it = rhsDump.begin(); it != rhsDump.end(); it++)
+  for (it = rhsDump.begin(); it != rhsDump.end(); ++it)
     if (it->doDump()) {
       IFEM::cout <<"\nDumping RHS vector to file "<< it->fname << std::endl;
       std::ofstream os(it->fname.c_str());
@@ -1780,15 +1780,24 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
     }
 
   // Solve the linear system of equations
+  bool status = true;
+  double rCond = 0.0;
   if (msgLevel > 1)
+  {
     IFEM::cout <<"\nSolving the equation system ..."<< std::endl;
+    PROFILE1("Equation solving");
+    status = A->solve(*b,newLHS,&rCond);
+  }
+  else
   {
     PROFILE1("Equation solving");
-    if (!A->solve(*b,newLHS)) return false;
+    status = A->solve(*b,newLHS);
   }
+  if (rCond > 0.0)
+    IFEM::cout <<"\tCondition number: "<< 1.0/rCond << std::endl;
 
   // Dump solution vector to file, if requested
-  for (it = solDump.begin(); it != solDump.end(); it++)
+  for (it = solDump.begin(); it != solDump.end() && status; ++it)
     if (it->doDump()) {
       IFEM::cout <<"\nDumping solution vector to file "<< it->fname << std::endl;
       std::ofstream os(it->fname.c_str());
@@ -1797,12 +1806,13 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
     }
 
   // Expand solution vector from equation ordering to DOF-ordering
-  if (!mySam->expandSolution(*b,solution)) return false;
+  if (status)
+    status = mySam->expandSolution(*b,solution);
 
-  if (printSol > 0)
+  if (printSol > 0 && status)
     this->printSolutionSummary(solution,printSol,compName);
 
-  return true;
+  return status;
 }
 
 

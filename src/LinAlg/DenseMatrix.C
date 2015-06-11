@@ -15,11 +15,12 @@
 #include "SparseMatrix.h"
 #include "SAM.h"
 
-
 #if defined(_WIN32) && !defined(__MINGW32__) && !defined(__MINGW64__)
 #define addem2_ ADDEM2
+#define dgecon_ DGECON
 #define dgesv_  DGESV
 #define dgetrs_ DGETRS
+#define dlange_ DLANGE
 #define dposv_  DPOSV
 #define dpotrs_ DPOTRS
 #define dsyevx_ DSYEVX
@@ -27,8 +28,10 @@
 #define dgeev_  DGEEV
 #elif defined(_AIX)
 #define addem2_ addem2
+#define dgecon_ dgecon
 #define dgesv_  dgesv
 #define dgetrs_ dgetrs
+#define dlange_ dlange
 #define dposv_  dposv
 #define dpotrs_ dpotrs
 #define dsyevx_ dsyevx
@@ -47,6 +50,12 @@ void addem2_(const Real* eK, const Real* ttcc, const int* mpar,
              const int& lpu, const int& nrhs, Real* sysK, Real* sysRHS,
              int* work, int& ierr);
 
+//! \brief Estimates the reciprocal of the condition number of the matrix \b A.
+//! \details This is a FORTRAN-77 subroutine in the LAPack library.
+//! \sa LAPack library documentation.
+void dgecon_(const char& norm, const int& n, const Real* A, const int& lda,
+             const Real& anorm, Real& rcond, Real* work, int* iwork, int& info);
+
 //! \brief Solves the linear equation system \a A*x=b.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
@@ -60,6 +69,12 @@ void dgesv_(const int& n, const int& nrhs,
 void dgetrs_(const char& trans, const int& n, const int& nrhs,
 	     Real* A, const int& lda, int* ipiv,
 	     Real* B, const int& ldb, int& info);
+
+//! \brief Returns a norm of the matrix \b A.
+//! \details This is a FORTRAN-77 subroutine in the LAPack library.
+//! \sa LAPack library documentation.
+double dlange_(const char& norm, const int& m, const int& n, const Real* A,
+               const int& lda, Real* work);
 
 //! \brief Solves the symmetric linear equation system \a A*x=b.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
@@ -103,13 +118,13 @@ void dgeev_(const char& jobvl, const char& jobvr,
 }
 
 
-DenseMatrix::DenseMatrix (size_t m, size_t n, bool s) : myMat(m,n), ipiv(0)
+DenseMatrix::DenseMatrix (size_t m, size_t n, bool s) : myMat(m,n), ipiv(NULL)
 {
   symm = s && m == n;
 }
 
 
-DenseMatrix::DenseMatrix (const DenseMatrix& A) : ipiv(0)
+DenseMatrix::DenseMatrix (const DenseMatrix& A) : ipiv(NULL)
 {
   myMat = A.myMat;
   symm = A.symm;
@@ -118,7 +133,7 @@ DenseMatrix::DenseMatrix (const DenseMatrix& A) : ipiv(0)
 }
 
 
-DenseMatrix::DenseMatrix (const RealArray& data, size_t nrows) : ipiv(0)
+DenseMatrix::DenseMatrix (const RealArray& data, size_t nrows) : ipiv(NULL)
 {
   size_t ndata = data.size();
   if (nrows == 0) nrows = (size_t)sqrt((double)ndata);
@@ -153,7 +168,7 @@ void DenseMatrix::init ()
 
   // Delete pivotation vector of old factorization, if any
   delete[] ipiv;
-  ipiv = 0;
+  ipiv = NULL;
 }
 
 
@@ -434,10 +449,10 @@ bool DenseMatrix::multiply (const SystemVector& B, SystemVector& C)
 }
 
 
-bool DenseMatrix::solve (SystemVector& B, bool)
+bool DenseMatrix::solve (SystemVector& B, bool, Real* rc)
 {
   size_t nrhs = myMat.rows() > 0 ? B.dim()/myMat.rows() : 1;
-  return this->solve(B.getPtr(),nrhs);
+  return this->solve(B.getPtr(),nrhs,rc);
 }
 
 
@@ -447,7 +462,7 @@ bool DenseMatrix::solve (Matrix& B)
 }
 
 
-bool DenseMatrix::solve (Real* B, size_t nrhs)
+bool DenseMatrix::solve (Real* B, size_t nrhs, Real* rcond)
 {
   const size_t n = myMat.rows();
   if (n < 1 || nrhs < 1) return true; // Nothing to solve
@@ -456,22 +471,34 @@ bool DenseMatrix::solve (Real* B, size_t nrhs)
   const char* dsolv = symm ? "DGESV" : "DPOSV";
 #ifdef USE_CBLAS
   int info = 0;
-  if (symm) {
+  if (symm)
+  {
     // Matrix is marked as symmetric - use Cholesky instead of full LU
     if (ipiv)
       dpotrs_('U',n,nrhs,myMat.ptr(),n,B,n,info);
-    else {
+    else
+    {
       ipiv = new int[1]; // dummy allocation to flag factorization reuse
       dposv_('U',n,nrhs,myMat.ptr(),n,B,n,info);
     }
   }
-  else {
-    if (ipiv)
-      dgetrs_('N',n,nrhs,myMat.ptr(),n,ipiv,B,n,info);
-    else
+  else if (ipiv)
+    dgetrs_('N',n,nrhs,myMat.ptr(),n,ipiv,B,n,info);
+  else
+  {
+    Real anorm;
+    if (rcond) // Evaluate the 1-norm of the original LHS-matrix
+      anorm = dlange_('1',n,n,myMat.ptr(),n,rcond);
+    ipiv = new int[n];
+    dgesv_(n,nrhs,myMat.ptr(),n,ipiv,B,n,info);
+    if (rcond && info == 0)
     {
-      ipiv = new int[n];
-      dgesv_(n,nrhs,myMat.ptr(),n,ipiv,B,n,info);
+      // Estimate the condition number
+      Real* work = new Real[4*n];
+      int* iwork = new int[n];
+      dgecon_('1',n,myMat.ptr(),n,anorm,*rcond,work,iwork,info);
+      delete[] work;
+      delete[] iwork;
     }
   }
   if (info == 0) return true;
