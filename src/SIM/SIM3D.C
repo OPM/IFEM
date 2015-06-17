@@ -51,7 +51,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
 
   if (!strcasecmp(elem->Value(),"refine") && !isRefined)
   {
-    int lowpatch = 1, uppatch = 2;
+    int lowpatch = 1, uppatch = 1;
     if (utl::getAttribute(elem,"patch",lowpatch))
       uppatch = lowpatch;
     if (utl::getAttribute(elem,"lowerpatch",lowpatch))
@@ -102,7 +102,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"raiseorder") && !isRefined)
   {
-    int lowpatch = 1, uppatch = 2;
+    int lowpatch = 1, uppatch = 1;
     if (utl::getAttribute(elem,"patch",lowpatch))
       uppatch = lowpatch;
     if (utl::getAttribute(elem,"lowerpatch",lowpatch))

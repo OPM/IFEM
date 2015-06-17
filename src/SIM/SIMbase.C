@@ -210,7 +210,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
         TopEntity& top = myEntitys[name];
         const TiXmlElement* item = set->FirstChildElement("item");
         for (; item; item = item->NextSiblingElement("item")) {
-          int patch = 0;
+          int patch = 1;
           utl::getAttribute(item,"patch",patch);
           if ((patch = this->getLocalPatchIndex(patch)) > 0) {
             if (abs(idim) == (int)this->getNoParamDim())
