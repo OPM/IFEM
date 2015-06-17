@@ -29,9 +29,10 @@ class ASMs3DmxLag : public ASMs3DLag, private ASMmxBase
 {
 public:
   //! \brief Default constructor.
-  ASMs3DmxLag(unsigned char n_f1 = 3, unsigned char n_f2 = 1);
+  ASMs3DmxLag(const std::vector<unsigned char>& n_f = {3,1});
   //! \brief Copy constructor.
-  ASMs3DmxLag(const ASMs3DmxLag& patch, char n_f1 = -1, char n_f2 = -1);
+  ASMs3DmxLag(const ASMs3DmxLag& patch,
+              const std::vector<unsigned char>& n_f = {0,0});
   //! \brief Empty destructor.
   virtual ~ASMs3DmxLag() {}
 

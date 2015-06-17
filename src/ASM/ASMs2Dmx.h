@@ -16,6 +16,7 @@
 
 #include "ASMs2D.h"
 #include "ASMmxBase.h"
+#include <memory>
 
 
 /*!
@@ -33,9 +34,10 @@ class ASMs2Dmx : public ASMs2D, private ASMmxBase
 public:
   //! \brief Default constructor.
   ASMs2Dmx(unsigned char n_s = 2,
-	   unsigned char n_f1 = 2, unsigned char n_f2 = 1);
+	   const std::vector<unsigned char>& n_f = {2, 1});
   //! \brief Copy constructor.
-  ASMs2Dmx(const ASMs2Dmx& patch, char n_f1 = -1, char n_f2 = -1);
+  ASMs2Dmx(const ASMs2Dmx& patch,
+           const std::vector<unsigned char>& n_f = {0, 0});
   //! \brief Empty destructor.
   virtual ~ASMs2Dmx() {}
 
@@ -43,7 +45,8 @@ public:
   virtual Go::SplineSurface* getBasis(int basis = 1) const;
   //! \brief Returns the spline curve representing a boundary of this patch.
   //! \param[in] dir Parameter direction defining which boundary to return
-  virtual Go::SplineCurve* getBoundary(int dir);
+  //! \param[in] basis Basis of boundary to return
+  virtual Go::SplineCurve* getBoundary(int dir, int basis = 1);
 
 
   // Methods for model generation
@@ -72,6 +75,8 @@ public:
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
 
+  //! \brief Returns the number of bases.
+  virtual size_t getNoBasis() const { return m_basis.size(); }
   //! \brief Returns the total number of nodes in this patch.
   virtual size_t getNoNodes(int basis = 0) const;
   //! \brief Returns the number of solution fields.
@@ -199,9 +204,7 @@ protected:
   //! \param[in] basis Which basis to return size parameters for
   virtual bool getSize(int& n1, int& n2, int basis = 0) const;
 
-private:
-  Go::SplineSurface* basis1; //!< Pointer to spline object for the first basis
-  Go::SplineSurface* basis2; //!< Pointer to spline object for the second basis
+  std::vector<std::shared_ptr<Go::SplineSurface>> m_basis; //!< Vector of bases
 };
 
 #endif

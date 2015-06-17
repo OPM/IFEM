@@ -134,7 +134,7 @@ public:
   Go::SplineVolume* getVolume() const { return svol; }
   //! \brief Returns the spline surface representing a boundary of this patch.
   //! \param[in] dir Parameter direction defining which boundary to return
-  virtual Go::SplineSurface* getBoundary(int dir);
+  virtual Go::SplineSurface* getBoundary(int dir, int = 1);
   //! \brief Returns the spline volume representing the basis of this patch.
   virtual Go::SplineVolume* getBasis(int = 1) const { return svol; }
   //! \brief Copies the parameter domain from the \a other patch.

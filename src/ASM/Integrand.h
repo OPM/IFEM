@@ -60,8 +60,7 @@ public:
   virtual LocalIntegral* getLocalIntegral(size_t nen, size_t iEl,
                                           bool neumann = false) const = 0;
   //! \brief Returns a local integral contribution object for the given element.
-  //! \param[in] nen1 Number of nodes on element for basis 1
-  //! \param[in] nen2 Number of nodes on element for basis 2
+  //! \param[in] nen Number of nodes on each basis
   //! \param[in] iEl Global element number (1-based)
   //! \param[in] neumann Whether or not we are assembling Neumann BCs
   //!
@@ -69,10 +68,11 @@ public:
   //! The default implementation just forwards to the single-basis version.
   //! Reimplement this method if your mixed formulation requires specialized
   //! local integral objects.
-  virtual LocalIntegral* getLocalIntegral(size_t nen1, size_t nen2, size_t iEl,
+  virtual LocalIntegral* getLocalIntegral(const std::vector<size_t>& nen,
+                                          size_t iEl,
                                           bool neumann = false) const
   {
-    return this->getLocalIntegral(nen1,iEl,neumann);
+    return this->getLocalIntegral(nen.front(),iEl,neumann);
   }
 
   //! \brief Initializes current element for numerical integration.
@@ -106,12 +106,13 @@ public:
   virtual bool initElement(const std::vector<int>& MNPC,
                            LocalIntegral& elmInt) = 0;
   //! \brief Initializes current element for numerical integration (mixed).
-  //! \param[in] MNPC1 Nodal point correspondance for the basis 1
-  //! \param[in] MNPC2 Nodal point correspondance for the basis 2
-  //! \param[in] n1 Number of nodes in basis 1 on this patch
+  //! \param[in] MNPC Nodal point correspondance for the bases
+  //! \param[in] elem_sizes Size of each basis on the element
+  //! \param[in] basis_sizes Size of each basis on the patch level
   //! \param elmInt Local integral for element
-  virtual bool initElement(const std::vector<int>& MNPC1,
-                           const std::vector<int>& MNPC2, size_t n1,
+  virtual bool initElement(const std::vector<int>& MNPC,
+                           const std::vector<size_t>& elem_sizes,
+                           const std::vector<size_t>& basis_sizes,
                            LocalIntegral& elmInt) = 0;
 
   //! \brief Initializes current element for boundary integration.
@@ -120,12 +121,13 @@ public:
   virtual bool initElementBou(const std::vector<int>& MNPC,
                               LocalIntegral& elmInt) = 0;
   //! \brief Initializes current element for boundary integration (mixed).
-  //! \param[in] MNPC1 Nodal point correspondance for the basis 1
-  //! \param[in] MNPC2 Nodal point correspondance for the basis 2
-  //! \param[in] n1 Number of nodes in basis 1 on this patch
+  //! \param[in] MNPC Nodal point correspondance for the bases
+  //! \param[in] elem_sizes Size of each basis on the element
+  //! \param[in] basis_sizes Size of each basis on the patch
   //! \param elmInt Local integral for element
-  virtual bool initElementBou(const std::vector<int>& MNPC1,
-                              const std::vector<int>& MNPC2, size_t n1,
+  virtual bool initElementBou(const std::vector<int>& MNPC,
+                              const std::vector<size_t>& elem_sizes,
+                              const std::vector<size_t>& basis_sizes,
                               LocalIntegral& elmInt) = 0;
 
 

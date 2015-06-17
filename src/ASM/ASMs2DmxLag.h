@@ -30,9 +30,10 @@ class ASMs2DmxLag : public ASMs2DLag, private ASMmxBase
 public:
   //! \brief Default constructor.
   ASMs2DmxLag(unsigned char n_s = 2,
-	      unsigned char n_f1 = 2, unsigned char n_f2 = 1);
+	      const std::vector<unsigned char>& n_f = {2,1});
   //! \brief Copy constructor.
-  ASMs2DmxLag(const ASMs2DmxLag& patch, char n_f1 = -1, char n_f2 = -1);
+  ASMs2DmxLag(const ASMs2DmxLag& patch,
+              const std::vector<unsigned char>& n_f = {0,0});
   //! \brief Empty destructor.
   virtual ~ASMs2DmxLag() {}
 

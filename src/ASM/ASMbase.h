@@ -215,6 +215,8 @@ public:
   const IntVec& getGlobalNodeNums() const { return MLGN; }
   //! \brief Returns the actual global node numbers of this patch.
   const IntVec& getMyNodeNums() const { return myMLGN; }
+  //! \brief Returns number of bases
+  virtual size_t getNoBasis() const { return 1; }
   //! \brief Returns the total number of nodes in this patch.
   virtual size_t getNoNodes(int basis = 0) const;
   //! \brief Returns the total number of elements in this patch.

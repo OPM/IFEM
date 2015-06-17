@@ -214,6 +214,8 @@ public:
   int getDumpInterval() const { return opt.saveInc; }
   //! \brief Returns the number of right-hand-side vectors.
   virtual size_t getNoRHS() const;
+  //! \brief Returns the number of bases in the model.
+  char getNoBasis() const;
 
   //! \brief Returns the type (DOF classification) of the specified global node.
   char getNodeType(int inod) const;

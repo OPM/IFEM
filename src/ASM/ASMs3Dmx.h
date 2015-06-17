@@ -17,6 +17,8 @@
 #include "ASMs3D.h"
 #include "ASMmxBase.h"
 
+#include <memory>
+
 
 /*!
   \brief Driver for assembly of structured 3D spline mixed FE models.
@@ -32,9 +34,9 @@ class ASMs3Dmx : public ASMs3D, private ASMmxBase
 {
 public:
   //! \brief Default constructor.
-  ASMs3Dmx(unsigned char n_f1 = 3, unsigned char n_f2 = 1);
+  ASMs3Dmx(const std::vector<unsigned char>& n_f = {3,1});
   //! \brief Copy constructor.
-  ASMs3Dmx(const ASMs3Dmx& patch, char n_f1 = -1, char n_f2 = -1);
+  ASMs3Dmx(const ASMs3Dmx& patch, const std::vector<unsigned char>& n_f = {0,0});
   //! \brief Empty destructor.
   virtual ~ASMs3Dmx() {}
 
@@ -42,7 +44,8 @@ public:
   virtual Go::SplineVolume* getBasis(int basis = 1) const;
   //! \brief Returns the spline curve representing a boundary of this patch.
   //! \param[in] dir Parameter direction defining which boundary to return
-  virtual Go::SplineSurface* getBoundary(int dir);
+  //! \param[in] basis The basis to get the boundary for
+  virtual Go::SplineSurface* getBoundary(int dir, int basis = 1);
 
 
   // Methods for model generation
@@ -204,8 +207,7 @@ protected:
   virtual bool getSize(int& n1, int& n2, int& n3, int basis = 0) const;
 
 private:
-  Go::SplineVolume* basis1; //!< Pointer to spline object for the first basis
-  Go::SplineVolume* basis2; //!< Pointer to spline object for the second basis
+  std::vector<std::shared_ptr<Go::SplineVolume>> m_basis; //!< Vector of bases
 };
 
 #endif

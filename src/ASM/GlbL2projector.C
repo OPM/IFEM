@@ -37,9 +37,10 @@ public:
   //! \brief Destruction method to clean up after numerical integration.
   virtual void destruct() { delete elmData; delete this; }
 
-  GlbL2&         gl2Int;  //!< The global L2 projection integrand
-  LocalIntegral* elmData; //!< Element data associated with problem integrand
-  IntVec         mnpc;    //!< Matrix of element nodal correspondance
+  GlbL2&         gl2Int;       //!< The global L2 projection integrand
+  LocalIntegral* elmData;      //!< Element data associated with problem integrand
+  IntVec         mnpc;         //!< Matrix of element nodal correspondance for bases
+  std::vector<size_t> sizes;   //!< Size of each basis
 };
 
 
@@ -76,6 +77,19 @@ bool GlbL2::initElement (const IntVec& MNPC, const FiniteElement& fe,
 }
 
 
+bool GlbL2::initElement (const IntVec& MNPC1,
+                         const std::vector<size_t>& elem_sizes,
+                         const std::vector<size_t>& basis_sizes,
+                         LocalIntegral& elmInt)
+{
+  L2Mats& gl2 = static_cast<L2Mats&>(elmInt);
+
+  gl2.mnpc  = MNPC1;
+  gl2.sizes = elem_sizes;
+  return problem.initElement(MNPC1,elem_sizes,basis_sizes,*gl2.elmData);
+}
+
+
 bool GlbL2::evalInt (LocalIntegral& elmInt,
                      const FiniteElement& fe,
                      const Vec3& X) const
@@ -99,6 +113,35 @@ bool GlbL2::evalInt (LocalIntegral& elmInt,
     }
     for (b = 0; b < solPt.size(); b++)
       B(inod+b*nnod) += fe.N[a]*solPt[b]*fe.detJxW;
+  }
+
+  return true;
+}
+
+
+bool GlbL2::evalIntMx (LocalIntegral& elmInt,
+                       const MxFiniteElement& fe,
+                       const Vec3& X) const
+
+{
+  L2Mats& gl2 = static_cast<L2Mats&>(elmInt);
+
+  Vector solPt;
+  if (!problem.evalSol(solPt,fe,X,gl2.mnpc,gl2.sizes))
+    if (!problem.diverged(fe.iGP+1))
+      return false;
+
+  size_t a, b, nnod = A.dim();
+  for (a = 0; a < fe.basis(1).size(); a++)
+  {
+    int inod = gl2.mnpc[a]+1;
+    for (b = 0; b < fe.basis(1).size(); b++)
+    {
+      int jnod = gl2.mnpc[b]+1;
+      A(inod,jnod) += fe.basis(1)[a]*fe.basis(1)[b]*fe.detJxW;
+    }
+    for (b = 0; b < solPt.size(); b++)
+      B(inod+b*nnod) += fe.basis(1)[a]*solPt[b]*fe.detJxW;
   }
 
   return true;

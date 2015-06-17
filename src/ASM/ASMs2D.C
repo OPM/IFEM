@@ -75,7 +75,7 @@ ASMs2D::~ASMs2D ()
 }
 
 
-Go::SplineCurve* ASMs2D::getBoundary (int dir)
+Go::SplineCurve* ASMs2D::getBoundary (int dir, int)
 {
   if (dir < -2 || dir == 0 || dir > 2)
     return NULL;
@@ -730,7 +730,7 @@ void ASMs2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 
   int bcode = code;
   if (code > 0) // Dirichlet projection will be performed
-    dirich.push_back(DirichletEdge(this->getBoundary(dir),dof,code));
+    dirich.push_back(DirichletEdge(this->getBoundary(dir,basis),dof,code));
   else if (code < 0)
     bcode = -code;
 

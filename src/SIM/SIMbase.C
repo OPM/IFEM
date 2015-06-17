@@ -1473,6 +1473,18 @@ size_t SIMbase::getNoRHS () const
 }
 
 
+char SIMbase::getNoBasis() const
+{
+  char result = getPatch(1)->getNoBasis();
+#ifndef NDEBUG
+  for (auto& p : getFEModel())
+    assert(p->getNoBasis() == result);
+#endif
+
+  return result;
+}
+
+
 bool SIMbase::hasTimeDependentDirichlet () const
 {
   for (size_t i = 0; i < myModel.size(); i++)

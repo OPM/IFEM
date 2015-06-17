@@ -51,16 +51,24 @@ public:
   virtual bool initElement(const IntVec& MNPC, const FiniteElement& fe,
                            const Vec3& X0, size_t nPt,
                            LocalIntegral& elmInt);
+  //! \brief Initializes current element for numerical integration (mixed integrands).
+  //! \param[in] MNPC1 Matrix of nodal point correspondance for current element
+  //! \param[in] elem_sizes Size of each basis on the element
+  //! \param[in] basis_sizes Size of each basis on the patch
+  //! \param elmInt Local integral for element
+  virtual bool initElement(const IntVec& MNPC1,
+                           const std::vector<size_t>& elem_sizes,
+                           const std::vector<size_t>& basis_sizes,
+                           LocalIntegral& elmInt);
 
   //! \brief Dummy implementation.
   virtual bool initElement(const IntVec&, LocalIntegral&) { return false; }
-  //! \brief Dummy implementation.
-  virtual bool initElement(const IntVec&, const IntVec&, size_t,
-                           LocalIntegral&) { return false; }
+
   //! \brief Dummy implementation.
   virtual bool initElementBou(const IntVec&, LocalIntegral&) { return false; }
   //! \brief Dummy implementation.
-  virtual bool initElementBou(const IntVec&, const IntVec&, size_t,
+  virtual bool initElementBou(const IntVec&, const std::vector<size_t>&,
+                              const std::vector<size_t>&,
                               LocalIntegral&) { return false; }
 
   //! \brief Evaluates the integrand at an interior point.
@@ -69,6 +77,13 @@ public:
   //! \param[in] X Cartesian coordinates of current integration point
   virtual bool evalInt(LocalIntegral& elmInt,
                        const FiniteElement& fe, const Vec3& X) const;
+
+  //! \brief Evaluates the integrand at an interior point.
+  //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe Mixed finite element data of current integration point
+  //! \param[in] X Cartesian coordinates of current integration point
+  virtual bool evalIntMx(LocalIntegral& elmInt, const MxFiniteElement& fe,
+                         const Vec3& X) const;
 
   //! \brief Pre-computes the sparsity pattern of the projection matrix \b A.
   //! \param[in] MMNPC Matrix of matrices of nodal point correspondances

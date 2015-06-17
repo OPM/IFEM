@@ -110,12 +110,13 @@ public:
                            const FiniteElement& fe,
                            const Vec3& X0, size_t nPt, LocalIntegral& elmInt);
   //! \brief Initializes current element for numerical integration (mixed).
-  //! \param[in] MNPC1 Nodal point correspondance for the basis 1
-  //! \param[in] MNPC2 Nodal point correspondance for the basis 2
-  //! \param[in] n1 Number of nodes in basis 1 on current patch
+  //! \param[in] MNPC Nodal point correspondance for the bases
+  //! \param[in] elem_sizes Size of each basis on the element
+  //! \param[in] basis_sizes Size of each basis on the patch
   //! \param elmInt Local integral for element
-  virtual bool initElement(const std::vector<int>& MNPC1,
-                           const std::vector<int>& MNPC2, size_t n1,
+  virtual bool initElement(const std::vector<int>& MNPC,
+                           const std::vector<size_t>& elem_sizes,
+                           const std::vector<size_t>& basis_sizes,
                            LocalIntegral& elmInt);
 
   //! \brief Initializes current element for boundary integration.
@@ -124,12 +125,13 @@ public:
   virtual bool initElementBou(const std::vector<int>& MNPC,
                               LocalIntegral& elmInt);
   //! \brief Initializes current element for boundary integration (mixed).
-  //! \param[in] MNPC1 Nodal point correspondance for the basis 1
-  //! \param[in] MNPC2 Nodal point correspondance for the basis 2
-  //! \param[in] n1 Number of nodes in basis 1 on current patch
+  //! \param[in] MNPC Nodal point correspondance for the bases
+  //! \param[in] elem_sizes Size of each basis on the element
+  //! \param[in] basis_sizes Size of each basis on the patch
   //! \param elmInt Local integral for element
-  virtual bool initElementBou(const std::vector<int>& MNPC1,
-                              const std::vector<int>& MNPC2, size_t n1,
+  virtual bool initElementBou(const std::vector<int>& MNPC,
+                              const std::vector<size_t>& elem_sizes,
+                              const std::vector<size_t>& basis_sizes,
                               LocalIntegral& elmInt);
 
   //! \brief Returns whether this integrand has explicit interior contributions.
@@ -153,11 +155,11 @@ public:
   //! \param[out] s The solution field values at current point
   //! \param[in] fe Mixed finite element data at current point
   //! \param[in] X Cartesian coordinates of current point
-  //! \param[in] MNPC1 Nodal point correspondance for the basis 1
-  //! \param[in] MNPC2 Nodal point correspondance for the basis 2
+  //! \param[in] MNPC Nodal point correspondance for the bases
+  //! \param[in] elem_sizes Size of each basis on the element
   virtual bool evalSol(Vector& s, const MxFiniteElement& fe, const Vec3& X,
-		       const std::vector<int>& MNPC1,
-		       const std::vector<int>& MNPC2) const;
+		       const std::vector<int>& MNPC,
+		       const std::vector<size_t>& elem_sizes) const;
 
   //! \brief Evaluates the analytical secondary solution at a result point.
   //! \param[out] s The solution field values at current point
@@ -291,16 +293,18 @@ public:
                            const FiniteElement& fe,
                            const Vec3& X0, size_t nPt, LocalIntegral& elmInt);
   //! \brief Initializes current element for numerical integration (mixed).
-  virtual bool initElement(const std::vector<int>& MNPC1,
-                           const std::vector<int>& MNPC2, size_t n1,
+  virtual bool initElement(const std::vector<int>& MNPC,
+                           const std::vector<size_t>& elem_sizes,
+                           const std::vector<size_t>& basis_sizes,
                            LocalIntegral& elmInt);
 
   //! \brief Initializes current element for boundary integration.
   virtual bool initElementBou(const std::vector<int>& MNPC,
                               LocalIntegral& elmInt);
   //! \brief Initializes current element for boundary integration (mixed).
-  virtual bool initElementBou(const std::vector<int>& MNPC1,
-                              const std::vector<int>& MNPC2, size_t n1,
+  virtual bool initElementBou(const std::vector<int>& MNPC,
+                              const std::vector<size_t>& elem_sizes,
+                              const std::vector<size_t>& basis_sizes,
                               LocalIntegral& elmInt);
 
   //! \brief Returns whether this norm has explicit boundary contributions.
@@ -392,8 +396,9 @@ public:
   { return false; }
 
   //! \brief Dummy implementation (only boundary integration is relevant).
-  virtual bool initElement(const std::vector<int>&, const std::vector<int>&,
-                           size_t, LocalIntegral&)
+  virtual bool initElement(const std::vector<int>&, const std::vector<size_t>&,
+                           const std::vector<size_t>&,
+                           LocalIntegral&)
   { return false; }
 
   //! \brief Initializes current element for boundary integration.
@@ -401,7 +406,8 @@ public:
                               LocalIntegral& elmInt);
   //! \brief Initializes current element for boundary integration (mixed).
   virtual bool initElementBou(const std::vector<int>& MNPC1,
-                              const std::vector<int>& MNPC2, size_t n1,
+                              const std::vector<size_t>& elem_sizes,
+                              const std::vector<size_t>& basis_sizes,
                               LocalIntegral& elmInt);
 
   //! \brief Returns the number of force components.

@@ -35,7 +35,7 @@ ASMbase* ASM3D::create (ASM::Discretization discretization,
 
   case ASM::Lagrange:
     if (nf[1] > 0 || mixedFEM)
-      return new ASMs3DmxLag(nf[0],nf[1]);
+      return new ASMs3DmxLag({nf[0],nf[1]});
     else
       return new ASMs3DLag(nf[0]);
 
@@ -49,7 +49,7 @@ ASMbase* ASM3D::create (ASM::Discretization discretization,
 
   default:
     if (nf[1] > 0 || mixedFEM)
-      return new ASMs3Dmx(nf[0],nf[1]);
+      return new ASMs3Dmx({nf[0],nf[1]});
     else
       return new ASMs3D(nf[0]);
   }
@@ -62,7 +62,7 @@ ASMbase* ASM3D::create (ASM::Discretization discretization,
   }
 #define TRY_CLONE2(classType,n) {					\
     const classType* p = dynamic_cast<const classType*>(this);		\
-    if (p) return n ? new classType(*p,n[0],n[1]) : new classType(*p);	\
+    if (p) return n ? new classType(*p,{n[0],n[1]}) : new classType(*p);	\
   }
 
 ASMbase* ASM3D::clone (unsigned char* nf) const

@@ -27,7 +27,7 @@ protected:
   //! \brief The constructor sets the number of field variables.
   //! \param[in] n_f1 Number of nodal variables in field 1
   //! \param[in] n_f2 Number of nodal variables in field 2
-  ASMmxBase(unsigned char n_f1, unsigned char n_f2);
+  ASMmxBase(const std::vector<unsigned char>& n_f);
 
   //! \brief Initializes the patch level MADOF array.
   //! \param[in] MLGN Matrix of local-to-global node numbers
@@ -72,11 +72,8 @@ private:
   std::vector<int> MADOF; //!< Matrix of accumulated DOFs for this patch
 
 protected:
-  size_t nb1; //!< Number of basis functions in first basis
-  size_t nb2; //!< Number of basis functions in second basis
-
-  unsigned char nf1; //!< Number of solution fields using first basis
-  unsigned char nf2; //!< Number of solution fields using second basis
+  std::vector<size_t> nb;         //!< Number of basis functions in each basis
+  std::vector<unsigned char> nfx; //!< Number of fields on each basis
 };
 
 #endif

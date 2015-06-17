@@ -39,7 +39,7 @@ ASMbase* ASM2D::create (ASM::Discretization discretization,
 
   case ASM::Lagrange:
     if (nf[1] > 0 || mixedFEM)
-      return new ASMs2DmxLag(nd,nf[0],nf[1]);
+      return new ASMs2DmxLag(nd,{nf[0],nf[1]});
     else
       return new ASMs2DLag(nd,nf[0]);
 
@@ -58,7 +58,7 @@ ASMbase* ASM2D::create (ASM::Discretization discretization,
     if (nf[1] == 'I') // hack for immersed boundary approach
       return new ASMs2DIB(nd,nf[0],nf[2]);
     else if (nf[1] > 0 || mixedFEM)
-      return new ASMs2Dmx(nd,nf[0],nf[1]);
+      return new ASMs2Dmx(nd,{nf[0],nf[1]});
     else
       return new ASMs2D(nd,nf[0]);
   }
@@ -71,7 +71,7 @@ ASMbase* ASM2D::create (ASM::Discretization discretization,
   }
 #define TRY_CLONE2(classType,n) {					\
     const classType* p = dynamic_cast<const classType*>(this);		\
-    if (p) return n ? new classType(*p,n[0],n[1]) : new classType(*p);	\
+    if (p) return n ? new classType(*p,{n[0],n[1]}) : new classType(*p);	\
   }
 
 ASMbase* ASM2D::clone (unsigned char* nf) const

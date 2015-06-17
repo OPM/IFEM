@@ -89,10 +89,12 @@ bool IntegrandBase::initElement (const std::vector<int>& MNPC,
   The default implementation forwards to the single-basis version.
 */
 
-bool IntegrandBase::initElement (const std::vector<int>& MNPC1,
-                                 const std::vector<int>&, size_t,
+bool IntegrandBase::initElement (const std::vector<int>& MNPC,
+                                 const std::vector<size_t>& elem_sizes,
+                                 const std::vector<size_t>& basis_sizes,
                                  LocalIntegral& elmInt)
 {
+  std::vector<int> MNPC1(MNPC.begin(), MNPC.begin()+elem_sizes.front());
   return this->initElement(MNPC1,elmInt);
 }
 
@@ -118,10 +120,12 @@ bool IntegrandBase::initElementBou (const std::vector<int>& MNPC,
   The default implementation forwards to the single-basis version.
 */
 
-bool IntegrandBase::initElementBou (const std::vector<int>& MNPC1,
-                                    const std::vector<int>&, size_t,
+bool IntegrandBase::initElementBou (const std::vector<int>& MNPC,
+                                    const std::vector<size_t>& elem_sizes,
+                                    const std::vector<size_t>& basis_sizes,
                                     LocalIntegral& elmInt)
 {
+  std::vector<int> MNPC1(MNPC.begin(), MNPC.begin()+elem_sizes.front());
   return this->initElementBou(MNPC1,elmInt);
 }
 
@@ -134,9 +138,10 @@ bool IntegrandBase::evalSol (Vector& s, const FiniteElement& fe,
 
 
 bool IntegrandBase::evalSol (Vector& s, const MxFiniteElement& fe,
-                             const Vec3& X, const std::vector<int>& MNPC1,
-                             const std::vector<int>&) const
+                             const Vec3& X, const std::vector<int>& MNPC,
+                             const std::vector<size_t>& elem_sizes) const
 {
+  std::vector<int> MNPC1(MNPC.begin(), MNPC.begin()+elem_sizes.front());
   return this->evalSol(s,fe,X,MNPC1);
 }
 
@@ -254,12 +259,13 @@ bool NormBase::initElement (const std::vector<int>& MNPC,
 }
 
 
-bool NormBase::initElement (const std::vector<int>& MNPC1,
-                            const std::vector<int>& MNPC2, size_t n1,
+bool NormBase::initElement (const std::vector<int>& MNPC,
+                            const std::vector<size_t>& elem_sizes,
+                            const std::vector<size_t>& basis_sizes,
                             LocalIntegral& elmInt)
 {
-  return this->initProjection(MNPC1,elmInt) &&
-         myProblem.initElement(MNPC1,MNPC2,n1,elmInt);
+  return this->initProjection(MNPC,elmInt) &&
+         myProblem.initElement(MNPC,elem_sizes,basis_sizes,elmInt);
 }
 
 
@@ -270,11 +276,12 @@ bool NormBase::initElementBou (const std::vector<int>& MNPC,
 }
 
 
-bool NormBase::initElementBou (const std::vector<int>& MNPC1,
-                               const std::vector<int>& MNPC2, size_t n1,
+bool NormBase::initElementBou (const std::vector<int>& MNPC,
+                               const std::vector<size_t>& elem_sizes,
+                               const std::vector<size_t>& basis_sizes,
                                LocalIntegral& elmInt)
 {
-  return myProblem.initElementBou(MNPC1,MNPC2,n1,elmInt);
+  return myProblem.initElementBou(MNPC,elem_sizes,basis_sizes,elmInt);
 }
 
 
@@ -361,13 +368,14 @@ bool ForceBase::initElementBou (const std::vector<int>& MNPC,
 }
 
 
-bool ForceBase::initElementBou (const std::vector<int>& MNPC1,
-                                const std::vector<int>& MNPC2, size_t n1,
+bool ForceBase::initElementBou (const std::vector<int>& MNPC,
+                                const std::vector<size_t>& elem_sizes,
+                                const std::vector<size_t>& basis_sizes,
                                 LocalIntegral& elmInt)
 {
   // Note that we invoke initElement (and not initElementBou) of the problem
   // integrand here, because the forces may depend on all solution variables.
-  return myProblem.initElement(MNPC1,MNPC2,n1,elmInt);
+  return myProblem.initElement(MNPC,elem_sizes,basis_sizes,elmInt);
 }
 
 

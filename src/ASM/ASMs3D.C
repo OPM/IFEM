@@ -60,7 +60,7 @@ ASMs3D::ASMs3D (const ASMs3D& patch)
 }
 
 
-Go::SplineSurface* ASMs3D::getBoundary (int dir)
+Go::SplineSurface* ASMs3D::getBoundary (int dir, int)
 {
   if (dir < -3 || dir == 0 || dir > 3)
     return NULL;
@@ -818,7 +818,7 @@ void ASMs3D::constrainFace (int dir, bool open, int dof,
 
   int bcode = code;
   if (code > 0) // Dirichlet projection will be performed
-    dirich.push_back(DirichletFace(this->getBoundary(dir),dof,code));
+    dirich.push_back(DirichletFace(this->getBoundary(dir,basis),dof,code));
   else if (code < 0)
     bcode = -code;
 
