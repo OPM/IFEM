@@ -503,7 +503,7 @@ size_t ASMu2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
 }
 
 
-void ASMu2D::constrainCorner (int I, int J, int dof, int code)
+void ASMu2D::constrainCorner (int I, int J, int dof, int code, char)
 {
   std::vector<LR::Basisfunction*> edgeFunctions;
 

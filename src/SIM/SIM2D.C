@@ -605,10 +605,10 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
     case 0: // Vertex constraints
       switch (lndx)
 	{
-	case 1: pch->constrainCorner(-1,-1,dirs,abs(code)); break;
-	case 2: pch->constrainCorner( 1,-1,dirs,abs(code)); break;
-	case 3: pch->constrainCorner(-1, 1,dirs,abs(code)); break;
-	case 4: pch->constrainCorner( 1, 1,dirs,abs(code)); break;
+	case 1: pch->constrainCorner(-1,-1,dirs,abs(code),basis); break;
+	case 2: pch->constrainCorner( 1,-1,dirs,abs(code),basis); break;
+	case 3: pch->constrainCorner(-1, 1,dirs,abs(code),basis); break;
+	case 4: pch->constrainCorner( 1, 1,dirs,abs(code),basis); break;
 	default:
 	  IFEM::cout << std::endl;
 	  return constrError("vertex index ",lndx);

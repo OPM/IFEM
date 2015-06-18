@@ -87,6 +87,13 @@ public:
   //! \brief Returns the classification of a node.
   //! \param[in] inod 1-based node index local to current patch
   virtual char getNodeType(size_t inod) const;
+  //! \brief Returns the area in the parameter space for an element.
+  //! \param[in] iel Element index
+  virtual double getParametricArea(int iel) const;
+  //! \brief Returns boundary edge length in the parameter space for an element.
+  //! \param[in] iel Element index
+  //! \param[in] dir Local index of the boundary edge
+  double getParametricLength(int iel, int dir) const;
 
   //! \brief Initializes the patch level MADOF array for mixed problems.
   virtual void initMADOF(const int* sysMadof);

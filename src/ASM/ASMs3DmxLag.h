@@ -144,9 +144,11 @@ protected:
   virtual bool getSize(int& n1, int& n2, int& n3, int basis = 0) const;
 
 private:
-  size_t nx2; //!< Number of nodes in 1st parameter direction for second basis
-  size_t ny2; //!< Number of nodes in 2nd parameter direction for second basis
-  size_t nz2; //!< Number of nodes in 3rd parameter direction for second basis
+  std::vector<size_t> nxx; //!< Number of nodes in 1st parameter direction for bases
+  std::vector<size_t> nyx; //!< Number of nodes in 2nd parameter direction for bases
+  std::vector<size_t> nzx; //!< Number of nodes in 3rd parameter direction for bases
+
+  std::vector<std::array<size_t,3>> elem_sizes; //!< Size on each basis
 };
 
 #endif

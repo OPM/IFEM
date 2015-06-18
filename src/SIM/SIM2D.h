@@ -31,7 +31,6 @@ public:
 
   //! \brief Default constructor.
   //! \param[in] n1 Dimension of the primary solution field
-  //! \param[in] n2 Dimension of the second solution field (mixed method)
   //! \param[in] check If \e true, ensure the model is in a right-hand system
   SIM2D(unsigned char n1 = 2, unsigned char n2 = 0, bool check = false);
   //! \brief Constructor that also initializes the integrand pointer.

@@ -241,11 +241,12 @@ public:
   //! \param[in] J Parameter index in v-direction
   //! \param[in] dof Which DOFs to constrain at the node
   //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Which basis to constrain edge for
   //!
   //! \details The sign of the two indices is used to define whether we want
   //! the node at the beginning or the end of that parameter direction.
   //! The magnitude of the indices are not used.
-  virtual void constrainCorner(int I, int J, int dof, int code = 0);
+  virtual void constrainCorner(int I, int J, int dof, int code = 0, char basis = 1);
   //! \brief Constrains a node identified by two relative parameter values.
   //! \param[in] xi Parameter in u-direction
   //! \param[in] eta Parameter in v-direction
@@ -499,11 +500,11 @@ protected:
 
   //! \brief Returns the area in the parameter space for an element.
   //! \param[in] iel Element index
-  double getParametricArea(int iel) const;
+  virtual double getParametricArea(int iel) const;
   //! \brief Returns boundary edge length in the parameter space for an element.
   //! \param[in] iel Element index
   //! \param[in] dir Local index of the boundary edge
-  double getParametricLength(int iel, int dir) const;
+  virtual double getParametricLength(int iel, int dir) const;
 
   //! \brief Computes the element border parameters.
   //! \param[in] i1 Parameter index in u-direction

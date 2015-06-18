@@ -159,7 +159,7 @@ public:
   //! \details The sign of the two indices is used to define whether we want
   //! the node at the beginning or the end of that parameter direction.
   //! The magnitude of the indices are not used.
-  virtual void constrainCorner(int I, int J, int dof, int code = 0);
+  virtual void constrainCorner(int I, int J, int dof, int code = 0, char = 1);
   //! \brief Constrains a node identified by two relative parameter values.
   //! \param[in] xi Parameter in u-direction
   //! \param[in] eta Parameter in v-direction

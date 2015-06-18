@@ -30,7 +30,6 @@ ASMs2DmxLag::ASMs2DmxLag (unsigned char n_s,
                           const std::vector<unsigned char>& n_f)
   : ASMs2DLag(n_s), ASMmxBase(n_f)
 {
-  nx2 = ny2 = 0;
 }
 
 
@@ -38,14 +37,15 @@ ASMs2DmxLag::ASMs2DmxLag (const ASMs2DmxLag& patch,
                           const std::vector<unsigned char>& n_f)
   : ASMs2DLag(patch), ASMmxBase(n_f)
 {
-  nx2 = patch.nx2;
-  ny2 = patch.ny2;
+  nxx = patch.nxx;
+  nyx = patch.nyx;
 }
 
 
 void ASMs2DmxLag::clear (bool retainGeometry)
 {
-  nx2 = ny2 = 0;
+  nxx.clear();
+  nyx.clear();
   this->ASMs2DLag::clear(retainGeometry);
 }
 
@@ -120,11 +120,12 @@ bool ASMs2DmxLag::generateFEMTopology ()
   // Generate/check FE data for the geometry/basis1
   bool haveFEdata = !MLGN.empty();
   bool basis1IsOK = this->ASMs2DLag::generateFEMTopology();
+  geoBasis = 1;
   if ((haveFEdata && !shareFE) || !basis1IsOK) return basis1IsOK;
 
   // Order of 2nd basis in the two parametric directions (order = degree + 1)
-  const int p1 = surf->order_u()-1;
-  const int p2 = surf->order_v()-1;
+  const size_t p1 = surf->order_u()-1;
+  const size_t p2 = surf->order_v()-1;
   if (p1 < 2 || p2 < 2)
   {
     std::cerr <<" *** ASMs2DmxLag::generateFEMTopology: Too low order "
@@ -138,28 +139,32 @@ bool ASMs2DmxLag::generateFEMTopology ()
   if (!this->getGridParameters(gpar2,1,p2-1)) return false;
 
   // Number of nodes in each direction
-  nx2 = gpar1.size();
-  ny2 = gpar2.size();
+  nxx.push_back(nx);
+  nyx.push_back(ny);
+  nxx.push_back(gpar1.size());
+  nyx.push_back(gpar2.size());
+  elem_sizes.push_back({p1+1,p2+1});
+  elem_sizes.push_back({p1,p2});
 
   nb.resize(2);
   nb[0] = MLGN.size();
-  nb[1] = nx2*ny2;
+  nb[1] = nxx[1]*nyx[1];
 
   if (shareFE == 'F') return true;
 
   // Add nodes for second basis (coordinates are not needed)
   nnod += nb[1];
   myMLGN.reserve(nnod);
-  for (size_t i2 = 0; i2 < ny2; i2++)
-    for (size_t i1 = 0; i1 < nx2; i1++)
+  for (size_t i2 = 0; i2 < nyx[1]; i2++)
+    for (size_t i1 = 0; i1 < nxx[1]; i1++)
       myMLGN.push_back(++gNod);
 
   // Number of elements in each direction
-  const int nelx = (nx2-1)/(p1-1);
-  const int nely = (ny2-1)/(p2-1);
+  const int nelx = (nxx[1]-1)/(p1-1);
+  const int nely = (nyx[1]-1)/(p2-1);
 
   // Add connectivity for second basis: local --> global node relation
-  int i, j, a, b, iel;
+  int i, j, iel;
   for (j = iel = 0; j < nely; j++)
     for (i = 0; i < nelx; i++, iel++)
     {
@@ -167,13 +172,13 @@ bool ASMs2DmxLag::generateFEMTopology ()
       myMNPC[iel].resize(nen1+p1*p2);
 
       // First node in current element
-      int corner = nb[0] + (p2-1)*nx2*j + (p1-1)*i;
+      int corner = nb[0] + (p2-1)*nxx[1]*j + (p1-1)*i;
 
-      for (b = 0; b < p2; b++)
+      for (size_t b = 0; b < p2; b++)
       {
 	int facenod = nen1 + b*p1;
-	myMNPC[iel][facenod] = corner + b*nx2;
-	for (a = 1; a < p1; a++)
+	myMNPC[iel][facenod] = corner + b*nxx[1];
+	for (size_t a = 1; a < p1; a++)
 	  myMNPC[iel][facenod+a] = myMNPC[iel][facenod] + a;
       }
     }
@@ -188,9 +193,14 @@ bool ASMs2DmxLag::connectPatch (int edge, ASMs2D& neighbor,
   ASMs2DmxLag* neighMx = dynamic_cast<ASMs2DmxLag*>(&neighbor);
   if (!neighMx) return false;
 
-  if (!this->connectBasis(edge,neighbor,nedge,revers,1,0,0) ||
-      !this->connectBasis(edge,neighbor,nedge,revers,2,nb[0],neighMx->nb[0]))
-    return false;
+  size_t nb1=0;
+  size_t nb2=0;
+  for (size_t i = 1;i <= nxx.size(); ++i) {
+    if (!this->connectBasis(edge,neighbor,nedge,revers,i,nb1,nb2))
+      return false;
+    nb1 += nb[i-1];
+    nb2 += neighMx->nb[i-1];
+  }
 
   this->addNeighbor(neighMx);
   return true;
@@ -199,18 +209,21 @@ bool ASMs2DmxLag::connectPatch (int edge, ASMs2D& neighbor,
 
 void ASMs2DmxLag::closeEdges (int dir, int, int)
 {
-  this->ASMs2D::closeEdges(dir,1,1);
-  this->ASMs2D::closeEdges(dir,2,nb[0]+1);
+  size_t nbi = 0;
+  for (size_t i = 1;i <= nxx.size(); ++i) {
+    this->ASMs2D::closeEdges(dir,i,nbi+1);
+    nbi += nb[i-1];
+  }
 }
 
 
 bool ASMs2DmxLag::getSize (int& n1, int& n2, int basis) const
 {
-  if (basis != 2)
+  if (basis <= 1)
     return this->ASMs2DLag::getSize(n1,n2,1);
 
-  n1 = nx2;
-  n2 = ny2;
+  n1 = nxx[basis-2];
+  n2 = nyx[basis-2];
 
   return true;
 }
@@ -234,13 +247,9 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
 
   const int nelx = upar.size() - 1;
 
-  // Order of basis in the two parametric directions (order = degree + 1)
-  const size_t p1 = surf->order_u();
-  const size_t p2 = surf->order_v();
-  // The second basis is assumed one order lower in each direction
-  const size_t q1 = p1 - 1;
-  const size_t q2 = p2 - 1;
-  std::vector<size_t> elem_sizes =  {p1*p2, q1*q2};
+  std::vector<size_t> elem_size;
+  for (size_t b = 0; b < nxx.size(); ++b)
+    elem_size.push_back(elem_sizes[b][0]*elem_sizes[b][1]);
 
   // === Assembly loop over all elements in the patch ==========================
 
@@ -250,8 +259,9 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
 #pragma omp parallel for schedule(static)
     for (size_t t = 0; t < threadGroups[g].size(); t++)
     {
-      MxFiniteElement fe(elem_sizes);
-      Matrix dN1du, dN2du, Xnod, Jac;
+      MxFiniteElement fe(elem_size);
+      std::vector<Matrix> dNxdu(nxx.size());
+      Matrix Xnod, Jac;
       Vec4   X;
       for (size_t i = 0; i < threadGroups[g][t].size() && ok; ++i)
       {
@@ -268,8 +278,8 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
 
         // Initialize element quantities
         fe.iel = MLGE[iel-1];
-        LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,false);
-        if (!integrand.initElement(MNPC[iel-1],elem_sizes,nb,*A))
+        LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,false);
+        if (!integrand.initElement(MNPC[iel-1],elem_size,nb,*A))
         {
           A->destruct();
           ok = false;
@@ -294,18 +304,20 @@ bool ASMs2DmxLag::integrate (Integrand& integrand,
 
             // Compute basis function derivatives at current integration point
             // using tensor product of one-dimensional Lagrange polynomials
-            if (!Lagrange::computeBasis(fe.basis(1),dN1du,p1,xg[i],p2,xg[j]) ||
-                !Lagrange::computeBasis(fe.basis(2),dN2du,q1,xg[i],q2,xg[j]))
-              ok = false;
+            for (size_t b = 0; b < nxx.size(); ++b)
+              if (!Lagrange::computeBasis(fe.basis(b+1),dNxdu[b],elem_sizes[b][0],xg[i],
+                                          elem_sizes[b][1],xg[j]))
+                ok = false;
 
             // Compute Jacobian inverse of coordinate mapping and derivatives
-            fe.detJxW = utl::Jacobian(Jac,fe.grad(1),Xnod,dN1du);
+            fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
             if (fe.detJxW == 0.0) continue; // skip singular points
-
-            fe.grad(2).multiply(dN2du,Jac); // dN2dX = dN2du * J^-1
+            for (size_t b = 0; b < nxx.size(); ++b)
+              if (b != (size_t)geoBasis-1)
+                fe.grad(b+1).multiply(dNxdu[b],Jac);
 
             // Cartesian coordinates of current integration point
-            X = Xnod * fe.basis(1);
+            X = Xnod * fe.basis(geoBasis);
             X.t = time.t;
 
             // Evaluate the integrand and accumulate element contributions
@@ -348,23 +360,20 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
   const int t1 = abs(edgeDir); // tangent direction normal to the patch edge
   const int t2 = 3-t1;         // tangent direction along the patch edge
 
-  // Order of basis in the three parametric directions (order = degree + 1)
-  const size_t p1 = surf->order_u();
-  const size_t p2 = surf->order_v();
-  // The second basis is assumed one order lower in each direction
-  const size_t q1 = p1 - 1;
-  const size_t q2 = p2 - 1;
-  std::vector<size_t> elem_sizes = {p1*p2, q1*q2};
+  std::vector<size_t> elem_size;
+  for (size_t b = 0; b < nxx.size(); ++b)
+    elem_size.push_back(elem_sizes[b][0]*elem_sizes[b][1]);
 
   // Number of elements in each direction
-  const int nelx = (nx2-1)/(q1-1);
-  const int nely = (ny2-1)/(q2-1);
+  const int nelx = (nxx[geoBasis-1]-1)/(elem_sizes[geoBasis-1][0]-1);
+  const int nely = (nyx[geoBasis-1]-1)/(elem_sizes[geoBasis-1][1]-1);
 
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 
-  MxFiniteElement fe(elem_sizes);
-  Matrix dN1du, dN2du, Xnod, Jac;
+  MxFiniteElement fe(elem_size);
+  std::vector<Matrix> dNxdu(nxx.size());
+  Matrix Xnod, Jac;
   Vec4   X;
   Vec3   normal;
   double xi[2];
@@ -391,8 +400,8 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 
       // Initialize element quantities
       fe.iel = MLGE[iel-1];
-      LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,true);
-      bool ok = integrand.initElementBou(MNPC[iel-1],elem_sizes,nb,*A);
+      LocalIntegral* A = integrand.getLocalIntegral(elem_size,fe.iel,true);
+      bool ok = integrand.initElementBou(MNPC[iel-1],elem_size,nb,*A);
 
       // --- Integration loop over all Gauss points along the edge -------------
 
@@ -407,20 +416,22 @@ bool ASMs2DmxLag::integrate (Integrand& integrand, int lIndex,
 
 	// Compute the basis functions and their derivatives, using
 	// tensor product of one-dimensional Lagrange polynomials
-	if (!Lagrange::computeBasis(fe.basis(1),dN1du,p1,xi[0],p2,xi[1]) ||
-	    !Lagrange::computeBasis(fe.basis(2),dN2du,q1,xi[0],q2,xi[1]))
-	  ok = false;
+        for (size_t b = 0; b < nxx.size(); ++b)
+          if (!Lagrange::computeBasis(fe.basis(b+1),dNxdu[b],elem_sizes[b][0],xi[0],
+                                      elem_sizes[b][1],xi[1]))
+            ok = false;
 
 	// Compute basis function derivatives and the edge normal
-	fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(1),Xnod,dN1du,t1,t2);
+	fe.detJxW = utl::Jacobian(Jac,normal,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1],t1,t2);
 	if (fe.detJxW == 0.0) continue; // skip singular points
-
-	fe.grad(2).multiply(dN2du,Jac); // dN2dX = dN2du * J^-1
+        for (size_t b = 0; b < nxx.size(); ++b)
+          if (b != (size_t)geoBasis-1)
+            fe.grad(b+1).multiply(dNxdu[b],Jac);
 
 	if (edgeDir < 0) normal *= -1.0;
 
 	// Cartesian coordinates of current integration point
-	X = Xnod * fe.basis(1);
+	X = Xnod * fe.basis(geoBasis);
 	X.t = time.t;
 
 	// Evaluate the integrand and accumulate element contributions
@@ -478,7 +489,9 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   const size_t p2 = surf->order_v();
   const size_t q1 = p1 - 1;
   const size_t q2 = p2 - 1;
-  std::vector<size_t> elem_sizes = {p1*p2, q1*q2};
+  std::vector<size_t> elem_size;
+  for (size_t b = 0; b < nxx.size(); ++b)
+    elem_size.push_back(elem_sizes[b][0]*elem_sizes[b][1]);
 
   double incx = 2.0/double(q1);
   double incy = 2.0/double(q2);
@@ -486,16 +499,21 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   size_t nPoints = nb[0];
   IntVec check(nPoints,0);
 
-  MxFiniteElement fe(elem_sizes);
+  MxFiniteElement fe(elem_size);
   Vector          solPt;
   Vectors         globSolPt(nPoints);
-  Matrix          dN1du, dN2du, Xnod, Jac;
+  std::vector<Matrix> dNxdu(nxx.size());
+  Matrix          Xnod, Jac;
 
   // Evaluate the secondary solution field at each point
   for (size_t iel = 1; iel <= nel; iel++)
   {
-    IntVec::const_iterator f2start = MNPC[iel-1].begin() + p1*p2;
-    IntVec mnpc1(MNPC[iel-1].begin(),f2start);
+    IntVec::const_iterator f2start = geoBasis == 1? MNPC[iel-1].begin() :
+                                     MNPC[iel-1].begin() +
+                                     std::accumulate(elem_size.begin()+geoBasis-2,
+                                                     elem_size.begin()+geoBasis-1, 0);
+    IntVec::const_iterator f2end = f2start + elem_size[geoBasis-1];
+    IntVec mnpc1(f2start,f2end);
 
     this->getElementCoordinates(Xnod,iel);
 
@@ -505,18 +523,21 @@ bool ASMs2DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       {
 	double xi  = -1.0 + i*incx;
 	double eta = -1.0 + j*incy;
-	if (!Lagrange::computeBasis(fe.basis(1),dN1du,p1,xi,p2,eta) ||
-	    !Lagrange::computeBasis(fe.basis(2),dN2du,q1,xi,q2,eta))
+        for (size_t b = 0; b < nxx.size(); ++b)
+          if (!Lagrange::computeBasis(fe.basis(b+1),dNxdu[b],elem_sizes[b][0],xi,
+                                      elem_sizes[b][1],eta))
 	  return false;
 
 	// Compute the Jacobian inverse
-	if (utl::Jacobian(Jac,fe.grad(1),Xnod,dN1du) == 0.0) // Jac = (X*dN1du)^-1
+	if (utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]) == 0.0) // Jac = (X*dN1du)^-1
 	  continue; // skip singular points
 	else
-	  fe.grad(2).multiply(dN2du,Jac); // dN2dX = dN2du * J^-1
+          for (size_t b = 0; b < nxx.size(); ++b)
+            if (b != (size_t)geoBasis-1)
+              fe.grad(b+1).multiply(dNxdu[b],Jac);
 
 	// Now evaluate the solution field
-	if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(1),MNPC[iel-1],elem_sizes))
+	if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(geoBasis),MNPC[iel-1],elem_size))
 	  return false;
 	else if (sField.empty())
 	  sField.resize(solPt.size(),nPoints,true);

@@ -161,10 +161,11 @@ public:
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 
-private:
+protected:
   size_t nx; //!< Number of nodes in first parameter direction
   size_t ny; //!< Number of nodes in second parameter direction
 
+private:
   const std::vector<Vec3>& coord; //!< Nodal coordinates
 
   std::vector<Vec3> myCoord; //!< The actual nodal coordinates

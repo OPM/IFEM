@@ -1476,7 +1476,7 @@ size_t SIMbase::getNoRHS () const
 char SIMbase::getNoBasis() const
 {
   char result = getPatch(1)->getNoBasis();
-#ifndef NDEBUG
+#ifdef SP_DEBUG
   for (auto& p : getFEModel())
     assert(p->getNoBasis() == result);
 #endif

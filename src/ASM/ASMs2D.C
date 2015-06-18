@@ -998,15 +998,18 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
 }
 
 
-void ASMs2D::constrainCorner (int I, int J, int dof, int code)
+void ASMs2D::constrainCorner (int I, int J, int dof, int code, char basis)
 {
-  int n1, n2;
-  if (!this->getSize(n1,n2,1)) return;
+  int n1, n2, node = 1;
+  for (char i = 1; i <= basis; i++)
+    if (!this->getSize(n1,n2,i))
+      return;
+    else if (i < basis)
+      node += n1*n2;
 
   if (swapV) // Account for swapped parameter direction
     J = -J;
 
-  int node = 1;
   if (I > 0) node += n1-1;
   if (J > 0) node += n1*(n2-1);
 
