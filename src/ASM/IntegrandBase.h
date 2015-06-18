@@ -215,10 +215,15 @@ public:
 
   //! \brief Returns the number of primary/secondary solution field components.
   virtual size_t getNoFields(int = 2) const { return 0; }
+
   //! \brief Returns the name of a primary solution field component.
-  virtual std::string getField1Name(size_t, const char* = 0) const { return std::string(); }
+  //! \param[in] idx     Identifier integer for multiple solutions
+  //! \param[in] prefix  Field names will start with this string
+  virtual std::string getField1Name(size_t idx, const char* prefix = 0) const ;
   //! \brief Returns the name of a secondary solution field component.
-  virtual std::string getField2Name(size_t, const char* = 0) const { return std::string(); }
+  //! \param[in] idx     Identifier integer for multiple solutions
+  //! \param[in] prefix  Field names will start with this string
+  virtual std::string getField2Name(size_t idx, const char* prefix = 0) const ;
 
   //! \brief Returns the number of solution vectors.
   size_t getNoSolutions() const { return primsol.size(); }

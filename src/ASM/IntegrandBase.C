@@ -19,6 +19,7 @@
 #include "Field.h"
 #include "Fields.h"
 #include <cstring>
+#include <sstream>
 #include <cstdio>
 
 
@@ -193,6 +194,24 @@ Vector* IntegrandBase::getNamedVector (const std::string& name) const
 {
   std::map<std::string,Vector*>::const_iterator it = myFields.find(name);
   return it == myFields.end() ? NULL : it->second;
+}
+
+std::string IntegrandBase::getField1Name(size_t idx, const char* prefix) const 
+{
+  std::stringstream stream;
+  if(prefix)
+    stream << prefix << " ";
+  stream << "primary solution " << idx+1;
+  return stream.str();
+}
+
+std::string IntegrandBase::getField2Name(size_t idx, const char* prefix) const 
+{
+  std::stringstream stream;
+  if(prefix)
+    stream << prefix << " ";
+  stream << "secondary solution " << idx+1;
+  return stream.str();
 }
 
 
