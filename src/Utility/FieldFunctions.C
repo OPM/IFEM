@@ -43,7 +43,7 @@ FieldFunction::FieldFunction (const std::string& fileName,
   field = Field::create(pch,coefs);
 #else
   std::cerr <<"WARNING: Compiled without HDF5 support,"
-	    <<" field function is not instanciated."<< std::endl;
+            <<" field function is not instanciated."<< std::endl;
   field = NULL;
   pch = NULL;
 #endif

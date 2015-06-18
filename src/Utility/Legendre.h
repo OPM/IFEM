@@ -21,13 +21,13 @@ namespace Legendre
 {
   //! \brief Get Gauss-Legendre points and weights in the domain [-1,1].
   //! \param[out] weights Computed Gauss-Legendre weight
-  //! \param[out] points Computed Gauss-Legendre points	
+  //! \param[out] points Computed Gauss-Legendre points
   //! \param[in] n Number of Gauss points
   bool GL(RealArray& weights, RealArray& points, int n);
 
   //! \brief Get Gauss-Lobatto-Legendre points and weights in the domain [-1,1].
   //! \param[out] weights Computed Gauss-Legendre weight
-  //! \param[out] points Computed Gauss-Legendre points	
+  //! \param[out] points Computed Gauss-Legendre points
   //! \param[in] n Number of Gauss points
   bool GLL(Vector& weights, Vector& points, int n);
 

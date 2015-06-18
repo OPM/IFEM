@@ -64,7 +64,7 @@ size_t MPC::getNoMaster (bool recursive) const
   if (recursive)
     for (size_t i = 0; i < master.size(); i++)
       if (master[i].nextc)
-	nMaster += master[i].nextc->getNoMaster(true) - 1;
+        nMaster += master[i].nextc->getNoMaster(true) - 1;
 
   return nMaster;
 }

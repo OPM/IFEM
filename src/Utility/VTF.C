@@ -95,7 +95,7 @@ VTF::~VTF ()
     if (myTBlock[i])
     {
       if (VTFA_FAILURE(myFile->WriteBlock(myTBlock[i])))
-	showError("Error writing Transformation Block");
+        showError("Error writing Transformation Block");
       delete myTBlock[i];
     }
 
@@ -103,7 +103,7 @@ VTF::~VTF ()
     if (myDBlock[i])
     {
       if (VTFA_FAILURE(myFile->WriteBlock(myDBlock[i])))
-	showError("Error writing Displacement Block");
+        showError("Error writing Displacement Block");
       delete myDBlock[i];
     }
 
@@ -111,7 +111,7 @@ VTF::~VTF ()
     if (myVBlock[i])
     {
       if (VTFA_FAILURE(myFile->WriteBlock(myVBlock[i])))
-	showError("Error writing Vector Block");
+        showError("Error writing Vector Block");
       delete myVBlock[i];
     }
 
@@ -119,7 +119,7 @@ VTF::~VTF ()
     if (mySBlock[i])
     {
       if (VTFA_FAILURE(myFile->WriteBlock(mySBlock[i])))
-	showError("Error writing Scalar Block");
+        showError("Error writing Scalar Block");
       delete mySBlock[i];
     }
 
@@ -170,7 +170,7 @@ VTF::~VTF ()
     if (mySBlock[i])
     {
       if (VTFA_FAILURE(myDatabase->WriteBlock(mySBlock[i])))
-	showError("Error writing Scalar Block");
+        showError("Error writing Scalar Block");
       delete mySBlock[i];
     }
 
@@ -262,7 +262,7 @@ bool VTF::writeGrid (const ElementBlock* block, const char* partname, int gID)
 
 
 bool VTF::writeTransformation (const Vec3& X, const Tensor& T,
-			       int idBlock, int geomID)
+                               int idBlock, int geomID)
 {
   if (!myFile) return true;
   if (!this->getBlock(geomID)) return false;
@@ -293,7 +293,7 @@ bool VTF::writeTransformation (const Vec3& X, const Tensor& T,
 
 
 bool VTF::writeVres (const std::vector<Real>& nodeResult,
-		     int idBlock, int geomID, size_t nvc)
+                     int idBlock, int geomID, size_t nvc)
 {
   if (!myFile) return true;
 
@@ -323,7 +323,7 @@ bool VTF::writeVres (const std::vector<Real>& nodeResult,
   else
     for (size_t i = 0; i < nnod; i++)
       for (size_t j = 0; j < 3; j++)
-	resVec[3*i+j] = j < nvc ? nodeResult[ncmp*i+j] : 0.0f;
+        resVec[3*i+j] = j < nvc ? nodeResult[ncmp*i+j] : 0.0f;
 
 #if HAS_VTFAPI == 1
   VTFAResultBlock dBlock(idBlock,VTFA_DIM_VECTOR,VTFA_RESMAP_NODE,0);
@@ -348,7 +348,7 @@ bool VTF::writeVres (const std::vector<Real>& nodeResult,
 
 
 bool VTF::writeEres (const std::vector<Real>& elementResult,
-		     int idBlock, int geomID)
+                     int idBlock, int geomID)
 {
   if (!myFile) return true;
 
@@ -389,7 +389,7 @@ bool VTF::writeEres (const std::vector<Real>& elementResult,
 
 
 bool VTF::writeNres (const std::vector<Real>& nodalResult,
-		     int idBlock, int geomID)
+                     int idBlock, int geomID)
 {
   if (!myFile) return true;
 
@@ -494,12 +494,12 @@ bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int& gID,
   std::vector<Vec3Pair>::const_iterator cit;
   for (cit = pntResult.begin(); cit != pntResult.end(); cit++, i++)
     if (writePoints && VTFA_FAILURE(nBlock.AddNode(vecOffset[0]+cit->first.x,
-						   vecOffset[1]+cit->first.y,
-						   vecOffset[2]+cit->first.z)))
+                                                   vecOffset[1]+cit->first.y,
+                                                   vecOffset[2]+cit->first.z)))
       return showError("Error adding node to block",pointGeoID);
     else if (VTFA_FAILURE(rBlock.AddResult(cit->second.x,
-					   cit->second.y,
-					   cit->second.z)))
+                                           cit->second.y,
+                                           cit->second.z)))
       return showError("Error adding result to block",idBlock);
     else if (writePoints)
       mnpc[i] = i;
@@ -546,8 +546,8 @@ bool VTF::writePoints (const Vec3Vec& points, int& gID)
   Vec3Vec::const_iterator cit;
   for (cit = points.begin(), i = 0; cit != points.end(); cit++, i++)
     if (VTFA_FAILURE(nBlock.AddNode(vecOffset[0]+cit->x,
-				    vecOffset[1]+cit->y,
-				    vecOffset[2]+cit->z)))
+                                    vecOffset[1]+cit->y,
+                                    vecOffset[2]+cit->z)))
       return showError("Error adding node to block",gID);
     else
       mnpc[i] = i;
@@ -575,7 +575,7 @@ bool VTF::writePoints (const Vec3Vec& points, int& gID)
 
 
 bool VTF::writeTblk (const std::vector<int>& tBlockIDs, const char* resultName,
-		     int idBlock, int iStep)
+                     int idBlock, int iStep)
 {
   if ((int)myTBlock.size() < idBlock) myTBlock.resize(idBlock,0);
 
@@ -601,7 +601,7 @@ bool VTF::writeTblk (const std::vector<int>& tBlockIDs, const char* resultName,
 
 
 bool VTF::writeDblk (const std::vector<int>& dBlockIDs, const char* resultName,
-		     int idBlock, int iStep)
+                     int idBlock, int iStep)
 {
   if ((int)myDBlock.size() < idBlock) myDBlock.resize(idBlock,0);
 
@@ -621,8 +621,8 @@ bool VTF::writeDblk (const std::vector<int>& dBlockIDs, const char* resultName,
   if (!myDBlock[--idBlock])
   {
     myDBlock[idBlock] = new VTFXAResultBlock(idBlock+1,
-					     VTFXA_RESTYPE_DISPLACEMENT,
-					     VTFXA_RESMAP_NODE);
+                                             VTFXA_RESTYPE_DISPLACEMENT,
+                                             VTFXA_RESMAP_NODE);
     if (resultName) myDBlock[idBlock]->SetName(resultName);
   }
   myDBlock[idBlock]->SetResultID(idBlock);
@@ -637,7 +637,7 @@ bool VTF::writeDblk (const std::vector<int>& dBlockIDs, const char* resultName,
 
 
 bool VTF::writeVblk (int vBlockID, const char* resultName,
-		     int idBlock, int iStep)
+                     int idBlock, int iStep)
 {
   if ((int)myVBlock.size() < idBlock) myVBlock.resize(idBlock,0);
 
@@ -655,8 +655,8 @@ bool VTF::writeVblk (int vBlockID, const char* resultName,
   if (!myVBlock[--idBlock])
   {
     myVBlock[idBlock] = new VTFXAResultBlock(idBlock+1,
-					     VTFXA_RESTYPE_VECTOR,
-					     VTFXA_RESMAP_NODE);
+                                             VTFXA_RESTYPE_VECTOR,
+                                             VTFXA_RESMAP_NODE);
     if (resultName) myVBlock[idBlock]->SetName(resultName);
   }
   myVBlock[idBlock]->SetResultID(idBlock);
@@ -670,7 +670,7 @@ bool VTF::writeVblk (int vBlockID, const char* resultName,
 
 
 bool VTF::writeVblk (const std::vector<int>& vBlockIDs, const char* resultName,
-		     int idBlock, int iStep)
+                     int idBlock, int iStep)
 {
   if ((int)myVBlock.size() < idBlock) myVBlock.resize(idBlock,0);
 
@@ -689,8 +689,8 @@ bool VTF::writeVblk (const std::vector<int>& vBlockIDs, const char* resultName,
   if (!myVBlock[--idBlock])
   {
     myVBlock[idBlock] = new VTFXAResultBlock(idBlock+1,
-					     VTFXA_RESTYPE_VECTOR,
-					     VTFXA_RESMAP_NODE);
+                                             VTFXA_RESTYPE_VECTOR,
+                                             VTFXA_RESMAP_NODE);
     if (resultName) myVBlock[idBlock]->SetName(resultName);
   }
   myVBlock[idBlock]->SetResultID(idBlock);
@@ -705,7 +705,7 @@ bool VTF::writeVblk (const std::vector<int>& vBlockIDs, const char* resultName,
 
 
 bool VTF::writeSblk (int sBlockID, const char* resultName,
-		     int idBlock, int iStep, bool elementData)
+                     int idBlock, int iStep, bool elementData)
 {
   if ((int)mySBlock.size() < idBlock) mySBlock.resize(idBlock,0);
 
@@ -724,7 +724,7 @@ bool VTF::writeSblk (int sBlockID, const char* resultName,
   {
     int type = elementData?VTFXA_RESMAP_ELEMENT:VTFXA_RESMAP_NODE;
     mySBlock[idBlock] = new VTFXAResultBlock(idBlock+1,
-					     VTFXA_RESTYPE_SCALAR,type);
+                                             VTFXA_RESTYPE_SCALAR,type);
     if (resultName) mySBlock[idBlock]->SetName(resultName);
   }
   mySBlock[idBlock]->SetResultID(idBlock);
@@ -738,7 +738,7 @@ bool VTF::writeSblk (int sBlockID, const char* resultName,
 
 
 bool VTF::writeSblk (const std::vector<int>& sBlockIDs, const char* resultName,
-		     int idBlock, int iStep, bool elementData)
+                     int idBlock, int iStep, bool elementData)
 {
   if ((int)mySBlock.size() < idBlock) mySBlock.resize(idBlock,0);
 
@@ -758,7 +758,7 @@ bool VTF::writeSblk (const std::vector<int>& sBlockIDs, const char* resultName,
   {
     int type = elementData?VTFXA_RESMAP_ELEMENT:VTFXA_RESMAP_NODE;
     mySBlock[idBlock] = new VTFXAResultBlock(idBlock+1,
-					     VTFXA_RESTYPE_SCALAR,type);
+                                             VTFXA_RESTYPE_SCALAR,type);
     if (resultName) mySBlock[idBlock]->SetName(resultName);
   }
   mySBlock[idBlock]->SetResultID(idBlock);
@@ -787,7 +787,7 @@ bool VTF::writeState (int iStep, const char* fmt, Real refValue, int refType)
 #elif HAS_VTFAPI == 2
   if (!myState) myState = new VTFXAStateInfoBlock();
   if (VTFA_FAILURE(myState->AddStateInfo(iStep,stepName,refValue,
-					 VTFXA_REFVALUETYPE_TIME)))
+                                         VTFXA_REFVALUETYPE_TIME)))
     return showError("Error defining state info block");
 #endif
 

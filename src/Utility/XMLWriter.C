@@ -120,7 +120,7 @@ void XMLWriter::readInfo()
       else
         entry.timestep = 0;
       if (elem->Attribute("basis"))
-	entry.basis = elem->Attribute("basis");
+        entry.basis = elem->Attribute("basis");
       m_entry.push_back(entry);
     }
     elem = elem->NextSiblingElement("entry");

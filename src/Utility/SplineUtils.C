@@ -144,7 +144,7 @@ void SplineUtils::extractBasis (const Go::BasisDerivs2& spline,
 
 
 Go::SplineCurve* SplineUtils::project (const Go::SplineCurve* curve,
-				       const RealFunc& f, Real time)
+                                       const RealFunc& f, Real time)
 {
   if (!curve) return NULL;
 
@@ -170,12 +170,12 @@ Go::SplineCurve* SplineUtils::project (const Go::SplineCurve* curve,
 
   // Project the function onto the spline basis to find control point values
   return Go::CurveInterpolator::regularInterpolation(basis,gpar,fval,1,
-						     curve->rational(),weights);
+                                                     curve->rational(),weights);
 }
 
 
 Go::SplineCurve* SplineUtils::project (const Go::SplineCurve* curve,
-				       const VecFunc& f, int nComp, Real time)
+                                       const VecFunc& f, int nComp, Real time)
 {
   if (!curve || nComp < 1) return NULL;
   if (nComp > 3) nComp = 3;
@@ -206,12 +206,12 @@ Go::SplineCurve* SplineUtils::project (const Go::SplineCurve* curve,
 
   // Project the function onto the spline basis to find control point values
   return Go::CurveInterpolator::regularInterpolation(basis,gpar,fval,nComp,
-						     curve->rational(),weights);
+                                                     curve->rational(),weights);
 }
 
 
 Go::SplineSurface* SplineUtils::project (const Go::SplineSurface* surface,
-					 const RealFunc& f, Real time)
+                                         const RealFunc& f, Real time)
 {
   if (!surface) return NULL;
 
@@ -247,14 +247,14 @@ Go::SplineSurface* SplineUtils::project (const Go::SplineSurface* surface,
 
   // Project the function onto the spline basis to find control point values
   return Go::SurfaceInterpolator::regularInterpolation(ubas,vbas,
-						       upar,vpar,fval,1,
-						       surface->rational(),
-						       weights);
+                                                       upar,vpar,fval,1,
+                                                       surface->rational(),
+                                                       weights);
 }
 
 
 Go::SplineSurface* SplineUtils::project (const Go::SplineSurface* surface,
-					 const VecFunc& f, int nComp, Real time)
+                                         const VecFunc& f, int nComp, Real time)
 {
   if (!surface || nComp < 1) return NULL;
   if (nComp > 3) nComp = 3;
@@ -284,7 +284,7 @@ Go::SplineSurface* SplineUtils::project (const Go::SplineSurface* surface,
       surface->point(X,upar[i],vpar[j]);
       fOfX = f(toVec4(X,time));
       for (int l = 0; l < nComp; l++, k++)
-	fval[k] = fOfX[l];
+        fval[k] = fOfX[l];
     }
 
   // Get weights for rational spline curves (NURBS)
@@ -294,7 +294,7 @@ Go::SplineSurface* SplineUtils::project (const Go::SplineSurface* surface,
 
   // Project the function onto the spline basis to find control point values
   return Go::SurfaceInterpolator::regularInterpolation(ubas,vbas,
-						       upar,vpar,fval,nComp,
-						       surface->rational(),
-						       weights);
+                                                       upar,vpar,fval,nComp,
+                                                       surface->rational(),
+                                                       weights);
 }

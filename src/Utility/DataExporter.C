@@ -45,8 +45,8 @@ DataExporter::~DataExporter ()
 
 
 bool DataExporter::registerField (const std::string& name,
-				  const std::string& description,
-				  FieldType field, int results,
+                                  const std::string& description,
+                                  FieldType field, int results,
                                   const std::string& prefix,
                                   int ncmps)
 {
@@ -83,7 +83,7 @@ bool DataExporter::registerWriter (DataWriter* writer, bool info, bool data)
 
 
 bool DataExporter::setFieldValue (const std::string& name,
-				  const void* data, const void* data2)
+                                  const void* data, const void* data2)
 {
   std::map<std::string,FileEntry>::iterator it = m_entry.find(name);
   if (it == m_entry.end())

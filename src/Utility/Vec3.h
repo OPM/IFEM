@@ -126,8 +126,8 @@ public:
   {
     if (fabs(x-a.x) <= tol)
       if (fabs(y-a.y) <= tol)
-	if (fabs(z-a.z) <= tol)
-	  return true;
+        if (fabs(z-a.z) <= tol)
+          return true;
 
     return false;
   }
@@ -137,8 +137,8 @@ public:
   {
     if (fabs(x) <= tol)
       if (fabs(y) <= tol)
-	if (fabs(z) <= tol)
-	  return true;
+        if (fabs(z) <= tol)
+          return true;
 
     return false;
   }
@@ -151,9 +151,9 @@ public:
   {
     for (int i = 2; i >= 0; i--)
       if (v[i]+tol < a.v[i])
-	return true;
+        return true;
       else if (v[i] > a.v[i]+tol)
-	return false;
+        return false;
 
     return false;
   }

@@ -21,7 +21,7 @@ ElementBlock::ElementBlock (size_t nenod)
   if (nenod != 2 && nenod != 4 && nenod != 9 && nenod != 8 && nenod != 27)
   {
     std::cout <<"ElementBlock: Invalid number of element nodes "<< nenod
-	      <<" reset to 8"<< std::endl;
+              <<" reset to 8"<< std::endl;
     nenod = 8;
   }
   nen = nenod;

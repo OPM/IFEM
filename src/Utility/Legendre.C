@@ -68,9 +68,9 @@ bool Legendre::GLL (Vector& weights, Vector& points, int n)
   {
     for (i = 1; i <= n; i++)
       if (!LegendreEval(n-1,points(i),L))
-	return false;
+        return false;
       else
-	weights(i) = Real(2)/((n-1)*n*L*L);
+        weights(i) = Real(2)/((n-1)*n*L*L);
 
     return true;
   }
@@ -109,14 +109,14 @@ bool Legendre::LegendreEval (int n, Real x, Real& retval)
   if (n < 1)
   {
     std::cerr <<" *** Legendre::LegendreEval: Polynomial index "<< n
-	      <<" out of range: n < 1"<< std::endl;
+              <<" out of range: n < 1"<< std::endl;
     return false;
   }
 
   if (x < -Real(1) || x > Real(1))
   {
     std::cerr <<" *** Legendre::LegendreEval: Evaluation point "<< x
-	      <<" out of range: [-1,1]"<< std::endl;
+              <<" out of range: [-1,1]"<< std::endl;
     return false;
   }
 
@@ -136,14 +136,14 @@ bool Legendre::LegendreDerEval (int n, Real x, Real& retval)
   if (n < 1)
   {
     std::cerr <<" *** Legendre::LegendreDerEval: Polynomial index "<< n
-	      <<" out of range: n < 1"<< std::endl;
+              <<" out of range: n < 1"<< std::endl;
     return false;
   }
 
   if (x < -Real(1) || x > Real(1))
   {
     std::cerr <<" *** Legendre::LegendreDerEval: Evaluation point "<< x
-	      <<" out of range: [-1,1]"<< std::endl;
+              <<" out of range: [-1,1]"<< std::endl;
     return false;
   }
 
@@ -175,12 +175,12 @@ bool Legendre::basisDerivatives (int n, Matrix& D)
   for (int i = 1; i <= n; i++)
     for (int j = 1; j <= n; j++)
       if (i == j)
-	D(i,j) = Real(0);
+        D(i,j) = Real(0);
       else
       {
-	if (!LegendreEval(n-1,p(i),l1)) return false;
-	if (!LegendreEval(n-1,p(j),l2)) return false;
-	D(i,j) = l1/(l2*(p(i)-p(j)));
+        if (!LegendreEval(n-1,p(i),l1)) return false;
+        if (!LegendreEval(n-1,p(j),l2)) return false;
+        D(i,j) = l1/(l2*(p(i)-p(j)));
       }
 
   D(1,1) = -Real(n)*Real(n-1)/Real(4);

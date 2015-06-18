@@ -254,29 +254,29 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
       break;
     case 6:
       {
-	double x0 = atof(cline);
-	double x1 = atof(strtok(NULL," "));
-	IFEM::cout <<"StepX("<< x0 <<","<< x1 <<"))";
-	f = new StepXFunc(A,x0,x1);
+        double x0 = atof(cline);
+        double x1 = atof(strtok(NULL," "));
+        IFEM::cout <<"StepX("<< x0 <<","<< x1 <<"))";
+        f = new StepXFunc(A,x0,x1);
       }
       break;
     case 7:
       {
-	double x0 = atof(cline);
-	double y0 = atof(strtok(NULL," "));
-	cline = strtok(NULL," ");
-	if (cline && cline[0] == 't')
-	{
-	  double x1 = atof(strtok(NULL," "));
-	  double y1 = atof(strtok(NULL," "));
-	  IFEM::cout <<"StepXY(["<< x0 <<","<< x1 <<"]x["<< y0 <<","<<y1 <<"]))";
-	  f = new StepXYFunc(A,x1,y1,x0,y0);
-	}
-	else
-	{
-	  IFEM::cout <<"StepXY([-inf,"<< x0 <<"]x[-inf,"<< y0 <<"]))";
-	  f = new StepXYFunc(A,x0,y0);
-	}
+        double x0 = atof(cline);
+        double y0 = atof(strtok(NULL," "));
+        cline = strtok(NULL," ");
+        if (cline && cline[0] == 't')
+        {
+          double x1 = atof(strtok(NULL," "));
+          double y1 = atof(strtok(NULL," "));
+          IFEM::cout <<"StepXY(["<< x0 <<","<< x1 <<"]x["<< y0 <<","<<y1 <<"]))";
+          f = new StepXYFunc(A,x1,y1,x0,y0);
+        }
+        else
+        {
+          IFEM::cout <<"StepXY([-inf,"<< x0 <<"]x[-inf,"<< y0 <<"]))";
+          f = new StepXYFunc(A,x0,y0);
+        }
       }
       break;
     case 8:
@@ -284,12 +284,12 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
         int dir = atoi(strtok(NULL," ")), col = 2;
         IFEM::cout <<"Interpolate1D("<< cline;
         const char* t = strtok(NULL," ");
-	if (t && t[0] == 'c') {
-	  col = atoi(t+1);
-	  t = strtok(NULL," ");
-	  IFEM::cout <<",column #"<< col;
-	}
-	IFEM::cout <<","<< (char)('X'+dir);
+        if (t && t[0] == 'c') {
+          col = atoi(t+1);
+          t = strtok(NULL," ");
+          IFEM::cout <<",column #"<< col;
+        }
+        IFEM::cout <<","<< (char)('X'+dir);
         if (t) {
           double time = atof(t);
           IFEM::cout <<")*Ramp("<< time;
@@ -297,7 +297,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
         }
         else
           f = new Interpolate1D(cline,dir,col);
-	IFEM::cout <<")";
+        IFEM::cout <<")";
       }
       break;
     case 9:
@@ -488,7 +488,7 @@ VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
 
 
 TractionFunc* utl::parseTracFunc (const std::string& func,
-				  const std::string& type, int dir)
+                                  const std::string& type, int dir)
 {
   if (func.empty()) return NULL;
 

@@ -213,6 +213,6 @@ const double* GaussQuadrature::getGauss (int n, int i)
   }
 
   std::cerr <<" *** GaussQuadrature: "<< n <<"-point rule is not available."
-	    << std::endl;
+            << std::endl;
   return 0;
 }

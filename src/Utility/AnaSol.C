@@ -38,9 +38,9 @@ AnaSol::AnaSol (std::istream& is, const int nlines, bool scalarSol)
       std::string primary = function.substr(pos+8);
       std::cout <<"\tPrimary="<< primary << std::endl;
       if (scalarSol)
-	scalSol = new EvalFunction((variables+primary).c_str());
+        scalSol = new EvalFunction((variables+primary).c_str());
       else
-	vecSol = new VecFuncExpr(primary,variables);
+        vecSol = new VecFuncExpr(primary,variables);
     }
 
     if ((pos = function.find("Secondary=")) != std::string::npos)
@@ -48,9 +48,9 @@ AnaSol::AnaSol (std::istream& is, const int nlines, bool scalarSol)
       std::string secondary = function.substr(pos+10);
       std::cout <<"\tSecondary="<< secondary << std::endl;
       if (scalarSol)
-	scalSecSol = new VecFuncExpr(secondary,variables);
+        scalSecSol = new VecFuncExpr(secondary,variables);
       else
-	vecSecSol = new TensorFuncExpr(secondary,variables);
+        vecSecSol = new TensorFuncExpr(secondary,variables);
     }
 
     if ((pos = function.find("Stress=")) != std::string::npos)

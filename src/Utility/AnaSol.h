@@ -45,7 +45,7 @@ public:
   //! \details It is assumed that all the arguments are pointers to dynamically
   //! allocated objects, as the class destructor will attempt to delete them.
   AnaSol(RealFunc* s1 = 0, VecFunc* s2 = 0,
-	 VecFunc* v1 = 0, TensorFunc* v2 = 0, STensorFunc* v3 = 0)
+         VecFunc* v1 = 0, TensorFunc* v2 = 0, STensorFunc* v3 = 0)
     : scalSol(s1), scalSecSol(s2), vecSol(v1), vecSecSol(v2), stressSol(v3) {}
 
   //! \brief Constructor initializing the primary and secondary solution fields.

@@ -84,10 +84,10 @@ char* utl::readLine (std::istream& is)
   {
     for (size_t i = 0; i < n; i++)
       if (!isspace(buf[i]))
-	if (buf[i] == '#')
-	  break; // comment line - skip
-	else
-	  return buf+i; // first non-blank character
+        if (buf[i] == '#')
+          break; // comment line - skip
+        else
+          return buf+i; // first non-blank character
 
     is.getline(buf,sizeof(buf));
   }
@@ -168,7 +168,7 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att, Real& val)
 
 
 bool utl::getAttribute (const TiXmlElement* xml, const char* att,
-			std::string& val, bool toLower)
+                        std::string& val, bool toLower)
 {
   if (!xml || !xml->Attribute(att))
     return false;
@@ -236,7 +236,7 @@ bool utl::renumber (int& num, const IntMap& old2new, bool msg)
   {
     if (msg)
       std::cerr <<" *** utl::renumber: Old value "<< num
-		<<" does not exist in old2new mapping"<< std::endl;
+                <<" does not exist in old2new mapping"<< std::endl;
     return false;
   }
 
@@ -246,8 +246,8 @@ bool utl::renumber (int& num, const IntMap& old2new, bool msg)
 
 
 int utl::gather (const std::vector<int>& index, size_t nr,
-		 const std::vector<Real>& in, std::vector<Real>& out,
-		 size_t offset_in)
+                 const std::vector<Real>& in, std::vector<Real>& out,
+                 size_t offset_in)
 {
   int outside = 0;
   out.resize(nr*index.size());
@@ -264,8 +264,8 @@ int utl::gather (const std::vector<int>& index, size_t nr,
 
 
 int utl::gather (const std::vector<int>& index, size_t nr,
-		 const utl::vector<Real>& in, utl::matrix<Real>& out,
-		 size_t offset_in)
+                 const utl::vector<Real>& in, utl::matrix<Real>& out,
+                 size_t offset_in)
 {
   int outside = 0;
   out.resize(nr,index.size());
@@ -294,9 +294,9 @@ int utl::gather (const std::vector<int>& index, size_t ir, size_t nr,
     {
       size_t ip = offset_in + nr*(index[i]-shift_idx);
       if (ip < in.size())
-	out[i] = in[ip];
+        out[i] = in[ip];
       else
-	outside++;
+        outside++;
     }
     else if (index[i] >= 0)
       outside++;
@@ -311,7 +311,7 @@ size_t utl::Pascal (int p, unsigned short int nsd)
   for (int q = 1; q <= p; q++)
     for (int i = q; i >= 0; i--)
       if (nsd == 2)
-	nM++;
+        nM++;
       else for (int j = q; j >= 0; j--)
         if (i+j <= q) nM++;
 
@@ -344,15 +344,15 @@ void utl::Pascal (int p, Real x, Real y, Real z, std::vector<Real>& phi)
   for (int q = 1; q <= p; q++)
     for (int i = q; i >= 0; i--)
       for (int j = q; j >= 0; j--)
-	if (i+j <= q)
-	{
-	  int l, k = q-i-j;
-	  Real a = Real(1);
-	  for (l = 0; l < i; l++) a *= x;
-	  for (l = 0; l < j; l++) a *= y;
-	  for (l = 0; l < k; l++) a *= z;
-	  phi.push_back(a);
-	}
+        if (i+j <= q)
+        {
+          int l, k = q-i-j;
+          Real a = Real(1);
+          for (l = 0; l < i; l++) a *= x;
+          for (l = 0; l < j; l++) a *= y;
+          for (l = 0; l < k; l++) a *= z;
+          phi.push_back(a);
+        }
 }
 
 

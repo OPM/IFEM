@@ -148,7 +148,7 @@ void Profiler::report (std::ostream& os) const
     if (it->second.running) const_cast<Profiler*>(this)->stop(it->first);
     if (it->second.nCalls > 1)
       if (it->second.totalWall/it->second.nCalls >= 100.0)
-	use_ms = false; // Print mean times in seconds
+        use_ms = false; // Print mean times in seconds
   }
 
   // Find the time for "other" tasks, i.e., the difference between
@@ -182,10 +182,10 @@ void Profiler::report (std::ostream& os) const
   for (it = myTimers.begin(); it != myTimers.end(); it++)
     if (it != tit && it->second.haveTime())
       if (it->first.size() >= 22)
-	os << it->first.substr(0,22) <<'|'<< it->second;
+        os << it->first.substr(0,22) <<'|'<< it->second;
       else
-	os << it->first << std::string(22-it->first.size(),' ')
-	   <<'|'<< it->second;
+        os << it->first << std::string(22-it->first.size(),' ')
+           <<'|'<< it->second;
 
   // Finally, print the "other" and "total" times
   if (other.haveTime())

@@ -44,11 +44,11 @@ std::ostream& Tensor::print (std::ostream& os) const
     return os << v[0] << std::endl;
   case 2:
     return os << v[0] <<' '<< v[2] <<'\n'
-	      << v[1] <<' '<< v[3] << std::endl;
+              << v[1] <<' '<< v[3] << std::endl;
   case 3:
     return os << v[0] <<' '<< v[3] <<' '<< v[6] <<'\n'
-	      << v[1] <<' '<< v[4] <<' '<< v[7] <<'\n'
-	      << v[2] <<' '<< v[5] <<' '<< v[8] << std::endl;
+              << v[1] <<' '<< v[4] <<' '<< v[7] <<'\n'
+              << v[2] <<' '<< v[5] <<' '<< v[8] << std::endl;
   }
 
   return os;
@@ -298,7 +298,7 @@ Tensor& Tensor::operator= (const Tensor& T)
       ndim = n;
     for (t_ind i = 1; i <= ndim; i++)
       for (t_ind j = (this->symmetric() ? i : 1); j <= ndim; j++)
-	v[this->index(i,j)] = T(i,j);
+        v[this->index(i,j)] = T(i,j);
 
     if (this->symmetric() && v.size() == 4 && T.v.size() >= 4)
       v[2] = T(3,3);
@@ -341,10 +341,10 @@ Tensor& Tensor::operator+= (const Tensor& T)
   if (T.n > 0)
     if (v.size() == T.v.size())
       for (t_ind i = 0; i < v.size(); i++)
-	v[i] += T.v[i];
+        v[i] += T.v[i];
     else
       std::cerr <<"Tensor::operator+=(const Tensor&): "
-		<<"Not implemented for tensors of different size."<< std::endl;
+                <<"Not implemented for tensors of different size."<< std::endl;
 
   return *this;
 }
@@ -368,10 +368,10 @@ Tensor& Tensor::operator-= (const Tensor& T)
   if (T.n > 0)
     if (v.size() == T.v.size())
       for (t_ind i = 0; i < v.size(); i++)
-	v[i] -= T.v[i];
+        v[i] -= T.v[i];
     else
       std::cerr <<"Tensor::operator-=(const Tensor&): "
-		<<"Not implemented for tensors of different size."<< std::endl;
+                <<"Not implemented for tensors of different size."<< std::endl;
 
   return *this;
 }
@@ -467,11 +467,11 @@ Real Tensor::innerProd (const Tensor& T) const
     t_ind ndim = n < T.n ? n : T.n;
     for (t_ind i = 1; i <= ndim; i++)
       for (t_ind j = i; j <= ndim; j++)
-	value += v[this->index(i,j)]*T(i,j);
+        value += v[this->index(i,j)]*T(i,j);
   }
   else if (n > 0 && T.n > 0)
     std::cerr <<"Tensor::innerProd(const Tensor&) const: "
-	      <<"Not implemented for tensors of different size."<< std::endl;
+              <<"Not implemented for tensors of different size."<< std::endl;
 
   return value;
 }
@@ -622,11 +622,11 @@ Vec3 operator* (const Tensor& T, const Vec3& v)
     return Vec3(T.v[0]*v.x, v.y, v.z);
   case 2:
     return Vec3(T(1,1)*v.x + T(1,2)*v.y,
-		T(2,1)*v.x + T(2,2)*v.y, v.z);
+                T(2,1)*v.x + T(2,2)*v.y, v.z);
   case 3:
     return Vec3(T(1,1)*v.x + T(1,2)*v.y + T(1,3)*v.z,
-		T(2,1)*v.x + T(2,2)*v.y + T(2,3)*v.z,
-		T(3,1)*v.x + T(3,2)*v.y + T(3,3)*v.z);
+                T(2,1)*v.x + T(2,2)*v.y + T(2,3)*v.z,
+                T(3,1)*v.x + T(3,2)*v.y + T(3,3)*v.z);
   }
   return v;
 }
@@ -643,11 +643,11 @@ Vec3 operator* (const Vec3& v, const Tensor& T)
     return Vec3(T.v[0]*v.x, v.y, v.z);
   case 2:
     return Vec3(T(1,1)*v.x + T(2,1)*v.y,
-		T(1,2)*v.x + T(2,2)*v.y, v.z);
+                T(1,2)*v.x + T(2,2)*v.y, v.z);
   case 3:
     return Vec3(T(1,1)*v.x + T(2,1)*v.y + T(3,1)*v.z,
-		T(1,2)*v.x + T(2,2)*v.y + T(3,2)*v.z,
-		T(1,3)*v.x + T(2,3)*v.y + T(3,3)*v.z);
+                T(1,2)*v.x + T(2,2)*v.y + T(3,2)*v.z,
+                T(1,3)*v.x + T(2,3)*v.y + T(3,3)*v.z);
   }
   return v;
 }
@@ -692,8 +692,8 @@ std::ostream& SymmTensor::print (std::ostream& os) const
     return os << std::endl;
   case 3:
     return os << v[0] <<'\n'
-	      << v[3] <<' '<< v[1] <<'\n'
-	      << v[5] <<' '<< v[4] <<' '<< v[2] << std::endl;
+              << v[3] <<' '<< v[1] <<'\n'
+              << v[5] <<' '<< v[4] <<' '<< v[2] << std::endl;
   }
 
   return os;
@@ -1205,7 +1205,7 @@ SymmTensor4::SymmTensor4 (const std::vector<Real>& x, t_ind nsd)
 
   if (v.size() < (size_t)m*m)
     std::cerr <<" *** Invalid fourth-order tensor,"
-	      <<" matrix represention too small, size="<< v.size() << std::endl;
+              <<" matrix represention too small, size="<< v.size() << std::endl;
 
   ptr = (Real*)&v.front();
 }

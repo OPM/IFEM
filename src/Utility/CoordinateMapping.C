@@ -22,8 +22,8 @@
 
 
 Real utl::Jacobian (matrix<Real>& J, matrix<Real>& dNdX,
-		    const matrix<Real>& X, const matrix<Real>& dNdu,
-		    bool computeGradient)
+                    const matrix<Real>& X, const matrix<Real>& dNdu,
+                    bool computeGradient)
 {
   // Compute the Jacobian matrix, J = [dXdu]
   J.multiply(X,dNdu); // J = X * dNdu
@@ -56,8 +56,8 @@ Real utl::Jacobian (matrix<Real>& J, matrix<Real>& dNdX,
 
 
 Real utl::Jacobian (matrix<Real>& J, Vec3& t, matrix<Real>& dNdX,
-		    const matrix<Real>& X, const matrix<Real>& dNdu,
-		    size_t tangent)
+                    const matrix<Real>& X, const matrix<Real>& dNdu,
+                    size_t tangent)
 {
   // Compute the Jacobian matrix, J = [dXdu]
   J.multiply(X,dNdu); // J = X * dNdu
@@ -80,8 +80,8 @@ Real utl::Jacobian (matrix<Real>& J, Vec3& t, matrix<Real>& dNdX,
 
 
 Real utl::Jacobian (matrix<Real>& J, Vec3& n, matrix<Real>& dNdX,
-		    const matrix<Real>& X, const matrix<Real>& dNdu,
-		    size_t t1, size_t t2)
+                    const matrix<Real>& X, const matrix<Real>& dNdu,
+                    size_t t1, size_t t2)
 {
   // Compute the Jacobian matrix, J = [dXdu]
   J.multiply(X,dNdu); // J = X * dNdu
@@ -120,8 +120,8 @@ Real utl::Jacobian (matrix<Real>& J, Vec3& n, matrix<Real>& dNdX,
 
 
 bool utl::Hessian (matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
-		   const matrix<Real>& Ji, const matrix<Real>& X,
-		   const matrix3d<Real>& d2Ndu2, const matrix<Real>& dNdX,
+                   const matrix<Real>& Ji, const matrix<Real>& X,
+                   const matrix3d<Real>& d2Ndu2, const matrix<Real>& dNdX,
                    bool geoMapping)
 {
   PROFILE4("utl::Hessian");
@@ -158,18 +158,18 @@ bool utl::Hessian (matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
     for (i1 = 1; i1 <= nsd; i1++)
       for (i2 = 1; i2 <= i1; i2++)
       {
-	Real& v = d2NdX2(n,i1,i2);
-	for (i3 = 1; i3 <= nsd; i3++)
-	  for (i4 = 1; i4 <= nsd; i4++)
-	  {
-	    Real Ji31x42 = Ji(i3,i1)*Ji(i4,i2);
-	    v += d2Ndu2(n,i3,i4)*Ji31x42;
-	    for (i6 = 1; i6 <= nsd; i6++)
-	      v -= dNdX(n,i6)*H(i6,i3,i4)*Ji31x42;
-	  }
+        Real& v = d2NdX2(n,i1,i2);
+        for (i3 = 1; i3 <= nsd; i3++)
+          for (i4 = 1; i4 <= nsd; i4++)
+          {
+            Real Ji31x42 = Ji(i3,i1)*Ji(i4,i2);
+            v += d2Ndu2(n,i3,i4)*Ji31x42;
+            for (i6 = 1; i6 <= nsd; i6++)
+              v -= dNdX(n,i6)*H(i6,i3,i4)*Ji31x42;
+          }
 
-	if (i2 < i1)
-	  d2NdX2(n,i2,i1) = v; // symmetry
+        if (i2 < i1)
+          d2NdX2(n,i2,i1) = v; // symmetry
       }
 
   return true;

@@ -106,7 +106,7 @@ class EvalMultiFunction : public ParentFunc
 public:
   //! \brief The constructor parses the expression string for each component.
   EvalMultiFunction<ParentFunc,Ret>(const std::string& functions,
-				    const std::string& variables="")
+                                    const std::string& variables="")
   {
     size_t pos = functions.find("|"), pos2 = 0;
     for (int i = 0; pos2 < functions.size(); i++)
