@@ -179,7 +179,8 @@ bool ASMs3Dmx::generateFEMTopology ()
   if (!basis1 && !basis2)
   {
     // With mixed methods we need two separate spline spaces
-    if (useCpminus1)
+    if (ASMmxBase::Type == FULL_CONT_RAISE_BASIS1 ||
+        ASMmxBase::Type == FULL_CONT_RAISE_BASIS2)
     {
       // basis1 should be one degree higher than basis2 and C^p-1 continuous
       int ndim = svol->dimension();
@@ -226,7 +227,8 @@ bool ASMs3Dmx::generateFEMTopology ()
 							    ug,vg,wg,XYZ,ndim,
 							    false,XYZ);
     }
-    else
+    else if (ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS1 ||
+             ASMmxBase::Type == REDUCED_CONT_RAISE_BASIS2)
     {
       // Order-elevate basis1 such that it is of one degree higher than basis2
       // but only C^p-2 continuous

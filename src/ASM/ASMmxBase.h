@@ -58,10 +58,16 @@ protected:
 public:
   //! If \e true, the first basis represents the geometry
   static bool geoUsesBasis1;
-  //! If \e true, enforce \f$C^{p-1}\f$ continuity in the highest-order basis
-  static bool useCpminus1;
-  //! If \e true, the first basis is of lowest order
-  static bool useLowOrderBasis1;
+
+  //! \brief Mixed formulation type
+  enum MixedType {
+    FULL_CONT_RAISE_BASIS1,    //!< Full continuity, raise order and use as basis 1
+    REDUCED_CONT_RAISE_BASIS1, //!< Reduced continuity, raise order and use as basis 1
+    FULL_CONT_RAISE_BASIS2,    //!< Full continuity, raise order and use as basis 2
+    REDUCED_CONT_RAISE_BASIS2, //!< Reduced continuity, raise order and use as basis 2
+  };
+
+  static MixedType Type; //!< Type of mixed formulation used
 
 private:
   std::vector<int> MADOF; //!< Matrix of accumulated DOFs for this patch
