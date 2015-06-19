@@ -243,7 +243,7 @@ bool ASMs2Dmx::generateFEMTopology ()
     }
 
     // Define which basis that should be used to represent the geometry
-    if (geoUsesBasis1) surf = basis1;
+    if (geoBasis == 1) surf = basis1;
   }
 
   const int n1 = basis1->numCoefs_u();
@@ -293,7 +293,7 @@ bool ASMs2Dmx::generateFEMTopology ()
   if (p1 > n1 || p2 > n2) return false;
   if (q1 > m1 || q2 > m2) return false;
 
-  nel = geoUsesBasis1 ? (n1-p1+1)*(n2-p2+1) : (m1-q1+1)*(m2-q2+1);
+  nel = geoBasis == 1 ? (n1-p1+1)*(n2-p2+1) : (m1-q1+1)*(m2-q2+1);
   nnod = nb1 + nb2;
 
   myMLGE.resize(nel,0);
@@ -318,7 +318,7 @@ bool ASMs2Dmx::generateFEMTopology ()
       myMLGN[inod++]    = ++gNod;
     }
 
-  if (geoUsesBasis1)
+  if (geoBasis == 1)
   {
     // Create nodal connectivities for basis 1
     iel = inod = 0;
@@ -444,7 +444,7 @@ bool ASMs2Dmx::getElementCoordinates (Matrix& X, int iel) const
 #endif
 
   size_t nenod = surf->order_u()*surf->order_v();
-  size_t lnod0 = geoUsesBasis1 ? 0 : basis1->order_u()*basis1->order_v();
+  size_t lnod0 = geoBasis == 1 ? 0 : basis1->order_u()*basis1->order_v();
 
   X.resize(nsd,nenod);
   const IntVec& mnpc = MNPC[iel-1];
@@ -624,7 +624,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
             // Compute Jacobian inverse of the coordinate mapping and
             // basis function derivatives w.r.t. Cartesian coordinates
-            if (geoUsesBasis1)
+            if (geoBasis == 1)
             {
               fe.detJxW = utl::Jacobian(Jac,fe.dN1dX,Xnod,dN1du);
               fe.dN2dX.multiply(dN2du,Jac); // dN2dX = dN2du * J^-1
@@ -637,7 +637,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
             if (fe.detJxW == 0.0) continue; // skip singular points
 
             // Cartesian coordinates of current integration point
-            X = Xnod * (geoUsesBasis1 ? fe.N1 : fe.N2);
+            X = Xnod * (geoBasis == 1 ? fe.N1 : fe.N2);
             X.t = time.t;
 
             // Evaluate the integrand and accumulate element contributions
@@ -784,7 +784,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
 	// Compute Jacobian inverse of the coordinate mapping and
 	// basis function derivatives w.r.t. Cartesian coordinates
-	if (geoUsesBasis1)
+	if (geoBasis == 1)
 	{
 	  fe.detJxW = utl::Jacobian(Jac,normal,fe.dN1dX,Xnod,dN1du,t1,t2);
 	  fe.dN2dX.multiply(dN2du,Jac); // dN2dX = dN2du * J^-1
@@ -799,7 +799,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 	if (edgeDir < 0) normal *= -1.0;
 
 	// Cartesian coordinates of current integration point
-	X = Xnod * (geoUsesBasis1 ? fe.N1 : fe.N2);
+	X = Xnod * (geoBasis == 1 ? fe.N1 : fe.N2);
 	X.t = time.t;
 
 	// Evaluate the integrand and accumulate element contributions
@@ -971,7 +971,7 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     fe.iGP = firstIp + i;
 
     // Fetch associated control point coordinates
-    utl::gather(geoUsesBasis1 ? ip1 : ip2, nsd, Xnod, Xtmp);
+    utl::gather(geoBasis == 1 ? ip1 : ip2, nsd, Xnod, Xtmp);
 
     // Fetch basis function derivatives at current integration point
     SplineUtils::extractBasis(spline1[i],fe.N1,dN1du);
@@ -979,7 +979,7 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Compute Jacobian inverse of the coordinate mapping and
     // basis function derivatives w.r.t. Cartesian coordinates
-    if (geoUsesBasis1)
+    if (geoBasis == 1)
       if (utl::Jacobian(Jac,fe.dN1dX,Xtmp,dN1du) == 0.0) // Jac = (Xtmp*dN1du)^-1
 	continue; // skip singular points
       else
@@ -991,7 +991,7 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 	fe.dN1dX.multiply(dN1du,Jac); // dN1dX = dN1du * J^-1
 
     // Cartesian coordinates of current integration point
-    X = Xtmp * (geoUsesBasis1 ? fe.N1 : fe.N2);
+    X = Xtmp * (geoBasis == 1 ? fe.N1 : fe.N2);
 
     // Now evaluate the solution field
     if (!integrand.evalSol(solPt,fe,X,ip1,ip2))

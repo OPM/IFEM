@@ -56,8 +56,7 @@ protected:
 		     const std::vector<int>& nodes) const;
 
 public:
-  //! If \e true, the first basis represents the geometry
-  static bool geoUsesBasis1;
+  static char geoBasis; //!< The basis representing the geometry
 
   //! \brief Mixed formulation type
   enum MixedType {

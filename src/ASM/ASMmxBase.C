@@ -14,7 +14,7 @@
 #include "ASMmxBase.h"
 
 
-bool ASMmxBase::geoUsesBasis1        = false;
+char ASMmxBase::geoBasis            = 2;
 ASMmxBase::MixedType ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
 
 
