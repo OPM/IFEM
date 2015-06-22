@@ -43,6 +43,9 @@ public:
   //! \param[in] nNormProj Number of element norms per projection method
   bool initAdaptor(size_t indxProj, size_t nNormProj);
 
+  //! \brief Assemble and solve linear system
+  virtual bool assembleAndSolve();
+
   //! \brief Assembles and solves the linear FE equations on current mesh.
   //! \param[in] inputfile File to read model parameters from after refinement
   //! \param[in] iStep Refinement step counter
@@ -77,7 +80,7 @@ public:
   int getNoNorms() const;
 
   //! \brief Dummy time stepping advance (no adaptive + time stepping yet)
-  bool advanceStep(TimeStep& tp) const { return false; }
+  virtual bool advanceStep(TimeStep& tp) const { return false; }
 
 protected:
   //! \brief Parses a data section from an input stream.

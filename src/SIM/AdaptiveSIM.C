@@ -182,6 +182,12 @@ bool AdaptiveSIM::initAdaptor (size_t indxProj, size_t nNormProj)
 }
 
 
+bool AdaptiveSIM::assembleAndSolve()
+{
+  return model->assembleSystem() && model->solveMatrixSystem(solution,1);
+}
+
+
 bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
 {
   model->getProcessAdm().cout <<"\nAdaptive step "<< iStep << std::endl;
@@ -206,11 +212,9 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
   model->initSystem(iStep == 1 ? SystemMatrix::DENSE : opt.solver,
                     1, model->getNoRHS());
   model->setQuadratureRule(opt.nGauss[0],true);
-  if (!model->assembleSystem())
-    return false;
 
-  // Solve the linear system of equations
-  if (!model->solveMatrixSystem(solution,1))
+
+  if (!assembleAndSolve())
     return false;
 
   eNorm.clear();
