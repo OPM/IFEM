@@ -42,6 +42,7 @@ AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : SIMinput(*sim)
   trueBeta     = false; // beta measured in dimension increase
   threashold   = false; // beta generates a threshold (err/max{err})
   adaptor      = 0;
+  adNorm       = 0;
   maxTjoints   = -1;
   maxAspRatio  = -1.0;
   closeGaps    = false;
@@ -95,6 +96,8 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
     }
     else if ((value = utl::getValue(child,"use_norm")))
       adaptor = atoi(value);
+    else if ((value = utl::getValue(child,"use_sub_norm")))
+      adNorm = atoi(value);
     else if ((value = utl::getValue(child,"beta"))) {
       beta = atof(value);
       std::string type;
@@ -268,8 +271,9 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   else // |u|_ref = sqrt( |u^h|^2 + |e^*|^2 )
     refNorm = sqrt(fNorm(1)*fNorm(1) + aNorm(2)*aNorm(2));
 
-  // Use norm 4 when adapting on exact errors, otherwise use norm 2
-  int adNorm = adaptor == 0 ? 4 : 2;
+  // Use norm 4 when adapting on exact errors, otherwise use norm 2, unless specified
+  if (!adNorm)
+    adNorm = (adaptor == 0 ? 4 : 2);
 
   // Check if further refinement is required
   if (iStep > maxStep || model->getNoDOFs() > (size_t)maxDOFs) return false;

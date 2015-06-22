@@ -110,6 +110,7 @@ private:
   int    scheme;
 
   size_t  adaptor;  //!< Norm group to base the mesh adaption on
+  size_t  adNorm;   //!< Which norm to adapt based on
   Vectors solution; //!< All solutions (galerkin projections)
   Vectors gNorm;    //!< Global norms
   Matrix  eNorm;    //!< Element norms
