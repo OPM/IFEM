@@ -213,6 +213,8 @@ public:
   //! \brief Returns a pointer to an Integrand for nodal force evaluation.
   virtual ForceBase* getForceIntegrand() const { return 0; }
 
+  //! \brief Returns number of spatial dimensions.
+  virtual size_t getNoSpaceDim() const { return nsd; }
   //! \brief Returns the number of primary/secondary solution field components.
   virtual size_t getNoFields(int = 2) const { return 0; }
 
@@ -261,6 +263,7 @@ private:
   std::map<std::string,Vector*> myFields; //!< Named fields of this integrand
 
 protected:
+  unsigned short int nsd;     //!< Number of spatial dimensions (1,2 or, 3)
   Vectors            primsol; //!< Primary solution vectors for current patch
   unsigned short int npv;     //!< Number of primary solution variables per node
   SIM::SolutionMode  m_mode;  //!< Current solution mode

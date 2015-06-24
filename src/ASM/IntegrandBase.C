@@ -147,21 +147,24 @@ bool IntegrandBase::evalSol (Vector& s, const MxFiniteElement& fe,
 }
 
 
-bool IntegrandBase::evalSol (Vector&, const TensorFunc&, const Vec3&) const
+bool IntegrandBase::evalSol (Vector& s, const TensorFunc& asol, const Vec3& X) const
 {
-  return Ierror("evalSol(Vector&,const TensorFunc&,const Vec3&)");
+  s = Vector(asol(X).ptr(),nsd);
+  return true;
 }
 
 
-bool IntegrandBase::evalSol (Vector&, const STensorFunc&, const Vec3&) const
+bool IntegrandBase::evalSol (Vector& s, const STensorFunc& asol, const Vec3& X) const
 {
-  return Ierror("evalSol(Vector&,const STensorFunc&,const Vec3&)");
+  s = Vector(asol(X).ptr(),nsd);
+  return true;
 }
 
 
-bool IntegrandBase::evalSol (Vector&, const VecFunc&, const Vec3&) const
+bool IntegrandBase::evalSol (Vector& s, const VecFunc& asol, const Vec3& X) const
 {
-  return Ierror("evalSol(Vector&,const VecFunc&,const Vec3&)");
+  s = Vector(asol(X).ptr(),nsd);
+  return true;
 }
 
 
