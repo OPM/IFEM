@@ -226,14 +226,16 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
     {
       // primary solution vector
       addField(prefix+entry.first,entry.second.description,basisname,
-               cmps,sim->getNoPatches(),"restart");
+               0,sim->getNoPatches(),"restart");
 
-      // Assuming that basis2 is used for secondary variables
       // primary solution fields
-      addField(prefix+prob->getField1Name(11),"primary",sim->getName()+"-1",
-               cmps,sim->getNoPatches(),"field",results & DataExporter::ONCE?true:false);
-      addField(prefix+prob->getField1Name(12),"primary",sim->getName()+"-2",
-               cmps,sim->getNoPatches(), "field",results & DataExporter::ONCE?true:false);
+      for (int b=1; b <= sim->getNoBasis(); ++b) {
+        std::stringstream str;
+        str << sim->getName() << "-" << b;
+        addField(prefix+prob->getField1Name(10+b),"primary",str.str(),
+                 sim->getNoFields(b),sim->getNoPatches(),
+                 "field",results & DataExporter::ONCE?true:false);
+      }
     }
     else
     {

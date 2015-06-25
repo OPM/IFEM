@@ -390,7 +390,11 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
   if (level == 0 || geometryUpdated || (abs(entry.second.results) & DataExporter::GRID)) {
     writeBasis(sim,basisname,1,level);
     if (prob->mixedFormulation())
-      writeBasis(sim,sim->getName()+"-2",2,level);
+      for (size_t b=2; b <= sim->getPatch(1)->getNoBasis(); ++b) {
+        std::stringstream str;
+        str << sim->getName() << "-" << b;
+        writeBasis(sim,str.str(),b,level);
+      }
   }
 
   Matrix eNorm;
@@ -426,9 +430,9 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
       if (abs(results) & DataExporter::RESTART) {
         Vector psol;
         int ncmps = entry.second.ncmps;
-        size_t ndof1 = sim->extractPatchSolution(*sol,psol,loc-1,ncmps);
+        sim->extractPatchSolution(*sol,psol,loc-1,ncmps);
         writeArray(group2, entry.second.description+" restart",
-                           ndof1, psol.ptr(), H5T_NATIVE_DOUBLE);
+                           psol.size(), psol.ptr(), H5T_NATIVE_DOUBLE);
       }
       if (abs(results) & DataExporter::PRIMARY) {
         Vector psol;
@@ -436,11 +440,13 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
         size_t ndof1 = sim->extractPatchSolution(*sol,psol,loc-1,ncmps);
         if (prob->mixedFormulation())
         {
-          // Mixed methods: The primary solution vector is referring to two bases
-          size_t ndof2 = psol.size() > ndof1 ? psol.size() - ndof1 : 0;
-          writeArray(group2,prefix+entry.first,psol.size(),psol.ptr(),H5T_NATIVE_DOUBLE);
-          writeArray(group2,prefix+prob->getField1Name(11),ndof1,psol.ptr(),H5T_NATIVE_DOUBLE);
-          writeArray(group2,prefix+prob->getField1Name(12),ndof2,psol.ptr()+ndof1,H5T_NATIVE_DOUBLE);
+          size_t ofs = 0;
+          for (size_t b=1; b <= sim->getPatch(loc)->getNoBasis(); ++b) {
+            ndof1 = sim->getPatch(loc)->getNoNodes(b)*sim->getPatch(loc)->getNoFields(b);
+            writeArray(group2,prefix+prob->getField1Name(10+b),ndof1,
+                       psol.ptr()+ofs,H5T_NATIVE_DOUBLE);
+            ofs += ndof1;
+          }
         }
         else {
           writeArray(group2, usedescription ? entry.second.description:
@@ -521,8 +527,8 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
         if (prob->mixedFormulation())
         {
           writeArray(group2,prefix+entry.first,0,&dummy,H5T_NATIVE_DOUBLE);
-          writeArray(group2,prefix+prob->getField1Name(11),0,&dummy,H5T_NATIVE_DOUBLE);
-          writeArray(group2,prefix+prob->getField1Name(12),0,&dummy,H5T_NATIVE_DOUBLE);
+          for (size_t b=1; b <= sim->getPatch(loc)->getNoBasis(); ++b)
+            writeArray(group2,prefix+prob->getField1Name(10+b),0,&dummy,H5T_NATIVE_DOUBLE);
         }
         else
           writeArray(group2, usedescription ? entry.second.description:
