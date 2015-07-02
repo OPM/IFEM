@@ -181,8 +181,10 @@ public:
   //! \brief Returns a pointer to the problem-specific data object.
   const IntegrandBase* getProblem() const { return myProblem; }
 
-  //! \brief Set whether or not the SIM owns the integrand
-  void setOwnProblem(bool own) { ownProblem = own; }
+  //! \brief Clears the reference to the problem-specific data object.
+  //! \details This method is used when the same IntegrandBase object is shared
+  //! by several SIMbase objects, to avoid that it is deleted more than once.
+  void clearProblem() { myProblem = NULL; }
 
   //! \brief Returns the name of this simulator.
   //! \details This method is typically reimplemented in sub-classes that are
@@ -672,7 +674,6 @@ protected:
   VecFuncMap     myVectors; //!< Vector property fields
   TracFuncMap    myTracs;   //!< Traction property fields
   IntegrandBase* myProblem; //!< The main integrand of this simulator
-  bool           ownProblem;//!< Whether or not the SIM owns the integrand
   IntegrandMap   myInts;    //!< Set of all integrands involved
   AnaSol*        mySol;     //!< Analytical/Exact solution
 

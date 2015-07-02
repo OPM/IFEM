@@ -44,7 +44,7 @@ bool SIMbase::preserveNOrder  = false;
 bool SIMbase::ignoreDirichlet = false;
 
 
-SIMbase::SIMbase (IntegrandBase* itg) : ownProblem(true), g2l(&myGlb2Loc)
+SIMbase::SIMbase (IntegrandBase* itg) : g2l(&myGlb2Loc)
 {
   isRefined = false;
   nsd = 3;
@@ -69,7 +69,7 @@ SIMbase::~SIMbase ()
   for (IntegrandMap::iterator it = myInts.begin(); it != myInts.end(); ++it)
     if (it->second != myProblem) delete it->second;
 
-  if (ownProblem)  delete myProblem;
+  if (myProblem)   delete myProblem;
   if (mySol)       delete mySol;
   if (myEqSys)     delete myEqSys;
   if (mySam)       delete mySam;
