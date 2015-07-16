@@ -14,6 +14,22 @@
 #include "Tensor.h"
 #include "Vec3.h"
 #include <algorithm>
+#include <cstring>
+
+#if defined(_WIN32) && !defined(__MINGW32__) && !defined(__MINGW64__)
+#define dsyev_ DSYEV
+#elif defined(_AIX)
+#define dsyev_ dsyev
+#endif
+
+extern "C" {
+//! \brief Solves the standard eigenproblem \a A*x=(lambda)*x.
+//! \details This is a FORTRAN-77 subroutine in the LAPack library.
+//! \sa LAPack library documentation.
+void dsyev_(const char& jobz, const char& uplo,
+            const int& n, double* a, const int& lda, double* w,
+            double* work, const int& lwork, int& info);
+}
 
 #ifndef epsZ
 //! \brief Zero tolerance for the incremental rotations.
@@ -956,9 +972,30 @@ Real SymmTensor::vonMises (bool doSqrt) const
 }
 
 
-void SymmTensor::principal (Vec3& p) const
+bool SymmTensor::principal (Vec3& p) const
 {
-  if (n < 2) return;
+  if (n < 2) return false;
+
+  if (v.size() == 3)
+  {
+    // Pure 2D tensor, solve the quadratic equation x^2 - C*x + D = 0
+    Real C = v[0] + v[1];
+    Real D = v[0]*v[1] - v[2]*v[2];
+    Real P = C*C - Real(4)*D;
+    if (P > Real(0))
+    {
+      double Q = sqrt(P);
+      p.x = (C+Q)/Real(2);
+      p.y = (C-Q)/Real(2);
+    }
+    else if (P > -Real(1.0e-16))
+      p.x = p.y = C/Real(2);
+    else
+      return false;
+
+    p.z = Real(0);
+    return true;
+  } 
 
   // Compute mean and deviatoric (upper triangular part) tensors
   const Real tol(1.0e-12);
@@ -966,7 +1003,7 @@ void SymmTensor::principal (Vec3& p) const
   Real b1 = this->trace() / Real(3);
   Real s1 = v[0] - b1;
   Real s2 = v[1] - b1;
-  Real s3 = v.size() > 3 ? v[2] - b1 : Real(0);
+  Real s3 = v[2] - b1;
   Real s4 = n > 2 ? v[3] : v.back();
   Real s5 = n > 2 ? v[4] : Real(0);
   Real s6 = n > 2 ? v[5] : Real(0);
@@ -980,7 +1017,7 @@ void SymmTensor::principal (Vec3& p) const
   if (b2 <= tol*b1*b1)
   {
     p = s1;
-    return;
+    return true;
   }
 
   Real b3 = s1*s2*s3 + (s4+s4)*s5*s6 + s1*(c1-c2) + s2*(c1-c3);
@@ -1004,6 +1041,100 @@ void SymmTensor::principal (Vec3& p) const
   if (p.x < p.y) std::swap(p.x,p.y);
   if (p.y < p.z) std::swap(p.y,p.z);
   if (p.x < p.y) std::swap(p.x,p.y);
+  return true;
+}
+
+
+bool SymmTensor::principal (Vec3& p, std::vector<Vec3>& pdir) const
+{
+  p = 0.0;
+  pdir.clear();
+#ifdef USE_CBLAS
+  // Set up the upper triangle of the symmetric tensor
+  double A[9], W[3];
+  if (n == 3)
+  {
+    A[0] = v[0];
+    A[4] = v[1];
+    A[8] = v[2];
+    A[3] = v[3];
+    A[7] = v[4];
+    A[6] = v[5];
+  }
+  else if (n == 2)
+  {
+    A[0] = v[0];
+    A[3] = v[1];
+    A[2] = v.size() == 4 ? v[3] : v[2];
+  }
+  else
+    return false;
+
+  // Solve the symmetric eigenvalue problem
+  int       info = 0;
+  const int Lwork = 12;
+  double    Work[Lwork];
+  dsyev_('V','U',n,A,n,W,Work,Lwork,info);
+  if (info)
+  {
+    std::cerr <<" *** LAPack::dsyev: info ="<< info;
+    return false;
+  }
+
+  // DSYEV returns the eigenvalues in ascending order, but we
+  // want them in descending order (largest principal value first)
+  std::swap(W[0],W[n-1]);
+  for (t_ind i = 0; i < n; i++)
+    std::swap(A[i],A[n*n-n+i]);
+
+  t_ind N = n;
+  if (n == 2 && v.size() == 4)
+  {
+    N = 3; // Expand A from 2x2 to 3x3
+    A[5] = 0.0;
+    A[4] = A[3];
+    A[3] = A[2];
+    A[2] = 0.0;
+
+    // Insert the zz component into the sorted eigenvalues
+    if (v[2] > W[0])
+    {
+      W[2] = W[1];
+      W[1] = W[0];
+      W[0] = v[2];
+      memmove(A+3,A,6*sizeof(double));
+      A[2] = 1.0;
+      A[0] = A[1] = 0.0;
+    }
+    else if (v[2] > W[1])
+    {
+      W[2] = W[1];
+      W[1] = v[2];
+      memcpy(A+6,A+3,3*sizeof(double));
+      A[5] = 1.0;
+      A[4] = A[3] = 0.0;
+    }
+    else
+    {
+      W[2] = v[2];
+      A[8] = 1.0;
+      A[7] = A[6] = 0.0;
+    }
+  }
+
+  pdir.resize(N);
+  for (t_ind j = 0; j < N; j++)
+  {
+    p[j] = W[j];
+    for (t_ind i = 0; i < 3; i++)
+      pdir[j][i] = i < N ? A[i+j*N] : 0.0;
+  }
+
+  return true;
+#else
+  std::cerr <<" *** SymmTensor::principal: Built without LAPack"<< std::endl;
+  return false;
+#endif
 }
 
 
