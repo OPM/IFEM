@@ -376,7 +376,11 @@ void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
      this->renumberRHS(const_mode,x,true);
      VecNormalize(x, NULL);
      MatNullSpaceCreate(*adm.getCommunicator(),PETSC_FALSE,1,&x,&nsp);
+#if PETSC_VERSION_MAJOR > 6
      KSPSetNullSpace(ksp,nsp);
+#else
+     MatSetNullSpace(matvec[1],nsp);
+#endif
      VecDestroy(&x);
      VecDestroy(&const_mode);
   }

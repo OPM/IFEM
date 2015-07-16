@@ -37,7 +37,11 @@ PetscErrorCode PCPermSetUp(PC pc, IS *perm, Mat A, const char* type)
   PCSetOperators(shell->pc,shell->Aperm,shell->Aperm);
 #endif
   if (!shell->identity)
+#if PETSC_VERSION_MINOR < 6
     PCFactorSetUseInPlace(shell->pc);
+#else
+    PCFactorSetUseInPlace(shell->pc,PETSC_TRUE);
+#endif
   PCSetUp(shell->pc);
 
   return 0;

@@ -172,7 +172,11 @@ PETScMatrix::PETScMatrix (const ProcessAdm& padm, const LinSolParams& spar,
   // Create null space if any
   if (solParams.getNullSpace() == CONSTANT) {
     MatNullSpaceCreate(*adm.getCommunicator(),PETSC_TRUE,0,0,&nsp);
+#if PETSC_VERSION_MINOR < 6
     KSPSetNullSpace(ksp,nsp);
+#else
+    MatSetNullSpace(A,nsp);
+#endif
   }
 
   LinAlgInit::increfs();
@@ -194,7 +198,11 @@ PETScMatrix::PETScMatrix (const PETScMatrix& B) : adm(B.adm), solParams(B.solPar
   // Create null space, if any
   if (solParams.getNullSpace() == CONSTANT) {
     MatNullSpaceCreate(*adm.getCommunicator(),PETSC_TRUE,0,0,&nsp);
+#if PETSC_VERSION_MINOR < 6
     KSPSetNullSpace(ksp,nsp);
+#else
+    MatSetNullSpace(A,nsp);
+#endif
   }
   LinAlgInit::increfs();
 
@@ -312,7 +320,11 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
     for (size_t i=0;i<coords.size();++i)
       VecSetValue(coordVec, i, coords[i], INSERT_VALUES);
     MatNullSpaceCreateRigidBody(coordVec, &nsp);
+#if PETSC_VERSION_MINOR < 6
     KSPSetNullSpace(ksp,nsp);
+#else
+    MatSetNullSpace(A,nsp);
+#endif
 #endif
   }
 
