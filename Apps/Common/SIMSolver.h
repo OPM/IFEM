@@ -196,7 +196,7 @@ public:
   }
 
   //! \brief Parses a data section from an input stream.
-  virtual bool parse(char*, std::istream&) { return false; }
+  virtual bool parse(char*, std::istream&) { return true; }
 
   //! \brief Parses a data section from an XML element.
   virtual bool parse(const TiXmlElement* elem)
