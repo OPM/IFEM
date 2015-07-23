@@ -87,6 +87,14 @@ AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
       vecSol = new VecFuncExpr(primary,variables);
   }
 
+  prim = elem->FirstChildElement("scalarprimary");
+  if (prim && prim->FirstChild())
+  {
+    std::string primary = prim->FirstChild()->Value();
+    std::cout <<"\tScalar Primary="<< primary << std::endl;
+    scalSol = new EvalFunction((variables+primary).c_str());
+  }
+
   const TiXmlElement* sec = elem->FirstChildElement("secondary");
   if (sec && sec->FirstChild())
   {
@@ -96,6 +104,14 @@ AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
       scalSecSol = new VecFuncExpr(secondary,variables);
     else
       vecSecSol = new TensorFuncExpr(secondary,variables);
+  }
+
+  sec = elem->FirstChildElement("scalarsecondary");
+  if (sec && sec->FirstChild())
+  {
+    std::string secondary = sec->FirstChild()->Value();
+    std::cout <<"\tScalar Secondary="<< secondary << std::endl;
+    scalSecSol = new VecFuncExpr(secondary,variables);
   }
 
   const TiXmlElement* stress = elem->FirstChildElement("stress");
