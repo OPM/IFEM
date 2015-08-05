@@ -36,7 +36,8 @@ ADD_LIBRARY(CommonIFEM MeshUtils.C
                        Spalding.C
                        SAWallLaw.C
                        StabilizationUtils.C
-                       TimeIntUtils.C)
+                       TimeIntUtils.C
+                       WeakOperators.C)
 TARGET_LINK_LIBRARIES(CommonIFEM ${IFEM_LIBRARIES})
 SET_TARGET_PROPERTIES(CommonIFEM PROPERTIES
                       VERSION ${IFEM_VERSION}
