@@ -32,6 +32,18 @@ namespace WeakOperators
                  const Vec3& AC, double scale=1.0,
                  size_t cmp=1, size_t nf=1, size_t scmp=0);
 
+  //! \brief Compute an (nonlinear) convection term.
+  //! \param[out] EM The element matrix to add contribution to.
+  //! \param[in] fe The finite element to evaluate for.
+  //! \param[in] U  Advecting field.
+  //! \param[in] scale Scaling factor for contribution.
+  //! \param[in] cmp Number of components to add.
+  //! \param[in] nf Number of fields in basis.
+  //! \param[in] conservative True to use the conservative formulation.
+  void Convection(Matrix& EM, const FiniteElement& fe,
+                  const Vec3& U, const Matrix& dUdX, double scale,
+                  size_t cmp, size_t nf, bool conservative);
+
   //! \brief Compute a divergence term.
   //! \param[out] EM The element matrix to add contribution to.
   //! \param[in] fe The finite element to evaluate for.

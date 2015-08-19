@@ -33,6 +33,7 @@ INCLUDE(cmake/UseMultiArch.cmake)
 
 # Common application sources
 ADD_LIBRARY(CommonIFEM MeshUtils.C
+                       ResidualOperators.C
                        Spalding.C
                        SAWallLaw.C
                        StabilizationUtils.C
