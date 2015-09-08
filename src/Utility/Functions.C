@@ -427,27 +427,31 @@ ScalarFunc* utl::parseTimeFunc (const char* func, const std::string& type)
 }
 
 
-RealFunc* utl::parseRealFunc (const std::string& func, const std::string& type)
+RealFunc* utl::parseRealFunc (const std::string& func, const std::string& type, bool print)
 {
   if (func.empty()) return NULL;
 
-  IFEM::cout <<": ";
+  if (print)
+    IFEM::cout <<": ";
   Real p = Real(0);
   if (type == "expression")
   {
-    IFEM::cout << func;
+    if (print)
+      IFEM::cout << func;
     return new EvalFunction(func.c_str());
   }
   else if (type == "linear")
   {
     p = atof(func.c_str());
-    IFEM::cout << p <<"*t";
+    if (print)
+      IFEM::cout << p <<"*t";
     return new ConstTimeFunc(new LinearFunc(p));
   }
   else if (type == "constant" || func.find_first_of("\t ") == std::string::npos)
   {
     p = atof(func.c_str());
-    IFEM::cout << p;
+    if (print)
+      IFEM::cout << p;
     return new ConstFunc(p);
   }
 

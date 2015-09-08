@@ -435,8 +435,8 @@ class StepXYFunc : public RealFunc
 public:
   //! \brief Constructor initializing the function parameters.
   StepXYFunc(Real v,
-	     Real X1 = Real(1), Real Y1 = Real(1),
-	     Real X0 = Real(-1), Real Y0 = Real(-1))
+             Real X1 = Real(1), Real Y1 = Real(1),
+             Real X0 = Real(-1), Real Y0 = Real(-1))
     : fv(v), x0(X0), y0(Y0), x1(X1), y1(Y1) {}
 
   //! \brief Returns whether the function is identically zero or not.
@@ -503,7 +503,7 @@ namespace utl
 {
   //! \brief Creates a time function by parsing a character string.
   const ScalarFunc* parseTimeFunc(const char* type, char* cline = NULL,
-				  Real C = Real(1));
+                                  Real C = Real(1));
 
   //! \brief Creates a scalar-valued function by parsing a character string.
   const RealFunc* parseRealFunc(char* cline, Real A = Real(1));
@@ -514,21 +514,23 @@ namespace utl
   //! \brief Creates a scalar-valued function by parsing a character string.
   //! \param[in] func Character string to parse function definition from
   //! \param[in] type Function definition type flag
-  RealFunc* parseRealFunc(const std::string& func, const std::string& type);
+  //! \param[in] print If \e false, do not print out function definition
+  RealFunc* parseRealFunc(const std::string& func, const std::string& type,
+                          bool print = true);
 
   //! \brief Creates a vector-valued function by parsing a character string.
   //! \param[in] func Character string to parse function definition from
   //! \param[in] type Function defintion type flag
   //! \param[in] variables Variable definition for expression functions
   VecFunc* parseVecFunc(const std::string& func, const std::string& type,
-                        const std::string& variables="");
+                        const std::string& variables = "");
 
   //! \brief Creates a vector-valued function defining a surface traction.
   //! \param[in] func Character string to parse function definition from
   //! \param[in] type Function defintion type flag
   //! \param[in] dir Coordinate direction of the traction (0=normal direction)
   TractionFunc* parseTracFunc(const std::string& func,
-			      const std::string& type, int dir);
+                              const std::string& type, int dir);
 }
 
 #endif

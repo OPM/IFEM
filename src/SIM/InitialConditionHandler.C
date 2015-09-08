@@ -50,7 +50,7 @@ bool SIM::setInitialConditions (SIMbase& sim, SIMdependency* fieldHolder)
         continue;
 
       if (it->first == "nofile") {
-        std::unique_ptr<RealFunc> func(utl::parseRealFunc(it2->function, it2->file_field));
+        std::unique_ptr<RealFunc> func(utl::parseRealFunc(it2->function, it2->file_field, false));
         // loop over patches
         for (int i=0;i<sim.getNoPatches();++i) {
           int p = sim.getLocalPatchIndex(i+1);
