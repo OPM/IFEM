@@ -25,7 +25,7 @@ double getElementSize(const std::vector<Vec3>& XC, int nsd)
 }
 
 
-  double getTauPt(double dt, double mu, const Vector& U, const Matrix& G, const double Ct, const double Cl)
+double getTauPt(double dt, double mu, const Vector& U, const Matrix& G, const double Ct, const double Cl)
 {
   double Gnorm2 = 0.0;
   for (size_t i = 1;i <= G.rows();i++)
