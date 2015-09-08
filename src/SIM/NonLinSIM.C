@@ -131,6 +131,11 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
         iteNorm = L2;
       else if (!strncasecmp(value,"dis",3))
         iteNorm = L2SOL;
+      else if (!strncasecmp(value,"none",4))
+      {
+        iteNorm = NONE;
+        fromIni = true;
+      }
     }
     else if (!strcasecmp(child->Value(),"fromZero"))
       fromIni = true;
