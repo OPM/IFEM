@@ -39,6 +39,9 @@ public:
   //! \brief Initializes time integration parameters for the integrand.
   virtual void initPrm();
 
+  //! \brief Calculates initial accelerations.
+  bool initAcc(double zero_tolerance = 1.0e-8, std::streamsize outPrec = 0);
+
   //! \brief Solves the dynamic equations by a predictor/multi-corrector method.
   //! \param param Time stepping parameters
   //! \param[in] zero_tolerance Truncate norm values smaller than this to zero

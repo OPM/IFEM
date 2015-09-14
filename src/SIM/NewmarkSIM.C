@@ -13,6 +13,7 @@
 
 #include "NewmarkSIM.h"
 #include "SIMoutput.h"
+#include "AlgEqSystem.h"
 #include "TimeStep.h"
 #include "IFEM.h"
 #include "Profiler.h"
@@ -120,6 +121,54 @@ void NewmarkSIM::initPrm ()
   model.setIntegrationPrm(1,fabs(alpha2));
   model.setIntegrationPrm(2,beta);
   model.setIntegrationPrm(3,gamma);
+}
+
+
+bool NewmarkSIM::initAcc (double zero_tolerance, std::streamsize outPrec)
+{
+  if (!model.setMode(SIM::MASS_ONLY))
+    return false;
+
+  // Assemble mass matrix and external forces
+  model.setQuadratureRule(opt.nGauss[0],true);
+  if (!model.assembleSystem())
+    return false;
+
+  // Add in the external nodal loads, if any
+  SystemVector* Rext = model.getRHSvector(2);
+  if (Rext && Rext->L1norm() > 0.0)
+    model.addToRHSvector(0,*Rext);
+
+  // Solve for the initial accelerations
+  size_t iA = solution.size() - 1;
+  if (!model.solveSystem(solution[iA],msgLevel-1,"acceleration"))
+    return false;
+  else if (msgLevel < 1)
+    return true;
+
+  size_t d, nf = model.getNoFields(1);
+  size_t kMax[nf];
+  double aMax[nf];
+  double accL2 = model.solutionNorms(solution[iA],aMax,kMax,nf);
+
+  utl::LogStream& cout = model.getProcessAdm().cout;
+  std::streamsize stdPrec = outPrec > 0 ? cout.precision(outPrec) : 0;
+  double old_tol = utl::zero_print_tol;
+  utl::zero_print_tol = zero_tolerance;
+  char D;
+
+  cout <<"\n  Initial acceleration L2-norm    : "<< utl::trunc(accL2);
+  for (d = 0, D = 'X'; d < nf; d++, D=='Z' ? D='x' : D++)
+    if (utl::trunc(aMax[d]) != 0.0)
+      cout <<"\n               Max "<< D
+           <<"-acceleration : "<< aMax[d] <<" node "<< kMax[d];
+
+  cout << std::endl;
+  utl::zero_print_tol = old_tol;
+  if (stdPrec > 0) cout.precision(stdPrec);
+
+  return true;
+
 }
 
 
