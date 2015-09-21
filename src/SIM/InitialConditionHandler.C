@@ -83,7 +83,6 @@ bool SIM::setInitialConditions (SIMbase& sim, SIMdependency* fieldHolder)
         // load basis
         if (basis.find(it3->basis) == basis.end()) {
           SIMdependency::PatchVec vec;
-          unsigned char unf[3] = { 0, 0, 0 };
           for (int i=0;i<it3->patches;++i) {
             int p = sim.getLocalPatchIndex(i+1);
             if (p < 1)
@@ -94,8 +93,8 @@ bool SIM::setInitialConditions (SIMbase& sim, SIMdependency* fieldHolder)
             hdf5reader.readString(str.str(),pg2);
             std::stringstream spg2;
             spg2 << pg2;
-            unf[0] = sim.getNoFields(it2->basis);
-            ASMbase* pch = sim.readPatch(spg2,i,unf);
+            ASMbase* pch = sim.readPatch(spg2,i,
+                                         {(unsigned char)sim.getNoFields(it2->basis)});
             if (pch)
               vec.push_back(pch);
           }

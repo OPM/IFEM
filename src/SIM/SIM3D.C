@@ -24,18 +24,23 @@
 #include <sstream>
 
 
-SIM3D::SIM3D (unsigned char n1, unsigned char n2, bool check)
+SIM3D::SIM3D (unsigned char n1, bool check)
 {
-  nf[0] = n1;
-  nf[1] = n2;
+  nf.push_back(n1);
+  checkRHSys = check;
+}
+
+
+SIM3D::SIM3D (const std::vector<unsigned char>& fields, bool check)
+  : nf(fields)
+{
   checkRHSys = check;
 }
 
 
 SIM3D::SIM3D (IntegrandBase* itg, unsigned char n, bool check) : SIMgeneric(itg)
 {
-  nf[0] = n;
-  nf[1] = 0;
+  nf.push_back(n);
   checkRHSys = check;
 }
 
@@ -670,11 +675,10 @@ bool SIM3D::addConstraint (int patch, int lndx, int line, double xi,
 
 
 ASMbase* SIM3D::readPatch (std::istream& isp, int pchInd,
-                           const unsigned char* unf) const
+                           const std::vector<unsigned char>& unf) const
 {
-  if (!unf)
-    unf = nf;
-  ASMbase* pch = ASM3D::create(opt.discretization,unf,unf[1] > 0);
+  const std::vector<unsigned char>& uunf = unf.empty()?nf:unf;
+  ASMbase* pch = ASM3D::create(opt.discretization,uunf,uunf.size() > 1 && uunf[1] > 0);
   if (pch)
   {
     if (!pch->read(isp))
@@ -697,7 +701,7 @@ bool SIM3D::readPatches (std::istream& isp, PatchVec& patches,
 {
   ASMbase* pch = NULL;
   for (int pchInd = 1; isp.good(); pchInd++)
-    if ((pch = ASM3D::create(opt.discretization,nf,nf[1] > 0)))
+    if ((pch = ASM3D::create(opt.discretization,nf,nf.size() > 1 && nf[1] > 0)))
     {
       if (!pch->read(isp))
       {
@@ -793,7 +797,7 @@ ASMbase* SIM3D::createDefaultGeometry (const TiXmlElement* geo) const
   }
 
   std::istringstream unitCube(g2);
-  return this->readPatch(unitCube);
+  return this->readPatch(unitCube,1,nf);
 }
 
 

@@ -42,7 +42,7 @@ public:
   //! \param[in] type The discretization method to use
   //! \param[in] nf Number of unknowns per basis function in the patch
   //! \param[in] mixedFEM If \e true, force mixed formulation even if \a nf[1]=0
-  static ASMbase* create(ASM::Discretization type, const unsigned char* nf,
+  static ASMbase* create(ASM::Discretization type, const std::vector<unsigned char>& nf,
                          bool mixedFEM = false);
 
   //! \brief Creates a three-parametric patch of specified discretization type.

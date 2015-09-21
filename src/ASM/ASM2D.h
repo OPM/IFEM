@@ -44,7 +44,7 @@ public:
   //! \param[in] nf Number of unknowns per basis function in the patch
   //! \param[in] mixedFEM If \e true, force mixed formulation even if \a nf[1]=0
   static ASMbase* create(ASM::Discretization type,
-                         unsigned char nd, const unsigned char* nf,
+                         unsigned char nd, const std::vector<unsigned char>& nf,
                          bool mixedFEM = false);
   //! \brief Creates a two-parametric patch of specified discretization type.
   //! \param[in] type The discretization method to use
@@ -59,7 +59,7 @@ public:
   //! or changed in other ways that affect the FE geometry and/or topology.
   //! The other properties of the patch (boundary conditions, constraints,
   //! loads, etc.) are however not copied.
-  ASMbase* clone(unsigned char* nf = NULL) const;
+  ASMbase* clone(const std::vector<unsigned char>& nf = {}) const;
 
   //! \brief Checks that the patch is modelled in a right-hand-side system.
   virtual bool checkRightHandSystem() = 0;

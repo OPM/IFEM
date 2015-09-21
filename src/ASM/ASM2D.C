@@ -24,13 +24,12 @@
 
 ASMbase* ASM2D::create (ASM::Discretization discretization, unsigned char nf)
 {
-  const unsigned char nfs[2] = { nf, 0 };
-  return create(discretization,2,nfs,false);
+  return create(discretization,2,{nf},false);
 }
 
 
 ASMbase* ASM2D::create (ASM::Discretization discretization,
-                        unsigned char nd, const unsigned char* nf,
+                        unsigned char nd, const std::vector<unsigned char>& nf,
                         bool mixedFEM)
 {
   switch (discretization) {
@@ -38,8 +37,8 @@ ASMbase* ASM2D::create (ASM::Discretization discretization,
     return new ASMs2DC1(nd,nf[0]);
 
   case ASM::Lagrange:
-    if (nf[1] > 0 || mixedFEM)
-      return new ASMs2DmxLag(nd,{nf[0],nf[1]});
+    if (nf.size() > 1 || mixedFEM)
+      return new ASMs2DmxLag(nd,nf);
     else
       return new ASMs2DLag(nd,nf[0]);
 
@@ -55,10 +54,10 @@ ASMbase* ASM2D::create (ASM::Discretization discretization,
 #endif
 
   default:
-    if (nf[1] == 'I') // hack for immersed boundary approach
+    if (nf.size() > 1 && nf[1] == 'I') // hack for immersed boundary approach
       return new ASMs2DIB(nd,nf[0],nf[2]);
-    else if (nf[1] > 0 || mixedFEM)
-      return new ASMs2Dmx(nd,{nf[0],nf[1]});
+    else if (nf.size() > 1 || mixedFEM)
+      return new ASMs2Dmx(nd,nf);
     else
       return new ASMs2D(nd,nf[0]);
   }
@@ -67,14 +66,14 @@ ASMbase* ASM2D::create (ASM::Discretization discretization,
 
 #define TRY_CLONE1(classType,n) {					\
     const classType* p = dynamic_cast<const classType*>(this);		\
-    if (p) return n ? new classType(*p,n[0]) : new classType(*p);	\
+    if (p) return !n.empty() ? new classType(*p,n[0]) : new classType(*p);	\
   }
 #define TRY_CLONE2(classType,n) {					\
     const classType* p = dynamic_cast<const classType*>(this);		\
-    if (p) return n ? new classType(*p,{n[0],n[1]}) : new classType(*p);	\
+    if (p) return !n.empty() ? new classType(*p,n) : new classType(*p);	\
   }
 
-ASMbase* ASM2D::clone (unsigned char* nf) const
+ASMbase* ASM2D::clone (const std::vector<unsigned char>& nf) const
 {
   TRY_CLONE2(ASMs2DmxLag,nf)
   TRY_CLONE2(ASMs2Dmx,nf)

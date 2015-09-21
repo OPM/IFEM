@@ -23,18 +23,17 @@
 
 ASMbase* ASM3D::create (ASM::Discretization discretization, unsigned char nf)
 {
-  const unsigned char nfs[2] = { nf, 0 };
-  return create(discretization,nfs,false);
+  return create(discretization,{nf},false);
 }
 
 
 ASMbase* ASM3D::create (ASM::Discretization discretization,
-                        const unsigned char* nf, bool mixedFEM)
+                        const std::vector<unsigned char>& nf, bool mixedFEM)
 {
   switch (discretization) {
 
   case ASM::Lagrange:
-    if (nf[1] > 0 || mixedFEM)
+    if (nf.size() > 1 || mixedFEM)
       return new ASMs3DmxLag({nf[0],nf[1]});
     else
       return new ASMs3DLag(nf[0]);
@@ -48,8 +47,8 @@ ASMbase* ASM3D::create (ASM::Discretization discretization,
 #endif
 
   default:
-    if (nf[1] > 0 || mixedFEM)
-      return new ASMs3Dmx({nf[0],nf[1]});
+    if (nf.size() > 1 || mixedFEM)
+      return new ASMs3Dmx(nf);
     else
       return new ASMs3D(nf[0]);
   }

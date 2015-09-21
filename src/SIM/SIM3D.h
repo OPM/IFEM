@@ -31,9 +31,12 @@ public:
 
   //! \brief Default constructor.
   //! \param[in] n1 Dimension of the primary solution field
-  //! \param[in] n2 Dimension of the second solution field (mixed method)
   //! \param[in] check If \e true, ensure the model is in a right-hand system
-  SIM3D(unsigned char n1 = 3, unsigned char n2 = 0, bool check = false);
+  SIM3D(unsigned char n1 = 3, bool check = false);
+  //! \brief Default constructor.
+  //! \param[in] n1 Dimension of the primary solution field
+  //! \param[in] check If \e true, ensure the model is in a right-hand system
+  SIM3D(const std::vector<unsigned char>& fields, bool check = false);
   //! \brief Constructor that also initializes the integrand pointer.
   //! \param[in] itg Pointer to the integrand of the problem to solve
   //! \param[in] n Dimension of the primary solution field
@@ -50,7 +53,7 @@ public:
   //! \param[in] pchInd 0-based index of the patch to read
   //! \param[in] unf If non-NULL use specified number of fields
   virtual ASMbase* readPatch(std::istream& isp, int pchInd = 0,
-                             const unsigned char* unf=nullptr) const;
+                             const std::vector<unsigned char>& unf={}) const;
 
   //! \brief Evaluates the primary solution at the given point.
   //! \param[in] psol Primary solution vector
@@ -123,7 +126,7 @@ protected:
   virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const;
 
 protected:
-  unsigned char nf[2]; //!< Number of scalar fields
+  std::vector<unsigned char> nf; //!< Number of scalar fields
   bool     checkRHSys; //!< Check if all patches are in a right-hand system
 };
 

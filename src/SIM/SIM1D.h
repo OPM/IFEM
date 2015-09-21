@@ -30,11 +30,14 @@ public:
   //! \brief Default constructor.
   //! \param[in] n1 Dimension of the primary solution field
   //! \param[in] n2 Dummy argument, present only to aid template writing
-  SIM1D(unsigned char n1 = 1, unsigned char n2 = 0, bool = false);
+  SIM1D(unsigned char n1 = 1, bool = false);
   //! \brief Constructor that also initializes the integrand pointer.
   //! \param[in] itg Pointer to the integrand of the problem to solve
   //! \param[in] n Dimension of the primary solution field
   SIM1D(IntegrandBase* itg, unsigned char n = 1);
+  //! \brief Default constructor.
+  //! \param[in] fields Number of fields on each basis
+  SIM1D(const std::vector<unsigned char>& fields = {1}, bool = false);
   //! \brief The destructor deletes the twist angle function.
   virtual ~SIM1D() { delete twist; }
 
@@ -46,7 +49,7 @@ public:
   //! \param[in] pchInd 0-based index of the patch to read
   //! \param[in] unf If non-NULL use specified number of fields
   virtual ASMbase* readPatch(std::istream& isp, int pchInd = 0,
-                             const unsigned char* unf=nullptr) const;
+                             const std::vector<unsigned char>& unf={}) const;
 
   //! \brief Evaluates the primary solution at the given point.
   //! \param[in] psol Primary solution vector

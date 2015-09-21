@@ -21,10 +21,18 @@
 #include <sstream>
 
 
-SIM1D::SIM1D (unsigned char n1, unsigned char, bool)
+SIM1D::SIM1D (unsigned char n1, bool)
 {
   nsd = 1;
   nf = n1;
+  twist = NULL;
+}
+
+
+SIM1D::SIM1D (const std::vector<unsigned char>& fields, bool)
+{
+  nsd = 1;
+  nf = fields.empty()?1:fields.front();
   twist = NULL;
 }
 
@@ -458,9 +466,9 @@ bool SIM1D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 
 
 ASMbase* SIM1D::readPatch (std::istream& isp, int pchInd,
-                           const unsigned char* unf) const
+                           const std::vector<unsigned char>& unf) const
 {
-  ASMbase* pch = ASM1D::create(opt.discretization,nsd, unf ? *unf : nf);
+  ASMbase* pch = ASM1D::create(opt.discretization,nsd, unf.empty()?nf:unf.front());
   if (pch)
   {
     if (!pch->read(isp))
@@ -557,7 +565,7 @@ ASMbase* SIM1D::createDefaultGeometry (const TiXmlElement* geo) const
   g2.append("\n");
 
   std::istringstream unitLine(g2);
-  return this->readPatch(unitLine);
+  return this->readPatch(unitLine,1,{nf});
 }
 
 

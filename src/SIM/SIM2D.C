@@ -45,12 +45,18 @@ struct Interface
 };
 
 
-SIM2D::SIM2D (unsigned char n1, unsigned char n2, bool check)
+SIM2D::SIM2D (unsigned char n1, bool check)
 {
   nsd = 2;
-  nf[0] = n1;
-  nf[1] = n2;
-  nf[2] = 0;
+  nf.push_back(n1);
+  checkRHSys = check;
+}
+
+
+SIM2D::SIM2D (const std::vector<unsigned char>& fields, bool check)
+  : nf(fields)
+{
+  nsd = 2;
   checkRHSys = check;
 }
 
@@ -58,8 +64,7 @@ SIM2D::SIM2D (unsigned char n1, unsigned char n2, bool check)
 SIM2D::SIM2D (IntegrandBase* itg, unsigned char n, bool check) : SIMgeneric(itg)
 {
   nsd = 2;
-  nf[0] = n;
-  nf[1] = nf[2] = 0;
+  nf.push_back(n);
   checkRHSys = check;
 }
 
@@ -296,8 +301,8 @@ bool SIM2D::parse (const TiXmlElement* elem)
       if (!strcasecmp(child->Value(),"immersedboundary"))
         if (utl::getAttribute(child,"max_depth",maxDepth))
         {
-          nf[1] = 'I';
-          nf[2] = maxDepth;
+          nf.push_back('I');
+          nf.push_back(maxDepth);
           IFEM::cout <<"  Parsing <immersedboundary>\n"
                      <<"\tMax refinement depth : "<< maxDepth << std::endl;
           // Immersed boundary cannot be used with C1-continuous multi-patches
@@ -654,11 +659,10 @@ bool SIM2D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 
 
 ASMbase* SIM2D::readPatch (std::istream& isp, int pchInd,
-                           const unsigned char* unf) const
+                           const std::vector<unsigned char>& unf) const
 {
-  if (!unf)
-    unf = nf;
-  ASMbase* pch = ASM2D::create(opt.discretization,nsd,unf,unf[1] > 0);
+  const std::vector<unsigned char>& uunf = unf.empty()?nf:unf;
+  ASMbase* pch = ASM2D::create(opt.discretization,nsd,uunf,uunf.size() > 1);
   if (pch)
   {
     if (!pch->read(isp))
@@ -682,7 +686,7 @@ bool SIM2D::readPatches (std::istream& isp, PatchVec& patches,
 {
   ASMbase* pch = NULL;
   for (int pchInd = 1; isp.good(); pchInd++)
-    if ((pch = ASM2D::create(opt.discretization,nsd,nf,nf[1] > 0)))
+    if ((pch = ASM2D::create(opt.discretization,nsd,nf,nf.size() > 1 && nf[1] > 0)))
     {
       if (!pch->read(isp))
       {
@@ -806,7 +810,7 @@ ASMbase* SIM2D::createDefaultGeometry (const TiXmlElement* geo) const
   g2.append("\n");
 
   std::istringstream unitSquare(g2);
-  return this->readPatch(unitSquare);
+  return this->readPatch(unitSquare,1,nf);
 }
 
 

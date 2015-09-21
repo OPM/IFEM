@@ -1478,7 +1478,7 @@ char SIMbase::getNoBasis() const
   char result = getPatch(1)->getNoBasis();
 #ifdef SP_DEBUG
   for (auto& p : getFEModel())
-    assert(p->getNoBasis() == result);
+    assert(p->getNoBasis() == (unsigned)result);
 #endif
 
   return result;
