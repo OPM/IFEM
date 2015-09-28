@@ -56,6 +56,7 @@ IF(IFEM_PATH OR IFEM_AS_SUBMODULE)
     IF(CMAKE_CROSSCOMPILING)
       set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
     endif()
+    find_package(IFEMDeps) # To get FOUND variables in current context
     ADD_SUBDIRECTORY(${IFEM_PATH} IFEM.dir)
     INCLUDE(${CMAKE_BINARY_DIR}/IFEM.dir/IFEMFlags.cmake)
     SET(IFEM_LIBRARIES IFEM)
