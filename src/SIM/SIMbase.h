@@ -338,7 +338,7 @@ public:
   //! \param[in] nf Number of components in the primary solution field
   //! \return L2-norm of the solution vector
   double solutionNorms(const Vector& x, double* inf = NULL,
-                       size_t* ind = NULL, size_t nf = 0) const;
+                       size_t* ind = NULL, size_t nf = 0, char type='D') const;
 
   //! \brief Integrates some solution norm quantities.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations.

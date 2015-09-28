@@ -2035,17 +2035,17 @@ void SIMbase::iterationNorms (const Vector& u, const Vector& r,
 
 
 double SIMbase::solutionNorms (const Vector& x, double* inf,
-			       size_t* ind, size_t nf) const
+			       size_t* ind, size_t nf, char type) const
 {
   if (inf && ind && nf == 0) nf = nsd;
 
   for (size_t d = 0; d < nf; d++)
   {
     ind[d] = d+1;
-    inf[d] = mySam->normInf(x,ind[d]);
+    inf[d] = mySam->normInf(x,ind[d],type);
   }
 
-  return mySam->normL2(x);
+  return mySam->normL2(x,type);
 }
 
 
