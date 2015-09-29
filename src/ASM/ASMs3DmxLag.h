@@ -16,6 +16,7 @@
 
 #include "ASMs3DLag.h"
 #include "ASMmxBase.h"
+#include <array>
 
 
 /*!
@@ -28,11 +29,10 @@
 class ASMs3DmxLag : public ASMs3DLag, private ASMmxBase
 {
 public:
-  //! \brief Default constructor.
-  ASMs3DmxLag(const std::vector<unsigned char>& n_f = {3,1});
+  //! \brief The constructor initializes the dimension of each basis.
+  ASMs3DmxLag(const CharVec& n_f);
   //! \brief Copy constructor.
-  ASMs3DmxLag(const ASMs3DmxLag& patch,
-              const std::vector<unsigned char>& n_f = {0,0});
+  ASMs3DmxLag(const ASMs3DmxLag& patch, const CharVec& n_f = CharVec(2,0));
   //! \brief Empty destructor.
   virtual ~ASMs3DmxLag() {}
 
@@ -144,11 +144,11 @@ protected:
   virtual bool getSize(int& n1, int& n2, int& n3, int basis = 0) const;
 
 private:
-  std::vector<size_t> nxx; //!< Number of nodes in 1st parameter direction for bases
-  std::vector<size_t> nyx; //!< Number of nodes in 2nd parameter direction for bases
-  std::vector<size_t> nzx; //!< Number of nodes in 3rd parameter direction for bases
+  std::vector<size_t> nxx; //!< Basis dimensions in 1st parameter direction
+  std::vector<size_t> nyx; //!< Basis dimensions in 2nd parameter direction
+  std::vector<size_t> nzx; //!< Basis dimensions in 3rd parameter direction
 
-  std::vector<std::array<size_t,3>> elem_sizes; //!< Size on each basis
+  std::vector< std::array<size_t,3> > elem_sizes; //!< Size on each basis
 };
 
 #endif

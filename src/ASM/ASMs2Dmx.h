@@ -32,12 +32,10 @@
 class ASMs2Dmx : public ASMs2D, private ASMmxBase
 {
 public:
-  //! \brief Default constructor.
-  ASMs2Dmx(unsigned char n_s = 2,
-	   const std::vector<unsigned char>& n_f = {2, 1});
+  //! \brief The constructor initializes the dimension of each basis.
+  ASMs2Dmx(unsigned char n_s, const CharVec& n_f);
   //! \brief Copy constructor.
-  ASMs2Dmx(const ASMs2Dmx& patch,
-           const std::vector<unsigned char>& n_f = {0, 0});
+  ASMs2Dmx(const ASMs2Dmx& patch, const CharVec& n_f = CharVec(2,0));
   //! \brief Empty destructor.
   virtual ~ASMs2Dmx() {}
 

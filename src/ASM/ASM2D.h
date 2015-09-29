@@ -38,14 +38,15 @@ public:
   //! \brief Empty destructor.
   virtual ~ASM2D() {}
 
+  typedef std::vector<unsigned char> CharVec; //!< Convenience type
+
   //! \brief Creates a two-parametric patch of specified discretization type.
   //! \param[in] type The discretization method to use
   //! \param[in] nd Number of spatial dimensions
   //! \param[in] nf Number of unknowns per basis function in the patch
   //! \param[in] mixedFEM If \e true, force mixed formulation even if \a nf[1]=0
-  static ASMbase* create(ASM::Discretization type,
-                         unsigned char nd, const std::vector<unsigned char>& nf,
-                         bool mixedFEM = false);
+  static ASMbase* create(ASM::Discretization type, unsigned char nd,
+                         const CharVec& nf, bool mixedFEM = false);
   //! \brief Creates a two-parametric patch of specified discretization type.
   //! \param[in] type The discretization method to use
   //! \param[in] nf Number of unknowns per basis function in the patch
@@ -59,7 +60,7 @@ public:
   //! or changed in other ways that affect the FE geometry and/or topology.
   //! The other properties of the patch (boundary conditions, constraints,
   //! loads, etc.) are however not copied.
-  ASMbase* clone(const std::vector<unsigned char>& nf = {}) const;
+  ASMbase* clone(const CharVec& nf = CharVec()) const;
 
   //! \brief Checks that the patch is modelled in a right-hand-side system.
   virtual bool checkRightHandSystem() = 0;
@@ -82,7 +83,7 @@ public:
   //! \param[in] open If \e true, exclude the end points of the edge
   //! \param[in] dof Which DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
-  //! \param[in] basis Basis to constrain
+  //! \param[in] basis Which basis to constrain edge for
   virtual void constrainEdge(int dir, bool open, int dof, int code = 0,
                              char basis = 1) = 0;
   //! \brief Constrains all DOFs in local directions on a given boundary edge.
@@ -100,12 +101,13 @@ public:
   //! \param[in] J Parameter index in v-direction
   //! \param[in] dof Which DOFs to constrain at the node
   //! \param[in] code Inhomogeneous dirichlet condition code
-  //! \param[in] basis Basis to constrain
+  //! \param[in] basis Which basis to constrain edge for
   //!
   //! \details The sign of the two indices is used to define whether we want
   //! the node at the beginning or the end of that parameter direction.
   //! The magnitude of the indices are not used.
-  virtual void constrainCorner(int I, int J, int dof, int code = 0, char basis = 1) = 0;
+  virtual void constrainCorner(int I, int J, int dof, int code = 0,
+                               char basis = 1) = 0;
   //! \brief Constrains a node identified by two relative parameter values.
   //! \param[in] xi Parameter in u-direction
   //! \param[in] eta Parameter in v-direction

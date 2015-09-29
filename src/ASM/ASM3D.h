@@ -38,12 +38,14 @@ public:
   //! \brief Empty destructor.
   virtual ~ASM3D() {}
 
+  typedef std::vector<unsigned char> CharVec; //!< Convenience type
+
   //! \brief Creates a three-parametric patch of specified discretization type.
   //! \param[in] type The discretization method to use
   //! \param[in] nf Number of unknowns per basis function in the patch
   //! \param[in] mixedFEM If \e true, force mixed formulation even if \a nf[1]=0
-  static ASMbase* create(ASM::Discretization type, const std::vector<unsigned char>& nf,
-                         bool mixedFEM = false);
+  static ASMbase* create(ASM::Discretization type,
+                         const CharVec& nf, bool mixedFEM = false);
 
   //! \brief Creates a three-parametric patch of specified discretization type.
   //! \param[in] type The discretization method to use
@@ -82,7 +84,7 @@ public:
   //! \param[in] open If \e true, exclude all points along the face boundary
   //! \param[in] dof Which DOFs to constrain at each node on the face
   //! \param[in] code Inhomogeneous dirichlet condition code
-  //! \param[in] basis Basis to constrain face for
+  //! \param[in] basis Which basis to constrain face for
   virtual void constrainFace(int dir, bool open, int dof,
                              int code = 0, char basis = 1) = 0;
   //! \brief Constrains all DOFs in local directions on a given boundary face.
@@ -101,7 +103,7 @@ public:
   //! \param[in] open If \e true, exclude the end points of the edge
   //! \param[in] dof Which DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
-  //! \param[in] basis Basis to constrain edge for
+  //! \param[in] basis Which basis to constrain edge for
   virtual void constrainEdge(int lEdge, bool open, int dof, int code = 0,
                              char basis = 1) = 0;
   //! \brief Constrains all DOFs along a line on a given boundary face.
@@ -110,7 +112,7 @@ public:
   //! \param[in] xi Parameter value defining the line to constrain
   //! \param[in] dof Which DOFs to constrain at each node along the line
   //! \param[in] code Inhomogeneous dirichlet condition code
-  //! \param[in] basis Basis to constrain line for
+  //! \param[in] basis Which basis to constrain line for
   //!
   //! \details The parameter \a xi has to be in the domain [0.0,1.0], where
   //! 0.0 means the beginning of the domain and 1.0 means the end. The line to
@@ -128,7 +130,7 @@ public:
   //! \param[in] K Parameter index in w-direction
   //! \param[in] dof Which DOFs to constrain at the node
   //! \param[in] code Inhomogeneous dirichlet condition code
-  //! \param[in] basis Basis to constrain corner for
+  //! \param[in] basis Which basis to constrain corner for
   //!
   //! \details The sign of the three indices is used to define whether we want
   //! the node at the beginning or the end of that parameter direction.
@@ -141,7 +143,7 @@ public:
   //! \param[in] zeta Parameter in w-direction
   //! \param[in] dof Which DOFs to constrain at the node
   //! \param[in] code Inhomogeneous dirichlet condition code
-  //! \param[in] basis Basis to constrain node for
+  //! \param[in] basis Which basis to constrain node for
   //!
   //! \details The parameter values have to be in the domain [0.0,1.0], where
   //! 0.0 means the beginning of the domain and 1.0 means the end. For values

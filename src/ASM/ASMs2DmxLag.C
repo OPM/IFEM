@@ -26,15 +26,13 @@
 #include "Vec3Oper.h"
 
 
-ASMs2DmxLag::ASMs2DmxLag (unsigned char n_s,
-                          const std::vector<unsigned char>& n_f)
+ASMs2DmxLag::ASMs2DmxLag (unsigned char n_s, const CharVec& n_f)
   : ASMs2DLag(n_s), ASMmxBase(n_f)
 {
 }
 
 
-ASMs2DmxLag::ASMs2DmxLag (const ASMs2DmxLag& patch,
-                          const std::vector<unsigned char>& n_f)
+ASMs2DmxLag::ASMs2DmxLag (const ASMs2DmxLag& patch, const CharVec& n_f)
   : ASMs2DLag(patch), ASMmxBase(n_f)
 {
   nxx = patch.nxx;
@@ -138,14 +136,22 @@ bool ASMs2DmxLag::generateFEMTopology ()
   if (!this->getGridParameters(gpar1,0,p1-1)) return false;
   if (!this->getGridParameters(gpar2,1,p2-1)) return false;
 
-  // Number of nodes in each direction
-  nxx.push_back(nx);
-  nyx.push_back(ny);
-  nxx.push_back(gpar1.size());
-  nyx.push_back(gpar2.size());
-  elem_sizes.push_back({p1+1,p2+1});
-  elem_sizes.push_back({p1,p2});
+  // Number of nodes in each direction for each basis
+  nxx.resize(2);
+  nyx.resize(2);
+  nxx[0] = nx;
+  nyx[0] = ny;
+  nxx[1] = gpar1.size();
+  nyx[1] = gpar2.size();
 
+  // Number of elements in each direction for each basis
+  elem_sizes.resize(2);
+  elem_sizes[0][0] = p1+1;
+  elem_sizes[0][1] = p2+1;
+  elem_sizes[1][0] = p1;
+  elem_sizes[1][1] = p2;
+
+  // Total number of nodes for each basis
   nb.resize(2);
   nb[0] = MLGN.size();
   nb[1] = nxx[1]*nyx[1];

@@ -16,6 +16,7 @@
 
 #include "ASMs2DLag.h"
 #include "ASMmxBase.h"
+#include <array>
 
 
 /*!
@@ -28,12 +29,10 @@
 class ASMs2DmxLag : public ASMs2DLag, private ASMmxBase
 {
 public:
-  //! \brief Default constructor.
-  ASMs2DmxLag(unsigned char n_s = 2,
-	      const std::vector<unsigned char>& n_f = {2,1});
+  //! \brief The constructor initializes the dimension of each basis.
+  ASMs2DmxLag(unsigned char n_s, const CharVec& n_f);
   //! \brief Copy constructor.
-  ASMs2DmxLag(const ASMs2DmxLag& patch,
-              const std::vector<unsigned char>& n_f = {0,0});
+  ASMs2DmxLag(const ASMs2DmxLag& patch, const CharVec& n_f = CharVec(2,0));
   //! \brief Empty destructor.
   virtual ~ASMs2DmxLag() {}
 
@@ -144,10 +143,10 @@ protected:
   virtual bool getSize(int& n1, int& n2, int basis = 0) const;
 
 private:
-  std::vector<size_t> nxx; //!< Number of nodes in 1st parameter direction for bases
-  std::vector<size_t> nyx; //!< Number of nodes in 2nd parameter direction for bases
+  std::vector<size_t> nxx; //!< Basis dimensions in 1st parameter direction
+  std::vector<size_t> nyx; //!< Basis dimensions in 2nd parameter direction
 
-  std::vector<std::array<size_t,2>> elem_sizes; //!< Size on each basis
+  std::vector< std::array<size_t,2> > elem_sizes; //!< Size on each basis
 };
 
 #endif

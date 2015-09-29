@@ -16,7 +16,6 @@
 
 #include "ASMs3D.h"
 #include "ASMmxBase.h"
-
 #include <memory>
 
 
@@ -33,10 +32,10 @@
 class ASMs3Dmx : public ASMs3D, private ASMmxBase
 {
 public:
-  //! \brief Default constructor.
-  ASMs3Dmx(const std::vector<unsigned char>& n_f = {3,1});
+  //! \brief The constructor initializes the dimension of each basis.
+  ASMs3Dmx(const CharVec& n_f);
   //! \brief Copy constructor.
-  ASMs3Dmx(const ASMs3Dmx& patch, const std::vector<unsigned char>& n_f = {0,0});
+  ASMs3Dmx(const ASMs3Dmx& patch, const CharVec& n_f = CharVec(2,0));
   //! \brief Empty destructor.
   virtual ~ASMs3Dmx() {}
 

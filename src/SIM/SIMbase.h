@@ -603,12 +603,14 @@ public:
   //! \brief Adds a system vector to the given right-hand-side vector.
   void addToRHSvector(size_t idx, const SystemVector& vec, double scale = 1.0);
 
+  typedef std::vector<unsigned char> CharVec; //!< Convenience declaration
+
   //! \brief Reads a patch from given input stream.
   //! \param[in] isp The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read
-  //! \param[in] unf If specified, use this for the number of fields
+  //! \param[in] unf Number of unknowns per basis function for each field
   virtual ASMbase* readPatch(std::istream& isp, int pchInd,
-                             const std::vector<unsigned char>& unf={}) const = 0;
+                             const CharVec& unf = CharVec()) const = 0;
 
 protected:
   //! \brief Creates a default single-patch geometry.

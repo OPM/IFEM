@@ -24,13 +24,12 @@
 
 ASMbase* ASM2D::create (ASM::Discretization discretization, unsigned char nf)
 {
-  return create(discretization,2,{nf},false);
+  return ASM2D::create(discretization,2,CharVec(1,nf),false);
 }
 
 
 ASMbase* ASM2D::create (ASM::Discretization discretization,
-                        unsigned char nd, const std::vector<unsigned char>& nf,
-                        bool mixedFEM)
+                        unsigned char nd, const CharVec& nf, bool mixedFEM)
 {
   switch (discretization) {
   case ASM::SplineC1:
