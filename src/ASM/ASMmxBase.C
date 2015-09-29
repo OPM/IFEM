@@ -12,7 +12,8 @@
 //==============================================================================
 
 #include "ASMmxBase.h"
-
+#include "GoTools/geometry/SplineSurface.h"
+#include "GoTools/geometry/SurfaceInterpolator.h"
 
 char ASMmxBase::geoBasis            = 2;
 ASMmxBase::MixedType ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
@@ -120,4 +121,66 @@ bool ASMmxBase::getSolutionMx (Matrix& sField, const Vector& locSol,
     }
 
   return true;
+}
+
+
+ASMmxBase::SurfaceVec ASMmxBase::establishBases(Go::SplineSurface* surf,
+                                                MixedType type)
+{
+  SurfaceVec result(2);
+  // With mixed methods we need two separate spline spaces
+  if (type == FULL_CONT_RAISE_BASIS1 || type == FULL_CONT_RAISE_BASIS2)
+  {
+    // basis1 should be one degree higher than basis2 and C^p-1 continuous
+    int ndim = surf->dimension();
+    Go::BsplineBasis b1 = surf->basis(0).extendedBasis(surf->order_u()+1);
+    Go::BsplineBasis b2 = surf->basis(1).extendedBasis(surf->order_v()+1);
+    /* To lower order and regularity this can be used instead
+    std::vector<double>::const_iterator first = ++surf->basis(0).begin();
+    std::vector<double>::const_iterator last  = --surf->basis(0).end();
+    Go::BsplineBasis b1 = Go::BsplineBasis(surf->order_u()-1,first,last);
+    first =  ++surf->basis(1).begin();
+    last  =  --surf->basis(1).end();
+    Go::BsplineBasis b2 = Go::BsplineBasis(surf->order_v()-1,first,last);
+    */
+
+    // Note: Currently this is implemented for non-rational splines only.
+    // TODO: Ask the splines people how to fix this properly, that is, how
+    // may we obtain the correct weights for basis1 when *surf is a NURBS?
+    if (surf->rational())
+      std::cout <<"WARNING: The geometry basis is rational (using NURBS).\n"
+                <<"         The basis for the unknown fields of one degree"
+                <<" higher will however be non-rational.\n"
+                <<"         This may affect accuracy.\n"<< std::endl;
+
+    // Compute parameter values of the Greville points
+    size_t i;
+    RealArray ug(b1.numCoefs()), vg(b2.numCoefs());
+    for (i = 0; i < ug.size(); i++)
+      ug[i] = b1.grevilleParameter(i);
+    for (i = 0; i < vg.size(); i++)
+      vg[i] = b2.grevilleParameter(i);
+
+    // Evaluate the spline surface at all points
+    RealArray XYZ(ndim*ug.size()*vg.size());
+    surf->gridEvaluator(XYZ,ug,vg);
+
+    // Project the coordinates onto the new basis (the 2nd XYZ is dummy here)
+    result[0].reset(Go::SurfaceInterpolator::regularInterpolation(b1,b2,
+                                                                   ug,vg,XYZ,ndim,
+                                                                   false,XYZ));
+  }
+  else if (type == REDUCED_CONT_RAISE_BASIS1 || type == REDUCED_CONT_RAISE_BASIS2)
+  {
+    // Order-elevate basis1 such that it is of one degree higher than basis2
+    // but only C^p-2 continuous
+    result[0].reset(new Go::SplineSurface(*surf));
+    result[0]->raiseOrder(1,1);
+  }
+  result[1].reset(new Go::SplineSurface(*surf));
+
+  if (type == FULL_CONT_RAISE_BASIS2 || type == REDUCED_CONT_RAISE_BASIS2)
+    std::swap(result[0], result[1]);
+
+  return result;
 }

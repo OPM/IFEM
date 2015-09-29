@@ -51,18 +51,17 @@ ASMu2D::ASMu2D (const ASMu2D& patch, unsigned char n_f)
 bool ASMu2D::read (std::istream& is)
 {
 	if (shareFE) return false;
-	if(lrspline) delete lrspline;
 
 	// read inputfile as either an LRSpline file directly or a tensor product B-spline and convert
 	char firstline[256];
 	is.getline(firstline, 256);
 	if(strncmp(firstline, "# LRSPLINE", 10) == 0) {
-		lrspline = new LR::LRSplineSurface();
+		lrspline.reset(new LR::LRSplineSurface());
 		is >> *lrspline;
 	} else { // probably a SplineSurface, so we'll read that and convert
 		tensorspline = new Go::SplineSurface();
 		is >> *tensorspline;
-		lrspline = new LR::LRSplineSurface(tensorspline);
+		lrspline.reset(new LR::LRSplineSurface(tensorspline));
 	}
 
 	// Eat white-space characters to see if there is more data to read
@@ -77,16 +76,14 @@ bool ASMu2D::read (std::istream& is)
 	if (!is.good() && !is.eof())
 	{
 		std::cerr <<" *** ASMu2D::read: Failure reading spline data"<< std::endl;
-		delete lrspline;
-		lrspline = 0;
+                lrspline.reset();
 		return false;
 	}
 	else if (lrspline->dimension() < 2)
 	{
 		std::cerr <<" *** ASMu2D::read: Invalid spline lrsplineace patch, dim="
 		          << lrspline->dimension() << std::endl;
-		delete lrspline;
-		lrspline = 0;
+                lrspline.reset();
 		return false;
 	}
 	else if (lrspline->dimension() < nsd)
@@ -98,7 +95,7 @@ bool ASMu2D::read (std::istream& is)
 		nsd = lrspline->dimension();
 	}
 
-	geo = lrspline;
+	geo = lrspline.get();
 	return true;
 }
 
@@ -118,10 +115,10 @@ void ASMu2D::clear (bool retainGeometry)
   if (!retainGeometry) {
     // Erase spline data
     if (!shareFE) {
-      delete lrspline;
+      lrspline.reset();
       delete tensorspline;
     }
-    geo = lrspline = 0;
+    geo = 0;
     tensorspline = 0;
   }
 
@@ -248,8 +245,8 @@ bool ASMu2D::uniformRefine (int dir, int nInsert)
 	else
 		tensorspline->insertKnot_v(extraKnots);
 
-	delete lrspline;
-	geo = lrspline = new LR::LRSplineSurface(tensorspline);
+        lrspline.reset(new LR::LRSplineSurface(tensorspline));
+        geo = lrspline.get();
 
 	return true;
 }
@@ -281,8 +278,8 @@ bool ASMu2D::refine (int dir, const RealArray& xi)
 	else
 		tensorspline->insertKnot_v(extraKnots);
 
-	if(lrspline) delete lrspline;
-	geo = lrspline = new LR::LRSplineSurface(tensorspline);
+        lrspline.reset(new LR::LRSplineSurface(tensorspline));
+	geo = lrspline.get();
 
 	return true;
 }
@@ -293,8 +290,8 @@ bool ASMu2D::raiseOrder (int ru, int rv)
 	if (shareFE) return true;
 
 	tensorspline->raiseOrder(ru,rv);
-	delete lrspline;
-	geo = lrspline = new LR::LRSplineSurface(tensorspline);
+        lrspline.reset(new LR::LRSplineSurface(tensorspline));
+        geo = lrspline.get();
 	return true;
 }
 

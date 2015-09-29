@@ -17,6 +17,8 @@
 #include "ASMunstruct.h"
 #include "ASM2D.h"
 
+#include <memory>
+
 namespace Go {
   class SplineSurface;
 }
@@ -42,7 +44,7 @@ public:
   virtual ~ASMu2D() {}
 
   //! \brief Returns the spline surface representing this patch.
-  LR::LRSplineSurface* getSurface() { return lrspline; }
+  LR::LRSplineSurface* getSurface() { return lrspline.get(); }
 
 
   // Methods for model generation and refinement
@@ -377,9 +379,8 @@ public:
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 
 protected:
-  LR::LRSplineSurface* lrspline; //!< Pointer to the LR-spline surface object
+  std::shared_ptr<LR::LRSplineSurface> lrspline; //!< Pointer to the LR-spline surface object
 
-private:
   Go::SplineSurface* tensorspline; //!< Pointer to original tensor spline object
   // The tensor spline object is kept for backward compatability with the REFINE
   // and RAISEORDER key-words, although we take note that there is a possibility

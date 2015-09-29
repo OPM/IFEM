@@ -15,6 +15,11 @@
 #define _ASM_MX_BASE_H
 
 #include "MatVec.h"
+#include <memory>
+
+namespace Go {
+  class SplineSurface;
+}
 
 
 /*!
@@ -67,6 +72,14 @@ public:
   };
 
   static MixedType Type; //!< Type of mixed formulation used
+
+  typedef std::vector<std::shared_ptr<Go::SplineSurface>> SurfaceVec; //!< Convenience type
+
+  //! \brief Establish mixed bases
+  //! \param[in] surf The base basis to use.
+  //! \param[in] type The type of bases to establish.
+  //! \return Vector with bases.
+  static SurfaceVec establishBases(Go::SplineSurface* surf, MixedType type);
 
 private:
   std::vector<int> MADOF; //!< Matrix of accumulated DOFs for this patch
