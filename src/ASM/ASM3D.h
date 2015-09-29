@@ -60,7 +60,7 @@ public:
   //! or changed in other ways that affect the FE geometry and/or topology.
   //! The other properties of the patch (boundary conditions, constraints,
   //! loads, etc.) are however not copied.
-  ASMbase* clone(unsigned char* nf = NULL) const;
+  ASMbase* clone(const CharVec& nf = CharVec()) const;
 
   //! \brief Checks that the patch is modelled in a right-hand-side system.
   virtual bool checkRightHandSystem() = 0;

@@ -68,14 +68,14 @@ ASMbase* ASM2D::create (ASM::Discretization discretization,
 
 #define TRY_CLONE1(classType,n) {					\
     const classType* p = dynamic_cast<const classType*>(this);		\
-    if (p) return !n.empty() ? new classType(*p,n[0]) : new classType(*p);	\
+    if (p) return n.empty() ? new classType(*p) : new classType(*p,n[0]);\
   }
 #define TRY_CLONE2(classType,n) {					\
     const classType* p = dynamic_cast<const classType*>(this);		\
-    if (p) return !n.empty() ? new classType(*p,n) : new classType(*p);	\
+    if (p) return n.empty() ? new classType(*p) : new classType(*p,n);	\
   }
 
-ASMbase* ASM2D::clone (const std::vector<unsigned char>& nf) const
+ASMbase* ASM2D::clone (const CharVec& nf) const
 {
   TRY_CLONE2(ASMs2DmxLag,nf)
   TRY_CLONE2(ASMs2Dmx,nf)
@@ -85,6 +85,7 @@ ASMbase* ASM2D::clone (const std::vector<unsigned char>& nf) const
   TRY_CLONE1(ASMs2DIB,nf)
   TRY_CLONE1(ASMs2D,nf)
 #ifdef HAS_LRSPLINE
+  TRY_CLONE2(ASMu2Dmx,nf)
   TRY_CLONE1(ASMu2DIB,nf)
   TRY_CLONE1(ASMu2D,nf)
 #endif

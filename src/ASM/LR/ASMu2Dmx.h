@@ -31,12 +31,10 @@
 class ASMu2Dmx : public ASMu2D, private ASMmxBase
 {
 public:
-  //! \brief Default constructor.
-  ASMu2Dmx(unsigned char n_s = 2,
-           const std::vector<unsigned char>& n_f = {2,1});
+  //! \brief The constructor initializes the dimension of each basis.
+  ASMu2Dmx(unsigned char n_s, const CharVec& n_f);
   //! \brief Copy constructor.
-  ASMu2Dmx(const ASMu2Dmx& patch,
-           const std::vector<unsigned char>& n_f = {0, 0});
+  ASMu2Dmx(const ASMu2Dmx& patch, const CharVec& n_f = CharVec(2,0));
   //! \brief Empty destructor.
   virtual ~ASMu2Dmx() { lrspline = nullptr; geo = nullptr; }
 
@@ -77,7 +75,7 @@ public:
   //! \param[in] open If \e true, exclude the end points of the edge
   //! \param[in] dof Which DOFs to constrain at each node on the edge
   //! \param[in] code Inhomogeneous dirichlet condition code
-  //! \param[in] basis Basis to constrain
+  //! \param[in] basis Which basis to constrain the edge for
   virtual void constrainEdge(int dir, bool open, int dof, int code, char basis);
 
   //! \brief Initializes the patch level MADOF array for mixed problems.

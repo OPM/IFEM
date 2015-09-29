@@ -267,7 +267,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
       return false;
 
     // Compute parameter values of the Gauss points over this element
-    RealArray gpar[2], redpar[2];
+    std::array<RealArray,2> gpar;
     for (int d = 0; d < 2; d++)
       this->getGaussPointParameters(gpar[d],d,nGauss,geoEl,xg);
 
