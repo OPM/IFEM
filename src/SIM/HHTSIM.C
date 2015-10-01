@@ -211,11 +211,11 @@ bool HHTSIM::predictStep (TimeStep& param)
 bool HHTSIM::correctStep (TimeStep& param, bool converged)
 {
 #ifdef SP_DEBUG
-  std::cout <<"\nHHTSIM::correctStep(converged="
-            << std::boolalpha << converged <<")";
+  std::cout <<"\nHHTSIM::correctStep(iter="<< param.iter
+            <<",converged="<< std::boolalpha << converged <<")";
 #endif
 
-  if (param.iter == 1)
+  if (param.iter == 1 && !converged)
   {
     // V_n = v_n^1 = v_{n-1} - V_n
     // A_n = a_n^1 = a_{n-1} - A_n
@@ -246,7 +246,8 @@ bool HHTSIM::correctStep (TimeStep& param, bool converged)
   }
 
 #if SP_DEBUG > 1
-  std::cout <<"\nCorrected displacement:"<< solution[iD]
+  std::cout <<"\nDisplacement increment:"<< incDis
+            <<"Corrected displacement:"<< solution[iD]
             <<"Corrected velocity:"<< solution[iV]
             <<"Corrected acceleration:"<< solution[iA];
   if (converged && Fext)
