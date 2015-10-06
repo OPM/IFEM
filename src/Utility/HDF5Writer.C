@@ -13,7 +13,7 @@
 
 #include "HDF5Writer.h"
 #include "GlbForceVec.h"
-#include "SIMoutput.h"
+#include "SIMbase.h"
 #include "ASMbase.h"
 #include "IntegrandBase.h"
 #include "TimeStep.h"
@@ -136,6 +136,7 @@ void HDF5Writer::openFile(int level)
 #endif
 }
 
+
 void HDF5Writer::closeFile(int level, bool force)
 {
   if (m_keepOpen && !force)
@@ -149,6 +150,7 @@ void HDF5Writer::closeFile(int level, bool force)
   m_file = 0;
 #endif
 }
+
 
 void HDF5Writer::readArray(int group, const std::string& name,
                            int& len, double*& data)
@@ -187,6 +189,7 @@ void HDF5Writer::readArray(int group, const std::string& name,
 #endif
 }
 
+
 void HDF5Writer::readString(const std::string& name, std::string& out, bool close)
 {
 #ifdef HAS_HDF5
@@ -206,6 +209,7 @@ void HDF5Writer::readString(const std::string& name, std::string& out, bool clos
   std::cout << "HDF5Writer: compiled without HDF5 support, no data read" << std::endl;
 #endif
 }
+
 
 void HDF5Writer::writeArray(int group, const std::string& name,
                             int len, const void* data, int type)
@@ -241,11 +245,13 @@ void HDF5Writer::writeArray(int group, const std::string& name,
 #endif
 }
 
+
 bool HDF5Writer::readVector(int level, const DataEntry& entry)
 {
 //  readArray(level,entry.first,entry.second.size,entry.second.data);
   return true;
 }
+
 
 void HDF5Writer::writeVector(int level, const DataEntry& entry)
 {
@@ -323,6 +329,7 @@ bool HDF5Writer::readSIM (int level, const DataEntry& entry)
 #endif
   return ok;
 }
+
 
 bool HDF5Writer::readVector(int level, const std::string& name,
                             int patch, std::vector<double>& vec)
@@ -605,6 +612,7 @@ void HDF5Writer::writeKnotspan (int level, const DataEntry& entry,
 #endif
 }
 
+
 void HDF5Writer::writeBasis (SIMbase* sim, const std::string& name,
                              int basis, int level, bool redundant)
 {
@@ -632,7 +640,7 @@ void HDF5Writer::writeBasis (SIMbase* sim, const std::string& name,
     std::stringstream str, str2;
     int loc = sim->getLocalPatchIndex(i);
     if (loc > 0)
-      static_cast<SIMoutput*>(sim)->dumpBasis(str,basis,loc);
+      sim->getPatch(loc)->write(str,basis);
     str2 << i;
     if (!redundant || rank == 0)
       writeArray(group2, str2.str(), str.str().size(), str.str().c_str(),
@@ -647,6 +655,7 @@ void HDF5Writer::writeBasis (SIMbase* sim, const std::string& name,
 #endif
 }
 
+
 bool HDF5Writer::checkGroupExistence(int parent, const char* path)
 {
   bool result = false;
@@ -658,6 +667,7 @@ bool HDF5Writer::checkGroupExistence(int parent, const char* path)
 #endif
   return result;
 }
+
 
 // TODO: implement for variable time steps.
 // (named time series to allow different timelevels for different fields)
@@ -729,6 +739,7 @@ bool HDF5Writer::hasGeometries(int level, const std::string& basisName)
     str << '/' << basisName;
   return checkGroupExistence(m_file,str.str().c_str());
 }
+
 
 bool HDF5Writer::readDouble(int level, const std::string& group,
                             const std::string& name, double& data)
