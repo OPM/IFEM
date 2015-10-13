@@ -243,7 +243,7 @@ public:
   //! \brief Computes the principal values of the symmetric tensor.
   bool principal(Vec3& p) const;
   //! \brief Computes the principal values and associated principal directions.
-  bool principal(Vec3& p, std::vector<Vec3>& pdir) const;
+  bool principal(Vec3& p, Vec3* pdir, int ndir = 0) const;
 
   // Global operators
 

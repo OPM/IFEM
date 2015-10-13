@@ -1045,10 +1045,9 @@ bool SymmTensor::principal (Vec3& p) const
 }
 
 
-bool SymmTensor::principal (Vec3& p, std::vector<Vec3>& pdir) const
+bool SymmTensor::principal (Vec3& p, Vec3* pdir, int ndir) const
 {
   p = 0.0;
-  pdir.clear();
 #ifdef USE_CBLAS
   // Set up the upper triangle of the symmetric tensor
   double A[9], W[3];
@@ -1081,13 +1080,14 @@ bool SymmTensor::principal (Vec3& p, std::vector<Vec3>& pdir) const
     return false;
   }
 
+  t_ind i, j, N = n;
+
   // DSYEV returns the eigenvalues in ascending order, but we
   // want them in descending order (largest principal value first)
   std::swap(W[0],W[n-1]);
-  for (t_ind i = 0; i < n; i++)
+  for (i = 0; i < n; i++)
     std::swap(A[i],A[n*n-n+i]);
 
-  t_ind N = n;
   if (n == 2 && v.size() == 4)
   {
     N = 3; // Expand A from 2x2 to 3x3
@@ -1122,12 +1122,16 @@ bool SymmTensor::principal (Vec3& p, std::vector<Vec3>& pdir) const
     }
   }
 
-  pdir.resize(N);
-  for (t_ind j = 0; j < N; j++)
-  {
+  for (j = 0; j < N; j++)
     p[j] = W[j];
-    for (t_ind i = 0; i < 3; i++)
-      pdir[j][i] = i < N ? A[i+j*N] : 0.0;
+
+  if (pdir)
+  {
+    if (ndir < 1 || ndir > N) ndir = N;
+    bool skipMid = ndir == 2 && N == 3;
+    for (j = 0; j < ndir; j++)
+      for (i = 0; i < 3; i++)
+        pdir[j][i] = i < N ? A[i+(j == 1 && skipMid ? 2 : j)*N] : 0.0;
   }
 
   return true;
