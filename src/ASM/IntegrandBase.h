@@ -69,12 +69,13 @@ public:
   //! \brief Initializes the integrand for a new integration loop.
   //! \details This method is invoked once before starting the numerical
   //! integration over the entire spatial domain.
-  virtual void initIntegration(const TimeDomain&, const Vector&, bool=false) {}
+  virtual void initIntegration(const TimeDomain&, const Vector&, bool = false){}
   //! \brief Initializes the integrand for a new result point loop.
   //! \details This method is invoked once before starting the evaluation of
   //! the secondary solution at all result sampling points, after the converged
-  //! primary solution has been found.
-  virtual void initResultPoints(double) {}
+  //! primary solution has been found. It is reimplemented for integrands
+  //! containing internal result buffers that need to be (re-)initialized.
+  virtual void initResultPoints(double, bool = false) {}
   //! \brief Initializes the global node number mapping for current patch.
   virtual void initNodeMap(const std::vector<int>&) {}
   //! \brief Returns the system quantity to be integrated by \a *this.
@@ -181,6 +182,9 @@ public:
   //! \param[in] X Cartesian coordinates of current point
   virtual bool evalSol(Vector& s,
 		       const VecFunc& asol, const Vec3& X) const;
+
+  //! \brief Returns an evaluated principal direction vector field for plotting.
+  virtual bool getPrincipalDir(Matrix&, size_t, size_t) const { return false; }
 
 
   // Various service methods
