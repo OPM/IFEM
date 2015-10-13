@@ -431,7 +431,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
     fe.iGP = firstp; // Global integration point counter
     firstp += nGP;
 
-    for (int i = 0; i < nGP; i++)
+    for (int i = 0; i < nGP; i++, ++fe.iGP)
     {
       // Local element coordinates and parameter values
       // of current integration point
@@ -467,6 +467,10 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
       if (!integrand.evalBouMx(*A,fe,time,X,normal))
 	return false;
     }
+
+    // Finalize the element quantities
+    if (!integrand.finalizeElementBou(*A,fe,time))
+      return false;
 
     // Assembly of global system integral
     if (!glInt.assemble(A,fe.iel))

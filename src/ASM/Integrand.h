@@ -247,6 +247,23 @@ public:
     return this->finalizeElement(elmInt);
   }
 
+  //! \brief Finalizes the element quantities after boundary integration.
+  //! \param elmInt The local integral object to receive the contributions
+  //! \param[in] fe Nodal and integration point data for current element
+  //! \param[in] time Parameters for nonlinear and time-dependent simulations
+  //!
+  //! \details This method is invoked once for each element, after the numerical
+  //! integration loop over boundary points is finished and before the resulting
+  //! element quantities are assembled into their system level equivalents.
+  //! It can also be used to implement multiple integration point loops within
+  //! the same element, provided the necessary integration point values are
+  //! stored internally in the object during the first integration loop.
+  virtual bool finalizeElementBou(LocalIntegral& elmInt, const FiniteElement& fe,
+                                  const TimeDomain& time)
+  {
+    return true;
+  }
+
   //! \brief Evaluates the integrand at a boundary point.
   //! \param elmInt The local integral object to receive the contributions
   //! \param[in] fe Finite element data of current integration point

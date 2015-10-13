@@ -2376,6 +2376,10 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
               ok = false;
           }
 
+        // Finalize the element quantities
+        if (ok && !integrand.finalizeElementBou(*A,fe,time))
+          ok = false;
+
         // Assembly of global system integral
         if (ok && !glInt.assemble(A->ref(),fe.iel))
           ok = false;
@@ -2551,6 +2555,10 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 	  fe.detJxW *= 0.5*dS*wg[i];
           ok = integrand.evalBou(*A,fe,time,X,tang);
 	}
+
+        // Finalize the element quantities
+        if (ok && !integrand.finalizeElementBou(*A,fe,time))
+          ok = false;
 
 	// Assembly of global system integral
 	if (ok && !glInt.assemble(A->ref(),fe.iel))

@@ -758,6 +758,10 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 	ok = integrand.evalBouMx(*A,fe,time,X,normal);
       }
 
+      // Finalize the element quantities
+      if (ok && !integrand.finalizeElementBou(*A,fe,time))
+        ok = false;
+
       // Assembly of global system integral
       if (ok && !glInt.assemble(A->ref(),fe.iel))
 	return false;

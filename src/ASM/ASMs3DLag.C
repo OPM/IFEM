@@ -678,6 +678,10 @@ bool ASMs3DLag::integrate (Integrand& integrand, int lIndex,
               ok = false;
 	  }
 
+        // Finalize the element quantities
+        if (ok && !integrand.finalizeElementBou(*A,fe,time))
+          ok = false;
+
         // Assembly of global system integral
         if (ok && !glInt.assemble(A->ref(),fe.iel))
           ok = false;
@@ -809,6 +813,10 @@ bool ASMs3DLag::integrateEdge (Integrand& integrand, int lEdge,
           if (!integrand.evalBou(*A,fe,time,X,tangent))
 	    ok = false;
 	}
+
+        // Finalize the element quantities
+        if (ok && !integrand.finalizeElementBou(*A,fe,time))
+          ok = false;
 
 	// Assembly of global system integral
 	if (ok && !glInt.assemble(A->ref(),fe.iel))

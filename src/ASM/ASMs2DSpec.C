@@ -264,6 +264,10 @@ bool ASMs2DSpec::integrate (Integrand& integrand, int lIndex,
 	  return false;
       }
 
+      // Finalize the element quantities
+      if (!integrand.finalizeElementBou(*A,fe,time))
+        return false;
+
       // Assembly of global system integral
       if (!glInt.assemble(A->ref(),fe.iel))
 	return false;
