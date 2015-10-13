@@ -121,8 +121,31 @@ public:
   //! \param[in] idBlock Starting value of result block numbering
   //! \param[in] psolComps Optional number of primary solution components
   bool writeGlvS(const Vector& psol, int iStep, int& nBlock, double time = 0.0,
-                 char psolOnly = 0, const char* pvecName = NULL,
+                 bool psolOnly = false, const char* pvecName = NULL,
                  int idBlock = 10, int psolComps = 0);
+
+  //! \brief Writes primary solution for a given load/time step to the VTF-file.
+  //! \param[in] psol Primary solution vector
+  //! \param[in] iStep Load/time step identifier
+  //! \param nBlock Running result block counter
+  //! \param[in] time Load/time step parameter
+  //! \param[in] pvecName Optional name of the primary vector field solution
+  //! \param[in] idBlock Starting value of result block numbering
+  //! \param[in] psolComps Optional number of primary solution components
+  //! \param[in] scalarOnly If \e true, write vector as scalar components only
+  int writeGlvS1(const Vector& psol, int iStep, int& nBlock, double time = 0.0,
+                 const char* pvecName = NULL, int idBlock = 10,
+                 int psolComps = 0, bool scalarOnly = false);
+
+  //! \brief Writes secondary solution for a load/time step to the VTF-file.
+  //! \param[in] psol Primary solution vector
+  //! \param[in] iStep Load/time step identifier
+  //! \param nBlock Running result block counter
+  //! \param[in] time Load/time step parameter
+  //! \param[in] idBlock Starting value of result block numbering
+  //! \param[in] psolComps Optional number of primary solution components
+  bool writeGlvS2(const Vector& psol, int iStep, int& nBlock, double time = 0.0,
+                  int idBlock = 20, int psolComps = 0);
 
   //! \brief Evaluates the secondary solution for a given load/time step.
   //! \param[in] psol Primary solution vector
@@ -206,14 +229,9 @@ public:
   //! \brief Initializes the geometry block counter.
   void setStartGeo(int gID) { myGeomID = gID; }
 
-  //! \brief Dumps the (possibly refined) geometry in g2-format.
+  //! \brief Dumps the (possibly refined) spline geometry in g2-format.
   //! \param os Output stream to write the geometry data to
   bool dumpGeometry(std::ostream& os) const;
-  //! \brief Dumps the (possibly refined) spline basis in g2-format.
-  //! \param os Output stream to write the spline data to
-  //! \param[in] basis Which basis to dump for mixed methods (0 = geometry)
-  //! \param[in] patch Which patch to dump for (0 = all)
-  bool dumpBasis(std::ostream& os, int basis = 0, size_t patch = 0) const;
 
   //! \brief Dumps the primary solution in ASCII format for inspection.
   //! \param[in] psol Primary solution vector
