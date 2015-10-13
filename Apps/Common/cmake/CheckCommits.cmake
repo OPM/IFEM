@@ -15,7 +15,7 @@ sanity_check("Cannot run with working tree changes. Commit, stash or drop them."
 # Setup base of tests
 set(check_base $ENV{CHECK_BASE})
 if(NOT check_base)
-  set(check_base trunk)
+  set(check_base origin/master)
 endif()
 
 # Setup end of tests
