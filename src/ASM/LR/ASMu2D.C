@@ -1100,7 +1100,7 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
     fe.iGP = firstp; // Global integration point counter
     firstp += nGP;
 
-    for (int i = 0; i < nGP; i++, ++fe.iGP)
+    for (int i = 0; i < nGP; i++, fe.iGP++)
     {
       // Local element coordinates and parameter values
       // of current integration point
@@ -1482,7 +1482,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     int iel = lrspline->getElementContaining(gpar[0][i],gpar[1][i]);
 
     // Evaluate the basis functions at current parametric point
-    FiniteElement fe(lrspline->getElement(iel)->nBasisFunctions());
+    FiniteElement fe(lrspline->getElement(iel)->nBasisFunctions(),firstIp+i);
     if (use2ndDer)
     {
       Go::BasisDerivsSf2 spline;
@@ -1500,8 +1500,7 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     if (!this->getElementCoordinates(Xnod,iel+1)) return false;
 
     // Compute the Jacobian inverse
-    if (utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu) == 0.0) // Jac = (Xnod * dNdu)^-1
-      continue; // skip singular points
+    fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
     if (use2ndDer)

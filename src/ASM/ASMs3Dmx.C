@@ -948,7 +948,7 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix Xnod, Xtmp;
   this->getNodalCoordinates(Xnod);
 
-  MxFiniteElement fe(elem_sizes);
+  MxFiniteElement fe(elem_sizes,firstIp);
   Vector          solPt;
   std::vector<Matrix> dNxdu(m_basis.size());
   Matrix          Jac;
@@ -956,7 +956,7 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
   // Evaluate the secondary solution field at each point
   size_t nPoints = splinex[0].size();
-  for (size_t i = 0; i < nPoints; i++)
+  for (size_t i = 0; i < nPoints; i++, fe.iGP++)
   {
     // Fetch indices of the non-zero basis functions at this point
     std::vector<IntVec> ip(m_basis.size());
@@ -971,7 +971,6 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     fe.u = splinex[0][i].param[0];
     fe.v = splinex[0][i].param[1];
     fe.w = splinex[0][i].param[2];
-    fe.iGP = firstIp + i;
 
     // Fetch associated control point coordinates
     utl::gather(ip[geoBasis-1], 3, Xnod, Xtmp);
@@ -982,11 +981,16 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
     // Compute Jacobian inverse of the coordinate mapping and
     // basis function derivatives w.r.t. Cartesian coordinates
-    if (utl::Jacobian(Jac,fe.grad(geoBasis),Xtmp,dNxdu[geoBasis-1]) == 0.0) // Jac = (Xtmp*dN1du)^-1
-      continue; // skip singular points
-    for (size_t b = 0; b < m_basis.size(); ++b)
-      if (b != (size_t)geoBasis-1)
-        fe.grad(b+1).multiply(dNxdu[b],Jac);
+    fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xtmp,dNxdu[geoBasis-1]);
+
+    for (size_t b = 1; b <= m_basis.size(); b++)
+      if (b != (size_t)geoBasis)
+      {
+        if (fe.detJxW == 0.0)
+          fe.grad(b).clear();
+        else
+          fe.grad(b).multiply(dNxdu[b-1],Jac);
+      }
 
     // Cartesian coordinates of current integration point
     X = Xtmp * fe.basis(geoBasis);

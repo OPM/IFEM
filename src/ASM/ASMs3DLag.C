@@ -967,8 +967,7 @@ bool ASMs3DLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 	    return false;
 
 	  // Compute the Jacobian inverse
-	  if (utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu) == 0.0) // Jac = (X*dNdu)^-1
-	    continue; // skip singular points
+	  fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
 
 	  // Now evaluate the solution field
 	  if (!integrand.evalSol(solPt,fe,Xnod*fe.N,mnpc))

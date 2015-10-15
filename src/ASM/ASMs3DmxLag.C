@@ -609,12 +609,16 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
               return false;
 
 	  // Compute the Jacobian inverse
-	  if (utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]) == 0.0) // Jac=(X*dN1du)^-1
-	    continue; // skip singular points
-	  else
-            for (size_t b = 0; b < nxx.size(); ++b)
-              if (b != (size_t)geoBasis-1)
-                fe.grad(b+1).multiply(dNxdu[b],Jac);
+          fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
+
+          for (size_t b = 1; b <= nxx.size(); b++)
+            if (b != (size_t)geoBasis)
+            {
+              if (fe.detJxW == 0.0)
+                fe.grad(b).clear();
+              else
+                fe.grad(b).multiply(dNxdu[b-1],Jac);
+            }
 
 	  // Now evaluate the solution field
 	  if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(geoBasis),MNPC[iel-1],elem_size))

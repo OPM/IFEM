@@ -2538,13 +2538,13 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   Matrix Xnod, Xtmp;
   this->getNodalCoordinates(Xnod);
 
-  FiniteElement fe(p1*p2);
+  FiniteElement fe(p1*p2,firstIp);
   Vector        solPt;
   Matrix        dNdu, Jac;
   Matrix3D      d2Ndu2, Hess;
 
   // Evaluate the secondary solution field at each point
-  for (size_t i = 0; i < nPoints; i++)
+  for (size_t i = 0; i < nPoints; i++, fe.iGP++)
   {
     // Fetch indices of the non-zero basis functions at this point
     IntVec ip;
@@ -2560,7 +2560,6 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       fe.u = spline1[i].param[0];
       fe.v = spline1[i].param[1];
     }
-    fe.iGP = firstIp + i;
 
     // Fetch associated control point coordinates
     utl::gather(ip,nsd,Xnod,Xtmp);
@@ -2572,8 +2571,7 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       SplineUtils::extractBasis(spline1[i],fe.N,dNdu);
 
     // Compute the Jacobian inverse and derivatives
-    if (utl::Jacobian(Jac,fe.dNdX,Xtmp,dNdu) == 0.0) // Jac = (Xtmp * dNdu)^-1
-      continue; // skip singular points
+    fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xtmp,dNdu);
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
     if (use2ndDer)

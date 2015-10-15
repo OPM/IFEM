@@ -1927,8 +1927,7 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     if (!this->getElementCoordinates(Xnod,iel+1)) return false;
 
     // Compute the Jacobian inverse
-    if (utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu) == 0.0) // Jac = (Xnod * dNdu)^-1
-      continue; // skip singular points
+    fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
 
     // Compute Hessian of coordinate mapping and 2nd order derivatives
     if (use2ndDer)

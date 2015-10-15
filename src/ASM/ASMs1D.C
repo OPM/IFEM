@@ -1274,7 +1274,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   const int p1 = curv->order();
 
   // Fetch nodal (control point) coordinates
-  FiniteElement fe(p1);
+  FiniteElement fe(p1,firstIp);
   this->getNodalCoordinates(fe.Xn);
 
   Vector   solPt;
@@ -1287,10 +1287,9 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   // Evaluate the secondary solution field at each point
   const RealArray& upar = *gpar;
   size_t nPoints = upar.size();
-  for (size_t i = 0; i < nPoints; i++)
+  for (size_t i = 0; i < nPoints; i++, fe.iGP++)
   {
     fe.u = upar[i];
-    fe.iGP = firstIp + i;
 
     // Fetch basis function derivatives at current integration point
     if (integrand.getIntegrandType() & Integrand::NO_DERIVATIVES)
@@ -1310,8 +1309,7 @@ bool ASMs1D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     if (!dNdu.empty())
     {
       // Compute the Jacobian inverse and derivatives
-      if (utl::Jacobian(Jac,fe.dNdX,Xtmp,dNdu) == 0.0) // Jac = (Xtmp * dNdu)^-1
-        continue; // skip singular points
+      fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xtmp,dNdu);
 
       // Compute Hessian of coordinate mapping and 2nd order derivatives
       if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)

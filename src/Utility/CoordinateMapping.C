@@ -41,9 +41,14 @@ Real utl::Jacobian (matrix<Real>& J, matrix<Real>& dNdX,
     // Compute the Jacobian determinant and inverse
     detJ = J.inverse(epsZ);
 
-    // Compute the first order derivatives of the basis function, w.r.t. X
-    if (detJ != Real(0) && computeGradient)
-      dNdX.multiply(dNdu,J); // dNdX = dNdu * J^-1
+    if (computeGradient)
+    {
+      // Compute the first order derivatives of the basis function, w.r.t. X
+      if (detJ == Real(0))
+        dNdX.clear();
+      else
+        dNdX.multiply(dNdu,J); // dNdX = dNdu * J^-1
+    }
   }
 
   return detJ;
@@ -64,7 +69,9 @@ Real utl::Jacobian (matrix<Real>& J, Vec3& t, matrix<Real>& dNdX,
   Real detJ = J.inverse(epsZ);
 
   // Compute the first order derivatives of the basis function, w.r.t. X
-  if (detJ != Real(0))
+  if (detJ == Real(0))
+    dNdX.clear();
+  else
     dNdX.multiply(dNdu,J); // dNdX = dNdu * J^-1
 
   // Return the curve dilation (dS) in the tangent direction, vt
@@ -100,10 +107,13 @@ Real utl::Jacobian (matrix<Real>& J, Vec3& n, matrix<Real>& dNdX,
 
   // Compute the Jacobian inverse
   if (J.inverse(epsZ) == Real(0))
-    return Real(0);
-
-  // Compute the first order derivatives of the basis function, w.r.t. X
-  dNdX.multiply(dNdu,J); // dNdX = dNdu * J^-1
+  {
+    dS = Real(0);
+    dNdX.clear();
+  }
+  else
+    // Compute the first order derivatives of the basis function, w.r.t. X
+    dNdX.multiply(dNdu,J); // dNdX = dNdu * J^-1
 
   return dS;
 }
@@ -118,6 +128,12 @@ bool utl::Hessian (matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
   // Compute the Hessian matrix, H = [d2Xdu2]
   if (!H.multiply(X,d2Ndu2)) // H = X * d2Ndu2
     return false;
+  else if (dNdX.empty())
+  {
+    // Probably a singular point, silently ignore
+    d2NdX2.resize(0,0,0,true);
+    return true;
+  }
   else if (Ji.cols() == 1 && Ji.rows() > 1)
   {
     // Special treatment for one-parametric elements in multi-dimension space
