@@ -12,6 +12,7 @@
 
 #include "Tensor.h"
 #include "Vec3.h"
+#include <array>
 
 #include "gtest/gtest.h"
 
@@ -128,7 +129,7 @@ TEST(TestTensor, Principal)
   ASSERT_FLOAT_EQ(p.y, 2.0);
   ASSERT_FLOAT_EQ(p.z, 1.0);
 
-  Vec3Vec dir(3);
+  std::array<Vec3,3> dir;
   T1.principal(p,dir.data());
   ASSERT_FLOAT_EQ(p.x, 3.0);
   ASSERT_FLOAT_EQ(p.y, 2.0);
@@ -171,4 +172,8 @@ TEST(TestTensor, Principal)
   ASSERT_NEAR(dir[1].x, Trans3(1,1), 1.0e-15);
   ASSERT_NEAR(dir[1].y, Trans3(2,1), 1.0e-15);
   ASSERT_NEAR(dir[1].z, Trans3(3,1), 1.0e-15);
+
+  ASSERT_FLOAT_EQ(T1.vonMises(), sqrt(3.0));
+  ASSERT_FLOAT_EQ(T2.vonMises(), sqrt(3.0));
+  ASSERT_FLOAT_EQ(T3.vonMises(), sqrt(3.0));
 }

@@ -13,6 +13,7 @@
 
 #include "Tensor.h"
 #include "Vec3.h"
+#include <array>
 #include <algorithm>
 #include <cstring>
 
@@ -49,9 +50,9 @@ std::ostream& Tensor::print (std::ostream& os) const
     return os << v[0] <<' '<< v[3] <<' '<< v[6] <<'\n'
               << v[1] <<' '<< v[4] <<' '<< v[7] <<'\n'
               << v[2] <<' '<< v[5] <<' '<< v[8] << std::endl;
+  default:
+    return os;
   }
-
-  return os;
 }
 
 
@@ -225,15 +226,20 @@ Tensor::Tensor (Real alpha, t_ind axis) : n(3)
     v[5] = sa;
     v[7] = -sa;
     break;
+
   case 2:
     v[0] = v[8] = ca;
     v[2] = -sa;
     v[6] = -sa;
     break;
+
   case 3:
     v[0] = v[4] = ca;
     v[1] = sa;
     v[3] = -sa;
+    break;
+
+  default:
     break;
   }
 }
@@ -405,22 +411,27 @@ Tensor& Tensor::postMult (const Tensor& B)
   case 1:
     v[0] *= B.v[0];
     break;
+
   case 2:
     {
       Tensor A(*this);
       for (int i = 1; i <= 2; i++)
         for (int j = 1; j <= 2; j++)
           v[this->index(i,j)] = A(i,1)*B(1,j) + A(i,2)*B(2,j);
-      break;
     }
+    break;
+
   case 3:
     {
       Tensor A(*this);
       for (int i = 1; i <= 3; i++)
         for (int j = 1; j <= 3; j++)
           v[this->index(i,j)] = A(i,1)*B(1,j) + A(i,2)*B(2,j) + A(i,3)*B(3,j);
-      break;
     }
+    break;
+
+  default:
+    break;
   }
 
   return *this;
@@ -433,23 +444,38 @@ Tensor& Tensor::preMult (const Tensor& A)
   case 1:
     v[0] *= A.v[0];
     break;
+
   case 2:
     {
       Tensor B(*this);
       for (int i = 1; i <= 2; i++)
         for (int j = 1; j <= 2; j++)
           v[this->index(i,j)] = A(i,1)*B(1,j) + A(i,2)*B(2,j);
-      break;
     }
+    break;
+
   case 3:
     {
       Tensor B(*this);
       for (int i = 1; i <= 3; i++)
         for (int j = 1; j <= 3; j++)
           v[this->index(i,j)] = A(i,1)*B(1,j) + A(i,2)*B(2,j) + A(i,3)*B(3,j);
-      break;
     }
+    break;
+
+  default:
+    break;
   }
+
+  return *this;
+}
+
+
+Tensor& Tensor::outerProd (const Vec3& a, const Vec3& b)
+{
+  for (t_ind i = 1; i <= n; i++)
+    for (t_ind j = 1; j <= n; j++)
+      v[this->index(i,j)] = a[i-1]*b[j-1];
 
   return *this;
 }
@@ -493,10 +519,15 @@ Tensor& Tensor::transpose ()
   case 2:
     std::swap(v[1],v[2]);
     break;
+
   case 3:
     std::swap(v[1],v[3]);
     std::swap(v[2],v[6]);
     std::swap(v[5],v[7]);
+    break;
+
+  default:
+    break;
   }
 
   return *this;
@@ -509,10 +540,15 @@ Tensor& Tensor::symmetrize ()
   case 2:
     v[1] = v[2] = 0.5*(v[1]+v[2]);
     break;
+
   case 3:
     v[1] = v[3] = 0.5*(v[1]+v[3]);
     v[2] = v[6] = 0.5*(v[2]+v[6]);
     v[5] = v[7] = 0.5*(v[5]+v[7]);
+    break;
+
+  default:
+    break;
   }
 
   return *this;
@@ -627,8 +663,9 @@ Vec3 operator* (const Tensor& T, const Vec3& v)
     return Vec3(T(1,1)*v.x + T(1,2)*v.y + T(1,3)*v.z,
                 T(2,1)*v.x + T(2,2)*v.y + T(2,3)*v.z,
                 T(3,1)*v.x + T(3,2)*v.y + T(3,3)*v.z);
+  default:
+    return v;
   }
-  return v;
 }
 
 
@@ -648,8 +685,9 @@ Vec3 operator* (const Vec3& v, const Tensor& T)
     return Vec3(T(1,1)*v.x + T(2,1)*v.y + T(3,1)*v.z,
                 T(1,2)*v.x + T(2,2)*v.y + T(3,2)*v.z,
                 T(1,3)*v.x + T(2,3)*v.y + T(3,3)*v.z);
+  default:
+    return v;
   }
-  return v;
 }
 
 
@@ -665,15 +703,20 @@ Tensor operator* (const Tensor& A, const Tensor& B)
   case 1:
     C.v[0] = A.v[0]*B.v[0];
     break;
+
   case 2:
     for (int i = 1; i <= 2; i++)
       for (int j = 1; j <= 2; j++)
         C(i,j) = A(i,1)*B(1,j) + A(i,2)*B(2,j);
     break;
+
   case 3:
     for (int i = 1; i <= 3; i++)
       for (int j = 1; j <= 3; j++)
         C(i,j) = A(i,1)*B(1,j) + A(i,2)*B(2,j) + A(i,3)*B(3,j);
+    break;
+
+  default:
     break;
   }
 
@@ -694,9 +737,9 @@ std::ostream& SymmTensor::print (std::ostream& os) const
     return os << v[0] <<'\n'
               << v[3] <<' '<< v[1] <<'\n'
               << v[5] <<' '<< v[4] <<' '<< v[2] << std::endl;
+  default:
+    return os;
   }
-
-  return os;
 }
 
 
@@ -812,6 +855,10 @@ SymmTensor& SymmTensor::transform (const Tensor& T)
       v[4] = S23;
       v[5] = S31*T(1,1) + S32*T(1,2);
     }
+    break;
+
+  default:
+    break;
   }
 
   return *this;
@@ -918,6 +965,40 @@ SymmTensor& SymmTensor::rightCauchyGreen (const Tensor& F)
     v[3] = F(1,1)*F(1,2) + F(2,1)*F(2,2) + F(3,1)*F(3,2);
     v[4] = F(1,2)*F(1,3) + F(2,2)*F(2,3) + F(3,2)*F(3,3);
     v[5] = F(1,1)*F(1,3) + F(2,1)*F(2,3) + F(3,1)*F(3,3);
+    break;
+
+  default:
+    break;
+  }
+
+  return *this;
+}
+
+
+SymmTensor& SymmTensor::outerProd (const Vec3& u)
+{
+  switch (n) {
+  case 1:
+    v[0] = u.x*u.x;
+    break;
+
+  case 2:
+    v[0] = u.x*u.x;
+    v[1] = u.y*u.y;
+    v[2] = u.x*u.y;
+    break;
+
+  case 3:
+    v[0] = u.x*u.x;
+    v[1] = u.y*u.y;
+    v[2] = u.z*u.z;
+    v[3] = u.x*u.y;
+    v[4] = u.y*u.z;
+    v[5] = u.x*u.z;
+    break;
+
+  default:
+    break;
   }
 
   return *this;
@@ -995,7 +1076,7 @@ bool SymmTensor::principal (Vec3& p) const
 
     p.z = Real(0);
     return true;
-  } 
+  }
 
   // Compute mean and deviatoric (upper triangular part) tensors
   const Real tol(1.0e-12);
@@ -1142,6 +1223,19 @@ bool SymmTensor::principal (Vec3& p, Vec3* pdir, int ndir) const
 }
 
 
+bool SymmTensor::principal (Vec3& p, SymmTensor* M) const
+{
+  std::array<Vec3,3> pdir;
+  if (!this->principal(p,pdir.data()))
+    return false;
+
+  for (t_ind a = 0; a < n; a++)
+    M[a].outerProd(pdir[a]);
+
+  return true;
+}
+
+
 /*!
   \brief Adding a scaled unit tensor to a symmetric tensor.
 */
@@ -1193,33 +1287,39 @@ SymmTensor operator* (Real a, const SymmTensor& T)
 }
 
 
-SymmTensor4::SymmTensor4 (const std::vector<Real>& x, t_ind nsd)
-  : n(nsd), m(0), v(x)
+/*!
+  \brief Multiplication between two symmetric tensors.
+*/
+
+SymmTensor operator* (const SymmTensor& A, const SymmTensor& B)
 {
-  if (n == 3)
-    m = 6;
-  else if (n == 2)
-    m = 3;
-  else
-    std::cerr <<" *** Invalid fourth-order tensor, dim="<< n << std::endl;
+  SymmTensor C(std::min(A.n,B.n));
 
-  if (v.size() < (size_t)m*m)
-    std::cerr <<" *** Invalid fourth-order tensor,"
-              <<" matrix represention too small, size="<< v.size() << std::endl;
+  switch (C.n) {
+  case 1:
+    C.v[0] = A.v[0]*B.v[0];
+    break;
 
-  ptr = (Real*)&v.front();
-}
+  case 2:
+    C.v[0] = A.v[0]*B.v[0] + A.v[2]*B.v[2];
+    C.v[1] = A.v[2]*B.v[2] + A.v[1]*B.v[1];
+    C.v[2] = A.v[0]*B.v[2] + A.v[2]*B.v[1];
+    break;
 
+  case 3:
+    C.v[0] = A.v[0]*B.v[0] + A.v[3]*B.v[3] + A.v[5]*B.v[5];
+    C.v[1] = A.v[3]*B.v[3] + A.v[1]*B.v[1] + A.v[4]*B.v[4];
+    C.v[2] = A.v[5]*B.v[5] + A.v[4]*B.v[4] + A.v[2]*B.v[2];
+    C.v[3] = A.v[0]*B.v[3] + A.v[3]*B.v[1] + A.v[5]*B.v[4];
+    C.v[4] = A.v[3]*B.v[5] + A.v[1]*B.v[4] + A.v[4]*B.v[2];
+    C.v[5] = A.v[0]*B.v[5] + A.v[3]*B.v[4] + A.v[5]*B.v[2];
+    break;
 
-const Real& SymmTensor4::operator() (t_ind i, t_ind j, t_ind k, t_ind l) const
-{
-  return v[this->index(i,j)*m+this->index(k,l)];
-}
+  default:
+    break;
+  }
 
-
-Real& SymmTensor4::operator() (t_ind i, t_ind j, t_ind k, t_ind l)
-{
-  return ptr[this->index(i,j)*m+this->index(k,l)];
+  return C;
 }
 
 

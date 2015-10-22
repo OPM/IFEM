@@ -152,15 +152,6 @@ namespace utl
              const std::vector<Real>& in, std::vector<Real>& out,
              size_t offset_in = 0, int shift_idx = 0);
 
-  //! \brief Returns the number of monomials in Pascal's triangle.
-  //! \param[in] p Polynomial order (>= 0)
-  //! \param[in] nsd Number of spatial dimensions (2 or 3)
-  size_t Pascal(int p, unsigned short int nsd);
-  //! \brief Evaluates the monomials of Pascal's triangle in 2D for order \a p.
-  void Pascal(int p, Real x, Real y, std::vector<Real>& phi);
-  //! \brief Evaluates the monomials of Pascal's triangle in 3D for order \a p.
-  void Pascal(int p, Real x, Real y, Real z, std::vector<Real>& phi);
-
   //! \brief Searches for a real value in an ordered array of reals.
   //! \param[in] a The array of real values
   //! \param[in] v The value to search for

@@ -106,6 +106,9 @@ public:
   //! \brief Pre-multiplication with another Tensor.
   Tensor& preMult(const Tensor& A);
 
+  //! \brief Dyadic (outer) product between two vectors.
+  Tensor& outerProd(const Vec3& a, const Vec3& b);
+
   //! \brief Returns the inner-product of \a *this and the given tensor.
   Real innerProd(const Tensor& T) const;
 
@@ -236,6 +239,9 @@ public:
   //! \brief Constructs the right Cauchy-Green tensor from a deformation tensor.
   SymmTensor& rightCauchyGreen(const Tensor& F);
 
+  //! \brief Dyadic (outer) product between two identical vectors.
+  SymmTensor& outerProd(const Vec3& u);
+
   //! \brief Returns the inner-product (L2-norm) of the symmetric tensor.
   Real L2norm(bool doSqrt = true) const;
   //! \brief Returns the von Mises value of the symmetric tensor.
@@ -244,6 +250,8 @@ public:
   bool principal(Vec3& p) const;
   //! \brief Computes the principal values and associated principal directions.
   bool principal(Vec3& p, Vec3* pdir, int ndir = 0) const;
+  //! \brief Computes the principal values and associated principal directions.
+  bool principal(Vec3& p, SymmTensor* M) const;
 
   // Global operators
 
@@ -254,6 +262,8 @@ public:
 
   //! \brief Multiplication between a scalar and a symmetric tensor.
   friend SymmTensor operator*(Real a, const SymmTensor& T);
+  //! \brief Multiplication between two symmetric tensors.
+  friend SymmTensor operator*(const SymmTensor& A, const SymmTensor& B);
 };
 
 
@@ -269,51 +279,11 @@ inline SymmTensor operator-(const SymmTensor& A, const SymmTensor& B)
   SymmTensor C(A); C -= B; return C;
 }
 
-//! \brief Inner-product of two symmetric tensors.
-inline Real operator*(const SymmTensor& A, const SymmTensor& B)
+//! \brief Inner-product (:-operator) of two symmetric tensors.
+inline Real ddot(const SymmTensor& A, const SymmTensor& B)
 {
   return A.innerProd(B);
 }
-
-
-/*!
-  \brief Simple class for representing a symmetric fourth-order tensor.
-*/
-
-class SymmTensor4
-{
-  typedef unsigned short int t_ind; //!< Tensor index type
-
-  t_ind                    n; //!< Number of spatial dimensions for the tensor
-  t_ind                    m; //!< Dimension of the matrix representation
-  const std::vector<Real>& v; //!< The actual tensor component values
-  Real*                  ptr; //!< Non-const pointer to tensor component values
-
-  //! \brief Returns a 0-based array index for the given row and column indices.
-  //! \details Symmetric second-order tensors in 3D are assumed stored with the
-  //! following order in a one-dimensional array: s11, s22, s33, s12, s23, s13.
-  inline t_ind index(t_ind i, t_ind j) const
-  {
-    if (i == j)
-      return i-1; // diagonal term
-    else if (n == 2)
-      return 2;   // off-diagonal term (2D)
-
-    if (i == j+1 || i+2 == j) std::swap(i,j);
-    return i+2; // upper triangular term (3D)
-  }
-
-public:
-  //! \brief The constructor creates a tensor from a vector of components.
-  //! \details The provided vector is assumed to contain the components of the
-  //! matrix representation of the tensor, stored in a one-dimensional array.
-  SymmTensor4(const std::vector<Real>& x, t_ind nsd = 3);
-
-  //! \brief Index-1 based component reference.
-  const Real& operator()(t_ind i, t_ind j, t_ind d, t_ind l) const;
-  //! \brief Index-1 based component access.
-  Real& operator()(t_ind i, t_ind j, t_ind k, t_ind l);
-};
 
 
 /*!
