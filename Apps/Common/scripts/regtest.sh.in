@@ -19,6 +19,7 @@ readarray < $2
 test  $? -eq 0 || exit 1
 test -n "$3" && mysim="$PETSC_DIR/bin/petscmpiexec -n $3 $mysim"
 $mysim $MAPFILE 2>&1 > @CMAKE_BINARY_DIR@/templog
+appres=$?
 globres=1
 IFS=$'\n'
 for line in `cat $2`
@@ -41,7 +42,7 @@ do
   fi
 done
 
-if test $globres -eq 0
+if test $globres -eq 0 || test $appres -ne 0
 then
   cat @CMAKE_BINARY_DIR@/templog >> @CMAKE_BINARY_DIR@/failed.log
   rm -f @CMAKE_BINARY_DIR@/templog
