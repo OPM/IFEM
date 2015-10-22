@@ -14,10 +14,11 @@
 #ifndef _SIM_COUPLED_H_
 #define _SIM_COUPLED_H_
 
-#include "ISolver.h"
-
+class SIMdependency;
+class ASMbase;
 class DataExporter;
 class TimeStep;
+class VTF;
 
 
 /*!
@@ -34,7 +35,7 @@ public:
   virtual ~SIMCoupled() {}
 
   //! \brief Sets up field dependencies.
-  virtual void setupDependencies() = 0;
+  virtual void setupDependencies() {}
 
   //! \brief Performs some pre-processing tasks on the FE model.
   bool preprocess()
@@ -54,10 +55,10 @@ public:
     return S1.solveStep(tp) && S2.solveStep(tp);
   }
 
-  void postSolve(const TimeStep& tp,bool restart=false)
+  //! \brief Postprocesses the solution of current time step.
+  bool postSolve(const TimeStep& tp, bool restart = false)
   {
-    S1.postSolve(tp,restart);
-    S2.postSolve(tp,restart);
+    return S1.postSolve(tp,restart) && S2.postSolve(tp,restart);
   }
 
   //! \brief Saves the converged results to VTF-file of a given time step.
@@ -76,8 +77,11 @@ public:
     return true;
   }
 
+  //! \brief Returns the current VTF-file object.
+  VTF* getVTF() const { return S1.getVTF(); }
+
   //! \brief Initializes for time-dependent simulation.
-  bool init(const TimeStep& tp)
+  virtual bool init(const TimeStep& tp)
   {
     return S1.init(tp) && S2.init(tp);
   }
@@ -85,7 +89,7 @@ public:
   //! \brief Registers a dependency on a field from another SIM object.
   virtual void registerDependency(SIMdependency* sim, const std::string& name,
                                   short int nvc,
-                                  const SIMdependency::PatchVec& patches,
+                                  const std::vector<ASMbase*>& patches,
                                   char diffBasis = 0)
   {
     S1.registerDependency(sim, name, nvc, patches, diffBasis);
@@ -93,8 +97,8 @@ public:
   }
 
   //! \brief Registers a dependency on a field from another SIM object.
-  void registerDependency(SIMdependency* sim, const std::string& name,
-                          short int nvc = 1)
+  virtual void registerDependency(SIMdependency* sim, const std::string& name,
+                                  short int nvc = 1)
   {
     S1.registerDependency(sim, name, nvc);
     S2.registerDependency(sim, name, nvc);
@@ -114,7 +118,7 @@ public:
 
   //! \brief Defines a vector field property.
   size_t setVecProperty(int code, Property::Type ptype, VecFunc* field = NULL,
-			int pflag = -1)
+                        int pflag = -1)
   {
     return S1.setVecProperty(code, ptype, field, pflag);
   }
@@ -148,6 +152,7 @@ public:
 
     return result;
   }
+
 protected:
   T1& S1; //!< First substep
   T2& S2; //!< Second substep
