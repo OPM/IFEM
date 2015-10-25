@@ -43,12 +43,40 @@ void SIMoutput::clearProperties ()
 }
 
 
+void SIMoutput::setPointResultFile (const std::string& filename, bool dumpCoord)
+{
+  myPtFile = filename;
+  if (myPtFile.empty()) return;
+
+  // Append extension .dat if nothing yet
+  if (myPtFile.find_last_of('.') == std::string::npos)
+    myPtFile.append(".dat");
+  IFEM::cout <<"\tOutput file: "<< myPtFile << std::endl;
+
+  // Append _coord to filename if coordinate dump is requested
+  if (dumpCoord && myPtFile.find("_coord.") == std::string::npos)
+    myPtFile.insert(myPtFile.find_last_of('.'),"_coord");
+
+  // Append _p<PID> to filename unless on processor 0
+  if (nProc > 1)
+  {
+    char cPid[8];
+    sprintf(cPid,"_p%04d",myPid);
+    myPtFile.insert(myPtFile.find_last_of('.'),cPid);
+  }
+}
+
+
 bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
   if (strcasecmp(elem->Value(),"resultpoints"))
     return this->SIMbase::parseOutputTag(elem);
+
+  std::string fname;
+  if (utl::getAttribute(elem,"file",fname))
+    this->setPointResultFile(fname,elem->FirstChildElement("dump_coordinates"));
 
   const TiXmlElement* point = elem->FirstChildElement("point");
   for (int i = 1; point; i++, point = point->NextSiblingElement())
@@ -84,24 +112,27 @@ bool SIMoutput::parse (char* keyWord, std::istream& is)
   if (strncasecmp(keyWord,"RESULTPOINTS",12))
     return this->SIMbase::parse(keyWord,is);
 
-  int nres = atoi(keyWord+12);
+  char* cline = keyWord+12;
+  int nres = atoi(strtok(cline," "));
   if (nres > 0)
-    IFEM::cout <<"\nNumber of result points: "<< nres;
+  {
+    IFEM::cout <<"\nNumber of result points: "<< nres <<"\n";
+    if ((cline = strtok(NULL," ")))
+      this->setPointResultFile(cline);
+  }
 
-  char* cline = NULL;
   myPoints.resize(nres);
   for (int i = 0; i < nres && (cline = utl::readLine(is)); i++)
   {
     myPoints[i].patch = atoi(strtok(cline," "));
-    IFEM::cout <<"\n\tPoint "<< i+1 <<": P"<< myPoints[i].patch <<" xi =";
+    IFEM::cout <<"\tPoint "<< i+1 <<": P"<< myPoints[i].patch <<" xi =";
     for (int j = 0; j < 3 && (cline = strtok(NULL," ")); j++)
     {
       myPoints[i].par[j] = atof(cline);
       IFEM::cout <<' '<< myPoints[i].par[j];
     }
-  }
-  if (nres > 0)
     IFEM::cout << std::endl;
+  }
 
   return true;
 }
@@ -138,6 +169,27 @@ void SIMoutput::preprocessResultPoints ()
       p++;
     }
   }
+
+  size_t icoord = myPtFile.find("_coord.");
+  if (icoord == std::string::npos) return;
+
+  // Dump of result point coordinates to file is requested.
+  // Formatted output, use scientific notation with fixed field width.
+  std::streamsize precision = 3;
+  std::streamsize flWidth = 8 + precision;
+  std::ofstream os(myPtFile.c_str(),std::ios::out);
+  os.flags(std::ios::scientific | std::ios::right);
+  os.precision(precision);
+
+  for (size_t i = 0; i < myPoints.size(); i++)
+  {
+    os << 0.0 <<" "; // dummy time
+    for (unsigned char k = 0; k < myPoints[i].npar; k++)
+      os << std::setw(flWidth) << myPoints[i].X[k];
+    os << std::endl;
+  }
+
+  myPtFile.erase(icoord,6); // Erase "_coord" from the file name
 }
 
 
@@ -1229,44 +1281,13 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
 }
 
 
-bool SIMoutput::savePoints (const std::string& fileName,
-                            const Vector& psol, double time, int step,
-                            std::streamsize precision) const
+bool SIMoutput::savePoints (const Vector& psol, double time, int step) const
 {
-  if (step < 1 || myPoints.empty() || fileName.empty())
+  if (step < 1 || myPoints.empty() || myPtFile.empty())
     return true;
 
-  // Append extension .dat if nothing yet
-  std::string datafile(fileName);
-  size_t idot = datafile.find_last_of('.');
-  if (idot == std::string::npos)
-  {
-    idot = datafile.size();
-    datafile.append(".dat");
-  }
+  std::ofstream fs(myPtFile.c_str(), step == 1 ? std::ios::out : std::ios::app);
+  utl::LogStream logs(fs);
 
-  if (step == 1)
-  {
-    // Dump result point coordinates to file
-    std::string coordfile(datafile);
-    coordfile.insert(idot,"_coord");
-
-    // Formatted output, use scientific notation with fixed field width
-    std::streamsize flWidth = 8 + precision;
-    std::ofstream f(coordfile.c_str(),std::ios::out);
-    f.flags(std::ios::scientific | std::ios::right);
-    f.precision(precision);
-
-    for (size_t i = 0; i < myPoints.size(); i++)
-    {
-      f << time <<" ";
-      for (unsigned char k = 0; k < myPoints[i].npar; k++)
-        f << std::setw(flWidth) << myPoints[i].X[k];
-      f << std::endl;
-    }
-  }
-
-  std::ofstream f(datafile.c_str(), step == 1 ? std::ios::out : std::ios::app);
-  utl::LogStream log(f);
-  return this->dumpResults(psol,time,log,false,precision);
+  return this->dumpResults(psol,time,logs);
 }

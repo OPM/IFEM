@@ -124,14 +124,12 @@ public:
                            std::streamsize precision = 3,
                            bool formatted = true) const;
 
+  //! \brief Returns whether a points result file has been defined or not.
+  bool hasPointResultFile() const;
   //! \brief Saves point solution to file for a given time step.
-  //! \param[in] fileName Name of output file for point results
   //! \param[in] time Load/time step parameter
   //! \param[in] step Load/time step counter
-  //! \param[in] precision Number of digits after the decimal point
-  virtual bool savePoints(const std::string& fileName,
-                          double time, int step,
-                          std::streamsize precision = 3) const;
+  bool savePoints(double time, int step) const;
 
   //! \brief Returns a const reference to the solution vectors.
   const Vectors& getSolutions() const { return solution; }

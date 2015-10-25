@@ -161,11 +161,15 @@ void MultiStepSIM::dumpResults (double time, utl::LogStream& os,
 }
 
 
-bool MultiStepSIM::savePoints (const std::string& fileName,
-                               double time, int step,
-                               std::streamsize precision) const
+bool MultiStepSIM::hasPointResultFile () const
 {
-  return model.savePoints(fileName,solution.front(),time,step,precision);
+  return model.hasPointResultFile();
+}
+
+
+bool MultiStepSIM::savePoints (double time, int step) const
+{
+  return model.savePoints(solution.front(),time,step);
 }
 
 

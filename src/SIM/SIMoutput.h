@@ -266,25 +266,26 @@ public:
   virtual void dumpMoreResults(double time, utl::LogStream& os,
                                std::streamsize precision = 3) const {}
 
+  //! \brief Saves point results to output file for a given time step.
+  //! \param[in] psol Primary solution vector
+  //! \param[in] time Load/time step parameter
+  //! \param[in] step Load/time step counter
+  bool savePoints(const Vector& psol, double time, int step) const;
+
+  //! \brief Sets the file name for result point output
+  //! \param[in] filename The file name prefix (optionally with extension)
+  //! \param[in] dumpCoord If \e true, write point coordinates to separate file
+  void setPointResultFile(const std::string& filename, bool dumpCoord = false);
+
+  //! \brief Returns whether a points result file has been defined or not.
+  bool hasPointResultFile() const { return !myPtFile.empty(); }
+
 protected:
   //! \brief Preprocesses the result sampling points.
   virtual void preprocessResultPoints();
 
-public:
-  //! \brief Returns the number of registered result points.
-  size_t getNoResultPoints() const { return myPoints.size(); }
-
-  //! \brief Saves point solution to file for a given time step.
-  //! \param[in] fileName Name of output file for point results
-  //! \param[in] psol Primary solution vector
-  //! \param[in] time Load/time step parameter
-  //! \param[in] step Load/time step counter
-  //! \param[in] precision Number of digits after the decimal point
-  bool savePoints(const std::string& fileName,
-                  const Vector& psol, double time, int step,
-                  std::streamsize precision = 3) const;
-
 private:
+  std::string myPtFile; //!< File name for result point output
   ResPointVec myPoints; //!< User-defined result sampling points
   int         myGeomID; //!< VTF geometry block ID for the first patch
   VTF*        myVtf;    //!< VTF-file for result visualization
