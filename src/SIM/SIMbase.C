@@ -491,15 +491,21 @@ bool SIMbase::parse (const TiXmlElement* elem)
       myModel.resize(1,this->createDefaultGeometry(elem));
     }
 
+  if (!strcasecmp(elem->Value(),"linearsolver")) {
+    if (!mySolParams)
+      mySolParams = new LinSolParams(nsd);
+    result &= mySolParams->read(elem);
+  }
+
   const TiXmlElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
     if (!strcasecmp(elem->Value(),"geometry"))
       result &= this->parseGeometryTag(child);
     else if (!strcasecmp(elem->Value(),"boundaryconditions"))
       result &= this->parseBCTag(child);
-    else if (!strcasecmp(elem->Value(),"linearsolver"))
+    else if (!strcasecmp(elem->Value(),"linearsolver")) {
       result &= this->parseLinSolTag(child);
-    else if (!strcasecmp(elem->Value(),"eigensolver"))
+    } else if (!strcasecmp(elem->Value(),"eigensolver"))
       result &= opt.parseEigSolTag(child);
     else if (!strcasecmp(elem->Value(),"postprocessing"))
       result &= this->parseOutputTag(child);
@@ -764,13 +770,9 @@ bool SIMbase::parseLinSolTag (const TiXmlElement* elem)
   if (!strcasecmp(elem->Value(),"class")) {
     if (elem->FirstChild())
       opt.setLinearSolver(elem->FirstChild()->Value());
-    return true;
   }
 
-  if (!mySolParams)
-    mySolParams = new LinSolParams(nsd);
-
-  return mySolParams->read(elem);
+  return true;
 }
 
 

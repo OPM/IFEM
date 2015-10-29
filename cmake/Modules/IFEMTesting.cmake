@@ -7,7 +7,7 @@ macro(IFEM_add_test_app path workdir name)
 endmacro()
 
 macro(IFEM_add_unittests IFEM_PATH)
-  IFEM_add_test_app("${IFEM_PATH}/src/Utility/Test/*.C;${IFEM_PATH}/src/ASM/Test/*.C"
+  IFEM_add_test_app("${IFEM_PATH}/src/Utility/Test/*.C;${IFEM_PATH}/src/ASM/Test/*.C;${IFEM_PATH}/src/LinAlg/Test/*.C"
                     ${IFEM_PATH}
                     IFEM
                     ${IFEM_LIBRARIES} ${IFEM_DEPLIBS})

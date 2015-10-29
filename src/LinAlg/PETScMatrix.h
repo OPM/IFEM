@@ -245,20 +245,20 @@ protected:
   //! \brief Solve a linear system
   bool solve(const Vec& b, Vec& x, bool newLHS, bool knoll);
 
-  Mat                 A;           //!< The actual PETSc matrix
-  KSP                 ksp;         //!< Linear equation solver
-  MatNullSpace        nsp;         //!< Null-space of linear operator
-  const ProcessAdm&   adm;         //!< Process administrator
-  const LinSolParams& solParams;   //!< Linear solver parameters
-  bool                setParams;   //!< If linear solver parameters are set
-  IS*                 elmIS;       //!< Element index sets
-  PetscInt            ISsize;      //!< Number of index sets/elements
-  PetscIntMat         locSubdDofs; //!< Degrees of freedom for unique subdomains
-  PetscIntMat         subdDofs;    //!< Degrees of freedom for subdomains
-  PetscRealVec        coords;      //!< Coordinates of local nodes (x0,y0,z0,x1,y1,...)
-  ISMat               dirIndexSet; //!< Direction ordering
-  int                 nLinSolves;  //!< Number of linear solves
-  LinAlg::LinearSystemType linsysType;  //!< Linear system type
+  Mat                 A;               //!< The actual PETSc matrix
+  KSP                 ksp;             //!< Linear equation solver
+  MatNullSpace*       nsp;             //!< Null-space of linear operator
+  const ProcessAdm&   adm;             //!< Process administrator
+  const LinSolParams& solParams;       //!< Linear solver parameters
+  bool                setParams;       //!< If linear solver parameters are set
+  IS*                 elmIS;           //!< Element index sets
+  PetscInt            ISsize;          //!< Number of index sets/elements
+  PetscIntMat         locSubdDofs;     //!< Degrees of freedom for unique subdomains
+  PetscIntMat         subdDofs;        //!< Degrees of freedom for subdomains
+  PetscRealVec        coords;          //!< Coordinates of local nodes (x0,y0,z0,x1,y1,...)
+  ISMat               dirIndexSet;     //!< Direction ordering
+  int                 nLinSolves;      //!< Number of linear solves
+  LinAlg::LinearSystemType linsysType; //!< Linear system type
 
 #else // dummy implementation when PETSc is not included
   virtual SystemMatrix* copy() const { return 0; }

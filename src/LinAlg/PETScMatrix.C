@@ -161,7 +161,7 @@ Real PETScVector::Linfnorm() const
 
 PETScMatrix::PETScMatrix (const ProcessAdm& padm, const LinSolParams& spar,
                           LinAlg::LinearSystemType ltype) :
-  adm(padm), solParams(spar), linsysType(ltype)
+ nsp(nullptr), adm(padm), solParams(spar), linsysType(ltype)
 {
   // Create matrix object, by default the matrix type is AIJ
   MatCreate(*adm.getCommunicator(),&A);
@@ -170,12 +170,13 @@ PETScMatrix::PETScMatrix (const ProcessAdm& padm, const LinSolParams& spar,
   KSPCreate(*adm.getCommunicator(),&ksp);
 
   // Create null space if any
-  if (solParams.getNullSpace() == CONSTANT) {
-    MatNullSpaceCreate(*adm.getCommunicator(),PETSC_TRUE,0,0,&nsp);
+  if (solParams.getBlock(0).nullspace == CONSTANT) {
+    nsp = new MatNullSpace;
+    MatNullSpaceCreate(*adm.getCommunicator(),PETSC_TRUE,0,0,nsp);
 #if PETSC_VERSION_MINOR < 6
-    KSPSetNullSpace(ksp,nsp);
+    KSPSetNullSpace(ksp,*nsp);
 #else
-    MatSetNullSpace(A,nsp);
+    MatSetNullSpace(A,*nsp);
 #endif
   }
 
@@ -188,7 +189,8 @@ PETScMatrix::PETScMatrix (const ProcessAdm& padm, const LinSolParams& spar,
 }
 
 
-PETScMatrix::PETScMatrix (const PETScMatrix& B) : adm(B.adm), solParams(B.solParams)
+PETScMatrix::PETScMatrix (const PETScMatrix& B) :
+  nsp(nullptr), adm(B.adm), solParams(B.solParams)
 {
   MatDuplicate(B.A,MAT_COPY_VALUES,&A);
 
@@ -196,12 +198,13 @@ PETScMatrix::PETScMatrix (const PETScMatrix& B) : adm(B.adm), solParams(B.solPar
   KSPCreate(*adm.getCommunicator(),&ksp);
 
   // Create null space, if any
-  if (solParams.getNullSpace() == CONSTANT) {
-    MatNullSpaceCreate(*adm.getCommunicator(),PETSC_TRUE,0,0,&nsp);
+  if (solParams.getBlock(0).nullspace == CONSTANT) {
+    nsp = new MatNullSpace;
+    MatNullSpaceCreate(*adm.getCommunicator(),PETSC_TRUE,0,0,nsp);
 #if PETSC_VERSION_MINOR < 6
-    KSPSetNullSpace(ksp,nsp);
+    KSPSetNullSpace(ksp,*nsp);
 #else
-    MatSetNullSpace(A,nsp);
+    MatSetNullSpace(A,*nsp);
 #endif
   }
   LinAlgInit::increfs();
@@ -215,8 +218,10 @@ PETScMatrix::PETScMatrix (const PETScMatrix& B) : adm(B.adm), solParams(B.solPar
 PETScMatrix::~PETScMatrix ()
 {
   // Deallocation of null space
-  if (solParams.getNullSpace() == CONSTANT)
-    MatNullSpaceDestroy(&nsp);
+  if (nsp)
+    MatNullSpaceDestroy(nsp);
+  delete nsp;
+  nsp = nullptr;
 
   // Deallocation of linear solver object.
   KSPDestroy(&ksp);
@@ -307,7 +312,7 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
       !strncasecmp(solParams.getPreconditioner(),"ml",2))
     sampch->getLocalNodeCoordinates(coords);
 
-  else if (solParams.getNullSpace(1) == RIGID_BODY) {
+  else if (solParams.getBlock(0).nullspace == RIGID_BODY) {
     int nsd = sampch->getLocalNodeCoordinates(coords);
 #ifdef PARALLEL_PETSC
     std::cerr << "WARNING: Rigid body null space not implemented in parallel, ignoring" << std::endl;
@@ -319,22 +324,23 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
     VecSetFromOptions(coordVec);
     for (size_t i=0;i<coords.size();++i)
       VecSetValue(coordVec, i, coords[i], INSERT_VALUES);
-    MatNullSpaceCreateRigidBody(coordVec, &nsp);
+    nsp = new MatNullSpace;
+    MatNullSpaceCreateRigidBody(coordVec, nsp);
 #if PETSC_VERSION_MINOR < 6
-    KSPSetNullSpace(ksp,nsp);
+    KSPSetNullSpace(ksp,*nsp);
 #else
-    MatSetNullSpace(A,nsp);
+    MatSetNullSpace(A,*nsp);
 #endif
 #endif
   }
 
-  if (!solParams.dirOrder.empty()) {
+  if (!solParams.getBlock(0).dirSmoother.empty()) {
     dirIndexSet.resize(1);
-    for (size_t j = 0;j < solParams.dirOrder[0].size();j++) {
+    for (size_t j = 0;j < solParams.getBlock(0).dirSmoother.size();j++) {
       IS permIndex;
-      if (solParams.dirOrder[0][j] != 123) {
+      if (solParams.getBlock(0).dirSmoother[j].order != 123) {
 	PetscIntVec perm;
-	sampch->getDirOrdering(perm,solParams.dirOrder[0][j]);
+	sampch->getDirOrdering(perm,solParams.getBlock(0).dirSmoother[j].order);
 	ISCreateGeneral(*adm.getCommunicator(),perm.size(),&(perm[0]),PETSC_COPY_VALUES,&permIndex);
 	ISSetPermutation(permIndex);
       }
@@ -346,10 +352,10 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
     }
   }
 
-  int nx = solParams.getLocalPartitioning(0);
-  int ny = solParams.getLocalPartitioning(1);
-  int nz = solParams.getLocalPartitioning(2);
-  int overlap = solParams.getOverlap();
+  int nx = solParams.getBlock(0).subdomains[0];
+  int ny = solParams.getBlock(0).subdomains[1];
+  int nz = solParams.getBlock(0).subdomains[2];
+  int overlap = solParams.getBlock(0).overlap;
 
   if (nx+ny+nz > 0) {
     sampch->getLocalSubdomains(locSubdDofs,nx,ny,nz);
@@ -534,8 +540,8 @@ bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
 bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS, bool knoll)
 {
   // Reset linear solver
-  if (nLinSolves && solParams.nResetSolver)
-    if (nLinSolves%solParams.nResetSolver == 0) {
+  if (nLinSolves && solParams.getResetSolver())
+    if (nLinSolves%solParams.getResetSolver() == 0) {
       KSPDestroy(&ksp);
       KSPCreate(*adm.getCommunicator(),&ksp);
       setParams = true;
@@ -564,10 +570,10 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS, bool knoll)
     return false;
   }
 
-  if (solParams.msgLev > 1) {
+  if (solParams.getMessageLevel() > 1) {
     PetscInt its;
     KSPGetIterationNumber(ksp,&its);
-    PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getMethod(),its);
+    PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getMethod().c_str(),its);
   }
   nLinSolves++;
 

@@ -21,440 +21,204 @@
 #include <iterator>
 
 
-void LinSolParams::setDefault ()
+bool LinSolParams::read (std::istream& is, int nparam)
 {
-#ifdef HAS_PETSC
-  nResetSolver = 0;
-
-  // Use GMRES with ILU preconditioner as default
-  method      = KSPGMRES;
-  prec        = PCILU;
-  subprec.resize(1,PCILU);
-  hypretype.resize(1,"boomeramg");
-  package.resize(1,MATSOLVERPETSC);
-  levels.resize(1,0);
-  mglevels.resize(1,1);
-  presmoother.resize(1,PCILU);
-  noPreSmooth.resize(1,1);
-  postsmoother.resize(1,PCILU);
-  noPostSmooth.resize(1,1);
-  noFineSmooth.resize(1,1);
-  maxCoarseSize.resize(1,1000);
-  mgKsp.resize(1,"defrichardson");
-  GAMGtype.resize(1,"agg");
-  GAMGrepartition.resize(1,PETSC_FALSE);
-  GAMGuseAggGasm.resize(1,PETSC_FALSE);
-  overlap.resize(1,1);
-  nx.resize(1,0);
-  ny.resize(1,0);
-  nz.resize(1,0);
-  nullspc.resize(1,NONE);
-  nblock = 1;
-  schur = false;
-  schurPrec = SIMPLE;
-  ncomps.resize(2,1);
-  ncomps.front() = 2;
-
-  atol      = 1.0e-6;
-  rtol      = 1.0e-6;
-  dtol      = 1.0e3;
-  maxIts    = 1000;
-#endif
+  return false;
 }
 
 
-bool LinSolParams::read (std::istream& is, int nparam)
+bool LinSolParams::BlockParams::read(const TiXmlElement* elem)
 {
-  char* cline = 0;
-  for (int i = 0; i < nparam && (cline = utl::readLine(is)); i++)
+  utl::getAttribute(elem, "basis", basis);
+  utl::getAttribute(elem, "components", comps);
+
+  const char* value;
+  const TiXmlElement* child = elem->FirstChildElement();
+  for (; child; child = child->NextSiblingElement())
+    if ((value = utl::getValue(child,"pc")))
+      prec = value;
+    else if ((value = utl::getValue(child,"package")))
+      package = value;
+    else if ((value = utl::getValue(child,"ilu_fill_level")))
+      ilu_fill_level = atoi(value);
+    else if ((value = utl::getValue(child,"mglevels")))
+      mglevel = atoi(value);
+    else if ((value = utl::getValue(child,"noPreSmooth")))
+      noPreSmooth = atoi(value);
+    else if ((value = utl::getValue(child,"noPostSmooth")))
+      noPostSmooth = atoi(value);
+    else if ((value = utl::getValue(child,"noFineSmooth")))
+      noFineSmooth = atoi(value);
+    else if ((value = utl::getValue(child,"presmoother")))
+      presmoother = value;
+    else if ((value = utl::getValue(child,"postsmoother")))
+      postsmoother = value;
+    else if ((value = utl::getValue(child,"finesmoother")))
+      finesmoother = value;
+    else if ((value = utl::getValue(child,"mgksp")))
+      mgKSP = value;
+    else if (!strcasecmp(child->Value(),"dirsmoother")) {
+      size_t order;
+      std::string type;
+
+      if (!utl::getAttribute(child,"type",type))
+        return false;
+      if (!utl::getAttribute(child,"order",order))
+        return false;
+
+      dirSmoother.push_back(DirSmoother(order, type));
+    }
+    else if ((value = utl::getValue(child,"overlap")))
+      overlap = atoi(value);
+    else if ((value = utl::getValue(child,"nx")))
+      subdomains[0] = atoi(value);
+    else if ((value = utl::getValue(child,"ny")))
+      subdomains[1] = atoi(value);
+    else if ((value = utl::getValue(child,"nz")))
+      subdomains[2] = atoi(value);
+    else if (!strcasecmp(child->Value(),"gamg"))
+      gamg.read(child);
+    else if (!strcasecmp(child->Value(),"ml"))
+      ml.read(child);
+    else if (!strcasecmp(child->Value(),"hypre"))
+      hypre.read(child);
+    else if ((value = utl::getValue(child,"maxCoarseSize")))
+      maxCoarseSize = atoi(value);
 #ifdef HAS_PETSC
-    if (!strncasecmp(cline,"type",4)) {
-      char* c = strchr(cline,'=');
-      for (++c; *c == ' '; c++);
-      int j = 0;
-      while (c[j] != EOF && c[j] != '\n' && c[j] != ' ' && c[j] != '\0') j++;
-      method.assign(c,j);
-    }
-
-    else if (!strncasecmp(cline,"pc",2)) {
-      char* c = strchr(cline,'=');
-      for (++c; *c == ' '; c++);
-      int j = 0;
-      while (c[j] != EOF && c[j] != '\n' && c[j] != ' ' && c[j] != '\0') j++;
-      prec.assign(c,j);
-    }
-
-    else if (!strncasecmp(cline,"hypretype",9)) {
-      char* c = strchr(cline,'=');
-      for (++c; *c == ' '; c++);
-      int j = 0;
-      while (c[j] != EOF && c[j] != '\n' && c[j] != ' ' && c[j] != '\0') j++;
-      hypretype[0].assign(c,j);
-    }
-
-    else if (!strncasecmp(cline,"package",7)) {
-      char* c = strchr(cline,'=');
-      for (++c; *c == ' '; c++);
-      int j = 0;
-      while (c[j] != EOF && c[j] != '\n' && c[j] != ' ' && c[j] != '\0') j++;
-      package[0].assign(c,j);
-    }
-
-    else if (!strncasecmp(cline,"levels",6)) {
-      char* c = strchr(cline,'=');
-      levels[0] = atoi(++c);
-    }
-
-    else if (!strncasecmp(cline,"overlap",7)) {
-      char* c = strchr(cline,'=');
-      overlap[0] = atoi(++c);
-    }
-
-    else if (!strncasecmp(cline,"atol",4)) {
-      char* c = strchr(cline,'=');
-      atol = atof(++c);
-    }
-
-    else if (!strncasecmp(cline,"rtol",4)) {
-      char* c = strchr(cline,'=');
-      rtol = atof(++c);
-    }
-
-    else if (!strncasecmp(cline,"dtol",4)) {
-      char* c = strchr(cline,'=');
-      dtol = atof(++c);
-    }
-
-    else if (!strncasecmp(cline,"maxits",6)) {
-      char* c = strchr(cline,'=');
-      maxIts = atoi(++c);
-    }
-
-    else if (!strncasecmp(cline,"nx",2)) {
-      char* c = strchr(cline,'=');
-      nx[0] = atoi(++c);
-    }
-
-    else if (!strncasecmp(cline,"ny",2)) {
-      char* c = strchr(cline,'=');
-      ny[0] = atoi(++c);
-    }
-
-    else if (!strncasecmp(cline,"nz",2)) {
-      char* c = strchr(cline,'=');
-      nz[0] = atoi(++c);
-    }
-
-    else if (!strncasecmp(cline,"ncomponents",11)) {
-      char* c = strchr(cline,'=');
-      std::istringstream this_line(c);
-      std::istream_iterator<int> begin(this_line), end;
-      ncomps.assign(begin, end);
-      nblock = ncomps.size();
-    }
-
-    else if (!strncasecmp(cline,"nullspace",6)) {
-      char* c = strchr(cline,'=');
-      if (!strncasecmp(c,"CONSTANT",8))
-	nullspc[0] = CONSTANT;
-      else if (!strncasecmp(c,"RIGID_BODY",10))
-	nullspc[0] = RIGID_BODY;
+    else if ((value = utl::getValue(child,"nullspace"))) {
+       if (!strcasecmp(value,"constant"))
+        nullspace = CONSTANT;
+      else if (!strcasecmp(value,"rigid_body"))
+        nullspace = RIGID_BODY;
       else
-	nullspc[0] = NONE;
+        nullspace = NONE;
     }
-    else {
-      std::cerr <<" *** LinSolParams::read: Unknown keyword: "
-		<< cline << std::endl;
-      return false;
-    }
-#else
-    ;
 #endif
+    else
+      return false;
 
   return true;
 }
 
 
-bool LinSolParams::read (const TiXmlElement* child)
+void LinSolParams::BlockParams::GAMGSettings::read(const TiXmlElement* elem)
 {
-#ifdef HAS_PETSC
+  const char* value;
+  const TiXmlElement* child = elem->FirstChildElement();
+  for (; child; child = child->NextSiblingElement())
+    if ((value = utl::getValue(child,"type")))
+      type = value;
+    else if ((value = utl::getValue(child,"repartition")))
+      repartition = atoi(value);
+    else if ((value = utl::getValue(child,"use_agg_smoother")))
+      useAggGasm = atoi(value);
+    else if ((value = utl::getValue(child,"proc_eq_limit")))
+      procEqLimit = atoi(value);
+    else if ((value = utl::getValue(child,"reuse_interpolation")))
+      reuseInterp = atoi(value);
+    else if ((value = utl::getValue(child,"threshold")))
+      threshold = atof(value);
+}
+
+
+void LinSolParams::BlockParams::MLSettings::read(const TiXmlElement* elem)
+{
+  const char* value;
+  const TiXmlElement* child = elem->FirstChildElement();
+  for (; child; child = child->NextSiblingElement())
+    if ((value = utl::getValue(child,"coarse_package")))
+      coarsePackage = value;
+    else if ((value = utl::getValue(child,"coarse_solver")))
+      coarseSolver = value;
+    else if ((value = utl::getValue(child,"coarsen_scheme")))
+      coarsenScheme = value;
+    else if ((value = utl::getValue(child,"symmetrize")))
+      symmetrize = atoi(value);
+    else if ((value = utl::getValue(child,"repartition")))
+      repartition = atoi(value);
+    else if ((value = utl::getValue(child,"block_scaling")))
+      blockScaling = atoi(value);
+    else if ((value = utl::getValue(child,"put_on_single_proc")))
+      putOnSingleProc = atoi(value);
+    else if ((value = utl::getValue(child,"reuse_interpolation")))
+      reuseInterp = atoi(value);
+    else if ((value = utl::getValue(child,"reusable")))
+      reusable = atoi(value);
+    else if ((value = utl::getValue(child,"keep_agg_info")))
+      keepAggInfo = atoi(value);
+    else if ((value = utl::getValue(child,"threshold")))
+      threshold = atof(value);
+    else if ((value = utl::getValue(child,"damping_factor")))
+      dampingFactor = atof(value);
+    else if ((value = utl::getValue(child,"repartition_ratio")))
+      repartitionRatio = atof(value);
+    else if ((value = utl::getValue(child,"aux")))
+      aux = atoi(value);
+    else if ((value = utl::getValue(child,"aux_threshold")))
+      auxThreshold = atof(value);
+}
+
+
+void LinSolParams::BlockParams::HypreSettings::read(const TiXmlElement* elem)
+{
+  const char* value;
+  const TiXmlElement* child = elem->FirstChildElement();
+  for (; child; child = child->NextSiblingElement())
+    if ((value = utl::getValue(child,"type")))
+      type = value;
+    else if ((value = utl::getValue(child,"no_agg_coarse")))
+      noAggCoarse = atoi(value);
+    else if ((value = utl::getValue(child,"no_path_agg_coarse")))
+      noPathAggCoarse = atof(value);
+    else if ((value = utl::getValue(child,"truncation")))
+      truncation = atof(value);
+    else if ((value = utl::getValue(child,"threshold")))
+      threshold = atof(value);
+    else if ((value = utl::getValue(child,"coarsen_scheme")))
+      coarsenScheme = value;
+}
+
+
+bool LinSolParams::read (const TiXmlElement* elem)
+{
   const char* value = 0;
-  if ((value = utl::getValue(child,"type")))
-    method = value;
-  else if ((value = utl::getValue(child,"noStepBeforeReset")))
-    nResetSolver = atoi(value);
-  else if ((value = utl::getValue(child,"pc")))
-    prec = value;
-  else if ((value = utl::getValue(child,"schurpc"))) {
-    if (!strncasecmp(value,"SIMPLE",6))
-      schurPrec = SIMPLE;
-    else if (!strncasecmp(value,"MSIMPLER",8))
-      schurPrec = MSIMPLER;
-    else if (!strncasecmp(value,"PCD",3))
-      schurPrec = PCD;
-  }
-  else if ((value = utl::getValue(child,"subpc"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<std::string> begin(this_line), end;
-    subprec.assign(begin,end);
-  }
-  else if ((value = utl::getValue(child,"hypretype"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<std::string> begin(this_line), end;
-    hypretype.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"package"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<std::string> begin(this_line), end;
-    package.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"levels"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<int> begin(this_line), end;
-    levels.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"mglevels"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<int> begin(this_line), end;
-    mglevels.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"noPreSmooth"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscInt> begin(this_line), end;
-    noPreSmooth.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"noPostSmooth"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscInt> begin(this_line), end;
-    noPostSmooth.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"noFineSmooth"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscInt> begin(this_line), end;
-    noFineSmooth.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"presmoother"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<std::string> begin(this_line), end;
-    presmoother.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"postsmoother"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<std::string> begin(this_line), end;
-    postsmoother.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"finesmoother"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<std::string> begin(this_line), end;
-    finesmoother.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"mgksp"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<std::string> begin(this_line), end;
-    mgKsp.assign(begin, end);
-  }
-  else if (!strcasecmp(child->Value(),"dirsmoother")) {
-    size_t block, order;
-    std::string type;
 
-    if (!utl::getAttribute(child,"block",block))
-      return false;
-    if (!utl::getAttribute(child,"type",type))
-      return false;
-    if (!utl::getAttribute(child,"order",order))
-      return false;
-
-    if (block < 1)
-      return false;
-
-    if (dirsmoother.empty() || (dirsmoother.size() < block))
-      dirsmoother.resize(std::max(subprec.size(),block));
-    dirsmoother[block-1].push_back(type);
-
-    if (dirOrder.empty() || (dirOrder.size() < block))
-      dirOrder.resize(std::max(subprec.size(),block));
-    dirOrder[block-1].push_back(order);
-  }
-  else if ((value = utl::getValue(child,"overlap"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<int> begin(this_line), end;
-    overlap.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"nx"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<int> begin(this_line), end;
-    nx.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"ny"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<int> begin(this_line), end;
-    ny.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"nz"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<int> begin(this_line), end;
-    nz.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"atol")))
-    atol = atof(value);
-  else if ((value = utl::getValue(child,"rtol")))
-    rtol = atof(value);
-  else if ((value = utl::getValue(child,"dtol")))
-    dtol = atof(value);
-  else if ((value = utl::getValue(child,"maxits")))
-    maxIts = atoi(value);
-  else if ((value = utl::getValue(child,"maxCoarseSize"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<int> begin(this_line), end;
-    maxCoarseSize.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"GAMGtype"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<std::string> begin(this_line), end;
-    GAMGtype.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"GAMGrepartition"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscInt> begin(this_line), end;
-    GAMGrepartition.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"GAMGuseAggGasm"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscInt> begin(this_line), end;
-    GAMGuseAggGasm.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"GAMGprocEqLimit"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscInt> begin(this_line), end;
-    GAMGprocEqLimit.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"GAMGreuseInterpolation"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscInt> begin(this_line), end;
-    GAMGreuseInterp.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"MLCoarsePackage"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<std::string> begin(this_line), end;
-    MLCoarsePackage.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"MLCoarseSolver"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<std::string> begin(this_line), end;
-    MLCoarseSolver.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"MLCoarsenScheme"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<std::string> begin(this_line), end;
-    MLCoarsenScheme.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"MLSymmetrize"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscInt> begin(this_line), end;
-    MLSymmetrize.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"MLRepartition"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscInt> begin(this_line), end;
-    MLRepartition.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"MLBlockScaling"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscInt> begin(this_line), end;
-    MLBlockScaling.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"MLPutOnSingleProc"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscInt> begin(this_line), end;
-    MLPutOnSingleProc.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"MLReuseInterpolation"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscInt> begin(this_line), end;
-    MLReuseInterp.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"MLReuseable"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscInt> begin(this_line), end;
-    MLReusable.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"MLKeepAggInfo"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscInt> begin(this_line), end;
-    MLKeepAggInfo.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"MLThreshold"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscReal> begin(this_line), end;
-    MLThreshold.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"MLDampingFactor"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscReal> begin(this_line), end;
-    MLDampingFactor.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"MLRepartitionRatio"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscReal> begin(this_line), end;
-    MLRepartitionRatio.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"MLAux"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscInt> begin(this_line), end;
-    MLAux.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"HypreNoAggCoarse"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscInt> begin(this_line), end;
-    HypreNoAggCoarse.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"HypreNoPathAggCoarse"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscInt> begin(this_line), end;
-    HypreNoPathAggCoarse.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"HypreTruncation"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscReal> begin(this_line), end;
-    HypreTruncation.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"HypreThreshold"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<PetscReal> begin(this_line), end;
-    HypreThreshold.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"HypreCoarsenScheme"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<std::string> begin(this_line), end;
-    HypreCoarsenScheme.assign(begin, end);
-  }
-  else if ((value = utl::getValue(child,"ncomponents"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<int> begin(this_line), end;
-    ncomps.assign(begin, end);
-    nblock = ncomps.size();
-  }
-  else if ((value = utl::getValue(child,"nullspace"))) {
-    std::istringstream this_line(value);
-    std::istream_iterator<std::string> begin(this_line), end;
-    std::istream_iterator<std::string> it;
-    nullspc.clear();
-    for (it = begin;it != end;it++) {
-      if (!strcasecmp(it->c_str(),"constant"))
-	nullspc.push_back(CONSTANT);
-      else if (!strcasecmp(value,"rigid_body"))
-	nullspc.push_back(RIGID_BODY);
-      else
-        nullspc.push_back(NONE);
+  const TiXmlElement* child = elem->FirstChildElement();
+  for (; child; child = child->NextSiblingElement())
+    if ((value = utl::getValue(child,"type")))
+      method = value;
+    else if ((value = utl::getValue(child,"noStepBeforeReset")))
+      nResetSolver = atoi(value);
+    else if ((value = utl::getValue(child,"pc")))
+      prec = value;
+#ifdef HAS_PETSC
+    else if ((value = utl::getValue(child,"schurpc"))) {
+      if (!strncasecmp(value,"SIMPLE",6))
+        schurPrec = SIMPLE;
+      else if (!strncasecmp(value,"MSIMPLER",8))
+        schurPrec = MSIMPLER;
+      else if (!strncasecmp(value,"PCD",3))
+        schurPrec = PCD;
     }
-  }
-  else
-  {
-    std::cerr <<" *** LinSolParams::read: Unknown keyword: "
-	      << child->Value() << std::endl;
-    return false;
-  }
 #endif
+    else if (!strcasecmp(child->Value(),"block")) {
+      blocks.resize(blocks.size()+1);
+      blocks.back().read(child);
+    }
+    else if ((value = utl::getValue(child,"atol")))
+      atol = atof(value);
+    else if ((value = utl::getValue(child,"rtol")))
+      rtol = atof(value);
+    else if ((value = utl::getValue(child,"dtol")))
+      dtol = atof(value);
+    else if ((value = utl::getValue(child,"maxits")))
+      maxIts = atoi(value);
+
+  if (blocks.size() == 0) {
+    blocks.resize(1);
+    blocks.back().read(elem);
+  }
+
   return true;
 }
 
@@ -467,25 +231,6 @@ bool LinSolParams::read (const char* filename)
 
 
 #ifdef HAS_PETSC
-
-const char* LinSolParams::getPreconditioner (int i) const
-{
-  const char* precon = i < 0 ? prec.c_str() : subprec[i].c_str();
-  return strncasecmp(precon,"asmlu",5) == 0 ? "asm" : precon;
-}
-
-
-int LinSolParams::getLocalPartitioning(size_t dir, size_t i) const
-{
-  switch (dir) {
-  case 0: return nx[i];
-  case 1: return ny[i];
-  case 2: return nz[i];
-  default: return 0;
-  }
-}
-
-
 void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
 			      PetscIntMat& subdDofs, PetscRealVec& coords,
 			      ISMat& dirIndexSet) const
@@ -525,7 +270,7 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
   }
 
   if (!strncasecmp(prec.c_str(),"asm",3) || !strncasecmp(prec.c_str(),"gasm",4))
-    setupAdditiveSchwarz(pc, overlap[0], !strncasecmp(prec.c_str(),"asmlu",5),
+    setupAdditiveSchwarz(pc, blocks[0].overlap, !strncasecmp(prec.c_str(),"asmlu",5),
                          locSubdDofs, subdDofs, false);
   else if (!strncasecmp(prec.c_str(),"ml",2) || !strncasecmp(prec.c_str(),"gamg",4)) {
     if (!strncasecmp(prec.c_str(),"ml",2))
@@ -537,7 +282,7 @@ void LinSolParams::setParams (KSP& ksp, PetscIntMat& locSubdDofs,
     PCSetUp(pc);
 
     // Settings for coarse solver
-    if (!MLCoarseSolver.empty())
+    if (!blocks[0].ml.coarseSolver.empty())
       setupCoarseSolver(pc, "", 0);
 
     setupSmoothers(pc, 0, dirIndexSet, locSubdDofs, subdDofs);
@@ -561,9 +306,9 @@ bool LinSolParams::addDirSmoother(PC pc, Mat P, int block,
 {
   PCSetType(pc,"composite");
   PCCompositeSetType(pc,PC_COMPOSITE_MULTIPLICATIVE);
-  for (size_t k = 0;k < dirsmoother[block].size();k++)
+  for (size_t k = 0;k < blocks[block].dirSmoother.size();k++)
     PCCompositeAddPC(pc,"shell");
-  for (size_t k = 0;k < dirsmoother[block].size();k++) {
+  for (size_t k = 0;k < blocks[block].dirSmoother.size();k++) {
     PC dirpc;
     PCCompositeGetPC(pc,k,&dirpc);
     PCPerm *pcperm;
@@ -572,7 +317,7 @@ bool LinSolParams::addDirSmoother(PC pc, Mat P, int block,
     PCShellSetContext(dirpc,pcperm);
     PCShellSetDestroy(dirpc,PCPermDestroy);
     PCShellSetName(dirpc,"dir");
-    PCPermSetUp(dirpc,&dirIndexSet[block][k],P,dirsmoother[block][k].c_str());
+    PCPermSetUp(dirpc,&dirIndexSet[block][k],P,blocks[block].dirSmoother[k].type.c_str());
   }
 
   return true;
@@ -602,111 +347,112 @@ static std::string ToString(T data)
 void LinSolParams::setMLOptions(const std::string& prefix, int block) const
 {
   PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_maxNLevels").c_str(),
-                       ToString(mglevels[block]).c_str());
+                       ToString(blocks[block].mglevel).c_str());
   PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_maxCoarseSize").c_str(),
-                       ToString(maxCoarseSize[block]).c_str());
-  if (!MLCoarsenScheme.empty())
+                       ToString(blocks[block].maxCoarseSize).c_str());
+  if (!blocks[block].ml.coarsenScheme.empty())
     PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_CoarsenScheme").c_str(),
-                         MLCoarsenScheme[block].c_str());
-  if (!MLThreshold.empty())
+                         blocks[block].ml.coarsenScheme.c_str());
+  if (blocks[block].ml.threshold > -1.0)
     PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_Threshold").c_str(),
-                         ToString(MLThreshold[block]).c_str());
-  if (!MLDampingFactor.empty())
+                         ToString(blocks[block].ml.threshold).c_str());
+  if (blocks[block].ml.dampingFactor > -1.0)
     PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_DampingFactor").c_str(),
-                         ToString(MLDampingFactor[block]).c_str());
-  if (!MLRepartitionRatio.empty())
+                         ToString(blocks[block].ml.dampingFactor).c_str());
+  if (blocks[block].ml.repartitionRatio > -1.0)
     PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_repartitionMaxMinRatio").c_str(),
-                         ToString(MLRepartitionRatio[block]).c_str());
-  if (!MLSymmetrize.empty())
+                         ToString(blocks[block].ml.repartitionRatio).c_str());
+  if (blocks[block].ml.symmetrize > -1)
     PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_Symmetrize").c_str(),
-                         ToString(MLSymmetrize[block]).c_str());
-  if (!MLRepartition.empty())
+                         ToString(blocks[block].ml.symmetrize).c_str());
+  if (blocks[block].ml.repartition > -1)
     PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_repartition").c_str(),
-                         ToString(MLRepartition[block]).c_str());
-  if (!MLBlockScaling.empty())
+                         ToString(blocks[block].ml.repartition).c_str());
+  if (blocks[block].ml.blockScaling > -1)
     PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_BlockScaling").c_str(),
-                         ToString(MLBlockScaling[block]).c_str());
-  if (!MLPutOnSingleProc.empty())
+                         ToString(blocks[block].ml.blockScaling).c_str());
+  if (blocks[block].ml.putOnSingleProc > -1)
     PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_repartitionPutOnSingleProc").c_str(),
-                         ToString(MLPutOnSingleProc[block]).c_str());
-  if (!MLReuseInterp.empty())
+                         ToString(blocks[block].ml.putOnSingleProc).c_str());
+  if (blocks[block].ml.reuseInterp > -1)
     PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_reuse_interpolation").c_str(),
-                         ToString(MLReuseInterp[block]).c_str());
-  if (!MLKeepAggInfo.empty())
+                         ToString(blocks[block].ml.reuseInterp).c_str());
+  if (blocks[block].ml.keepAggInfo> -1)
     PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_KeepAggInfo").c_str(),
-                         ToString(MLKeepAggInfo[block]).c_str());
-  if (!MLReusable.empty())
+                         ToString(blocks[block].ml.keepAggInfo).c_str());
+  if (blocks[block].ml.reusable > -1)
     PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_Reusable").c_str(),
-                         ToString(MLReusable[block]).c_str());
-  if (!MLAux.empty()) {
+                         ToString(blocks[block].ml.reusable).c_str());
+  if (blocks[block].ml.aux > -1) {
     PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_Aux").c_str(),
-                         ToString(MLAux[block]).c_str());
-    if (!MLThreshold.empty())
+                         ToString(blocks[block].ml.aux).c_str());
+    if (blocks[block].ml.auxThreshold > -1)
       PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_AuxThreshold").c_str(),
-                           ToString(MLThreshold[block]).c_str());
+                           ToString(blocks[block].ml.auxThreshold).c_str());
   }
 }
 
 
-void LinSolParams::setGAMGOptions(const std::string& prefix, int block) const
+template<class T>
+static void condSetup(const std::string& prefix, const std::string& option, const T& var)
 {
-  if (!maxCoarseSize.empty())
-    PetscOptionsSetValue(AddPrefix(prefix,"pc_gamg_coarse_eq_limit").c_str(),
-                         ToString(maxCoarseSize[block]).c_str());
-  if (!GAMGprocEqLimit.empty())
-    PetscOptionsSetValue(AddPrefix(prefix,"pc_gamg_process_eq_limit").c_str(),
-                         ToString(GAMGprocEqLimit[block]).c_str());
-  if (!GAMGtype.empty())
-    PetscOptionsSetValue(AddPrefix(prefix,"pc_gamg_type").c_str(),
-                         GAMGtype[block].c_str());
-  if (!GAMGrepartition.empty())
-    PetscOptionsSetValue(AddPrefix(prefix,"pc_gamg_repartition").c_str(),
-                         ToString(GAMGrepartition[block]).c_str());
-  if (!GAMGuseAggGasm.empty())
-    PetscOptionsSetValue(AddPrefix(prefix,"pc_gamg_use_agg_gasm").c_str(),
-                         ToString(GAMGuseAggGasm[block]).c_str());
-  if (!GAMGreuseInterp.empty())
-    PetscOptionsSetValue(AddPrefix(prefix,"pc_gamg_reuse_interpolation").c_str(),
-                         ToString(GAMGreuseInterp[block]).c_str());
-  if (!MLThreshold.empty())
-    PetscOptionsSetValue(AddPrefix(prefix,"pc_gamg_threshold").c_str(),
-                         ToString(MLThreshold[block]).c_str());
-  if (!mglevels.empty())
-    PetscOptionsSetValue(AddPrefix(prefix,"pc_mg_levels").c_str(),
-                         ToString(mglevels[block]).c_str());
+  if (var > -1)
+    PetscOptionsSetValue(AddPrefix(prefix,option).c_str(), ToString(var).c_str());
+};
+
+
+template<>
+void condSetup(const std::string& prefix, const std::string& option, const std::string& var)
+{
+  if (!var.empty())
+    PetscOptionsSetValue(AddPrefix(prefix,option).c_str(), var.c_str());
+};
+
+
+void LinSolParams::setGAMGOptions(const std::string& prefix, size_t iblock) const
+{
+  if (iblock >= blocks.size())
+    return;
+  const BlockParams& block = blocks[iblock];
+
+  condSetup(prefix, "pc_gamg_type", block.gamg.type);
+  condSetup(prefix, "pc_gamg_coarse_eq_limit", block.maxCoarseSize);
+  condSetup(prefix, "pc_gamg_process_eq_limit", block.gamg.procEqLimit);
+  condSetup(prefix, "pc_gamg_repartition", block.gamg.repartition);
+  condSetup(prefix, "pc_gamg_use_agg_gasm", block.gamg.useAggGasm);
+  condSetup(prefix, "pc_gamg_reuse_interpolation", block.gamg.reuseInterp);
+  condSetup(prefix, "pc_gamg_threshold", block.gamg.threshold);
+  condSetup(prefix, "pc_mg_levels", block.mglevel);
 }
 
 
-void LinSolParams::setHypreOptions(const std::string& prefix, int block) const
+void LinSolParams::setHypreOptions(const std::string& prefix, size_t iblock) const
 {
-  PetscOptionsSetValue(AddPrefix(prefix,"pc_hypre_type").c_str(),
-                       hypretype[block].c_str());
-  PetscOptionsSetValue(AddPrefix(prefix,"pc_hypre_boomeramg_max_levels").c_str(),
-                       ToString(mglevels[block]).c_str());
+  if (iblock >= blocks.size())
+    return;
+  const BlockParams& block = blocks[iblock];
+
+  condSetup(prefix,"pc_hypre_type", block.hypre.type);
+  condSetup(prefix, "pc_hypre_boomeramg_max_levels", block.mglevel);
+  // TODO: Investigate why these are hardcoded.
   PetscOptionsSetValue(AddPrefix(prefix,"pc_hypre_boomeramg_max_iter").c_str(), "1");
   PetscOptionsSetValue(AddPrefix(prefix,"pc_hypre_boomeramg_tol").c_str(), "0.0");;
-  if (!HypreThreshold.empty())
-    PetscOptionsSetValue(AddPrefix(prefix,"pc_hypre_boomeramg_strong_threshold").c_str(),
-                         ToString(HypreThreshold[block]).c_str());
-  if (!HypreCoarsenScheme.empty())
-    PetscOptionsSetValue(AddPrefix(prefix,"pc_hypre_boomeramg_coarsen_type").c_str(),
-                         ToString(HypreCoarsenScheme[block]).c_str());
-  if (!HypreNoAggCoarse.empty())
-    PetscOptionsSetValue(AddPrefix(prefix,"pc_hypre_boomeramg_agg_nl").c_str(),
-                         ToString(HypreNoAggCoarse[block]).c_str());
-  if (!HypreNoPathAggCoarse.empty())
-    PetscOptionsSetValue(AddPrefix(prefix,"pc_hypre_boomeramg_agg_num_paths").c_str(),
-                         ToString(HypreNoPathAggCoarse[block]).c_str());
-  if (!HypreTruncation.empty())
-    PetscOptionsSetValue(AddPrefix(prefix,"pc_hypre_boomeramg_truncfactor").c_str(),
-                         ToString(HypreTruncation[block]).c_str());
+  condSetup(prefix, "pc_hypre_boomeramg_strong_threshold", block.hypre.threshold);
+  condSetup(prefix, "pc_hypre_boomeramg_coarsen_type", block.hypre.coarsenScheme);
+  condSetup(prefix, "pc_hypre_boomeramg_agg_nl", block.hypre.noAggCoarse);
+  condSetup(prefix, "pc_hypre_boomeramg_agg_num_paths", block.hypre.noPathAggCoarse);
+  condSetup(prefix, "pc_hypre_boomeramg_truncfactor", block.hypre.truncation);
 }
 
 
-void LinSolParams::setupCoarseSolver(PC& pc, const std::string& prefix, int block) const
+void LinSolParams::setupCoarseSolver(PC& pc, const std::string& prefix, size_t iblock) const
 {
-  if (MLCoarseSolver[block] == "OneLevelSchwarz" ||
-      MLCoarseSolver[block] == "TwoLevelSchwarz") {
+  if (iblock >= blocks.size())
+    return;
+  const BlockParams& block = blocks[iblock];
+
+  if (block.ml.coarseSolver == "OneLevelSchwarz" ||
+      block.ml.coarseSolver == "TwoLevelSchwarz") {
     KSP cksp;
     PC  cpc;
     PCMGGetCoarseSolve(pc,&cksp);
@@ -720,7 +466,7 @@ void LinSolParams::setupCoarseSolver(PC& pc, const std::string& prefix, int bloc
     PCRedistributeGetKSP(cpc,&sksp);
     KSPSetTolerances(sksp,1.0e-2,PETSC_DEFAULT,PETSC_DEFAULT,10);
     KSPGetPC(sksp,&spc);
-    if (MLCoarseSolver[block] == "OneLevelSchwarz") {
+    if (block.ml.coarseSolver == "OneLevelSchwarz") {
       PCSetType(spc,PCGASM);
       PCSetUp(spc);
     } else {
@@ -749,22 +495,26 @@ void LinSolParams::setupCoarseSolver(PC& pc, const std::string& prefix, int bloc
     }
   }
 
-  if (!MLCoarsePackage.empty()) {
+  if (!block.ml.coarsePackage.empty()) {
     KSP cksp;
     PC  cpc;
     PCMGGetCoarseSolve(pc,&cksp);
     KSPGetPC(cksp,&cpc);
     PCSetType(cpc,PCLU);
-    PCFactorSetMatSolverPackage(cpc,MLCoarsePackage[block].c_str());
+    PCFactorSetMatSolverPackage(cpc,block.ml.coarsePackage.c_str());
     PCSetUp(cpc);
   }
 }
 
 
-void LinSolParams::setupSmoothers(PC& pc, int block, ISMat& dirIndexSet,
+void LinSolParams::setupSmoothers(PC& pc, size_t iblock, ISMat& dirIndexSet,
                                   const PetscIntMat& locSubdDofs,
                                   const PetscIntMat& subdDofs) const
 {
+  if (iblock >= blocks.size())
+    return;
+  const BlockParams& block = blocks[iblock];
+
   PetscInt n;
   PCMGGetLevels(pc,&n);
 
@@ -779,34 +529,32 @@ void LinSolParams::setupSmoothers(PC& pc, int block, ISMat& dirIndexSet,
 
     PCMGGetSmoother(pc,i,&preksp);
 
-    std::string compare = mgKsp[(size_t)block<mgKsp.size()-1?block:0];
-
     // warn that richardson might break symmetry if the KSP is CG
-    if (compare == "defrichardson" && method == KSPCG)
+    if (block.mgKSP == "defrichardson" && method == KSPCG)
       std::cerr << "WARNING: Using multigrid with Richardson on sublevels.\n"
                 << "If you get divergence with KSP_DIVERGED_INDEFINITE_PC, try\n"
                 << "adding <mgksp>chebyshev</mgksp. Add <mgksp>richardson</mgksp>\n"
                 << "to quell this warning." << std::endl;
 
-    if (compare == "richardson" || compare == "defrichardson")
+    if (block.mgKSP == "richardson" || block.mgKSP == "defrichardson")
       KSPSetType(preksp,KSPRICHARDSON);
-    else if (compare == "chebyshev")
+    else if (block.mgKSP == "chebyshev")
       KSPSetType(preksp,KSPCHEBYSHEV);
 
-    if ((i == n-1) && (!finesmoother.empty())) {
-      smoother = finesmoother[block];
-      noSmooth = noFineSmooth[block];
+    if ((i == n-1) && (!block.finesmoother.empty())) {
+      smoother = block.finesmoother;
+      noSmooth = block.noFineSmooth;
     }
     else {
-      smoother = presmoother[block];
-      noSmooth = noPreSmooth[block];
+      smoother = block.presmoother;
+      noSmooth = block.noPreSmooth;
     }
 
     KSPSetTolerances(preksp,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT,noSmooth);
     KSPGetPC(preksp,&prepc);
 
     if (smoother == "asm" || smoother == "asmlu")
-      setupAdditiveSchwarz(prepc, overlap[0], smoother == "asmlu",
+      setupAdditiveSchwarz(prepc, block.overlap, smoother == "asmlu",
                            locSubdDofs, subdDofs, true);
     else if (smoother == "compositedir" && (i==n-1)) {
       Mat mat;
@@ -818,12 +566,12 @@ void LinSolParams::setupSmoothers(PC& pc, int block, ISMat& dirIndexSet,
       PCGetOperators(prepc,&mat,&Pmat);
 #endif
 
-      addDirSmoother(prepc,Pmat,block,dirIndexSet);
+      addDirSmoother(prepc,Pmat,iblock,dirIndexSet);
     }
     else
       PCSetType(prepc,smoother.c_str());
 
-    PCFactorSetLevels(prepc,levels[block]);
+    PCFactorSetLevels(prepc,block.ilu_fill_level);
     KSPSetUp(preksp);
   }
 }

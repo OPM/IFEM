@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<linearsolver>
+  <ml>
+    <coarse_package>petsc</coarse_package>
+    <coarse_solver>lu</coarse_solver>
+    <coarsen_scheme>agg</coarsen_scheme>
+    <symmetrize>1</symmetrize>
+    <repartition>1</repartition>
+    <block_scaling>1</block_scaling>
+    <put_on_single_proc>1000</put_on_single_proc>
+    <reuse_interpolation>1</reuse_interpolation>
+    <reusable>1</reusable>
+    <keep_agg_info>1</keep_agg_info>
+    <damping_factor>0.9</damping_factor>
+    <aux>1</aux>
+    <threshold>0.1</threshold>
+    <aux_threshold>0.05</aux_threshold>
+  </ml>
+</linearsolver>

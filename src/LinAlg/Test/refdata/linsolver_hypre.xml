@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<linearsolver>
+  <hypre>
+    <type>boom</type>
+    <no_agg_coarse>1</no_agg_coarse>
+    <no_path_agg_coarse>2</no_path_agg_coarse>
+    <truncation>0.005</truncation>
+    <threshold>0.01</threshold>
+    <coarsen_scheme>agg</coarsen_scheme>
+  </hypre>
+</linearsolver>

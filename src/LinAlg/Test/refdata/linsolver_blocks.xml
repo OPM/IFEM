@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<linearsolver>
+  <type>bcgs</type>
+  <pc>fieldsplit</pc>
+  <block basis="1" components="12">
+    <pc>sor</pc>
+  </block>
+  <block basis="2" components="3">
+    <pc>ilu</pc>
+    <ilu_fill_level>1</ilu_fill_level>
+  </block>
+  <atol>1.0e-12</atol>
+  <rtol>1.0e-4</rtol>
+  <dtol>1.0e6</dtol>
+  <maxits>123</maxits>
+</linearsolver>

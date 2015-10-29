@@ -73,7 +73,7 @@ SystemMatrix* SystemMatrix::create (const ProcessAdm& padm, Type matrixType,
 #ifdef HAS_PETSC
   if (matrixType == PETSC) {
     if (spar.getNoBlocks() > 1)
-      return new PETScBlockMatrix(padm,spar.getComponents(),spar);
+      return new PETScBlockMatrix(padm,spar);
     else
       return new PETScMatrix(padm,spar,ltype);
   }

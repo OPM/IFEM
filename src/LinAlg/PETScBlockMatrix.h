@@ -36,10 +36,6 @@ public:
 #ifdef HAS_PETSC
   //! \brief Constructor.
   PETScBlockMatrix(const ProcessAdm& padm, const LinSolParams& spar);
-  //! \brief Constructor defining the blocks.
-  //! \param[in] ncomp Number of components in each block
-  //! \param[in] spar Linear solver parameters
-  PETScBlockMatrix(const ProcessAdm& padm, const IntVec& ncomp, const LinSolParams& spar);
   //! \brief Destructor
   virtual ~PETScBlockMatrix();
 #else
