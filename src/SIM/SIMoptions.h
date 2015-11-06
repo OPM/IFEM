@@ -15,11 +15,13 @@
 #define SIM_OPTIONS_H_
 
 #include "ASMenums.h"
-#include "LogStream.h"
 #include <iostream>
 #include <string>
 #include <map>
 
+namespace utl {
+  class LogStream;
+}
 class TiXmlElement;
 
 
@@ -48,6 +50,8 @@ public:
   bool parseEigSolTag(const TiXmlElement* elem);
   //! \brief Parses a subelement of the \a resultoutput XML-tag.
   bool parseOutputTag(const TiXmlElement* elem);
+  //! \brief Parses a projection method XML-tag.
+  bool parseProjectionMethod(const char* ptype);
 
   //! \brief Parses obsolete command-line arguments (backward compatibility).
   bool parseOldOptions(int argc, char** argv, int& i);
@@ -58,7 +62,7 @@ public:
   bool dumpHDF5(const char* defaultName);
 
   //! \brief Prints out the simulation options to the given stream.
-  utl::LogStream& print(utl::LogStream& os, bool extraBlankLine = false) const;
+  utl::LogStream& print(utl::LogStream& os, bool addBlankLine = false) const;
 
 public:
   ASM::Discretization discretization; //!< Spatial discretization option
@@ -87,7 +91,7 @@ public:
   std::string log_prefix; //!< Prefix for process log files
 
   //! \brief Enum defining the available projection methods.
-  enum ProjectionMethod { GLOBAL, DGL2, CGL2, SCR, VDSA, QUASI, LEASTSQ };
+  enum ProjectionMethod { NONE, GLOBAL, DGL2, CGL2, SCR, VDSA, QUASI, LEASTSQ };
   //! \brief Projection method name mapping.
   typedef std::map<ProjectionMethod,std::string> ProjectionMap;
 

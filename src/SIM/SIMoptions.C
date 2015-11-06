@@ -128,7 +128,7 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
     utl::getAttribute(elem,"nw",nViz[2]);
   }
 
-  else if (!strcasecmp(elem->Value(), "logging")) {
+  else if (!strcasecmp(elem->Value(),"logging")) {
     utl::getAttribute(elem,"output_pid",printPid);
     if (printPid != -1 && printPid != IFEM::getOptions().printPid) {
       IFEM::getOptions().printPid = printPid;
@@ -166,8 +166,7 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
   }
 
   else if (!strcasecmp(elem->Value(),"hdf5")) {
-    if (elem->FirstChild())
-    {
+    if (elem->FirstChild()) {
       hdf5 = elem->FirstChild()->Value();
       size_t pos = hdf5.find_last_of('.');
       if (pos < hdf5.size())
@@ -177,22 +176,13 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
       hdf5 = "(default)";
   }
 
-  else if (!strcasecmp(elem->Value(),"projection"))
+  else if (!strcasecmp(elem->Value(),"projection")) {
+    std::string type;
+    if (utl::getAttribute(elem,"type",type))
+      this->parseProjectionMethod(type.c_str());
     for (const TiXmlNode* ch = elem->FirstChild(); ch; ch = ch->NextSibling())
-      if (!strcasecmp(ch->Value(),"global"))
-	project[GLOBAL] = "Greville point projection";
-      else if (!strcasecmp(ch->Value(),"dgl2"))
-	project[DGL2] = "Discrete global L2-projection";
-      else if (!strcasecmp(ch->Value(),"cgl2"))
-	project[CGL2] = "Continuous global L2-projection";
-      else if (!strcasecmp(ch->Value(),"scr"))
-	project[SCR] = "Superconvergent recovery";
-      else if (!strcasecmp(ch->Value(),"vdsa"))
-	project[VDSA] = "VDSA projected";
-      else if (!strcasecmp(ch->Value(),"quasi"))
-	project[QUASI] = "Quasi-interpolated";
-      else if (!strcasecmp(ch->Value(),"lsq"))
-	project[LEASTSQ] = "Least-square projected";
+      this->parseProjectionMethod(ch->Value());
+  }
 
   return true;
 }
@@ -267,22 +257,33 @@ bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
     ncv = atoi(argv[++i]);
   else if (!strcmp(argv[i],"-shift") && i < argc-1)
     shift = atof(argv[++i]);
-  else if (!strcasecmp(argv[i],"-grvl"))
-    project[GLOBAL] = "Greville point projection";
-  else if (!strcasecmp(argv[i],"-dgl2"))
-    project[DGL2] = "Discrete global L2-projection";
-  else if (!strcasecmp(argv[i],"-cgl2"))
-    project[CGL2] = "Continuous global L2-projection";
-  else if (!strcasecmp(argv[i],"-scr"))
-    project[SCR]  = "Superconvergent recovery";
-  else if (!strcasecmp(argv[i],"-vdsa"))
-    project[VDSA] = "VDSA projected";
-  else if (!strcasecmp(argv[i],"-quasi"))
-    project[QUASI] = "Quasi-interpolated";
-  else if (!strcasecmp(argv[i],"-lsq"))
-    project[LEASTSQ] = "Least-square projected";
   else if (!strcasecmp(argv[i],"-controller"))
     enableController = true;
+  else if (argv[i][0] == '-')
+    return this->parseProjectionMethod(argv[i]+1);
+  else
+    return false;
+
+  return true;
+}
+
+
+bool SIMoptions::parseProjectionMethod (const char* ptype)
+{
+  if (!strcasecmp(ptype,"global") || !strcasecmp(ptype,"grvl"))
+    project[GLOBAL] = "Greville point projection";
+  else if (!strcasecmp(ptype,"dgl2"))
+    project[DGL2] = "Discrete global L2-projection";
+  else if (!strcasecmp(ptype,"cgl2"))
+    project[CGL2] = "Continuous global L2-projection";
+  else if (!strcasecmp(ptype,"scr"))
+    project[SCR] = "Superconvergent recovery";
+  else if (!strcasecmp(ptype,"vdsa"))
+    project[VDSA] = "VDSA projected";
+  else if (!strcasecmp(ptype,"quasi"))
+    project[QUASI] = "Quasi-interpolated";
+  else if (!strcasecmp(ptype,"lsq"))
+    project[LEASTSQ] = "Least-square projected";
   else
     return false;
 
@@ -297,9 +298,9 @@ bool SIMoptions::ignoreOldOptions (int argc, char** argv, int& i)
 }
 
 
-utl::LogStream& SIMoptions::print (utl::LogStream& os, bool extraBlankLine) const
+utl::LogStream& SIMoptions::print (utl::LogStream& os, bool addBlankLine) const
 {
-  if (extraBlankLine) os <<"\n";
+  if (addBlankLine) os <<"\n";
 
   os <<"\nEquation solver: "<< solver;
 
