@@ -17,7 +17,9 @@
 #include "tinyxml.h"
 #include "IFEM.h"
 #include "LogStream.h"
-#include "PETScSupport.h"
+#ifdef PARALLEL_PETSC
+#include "petscsys.h"
+#endif
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
@@ -129,33 +131,28 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
   }
 
   else if (!strcasecmp(elem->Value(),"logging")) {
+    int pid = 0;
+#ifdef PARALLEL_PETSC
+    MPI_Comm_rank(PETSC_COMM_WORLD,&pid);
+#endif
     utl::getAttribute(elem,"output_pid",printPid);
     if (printPid != -1 && printPid != IFEM::getOptions().printPid) {
       IFEM::getOptions().printPid = printPid;
-      int pid = 0;
-#ifdef PARALLEL_PETSC
-      MPI_Comm_rank(PETSC_COMM_WORLD,&pid);
-#endif
-      IFEM::cout.setPIDs(printPid==-1?pid:printPid, pid);
-      if (printPid != -1 && pid != printPid)
-        IFEM::cout.setStream(utl::NullStream);
-
-      IFEM::cout << "IFEM: Printing output from PID " << printPid << " to screen" << std::endl;
+      IFEM::cout.setPIDs(printPid,pid);
+      if (printPid != pid)
+        IFEM::cout.setNull();
+      IFEM::cout <<"IFEM: Printing output from PID "<< printPid
+                 <<" to console."<< std::endl;
     }
     utl::getAttribute(elem,"output_prefix",log_prefix);
     if (!log_prefix.empty() && log_prefix != IFEM::getOptions().log_prefix) {
-      int pid = 0;
-#ifdef PARALLEL_PETSC
-      MPI_Comm_rank(PETSC_COMM_WORLD,&pid);
-#endif
       if ((pid == 0 && printPid == -1) || pid == IFEM::getOptions().printPid)
-        IFEM::cout << "IFEM: Logging output to files with prefix " << log_prefix << std::endl;
-
+        IFEM::cout <<"IFEM: Logging output to files with prefix "
+                   << log_prefix << std::endl;
       IFEM::getOptions().log_prefix = log_prefix;
-      std::stringstream str;
-      str << log_prefix << "_" << pid << ".log";
-      std::shared_ptr<std::ostream> file(new std::ofstream(str.str()));
-      IFEM::cout.addExtraLog(file);
+      char cPid[12];
+      sprintf(cPid,"_p%04d.log",pid);
+      IFEM::cout.addExtraLog(new std::ofstream(log_prefix+cPid));
     }
   }
 

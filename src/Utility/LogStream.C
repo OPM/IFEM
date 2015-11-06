@@ -13,18 +13,14 @@
 
 #include "LogStream.h"
 
-namespace utl {
 
-nullstream NullStream;
-
-
-LogStream::LogStream(std::ostream& out, int ppid, int mypid) :
+utl::LogStream::LogStream(std::ostream& out, int ppid, int mypid) :
   m_out(&out), m_ppid(ppid), m_pid(mypid)
 {
 }
 
 
-LogStream& LogStream::operator<<(LogStream::StandardEndLine manip)
+utl::LogStream& utl::LogStream::operator<<(LogStream::StandardEndLine manip)
 {
   if (m_pid == m_ppid && m_out)
     manip(*m_out);
@@ -36,7 +32,7 @@ LogStream& LogStream::operator<<(LogStream::StandardEndLine manip)
 }
 
 
-LogStream& LogStream::operator=(const LogStream& log2)
+utl::LogStream& utl::LogStream::operator=(const LogStream& log2)
 {
   m_out = log2.m_out;
   m_extra = log2.m_extra;
@@ -47,7 +43,14 @@ LogStream& LogStream::operator=(const LogStream& log2)
 }
 
 
-void LogStream::addExtraLog(std::shared_ptr<std::ostream>& extra, bool clear)
+void utl::LogStream::addExtraLog(std::ostream* extra, bool clear)
+{
+  std::shared_ptr<std::ostream> file(extra);
+  this->addExtraLog(file,clear);
+}
+
+
+void utl::LogStream::addExtraLog(std::shared_ptr<std::ostream> extra, bool clear)
 {
   if (clear)
     m_extra.clear();
@@ -56,13 +59,7 @@ void LogStream::addExtraLog(std::shared_ptr<std::ostream>& extra, bool clear)
 }
 
 
-int LogStream::precision() const
-{
-  return m_out?m_out->precision():6;
-}
-
-
-int LogStream::precision(int streamsize)
+int utl::LogStream::precision(int streamsize)
 {
   int result = streamsize;
   if (m_out)
@@ -74,7 +71,7 @@ int LogStream::precision(int streamsize)
 }
 
 
-void LogStream::flush()
+void utl::LogStream::flush()
 {
   if (m_out)
     m_out->flush();
@@ -83,7 +80,7 @@ void LogStream::flush()
 }
 
 
-std::ios_base::fmtflags LogStream::flags(std::ios_base::fmtflags flags)
+std::ios_base::fmtflags utl::LogStream::flags(std::ios_base::fmtflags flags)
 {
   std::ios_base::fmtflags result = flags;
   if (m_out)
@@ -92,6 +89,4 @@ std::ios_base::fmtflags LogStream::flags(std::ios_base::fmtflags flags)
     it->flags(flags);
 
   return result;
-}
-
 }
