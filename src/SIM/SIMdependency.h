@@ -41,7 +41,7 @@ public:
     char basis;     //!< The basis to inject field into (for mixed)
     int component;  //!< Component for field (for functions)
     std::string sim_field;  //!< The name of the field in the SIM class
-    std::string file_field; //!< The name of the field in the file, type of function if function form
+    std::string file_field; //!< The field name in the file or type of function
     std::string function;   //!< Function if given in function form
     //! \brief Default constructor.
     ICInfo() : sim_level(0), file_level(0), geo_level(0) {}
@@ -64,7 +64,9 @@ private:
     short int      components;     //!< Number of field components per node
     char           differentBasis; //!< Toggle usage of an independent basis
     //! \brief Default constructor.
-    Dependency() : sim(nullptr), components(1), differentBasis(0) {}
+    Dependency(SIMdependency* s = nullptr, const std::string& f = "",
+               short int n = 1) : sim(s), name(f), components(n),
+                                  differentBasis(0) {}
   };
 
   //! \brief SIM dependency container
@@ -88,6 +90,8 @@ public:
 
   //! \brief Returns the number of spatial dimensions in the model.
   virtual size_t getNoSpaceDim() const = 0;
+  //! \brief Returns the given name of this simulator.
+  virtual std::string getName() const = 0;
 
   //! \brief Registers a dependency on a field from another SIM object.
   //! \param[in] sim The SIM object holding the field we depend on
@@ -117,6 +121,7 @@ public:
   ASMbase* getDependentPatch(const std::string& name, int pindx) const;
   //! \brief Registers a named field with associated nodal vector in this SIM.
   void registerField(const std::string& name, const utl::vector<double>& vec);
+
 private:
   //! \brief Returns an iterator pointing to a named dependency.
   DepVector::const_iterator getDependency(const std::string& name) const;
@@ -128,6 +133,7 @@ protected:
   //! \param[in] pindx Local patch index to extract solution vectors for
   bool extractPatchDependencies(IntegrandBase* problem,
                                 const PatchVec& model, size_t pindx) const;
+
 private:
   FieldMap  myFields;  //!< The named fields of this SIM object
   DepVector depFields; //!< Other fields this SIM objecy depends on

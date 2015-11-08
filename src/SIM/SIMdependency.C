@@ -22,24 +22,16 @@ void SIMdependency::registerDependency (SIMdependency* sim,
                                         const std::string& name, short int nvc,
                                         const PatchVec& patches, char diffBasis)
 {
-  Dependency dep;
-  dep.sim = sim;
-  dep.name = name;
-  dep.components = nvc;
-  dep.patches = patches;
-  dep.differentBasis = diffBasis;
-  depFields.push_back(dep);
+  depFields.push_back(Dependency(sim,name,nvc));
+  depFields.back().patches = patches;
+  depFields.back().differentBasis = diffBasis;
 }
 
 
 void SIMdependency::registerDependency (SIMdependency* sim,
                                         const std::string& name, short int nvc)
 {
-  Dependency dep;
-  dep.sim = sim;
-  dep.name = name;
-  dep.components = nvc;
-  depFields.push_back(dep);
+  depFields.push_back(Dependency(sim,name,nvc));
 }
 
 
@@ -95,7 +87,7 @@ SIMdependency::getDependentField (const std::string& name) const
 
 
 ASMbase* SIMdependency::getDependentPatch (const std::string& name,
-					   int pindx) const
+                                           int pindx) const
 {
   DepVector::const_iterator it = this->getDependency(name);
   if (it == depFields.end())
@@ -123,34 +115,47 @@ bool SIMdependency::extractPatchDependencies (IntegrandBase* problem,
   DepVector::const_iterator it;
   for (it = depFields.begin(); it != depFields.end(); ++it)
   {
-    const Vector* gvec = it->sim->getField(it->name);
     Vector* lvec = problem->getNamedVector(it->name);
-    if (lvec && gvec && !gvec->empty())
+    const Vector* gvec = it->sim->getField(it->name);
+    if (!lvec)
     {
-      if (pindx < it->patches.size())
-	patch = it->patches[pindx];
-      else
-	patch = model[pindx];
-      int bflag = it->components < 0 ? it->components : it->differentBasis; // HACK
-      patch->extractNodeVec(*gvec,*lvec,abs(it->components),bflag);
-      if (it->differentBasis > 0) {
-	if (it->components == 1)
-	  problem->setNamedField(it->name,Field::create(patch,*lvec,it->differentBasis));
-	else
-	  problem->setNamedFields(it->name,Fields::create(patch,*lvec,it->differentBasis));
-      }
-#if SP_DEBUG > 2
-      std::cout <<"SIMdependency:  Dependent field \""<< it->name
-                <<"\" for patch "<< pindx+1 << *lvec;
-#endif
+      std::cerr <<" *** SIMdependency::extractPatchDependencies: \""
+                << it->name <<"\" is not a registered vector in the integrand"
+                <<" of the simulator \""<< this->getName() <<"\""<< std::endl;
+      //return false;
+      continue; //TODO: Fix all apps for which this gives error
     }
+    else if (!gvec)
+    {
+      std::cerr <<" *** SIMdependency::extractPatchDependencies: \""
+                << it->name <<"\" is not a registered field in the simulator \""
+                << it->sim->getName() <<"\""<< std::endl;
+      return false;
+    }
+    else if (gvec->empty())
+      continue; // No error, silently ignore empty fields (treated as zero)
+
+    patch = pindx < it->patches.size() ? it->patches[pindx] : model[pindx];
+    // See ASMbase::extractNodeVec for interpretation of negative value on basis
+    int basis = it->components < 0 ? it->components : it->differentBasis;
+    patch->extractNodeVec(*gvec,*lvec,abs(it->components),basis);
+    if (it->differentBasis > 0) {
+      if (it->components == 1)
+        problem->setNamedField(it->name,Field::create(patch,*lvec,it->differentBasis));
+      else
+        problem->setNamedFields(it->name,Fields::create(patch,*lvec,it->differentBasis));
+    }
+#if SP_DEBUG > 2
+    std::cout <<"SIMdependency:  Dependent field \""<< it->name
+              <<"\" for patch "<< pindx+1 << *lvec;
+#endif
   }
 
   return true;
 }
 
 
-bool SIMdependency::hasIC(const std::string& name) const
+bool SIMdependency::hasIC (const std::string& name) const
 {
   InitialCondMap::const_iterator it;
   std::vector<ICInfo>::const_iterator it2;

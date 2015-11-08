@@ -36,41 +36,25 @@ template<class T> class SIMOverride : public SIMdependency
 
 public:
   //! \brief The constructor initializes the reference to the wrapped simulator.
-  //! \param t The simulator to wrap
   SIMOverride(T& t) : base(t) {}
-
   //! \brief Empty destructor.
   virtual ~SIMOverride() {}
 
   //! \copydoc SIMinput::read(const char*)
-  bool read(const char* fileName)
-  {
-    return base.read(fileName);
-  }
+  bool read(const char* fileName) { return base.read(fileName); }
 
   //! \copydoc ISolver::setInitialConditions()
-  void setInitialConditions()
-  {
-    base.setInitialConditions();
-  }
+  void setInitialConditions() { base.setInitialConditions(); }
 
   //! \copydoc SIMdependency::hasIC(const std::string&) const
-  virtual bool hasIC(const std::string& name) const
-  {
-    return base.hasIC(name);
-  }
-
-  //! \copydoc SIMbase::getNoSpaceDim()
-  virtual size_t getNoSpaceDim() const
-  {
-    return base.getNoSpaceDim();
-  }
+  virtual bool hasIC(const std::string& name) const { return base.hasIC(name); }
+  //! \copydoc SIMdependency::getNoSpaceDim() const
+  virtual size_t getNoSpaceDim() const { return base.getNoSpaceDim(); }
+  //! \copydoc SIMdependency::getName() const
+  virtual std::string getName() const { return base.getName(); }
 
   //! \copydoc SIMbase::getFEModel() const
-  const PatchVec& getFEModel() const
-  {
-    return base.getFEModel();
-  }
+  const PatchVec& getFEModel() const { return base.getFEModel(); }
 
   //! \copydoc ISolver::saveModel(char*,int&,int&)
   bool saveModel(char* fileName, int& geoBlk, int& nBlock)
@@ -79,15 +63,12 @@ public:
   }
 
   //! \copydoc SIMoutput::getVTF() const
-  VTF* getVTF() const
-  {
-    return base.getVTF();
-  }
+  VTF* getVTF() const { return base.getVTF(); }
 
   //! \copydoc SIMbase::getProcessAdm() const
   const ProcessAdm& getProcessAdm() const { return base.getProcessAdm(); }
 
-  //! \copydoc SIMdependency::registerDependency(SIMdependency*,const std::string&,short int,const PatchVec&,bool)
+  //! \copydoc SIMdependency::registerDependency(SIMdependency*,const std::string&,short int,const PatchVec&,char)
   virtual void registerDependency(SIMdependency* sim, const std::string& name,
                                   short int nvc, const PatchVec& patches,
                                   char diffBasis = 0)
@@ -154,11 +135,6 @@ public:
   bool advanceStep(TimeStep& tp)
   {
     return base.advanceStep(tp);
-  }
-
-  void postSolve(const TimeStep& tp)
-  {
-    base.postSolve(tp);
   }
 
   T& get() { return base; }

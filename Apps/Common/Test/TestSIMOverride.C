@@ -24,6 +24,7 @@ public:
     setinitialconditions_called(false),
     hasic_called(false),
     getnospacedim_called(false),
+    getname_called(false),
     getfemodel_called(false),
     savemodel_called(false),
     getvtf_called(false),
@@ -39,26 +40,22 @@ public:
     registerfields_called(false),
     savestep_called(false),
     advancestep_called(false),
-    postsolve_called(false),
     getglobalnode_called(false),
     getlocalnode_called(false)
   {}
 
-  bool read(const char* fileName) { read_called = true; return true;}
+  bool read(const char*) { return read_called = true; }
   void setInitialConditions() { setinitialconditions_called = true; }
-  bool hasIC(const std::string& name) const { hasic_called = true; return true; }
-  size_t getNoSpaceDim() const { getnospacedim_called = true; return 2;}
+  bool hasIC(const std::string&) const { return hasic_called = true; }
+  size_t getNoSpaceDim() const { getnospacedim_called = true; return 2; }
+  std::string getName() const { getname_called = true; return "SIMMock"; }
   const std::vector<ASMbase*>& getFEModel() const
   {
     static std::vector<ASMbase*> result;
     getfemodel_called = true;
     return result;
   }
-  bool saveModel(char* fileName, int& geoBlk, int& nBlock)
-  {
-    savemodel_called = true;
-    return true;
-  }
+  bool saveModel(char*, int&, int&) { return savemodel_called = true; }
   VTF* getVTF() const { getvtf_called = true; return NULL; }
   const ProcessAdm& getProcessAdm() const
   {
@@ -66,54 +63,47 @@ public:
     getprocessadm_called = true;
     return result;
   }
-  void registerDependency(SIMdependency* sim, const std::string& name,
-                          short int nvc, const std::vector<ASMbase*>& patches,
-                          bool diffBasis = false)
+  void registerDependency(SIMdependency*, const std::string&, short int,
+                          const std::vector<ASMbase*>&, char)
   {
     registerdependency_called = true;
   }
-  void registerDependency(SIMdependency* sim, const std::string& name,
-                          short int nvc = 1)
+  void registerDependency(SIMdependency*, const std::string&, short int)
   {
     registerdependency2_called = true;
   }
-  bool fillField(const std::string& name, const std::vector<double>& values)
+  bool fillField(const std::string&, const std::vector<double>&)
   {
-    fillfield_called = true;
-    return true;
+    return fillfield_called = true;
   }
-  utl::vector<double>* getField(const std::string& name)
+  utl::vector<double>* getField(const std::string&)
   {
     getfield_called = true;
     return NULL;
   }
-  const utl::vector<double>* getField(const std::string& name) const
+  const utl::vector<double>* getField(const std::string&) const
   {
     getfield2_called = true;
     return NULL;
   }
-  const utl::vector<double>* getDependentField(const std::string& name) const
+  const utl::vector<double>* getDependentField(const std::string&) const
   {
     getdependentfield_called = true;
     return NULL;
   }
   void setupDependencies() { setupdependencies_called = true; }
-  bool init(const TimeStep& tp) { init_called = true; return true; }
-  void registerFields(DataExporter& exporter) { registerfields_called = true; }
-  bool saveStep(const TimeStep& tp, int& nBlock)
-  {
-    savestep_called = true;
-    return true;
-  }
-  bool advanceStep(TimeStep& tp) { advancestep_called = true; return true; }
-  void postSolve(const TimeStep& tp) { postsolve_called = true; }
-  int getGlobalNode(int node) const { getglobalnode_called = true; return 0; }
-  int getLocalNode(int node) const { getlocalnode_called = true; return 0; }
+  bool init(const TimeStep&) { return init_called = true; }
+  void registerFields(DataExporter&) { registerfields_called = true; }
+  bool saveStep(const TimeStep&, int&) { return savestep_called = true; }
+  bool advanceStep(TimeStep&) { return advancestep_called = true; }
+  int getGlobalNode(int) const { getglobalnode_called = true; return 0; }
+  int getLocalNode(int) const { getlocalnode_called = true; return 0; }
 
   bool read_called;
   bool setinitialconditions_called;
   mutable bool hasic_called;
   mutable bool getnospacedim_called;
+  mutable bool getname_called;
   mutable bool getfemodel_called;
   bool savemodel_called;
   mutable bool getvtf_called;
@@ -129,7 +119,6 @@ public:
   bool registerfields_called;
   bool savestep_called;
   bool advancestep_called;
-  bool postsolve_called;
   mutable bool getglobalnode_called;
   mutable bool getlocalnode_called;
 };
@@ -142,6 +131,7 @@ TEST(TestSIMOverride, Override)
   sim.setInitialConditions();
   sim.hasIC("");
   sim.getNoSpaceDim();
+  sim.getName();
   sim.getFEModel();
   int geoBlk, nBlock;
   sim.saveModel((char*)"", geoBlk, nBlock);
@@ -160,7 +150,6 @@ TEST(TestSIMOverride, Override)
   sim.registerFields(exp);
   sim.saveStep(tp, nBlock);
   sim.advanceStep(tp);
-  sim.postSolve(tp);
   sim.getGlobalNode(1);
   sim.getLocalNode(1);
 
@@ -168,6 +157,7 @@ TEST(TestSIMOverride, Override)
   ASSERT_TRUE(ovr.setinitialconditions_called);
   ASSERT_TRUE(ovr.hasic_called);
   ASSERT_TRUE(ovr.getnospacedim_called);
+  ASSERT_TRUE(ovr.getname_called);
   ASSERT_TRUE(ovr.getfemodel_called);
   ASSERT_TRUE(ovr.savemodel_called);
   ASSERT_TRUE(ovr.getvtf_called);
@@ -183,7 +173,6 @@ TEST(TestSIMOverride, Override)
   ASSERT_TRUE(ovr.registerfields_called);
   ASSERT_TRUE(ovr.savestep_called);
   ASSERT_TRUE(ovr.advancestep_called);
-  ASSERT_TRUE(ovr.postsolve_called);
   ASSERT_TRUE(ovr.getglobalnode_called);
   ASSERT_TRUE(ovr.getlocalnode_called);
 }
