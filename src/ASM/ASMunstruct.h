@@ -59,15 +59,17 @@ public:
   //! options[6] is the maximum allowed parametric aspect ratio of an element
   //! options[7] is one if all "gaps" are to be closed
   //! options[8] is one if using true beta
+  //! \param sol Vectors to interpolate on old mesh on entry, on refined mesh on return
   //! \param[in] fName Optional file name for an image of the resulting mesh
-  bool refine(const IntVec& elements, const IntVec& options,
-              const char* fName = NULL);
+  virtual bool refine(const IntVec& elements, const IntVec& options,
+                      Vectors* sol, const char* fName = NULL);
   //! \brief Refines a set of elements based on a list of element errors.
   //! \param[in] elementError Element-wise errors
   //! \param[in] options Additional input parameters to control the refinement
+  //! \param sol Vectors to interpolate on old mesh on entry, on refined mesh on return
   //! \param[in] fName Optional file name for an image of the resulting mesh
-  bool refine(const RealArray& elementError, const IntVec& options,
-              const char* fName = NULL);
+  virtual bool refine(const RealArray& elementError, const IntVec& options,
+                      Vectors* sol, const char* fName = NULL);
 
   //! \brief Resets global element and node counters.
   static void resetNumbering() { gEl = gNod = 0; }

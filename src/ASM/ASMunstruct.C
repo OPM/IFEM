@@ -50,14 +50,14 @@ ASMunstruct::~ASMunstruct ()
 {
 }
 
-bool ASMunstruct::refine (const RealArray&, const IntVec&, const char*)
+bool ASMunstruct::refine (const RealArray&, const IntVec&, Vectors*, const char*)
 {
   std::cerr <<" *** ASMunstruct::refine: Not available without LR-Spline"
 	    << std::endl;
   return false;
 }
 
-bool ASMunstruct::refine (const IntVec&, const IntVec&, const char*)
+bool ASMunstruct::refine (const IntVec&, const IntVec&, Vectors*, const char*)
 {
   std::cerr <<" *** ASMunstruct::refine: Not available without LR-Spline"
 	    << std::endl;

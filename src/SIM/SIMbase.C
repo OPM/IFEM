@@ -2482,32 +2482,56 @@ bool SIMbase::extractPatchElmRes (const Matrix& glbRes, Matrix& elRes,
 
 
 bool SIMbase::refine (const IntVec& elements,
-                      const IntVec& options, const char* fName)
+                      const IntVec& options, Vectors* sol,
+                      const char* fName)
 {
   isRefined = false;
   ASMunstruct* pch = NULL;
   for (size_t i = 0; i < myModel.size(); i++)
-    if (!myModel[i]->empty() && (pch = dynamic_cast<ASMunstruct*>(myModel[i])))
-      if (pch->refine(elements,options,fName))
+    if (!myModel[i]->empty() && (pch = dynamic_cast<ASMunstruct*>(myModel[i]))) {
+      Vectors lvec;
+      if (sol && !sol->empty()) {
+        lvec.resize(sol->size());
+        for (size_t j = 0; j < sol->size(); ++j)
+          pch->extractNodeVec((*sol)[j], lvec[j]);
+      }
+      if (pch->refine(elements,options,&lvec,fName))
         isRefined = true;
       else
         return false;
+      if (sol && !sol->empty()) {
+        for (size_t j = 0; j < sol->size(); ++j)
+          pch->injectNodeVec(lvec[j], (*sol)[j]);
+      }
+    }
 
   return isRefined;
 }
 
 
 bool SIMbase::refine (const RealArray& elementError,
-                      const IntVec& options, const char* fName)
+                      const IntVec& options, Vectors* sol,
+                      const char* fName)
 {
   isRefined = false;
   ASMunstruct* pch = NULL;
   for (size_t i = 0; i < myModel.size(); i++)
-    if (!myModel[i]->empty() && (pch = dynamic_cast<ASMunstruct*>(myModel[i])))
-      if (pch->refine(elementError,options,fName))
+    if (!myModel[i]->empty() && (pch = dynamic_cast<ASMunstruct*>(myModel[i]))) {
+      Vectors lvec;
+      if (sol && !sol->empty()) {
+        lvec.resize(sol->size());
+        for (size_t j = 0; j < sol->size(); ++j)
+          pch->extractNodeVec((*sol)[j], lvec[j]);
+      }
+      if (pch->refine(elementError,options,&lvec,fName))
         isRefined = true;
       else
         return false;
+      if (sol && !sol->empty()) {
+        for (size_t j = 0; j < sol->size(); ++j)
+          pch->injectNodeVec(lvec[j], (*sol)[j]);
+      }
+    }
 
   return isRefined;
 }

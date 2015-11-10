@@ -46,6 +46,12 @@ public:
   //! \brief Assemble and solve linear system
   virtual bool assembleAndSolve();
 
+  //! \brief Returns vectors to interpolate during refinements.
+  virtual Vectors* getRefineVectors() { return nullptr; }
+
+  //! \brief Transfers refined vectors back to solver.
+  virtual void solutionTransfer() {}
+
   //! \brief Assembles and solves the linear FE equations on current mesh.
   //! \param[in] inputfile File to read model parameters from after refinement
   //! \param[in] iStep Refinement step counter

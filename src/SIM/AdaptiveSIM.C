@@ -205,7 +205,7 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
   }
   else if (storeMesh)
     // Output the initial grid to eps-file
-    model->refine(std::vector<int>(),std::vector<int>(),"mesh_001.eps");
+    model->refine(std::vector<int>(),std::vector<int>(),getRefineVectors(),"mesh_001.eps");
 
   // Assemble the linear FE equation system
   model->setMode(SIM::STATIC,true);
@@ -213,6 +213,8 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
                     1, model->getNoRHS());
   model->setQuadratureRule(opt.nGauss[0],true);
 
+  if (iStep > 1)
+    solutionTransfer();
 
   if (!assembleAndSolve())
     return false;
@@ -306,11 +308,11 @@ bool AdaptiveSIM::adaptMesh (int iStep)
     IFEM::cout <<"\nRefining by increasing solution space by "<< beta
                <<" percent."<< std::endl;
     if (!storeMesh)
-      return model->refine(eNorm.getRow(eRow),options);
+      return model->refine(eNorm.getRow(eRow),options,getRefineVectors());
 
     char fname[13];
     sprintf(fname,"mesh_%03d.eps",iStep);
-    return model->refine(eNorm.getRow(eRow),options,fname);
+    return model->refine(eNorm.getRow(eRow),options,getRefineVectors(),fname);
   }
 
   std::vector<IndexDouble> errors;
@@ -369,11 +371,11 @@ bool AdaptiveSIM::adaptMesh (int iStep)
 
   // Now refine the mesh
   if (!storeMesh)
-    return model->refine(toBeRefined,options);
+    return model->refine(toBeRefined,options,getRefineVectors());
 
   char fname[13];
   sprintf(fname,"mesh_%03d.eps",iStep);
-  return model->refine(toBeRefined,options,fname);
+  return model->refine(toBeRefined,options,getRefineVectors(),fname);
 }
 
 

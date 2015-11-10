@@ -114,15 +114,17 @@ public:
   //! \brief Refines a list of elements.
   //! \param[in] elements 0-based indices of the elements to refine
   //! \param[in] options Input options to refinement algorithm
+  //! \param[in] sol Vectors to interpolate onto refined mesh
   //! \param[in] fName Optional mesh output file (Encapsulated PostScript)
   bool refine(const std::vector<int>& elements, const std::vector<int>& options,
-              const char* fName = NULL);
+              Vectors* sol, const char* fName = NULL);
   //! \brief Refines a set of elements based on a list of element errors.
   //! \param[in] elementError Element-wise errors
   //! \param[in] options Input options to refinement algorithm
+  //! \param[in] sol Vectors to interpolate onto refined mesh
   //! \param[in] fName Optional mesh output file (Encapsulated PostScript)
   bool refine(const RealArray& elementError, const std::vector<int>& options,
-              const char* fName = NULL);
+              Vectors* sol, const char* fName = NULL);
 
   //! \brief Performs some pre-processing tasks on the FE model.
   //! \param[in] ignored Indices of patches to ignore in the analysis

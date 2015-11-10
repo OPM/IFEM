@@ -24,7 +24,8 @@ ASMunstruct::~ASMunstruct ()
 
 
 bool ASMunstruct::refine (const RealArray& elementError,
-                          const IntVec& options, const char* fName)
+                          const IntVec& options,
+                          Vectors* sol, const char* fName)
 {
 	PROFILE2("ASMunstruct::refine()");
 
@@ -155,7 +156,8 @@ bool ASMunstruct::refine (const RealArray& elementError,
 
 
 bool ASMunstruct::refine (const IntVec& elements,
-                          const IntVec& options, const char* fName)
+                          const IntVec& options,
+                          Vectors* sol, const char* fName)
 {
 	PROFILE2("ASMunstruct::refine()");
 
