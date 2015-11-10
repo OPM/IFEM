@@ -2487,23 +2487,23 @@ bool SIMbase::refine (const IntVec& elements,
 {
   isRefined = false;
   ASMunstruct* pch = NULL;
+  std::vector<Vectors> lvec(myModel.size());
   for (size_t i = 0; i < myModel.size(); i++)
     if (!myModel[i]->empty() && (pch = dynamic_cast<ASMunstruct*>(myModel[i]))) {
-      Vectors lvec;
       if (sol && !sol->empty()) {
-        lvec.resize(sol->size());
+        lvec[i].resize(sol->size());
         for (size_t j = 0; j < sol->size(); ++j)
-          pch->extractNodeVec((*sol)[j], lvec[j]);
+          pch->extractNodeVec((*sol)[j], lvec[i][j]);
       }
-      if (pch->refine(elements,options,&lvec,fName))
+      if (pch->refine(elements,options,&lvec[i],fName))
         isRefined = true;
       else
         return false;
-      if (sol && !sol->empty()) {
-        for (size_t j = 0; j < sol->size(); ++j)
-          pch->injectNodeVec(lvec[j], (*sol)[j]);
-      }
     }
+
+  if (sol && !sol->empty())
+    for (size_t j = 0; j < sol->size(); ++j)
+      (*sol)[j] = lvec[0][j];
 
   return isRefined;
 }
