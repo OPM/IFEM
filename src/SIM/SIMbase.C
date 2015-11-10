@@ -2074,7 +2074,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   PROFILE1("Norm integration");
 
   NormBase* norm = myProblem->getNormIntegrand(mySol);
-  if (!norm)
+  if (!norm || !this->mySam)
   {
 #ifdef SP_DEBUG
     std::cerr <<"  ** SIMbase::solutionNorms: No integrand."<< std::endl;
