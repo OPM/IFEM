@@ -178,6 +178,15 @@ bool ASMu2Dmx::generateFEMTopology ()
 
   if (shareFE == 'F') return true;
 
+#ifdef SP_DEBUG
+  size_t nbasis=0;
+  for (auto& it : m_basis) {
+    std::cout << "Basis " << ++nbasis << ":\n";
+    std::cout <<"numCoefs: "<< it->nBasisFunctions();
+    std::cout <<"\norder: "<< it->order(0) <<" "<< it->order(1) << std::endl;
+  }
+#endif
+
   nel = m_basis[0]->nElements();
 
   nnod = std::accumulate(nb.begin(), nb.end(), 0);
@@ -216,6 +225,10 @@ bool ASMu2Dmx::generateFEMTopology ()
 
   for (size_t inod = 0; inod < nnod; ++inod)
     myMLGN[inod] = ++gNod;
+
+#ifdef SP_DEBUG
+  std::cout <<"NEL = "<< nel <<" NNOD = "<< nnod << std::endl;
+#endif
 
   return true;
 }
@@ -544,32 +557,20 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 void ASMu2Dmx::constrainEdge (int dir, bool open, int dof, int code, char basis)
 {
-  if (basis < 1 || basis > (char)m_basis.size())
-    basis = 1;
+  size_t ofs = std::accumulate(nb.begin(),nb.begin()+basis-1, 0);
+  ASMu2D::constrainEdge(dir,open,dof,code,ofs,m_basis[basis-1].get());
+}
 
-  std::vector<LR::Basisfunction*> edgeFunctions;
-  switch (dir)
-  {
-  case  1: // Right edge (positive I-direction)
-    m_basis[basis-1]->getEdgeFunctions(edgeFunctions, LR::EAST);
-    break;
-  case -1: // Left edge (negative I-direction)
-    m_basis[basis-1]->getEdgeFunctions(edgeFunctions, LR::WEST);
-    break;
-  case  2: // Back edge (positive J-direction)
-    m_basis[basis-1]->getEdgeFunctions(edgeFunctions, LR::NORTH);
-    break;
-  case -2: // Front edge (negative J-direction)
-    m_basis[basis-1]->getEdgeFunctions(edgeFunctions, LR::SOUTH);
-    break;
-  }
 
-  size_t ofs = std::accumulate(nb.begin(), nb.begin()+basis-1, 0);
+Vec3 ASMu2Dmx::getCoord (size_t inod) const
+{
+  int node = inod, i = 0;
+  while (node > m_basis[i]->nBasisFunctions())
+    node -= m_basis[i++]->nBasisFunctions();
 
-  // Skip the first and last function if we are requesting an open boundary.
-  // I here assume the edgeFunctions are ordered such that the physical
-  // end points are represented by the first and last edgeFunction.
-  for (size_t i = 0; i < edgeFunctions.size(); i++)
-    if (!open || (i > 0 && i+1 < edgeFunctions.size()))
-      this->prescribe(edgeFunctions[i]->getId()+1+ofs,dof,code);
+  LR::Basisfunction* basis = m_basis[i]->getBasisfunction(node-1);
+  if (!basis)
+    return Vec3();
+
+  return Vec3(&(*basis->cp()),nsd);
 }

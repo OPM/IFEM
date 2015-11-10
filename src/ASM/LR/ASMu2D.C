@@ -27,6 +27,7 @@
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
 #include "ElementBlock.h"
+#include "MPC.h"
 #include "SplineUtils.h"
 #include "Utilities.h"
 #include "Profiler.h"
@@ -467,29 +468,58 @@ void ASMu2D::closeEdges (int dir, int basis, int master)
 
 void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char)
 {
+  constrainEdge(dir,open,dof,code,0,lrspline.get());
+}
+
+
+void ASMu2D::constrainEdge(int dir, bool open, int dof, int code, size_t ofs,
+                           LR::LRSplineSurface* spline)
+{
   std::vector<LR::Basisfunction*> edgeFunctions;
-  switch (dir)
-  {
-  case  1: // Right edge (positive I-direction)
-    lrspline->getEdgeFunctions(edgeFunctions, LR::EAST);
-    break;
-  case -1: // Left edge (negative I-direction)
-    lrspline->getEdgeFunctions(edgeFunctions, LR::WEST);
-    break;
-  case  2: // Back edge (positive J-direction)
-    lrspline->getEdgeFunctions(edgeFunctions, LR::NORTH);
-    break;
-  case -2: // Front edge (negative J-direction)
-    lrspline->getEdgeFunctions(edgeFunctions, LR::SOUTH);
-    break;
-  }
+  static const std::map<int, LR::parameterEdge> m =
+        {{ 1, LR::EAST},
+         {-1, LR::WEST},
+         { 2, LR::NORTH},
+         {-2, LR::SOUTH}};
+  LR::parameterEdge edge = m.find(dir)->second;
+
+  Go::SplineCurve* curve = nullptr;
+  if (code > 0)
+    curve = spline->edgeCurve(edge, edgeFunctions);
+  else
+    spline->getEdgeFunctions(edgeFunctions, edge);
+
+  if (curve)
+    dirich.push_back(DirichletEdge(curve,dof,code));
 
   // Skip the first and last function if we are requesting an open boundary.
   // I here assume the edgeFunctions are ordered such that the physical
   // end points are represented by the first and last edgeFunction.
-  for (size_t i = 0; i < edgeFunctions.size(); i++)
-    if (!open || (i > 0 && i+1 < edgeFunctions.size()))
-      this->prescribe(edgeFunctions[i]->getId()+1,dof,code);
+  if (!open)
+    this->prescribe(edgeFunctions.front()->getId()+1+ofs,dof,code);
+
+  for (size_t i = 1; i < edgeFunctions.size()-1; i++)
+    if (this->prescribe(edgeFunctions[i]->getId()+ofs+1,dof,-code) == 0 && code > 0)
+      dirich.back().nodes.push_back(std::make_pair(i+1,edgeFunctions[i]->getId()+ofs+1));
+
+  if (!open)
+    this->prescribe(edgeFunctions.back()->getId()+ofs+1,dof,code);
+
+  if (code > 0)
+    if (dirich.back().nodes.empty())
+      dirich.pop_back(); // In the unlikely event of a 2-point boundary
+#if SP_DEBUG > 1
+  else
+  {
+    std::cout <<"Non-corner boundary nodes:";
+    for (size_t i = 0; i < dirich.back().nodes.size(); i++)
+      std::cout <<" ("<< dirich.back().nodes[i].first
+                <<","<< dirich.back().nodes[i].second
+                <<")";
+      std::cout <<"\nThese nodes will be subjected to Dirichlet projection"
+                << std::endl;
+  }
+#endif
 }
 
 
@@ -573,7 +603,7 @@ double ASMu2D::getParametricArea (int iel) const
 double ASMu2D::getParametricLength (int iel, int dir) const
 {
 #ifdef INDEX_CHECK
-  if (iel < 1 || (size_t)iel > lrspline->nElements())
+  if (iel < 1 || iel > lrspline->nElements())
   {
     std::cerr <<" *** ASMu2D::getParametricLength: Element index "<< iel
               <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
@@ -632,6 +662,11 @@ void ASMu2D::getNodalCoordinates (Matrix& X) const
 Vec3 ASMu2D::getCoord (size_t inod) const
 {
   LR::Basisfunction* basis = lrspline->getBasisfunction(inod-1);
+  if (!basis) {
+    std::cerr << "Asked to get coordinate for node " << inod
+              << ", but only have " << lrspline->nBasisFunctions() << std::endl;
+    return Vec3();
+  }
   return Vec3(&(*basis->cp()),nsd);
 }
 
@@ -1533,4 +1568,66 @@ bool ASMu2D::getOrder (int& p1, int& p2, int& p3) const
   p3 = 0;
 
   return true;
+}
+
+
+bool ASMu2D::updateDirichlet (const std::map<int,RealFunc*>& func,
+                              const std::map<int,VecFunc*>& vfunc, double time,
+                              const std::map<int,int>* g2l)
+{
+  std::map<int,RealFunc*>::const_iterator fit;
+  std::map<int,VecFunc*>::const_iterator vfit;
+  std::vector<DirichletEdge>::const_iterator dit;
+  std::vector<Ipair>::const_iterator nit;
+
+  for (size_t i = 0; i < dirich.size(); i++)
+  {
+    // Project the function onto the spline curve basis
+    Go::SplineCurve* dcrv = 0;
+    if ((fit = func.find(dirich[i].code)) != func.end())
+      dcrv = SplineUtils::project(dirich[i].curve,*fit->second,time);
+    else if ((vfit = vfunc.find(dirich[i].code)) != vfunc.end())
+      dcrv = SplineUtils::project(dirich[i].curve,*vfit->second,nf,time);
+    else
+    {
+      std::cerr <<" *** ASMu2D::updateDirichlet: Code "<< dirich[i].code
+		<<" is not associated with any function."<< std::endl;
+      return false;
+    }
+    if (!dcrv)
+    {
+      std::cerr <<" *** ASMu2D::updateDirichlet: Projection failure."
+		<< std::endl;
+      return false;
+    }
+
+    // Loop over the (interior) nodes (control points) of this boundary curve
+    for (nit = dirich[i].nodes.begin(); nit != dirich[i].nodes.end(); ++nit)
+      for (int dofs = dirich[i].dof; dofs > 0; dofs /= 10)
+      {
+	int dof = dofs%10;
+	// Find the constraint equation for current (node,dof)
+	MPC pDOF(MLGN[nit->second-1],dof);
+	MPCIter mit = mpcs.find(&pDOF);
+	if (mit == mpcs.end()) continue; // probably a deleted constraint
+
+	// Find index to the control point value for this (node,dof) in dcrv
+	RealArray::const_iterator cit = dcrv->coefs_begin();
+	if (dcrv->dimension() > 1) // A vector field is specified
+	  cit += (nit->first-1)*dcrv->dimension() + (dof-1);
+	else // A scalar field is specified at this dof
+	  cit += (nit->first-1);
+
+	// Now update the prescribed value in the constraint equation
+	(*mit)->setSlaveCoeff(*cit);
+#if SP_DEBUG > 1
+	std::cout <<"Updated constraint: "<< **mit;
+#endif
+      }
+    delete dcrv;
+  }
+
+  // The parent class method takes care of the corner nodes with direct
+  // evaluation of the Dirichlet functions (since they are interpolatory)
+  return this->ASMbase::updateDirichlet(func,vfunc,time,g2l);
 }

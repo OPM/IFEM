@@ -20,6 +20,7 @@
 #include <memory>
 
 namespace Go {
+  class SplineCurve;
   class SplineSurface;
 }
 
@@ -41,7 +42,7 @@ public:
   //! \brief Copy constructor.
   ASMu2D(const ASMu2D& patch, unsigned char n_f = 0);
   //! \brief Empty destructor.
-  virtual ~ASMu2D() {}
+  virtual ~ASMu2D() { geo = nullptr; }
 
   //! \brief Returns the spline surface representing this patch.
   LR::LRSplineSurface* getSurface() { return lrspline.get(); }
@@ -88,7 +89,7 @@ public:
   //! \param[in] lIndex Local index of the boundary edge
   //! \param glbNodes Array of global boundary node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes) const;
-  
+
   //! \brief Returns the polynomial order in each parameter direction.
   //! \param[out] p1 Order in first (u) direction
   //! \param[out] p2 Order in second (v) direction
@@ -211,6 +212,14 @@ public:
   virtual bool integrate(Integrand& integrand, int lIndex,
                          GlobalIntegral& glbInt, const TimeDomain& time);
 
+  //! \brief Updates the time-dependent in-homogeneous Dirichlet coefficients.
+  //! \param[in] func Scalar property fields
+  //! \param[in] vfunc Vector property fields
+  //! \param[in] time Current time
+  //! \param[in] g2l Pointer to global-to-local node number mapping
+  virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
+                               const std::map<int,VecFunc*>& vfunc, double time,
+                               const std::map<int,int>* g2l = NULL);
 protected:
   //! \brief Evaluates an integral over the interior patch domain.
   //! \param integrand Object with problem-specific data and methods
@@ -378,7 +387,31 @@ public:
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 
+  typedef std::pair<int,int> Ipair; //!< Convenience type
+
 protected:
+  //! \brief Struct representing an inhomogeneous Dirichlet boundary condition.
+  struct DirichletEdge
+  {
+    Go::SplineCurve*   curve; //!< Pointer to spline curve for the boundary
+    int                dof;   //!< Local DOF to constrain along the boundary
+    int                code;  //!< Inhomogeneous Dirichlet condition code
+    std::vector<Ipair> nodes; //!< Nodes subjected to projection on the boundary
+    //! \brief Default constructor.
+    DirichletEdge(Go::SplineCurve* sc = NULL, int d = 0, int c = 0)
+    : curve(sc), dof(d), code(c) {}
+  };
+
+  //! \brief Constrains all DOFs on a given boundary edge.
+  //! \param[in] dir Parameter direction defining the edge to constrain
+  //! \param[in] open If \e true, exclude the end points of the edge
+  //! \param[in] dof Which DOFs to constrain at each node on the edge
+  //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] ofs Offset for nodes (multiple bases).
+  //! \param[in] spline LRSpline to use for node numbers.
+  virtual void constrainEdge(int dir, bool open, int dof, int code,
+                             size_t ofs, LR::LRSplineSurface* spline);
+
   std::shared_ptr<LR::LRSplineSurface> lrspline; //!< Pointer to the LR-spline surface object
 
   Go::SplineSurface* tensorspline; //!< Pointer to original tensor spline object
@@ -386,6 +419,9 @@ protected:
   // and RAISEORDER key-words, although we take note that there is a possibility
   // of optimization since all mapping values and Jacobians may be performed on
   // this object for increased efficiency.
+
+  //! Inhomogeneous Dirichlet boundary condition data
+  std::vector<DirichletEdge> dirich;
 };
 
 #endif

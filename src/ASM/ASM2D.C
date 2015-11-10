@@ -47,7 +47,7 @@ ASMbase* ASM2D::create (ASM::Discretization discretization,
 
 #ifdef HAS_LRSPLINE
   case ASM::LRSpline:
-    if (nf[1] == 'I') // hack for immersed boundary approach
+    if (nf.size() > 1 && nf[1] == 'I') // hack for immersed boundary approach
       return new ASMu2DIB(nd,nf[0],nf[2]);
     else if (nf.size() > 1 || mixedFEM)
       return new ASMu2Dmx(nd,nf);

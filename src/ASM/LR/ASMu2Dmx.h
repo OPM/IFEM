@@ -69,6 +69,9 @@ public:
   //! \brief Returns the classification of a node.
   //! \param[in] inod 1-based node index local to current patch
   virtual char getNodeType(size_t inod) const;
+  //! \brief Returns the global coordinates for the given node.
+  //! \param[in] inod 1-based node index local to current patch
+  virtual Vec3 getCoord(size_t inod) const;
 
   //! \brief Constrains all DOFs on a given boundary edge.
   //! \param[in] dir Parameter direction defining the edge to constrain
