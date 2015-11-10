@@ -91,13 +91,11 @@ bool readBasis (std::vector<ASMbase*>& result, const std::string& name,
       std::stringstream str;
       str << out;
       std::string line;
-      line.resize(256);
-      str.getline(&line[0],256);
-      str.getline(&line[0],256);
-      str.getline(&line[0],256);
-      int gdim;
-      str.str(line);
-      str >> gdim >> gdim >> gdim >> gdim >> gdim >> gdim;
+      int gdim = 0;
+      line = out.substr(11);
+      line = line.substr(0,line.find('\n'));
+      if (line == "SURFACE")
+        gdim = 2;
       if (gdim != dim) {
         std::cerr << "Basis dimensionality for " << name
                   << " does not match dimension, ignoring" << std::endl;
