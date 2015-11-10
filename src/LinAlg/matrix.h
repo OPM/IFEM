@@ -369,6 +369,14 @@ namespace utl //! General utility classes and functions.
     //! \brief Fill the matrix with data from an array.
     void fill(const T* values, size_t n = 0) { elem.fill(values,n); }
 
+    //! \brief Fill a block of the matrix from another matrix
+    void fillBlock(const matrix<T>& block, size_t row, size_t col)
+    {
+      for (size_t i = 1; i <= block.rows() && i+row-1 <= nrow; ++i)
+        for (size_t j = 1; j <= block.cols() && j+col-1 <= ncol; ++j)
+          (*this)(i+row-1, j+col-1) = block(i,j);
+    }
+
     //! \brief Create a diagonal matrix.
     matrix<T>& diag(const T& d, size_t dim = 0)
     {
