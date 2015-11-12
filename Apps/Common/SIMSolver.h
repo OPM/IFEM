@@ -47,13 +47,17 @@ int ConfigureSIM(T& t, char* infile, const typename T::SetupProps& p=typename T:
 template<class T>
 struct SolverHandler {
   //! \brief Constructor.
-  SolverHandler(T& sim, char* infile) : m_sim(sim), m_infile(infile) {}
+  SolverHandler(T& sim) : m_sim(sim) {}
 
-  bool pre(TimeStep& tp, int& geoBlk, int& nBlock)
+  int pre(char* infile, int& nBlock, const TimeStep* tp = nullptr)
   {
     // Save FE model to VTF file for visualization
-    return m_sim.saveModel(m_infile,geoBlk,nBlock) &&
-           m_sim.saveStep(tp,nBlock);
+    int geoBlk = nBlock = 0;
+    if (!m_sim.saveModel(infile,geoBlk,nBlock))
+      return 1;
+
+    // Optionally save the initial configuration
+    return tp && !m_sim.saveStep(*tp,nBlock) ? 2 : 0;
   }
 
   //! \brief Solve for a single time step.
@@ -62,11 +66,11 @@ struct SolverHandler {
   int solve(TimeStep& tp, int& nBlock, DataExporter* exporter)
   {
     if (!m_sim.solveStep(tp))
-      return 1;
+      return 3;
 
     // Save solution
     if (!m_sim.saveStep(tp,nBlock))
-      return 1;
+      return 4;
 
     if (exporter)
       exporter->dumpTimeLevel(&tp);
@@ -75,13 +79,9 @@ struct SolverHandler {
   }
 
   //! \brief Post step for a single time step.
-  bool post(TimeStep& tp)
-  {
-    return false;
-  }
+  bool post(TimeStep&) { return false; }
 
   T& m_sim; //!< Reference to simulator to solve for.
-  char* m_infile; //!< Input file to parse.
 };
 
 
@@ -89,15 +89,16 @@ struct SolverHandler {
 template<>
 struct SolverHandler<AdaptiveSIM> {
   //! \brief Constructor.
-  SolverHandler<AdaptiveSIM>(AdaptiveSIM& sim, char* infile) :
-    m_sim(sim), m_infile(infile), m_step(0)
+  SolverHandler<AdaptiveSIM>(AdaptiveSIM& sim) : m_sim(sim), m_infile(nullptr)
   {
+    m_step = 0;
     m_norms = sim.getNoNorms();
   }
 
-  bool pre(TimeStep& tp, int& geoBlk, int& nBlock)
+  int pre(char* infile, int&, const TimeStep* = nullptr)
   {
-    return true;
+    m_infile = infile;
+    return 0;
   }
 
   //! \brief Solve for a adaptive level.
@@ -120,15 +121,12 @@ struct SolverHandler<AdaptiveSIM> {
   //! \brief Post step for a single adaptive loop.
   bool post(TimeStep& tp)
   {
-    ++m_step;
+    if (++m_step == 1 || m_sim.adaptMesh(m_step))
+      return true;
 
-    if (m_step != 1 && !m_sim.adaptMesh(m_step)) {
-      m_step = 0;
-      tp.step--; // advanceStep will increment it
-      return false;
-    }
-
-    return true;
+    m_step = 0;
+    tp.step--; // advanceStep will increment it
+    return false;
   }
 
   AdaptiveSIM& m_sim; //!< Reference to adaptive simulator.
@@ -152,65 +150,55 @@ public:
   //! \brief Empty destructor.
   virtual ~SIMSolver() {}
 
+  //! \brief Returns a const reference to the time stepping information.
+  const TimeStep& getTimePrm() const { return tp; }
+
   //! \brief Advances the time step one step forward.
   bool advanceStep() { return tp.increment() && S1.advanceStep(tp); }
-
-  void postSolve(const TimeStep& tp, bool restart=false) { S1.postSolve(tp,restart); }
   //! \brief Advances the time step \a n steps forward.
   void fastForward(int n) { for (int i = 0; i < n; i++) this->advanceStep(); }
 
+  void postSolve(const TimeStep& tp, bool restart=false) { S1.postSolve(tp,restart); }
+
   //! \brief Solves the problem up to the final time.
   virtual int solveProblem(char* infile, DataExporter* exporter = nullptr,
-                           const char* heading = nullptr)
+                           const char* heading = nullptr, bool saveInit = true)
   {
-    int geoBlk = 0;
-    int nBlock = 0;
-    SolverHandler<T1> handler(S1,infile);
+    int res, nBlock = 0;
+    SolverHandler<T1> handler(S1);
+    if (saveInit)
+      res = handler.pre(infile,nBlock,&tp);
+    else
+      res = handler.pre(infile,nBlock);
+    if (res) return res;
 
-    if (!handler.pre(tp,geoBlk,nBlock))
-      return 1;
-
-    if (heading && myPid == 0)
+    if (heading)
     {
       // Write an application-specific heading, if provided
       std::string myHeading(heading);
       size_t n = myHeading.find_last_of('\n');
       if (n+1 < myHeading.size()) n = myHeading.size()-n;
-      std::cout <<"\n\n" << myHeading <<"\n";
-      for (size_t i = 0; i < n && i < myHeading.size(); i++) std::cout <<'=';
-      std::cout << std::endl;
+      IFEM::cout <<"\n\n"<< myHeading <<"\n";
+      for (size_t i = 0; i < n && i < myHeading.size(); i++) IFEM::cout <<'=';
+      IFEM::cout << std::endl;
     }
 
     // Solve for each time step up to final time
     for (int iStep = 1; handler.post(tp) || this->advanceStep(); iStep++)
-    {
-      // Solve
-      int res = handler.solve(tp,nBlock,exporter);
-      if (res)
+      if ((res = handler.solve(tp,nBlock,exporter)))
         return res;
-
-      IFEM::pollControllerFifo();
-    }
+      else
+        IFEM::pollControllerFifo();
 
     return 0;
   }
 
-  //! \brief Parses a data section from an input stream.
-  virtual bool parse(char*, std::istream&) { return true; }
-
-  //! \brief Parses a data section from an XML element.
-  virtual bool parse(const TiXmlElement* elem)
-  {
-    if (strcasecmp(elem->Value(),"timestepping") == 0)
-      return tp.parse(elem);
-
-    return true;
-  }
-
-  //! \brief Returns a reference to the time stepping information.
-  const TimeStep& getTimePrm() const { return tp; }
-
 protected:
+  //! \brief Parses a data section from an input stream.
+  virtual bool parse(char* keyw, std::istream& is) { return tp.parse(keyw,is); }
+  //! \brief Parses a data section from an XML element.
+  virtual bool parse(const TiXmlElement* elem) { return tp.parse(elem); }
+
   TimeStep tp; //!< Time stepping information
   T1&      S1; //!< The actual solver
 };

@@ -28,11 +28,11 @@ class VTF;
 template<class T1, class T2> class SIMCoupled
 {
 public:
-  //! \brief The constructor initializes the references to the two solvers.
+  //! \brief The constructor initializes the references to the two simulators.
   SIMCoupled(T1& s1, T2& s2) : S1(s1), S2(s2) {}
 
-  //! \brief Empty destructor.
-  virtual ~SIMCoupled() {}
+  //! \brief The destructor nullifies the VTF pointer for the second simulator.
+  virtual ~SIMCoupled() { S2.setVTF(nullptr); }
 
   //! \brief Sets up field dependencies.
   virtual void setupDependencies() {}
