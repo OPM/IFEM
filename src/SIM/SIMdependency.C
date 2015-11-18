@@ -58,7 +58,7 @@ utl::vector<double>*
 SIMdependency::getField (const std::string& name)
 {
   FieldMap::iterator it = myFields.find(name);
-  if (it == myFields.end()) return NULL;
+  if (it == myFields.end()) return nullptr;
 
   return const_cast<utl::vector<double>*>(it->second);
 }
@@ -68,7 +68,7 @@ const utl::vector<double>*
 SIMdependency::getField (const std::string& name) const
 {
   FieldMap::const_iterator it = myFields.find(name);
-  return it == myFields.end() ? NULL : it->second;
+  return it == myFields.end() ? nullptr : it->second;
 }
 
 
@@ -88,7 +88,7 @@ SIMdependency::getDependentField (const std::string& name) const
 {
   DepVector::const_iterator it = this->getDependency(name);
   if (it == depFields.end())
-    return NULL;
+    return nullptr;
 
   return it->sim->getField(name);
 }
@@ -99,10 +99,10 @@ ASMbase* SIMdependency::getDependentPatch (const std::string& name,
 {
   DepVector::const_iterator it = this->getDependency(name);
   if (it == depFields.end())
-    return NULL;
+    return nullptr;
 
   if (pindx < 0 || (size_t)pindx >= it->patches.size())
-    return NULL;
+    return nullptr;
 
   return it->patches[pindx];
 }

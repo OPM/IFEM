@@ -870,8 +870,8 @@ bool ASMu2D::integrate (Integrand& integrand,
   if (!xg || !wg) return false;
 
   // Get the reduced integration quadrature points, if needed
-  const double* xr = NULL;
-  const double* wr = NULL;
+  const double* xr = nullptr;
+  const double* wr = nullptr;
   int nRed = integrand.getReducedIntegration(nGauss);
   if (nRed > 0)
   {
@@ -1545,13 +1545,13 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                            const int* npe, char project) const
 {
   // sanity check on input
-  if(npe != NULL && (npe[0] != npe[1])) {
+  if(npe != nullptr && (npe[0] != npe[1])) {
     std::cerr << "Error ASMu2D::evalSolution, LR B-splines assumes same number of discretization points in u- and v-direction" << std::endl;
     return false;
   }
 
   // Project the secondary solution onto the spline basis
-  LR::LRSplineSurface* s = NULL;
+  LR::LRSplineSurface* s = nullptr;
   if (project == 'S')
     s = this->scRecovery(integrand);
   else if (project == 'D' || !npe)

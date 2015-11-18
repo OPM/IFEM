@@ -25,7 +25,7 @@ void utl::parseIntegers (std::vector<int>& values, const char* argv)
 {
   if (!argv) return;
 
-  char* endp = NULL;
+  char* endp = nullptr;
   int endVal = 0;
   values.push_back(strtol(argv,&endp,10));
   if (endp && *endp == ':')
@@ -37,17 +37,17 @@ void utl::parseIntegers (std::vector<int>& values, const char* argv)
 
 bool utl::parseKnots (std::vector<Real>& xi)
 {
-  char* cline = strtok(NULL," ");
+  char* cline = strtok(nullptr," ");
   if (!cline)
     return false;
   else if (isalpha(cline[0]))
   {
     // Geometric grading
     bool  biased = toupper(cline[0]) == 'B';
-    int    ru    = atoi(strtok(NULL," "));
-    double alpha = atof(strtok(NULL," "));
-    double xi1   = (cline = strtok(NULL," ")) ? atof(cline) : 0.0;
-    double xi2   = (cline = strtok(NULL," ")) ? atof(cline) : 1.0;
+    int    ru    = atoi(strtok(nullptr," "));
+    double alpha = atof(strtok(nullptr," "));
+    double xi1   = (cline = strtok(nullptr," ")) ? atof(cline) : 0.0;
+    double xi2   = (cline = strtok(nullptr," ")) ? atof(cline) : 1.0;
     if (xi1 < 0.0 || xi2 <= xi1 || xi2 > 1.0 || ru < 1)
       return false;
     if (biased && ru > 1 && alpha != 1.0)
@@ -69,7 +69,7 @@ bool utl::parseKnots (std::vector<Real>& xi)
   {
     // Explicit specification of knots
     xi.push_back(atof(cline));
-    while ((cline = strtok(NULL," ")))
+    while ((cline = strtok(nullptr," ")))
       xi.push_back(atof(cline));
   }
 
@@ -200,7 +200,7 @@ const char* utl::getValue (const TiXmlNode* xml, const char* tag)
       return xml->FirstChild()->Value();
   }
 
-  return NULL;
+  return nullptr;
 }
 
 

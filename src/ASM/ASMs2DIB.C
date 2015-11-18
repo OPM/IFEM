@@ -23,8 +23,8 @@ ASMs2DIB::ASMs2DIB (unsigned char n_s, unsigned char n_f, int max_depth)
   : ASMs2D(n_s,n_f)
 {
   maxDepth = max_depth;
-  myGeometry = NULL;
-  myLines = NULL;
+  myGeometry = nullptr;
+  myLines = nullptr;
 }
 
 
@@ -32,8 +32,8 @@ ASMs2DIB::ASMs2DIB (const ASMs2DIB& patch, unsigned char n_f)
   : ASMs2D(patch,n_f)
 {
   quadPoints = patch.quadPoints;
-  myGeometry = NULL;
-  myLines = NULL;
+  myGeometry = nullptr;
+  myLines = nullptr;
 }
 
 
@@ -91,7 +91,7 @@ void ASMs2DIB::addHole (double R, double X1, double Y1, double X2, double Y2)
 
 ElementBlock* ASMs2DIB::immersedGeometry () const
 {
-  if (!myGeometry) return NULL;
+  if (!myGeometry) return nullptr;
 
   ElementBlock* geo = myGeometry->tesselate();
   if (myLines)

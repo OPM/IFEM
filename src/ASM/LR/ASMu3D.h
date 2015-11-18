@@ -290,10 +290,10 @@ public:
   //!
   //! \details The secondary solution is derived from the primary solution,
   //! which is assumed to be stored within the \a integrand for current patch.
-  //! If \a npe is NULL, the solution is recovered or evaluated at the Greville
+  //! If \a npe is nullptr, the solution is recovered or evaluated at the Greville
   //! points and then projected onto the spline basis to obtain the control
   //! point values, which then are returned through \a sField.
-  //! If \a npe is not NULL and \a project is defined, the solution is also
+  //! If \a npe is not nullptr and \a project is defined, the solution is also
   //! projected onto the spline basis, and then evaluated at the \a npe points.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
                             const int* npe = 0, char project = '\0') const;
@@ -301,7 +301,7 @@ public:
 public:
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods
-  virtual LR::LRSpline* evalSolution(const IntegrandBase& integrand) const { return NULL; }
+  virtual LR::LRSpline* evalSolution(const IntegrandBase& integrand) const { return nullptr; }
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field

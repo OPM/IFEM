@@ -55,7 +55,7 @@ bool ASMu2Dmx::globalL2projection (Matrix& sField,
   const int ng2 = continuous ? nGauss : p2 - 1;
   const double* xg = GaussQuadrature::getCoord(ng1);
   const double* yg = GaussQuadrature::getCoord(ng2);
-  const double* wg = continuous ? GaussQuadrature::getWeight(nGauss) : NULL;
+  const double* wg = continuous ? GaussQuadrature::getWeight(nGauss) : nullptr;
   if (!xg || !yg) return false;
   if (continuous && !wg) return false;
 

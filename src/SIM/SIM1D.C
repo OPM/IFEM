@@ -25,7 +25,7 @@ SIM1D::SIM1D (unsigned char n1, bool)
 {
   nsd = 1;
   nf = n1;
-  twist = NULL;
+  twist = nullptr;
 }
 
 
@@ -33,7 +33,7 @@ SIM1D::SIM1D (const std::vector<unsigned char>& fields, bool)
 {
   nsd = 1;
   nf = fields.empty()?1:fields.front();
-  twist = NULL;
+  twist = nullptr;
 }
 
 
@@ -41,7 +41,7 @@ SIM1D::SIM1D (IntegrandBase* itg, unsigned char n) : SIMgeneric(itg)
 {
   nsd = 1;
   nf = n;
-  twist = NULL;
+  twist = nullptr;
 }
 
 
@@ -231,7 +231,7 @@ bool SIM1D::parse (const TiXmlElement* elem)
 
 bool SIM1D::parse (char* keyWord, std::istream& is)
 {
-  char* cline = NULL;
+  char* cline = nullptr;
   if (!strncasecmp(keyWord,"REFINE",6))
   {
     int nref = atoi(keyWord+6);
@@ -254,7 +254,7 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
       }
       if (uniform)
       {
-	int addu = atoi(strtok(NULL," "));
+	int addu = atoi(strtok(nullptr," "));
 	for (int j = ipatch; j < patch; j++)
 	{
 	  IFEM::cout <<"\tRefining P"<< j+1 <<" "<< addu << std::endl;
@@ -284,7 +284,7 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
     for (int i = 0; i < nref && (cline = utl::readLine(is)); i++)
     {
       int patch = atoi(strtok(cline," "));
-      int addu  = atoi(strtok(NULL," "));
+      int addu  = atoi(strtok(nullptr," "));
       if (patch == 0 || abs(patch) > (int)myModel.size())
       {
 	std::cerr <<" *** SIM1D::parse: Invalid patch index "
@@ -315,9 +315,9 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
     for (int i = 0; i < ntop && (cline = utl::readLine(is)); i++)
     {
       int master = atoi(strtok(cline," "));
-      int mVert  = atoi(strtok(NULL," "));
-      int slave  = atoi(strtok(NULL," "));
-      int sVert  = atoi(strtok(NULL," "));
+      int mVert  = atoi(strtok(nullptr," "));
+      int slave  = atoi(strtok(nullptr," "));
+      int sVert  = atoi(strtok(nullptr," "));
       if (master == slave ||
 	  master < 1 || master > (int)myModel.size() ||
 	  slave  < 1 || slave  > (int)myModel.size())
@@ -366,9 +366,9 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
     for (int i = 0; i < ncon && (cline = utl::readLine(is)); i++)
     {
       int patch = atoi(strtok(cline," "));
-      int pvert = atoi(strtok(NULL," "));
-      int bcode = atoi(strtok(NULL," "));
-      double pd = (cline = strtok(NULL," ")) ? atof(cline) : 0.0;
+      int pvert = atoi(strtok(nullptr," "));
+      int bcode = atoi(strtok(nullptr," "));
+      double pd = (cline = strtok(nullptr," ")) ? atof(cline) : 0.0;
       if (pd == 0.0)
       {
 	if (!this->addConstraint(patch,pvert,0,bcode%1000000,0,ngno))
@@ -384,7 +384,7 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
 	  return false;
 
 	IFEM::cout <<" ";
-	cline = strtok(NULL," ");
+	cline = strtok(nullptr," ");
 	myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,pd));
       }
       IFEM::cout << std::endl;
@@ -401,8 +401,8 @@ bool SIM1D::parse (char* keyWord, std::istream& is)
     for (int i = 0; i < nfix && (cline = utl::readLine(is)); i++)
     {
       int patch = atoi(strtok(cline," "));
-      double rx = atof(strtok(NULL," "));
-      int bcode = (cline = strtok(NULL," ")) ? atoi(cline) : 123;
+      double rx = atof(strtok(nullptr," "));
+      int bcode = (cline = strtok(nullptr," ")) ? atoi(cline) : 123;
       if (patch < 1 || patch > (int)myModel.size())
       {
 	std::cerr <<" *** SIM1D::parse: Invalid patch index "
@@ -472,9 +472,9 @@ ASMbase* SIM1D::readPatch (std::istream& isp, int pchInd,
   if (pch)
   {
     if (!pch->read(isp))
-      delete pch, pch = NULL;
+      delete pch, pch = nullptr;
     else if (pch->empty() || this->getLocalPatchIndex(pchInd+1) < 1)
-      delete pch, pch = NULL;
+      delete pch, pch = nullptr;
     else
       pch->idx = myModel.size();
   }
@@ -486,7 +486,7 @@ ASMbase* SIM1D::readPatch (std::istream& isp, int pchInd,
 bool SIM1D::readPatches (std::istream& isp, PatchVec& patches,
                          const char* whiteSpace)
 {
-  ASMbase* pch = NULL;
+  ASMbase* pch = nullptr;
   for (int pchInd = 1; isp.good(); pchInd++)
     if ((pch = ASM1D::create(opt.discretization,nsd,nf)))
     {

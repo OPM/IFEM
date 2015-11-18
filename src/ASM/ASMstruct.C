@@ -23,7 +23,7 @@ std::map<int,int> ASMstruct::xNode;
 ASMstruct::ASMstruct (unsigned char n_p, unsigned char n_s, unsigned char n_f)
   : ASMbase(n_p,n_s,n_f)
 {
-  geo = NULL;
+  geo = nullptr;
 }
 
 

@@ -28,7 +28,7 @@ class SIMgeneric : public SIMoutput
 {
 protected:
   //! \brief Default constructor.
-  SIMgeneric(IntegrandBase* itg = NULL) : SIMoutput(itg) {}
+  SIMgeneric(IntegrandBase* itg = nullptr) : SIMoutput(itg) {}
 
 public:
   //! \brief Empty destructor.
@@ -53,7 +53,7 @@ public:
   //! \param[in] patch The patch to evaluate
   //! \return 0 if the evaluation went good
   int evalPoint(const double* xi, Vec3& X, 
-                double* param=NULL, int patch = 1) const;
+                double* param=nullptr, int patch = 1) const;
 };
 
 #endif

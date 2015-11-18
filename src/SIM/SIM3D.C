@@ -65,7 +65,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
       return false;
     }
 
-    ASM3D* pch = NULL;
+    ASM3D* pch = nullptr;
     RealArray xi;
     if (!utl::parseKnots(elem,xi))
     {
@@ -116,7 +116,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
       return false;
     }
 
-    ASM3D* pch = NULL;
+    ASM3D* pch = nullptr;
     int addu = 0, addv = 0, addw = 0;
     utl::getAttribute(elem,"u",addu);
     utl::getAttribute(elem,"v",addv);
@@ -235,7 +235,7 @@ bool SIM3D::parse (const TiXmlElement* elem)
 
 bool SIM3D::parse (char* keyWord, std::istream& is)
 {
-  char* cline = NULL;
+  char* cline = nullptr;
   if (!strncasecmp(keyWord,"REFINE",6))
   {
     int nref = atoi(keyWord+6);
@@ -243,7 +243,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
       for (int i = 0; i < nref && utl::readLine(is); i++);
     else
     {
-      ASM3D* pch = NULL;
+      ASM3D* pch = nullptr;
       IFEM::cout <<"\nNumber of patch refinements: "<< nref << std::endl;
       for (int i = 0; i < nref && (cline = utl::readLine(is)); i++)
       {
@@ -263,9 +263,9 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
         }
         if (uniform)
         {
-          int addu = atoi(strtok(NULL," "));
-          int addv = atoi(strtok(NULL," "));
-          int addw = atoi(strtok(NULL," "));
+          int addu = atoi(strtok(nullptr," "));
+          int addv = atoi(strtok(nullptr," "));
+          int addw = atoi(strtok(nullptr," "));
           for (int j = ipatch; j < patch; j++)
             if ((pch = dynamic_cast<ASM3D*>(myModel[j])))
             {
@@ -279,7 +279,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
         else
         {
           RealArray xi;
-          int dir = atoi(strtok(NULL," "));
+          int dir = atoi(strtok(nullptr," "));
           if (utl::parseKnots(xi))
             for (int j = ipatch; j < patch; j++)
               if ((pch = dynamic_cast<ASM3D*>(myModel[j])))
@@ -302,14 +302,14 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
       for (int i = 0; i < nref && utl::readLine(is); i++);
     else
     {
-      ASM3D* pch = NULL;
+      ASM3D* pch = nullptr;
       IFEM::cout <<"\nNumber of order raise: "<< nref << std::endl;
       for (int i = 0; i < nref && (cline = utl::readLine(is)); i++)
       {
         int patch = atoi(strtok(cline," "));
-        int addu  = atoi(strtok(NULL," "));
-        int addv  = atoi(strtok(NULL," "));
-        int addw  = atoi(strtok(NULL," "));
+        int addu  = atoi(strtok(nullptr," "));
+        int addv  = atoi(strtok(nullptr," "));
+        int addw  = atoi(strtok(nullptr," "));
         if (patch == 0 || abs(patch) > (int)myModel.size())
         {
           std::cerr <<" *** SIM3D::parse: Invalid patch index "
@@ -351,12 +351,12 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
     while ((cline = utl::readLine(ist)))
     {
       int master = atoi(strtok(cline," "))+1;
-      int mFace  = atoi(strtok(NULL," "))+1;
-      int slave  = atoi(strtok(NULL," "))+1;
-      int sFace  = atoi(strtok(NULL," "))+1;
-      int swapd  = atoi(strtok(NULL," "));
-      int rev_u  = atoi(strtok(NULL," "));
-      int rev_v  = atoi(strtok(NULL," "));
+      int mFace  = atoi(strtok(nullptr," "))+1;
+      int slave  = atoi(strtok(nullptr," "))+1;
+      int sFace  = atoi(strtok(nullptr," "))+1;
+      int swapd  = atoi(strtok(nullptr," "));
+      int rev_u  = atoi(strtok(nullptr," "));
+      int rev_v  = atoi(strtok(nullptr," "));
       int orient = 4*swapd+2*rev_u+rev_v;
       if (master == slave ||
           master < 1 || master > (int)myModel.size() ||
@@ -385,10 +385,10 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
     for (int i = 0; i < ntop && (cline = utl::readLine(is)); i++)
     {
       int master = atoi(strtok(cline," "));
-      int mFace  = atoi(strtok(NULL," "));
-      int slave  = atoi(strtok(NULL," "));
-      int sFace  = atoi(strtok(NULL," "));
-      int orient = (cline = strtok(NULL," ")) ? atoi(cline) : 0;
+      int mFace  = atoi(strtok(nullptr," "));
+      int slave  = atoi(strtok(nullptr," "));
+      int sFace  = atoi(strtok(nullptr," "));
+      int orient = (cline = strtok(nullptr," ")) ? atoi(cline) : 0;
       if (master == slave ||
           master < 1 || master > (int)myModel.size() ||
           slave  < 1 || slave  > (int)myModel.size())
@@ -416,7 +416,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
     for (int i = 0; i < nper && (cline = utl::readLine(is)); i++)
     {
       int patch = atoi(strtok(cline," "));
-      int pfdir = atoi(strtok(NULL," "));
+      int pfdir = atoi(strtok(nullptr," "));
       if (patch < 1 || patch > (int)myModel.size())
       {
         std::cerr <<" *** SIM3D::parse: Invalid patch index "
@@ -444,9 +444,9 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
     for (int i = 0; i < ncon && (cline = utl::readLine(is)); i++)
     {
       int patch = atoi(strtok(cline," "));
-      int pface = atoi(strtok(NULL," "));
-      int bcode = atoi(strtok(NULL," "));
-      double pd = (cline = strtok(NULL," ")) ? atof(cline) : 0.0;
+      int pface = atoi(strtok(nullptr," "));
+      int bcode = atoi(strtok(nullptr," "));
+      double pd = (cline = strtok(nullptr," ")) ? atof(cline) : 0.0;
 
       patch = this->getLocalPatchIndex(patch);
       if (patch < 1) continue;
@@ -474,7 +474,7 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
           return false;
 
         IFEM::cout <<" ";
-        cline = strtok(NULL," ");
+        cline = strtok(nullptr," ");
         myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,pd));
       }
       if (pface < 10) IFEM::cout << std::endl;
@@ -486,16 +486,16 @@ bool SIM3D::parse (char* keyWord, std::istream& is)
     if (ignoreDirichlet) return true; // Ignore all boundary conditions
     if (!this->createFEMmodel()) return false;
 
-    ASM3D* pch = NULL;
+    ASM3D* pch = nullptr;
     int nfix = atoi(keyWord+9);
     IFEM::cout <<"\nNumber of fixed points: "<< nfix << std::endl;
     for (int i = 0; i < nfix && (cline = utl::readLine(is)); i++)
     {
       int patch = atoi(strtok(cline," "));
-      double rx = atof(strtok(NULL," "));
-      double ry = atof(strtok(NULL," "));
-      double rz = atof(strtok(NULL," "));
-      int bcode = (cline = strtok(NULL," ")) ? atoi(cline) : 123;
+      double rx = atof(strtok(nullptr," "));
+      double ry = atof(strtok(nullptr," "));
+      double rz = atof(strtok(nullptr," "));
+      int bcode = (cline = strtok(nullptr," ")) ? atoi(cline) : 123;
 
       int pid = this->getLocalPatchIndex(patch);
       if (pid > 0 && (pch = dynamic_cast<ASM3D*>(myModel[pid-1])))
@@ -682,9 +682,9 @@ ASMbase* SIM3D::readPatch (std::istream& isp, int pchInd,
   if (pch)
   {
     if (!pch->read(isp))
-      delete pch, pch = NULL;
+      delete pch, pch = nullptr;
     else if (pch->empty() || this->getLocalPatchIndex(pchInd+1) < 1)
-      delete pch, pch = NULL;
+      delete pch, pch = nullptr;
     else
       pch->idx = myModel.size();
   }
@@ -699,7 +699,7 @@ ASMbase* SIM3D::readPatch (std::istream& isp, int pchInd,
 bool SIM3D::readPatches (std::istream& isp, PatchVec& patches,
                          const char* whiteSpace)
 {
-  ASMbase* pch = NULL;
+  ASMbase* pch = nullptr;
   for (int pchInd = 1; isp.good(); pchInd++)
     if ((pch = ASM3D::create(opt.discretization,nf,nf.size() > 1 && nf[1] > 0)))
     {

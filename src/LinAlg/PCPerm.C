@@ -11,7 +11,7 @@ PetscErrorCode PCPermCreate(PCPerm **pcperm)
 #else
   PetscNew(&newctx);
 #endif
-  newctx->order = NULL;
+  newctx->order = nullptr;
   *pcperm = newctx;
 
   return 0;

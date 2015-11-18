@@ -55,7 +55,7 @@ public:
   //! or changed in other ways that affect the FE geometry and/or topology.
   //! The other properties of the patch (boundary conditions, constraints,
   //! loads, etc.) are however not copied.
-  ASMbase* clone(unsigned char* nf = NULL) const;
+  ASMbase* clone(unsigned char* nf = nullptr) const;
 
   //! \brief Refines the parametrization by inserting extra knots uniformly.
   //! \param[in] nInsert Number of extra knots to insert in each knot-span

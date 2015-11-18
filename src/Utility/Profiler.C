@@ -56,7 +56,7 @@ static double WallTime ()
   return omp_get_wtime();
 #endif
   timeval tmpTime;
-  gettimeofday(&tmpTime,NULL);
+  gettimeofday(&tmpTime,nullptr);
   return tmpTime.tv_sec + tmpTime.tv_usec/1.0e6;
 }
 

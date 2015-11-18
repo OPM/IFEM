@@ -768,7 +768,7 @@ void SparseMatrix::preAssemble (const std::vector<IntVec>& MMNPC, size_t nel)
   IntVec meen;
   for (size_t iel = 0; iel < nel; iel++)
     if (!MMNPC[iel].empty())
-      ::preAssemble(*this,MMNPC[iel],NULL,NULL,NULL);
+      ::preAssemble(*this,MMNPC[iel],nullptr,nullptr,nullptr);
 
   switch (solver) {
   case SUPERLU: this->optimiseSLU(); break;

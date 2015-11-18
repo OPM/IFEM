@@ -32,7 +32,7 @@ class FieldFunction : public RealFunc
 
 public:
   //! \brief Default constructor.
-  FieldFunction(Field* f = NULL) : field(f), pch(NULL) {}
+  FieldFunction(Field* f = nullptr) : field(f), pch(nullptr) {}
   //! \brief Constructor creating a field from a provided HDF5 file.
   //! \param[in] fileName Name of the HDF5-file
   //! \param[in] basisName Name of the basis which the field values refer to

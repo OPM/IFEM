@@ -236,7 +236,7 @@ public:
   //! \param[in] P Preconditioner  matrix (ignored here)
   //! \param[in] Pb Preconditioner vector (ignored here)
   //! \return True on success
-  virtual bool setParameters(PETScMatrix* P = NULL, PETScVector* Pb = NULL);
+  virtual bool setParameters(PETScMatrix* P = nullptr, PETScVector* Pb = nullptr);
 protected:
   //! \brief Constructs index set needed for element-by-element preconditioner.
   bool makeElementIS(const SAM& sam);

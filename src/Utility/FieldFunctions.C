@@ -44,8 +44,8 @@ FieldFunction::FieldFunction (const std::string& fileName,
 #else
   std::cerr <<"WARNING: Compiled without HDF5 support,"
             <<" field function is not instanciated."<< std::endl;
-  field = NULL;
-  pch = NULL;
+  field = nullptr;
+  pch = nullptr;
 #endif
 }
 

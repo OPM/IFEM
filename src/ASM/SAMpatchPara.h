@@ -79,7 +79,7 @@ public:
   //! \param reactionForces Pointer to vector of nodal reaction forces
   //! \return \e false if no free DOFs in the system, otherwise \e true
   virtual bool initForAssembly(SystemVector& sysRHS,
-			       Vector* reactionForces = NULL) const;
+			       Vector* reactionForces = nullptr) const;
 
   //! \brief Adds element stiffness contributions to the system load vector.
   //! \param sysRHS  The right-hand-side system load vector
@@ -92,7 +92,7 @@ public:
   //! these are added into the right-hand-side system load vector.
   virtual bool assembleSystem(SystemVector& sysRHS,
 			      const Matrix& eK, int iel = 0,
-			      Vector* reactionForces = NULL) const;
+			      Vector* reactionForces = nullptr) const;
 
   //! \brief Adds an element load vector into the system load vector.
   //! \param sysRHS  The right-hand-side system load vector
@@ -102,7 +102,7 @@ public:
   //! \return \e true on successful assembly, otherwise \e false
   virtual bool assembleSystem(SystemVector& sysRHS,
 			      const RealArray& eS, int iel = 0,
-			      Vector* reactionForces = NULL) const;
+			      Vector* reactionForces = nullptr) const;
 
   //! \brief Adds a global load vector into the system load vector.
   //! \param sysRHS The right-hand-side system load vector

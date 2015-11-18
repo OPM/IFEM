@@ -35,9 +35,9 @@ Real VTF::vecOffset[3] = { 0.0, 0.0, 0.0 };
 
 VTF::VTF (const char* filename, int type)
 {
-  myFile = NULL;
-  myState = NULL;
-  myGBlock = NULL;
+  myFile = nullptr;
+  myState = nullptr;
+  myGBlock = nullptr;
   pointGeoID = lastStep = 0;
   if (!filename) return;
 
@@ -71,7 +71,7 @@ VTF::VTF (const char* filename, int type)
 #else
   showError("Not available in this version");
 #endif
-  myFile = NULL;
+  myFile = nullptr;
 }
 
 
@@ -490,7 +490,7 @@ bool VTF::writeVectors (const std::vector<Vec3Pair>& pntResult, int& gID,
   else
     rBlock.SetMapToBlockID(pointGeoID);
 
-  int* mnpc = writePoints ? new int[np] : NULL;
+  int* mnpc = writePoints ? new int[np] : nullptr;
   std::vector<Vec3Pair>::const_iterator cit;
   for (cit = pntResult.begin(); cit != pntResult.end(); cit++, i++)
     if (writePoints && VTFA_FAILURE(nBlock.AddNode(vecOffset[0]+cit->first.x,

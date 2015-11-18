@@ -36,7 +36,7 @@ class AdaptiveSIM : public SIMinput
 public:
   //! \brief The constructor initializes default adaptation parameters.
   //! \param sim Pointer to the spline FE model
-  AdaptiveSIM(SIMbase* sim = NULL);
+  AdaptiveSIM(SIMbase* sim = nullptr);
   //! \brief The destructor frees the dynamically allocated FE model object.
   virtual ~AdaptiveSIM();
 

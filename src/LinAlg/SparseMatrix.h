@@ -99,7 +99,7 @@ public:
   void printFull(std::ostream& os) const;
 
   //! \brief Dumps the system matrix on a specified format.
-  virtual void dump(std::ostream&, char, const char* = NULL);
+  virtual void dump(std::ostream&, char, const char* = nullptr);
 
   //! \brief Initializes the element assembly process.
   //! \details Must be called once before the element assembly loop.
@@ -197,7 +197,7 @@ public:
   //! \param B Right-hand-side vector on input, solution vector on output
   //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
   //! \param[out] rc Reciprocal condition number of the LHS-matrix (optional)
-  virtual bool solve(SystemVector& B, bool newLHS = true, Real* rc = NULL);
+  virtual bool solve(SystemVector& B, bool newLHS = true, Real* rc = nullptr);
 
 protected:
   //! \brief Converts the matrix to an optimized row-oriented format.

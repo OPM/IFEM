@@ -63,7 +63,7 @@ ASMs3D::ASMs3D (const ASMs3D& patch)
 Go::SplineSurface* ASMs3D::getBoundary (int dir, int)
 {
   if (dir < -3 || dir == 0 || dir > 3)
-    return NULL;
+    return nullptr;
 
   // The boundary surfaces are stored internally in the SplineVolume object
   int iface = dir > 0 ? 2*dir-1 : -2*dir-2;
@@ -957,7 +957,7 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
       gdata[k++] = dir > 0 ? Zaxis.z : -Zaxis.z;
     }
 
-  Go::SplineSurface* locs = NULL;
+  Go::SplineSurface* locs = nullptr;
   if (project)
   {
     // Project the Greville point values onto the spline basis
@@ -1710,8 +1710,8 @@ bool ASMs3D::integrate (Integrand& integrand,
   if (!xg || !wg) return false;
 
   // Get the reduced integration quadrature points, if needed
-  const double* xr = NULL;
-  const double* wr = NULL;
+  const double* xr = nullptr;
+  const double* wr = nullptr;
   int nRed = integrand.getReducedIntegration(nGauss);
   if (nRed > 0)
   {
@@ -2814,7 +2814,7 @@ bool ASMs3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 			   const int* npe, char project) const
 {
   // Project the secondary solution onto the spline basis
-  Go::SplineVolume* v = NULL;
+  Go::SplineVolume* v = nullptr;
   if (project == 'A')
     v = this->projectSolutionLocalApprox(integrand);
   else if (project == 'L')

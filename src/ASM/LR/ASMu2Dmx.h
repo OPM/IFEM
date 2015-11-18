@@ -174,7 +174,7 @@ public:
   //! \param[in] sol Vectors to interpolate onto refined mesh
   //! \param[in] fName Optional file name for an image of the resulting mesh
   virtual bool refine(const RealArray& elementError, const IntVec& options,
-                      Vectors* sol, const char* fName = NULL);
+                      Vectors* sol, const char* fName = nullptr);
 
   //! \brief Refines a specified list of elements.
   //! \param[in] elements 0-based indices of the elements to refine
@@ -192,7 +192,7 @@ public:
   //! \param[in] sol Vectors to interpolate onto refined mesh
   //! \param[in] fName Optional file name for an image of the resulting mesh
   virtual bool refine(const IntVec& elements, const IntVec& options,
-                      Vectors* sol, const char* fName = NULL);
+                      Vectors* sol, const char* fName = nullptr);
 
 private:
   std::vector<std::shared_ptr<LR::LRSplineSurface>> m_basis;

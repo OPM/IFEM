@@ -11,7 +11,7 @@ PetscErrorCode PCScaleCreate(PCScale **pcscale)
 #else
   PetscNew(&newctx);
 #endif
-  newctx->scaling  = NULL;
+  newctx->scaling  = nullptr;
   *pcscale = newctx;
 
   return 0;

@@ -196,7 +196,7 @@ void IntegrandBase::setNamedFields (const std::string&, Fields* f)
 Vector* IntegrandBase::getNamedVector (const std::string& name) const
 {
   std::map<std::string,Vector*>::const_iterator it = myFields.find(name);
-  return it == myFields.end() ? NULL : it->second;
+  return it == myFields.end() ? nullptr : it->second;
 }
 
 std::string IntegrandBase::getField1Name(size_t idx, const char* prefix) const 

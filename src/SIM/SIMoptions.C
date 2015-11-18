@@ -103,7 +103,7 @@ bool SIMoptions::parseDiscretizationTag (const TiXmlElement* elem)
   else if (!strcasecmp(elem->Value(),"nGauss") && elem->FirstChild()) {
     std::string value(elem->FirstChild()->Value());
     char* cval = strtok(const_cast<char*>(value.c_str())," ");
-    for (int i = 0; i < 2 && cval; i++, cval = strtok(NULL," "))
+    for (int i = 0; i < 2 && cval; i++, cval = strtok(nullptr," "))
       for (int j = i; j < 2; j++)
         nGauss[j] = atoi(cval);
   }

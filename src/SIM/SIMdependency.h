@@ -64,7 +64,7 @@ private:
     short int      components;     //!< Number of field components per node
     char           differentBasis; //!< Toggle usage of an independent basis
     //! \brief Default constructor.
-    Dependency() : sim(NULL), components(1), differentBasis(0) {}
+    Dependency() : sim(nullptr), components(1), differentBasis(0) {}
   };
 
   //! \brief SIM dependency container

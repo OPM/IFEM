@@ -29,7 +29,7 @@ class NodeVecFunc : public VecFunc
 {
 public:
   //! \brief The constructor initializes the references.
-  NodeVecFunc(const SIMbase& m, const std::vector<Real>* v = NULL)
+  NodeVecFunc(const SIMbase& m, const std::vector<Real>* v = nullptr)
     : idMap(dummy), model(m), value(v) {}
   //! \brief This constructor provides a node number map in addition.
   NodeVecFunc(const SIMbase& m, const std::vector<Real>* v,

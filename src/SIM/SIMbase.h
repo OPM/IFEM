@@ -63,7 +63,7 @@ class SIMbase : public SIMinput, public SIMdependency
 {
 protected:
   //! \brief The constructor initializes the pointers to dynamic data members.
-  SIMbase(IntegrandBase* itg = NULL);
+  SIMbase(IntegrandBase* itg = nullptr);
 
 public:
   //! \brief The destructor frees the dynamically allocated objects.
@@ -117,14 +117,14 @@ public:
   //! \param[in] sol Vectors to interpolate onto refined mesh
   //! \param[in] fName Optional mesh output file (Encapsulated PostScript)
   bool refine(const std::vector<int>& elements, const std::vector<int>& options,
-              Vectors* sol, const char* fName = NULL);
+              Vectors* sol, const char* fName = nullptr);
   //! \brief Refines a set of elements based on a list of element errors.
   //! \param[in] elementError Element-wise errors
   //! \param[in] options Input options to refinement algorithm
   //! \param[in] sol Vectors to interpolate onto refined mesh
   //! \param[in] fName Optional mesh output file (Encapsulated PostScript)
   bool refine(const RealArray& elementError, const std::vector<int>& options,
-              Vectors* sol, const char* fName = NULL);
+              Vectors* sol, const char* fName = nullptr);
 
   //! \brief Performs some pre-processing tasks on the FE model.
   //! \param[in] ignored Indices of patches to ignore in the analysis
@@ -137,7 +137,7 @@ public:
   //! \param[in] ptype The property type to be associated with the given code
   //! \param[in] field The vector field representing the physical property
   //! \param[in] pflag Flag for local axis directions (see setPropertyType)
-  size_t setVecProperty(int code, Property::Type ptype, VecFunc* field = NULL,
+  size_t setVecProperty(int code, Property::Type ptype, VecFunc* field = nullptr,
                         int pflag = -1);
 
   //! \brief Defines a traction field property.
@@ -186,7 +186,7 @@ public:
   //! \brief Clears the reference to the problem-specific data object.
   //! \details This method is used when the same IntegrandBase object is shared
   //! by several SIMbase objects, to avoid that it is deleted more than once.
-  void clearProblem() { myProblem = NULL; }
+  void clearProblem() { myProblem = nullptr; }
 
   //! \brief Returns the name of this simulator.
   //! \details This method is typically reimplemented in sub-classes that are
@@ -235,7 +235,7 @@ public:
   //! \param[out] glbNodes Global node numbers on the boundary
   //! \param[out] XYZ Spatial coordinates of the boundary nodes (optional)
   void getBoundaryNodes(int pcode, std::vector<int>& glbNodes,
-                        std::vector<Vec3>* XYZ = NULL) const;
+                        std::vector<Vec3>* XYZ = nullptr) const;
 
   //! \brief Finds the node that is closest to the given point \b X.
   int findClosestNode(const Vec3&) const;
@@ -257,7 +257,7 @@ public:
   //! (used for the initial time step), otherwise they are set to the difference
   //! between the new values from the Dirichlet functions, and the previous
   //! values stored in the provided \a prevSol vector.
-  virtual bool updateDirichlet(double time = 0.0, const Vector* prevSol = NULL);
+  virtual bool updateDirichlet(double time = 0.0, const Vector* prevSol = nullptr);
 
   //! \brief Updates problem-dependent state based on the current solution.
   virtual bool updateConfiguration(const Vector&) { return true; }
@@ -339,8 +339,8 @@ public:
   //! \param[out] ind Global index of the node corresponding to the inf-value
   //! \param[in] nf Number of components in the primary solution field
   //! \return L2-norm of the solution vector
-  double solutionNorms(const Vector& x, double* inf = NULL,
-                       size_t* ind = NULL, size_t nf = 0, char type='D') const;
+  double solutionNorms(const Vector& x, double* inf = nullptr,
+                       size_t* ind = nullptr, size_t nf = 0, char type='D') const;
 
   //! \brief Integrates some solution norm quantities.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations.
@@ -356,7 +356,7 @@ public:
   //! solution are computed as well.
   bool solutionNorms(const TimeDomain& time,
                      const Vectors& psol, const Vectors& ssol,
-                     Vectors& gNorm, Matrix* eNorm = NULL);
+                     Vectors& gNorm, Matrix* eNorm = nullptr);
   //! \brief Integrates some solution norm quantities.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations.
   //! \param[in] psol Primary solution vectors
@@ -365,7 +365,7 @@ public:
   //!
   //! \details Use this version if no projected solutions are needed/available.
   bool solutionNorms(const TimeDomain& time, const Vectors& psol,
-                     Vectors& gNorm, Matrix* eNorm = NULL)
+                     Vectors& gNorm, Matrix* eNorm = nullptr)
   { return this->solutionNorms(time,psol,Vectors(),gNorm,eNorm); }
   //! \brief Integrates some solution norm quantities.
   //! \param[in] psol Primary solution vectors
@@ -398,7 +398,7 @@ public:
   //! \param[in] compName Solution name to be used in norm output
   //! \param[in] outPrec Number of digits after the decimal point in norm print
   virtual void printSolutionSummary(const Vector& solution, int printSol = 0,
-                                    const char* compName = NULL,
+                                    const char* compName = nullptr,
                                     std::streamsize outPrec = 0);
 
   //! \brief Computes the total reaction forces in the model.
@@ -465,7 +465,7 @@ public:
   //! \note The object is allocated dynamically and has therefore to be
   //! manually deleted before the variable receiving the pointer value goes
   //! out of scope.
-  ForceBase* getBoundaryForceIntegrand(const Vec3* X0 = NULL) const;
+  ForceBase* getBoundaryForceIntegrand(const Vec3* X0 = nullptr) const;
   //! \brief Returns a pointer to a force integrand object for this simulator.
   //! \note The object is allocated dynamically and has therefore to be
   //! manually deleted before the variable receiving the pointer value goes

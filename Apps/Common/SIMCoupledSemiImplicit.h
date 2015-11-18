@@ -92,8 +92,8 @@ public:
     }
     this->S1.msgLevel = old1;
 
-    this->S1.printSolutionSummary(this->S1.getSolution(0),0,NULL,6);
-    this->S2.printSolutionSummary(this->S2.getSolution(0),0,NULL,6);
+    this->S1.printSolutionSummary(this->S1.getSolution(0),0,nullptr,6);
+    this->S2.printSolutionSummary(this->S2.getSolution(0),0,nullptr,6);
 
     return true;
   }

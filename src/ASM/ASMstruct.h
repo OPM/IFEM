@@ -43,7 +43,7 @@ public:
   virtual ~ASMstruct();
 
   //! \brief Checks if the patch is empty.
-  virtual bool empty() const { return geo == NULL; }
+  virtual bool empty() const { return geo == nullptr; }
 
   //! \brief Resets the global element and node counters.
   static void resetNumbering(int n = 0);

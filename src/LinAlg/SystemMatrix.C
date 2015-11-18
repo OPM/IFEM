@@ -35,7 +35,7 @@ SystemVector* SystemVector::create (const ProcessAdm& adm, Type vectorType)
                 << vectorType << std::endl;
     }
 
-  return NULL;
+  return nullptr;
 }
 
 

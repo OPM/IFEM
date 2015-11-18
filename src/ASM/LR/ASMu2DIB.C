@@ -24,7 +24,7 @@ ASMu2DIB::ASMu2DIB (unsigned char n_s, unsigned char n_f, int max_depth)
   : ASMu2D(n_s,n_f)
 {
   maxDepth = max_depth;
-  myGeometry = NULL;
+  myGeometry = nullptr;
 }
 
 
@@ -32,7 +32,7 @@ ASMu2DIB::ASMu2DIB (const ASMu2DIB& patch, unsigned char n_f)
   : ASMu2D(patch,n_f)
 {
   quadPoints = patch.quadPoints;
-  myGeometry = NULL; // because we don't allow multiple patches (yet)
+  myGeometry = nullptr; // because we don't allow multiple patches (yet)
 }
 
 
@@ -89,7 +89,7 @@ void ASMu2DIB::addHole (double R, double X1, double Y1, double X2, double Y2)
 
 ElementBlock* ASMu2DIB::immersedGeometry () const
 {
-  return myGeometry ? myGeometry->tesselate() : NULL;
+  return myGeometry ? myGeometry->tesselate() : nullptr;
 }
 
 

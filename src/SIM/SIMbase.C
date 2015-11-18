@@ -219,7 +219,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
             {
               std::string value(item->FirstChild()->Value());
               char* cval = strtok(const_cast<char*>(value.c_str())," ");
-              for (; cval; cval = strtok(NULL," "))
+              for (; cval; cval = strtok(nullptr," "))
                 top.insert(TopItem(patch,atoi(cval),idim));
             }
           }
@@ -685,7 +685,7 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
     for (int i = 0; i < ndir && (cline = utl::readLine(is)); i++)
     {
       int code = atoi(strtok(cline," "));
-      double d = (cline = strtok(NULL," ")) ? atof(cline) : 0.0;
+      double d = (cline = strtok(nullptr," ")) ? atof(cline) : 0.0;
       IFEM::cout <<"\tDirichlet code "<< code <<": ";
       if (d == 0.0)
       {
@@ -696,7 +696,7 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
       {
 	this->setPropertyType(-code,Property::DIRICHLET_INHOM);
 
-	cline = strtok(NULL," ");
+	cline = strtok(nullptr," ");
 	myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,d));
       }
       else
@@ -717,8 +717,8 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
     for (int i = 0; i < nproc && (cline = utl::readLine(is)); i++)
     {
       int proc  = atoi(strtok(cline," "));
-      int first = atoi(strtok(NULL," "));
-      int last  = atoi(strtok(NULL," "));
+      int first = atoi(strtok(nullptr," "));
+      int last  = atoi(strtok(nullptr," "));
 
       if (last > nGlPatches) nGlPatches = last;
 
@@ -742,7 +742,7 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
   {
     cline = utl::readLine(is);
     if ((cline = strtok(cline," "))) opt.format = atoi(cline);
-    if ((cline = strtok(NULL," "))) opt.saveInc = atoi(cline);
+    if ((cline = strtok(nullptr," "))) opt.saveInc = atoi(cline);
   }
 
 #ifdef SP_DEBUG
@@ -845,7 +845,7 @@ int SIMbase::getLocalPatchIndex (int patchNo) const
 
 ASMbase* SIMbase::getPatch (size_t idx) const
 {
-  return idx > 0 && idx <= myModel.size() ? myModel[idx-1] : NULL;
+  return idx > 0 && idx <= myModel.size() ? myModel[idx-1] : nullptr;
 }
 
 
@@ -1272,7 +1272,7 @@ VecFunc* SIMbase::getVecFunc (size_t patch, Property::Type ptype) const
         if (it != myVectors.end()) return it->second;
       }
 
-  return NULL;
+  return nullptr;
 }
 
 
@@ -1589,7 +1589,7 @@ int SIMbase::findClosestNode (const Vec3& X) const
 {
   if (myModel.empty()) return -1;
 
-  ASMbase* closestPch = NULL;
+  ASMbase* closestPch = nullptr;
   std::pair<size_t,double> closest(0,1.0e99);
   for (size_t i = 0; i < myModel.size(); i++)
   {
@@ -1637,7 +1637,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
     // Loop over the different material regions, integrating interior
     // coefficient matrix terms for the patch associated with each material
     size_t lp = 0;
-    ASMbase* pch = NULL;
+    ASMbase* pch = nullptr;
     PropertyVec::const_iterator p, p2;
     if (it->second->hasInteriorTerms())
     {
@@ -2129,7 +2129,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   // for the patch domain associated with each material
   bool ok = true;
   size_t k, lp = 0;
-  ASMbase* pch = NULL;
+  ASMbase* pch = nullptr;
   PropertyVec::const_iterator p;
   for (p = myProps.begin(); p != myProps.end() && ok; p++)
     if (p->pcode == Property::MATERIAL)
@@ -2368,25 +2368,25 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     case SIMoptions::SCR:
       if (msgLevel > 1 && i == 0)
         IFEM::cout <<"\tSuperconvergent recovery"<< std::endl;
-      ok = myModel[i]->evalSolution(values,*myProblem,NULL,'S');
+      ok = myModel[i]->evalSolution(values,*myProblem,nullptr,'S');
       break;
 
     case SIMoptions::VDSA:
       if (msgLevel > 1 && i == 0)
         IFEM::cout <<"\tVariation diminishing projection"<< std::endl;
-      ok = myModel[i]->evalSolution(values,*myProblem,NULL,'A');
+      ok = myModel[i]->evalSolution(values,*myProblem,nullptr,'A');
       break;
 
     case SIMoptions::QUASI:
       if (msgLevel > 1 && i == 0)
         IFEM::cout <<"\tQuasi interpolation"<< std::endl;
-      ok = myModel[i]->evalSolution(values,*myProblem,NULL,'L');
+      ok = myModel[i]->evalSolution(values,*myProblem,nullptr,'L');
       break;
 
     case SIMoptions::LEASTSQ:
       if (msgLevel > 1 && i == 0)
 	IFEM::cout <<"\tLeast squares projection"<< std::endl;
-      ok = myModel[i]->evalSolution(values,*myProblem,NULL,'W');
+      ok = myModel[i]->evalSolution(values,*myProblem,nullptr,'W');
       break;
 
     default:
@@ -2448,7 +2448,7 @@ bool SIMbase::extractPatchSolution (IntegrandBase* problem,
 size_t SIMbase::extractPatchSolution (const Vector& sol, Vector& vec,
                                       int pindx, unsigned char nndof) const
 {
-  ASMbase* pch = pindx >= 0 ? this->getPatch(pindx+1) : NULL;
+  ASMbase* pch = pindx >= 0 ? this->getPatch(pindx+1) : nullptr;
   if (!pch || sol.empty()) return 0;
 
   pch->extractNodeVec(sol,vec,nndof);
@@ -2460,7 +2460,7 @@ size_t SIMbase::extractPatchSolution (const Vector& sol, Vector& vec,
 bool SIMbase::injectPatchSolution (Vector& sol, const Vector& vec,
                                    int pindx, unsigned char nndof) const
 {
-  ASMbase* pch = pindx >= 0 ? this->getPatch(pindx+1) : NULL;
+  ASMbase* pch = pindx >= 0 ? this->getPatch(pindx+1) : nullptr;
 
   return pch ? pch->injectNodeVec(vec,sol,nndof) : false;
 }
@@ -2468,7 +2468,7 @@ bool SIMbase::injectPatchSolution (Vector& sol, const Vector& vec,
 
 bool SIMbase::evalSecondarySolution (Matrix& field, int pindx) const
 {
-  ASMbase* pch = pindx >= 0 ? this->getPatch(pindx+1) : NULL;
+  ASMbase* pch = pindx >= 0 ? this->getPatch(pindx+1) : nullptr;
   if (!pch) return false;
 
   const_cast<SIMbase*>(this)->setPatchMaterial(pindx+1);
@@ -2479,7 +2479,7 @@ bool SIMbase::evalSecondarySolution (Matrix& field, int pindx) const
 bool SIMbase::extractPatchElmRes (const Matrix& glbRes, Matrix& elRes,
 				  int pindx) const
 {
-  ASMbase* pch = pindx >= 0 ? this->getPatch(pindx+1) : NULL;
+  ASMbase* pch = pindx >= 0 ? this->getPatch(pindx+1) : nullptr;
   if (!pch || glbRes.empty()) return false;
 
   pch->extractElmRes(glbRes,elRes);
@@ -2492,7 +2492,7 @@ bool SIMbase::refine (const IntVec& elements,
                       const char* fName)
 {
   isRefined = false;
-  ASMunstruct* pch = NULL;
+  ASMunstruct* pch = nullptr;
   std::vector<Vectors> lvec(myModel.size());
   for (size_t i = 0; i < myModel.size(); i++)
     if (!myModel[i]->empty() && (pch = dynamic_cast<ASMunstruct*>(myModel[i]))) {
@@ -2520,7 +2520,7 @@ bool SIMbase::refine (const RealArray& elementError,
                       const char* fName)
 {
   isRefined = false;
-  ASMunstruct* pch = NULL;
+  ASMunstruct* pch = nullptr;
   for (size_t i = 0; i < myModel.size(); i++)
     if (!myModel[i]->empty() && (pch = dynamic_cast<ASMunstruct*>(myModel[i]))) {
       Vectors lvec;

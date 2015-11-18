@@ -190,7 +190,7 @@ bool MultiStepSIM::solutionNorms (const TimeDomain&, double zero_tolerance,
 
   double old_zero_tol = utl::zero_print_tol;
   utl::zero_print_tol = zero_tolerance;
-  model.printSolutionSummary(solution.front(),0,NULL,outPrec);
+  model.printSolutionSummary(solution.front(),0,nullptr,outPrec);
   utl::zero_print_tol = old_zero_tol;
 
   return true;

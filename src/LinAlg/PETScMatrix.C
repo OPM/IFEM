@@ -471,7 +471,7 @@ bool PETScMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
     return false;
 
   // Assemble local stiffness matrix into global system.
-  return assemPETSc(eM,A,NULL,meen,sam.meqn,sam.mpmceq,sam.ttcc);
+  return assemPETSc(eM,A,nullptr,meen,sam.meqn,sam.mpmceq,sam.ttcc);
 }
 
 

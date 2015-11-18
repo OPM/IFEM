@@ -11,9 +11,9 @@ PetscErrorCode PCProdCreate(PCProd **pcprod)
 #else
   PetscNew(&newctx);
 #endif
-  newctx->pc1 = NULL;
-  newctx->pc2 = NULL;
-  newctx->pc3 = NULL;
+  newctx->pc1 = nullptr;
+  newctx->pc2 = nullptr;
+  newctx->pc3 = nullptr;
   *pcprod = newctx;
 
   return 0;

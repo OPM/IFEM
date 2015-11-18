@@ -18,7 +18,7 @@
 void SIMgeneric::createDefaultModel ()
 {
   if (myModel.empty())
-    myModel.resize(1,this->createDefaultGeometry(NULL));
+    myModel.resize(1,this->createDefaultGeometry(nullptr));
 }
 
 
@@ -52,7 +52,7 @@ int SIMgeneric::evalPoint(const double* xi, Vec3& X, double* param, int patch) c
   ASMbase *pch = getPatch(patch-1);
 
   double dummy[2];
-  if(param == NULL)
+  if(param == nullptr)
     return pch->evalPoint(xi, dummy, X);
   else
     return pch->evalPoint(xi, param, X);

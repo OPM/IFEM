@@ -39,7 +39,7 @@ public:
   //! \param[in] basis Basis to use from patch
   //! \param[in] name Name of spline field
   SplineField3D(const ASMs3D* patch, const RealArray& v,
-                char basis = 1, const char* name = NULL);
+                char basis = 1, const char* name = nullptr);
   //! \brief Empty destructor.
   virtual ~SplineField3D() {}
 

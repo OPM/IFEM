@@ -61,7 +61,7 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
   if (strcasecmp(elem->Value(),"adaptive"))
     return model->parse(elem);
 
-  const char* value = NULL;
+  const char* value = nullptr;
   const TiXmlElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
 
@@ -471,7 +471,7 @@ bool AdaptiveSIM::writeGlv (const char* infile, int iStep, size_t nNormProj)
   if (opt.format < 0) return true;
 
   // Write VTF-file with model geometry
-  if (!model->writeGlvG(geoBlk, iStep == 1 ? infile : NULL))
+  if (!model->writeGlvG(geoBlk, iStep == 1 ? infile : nullptr))
     return false;
 
   // Write boundary tractions, if any

@@ -118,13 +118,13 @@ void dgeev_(const char& jobvl, const char& jobvr,
 }
 
 
-DenseMatrix::DenseMatrix (size_t m, size_t n, bool s) : myMat(m,n), ipiv(NULL)
+DenseMatrix::DenseMatrix (size_t m, size_t n, bool s) : myMat(m,n), ipiv(nullptr)
 {
   symm = s && m == n;
 }
 
 
-DenseMatrix::DenseMatrix (const DenseMatrix& A) : ipiv(NULL)
+DenseMatrix::DenseMatrix (const DenseMatrix& A) : ipiv(nullptr)
 {
   myMat = A.myMat;
   symm = A.symm;
@@ -133,7 +133,7 @@ DenseMatrix::DenseMatrix (const DenseMatrix& A) : ipiv(NULL)
 }
 
 
-DenseMatrix::DenseMatrix (const RealArray& data, size_t nrows) : ipiv(NULL)
+DenseMatrix::DenseMatrix (const RealArray& data, size_t nrows) : ipiv(nullptr)
 {
   size_t ndata = data.size();
   if (nrows == 0) nrows = (size_t)sqrt((double)ndata);
@@ -168,7 +168,7 @@ void DenseMatrix::init ()
 
   // Delete pivotation vector of old factorization, if any
   delete[] ipiv;
-  ipiv = NULL;
+  ipiv = nullptr;
 }
 
 

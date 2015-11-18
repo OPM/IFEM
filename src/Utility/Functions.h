@@ -502,7 +502,7 @@ protected:
 namespace utl
 {
   //! \brief Creates a time function by parsing a character string.
-  const ScalarFunc* parseTimeFunc(const char* type, char* cline = NULL,
+  const ScalarFunc* parseTimeFunc(const char* type, char* cline = nullptr,
                                   Real C = Real(1));
 
   //! \brief Creates a scalar-valued function by parsing a character string.

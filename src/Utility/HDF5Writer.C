@@ -225,15 +225,15 @@ void HDF5Writer::writeArray(int group, const std::string& name,
   hsize_t siz   = (hsize_t)len;
   hsize_t start = 0;
 #endif
-  hid_t space = H5Screate_simple(1,&siz,NULL);
+  hid_t space = H5Screate_simple(1,&siz,nullptr);
   hid_t set = H5Dcreate2(group,name.c_str(),
                          type,space,H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
   if (len > 0) {
     hid_t file_space = H5Dget_space(set);
     siz = len;
     hsize_t stride = 1;
-    H5Sselect_hyperslab(file_space,H5S_SELECT_SET,&start,&stride,&siz,NULL);
-    hid_t mem_space = H5Screate_simple(1,&siz,NULL);
+    H5Sselect_hyperslab(file_space,H5S_SELECT_SET,&start,&stride,&siz,nullptr);
+    hid_t mem_space = H5Screate_simple(1,&siz,nullptr);
     H5Dwrite(set,type,mem_space,file_space,H5P_DEFAULT,data);
     H5Sclose(mem_space);
     H5Sclose(file_space);
@@ -307,7 +307,7 @@ bool HDF5Writer::readSIM (int level, const DataEntry& entry)
     hid_t group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
     int loc = sim->getLocalPatchIndex(i+1);
     if (loc > 0) {
-      double* tmp = NULL; int siz = 0;
+      double* tmp = nullptr; int siz = 0;
       if (prob->mixedFormulation())
         readArray(group2,entry.first,siz,tmp);
       else
@@ -345,7 +345,7 @@ bool HDF5Writer::readVector(int level, const std::string& name,
     str << patch;
   }
   hid_t group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
-  double* tmp = NULL; int siz = 0;
+  double* tmp = nullptr; int siz = 0;
   readArray(group2,name,siz,tmp);
   vec.insert(vec.begin(),tmp,tmp+siz);
   delete[] tmp;
@@ -662,7 +662,7 @@ bool HDF5Writer::checkGroupExistence(int parent, const char* path)
 #ifdef HAS_HDF5
   // turn off errors to avoid cout spew
   H5E_BEGIN_TRY {
-    result = H5Gget_objinfo((hid_t)parent,path,0,NULL) == 0;
+    result = H5Gget_objinfo((hid_t)parent,path,0,nullptr) == 0;
   } H5E_END_TRY;
 #endif
   return result;
@@ -778,7 +778,7 @@ bool HDF5Writer::readVector(int level, const std::string& name,
     str << patch;
   }
   hid_t group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
-  int* tmp = NULL; int siz = 0;
+  int* tmp = nullptr; int siz = 0;
   readArray(group2,name,siz,tmp);
   vec.assign(tmp, tmp + siz);
   delete[] tmp;

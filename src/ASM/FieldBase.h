@@ -31,7 +31,7 @@ class FieldBase : public Field
 protected:
   //! \brief The constructor sets the field name.
   //! \param[in] name Optional name of field
-  FieldBase(const char* name = NULL) : Field(name) { nelm = nno = 0; }
+  FieldBase(const char* name = nullptr) : Field(name) { nelm = nno = 0; }
 
 public:
   //! \brief Empty destructor.

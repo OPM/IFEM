@@ -89,7 +89,7 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       return false;
     }
 
-    ASM2D* pch = NULL;
+    ASM2D* pch = nullptr;
     RealArray xi;
     if (!utl::parseKnots(elem,xi))
     {
@@ -137,7 +137,7 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       return false;
     }
 
-    ASM2D* pch = NULL;
+    ASM2D* pch = nullptr;
     int addu = 0, addv = 0;
     utl::getAttribute(elem,"u",addu);
     utl::getAttribute(elem,"v",addv);
@@ -326,7 +326,7 @@ bool SIM2D::parse (const TiXmlElement* elem)
 
 bool SIM2D::parse (char* keyWord, std::istream& is)
 {
-  char* cline = NULL;
+  char* cline = nullptr;
   if (!strncasecmp(keyWord,"REFINE",6))
   {
     int nref = atoi(keyWord+6);
@@ -334,7 +334,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
       for (int i = 0; i < nref && utl::readLine(is); i++);
     else
     {
-      ASM2D* pch = NULL;
+      ASM2D* pch = nullptr;
       IFEM::cout <<"\nNumber of patch refinements: "<< nref << std::endl;
       for (int i = 0; i < nref && (cline = utl::readLine(is)); i++)
       {
@@ -354,8 +354,8 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 	}
 	if (uniform)
 	{
-	  int addu = atoi(strtok(NULL," "));
-	  int addv = atoi(strtok(NULL," "));
+	  int addu = atoi(strtok(nullptr," "));
+	  int addv = atoi(strtok(nullptr," "));
 	  for (int j = ipatch; j < patch; j++)
 	    if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
 	    {
@@ -368,7 +368,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 	else
 	{
 	  RealArray xi;
-	  int dir = atoi(strtok(NULL," "));
+	  int dir = atoi(strtok(nullptr," "));
 	  if (utl::parseKnots(xi))
 	    for (int j = ipatch; j < patch; j++)
 	      if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
@@ -391,13 +391,13 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
       for (int i = 0; i < nref && utl::readLine(is); i++);
     else
     {
-      ASM2D* pch = NULL;
+      ASM2D* pch = nullptr;
       IFEM::cout <<"\nNumber of order raise: "<< nref << std::endl;
       for (int i = 0; i < nref && (cline = utl::readLine(is)); i++)
       {
 	int patch = atoi(strtok(cline," "));
-	int addu  = atoi(strtok(NULL," "));
-	int addv  = atoi(strtok(NULL," "));
+	int addu  = atoi(strtok(nullptr," "));
+	int addv  = atoi(strtok(nullptr," "));
 	if (patch == 0 || abs(patch) > (int)myModel.size())
 	{
 	  std::cerr <<" *** SIM2D::parse: Invalid patch index "
@@ -434,10 +434,10 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
     for (int i = 0; i < ntop && (cline = utl::readLine(is)); i++)
     {
       int master = atoi(strtok(cline," "));
-      int mEdge  = atoi(strtok(NULL," "));
-      int slave  = atoi(strtok(NULL," "));
-      int sEdge  = atoi(strtok(NULL," "));
-      bool rever = (cline = strtok(NULL," ")) ? cline[0] == 'R' : false;
+      int mEdge  = atoi(strtok(nullptr," "));
+      int slave  = atoi(strtok(nullptr," "));
+      int sEdge  = atoi(strtok(nullptr," "));
+      bool rever = (cline = strtok(nullptr," ")) ? cline[0] == 'R' : false;
       if (master == slave ||
 	  master < 1 || master > (int)myModel.size() ||
 	  slave  < 1 || slave  > (int)myModel.size())
@@ -476,7 +476,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
     for (int i = 0; i < nper && (cline = utl::readLine(is)); i++)
     {
       int patch = atoi(strtok(cline," "));
-      int pedir = atoi(strtok(NULL," "));
+      int pedir = atoi(strtok(nullptr," "));
       if (patch < 1 || patch > (int)myModel.size())
       {
 	std::cerr <<" *** SIM2D::parse: Invalid patch index "
@@ -504,9 +504,9 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
     for (int i = 0; i < ncon && (cline = utl::readLine(is)); i++)
     {
       int patch = atoi(strtok(cline," "));
-      int pedge = (cline = strtok(NULL," ")) ? atoi(cline) : 0;
-      int bcode = (cline = strtok(NULL," ")) ? atoi(cline) : 12;
-      double pd = (cline = strtok(NULL," ")) ? atof(cline) : 0.0;
+      int pedge = (cline = strtok(nullptr," ")) ? atoi(cline) : 0;
+      int bcode = (cline = strtok(nullptr," ")) ? atoi(cline) : 12;
+      double pd = (cline = strtok(nullptr," ")) ? atof(cline) : 0.0;
 
       patch = this->getLocalPatchIndex(patch);
       if (patch < 1) continue;
@@ -529,7 +529,7 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
 	  return false;
 
 	IFEM::cout << std::endl;
-	cline = strtok(NULL," ");
+	cline = strtok(nullptr," ");
 	myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,pd));
       }
       IFEM::cout << std::endl;
@@ -541,15 +541,15 @@ bool SIM2D::parse (char* keyWord, std::istream& is)
     if (ignoreDirichlet) return true; // Ignore all boundary conditions
     if (!this->createFEMmodel()) return false;
 
-    ASM2D* pch = NULL;
+    ASM2D* pch = nullptr;
     int nfix = atoi(keyWord+9);
     IFEM::cout <<"\nNumber of fixed points: "<< nfix << std::endl;
     for (int i = 0; i < nfix && (cline = utl::readLine(is)); i++)
     {
       int patch = atoi(strtok(cline," "));
-      double rx = atof(strtok(NULL," "));
-      double ry = atof(strtok(NULL," "));
-      int bcode = (cline = strtok(NULL," ")) ? atoi(cline) : 12;
+      double rx = atof(strtok(nullptr," "));
+      double ry = atof(strtok(nullptr," "));
+      int bcode = (cline = strtok(nullptr," ")) ? atoi(cline) : 12;
 
       int pid = this->getLocalPatchIndex(patch);
       if (pid > 0 && (pch = dynamic_cast<ASM2D*>(myModel[pid-1])))
@@ -666,9 +666,9 @@ ASMbase* SIM2D::readPatch (std::istream& isp, int pchInd,
   if (pch)
   {
     if (!pch->read(isp))
-      delete pch, pch = NULL;
+      delete pch, pch = nullptr;
     else if (pch->empty() || this->getLocalPatchIndex(pchInd+1) < 1)
-      delete pch, pch = NULL;
+      delete pch, pch = nullptr;
     else
       pch->idx = myModel.size();
   }
@@ -684,7 +684,7 @@ ASMbase* SIM2D::readPatch (std::istream& isp, int pchInd,
 bool SIM2D::readPatches (std::istream& isp, PatchVec& patches,
                          const char* whiteSpace)
 {
-  ASMbase* pch = NULL;
+  ASMbase* pch = nullptr;
   for (int pchInd = 1; isp.good(); pchInd++)
     if ((pch = ASM2D::create(opt.discretization,nsd,nf,nf.size() > 1 && nf[1] > 0)))
     {
@@ -757,7 +757,7 @@ bool SIM2D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
 void SIM2D::clonePatches (const PatchVec& patches,
 			  const std::map<int,int>& glb2locN)
 {
-  ASM2D* pch = NULL;
+  ASM2D* pch = nullptr;
   for (size_t i = 0; i < patches.size(); i++)
     if ((pch = dynamic_cast<ASM2D*>(patches[i])))
       myModel.push_back(pch->clone(nf));

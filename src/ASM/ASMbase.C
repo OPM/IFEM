@@ -126,7 +126,7 @@ ASMbase* ASMbase::cloneUnShared() const
   const ASM3D* patch3 = dynamic_cast<const ASM3D*>(this);
   if (patch3) return patch3->clone();
 
-  return NULL;
+  return nullptr;
 }
 
 
@@ -428,7 +428,7 @@ MPC* ASMbase::findMPC (int node, int dof) const
 {
   MPC slave(node,dof);
   MPCIter cit = mpcs.find(&slave);
-  return cit == mpcs.end() ? NULL : *cit;
+  return cit == mpcs.end() ? nullptr : *cit;
 }
 
 

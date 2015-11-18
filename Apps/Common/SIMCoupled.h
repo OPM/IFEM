@@ -117,7 +117,7 @@ public:
   }
 
   //! \brief Defines a vector field property.
-  size_t setVecProperty(int code, Property::Type ptype, VecFunc* field = NULL,
+  size_t setVecProperty(int code, Property::Type ptype, VecFunc* field = nullptr,
                         int pflag = -1)
   {
     return S1.setVecProperty(code, ptype, field, pflag);

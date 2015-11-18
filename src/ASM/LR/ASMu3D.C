@@ -959,8 +959,8 @@ bool ASMu3D::integrate (Integrand& integrand,
 	}
 
 	// Get the reduced integration quadrature points, if needed
-	const double* xr = NULL;
-	const double* wr = NULL;
+	const double* xr = nullptr;
+	const double* wr = nullptr;
 	int nRed = integrand.getReducedIntegration(nGauss);
 	if (nRed > 0)
 	{
@@ -1812,7 +1812,7 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 	// exit(776658);
 #if 0
 	// Project the secondary solution onto the spline basis
-	Go::SplineVolume* v = NULL;
+	Go::SplineVolume* v = nullptr;
 	if (project == 'A')
 		v = this->projectSolutionLocalApprox(integrand);
 	else if (project == 'L')

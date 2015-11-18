@@ -117,7 +117,7 @@ public:
   //! attack points of the result vectors, since they are independent of the
   //! FE geometry created by the \a writeGrid method.
   virtual bool writeVectors(const std::vector<Vec3Pair>& pntResult, int& gID,
-                            int idBlock = 1, const char* resultName = NULL,
+                            int idBlock = 1, const char* resultName = nullptr,
                             int iStep = 0, int iBlock = 1);
   //! \brief Writes a block of points (no results) to the VTF-file.
   //! \param[in] points Vector of point coordinates
@@ -130,7 +130,7 @@ public:
   //! \param[in] idBlock Scalar block identifier
   //! \param[in] iStep Load/Time step identifier
   //! \param[in] elementData false -> data per node, true -> data per element
-  bool writeSblk(int sBlockID, const char* resultName = NULL, int idBlock = 1,
+  bool writeSblk(int sBlockID, const char* resultName = nullptr, int idBlock = 1,
                  int iStep = 1, bool elementData = false);
   //! \brief Writes a scalar block definition to the VTF-file.
   //! \param[in] sBlockIDs All result blocks that make up this scalar block
@@ -139,14 +139,14 @@ public:
   //! \param[in] iStep Load/Time step identifier
   //! \param[in] elementData false -> data per node, true -> data per element
   virtual bool writeSblk(const std::vector<int>& sBlockIDs,
-                         const char* resultName = NULL, int idBlock = 1,
+                         const char* resultName = nullptr, int idBlock = 1,
                          int iStep = 1, bool elementData = false);
   //! \brief Writes a vector block definition to the VTF-file.
   //! \param[in] vBlockID The result block that makes up this vector block
   //! \param[in] resultName Name of the result quantity
   //! \param[in] idBlock Vector block identifier
   //! \param[in] iStep Load/Time step identifier
-  bool writeVblk(int vBlockID, const char* resultName = NULL,
+  bool writeVblk(int vBlockID, const char* resultName = nullptr,
                  int idBlock = 1, int iStep = 1);
   //! \brief Writes a vector block definition to the VTF-file.
   //! \param[in] vBlockIDs All result blocks that make up this vector block
@@ -154,7 +154,7 @@ public:
   //! \param[in] idBlock Vector block identifier
   //! \param[in] iStep Load/Time step identifier
   virtual bool writeVblk(const std::vector<int>& vBlockIDs,
-                         const char* resultName = NULL,
+                         const char* resultName = nullptr,
                          int idBlock = 1, int iStep = 1);
   //! \brief Writes a displacement block definition to the VTF-file.
   //! \param[in] dBlockIDs All result blocks that make up the displacement block
@@ -162,7 +162,7 @@ public:
   //! \param[in] idBlock Displacement block identifier
   //! \param[in] iStep Load/Time step identifier
   virtual bool writeDblk(const std::vector<int>& dBlockIDs,
-                         const char* resultName = NULL,
+                         const char* resultName = nullptr,
                          int idBlock = 1, int iStep = 1);
   //! \brief Writes a transformation block definition to the VTF-file.
   //! \param[in] tBlockIDs All result blocks that make the transformation block
@@ -170,7 +170,7 @@ public:
   //! \param[in] idBlock Transformation block identifier
   //! \param[in] iStep Load/Time step identifier
   bool writeTblk(const std::vector<int>& tBlockIDs,
-                 const char* resultName = NULL, int idBlock = 1, int iStep = 1);
+                 const char* resultName = nullptr, int idBlock = 1, int iStep = 1);
 
   //! \brief Writes a state info block to the VTF-file.
   //! \param[in] iStep Load/Time step identifier

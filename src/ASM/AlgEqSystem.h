@@ -92,7 +92,7 @@ private:
     SystemMatrix* _A; //!< The coefficient matrix
     SystemVector* _b; //!< Pointer to the associated right-hand-side vector
     //! \brief Constructor initializing the pointers to zero.
-    SysMatrixPair() : _A(NULL), _b(NULL) {}
+    SysMatrixPair() : _A(nullptr), _b(nullptr) {}
   };
 
   std::vector<SysMatrixPair> A; //!< The actual coefficient matrices

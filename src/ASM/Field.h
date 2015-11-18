@@ -31,7 +31,7 @@ class Field
 protected:
   //! \brief The constructor sets the field name.
   //! \param[in] name Optional name of field
-  Field(const char* name = NULL) { if (name) fname = name; }
+  Field(const char* name = nullptr) { if (name) fname = name; }
 
 public:
   //! \brief Empty destructor.
@@ -43,7 +43,7 @@ public:
   //! \param[in] basis Basis to use from patch
   //! \param[in] name Name of field
   static Field* create(const ASMbase* pch, const RealArray& v,
-		       char basis = 1, const char* name = NULL);
+		       char basis = 1, const char* name = nullptr);
 
   //! \brief Returns the name of field.
   const char* getFieldName() const { return fname.c_str(); }

@@ -19,7 +19,7 @@
 #include "tinyxml.h"
 
 
-NewmarkNLSIM::NewmarkNLSIM (SIMbase& sim) : NewmarkSIM(sim), Finert(NULL)
+NewmarkNLSIM::NewmarkNLSIM (SIMbase& sim) : NewmarkSIM(sim), Finert(nullptr)
 {
   // Default Newmark parameters (alpha = -0.1)
   beta = 0.3025;

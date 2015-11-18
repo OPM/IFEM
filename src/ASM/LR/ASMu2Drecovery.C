@@ -71,12 +71,12 @@ LR::LRSplineSurface* ASMu2D::projectSolution (const IntegrandBase& integr) const
   std::array<RealArray,2> gpar;
   for (int dir = 0; dir < 2; dir++)
     if (!this->getGrevilleParameters(gpar[dir],dir))
-      return NULL;
+      return nullptr;
 
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
   if (!this->evalSolution(sValues,integr,gpar.data()))
-    return NULL;
+    return nullptr;
 
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.
@@ -111,7 +111,7 @@ bool ASMu2D::globalL2projection (Matrix& sField,
   const int ng2 = continuous ? nGauss : p2 - 1;
   const double* xg = GaussQuadrature::getCoord(ng1);
   const double* yg = GaussQuadrature::getCoord(ng2);
-  const double* wg = continuous ? GaussQuadrature::getWeight(nGauss) : NULL;
+  const double* wg = continuous ? GaussQuadrature::getWeight(nGauss) : nullptr;
   if (!xg || !yg) return false;
   if (continuous && !wg) return false;
 
@@ -250,12 +250,12 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
   const int ng2 = p2 - m;
   const double* xg = GaussQuadrature::getCoord(ng1);
   const double* yg = GaussQuadrature::getCoord(ng2);
-  if (!xg || !yg) return NULL;
+  if (!xg || !yg) return nullptr;
 
   // Compute parameter values of the Greville points
   std::array<RealArray,2> gpar;
-  if (!this->getGrevilleParameters(gpar[0],0)) return NULL;
-  if (!this->getGrevilleParameters(gpar[1],1)) return NULL;
+  if (!this->getGrevilleParameters(gpar[0],0)) return nullptr;
+  if (!this->getGrevilleParameters(gpar[1],1)) return nullptr;
 
   const int n1 = p1 - m + 1; // Patch size in first parameter direction
   const int n2 = p2 - m + 1; // Patch size in second parameter direction
@@ -330,7 +330,7 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
       // Evaluate the secondary solution at all Gauss points
       Matrix sField;
       if (!this->evalSolution(sField,integrand,unstrGauss.data()))
-        return NULL;
+        return nullptr;
 
       // Loop over the Gauss points in current knot-span
       int i, j, ig = 1;
@@ -368,7 +368,7 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
 #endif
 
     // Solve the local equation system
-    if (!A.solve(B)) return NULL;
+    if (!A.solve(B)) return nullptr;
 
     // Evaluate the projected field at current Greville point (first row of B)
     ip++;
@@ -399,7 +399,7 @@ LR::LRSplineSurface* ASMu2D::regularInterpolation (const RealArray& upar,
   {
     std::cerr <<" *** ASMu2D::regularInterpolation:"
               <<" Rational LR B-splines not supported yet."<< std::endl;
-    return NULL;
+    return nullptr;
   }
 
   // sanity check on input parameters
@@ -411,7 +411,7 @@ LR::LRSplineSurface* ASMu2D::regularInterpolation (const RealArray& upar,
               <<"     size(upar)="<< upar.size() <<" size(vpar)="<< vpar.size()
               <<" size(points)="<< points.cols() <<" nBasis="<< nBasis
               << std::endl;
-    return NULL;
+    return nullptr;
   }
 
   DenseMatrix    A(nBasis,nBasis);
@@ -431,7 +431,7 @@ LR::LRSplineSurface* ASMu2D::regularInterpolation (const RealArray& upar,
 
   // Solve for all solution components - one right-hand-side for each
   if (!A.solve(B))
-    return NULL;
+    return nullptr;
 
   // Copy all basis functions and mesh
   LR::LRSplineSurface* ans = lrspline->copy();

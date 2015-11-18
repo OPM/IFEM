@@ -30,7 +30,7 @@ public:
   //! \brief The constructor initializes pointers and references.
   //! \param[in] p The global L2 integrand object containing projection matrices
   //! \param[in] q Pointer to element data associated with the problem integrand
-  L2Mats(GlbL2& p, LocalIntegral* q = NULL) : gl2Int(p), elmData(q) {}
+  L2Mats(GlbL2& p, LocalIntegral* q = nullptr) : gl2Int(p), elmData(q) {}
   //! \brief Empty destructor.
   virtual ~L2Mats() {}
 

@@ -228,7 +228,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
 
   Real C = A;
   const RealFunc* f = 0;
-  if (linear > 0 && (cline = strtok(NULL," ")))
+  if (linear > 0 && (cline = strtok(nullptr," ")))
   {
     C = Real(1);
     IFEM::cout <<"("<< A <<"*";
@@ -247,15 +247,15 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
       f = new LinearZFunc(A,atof(cline));
       break;
     case 4:
-      f = new LinearRotZFunc(true,A,atof(cline),atof(strtok(NULL," ")));
+      f = new LinearRotZFunc(true,A,atof(cline),atof(strtok(nullptr," ")));
       break;
     case 5:
-      f = new LinearRotZFunc(false,A,atof(cline),atof(strtok(NULL," ")));
+      f = new LinearRotZFunc(false,A,atof(cline),atof(strtok(nullptr," ")));
       break;
     case 6:
       {
         double x0 = atof(cline);
-        double x1 = atof(strtok(NULL," "));
+        double x1 = atof(strtok(nullptr," "));
         IFEM::cout <<"StepX("<< x0 <<","<< x1 <<"))";
         f = new StepXFunc(A,x0,x1);
       }
@@ -263,12 +263,12 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
     case 7:
       {
         double x0 = atof(cline);
-        double y0 = atof(strtok(NULL," "));
-        cline = strtok(NULL," ");
+        double y0 = atof(strtok(nullptr," "));
+        cline = strtok(nullptr," ");
         if (cline && cline[0] == 't')
         {
-          double x1 = atof(strtok(NULL," "));
-          double y1 = atof(strtok(NULL," "));
+          double x1 = atof(strtok(nullptr," "));
+          double y1 = atof(strtok(nullptr," "));
           IFEM::cout <<"StepXY(["<< x0 <<","<< x1 <<"]x["<< y0 <<","<<y1 <<"]))";
           f = new StepXYFunc(A,x1,y1,x0,y0);
         }
@@ -281,12 +281,12 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
       break;
     case 8:
       {
-        int dir = atoi(strtok(NULL," ")), col = 2;
+        int dir = atoi(strtok(nullptr," ")), col = 2;
         IFEM::cout <<"Interpolate1D("<< cline;
-        const char* t = strtok(NULL," ");
+        const char* t = strtok(nullptr," ");
         if (t && t[0] == 'c') {
           col = atoi(t+1);
-          t = strtok(NULL," ");
+          t = strtok(nullptr," ");
           IFEM::cout <<",column #"<< col;
         }
         IFEM::cout <<","<< (char)('X'+dir);
@@ -303,21 +303,21 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
     case 9:
       {
         std::string basis, field;
-        basis = strtok(NULL, " ");
-        field = strtok(NULL, " ");
+        basis = strtok(nullptr, " ");
+        field = strtok(nullptr, " ");
         IFEM::cout <<"Field("<< cline <<","<< basis <<","<< field <<")";
         f = new FieldFunction(cline,basis,field);
       }
       break;
     }
     if (cline && (linear != 7 || cline[0] == 't'))
-      cline = strtok(NULL," ");
+      cline = strtok(nullptr," ");
   }
-  else if (quadratic > 0 && (cline = strtok(NULL," ")))
+  else if (quadratic > 0 && (cline = strtok(nullptr," ")))
   {
     C = Real(1);
     Real a = atof(cline);
-    Real b = atof(strtok(NULL," "));
+    Real b = atof(strtok(nullptr," "));
     Real val = (a-b)*(a-b)/Real(4);
     char var = 'W' + quadratic;
     IFEM::cout << A/val <<" * ("<< a <<"-"<< var <<")*("<< b <<"-"<< var <<")";
@@ -332,7 +332,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
       f = new QuadraticZFunc(A,a,b);
       break;
     }
-    cline = strtok(NULL," ");
+    cline = strtok(nullptr," ");
   }
   else // constant in space
   {
@@ -345,7 +345,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
   if (!cline) return f; // constant in time
 
   IFEM::cout <<" * ";
-  const ScalarFunc* s = parseTimeFunc(cline,NULL,C);
+  const ScalarFunc* s = parseTimeFunc(cline,nullptr,C);
 
   if (f)
     return new SpaceTimeFunc(f,s);
@@ -356,7 +356,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
 
 const ScalarFunc* utl::parseTimeFunc (const char* type, char* cline, Real C)
 {
-  if (strncasecmp(type,"expr",4) == 0 && cline != NULL)
+  if (strncasecmp(type,"expr",4) == 0 && cline != nullptr)
   {
     IFEM::cout << cline;
     return new EvalFunc(cline,"t");
@@ -382,7 +382,7 @@ const ScalarFunc* utl::parseTimeFunc (const char* type, char* cline, Real C)
   else if (strcasecmp(type,"sin") == 0)
   {
     Real freq = atof(strtok(cline," "));
-    if ((cline = strtok(NULL," ")))
+    if ((cline = strtok(nullptr," ")))
     {
       Real phase = atof(cline);
       IFEM::cout <<"sin("<< freq <<"*t + "<< phase <<")";
@@ -405,8 +405,8 @@ const ScalarFunc* utl::parseTimeFunc (const char* type, char* cline, Real C)
 
 ScalarFunc* utl::parseTimeFunc (const char* func, const std::string& type)
 {
-  char* cstr = NULL;
-  const ScalarFunc* sf = NULL;
+  char* cstr = nullptr;
+  const ScalarFunc* sf = nullptr;
   if (type == "expression")
   {
     IFEM::cout <<"(expression) ";
@@ -429,7 +429,7 @@ ScalarFunc* utl::parseTimeFunc (const char* func, const std::string& type)
 
 RealFunc* utl::parseRealFunc (const std::string& func, const std::string& type, bool print)
 {
-  if (func.empty()) return NULL;
+  if (func.empty()) return nullptr;
 
   if (print)
     IFEM::cout <<": ";
@@ -465,7 +465,7 @@ RealFunc* utl::parseRealFunc (const std::string& func, const std::string& type, 
 VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
                             const std::string& variables)
 {
-  if (func.empty()) return NULL;
+  if (func.empty()) return nullptr;
 
   if (type == "expression")
   {
@@ -477,20 +477,20 @@ VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
     Vec3 v;
     std::string tmp(func);
     char* s = strtok(const_cast<char*>(tmp.c_str())," ");
-    for (int i = 0; i < 3 && s; i++, s = strtok(NULL," "))
+    for (int i = 0; i < 3 && s; i++, s = strtok(nullptr," "))
       v[i] = atof(s);
     IFEM::cout <<": "<< v;
     return new ConstVecFunc(v);
   }
 
-  return NULL;
+  return nullptr;
 }
 
 
 TractionFunc* utl::parseTracFunc (const std::string& func,
                                   const std::string& type, int dir)
 {
-  if (func.empty()) return NULL;
+  if (func.empty()) return nullptr;
 
   IFEM::cout <<": ";
   Real p = Real(0);

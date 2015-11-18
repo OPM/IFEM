@@ -99,7 +99,7 @@ private:
     int                code;  //!< Inhomogeneous Dirichlet condition code
     std::vector<Ipair> nodes; //!< Nodes subjected to projection on the boundary
     //! \brief Default constructor.
-    DirichletFace(Go::SplineSurface* ss = NULL, int d = 0, int c = 0)
+    DirichletFace(Go::SplineSurface* ss = nullptr, int d = 0, int c = 0)
     : surf(ss), dof(d), code(c) {}
   };
 
@@ -341,7 +341,7 @@ public:
   //! \param[in] g2l Pointer to global-to-local node number mapping
   virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
                                const std::map<int,VecFunc*>& vfunc, double time,
-                               const std::map<int,int>* g2l = NULL);
+                               const std::map<int,int>* g2l = nullptr);
 
 
   // Methods for integration of finite element quantities.
@@ -471,13 +471,13 @@ public:
   //!
   //! \details The secondary solution is derived from the primary solution,
   //! which is assumed to be stored within the \a integrand for current patch.
-  //! If \a npe is NULL, the solution is recovered or evaluated at the Greville
+  //! If \a npe is nullptr, the solution is recovered or evaluated at the Greville
   //! points and then projected onto the spline basis to obtain the control
   //! point values, which then are returned through \a sField.
-  //! If \a npe is not NULL and \a project is defined, the solution is also
+  //! If \a npe is not nullptr and \a project is defined, the solution is also
   //! projected onto the spline basis, and then evaluated at the \a npe points.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const int* npe = NULL, char project = '\0') const;
+                            const int* npe = nullptr, char project = '\0') const;
 
 private:
   //! \brief Projects the secondary solution field onto the primary basis.

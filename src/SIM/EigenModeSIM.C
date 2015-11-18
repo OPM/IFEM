@@ -34,7 +34,7 @@ bool EigenModeSIM::parse (const TiXmlElement* elem)
 
   size_t imode = 0;
   double freq = 0.0;
-  const char* value = NULL;
+  const char* value = nullptr;
   const TiXmlElement* child = elem->FirstChildElement();
   for (; child; child = child->NextSiblingElement())
     if ((value = utl::getValue(child,"mode")))

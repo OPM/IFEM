@@ -41,9 +41,9 @@ PETScBlockMatrix::PETScBlockMatrix (const ProcessAdm& padm, const LinSolParams& 
     MatSetFromOptions(matvec[m]);
   }
   
-  S  = NULL;
-  Sp = NULL;
-  Fp = NULL;
+  S  = nullptr;
+  Sp = nullptr;
+  Fp = nullptr;
 
   LinAlgInit::increfs();
 }
@@ -353,7 +353,7 @@ void PETScBlockMatrix::initAssembly (const SAM& sam, bool)
      Vec x;
      VecDuplicate(const_mode,&x);
      this->renumberRHS(const_mode,x,true);
-     VecNormalize(x, NULL);
+     VecNormalize(x, nullptr);
      nsp = new MatNullSpace;
      MatNullSpaceCreate(*adm.getCommunicator(),PETSC_FALSE,1,&x,nsp);
 #if PETSC_VERSION_MAJOR > 6

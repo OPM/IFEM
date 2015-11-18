@@ -212,13 +212,13 @@ public:
   //!
   //! \details The secondary solution is derived from the primary solution,
   //! which is assumed to be stored within the \a integrand for current patch.
-  //! If \a npe is NULL, the solution is evaluated at the Greville points and
+  //! If \a npe is nullptr, the solution is evaluated at the Greville points and
   //! then projected onto the spline basis to obtain the control point values,
   //! which then are returned through \a sField.
-  //! If \a npe is not NULL and \a project is defined, the solution is also
+  //! If \a npe is not nullptr and \a project is defined, the solution is also
   //! projected onto the spline basis, and then evaluated at the \a npe points.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const int* npe = NULL, char project = '\0') const;
+                            const int* npe = nullptr, char project = '\0') const;
 
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods

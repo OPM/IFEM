@@ -59,7 +59,7 @@ Go::SplineVolume* ASMs3Dmx::getBasis (int basis) const
 Go::SplineSurface* ASMs3Dmx::getBoundary (int dir, int basis)
 {
   if (dir < -3 || dir == 0 || dir > 3)
-    return NULL;
+    return nullptr;
 
   // The boundary surfaces are stored internally in the SplineVolume object
   int iface = dir > 0 ? 2*dir-1 : -2*dir-2;

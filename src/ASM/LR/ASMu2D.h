@@ -220,7 +220,7 @@ public:
   //! \param[in] g2l Pointer to global-to-local node number mapping
   virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
                                const std::map<int,VecFunc*>& vfunc, double time,
-                               const std::map<int,int>* g2l = NULL);
+                               const std::map<int,int>* g2l = nullptr);
 protected:
   //! \brief Evaluates an integral over the interior patch domain.
   //! \param integrand Object with problem-specific data and methods
@@ -287,10 +287,10 @@ public:
   //!
   //! \details The secondary solution is derived from the primary solution,
   //! which is assumed to be stored within the \a integrand for current patch.
-  //! If \a npe is NULL, the solution is recovered or evaluated at the Greville
+  //! If \a npe is nullptr, the solution is recovered or evaluated at the Greville
   //! points and then projected onto the spline basis to obtain the control
   //! point values, which then are returned through \a sField.
-  //! If \a npe is not NULL and \a project is defined, the solution is also
+  //! If \a npe is not nullptr and \a project is defined, the solution is also
   //! projected onto the spline basis, and then evaluated at the \a npe points.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
 			    const int* npe = 0, char project = false) const;
@@ -402,7 +402,7 @@ protected:
     int                code;  //!< Inhomogeneous Dirichlet condition code
     std::vector<Ipair> nodes; //!< Nodes subjected to projection on the boundary
     //! \brief Default constructor.
-    DirichletEdge(Go::SplineCurve* sc = NULL, int d = 0, int c = 0)
+    DirichletEdge(Go::SplineCurve* sc = nullptr, int d = 0, int c = 0)
     : curve(sc), dof(d), code(c) {}
   };
 

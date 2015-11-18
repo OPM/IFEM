@@ -42,7 +42,7 @@ namespace utl
   //!
   //! \details The method uses the strtok function to parse a sequence of
   //! space-separated numbers and assumes that (at least one) call to strtok
-  //! with the first argument different from NULL has been made before
+  //! with the first argument different from nullptr has been made before
   //! invoking this method.
   bool parseKnots(std::vector<Real>& xi);
 

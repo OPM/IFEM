@@ -25,8 +25,8 @@
 XMLWriter::XMLWriter (const std::string& name, const ProcessAdm& adm) :
   DataWriter(name,adm,".xml")
 {
-  m_doc = NULL;
-  m_node = NULL;
+  m_doc = nullptr;
+  m_node = nullptr;
   m_dt = 0;
   m_order = m_interval = 1;
 }
@@ -81,7 +81,7 @@ void XMLWriter::closeFile(int level, bool force)
 
   m_doc->SaveFile(m_name);
   delete m_doc;
-  m_doc = NULL;
+  m_doc = nullptr;
 }
 
 

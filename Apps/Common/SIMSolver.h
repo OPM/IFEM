@@ -112,7 +112,7 @@ struct SolverHandler<AdaptiveSIM> {
       return 6;
 
     if (exporter)
-      exporter->dumpTimeLevel(NULL, true);
+      exporter->dumpTimeLevel(nullptr, true);
 
     return 0;
   }
@@ -160,8 +160,8 @@ public:
   void fastForward(int n) { for (int i = 0; i < n; i++) this->advanceStep(); }
 
   //! \brief Solves the problem up to the final time.
-  virtual int solveProblem(char* infile, DataExporter* exporter = NULL,
-                           const char* heading = NULL)
+  virtual int solveProblem(char* infile, DataExporter* exporter = nullptr,
+                           const char* heading = nullptr)
   {
     int geoBlk = 0;
     int nBlock = 0;

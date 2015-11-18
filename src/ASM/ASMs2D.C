@@ -39,9 +39,9 @@
 
 
 ASMs2D::ASMs2D (unsigned char n_s, unsigned char n_f)
-  : ASMstruct(2,n_s,n_f), surf(NULL), nodeInd(myNodeInd)
+  : ASMstruct(2,n_s,n_f), surf(nullptr), nodeInd(myNodeInd)
 {
-  bou[0] = bou[1] = bou[2] = bou[3] = NULL;
+  bou[0] = bou[1] = bou[2] = bou[3] = nullptr;
   swapV = false;
 }
 
@@ -78,7 +78,7 @@ ASMs2D::~ASMs2D ()
 Go::SplineCurve* ASMs2D::getBoundary (int dir, int)
 {
   if (dir < -2 || dir == 0 || dir > 2)
-    return NULL;
+    return nullptr;
 
   int iedge = dir > 0 ? dir : 3*dir+6;
   if (!bou[iedge])
@@ -873,7 +873,7 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
     gdata[k+5] = Zaxis.z;
   }
 
-  Go::SplineCurve* locc = NULL;
+  Go::SplineCurve* locc = nullptr;
   if (project)
   {
     // Project the Greville point values onto the spline basis
@@ -1473,8 +1473,8 @@ bool ASMs2D::integrate (Integrand& integrand,
   if (!xg || !wg) return false;
 
   // Get the reduced integration quadrature points, if needed
-  const double* xr = NULL;
-  const double* wr = NULL;
+  const double* xr = nullptr;
+  const double* wr = nullptr;
   int nRed = integrand.getReducedIntegration(nGauss);
   if (nRed > 0)
   {
@@ -2449,7 +2449,7 @@ bool ASMs2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 			   const int* npe, char project) const
 {
   // Project the secondary solution onto the spline basis
-  Go::SplineSurface* s = NULL;
+  Go::SplineSurface* s = nullptr;
   if (project == 'S')
     s = this->scRecovery(integrand);
   else if (project == 'A')

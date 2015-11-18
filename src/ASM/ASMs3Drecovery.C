@@ -120,12 +120,12 @@ Go::SplineVolume* ASMs3D::projectSolution (const IntegrandBase& integrand) const
   std::array<RealArray,3> gpar;
   for (int dir = 0; dir < 3; dir++)
     if (!this->getGrevilleParameters(gpar[dir],dir))
-      return NULL;
+      return nullptr;
 
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,gpar.data()) || sValues.rows() == 0)
-    return NULL;
+    return nullptr;
 
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.
@@ -394,14 +394,14 @@ bool ASMs3D::evaluate (const RealFunc* func, Vector& vec, int basisNum) const
 
 Go::SplineVolume* ASMs3D::projectSolutionLeastSquare (const IntegrandBase& integrand) const
 {
-  if (!svol) return NULL;
+  if (!svol) return nullptr;
 
   PROFILE1("test L2- projection");
   // Compute parameter values of the result sampling points (Gauss-Interpl. points)
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
   const double* wg = GaussQuadrature::getWeight(nGauss);
-  if (!xg || !wg) return NULL;
+  if (!xg || !wg) return nullptr;
 
   std::array<Matrix,3> ggpar;
   std::array<RealArray,3> gpar, wgpar;
@@ -426,7 +426,7 @@ Go::SplineVolume* ASMs3D::projectSolutionLeastSquare (const IntegrandBase& integ
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,gpar.data()))
-    return NULL;
+    return nullptr;
 
   RealArray weights;
   if (svol->rational())
@@ -451,16 +451,16 @@ Go::SplineVolume* ASMs3D::projectSolutionLocal (const IntegrandBase& integrand) 
   std::array<RealArray,3> gpar;
   for (int dir = 0; dir < 2; dir++)
     if (!this->getQuasiInterplParameters(gpar[dir],dir))
-      return NULL;
+      return nullptr;
 
   for (int dir = 2; dir < 3; dir++)
     if (!this->getGrevilleParameters(gpar[dir],dir))
-      return NULL;
+      return nullptr;
 
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,gpar.data()))
-    return NULL;
+    return nullptr;
 
   RealArray weights;
   if (svol->rational())
@@ -484,12 +484,12 @@ Go::SplineVolume* ASMs3D::projectSolutionLocalApprox(const IntegrandBase& integr
   std::array<RealArray,3> gpar;
   for (int dir = 0; dir < 3; dir++)
     if (!this->getGrevilleParameters(gpar[dir],dir))
-      return NULL;
+      return nullptr;
 
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,gpar.data()))
-    return NULL;
+    return nullptr;
 
   RealArray weights;
   if (svol->rational())

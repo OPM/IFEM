@@ -29,7 +29,7 @@ DataWriter::DataWriter (const std::string& name,
   else
     m_name = name;
 
-  m_prefix = NULL;
+  m_prefix = nullptr;
 
   m_size = adm.getNoProcs();
   m_rank = adm.getProcId();
@@ -57,7 +57,7 @@ bool DataExporter::registerField (const std::string& name,
   entry.description = description;
   entry.field = field;
   entry.results = results;
-  entry.data = entry.data2 = NULL;
+  entry.data = entry.data2 = nullptr;
   entry.prefix = prefix;
   if (!prefix.empty())
     entry.prefix += ' ';

@@ -31,7 +31,7 @@
 
 
 ASMs1D::ASMs1D (unsigned char n_s, unsigned char n_f)
-  : ASMstruct(1,n_s,n_f), curv(NULL), elmCS(myCS), nodalT(myT)
+  : ASMstruct(1,n_s,n_f), curv(nullptr), elmCS(myCS), nodalT(myT)
 {
 }
 
@@ -64,7 +64,7 @@ bool ASMs1D::read (std::istream& is)
   {
     std::cerr <<" *** ASMs1D::read: Failure reading spline data"<< std::endl;
     delete curv;
-    curv = NULL;
+    curv = nullptr;
     return false;
   }
   else if (curv->dimension() < 1)
@@ -72,7 +72,7 @@ bool ASMs1D::read (std::istream& is)
     std::cerr <<" *** ASMs1D::read: Invalid spline curve patch, dim="
 	      << curv->dimension() << std::endl;
     delete curv;
-    curv = NULL;
+    curv = nullptr;
     return false;
   }
   else if (curv->dimension() < nsd)
@@ -106,7 +106,7 @@ void ASMs1D::clear (bool retainGeometry)
   {
     // Erase spline data
     if (curv && !shareFE) delete curv;
-    geo = curv = NULL;
+    geo = curv = nullptr;
   }
 
   // Erase the FE data
@@ -758,8 +758,8 @@ bool ASMs1D::integrate (Integrand& integrand,
   if (!xg || !wg) return false;
 
   // Get the reduced integration quadrature points, if needed
-  const double* xr = NULL;
-  const double* wr = NULL;
+  const double* xr = nullptr;
+  const double* wr = nullptr;
   int nRed = integrand.getReducedIntegration(nGauss);
   if (nRed > 0)
   {
@@ -1239,12 +1239,12 @@ Go::SplineCurve* ASMs1D::projectSolution (const IntegrandBase& integrand) const
   // Compute parameter values of the result sampling points (Greville points)
   RealArray gpar;
   if (!this->getGrevilleParameters(gpar))
-    return NULL;
+    return nullptr;
 
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
   if (!this->evalSolution(sValues,integrand,&gpar))
-    return NULL;
+    return nullptr;
 
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.

@@ -19,7 +19,7 @@
 #include "tinyxml.h"
 
 
-HHTSIM::HHTSIM (SIMbase& sim) : NewmarkSIM(sim), Finert(NULL), Fext(NULL)
+HHTSIM::HHTSIM (SIMbase& sim) : NewmarkSIM(sim), Finert(nullptr), Fext(nullptr)
 {
   // Default Newmark parameters (alpha = -0.1)
   beta = 0.3025;

@@ -65,7 +65,7 @@ std::pair<int,int> NodeVecFunc::getPointIndex (const Vec3& xp) const
   if (it != ptMap.end()) return std::make_pair(x4 ? x4->idx : 0, it->second);
 
   // Not found, search among all nodes in the model
-  const ASMbase* pch = NULL;
+  const ASMbase* pch = nullptr;
   for (size_t i = 1; (pch = model.getPatch(i)); i++)
     for (size_t inod = 1; inod <= pch->getNoNodes(); inod++)
       if (xp.equal(pch->getCoord(inod)))

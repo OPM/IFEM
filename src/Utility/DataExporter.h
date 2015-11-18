@@ -107,19 +107,19 @@ public:
   //! \param[in] data2 (optional) The secondary data of the field
   bool setFieldValue(const std::string& name,
                      const void* data,
-                     const void* data2=NULL);
+                     const void* data2=nullptr);
 
   //! \brief Dumps all registered fields using the registered writers.
   //! \param[in] tp Current time stepping info
   //! \param[in] geometryUpdated Whether or not geometries are updated
-  bool dumpTimeLevel(const TimeStep* tp=NULL, bool geometryUpdated=false);
+  bool dumpTimeLevel(const TimeStep* tp=nullptr, bool geometryUpdated=false);
 
   //! \brief Loads last time level with first registered writer by default.
   //! \param[in] level Time level to load, defaults to last time level
   //! \param[in] info DataWriter to read the info from (e.g. the XML writer)
   //! \param[in] input DataWriter to read the data from (e.g. the HDF5 writer)
   bool loadTimeLevel(int level=-1,
-                     DataWriter* info=NULL, DataWriter* input=NULL);
+                     DataWriter* info=nullptr, DataWriter* input=nullptr);
 
   //! \brief Returns the current time level of the exporter.
   int getTimeLevel();
@@ -178,7 +178,7 @@ class DataWriter
 protected:
   //! \brief Protected constructor as this is a purely virtual class.
   DataWriter(const std::string& name, const ProcessAdm& adm,
-             const char* defaultExt = NULL);
+             const char* defaultExt = nullptr);
 
 public:
   //! \brief Empty destructor.

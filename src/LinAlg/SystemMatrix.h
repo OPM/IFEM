@@ -102,7 +102,7 @@ public:
   virtual Real Linfnorm() const = 0;
 
   //! \brief Dumps the system vector on a specified format.
-  virtual void dump(std::ostream&, char, const char* = NULL) {}
+  virtual void dump(std::ostream&, char, const char* = nullptr) {}
 
 protected:
   //! \brief Writes the system vector to the given output stream.
@@ -182,7 +182,7 @@ public:
   virtual Real Linfnorm() const { size_t off = 0; return this->normInf(off); }
 
   //! \brief Dumps the system vector on a specified format.
-  virtual void dump(std::ostream& os, char format, const char* label = NULL);
+  virtual void dump(std::ostream& os, char format, const char* label = nullptr);
 
 protected:
   //! \brief Writes the system vector to the given output stream.
@@ -300,7 +300,7 @@ public:
   //! \param b Right-hand-side vector on input, solution vector on output
   //! \param[in] newLHS \e true if the left-hand-side matrix has been updated
   //! \param[out] rc Reciprocal condition number of the LHS-matrix (optional)
-  virtual bool solve(SystemVector& b, bool newLHS = true, Real* rc = NULL) = 0;
+  virtual bool solve(SystemVector& b, bool newLHS = true, Real* rc = nullptr) = 0;
 
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param[in] b Right-hand-side vector
@@ -315,7 +315,7 @@ public:
   virtual Real Linfnorm() const = 0;
 
   //! \brief Dumps the system matrix on a specified format.
-  virtual void dump(std::ostream&, char, const char* = NULL) {}
+  virtual void dump(std::ostream&, char, const char* = nullptr) {}
 
   //! \brief Matrix-vector product
   StdVector operator*(const StdVector& b) const ;

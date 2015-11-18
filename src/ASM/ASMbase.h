@@ -207,7 +207,7 @@ public:
   { return std::make_pair(0,-1.0); }
 
   //! \brief Prints out the nodal coordinates of this patch to the given stream.
-  void printNodes(std::ostream& os, const char* heading = NULL) const;
+  void printNodes(std::ostream& os, const char* heading = nullptr) const;
 
   //! \brief Sets the global node numbers for this patch.
   void setGlobalNodeNums(const std::vector<int>& nodes) { myMLGN = nodes; }
@@ -346,7 +346,7 @@ public:
   virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
                                const std::map<int,VecFunc*>& vfunc,
                                double time = 0.0,
-                               const std::map<int,int>* g2l = NULL);
+                               const std::map<int,int>* g2l = nullptr);
 
   //! \brief Updates the nodal coordinates for this patch.
   //! \param[in] displ Incremental displacements to update the coordinates with
@@ -406,7 +406,7 @@ public:
   //! \note The number of element nodes must be set in \a grid on input.
   virtual bool tesselate(ElementBlock& grid, const int* npe) const = 0;
   //! \brief Returns an additional geometry to visualize (immersed boundaries).
-  virtual ElementBlock* immersedGeometry() const { return NULL; }
+  virtual ElementBlock* immersedGeometry() const { return nullptr; }
   //! \brief Filters out result point values that are outside physical domain.
   virtual void filterResults(Matrix&, const ElementBlock*) const {}
 
@@ -470,13 +470,13 @@ public:
   //!
   //! \details The secondary solution is derived from the primary solution,
   //! which is assumed to be stored within the \a integrand for current patch.
-  //! If \a npe is NULL, the solution is recovered or evaluated at the Greville
+  //! If \a npe is nullptr, the solution is recovered or evaluated at the Greville
   //! points and then projected onto the spline basis to obtain the control
   //! point values, which then are returned through \a sField.
-  //! If \a npe is not NULL and \a project is defined, the solution is also
+  //! If \a npe is not nullptr and \a project is defined, the solution is also
   //! projected onto the spline basis, and then evaluated at the \a npe points.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const int* npe = NULL, char project = '\0') const;
+                            const int* npe = nullptr, char project = '\0') const;
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field

@@ -35,7 +35,7 @@ public:
   //! \param[in] basis Basis to use from patch
   //! \param[in] name Name of field
   LagrangeField2D(const ASMs2DLag* patch, const RealArray& v,
-		  char basis = 1, const char* name = NULL);
+		  char basis = 1, const char* name = nullptr);
   //! \brief Empty destructor.
   virtual ~LagrangeField2D() {}
 

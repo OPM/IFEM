@@ -34,5 +34,5 @@ Field* Field::create (const ASMbase* pch, const RealArray& v,
   const ASMs3D* ps3 = dynamic_cast<const ASMs3D*>(pch);
   if (ps3) return new SplineField3D(ps3,v,basis,name);
 
-  return NULL;
+  return nullptr;
 }

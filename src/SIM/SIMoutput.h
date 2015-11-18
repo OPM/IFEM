@@ -51,7 +51,7 @@ class SIMoutput : public SIMbase
 {
 protected:
   //! \brief The constructor just forwards to the base class constructor.
-  SIMoutput(IntegrandBase* itg) : SIMbase(itg), myGeomID(0), myVtf(NULL) {}
+  SIMoutput(IntegrandBase* itg) : SIMbase(itg), myGeomID(0), myVtf(nullptr) {}
 
 public:
   //! \brief The destructor frees the dynamically allocated VTF object.
@@ -77,7 +77,7 @@ public:
   //! \brief Writes current model geometry to the VTF-file.
   //! \param nBlock Running result block counter
   //! \param[in] inpFile File name used to construct the VTF-file name from
-  //! \param[in] doClear If \e true, clear geometry block if \a inpFile is NULL
+  //! \param[in] doClear If \e true, clear geometry block if \a inpFile is nullptr
   //!
   //! \details The spline patches are tesselated into linear finite elements
   //! with a fixed number of elements within each knot-span of non-zero length.
@@ -121,7 +121,7 @@ public:
   //! \param[in] idBlock Starting value of result block numbering
   //! \param[in] psolComps Optional number of primary solution components
   bool writeGlvS(const Vector& psol, int iStep, int& nBlock, double time = 0.0,
-                 bool psolOnly = false, const char* pvecName = NULL,
+                 bool psolOnly = false, const char* pvecName = nullptr,
                  int idBlock = 10, int psolComps = 0);
 
   //! \brief Writes primary solution for a given load/time step to the VTF-file.
@@ -134,7 +134,7 @@ public:
   //! \param[in] psolComps Optional number of primary solution components
   //! \param[in] scalarOnly If \e true, write vector as scalar components only
   int writeGlvS1(const Vector& psol, int iStep, int& nBlock, double time = 0.0,
-                 const char* pvecName = NULL, int idBlock = 10,
+                 const char* pvecName = nullptr, int idBlock = 10,
                  int psolComps = 0, bool scalarOnly = false);
 
   //! \brief Writes secondary solution for a load/time step to the VTF-file.
@@ -168,7 +168,7 @@ public:
   //! \param[in] maxVal Optional array of maximum values
   bool writeGlvP(const Vector& ssol, int iStep, int& nBlock,
                  int idBlock = 100, const char* prefix = "Global projected",
-                 std::vector<PointValue>* maxVal = NULL);
+                 std::vector<PointValue>* maxVal = nullptr);
 
   //! \brief Evaluates the projected solution for a given load/time step.
   //! \param[in] ssol Secondary solution vector (control point values)
@@ -200,7 +200,7 @@ public:
   //! \param nBlock Running result block counter
   //! \param[in] prefix Prefices for projected solutions
   bool writeGlvN(const Matrix& norms, int iStep, int& nBlock,
-                 const char** prefix = NULL);
+                 const char** prefix = nullptr);
   //! \brief Writes a scalar function to the VTF-file.
   //! \param[in] f The function to output
   //! \param[in] fname Name of the function

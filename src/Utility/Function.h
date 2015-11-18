@@ -161,9 +161,9 @@ class TractionField : public TractionFunc
 
 public:
   //! \brief Constructor initializing the symmetric tensor function pointer.
-  TractionField(const STensorFunc& field) : sigma(&field), sigmaN(NULL) {}
+  TractionField(const STensorFunc& field) : sigma(&field), sigmaN(nullptr) {}
   //! \brief Constructor initializing the tensor function pointer.
-  TractionField(const TensorFunc& field) : sigma(NULL), sigmaN(&field) {}
+  TractionField(const TensorFunc& field) : sigma(nullptr), sigmaN(&field) {}
   //! \brief Empty destructor.
   virtual ~TractionField() {}
 

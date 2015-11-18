@@ -379,7 +379,7 @@ class ForceBase : public Integrand
 {
 protected:
   //! \brief The constructor is protected to allow sub-classes only.
-  ForceBase(IntegrandBase& p) : myProblem(p), eBuffer(NULL) {}
+  ForceBase(IntegrandBase& p) : myProblem(p), eBuffer(nullptr) {}
 
 public:
   //! \brief The destructor frees the internally allocated objects.

@@ -91,7 +91,7 @@ public:
   //! \param geoBlk Running geometry block counter
   //! \param nBlock Running result block counter
   //! \param[in] fileName File name used to construct the VTF-file name from
-  bool saveModel(int& geoBlk, int& nBlock, char* fileName = NULL);
+  bool saveModel(int& geoBlk, int& nBlock, char* fileName = nullptr);
 
   //! \brief Saves the converged results to VTF file of a given time step.
   //! \param[in] iStep Time/load step identifier
@@ -99,7 +99,7 @@ public:
   //! \param[in] psolOnly If \e true, skip secondary solution field output
   //! \param[in] vecName Optional name of primary solution vector field
   bool saveStep(int iStep, double time,
-                bool psolOnly = false, const char* vecName = NULL);
+                bool psolOnly = false, const char* vecName = nullptr);
 
   //! \brief Saves the converged solution to VTF file of a given time step.
   //! \param[in] iStep Time/load step identifier

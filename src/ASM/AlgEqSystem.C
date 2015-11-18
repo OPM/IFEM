@@ -31,7 +31,7 @@ bool AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
     if (b[i]) delete b[i];
 
   A.resize(nmat);
-  b.resize(nvec,NULL);
+  b.resize(nvec,nullptr);
   R.clear();
 
   for (i = 0; i < A.size(); i++)
@@ -46,7 +46,7 @@ bool AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
     }
 
     A[i]._A->initAssembly(sam,dontLockSparsityPattern);
-    A[i]._b = NULL;
+    A[i]._b = nullptr;
   }
 
   SystemVector::Type vtype = SystemVector::STD;
@@ -62,7 +62,7 @@ bool AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
 
   bool ok = true;
   if (A.size() == 1 && !b.empty())
-    ok = sam.initForAssembly(*b.front(), withReactions ? &R : NULL);
+    ok = sam.initForAssembly(*b.front(), withReactions ? &R : nullptr);
 
   for (i = 0; i < b.size(); i++)
     b[i]->redim(sam.getNoEquations());
@@ -125,7 +125,7 @@ bool AlgEqSystem::assemble (const LocalIntegral* elmObj, int elmId)
     // The algebraic system consists of one system matrix and one RHS-vector.
     // Extract the element-level Newton matrix and associated RHS-vector for
     // general time-dependent and/or nonlinear problems.
-    Vector* reac = R.empty() ? NULL : &R;
+    Vector* reac = R.empty() ? nullptr : &R;
     status = sam.assembleSystem(*b.front(), elMat->getRHSVector(), elmId, reac);
     if (status && elMat->withLHS) // we have LHS element matrices
     {

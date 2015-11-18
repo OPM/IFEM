@@ -21,8 +21,8 @@ namespace SIM
 {
   //! \brief Set initial conditions
   //! \param sim The SIM to load initial conditions for
-  //! \param fieldHolder The SIM to inject the initial conditions into. NULL means use sim
-  bool setInitialConditions(SIMbase& sim, SIMdependency* fieldHolder=NULL);
+  //! \param fieldHolder The SIM to inject the initial conditions into. nullptr means use sim
+  bool setInitialConditions(SIMbase& sim, SIMdependency* fieldHolder=nullptr);
 }
 
 #endif

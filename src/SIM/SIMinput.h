@@ -28,7 +28,7 @@ class SIMinput
 {
 protected:
   //! \brief The default constructor initializes the process administrator.
-  SIMinput(const char* heading = NULL);
+  SIMinput(const char* heading = nullptr);
   //! \brief Copy constructor.
   SIMinput(SIMinput& anotherSIM);
 
@@ -62,7 +62,7 @@ protected:
                           std::vector<const TiXmlElement*>& parsed);
 
   //! \brief Returns a list of prioritized XML-tags.
-  virtual const char** getPrioritizedTags() const { return NULL; }
+  virtual const char** getPrioritizedTags() const { return nullptr; }
 
 public:
   //! \brief Parses a data section from an input stream.

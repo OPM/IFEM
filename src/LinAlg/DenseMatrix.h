@@ -61,7 +61,7 @@ public:
   const Real& operator()(size_t r, size_t c) const { return myMat(r,c); }
 
   //! \brief Dumps the system matrix on a specified format.
-  virtual void dump(std::ostream&, char, const char* = NULL);
+  virtual void dump(std::ostream&, char, const char* = nullptr);
 
   //! \brief Initializes the element assembly process.
   //! \details Must be called once before the element assembly loop.
@@ -122,7 +122,7 @@ public:
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side vector on input, solution vector on output
   //! \param[out] rc Reciprocal condition number of the LHS-matrix (optional)
-  virtual bool solve(SystemVector& B, bool, Real* rc = NULL);
+  virtual bool solve(SystemVector& B, bool, Real* rc = nullptr);
   //! \brief Solves the linear system of equations for a given right-hand-side.
   //! \param B Right-hand-side matrix on input, solution matrix on output
   bool solve(Matrix& B);
@@ -186,7 +186,7 @@ protected:
   //! \brief This is the function which actually solves the equation system,
   //! using the LAPack library subroutines. The two public \a solve methods just
   //! forward to this method.
-  bool solve(Real* B, size_t nrhs, Real* rcond = NULL);
+  bool solve(Real* B, size_t nrhs, Real* rcond = nullptr);
 
   //! \brief Writes the system matrix to the given output stream.
   virtual std::ostream& write(std::ostream& os) const { return os << myMat; }

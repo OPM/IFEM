@@ -298,8 +298,8 @@ bool ASMs2DLag::integrate (Integrand& integrand,
   if (!xg || !wg) return false;
 
   // Get the reduced integration quadrature points, if needed
-  const double* xr = NULL;
-  const double* wr = NULL;
+  const double* xr = nullptr;
+  const double* wr = nullptr;
   int nRed = integrand.getReducedIntegration(nGauss);
   if (nRed > 0)
   {

@@ -22,7 +22,7 @@
 */
 
 static void ExprException (const ExprEval::Exception& exc, const char* task,
-                           const char* function = NULL)
+                           const char* function = nullptr)
 {
   std::cerr <<" *** Error "<< task <<" function";
   if (function)

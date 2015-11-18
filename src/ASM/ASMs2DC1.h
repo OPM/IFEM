@@ -105,7 +105,7 @@ public:
   //! \param[in] g2l Pointer to global-to-local node number mapping
   virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
                                const std::map<int,VecFunc*>& vfunc, double time,
-                               const std::map<int,int>* g2l = NULL);
+                               const std::map<int,int>* g2l = nullptr);
 
 private:
   static std::map<int,ASMs2DC1*> neighbors; //!< Global node to patch mapping

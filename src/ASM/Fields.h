@@ -61,7 +61,7 @@ public:
   //! \param[in] basis Basis to use from patch
   //! \param[in] name Name of field
   static Fields* create(const ASMbase* pch, const RealArray& v,
-                        char basis = 1, const char* name = NULL);
+                        char basis = 1, const char* name = nullptr);
 
   // Methods to evaluate the field
   //==============================

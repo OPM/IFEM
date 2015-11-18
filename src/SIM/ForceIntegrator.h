@@ -42,7 +42,7 @@ namespace SIM
   //! \param[in] X0 Pivot point for torque calculation
   //! \return The force (and torque) resultant
   Vector getBoundaryForce(const Vectors& solution, SIMbase* model, int code,
-                          const TimeDomain& time, const Vec3* X0 = NULL);
+                          const TimeDomain& time, const Vec3* X0 = nullptr);
 
   //! \brief Integrates nodal forces on a specified boundary.
   //! \param[in] solution Primary solution vectors in DOF order
@@ -65,11 +65,11 @@ namespace SIM
   //! \param[in] code Code indentifying the boundary subjected to integration
   //! \param[in] time Parameters for nonlinear and time-dependent simulations
   //! \param[in] forceInt The force integrand to integrate
-  //! \param[in] force If non-NULL nodal forces are stored here
+  //! \param[in] force If non-nullptr nodal forces are stored here
   //! \return True if integration succeeded
   bool integrate(const Vectors& solution, SIMbase* model, int code,
                  const TimeDomain& time, ForceBase* forceInt,
-                 GlbForceVec* force=NULL);
+                 GlbForceVec* force=nullptr);
 }
 
 #endif

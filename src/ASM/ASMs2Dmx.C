@@ -60,7 +60,7 @@ Go::SplineSurface* ASMs2Dmx::getBasis (int basis) const
 Go::SplineCurve* ASMs2Dmx::getBoundary (int dir, int basis)
 {
   if (dir < -2 || dir == 0 || dir > 2 || basis < 1 || basis > (int)m_basis.size())
-    return NULL;
+    return nullptr;
 
   int iedge = dir > 0 ? dir : 3*dir+6;
 

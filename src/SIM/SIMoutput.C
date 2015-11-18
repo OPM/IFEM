@@ -117,7 +117,7 @@ bool SIMoutput::parse (char* keyWord, std::istream& is)
   if (nres > 0)
   {
     IFEM::cout <<"\nNumber of result points: "<< nres <<"\n";
-    if ((cline = strtok(NULL," ")))
+    if ((cline = strtok(nullptr," ")))
       this->setPointResultFile(cline);
   }
 
@@ -126,7 +126,7 @@ bool SIMoutput::parse (char* keyWord, std::istream& is)
   {
     myPoints[i].patch = atoi(strtok(cline," "));
     IFEM::cout <<"\tPoint "<< i+1 <<": P"<< myPoints[i].patch <<" xi =";
-    for (int j = 0; j < 3 && (cline = strtok(NULL," ")); j++)
+    for (int j = 0; j < 3 && (cline = strtok(nullptr," ")); j++)
     {
       myPoints[i].par[j] = atof(cline);
       IFEM::cout <<' '<< myPoints[i].par[j];
@@ -384,9 +384,9 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
 /*!
   This method writes only the primary solution field to the VTF-file.
   The primary solution is written as a deformation plot (labelled "Solution")
-  if \a pvecName is NULL. If the primary solution is a scalar field, the field
+  if \a pvecName is nullptr. If the primary solution is a scalar field, the field
   value is in that case interpreted as a deformation along the global Z-axis.
-  If the primary solution is a vector field and \a pvecName is not NULL,
+  If the primary solution is a vector field and \a pvecName is not nullptr,
   it is written as a named vector field instead (no deformation plot).
 
   If the primary solution is a vector field, each vector component is written
@@ -414,9 +414,9 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
   if (mySol)
   {
     if (scalarEq)
-      haveXsol = mySol->getScalarSol() != NULL;
+      haveXsol = mySol->getScalarSol() != nullptr;
     else
-      haveXsol = mySol->getVectorSol() != NULL;
+      haveXsol = mySol->getVectorSol() != nullptr;
   }
 
   size_t nf = scalarEq ? 1 : this->getNoFields();
@@ -665,7 +665,7 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
         return false;
 
   for (i = j = 0; i < nf && j < sMAX && !sID[j].empty(); i++, j++)
-    if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,haveAsol?"FE":NULL).c_str(),
+    if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,haveAsol?"FE":nullptr).c_str(),
                           idBlock++,iStep)) return false;
 
   if (doProject)
