@@ -15,6 +15,26 @@
 
 #include "gtest/gtest.h"
 
+TEST(TestVec3Oper, GetAndSet)
+{
+  Vec3 a(1,2,3);
+  EXPECT_TRUE(a[0] == 1.0);
+  EXPECT_TRUE(a[1] == 2.0);
+  EXPECT_TRUE(a[2] == 3.0);
+  EXPECT_TRUE(a(1) == 1.0);
+  EXPECT_TRUE(a(2) == 2.0);
+  EXPECT_TRUE(a(3) == 3.0);
+  EXPECT_TRUE(a.x  == 1.0);
+  EXPECT_TRUE(a.y  == 2.0);
+  EXPECT_TRUE(a.z  == 3.0);
+  a[0] = 4.0;
+  a(2) = 5.0;
+  a.z  = 6.0;
+  EXPECT_TRUE(a[0] == 4.0);
+  EXPECT_TRUE(a[1] == 5.0);
+  EXPECT_TRUE(a[2] == 6.0);
+}
+
 TEST(TestVec3Oper, MxV)
 {
   utl::matrix<Real> A(3,3);
@@ -88,14 +108,26 @@ TEST(TestVec3Oper, Subtraction)
   EXPECT_TRUE(result[2] == 0.0);
 }
 
+TEST(TestVec3Oper, Length)
+{
+  Vec3 a;
+  a[0] = a[1] = a[2] = 1.0;
+  double sqrt3 = sqrt(3);
+
+  EXPECT_FLOAT_EQ(a.length(), sqrt3);
+}
+
 TEST(TestVec3Oper, Equality)
 {
   Vec3 a;
   a[0] = a[1] = a[2] = 1.0;
   Vec3 b;
-  b[0] = b[1] = b[2] = 1.0;
+  b[0] = b[1] = b[2] = 2.0;
+  Vec3 c;
+  c[0] = c[1] = c[2] = 1.0;
 
-  EXPECT_TRUE(a == b);
+  EXPECT_TRUE( a == c);
+  EXPECT_FALSE(a == b);
 }
 
 TEST(TestVec3Oper, InEquality)
@@ -104,8 +136,11 @@ TEST(TestVec3Oper, InEquality)
   a[0] = a[1] = a[2] = 1.0;
   Vec3 b;
   b[0] = b[1] = b[2] = 2.0;
+  Vec3 c;
+  c[0] = c[1] = c[2] = 1.0;
 
-  EXPECT_TRUE(a != b);
+  EXPECT_TRUE( a != b);
+  EXPECT_FALSE(a != c);
 }
 
 TEST(TestVec3Oper, Less)
