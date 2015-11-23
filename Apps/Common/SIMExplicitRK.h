@@ -118,7 +118,7 @@ public:
     solver.applyDirichlet(solver.getSolution());
 
     solver.printSolutionSummary(solver.getSolution(), 0,
-                                solver.getProblem()->getField1Name(1));
+                                solver.getProblem()->getField1Name(1).c_str());
 
     return true;
   }

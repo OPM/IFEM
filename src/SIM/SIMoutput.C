@@ -665,17 +665,17 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
         return false;
 
   for (i = j = 0; i < nf && j < sMAX && !sID[j].empty(); i++, j++)
-    if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,haveAsol?"FE":NULL),
+    if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,haveAsol?"FE":NULL).c_str(),
                           idBlock++,iStep)) return false;
 
   if (doProject)
     for (i = 0; i < nf && j < sMAX && !sID[j].empty(); i++, j++)
-      if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,"Projected"),
+      if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,"Projected").c_str(),
                             idBlock++,iStep)) return false;
 
   if (haveAsol)
     for (i = 0; i < nf && j < sMAX && !sID[j].empty(); i++, j++)
-      if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,"Exact"),
+      if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,"Exact").c_str(),
                             idBlock++,iStep)) return false;
 
   return true;
@@ -761,7 +761,7 @@ bool SIMoutput::writeGlvP (const Vector& ssol, int iStep, int& nBlock,
 
   // Write result block identifications
   for (j = 0; j < sID.size() && !sID[j].empty(); j++)
-    if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(j,prefix),
+    if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(j,prefix).c_str(),
                           ++idBlock,iStep)) return false;
 
   return true;
