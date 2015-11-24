@@ -285,9 +285,9 @@ bool NormBase::initElementBou (const std::vector<int>& MNPC,
 }
 
 
-const char* NormBase::getName (size_t i, size_t j, const char* prefix) const
+std::string NormBase::getName (size_t i, size_t j, const char* prefix) const
 {
-  static char comp[32];
+  char comp[32];
   sprintf(comp,"norm_%lu.%lu",i,j);
   if (prefix)
   {

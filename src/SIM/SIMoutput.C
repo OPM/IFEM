@@ -934,7 +934,7 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
     }
   }
 
-  const char* normName;
+  std::string normName;
   int idBlock = 200;
   j = l = 1;
   for (k = 0; k < maxN && !sID[k].empty(); l++)
@@ -950,7 +950,7 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
     else
       normName = norm->getName(j,l);
 
-    if (!myVtf->writeSblk(sID[k++],normName,++idBlock,iStep,true))
+    if (!myVtf->writeSblk(sID[k++],normName.c_str(),++idBlock,iStep,true))
       return false;
   }
 
