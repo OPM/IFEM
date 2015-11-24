@@ -32,7 +32,7 @@ MultiStepSIM::MultiStepSIM (SIMbase& sim)
   nRHSvec = 1;
   rotUpd  = false;
 
-  geoBlk = nBlock = 0;
+  geoBlk = nBlock = lastSt = 0;
 }
 
 
@@ -82,22 +82,24 @@ bool MultiStepSIM::saveModel (char* fileName)
 }
 
 
-bool MultiStepSIM::saveModel (int& gBlk, int& rBlk, char* fileName)
+bool MultiStepSIM::saveModel (int& gBlock, int& rBlock, char* fileName)
 {
   PROFILE1("MultiStepSIM::saveModel");
 
   // Write VTF-file with model geometry
-  if (!model.writeGlvG(gBlk,fileName,gBlk==0))
+  if (!model.writeGlvG(gBlock,fileName,gBlock==0))
     return false;
 
   // Write Dirichlet boundary conditions
-  return model.writeGlvBC(rBlk);
+  return model.writeGlvBC(rBlock);
 }
 
 
 bool MultiStepSIM::saveStep (int iStep, double time,
                              bool psolOnly, const char* vecName)
 {
+  if (iStep <= lastSt) return true; // We have already saved this step
+
   PROFILE1("MultiStepSIM::saveStep");
 
   // Negative iStep means we are saving the initial state only
@@ -105,6 +107,8 @@ bool MultiStepSIM::saveStep (int iStep, double time,
     return false;
   else if (iStep < 0)
     iStep = -iStep;
+  else
+    lastSt = iStep;
 
   // Write boundary tractions, if any
   if (!psolOnly)
@@ -131,14 +135,31 @@ bool MultiStepSIM::saveStep (int iStep, double time,
 
 
 /*!
+  Use this method when other simulators write results to the same VTF-file.
+  The internal result block counter \a nBlock is syncronized with the
+  argument \a rBlock before the results of this simulator are written,
+  to avoid that multiple result blocks recieve the same result block ID.
+*/
+
+bool MultiStepSIM::saveStep (int iStep, int& rBlock, double time,
+                             bool psolOnly, const char* vecName)
+{
+  if (rBlock > nBlock) nBlock = rBlock;
+  bool s = this->saveStep(iStep,time,psolOnly,vecName);
+  rBlock = nBlock;
+  return s;
+}
+
+
+/*!
   This method only writes the primary solution vector as a vector field.
   It is mainly used when this simulator is a component in a coupled simulation,
   and where the secondary solution is of minor interest.
 */
 
-bool MultiStepSIM::saveStep (int iStep, int& nBlock, const char* vecName)
+bool MultiStepSIM::saveStep (int iStep, int& rBlock, const char* vecName)
 {
-  return model.writeGlvV(solution.front(),vecName,iStep,nBlock);
+  return model.writeGlvV(solution.front(),vecName,iStep,rBlock);
 }
 
 

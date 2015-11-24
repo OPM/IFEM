@@ -79,6 +79,9 @@ protected:
   virtual bool solutionNorms(const TimeDomain&, double zero_tolerance = 1.0e-8,
                              std::streamsize outPrec = 0);
 
+  //! \brief Returns the last step that was save to VTF
+  int getLastSavedStep() const { return lastSt; }
+
 public:
   //! \brief Initializes the geometry block counter.
   void setStartGeo(int gID);
@@ -88,10 +91,10 @@ public:
   bool saveModel(char* fileName);
 
   //! \brief Opens a new VTF-file and writes the model geometry to it.
-  //! \param geoBlk Running geometry block counter
-  //! \param nBlock Running result block counter
+  //! \param gBlock Running geometry block counter
+  //! \param rBlock Running result block counter
   //! \param[in] fileName File name used to construct the VTF-file name from
-  bool saveModel(int& geoBlk, int& nBlock, char* fileName = nullptr);
+  bool saveModel(int& gBlock, int& rBlock, char* fileName = nullptr);
 
   //! \brief Saves the converged results to VTF file of a given time step.
   //! \param[in] iStep Time/load step identifier
@@ -101,11 +104,20 @@ public:
   bool saveStep(int iStep, double time,
                 bool psolOnly = false, const char* vecName = nullptr);
 
+  //! \brief Saves the converged results to VTF file of a given time step.
+  //! \param[in] iStep Time/load step identifier
+  //! \param rBlock Running result block counter
+  //! \param[in] time Current time/load parameter
+  //! \param[in] psolOnly If \e true, skip secondary solution field output
+  //! \param[in] vecName Optional name of primary solution vector field
+  bool saveStep(int iStep, int& rBlock, double time,
+                bool psolOnly = false, const char* vecName = nullptr);
+
   //! \brief Saves the converged solution to VTF file of a given time step.
   //! \param[in] iStep Time/load step identifier
-  //! \param nBlock Running result block counter
+  //! \param rBlock Running result block counter
   //! \param[in] vecName Name of primary solution vector field
-  bool saveStep(int iStep, int& nBlock, const char* vecName);
+  bool saveStep(int iStep, int& rBlock, const char* vecName);
 
   //! \brief Dumps the primary solution for inspection.
   //! \param[in] iStep Time/load step identifier
@@ -163,6 +175,9 @@ protected:
 
   int geoBlk; //!< Running VTF geometry block counter
   int nBlock; //!< Running VTF result block counter
+
+private:
+  int lastSt; //!< The last step that was saved to VTF
 };
 
 #endif

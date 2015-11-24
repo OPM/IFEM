@@ -36,6 +36,7 @@ NewmarkSIM::NewmarkSIM (SIMbase& sim) : MultiStepSIM(sim)
   maxit   = 20;
   convTol = 0.000001;
   divgLim = 10.0;
+  saveIts = 0;
 }
 
 
@@ -62,6 +63,8 @@ bool NewmarkSIM::parse (const TiXmlElement* elem)
       convTol = atof(value);
     else if ((value = utl::getValue(child,"dtol")))
       divgLim = atof(value);
+    else if ((value = utl::getValue(child,"saveiterations")))
+      saveIts = atoi(value);
     else if ((value = utl::getValue(child,"referencenorm")))
     {
       if (!strcasecmp(value,"all"))
@@ -350,6 +353,15 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
         param.iter++;
         if (!this->correctStep(param))
           return SIM::FAILURE;
+
+        if (param.step == saveIts)
+        {
+          double time = param.time.t + (param.time.dt*param.iter)/maxit;
+          if (!this->saveStep(this->getLastSavedStep()+1,time))
+            return SIM::FAILURE;
+          else if (!model.setMode(SIM::DYNAMIC))
+            return SIM::FAILURE;
+        }
 
         if (subiter&FIRST && param.iter == 1 && !model.updateDirichlet())
           return SIM::FAILURE;
