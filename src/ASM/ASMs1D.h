@@ -71,6 +71,10 @@ public:
   //! This is used to reinitialize the patch after it has been refined.
   virtual void clear(bool retainGeometry = false);
 
+  //! \brief Returns the number of nodal points in the patch.
+  //! \param[in] basis Which basis to return size parameters for (mixed methods)
+  virtual int getSize(int basis = 0) const;
+
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const;
@@ -300,10 +304,6 @@ protected:
   //! \brief Returns the length in the parameter space for an element.
   //! \param[in] iel Element index
   double getParametricLength(int iel) const;
-
-  //! \brief Returns the number of nodal points in the patch.
-  //! \param[in] basis Which basis to return size parameters for (mixed methods)
-  virtual int getSize(int basis = 0) const;
 
   //! \brief Returns the parametric length on the \a i'th knot-span.
   double getKnotSpan(int i) const;

@@ -193,11 +193,6 @@ public:
   //! \param[in] silence If \e true, suppress threading group outprint
   virtual void generateThreadGroups(char lIndex, bool silence);
 
-protected:
-
-  // Internal utility methods
-  // ========================
-
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction
   //! \param[out] n2 Number of nodes in second (v) direction

@@ -198,16 +198,13 @@ public:
   //! \param[in] silence If \e true, suppress threading group outprint
   virtual void generateThreadGroups(const Integrand& integrand, bool silence);
 
-protected:
-
-  // Internal utility methods
-  // ========================
-
   //! \brief Returns the number of nodal points in each parameter direction.
   //! \param[out] n1 Number of nodes in first (u) direction
   //! \param[out] n2 Number of nodes in second (v) direction
   //! \param[in] basis Which basis to return size parameters for
   virtual bool getSize(int& n1, int& n2, int basis = 0) const;
+
+protected:
 
   std::vector<std::shared_ptr<Go::SplineSurface>> m_basis; //!< Vector of bases
 };
