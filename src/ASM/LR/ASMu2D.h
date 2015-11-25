@@ -48,6 +48,11 @@ public:
   //! \brief Returns the spline surface representing this patch.
   LR::LRSplineSurface* getSurface() { return lrspline.get(); }
 
+  //! \brief Returns the spline surface representing the basis of this patch.
+  virtual const LR::LRSplineSurface* getBasis(int = 1) const { return lrspline.get(); }
+
+  //! \brief Returns the spline surface representing the basis of this patch.
+  virtual LR::LRSplineSurface* getBasis(int = 1) { return lrspline.get(); }
 
   // Methods for model generation and refinement
   // ===========================================
@@ -96,6 +101,9 @@ public:
   //! \param[out] p2 Order in second (v) direction
   //! \param[out] p3 Order in third (w) direction
   virtual bool getOrder(int& p1, int& p2, int& p3) const;
+
+  //! \brief Returns the total number of nodes in this patch.
+  virtual size_t getNoNodes(int basis = 0) const;
 
   //! \brief Checks that the patch is modelled in a right-hand-side system.
   virtual bool checkRightHandSystem();
@@ -221,6 +229,13 @@ public:
   virtual bool updateDirichlet(const std::map<int,RealFunc*>& func,
                                const std::map<int,VecFunc*>& vfunc, double time,
                                const std::map<int,int>* g2l = nullptr);
+
+  //! \brief Obtain node index for a given corner.
+  int getCorner(int I, int J, int basis=1) const;
+
+  //! \brief Obtain node indices for a given edge
+  std::vector<int> getEdgeNodes(int dir, int basis=1) const;
+
 protected:
   //! \brief Evaluates an integral over the interior patch domain.
   //! \param integrand Object with problem-specific data and methods
@@ -405,16 +420,6 @@ protected:
     DirichletEdge(Go::SplineCurve* sc = nullptr, int d = 0, int c = 0)
     : curve(sc), dof(d), code(c) {}
   };
-
-  //! \brief Constrains all DOFs on a given boundary edge.
-  //! \param[in] dir Parameter direction defining the edge to constrain
-  //! \param[in] open If \e true, exclude the end points of the edge
-  //! \param[in] dof Which DOFs to constrain at each node on the edge
-  //! \param[in] code Inhomogeneous dirichlet condition code
-  //! \param[in] ofs Offset for nodes (multiple bases).
-  //! \param[in] spline LRSpline to use for node numbers.
-  virtual void constrainEdge(int dir, bool open, int dof, int code,
-                             size_t ofs, LR::LRSplineSurface* spline);
 
   std::shared_ptr<LR::LRSplineSurface> lrspline; //!< Pointer to the LR-spline surface object
 

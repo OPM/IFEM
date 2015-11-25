@@ -53,7 +53,16 @@ ASMu2Dmx::ASMu2Dmx (const ASMu2Dmx& patch,
 }
 
 
-LR::LRSplineSurface* ASMu2Dmx::getBasis (int basis) const
+const LR::LRSplineSurface* ASMu2Dmx::getBasis (int basis) const
+{
+  if (basis < 1 || basis > (int)m_basis.size())
+    return nullptr;
+
+  return m_basis[basis-1].get();
+}
+
+
+LR::LRSplineSurface* ASMu2Dmx::getBasis (int basis)
 {
   if (basis < 1 || basis > (int)m_basis.size())
     return nullptr;
@@ -551,27 +560,6 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   return evalSolution(sField,
                      const_cast<IntegrandBase&>(integrand).getSolution(0),
                      gpar, regular, 0);
-}
-
-
-void ASMu2Dmx::constrainEdge (int dir, bool open, int dof, int code, char basis)
-{
-  size_t ofs = std::accumulate(nb.begin(),nb.begin()+basis-1, 0);
-  ASMu2D::constrainEdge(dir,open,dof,code,ofs,m_basis[basis-1].get());
-}
-
-
-Vec3 ASMu2Dmx::getCoord (size_t inod) const
-{
-  int node = inod, i = 0;
-  while (node > m_basis[i]->nBasisFunctions())
-    node -= m_basis[i++]->nBasisFunctions();
-
-  LR::Basisfunction* basis = m_basis[i]->getBasisfunction(node-1);
-  if (!basis)
-    return Vec3();
-
-  return Vec3(&(*basis->cp()),nsd);
 }
 
 

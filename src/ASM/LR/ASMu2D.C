@@ -570,44 +570,44 @@ void ASMu2D::closeEdges (int dir, int basis, int master)
 */
 
 
-void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char)
+std::vector<int> ASMu2D::getEdgeNodes(int dir, int basis) const
 {
-  constrainEdge(dir,open,dof,code,0,lrspline.get());
+  const LR::LRSplineSurface* srf = getBasis(basis);
+  size_t ofs = 0;
+  for (int i=1; i < basis; ++i)
+    ofs += getNoNodes(i);
+
+  std::vector<int> result;
+  if (dir > -3 && dir < 3) {
+    const std::vector<LR::parameterEdge> map = {LR::SOUTH, LR::WEST, LR::WEST, /* dummy*/ LR::EAST, LR::NORTH};
+    std::vector<LR::Basisfunction*> edgeFunctions;
+    srf->getEdgeFunctions(edgeFunctions, map[dir+2]);
+
+    result.resize(edgeFunctions.size());
+    std::transform(edgeFunctions.begin(), edgeFunctions.end(),
+                   result.begin(), [ofs](LR::Basisfunction* a) { return a->getId()+ofs+1; });
+  }
+
+  return result;
 }
 
 
-void ASMu2D::constrainEdge(int dir, bool open, int dof, int code, size_t ofs,
-                           LR::LRSplineSurface* spline)
+void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 {
-  std::vector<LR::Basisfunction*> edgeFunctions;
-  static const std::map<int, LR::parameterEdge> m =
-        {{ 1, LR::EAST},
-         {-1, LR::WEST},
-         { 2, LR::NORTH},
-         {-2, LR::SOUTH}};
-  LR::parameterEdge edge = m.find(dir)->second;
-
-  Go::SplineCurve* curve = nullptr;
-  if (code > 0)
-    curve = spline->edgeCurve(edge, edgeFunctions);
-  else
-    spline->getEdgeFunctions(edgeFunctions, edge);
-
-  if (curve)
-    dirich.push_back(DirichletEdge(curve,dof,code));
+  std::vector<int> nodes = getEdgeNodes(dir, basis);
 
   // Skip the first and last function if we are requesting an open boundary.
   // I here assume the edgeFunctions are ordered such that the physical
   // end points are represented by the first and last edgeFunction.
   if (!open)
-    this->prescribe(edgeFunctions.front()->getId()+1+ofs,dof,code);
+    this->prescribe(nodes.front(),dof,code);
 
-  for (size_t i = 1; i < edgeFunctions.size()-1; i++)
-    if (this->prescribe(edgeFunctions[i]->getId()+ofs+1,dof,-code) == 0 && code > 0)
-      dirich.back().nodes.push_back(std::make_pair(i+1,edgeFunctions[i]->getId()+ofs+1));
+  for (size_t i = 1; i < nodes.size()-1; i++)
+    if (this->prescribe(nodes[i],dof,-code) == 0 && code > 0)
+      dirich.back().nodes.push_back(std::make_pair(i,nodes[i]));
 
   if (!open)
-    this->prescribe(edgeFunctions.back()->getId()+ofs+1,dof,code);
+    this->prescribe(nodes.back(),dof,code);
 
   if (code > 0)
     if (dirich.back().nodes.empty())
@@ -634,34 +634,48 @@ size_t ASMu2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
 }
 
 
-void ASMu2D::constrainCorner (int I, int J, int dof, int code, char)
+int ASMu2D::getCorner(int I, int J, int basis) const
 {
   std::vector<LR::Basisfunction*> edgeFunctions;
+
+  const LR::LRSplineSurface* srf = getBasis(basis);
 
   // Note: Corners are identified by "coordinates" {-1,-1} {-1,1} {1,-1} {1,1}.
   if (I < 0) {
     if (J < 0)
-      lrspline->getEdgeFunctions(edgeFunctions, LR::SOUTH_WEST);
+      srf->getEdgeFunctions(edgeFunctions, LR::SOUTH_WEST);
     else if (J > 0)
-      lrspline->getEdgeFunctions(edgeFunctions, LR::NORTH_WEST);
+      srf->getEdgeFunctions(edgeFunctions, LR::NORTH_WEST);
   }
   else if (I > 0) {
     if (J < 0)
-      lrspline->getEdgeFunctions(edgeFunctions, LR::SOUTH_EAST);
+      srf->getEdgeFunctions(edgeFunctions, LR::SOUTH_EAST);
     else if (J > 0)
-      lrspline->getEdgeFunctions(edgeFunctions, LR::NORTH_EAST);
+      srf->getEdgeFunctions(edgeFunctions, LR::NORTH_EAST);
   }
 
-  if (edgeFunctions.empty())
+  if (edgeFunctions.empty()) {
     std::cerr <<" *** ASMu2D::constrainCorner: Invalid corner I,J="
               << I <<","<< J << std::endl;
-  else
-    this->prescribe(edgeFunctions.front()->getId()+1,dof,code);
+    return 0;
+  }
 
   if (edgeFunctions.size() > 1)
     std::cerr <<"  ** ASMu2D::constrainCorner: "<< edgeFunctions.size()
 	      <<" corners returned from LRSplineSurface::getEdgeFunctions()"
               << std::endl;
+
+  return edgeFunctions.front()->getId()+1;
+}
+
+
+void ASMu2D::constrainCorner (int I, int J, int dof, int code, char)
+{
+  int corner = getCorner(I, J, 1);
+  if (corner == 0)
+    return;
+  else
+    this->prescribe(corner,dof,code);
 }
 
 
@@ -1744,4 +1758,10 @@ bool ASMu2D::updateDirichlet (const std::map<int,RealFunc*>& func,
   // The parent class method takes care of the corner nodes with direct
   // evaluation of the Dirichlet functions (since they are interpolatory)
   return this->ASMbase::updateDirichlet(func,vfunc,time,g2l);
+}
+
+
+size_t ASMu2D::getNoNodes (int) const
+{
+  return lrspline->nBasisFunctions();
 }
