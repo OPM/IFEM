@@ -549,6 +549,13 @@ public:
   virtual bool injectNodeVec(const Vector& nodeVec, Vector& globVec,
 			     unsigned char nndof = 0, int basis = 0) const;
 
+  //! \brief Creates and adds a two-point constraint to this patch.
+  //! \param[in] slave Global node number of the node to constrain
+  //! \param[in] dir Which local DOF to constrain (1, 2, 3)
+  //! \param[in] master Global node number of the master node of the constraint
+  //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
+  bool add2PC(int slave, int dir, int master, int code = 0);
+
 protected:
 
   // Internal methods for preprocessing of boundary conditions
@@ -559,12 +566,6 @@ protected:
   //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
   //! \param[in] silence If \e true, suppress debug print
   bool addMPC(MPC*& mpc, int code = 0, bool silence = false);
-  //! \brief Creates and adds a two-point constraint to this patch.
-  //! \param[in] slave Global node number of the node to constrain
-  //! \param[in] dir Which local DOF to constrain (1, 2, 3)
-  //! \param[in] master Global node number of the master node of the constraint
-  //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
-  bool add2PC(int slave, int dir, int master, int code = 0);
   //! \brief Creates and adds a three-point constraint to this patch.
   //! \param[in] slave Global node number of the node to constrain
   //! \param[in] dir Which local DOF to constrain (1, 2, 3)
