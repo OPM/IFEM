@@ -273,8 +273,7 @@ bool ASMs3Dmx::generateFEMTopology ()
 
   for (i2 = 0; i2 < geoBasis-1; ++i2)
     lnod2 += m_basis[i2]->order(0)*m_basis[i2]->order(1)*m_basis[i2]->order(2);
-  lnod3 = lnod2;
-  for (i2 = geoBasis; i2 < (int)m_basis.size(); ++i2)
+  for (i2 = 0; i2 < (int)m_basis.size(); ++i2)
     lnod3 += m_basis[i2]->order(0)*m_basis[i2]->order(1)*m_basis[i2]->order(2);
 
   // Create nodal connectivities for geometry basis
