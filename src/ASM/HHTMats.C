@@ -14,10 +14,11 @@
 #include "HHTMats.h"
 
 
-HHTMats::HHTMats (double alpha, double a, double b) : NewmarkMats(a,b)
+HHTMats::HHTMats (double alpha, double a, double b, bool old) : NewmarkMats(a,b)
 {
   beta = 0.25*(1.0-alpha)*(1.0-alpha);
   gamma = 0.5 - alpha;
+  oldHHT = old;
 }
 
 
@@ -37,7 +38,7 @@ const Matrix& HHTMats::getNewtonMatrix () const
   N.add(A[1],(alphaPlus1*alpha1*gamma + 1.0/h)/(beta*h));
 
 #if SP_DEBUG > 2
-  std::cout <<"\nDynElmMats::getNewtonMatrix";
+  std::cout <<"\nHHTMats::getNewtonMatrix";
   std::cout <<"\nElement mass matrix"<< A[1];
   if (A.size() > 3)
     std::cout <<"Material stiffness matrix"<< A[2]
@@ -63,7 +64,7 @@ const Vector& HHTMats::getRHSVector () const
   int ia = vec.size() - 1; // index to element acceleration vector (a)
   int iv = vec.size() - 2; // index to element velocity vector (v)
 
-  if (isPredictor && b.size() > 1)
+  if ((isPredictor || oldHHT) && b.size() > 1)
   {
     Vector& Fia = const_cast<Vector&>(b[1]);
 
@@ -76,11 +77,12 @@ const Vector& HHTMats::getRHSVector () const
       Fia.add(A[1]*vec[iv],-alpha1); // Fia -= alpha1*M*v
     if (alpha2 > 0.0 && iv > 0)
       Fia.add(A[2]*vec[iv],-alpha2); // Fia -= alpha2*K*v
+#if SP_DEBUG > 2
+    std::cout <<"Element inertia vector"<< Fia;
+#endif
   }
 
 #if SP_DEBUG > 2
-  if (isPredictor && b.size() > 1)
-    std::cout <<"Element inertia vector"<< b[1];
   std::cout <<"Element velocity vector"<< vec[iv];
   std::cout <<"Element acceleration vector"<< vec[ia];
   if (b.size() > 2)
@@ -97,7 +99,9 @@ const Vector& HHTMats::getRHSVector () const
   // the predictor step force vector after the element assembly.
   Vector& RHS = const_cast<Vector&>(b.front());
   double alphaPlus1 = 1.5 - gamma;
-  if (isPredictor)
+  if (oldHHT)
+    RHS *= alphaPlus1; // RHS = -(1+alphaH)*S_int
+  else if (isPredictor)
   {
     int pa = iv - 1; // index to predicted element acceleration vector (A)
     A[1].multiply(vec[pa]-vec[ia],RHS); // RHS = M*(A-a)
@@ -121,9 +125,10 @@ const Vector& HHTMats::getRHSVector () const
     RHS.add(A[1]*vec[iv],alphaPlus1*alpha1); // RHS -= (1+alphaH)*alpha1*M*v
   if (alpha2 > 0.0)
     RHS.add(A[2]*vec[iv],alphaPlus1*alpha2); // RHS -= (1+alphaH)*alpha2*K*v
-
+  if (oldHHT)
+    RHS.add(A[1]*vec[ia], isPredictor ? 1.0 : -1.0); // RHS (+/-)= M*a
 #if SP_DEBUG > 2
-  std::cout <<"Element right-hand-side vector"<< b.front();
+  std::cout <<"\nElement right-hand-side vector"<< b.front();
 #endif
 
   return b.front();

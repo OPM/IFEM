@@ -26,7 +26,7 @@ class HHTMats : public NewmarkMats
 {
 public:
   //! \brief The constructor initializes the time integration parameters.
-  HHTMats(double alpha, double a, double b);
+  HHTMats(double alpha, double a, double b, bool old = false);
   //! \brief Empty destructor.
   virtual ~HHTMats() {}
 
@@ -34,6 +34,9 @@ public:
   virtual const Matrix& getNewtonMatrix() const;
   //! \brief Returns the element-level right-hand-side vector.
   virtual const Vector& getRHSVector() const;
+
+private:
+  bool oldHHT; //!< If \e true, used toghether with NewmarkNLSIM
 };
 
 #endif
