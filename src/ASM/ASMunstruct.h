@@ -15,6 +15,7 @@
 #define _ASM_UNSTRUCT_H
 
 #include "ASMbase.h"
+#include "GoTools/geometry/BsplineBasis.h"
 
 namespace LR {
   class LRSpline;
@@ -78,6 +79,11 @@ public:
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods
   virtual LR::LRSpline* evalSolution(const IntegrandBase& integrand) const = 0;
+
+  /*!
+    \brief Returns a Bezier basis of order \a p.
+  */
+  static Go::BsplineBasis getBezierBasis (int p);
 
 protected:
   LR::LRSpline* geo; //!< Pointer to the actual spline geometry object

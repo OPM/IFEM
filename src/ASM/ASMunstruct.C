@@ -26,7 +26,7 @@ int ASMunstruct::gNod = 0;
 
 
 ASMunstruct::ASMunstruct (unsigned char n_p, unsigned char n_s,
-			  unsigned char n_f)
+                          unsigned char n_f)
   : ASMbase(n_p,n_s,n_f)
 {
   geo = NULL;
@@ -53,15 +53,24 @@ ASMunstruct::~ASMunstruct ()
 bool ASMunstruct::refine (const RealArray&, const IntVec&, Vectors*, const char*)
 {
   std::cerr <<" *** ASMunstruct::refine: Not available without LR-Spline"
-	    << std::endl;
+            << std::endl;
   return false;
 }
 
 bool ASMunstruct::refine (const IntVec&, const IntVec&, Vectors*, const char*)
 {
   std::cerr <<" *** ASMunstruct::refine: Not available without LR-Spline"
-	    << std::endl;
+            << std::endl;
   return false;
+}
+
+
+Go::BsplineBasis ASMunstruct::getBezierBasis (int p)
+{
+  std::vector<double> knot(2*p);
+  std::fill(knot.begin(),   knot.begin()+p, -1.0);
+  std::fill(knot.begin()+p, knot.end()    ,  1.0);
+  return Go::BsplineBasis(p,p,knot.begin());
 }
 
 #endif

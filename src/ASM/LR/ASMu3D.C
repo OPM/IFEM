@@ -816,18 +816,6 @@ void ASMu3D::getElementCorners (int iEl, Vec3Vec& XC) const
       }
 }
 
-/*!
-  \brief Returns a Bezier basis of order \a p.
-*/
-
-static Go::BsplineBasis getBezierBasis (int p)
-{
-	double knot[2*p];
-	std::fill(knot,   knot+p,  -1.0);
-	std::fill(knot+p, knot+2*p, 1.0);
-	return Go::BsplineBasis(p,p,knot);
-}
-
 
 void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu) const
 {

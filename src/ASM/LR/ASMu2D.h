@@ -15,6 +15,7 @@
 #define _ASM_U2D_H
 
 #include "ASMunstruct.h"
+#include "FiniteElement.h"
 #include "ASM2D.h"
 
 #include <memory>
@@ -383,6 +384,9 @@ protected:
   //! \param[out] XC Coordinates of the element corners
   void getElementCorners(int iel, std::vector<Vec3>& XC) const;
 
+  //! \brief Evaluate all basis functions and \a derivs number of derivatives on one element
+  virtual void evaluateBasis(FiniteElement &el, int derivs=0) const;
+
 public:
   //! \brief Returns the number of elements on a boundary.
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
@@ -414,6 +418,8 @@ protected:
 
   std::shared_ptr<LR::LRSplineSurface> lrspline; //!< Pointer to the LR-spline surface object
 
+  std::vector<Matrix> bezierExtract; //!< Bezier extraction matrices
+
   Go::SplineSurface* tensorspline; //!< Pointer to original tensor spline object
   // The tensor spline object is kept for backward compatability with the REFINE
   // and RAISEORDER key-words, although we take note that there is a possibility
@@ -422,6 +428,9 @@ protected:
 
   //! Inhomogeneous Dirichlet boundary condition data
   std::vector<DirichletEdge> dirich;
+  
+  Go::BsplineBasis bezier_u; // we're keeping one of these objects to do evaluation on
+  Go::BsplineBasis bezier_v; 
 };
 
 #endif

@@ -46,3 +46,14 @@ Vector SIMgeneric::getSolution (const Vector& psol, const double* par,
 
   return tmpVal.getColumn(1);
 }
+
+int SIMgeneric::evalPoint(const double* xi, Vec3& X, double* param, int patch) const
+{
+  ASMbase *pch = getPatch(patch-1);
+
+  double dummy[2];
+  if(param == NULL)
+    return pch->evalPoint(xi, dummy, X);
+  else
+    return pch->evalPoint(xi, param, X);
+}

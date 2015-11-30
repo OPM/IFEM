@@ -45,6 +45,15 @@ public:
   //! \return Evaluated solution values
   Vector getSolution(const Vector& psol, const double* par,
                      int deriv = 0, int patch = 1) const;
+
+  //! \brief Evaluates the mapping of the geometry at the given point.
+  //! \param[in] xi Dimensionless parameters in range [0,1] of the point
+  //! \param[out] X The Cartesian coordinates of the point
+  //! \param[out] param The parameters of the point in the knot-span domain
+  //! \param[in] patch The patch to evaluate
+  //! \return 0 if the evaluation went good
+  int evalPoint(const double* xi, Vec3& X, 
+                double* param=NULL, int patch = 1) const;
 };
 
 #endif

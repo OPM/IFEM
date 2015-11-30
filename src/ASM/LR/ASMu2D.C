@@ -297,6 +297,82 @@ bool ASMu2D::raiseOrder (int ru, int rv)
 }
 
 
+void ASMu2D::evaluateBasis(FiniteElement &fe, int derivs) const
+{
+	// skipping all error testing. Its probably really really smart
+
+	LR::Element *el = lrspline->getElement(fe.iel-1);
+	fe.xi  = 2.0*(fe.u - el->umin()) / (el->umax() - el->umin()) - 1.0; // sets value between -1 and 1
+	fe.eta = 2.0*(fe.v - el->vmin()) / (el->vmax() - el->vmin()) - 1.0;
+	std::vector<double> Nu = bezier_u.computeBasisValues(fe.xi,  derivs);
+	std::vector<double> Nv = bezier_v.computeBasisValues(fe.eta, derivs);
+
+	const Matrix &C = bezierExtract[fe.iel-1];
+
+	int p1 = lrspline->order(0);
+	int p2 = lrspline->order(1);
+	int p  = p1*p2;
+	Vector B(p);  // Bezier basis functions (vector of p1 x p2 components)
+	Vector Bu(p); // Bezier basis functions differentiated wrt u
+	Vector Bv(p); // Bezier basis functions differentiated wrt v
+	size_t k = 0;
+	for(size_t j=0; j<Nv.size(); j+=(derivs+1)) {
+		for(size_t i=0; i<Nu.size(); i+=(derivs+1), k++) {
+			B[k] = Nu[i]*Nv[j];
+			if(derivs > 0) {
+				Bu[k] = Nu[i+1]*Nv[ j ];
+				Bv[k] = Nu[ i ]*Nv[j+1];
+			}
+		}
+	}
+	fe.N = C*B;
+
+	int N    = el->nBasisFunctions();
+	int allP = p1*p2;
+	double sum = 0;
+	for(int qq=1; qq<=N; qq++) sum+= fe.N(qq);
+	if(fabs(sum-1) > 1e-10) {
+		std::cerr << "fe.N not sums to one at integration point #" << 1 << std::endl;
+		exit(123);
+	}
+	sum = 0;
+	for(int qq=1; qq<=allP; qq++) sum+= B(qq);
+	if(fabs(sum-1) > 1e-10) {
+		std::cerr << "Bezier basis not sums to one at integration point #" << 1 << std::endl;
+		exit(123);
+	}
+
+	if(derivs > 0) {
+		Matrix dNdu(el->nBasisFunctions(), 2);
+		dNdu.fillColumn(1, C*Bu);
+		dNdu.fillColumn(2, C*Bv);
+		Matrix Xnod, Jac;
+		getElementCoordinates(Xnod, fe.iel);
+		fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+
+		sum = 0;
+		for(int qq=1; qq<=N; qq++) sum+= dNdu(qq,1);
+		if(fabs(sum) > 1e-10) {
+			std::cerr << "dNdu not sums to zero at integration point #" << 1 << std::endl;
+			exit(123);
+		}
+		sum = 0;
+		for(int qq=1; qq<=N; qq++) sum+= dNdu(qq,2);
+		if(fabs(sum) > 1e-10) {
+			std::cerr << "dNdv not sums to zero at integration point #" << 1 << std::endl;
+			exit(123);
+		}
+
+		sum = 0;
+		for(int qq=1; qq<=allP; qq++) sum+= Bu(qq);
+		if(fabs(sum) > 1e-10) {
+			std::cerr << "Bezier derivatives not sums to zero at integration point #" << 1 << std::endl;
+			exit(123);
+		}
+	}
+
+}
+
 bool ASMu2D::generateFEMTopology ()
 {
 	// At this point we are through with the tensor spline object.
@@ -322,24 +398,52 @@ bool ASMu2D::generateFEMTopology ()
 	else if (shareFE)
 		return true;
 
+	const int p1 = lrspline->order(0);
+	const int p2 = lrspline->order(1);
+
 	myMLGN.resize(nBasis);
 	myMLGE.resize(nElements);
 	myMNPC.resize(nElements);
+	bezierExtract.resize(nElements);
 	lrspline->generateIDs();
 
+	std::vector<double> extrMat ;
 	std::vector<LR::Element*>::iterator el_it = lrspline->elementBegin();
 	for (int iel=0; iel<nElements; iel++, el_it++)
 	{
+		LR::Element *el = *el_it;
+		int nSupportFunctions = el->nBasisFunctions();
+
 		myMLGE[iel] = ++gEl; // global element number over all patches
-		myMNPC[iel].resize((*el_it)->nBasisFunctions());
+		myMNPC[iel].resize(el->nBasisFunctions());
 
 		int lnod = 0;
-		for (LR::Basisfunction *b : (*el_it)->support())
+		for (LR::Basisfunction *b : el->support())
 			myMNPC[iel][lnod++] = b->getId();
+
+		{
+		PROFILE("Bezier extraction");
+
+		// get bezier extraction matrix 
+		lrspline->getBezierExtraction(iel, extrMat);
+		int width  = p1*p2;
+		int height = nSupportFunctions;
+
+		// wrap the extraction data into a Matrix class
+		Matrix newM(height, width);
+		for(int c=1; c<=width; c++) 
+			newM.fillColumn(c, &extrMat[(c-1)*height]);
+
+		// keep it for use later
+		bezierExtract[iel] = newM;
+		}
 	}
 
 	for (int inod = 0; inod < nBasis; inod++)
 		myMLGN[inod] = ++gNod;
+	
+	bezier_u = getBezierBasis(p1);
+	bezier_v = getBezierBasis(p2);
 
 	nnod = gNod;
 	return true;
@@ -1189,10 +1293,18 @@ int ASMu2D::evalPoint (const double* xi, double* param, Vec3& X) const
 	param[0] = (1.0-xi[0])*lrspline->startparam(0) + xi[0]*lrspline->endparam(0);
 	param[1] = (1.0-xi[1])*lrspline->startparam(1) + xi[1]*lrspline->endparam(1);
 
-	Go::Point X0;
-	lrspline->point(X0,param[0],param[1]);
-	for (unsigned char d = 0; d < nsd; d++)
-		X[d] = X0[d];
+	int iel = lrspline->getElementContaining(param[0],param[1]);
+	FiniteElement fe(lrspline->getElement(iel)->nBasisFunctions());
+	fe.iel = iel + 1;
+	fe.u   = param[0];
+	fe.v   = param[1];
+
+	Matrix Xnod;
+	getElementCoordinates(Xnod, fe.iel);
+
+	evaluateBasis(fe);
+	X = Xnod * fe.N;
+
 	return 0;
 }
 
@@ -1385,6 +1497,10 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
     // Fetch element containing evaluation point.
     // Sadly, points are not always ordered in the same way as the elements.
     int iel = lrspline->getElementContaining(gpar[0][i],gpar[1][i]);
+    FiniteElement fe(lrspline->getElement(iel)->nBasisFunctions());
+    fe.iel = iel + 1;
+    fe.u   = gpar[0][i];
+    fe.v   = gpar[1][i];
     utl::gather(MNPC[iel],nComp,locSol,eSol);
 
     // Set up control point (nodal) coordinates for current element
@@ -1396,16 +1512,14 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
     switch (deriv) {
 
     case 0: // Evaluate the solution
-      lrspline->computeBasis(gpar[0][i],gpar[1][i],spline0,iel);
-      eSol.multiply(spline0.basisValues,ptSol);
+      evaluateBasis(fe, deriv);
+      ptSol = eSol * fe.N;
       sField.fillColumn(1+i,ptSol);
       break;
 
     case 1: // Evaluate first derivatives of the solution
-      lrspline->computeBasis(gpar[0][i],gpar[1][i],spline1,iel);
-      SplineUtils::extractBasis(spline1,ptSol,dNdu);
-      utl::Jacobian(Jac,dNdX,Xnod,dNdu);
-      ptDer.multiply(eSol,dNdX);
+      evaluateBasis(fe, deriv);
+      ptDer.multiply(eSol,fe.dNdX);
       sField.fillColumn(1+i,ptDer);
       break;
 

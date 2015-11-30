@@ -126,8 +126,10 @@ bool ASMunstruct::refine (const RealArray& elementError,
 		bool isLinIndep = geo->isLinearIndepByOverloading(false);
 		if(!isLinIndep) {
 			std::cout << "Inconclusive..." << std::endl;
+#ifdef HAS_BOOST
 			std::cout << "Testing for linear independence by full tensor expansion " << std::endl;
 			isLinIndep = geo->isLinearIndepByMappingMatrix(false);
+#endif
 		}
 		if(!isLinIndep)
 		{
@@ -259,8 +261,10 @@ bool ASMunstruct::refine (const IntVec& elements,
 		bool isLinIndep = geo->isLinearIndepByOverloading(false);
 		if(!isLinIndep) {
 			std::cout << "Inconclusive..." << std::endl;
+#ifdef HAS_BOOST
 			std::cout << "Testing for linear independence by full tensor expansion " << std::endl;
 			isLinIndep = geo->isLinearIndepByMappingMatrix(false);
+#endif
 		}
 		if(!isLinIndep)
 		{
@@ -285,4 +289,12 @@ bool ASMunstruct::refine (const IntVec& elements,
 	}
 
 	return true;
+}
+
+Go::BsplineBasis ASMunstruct::getBezierBasis (int p)
+{
+	double knot[2*p];
+	std::fill(knot,   knot+p,  -1.0);
+	std::fill(knot+p, knot+2*p, 1.0);
+	return Go::BsplineBasis(p,p,knot);
 }
