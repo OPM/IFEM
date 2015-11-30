@@ -146,15 +146,6 @@ ASMmxBase::SurfaceVec ASMmxBase::establishBases(Go::SplineSurface* surf,
     Go::BsplineBasis b2 = Go::BsplineBasis(surf->order_v()-1,first,last);
     */
 
-    // Note: Currently this is implemented for non-rational splines only.
-    // TODO: Ask the splines people how to fix this properly, that is, how
-    // may we obtain the correct weights for basis1 when *surf is a NURBS?
-    if (surf->rational())
-      std::cout <<"WARNING: The geometry basis is rational (using NURBS).\n"
-                <<"         The basis for the unknown fields of one degree"
-                <<" higher will however be non-rational.\n"
-                <<"         This may affect accuracy.\n"<< std::endl;
-
     // Compute parameter values of the Greville points
     size_t i;
     RealArray ug(b1.numCoefs()), vg(b2.numCoefs());
@@ -163,14 +154,33 @@ ASMmxBase::SurfaceVec ASMmxBase::establishBases(Go::SplineSurface* surf,
     for (i = 0; i < vg.size(); i++)
       vg[i] = b2.grevilleParameter(i);
 
-    // Evaluate the spline surface at all points
-    RealArray XYZ(ndim*ug.size()*vg.size());
-    surf->gridEvaluator(XYZ,ug,vg);
+    if (surf->rational()) {
+      std::vector<double> rCoefs(surf->rcoefs_begin(), surf->rcoefs_end());
 
-    // Project the coordinates onto the new basis (the 2nd XYZ is dummy here)
-    result[0].reset(Go::SurfaceInterpolator::regularInterpolation(b1,b2,
-                                                                   ug,vg,XYZ,ndim,
-                                                                   false,XYZ));
+      // we normally would set coefs as (x*w, y*w, w)
+      // however, gotools use this representation internally already.
+
+      // instance a Bspline surface in ndim+1
+      Go::SplineSurface surf2(surf->basis(0), surf->basis(1), rCoefs.begin(), ndim+1, false);
+
+      // interpolate the Bspline surface onto new basis
+      RealArray XYZ((ndim+1)*ug.size()*vg.size());
+      surf2.gridEvaluator(XYZ,ug,vg);
+      std::unique_ptr<Go::SplineSurface> surf3(Go::SurfaceInterpolator::regularInterpolation(b1,b2,ug,vg,XYZ,ndim+1,false,XYZ));
+
+      // new rational coefs are (x/w', y/w', w')
+      // apparently gotools will rescale coeffs on surface creation.
+      result[0].reset(new Go::SplineSurface(surf3->basis(0), surf3->basis(1), surf3->coefs_begin(), ndim, true));
+    } else {
+      RealArray XYZ(ndim*ug.size()*vg.size());
+      // Evaluate the spline surface at all points
+      surf->gridEvaluator(XYZ,ug,vg);
+
+      // Project the coordinates onto the new basis (the 2nd XYZ is dummy here)
+      result[0].reset(Go::SurfaceInterpolator::regularInterpolation(b1,b2,
+                                                                    ug,vg,XYZ,ndim,
+                                                                    false,XYZ));
+    }
   }
   else if (type == REDUCED_CONT_RAISE_BASIS1 || type == REDUCED_CONT_RAISE_BASIS2)
   {
@@ -219,14 +229,32 @@ ASMmxBase::VolumeVec ASMmxBase::establishBases(Go::SplineVolume* svol,
     for (i = 0; i < wg.size(); i++)
       wg[i] = b3.grevilleParameter(i);
 
-    RealArray XYZ(ndim*ug.size()*vg.size()*wg.size());
-    // Evaluate the spline surface at all points
-    svol->gridEvaluator(XYZ,ug,vg,wg);
+    if (svol->rational()) {
+      std::vector<double> rCoefs(svol->rcoefs_begin(), svol->rcoefs_end());
 
-    // Project the coordinates onto the new basis (the 2nd XYZ is dummy here)
-    result[0].reset(Go::VolumeInterpolator::regularInterpolation(b1,b2,b3,
-                                                                 ug,vg,wg,XYZ,ndim,
-                                                                 false,XYZ));
+      // we normally would set coefs as (x*w, y*w, w)
+      // however, gotools use this representation internally already.
+
+      // instance a Bspline surface in ndim+1
+      Go::SplineVolume vol2(svol->basis(0), svol->basis(1), svol->basis(2), rCoefs.begin(), ndim+1, false);
+
+      // interpolate the Bspline surface onto new basis
+      RealArray XYZ((ndim+1)*ug.size()*vg.size()*wg.size());
+      vol2.gridEvaluator(XYZ,ug,vg,wg);
+      std::unique_ptr<Go::SplineVolume> svol3(Go::VolumeInterpolator::regularInterpolation(b1,b2,b3,ug,vg,wg,XYZ,ndim+1,false,XYZ));
+
+      // new rational coefs are (x/w', y/w', w')
+      // apparently gotools will rescale coeffs on surface creation.
+      result[0].reset(new Go::SplineVolume(svol3->basis(0), svol3->basis(1), svol3->basis(2), svol3->coefs_begin(), ndim, true));
+    } else {
+      RealArray XYZ(ndim*ug.size()*vg.size()*wg.size());
+      // Evaluate the spline surface at all points
+      svol->gridEvaluator(XYZ,ug,vg,wg);
+      // Project the coordinates onto the new basis (the 2nd XYZ is dummy here)
+      result[0].reset(Go::VolumeInterpolator::regularInterpolation(b1,b2,b3,
+                                                                   ug,vg,wg,XYZ,ndim,
+                                                                   false,XYZ));
+    }
   }
   else if (type == REDUCED_CONT_RAISE_BASIS1 || type == REDUCED_CONT_RAISE_BASIS2)
   {
