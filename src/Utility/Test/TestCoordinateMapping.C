@@ -14,9 +14,13 @@
 #include "ASMs1D.h"
 #include "SIM1D.h"
 #include "ASMs2D.h"
+#include "ASMs2Dmx.h"
 #include "SIM2D.h"
 #include "ASMs3D.h"
 #include "SIM3D.h"
+#include "SplineUtils.h"
+
+#include "GoTools/geometry/SplineSurface.h"
 
 #include "gtest/gtest.h"
 #include <fstream>
@@ -44,22 +48,24 @@ static Matrix3D readMatrices(size_t r, size_t c, size_t k, const std::string& fi
   return result;
 }
 
-#define CHECK_MATRICES_EQUAL(A,path) \
-  do { \
-  Matrix B = readMatrix(A.rows(), A.cols(), path); \
-  for (size_t i=1;i<=A.rows();++i) \
-    for (size_t j=1;j<=A.cols();++j) \
-      ASSERT_NEAR(A(i,j), B(i,j), 1e-13); \
-  } while(0);
+auto&& CHECK_MATRICES_EQUAL = [](const Matrix& A, const std::string& path)
+{
+  Matrix B = readMatrix(A.rows(), A.cols(), path);
+  for (size_t i=1;i<=A.rows();++i)
+    for (size_t j=1;j<=A.cols();++j)
+      ASSERT_NEAR(A(i,j), B(i,j), 1e-13);
+};
 
-#define CHECK_MATRICES3D_EQUAL(A,path) \
-  do { \
-    Matrix3D B = readMatrices(A.dim(1), A.dim(2), A.dim(3), path); \
-    for (size_t i=1;i<=A.dim(1);++i) \
-      for (size_t j=1;j<=A.dim(2);++j) \
-        for (size_t k=1;k<=A.dim(3);++k) \
-          ASSERT_NEAR(A(i,j,k), B(i,j,k), 1e-13); \
-  } while(0);
+
+auto&& CHECK_MATRICES3D_EQUAL = [](const Matrix3D& A, const std::string& path)
+{
+  Matrix3D B = readMatrices(A.dim(1), A.dim(2), A.dim(3), path);
+  for (size_t i=1;i<=A.dim(1);++i)
+    for (size_t j=1;j<=A.dim(2);++j)
+      for (size_t k=1;k<=A.dim(3);++k)
+        ASSERT_NEAR(A(i,j,k), B(i,j,k), 1e-13);
+};
+
 
 TEST(TestCoordinateMapping, Jacobian1D)
 {
@@ -167,6 +173,49 @@ TEST(TestCoordinateMapping, Hessian2D)
   CHECK_MATRICES3D_EQUAL(H, "src/Utility/Test/refdata/Hessian2D_H.asc");
 }
 
+TEST(TestCoordinateMapping, Hessian2D_mixed)
+{
+  SIM2D sim({1,1});
+  sim.createDefaultModel();
+  ASMs2Dmx& p = static_cast<ASMs2Dmx&>(*sim.getPatch(1));
+  sim.preprocess();
+
+  std::vector<std::vector<Go::BasisDerivsSf2>> splinex2(2);
+  p.getBasis(1)->computeBasisGrid({0.5}, {0.5}, splinex2[0]);
+  p.getBasis(2)->computeBasisGrid({0.5}, {0.5}, splinex2[1]);
+
+  std::array<Vector, 2> N;
+  std::array<Matrix, 2> dNxdu;
+  std::array<Matrix3D, 2> d2Nxdu2;
+  SplineUtils::extractBasis(splinex2[0][0], N[0], dNxdu[0], d2Nxdu2[0]);
+  SplineUtils::extractBasis(splinex2[1][0], N[1], dNxdu[1], d2Nxdu2[1]);
+
+  Matrix Jac;
+  std::array<Matrix, 2> grad;
+
+  int geoBasis = ASMmxBase::geoBasis;
+
+  Matrix Xnod;
+  p.getElementCoordinates(Xnod,1);
+
+  utl::Jacobian(Jac, grad[geoBasis-1], Xnod, dNxdu[geoBasis-1]);
+
+  grad[1-(geoBasis-1)].multiply(dNxdu[1-(geoBasis-1)],Jac);
+
+  Matrix3D Hess;
+  std::array<Matrix3D, 2> hess;
+  utl::Hessian(Hess, hess[1],Jac,Xnod,d2Nxdu2[1],grad[1],true);
+  utl::Hessian(Hess, hess[0],Jac,Xnod,d2Nxdu2[0],grad[0],false);
+
+  // geometry mapping should be the identify mapping
+  for (size_t d = 0; d < 2; ++ d)
+    for (size_t i=0; i < d2Nxdu2[d].size(); ++i)
+      ASSERT_FLOAT_EQ(d2Nxdu2[d].ptr()[i], hess[d].ptr()[i]);
+
+  CHECK_MATRICES3D_EQUAL(hess[0], "src/Utility/Test/refdata/Hessian2D_mixed_b1.asc");
+  CHECK_MATRICES3D_EQUAL(hess[1], "src/Utility/Test/refdata/Hessian2D_mixed_b2.asc");
+}
+
 
 TEST(TestCoordinateMapping, Jacobian3D)
 {
@@ -220,9 +269,6 @@ TEST(TestCoordinateMapping, Hessian3D)
   ASSERT_FLOAT_EQ(det, 0.34027779);
   CHECK_MATRICES_EQUAL(J, "src/Utility/Test/refdata/Hessian3D_J.asc");
   CHECK_MATRICES_EQUAL(dNdX, "src/Utility/Test/refdata/Hessian3D_dNdX.asc");
-  utl::zero_print_tol = 1e-16;
-  std::cout.precision(17);
-  std::cout << H << std::endl;
   CHECK_MATRICES3D_EQUAL(d2NdX2, "src/Utility/Test/refdata/Hessian3D_d2NdX2.asc");
   CHECK_MATRICES3D_EQUAL(H, "src/Utility/Test/refdata/Hessian3D_H.asc");
 }

@@ -64,10 +64,13 @@ namespace utl
   //! \param[in] X Matrix of element nodal coordinates
   //! \param[in] d2Ndu2 Second order derivatives of basis functions
   //! \param[in] dNdX First order derivatives of basis functions
+  //! \param[in] geoMapping If true, calculate geometry mapping
   //! \return \e false if matrix dimensions are incompatible, otherwise \e true
+  //! \details If geoMapping is true, H is output, else H is input and assumed to be already calculated.
   bool Hessian(matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
 	       const matrix<Real>& Ji, const matrix<Real>& X,
-	       const matrix3d<Real>& d2Ndu2, const matrix<Real>& dNdX);
+	       const matrix3d<Real>& d2Ndu2, const matrix<Real>& dNdX,
+               bool geoMapping=true);
 
   //! \brief Compute the stabilization matrix \b G from the Jacobian inverse.
   //! \param[in] Ji The inverse of the Jacobian matrix

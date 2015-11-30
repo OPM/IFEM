@@ -121,12 +121,13 @@ Real utl::Jacobian (matrix<Real>& J, Vec3& n, matrix<Real>& dNdX,
 
 bool utl::Hessian (matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
 		   const matrix<Real>& Ji, const matrix<Real>& X,
-		   const matrix3d<Real>& d2Ndu2, const matrix<Real>& dNdX)
+		   const matrix3d<Real>& d2Ndu2, const matrix<Real>& dNdX,
+                   bool geoMapping)
 {
   PROFILE4("utl::Hessian");
 
   // Compute the Hessian matrix, H = [d2Xdu2]
-  if (!H.multiply(X,d2Ndu2)) // H = X * d2Ndu2
+  if (geoMapping && !H.multiply(X,d2Ndu2)) // H = X * d2Ndu2
     return false;
   else if (dNdX.empty())
   {
@@ -142,26 +143,18 @@ bool utl::Hessian (matrix3d<Real>& H, matrix3d<Real>& d2NdX2,
   }
 
   // Check that the matrix dimensions are compatible
-  size_t nsd  = X.rows();
-  size_t nnod = X.cols();
+  size_t nsd = X.rows();
   if (Ji.rows() != nsd || Ji.cols() != nsd)
   {
     std::cerr <<"Hessian: Invalid dimension on Jacobian inverse, Ji("
               << Ji.rows() <<","<< Ji.cols() <<"), nsd="<< nsd << std::endl;
     return false;
   }
-  else if (dNdX.rows() != nnod || dNdX.cols() != nsd)
-  {
-    std::cerr <<"Hessian: Invalid dimension on basis function matrix, dNdX("
-              << dNdX.rows() <<","<< dNdX.cols() <<"), nnod="<< nnod
-              <<", nsd="<< nsd << std::endl;
-    return false;
-  }
 
   // Compute the second order derivatives of the basis functions, w.r.t. X
-  d2NdX2.resize(nnod,nsd,nsd,true);
+  d2NdX2.resize(dNdX.rows(),nsd,nsd,true);
   size_t i1, i2, i3, i4, i6;
-  for (size_t n = 1; n <= nnod; n++)
+  for (size_t n = 1; n <= dNdX.rows(); n++)
     for (i1 = 1; i1 <= nsd; i1++)
       for (i2 = 1; i2 <= i1; i2++)
       {

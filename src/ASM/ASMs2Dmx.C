@@ -507,8 +507,12 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
   // Evaluate basis function derivatives at all integration points
   std::vector<std::vector<Go::BasisDerivsSf>> splinex(m_basis.size());
+  std::vector<std::vector<Go::BasisDerivsSf2>> splinex2(m_basis.size());
   for (size_t i=0;i<m_basis.size();++i)
-    m_basis[i]->computeBasisGrid(gpar[0],gpar[1],splinex[i]);
+    if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+      m_basis[i]->computeBasisGrid(gpar[0],gpar[1],splinex2[i]);
+    else
+      m_basis[i]->computeBasisGrid(gpar[0],gpar[1],splinex[i]);
 
   const int p1 = surf->order_u();
   const int p2 = surf->order_v();
@@ -527,6 +531,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
     for (size_t t=0;t<threadGroups[g].size();++t) {
       MxFiniteElement fe(elem_sizes);
       std::vector<Matrix> dNxdu(m_basis.size());
+      std::vector<Matrix3D> d2Nxdu2(m_basis.size());
+      Matrix3D Hess;
       Matrix Xnod, Jac;
       Vec4   X;
       for (size_t i = 0; i < threadGroups[g][t].size() && ok; ++i)
@@ -552,6 +558,9 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
           ok = false;
           break;
         }
+
+        if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+          this->getElementCorners(i1-1,i2-1,fe.XC);
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,false);
@@ -582,7 +591,10 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
             // Fetch basis function derivatives at current integration point
             for (size_t b = 0; b < m_basis.size(); ++b)
-              SplineUtils::extractBasis(splinex[b][ip],fe.basis(b+1),dNxdu[b]);
+              if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
+                SplineUtils::extractBasis(splinex2[b][ip],fe.basis(b+1),dNxdu[b],d2Nxdu2[b]);
+              else
+                SplineUtils::extractBasis(splinex[b][ip],fe.basis(b+1),dNxdu[b]);
 
             // Compute Jacobian inverse of the coordinate mapping and
             // basis function derivatives w.r.t. Cartesian coordinates
@@ -590,6 +602,17 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
             for (size_t b = 0; b < m_basis.size(); ++b)
               if (b != (size_t)geoBasis-1)
                 fe.grad(b+1).multiply(dNxdu[b],Jac);
+
+            // Compute Hessian of coordinate mapping and 2nd order derivatives
+            if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES) {
+              if (!utl::Hessian(Hess,fe.hess(geoBasis),Jac,Xnod,d2Nxdu2[geoBasis],
+                                fe.grad(geoBasis), true))
+                  ok = false;
+              for (size_t b = 0; b < m_basis.size() && ok; ++b)
+                if ((int)b != geoBasis && !utl::Hessian(Hess,fe.hess(b+1),Jac,Xnod,d2Nxdu2[b],
+                                                        fe.grad(b+1), false))
+                  ok = false;
+            }
 
             if (fe.detJxW == 0.0) continue; // skip singular points
 
