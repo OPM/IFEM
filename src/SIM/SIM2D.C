@@ -770,7 +770,12 @@ ASMbase* SIM2D::createDefaultGeometry (const TiXmlElement* geo) const
 {
   std::string g2("200 1 0 0\n");
   g2.append(nsd > 2 ? "3" : "2");
-  g2.append(" 0\n2 2\n0 0 1 1\n2 2\n0 0 1 1");
+  bool rational=false;
+  utl::getAttribute(geo,"rational",rational);
+  if (rational)
+    IFEM::cout << "\t Rational basis\n";
+  g2.append(rational?" 1":" 0");
+  g2.append("\n2 2\n0 0 1 1\n2 2\n0 0 1 1");
 
   Vec3 X0;
   std::string corner;
@@ -794,18 +799,22 @@ ASMbase* SIM2D::createDefaultGeometry (const TiXmlElement* geo) const
   std::stringstream str;
   str <<"\n"<< X0.x <<" "<< X0.y;
   if (nsd > 2) str <<" 0.0";
+  if (rational) str << " 1.0";
   g2.append(str.str());
   str.str("");
   str <<"\n"<< X0.x+Lx <<" "<< X0.y;
   if (nsd > 2) str <<" 0.0";
+  if (rational) str << " 1.0";
   g2.append(str.str());
   str.str("");
   str <<"\n"<< X0.x <<" "<< X0.y+Ly;
   if (nsd > 2) str <<" 0.0";
+  if (rational) str << " 1.0";
   g2.append(str.str());
   str.str("");
   str <<"\n"<< X0.x+Lx <<" "<< X0.y+Ly;
   if (nsd > 2) str <<" 0.0";
+  if (rational) str << " 1.0";
   g2.append(str.str());
   g2.append("\n");
 

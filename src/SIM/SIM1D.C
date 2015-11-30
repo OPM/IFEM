@@ -532,7 +532,13 @@ ASMbase* SIM1D::createDefaultGeometry (const TiXmlElement* geo) const
 {
   std::string g2("100 1 0 0\n");
   g2.append(1,'0'+nsd);
-  g2.append(" 0\n2 2\n0 0 1 1\n");
+
+  bool rational=false;
+  utl::getAttribute(geo,"rational",rational);
+  if (rational)
+    IFEM::cout << "\t Rational basis\n";
+  g2.append(rational?" 1":" 0");
+  g2.append("\n2 2\n0 0 1 1\n");
 
   unsigned char d;
   std::string XYZ;
@@ -547,6 +553,8 @@ ASMbase* SIM1D::createDefaultGeometry (const TiXmlElement* geo) const
     for (d = 1; d < nsd; d++)
       g2.append(" 0.0");
   }
+  if (rational)
+    g2.append(" 1.0");
   g2.append("\n");
   if (utl::getAttribute(geo,"X1",XYZ))
   {
@@ -562,6 +570,8 @@ ASMbase* SIM1D::createDefaultGeometry (const TiXmlElement* geo) const
     for (d = 1; d < nsd; d++)
       g2.append(" 0.0");
   }
+  if (rational)
+    g2.append(" 1.0");
   g2.append("\n");
 
   std::istringstream unitLine(g2);

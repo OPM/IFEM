@@ -774,26 +774,38 @@ bool SIM3D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
 
 ASMbase* SIM3D::createDefaultGeometry (const TiXmlElement* geo) const
 {
-  std::string g2("700 1 0 0\n3 0\n"
-                 "2 2\n0 0 1 1\n"
-                 "2 2\n0 0 1 1\n"
-                 "2 2\n0 0 1 1\n"
-                 "0.0 0.0 0.0\n"
-                 "1.0 0.0 0.0\n"
-                 "0.0 1.0 0.0\n"
-                 "1.0 1.0 0.0\n"
-                 "0.0 0.0 1.0\n"
-                 "1.0 0.0 1.0\n"
-                 "0.0 1.0 1.0\n"
-                 "1.0 1.0 1.0\n");
-
-  std::string scale;
-  if (utl::getAttribute(geo,"scale",scale) && scale != "1.0")
-  {
+  std::string g2("700 1 0 0\n3 ");
+  bool rational=false;
+  utl::getAttribute(geo,"rational",rational);
+  if (rational)
+    IFEM::cout << "\t Rational basis\n";
+  double scale = 1.0;
+  if (utl::getAttribute(geo,"scale",scale))
     IFEM::cout <<"\tscale = "<< scale << std::endl;
-    size_t i = 0, j = 0, ns = scale.size();
-    for (; (i = g2.find("1.0",j)) != std::string::npos; j=i+ns)
-      g2.replace(i,3,scale);
+
+  g2.append(rational?"1\n":"0\n");
+  g2.append("2 2\n0 0 1 1\n"
+            "2 2\n0 0 1 1\n"
+            "2 2\n0 0 1 1\n");
+
+  const std::array<std::array<double,3>,8> nodes =
+       {{{0.0,0.0,0.0},
+         {1.0,0.0,0.0},
+         {0.0,1.0,0.0},
+         {1.0,1.0,0.0},
+         {0.0,0.0,1.0},
+         {1.0,0.0,1.0},
+         {0.0,1.0,1.0},
+         {1.0,1.0,1.0}}};
+  for (const auto& it : nodes)
+  {
+    std::stringstream str;
+    for (const auto& it2 : it)
+      str << it2*scale << " ";
+    g2.append(str.str());
+    if (rational)
+      g2.append(" 1.0");
+    g2.append("\n");
   }
 
   std::istringstream unitCube(g2);
