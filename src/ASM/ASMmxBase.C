@@ -14,6 +14,8 @@
 #include "ASMmxBase.h"
 #include "GoTools/geometry/SplineSurface.h"
 #include "GoTools/geometry/SurfaceInterpolator.h"
+#include "GoTools/trivariate/SplineVolume.h"
+#include "GoTools/trivariate/VolumeInterpolator.h"
 
 char ASMmxBase::geoBasis            = 2;
 ASMmxBase::MixedType ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
@@ -178,6 +180,62 @@ ASMmxBase::SurfaceVec ASMmxBase::establishBases(Go::SplineSurface* surf,
     result[0]->raiseOrder(1,1);
   }
   result[1].reset(new Go::SplineSurface(*surf));
+
+  if (type == FULL_CONT_RAISE_BASIS2 || type == REDUCED_CONT_RAISE_BASIS2)
+    std::swap(result[0], result[1]);
+
+  return result;
+}
+
+
+ASMmxBase::VolumeVec ASMmxBase::establishBases(Go::SplineVolume* svol,
+                                               MixedType type)
+{
+  VolumeVec result(2);
+  // With mixed methods we need two separate spline spaces
+  if (type == FULL_CONT_RAISE_BASIS1 || type == FULL_CONT_RAISE_BASIS2)
+  {
+    // basis1 should be one degree higher than basis2 and C^p-1 continuous
+    int ndim = svol->dimension();
+    Go::BsplineBasis b1 = svol->basis(0).extendedBasis(svol->order(0)+1);
+    Go::BsplineBasis b2 = svol->basis(1).extendedBasis(svol->order(1)+1);
+    Go::BsplineBasis b3 = svol->basis(2).extendedBasis(svol->order(2)+1);
+    /* To lower order and regularity this can be used instead
+    std::vector<double>::const_iterator first = ++surf->basis(0).begin();
+    std::vector<double>::const_iterator last  = --surf->basis(0).end();
+    Go::BsplineBasis b1 = Go::BsplineBasis(surf->order_u()-1,first,last);
+    first =  ++surf->basis(1).begin();
+    last  =  --surf->basis(1).end();
+    Go::BsplineBasis b2 = Go::BsplineBasis(surf->order_v()-1,first,last);
+    */
+
+    // Compute parameter values of the Greville points
+    size_t i;
+    RealArray ug(b1.numCoefs()), vg(b2.numCoefs()), wg(b3.numCoefs());
+    for (i = 0; i < ug.size(); i++)
+      ug[i] = b1.grevilleParameter(i);
+    for (i = 0; i < vg.size(); i++)
+      vg[i] = b2.grevilleParameter(i);
+    for (i = 0; i < wg.size(); i++)
+      wg[i] = b3.grevilleParameter(i);
+
+    RealArray XYZ(ndim*ug.size()*vg.size()*wg.size());
+    // Evaluate the spline surface at all points
+    svol->gridEvaluator(XYZ,ug,vg,wg);
+
+    // Project the coordinates onto the new basis (the 2nd XYZ is dummy here)
+    result[0].reset(Go::VolumeInterpolator::regularInterpolation(b1,b2,b3,
+                                                                 ug,vg,wg,XYZ,ndim,
+                                                                 false,XYZ));
+  }
+  else if (type == REDUCED_CONT_RAISE_BASIS1 || type == REDUCED_CONT_RAISE_BASIS2)
+  {
+    // Order-elevate basis1 such that it is of one degree higher than basis2
+    // but only C^p-2 continuous
+    result[0].reset(new Go::SplineVolume(*svol));
+    result[0]->raiseOrder(1,1,1);
+  }
+  result[1].reset(new Go::SplineVolume(*svol));
 
   if (type == FULL_CONT_RAISE_BASIS2 || type == REDUCED_CONT_RAISE_BASIS2)
     std::swap(result[0], result[1]);
