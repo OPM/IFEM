@@ -495,6 +495,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
   PROFILE2("ASMs2Dmx::integrate(I)");
 
+  bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
+
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
   const double* wg = GaussQuadrature::getWeight(nGauss);
@@ -559,7 +561,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
           break;
         }
 
-        if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+        if (useElmVtx)
           this->getElementCorners(i1-1,i2-1,fe.XC);
 
         // Initialize element quantities
@@ -651,6 +653,8 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
   PROFILE2("ASMs2Dmx::integrate(B)");
 
+  bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
+
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
   const double* wg = GaussQuadrature::getWeight(nGauss);
@@ -732,6 +736,9 @@ bool ASMs2Dmx::integrate (Integrand& integrand, int lIndex,
 
       // Set up control point coordinates for current element
       if (!this->getElementCoordinates(Xnod,iel)) return false;
+
+      if (useElmVtx)
+        this->getElementCorners(i1-1,i2-1,fe.XC);
 
       // Initialize element quantities
       LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,true);
