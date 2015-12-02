@@ -249,7 +249,7 @@ ASMmxBase::VolumeVec ASMmxBase::establishBases(Go::SplineVolume* svol,
     } else {
       RealArray XYZ(ndim*ug.size()*vg.size()*wg.size());
       // Evaluate the spline surface at all points
-      svol->gridEvaluator(XYZ,ug,vg,wg);
+      svol->gridEvaluator(ug,vg,wg,XYZ);
       // Project the coordinates onto the new basis (the 2nd XYZ is dummy here)
       result[0].reset(Go::VolumeInterpolator::regularInterpolation(b1,b2,b3,
                                                                    ug,vg,wg,XYZ,ndim,
