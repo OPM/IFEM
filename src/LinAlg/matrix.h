@@ -374,12 +374,15 @@ namespace utl //! General utility classes and functions.
     //! \brief Fill the matrix with data from an array.
     void fill(const T* values, size_t n = 0) { elem.fill(values,n); }
 
-    //! \brief Fill a block of the matrix from another matrix
-    void fillBlock(const matrix<T>& block, size_t row, size_t col)
+    //! \brief Fill a block of the matrix with another matrix.
+    void fillBlock(const matrix<T>& block, size_t row, size_t col,
+                   bool transposed = false)
     {
-      for (size_t i = 1; i <= block.rows() && i+row-1 <= nrow; ++i)
-        for (size_t j = 1; j <= block.cols() && j+col-1 <= ncol; ++j)
-          (*this)(i+row-1, j+col-1) = block(i,j);
+      size_t nr = transposed ? block.cols() : block.rows();
+      size_t nc = transposed ? block.rows() : block.cols();
+      for (size_t i = 1; i <= nr && i+row-1 <= nrow; i++)
+        for (size_t j = 1; j <= nc && j+col-1 <= ncol; j++)
+          (*this)(i+row-1,j+col-1) = transposed ? block(j,i) : block(i,j);
     }
 
     //! \brief Create a diagonal matrix.
@@ -1377,6 +1380,8 @@ namespace utl //! General utility classes and functions.
   //! \brief Multiplication of a vector and a scalar.
   //! \return \f$ {\bf Y} = c {\bf X} \f$
   vector<Real> operator*(const vector<Real>& X, Real c);
+  //! \brief Multiplication of a scalar and a vector.
+  //! \return \f$ {\bf Y} = c {\bf X} \f$
   vector<Real> operator*(Real c, const vector<Real>& X) ;
 
   //! \brief Division of a vector by a scalar.
@@ -1394,9 +1399,11 @@ namespace utl //! General utility classes and functions.
   //! \brief Multiplication of a matrix and a scalar.
   //! \return \f$ {\bf B} = c {\bf A} \f$
   matrix<Real> operator*(const matrix<Real>& A, Real c);
+  //! \brief Multiplication of a scalar and a matrix.
+  //! \return \f$ {\bf B} = c {\bf A} \f$
   matrix<Real> operator*(Real c, const matrix<Real>& A);
 
-  //! \brief Dot product of two vectors 
+  //! \brief Dot product of two vectors.
   //! \return \f$ a = {\bf X^T} {\bf Y} \f$
   Real operator*(const vector<Real>& X, const vector<Real>& Y);
 
@@ -1514,7 +1521,6 @@ namespace utl //! General utility classes and functions.
     }
     s <<" ];"<< std::endl;
   }
-  
 }
 
 #undef THIS
