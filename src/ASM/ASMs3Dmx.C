@@ -28,6 +28,7 @@
 #include "Vec3Oper.h"
 #include "Vec3.h"
 #include <array>
+#include <numeric>
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif

@@ -102,6 +102,7 @@ public:
   //! \param[in] dir Parameter direction to refine
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
   virtual bool uniformRefine(int dir, int nInsert);
+  using ASMunstruct::refine;
   //! \brief Refines the parametrization by inserting extra tensor knots.
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span

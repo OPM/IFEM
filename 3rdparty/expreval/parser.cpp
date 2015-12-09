@@ -7,6 +7,7 @@
 // Includes
 #include <new>
 #include <memory>
+#include <cstdlib>
 
 #include "defs.h"
 #include "parser.h"

@@ -55,6 +55,7 @@ public:
   virtual void constrainEdge(int dir, bool open, int dof = 12, int code = 0,
                              char basis = 1);
 
+  using ASMs2D::constrainCorner;
   //! \brief Constrains a corner node identified by the two parameter indices.
   //! \param[in] I Parameter index in u-direction
   //! \param[in] J Parameter index in v-direction

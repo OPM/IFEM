@@ -22,6 +22,7 @@
 #endif
 #include <fstream>
 #include <sstream>
+#include <array>
 
 
 SIM3D::SIM3D (unsigned char n1, bool check)
@@ -789,14 +790,14 @@ ASMbase* SIM3D::createDefaultGeometry (const TiXmlElement* geo) const
             "2 2\n0 0 1 1\n");
 
   const std::array<std::array<double,3>,8> nodes =
-       {{{0.0,0.0,0.0},
-         {1.0,0.0,0.0},
-         {0.0,1.0,0.0},
-         {1.0,1.0,0.0},
-         {0.0,0.0,1.0},
-         {1.0,0.0,1.0},
-         {0.0,1.0,1.0},
-         {1.0,1.0,1.0}}};
+       {{{{0.0,0.0,0.0}},
+         {{1.0,0.0,0.0}},
+         {{0.0,1.0,0.0}},
+         {{1.0,1.0,0.0}},
+         {{0.0,0.0,1.0}},
+         {{1.0,0.0,1.0}},
+         {{0.0,1.0,1.0}},
+         {{1.0,1.0,1.0}}}};
   for (const auto& it : nodes)
   {
     std::stringstream str;

@@ -99,7 +99,7 @@ public:
       postsmoother(BLANK_IF_NO_PETSC(PCILU)),
       mgKSP("defrichardson"),
       maxCoarseSize(-1),
-      subdomains({0,0,0})
+      subdomains({{0,0,0}})
 #ifdef HAS_PETSC
       , nullspace(NONE)
 #endif

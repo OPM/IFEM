@@ -24,6 +24,7 @@
 #include "GaussQuadrature.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
+#include <numeric>
 
 
 ASMs3DmxLag::ASMs3DmxLag (const CharVec& n_f)

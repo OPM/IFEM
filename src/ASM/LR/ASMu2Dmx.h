@@ -160,6 +160,7 @@ public:
 				  const IntegrandBase& integrand,
 				  bool continuous = false) const;
 
+  using ASMu2D::refine;
   //! \brief Refines a set of elements based on a list of element errors.
   //! \param[in] elementError Element-wise errors
   //! \param[in] options Additional input parameters to control the refinement

@@ -24,6 +24,7 @@
 
 #include "gtest/gtest.h"
 #include <fstream>
+#include <array>
 
 static Matrix readMatrix(size_t r, size_t c, const std::string& file)
 {

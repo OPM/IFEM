@@ -129,6 +129,7 @@ public:
   //! \param[in] dir Parameter direction to refine
   //! \param[in] nInsert Number of extra knots to insert in each knot-span
   virtual bool uniformRefine(int dir, int nInsert);
+  using ASMunstruct::refine;
   //! \brief Refines the parametrization by inserting extra tensor knots.
   //! \details This method is mainly kept for backward compatability with the
   //! "REFINE" keyword in the input file.

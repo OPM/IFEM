@@ -16,6 +16,7 @@
 #include "GoTools/geometry/SurfaceInterpolator.h"
 #include "GoTools/trivariate/SplineVolume.h"
 #include "GoTools/trivariate/VolumeInterpolator.h"
+#include <numeric>
 
 char ASMmxBase::geoBasis            = 2;
 ASMmxBase::MixedType ASMmxBase::Type = ASMmxBase::FULL_CONT_RAISE_BASIS1;
