@@ -13,6 +13,7 @@
 
 #include "Tensor.h"
 #include "Vec3.h"
+#include "matrix.h"
 #include <array>
 #include <algorithm>
 #include <cstring>
@@ -23,14 +24,16 @@
 #define dsyev_ dsyev
 #endif
 
+#if defined(USE_CBLAS) || defined(USE_MKL)
 extern "C" {
 //! \brief Solves the standard eigenproblem \a A*x=(lambda)*x.
 //! \details This is a FORTRAN-77 subroutine in the LAPack library.
 //! \sa LAPack library documentation.
-void dsyev_(const char& jobz, const char& uplo,
-            const int& n, double* a, const int& lda, double* w,
-            double* work, const int& lwork, int& info);
+void dsyev_(const char* jobz, const char* uplo,
+            const int* n, double* a, const int* lda, double* w,
+            double* work, const int* lwork, int* info);
 }
+#endif
 
 #ifndef epsZ
 //! \brief Zero tolerance for the incremental rotations.
@@ -1129,7 +1132,7 @@ bool SymmTensor::principal (Vec3& p) const
 bool SymmTensor::principal (Vec3& p, Vec3* pdir, int ndir) const
 {
   p = 0.0;
-#ifdef USE_CBLAS
+#ifdef USE_BLAS
   // Set up the upper triangle of the symmetric tensor
   double A[9], W[3];
   if (n == 3)
@@ -1154,7 +1157,11 @@ bool SymmTensor::principal (Vec3& p, Vec3* pdir, int ndir) const
   int       info = 0;
   const int Lwork = 12;
   double    Work[Lwork];
-  dsyev_('V','U',n,A,n,W,Work,Lwork,info);
+  char jobz='V';
+  char uplo='U';
+  int noncons = n;
+  int Noncons = Lwork;
+  dsyev_(&jobz,&uplo,&noncons,A,&noncons,W,Work,&Noncons,&info);
   if (info)
   {
     std::cerr <<" *** LAPack::dsyev: info ="<< info;

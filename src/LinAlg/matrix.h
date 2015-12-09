@@ -26,12 +26,16 @@
 #include <cmath>
 #ifdef USE_MKL
 #include <mkl_cblas.h>
+#elif defined(USE_ACCELERATE)
+#include <Accelerate/Accelerate.h>
 #elif defined(USE_CBLAS)
 extern "C"
 {
 #include <cblas.h>
 }
 #endif
+
+#define USE_BLAS defined(USE_CBLAS) || defined(USE_MKL) || defined(USE_ACCELERATE)
 
 #ifdef INDEX_CHECK
 #if INDEX_CHECK > 1
@@ -808,7 +812,7 @@ namespace utl //! General utility classes and functions.
   };
 
 
-#if defined(USE_CBLAS) || defined(USE_MKL)
+#if USE_BLAS
   //============================================================================
   //===   BLAS-implementation of the matrix/vector multiplication methods   ====
   //============================================================================
