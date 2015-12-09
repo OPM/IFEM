@@ -16,6 +16,7 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 #include <map>
 #include <ctime>
 
@@ -77,7 +78,10 @@ private:
 
   std::string myName; //!< Name of this profiler
 
-  std::map<std::string,Profile> myTimers; //!< The task profiles with names
+  typedef std::map<std::string,Profile> ProfileMap; //!< Map of profilers
+
+  ProfileMap              myTimers;  //!< The task profiles with names
+  std::vector<ProfileMap> myMTimers; //!< Task profiles with names and thread iD
 
   double allCPU;  //!< Accumulated CPU time from all "main" tasks
   double allWall; //!< Accumulated wall clock time of all "main" tasks
