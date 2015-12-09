@@ -149,14 +149,14 @@ bool IntegrandBase::evalSol (Vector& s, const MxFiniteElement& fe,
 
 bool IntegrandBase::evalSol (Vector& s, const TensorFunc& asol, const Vec3& X) const
 {
-  s = Vector(asol(X).ptr(),nsd);
+  s = Vector(asol(X).ptr(),nsd*nsd);
   return true;
 }
 
 
 bool IntegrandBase::evalSol (Vector& s, const STensorFunc& asol, const Vec3& X) const
 {
-  s = Vector(asol(X).ptr(),nsd);
+  s = Vector(asol(X).ptr(),nsd*(nsd+1)/2);
   return true;
 }
 
