@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<simulation>
+  <geometry>
+    <refine patch="1" u="7" v="7" w="7"/>
+    <topologysets>
+      <set name="V8" type="vertex">
+        <item patch="1">8</item>
+      </set>
+    </topologysets>
+  </geometry>
+
+  <constraintovertex set="V8" patch="1" vertex="1" comp="1" basis="1"/>
+</simulation>

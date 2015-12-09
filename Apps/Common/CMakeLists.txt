@@ -36,6 +36,7 @@ ADD_LIBRARY(CommonIFEM MeshUtils.C
                        ResidualOperators.C
                        Spalding.C
                        SAWallLaw.C
+                       SIMNodalConstraint.C
                        StabilizationUtils.C
                        TimeIntUtils.C
                        WeakOperators.C)
