@@ -86,19 +86,27 @@ static void ExprException (const ExprEval::Exception& exc, const char* task,
 EvalFunc::EvalFunc (const char* function, const char* x)
 {
   try {
-    expr = new ExprEval::Expression;
-    f = new ExprEval::FunctionList;
-    v = new ExprEval::ValueList;
-    f->AddDefaultFunctions();
-    v->AddDefaultValues();
-    v->Add(x,0,false);
-    expr->SetFunctionList(f);
-    expr->SetValueList(v);
-    expr->Parse(function);
-    arg = v->GetAddress(x);
+    size_t nalloc = 1;
 #ifdef USE_OPENMP
-    omp_init_lock(&lock);
+    nalloc = omp_get_max_threads();
 #endif
+    expr.resize(nalloc);
+    f.resize(nalloc);
+    v.resize(nalloc);
+    expr.resize(nalloc);
+    arg.resize(nalloc);
+    for (size_t i = 0; i < nalloc; ++i) {
+      expr[i] = new ExprEval::Expression;
+      f[i] = new ExprEval::FunctionList;
+      v[i] = new ExprEval::ValueList;
+      f[i]->AddDefaultFunctions();
+      v[i]->AddDefaultValues();
+      v[i]->Add(x,0,false);
+      expr[i]->SetFunctionList(f[i]);
+      expr[i]->SetValueList(v[i]);
+      expr[i]->Parse(function);
+      arg[i] = v[i]->GetAddress(x);
+    }
   }
   catch (ExprEval::Exception e) {
     ExprException(e,"parsing",function);
@@ -108,31 +116,29 @@ EvalFunc::EvalFunc (const char* function, const char* x)
 
 EvalFunc::~EvalFunc ()
 {
-  delete expr;
-  delete f;
-  delete v;
-#ifdef USE_OPENMP
-  omp_destroy_lock(&lock);
-#endif
+  for (auto& it : expr)
+    delete it;
+  for (auto& it : f)
+    delete it;
+  for (auto& it : v)
+    delete it;
 }
 
 
 Real EvalFunc::evaluate (const Real& x) const
 {
+  size_t i = 0;
 #ifdef USE_OPENMP
-  omp_set_lock(const_cast<omp_lock_t*>(&lock));
+  i = omp_get_thread_num();
 #endif
   Real result = Real(0);
   try {
-    *arg = x;
-    result = expr->Evaluate();
+    *arg[i] = x;
+    result = expr[i]->Evaluate();
   }
   catch (ExprEval::Exception e) {
     ExprException(e,"evaluating expression");
   }
-#ifdef USE_OPENMP
-  omp_unset_lock(const_cast<omp_lock_t*>(&lock));
-#endif
 
   return result;
 }
@@ -141,25 +147,33 @@ Real EvalFunc::evaluate (const Real& x) const
 EvalFunction::EvalFunction (const char* function)
 {
   try {
-    expr = new ExprEval::Expression;
-    f = new ExprEval::FunctionList;
-    v = new ExprEval::ValueList;
-    f->AddDefaultFunctions();
-    v->AddDefaultValues();
-    v->Add("x",0,false);
-    v->Add("y",0,false);
-    v->Add("z",0,false);
-    v->Add("t",0,false);
-    expr->SetFunctionList(f);
-    expr->SetValueList(v);
-    expr->Parse(function);
-    x = v->GetAddress("x");
-    y = v->GetAddress("y");
-    z = v->GetAddress("z");
-    t = v->GetAddress("t");
+    size_t nalloc = 1;
 #ifdef USE_OPENMP
-    omp_init_lock(&lock);
+    nalloc = omp_get_max_threads();
 #endif
+    expr.resize(nalloc);
+    f.resize(nalloc);
+    v.resize(nalloc);
+    expr.resize(nalloc);
+    c.resize(nalloc);
+    for (size_t i = 0; i < nalloc; ++i) {
+      expr[i] = new ExprEval::Expression;
+      f[i] = new ExprEval::FunctionList;
+      v[i] = new ExprEval::ValueList;
+      f[i]->AddDefaultFunctions();
+      v[i]->AddDefaultValues();
+      v[i]->Add("x",0,false);
+      v[i]->Add("y",0,false);
+      v[i]->Add("z",0,false);
+      v[i]->Add("t",0,false);
+      expr[i]->SetFunctionList(f[i]);
+      expr[i]->SetValueList(v[i]);
+      expr[i]->Parse(function);
+      c[i][0] = v[i]->GetAddress("x");
+      c[i][1] = v[i]->GetAddress("y");
+      c[i][2] = v[i]->GetAddress("z");
+      c[i][3] = v[i]->GetAddress("t");
+    }
   }
   catch (ExprEval::Exception e) {
     ExprException(e,"parsing",function);
@@ -174,35 +188,33 @@ EvalFunction::EvalFunction (const char* function)
 
 EvalFunction::~EvalFunction ()
 {
-  delete expr;
-  delete f;
-  delete v;
-#ifdef USE_OPENMP
-  omp_destroy_lock(&lock);
-#endif
+  for (auto& it : expr)
+    delete it;
+  for (auto& it : f)
+    delete it;
+  for (auto& it : v)
+    delete it;
 }
 
 
 Real EvalFunction::evaluate (const Vec3& X) const
 {
   const Vec4* Xt = dynamic_cast<const Vec4*>(&X);
-#ifdef USE_OPENMP
-  omp_set_lock(const_cast<omp_lock_t*>(&lock));
-#endif
   Real result = Real(0);
   try {
-    *x = X.x;
-    *y = X.y;
-    *z = X.z;
-    *t = Xt ? Xt->t : Real(0);
-    result = expr->Evaluate();
+    size_t i = 0;
+#ifdef USE_OPENMP
+    i = omp_get_thread_num();
+#endif
+    *c[i][0] = X.x;
+    *c[i][1] = X.y;
+    *c[i][2] = X.z;
+    *c[i][3] = Xt ? Xt->t : Real(0);
+    result = expr[i]->Evaluate();
   }
   catch (ExprEval::Exception e) {
     ExprException(e,"evaluating expression");
   }
-#ifdef USE_OPENMP
-  omp_unset_lock(const_cast<omp_lock_t*>(&lock));
-#endif
 
   return result;
 }

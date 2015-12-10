@@ -17,6 +17,7 @@
 #include "Function.h"
 #include <string>
 #include <vector>
+#include <array>
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
@@ -34,11 +35,11 @@ namespace ExprEval {
 
 class EvalFunc : public ScalarFunc
 {
-  ExprEval::Expression* expr; //!< Pointer to the root of the expression tree
-  ExprEval::FunctionList*  f; //!< Pointer to list of function in the expression
-  ExprEval::ValueList*     v; //!< Pointer to list of variables and constants
+  std::vector<ExprEval::Expression*> expr; //!< Roots of the expression tree
+  std::vector<ExprEval::FunctionList*>  f; //!< Lists of functions
+  std::vector<ExprEval::ValueList*>     v; //!< Lists of variables and constants
 
-  Real* arg; //!< Pointer to the function argument
+  std::vector<Real*> arg; //!< Function argument values
 
 public:
   //! \brief The constructor parses the expression string.
@@ -49,11 +50,6 @@ public:
 protected:
   //! \brief Evaluates the function expression.
   virtual Real evaluate(const Real& x) const;
-
-private:
-#ifdef USE_OPENMP
-  omp_lock_t lock;
-#endif
 };
 
 
@@ -63,14 +59,11 @@ private:
 
 class EvalFunction : public RealFunc
 {
-  ExprEval::Expression* expr; //!< Pointer to the root of the expression tree
-  ExprEval::FunctionList*  f; //!< Pointer to list of function in the expression
-  ExprEval::ValueList*     v; //!< Pointer to list of variables and constants
+  std::vector<ExprEval::Expression*> expr; //!< Roots of the expression tree
+  std::vector<ExprEval::FunctionList*>  f; //!< Lists of functions
+  std::vector<ExprEval::ValueList*>     v; //!< Lists of variables and constants
+  std::vector<std::array<Real*,4>>      c; //!< Function argument values
 
-  Real* x; //!< Pointer to the X-coordinate of the function argument
-  Real* y; //!< Pointer to the Y-coordinate of the function argument
-  Real* z; //!< Pointer to the Z-coordinate of the function argument
-  Real* t; //!< Pointer to the time coordinate of the function argument
   bool  IAmConstant; //!< Indicates whether the time coordinate is given or not
 
 public:
@@ -85,11 +78,6 @@ public:
 protected:
   //! \brief Evaluates the function expression.
   virtual Real evaluate(const Vec3& X) const;
-
-private:
-#ifdef USE_OPENMP
-  omp_lock_t lock;
-#endif
 };
 
 
@@ -106,16 +94,14 @@ class EvalMultiFunction : public ParentFunc
 public:
   //! \brief The constructor parses the expression string for each component.
   EvalMultiFunction<ParentFunc,Ret>(const std::string& functions,
-                                    const std::string& variables="")
+                                    const std::string& variables = "")
   {
     size_t pos = functions.find("|"), pos2 = 0;
     for (int i = 0; pos2 < functions.size(); i++)
     {
       std::string func(variables);
-
       if (!func.empty() && func[func.size()-1] != ';')
         func += ';';
-
       if (pos == std::string::npos)
         func += functions.substr(pos2);
       else
