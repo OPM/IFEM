@@ -478,6 +478,12 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
         const VecFunc& pSol = *mySol->getVectorSol();
         for (j = 1; cit != grid->end_XYZ() && haveXsol; j++, ++cit)
           field.fillColumn(j,pSol(Vec4(*cit,time)).ptr());
+        if (mySol->getScalarSol()) {
+          cit = grid->begin_XYZ();
+          const RealFunc& sSol = *mySol->getScalarSol();
+          for (j = 1; cit != grid->end_XYZ() && haveXsol; j++, ++cit)
+            field(field.rows(), j) = sSol(Vec4(*cit,time));
+        }
       }
 
       for (j = 1; j <= field.rows() && k < pMAX && haveXsol; j++)
