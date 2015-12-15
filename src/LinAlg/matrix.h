@@ -10,8 +10,8 @@
 //! \brief Simple template classes for dense rectangular matrices and vectors.
 //! \details The classes have some algebraic operators defined, such that the
 //! class type \a T has to be of a numerical type, i.e., \a float or \a double.
-//! The multiplication methods are implemented based on the CBLAS library if
-//! either of the macro symbols USE_CBLAS or USE_MKL are defined.
+//! The multiplication methods are implemented based on the BLAS library if
+//! an implementation is provided (HAS_BLAS is defined, see BLAS.h).
 //! Otherwise, inlined methods are used.
 //!
 //==============================================================================
@@ -24,18 +24,7 @@
 #include <algorithm>
 #include <cstring>
 #include <cmath>
-#ifdef USE_MKL
-#include <mkl_cblas.h>
-#elif defined(USE_ACCELERATE)
-#include <Accelerate/Accelerate.h>
-#elif defined(USE_CBLAS)
-extern "C"
-{
-#include <cblas.h>
-}
-#endif
-
-#define USE_BLAS defined(USE_CBLAS) || defined(USE_MKL) || defined(USE_ACCELERATE)
+#include "BLAS.h"
 
 #ifdef INDEX_CHECK
 #if INDEX_CHECK > 1
@@ -159,13 +148,27 @@ namespace utl //! General utility classes and functions.
 
     //! \brief Dot product between \a *this and another vector.
     //! \param[in] v The vector to dot this vector with
+    //! \param[in] nv Length of the vector \a v
+    //! \param[in] off1 Offset for this vector
+    //! \param[in] inc1 Increment for this vector
+    //! \param[in] off2 Offset for vector \b v
+    //! \param[in] inc2 Increment for vector \b v
+    T dot(const T* v, size_t nv,
+          size_t off1 = 0, int inc1 = 1,
+          size_t off2 = 0, int inc2 = 1) const;
+
+    //! \brief Dot product between \a *this and another vector.
+    //! \param[in] v The vector to dot this vector with
     //! \param[in] off1 Offset for this vector
     //! \param[in] inc1 Increment for this vector
     //! \param[in] off2 Offset for vector \b v
     //! \param[in] inc2 Increment for vector \b v
     T dot(const std::vector<T>& v,
           size_t off1 = 0, int inc1 = 1,
-          size_t off2 = 0, int inc2 = 1) const;
+          size_t off2 = 0, int inc2 = 1) const
+    {
+      return this->dot(&v.front(),v.size(),off1,inc1,off2,inc2);
+    }
 
     //! \brief Return the Euclidean norm of the vector.
     //! \param[in] off Index offset relative to the first vector component
@@ -382,7 +385,7 @@ namespace utl //! General utility classes and functions.
       size_t nc = transposed ? block.rows() : block.cols();
       for (size_t i = 1; i <= nr && i+row-1 <= nrow; i++)
         for (size_t j = 1; j <= nc && j+col-1 <= ncol; j++)
-          (*this)(i+row-1,j+col-1) = transposed ? block(j,i) : block(i,j);
+          elem[i+row-2+nrow*(j+col-2)] = transposed ? block(j,i) : block(i,j);
     }
 
     //! \brief Create a diagonal matrix.
@@ -815,7 +818,7 @@ namespace utl //! General utility classes and functions.
   };
 
 
-#if USE_BLAS
+#ifdef HAS_BLAS
   //============================================================================
   //===   BLAS-implementation of the matrix/vector multiplication methods   ====
   //============================================================================
@@ -835,23 +838,23 @@ namespace utl //! General utility classes and functions.
   }
 
   template<> inline
-  float vector<float>::dot(const std::vector<float>& v,
+  float vector<float>::dot(const float* v, size_t nv,
                            size_t o1, int i1, size_t o2, int i2) const
   {
     int n1 = i1 > 1 || i1 < -1 ? this->size()/abs(i1) : this->size()-o1;
-    int n2 = i2 > 1 || i2 < -1 ? v.size()/abs(i2) : v.size()-o2;
+    int n2 = i2 > 1 || i2 < -1 ? nv/abs(i2) : nv-o2;
     int n  = n1 < n2 ? n1 : n2;
-    return cblas_sdot(n,this->ptr()+o1,i1,&v.front()+o2,i2);
+    return cblas_sdot(n,this->ptr()+o1,i1,v+o2,i2);
   }
 
   template<> inline
-  double vector<double>::dot(const std::vector<double>& v,
+  double vector<double>::dot(const double* v, size_t nv,
                              size_t o1, int i1, size_t o2, int i2) const
   {
     int n1 = i1 > 1 || i1 < -1 ? this->size()/abs(i1) : this->size()-o1;
-    int n2 = i2 > 1 || i2 < -1 ? v.size()/abs(i2) : v.size()-o2;
+    int n2 = i2 > 1 || i2 < -1 ? nv/abs(i2) : nv-o2;
     int n  = n1 < n2 ? n1 : n2;
-    return cblas_ddot(n,this->ptr()+o1,i1,&v.front()+o2,i2);
+    return cblas_ddot(n,this->ptr()+o1,i1,v+o2,i2);
   }
 
   template<> inline
@@ -1176,12 +1179,12 @@ namespace utl //! General utility classes and functions.
   }
 
   template<class T> inline
-  T vector<T>::dot(const std::vector<T>& v,
+  T vector<T>::dot(const T* v, size_t nv,
                    size_t o1, int i1, size_t o2, int i2) const
   {
     size_t i, j;
     T dotprod = T(0);
-    for (i = o1, j = o2; i < this->size() && j < v.size(); i += i1, j += i2)
+    for (i = o1, j = o2; i < this->size() && j < nv; i += i1, j += i2)
       dotprod += this->operator[](i) * v[j];
     return dotprod;
   }

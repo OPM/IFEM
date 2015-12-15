@@ -15,29 +15,7 @@
 //==============================================================================
 
 #include "MatVec.h"
-
-#if defined(_WIN32) && !defined(__MINGW32__) && !defined(__MINGW64__)
-#define dgetrf_ DGETRF
-#define dgetri_ DGITRI
-#elif defined(_AIX)
-#define dgetrf_ dgetrf
-#define dgetri_ dgetri
-#endif
-
-#if defined(USE_CBLAS) || defined(USE_MKL)
-extern "C" {
-//! \brief Computes an LU factorization of a general M-by-N matrix A.
-//! \details This is a FORTRAN-77 subroutine in the LAPack library.
-//! \sa LAPack library documentation.
-void dgetrf_(const int* M, const int* N, double* A, const int* LDA,
-             int* IPIV, int* INFO);
-//! \brief Computes the inverse of a matrix based on its LU factorization.
-//! \details This is a FORTRAN-77 subroutine in the LAPack library.
-//! \sa LAPack library documentation.
-void dgetri_(const int* N, double* A, const int* LDA,
-             int* IPIV, double* WORK, const int* LWORK, int* INFO);
-}
-#endif
+#include "LAPack.h"
 
 
 // Set default values on some global variables.
@@ -133,12 +111,11 @@ bool utl::invert (Matrix& A)
   if (A.rows() <= 3)
     return A.inverse() > 0.0;
 
-#if USE_BLAS
+#ifdef HAS_BLAS
   // Use LAPack/BLAS for larger matrices
   int INFO, N = A.rows() > A.cols() ? A.rows() : A.cols();
   int* IPIV = new int[N];
-  int r = A.rows();
-  dgetrf_(&N,&N,A.ptr(),&r,IPIV,&INFO);
+  dgetrf (N,N,A.ptr(),A.rows(),IPIV,INFO);
   if (INFO != 0)
   {
     delete[] IPIV;
@@ -146,11 +123,9 @@ bool utl::invert (Matrix& A)
     return false;
   }
   double NWORK;
-  int m1 = -1;
-  dgetri_(&N,A.ptr(),&r,IPIV,&NWORK,&m1,&INFO);
+  dgetri (N,A.ptr(),A.rows(),IPIV,&NWORK,-1,INFO);
   double* WORK = new double[int(NWORK)];
-  int nwork = NWORK;
-  dgetri_(&N,A.ptr(),&r,IPIV,WORK,&nwork,&INFO);
+  dgetri (N,A.ptr(),A.rows(),IPIV,WORK,int(NWORK),INFO);
   delete[] IPIV;
   delete[] WORK;
   if (INFO == 0) return true;
