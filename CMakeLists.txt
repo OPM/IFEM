@@ -29,6 +29,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
                       ${CMAKE_SOURCE_DIR}/cmake/Modules)
 
 INCLUDE(Apps/Common/cmake/UseMultiArch.cmake)
+set(IFEM_LIBRARY_BUILD 1)
 
 if(NOT IFEM_AS_SUBMODULE)
   FIND_PACKAGE(IFEMDeps)
