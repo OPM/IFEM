@@ -70,6 +70,7 @@ public:
     REDUCED_CONT_RAISE_BASIS1, //!< Reduced continuity, raise order and use as basis 1
     FULL_CONT_RAISE_BASIS2,    //!< Full continuity, raise order and use as basis 2
     REDUCED_CONT_RAISE_BASIS2, //!< Reduced continuity, raise order and use as basis 2
+    DIV_COMPATIBLE,            //!< Div-compatible space for incompressible problems
   };
 
   static MixedType Type; //!< Type of mixed formulation used
