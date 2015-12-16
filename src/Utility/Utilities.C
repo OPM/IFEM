@@ -400,3 +400,18 @@ void utl::merge (std::vector<Real>& a1, const std::vector<Real>& a2,
     if (std::find(k1.begin(),k1.end(),k2[i]) == k1.end())
       a1.push_back(a2[i]);
 }
+
+
+void utl::interleave(const std::vector<Real>& v1, const std::vector<Real>& v2,
+                     std::vector<Real>& out, size_t n1, size_t n2)
+
+{
+  out.resize(v1.size()+v2.size());
+  auto it_v1 = v1.begin();
+  auto it_v2 = v2.begin();
+  for (auto it_out = out.begin(); it_out != out.end();
+            it_out += n1+n2, it_v1 += n1, it_v2 += n2) {
+    std::copy(it_v1, it_v1+n1, it_out);
+    std::copy(it_v2, it_v2+n2, it_out+n1);
+  }
+}

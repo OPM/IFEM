@@ -152,6 +152,15 @@ namespace utl
              const std::vector<Real>& in, std::vector<Real>& out,
              size_t offset_in = 0, int shift_idx = 0);
 
+  //! \brief Interleave vectors
+  //! \param[in] v1 The first array
+  //! \param[in] v2 The second array
+  //! \param[out] out The output array
+  //! \param[in] n1 Number of entries per node in first vector
+  //! \param[in] n2 Number of entries per node in second vector
+  void interleave(const std::vector<Real>& v1, const std::vector<Real>& v2,
+                  std::vector<Real>& out, size_t n1 = 1, size_t n2 = 1);
+
   //! \brief Searches for a real value in an ordered array of reals.
   //! \param[in] a The array of real values
   //! \param[in] v The value to search for
