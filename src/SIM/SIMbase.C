@@ -309,6 +309,8 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
     std::string set, type;
     utl::getAttribute(elem,"set",set);
     utl::getAttribute(elem,"type",type,true);
+    int ndir = 0;
+    utl::getAttribute(elem,"direction",ndir);
     int code = this->getUniquePropertyCode(set);
     if (code == 0) utl::getAttribute(elem,"code",code);
     if (type == "anasol") {
@@ -319,14 +321,12 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
       IFEM::cout <<"\tNeumann code "<< code <<" (generic)";
       if (elem->FirstChild()) {
         this->setPropertyType(code,Property::ROBIN);
-        this->setNeumann(elem->FirstChild()->Value(),"expression",0,code);
+        this->setNeumann(elem->FirstChild()->Value(),"expression",ndir,code);
       }
       else
         this->setPropertyType(code,Property::NEUMANN_GENERIC);
     }
     else {
-      int ndir = 0;
-      utl::getAttribute(elem,"direction",ndir);
       IFEM::cout <<"\tNeumann code "<< code <<" direction "<< ndir;
       if (!type.empty()) IFEM::cout <<" ("<< type <<")";
       if (elem->FirstChild())
@@ -1044,7 +1044,8 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
       (*mit)->generateThreadGroups(*myProblem,silence);
 
   for (q = myProps.begin(); q != myProps.end(); q++)
-    if (q->pcode == Property::NEUMANN || q->pcode == Property::NEUMANN_GENERIC)
+    if (q->pcode == Property::NEUMANN || q->pcode == Property::NEUMANN_GENERIC ||
+        q->pcode == Property::ROBIN)
       this->generateThreadGroups(*q,silence);
 
   // Preprocess the result points

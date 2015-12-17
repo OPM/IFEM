@@ -53,19 +53,19 @@ bool GlbForceVec::assemble (const LocalIntegral* elmObj, int elmId)
   const ElmMats* elm = dynamic_cast<const ElmMats*>(elmObj);
   if (!elm || elm->b.size() < 1) return false;
 
-  const Vector& ES = elm->b.front();
+  const Vector& ES = elm->getRHSVector();
   const size_t nfc = F.rows();
   std::vector<int> mnpc;
   if (!sam.getElmNodes(mnpc,elmId))
     return false;
-  else if (ES.size() < nfc*mnpc.size())
+/*  else if (ES.size() < nfc*mnpc.size())
   {
     std::cerr <<" *** GlbForceVec::assemble: Invalid element force vector,"
               <<" size="<< ES.size() <<" should be (at least) "
               << nfc*mnpc.size() << std::endl;
     return false;
   }
-
+*/
   // Assemble the nodal forces into the Matrix F
   size_t i, j, k, ninod = 0;
   std::map<int,size_t>::const_iterator nit;

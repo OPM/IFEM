@@ -929,17 +929,23 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     // Fetch indices of the non-zero basis functions at this point
     std::vector<IntVec> ip(m_basis.size());
     IntVec ipa;
+    size_t ofs = 0;
     for (size_t b = 0; b < m_basis.size(); ++b) {
       scatterInd(m_basis[b]->numCoefs_u(),m_basis[b]->numCoefs_v(),
                  m_basis[b]->order_u(),m_basis[b]->order_v(),splinex[b][i].left_idx,ip[b]);
+
+      // Fetch associated control point coordinates
+      if (b == (size_t)geoBasis-1)
+        utl::gather(ip[geoBasis-1], nsd, Xnod, Xtmp);
+
+      for (auto& it : ip[b])
+        it += ofs;
       ipa.insert(ipa.end(), ip[b].begin(), ip[b].end());
+      ofs += nb[b];
     }
 
     fe.u = splinex[0][i].param[0];
     fe.v = splinex[0][i].param[1];
-
-    // Fetch associated control point coordinates
-    utl::gather(ip[geoBasis-1], nsd, Xnod, Xtmp);
 
     // Fetch basis function derivatives at current integration point
     for (size_t b = 0; b < m_basis.size(); ++b)
@@ -962,7 +968,7 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     X = Xtmp * fe.basis(geoBasis);
 
     // Now evaluate the solution field
-    if (!integrand.evalSol(solPt,fe,X,ipa,elem_sizes))
+    if (!integrand.evalSol(solPt,fe,X,ipa,elem_sizes,nb))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);

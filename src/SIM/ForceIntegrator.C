@@ -103,6 +103,17 @@ bool SIM::integrate(const Vectors& solution, SIMbase* model, int code,
   size_t prevPatch = 0;
   GlobalIntegral dummy;
   GlobalIntegral& frc = force ? *force : dummy;
+
+  if (code == 0) { // special case - volume integral over the entire model
+    for (int p = 1; p <= model->getNoPatches() && ok; ++p) {
+      ASMbase* patch = model->getPatch(p);
+      ok = model->extractPatchSolution(solution,p-1);
+      model->setPatchMaterial(p);
+      ok &= patch->integrate(*forceInt,frc,time);
+    }
+    return ok;
+  }
+
   PropertyVec::const_iterator p;
   for (p = model->begin_prop(); p != model->end_prop() && ok; p++)
     if (abs(p->pindx) == code)

@@ -286,7 +286,8 @@ bool ASMs3Dmx::generateFEMTopology ()
     iel = 0;
     if ((int)b != geoBasis-1)
       addBasis(m_basis[b],false);
-    inod += nb[b];
+    else
+      inod += nb[b];
     lnod2 += m_basis[b]->order(0)*m_basis[b]->order(1)*m_basis[b]->order(2);
   }
 
@@ -391,10 +392,10 @@ Vec3 ASMs3Dmx::getCoord (size_t inod) const
   const int J = nodeInd[inod-1].J;
   const int K = nodeInd[inod-1].K;
 
-  int b = 0;
-  size_t nbb = 0;
-  while (inod < nbb)
-    nbb += nb[b++];
+  size_t b = 0;
+  size_t nbb = nb[0];
+  while (nbb < inod)
+    nbb += nb[++b];
 
   cit = m_basis[b]->coefs_begin()
       + ((K*m_basis[b]->numCoefs(1)+J)*m_basis[b]->numCoefs(0)+I) * m_basis[b]->dimension();
@@ -930,7 +931,7 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     X = Xtmp * fe.basis(geoBasis);
 
     // Now evaluate the solution field
-    if (!integrand.evalSol(solPt,fe,X,ipa,elem_sizes))
+    if (!integrand.evalSol(solPt,fe,X,ipa,elem_sizes,nb))
       return false;
     else if (sField.empty())
       sField.resize(solPt.size(),nPoints,true);

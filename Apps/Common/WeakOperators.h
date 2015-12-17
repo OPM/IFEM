@@ -95,9 +95,10 @@ namespace WeakOperators
   //! \param[in] nf Number of fields in basis.
   //! \param[in] stress Whether to add extra stress formulation terms.
   //! \param[in] scmp Starting component.
+  //! \param[in] basis Basis to use.
   void Laplacian(Matrix& EM, const FiniteElement& fe,
                  double scale=1.0, size_t cmp=1, size_t nf=1,
-                 bool stress=false, size_t scmp=0);
+                 bool stress=false, size_t scmp=0, unsigned char basis=1);
 
   //! \brief Compute a heteregenous coefficient laplacian.
   //! \param[out] EM The element matrix to add contribution to.
@@ -114,8 +115,10 @@ namespace WeakOperators
   //! \param[in] cmp Number of components to add.
   //! \param[in] nf Number of fields in basis.
   //! \param[in] scmp Starting component.
+  //! \param[in] basis Basis to use.
   void Mass(Matrix& EM, const FiniteElement& fe,
-            double scale=1.0, size_t cmp=1, size_t nf=1, size_t scmp=0);
+            double scale=1.0, size_t cmp=1, size_t nf=1, size_t scmp=0,
+            unsigned char basis=1);
 
   //! \brief Compute a source term.
   //! \param[out] EV The element vector to add contribution to.
@@ -124,8 +127,10 @@ namespace WeakOperators
   //! \param[in] cmp Number of components to add.
   //! \param[in] nf Number of fields in basis.
   //! \param[in] scmp Starting component.
+  //! \param[in] basis Basis to use.
   void Source(Vector& EV, const FiniteElement& fe,
-              double scale=1.0, size_t cmp=1, size_t nf=1, size_t scmp=0);
+              double scale=1.0, size_t cmp=1, size_t nf=1, size_t scmp=0,
+              unsigned char basis=1);
 
   //! \brief Compute a vector-source term.
   //! \param[out] EV The element vector to add contribution to.

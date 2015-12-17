@@ -59,6 +59,8 @@ public:
 
   //! \brief Defines the solution mode before the element assembly is started.
   virtual void setMode(SIM::SolutionMode mode) { m_mode = mode; }
+  //! \brief Obtain current solution mode
+  SIM::SolutionMode getMode() const { return m_mode; }
   //! \brief Initializes an integration parameter for the integrand.
   virtual void setIntegrationPrm(unsigned short int, double) {}
   //! \brief Returns an integration parameter for the integrand.
@@ -158,9 +160,11 @@ public:
   //! \param[in] X Cartesian coordinates of current point
   //! \param[in] MNPC Nodal point correspondance for the bases
   //! \param[in] elem_sizes Size of each basis on the element
+  //! \param[in] basis_sizes Size of each basis on the patch
   virtual bool evalSol(Vector& s, const MxFiniteElement& fe, const Vec3& X,
 		       const std::vector<int>& MNPC,
-		       const std::vector<size_t>& elem_sizes) const;
+                       const std::vector<size_t>& elem_sizes,
+                       const std::vector<size_t>& basis_sizes) const;
 
   //! \brief Evaluates the analytical secondary solution at a result point.
   //! \param[out] s The solution field values at current point

@@ -622,7 +622,7 @@ bool ASMs3DmxLag::evalSolution (Matrix& sField, const IntegrandBase& integrand,
             }
 
 	  // Now evaluate the solution field
-	  if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(geoBasis),MNPC[iel-1],elem_size))
+	  if (!integrand.evalSol(solPt,fe,Xnod*fe.basis(geoBasis),MNPC[iel-1],elem_size,nb))
 	    return false;
 	  else if (sField.empty())
 	    sField.resize(solPt.size(),nPoints,true);

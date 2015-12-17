@@ -465,6 +465,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
       if (abs(results) & DataExporter::SECONDARY) {
         Matrix field;
         if (prefix.empty()) {
+          sim->setMode(SIM::RECOVERY);
           sim->extractPatchSolution(Vectors(1,*sol), loc-1);
           sim->evalSecondarySolution(field,loc-1);
         }

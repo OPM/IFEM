@@ -556,16 +556,17 @@ public:
   //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
   bool add2PC(int slave, int dir, int master, int code = 0);
 
-protected:
-
-  // Internal methods for preprocessing of boundary conditions
-  // =========================================================
-
   //! \brief Adds a general multi-point-constraint (MPC) equation to this patch.
   //! \param mpc Pointer to an MPC-object
   //! \param[in] code Identifier for inhomogeneous Dirichlet condition field
   //! \param[in] silence If \e true, suppress debug print
   bool addMPC(MPC*& mpc, int code = 0, bool silence = false);
+
+protected:
+
+  // Internal methods for preprocessing of boundary conditions
+  // =========================================================
+
   //! \brief Creates and adds a three-point constraint to this patch.
   //! \param[in] slave Global node number of the node to constrain
   //! \param[in] dir Which local DOF to constrain (1, 2, 3)

@@ -40,7 +40,8 @@ public:
   GlbL2&         gl2Int;       //!< The global L2 projection integrand
   LocalIntegral* elmData;      //!< Element data associated with problem integrand
   IntVec         mnpc;         //!< Matrix of element nodal correspondance for bases
-  std::vector<size_t> sizes;   //!< Size of each basis
+  std::vector<size_t> elem_sizes;   //!< Size of each basis on the element
+  std::vector<size_t> basis_sizes;   //!< Size of each basis on the patch
 };
 
 
@@ -85,7 +86,8 @@ bool GlbL2::initElement (const IntVec& MNPC1,
   L2Mats& gl2 = static_cast<L2Mats&>(elmInt);
 
   gl2.mnpc  = MNPC1;
-  gl2.sizes = elem_sizes;
+  gl2.elem_sizes = elem_sizes;
+  gl2.basis_sizes = basis_sizes;
   return problem.initElement(MNPC1,elem_sizes,basis_sizes,*gl2.elmData);
 }
 
@@ -127,7 +129,7 @@ bool GlbL2::evalIntMx (LocalIntegral& elmInt,
   L2Mats& gl2 = static_cast<L2Mats&>(elmInt);
 
   Vector solPt;
-  if (!problem.evalSol(solPt,fe,X,gl2.mnpc,gl2.sizes))
+  if (!problem.evalSol(solPt,fe,X,gl2.mnpc,gl2.elem_sizes,gl2.basis_sizes))
     if (!problem.diverged(fe.iGP+1))
       return false;
 

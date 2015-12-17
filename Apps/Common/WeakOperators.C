@@ -140,10 +140,10 @@ namespace WeakOperators {
 
   void Laplacian(Matrix& EM, const FiniteElement& fe,
                  double scale, size_t cmp, size_t nf,
-                 bool stress, size_t scmp)
+                 bool stress, size_t scmp, unsigned char basis)
   {
     Matrix A;
-    A.multiply(fe.dNdX,fe.dNdX,false,true);
+    A.multiply(fe.grad(basis),fe.grad(basis),false,true);
     A *= scale*fe.detJxW;
     addComponents(EM, A, cmp, nf, scmp);
     if (stress)
@@ -151,7 +151,7 @@ namespace WeakOperators {
         for (size_t j = 1; j <= fe.N.size(); j++)
           for (size_t k = 1; k <= cmp; k++)
             for (size_t l = 1; l <= cmp; l++)
-              EM(nf*(j-1)+k+scmp,nf*(i-1)+l+scmp) += scale*fe.dNdX(i,k)*fe.dNdX(j,l)*fe.detJxW;
+              EM(nf*(j-1)+k+scmp,nf*(i-1)+l+scmp) += scale*fe.grad(basis)(i,k)*fe.grad(basis)(j,l)*fe.detJxW;
   }
 
 
@@ -166,24 +166,26 @@ namespace WeakOperators {
 
 
   void Mass(Matrix& EM, const FiniteElement& fe,
-            double scale, size_t cmp, size_t nf, size_t scmp)
+            double scale, size_t cmp, size_t nf, size_t scmp,
+            unsigned char basis)
   {
     Matrix A;
-    A.outer_product(fe.N,fe.N,false);
+    A.outer_product(fe.basis(basis),fe.basis(basis),false);
     A *= scale*fe.detJxW;
     addComponents(EM, A, cmp, nf, scmp);
   }
 
 
   void Source(Vector& EV, const FiniteElement& fe,
-              double scale, size_t cmp, size_t nf, size_t scmp)
+              double scale, size_t cmp, size_t nf, size_t scmp,
+              unsigned char basis)
   {
     if (cmp == 1 && nf == 1)
-      EV.add(fe.N, scale*fe.detJxW);
+      EV.add(fe.basis(basis), scale*fe.detJxW);
     else {
       for (size_t i = 1; i <= fe.N.size(); ++i)
         for (size_t k = 1; k <= cmp; ++k)
-          EV(nf*(i-1)+k+scmp) += scale*fe.N(i)*fe.detJxW;
+          EV(nf*(i-1)+k+scmp) += scale*fe.basis(basis)(i)*fe.detJxW;
     }
   }
 

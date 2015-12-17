@@ -140,7 +140,8 @@ bool IntegrandBase::evalSol (Vector& s, const FiniteElement& fe,
 
 bool IntegrandBase::evalSol (Vector& s, const MxFiniteElement& fe,
                              const Vec3& X, const std::vector<int>& MNPC,
-                             const std::vector<size_t>& elem_sizes) const
+                             const std::vector<size_t>& elem_sizes,
+                             const std::vector<size_t>& basis_sizes) const
 {
   std::vector<int> MNPC1(MNPC.begin(), MNPC.begin()+elem_sizes.front());
   return this->evalSol(s,fe,X,MNPC1);
