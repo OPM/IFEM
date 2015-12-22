@@ -19,19 +19,7 @@
 #include "Field.h"
 #include "Fields.h"
 #include <cstring>
-#include <sstream>
 #include <cstdio>
-
-
-/*!
-  \brief Convenience function writing error message for non-implemented methods.
-*/
-
-static bool Ierror (const char* name)
-{
-  std::cerr <<" *** IntegrandBase::"<< name <<" not implemented."<< std::endl;
-  return false;
-}
 
 
 /*!
@@ -126,7 +114,7 @@ bool IntegrandBase::initElementBou (const std::vector<int>& MNPC,
                                     const std::vector<size_t>& basis_sizes,
                                     LocalIntegral& elmInt)
 {
-  std::vector<int> MNPC1(MNPC.begin(), MNPC.begin()+elem_sizes.front());
+  std::vector<int> MNPC1(MNPC.begin(),MNPC.begin()+elem_sizes.front());
   return this->initElementBou(MNPC1,elmInt);
 }
 
@@ -134,7 +122,8 @@ bool IntegrandBase::initElementBou (const std::vector<int>& MNPC,
 bool IntegrandBase::evalSol (Vector& s, const FiniteElement& fe,
                              const Vec3& X, const std::vector<int>& MNPC) const
 {
-  return Ierror("evalSol(Vector&,const FiniteElement& fe,const Vec3&,...)");
+  std::cerr << __PRETTY_FUNCTION__ <<": Not implemented."<< std::endl;
+  return false;
 }
 
 
@@ -143,26 +132,29 @@ bool IntegrandBase::evalSol (Vector& s, const MxFiniteElement& fe,
                              const std::vector<size_t>& elem_sizes,
                              const std::vector<size_t>& basis_sizes) const
 {
-  std::vector<int> MNPC1(MNPC.begin(), MNPC.begin()+elem_sizes.front());
+  std::vector<int> MNPC1(MNPC.begin(),MNPC.begin()+elem_sizes.front());
   return this->evalSol(s,fe,X,MNPC1);
 }
 
 
-bool IntegrandBase::evalSol (Vector& s, const TensorFunc& asol, const Vec3& X) const
+bool IntegrandBase::evalSol (Vector& s, const TensorFunc& asol,
+                             const Vec3& X) const
 {
   s = Vector(asol(X).ptr(),nsd*nsd);
   return true;
 }
 
 
-bool IntegrandBase::evalSol (Vector& s, const STensorFunc& asol, const Vec3& X) const
+bool IntegrandBase::evalSol (Vector& s, const STensorFunc& asol,
+                             const Vec3& X) const
 {
   s = Vector(asol(X).ptr(),nsd*(nsd+1)/2);
   return true;
 }
 
 
-bool IntegrandBase::evalSol (Vector& s, const VecFunc& asol, const Vec3& X) const
+bool IntegrandBase::evalSol (Vector& s, const VecFunc& asol,
+                             const Vec3& X) const
 {
   s = Vector(asol(X).ptr(),nsd);
   return true;
@@ -200,22 +192,20 @@ Vector* IntegrandBase::getNamedVector (const std::string& name) const
   return it == myFields.end() ? nullptr : it->second;
 }
 
-std::string IntegrandBase::getField1Name(size_t idx, const char* prefix) const 
+
+std::string IntegrandBase::getField1Name (size_t idx, const char* prefix) const 
 {
-  std::stringstream stream;
-  if(prefix)
-    stream << prefix << " ";
-  stream << "primary solution " << idx+1;
-  return stream.str();
+  char name[32];
+  sprintf(name,"primary solution %lu",1+idx);
+  return prefix ? prefix +  std::string(" ") + name : name;
 }
 
-std::string IntegrandBase::getField2Name(size_t idx, const char* prefix) const 
+
+std::string IntegrandBase::getField2Name (size_t idx, const char* prefix) const 
 {
-  std::stringstream stream;
-  if(prefix)
-    stream << prefix << " ";
-  stream << "secondary solution " << idx+1;
-  return stream.str();
+  char name[32];
+  sprintf(name,"secondary solution %lu",1+idx);
+  return prefix ? prefix + std::string(" ") + name : name;
 }
 
 

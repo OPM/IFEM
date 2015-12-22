@@ -41,7 +41,7 @@ class IntegrandBase : public Integrand
 {
 protected:
   //! \brief The default constructor is protected to allow sub-classes only.
-  IntegrandBase() : npv(1), m_mode(SIM::INIT) {}
+  IntegrandBase(unsigned short int n = 0) : nsd(n), npv(1), m_mode(SIM::INIT) {}
 
 public:
   //! \brief Empty destructor.
@@ -87,6 +87,7 @@ public:
   // Element-level initialization interface
   // ======================================
 
+  using Integrand::getLocalIntegral;
   //! \brief Returns a local integral contribution object for the given element.
   //! \param[in] nen Number of nodes on element
   //! \param[in] iEl Global element number (1-based)
@@ -217,19 +218,19 @@ public:
   //! \brief Returns a pointer to an Integrand for nodal force evaluation.
   virtual ForceBase* getForceIntegrand() const { return 0; }
 
-  //! \brief Returns number of spatial dimensions.
-  virtual size_t getNoSpaceDim() const { return nsd; }
+  //! \brief Returns the number of spatial dimensions.
+  size_t getNoSpaceDim() const { return nsd; }
   //! \brief Returns the number of primary/secondary solution field components.
   virtual size_t getNoFields(int = 2) const { return 0; }
 
   //! \brief Returns the name of a primary solution field component.
-  //! \param[in] idx     Identifier integer for multiple solutions
-  //! \param[in] prefix  Field names will start with this string
-  virtual std::string getField1Name(size_t idx, const char* prefix = 0) const ;
+  //! \param[in] idx Field component index
+  //! \param[in] prefix Name prefix for all components
+  virtual std::string getField1Name(size_t idx, const char* prefix = 0) const;
   //! \brief Returns the name of a secondary solution field component.
-  //! \param[in] idx     Identifier integer for multiple solutions
-  //! \param[in] prefix  Field names will start with this string
-  virtual std::string getField2Name(size_t idx, const char* prefix = 0) const ;
+  //! \param[in] idx Field component index
+  //! \param[in] prefix Name prefix for all components
+  virtual std::string getField2Name(size_t idx, const char* prefix = 0) const;
 
   //! \brief Returns the number of solution vectors.
   size_t getNoSolutions() const { return primsol.size(); }
@@ -268,9 +269,9 @@ private:
 
 protected:
   unsigned short int nsd;     //!< Number of spatial dimensions (1,2 or, 3)
-  Vectors            primsol; //!< Primary solution vectors for current patch
   unsigned short int npv;     //!< Number of primary solution variables per node
   SIM::SolutionMode  m_mode;  //!< Current solution mode
+  Vectors            primsol; //!< Primary solution vectors for current patch
 };
 
 
