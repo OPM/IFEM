@@ -22,7 +22,7 @@ void SIMdependency::registerDependency (SIMdependency* sim,
                                         const std::string& name, short int nvc,
                                         const PatchVec& patches, char diffBasis)
 {
-  depFields.push_back(Dependency(sim,name,nvc));
+  this->SIMdependency::registerDependency(sim,name,nvc);
   depFields.back().patches = patches;
   depFields.back().differentBasis = diffBasis;
 }
@@ -31,6 +31,11 @@ void SIMdependency::registerDependency (SIMdependency* sim,
 void SIMdependency::registerDependency (SIMdependency* sim,
                                         const std::string& name, short int nvc)
 {
+#ifdef SP_DEBUG
+  std::cout <<"SIMdependency: Registering \""<< name
+            <<"\" from "<< sim->getName()
+            <<" as dependent field in "<< this->getName() << std::endl;
+#endif
   depFields.push_back(Dependency(sim,name,nvc));
 }
 
@@ -116,16 +121,10 @@ bool SIMdependency::extractPatchDependencies (IntegrandBase* problem,
   for (it = depFields.begin(); it != depFields.end(); ++it)
   {
     Vector* lvec = problem->getNamedVector(it->name);
+    if (!lvec) continue; // Ignore fields without corresponding integrand vector
+
     const Vector* gvec = it->sim->getField(it->name);
-    if (!lvec)
-    {
-      std::cerr <<" *** SIMdependency::extractPatchDependencies: \""
-                << it->name <<"\" is not a registered vector in the integrand"
-                <<" of the simulator \""<< this->getName() <<"\""<< std::endl;
-      //return false;
-      continue; //TODO: Fix all apps for which this gives error
-    }
-    else if (!gvec)
+    if (!gvec)
     {
       std::cerr <<" *** SIMdependency::extractPatchDependencies: \""
                 << it->name <<"\" is not a registered field in the simulator \""
@@ -141,12 +140,14 @@ bool SIMdependency::extractPatchDependencies (IntegrandBase* problem,
     patch->extractNodeVec(*gvec,*lvec,abs(it->components),basis);
     if (it->differentBasis > 0) {
       if (it->components == 1)
-        problem->setNamedField(it->name,Field::create(patch,*lvec,it->differentBasis));
+        problem->setNamedField(it->name,Field::create(patch,*lvec,
+                                                      it->differentBasis));
       else
-        problem->setNamedFields(it->name,Fields::create(patch,*lvec,it->differentBasis));
+        problem->setNamedFields(it->name,Fields::create(patch,*lvec,
+                                                        it->differentBasis));
     }
 #if SP_DEBUG > 2
-    std::cout <<"SIMdependency:  Dependent field \""<< it->name
+    std::cout <<"SIMdependency: Dependent field \""<< it->name
               <<"\" for patch "<< pindx+1 << *lvec;
 #endif
   }
