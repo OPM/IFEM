@@ -116,7 +116,10 @@ void AlgEqSystem::initialize (bool initLHS)
 bool AlgEqSystem::assemble (const LocalIntegral* elmObj, int elmId)
 {
   const ElmMats* elMat = dynamic_cast<const ElmMats*>(elmObj);
-  if (!elMat) return false;
+  if (!elMat)
+    return false; // Logic error, shouldn't happen...
+  else if (elMat->empty())
+    return true; // Silently ignore if no element matrices
 
   size_t i;
   bool status = true;

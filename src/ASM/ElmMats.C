@@ -39,7 +39,7 @@ const Matrix& ElmMats::getNewtonMatrix () const
 const Vector& ElmMats::getRHSVector () const
 {
   if (b.empty())
-    std::cerr <<" *** ElMats::getNewtonMatrix: No element vectors"<< std::endl;
+    std::cerr <<" *** ElMats::getRHSVector: No element vectors"<< std::endl;
 #if SP_DEBUG > 2
   else
     std::cout <<"\nElement right-hand-side vector"<< b.front();

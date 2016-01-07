@@ -47,6 +47,9 @@ public:
   //! \param[in] ndim Number of rows and columns in the matrices/vectors
   void redim(size_t ndim);
 
+  //! \brief Checks if the element matrices are empty.
+  virtual bool empty() const { return A.empty() && b.empty(); }
+
   //! \brief Returns the element-level Newton matrix.
   virtual const Matrix& getNewtonMatrix() const;
 

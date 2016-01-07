@@ -49,10 +49,10 @@ SIMbase::SIMbase (IntegrandBase* itg) : g2l(&myGlb2Loc)
   isRefined = false;
   nsd = 3;
   myProblem = itg;
-  mySol = 0;
-  myEqSys = 0;
-  mySam = 0;
-  mySolParams = 0;
+  mySol = nullptr;
+  myEqSys = nullptr;
+  mySam = nullptr;
+  mySolParams = nullptr;
   nGlPatches = 0;
   nIntGP = nBouGP = 0;
 
@@ -309,17 +309,19 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
     std::string set, type;
     utl::getAttribute(elem,"set",set);
     utl::getAttribute(elem,"type",type,true);
-    int ndir = 0;
-    utl::getAttribute(elem,"direction",ndir);
     int code = this->getUniquePropertyCode(set);
     if (code == 0) utl::getAttribute(elem,"code",code);
+    IFEM::cout <<"\tNeumann code "<< code;
     if (type == "anasol") {
-      IFEM::cout <<"\tNeumann code "<< code <<" (analytic)";
+      IFEM::cout <<" (analytic)";
       this->setPropertyType(code,Property::NEUMANN_ANASOL);
     }
     else if (type == "generic") {
-      IFEM::cout <<"\tNeumann code "<< code <<" (generic)";
+      IFEM::cout <<" (generic)";
       if (elem->FirstChild()) {
+        int ndir = 0;
+        utl::getAttribute(elem,"direction",ndir);
+	if (ndir > 0) IFEM::cout <<" direction "<< ndir;
         this->setPropertyType(code,Property::ROBIN);
         this->setNeumann(elem->FirstChild()->Value(),"expression",ndir,code);
       }
@@ -327,7 +329,9 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
         this->setPropertyType(code,Property::NEUMANN_GENERIC);
     }
     else {
-      IFEM::cout <<"\tNeumann code "<< code <<" direction "<< ndir;
+      int ndir = 0;
+      utl::getAttribute(elem,"direction",ndir);
+      IFEM::cout <<" direction "<< ndir;
       if (!type.empty()) IFEM::cout <<" ("<< type <<")";
       if (elem->FirstChild())
         this->setNeumann(elem->FirstChild()->Value(),type,ndir,code);
@@ -503,9 +507,9 @@ bool SIMbase::parse (const TiXmlElement* elem)
       result &= this->parseGeometryTag(child);
     else if (!strcasecmp(elem->Value(),"boundaryconditions"))
       result &= this->parseBCTag(child);
-    else if (!strcasecmp(elem->Value(),"linearsolver")) {
+    else if (!strcasecmp(elem->Value(),"linearsolver"))
       result &= this->parseLinSolTag(child);
-    } else if (!strcasecmp(elem->Value(),"eigensolver"))
+    else if (!strcasecmp(elem->Value(),"eigensolver"))
       result &= opt.parseEigSolTag(child);
     else if (!strcasecmp(elem->Value(),"postprocessing"))
       result &= this->parseOutputTag(child);
@@ -767,10 +771,9 @@ void SIMbase::readLinSolParams (std::istream& is, int npar)
 
 bool SIMbase::parseLinSolTag (const TiXmlElement* elem)
 {
-  if (!strcasecmp(elem->Value(),"class")) {
+  if (!strcasecmp(elem->Value(),"class"))
     if (elem->FirstChild())
       opt.setLinearSolver(elem->FirstChild()->Value());
-  }
 
   return true;
 }
@@ -862,7 +865,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
     return false;
   }
 
-  if (nProc > 1 && myPatches.size() == 0 && adm.isParallel())
+  if (nProc > 1 && myPatches.empty() && adm.isParallel())
   {
     std::cerr <<" *** SIMbase::preprocess: No partitioning information for "
               << nProc <<" processors found."<< std::endl;
@@ -884,19 +887,19 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   size_t patch;
 
   // Erase all patches that should be ignored in the analysis
-  for (it = ignored.begin(); it != ignored.end(); it++)
+  for (it = ignored.begin(); it != ignored.end(); ++it)
     if ((pch = this->getPatch(*it)))
       pch->clear();
 
   // If material properties are specified for at least one patch, assign the
   // property code 999999 to all patches with no material property code yet
   PatchVec pchWthMat;
-  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); p++)
+  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); ++p)
     if (p->pcode == Property::MATERIAL && (pch = this->getPatch(p->patch)))
       if (!pch->empty()) pchWthMat.push_back(pch);
 
   if (!pchWthMat.empty())
-    for (mit = myModel.begin(), patch = 1; mit != myModel.end(); mit++, patch++)
+    for (mit = myModel.begin(), patch = 1; mit != myModel.end(); ++mit, patch++)
       if (std::find(pchWthMat.begin(),pchWthMat.end(),*mit) == pchWthMat.end())
 	myProps.push_back(Property(Property::MATERIAL,999999,patch,
 				   (*mit)->getNoParamDim()));
@@ -906,7 +909,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
     // Check for duplicated nodes (missing topology)
     int nDupl = 0;
     std::map<Vec3,int> globalNodes;
-    for (mit = myModel.begin(), patch = 1; mit != myModel.end(); mit++, patch++)
+    for (mit = myModel.begin(), patch = 1; mit != myModel.end(); ++mit, patch++)
       if (!(*mit)->empty())
       {
 	IFEM::cout <<"   * Checking Patch "<< patch << std::endl;
@@ -928,13 +931,13 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   typedef std::pair<int,int> Ipair;
   typedef std::vector<Ipair> Ipairs;
   std::map<int,Ipairs> nodeInfo;
-  for (mit = myModel.begin(), patch = 1; mit != myModel.end(); mit++, patch++)
+  for (mit = myModel.begin(), patch = 1; mit != myModel.end(); ++mit, patch++)
     if (!(*mit)->empty())
       for (size_t n = 1; n <= (*mit)->getNoNodes(); n++)
         nodeInfo[(*mit)->getNodeID(n)].push_back(std::make_pair(patch,n));
 
   std::map<int,Ipairs>::const_iterator nit;
-  for (nit = nodeInfo.begin(); nit != nodeInfo.end(); nit++)
+  for (nit = nodeInfo.begin(); nit != nodeInfo.end(); ++nit)
     if (nit->second.size() > 1)
     {
       std::cout <<"\nConnectivity for node "<< nit->first <<":";
@@ -957,13 +960,13 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
     renum = ASMbase::renumberNodes(myModel,myGlb2Loc);
     ngnod = g2l->size();
   }
-  else for (mit = myModel.begin(); mit != myModel.end(); mit++)
+  else for (mit = myModel.begin(); mit != myModel.end(); ++mit)
     renum += (*mit)->renumberNodes(myGlb2Loc,ngnod);
 
   if (renum > 0)
     IFEM::cout <<"\nRenumbered "<< renum <<" nodes."<< std::endl;
 
-  for (mit = myModel.begin(); mit != myModel.end(); mit++)
+  for (mit = myModel.begin(); mit != myModel.end(); ++mit)
     (*mit)->renumberNodes(*g2l);
   ASMs2DC1::renumberNodes(*g2l);
 
@@ -981,7 +984,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   int code, dofs, ierr = 0, iwar = 0;
   PropertyVec::const_iterator q;
   for (unsigned char dim = 0; nprop < myProps.size(); dim++)
-    for (q = myProps.begin(); q != myProps.end(); q++)
+    for (q = myProps.begin(); q != myProps.end(); ++q)
       if (abs(q->ldim) == dim || (dim == 2 && abs(q->ldim) > 3))
       {
         nprop++;
@@ -994,7 +997,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
           break;
 
         case Property::UNDEFINED:
-          iwar++;
+          ++iwar;
 #ifdef SP_DEBUG
           std::cout <<"  ** SIMbase::preprocess: Undefined property set, code="
                     << q->pindx <<" Patch="<< q->patch <<" Item="
@@ -1043,8 +1046,9 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
     if (!(*mit)->empty())
       (*mit)->generateThreadGroups(*myProblem,silence);
 
-  for (q = myProps.begin(); q != myProps.end(); q++)
-    if (q->pcode == Property::NEUMANN || q->pcode == Property::NEUMANN_GENERIC ||
+  for (q = myProps.begin(); q != myProps.end(); ++q)
+    if (q->pcode == Property::NEUMANN ||
+        q->pcode == Property::NEUMANN_GENERIC ||
         q->pcode == Property::ROBIN)
       this->generateThreadGroups(*q,silence);
 
@@ -1151,7 +1155,7 @@ bool SIMbase::createPropertySet (const std::string& setName, int pc)
 
   // Create the actual property objects that are used during simulation
   TopEntity::const_iterator top;
-  for (top = tit->second.begin(); top != tit->second.end(); top++)
+  for (top = tit->second.begin(); top != tit->second.end(); ++top)
     myProps.push_back(Property(Property::UNDEFINED,pc,
                                top->patch,top->idim,top->item));
 
@@ -1167,10 +1171,11 @@ bool SIMbase::createPropertySet (const std::string& setName, int pc)
   direction onto the spline basis, to obtain directions at control points.
 */
 
-size_t SIMbase::setPropertyType (int code, Property::Type ptype, int pindex, char basis)
+size_t SIMbase::setPropertyType (int code, Property::Type ptype,
+                                 int pindex, char basis)
 {
   size_t nDefined = 0;
-  for (PropertyVec::iterator p = myProps.begin(); p != myProps.end(); p++)
+  for (PropertyVec::iterator p = myProps.begin(); p != myProps.end(); ++p)
     if (abs(p->pindx) == abs(code) && p->pcode == Property::UNDEFINED)
       if (p->patch > 0 && p->patch <= myModel.size())
       {
@@ -1185,7 +1190,7 @@ size_t SIMbase::setPropertyType (int code, Property::Type ptype, int pindex, cha
         {
           // Let all analytical boundary condition properties receive the same
           // property code, because there can only be one analytical solution
-          for (PropertyVec::iterator q = myProps.begin(); q != p; q++)
+          for (PropertyVec::iterator q = myProps.begin(); q != p; ++q)
             if (ptype == q->pcode)
             {
               p->pindx = abs(q->pindx);
@@ -1265,7 +1270,7 @@ bool SIMbase::setNeumann (const std::string& prop, const std::string& type,
 
 VecFunc* SIMbase::getVecFunc (size_t patch, Property::Type ptype) const
 {
-  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); p++)
+  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); ++p)
     if (p->patch == patch)
       if (p->pcode == ptype || ptype == Property::UNDEFINED)
       {
@@ -1419,7 +1424,7 @@ void SIMbase::printProblem () const
 
 #if SP_DEBUG > 1
   std::cout <<"\nProperty mapping:";
-  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); p++)
+  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); ++p)
     std::cout <<"\n"<< p->pcode <<" "<< p->pindx <<" "<< p->patch
               <<" "<< (int)p->lindx <<" "<< (int)p->ldim;
   std::cout << std::endl;
@@ -1476,12 +1481,12 @@ size_t SIMbase::getNoRHS () const
 }
 
 
-char SIMbase::getNoBasis() const
+char SIMbase::getNoBasis () const
 {
-  char result = getPatch(1)->getNoBasis();
+  size_t result = myModel.empty() ? 0 : myModel.front()->getNoBasis();
 #ifdef SP_DEBUG
-  for (auto& p : getFEModel())
-    assert(p->getNoBasis() == (unsigned)result);
+  for (size_t i = 1; i < myModel.size(); i++)
+    assert(myModel[i]->getNoBasis() == result);
 #endif
 
   return result;
@@ -1562,7 +1567,7 @@ void SIMbase::getBoundaryNodes (int pcode, IntVec& glbNodes, Vec3Vec* XYZ) const
 
   ASMbase* pch;
   size_t i, node, last = 0;
-  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); p++)
+  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); ++p)
     if (abs(p->pindx) == pcode && (pch = this->getPatch(p->patch)))
       switch (pch->getNoParamDim() - abs(p->ldim)) {
       case 1: // The boundary is of one dimension lower than the patch
@@ -1619,18 +1624,22 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
   PROFILE1("Element assembly");
 
   bool ok = true;
-  myEqSys->initialize(newLHSmatrix);
+  bool isAssembling = (myProblem->getMode() != SIM::INIT &&
+                       myProblem->getMode() != SIM::RECOVERY);
+  if (isAssembling)
+    myEqSys->initialize(newLHSmatrix);
 
   // Loop over the integrands
   IntegrandMap::const_iterator it;
-  for (it = myInts.begin(); it != myInts.end() && ok; it++)
+  for (it = myInts.begin(); it != myInts.end() && ok; ++it)
   {
     if (msgLevel > 1)
       IFEM::cout <<"\n\nProcessing integrand associated with code "<< it->first
                 << std::endl;
 
     GlobalIntegral& sysQ = it->second->getGlobalInt(myEqSys);
-    if (&sysQ != myEqSys) sysQ.initialize(newLHSmatrix);
+    if (&sysQ != myEqSys && isAssembling)
+      sysQ.initialize(newLHSmatrix);
 
     if (!prevSol.empty())
       it->second->initIntegration(time,prevSol.front(),poorConvg);
@@ -1642,7 +1651,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
     PropertyVec::const_iterator p, p2;
     if (it->second->hasInteriorTerms())
     {
-      for (p = myProps.begin(); p != myProps.end() && ok; p++)
+      for (p = myProps.begin(); p != myProps.end() && ok; ++p)
         if (p->pcode == Property::MATERIAL &&
             (it->first == 0 || it->first == p->pindx))
           if (!(pch = this->getPatch(p->patch)))
@@ -1682,7 +1691,7 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
     // Assemble contributions from the Neumann boundary conditions
     // and other boundary integrals (Robin properties, contact, etc.)
     if (it->second->hasBoundaryTerms() && myEqSys->getVector())
-      for (p = myProps.begin(); p != myProps.end() && ok; p++)
+      for (p = myProps.begin(); p != myProps.end() && ok; ++p)
         if ((p->pcode == Property::NEUMANN && it->first == 0) ||
             ((p->pcode == Property::NEUMANN_GENERIC ||
               p->pcode == Property::ROBIN) && it->first == p->pindx))
@@ -1736,13 +1745,16 @@ bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
         }
 
     if (ok) ok = this->assembleDiscreteTerms(it->second,time);
-    if (ok && &sysQ != myEqSys) ok = sysQ.finalize(newLHSmatrix);
+    if (ok && &sysQ != myEqSys && isAssembling)
+      ok = sysQ.finalize(newLHSmatrix);
   }
-  if (ok && myEqSys->finalize(newLHSmatrix))
-    return true;
+  if (ok && isAssembling)
+    ok = myEqSys->finalize(newLHSmatrix);
 
-  std::cerr <<" *** SIMbase::assembleSystem: Failure.\n"<< std::endl;
-  return false;
+  if (!ok)
+    std::cerr <<" *** SIMbase::assembleSystem: Failure.\n"<< std::endl;
+
+  return ok;
 }
 
 
@@ -1782,9 +1794,9 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
       IFEM::cout <<"\nDumping system matrix to file "<< it->fname << std::endl;
       std::ofstream os(it->fname.c_str());
       os << std::setprecision(17);
-      SystemMatrix* M=myEqSys->getMatrix(0);
+      SystemMatrix* M = myEqSys->getMatrix(0);
       char matName[] = {'A'};
-      for(int i=0; M;  M=myEqSys->getMatrix(++i), ++matName[0])
+      for (int i = 0; M; M = myEqSys->getMatrix(++i), ++matName[0])
         M->dump(os,it->format,matName); // label matrices as A,B,C,...
     }
 
@@ -1794,9 +1806,9 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
       IFEM::cout <<"\nDumping RHS vector to file "<< it->fname << std::endl;
       std::ofstream os(it->fname.c_str());
       os << std::setprecision(17);
-      SystemVector* c=myEqSys->getVector(0);
+      SystemVector* c = myEqSys->getVector(0);
       char vecName[] = {'b'};
-      for(int i=0; c;  c=myEqSys->getVector(++i), ++vecName[0])
+      for (int i = 0; c; c = myEqSys->getVector(++i), ++vecName[0])
         c->dump(os,it->format,vecName); // label vectors as b,c,d,...
     }
 
@@ -1954,7 +1966,7 @@ void SIMbase::getWorstDofs (const Vector& u, const Vector& r,
 
   // Pick the nWorst highest energies from the back of the map
   std::multimap<double,size_t>::reverse_iterator rit = energy.rbegin();
-  for (i = 0; i < nWorst && rit != energy.rend(); i++, rit++)
+  for (i = 0; i < nWorst && rit != energy.rend(); i++, ++rit)
     if (rit->first > eps)
     {
       data[0] = rit->first;
@@ -2082,8 +2094,10 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 {
   PROFILE1("Norm integration");
 
+  if (!mySam) return true; // Silently ignore when uninitialized system
+
   NormBase* norm = myProblem->getNormIntegrand(mySol);
-  if (!norm || !this->mySam)
+  if (!norm)
   {
 #ifdef SP_DEBUG
     std::cerr <<"  ** SIMbase::solutionNorms: No integrand."<< std::endl;
@@ -2132,7 +2146,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   size_t k, lp = 0;
   ASMbase* pch = nullptr;
   PropertyVec::const_iterator p;
-  for (p = myProps.begin(); p != myProps.end() && ok; p++)
+  for (p = myProps.begin(); p != myProps.end() && ok; ++p)
     if (p->pcode == Property::MATERIAL)
       if (!(pch = this->getPatch(p->patch)))
 	ok = false;
@@ -2162,7 +2176,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
     }
 
   if (norm->hasBoundaryTerms())
-    for (p = myProps.begin(); p != myProps.end() && ok; p++)
+    for (p = myProps.begin(); p != myProps.end() && ok; ++p)
       if (p->pcode == Property::NEUMANN)
 	if (!(pch = this->getPatch(p->patch)))
 	  ok = false;
@@ -2214,7 +2228,7 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
 
 double SIMbase::externalEnergy (const Vectors& psol) const
 {
-  if (!myEqSys)
+  if (!myEqSys || !mySam)
     return 0.0;
 
   const Vector* reactionForces = myEqSys->getReactions();
@@ -2247,7 +2261,7 @@ double SIMbase::externalEnergy (const Vectors& psol) const
 bool SIMbase::getCurrentReactions (RealArray& RF, const Vector& psol) const
 {
   const Vector* reactionForces = myEqSys->getReactions();
-  if (!reactionForces) return false;
+  if (!reactionForces || !mySam) return false;
 
   RF.resize(1+nsd);
   RF.front() = 2.0*mySam->normReact(psol,*reactionForces);
@@ -2534,10 +2548,9 @@ bool SIMbase::refine (const RealArray& elementError,
         isRefined = true;
       else
         return false;
-      if (sol && !sol->empty()) {
+      if (sol && !sol->empty())
         for (size_t j = 0; j < sol->size(); ++j)
           pch->injectNodeVec(lvec[j], (*sol)[j]);
-      }
     }
 
   return isRefined;
@@ -2546,7 +2559,7 @@ bool SIMbase::refine (const RealArray& elementError,
 
 bool SIMbase::setPatchMaterial (size_t patch)
 {
-  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); p++)
+  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); ++p)
     if (p->pcode == Property::MATERIAL && p->patch == patch)
       return this->initMaterial(p->pindx);
 
