@@ -146,8 +146,9 @@
 
   \uncover<2->{
    \put( 20,150){\color{red}\fbox{\small ASMstruct}}
+   \put( 47,161){\vector(2,1){50}}}
+  \uncover<2-8>{
    \put(120,150){\color{green}\fbox{\small GeomObject}}
-   \put( 47,161){\vector(2,1){50}}
    \dashline[50]{2}(72,154)(120,154)\put(115,154){\vector(1,0){5}}}
 
   \uncover<3->{
@@ -165,7 +166,7 @@
    \dashline[50]{2}(62,110)(110,112)\put(105,112){\vector(1,0){5}}}
 
   \uncover<5->{\put(20,100){\colorbox{white}{\color{red}\fbox{\small ASMs3D}}}}
-  \uncover<5-9>{
+  \uncover<5-8>{
    \put(110,106){\color{green}\fbox{\small SplineVolume}}
    \put(140,118){\vector(1,3){8}}
    \dashline[50]{2}(67,105)(110,110)\put(105,110){\vector(1,0){5}}}
@@ -173,7 +174,7 @@
   \uncover<6->{
    \put( 43,71){\vector(0,1){25}}
    \put( 15,60){\color{red}\fbox{\small ASMs3Dmx}}}
-  \uncover<6-9>{\dashline[50]{2}(72,65)(133,98)\put(130,95){\vector(1,1){6}}}
+  \uncover<6-8>{\dashline[50]{2}(72,65)(133,98)\put(130,95){\vector(1,1){6}}}
 
   \uncover<7->{
    \put(130,60){\vector(-2,1){72}}
@@ -185,34 +186,32 @@
 
   \uncover<9->{
    \put(210,150){\color{red}\fbox{\small ASMunstruct}}
+   \put(130,150){\color{green}\fbox{\small LRSpline}}
    \put(235,161){\vector(-4,1){100}}
-   \dashline[50]{2}(210,153)(178,153)\put(183,153){\vector(-1,0){5}}}
+   \dashline[50]{2}(210,153)(173,153)\put(178,153){\vector(-1,0){5}}}
 
   \uncover<10->{
    \put(250,121){\vector(-1,3){8}}
    \put(150,121){\vector(0,1){23}}
-   \put(222,110){\color{red}\fbox{\small ASMu2DTspline}}}
+   \put(222,110){\color{red}\fbox{\small ASMu2D}}}
   \uncover<10-10>{
-   \dashline[50]{2}(220,113)(195,113)\put(194,113){\vector(-1,0){5}}
-   \put(120,110){\color{green}\fbox{\small TsplineSurface}}}
+   \dashline[50]{2}(220,113)(200,113)\put(199,113){\vector(-1,0){5}}
+   \put(120,110){\color{green}\fbox{\small LRSplineSurface}}}
 
   \uncover<11->{
-   \put(212,105){\colorbox{white}{\color{red}\fbox{\small ASMu2DLRspline}}}}
-  \uncover<11-11>{
-   \put(110,108){\color{green}\fbox{\small LRsplineSurface}}
-   \dashline[50]{2}(212,109)(185,112)\put(188,111){\vector(-1,0){5}}}
+   \put(212,105){\colorbox{white}{\color{red}\fbox{\small ASMu3D}}}
+   \put(110,108){\color{green}\fbox{\small LRSplineVolume}}
+   \dashline[50]{2}(214,109)(188,111)\put(190,111){\vector(-1,0){5}}}
 
   \uncover<12->{
-   \put(207,100){\colorbox{white}{\color{red}\fbox{\small ASMu3DLRspline}}}
-   \put(110,108){\color{green}\fbox{\small LRsplineVolume}}
-   \dashline[50]{2}(207,104)(186,111)\put(188,111){\vector(-1,0){5}}}
-
-  \uncover<13->{
-   \put(243,70){\vector(0,1){25}}
-   \put(200,60){\color{red}\fbox{\small ASMu3DmxLRspline}}}
+   \put(238,70){\vector(0,1){31}}
+   \put(210,60){\color{red}\fbox{\small ASMu3Dmx}}}
 
    \put(260,10){\color{red}\scriptsize{\sl IFEM} classes}
-   \put(260, 0){\color{green}\scriptsize{\sl GoTools} classes}
+   \uncover<2-8>{
+    \put(260,0){\color{green}\scriptsize{\sl GoTools} classes}}
+   \uncover<9->{
+    \put(260,0){\color{green}\scriptsize{\sl LRSpline} classes}}
  \end{picture}
 
  \uncover<14->{\small
@@ -332,7 +331,7 @@ class Integrand
   //!
   //! \details The default implementation forwards to the stationary version.
   //! Reimplement this method for time-dependent or non-linear problems.
-  virtual bool evalInt(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalInt(LocalIntegral& elmInt, const FiniteElement& fe,
                        const TimeDomain& time, const Vec3& X) const;
 
 
@@ -345,7 +344,7 @@ class Integrand
   //!
   //! \details The default implementation forwards to the stationary version.
   //! Reimplement this method for time-dependent or non-linear problems.
-  virtual bool evalBou(LocalIntegral*& elmInt, const FiniteElement& fe,
+  virtual bool evalBou(LocalIntegral& elmInt, const FiniteElement& fe,
                        const TimeDomain& time,
                        const Vec3& X, const Vec3& normal) const;
 
@@ -501,6 +500,8 @@ public:
 
   \pause
   \item Navier--Stokes CFD solvers (not part of the {\sl ICADA\/} project)
+  \pause
+  \item Many others (coupled simulators, etc.)
  \end{itemize}
 }
 
@@ -575,9 +576,9 @@ public:
  \frametitle{Tutorial: Poisson equation}
 
  \begin{columns}[c]
-  \column{0.6\textwidth}
+  \column{0.58\textwidth}
   \tiny\begin{verbatim}
-class Poisson : public Integrand
+class Poisson : public IntegrandBase
 {
 protected:
   // Physical properties
@@ -585,14 +586,15 @@ protected:
   RealFunc* fluxFld; //!< Boundary normal flux field
   RealFunc* heatSrc; //!< Interior heat source field
   \end{verbatim}
-  \column{0.4\textwidth} \small
-  Define the class {\tt Poisson} as an {\tt Integrand} subclass,
-  containing data and methods that are specific to the 2D Poisson problem
+  \column{0.42\textwidth} \small
+  Define the class {\tt Poisson} as an {\tt IntegrandBase} subclass
+  {\scriptsize(the class {\tt IntegrandBase} inherits {\tt Integrand})},
+  containing data and methods specific to the 2D Poisson problem
   (assuming constant conductivity).
  \end{columns}
  \pause
  \begin{columns}[c]
-  \column{0.6\textwidth}
+  \column{0.58\textwidth}
   \tiny\begin{verbatim}
 public:
   Poisson() : kappa(1.0), fluxFld(0), heatSrc(0)
@@ -601,19 +603,19 @@ public:
   }
   virtual ~Poisson() {}
   \end{verbatim}
-  \column{0.4\textwidth}\small
+  \column{0.42\textwidth}\small
   Class constructor and destructor.
   The constructor {\tt Poisson()} initializes the data members.
  \end{columns}
  \pause
  \begin{columns}[c]
-  \column{0.6\textwidth}
+  \column{0.58\textwidth}
   \tiny\begin{verbatim}
   void setMaterial(double K) { kappa = K; }
   void setFlux(RealFunc* ff) { fluxFld = ff; }
   void setSource(RealFunc* src) { heatSrc = src; }
   \end{verbatim}
-  \column{0.4\textwidth} \small
+  \column{0.42\textwidth} \small
   Initialization of physical properties.
  \end{columns}
  \pause
@@ -634,16 +636,15 @@ public:
  \begin{columns}[c]
   \column{0.6\textwidth}
   \tiny\begin{verbatim}
-  virtual bool evalInt(LocalIntegral*& elmInt,
+  virtual bool evalInt(LocalIntegral& elmInt,
                        const FiniteElement& fe,
                        const Vec3& X) const;
-  virtual bool evalBou(LocalIntegral*& elmInt,
+  virtual bool evalBou(LocalIntegral& elmInt,
                        const FiniteElement& fe,
                        const Vec3& X,
                        const Vec3& normal) const;
   virtual bool evalSol(Vector& s,
-                       const Vector& N,
-                       const Matrix& dNdX,
+                       const FiniteElement& fe,
                        const Vec3& X,
                        const std::vector<int>& MNPC) const;
   virtual bool evalSol(Vector& s,
@@ -683,17 +684,11 @@ public:
 LocalIntegral* Poisson::getLocalIntegral (size_t nen, size_t,
                                           bool neumann) const
 {
-  ElmMats* result = new ElmMats;
+  ElmMats* result = new ElmMats();
   result->rhsOnly = neumann;
   result->withLHS = !neumann;
   result->resize(neumann ? 0 : 1, 1);
-
-  if (!result->A.empty())
-    result->A.front().resize(nen,nen);
-
-  if (!result->b.empty())
-    result->b.front().resize(nen);
-
+  result->redim(nen);
   return result;
 }
   \end{verbatim}
@@ -734,7 +729,7 @@ bool Poisson::evalInt (LocalIntegral& elmInt,
   return true;
 }
 
-bool Poisson::evalBou (LocalIntegral*& elmInt,
+bool Poisson::evalBou (LocalIntegral& elmInt,
                        const FiniteElement& fe,
                        const Vec3& X, const Vec3& normal) const
 {
@@ -774,8 +769,8 @@ bool Poisson::evalBou (LocalIntegral*& elmInt,
  \begin{columns}[c]
   \column{0.55\textwidth}
   \tiny\begin{verbatim}
-bool Poisson::evalSol (Vector& q, const Vector&,
-                       const Matrix& dNdX, const Vec3& X,
+bool Poisson::evalSol (Vector& q,
+                       const FiniteElement& fe, const Vec3& X,
                        const std::vector<int>& MNPC) const
 {
   if (primsol.front().empty()) return false;
@@ -788,7 +783,7 @@ bool Poisson::evalSol (Vector& q, const Vector&,
 
   // Evaluate the heat flux vector
   Matrix CB;
-  CB.multiply(C,dNdX,false,true).multiply(eV,q);
+  CB.multiply(C,fe.dNdX,false,true).multiply(eV,q);
   q *= -1.0;
 
   return true;
@@ -830,7 +825,7 @@ public:
 
   virtual bool hasBoundaryTerms() const { return true; }
 
-  virtual bool evalInt(LocalIntegral*& elmInt,
+  virtual bool evalInt(LocalIntegral& elmInt,
                        const FiniteElement& fe,
                        const Vec3& X) const;
   virtual bool evalBou(LocalIntegral& elmInt,
@@ -936,7 +931,7 @@ bool PoissonNorm::evalBou (LocalIntegral& elmInt,
  \frametitle{Tutorial: Poisson equation}
 
  \begin{columns}[c]
-  \column{0.6\textwidth}
+  \column{0.55\textwidth}
   \tiny\begin{verbatim}
 class SIMPoisson2D : public SIM2D
 {
@@ -944,14 +939,11 @@ class SIMPoisson2D : public SIM2D
   RealArray mVec; //!< Material data
 
 public:
-  SIMPoisson2D() : SIM2D(1), prob(2)
-  { myProblem = &prob; }
-
-  virtual ~SIMPoisson2D()
-  { myProblem = NULL; }
+  SIMPoisson2D() : SIM2D(1) { myProblem = &prob; }
+  virtual ~SIMPoisson2D() { myProblem = 0; }
 
 protected:
-  virtual bool parse(char* keyWord, std::istream& is);
+  virtual bool parse(const TiXmlElement* elem);
   virtual bool initMaterial(size_t propInd);
   virtual bool initNeumann(size_t propInd);
 };
@@ -972,8 +964,19 @@ bool SIMPoisson2D::initNeumann (size_t propInd)
   return true;
 }
   \end{verbatim}
-  \column{0.45\textwidth}\small
-  Simulation driver class
+  \column{0.5\textwidth}\small
+  Simulation driver for 2D problems.\\[5mm]
+
+  \pause
+  Alternative, use templates to support multiple dimensions:
+  \tiny\begin{verbatim}
+  template<class Dim>
+  class SIMPoisson : public Dim
+  {
+   ...
+  };
+  \end{verbatim}
+  \small where {\tt Dim} can be either {\tt SIM1D}, {\tt SIM2D} or {\tt SIM3D}.
  \end{columns}
 \end{frame}
 
@@ -990,14 +993,11 @@ bool SIMPoisson2D::parse (const TiXmlElement* elem)
   for (; child; child = child->NextSiblingElement())
 
     if (!strcasecmp(child->Value(),"isotropic")) {
-      int code = 0;
+      int code = this->parseMaterialSet(child,mVec.size());
       double kappa = 1000.0;
-      utl::getAttribute(child,"code",code);
       utl::getAttribute(child,"kappa",kappa);
       if (code == 0)
         prob.setMaterial(kappa);
-      else
-        this->setPropertyType(code,Property::MATERIAL,mVec.size());
       mVec.push_back(kappa);
     }
  \end{verbatim}
@@ -1050,7 +1050,7 @@ int main (int argc, char** argv)
   // (Lots of initialisations skipped here...)
 
   // Read in model definitions and establish the FE data structures
-  SIMbase* model = new SIMPoisson2D();
+  SIMbase* model = new SIMPoisson2D(); // (or new SIMPoisson<SIM2D>;)
   if (!model->read(infile))
     return 1;
   if (!model->preprocess(ignoredPatches,fixDup))
@@ -1136,6 +1136,13 @@ int main (int argc, char** argv)
 0.0 2.0 0.0
 2.0 2.0 0.0
   \end{verbatim}
+  \pause
+  \small This is equivalent to both of the following:
+  \tiny\begin{verbatim}
+<geometry scale="2.0"/>
+<geometry Lx="2.0" Ly="2.0"/>
+  \end{verbatim}
+  \small and then {\scriptsize\tt <patchfile>} is not needed.
  \end{columns}
 \end{frame}
 
