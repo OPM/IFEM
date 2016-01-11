@@ -85,6 +85,10 @@ public:
   */
   static Go::BsplineBasis getBezierBasis (int p);
 
+  //! \brief Obtain functions having support on a list of elements
+  //! \param[in] elements The elements to return support for.
+  std::vector<int> getFunctionsForElements(const std::vector<int>& elements);
+
 protected:
   LR::LRSpline* geo; //!< Pointer to the actual spline geometry object
 

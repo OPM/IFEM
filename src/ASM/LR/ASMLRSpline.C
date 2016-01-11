@@ -15,6 +15,7 @@
 #include "Profiler.h"
 #include "LRSpline/LRSplineSurface.h"
 #include <fstream>
+#include <set>
 
 
 ASMunstruct::~ASMunstruct ()
@@ -297,4 +298,19 @@ Go::BsplineBasis ASMunstruct::getBezierBasis (int p)
 	std::fill(knot,   knot+p,  -1.0);
 	std::fill(knot+p, knot+2*p, 1.0);
 	return Go::BsplineBasis(p,p,knot);
+}
+
+
+std::vector<int> ASMunstruct::getFunctionsForElements(const std::vector<int>& elements)
+{
+  geo->generateIDs();
+  std::set<int> functions; // to get unique function IDs
+  for (const int iel : elements) {
+    for (LR::Basisfunction* b : (*(geo->elementBegin()+iel))->support())
+      functions.insert(b->getId());
+  }
+  std::vector<int> result(functions.size());
+  std::copy(functions.begin(), functions.end(), result.begin());
+
+  return result;
 }
