@@ -446,6 +446,7 @@ bool ASMu2D::generateFEMTopology ()
 	bezier_v = getBezierBasis(p2);
 
 	nnod = gNod;
+        nel = nElements;
 	return true;
 }
 
