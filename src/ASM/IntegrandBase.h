@@ -331,7 +331,9 @@ public:
   virtual void addBoundaryTerms(Vectors&, double) const {}
 
   //! \brief Returns the number of norm groups or size of a specified group.
-  virtual size_t getNoFields(int group = 0) const { return 0; }
+  //! \details If \a group is zero, the number of norm groups is returned.
+  //! If \a group is greater than zero, the size of that groups is returned.
+  virtual size_t getNoFields(int group = 0) const;
 
   //! \brief Returns the name of a norm quantity.
   //! \param[in] i The norm group

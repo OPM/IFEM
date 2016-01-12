@@ -254,6 +254,19 @@ LocalIntegral* NormBase::getLocalIntegral (size_t, size_t iEl, bool) const
 }
 
 
+size_t NormBase::getNoFields (int group) const
+{
+  if (group > 0) return 0;
+
+  // Calculate the number of norm groups
+  size_t nf = 1;
+  for (size_t i = 0; i < prjsol.size(); i++)
+    if (!prjsol.empty()) nf++;
+
+  return nf;
+}
+
+
 bool NormBase::initElement (const std::vector<int>& MNPC,
                             const FiniteElement& fe,
                             const Vec3& Xc, size_t nPt,
