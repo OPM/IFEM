@@ -428,6 +428,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
   PROFILE2("ASMs3Dmx::integrate(I)");
 
+  bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
+
   // Get Gaussian quadrature points and weights
   const double* xg = GaussQuadrature::getCoord(nGauss);
   const double* wg = GaussQuadrature::getWeight(nGauss);
@@ -492,6 +494,9 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
           ok = false;
           break;
         }
+
+        if (useElmVtx)
+          this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,false);
@@ -570,6 +575,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
   if (m_basis.empty()) return false;
 
   PROFILE2("ASMs3Dmx::integrate(B)");
+
+  bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
 
   std::map<char,ThreadGroups>::const_iterator tit;
   if ((tit = threadGroupsFace.find(lIndex)) == threadGroupsFace.end())
@@ -670,6 +677,9 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
           ok = false;
           break;
         }
+
+        if (useElmVtx)
+          this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
 
 	// Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,true);
@@ -843,7 +853,7 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
         Xtmp.multiply(splinex[b][i].basisValues,Ztmp);
         Ytmp.insert(Ytmp.end(),Ztmp.begin(),Ztmp.end());
       }
-      comp += nc[b];
+      comp += nc[b]*nb[b];
     }
     sField.fillColumn(1+i,Ytmp);
   }
@@ -896,19 +906,25 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
     // Fetch indices of the non-zero basis functions at this point
     std::vector<IntVec> ip(m_basis.size());
     IntVec ipa;
+    size_t ofs = 0;
     for (size_t b = 0; b < m_basis.size(); ++b) {
       scatterInd(m_basis[b]->numCoefs(0),m_basis[b]->numCoefs(1),m_basis[b]->numCoefs(2),
                  m_basis[b]->order(0),m_basis[b]->order(1),m_basis[b]->order(2),
                  splinex[b][i].left_idx,ip[b]);
+
+      // Fetch associated control point coordinates
+      if (b == (size_t)geoBasis-1)
+        utl::gather(ip[geoBasis-1], 3, Xnod, Xtmp);
+
+      for (auto& it : ip[b])
+        it += ofs;
       ipa.insert(ipa.end(), ip[b].begin(), ip[b].end());
+      ofs += nb[b];
     }
 
     fe.u = splinex[0][i].param[0];
     fe.v = splinex[0][i].param[1];
     fe.w = splinex[0][i].param[2];
-
-    // Fetch associated control point coordinates
-    utl::gather(ip[geoBasis-1], 3, Xnod, Xtmp);
 
     // Fetch basis function derivatives at current integration point
     for (size_t b = 0; b < m_basis.size(); ++b)

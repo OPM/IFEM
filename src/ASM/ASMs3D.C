@@ -1297,7 +1297,7 @@ bool ASMs3D::updateDirichlet (const std::map<int,RealFunc*>& func,
   for (size_t i = 0; i < dirich.size(); i++)
   {
     // Project the function onto the spline surface basis
-    Go::SplineSurface* dsurf = 0;
+    Go::SplineSurface* dsurf = nullptr;
     if ((fit = func.find(dirich[i].code)) != func.end())
       dsurf = SplineUtils::project(dirich[i].surf,*fit->second,time);
     else if ((vfit = vfunc.find(dirich[i].code)) != vfunc.end())

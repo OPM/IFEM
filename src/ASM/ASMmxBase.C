@@ -295,6 +295,7 @@ ASMmxBase::VolumeVec ASMmxBase::establishBases(Go::SplineVolume* svol,
                                                                    ug,vg,wg,XYZ,ndim,
                                                                    false,XYZ));
     }
+    result[1].reset(new Go::SplineVolume(*svol));
   }
   else if (type == REDUCED_CONT_RAISE_BASIS1 || type == REDUCED_CONT_RAISE_BASIS2)
   {
@@ -302,8 +303,56 @@ ASMmxBase::VolumeVec ASMmxBase::establishBases(Go::SplineVolume* svol,
     // but only C^p-2 continuous
     result[0].reset(new Go::SplineVolume(*svol));
     result[0]->raiseOrder(1,1,1);
+    result[1].reset(new Go::SplineVolume(*svol));
   }
-  result[1].reset(new Go::SplineVolume(*svol));
+  else if (ASMmxBase::Type == ASMmxBase::DIV_COMPATIBLE)
+  {
+    result.resize(4);
+
+    // basis1 should be one degree higher than basis2 and C^p-1 continuous
+    int ndim = svol->dimension();
+    Go::BsplineBasis a1 = svol->basis(0);
+    Go::BsplineBasis a2 = svol->basis(1);
+    Go::BsplineBasis a3 = svol->basis(2);
+    Go::BsplineBasis b1 = svol->basis(0).extendedBasis(svol->order(0)+1);
+    Go::BsplineBasis b2 = svol->basis(1).extendedBasis(svol->order(1)+1);
+    Go::BsplineBasis b3 = svol->basis(2).extendedBasis(svol->order(2)+1);
+
+    // Compute parameter values of the Greville points
+    size_t i;
+    RealArray u0(a1.numCoefs()), v0(a2.numCoefs()), w0(a3.numCoefs());
+    for (i = 0; i < u0.size(); i++)
+      u0[i] = a1.grevilleParameter(i);
+    for (i = 0; i < v0.size(); i++)
+      v0[i] = a2.grevilleParameter(i);
+    for (i = 0; i < w0.size(); i++)
+      w0[i] = a3.grevilleParameter(i);
+    RealArray ug(b1.numCoefs()), vg(b2.numCoefs()), wg(b3.numCoefs());
+    for (i = 0; i < ug.size(); i++)
+      ug[i] = b1.grevilleParameter(i);
+    for (i = 0; i < vg.size(); i++)
+      vg[i] = b2.grevilleParameter(i);
+    for (i = 0; i < wg.size(); i++)
+      wg[i] = b3.grevilleParameter(i);
+
+    // Evaluate the spline surface at all points
+    // Project the coordinates onto the new basis (the 2nd XYZ is dummy here)
+    RealArray XYZ0(ndim*ug.size()*v0.size()*w0.size()), XYZ1(ndim*u0.size()*vg.size()*w0.size()), XYZ2(ndim*u0.size()*v0.size()*wg.size());
+    svol->gridEvaluator(ug,v0,w0,XYZ0);
+    svol->gridEvaluator(u0,vg,w0,XYZ1);
+    svol->gridEvaluator(u0,v0,wg,XYZ2);
+    result[0].reset(Go::VolumeInterpolator::regularInterpolation(b1,a2,a3,
+                                                                 ug,v0,w0,XYZ0,ndim,
+                                                                 false,XYZ0));
+    result[1].reset(Go::VolumeInterpolator::regularInterpolation(a1,b2,a3,
+                                                                 u0,vg,w0,XYZ1,ndim,
+                                                                 false,XYZ1));
+    result[2].reset(Go::VolumeInterpolator::regularInterpolation(a1,a2,b3,
+                                                                 u0,v0,wg,XYZ2,ndim,
+                                                                 false,XYZ2));
+    result[3].reset(new Go::SplineVolume(*svol));
+    geoBasis = 4;
+  }
 
   if (type == FULL_CONT_RAISE_BASIS2 || type == REDUCED_CONT_RAISE_BASIS2)
     std::swap(result[0], result[1]);
