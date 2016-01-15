@@ -144,16 +144,6 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
 }
 
 
-void NonLinSIM::getTolerances (double& atol, double& rtol,
-                               double& dtol, int& mxit) const
-{
-  atol = aTol;
-  rtol = rTol;
-  dtol = divgLim;
-  mxit = maxit;
-}
-
-
 void NonLinSIM::init (size_t nSol, const RealArray& value)
 {
   this->MultiStepSIM::initSol(nSol);
@@ -290,19 +280,32 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
 }
 
 
-bool NonLinSIM::solveLinearizedSystem (const TimeStep& param, double& norm)
+SIM::ConvStatus NonLinSIM::solveIteration (TimeStep& param)
 {
+  if (!model.setMode(SIM::DYNAMIC))
+    return SIM::FAILURE;
+
   if (!model.assembleSystem(param.time,solution))
-    return false;
+    return SIM::FAILURE;
 
-  Vector inc;
-  model.extractLoadVec(inc);
-  norm = model.solutionNorms(inc);
-  if (!model.solveSystem(inc))
-    return false;
+  if (!model.extractLoadVec(residual))
+    return SIM::FAILURE;
 
-  solution.front().add(inc);
-  return true;
+  if (!model.solveSystem(linsol,msgLevel-1))
+    return SIM::FAILURE;
+
+  if (!this->lineSearch(param))
+    return SIM::FAILURE;
+
+  if (!this->updateConfiguration(param))
+    return SIM::FAILURE;
+
+  SIM::ConvStatus result = checkConvergence(param);
+  if (result == SIM::CONVERGED)
+    if (!this->solutionNorms(param.time))
+      return SIM::FAILURE;
+
+  return result;
 }
 
 

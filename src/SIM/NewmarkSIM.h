@@ -51,6 +51,13 @@ public:
                                     double zero_tolerance = 1.0e-8,
                                     std::streamsize outPrec = 0);
 
+  //! \brief Solves the linearized system of current iteration.
+  //! \param[in] param Time stepping parameters
+  SIM::ConvStatus solveIteration(TimeStep& param);
+
+  //! \brief Returns the maximum number of iterations.
+  int getMaxit() const { return maxit; }
+
 protected:
   //! \brief Computes and prints some solution norm quantities.
   //! \param[in] zero_tolerance Truncate norm values smaller than this to zero

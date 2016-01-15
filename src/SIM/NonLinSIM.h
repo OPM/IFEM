@@ -40,13 +40,6 @@ public:
   //! \brief Defines which type of iteration norm to use in convergence checks.
   void setConvNorm(CNORM n) { if ((iteNorm = n) == NONE) fromIni = true; }
 
-  //! \brief Returns solver configuration parameters.
-  //! \param[out] atol Absolute residual norm tolerance
-  //! \param[out] rtol Relative residual norm tolerance
-  //! \param[out] dtol Relative divergence limit
-  //! \param[out] mxit Maximum number of iterations
-  void getTolerances(double& atol, double& rtol, double& dtol, int& mxit) const;
-
   //! \brief Initializes the primary solution vectors.
   //! \param[in] nSol Number of consequtive solutions stored in core
   //! \param[in] initVal Initial values of the primary solution
@@ -73,10 +66,12 @@ public:
                                     double zero_tolerance = 1.0e-8,
                                     std::streamsize outPrec = 0);
 
-  //! \brief Solves the current linearized system.
+  //! \brief Solves the linearized system of current iteration.
   //! \param[in] param Time stepping parameters
-  //! \param[out] norm The norm of the residual
-  bool solveLinearizedSystem(const TimeStep& param, double& norm);
+  SIM::ConvStatus solveIteration(TimeStep& param);
+
+  //! \brief Returns the maximum number of iterations.
+  int getMaxit() const { return maxit; }
 
 protected:
   //! \brief Checks whether the nonlinear iterations have converged or diverged.

@@ -382,6 +382,39 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
 }
 
 
+SIM::ConvStatus NewmarkSIM::solveIteration (TimeStep& param)
+{
+  bool ok = false;
+  if (param.iter > 0)
+    ok = this->correctStep(param);
+  else
+    ok = this->predictStep(param);
+  if (!ok)
+    return SIM::FAILURE;
+
+  if (!model.setMode(SIM::DYNAMIC))
+    return SIM::FAILURE;
+
+  if (!model.assembleSystem(param.time,solution))
+    return SIM::FAILURE;
+
+  this->finalizeRHSvector(!param.time.first && param.iter == 0);
+
+  if (!model.extractLoadVec(residual))
+    return SIM::FAILURE;
+
+  if (!model.solveSystem(linsol,msgLevel-1))
+    return SIM::FAILURE;
+
+  SIM::ConvStatus result = checkConvergence(param);
+  if (result == SIM::CONVERGED)
+    if (!this->solutionNorms(param.time))
+      return SIM::FAILURE;
+
+  return result;
+}
+
+
 SIM::ConvStatus NewmarkSIM::checkConvergence (TimeStep& param)
 {
   static double prevNorm  = 0.0;
