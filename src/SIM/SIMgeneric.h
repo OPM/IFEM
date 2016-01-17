@@ -50,10 +50,10 @@ public:
   //! \param[in] xi Dimensionless parameters in range [0,1] of the point
   //! \param[out] X The Cartesian coordinates of the point
   //! \param[out] param The parameters of the point in the knot-span domain
-  //! \param[in] patch The patch to evaluate
-  //! \return 0 if the evaluation went good
-  int evalPoint(const double* xi, Vec3& X, 
-                double* param=nullptr, int patch = 1) const;
+  //! \param[in] patch 1-based patch index contining the evaluation point
+  //! \return Local node number within the patch that matches the point
+  int evalPoint(const double* xi, Vec3& X,
+                double* param = nullptr, int patch = 1) const;
 };
 
 #endif
