@@ -18,9 +18,9 @@
 
 
 /*!
-  \brief Nonlinear solution driver for isogeometric FEM simulators.
+  \brief Nonlinear quasi-static solution driver for isogeometric FEM simulators.
   \details This class contains data and methods for computing the nonlinear
-  solution to a FE problem based on splines/NURBS basis functions,
+  solution to a quasi-static FE problem based on splines/NURBS basis functions,
   through Newton-Raphson iterations.
 */
 
@@ -52,7 +52,7 @@ public:
   //! \param[in] initVal Initial values of the primary solution
   void init(size_t nSol, const RealArray& initVal);
 
-  //! \brief Advances the time/load step one step forward.
+  //! \brief Advances the load step one step forward.
   //! \param param Time stepping parameters
   //! \param[in] updateTime If \e false, the time parameters are not incremented
   virtual bool advanceStep(TimeStep& param, bool updateTime = true);
@@ -104,7 +104,7 @@ protected:
   double divgLim; //!< Relative divergence limit
   double eta;     //!< Line search tolerance
   double alpha;   //!< Iteration acceleration parameter (for line search)
-  int    maxit;   //!< Maximum number of iterations in a time/load step
+  int    maxit;   //!< Maximum number of iterations in a load step
   int    nupdat;  //!< Number of iterations with updated tangent
   int    prnSlow; //!< How many DOFs to print out on slow convergence
 

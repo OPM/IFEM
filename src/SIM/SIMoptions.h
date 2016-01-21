@@ -81,8 +81,9 @@ public:
   // Output options
   int format;    //!< VTF-file format (-1=NONE, 0=ASCII, 1=BINARY)
   int nViz[3];   //!< Number of visualization points over each knot-span
-  int saveInc;   //!< Number of increments between each result output
+  int saveInc;   //!< Number of load/time increments between each result output
   double dtSave; //!< Time interval between each result output
+  bool pSolOnly; //!< If \e true, don't save secondary solution variables
 
   std::string hdf5; //!< Prefix for HDF5-file
   bool enableController; //!< Whether or not to enable external program control

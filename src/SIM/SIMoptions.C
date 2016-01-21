@@ -46,6 +46,7 @@ SIMoptions::SIMoptions ()
   format  = -1;
   saveInc =  1;
   dtSave  =  0.0;
+  pSolOnly = false;
   enableController = false;
 
   nGauss[0] = nGauss[1] = 4;
@@ -172,6 +173,9 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
     else // use the default output file name
       hdf5 = "(default)";
   }
+
+  else if (!strcasecmp(elem->Value(),"primarySolOnly"))
+    pSolOnly = true;
 
   else if (!strcasecmp(elem->Value(),"projection")) {
     std::string type;
@@ -337,11 +341,16 @@ utl::LogStream& SIMoptions::print (utl::LogStream& os, bool addBlankLine) const
 
   if (!hdf5.empty())
     os <<"\nHDF5 result database: "<< hdf5 <<".hdf5";
+  else if (format < 0)
+    return os;
 
   if (dtSave > 0.0)
     os <<"\nTime between each result save: "<< dtSave;
   if (saveInc > 1)
     os <<"\nIncrements between each result save: "<< saveInc;
+
+  if (pSolOnly)
+    os <<"\nSecondary solution variables are not saved.";
 
   return os;
 }

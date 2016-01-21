@@ -367,14 +367,14 @@ bool SIMoutput::writeGlvV (const Vector& vec, const char* fieldName,
 
 
 bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
-                           double time, bool psolOnly, const char* pvecName,
+                           double time, const char* pvecName,
                            int idBlock, int psolComps)
 {
   idBlock = this->writeGlvS1(psol,iStep,nBlock,time,
                              pvecName,idBlock,psolComps);
   if (idBlock < 0)
     return false;
-  else if (idBlock == 0 || psolOnly)
+  else if (idBlock == 0 || opt.pSolOnly)
     return true;
 
   return this->writeGlvS2(psol,iStep,nBlock,time,idBlock,psolComps);
@@ -384,9 +384,9 @@ bool SIMoutput::writeGlvS (const Vector& psol, int iStep, int& nBlock,
 /*!
   This method writes only the primary solution field to the VTF-file.
   The primary solution is written as a deformation plot (labelled "Solution")
-  if \a pvecName is nullptr. If the primary solution is a scalar field, the field
+  if \a pvecName is null. If the primary solution is a scalar field, the field
   value is in that case interpreted as a deformation along the global Z-axis.
-  If the primary solution is a vector field and \a pvecName is not nullptr,
+  If the primary solution is a vector field and \a pvecName is not null,
   it is written as a named vector field instead (no deformation plot).
 
   If the primary solution is a vector field, each vector component is written
@@ -478,11 +478,12 @@ int SIMoutput::writeGlvS1 (const Vector& psol, int iStep, int& nBlock,
         const VecFunc& pSol = *mySol->getVectorSol();
         for (j = 1; cit != grid->end_XYZ() && haveXsol; j++, ++cit)
           field.fillColumn(j,pSol(Vec4(*cit,time)).ptr());
-        if (mySol->getScalarSol()) {
+        if (mySol->getScalarSol())
+        {
           cit = grid->begin_XYZ();
           const RealFunc& sSol = *mySol->getScalarSol();
           for (j = 1; cit != grid->end_XYZ() && haveXsol; j++, ++cit)
-            field(field.rows(), j) = sSol(Vec4(*cit,time));
+            field(field.rows(),j) = sSol(Vec4(*cit,time));
         }
       }
 
@@ -670,8 +671,9 @@ bool SIMoutput::writeGlvS2 (const Vector& psol, int iStep, int& nBlock,
       if (!myVtf->writeVblk(vID[i],vname.c_str(),idBlock+i,iStep))
         return false;
 
+  const char* prefix = haveAsol ? "FE" : nullptr;
   for (i = j = 0; i < nf && j < sMAX && !sID[j].empty(); i++, j++)
-    if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,haveAsol?"FE":nullptr).c_str(),
+    if (!myVtf->writeSblk(sID[j],myProblem->getField2Name(i,prefix).c_str(),
                           idBlock++,iStep)) return false;
 
   if (doProject)

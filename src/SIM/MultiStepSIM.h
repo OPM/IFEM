@@ -58,7 +58,7 @@ public:
   //! \param[in] withRF Whether nodal reaction forces should be computed or not
   bool initEqSystem(bool withRF = true);
 
-  //! \brief Advances the time step one step forward.
+  //! \brief Advances the time/load step one step forward.
   //! \param param Time stepping parameters
   //! \param[in] updateTime If \e false, the time parameters are not incremented
   virtual bool advanceStep(TimeStep& param, bool updateTime = true);
@@ -96,24 +96,21 @@ public:
   //! \param[in] fileName File name used to construct the VTF-file name from
   bool saveModel(int& gBlock, int& rBlock, char* fileName = nullptr);
 
-  //! \brief Saves the converged results to VTF file of a given time step.
+  //! \brief Saves the converged results to VTF file of a given time/load step.
   //! \param[in] iStep Time/load step identifier
   //! \param[in] time Current time/load parameter
-  //! \param[in] psolOnly If \e true, skip secondary solution field output
   //! \param[in] vecName Optional name of primary solution vector field
-  bool saveStep(int iStep, double time,
-                bool psolOnly = false, const char* vecName = nullptr);
+  bool saveStep(int iStep, double time, const char* vecName = nullptr);
 
-  //! \brief Saves the converged results to VTF file of a given time step.
+  //! \brief Saves the converged results to VTF file of a given time/load step.
   //! \param[in] iStep Time/load step identifier
   //! \param rBlock Running result block counter
   //! \param[in] time Current time/load parameter
-  //! \param[in] psolOnly If \e true, skip secondary solution field output
   //! \param[in] vecName Optional name of primary solution vector field
   bool saveStep(int iStep, int& rBlock, double time,
-                bool psolOnly = false, const char* vecName = nullptr);
+                const char* vecName = nullptr);
 
-  //! \brief Saves the converged solution to VTF file of a given time step.
+  //! \brief Saves the converged solution to VTF file of a given time/load step.
   //! \param[in] iStep Time/load step identifier
   //! \param rBlock Running result block counter
   //! \param[in] vecName Name of primary solution vector field
@@ -138,9 +135,9 @@ public:
 
   //! \brief Returns whether a points result file has been defined or not.
   bool hasPointResultFile() const;
-  //! \brief Saves point solution to file for a given time step.
-  //! \param[in] time Load/time step parameter
-  //! \param[in] step Load/time step counter
+  //! \brief Saves point-wise solution to file for a given time/load step.
+  //! \param[in] time Time/load step parameter
+  //! \param[in] step Time/load step counter
   bool savePoints(double time, int step) const;
 
   //! \brief Returns a const reference to the solution vectors.

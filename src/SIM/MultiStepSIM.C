@@ -95,8 +95,7 @@ bool MultiStepSIM::saveModel (int& gBlock, int& rBlock, char* fileName)
 }
 
 
-bool MultiStepSIM::saveStep (int iStep, double time,
-                             bool psolOnly, const char* vecName)
+bool MultiStepSIM::saveStep (int iStep, double time, const char* vecName)
 {
   if (iStep <= lastSt) return true; // We have already saved this step
 
@@ -111,18 +110,18 @@ bool MultiStepSIM::saveStep (int iStep, double time,
     lastSt = iStep;
 
   // Write boundary tractions, if any
-  if (!psolOnly)
+  if (!opt.pSolOnly)
     if (!model.writeGlvT(iStep,geoBlk,nBlock))
       return false;
 
   // Write residual force vector, but only when no extra visualization points
-  if (!psolOnly && opt.nViz[0] == 2 && opt.nViz[1] <= 2 && opt.nViz[2] <= 2)
+  if (!opt.pSolOnly && opt.nViz[0] == 2 && opt.nViz[1] <= 2 && opt.nViz[2] <= 2)
     if (!model.writeGlvV(residual,"Residual forces",iStep,nBlock))
       return false;
 
   // Write solution fields
   if (!solution.empty())
-    if (!model.writeGlvS(solution.front(),iStep,nBlock,time,psolOnly,vecName))
+    if (!model.writeGlvS(solution.front(),iStep,nBlock,time,vecName))
       return false;
 
   // Write any problem-specific data (rigid body transformations, etc.)
@@ -142,10 +141,10 @@ bool MultiStepSIM::saveStep (int iStep, double time,
 */
 
 bool MultiStepSIM::saveStep (int iStep, int& rBlock, double time,
-                             bool psolOnly, const char* vecName)
+                             const char* vecName)
 {
   if (rBlock > nBlock) nBlock = rBlock;
-  bool s = this->saveStep(iStep,time,psolOnly,vecName);
+  bool s = this->saveStep(iStep,time,vecName);
   rBlock = nBlock;
   return s;
 }

@@ -74,7 +74,7 @@ public:
   const Vector& getAcceleration() const { return solution[solution.size()-1]; }
 
   //! \brief Dumps solution variables at user-defined points.
-  //! \param[in] time Current time/load parameter
+  //! \param[in] time Current time
   //! \param[in] os The output stream to write the solution to
   //! \param[in] precision Number of digits after the decimal point
   //! \param[in] formatted If \e false, write all result points on a single line

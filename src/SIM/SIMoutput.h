@@ -77,7 +77,7 @@ public:
   //! \brief Writes current model geometry to the VTF-file.
   //! \param nBlock Running result block counter
   //! \param[in] inpFile File name used to construct the VTF-file name from
-  //! \param[in] doClear If \e true, clear geometry block if \a inpFile is nullptr
+  //! \param[in] doClear If \e true, clear geometry block if \a inpFile is null
   //!
   //! \details The spline patches are tesselated into linear finite elements
   //! with a fixed number of elements within each knot-span of non-zero length.
@@ -116,13 +116,12 @@ public:
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter
   //! \param[in] time Load/time step parameter
-  //! \param[in] psolOnly If \e true, skip secondary solution field evaluation
   //! \param[in] pvecName Optional name of the primary vector field solution
   //! \param[in] idBlock Starting value of result block numbering
   //! \param[in] psolComps Optional number of primary solution components
   bool writeGlvS(const Vector& psol, int iStep, int& nBlock, double time = 0.0,
-                 bool psolOnly = false, const char* pvecName = nullptr,
-                 int idBlock = 10, int psolComps = 0);
+                 const char* pvecName = nullptr, int idBlock = 10,
+                 int psolComps = 0);
 
   //! \brief Writes primary solution for a given load/time step to the VTF-file.
   //! \param[in] psol Primary solution vector
@@ -212,9 +211,9 @@ public:
   bool writeGlvF(const RealFunc& f, const char* fname,
                  int iStep, int& nBlock, int idBlock = 50, double time = 0.0);
 
-  //! \brief Writes time/load step info to the VTF-file.
+  //! \brief Writes load/time step info to the VTF-file.
   //! \param[in] iStep Load/time step identifier
-  //! \param[in] value Time or load parameter of the step
+  //! \param[in] value Load parameter or time of the step
   //! \param[in] itype Type identifier of the step
   bool writeGlvStep(int iStep, double value = 0.0, int itype = 0);
 
