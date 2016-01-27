@@ -14,6 +14,11 @@
 #ifndef _SIM_COUPLED_H_
 #define _SIM_COUPLED_H_
 
+
+#include "Function.h"
+#include "Property.h"
+
+
 class SIMdependency;
 class ASMbase;
 class DataExporter;

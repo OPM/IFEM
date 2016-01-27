@@ -1,52 +1,45 @@
-PROJECT(CommonIFEM)
+project(CommonIFEM)
 
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+cmake_minimum_required(VERSION 2.6)
 
 # Add local modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
                       ${PROJECT_SOURCE_DIR}/../../cmake/Modules
                       $ENV{HOME}/cmake/Modules)
 
-IF(NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE Release)
-ENDIF(NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
 
 # Required packages
-IF(NOT IFEM_CONFIGURED)
-  FIND_PACKAGE(IFEM REQUIRED)
-ENDIF(NOT IFEM_CONFIGURED)
+if(NOT IFEM_CONFIGURED)
+  find_package(IFEM REQUIRED)
+endif()
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${IFEM_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${IFEM_CXX_FLAGS}")
 
-INCLUDE_DIRECTORIES(${IFEM_INCLUDES} ${PROJECT_SOURCE_DIR})
+include_directories(${IFEM_INCLUDES} ${PROJECT_SOURCE_DIR})
 
-IF(NOT WIN32)
+if(NOT WIN32)
   # Emit position-independent code, suitable for dynamic linking
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
   # Enable all warnings
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
-ENDIF(NOT WIN32)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+endif()
 
-SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
-
-INCLUDE(cmake/UseMultiArch.cmake)
+set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 
 # Common application sources
-ADD_LIBRARY(CommonIFEM MeshUtils.C
+add_library(CommonIFEM STATIC MeshUtils.C
                        ResidualOperators.C
                        Spalding.C
                        SAWallLaw.C
                        SIMNodalConstraint.C
+                       SIMSemi3D.C
                        StabilizationUtils.C
                        TimeIntUtils.C
                        WeakOperators.C)
-TARGET_LINK_LIBRARIES(CommonIFEM ${IFEM_LIBRARIES})
-SET_TARGET_PROPERTIES(CommonIFEM PROPERTIES
-                      VERSION ${IFEM_VERSION}
-                      SOVERSION ${IFEM_ABI_VERSION})
-INSTALL(TARGETS CommonIFEM DESTINATION ${CMAKE_INSTALL_LIBDIR})
-FILE(GLOB HEADERS *.h)
-INSTALL(FILES ${HEADERS} DESTINATION include/IFEM)
+target_link_libraries(CommonIFEM ${IFEM_LIBRARIES})
 
 # Unit tests
 IFEM_add_test_app(${PROJECT_SOURCE_DIR}/Test/*.C
