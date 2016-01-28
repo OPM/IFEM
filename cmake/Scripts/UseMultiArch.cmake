@@ -34,9 +34,14 @@ else ("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")
 endif ("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")
 
 # let the user override if somewhere else is desirable
-set (CMAKE_INSTALL_LIBDIR "${_libdir_def}" CACHE PATH "Object code libraries")
-set (CMAKE_INSTALL_LIBDIR_NOARCH "${_libdir_noarch}" CACHE PATH "Architecture-independent library files")
+if(CMAKE_INSTALL_PREFIX MATCHES "/usr/local")
+  set (CMAKE_INSTALL_LIBDIR "lib" CACHE PATH "Object code libraries")
+  set (CMAKE_INSTALL_LIBDIR_NOARCH "lib" CACHE PATH "Architecture-independent library files")
+else()
+  set (CMAKE_INSTALL_LIBDIR "${_libdir_def}" CACHE PATH "Object code libraries")
+  set (CMAKE_INSTALL_LIBDIR_NOARCH "${_libdir_noarch}" CACHE PATH "Architecture-independent library files")
+endif()
 mark_as_advanced (
   CMAKE_INSTALL_LIBDIR
   CMAKE_INSTALL_LIBDIR_NOARCH
-  )
+)

@@ -1,56 +1,57 @@
-PROJECT(IFEM)
+project(IFEM)
 
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+cmake_minimum_required(VERSION 2.6)
 
-SET(IFEM_VERSION_MAJOR 0)
-SET(IFEM_VERSION_MINOR 9)
-SET(IFEM_VERSION_PATCH 0)
-SET(IFEM_VERSION "${IFEM_VERSION_MAJOR}.${IFEM_VERSION_MINOR}.${IFEM_VERSION_PATCH}")
-SET(IFEM_ABI_VERSION ${IFEM_VERSION_MAJOR}.${IFEM_VERSION_MINOR})
+set(IFEM_VERSION_MAJOR 0)
+set(IFEM_VERSION_MINOR 9)
+set(IFEM_VERSION_PATCH 0)
+set(IFEM_VERSION "${IFEM_VERSION_MAJOR}.${IFEM_VERSION_MINOR}.${IFEM_VERSION_PATCH}")
+set(IFEM_ABI_VERSION ${IFEM_VERSION_MAJOR}.${IFEM_VERSION_MINOR})
 
 # Generate header with version info
-CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/src/IFEM.h.in
+configure_file(${PROJECT_SOURCE_DIR}/src/IFEM.h.in
                IFEM.h @ONLY)
 
 # Generate doxy in build tree
-CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/Doxyfile.in
+configure_file(${PROJECT_SOURCE_DIR}/Doxyfile.in
                Doxyfile @ONLY)
 
 # Required defines (well, PROFILE_LEVEL is not actually required, but...)
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DReal=double -DepsZ=1.0e-12 -DPROFILE_LEVEL=3")
-SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DINDEX_CHECK=2")
-IF(VERBOSE_DEBUG GREATER 0)
-  SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DSP_DEBUG=${VERBOSE_DEBUG}")
-ENDIF(VERBOSE_DEBUG GREATER 0)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DReal=double -DepsZ=1.0e-12 -DPROFILE_LEVEL=3")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DINDEX_CHECK=2")
+if(VERBOSE_DEBUG GREATER 0)
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DSP_DEBUG=${VERBOSE_DEBUG}")
+endif()
 
-ENABLE_TESTING()
+set(IFEM_LIBRARY_BUILD 1)
 
 # Add local modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
-                      ${CMAKE_SOURCE_DIR}/cmake/Modules)
+                      ${CMAKE_SOURCE_DIR}/cmake/Modules
+                      ${CMAKE_SOURCE_DIR}/cmake/Scripts)
 
-INCLUDE(Apps/Common/cmake/UseMultiArch.cmake)
-set(IFEM_LIBRARY_BUILD 1)
+include(cmake/Scripts/UseMultiArch.cmake)
 
 if(NOT IFEM_AS_SUBMODULE)
-  FIND_PACKAGE(IFEMDeps)
+  find_package(IFEMDeps)
 endif()
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${IFEM_BUILD_CXX_FLAGS}")
 
-IF(NOT IFEM_USE_SYSTEM_TINYXML)
-  SET(IFEM_INCLUDES ${IFEM_INCLUDES}
+add_definitions(${IFEM_DEFINITIONS})
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${IFEM_BUILD_CXX_FLAGS}")
+
+if(NOT IFEM_USE_SYSTEM_TINYXML)
+  set(IFEM_INCLUDES ${IFEM_INCLUDES}
                     ${PROJECT_SOURCE_DIR}/3rdparty/tinyxml)
-  FILE(GLOB_RECURSE TINYXML_SRCS ${PROJECT_SOURCE_DIR}/3rdparty/tinyxml/*.C)
-ENDIF(NOT IFEM_USE_SYSTEM_TINYXML)
+  file(GLOB_RECURSE TINYXML_SRCS ${PROJECT_SOURCE_DIR}/3rdparty/tinyxml/*.C)
+endif()
 
-IF(LRSpline_LIBRARIES AND LRSpline_INCLUDE_DIRS)
-  SET(IFEM_INCLUDES ${IFEM_INCLUDES}
+if(LRSpline_LIBRARIES AND LRSpline_INCLUDE_DIRS)
+  set(IFEM_INCLUDES ${IFEM_INCLUDES}
                     ${PROJECT_SOURCE_DIR}/src/ASM/LR)
-ENDIF(LRSpline_LIBRARIES AND LRSpline_INCLUDE_DIRS)
-
+ENDIF()
 
 # Required include directories
-SET(IFEM_INCLUDES
+set(IFEM_INCLUDES
     ${IFEM_INCLUDES}
     ${IFEM_DEPINCLUDES}
     ${PROJECT_SOURCE_DIR}/src
@@ -64,28 +65,28 @@ SET(IFEM_INCLUDES
     ${PROJECT_BINARY_DIR}
 )
 
-INCLUDE_DIRECTORIES(${IFEM_INCLUDES})
+include_directories(${IFEM_INCLUDES})
 
-SET(EXECUTABLE_OUTPUT_PATH bin)
-SET(LIBRARY_OUTPUT_PATH lib)
+set(EXECUTABLE_OUTPUT_PATH bin)
+set(LIBRARY_OUTPUT_PATH lib)
 
-IF(NOT CMAKE_INSTALL_DOCDIR)
-  SET(CMAKE_INSTALL_DOCDIR share/doc/libifem1)
-ENDIF(NOT CMAKE_INSTALL_DOCDIR)
+if(NOT CMAKE_INSTALL_DOCDIR)
+  set(CMAKE_INSTALL_DOCDIR share/doc/libifem1)
+endif()
 
-IF(NOT WIN32)
+if(NOT WIN32)
   # Emit position-independent code, suitable for dynamic linking
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
   # Enable all warnings
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-parentheses")
-ENDIF(NOT WIN32)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-parentheses")
+endif()
 
 # Generate build flags in build tree
-CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/cmake/Modules/IFEMFlags.cmake.in
+configure_file(${PROJECT_SOURCE_DIR}/cmake/Modules/IFEMFlags.cmake.in
                IFEMFlags.cmake @ONLY)
 
 # Make the IFEM library
-FILE(GLOB IFEM_SRCS ${PROJECT_SOURCE_DIR}/src/IFEM.C
+file(GLOB IFEM_SRCS ${PROJECT_SOURCE_DIR}/src/IFEM.C
                     ${PROJECT_SOURCE_DIR}/src/ASM/*.C
                     ${PROJECT_SOURCE_DIR}/src/Eig/*.C
                     ${PROJECT_SOURCE_DIR}/src/LinAlg/*.C
@@ -95,70 +96,106 @@ FILE(GLOB IFEM_SRCS ${PROJECT_SOURCE_DIR}/src/IFEM.C
                     ${PROJECT_SOURCE_DIR}/src/Eig/*.f
                     ${PROJECT_SOURCE_DIR}/3rdparty/expreval/*.cpp)
 string(REGEX REPLACE "${PROJECT_SOURCE_DIR}/src/ASM/ASMs.DInterpolate.C" "" IFEM_SRCS "${IFEM_SRCS}")
-IF(LRSPLINE_FOUND OR LRSpline_FOUND)
+if(LRSPLINE_FOUND OR LRSpline_FOUND)
   file(GLOB LR_SRCS ${PROJECT_SOURCE_DIR}/src/ASM/LR/*.C)
   list(APPEND IFEM_SRCS ${LR_SRCS})
-ENDIF()
-ADD_LIBRARY(IFEM ${IFEM_SRCS} ${TINYXML_SRCS})
-TARGET_LINK_LIBRARIES(IFEM ${IFEM_DEPLIBS})
-SET_TARGET_PROPERTIES(IFEM PROPERTIES VERSION ${IFEM_VERSION}
+endif()
+add_library(IFEM ${IFEM_SRCS} ${TINYXML_SRCS})
+target_link_libraries(IFEM ${IFEM_DEPLIBS})
+set_target_properties(IFEM PROPERTIES VERSION ${IFEM_VERSION}
                            SOVERSION ${IFEM_ABI_VERSION})
 
 # For generating the doxy
-ADD_CUSTOM_TARGET(lib_doc doxygen ${PROJECT_BINARY_DIR}/Doxyfile
+add_custom_target(lib_doc doxygen ${PROJECT_BINARY_DIR}/Doxyfile
                   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                   COMMENT "Generating API documentation" VERBATIM)
 if(NOT TARGET doc)
   add_custom_target(doc)
-endif(NOT TARGET doc)
+endif()
 add_dependencies(doc lib_doc)
+
+if(NOT IFEM_AS_SUBMODULE AND NOT IFEM_COMMON_APP_BUILD)
+  set(IFEM_INTREE_BUILD ON)
+  set(IFEM_LIBRARIES IFEM ${IFEM_DEPLIBS})
+  set(IFEM_PATH ${PROJECT_SOURCE_DIR})
+endif()
+
+enable_testing()
+include(cmake/Scripts/IFEMTesting.cmake)
+
+add_subdirectory(Apps/Common)
 
 # Unit tests
 if(IFEM_AS_SUBMODULE OR IFEM_COMMON_APP_BUILD)
   set(TEST_APPS ${TEST_APPS} PARENT_SCOPE)
 else()
-  set(IFEM_INTREE_BUILD ON)
-  set(IFEM_LIBRARIES IFEM)
-  set(IFEM_PATH ${PROJECT_SOURCE_DIR})
   add_check_target()
 endif()
 
 # 'install' target
 # Have install force doc build
-INSTALL(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_BUILD_TOOL} doc WORKING_DIRECTORY \"${CMAKE_CURRENT_BINARY_DIR}\")" COMPONENT doc)
+install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_BUILD_TOOL} doc WORKING_DIRECTORY \"${CMAKE_CURRENT_BINARY_DIR}\")" COMPONENT doc)
 
-IF(WIN32)
+if(WIN32)
   # TODO
-ELSE(WIN32)
+else()
   # lib
-  INSTALL(TARGETS IFEM DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT bin)
+  install(TARGETS IFEM DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT bin)
 
   # headers
-  FILE(GLOB IFEM_HEADERS src/ASM/AlgEqSystem.h src/ASM/ASMbase.h
+  file(GLOB IFEM_HEADERS src/ASM/AlgEqSystem.h src/ASM/ASMbase.h
                          src/ASM/ASMenums.h src/ASM/ASMmxBase.h
+                         src/ASM/ASMs?Dmx.h
                          src/ASM/ASMstruct.h src/ASM/*Mats.h src/ASM/ElmNorm.h
                          src/ASM/Field.h src/ASM/Fields.h src/ASM/GlbForceVec.h
                          src/ASM/FiniteElement.h src/ASM/GlbNorm.h
                          src/ASM/GlobalIntegral.h src/ASM/IntegrandBase.h
+                         src/ASM/ImmersedBoundaries.h
                          src/ASM/Integrand.h src/ASM/Lagrange.h
                          src/ASM/LocalIntegral.h src/ASM/SAMpatch.h
                          src/ASM/TimeDomain.h src/ASM/ASMs?D.h src/ASM/ASM?D.h
                          src/LinAlg/*.h src/SIM/*.h
                          src/Utility/*.h
                          ${CMAKE_BINARY_DIR}/IFEM.h)
-  INSTALL(FILES ${IFEM_HEADERS}
-    DESTINATION include/IFEM COMPONENT ${IFEM_DEV_COMPONENT})
+  install(FILES ${IFEM_HEADERS}
+          DESTINATION include/IFEM COMPONENT ${IFEM_DEV_COMPONENT})
+
+  set(IFEM_INCLUDE_DIRS ${CMAKE_INSTALL_PREFIX}/include/IFEM ${IFEM_DEPINCLUDES})
+  if(LRSpline_FOUND)
+    file(GLOB IFEM_LR_HEADERS src/ASM/LR/*.h)
+    install(FILES ${IFEM_LR_HEADERS} DESTINATION include/IFEM/LR)
+    install(FILES src/ASM/ASMunstruct.h DESTINATION include/IFEM)
+    list(APPEND IFEM_INCLUDE_DIRS ${CMAKE_INSTALL_PREFIX}/include/IFEM/LR)
+  endif()
 
   # cmake modules
-  INSTALL(FILES cmake/Modules/FindIFEM.cmake DESTINATION lib/IFEM RENAME IFEMConfig.cmake)
+  string(REPLACE ";" " " IFEM_CXX_FLAGS ${IFEM_CXX_FLAGS})
+  string(REPLACE ";" " " IFEM_DEPLIBS "${IFEM_DEPLIBS}")
+  string(REPLACE ";" " " IFEM_DEFINITIONS "${IFEM_DEFINITIONS}")
+  configure_file(cmake/Templates/IFEMConfigVersion.cmake.in IFEMConfigVersion.cmake @ONLY)
+  configure_file(cmake/Templates/IFEMConfig.cmake.in IFEMConfig.cmake @ONLY)
+  install(FILES ${CMAKE_BINARY_DIR}/IFEMConfigVersion.cmake
+                ${CMAKE_BINARY_DIR}/IFEMConfig.cmake
+                cmake/Scripts/CheckCommits.cmake
+                cmake/Scripts/DownloadGTest.cmake
+                cmake/Scripts/UseMultiArch.cmake
+                cmake/Scripts/IFEMTesting.cmake DESTINATION lib/IFEM)
+
+  # source code
+  install(FILES src/IFEM-test.C DESTINATION lib/IFEM/src)
 
   # documentation and license
-  IF(INSTALL_DOXY)
-    INSTALL(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_BUILD_TOOL} doc WORKING_DIRECTORY \"${CMAKE_CURRENT_BINARY_DIR}\")" COMPONENT doc)
-    INSTALL(DIRECTORY ${PROJECT_BINARY_DIR}/doc/html DESTINATION ${CMAKE_INSTALL_DOCDIR}
+  if(INSTALL_DOXY)
+    install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_BUILD_TOOL} doc WORKING_DIRECTORY \"${CMAKE_CURRENT_BINARY_DIR}\")" COMPONENT doc)
+    install(DIRECTORY ${PROJECT_BINARY_DIR}/doc/html DESTINATION ${CMAKE_INSTALL_DOCDIR}
             COMPONENT doc
             PATTERN *.md5 EXCLUDE
             PATTERN *.map EXCLUDE)
-    INSTALL(FILES doc/petsc.pdf doc/sim-input.pdf doc/Tutorial/GettingStarted.pdf DESTINATION ${CMAKE_INSTALL_DOCDIR})
-  ENDIF(INSTALL_DOXY)
-ENDIF(WIN32)
+    install(FILES doc/petsc.pdf doc/sim-input.pdf doc/Tutorial/GettingStarted.pdf DESTINATION ${CMAKE_INSTALL_DOCDIR})
+  endif()
+endif()
+
+if(IFEM_COMMON_APP_BUILD OR IFEM_AS_SUBMODULE)
+  set(UNIT_TEST_NUMBER ${UNIT_TEST_NUMBER} PARENT_SCOPE)
+  set(TEST_APPS ${TEST_APPS} PARENT_SCOPE)
+endif()

@@ -1,26 +1,24 @@
-PROJECT(IFEM_Apps)
+project(IFEM_Apps)
 
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+cmake_minimum_required(VERSION 2.6)
 
 # Add local modules
-SET(IFEM_PATH ${PROJECT_SOURCE_DIR}/..)
-SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${IFEM_PATH}/cmake/Modules)
-FIND_PACKAGE(IFEM REQUIRED)
+set(IFEM_PATH ${PROJECT_SOURCE_DIR}/..)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${IFEM_PATH}/cmake/Modules)
+set(IFEM_COMMON_APP_BUILD 1)
 
-ENABLE_TESTING()
+find_package(IFEM REQUIRED)
+
+enable_testing()
 
 include_directories(${IFEM_INCLUDES})
 
-SET(ORIG_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${IFEM_CXX_FLAGS}")
-IF(NOT IFEM_AS_SUBMODULE)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${IFEM_CXX_FLAGS}")
+if(NOT IFEM_AS_SUBMODULE)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPROFILE_LEVEL=2")
-ENDIF(NOT IFEM_AS_SUBMODULE)
+endif()
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
-SET(EXECUTABLE_OUTPUT_PATH bin)
-SET(IFEM_COMMON_APP_BUILD 1)
-
-add_subdirectory(Common)
 if(EXISTS ${PROJECT_SOURCE_DIR}/Poisson)
   add_subdirectory(Poisson)
 endif()
@@ -30,13 +28,16 @@ endif()
 if(EXISTS ${PROJECT_SOURCE_DIR}/Darcy)
   add_subdirectory(Darcy)
 endif()
+
 if(EXISTS ${PROJECT_SOURCE_DIR}/Elasticity)
   add_subdirectory(Elasticity)
   add_subdirectory(Elasticity/Beam)
-  add_subdirectory(Elasticity/FiniteDeformation)
   add_subdirectory(Elasticity/Linear)
-  add_subdirectory(Elasticity/Nonlinear)
-  add_subdirectory(Elasticity/BeamSim)
+  if(EXISTS ${PROJECT_SOURCE_DIR}/Elasticity/BeamEx)
+    add_subdirectory(Elasticity/FiniteDeformation)
+    add_subdirectory(Elasticity/BeamSim)
+    add_subdirectory(Elasticity/Nonlinear)
+  endif()
 endif()
 if(EXISTS ${PROJECT_SOURCE_DIR}/FSWallDistance)
   add_subdirectory(FSWallDistance)
@@ -60,6 +61,8 @@ endif()
 if(EXISTS ${PROJECT_SOURCE_DIR}/FSI AND
    EXISTS ${PROJECT_SOURCE_DIR}/Stokes AND
    EXISTS ${PROJECT_SOURCE_DIR}/NavierStokes AND
+   EXISTS ${PROJECT_SOURCE_DIR}/Elasticity AND
+   EXISTS ${PROJECT_SOURCE_DIR}/Elasticity/BeamEx AND
    EXISTS ${PROJECT_SOURCE_DIR}/FSWallDistance)
    add_subdirectory(FSI)
 endif()
