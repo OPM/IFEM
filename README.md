@@ -41,7 +41,7 @@ export of simulations results to GLview VTF-files.
 ### Getting all dependencies
 
 A number of things need to be set up properly to compile the IFEM library.
-First, we will add inhouse dependencies by a secondary repository. 
+First, we will add inhouse dependencies by a secondary repository.
 
 1. Add the IFEM repository at https://launchpad.net/~ifem/ (follow the instructions on site)
 2. Install development tools and compilers by typing
@@ -68,7 +68,7 @@ First, we will add inhouse dependencies by a secondary repository.
 
 This is done by first navigating to the folder in which you want IFEM installed and typing
 
-    git clone https://github.com/sintefmath/IFEM
+    git clone https://github.com/OPM/IFEM
 
 
 ### Compiling the code
@@ -76,21 +76,20 @@ This is done by first navigating to the folder in which you want IFEM installed 
 To compile, first navigate to the root catalogue of IFEM, here denoted by `<IFEM root>`.
 
 1. `cd <IFEM root>`
-2. `cd Apps`
-3. `mkdir Debug`
-4. `cd Debug`
-5. **[optional]** specify which submodules you have available in `<IFEM root>/cmake/Modules/IFEMoptions.cmake`
-6. `cmake -DCMAKE_BUILD_TYPE=Debug -DIFEM_AS_SUBMODULE=1 ..`
-7. `make `
+2. `mkdir Debug`
+3. `cd Debug`
+4. **[optional]** specify which submodules you have available in `<IFEM root>/cmake/Modules/IFEMoptions.cmake`
+5. `cmake -DCMAKE_BUILD_TYPE=Debug ..`
+6. `make `
 
-this will compile the library and all applications. The binaries can be found in the 'bin' subfolder.
+this will compile the library.
 Change all instances of `Debug` with `Release` to drop debug-symbols, but get faster running code.
 
 
 ### Testing the code
 
-IFEM is using cmake test system. To compile run all regression- and unit-tests, navigate to your build 
-folder (i.e. `<IFEM root>/Apps/Debug`) and type
+IFEM is using cmake test system. To compile run all regression- and unit-tests, navigate to your build
+folder (i.e. `<IFEM root>/Debug`) and type
 
     make check
 
