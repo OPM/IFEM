@@ -34,41 +34,36 @@ if(EXISTS ${PROJECT_SOURCE_DIR}/Elasticity)
   add_subdirectory(Elasticity/Beam)
   add_subdirectory(Elasticity/Linear)
   if(EXISTS ${PROJECT_SOURCE_DIR}/Elasticity/BeamEx)
-    add_subdirectory(Elasticity/FiniteDeformation)
+    add_subdirectory(Elasticity/BeamEx)
     add_subdirectory(Elasticity/BeamSim)
+  endif()
+  if(EXISTS ${PROJECT_SOURCE_DIR}/Elasticity/FiniteDeformation)
+    add_subdirectory(Elasticity/FiniteDeformation)
     add_subdirectory(Elasticity/Nonlinear)
   endif()
+  if(EXISTS ${PROJECT_SOURCE_DIR}/ThermoElasticity)
+    add_subdirectory(ThermoElasticity)
+  endif()
+  if(EXISTS ${PROJECT_SOURCE_DIR}/PoroElasticity)
+    add_subdirectory(PoroElasticity)
+  endif()
+  if(EXISTS ${PROJECT_SOURCE_DIR}/FractureDynamics)
+    add_subdirectory(FractureDynamics)
+  endif()
 endif()
-if(EXISTS ${PROJECT_SOURCE_DIR}/FSWallDistance)
-  add_subdirectory(FSWallDistance)
-endif()
-if(EXISTS ${PROJECT_SOURCE_DIR}/PoroElasticity)
-  add_subdirectory(PoroElasticity)
-endif()
-if(EXISTS ${PROJECT_SOURCE_DIR}/FractureDynamics AND
-   EXISTS ${PROJECT_SOURCE_DIR}/Elasticity)
-  add_subdirectory(FractureDynamics)
-endif()
+
 if(EXISTS ${PROJECT_SOURCE_DIR}/Stokes)
   add_subdirectory(${PROJECT_SOURCE_DIR}/Stokes)
-endif()
-if(EXISTS ${PROJECT_SOURCE_DIR}/NavierStokes AND
-   EXISTS ${PROJECT_SOURCE_DIR}/Stokes AND
-   EXISTS ${PROJECT_SOURCE_DIR}/FSWallDistance AND
-   EXISTS ${PROJECT_SOURCE_DIR}/AdvectionDiffusion)
-   add_subdirectory(NavierStokes)
-endif()
-if(EXISTS ${PROJECT_SOURCE_DIR}/FSI AND
-   EXISTS ${PROJECT_SOURCE_DIR}/Stokes AND
-   EXISTS ${PROJECT_SOURCE_DIR}/NavierStokes AND
-   EXISTS ${PROJECT_SOURCE_DIR}/Elasticity AND
-   EXISTS ${PROJECT_SOURCE_DIR}/Elasticity/BeamEx AND
-   EXISTS ${PROJECT_SOURCE_DIR}/FSWallDistance)
-   add_subdirectory(FSI)
-endif()
-if(EXISTS ${PROJECT_SOURCE_DIR}/ThermoElasticity AND
-   EXISTS ${PROJECT_SOURCE_DIR}/Elasticity)
-  add_subdirectory(ThermoElasticity)
+  if(EXISTS ${PROJECT_SOURCE_DIR}/NavierStokes)
+    if (EXISTS ${PROJECT_SOURCE_DIR}/AdvectionDiffusion)
+      add_subdirectory(NavierStokes)
+    endif()
+    if(EXISTS ${PROJECT_SOURCE_DIR}/FSI AND
+       EXISTS ${PROJECT_SOURCE_DIR}/Elasticity/BeamEx AND
+       EXISTS ${PROJECT_SOURCE_DIR}/Elasticity/FiniteDeformation)
+      add_subdirectory(FSI)
+    endif()
+  endif()
 endif()
 
 add_subdirectory(HDF5toVTx)
