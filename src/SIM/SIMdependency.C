@@ -131,8 +131,10 @@ bool SIMdependency::extractPatchDependencies (IntegrandBase* problem,
                 << it->sim->getName() <<"\""<< std::endl;
       return false;
     }
-    else if (gvec->empty())
+    else if (gvec->empty()) {
+      lvec->clear();
       continue; // No error, silently ignore empty fields (treated as zero)
+    }
 
     patch = pindx < it->patches.size() ? it->patches[pindx] : model[pindx];
     // See ASMbase::extractNodeVec for interpretation of negative value on basis
