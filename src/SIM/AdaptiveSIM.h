@@ -37,8 +37,8 @@ public:
   //! \brief The constructor initializes default adaptation parameters.
   //! \param sim Pointer to the spline FE model
   AdaptiveSIM(SIMbase* sim = nullptr);
-  //! \brief The destructor frees the dynamically allocated FE model object.
-  virtual ~AdaptiveSIM();
+  //! \brief Empty destructor.
+  virtual ~AdaptiveSIM() {}
 
   //! \brief Initializes index to element norms to base the mesh adaption on.
   //! \param[in] indxProj Index to projection method to base mesh adaption on
@@ -90,7 +90,6 @@ public:
   //! \brief Dummy time stepping advance (no adaptive + time stepping yet)
   virtual bool advanceStep(TimeStep& tp) const { return false; }
 
-protected:
   //! \brief Parses a data section from an input stream.
   //! \param[in] keyWord Keyword of current data section to read
   //! \param is The file stream to read from

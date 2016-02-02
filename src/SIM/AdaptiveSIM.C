@@ -50,16 +50,10 @@ AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : SIMinput(*sim)
 }
 
 
-AdaptiveSIM::~AdaptiveSIM ()
-{
-  delete model;
-}
-
-
 bool AdaptiveSIM::parse (const TiXmlElement* elem)
 {
   if (strcasecmp(elem->Value(),"adaptive"))
-    return model->parse(elem);
+    return true;
 
   const char* value = nullptr;
   const TiXmlElement* child = elem->FirstChildElement();
@@ -188,7 +182,7 @@ bool AdaptiveSIM::initAdaptor (size_t indxProj, size_t nNormProj)
 }
 
 
-bool AdaptiveSIM::assembleAndSolve()
+bool AdaptiveSIM::assembleAndSolve ()
 {
   return model->assembleSystem() && model->solveMatrixSystem(solution,1);
 }
@@ -468,7 +462,7 @@ void AdaptiveSIM::printNorms (size_t w) const
 
 bool AdaptiveSIM::writeGlv (const char* infile, int iStep, size_t nNormProj)
 {
-  if (opt.format < 0) return true;
+  if (!model || model->opt.format < 0) return true;
 
   // Write VTF-file with model geometry
   if (!model->writeGlvG(geoBlk, iStep == 1 ? infile : nullptr))

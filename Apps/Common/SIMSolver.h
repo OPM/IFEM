@@ -19,7 +19,6 @@
 #include "TimeStep.h"
 #include "IFEM.h"
 #include "tinyxml.h"
-#include "AdaptiveSIM.h"
 
 
 //! \brief Structure for configuring a given simulator
@@ -36,104 +35,12 @@ struct SolverConfigurator {
 
 //! \brief Configuration template
 template<class T>
-int ConfigureSIM(T& t, char* infile, const typename T::SetupProps& p=typename T::SetupProps())
+int ConfigureSIM(T& t, char* infile,
+                 const typename T::SetupProps& p = typename T::SetupProps())
 {
   SolverConfigurator<T> setup;
   return setup.setup(t, p, infile);
 }
-
-
-//! \brief Structure for handling a time step for a given simulator
-template<class T>
-struct SolverHandler {
-  //! \brief Constructor.
-  SolverHandler(T& sim) : m_sim(sim) {}
-
-  int pre(char* infile, int& nBlock, const TimeStep* tp = nullptr)
-  {
-    // Save FE model to VTF file for visualization
-    int geoBlk = nBlock = 0;
-    if (!m_sim.saveModel(infile,geoBlk,nBlock))
-      return 1;
-
-    // Optionally save the initial configuration
-    return tp && !m_sim.saveStep(*tp,nBlock) ? 2 : 0;
-  }
-
-  //! \brief Solve for a single time step.
-  //! \param tp Time stepping parameters.
-  //! \param nBlock Running VTF block counter.
-  int solve(TimeStep& tp, int& nBlock, DataExporter* exporter)
-  {
-    if (!m_sim.solveStep(tp))
-      return 3;
-
-    // Save solution
-    if (!m_sim.saveStep(tp,nBlock))
-      return 4;
-
-    if (exporter)
-      exporter->dumpTimeLevel(&tp);
-
-    return 0;
-  }
-
-  //! \brief Post step for a single time step.
-  bool post(TimeStep&) { return false; }
-
-  T& m_sim; //!< Reference to simulator to solve for.
-};
-
-
-//! \brief Specialization for adaptive simulators.
-template<>
-struct SolverHandler<AdaptiveSIM> {
-  //! \brief Constructor.
-  SolverHandler<AdaptiveSIM>(AdaptiveSIM& sim) : m_sim(sim), m_infile(nullptr)
-  {
-    m_step = 0;
-    m_norms = sim.getNoNorms();
-  }
-
-  int pre(char* infile, int&, const TimeStep* = nullptr)
-  {
-    m_infile = infile;
-    return 0;
-  }
-
-  //! \brief Solve for a adaptive level.
-  //! \param tp Time stepping parameters.
-  //! \param nBlock Running VTF block counter.
-  int solve(TimeStep& tp, int& nBlock, DataExporter* exporter)
-  {
-    if (!m_sim.solveStep(m_infile, m_step))
-      return 5;
-
-    if (!m_sim.writeGlv(m_infile,m_step,m_norms))
-      return 6;
-
-    if (exporter)
-      exporter->dumpTimeLevel(nullptr, true);
-
-    return 0;
-  }
-
-  //! \brief Post step for a single adaptive loop.
-  bool post(TimeStep& tp)
-  {
-    if (++m_step == 1 || m_sim.adaptMesh(m_step))
-      return true;
-
-    m_step = 0;
-    tp.step--; // advanceStep will increment it
-    return false;
-  }
-
-  AdaptiveSIM& m_sim; //!< Reference to adaptive simulator.
-  char* m_infile;     //!< Input file to parse.
-  size_t m_step;      //!< Current adaptive level.
-  size_t m_norms;     //!< Number of norms in adaptive group.
-};
 
 
 /*!
@@ -158,37 +65,36 @@ public:
   //! \brief Advances the time step \a n steps forward.
   void fastForward(int n) { for (int i = 0; i < n; i++) this->advanceStep(); }
 
-  void postSolve(const TimeStep& tp, bool restart=false) { S1.postSolve(tp,restart); }
+  //! \brief Postprocesses the solution of current time step.
+  void postSolve(const TimeStep& t, bool rst = false) { S1.postSolve(t,rst); }
 
   //! \brief Solves the problem up to the final time.
   virtual int solveProblem(char* infile, DataExporter* exporter = nullptr,
                            const char* heading = nullptr, bool saveInit = true)
   {
-    int res, nBlock = 0;
-    SolverHandler<T1> handler(S1);
-    if (saveInit)
-      res = handler.pre(infile,nBlock,&tp);
-    else
-      res = handler.pre(infile,nBlock);
-    if (res) return res;
+    // Save FE model to VTF file for visualization
+    int geoBlk = 0, nBlock = 0;
+    if (!this->S1.saveModel(infile,geoBlk,nBlock))
+      return 1;
 
-    if (heading)
-    {
-      // Write an application-specific heading, if provided
-      std::string myHeading(heading);
-      size_t n = myHeading.find_last_of('\n');
-      if (n+1 < myHeading.size()) n = myHeading.size()-n;
-      IFEM::cout <<"\n\n"<< myHeading <<"\n";
-      for (size_t i = 0; i < n && i < myHeading.size(); i++) IFEM::cout <<'=';
-      IFEM::cout << std::endl;
-    }
+    // Optionally save the initial configuration also
+    if (saveInit && !this->S1.saveStep(tp,nBlock))
+      return 2;
+
+    this->printHeading(heading);
 
     // Solve for each time step up to final time
-    for (int iStep = 1; handler.post(tp) || this->advanceStep(); iStep++)
-      if ((res = handler.solve(tp,nBlock,exporter)))
-        return res;
-      else
-        IFEM::pollControllerFifo();
+    for (int iStep = 1; this->advanceStep(); iStep++)
+    {
+      if (!this->S1.solveStep(tp))
+        return 3;
+      else if (!this->S1.saveStep(tp,nBlock))
+        return 4;
+      else if (exporter)
+        exporter->dumpTimeLevel(&tp,false);
+
+      IFEM::pollControllerFifo();
+    }
 
     return 0;
   }
@@ -198,6 +104,20 @@ protected:
   virtual bool parse(char* keyw, std::istream& is) { return tp.parse(keyw,is); }
   //! \brief Parses a data section from an XML element.
   virtual bool parse(const TiXmlElement* elem) { return tp.parse(elem); }
+
+  //! \brief Writes an application-specific heading, if provided
+  void printHeading(const char* heading)
+  {
+    if (heading)
+    {
+      std::string myHeading(heading);
+      size_t n = myHeading.find_last_of('\n');
+      if (n+1 < myHeading.size()) n = myHeading.size()-n;
+      IFEM::cout <<"\n\n"<< myHeading <<"\n";
+      for (size_t i = 0; i < n && i < myHeading.size(); i++) IFEM::cout <<'=';
+      IFEM::cout << std::endl;
+    }
+  }
 
   TimeStep tp; //!< Time stepping information
   T1&      S1; //!< The actual solver
