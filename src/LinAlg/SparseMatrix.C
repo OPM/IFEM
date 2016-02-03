@@ -1168,9 +1168,16 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
   StatInit(&stat);
 
   // Invoke the expert driver
+#if SUPERLU_VERSION == 5
+  GlobalLU_t Glu;
+  dgssvx(slu->opts, &slu->A, slu->perm_c, slu->perm_r, slu->etree, slu->equed,
+         slu->R, slu->C, &slu->L, &slu->U, work, lwork, &Bmat, &Xmat,
+         &slu->rpg, &slu->rcond, ferr, berr, &Glu, &mem_usage, &stat, &ierr);
+#else
   dgssvx(slu->opts, &slu->A, slu->perm_c, slu->perm_r, slu->etree, slu->equed,
          slu->R, slu->C, &slu->L, &slu->U, work, lwork, &Bmat, &Xmat,
          &slu->rpg, &slu->rcond, ferr, berr, &mem_usage, &stat, &ierr);
+#endif
 
   B.swap(X);
 
