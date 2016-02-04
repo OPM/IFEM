@@ -14,7 +14,7 @@
 #include "SparseMatrix.h"
 #include "SAM.h"
 #if defined(HAS_SUPERLU_MT)
-#include "pdsp_defs.h"
+#include "slu_mt_ddefs.h"
 #elif defined(HAS_SUPERLU)
 #include "slu_ddefs.h"
 #endif
@@ -108,6 +108,11 @@ struct SuperLUdata
     if (perm_r) delete[] perm_r;
     if (perm_c) delete[] perm_c;
     if (etree)  delete[] etree;
+#ifdef HAS_SUPERLU_MT
+    delete[] opts->etree;
+    delete[] opts->colcnt_h;
+    delete[] opts->part_super_h;
+#endif
     if (opts)   delete   opts;
   }
 #endif
@@ -1073,6 +1078,12 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
     slu->perm_r = new int[nrow];
     slu->C = new Real[ncol];
     slu->R = new Real[nrow];
+    slu->opts->etree = new int[ncol];
+    slu->opts->colcnt_h = new int[ncol];
+    slu->opts->part_super_h = new int[ncol];
+    memset(slu->opts->colcnt_h, 0, ncol*sizeof(int));
+    memset(slu->opts->part_super_h, 0, ncol*sizeof(int));
+    memset(slu->opts->etree, 0, ncol*sizeof(int));
     dCreate_CompCol_Matrix(&slu->A, nrow, ncol, this->size(),
                            &A.front(), &JA.front(), &IA.front(),
                            SLU_NC, SLU_D, SLU_GE);
@@ -1098,8 +1109,6 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
                        SLU_DN, SLU_D, SLU_GE);
   dCreate_Dense_Matrix(&Xmat, nrow, nrhs, X.ptr(), nrow,
                        SLU_DN, SLU_D, SLU_GE);
-
-  slu->opts->ConditionNumber = rcond ? YES : NO;
 
   Real ferr[nrhs], berr[nrhs];
   superlu_memusage_t mem_usage;

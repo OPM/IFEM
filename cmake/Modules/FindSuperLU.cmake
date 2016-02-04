@@ -15,7 +15,7 @@ FIND_LIBRARY(SuperLU_LIBRARIES
 )
 
 FIND_PATH(SuperLU_MT_INCLUDES
-  NAMES pdsp_defs.h
+  NAMES slu_mt_ddefs.h
   PATHS $ENV{HOME}/include
   /sima/libs/SuperLU_MT/include
   PATH_SUFFIXES superlu_mt superlu
