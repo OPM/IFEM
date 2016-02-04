@@ -312,21 +312,36 @@ void ASMu2D::evaluateBasis(FiniteElement &fe, int derivs) const
 	int p1 = lrspline->order(0);
 	int p2 = lrspline->order(1);
 	int p  = p1*p2;
-	Vector B(p);  // Bezier basis functions (vector of p1 x p2 components)
-	Vector Bu(p); // Bezier basis functions differentiated wrt u
-	Vector Bv(p); // Bezier basis functions differentiated wrt v
-	size_t k = 0;
-	for(size_t j=0; j<Nv.size(); j+=(derivs+1)) {
-		for(size_t i=0; i<Nu.size(); i+=(derivs+1), k++) {
-			B[k] = Nu[i]*Nv[j];
-			if(derivs > 0) {
-				Bu[k] = Nu[i+1]*Nv[ j ];
-				Bv[k] = Nu[ i ]*Nv[j+1];
-			}
-		}
-	}
-	fe.N = C*B;
 
+        if (derivs > 0) {
+          Vector B(p);
+          Vector Bu(p); // Bezier basis functions differentiated wrt u
+          Vector Bv(p); // Bezier basis functions differentiated wrt v
+          size_t k = 0;
+          for(size_t j=0; j<Nv.size(); j+=(derivs+1)) {
+            for(size_t i=0; i<Nu.size(); i+=(derivs+1), k++) {
+              B[k] = Nu[i]*Nv[j];
+              Bu[k] = Nu[i+1]*Nv[ j ];
+              Bv[k] = Nu[ i ]*Nv[j+1];
+            }
+          }
+
+          fe.N = C*B;
+
+          Matrix dNdu(el->nBasisFunctions(), 2);
+          dNdu.fillColumn(1, C*Bu);
+          dNdu.fillColumn(2, C*Bv);
+          Matrix Xnod, Jac;
+          getElementCoordinates(Xnod, fe.iel);
+          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+
+        } else {
+          Matrix B(p1, p2);
+          B.outer_product(Nu, Nv);
+          fe.N = C*static_cast<const Vector&>(B);
+        }
+
+#if SP_DEBUG > 2
 	int N    = el->nBasisFunctions();
 	int allP = p1*p2;
 	double sum = 0;
@@ -343,13 +358,6 @@ void ASMu2D::evaluateBasis(FiniteElement &fe, int derivs) const
 	}
 
 	if(derivs > 0) {
-		Matrix dNdu(el->nBasisFunctions(), 2);
-		dNdu.fillColumn(1, C*Bu);
-		dNdu.fillColumn(2, C*Bv);
-		Matrix Xnod, Jac;
-		getElementCoordinates(Xnod, fe.iel);
-		fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
-
 		sum = 0;
 		for(int qq=1; qq<=N; qq++) sum+= dNdu(qq,1);
 		if(fabs(sum) > 1e-10) {
@@ -370,7 +378,7 @@ void ASMu2D::evaluateBasis(FiniteElement &fe, int derivs) const
 			exit(123);
 		}
 	}
-
+#endif
 }
 
 bool ASMu2D::generateFEMTopology ()
@@ -825,22 +833,7 @@ size_t ASMu2D::getNoBoundaryElms (char lIndex, char ldim) const
 void ASMu2D::getGaussPointParameters (RealArray& uGP, int dir, int nGauss,
                                       int iel, const double* xi) const
 {
-#ifdef INDEX_CHECK
-  if (iel < 1 || iel > lrspline->nElements())
-  {
-    std::cerr <<" *** ASMu2D::getGaussPointParameters: Element index "<< iel
-             <<" out of range [1,"<< lrspline->nElements() <<"]."<< std::endl;
-    return;
-  }
-#endif
-
-  LR::Element* el = lrspline->getElement(iel-1);
-  double ustart = dir == 0 ? el->umin() : el->vmin();
-  double ustop  = dir == 0 ? el->umax() : el->vmax();
-
-  uGP.resize(nGauss);
-  for (int i = 0; i < nGauss; i++)
-    uGP[i] = 0.5*((ustop-ustart)*xi[i] + ustop+ustart);
+  LR::getGaussPointParameters(lrspline.get(), uGP, dir, nGauss, iel, xi);
 }
 
 
@@ -1523,13 +1516,12 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
       return false;
 
     // Evaluate basis function values/derivatives at current parametric point
-    // and mulitiply with control point values to get the point-wise solution
+    // and multiply with control point values to get the point-wise solution
     switch (deriv) {
 
     case 0: // Evaluate the solution
       evaluateBasis(fe, deriv);
-      ptSol = eSol * fe.N;
-      sField.fillColumn(1+i,ptSol);
+      sField.fillColumn(1+i, eSol * fe.N);
       break;
 
     case 1: // Evaluate first derivatives of the solution
