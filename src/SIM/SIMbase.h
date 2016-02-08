@@ -528,7 +528,7 @@ protected:
   //! \brief Preprocessing performed before the FEM model generation.
   virtual void preprocessA() {}
   //! \brief Specialized preprocessing performed before assembly initialization.
-  virtual void preprocessBeforeAsmInit(int&) {}
+  virtual bool preprocessBeforeAsmInit(int&) { return true; }
   //! \brief Preprocessing performed after the system assembly initialization.
   virtual bool preprocessB() { return true; }
   //! \brief Preprocesses the result sampling points.

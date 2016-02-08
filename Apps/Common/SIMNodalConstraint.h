@@ -89,10 +89,11 @@ public:
 
   //! \copydoc SIMbase::preprocessBeforeAsmInit(int&)
   //! \details Sets up the nodal constraints.
-  virtual void preprocessBeforeAsmInit(int&)
+  virtual bool preprocessBeforeAsmInit(int&)
   {
     NodalConstraintProcessor<Dim>::apply(*this, this->myEntitys,
                                          vertConstraints);
+    return true;
   }
 
   //! \brief Parses a data section from an XML element.
