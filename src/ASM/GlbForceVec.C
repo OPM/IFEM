@@ -69,11 +69,14 @@ bool GlbForceVec::assemble (const LocalIntegral* elmObj, int elmId)
   // Assemble the nodal forces into the Matrix F
   size_t i, j, k, ninod = 0;
   std::map<int,size_t>::const_iterator nit;
-  for (i = k = 0; i < mnpc.size(); i++, k += nfc)
+  for (i = k = 0; i < mnpc.size(); i++) {
     if ((nit = nodeMap.find(mnpc[i])) == nodeMap.end())
       ninod++;
     else for (j = 0; j < nfc; j++)
       F(j+1,nit->second) -= ES[k+j];
+    auto dofs = sam.getNodeDOFs(mnpc[i]);
+    k += dofs.second-dofs.first+1;
+  }
 
   if (ninod < mnpc.size())
     return true;
