@@ -49,7 +49,7 @@ public:
   virtual bool assembleAndSolve();
 
   //! \brief Returns vectors to interpolate during refinements.
-  virtual Vectors* getRefineVectors() { return nullptr; }
+  virtual Vectors& getRefineVectors() { static Vectors v; return v; }
 
   //! \brief Transfers refined vectors back to solver.
   virtual void solutionTransfer() {}

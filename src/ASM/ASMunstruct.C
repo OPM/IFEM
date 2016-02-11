@@ -50,27 +50,11 @@ ASMunstruct::~ASMunstruct ()
 {
 }
 
-bool ASMunstruct::refine (const RealArray&, const IntVec&, Vectors*, const char*)
+bool ASMunstruct::refine (const LR::RefineData&, Vectors&, const char*)
 {
   std::cerr <<" *** ASMunstruct::refine: Not available without LR-Spline"
             << std::endl;
   return false;
-}
-
-bool ASMunstruct::refine (const IntVec&, const IntVec&, Vectors*, const char*)
-{
-  std::cerr <<" *** ASMunstruct::refine: Not available without LR-Spline"
-            << std::endl;
-  return false;
-}
-
-
-Go::BsplineBasis ASMunstruct::getBezierBasis (int p)
-{
-  std::vector<double> knot(2*p);
-  std::fill(knot.begin(),   knot.begin()+p, -1.0);
-  std::fill(knot.begin()+p, knot.end()    ,  1.0);
-  return Go::BsplineBasis(p,p,knot.begin());
 }
 
 #endif

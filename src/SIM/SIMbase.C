@@ -321,7 +321,7 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
       if (elem->FirstChild()) {
         int ndir = 0;
         utl::getAttribute(elem,"direction",ndir);
-	if (ndir > 0) IFEM::cout <<" direction "<< ndir;
+        if (ndir > 0) IFEM::cout <<" direction "<< ndir;
         this->setPropertyType(code,Property::ROBIN);
         this->setNeumann(elem->FirstChild()->Value(),"expression",ndir,code);
       }
@@ -2505,61 +2505,6 @@ bool SIMbase::extractPatchElmRes (const Matrix& glbRes, Matrix& elRes,
 }
 
 
-bool SIMbase::refine (const IntVec& elements,
-                      const IntVec& options, Vectors* sol,
-                      const char* fName)
-{
-  isRefined = false;
-  ASMunstruct* pch = nullptr;
-  std::vector<Vectors> lvec(myModel.size());
-  for (size_t i = 0; i < myModel.size(); i++)
-    if (!myModel[i]->empty() && (pch = dynamic_cast<ASMunstruct*>(myModel[i]))) {
-      if (sol && !sol->empty()) {
-        lvec[i].resize(sol->size());
-        for (size_t j = 0; j < sol->size(); ++j)
-          pch->extractNodeVec((*sol)[j], lvec[i][j]);
-      }
-      if (pch->refine(elements,options,&lvec[i],fName))
-        isRefined = true;
-      else
-        return false;
-    }
-
-  if (sol && !sol->empty())
-    for (size_t j = 0; j < sol->size(); ++j)
-      (*sol)[j] = lvec[0][j];
-
-  return isRefined;
-}
-
-
-bool SIMbase::refine (const RealArray& elementError,
-                      const IntVec& options, Vectors* sol,
-                      const char* fName)
-{
-  isRefined = false;
-  ASMunstruct* pch = nullptr;
-  for (size_t i = 0; i < myModel.size(); i++)
-    if (!myModel[i]->empty() && (pch = dynamic_cast<ASMunstruct*>(myModel[i]))) {
-      Vectors lvec;
-      if (sol && !sol->empty()) {
-        lvec.resize(sol->size());
-        for (size_t j = 0; j < sol->size(); ++j)
-          pch->extractNodeVec((*sol)[j], lvec[j]);
-      }
-      if (pch->refine(elementError,options,&lvec,fName))
-        isRefined = true;
-      else
-        return false;
-      if (sol && !sol->empty())
-        for (size_t j = 0; j < sol->size(); ++j)
-          pch->injectNodeVec(lvec[j], (*sol)[j]);
-    }
-
-  return isRefined;
-}
-
-
 bool SIMbase::setPatchMaterial (size_t patch)
 {
   for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); ++p)
@@ -2567,4 +2512,60 @@ bool SIMbase::setPatchMaterial (size_t patch)
       return this->initMaterial(p->pindx);
 
   return false;
+}
+
+
+bool SIMbase::refine (const LR::RefineData& prm, const char* fName)
+{
+  Vectors svec;
+  return this->refine(prm,svec,fName);
+}
+
+
+bool SIMbase::refine (const LR::RefineData& prm,
+                      Vector& sol, const char* fName)
+{
+  if (sol.empty())
+    return this->refine(prm,fName);
+
+  Vectors svec(1,sol);
+  bool result = this->refine(prm,svec,fName);
+  sol = svec.front();
+  return result;
+}
+
+
+/*!
+  \note Solution transfer is available for single-patch models only.
+  Therefore, we assume there is a one-to-one correspondance between the
+  patch-level and global-level node numbering, and we don't need to use
+  ASMbase::[extract|inject]NodeVec(), which in any case would not work
+  as we would have needed to regenerate the global node numbering data first.
+
+  TODO: If/when going adaptive multi-patch, the solution transfer has to be
+  done after preprocess().
+*/
+
+bool SIMbase::refine (const LR::RefineData& prm,
+                      Vectors& sol, const char* fName)
+{
+  isRefined = false;
+  ASMunstruct* pch = nullptr;
+  for (size_t i = 0; i < myModel.size(); i++)
+    if ((pch = dynamic_cast<ASMunstruct*>(myModel[i])))
+    {
+      if (isRefined && !sol.empty())
+      {
+        std::cerr <<" *** SIMbase::refine: Solution transfer is not implemented"
+                  <<" for multi-patch models.\n";
+        return false;
+      }
+
+      if (!pch->refine(prm,sol,fName))
+        return false;
+
+      isRefined = true;
+    }
+
+  return isRefined;
 }

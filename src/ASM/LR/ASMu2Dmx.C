@@ -563,263 +563,106 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-//! \brief Expand the basis coefficients of a spline surface.
-//! \details Used for solution transfer during refinement.
-//! \param[in] basis The surface to extend
-//! \param[in] sol The vector to append to the basis coefficients
-//! \param[in] nf Number of fields in the given vector
-//! \param[in] ofs Offset in vector
-static void extendControlPoints(std::shared_ptr<LR::LRSplineSurface>& basis,
-                                Vector& sol, int nf, int ofs)
-{
-  std::vector<double> cpts;
-  for (auto it  = basis->basisBegin();
-            it != basis->basisEnd(); ++it) {
-    int id = (*it)->getId();
-    std::vector<double> cpp;
-    (*it)->getControlPoint(cpp);
-    cpts.insert(cpts.end(), cpp.begin(), cpp.end());
-    cpts.insert(cpts.end(), sol.begin()+id*nf+ofs, sol.begin()+(id+1)*nf+ofs);
-  }
-  basis->rebuildDimension(basis->dimension()+nf);
-  basis->setControlPoints(cpts);
-}
-
-
-//! \brief Contract the basis coefficients of a spline surface.
-//! \details Used for solution transfer after refinement.
-//! \param[in] basis The surface to extend
-//! \param[in] sol The vector to append to the basis coefficients
-//! \param[in] nf Number of fields in the given vector
-//! \param[in] ofs Offset in vector
-static void contractControlPoints(std::shared_ptr<LR::LRSplineSurface>& basis,
-                                  Vector& sol, int nf, int ofs)
-{
-  std::vector<double> cpts;
-  for (auto it  = basis->basisBegin();
-            it != basis->basisEnd(); ++it) {
-    int id = (*it)->getId();
-    std::vector<double> cpp;
-    (*it)->getControlPoint(cpp);
-    for (int i=1; i <= nf; ++i)
-      sol(id*nf+ofs+i) = cpp[basis->dimension()-nf+i-1];
-    cpts.insert(cpts.end(), cpp.begin(), cpp.begin()+basis->dimension()-nf);
-  }
-  basis->rebuildDimension(basis->dimension()-nf);
-  basis->setControlPoints(cpts);
-}
-
-
-bool ASMu2Dmx::refine (const RealArray& elementError,
-                       const IntVec& options,
-                       Vectors* sol, const char* fName)
+bool ASMu2Dmx::refine (const LR::RefineData& prm,
+                       Vectors& sol, const char* fName)
 {
   if (shareFE) return true;
+
+  char doRefine = 0;
+  if (!prm.errors.empty())
+    doRefine = 'E'; // Refine based on error indicators
+  else if (!prm.elements.empty())
+    doRefine = 'I'; // Refine the specified elements
+  else
+    return true; // No refinement
 
   // which basis to refine
   size_t bas = geoBasis-1;
 
-  // to pick up if LR splines get stuck while doing refinement print entry and exit point of this function
+  // to pick up if LR splines get stuck while doing refinement
+  // print entry and exit point of this function
 
-  double beta          = (options.size()>0)  ? options[0]/100.0 : 0.10;
-  int    multiplicity  = (options.size()>1)  ? options[1]       : 1;
-  enum refinementStrategy strat = LR_FULLSPAN;
-  if (options.size() > 2)
-    switch (options[2]) {
-      case 1: strat = LR_MINSPAN; break;
-      case 2: strat = LR_STRUCTURED_MESH; break;
-    }
-  int    maxTjoints    = (options.size()>4)  ? options[4]       : -1;
-  double maxAspectRatio= (options.size()>5)  ? options[5]       : -1;
-  bool   closeGaps     = (options.size()>6)  ? options[6]!=0    : false;
-  bool   isVol         = m_basis[bas]->nVariate()==3;
-
+  double beta         = prm.options.size() > 0 ? prm.options[0]/100.0 : 0.10;
+  int    multiplicity = prm.options.size() > 1 ? prm.options[1]       : 1;
   if (multiplicity > 1)
-  {
-    int p1 = m_basis[bas]->order(0) - 1;
-    int p2 = m_basis[bas]->order(1) - 1;
-    multiplicity = options[1];
-    if (multiplicity > p1) multiplicity = p1;
-    if (multiplicity > p2) multiplicity = p2;
-    if (isVol && multiplicity > m_basis[bas]->order(2)) multiplicity = m_basis[bas]->order(2);
+    for (int d = 0; d < geo->nVariate(); d++) {
+      int p = geo->order(d) - 1;
+      if (multiplicity > p) multiplicity = p;
+    }
+
+  enum refinementStrategy strat = LR_FULLSPAN;
+  if (prm.options.size() > 2)
+    switch (prm.options[2]) {
+    case 1: strat = LR_MINSPAN; break;
+    case 2: strat = LR_STRUCTURED_MESH; break;
+    }
+
+  int  maxTjoints     = prm.options.size() > 4 ? prm.options[4]      : -1;
+  int  maxAspectRatio = prm.options.size() > 5 ? prm.options[5]      : -1;
+  bool closeGaps      = prm.options.size() > 6 ? prm.options[6] != 0 : false;
+
+  // set refinement parameters
+  if (maxTjoints > 0)
+    m_basis[bas]->setMaxTjoints(maxTjoints);
+  if (maxAspectRatio > 0)
+    m_basis[bas]->setMaxAspectRatio((double)maxAspectRatio);
+  m_basis[bas]->setCloseGaps(closeGaps);
+  m_basis[bas]->setRefMultiplicity(multiplicity);
+  m_basis[bas]->setRefStrat(strat);
+
+  for (size_t j = 0; j < sol.size(); ++j) {
+    size_t ofs = 0;
+    for (size_t i = 0; i< m_basis.size(); ++i) {
+      LR::extendControlPoints(m_basis[i].get(), sol[j], nfx[i], ofs);
+      ofs += nfx[i]*nb[i];
+    }
   }
 
-  if (!elementError.empty()) {
-    // set refinement parameters
-    if(maxTjoints > 0)
-      m_basis[bas]->setMaxTjoints(maxTjoints);
-    if(maxAspectRatio > 0)
-      m_basis[bas]->setMaxAspectRatio(maxAspectRatio);
-    m_basis[bas]->setCloseGaps(closeGaps);
-    m_basis[bas]->setRefMultiplicity(multiplicity);
-    m_basis[bas]->setRefStrat(strat);
+  // do actual refinement
+  if (doRefine == 'E')
+    m_basis[bas]->refineByDimensionIncrease(prm.errors,beta);
+  else if(strat == LR_STRUCTURED_MESH)
+    m_basis[bas]->refineBasisFunction(prm.elements);
+  else
+    m_basis[bas]->refineElement(prm.elements);
 
-    if (sol && !sol->empty()) {
-      for (size_t j = 0; j < sol->size(); ++j) {
-        size_t ofs=0;
-        for (size_t i=0; i< m_basis.size(); ++i) {
-          extendControlPoints(m_basis[i], (*sol)[j], nfx[i], ofs);
-          ofs += nfx[i]*nb[i];
-        }
-      }
-    }
+  const std::vector<LR::Meshline*> lines = m_basis[bas]->getAllMeshlines();
+  for (auto line : lines)
+    for (size_t j = 0; j < m_basis.size(); ++j)
+      if (j == bas)
+        continue;
+      else if (line->span_u_line_)
+        m_basis[j]->insert_const_u_edge(line->const_par_,
+                                        line->start_, line->stop_,
+                                        line->multiplicity_);
+      else
+        m_basis[j]->insert_const_v_edge(line->const_par_,
+                                        line->start_, line->stop_,
+                                        line->multiplicity_);
 
-    // do actual refinement
-    m_basis[bas]->refineByDimensionIncrease(elementError, beta);
+  size_t len = 0;
+  for (size_t j = 0; j< m_basis.size(); ++j) {
+    m_basis[j]->generateIDs();
+    nb[j] = m_basis[j]->nBasisFunctions();
+    len += nfx[j]*nb[j];
+  }
 
-    const std::vector<LR::Meshline*> lines = m_basis[bas]->getAllMeshlines();
-    for (auto line : lines) {
-      for (size_t j = 0; j < m_basis.size(); ++j) {
-        if (j == bas)
-          continue;
-        if (line->span_u_line_)
-          m_basis[j]->insert_const_u_edge(line->const_par_,
-                                          line->start_, line->stop_,
-                                          line->multiplicity_);
-        else
-          m_basis[j]->insert_const_v_edge(line->const_par_,
-                                          line->start_, line->stop_,
-                                          line->multiplicity_);
-      }
-    }
-
-    size_t len = 0;
-    for (size_t j = 0; j< m_basis.size(); ++j) {
-      m_basis[j]->generateIDs();
-      nb[j] = m_basis[j]->nBasisFunctions();
-      len += nfx[j]*nb[j];
-    }
-
-    if (sol) {
-      size_t ofs = 0;
-      for (size_t i = 0; i < sol->size(); ++i) {
-        for (size_t j = 0; j < m_basis.size(); ++j) {
-          (*sol)[i].resize(len);
-          contractControlPoints(m_basis[j], (*sol)[i], nfx[j], ofs);
-          ofs += nfx[j]*nb[j];
-        }
-      }
+  size_t ofs = 0;
+  for (int i = sol.size()-1; i > 0; i--)
+    for (size_t j = 0; j < m_basis.size(); ++j) {
+      sol[i].resize(len);
+      LR::contractControlPoints(m_basis[j].get(), sol[i], nfx[j], ofs);
+      ofs += nfx[j]*nb[j];
     }
 
 #ifdef SP_DEBUG
-    std::cout <<"Refined mesh: ";
-    for (const auto& it : m_basis)
-      std::cout << it->nElements() << " ";
-    std::cout << "elements ";
-    for (const auto& it : m_basis)
-      std::cout << it->nBasisFunctions() << " ";
-    std::cout << "nodes."<< std::endl;
-#endif
-  }
-
-  return true;
-}
-
-
-bool ASMu2Dmx::refine (const IntVec& elements,
-                       const IntVec& options,
-                       Vectors* sol, const char* fName)
-{
-  if (shareFE) return true;
-
-  // which basis to refine
-  size_t bas = geoBasis-1;
-
-  // to pick up if LR splines get stuck while doing refinement print entry and exit point of this function
-
-  int    multiplicity  = (options.size()>1)  ? options[1]       : 1;
-  enum refinementStrategy strat = LR_FULLSPAN;
-  if (options.size() > 2)
-    switch (options[2]) {
-      case 1: strat = LR_MINSPAN; break;
-      case 2: strat = LR_STRUCTURED_MESH; break;
-    }
-  int    maxTjoints    = (options.size()>4)  ? options[4]       : -1;
-  double maxAspectRatio= (options.size()>5)  ? options[5]       : -1;
-  bool   closeGaps     = (options.size()>6)  ? options[6]!=0    : false;
-  bool   isVol         = m_basis[bas]->nVariate()==3;
-
-  if (multiplicity > 1)
-  {
-    int p1 = m_basis[bas]->order(0) - 1;
-    int p2 = m_basis[bas]->order(1) - 1;
-    multiplicity = options[1];
-    if (multiplicity > p1) multiplicity = p1;
-    if (multiplicity > p2) multiplicity = p2;
-    if (isVol && multiplicity > m_basis[bas]->order(2)) multiplicity = m_basis[bas]->order(2);
-  }
-
-  if (!elements.empty()) {
-    // set refinement parameters
-    if(maxTjoints > 0)
-      m_basis[bas]->setMaxTjoints(maxTjoints);
-
-    if(maxAspectRatio > 0)
-      m_basis[bas]->setMaxAspectRatio(maxAspectRatio);
-    m_basis[bas]->setCloseGaps(closeGaps);
-    m_basis[bas]->setRefMultiplicity(multiplicity);
-    m_basis[bas]->setRefStrat(strat);
-
-    if (sol && !sol->empty()) {
-      for (size_t j = 0; j < sol->size(); ++j) {
-        size_t ofs=0;
-        for (size_t i = 0; i < m_basis.size(); ++i) {
-          extendControlPoints(m_basis[i], (*sol)[j], nfx[i], ofs);
-          ofs += nfx[i]*nb[i];
-        }
-      }
-    }
-
-    // do actual refinement
-    if(strat == LR_STRUCTURED_MESH)
-      m_basis[bas]->refineBasisFunction(elements);
-    else
-      m_basis[bas]->refineElement(elements);
-
-    const std::vector<LR::Meshline*> lines = m_basis[bas]->getAllMeshlines();
-    for (auto line : lines) {
-      for (size_t j = 0; j < m_basis.size(); ++j) {
-        if (j == bas)
-          continue;
-        if (!line->span_u_line_)
-          m_basis[j]->insert_const_u_edge(line->const_par_,
-                                          line->start_, line->stop_,
-                                          line->multiplicity_);
-        else
-          m_basis[j]->insert_const_v_edge(line->const_par_,
-                                          line->start_, line->stop_,
-                                          line->multiplicity_);
-      }
-    }
-
-    size_t len = 0;
-    for (size_t j = 0; j< m_basis.size(); ++j) {
-      m_basis[j]->generateIDs();
-      nb[j] = m_basis[j]->nBasisFunctions();
-      len += nfx[j]*nb[j];
-    }
-
-    if (sol && !sol->empty()) {
-      for (size_t i = 0; i < sol->size(); ++i) {
-        size_t ofs = 0;
-        for (size_t j = 0; j < m_basis.size(); ++j) {
-          (*sol)[i].resize(len);
-          contractControlPoints(m_basis[j], (*sol)[i], nfx[j], ofs);
-          ofs += nfx[j]*nb[j];
-        }
-      }
-    }
-  }
-
-#ifdef SP_DEBUG
-  if (!elements.empty())
-    std::cout <<"Refined mesh: ";
-    for (const auto& it : m_basis)
-      std::cout << it->nElements() << " ";
-    std::cout << "elements ";
-    for (const auto& it : m_basis)
-      std::cout << it->nBasisFunctions() << " ";
-    std::cout << "nodes."<< std::endl;
+  std::cout <<"Refined mesh: ";
+  for (const auto& it : m_basis)
+    std::cout << it->nElements() <<" ";
+  std::cout <<"elements";
+  for (const auto& it : m_basis)
+    std::cout << it->nBasisFunctions() <<" ";
+  std::cout <<"nodes."<< std::endl;
 #endif
 
   return true;

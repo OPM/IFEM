@@ -14,7 +14,7 @@
 #include "AdaptiveSIM.h"
 #include "SIMoutput.h"
 #include "SIMenums.h"
-#include "ASMbase.h"
+#include "ASMunstruct.h"
 #include "IntegrandBase.h"
 #include "SystemMatrix.h"
 #include "Utilities.h"
@@ -205,7 +205,7 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
   }
   else if (storeMesh)
     // Output the initial grid to eps-file
-    model->refine(std::vector<int>(),std::vector<int>(),getRefineVectors(),"mesh_001.eps");
+    model->refine(LR::RefineData(),getRefineVectors(),"mesh_001.eps");
 
   // Assemble the linear FE equation system
   model->setMode(SIM::STATIC,true);
@@ -292,27 +292,28 @@ bool AdaptiveSIM::adaptMesh (int iStep)
     eRow += norm->getNoFields(i+1);
   delete norm;
 
-  std::vector<int> options;
-  options.reserve(8);
-  options.push_back(beta);
-  options.push_back(knot_mult);
-  options.push_back(scheme);
-  options.push_back(linIndepTest);
-  options.push_back(maxTjoints);
-  options.push_back(floor(maxAspRatio));
-  options.push_back(closeGaps);
-  options.push_back(trueBeta);
+  LR::RefineData prm;
+  prm.options.reserve(8);
+  prm.options.push_back(beta);
+  prm.options.push_back(knot_mult);
+  prm.options.push_back(scheme);
+  prm.options.push_back(linIndepTest);
+  prm.options.push_back(maxTjoints);
+  prm.options.push_back(floor(maxAspRatio));
+  prm.options.push_back(closeGaps);
+  prm.options.push_back(trueBeta);
 
   if (trueBeta)
   {
     IFEM::cout <<"\nRefining by increasing solution space by "<< beta
                <<" percent."<< std::endl;
+    prm.errors = eNorm.getRow(eRow);
     if (!storeMesh)
-      return model->refine(eNorm.getRow(eRow),options,getRefineVectors());
+      return model->refine(prm,getRefineVectors());
 
     char fname[13];
     sprintf(fname,"mesh_%03d.eps",iStep);
-    return model->refine(eNorm.getRow(eRow),options,getRefineVectors(),fname);
+    return model->refine(prm,getRefineVectors(),fname);
   }
 
   std::vector<IndexDouble> errors;
@@ -380,18 +381,17 @@ bool AdaptiveSIM::adaptMesh (int iStep)
 
   if (refineSize < 1 || refineSize > errors.size()) return false;
 
-  std::vector<int> toBeRefined;
-  toBeRefined.reserve(refineSize);
+  prm.elements.reserve(refineSize);
   for (i = 0; i < refineSize; i++)
-    toBeRefined.push_back(errors[i].second);
+    prm.elements.push_back(errors[i].second);
 
   // Now refine the mesh
   if (!storeMesh)
-    return model->refine(toBeRefined,options,getRefineVectors());
+    return model->refine(prm,getRefineVectors());
 
   char fname[13];
   sprintf(fname,"mesh_%03d.eps",iStep);
-  return model->refine(toBeRefined,options,getRefineVectors(),fname);
+  return model->refine(prm,getRefineVectors(),fname);
 }
 
 

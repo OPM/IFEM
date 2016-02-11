@@ -17,8 +17,54 @@
 #include "ASMbase.h"
 #include "GoTools/geometry/BsplineBasis.h"
 
+
 namespace LR {
   class LRSpline;
+
+  /*!
+    \brief A struct of data to control the mesh refinement.
+    \details The \a options parameters have the following interpretation:
+    options[0] is the beta percentage of elements to refine,
+    options[1] is the knotline multiplicity (default 1),
+    options[2] is the refinement scheme (default 0),
+    (FULLSPAN=0, MINSPAN=1, ISOTROPIC ELEMENTS=2, ISOTROPIC FUNCTIONS=3),
+    options[3] is the symmetry, i.e., always refine a multiple of this value,
+    options[4] is nonzero if testing for linear independence at all iterations,
+    options[5] is the maximum number of T-joints allowed in the model,
+    options[6] is the maximum allowed parametric aspect ratio of an element,
+    options[7] is one if all "gaps" are to be closed,
+    options[8] is one if using true beta.
+  */
+  struct RefineData
+  {
+    IntVec    options;  //!< Parameters used to control the refinement
+    IntVec    elements; //!< 0-based indices of the elements to refine
+    RealArray errors;   //!< List of error indicators for the elements
+  };
+
+  //! \brief Expands the basis coefficients of an LR-spline object.
+  //! \param[in] basis The surface to extend
+  //! \param[in] v The vector to append to the basis coefficients
+  //! \param[in] nf Number of fields in the given vector
+  //! \param[in] ofs Offset in vector
+  void extendControlPoints(LRSpline* basis, Vector& v, int nf, int ofs = 0);
+
+  //! \brief Contracts the basis coefficients of an LR-spline object.
+  //! \param[in] basis The surface to extend
+  //! \param[in] v The vector to append to the basis coefficients
+  //! \param[in] nf Number of fields in the given vector
+  //! \param[in] ofs Offset in vector
+  void contractControlPoints(LRSpline* basis, Vector& v, int nf, int ofs = 0);
+
+  //! \brief Extracts parameter values of the Gauss points in one direction.
+  //! \param[in] spline The LR-spline object to get parameter values for
+  //! \param[out] uGP Parameter values in given direction for all points
+  //! \param[in] d Parameter direction (0,1,2)
+  //! \param[in] nGauss Number of Gauss points along a knot-span
+  //! \param[in] iel Element index
+  //! \param[in] xi Dimensionless Gauss point coordinates [-1,1]
+  void getGaussPointParameters(const LRSpline* spline, RealArray& uGP,
+                               int dir, int nGauss, int iel, const double* xi);
 }
 
 
@@ -47,30 +93,12 @@ public:
   //! \brief Checks if the patch is empty.
   virtual bool empty() const { return geo == 0; }
 
-  //! \brief Refines a specified list of elements.
-  //! \param[in] elements 0-based indices of the elements to refine
-  //! \param[in] options Additional input parameters to control the refinement,
-  //! options[0] is the beta percentage of elements to refine,
-  //! options[1] is the knotline multiplicity (default 1),
-  //! options[2] is the refinement scheme (default 0),
-  //! (FULLSPAN=0, MINSPAN=1, ISOTROPIC ELEMENTS=2, ISOTROPIC FUNCTIONS=3),
-  //! options[3] is the symmetry, i.e., always refine a multiple of this value
-  //! options[4] is nonzero if testing for linear independence at all iterations
-  //! options[5] is the maximum number of T-joints allowed in the model
-  //! options[6] is the maximum allowed parametric aspect ratio of an element
-  //! options[7] is one if all "gaps" are to be closed
-  //! options[8] is one if using true beta
-  //! \param sol Vectors to interpolate on old mesh on entry, on refined mesh on return
+  //! \brief Refines the mesh adaptively.
+  //! \param[in] prm Input data used to control the mesh refinement
+  //! \param sol Control point results values that are transferred to new mesh
   //! \param[in] fName Optional file name for an image of the resulting mesh
-  virtual bool refine(const IntVec& elements, const IntVec& options,
-                      Vectors* sol, const char* fName = nullptr);
-  //! \brief Refines a set of elements based on a list of element errors.
-  //! \param[in] elementError Element-wise errors
-  //! \param[in] options Additional input parameters to control the refinement
-  //! \param sol Vectors to interpolate on old mesh on entry, on refined mesh on return
-  //! \param[in] fName Optional file name for an image of the resulting mesh
-  virtual bool refine(const RealArray& elementError, const IntVec& options,
-                      Vectors* sol, const char* fName = nullptr);
+  virtual bool refine(const LR::RefineData& prm, Vectors& sol,
+                      const char* fName = nullptr);
 
   //! \brief Resets global element and node counters.
   static void resetNumbering() { gEl = gNod = 0; }
@@ -80,14 +108,11 @@ public:
   //! \param[in] integrand Object with problem-specific data and methods
   virtual LR::LRSpline* evalSolution(const IntegrandBase& integrand) const = 0;
 
-  /*!
-    \brief Returns a Bezier basis of order \a p.
-  */
-  static Go::BsplineBasis getBezierBasis (int p);
+  //! \brief Returns a Bezier basis of order \a p.
+  static Go::BsplineBasis getBezierBasis(int p);
 
-  //! \brief Obtain functions having support on a list of elements
-  //! \param[in] elements The elements to return support for.
-  std::vector<int> getFunctionsForElements(const std::vector<int>& elements);
+  //! \brief Returns a list of basis functions having support on given elements.
+  IntVec getFunctionsForElements(const IntVec& elements);
 
 protected:
   LR::LRSpline* geo; //!< Pointer to the actual spline geometry object

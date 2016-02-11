@@ -32,6 +32,7 @@ class LinSolParams;
 class TimeStep;
 class SystemVector;
 class Vec4;
+namespace LR { struct RefineData; }
 
 //! Property code to integrand map
 typedef std::multimap<int,IntegrandBase*> IntegrandMap;
@@ -111,20 +112,24 @@ public:
   //! \brief Creates the FE model by copying the given patches.
   virtual void clonePatches(const PatchVec&, const std::map<int,int>&) {}
 
-  //! \brief Refines a list of elements.
-  //! \param[in] elements 0-based indices of the elements to refine
-  //! \param[in] options Input options to refinement algorithm
+  //! \brief Refines the mesh adaptively.
+  //! \param[in] prm Input data used to control the refinement
+  //! \param[in] fName Optional mesh output file (Encapsulated PostScript)
+  bool refine(const LR::RefineData& prm, const char* fName = nullptr);
+
+  //! \brief Refines the mesh adaptively.
+  //! \param[in] prm Input data used to control the refinement
+  //! \param[in] sol Vector to interpolate onto refined mesh
+  //! \param[in] fName Optional mesh output file (Encapsulated PostScript)
+  bool refine(const LR::RefineData& prm,
+              Vector& sol, const char* fName = nullptr);
+
+  //! \brief Refines the mesh adaptively.
+  //! \param[in] prm Input data used to control the refinement
   //! \param[in] sol Vectors to interpolate onto refined mesh
   //! \param[in] fName Optional mesh output file (Encapsulated PostScript)
-  bool refine(const std::vector<int>& elements, const std::vector<int>& options,
-              Vectors* sol, const char* fName = nullptr);
-  //! \brief Refines a set of elements based on a list of element errors.
-  //! \param[in] elementError Element-wise errors
-  //! \param[in] options Input options to refinement algorithm
-  //! \param[in] sol Vectors to interpolate onto refined mesh
-  //! \param[in] fName Optional mesh output file (Encapsulated PostScript)
-  bool refine(const RealArray& elementError, const std::vector<int>& options,
-              Vectors* sol, const char* fName = nullptr);
+  bool refine(const LR::RefineData& prm,
+              Vectors& sol, const char* fName = nullptr);
 
   //! \brief Performs some pre-processing tasks on the FE model.
   //! \param[in] ignored Indices of patches to ignore in the analysis
@@ -137,14 +142,15 @@ public:
   //! \param[in] ptype The property type to be associated with the given code
   //! \param[in] field The vector field representing the physical property
   //! \param[in] pflag Flag for local axis directions (see setPropertyType)
-  size_t setVecProperty(int code, Property::Type ptype, VecFunc* field = nullptr,
-                        int pflag = -1);
+  size_t setVecProperty(int code, Property::Type ptype,
+                        VecFunc* field = nullptr, int pflag = -1);
 
   //! \brief Defines a traction field property.
   //! \param[in] code The property code to be associated with the property
   //! \param[in] ptype The property type to be associated with the given code
   //! \param[in] field The traction field representing the physical property
-  bool setTracProperty(int code, Property::Type ptype, TractionFunc* field = 0);
+  bool setTracProperty(int code, Property::Type ptype,
+                       TractionFunc* field = nullptr);
 
   //! \brief Allocates the system matrices of the FE problem to be solved.
   //! \param[in] mType The matrix format to use
@@ -197,7 +203,7 @@ public:
   //! \brief Returns the number of parameter dimensions in the model.
   virtual unsigned short int getNoParamDim() const = 0;
   //! \brief Returns the number of spatial dimensions in the model.
-  size_t getNoSpaceDim() const { return nsd; }
+  virtual size_t getNoSpaceDim() const { return nsd; }
   //! \brief Returns the number of primary solution fields.
   //! \param[in] basis Which basis to consider when mixed methods (0 = both)
   size_t getNoFields(int basis = 0) const;
@@ -257,7 +263,8 @@ public:
   //! (used for the initial time step), otherwise they are set to the difference
   //! between the new values from the Dirichlet functions, and the previous
   //! values stored in the provided \a prevSol vector.
-  virtual bool updateDirichlet(double time = 0.0, const Vector* prevSol = nullptr);
+  virtual bool updateDirichlet(double time = 0.0,
+                               const Vector* prevSol = nullptr);
 
   //! \brief Updates problem-dependent state based on the current solution.
   virtual bool updateConfiguration(const Vector&) { return true; }
@@ -338,9 +345,11 @@ public:
   //! \param[out] inf Infinity norms in each spatial direction
   //! \param[out] ind Global index of the node corresponding to the inf-value
   //! \param[in] nf Number of components in the primary solution field
+  //! \param[in] type Only consider nodes of this DOF type (for mixed methods)
   //! \return L2-norm of the solution vector
   double solutionNorms(const Vector& x, double* inf = nullptr,
-                       size_t* ind = nullptr, size_t nf = 0, char type='D') const;
+                       size_t* ind = nullptr, size_t nf = 0,
+                       char type = 'D') const;
 
   //! \brief Integrates some solution norm quantities.
   //! \param[in] time Parameters for nonlinear/time-dependent simulations.
