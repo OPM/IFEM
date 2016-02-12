@@ -26,6 +26,7 @@
 #include "IntegrandBase.h"
 #include "CoordinateMapping.h"
 #include "GaussQuadrature.h"
+#include "LagrangeInterpolator.h"
 #include "ElementBlock.h"
 #include "MPC.h"
 #include "SplineUtils.h"
@@ -1757,4 +1758,92 @@ bool ASMu2D::updateDirichlet (const std::map<int,RealFunc*>& func,
 size_t ASMu2D::getNoNodes (int) const
 {
   return lrspline->nBasisFunctions();
+}
+
+
+bool ASMu2D::transferGaussPtVars (const LR::LRSplineSurface* oldBasis,
+                                  const RealArray& oldVars, RealArray& newVars,
+                                  int nGauss) const
+{
+  const LR::LRSplineSurface* newBasis = this->getBasis();
+
+  size_t nGp = nGauss*nGauss;
+  newVars.resize(newBasis->nElements()*nGp);
+
+  const double* xi = GaussQuadrature::getCoord(nGauss);
+  LagrangeInterpolator interp(Vector(xi,nGauss));
+
+  for (int iEl = 0; iEl < newBasis->nElements(); iEl++)
+  {
+    const LR::Element* newEl = newBasis->getElement(iEl);
+    double u_center = 0.5*(newEl->umin() + newEl->umax());
+    double v_center = 0.5*(newEl->vmin() + newEl->vmax());
+    int iOld = oldBasis->getElementContaining(u_center,v_center);
+    if (iOld < 0) {
+      std::cerr <<" *** ASMu2D: Failed to locate element "<< iEl
+                <<" of the old mesh in the new mesh."<< std::endl;
+      return false;
+    }
+    const LR::Element* oldEl = oldBasis->getElement(iOld);
+
+    std::array<Matrix,2> I;
+    for (int i = 0; i < 2; i++)
+    {
+      RealArray UGP;
+      LR::getGaussPointParameters(newBasis, UGP, i, nGauss, iEl+1, xi);
+      double pmin = i == 0 ? oldEl->umin() : oldEl->vmin();
+      double pmax = i == 0 ? oldEl->umax() : oldEl->vmax();
+      for (size_t j = 0; j < UGP.size(); j++)
+        UGP[j] = -1.0 + 2.0*(UGP[j]-pmin)/(pmax-pmin);
+
+      // lagrangian interpolation
+      I[i] = interp.get(UGP);
+    }
+
+    Matrix data(nGauss,nGauss);
+    data.fill(&oldVars[nGp*iOld],nGp);
+
+    Matrix newdata;
+    newdata.multiply(I[0]*data,I[1],false,true);
+    std::copy(newdata.ptr(), newdata.ptr()+nGp, newVars.begin()+iEl*nGp);
+  }
+
+  return true;
+}
+
+
+bool ASMu2D::transferCntrlPtVars (LR::LRSplineSurface* oldBasis,
+                                  const RealArray& oldVars, RealArray& newVars,
+                                  int nGauss) const
+{
+  oldBasis->rebuildDimension(1);
+  oldBasis->setControlPoints(const_cast<RealArray&>(oldVars));
+  return this->transferCntrlPtVars(oldBasis,newVars,nGauss);
+}
+
+
+bool ASMu2D::transferCntrlPtVars (const LR::LRSplineSurface* oldBasis,
+                                  RealArray& newVars, int nGauss) const
+{
+  const LR::LRSplineSurface* newBasis = this->getBasis();
+
+  newVars.clear();
+  newVars.reserve(newBasis->nElements()*nGauss*nGauss*oldBasis->dimension());
+  const double* xi = GaussQuadrature::getCoord(nGauss);
+
+  for (int iEl = 0; iEl < newBasis->nElements(); iEl++)
+  {
+    RealArray U, V, ptVar;
+    LR::getGaussPointParameters(newBasis, U, 0, nGauss, iEl+1, xi);
+    LR::getGaussPointParameters(newBasis, V, 1, nGauss, iEl+1, xi);
+    for (int j = 0; j < nGauss; j++)
+      for (int i = 0; i < nGauss; i++)
+      {
+        oldBasis->point(ptVar,U[i],V[j]);
+        for (size_t k = 0; k < ptVar.size(); k++)
+          newVars.push_back(ptVar[k]);
+      }
+  }
+
+  return true;
 }
