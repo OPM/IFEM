@@ -88,13 +88,15 @@ public:
 
   //! \brief Opens a new VTF-file and writes the model geometry to it.
   //! \param[in] fileName File name used to construct the VTF-file name from
-  bool saveModel(char* fileName);
+  bool saveModel(const char* fileName);
 
   //! \brief Opens a new VTF-file and writes the model geometry to it.
   //! \param gBlock Running geometry block counter
   //! \param rBlock Running result block counter
   //! \param[in] fileName File name used to construct the VTF-file name from
-  bool saveModel(int& gBlock, int& rBlock, char* fileName = nullptr);
+  //! \param[in] clearG If \e true, clear geometry blocks if \a filename is null
+  bool saveModel(int& gBlock, int& rBlock, const char* fileName = nullptr,
+                 bool clearG = true);
 
   //! \brief Saves the converged results to VTF file of a given time/load step.
   //! \param[in] iStep Time/load step identifier

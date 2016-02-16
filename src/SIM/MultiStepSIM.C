@@ -75,19 +75,20 @@ void MultiStepSIM::setStartGeo (int gID)
 }
 
 
-bool MultiStepSIM::saveModel (char* fileName)
+bool MultiStepSIM::saveModel (const char* fileName)
 {
   geoBlk = nBlock = 0; // initialize the VTF block counters
   return this->saveModel(geoBlk,nBlock,fileName);
 }
 
 
-bool MultiStepSIM::saveModel (int& gBlock, int& rBlock, char* fileName)
+bool MultiStepSIM::saveModel (int& gBlock, int& rBlock,
+                              const char* fileName, bool clearG)
 {
   PROFILE1("MultiStepSIM::saveModel");
 
   // Write VTF-file with model geometry
-  if (!model.writeGlvG(gBlock,fileName,gBlock==0))
+  if (!model.writeGlvG(gBlock,fileName,clearG))
     return false;
 
   // Write Dirichlet boundary conditions
