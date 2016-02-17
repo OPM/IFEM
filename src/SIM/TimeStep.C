@@ -86,10 +86,9 @@ bool TimeStep::parse (char* keyWord, std::istream& is)
     }
   }
 
-  stepIt   = mySteps.begin();
-  stopTime = mySteps.back().second;
-  time.dt  = mySteps.front().first.front();
-  time.t   = starTime;
+  this->reset();
+
+  time.t = starTime;
   return true;
 }
 
@@ -143,11 +142,7 @@ bool TimeStep::parse (const TiXmlElement* elem)
   }
 
   if (!mySteps.empty())
-  {
-    stepIt   = mySteps.begin();
-    stopTime = mySteps.back().second;
-    time.dt  = mySteps.front().first.front();
-  }
+    this->reset();
   else if (!utl::getAttribute(elem,"dt",time.dt))
     time.dt = stopTime - starTime;
 
@@ -167,6 +162,21 @@ bool TimeStep::hasReached (double t) const
 {
   const double epsT = 1.0e-6;
   return time.t + epsT*std::max(epsT,time.dt) > t;
+}
+
+
+bool TimeStep::reset (int istep)
+{
+  lstep = step = 0;
+  stepIt = mySteps.begin();
+  stopTime = mySteps.back().second;
+  time.dt = mySteps.front().first.front();
+  time.dtn = time.t = time.CFL = 0.0;
+  for (int i = 0; i < istep; i++)
+    if (!this->increment())
+      return false;
+
+  return true;
 }
 
 

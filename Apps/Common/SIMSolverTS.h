@@ -65,7 +65,7 @@ public:
     for (int iStep = 1; true; iStep++)
     {
       // Save the current time and solution state internally
-      TimeStep oldTp = this->tp;
+      int sStep = this->tp.step;
       this->S1.saveState();
 
       // Solve for (up to) nPredict steps without storing any results on disk
@@ -107,12 +107,12 @@ public:
       if (!this->S1.saveModel(nullptr,geoBlk,nBlock))
         return 1;
 
-      IFEM::cout <<"\n  >>> Resuming simulation from time="<< oldTp.time.t
+      this->tp.reset(sStep);
+      IFEM::cout <<"\n  >>> Resuming simulation from time="<< this->tp.time.t
                  <<" on the new mesh."<< std::endl;
 
       // Solve for each time step up to final time,
       // but only up to nForward steps on this mesh
-      this->tp = oldTp;
       for (size_t j = 0; j < nForward; j++)
         if (!this->advanceStep())
           return 0; // Final time reached, we're done

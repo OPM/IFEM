@@ -49,6 +49,9 @@ public:
   //! \brief Returns \e true if the given time \a t has been reached.
   bool hasReached(double t) const;
 
+  //! \brief Resets the time step to the specified step.
+  //! \return \e false, if the \a istep is passed the end of the simulation
+  bool reset(int istep = 0);
   //! \brief Advances the time increments one step further.
   //! \return \e true, if we have reached the end of the simulation
   bool increment();
