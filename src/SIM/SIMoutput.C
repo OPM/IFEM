@@ -894,7 +894,7 @@ bool SIMoutput::writeGlvM (const Mode& mode, bool freq, int& nBlock)
 
 
 bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
-                           const char** prefix)
+                           const char** prefix, int idBlock)
 {
   if (norms.empty())
     return true;
@@ -943,7 +943,6 @@ bool SIMoutput::writeGlvN (const Matrix& norms, int iStep, int& nBlock,
   }
 
   std::string normName;
-  int idBlock = 200;
   j = l = 1;
   for (k = 0; k < maxN && !sID[k].empty(); l++)
   {

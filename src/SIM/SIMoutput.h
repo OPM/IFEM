@@ -190,16 +190,17 @@ public:
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter
   //! \param[in] name Name of field
-  bool writeGlvE(const Vector& field, int iStep, int& nBlock,
-                 const char* name);
+  bool writeGlvE(const Vector& field, int iStep, int& nBlock, const char* name);
 
   //! \brief Writes element norms for a given load/time step to the VTF-file.
   //! \param[in] norms The element norms to output
   //! \param[in] iStep Load/time step identifier
   //! \param nBlock Running result block counter
   //! \param[in] prefix Prefices for projected solutions
+  //! \param[in] idBlock Starting value of result block numbering
   bool writeGlvN(const Matrix& norms, int iStep, int& nBlock,
-                 const char** prefix = nullptr);
+                 const char** prefix = nullptr, int idBlock = 200);
+
   //! \brief Writes a scalar function to the VTF-file.
   //! \param[in] f The function to output
   //! \param[in] fname Name of the function
