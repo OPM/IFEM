@@ -33,7 +33,7 @@ public:
   //! \brief The constructor forwards to the parent class constructor.
   SIMSolverTS(T1& s1) : SIMSolver<T1>(s1)
   {
-    nForward = nPredict = 1;
+    nForward = nPredict = maxPred = 1;
     maxRef = 2;
     minFrac = 0.1;
     beta = -1.0;
@@ -56,7 +56,7 @@ public:
       return 1;
 
     // Save the initial configuration also
-    if (!this->S1.saveStep(this->tp,nBlock))
+    if (!this->saveResults(exporter,nBlock,true))
       return 2;
 
     this->printHeading(heading);
@@ -64,64 +64,79 @@ public:
     // Adaptive loop
     for (int iStep = 1; true; iStep++)
     {
-      // Save the current time and solution state internally
-      int sStep = this->tp.step;
-      this->S1.saveState();
+      this->S1.saveState(); // Save current solution state internally
+      int tranStep = this->tp.step; // Time step of next solution transer
+      int lastRef = 0, refElms = 0;
 
-      // Solve for (up to) nPredict steps without storing any results on disk
-      bool finished = false;
-      for (size_t i = 0; i < nPredict; i++)
-        if ((finished = !this->advanceStep()))
-          break; // Final time reached, exit time stepping loop
-        else if (!this->S1.solveStep(this->tp))
-          return 3;
-
-      int newElms = 0;
-      if (!finished)
+      // Prediction cycle loop
+      for (int iPred = 0; iPred < maxPred; iPred++)
       {
-	// Adapt the mesh based on current solution, and
-	// transfer the old solution variables onto the new mesh
-	IFEM::cout <<"\n  >>> Paused for mesh refinement at time="
+        if (iPred > 0)
+        {
+          // Reset time step counter to the last saved state
+          this->tp.reset(tranStep);
+          // Save current solution state internally for the refined mesh
+          this->S1.saveState();
+        }
+
+        // Solve for (up to) nPredict steps without saving results on disk
+        for (size_t i = 0; i < nPredict; i++)
+          if (!this->advanceStep()) // Final time reached
+          {
+            // Save updated FE model if mesh has been refined
+            if (refElms > 0 && !this->S1.saveModel(nullptr,geoBlk,nBlock))
+              return 1;
+            // Save current results to VTF and HDF5 and exit
+            return this->saveResults(exporter, nBlock, refElms > 0) ? 0 : 2;
+          }
+          else if (!this->S1.solveStep(this->tp))
+            return 3;
+
+        // Adapt the mesh based on current solution, and
+        // transfer the old solution variables onto the new mesh
+        IFEM::cout <<"\n  >>> Paused for mesh refinement at time="
                    << this->tp.time.t << std::endl;
-	if ((newElms = this->S1.adaptMesh(beta,minFrac,maxRef)) < 0)
-	  return 4;
-	else if (newElms == 0)
-	  IFEM::cout <<"  No refinement, resume from current state"<< std::endl;
+        lastRef = this->S1.adaptMesh(beta,minFrac,maxRef);
+        if (lastRef < 0)
+          return 4; // Something went wrong, bailing
+        else if (lastRef > 0)
+          refElms += lastRef; // Total number of refined elements
+        else // No new mesh refinement, exit the prediction cycles
+          break;
       }
 
-      if (newElms == 0)
+      if (refElms == 0)
+        IFEM::cout <<"  No refinement, resume from current state"<< std::endl;
+      else // Save the updated FE model
+        if (!this->S1.saveModel(nullptr,geoBlk,nBlock))
+          return 1;
+
+      if (lastRef == 0)
       {
-        // The mesh is unchanged, so just continue after saving the last state.
+        // The mesh is sufficiently refined at this state.
+        // Save the current results to VTF and HDF5, and continue.
         // Note: We then miss the results from the preceding nPredict-1 steps.
-        if (!this->S1.saveStep(this->tp,nBlock))
+        if (!this->saveResults(exporter, nBlock, refElms > 0))
           return 2;
-        else if (exporter)
-          exporter->dumpTimeLevel(&this->tp, iStep < 2);
-        if (finished)
-          return 0;
-        else
-          continue;
       }
+      else
+      {
+        // The mesh was refined, and we continue (at most) nForward steps
+        // without checking for further refinement at this step
+        this->tp.reset(tranStep);
+        IFEM::cout <<"\n  >>> Resuming simulation from time="<< this->tp.time.t
+                   <<" on the new mesh."<< std::endl;
 
-      // Save the updated FE model to VTF
-      if (!this->S1.saveModel(nullptr,geoBlk,nBlock))
-        return 1;
-
-      this->tp.reset(sStep);
-      IFEM::cout <<"\n  >>> Resuming simulation from time="<< this->tp.time.t
-                 <<" on the new mesh."<< std::endl;
-
-      // Solve for each time step up to final time,
-      // but only up to nForward steps on this mesh
-      for (size_t j = 0; j < nForward; j++)
-        if (!this->advanceStep())
-          return 0; // Final time reached, we're done
-        else if (!this->S1.solveStep(this->tp))
-          return 3;
-        else if (!this->S1.saveStep(this->tp,nBlock))
-          return 2;
-        else if (exporter)
-          exporter->dumpTimeLevel(&this->tp, j < 1);
+        // Solve for each time step up to final time,
+        // but only up to nForward steps on this mesh
+        for (size_t j = 0; j < nForward; j++)
+          if (!this->advanceStep())
+            return 0; // Final time reached, we're done
+          else if (!this->S1.solveStep(this->tp))
+            return 3;
+          else if (!this->saveResults(exporter, nBlock, j < 1))
+            return 2;
+      }
     }
 
     return 0;
@@ -145,24 +160,40 @@ protected:
         beta = atof(value);
       else if ((value = utl::getValue(child,"nrefinements")))
         maxRef = atoi(value);
+      else if ((value = utl::getValue(child,"max_prediction")))
+        maxPred = atoi(value);
       else if ((value = utl::getValue(child,"min_frac")))
         minFrac = atof(value);
 
     IFEM::cout <<"\tNumber of trial steps before refinement: "<< nPredict
                <<"\n\tNumber of steps between each refinement: "<< nForward
+               <<"\n\tMax. number of trial cycles at refinement: "<< maxPred
                <<"\n\tMax. number of refinements of an element: "<< maxRef
-               <<"\n\tRelative refinement threshold on |c|: "<< minFrac;
+               <<"\n\tRelative refinement threshold: "<< minFrac;
     if (beta > 0.0)
       IFEM::cout <<"\n\tPercentage of elements to refine: "<< beta;
     IFEM::cout << std::endl;
     return true;
   }
 
+  //! \brief Saves results to VTF and HDF5 for current time step.
+  bool saveResults(DataExporter* exporter, int& nBlock, bool newMesh = false)
+  {
+    if (!this->S1.saveStep(this->tp,nBlock))
+      return false;
+
+    if (exporter)
+      exporter->dumpTimeLevel(&this->tp,newMesh);
+
+    return true;
+  }
+
 private:
   size_t nForward; //!< Number of steps to advance on new mesh
   size_t nPredict; //!< Number of steps to use for prediction
+  int    maxPred;  //!< Maximum number of prediction cycles
   int    maxRef;   //!< Number of refinements to allow for a single element
-  double minFrac;  //!< Element-level refinement threshold on |c|
+  double minFrac;  //!< Element-level refinement threshold
   double beta;     //!< Percentage of elements to refine
 };
 
