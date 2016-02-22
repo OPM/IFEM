@@ -13,9 +13,9 @@
 #ifndef WEAKOPERATORS_H_
 #define WEAKOPERATORS_H_
 
-class FiniteElement;
 class Vec3;
 
+#include "FiniteElement.h"
 #include "MatVec.h"
 
 namespace WeakOperators
@@ -32,7 +32,7 @@ namespace WeakOperators
                  const Vec3& AC, double scale=1.0,
                  size_t cmp=1, size_t nf=1, size_t scmp=0);
 
-  //! \brief Compute an (nonlinear) convection term.
+  //! \brief Compute a (nonlinear) convection term.
   //! \param[out] EM The element matrix to add contribution to.
   //! \param[in] fe The finite element to evaluate for.
   //! \param[in] U  Advecting field.
@@ -40,9 +40,32 @@ namespace WeakOperators
   //! \param[in] cmp Number of components to add.
   //! \param[in] nf Number of fields in basis.
   //! \param[in] conservative True to use the conservative formulation.
+  template<class T>
   void Convection(Matrix& EM, const FiniteElement& fe,
-                  const Vec3& U, const Matrix& dUdX, double scale,
-                  size_t cmp, size_t nf, bool conservative);
+                  const Vec3& U, const T& dUdX, double scale,
+                  size_t cmp, size_t nf, bool conservative)
+  {
+    if (conservative) {
+      Advection(EM, fe, U, -scale, cmp, nf);
+      for (size_t i = 1;i <= fe.N.size();i++)
+        for (size_t j = 1;j <= fe.N.size();j++) {
+          for (size_t k = 1;k <= cmp;k++) {
+            for (size_t l = 1;l <= cmp;l++)
+              EM((j-1)*nf+l,(i-1)*nf+k) -= scale*U[l-1]*fe.N(i)*fe.dNdX(j,k)*fe.detJxW;
+          }
+        }
+    }
+    else {
+      Advection(EM, fe, U, scale, cmp, nf);
+      for (size_t i = 1;i <= fe.N.size();i++)
+        for (size_t j = 1;j <= fe.N.size();j++) {
+          for (size_t k = 1;k <= cmp;k++) {
+            for (size_t l = 1;l <= cmp;l++)
+              EM((j-1)*nf+l,(i-1)*nf+k) += scale*dUdX(l,k)*fe.N(j)*fe.N(i)*fe.detJxW;
+          }
+        }
+    }
+  }
 
   //! \brief Compute a divergence term.
   //! \param[out] EM The element matrix to add contribution to.

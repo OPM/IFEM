@@ -68,33 +68,6 @@ namespace WeakOperators {
     addComponents(EM, C, cmp, nf, scmp);
   }
 
-  void Convection(Matrix& EM, const FiniteElement& fe,
-                  const Vec3& U, const Matrix& dUdX,
-                  double scale, size_t cmp, size_t nf,
-                  bool conservative)
-  {
-    if (conservative) {
-      Advection(EM, fe, U, -scale, cmp, nf);
-      for (size_t i = 1;i <= fe.N.size();i++)
-        for (size_t j = 1;j <= fe.N.size();j++) {
-          for (size_t k = 1;k <= cmp;k++) {
-            for (size_t l = 1;l <= cmp;l++)
-              EM((j-1)*nf+l,(i-1)*nf+k) -= scale*U[l-1]*fe.N(i)*fe.dNdX(j,k)*fe.detJxW;
-          }
-        }
-    }
-    else {
-      Advection(EM, fe, U, scale, cmp, nf);
-      for (size_t i = 1;i <= fe.N.size();i++)
-        for (size_t j = 1;j <= fe.N.size();j++) {
-          for (size_t k = 1;k <= cmp;k++) {
-            for (size_t l = 1;l <= cmp;l++)
-              EM((j-1)*nf+l,(i-1)*nf+k) += scale*dUdX(l,k)*fe.N(j)*fe.N(i)*fe.detJxW;
-          }
-        }
-    }
-  }
-
 
   void Divergence(Matrix& EM, const FiniteElement& fe,
                   size_t nf, double scale)

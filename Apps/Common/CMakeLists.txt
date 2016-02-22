@@ -12,7 +12,6 @@ endif()
 
 # Common application sources
 add_library(IFEMAppCommon STATIC MeshUtils.C
-                                 ResidualOperators.C
                                  Spalding.C
                                  SAWallLaw.C
                                  SIMNodalConstraint.C
