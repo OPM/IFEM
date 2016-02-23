@@ -132,10 +132,6 @@ else()
   add_check_target()
 endif()
 
-# 'install' target
-# Have install force doc build
-install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_BUILD_TOOL} doc WORKING_DIRECTORY \"${CMAKE_CURRENT_BINARY_DIR}\")" COMPONENT doc)
-
 if(WIN32)
   # TODO
 else()
@@ -185,6 +181,7 @@ else()
   install(FILES src/IFEM-test.C DESTINATION lib/IFEM/src)
 
   # documentation and license
+  option(INSTALL_DOXY "Install doxy with installation target?" ON)
   if(INSTALL_DOXY)
     install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_BUILD_TOOL} doc WORKING_DIRECTORY \"${CMAKE_CURRENT_BINARY_DIR}\")" COMPONENT doc)
     install(DIRECTORY ${PROJECT_BINARY_DIR}/doc/html DESTINATION ${CMAKE_INSTALL_DOCDIR}
