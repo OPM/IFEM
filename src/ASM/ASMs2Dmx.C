@@ -982,8 +982,19 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 void ASMs2Dmx::generateThreadGroups (const Integrand& integrand, bool silence)
 {
-#ifdef USE_OPENMP
-  omp_set_num_threads(1);
-#endif
-  ASMs2D::generateThreadGroups(integrand, silence);
+  auto&& maxu =  [](const std::shared_ptr<Go::SplineSurface>& a,
+                    const std::shared_ptr<Go::SplineSurface>& b)
+                   {
+                     return a->order_u() < b->order_u();
+                   };
+  auto&& maxv =  [](const std::shared_ptr<Go::SplineSurface>& a,
+                    const std::shared_ptr<Go::SplineSurface>& b)
+                   {
+                     return a->order_v() < b->order_v();
+                   };
+
+  size_t p1 = (*std::max_element(m_basis.begin(), m_basis.end(), maxu))->order_u()-1;
+  size_t p2 = (*std::max_element(m_basis.begin(), m_basis.end(), maxv))->order_v()-1;
+
+  ASMs2D::generateThreadGroups(p1, p2, silence);
 }
