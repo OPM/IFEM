@@ -442,6 +442,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
   // Evaluate basis function derivatives at all integration points
   std::vector<std::vector<Go::BasisDerivs>> splinex(m_basis.size());
+#pragma omp parallel for schedule(static)
   for (size_t i=0;i<m_basis.size();++i)
     m_basis[i]->computeBasisGrid(gpar[0],gpar[1],gpar[2],splinex[i]);
 
@@ -616,6 +617,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand, int lIndex,
 
   // Evaluate basis function derivatives at all integration points
   std::vector<std::vector<Go::BasisDerivs>> splinex(m_basis.size());
+#pragma omp parallel for schedule(static)
   for (size_t i = 0; i < m_basis.size(); ++i)
     m_basis[i]->computeBasisGrid(gpar[0],gpar[1],gpar[2],splinex[i]);
 
