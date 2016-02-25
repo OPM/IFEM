@@ -328,7 +328,7 @@ bool SAM::getDofCouplings (IntVec& irow, IntVec& jcol) const
     return false;
 
   irow.resize(neq+1);
-  irow[0] = 0;
+  irow.front() = 0;
 
   // Find total number of dof couplings or non-zeroes in the system matrix
   int i;
@@ -352,20 +352,46 @@ bool SAM::getDofCouplings (std::vector<IntSet>& dofc) const
     if (!this->getElmEqns(meen,iel))
       return false;
 
-    for (size_t i = 0; i < meen.size(); i++)
-      if (meen[i] > 0)
-	for (size_t j = 0; j < meen.size(); j++)
-	  if (meen[j] > 0)
-	    dofc[meen[i]-1].insert(meen[j]);
-	  else if (meen[j] < 0)
-	  {
-	    // We have coupling to a slave DOF, so find the master DOFs of that
-	    // constraint equation and insert those as the couplings instead
-	    int iceq = -meen[j];
-	    for (int ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ip++)
-	      if (mmceq[ip] > 0)
-		dofc[meen[i]-1].insert(meqn[mmceq[ip]-1]);
-	  }
+    size_t i, j;
+    int ieq, ip, ipmceq1, ipmceq2, jeq, jp, jpmceq1, jpmceq2;
+    for (j = 0; j < meen.size(); j++)
+      if ((jeq = meen[j]) > 0)
+      {
+        dofc[jeq-1].insert(jeq);
+        for (i = 0; i < j; i++)
+          if ((ieq = meen[i]) > 0)
+          {
+            dofc[ieq-1].insert(jeq);
+            dofc[jeq-1].insert(ieq);
+          }
+      }
+      else if (jeq < 0)
+      {
+        jpmceq1 = mpmceq[-jeq-1];
+        jpmceq2 = mpmceq[-jeq]-1;
+        for (jp = jpmceq1; jp < jpmceq2; jp++)
+          if (mmceq[jp] > 0)
+          {
+            jeq = meqn[mmceq[jp]-1];
+            for (i = 0; i < meen.size(); i++)
+              if ((ieq = meen[i]) > 0)
+              {
+                dofc[ieq-1].insert(jeq);
+                dofc[jeq-1].insert(ieq);
+              }
+              else if (ieq < 0)
+              {
+                ipmceq1 = mpmceq[-ieq-1];
+                ipmceq2 = mpmceq[-ieq]-1;
+                for (ip = ipmceq1; ip < ipmceq2; ip++)
+                  if (mmceq[ip] > 0)
+                  {
+                    ieq = meqn[mmceq[ip]-1];
+                    dofc[ieq-1].insert(jeq);
+                  }
+              }
+          }
+      }
   }
 
   return true;
