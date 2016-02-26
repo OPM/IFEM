@@ -557,73 +557,6 @@ bool SparseMatrix::multiply (const SystemVector& B, SystemVector& C) const
 }
 
 
-#ifdef USE_OPENMP
-/*!
-  \brief Initializes the sparsity pattern of a system matrix.
-  \details This method is used only when assembling in parallel, where we cannot
-  allow the system matrix to grow in size during the real assembly process.
-*/
-
-static void preAssemble (SparseMatrix& SM, const IntVec& meen,
-                         const int* meqn, const int* mpmceq, const int* mmceq)
-{
-  // Add elements corresponding to free dofs in eM into SM
-  int i, j, ip, jp;
-  int nedof = meen.size();
-  for (j = 1; j <= nedof; j++)
-  {
-    int jeq = meen[j-1];
-    if (!meqn) ++jeq;
-    if (jeq < 1) continue;
-
-    SM(jeq,jeq) = 0.0;
-
-    for (i = 1; i < j; i++)
-    {
-      int ieq = meen[i-1];
-      if (!meqn) ++ieq;
-      if (ieq < 1) continue;
-
-      SM(ieq,jeq) = 0.0;
-      SM(jeq,ieq) = 0.0;
-    }
-  }
-  if (!meqn) return;
-
-  // Add elements corresponding to constrained dofs in eM into SM
-  for (j = 1; j <= nedof; j++)
-  {
-    int jceq = -meen[j-1];
-    if (jceq < 1) continue;
-
-    // Add contributions to SM
-    for (jp = mpmceq[jceq-1]; jp < mpmceq[jceq]-1; jp++)
-      if (mmceq[jp] > 0)
-      {
-        int jeq = meqn[mmceq[jp]-1];
-        for (i = 1; i <= nedof; i++)
-        {
-          int ieq = meen[i-1];
-          int iceq = -ieq;
-          if (ieq > 0)
-          {
-            SM(ieq,jeq) = 0.0;
-            SM(jeq,ieq) = 0.0;
-          }
-          else if (iceq > 0)
-            for (ip = mpmceq[iceq-1]; ip < mpmceq[iceq]-1; ip++)
-              if (mmceq[ip] > 0)
-              {
-                ieq = meqn[mmceq[ip]-1];
-                SM(ieq,jeq) = 0.0;
-              }
-        }
-      }
-  }
-}
-#endif
-
-
 /*!
   \brief This is a C++ version of the F77 subroutine ADDEM2 (SAM library).
   \details It performs exactly the same tasks, except that \a NRHS always is 1,
@@ -740,11 +673,14 @@ void SparseMatrix::initAssembly (const SAM& sam, bool delayLocking)
   if (omp_get_max_threads() < 2)
     return;
 
-  // Dummy assembly loop to avoid matrix resizing during assembly
-  IntVec meen;
-  for (int iel = 1; iel <= sam.nel; iel++)
-    if (sam.getElmEqns(meen,iel,sam.getNoElmEqns(iel)))
-      ::preAssemble(*this,meen,sam.meqn,sam.mpmceq,sam.mmceq);
+  // Compute the sparsity pattern
+  std::vector<std::set<int>> dofc;
+  if (!sam.getDofCouplings(dofc))
+    return;
+
+  for (size_t i = 0; i < dofc.size(); i++)
+    for (auto it = dofc[i].begin(); it != dofc[i].end(); ++it)
+      (*this)(i+1,*it) = 0.0;
 
   std::cout <<"\nPre-computing sparsity pattern for system matrix ("
             << nrow <<"x"<< ncol <<"): nNZ = "<< this->size() << std::endl;
@@ -769,11 +705,17 @@ void SparseMatrix::preAssemble (const std::vector<IntVec>& MMNPC, size_t nel)
   if (omp_get_max_threads() < 2)
     return;
 
-  // Dummy assembly loop to avoid matrix resizing during assembly
-  IntVec meen;
+  // Compute the nodal sparsity pattern
+  int inod, jnod;
   for (size_t iel = 0; iel < nel; iel++)
-    if (!MMNPC[iel].empty())
-      ::preAssemble(*this,MMNPC[iel],nullptr,nullptr,nullptr);
+    for (size_t j = 0; j < MMNPC[iel].size(); j++)
+      if ((jnod = MMNPC[iel][j]+1) > 0)
+      {
+        (*this)(jnod,jnod) = 0.0;
+        for (size_t i = 0; i < j; i++)
+          if ((inod = MMNPC[iel][i]+1) > 0)
+            (*this)(inod,jnod) = (*this)(jnod,inod) = 0.0;
+      }
 
   switch (solver) {
   case SUPERLU: this->optimiseSLU(); break;
