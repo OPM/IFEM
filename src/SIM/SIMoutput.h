@@ -27,12 +27,12 @@ class VTF;
 struct ResultPoint
 {
   unsigned char npar;   //!< Number of parameters
-  size_t        patch;  //!< Patch index [0,nPatch>
+  size_t        patch;  //!< Patch index [1,nPatch]
   int           inod;   //!< Local node number of the closest node
   double        par[3]; //!< Parameters of the point (u,v,w)
   Vec3          X;      //!< Spatial coordinates of the point
   // \brief Default constructor.
-  ResultPoint() : npar(0), patch(0), inod(0) { par[0] = par[1] = par[2] = 0.0; }
+  ResultPoint() : npar(0), patch(1), inod(0) { par[0] = par[1] = par[2] = 0.0; }
 };
 
 typedef std::vector<ResultPoint> ResPointVec; //!< Result point container
@@ -272,7 +272,7 @@ public:
   //! \param[in] step Load/time step counter
   bool savePoints(const Vector& psol, double time, int step) const;
 
-  //! \brief Sets the file name for result point output
+  //! \brief Sets the file name for result point output.
   //! \param[in] filename The file name prefix (optionally with extension)
   //! \param[in] dumpCoord If \e true, write point coordinates to separate file
   void setPointResultFile(const std::string& filename, bool dumpCoord = false);

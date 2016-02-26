@@ -95,6 +95,51 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
     IFEM::cout << std::endl;
     myPoints.push_back(thePoint);
   }
+
+  const TiXmlElement* line = elem->FirstChildElement("line");
+  for (int j = 1; line; j++, line = line->NextSiblingElement())
+  {
+    int i, d, patch = 0;
+    ResultPoint thePoint;
+    if (utl::getAttribute(line,"patch",patch) && patch > 0)
+      thePoint.patch = patch;
+
+    double u0[3], u1[3], du[3];
+    if (!utl::getAttribute(line,"u0",u0[0])) u0[0] = 0.0;
+    if (!utl::getAttribute(line,"v0",u0[1])) u0[1] = 0.0;
+    if (!utl::getAttribute(line,"w0",u0[2])) u0[2] = 0.0;
+    if (!utl::getAttribute(line,"u1",u1[0])) u1[0] = u0[0];
+    if (!utl::getAttribute(line,"v1",u1[1])) u1[1] = u0[1];
+    if (!utl::getAttribute(line,"w1",u1[2])) u1[2] = u0[2];
+    int npt = line->FirstChild() ? atoi(line->FirstChild()->Value()) : 2;
+    if (u0[0] == u1[0] && u0[1] == u1[1] && u0[2] == u1[2]) npt = 1;
+
+    for (d = 0; d < 3; d++)
+    {
+      thePoint.par[d] = u0[d];
+      if (npt > 1)
+        du[d] = (u1[d] - u0[d])/(npt-1);
+      else
+	du[d] = 0.0;
+    }
+    myPoints.push_back(thePoint);
+    for (i = 1; i < npt; i++)
+    {
+      for (d = 0; d < 3; d++)
+        thePoint.par[d] += du[d];
+      myPoints.push_back(thePoint);
+    }
+
+    IFEM::cout <<"\tLine "<< j <<": P"<< thePoint.patch
+               <<" npt = "<< npt <<" xi =";
+    for (d = 0; d < 3; d++)
+    {
+      IFEM::cout <<' '<< u0[d];
+      if (u1[d] != u0[d])
+        IFEM::cout <<'-'<< u1[d];
+    }
+    IFEM::cout << std::endl;
+  }
   IFEM::cout << std::endl;
 
   return true;
