@@ -19,24 +19,7 @@
 
 class VTF;
 
-
-/*!
-  \brief Struct defining a result sampling point.
-*/
-
-struct ResultPoint
-{
-  unsigned char npar;   //!< Number of parameters
-  size_t        patch;  //!< Patch index [1,nPatch]
-  int           inod;   //!< Local node number of the closest node
-  double        par[3]; //!< Parameters of the point (u,v,w)
-  Vec3          X;      //!< Spatial coordinates of the point
-  // \brief Default constructor.
-  ResultPoint() : npar(0), patch(1), inod(0) { par[0] = par[1] = par[2] = 0.0; }
-};
-
-typedef std::vector<ResultPoint> ResPointVec; //!< Result point container
-typedef std::pair<Vec3,double>   PointValue;  //!< Convenience type
+typedef std::pair<Vec3,double> PointValue; //!< Convenience type
 
 
 /*!
@@ -276,19 +259,51 @@ public:
   //! \param[in] filename The file name prefix (optionally with extension)
   //! \param[in] dumpCoord If \e true, write point coordinates to separate file
   void setPointResultFile(const std::string& filename, bool dumpCoord = false);
-
-  //! \brief Returns whether a points result file has been defined or not.
-  bool hasPointResultFile() const { return !myPtFile.empty(); }
+  //! \brief Checks whether point result files have been defined or not.
+  bool hasPointResultFile() const;
 
 protected:
   //! \brief Preprocesses the result sampling points.
   virtual void preprocessResultPoints();
 
 private:
-  std::string myPtFile; //!< File name for result point output
-  ResPointVec myPoints; //!< User-defined result sampling points
-  int         myGeomID; //!< VTF geometry block ID for the first patch
-  VTF*        myVtf;    //!< VTF-file for result visualization
+  //! \brief Struct defining a result sampling point.
+  struct ResultPoint
+  {
+    unsigned char npar;  //!< Number of parameters
+    size_t        patch; //!< Patch index [1,nPatch]
+    int           inod;  //!< Local node number of the closest node
+    double        u[3];  //!< Parameters of the point (u,v,w)
+    Vec3          X;     //!< Spatial coordinates of the point
+    // \brief Default constructor.
+    ResultPoint() : npar(0), patch(1), inod(0) { u[0] = u[1] = u[2] = 0.0; }
+  };
+
+  typedef std::vector<ResultPoint> ResPointVec; //!< Result point container
+
+  //! \brief Preprocesses a result sampling point group.
+  //! \param ptFile Name of file that these result points are dumped to
+  //! \param points Group of result points that are dumped to the given file
+  void preprocessResPtGroup(std::string& ptFile, ResPointVec& points);
+
+  //! \brief Dumps solution results at the given points in ASCII format.
+  //! \param[in] psol Primary solution vector to derive other quantities from
+  //! \param[in] time Load/time step parameter
+  //! \param os Output stream to write the solution data to
+  //! \param[in] gPoints Group of result points to write solution data for
+  //! \param[in] formatted If \e false, write all result points on a single line
+  //!            without point identifications, but with time as first column
+  //! \param[in] precision Number of digits after the decimal point
+  bool dumpResults(const Vector& psol, double time,
+                   utl::LogStream& os, const ResPointVec& gPoints,
+                   bool formatted, std::streamsize precision) const;
+
+  typedef std::pair<std::string,ResPointVec> ResPtPair; //!< Result point group
+
+  std::vector<ResPtPair> myPoints; //!< User-defined result sampling points
+
+  int  myGeomID; //!< VTF geometry block ID for the first patch
+  VTF* myVtf;    //!< VTF-file for result visualization
 };
 
 #endif

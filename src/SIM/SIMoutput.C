@@ -45,8 +45,13 @@ void SIMoutput::clearProperties ()
 
 void SIMoutput::setPointResultFile (const std::string& filename, bool dumpCoord)
 {
-  myPtFile = filename;
-  if (myPtFile.empty()) return;
+  if (filename.empty()) return;
+
+  if (!myPoints.empty() && myPoints.back().first.empty())
+    myPoints.back().first = filename; // Points have already been defined
+  else
+    myPoints.push_back(std::make_pair(filename,ResPointVec()));
+  std::string& myPtFile = myPoints.back().first;
 
   // Append extension .dat if nothing yet
   if (myPtFile.find_last_of('.') == std::string::npos)
@@ -86,25 +91,28 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
     if (utl::getAttribute(point,"patch",patch) && patch > 0)
       thePoint.patch = patch;
     IFEM::cout <<"\tPoint "<< i <<": P"<< thePoint.patch <<" xi =";
-    if (utl::getAttribute(point,"u",thePoint.par[0]))
-      IFEM::cout <<' '<< thePoint.par[0];
-    if (utl::getAttribute(point,"v",thePoint.par[1]))
-      IFEM::cout <<' '<< thePoint.par[1];
-    if (utl::getAttribute(point,"w",thePoint.par[2]))
-      IFEM::cout <<' '<< thePoint.par[2];
+    if (utl::getAttribute(point,"u",thePoint.u[0]))
+      IFEM::cout <<' '<< thePoint.u[0];
+    if (utl::getAttribute(point,"v",thePoint.u[1]))
+      IFEM::cout <<' '<< thePoint.u[1];
+    if (utl::getAttribute(point,"w",thePoint.u[2]))
+      IFEM::cout <<' '<< thePoint.u[2];
     IFEM::cout << std::endl;
-    myPoints.push_back(thePoint);
+    if (myPoints.empty())
+      myPoints.push_back(std::make_pair("",ResPointVec(1,thePoint)));
+    else
+      myPoints.back().second.push_back(thePoint);
   }
 
   const TiXmlElement* line = elem->FirstChildElement("line");
   for (int j = 1; line; j++, line = line->NextSiblingElement())
   {
-    int i, d, patch = 0;
+    int patch = 0;
     ResultPoint thePoint;
     if (utl::getAttribute(line,"patch",patch) && patch > 0)
       thePoint.patch = patch;
 
-    double u0[3], u1[3], du[3];
+    double u0[3], u1[3];
     if (!utl::getAttribute(line,"u0",u0[0])) u0[0] = 0.0;
     if (!utl::getAttribute(line,"v0",u0[1])) u0[1] = 0.0;
     if (!utl::getAttribute(line,"w0",u0[2])) u0[2] = 0.0;
@@ -114,25 +122,26 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
     int npt = line->FirstChild() ? atoi(line->FirstChild()->Value()) : 2;
     if (u0[0] == u1[0] && u0[1] == u1[1] && u0[2] == u1[2]) npt = 1;
 
-    for (d = 0; d < 3; d++)
+    memcpy(thePoint.u,u0,3*sizeof(double));
+    if (myPoints.empty())
+      myPoints.push_back(std::make_pair("",ResPointVec(1,thePoint)));
+    else
+      myPoints.back().second.push_back(thePoint);
+
+    for (int i = 1; i < npt-1; i++)
     {
-      thePoint.par[d] = u0[d];
-      if (npt > 1)
-        du[d] = (u1[d] - u0[d])/(npt-1);
-      else
-	du[d] = 0.0;
+      double xi = double(i)/double(npt-1);
+      for (int d = 0; d < 3; d++)
+        thePoint.u[d] = u0[d]*(1.0-xi) + u1[d]*xi;
+      myPoints.back().second.push_back(thePoint);
     }
-    myPoints.push_back(thePoint);
-    for (i = 1; i < npt; i++)
-    {
-      for (d = 0; d < 3; d++)
-        thePoint.par[d] += du[d];
-      myPoints.push_back(thePoint);
-    }
+
+    memcpy(thePoint.u,u1,3*sizeof(double));
+    myPoints.back().second.push_back(thePoint);
 
     IFEM::cout <<"\tLine "<< j <<": P"<< thePoint.patch
                <<" npt = "<< npt <<" xi =";
-    for (d = 0; d < 3; d++)
+    for (int d = 0; d < 3; d++)
     {
       IFEM::cout <<' '<< u0[d];
       if (u1[d] != u0[d])
@@ -140,7 +149,6 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
     }
     IFEM::cout << std::endl;
   }
-  IFEM::cout << std::endl;
 
   return true;
 }
@@ -166,15 +174,17 @@ bool SIMoutput::parse (char* keyWord, std::istream& is)
       this->setPointResultFile(cline);
   }
 
-  myPoints.resize(nres);
+  myPoints.resize(1);
+  myPoints.back().second.resize(nres);
   for (int i = 0; i < nres && (cline = utl::readLine(is)); i++)
   {
-    myPoints[i].patch = atoi(strtok(cline," "));
-    IFEM::cout <<"\tPoint "<< i+1 <<": P"<< myPoints[i].patch <<" xi =";
+    ResultPoint& thePoint = myPoints.back().second[i];
+    thePoint.patch = atoi(strtok(cline," "));
+    IFEM::cout <<"\tPoint "<< i+1 <<": P"<< thePoint.patch <<" xi =";
     for (int j = 0; j < 3 && (cline = strtok(nullptr," ")); j++)
     {
-      myPoints[i].par[j] = atof(cline);
-      IFEM::cout <<' '<< myPoints[i].par[j];
+      thePoint.u[j] = atof(cline);
+      IFEM::cout <<' '<< thePoint.u[j];
     }
     IFEM::cout << std::endl;
   }
@@ -185,17 +195,24 @@ bool SIMoutput::parse (char* keyWord, std::istream& is)
 
 void SIMoutput::preprocessResultPoints ()
 {
-  for (ResPointVec::iterator p = myPoints.begin(); p != myPoints.end();)
+  for (size_t i = 0; i < myPoints.size(); i++)
+    this->preprocessResPtGroup(myPoints[i].first,myPoints[i].second);
+}
+
+
+void SIMoutput::preprocessResPtGroup (std::string& ptFile, ResPointVec& points)
+{
+  for (ResPointVec::iterator p = points.begin(); p != points.end();)
   {
     int pid = this->getLocalPatchIndex(p->patch);
     if (pid < 1 || myModel[pid-1]->empty())
-      p = myPoints.erase(p);
-    else if ((p->inod = myModel[pid-1]->evalPoint(p->par,p->par,p->X)) < 0)
-      p = myPoints.erase(p);
+      p = points.erase(p);
+    else if ((p->inod = myModel[pid-1]->evalPoint(p->u,p->u,p->X)) < 0)
+      p = points.erase(p);
     else
     {
       p->npar = myModel[pid-1]->getNoParamDim();
-      int ipt = 1 + (int)(p-myPoints.begin());
+      int ipt = 1 + (int)(p-points.begin());
       if (ipt == 1) IFEM::cout <<'\n';
       IFEM::cout <<"Result point #"<< ipt <<": patch #"<< p->patch;
       switch (p->npar) {
@@ -203,38 +220,38 @@ void SIMoutput::preprocessResultPoints ()
       case 2: IFEM::cout <<" (u,v)=("; break;
       case 3: IFEM::cout <<" (u,v,w)=("; break;
       }
-      IFEM::cout << p->par[0];
+      IFEM::cout << p->u[0];
       for (unsigned char c = 1; c < p->npar; c++)
-        IFEM::cout <<','<< p->par[c];
+        IFEM::cout <<','<< p->u[c];
       if (p->npar > 1) IFEM::cout <<')';
       if (p->inod > 0) IFEM::cout <<", node #"<< p->inod;
       if (p->inod > 0 && myModel.size() > 1)
-	IFEM::cout <<", global #"<< myModel[pid-1]->getNodeID(p->inod);
+        IFEM::cout <<", global #"<< myModel[pid-1]->getNodeID(p->inod);
       IFEM::cout <<", X = "<< p->X << std::endl;
       p++;
     }
   }
 
-  size_t icoord = myPtFile.find("_coord.");
+  size_t icoord = ptFile.find("_coord.");
   if (icoord == std::string::npos) return;
 
   // Dump of result point coordinates to file is requested.
   // Formatted output, use scientific notation with fixed field width.
   std::streamsize precision = 3;
   std::streamsize flWidth = 8 + precision;
-  std::ofstream os(myPtFile.c_str(),std::ios::out);
+  std::ofstream os(ptFile.c_str(),std::ios::out);
   os.flags(std::ios::scientific | std::ios::right);
   os.precision(precision);
 
-  for (size_t i = 0; i < myPoints.size(); i++)
+  for (size_t i = 0; i < points.size(); i++)
   {
     os << 0.0 <<" "; // dummy time
-    for (unsigned char k = 0; k < myPoints[i].npar; k++)
-      os << std::setw(flWidth) << myPoints[i].X[k];
+    for (unsigned char k = 0; k < points[i].npar; k++)
+      os << std::setw(flWidth) << points[i].X[k];
     os << std::endl;
   }
 
-  myPtFile.erase(icoord,6); // Erase "_coord" from the file name
+  ptFile.erase(icoord,6); // Erase "_coord" from the file name
 }
 
 
@@ -1156,13 +1173,11 @@ bool SIMoutput::dumpSolution (const Vector& psol, utl::LogStream& os) const
 
 
 bool SIMoutput::dumpResults (const Vector& psol, double time,
-                             utl::LogStream& os, bool formatted,
-                             std::streamsize precision) const
+                             utl::LogStream& os, const ResPointVec& gPoints,
+                             bool formatted, std::streamsize precision) const
 {
-  if (psol.empty() || myPoints.empty())
+  if (gPoints.empty())
     return true;
-
-  myProblem->initResultPoints(time);
 
   size_t i, j, k;
   Matrix sol1, sol2;
@@ -1178,13 +1193,13 @@ bool SIMoutput::dumpResults (const Vector& psol, double time,
     IntVec points;
 
     // Find all evaluation points within this patch, if any
-    for (j = 0, p = myPoints.begin(); p != myPoints.end(); j++, p++)
+    for (j = 0, p = gPoints.begin(); p != gPoints.end(); j++, p++)
       if (this->getLocalPatchIndex(p->patch) == (int)(i+1))
         if (opt.discretization >= ASM::Spline)
         {
           points.push_back(p->inod > 0 ? p->inod : -(j+1));
           for (k = 0; k < myModel[i]->getNoParamDim(); k++)
-            params[k].push_back(p->par[k]);
+            params[k].push_back(p->u[k]);
         }
         else if (p->inod > 0)
           points.push_back(p->inod);
@@ -1274,21 +1289,23 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
   {
     if (myModel[i]->empty()) continue; // skip empty patches
 
+    std::vector<ResPtPair>::const_iterator pit;
     ResPointVec::const_iterator p;
     std::array<RealArray,3> params;
     IntVec points;
 
     // Find all evaluation points within this patch, if any
-    for (j = 0, p = myPoints.begin(); p != myPoints.end(); j++, p++)
-      if (this->getLocalPatchIndex(p->patch) == (int)(i+1))
-        if (opt.discretization >= ASM::Spline)
-        {
-          points.push_back(p->inod > 0 ? p->inod : -(j+1));
-          for (k = 0; k < myModel[i]->getNoParamDim(); k++)
-            params[k].push_back(p->par[k]);
-        }
-        else if (p->inod > 0)
-          points.push_back(p->inod);
+    for (j = 0, pit = myPoints.begin(); pit != myPoints.end(); ++pit)
+      for (p = pit->second.begin(); p != pit->second.end(); j++, ++p)
+        if (this->getLocalPatchIndex(p->patch) == (int)(i+1))
+          if (opt.discretization >= ASM::Spline)
+          {
+            points.push_back(p->inod > 0 ? p->inod : -(j+1));
+            for (k = 0; k < myModel[i]->getNoParamDim(); k++)
+              params[k].push_back(p->u[k]);
+          }
+          else if (p->inod > 0)
+            points.push_back(p->inod);
 
     if (points.empty()) continue; // no points in this patch
 
@@ -1333,13 +1350,49 @@ bool SIMoutput::dumpVector (const Vector& vsol, const char* fname,
 }
 
 
-bool SIMoutput::savePoints (const Vector& psol, double time, int step) const
+bool SIMoutput::dumpResults (const Vector& psol, double time,
+                             utl::LogStream& os,
+                             bool formatted, std::streamsize precision) const
 {
-  if (step < 1 || myPoints.empty() || myPtFile.empty())
+  if (psol.empty())
     return true;
 
-  std::ofstream fs(myPtFile.c_str(), step == 1 ? std::ios::out : std::ios::app);
-  utl::LogStream logs(fs);
+  myProblem->initResultPoints(time);
 
-  return this->dumpResults(psol,time,logs);
+  for (size_t i = 0; i < myPoints.size(); i++)
+    if (!this->dumpResults(psol,time,os,myPoints[i].second,formatted,precision))
+      return false;
+
+  return true;
+}
+
+
+bool SIMoutput::savePoints (const Vector& psol, double time, int step) const
+{
+  if (step < 1 || psol.empty())
+    return true;
+
+  myProblem->initResultPoints(time);
+
+  for (size_t i = 0; i < myPoints.size(); i++)
+    if (!myPoints[i].first.empty())
+    {
+      std::ofstream fs(myPoints[i].first.c_str(),
+                       step == 1 ? std::ios::out : std::ios::app);
+      utl::LogStream logs(fs);
+      if (!this->dumpResults(psol,time,logs,myPoints[i].second,false,3))
+        return false;
+    }
+
+  return true;
+}
+
+
+bool SIMoutput::hasPointResultFile () const
+{
+  for (size_t i = 0; i < myPoints.size(); i++)
+    if (!myPoints[i].first.empty())
+      return true;
+
+  return false;
 }
