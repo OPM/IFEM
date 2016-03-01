@@ -298,89 +298,84 @@ bool ASMu2D::raiseOrder (int ru, int rv)
 }
 
 
-void ASMu2D::evaluateBasis(FiniteElement &fe, int derivs) const
+bool ASMu2D::evaluateBasis (FiniteElement& fe, int derivs) const
 {
-	// skipping all error testing. Its probably really really smart
+  LR::Element* el = lrspline->getElement(fe.iel-1);
+  if (!el) return false;
 
-	LR::Element *el = lrspline->getElement(fe.iel-1);
-	fe.xi  = 2.0*(fe.u - el->umin()) / (el->umax() - el->umin()) - 1.0; // sets value between -1 and 1
-	fe.eta = 2.0*(fe.v - el->vmin()) / (el->vmax() - el->vmin()) - 1.0;
-	std::vector<double> Nu = bezier_u.computeBasisValues(fe.xi,  derivs);
-	std::vector<double> Nv = bezier_v.computeBasisValues(fe.eta, derivs);
+  fe.xi  = 2.0*(fe.u - el->umin()) / (el->umax() - el->umin()) - 1.0;
+  fe.eta = 2.0*(fe.v - el->vmin()) / (el->vmax() - el->vmin()) - 1.0;
+  RealArray Nu = bezier_u.computeBasisValues(fe.xi, derivs);
+  RealArray Nv = bezier_v.computeBasisValues(fe.eta,derivs);
+  const Matrix& C = bezierExtract[fe.iel-1];
 
-	const Matrix &C = bezierExtract[fe.iel-1];
-
-	int p1 = lrspline->order(0);
-	int p2 = lrspline->order(1);
-	int p  = p1*p2;
-
-        if (derivs > 0) {
-          Vector B(p);
-          Vector Bu(p); // Bezier basis functions differentiated wrt u
-          Vector Bv(p); // Bezier basis functions differentiated wrt v
-          size_t k = 0;
-          for(size_t j=0; j<Nv.size(); j+=(derivs+1)) {
-            for(size_t i=0; i<Nu.size(); i+=(derivs+1), k++) {
-              B[k] = Nu[i]*Nv[j];
-              Bu[k] = Nu[i+1]*Nv[ j ];
-              Bv[k] = Nu[ i ]*Nv[j+1];
-            }
-          }
-
-          fe.N = C*B;
-
-          Matrix dNdu(el->nBasisFunctions(), 2);
-          dNdu.fillColumn(1, C*Bu);
-          dNdu.fillColumn(2, C*Bv);
-          Matrix Xnod, Jac;
-          getElementCoordinates(Xnod, fe.iel);
-          fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
-
-        } else {
-          Matrix B(p1, p2);
-          B.outer_product(Nu, Nv);
-          fe.N = C*static_cast<const Vector&>(B);
-        }
+  if (derivs < 1) {
+    Matrix B;
+    B.outer_product(Nu,Nv);
+    fe.N = C*static_cast<const Vector&>(B);
 
 #if SP_DEBUG > 2
-	int N    = el->nBasisFunctions();
-	int allP = p1*p2;
-	double sum = 0;
-	for(int qq=1; qq<=N; qq++) sum+= fe.N(qq);
-	if(fabs(sum-1) > 1e-10) {
-		std::cerr << "fe.N not sums to one at integration point #" << 1 << std::endl;
-		exit(123);
-	}
-	sum = 0;
-	for(int qq=1; qq<=allP; qq++) sum+= B(qq);
-	if(fabs(sum-1) > 1e-10) {
-		std::cerr << "Bezier basis not sums to one at integration point #" << 1 << std::endl;
-		exit(123);
-	}
+    if (fabs(fe.N.sum()-1.0) > 1.0e-10)
+      std::cerr <<"fe.N do not sum to one at integration point #"
+                << fe.iGP << std::endl;
+    else if (fabs(static_cast<const Vector&>(B).sum()-1.0) > 1.0e-10)
+      std::cerr <<"Bezier basis do not sum to one at integration point #"
+                << fe.iGP << std::endl;
+    else
+      return true; // The basis is OK
 
-	if(derivs > 0) {
-		sum = 0;
-		for(int qq=1; qq<=N; qq++) sum+= dNdu(qq,1);
-		if(fabs(sum) > 1e-10) {
-			std::cerr << "dNdu not sums to zero at integration point #" << 1 << std::endl;
-			exit(123);
-		}
-		sum = 0;
-		for(int qq=1; qq<=N; qq++) sum+= dNdu(qq,2);
-		if(fabs(sum) > 1e-10) {
-			std::cerr << "dNdv not sums to zero at integration point #" << 1 << std::endl;
-			exit(123);
-		}
-
-		sum = 0;
-		for(int qq=1; qq<=allP; qq++) sum+= Bu(qq);
-		if(fabs(sum) > 1e-10) {
-			std::cerr << "Bezier derivatives not sums to zero at integration point #" << 1 << std::endl;
-			exit(123);
-		}
-	}
+    return false;
 #endif
+  }
+  else {
+    int p = lrspline->order(0)*lrspline->order(1);
+
+    Vector B(p);
+    Vector Bu(p); // Bezier basis functions differentiated wrt u
+    Vector Bv(p); // Bezier basis functions differentiated wrt v
+
+    size_t i, j, k = 0;
+    for (j = 0; j < Nv.size(); j+=(derivs+1))
+      for (i = 0; i < Nu.size(); i+=(derivs+1), k++) {
+        B[k]  = Nu[i  ]*Nv[j  ];
+        Bu[k] = Nu[i+1]*Nv[j  ];
+        Bv[k] = Nu[i  ]*Nv[j+1];
+      }
+
+    fe.N = C*B;
+
+    Matrix dNdu(el->nBasisFunctions(),2);
+    dNdu.fillColumn(1,C*Bu);
+    dNdu.fillColumn(2,C*Bv);
+    Matrix Xnod, Jac;
+    this->getElementCoordinates(Xnod,fe.iel);
+    fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
+
+#if SP_DEBUG > 2
+    if (fabs(fe.N.sum()-1.0) > 1.0e-10)
+      std::cerr <<"fe.N do not sum to one at integration point #"
+                << fe.iGP << std::endl;
+    else if (fabs(B.sum()-1.0) > 1.0e-10)
+      std::cerr <<"Bezier basis do not sum to one at integration point #"
+                << fe.iGP << std::endl;
+    else if (fabs(dNdu.getColumn(1).sum()) > 1.0e-10)
+      std::cerr <<"dNdu not sums to zero at integration point #"
+                << fe.iGP << std::endl;
+    else if (fabs(dNdu.getColumn(1).sum()) > 1.0e-10)
+      std::cerr <<"dNdv not sums to zero at integration point #"
+                << fe.iGP << std::endl;
+    else if (fabs(Bu.sum()) > 1.0e-10 || fabs(Bv.sum()) > 1.0e-10)
+      std::cerr <<"Bezier derivatives do not sum to zero at integration point #"
+                << fe.iGP << std::endl;
+    else
+      return true; // The basis is OK
+
+    return false;
+#endif
+  }
+  return true;
 }
+
 
 bool ASMu2D::generateFEMTopology ()
 {
@@ -1302,16 +1297,18 @@ int ASMu2D::evalPoint (const double* xi, double* param, Vec3& X) const
 	param[0] = (1.0-xi[0])*lrspline->startparam(0) + xi[0]*lrspline->endparam(0);
 	param[1] = (1.0-xi[1])*lrspline->startparam(1) + xi[1]*lrspline->endparam(1);
 
-	int iel = lrspline->getElementContaining(param[0],param[1]);
-	FiniteElement fe(lrspline->getElement(iel)->nBasisFunctions());
-	fe.iel = iel + 1;
+	FiniteElement fe;
+	fe.iel = 1 + lrspline->getElementContaining(param[0],param[1]);
 	fe.u   = param[0];
 	fe.v   = param[1];
 
 	Matrix Xnod;
-	getElementCoordinates(Xnod, fe.iel);
+	if (!this->getElementCoordinates(Xnod,fe.iel))
+	  return -1;
 
-	evaluateBasis(fe);
+	if (!this->evaluateBasis(fe))
+	  return -1;
+
 	X = Xnod * fe.N;
 
 	return 0;
@@ -1518,15 +1515,17 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 
     // Evaluate basis function values/derivatives at current parametric point
     // and multiply with control point values to get the point-wise solution
-    switch (deriv) {
-
+    switch (deriv)
+    {
     case 0: // Evaluate the solution
-      evaluateBasis(fe, deriv);
+      if (!this->evaluateBasis(fe,deriv))
+        return false;
       sField.fillColumn(1+i, eSol * fe.N);
       break;
 
     case 1: // Evaluate first derivatives of the solution
-      evaluateBasis(fe, deriv);
+      if (!this->evaluateBasis(fe,deriv))
+        return false;
       ptDer.multiply(eSol,fe.dNdX);
       sField.fillColumn(1+i,ptDer);
       break;
@@ -1552,9 +1551,11 @@ bool ASMu2D::evalSolution (Matrix& sField, const Vector& locSol,
 bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                            const int* npe, char project) const
 {
-  // sanity check on input
-  if(npe != nullptr && (npe[0] != npe[1])) {
-    std::cerr << "Error ASMu2D::evalSolution, LR B-splines assumes same number of discretization points in u- and v-direction" << std::endl;
+  if (npe != nullptr && npe[0] != npe[1])
+  {
+    std::cerr <<" *** ASMu2D::evalSolution: LR B-splines require the"
+              <<" same number of evaluation points in u- and v-direction."
+              << std::endl;
     return false;
   }
 
@@ -1581,12 +1582,12 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 	Go::Point p;
 	sField.resize(s->dimension(),gpar[0].size()*gpar[1].size());
 
-	int iel=0; // evaluation points are always structured in element order
-	for(size_t i=0; i<gpar[0].size(); i++) {
-	  if(i+1 % npe[0] == 0)
-	    iel++;
-          s->point(p,gpar[0][i],gpar[1][i],iel);
-          sField.fillColumn(i+1,p.begin());
+	int iel = 0; // evaluation points are always structured in element order
+	for (size_t i = 0; i < gpar[0].size(); i++)
+	{
+	  if ((i+1)%npe[0] == 0) iel++;
+	  s->point(p,gpar[0][i],gpar[1][i],iel);
+	  sField.fillColumn(i+1,p.begin());
 	}
 	delete s;
 	return true;

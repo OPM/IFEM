@@ -15,10 +15,10 @@
 #define _ASM_U2D_H
 
 #include "ASMunstruct.h"
-#include "FiniteElement.h"
 #include "ASM2D.h"
-
 #include <memory>
+
+class FiniteElement;
 
 namespace Go {
   class SplineCurve;
@@ -50,7 +50,6 @@ public:
 
   //! \brief Returns the spline surface representing the basis of this patch.
   virtual const LR::LRSplineSurface* getBasis(int = 1) const { return lrspline.get(); }
-
   //! \brief Returns the spline surface representing the basis of this patch.
   virtual LR::LRSplineSurface* getBasis(int = 1) { return lrspline.get(); }
 
@@ -231,11 +230,10 @@ public:
                                const std::map<int,VecFunc*>& vfunc, double time,
                                const std::map<int,int>* g2l = nullptr);
 
-  //! \brief Obtain node index for a given corner.
-  int getCorner(int I, int J, int basis=1) const;
-
-  //! \brief Obtain node indices for a given edge
-  std::vector<int> getEdgeNodes(int dir, int basis=1) const;
+  //! \brief Returns the node index for a given corner.
+  int getCorner(int I, int J, int basis = 1) const;
+  //! \brief Rerturns the node indices for a given edge.
+  std::vector<int> getEdgeNodes(int dir, int basis = 1) const;
 
 protected:
   //! \brief Evaluates an integral over the interior patch domain.
@@ -303,13 +301,13 @@ public:
   //!
   //! \details The secondary solution is derived from the primary solution,
   //! which is assumed to be stored within the \a integrand for current patch.
-  //! If \a npe is nullptr, the solution is recovered or evaluated at the Greville
+  //! If \a npe is null, the solution is recovered or evaluated at the Greville
   //! points and then projected onto the spline basis to obtain the control
   //! point values, which then are returned through \a sField.
-  //! If \a npe is not nullptr and \a project is defined, the solution is also
+  //! If \a npe is not null and \a project is defined, the solution is also
   //! projected onto the spline basis, and then evaluated at the \a npe points.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-			    const int* npe = 0, char project = false) const;
+                            const int* npe, char project = '\0') const;
 
 private:
   //! \brief Projects the secondary solution field onto the primary basis.
@@ -423,8 +421,9 @@ protected:
   //! \param[out] XC Coordinates of the element corners
   void getElementCorners(int iel, std::vector<Vec3>& XC) const;
 
-  //! \brief Evaluate all basis functions and \a derivs number of derivatives on one element
-  virtual void evaluateBasis(FiniteElement &el, int derivs=0) const;
+  //! \brief Evaluates the basis functions and derivatives of order \a derivs
+  //! of an element.
+  bool evaluateBasis(FiniteElement& el, int derivs = 0) const;
 
 public:
   //! \brief Returns the number of elements on a boundary.
