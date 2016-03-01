@@ -39,7 +39,9 @@ namespace TimeIntegration //! Time integration scope
     // Embedded, explicit methods
     HEUNEULER        = 7,  //!< Heun-Euler embedded order 1(2)
     BOGACKISHAMPINE  = 8,  //!< Bogacki-Shampine order 2(3)
-    FEHLBERG         = 9   //!< Runge-Kutta-Fehlberg order 4(5)
+    FEHLBERG         = 9,  //!< Runge-Kutta-Fehlberg order 4(5)
+
+    THETA            = 10  //!< Theta rule (family includes EULER, BE and Crank-Nicolson)
   };
 
   //! \brief Struct holding a Runge-Kutta tableaux
