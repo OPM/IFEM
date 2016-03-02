@@ -39,6 +39,10 @@ ASMs1D::ASMs1D (unsigned char n_s, unsigned char n_f)
 ASMs1D::ASMs1D (const ASMs1D& patch, unsigned char n_f)
   : ASMstruct(patch,n_f), curv(patch.curv), elmCS(patch.myCS), nodalT(patch.myT)
 {
+  // Need to set nnod here,
+  // as hasXNodes might be invoked before the FE data is generated
+  if (nnod == 0 && curv)
+    nnod = curv->numCoefs();
 }
 
 
@@ -187,19 +191,25 @@ bool ASMs1D::generateOrientedFEModel (const Vec3& Zaxis)
   if (!curv) return false;
 
   const int n1 = curv->numCoefs();
+  const int p1 = curv->order();
+
   if (!MLGN.empty())
   {
-    if (MLGN.size() == (size_t)n1) return true;
-    std::cerr <<" *** ASMs1D::generateFEMTopology: Inconsistency between the"
-	      <<" number of FE nodes "<< MLGN.size()
-	      <<"\n     and the number of spline coefficients "<< n1
-	      <<" in the patch."<< std::endl;
-    return false;
+    nnod = n1;
+    if (MLGN.size() != (size_t)nnod)
+    {
+      std::cerr <<" *** ASMs1D::generateFEMTopology: Inconsistency between the"
+                <<" number of FE nodes "<< MLGN.size()
+                <<"\n     and the number of spline coefficients "<< nnod
+                <<" in the patch."<< std::endl;
+      return false;
+    }
+    nel = n1-p1+1;
+    return true;
   }
   else if (shareFE)
     return true;
 
-  const int p1 = curv->order();
 #ifdef SP_DEBUG
   std::cout <<"numCoefs: "<< n1;
   std::cout <<"\norder: "<< p1;

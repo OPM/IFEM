@@ -12,12 +12,8 @@
 //==============================================================================
 
 #include "GoTools/geometry/ObjectHeader.h"
-#include "GoTools/geometry/SplineSurface.h"
 #include "GoTools/trivariate/SplineVolume.h"
-#include "GoTools/geometry/SurfaceInterpolator.h"
-#include "GoTools/trivariate/VolumeInterpolator.h"
 
-#include "LRSpline/LRSplineSurface.h"
 #include "LRSpline/LRSplineVolume.h"
 #include "LRSpline/Element.h"
 #include "LRSpline/Basisfunction.h"
@@ -39,15 +35,21 @@
 
 
 ASMu3D::ASMu3D (unsigned char n_f)
-  : ASMunstruct(3,3,n_f), lrspline(0), tensorspline(0)
+  : ASMunstruct(3,3,n_f), lrspline(nullptr), tensorspline(nullptr),
+    bezierExtract(myBezierExtract)
 {
   ASMunstruct::resetNumbering(); // Replace this when going multi-patch...
 }
 
 
 ASMu3D::ASMu3D (const ASMu3D& patch, unsigned char n_f)
-  : ASMunstruct(patch,n_f), lrspline(patch.lrspline), tensorspline(0)
+  : ASMunstruct(patch,n_f), lrspline(patch.lrspline), tensorspline(nullptr),
+    bezierExtract(patch.myBezierExtract)
 {
+  // Need to set nnod here,
+  // as hasXNodes might be invoked before the FE data is generated
+  if (nnod == 0 && lrspline)
+    nnod = lrspline->nBasisFunctions();
 }
 
 
@@ -74,7 +76,7 @@ bool ASMu3D::read (std::istream& is)
 		if (!isspace(c)) {
 			is.putback(c);
 			break;
-	}
+		}
 
 	if (!is.good() && !is.eof())
 	{
@@ -86,7 +88,7 @@ bool ASMu3D::read (std::istream& is)
 	else if (lrspline->dimension() < 3)
 	{
 		std::cerr <<" *** ASMu3D::read: Invalid spline volume patch, dim="
-	      << lrspline->dimension() << std::endl;
+			  << lrspline->dimension() << std::endl;
 		delete lrspline;
 		lrspline = 0;
 		return false;
@@ -109,18 +111,19 @@ bool ASMu3D::write (std::ostream& os, int) const
 
 void ASMu3D::clear (bool retainGeometry)
 {
-	if (!retainGeometry)
-	{
-		// Erase spline data
-		if (lrspline && !shareFE) delete lrspline;
-		lrspline = 0;
-		geo = 0;
-		tensorspline = 0;
-		tensorspline = 0;
-	}
+  if (!retainGeometry) {
+    // Erase spline data
+    if (!shareFE) {
+      delete lrspline;
+      delete tensorspline;
+      lrspline = nullptr;
+    }
+    geo = nullptr;
+    tensorspline = nullptr;
+  }
 
-	// Erase the FE data
-	this->ASMbase::clear(retainGeometry);
+  // Erase the FE data
+  this->ASMbase::clear(retainGeometry);
 }
 
 
@@ -198,79 +201,63 @@ bool ASMu3D::raiseOrder (int ru, int rv, int rw)
 
 bool ASMu3D::generateFEMTopology ()
 {
-	// At this point we are through with the tensor spline object.
-	// So release it to avoid memory leakage.
-	delete tensorspline;
-	tensorspline = 0;
+  // At this point we are through with the tensor spline object,
+  // so release it to avoid memory leakage
+  delete tensorspline;
+  tensorspline = nullptr;
 
-	if (!lrspline) return false;
+  if (!lrspline) return false;
 
-	const int nBasis    = lrspline->nBasisFunctions();
-	const int nElements = lrspline->nElements();
+  nnod = lrspline->nBasisFunctions();
+  nel  = lrspline->nElements();
 
-	if ((size_t)nBasis == MLGN.size())
-		return true;
-	else if (!MLGN.empty())
-	{
-		std::cerr <<" *** ASMu3D::generateFEMTopology: Inconsistency"
-		          <<" between the number of FE nodes "<< MLGN.size()
-		          <<"\n     and the number of basis functions "<< nBasis
-		          <<" in the patch."<< std::endl;
-		return false;
-	}
-	else if (shareFE)
-		return true;
+  if (!MLGN.empty() && MLGN.size() != nnod)
+  {
+    std::cerr <<" *** ASMu3D::generateFEMTopology: Inconsistency"
+              <<" between the number of FE nodes "<< MLGN.size()
+              <<"\n     and the number of basis functions "<< nnod
+              <<" in the patch."<< std::endl;
+    return false;
+  }
+  else if (shareFE)
+    return true;
 
-	const int p1 = lrspline->order(0);
-	const int p2 = lrspline->order(1);
-	const int p3 = lrspline->order(2);
+  const int p1 = lrspline->order(0);
+  const int p2 = lrspline->order(1);
+  const int p3 = lrspline->order(2);
 
-	// Consistency checks, just to be fool-proof
-	if (nBasis < 8)                 return false;
-	if (p1 < 1 || p2 < 1 || p3 < 1) return false;
+  myMLGN.resize(nnod);
+  myMLGE.resize(nel);
+  myMNPC.resize(nel);
 
-	myMLGN.resize(nBasis);
-	myMLGE.resize(nElements);
-	myMNPC.resize(nElements);
-	bezierExtract.resize(nElements);
-	lrspline->generateIDs();
+  myBezierExtract.resize(nel);
+  lrspline->generateIDs();
 
-	std::vector<double> extrMat ;
-	std::vector<LR::Element*>::iterator el_it = lrspline->elementBegin();
-	for (int iel=0; iel<nElements; iel++, el_it++)
-	{
-		LR::Element *el = *el_it;
-		int nSupportFunctions = el->nBasisFunctions();
-		myMLGE[iel] = ++gEl; // global element number over all patches
-		myMNPC[iel].resize(nSupportFunctions);
+  RealArray extrMat;
+  std::vector<LR::Element*>::const_iterator eit = lrspline->elementBegin();
+  for (size_t iel = 0; iel < nel; iel++, ++eit)
+  {
+    myMLGE[iel] = ++gEl; // global element number over all patches
+    myMNPC[iel].resize((*eit)->nBasisFunctions());
 
-		int lnod = 0;
-		for(LR::Basisfunction *b : el->support())
-			myMNPC[iel][lnod++] = b->getId();
+    int lnod = 0;
+    for (LR::Basisfunction *b : (*eit)->support())
+      myMNPC[iel][lnod++] = b->getId();
 
+    {
+      PROFILE("Bezier extraction");
 
-		{
-		PROFILE("Bezier extraction");
+      // Get bezier extraction matrix
+      lrspline->getBezierExtraction(iel,extrMat);
+      myBezierExtract[iel].resize((*eit)->nBasisFunctions(),p1*p2*p3);
+      myBezierExtract[iel].fill(extrMat.data(),extrMat.size());
+    }
+  }
 
-		// get bezier extraction matrix
-		lrspline->getBezierExtraction(iel, extrMat);
-		int width  = p1*p2*p3;
-		int height = nSupportFunctions;
+  for (size_t inod = 0; inod < nnod; inod++)
+    myMLGN[inod] = ++gNod;
 
-		// wrap the extraction data into a Matrix class
-		Matrix newM(height, width);
-		for(int c=1; c<=width; c++) 
-			newM.fillColumn(c, &extrMat[(c-1)*height]);
-
-		// keep it for use later
-		bezierExtract[iel] = newM;
-		}
-	}
-
-	for (int inod = 0; inod < nBasis; inod++)
-		myMLGN[inod] = ++gNod;
-
-	return true;
+  return true;
 }
 
 
@@ -821,20 +808,18 @@ void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu) const
 {
 	PROFILE2("Spline evaluation");
 	size_t nBasis = lrspline->getElement(el.iel-1)->nBasisFunctions();
-	el.N.resize(nBasis);
-	dNdu.resize(nBasis,3);
 
-	std::vector<std::vector<double> > result;
+	std::vector<RealArray> result;
 	lrspline->computeBasis(el.u, el.v, el.w, result, 1, el.iel-1);
 
 	el.N.resize(nBasis);
 	dNdu.resize(nBasis,3);
 	size_t jp, n = 1;
 	for (jp = 0; jp < nBasis; jp++, n++) {
-		el.N     (n)  = result[jp][0];
-		dNdu (n,1)    = result[jp][1];
-		dNdu (n,2)    = result[jp][2];
-		dNdu (n,3)    = result[jp][3];
+		el.N(n)   = result[jp][0];
+		dNdu(n,1) = result[jp][1];
+		dNdu(n,2) = result[jp][2];
+		dNdu(n,3) = result[jp][3];
 	}
 }
 
@@ -855,7 +840,7 @@ void ASMu3D::evaluateBasis (FiniteElement &el, Matrix &dNdu, Matrix3D &d2Ndu2) c
 	PROFILE2("Spline evaluation");
 	size_t nBasis = lrspline->getElement(el.iel-1)->nBasisFunctions();
 
-	std::vector<std::vector<double> > result;
+	std::vector<RealArray> result;
 	lrspline->computeBasis(el.u, el.v, el.w, result, 2, el.iel-1 );
 
 	el.N.resize(nBasis);
@@ -881,7 +866,7 @@ void ASMu3D::evaluateBasis (FiniteElement &el, int derivs) const
 	PROFILE2("Spline evaluation");
 	size_t nBasis = lrspline->getElement(el.iel-1)->nBasisFunctions();
 
-	std::vector<std::vector<double> > result;
+	std::vector<RealArray> result;
 	lrspline->computeBasis(el.u, el.v, el.w, result, derivs, el.iel-1 );
 
 	el.N.resize(nBasis);

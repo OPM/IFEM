@@ -446,8 +446,6 @@ protected:
 
   std::shared_ptr<LR::LRSplineSurface> lrspline; //!< Pointer to the LR-spline surface object
 
-  std::vector<Matrix> bezierExtract; //!< Bezier extraction matrices
-
   Go::SplineSurface* tensorspline; //!< Pointer to original tensor spline object
   // The tensor spline object is kept for backward compatability with the REFINE
   // and RAISEORDER key-words, although we take note that there is a possibility
@@ -456,9 +454,12 @@ protected:
 
   //! Inhomogeneous Dirichlet boundary condition data
   std::vector<DirichletEdge> dirich;
-  
-  Go::BsplineBasis bezier_u; // we're keeping one of these objects to do evaluation on
-  Go::BsplineBasis bezier_v; 
+
+  const std::vector<Matrix>& bezierExtract; //!< Bezier extraction matrices
+  std::vector<Matrix>      myBezierExtract; //!< Bezier extraction matrices
+
+  Go::BsplineBasis bezier_u;
+  Go::BsplineBasis bezier_v;
 };
 
 #endif

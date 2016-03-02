@@ -52,6 +52,11 @@ ASMs2D::ASMs2D (const ASMs2D& patch, unsigned char n_f)
   for (int i = 0; i < 4; i++)
     bou[i] = patch.bou[i];
   swapV = patch.swapV;
+
+  // Need to set nnod here,
+  // as hasXNodes might be invoked before the FE data is generated
+  if (nnod == 0 && surf)
+    nnod = surf->numCoefs_u()*surf->numCoefs_v();
 }
 
 
@@ -412,27 +417,33 @@ bool ASMs2D::generateFEMTopology ()
 
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
+  const int p1 = surf->order_u();
+  const int p2 = surf->order_v();
+
   if (!nodeInd.empty())
   {
-    if (shareFE == 'F')
+    nnod = n1*n2;
+    if (nodeInd.size() != (size_t)nnod)
+    {
+      std::cerr <<" *** ASMs2D::generateFEMTopology: Inconsistency between the"
+                <<" number of FE nodes "<< nodeInd.size()
+                <<"\n     and the number of spline coefficients "<< nnod
+                <<" in the patch."<< std::endl;
+      return false;
+    }
+    else if (shareFE == 'F')
     {
       // Must store the global node numbers anyway, in case
       // the patch sharing from gets extraordinary nodes later
       myMLGN = MLGN;
-      gNod += n1*n2;
+      gNod += nnod;
     }
-    if (nodeInd.size() == (size_t)n1*n2) return true;
-    std::cerr <<" *** ASMs2D::generateFEMTopology: Inconsistency between the"
-	      <<" number of FE nodes "<< nodeInd.size()
-	      <<"\n     and the number of spline coefficients "<< n1*n2
-	      <<" in the patch."<< std::endl;
-    return false;
+    nel = (n1-p1+1)*(n2-p2+1);
+    return true;
   }
   else if (shareFE == 'F')
     return true;
 
-  const int p1 = surf->order_u();
-  const int p2 = surf->order_v();
 #ifdef SP_DEBUG
   std::cout <<"numCoefs: "<< n1 <<" "<< n2;
   std::cout <<"\norder: "<< p1 <<" "<< p2;

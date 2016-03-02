@@ -37,9 +37,13 @@ namespace LR {
   */
   struct RefineData
   {
+    bool      refShare; //!< If \e true, force refinement of shared FE grids
     IntVec    options;  //!< Parameters used to control the refinement
     IntVec    elements; //!< 0-based indices of the elements to refine
     RealArray errors;   //!< List of error indicators for the elements
+
+    //! \brief Default constructor.
+    RefineData(bool rs = false) : refShare(rs) {}
   };
 
   //! \brief Expands the basis coefficients of an LR-spline object.

@@ -397,14 +397,14 @@ public:
 protected:
   LR::LRSplineVolume* lrspline; //!< Pointer to the LR-spline volume object
 
-  std::vector<Matrix> bezierExtract; //!< Bezier extraction matrices
-
-private:
   Go::SplineVolume* tensorspline; //!< Pointer to original tensor spline object
   // The tensor spline object is kept for backward compatability with the REFINE
   // and RAISEORDER key-words, although we take note that there is a possibility
   // of optimization since all mapping values and Jacobians may be performed on
   // this object for increased efficiency.
+
+  const std::vector<Matrix>& bezierExtract; //!< Bezier extraction matrices
+  std::vector<Matrix>      myBezierExtract; //!< Bezier extraction matrices
 };
 
 #endif

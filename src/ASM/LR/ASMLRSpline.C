@@ -82,8 +82,13 @@ bool ASMunstruct::refine (const LR::RefineData& prm,
 {
   PROFILE2("ASMunstruct::refine()");
 
-  if (!geo) return false;
-  if (shareFE) return true;
+  if (!geo)
+    return false;
+  else if (shareFE && !prm.refShare)
+  {
+    nnod = geo->nBasisFunctions();
+    return true;
+  }
 
   // to pick up if LR splines get stuck while doing refinement,
   // print entry and exit point of this function
@@ -137,6 +142,7 @@ bool ASMunstruct::refine (const LR::RefineData& prm,
       geo->refineElement(prm.elements);
 
     geo->generateIDs();
+    nnod = geo->nBasisFunctions();
 
     for (int i = sol.size()-1; i >= 0; i--) {
       sol[i].resize(this->getNoFields(1)*geo->nBasisFunctions());
@@ -227,7 +233,7 @@ IntVec ASMunstruct::getFunctionsForElements (const IntVec& elements)
   geo->generateIDs();
   std::set<int> functions; // to get unique function IDs
   for (const int iel : elements)
-    for (LR::Basisfunction* b : (*(geo->elementBegin()+iel))->support())
+    for (LR::Basisfunction* b : geo->getElement(iel)->support())
       functions.insert(b->getId());
 
   IntVec result(functions.size());

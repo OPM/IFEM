@@ -48,6 +48,11 @@ ASMs3D::ASMs3D (const ASMs3D& patch, unsigned char n_f)
   : ASMstruct(patch,n_f), svol(patch.svol), nodeInd(patch.myNodeInd)
 {
   swapW = patch.swapW;
+
+  // Need to set nnod here,
+  // as hasXNodes might be invoked before the FE data is generated
+  if (nnod == 0 && svol)
+    nnod = svol->numCoefs(0)*svol->numCoefs(1)*svol->numCoefs(2);
 }
 
 
@@ -109,7 +114,7 @@ bool ASMs3D::read (std::istream& is)
   else if (svol->dimension() < 3)
   {
     std::cerr <<" *** ASMs3D::read: Invalid spline volume patch, dim="
-	      << svol->dimension() << std::endl;
+              << svol->dimension() << std::endl;
     delete svol;
     svol = 0;
     return false;
@@ -207,16 +212,16 @@ bool ASMs3D::addXElms (short int dim, short int item, size_t nXn, IntVec& nodes)
                 case 4: skipMe = j2 < p2-1; break;
                 case 5: skipMe = j3 > 0;    break;
                 case 6: skipMe = j3 < p3-1; break;
-	        }
-	      if (skipMe) // Hack for node 0: Using -maxint as flag instead
-		mnpc[lnod] = mnpc[lnod] == 0 ? -2147483648 : -mnpc[lnod];
-	    }
+                }
+              if (skipMe) // Hack for node 0: Using -maxint as flag instead
+                mnpc[lnod] = mnpc[lnod] == 0 ? -2147483648 : -mnpc[lnod];
+            }
 
         // Add connectivity to the extra-ordinary nodes
         for (size_t i = 0; i < nXn; i++)
           mnpc.push_back(MLGN.size()-nXn+i);
 
-	myMLGE[nel+iel] = -(++gEl); // Extra-ordinary element => negative sign
+        myMLGE[nel+iel] = -(++gEl); // Extra-ordinary element => negative sign
       }
 
   return true;
@@ -344,28 +349,34 @@ bool ASMs3D::generateFEMTopology ()
   const int n1 = svol->numCoefs(0);
   const int n2 = svol->numCoefs(1);
   const int n3 = svol->numCoefs(2);
+  const int p1 = svol->order(0);
+  const int p2 = svol->order(1);
+  const int p3 = svol->order(2);
+
   if (!nodeInd.empty())
   {
-    if (shareFE == 'F')
+    nnod = n1*n2*n3;
+    if (nodeInd.size() != (size_t)nnod)
+    {
+      std::cerr <<" *** ASMs3D::generateFEMTopology: Inconsistency between the"
+                <<" number of FE nodes "<< nodeInd.size()
+                <<"\n     and the number of spline coefficients "<< nnod
+                <<" in the patch."<< std::endl;
+      return false;
+    }
+    else if (shareFE == 'F')
     {
       // Must store the global node numbers anyway, in case
       // the patch sharing from gets extraordinary nodes later
       myMLGN = MLGN;
-      gNod += n1*n2*n3;
+      gNod += nnod;
     }
-    if (nodeInd.size() == (size_t)n1*n2*n3) return true;
-    std::cerr <<" *** ASMs3D::generateFEMTopology: Inconsistency between the"
-	      <<" number of FE nodes "<< nodeInd.size()
-	      <<"\n     and the number of spline coefficients "<< n1*n2*n3
-	      <<" in the patch."<< std::endl;
-    return false;
+    nel = (n1-p1+1)*(n2-p2+1)*(n3-p3+1);
+    return true;
   }
   else if (shareFE == 'F')
     return true;
 
-  const int p1 = svol->order(0);
-  const int p2 = svol->order(1);
-  const int p3 = svol->order(2);
 #ifdef SP_DEBUG
   std::cout <<"numCoefs: "<< n1 <<" "<< n2 <<" "<< n3;
   std::cout <<"\norder: "<< p1 <<" "<< p2 <<" "<< p3;

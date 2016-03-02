@@ -38,15 +38,21 @@
 
 
 ASMu2D::ASMu2D (unsigned char n_s, unsigned char n_f)
-  : ASMunstruct(2,n_s,n_f), lrspline(0), tensorspline(0)
+  : ASMunstruct(2,n_s,n_f), lrspline(nullptr), tensorspline(nullptr),
+    bezierExtract(myBezierExtract)
 {
   ASMunstruct::resetNumbering(); // Replace this when going multi-patch...
 }
 
 
 ASMu2D::ASMu2D (const ASMu2D& patch, unsigned char n_f)
-  : ASMunstruct(patch,n_f), lrspline(patch.lrspline), tensorspline(0)
+  : ASMunstruct(patch,n_f), lrspline(patch.lrspline), tensorspline(nullptr),
+    bezierExtract(patch.myBezierExtract)
 {
+  // Need to set nnod here,
+  // as hasXNodes might be invoked before the FE data is generated
+  if (nnod == 0 && lrspline)
+    nnod = lrspline->nBasisFunctions();
 }
 
 
@@ -69,8 +75,7 @@ bool ASMu2D::read (std::istream& is)
 	// Eat white-space characters to see if there is more data to read
 	char c;
 	while (is.get(c))
-		if (!isspace(c))
-		{
+		if (!isspace(c)) {
 			is.putback(c);
 			break;
 		}
@@ -78,22 +83,22 @@ bool ASMu2D::read (std::istream& is)
 	if (!is.good() && !is.eof())
 	{
 		std::cerr <<" *** ASMu2D::read: Failure reading spline data"<< std::endl;
-                lrspline.reset();
+		lrspline.reset();
 		return false;
 	}
 	else if (lrspline->dimension() < 2)
 	{
 		std::cerr <<" *** ASMu2D::read: Invalid spline lrsplineace patch, dim="
-		          << lrspline->dimension() << std::endl;
-                lrspline.reset();
+			  << lrspline->dimension() << std::endl;
+		lrspline.reset();
 		return false;
 	}
 	else if (lrspline->dimension() < nsd)
 	{
 		std::cout <<"  ** ASMu2D::read: The dimension of this lrsplineace patch "
-		          << lrspline->dimension() <<" is less than nsd="<< nsd
-		          <<".\n                   Resetting nsd to "<< lrspline->dimension()
-		          <<" for this patch."<< std::endl;
+			  << lrspline->dimension() <<" is less than nsd="<< nsd
+			  <<".\n                   Resetting nsd to "<< lrspline->dimension()
+			  <<" for this patch."<< std::endl;
 		nsd = lrspline->dimension();
 	}
 
@@ -120,8 +125,8 @@ void ASMu2D::clear (bool retainGeometry)
       lrspline.reset();
       delete tensorspline;
     }
-    geo = 0;
-    tensorspline = 0;
+    geo = nullptr;
+    tensorspline = nullptr;
   }
 
   // Erase the FE data
@@ -247,8 +252,8 @@ bool ASMu2D::uniformRefine (int dir, int nInsert)
 	else
 		tensorspline->insertKnot_v(extraKnots);
 
-        lrspline.reset(new LR::LRSplineSurface(tensorspline));
-        geo = lrspline.get();
+	lrspline.reset(new LR::LRSplineSurface(tensorspline));
+	geo = lrspline.get();
 
 	return true;
 }
@@ -280,7 +285,7 @@ bool ASMu2D::refine (int dir, const RealArray& xi)
 	else
 		tensorspline->insertKnot_v(extraKnots);
 
-        lrspline.reset(new LR::LRSplineSurface(tensorspline));
+	lrspline.reset(new LR::LRSplineSurface(tensorspline));
 	geo = lrspline.get();
 
 	return true;
@@ -292,8 +297,8 @@ bool ASMu2D::raiseOrder (int ru, int rv)
 	if (shareFE) return true;
 
 	tensorspline->raiseOrder(ru,rv);
-        lrspline.reset(new LR::LRSplineSurface(tensorspline));
-        geo = lrspline.get();
+	lrspline.reset(new LR::LRSplineSurface(tensorspline));
+	geo = lrspline.get();
 	return true;
 }
 
@@ -379,80 +384,67 @@ bool ASMu2D::evaluateBasis (FiniteElement& fe, int derivs) const
 
 bool ASMu2D::generateFEMTopology ()
 {
-	// At this point we are through with the tensor spline object.
-	// So release it to avoid memory leakage.
-	delete tensorspline;
-	tensorspline = 0;
+  // At this point we are through with the tensor spline object,
+  // so release it to avoid memory leakage
+  delete tensorspline;
+  tensorspline = nullptr;
 
-	if (!lrspline) return false;
+  if (!lrspline) return false;
 
-	const int nBasis    = lrspline->nBasisFunctions();
-	const int nElements = lrspline->nElements();
+  nnod = lrspline->nBasisFunctions();
+  nel  = lrspline->nElements();
 
-	if ((size_t)nBasis == MLGN.size())
-		return true;
-	else if (!MLGN.empty())
-	{
-		std::cerr <<" *** ASMu2D::generateFEMTopology: Inconsistency"
-		          <<" between the number of FE nodes "<< MLGN.size()
-		          <<"\n     and the number of basis functions "<< nBasis
-		          <<" in the patch."<< std::endl;
-		return false;
-	}
-	else if (shareFE)
-		return true;
+  if (!MLGN.empty() && MLGN.size() != nnod)
+  {
+    std::cerr <<" *** ASMu2D::generateFEMTopology: Inconsistency"
+              <<" between the number of FE nodes "<< MLGN.size()
+              <<"\n     and the number of basis functions "<< nnod
+              <<" in the patch."<< std::endl;
+    return false;
+  }
 
-	const int p1 = lrspline->order(0);
-	const int p2 = lrspline->order(1);
+  const int p1 = lrspline->order(0);
+  const int p2 = lrspline->order(1);
 
-	myMLGN.resize(nBasis);
-	myMLGE.resize(nElements);
-	myMNPC.resize(nElements);
-	bezierExtract.resize(nElements);
-	lrspline->generateIDs();
+  bezier_u = getBezierBasis(p1);
+  bezier_v = getBezierBasis(p2);
 
-	std::vector<double> extrMat ;
-	std::vector<LR::Element*>::iterator el_it = lrspline->elementBegin();
-	for (int iel=0; iel<nElements; iel++, el_it++)
-	{
-		LR::Element *el = *el_it;
-		int nSupportFunctions = el->nBasisFunctions();
+  if (shareFE) return true;
 
-		myMLGE[iel] = ++gEl; // global element number over all patches
-		myMNPC[iel].resize(el->nBasisFunctions());
+  myMLGN.resize(nnod);
+  myMLGE.resize(nel);
+  myMNPC.resize(nel);
 
-		int lnod = 0;
-		for (LR::Basisfunction *b : el->support())
-			myMNPC[iel][lnod++] = b->getId();
+  myBezierExtract.resize(nel);
+  lrspline->generateIDs();
 
-		{
-		PROFILE("Bezier extraction");
+  RealArray extrMat;
+  std::vector<LR::Element*>::const_iterator eit = lrspline->elementBegin();
+  for (size_t iel = 0; iel < nel; iel++, ++eit)
+  {
+    myMLGE[iel] = ++gEl; // global element number over all patches
+    myMNPC[iel].resize((*eit)->nBasisFunctions());
 
-		// get bezier extraction matrix 
-		lrspline->getBezierExtraction(iel, extrMat);
-		int width  = p1*p2;
-		int height = nSupportFunctions;
+    int lnod = 0;
+    for (LR::Basisfunction *b : (*eit)->support())
+      myMNPC[iel][lnod++] = b->getId();
 
-		// wrap the extraction data into a Matrix class
-		Matrix newM(height, width);
-		for(int c=1; c<=width; c++) 
-			newM.fillColumn(c, &extrMat[(c-1)*height]);
+    {
+      PROFILE("Bezier extraction");
 
-		// keep it for use later
-		bezierExtract[iel] = newM;
-		}
-	}
+      // Get bezier extraction matrix
+      lrspline->getBezierExtraction(iel,extrMat);
+      myBezierExtract[iel].resize((*eit)->nBasisFunctions(),p1*p2);
+      myBezierExtract[iel].fill(extrMat.data(),extrMat.size());
+    }
+  }
 
-	for (int inod = 0; inod < nBasis; inod++)
-		myMLGN[inod] = ++gNod;
-	
-	bezier_u = getBezierBasis(p1);
-	bezier_v = getBezierBasis(p2);
+  for (size_t inod = 0; inod < nnod; inod++)
+    myMLGN[inod] = ++gNod;
 
-	nnod = gNod;
-        nel = nElements;
-	return true;
+  return true;
 }
+
 
 /*
 // this is connecting multiple patches and handling deformed geometries.
@@ -1780,7 +1772,8 @@ bool ASMu2D::transferGaussPtVars (const LR::LRSplineSurface* oldBasis,
     double u_center = 0.5*(newEl->umin() + newEl->umax());
     double v_center = 0.5*(newEl->vmin() + newEl->vmax());
     int iOld = oldBasis->getElementContaining(u_center,v_center);
-    if (iOld < 0) {
+    if (iOld < 0)
+    {
       std::cerr <<" *** ASMu2D: Failed to locate element "<< iEl
                 <<" of the old mesh in the new mesh."<< std::endl;
       return false;
