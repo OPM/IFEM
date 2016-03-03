@@ -44,19 +44,15 @@ public:
 
   //! \brief Solves the problem up to the final time.
   virtual int solveProblem(char* infile, DataExporter* exporter = nullptr,
-                           const char* heading = nullptr, bool = true)
+                           const char* heading = nullptr, bool saveInit = true)
   {
     // Perform some initial refinement to resolve geometric features, etc.
     if (!this->S1.initialRefine(beta,minFrac,maxRef))
       return 4;
 
-    // Save the initial FE model to VTF file for visualization
+    // Save the initial FE model (and state) to VTF and HDF5 for visualization
     int geoBlk = 0, nBlock = 0;
-    if (!this->S1.saveModel(infile,geoBlk,nBlock))
-      return 1;
-
-    // Save the initial configuration also
-    if (!this->saveResults(exporter,nBlock,true))
+    if (!this->saveState(exporter,geoBlk,nBlock,true,infile,saveInit))
       return 2;
 
     this->printHeading(heading);
@@ -64,7 +60,8 @@ public:
     // Adaptive loop
     for (int iStep = 1; true; iStep++)
     {
-      this->S1.saveState(); // Save current solution state internally
+      if (iStep > 1)
+        this->S1.saveState(); // Save current solution state internally
       int tranStep = this->tp.step; // Time step of next solution transer
       int lastRef = 0, refElms = 0;
 
@@ -82,13 +79,9 @@ public:
         // Solve for (up to) nPredict steps without saving results on disk
         for (size_t i = 0; i < nPredict; i++)
           if (!this->advanceStep()) // Final time reached
-          {
             // Save updated FE model if mesh has been refined
-            if (refElms > 0 && !this->S1.saveModel(nullptr,geoBlk,nBlock))
-              return 1;
-            // Save current results to VTF and HDF5 and exit
-            return this->saveResults(exporter, nBlock, refElms > 0) ? 0 : 2;
-          }
+            // Save current results to VTF and HDF5 and then exit
+            return this->saveState(exporter,geoBlk,nBlock,refElms > 0) ? 0 : 2;
           else if (!this->S1.solveStep(this->tp))
             return 3;
 
@@ -107,16 +100,13 @@ public:
 
       if (refElms == 0)
         IFEM::cout <<"  No refinement, resume from current state"<< std::endl;
-      else // Save the updated FE model
-        if (!this->S1.saveModel(nullptr,geoBlk,nBlock))
-          return 1;
 
       if (lastRef == 0)
       {
         // The mesh is sufficiently refined at this state.
         // Save the current results to VTF and HDF5, and continue.
         // Note: We then miss the results from the preceding nPredict-1 steps.
-        if (!this->saveResults(exporter, nBlock, refElms > 0))
+        if (!this->saveState(exporter,geoBlk,nBlock,refElms > 0))
           return 2;
       }
       else
@@ -134,7 +124,7 @@ public:
             return 0; // Final time reached, we're done
           else if (!this->S1.solveStep(this->tp))
             return 3;
-          else if (!this->saveResults(exporter, nBlock, j < 1))
+          else if (!this->saveState(exporter,geoBlk,nBlock,j < 1))
             return 2;
       }
     }

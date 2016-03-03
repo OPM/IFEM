@@ -72,13 +72,10 @@ public:
   virtual int solveProblem(char* infile, DataExporter* exporter = nullptr,
                            const char* heading = nullptr, bool saveInit = true)
   {
-    // Save FE model to VTF file for visualization
-    int geoBlk = 0, nBlock = 0;
-    if (!S1.saveModel(infile,geoBlk,nBlock))
-      return 1;
-
+    // Save FE model to VTF and HDF5 for visualization
     // Optionally save the initial configuration also
-    if (saveInit && !this->saveResults(exporter,nBlock))
+    int geoBlk = 0, nBlock = 0;
+    if (!this->saveState(exporter,geoBlk,nBlock,true,infile,saveInit))
       return 2;
 
     this->printHeading(heading);
@@ -87,7 +84,7 @@ public:
     for (int iStep = 1; this->advanceStep(); iStep++)
       if (!S1.solveStep(tp))
         return 3;
-      else if (!this->saveResults(exporter,nBlock))
+      else if (!this->saveState(exporter,geoBlk,nBlock))
         return 4;
       else
         IFEM::pollControllerFifo();
@@ -115,13 +112,18 @@ protected:
     }
   }
 
-  //! \brief Saves results to VTF and HDF5 for current time step.
-  bool saveResults(DataExporter* exporter, int& nBlock, bool newMesh = false)
+  //! \brief Saves geometry and results to VTF and HDF5 for current time step.
+  bool saveState(DataExporter* exporter, int& geoBlk, int& nBlock,
+                 bool newMesh = false, char* infile = nullptr,
+                 bool saveRes = true)
   {
-    if (!S1.saveStep(tp,nBlock))
+    if (newMesh && !S1.saveModel(infile,geoBlk,nBlock))
       return false;
 
-    if (exporter)
+    if (saveRes && !S1.saveStep(tp,nBlock))
+      return false;
+
+    if (saveRes && exporter)
       exporter->dumpTimeLevel(&tp,newMesh);
 
     return true;
