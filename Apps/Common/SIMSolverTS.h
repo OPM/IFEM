@@ -176,18 +176,6 @@ protected:
     return true;
   }
 
-  //! \brief Saves results to VTF and HDF5 for current time step.
-  bool saveResults(DataExporter* exporter, int& nBlock, bool newMesh = false)
-  {
-    if (!this->S1.saveStep(this->tp,nBlock))
-      return false;
-
-    if (exporter)
-      exporter->dumpTimeLevel(&this->tp,newMesh);
-
-    return true;
-  }
-
 private:
   size_t nForward; //!< Number of steps to advance on new mesh
   size_t nPredict; //!< Number of steps to use for prediction

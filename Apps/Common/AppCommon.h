@@ -24,12 +24,13 @@ namespace SIM
   //! \brief Handles application restarts.
   //! \param[in] simulator The top SIMbase instance of your application
   //! \param[in] solver The SIMSolver instance of your application
-  //! \param[in] interval The stride in the input file
-  //! \param[in] steps The number of timesteps to load
   //! \param[in] restartfile The file to read from
+  //! \param[in] interval The stride in the input file
+  //! \param[in] steps The number of time steps to load
   template<class Simulator, class Solver>
   void handleRestart(Simulator& simulator, Solver& solver,
-                     const std::string& restartfile, int interval, int steps)
+                     const std::string& restartfile,
+                     int interval = 1, int steps = 1)
   {
     DataExporter reader(true,interval,steps);
     XMLWriter* xml = new XMLWriter(restartfile,solver.getProcessAdm());
@@ -58,12 +59,13 @@ namespace SIM
   //! \param[in] solver The SIMSolver instance of your application
   //! \param[in] hdf5file The file to save to
   //! \param[in] append Whether or not to append to file
-  //! \param[in] interval The stride in the input file
-  //! \param[in] steps The number of timesteps to load
+  //! \param[in] interval The stride in the output file
+  //! \param[in] steps The number of time steps to dump in onw row
   template<class Simulator, class Solver>
   DataExporter* handleDataOutput(Simulator& simulator, Solver& solver,
                                  const std::string& hdf5file,
-                                 bool append, int interval, int steps)
+                                 bool append = false,
+                                 int interval = 1, int steps = 1)
   {
     DataExporter* writer = new DataExporter(true,interval,steps);
     XMLWriter* xml = new XMLWriter(hdf5file,solver.getProcessAdm());
@@ -71,11 +73,7 @@ namespace SIM
     writer->registerWriter(xml);
     writer->registerWriter(hdf);
     simulator.registerFields(*writer);
-    if (!append && solver.getTimePrm().multiSteps())
-      writer->dumpTimeLevel(&solver.getTimePrm()); // initial state
-
     IFEM::registerCallback(*writer);
-
     return writer;
   }
 }

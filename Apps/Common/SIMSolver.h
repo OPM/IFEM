@@ -74,27 +74,23 @@ public:
   {
     // Save FE model to VTF file for visualization
     int geoBlk = 0, nBlock = 0;
-    if (!this->S1.saveModel(infile,geoBlk,nBlock))
+    if (!S1.saveModel(infile,geoBlk,nBlock))
       return 1;
 
     // Optionally save the initial configuration also
-    if (saveInit && !this->S1.saveStep(tp,nBlock))
+    if (saveInit && !this->saveResults(exporter,nBlock))
       return 2;
 
     this->printHeading(heading);
 
     // Solve for each time step up to final time
     for (int iStep = 1; this->advanceStep(); iStep++)
-    {
-      if (!this->S1.solveStep(tp))
+      if (!S1.solveStep(tp))
         return 3;
-      else if (!this->S1.saveStep(tp,nBlock))
+      else if (!this->saveResults(exporter,nBlock))
         return 4;
-      else if (exporter)
-        exporter->dumpTimeLevel(&tp,false);
-
-      IFEM::pollControllerFifo();
-    }
+      else
+        IFEM::pollControllerFifo();
 
     return 0;
   }
@@ -117,6 +113,18 @@ protected:
       for (size_t i = 0; i < n && i < myHeading.size(); i++) IFEM::cout <<'=';
       IFEM::cout << std::endl;
     }
+  }
+
+  //! \brief Saves results to VTF and HDF5 for current time step.
+  bool saveResults(DataExporter* exporter, int& nBlock, bool newMesh = false)
+  {
+    if (!S1.saveStep(tp,nBlock))
+      return false;
+
+    if (exporter)
+      exporter->dumpTimeLevel(&tp,newMesh);
+
+    return true;
   }
 
   TimeStep tp; //!< Time stepping information
