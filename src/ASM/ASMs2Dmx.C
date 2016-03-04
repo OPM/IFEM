@@ -299,6 +299,7 @@ bool ASMs2Dmx::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool revers)
 
   size_t nb1=0;
   size_t nb2=0;
+  this->addNeighbor(neighMx);
   for (size_t i = 1;i <= m_basis.size(); ++i) {
     if (!this->connectBasis(edge,neighbor,nedge,revers,i,nb1,nb2))
       return false;
@@ -306,7 +307,6 @@ bool ASMs2Dmx::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool revers)
     nb2 += neighMx->nb[i-1];
   }
 
-  this->addNeighbor(neighMx);
   return true;
 }
 
