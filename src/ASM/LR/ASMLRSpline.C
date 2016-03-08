@@ -18,30 +18,40 @@
 #include <set>
 
 
-void LR::extendControlPoints (LR::LRSpline* basis, Vector& v, int nf, int ofs)
+int LR::extendControlPoints (LR::LRSpline* basis, const Vector& v,
+                             int nf, int ofs)
 {
-  std::vector<double> cpts;
+  if (v.size() == (size_t)basis->nBasisFunctions())
+    nf = 1; // This is a scalar field
+  else if (v.size() != (size_t)(basis->nBasisFunctions()*nf)) {
+    std::cerr <<" *** LR::extendControlPoints: Invalid vector size "
+              << v.size() <<", nBasis = "<< basis->nBasisFunctions()
+              << std::endl;
+    return 0;
+  }
+
+  RealArray cpts, cpp;
   for (auto it = basis->basisBegin(); it != basis->basisEnd(); ++it) {
     int id = (*it)->getId();
-    std::vector<double> cpp;
     (*it)->getControlPoint(cpp);
     cpts.insert(cpts.end(), cpp.begin(), cpp.end());
     cpts.insert(cpts.end(), v.begin()+id*nf+ofs, v.begin()+(id+1)*nf+ofs);
   }
   basis->rebuildDimension(basis->dimension()+nf);
   basis->setControlPoints(cpts);
+  return nf;
 }
 
 
-void LR::contractControlPoints (LR::LRSpline* basis, Vector& v, int nf, int ofs)
+void LR::contractControlPoints (LR::LRSpline* basis, Vector& v,
+                                int nf, int ofs)
 {
-  std::vector<double> cpts;
+  RealArray cpts, cpp;
   for (auto it = basis->basisBegin(); it != basis->basisEnd(); ++it) {
     int id = (*it)->getId();
-    std::vector<double> cpp;
     (*it)->getControlPoint(cpp);
-    for (int i=1; i <= nf; ++i)
-      v(id*nf+ofs+i) = cpp[basis->dimension()-nf+i-1];
+    for (int i = 0; i < nf; i++)
+      v[id*nf+ofs+i] = cpp[basis->dimension()-nf+i];
     cpts.insert(cpts.end(), cpp.begin(), cpp.end()-nf);
   }
   basis->rebuildDimension(basis->dimension()-nf);
@@ -121,8 +131,10 @@ bool ASMunstruct::refine (const LR::RefineData& prm,
 
   if (doRefine) {
 
+    std::vector<int> nf(sol.size());
     for (size_t j = 0; j < sol.size(); j++)
-      LR::extendControlPoints(geo, sol[j], this->getNoFields(1));
+      if (!(nf[j] = LR::extendControlPoints(geo,sol[j],this->getNoFields(1))))
+        return false;
 
     // set refinement parameters
     if (maxTjoints > 0)
@@ -145,8 +157,8 @@ bool ASMunstruct::refine (const LR::RefineData& prm,
     nnod = geo->nBasisFunctions();
 
     for (int i = sol.size()-1; i >= 0; i--) {
-      sol[i].resize(this->getNoFields(1)*geo->nBasisFunctions());
-      LR::contractControlPoints(geo, sol[i], this->getNoFields(1));
+      sol[i].resize(nf[i]*geo->nBasisFunctions());
+      LR::contractControlPoints(geo,sol[i],nf[i]);
     }
   }
 

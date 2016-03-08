@@ -47,18 +47,20 @@ namespace LR {
   };
 
   //! \brief Expands the basis coefficients of an LR-spline object.
-  //! \param[in] basis The surface to extend
+  //! \param basis The spline object to extend
   //! \param[in] v The vector to append to the basis coefficients
   //! \param[in] nf Number of fields in the given vector
   //! \param[in] ofs Offset in vector
-  void extendControlPoints(LRSpline* basis, Vector& v, int nf, int ofs = 0);
+  int extendControlPoints(LRSpline* basis, const Vector& v,
+                          int nf, int ofs = 0);
 
   //! \brief Contracts the basis coefficients of an LR-spline object.
-  //! \param[in] basis The surface to extend
-  //! \param[in] v The vector to append to the basis coefficients
+  //! \param basis The spline object to contact
+  //! \param[out] v Vector containing the extracted basis coefficients
   //! \param[in] nf Number of fields in the given vector
   //! \param[in] ofs Offset in vector
-  void contractControlPoints(LRSpline* basis, Vector& v, int nf, int ofs = 0);
+  void contractControlPoints(LRSpline* basis, Vector& v,
+                             int nf, int ofs = 0);
 
   //! \brief Extracts parameter values of the Gauss points in one direction.
   //! \param[in] spline The LR-spline object to get parameter values for
