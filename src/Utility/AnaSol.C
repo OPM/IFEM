@@ -13,6 +13,7 @@
 
 #include "AnaSol.h"
 #include "Functions.h"
+#include "IFEM.h"
 #include "Utilities.h"
 #include "tinyxml.h"
 
@@ -30,13 +31,13 @@ AnaSol::AnaSol (std::istream& is, const int nlines, bool scalarSol)
     {
       variables += function.substr(pos+10);
       if (variables[variables.size()-1] != ';') variables += ";";
-      std::cout <<"\tVariables="<< variables << std::endl;
+      IFEM::cout <<"\tVariables="<< variables << std::endl;
     }
 
     if ((pos = function.find("Primary=")) != std::string::npos)
     {
       std::string primary = function.substr(pos+8);
-      std::cout <<"\tPrimary="<< primary << std::endl;
+      IFEM::cout <<"\tPrimary="<< primary << std::endl;
       if (scalarSol)
         scalSol = new EvalFunction((variables+primary).c_str());
       else
@@ -46,7 +47,7 @@ AnaSol::AnaSol (std::istream& is, const int nlines, bool scalarSol)
     if ((pos = function.find("Secondary=")) != std::string::npos)
     {
       std::string secondary = function.substr(pos+10);
-      std::cout <<"\tSecondary="<< secondary << std::endl;
+      IFEM::cout <<"\tSecondary="<< secondary << std::endl;
       if (scalarSol)
         scalSecSol = new VecFuncExpr(secondary,variables);
       else
@@ -56,7 +57,7 @@ AnaSol::AnaSol (std::istream& is, const int nlines, bool scalarSol)
     if ((pos = function.find("Stress=")) != std::string::npos)
     {
       std::string stress = function.substr(pos+7);
-      std::cout <<"\tStress="<< stress << std::endl;
+      IFEM::cout <<"\tStress="<< stress << std::endl;
       stressSol = new STensorFuncExpr(stress,variables);
     }
   }
@@ -73,14 +74,14 @@ AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
   {
     variables = var->FirstChild()->Value();
     if (variables[variables.size()-1] != ';') variables += ";";
-    std::cout <<"\tVariables="<< variables << std::endl;
+    IFEM::cout <<"\tVariables="<< variables << std::endl;
   }
 
   const TiXmlElement* prim = elem->FirstChildElement("primary");
   if (prim && prim->FirstChild())
   {
     std::string primary = prim->FirstChild()->Value();
-    std::cout <<"\tPrimary="<< primary << std::endl;
+    IFEM::cout <<"\tPrimary="<< primary << std::endl;
     if (scalarSol)
       scalSol = new EvalFunction((variables+primary).c_str());
     else
@@ -91,7 +92,7 @@ AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
   if (prim && prim->FirstChild())
   {
     std::string primary = prim->FirstChild()->Value();
-    std::cout <<"\tScalar Primary="<< primary << std::endl;
+    IFEM::cout <<"\tScalar Primary="<< primary << std::endl;
     scalSol = new EvalFunction((variables+primary).c_str());
   }
 
@@ -99,7 +100,7 @@ AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
   if (sec && sec->FirstChild())
   {
     std::string secondary = sec->FirstChild()->Value();
-    std::cout <<"\tSecondary="<< secondary << std::endl;
+    IFEM::cout <<"\tSecondary="<< secondary << std::endl;
     if (scalarSol)
       scalSecSol = new VecFuncExpr(secondary,variables);
     else
@@ -110,7 +111,7 @@ AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
   if (sec && sec->FirstChild())
   {
     std::string secondary = sec->FirstChild()->Value();
-    std::cout <<"\tScalar Secondary="<< secondary << std::endl;
+    IFEM::cout <<"\tScalar Secondary="<< secondary << std::endl;
     scalSecSol = new VecFuncExpr(secondary,variables);
   }
 
@@ -118,7 +119,7 @@ AnaSol::AnaSol (const TiXmlElement* elem, bool scalarSol)
   if (stress && stress->FirstChild())
   {
     std::string sigma = stress->FirstChild()->Value();
-    std::cout <<"\tStress="<< sigma << std::endl;
+    IFEM::cout <<"\tStress="<< sigma << std::endl;
     stressSol = new STensorFuncExpr(sigma,variables);
   }
 }
