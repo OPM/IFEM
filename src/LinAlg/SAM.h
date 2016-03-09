@@ -74,12 +74,9 @@ public:
   //! \param[out] irow start index for each row in jcol
   //! \param[out] jcol column indices for non-zero entries
   bool getDofCouplings(IntVec& irow, IntVec& jcol) const;
-
-private:
   //! \brief Finds the set of free DOFs coupled to each free DOF.
   bool getDofCouplings(std::vector<IntSet>& dofc) const;
 
-public:
   //! \brief Initializes the system matrices prior to the element assembly.
   //! \param sysK   The system left-hand-side matrix to be initialized
   //! \param sysRHS The system right-hand-side load vector to be initialized
