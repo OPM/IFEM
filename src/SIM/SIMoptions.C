@@ -68,6 +68,8 @@ void SIMoptions::setLinearSolver (const std::string& eqsolver)
     solver = SystemMatrix::SAMG;
   else if (eqsolver == "petsc")
     solver = SystemMatrix::PETSC;
+  else if (eqsolver == "istl")
+    solver = SystemMatrix::ISTL;
 }
 
 
@@ -223,6 +225,8 @@ bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
     solver = SystemMatrix::SAMG;
   else if (!strcmp(argv[i],"-petsc"))
     solver = SystemMatrix::PETSC;
+  else if (!strcmp(argv[i],"-istl"))
+    solver = SystemMatrix::ISTL;
   else if (!strncmp(argv[i],"-lag",4))
     discretization = ASM::Lagrange;
   else if (!strncmp(argv[i],"-spec",5))
