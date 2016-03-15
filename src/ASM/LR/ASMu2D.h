@@ -135,6 +135,10 @@ public:
   //! \param[in] dir Parameter direction to refine
   //! \param[in] xi Relative positions of added knots in each existing knot span
   virtual bool refine(int dir, const RealArray& xi);
+  //! \brief Refines the parametrization based on a mesh density function.
+  //! \param[in] refC Mesh refinement criteria function
+  //! \param[in] refTol Mesh refinement threshold
+  virtual bool refine(const RealFunc& refC, double refTol);
   //! \brief Raises the order of the tensor spline object for this patch.
   //! \details This method is mainly kept for backward compatability with the
   //! "RAISEORDER" keyword in the input file.

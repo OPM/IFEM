@@ -291,15 +291,43 @@ bool ASMu2D::refine (int dir, const RealArray& xi)
 	return true;
 }
 
+
+/*!
+  Refines all elements for which refC(X0) < refTol,
+  where X0 is the element center.
+*/
+
+bool ASMu2D::refine (const RealFunc& refC, double refTol)
+{
+  Go::Point X0;
+  std::vector<int> elements;
+  std::vector<LR::Element*>::const_iterator eit = lrspline->elementBegin();
+  for (int iel = 0; eit != lrspline->elementEnd(); iel++, ++eit)
+  {
+    double u0 = 0.5*((*eit)->umin() + (*eit)->umax());
+    double v0 = 0.5*((*eit)->vmin() + (*eit)->vmax());
+    lrspline->point(X0,u0,v0);
+    if (refC(SplineUtils::toVec3(X0,nsd)) < refTol)
+      elements.push_back(iel);
+  }
+
+  Vectors dummySol;
+  LR::RefineData prm(true);
+  prm.options = { 10, 1, 2 };
+  prm.elements = this->getFunctionsForElements(elements);
+  return this->refine(prm,dummySol);
+}
+
+
 bool ASMu2D::raiseOrder (int ru, int rv)
 {
-	if (!tensorspline) return false;
-	if (shareFE) return true;
+  if (!tensorspline) return false;
+  if (shareFE) return true;
 
-	tensorspline->raiseOrder(ru,rv);
-	lrspline.reset(new LR::LRSplineSurface(tensorspline));
-	geo = lrspline.get();
-	return true;
+  tensorspline->raiseOrder(ru,rv);
+  lrspline.reset(new LR::LRSplineSurface(tensorspline));
+  geo = lrspline.get();
+  return true;
 }
 
 
