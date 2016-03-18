@@ -137,6 +137,12 @@ public:
   bool addLagrangeMultipliers(size_t iel, const IntVec& mGLag,
                               unsigned char nnLag = 1);
 
+  //! \brief Adds global Lagrange multipliers to the system.
+  //! \param[in] mGLag Global node numbers of the Lagrange multipliers
+  //! \param[in] nnLag Number of Lagrange multipliers to add
+  bool addGlobalLagrangeMultipliers(const IntVec& mGLag,
+                                    unsigned char nnLag = 1);
+
   //! \brief Defines the numerical integration scheme to use.
   //! \param[in] ng Number of Gauss points in each parameter direction
   void setGauss(int ng) { nGauss = ng; }
