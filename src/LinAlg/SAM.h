@@ -20,6 +20,9 @@
 class SystemMatrix;
 class SystemVector;
 
+typedef std::vector<int> IntVec; //!< General integer vector
+typedef std::set<int>    IntSet; //!< General integer set
+
 
 /*!
   \brief This class contains data and functions for the assembly of FE matrices.
@@ -33,10 +36,6 @@ class SystemVector;
 
 class SAM
 {
-protected:
-  typedef std::vector<int> IntVec; //!< General integer vector
-  typedef std::set<int>    IntSet; //!< General integer set
-
 public:
   //! \brief The constructor initializes an empty object.
   SAM();
@@ -74,12 +73,9 @@ public:
   //! \param[out] irow start index for each row in jcol
   //! \param[out] jcol column indices for non-zero entries
   bool getDofCouplings(IntVec& irow, IntVec& jcol) const;
-
-private:
   //! \brief Finds the set of free DOFs coupled to each free DOF.
   bool getDofCouplings(std::vector<IntSet>& dofc) const;
 
-public:
   //! \brief Initializes the system matrices prior to the element assembly.
   //! \param sysK   The system left-hand-side matrix to be initialized
   //! \param sysRHS The system right-hand-side load vector to be initialized
@@ -213,7 +209,7 @@ public:
   //! \brief Finds the equation number corresponding to a local nodal DOF.
   //! \param[in] inod Identifier for the node to get the equation number for
   //! \param[in] ldof Local index of the DOF within node \a inod
-  //! \return Equation number, or zero if the DOF is or constrained
+  //! \return Equation number, or zero if the DOF is fixed or constrained
   int getEquation(int inod, int ldof) const;
 
   //! \brief Expands a solution vector from equation-ordering to DOF-ordering.

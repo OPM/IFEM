@@ -743,8 +743,7 @@ int SAM::getEquation (int inod, int ldof) const
   if (idof >= madof[inod]) return -2;
 
   int ieq = meqn[idof-1];
-  if (ieq < 0) ieq = meqn[mmceq[mpmceq[-ieq-1]]-1];
-  return ieq;
+  return ieq > 0 ? ieq : 0;
 }
 
 
