@@ -18,10 +18,11 @@
 
 #ifdef HAS_PETSC
 #include "petscversion.h"
-#endif
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
 #include "petscsys.h"
-#include "mpi.h"
+#endif
+#elif defined(HAVE_MPI)
+#include <mpi.h>
 #endif
 
 int IFEM::argc;
@@ -49,9 +50,13 @@ int IFEM::Init (int arg_c, char** arg_v, const char* title)
     std::cout <<"\n >>> IFEM "<< title <<" <<<\n ";
     for (i = 0; i < nchar; i++) std::cout <<'=';
     std::cout <<"\n\n Executing command:\n";
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
     int nProc = 1;
+#ifdef HAS_PETSC
     MPI_Comm_size(PETSC_COMM_WORLD,&nProc);
+#else
+    MPI_Comm_size(MPI_COMM_WORLD,&nProc);
+#endif
     if (nProc > 1)
       std::cout <<" mpirun -np "<< nProc;
 #endif
@@ -63,56 +68,59 @@ int IFEM::Init (int arg_c, char** arg_v, const char* title)
                                << IFEM_VERSION_MINOR <<"."
                                << IFEM_VERSION_PATCH <<" initialized =====";
 
-  std::cout <<"\n       HDF5 support: "<<
+  std::cout <<"\n       HDF5 support: ";
 #if HAS_HDF5
-    "enabled";
+  std::cout <<"enabled";
 #else
-    "disabled";
+  std::cout <<"disabled";
 #endif
 
-  std::cout <<"\n  LR spline support: "<<
+  std::cout <<"\n  LR spline support: ";
 #if HAS_LRSPLINE
-    "enabled";
+  std::cout <<"enabled";
 #else
-    "disabled";
+  std::cout <<"disabled";
 #endif
 
-  std::cout <<"\n     OpenMP support: "<<
+  std::cout <<"\n     OpenMP support: ";
 #if USE_OPENMP
-    "enabled";
+  std::cout <<"enabled";
 #else
-    "disabled";
+  std::cout <<"disabled";
 #endif
 
-  std::cout <<"\n      PETSc support: "<<
-#if PARALLEL_PETSC
-    "enabled (MPI) (v" << PETSC_VERSION_MAJOR << "."
-                       << PETSC_VERSION_MINOR << "."
-                       << PETSC_VERSION_SUBMINOR << ")";
-#elif HAS_PETSC
-    "enabled (v" << PETSC_VERSION_MAJOR << "."
-                 << PETSC_VERSION_MINOR << "."
-                 << PETSC_VERSION_SUBMINOR << ")";
+  std::cout <<"\n        MPI support: ";
+#if HAVE_MPI
+  std::cout <<"enabled";
 #else
-    "disabled";
+  std::cout <<"disabled";
 #endif
 
-  std::cout <<"\n    SuperLU support: "<<
+  std::cout <<"\n      PETSc support: ";
+#if HAS_PETSC
+  std::cout <<"enabled (v"<< PETSC_VERSION_MAJOR <<"."
+                          << PETSC_VERSION_MINOR <<"."
+                          << PETSC_VERSION_SUBMINOR <<")";
+#else
+  std::cout <<"disabled";
+#endif
+
+  std::cout <<"\n    SuperLU support: ";
 #if HAS_SUPERLU
-    "enabled (serial)";
+  std::cout <<"enabled (serial)";
 #elif HAS_SUPERLU_MT
-    "enabled (multi-threaded)";
+  std::cout <<"enabled (multi-threaded)";
 #else
-    "disabled";
+  std::cout <<"disabled";
 #endif
 
-  std::cout <<"\n        VTF support: "<<
+  std::cout <<"\n        VTF support: ";
 #if HAS_VTFAPI == 2
-    "enabled (v2)";
+  std::cout <<"enabled (v2)";
 #elif HAS_VTFAPI == 1
-    "enabled (v1)";
+  std::cout <<"enabled (v1)";
 #else
-    "disabled";
+  std::cout <<"disabled";
 #endif
 
   if (cmdOptions.enableController && fifo.open())

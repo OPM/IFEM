@@ -17,8 +17,8 @@
 #include "tinyxml.h"
 #include "IFEM.h"
 #include "LogStream.h"
-#ifdef PARALLEL_PETSC
-#include "petscsys.h"
+#ifdef HAVE_MPI
+#include <mpi.h>
 #endif
 #ifdef USE_OPENMP
 #include <omp.h>
@@ -133,8 +133,8 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
 
   else if (!strcasecmp(elem->Value(),"logging")) {
     int pid = 0;
-#ifdef PARALLEL_PETSC
-    MPI_Comm_rank(PETSC_COMM_WORLD,&pid);
+#ifdef HAVE_MPI
+    MPI_Comm_rank(MPI_COMM_WORLD,&pid);
 #endif
     utl::getAttribute(elem,"output_pid",printPid);
     if (printPid != -1 && printPid != IFEM::getOptions().printPid) {
