@@ -314,7 +314,7 @@ void PETScMatrix::initAssembly (const SAM& sam, bool)
 
   else if (solParams.getBlock(0).nullspace == RIGID_BODY) {
     int nsd = sampch->getLocalNodeCoordinates(coords);
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
     std::cerr << "WARNING: Rigid body null space not implemented in parallel, ignoring" << std::endl;
 #else
     Vec coordVec;

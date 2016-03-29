@@ -26,13 +26,13 @@ TEST(TestScopedLogger, General)
 
   char tmp[1024];
   str.getline(tmp, 1024);
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
   ASSERT_STREQ(tmp, "[0]: Entering \"MockFunction\"");
 #else
   ASSERT_STREQ(tmp, "Entering \"MockFunction\"");
 #endif
   str.getline(tmp, 1024);
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
   ASSERT_STREQ(tmp, "[0]: Exiting \"MockFunction\"");
 #else
   ASSERT_STREQ(tmp, "Exiting \"MockFunction\"");

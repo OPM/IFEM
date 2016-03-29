@@ -13,8 +13,8 @@
 
 #include "Profiler.h"
 #include "LinAlgInit.h"
-#ifdef PARALLEL_PETSC
-#include "petscsys.h"
+#ifdef HAVE_MPI
+#include <mpi.h>
 #endif
 #include <sys/time.h>
 
@@ -188,9 +188,9 @@ void Profiler::report (std::ostream& os) const
   const char* Ms = (use_ms ? "Mean(ms)" : "Mean(s) ");
   os <<"\n==============================================================="
      <<"\n===   Profiling results for "<< myName;
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
   int myPid;
-  MPI_Comm_rank(PETSC_COMM_WORLD,&myPid);
+  MPI_Comm_rank(MPI_COMM_WORLD,&myPid);
   os <<" on processor "<< myPid;
 #endif
   os <<"\n================================================================="

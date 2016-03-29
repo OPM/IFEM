@@ -1531,7 +1531,7 @@ bool SIMbase::updateDirichlet (double time, const Vector* prevSol)
 {
   if (prevSol)
     for (size_t i = 0; i < myModel.size(); i++)
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
       if (!myModel[i]->updateDirichlet(myScalars,myVectors,time,g2l))
 #else
       if (!myModel[i]->updateDirichlet(myScalars,myVectors,time))

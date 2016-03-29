@@ -16,6 +16,7 @@
 
 #ifdef HAS_PETSC
 #include "petscsys.h"
+#elif defined(HAVE_MPI)
 #include "mpi.h"
 #endif
 #include <vector>
@@ -33,7 +34,7 @@ class ProcessAdm
   int nProc;       //!< Number of processes in communicator
   bool parallel;   //!< If Processor is parallel
 
-#ifdef HAS_PETSC
+#if defined(HAS_PETSC) || defined(HAVE_MPI)
   MPI_Comm comm;   //!< MPI communicator
 #endif
 
@@ -42,10 +43,17 @@ public:
 
   //! \brief Construct an empty (serial) process administrator.
   ProcessAdm();
-#ifdef HAS_PETSC
+#if defined(HAS_PETSC) || defined(HAVE_MPI)
   //! \brief Construct a parallel process administrator.
   ProcessAdm(MPI_Comm& mpi_comm);
 #endif
+
+#ifdef HAVE_MPI
+  //! \brief Construct a parallel process administrator.
+  //! \details This overload is necessary due to MPI_COMM_WORLD being .. ickily.
+  ProcessAdm(bool hack);
+#endif
+
   //! \brief The destructor releases the process administrator.
   ~ProcessAdm();
 
@@ -56,7 +64,7 @@ public:
   //! \brief Return if parallel
   int isParallel() const { return parallel; }
 
-#ifdef HAS_PETSC
+#if defined(HAS_PETSC) || defined(HAVE_MPI)
   //! \brief Return MPI communicator
   MPI_Comm* getCommunicator() { return &comm; }
   //! \brief Return MPI communicator
