@@ -184,7 +184,7 @@ private:
   int          m_file; //!< The HDF5 handle for our file
   unsigned int m_flag; //!< The file flags to open HDF5 file with
   bool     m_keepOpen; //!< If \e true, we always keep the file open
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
   const ProcessAdm& m_adm;   //!< Pointer to process adm in use
 #endif
 };

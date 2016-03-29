@@ -114,7 +114,7 @@ public:
     for (size_t i=0;i<m_planes.size();++i)
       planeNodes[startCtx+i] = m_planes[i]->getNoNodes(true);
 
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
     std::vector<int> send(planeNodes);
     MPI_Allreduce(&send[0], &planeNodes[0], planeNodes.size(),
                   MPI_INT, MPI_SUM, PETSC_COMM_WORLD);
@@ -216,7 +216,7 @@ public:
       return false;
 
     // Setup our communicator
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
     size_t loc_planes = planes/(nProc/procs_per_plane);
     MPI_Comm comm;
     MPI_Comm_split(PETSC_COMM_WORLD,
@@ -230,7 +230,7 @@ public:
     for (size_t i=0;i<loc_planes;++i) {
       m_planes.push_back(new PlaneSolver(props));
       int pid = 0;
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
       m_planes.back()->setCommunicator(&comm);
       MPI_Comm_rank(comm, &pid);
 #endif
@@ -266,7 +266,7 @@ public:
       return true;
 
     utl::getAttribute(elem, "nplanes", planes);
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
     utl::getAttribute(elem, "procs_per_plane", procs_per_plane);
     if (procs_per_plane > (size_t)nProc) procs_per_plane = nProc;
 #endif

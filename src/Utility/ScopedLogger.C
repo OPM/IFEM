@@ -10,15 +10,15 @@
 //!
 //==============================================================================
 #include "ScopedLogger.h"
-#ifdef PARALLEL_PETSC
-#include "PETScSupport.h"
+#ifdef HAVE_MPI
+#include <mpi.h>
 #endif
 
 ScopedLogger::ScopedLogger(const char* name_, std::ostream& stream_) :
   name(name_), stream(stream_)
 {
-#ifdef PARALLEL_PETSC
-  MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+#ifdef HAVE_MPI
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   stream << "[" << rank << "]: Entering \"" << name << "\"" << std::endl;
 #else
   rank = -1;

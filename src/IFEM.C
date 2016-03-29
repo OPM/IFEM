@@ -19,7 +19,7 @@
 #ifdef HAS_PETSC
 #include "petscversion.h"
 #endif
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
 #include "petscsys.h"
 #include "mpi.h"
 #endif
@@ -49,7 +49,7 @@ int IFEM::Init (int arg_c, char** arg_v, const char* title)
     std::cout <<"\n >>> IFEM "<< title <<" <<<\n ";
     for (i = 0; i < nchar; i++) std::cout <<'=';
     std::cout <<"\n\n Executing command:\n";
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
     int nProc = 1;
     MPI_Comm_size(PETSC_COMM_WORLD,&nProc);
     if (nProc > 1)
@@ -84,12 +84,15 @@ int IFEM::Init (int arg_c, char** arg_v, const char* title)
     "disabled";
 #endif
 
+  std::cout <<"\n        MPI support: "<<
+#if HAVE_MPI
+    "enabled";
+#else
+    "disabled";
+#endif
+
   std::cout <<"\n      PETSc support: "<<
-#if PARALLEL_PETSC
-    "enabled (MPI) (v" << PETSC_VERSION_MAJOR << "."
-                       << PETSC_VERSION_MINOR << "."
-                       << PETSC_VERSION_SUBMINOR << ")";
-#elif HAS_PETSC
+#if HAS_PETSC
     "enabled (v" << PETSC_VERSION_MAJOR << "."
                  << PETSC_VERSION_MINOR << "."
                  << PETSC_VERSION_SUBMINOR << ")";
