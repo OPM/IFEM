@@ -26,7 +26,7 @@
 #include <sys/statvfs.h>
 #include <hdf5.h>
 #include <unistd.h>
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
 #include <mpi.h>
 #endif
 #endif
@@ -39,7 +39,7 @@
 HDF5Writer::HDF5Writer (const std::string& name, const ProcessAdm& adm,
                         bool append, bool keepOpen)
   : DataWriter(name,adm,".hdf5"), m_file(0), m_keepOpen(keepOpen)
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
   , m_adm(adm)
 #endif
 {
@@ -64,7 +64,7 @@ int HDF5Writer::getLastTimeLevel ()
     return -1;
 
   hid_t acc_tpl = H5P_DEFAULT;
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
   MPI_Info info = MPI_INFO_NULL;
   acc_tpl = H5Pcreate(H5P_FILE_ACCESS);
   H5Pset_fapl_mpio(acc_tpl, MPI_COMM_SELF, info);
@@ -95,7 +95,7 @@ void HDF5Writer::openFile(int level)
     return;
 #ifdef HAS_HDF5
   hid_t acc_tpl = H5P_DEFAULT;
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
   MPI_Info info = MPI_INFO_NULL;
   acc_tpl = H5Pcreate(H5P_FILE_ACCESS);
   H5Pset_fapl_mpio(acc_tpl, *m_adm.getCommunicator(), info);
@@ -130,7 +130,7 @@ void HDF5Writer::openFile(int level)
   str << '/' << level;
   if (!checkGroupExistence(m_file,str.str().c_str()))
     H5Gclose(H5Gcreate2(m_file,str.str().c_str(),0,H5P_DEFAULT,H5P_DEFAULT));
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
   H5Pclose(acc_tpl);
 #endif
 #endif
@@ -215,7 +215,7 @@ void HDF5Writer::writeArray(int group, const std::string& name,
                             int len, const void* data, int type)
 {
 #ifdef HAS_HDF5
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
   int lens[m_size], lens2[m_size];
   std::fill(lens,lens+m_size,len);
   MPI_Alltoall(lens,1,MPI_INT,lens2,1,MPI_INT,*m_adm.getCommunicator());
@@ -259,7 +259,7 @@ void HDF5Writer::writeVector(int level, const DataEntry& entry)
     return;
 #ifdef HAS_HDF5
   int rank = 0;
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
   if (entry.second.results & DataExporter::REDUNDANT)
     MPI_Comm_rank(*m_adm.getCommunicator(), &rank);
 #endif
@@ -621,7 +621,7 @@ void HDF5Writer::writeBasis (SIMbase* sim, const std::string& name,
   std::stringstream str;
   str << "/" << level << "/basis";
   int group, rank = 0;
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
   if (redundant)
     MPI_Comm_rank(*m_adm.getCommunicator(), &rank);
 #endif

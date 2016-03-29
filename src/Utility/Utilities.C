@@ -16,8 +16,8 @@
 #include <cstdlib>
 #include <algorithm>
 
-#ifdef PARALLEL_PETSC
-#include <petsc.h>
+#ifdef HAVE_MPI
+#include <mpi.h>
 #endif
 
 
@@ -323,8 +323,8 @@ void utl::printSyncronized (std::ostream& out, const std::stringstream& str,
                             int pid)
 {
   out << std::flush;
-#ifdef PARALLEL_PETSC
-  MPI_Barrier(PETSC_COMM_WORLD);
+#ifdef HAVE_MPI
+  MPI_Barrier(MPI_COMM_WORLD);
 #endif
   if (pid == 0)
     out << str.str();
