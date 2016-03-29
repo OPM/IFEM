@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<simulation>
+
+  <geometry>
+    <patchfile>src/LinAlg/Test/refdata/square2.g2</patchfile>
+    <topology>
+      <connection master="1" medge="2" slave="2" sedge="1"/>
+    </topology>
+  </geometry>
+
+</simulation>

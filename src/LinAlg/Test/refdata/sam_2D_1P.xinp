@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<simulation>
+
+  <geometry>
+    <refine type="uniform" patch="1" u="1" v="1"/>
+  </geometry>
+
+</simulation>

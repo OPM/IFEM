@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<simulation>
+
+  <geometry>
+    <refine type="uniform" patch="1" u="1" v="1"/>
+    <topologysets>
+      <set name="e1" type="edge">
+        <item patch="1">2</item>
+      </set>
+    </topologysets>
+  </geometry>
+
+  <boundaryconditions>
+    <dirichlet set="e1" basis="1" comp="1" type="constant">1.0</dirichlet>
+  </boundaryconditions>
+
+</simulation>
