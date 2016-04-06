@@ -2968,6 +2968,16 @@ void ASMs3D::generateThreadGroups (const Integrand& integrand, bool silence)
   const int p1 = svol->order(0) - 1;
   const int p2 = svol->order(1) - 1;
   const int p3 = svol->order(2) - 1;
+
+  ASMs3D::generateThreadGroups(p1, p2, p3, silence);
+}
+
+
+void ASMs3D::generateThreadGroups(size_t strip1, size_t strip2, size_t strip3, bool silence)
+{
+  const int p1 = svol->order(0) - 1;
+  const int p2 = svol->order(1) - 1;
+  const int p3 = svol->order(2) - 1;
   const int n1 = svol->numCoefs(0);
   const int n2 = svol->numCoefs(1);
   const int n3 = svol->numCoefs(2);
@@ -2985,7 +2995,7 @@ void ASMs3D::generateThreadGroups (const Integrand& integrand, bool silence)
   for (ii = p3; ii < n3; ii++)
     el3.push_back(svol->knotSpan(2,ii) > 0.0);
 
-  threadGroupsVol.calcGroups(el1,el2,el3,p1,p2,p3);
+  threadGroupsVol.calcGroups(el1,el2,el3,strip1,strip2,strip3);
   if (silence || threadGroupsVol.size() < 2) return;
 
   std::cout <<"\nMultiple threads are utilized during element assembly.";
