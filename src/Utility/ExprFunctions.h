@@ -48,6 +48,10 @@ public:
   virtual ~EvalFunc();
 
 protected:
+  //! \brief Non-implemented copy constructor to disallow copying.
+  EvalFunc(const EvalFunc&);
+  //! \brief Non-implemented assigment operator to disallow copying.
+  EvalFunc& operator=(const EvalFunc&);
   //! \brief Evaluates the function expression.
   virtual Real evaluate(const Real& x) const;
 };
@@ -78,6 +82,10 @@ public:
 protected:
   //! \brief Evaluates the function expression.
   virtual Real evaluate(const Vec3& X) const;
+  //! \brief Non-implemented copy constructor to disallow copying.
+  EvalFunction(const EvalFunction&);
+  //! \brief Non-implemented assignment operator to disallow copying.
+  EvalFunction& operator=(const EvalFunction&);
 };
 
 
