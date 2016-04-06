@@ -345,6 +345,8 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
     int comp = 0;
     int basis=1;
     std::string set, type, axes;
+    // long and short form supported, short prioritized
+    utl::getAttribute(elem,"component",comp);
     utl::getAttribute(elem,"comp",comp);
     utl::getAttribute(elem,"set",set);
     utl::getAttribute(elem,"type",type,true);
@@ -448,7 +450,9 @@ bool SIMbase::parse (const TiXmlElement* elem)
         utl::getAttribute(elem,"file_level",info.file_level);
         utl::getAttribute(elem,"geo_level",info.geo_level);
       } else { // a function
+        // long and short from supported, short prioritized
         utl::getAttribute(elem,"component",info.component);
+        utl::getAttribute(elem,"comp",info.component);
         info.file_field = type;
         info.function = utl::getValue(elem,"initialcondition");
         file = "nofile";
