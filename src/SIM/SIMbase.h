@@ -671,6 +671,9 @@ public:
   static bool ignoreDirichlet; //!< Set to \e true for free vibration analysis
   static bool preserveNOrder;  //!< Set to \e true to preserve node ordering
 
+  //! For testing purposes
+  RealFunc* getSclFunc(int i) { return (myScalars[i]); }
+
 protected:
   //! \brief Scalar field container
   typedef std::map<int,RealFunc*>     SclFuncMap;
