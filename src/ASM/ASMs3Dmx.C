@@ -963,10 +963,14 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 void ASMs3Dmx::generateThreadGroups (const Integrand& integrand, bool silence)
 {
-#ifdef USE_OPENMP
-  omp_set_num_threads(1);
-#endif
-  ASMs3D::generateThreadGroups(integrand,silence);
+  int p[3] = {0,0,0};
+  for (const auto& it : m_basis) {
+    for (size_t d = 0; d < 3; d++)
+      if (it->order(d) > p[d])
+        p[d] = it->order(d);
+  }
+
+  ASMs3D::generateThreadGroups(p[0],p[1],p[2],silence);
 }
 
 

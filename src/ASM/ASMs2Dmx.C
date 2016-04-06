@@ -984,8 +984,13 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 void ASMs2Dmx::generateThreadGroups (const Integrand& integrand, bool silence)
 {
-#ifdef USE_OPENMP
-  omp_set_num_threads(1);
-#endif
-  ASMs2D::generateThreadGroups(integrand, silence);
+  int p1 = 0, p2 = 0;
+  for (const auto& it : m_basis) {
+    if (it->order_u() > p1)
+      p1 = it->order_u();
+    if (it->order_v() > p2)
+      p2 = it->order_v();
+  }
+
+  ASMs2D::generateThreadGroups(p1, p2, silence);
 }

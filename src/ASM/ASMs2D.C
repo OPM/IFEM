@@ -2595,8 +2595,17 @@ void ASMs2D::generateThreadGroups (const Integrand& integrand, bool silence)
 {
   const int p1 = surf->order_u() - 1;
   const int p2 = surf->order_v() - 1;
+
+  generateThreadGroups(p1, p2, silence);
+}
+
+
+void ASMs2D::generateThreadGroups(size_t strip1, size_t strip2, bool silence)
+{
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
+  const int p1 = surf->order_u() - 1;
+  const int p2 = surf->order_v() - 1;
 
   std::vector<bool> el1, el2;
   el1.reserve(n1 - p1);
@@ -2608,7 +2617,7 @@ void ASMs2D::generateThreadGroups (const Integrand& integrand, bool silence)
   for (ii = p2; ii < n2; ii++)
     el2.push_back(surf->knotSpan(1,ii) > 0.0);
 
-  threadGroups.calcGroups(el1,el2,p1,p2);
+  threadGroups.calcGroups(el1,el2,strip1,strip2);
   if (silence || threadGroups.size() < 2) return;
 
   std::cout <<"\nMultiple threads are utilized during element assembly.";
