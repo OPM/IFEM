@@ -48,6 +48,8 @@ public:
   virtual ~EvalFunc();
 
 protected:
+  EvalFunc(const EvalFunc&);
+  EvalFunc& operator=(const EvalFunc&);
   //! \brief Evaluates the function expression.
   virtual Real evaluate(const Real& x) const;
 };
@@ -78,6 +80,8 @@ public:
 protected:
   //! \brief Evaluates the function expression.
   virtual Real evaluate(const Vec3& X) const;
+  EvalFunction(const EvalFunction&);
+  EvalFunction& operator=(const EvalFunction&);
 };
 
 
