@@ -810,6 +810,8 @@ bool SAM::applyDirichlet (Vector& dofVec) const
       int ip = mpmceq[iceq-1];
       dofVec[idof] = ttcc[ip-1];
     }
+    else if (iceq == 0)
+      dofVec[idof] = 0.0;
   }
 
   return true;
