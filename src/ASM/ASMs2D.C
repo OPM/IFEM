@@ -672,7 +672,7 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
   for (i = 0; i < n1; i++, node += i1)
   {
     int slave = slaveNodes[revers ? n1-i-1 : i];
-    if (!neighbor.getCoord(node).equal(this->getCoord(slave),xtol))
+    /*if (!neighbor.getCoord(node).equal(this->getCoord(slave),xtol))
     {
       std::cerr <<" *** ASMs2D::connectPatch: Non-matching nodes "
 		<< node <<": "<< neighbor.getCoord(node)
@@ -680,7 +680,7 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
 		<< slave <<": "<< this->getCoord(slave) << std::endl;
       return false;
     }
-    else
+    else*/
       ASMbase::collapseNodes(neighbor,node,*this,slave);
   }
 
