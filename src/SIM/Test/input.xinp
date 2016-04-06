@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+
+  <geometry>
+    <topologysets>
+      <set name="left" type="edge">
+        <item patch="1">1</item>
+      </set>
+      <set name="right" type="edge">
+        <item patch="1">2</item>
+      </set>
+      <set name="bottom" type="edge">
+        <item patch="1">3</item>
+      </set>
+      <set name="top" type="edge">
+        <item patch="1">4</item>
+      </set>
+    </topologysets>
+  </geometry>
+
+  <boundaryconditions>
+    <dirichlet set="left" basis="1" comp="1">1</dirichlet>
+    <dirichlet set="right" basis="1" component="2">2</dirichlet>
+    <dirichlet set="bottom" basis="1" comp="3" component="-3">3</dirichlet>
+    <dirichlet set="bottom" basis="1" component="-4" comp="4">4</dirichlet>
+  </boundaryconditions>
+
+  <initialcondition field="solution" type="expression" basis="1" comp="1">1</initialcondition>
+  <initialcondition field="solution" type="expression" basis="1" component="2">2</initialcondition>
+  <initialcondition field="solution" type="expression" basis="1" comp="3" component="-3">3</initialcondition>
+  <initialcondition field="solution" type="expression" basis="1" component="-4" comp="4">4</initialcondition>
+
+</simulation>
