@@ -992,5 +992,5 @@ void ASMs2Dmx::generateThreadGroups (const Integrand& integrand, bool silence)
       p2 = it->order_v();
   }
 
-  ASMs2D::generateThreadGroups(p1, p2, silence);
+  ASMs2D::generateThreadGroups(p1-1, p2-1, silence);
 }
