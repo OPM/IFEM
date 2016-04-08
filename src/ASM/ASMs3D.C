@@ -1535,53 +1535,45 @@ bool ASMs3D::updateCoords (const Vector& displ)
 }
 
 
-void ASMs3D::getBoundaryNodes (int lIndex, IntVec& nodes) const
+void ASMs3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis) const
 {
+  if (basis == 0)
+    basis = 1;
+
   if (!svol) return; // silently ignore empty patches
 
-  const int p1 = svol->order(0);
-  const int p2 = svol->order(1);
-  const int p3 = svol->order(2);
-  const int n1 = svol->numCoefs(0);
-  const int n2 = svol->numCoefs(1);
-  const int n3 = svol->numCoefs(2);
 #if SP_DEBUG > 1
   size_t last = nodes.size();
 #endif
 
-  int iel = 0;
-  for (int i3 = p3; i3 <= n3; i3++)
-    for (int i2 = p2; i2 <= n2; i2++)
-      for (int i1 = p1; i1 <= n1; i1++, iel++)
-        if (svol->knotSpan(0,i1-1) > 0.0)
-          if (svol->knotSpan(1,i2-1) > 0.0)
-            if (svol->knotSpan(2,i3-1) > 0.0)
-            {
-              int inod = 0, lnod = 0;
-              for (int j3 = p3; j3 > 0; j3--)
-                for (int j2 = p2; j2 > 0; j2--)
-                  for (int j1 = p1; j1 > 0; j1--, lnod++)
-                  {
-                    if      (lIndex == 1 && i1 == p1 && j1 == p1)
-                      inod = MNPC[iel][lnod]; // back face
-                    else if (lIndex == 3 && i2 == p2 && j2 == p2)
-                      inod = MNPC[iel][lnod]; // left face
-                    else if (lIndex == 5 && i3 == p3 && j3 == p3)
-                      inod = MNPC[iel][lnod]; // bottom face
-                    else if (lIndex == 2 && i1 == n1 && j1 == 1)
-                      inod = MNPC[iel][lnod]; // front face
-                    else if (lIndex == 4 && i2 == n2 && j2 == 1)
-                      inod = MNPC[iel][lnod]; // right face
-                    else if (lIndex == 6 && i3 == n3 && j3 == 1)
-                      inod = MNPC[iel][lnod]; // top face
-                    else
-                      continue;
+  int n1, n2, n3;
+  int node = this->findStartNode(n1,n2,n3,basis);
+  switch (lIndex)
+  {
+    case 2: // Right face (positive I-direction)
+      node += n1-1;
+    case 1: // Left face (negative I-direction)
+      for (int i3 = 1; i3 <= n3; i3++)
+	for (int i2 = 1; i2 <= n2; i2++, node += n1)
+          nodes.push_back(getNodeID(node));
+      break;
 
-                    inod = MLGN[inod];
-                    if (std::find(nodes.begin(),nodes.end(),inod) == nodes.end())
-                      nodes.push_back(inod);
-                  }
-            }
+    case 4: // Back face (positive J-direction)
+      node += n1*(n2-1);
+    case 3: // Front face (negative J-direction)
+      for (int i3 = 1; i3 <= n3; i3++, node += n1*(n2-1))
+	for (int i1 = 1; i1 <= n1; i1++, node++)
+          nodes.push_back(getNodeID(node));
+      break;
+
+    case 6: // Top face (positive K-direction)
+      node += n1*n2*(n3-1);
+    case 5: // Bottom face (negative K-direction)
+      for (int i2 = 1; i2 <= n2; i2++)
+	for (int i1 = 1; i1 <= n1; i1++, node++)
+          nodes.push_back(getNodeID(node));
+      break;
+  }
 
 #if SP_DEBUG > 1
   std::cout <<"Boundary nodes in patch "<< idx+1 <<" face "<< lIndex <<":";
