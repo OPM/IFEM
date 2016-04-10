@@ -388,6 +388,16 @@ namespace utl //! General utility classes and functions.
           elem[i+row-2+nrow*(j+col-2)] = transposed ? block(j,i) : block(i,j);
     }
 
+    //! \brief Add a scalar multiple of another matrix to a block of the matrix.
+    void addBlock(const matrix<T>& block, const T& s, size_t row, size_t col, bool transposed = false)
+    {
+      size_t nr = transposed ? block.cols() : block.rows();
+      size_t nc = transposed ? block.rows() : block.cols();
+      for (size_t i = 1; i <= nr && i+row-1 <= nrow; i++)
+        for (size_t j = 1; j <= nc && j+col-1 <= ncol; j++)
+          elem[i+row-2+nrow*(j+col-2)] += s * (transposed ? block(j,i) : block(i,j));
+    }
+
     //! \brief Create a diagonal matrix.
     matrix<T>& diag(const T& d, size_t dim = 0)
     {
