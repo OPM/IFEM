@@ -31,8 +31,7 @@ class ASMmxBase
 {
 protected:
   //! \brief The constructor sets the number of field variables.
-  //! \param[in] n_f1 Number of nodal variables in field 1
-  //! \param[in] n_f2 Number of nodal variables in field 2
+  //! \param[in] n_f Number of nodal variables in each field
   ASMmxBase(const std::vector<unsigned char>& n_f);
 
   //! \brief Initializes the patch level MADOF array.
@@ -48,13 +47,13 @@ protected:
 			int basis = 0) const;
 
   //! \brief Injects nodal results for this patch into a global vector.
-  //! \param[in] globVec Global solution vector in DOF-order
-  //! \param[out] nodeVec Nodal result vector for this patch
-  //! \param[in] basis Which basis to extract the nodal values for
+  //! \param[out] globVec Global solution vector in DOF-order
+  //! \param[in] nodeVec Nodal result vector for this patch
+  //! \param[in] basis Which basis to inject the nodal values for
   void injectNodeVecMx(Vector& globVec, const Vector& nodeVec,
                        int basis = 0) const;
 
-  //! \brief Extract the primary solution field at the specified nodes.
+  //! \brief Extracts the primary solution field at the specified nodes.
   //! \param[out] sField Solution field
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] nodes 1-based local node numbers to extract solution for
@@ -62,10 +61,9 @@ protected:
 		     const std::vector<int>& nodes) const;
 
 public:
-  static char geoBasis; //!< The basis representing the geometry
-
-  //! \brief Mixed formulation type
+  //! \brief Enum defining available mixed formulation types.
   enum MixedType {
+    NONE = 0,                  //!< No Mixed formulation
     FULL_CONT_RAISE_BASIS1,    //!< Full continuity, raise order and use as basis 1
     REDUCED_CONT_RAISE_BASIS1, //!< Reduced continuity, raise order and use as basis 1
     FULL_CONT_RAISE_BASIS2,    //!< Full continuity, raise order and use as basis 2
@@ -74,27 +72,29 @@ public:
   };
 
   static MixedType Type; //!< Type of mixed formulation used
+  static char  geoBasis; //!< 1-based index of basis representing the geometry
 
+protected:
   typedef std::vector<std::shared_ptr<Go::SplineSurface>> SurfaceVec; //!< Convenience type
   typedef std::vector<std::shared_ptr<Go::SplineVolume>> VolumeVec; //!< Convenience type
 
-  //! \brief Establish mixed bases
-  //! \param[in] surf The base basis to use.
-  //! \param[in] type The type of bases to establish.
-  //! \return Vector with bases.
+  //! \brief Establish mixed bases in 2D.
+  //! \param[in] surf The base basis to use
+  //! \param[in] type The type of bases to establish
+  //! \return Vector with bases
   static SurfaceVec establishBases(Go::SplineSurface* surf, MixedType type);
 
-  //! \brief Establish mixed bases
-  //! \param[in] vol The base basis to use.
-  //! \param[in] type The type of bases to establish.
-  //! \return Vector with bases.
+  //! \brief Establish mixed bases in 3D.
+  //! \param[in] vol The base basis to use
+  //! \param[in] type The type of bases to establish
+  //! \return Vector with bases
   static VolumeVec establishBases(Go::SplineVolume* vol, MixedType type);
 
 private:
   std::vector<int> MADOF; //!< Matrix of accumulated DOFs for this patch
 
 protected:
-  std::vector<size_t> nb;         //!< Number of basis functions in each basis
+  std::vector<size_t>        nb;  //!< Number of basis functions in each basis
   std::vector<unsigned char> nfx; //!< Number of fields on each basis
 };
 
