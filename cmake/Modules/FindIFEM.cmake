@@ -27,14 +27,18 @@ if(NOT IFEM_AS_SUBMODULE)
     NAMES ${IFEM_BUILD_TYPE}/IFEM.h
     PATHS ${PROJECT_SOURCE_DIR}/..
           ${PROJECT_SOURCE_DIR}/../..
-          ${PROJECT_SOURCE_DIR}/../../.. NO_DEFAULT_PATHS)
+          ${PROJECT_SOURCE_DIR}/../../..
+          ${PROJECT_SOURCE_DIR}/../../../..
+          NO_DEFAULT_PATHS)
     set(IFEM_H_PATH ${IFEM_PATH}/${IFEM_BUILD_TYPE})
   if(NOT IFEM_PATH)
     find_path(IFEM_PATH
       NAMES IFEM.h
       PATHS ${PROJECT_SOURCE_DIR}/..
             ${PROJECT_SOURCE_DIR}/../..
-            ${PROJECT_SOURCE_DIR}/../../.. NO_DEFAULT_PATHS)
+            ${PROJECT_SOURCE_DIR}/../../..
+            ${PROJECT_SOURCE_DIR}/../../../..
+            NO_DEFAULT_PATHS)
     set(IFEM_H_PATH ${IFEM_PATH})
   endif(NOT IFEM_PATH)
 endif()
@@ -48,7 +52,8 @@ if(IFEM_AS_SUBMODULE)
   find_path(IFEM_PATH NAMES src/IFEM.h.in
                       PATHS ${PROJECT_SOURCE_DIR}/..
                             ${PROJECT_SOURCE_DIR}/../..
-                            ${PROJECT_SOURCE_DIR}/../../.. NO_DEFAULT_PATHS)
+                            ${PROJECT_SOURCE_DIR}/../../..
+                            ${PROJECT_SOURCE_DIR}/../../../.. NO_DEFAULT_PATHS)
   if(NOT IFEM_PATH)
     message(FATAL_ERROR "IFEM cannot be located, and we want it as a submodule")
   endif()
