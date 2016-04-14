@@ -87,7 +87,7 @@ public:
   virtual char getNodeType(size_t inod) const;
   //! \brief Returns the area in the parameter space for an element.
   //! \param[in] iel Element index
-  virtual double getParametricArea(int iel) const;
+  double getParametricArea(int iel) const;
   //! \brief Returns boundary edge length in the parameter space for an element.
   //! \param[in] iel Element index
   //! \param[in] dir Local index of the boundary edge

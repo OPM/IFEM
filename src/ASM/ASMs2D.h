@@ -500,11 +500,11 @@ protected:
 
   //! \brief Returns the area in the parameter space for an element.
   //! \param[in] iel Element index
-  virtual double getParametricArea(int iel) const;
+  double getParametricArea(int iel) const;
   //! \brief Returns boundary edge length in the parameter space for an element.
   //! \param[in] iel Element index
   //! \param[in] dir Local index of the boundary edge
-  virtual double getParametricLength(int iel, int dir) const;
+  double getParametricLength(int iel, int dir) const;
 
   //! \brief Computes the element border parameters.
   //! \param[in] i1 Parameter index in u-direction
