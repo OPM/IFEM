@@ -59,7 +59,7 @@ public:
 
   //! \brief Defines the solution mode before the element assembly is started.
   virtual void setMode(SIM::SolutionMode mode) { m_mode = mode; }
-  //! \brief Obtain current solution mode
+  //! \brief Returns current solution mode.
   SIM::SolutionMode getMode() const { return m_mode; }
   //! \brief Initializes an integration parameter for the integrand.
   virtual void setIntegrationPrm(unsigned short int, double) {}
@@ -114,7 +114,7 @@ public:
                            const FiniteElement& fe,
                            const Vec3& X0, size_t nPt, LocalIntegral& elmInt);
   //! \brief Initializes current element for numerical integration (mixed).
-  //! \param[in] MNPC Nodal point correspondance for the bases
+  //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param[in] elem_sizes Size of each basis on the element
   //! \param[in] basis_sizes Size of each basis on the patch
   //! \param elmInt Local integral for element
@@ -129,7 +129,7 @@ public:
   virtual bool initElementBou(const std::vector<int>& MNPC,
                               LocalIntegral& elmInt);
   //! \brief Initializes current element for boundary integration (mixed).
-  //! \param[in] MNPC Nodal point correspondance for the bases
+  //! \param[in] MNPC Matrix of nodal point correspondance for current element
   //! \param[in] elem_sizes Size of each basis on the element
   //! \param[in] basis_sizes Size of each basis on the patch
   //! \param elmInt Local integral for element
@@ -153,7 +153,7 @@ public:
   //! \param[in] X Cartesian coordinates of current point
   //! \param[in] MNPC Nodal point correspondance for the basis function values
   virtual bool evalSol(Vector& s, const FiniteElement& fe, const Vec3& X,
-		       const std::vector<int>& MNPC) const;
+                       const std::vector<int>& MNPC) const;
 
   //! \brief Evaluates the secondary solution at a result point (mixed problem).
   //! \param[out] s The solution field values at current point
@@ -163,7 +163,7 @@ public:
   //! \param[in] elem_sizes Size of each basis on the element
   //! \param[in] basis_sizes Size of each basis on the patch
   virtual bool evalSol(Vector& s, const MxFiniteElement& fe, const Vec3& X,
-		       const std::vector<int>& MNPC,
+                       const std::vector<int>& MNPC,
                        const std::vector<size_t>& elem_sizes,
                        const std::vector<size_t>& basis_sizes) const;
 
@@ -172,21 +172,21 @@ public:
   //! \param[in] asol The analytical solution field (tensor field)
   //! \param[in] X Cartesian coordinates of current point
   virtual bool evalSol(Vector& s,
-		       const TensorFunc& asol, const Vec3& X) const;
+                       const TensorFunc& asol, const Vec3& X) const;
 
   //! \brief Evaluates the analytical secondary solution at a result point.
   //! \param[out] s The solution field values at current point
   //! \param[in] asol The analytical solution field (symmetric tensor field)
   //! \param[in] X Cartesian coordinates of current point
   virtual bool evalSol(Vector& s,
-		       const STensorFunc& asol, const Vec3& X) const;
+                       const STensorFunc& asol, const Vec3& X) const;
 
   //! \brief Evaluates the analytical secondary solution at a result point.
   //! \param[out] s The solution field values at current point
   //! \param[in] asol The analytical solution field (vector field)
   //! \param[in] X Cartesian coordinates of current point
   virtual bool evalSol(Vector& s,
-		       const VecFunc& asol, const Vec3& X) const;
+                       const VecFunc& asol, const Vec3& X) const;
 
   //! \brief Returns an evaluated principal direction vector field for plotting.
   virtual bool getPrincipalDir(Matrix&, size_t, size_t) const { return false; }
@@ -237,6 +237,8 @@ public:
 
   //! \brief Accesses the primary solution vector of current patch.
   Vector& getSolution(size_t n = 0) { return primsol[n]; }
+  //! \brief Accesses the primary solution vectors of current patch.
+  Vectors& getSolutions() { return primsol; }
 
   //! \brief Resets the primary solution vectors.
   void resetSolution();
@@ -258,7 +260,6 @@ public:
     return LinAlg::GENERAL_MATRIX;
   }
 
-protected:
   //! \brief Registers a vector to inject a named field into.
   //! \param[in] name Name of field
   //! \param[in] vec Vector to inject field into
@@ -300,6 +301,7 @@ public:
   //! \brief Sets a vector of LocalIntegrals to be used during norm integration.
   void setLocalIntegrals(LintegralVec* elementNorms) { lints = elementNorms; }
 
+  using Integrand::getLocalIntegral;
   //! \brief Returns a local integral container for the element \a iEl.
   virtual LocalIntegral* getLocalIntegral(size_t, size_t iEl, bool) const;
 
@@ -401,6 +403,7 @@ public:
   //! \brief Initializes the integrand with the number of integration points.
   virtual void initIntegration(size_t, size_t) {}
 
+  using Integrand::getLocalIntegral;
   //! \brief Returns a local integral container for the element \a iEl.
   virtual LocalIntegral* getLocalIntegral(size_t, size_t iEl,
                                           bool = false) const;
@@ -415,7 +418,8 @@ public:
   { return false; }
 
   //! \brief Dummy implementation (only boundary integration is relevant).
-  virtual bool initElement(const std::vector<int>&, const std::vector<size_t>&,
+  virtual bool initElement(const std::vector<int>&,
+                           const std::vector<size_t>&,
                            const std::vector<size_t>&,
                            LocalIntegral&)
   { return false; }
@@ -424,7 +428,7 @@ public:
   virtual bool initElementBou(const std::vector<int>& MNPC,
                               LocalIntegral& elmInt);
   //! \brief Initializes current element for boundary integration (mixed).
-  virtual bool initElementBou(const std::vector<int>& MNPC1,
+  virtual bool initElementBou(const std::vector<int>& MNPC,
                               const std::vector<size_t>& elem_sizes,
                               const std::vector<size_t>& basis_sizes,
                               LocalIntegral& elmInt);

@@ -42,18 +42,18 @@ struct Property
   };
 
   Type   pcode; //!< Physical property code
-  int    pindx; //!< Physical property index (1-based)
+  int    pindx; //!< Physical property index (0-based)
   size_t patch; //!< Patch index [1,nPatch]
   char   lindx; //!< Local entity index (1-based) which is assigned the property
   char   ldim;  //!< Local entity dimension flag [0,3]
   char   basis; //!< Which basis the property is defined on
 
   //! \brief Default constructor.
-  Property() : pcode(UNDEFINED), pindx(0), patch(0), lindx(0), ldim(0) {}
+  Property() : pcode(UNDEFINED), pindx(0), patch(0) { lindx=ldim = basis = 0; }
 
   //! \brief Constructor creating an initialized property instance.
-  Property(Type t, int px, size_t p, char ld, char lx = 0) :
-    pcode(t), pindx(px), patch(p), lindx(lx), ldim(ld) {}
+  Property(Type t, int px, size_t p, char ld, char lx = 0, char b = 0) :
+    pcode(t), pindx(px), patch(p), lindx(lx), ldim(ld), basis(b) {}
 };
 
 typedef std::vector<Property> PropertyVec; //!< Vector of properties
