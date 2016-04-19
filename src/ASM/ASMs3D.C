@@ -2337,25 +2337,25 @@ bool ASMs3D::integrate (Integrand& integrand, int lIndex,
             // of current integration point
             switch (abs(faceDir))
             {
-              case 1: k2 = i+1; k3 = j+1; k1 = 0; break;
-              case 2: k1 = i+1; k3 = j+1; k2 = 0; break;
-              case 3: k1 = i+1; k2 = j+1; k3 = 0; break;
+              case 1: k2 = i; k3 = j; k1 = 0; break;
+              case 2: k1 = i; k3 = j; k2 = 0; break;
+              case 3: k1 = i; k2 = j; k3 = 0; break;
               default: k1 = k2 = k3 = 0;
             }
             if (gpar[0].size() > 1)
             {
               fe.xi = xg[k1];
-              fe.u = gpar[0](k1,i1-p1+1);
+              fe.u = gpar[0](k1+1,i1-p1+1);
             }
             if (gpar[1].size() > 1)
             {
               fe.eta = xg[k2];
-              fe.v = gpar[1](k2,i2-p2+1);
+              fe.v = gpar[1](k2+1,i2-p2+1);
             }
             if (gpar[2].size() > 1)
             {
               fe.zeta = xg[k3];
-              fe.w = gpar[2](k3,i3-p3+1);
+              fe.w = gpar[2](k3+1,i3-p3+1);
             }
 
             // Fetch basis function derivatives at current integration point
