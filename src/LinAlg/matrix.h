@@ -292,6 +292,42 @@ namespace utl //! General utility classes and functions.
       elem.std::template vector<T>::resize(r*c,T(0));
     }
 
+    //! \brief Increase or decrease the number of rows in the matrix.
+    matrix<T>& expandRows(int incRows)
+    {
+      int newRows = nrow + incRows;
+      if (newRows < 1 || ncol < 1)
+      {
+        // The matrix is empty
+        nrow = 0;
+        elem.clear();
+      }
+      else if (incRows < 0)
+      {
+        // The matrix size is reduced
+        T* newMat = this->ptr() + newRows;
+        for (size_t c = 1; c < ncol; c++, newMat += newRows)
+          memcpy(newMat,this->ptr(c),newRows*sizeof(T));
+        nrow = newRows;
+        elem.std::template vector<T>::resize(nrow*ncol);
+      }
+      else if (incRows > 0)
+      {
+        // The matrix size is increased
+        size_t oldRows = nrow;
+        T* oldMat = this->ptr(ncol-1);
+        nrow = newRows;
+        elem.std::template vector<T>::resize(nrow*ncol,T(0));
+        for (size_t c = ncol-1; c > 0; c--, oldMat -= oldRows)
+        {
+          memcpy(this->ptr(c),oldMat,oldRows*sizeof(T));
+          for (size_t r = nrow-1; r >= oldRows; r--)
+            elem[r+nrow*(c-1)] = T(0);
+        }
+      }
+      return *this;
+    }
+
     //! \brief Query number of matrix rows.
     size_t rows() const { return nrow; }
     //! \brief Query number of matrix columns.
@@ -307,6 +343,21 @@ namespace utl //! General utility classes and functions.
     const T* ptr(size_t c = 0) const { return &elem[nrow*c]; }
     //! \brief Type casting to a one-dimensional vector.
     operator const vector<T>&() const { return elem; }
+
+    //! \brief Iterator to the start of the matrix elements.
+    typename std::vector<T>::iterator begin() { return elem.begin(); }
+    //! \brief Iterator to the end of the matrix elements.
+    typename std::vector<T>::iterator end() { return elem.end(); }
+
+    //! \brief Overloaded assignment operator.
+    matrix<T>& operator=(const std::vector<T>& X)
+    {
+      // Do not use vector<T>::operator= because we don't want to alter size
+      size_t nval = X.size() < elem.size() ? X.size() : elem.size();
+      std::copy(X.begin(),X.begin()+nval,elem.begin());
+      std::fill(elem.begin()+nval,elem.end(),T(0));
+      return *this;
+    }
 
     //! \brief Index-1 based element access.
     //! \details Assuming column-wise storage as in Fortran.
@@ -389,7 +440,8 @@ namespace utl //! General utility classes and functions.
     }
 
     //! \brief Add a scalar multiple of another matrix to a block of the matrix.
-    void addBlock(const matrix<T>& block, const T& s, size_t row, size_t col, bool transposed = false)
+    void addBlock(const matrix<T>& block, const T& s, size_t row, size_t col,
+                  bool transposed = false)
     {
       size_t nr = transposed ? block.cols() : block.rows();
       size_t nc = transposed ? block.rows() : block.cols();
