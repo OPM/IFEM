@@ -1810,7 +1810,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
       std::ofstream os(it->fname.c_str());
       os << std::setprecision(17);
       SystemMatrix* M = myEqSys->getMatrix(0);
-      char matName[] = {'A'};
+      char matName[] = "A";
       for (int i = 0; M; M = myEqSys->getMatrix(++i), ++matName[0])
         M->dump(os,it->format,matName); // label matrices as A,B,C,...
     }
@@ -1822,7 +1822,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
       std::ofstream os(it->fname.c_str());
       os << std::setprecision(17);
       SystemVector* c = myEqSys->getVector(0);
-      char vecName[] = {'b'};
+      char vecName[] = "b";
       for (int i = 0; c; c = myEqSys->getVector(++i), ++vecName[0])
         c->dump(os,it->format,vecName); // label vectors as b,c,d,...
     }
