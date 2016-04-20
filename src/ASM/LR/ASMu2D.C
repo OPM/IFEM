@@ -838,21 +838,20 @@ size_t ASMu2D::getNoBoundaryElms (char lIndex, char ldim) const
   else if (ldim < 1 && lIndex > 0)
     return 1;
 
-  // Maybe there is a more elegent way to count the boundary elements, Kjetil?
-  size_t nbel = 0;
-  std::vector<LR::Element*>::iterator el = lrspline->elementBegin();
-  for (; el != lrspline->elementEnd(); el++)
+  LR::parameterEdge edge;
+  switch(lIndex)
   {
-    switch (lIndex)
-    {
-    case 1: if ((*el)->umin() == lrspline->startparam(0)) nbel++; break;
-    case 2: if ((*el)->umax() == lrspline->endparam(0))   nbel++; break;
-    case 3: if ((*el)->vmin() == lrspline->startparam(1)) nbel++; break;
-    case 4: if ((*el)->vmax() == lrspline->endparam(1))   nbel++; break;
-    }
+  case 1: edge = LR::WEST;
+  case 2: edge = LR::EAST;
+  case 3: edge = LR::SOUTH;
+  case 4: edge = LR::NORTH;
+  default:edge = LR::NONE;
   }
 
-  return nbel;
+  std::vector<LR::Element*> edgeElms;
+  lrspline->getEdgeElements(edgeElms, edge);
+  
+	return edgeElms.size();
 }
 
 
