@@ -618,19 +618,19 @@ void ASMu3D::constrainLine (int fdir, int ldir, double xi, int dof,
 
 void ASMu3D::constrainCorner (int I, int J, int K, int dof, int code, char)
 {
-	std::cerr << "ASMu3D::constrainCorner not implemented properly yet" << std::endl;
-	exit(776654);
-#if 0
-	int n1, n2, n3;
-	if (!this->getSize(n1,n2,n3,1)) return;
+  int corner = LR::NONE;
+  if(  I < 0) corner |= LR::WEST;
+  else        corner |= LR::EAST;
+  if(  J < 0) corner |= LR::SOUTH;
+  else        corner |= LR::NORTH;
+  if(  K < 0) corner |= LR::BOTTOM;
+  else        corner |= LR::TOP;
 
-	int node = 1;
-	if (I > 0) node += n1-1;
-	if (J > 0) node += n1*(n2-1);
-	if (K > 0) node += n1*n2*(n3-1);
+  std::vector<LR::Basisfunction*> one_function;
+  lrspline->getEdgeFunctions(one_function, LR::parameterEdge(corner));
+  int node = one_function[0]->getId() + 1;
 
-	this->prescribe(node,dof,code);
-#endif
+  this->prescribe(node, dof, code);
 }
 
 
@@ -744,36 +744,23 @@ bool ASMu3D::updateCoords (const Vector& displ)
 size_t ASMu3D::getNoBoundaryElms (char lIndex, char ldim) const
 {
 	if (!lrspline) return 0;
-	/*TODO fix later (see ASMu2D::getNoBoundaryElms)
-	if (ldim < 1 && lIndex > 0)
-		return 1;
 
-	std::cerr <<"ASMu3D::getNoBoundaryElms not implemented properly yet" << std::endl;
-	exit(776654);
+	LR::parameterEdge edge;
+	switch(lIndex)
+	{
+	case 1: edge = LR::WEST;   break;
+	case 2: edge = LR::EAST;   break;
+	case 3: edge = LR::SOUTH;  break;
+	case 4: edge = LR::NORTH;  break;
+	case 5: edge = LR::BOTTOM; break;
+	case 6: edge = LR::TOP;    break;
+	default:edge = LR::NONE;
+	}
 
-#if  0
-	else if (ldim < 2 && lIndex > 0 && lIndex <= 12)
-		return lrspline->numCoefs((lIndex-1)/4) - lrspline->order((lIndex-1)/4) + 1;
+	std::vector<LR::Element*> edgeElms;
+	lrspline->getEdgeElements(edgeElms, edge);
 
-	int n1 = lrspline->numCoefs(0) - lrspline->order(0) + 1;
-	int n2 = lrspline->numCoefs(1) - lrspline->order(1) + 1;
-	int n3 = lrspline->numCoefs(2) - lrspline->order(2) + 1;
-
-	switch (lIndex)
-		{
-		case 1:
-		case 2:
-			return n2*n3;
-		case 3:
-		case 4:
-			return n1*n3;
-		case 5:
-		case 6:
-			return n1*n2;
-		}
-#endif
-	*/
-	return 0;
+	return edgeElms.size();
 }
 
 
@@ -915,9 +902,15 @@ bool ASMu3D::integrate (Integrand& integrand,
 	int p1 = lrspline->order(0);
 	int p2 = lrspline->order(1);
 	int p3 = lrspline->order(2);
-	Go::BsplineBasis basis1 = getBezierBasis(p1);
-	Go::BsplineBasis basis2 = getBezierBasis(p2);
-	Go::BsplineBasis basis3 = getBezierBasis(p3);
+	double u0 = lrspline->startparam(0);
+	double u1 = lrspline->endparam(0);
+	double v0 = lrspline->startparam(1);
+	double v1 = lrspline->endparam(1);
+	double w0 = lrspline->startparam(2);
+	double w1 = lrspline->endparam(2);
+	Go::BsplineBasis basis1 = getBezierBasis(p1, u0, u1);
+	Go::BsplineBasis basis2 = getBezierBasis(p2, v0, v1);
+	Go::BsplineBasis basis3 = getBezierBasis(p3, w0, w1);
 
 	Matrix BN(   p1*p2*p3, nGauss*nGauss*nGauss);
 	Matrix BdNdu(p1*p2*p3, nGauss*nGauss*nGauss);
@@ -930,9 +923,12 @@ bool ASMu3D::integrate (Integrand& integrand,
 				double u[2*p1];
 				double v[2*p2];
 				double w[2*p3];
-				basis1.computeBasisValues(xg[xi],   u, 1); 
-				basis2.computeBasisValues(xg[eta],  v, 1);
-				basis3.computeBasisValues(xg[zeta], w, 1);
+				double evalU = (xg[xi]  +1)*0.5*(u1-u0) + u0;
+				double evalV = (xg[eta] +1)*0.5*(v1-v0) + v0;
+				double evalW = (xg[zeta]+1)*0.5*(w1-w0) + w0;
+				basis1.computeBasisValues(evalU, u, 1); 
+				basis2.computeBasisValues(evalV, v, 1);
+				basis3.computeBasisValues(evalW, w, 1);
 				int ib=1; // basis function iterator
 				double sum = 0;
 				for(int k=0; k<p3; k++) {
@@ -1131,6 +1127,7 @@ bool ASMu3D::integrate (Integrand& integrand,
 					if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
 						evaluateBasis(fe, dNdu, d2Ndu2);
 					else
+						// evaluateBasis(fe, dNdu);
 						evaluateBasis(fe, dNdu, C, B) ;
 
 					// look for errors in bezier extraction
@@ -1234,6 +1231,8 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
 	const int t1 = 1 + abs(faceDir)%3; // first tangent direction
 	const int t2 = 1 + t1%3;           // second tangent direction
 
+  std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
+  size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 	
 	int edge = LR::NONE;
 	if(lIndex == 1) 
@@ -1318,9 +1317,10 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
 
 		// --- Integration loop over all Gauss points in each direction --------
 
+		fe.iGP = firstp; // Global integration point counter
 		int k1,k2,k3;
 		for (int j = 0; j < nGP; j++)
-			for (int i = 0; i < nGP; i++)
+			for (int i = 0; i < nGP; i++, fe.iGP++)
 			{
 				// Local element coordinates and parameter values
 				// of current integration point
@@ -1370,11 +1370,16 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
 					ok = false;
 		}
 
+    // Finalize the element quantities
+    if (ok && !integrand.finalizeElementBou(*A,fe,time))
+      ok = false;
+
 		// Assembly of global system integral
 		if (ok && !glInt.assemble(A->ref(),fe.iel))
 			ok = false;
 		A->destruct();
 
+		firstp += nGP*nGP;
 	}
 
 	return ok;
@@ -1798,63 +1803,18 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
 bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                            const int* npe, char project) const
 {
-	std::cerr << "Fuck it... its the one with the projection in it\n";
-	std::cerr << "ASMu3D::evalSolution(...) is not properly implemented yet :(" << std::endl;
-	return true;
-	// exit(776658);
-#if 0
-	// Project the secondary solution onto the spline basis
-	Go::SplineVolume* v = nullptr;
-	if (project == 'A')
-		v = this->projectSolutionLocalApprox(integrand);
-	else if (project == 'L')
-		v = this->projectSolutionLocal(integrand);
-	else if (project == 'W')
-		v = this->projectSolutionLeastSquare(integrand);
-	else if (project == 'D' || !npe)
-		v = this->projectSolution(integrand);
+  if (project != 0) {
+    std::cerr << "ASMu3D::evalSolution() projection schemes not implemented yet\n";
+    return false;
+  }
 
-	if (npe)
-	{
-		// Compute parameter values of the result sampling points
-		std::array<RealArray,3> gpar;
-		if (this->getGridParameters(gpar[0],0,npe[0]-1) &&
-	this->getGridParameters(gpar[1],1,npe[1]-1) &&
-	this->getGridParameters(gpar[2],2,npe[2]-1))
-		{
-			if (!project)
-				// Evaluate the secondary solution directly at all sampling points
-				return this->evalSolution(sField,integrand,gpar.data());
-			else if (v)
-			{
-				// Evaluate the projected field at the result sampling points
-				const Vector& svec = sField; // using utl::matrix cast operator
-				sField.resize(v->dimension(),
-				              gpar[0].size()*gpar[1].size()*gpar[2].size());
-				v->gridEvaluator(gpar[0],gpar[1],gpar[2],const_cast<Vector&>(svec));
-				delete v;
-				return true;
-			}
-		}
-		else if (v)
-			delete v;
-	}
-	else if (v)
-	{
-		// Extract control point values from the spline object
-		sField.resize(v->dimension(),
-				          v->numCoefs(0)*v->numCoefs(1)*v->numCoefs(2));
-		sField.fill(&(*v->coefs_begin()));
-		delete v;
-		return true;
-	}
+  // Compute parameter values of the result sampling points
+  std::array<RealArray,3> gpar;
+  for (int dir = 0; dir < 3; dir++)
+    if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
+      return false;
+  return this->evalSolution(sField,integrand,gpar.data());
 
-	std::cerr <<" *** ASMu3D::evalSolution: Failure!";
-	if (project) std::cerr <<" project="<< project;
-	std::cerr << std::endl;
-	return false;
-#endif
-	return false;
 }
 
 
