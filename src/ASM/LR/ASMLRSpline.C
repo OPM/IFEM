@@ -230,11 +230,11 @@ bool ASMunstruct::refine (const LR::RefineData& prm,
 }
 
 
-Go::BsplineBasis ASMunstruct::getBezierBasis (int p)
+Go::BsplineBasis ASMunstruct::getBezierBasis (int p, double start, double end)
 {
   double knot[2*p];
-  std::fill(knot,   knot+p,  -1.0);
-  std::fill(knot+p, knot+2*p, 1.0);
+  std::fill(knot,   knot+p,   start);
+  std::fill(knot+p, knot+2*p, end);
   return Go::BsplineBasis(p,p,knot);
 }
 
