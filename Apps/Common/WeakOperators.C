@@ -156,7 +156,7 @@ namespace WeakOperators {
     if (cmp == 1 && nf == 1)
       EV.add(fe.basis(basis), scale*fe.detJxW);
     else {
-      for (size_t i = 1; i <= fe.N.size(); ++i)
+      for (size_t i = 1; i <= fe.basis(basis).size(); ++i)
         for (size_t k = 1; k <= cmp; ++k)
           EV(nf*(i-1)+k+scmp) += scale*fe.basis(basis)(i)*fe.detJxW;
     }
