@@ -620,9 +620,11 @@ namespace utl //! General utility classes and functions.
       -# \f$ {\bf Y} = {\bf A}^T {\bf X} \f$
       -# \f$ {\bf Y} = {\bf Y} + {\bf A} {\bf X} \f$
       -# \f$ {\bf Y} = {\bf Y} + {\bf A}^T {\bf X} \f$
+      -# \f$ {\bf Y} = {\bf Y} - {\bf A} {\bf X} \f$
+      -# \f$ {\bf Y} = {\bf Y} - {\bf A}^T {\bf X} \f$
     */
     bool multiply(const std::vector<T>& X, std::vector<T>& Y,
-                  bool transA = false, bool addTo = false) const;
+                  bool transA = false, char addTo = 0) const;
 
     //! \brief Outer product between two vectors.
     bool outer_product(const std::vector<T>& X, const std::vector<T>& Y,
@@ -1032,14 +1034,14 @@ namespace utl //! General utility classes and functions.
   template<> inline
   bool matrix<float>::multiply(const std::vector<float>& X,
                                std::vector<float>& Y,
-                               bool transA, bool addTo) const
+                               bool transA, char addTo) const
   {
     if (!this->compatible(X,transA)) return false;
     if (!addTo) Y.resize(transA ? ncol : nrow);
 
     cblas_sgemv(CblasColMajor,
                 transA ? CblasTrans : CblasNoTrans,
-                nrow, ncol, 1.0f,
+                nrow, ncol, addTo < 0 ? -1.0f : 1.0f,
                 this->ptr(), nrow,
                 &X.front(), 1, addTo ? 1.0f : 0.0f,
                 &Y.front(), 1);
@@ -1050,14 +1052,14 @@ namespace utl //! General utility classes and functions.
   template<> inline
   bool matrix<double>::multiply(const std::vector<double>& X,
                                 std::vector<double>& Y,
-                                bool transA, bool addTo) const
+                                bool transA, char addTo) const
   {
     if (!this->compatible(X,transA)) return false;
     if (!addTo) Y.resize(transA ? ncol : nrow);
 
     cblas_dgemv(CblasColMajor,
                 transA ? CblasTrans : CblasNoTrans,
-                nrow, ncol, 1.0,
+                nrow, ncol, addTo < 0 ? -1.0 : 1.0,
                 this->ptr(), nrow,
                 &X.front(), 1, addTo ? 1.0 : 0.0,
                 &Y.front(), 1);
@@ -1233,7 +1235,7 @@ namespace utl //! General utility classes and functions.
   //============================================================================
 
   template<class T> inline
-  vector<T>& vector<T>::operator*=(const T& c)
+  vector<T>& vector<T>::operator*=(T c)
   {
     for (size_t i = 0; i < this->size(); i++)
       std::vector<T>::operator[](i) *= c;
@@ -1319,7 +1321,7 @@ namespace utl //! General utility classes and functions.
   }
 
   template<class T> inline
-  matrix<T>& matrix<T>::multiply(const T& c)
+  matrix<T>& matrix<T>::multiply(T c)
   {
     for (size_t i = 0; i < elem.size(); i++)
       elem[i] *= c;
@@ -1336,9 +1338,9 @@ namespace utl //! General utility classes and functions.
 
   template<class T> inline
   bool matrix<T>::multiply(const std::vector<T>& X, std::vector<T>& Y,
-                           bool transA, bool addTo) const
+                           bool transA, char addTo) const
   {
-    if (!this->compatible(X,Y,transA)) return false;
+    if (!this->compatible(X,transA)) return false;
     if (!addTo)
     {
       Y.clear();
@@ -1348,9 +1350,9 @@ namespace utl //! General utility classes and functions.
     for (size_t i = 0; i < Y.size(); i++)
       for (size_t j = 0; j < X.size(); j++)
         if (transA)
-          Y[i] += THIS(j+1,i+1) * X[j];
+          Y[i] += THIS(j+1,i+1) * (addTo > 0 ? X[j] : -X[j]);
         else
-          Y[i] += THIS(i+1,j+1) * X[j];
+          Y[i] += THIS(i+1,j+1) * (addTo > 0 ? X[j] : -X[j]);
 
     return true;
   }
