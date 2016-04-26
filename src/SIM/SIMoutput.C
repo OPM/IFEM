@@ -333,7 +333,7 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
 
     geomID++;
     size_t nbc = myModel[i]->getNoFields(1);
-    Matrix bc(nbc,myModel[i]->getNoNodes(-1));
+    Matrix bc(nbc,myModel[i]->getNoNodes(1));
     RealArray flag(3,0.0);
     ASMbase::BCVec::const_iterator bit;
     for (bit = myModel[i]->begin_BC(); bit != myModel[i]->end_BC(); bit++)

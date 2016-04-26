@@ -850,10 +850,10 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
   std::vector<size_t> nc(nfx.size());
   std::copy(nfx.begin(), nfx.end(), nc.begin());
 
-  // assume geobasis only
+  // assume first basis only
   if (locSol.size() < std::inner_product(nb.begin(), nb.end(), nfx.begin(), 0u)) {
     std::fill(nc.begin(), nc.end(), 0);
-    nc[geoBasis-1] = nfx[geoBasis-1];
+    nc[0] = nfx[0];
   }
 
   if (std::inner_product(nb.begin(), nb.end(), nc.begin(), 0u) != locSol.size())
@@ -869,6 +869,8 @@ bool ASMs2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
   {
     size_t comp=0;
     for (size_t b = 0; b < m_basis.size(); ++b) {
+      if (nc[b] == 0)
+        continue;
       IntVec ip;
       scatterInd(m_basis[b]->numCoefs_u(),m_basis[b]->numCoefs_v(),
                  m_basis[b]->order_u(),m_basis[b]->order_v(),splinex[b][i].left_idx,ip);
