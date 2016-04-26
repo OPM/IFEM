@@ -902,15 +902,9 @@ bool ASMu3D::integrate (Integrand& integrand,
 	int p1 = lrspline->order(0);
 	int p2 = lrspline->order(1);
 	int p3 = lrspline->order(2);
-	double u0 = lrspline->startparam(0);
-	double u1 = lrspline->endparam(0);
-	double v0 = lrspline->startparam(1);
-	double v1 = lrspline->endparam(1);
-	double w0 = lrspline->startparam(2);
-	double w1 = lrspline->endparam(2);
-	Go::BsplineBasis basis1 = getBezierBasis(p1, u0, u1);
-	Go::BsplineBasis basis2 = getBezierBasis(p2, v0, v1);
-	Go::BsplineBasis basis3 = getBezierBasis(p3, w0, w1);
+	Go::BsplineBasis basis1 = getBezierBasis(p1);
+	Go::BsplineBasis basis2 = getBezierBasis(p2);
+	Go::BsplineBasis basis3 = getBezierBasis(p3);
 
 	Matrix BN(   p1*p2*p3, nGauss*nGauss*nGauss);
 	Matrix BdNdu(p1*p2*p3, nGauss*nGauss*nGauss);
@@ -923,12 +917,9 @@ bool ASMu3D::integrate (Integrand& integrand,
 				double u[2*p1];
 				double v[2*p2];
 				double w[2*p3];
-				double evalU = (xg[xi]  +1)*0.5*(u1-u0) + u0;
-				double evalV = (xg[eta] +1)*0.5*(v1-v0) + v0;
-				double evalW = (xg[zeta]+1)*0.5*(w1-w0) + w0;
-				basis1.computeBasisValues(evalU, u, 1); 
-				basis2.computeBasisValues(evalV, v, 1);
-				basis3.computeBasisValues(evalW, w, 1);
+				basis1.computeBasisValues(xg[xi],   u, 1); 
+				basis2.computeBasisValues(xg[eta],  v, 1);
+				basis3.computeBasisValues(xg[zeta], w, 1);
 				int ib=1; // basis function iterator
 				double sum = 0;
 				for(int k=0; k<p3; k++) {
@@ -975,8 +966,11 @@ bool ASMu3D::integrate (Integrand& integrand,
 		double   dXidu[3];
 		Vec4     X;
 		// Get element volume in the parameter space
-		double dV = el->volume();
-		if (dV < 0.0)
+		double du = el->umax() - el->umin();
+		double dv = el->vmax() - el->vmin();
+		double dw = el->wmax() - el->wmin();
+		double vol = el->volume();
+		if (vol < 0.0)
 		{
 			ok = false; // topology error (probably logic error)
 			break;
@@ -1025,7 +1019,7 @@ bool ASMu3D::integrate (Integrand& integrand,
 						// Compute Jacobian determinant of coordinate mapping
 						// and multiply by weight of current integration point
 						double detJac = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu,false);
-						double weight = 0.125*dV*wg[i]*wg[j]*wg[k];
+						double weight = 0.125*vol*wg[i]*wg[j]*wg[k];
 
 						// Numerical quadrature
 						fe.Navg.add(fe.N,detJac*weight);
@@ -1119,15 +1113,14 @@ bool ASMu3D::integrate (Integrand& integrand,
 
 					// Extract bezier basis functions
 					B.fillColumn(1, BN.getColumn(ig));
-					B.fillColumn(2, BdNdu.getColumn(ig));
-					B.fillColumn(3, BdNdv.getColumn(ig));
-					B.fillColumn(4, BdNdw.getColumn(ig));
+					B.fillColumn(2, BdNdu.getColumn(ig)*2/du);
+					B.fillColumn(3, BdNdv.getColumn(ig)*2/dv);
+					B.fillColumn(4, BdNdw.getColumn(ig)*2/dw);
 
 					// Fetch basis function derivatives at current integration point
 					if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)
 						evaluateBasis(fe, dNdu, d2Ndu2);
 					else
-						// evaluateBasis(fe, dNdu);
 						evaluateBasis(fe, dNdu, C, B) ;
 
 					// look for errors in bezier extraction
@@ -1190,7 +1183,7 @@ bool ASMu3D::integrate (Integrand& integrand,
 					X.t = time.t;
 
 					// Evaluate the integrand and accumulate element contributions
-					fe.detJxW *= 0.125*dV*wg[i]*wg[j]*wg[k];
+					fe.detJxW *= 0.125*vol*wg[i]*wg[j]*wg[k];
 					if (!integrand.evalInt(*A,fe,time,X))
 						ok = false;
 
@@ -1803,18 +1796,56 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
 bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                            const int* npe, char project) const
 {
-  if (project != 0) {
-    std::cerr << "ASMu3D::evalSolution() projection schemes not implemented yet\n";
-    return false;
+  // Project the secondary solution onto the spline basis
+  LR::LRSplineVolume* v = nullptr;
+  if (project == 'A')
+    v = this->projectSolutionLocalApprox(integrand);
+  else if (project == 'L')
+    v = this->projectSolutionLocal(integrand);
+  else if (project == 'W')
+    v = this->projectSolutionLeastSquare(integrand);
+  else if (project == 'D' || !npe)
+    v = this->projectSolution(integrand);
+
+  if (npe)
+  {
+    // Compute parameter values of the result sampling points
+    std::array<RealArray,3> gpar;
+    if (this->getGridParameters(gpar[0],0,npe[0]-1) &&
+        this->getGridParameters(gpar[1],1,npe[1]-1) &&
+        this->getGridParameters(gpar[2],2,npe[2]-1))
+    {
+      if (!project)
+        // Evaluate the secondary solution directly at all sampling points
+        return this->evalSolution(sField,integrand,gpar.data());
+      else if (v)
+      {
+        // Evaluate the projected field at the result sampling points
+        const Vector& svec = sField; // using utl::matrix cast operator
+        sField.resize(v->dimension(),
+                      gpar[0].size()*gpar[1].size()*gpar[2].size());
+        v->gridEvaluator(gpar[0],gpar[1],gpar[2],const_cast<Vector&>(svec));
+        delete v;
+        return true;
+      }
+    }
+    else if (v)
+      delete v;
+  }
+  else if (v)
+  {
+    // Extract control point values from the spline object
+    sField.resize(v->dimension(),
+                  v->numCoefs());
+    sField.fill(&(*v->coefs_begin()));
+    delete v;
+    return true;
   }
 
-  // Compute parameter values of the result sampling points
-  std::array<RealArray,3> gpar;
-  for (int dir = 0; dir < 3; dir++)
-    if (!this->getGridParameters(gpar[dir],dir,npe[dir]-1))
-      return false;
-  return this->evalSolution(sField,integrand,gpar.data());
-
+  std::cerr <<" *** ASMu3D::evalSolution: Failure!";
+  if (project) std::cerr <<" project="<< project;
+  std::cerr << std::endl;
+  return false;
 }
 
 
