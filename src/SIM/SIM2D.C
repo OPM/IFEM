@@ -81,8 +81,11 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     if (utl::getAttribute(elem,"lowerpatch",lowpatch))
       uppatch = myModel.size();
     utl::getAttribute(elem,"upperpatch",uppatch);
+    int check = myModel.size();
+    if (nGlPatches > 0)
+      check = nGlPatches;
 
-    if (lowpatch < 1 || uppatch > (int)myModel.size())
+    if (lowpatch < 1 || uppatch > check)
     {
       std::cerr <<" *** SIM2D::parse: Invalid patch indices, lower="
                 << lowpatch <<" upper="<< uppatch << std::endl;
@@ -96,28 +99,36 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       int addu = 0, addv = 0;
       utl::getAttribute(elem,"u",addu);
       utl::getAttribute(elem,"v",addv);
-      for (int j = lowpatch-1; j < uppatch; j++)
-        if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
+      for (int j = lowpatch-1; j < uppatch; j++) {
+        int p = getLocalPatchIndex(j+1);
+        if (p < 1)
+          continue;
+        if ((pch = dynamic_cast<ASM2D*>(myModel[p-1])))
         {
-          IFEM::cout <<"\tRefining P"<< j+1
+          IFEM::cout <<"\tRefining P"<< p
                      <<" "<< addu <<" "<< addv << std::endl;
           pch->uniformRefine(0,addu);
           pch->uniformRefine(1,addv);
         }
+      }
     }
     else
     {
       int dir = 1;
       utl::getAttribute(elem,"dir",dir);
-      for (int j = lowpatch-1; j < uppatch; j++)
-        if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
+      for (int j = lowpatch-1; j < uppatch; j++) {
+        int p = getLocalPatchIndex(j+1);
+        if (p < 1)
+          continue;
+        if ((pch = dynamic_cast<ASM2D*>(myModel[p-1])))
         {
-          IFEM::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
+          IFEM::cout <<"\tRefining P"<< p <<" dir="<< dir;
           for (size_t i = 0; i < xi.size(); i++)
             IFEM::cout <<" "<< xi[i];
           IFEM::cout << std::endl;
           pch->refine(dir-1,xi);
         }
+      }
     }
   }
 
@@ -129,8 +140,11 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     if (utl::getAttribute(elem,"lowerpatch",lowpatch))
       uppatch = myModel.size();
     utl::getAttribute(elem,"upperpatch",uppatch);
+    int check = myModel.size();
+    if (nGlPatches > 0)
+      check = nGlPatches;
 
-    if (lowpatch < 1 || uppatch > (int)myModel.size())
+    if (lowpatch < 1 || uppatch > check)
     {
       std::cerr <<" *** SIM2D::parse: Invalid patch indices, lower="
                 << lowpatch <<" upper="<< uppatch << std::endl;
@@ -141,13 +155,17 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     int addu = 0, addv = 0;
     utl::getAttribute(elem,"u",addu);
     utl::getAttribute(elem,"v",addv);
-    for (int j = lowpatch-1; j < uppatch; j++)
-      if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
+    for (int j = lowpatch-1; j < uppatch; j++) {
+      int p = getLocalPatchIndex(j+1);
+      if (p < 1)
+        continue;
+      if ((pch = dynamic_cast<ASM2D*>(myModel[p-1])))
       {
-        IFEM::cout <<"\tRaising order of P"<< j+1
+        IFEM::cout <<"\tRaising order of P"<< p
                    <<" "<< addu <<" "<< addv << std::endl;
         pch->raiseOrder(addu,addv);
       }
+    }
   }
 
   else if (!strcasecmp(elem->Value(),"topology"))
