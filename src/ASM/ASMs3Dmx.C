@@ -824,10 +824,10 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
   std::vector<size_t> nc(nfx.size());
   std::copy(nfx.begin(), nfx.end(), nc.begin());
 
-  // assume geobasis only
+  // assume first basis only
   if (locSol.size() < std::inner_product(nb.begin(), nb.end(), nfx.begin(), 0u)) {
     std::fill(nc.begin(), nc.end(), 0);
-    nc[geoBasis-1] = nfx[geoBasis-1];
+    nc[0] = nfx[0];
   }
 
   if (std::inner_product(nb.begin(), nb.end(), nc.begin(), 0u) != locSol.size())
@@ -843,6 +843,8 @@ bool ASMs3Dmx::evalSolution (Matrix& sField, const Vector& locSol,
   {
     size_t comp=0;
     for (size_t b = 0; b < m_basis.size(); ++b) {
+      if (nc[b] == 0)
+        continue;
       IntVec ip;
       scatterInd(m_basis[b]->numCoefs(0),m_basis[b]->numCoefs(1),m_basis[b]->numCoefs(2),
                  m_basis[b]->order(0), m_basis[b]->order(1), m_basis[b]->order(2),
