@@ -198,9 +198,6 @@ public:
   //! \brief Returns the derivative order of the differential operator.
   virtual int derivativeOrder() const { return 1; }
 
-  //! \brief Returns whether a mixed formulation is used.
-  virtual bool mixedFormulation() const { return false; }
-
   //! \brief Writes surface tractions/fluxes for a given time step to VTF-file.
   virtual bool writeGlvT(VTF*, int, int&, int&) const { return true; }
 

@@ -222,7 +222,7 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
   }
 
   if (results & DataExporter::PRIMARY) {
-    if (prob->mixedFormulation())
+    if (sim->mixedProblem())
     {
       // primary solution vector
       addField(prefix+entry.first,entry.second.description,basisname,
@@ -248,7 +248,7 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
   }
 
   if (results & DataExporter::DISPLACEMENT) {
-    if (prob->mixedFormulation())
+    if (sim->mixedProblem())
     {
       // primary solution vector
       addField(prefix+entry.first,entry.second.description,basisname,

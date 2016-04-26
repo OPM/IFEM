@@ -174,7 +174,7 @@ void HDF5Writer::readArray(int group, const std::string& name,
 
 
 void HDF5Writer::readArray(int group, const std::string& name,
-                              int& len,  int*& data)
+                           int& len,  int*& data)
 {
 #ifdef HAS_HDF5
   hid_t set = H5Dopen2(group,name.c_str(),H5P_DEFAULT);
@@ -299,7 +299,11 @@ bool HDF5Writer::readSIM (int level, const DataEntry& entry)
 
   bool ok = true;
 #ifdef HAS_HDF5
-  const IntegrandBase* prob = sim->getProblem();
+  std::string name;
+  if (sim->mixedProblem())
+    name = entry.first;
+  else
+    name = entry.second.description + " restart";
 
   for (int i = 0; i < sim->getNoPatches() && ok; ++i) {
     std::stringstream str;
@@ -308,10 +312,7 @@ bool HDF5Writer::readSIM (int level, const DataEntry& entry)
     int loc = sim->getLocalPatchIndex(i+1);
     if (loc > 0) {
       double* tmp = nullptr; int siz = 0;
-      if (prob->mixedFormulation())
-        readArray(group2,entry.first,siz,tmp);
-      else
-        readArray(group2,entry.second.description+" restart",siz,tmp);
+      readArray(group2,name,siz,tmp);
       ok = sim->injectPatchSolution(*sol,Vector(tmp,siz),loc-1);
       if (hasGeometries(level, sim->getName()+"-1")) {
         std::string out;
@@ -396,7 +397,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
   const IntegrandBase* prob = sim->getProblem();
   if (level == 0 || geometryUpdated || (abs(entry.second.results) & DataExporter::GRID)) {
     writeBasis(sim,basisname,1,level);
-    if (prob->mixedFormulation())
+    if (sim->mixedProblem())
       for (size_t b=2; b <= sim->getPatch(1)->getNoBasis(); ++b) {
         std::stringstream str;
         str << sim->getName() << "-" << b;
@@ -409,7 +410,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
   if (abs(entry.second.results) & DataExporter::NORMS)
     sim->solutionNorms(Vectors(1,*sol),eNorm,gNorm);
 
-  NormBase* norm = sim->getProblem()->getNormIntegrand();
+  NormBase* norm = sim->getNormIntegrand();
 
 #ifdef HAS_HDF5
   int results = entry.second.results;
@@ -445,7 +446,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
         Vector psol;
         int ncmps = entry.second.ncmps;
         size_t ndof1 = sim->extractPatchSolution(*sol,psol,loc-1,ncmps);
-        if (prob->mixedFormulation())
+        if (sim->mixedProblem())
         {
           size_t ofs = 0;
           for (size_t b=1; b <= sim->getPatch(loc)->getNoBasis(); ++b) {
@@ -532,7 +533,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
                    0, &dummy, H5T_NATIVE_DOUBLE);
       }
       if (abs(results) & DataExporter::PRIMARY) {
-        if (prob->mixedFormulation())
+        if (sim->mixedProblem())
         {
           writeArray(group2,prefix+entry.first,0,&dummy,H5T_NATIVE_DOUBLE);
           for (size_t b=1; b <= sim->getPatch(loc)->getNoBasis(); ++b)
@@ -752,8 +753,7 @@ bool HDF5Writer::readDouble(int level, const std::string& group,
     return false;
 
   hid_t group2 = H5Gopen2(m_file,str.str().c_str(),H5P_DEFAULT);
-  int len=1;
-  double* data2;
+  double* data2; int len=1;
   readArray(group2,name,len,data2);
   H5Gclose(group2);
   if (len > 0) {

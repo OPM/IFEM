@@ -199,6 +199,8 @@ public:
   //! parts of a partitioned solution method and are used to identify the basis
   //! for the result fields associated with each simulator in the HDF5 output.
   virtual std::string getName() const { return "SIMbase"; }
+  //! \brief Returns whether a mixed formulation is used (used by HDF5 output).
+  virtual bool mixedProblem() const { return false; }
 
   //! \brief Returns the number of parameter dimensions in the model.
   virtual unsigned short int getNoParamDim() const = 0;
@@ -623,6 +625,9 @@ public:
   virtual ASMbase* readPatch(std::istream& isp, int pchInd,
                              const CharVec& unf = CharVec()) const = 0;
 
+  //! \brief Returns a scalar function associated with \a code.
+  RealFunc* getSclFunc(int code) const;
+
 protected:
   //! \brief Creates a default single-patch geometry.
   //! \param[in] geo XML element containing geometry defintion
@@ -670,9 +675,6 @@ protected:
 public:
   static bool ignoreDirichlet; //!< Set to \e true for free vibration analysis
   static bool preserveNOrder;  //!< Set to \e true to preserve node ordering
-
-  //! For testing purposes
-  RealFunc* getSclFunc(int i) { return (myScalars[i]); }
 
 protected:
   //! \brief Scalar field container

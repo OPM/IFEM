@@ -45,6 +45,9 @@ public:
   //! \brief Empty destructor.
   virtual ~SIM2D() {}
 
+  //! \brief Returns whether a mixed formulation is used (used by HDF5 output).
+  virtual bool mixedProblem() const { return nf.size() > 1; }
+
   //! \brief Returns the number of parameter dimensions in the model.
   unsigned short int getNoParamDim() const { return 2; }
 
