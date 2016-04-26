@@ -29,7 +29,7 @@ SIM1D::SIM1D (unsigned char n1, bool)
 }
 
 
-SIM1D::SIM1D (const std::vector<unsigned char>& fields, bool)
+SIM1D::SIM1D (const CharVec& fields, bool)
 {
   nsd = 1;
   nf = fields.empty()?1:fields.front();
@@ -58,33 +58,36 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
       uppatch = myModel.size();
     utl::getAttribute(elem,"upperpatch",uppatch);
 
-    if (lowpatch < 1 || uppatch > (int)myModel.size())
+    if (lowpatch < 1 || uppatch > nGlPatches)
     {
       std::cerr <<" *** SIM1D::parse: Invalid patch indices, lower="
                 << lowpatch <<" upper="<< uppatch << std::endl;
       return false;
     }
 
+    ASM1D* pch = nullptr;
     RealArray xi;
     if (!utl::parseKnots(elem,xi))
     {
       int addu = 0;
       utl::getAttribute(elem,"u",addu);
-      for (int j = lowpatch-1; j < uppatch; j++)
-      {
-        IFEM::cout <<"\tRefining P"<< j+1 <<" "<< addu << std::endl;
-        static_cast<ASMs1D*>(myModel[j])->uniformRefine(addu);
-      }
+      for (int j = lowpatch; j <= uppatch; j++)
+        if ((pch = dynamic_cast<ASM1D*>(this->getPatch(j,true))))
+        {
+          IFEM::cout <<"\tRefining P"<< j <<" "<< addu << std::endl;
+          pch->uniformRefine(addu);
+        }
     }
     else
-      for (int j = lowpatch-1; j < uppatch; j++)
-      {
-        IFEM::cout <<"\tRefining P"<< j+1;
-        for (size_t i = 0; i < xi.size(); i++)
-          IFEM::cout <<" "<< xi[i];
-        IFEM::cout << std::endl;
-        static_cast<ASMs1D*>(myModel[j])->refine(xi);
-      }
+      for (int j = lowpatch; j <= uppatch; j++)
+        if ((pch = dynamic_cast<ASM1D*>(this->getPatch(j,true))))
+        {
+          IFEM::cout <<"\tRefining P"<< j;
+          for (size_t i = 0; i < xi.size(); i++)
+            IFEM::cout <<" "<< xi[i];
+          IFEM::cout << std::endl;
+          pch->refine(xi);
+        }
   }
 
   else if (!strcasecmp(elem->Value(),"raiseorder"))
@@ -96,20 +99,22 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
       uppatch = myModel.size();
     utl::getAttribute(elem,"upperpatch",uppatch);
 
-    if (lowpatch < 1 || uppatch > (int)myModel.size())
+    if (lowpatch < 1 || uppatch > nGlPatches)
     {
       std::cerr <<" *** SIM1D::parse: Invalid patch indices, lower="
                 << lowpatch <<" upper="<< uppatch << std::endl;
       return false;
     }
 
+    ASM1D* pch = nullptr;
     int addu = 0;
     utl::getAttribute(elem,"u",addu);
-    for (int j = lowpatch-1; j < uppatch; j++)
-    {
-      IFEM::cout <<"\tRaising order of P"<< j+1 <<" "<< addu << std::endl;
-      static_cast<ASMs1D*>(myModel[j])->raiseOrder(addu);
-    }
+    for (int j = lowpatch; j <= uppatch; j++)
+      if ((pch = dynamic_cast<ASM1D*>(this->getPatch(j,true))))
+      {
+        IFEM::cout <<"\tRaising order of P"<< j <<" "<< addu << std::endl;
+        static_cast<ASM1D*>(pch)->raiseOrder(addu);
+      }
   }
 
   else if (!strcasecmp(elem->Value(),"topology"))
@@ -182,10 +187,15 @@ bool SIM1D::parseBCTag (const TiXmlElement* elem)
     utl::getAttribute(elem,"patch",patch);
     utl::getAttribute(elem,"code",code);
     utl::getAttribute(elem,"rx",rx);
+    int pid = this->getLocalPatchIndex(patch);
+    if (pid < 1) return pid == 0;
+
+    ASM1D* pch = dynamic_cast<ASM1D*>(myModel[pid-1]);
+    if (!pch) return false;
 
     IFEM::cout <<"\tConstraining P"<< patch
                <<" point at "<< rx <<" with code "<< code << std::endl;
-    static_cast<ASMs1D*>(myModel[patch-1])->constrainNode(rx,code);
+    pch->constrainNode(rx,code);
   }
 
   return true;
@@ -496,7 +506,7 @@ bool SIM1D::readPatches (std::istream& isp, PatchVec& patches,
         delete pch;
         return false;
       }
-      else if (pch->empty() || this->getLocalPatchIndex(pchInd+1) < 1)
+      else if (pch->empty() || this->getLocalPatchIndex(pchInd) < 1)
         delete pch;
       else
       {
@@ -520,9 +530,6 @@ bool SIM1D::createFEMmodel (char)
       ok = static_cast<ASMs1D*>(myModel[i])->generateOrientedFEModel(XZp);
     else
       ok = myModel[i]->generateFEMTopology();
-
-  if (nGlPatches == 0 && !adm.isParallel())
-    nGlPatches = myModel.size();
 
   return ok;
 }
@@ -575,7 +582,7 @@ ASMbase* SIM1D::createDefaultGeometry (const TiXmlElement* geo) const
   g2.append("\n");
 
   std::istringstream unitLine(g2);
-  return this->readPatch(unitLine,1,{nf});
+  return this->readPatch(unitLine,0,{nf});
 }
 
 

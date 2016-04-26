@@ -16,22 +16,24 @@
 
 #include "gtest/gtest.h"
 
-class DummyIntegrand : public IntegrandBase {
-};
 
-class TestSIM : public SIM2D {
-  public:
-    TestSIM() : SIM2D(new DummyIntegrand, 2)
-    {
-      myModel.resize(1,this->createDefaultGeometry(NULL));
-    }
+class TestSIM : public SIM2D
+{
+  class DummyIntegrand : public IntegrandBase {};
+
+public:
+  TestSIM() : SIM2D(new DummyIntegrand())
+  {
+    this->createDefaultModel();
+    this->preprocess();
+  }
+  virtual ~TestSIM() {}
 };
 
 
 TEST(TestMeshUtils, Aspect2D)
 {
   TestSIM model;
-  model.preprocess();
 
   Vector aspect;
   MeshUtils::computeAspectRatios(aspect, model);
@@ -47,7 +49,6 @@ TEST(TestMeshUtils, Aspect2D)
 TEST(TestMeshUtils, Skewness2D)
 {
   TestSIM model;
-  model.preprocess();
 
   Vector skewness;
   MeshUtils::computeMeshSkewness(skewness, model);

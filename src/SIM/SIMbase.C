@@ -124,6 +124,8 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
         std::cerr <<" *** SIMbase::parse: No patches read"<< std::endl;
         return false;
       }
+      if (myPatches.empty())
+        nGlPatches = myModel.size();
     }
   }
 
@@ -165,6 +167,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
       return true;
     IFEM::cout <<"\tNumber of partitions: "<< proc << std::endl;
 
+    nGlPatches = 0;
     const TiXmlElement* part = elem->FirstChildElement("part");
     for (; part; part = part->NextSiblingElement("part")) {
       int first = -2, last = -2;
@@ -495,6 +498,7 @@ bool SIMbase::parse (const TiXmlElement* elem)
       IFEM::cout <<"  Using default linear geometry basis on unit domain [0,1]";
       if (this->getNoParamDim() > 1) IFEM::cout <<"^"<< this->getNoParamDim();
       IFEM::cout << std::endl;
+      nGlPatches = 1;
       myModel.resize(1,this->createDefaultGeometry(elem));
     }
 
@@ -814,9 +818,6 @@ bool SIMbase::createFEMmodel (char resetNumb)
     else if (myModel[i]->isShared() && resetNumb == 'Y')
       myModel[i]->setGlobalNodeNums(IntVec());
   }
-
-  if (nGlPatches == 0 && (!adm.isParallel() || adm.getNoProcs() == 1))
-    nGlPatches = myModel.size();
 
 #ifdef HAS_PETSC
   // When PETSc is used, we need to retain all DOFs in the equation system.
@@ -2494,7 +2495,7 @@ bool SIMbase::project (Vector& values, const RealFunc* f,
       ok &= myModel[j]->injectNodeVec(loc_scalar,values,1,basis);
     else
     {
-      // Interleave 
+      // Interleave
       size_t i, k = iField;
       Vector loc_vector(loc_scalar.size()*nFields);
       myModel[j]->extractNodeVec(values,loc_vector,0,basis);

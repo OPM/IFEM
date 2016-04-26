@@ -17,8 +17,10 @@
 
 void SIMgeneric::createDefaultModel ()
 {
-  if (myModel.empty())
-    myModel.resize(1,this->createDefaultGeometry(nullptr));
+  if (!myModel.empty()) return;
+
+  nGlPatches = 1;
+  myModel.resize(1,this->createDefaultGeometry(nullptr));
 }
 
 
@@ -28,11 +30,9 @@ Vector SIMgeneric::getSolution (const Vector& psol, const double* par,
   if (psol.empty() || !par || opt.discretization < ASM::Spline)
     return Vector();
 
-  patch = this->getLocalPatchIndex(patch);
-  if (patch < 1 || (size_t)patch > myModel.size())
-    return Vector();
+  ASMbase* pch = this->getPatch(this->getLocalPatchIndex(patch));
+  if (!pch) return Vector();
 
-  ASMbase* pch = myModel[patch-1];
   size_t ndim = pch->getNoParamDim();
   std::vector<RealArray> params(ndim);
   for (size_t i = 0; i < ndim; i++)
@@ -41,7 +41,7 @@ Vector SIMgeneric::getSolution (const Vector& psol, const double* par,
   Matrix tmpVal;
   Vector localVec;
   pch->extractNodeVec(psol,localVec);
-  if (!pch->evalSolution(tmpVal,localVec,&params[0],false,deriv))
+  if (!pch->evalSolution(tmpVal,localVec,&params.front(),false,deriv))
     return Vector();
 
   return tmpVal.getColumn(1);
@@ -51,10 +51,9 @@ Vector SIMgeneric::getSolution (const Vector& psol, const double* par,
 int SIMgeneric::evalPoint (const double* xi, Vec3& X, double* param,
                            int patch) const
 {
-  patch = this->getLocalPatchIndex(patch);
-  if (patch < 1 || (size_t)patch > myModel.size())
-    return -1;
+  ASMbase* pch = this->getPatch(this->getLocalPatchIndex(patch));
+  if (!pch) return -1;
 
   double dummy[3];
-  return myModel[patch-1]->evalPoint(xi, param ? param : dummy, X);
+  return pch->evalPoint(xi, param ? param : dummy, X);
 }
