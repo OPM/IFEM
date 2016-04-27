@@ -69,6 +69,7 @@ public:
 #ifdef HAS_PETSC
     schurPrec(SIMPLE),
 #endif
+    blocks(1),
     nsd(n),
     msgLev(m)
   {}
