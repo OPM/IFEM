@@ -346,6 +346,9 @@ static std::string ToString(T data)
 
 void LinSolParams::setMLOptions(const std::string& prefix, int block) const
 {
+#if PETSC_VERSION_MINOR > 6
+#define PetscOptionsSetValue(x,y) PetscOptionsSetValue(nullptr, x, y)
+#endif
   PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_maxNLevels").c_str(),
                        ToString(blocks[block].mglevel).c_str());
   PetscOptionsSetValue(AddPrefix(prefix,"pc_ml_maxCoarseSize").c_str(),
