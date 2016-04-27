@@ -184,6 +184,7 @@ bool LinSolParams::read (const TiXmlElement* elem)
   const char* value = 0;
 
   const TiXmlElement* child = elem->FirstChildElement();
+  int parseblock = 0;
   for (; child; child = child->NextSiblingElement())
     if ((value = utl::getValue(child,"type")))
       method = value;
@@ -202,7 +203,7 @@ bool LinSolParams::read (const TiXmlElement* elem)
     }
 #endif
     else if (!strcasecmp(child->Value(),"block")) {
-      blocks.resize(blocks.size()+1);
+      blocks.resize(++parseblock);
       blocks.back().read(child);
     }
     else if ((value = utl::getValue(child,"atol")))
@@ -214,10 +215,8 @@ bool LinSolParams::read (const TiXmlElement* elem)
     else if ((value = utl::getValue(child,"maxits")))
       maxIts = atoi(value);
 
-  if (blocks.size() == 0) {
-    blocks.resize(1);
+  if (parseblock == 0)
     blocks.back().read(elem);
-  }
 
   return true;
 }
