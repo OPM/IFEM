@@ -108,6 +108,11 @@ public:
   virtual void initAssembly(const SAM& sam, bool delayLocking);
 
   //! \brief Initializes the element sparsity pattern based on node connections.
+  //! \param[in] sam Auxiliary data describing the FE model topology, etc.
+  //! \param[in] delayLocking If \e true, do not lock the sparsity pattern yet
+  void preAssemble(const SAM& sam, bool delayLocking);
+
+  //! \brief Initializes the element sparsity pattern based on node connections.
   //! \param[in] MMNPC Matrix of matrices of nodal point correspondances
   //! \param[in] nel Number of elements
   void preAssemble(const std::vector<IntVec>& MMNPC, size_t nel);
