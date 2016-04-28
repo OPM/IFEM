@@ -609,7 +609,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
             if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES) {
-              if (!utl::Hessian(Hess,fe.hess(geoBasis),Jac,Xnod,d2Nxdu2[geoBasis],
+              if (!utl::Hessian(Hess,fe.hess(geoBasis),Jac,Xnod,d2Nxdu2[geoBasis-1],
                                 fe.grad(geoBasis), true))
                   ok = false;
               for (size_t b = 0; b < m_basis.size() && ok; ++b)
