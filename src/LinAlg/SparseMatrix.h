@@ -109,6 +109,11 @@ public:
   virtual void initAssembly(const SAM& sam, bool delayLocking);
 
   //! \brief Initializes the element sparsity pattern based on node connections.
+  //! \param[in] sam Auxiliary data describing the FE model topology, etc.
+  //! \param[in] delayLocking If \e true, do not lock the sparsity pattern yet
+  void preAssemble(const SAM& sam, bool delayLocking);
+
+  //! \brief Initializes the element sparsity pattern based on node connections.
   //! \param[in] MMNPC Matrix of matrices of nodal point correspondances
   //! \param[in] nel Number of elements
   void preAssemble(const std::vector<IntVec>& MMNPC, size_t nel);
@@ -250,13 +255,15 @@ private:
   size_t nrow;   //!< Number of matrix rows
   size_t ncol;   //!< Number of matrix columns
 
-  IntVec IA; //!< Identifies the beginning of each row or column
-  IntVec JA; //!< Specifies column/row index of each nonzero element
-  Vector  A; //!< Stores the nonzero matrix elements
   ValueMap       elem; //!< Stores nonzero matrix elements with index pairs
   SparseSolver solver; //!< Which equation solver to use
   SuperLUdata*    slu; //!< Matrix data for the SuperLU equation solver
   int      numThreads; //!< Number of threads to use for the SuperLU_MT solver
+
+protected:
+  IntVec IA; //!< Identifies the beginning of each row or column
+  IntVec JA; //!< Specifies column/row index of each nonzero element
+  Vector  A; //!< Stores the nonzero matrix elements
 };
 
 #endif

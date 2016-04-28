@@ -276,11 +276,18 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
   minDof = minNode = 1;
   maxDof = sim.getSAM()->getNoDOFs();
   maxNode = sim.getSAM()->getNoNodes();
+
 #ifdef HAVE_MPI
   if (adm.getNoProcs() == 1)
     return true;
 
   IFEM::cout << "\tEstablishing global node numbers" << std::endl;
+
+  std::vector<int> locLMs, glbLMs;
+  for (size_t n = 1; n <= sim.getPatch(1)->getNoNodes(); ++n) {
+    if (sim.getPatch(1)->getLMType(n) == 'G')
+      locLMs.push_back(n);
+  }
 
   minDof = 1;
   maxDof = sim.getSAM()->getNoDOFs();
@@ -289,6 +296,18 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
   if (adm.getProcId() > 0) {
     adm.receive(minNode, adm.getProcId()-1);
     adm.receive(minDof, adm.getProcId()-1);
+
+    int nLMs;
+    adm.receive(nLMs, adm.getProcId()-1);
+    if (locLMs.size() != (size_t)nLMs) {
+      std::cerr <<"\n *** DomainDecomposition::calcGlobalNodeNumbers():"
+                <<" Non-matching number of multipliers "
+                << nLMs << ", expected " << locLMs.size() << std::endl;
+      return false;
+    }
+    glbLMs.resize(nLMs);
+    adm.receive(glbLMs, adm.getProcId()-1);
+
     maxDof  = minDof++;
     maxNode = minNode++;
   }
@@ -326,6 +345,9 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
       ofs += iter.size();
     }
   }
+  // add multiplier remappings
+  for (size_t i = 0; i < locLMs.size() && adm.getProcId() > 0; ++i)
+    old2new[MLGN[sim.getPatch(1)->getNodeID(locLMs[i])-1]] = glbLMs[i];
 
   // remap ghost nodes
   for (auto& it : MLGN)
@@ -345,6 +367,11 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
   if (adm.getProcId() < adm.getNoProcs()-1) {
     adm.send(maxNode, adm.getProcId()+1);
     adm.send(maxDof, adm.getProcId()+1);
+    for (auto& it : locLMs)
+      it = MLGN[sim.getPatch(1)->getNodeID(it)-1];
+
+    adm.send((int)locLMs.size(), adm.getProcId()+1);
+    adm.send(locLMs, adm.getProcId()+1);
   }
 
   for (const auto& it : ghostConnections) {
@@ -360,7 +387,6 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
     adm.send(int(glbNodes.size()), getPatchOwner(it.slave));
     adm.send(glbNodes, getPatchOwner(it.slave));
   }
-
 #endif
 
   return true;
