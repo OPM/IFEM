@@ -668,11 +668,9 @@ static void assemSparse (const RealArray& V, SparseMatrix& SM, size_t col,
 }
 
 
-void SparseMatrix::initAssembly (const SAM& sam, bool delayLocking)
+void SparseMatrix::preAssemble(const SAM& sam, bool delayLocking)
 {
-  this->resize(sam.neq,sam.neq);
-#ifdef USE_OPENMP
-  if (omp_get_max_threads() < 2)
+  if (editable != 'P')
     return;
 
   // Compute the sparsity pattern
@@ -703,6 +701,15 @@ void SparseMatrix::initAssembly (const SAM& sam, bool delayLocking)
 
   // The sparsity pattern is now permanently locked (until resize is invoked)
   IFEM::cout <<"nNZ = "<< this->size() << std::endl;
+}
+
+
+void SparseMatrix::initAssembly (const SAM& sam, bool delayLocking)
+{
+  this->resize(sam.neq,sam.neq);
+#ifdef USE_OPENMP
+  if (omp_get_max_threads() > 1)
+    preAssemble(sam, delayLocking);
 #endif
 }
 
