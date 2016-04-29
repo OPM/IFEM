@@ -96,6 +96,9 @@ file(GLOB IFEM_SRCS ${PROJECT_SOURCE_DIR}/src/IFEM.C
                     ${PROJECT_SOURCE_DIR}/src/Eig/*.f
                     ${PROJECT_SOURCE_DIR}/3rdparty/expreval/*.cpp)
 string(REGEX REPLACE "${PROJECT_SOURCE_DIR}/src/ASM/ASMs.DInterpolate.C" "" IFEM_SRCS "${IFEM_SRCS}")
+if(NOT ISTL_FOUND)
+  string(REGEX REPLACE "${PROJECT_SOURCE_DIR}/src/LinAlg/ISTLMatrix.C" "" IFEM_SRCS "${IFEM_SRCS}")
+endif()
 if(LRSPLINE_FOUND OR LRSpline_FOUND)
   file(GLOB LR_SRCS ${PROJECT_SOURCE_DIR}/src/ASM/LR/*.C)
   list(APPEND IFEM_SRCS ${LR_SRCS})

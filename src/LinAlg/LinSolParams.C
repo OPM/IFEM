@@ -94,8 +94,6 @@ bool LinSolParams::BlockParams::read(const TiXmlElement* elem)
         nullspace = NONE;
     }
 #endif
-    else
-      return false;
 
   return true;
 }
