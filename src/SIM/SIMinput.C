@@ -16,8 +16,8 @@
 #include "Utilities.h"
 #include "tinyxml.h"
 #include "SystemMatrix.h"
-#ifdef PARALLEL_PETSC
-#include "petscsys.h"
+#ifdef HAVE_MPI
+#include <mpi.h>
 #endif
 #include <fstream>
 
@@ -29,8 +29,10 @@ int SIMinput::msgLevel = 2;
 
 
 SIMinput::SIMinput (const char* heading) : opt(myOpts)
-#ifdef PARALLEL_PETSC
+#ifdef HAS_PETSC
   , adm(PETSC_COMM_WORLD)
+#elif defined(HAVE_MPI)
+  , adm(true)
 #endif
 {
   myPid = adm.getProcId();

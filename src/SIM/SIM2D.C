@@ -81,8 +81,11 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     if (utl::getAttribute(elem,"lowerpatch",lowpatch))
       uppatch = myModel.size();
     utl::getAttribute(elem,"upperpatch",uppatch);
+    int check = myModel.size();
+    if (nGlPatches > 0)
+      check = nGlPatches;
 
-    if (lowpatch < 1 || uppatch > (int)myModel.size())
+    if (lowpatch < 1 || uppatch > check)
     {
       std::cerr <<" *** SIM2D::parse: Invalid patch indices, lower="
                 << lowpatch <<" upper="<< uppatch << std::endl;
@@ -96,28 +99,36 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       int addu = 0, addv = 0;
       utl::getAttribute(elem,"u",addu);
       utl::getAttribute(elem,"v",addv);
-      for (int j = lowpatch-1; j < uppatch; j++)
-        if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
+      for (int j = lowpatch-1; j < uppatch; j++) {
+        int p = getLocalPatchIndex(j+1);
+        if (p < 1)
+          continue;
+        if ((pch = dynamic_cast<ASM2D*>(myModel[p-1])))
         {
-          IFEM::cout <<"\tRefining P"<< j+1
+          IFEM::cout <<"\tRefining P"<< p
                      <<" "<< addu <<" "<< addv << std::endl;
           pch->uniformRefine(0,addu);
           pch->uniformRefine(1,addv);
         }
+      }
     }
     else
     {
       int dir = 1;
       utl::getAttribute(elem,"dir",dir);
-      for (int j = lowpatch-1; j < uppatch; j++)
-        if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
+      for (int j = lowpatch-1; j < uppatch; j++) {
+        int p = getLocalPatchIndex(j+1);
+        if (p < 1)
+          continue;
+        if ((pch = dynamic_cast<ASM2D*>(myModel[p-1])))
         {
-          IFEM::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
+          IFEM::cout <<"\tRefining P"<< p <<" dir="<< dir;
           for (size_t i = 0; i < xi.size(); i++)
             IFEM::cout <<" "<< xi[i];
           IFEM::cout << std::endl;
           pch->refine(dir-1,xi);
         }
+      }
     }
   }
 
@@ -129,8 +140,11 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     if (utl::getAttribute(elem,"lowerpatch",lowpatch))
       uppatch = myModel.size();
     utl::getAttribute(elem,"upperpatch",uppatch);
+    int check = myModel.size();
+    if (nGlPatches > 0)
+      check = nGlPatches;
 
-    if (lowpatch < 1 || uppatch > (int)myModel.size())
+    if (lowpatch < 1 || uppatch > check)
     {
       std::cerr <<" *** SIM2D::parse: Invalid patch indices, lower="
                 << lowpatch <<" upper="<< uppatch << std::endl;
@@ -141,13 +155,17 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     int addu = 0, addv = 0;
     utl::getAttribute(elem,"u",addu);
     utl::getAttribute(elem,"v",addv);
-    for (int j = lowpatch-1; j < uppatch; j++)
-      if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
+    for (int j = lowpatch-1; j < uppatch; j++) {
+      int p = getLocalPatchIndex(j+1);
+      if (p < 1)
+        continue;
+      if ((pch = dynamic_cast<ASM2D*>(myModel[p-1])))
       {
-        IFEM::cout <<"\tRaising order of P"<< j+1
+        IFEM::cout <<"\tRaising order of P"<< p
                    <<" "<< addu <<" "<< addv << std::endl;
         pch->raiseOrder(addu,addv);
       }
+    }
   }
 
   else if (!strcasecmp(elem->Value(),"topology"))
@@ -167,23 +185,31 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       utl::getAttribute(child,"reverse",rever);
 
       if (master == slave ||
-          master < 1 || master > (int)myModel.size() ||
-          slave  < 1 || slave  > (int)myModel.size())
+          master < 1 || master > nGlPatches ||
+          slave  < 1 || slave  > nGlPatches)
       {
         std::cerr <<" *** SIM2D::parse: Invalid patch indices "
                   << master <<" "<< slave << std::endl;
         return false;
       }
-      IFEM::cout <<"\tConnecting P"<< slave <<" E"<< sEdge
-                 <<" to P"<< master <<" E"<< mEdge
-                 <<" reversed? "<< rever << std::endl;
-      ASMs2D* spch = static_cast<ASMs2D*>(myModel[slave-1]);
-      ASMs2D* mpch = static_cast<ASMs2D*>(myModel[master-1]);
-      if (!spch->connectPatch(sEdge,*mpch,mEdge,rever))
-        return false;
-      else if (opt.discretization == ASM::SplineC1)
-        top.push_back(Interface(static_cast<ASMs2DC1*>(mpch),mEdge,
-                                static_cast<ASMs2DC1*>(spch),sEdge,rever));
+      int lmaster = getLocalPatchIndex(master);
+      int lslave = getLocalPatchIndex(slave);
+
+      if (lmaster > 0 && lslave > 0)
+      {
+        IFEM::cout <<"\tConnecting P"<< lslave <<" E"<< sEdge
+                   <<" to P"<< lmaster <<" E"<< mEdge
+                   <<" reversed? "<< rever << std::endl;
+        ASMs2D* spch = static_cast<ASMs2D*>(myModel[lslave-1]);
+        ASMs2D* mpch = static_cast<ASMs2D*>(myModel[lmaster-1]);
+        if (!spch->connectPatch(sEdge,*mpch,mEdge,rever))
+          return false;
+        else if (opt.discretization == ASM::SplineC1)
+          top.push_back(Interface(static_cast<ASMs2DC1*>(mpch),mEdge,
+                                  static_cast<ASMs2DC1*>(spch),sEdge,rever));
+      }
+      else
+        adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave, mEdge, sEdge, rever?1:0, 1});
     }
 
     // Second pass for C1-continuous patches, to set up additional constraints

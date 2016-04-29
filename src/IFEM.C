@@ -62,12 +62,15 @@ int IFEM::Init(int argc_, char** argv_)
     "disabled";
 #endif
 
+  std::cout <<"\n        MPI support: "<<
+#if HAVE_MPI
+    "enabled";
+#else
+    "disabled";
+#endif
+
   std::cout <<"\n      PETSc support: "<<
-#if PARALLEL_PETSC
-    "enabled (MPI) (v" << PETSC_VERSION_MAJOR << "."
-                       << PETSC_VERSION_MINOR << "."
-                       << PETSC_VERSION_SUBMINOR << ")";
-#elif HAS_PETSC
+#if HAS_PETSC
     "enabled (v" << PETSC_VERSION_MAJOR << "."
                  << PETSC_VERSION_MINOR << "."
                  << PETSC_VERSION_SUBMINOR << ")";

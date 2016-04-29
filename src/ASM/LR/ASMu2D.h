@@ -93,7 +93,7 @@ public:
   //! \brief Finds the global numbers of the nodes on a patch boundary.
   //! \param[in] lIndex Local index of the boundary edge
   //! \param glbNodes Array of global boundary node numbers
-  virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes) const;
+  virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes, int basis = 0) const;
 
   //! \brief Returns the polynomial order in each parameter direction.
   //! \param[out] p1 Order in first (u) direction

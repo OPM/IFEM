@@ -150,7 +150,7 @@ else()
                          src/ASM/Integrand.h src/ASM/Lagrange.h
                          src/ASM/LocalIntegral.h src/ASM/SAMpatch.h
                          src/ASM/TimeDomain.h src/ASM/ASMs?D.h src/ASM/ASM?D.h
-                         src/LinAlg/*.h src/SIM/*.h
+                         src/ASM/DomainDecomposition.h src/LinAlg/*.h src/SIM/*.h
                          src/Utility/*.h
                          ${CMAKE_BINARY_DIR}/IFEM.h)
   install(FILES ${IFEM_HEADERS}

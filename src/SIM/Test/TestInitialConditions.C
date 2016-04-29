@@ -17,7 +17,7 @@
 TEST(TestInitialConditions, Parse)
 {
   SIM2D sim({4}, false);
-  EXPECT_TRUE(sim.read("src/SIM/Test/input.xinp"));
+  EXPECT_TRUE(sim.read("src/SIM/Test/refdata/input.xinp"));
 
   // Recognize both comp and component attributes and correct priority
   // Boundary conditions

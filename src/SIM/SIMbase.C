@@ -177,6 +177,8 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
         for (int j = first; j <= last && j > -1; j++)
           myPatches.push_back(j);
       }
+      for (int i = first; i <= last; ++i)
+        adm.dd.setPatchOwner(i, proc);
     }
 
     // If equal number of blocks per processor
@@ -184,6 +186,8 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
       for (int j = 1; j <= proc; j++)
         myPatches.push_back(adm.getProcId()*proc+j);
       nGlPatches = adm.getNoProcs()*proc;
+      for (int i = 1; i <= nGlPatches; ++i)
+        adm.dd.setPatchOwner(i, (i-1) / proc);
     }
   }
 
@@ -1530,7 +1534,7 @@ bool SIMbase::updateDirichlet (double time, const Vector* prevSol)
 {
   if (prevSol)
     for (size_t i = 0; i < myModel.size(); i++)
-#ifdef PARALLEL_PETSC
+#ifdef HAVE_MPI
       if (!myModel[i]->updateDirichlet(myScalars,myVectors,time,g2l))
 #else
       if (!myModel[i]->updateDirichlet(myScalars,myVectors,time))
@@ -1582,7 +1586,13 @@ void SIMbase::getBoundaryNodes (int pcode, IntVec& glbNodes, Vec3Vec* XYZ) const
     if (abs(p->pindx) == pcode && (pch = this->getPatch(p->patch)))
       switch (pch->getNoParamDim() - abs(p->ldim)) {
       case 1: // The boundary is of one dimension lower than the patch
-        pch->getBoundaryNodes(abs(p->lindx),glbNodes);
+      {
+        IntVec glbNodes2;
+        pch->getBoundaryNodes(abs(p->lindx),glbNodes2);
+        for (const auto& it : glbNodes2)
+          if (std::find(glbNodes.begin(), glbNodes.end(), it) == glbNodes.end())
+            glbNodes.push_back(it);
+
         for (i = last; XYZ && i < glbNodes.size(); i++)
           if ((node = pch->getNodeIndex(glbNodes[i],true)))
             XYZ->push_back(pch->getCoord(node));
@@ -1590,6 +1600,7 @@ void SIMbase::getBoundaryNodes (int pcode, IntVec& glbNodes, Vec3Vec* XYZ) const
             XYZ->push_back(Vec3());
         last = glbNodes.size();
         break;
+      }
 
       case 0: // The boundary and the patch are of same dimension
         for (i = 1; i <= pch->getNoNodes(); i++, last++)

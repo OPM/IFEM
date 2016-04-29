@@ -59,8 +59,11 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
     if (utl::getAttribute(elem,"lowerpatch",lowpatch))
       uppatch = myModel.size();
     utl::getAttribute(elem,"upperpatch",uppatch);
+    int check = myModel.size();
+    if (nGlPatches > 0)
+      check = nGlPatches;
 
-    if (lowpatch < 1 || uppatch > (int)myModel.size())
+    if (lowpatch < 1 || uppatch > check)
     {
       std::cerr <<" *** SIM3D::parse: Invalid patch indices, lower="
                 << lowpatch <<" upper="<< uppatch << std::endl;
@@ -75,30 +78,38 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
       utl::getAttribute(elem,"u",addu);
       utl::getAttribute(elem,"v",addv);
       utl::getAttribute(elem,"w",addw);
-      for (int j = lowpatch-1; j < uppatch; j++)
-        if ((pch = dynamic_cast<ASM3D*>(myModel[j])))
+      for (int j = lowpatch-1; j < uppatch; j++) {
+        int p = getLocalPatchIndex(j+1);
+        if (p < 1)
+          continue;
+        if ((pch = dynamic_cast<ASM3D*>(myModel[p-1])))
         {
-          IFEM::cout <<"\tRefining P"<< j+1
+          IFEM::cout <<"\tRefining P"<< p
                      <<" "<< addu <<" "<< addv <<" "<< addw << std::endl;
           pch->uniformRefine(0,addu);
           pch->uniformRefine(1,addv);
           pch->uniformRefine(2,addw);
         }
+      }
     }
     else
     {
       // Non-uniform (graded) refinement
       int dir = 1;
       utl::getAttribute(elem,"dir",dir);
-      for (int j = lowpatch-1; j < uppatch; j++)
-        if ((pch = dynamic_cast<ASM3D*>(myModel[j])))
+      for (int j = lowpatch-1; j < uppatch; j++) {
+        int p = getLocalPatchIndex(j+1);
+        if (p < 1)
+          continue;
+        if ((pch = dynamic_cast<ASM3D*>(myModel[p-1])))
         {
-          IFEM::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
+          IFEM::cout <<"\tRefining P"<< p <<" dir="<< dir;
           for (size_t i = 0; i < xi.size(); i++)
             IFEM::cout <<" "<< xi[i];
           IFEM::cout << std::endl;
           pch->refine(dir-1,xi);
         }
+      }
     }
   }
 
@@ -110,8 +121,11 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
     if (utl::getAttribute(elem,"lowerpatch",lowpatch))
       uppatch = myModel.size();
     utl::getAttribute(elem,"upperpatch",uppatch);
+    int check = myModel.size();
+    if (nGlPatches > 0)
+      check = nGlPatches;
 
-    if (lowpatch < 1 || uppatch > (int)myModel.size())
+    if (lowpatch < 1 || uppatch > check)
     {
       std::cerr <<" *** SIM3D::parse: Invalid patch indices, lower="
                 << lowpatch <<" upper="<< uppatch << std::endl;
@@ -123,13 +137,17 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
     utl::getAttribute(elem,"u",addu);
     utl::getAttribute(elem,"v",addv);
     utl::getAttribute(elem,"w",addw);
-    for (int j = lowpatch-1; j < uppatch; j++)
-      if ((pch = dynamic_cast<ASM3D*>(myModel[j])))
+    for (int j = lowpatch-1; j < uppatch; j++) {
+      int p = getLocalPatchIndex(j+1);
+      if (p < 1)
+        continue;
+      if ((pch = dynamic_cast<ASM3D*>(myModel[p-1])))
       {
-        IFEM::cout <<"\tRaising order of P"<< j+1
+        IFEM::cout <<"\tRaising order of P"<< p
                    <<" "<< addu <<" "<< addv  <<" " << addw << std::endl;
         pch->raiseOrder(addu,addv,addw);
       }
+    }
   }
 
   else if (!strcasecmp(elem->Value(),"topology"))
@@ -147,20 +165,25 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
       utl::getAttribute(child,"orient",orient);
 
       if (master == slave ||
-          master < 1 || master > (int)myModel.size() ||
-          slave  < 1 || slave  > (int)myModel.size())
+          master < 1 || master > nGlPatches ||
+          slave  < 1 || slave  > nGlPatches)
       {
         std::cerr <<" *** SIM3D::parse: Invalid patch indices "
                   << master <<" "<< slave << std::endl;
         return false;
       }
-      IFEM::cout <<"\tConnecting P"<< slave <<" F"<< sFace
-                 <<" to P"<< master <<" F"<< mFace
-                 <<" orient "<< orient << std::endl;
-      ASMs3D* spch = static_cast<ASMs3D*>(myModel[slave-1]);
-      ASMs3D* mpch = static_cast<ASMs3D*>(myModel[master-1]);
-      if (!spch->connectPatch(sFace,*mpch,mFace,orient))
-        return false;
+      int lmaster = getLocalPatchIndex(master);
+      int lslave = getLocalPatchIndex(slave);
+      if (lmaster > 0 && lslave > 0) {
+        IFEM::cout <<"\tConnecting P"<< lslave <<" F"<< sFace
+                   <<" to P"<< lmaster <<" F"<< mFace
+                   <<" orient "<< orient << std::endl;
+        ASMs3D* spch = static_cast<ASMs3D*>(myModel[lslave-1]);
+        ASMs3D* mpch = static_cast<ASMs3D*>(myModel[lmaster-1]);
+        if (!spch->connectPatch(sFace,*mpch,mFace,orient))
+          return false;
+      } else
+        adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave, mFace, sFace, orient, 2});
     }
   }
 
