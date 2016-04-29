@@ -21,6 +21,7 @@
 #endif
 #include <vector>
 
+#include "DomainDecomposition.h"
 #include "LogStream.h"
 
 
@@ -40,6 +41,8 @@ class ProcessAdm
 
 public:
   mutable utl::LogStream cout; //!< Combined standard out for this process group
+
+  DomainDecomposition dd; //!< Decomain decomposition
 
   //! \brief Construct an empty (serial) process administrator.
   ProcessAdm();

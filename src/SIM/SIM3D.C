@@ -165,20 +165,25 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
       utl::getAttribute(child,"orient",orient);
 
       if (master == slave ||
-          master < 1 || master > (int)myModel.size() ||
-          slave  < 1 || slave  > (int)myModel.size())
+          master < 1 || master > nGlPatches ||
+          slave  < 1 || slave  > nGlPatches)
       {
         std::cerr <<" *** SIM3D::parse: Invalid patch indices "
                   << master <<" "<< slave << std::endl;
         return false;
       }
-      IFEM::cout <<"\tConnecting P"<< slave <<" F"<< sFace
-                 <<" to P"<< master <<" F"<< mFace
-                 <<" orient "<< orient << std::endl;
-      ASMs3D* spch = static_cast<ASMs3D*>(myModel[slave-1]);
-      ASMs3D* mpch = static_cast<ASMs3D*>(myModel[master-1]);
-      if (!spch->connectPatch(sFace,*mpch,mFace,orient))
-        return false;
+      int lmaster = getLocalPatchIndex(master);
+      int lslave = getLocalPatchIndex(slave);
+      if (lmaster > 0 && lslave > 0) {
+        IFEM::cout <<"\tConnecting P"<< lslave <<" F"<< sFace
+                   <<" to P"<< lmaster <<" F"<< mFace
+                   <<" orient "<< orient << std::endl;
+        ASMs3D* spch = static_cast<ASMs3D*>(myModel[lslave-1]);
+        ASMs3D* mpch = static_cast<ASMs3D*>(myModel[lmaster-1]);
+        if (!spch->connectPatch(sFace,*mpch,mFace,orient))
+          return false;
+      } else
+        adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave, mFace, sFace, orient, 2});
     }
   }
 
