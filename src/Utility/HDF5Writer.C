@@ -394,7 +394,6 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
   else
     basisname = prefix+sim->getName()+"-1";
 
-  const IntegrandBase* prob = sim->getProblem();
   if (level == 0 || geometryUpdated || (abs(entry.second.results) & DataExporter::GRID)) {
     writeBasis(sim,basisname,1,level);
     if (sim->mixedProblem())
@@ -413,6 +412,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
   NormBase* norm = sim->getNormIntegrand();
 
 #ifdef HAS_HDF5
+  const IntegrandBase* prob = sim->getProblem();
   int results = entry.second.results;
   bool usedescription=false;
   if (results < 0) {
