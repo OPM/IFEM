@@ -202,6 +202,9 @@ public:
   //! \brief Returns whether a mixed formulation is used (used by HDF5 output).
   virtual bool mixedProblem() const { return false; }
 
+  //! \brief Obtain the linear solver parameters.
+  const LinSolParams* getSolParams() const { return mySolParams; }
+
   //! \brief Returns the number of parameter dimensions in the model.
   virtual unsigned short int getNoParamDim() const = 0;
   //! \brief Returns the number of spatial dimensions in the model.
