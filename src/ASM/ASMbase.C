@@ -21,6 +21,10 @@
 #include "Utilities.h"
 #include <algorithm>
 
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 
 bool ASMbase::fixHomogeneousDirichlet = true;
 
@@ -66,6 +70,7 @@ ASMbase::ASMbase (const ASMbase& patch, unsigned char n_f)
   firstIp = patch.firstIp;
   firstBp = patch.firstBp;
   myLMs = patch.myLMs;
+  myLMTypes = patch.myLMTypes;
   // Note: Properties are _not_ copied
 }
 
@@ -146,6 +151,7 @@ void ASMbase::clear (bool retainGeometry)
     delete *it;
 
   myLMs.first = myLMs.second = 0;
+  myLMTypes.clear();
 
   myMLGN.clear();
   BCode.clear();
@@ -199,6 +205,11 @@ bool ASMbase::addLagrangeMultipliers (size_t iel, const IntVec& mGLag,
     else if (node >= myLMs.second)
       myLMs.second = node+1;
 
+    if (myLMTypes.size() < node-myLMs.first+2)
+      myLMTypes.resize(node-myLMs.first+2);
+
+    myLMTypes[node+1-myLMs.first] = 'L';
+
     // Extend the element connectivity table
     myMNPC[iel-1].push_back(node);
   }
@@ -235,12 +246,21 @@ bool ASMbase::addGlobalLagrangeMultipliers(const IntVec& mGLag,
     else if (node >= myLMs.second)
       myLMs.second = node+1;
 
+    if (myLMTypes.size() < node-myLMs.first+2)
+      myLMTypes.resize(node+2-myLMs.first);
+    myLMTypes[node+1-myLMs.first] = 'G';
+
     // Extend the element connectivity table
     for (auto& it : myMNPC)
       it.push_back(node);
   }
 
   nLag = nnLag;
+
+#ifdef USE_OPENMP
+  // Cannot do multithreaded assembly of a global equation.
+  omp_set_num_threads(1);
+#endif
 
   return true;
 }
@@ -264,6 +284,15 @@ int ASMbase::getNodeID (size_t inod, bool) const
 }
 
 
+char ASMbase::getLMType(size_t n) const
+{
+  if (n >= myLMs.first && n <= myLMs.second)
+    return myLMTypes[n-myLMs.first];
+
+  return 'L';
+}
+
+
 int ASMbase::getElmID (size_t iel) const
 {
   if (iel < 1 || iel > MLGE.size())
@@ -281,7 +310,7 @@ unsigned char ASMbase::getNodalDOFs (size_t inod) const
 
 char ASMbase::getNodeType (size_t inod) const
 {
-  return this->isLMn(inod) ? 'L' : (inod > nnod ? 'X' : 'D');
+  return this->isLMn(inod) ? getLMType(inod) : (inod > nnod ? 'X' : 'D');
 }
 
 
