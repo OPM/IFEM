@@ -190,6 +190,9 @@ public:
   virtual char getNodeType(size_t inod) const;
   //! \brief Returns \e true if node \a n is a Lagrange multiplier node.
   bool isLMn(size_t n) const { return n >= myLMs.first && n <= myLMs.second; }
+  //! \brief Returns the type of a Lagrange multiplier node.
+  //! \param[in] inod 1-based node index for the Lagrange multiplier
+  char getLMType(size_t inod) const;
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const = 0;
@@ -680,6 +683,7 @@ protected:
 
 private:
   std::pair<size_t,size_t> myLMs; //!< Nodal range of the Lagrange multipliers
+  std::vector<char>    myLMTypes; //!< Type of Lagrange multiplier ('L' or 'G')
 };
 
 #endif

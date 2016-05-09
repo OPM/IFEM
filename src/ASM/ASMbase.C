@@ -66,6 +66,7 @@ ASMbase::ASMbase (const ASMbase& patch, unsigned char n_f)
   firstIp = patch.firstIp;
   firstBp = patch.firstBp;
   myLMs = patch.myLMs;
+  myLMTypes = patch.myLMTypes;
   // Note: Properties are _not_ copied
 }
 
@@ -118,7 +119,7 @@ ASMbase::~ASMbase ()
 }
 
 
-ASMbase* ASMbase::cloneUnShared() const
+ASMbase* ASMbase::cloneUnShared () const
 {
   const ASM2D* patch2 = dynamic_cast<const ASM2D*>(this);
   if (patch2) return patch2->clone();
@@ -146,6 +147,7 @@ void ASMbase::clear (bool retainGeometry)
     delete *it;
 
   myLMs.first = myLMs.second = 0;
+  myLMTypes.clear();
 
   myMLGN.clear();
   BCode.clear();
@@ -199,6 +201,11 @@ bool ASMbase::addLagrangeMultipliers (size_t iel, const IntVec& mGLag,
     else if (node >= myLMs.second)
       myLMs.second = node+1;
 
+    if (myLMTypes.size() < node-myLMs.first+2)
+      myLMTypes.resize(node-myLMs.first+2);
+
+    myLMTypes[node+1-myLMs.first] = iel == 0 ? 'G' : 'L';
+
     // Extend the element connectivity table
     if (iel > 0)
       myMNPC[iel-1].push_back(node);
@@ -235,6 +242,12 @@ int ASMbase::getNodeID (size_t inod, bool) const
 }
 
 
+char ASMbase::getLMType (size_t inod) const
+{
+  return this->isLMn(inod) ? myLMTypes[inod-myLMs.first] : 0;
+}
+
+
 int ASMbase::getElmID (size_t iel) const
 {
   if (iel < 1 || iel > MLGE.size())
@@ -252,7 +265,7 @@ unsigned char ASMbase::getNodalDOFs (size_t inod) const
 
 char ASMbase::getNodeType (size_t inod) const
 {
-  return this->isLMn(inod) ? 'L' : (inod > nnod ? 'X' : 'D');
+  return this->isLMn(inod) ? this->getLMType(inod) : (inod > nnod ? 'X' : 'D');
 }
 
 
