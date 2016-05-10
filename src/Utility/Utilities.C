@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "Utilities.h"
+#include "Vec3.h"
 #include "tinyxml.h"
 #include <cstdlib>
 #include <algorithm>
@@ -162,6 +163,33 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att, Real& val)
     val = atof(xml->Attribute(att));
   else
     return false;
+
+  return true;
+}
+
+
+/*!
+  If fewer than \a ncomp components specified, use the last value for the rest.
+  If \a ncomp is zero, use the value zero for the missing components, if any.
+*/
+
+bool utl::getAttribute (const TiXmlElement* xml, const char* att,
+                        Vec3& val, int ncomp)
+{
+  if (!xml || !xml->Attribute(att))
+    return false;
+
+  std::string value(xml->Attribute(att));
+  char* cval = const_cast<char*>(value.c_str());
+  val.x = atof(strtok(cval," "));
+
+  for (int i = 1; i < 3; i++)
+    if (i >= ncomp && ncomp > 0)
+      val[i] = Real(0);
+    else if ((cval = strtok(nullptr," ")))
+      val[i] = atof(cval);
+    else
+      val[i] = ncomp > 0 ? val[i-1] : Real(0);
 
   return true;
 }
@@ -402,15 +430,14 @@ void utl::merge (std::vector<Real>& a1, const std::vector<Real>& a2,
 }
 
 
-void utl::interleave(const std::vector<Real>& v1, const std::vector<Real>& v2,
-                     std::vector<Real>& out, size_t n1, size_t n2)
+void utl::interleave (const std::vector<Real>& v1, const std::vector<Real>& v2,
+                      std::vector<Real>& out, size_t n1, size_t n2)
 
 {
   out.resize(v1.size()+v2.size());
-  auto it_v1 = v1.begin();
-  auto it_v2 = v2.begin();
-  for (auto it_out = out.begin(); it_out != out.end();
-            it_out += n1+n2, it_v1 += n1, it_v2 += n2) {
+  std::vector<Real>::iterator it_out = out.begin();
+  std::vector<Real>::const_iterator it_v1 = v1.begin(), it_v2 = v2.begin();
+  for (; it_out != out.end(); it_out += n1+n2, it_v1 += n1, it_v2 += n2) {
     std::copy(it_v1, it_v1+n1, it_out);
     std::copy(it_v2, it_v2+n2, it_out+n1);
   }

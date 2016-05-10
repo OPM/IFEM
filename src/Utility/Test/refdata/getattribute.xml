@@ -9,4 +9,7 @@
   <boolno bar="no"/>
   <intval bar="1"/>
   <realval bar="2.01"/>
+  <vecval1 bar="1.2"/>
+  <vecval2 bar="1.2 3.4"/>
+  <vecval3 bar="1.2 3.4 5.6"/>
 </xml>

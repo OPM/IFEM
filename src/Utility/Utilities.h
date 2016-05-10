@@ -22,6 +22,7 @@
 #include <map>
 #include <set>
 
+class Vec3;
 class TiXmlElement;
 class TiXmlNode;
 
@@ -83,6 +84,15 @@ namespace utl
   //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
   bool getAttribute(const TiXmlElement* xml, const char* att, Real& val);
+  //! \brief Extracts a vector attribute value from the specified XML-element.
+  //! \param[in] xml Pointer to XML-element to extract from
+  //! \param[in] att The attribute tag
+  //! \param[out] val The attribute value
+  //! \param[in] ncomp Maximum number of components to read
+  //! \return \e true if the attribute \a att is found in \a xml,
+  //! otherwise \e false
+  bool getAttribute(const TiXmlElement* xml, const char* att, Vec3& val,
+                    int ncomp = 0);
   //! \brief Extracts a string attribute value from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
@@ -152,12 +162,12 @@ namespace utl
              const std::vector<Real>& in, std::vector<Real>& out,
              size_t offset_in = 0, int shift_idx = 0);
 
-  //! \brief Interleave vectors
+  //! \brief Merges two arrays of nodal values into one array by interleaving.
   //! \param[in] v1 The first array
   //! \param[in] v2 The second array
   //! \param[out] out The output array
-  //! \param[in] n1 Number of entries per node in first vector
-  //! \param[in] n2 Number of entries per node in second vector
+  //! \param[in] n1 Number of entries per node in first array
+  //! \param[in] n2 Number of entries per node in second array
   void interleave(const std::vector<Real>& v1, const std::vector<Real>& v2,
                   std::vector<Real>& out, size_t n1 = 1, size_t n2 = 1);
 
