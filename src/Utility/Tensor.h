@@ -150,6 +150,8 @@ public:
   friend Vec3 operator*(const Vec3& v, const Tensor& T);
   //! \brief Multiplication between two tensors.
   friend Tensor operator*(const Tensor& A, const Tensor& B);
+  //! \brief Multiplication between a scalar and a tensor.
+  friend Tensor operator*(Real a, const Tensor& T);
 
   //! \brief Output stream operator.
   friend std::ostream& operator<<(std::ostream& os, const Tensor& T)

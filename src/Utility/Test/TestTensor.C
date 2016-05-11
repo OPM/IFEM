@@ -16,6 +16,39 @@
 
 #include "gtest/gtest.h"
 
+
+TEST(TestTensor, Multiply)
+{
+  const double data[9] = { 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0 };
+
+  Tensor T2 = 2.0*Tensor(std::vector<double>(data,data+4));
+  ASSERT_TRUE(T2.dim() == 2);
+  ASSERT_FLOAT_EQ(T2(1,1), 2.0);
+  ASSERT_FLOAT_EQ(T2(2,1), 4.0);
+  ASSERT_FLOAT_EQ(T2(1,2), 6.0);
+  ASSERT_FLOAT_EQ(T2(2,2), 8.0);
+
+  Tensor T3 = 0.5*Tensor(std::vector<double>(data,data+9));
+  ASSERT_TRUE(T3.dim() == 3);
+  ASSERT_FLOAT_EQ(T3(1,1), 0.5);
+  ASSERT_FLOAT_EQ(T3(2,1), 1.0);
+  ASSERT_FLOAT_EQ(T3(3,1), 1.5);
+  ASSERT_FLOAT_EQ(T3(1,2), 2.0);
+  ASSERT_FLOAT_EQ(T3(2,2), 2.5);
+  ASSERT_FLOAT_EQ(T3(3,2), 3.0);
+  ASSERT_FLOAT_EQ(T3(1,3), 3.5);
+  ASSERT_FLOAT_EQ(T3(2,3), 4.0);
+  ASSERT_FLOAT_EQ(T3(3,3), 4.5);
+
+  Tensor T = T2*T3;
+  ASSERT_TRUE(T.dim() == 2);
+  ASSERT_FLOAT_EQ(T(1,1),  7.0);
+  ASSERT_FLOAT_EQ(T(2,1), 10.0);
+  ASSERT_FLOAT_EQ(T(1,2), 19.0);
+  ASSERT_FLOAT_EQ(T(2,2), 28.0);
+}
+
+
 TEST(TestTensor, Shift)
 {
   const double data[9] = { 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0 };

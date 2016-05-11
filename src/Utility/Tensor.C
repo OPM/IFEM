@@ -710,6 +710,17 @@ Tensor operator* (const Tensor& A, const Tensor& B)
 }
 
 
+/*!
+  \brief Multiplication between a scalar and a tensor.
+*/
+
+Tensor operator* (Real a, const Tensor& T)
+{
+  Tensor C(T);
+  return C *= a;
+}
+
+
 std::ostream& SymmTensor::print (std::ostream& os) const
 {
   switch (n) {
