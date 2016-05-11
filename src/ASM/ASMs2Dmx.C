@@ -537,6 +537,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
       std::vector<Matrix> dNxdu(m_basis.size());
       std::vector<Matrix3D> d2Nxdu2(m_basis.size());
       Matrix3D Hess;
+      double dXidu[2];
       Matrix Xnod, Jac;
       Vec4   X;
       for (size_t i = 0; i < threadGroups[g][t].size() && ok; ++i)
@@ -565,6 +566,13 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
         if (useElmVtx)
           this->getElementCorners(i1-1,i2-1,fe.XC);
+
+        if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+        {
+          // Element size in parametric space
+          dXidu[0] = surf->knotSpan(0,i1-1);
+          dXidu[1] = surf->knotSpan(1,i2-1);
+        }
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,false);
@@ -602,23 +610,28 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
             // Compute Jacobian inverse of the coordinate mapping and
             // basis function derivatives w.r.t. Cartesian coordinates
-            fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
+            fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,
+                                      dNxdu[geoBasis-1]);
+            if (fe.detJxW == 0.0) continue; // skip singular points
             for (size_t b = 0; b < m_basis.size(); ++b)
               if (b != (size_t)geoBasis-1)
                 fe.grad(b+1).multiply(dNxdu[b],Jac);
 
             // Compute Hessian of coordinate mapping and 2nd order derivatives
             if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES) {
-              if (!utl::Hessian(Hess,fe.hess(geoBasis),Jac,Xnod,d2Nxdu2[geoBasis-1],
-                                fe.grad(geoBasis), true))
-                  ok = false;
+              if (!utl::Hessian(Hess,fe.hess(geoBasis),Jac,Xnod,
+                                d2Nxdu2[geoBasis-1],fe.grad(geoBasis),true))
+                ok = false;
               for (size_t b = 0; b < m_basis.size() && ok; ++b)
-                if ((int)b != geoBasis && !utl::Hessian(Hess,fe.hess(b+1),Jac,Xnod,d2Nxdu2[b],
-                                                        fe.grad(b+1), false))
-                  ok = false;
+                if ((int)b != geoBasis)
+                  if (!utl::Hessian(Hess,fe.hess(b+1),Jac,Xnod,
+                                    d2Nxdu2[b],fe.grad(b+1),false))
+                    ok = false;
             }
 
-            if (fe.detJxW == 0.0) continue; // skip singular points
+            // Compute G-matrix
+            if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+              utl::getGmat(Jac,dXidu,fe.G);
 
             // Cartesian coordinates of current integration point
             X = Xnod * fe.basis(geoBasis);

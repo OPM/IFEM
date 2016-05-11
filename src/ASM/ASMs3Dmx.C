@@ -469,6 +469,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
     for (size_t t=0;t<threadGroupsVol[g].size();++t) {
       MxFiniteElement fe(elem_sizes);
       std::vector<Matrix> dNxdu(m_basis.size());
+      double dXidu[3];
       Matrix Xnod, Jac;
       Vec4   X;
       for (size_t l = 0; l < threadGroupsVol[g][t].size() && ok; ++l)
@@ -498,6 +499,14 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
         if (useElmVtx)
           this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
+ 
+        if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+        {
+          // Element size in parametric space
+          dXidu[0] = svol->knotSpan(0,i1-1);
+          dXidu[1] = svol->knotSpan(1,i2-1);
+          dXidu[2] = svol->knotSpan(2,i3-1);
+        }
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,false);
@@ -535,11 +544,16 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
               // Compute Jacobian inverse of the coordinate mapping and
               // basis function derivatives w.r.t. Cartesian coordinates
-              fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
+              fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,
+                                        dNxdu[geoBasis-1]);
               if (fe.detJxW == 0.0) continue; // skip singular points
               for (size_t b = 0; b < m_basis.size(); ++b)
                 if (b != (size_t)geoBasis-1)
                   fe.grad(b+1).multiply(dNxdu[b],Jac);
+
+              // Compute G-matrix
+              if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+                utl::getGmat(Jac,dXidu,fe.G);
 
               // Cartesian coordinates of current integration point
               X = Xnod * fe.basis(geoBasis);
