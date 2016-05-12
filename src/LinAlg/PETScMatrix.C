@@ -12,14 +12,16 @@
 //==============================================================================
 
 #include "PETScMatrix.h"
+#include "PETScSolParams.h"
 #include "LinSolParams.h"
 #include "LinAlgInit.h"
-#include "SAMpatchPara.h"
+#include "SAMpatchPETSc.h"
 #include "ProcessAdm.h"
 #include "SIMenums.h"
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif
+#include "ASMstruct.h"
+#include "DomainDecomposition.h"
+#include "Utilities.h"
+#include <cassert>
 
 
 PETScVector::PETScVector(const ProcessAdm& padm) : adm(padm)
@@ -30,26 +32,29 @@ PETScVector::PETScVector(const ProcessAdm& padm) : adm(padm)
 }
 
 
-PETScVector::PETScVector(const ProcessAdm& padm, size_t n) : adm(padm)
+PETScVector::PETScVector(const ProcessAdm& padm, size_t n) :
+  StdVector(n), adm(padm)
 {
   VecCreate(*adm.getCommunicator(),&x);
-  VecSetSizes(x,n,PETSC_DECIDE);
+  VecSetSizes(x,adm.dd.getMaxEq()-adm.dd.getMinEq()+1,PETSC_DECIDE);
   VecSetFromOptions(x);
   LinAlgInit::increfs();
 }
 
 
-PETScVector::PETScVector(const ProcessAdm& padm, const Real* values, size_t n) : adm(padm)
+PETScVector::PETScVector(const ProcessAdm& padm, const Real* values, size_t n) :
+  StdVector(values, n), adm(padm)
 {
   VecCreate(*adm.getCommunicator(),&x);
-  VecSetSizes(x,n,PETSC_DECIDE);
+  VecSetSizes(x,adm.dd.getMaxEq()-adm.dd.getMinEq() + 1,PETSC_DECIDE);
   VecSetFromOptions(x);
   this->restore(values);
   LinAlgInit::increfs();
 }
 
 
-PETScVector::PETScVector(const PETScVector& vec) : adm(vec.adm)
+PETScVector::PETScVector(const PETScVector& vec) :
+  StdVector(vec), adm(vec.adm)
 {
   VecDuplicate(vec.x,&x);
   VecCopy(vec.x,x);
@@ -64,12 +69,10 @@ PETScVector::~PETScVector()
 }
 
 
-size_t PETScVector::dim() const
+void PETScVector::init(Real value)
 {
-  PetscInt size;
-
-  VecGetLocalSize(x,&size);
-  return size;
+  StdVector::init(value);
+  VecSet(x,value);
 }
 
 
@@ -77,42 +80,17 @@ void PETScVector::redim(size_t n)
 {
   VecDestroy(&x);
   VecCreate(*adm.getCommunicator(),&x);
-  VecSetSizes(x,n,PETSC_DECIDE);
+  VecSetSizes(x,adm.dd.getMaxEq()-adm.dd.getMinEq() + 1,PETSC_DECIDE);
   VecSetFromOptions(x);
-}
-
-
-Real* PETScVector::getPtr()
-{
-  Real* ptr = 0;
-
-  VecGetArray(x,&ptr);
-  return ptr;
-}
-
-
-const Real* PETScVector::getRef() const
-{
-  return const_cast<PETScVector*>(this)->getPtr();
-}
-
-
-void PETScVector::restore(const Real* ptr)
-{
-  PetscScalar* pptr = (PetscScalar*)ptr;
-
-  VecRestoreArray(x,&pptr);
-}
-
-
-void PETScVector::init(Real value)
-{
-  VecSet(x,value);
+  StdVector::redim(n);
 }
 
 
 bool PETScVector::beginAssembly()
 {
+  for (size_t i = 0; i < size(); ++i)
+    VecSetValue(x , adm.dd.getGlobalEq(i+1)-1, (*this)[i], ADD_VALUES);
+
   VecAssemblyBegin(x);
   return true;
 }
@@ -122,12 +100,6 @@ bool PETScVector::endAssembly()
 {
   VecAssemblyEnd(x);
   return true;
-}
-
-
-void PETScVector::mult(Real alpha)
-{
-  VecScale(x,alpha);
 }
 
 
@@ -160,7 +132,8 @@ Real PETScVector::Linfnorm() const
 
 PETScMatrix::PETScMatrix (const ProcessAdm& padm, const LinSolParams& spar,
                           LinAlg::LinearSystemType ltype) :
- nsp(nullptr), adm(padm), solParams(spar), linsysType(ltype)
+ SparseMatrix(SUPERLU, 1), nsp(nullptr), adm(padm), solParams(spar, adm),
+ linsysType(ltype)
 {
   // Create matrix object, by default the matrix type is AIJ
   MatCreate(*adm.getCommunicator(),&A);
@@ -168,280 +141,288 @@ PETScMatrix::PETScMatrix (const ProcessAdm& padm, const LinSolParams& spar,
   // Create linear solver object
   KSPCreate(*adm.getCommunicator(),&ksp);
 
-  // Create null space if any
-  if (solParams.getBlock(0).nullspace == CONSTANT) {
-    nsp = new MatNullSpace;
-    MatNullSpaceCreate(*adm.getCommunicator(),PETSC_TRUE,0,0,nsp);
-#if PETSC_VERSION_MINOR < 6
-    KSPSetNullSpace(ksp,*nsp);
-#else
-    MatSetNullSpace(A,*nsp);
-#endif
-  }
-
   LinAlgInit::increfs();
 
+  if (spar.getNoBlocks() > 1) {
+    matvec.resize(spar.getNoBlocks()*spar.getNoBlocks());
+    for (auto& it : matvec) {
+      MatCreate(*adm.getCommunicator(), &it);
+      MatSetFromOptions(it);
+    }
+  }
+
   setParams = true;
-  elmIS = 0;
   ISsize = 0;
   nLinSolves = 0;
 }
 
 
-PETScMatrix::PETScMatrix (const PETScMatrix& B) :
-  nsp(nullptr), adm(B.adm), solParams(B.solParams)
-{
-  MatDuplicate(B.A,MAT_COPY_VALUES,&A);
-
-  // Create linear solver object.
-  KSPCreate(*adm.getCommunicator(),&ksp);
-
-  // Create null space, if any
-  if (solParams.getBlock(0).nullspace == CONSTANT) {
-    nsp = new MatNullSpace;
-    MatNullSpaceCreate(*adm.getCommunicator(),PETSC_TRUE,0,0,nsp);
-#if PETSC_VERSION_MINOR < 6
-    KSPSetNullSpace(ksp,*nsp);
-#else
-    MatSetNullSpace(A,*nsp);
-#endif
-  }
-  LinAlgInit::increfs();
-
-  setParams = true;
-  elmIS = 0;
-  ISsize = 0;
-}
-
-
 PETScMatrix::~PETScMatrix ()
 {
-  // Deallocation of null space
-  if (nsp)
-    MatNullSpaceDestroy(nsp);
-  delete nsp;
-  nsp = nullptr;
-
   // Deallocation of linear solver object.
   KSPDestroy(&ksp);
 
   // Deallocation of matrix object.
   MatDestroy(&A);
   LinAlgInit::decrefs();
+  for (auto& it : matvec)
+    MatDestroy(&it);
 
-  for (PetscInt i = 0; i < ISsize; i++)
-    ISDestroy(&elmIS[i]);
+  for (auto& it : isvec)
+    ISDestroy(&it);
 
-  // Deallocation of index sets
-  if (!dirIndexSet.empty()) {
-    for (size_t i = 0;i < dirIndexSet.size();i++)
-      for (size_t j = 0;j < dirIndexSet[i].size();j++)
-	ISDestroy(&dirIndexSet[i][j]);
-  }
-
-  delete elmIS;
+  matvec.clear();
 }
 
 
-/*!
-  \brief This is a C++ version of the F77 subroutine ADDEM2 (SAM library).
-  \details It performs exactly the same tasks, except that \a NRHS always is 1.
-  and that the system matrix \a SM here is an object of the PETScMatrix class.
-  \note This function does not account for multi-point constraint equations.
-*/
-
-static bool assemPETSc (const Matrix& eM, Mat SM, PETScVector* SV,
-                        const std::vector<int>& meen, const int* meqn,
-                        const int* mpmceq, const Real* ttcc)
+void PETScMatrix::initAssembly (const SAM& sam, bool b)
 {
-  size_t i, j;
+  SparseMatrix::initAssembly(sam, b);
+  SparseMatrix::preAssemble(sam, b);
 
-  // Number of degrees of freedom for element
-  size_t nedof = meen.size();
+  const SAMpatchPETSc* samp = dynamic_cast<const SAMpatchPETSc*>(&sam);
+  if (!samp)
+    return;
 
-  // Convert meen to 0-based C array
-  PetscInt* l2g = new PetscInt[nedof];
-  for (i = 0; i < nedof; i++)
-    l2g[i] = meqn[meen[i]-1] - 1;
-
-  // Make a (transposed) copy of eM to modify for Dirichlet BCs
-  Matrix A(eM,true);
-
-  // Get vector of prescribed degrees of freedom for this element
-  bool rhsMod = false;
-  Vector uc(SV ? nedof : 0), bc;
-  for (j = 1; j <= uc.size(); j++) {
-    int jceq = mpmceq[meen[j-1]-1];
-
-    if ((jceq > 0) && ((uc(j) = -ttcc[jceq-1]) != Real(0)))
-      rhsMod = true;
-  }
-
-  // Multiply element matrix with prescribed values to get the RHS-contributions
-  if (rhsMod)
-    eM.multiply(uc,bc);
-
-  // Eliminate constrained degrees of freedom from element matrix
-  for (j = 1; j <= nedof; j++)
-    if (mpmceq[meen[j-1]-1] > 0) {
-      for (i = 1; i <= nedof; i++)
-        A(i,j) = A(j,i) = Real(0);
-      A(j,j) = Real(1);
-
-      if (rhsMod)
-        bc(j) = -uc(j);
-    }
-
-  if (rhsMod) // Add contributions to right-hand side vector (SV)
-    VecSetValues(SV->getVector(),nedof,l2g,bc.ptr(),ADD_VALUES);
-
-  // Add element stiffness matrix to global matrix
-  MatSetValues(SM,nedof,l2g,nedof,l2g,A.ptr(),ADD_VALUES);
-
-  delete[] l2g;
-  return true;
-}
-
-
-void PETScMatrix::initAssembly (const SAM& sam, bool)
-{
-  const SAMpatchPara* sampch = dynamic_cast<const SAMpatchPara*>(&sam);
-
-  if (!strncasecmp(solParams.getPreconditioner(),"gamg",4) ||
-      !strncasecmp(solParams.getPreconditioner(),"ml",2))
-    sampch->getLocalNodeCoordinates(coords);
-
-  else if (solParams.getBlock(0).nullspace == RIGID_BODY) {
-    int nsd = sampch->getLocalNodeCoordinates(coords);
-#ifdef HAVE_MPI
-    std::cerr << "WARNING: Rigid body null space not implemented in parallel, ignoring" << std::endl;
-#else
-    Vec coordVec;
-    VecCreate(PETSC_COMM_SELF, &coordVec);
-    VecSetBlockSize(coordVec, nsd);
-    VecSetSizes(coordVec, coords.size(), PETSC_DECIDE);
-    VecSetFromOptions(coordVec);
-    for (size_t i=0;i<coords.size();++i)
-      VecSetValue(coordVec, i, coords[i], INSERT_VALUES);
-    nsp = new MatNullSpace;
-    MatNullSpaceCreateRigidBody(coordVec, nsp);
-#if PETSC_VERSION_MINOR < 6
-    KSPSetNullSpace(ksp,*nsp);
-#else
-    MatSetNullSpace(A,*nsp);
-#endif
-#endif
-  }
-
-  if (!solParams.getBlock(0).dirSmoother.empty()) {
-    dirIndexSet.resize(1);
-    for (size_t j = 0;j < solParams.getBlock(0).dirSmoother.size();j++) {
-      IS permIndex;
-      if (solParams.getBlock(0).dirSmoother[j].order != 123) {
-	PetscIntVec perm;
-	sampch->getDirOrdering(perm,solParams.getBlock(0).dirSmoother[j].order);
-	ISCreateGeneral(*adm.getCommunicator(),perm.size(),&(perm[0]),PETSC_COPY_VALUES,&permIndex);
-	ISSetPermutation(permIndex);
-      }
-      else {
-	ISCreate(*adm.getCommunicator(),&permIndex);
-	ISSetIdentity(permIndex);
-      }
-      dirIndexSet[0].push_back(permIndex);
-    }
-  }
-
-  int nx = solParams.getBlock(0).subdomains[0];
-  int ny = solParams.getBlock(0).subdomains[1];
-  int nz = solParams.getBlock(0).subdomains[2];
-  int overlap = solParams.getBlock(0).overlap;
-
-  if (nx+ny+nz > 0) {
-    sampch->getLocalSubdomains(locSubdDofs,nx,ny,nz);
-    sampch->getSubdomains(subdDofs,overlap,nx,ny,nz);
-  }
-
-  // Get number of equations in linear system
-  const PetscInt neq   = sam.getNoEquations();
-  const PetscInt nnod  = sam.getNoNodes();
-  const PetscInt bsize = sam.getNoDOFs()/nnod;
+  // Get number of local equations in linear system
+  const PetscInt neq  = adm.dd.getMaxEq()- adm.dd.getMinEq() + 1;
 
   // Set correct number of rows and columns for matrix.
   MatSetSizes(A,neq,neq,PETSC_DECIDE,PETSC_DECIDE);
-  MatSetBlockSize(A,bsize);
-  MPI_Barrier(*adm.getCommunicator());
-  MatSetFromOptions(A);
 
-  if (linsysType == LinAlg::SPD)
-    MatSetOption(A, MAT_SPD, PETSC_TRUE);
-  if (linsysType == LinAlg::SYMMETRIC)
-    MatSetOption(A, MAT_SYMMETRIC, PETSC_TRUE);
+  // Allocate sparsity pattern
+  std::vector<std::set<int>> dofc;
+  sam.getDofCouplings(dofc);
 
-  // Allocation of sparsity pattern
-  if (adm.isParallel()) {
-    PetscInt ifirst, ilast;
-    std::vector<int> d_nnz, o_nnz;
+  if (matvec.empty()) {
+    // Set correct number of rows and columns for matrix.
+    MatSetSizes(A,neq,neq,PETSC_DECIDE,PETSC_DECIDE);
 
-    // Determine rows owned by this process
-    ifirst = sampch->getMinEqNumber();
-    ifirst--;
-    ilast  = sampch->getMaxEqNumber();
+    MatSetFromOptions(A);
 
-    if (sam.getNoDofCouplings(ifirst,ilast,d_nnz,o_nnz)) {
-      size_t i;
-      PetscIntVec d_Nnz(d_nnz.size());
-      PetscIntVec o_Nnz(o_nnz.size());
-      for (i = 0; i < d_nnz.size(); i++)
-	d_Nnz[i] = d_nnz[i];
-      for (i = 0; i < o_nnz.size(); i++)
-	o_Nnz[i] = o_nnz[i];
-      MatMPIAIJSetPreallocation(A,PETSC_DEFAULT,&(d_Nnz[0]),PETSC_DEFAULT,&(o_Nnz[0]));
+    // Allocate sparsity pattern
+    if (adm.isParallel()) {
+      int ifirst = adm.dd.getMinEq();
+      int ilast  = adm.dd.getMaxEq();
+      PetscIntVec d_nnz(neq, 0);
+      IntVec o_nnz_g(adm.dd.getNoGlbEqs(), 0);
+      for (int i = 0; i < samp->getNoEquations(); ++i) {
+        int eq = adm.dd.getGlobalEq(i+1);
+        if (eq >= adm.dd.getMinEq() && eq <= adm.dd.getMaxEq()) {
+          for (const auto& it : dofc[i]) {
+            int g = adm.dd.getGlobalEq(it);
+            if (g > 0) {
+              if (g < adm.dd.getMinEq() || g > adm.dd.getMaxEq())
+                ++o_nnz_g[eq-1];
+              else
+                ++d_nnz[eq-adm.dd.getMinEq()];
+            }
+          }
+        } else
+          o_nnz_g[eq-1] += dofc[i].size();
+      }
+
+      adm.allReduceAsSum(o_nnz_g);
+
+      PetscIntVec o_nnz(o_nnz_g.begin()+ifirst-1, o_nnz_g.begin()+ilast);
+
+      // TODO: multiplier cause big overallocation due to no multiplicity handling
+      for (auto& it : o_nnz)
+        it = std::min(it, adm.dd.getNoGlbEqs());
+
+      MatMPIAIJSetPreallocation(A,PETSC_DEFAULT,d_nnz.data(),
+                                  PETSC_DEFAULT,o_nnz.data());
+    } else {
+      PetscIntVec Nnz;
+      for (const auto& it : dofc)
+        Nnz.push_back(it.size());
+
+      MatSeqAIJSetPreallocation(A,PETSC_DEFAULT,Nnz.data());
+
+      PetscIntVec col;
+      for (const auto& it2 : dofc)
+        for (const auto& it : it2)
+          col.push_back(it-1);
+
+      MatSeqAIJSetColumnIndices(A,&col[0]);
+      MatSetOption(A, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_TRUE);
+      MatSetOption(A, MAT_KEEP_NONZERO_PATTERN, PETSC_TRUE);
     }
-    else {
-      const PetscInt maxdofc = sam.getMaxDofCouplings();
-      MatMPIAIJSetPreallocation(A,maxdofc,PETSC_NULL,maxdofc,PETSC_NULL);
-    }
-  }
-  else {
-    // RUNAR
-    std::vector<int> nnz;
-    if (sam.getNoDofCouplings(nnz)) {
-      PetscIntVec Nnz(nnz.size());
-      for (size_t i = 0; i < nnz.size(); i++)
-	Nnz[i] = nnz[i];
-      MatSeqAIJSetPreallocation(A,PETSC_DEFAULT,&(Nnz[0]));
-    }
-    else {
-      const PetscInt maxdofc = sam.getMaxDofCouplings();
-      MatSeqAIJSetPreallocation(A,maxdofc,PETSC_NULL);
-    }
-#ifdef USE_OPENMP
-    // dummy assembly loop to avoid matrix resizes during assembly
-    if (omp_get_max_threads() > 1) {
-      std::vector<int> irow;
-      std::vector<int> jcol;
-    PetscIntVec col;
-    sam.getDofCouplings(irow,jcol);
-    for (size_t i=0;i<jcol.size();++i)
-      col.push_back(jcol[i]-1);
-    MatSeqAIJSetColumnIndices(A,&col[0]);
-    MatSetOption(A, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_TRUE);
-    MatSetOption(A, MAT_KEEP_NONZERO_PATTERN, PETSC_TRUE);
-    }
-#endif
-  }
+
+    MatSetUp(A);
+
+    if (linsysType == LinAlg::SPD)
+      MatSetOption(A, MAT_SPD, PETSC_TRUE);
+    if (linsysType == LinAlg::SYMMETRIC)
+      MatSetOption(A, MAT_SYMMETRIC, PETSC_TRUE);
 
 #ifndef SP_DEBUG
-  // Do not abort program for allocation error in release mode
-  MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE);
+    // Do not abort program for allocation error in release mode
+    MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE);
 #endif
+  } else {
+    const DomainDecomposition& dd = adm.dd;
+    size_t blocks = solParams.getNoBlocks();
+
+    // map from sparse matrix indices to block matrix indices
+    glb2Blk.resize(SparseMatrix::A.size());
+    std::vector<std::array<int,2>> eq2b(sam.getNoEquations(), {-1, 0}); // cache
+    for (size_t j = 0; j < cols(); ++j) {
+      for (int i = IA[j]; i < IA[j+1]; ++i) {
+        int iblk = -1;
+        int jblk = -1;
+        if (eq2b[JA[i]][0] != -1) {
+          iblk = eq2b[JA[i]][0];
+          glb2Blk[i][1] = eq2b[JA[i]][1];
+        } if (eq2b[j][0] != -1) {
+          jblk = eq2b[j][0];
+          glb2Blk[i][2] = eq2b[j][1];
+        }
+
+        for (size_t b = 0; b < blocks && (iblk == -1 || jblk == -1); ++b) {
+          std::map<int,int>::const_iterator it;
+          if (iblk == -1 && (it = dd.getG2LEQ(b).find(JA[i]+1)) != dd.getG2LEQ(b).end()) {
+            iblk = b;
+            eq2b[JA[i]][0] = b;
+            eq2b[JA[i]][1] = glb2Blk[i][1] = it->second-1;
+          }
+
+          if (jblk == -1 && (it = dd.getG2LEQ(b).find(j+1)) != dd.getG2LEQ(b).end()) {
+            jblk = b;
+            eq2b[j][0] = b;
+            eq2b[j][1] = glb2Blk[i][2] = it->second-1;
+          }
+        }
+        if (iblk == -1 || jblk == -1) {
+          std::cerr << "Failed to map (" << JA[i]+1 << ", " << j+1 << ") " << std::endl;
+          std::cerr << "iblk: " << iblk << ", jblk: " << jblk << std::endl;
+          assert(0);
+        }
+        glb2Blk[i][0] = iblk*solParams.getNoBlocks() + jblk;
+      }
+    }
+
+    if (adm.isParallel()) {
+      std::vector<PetscIntVec> d_nnz(blocks*blocks);
+      std::vector<IntVec> o_nnz_g(blocks*blocks);
+      size_t k = 0;
+      for (size_t i = 0; i < blocks; ++i)
+        for (size_t j = 0; j < blocks; ++j, ++k) {
+          d_nnz[k].resize(dd.getMaxEq(i+1)-dd.getMinEq(i+1)+1);
+          o_nnz_g[k].resize(dd.getNoGlbEqs(i+1));
+        }
+
+      for (int i = 0; i < sam.getNoEquations(); ++i) {
+        int blk = eq2b[i][0]+1;
+        int row = eq2b[i][1]+1;
+        int grow = dd.getGlobalEq(row, blk);
+
+        if (grow >= dd.getMinEq(blk) && grow <= dd.getMaxEq(blk)) {
+          for (const auto& it : dofc[i]) {
+            int cblk = eq2b[it-1][0]+1;
+            int col = eq2b[it-1][1]+1;
+            int gcol = dd.getGlobalEq(col, cblk);
+            if (gcol >= dd.getMinEq(cblk) && gcol <= dd.getMaxEq(cblk))
+              ++d_nnz[(blk-1)*blocks + cblk-1][grow-dd.getMinEq(blk)];
+            else
+              ++o_nnz_g[(blk-1)*blocks + cblk-1][grow-1];
+          }
+        } else {
+          for (const auto& it : dofc[i]) {
+            int cblk = eq2b[it-1][0]+1;
+            ++o_nnz_g[(blk-1)*blocks+cblk-1][grow-1];
+          }
+        }
+      }
+
+      k = 0;
+      for (size_t i = 0; i < blocks; ++i) {
+        for (size_t j = 0; j < blocks; ++j, ++k) {
+          int nrows = dd.getMaxEq(i+1)-dd.getMinEq(i+1)+1;
+          int ncols = dd.getMaxEq(j+1)-dd.getMinEq(j+1)+1;
+          MatSetSizes(matvec[k], nrows, ncols,
+                      PETSC_DETERMINE, PETSC_DETERMINE);
+          MatSetFromOptions(matvec[k]);
+          adm.allReduceAsSum(o_nnz_g[k]);
+          PetscIntVec o_nnz(o_nnz_g[k].begin()+dd.getMinEq(i+1)-1, o_nnz_g[k].begin()+dd.getMaxEq(i+1));
+
+          // TODO: multiplier cause big overallocation due to no multiplicity handling
+          for (auto& it : o_nnz)
+            it = std::min(it, dd.getNoGlbEqs(i+1));
+
+          MatMPIAIJSetPreallocation(matvec[k],PETSC_DEFAULT,d_nnz[k].data(),
+                                              PETSC_DEFAULT,o_nnz.data());
+          MatSetUp(matvec[k]);
+        }
+      }
+    } else {
+      auto it = matvec.begin();
+      for (size_t i = 0; i < blocks; ++i) {
+        for (size_t j = 0; j < blocks; ++j, ++it) {
+          std::vector<PetscInt> nnz;
+          nnz.reserve(dd.getBlockEqs(i).size());
+          for (const auto& it2 : dd.getBlockEqs(i))
+            nnz.push_back(std::min(dofc[it2-1].size(), dd.getBlockEqs(j).size()));
+
+          int nrows = dd.getMaxEq(i+1)-dd.getMinEq(i+1)+1;
+          int ncols = dd.getMaxEq(j+1)-dd.getMinEq(j+1)+1;
+          MatSetSizes(*it, nrows, ncols,
+                      PETSC_DETERMINE, PETSC_DETERMINE);
+
+          MatSeqAIJSetPreallocation(*it, PETSC_DEFAULT, nnz.data());
+          MatSetUp(*it);
+        }
+      }
+    }
+
+    isvec.resize(dd.getNoBlocks());
+    // index sets
+    for (size_t i = 0; i < isvec.size(); ++i) {
+      std::vector<int> blockEq;
+      blockEq.reserve(dd.getMaxEq(i+1)-dd.getMinEq(i+1)+1);
+      for (auto& it : dd.getBlockEqs(i)) {
+        int eq = dd.getGlobalEq(it);
+        if (eq >= dd.getMinEq())
+          blockEq.push_back(eq-1);
+      }
+
+      ISCreateGeneral(*adm.getCommunicator(),blockEq.size(),
+                      blockEq.data(),PETSC_COPY_VALUES,&isvec[i]);
+    }
+
+    MatCreateNest(*adm.getCommunicator(),solParams.getNoBlocks(),isvec.data(),
+                  solParams.getNoBlocks(),isvec.data(),matvec.data(),&A);
+
+ #ifndef SP_DEBUG
+    // Do not abort program for allocation error in release mode
+    for (auto& it : matvec)
+      MatSetOption(it,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE);
+ #endif
+  }
 }
 
 
 bool PETScMatrix::beginAssembly()
 {
-  // Starts parallel assembly process
+  if (matvec.empty()) {
+    for (size_t j = 0; j < cols(); ++j)
+      for (int i = IA[j]; i < IA[j+1]; ++i)
+        MatSetValue(A, adm.dd.getGlobalEq(JA[i]+1)-1,
+                    adm.dd.getGlobalEq(j+1)-1, SparseMatrix::A[i], ADD_VALUES);
+  } else {
+    for (size_t j = 0; j < cols(); ++j) {
+      for (int i = IA[j]; i < IA[j+1]; ++i) {
+        int rblock = glb2Blk[i][0] / adm.dd.getNoBlocks() + 1;
+        int cblock = glb2Blk[i][0] % adm.dd.getNoBlocks() + 1;
+        MatSetValue(matvec[glb2Blk[i][0]],
+                    adm.dd.getGlobalEq(glb2Blk[i][1]+1, rblock)-1,
+                    adm.dd.getGlobalEq(glb2Blk[i][2]+1, cblock)-1,
+                    SparseMatrix::A[i], ADD_VALUES);
+      }
+    }
+  }
   MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
+
   return true;
 }
 
@@ -456,39 +437,15 @@ bool PETScMatrix::endAssembly()
 
 void PETScMatrix::init ()
 {
+  SparseMatrix::init();
+
   // Set all matrix elements to zero
-  MatZeroEntries(A);
-}
-
-
-bool PETScMatrix::assemble (const Matrix& eM, const SAM& sam, int e)
-{
-  // Get mapping "meen" between local degrees of freedom in element e
-  // and global degrees of freedom.
-  std::vector<int> meen;
-  if (!sam.getElmEqns(meen,e,eM.rows()))
-    return false;
-
-  // Assemble local stiffness matrix into global system.
-  return assemPETSc(eM,A,nullptr,meen,sam.meqn,sam.mpmceq,sam.ttcc);
-}
-
-
-bool PETScMatrix::assemble (const Matrix& eM, const SAM& sam,
-		    	    SystemVector& B, int e)
-{
-  // Get mapping "meen" between local degrees of freedom in element e
-  // and global degrees of freedom.
-  std::vector<int> meen;
-  if (!sam.getElmEqns(meen,e,eM.rows()))
-    return false;
-
-  PETScVector* Bptr = dynamic_cast<PETScVector*>(&B);
-  if (!Bptr)
-    return false;
-
-  // Assemble local stiffness matrix into global system.
-  return assemPETSc(eM,A,Bptr,meen,sam.meqn,sam.mpmceq,sam.ttcc);
+  if (matvec.empty())
+    MatZeroEntries(A);
+  else {
+    for (auto& it : matvec)
+      MatZeroEntries(it);
+  }
 }
 
 
@@ -509,6 +466,10 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS, Real*)
 {
   PETScVector* Bptr = dynamic_cast<PETScVector*>(&B);
   if (!Bptr)
+    return false;
+
+  StdVector* Bsptr = dynamic_cast<StdVector*>(&B);
+  if (!Bsptr)
     return false;
 
   Vec x;
@@ -539,8 +500,8 @@ bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
 bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS, bool knoll)
 {
   // Reset linear solver
-  if (nLinSolves && solParams.getResetSolver())
-    if (nLinSolves%solParams.getResetSolver() == 0) {
+  if (nLinSolves && solParams.getIntValue("gmres_restart_iterations"))
+    if (nLinSolves%solParams.getIntValue("gmres_restart_iterations") == 0) {
       KSPDestroy(&ksp);
       KSPCreate(*adm.getCommunicator(),&ksp);
       setParams = true;
@@ -569,10 +530,10 @@ bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS, bool knoll)
     return false;
   }
 
-  if (solParams.getMessageLevel() > 1) {
+  if (solParams.getIntValue("verbosity") > 1) {
     PetscInt its;
     KSPGetIterationNumber(ksp,&its);
-    PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getMethod().c_str(),its);
+    PetscPrintf(PETSC_COMM_WORLD,"\n Iterations for %s = %D\n",solParams.getStringValue("type").c_str(),its);
   }
   nLinSolves++;
 
@@ -646,92 +607,77 @@ Real PETScMatrix::Linfnorm () const
 }
 
 
-bool PETScMatrix::makeElementIS(const SAM& sam)
-{
-  std::vector<int> meen;
-
-  ISsize = sam.getNoElms();
-
-  elmIS = new IS[ISsize];
-  for (PetscInt e = 1; e <= ISsize; e++) {
-    if (!sam.getElmEqns(meen,e))
-      return false;
-    std::sort(meen.begin(),meen.end());
-
-    for (size_t i = 0;i < meen.size();i++)
-      meen[i]--;
-
-    int ndof = 0;
-    for (size_t i = 0;i < meen.size();i++)
-      if (meen[i] >= 0)
-	ndof++;
-
-    PetscInt l2g[ndof];
-    ndof = 0;
-    for (size_t i = 0;i < meen.size();i++)
-      if (meen[i] >= 0)
-	l2g[ndof++] = meen[i];
-
-    ISCreateGeneral(PETSC_COMM_SELF,ndof,l2g,PETSC_COPY_VALUES,&(elmIS[e-1]));
-  }
-
-  return true;
-}
-
-
-bool PETScMatrix::makeEBEpreconditioner(const Mat A, Mat* AeI)
-{
-  PetscInt        nedof;
-  const PetscInt* indx;
-  Vector          vals;
-  PetscIntVec     locidx;
-
-  if (!elmIS)
-    return false;
-
-  Mat* subMats;
-  MatGetSubMatrices(A,ISsize,elmIS,elmIS,MAT_INITIAL_MATRIX,&subMats);
-
-  MatDuplicate(A,MAT_DO_NOT_COPY_VALUES,AeI);
-  MatZeroEntries(*AeI);
-
-  Matrix elmMat;
-  for (PetscInt e = 0; e < ISsize; e++) {
-    ISGetSize(elmIS[e],&nedof);
-
-    locidx.resize(nedof);
-    for (int i = 0;i < nedof;i++)
-      locidx[i] = i;
-
-    vals.resize(nedof*nedof,true);
-    MatGetValues(subMats[e],nedof,&(locidx.front()),nedof,&(locidx.front()),&(vals.front()));
-
-    int dof = 0;
-    elmMat.resize(nedof,nedof);
-    for (int i = 1;i <= nedof;i++)
-      for (int j = 1;j <= nedof;j++)
-	elmMat(i,j) = vals[dof++];
-
-    utl::invert(elmMat);
-    elmMat.transpose();
-
-    ISGetIndices(elmIS[e],&indx);
-    MatSetValues(*AeI,nedof,indx,nedof,indx,elmMat.ptr(),ADD_VALUES);
-    ISRestoreIndices(elmIS[e],&indx);
-  }
-
-   MatDestroyMatrices(ISsize,&subMats);
-
-   MatAssemblyBegin(*AeI,MAT_FINAL_ASSEMBLY);
-   MatAssemblyEnd(*AeI,MAT_FINAL_ASSEMBLY);
-
-   return true;
-}
-
-
 bool PETScMatrix::setParameters(PETScMatrix* P, PETScVector* Pb)
 {
-  solParams.setParams(ksp,locSubdDofs,subdDofs,coords,dirIndexSet);
+  // Set linear solver method
+  KSPSetType(ksp,solParams.getStringValue("type").c_str());
+  KSPSetTolerances(ksp,solParams.getDoubleValue("rtol"),
+                   solParams.getDoubleValue("atol"),
+                   solParams.getDoubleValue("dtol"),
+                   solParams.getIntValue("maxits"));
+  PC pc;
+  KSPGetPC(ksp,&pc);
+
+  if (matvec.empty()) {
+    solParams.setupPC(pc, 0, "", std::set<int>());
+  } else {
+    if (matvec.size() > 4) {
+      std::cerr << "** PETSCMatrix ** Only two blocks supported for now." << std::endl;
+      return false;
+    }
+    solParams.setupSchurComplement(matvec);
+    PCSetType(pc,PCFIELDSPLIT);
+    PetscInt nsplit;
+    KSP  *subksp;
+    PC   subpc[2];
+
+    PCFieldSplitSetIS(pc,"u",isvec[0]);
+    PCFieldSplitSetIS(pc,"p",isvec[1]);
+    PCFieldSplitSetType(pc,PC_COMPOSITE_SCHUR);
+    if (solParams.getStringValue("schur") == "lower")
+      PCFieldSplitSetSchurFactType(pc,PC_FIELDSPLIT_SCHUR_FACT_LOWER);
+    else if (solParams.getStringValue("schur") == "full")
+      PCFieldSplitSetSchurFactType(pc,PC_FIELDSPLIT_SCHUR_FACT_FULL);
+    else if (solParams.getStringValue("schur") == "diag")
+      PCFieldSplitSetSchurFactType(pc,PC_FIELDSPLIT_SCHUR_FACT_DIAG);
+    else
+      PCFieldSplitSetSchurFactType(pc,PC_FIELDSPLIT_SCHUR_FACT_UPPER);
+
+//    MatCreateSchurComplement(matvec[0],matvec[0],matvec[1],matvec[2],matvec[3],&Sp);
+    PCSetFromOptions(pc);
+    PCSetUp(pc);
+    PCFieldSplitGetSubKSP(pc,&nsplit,&subksp);
+#if PETSC_VERSION_MINOR < 5
+    KSPSetOperators(subksp[1],solParams.getSchurComplement(),solParams.getSchurComplement(),SAME_PRECONDITIONER);
+#else
+    KSPSetOperators(subksp[1],solParams.getSchurComplement(),solParams.getSchurComplement());
+    KSPSetReusePreconditioner(subksp[1], PETSC_TRUE);
+#endif
+
+    // Preconditioner for blocks
+    char pchar='1';
+    for (PetscInt m = 0; m < nsplit; m++, pchar++) {
+      std::string prefix;
+      if (nsplit == 2) {
+        if (m == 0)
+          prefix = "fieldsplit_u";
+        else
+          prefix = "fieldsplit_p";
+      } else
+        prefix = std::string("fieldsplit_b")+pchar;
+
+      KSPSetType(subksp[m],"preonly");
+      KSPGetPC(subksp[m],&subpc[m]);
+      solParams.setupPC(subpc[m], m, prefix, adm.dd.getBlockEqs(m));
+    }
+  }
+
+  KSPSetFromOptions(ksp);
+  KSPSetUp(ksp);
+
+  if (solParams.getIntValue("verbosity") >= 1)
+    KSPView(ksp, PETSC_VIEWER_STDOUT_(*adm.getCommunicator()));
+
   return true;
 }
 

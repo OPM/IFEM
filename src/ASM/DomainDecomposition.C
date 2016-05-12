@@ -421,6 +421,7 @@ bool DomainDecomposition::calcGlobalEqNumbers(const ProcessAdm& adm,
   for (size_t i = 1; i < blocks.size(); ++i) {
     blocks[i].minEq = 1;
     blocks[i].maxEq = blocks[i].localEqs.size();
+    blocks[i].nGlbEqs = blocks[i].localEqs.size();
   }
 
 #ifdef HAVE_MPI
@@ -740,11 +741,15 @@ bool DomainDecomposition::setup(const ProcessAdm& adm, const SIMbase& sim)
     return true;
 
   std::vector<int> nEqs(blocks.size());
-  for (size_t i = 0; i < blocks.size(); ++i)
-    nEqs[i] = getMaxEq(i);
+  if (adm.getProcId() == adm.getNoProcs()-1)
+    for (size_t i = 0; i < blocks.size(); ++i)
+      nEqs[i] = getMaxEq(i);
 
   MPI_Bcast(&nEqs[0], nEqs.size(), MPI_INT, adm.getNoProcs()-1,
             *adm.getCommunicator());
+
+  for (size_t i = 0; i < blocks.size(); ++i)
+    blocks[i].nGlbEqs = nEqs[i];
 
   IFEM::cout << "\n >>> Domain decomposition summary <<<"
              << "\nNumber of domains     " << adm.getNoProcs();

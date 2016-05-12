@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+
+  <!-- General - geometry definitions !-->
+  <geometry>
+    <partitioning procs="4" nperproc="1"/>
+    <patchfile>src/ASM/Test/refdata/square-4-orient0.g2</patchfile>
+    <refine patch="1" u="1" v="1"/>
+    <refine patch="2" u="1" v="1"/>
+    <refine patch="3" u="1" v="1"/>
+    <refine patch="4" u="1" v="1"/>
+    <topology>
+      <connection master="1" medge="4" slave="2" sedge="3"/>
+      <connection master="1" medge="2" slave="3" sedge="1"/>
+      <connection master="2" medge="2" slave="4" sedge="1"/>
+      <connection master="3" medge="4" slave="4" sedge="3"/>
+    </topology>
+  </geometry>
+
+  <linearsolver class="petsc">
+    <type>gmres</type>
+    <pc>fieldsplit</pc>
+    <block basis="1" components="1">
+      <pc>ilu</pc>
+    </block>
+    <block basis="1" components="2">
+      <pc>ilu</pc>
+    </block>
+  </linearsolver>
+
+</simulation>
