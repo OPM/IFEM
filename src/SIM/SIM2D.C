@@ -69,6 +69,28 @@ SIM2D::SIM2D (IntegrandBase* itg, unsigned char n, bool check) : SIMgeneric(itg)
 }
 
 
+bool SIM2D::addConnection(int master, int slave, int mEdge, int sEdge, bool rever, bool coordCheck)
+{
+  int lmaster = getLocalPatchIndex(master);
+  int lslave = getLocalPatchIndex(slave);
+
+  if (lmaster > 0 && lslave > 0)
+  {
+    IFEM::cout <<"\tConnecting P"<< lslave <<" E"<< sEdge
+               <<" to P"<< lmaster <<" E"<< mEdge
+               <<" reversed? "<< rever << std::endl;
+    ASMs2D* spch = static_cast<ASMs2D*>(myModel[lslave-1]);
+    ASMs2D* mpch = static_cast<ASMs2D*>(myModel[lmaster-1]);
+    if (!spch->connectPatch(sEdge,*mpch,mEdge,rever,coordCheck))
+      return false;
+  }
+  else
+    adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave, mEdge, sEdge, rever?1:0, 1});
+
+  return true;
+}
+
+
 bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
@@ -184,24 +206,17 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
                   << master <<" "<< slave << std::endl;
         return false;
       }
-      int lmaster = getLocalPatchIndex(master);
-      int lslave = getLocalPatchIndex(slave);
 
-      if (lmaster > 0 && lslave > 0)
-      {
-        IFEM::cout <<"\tConnecting P"<< lslave <<" E"<< sEdge
-                   <<" to P"<< lmaster <<" E"<< mEdge
-                   <<" reversed? "<< rever << std::endl;
-        ASMs2D* spch = static_cast<ASMs2D*>(myModel[lslave-1]);
-        ASMs2D* mpch = static_cast<ASMs2D*>(myModel[lmaster-1]);
-        if (!spch->connectPatch(sEdge,*mpch,mEdge,rever))
-          return false;
-        else if (opt.discretization == ASM::SplineC1)
-          top.push_back(Interface(static_cast<ASMs2DC1*>(mpch),mEdge,
-                                  static_cast<ASMs2DC1*>(spch),sEdge,rever));
+      if (!addConnection(master, slave, mEdge, sEdge, rever))
+        return false;
+
+      if (opt.discretization == ASM::SplineC1) {
+        int lmaster = getLocalPatchIndex(master);
+        int lslave = getLocalPatchIndex(slave);
+        if (lmaster > 0 && lslave > 0)
+          top.push_back(Interface(static_cast<ASMs2DC1*>(this->getPatch(lmaster)),mEdge,
+                                  static_cast<ASMs2DC1*>(this->getPatch(lslave)),sEdge,rever));
       }
-      else
-        adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave, mEdge, sEdge, rever?1:0, 1});
     }
 
     // Second pass for C1-continuous patches, to set up additional constraints
@@ -786,22 +801,10 @@ void SIM2D::clonePatches (const PatchVec& patches,
 
 std::string SIM2D::createDefaultG2 (const TiXmlElement* geo) const
 {
-  std::string g2("200 1 0 0\n");
-  g2.append(nsd > 2 ? "3" : "2");
   bool rational=false;
   utl::getAttribute(geo,"rational",rational);
   if (rational)
     IFEM::cout << "\t Rational basis\n";
-  g2.append(rational?" 1":" 0");
-  g2.append("\n2 2\n0 0 1 1\n2 2\n0 0 1 1");
-
-  Vec3 X0;
-  std::string corner;
-  if (utl::getAttribute(geo,"X0",corner)) {
-    std::stringstream str(corner); str >> X0;
-    IFEM::cout <<"  Corner: "<< X0 << std::endl;
-  }
-
   double scale = 1.0;
   if (utl::getAttribute(geo,"scale",scale))
     IFEM::cout <<"  Scale: "<< scale << std::endl;
@@ -814,36 +817,159 @@ std::string SIM2D::createDefaultG2 (const TiXmlElement* geo) const
     IFEM::cout <<"  Length in Y: "<< Ly << std::endl;
   Ly *= scale;
 
-  std::stringstream str;
-  str <<"\n"<< X0.x <<" "<< X0.y;
-  if (nsd > 2) str <<" 0.0";
-  if (rational) str << " 1.0";
-  g2.append(str.str());
-  str.str("");
-  str <<"\n"<< X0.x+Lx <<" "<< X0.y;
-  if (nsd > 2) str <<" 0.0";
-  if (rational) str << " 1.0";
-  g2.append(str.str());
-  str.str("");
-  str <<"\n"<< X0.x <<" "<< X0.y+Ly;
-  if (nsd > 2) str <<" 0.0";
-  if (rational) str << " 1.0";
-  g2.append(str.str());
-  str.str("");
-  str <<"\n"<< X0.x+Lx <<" "<< X0.y+Ly;
-  if (nsd > 2) str <<" 0.0";
-  if (rational) str << " 1.0";
-  g2.append(str.str());
-  g2.append("\n");
+  Vec3 X0;
+  std::string corner;
+  if (utl::getAttribute(geo,"X0",corner)) {
+    std::stringstream str(corner); str >> X0;
+    IFEM::cout <<"  Corner: "<< X0 << std::endl;
+  }
+
+  int nx = 1;
+  int ny = 1;
+  if (utl::getAttribute(geo,"nx",nx))
+    IFEM::cout << "  Split in X: " << nx  << std::endl;
+  if (utl::getAttribute(geo,"ny",ny))
+    IFEM::cout << "  Split in Y: " << ny << std::endl;
+
+  if (nx > 1)
+    Lx /= nx;
+  if (ny > 1)
+    Ly /= ny;
+
+  std::string g2;
+  for (int y = 0; y < ny; ++y) {
+    for (int x = 0; x < nx; ++x) {
+      g2.append("200 1 0 0\n");
+      g2.append(nsd > 2 ? "3" : "2");
+      g2.append(rational?" 1":" 0");
+      g2.append("\n2 2\n0 0 1 1\n2 2\n0 0 1 1");
+
+      std::stringstream str;
+      str <<"\n"<< X0.x+x*Lx <<" "<< X0.y+y*Ly;
+      if (nsd > 2) str <<" 0.0";
+      if (rational) str << " 1.0";
+      g2.append(str.str());
+      str.str("");
+      str <<"\n"<< X0.x+(x+1)*Lx <<" "<< X0.y+y*Ly;
+      if (nsd > 2) str <<" 0.0";
+      if (rational) str << " 1.0";
+      g2.append(str.str());
+      str.str("");
+      str <<"\n"<< X0.x+x*Lx <<" "<< X0.y+(y+1)*Ly;
+      if (nsd > 2) str <<" 0.0";
+      if (rational) str << " 1.0";
+      g2.append(str.str());
+      str.str("");
+      str <<"\n"<< X0.x+(x+1)*Lx <<" "<< X0.y+(y+1)*Ly;
+      if (nsd > 2) str <<" 0.0";
+      if (rational) str << " 1.0";
+      g2.append(str.str());
+      g2.append("\n");
+    }
+  }
 
   return g2;
 }
 
 
-ASMbase* SIM2D::createDefaultGeometry (const TiXmlElement* geo) const
+ASMVec SIM2D::createDefaultGeometry (const TiXmlElement* geo) const
 {
   std::istringstream unitSquare(createDefaultG2(geo));
-  return this->readPatch(unitSquare,1,nf);
+  ASMVec result;
+  this->readPatches(unitSquare,result,"\t");
+  return result;
+}
+
+
+bool SIM2D::createDefaultTopology (const TiXmlElement* geo)
+{
+  int nx = 1;
+  int ny = 1;
+  utl::getAttribute(geo,"nx",nx);
+  utl::getAttribute(geo,"ny",ny);
+  bool periodic_x = false;
+  bool periodic_y = false;
+  utl::getAttribute(geo,"periodic_x", periodic_x);
+  utl::getAttribute(geo,"periodic_y", periodic_y);
+
+  auto&& IJ = [nx,ny](int i, int j) { return 1 + j*nx + i; };
+
+  for (int j = 0; j < ny; ++j)
+    for (int i = 0; i < nx-1; ++i)
+      if (!addConnection(IJ(i,j), IJ(i+1,j), 2, 1, false))
+        return false;
+
+  for (int j = 0; j < ny-1; ++j)
+    for (int i = 0; i < nx; ++i)
+      if (!addConnection(IJ(i,j), IJ(i,j+1), 4, 3, false))
+        return false;
+
+  if (periodic_x)
+    for (int i = 0; i < ny; ++i)
+      if (nx > 1) {
+        if (!addConnection(IJ(0, i), IJ(nx-1, i), 1, 2, false, false))
+          return false;
+      } else {
+         IFEM::cout <<"\tPeriodic I-direction P"<< IJ(0,i) << std::endl;
+         static_cast<ASMs2D*>(myModel[IJ(0,i)-1])->closeEdges(1);
+      }
+
+  if (periodic_y)
+    for (int i = 0; i < nx; ++i)
+      if (ny > 1)
+        addConnection(IJ(i,0), IJ(i,ny-1), 3, 4, false, false);
+      else {
+         IFEM::cout <<"\tPeriodic J-direction P"<< IJ(i,0)<< std::endl;
+         static_cast<ASMs2D*>(myModel[IJ(i,0)-1])->closeEdges(2);
+      }
+
+
+  return true;
+}
+
+
+TopologySet SIM2D::createDefaultTopologySets (const TiXmlElement* geo) const
+{
+  int nx = 1;
+  int ny = 1;
+  utl::getAttribute(geo,"nx",nx);
+  utl::getAttribute(geo,"ny",ny);
+  TopologySet result;
+  TopEntity& e1 = result["Edge1"];
+  TopEntity& e2 = result["Edge2"];
+  TopEntity& e3 = result["Edge3"];
+  TopEntity& e4 = result["Edge4"];
+  TopEntity& e5 = result["Boundary"];
+  int patch = 0;
+  auto&& insertion = [&e5, patch](TopEntity& e, const TopItem& top) { e.insert(top); e5.insert(top); };
+  for (int i = 0; i < ny; ++i) {
+    if ((patch = this->getLocalPatchIndex(i*nx+1)) > 0)
+      insertion(e1, TopItem(patch,1,1));
+    if ((patch = this->getLocalPatchIndex((i+1)*nx)) > 0)
+      insertion(e2, TopItem(patch,2,1));
+  }
+  for (int i = 0; i < nx; ++i) {
+    if ((patch = this->getLocalPatchIndex(i+1)) > 0)
+      insertion(e3, TopItem(patch,3,1));
+    if ((patch = this->getLocalPatchIndex(nx*(ny-1)+1+i)) > 0)
+      insertion(e4, TopItem(patch,4,1));
+  }
+
+  TopEntity& c = result["Corners"];
+  auto&& insertionv = [&c, patch](TopEntity& e, const TopItem& top) { e.insert(top); c.insert(top); };
+  if ((patch = this->getLocalPatchIndex(1)) > 0)
+    insertionv(result["Vertex1"], TopItem(patch,1,0));
+
+  if ((patch = this->getLocalPatchIndex(nx)) > 0)
+    insertionv(result["Vertex2"], TopItem(patch,2,0));
+
+  if ((patch = this->getLocalPatchIndex(nx*(ny-1)+1)) > 0)
+    insertionv(result["Vertex3"], TopItem(patch,3,0));
+
+  if ((patch = this->getLocalPatchIndex(nx*ny)) > 0)
+    insertionv(result["Vertex4"], TopItem(patch,4,0));
+
+  return result;
 }
 
 

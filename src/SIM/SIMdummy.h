@@ -43,11 +43,15 @@ protected:
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   virtual bool addConstraint(int,int,int,int,int,int&,char)
   { return false; }
-  //! \brief Creates a default single-patch geometry.
-  virtual ASMbase* createDefaultGeometry(const TiXmlElement*) const
-  { return nullptr; }
+  //! \brief Creates a default geometry.
+  virtual SIMdependency::PatchVec createDefaultGeometry(const TiXmlElement*) const
+  { return SIMdependency::PatchVec(); }
   //! \brief Preprocesses the result sampling points.
   virtual void preprocessResultPoints() {}
+  //! \brief Creates topology for default geometry
+  bool createDefaultTopology(const TiXmlElement*) { return false;}
+  //! \brief Creates topology sets for default geometry
+  TopologySet createDefaultTopologySets(const TiXmlElement*) const { return TopologySet();}
 };
 
 #endif

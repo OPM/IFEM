@@ -23,7 +23,7 @@ class TestSIM : public SIM2D {
   public:
     TestSIM() : SIM2D(new DummyIntegrand, 2)
     {
-      myModel.resize(1,this->createDefaultGeometry(NULL));
+      myModel = this->createDefaultGeometry(nullptr);
     }
 };
 
