@@ -37,7 +37,6 @@ typedef std::vector<ISVec>       ISMat;        //!< Index set matrix
 class PETScVector : public SystemVector
 {
 public:
-#ifdef HAS_PETSC
   //! \brief Constructor creating an empty vector.
   PETScVector(const ProcessAdm& padm);
   //! \brief Constructor creating a vector of length \a n.
@@ -48,12 +47,10 @@ public:
   PETScVector(const PETScVector& vec);
   //! \brief Destructor.
   virtual ~PETScVector();
-#endif
 
   //! \brief Returns the vector type.
   virtual Type getType() const { return PETSC; }
 
-#ifdef HAS_PETSC
   //! \brief Returns the dimension of the system vector.
   virtual size_t dim() const;
 
@@ -109,19 +106,6 @@ public:
 protected:
   Vec x;                  //!< The actual PETSc vector
   const ProcessAdm& adm;  //!< Process administrator
-
-#else // dummy implementation when PETSc is not included
-  virtual SystemVector* copy() const { return 0; }
-  virtual size_t dim() const { return 0; }
-  virtual void redim(size_t) {}
-  virtual Real* getPtr() { return 0; }
-  virtual const Real* getRef() const { return 0; }
-  virtual void init(Real = Real(0)) {}
-  virtual void mult(Real) {}
-  virtual Real L1norm() const { return Real(0); }
-  virtual Real L2norm() const { return Real(0); }
-  virtual Real Linfnorm() const { return Real(0); }
-#endif
 };
 
 
@@ -134,7 +118,6 @@ protected:
 class PETScMatrix : public SystemMatrix
 {
 public:
-#ifdef HAS_PETSC
   //! \brief Constructor.
   PETScMatrix(const ProcessAdm& padm, const LinSolParams& spar,
               LinAlg::LinearSystemType ltype);
@@ -142,10 +125,6 @@ public:
   PETScMatrix(const PETScMatrix& A);
   //! \brief The destructor frees the dynamically allocated arrays.
   virtual ~PETScMatrix();
-#else
-  //! \brief Constructor.
-  PETScMatrix(const ProcessAdm&, const LinSolParams&) {}
-#endif
 
   //! \brief Returns the matrix type.
   virtual Type getType() const { return PETSC; }
@@ -153,7 +132,6 @@ public:
   //! \brief Returns the dimension of the system matrix.
   virtual size_t dim(int = 1) const { return 0; }
 
-#ifdef HAS_PETSC
   //! \brief Creates a copy of the system matrix and returns a pointer to it.
   virtual SystemMatrix* copy() const { return new PETScMatrix(*this); }
 
@@ -261,24 +239,13 @@ protected:
   ISMat               dirIndexSet;     //!< Direction ordering
   int                 nLinSolves;      //!< Number of linear solves
   LinAlg::LinearSystemType linsysType; //!< Linear system type
-
-#else // dummy implementation when PETSc is not included
-  virtual SystemMatrix* copy() const { return 0; }
-  virtual void init() {}
-  virtual void initAssembly(const SAM&, bool) {}
-  virtual bool assemble(const Matrix&, const SAM&, int) { return false; }
-  virtual bool assemble(const Matrix&, const SAM&,
-			SystemVector&, int) { return false; }
-#endif
 };
 
 
-#ifdef HAS_PETSC
 //! \brief Matrix-vector product
 PETScVector operator*(const SystemMatrix& A, const PETScVector& b);
 
 //! \brief Solve linear system
 PETScVector operator/(const SystemMatrix& A, const PETScVector& b);
-#endif
 
 #endif

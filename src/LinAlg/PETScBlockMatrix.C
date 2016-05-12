@@ -18,8 +18,8 @@
 #include "LinAlgInit.h"
 #include "SAMpatchPara.h"
 #include "SIMenums.h"
-#include "PCPerm.h"
-#include "PCScale.h"
+#include "PETScPCPerm.h"
+#include "PETScPCScale.h"
 #include <sstream>
 #ifdef USE_OPENMP
 #include <omp.h>

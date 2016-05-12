@@ -14,7 +14,9 @@
 #include "EigSolver.h"
 #include "DenseMatrix.h"
 #include "SPRMatrix.h"
+#ifdef HAS_SLEPC
 #include "PETScMatrix.h"
+#endif
 
 #if defined(_WIN32) && !defined(__MINGW32__) && !defined(__MINGW64__)
 #define eig_av_   EIG_AV

@@ -1,6 +1,20 @@
-#ifdef HAS_PETSC
-#include "PCScale.h"
+// $Id$
+//==============================================================================
+//!
+//! \file PCScale.C
+//!
+//! \date Jan 15 2010
+//!
+//! \author Runar Holdahl / SINTEF
+//!
+//! \brief Scaling for PETSc preconditioners
+//!
+//==============================================================================
+
+
+#include "PETScPCScale.h"
 #include <iostream>
+
 
 PetscErrorCode PCScaleCreate(PCScale **pcscale)
 {
@@ -49,7 +63,7 @@ PetscErrorCode PCScaleApply(PC pc, Vec x, Vec y)
   VecRestoreArray(*(shell->scaling),&svec);
   VecRestoreArray(x,&xvec);
   VecRestoreArray(y,&yvec);
-  
+
   return 0;
 }
 
@@ -64,5 +78,3 @@ PetscErrorCode PCScaleDestroy(PC pc)
 
   return 0;
 }
-
-#endif
