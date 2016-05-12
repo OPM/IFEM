@@ -33,7 +33,11 @@ endfunction()
 
 
 macro(IFEM_add_test_app path workdir name)
-  FILE(GLOB TEST_SRCS ${path})
+  if("${path}" MATCHES "\\*")
+    file(GLOB TEST_SRCS ${path})
+  else()
+    set(TEST_SRCS ${path})
+  endif()
   add_executable(${name}-test EXCLUDE_FROM_ALL ${IFEM_PATH}/src/IFEM-test.C ${TEST_SRCS})
   gtest_add_tests($<TARGET_FILE:${name}-test> ${workdir} ${TEST_SRCS})
   list(APPEND TEST_APPS ${name}-test)
