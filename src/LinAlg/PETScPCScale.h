@@ -3,8 +3,6 @@
 
 #include "petscksp.h"
 
-#ifdef HAS_PETSC
-
 /* Define context for user-defined preconditioner */
 typedef struct {
   Vec *scaling;
@@ -15,7 +13,5 @@ extern PetscErrorCode PCScaleCreate(PCScale** pc);
 extern PetscErrorCode PCScaleSetUp(PC pc, Vec *s);
 extern PetscErrorCode PCScaleApply(PC pc, Vec x, Vec y);
 extern PetscErrorCode PCScaleDestroy(PC pc);
-
-#endif
 
 #endif

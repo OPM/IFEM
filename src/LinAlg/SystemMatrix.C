@@ -143,4 +143,3 @@ StdVector SystemMatrix::operator/(const StdVector& b)
   solve(b, results);
   return results;
 }
-

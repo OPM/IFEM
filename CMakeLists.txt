@@ -99,6 +99,17 @@ file(GLOB IFEM_SRCS ${PROJECT_SOURCE_DIR}/src/IFEM.C
                     ${PROJECT_SOURCE_DIR}/src/Eig/*.f
                     ${PROJECT_SOURCE_DIR}/3rdparty/expreval/*.cpp)
 string(REGEX REPLACE "${PROJECT_SOURCE_DIR}/src/ASM/ASMs.DInterpolate.C" "" IFEM_SRCS "${IFEM_SRCS}")
+
+if(NOT PETSC_FOUND)
+  list(REMOVE_ITEM IFEM_SRCS
+                   ${PROJECT_SOURCE_DIR}/src/ASM/SAMpatchPara.C
+                   ${PROJECT_SOURCE_DIR}/src/LinAlg/PETScBlockMatrix.C
+                   ${PROJECT_SOURCE_DIR}/src/LinAlg/PETScMatrix.C
+                   ${PROJECT_SOURCE_DIR}/src/LinAlg/PETScPCPerm.C
+                   ${PROJECT_SOURCE_DIR}/src/LinAlg/PETScPCProd.C
+                   ${PROJECT_SOURCE_DIR}/src/LinAlg/PETScPCScale.C)
+endif()
+
 if(LRSPLINE_FOUND OR LRSpline_FOUND)
   file(GLOB LR_SRCS ${PROJECT_SOURCE_DIR}/src/ASM/LR/*.C)
   list(APPEND IFEM_SRCS ${LR_SRCS})

@@ -17,7 +17,7 @@
 
 #include "PETScMatrix.h"
 #ifdef HAS_PETSC
-#include "PCProd.h"
+#include "PETScPCProd.h"
 #endif
 
 typedef std::vector<int>         IntVec;        //!< 3D PETSc integer matrix

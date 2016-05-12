@@ -12,7 +12,9 @@
 //==============================================================================
 
 #include "LinSolParams.h"
-#include "PCPerm.h"
+#ifdef HAS_PETSC
+#include "PETScPCPerm.h"
+#endif
 #include "Utilities.h"
 #include "tinyxml.h"
 #include <fstream>

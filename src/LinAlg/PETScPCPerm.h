@@ -1,6 +1,5 @@
 #ifndef PCPERM_H_IS_INCLUDED
 #define PCPERM_H_IS_INCLUDED
-#ifdef HAS_PETSC
 
 #include "petscksp.h"
 
@@ -19,5 +18,4 @@ extern PetscErrorCode PCPermSetUp(PC pc, IS *perm, Mat A, const char* type);
 extern PetscErrorCode PCPermApply(PC pc, Vec x, Vec y);
 extern PetscErrorCode PCPermDestroy(PC pc);
 
-#endif
 #endif

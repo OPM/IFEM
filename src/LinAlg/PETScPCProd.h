@@ -3,8 +3,6 @@
 
 #include "petscksp.h"
 
-#ifdef HAS_PETSC
-
 /* Define context for user-defined preconditioner */
 typedef struct {
   Vec *pc1;
@@ -17,7 +15,5 @@ extern PetscErrorCode PCProdCreate(PCProd** pc);
 extern PetscErrorCode PCProdSetUp(PC pc, Vec *prec1, PC *prec2, PC *prec3);
 extern PetscErrorCode PCProdApply(PC pc, Vec x, Vec y);
 extern PetscErrorCode PCProdDestroy(PC pc);
-
-#endif
 
 #endif

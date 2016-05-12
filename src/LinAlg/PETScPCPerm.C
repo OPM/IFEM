@@ -1,6 +1,20 @@
-#ifdef HAS_PETSC
-#include "PCPerm.h"
+// $Id$
+//==============================================================================
+//!
+//! \file PETScPCPerm.C
+//!
+//! \date Jan 15 2010
+//!
+//! \author Runar Holdahl / SINTEF
+//!
+//! \brief Permutation for PETSc preconditioners
+//!
+//==============================================================================
+
+
+#include "PETScPCPerm.h"
 #include <iostream>
+
 
 PetscErrorCode PCPermCreate(PCPerm **pcperm)
 {
@@ -52,13 +66,13 @@ PetscErrorCode PCPermApply(PC pc, Vec x, Vec y)
 {
 
   PCPerm *shell;
-  PCShellGetContext(pc,(void**)&shell);  
+  PCShellGetContext(pc,(void**)&shell);
   if (!shell->identity)
     VecPermute(x,*(shell->order),PETSC_FALSE);
   PCApply(shell->pc,x,y);
   if (!shell->identity)
     VecPermute(y,*(shell->order),PETSC_TRUE);
- 
+
   return 0;
 }
 
@@ -76,5 +90,3 @@ PetscErrorCode PCPermDestroy(PC pc)
 
   return 0;
 }
-
-#endif
