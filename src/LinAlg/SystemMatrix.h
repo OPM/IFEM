@@ -30,7 +30,7 @@ class SystemVector
 {
 public:
   //! \brief The available system vector formats.
-  enum Type { STD = 0, PETSC = 1 };
+  enum Type { STD = 0, PETSC = 1, ISTL = 2 };
 
   //! \brief Static method creating a vector of the given type.
   static SystemVector* create(const ProcessAdm& padm, Type vectorType = STD);
@@ -203,7 +203,7 @@ class SystemMatrix
 public:
   //! \brief The available system matrix formats.
   enum Type { DENSE = 0, SPR = 1, SPARSE = 2, SAMG = 3,
-              PETSC = 4 };
+              PETSC = 4, ISTL = 5 };
 
   //! \brief Static method creating a matrix of the given type.
   static SystemMatrix* create(const ProcessAdm& padm, Type matrixType,

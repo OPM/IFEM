@@ -52,6 +52,8 @@ bool AlgEqSystem::init (SystemMatrix::Type mtype, const LinSolParams* spar,
   SystemVector::Type vtype = SystemVector::STD;
   if (mtype == SystemMatrix::PETSC)
     vtype = SystemVector::PETSC;
+  if (mtype == SystemMatrix::ISTL)
+    vtype = SystemVector::ISTL;
 
   for (i = 0; i < b.size(); i++)
     if (!b[i])
