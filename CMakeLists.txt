@@ -33,6 +33,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
 include(cmake/Scripts/UseMultiArch.cmake)
 
 if(NOT IFEM_AS_SUBMODULE)
+  if(NOT IFEM_PATH)
+    set(IFEM_PATH ${PROJECT_SOURCE_DIR})
+  endif()
   find_package(IFEMDeps)
 endif()
 
@@ -188,7 +191,7 @@ else()
             COMPONENT doc
             PATTERN *.md5 EXCLUDE
             PATTERN *.map EXCLUDE)
-    install(FILES doc/petsc.pdf doc/sim-input.pdf doc/Tutorial/GettingStarted.pdf DESTINATION ${CMAKE_INSTALL_DOCDIR})
+    install(FILES doc/petsc.pdf doc/sim-input.pdf doc/Tutorials/GettingStarted.pdf DESTINATION ${CMAKE_INSTALL_DOCDIR})
   endif()
 endif()
 

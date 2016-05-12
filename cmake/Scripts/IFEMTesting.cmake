@@ -84,15 +84,15 @@ macro(add_check_target)
   endif()
   add_dependencies(check ${TEST_APPS})
   add_custom_target(testapps DEPENDS ${TEST_APPS})
-endmacro()
 
-if(NOT TARGET check-commits)
-  add_custom_target(check-commits
-                    COMMAND ${CMAKE_COMMAND}
-                            -DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}
-                            -DCMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}
-                            -P ${IFEM_CHECKCOMMITS_SCRIPT})
-endif()
+  if(NOT TARGET check-commits)
+    add_custom_target(check-commits
+                      COMMAND ${CMAKE_COMMAND}
+                              -DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+                              -DCMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}
+                              -P ${IFEM_CHECKCOMMITS_SCRIPT})
+  endif()
+endmacro()
 
 set(IFEM_TESTING_INCLUDED 1)
 if(IFEM_INTREE_BUILD)
