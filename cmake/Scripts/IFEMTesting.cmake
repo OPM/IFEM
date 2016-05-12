@@ -45,7 +45,25 @@ macro(IFEM_add_test_app path workdir name)
 endmacro()
 
 macro(IFEM_add_unittests IFEM_PATH)
-  IFEM_add_test_app("${IFEM_PATH}/src/Utility/Test/*.C;${IFEM_PATH}/src/ASM/Test/*.C;${IFEM_PATH}/src/LinAlg/Test/*.C;${IFEM_PATH}/src/SIM/Test/*.C"
+  set(TEST_SOURCES ${IFEM_PATH}/src/LinAlg/Test/TestLinSolParams.C
+                   ${IFEM_PATH}/src/LinAlg/Test/TestMatrix.C
+                   ${IFEM_PATH}/src/LinAlg/Test/TestSAM.C
+                   ${IFEM_PATH}/src/Utility/Test/TestBDF.C
+                   ${IFEM_PATH}/src/Utility/Test/TestControlFIFO.C
+                   ${IFEM_PATH}/src/Utility/Test/TestCoordinateMapping.C
+                   ${IFEM_PATH}/src/Utility/Test/TestElementBlock.C
+                   ${IFEM_PATH}/src/Utility/Test/TestLegendre.C
+                   ${IFEM_PATH}/src/Utility/Test/TestScopedLogger.C
+                   ${IFEM_PATH}/src/Utility/Test/TestSplineUtils.C
+                   ${IFEM_PATH}/src/Utility/Test/TestStringUtils.C
+                   ${IFEM_PATH}/src/Utility/Test/TestTensor4.C
+                   ${IFEM_PATH}/src/Utility/Test/TestTensor.C
+                   ${IFEM_PATH}/src/Utility/Test/TestThreadGroups.C
+                   ${IFEM_PATH}/src/Utility/Test/TestUtilities.C
+                   ${IFEM_PATH}/src/Utility/Test/TestVec3Oper.C
+                   ${IFEM_PATH}/src/SIM/Test/TestInitialConditions.C)
+
+  IFEM_add_test_app("${TEST_SOURCES}"
                     ${IFEM_PATH}
                     IFEM
                     ${IFEM_LIBRARIES} ${IFEM_DEPLIBS})
