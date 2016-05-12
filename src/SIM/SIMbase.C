@@ -1581,7 +1581,13 @@ void SIMbase::getBoundaryNodes (int pcode, IntVec& glbNodes, Vec3Vec* XYZ) const
     if (abs(p->pindx) == pcode && (pch = this->getPatch(p->patch)))
       switch (pch->getNoParamDim() - abs(p->ldim)) {
       case 1: // The boundary is of one dimension lower than the patch
-        pch->getBoundaryNodes(abs(p->lindx),glbNodes);
+      {
+        IntVec glbNodes2;
+        pch->getBoundaryNodes(abs(p->lindx),glbNodes2);
+        for (const auto& it : glbNodes2)
+          if (std::find(glbNodes.begin(), glbNodes.end(), it) == glbNodes.end())
+            glbNodes.push_back(it);
+
         for (i = last; XYZ && i < glbNodes.size(); i++)
           if ((node = pch->getNodeIndex(glbNodes[i],true)))
             XYZ->push_back(pch->getCoord(node));
@@ -1589,6 +1595,7 @@ void SIMbase::getBoundaryNodes (int pcode, IntVec& glbNodes, Vec3Vec* XYZ) const
             XYZ->push_back(Vec3());
         last = glbNodes.size();
         break;
+      }
 
       case 0: // The boundary and the patch are of same dimension
         for (i = 1; i <= pch->getNoNodes(); i++, last++)

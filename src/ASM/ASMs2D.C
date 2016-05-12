@@ -1302,44 +1302,40 @@ bool ASMs2D::updateCoords (const Vector& displ)
 }
 
 
-void ASMs2D::getBoundaryNodes (int lIndex, IntVec& nodes) const
+void ASMs2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis) const
 {
-  if (!surf) return; // silently ignore empty patches
+  if (basis == 0)
+    basis = 1;
 
-  const int p1 = surf->order_u();
-  const int p2 = surf->order_v();
-  const int n1 = surf->numCoefs_u();
-  const int n2 = surf->numCoefs_v();
+  if (!this->getBasis(basis)) return; // silently ignore empty patches
+
 #if SP_DEBUG > 1
   size_t last = nodes.size();
 #endif
 
-  int iel = 0;
-  for (int i2 = p2; i2 <= n2; i2++)
-    for (int i1 = p1; i1 <= n1; i1++, iel++)
-      if (surf->knotSpan(0,i1-1) > 0.0)
-	if (surf->knotSpan(1,i2-1) > 0.0)
-        {
-	  int inod = 0, lnod = 0;
-	  for (int j2 = p2; j2 > 0; j2--)
-	    for (int j1 = p1; j1 > 0; j1--, lnod++)
-	    {
-	      if      (lIndex == 1 && i1 == p1 && j1 == p1)
-		inod = MNPC[iel][lnod]; // left edge
-	      else if (lIndex == 3 && i2 == p2 && j2 == p2)
-		inod = MNPC[iel][lnod]; // bottom edge
-	      else if (lIndex == 2 && i1 == n1 && j1 == 1)
-		inod = MNPC[iel][lnod]; // right edge
-	      else if (lIndex == 4 && i2 == n2 && j2 == 1)
-		inod = MNPC[iel][lnod]; // top edge
-	      else
-		continue;
+  int n1, n2, node = 1;
+  for (char i = 1; i <= basis; i++)
+    if (!this->getSize(n1,n2,i))
+      return;
+    else if (i < basis)
+      node += n1*n2;
 
-	      inod = MLGN[inod];
-	      if (std::find(nodes.begin(),nodes.end(),inod) == nodes.end())
-		nodes.push_back(inod);
-	    }
-	}
+  switch (lIndex)
+    {
+    case  2: // Right edge (positive I-direction)
+      node += n1-1;
+    case 1: // Left edge (negative I-direction)
+      for (int i2 = 1; i2 <= n2; i2++, node += n1)
+        nodes.push_back(getNodeID(node));
+      break;
+
+    case  4: // Back edge (positive J-direction)
+      node += n1*(n2-1);
+    case  3: // Front edge (negative J-direction)
+      for (int i1 = 1; i1 <= n1; i1++, node++)
+        nodes.push_back(getNodeID(node));
+      break;
+    }
 
 #if SP_DEBUG > 1
   std::cout <<"Boundary nodes in patch "<< idx+1 <<" edge "<< lIndex <<":";

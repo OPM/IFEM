@@ -108,7 +108,7 @@ public:
   //! \brief Finds the global number of the node on a patch end.
   //! \param[in] lIndex Local index of the end point
   //! \param glbNodes Array of global boundary node numbers
-  virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes) const;
+  virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes, int) const;
 
   //! \brief Finds the node that is closest to the given point.
   //! \param[in] X Global coordinates of point to search for

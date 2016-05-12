@@ -1009,3 +1009,13 @@ void ASMs2Dmx::generateThreadGroups (const Integrand& integrand, bool silence)
 
   ASMs2D::generateThreadGroups(p1-1, p2-1, silence);
 }
+
+
+void ASMs2Dmx::getBoundaryNodes (int lIndex, IntVec& nodes, int basis) const
+{
+  if (basis > 0)
+    this->ASMs2D::getBoundaryNodes(lIndex, nodes, basis);
+  else
+    for (size_t b = 1; b <= this->getNoBasis(); ++b)
+      ASMs2D::getBoundaryNodes(lIndex, nodes, b);
+}
