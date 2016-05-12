@@ -63,6 +63,9 @@ macro(IFEM_add_unittests IFEM_PATH)
   # Parallel unit tests. These all run with 4 processes.
   if(MPI_FOUND)
     set(TEST_SRCS_MPI ${IFEM_PATH}/src/ASM/Test/MPI/TestDomainDecomposition.C)
+    if(PETSC_FOUND)
+      list(APPEND TEST_SRCS_MPI ${IFEM_PATH}/src/LinAlg/Test/MPI/TestPETScMatrix.C)
+    endif()
     add_executable(IFEM-MPI-test EXCLUDE_FROM_ALL
                    ${IFEM_PATH}/src/IFEM-test.C ${TEST_SRCS_MPI})
     target_link_libraries(IFEM-MPI-test ${IFEM_LIBRARIES} ${IFEM_DEPLIBS} gtest)

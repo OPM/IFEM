@@ -3,11 +3,11 @@
   <gamg>
     <type>agg</type>
     <repartition>1</repartition>
-    <use_agg_smoother>1</use_agg_smoother>
+    <use_agg_gasm>1</use_agg_gasm>
     <proc_eq_limit>1000</proc_eq_limit>
     <reuse_interpolation>1</reuse_interpolation>
     <threshold>0.1</threshold>
   </gamg>
-  <finesmoother>compositedir</finesmoother>
+  <multigrid finesmoother="compositedir"/>
   <dirsmoother type="ilu" order="12"/>
 </linearsolver>

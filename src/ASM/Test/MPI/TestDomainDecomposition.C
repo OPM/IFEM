@@ -93,24 +93,21 @@ TEST_P(TestDomainDecomposition2D, SetupSingleBasis)
   sim.preprocess();
 
   const ProcessAdm& adm = sim.getProcessAdm();
-  // TODO: unnecessary cast and setup call after integration.
-  DomainDecomposition& dd = const_cast<DomainDecomposition&>(adm.dd);
-  dd.setup(adm, sim);
   const SAM* sam = sim.getSAM();
   str.str("");
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient";
   str << GetParam() << "_nodes" << adm.getProcId() << ".ref";
   IntVec B = readIntVector(str.str());
-  check_intvectors_equal(dd.getMLGN(), B);
+  check_intvectors_equal(adm.dd.getMLGN(), B);
   ASSERT_EQ(sam->getNoNodes(), 9);
   const std::vector<int> maxeqs {16, 26, 36, 44};
-  ASSERT_EQ(dd.getMaxEq(), maxeqs[adm.getProcId()]);
+  ASSERT_EQ(adm.dd.getMaxEq(), maxeqs[adm.getProcId()]);
   str.str("");
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient";
   str << GetParam() << "_eqs" << adm.getProcId() << ".ref";
   B = readIntVector(str.str());
-  check_intvectors_equal(dd.getMLGEQ(), B);
-  ASSERT_EQ(dd.getMaxDOF(), 2*dd.getMaxNode());
+  check_intvectors_equal(adm.dd.getMLGEQ(), B);
+  ASSERT_EQ(adm.dd.getMaxDOF(), 2*adm.dd.getMaxNode());
 }
 
 
@@ -124,9 +121,6 @@ TEST_P(TestDomainDecomposition2D, SetupSingleBasisGlobalLM)
   sim.preprocess();
 
   const ProcessAdm& adm = sim.getProcessAdm();
-  // TODO: unnecessary cast and setup call after integration.
-  DomainDecomposition& dd = const_cast<DomainDecomposition&>(adm.dd);
-  dd.setup(adm, sim);
 
   str.str("");
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient";
@@ -140,7 +134,7 @@ TEST_P(TestDomainDecomposition2D, SetupSingleBasisGlobalLM)
         ++it;
     B.push_back(17);
   }
-  check_intvectors_equal(dd.getMLGEQ(), B);
+  check_intvectors_equal(adm.dd.getMLGEQ(), B);
 }
 
 
@@ -154,19 +148,16 @@ TEST_P(TestDomainDecomposition2D, SetupSingleBasisBlockEqsComponent)
   sim.preprocess();
 
   const ProcessAdm& adm = sim.getProcessAdm();
-  // TODO: unnecessary cast and setup call after integration.
-  DomainDecomposition& dd = const_cast<DomainDecomposition&>(adm.dd);
-  dd.setup(adm, sim);
   str.str("");
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient";
   str << GetParam() << "_eqs" << adm.getProcId() << ".ref";
   IntVec B = readIntVector(str.str());
-  check_intvectors_equal(dd.getMLGEQ(1), B);
+  check_intvectors_equal(adm.dd.getMLGEQ(1), B);
   str.str("");
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_blocks_components_orient";
   str << GetParam() << "_block2_eqs" << adm.getProcId() << ".ref";
   B = readIntVector(str.str());
-  check_intvectors_equal(dd.getMLGEQ(2), B);
+  check_intvectors_equal(adm.dd.getMLGEQ(2), B);
 }
 
 
@@ -180,26 +171,23 @@ TEST_P(TestDomainDecomposition2D, SetupMixedBasis)
   sim.preprocess();
 
   const ProcessAdm& adm = sim.getProcessAdm();
-  // TODO: unnecessary cast and setup call after integration.
-  DomainDecomposition& dd = const_cast<DomainDecomposition&>(adm.dd);
-  dd.setup(adm, sim);
   const SAM* sam = sim.getSAM();
   str.str("");
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_mixed_orient";
   str << GetParam() << "_nodes" << adm.getProcId() << ".ref";
   IntVec B = readIntVector(str.str());
-  check_intvectors_equal(dd.getMLGN(), B);
+  check_intvectors_equal(adm.dd.getMLGN(), B);
   ASSERT_EQ(sam->getNoNodes(), 25);
   ASSERT_EQ(sam->getNoDOFs(), 50);
   const std::vector<int> maxeqs {48, 81, 114, 140};
-  ASSERT_EQ(dd.getMaxEq(), maxeqs[adm.getProcId()]);
+  ASSERT_EQ(adm.dd.getMaxEq(), maxeqs[adm.getProcId()]);
   str.str("");
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_mixed_orient";
   str << GetParam() << "_eqs" << adm.getProcId() << ".ref";
   B = readIntVector(str.str());
-  check_intvectors_equal(dd.getMLGEQ(), B);
-  ASSERT_EQ(dd.getMinDOF(), 2*(dd.getMinNode()-1)+1);
-  ASSERT_EQ(dd.getMaxDOF(), 2*dd.getMaxNode());
+  check_intvectors_equal(adm.dd.getMLGEQ(), B);
+  ASSERT_EQ(adm.dd.getMinDOF(), 2*(adm.dd.getMinNode()-1)+1);
+  ASSERT_EQ(adm.dd.getMaxDOF(), 2*adm.dd.getMaxNode());
 }
 
 
@@ -213,24 +201,21 @@ TEST_P(TestDomainDecomposition2D, SetupMixedBasisBlockEqsBasis)
   sim.preprocess();
 
   const ProcessAdm& adm = sim.getProcessAdm();
-  // TODO: unnecessary cast and setup call after integration.
-  DomainDecomposition& dd = const_cast<DomainDecomposition&>(adm.dd);
-  dd.setup(adm, sim);
   str.str("");
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_mixed_orient";
   str << GetParam() << "_eqs" << adm.getProcId() << ".ref";
   IntVec B = readIntVector(str.str());
-  check_intvectors_equal(dd.getMLGEQ(0), B);
+  check_intvectors_equal(adm.dd.getMLGEQ(0), B);
   str.str("");
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_blocks_basis_orient";
   str << GetParam() << "_block1_eqs" << adm.getProcId() << ".ref";
   B = readIntVector(str.str());
-  check_intvectors_equal(dd.getMLGEQ(1), B);
+  check_intvectors_equal(adm.dd.getMLGEQ(1), B);
   str.str("");
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_blocks_basis_orient";
   str << GetParam() << "_block2_eqs" << adm.getProcId() << ".ref";
   B = readIntVector(str.str());
-  check_intvectors_equal(dd.getMLGEQ(2), B);
+  check_intvectors_equal(adm.dd.getMLGEQ(2), B);
 }
 
 
@@ -244,9 +229,6 @@ TEST_P(TestDomainDecomposition2D, SetupMixedBasisBlockEqsBasisGlobalLM)
   sim.preprocess();
 
   const ProcessAdm& adm = sim.getProcessAdm();
-  // TODO: unnecessary cast and setup call after integration.
-  DomainDecomposition& dd = const_cast<DomainDecomposition&>(adm.dd);
-  dd.setup(adm, sim);
 
   str.str("");
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_mixed_orient";
@@ -260,12 +242,12 @@ TEST_P(TestDomainDecomposition2D, SetupMixedBasisBlockEqsBasisGlobalLM)
         ++it;
     B.push_back(49);
   }
-  check_intvectors_equal(dd.getMLGEQ(0), B);
+  check_intvectors_equal(adm.dd.getMLGEQ(0), B);
   str.str("");
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_blocks_basis_orient";
   str << GetParam() << "_block1_eqs" << adm.getProcId() << ".ref";
   B = readIntVector(str.str());
-  check_intvectors_equal(dd.getMLGEQ(1), B);
+  check_intvectors_equal(adm.dd.getMLGEQ(1), B);
   str.str("");
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_blocks_basis_orient";
   str << GetParam() << "_block2_eqs" << adm.getProcId() << ".ref";
@@ -278,7 +260,7 @@ TEST_P(TestDomainDecomposition2D, SetupMixedBasisBlockEqsBasisGlobalLM)
         ++it;
     B.push_back(19);
   }
-  check_intvectors_equal(dd.getMLGEQ(2), B);
+  check_intvectors_equal(adm.dd.getMLGEQ(2), B);
 }
 
 
@@ -292,24 +274,21 @@ TEST_P(TestDomainDecomposition3D, SetupSingleBasis)
   sim.preprocess();
 
   const ProcessAdm& adm = sim.getProcessAdm();
-  // TODO: unnecessary cast and setup call after integration.
-  DomainDecomposition& dd = const_cast<DomainDecomposition&>(adm.dd);
-  dd.setup(adm, sim);
   const SAM* sam = sim.getSAM();
   str.str("");
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_orient";
   str << GetParam() << "_nodes" << adm.getProcId() << ".ref";
   IntVec B = readIntVector(str.str());
-  check_intvectors_equal(dd.getMLGN(), B);
+  check_intvectors_equal(adm.dd.getMLGN(), B);
   ASSERT_EQ(sam->getNoNodes(), 45);
   const std::vector<int> maxeqs {111, 195, 254, 300};
-  ASSERT_EQ(dd.getMaxEq(), maxeqs[adm.getProcId()]);
+  ASSERT_EQ(adm.dd.getMaxEq(), maxeqs[adm.getProcId()]);
   str.str("");
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_orient";
   str << GetParam() << "_eqs" << adm.getProcId() << ".ref";
   B = readIntVector(str.str());
-  check_intvectors_equal(dd.getMLGEQ(), B);
-  ASSERT_EQ(dd.getMaxDOF(), 3*dd.getMaxNode());
+  check_intvectors_equal(adm.dd.getMLGEQ(), B);
+  ASSERT_EQ(adm.dd.getMaxDOF(), 3*adm.dd.getMaxNode());
 }
 
 
@@ -326,19 +305,16 @@ TEST_P(TestDomainDecomposition3D, SetupSingleBasisBlockEqsComponent)
   sim.preprocess();
 
   const ProcessAdm& adm = sim.getProcessAdm();
-  // TODO: unnecessary cast and setup call after integration.
-  DomainDecomposition& dd = const_cast<DomainDecomposition&>(adm.dd);
-  dd.setup(adm, sim);
   str.str("");
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_orient";
   str << GetParam() << "_eqs" << adm.getProcId() << ".ref";
   IntVec B = readIntVector(str.str());
-  check_intvectors_equal(dd.getMLGEQ(1), B);
+  check_intvectors_equal(adm.dd.getMLGEQ(1), B);
   str.str("");
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_orient";
   str << GetParam() << "_nodes" << adm.getProcId() << ".ref";
   B = readIntVector(str.str());
-  check_intvectors_equal(dd.getMLGEQ(2), B);
+  check_intvectors_equal(adm.dd.getMLGEQ(2), B);
 }
 
 
@@ -355,23 +331,20 @@ TEST_P(TestDomainDecomposition3D, SetupMixedBasis)
   sim.preprocess();
 
   const ProcessAdm& adm = sim.getProcessAdm();
-  // TODO: unnecessary cast and setup call after integration.
-  DomainDecomposition& dd = const_cast<DomainDecomposition&>(adm.dd);
-  dd.setup(adm, sim);
   const SAM* sam = sim.getSAM();
   str.str("");
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_mixed_orient";
   str << GetParam() << "_nodes" << adm.getProcId() << ".ref";
   IntVec B = readIntVector(str.str());
-  check_intvectors_equal(dd.getMLGN(), B);
+  check_intvectors_equal(adm.dd.getMLGN(), B);
   ASSERT_EQ(sam->getNoNodes(), 157);
   const std::vector<int> maxeqs {337, 607, 828, 1007};
-  ASSERT_EQ(dd.getMaxEq(), maxeqs[adm.getProcId()]);
+  ASSERT_EQ(adm.dd.getMaxEq(), maxeqs[adm.getProcId()]);
   str.str("");
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_mixed_orient";
   str << GetParam() << "_eqs" << adm.getProcId() << ".ref";
   B = readIntVector(str.str());
-  check_intvectors_equal(dd.getMLGEQ(), B);
+  check_intvectors_equal(adm.dd.getMLGEQ(), B);
 }
 
 

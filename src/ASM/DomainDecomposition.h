@@ -103,6 +103,8 @@ public:
   int getMinEq(size_t idx = 0) const { return blocks[idx].minEq; }
   //! \brief Get last equation owned by this process.
   int getMaxEq(size_t idx = 0) const { return blocks[idx].maxEq; }
+  //! \brief Get total number of equations in a block.
+  int getNoGlbEqs(size_t idx = 0) const { return blocks[idx].nGlbEqs; }
   //! \brief Get first node owned by this process.
   int getMinNode() const { return minNode; }
   //! \brief Get last node owned by this process.
@@ -193,6 +195,7 @@ private:
     std::vector<int> MLGEQ; //!< Process-local-to-global equation numbers for block.
     int minEq; //!< First equation we own in block.
     int maxEq; //!< Last equation we own in block.
+    int nGlbEqs; //!< Total matrix size
     std::set<int> localEqs; //!< Local equations belonging to the block.
     std::map<int,int> G2LEQ; //!< Maps from local total matrix index to local block index
   };
