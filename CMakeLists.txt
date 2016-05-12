@@ -86,21 +86,154 @@ configure_file(${PROJECT_SOURCE_DIR}/cmake/Modules/IFEMFlags.cmake.in
                IFEMFlags.cmake @ONLY)
 
 # Make the IFEM library
-file(GLOB IFEM_SRCS ${PROJECT_SOURCE_DIR}/src/IFEM.C
-                    ${PROJECT_SOURCE_DIR}/src/ASM/*.C
-                    ${PROJECT_SOURCE_DIR}/src/Eig/*.C
-                    ${PROJECT_SOURCE_DIR}/src/LinAlg/*.C
-                    ${PROJECT_SOURCE_DIR}/src/SIM/*.C
-                    ${PROJECT_SOURCE_DIR}/src/Utility/*.C
-                    ${PROJECT_SOURCE_DIR}/src/ASM/*.f
-                    ${PROJECT_SOURCE_DIR}/src/Eig/*.f
-                    ${PROJECT_SOURCE_DIR}/3rdparty/expreval/*.cpp)
-string(REGEX REPLACE "${PROJECT_SOURCE_DIR}/src/ASM/ASMs.DInterpolate.C" "" IFEM_SRCS "${IFEM_SRCS}")
+set(IFEM_ASM_SRCS src/ASM/AlgEqSystem.C
+                  src/ASM/ASM1D.C
+                  src/ASM/ASM2D.C
+                  src/ASM/ASM3D.C
+                  src/ASM/ASMbase.C
+                  src/ASM/ASMmxBase.C
+                  src/ASM/ASMs1D.C
+                  src/ASM/ASMs1DC1.C
+                  src/ASM/ASMs1DLag.C
+                  src/ASM/ASMs1DSpec.C
+                  src/ASM/ASMs2D.C
+                  src/ASM/ASMs2DC1.C
+                  src/ASM/ASMs2DIB.C
+                  src/ASM/ASMs2DLag.C
+                  src/ASM/ASMs2Dmx.C
+                  src/ASM/ASMs2DmxLag.C
+                  src/ASM/ASMs2Drecovery.C
+                  src/ASM/ASMs2DSpec.C
+                  src/ASM/ASMs3D.C
+                  src/ASM/ASMs3DLag.C
+                  src/ASM/ASMs3Dmx.C
+                  src/ASM/ASMs3DmxLag.C
+                  src/ASM/ASMs3Drecovery.C
+                  src/ASM/ASMs3DSpec.C
+                  src/ASM/ASMstruct.C
+                  src/ASM/ASMunstruct.C
+                  src/ASM/BDFMats.C
+                  src/ASM/ElmMats.C
+                  src/ASM/Field.C
+                  src/ASM/Fields.C
+                  src/ASM/GlbForceVec.C
+                  src/ASM/GlbL2projector.C
+                  src/ASM/GlbNorm.C
+                  src/ASM/HHTMats.C
+                  src/ASM/IBGeometries.C
+                  src/ASM/ImmersedBoundaries.C
+                  src/ASM/IntegrandBase.C
+                  src/ASM/Lagrange.C
+                  src/ASM/LagrangeField2D.C
+                  src/ASM/LagrangeField3D.C
+                  src/ASM/LagrangeFields2D.C
+                  src/ASM/LagrangeFields3D.C
+                  src/ASM/NewmarkMats.C
+                  src/ASM/SAMpatch.C
+                  src/ASM/SAMpatchPara.C
+                  src/ASM/SplineField2D.C
+                  src/ASM/SplineField3D.C
+                  src/ASM/SplineFields2D.C
+                  src/ASM/SplineFields3D.C
+                  src/ASM/SplineInterpolator.C
+                  src/ASM/dslbln.f
+                  src/ASM/dsolv3.f)
+
+set(IFEM_EIG_SRCS src/Eig/EigSolver.C
+                   src/Eig/eig_drv1.f
+                   src/Eig/eig_drv2.f
+                   src/Eig/eig_drv3.f
+                   src/Eig/eig_drv4.f
+                   src/Eig/eig_drv5.f
+                   src/Eig/eig_drv6.f)
+
+set(IFEM_LINALG_SRCS src/LinAlg/DenseMatrix.C
+                     src/LinAlg/LinAlgInit.C
+                     src/LinAlg/LinSolParams.C
+                     src/LinAlg/matrix.C
+                     src/LinAlg/MatVec.C
+                     src/LinAlg/PCPerm.C
+                     src/LinAlg/PCProd.C
+                     src/LinAlg/PCScale.C
+                     src/LinAlg/PETScBlockMatrix.C
+                     src/LinAlg/PETScMatrix.C
+                     src/LinAlg/ProcessAdm.C
+                     src/LinAlg/SAM.C
+                     src/LinAlg/SparseMatrix.C
+                     src/LinAlg/SPRMatrix.C
+                     src/LinAlg/SystemMatrix.C)
+
+set(IFEM_SIM_SRCS src/SIM/AdaptiveSIM.C
+                   src/SIM/EigenModeSIM.C
+                   src/SIM/ForceIntegrator.C
+                   src/SIM/GenAlphaSIM.C
+                   src/SIM/HHTSIM.C
+                   src/SIM/InitialConditionHandler.C
+                   src/SIM/MultiStepSIM.C
+                   src/SIM/NewmarkNLSIM.C
+                   src/SIM/NewmarkSIM.C
+                   src/SIM/NonLinSIM.C
+                   src/SIM/SIM1D.C
+                   src/SIM/SIM2D.C
+                   src/SIM/SIM3D.C
+                   src/SIM/SIMbase.C
+                   src/SIM/SIMdependency.C
+                   src/SIM/SIMgeneric.C
+                   src/SIM/SIMinput.C
+                   src/SIM/SIMoptions.C
+                   src/SIM/SIMoutput.C
+                   src/SIM/TimeStep.C)
+
+set(IFEM_UTIL_SRCS src/Utility/AnaSol.C
+                   src/Utility/BDF.C
+                   src/Utility/ControlFIFO.C
+                   src/Utility/CoordinateMapping.C
+                   src/Utility/DataExporter.C
+                   src/Utility/ElementBlock.C
+                   src/Utility/ExprFunctions.C
+                   src/Utility/FieldFunctions.C
+                   src/Utility/Function.C
+                   src/Utility/Functions.C
+                   src/Utility/GaussQuadrature.C
+                   src/Utility/HDF5Writer.C
+                   src/Utility/LagrangeInterpolator.C
+                   src/Utility/Legendre.C
+                   src/Utility/LogStream.C
+                   src/Utility/Math.C
+                   src/Utility/MPC.C
+                   src/Utility/NodeVecFunc.C
+                   src/Utility/Profiler.C
+                   src/Utility/ScopedLogger.C
+                   src/Utility/SplineUtils.C
+                   src/Utility/StringUtils.C
+                   src/Utility/Tensor4.C
+                   src/Utility/Tensor.C
+                   src/Utility/ThreadGroups.C
+                   src/Utility/Utilities.C
+                   src/Utility/Vec3Oper.C
+                   src/Utility/VTF.C
+                   src/Utility/XMLWriter.C)
+
+set(THIRDPARTY_SRCS 3rdparty/expreval/except.cpp
+                    3rdparty/expreval/expr.cpp
+                    3rdparty/expreval/func.cpp
+                    3rdparty/expreval/funclist.cpp
+                    3rdparty/expreval/node.cpp
+                    3rdparty/expreval/parser.cpp
+                    3rdparty/expreval/vallist.cpp)
+
 if(LRSPLINE_FOUND OR LRSpline_FOUND)
-  file(GLOB LR_SRCS ${PROJECT_SOURCE_DIR}/src/ASM/LR/*.C)
-  list(APPEND IFEM_SRCS ${LR_SRCS})
+  list(APPEND IFEM_ASM_SRCS src/ASM/LR/ASMLRSpline.C
+                            src/ASM/LR/ASMu2D.C
+                            src/ASM/LR/ASMu2DIB.C
+                            src/ASM/LR/ASMu2Dmx.C
+                            src/ASM/LR/ASMu2Dmxrecovery.C
+                            src/ASM/LR/ASMu2Drecovery.C
+                            src/ASM/LR/ASMu3D.C)
 endif()
-add_library(IFEM ${IFEM_SRCS} ${TINYXML_SRCS})
+add_library(IFEM src/IFEM.C ${IFEM_ASM_SRCS} ${IFEM_EIG_SRCS}
+                            ${IFEM_LINALG_SRCS} ${IFEM_UTIL_SRCS}
+                            ${IFEM_SIM_SRCS} ${THIRDPARTY_SRCS} ${TINYXML_SRCS})
 target_link_libraries(IFEM ${IFEM_DEPLIBS})
 set_target_properties(IFEM PROPERTIES VERSION ${IFEM_VERSION}
                            SOVERSION ${IFEM_ABI_VERSION})
