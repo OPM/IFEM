@@ -105,6 +105,10 @@ protected:
   //! \details Reimplemented to account for twist angle in beam problems.
   virtual bool createFEMmodel(char = 'y');
 
+  //! \brief Creates G2 representation of a line.
+  //! \param geo XML block with geometry definition
+  std::string createDefaultG2(const TiXmlElement* geo) const;
+
   //! \brief Creates a default single-patch geometry.
   virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const;
 

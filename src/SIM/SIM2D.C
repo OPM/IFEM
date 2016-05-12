@@ -784,7 +784,7 @@ void SIM2D::clonePatches (const PatchVec& patches,
 }
 
 
-ASMbase* SIM2D::createDefaultGeometry (const TiXmlElement* geo) const
+std::string SIM2D::createDefaultG2 (const TiXmlElement* geo) const
 {
   std::string g2("200 1 0 0\n");
   g2.append(nsd > 2 ? "3" : "2");
@@ -836,7 +836,13 @@ ASMbase* SIM2D::createDefaultGeometry (const TiXmlElement* geo) const
   g2.append(str.str());
   g2.append("\n");
 
-  std::istringstream unitSquare(g2);
+  return g2;
+}
+
+
+ASMbase* SIM2D::createDefaultGeometry (const TiXmlElement* geo) const
+{
+  std::istringstream unitSquare(createDefaultG2(geo));
   return this->readPatch(unitSquare,1,nf);
 }
 

@@ -125,6 +125,10 @@ protected:
   bool addConstraint(int patch, int lndx, int line, double xi,
                      int dirs, char basis = 1);
 
+  //! \brief Creates G2 representation of a cube.
+  //! \param geo XML block with geometry definition
+  std::string createDefaultG2(const TiXmlElement* geo) const;
+
   //! \brief Creates a default single-patch geometry.
   virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const;
 
