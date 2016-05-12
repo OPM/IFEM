@@ -12,7 +12,6 @@
 //==============================================================================
 
 #include "PETScMatrix.h"
-#ifdef HAS_PETSC
 #include "LinSolParams.h"
 #include "LinAlgInit.h"
 #include "SAMpatchPara.h"
@@ -751,5 +750,3 @@ PETScVector operator/(SystemMatrix& A, const PETScVector& b)
   A.solve(b, results);
   return results;
 }
-
-#endif // HAS_PETSC
