@@ -787,7 +787,7 @@ bool SIM3D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
 }
 
 
-ASMbase* SIM3D::createDefaultGeometry (const TiXmlElement* geo) const
+std::string SIM3D::createDefaultG2 (const TiXmlElement* geo) const
 {
   std::string g2("700 1 0 0\n3 ");
 
@@ -856,7 +856,13 @@ ASMbase* SIM3D::createDefaultGeometry (const TiXmlElement* geo) const
     g2.append(rational ? "1.0\n" : "\n");
   }
 
-  std::istringstream unitCube(g2);
+  return g2;
+}
+
+
+ASMbase* SIM3D::createDefaultGeometry (const TiXmlElement* geo) const
+{
+  std::istringstream unitCube(createDefaultG2(geo));
   return this->readPatch(unitCube,1,nf);
 }
 

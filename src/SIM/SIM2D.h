@@ -35,7 +35,7 @@ public:
   SIM2D(unsigned char n1 = 2, bool check = false);
   //! \brief Constructor used for mixed problems.
   //! \param[in] unf Dimension of the primary solution fields
-  //! \param[in] check If \e true, ensure the model is in a right-hand system
+  //! \param[in] check If \e true,
   SIM2D(const CharVec& unf, bool check = false);
   //! \brief Constructor that also initializes the integrand pointer.
   //! \param[in] itg Pointer to the integrand of the problem to solve
@@ -119,7 +119,12 @@ protected:
   virtual bool addConstraint(int patch, int lndx, int ldim,
                              int dirs, int code, int& ngnod, char basis = 1);
 
+  //! \brief Creates G2 representation of a square.
+  //! \param geo XML block with geometry definition
+  std::string createDefaultG2(const TiXmlElement* geo) const;
+
   //! \brief Creates a default single-patch geometry.
+  //! \param geo XML block with geometry definition.
   virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const;
 
 protected:
