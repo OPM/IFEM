@@ -47,6 +47,25 @@ SIM3D::SIM3D (IntegrandBase* itg, unsigned char n, bool check) : SIMgeneric(itg)
 }
 
 
+bool SIM3D::addConnection(int master, int slave, int mFace, int sFace, int orient, bool coordCheck)
+{
+  int lmaster = getLocalPatchIndex(master);
+  int lslave = getLocalPatchIndex(slave);
+  if (lmaster > 0 && lslave > 0) {
+    IFEM::cout <<"\tConnecting P"<< lslave <<" F"<< sFace
+               <<" to P"<< lmaster <<" F"<< mFace
+               <<" orient "<< orient << std::endl;
+    ASMs3D* spch = static_cast<ASMs3D*>(myModel[lslave-1]);
+    ASMs3D* mpch = static_cast<ASMs3D*>(myModel[lmaster-1]);
+    if (!spch->connectPatch(sFace,*mpch,mFace,orient,coordCheck))
+      return false;
+  } else
+    adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave, mFace, sFace, orient, 2});
+
+  return true;
+}
+
+
 bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
@@ -162,18 +181,8 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
                   << master <<" "<< slave << std::endl;
         return false;
       }
-      int lmaster = getLocalPatchIndex(master);
-      int lslave = getLocalPatchIndex(slave);
-      if (lmaster > 0 && lslave > 0) {
-        IFEM::cout <<"\tConnecting P"<< lslave <<" F"<< sFace
-                   <<" to P"<< lmaster <<" F"<< mFace
-                   <<" orient "<< orient << std::endl;
-        ASMs3D* spch = static_cast<ASMs3D*>(myModel[lslave-1]);
-        ASMs3D* mpch = static_cast<ASMs3D*>(myModel[lmaster-1]);
-        if (!spch->connectPatch(sFace,*mpch,mFace,orient))
-          return false;
-      } else
-        adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave, mFace, sFace, orient, 2});
+      if (!addConnection(master, slave, mFace, sFace, orient))
+        return false;
     }
   }
 
@@ -789,17 +798,47 @@ bool SIM3D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
 
 std::string SIM3D::createDefaultG2 (const TiXmlElement* geo) const
 {
-  std::string g2("700 1 0 0\n3 ");
-
   bool rational = false;
   utl::getAttribute(geo,"rational",rational);
   if (rational)
     IFEM::cout <<"  Rational basis"<< std::endl;
 
-  g2.append(rational ? "1\n" : "0\n");
-  g2.append("2 2\n0 0 1 1\n"
-            "2 2\n0 0 1 1\n"
-            "2 2\n0 0 1 1\n");
+  double scale = 1.0;
+  if (utl::getAttribute(geo,"scale",scale))
+    IFEM::cout <<"  Scale: "<< scale << std::endl;
+
+  double Lx = 1.0, Ly = 1.0, Lz = 1.0;
+  if (utl::getAttribute(geo,"Lx",Lx))
+    IFEM::cout <<"  Length in X: "<< Lx << std::endl;
+  Lx *= scale;
+  if (utl::getAttribute(geo,"Ly",Ly))
+    IFEM::cout <<"  Length in Y: "<< Ly << std::endl;
+  Ly *= scale;
+  if (utl::getAttribute(geo,"Lz",Lz))
+    IFEM::cout <<"  Length in Z: "<< Lz << std::endl;
+  Lz *= scale;
+
+  int nx = 1;
+  int ny = 1;
+  int nz = 1;
+  if (utl::getAttribute(geo,"nx",nx))
+    IFEM::cout << "  Split in X: " << nx  << std::endl;
+  if (utl::getAttribute(geo,"ny",ny))
+    IFEM::cout << "  Split in Y: " << ny << std::endl;
+  if (utl::getAttribute(geo,"nz",nz))
+    IFEM::cout << "  Split in Z: " << nz << std::endl;
+
+  Lx /= nx;
+  Ly /= ny;
+  Lz /= nz;
+
+  std::string corner;
+  Vec3 X0;
+  if (utl::getAttribute(geo,"X0",corner)) {
+    std::stringstream str(corner);
+    str >> X0;
+    IFEM::cout <<"  Corner: "<< X0 << std::endl;
+  }
 
   std::array<double,24> nodes =
     {{ 0.0, 0.0, 0.0,
@@ -811,59 +850,198 @@ std::string SIM3D::createDefaultG2 (const TiXmlElement* geo) const
        0.0, 1.0, 1.0,
        1.0, 1.0, 1.0 }};
 
-  double scale = 1.0;
-  if (utl::getAttribute(geo,"scale",scale))
-    IFEM::cout <<"\tscale = "<< scale << std::endl;
+  std::string g2;
+  for (int z = 0; z < nz; ++z) {
+    for (int y = 0; y < ny; ++y) {
+      for (int x = 0; x < nx; ++x) {
+        g2.append("700 1 0 0\n3 ");
+        g2.append(rational ? "1\n" : "0\n");
+        g2.append("2 2\n0 0 1 1\n"
+                  "2 2\n0 0 1 1\n"
+                  "2 2\n0 0 1 1\n");
 
-  double Lx = 1.0, Ly = 1.0, Lz = 1.0;
-  if (utl::getAttribute(geo,"Lx",Lx))
-    IFEM::cout <<"\tLength in X: "<< Lx << std::endl;
-  Lx *= scale;
-  if (utl::getAttribute(geo,"Ly",Ly))
-    IFEM::cout <<"\tLength in Y: "<< Ly << std::endl;
-  Ly *= scale;
-  if (utl::getAttribute(geo,"Lz",Lz))
-    IFEM::cout <<"\tLength in Z: "<< Lz << std::endl;
-  Lz *= scale;
-
-  if (Lx != 1.0)
-    nodes[3] = nodes[9] = nodes[15] = nodes[21] = Lx;
-  if (Ly != 1.0)
-    nodes[7] = nodes[10] = nodes[19] = nodes[22] = Ly;
-  if (Lz != 1.0)
-    nodes[14] = nodes[17] = nodes[20] = nodes[23] = Lz;
-
-  std::string corner;
-  if (utl::getAttribute(geo,"X0",corner)) {
-    std::stringstream str(corner);
-    Vec3 X0;
-    str >> X0;
-    IFEM::cout <<"\tCorner: "<< X0 << std::endl;
-    for (size_t i = 0; i < nodes.size(); i += 3)
-    {
-      nodes[i]   += X0.x;
-      nodes[i+1] += X0.y;
-      nodes[i+2] += X0.z;
+        for (size_t i = 0; i < nodes.size(); i += 3)
+        {
+          std::stringstream str;
+          std::array<int,3> N {x,y,z};
+          std::array<double,3> L {Lx,Ly,Lz};
+          for (size_t j = 0; j < 3; j++)
+            str << (j==0?"":" ") << X0[j]+N[j]*L[j]+nodes[i+j]*L[j];
+          g2.append(str.str());
+          g2.append(rational ? " 1.0\n" : "\n");
+        }
+      }
     }
-  }
-
-  for (size_t i = 0; i < nodes.size(); i += 3)
-  {
-    std::stringstream str;
-    for (size_t j = 0; j < 3; j++)
-      str << nodes[i+j] <<" ";
-    g2.append(str.str());
-    g2.append(rational ? "1.0\n" : "\n");
   }
 
   return g2;
 }
 
 
-ASMbase* SIM3D::createDefaultGeometry (const TiXmlElement* geo) const
+SIM3D::PatchVec SIM3D::createDefaultGeometry (const TiXmlElement* geo) const
 {
   std::istringstream unitCube(createDefaultG2(geo));
-  return this->readPatch(unitCube,1,nf);
+  PatchVec result;
+  this->readPatches(unitCube,result,"\t");
+  return result;
+}
+
+
+bool SIM3D::createDefaultTopology (const TiXmlElement* geo)
+{
+  int nx = 1;
+  int ny = 1;
+  int nz = 1;
+  utl::getAttribute(geo,"nx",nx);
+  utl::getAttribute(geo,"ny",ny);
+  utl::getAttribute(geo,"nz",nz);
+  bool periodic_x = false;
+  bool periodic_y = false;
+  bool periodic_z = false;
+  utl::getAttribute(geo,"periodic_x", periodic_x);
+  utl::getAttribute(geo,"periodic_y", periodic_y);
+  utl::getAttribute(geo,"periodic_z", periodic_z);
+
+  auto&& IJK = [nx,ny,nz](int i, int j, int k) { return 1 + (k*ny+j)*nx + i; };
+
+  for (int k = 0; k < nz; ++k)
+    for (int j = 0; j < ny; ++j)
+      for (int i = 0; i < nx-1; ++i)
+        if (!addConnection(IJK(i,j,k), IJK(i+1,j,k), 2, 1, 0))
+          return false;
+
+  for (int k = 0; k < nz; ++k)
+    for (int j = 0; j < ny-1; ++j)
+      for (int i = 0; i < nx; ++i)
+        if (!addConnection(IJK(i,j,k), IJK(i,j+1,k), 4, 3, 0))
+          return false;
+
+  for (int k = 0; k < nz-1; ++k)
+    for (int j = 0; j < ny; ++j)
+      for (int i = 0; i < nx; ++i)
+        if (!addConnection(IJK(i,j,k), IJK(i,j,k+1), 6, 5, 0))
+          return false;
+
+  if (periodic_x)
+    for (int k = 0; k < nz; ++k)
+      for (int j = 0; j < ny; ++j)
+        if (nx > 1) {
+          if (!addConnection(IJK(0,j,k), IJK(nx-1,j,k), 1, 2, 0, false))
+            return false;
+        } else {
+          IFEM::cout <<"\tPeriodic I-direction P"<< IJK(0,j,k) << std::endl;
+          static_cast<ASMs3D*>(myModel[IJK(0,j,k)-1])->closeFaces(1);
+        }
+
+  if (periodic_y)
+    for (int k = 0; k < nz; ++k)
+      for (int i = 0; i < nx; ++i)
+        if (ny > 1) {
+          if (!addConnection(IJK(i,0,k), IJK(i,ny-1,k), 3, 4, 0, false))
+            return false;
+         } else {
+          IFEM::cout <<"\tPeriodic J-direction P"<< IJK(i,0,k) << std::endl;
+          static_cast<ASMs3D*>(myModel[IJK(i,0,k)-1])->closeFaces(2);
+         }
+
+  if (periodic_z)
+    for (int j = 0; j < ny; ++j)
+      for (int i = 0; i < nx; ++i)
+        if (nz > 1) {
+          if (!addConnection(IJK(i,j,0), IJK(i,j,nz-1), 5, 6, 0, false))
+            return false;
+        } else {
+          IFEM::cout <<"\tPeriodic K-direction P"<< IJK(i,j,0) << std::endl;
+          static_cast<ASMs3D*>(myModel[IJK(i,j,0)-1])->closeFaces(3);
+        }
+
+  return true;
+}
+
+
+TopologySet SIM3D::createDefaultTopologySets (const TiXmlElement* geo) const
+{
+  int nx = 1, ny = 1, nz = 1;
+  utl::getAttribute(geo,"nx",nx);
+  utl::getAttribute(geo,"ny",ny);
+  utl::getAttribute(geo,"nz",nz);
+
+  // 0-based -> 1-based IJK
+  auto&& IJK = [nx,ny,nz](int i, int j, int k) { return 1 + (k*ny+j)*nx + i; };
+
+  // start/end IJK
+  auto&& IJK2 = [nx,ny,nz,IJK](int i, int j, int k) { return IJK(i*(nx-1), j*(ny-1), k*(nz-1)); };
+
+  // start/end JK
+  auto&& IJKI = [nx,ny,nz,IJK](int i, int j, int k) { return IJK(i, j*(ny-1), k*(nz-1)); };
+  // start/end IK
+  auto&& IJKJ = [nx,ny,nz,IJK](int i, int j, int k) { return IJK(i*(nx-1), j, k*(nz-1)); };
+  // start/end IJ
+  auto&& IJKK = [nx,ny,nz,IJK](int i, int j, int k) { return IJK(i*(nx-1), j*(ny-1), k); };
+
+  // start/end I
+  auto&& IJK2I = [nx,ny,nz,IJK](int i, int j, int k) { return IJK(i*(nx-1), j, k); };
+  // start/end J
+  auto&& IJK2J = [nx,ny,nz,IJK](int i, int j, int k) { return IJK(i, j*(ny-1), k); };
+  // start/end K
+  auto&& IJK2K = [nx,ny,nz,IJK](int i, int j, int k) { return IJK(i, j, k*(nz-1)); };
+
+  TopologySet result;
+
+  // insertion lambda
+  auto&& insertion = [this,&result](TopItem top,
+                                    const std::string& glob,
+                                    const std::string& type)
+                     {
+                       std::stringstream str;
+                       str << type << top.item;
+                       TopEntity& topI = result[str.str()];
+                       TopEntity& globI = result[glob];
+                       if ((top.patch = this->getLocalPatchIndex(top.patch)) > 0) {
+                         topI.insert(top);
+                         globI.insert(top);
+                       }
+                     };
+
+  size_t r = 1;
+  for (int i = 0; i < 2; ++i, ++r)
+    for (int k = 0; k < nz; ++k)
+      for (int j = 0; j < ny; ++j)
+        insertion(TopItem(IJK2I(i,j,k),r,2), "Boundary", "Face");
+
+  for (int j = 0; j < 2; ++j, ++r)
+    for (int k = 0; k < nz; ++k)
+      for (int i = 0; i < nx; ++i)
+        insertion(TopItem(IJK2J(i,j,k),r,2), "Boundary", "Face");
+
+  for (int k = 0; k < 2; ++k, ++r)
+    for (int j = 0; j < ny; ++j)
+      for (int i = 0; i < nx; ++i)
+        insertion(TopItem(IJK2K(i,j,k),r,2), "Boundary", "Face");
+
+  r = 1;
+  for (int k = 0; k < 2; ++k)
+    for (int j = 0; j < 2; ++j)
+      for (int i = 0; i < 2; ++i, ++r)
+        insertion(TopItem(IJK2(i,j,k),r,0), "Corners", "Vertex");
+
+  r = 1;
+  for (int k = 0; k < 2; ++k)
+    for (int i = 0; i < 2; ++i, ++r)
+      for (int j = 0; j < ny; ++j)
+        insertion(TopItem(IJKJ(i,j,k),r,1), "Frame", "Edge");
+
+  for (int j = 0; j < 2; ++j)
+    for (int i = 0; i < 2; ++i, ++r)
+      for (int k = 0; k < nz; ++k)
+        insertion(TopItem(IJKK(i,j,k),r,1), "Frame", "Edge");
+
+  for (int k = 0; k < 2; ++k)
+    for (int j = 0; j < 2; ++j, ++r)
+      for (int i = 0; i < nx; ++i)
+        insertion(TopItem(IJKI(i,j,k),r,1), "Frame", "Edge");
+
+  return result;
 }
 
 

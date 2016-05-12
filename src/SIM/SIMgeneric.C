@@ -18,7 +18,7 @@
 void SIMgeneric::createDefaultModel ()
 {
   if (myModel.empty())
-    myModel.resize(1,this->createDefaultGeometry(nullptr));
+    myModel = this->createDefaultGeometry(nullptr);
 }
 
 

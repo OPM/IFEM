@@ -647,9 +647,17 @@ public:
   RealFunc* getSclFunc(int code) const;
 
 protected:
-  //! \brief Creates a default single-patch geometry.
+  //! \brief Creates a default geometry.
   //! \param[in] geo XML element containing geometry defintion
-  virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const = 0;
+  virtual PatchVec createDefaultGeometry(const TiXmlElement* geo) const = 0;
+
+  //! \brief Creates topology for default geometry.
+  //! \param[in] geo XML element containing geometry defintion
+  virtual bool createDefaultTopology(const TiXmlElement* geo) = 0;
+
+  //! \brief Creates topology sets for default geometry.
+  //! \param[in] geo XML element containing geometry defintion
+  virtual TopologySet createDefaultTopologySets(const TiXmlElement* geo) const = 0;
 
   //! \brief Initializes material properties for integration of interior terms.
   virtual bool initMaterial(size_t) { return true; }
@@ -714,6 +722,7 @@ protected:
   IntegrandBase* myProblem; //!< The main integrand of this simulator
   IntegrandMap   myInts;    //!< Set of all integrands involved
   AnaSol*        mySol;     //!< Analytical/Exact solution
+  const TiXmlElement* geoTag = nullptr; //!< Non-null if the default geometry is used
 
   //! \brief A struct with data for system matrix/vector dumps.
   struct DumpData

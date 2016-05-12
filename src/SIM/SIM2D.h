@@ -78,6 +78,15 @@ private:
   bool parseGeometryTag(const TiXmlElement* elem);
   //! \brief Parses a subelement of the \a boundaryconditions XML-tag.
   bool parseBCTag(const TiXmlElement* elem);
+  //! \brief Connect two patches.
+  //! \param master Master patch
+  //! \param slave Slave patch
+  //! \param mEdge Edge on master
+  //! \param sEdge Edge on slave
+  //! \param rever Whether connection is reversed or not.
+  //! \param coordCheck False to turn off coordinate checks.
+  bool addConnection(int master, int slave, int mEdge, int sEdge,
+                     bool rever, bool coordCheck=true);
 
 protected:
   //! \brief Parses a data section from an XML document.
@@ -123,9 +132,17 @@ protected:
   //! \param geo XML block with geometry definition
   std::string createDefaultG2(const TiXmlElement* geo) const;
 
-  //! \brief Creates a default single-patch geometry.
+  //! \brief Creates a default geometry.
   //! \param geo XML block with geometry definition.
-  virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const;
+  virtual PatchVec createDefaultGeometry(const TiXmlElement* geo) const;
+
+  //! \brief Creates topology for default geometry.
+  //! \param[in] geo XML element containing geometry defintion
+  virtual bool createDefaultTopology(const TiXmlElement* geo);
+
+  //! \brief Creates topology sets for default geometry.
+  //! \param[in] geo XML element containing geometry defintion
+  virtual TopologySet createDefaultTopologySets(const TiXmlElement* geo) const;
 
 protected:
   CharVec nf;         //!< Number of scalar fields
