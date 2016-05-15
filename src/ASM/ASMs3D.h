@@ -317,13 +317,15 @@ public:
   //! \param neighbor The neighbor patch
   //! \param[in] nface Local face index of neighbor patch, in range [1,6]
   //! \param[in] norient Relative face orientation flag (see below)
+  //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
   //!
   //! \details The face orientation flag \a norient must be in range [0,7].
   //! When interpreted as a binary number, its 3 digits are decoded as follows:
   //! - left digit = 1: The u and v parameters of the neighbor face are swapped
   //! - middle digit = 1: Parameter \a u in neighbor patch face is reversed
   //! - right digit = 1: Parameter \a v in neighbor patch face is reversed
-  virtual bool connectPatch(int face, ASMs3D& neighbor, int nface, int norient);
+  virtual bool connectPatch(int face, ASMs3D& neighbor, int nface, int norient,
+                            bool coordCheck=true);
 
   //! \brief Makes two opposite boundary faces periodic.
   //! \param[in] dir Parameter direction defining the periodic faces
@@ -533,8 +535,10 @@ protected:
   //! \param[in] basis Which basis to connect the nodes for (mixed methods)
   //! \param[in] slave 0-based index of the first slave node in this basis
   //! \param[in] master 0-based index of the first master node in this basis
+  //! \param[in] coordCheck False to turn off coordinate checks
   bool connectBasis(int face, ASMs3D& neighbor, int nface, int norient,
-		    int basis = 1, int slave = 0, int master = 0);
+                    int basis = 1, int slave = 0, int master = 0,
+                    bool coordCheck=true);
 
   //! \brief Extracts parameter values of the Gauss points in one direction.
   //! \param[out] uGP Parameter values in given direction for all points

@@ -616,7 +616,8 @@ bool ASMs3D::assignNodeNumbers (BlockNodes& nodes, int basis)
 }
 
 
-bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
+bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface,
+                           int norient, bool coordCheck)
 {
   if (swapW && face > 4) // Account for swapped parameter direction
     face = 11-face;
@@ -624,7 +625,7 @@ bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
   if (neighbor.swapW && nface > 4) // Account for swapped parameter direction
     nface = 11-nface;
 
-  if (!this->connectBasis(face,neighbor,nface,norient))
+  if (!this->connectBasis(face,neighbor,nface,norient,1,0,0,coordCheck))
     return false;
 
   this->addNeighbor(&neighbor);
@@ -633,7 +634,7 @@ bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
 
 
 bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
-			   int basis, int slave, int master)
+                           int basis, int slave, int master, bool coordCheck)
 {
   if (this->isShared() && neighbor.isShared())
     return true;
@@ -755,7 +756,7 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
 	}
 
       int slave = slaveNodes[k][l];
-      if (!neighbor.getCoord(node).equal(this->getCoord(slave),xtol))
+      if (coordCheck && !neighbor.getCoord(node).equal(this->getCoord(slave),xtol))
       {
 	std::cerr <<" *** ASMs3D::connectPatch: Non-matching nodes "
 		  << node <<": "<< neighbor.getCoord(node)
