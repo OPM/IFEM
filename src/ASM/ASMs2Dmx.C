@@ -292,7 +292,8 @@ bool ASMs2Dmx::generateFEMTopology ()
 }
 
 
-bool ASMs2Dmx::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool revers)
+bool ASMs2Dmx::connectPatch (int edge, ASMs2D& neighbor, int nedge,
+                             bool revers, bool coordCheck)
 {
   ASMs2Dmx* neighMx = dynamic_cast<ASMs2Dmx*>(&neighbor);
   if (!neighMx) return false;
@@ -301,7 +302,7 @@ bool ASMs2Dmx::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool revers)
   size_t nb2=0;
   this->addNeighbor(neighMx);
   for (size_t i = 1;i <= m_basis.size(); ++i) {
-    if (!this->connectBasis(edge,neighbor,nedge,revers,i,nb1,nb2))
+    if (!this->connectBasis(edge,neighbor,nedge,revers,i,nb1,nb2,coordCheck))
       return false;
     nb1 += nb[i-1];
     nb2 += neighMx->nb[i-1];

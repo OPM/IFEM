@@ -590,7 +590,8 @@ bool ASMs2D::assignNodeNumbers (BlockNodes& nodes, int basis)
 }
 
 
-bool ASMs2D::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool revers)
+bool ASMs2D::connectPatch (int edge, ASMs2D& neighbor, int nedge,
+                           bool revers, bool coordCheck)
 {
   if (swapV && edge > 2) // Account for swapped parameter direction
     edge = 7-edge;
@@ -598,7 +599,7 @@ bool ASMs2D::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool revers)
   if (neighbor.swapV && nedge > 2) // Account for swapped parameter direction
     nedge = 7-nedge;
 
-  if (!this->connectBasis(edge,neighbor,nedge,revers))
+  if (!this->connectBasis(edge,neighbor,nedge,revers,1,0,0,coordCheck))
     return false;
 
   this->addNeighbor(&neighbor);
@@ -607,7 +608,7 @@ bool ASMs2D::connectPatch (int edge, ASMs2D& neighbor, int nedge, bool revers)
 
 
 bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
-			   int basis, int slave, int master)
+                           int basis, int slave, int master, bool coordCheck)
 {
   if (this->isShared() && neighbor.isShared())
     return true;
@@ -687,7 +688,7 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
   for (i = 0; i < n1; i++, node += i1)
   {
     int slave = slaveNodes[revers ? n1-i-1 : i];
-    if (!neighbor.getCoord(node).equal(this->getCoord(slave),xtol))
+    if (coordCheck && !neighbor.getCoord(node).equal(this->getCoord(slave),xtol))
     {
       std::cerr <<" *** ASMs2D::connectPatch: Non-matching nodes "
 		<< node <<": "<< neighbor.getCoord(node)
