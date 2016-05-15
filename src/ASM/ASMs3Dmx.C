@@ -298,7 +298,8 @@ bool ASMs3Dmx::generateFEMTopology ()
 }
 
 
-bool ASMs3Dmx::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
+bool ASMs3Dmx::connectPatch (int face, ASMs3D& neighbor, int nface, int norient,
+                             int basis, bool coordCheck)
 {
   ASMs3Dmx* neighMx = dynamic_cast<ASMs3Dmx*>(&neighbor);
   if (!neighMx) return false;
@@ -309,11 +310,14 @@ bool ASMs3Dmx::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
   if (neighMx->swapW && face > 4) // Account for swapped parameter direction
     nface = 11-nface;
 
-  size_t nbi=0;
-  for (size_t i = 1;i <= m_basis.size(); ++i) {
-    if (!this->connectBasis(face,neighbor,nface,norient,i,nbi,nbi))
-      return false;
-    nbi += nb[i-1];
+  size_t nb1 = 0, nb2 = 0;
+  for (size_t i = 1; i <= m_basis.size(); ++i) {
+    if (basis == 0 || i == (size_t)basis)
+      if (!this->connectBasis(face,neighbor,nface,norient,i,nb1,nb2,coordCheck))
+        return false;
+
+    nb1 += nb[i-1];
+    nb2 += neighMx->nb[i-1];
   }
 
   this->addNeighbor(neighMx);
@@ -323,9 +327,9 @@ bool ASMs3Dmx::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
 
 void ASMs3Dmx::closeFaces (int dir, int, int)
 {
-  size_t nbi = 0;
+  size_t nbi = 1;
   for (size_t i = 1;i <= m_basis.size(); ++i) {
-    this->ASMs3D::closeFaces(dir,i,nbi+1);
+    this->ASMs3D::closeFaces(dir,i,nbi);
     nbi += nb[i-1];
   }
 }
