@@ -94,9 +94,10 @@ public:
   //! \param neighbor The neighbor patch
   //! \param[in] nface Local face index of neighbor patch, in range [1,6]
   //! \param[in] norient Relative face orientation flag (see class ASMs3D)
+  //! \param[in] basis Which basis to connect, or 0 for all.
   //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
   virtual bool connectPatch(int face, ASMs3D& neighbor, int nface,
-                            int norient = 0, bool coordCheck = true);
+                            int norient = 0, int basis = 0, bool coordCheck = true);
 
   //! \brief Makes two opposite boundary faces periodic.
   //! \param[in] dir Parameter direction defining the periodic faces

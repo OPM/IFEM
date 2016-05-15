@@ -591,7 +591,7 @@ bool ASMs2D::assignNodeNumbers (BlockNodes& nodes, int basis)
 
 
 bool ASMs2D::connectPatch (int edge, ASMs2D& neighbor, int nedge,
-                           bool revers, bool coordCheck)
+                           bool revers, int, bool coordCheck)
 {
   if (swapV && edge > 2) // Account for swapped parameter direction
     edge = 7-edge;
