@@ -617,7 +617,7 @@ bool ASMs3D::assignNodeNumbers (BlockNodes& nodes, int basis)
 
 
 bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface,
-                           int norient, bool coordCheck)
+                           int norient, int, bool coordCheck)
 {
   if (swapW && face > 4) // Account for swapped parameter direction
     face = 11-face;
