@@ -57,7 +57,7 @@ bool SIM3D::addConnection(int master, int slave, int mFace, int sFace, int orien
                <<" orient "<< orient << std::endl;
     ASMs3D* spch = static_cast<ASMs3D*>(myModel[lslave-1]);
     ASMs3D* mpch = static_cast<ASMs3D*>(myModel[lmaster-1]);
-    if (!spch->connectPatch(sFace,*mpch,mFace,orient,coordCheck))
+    if (!spch->connectPatch(sFace,*mpch,mFace,orient,0,coordCheck))
       return false;
   } else
     adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave, mFace, sFace, orient, 2});

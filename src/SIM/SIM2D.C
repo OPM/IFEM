@@ -81,7 +81,7 @@ bool SIM2D::addConnection(int master, int slave, int mEdge, int sEdge, bool reve
                <<" reversed? "<< rever << std::endl;
     ASMs2D* spch = static_cast<ASMs2D*>(myModel[lslave-1]);
     ASMs2D* mpch = static_cast<ASMs2D*>(myModel[lmaster-1]);
-    if (!spch->connectPatch(sEdge,*mpch,mEdge,rever,coordCheck))
+    if (!spch->connectPatch(sEdge,*mpch,mEdge,rever,0,coordCheck))
       return false;
   }
   else
