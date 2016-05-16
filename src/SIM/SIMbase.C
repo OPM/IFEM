@@ -1537,10 +1537,8 @@ bool SIMbase::updateDirichlet (double time, const Vector* prevSol)
 #endif
 	return false;
 
-  if (mySam)
-    return static_cast<SAMpatch*>(mySam)->updateConstraintEqs(myModel,prevSol);
-  else
-    return true;
+  SAMpatch* pSam = dynamic_cast<SAMpatch*>(mySam);
+  return pSam ? pSam->updateConstraintEqs(myModel,prevSol) : true;
 }
 
 
