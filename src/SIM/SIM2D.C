@@ -69,7 +69,8 @@ SIM2D::SIM2D (IntegrandBase* itg, unsigned char n, bool check) : SIMgeneric(itg)
 }
 
 
-bool SIM2D::addConnection(int master, int slave, int mEdge, int sEdge, bool rever, bool coordCheck)
+bool SIM2D::addConnection(int master, int slave, int mEdge, int sEdge,
+                          bool rever, int basis, bool coordCheck)
 {
   int lmaster = getLocalPatchIndex(master);
   int lslave = getLocalPatchIndex(slave);
@@ -81,7 +82,7 @@ bool SIM2D::addConnection(int master, int slave, int mEdge, int sEdge, bool reve
                <<" reversed? "<< rever << std::endl;
     ASMs2D* spch = static_cast<ASMs2D*>(myModel[lslave-1]);
     ASMs2D* mpch = static_cast<ASMs2D*>(myModel[lmaster-1]);
-    if (!spch->connectPatch(sEdge,*mpch,mEdge,rever,0,coordCheck))
+    if (!spch->connectPatch(sEdge,*mpch,mEdge,rever,basis,coordCheck))
       return false;
   }
   else
@@ -190,13 +191,15 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     const TiXmlElement* child = elem->FirstChildElement("connection");
     for (; child; child = child->NextSiblingElement())
     {
-      int master = 0, slave = 0, mEdge = 0, sEdge = 0;
-      bool rever = false;
+      int master = 0, slave = 0, mEdge = 0, sEdge = 0, basis = 0;
+      bool rever = false, periodic = false;
       utl::getAttribute(child,"master",master);
       utl::getAttribute(child,"medge",mEdge);
       utl::getAttribute(child,"slave",slave);
       utl::getAttribute(child,"sedge",sEdge);
       utl::getAttribute(child,"reverse",rever);
+      utl::getAttribute(child,"basis",basis);
+      utl::getAttribute(child,"periodic",periodic);
 
       if (master == slave ||
           master < 1 || master > nGlPatches ||
@@ -207,7 +210,7 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
         return false;
       }
 
-      if (!addConnection(master, slave, mEdge, sEdge, rever))
+      if (!addConnection(master, slave, mEdge, sEdge, rever, basis, !periodic))
         return false;
 
       if (opt.discretization == ASM::SplineC1) {
@@ -887,8 +890,8 @@ bool SIM2D::createDefaultTopology (const TiXmlElement* geo)
   int ny = 1;
   utl::getAttribute(geo,"nx",nx);
   utl::getAttribute(geo,"ny",ny);
-  bool periodic_x = false;
-  bool periodic_y = false;
+  int periodic_x = 0;
+  int periodic_y = 0;
   utl::getAttribute(geo,"periodic_x", periodic_x);
   utl::getAttribute(geo,"periodic_y", periodic_y);
 
@@ -904,24 +907,32 @@ bool SIM2D::createDefaultTopology (const TiXmlElement* geo)
       if (!addConnection(IJ(i,j), IJ(i,j+1), 4, 3, false))
         return false;
 
-  if (periodic_x)
-    for (int i = 0; i < ny; ++i)
-      if (nx > 1) {
-        if (!addConnection(IJ(0, i), IJ(nx-1, i), 1, 2, false, false))
-          return false;
-      } else {
-         IFEM::cout <<"\tPeriodic I-direction P"<< IJ(0,i) << std::endl;
-         static_cast<ASMs2D*>(myModel[IJ(0,i)-1])->closeEdges(1);
-      }
+  if (periodic_x > 0) {
+    auto bases = utl::getDigits(periodic_x);
+    for (int b : bases) {
+      for (int i = 0; i < ny; ++i)
+        if (nx > 1) {
+          if (!addConnection(IJ(0, i), IJ(nx-1, i), 1, 2, false, b, false))
+            return false;
+        } else {
+           IFEM::cout <<"\tPeriodic I-direction P"<< IJ(0,i) << std::endl;
+           static_cast<ASMs2D*>(myModel[IJ(0,i)-1])->closeEdges(1,b);
+        }
+    }
+  }
 
-  if (periodic_y)
-    for (int i = 0; i < nx; ++i)
-      if (ny > 1)
-        addConnection(IJ(i,0), IJ(i,ny-1), 3, 4, false, false);
-      else {
-         IFEM::cout <<"\tPeriodic J-direction P"<< IJ(i,0)<< std::endl;
-         static_cast<ASMs2D*>(myModel[IJ(i,0)-1])->closeEdges(2);
-      }
+  if (periodic_y > 0) {
+    auto bases = utl::getDigits(periodic_y);
+    for (int b : bases) {
+      for (int i = 0; i < nx; ++i)
+        if (ny > 1)
+          addConnection(IJ(i,0), IJ(i,ny-1), 3, 4, false, b, false);
+        else {
+           IFEM::cout <<"\tPeriodic J-direction P"<< IJ(i,0)<< std::endl;
+           static_cast<ASMs2D*>(myModel[IJ(i,0)-1])->closeEdges(2,b);
+        }
+    }
+  }
 
 
   return true;

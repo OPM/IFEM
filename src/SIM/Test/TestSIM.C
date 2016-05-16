@@ -26,6 +26,8 @@ class CreateDefaultGeometrySIM : public Dim
 public:
   CreateDefaultGeometrySIM(unsigned char n1) : Dim(n1)
   {}
+  CreateDefaultGeometrySIM(const std::vector<unsigned char>& nf) : Dim(nf)
+  {}
 
   std::string createDefaultGeom(const TiXmlElement* geo)
   {
@@ -58,23 +60,8 @@ class TestSIM2D : public testing::Test,
 };
 
 
-typedef std::vector<std::pair<std::array<int,2>,std::array<int,2>>> ConnectionPairVec;
-
-
-class TestSIM2DPeriodic : public testing::Test,
-                          public testing::WithParamInterface<std::pair<std::string,ConnectionPairVec>>
-{
-};
-
-
 class TestSIM3D : public testing::Test,
                   public testing::WithParamInterface<std::vector<std::string>>
-{
-};
-
-
-class TestSIM3DPeriodic : public testing::Test,
-                          public testing::WithParamInterface<std::pair<std::string,ConnectionPairVec>>
 {
 };
 
@@ -148,24 +135,6 @@ TEST_P(TestSIM2D, CreateDefaultGeometry)
   std::string gen = sim.createDefaultGeom(doc.RootElement());
   TopologySet sets = sim.createDefaultTopSets(doc.RootElement());
   DoTest(GetParam(), gen, sets);
-}
-
-
-TEST_P(TestSIM2DPeriodic, Connections)
-{
-  CreateDefaultGeometrySIM<SIM2D> sim(1);
-  TiXmlDocument doc;
-  doc.Parse(GetParam().first.c_str());
-  std::stringstream str;
-  IFEM::cout.setStream(str);
-  sim.createDefaultTop(doc.RootElement());
-  std::string text = str.str();
-  for (auto& it : GetParam().second) {
-    std::stringstream str;
-    str << "Connecting P" << it.second[0] << " E" << it.second[1] << " to P" << it.first[0] << " E" << it.first[1];
-    auto pos = text.find(str.str());
-    ASSERT_TRUE(pos != std::string::npos);
-  }
 }
 
 
@@ -389,8 +358,10 @@ const std::vector<std::vector<std::string>> geometry2D =
 INSTANTIATE_TEST_CASE_P(TestSIM, TestSIM2D, testing::ValuesIn(geometry2D));
 
 
-const std::vector<std::pair<std::string, ConnectionPairVec>> periodic2D =
-  {{"<geometry nx=\"3\" ny=\"3\" periodic_x=\"true\" periodic_y=\"true\"/>",
+typedef std::vector<std::pair<std::array<int,2>,std::array<int,2>>> ConnectionPairVec;
+
+const std::pair<std::string, ConnectionPairVec> periodic2D =
+  {"<geometry nx=\"3\" ny=\"3\" periodic_x=\"1\" periodic_y=\"1\"/>",
                                        {{{{1,2},{2,1}},
                                          {{2,2},{3,1}},
                                          {{4,2},{5,1}},
@@ -408,10 +379,55 @@ const std::vector<std::pair<std::string, ConnectionPairVec>> periodic2D =
                                          {{7,1},{9,2}},
                                          {{1,3},{7,4}},
                                          {{2,3},{8,4}},
-                                         {{3,3},{9,4}}}}}};
+                                         {{3,3},{9,4}}}}};
 
 
-INSTANTIATE_TEST_CASE_P(TestSIM, TestSIM2DPeriodic, testing::ValuesIn(periodic2D));
+TEST(TestSIM2D, PeriodicConnections)
+{
+  CreateDefaultGeometrySIM<SIM2D> sim(1);
+  TiXmlDocument doc;
+  doc.Parse(periodic2D.first.c_str());
+  std::stringstream str;
+  IFEM::cout.setStream(str);
+  sim.createDefaultTop(doc.RootElement());
+  std::string text = str.str();
+  for (auto& it : periodic2D.second) {
+    std::stringstream str;
+    str << "Connecting P" << it.second[0] << " E" << it.second[1] << " to P" << it.first[0] << " E" << it.first[1];
+    auto pos = text.find(str.str());
+    ASSERT_TRUE(pos != std::string::npos);
+  }
+
+  for (int p = 1; p <= 3; ++p)
+    for (int n = 1; n <= 2; ++n)
+      ASSERT_EQ(sim.getPatch(3*(p-1)+1)->getNodeID(2*(n-1)+1),
+                sim.getPatch(3*p)->getNodeID(2*n));
+
+  for (int p = 1; p <= 3; ++p)
+    for (int n = 1; n <= 2; ++n)
+      ASSERT_EQ(sim.getPatch(p)->getNodeID(n),
+                sim.getPatch(6+p)->getNodeID(2+n));
+}
+
+
+TEST(TestSIM2D, PeriodicConnectionsMixed)
+{
+  CreateDefaultGeometrySIM<SIM2D> sim({1,1});
+  TiXmlDocument doc;
+  doc.Parse(periodic2D.first.c_str());
+  IFEM::cout.setStream(std::cout);
+  sim.createDefaultTop(doc.RootElement());
+
+  for (int p = 1; p <= 3; ++p)
+    for (int n = 1; n <= 2; ++n)
+      ASSERT_NE(sim.getPatch(3*(p-1)+1)->getNodeID(9+2*(n-1)+1),
+                sim.getPatch(3*p)->getNodeID(9+2*n));
+
+  for (int p = 1; p <= 3; ++p)
+    for (int n = 1; n <= 2; ++n)
+      ASSERT_NE(sim.getPatch(p)->getNodeID(9+n),
+                sim.getPatch(6+p)->getNodeID(9+2+n));
+}
 
 
 TEST_P(TestSIM3D, CreateDefaultGeometry)
@@ -422,24 +438,6 @@ TEST_P(TestSIM3D, CreateDefaultGeometry)
   std::string gen = sim.createDefaultGeom(doc.RootElement());
   TopologySet sets = sim.createDefaultTopSets(doc.RootElement());
   DoTest(GetParam(), gen, sets);
-}
-
-
-TEST_P(TestSIM3DPeriodic, Connections)
-{
-  CreateDefaultGeometrySIM<SIM3D> sim(1);
-  TiXmlDocument doc;
-  doc.Parse(GetParam().first.c_str());
-  std::stringstream str;
-  IFEM::cout.setStream(str);
-  sim.createDefaultTop(doc.RootElement());
-  std::string text = str.str();
-  for (auto& it : GetParam().second) {
-    std::stringstream str;
-    str << "Connecting P" << it.second[0] << " F" << it.second[1] << " to P" << it.first[0] << " F" << it.first[1];
-    auto pos = text.find(str.str());
-    ASSERT_TRUE(pos != std::string::npos);
-  }
 }
 
 
@@ -1015,8 +1013,8 @@ const std::vector<std::vector<std::string>> geometry3D =
 INSTANTIATE_TEST_CASE_P(TestSIM, TestSIM3D, testing::ValuesIn(geometry3D));
 
 
-const std::vector<std::pair<std::string, ConnectionPairVec>> periodic3D =
-  {{"<geometry nx=\"3\" ny=\"3\" nz=\"3\" periodic_x=\"true\" periodic_y=\"true\" periodic_z=\"true\"/>",
+const std::pair<std::string, ConnectionPairVec> periodic3D =
+  {"<geometry nx=\"3\" ny=\"3\" nz=\"3\" periodic_x=\"1\" periodic_y=\"1\" periodic_z=\"1\"/>",
                                         {{{{1,2}, {2,1}},
                                           {{2,2}, {3,1}},
                                           {{4,2}, {5,1}},
@@ -1070,7 +1068,82 @@ const std::vector<std::pair<std::string, ConnectionPairVec>> periodic3D =
                                          {{15,6}, {24,5}},
                                          {{16,6}, {25,5}},
                                          {{17,6}, {26,5}},
-                                         {{18,6}, {27,5}}
-                                         }}}};
+                                         {{18,6}, {27,5}}}}};
 
-INSTANTIATE_TEST_CASE_P(TestSIM, TestSIM3DPeriodic, testing::ValuesIn(periodic3D));
+
+TEST(TestSIM3D, PeriodicConnections)
+{
+  CreateDefaultGeometrySIM<SIM3D> sim(1);
+  TiXmlDocument doc;
+  doc.Parse(periodic3D.first.c_str());
+  std::stringstream str;
+  IFEM::cout.setStream(str);
+  sim.createDefaultTop(doc.RootElement());
+  std::string text = str.str();
+  for (auto& it : periodic3D.second) {
+    std::stringstream str;
+    str << "Connecting P" << it.second[0] << " F" << it.second[1] << " to P" << it.first[0] << " F" << it.first[1];
+    auto pos = text.find(str.str());
+    ASSERT_TRUE(pos != std::string::npos);
+  }
+
+  auto&& IJK = [](int i, int j, int k) { return 1 + (2*k + j)*2 + i; };
+
+  for (int p = 1; p <= 9; ++p)
+    for (int j = 0; j < 2; ++j)
+      for (int k = 0; k < 2; ++k)
+        ASSERT_EQ(sim.getPatch(3*(p-1)+1)->getNodeID(IJK(0, j, k)),
+                  sim.getPatch(3*p)->getNodeID(IJK(1, j, k)));
+
+  int r = 1;
+  for (int q = 1; q <= 3; ++q) {
+    for (int p = 1; p <= 3; ++p, ++r)
+      for (int i = 0; i < 2; ++i)
+        for (int k = 0; k < 2; ++k) {
+          ASSERT_EQ(sim.getPatch(r)->getNodeID(IJK(i, 0, k)),
+                    sim.getPatch(r+6)->getNodeID(IJK(i, 1, k)));
+        }
+    r += 6;
+  }
+
+  for (int p = 1; p <= 9; ++p)
+    for (int i = 0; i < 2; ++i)
+      for (int j = 0; j < 2; ++j)
+        ASSERT_EQ(sim.getPatch(p)->getNodeID(IJK(i, j, 0)),
+                  sim.getPatch(p+18)->getNodeID(IJK(i, j, 1)));
+}
+
+
+TEST(TestSIM3D, PeriodicConnectionsMixed)
+{
+  CreateDefaultGeometrySIM<SIM3D> sim({1,1});
+  TiXmlDocument doc;
+  doc.Parse(periodic3D.first.c_str());
+  IFEM::cout.setStream(std::cout);
+  sim.createDefaultTop(doc.RootElement());
+
+  auto&& IJK = [](int i, int j, int k) { return 1 + (2*k + j)*2 + i; };
+
+  for (int p = 1; p <= 9; ++p)
+    for (int j = 0; j < 2; ++j)
+      for (int k = 0; k < 2; ++k)
+        ASSERT_NE(sim.getPatch(3*(p-1)+1)->getNodeID(27+IJK(0, j, k)),
+                  sim.getPatch(3*p)->getNodeID(27+IJK(1, j, k)));
+
+  int r = 1;
+  for (int q = 1; q <= 3; ++q) {
+    for (int p = 1; p <= 3; ++p, ++r)
+      for (int i = 0; i < 2; ++i)
+        for (int k = 0; k < 2; ++k) {
+          ASSERT_NE(sim.getPatch(r)->getNodeID(27+IJK(i, 0, k)),
+                    sim.getPatch(r+6)->getNodeID(27+IJK(i, 1, k)));
+        }
+    r += 6;
+  }
+
+  for (int p = 1; p <= 9; ++p)
+    for (int i = 0; i < 2; ++i)
+      for (int j = 0; j < 2; ++j)
+        ASSERT_NE(sim.getPatch(p)->getNodeID(27+IJK(i, j, 0)),
+                  sim.getPatch(p+18)->getNodeID(27+IJK(i, j, 1)));
+}

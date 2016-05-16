@@ -86,7 +86,7 @@ private:
   //! \param rever Whether connection is reversed or not.
   //! \param coordCheck False to turn off coordinate checks.
   bool addConnection(int master, int slave, int mEdge, int sEdge,
-                     bool rever, bool coordCheck=true);
+                     bool rever, int basis=0, bool coordCheck=true);
 
 protected:
   //! \brief Parses a data section from an XML document.
