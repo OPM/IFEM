@@ -138,12 +138,15 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
     const TiXmlElement* child = elem->FirstChildElement("connection");
     for (; child; child = child->NextSiblingElement())
     {
-      int master = 0, slave = 0, mFace = 0, sFace = 0, orient = 0;
+      int master = 0, slave = 0, mFace = 0, sFace = 0, orient = 0, basis = 0;
+      bool periodic = false;
       utl::getAttribute(child,"master",master);
       utl::getAttribute(child,"mface",mFace);
       utl::getAttribute(child,"slave",slave);
       utl::getAttribute(child,"sface",sFace);
       utl::getAttribute(child,"orient",orient);
+      utl::getAttribute(child,"basis",basis);
+      utl::getAttribute(child,"periodic",periodic);
 
       if (master == slave ||
           master < 1 || master > nGlPatches ||
@@ -161,7 +164,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
                    <<" orient "<< orient << std::endl;
         ASMs3D* spch = static_cast<ASMs3D*>(myModel[lslave-1]);
         ASMs3D* mpch = static_cast<ASMs3D*>(myModel[lmaster-1]);
-        if (!spch->connectPatch(sFace,*mpch,mFace,orient))
+        if (!spch->connectPatch(sFace,*mpch,mFace,orient,!periodic))
           return false;
       } else
         adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave, mFace, sFace, orient, 2});

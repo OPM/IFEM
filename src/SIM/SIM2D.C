@@ -157,13 +157,17 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     const TiXmlElement* child = elem->FirstChildElement("connection");
     for (; child; child = child->NextSiblingElement())
     {
-      int master = 0, slave = 0, mEdge = 0, sEdge = 0;
-      bool rever = false;
+      int master = 0, slave = 0, mEdge = 0, sEdge = 0, basis = 0;
+      bool rever = false, periodic = false;
       utl::getAttribute(child,"master",master);
       utl::getAttribute(child,"medge",mEdge);
       utl::getAttribute(child,"slave",slave);
       utl::getAttribute(child,"sedge",sEdge);
       utl::getAttribute(child,"reverse",rever);
+      if (!utl::getAttribute(child,"orient",orient))
+        orient = reverse ? 1 : 0;
+      utl::getAttribute(child,"basis",basis);
+      utl::getAttribute(child,"periodic",periodic);
 
       if (master == slave ||
           master < 1 || master > nGlPatches ||
@@ -183,14 +187,14 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
                    <<" reversed? "<< rever << std::endl;
         ASMs2D* spch = static_cast<ASMs2D*>(myModel[lslave-1]);
         ASMs2D* mpch = static_cast<ASMs2D*>(myModel[lmaster-1]);
-        if (!spch->connectPatch(sEdge,*mpch,mEdge,rever))
+        if (!spch->connectPatch(sEdge,*mpch,mEdge,basis,orient==1?true:false,!periodic))
           return false;
         else if (opt.discretization == ASM::SplineC1)
           top.push_back(Interface(static_cast<ASMs2DC1*>(mpch),mEdge,
                                   static_cast<ASMs2DC1*>(spch),sEdge,rever));
       }
       else
-        adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave, mEdge, sEdge, rever?1:0, 1});
+        adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave, mEdge, sEdge, orient, 1});
     }
 
     // Second pass for C1-continuous patches, to set up additional constraints
