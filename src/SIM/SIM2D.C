@@ -68,6 +68,45 @@ SIM2D::SIM2D (IntegrandBase* itg, unsigned char n, bool check) : SIMgeneric(itg)
 }
 
 
+bool SIM2D::addConnection (int master, int slave, int mIdx,
+                           int sIdx, int orient, int basis, bool coordCheck)
+{
+  if (orient < 0 || orient > 1) {
+    std::cerr <<" *** SIM2D::addConnection: Invalid orientation "<< orient <<"."
+              << std::endl;
+    return false;
+  }
+
+  int lmaster = this->getLocalPatchIndex(master);
+  int lslave = this->getLocalPatchIndex(slave);
+
+  if (lmaster > 0 && lslave > 0)
+  {
+    IFEM::cout <<"\tConnecting P"<< slave <<" E"<< sIdx
+               <<" to P"<< master <<" E"<< mIdx
+               <<" reversed? "<< orient << std::endl;
+
+    ASMs2D* spch = static_cast<ASMs2D*>(myModel[lslave-1]);
+    ASMs2D* mpch = static_cast<ASMs2D*>(myModel[lmaster-1]);
+
+    std::set<int> bases;
+    if (basis == 0)
+      for (size_t b = 1; b <= spch->getNoBasis(); ++b)
+        bases.insert(b);
+    else
+      bases = utl::getDigits(basis);
+
+    for (const int& b : bases)
+      if (!spch->connectPatch(sIdx,*mpch,mIdx,orient,b,coordCheck))
+        return false;
+  }
+  else
+    adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave, mIdx, sIdx, orient, 1});
+
+  return true;
+}
+
+
 bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
@@ -157,13 +196,19 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     const TiXmlElement* child = elem->FirstChildElement("connection");
     for (; child; child = child->NextSiblingElement())
     {
-      int master = 0, slave = 0, mEdge = 0, sEdge = 0;
-      bool rever = false;
+      int master = 0, slave = 0, mEdge = 0, sEdge = 0, orient = 0, basis = 0;
+      bool rever = false, periodic = false;
       utl::getAttribute(child,"master",master);
-      utl::getAttribute(child,"medge",mEdge);
+      if (!utl::getAttribute(child,"midx",mEdge))
+        utl::getAttribute(child,"medge",mEdge);
       utl::getAttribute(child,"slave",slave);
-      utl::getAttribute(child,"sedge",sEdge);
-      utl::getAttribute(child,"reverse",rever);
+      if (!utl::getAttribute(child,"sidx",sEdge))
+        utl::getAttribute(child,"sedge",sEdge);
+      if (!utl::getAttribute(child,"orient",orient))
+        if (utl::getAttribute(child,"reverse",rever) && rever)
+          orient = 1;
+      utl::getAttribute(child,"basis",basis);
+      utl::getAttribute(child,"periodic",periodic);
 
       if (master == slave ||
           master < 1 || master > nGlPatches ||
@@ -173,24 +218,17 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
                   << master <<" "<< slave << std::endl;
         return false;
       }
-      int lmaster = this->getLocalPatchIndex(master);
-      int lslave = this->getLocalPatchIndex(slave);
 
-      if (lmaster > 0 && lslave > 0)
+      if (!this->addConnection(master,slave,mEdge,sEdge,orient,basis,!periodic))
       {
-        IFEM::cout <<"\tConnecting P"<< lslave <<" E"<< sEdge
-                   <<" to P"<< lmaster <<" E"<< mEdge
-                   <<" reversed? "<< rever << std::endl;
-        ASMs2D* spch = static_cast<ASMs2D*>(myModel[lslave-1]);
-        ASMs2D* mpch = static_cast<ASMs2D*>(myModel[lmaster-1]);
-        if (!spch->connectPatch(sEdge,*mpch,mEdge,rever))
-          return false;
-        else if (opt.discretization == ASM::SplineC1)
-          top.push_back(Interface(static_cast<ASMs2DC1*>(mpch),mEdge,
-                                  static_cast<ASMs2DC1*>(spch),sEdge,rever));
+        std::cerr <<" *** SIM2D::parse: Error establishing connection."
+                  << std::endl;
+        return false;
       }
-      else
-        adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave, mEdge, sEdge, rever?1:0, 1});
+
+      if (opt.discretization == ASM::SplineC1)
+        top.push_back(Interface(static_cast<ASMs2DC1*>(this->getPatch(master,true)),mEdge,
+                                static_cast<ASMs2DC1*>(this->getPatch(slave,true)),sEdge,orient));
     }
 
     // Second pass for C1-continuous patches, to set up additional constraints

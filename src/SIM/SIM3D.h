@@ -65,6 +65,17 @@ public:
   virtual bool readPatches(std::istream& isp, PatchVec& patches,
                            const char* whiteSpace) const;
 
+  //! \brief Connect two patches.
+  //! \param master Master patch
+  //! \param slave Slave patch
+  //! \param mFace Face on master
+  //! \param sFace Face on slave
+  //! \param orient Orientation flag for connection
+  //! \param basis Which bases to connect (0 for all)
+  //! \param coordCheck False to turn off coordinate checks
+  bool addConnection(int master, int slave, int mFace, int sFace,
+                     int orient, int basis = 0, bool coordCheck = true);
+
   //! \brief Evaluates the primary solution at the given point.
   //! \param[in] psol Primary solution vector
   //! \param[in] u First parameter of the point to evaluate at
