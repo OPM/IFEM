@@ -710,6 +710,18 @@ Tensor operator* (const Tensor& A, const Tensor& B)
 }
 
 
+Tensor operator*(const double c, const Tensor& T)
+{
+  Tensor C(T.n);
+
+  for (int i = 1; i <= C.n; ++i)
+    for (int j = 1; j <= C.n; ++j)
+      C(i,j) = c*T(i,j);
+
+  return C;
+}
+
+
 std::ostream& SymmTensor::print (std::ostream& os) const
 {
   switch (n) {

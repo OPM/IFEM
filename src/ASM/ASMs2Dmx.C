@@ -537,6 +537,7 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
       std::vector<Matrix> dNxdu(m_basis.size());
       std::vector<Matrix3D> d2Nxdu2(m_basis.size());
       Matrix3D Hess;
+      double dXidu[2];
       Matrix Xnod, Jac;
       Vec4   X;
       for (size_t i = 0; i < threadGroups[g][t].size() && ok; ++i)
@@ -565,6 +566,13 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
 
         if (useElmVtx)
           this->getElementCorners(i1-1,i2-1,fe.XC);
+
+        if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+        {
+          // Element size in parametric space
+          dXidu[0] = surf->knotSpan(0,i1-1);
+          dXidu[1] = surf->knotSpan(1,i2-1);
+        }
 
         // Initialize element quantities
         LocalIntegral* A = integrand.getLocalIntegral(elem_sizes,fe.iel,false);
@@ -613,10 +621,14 @@ bool ASMs2Dmx::integrate (Integrand& integrand,
                                 fe.grad(geoBasis), true))
                   ok = false;
               for (size_t b = 0; b < m_basis.size() && ok; ++b)
-                if ((int)b != geoBasis && !utl::Hessian(Hess,fe.hess(b+1),Jac,Xnod,d2Nxdu2[b],
-                                                        fe.grad(b+1), false))
-                  ok = false;
+                if ((int)b != geoBasis)
+                  if (!utl::Hessian(Hess,fe.hess(b+1),Jac,Xnod,d2Nxdu2[b], fe.grad(b+1), false))
+                    ok = false;
             }
+
+            // Compute G-matrix
+            if (integrand.getIntegrandType() & Integrand::G_MATRIX)
+              utl::getGmat(Jac,dXidu,fe.G);
 
             if (fe.detJxW == 0.0) continue; // skip singular points
 
