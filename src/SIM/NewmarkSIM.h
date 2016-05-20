@@ -97,6 +97,7 @@ protected:
   double gamma;  //!< Newmark time integration parameter
 
   // Solution algorithm parameters
+  bool   solveDisp; //!< If \e true, use incremental displacements as unknowns
   char   predictor; //!< Predictor type flag
   int    maxit;     //!< Maximum number of iterations in a time step
   int    saveIts;   //!< Time step for which iteration result should be saved

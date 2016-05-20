@@ -29,6 +29,7 @@ NewmarkSIM::NewmarkSIM (SIMbase& sim) : MultiStepSIM(sim)
   alpha1 = 0.0;
   alpha2 = 0.0;
 
+  solveDisp = false; // default use acceleration as primary variables
   predictor = 'a'; // default predictor (zero acceleration)
   cNorm = 1; // default convergence check, force residual
 
@@ -92,6 +93,8 @@ bool NewmarkSIM::parse (const TiXmlElement* elem)
     }
     else if ((value = utl::getValue(child,"rotation")))
       rotUpd = tolower(value[0]);
+    else if (!strncasecmp(child->Value(),"solve_dis",9))
+      solveDisp = true; // no need for value here
 
   return true;
 }
@@ -108,7 +111,8 @@ void NewmarkSIM::printProblem () const
   case 'v': IFEM::cout <<"\n- using constant velocity predictor"; break;
   case 'a': IFEM::cout <<"\n- using zero acceleration predictor"; break;
   }
-
+  if (solveDisp)
+    IFEM::cout <<"\n- using displacement increments as primary unknowns";
   if (alpha1 > 0.0)
     IFEM::cout <<"\nMass-proportional damping (alpha1): "<< alpha1;
   if (alpha2 != 0.0)
@@ -122,7 +126,7 @@ void NewmarkSIM::initPrm ()
 {
   model.setIntegrationPrm(0,alpha1);
   model.setIntegrationPrm(1,fabs(alpha2));
-  model.setIntegrationPrm(2,beta);
+  model.setIntegrationPrm(2,solveDisp ? -beta : beta);
   model.setIntegrationPrm(3,gamma);
 }
 
@@ -272,13 +276,13 @@ bool NewmarkSIM::correctStep (TimeStep& param, bool)
   size_t iV = solution.size() - 2;
 
   // Corrected displacement
-  solution[iD].add(linsol,beta*dt*dt);
+  solution[iD].add(linsol, solveDisp ? 1.0 : beta*dt*dt);
 
   // Corrected velocity
-  solution[iV].add(linsol,gamma*dt);
+  solution[iV].add(linsol, solveDisp ? gamma/(beta*dt) : gamma*dt);
 
   // Corrected acceleration
-  solution[iA].add(linsol,1.0);
+  solution[iA].add(linsol, solveDisp ? 1.0/(beta*dt*dt) : 1.0);
 
 #if SP_DEBUG > 1
   std::cout <<"Corrected displacement:"<< solution[iD];
@@ -289,7 +293,7 @@ bool NewmarkSIM::correctStep (TimeStep& param, bool)
   if (rotUpd == 't')
     model.updateRotations(solution[iD]);
   else if (rotUpd)
-    model.updateRotations(linsol,beta*dt*dt);
+    model.updateRotations(linsol, solveDisp ? 1.0 : beta*dt*dt);
 
   return model.updateConfiguration(solution[iD]);
 }

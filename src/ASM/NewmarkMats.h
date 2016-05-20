@@ -60,6 +60,7 @@ protected:
 private:
   double alpha_m; //!< Generalized-alpha parameter
   double alpha_f; //!< Generalized-alpha parameter
+  bool   slvDisp; //!< If \e true, solve for displacement increments
 };
 
 #endif

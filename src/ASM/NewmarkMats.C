@@ -23,7 +23,7 @@ NewmarkMats::NewmarkMats (double a1, double a2, double b, double c,
 
   if (generalizedAlpha)
   {
-    alpha_m = b;
+    alpha_m = fabs(b);
     alpha_f = c;
     double alpha = alpha_f - alpha_m;
     beta = 0.25*(1.0-alpha)*(1.0-alpha);
@@ -32,9 +32,11 @@ NewmarkMats::NewmarkMats (double a1, double a2, double b, double c,
   else
   {
     alpha_m = alpha_f = 1.0;
-    beta  = b;
+    beta  = fabs(b);
     gamma = c;
   }
+
+  slvDisp = b < 0.0; // Displacement increments are used as primary unknowns
 }
 
 
@@ -45,7 +47,7 @@ const Matrix& NewmarkMats::getNewtonMatrix () const
   N = A[1];
   N.multiply(alpha_m + alpha_f*alpha1*gamma*h);
   N.add(A[2],alpha_f*(alpha2*gamma + beta*h)*h);
-
+  if (slvDisp) N.multiply(1.0/(beta*h*h));
 #if SP_DEBUG > 2
   std::cout <<"\nElement mass matrix"<< A[1];
   std::cout <<"Element stiffness matrix"<< A[2];

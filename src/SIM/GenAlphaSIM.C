@@ -61,7 +61,7 @@ void GenAlphaSIM::initPrm ()
 {
   model.setIntegrationPrm(0,alpha1);
   model.setIntegrationPrm(1,fabs(alpha2));
-  model.setIntegrationPrm(2,alpha_m);
+  model.setIntegrationPrm(2,solveDisp ? -alpha_m : alpha_m);
   model.setIntegrationPrm(3,alpha_f);
   model.setIntegrationPrm(4,2.0);
 }
@@ -142,9 +142,11 @@ bool GenAlphaSIM::correctStep (TimeStep& param, bool converged)
   size_t ipV = solution.size() - 2;
 
   // Update current displacement, velocity and acceleration solutions
-  tempSol[0].add(linsol,beta*param.time.dt*param.time.dt);
-  tempSol[1].add(linsol,gamma*param.time.dt);
-  tempSol[2].add(linsol,1.0);
+  double bdt = beta*param.time.dt;
+  double bdt2 = bdt*param.time.dt;
+  tempSol[0].add(linsol, solveDisp ? 1.0 : bdt2);
+  tempSol[1].add(linsol, solveDisp ? gamma/bdt : gamma*param.time.dt);
+  tempSol[2].add(linsol, solveDisp ? 1.0/bdt2 : 1.0);
 
   if (converged)
   {
