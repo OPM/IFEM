@@ -86,7 +86,9 @@ bool SIM2D::addConnection(int master, int slave, int mEdge, int sEdge,
       return false;
   }
   else
-    adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave, mEdge, sEdge, rever?1:0, 1});
+    adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave,
+                                                                  mEdge, sEdge,
+                                                                  rever?1:0, 1, basis});
 
   return true;
 }

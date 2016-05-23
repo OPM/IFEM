@@ -61,7 +61,9 @@ bool SIM3D::addConnection(int master, int slave, int mFace, int sFace,
     if (!spch->connectPatch(sFace,*mpch,mFace,orient,basis,coordCheck))
       return false;
   } else
-    adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave, mFace, sFace, orient, 2});
+    adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave,
+                                                                  mFace, sFace,
+                                                                  orient, 2, basis});
 
   return true;
 }
