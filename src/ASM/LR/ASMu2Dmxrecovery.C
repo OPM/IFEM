@@ -24,6 +24,8 @@
 #include "Profiler.h"
 #include "IntegrandBase.h"
 
+#include <numeric>
+
 
 static void expandTensorGrid (const RealArray* in, RealArray* out)
 {

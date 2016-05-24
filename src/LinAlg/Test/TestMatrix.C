@@ -15,6 +15,8 @@
 #include "gtest/gtest.h"
 #include <numeric>
 
+#include <numeric>
+
 
 TEST(TestMatrix, AddBlock)
 {

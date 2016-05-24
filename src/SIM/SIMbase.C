@@ -1578,8 +1578,9 @@ void SIMbase::getBoundaryNodes (int pcode, IntVec& glbNodes, Vec3Vec* XYZ) const
   ASMbase* pch;
   size_t i, node, last = 0;
   for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); ++p)
-    if (abs(p->pindx) == pcode && (pch = this->getPatch(p->patch)))
-      switch (pch->getNoParamDim() - abs(p->ldim)) {
+    if (abs(p->pindx) == pcode && (pch = this->getPatch(p->patch))) {
+      char dim = pch->getNoParamDim() - abs(p->ldim);
+      switch (dim) {
       case 1: // The boundary is of one dimension lower than the patch
         pch->getBoundaryNodes(abs(p->lindx),glbNodes);
         for (i = last; XYZ && i < glbNodes.size(); i++)
@@ -1598,6 +1599,7 @@ void SIMbase::getBoundaryNodes (int pcode, IntVec& glbNodes, Vec3Vec* XYZ) const
         }
         break;
       }
+    }
 }
 
 

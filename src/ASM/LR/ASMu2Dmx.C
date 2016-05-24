@@ -33,7 +33,9 @@
 #include "Profiler.h"
 #include "Vec3Oper.h"
 #include "Vec3.h"
+
 #include <array>
+#include <numeric>
 
 
 ASMu2Dmx::ASMu2Dmx (unsigned char n_s,
