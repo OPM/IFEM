@@ -604,9 +604,12 @@ bool ASMs3D::assignNodeNumbers (BlockNodes& nodes, int basis)
 #if SP_DEBUG > 2
   if (basis > 0) std::cout <<"\nBasis "<< basis <<":";
   for (int i = inod-n1*n2*n3; i < inod; i++)
-    std::cout <<"\nNode "<< i+1 <<"\t: "
-	      << nodeInd[i].I <<" "<< nodeInd[i].J <<" "<< nodeInd[i].K
-	      <<"\tglobal no. "<< MLGN[i];
+  {
+    std::cout <<"\nNode "<< i+1 <<"\t: ";
+    if (!nodeInd.empty())
+      std::cout << nodeInd[i].I <<" "<< nodeInd[i].J <<" "<< nodeInd[i].K;
+    std::cout <<"\tglobal no. "<< MLGN[i];
+  }
   std::cout << std::endl;
 #endif
   return true;
