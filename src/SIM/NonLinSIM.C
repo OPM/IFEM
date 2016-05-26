@@ -144,6 +144,13 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
 }
 
 
+void NonLinSIM::initPrm ()
+{
+  if (iteNorm == NONE) // Flag to integrand that a linear solver is used
+    model.setIntegrationPrm(3,1.0);
+}
+
+
 void NonLinSIM::init (size_t nSol, const RealArray& value)
 {
   this->MultiStepSIM::initSol(nSol);

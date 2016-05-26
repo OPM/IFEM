@@ -149,7 +149,10 @@ public:
   //! \brief Modifies the current solution vector (used by sub-iterations only).
   virtual void setSolution(const Vector& s, int idx = 0) { solution[idx] = s; }
 
-  //! \brief Returns a const reference to the FEmodel.
+  //! \brief Returns whether this solution driver is linear or not.
+  virtual bool isLinear() const { return true; }
+
+  //! \brief Returns a const reference to the FE model.
   const SIMoutput& getModel() const { return model; }
 
   //! \brief Enum describing sub-iteration status.

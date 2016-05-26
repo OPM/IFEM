@@ -45,6 +45,9 @@ public:
   //! \param[in] initVal Initial values of the primary solution
   void init(size_t nSol, const RealArray& initVal);
 
+  //! \brief Initializes some integration parameters for the integrand.
+  virtual void initPrm();
+
   //! \brief Advances the load step one step forward.
   //! \param param Time stepping parameters
   //! \param[in] updateTime If \e false, the time parameters are not incremented
@@ -72,6 +75,9 @@ public:
 
   //! \brief Returns the maximum number of iterations.
   int getMaxit() const { return maxit; }
+
+  //! \brief Returns whether this solution driver is linear or not.
+  virtual bool isLinear() const { return iteNorm == NONE; }
 
 protected:
   //! \brief Checks whether the nonlinear iterations have converged or diverged.

@@ -196,6 +196,9 @@ public:
   //! \brief Modifies the current solution vector (used by sub-iterations only).
   virtual void setSolution(const Vector& newSol, int idx);
 
+  //! \brief Returns whether this solution driver is linear or not.
+  virtual bool isLinear() const { return false; }
+
 protected:
   //! \brief Calculates predicted velocities and accelerations.
   virtual bool predictStep(TimeStep& param);
