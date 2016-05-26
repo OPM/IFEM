@@ -325,26 +325,26 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
   Matrix field;
   std::array<IntVec,3> dID;
 
-  size_t i, j;
-  int node, geomID = myGeomID;
+  size_t i, j, n;
+  int geomID = myGeomID;
   for (i = 0; i < myModel.size(); i++)
   {
     if (myModel[i]->empty()) continue; // skip empty patches
 
     geomID++;
     size_t nbc = myModel[i]->getNoFields(1);
-    int nNodes=0;
-    for (size_t n = 1; n <= myModel[i]->getNoBasis(); ++n)
-      nNodes += myModel[i]->getNoNodes(n);
-    Matrix bc(nbc,myModel[i]->getNoNodes(1) + myModel[i]->getNoNodes(-1)-nNodes);
+    int nNodes = myModel[i]->getNoNodes(-1);
+    for (n = 2; n <= myModel[i]->getNoBasis(); n++)
+      nNodes -= myModel[i]->getNoNodes(n);
+    Matrix bc(nbc,nNodes);
     RealArray flag(3,0.0);
     ASMbase::BCVec::const_iterator bit;
     for (bit = myModel[i]->begin_BC(); bit != myModel[i]->end_BC(); bit++)
-      if ((node = myModel[i]->getNodeIndex(bit->node,true)))
+      if ((n = myModel[i]->getNodeIndex(bit->node,true)) && n <= bc.rows())
       {
-        if (!bit->CX && nbc > 0) bc(1,node) = flag[0] = 1.0;
-        if (!bit->CY && nbc > 1) bc(2,node) = flag[1] = 1.0;
-        if (!bit->CZ && nbc > 2) bc(3,node) = flag[2] = 1.0;
+        if (!bit->CX && nbc > 0) bc(1,n) = flag[0] = 1.0;
+        if (!bit->CY && nbc > 1) bc(2,n) = flag[1] = 1.0;
+        if (!bit->CZ && nbc > 2) bc(3,n) = flag[2] = 1.0;
       }
 
     if (flag[0]+flag[1]+flag[2] == 0.0)
@@ -360,7 +360,7 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
     if (opt.nViz[0] > 2 || opt.nViz[1] > 2 || opt.nViz[2] > 2)
       for (j = 1; j <= 3; j++)
         if (flag[j-1] == 1.0)
-          for (size_t n = 1; n <= field.cols(); n++)
+          for (n = 1; n <= field.cols(); n++)
             if (field(j,n) < 0.9999) field(j,n) = 0.0;
 
     for (j = 0; j < 3; j++)
