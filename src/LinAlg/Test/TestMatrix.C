@@ -13,6 +13,7 @@
 #include "matrix.h"
 
 #include "gtest/gtest.h"
+#include <numeric>
 
 
 TEST(TestMatrix, AddBlock)

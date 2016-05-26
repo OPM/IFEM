@@ -21,6 +21,7 @@
 #include "TimeStep.h"
 
 #include "gtest/gtest.h"
+#include <numeric>
 
 
 // SAM class representing a single-DOF system.
