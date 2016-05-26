@@ -17,7 +17,7 @@ mysim=$1
 cd `dirname $2`
 MAPFILE=`head -n1 $2`
 test  $? -eq 0 || exit 1
-test -n "$3" && mysim="$PETSC_DIR/bin/petscmpiexec -n $3 $mysim"
+test -n "$3" && mysim="mpirun -n $3 $mysim"
 $mysim $MAPFILE 2>&1 > @CMAKE_BINARY_DIR@/templog
 appres=$?
 globres=1
