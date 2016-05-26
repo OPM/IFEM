@@ -41,7 +41,7 @@ macro(IFEM_add_test_app path workdir name)
   add_executable(${name}-test EXCLUDE_FROM_ALL ${IFEM_PATH}/src/IFEM-test.C ${TEST_SRCS})
   gtest_add_tests($<TARGET_FILE:${name}-test> ${workdir} ${TEST_SRCS})
   list(APPEND TEST_APPS ${name}-test)
-  target_link_libraries(${name}-test ${ARGN} gtest)
+  target_link_libraries(${name}-test ${ARGN} gtest pthread)
 endmacro()
 
 macro(IFEM_add_unittests IFEM_PATH)
