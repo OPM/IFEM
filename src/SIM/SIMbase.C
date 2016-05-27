@@ -490,7 +490,7 @@ bool SIMbase::parse (const TiXmlElement* elem)
 
   // Create the default geometry of no patchfile is specified
   if (myModel.empty() && !strcasecmp(elem->Value(),"geometry"))
-    if (!elem->FirstChildElement("patchfile"))
+    if (this->getNoParamDim() > 0 && !elem->FirstChildElement("patchfile"))
     {
       IFEM::cout <<"  Using default linear geometry basis on unit domain [0,1]";
       if (this->getNoParamDim() > 1) IFEM::cout <<"^"<< this->getNoParamDim();
@@ -1295,7 +1295,7 @@ RealFunc* SIMbase::getSclFunc (int code) const
 
 bool SIMbase::initSystem (int mType, size_t nMats, size_t nVec, bool withRF)
 {
-  if (!mySam) return false;
+  if (!mySam) return true; // Silently ignore when no algebraic system
 
 #if SP_DEBUG > 2
   mySam->print(std::cout);

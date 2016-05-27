@@ -14,6 +14,7 @@
 #include "SAM.h"
 #include "IntegrandBase.h"
 #include "SIMoutput.h"
+#include "SIMdummy.h"
 
 #include "GenAlphaSIM.h"
 #include "NewmarkMats.h"
@@ -88,29 +89,11 @@ private:
 };
 
 
-// Simulator wrapper implementing dummy versions of the pure virtual methods.
-class SIMwrapper : public SIMoutput
-{
-public:
-  SIMwrapper(IntegrandBase* p) : SIMoutput(p) {}
-  virtual ~SIMwrapper() {}
-  virtual unsigned short int getNoParamDim() const { return 0; }
-  virtual bool addConstraint(int,int,int,int,int,int&,char)
-  { return false; }
-  virtual ASMbase* readPatch(std::istream&,int,const CharVec&) const
-  { return nullptr; }
-  virtual bool readPatches(std::istream&,SIMdependency::PatchVec&,const char*)
-  { return false; }
-  virtual ASMbase* createDefaultGeometry(const TiXmlElement*) const
-  { return nullptr; }
-};
-
-
 // Simulator class for a single-DOF oscillator.
-class SIM1DOF : public SIMwrapper
+class SIM1DOF : public SIMdummy<SIMoutput>
 {
 public:
-  SIM1DOF(IntegrandBase* p) : SIMwrapper(p) { mySam = new SAM1DOF(); }
+  SIM1DOF(IntegrandBase* p) : SIMdummy<SIMoutput>(p) { mySam = new SAM1DOF(); }
   virtual ~SIM1DOF() {}
   virtual bool assembleSystem(const TimeDomain& time,
                               const Vectors& prevSol,
@@ -150,10 +133,10 @@ public:
 
 
 // Simulator class for a two-DOF oscillator with prescribed motion.
-class SIM2DOF : public SIMwrapper
+class SIM2DOF : public SIMdummy<SIMoutput>
 {
 public:
-  SIM2DOF(IntegrandBase* p) : SIMwrapper(p) { mySam = new SAM2DOF(); }
+  SIM2DOF(IntegrandBase* p) : SIMdummy<SIMoutput>(p) { mySam = new SAM2DOF(); }
   virtual ~SIM2DOF() {}
   virtual bool assembleSystem(const TimeDomain& time,
                               const Vectors& prevSol,
