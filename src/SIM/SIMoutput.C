@@ -340,7 +340,7 @@ bool SIMoutput::writeGlvBC (int& nBlock, int iStep) const
     RealArray flag(3,0.0);
     ASMbase::BCVec::const_iterator bit;
     for (bit = myModel[i]->begin_BC(); bit != myModel[i]->end_BC(); bit++)
-      if ((n = myModel[i]->getNodeIndex(bit->node,true)) && n <= bc.rows())
+      if ((n = myModel[i]->getNodeIndex(bit->node,true)) && n <= bc.cols())
       {
         if (!bit->CX && nbc > 0) bc(1,n) = flag[0] = 1.0;
         if (!bit->CY && nbc > 1) bc(2,n) = flag[1] = 1.0;
