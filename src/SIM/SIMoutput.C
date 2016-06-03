@@ -1378,7 +1378,13 @@ bool SIMoutput::savePoints (const Vector& psol, double time, int step) const
   myProblem->initResultPoints(time);
 
   for (size_t i = 0; i < myPoints.size(); i++)
-    if (!myPoints[i].first.empty())
+  {
+    if (myPoints[i].first.empty()) continue;
+
+    bool havePoints = false;
+    for (size_t j = 0; i < myPoints[i].second.size() && !havePoints; j++)
+      havePoints = this->getLocalPatchIndex(myPoints[i].second[j].patch) > 0;
+    if (havePoints)
     {
       std::ofstream fs(myPoints[i].first.c_str(),
                        step == 1 ? std::ios::out : std::ios::app);
@@ -1386,6 +1392,7 @@ bool SIMoutput::savePoints (const Vector& psol, double time, int step) const
       if (!this->dumpResults(psol,time,logs,myPoints[i].second,false,3))
         return false;
     }
+  }
 
   return true;
 }
