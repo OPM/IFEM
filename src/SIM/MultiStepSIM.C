@@ -98,7 +98,7 @@ bool MultiStepSIM::saveModel (int& gBlock, int& rBlock,
 
 bool MultiStepSIM::saveStep (int iStep, double time, const char* vecName)
 {
-  if (iStep <= lastSt) return true; // We have already saved this step
+  if (abs(iStep) <= lastSt) return true; // We have already saved this step
 
   PROFILE1("MultiStepSIM::saveStep");
 
@@ -107,8 +107,7 @@ bool MultiStepSIM::saveStep (int iStep, double time, const char* vecName)
     return false;
   else if (iStep < 0)
     iStep = -iStep;
-  else
-    lastSt = iStep;
+  lastSt = iStep;
 
   // Write boundary tractions, if any
   if (!opt.pSolOnly)
