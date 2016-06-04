@@ -39,14 +39,15 @@ class IFEM
 {
 public:
   //! \brief Initializes the IFEM library.
-  //! \param argc The number of command-line arguments
-  //! \param argv The command-line arguments
+  //! \param arg_c The number of command-line arguments
+  //! \param arg_v The command-line arguments
+  //! \param title The title of the IFEM simulator
   //! \return The MPI process ID
-  static int Init(int argc, char** argv);
+  static int Init(int arg_c, char** arg_v, const char* title = nullptr);
 
   //! \brief Applies command-line argument values to the general input options.
   static void applyCommandLineOptions(SIMoptions& opt);
-  //! \brief Returns a reference to the general input options
+  //! \brief Returns a reference to the general input options.
   static SIMoptions& getOptions() { return cmdOptions; }
 
   //! \brief Registers a fifo instruction callback.
@@ -58,8 +59,8 @@ public:
   //! \brief Polls the control fifo for instructions.
   static void pollControllerFifo() { fifo.poll(); }
 
-  //! \brief Combined standard out for all processes
-  static utl::LogStream cout;
+  static utl::LogStream cout; //!< Combined standard out for parallel processes
+
 private:
   static SIMoptions cmdOptions; //!< General input options
   static int argc;              //!< The number of command-line arguments

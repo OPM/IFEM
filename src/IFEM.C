@@ -14,8 +14,14 @@
 #include "IFEM.h"
 #include "LinAlgInit.h"
 #include <iostream>
+#include <cstring>
+
 #ifdef HAS_PETSC
-#include "PETScSupport.h"
+#include "petscversion.h"
+#endif
+#ifdef PARALLEL_PETSC
+#include "petscsys.h"
+#include "mpi.h"
 #endif
 
 int IFEM::argc;
@@ -25,10 +31,10 @@ ControlFIFO IFEM::fifo;
 utl::LogStream IFEM::cout(std::cout);
 
 
-int IFEM::Init(int argc_, char** argv_)
+int IFEM::Init (int arg_c, char** arg_v, const char* title)
 {
-  argc = argc_;
-  argv = argv_;
+  argc = arg_c;
+  argv = arg_v;
   LinAlgInit& linalg = LinAlgInit::Init(argc,argv);
   applyCommandLineOptions(cmdOptions);
 
@@ -36,6 +42,22 @@ int IFEM::Init(int argc_, char** argv_)
 
   if (linalg.myPid != 0 || argc < 2)
     return linalg.myPid;
+
+  if (title)
+  {
+    int i, nchar = 13 + strlen(title);
+    std::cout <<"\n >>> IFEM "<< title <<" <<<\n ";
+    for (i = 0; i < nchar; i++) std::cout <<'=';
+    std::cout <<"\n\n Executing command:\n";
+#ifdef PARALLEL_PETSC
+    int nProc = 1;
+    MPI_Comm_size(PETSC_COMM_WORLD,&nProc);
+    if (nProc > 1)
+      std::cout <<" mpirun -np "<< nProc;
+#endif
+    for (i = 0; i < argc; i++) IFEM::cout <<" "<< argv[i];
+    std::cout << std::endl;
+  }
 
   std::cout <<"\n ===== IFEM v"<< IFEM_VERSION_MAJOR <<"."
                                << IFEM_VERSION_MINOR <<"."
@@ -94,7 +116,7 @@ int IFEM::Init(int argc_, char** argv_)
 #endif
 
   if (cmdOptions.enableController && fifo.open())
-    std::cout << "\n External controller enabled";
+    std::cout <<"\n        External controller enabled";
 
   std::cout << std::endl;
 
@@ -102,8 +124,8 @@ int IFEM::Init(int argc_, char** argv_)
 }
 
 
-void IFEM::applyCommandLineOptions(SIMoptions& opt)
+void IFEM::applyCommandLineOptions (SIMoptions& opt)
 {
-  for (int i=1; i < argc; ++i)
-    opt.parseOldOptions(argc, argv, i);
+  for (int i = 1; i < argc; i++)
+    opt.parseOldOptions(argc,argv,i);
 }
