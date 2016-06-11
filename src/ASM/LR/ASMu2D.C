@@ -655,8 +655,8 @@ void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
       std::cout <<" ("<< dirich.back().nodes[i].first
                 <<","<< dirich.back().nodes[i].second
                 <<")";
-      std::cout <<"\nThese nodes will be subjected to Dirichlet projection"
-                << std::endl;
+    std::cout <<"\nThese nodes will be subjected to Dirichlet projection"
+              << std::endl;
   }
 #endif
 }
