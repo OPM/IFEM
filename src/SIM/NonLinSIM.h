@@ -101,6 +101,9 @@ protected:
   bool   fromIni; //!< If \e true, always solve from initial configuration
   CNORM  iteNorm; //!< The norm type used to measure the residual
   double rTol;    //!< Relative convergence tolerance
+  int rTolSteps;  //!< Ramp-up steps for rtol
+  int rTolRampStart;  //!< Ramp-up start step for rtol
+  double rTolStep; //!< Step size for rtol ramping
   double aTol;    //!< Absolute convergence tolerance
   double divgLim; //!< Relative divergence limit
   double eta;     //!< Line search tolerance

@@ -33,6 +33,9 @@ NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : MultiStepSIM(sim), iteNorm(n)
   nupdat  = 20;
   prnSlow = 0;
   rTol    = 0.000001;
+  rTolSteps = 0;
+  rTolStep = 1.0;
+  rTolRampStart = 0;
   aTol    = 0.0;
   divgLim = 10.0;
   alpha   = 1.0;
@@ -106,9 +109,12 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
       maxit = atoi(value);
     else if ((value = utl::getValue(child,"nupdate")))
       nupdat = atoi(value);
-    else if ((value = utl::getValue(child,"rtol")))
+    else if ((value = utl::getValue(child,"rtol"))) {
       rTol = atof(value);
-    else if ((value = utl::getValue(child,"atol")))
+      utl::getAttribute(child,"ramp",rTolSteps);
+      utl::getAttribute(child,"rampstart",rTolRampStart);
+      utl::getAttribute(child,"step",rTolStep);
+    } else if ((value = utl::getValue(child,"atol")))
       aTol = atof(value);
     else if ((value = utl::getValue(child,"dtol")))
       divgLim = atof(value);
@@ -190,6 +196,9 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
   if (solution.empty())
     return FAILURE;
 
+  if (rTolSteps > 0 && param.step == 1)
+    rTol *= std::pow(rTolStep, -rTolSteps);
+
   if (msgLevel >= 0)
   {
     std::streamsize oldPrec = 0;
@@ -212,6 +221,9 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
   alpha = 1.0;
   if (fromIni) // Always solve from initial configuration
     solution.front().fill(0.0);
+
+  if (rTolSteps > 0 && param.step >= rTolRampStart && param.step < rTolSteps+rTolRampStart)
+    rTol *= rTolStep;
 
   if (!model.updateDirichlet(param.time.t,&solution.front()))
     return FAILURE;
