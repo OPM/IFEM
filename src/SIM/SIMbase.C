@@ -1455,13 +1455,14 @@ size_t SIMbase::getNoDOFs () const
 }
 
 
-size_t SIMbase::getNoNodes (bool unique) const
+size_t SIMbase::getNoNodes (bool unique, int basis) const
 {
   size_t nnod = 0;
   if (unique && mySam)
     nnod = mySam->getNoNodes();
-  else for (size_t i = 0; i < myModel.size(); i++)
-    nnod += myModel[i]->getNoNodes();
+  else
+    for (size_t i = 0; i < myModel.size(); i++)
+      nnod += myModel[i]->getNoNodes(basis);
 
   return nnod;
 }

@@ -207,12 +207,12 @@ public:
   //! \brief Returns the number of spatial dimensions in the model.
   virtual size_t getNoSpaceDim() const { return nsd; }
   //! \brief Returns the number of primary solution fields.
-  //! \param[in] basis Which basis to consider when mixed methods (0 = both)
+  //! \param[in] basis Which basis to consider when mixed methods (0 = all)
   size_t getNoFields(int basis = 0) const;
   //! \brief Returns the model size in terms of number of DOFs.
   size_t getNoDOFs() const;
   //! \brief Returns the model size in terms of number of (unique) nodes.
-  size_t getNoNodes(bool unique = false) const;
+  size_t getNoNodes(bool unique = false, int basis = 0) const;
   //! \brief Returns the model size in terms of number of elements.
   //! \param[in] includeXElms If \e true, include any extra-ordinary elements
   size_t getNoElms(bool includeXElms = false) const;
@@ -649,7 +649,7 @@ protected:
   //! \brief Reads global node data for a patch from given input stream.
   //! \param[in] isn The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read node data for
-  //! \param[in] basis The basis to read node data for (when mixed FEM)
+  //! \param[in] basis The basis to read node data for (when mixed FEM, 0 = all)
   //! \param[in] oneBased If \e true the read node numbers are assumed
   //! one-based. If \e false they are assumed to be zero-based.
   virtual bool readNodes(std::istream& isn, int pchInd, int basis = 0,
