@@ -51,7 +51,7 @@ TEST(TestStabilizationUtils, GetTauPt)
   Matrix G;
   utl::getGmat(J, &du[0], G);
   ASSERT_FLOAT_EQ(StabilizationUtils::getTauPt(0.1, 0.3, U, G, 4.0, 5.0),
-                  0.04884154);
+                  0.032328788);
 }
 
 TEST(TestStabilizationUtils, GetTauNSPt)
@@ -68,8 +68,8 @@ TEST(TestStabilizationUtils, GetTauNSPt)
 
   double tauM, tauC;
   ASSERT_TRUE(StabilizationUtils::getTauNSPt(0.1, 0.3, U, G, tauM, tauC));
-  ASSERT_FLOAT_EQ(tauM, 0.06156440419723151);
-  ASSERT_FLOAT_EQ(tauC, 4.060788100849391);
+  ASSERT_FLOAT_EQ(tauM, 0.016634906);
+  ASSERT_FLOAT_EQ(tauC, 1.87858);
 }
 
 TEST(TestStabilizationUtils, GetTauNSALEPt)
@@ -86,6 +86,6 @@ TEST(TestStabilizationUtils, GetTauNSALEPt)
 
   double tauM, tauC;
   ASSERT_TRUE(StabilizationUtils::getTauNSALEPt(0.1, 0.3, U, G, tauM, tauC));
-  ASSERT_FLOAT_EQ(tauM, 0.06156440419723151);
-  ASSERT_FLOAT_EQ(tauC, 0.1846932125916945);
+  ASSERT_FLOAT_EQ(tauM, 0.016634906);
+  ASSERT_FLOAT_EQ(tauC, 0.049904719);
 }

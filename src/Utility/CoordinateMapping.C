@@ -188,4 +188,6 @@ void utl::getGmat (const matrix<Real>& Ji, const Real* du, matrix<Real>& G)
       for (size_t m = 1; m <= nsd; m++)
         G(k,l) += Ji(m,k)*Ji(m,l)*scale;
     }
+
+  G *= pow(2, nsd);
 }
