@@ -14,10 +14,11 @@
 #include "SIMNodalConstraint.h"
 #include "ASMs1D.h"
 #include "ASMs2D.h"
+#include "ASMs3D.h"
 #ifdef HAS_LRSPLINE
 #include "ASMu2D.h"
+#include "LRSpline/LRSpline.h"
 #endif
-#include "ASMs3D.h"
 
 
 //! \brief Helper for applying operation to different ASM types
@@ -25,9 +26,7 @@ class NodalConstraintASMHelper {
 public:
   //! \brief Constructor
   //! \param pch The associated ASM class
-  NodalConstraintASMHelper(ASMbase* pch) :
-    bpch(pch)
-  {}
+  NodalConstraintASMHelper(ASMbase* pch) : bpch(pch) {}
 
   //! \brief Empty destructor
   virtual ~NodalConstraintASMHelper() {}
@@ -92,8 +91,7 @@ public:
   //! \brief Constructor
   //! \param pch The associated ASM class
   NodalConstraintASMs1DHelper(ASMs1D* spch) :
-    NodalConstraintASMHelper(spch), pch(spch)
-  {}
+    NodalConstraintASMHelper(spch), pch(spch) {}
 
   //! \brief Obtain the global node number of a given corner node on patch.
   //! \param vertex Vertex to obtain
@@ -121,8 +119,7 @@ public:
   //! \brief Constructor
   //! \param pch The associated ASM class
   NodalConstraintASMs2DHelper(ASMs2D* spch) :
-    NodalConstraintASMHelper(spch), pch(spch)
-  {}
+    NodalConstraintASMHelper(spch), pch(spch) {}
 
   //! \copydoc NodalConstrainASM2DHelper::getCorner
   int getCorner(int vertex, int basis)
@@ -316,7 +313,7 @@ public:
   //! \copydoc NodalConstraintASM2DHelper::constrainEdge
   void constrainEdge(int item, int comp, int basis, int idx)
   {
-    std::vector<int> map = {-1, 1, -2, 2};
+    std::vector<int> map = { LR::WEST, LR::EAST, LR::SOUTH, LR::NORTH };
     std::vector<int> nodes = pch->getEdgeNodes(map[item-1], basis);
     for (auto& it : nodes) {
       int gn = pch->getNodeID(it);

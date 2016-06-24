@@ -12,13 +12,11 @@
 //==============================================================================
 
 #include "SIMNodalConstraint.h"
-#include "ASMbase.h"
-#include "ASMs2D.h"
 #ifdef HAS_LRSPLINE
 #include "ASMu2D.h"
+#include "LRSpline/LRSpline.h"
 #endif
 #include "ASMs2Dmx.h"
-#include "ASMs3D.h"
 #include "ASMs3Dmx.h"
 #include "MPC.h"
 
@@ -306,7 +304,7 @@ TEST(TestSIMNodalConstraint, ASMu2DE1)
   s.preprocess();
 
   const ASMu2D& pch = static_cast<const ASMu2D&>(*s.getPatch(1));
-  auto nodes = pch.getEdgeNodes(-1, 1);
+  auto nodes = pch.getEdgeNodes(LR::WEST, 1);
   for (size_t i=1; i <= pch.getNoNodes(); ++i) {
     if (std::find(nodes.begin(), nodes.end(), i) != nodes.end() && i != (size_t)pch.getCorner(1,-1,1))
       check_mpc(pch.findMPC(i, 1), pch.getCorner(1,-1,1));
@@ -326,7 +324,7 @@ TEST(TestSIMNodalConstraint, ASMu2DE2)
   s.preprocess();
 
   const ASMu2D& pch = static_cast<const ASMu2D&>(*s.getPatch(1));
-  auto nodes = pch.getEdgeNodes(1, 1);
+  auto nodes = pch.getEdgeNodes(LR::EAST, 1);
   for (size_t i=1; i <= pch.getNoNodes(); ++i) {
     if (std::find(nodes.begin(), nodes.end(), i) != nodes.end())
       check_mpc(pch.findMPC(i, 1), 1);
@@ -347,7 +345,7 @@ TEST(TestSIMNodalConstraint, ASMu2DE3)
   s.preprocess();
 
   const ASMu2D& pch = static_cast<const ASMu2D&>(*s.getPatch(1));
-  auto nodes = pch.getEdgeNodes(-2, 1);
+  auto nodes = pch.getEdgeNodes(LR::SOUTH, 1);
   for (size_t i=1; i <= pch.getNoNodes(); ++i) {
     if (std::find(nodes.begin(), nodes.end(), i) != nodes.end())
       check_mpc(pch.findMPC(i, 1), pch.getCorner(1,1,1));
@@ -368,7 +366,7 @@ TEST(TestSIMNodalConstraint, ASMu2DE4)
   s.preprocess();
 
   const ASMu2D& pch = static_cast<const ASMu2D&>(*s.getPatch(1));
-  auto nodes = pch.getEdgeNodes(2, 1);
+  auto nodes = pch.getEdgeNodes(LR::NORTH, 1);
   for (size_t i=1; i <= pch.getNoNodes(); ++i) {
     if (std::find(nodes.begin(), nodes.end(), i) != nodes.end())
       check_mpc(pch.findMPC(i, 1), 1);
@@ -389,7 +387,7 @@ TEST(TestSIMNodalConstraint, ASMu2DmxE3)
   s.preprocess();
 
   const ASMu2D& pch = static_cast<const ASMu2D&>(*s.getPatch(1));
-  auto nodes = pch.getEdgeNodes(-2, 2);
+  auto nodes = pch.getEdgeNodes(LR::SOUTH, 2);
   size_t ofs = pch.getNoNodes(1);
   for (size_t i=1; i <= pch.getNoNodes(1); ++i) {
     ASSERT_TRUE(pch.findMPC(i, 1) == nullptr);

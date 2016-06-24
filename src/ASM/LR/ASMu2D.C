@@ -595,23 +595,19 @@ void ASMu2D::closeEdges (int dir, int basis, int master)
 */
 
 
-std::vector<int> ASMu2D::getEdgeNodes(int dir, int basis) const
+std::vector<int> ASMu2D::getEdgeNodes (int edge, int basis) const
 {
-  const LR::LRSplineSurface* srf = getBasis(basis);
-  size_t ofs = 0;
-  for (int i=1; i < basis; ++i)
-    ofs += getNoNodes(i);
+  size_t ofs = 1;
+  for (int i = 1; i < basis; i++)
+    ofs += this->getNoNodes(i);
 
-  std::vector<int> result;
-  if (dir > -3 && dir < 3) {
-    const std::vector<LR::parameterEdge> map = {LR::SOUTH, LR::WEST, LR::WEST, /* dummy*/ LR::EAST, LR::NORTH};
-    std::vector<LR::Basisfunction*> edgeFunctions;
-    srf->getEdgeFunctions(edgeFunctions, map[dir+2]);
+  std::vector<LR::Basisfunction*> edgeFunctions;
+  this->getBasis(basis)->getEdgeFunctions(edgeFunctions,
+                                          static_cast<LR::parameterEdge>(edge));
 
-    result.resize(edgeFunctions.size());
-    std::transform(edgeFunctions.begin(), edgeFunctions.end(),
-                   result.begin(), [ofs](LR::Basisfunction* a) { return a->getId()+ofs+1; });
-  }
+  std::vector<int> result(edgeFunctions.size());
+  std::transform(edgeFunctions.begin(), edgeFunctions.end(), result.begin(),
+                 [ofs](LR::Basisfunction* a) { return a->getId()+ofs; });
 
   return result;
 }
@@ -619,13 +615,27 @@ std::vector<int> ASMu2D::getEdgeNodes(int dir, int basis) const
 
 void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 {
-  std::vector<int> nodes = getEdgeNodes(dir, basis);
+  LR::parameterEdge edge;
+  switch (dir) {
+  case -2: edge = LR::SOUTH; break;
+  case -1: edge = LR::WEST; break;
+  case  1: edge = LR::EAST; break;
+  case  2: edge = LR::NORTH; break;
+  default: return;
+  }
+  std::vector<int> nodes = this->getEdgeNodes(edge,basis);
 
   // Skip the first and last function if we are requesting an open boundary.
   // I here assume the edgeFunctions are ordered such that the physical
   // end points are represented by the first and last edgeFunction.
   if (!open)
     this->prescribe(nodes.front(),dof,code);
+
+  if (code > 0) {
+    std::vector<LR::Basisfunction*> funcs;
+    dirich.push_back(DirichletEdge(this->getBasis(basis)->edgeCurve(edge,funcs),
+                                   dof,code));
+  }
 
   for (size_t i = 1; i < nodes.size()-1; i++)
     if (this->prescribe(nodes[i],dof,-code) == 0 && code > 0)
