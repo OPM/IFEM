@@ -7,7 +7,7 @@
 //!
 //! \author Knut Morten Okstad / SINTEF
 //!
-//! \brief Adaptive solution driver for linear isogeometric FEM simulators.
+//! \brief Adaptive solution driver for linear static FEM simulators.
 //!
 //==============================================================================
 
@@ -24,9 +24,9 @@
 #include <cstdio>
 
 
-AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : SIMinput(*sim)
+AdaptiveSIM::AdaptiveSIM (SIMoutput& sim, bool sa) : SIMinput(sim), model(sim)
 {
-  model = dynamic_cast<SIMoutput*>(sim);
+  alone  = sa;
   geoBlk = nBlock = 0;
 
   // Default grid adaptation parameters
@@ -40,7 +40,7 @@ AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : SIMinput(*sim)
   symmetry     = 1;     // no symmetry
   knot_mult    = 1;     // maximum regularity (continuity)
   trueBeta     = false; // beta measured in dimension increase
-  threshold    = Threshold::NONE;
+  threshold    = NONE;
   adaptor      = 0;
   adNorm       = 0;
   maxTjoints   = -1;
@@ -53,7 +53,7 @@ AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : SIMinput(*sim)
 bool AdaptiveSIM::parse (const TiXmlElement* elem)
 {
   if (strcasecmp(elem->Value(),"adaptive"))
-    return true;
+    return alone ? model.parse(elem) : true;
 
   const char* value = nullptr;
   const TiXmlElement* child = elem->FirstChildElement();
@@ -97,13 +97,13 @@ bool AdaptiveSIM::parse (const TiXmlElement* elem)
       std::string type;
       utl::getAttribute(child, "type", type, true);
       if (type.compare("threshold") == 0 || type.compare("threashold") == 0)
-        threshold = Threshold::MAXIMUM;
+        threshold = MAXIMUM;
       else if (type.compare("maximum") == 0)
-        threshold = Threshold::MAXIMUM;
+        threshold = MAXIMUM;
       else if (type.compare("average") == 0)
-        threshold = Threshold::AVERAGE;
+        threshold = AVERAGE;
       else if (type.compare("minimum") == 0)
-        threshold = Threshold::MINIMUM;
+        threshold = MINIMUM;
       else if (type.compare("truebeta") == 0)
         trueBeta = true;
     }
@@ -145,7 +145,7 @@ bool AdaptiveSIM::parse (char* keyWord, std::istream& is)
       symmetry = itmp;
   }
   else
-    return model->parse(keyWord,is);
+    return model.parse(keyWord,is);
 
   return true;
 }
@@ -163,15 +163,16 @@ bool AdaptiveSIM::initAdaptor (size_t indxProj, size_t nNormProj)
   IFEM::cout <<"\n\n >>> Starting adaptive simulation based on";
   if (pit != opt.project.end())
     IFEM::cout <<"\n     "<< pit->second
-               <<" error estimates (norm group "<< adaptor <<") <<<"<< std::endl;
-  else if (model->haveAnaSol())
+               <<" error estimates (norm group "<< adaptor
+               <<") <<<"<< std::endl;
+  else if (model.haveAnaSol())
   {
     IFEM::cout <<" exact errors <<<"<< std::endl;
     adaptor = 0; // Assuming the exact errors are stored in the first group
   }
   else
   {
-    IFEM::cout <<" - nothing, can not do that!"<< std::endl;
+    IFEM::cout <<" - nothing, can not do that! <<<"<< std::endl;
     return false;
   }
 
@@ -182,53 +183,47 @@ bool AdaptiveSIM::initAdaptor (size_t indxProj, size_t nNormProj)
 }
 
 
-bool AdaptiveSIM::assembleAndSolve ()
-{
-  return model->assembleSystem() && model->solveMatrixSystem(solution,1);
-}
-
-
 bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
 {
-  model->getProcessAdm().cout <<"\nAdaptive step "<< iStep << std::endl;
+  model.getProcessAdm().cout <<"\nAdaptive step "<< iStep << std::endl;
   if (iStep > 1)
   {
     SIMoptions oldOpt(opt);
     // Re-generate the FE model after the refinement
-    model->clearProperties();
+    model.clearProperties();
     // Caution: If we are using XML-input and have specified old command-line
     // options in order to override simulation options read from the input file,
     // those options will not be overridden here, so please don't do that..
-    if (!model->read(inputfile) || !model->preprocess())
+    if (!model.read(inputfile) || !model.preprocess())
       return false;
     opt = oldOpt;
   }
   else if (storeMesh)
     // Output the initial grid to eps-file
-    model->refine(LR::RefineData(),getRefineVectors(),"mesh_001.eps");
+    model.refine(LR::RefineData(),"mesh_001.eps");
 
   // Assemble the linear FE equation system
-  model->setMode(SIM::STATIC,true);
-  model->initSystem(iStep == 1 ? SystemMatrix::DENSE : opt.solver,
-                    1, model->getNoRHS());
-  model->setQuadratureRule(opt.nGauss[0],true);
+  model.setMode(SIM::STATIC,true);
+  model.initSystem(iStep == 1 ? SystemMatrix::DENSE : opt.solver,
+                    1, model.getNoRHS());
+  model.setQuadratureRule(opt.nGauss[0],true);
 
-  if (iStep > 1)
-    solutionTransfer();
+  if (!model.assembleSystem())
+    return false;
 
-  if (!assembleAndSolve())
+  if (!model.solveMatrixSystem(solution,1))
     return false;
 
   eNorm.clear();
   gNorm.clear();
 
   // Project the secondary solution onto the splines basis
-  model->setMode(SIM::RECOVERY);
+  model.setMode(SIM::RECOVERY);
   SIMoptions::ProjectionMap::const_iterator pit = opt.project.begin();
   for (size_t i = 0; pit != opt.project.end(); i++, pit++)
   {
     Matrix ssol;
-    if (!model->project(ssol,solution.front(),pit->first))
+    if (!model.project(ssol,solution.front(),pit->first))
       return false;
 
     projs[i] = ssol;
@@ -237,13 +232,15 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
   }
 
   if (msgLevel > 1 && !projs.empty())
-    model->getProcessAdm().cout << std::endl;
+    model.getProcessAdm().cout << std::endl;
 
   // Evaluate solution norms
-  model->setQuadratureRule(opt.nGauss[1]);
-  return (model->solutionNorms(solution,projs,eNorm,gNorm) &&
-          model->dumpResults(solution.front(),0.0,
-                             model->getProcessAdm().cout,true,6));
+  model.setQuadratureRule(opt.nGauss[1]);
+  if (!model.solutionNorms(solution,projs,eNorm,gNorm))
+    return false;
+
+  return model.dumpResults(solution.front(),0.0,
+                           model.getProcessAdm().cout,true,6);
 }
 
 
@@ -251,7 +248,7 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
 //! \note The error value must be first and the index second, such that the
 //! internally defined greater-than operator can be used when sorting the
 //! error+index pairs in decreasing error order.
-typedef std::pair<double,int> IndexDouble;
+typedef std::pair<double,int> DblIdx;
 
 
 bool AdaptiveSIM::adaptMesh (int iStep)
@@ -265,7 +262,7 @@ bool AdaptiveSIM::adaptMesh (int iStep)
     return false;
 
   // Cannot adapt on exact errors without an exact solution
-  if (adaptor == 0 && !model->haveAnaSol())
+  if (adaptor == 0 && !model.haveAnaSol())
     return false;
 
   // Define the reference norm
@@ -277,17 +274,18 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   else // |u|_ref = sqrt( |u^h|^2 + |e^*|^2 )
     refNorm = sqrt(fNorm(1)*fNorm(1) + aNorm(2)*aNorm(2));
 
-  // Use norm 4 when adapting on exact errors, otherwise use norm 2, unless specified
+  // Use norm 4 when adapting on exact errors,
+  // otherwise use norm 2 unless specified
   if (!adNorm)
     adNorm = (adaptor == 0 ? 4 : 2);
 
   // Check if further refinement is required
-  if (iStep > maxStep || model->getNoDOFs() > (size_t)maxDOFs) return false;
+  if (iStep > maxStep || model.getNoDOFs() > (size_t)maxDOFs) return false;
   if (eNorm.cols() < 1 || 100.0*aNorm(adNorm) < errTol*refNorm) return false;
 
   // Calculate row index in eNorm of the error norm to adapt based on
   size_t i, eRow = adNorm;
-  NormBase* norm = model->getNormIntegrand();
+  NormBase* norm = model.getNormIntegrand();
   for (i = 0; i < adaptor; i++)
     eRow += norm->getNoFields(i+1);
   delete norm;
@@ -309,33 +307,33 @@ bool AdaptiveSIM::adaptMesh (int iStep)
                <<" percent."<< std::endl;
     prm.errors = eNorm.getRow(eRow);
     if (!storeMesh)
-      return model->refine(prm,getRefineVectors());
+      return model.refine(prm);
 
     char fname[13];
     sprintf(fname,"mesh_%03d.eps",iStep);
-    return model->refine(prm,getRefineVectors(),fname);
+    return model.refine(prm,fname);
   }
 
-  std::vector<IndexDouble> errors;
+  std::vector<DblIdx> errors;
   if (scheme == 2)
   {
     // Sum up the total error over all supported elements for each function
-    ASMbase* patch = model->getPatch(1);
+    ASMbase* patch = model.getPatch(1);
     if (!patch) return false;
     IntMat::const_iterator eit;
     IntVec::const_iterator nit;
     for (i = 0; i < patch->getNoNodes(); i++) // Loop over basis functions
-      errors.push_back(IndexDouble(0.0,i));
+      errors.push_back(DblIdx(0.0,i));
     for (i = 1, eit = patch->begin_elm(); eit < patch->end_elm(); eit++, i++)
       for (nit = eit->begin(); nit < eit->end(); nit++)
         errors[*nit].first += eNorm(eRow,i);
   }
   else
     for (i = 0; i < eNorm.cols(); i++)
-      errors.push_back(IndexDouble(eNorm(eRow,1+i),i));
+      errors.push_back(DblIdx(eNorm(eRow,1+i),i));
 
   // Sort the elements in the sequence of decreasing errors
-  std::sort(errors.begin(),errors.end(),std::greater<IndexDouble>());
+  std::sort(errors.begin(),errors.end(),std::greater<DblIdx>());
 
   // find the list of refinable elements/basisfunctions
   // the variable 'toBeRefined' contains one of the following:
@@ -343,43 +341,57 @@ bool AdaptiveSIM::adaptMesh (int iStep)
   //   - list of basisfunctions to be refined (if structured mesh)
   //   - nothing if trueBeta (function returns above)
   size_t refineSize;
-  double limit = 0;
-  if (threshold != Threshold::NONE) {
-    double sumErr = 0;
-    for(size_t i=0; i<errors.size(); i++) sumErr += errors[i].first;
-    switch(threshold) {
-      case Threshold::MAXIMUM: limit = errors.front().first * beta/100.0; break; // beta percent of max error (less than 100%)
-      case Threshold::AVERAGE: limit = sumErr/errors.size() * beta/100.0; break; // beta percent of avg error (typical   100%)
-      case Threshold::MINIMUM: limit = errors.back().first  * beta/100.0; break; // beta percent of min error (more than 100%)
-      default:                 limit = 0;
-    }
-    std::vector<IndexDouble>::const_iterator it;
-    it = std::upper_bound(errors.begin(), errors.end(),
-                          IndexDouble(limit,0),
-                          std::greater_equal<IndexDouble>());
-    refineSize = it - errors.begin();
+  double limit, sumErr = 0.0;
+  switch (threshold) {
+  case MAXIMUM: // beta percent of max error (less than 100%)
+    limit = errors.front().first * beta/100.0;
+    break;
+  case AVERAGE: // beta percent of avg error (typical 100%)
+    for (size_t i = 0; i < errors.size(); i++)
+      sumErr += errors[i].first;
+    limit = sumErr/errors.size() * beta/100.0;
+    break;
+  case MINIMUM: // beta percent of min error (more than 100%)
+    limit = errors.back().first  * beta/100.0;
+    break;
+  default:
+    limit = 0.0;
   }
-  else
+  if (threshold == NONE)
     refineSize = ceil(errors.size()*beta/100.0);
+  else
+    refineSize = std::upper_bound(errors.begin(), errors.end(),
+                                  DblIdx(limit,0), std::greater_equal<DblIdx>())
+               - errors.begin();
 
   IFEM::cout <<"\nRefining "<< refineSize
              << (scheme < 2 ? " elements" : " basis functions")
              <<" with errors in range ["<< errors[refineSize-1].first
              <<","<< errors.front().first <<"] ";
 
-  switch(threshold) {
-    case Threshold::NONE   : IFEM::cout << beta <<"\% of all " << (scheme<2?"elements":"basis functions"); break;
-    case Threshold::MAXIMUM: IFEM::cout << beta <<"\% of max error ("     << limit << ")";                 break;
-    case Threshold::AVERAGE: IFEM::cout << beta <<"\% of average error (" << limit << ")";                 break;
-    case Threshold::MINIMUM: IFEM::cout << beta <<"\% of min error ("     << limit << ")";                 break;
+  switch (threshold) {
+  case NONE:
+    IFEM::cout << beta <<"\% of all "
+               << (scheme < 2 ? "elements" : "basis functions");
+    break;
+  case MAXIMUM:
+    IFEM::cout << beta <<"\% of max error ("<< limit << ")";
+    break;
+  case AVERAGE:
+    IFEM::cout << beta <<"\% of average error ("<< limit <<")";
+    break;
+  case MINIMUM:
+    IFEM::cout << beta <<"\% of min error ("<< limit <<")";
+    break;
   }
   IFEM::cout << std::endl;
 /*
-  if (symmetry > 0) // Make refineSize a multiplum of 'symmetry' in case of symmetric problems
+  if (symmetry > 0) // Make refineSize a multiplum of 'symmetry'
     refineSize += (symmetry-refineSize%symmetry);
 */
 
-  if (refineSize < 1 || refineSize > errors.size()) return false;
+  if (refineSize < 1 || refineSize > errors.size())
+    return false;
 
   prm.elements.reserve(refineSize);
   for (i = 0; i < refineSize; i++)
@@ -387,24 +399,24 @@ bool AdaptiveSIM::adaptMesh (int iStep)
 
   // Now refine the mesh
   if (!storeMesh)
-    return model->refine(prm,getRefineVectors());
+    return model.refine(prm);
 
   char fname[13];
   sprintf(fname,"mesh_%03d.eps",iStep);
-  return model->refine(prm,getRefineVectors(),fname);
+  return model.refine(prm,fname);
 }
 
 
 void AdaptiveSIM::printNorms (size_t w) const
 {
-  model->printNorms(gNorm,w);
+  model.printNorms(gNorm,w);
 
   // TODO: This needs further work to enable print for all recovered solutions.
   // As for now we only print the norm used for the mesh adaption.
   size_t i, eRow = 4;
   if (adaptor > 0 && adaptor < gNorm.size())
   {
-    NormBase* norm = model->getNormIntegrand();
+    NormBase* norm = model.getNormIntegrand();
 
     const Vector& fNorm = gNorm.front();
     const Vector& aNorm = gNorm[adaptor];
@@ -417,10 +429,10 @@ void AdaptiveSIM::printNorms (size_t w) const
                << utl::adjustRight(w-14,norm->getName(g,2)) << aNorm(2)
                <<"\nRelative error (%) : "
                << 100.0*aNorm(2)/refNorm;
-    if (model->haveAnaSol() && aNorm.size() > 2)
+    if (model.haveAnaSol() && aNorm.size() > 2)
       IFEM::cout <<"\nProjective error"
                  << utl::adjustRight(w-16,norm->getName(g,3)) << aNorm(3);
-    if (model->haveAnaSol() && fNorm.size() > 3)
+    if (model.haveAnaSol() && fNorm.size() > 3)
       IFEM::cout <<"\nEffectivity index  : "<< aNorm(2)/fNorm(4);
     IFEM::cout <<"\n"<< std::endl;
 
@@ -462,37 +474,37 @@ void AdaptiveSIM::printNorms (size_t w) const
 
 bool AdaptiveSIM::writeGlv (const char* infile, int iStep, size_t nNormProj)
 {
-  if (!model || model->opt.format < 0) return true;
+  if (opt.format < 0) return true;
 
   // Write VTF-file with model geometry
-  if (!model->writeGlvG(geoBlk, iStep == 1 ? infile : nullptr))
+  if (!model.writeGlvG(geoBlk, iStep == 1 ? infile : nullptr))
     return false;
 
   // Write boundary tractions, if any
-  if (!model->writeGlvT(iStep,geoBlk,nBlock))
+  if (!model.writeGlvT(iStep,geoBlk,nBlock))
     return false;
 
   // Write Dirichlet boundary conditions
-  if (!model->writeGlvBC(nBlock,iStep))
+  if (!model.writeGlvBC(nBlock,iStep))
     return false;
 
   // Write solution fields
-  if (!model->writeGlvS(solution.front(),iStep,nBlock))
+  if (!model.writeGlvS(solution.front(),iStep,nBlock))
     return false;
 
   // Write projected solution fields
   SIMoptions::ProjectionMap::const_iterator pit = opt.project.begin();
   for (size_t i = 0; i < projs.size(); i++, pit++)
-    if (!model->writeGlvP(projs[i],iStep,nBlock,100+10*i,pit->second.c_str()))
+    if (!model.writeGlvP(projs[i],iStep,nBlock,100+10*i,pit->second.c_str()))
       return false;
 
   // Write element norms
-  if (model->haveAnaSol()) nNormProj += 2;
-  if (!model->writeGlvN(eNorm,iStep,nBlock,&prefix.front()))
+  if (model.haveAnaSol()) nNormProj += 2;
+  if (!model.writeGlvN(eNorm,iStep,nBlock,&prefix.front()))
     return false;
 
   // Write state information
-  return model->writeGlvStep(iStep,iStep,1);
+  return model.writeGlvStep(iStep,iStep,1);
 }
 
 
@@ -502,9 +514,11 @@ void AdaptiveSIM::setupProjections ()
 }
 
 
-int AdaptiveSIM::getNoNorms() const
+int AdaptiveSIM::getNoNorms () const
 {
-  NormBase* norm = model->getNormIntegrand();
+  NormBase* norm = model.getNormIntegrand();
+  if (!norm) return 0;
+
   int result = norm->getNoFields(adaptor);
   delete norm;
 

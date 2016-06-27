@@ -28,7 +28,7 @@ template<class T1> class SIMSolverAdap : public SIMSolver<T1>
 {
 public:
   //! \brief The constructor forwards to the parent class constructor.
-  SIMSolverAdap(T1& s1) : SIMSolver<T1>(s1), aSim(&s1) {}
+  SIMSolverAdap(T1& s1) : SIMSolver<T1>(s1), aSim(s1,false) {}
   //! \brief Empty destructor.
   virtual ~SIMSolverAdap() {}
 
