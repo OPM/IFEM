@@ -1376,7 +1376,7 @@ double ASMs3D::getParametricVolume (int iel) const
   if (MNPC[iel-1].empty())
     return 0.0;
 
-  int inod1 = MNPC[iel-1].back();
+  int inod1 = MNPC[iel-1][svol->order(0)*svol->order(1)*svol->order(2)-1];
 #ifdef INDEX_CHECK
   if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
@@ -1406,7 +1406,7 @@ double ASMs3D::getParametricArea (int iel, int dir) const
   if (MNPC[iel-1].empty())
     return 0.0;
 
-  int inod1 = MNPC[iel-1].back();
+  int inod1 = MNPC[iel-1][svol->order(0)*svol->order(1)*svol->order(2)-1];
 #ifdef INDEX_CHECK
   if (inod1 < 0 || (size_t)inod1 >= nnod)
   {
@@ -2515,7 +2515,7 @@ bool ASMs3D::integrateEdge (Integrand& integrand, int lEdge,
 
 	// Get element edge length in the parameter space
 	double dS = 0.0;
-	int ip = MNPC[iel-1].back();
+	int ip = MNPC[iel-1][svol->order(0)*svol->order(1)*svol->order(2)-1];
 #ifdef INDEX_CHECK
 	if (ip < 0 || (size_t)ip >= nnod) return false;
 #endif

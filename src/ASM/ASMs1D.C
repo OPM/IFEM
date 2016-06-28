@@ -270,7 +270,7 @@ bool ASMs1D::initLocalElementAxes (const Vec3& Zaxis)
     if (MLGE[i] > 0)
     {
       Vec3 X1 = this->getCoord(1+MNPC[i].front());
-      Vec3 X2 = this->getCoord(1+MNPC[i].back());
+      Vec3 X2 = this->getCoord(1+MNPC[i][curv->order()-1]);
       if (Zaxis.isZero())
         myCS[i] = Tensor(X2-X1,true);
       else
@@ -296,7 +296,7 @@ bool ASMs1D::generateTwistedFEModel (const RealFunc& twist, const Vec3& Zaxis)
     if (MLGE[i] > 0)
     {
       Vec3 X1 = this->getCoord(1+MNPC[i].front());
-      Vec3 X2 = this->getCoord(1+MNPC[i].back());
+      Vec3 X2 = this->getCoord(1+MNPC[i][curv->order()-1]);
       double alpha = twist(0.5*(X1+X2)); // twist angle in the element mid-point
       myCS[i] *= Tensor(alpha*M_PI/180.0,1); // rotate about local X-axis
 #ifdef SP_DEBUG
@@ -424,7 +424,7 @@ double ASMs1D::getParametricLength (int iel) const
   if (MNPC[iel-1].empty())
     return 0.0;
 
-  int inod1 = MNPC[iel-1].back();
+  int inod1 = MNPC[iel-1][curv->order()-1];
 #ifdef INDEX_CHECK
   if (inod1 < 0 || (size_t)inod1 >= MLGN.size())
   {
@@ -595,7 +595,7 @@ void ASMs1D::getBoundaryNodes (int lIndex, IntVec& glbNodes) const
     if (lIndex == 1)
       glbNodes.push_back(MLGN[MNPC[iel].front()]);
     else if (lIndex == 2)
-      glbNodes.push_back(MLGN[MNPC[iel].back()]);
+      glbNodes.push_back(MLGN[MNPC[iel][curv->order()-1]]);
   }
 }
 
