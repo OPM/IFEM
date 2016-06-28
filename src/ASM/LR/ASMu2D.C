@@ -627,6 +627,18 @@ void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
   if (!open)
     this->prescribe(nodes.front(),dof,code);
 
+  if (code > 0) {
+    static const std::map<int, LR::parameterEdge> m =
+                                {{ 1, LR::EAST},
+                                 {-1, LR::WEST},
+                                 { 2, LR::NORTH},
+                                 {-2, LR::SOUTH}};
+    LR::parameterEdge edge = m.find(dir)->second;
+    std::vector<LR::Basisfunction*> edgeFunctions;
+    auto curve = getBasis(basis)->edgeCurve(edge, edgeFunctions);
+    dirich.push_back(DirichletEdge(curve,dof,code));
+  }
+
   for (size_t i = 1; i < nodes.size()-1; i++)
     if (this->prescribe(nodes[i],dof,-code) == 0 && code > 0)
       dirich.back().nodes.push_back(std::make_pair(i,nodes[i]));
