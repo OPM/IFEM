@@ -24,6 +24,8 @@
 
 using namespace SIM;
 
+const char* NonLinSIM::inputContext = "nonlinearsolver";
+
 
 NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : MultiStepSIM(sim), iteNorm(n)
 {
@@ -92,7 +94,7 @@ bool NonLinSIM::parse (char* keyWord, std::istream& is)
 
 bool NonLinSIM::parse (const TiXmlElement* elem)
 {
-  if (strcasecmp(elem->Value(),"nonlinearsolver"))
+  if (strcasecmp(elem->Value(),inputContext))
     return model.parse(elem);
 
   std::string rotUpdate;

@@ -20,6 +20,8 @@
 #include "Utilities.h"
 #include "tinyxml.h"
 
+const char* NewmarkSIM::inputContext = "newmarksolver";
+
 
 NewmarkSIM::NewmarkSIM (SIMbase& sim) : MultiStepSIM(sim)
 {
@@ -43,7 +45,7 @@ NewmarkSIM::NewmarkSIM (SIMbase& sim) : MultiStepSIM(sim)
 
 bool NewmarkSIM::parse (const TiXmlElement* elem)
 {
-  if (strcasecmp(elem->Value(),"newmarksolver"))
+  if (strcasecmp(elem->Value(),inputContext))
     return model.parse(elem);
 
   std::string rotUpdate;

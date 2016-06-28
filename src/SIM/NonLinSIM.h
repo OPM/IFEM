@@ -110,6 +110,9 @@ protected:
   int    prnSlow; //!< How many DOFs to print out on slow convergence
 
   std::map<int,int> slowNodes; //!< Nodes for which slow convergence is detected
+
+public:
+  static const char* inputContext; //!< Input file context for solver parameters
 };
 
 #endif

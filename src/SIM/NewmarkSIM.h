@@ -104,6 +104,9 @@ protected:
   double convTol;   //!< Convergence tolerance
   double divgLim;   //!< Relative divergence limit
   unsigned short int cNorm; //!< Option for which convergence norm to use
+
+public:
+  static const char* inputContext; //!< Input file context for solver parameters
 };
 
 #endif

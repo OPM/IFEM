@@ -35,7 +35,7 @@ bool HHTSIM::parse (const TiXmlElement* elem)
 {
   bool ok = this->NewmarkSIM::parse(elem);
 
-  if (!strcasecmp(elem->Value(),"newmarksolver"))
+  if (!strcasecmp(elem->Value(),inputContext))
   {
     double alpha = -0.1;
     const char* attr = elem->Attribute("alpha");
