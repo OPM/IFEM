@@ -275,6 +275,8 @@ int SAM::getNoNodes (char dofType) const
 {
   if (dofType == 'A')
     return nnod;
+  else if (nodeType.empty())
+    return dofType == 'D' ? nnod : 0;
 
   int n = 0;
   for (int i = 0; i < nnod; i++)
@@ -809,7 +811,8 @@ bool SAM::applyDirichlet (Vector& dofVec) const
     {
       int ip = mpmceq[iceq-1];
       dofVec[idof] = ttcc[ip-1];
-    } else if (iceq == 0)
+    }
+    else if (iceq == 0)
       dofVec[idof] = 0.0;
   }
 

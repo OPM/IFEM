@@ -146,7 +146,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
       IFEM::cout <<"\tReading global node numbers from "<< file << std::endl;
       HDF5Writer hdf5(file,ProcessAdm(),true,true);
       const char* field = elem->Attribute("field");
-      for (int i = 1; i <= this->getNoPatches(); i++)
+      for (int i = 1; i <= nGlPatches; i++)
       {
         std::vector<int> nodes;
         ASMbase* pch = this->getPatch(this->getLocalPatchIndex(i));
@@ -1459,7 +1459,7 @@ size_t SIMbase::getNoNodes (bool unique, int basis) const
 {
   size_t nnod = 0;
   if (unique && mySam)
-    nnod = mySam->getNoNodes();
+    nnod = mySam->getNoNodes(basis < 1 ? 'A' : (basis < 2 ? 'D' : 'N'+basis));
   else
     for (size_t i = 0; i < myModel.size(); i++)
       nnod += myModel[i]->getNoNodes(basis);
