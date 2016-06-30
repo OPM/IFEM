@@ -648,7 +648,7 @@ protected:
   //! \param[out] patches Array of patches that were read
   //! \param[in] whiteSpace For message formatting
   virtual bool readPatches(std::istream& isp, PatchVec& patches,
-                           const char* whiteSpace = "") = 0;
+                           const char* whiteSpace = "") const = 0;
   //! \brief Reads global node data for a patch from given input stream.
   //! \param[in] isn The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read node data for

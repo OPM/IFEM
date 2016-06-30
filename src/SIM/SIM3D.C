@@ -712,7 +712,7 @@ ASMbase* SIM3D::readPatch (std::istream& isp, int pchInd,
 
 
 bool SIM3D::readPatches (std::istream& isp, PatchVec& patches,
-                         const char* whiteSpace)
+                         const char* whiteSpace) const
 {
   ASMbase* pch = nullptr;
   for (int pchInd = 1; isp.good(); pchInd++)

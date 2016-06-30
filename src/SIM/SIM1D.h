@@ -89,7 +89,7 @@ protected:
   //! \param[out] patches Array of patches that were read
   //! \param[in] whiteSpace For message formatting
   virtual bool readPatches(std::istream& isp, PatchVec& patches,
-                           const char* whiteSpace);
+                           const char* whiteSpace) const;
 
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   //! \param[in] patch 1-based index of the patch to receive the property
