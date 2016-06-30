@@ -651,6 +651,13 @@ public:
   virtual ASMbase* readPatch(std::istream& isp, int pchInd,
                              const CharVec& unf = CharVec()) const = 0;
 
+  //! \brief Reads patches from given input stream.
+  //! \param[in] isp The input stream to read from
+  //! \param[out] patches Array of patches that were read
+  //! \param[in] whiteSpace For message formatting
+  virtual bool readPatches(std::istream& isp, PatchVec& patches,
+                           const char* whiteSpace = "") const = 0;
+
   //! \brief Returns a scalar function associated with \a code.
   RealFunc* getSclFunc(int code) const;
 
@@ -666,12 +673,6 @@ protected:
   //! \brief Initializes for integration of Neumann terms for a given property.
   virtual bool initNeumann(size_t) { return true; }
 
-  //! \brief Reads patches from given input stream.
-  //! \param[in] isp The input stream to read from
-  //! \param[out] patches Array of patches that were read
-  //! \param[in] whiteSpace For message formatting
-  virtual bool readPatches(std::istream& isp, PatchVec& patches,
-                           const char* whiteSpace = "") = 0;
   //! \brief Reads global node data for a patch from given input stream.
   //! \param[in] isn The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read node data for
