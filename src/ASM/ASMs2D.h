@@ -246,7 +246,8 @@ public:
   //! \details The sign of the two indices is used to define whether we want
   //! the node at the beginning or the end of that parameter direction.
   //! The magnitude of the indices are not used.
-  virtual void constrainCorner(int I, int J, int dof, int code = 0, char basis = 1);
+  virtual void constrainCorner(int I, int J, int dof,
+                               int code = 0, char basis = 1);
   //! \brief Constrains a node identified by two relative parameter values.
   //! \param[in] xi Parameter in u-direction
   //! \param[in] eta Parameter in v-direction
@@ -378,25 +379,21 @@ public:
   //! \param[out] vec The obtained coefficients after interpolation
   //! \param[in] basisNum Basis number (mixed)
   virtual bool evaluate(const ASMbase* basis, const Vector& locVec,
-                        Vector& vec, int basisNum) const;
+                        RealArray& vec, int basisNum) const;
 
   //! \brief Evaluates and interpolates a field over a given geometry.
   //! \param[in] field The field to evaluate
   //! \param[out] vec The obtained coefficients after interpolation
   //! \param[in] basisNum Basis number (mixed)
-  //!
-  //! \note A Variation Diminishing Spline Approximation is used as the
-  //! regular interpolation method in GoTools only works with uniform knots.
-  virtual bool evaluate(const Field* field, Vector& vec, int basisNum) const;
+  virtual bool evaluate(const Field* field, RealArray& vec, int basisNum) const;
 
   //! \brief Evaluates and interpolates a function over a given geometry.
   //! \param[in] func The function to evaluate
   //! \param[out] vec The obtained coefficients after interpolation
   //! \param[in] basisNum Basis number (mixed)
-  //!
-  //! \note A Variation Diminishing Spline Approximation is used as the
-  //! regular interpolation method in GoTools only works with uniform knots.
-  virtual bool evaluate(const RealFunc* func, Vector& vec, int basisNum) const;
+  //! \param[in] time Current time
+  virtual bool evaluate(const RealFunc* func, RealArray& vec,
+                        int basisNum, double time) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field
@@ -407,13 +404,13 @@ public:
   //!
   //! \details The secondary solution is derived from the primary solution,
   //! which is assumed to be stored within the \a integrand for current patch.
-  //! If \a npe is nullptr, the solution is recovered or evaluated at the Greville
+  //! If \a npe is null, the solution is recovered or evaluated at the Greville
   //! points and then projected onto the spline basis to obtain the control
   //! point values, which then are returned through \a sField.
-  //! If \a npe is not nullptr and \a project is defined, the solution is also
+  //! If \a npe is not null and \a project is defined, the solution is also
   //! projected onto the spline basis, and then evaluated at the \a npe points.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const int* npe = nullptr, char project = '\0') const;
+                            const int* npe = nullptr, char project = 0) const;
 
 private:
   //! \brief Projects the secondary solution field onto the primary basis.

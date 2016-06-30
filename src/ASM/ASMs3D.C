@@ -1480,13 +1480,12 @@ bool ASMs3D::getElementCoordinates (Matrix& X, int iel) const
   }
 #endif
 
-  const IntVec& mnpc = MNPC[iel-1];
-  X.resize(3,mnpc.size());
+  X.resize(3,svol->order(0)*svol->order(1)*svol->order(2));
 
   RealArray::const_iterator cit = svol->coefs_begin();
-  for (size_t n = 0; n < mnpc.size(); n++)
+  for (size_t n = 0; n < X.cols(); n++)
   {
-    int ip = this->coeffInd(mnpc[n])*svol->dimension();
+    int ip = this->coeffInd(MNPC[iel-1][n])*svol->dimension();
     if (ip < 0) return false;
 
     for (size_t i = 0; i < 3; i++)
@@ -2166,7 +2165,7 @@ bool ASMs3D::integrate (Integrand& integrand,
   return ok;
 }
 
- 
+
 bool ASMs3D::integrate (Integrand& integrand,
                         GlobalIntegral& glInt,
                         const TimeDomain& time,
@@ -2987,7 +2986,8 @@ void ASMs3D::generateThreadGroups (const Integrand& integrand, bool silence)
 }
 
 
-void ASMs3D::generateThreadGroups(size_t strip1, size_t strip2, size_t strip3, bool silence)
+void ASMs3D::generateThreadGroups (size_t strip1, size_t strip2, size_t strip3,
+                                   bool silence)
 {
   const int p1 = svol->order(0) - 1;
   const int p2 = svol->order(1) - 1;
@@ -3183,3 +3183,20 @@ short int ASMs3D::InterfaceChecker::hasContribution (int I, int J, int K) const
   return status;
 }
 
+
+bool ASMs3D::evaluate (const RealFunc* func, RealArray& vec,
+                       int basisNum, double time) const
+{
+  Go::SplineVolume* oldVol = this->getBasis(basisNum);
+  Go::SplineVolume* newVol = SplineUtils::project(oldVol,*func,time);
+  if (!newVol)
+  {
+    std::cerr <<" *** ASMs2D::evaluate: Projection failure."<< std::endl;
+    return false;
+  }
+
+  vec.assign(newVol->coefs_begin(),newVol->coefs_end());
+  delete newVol;
+
+  return true;
+}

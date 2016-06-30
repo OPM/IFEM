@@ -64,7 +64,7 @@ bool ASMs2D::getQuasiInterplParameters (RealArray& prm, int dir) const
 
 
 bool ASMs2D::evaluate (const ASMbase* basis, const Vector& locVec,
-		       Vector& vec, int basisNum) const
+		       RealArray& vec, int basisNum) const
 {
   const ASMs2D* pch = dynamic_cast<const ASMs2D*>(basis);
   if (!pch) return false;
@@ -105,8 +105,7 @@ bool ASMs2D::evaluate (const ASMbase* basis, const Vector& locVec,
 						  surf->rational(),
 						  weights);
 
-  vec.resize(surf_new->coefs_end()-surf_new->coefs_begin());
-  std::copy(surf_new->coefs_begin(),surf_new->coefs_end(),vec.begin());
+  vec.assign(surf_new->coefs_begin(),surf_new->coefs_end());
   delete surf_new;
 
   return true;
@@ -462,7 +461,12 @@ Go::SplineSurface* ASMs2D::scRecovery (const IntegrandBase& integrand) const
 #include "ASMs2DInterpolate.C" // TODO: inline these methods instead...
 
 
-bool ASMs2D::evaluate (const Field* field, Vector& vec, int basisNum) const
+/*!
+  \note A Variation Diminishing Spline Approximation is used here as the
+  regular interpolation method in GoTools only works with uniform knots.
+*/
+
+bool ASMs2D::evaluate (const Field* field, RealArray& vec, int basisNum) const
 {
   // Compute parameter values of the result sampling points (Greville points)
   std::array<RealArray,2> gpar;
@@ -504,58 +508,7 @@ bool ASMs2D::evaluate (const Field* field, Vector& vec, int basisNum) const
                                             sValues, 1, surf->rational(),
                                             weights);
 
-  vec.resize(surf_new->coefs_end()-surf_new->coefs_begin());
-  std::copy(surf_new->coefs_begin(),surf_new->coefs_end(),vec.begin());
-  delete surf_new;
-
-  return true;
-}
-
-
-bool ASMs2D::evaluate (const RealFunc* func, Vector& vec, int basisNum) const
-{
-  // Compute parameter values of the result sampling points (Greville points)
-  std::array<RealArray,2> gpar;
-  for (int dir = 0; dir < 2; dir++)
-    if (!this->getGrevilleParameters(gpar[dir],dir,basisNum))
-      return false;
-
-  // Evaluate the function at all sampling points.
-  Vector sValues(gpar[0].size()*gpar[1].size());
-  Vector::iterator it = sValues.begin();
-  for (size_t j = 0; j < gpar[1].size(); j++)
-    for (size_t i = 0; i < gpar[0].size(); i++)
-    {
-      Go::Point pt;
-      surf->point(pt,gpar[0][i],gpar[1][j]);
-      Vec3 X(pt[0],pt[1],0.0);
-      if (pt.size() > 2)
-        X.z = pt[2];
-      *it++ = (*func)(X);
-    }
-
-  Go::SplineSurface* surf = this->getBasis(basisNum);
-
-  // Project the results onto the spline basis to find control point
-  // values based on the result values evaluated at the Greville points.
-  // Note that we here implicitly assume that the number of Greville points
-  // equals the number of control points such that we don't have to resize
-  // the result array. Think that is always the case, but beware if trying
-  // other projection schemes later.
-
-  RealArray weights;
-  if (surf->rational())
-    surf->getWeights(weights);
-
-  Go::SplineSurface* surf_new =
-    Go::SurfaceInterpolator::regularInterpolation(surf->basis(0),
-                                                  surf->basis(1),
-                                                  gpar[0], gpar[1],
-                                                  sValues, 1, surf->rational(),
-                                                  weights);
-
-  vec.resize(surf_new->coefs_end()-surf_new->coefs_begin());
-  std::copy(surf_new->coefs_begin(),surf_new->coefs_end(),vec.begin());
+  vec.assign(surf_new->coefs_begin(),surf_new->coefs_end());
   delete surf_new;
 
   return true;

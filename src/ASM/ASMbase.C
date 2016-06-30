@@ -163,16 +163,16 @@ bool ASMbase::addXElms (short int, short int, size_t, std::vector<int>&)
 bool ASMbase::addLagrangeMultipliers (size_t iel, const IntVec& mGLag,
                                       unsigned char nnLag)
 {
-  if (iel < 1 || iel > MNPC.size())
+  if (iel > MNPC.size())
   {
     std::cerr <<" *** ASMbase::addLagrangeMultipliers: Element index "<< iel
-              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+              <<" is out of range [1,"<< MNPC.size() <<"]."<< std::endl;
     return false;
   }
   else if (shareFE == 'F')
     return false;
 
-  if (nLag == 0)
+  if (nLag == 0 || iel == 0)
     nLag = nnLag;
   else if (nnLag != nLag)
     return false;
@@ -192,57 +192,28 @@ bool ASMbase::addLagrangeMultipliers (size_t iel, const IntVec& mGLag,
     else if (node+1 < myLMs.first)
     {
       std::cerr <<" *** ASMbase::addLagrangeMultipliers: Node "<< node+1
-        	<<" out of range ["<< myLMs.first <<","<< myLMs.second
-        	<<"]."<< std::endl;
+                <<" is out of range ["<< myLMs.first <<","<< myLMs.second
+                <<"]."<< std::endl;
       return false;
     }
     else if (node >= myLMs.second)
       myLMs.second = node+1;
 
     // Extend the element connectivity table
-    myMNPC[iel-1].push_back(node);
+    if (iel > 0)
+      myMNPC[iel-1].push_back(node);
+    else for (auto& it : myMNPC)
+      it.push_back(node);
   }
 
   return true;
 }
 
 
-bool ASMbase::addGlobalLagrangeMultipliers(const IntVec& mGLag,
-                                           unsigned char nnLag)
+bool ASMbase::addGlobalLagrangeMultipliers (const IntVec& mGLag,
+                                            unsigned char nnLag)
 {
-  if (shareFE == 'F')
-    return false;
-
-  for (size_t i = 0; i < mGLag.size(); i++)
-  {
-    size_t node = MLGN.size();
-    IntVec::const_iterator it = std::find(MLGN.begin(),MLGN.end(),mGLag[i]);
-    if (it == MLGN.end())
-      myMLGN.push_back(mGLag[i]); // Add a new Lagrange multiplier node
-    else
-      node = it - MLGN.begin(); // Existing Lagrange multiplier node
-
-    // Update the nodal range (1-based indices) of the Lagrange multipliers
-    if (myLMs.first == 0)
-      myLMs.first = myLMs.second = node+1;
-    else if (node+1 < myLMs.first)
-    {
-      std::cerr <<" *** ASMbase::addGlobalLagrangeMultiplier: Node "<< node+1
-        	<<" out of range ["<< myLMs.first <<","<< myLMs.second
-        	<<"]."<< std::endl;
-      return false;
-    }
-    else if (node >= myLMs.second)
-      myLMs.second = node+1;
-
-    // Extend the element connectivity table
-    for (auto& it : myMNPC)
-      it.push_back(node);
-  }
-
-  nLag = nnLag;
-
-  return true;
+  return this->addLagrangeMultipliers(0,mGLag,nnLag);
 }
 
 
@@ -999,7 +970,7 @@ void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
 #ifdef INDEX_CHECK
     if (inod < 1 || jdof > (int)globRes.size())
       std::cerr <<" *** ASMbase::extractNodeVec: Global DOF "<< jdof
-                <<" is out of range [1,"<< globRes.size() <<"]"<< std::endl;
+                <<" is out of range [1,"<< globRes.size() <<"]."<< std::endl;
 #endif
     nodeVec.insert(nodeVec.end(),globRes.ptr()+idof,globRes.ptr()+jdof);
   }
@@ -1027,7 +998,7 @@ void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
 #ifdef INDEX_CHECK
     if (n < 0 || nndof*(size_t)(n+1) > globRes.size())
       std::cerr <<" *** ASMbase::extractNodeVec: Global DOF "<< nndof*(n+1)
-                <<" is out of range [1,"<< globRes.size() <<"]"<< std::endl;
+                <<" is out of range [1,"<< globRes.size() <<"]."<< std::endl;
 #endif
     memcpy(nodeP,globRes.ptr()+nndof*n,nndof*sizeof(double));
   }
@@ -1058,7 +1029,7 @@ bool ASMbase::injectNodeVec (const Vector& nodeVec, Vector& globRes,
 #ifdef SP_DEBUG
     else // This is most likely OK, print message only in debug mode
       std::cerr <<" *** ASMbase::injectNodeVec: Global DOF "<< nndof*n
-                <<" is out of range [1,"<< globRes.size() <<"]"<< std::endl;
+                <<" is out of range [1,"<< globRes.size() <<"]."<< std::endl;
 #endif
   }
 
@@ -1149,4 +1120,22 @@ bool ASMbase::evalSolution (Matrix&, const IntegrandBase&,
 bool ASMbase::globalL2projection (Matrix&, const IntegrandBase&, bool) const
 {
   return Aerror("globalL2projection(Matrix&,const IntegrandBase&,bool)");
+}
+
+
+bool ASMbase::evaluate (const ASMbase*, const Vector&, RealArray&, int) const
+{
+  return Aerror("evaluate(const ASMbase*,const Vector&,RealArray&,int)");
+}
+
+
+bool ASMbase::evaluate (const Field*, RealArray&, int) const
+{
+  return Aerror("evaluate(const Field*,RealArray&,int)");
+}
+
+
+bool ASMbase::evaluate (const RealFunc*, RealArray&, int, double) const
+{
+  return Aerror("evaluate(const RealFunc*,RealArray&,int,double)");
 }

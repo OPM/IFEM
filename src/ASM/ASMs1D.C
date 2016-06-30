@@ -386,7 +386,7 @@ bool ASMs1D::connectBasis (int vertex, ASMs1D& neighbor, int nvertex,
 void ASMs1D::closeEnds (int basis, int master)
 {
   if (basis < 1) basis = 1;
-  int n1 = this->getSize(basis < 1 ? 1 : basis);
+  int n1 = this->getSize(basis);
   this->makePeriodic(1,master+n1-1);
 }
 
@@ -474,13 +474,12 @@ bool ASMs1D::getElementCoordinates (Matrix& X, int iel) const
   }
 #endif
 
-  const IntVec& mnpc = MNPC[iel-1];
-  X.resize(nsd,mnpc.size());
+  X.resize(nsd,curv->order());
 
   RealArray::const_iterator cit = curv->coefs_begin();
-  for (size_t n = 0; n < mnpc.size(); n++)
+  for (size_t n = 0; n < X.cols(); n++)
   {
-    int ip = mnpc[n]*curv->dimension();
+    int ip = MNPC[iel-1][n]*curv->dimension();
     if (ip < 0) return false;
 
     for (size_t i = 0; i < nsd; i++)
@@ -1433,6 +1432,23 @@ bool ASMs1D::getNoStructElms (int& n1, int& n2, int& n3) const
 {
   n1 = nel;
   n2 = n3 = 0;
+
+  return true;
+}
+
+
+bool ASMs1D::evaluate (const RealFunc* func, RealArray& values,
+                       int, double time) const
+{
+  Go::SplineCurve* scrv = SplineUtils::project(curv,*func,time);
+  if (!scrv)
+  {
+    std::cerr <<" *** ASMs1D::evaluate: Projection failure."<< std::endl;
+    return false;
+  }
+
+  values.assign(scrv->coefs_begin(),scrv->coefs_end());
+  delete scrv;
 
   return true;
 }

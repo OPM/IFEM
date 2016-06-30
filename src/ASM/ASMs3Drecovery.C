@@ -62,7 +62,7 @@ bool ASMs3D::getQuasiInterplParameters (RealArray& prm, int dir) const
 
 
 bool ASMs3D::evaluate (const ASMbase* basis, const Vector& locVec,
-		       Vector& vec, int basisNum) const
+		       RealArray& vec, int basisNum) const
 {
   const ASMs3D* pch = dynamic_cast<const ASMs3D*>(basis);
   if (!pch) return false;
@@ -104,8 +104,7 @@ bool ASMs3D::evaluate (const ASMbase* basis, const Vector& locVec,
 						 svol->rational(),
 						 weights);
 
-  vec.resize(vol_new->coefs_end()-vol_new->coefs_begin());
-  std::copy(vol_new->coefs_begin(),vol_new->coefs_end(),vec.begin());
+  vec.assign(vol_new->coefs_begin(),vol_new->coefs_end());
   delete vol_new;
 
   return true;
@@ -286,9 +285,16 @@ bool ASMs3D::globalL2projection (Matrix& sField,
   return true;
 }
 
+
 #include "ASMs3DInterpolate.C" // TODO: inline these methods instead...
 
-bool ASMs3D::evaluate (const Field* field, Vector& vec, int basisNum) const
+
+/*!
+  \note A Variation Diminishing Spline Approximation is used here as the
+  regular interpolation method in GoTools only works with uniform knots.
+*/
+
+bool ASMs3D::evaluate (const Field* field, RealArray& vec, int basisNum) const
 {
   // Compute parameter values of the result sampling points (Greville points)
   std::array<RealArray,3> gpar;
@@ -334,58 +340,7 @@ bool ASMs3D::evaluate (const Field* field, Vector& vec, int basisNum) const
                                             sValues, 1, svol->rational(),
                                             weights);
 
-  vec.resize(vol_new->coefs_end()-vol_new->coefs_begin());
-  std::copy(vol_new->coefs_begin(),vol_new->coefs_end(),vec.begin());
-  delete vol_new;
-
-  return true;
-}
-
-
-bool ASMs3D::evaluate (const RealFunc* func, Vector& vec, int basisNum) const
-{
-  // Compute parameter values of the result sampling points (Greville points)
-  std::array<RealArray,3> gpar;
-  for (int dir = 0; dir < 3; dir++)
-    if (!this->getGrevilleParameters(gpar[dir],dir,basisNum))
-      return false;
-
-  // Evaluate the function at all sampling points.
-  Vector sValues(gpar[0].size()*gpar[1].size()*gpar[2].size());
-  Vector::iterator it = sValues.begin();
-  for (size_t l = 0; l < gpar[2].size(); l++)
-    for (size_t j = 0; j < gpar[1].size(); j++)
-      for (size_t i = 0; i < gpar[0].size(); i++)
-      {
-        Go::Point pt;
-        svol->point(pt,gpar[0][i],gpar[1][j],gpar[2][l]);
-        Vec3 X(pt[0],pt[1],pt[2]);
-        *it++ = (*func)(X);
-      }
-
-  Go::SplineVolume* svol = this->getBasis(basisNum);
-
-  // Project the results onto the spline basis to find control point
-  // values based on the result values evaluated at the Greville points.
-  // Note that we here implicitly assume that the number of Greville points
-  // equals the number of control points such that we don't have to resize
-  // the result array. Think that is always the case, but beware if trying
-  // other projection schemes later.
-
-  RealArray weights;
-  if (svol->rational())
-    svol->getWeights(weights);
-
-  Go::SplineVolume* vol_new =
-    Go::VolumeInterpolator::regularInterpolation(svol->basis(0),
-                                                 svol->basis(1),
-                                                 svol->basis(2),
-                                                 gpar[0], gpar[1], gpar[2],
-                                                 sValues, 1, svol->rational(),
-                                                 weights);
-
-  vec.resize(vol_new->coefs_end()-vol_new->coefs_begin());
-  std::copy(vol_new->coefs_begin(),vol_new->coefs_end(),vec.begin());
+  vec.assign(vol_new->coefs_begin(),vol_new->coefs_end());
   delete vol_new;
 
   return true;

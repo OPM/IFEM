@@ -16,10 +16,11 @@
 #include "Vec3.h"
 
 #include "GoTools/geometry/SplineCurve.h"
-#include "GoTools/geometry/SplineSurface.h"
-#include "GoTools/trivariate/SplineVolume.h"
 #include "GoTools/geometry/CurveInterpolator.h"
+#include "GoTools/geometry/SplineSurface.h"
 #include "GoTools/geometry/SurfaceInterpolator.h"
+#include "GoTools/trivariate/SplineVolume.h"
+#include "GoTools/trivariate/VolumeInterpolator.h"
 
 
 Vec3 SplineUtils::toVec3 (const Go::Point& X, int nsd)
@@ -57,7 +58,8 @@ void SplineUtils::point (Vec3& X, double u, double v, Go::SplineSurface* surf)
 }
 
 
-void SplineUtils::point (Vec3& X, double u, double v, double w, Go::SplineVolume* vol)
+void SplineUtils::point (Vec3& X, double u, double v, double w,
+                         Go::SplineVolume* vol)
 {
   Go::Point Y;
 #pragma omp critical
@@ -297,4 +299,104 @@ Go::SplineSurface* SplineUtils::project (const Go::SplineSurface* surface,
                                                        upar,vpar,fval,nComp,
                                                        surface->rational(),
                                                        weights);
+}
+
+
+Go::SplineVolume* SplineUtils::project (const Go::SplineVolume* volume,
+                                        const RealFunc& f, Real time)
+{
+  if (!volume) return nullptr;
+
+  const Go::BsplineBasis& ubas = volume->basis(0);
+  const Go::BsplineBasis& vbas = volume->basis(1);
+  const Go::BsplineBasis& wbas = volume->basis(2);
+  const int nu = ubas.numCoefs();
+  const int nv = vbas.numCoefs();
+  const int nw = vbas.numCoefs();
+
+  RealArray upar(nu), vpar(nv), wpar(nw);
+
+  // Compute parameter values of the function sampling points (Greville points)
+  int i, j, k;
+  for (i = 0; i < nu; i++)
+    upar[i] = ubas.grevilleParameter(i);
+  for (j = 0; j < nv; j++)
+    vpar[j] = vbas.grevilleParameter(j);
+  for (j = 0; j < nw; j++)
+    wpar[j] = wbas.grevilleParameter(j);
+
+  // Evaluate the function at the sampling points
+  Go::Point X;
+  RealArray fval(nu*nv*nw);
+  size_t l = 0;
+  for (k = 0; k < nw; k++)
+    for (j = 0; j < nv; j++)
+      for (i = 0; i < nu; i++, l++)
+      {
+        volume->point(X,upar[i],vpar[j],wpar[j]);
+        fval[l] = f(toVec4(X,time));
+      }
+
+  // Get weights for rational spline curves (NURBS)
+  RealArray weights;
+  if (volume->rational())
+    volume->getWeights(weights);
+
+  // Project the function onto the spline basis to find control point values
+  return Go::VolumeInterpolator::regularInterpolation(ubas,vbas,wbas,
+                                                      upar,vpar,wpar,fval,1,
+                                                      volume->rational(),
+                                                      weights);
+}
+
+
+Go::SplineVolume* SplineUtils::project (const Go::SplineVolume* volume,
+                                        const VecFunc& f, int nComp, Real time)
+{
+  if (!volume || nComp < 1) return nullptr;
+  if (nComp > 3) nComp = 3;
+
+  const Go::BsplineBasis& ubas = volume->basis(0);
+  const Go::BsplineBasis& vbas = volume->basis(1);
+  const Go::BsplineBasis& wbas = volume->basis(2);
+  const int nu = ubas.numCoefs();
+  const int nv = vbas.numCoefs();
+  const int nw = wbas.numCoefs();
+
+  RealArray upar(nu), vpar(nv), wpar(nw);
+
+  // Compute parameter values of the function sampling points (Greville points)
+  int i, j, k;
+  for (i = 0; i < nu; i++)
+    upar[i] = ubas.grevilleParameter(i);
+  for (j = 0; j < nv; j++)
+    vpar[j] = vbas.grevilleParameter(j);
+  for (j = 0; j < nv; j++)
+    wpar[j] = wbas.grevilleParameter(j);
+
+  // Evaluate the function at the sampling points
+  Go::Point X;
+  Vec3 fOfX;
+  RealArray fval(nComp*nu*nv*nw);
+  size_t l = 0;
+  for (k = 0; k < nw; k++)
+    for (j = 0; j < nv; j++)
+      for (i = 0; i < nu; i++)
+      {
+        volume->point(X,upar[i],vpar[j],wpar[j]);
+        fOfX = f(toVec4(X,time));
+        for (int c = 0; c < nComp; c++, l++)
+          fval[l] = fOfX[c];
+      }
+
+  // Get weights for rational spline curves (NURBS)
+  RealArray weights;
+  if (volume->rational())
+    volume->getWeights(weights);
+
+  // Project the function onto the spline basis to find control point values
+  return Go::VolumeInterpolator::regularInterpolation(ubas,vbas,wbas,
+                                                      upar,vpar,wpar,fval,nComp,
+                                                      volume->rational(),
+                                                      weights);
 }

@@ -170,7 +170,7 @@ public:
   //! \param[out] p1 Order in first (u) direction
   //! \param[out] p2 Order in second (v) direction
   //! \param[out] p3 Order in third (w) direction
-  virtual bool getOrder(int& p1, int& p2, int& p3) const { return false; }
+  virtual bool getOrder(int& p1, int& p2, int& p3) const = 0;
 
   //! \brief Returns local 1-based index of the node with given global number.
   //! \details If the given node number is not present, 0 is returned.
@@ -221,7 +221,7 @@ public:
   const IntVec& getGlobalNodeNums() const { return MLGN; }
   //! \brief Returns the actual global node numbers of this patch.
   const IntVec& getMyNodeNums() const { return myMLGN; }
-  //! \brief Returns number of bases
+  //! \brief Returns number of bases of this patch.
   virtual size_t getNoBasis() const { return 1; }
   //! \brief Returns the total number of nodes in this patch.
   virtual size_t getNoNodes(int basis = 0) const;
@@ -452,21 +452,21 @@ public:
   //! \param[out] vec The obtained coefficients after interpolation
   //! \param[in] basisNum The basis to evaluate for (mixed)
   virtual bool evaluate(const ASMbase* basis, const Vector& locVec,
-                        Vector& vec, int basisNum = 1) const { return false; }
+                        RealArray& vec, int basisNum = 1) const;
 
-  //! \brief Evaluates and interpolates a field over a given geometry.
-  //! \param[in] field The field to evaluate
+  //! \brief Evaluates and interpolates a scalar field over a given geometry.
+  //! \param[in] f The field to evaluate
   //! \param[out] vec The obtained coefficients after interpolation
   //! \param[in] basisNum The basis to evaluate for (mixed)
-  virtual bool evaluate(const Field* field, Vector& vec, int basisNum = 1) const
-  { return false; }
+  virtual bool evaluate(const Field* f, RealArray& vec, int basisNum = 1) const;
 
-  //! \brief Evaluates and interpolates a function over a given geometry.
+  //! \brief Evaluates and interpolates a scalar function over a given geometry.
   //! \param[in] f The function to evaluate
   //! \param[out] vec The obtained coefficients after interpolation
   //! \param[in] basisNum The basis to evaluate for (mixed)
-  virtual bool evaluate(const RealFunc* f, Vector& vec, int basisNum = 1) const
-  { return false; }
+  //! \param[in] time Current time
+  virtual bool evaluate(const RealFunc* f, RealArray& vec,
+                        int basisNum = 1, double time = 0.0) const;
 
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field
@@ -476,13 +476,13 @@ public:
   //!
   //! \details The secondary solution is derived from the primary solution,
   //! which is assumed to be stored within the \a integrand for current patch.
-  //! If \a npe is nullptr, the solution is recovered or evaluated at the Greville
+  //! If \a npe is null, the solution is recovered or evaluated at the Greville
   //! points and then projected onto the spline basis to obtain the control
   //! point values, which then are returned through \a sField.
-  //! If \a npe is not nullptr and \a project is defined, the solution is also
+  //! If \a npe is not null and \a project is defined, the solution is also
   //! projected onto the spline basis, and then evaluated at the \a npe points.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const int* npe = nullptr, char project = '\0') const;
+                            const int* npe = nullptr, char project = 0) const;
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
@@ -595,9 +595,9 @@ protected:
   void addNeighbor(ASMbase* pch);
 
   //! \brief Helper method used by evalPoint to search for a control point.
-  //! \param[in] Start iterator of array of control point coordinates
-  //! \param[in] End iterator of array of control point coordinates
-  //! \param[in] X Coordinates if point to search for
+  //! \param[in] cit iterator of array of control point coordinates
+  //! \param[in] end iterator of array of control point coordinates
+  //! \param[in] X Coordinates of point to search for
   //! \param[in] dimension Number of spatial dimensions of the splines object
   //! \param[in] tol Zero tolerance
   int searchCtrlPt(RealArray::const_iterator cit, RealArray::const_iterator end,

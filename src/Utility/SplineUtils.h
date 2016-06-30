@@ -72,6 +72,13 @@ namespace SplineUtils //! Various utility functions on spline objects.
   //! \brief Projects a vector-valued function onto a spline surface.
   Go::SplineSurface* project(const Go::SplineSurface* surface,
                              const VecFunc& f, int nComp, Real time = Real(0));
+
+  //! \brief Projects a scalar-valued function onto a spline volume.
+  Go::SplineVolume* project(const Go::SplineVolume* volume,
+                            const RealFunc& f, Real time = Real(0));
+  //! \brief Projects a vector-valued function onto a spline volume.
+  Go::SplineVolume* project(const Go::SplineVolume* volume,
+                            const VecFunc& f, int nComp, Real time = Real(0));
 }
 
 #endif

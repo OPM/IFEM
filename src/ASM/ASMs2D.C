@@ -1245,14 +1245,12 @@ bool ASMs2D::getElementCoordinates (Matrix& X, int iel) const
   }
 #endif
 
-  size_t nenod = surf->order_u()*surf->order_v();
-  const IntVec& mnpc = MNPC[iel-1];
-  X.resize(nsd,nenod);
+  X.resize(nsd,surf->order_u()*surf->order_v());
 
   RealArray::const_iterator cit = surf->coefs_begin();
-  for (size_t n = 0; n < nenod; n++)
+  for (size_t n = 0; n < X.cols(); n++)
   {
-    int ip = this->coeffInd(mnpc[n])*surf->dimension();
+    int ip = this->coeffInd(MNPC[iel-1][n])*surf->dimension();
     if (ip < 0) return false;
 
     for (size_t i = 0; i < nsd; i++)
@@ -2616,7 +2614,7 @@ void ASMs2D::generateThreadGroups (const Integrand& integrand, bool silence)
 }
 
 
-void ASMs2D::generateThreadGroups(size_t strip1, size_t strip2, bool silence)
+void ASMs2D::generateThreadGroups (size_t strip1, size_t strip2, bool silence)
 {
   const int n1 = surf->numCoefs_u();
   const int n2 = surf->numCoefs_v();
@@ -2731,4 +2729,22 @@ short int ASMs2D::InterfaceChecker::hasContribution (int I, int J) const
     if (neighbor[i]) status += s;
 
   return status;
+}
+
+
+bool ASMs2D::evaluate (const RealFunc* func, RealArray& vec,
+                       int basisNum, double time) const
+{
+  Go::SplineSurface* oldSurf = this->getBasis(basisNum);
+  Go::SplineSurface* newSurf = SplineUtils::project(oldSurf,*func,time);
+  if (!newSurf)
+  {
+    std::cerr <<" *** ASMs2D::evaluate: Projection failure."<< std::endl;
+    return false;
+  }
+
+  vec.assign(newSurf->coefs_begin(),newSurf->coefs_end());
+  delete newSurf;
+
+  return true;
 }

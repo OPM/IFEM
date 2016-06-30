@@ -208,6 +208,14 @@ public:
                             const RealArray* gpar, bool = true,
                             int deriv = 0) const;
 
+  //! \brief Evaluates and interpolates a function over a given geometry.
+  //! \param[in] func The function to evaluate
+  //! \param[out] vec The obtained coefficients after interpolation
+  //! \param[in] basis Basis number (mixed)
+  //! \param[in] time Current time
+  virtual bool evaluate(const RealFunc* func, RealArray& vec,
+                        int basis, double time) const;
+
   //! \brief Evaluates the secondary solution field at all visualization points.
   //! \param[out] sField Solution field
   //! \param[in] integrand Object with problem-specific data and methods
@@ -216,13 +224,13 @@ public:
   //!
   //! \details The secondary solution is derived from the primary solution,
   //! which is assumed to be stored within the \a integrand for current patch.
-  //! If \a npe is nullptr, the solution is evaluated at the Greville points and
+  //! If \a npe is null, the solution is evaluated at the Greville points and
   //! then projected onto the spline basis to obtain the control point values,
   //! which then are returned through \a sField.
-  //! If \a npe is not nullptr and \a project is defined, the solution is also
+  //! If \a npe is not null and \a project is defined, the solution is also
   //! projected onto the spline basis, and then evaluated at the \a npe points.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-                            const int* npe = nullptr, char project = '\0') const;
+                            const int* npe = nullptr, char project = 0) const;
 
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods
