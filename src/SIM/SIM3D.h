@@ -58,6 +58,13 @@ public:
   virtual ASMbase* readPatch(std::istream& isp, int pchInd,
                              const CharVec& unf) const;
 
+  //! \brief Reads patches from given input stream.
+  //! \param[in] isp The input stream to read from
+  //! \param[out] patches Array of patches that were read
+  //! \param[in] whiteSpace For message formatting
+  virtual bool readPatches(std::istream& isp, PatchVec& patches,
+                           const char* whiteSpace) const;
+
   //! \brief Evaluates the primary solution at the given point.
   //! \param[in] psol Primary solution vector
   //! \param[in] u First parameter of the point to evaluate at
@@ -85,12 +92,6 @@ protected:
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
 
-  //! \brief Reads patches from given input stream.
-  //! \param[in] isp The input stream to read from
-  //! \param[out] patches Array of patches that were read
-  //! \param[in] whiteSpace For message formatting
-  virtual bool readPatches(std::istream& isp, PatchVec& patches,
-                           const char* whiteSpace);
   //! \brief Reads global node data for a patch from given input stream.
   //! \param[in] isn The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read node data for
