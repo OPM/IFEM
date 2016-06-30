@@ -428,6 +428,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
   PROFILE2("ASMs3Dmx::integrate(I)");
 
+  bool use2ndDer = integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES;
   bool useElmVtx = integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS;
 
   // Get Gaussian quadrature points and weights
@@ -442,9 +443,16 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
   // Evaluate basis function derivatives at all integration points
   std::vector<std::vector<Go::BasisDerivs>> splinex(m_basis.size());
+  std::vector<std::vector<Go::BasisDerivs2>> splinex2(m_basis.size());
+  if (use2ndDer) {
 #pragma omp parallel for schedule(static)
-  for (size_t i=0;i<m_basis.size();++i)
-    m_basis[i]->computeBasisGrid(gpar[0],gpar[1],gpar[2],splinex[i]);
+    for (size_t i=0;i<m_basis.size();++i)
+      m_basis[i]->computeBasisGrid(gpar[0],gpar[1],gpar[2],splinex2[i]);
+  } else {
+#pragma omp parallel for schedule(static)
+    for (size_t i=0;i<m_basis.size();++i)
+      m_basis[i]->computeBasisGrid(gpar[0],gpar[1],gpar[2],splinex[i]);
+  }
 
   std::vector<size_t> elem_sizes;
   for (auto& it : m_basis)
@@ -469,6 +477,8 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
     for (size_t t=0;t<threadGroupsVol[g].size();++t) {
       MxFiniteElement fe(elem_sizes);
       std::vector<Matrix> dNxdu(m_basis.size());
+      std::vector<Matrix3D> d2Nxdu2(m_basis.size());
+      Matrix3D Hess;
       double dXidu[3];
       Matrix Xnod, Jac;
       Vec4   X;
@@ -539,8 +549,13 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
               fe.w = gpar[2](k+1,i3-p3+1);
 
               // Fetch basis function derivatives at current integration point
-              for (size_t b = 0; b < m_basis.size(); ++b)
-                SplineUtils::extractBasis(splinex[b][ip],fe.basis(b+1),dNxdu[b]);
+              if (use2ndDer) {
+                for (size_t b = 0; b < m_basis.size(); ++b)
+                  SplineUtils::extractBasis(splinex2[b][ip],fe.basis(b+1),dNxdu[b], d2Nxdu2[b]);
+              } else {
+                for (size_t b = 0; b < m_basis.size(); ++b)
+                  SplineUtils::extractBasis(splinex[b][ip],fe.basis(b+1),dNxdu[b]);
+              }
 
               // Compute Jacobian inverse of the coordinate mapping and
               // basis function derivatives w.r.t. Cartesian coordinates
@@ -550,6 +565,18 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
               for (size_t b = 0; b < m_basis.size(); ++b)
                 if (b != (size_t)geoBasis-1)
                   fe.grad(b+1).multiply(dNxdu[b],Jac);
+
+              // Compute Hessian of coordinate mapping and 2nd order derivatives
+              if (use2ndDer) {
+                if (!utl::Hessian(Hess,fe.hess(geoBasis),Jac,Xnod,
+                                  d2Nxdu2[geoBasis-1],fe.grad(geoBasis),true))
+                  ok = false;
+                for (size_t b = 0; b < m_basis.size() && ok; ++b)
+                  if ((int)b != geoBasis)
+                    if (!utl::Hessian(Hess,fe.hess(b+1),Jac,Xnod,
+                                      d2Nxdu2[b],fe.grad(b+1),false))
+                      ok = false;
+              }
 
               // Compute G-matrix
               if (integrand.getIntegrandType() & Integrand::G_MATRIX)
