@@ -180,6 +180,8 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
         for (int j = first; j <= last && j > -1; j++)
           myPatches.push_back(j);
       }
+      for (int i = first; i <= last; ++i)
+        adm.dd.setPatchOwner(i, proc);
     }
 
     // If equal number of blocks per processor
@@ -187,6 +189,8 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
       for (int j = 1; j <= proc; j++)
         myPatches.push_back(adm.getProcId()*proc+j);
       nGlPatches = adm.getNoProcs()*proc;
+      for (int i = 1; i <= nGlPatches; ++i)
+        adm.dd.setPatchOwner(i, (i-1) / proc);
     }
   }
 

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+
+  <!-- General - geometry definitions !-->
+  <geometry>
+    <partitioning procs="4" nperproc="2"/>
+    <patchfile>src/ASM/Test/refdata/cube-8-orient10.g2</patchfile>
+    <refine patch="1" u="1" v="1" w="1"/>
+    <refine patch="2" u="1" v="1" w="1"/>
+    <refine patch="3" u="1" v="1" w="1"/>
+    <refine patch="4" u="1" v="1" w="1"/>
+    <refine patch="5" u="1" v="1" w="1"/>
+    <refine patch="6" u="1" v="1" w="1"/>
+    <refine patch="7" u="1" v="1" w="1"/>
+    <refine patch="8" u="1" v="1" w="1"/>
+
+    <topology>
+      <connection master="1" mface="6" slave="2" sface="5"/>
+      <connection master="1" mface="4" slave="3" sface="3"/>
+      <connection master="1" mface="2" slave="5" sface="1"/>
+
+      <connection master="2" mface="4" slave="4" sface="3" orient="5"/>
+      <connection master="2" mface="2" slave="6" sface="1"/>
+
+      <connection master="3" mface="6" slave="4" sface="1" orient="5"/>
+      <connection master="3" mface="2" slave="7" sface="1"/>
+
+      <connection master="4" mface="5" slave="8" sface="1" orient="4"/>
+
+      <connection master="5" mface="6" slave="6" sface="5"/>
+      <connection master="5" mface="4" slave="7" sface="3"/>
+
+      <connection master="6" mface="4" slave="8" sface="3"/>
+
+      <connection master="7" mface="6" slave="8" sface="5"/>
+    </topology>
+
+    <topologysets>
+      <set name="fixX" type="face">
+        <item patch="1">3</item>
+        <item patch="2">3</item>
+        <item patch="5">3</item>
+        <item patch="6">3</item>
+      </set>
+      <set name="fixY" type="face">
+        <item patch="2">6</item>
+        <item patch="4">2</item>
+        <item patch="6">6</item>
+        <item patch="8">6</item>
+      </set>
+      <set name="fixZ" type="face">
+        <item patch="5">2</item>
+        <item patch="6">2</item>
+        <item patch="7">2</item>
+        <item patch="8">2</item>
+      </set>
+    </topologysets>
+  </geometry>
+
+  <boundaryconditions>
+    <dirichlet set="fixX" comp="1" basis="1"/>
+    <dirichlet set="fixY" comp="2" basis="1"/>
+    <dirichlet set="fixZ" comp="3" basis="1"/>
+  </boundaryconditions>
+
+</simulation>
