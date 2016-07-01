@@ -165,6 +165,8 @@ public:
   virtual unsigned char getNoFields(int b = 0) const { return b > 1 ? 0 : nf; }
   //! \brief Returns the number of Lagrange multipliers per node.
   unsigned char getNoLagPerNode() const { return nLag; }
+  //! \brief Obtain first and last node for multipliers.
+  std::pair<size_t, size_t> getLagrangeMultipliers() { return myLMs; }
 
   //! \brief Returns the polynomial order in each parameter direction.
   //! \param[out] p1 Order in first (u) direction

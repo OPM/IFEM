@@ -45,6 +45,13 @@ public:
   bool updateConstraintEqs(const std::vector<ASMbase*>& model,
                            const Vector* prevSol = 0);
 
+  //! \brief Start iterator for patches
+  std::vector<ASMbase*>::const_iterator begin() const { return patches.begin(); }
+  //! \brief End iterator for patches
+  std::vector<ASMbase*>::const_iterator end() const { return patches.end(); }
+  //! \brief Number of patches in model
+  size_t getNoPatches() const { return patches.size(); }
+
 protected:
   //! \brief Initializes the nodal arrays \a MINEX, \a MADOF and \a MSC.
   bool initNodeDofs(const std::vector<ASMbase*>& model);
@@ -53,6 +60,8 @@ protected:
   //! \brief Initializes the multi-point constraint arrays.
   //! \a MPMCEQ, \a MMCEQ and \a TTCC.
   virtual bool initConstraintEqs(const std::vector<ASMbase*>& model);
+
+  std::vector<ASMbase*> patches; //!< The spline patches
 
 private:
   //! \brief Recursive helper method used by \a initConstraintEqs.

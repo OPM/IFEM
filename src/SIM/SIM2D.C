@@ -177,23 +177,31 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       utl::getAttribute(child,"reverse",rever);
 
       if (master == slave ||
-          master < 1 || master > (int)myModel.size() ||
-          slave  < 1 || slave  > (int)myModel.size())
+          master < 1 || master > nGlPatches ||
+          slave  < 1 || slave  > nGlPatches)
       {
         std::cerr <<" *** SIM2D::parse: Invalid patch indices "
                   << master <<" "<< slave << std::endl;
         return false;
       }
-      IFEM::cout <<"\tConnecting P"<< slave <<" E"<< sEdge
-                 <<" to P"<< master <<" E"<< mEdge
-                 <<" reversed? "<< rever << std::endl;
-      ASMs2D* spch = static_cast<ASMs2D*>(myModel[slave-1]);
-      ASMs2D* mpch = static_cast<ASMs2D*>(myModel[master-1]);
-      if (!spch->connectPatch(sEdge,*mpch,mEdge,rever))
-        return false;
-      else if (opt.discretization == ASM::SplineC1)
-        top.push_back(Interface(static_cast<ASMs2DC1*>(mpch),mEdge,
-                                static_cast<ASMs2DC1*>(spch),sEdge,rever));
+      int lmaster = getLocalPatchIndex(master);
+      int lslave = getLocalPatchIndex(slave);
+
+      if (lmaster > 0 && lslave > 0)
+      {
+        IFEM::cout <<"\tConnecting P"<< lslave <<" E"<< sEdge
+                   <<" to P"<< lmaster <<" E"<< mEdge
+                   <<" reversed? "<< rever << std::endl;
+        ASMs2D* spch = static_cast<ASMs2D*>(myModel[lslave-1]);
+        ASMs2D* mpch = static_cast<ASMs2D*>(myModel[lmaster-1]);
+        if (!spch->connectPatch(sEdge,*mpch,mEdge,rever))
+          return false;
+        else if (opt.discretization == ASM::SplineC1)
+          top.push_back(Interface(static_cast<ASMs2DC1*>(mpch),mEdge,
+                                  static_cast<ASMs2DC1*>(spch),sEdge,rever));
+      }
+      else
+        adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave, mEdge, sEdge, rever?1:0, 1});
     }
 
     // Second pass for C1-continuous patches, to set up additional constraints
