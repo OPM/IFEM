@@ -67,6 +67,14 @@ DenseMatrix::DenseMatrix (const RealArray& data, size_t nrows)
 }
 
 
+DenseMatrix::DenseMatrix (const Matrix& A, bool s)
+{
+  myMat = A;
+  ipiv = nullptr;
+  symm = s;
+}
+
+
 size_t DenseMatrix::dim (int idim) const
 {
   if (idim == 1)
