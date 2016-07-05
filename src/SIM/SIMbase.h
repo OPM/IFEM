@@ -454,6 +454,17 @@ public:
                SIMoptions::ProjectionMethod pMethod = SIMoptions::GLOBAL,
                const TimeDomain& time = TimeDomain()) const;
 
+  //! \brief Projects a scalar function onto the specified basis.
+  //! \param[out] values Resulting control point values
+  //! \param[in] f The function to evaluate
+  //! \param[in] basis Which basis to consider
+  //! \param[in] iField Field component offset in values vector
+  //! \param[in] nFields Number of field components in values vector
+  //! \param[in] time Current time
+  bool project(Vector& values, const RealFunc* f,
+               int basis = 1, int iField = 0, int nFields = 1,
+               double time = 0.0) const;
+
   //! \brief Evaluates the secondary solution field for specified patch.
   //! \param[out] field Control point values of the secondary solution field
   //! \param[in] pindx Local patch index to evaluate solution field for

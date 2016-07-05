@@ -16,17 +16,15 @@
 #include "ASMbase.h"
 #include "HDF5Writer.h"
 #include "XMLWriter.h"
-#include <memory>
 #include <sstream>
 
 
 bool SIM::setInitialConditions (SIMbase& sim, SIMdependency* fieldHolder)
 {
-  bool result = false;
-
   if (!fieldHolder)
     fieldHolder = &sim;
-  result = true;
+
+  bool result = true;
   // loops over input files
   SIMdependency::InitialCondMap::const_iterator it;
   for (it = sim.getICs().begin(); it != sim.getICs().end(); ++it) {
@@ -50,23 +48,12 @@ bool SIM::setInitialConditions (SIMbase& sim, SIMdependency* fieldHolder)
         continue;
 
       if (it->first == "nofile") {
-        std::unique_ptr<RealFunc> func(utl::parseRealFunc(it2->function, it2->file_field, false));
-        // loop over patches
-        for (int i=0;i<sim.getNoPatches();++i) {
-          int p = sim.getLocalPatchIndex(i+1);
-          ASMbase* pch = sim.getPatch(p);
-          if (!pch) continue;
-          Vector loc_scalar;
-          pch->evaluate(func.get(), loc_scalar, it2->basis);
-          // interleave
-          Vector loc_vector(loc_scalar.size()*sim.getNoFields(it2->basis));
-          pch->extractNodeVec(*field, loc_vector, 0, it2->basis);
-          for (size_t i=0;i<loc_scalar.size();++i) {
-            loc_vector[sim.getNoFields(it2->basis)*i+it2->component-1] = loc_scalar[i];
-          }
-          pch->injectNodeVec(loc_vector, *field, 0, it2->basis);
-        }
-      } else {
+        RealFunc* fn = utl::parseRealFunc(it2->function,it2->file_field,false);
+        result &= sim.project(*field,fn,it2->basis,it2->component-1,
+                              sim.getNoFields(it2->basis));
+        delete fn;
+      }
+      else {
         std::vector<XMLWriter::Entry>::const_iterator it3;
         // find entry in XML description file
         for (it3  = xmlreader.getEntries().begin();

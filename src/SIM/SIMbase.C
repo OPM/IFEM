@@ -2457,6 +2457,34 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
 }
 
 
+bool SIMbase::project (Vector& values, const RealFunc* f,
+                       int basis, int iField, int nFields, double time) const
+{
+  bool ok = true;
+  for (size_t j = 0; j < myModel.size() && ok; j++)
+  {
+    if (myModel[j]->empty()) continue; // skip empty patches
+
+    Vector loc_scalar;
+    ok = myModel[j]->evaluate(f,loc_scalar,basis,time);
+
+    if (nFields <= 1)
+      ok &= myModel[j]->injectNodeVec(loc_scalar,values,1,basis);
+    else
+    {
+      // Interleave 
+      Vector loc_vector(loc_scalar.size()*nFields);
+      myModel[j]->extractNodeVec(values,loc_vector,0,basis);
+      for (size_t i = 0; i < loc_scalar.size(); i++, iField += nFields)
+        loc_vector[iField] = loc_scalar[i];
+      ok &= myModel[j]->injectNodeVec(loc_vector,values,0,basis);
+    }
+  }
+
+  return ok;
+}
+
+
 bool SIMbase::extractPatchSolution (IntegrandBase* problem,
                                     const Vectors& sol, size_t pindx) const
 {
