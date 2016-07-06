@@ -116,16 +116,20 @@ Go::SplineSurface* ASMs2D::projectSolution (const IntegrandBase& integrnd) const
 {
   PROFILE2("ASMs2D::projectSolution");
 
+  const int basis = 1;
+
   // Compute parameter values of the result sampling points (Greville points)
   std::array<RealArray,2> gpar;
   for (int dir = 0; dir < 2; dir++)
-    if (!this->getGrevilleParameters(gpar[dir],dir))
+    if (!this->getGrevilleParameters(gpar[dir],dir,basis))
       return nullptr;
 
   // Evaluate the secondary solution at all sampling points
   Matrix sValues;
   if (!this->evalSolution(sValues,integrnd,gpar.data()) || sValues.rows() == 0)
     return nullptr;
+
+  const Go::SplineSurface* psurf = this->getBasis(basis);
 
   // Project the results onto the spline basis to find control point
   // values based on the result values evaluated at the Greville points.
@@ -135,17 +139,17 @@ Go::SplineSurface* ASMs2D::projectSolution (const IntegrandBase& integrnd) const
   // other projection schemes later.
 
   RealArray weights;
-  if (surf->rational())
-    surf->getWeights(weights);
+  if (psurf->rational())
+    psurf->getWeights(weights);
 
   const Vector& vec = sValues;
-  return Go::SurfaceInterpolator::regularInterpolation(surf->basis(0),
-						       surf->basis(1),
-						       gpar[0], gpar[1],
-						       const_cast<Vector&>(vec),
-						       sValues.rows(),
-						       surf->rational(),
-						       weights);
+  return Go::SurfaceInterpolator::regularInterpolation(psurf->basis(0),
+                                                       psurf->basis(1),
+                                                       gpar[0], gpar[1],
+                                                       const_cast<Vector&>(vec),
+                                                       sValues.rows(),
+                                                       psurf->rational(),
+                                                       weights);
 }
 
 
