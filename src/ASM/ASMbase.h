@@ -560,6 +560,14 @@ public:
   virtual bool injectNodeVec(const Vector& nodeVec, Vector& globVec,
 			     unsigned char nndof = 0, int basis = 0) const;
 
+  //! \brief Extracts nodal results for this patch from the global vector.
+  //! \param[in] globVec Global solution vector in DOF-order
+  //! \param[out] nodeVec Nodal result vector for this patch
+  //! \param[in] madof Global Matrix of Accumulated DOFs
+  //! \param[in] basis Which basis to inject nodal values for (mixed methods)
+  void injectNodeVec(const std::vector<int>& madof, const Vector& nodeVec,
+                     Vector& globVec, int basis=0) const;
+
   //! \brief Creates and adds a two-point constraint to this patch.
   //! \param[in] slave Global node number of the node to constrain
   //! \param[in] dir Which local DOF to constrain (1, 2, 3)
