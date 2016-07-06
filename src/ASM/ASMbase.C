@@ -970,10 +970,16 @@ void ASMbase::extractElmRes (const Matrix& globRes, Matrix& elmRes) const
 }
 
 
-void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
-			      const int* madof) const
+bool ASMbase::extractNodalVec (const Vector& globRes, Vector& nodeVec,
+                               const int* madof, int ngnod) const
 {
   nodeVec.clear();
+  if (nnod == 0)
+  {
+    std::cerr <<" *** ASMbase::extractNodalVec: Empty MADOF array."<< std::endl;
+    return false;
+  }
+
   nodeVec.reserve(nf*MLGN.size());
   for (size_t i = 0; i < MLGN.size(); i++)
   {
@@ -981,17 +987,67 @@ void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
     int idof = madof[inod-1] - 1;
     int jdof = madof[inod] - 1;
 #ifdef INDEX_CHECK
-    if (inod < 1 || jdof > (int)globRes.size())
-      std::cerr <<" *** ASMbase::extractNodeVec: Global DOF "<< jdof
+    bool ok = false;
+    if (inod < 1 || (inod > ngnod && ngnod > 0))
+      std::cerr <<" *** ASMbase::extractNodalVec: Global node "<< inod
+                <<" is out of range [1,"<< std::abs(ngnod) <<"]."<< std::endl;
+    else if (jdof > (int)globRes.size())
+      std::cerr <<" *** ASMbase::extractNodalVec: Global DOF "<< jdof
                 <<" is out of range [1,"<< globRes.size() <<"]."<< std::endl;
+    else
+      ok = true;
+    if (!ok) continue;
 #endif
     nodeVec.insert(nodeVec.end(),globRes.ptr()+idof,globRes.ptr()+jdof);
   }
+
+  return true;
+}
+
+
+bool ASMbase::injectNodalVec (const Vector& nodeVec, Vector& globVec,
+                              const std::vector<int>& madof, int basis) const
+{
+  if (madof.empty()) 
+  { 
+    std::cerr <<" *** ASMbase::injectNodalVec: Empty MADOF array."<< std::endl;
+    return false;
+  }
+
+  size_t ldof = 0;
+  char bType = basis == 1 ? 'D' : 'P'+basis-2;
+  for (size_t i = 0; i < MLGN.size(); i++)
+    if (basis == 0 || this->getNodeType(i+1) == bType)
+    {
+      int inod = MLGN[i];
+      int idof = madof[inod-1] - 1;
+      int ndof = madof[inod] - 1 - idof;
+#ifdef INDEX_CHECK
+      bool ok = false;
+      if (inod < 1 || inod > (int)madof.size())
+        std::cerr <<" *** ASMbase::injectNodalVec: Node "<< inod
+                  <<" is out of range [1,"<< madof.size() <<"]."<< std::endl;
+      else if (ldof+ndof > nodeVec.size())
+        std::cerr <<" *** ASMbase::injectNodalVec: Local DOF "<< ldof+ndof
+                  <<" is out of range [1,"<< nodeVec.size() <<"]"<< std::endl;
+      else if (idof+ndof > (int)globVec.size())
+        std::cerr <<" *** ASMbase::injectNodalVec: Global DOF "<< idof+ndof
+                  <<" is out of range [1,"<< globVec.size() <<"]"<< std::endl;
+      else
+        ok = true;
+      if (!ok) continue;
+#endif
+      std::copy(nodeVec.begin()+ldof, nodeVec.begin()+ldof+ndof,
+                globVec.begin()+idof);
+      ldof += ndof;
+    }
+
+  return true;
 }
 
 
 void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
-			      unsigned char nndof, int basis) const
+                              unsigned char nndof, int basis) const
 {
   if (nndof == 0) nndof = nf;
 
@@ -1019,7 +1075,7 @@ void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
 
 
 bool ASMbase::injectNodeVec (const Vector& nodeVec, Vector& globRes,
-			     unsigned char nndof, int) const
+                             unsigned char nndof, int) const
 {
   if (nndof == 0) nndof = nf;
 

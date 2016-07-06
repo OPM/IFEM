@@ -2502,7 +2502,7 @@ bool SIMbase::extractPatchSolution (IntegrandBase* problem,
   problem->initNodeMap(pch->getGlobalNodeNums());
   for (size_t i = 0; i < sol.size() && i < problem->getNoSolutions(); i++)
     if (!sol[i].empty())
-      pch->extractNodeVec(sol[i],problem->getSolution(i),mySam->getMADOF());
+      pch->extractNodalVec(sol[i],problem->getSolution(i),mySam->getMADOF());
 
   return this->extractPatchDependencies(problem,myModel,pindx);
 }

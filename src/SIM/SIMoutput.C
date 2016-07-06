@@ -1097,7 +1097,7 @@ void SIMoutput::dumpPrimSol (const Vector& psol, utl::LogStream& os,
     if (myModel[i]->empty()) continue; // skip empty patches
 
     Vector patchSol;
-    myModel[i]->extractNodeVec(psol,patchSol,mySam->getMADOF());
+    myModel[i]->extractNodalVec(psol,patchSol,mySam->getMADOF());
 
     if (withID)
     {
@@ -1141,7 +1141,7 @@ bool SIMoutput::dumpSolution (const Vector& psol, utl::LogStream& os) const
     // Extract and write primary solution
     size_t nf = myModel[i]->getNoFields(1);
     Vector& patchSol = myProblem->getSolution();
-    myModel[i]->extractNodeVec(psol,patchSol,mySam->getMADOF());
+    myModel[i]->extractNodalVec(psol,patchSol,mySam->getMADOF());
     for (k = 0; k < nf; k++)
     {
       os << myProblem->getField1Name(k,"# FE");
