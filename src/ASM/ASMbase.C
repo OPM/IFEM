@@ -996,6 +996,29 @@ void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
   }
 }
 
+void ASMbase::injectNodeVec (const std::vector<int>& madof,
+                             const Vector& nodeVec, Vector& globVec,
+                             int basis) const
+{
+  size_t ldof = 0;
+  char bType = basis == 1 ? 'D' : 'P'+basis-2;
+  for (size_t i = 0; i < MLGN.size(); i++)
+  {
+    if (basis == 0 || getNodeType(i+1) == bType) {
+      int inod = MLGN[i];
+      int idof = madof[inod-1] - 1;
+      int jdof = madof[inod] - 1;
+#ifdef INDEX_CHECK
+      if (inod < 1 || jdof > (int)globVec.size())
+        std::cerr <<" *** ASMbase::injectNodeVec: Global DOF "<< jdof
+                  <<" is out of range [1,"<< globVec.size() <<"]"<< std::endl;
+#endif
+      std::copy(nodeVec.begin()+ldof, nodeVec.begin()+ldof+(jdof-idof), globVec.begin()+idof);
+      ldof += jdof-idof;
+    }
+  }
+}
+
 
 void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
 			      unsigned char nndof, int basis) const
