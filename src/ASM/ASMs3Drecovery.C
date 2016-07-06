@@ -115,10 +115,12 @@ Go::SplineVolume* ASMs3D::projectSolution (const IntegrandBase& integrand) const
 {
   PROFILE2("ASMs3D::projectSolution");
 
+  const int basis = 1;
+
   // Compute parameter values of the result sampling points (Greville points)
   std::array<RealArray,3> gpar;
   for (int dir = 0; dir < 3; dir++)
-    if (!this->getGrevilleParameters(gpar[dir],dir))
+    if (!this->getGrevilleParameters(gpar[dir],dir,basis))
       return nullptr;
 
   // Evaluate the secondary solution at all sampling points
@@ -134,17 +136,17 @@ Go::SplineVolume* ASMs3D::projectSolution (const IntegrandBase& integrand) const
   // other projection schemes later.
 
   RealArray weights;
-  if (svol->rational())
-    svol->getWeights(weights);
+  if (getBasis(basis)->rational())
+    getBasis(basis)->getWeights(weights);
 
   const Vector& vec = sValues;
-  return Go::VolumeInterpolator::regularInterpolation(svol->basis(0),
-						      svol->basis(1),
-						      svol->basis(2),
+  return Go::VolumeInterpolator::regularInterpolation(getBasis(basis)->basis(0),
+						      getBasis(basis)->basis(1),
+						      getBasis(basis)->basis(2),
 						      gpar[0], gpar[1], gpar[2],
 						      const_cast<Vector&>(vec),
 						      sValues.rows(),
-						      svol->rational(),
+						      getBasis(basis)->rational(),
 						      weights);
 }
 
