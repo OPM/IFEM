@@ -24,7 +24,7 @@
 static void ExprException (const ExprEval::Exception& exc, const char* task,
                            const char* function = nullptr)
 {
-  std::cerr <<" *** Error "<< task <<" function";
+  std::cerr <<"\n *** Error "<< task <<" function";
   if (function)
     std::cerr <<" \""<< function <<"\"";
   if (!exc.GetValue().empty())
@@ -80,7 +80,10 @@ static void ExprException (const ExprEval::Exception& exc, const char* task,
     std::cerr <<": Unknown exception";
   }
   std::cerr << std::endl;
+  EvalFunc::numError++;
 }
+
+int EvalFunc::numError = 0;
 
 
 EvalFunc::EvalFunc (const char* function, const char* x)
@@ -155,7 +158,7 @@ EvalFunction::EvalFunction (const char* function)
     f.resize(nalloc);
     v.resize(nalloc);
     expr.resize(nalloc);
-    c.resize(nalloc);
+    arg.resize(nalloc);
     for (size_t i = 0; i < nalloc; ++i) {
       expr[i] = new ExprEval::Expression;
       f[i] = new ExprEval::FunctionList;
@@ -169,10 +172,10 @@ EvalFunction::EvalFunction (const char* function)
       expr[i]->SetFunctionList(f[i]);
       expr[i]->SetValueList(v[i]);
       expr[i]->Parse(function);
-      c[i][0] = v[i]->GetAddress("x");
-      c[i][1] = v[i]->GetAddress("y");
-      c[i][2] = v[i]->GetAddress("z");
-      c[i][3] = v[i]->GetAddress("t");
+      arg[i].x = v[i]->GetAddress("x");
+      arg[i].y = v[i]->GetAddress("y");
+      arg[i].z = v[i]->GetAddress("z");
+      arg[i].t = v[i]->GetAddress("t");
     }
   }
   catch (ExprEval::Exception e) {
@@ -180,7 +183,7 @@ EvalFunction::EvalFunction (const char* function)
   }
 
   // Checking if the expression is time-independent
-  // Note, this will also catch tings like tan(x), but...
+  // Note, this will also catch things like tan(x), but...
   std::string expr(function);
   IAmConstant = expr.find_first_of('t') > expr.size();
 }
@@ -206,10 +209,10 @@ Real EvalFunction::evaluate (const Vec3& X) const
 #ifdef USE_OPENMP
     i = omp_get_thread_num();
 #endif
-    *c[i][0] = X.x;
-    *c[i][1] = X.y;
-    *c[i][2] = X.z;
-    *c[i][3] = Xt ? Xt->t : Real(0);
+    *arg[i].x = X.x;
+    *arg[i].y = X.y;
+    *arg[i].z = X.z;
+    *arg[i].t = Xt ? Xt->t : Real(0);
     result = expr[i]->Evaluate();
   }
   catch (ExprEval::Exception e) {

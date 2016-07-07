@@ -359,7 +359,14 @@ const ScalarFunc* utl::parseTimeFunc (const char* type, char* cline, Real C)
   if (strncasecmp(type,"expr",4) == 0 && cline != nullptr)
   {
     IFEM::cout << cline;
-    return new EvalFunc(cline,"t");
+    EvalFunc::numError = 0;
+    ScalarFunc* sf = new EvalFunc(cline,"t");
+    if (EvalFunc::numError > 0)
+    {
+      delete sf;
+      sf = nullptr;
+    }
+    return sf;
   }
   else if (strncasecmp(type,"Ramp",4) == 0 || strcmp(type,"Tinit") == 0)
   {
@@ -438,7 +445,14 @@ RealFunc* utl::parseRealFunc (const std::string& func, const std::string& type, 
   {
     if (print)
       IFEM::cout << func;
-    return new EvalFunction(func.c_str());
+    EvalFunc::numError = 0;
+    RealFunc* rf = new EvalFunction(func.c_str());
+    if (EvalFunc::numError > 0)
+    {
+      delete rf;
+      rf = nullptr;
+    }
+    return rf;
   }
   else if (type == "linear")
   {
@@ -470,7 +484,14 @@ VecFunc* utl::parseVecFunc (const std::string& func, const std::string& type,
   if (type == "expression")
   {
     IFEM::cout <<": "<< func;
-    return new VecFuncExpr(func,variables);
+    EvalFunc::numError = 0;
+    VecFunc* vf = new VecFuncExpr(func,variables);
+    if (EvalFunc::numError > 0)
+    {
+      delete vf;
+      vf = nullptr;
+    }
+    return vf;
   }
   else if (type == "constant")
   {
@@ -498,7 +519,13 @@ TractionFunc* utl::parseTracFunc (const std::string& func,
   if (type == "expression")
   {
     IFEM::cout << func;
+    EvalFunc::numError = 0;
     f = new EvalFunction(func.c_str());
+    if (EvalFunc::numError > 0)
+    {
+      delete f;
+      return nullptr;
+    }
   }
   else if (type == "linear")
   {

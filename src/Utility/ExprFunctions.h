@@ -17,7 +17,6 @@
 #include "Function.h"
 #include <string>
 #include <vector>
-#include <array>
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
@@ -47,6 +46,8 @@ public:
   //! \brief The destructor frees the dynamically allocated objects.
   virtual ~EvalFunc();
 
+  static int numError; //!< Error counter - set by the exception handler
+
 protected:
   //! \brief Non-implemented copy constructor to disallow copying.
   EvalFunc(const EvalFunc&);
@@ -66,9 +67,19 @@ class EvalFunction : public RealFunc
   std::vector<ExprEval::Expression*> expr; //!< Roots of the expression tree
   std::vector<ExprEval::FunctionList*>  f; //!< Lists of functions
   std::vector<ExprEval::ValueList*>     v; //!< Lists of variables and constants
-  std::vector<std::array<Real*,4>>      c; //!< Function argument values
 
-  bool  IAmConstant; //!< Indicates whether the time coordinate is given or not
+  //! \brief A struct representing a spatial function argument.
+  struct Arg
+  {
+    Real* x; //!< X-coordinate
+    Real* y; //!< Y-coordinate
+    Real* z; //!< Z-coordinate
+    Real* t; //!< Time
+  };
+
+  std::vector<Arg> arg; //!< Function argument values
+
+  bool IAmConstant; //!< Indicates whether the time coordinate is given or not
 
 public:
   //! \brief The constructor parses the expression string.
