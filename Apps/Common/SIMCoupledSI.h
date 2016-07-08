@@ -49,8 +49,11 @@ public:
       if ((status2 = this->S2.solveIteration(tp)) == SIM::DIVERGED)
         return false;
 
-      if (status1 == SIM::CONVERGED && status2 == SIM::CONVERGED)
-	break; // Exit iteration loop when both solvers have converged
+      SIM::ConvStatus cstatus = this->checkConvergence(tp, status1, status2);
+      if (cstatus == SIM::CONVERGED)
+	break;
+      else if (cstatus == SIM::DIVERGED)
+        return false;
 
       this->S1.updateDirichlet();
       this->S2.updateDirichlet();
