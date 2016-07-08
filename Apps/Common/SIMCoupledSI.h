@@ -31,7 +31,7 @@ public:
   virtual ~SIMCoupledSI() {}
 
   //! \brief Computes the solution for the current time step.
-  bool solveStep(TimeStep& tp)
+  virtual bool solveStep(TimeStep& tp)
   {
     int maxit = std::min(this->S1.getMaxit(),this->S2.getMaxit());
 
@@ -43,14 +43,17 @@ public:
     SIM::ConvStatus status1 = SIM::OK, status2 = SIM::OK;
     for (tp.iter = 0; tp.iter < maxit; tp.iter++)
     {
-      if ((status1 = this->S1.solveIteration(tp)) == SIM::DIVERGED)
+      if ((status1 = this->S1.solveIteration(tp)) <= SIM::DIVERGED)
         return false;
 
-      if ((status2 = this->S2.solveIteration(tp)) == SIM::DIVERGED)
+      if ((status2 = this->S2.solveIteration(tp)) <= SIM::DIVERGED)
         return false;
 
-      if (status1 == SIM::CONVERGED && status2 == SIM::CONVERGED)
-	break; // Exit iteration loop when both solvers have converged
+      SIM::ConvStatus cstatus = this->checkConvergence(tp,status1,status2);
+      if (cstatus <= SIM::DIVERGED)
+        return false;
+      else if (cstatus == SIM::CONVERGED)
+        break; // Exit iteration loop when the coupled solver has converged
 
       this->S1.updateDirichlet();
       this->S2.updateDirichlet();

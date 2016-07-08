@@ -14,10 +14,9 @@
 #ifndef _SIM_COUPLED_H_
 #define _SIM_COUPLED_H_
 
-
 #include "Function.h"
 #include "Property.h"
-
+#include "SIMenums.h"
 
 class SIMdependency;
 class ASMbase;
@@ -122,8 +121,8 @@ public:
   }
 
   //! \brief Defines a vector field property.
-  size_t setVecProperty(int code, Property::Type ptype, VecFunc* field = nullptr,
-                        int pflag = -1)
+  size_t setVecProperty(int code, Property::Type ptype,
+                        VecFunc* field = nullptr, int pflag = -1)
   {
     return S1.setVecProperty(code, ptype, field, pflag);
   }
@@ -135,7 +134,7 @@ public:
     S2.registerFields(exporter);
   }
 
-  //! \brief Set the initial conditions for the simulators
+  //! \brief Sets the initial conditions for the simulators.
   void setInitialConditions()
   {
     S1.setInitialConditions();
@@ -156,6 +155,21 @@ public:
       result = S2.getField(name);
 
     return result;
+  }
+
+  //! \brief Override this method to add additional convergence criteria.
+  virtual SIM::ConvStatus checkConvergence(const TimeStep&,
+                                           SIM::ConvStatus status1,
+                                           SIM::ConvStatus status2)
+  {
+    if (status1 == status2)
+      return status1;
+    else if (status1 == SIM::FAILURE || status2 == SIM::FAILURE)
+      return SIM::FAILURE;
+    else if (status1 == SIM::DIVERGED || status2 == SIM::DIVERGED)
+      return SIM::DIVERGED;
+    else
+      return SIM::OK;
   }
 
 protected:

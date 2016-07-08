@@ -41,13 +41,15 @@ namespace SIM //! Simulation scope
   };
 
   //! \brief Enum defining the various convergence statuses that may occur.
+  //! \note The order of the values are not random. It reflects the severity of
+  //! the status somehow (the smaller the value, the further from convergence).
   enum ConvStatus
   {
     FAILURE,
-    OK,
+    DIVERGED,
     SLOW,
-    CONVERGED,
-    DIVERGED
+    OK,
+    CONVERGED
   };
 }
 
