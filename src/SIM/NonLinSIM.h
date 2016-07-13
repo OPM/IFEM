@@ -106,6 +106,7 @@ protected:
   double eta;     //!< Line search tolerance
   double alpha;   //!< Iteration acceleration parameter (for line search)
   int    maxit;   //!< Maximum number of iterations in a load step
+  int    maxIncr; //!< Maximum number of iterations with increasing norm
   int    nupdat;  //!< Number of iterations with updated tangent
   int    prnSlow; //!< How many DOFs to print out on slow convergence
 

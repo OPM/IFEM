@@ -31,6 +31,7 @@ NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : MultiStepSIM(sim), iteNorm(n)
 {
   // Default solution parameters
   fromIni = iteNorm == NONE;
+  maxIncr = 2;
   maxit   = 20;
   nupdat  = 20;
   prnSlow = 0;
@@ -106,6 +107,8 @@ bool NonLinSIM::parse (const TiXmlElement* elem)
   for (; child; child = child->NextSiblingElement())
     if ((value = utl::getValue(child,"maxits")))
       maxit = atoi(value);
+    else if ((value = utl::getValue(child,"maxIncr")))
+      maxIncr = atoi(value);
     else if ((value = utl::getValue(child,"nupdate")))
       nupdat = atoi(value);
     else if ((value = utl::getValue(child,"rtol")))
@@ -473,7 +476,7 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
     status = DIVERGED;
   else if (fabs(norm) <= fabs(prevNorm))
     nIncrease = 0;
-  else if (++nIncrease > 2 || fabs(norm) > divgLim)
+  else if (++nIncrease > maxIncr || fabs(norm) > divgLim)
     status = DIVERGED;
 
   prevNorm = norm;
