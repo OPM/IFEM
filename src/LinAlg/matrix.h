@@ -307,7 +307,7 @@ namespace utl //! General utility classes and functions.
         // The matrix size is reduced
         T* newMat = this->ptr() + newRows;
         for (size_t c = 1; c < ncol; c++, newMat += newRows)
-          memcpy(newMat,this->ptr(c),newRows*sizeof(T));
+          memmove(newMat,this->ptr(c),newRows*sizeof(T));
         nrow = newRows;
         elem.std::template vector<T>::resize(nrow*ncol);
       }
@@ -315,12 +315,12 @@ namespace utl //! General utility classes and functions.
       {
         // The matrix size is increased
         size_t oldRows = nrow;
-        T* oldMat = this->ptr(ncol-1);
         nrow = newRows;
         elem.std::template vector<T>::resize(nrow*ncol,T(0));
+        T* oldMat = this->ptr() + oldRows*(ncol-1);
         for (size_t c = ncol-1; c > 0; c--, oldMat -= oldRows)
         {
-          memcpy(this->ptr(c),oldMat,oldRows*sizeof(T));
+          memmove(this->ptr(c),oldMat,oldRows*sizeof(T));
           for (size_t r = nrow-1; r >= oldRows; r--)
             elem[r+nrow*(c-1)] = T(0);
         }
@@ -429,25 +429,25 @@ namespace utl //! General utility classes and functions.
     void fill(const T* values, size_t n = 0) { elem.fill(values,n); }
 
     //! \brief Fill a block of the matrix with another matrix.
-    void fillBlock(const matrix<T>& block, size_t row, size_t col,
+    void fillBlock(const matrix<T>& block, size_t r, size_t c,
                    bool transposed = false)
     {
       size_t nr = transposed ? block.cols() : block.rows();
       size_t nc = transposed ? block.rows() : block.cols();
-      for (size_t i = 1; i <= nr && i+row-1 <= nrow; i++)
-        for (size_t j = 1; j <= nc && j+col-1 <= ncol; j++)
-          elem[i+row-2+nrow*(j+col-2)] = transposed ? block(j,i) : block(i,j);
+      for (size_t i = 1; i <= nr && i+r-1 <= nrow; i++)
+        for (size_t j = 1; j <= nc && j+c-1 <= ncol; j++)
+          elem[i+r-2+nrow*(j+c-2)] = transposed ? block(j,i) : block(i,j);
     }
 
     //! \brief Add a scalar multiple of another matrix to a block of the matrix.
-    void addBlock(const matrix<T>& block, const T& s, size_t row, size_t col,
+    void addBlock(const matrix<T>& block, const T& s, size_t r, size_t c,
                   bool transposed = false)
     {
       size_t nr = transposed ? block.cols() : block.rows();
       size_t nc = transposed ? block.rows() : block.cols();
-      for (size_t i = 1; i <= nr && i+row-1 <= nrow; i++)
-        for (size_t j = 1; j <= nc && j+col-1 <= ncol; j++)
-          elem[i+row-2+nrow*(j+col-2)] += s * (transposed ? block(j,i) : block(i,j));
+      for (size_t i = 1; i <= nr && i+r-1 <= nrow; i++)
+        for (size_t j = 1; j <= nc && j+c-1 <= ncol; j++)
+          elem[i+r-2+nrow*(j+c-2)] += s*(transposed ? block(j,i) : block(i,j));
     }
 
     //! \brief Create a diagonal matrix.
