@@ -267,7 +267,9 @@ public:
   //! \brief Returns the total reaction force in the given coordinate direction.
   //! \param[in] dir 1-based coordinate direction index
   //! \param[in] rf Compressed reaction force vector for the entire model
-  virtual Real getReaction(int dir, const Vector& rf) const;
+  //! \param[in] nodes The set of nodes to consider (null means all nodes)
+  virtual Real getReaction(int dir, const Vector& rf,
+                           const IntVec* nodes = nullptr) const;
   //! \brief Returns a vector of reaction forces for a given node.
   //! \param[in] inod Identifier for the node to get the reaction forces for
   //! \param[in] rf Compressed reaction force vector for the entire model

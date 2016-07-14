@@ -2282,6 +2282,26 @@ bool SIMbase::getCurrentReactions (RealArray& RF, const Vector& psol) const
 }
 
 
+bool SIMbase::getCurrentReactions (RealArray& RF, int pcode) const
+{
+  const Vector* reactionForces = myEqSys->getReactions();
+  if (!reactionForces || !mySam) return false;
+
+  ASMbase* patch;
+  IntVec glbNodes;
+  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); ++p)
+    if (abs(p->pindx) == pcode && (patch = this->getPatch(p->patch)))
+      if (abs(p->ldim)+1 == patch->getNoParamDim())
+        patch->getBoundaryNodes(abs(p->lindx),glbNodes);
+
+  RF.resize(nsd);
+  for (unsigned char dir = 1; dir <= nsd; dir++)
+    RF[dir] = mySam->getReaction(dir,*reactionForces,&glbNodes);
+
+  return true;
+}
+
+
 bool SIMbase::systemModes (std::vector<Mode>& solution,
 			   int nev, int ncv, int iop, double shift,
 			   size_t iA, size_t iB)

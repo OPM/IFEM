@@ -905,17 +905,19 @@ Real SAM::normReact (const Vector& u, const Vector& rf) const
 }
 
 
-Real SAM::getReaction (int dir, const Vector& rf) const
+Real SAM::getReaction (int dir, const Vector& rf, const IntVec* nodes) const
 {
   Real retVal = Real(0);
 
   if (dir > 0)
     for (int i = 0; i < nnod; i++)
-    {
-      int idof = madof[i]+dir-2;
-      if (idof < madof[i+1]-1 && msc[idof] < 0 && -msc[idof] <= (int)rf.size())
-	retVal += rf(-msc[idof]);
-    }
+      if (!nodes || std::find(nodes->begin(),nodes->end(),i+1) != nodes->end())
+      {
+        int idof = madof[i]+dir-2;
+        if (idof < madof[i+1]-1)
+          if (msc[idof] < 0 && -msc[idof] <= (int)rf.size())
+            retVal += rf(-msc[idof]);
+      }
 
   return retVal;
 }

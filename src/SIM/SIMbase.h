@@ -416,6 +416,10 @@ public:
   //! \param[out] RF Reaction force in each spatial direction + energy
   //! \param[in] psol Primary solution vector
   bool getCurrentReactions(RealArray& RF, const Vector& psol) const;
+  //! \brief Computes the total reaction forces associated with a boundary.
+  //! \param[out] RF Reaction force in each spatial direction
+  //! \param[in] pcode Property code identifying the boundary
+  bool getCurrentReactions(RealArray& RF, int pcode) const;
 
   //! \brief Performs a generalized eigenvalue analysis of the assembled system.
   //! \param[in] iop Which eigensolver method to use
