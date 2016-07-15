@@ -28,7 +28,8 @@ class XMLInputBase
 public:
   //! \brief Reads an XML input file.
   //! \param fileName File to read
-  bool readXML(const char* fileName);
+  //! \param verbose True to print the tags being parsed to output
+  bool readXML(const char* fileName, bool verbose = true);
 
 protected:
   //! \brief Parses a data section from an XML element.
@@ -40,6 +41,7 @@ protected:
   //! \brief Handles the parsing order for certain XML-tags.
   //! \param[in] base The base tag containing the elements to be prioritized
   //! \param[out] parsed Vector of XML-elements that was parsed
+  //! \param verbose True to print the tags being parsed to output
   //!
   //! \details Certain tags need to be parsed before others. This method takes
   //! care of this. It is called by the \a readXML method in order to read the
@@ -48,7 +50,8 @@ protected:
   //! In that case the \a getPrioritizedTags method should be reimplemented
   //! by the sub-class to take care of the application-specific tags.
   bool handlePriorityTags(const TiXmlElement* base,
-                          std::vector<const TiXmlElement*>& parsed);
+                          std::vector<const TiXmlElement*>& parsed,
+                          bool verbose);
 
   //! \brief Returns a list of prioritized XML-tags.
   virtual const char** getPrioritizedTags() const { return nullptr; }

@@ -52,7 +52,7 @@ void XMLInputBase::injectIncludeFiles (TiXmlElement* tag) const
 }
 
 
-bool XMLInputBase::readXML (const char* fileName)
+bool XMLInputBase::readXML (const char* fileName, bool verbose)
 {
   TiXmlDocument doc;
   if (!doc.LoadFile(fileName)) {
@@ -69,17 +69,19 @@ bool XMLInputBase::readXML (const char* fileName)
     return false;
   }
 
-  IFEM::cout <<"\nParsing input file "<< fileName << std::endl;
+  if (verbose)
+    IFEM::cout <<"\nParsing input file "<< fileName << std::endl;
 
   this->injectIncludeFiles(const_cast<TiXmlElement*>(tag));
 
   std::vector<const TiXmlElement*> parsed;
-  if (!handlePriorityTags(doc.RootElement(),parsed))
+  if (!handlePriorityTags(doc.RootElement(),parsed,verbose))
     return false;
 
   for (tag = tag->FirstChildElement(); tag; tag = tag->NextSiblingElement())
     if (std::find(parsed.begin(),parsed.end(),tag) == parsed.end()) {
-      IFEM::cout <<"\nParsing <"<< tag->Value() <<">"<< std::endl;
+      if (verbose)
+        IFEM::cout <<"\nParsing <"<< tag->Value() <<">"<< std::endl;
       if (!this->parse(tag)) {
         std::cerr <<" *** SIMinput::read: Failure occured while parsing \""
                   << tag->Value() <<"\""<< std::endl;
@@ -87,21 +89,24 @@ bool XMLInputBase::readXML (const char* fileName)
       }
     }
 
-  IFEM::cout <<"\nParsing input file succeeded."<< std::endl;
+  if (verbose)
+    IFEM::cout <<"\nParsing input file succeeded."<< std::endl;
 
   return true;
 }
 
 
 bool XMLInputBase::handlePriorityTags (const TiXmlElement* base,
-				       std::vector<const TiXmlElement*>& parsed)
+				       std::vector<const TiXmlElement*>& parsed,
+                                       bool verbose)
 {
   const char** q = this->getPrioritizedTags();
   if (!q) return true; // No prioritized tags defined
 
   for (const TiXmlElement* elem = 0; *q; q++)
     if ((elem = base->FirstChildElement(*q))) {
-      IFEM::cout <<"\nParsing <"<< elem->Value() <<">"<< std::endl;
+      if (verbose)
+        IFEM::cout <<"\nParsing <"<< elem->Value() <<">"<< std::endl;
       if (!this->parse(elem)) {
         std::cerr <<" *** SIMinput::read: Failure occured while parsing \""
                   << elem->Value() <<"\""<< std::endl;
