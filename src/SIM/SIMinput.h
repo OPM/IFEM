@@ -16,6 +16,7 @@
 
 #include "SIMoptions.h"
 #include "ProcessAdm.h"
+#include "XMLInputBase.h"
 #include <iostream>
 #include <vector>
 
@@ -24,7 +25,7 @@
   \brief Base class for NURBS-based FEM simulators with input file parsing.
 */
 
-class SIMinput
+class SIMinput : public XMLInputBase
 {
 protected:
   //! \brief The default constructor initializes the process administrator.
@@ -38,31 +39,6 @@ public:
 
   //! \brief Reads model data from the specified input file \a *fileName.
   virtual bool read(const char* fileName);
-
-private:
-  //! \brief Reads a flat text input file (obsolete file format).
-  bool readFlat(const char* fileName);
-  //! \brief Reads an XML input file.
-  bool readXML(const char* fileName);
-  //! \brief Recursive helper method for processing the \a include XML-tags.
-  void injectIncludeFiles(TiXmlElement* tag) const;
-
-protected:
-  //! \brief Handles the parsing order for certain XML-tags.
-  //! \param[in] base The base tag containing the elements to be prioritized
-  //! \param[out] parsed Vector of XML-elements that was parsed
-  //!
-  //! \details Certain tags need to be parsed before others. This method takes
-  //! care of this. It is called by the \a readXML method in order to read the
-  //! top level tags in the required order. It can also be called by the
-  //! application-specific SIM class prior to parsing its data blocks.
-  //! In that case the \a getPrioritizedTags method should be reimplemented
-  //! by the sub-class to take care of the application-specific tags.
-  bool handlePriorityTags(const TiXmlElement* base,
-                          std::vector<const TiXmlElement*>& parsed);
-
-  //! \brief Returns a list of prioritized XML-tags.
-  virtual const char** getPrioritizedTags() const { return nullptr; }
 
 public:
   //! \brief Parses a data section from an input stream.
@@ -85,6 +61,9 @@ public:
 protected:
   //! \brief Prints the heading of this (sub-step) solver, if any, to std::cout.
   void printHeading(int& supStep) const;
+
+  //! \brief Reads a flat text input file (obsolete file format).
+  bool readFlat(const char* fileName);
 
 public:
   static int msgLevel; //!< Controls the amount of console output during solving
