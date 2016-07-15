@@ -17,10 +17,40 @@
 #include "HDF5Writer.h"
 #include "XMLWriter.h"
 #include "IFEM.h"
-
+#include "XMLInputBase.h"
 
 namespace SIM
 {
+  /*! \brief Base class for input file pre-parsing in applications.
+   */
+
+  class AppXMLInputBase : public XMLInputBase
+  {
+  public:
+    int dim = 3; //!< Dimensionality of simulation
+
+  protected:
+    //! \brief Parse a tag for input file
+    virtual bool parse(const TiXmlElement* elem) override
+    {
+      if (!strcasecmp(elem->Value(),"geometry")) {
+        if (!utl::getAttribute(elem, "dimension", dim))
+          utl::getAttribute(elem, "dim", dim);
+        const TiXmlElement* child = elem->FirstChildElement();
+        for (; child; child= child->NextSiblingElement())
+          if (!strcasecmp(child->Value(),"patchfile")) {
+            std::string type;
+            utl::getAttribute(child,"type",type);
+            if (type == "lrspline")
+              IFEM::getOptions().discretization = ASM::LRSpline;
+          }
+      }
+
+      return true;
+    }
+  };
+
+
   //! \brief Handles application restarts.
   //! \param[in] simulator The top SIMbase instance of your application
   //! \param[in] solver The SIMSolver instance of your application
