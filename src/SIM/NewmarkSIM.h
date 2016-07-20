@@ -101,7 +101,8 @@ protected:
   char   predictor; //!< Predictor type flag
   int    maxit;     //!< Maximum number of iterations in a time step
   int    saveIts;   //!< Time step for which iteration result should be saved
-  double convTol;   //!< Convergence tolerance
+  double convTol;   //!< Relative convergence tolerance
+  double absTol;    //!< Absolute convergence tolerance
   double divgLim;   //!< Relative divergence limit
   unsigned short int cNorm; //!< Option for which convergence norm to use
 
