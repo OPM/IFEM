@@ -158,6 +158,15 @@ public:
     return result;
   }
 
+  //! \brief Override this to add additional convergence criteria.
+  virtual SIM::ConvStatus checkConvergence(const TimeStep& tp,
+                                           SIM::ConvStatus status1,
+                                           SIM::ConvStatus status2)
+  {
+    return status1 == SIM::CONVERGED && status2 == SIM::CONVERGED ?
+           SIM::CONVERGED : SIM::OK;
+  }
+
 protected:
   T1& S1; //!< First substep
   T2& S2; //!< Second substep
