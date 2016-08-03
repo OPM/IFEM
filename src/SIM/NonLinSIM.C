@@ -294,7 +294,7 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
 
 SIM::ConvStatus NonLinSIM::solveIteration (TimeStep& param)
 {
-  if (!model.setMode(SIM::DYNAMIC))
+  if (!model.setMode(SIM::STATIC))
     return SIM::FAILURE;
 
   if (!model.assembleSystem(param.time,solution))
@@ -312,7 +312,7 @@ SIM::ConvStatus NonLinSIM::solveIteration (TimeStep& param)
   if (!this->updateConfiguration(param))
     return SIM::FAILURE;
 
-  SIM::ConvStatus result = checkConvergence(param);
+  SIM::ConvStatus result = this->checkConvergence(param);
   if (result == SIM::CONVERGED)
     if (!this->solutionNorms(param.time))
       return SIM::FAILURE;
