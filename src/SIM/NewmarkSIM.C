@@ -37,7 +37,8 @@ NewmarkSIM::NewmarkSIM (SIMbase& sim) : MultiStepSIM(sim)
 
   // Default iteration parameters
   maxit   = 20;
-  convTol = 0.000001;
+  rTol = 1e-6;
+  Tol  = 0;
   divgLim = 10.0;
   saveIts = 0;
 }
@@ -63,7 +64,9 @@ bool NewmarkSIM::parse (const TiXmlElement* elem)
     if ((value = utl::getValue(child,"maxits")))
       maxit = atoi(value);
     else if ((value = utl::getValue(child,"rtol")))
-      convTol = atof(value);
+      rTol = atof(value);
+    else if ((value = utl::getValue(child,"atol")))
+      aTol = atof(value);
     else if ((value = utl::getValue(child,"dtol")))
       divgLim = atof(value);
     else if ((value = utl::getValue(child,"saveiterations")))
@@ -458,7 +461,7 @@ SIM::ConvStatus NewmarkSIM::checkConvergence (TimeStep& param)
 
   // Check for convergence or divergence
   SIM::ConvStatus status = SIM::OK;
-  if (fabs(norm) < convTol)
+  if (fabs(norm) < rTol || fabs(norms[cNorm]) < aTol)
     status = SIM::CONVERGED;
   else if (std::isnan(norms[2]))
     status = SIM::DIVERGED;
