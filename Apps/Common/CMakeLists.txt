@@ -11,16 +11,10 @@ if(IFEM_AS_SUBMODULE)
 endif()
 
 # Common application sources
-add_library(IFEMAppCommon STATIC MeshUtils.C
-                                 Spalding.C
-                                 SAWallLaw.C
-                                 SIMNodalConstraint.C
-                                 SIMSemi3D.C
-                                 StabilizationUtils.C
-                                 TimeIntUtils.C
-                                 WeakOperators.C)
-install(TARGETS IFEMAppCommon DESTINATION ${CMAKE_INSTALL_LIBDIR})
+file(GLOB AppCommon_SOURCES *.C)
 file(GLOB AppCommon_HEADERS *.h)
+add_library(IFEMAppCommon STATIC ${AppCommon_SOURCES})
+install(TARGETS IFEMAppCommon DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(FILES ${AppCommon_HEADERS} DESTINATION include/IFEM)
 install(FILES scripts/regtest.sh.in DESTINATION lib/IFEM/scripts
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
