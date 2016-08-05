@@ -36,8 +36,10 @@ NewmarkSIM::NewmarkSIM (SIMbase& sim) : MultiStepSIM(sim)
   cNorm = 1; // default convergence check, force residual
 
   // Default iteration parameters
+  maxIncr = 2;
   maxit   = 20;
-  convTol = 0.000001;
+  rTol    = 1.0e-6;
+  aTol    = 0.0;
   divgLim = 10.0;
   saveIts = 0;
 }
@@ -62,8 +64,12 @@ bool NewmarkSIM::parse (const TiXmlElement* elem)
   for (; child; child = child->NextSiblingElement())
     if ((value = utl::getValue(child,"maxits")))
       maxit = atoi(value);
+    else if ((value = utl::getValue(child,"maxIncr")))
+      maxIncr = atoi(value);
     else if ((value = utl::getValue(child,"rtol")))
-      convTol = atof(value);
+      rTol = atof(value);
+    else if ((value = utl::getValue(child,"atol")))
+      aTol = atof(value);
     else if ((value = utl::getValue(child,"dtol")))
       divgLim = atof(value);
     else if ((value = utl::getValue(child,"saveiterations")))
@@ -177,7 +183,6 @@ bool NewmarkSIM::initAcc (double zero_tolerance, std::streamsize outPrec)
   if (stdPrec > 0) cout.precision(stdPrec);
 
   return true;
-
 }
 
 
@@ -412,7 +417,7 @@ SIM::ConvStatus NewmarkSIM::solveIteration (TimeStep& param)
   if (!model.solveSystem(linsol,msgLevel-1))
     return SIM::FAILURE;
 
-  SIM::ConvStatus result = checkConvergence(param);
+  SIM::ConvStatus result = this->checkConvergence(param);
   if (result == SIM::CONVERGED)
     if (!this->solutionNorms(param.time))
       return SIM::FAILURE;
@@ -423,21 +428,33 @@ SIM::ConvStatus NewmarkSIM::solveIteration (TimeStep& param)
 
 SIM::ConvStatus NewmarkSIM::checkConvergence (TimeStep& param)
 {
+  static double convTol   = 0.0;
   static double prevNorm  = 0.0;
   static int    nIncrease = 0;
 
   double norms[3];
   model.iterationNorms(linsol,residual,norms[0],norms[1],norms[2]);
 
-  double norm = 1.0;
+  double norm = norms[cNorm];
   if (param.iter > 0)
-    norm = norms[cNorm] / refNorm;
+    norm /= refNorm;
   else
   {
-    if (refNopt == ALL || norms[cNorm] > refNorm)
-      refNorm = norms[cNorm];
-    else if (refNorm > 0.0)
-      norm = norms[cNorm] / refNorm;
+    if (norms[2] == 0.0)
+      return SIM::CONVERGED; // No load on this step
+
+    if (refNopt == ALL || fabs(norm) > refNorm)
+      refNorm = fabs(norm);
+
+    if (refNorm*rTol > aTol) {
+      convTol = rTol;
+      norm /= refNorm;
+    }
+    else {
+      convTol = aTol;
+      refNorm = 1.0;
+    }
+
     prevNorm = norm;
     nIncrease = 0;
   }
@@ -458,13 +475,13 @@ SIM::ConvStatus NewmarkSIM::checkConvergence (TimeStep& param)
 
   // Check for convergence or divergence
   SIM::ConvStatus status = SIM::OK;
-  if (fabs(norm) < convTol)
+  if (fabs(norm) < convTol && (param.iter > 0 || refNopt == ALL))
     status = SIM::CONVERGED;
   else if (std::isnan(norms[2]))
     status = SIM::DIVERGED;
   else if (fabs(norm) <= fabs(prevNorm))
     nIncrease = 0;
-  else if (++nIncrease > 2 || fabs(norm) > divgLim)
+  else if (++nIncrease > maxIncr || fabs(norm) > divgLim)
     status = SIM::DIVERGED;
 
   prevNorm = norm;

@@ -100,8 +100,10 @@ protected:
   bool   solveDisp; //!< If \e true, use incremental displacements as unknowns
   char   predictor; //!< Predictor type flag
   int    maxit;     //!< Maximum number of iterations in a time step
+  int    maxIncr;   //!< Maximum number of iterations with increasing norm
   int    saveIts;   //!< Time step for which iteration result should be saved
-  double convTol;   //!< Convergence tolerance
+  double rTol;      //!< Relative convergence tolerance
+  double aTol;      //!< Absolute convergence tolerance
   double divgLim;   //!< Relative divergence limit
   unsigned short int cNorm; //!< Option for which convergence norm to use
 
