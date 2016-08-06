@@ -140,7 +140,8 @@ Interpolate1D::Interpolate1D (const char* file, int dir_, int col, Real ramp) :
     return;
   }
 
-  while (is.good() && !is.eof()) {
+  while (is.good() && !is.eof())
+  {
     char temp[1024];
     is.getline(temp,1024);
     if (is.eof()) return;
@@ -269,7 +270,8 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
         {
           double x1 = atof(strtok(nullptr," "));
           double y1 = atof(strtok(nullptr," "));
-          IFEM::cout <<"StepXY(["<< x0 <<","<< x1 <<"]x["<< y0 <<","<<y1 <<"]))";
+          IFEM::cout <<"StepXY(["<< x0 <<","<< x1
+                     <<"]x["<< y0 <<","<< y1 <<"]))";
           f = new StepXYFunc(A,x1,y1,x0,y0);
         }
         else
@@ -284,13 +286,15 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
         int dir = atoi(strtok(nullptr," ")), col = 2;
         IFEM::cout <<"Interpolate1D("<< cline;
         const char* t = strtok(nullptr," ");
-        if (t && t[0] == 'c') {
+        if (t && t[0] == 'c')
+        {
           col = atoi(t+1);
           t = strtok(nullptr," ");
           IFEM::cout <<",column #"<< col;
         }
         IFEM::cout <<","<< (char)('X'+dir);
-        if (t) {
+        if (t)
+        {
           double time = atof(t);
           IFEM::cout <<")*Ramp("<< time;
           f = new Interpolate1D(cline,dir,col,time);
@@ -345,7 +349,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
   if (!cline) return f; // constant in time
 
   IFEM::cout <<" * ";
-  const ScalarFunc* s = parseTimeFunc(cline,nullptr,C);
+  const ScalarFunc* s = parseTimeFunction(cline,nullptr,C);
 
   if (f)
     return new SpaceTimeFunc(f,s);
@@ -354,7 +358,7 @@ const RealFunc* utl::parseRealFunc (char* cline, Real A)
 }
 
 
-const ScalarFunc* utl::parseTimeFunc (const char* type, char* cline, Real C)
+const ScalarFunc* utl::parseTimeFunction (const char* type, char* cline, Real C)
 {
   if (strncasecmp(type,"expr",4) == 0 && cline != nullptr)
   {
@@ -418,14 +422,14 @@ ScalarFunc* utl::parseTimeFunc (const char* func, const std::string& type)
   {
     IFEM::cout <<"(expression) ";
     if (func) cstr = strdup(func);
-    sf = parseTimeFunc("expression",cstr);
+    sf = parseTimeFunction("expression",cstr);
   }
   else if (type == "linear")
-    sf = parseTimeFunc(func);
+    sf = parseTimeFunction(func,cstr);
   else
   {
     if (func) cstr = strdup(func);
-    sf = parseTimeFunc(type.c_str(),cstr);
+    sf = parseTimeFunction(type.c_str(),cstr);
   }
   IFEM::cout << std::endl;
   if (cstr) free(cstr);
@@ -434,17 +438,15 @@ ScalarFunc* utl::parseTimeFunc (const char* func, const std::string& type)
 }
 
 
-RealFunc* utl::parseRealFunc (const std::string& func, const std::string& type, bool print)
+RealFunc* utl::parseRealFunc (const std::string& func, const std::string& type)
 {
   if (func.empty()) return nullptr;
 
-  if (print)
-    IFEM::cout <<": ";
+  IFEM::cout <<": ";
   Real p = Real(0);
   if (type == "expression")
   {
-    if (print)
-      IFEM::cout << func;
+    IFEM::cout << func;
     EvalFunc::numError = 0;
     RealFunc* rf = new EvalFunction(func.c_str());
     if (EvalFunc::numError > 0)
@@ -457,15 +459,13 @@ RealFunc* utl::parseRealFunc (const std::string& func, const std::string& type, 
   else if (type == "linear")
   {
     p = atof(func.c_str());
-    if (print)
-      IFEM::cout << p <<"*t";
+    IFEM::cout << p <<"*t";
     return new ConstTimeFunc(new LinearFunc(p));
   }
   else if (type == "constant" || func.find_first_of("\t ") == std::string::npos)
   {
     p = atof(func.c_str());
-    if (print)
-      IFEM::cout << p;
+    IFEM::cout << p;
     return new ConstFunc(p);
   }
 

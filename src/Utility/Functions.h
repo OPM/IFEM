@@ -502,35 +502,39 @@ protected:
 namespace utl
 {
   //! \brief Creates a time function by parsing a character string.
-  const ScalarFunc* parseTimeFunc(const char* type, char* cline = nullptr,
-                                  Real C = Real(1));
+  const ScalarFunc* parseTimeFunction(const char* type, char* cline,
+                                      Real C = Real(1));
 
   //! \brief Creates a scalar-valued function by parsing a character string.
   const RealFunc* parseRealFunc(char* cline, Real A = Real(1));
 
   //! \brief Creates a time function by parsing a character string.
-  ScalarFunc* parseTimeFunc(const char* func, const std::string& type);
+  //! \param[in] func Character string to parse function definition from
+  //! \param[in] type Function definition type flag
+  ScalarFunc* parseTimeFunc(const char* func,
+                            const std::string& type = "expression");
 
   //! \brief Creates a scalar-valued function by parsing a character string.
   //! \param[in] func Character string to parse function definition from
   //! \param[in] type Function definition type flag
-  //! \param[in] print If \e false, do not print out function definition
-  RealFunc* parseRealFunc(const std::string& func, const std::string& type,
-                          bool print = true);
+  RealFunc* parseRealFunc(const std::string& func,
+                          const std::string& type = "expression");
 
   //! \brief Creates a vector-valued function by parsing a character string.
   //! \param[in] func Character string to parse function definition from
-  //! \param[in] type Function defintion type flag
-  //! \param[in] variables Variable definition for expression functions
-  VecFunc* parseVecFunc(const std::string& func, const std::string& type,
+  //! \param[in] type Function definition type flag
+  //! \param[in] variables Optional variable definition for expression functions
+  VecFunc* parseVecFunc(const std::string& func,
+                        const std::string& type = "expression",
                         const std::string& variables = "");
 
   //! \brief Creates a vector-valued function defining a surface traction.
   //! \param[in] func Character string to parse function definition from
-  //! \param[in] type Function defintion type flag
+  //! \param[in] type Function definition type flag
   //! \param[in] dir Coordinate direction of the traction (0=normal direction)
   TractionFunc* parseTracFunc(const std::string& func,
-                              const std::string& type, int dir);
+                              const std::string& type = "expression",
+                              int dir = 0);
 }
 
 #endif
