@@ -2,7 +2,8 @@
 
 # Downstream revisions
 declare -a downstreams
-downstreams=(IFEM-Stokes
+downstreams=(IFEM-Poisson
+             IFEM-Stokes
              IFEM-AdvectionDiffusion
              IFEM-NavierStokes
              IFEM-Elasticity
@@ -14,6 +15,7 @@ downstreams=(IFEM-Stokes
              IFEM-FSI)
 
 declare -A downstreamRev
+downstreamRev[IFEM-Poisson]=master
 downstreamRev[IFEM-AdvectionDiffusion]=master
 downstreamRev[IFEM-BeamEx]=master
 downstreamRev[IFEM-Elasticity]=master
