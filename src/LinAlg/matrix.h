@@ -1362,7 +1362,8 @@ namespace utl //! General utility classes and functions.
   template<class T> inline
   matrix<T>& matrix<T>::multiply(const matrix<T>& A,
                                  const matrix<T>& B,
-                                 bool transA, bool transB, bool addTo)
+                                 bool transA, bool transB, bool addTo,
+                                 T alpha)
   {
     size_t M, N, K;
     if (!this->compatible(A,B,transA,transB,M,N,K)) return *this;
@@ -1372,13 +1373,13 @@ namespace utl //! General utility classes and functions.
       for (size_t j = 1; j <= N; j++)
         for (size_t k = 1; k <= K; k++)
           if (transA && transB)
-            THIS(i,j) += A(k,i)*B(j,k);
+            THIS(i,j) += alpha*A(k,i)*B(j,k);
           else if (transA)
-            THIS(i,j) += A(k,i)*B(k,j);
+            THIS(i,j) += alpha*A(k,i)*B(k,j);
           else if (transB)
-            THIS(i,j) += A(i,k)*B(j,k);
+            THIS(i,j) += alpha*A(i,k)*B(j,k);
           else
-            THIS(i,j) += A(i,k)*B(k,j);
+            THIS(i,j) += alpha*A(i,k)*B(k,j);
 
     return *this;
   }
