@@ -10,7 +10,8 @@ downstreams=(IFEM-Stokes
              IFEM-FiniteDeformation
              IFEM-ThermoElasticity
              IFEM-PoroElasticity
-             IFEM-OpenFrac)
+             IFEM-OpenFrac
+             IFEM-FSI)
 
 declare -A downstreamRev
 downstreamRev[IFEM-AdvectionDiffusion]=master
@@ -22,6 +23,7 @@ downstreamRev[IFEM-OpenFrac]=master
 downstreamRev[IFEM-PoroElasticity]=master
 downstreamRev[IFEM-Stokes]=master
 downstreamRev[IFEM-ThermoElasticity]=master
+downstreamRev[IFEM-FSI]=master
 
 IFEM_REVISION=$sha1
 
