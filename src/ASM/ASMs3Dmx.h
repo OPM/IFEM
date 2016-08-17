@@ -73,6 +73,8 @@ public:
   //! \brief Writes the geometry/basis of the patch to given stream.
   virtual bool write(std::ostream& os, int basis = 0) const;
 
+  //! \brief Returns the number of bases.
+  virtual size_t getNoBasis() const { return m_basis.size(); }
   //! \brief Returns the total number of nodes in this patch.
   virtual size_t getNoNodes(int basis = 0) const;
   //! \brief Returns the number of solution fields.
@@ -207,6 +209,12 @@ protected:
   //! \param[in] iel Element index
   //! \param[in] dir Local face index of the boundary face
   double getParametricArea(int iel, int dir) const;
+
+  //! \brief Finds the global numbers of the nodes on a patch boundary.
+  //! \param[in] lIndex Local index of the boundary edge
+  //! \param glbNodes Array of global boundary node numbers
+  //! \param basis Which basis to grab nodes for (0 for all)
+  virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes, int basis = 0) const;
 
 private:
   std::vector<std::shared_ptr<Go::SplineVolume>> m_basis; //!< Vector of bases
