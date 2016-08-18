@@ -312,7 +312,7 @@ Go::SplineVolume* SplineUtils::project (const Go::SplineVolume* volume,
   const Go::BsplineBasis& wbas = volume->basis(2);
   const int nu = ubas.numCoefs();
   const int nv = vbas.numCoefs();
-  const int nw = vbas.numCoefs();
+  const int nw = wbas.numCoefs();
 
   RealArray upar(nu), vpar(nv), wpar(nw);
 
@@ -333,7 +333,7 @@ Go::SplineVolume* SplineUtils::project (const Go::SplineVolume* volume,
     for (j = 0; j < nv; j++)
       for (i = 0; i < nu; i++, l++)
       {
-        volume->point(X,upar[i],vpar[j],wpar[j]);
+        volume->point(X,upar[i],vpar[j],wpar[k]);
         fval[l] = f(toVec4(X,time));
       }
 
