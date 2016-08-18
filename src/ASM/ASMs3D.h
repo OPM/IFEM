@@ -198,7 +198,8 @@ public:
   //! \brief Finds the global numbers of the nodes on a patch boundary.
   //! \param[in] lIndex Local index of the boundary face
   //! \param glbNodes Array of global boundary node numbers
-  virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes) const;
+  //! \param basis Which basis to grab nodes for (0 for all)
+  virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes, int basis) const;
 
   //! \brief Assigns new global node numbers for all nodes of the patch.
   //! \param nodes Object with global nodes numbers to assign to this patch
