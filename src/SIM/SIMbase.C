@@ -2504,8 +2504,9 @@ bool SIMbase::project (Vector& values, const RealFunc* f,
       // Interleave 
       Vector loc_vector(loc_scalar.size()*nFields);
       myModel[j]->extractNodeVec(values,loc_vector,0,basis);
-      for (size_t i = 0; i < loc_scalar.size(); i++, iField += nFields)
-        loc_vector[iField] = loc_scalar[i];
+      size_t iField2(iField);
+      for (size_t i = 0; i < loc_scalar.size(); i++, iField2 += nFields)
+        loc_vector[iField2] = loc_scalar[i];
       ok &= myModel[j]->injectNodeVec(loc_vector,values,0,basis);
     }
   }
