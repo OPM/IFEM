@@ -105,6 +105,7 @@ function clone_module {
   declare -A GH_USER
   GH_USER[IFEM-AdvectionDiffusion]=SintefMath
   GH_USER[IFEM-BeamEx]=SintefMath
+  GH_USER[IFEM-Darcy]=SintefMath
   GH_USER[IFEM-Elasticity]=OPM
   GH_USER[IFEM-FiniteDeformation]=SintefMath
   GH_USER[IFEM-NavierStokes]=SintefMath
