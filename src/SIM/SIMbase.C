@@ -1576,35 +1576,31 @@ void SIMbase::getBoundaryNodes (int pcode, IntVec& glbNodes, Vec3Vec* XYZ) const
   if (XYZ) XYZ->clear();
 
   ASMbase* pch;
-  size_t i, node, last = 0;
+  size_t node;
   for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); ++p)
     if (abs(p->pindx) == pcode && (pch = this->getPatch(p->patch))) {
-      char dim = pch->getNoParamDim() - abs(p->ldim);
-      switch (dim) {
-      case 1: // The boundary is of one dimension lower than the patch
-      {
-        IntVec glbNodes2;
-        pch->getBoundaryNodes(abs(p->lindx),glbNodes2);
-        for (const auto& it : glbNodes2)
-          if (std::find(glbNodes.begin(), glbNodes.end(), it) == glbNodes.end())
+      if (abs(p->ldim)+1 == pch->getNoParamDim()) {
+        // The boundary is of one dimension lower than the patch
+        IntVec nodes;
+        pch->getBoundaryNodes(abs(p->lindx),nodes);
+        for (const auto& it : nodes)
+          if (std::find(glbNodes.begin(),glbNodes.end(),it) == glbNodes.end()) {
             glbNodes.push_back(it);
-
-        for (i = last; XYZ && i < glbNodes.size(); i++)
-          if ((node = pch->getNodeIndex(glbNodes[i],true)))
-            XYZ->push_back(pch->getCoord(node));
-          else
-            XYZ->push_back(Vec3());
-        last = glbNodes.size();
-        break;
+            if (XYZ) {
+              if ((node = pch->getNodeIndex(it,true)))
+                XYZ->push_back(pch->getCoord(node));
+              else
+                XYZ->push_back(Vec3());
+            }
+          }
       }
-
-      case 0: // The boundary and the patch are of same dimension
-        for (i = 1; i <= pch->getNoNodes(); i++, last++)
+      else if (pch->getNoParamDim() == abs(p->ldim)) {
+        // The boundary and the patch are of same dimension
+        for (node = 1; node <= pch->getNoNodes(); node++)
         {
-          glbNodes.push_back(pch->getNodeID(i));
-          if (XYZ) XYZ->push_back(pch->getCoord(i));
+          glbNodes.push_back(pch->getNodeID(node));
+          if (XYZ) XYZ->push_back(pch->getCoord(node));
         }
-        break;
       }
     }
 }
@@ -2296,12 +2292,8 @@ bool SIMbase::getCurrentReactions (RealArray& RF, int pcode) const
   const Vector* reactionForces = myEqSys->getReactions();
   if (!reactionForces || !mySam) return false;
 
-  ASMbase* patch;
   IntVec glbNodes;
-  for (PropertyVec::const_iterator p = myProps.begin(); p != myProps.end(); ++p)
-    if (abs(p->pindx) == pcode && (patch = this->getPatch(p->patch)))
-      if (abs(p->ldim)+1 == patch->getNoParamDim())
-        patch->getBoundaryNodes(abs(p->lindx),glbNodes);
+  this->getBoundaryNodes(pcode,glbNodes);
 
   RF.resize(nsd);
   for (unsigned char dir = 1; dir <= nsd; dir++)
@@ -2502,10 +2494,11 @@ bool SIMbase::project (Vector& values, const RealFunc* f,
     else
     {
       // Interleave 
+      size_t i, k = iField;
       Vector loc_vector(loc_scalar.size()*nFields);
       myModel[j]->extractNodeVec(values,loc_vector,0,basis);
-      for (size_t i = 0; i < loc_scalar.size(); i++, iField += nFields)
-        loc_vector[iField] = loc_scalar[i];
+      for (i = 0; i < loc_scalar.size(); i++, k += nFields)
+        loc_vector[k] = loc_scalar[i];
       ok &= myModel[j]->injectNodeVec(loc_vector,values,0,basis);
     }
   }
