@@ -83,7 +83,6 @@ void LR::getGaussPointParameters (const LR::LRSpline* lrspline, RealArray& uGP,
 
 ASMunstruct::~ASMunstruct ()
 {
-  if (geo) delete geo;
 }
 
 

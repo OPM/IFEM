@@ -44,7 +44,7 @@ public:
   virtual ~ASMu3D() {}
 
   //! \brief Returns the spline volume representing the geometry of this patch.
-  LR::LRSplineVolume* getVolume() const { return lrspline; }
+  LR::LRSplineVolume* getVolume() const { return lrspline.get(); }
 
 
   // Methods for model generation and refinement
@@ -299,6 +299,9 @@ public:
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
                             const int* npe = 0, char project = '\0') const;
 
+  //! \brief Returns the spline volume representing the basis of this patch.
+  virtual const LR::LRSplineVolume* getBasis(int = 1) const { return lrspline.get(); }
+
 public:
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods
@@ -395,7 +398,7 @@ public:
   virtual size_t getNoBoundaryElms(char lIndex, char ldim) const;
 
 protected:
-  LR::LRSplineVolume* lrspline; //!< Pointer to the LR-spline volume object
+  std::shared_ptr<LR::LRSplineVolume> lrspline; //!< Pointer to the LR-spline volume object
 
   Go::SplineVolume* tensorspline; //!< Pointer to original tensor spline object
   // The tensor spline object is kept for backward compatability with the REFINE

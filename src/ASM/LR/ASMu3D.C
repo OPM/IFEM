@@ -56,18 +56,18 @@ ASMu3D::ASMu3D (const ASMu3D& patch, unsigned char n_f)
 bool ASMu3D::read (std::istream& is)
 {
 	if (shareFE) return true;
-	if (lrspline) delete lrspline;
+        lrspline.reset();
 
 	// read inputfile as either an LRSpline file directly or a tensor product B-spline and convert
 	char firstline[256];
 	is.getline(firstline, 256);
 	if(strncmp(firstline, "# LRSPLINE", 10) == 0) {
-		lrspline = new LR::LRSplineVolume();
+                lrspline.reset(new LR::LRSplineVolume());
 		is >> *lrspline;
 	} else { // probably a SplineVolume, so we'll read that and convert
 		tensorspline = new Go::SplineVolume();
 		is >> *tensorspline;
-		lrspline = new LR::LRSplineVolume(tensorspline);
+                lrspline.reset(new LR::LRSplineVolume(tensorspline));
 	}
 
 	// Eat white-space characters to see if there is more data to read
@@ -81,20 +81,18 @@ bool ASMu3D::read (std::istream& is)
 	if (!is.good() && !is.eof())
 	{
 		std::cerr <<" *** ASMu3D::read: Failure reading spline data"<< std::endl;
-		delete lrspline;
-		lrspline = 0;
+                lrspline.reset();
 		return false;
 	}
 	else if (lrspline->dimension() < 3)
 	{
 		std::cerr <<" *** ASMu3D::read: Invalid spline volume patch, dim="
 			  << lrspline->dimension() << std::endl;
-		delete lrspline;
-		lrspline = 0;
+                lrspline.reset();
 		return false;
 	}
 
-	geo = lrspline;
+        geo = lrspline.get();
 	return true;
 }
 
@@ -114,9 +112,8 @@ void ASMu3D::clear (bool retainGeometry)
   if (!retainGeometry) {
     // Erase spline data
     if (!shareFE) {
-      delete lrspline;
+      lrspline.reset();
       delete tensorspline;
-      lrspline = nullptr;
     }
     geo = nullptr;
     tensorspline = nullptr;
@@ -157,8 +154,8 @@ bool ASMu3D::refine (int dir, const RealArray& xi)
 	}
 
 	tensorspline->insertKnot(dir,extraKnots);
-	if(lrspline) delete lrspline;
-	geo = lrspline = new LR::LRSplineVolume(tensorspline);
+        lrspline.reset(new LR::LRSplineVolume(tensorspline));
+        geo = lrspline.get();
 	return true;
 }
 
@@ -183,8 +180,8 @@ bool ASMu3D::uniformRefine (int dir, int nInsert)
 	}
 
 	tensorspline->insertKnot(dir,extraKnots);
-	if(lrspline) delete lrspline;
-	geo = lrspline = new LR::LRSplineVolume(tensorspline);
+        lrspline.reset(new LR::LRSplineVolume(tensorspline));
+        geo = lrspline.get();
 	return true;
 }
 
@@ -194,8 +191,8 @@ bool ASMu3D::raiseOrder (int ru, int rv, int rw)
 	if (shareFE) return true;
 
 	tensorspline->raiseOrder(ru,rv,rw);
-	delete lrspline;
-	geo = lrspline = new LR::LRSplineVolume(tensorspline);
+        lrspline.reset(new LR::LRSplineVolume(tensorspline));
+        geo = lrspline.get();
 	return true;
 }
 
