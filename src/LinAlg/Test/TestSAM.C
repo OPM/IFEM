@@ -92,7 +92,7 @@ TEST(TestSAM, SingleBasisDirichlet1P)
 
 TEST(TestSAM, MixedBasis1P)
 {
-  SIM2D sim({1,1});
+  SIM2D sim({1,1}, false);
   sim.read("src/LinAlg/Test/refdata/sam_2D_1P.xinp");
   sim.preprocess();
 
@@ -106,7 +106,7 @@ TEST(TestSAM, MixedBasis1P)
 
 TEST(TestSAM, MixedBasisDirichlet1P)
 {
-  SIM2D sim({1,1});
+  SIM2D sim({1,1}, false);
   sim.read("src/LinAlg/Test/refdata/sam_2D_dir_1P.xinp");
   sim.preprocess();
 
@@ -142,7 +142,7 @@ TEST(TestSAM, SingleBasis2P)
 
 TEST(TestSAM, MixedBasis2P)
 {
-  SIM2D sim({1,1});
+  SIM2D sim({1,1}, false);
   sim.read("src/LinAlg/Test/refdata/sam_2D_2P.xinp");
   sim.preprocess();
 
@@ -174,7 +174,7 @@ TEST(TestSAM, SingleBasisDirichlet2P)
 
 TEST(TestSAM, MixedBasisDirichlet2P)
 {
-  SIM2D sim({1,1});
+  SIM2D sim({1,1}, false);
   sim.read("src/LinAlg/Test/refdata/sam_2D_dir_2P.xinp");
   sim.preprocess();
 

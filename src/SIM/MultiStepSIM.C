@@ -18,8 +18,12 @@
 
 
 MultiStepSIM::MultiStepSIM (SIMbase& sim)
-  : SIMinput(sim), model(static_cast<SIMoutput&>(sim))
+  : model(static_cast<SIMoutput&>(sim))
 {
+  opt = sim.opt;
+  myPid = sim.getGlobalProcessID();
+  nProc = sim.getNumberOfProcessors();
+
 #ifndef SP_DEBUG
   msgLevel = 1;   // prints the convergence history only
 #elif SP_DEBUG > 2

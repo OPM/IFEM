@@ -132,6 +132,9 @@ public:
   size_t getNoBlocks() const { return blocks.size()-1; }
 
 private:
+  // \brief Hide copy assignment operator.
+  DomainDecomposition& operator=( const DomainDecomposition& other ) { return *this; }
+
   //! \brief Calculates a 1D partitioning with a given overlap.
   //! \param[in] nel1 Number of knot-spans in first parameter direction.
   //! \param[in] g1 Number of subdomains in first parameter direction.

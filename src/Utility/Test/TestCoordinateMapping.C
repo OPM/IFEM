@@ -176,7 +176,7 @@ TEST(TestCoordinateMapping, Hessian2D)
 
 TEST(TestCoordinateMapping, Hessian2D_mixed)
 {
-  SIM2D sim({1,1});
+  SIM2D sim({1,1}, false);
   sim.createDefaultModel();
   ASMs2Dmx& p = static_cast<ASMs2Dmx&>(*sim.getPatch(1));
   sim.preprocess();

@@ -113,7 +113,7 @@ TEST(TestPETScMatrix, AssembleMPI)
 
 TEST(TestPETScMatrix, AssembleBasisBlocksMPI)
 {
-  InspectMatrixSIM sim({1,1});
+  InspectMatrixSIM sim({1,1}, false);
   sim.read("src/LinAlg/Test/refdata/petsc_test_blocks_basis.xinp");
   sim.opt.solver = SystemMatrix::PETSC;
   sim.preprocess();

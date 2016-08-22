@@ -29,8 +29,6 @@ class SIMinput
 protected:
   //! \brief The default constructor initializes the process administrator.
   SIMinput(const char* heading = nullptr);
-  //! \brief Copy constructor.
-  SIMinput(SIMinput& anotherSIM);
 
 public:
   //! \brief Empty destructor.
@@ -76,6 +74,10 @@ public:
   //! \brief Returns the global process ID.
   //! \note May be different from the process ID used in the equation solver.
   int getGlobalProcessID() const { return myPid; }
+
+  //! \brief Returns the global process ID.
+  //! \note May be different from the process ID used in the equation solver.
+  int getNumberOfProcessors() const { return nProc; }
 
   //! \brief Returns the simulator heading.
   const std::string& getHeading() const { return myHeading; }

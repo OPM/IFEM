@@ -44,14 +44,6 @@ SIMinput::SIMinput (const char* heading) : opt(myOpts)
 }
 
 
-SIMinput::SIMinput (SIMinput& anotherSIM) : opt(anotherSIM.myOpts)
-{
-  adm = anotherSIM.adm;
-  myPid = anotherSIM.myPid;
-  nProc = anotherSIM.nProc;
-}
-
-
 void SIMinput::printHeading (int& subStep) const
 {
   if (myHeading.empty())

@@ -24,8 +24,12 @@
 #include <cstdio>
 
 
-AdaptiveSIM::AdaptiveSIM (SIMbase* sim) : SIMinput(*sim)
+AdaptiveSIM::AdaptiveSIM (SIMbase* sim)
 {
+  opt = sim->opt;
+  myPid = sim->getGlobalProcessID();
+  nProc = sim->getNumberOfProcessors();
+
   model = dynamic_cast<SIMoutput*>(sim);
   geoBlk = nBlock = 0;
 

@@ -182,7 +182,7 @@ TEST_P(TestDomainDecomposition2D, SetupSingleBasisBlockEqsComponent)
 
 TEST_P(TestDomainDecomposition2D, SetupMixedBasis)
 {
-  SIM2D sim({2,2});
+  SIM2D sim({2,2}, false);
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient";
   str << GetParam() << ".xinp";
@@ -212,7 +212,7 @@ TEST_P(TestDomainDecomposition2D, SetupMixedBasis)
 
 TEST_P(TestDomainDecomposition2D, SetupMixedBasisPeriodic)
 {
-  SIM2D sim({2,2});
+  SIM2D sim({2,2}, false);
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_periodic";
   str << GetParam() << ".xinp";
@@ -238,7 +238,7 @@ TEST_P(TestDomainDecomposition2D, SetupMixedBasisPeriodic)
 
 TEST_P(TestDomainDecomposition2D, SetupMixedBasisBlockEqsBasis)
 {
-  SIM2D sim({2,2});
+  SIM2D sim({2,2}, false);
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_blocks_basis_orient";
   str << GetParam() << ".xinp";
@@ -266,7 +266,7 @@ TEST_P(TestDomainDecomposition2D, SetupMixedBasisBlockEqsBasis)
 
 TEST_P(TestDomainDecomposition2D, SetupMixedBasisBlockEqsBasisGlobalLM)
 {
-  TestGlobalLMSIM sim({2,2});
+  TestGlobalLMSIM sim({2,2}, false);
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_blocks_basis_orient";
   str << GetParam() << ".xinp";
@@ -388,7 +388,7 @@ TEST_P(TestDomainDecomposition3D, SetupMixedBasis)
   if (GetParam() > 0)
     return;
 
-  SIM3D sim({3,1});
+  SIM3D sim({3,1}, false);
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_orient";
   str << GetParam() << ".xinp";
@@ -418,7 +418,7 @@ TEST_P(TestDomainDecomposition3D, SetupMixedBasisPeriodic)
   if (GetParam() > 2)
     return;
 
-  SIM3D sim({1,1});
+  SIM3D sim({1,1}, false);
   std::stringstream str;
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_periodic";
   str << GetParam() << ".xinp";
