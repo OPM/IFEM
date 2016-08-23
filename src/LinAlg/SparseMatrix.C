@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "SparseMatrix.h"
+#include "IFEM.h"
 #include "SAM.h"
 #if defined(HAS_SUPERLU_MT)
 #include "slu_mt_ddefs.h"
@@ -372,9 +373,10 @@ void SparseMatrix::printSparsity (std::ostream& os) const
   if (nrow < 1 || ncol < 1) return;
 
   size_t r, c;
-  std::cout <<'\t';
-  for (c = 1; c <= ncol; c++) std::cout << (c%10 ? char('0'+(c%10)) : ' ');
-  std::cout <<'\n';
+  os <<'\t';
+  for (c = 1; c <= ncol; c++)
+    c%10 ? os << c%10 : os << ' ';
+  os <<'\n';
 
   for (r = 1; r <= nrow; r++) {
     os << r <<'\t';
@@ -459,7 +461,7 @@ bool SparseMatrix::truncate (Real threshold)
       (it++)->second = Real(0);
 
   if (nnz > elem.size())
-    std::cout <<"SparseMatrix: Truncated "<< nnz-elem.size()
+    IFEM::cout <<"SparseMatrix: Truncated "<< nnz-elem.size()
               <<" matrix elements smaller than "<< tol <<" to zero"<< std::endl;
   return true;
 }
@@ -674,27 +676,31 @@ void SparseMatrix::initAssembly (const SAM& sam, bool delayLocking)
     return;
 
   // Compute the sparsity pattern
-  std::vector<std::set<int>> dofc;
+  std::vector<IntSet> dofc;
   if (!sam.getDofCouplings(dofc))
     return;
 
-  for (size_t i = 0; i < dofc.size(); i++)
-    for (auto it = dofc[i].begin(); it != dofc[i].end(); ++it)
-      (*this)(i+1,*it) = 0.0;
+  if (delayLocking) {
+    for (size_t i = 0; i < dofc.size(); i++)
+      for (const int& it : dofc[i])
+        (*this)(i+1,it) = 0.0;
 
-  std::cout <<"\nPre-computing sparsity pattern for system matrix ("
-            << nrow <<"x"<< ncol <<"): nNZ = "<< this->size() << std::endl;
-
+    editable = 'V'; // Temporarily lock the sparsity pattern
+    return;
+  }
   editable = 'V'; // Temporarily lock the sparsity pattern
-  if (delayLocking)
-    return; // The final sparsity pattern is not fixed yet
+
+  IFEM::cout <<"\nPre-computing sparsity pattern for system matrix ("
+             << nrow <<"x"<< ncol <<"): "<< std::flush;
 
   switch (solver) {
-  case SUPERLU: this->optimiseSLU(); break;
+  case SUPERLU: this->optimiseSLU(dofc); break;
   case S_A_M_G: this->optimiseSAMG(); break;
   default: break;
   }
+
   // The sparsity pattern is now permanently locked (until resize is invoked)
+  IFEM::cout <<"nNZ = "<< this->size() << std::endl;
 #endif
 }
 
@@ -885,6 +891,48 @@ bool SparseMatrix::optimiseSLU ()
 
   editable = false;
   elem.clear(); // Erase the editable matrix elements
+
+  return true;
+}
+
+
+bool SparseMatrix::optimiseSLU (const std::vector<IntSet>& dofc)
+{
+  if (!editable) return false;
+
+  // Initialize the array of column pointers
+  size_t i, j, nnz = 0;
+  IA.resize(ncol+1,0);
+  for (i = 0; i < dofc.size(); i++)
+  {
+    nnz += dofc[i].size();
+    for (const auto& it : dofc[i])
+      if (i < nrow && it <= (int)ncol)
+        IA[it-1]++;
+      else
+        return false;
+  }
+
+  int k, jsize = IA[0];
+  for (j = 1, k = IA[0] = 0; j < ncol; j++) {
+    k += jsize;
+    jsize = IA[j];
+    IA[j] = k;
+  }
+
+  // Initialize the array of row indices
+  JA.resize(nnz);
+  for (i = 0; i < dofc.size(); i++)
+    for (const auto& it : dofc[i])
+      JA[IA[it-1]++] = i;
+
+  // Reset the column pointers to the beginning of each column
+  for (j = ncol; j > 0; j--)
+    IA[j] = IA[j-1];
+  IA[0] = 0;
+
+  editable = false;
+  A.resize(nnz); // Allocate the non-zero matrix element storage
 
   return true;
 }
@@ -1144,8 +1192,8 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
   if (printSLUstat)
   {
     StatPrint(&stat);
-    std::cout <<"Reciprocal condition number = "<< slu->rcond
-              <<"\nReciprocal pivot growth = "<< slu->rpg << std::endl;
+    IFEM::cout <<"Reciprocal condition number = "<< slu->rcond
+               <<"\nReciprocal pivot growth = "<< slu->rpg << std::endl;
   }
   StatFree(&stat);
 
