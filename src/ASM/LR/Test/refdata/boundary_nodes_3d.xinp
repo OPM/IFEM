@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+
+  <!-- General - geometry definitions !-->
+  <geometry>
+    <refine patch="1" u="2" v="2" w="2"/>
+    <topologysets>
+      <set name="Face1" type="face">
+        <item patch="1">1</item>
+      </set>
+      <set name="Face2" type="face">
+        <item patch="1">2</item>
+      </set>
+      <set name="Face3" type="face">
+        <item patch="1">3</item>
+      </set>
+      <set name="Face4" type="face">
+        <item patch="1">4</item>
+      </set>
+      <set name="Face5" type="face">
+        <item patch="1">5</item>
+      </set>
+      <set name="Face6" type="face">
+        <item patch="1">6</item>
+      </set>
+    </topologysets>
+  </geometry>
+
+</simulation>

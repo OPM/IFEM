@@ -45,7 +45,14 @@ macro(IFEM_add_test_app path workdir name)
 endmacro()
 
 macro(IFEM_add_unittests IFEM_PATH)
-  IFEM_add_test_app("${IFEM_PATH}/src/Utility/Test/*.C;${IFEM_PATH}/src/ASM/Test/*.C;${IFEM_PATH}/src/LinAlg/Test/*.C;${IFEM_PATH}/src/SIM/Test/*.C"
+  file(GLOB TEST_SOURCES ${IFEM_PATH}/src/Utility/Test/*.C;${IFEM_PATH}/src/ASM/Test/*.C;${IFEM_PATH}/src/LinAlg/Test/*.C;${IFEM_PATH}/src/SIM/Test/*.C)
+
+  if(LRSPLINE_FOUND OR LRSpline_FOUND)
+    file(GLOB LR_TEST_SRCS ${PROJECT_SOURCE_DIR}/src/ASM/LR/Test/*.C)
+    list(APPEND TEST_SOURCES ${LR_TEST_SRCS})
+  endif()
+
+  IFEM_add_test_app("${TEST_SOURCES}"
                     ${IFEM_PATH}
                     IFEM
                     ${IFEM_LIBRARIES} ${IFEM_DEPLIBS})
