@@ -12,6 +12,7 @@
 //==============================================================================
 
 #include "SparseMatrix.h"
+#include "IFEM.h"
 #include "SAM.h"
 #if defined(HAS_SUPERLU_MT)
 #include "slu_mt_ddefs.h"
@@ -460,7 +461,7 @@ bool SparseMatrix::truncate (Real threshold)
       (it++)->second = Real(0);
 
   if (nnz > elem.size())
-    std::cout <<"SparseMatrix: Truncated "<< nnz-elem.size()
+    IFEM::cout <<"SparseMatrix: Truncated "<< nnz-elem.size()
               <<" matrix elements smaller than "<< tol <<" to zero"<< std::endl;
   return true;
 }
@@ -689,8 +690,8 @@ void SparseMatrix::initAssembly (const SAM& sam, bool delayLocking)
   }
   editable = 'V'; // Temporarily lock the sparsity pattern
 
-  std::cout <<"\nPre-computing sparsity pattern for system matrix ("
-            << nrow <<"x"<< ncol <<"): "<< std::flush;
+  IFEM::cout <<"\nPre-computing sparsity pattern for system matrix ("
+             << nrow <<"x"<< ncol <<"): "<< std::flush;
 
   switch (solver) {
   case SUPERLU: this->optimiseSLU(dofc); break;
@@ -699,7 +700,7 @@ void SparseMatrix::initAssembly (const SAM& sam, bool delayLocking)
   }
 
   // The sparsity pattern is now permanently locked (until resize is invoked)
-  std::cout <<"nNZ = "<< this->size() << std::endl;
+  IFEM::cout <<"nNZ = "<< this->size() << std::endl;
 #endif
 }
 
@@ -1191,8 +1192,8 @@ bool SparseMatrix::solveSLUx (Vector& B, Real* rcond)
   if (printSLUstat)
   {
     StatPrint(&stat);
-    std::cout <<"Reciprocal condition number = "<< slu->rcond
-              <<"\nReciprocal pivot growth = "<< slu->rpg << std::endl;
+    IFEM::cout <<"Reciprocal condition number = "<< slu->rcond
+               <<"\nReciprocal pivot growth = "<< slu->rpg << std::endl;
   }
   StatFree(&stat);
 
