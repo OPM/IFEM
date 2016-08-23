@@ -1917,9 +1917,50 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
+std::vector<int> ASMu3D::getFaceNodes (int face, int basis) const
+{
+  size_t ofs = 1;
+  for (int i = 1; i < basis; i++)
+    ofs += this->getNoNodes(i);
+
+  std::vector<LR::Basisfunction*> edgeFunctions;
+  this->getBasis(basis)->getEdgeFunctions(edgeFunctions,
+                                          static_cast<LR::parameterEdge>(face));
+
+  std::vector<int> result(edgeFunctions.size());
+  std::transform(edgeFunctions.begin(), edgeFunctions.end(), result.begin(),
+                 [ofs](LR::Basisfunction* a) { return a->getId()+ofs; });
+
+  return result;
+}
+
+
 void ASMu3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis) const
 {
-  // TODO: Implement this before attempting FSI simulations with LR B-splines
+  if (basis == 0)
+    basis = 1;
+
+  if (!this->getBasis(basis)) return; // silently ignore empty patches
+
+  LR::parameterEdge edge;
+  switch (lIndex) {
+  case 1: edge = LR::WEST; break;
+  case 2: edge = LR::EAST; break;
+  case 3: edge = LR::SOUTH; break;
+  case 4: edge = LR::NORTH; break;
+  case 5: edge = LR::BOTTOM; break;
+  case 6: edge = LR::TOP; break;
+  default: return;
+  }
+
+  nodes = this->getFaceNodes(edge, basis);
+
+#if SP_DEBUG > 1
+  std::cout <<"Boundary nodes in patch "<< idx+1 <<" edge "<< lIndex <<":";
+  for (size_t i = 0; i < nodes.size(); i++)
+    std::cout <<" "<< nodes[i];
+  std::cout << std::endl;
+#endif
 }
 
 

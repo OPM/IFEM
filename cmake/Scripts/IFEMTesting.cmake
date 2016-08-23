@@ -61,6 +61,11 @@ macro(IFEM_add_unittests IFEM_PATH)
     list(REMOVE_ITEM TEST_SOURCES ${IFEM_PATH}/src/LinAlg/Test/TestISTLPETScMatrix.C)
   endif()
 
+  if(LRSPLINE_FOUND OR LRSpline_FOUND)
+    file(GLOB LR_TEST_SRCS ${PROJECT_SOURCE_DIR}/src/ASM/LR/Test/*.C)
+    list(APPEND TEST_SOURCES ${LR_TEST_SRCS})
+  endif()
+
   IFEM_add_test_app("${TEST_SOURCES}"
                     ${IFEM_PATH}
                     IFEM

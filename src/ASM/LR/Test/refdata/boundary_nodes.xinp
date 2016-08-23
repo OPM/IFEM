@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+
+  <!-- General - geometry definitions !-->
+  <geometry>
+    <refine patch="1" u="2" v="2"/>
+    <topologysets>
+      <set name="Edge1" type="edge">
+        <item patch="1">1</item>
+      </set>
+      <set name="Edge2" type="edge">
+        <item patch="1">2</item>
+      </set>
+      <set name="Edge3" type="edge">
+        <item patch="1">3</item>
+      </set>
+      <set name="Edge4" type="edge">
+        <item patch="1">4</item>
+      </set>
+    </topologysets>
+  </geometry>
+
+</simulation>

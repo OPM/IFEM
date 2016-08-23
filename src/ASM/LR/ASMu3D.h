@@ -84,6 +84,9 @@ public:
   //! \param[in] displ Incremental displacements to update the coordinates with
   virtual bool updateCoords(const Vector& displ);
 
+  //! \brief Returns the node indices for a given face.
+  std::vector<int> getFaceNodes(int face, int basis = 1) const;
+
   //! \brief Finds the global numbers of the nodes on a patch boundary.
   //! \param[in] lIndex Local index of the boundary edge
   //! \param glbNodes Array of global boundary node numbers

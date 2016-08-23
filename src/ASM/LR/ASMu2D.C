@@ -1710,7 +1710,28 @@ bool ASMu2D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 
 void ASMu2D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis) const
 {
-  // TODO: Implement this before attempting FSI simulations with LR B-splines
+  if (basis == 0)
+    basis = 1;
+
+  if (!this->getBasis(basis)) return; // silently ignore empty patches
+
+  LR::parameterEdge edge;
+  switch (lIndex) {
+  case 1: edge = LR::WEST; break;
+  case 2: edge = LR::EAST; break;
+  case 3: edge = LR::SOUTH; break;
+  case 4: edge = LR::NORTH; break;
+  default: return;
+  }
+
+  nodes = this->getEdgeNodes(edge, basis);
+
+#if SP_DEBUG > 1
+  std::cout <<"Boundary nodes in patch "<< idx+1 <<" edge "<< lIndex <<":";
+  for (size_t i = 0; i < nodes.size(); i++)
+    std::cout <<" "<< nodes[i];
+  std::cout << std::endl;
+#endif
 }
 
 
