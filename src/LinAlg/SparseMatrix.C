@@ -674,27 +674,33 @@ void SparseMatrix::initAssembly (const SAM& sam, bool delayLocking)
     return;
 
   // Compute the sparsity pattern
-  std::vector<std::set<int>> dofc;
+  std::vector<IntSet> dofc;
   if (!sam.getDofCouplings(dofc))
     return;
 
-  for (size_t i = 0; i < dofc.size(); i++)
-    for (auto it = dofc[i].begin(); it != dofc[i].end(); ++it)
-      (*this)(i+1,*it) = 0.0;
-
-  std::cout <<"\nPre-computing sparsity pattern for system matrix ("
-            << nrow <<"x"<< ncol <<"): nNZ = "<< this->size() << std::endl;
+  // If we are not locking the sparsity pattern yet, the index pair map over
+  // the non-zero matrix elements needs to be initialized before the assembly.
+  // This is used when SAM::getDofCouplings does not return all connectivities
+  if (delayLocking) // that will exist in the final matrix.
+    for (size_t i = 0; i < dofc.size(); i++)
+      for (const int& it : dofc[i])
+        (*this)(i+1,it) = 0.0;
 
   editable = 'V'; // Temporarily lock the sparsity pattern
   if (delayLocking)
     return; // The final sparsity pattern is not fixed yet
 
+  IFEM::cout <<"\nPre-computing sparsity pattern for system matrix ("
+             << nrow <<"x"<< ncol <<"): "<< std::flush;
+
   switch (solver) {
-  case SUPERLU: this->optimiseSLU(); break;
+  case SUPERLU: this->optimiseSLU(dofc); break;
   case S_A_M_G: this->optimiseSAMG(); break;
   default: break;
   }
+
   // The sparsity pattern is now permanently locked (until resize is invoked)
+  std::cout <<"nNZ = "<< this->size() << std::endl;
 #endif
 }
 
@@ -885,6 +891,52 @@ bool SparseMatrix::optimiseSLU ()
 
   editable = false;
   elem.clear(); // Erase the editable matrix elements
+
+  return true;
+}
+
+
+/*!
+  This method does not use the internal index-pair to value map \a elem.
+*/
+
+bool SparseMatrix::optimiseSLU (const std::vector<IntSet>& dofc)
+{
+  if (!editable) return false;
+
+  // Initialize the array of column pointers
+  size_t i, j, nnz = 0;
+  IA.resize(ncol+1,0);
+  for (i = 0; i < dofc.size(); i++)
+  {
+    nnz += dofc[i].size();
+    for (const int& it : dofc[i])
+      if (i < nrow && it <= (int)ncol)
+        IA[it-1]++;
+      else
+        return false;
+  }
+
+  int k, jsize = IA[0];
+  for (j = 1, k = IA[0] = 0; j < ncol; j++) {
+    k += jsize;
+    jsize = IA[j];
+    IA[j] = k;
+  }
+
+  // Initialize the array of row indices
+  JA.resize(nnz);
+  for (i = 0; i < dofc.size(); i++)
+    for (const int& it : dofc[i])
+      JA[IA[it-1]++] = i;
+
+  // Reset the column pointers to the beginning of each column
+  for (j = ncol; j > 0; j--)
+    IA[j] = IA[j-1];
+  IA[0] = 0;
+
+  editable = false;
+  A.resize(nnz); // Allocate the non-zero matrix element storage
 
   return true;
 }

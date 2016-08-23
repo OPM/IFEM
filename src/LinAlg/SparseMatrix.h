@@ -17,6 +17,7 @@
 #include "SystemMatrix.h"
 #include <iostream>
 #include <map>
+#include <set>
 
 typedef std::vector<int>         IntVec;    //!< General integer vector
 typedef std::pair<size_t,size_t> IJPair;    //!< 1-based matrix indices
@@ -207,6 +208,12 @@ protected:
   //! \brief Converts the matrix to an optimized column-oriented format.
   //! \details The optimized format is suitable for the SuperLU equation solver.
   bool optimiseSLU();
+
+  //! \brief Converts the matrix to an optimized column-oriented format.
+  //! \param[in] dofc Set of free DOFs coupled to each free DOF
+  //!
+  //! \details The optimized format is suitable for the SuperLU equation solver.
+  bool optimiseSLU(const std::vector< std::set<int> >& dofc);
 
   //! \brief Invokes the SAMG equation solver for a given right-hand-side.
   //! \param B Right-hand-side vector on input, solution vector on output
