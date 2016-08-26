@@ -10,7 +10,8 @@
 //!
 //==============================================================================
 
-#include "ASMbase.h"
+#include "ASMs3D.h"
+#include "IntegrandBase.h"
 #include "IFEM.h"
 #include "SIM1D.h"
 #include "SIM2D.h"
@@ -29,6 +30,11 @@ public:
   CreateDefaultGeometrySIM(const std::vector<unsigned char>& nf) : Dim(nf)
   {}
 
+  virtual ~CreateDefaultGeometrySIM()
+  {
+    Dim::myProblem = nullptr;
+  }
+
   std::string createDefaultGeom(const TiXmlElement* geo)
   {
     return Dim::createDefaultG2(geo);
@@ -45,6 +51,33 @@ public:
   {
     return Dim::createDefaultTopologySets(geo);
   }
+
+  void setIntegrand(IntegrandBase* itg)
+  {
+    Dim::myProblem = itg;
+  }
+};
+
+
+class TestProjectIntegrand : public IntegrandBase {
+public:
+  TestProjectIntegrand(int dim) : IntegrandBase(dim) {}
+
+  //! \brief Evaluates the secondary solution at a result point.
+  //! \param[out] s The solution field values at current point
+  //! \param[in] fe Finite element data at current point
+  //! \param[in] X Cartesian coordinates of current point
+  //! \param[in] MNPC Nodal point correspondance for the basis function values
+  bool evalSol(Vector& s, const FiniteElement& fe, const Vec3& X,
+                       const std::vector<int>& MNPC) const override
+  {
+    s.resize(1);
+    s(1) = X[0] + X[1] + X[2];
+
+    return true;
+  }
+
+  size_t getNoFields(int = 2) const override { return 1; }
 };
 
 
@@ -1146,4 +1179,44 @@ TEST(TestSIM3D, PeriodicConnectionsMixed)
       for (int j = 0; j < 2; ++j)
         ASSERT_NE(sim.getPatch(p)->getNodeID(27+IJK(i, j, 0)),
                   sim.getPatch(p+18)->getNodeID(27+IJK(i, j, 1)));
+}
+
+
+TEST(TestSIM3D, ProjectSolution)
+{
+  CreateDefaultGeometrySIM<SIM3D> sim({1});
+  TestProjectIntegrand itg(3);
+  sim.setIntegrand(&itg);
+  TiXmlDocument doc;
+  doc.Parse("<geometry/>");
+  ASSERT_TRUE(sim.createDefaultTop(doc.RootElement()));
+
+  Matrix ssol;
+  ASSERT_TRUE(sim.project(ssol, Vector(sim.getNoDOFs())));
+
+  size_t n = 1;
+  for (size_t k = 0; k < 2; ++k)
+    for (size_t j = 0; j < 2; ++j)
+      for (size_t i = 0; i < 2; ++i)
+      ASSERT_FLOAT_EQ(ssol(1, n++), i + j + k);
+}
+
+
+TEST(TestSIM3D, ProjectSolutionMixed)
+{
+  CreateDefaultGeometrySIM<SIM3D> sim({1,1});
+  TestProjectIntegrand itg(3);
+  sim.setIntegrand(&itg);
+  TiXmlDocument doc;
+  doc.Parse("<geometry/>");
+  ASSERT_TRUE(sim.createDefaultTop(doc.RootElement()));
+
+  Matrix ssol;
+  ASSERT_TRUE(sim.project(ssol, Vector(sim.getNoDOFs())));
+
+  size_t n = 1;
+  for (size_t k = 0; k < 3; ++k)
+    for (size_t j = 0; j < 3; ++j)
+      for (size_t i = 0; i < 3; ++i)
+      ASSERT_FLOAT_EQ(ssol(1, n++), i/2.0 + j/2.0 + k/2.0);
 }
