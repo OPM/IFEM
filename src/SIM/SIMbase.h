@@ -228,7 +228,7 @@ public:
   //! \brief Returns the number of right-hand-side vectors.
   virtual size_t getNoRHS() const;
   //! \brief Returns the number of bases in the model.
-  char getNoBasis() const;
+  unsigned char getNoBasis() const;
 
   //! \brief Returns the type (DOF classification) of the specified global node.
   char getNodeType(int inod) const;
@@ -588,17 +588,21 @@ public:
   //! \param[out] vec Local solution vector associated with specified patch
   //! \param[in] pindx Local patch index to extract solution vector for
   //! \param[in] nndof Number of DOFs per node (optional)
+  //! \param[in] basis Basis to extract for (optional)
   //! \return Total number of DOFs in the patch (first basis only if mixed)
   size_t extractPatchSolution(const Vector& sol, Vector& vec, int pindx,
-                              unsigned char nndof = 0) const;
+                              unsigned char nndof = 0,
+                              unsigned char basis = 0) const;
 
   //! \brief Injects a patch-wise solution vector into the global vector.
   //! \param sol Global primary solution vector in DOF-order
   //! \param[in] vec Local solution vector associated with specified patch
   //! \param[in] pindx Local patch index to inject solution vector for
   //! \param[in] nndof Number of DOFs per node (optional)
+  //! \param[in] basis Basis to inject for (optional)
   bool injectPatchSolution(Vector& sol, const Vector& vec, int pindx,
-                           unsigned char nndof = 0) const;
+                           unsigned char nndof = 0,
+                           unsigned char basis = 0) const;
 
   //! \brief Extracts element results for a specified patch.
   //! \param[in] glbRes Global element result array
@@ -694,6 +698,18 @@ protected:
   //! \param[in] silence If \e true, suppress threading group outprint
   void generateThreadGroups(const Property& p, bool silence = false);
 
+  //! \brief Adds a MADOF with an extraordinary number of DOFs on a given basis.
+  //! \param[in] basis The basis to specify number of DOFs for
+  //! \param[in] nndof Number of nodal DOFs on the given basis
+  bool addMADOF(unsigned char basis, unsigned char nndof);
+
+private:
+  //! \brief Returns an extraordinary MADOF array.
+  //! \param[in] basis The basis to specify number of DOFs for
+  //! \param[in] nndof Number of nodal DOFs on the given basis
+  const std::vector<int>& getMADOF(unsigned char basis,
+                                   unsigned char nndof) const;
+
 public:
   static bool ignoreDirichlet; //!< Set to \e true for free vibration analysis
   static bool preserveNOrder;  //!< Set to \e true to preserve node ordering
@@ -751,6 +767,9 @@ protected:
 private:
   size_t nIntGP; //!< Number of interior integration points in the whole model
   size_t nBouGP; //!< Number of boundary integration points in the whole model
+
+  //! Additional MADOF arrays for mixed problems (extraordinary DOF counts)
+  std::map<int, std::vector<int> > mixedMADOFs;
 };
 
 #endif
