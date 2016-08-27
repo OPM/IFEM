@@ -222,7 +222,10 @@ void XMLWriter::writeSIM (int level, const DataEntry& entry, bool,
   }
 
   if (results & DataExporter::PRIMARY) {
-    if (sim->mixedProblem())
+    if (entry.second.results < 0)
+      addField(entry.second.description, entry.second.description,
+               basisname, cmps, sim->getNoPatches(), "field");
+    else if (sim->mixedProblem())
     {
       // primary solution vector
       addField(prefix+entry.first,entry.second.description,basisname,
