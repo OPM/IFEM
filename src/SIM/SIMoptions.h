@@ -44,6 +44,8 @@ public:
   //! \brief Defines the linear equation solver to be used.
   void setLinearSolver(const std::string& eqsolver);
 
+  //! \brief Parses a subelement of the \a console XML-tag.
+  bool parseConsoleTag(const TiXmlElement* elem);
   //! \brief Parses a subelement of the \a discretization XML-tag.
   bool parseDiscretizationTag(const TiXmlElement* elem);
   //! \brief Parses a subelement of the \a eigensolver XML-tag.
