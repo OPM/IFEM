@@ -1016,20 +1016,9 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
 
 void ASMs2D::constrainCorner (int I, int J, int dof, int code, char basis)
 {
-  int n1, n2, node = 1;
-  for (char i = 1; i <= basis; i++)
-    if (!this->getSize(n1,n2,i))
-      return;
-    else if (i < basis)
-      node += n1*n2;
-
-  if (swapV) // Account for swapped parameter direction
-    J = -J;
-
-  if (I > 0) node += n1-1;
-  if (J > 0) node += n1*(n2-1);
-
-  this->prescribe(node,dof,code);
+  int node = this->getCorner(I, J, basis);
+  if (node > -1)
+    this->prescribe(node,dof,code);
 }
 
 
@@ -2744,4 +2733,23 @@ bool ASMs2D::evaluate (const RealFunc* func, RealArray& vec,
   delete newSurf;
 
   return true;
+}
+
+
+int ASMs2D::getCorner(int I, int J, int basis) const
+{
+  int n1, n2, node = 1;
+  for (char i = 1; i <= basis; i++)
+    if (!this->getSize(n1,n2,i))
+      return -1;
+    else if (i < basis)
+      node += n1*n2;
+
+  if (swapV) // Account for swapped parameter direction
+    J = -J;
+
+  if (I > 0) node += n1-1;
+  if (J > 0) node += n1*(n2-1);
+
+  return node;
 }
