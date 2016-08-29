@@ -9,7 +9,7 @@ set_directory_properties(PROPERTIES EP_PREFIX ${CMAKE_BINARY_DIR}/third_party)
 # http://stackoverflow.com/questions/9689183/cmake-googletest
 externalproject_add(
     googletest
-    URL https://github.com/google/googletest/archive/release-1.8.0.tar.gz
+    URL http://github.com/google/googletest/archive/release-1.8.0.tar.gz
     # Disable install step
     INSTALL_COMMAND ""
     # Wrap download, configure and build steps in a script to log output
