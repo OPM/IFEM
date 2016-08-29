@@ -89,6 +89,9 @@ public:
   //! \param glbNodes Array of global boundary node numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes, int basis) const;
 
+  //! \brief Returns the node index for a given corner.
+  virtual int getCorner(int I, int J, int K, int basis = 1) const;
+
   //! \brief Returns the polynomial order in each parameter direction.
   //! \param[out] p1 Order in first (u) direction
   //! \param[out] p2 Order in second (v) direction

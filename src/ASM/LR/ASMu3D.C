@@ -1934,3 +1934,10 @@ bool ASMu3D::getOrder (int& p1, int& p2, int& p3) const
 
   return true;
 }
+
+
+int ASMu3D::getCorner(int I, int J, int K, int basis) const
+{
+  std::cerr << "ASMu3D::getCorner not implemented properly yet" << std::endl;
+  exit(776654);
+}
