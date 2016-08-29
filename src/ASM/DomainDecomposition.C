@@ -738,27 +738,29 @@ bool DomainDecomposition::setup(const ProcessAdm& adm, const SIMbase& sim)
 
   sam = dynamic_cast<const SAMpatch*>(sim.getSAM());
 
-  std::vector<int> ok(adm.getNoProcs());
-  ok[adm.getProcId()] = 1;
+  int lok = 1;
+  lok = 1;
 
   // Establish global node numbers
   if (!calcGlobalNodeNumbers(adm, sim))
-    ok[adm.getProcId()] = 0;
+    lok = 0;
 
   // sanity check the established domain decomposition
   if (getMinNode() > getMaxNode()) {
     std::cerr << "**DomainDecomposition::setup ** Process "
               << adm.getProcId() << " owns no nodes." << std::endl;
-    ok[adm.getProcId()] = 0;
+    lok = 0;
   }
+
+  int ok = 1;
 #ifdef HAVE_MPI
-  MPI_Allgather(&ok[adm.getProcId()], 1, MPI_INT,
-               ok.data(), 1, MPI_INT, *adm.getCommunicator());
+  MPI_Allreduce(&lok, &ok, 1, MPI_INT, MPI_SUM, *adm.getCommunicator());
 #endif
-  if (std::find(ok.begin(), ok.end(), 0) != ok.end())
+
+  if (ok < adm.getNoProcs())
     return false;
 
-  ok[adm.getProcId()] = 1;
+  lok = 1;
   // Establish local equation mappings for each block.
   if (sim.getSolParams() && sim.getSolParams()->getNoBlocks() > 1) {
     IFEM::cout << "\tEstablishing local block equation numbers" << std::endl;
@@ -807,7 +809,7 @@ bool DomainDecomposition::setup(const ProcessAdm& adm, const SIMbase& sim)
 
   // Establish global equation numbers for all blocks.
   if (!calcGlobalEqNumbers(adm, sim))
-    ok[adm.getProcId()] = 0;
+    lok = 0;
 
 #ifdef HAVE_MPI
   if (!adm.isParallel())
@@ -839,14 +841,13 @@ bool DomainDecomposition::setup(const ProcessAdm& adm, const SIMbase& sim)
         std::cerr << " in block " << i;
       std::cerr << "." << std::endl;
 
-      ok[adm.getProcId()] = 0;
+      lok = 0;
     }
   }
 
-  MPI_Allgather(&ok[adm.getProcId()], 1, MPI_INT,
-               ok.data(), 1, MPI_INT, *adm.getCommunicator());
+  MPI_Allreduce(&lok, &ok, 1, MPI_INT, MPI_SUM, *adm.getCommunicator());
 
-  if (std::find(ok.begin(), ok.end(), 0) != ok.end())
+  if (ok != adm.getNoProcs())
     return false;
 
 #endif
