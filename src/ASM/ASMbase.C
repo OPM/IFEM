@@ -280,7 +280,7 @@ unsigned char ASMbase::getNodalDOFs (size_t inod) const
 
 char ASMbase::getNodeType (size_t inod) const
 {
-  return this->isLMn(inod) ? getLMType(inod) : (inod > nnod ? 'X' : 'D');
+  return this->isLMn(inod) ? this->getLMType(inod) : (inod > nnod ? 'X' : 'D');
 }
 
 
