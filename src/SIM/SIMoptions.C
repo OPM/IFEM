@@ -133,32 +133,6 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
     utl::getAttribute(elem,"nw",nViz[2]);
   }
 
-  else if (!strcasecmp(elem->Value(),"logging")) {
-    int pid = 0;
-#ifdef HAVE_MPI
-    MPI_Comm_rank(MPI_COMM_WORLD,&pid);
-#endif
-    utl::getAttribute(elem,"output_pid",printPid);
-    if (printPid != -1 && printPid != IFEM::getOptions().printPid) {
-      IFEM::getOptions().printPid = printPid;
-      IFEM::cout.setPIDs(printPid,pid);
-      if (printPid != pid)
-        IFEM::cout.setNull();
-      IFEM::cout <<"IFEM: Printing output from PID "<< printPid
-                 <<" to console."<< std::endl;
-    }
-    utl::getAttribute(elem,"output_prefix",log_prefix);
-    if (!log_prefix.empty() && log_prefix != IFEM::getOptions().log_prefix) {
-      if ((pid == 0 && printPid == -1) || pid == IFEM::getOptions().printPid)
-        IFEM::cout <<"IFEM: Logging output to files with prefix "
-                   << log_prefix << std::endl;
-      IFEM::getOptions().log_prefix = log_prefix;
-      char cPid[12];
-      sprintf(cPid,"_p%04d.log",pid);
-      IFEM::cout.addExtraLog(new std::ofstream(log_prefix+cPid));
-    }
-  }
-
   else if (!strcasecmp(elem->Value(),"stride")) {
     const char* value = utl::getValue(elem,"stride");
     if (value) saveInc = atoi(value);
@@ -185,6 +159,38 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
       this->parseProjectionMethod(type.c_str());
     for (const TiXmlNode* ch = elem->FirstChild(); ch; ch = ch->NextSibling())
       this->parseProjectionMethod(ch->Value());
+  }
+
+  return true;
+}
+
+
+bool SIMoptions::parseConsoleTag (const TiXmlElement* elem)
+{
+  if (!strcasecmp(elem->Value(),"logging")) {
+    int pid = 0;
+#ifdef HAVE_MPI
+    MPI_Comm_rank(MPI_COMM_WORLD,&pid);
+#endif
+    utl::getAttribute(elem,"output_pid",printPid);
+    if (printPid != -1 && printPid != IFEM::getOptions().printPid) {
+      IFEM::getOptions().printPid = printPid;
+      IFEM::cout.setPIDs(printPid,pid);
+      if (printPid != pid)
+        IFEM::cout.setNull();
+      IFEM::cout <<"IFEM: Printing output from PID "<< printPid
+                 <<" to console."<< std::endl;
+    }
+    utl::getAttribute(elem,"output_prefix",log_prefix);
+    if (!log_prefix.empty() && log_prefix != IFEM::getOptions().log_prefix) {
+      if ((pid == 0 && printPid == -1) || pid == IFEM::getOptions().printPid)
+        IFEM::cout <<"IFEM: Logging output to files with prefix "
+                   << log_prefix << std::endl;
+      IFEM::getOptions().log_prefix = log_prefix;
+      char cPid[12];
+      sprintf(cPid,"_p%04d.log",pid);
+      IFEM::cout.addExtraLog(new std::ofstream(log_prefix+cPid));
+    }
   }
 
   return true;

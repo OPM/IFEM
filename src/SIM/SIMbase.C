@@ -524,6 +524,8 @@ bool SIMbase::parse (const TiXmlElement* elem)
       result &= opt.parseEigSolTag(child);
     else if (!strcasecmp(elem->Value(),"postprocessing"))
       result &= this->parseOutputTag(child);
+    else if (!strcasecmp(elem->Value(),"console"))
+      result &= this->opt.parseConsoleTag(child);
     else if (!strcasecmp(elem->Value(),"discretization"))
       result &= opt.parseDiscretizationTag(child);
 
@@ -550,7 +552,7 @@ int SIMbase::parseMaterialSet (const TiXmlElement* elem, int mindex)
 const char** SIMbase::getPrioritizedTags () const
 {
   // Tags to be parsed first, and in the order specified
-  static const char* special[] = { "discretization", "geometry", 0 };
+  static const char* special[] = { "console", "discretization", "geometry", 0 };
   return special;
 }
 
@@ -832,7 +834,7 @@ int SIMbase::getLocalPatchIndex (int patchNo) const
   if (patchNo < 1 || (patchNo > nGlPatches && nGlPatches > 0))
   {
     std::cerr <<" *** SIMbase::getLocalPatchIndex: Patch number "<< patchNo
-	      <<" out of range [1,"<< nGlPatches <<"]"<< std::endl;
+              <<" is out of range [1,"<< nGlPatches <<"]"<< std::endl;
     return -1;
   }
   else if (myPatches.empty() || nProc == 1)
@@ -1799,7 +1801,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
       std::ofstream os(it->fname.c_str());
       os << std::setprecision(17);
       SystemMatrix* M = myEqSys->getMatrix(0);
-      char matName[] = {'A'};
+      char matName[] = "A";
       for (int i = 0; M; M = myEqSys->getMatrix(++i), ++matName[0])
         M->dump(os,it->format,matName); // label matrices as A,B,C,...
     }
@@ -1811,7 +1813,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
       std::ofstream os(it->fname.c_str());
       os << std::setprecision(17);
       SystemVector* c = myEqSys->getVector(0);
-      char vecName[] = {'b'};
+      char vecName[] = "b";
       for (int i = 0; c; c = myEqSys->getVector(++i), ++vecName[0])
         c->dump(os,it->format,vecName); // label vectors as b,c,d,...
     }
