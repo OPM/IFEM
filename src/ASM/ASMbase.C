@@ -224,6 +224,14 @@ bool ASMbase::addLagrangeMultipliers (size_t iel, const IntVec& mGLag,
 bool ASMbase::addGlobalLagrangeMultipliers (const IntVec& mGLag,
                                             unsigned char nnLag)
 {
+#ifdef USE_OPENMP
+  if (omp_get_max_threads() > 1) {
+    std::cerr << "** Cannot do multi-threaded assembly with global multipliers. **" << std::endl
+              << "\t Setting OMP_NUM_THREADS = 1" << std::endl;
+    omp_set_max_threads(1);
+  }
+#endif
+
   return this->addLagrangeMultipliers(0,mGLag,nnLag);
 }
 
