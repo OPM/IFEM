@@ -1242,16 +1242,9 @@ void ASMs3D::constrainLine (int fdir, int ldir, double xi, int dof,
 void ASMs3D::constrainCorner (int I, int J, int K, int dof,
                               int code, char basis)
 {
-  int n1, n2, n3;
-  int node = this->findStartNode(n1,n2,n3,basis);
-  if (node < 1) return;
-
-  if (swapW) // Account for swapped parameter direction
-    K = -K;
-
-  if (I > 0) node += n1-1;
-  if (J > 0) node += n1*(n2-1);
-  if (K > 0) node += n1*n2*(n3-1);
+  int node = this->getCorner(I, J, K, basis);
+  if (node < 1)
+    return;
 
   this->prescribe(node,dof,code);
 }
@@ -3192,4 +3185,21 @@ bool ASMs3D::evaluate (const RealFunc* func, RealArray& vec,
   delete newVol;
 
   return true;
+}
+
+
+int ASMs3D::getCorner(int I, int J, int K, int basis) const
+{
+  int n1, n2, n3;
+  int node = this->findStartNode(n1,n2,n3,basis);
+  if (node < 1) return -1;
+
+  if (swapW) // Account for swapped parameter direction
+    K = -K;
+
+  if (I > 0) node += n1-1;
+  if (J > 0) node += n1*(n2-1);
+  if (K > 0) node += n1*n2*(n3-1);
+
+  return node;
 }
