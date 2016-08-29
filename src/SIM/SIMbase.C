@@ -555,6 +555,8 @@ bool SIMbase::parse (const TiXmlElement* elem)
       result &= opt.parseEigSolTag(child);
     else if (!strcasecmp(elem->Value(),"postprocessing"))
       result &= this->parseOutputTag(child);
+    else if (!strcasecmp(elem->Value(),"console"))
+      result &= this->opt.parseConsoleTag(child);
     else if (!strcasecmp(elem->Value(),"discretization"))
       result &= opt.parseDiscretizationTag(child);
 
@@ -581,7 +583,7 @@ int SIMbase::parseMaterialSet (const TiXmlElement* elem, int mindex)
 const char** SIMbase::getPrioritizedTags () const
 {
   // Tags to be parsed first, and in the order specified
-  static const char* special[] = { "discretization", "geometry", 0 };
+  static const char* special[] = { "console", "discretization", "geometry", 0 };
   return special;
 }
 
