@@ -83,6 +83,23 @@ class TestDomainDecomposition3D : public testing::Test,
 };
 
 
+TEST(TestDomainDecomposition2D, Corner)
+{
+  SIM2D sim(1);
+  std::stringstream str;
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_corner.xinp";
+  sim.read(str.str().c_str());
+  sim.preprocess();
+
+  const ProcessAdm& adm = sim.getProcessAdm();
+  str.str("");
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_corner_nodes";
+  str << adm.getProcId() << ".ref";
+  IntVec B = readIntVector(str.str());
+  check_intvectors_equal(adm.dd.getMLGN(), B);
+}
+
+
 TEST_P(TestDomainDecomposition2D, SetupSingleBasis)
 {
   SIM2D sim(2);
