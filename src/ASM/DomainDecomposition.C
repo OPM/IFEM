@@ -14,6 +14,7 @@
 #include "DomainDecomposition.h"
 #include "ASMbase.h"
 #include "ASMstruct.h"
+#include "ASM2D.h"
 #include "LinSolParams.h"
 #include "ProcessAdm.h"
 #include "SAMpatch.h"
@@ -33,8 +34,14 @@ public:
   //! \param orient Orientation of boundary on slave
   //! \param lIdx Index of boundary on slave
   //! \param basis Basis to use for boundary on slave
-  NodeIterator(const ASMstruct* pch, int orient, int lIdx, int basis)
+  //! \param dim Dimension to iterate over
+  NodeIterator(const ASMstruct* pch, int orient, int lIdx, int basis, int dim = 2)
   {
+    if (dim == 0) {
+      nodes.resize(1);
+      return;
+    }
+
     int n1, n2, n3;
     pch->getSize(n1,n2,n3,basis);
     int nsd = pch->getNoSpaceDim();
@@ -325,7 +332,7 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
     for (size_t b = 1; b <= sim.getPatch(sidx)->getNoBasis(); ++b) {
       if (cbasis.empty() || cbasis.find(b) != cbasis.end()) {
         NodeIterator iter(dynamic_cast<const ASMstruct*>(sim.getPatch(sidx)),
-                          it.orient, it.sidx, b);
+                          it.orient, it.sidx, b, it.dim);
         auto it_n = iter.begin();
         for (size_t i = 0; i < iter.size(); ++i, ++it_n) {
           int node = MLGN[lNodes[i+ofs]-1];
@@ -366,9 +373,26 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
       cbasis = utl::getDigits(it.basis);
 
     std::vector<int> glbNodes;
-    for (size_t b = 1; b <= sim.getPatch(midx)->getNoBasis(); ++b)
-      if (cbasis.empty() || cbasis.find(b) != cbasis.end())
-        sim.getPatch(midx)->getBoundaryNodes(it.midx, glbNodes, b);
+    for (size_t b = 1; b <= sim.getPatch(midx)->getNoBasis(); ++b) {
+      if (it.dim == 0) {
+        static std::map<int, std::array<int,2>> vmap2D
+        {{1, {-1, -1}},
+          {2, { 1, -1}},
+          {3, {-1,  1}},
+          {4, { 1,  1}}};
+
+          auto itc = vmap2D.find(it.midx);
+          const ASM2D* pch = dynamic_cast<ASM2D*>(sim.getPatch(midx));
+          if (!pch)
+            continue;
+          int corner = pch->getCorner(itc->second[0], itc->second[1], b);
+          if (corner > 0)
+            glbNodes.push_back(corner);
+      } else {
+        if (cbasis.empty() || cbasis.find(b) != cbasis.end())
+          sim.getPatch(midx)->getBoundaryNodes(it.midx, glbNodes, b);
+      }
+    }
 
     for (size_t i = 0; i < glbNodes.size(); ++i)
       glbNodes[i] = MLGN[glbNodes[i]-1];
@@ -384,7 +408,9 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
 
 
 std::vector<int> DomainDecomposition::setupEquationNumbers(const SIMbase& sim,
-                                                           int pidx, int lidx, const std::set<int>& cbasis)
+                                                           int pidx, int lidx,
+                                                           const std::set<int>& cbasis,
+                                                           int dim)
 {
   std::vector<IntVec> lNodes(sim.getPatch(pidx)->getNoBasis());
   std::vector<int> result;
@@ -401,8 +427,25 @@ std::vector<int> DomainDecomposition::setupEquationNumbers(const SIMbase& sim,
       if (!cbasis.empty() && cbasis.find(basis) == cbasis.end())
         continue;
 
-      if (lNodes[basis-1].empty())
-        sim.getPatch(pidx)->getBoundaryNodes(lidx, lNodes[basis-1], basis);
+      if (lNodes[basis-1].empty()) {
+        if (dim == 0) {
+          if (sim.getPatch(pidx)->getNoSpaceDim() == 2) {
+            const ASM2D* pch = dynamic_cast<ASM2D*>(sim.getPatch(pidx));
+            if (!pch)
+              continue;
+            static std::map<int, std::array<int,2>> vmap2D
+              {{1, {-1, -1}},
+               {2, { 1, -1}},
+               {3, {-1,  1}},
+               {4, { 1,  1}}};
+
+            auto itc = vmap2D.find(lidx);
+
+            lNodes[basis-1] = {pch->getCorner(itc->second[0], itc->second[1], basis)};
+          }
+        } else
+          sim.getPatch(pidx)->getBoundaryNodes(lidx, lNodes[basis-1], basis);
+      }
 
       std::set<int> components;
       if (block == 0 || sim.getSolParams()->getBlock(block-1).comps == 0) {
@@ -528,7 +571,7 @@ bool DomainDecomposition::calcGlobalEqNumbers(const ProcessAdm& adm,
     if (it.basis != 0)
       cbasis = utl::getDigits(it.basis);
 
-    IntVec locEqs = setupEquationNumbers(sim, sidx, it.sidx, cbasis);
+    IntVec locEqs = setupEquationNumbers(sim, sidx, it.sidx, cbasis, it.dim);
 
     int nRecv;
     adm.receive(nRecv, getPatchOwner(it.master));
@@ -563,7 +606,7 @@ bool DomainDecomposition::calcGlobalEqNumbers(const ProcessAdm& adm,
           components = utl::getDigits(sim.getSolParams()->getBlock(block-1).comps);
 
         NodeIterator iter(dynamic_cast<const ASMstruct*>(sim.getPatch(sidx)),
-                          it.orient, it.sidx, basis);
+                          it.orient, it.sidx, basis, it.dim);
         auto it_n = iter.begin();
         int nodeDofs = components.size();
         for (size_t i = 0; i < iter.size(); ++i, ++it_n) {
@@ -647,7 +690,7 @@ bool DomainDecomposition::calcGlobalEqNumbers(const ProcessAdm& adm,
     if (it.basis != 0)
       cbasis = utl::getDigits(it.basis);
 
-    IntVec glbEqs = setupEquationNumbers(sim, midx, it.midx, cbasis);
+    IntVec glbEqs = setupEquationNumbers(sim, midx, it.midx, cbasis, it.dim);
     adm.send(int(glbEqs.size()), getPatchOwner(it.slave));
     adm.send(glbEqs, getPatchOwner(it.slave));
   }
