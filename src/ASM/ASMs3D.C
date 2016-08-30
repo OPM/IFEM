@@ -1110,12 +1110,12 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
 }
 
 
-void ASMs3D::constrainEdge (int lEdge, bool open, int dof,
-                            int code, char basis)
+std::vector<int> ASMs3D::getEdge(int lEdge, bool open, int basis) const
 {
+  std::vector<int> result;
   int n1, n2, n3, n, inc = 1;
   int node = this->findStartNode(n1,n2,n3,basis);
-  if (node < 1) return;
+  if (node < 1) return result;
 
   if (swapW && lEdge <= 8) // Account for swapped parameter direction
     lEdge += (lEdge-1)%4 < 2 ? 2 : -2;
@@ -1161,7 +1161,18 @@ void ASMs3D::constrainEdge (int lEdge, bool open, int dof,
   // Skip the first and last node if we are requesting an open boundary
   for (int i = 1; i <= n; i++, node += inc)
     if (!open || (i > 1 && i < n))
-      this->prescribe(node,dof,code);
+      result.push_back(node);
+
+  return result;
+}
+
+
+void ASMs3D::constrainEdge (int lEdge, bool open, int dof,
+                            int code, char basis)
+{
+  std::vector<int> nodes = this->getEdge(lEdge, open, basis);
+  for (const int& node : nodes)
+    this->prescribe(node,dof,code);
 }
 
 
