@@ -99,6 +99,23 @@ file(GLOB IFEM_SRCS ${PROJECT_SOURCE_DIR}/src/IFEM.C
                     ${PROJECT_SOURCE_DIR}/src/Eig/*.f
                     ${PROJECT_SOURCE_DIR}/3rdparty/expreval/*.cpp)
 string(REGEX REPLACE "${PROJECT_SOURCE_DIR}/src/ASM/ASMs.DInterpolate.C" "" IFEM_SRCS "${IFEM_SRCS}")
+
+if(NOT PETSC_FOUND)
+  list(REMOVE_ITEM IFEM_SRCS
+                   ${PROJECT_SOURCE_DIR}/src/ASM/SAMpatchPETSc.C
+                   ${PROJECT_SOURCE_DIR}/src/LinAlg/PETScMatrix.C
+                   ${PROJECT_SOURCE_DIR}/src/LinAlg/PETScPCPerm.C
+                   ${PROJECT_SOURCE_DIR}/src/LinAlg/PETScPCProd.C
+                   ${PROJECT_SOURCE_DIR}/src/LinAlg/PETScPCScale.C
+                   ${PROJECT_SOURCE_DIR}/src/LinAlg/PETScSolParams.C)
+endif()
+
+if(NOT ISTL_FOUND)
+  list(REMOVE_ITEM IFEM_SRCS
+                   ${PROJECT_SOURCE_DIR}/src/LinAlg/ISTLMatrix.C
+                   ${PROJECT_SOURCE_DIR}/src/LinAlg/ISTLSolParams.C)
+endif()
+
 if(LRSPLINE_FOUND OR LRSpline_FOUND)
   file(GLOB LR_SRCS ${PROJECT_SOURCE_DIR}/src/ASM/LR/*.C)
   list(APPEND IFEM_SRCS ${LR_SRCS})
@@ -153,6 +170,7 @@ else()
                          src/ASM/Integrand.h src/ASM/Lagrange.h
                          src/ASM/LocalIntegral.h src/ASM/SAMpatch.h
                          src/ASM/TimeDomain.h src/ASM/ASMs?D.h src/ASM/ASM?D.h
+                         src/ASM/DomainDecomposition.h
                          src/LinAlg/*.h src/SIM/*.h
                          src/Utility/*.h
                          ${CMAKE_BINARY_DIR}/IFEM.h)

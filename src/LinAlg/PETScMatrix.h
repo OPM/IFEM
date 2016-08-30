@@ -16,10 +16,11 @@
 #define _PETSC_MATRIX_H
 
 #include "SystemMatrix.h"
+#include "SparseMatrix.h"
 #include "PETScSupport.h"
+#include "PETScSolParams.h"
 #include "LinAlgenums.h"
-
-class LinSolParams;
+#include <set>
 
 typedef std::vector<PetscInt>    PetscIntVec;  //!< PETSc integer vector
 typedef std::vector<PetscIntVec> PetscIntMat;  //!< PETSc integer matrix
@@ -34,10 +35,9 @@ typedef std::vector<ISVec>       ISMat;        //!< Index set matrix
   linear systems of equations.
 */
 
-class PETScVector : public SystemVector
+class PETScVector : public StdVector
 {
 public:
-#ifdef HAS_PETSC
   //! \brief Constructor creating an empty vector.
   PETScVector(const ProcessAdm& padm);
   //! \brief Constructor creating a vector of length \a n.
@@ -48,31 +48,15 @@ public:
   PETScVector(const PETScVector& vec);
   //! \brief Destructor.
   virtual ~PETScVector();
-#endif
 
   //! \brief Returns the vector type.
   virtual Type getType() const { return PETSC; }
 
-#ifdef HAS_PETSC
-  //! \brief Returns the dimension of the system vector.
-  virtual size_t dim() const;
+  //! \brief Initializes the vector to a given scalar value.
+  virtual void init(Real value = Real(0));
 
   //! \brief Sets the dimension of the system vector.
   virtual void redim(size_t n);
-
-  //! \brief Creates a copy of the system vector and returns a pointer to it.
-  virtual SystemVector* copy() const { return new PETScVector(*this); }
-
-  //! \brief Access through pointer.
-  virtual Real* getPtr();
-  //! \brief Reference through pointer.
-  virtual const Real* getRef() const;
-
-  //! \brief Restores the vector contents from an array.
-  virtual void restore(const Real* ptr);
-
-  //! \brief Initializes the vector to a given scalar value.
-  virtual void init(Real value = Real(0));
 
   //! \brief Begins communication step needed in parallel vector assembly.
   //! \details Must be called together with endAssembly after vector assembly
@@ -83,12 +67,6 @@ public:
   //! \details Must be called together with beginAssembly after vector assembly
   //! is completed on each processor and before the linear system is solved.
   virtual bool endAssembly();
-
-  //! \brief Multiplication with a scalar.
-  virtual void mult(Real alpha);
-
-  //! \brief Addition of another system vector.
-  virtual void add(const SystemVector& vec, double s) {} // add this later...
 
   //! \brief L1-norm of vector.
   virtual Real L1norm() const;
@@ -109,19 +87,6 @@ public:
 protected:
   Vec x;                  //!< The actual PETSc vector
   const ProcessAdm& adm;  //!< Process administrator
-
-#else // dummy implementation when PETSc is not included
-  virtual SystemVector* copy() const { return 0; }
-  virtual size_t dim() const { return 0; }
-  virtual void redim(size_t) {}
-  virtual Real* getPtr() { return 0; }
-  virtual const Real* getRef() const { return 0; }
-  virtual void init(Real = Real(0)) {}
-  virtual void mult(Real) {}
-  virtual Real L1norm() const { return Real(0); }
-  virtual Real L2norm() const { return Real(0); }
-  virtual Real Linfnorm() const { return Real(0); }
-#endif
 };
 
 
@@ -131,31 +96,20 @@ protected:
   linear systems of equations.
 */
 
-class PETScMatrix : public SystemMatrix
+class PETScMatrix : public SparseMatrix
 {
 public:
-#ifdef HAS_PETSC
   //! \brief Constructor.
   PETScMatrix(const ProcessAdm& padm, const LinSolParams& spar,
               LinAlg::LinearSystemType ltype);
-  //! \brief Copy constructor.
-  PETScMatrix(const PETScMatrix& A);
   //! \brief The destructor frees the dynamically allocated arrays.
   virtual ~PETScMatrix();
-#else
-  //! \brief Constructor.
-  PETScMatrix(const ProcessAdm&, const LinSolParams&) {}
-#endif
 
   //! \brief Returns the matrix type.
   virtual Type getType() const { return PETSC; }
 
   //! \brief Returns the dimension of the system matrix.
   virtual size_t dim(int = 1) const { return 0; }
-
-#ifdef HAS_PETSC
-  //! \brief Creates a copy of the system matrix and returns a pointer to it.
-  virtual SystemMatrix* copy() const { return new PETScMatrix(*this); }
 
   //! \brief Initializes the element assembly process.
   //! \details Must be called once before the element assembly loop.
@@ -175,25 +129,6 @@ public:
   //! \details Must be called together with beginAssembly after matrix assembly
   //! is completed on each processor and before the linear system is solved.
   virtual bool endAssembly();
-
-  //! \brief Adds an element matrix into the associated system matrix.
-  //! \param[in] eM  The element matrix
-  //! \param[in] sam Auxiliary data describing the FE model topology,
-  //!                nodal DOF status and constraint equations
-  //! \param[in] e   Identifier for the element that \a eM belongs to
-  //! \return \e true on successful assembly, otherwise \e false
-  virtual bool assemble(const Matrix& eM, const SAM& sam, int e);
-  //! \brief Adds an element matrix into the associated system matrix.
-  //! \details When multi-point constraints are present, contributions from
-  //! these are also added into the system right-hand-side vector.
-  //! \param[in] eM  The element matrix
-  //! \param[in] sam Auxiliary data describing the FE model topology,
-  //!                nodal DOF status and constraint equations
-  //! \param     B   The system right-hand-side vector
-  //! \param[in] e   Identifier for the element that \a eM belongs to
-  //! \return \e true on successful assembly, otherwise \e false
-  virtual bool assemble(const Matrix& eM, const SAM& sam,
-                        SystemVector& B, int e);
 
   //! \brief Performs the matrix-vector multiplication \b C = \a *this * \b B.
   virtual bool multiply(const SystemVector& B, SystemVector& C) const;
@@ -232,53 +167,44 @@ public:
   //! \brief Returns the PETSc matrix (for read access).
   virtual const Mat& getMatrix() const { return A; }
 
+  //! \brief Get vector of block matrices. Used for tests only.
+  const std::vector<Mat>& getBlockMatrices() const { return matvec; }
+
   //! \brief Set the linear solver parameters (solver type, preconditioner, tolerances).
   //! \param[in] P Preconditioner  matrix (ignored here)
   //! \param[in] Pb Preconditioner vector (ignored here)
   //! \return True on success
   virtual bool setParameters(PETScMatrix* P = nullptr, PETScVector* Pb = nullptr);
 protected:
-  //! \brief Constructs index set needed for element-by-element preconditioner.
-  bool makeElementIS(const SAM& sam);
-
-  //! \brief Constructs the EBE preconditioner of the given matrix.
-  bool makeEBEpreconditioner(const Mat A, Mat* AeI);
-
   //! \brief Solve a linear system
   bool solve(const Vec& b, Vec& x, bool newLHS, bool knoll);
+
+  //! \brief Disabled copy constructor.
+  PETScMatrix(const PETScMatrix& A) = delete;
 
   Mat                 A;               //!< The actual PETSc matrix
   KSP                 ksp;             //!< Linear equation solver
   MatNullSpace*       nsp;             //!< Null-space of linear operator
   const ProcessAdm&   adm;             //!< Process administrator
-  const LinSolParams& solParams;       //!< Linear solver parameters
+  PETScSolParams      solParams;       //!< Linear solver parameters
   bool                setParams;       //!< If linear solver parameters are set
-  IS*                 elmIS;           //!< Element index sets
   PetscInt            ISsize;          //!< Number of index sets/elements
-  PetscIntMat         locSubdDofs;     //!< Degrees of freedom for unique subdomains
-  PetscIntMat         subdDofs;        //!< Degrees of freedom for subdomains
   PetscRealVec        coords;          //!< Coordinates of local nodes (x0,y0,z0,x1,y1,...)
   ISMat               dirIndexSet;     //!< Direction ordering
   int                 nLinSolves;      //!< Number of linear solves
   LinAlg::LinearSystemType linsysType; //!< Linear system type
+  IS glob2LocEq = nullptr; //!< Index set for global-to-local equations.
+  std::vector<Mat> matvec; //!< Blocks for block matrices.
 
-#else // dummy implementation when PETSc is not included
-  virtual SystemMatrix* copy() const { return 0; }
-  virtual void init() {}
-  virtual void initAssembly(const SAM&, bool) {}
-  virtual bool assemble(const Matrix&, const SAM&, int) { return false; }
-  virtual bool assemble(const Matrix&, const SAM&,
-			SystemVector&, int) { return false; }
-#endif
+  std::vector<IS> isvec; //!< Index sets for blocks.
+  std::vector<std::array<int,3>> glb2Blk; //!< Maps matrix entries in CSC order to block matrix entries.
 };
 
 
-#ifdef HAS_PETSC
 //! \brief Matrix-vector product
 PETScVector operator*(const SystemMatrix& A, const PETScVector& b);
 
 //! \brief Solve linear system
 PETScVector operator/(const SystemMatrix& A, const PETScVector& b);
-#endif
 
 #endif

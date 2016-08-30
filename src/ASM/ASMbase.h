@@ -190,6 +190,9 @@ public:
   virtual char getNodeType(size_t inod) const;
   //! \brief Returns \e true if node \a n is a Lagrange multiplier node.
   bool isLMn(size_t n) const { return n >= myLMs.first && n <= myLMs.second; }
+  //! \brief Returns type of Lagrange multiplier.
+  //! \param[in] n 1-based global node index for Lagrange multiplier.
+  char getLMType(size_t n) const;
   //! \brief Returns the global coordinates for the given node.
   //! \param[in] inod 1-based node index local to current patch
   virtual Vec3 getCoord(size_t inod) const = 0;
@@ -557,6 +560,14 @@ public:
   virtual bool injectNodeVec(const Vector& nodeVec, Vector& globVec,
 			     unsigned char nndof = 0, int basis = 0) const;
 
+  //! \brief Extracts nodal results for this patch from the global vector.
+  //! \param[in] globVec Global solution vector in DOF-order
+  //! \param[out] nodeVec Nodal result vector for this patch
+  //! \param[in] madof Global Matrix of Accumulated DOFs
+  //! \param[in] basis Which basis to inject nodal values for (mixed methods)
+  void injectNodeVec(const std::vector<int>& madof, const Vector& nodeVec,
+                     Vector& globVec, int basis=0) const;
+
   //! \brief Creates and adds a two-point constraint to this patch.
   //! \param[in] slave Global node number of the node to constrain
   //! \param[in] dir Which local DOF to constrain (1, 2, 3)
@@ -680,6 +691,7 @@ protected:
 
 private:
   std::pair<size_t,size_t> myLMs; //!< Nodal range of the Lagrange multipliers
+  std::vector<char> myLMTypes; //!< Type of Lagrange multiplier ('L' or 'G').
 };
 
 #endif

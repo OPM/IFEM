@@ -17,8 +17,8 @@
 #include "tinyxml.h"
 #include "IFEM.h"
 #include "LogStream.h"
-#ifdef PARALLEL_PETSC
-#include "petscsys.h"
+#ifdef HAVE_MPI
+#include <mpi.h>
 #endif
 #ifdef USE_OPENMP
 #include <omp.h>
@@ -68,6 +68,8 @@ void SIMoptions::setLinearSolver (const std::string& eqsolver)
     solver = SystemMatrix::SAMG;
   else if (eqsolver == "petsc")
     solver = SystemMatrix::PETSC;
+  else if (eqsolver == "istl")
+    solver = SystemMatrix::ISTL;
 }
 
 
@@ -115,26 +117,12 @@ bool SIMoptions::parseDiscretizationTag (const TiXmlElement* elem)
 }
 
 
-bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
+bool SIMoptions::parseConsoleTag (const TiXmlElement* elem)
 {
-  if (!strcasecmp(elem->Value(),"vtfformat")) {
-    if (elem->FirstChild()) {
-      if (!strcasecmp(elem->FirstChild()->Value(),"ascii"))
-	format = 0;
-      else if (!strcasecmp(elem->FirstChild()->Value(),"binary"))
-	format = 1;
-    }
-    if (utl::getAttribute(elem,"nviz",nViz[0]))
-      nViz[2] = nViz[1] = nViz[0];
-    utl::getAttribute(elem,"nu",nViz[0]);
-    utl::getAttribute(elem,"nv",nViz[1]);
-    utl::getAttribute(elem,"nw",nViz[2]);
-  }
-
-  else if (!strcasecmp(elem->Value(),"logging")) {
+  if (!strcasecmp(elem->Value(),"logging")) {
     int pid = 0;
-#ifdef PARALLEL_PETSC
-    MPI_Comm_rank(PETSC_COMM_WORLD,&pid);
+#ifdef HAVE_MPI
+    MPI_Comm_rank(MPI_COMM_WORLD,&pid);
 #endif
     utl::getAttribute(elem,"output_pid",printPid);
     if (printPid != -1 && printPid != IFEM::getOptions().printPid) {
@@ -155,6 +143,26 @@ bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
       sprintf(cPid,"_p%04d.log",pid);
       IFEM::cout.addExtraLog(new std::ofstream(log_prefix+cPid));
     }
+  }
+
+  return true;
+}
+
+
+bool SIMoptions::parseOutputTag (const TiXmlElement* elem)
+{
+  if (!strcasecmp(elem->Value(),"vtfformat")) {
+    if (elem->FirstChild()) {
+      if (!strcasecmp(elem->FirstChild()->Value(),"ascii"))
+	format = 0;
+      else if (!strcasecmp(elem->FirstChild()->Value(),"binary"))
+	format = 1;
+    }
+    if (utl::getAttribute(elem,"nviz",nViz[0]))
+      nViz[2] = nViz[1] = nViz[0];
+    utl::getAttribute(elem,"nu",nViz[0]);
+    utl::getAttribute(elem,"nv",nViz[1]);
+    utl::getAttribute(elem,"nw",nViz[2]);
   }
 
   else if (!strcasecmp(elem->Value(),"stride")) {
@@ -223,6 +231,8 @@ bool SIMoptions::parseOldOptions (int argc, char** argv, int& i)
     solver = SystemMatrix::SAMG;
   else if (!strcmp(argv[i],"-petsc"))
     solver = SystemMatrix::PETSC;
+  else if (!strcmp(argv[i],"-istl"))
+    solver = SystemMatrix::ISTL;
   else if (!strncmp(argv[i],"-lag",4))
     discretization = ASM::Lagrange;
   else if (!strncmp(argv[i],"-spec",5))

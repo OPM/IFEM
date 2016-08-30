@@ -13,13 +13,15 @@
 
 #include "SystemMatrix.h"
 #include "DenseMatrix.h"
+#ifdef HAS_ISTL
+#include "ISTLMatrix.h"
+#endif
 #include "SPRMatrix.h"
 #include "SparseMatrix.h"
 #ifdef HAS_PETSC
 #include "PETScMatrix.h"
-#include "PETScBlockMatrix.h"
-#include "LinSolParams.h"
 #endif
+#include "LinSolParams.h"
 
 
 SystemVector* SystemVector::create (const ProcessAdm& adm, Type vectorType)
@@ -27,6 +29,9 @@ SystemVector* SystemVector::create (const ProcessAdm& adm, Type vectorType)
   switch (vectorType)
     {
     case STD   : return new StdVector();
+#ifdef HAS_ISTL
+    case ISTL  : return new ISTLVector(adm);
+#endif
 #ifdef HAS_PETSC
     case PETSC : return new PETScVector(adm);
 #endif
@@ -71,14 +76,12 @@ SystemMatrix* SystemMatrix::create (const ProcessAdm& padm, Type matrixType,
                                     LinAlg::LinearSystemType ltype)
 {
 #ifdef HAS_PETSC
-  if (matrixType == PETSC) {
-    if (spar.getNoBlocks() > 1)
-      return new PETScBlockMatrix(padm,spar);
-    else
-      return new PETScMatrix(padm,spar,ltype);
-  }
-  else if (matrixType == PETSCBLOCK)
-    return new PETScBlockMatrix(padm,spar);
+  if (matrixType == PETSC)
+    return new PETScMatrix(padm,spar,ltype);
+#endif
+#ifdef HAS_ISTL
+  if (matrixType == ISTL)
+    return new ISTLMatrix(padm,spar,ltype);
 #endif
 
   return SystemMatrix::create(padm,matrixType,ltype);
@@ -90,14 +93,23 @@ SystemMatrix* SystemMatrix::create (const ProcessAdm& padm, Type matrixType,
                                     int num_thread_SLU)
 {
 #ifndef HAS_PETSC
-  if (matrixType == PETSC || matrixType == PETSCBLOCK) {
+  if (matrixType == PETSC) {
     std::cerr <<"SystemMatrix::create: PETSc not compiled in, bailing out..."
               << std::endl;
     exit(1);
   }
-#else
-  // Use default PETSc settings when no parameters are provided by user
-  static LinSolParams defaultPar(3);
+#endif
+#ifndef HAS_ISTL
+  if (matrixType == ISTL) {
+    std::cerr <<"SystemMatrix::create: ISTL not compiled in, bailing out..."
+              << std::endl;
+    exit(1);
+  }
+#endif
+
+#if defined(HAS_PETSC) || defined(HAS_ISTL)
+  // Use default settings when no parameters are provided by user
+  static LinSolParams defaultPar;
 #endif
 
   switch (matrixType)
@@ -106,9 +118,11 @@ SystemMatrix* SystemMatrix::create (const ProcessAdm& padm, Type matrixType,
     case SPR   : return new SPRMatrix();
     case SPARSE: return new SparseMatrix(SparseMatrix::SUPERLU,num_thread_SLU);
     case SAMG  : return new SparseMatrix(SparseMatrix::S_A_M_G);
+#ifdef HAS_ISTL
+    case ISTL  : return new ISTLMatrix(padm,defaultPar,ltype);
+#endif
 #ifdef HAS_PETSC
     case PETSC :      return new PETScMatrix(padm,defaultPar,ltype);
-    case PETSCBLOCK : return new PETScBlockMatrix(padm,defaultPar);
 #endif
     default:
       std::cerr <<"SystemMatrix::create: Unsupported matrix type "
@@ -143,4 +157,3 @@ StdVector SystemMatrix::operator/(const StdVector& b)
   solve(b, results);
   return results;
 }
-

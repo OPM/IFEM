@@ -13,6 +13,10 @@
 
 #include "LinAlgInit.h"
 #include "PETScSupport.h"
+#include <iostream>
+#if defined(HAVE_MPI) && !defined(HAS_PETSC)
+#include <mpi.h>
+#endif
 
 LinAlgInit* LinAlgInit::instance = 0;
 int         LinAlgInit::refs = 0;
@@ -34,8 +38,11 @@ LinAlgInit::LinAlgInit (int argc, char** argv)
 #elif defined(HAS_PETSC)
   PetscInitialize(&argc,&argv,(char*)0,PETSC_NULL);
 #endif
-#ifdef PARALLEL_PETSC
-  MPI_Comm_rank(PETSC_COMM_WORLD,&myPid);
+#ifdef HAVE_MPI
+#ifndef HAS_PETSC
+  MPI_Init(&argc, &argv);
+#endif
+  MPI_Comm_rank(MPI_COMM_WORLD,&myPid);
 #else
   myPid = 0;
 #endif
@@ -48,5 +55,7 @@ LinAlgInit::~LinAlgInit ()
   SlepcFinalize();
 #elif defined(HAS_PETSC)
   PetscFinalize();
+#elif defined(HAVE_MPI)
+  MPI_Finalize();
 #endif
 }

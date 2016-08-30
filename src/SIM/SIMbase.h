@@ -202,6 +202,9 @@ public:
   //! \brief Returns whether a mixed formulation is used (used by HDF5 output).
   virtual bool mixedProblem() const { return false; }
 
+  //! \brief Obtain the linear solver parameters.
+  const LinSolParams* getSolParams() const { return mySolParams; }
+
   //! \brief Returns the number of parameter dimensions in the model.
   virtual unsigned short int getNoParamDim() const = 0;
   //! \brief Returns the number of spatial dimensions in the model.
@@ -585,9 +588,11 @@ public:
   //! \param[out] vec Local solution vector associated with specified patch
   //! \param[in] pindx Local patch index to extract solution vector for
   //! \param[in] nndof Number of DOFs per node (optional)
+  //! \param[in] basis Basis to extract for (optional)
   //! \return Total number of DOFs in the patch (first basis only if mixed)
   size_t extractPatchSolution(const Vector& sol, Vector& vec, int pindx,
-                              unsigned char nndof = 0) const;
+                              unsigned char nndof = 0,
+                              unsigned char basis = 0) const;
 
   //! \brief Injects a patch-wise solution vector into the global vector.
   //! \param sol Global primary solution vector in DOF-order
@@ -595,7 +600,8 @@ public:
   //! \param[in] pindx Local patch index to inject solution vector for
   //! \param[in] nndof Number of DOFs per node (optional)
   bool injectPatchSolution(Vector& sol, const Vector& vec, int pindx,
-                           unsigned char nndof = 0) const;
+                           unsigned char nndof = 0,
+                           unsigned char basis = 0) const;
 
   //! \brief Extracts element results for a specified patch.
   //! \param[in] glbRes Global element result array
@@ -644,9 +650,17 @@ public:
   RealFunc* getSclFunc(int code) const;
 
 protected:
-  //! \brief Creates a default single-patch geometry.
+  //! \brief Creates a default geometry.
   //! \param[in] geo XML element containing geometry defintion
-  virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const = 0;
+  virtual PatchVec createDefaultGeometry(const TiXmlElement* geo) const = 0;
+
+  //! \brief Creates topology for default geometry.
+  //! \param[in] geo XML element containing geometry defintion
+  virtual bool createDefaultTopology(const TiXmlElement* geo) = 0;
+
+  //! \brief Creates topology sets for default geometry.
+  //! \param[in] geo XML element containing geometry defintion
+  virtual TopologySet createDefaultTopologySets(const TiXmlElement* geo) const = 0;
 
   //! \brief Initializes material properties for integration of interior terms.
   virtual bool initMaterial(size_t) { return true; }
@@ -660,7 +674,7 @@ protected:
   //! \param[out] patches Array of patches that were read
   //! \param[in] whiteSpace For message formatting
   virtual bool readPatches(std::istream& isp, PatchVec& patches,
-                           const char* whiteSpace = "") = 0;
+                           const char* whiteSpace = "") const = 0;
   //! \brief Reads global node data for a patch from given input stream.
   //! \param[in] isn The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read node data for
@@ -711,6 +725,7 @@ protected:
   IntegrandBase* myProblem; //!< The main integrand of this simulator
   IntegrandMap   myInts;    //!< Set of all integrands involved
   AnaSol*        mySol;     //!< Analytical/Exact solution
+  const TiXmlElement* geoTag = nullptr; //!< Non-null if the default geometry is used
 
   //! \brief A struct with data for system matrix/vector dumps.
   struct DumpData
@@ -744,6 +759,28 @@ protected:
 private:
   size_t nIntGP; //!< Number of interior integration points in the whole model
   size_t nBouGP; //!< Number of boundary integration points in the whole model
+
+  //! \brief Class holding a MADOF for a given number of dofs on a given basis
+  class MADof {
+    public:
+      //! \brief Dummy constructor needed due to std::map.
+      MADof() {}
+      //! \brief Constructor.
+      //! \param[in] myModel The patch vector to setup the MADOF for
+      //! \param[in] nodes Total number of global nodes in model
+      //! \param[in] basis The basis to specify number of DOFs for
+      //! \param[in] nndof Number of DOFs on given basis
+      MADof(const PatchVec& myModel, size_t nodes,
+            unsigned char basis, unsigned char nndof);
+
+      //! \brief Access MADof array.
+      const std::vector<int>& get() const { return madof; }
+
+    protected:
+      std::vector<int> madof; //!< The MADOF array
+  };
+
+  mutable std::map<int, MADof> addMADOFs; //!< Additional MADOF arrays.
 };
 
 #endif

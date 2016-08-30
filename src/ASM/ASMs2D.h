@@ -185,6 +185,9 @@ public:
   //! \param basis Which basis to grab nodes for
   virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes, int basis) const;
 
+  //! \brief Returns the node index for a given corner.
+  virtual int getCorner(int I, int J, int basis = 1) const;
+
   //! \brief Assigns new global node numbers for all nodes of the patch.
   //! \param nodes Object with global nodes numbers to assign to this patch
   //! \param[in] basis Which basis to assign node numbers for in mixed methods
@@ -267,8 +270,10 @@ public:
   //! \param neighbor The neighbor patch
   //! \param[in] nedge Local edge index of neighbor patch, in range [1,4]
   //! \param[in] revers Indicates whether the two edges have opposite directions
+  //! \param[in] basis (ignored)
+  //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
   virtual bool connectPatch(int edge, ASMs2D& neighbor, int nedge,
-			    bool revers = false);
+                            bool revers = false, int basis = 0, bool coordCheck = true);
 
   //! \brief Makes two opposite boundary edges periodic.
   //! \param[in] dir Parameter direction defining the periodic edges
@@ -473,8 +478,10 @@ protected:
   //! \param[in] basis Which basis to connect the nodes for (mixed methods)
   //! \param[in] slave 0-based index of the first slave node in this basis
   //! \param[in] master 0-based index of the first master node in this basis
+  //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
   bool connectBasis(int edge, ASMs2D& neighbor, int nedge, bool revers,
-		    int basis = 1, int slave = 0, int master = 0);
+                    int basis = 1, int slave = 0, int master = 0,
+                    bool coordCheck = true);
 
   //! \brief Extracts parameter values of the Gauss points in one direction.
   //! \param[out] uGP Parameter values in given direction for all points

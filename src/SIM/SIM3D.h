@@ -74,6 +74,18 @@ private:
   bool parseGeometryTag(const TiXmlElement* elem);
   //! \brief Parses a subelement of the \a boundaryconditions XML-tag.
   bool parseBCTag(const TiXmlElement* elem);
+  //! \brief Connect two patches.
+  //! \param[in] master Master patch
+  //! \param[in] slave Slave patch
+  //! \param[in] mFace Face on master
+  //! \param[in] sFace Face on slave
+  //! \param[in] orient Orientation of faces
+  //! \param[in] basis Which basis to connect
+  //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
+  //! \param[in] dim Dimensionality of connection
+  bool addConnection(int master, int slave, int mEdge, int sEdge,
+                     int orient, int basis = 0,
+                     bool coordCheck = true, int dim = 2);
 
 protected:
   //! \brief Parses a data section from an XML document.
@@ -90,7 +102,7 @@ protected:
   //! \param[out] patches Array of patches that were read
   //! \param[in] whiteSpace For message formatting
   virtual bool readPatches(std::istream& isp, PatchVec& patches,
-                           const char* whiteSpace);
+                           const char* whiteSpace) const;
   //! \brief Reads global node data for a patch from given input stream.
   //! \param[in] isn The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read node data for
@@ -125,8 +137,20 @@ protected:
   bool addConstraint(int patch, int lndx, int line, double xi,
                      int dirs, char basis = 1);
 
+  //! \brief Creates G2 representation of a cube.
+  //! \param geo XML block with geometry definition
+  std::string createDefaultG2(const TiXmlElement* geo) const;
+
   //! \brief Creates a default single-patch geometry.
-  virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const;
+  virtual PatchVec createDefaultGeometry(const TiXmlElement* geo) const;
+
+  //! \brief Creates topology for default geometry.
+  //! \param[in] geo XML element containing geometry defintion
+  virtual bool createDefaultTopology(const TiXmlElement* geo);
+
+  //! \brief Creates topology sets for default geometry.
+  //! \param[in] geo XML element containing geometry defintion
+  virtual TopologySet createDefaultTopologySets(const TiXmlElement* geo) const;
 
 protected:
   CharVec nf;         //!< Number of scalar fields

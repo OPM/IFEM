@@ -35,7 +35,7 @@ public:
   SIM2D(unsigned char n1 = 2, bool check = false);
   //! \brief Constructor used for mixed problems.
   //! \param[in] unf Dimension of the primary solution fields
-  //! \param[in] check If \e true, ensure the model is in a right-hand system
+  //! \param[in] check If \e true,
   SIM2D(const CharVec& unf, bool check = false);
   //! \brief Constructor that also initializes the integrand pointer.
   //! \param[in] itg Pointer to the integrand of the problem to solve
@@ -78,6 +78,17 @@ private:
   bool parseGeometryTag(const TiXmlElement* elem);
   //! \brief Parses a subelement of the \a boundaryconditions XML-tag.
   bool parseBCTag(const TiXmlElement* elem);
+  //! \brief Connect two patches.
+  //! \param master Master patch
+  //! \param slave Slave patch
+  //! \param mEdge Edge on master
+  //! \param sEdge Edge on slave
+  //! \param rever Whether connection is reversed or not.
+  //! \param coordCheck False to turn off coordinate checks.
+  //! \param dim Dimensionality of connection.
+  bool addConnection(int master, int slave, int mEdge, int sEdge,
+                     bool rever, int basis=0, bool coordCheck=true,
+                     int dim = 1);
 
 protected:
   //! \brief Parses a data section from an XML document.
@@ -94,7 +105,7 @@ protected:
   //! \param[out] patches Array of patches that were read
   //! \param[in] whiteSpace For message formatting
   virtual bool readPatches(std::istream& isp, PatchVec& patches,
-                           const char* whiteSpace);
+                           const char* whiteSpace) const;
   //! \brief Reads global node data for a patch from given input stream.
   //! \param[in] isn The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read node data for
@@ -119,8 +130,21 @@ protected:
   virtual bool addConstraint(int patch, int lndx, int ldim,
                              int dirs, int code, int& ngnod, char basis = 1);
 
-  //! \brief Creates a default single-patch geometry.
-  virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const;
+  //! \brief Creates G2 representation of a square.
+  //! \param geo XML block with geometry definition
+  std::string createDefaultG2(const TiXmlElement* geo) const;
+
+  //! \brief Creates a default geometry.
+  //! \param geo XML block with geometry definition.
+  virtual PatchVec createDefaultGeometry(const TiXmlElement* geo) const;
+
+  //! \brief Creates topology for default geometry.
+  //! \param[in] geo XML element containing geometry defintion
+  virtual bool createDefaultTopology(const TiXmlElement* geo);
+
+  //! \brief Creates topology sets for default geometry.
+  //! \param[in] geo XML element containing geometry defintion
+  virtual TopologySet createDefaultTopologySets(const TiXmlElement* geo) const;
 
 protected:
   CharVec nf;         //!< Number of scalar fields

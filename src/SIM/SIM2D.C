@@ -69,6 +69,33 @@ SIM2D::SIM2D (IntegrandBase* itg, unsigned char n, bool check) : SIMgeneric(itg)
 }
 
 
+bool SIM2D::addConnection(int master, int slave, int mEdge, int sEdge,
+                          bool rever, int basis, bool coordCheck, int dim)
+{
+  int lmaster = getLocalPatchIndex(master);
+  int lslave = getLocalPatchIndex(slave);
+
+  if (lmaster > 0 && lslave > 0)
+  {
+    if (dim > 0) {
+      IFEM::cout <<"\tConnecting P"<< lslave <<" E"<< sEdge
+                 <<" to P"<< lmaster <<" E"<< mEdge
+                 <<" reversed? "<< rever << std::endl;
+      ASMs2D* spch = static_cast<ASMs2D*>(myModel[lslave-1]);
+      ASMs2D* mpch = static_cast<ASMs2D*>(myModel[lmaster-1]);
+      if (!spch->connectPatch(sEdge,*mpch,mEdge,rever,basis,coordCheck))
+        return false;
+    }
+  }
+  else
+    adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave,
+                                                                  mEdge, sEdge,
+                                                                  rever?1:0, dim, basis});
+
+  return true;
+}
+
+
 bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
@@ -81,8 +108,9 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     if (utl::getAttribute(elem,"lowerpatch",lowpatch))
       uppatch = myModel.size();
     utl::getAttribute(elem,"upperpatch",uppatch);
+    int nPatch = nGlPatches > 0 ? nGlPatches : myModel.size();
 
-    if (lowpatch < 1 || uppatch > (int)myModel.size())
+    if (lowpatch < 1 || uppatch > nPatch)
     {
       std::cerr <<" *** SIM2D::parse: Invalid patch indices, lower="
                 << lowpatch <<" upper="<< uppatch << std::endl;
@@ -96,28 +124,32 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       int addu = 0, addv = 0;
       utl::getAttribute(elem,"u",addu);
       utl::getAttribute(elem,"v",addv);
-      for (int j = lowpatch-1; j < uppatch; j++)
-        if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
+      for (int j = lowpatch-1; j < uppatch; j++) {
+        int p = this->getLocalPatchIndex(j+1);
+        if (p > 0 && (pch = dynamic_cast<ASM2D*>(myModel[p-1])))
         {
-          IFEM::cout <<"\tRefining P"<< j+1
+          IFEM::cout <<"\tRefining P"<< p
                      <<" "<< addu <<" "<< addv << std::endl;
           pch->uniformRefine(0,addu);
           pch->uniformRefine(1,addv);
         }
+      }
     }
     else
     {
       int dir = 1;
       utl::getAttribute(elem,"dir",dir);
-      for (int j = lowpatch-1; j < uppatch; j++)
-        if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
+      for (int j = lowpatch-1; j < uppatch; j++) {
+        int p = getLocalPatchIndex(j+1);
+        if (p > 0 && (pch = dynamic_cast<ASM2D*>(myModel[p-1])))
         {
-          IFEM::cout <<"\tRefining P"<< j+1 <<" dir="<< dir;
+          IFEM::cout <<"\tRefining P"<< p <<" dir="<< dir;
           for (size_t i = 0; i < xi.size(); i++)
             IFEM::cout <<" "<< xi[i];
           IFEM::cout << std::endl;
           pch->refine(dir-1,xi);
         }
+      }
     }
   }
 
@@ -130,7 +162,8 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       uppatch = myModel.size();
     utl::getAttribute(elem,"upperpatch",uppatch);
 
-    if (lowpatch < 1 || uppatch > (int)myModel.size())
+    int nPatch = nGlPatches > 0 ? nGlPatches : myModel.size();
+    if (lowpatch < 1 || uppatch > nPatch)
     {
       std::cerr <<" *** SIM2D::parse: Invalid patch indices, lower="
                 << lowpatch <<" upper="<< uppatch << std::endl;
@@ -141,13 +174,17 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     int addu = 0, addv = 0;
     utl::getAttribute(elem,"u",addu);
     utl::getAttribute(elem,"v",addv);
-    for (int j = lowpatch-1; j < uppatch; j++)
-      if ((pch = dynamic_cast<ASM2D*>(myModel[j])))
+    for (int j = lowpatch-1; j < uppatch; j++) {
+      int p = this->getLocalPatchIndex(j+1);
+      if (p < 1)
+        continue;
+      if ((pch = dynamic_cast<ASM2D*>(myModel[p-1])))
       {
-        IFEM::cout <<"\tRaising order of P"<< j+1
+        IFEM::cout <<"\tRaising order of P"<< p
                    <<" "<< addu <<" "<< addv << std::endl;
         pch->raiseOrder(addu,addv);
       }
+    }
   }
 
   else if (!strcasecmp(elem->Value(),"topology"))
@@ -158,32 +195,38 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     const TiXmlElement* child = elem->FirstChildElement("connection");
     for (; child; child = child->NextSiblingElement())
     {
-      int master = 0, slave = 0, mEdge = 0, sEdge = 0;
-      bool rever = false;
+      int master = 0, slave = 0, mEdge = 0, sEdge = 0, basis = 0, dim = 1;
+      bool rever = false, periodic = false;
       utl::getAttribute(child,"master",master);
       utl::getAttribute(child,"medge",mEdge);
+      utl::getAttribute(child,"midx",mEdge);
       utl::getAttribute(child,"slave",slave);
       utl::getAttribute(child,"sedge",sEdge);
+      utl::getAttribute(child,"sidx",sEdge);
       utl::getAttribute(child,"reverse",rever);
+      utl::getAttribute(child,"basis",basis);
+      utl::getAttribute(child,"periodic",periodic);
+      utl::getAttribute(child,"dim",dim);
 
       if (master == slave ||
-          master < 1 || master > (int)myModel.size() ||
-          slave  < 1 || slave  > (int)myModel.size())
+          master < 1 || master > nGlPatches ||
+          slave  < 1 || slave  > nGlPatches)
       {
         std::cerr <<" *** SIM2D::parse: Invalid patch indices "
                   << master <<" "<< slave << std::endl;
         return false;
       }
-      IFEM::cout <<"\tConnecting P"<< slave <<" E"<< sEdge
-                 <<" to P"<< master <<" E"<< mEdge
-                 <<" reversed? "<< rever << std::endl;
-      ASMs2D* spch = static_cast<ASMs2D*>(myModel[slave-1]);
-      ASMs2D* mpch = static_cast<ASMs2D*>(myModel[master-1]);
-      if (!spch->connectPatch(sEdge,*mpch,mEdge,rever))
+
+      if (!addConnection(master, slave, mEdge, sEdge, rever, basis, !periodic, dim))
         return false;
-      else if (opt.discretization == ASM::SplineC1)
-        top.push_back(Interface(static_cast<ASMs2DC1*>(mpch),mEdge,
-                                static_cast<ASMs2DC1*>(spch),sEdge,rever));
+
+      if (opt.discretization == ASM::SplineC1) {
+        int lmaster = getLocalPatchIndex(master);
+        int lslave = getLocalPatchIndex(slave);
+        if (lmaster > 0 && lslave > 0)
+          top.push_back(Interface(static_cast<ASMs2DC1*>(this->getPatch(lmaster)),mEdge,
+                                  static_cast<ASMs2DC1*>(this->getPatch(lslave)),sEdge,rever));
+      }
     }
 
     // Second pass for C1-continuous patches, to set up additional constraints
@@ -682,7 +725,7 @@ ASMbase* SIM2D::readPatch (std::istream& isp, int pchInd,
 
 
 bool SIM2D::readPatches (std::istream& isp, PatchVec& patches,
-                         const char* whiteSpace)
+                         const char* whiteSpace) const
 {
   ASMbase* pch = nullptr;
   for (int pchInd = 1; isp.good(); pchInd++)
@@ -766,24 +809,12 @@ void SIM2D::clonePatches (const PatchVec& patches,
 }
 
 
-ASMbase* SIM2D::createDefaultGeometry (const TiXmlElement* geo) const
+std::string SIM2D::createDefaultG2 (const TiXmlElement* geo) const
 {
-  std::string g2("200 1 0 0\n");
-  g2.append(nsd > 2 ? "3" : "2");
   bool rational=false;
   utl::getAttribute(geo,"rational",rational);
   if (rational)
     IFEM::cout << "\t Rational basis\n";
-  g2.append(rational?" 1":" 0");
-  g2.append("\n2 2\n0 0 1 1\n2 2\n0 0 1 1");
-
-  Vec3 X0;
-  std::string corner;
-  if (utl::getAttribute(geo,"X0",corner)) {
-    std::stringstream str(corner); str >> X0;
-    IFEM::cout <<"  Corner: "<< X0 << std::endl;
-  }
-
   double scale = 1.0;
   if (utl::getAttribute(geo,"scale",scale))
     IFEM::cout <<"  Scale: "<< scale << std::endl;
@@ -796,30 +827,170 @@ ASMbase* SIM2D::createDefaultGeometry (const TiXmlElement* geo) const
     IFEM::cout <<"  Length in Y: "<< Ly << std::endl;
   Ly *= scale;
 
-  std::stringstream str;
-  str <<"\n"<< X0.x <<" "<< X0.y;
-  if (nsd > 2) str <<" 0.0";
-  if (rational) str << " 1.0";
-  g2.append(str.str());
-  str.str("");
-  str <<"\n"<< X0.x+Lx <<" "<< X0.y;
-  if (nsd > 2) str <<" 0.0";
-  if (rational) str << " 1.0";
-  g2.append(str.str());
-  str.str("");
-  str <<"\n"<< X0.x <<" "<< X0.y+Ly;
-  if (nsd > 2) str <<" 0.0";
-  if (rational) str << " 1.0";
-  g2.append(str.str());
-  str.str("");
-  str <<"\n"<< X0.x+Lx <<" "<< X0.y+Ly;
-  if (nsd > 2) str <<" 0.0";
-  if (rational) str << " 1.0";
-  g2.append(str.str());
-  g2.append("\n");
+  Vec3 X0;
+  std::string corner;
+  if (utl::getAttribute(geo,"X0",corner)) {
+    std::stringstream str(corner); str >> X0;
+    IFEM::cout <<"  Corner: "<< X0 << std::endl;
+  }
 
-  std::istringstream unitSquare(g2);
-  return this->readPatch(unitSquare,1,nf);
+  int nx = 1;
+  int ny = 1;
+  if (utl::getAttribute(geo,"nx",nx))
+    IFEM::cout << "  Split in X: " << nx  << std::endl;
+  if (utl::getAttribute(geo,"ny",ny))
+    IFEM::cout << "  Split in Y: " << ny << std::endl;
+
+  if (nx > 1)
+    Lx /= nx;
+  if (ny > 1)
+    Ly /= ny;
+
+  std::string g2;
+  for (int y = 0; y < ny; ++y) {
+    for (int x = 0; x < nx; ++x) {
+      g2.append("200 1 0 0\n");
+      g2.append(nsd > 2 ? "3" : "2");
+      g2.append(rational?" 1":" 0");
+      g2.append("\n2 2\n0 0 1 1\n2 2\n0 0 1 1");
+
+      std::stringstream str;
+      str <<"\n"<< X0.x+x*Lx <<" "<< X0.y+y*Ly;
+      if (nsd > 2) str <<" 0.0";
+      if (rational) str << " 1.0";
+      g2.append(str.str());
+      str.str("");
+      str <<"\n"<< X0.x+(x+1)*Lx <<" "<< X0.y+y*Ly;
+      if (nsd > 2) str <<" 0.0";
+      if (rational) str << " 1.0";
+      g2.append(str.str());
+      str.str("");
+      str <<"\n"<< X0.x+x*Lx <<" "<< X0.y+(y+1)*Ly;
+      if (nsd > 2) str <<" 0.0";
+      if (rational) str << " 1.0";
+      g2.append(str.str());
+      str.str("");
+      str <<"\n"<< X0.x+(x+1)*Lx <<" "<< X0.y+(y+1)*Ly;
+      if (nsd > 2) str <<" 0.0";
+      if (rational) str << " 1.0";
+      g2.append(str.str());
+      g2.append("\n");
+    }
+  }
+
+  return g2;
+}
+
+
+ASMVec SIM2D::createDefaultGeometry (const TiXmlElement* geo) const
+{
+  std::istringstream unitSquare(createDefaultG2(geo));
+  ASMVec result;
+  this->readPatches(unitSquare,result,"\t");
+  return result;
+}
+
+
+bool SIM2D::createDefaultTopology (const TiXmlElement* geo)
+{
+  int nx = 1;
+  int ny = 1;
+  utl::getAttribute(geo,"nx",nx);
+  utl::getAttribute(geo,"ny",ny);
+  int periodic_x = 0;
+  int periodic_y = 0;
+  utl::getAttribute(geo,"periodic_x", periodic_x);
+  utl::getAttribute(geo,"periodic_y", periodic_y);
+
+  auto&& IJ = [nx,ny](int i, int j) { return 1 + j*nx + i; };
+
+  for (int j = 0; j < ny; ++j)
+    for (int i = 0; i < nx-1; ++i)
+      if (!addConnection(IJ(i,j), IJ(i+1,j), 2, 1, false))
+        return false;
+
+  for (int j = 0; j < ny-1; ++j)
+    for (int i = 0; i < nx; ++i)
+      if (!addConnection(IJ(i,j), IJ(i,j+1), 4, 3, false))
+        return false;
+
+  if (periodic_x > 0) {
+    auto bases = utl::getDigits(periodic_x);
+    for (int b : bases) {
+      for (int i = 0; i < ny; ++i)
+        if (nx > 1) {
+          if (!addConnection(IJ(0, i), IJ(nx-1, i), 1, 2, false, b, false))
+            return false;
+        } else {
+           IFEM::cout <<"\tPeriodic I-direction P"<< IJ(0,i) << std::endl;
+           static_cast<ASMs2D*>(myModel[IJ(0,i)-1])->closeEdges(1,b);
+        }
+    }
+  }
+
+  if (periodic_y > 0) {
+    auto bases = utl::getDigits(periodic_y);
+    for (int b : bases) {
+      for (int i = 0; i < nx; ++i)
+        if (ny > 1)
+          addConnection(IJ(i,0), IJ(i,ny-1), 3, 4, false, b, false);
+        else {
+           IFEM::cout <<"\tPeriodic J-direction P"<< IJ(i,0)<< std::endl;
+           static_cast<ASMs2D*>(myModel[IJ(i,0)-1])->closeEdges(2,b);
+        }
+    }
+  }
+
+
+  return true;
+}
+
+
+TopologySet SIM2D::createDefaultTopologySets (const TiXmlElement* geo) const
+{
+  int nx = 1;
+  int ny = 1;
+  utl::getAttribute(geo,"nx",nx);
+  utl::getAttribute(geo,"ny",ny);
+  TopologySet result;
+  TopEntity& e1 = result["Edge1"];
+  TopEntity& e2 = result["Edge2"];
+  TopEntity& e3 = result["Edge3"];
+  TopEntity& e4 = result["Edge4"];
+  TopEntity& e5 = result["Boundary"];
+
+  auto&& insertion = [this, &e5](TopEntity& e, TopItem top)
+  {
+    if ((top.patch = this->getLocalPatchIndex(top.patch)) > 0) {
+      e.insert(top);
+      e5.insert(top);
+    }
+  };
+
+  for (int i = 0; i < ny; ++i) {
+    insertion(e1, TopItem(i*nx+1,1,1));
+    insertion(e2, TopItem((i+1)*nx,2,1));
+  }
+  for (int i = 0; i < nx; ++i) {
+    insertion(e3, TopItem(i+1,3,1));
+    insertion(e4, TopItem(nx*(ny-1)+1+i,4,1));
+  }
+
+  TopEntity& c = result["Corners"];
+  auto&& insertionv = [this,&c](TopEntity& e, TopItem top)
+  {
+    if ((top.patch = this->getLocalPatchIndex(top.patch)) > 0) {
+      e.insert(top);
+      c.insert(top);
+    }
+  };
+
+  insertionv(result["Vertex1"], TopItem(1,1,0));
+  insertionv(result["Vertex2"], TopItem(nx,2,0));
+  insertionv(result["Vertex3"], TopItem(nx*(ny-1)+1,3,0));
+  insertionv(result["Vertex4"], TopItem(nx*ny,4,0));
+
+  return result;
 }
 
 

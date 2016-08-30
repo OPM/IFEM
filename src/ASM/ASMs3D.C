@@ -616,7 +616,8 @@ bool ASMs3D::assignNodeNumbers (BlockNodes& nodes, int basis)
 }
 
 
-bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
+bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface,
+                           int norient, int, bool coordCheck)
 {
   if (swapW && face > 4) // Account for swapped parameter direction
     face = 11-face;
@@ -624,7 +625,7 @@ bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
   if (neighbor.swapW && nface > 4) // Account for swapped parameter direction
     nface = 11-nface;
 
-  if (!this->connectBasis(face,neighbor,nface,norient))
+  if (!this->connectBasis(face,neighbor,nface,norient,1,0,0,coordCheck))
     return false;
 
   this->addNeighbor(&neighbor);
@@ -633,7 +634,7 @@ bool ASMs3D::connectPatch (int face, ASMs3D& neighbor, int nface, int norient)
 
 
 bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
-			   int basis, int slave, int master)
+                           int basis, int slave, int master, bool coordCheck)
 {
   if (this->isShared() && neighbor.isShared())
     return true;
@@ -755,7 +756,7 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
 	}
 
       int slave = slaveNodes[k][l];
-      if (!neighbor.getCoord(node).equal(this->getCoord(slave),xtol))
+      if (coordCheck && !neighbor.getCoord(node).equal(this->getCoord(slave),xtol))
       {
 	std::cerr <<" *** ASMs3D::connectPatch: Non-matching nodes "
 		  << node <<": "<< neighbor.getCoord(node)
@@ -1109,12 +1110,12 @@ size_t ASMs3D::constrainFaceLocal (int dir, bool open, int dof, int code,
 }
 
 
-void ASMs3D::constrainEdge (int lEdge, bool open, int dof,
-                            int code, char basis)
+std::vector<int> ASMs3D::getEdge(int lEdge, bool open, int basis) const
 {
+  std::vector<int> result;
   int n1, n2, n3, n, inc = 1;
   int node = this->findStartNode(n1,n2,n3,basis);
-  if (node < 1) return;
+  if (node < 1) return result;
 
   if (swapW && lEdge <= 8) // Account for swapped parameter direction
     lEdge += (lEdge-1)%4 < 2 ? 2 : -2;
@@ -1160,7 +1161,18 @@ void ASMs3D::constrainEdge (int lEdge, bool open, int dof,
   // Skip the first and last node if we are requesting an open boundary
   for (int i = 1; i <= n; i++, node += inc)
     if (!open || (i > 1 && i < n))
-      this->prescribe(node,dof,code);
+      result.push_back(node);
+
+  return result;
+}
+
+
+void ASMs3D::constrainEdge (int lEdge, bool open, int dof,
+                            int code, char basis)
+{
+  std::vector<int> nodes = this->getEdge(lEdge, open, basis);
+  for (const int& node : nodes)
+    this->prescribe(node,dof,code);
 }
 
 
@@ -1241,16 +1253,9 @@ void ASMs3D::constrainLine (int fdir, int ldir, double xi, int dof,
 void ASMs3D::constrainCorner (int I, int J, int K, int dof,
                               int code, char basis)
 {
-  int n1, n2, n3;
-  int node = this->findStartNode(n1,n2,n3,basis);
-  if (node < 1) return;
-
-  if (swapW) // Account for swapped parameter direction
-    K = -K;
-
-  if (I > 0) node += n1-1;
-  if (J > 0) node += n1*(n2-1);
-  if (K > 0) node += n1*n2*(n3-1);
+  int node = this->getCorner(I, J, K, basis);
+  if (node < 1)
+    return;
 
   this->prescribe(node,dof,code);
 }
@@ -3191,4 +3196,21 @@ bool ASMs3D::evaluate (const RealFunc* func, RealArray& vec,
   delete newVol;
 
   return true;
+}
+
+
+int ASMs3D::getCorner(int I, int J, int K, int basis) const
+{
+  int n1, n2, n3;
+  int node = this->findStartNode(n1,n2,n3,basis);
+  if (node < 1) return -1;
+
+  if (swapW) // Account for swapped parameter direction
+    K = -K;
+
+  if (I > 0) node += n1-1;
+  if (J > 0) node += n1*(n2-1);
+  if (K > 0) node += n1*n2*(n3-1);
+
+  return node;
 }

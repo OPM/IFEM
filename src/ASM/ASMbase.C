@@ -21,6 +21,10 @@
 #include "Utilities.h"
 #include <algorithm>
 
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 
 bool ASMbase::fixHomogeneousDirichlet = true;
 
@@ -66,6 +70,7 @@ ASMbase::ASMbase (const ASMbase& patch, unsigned char n_f)
   firstIp = patch.firstIp;
   firstBp = patch.firstBp;
   myLMs = patch.myLMs;
+  myLMTypes = patch.myLMTypes;
   // Note: Properties are _not_ copied
 }
 
@@ -146,6 +151,7 @@ void ASMbase::clear (bool retainGeometry)
     delete *it;
 
   myLMs.first = myLMs.second = 0;
+  myLMTypes.clear();
 
   myMLGN.clear();
   BCode.clear();
@@ -199,6 +205,11 @@ bool ASMbase::addLagrangeMultipliers (size_t iel, const IntVec& mGLag,
     else if (node >= myLMs.second)
       myLMs.second = node+1;
 
+    if (myLMTypes.size() < node-myLMs.first+2)
+      myLMTypes.resize(node-myLMs.first+2);
+
+    myLMTypes[node+1-myLMs.first] = iel == 0 ? 'G' : 'L';
+
     // Extend the element connectivity table
     if (iel > 0)
       myMNPC[iel-1].push_back(node);
@@ -213,6 +224,14 @@ bool ASMbase::addLagrangeMultipliers (size_t iel, const IntVec& mGLag,
 bool ASMbase::addGlobalLagrangeMultipliers (const IntVec& mGLag,
                                             unsigned char nnLag)
 {
+#ifdef USE_OPENMP
+  if (omp_get_max_threads() > 1) {
+    std::cerr << "** Cannot do multi-threaded assembly with global multipliers. **" << std::endl
+              << "\t Setting OMP_NUM_THREADS = 1" << std::endl;
+    omp_set_num_threads(1);
+  }
+#endif
+
   return this->addLagrangeMultipliers(0,mGLag,nnLag);
 }
 
@@ -235,6 +254,12 @@ int ASMbase::getNodeID (size_t inod, bool) const
 }
 
 
+char ASMbase::getLMType(size_t n) const
+{
+  return this->isLMn(n) ? myLMTypes[n-myLMs.first] : 0;
+}
+
+
 int ASMbase::getElmID (size_t iel) const
 {
   if (iel < 1 || iel > MLGE.size())
@@ -252,7 +277,7 @@ unsigned char ASMbase::getNodalDOFs (size_t inod) const
 
 char ASMbase::getNodeType (size_t inod) const
 {
-  return this->isLMn(inod) ? 'L' : (inod > nnod ? 'X' : 'D');
+  return this->isLMn(inod) ? this->getLMType(inod) : (inod > nnod ? 'X' : 'D');
 }
 
 
@@ -973,6 +998,29 @@ void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
                 <<" is out of range [1,"<< globRes.size() <<"]."<< std::endl;
 #endif
     nodeVec.insert(nodeVec.end(),globRes.ptr()+idof,globRes.ptr()+jdof);
+  }
+}
+
+void ASMbase::injectNodeVec (const std::vector<int>& madof,
+                             const Vector& nodeVec, Vector& globVec,
+                             int basis) const
+{
+  size_t ldof = 0;
+  char bType = basis == 1 ? 'D' : 'P'+basis-2;
+  for (size_t i = 0; i < MLGN.size(); i++)
+  {
+    if (basis == 0 || getNodeType(i+1) == bType) {
+      int inod = MLGN[i];
+      int idof = madof[inod-1] - 1;
+      int jdof = madof[inod] - 1;
+#ifdef INDEX_CHECK
+      if (inod < 1 || jdof > (int)globVec.size())
+        std::cerr <<" *** ASMbase::injectNodeVec: Global DOF "<< jdof
+                  <<" is out of range [1,"<< globVec.size() <<"]"<< std::endl;
+#endif
+      std::copy(nodeVec.begin()+ldof, nodeVec.begin()+ldof+(jdof-idof), globVec.begin()+idof);
+      ldof += jdof-idof;
+    }
   }
 }
 

@@ -16,7 +16,7 @@
 #include "ASMs2DC1.h"
 #include "ASMunstruct.h"
 #ifdef HAS_PETSC
-#include "SAMpatchPara.h"
+#include "SAMpatchPETSc.h"
 #else
 #include "SAMpatch.h"
 #endif
@@ -42,6 +42,27 @@
 
 bool SIMbase::preserveNOrder  = false;
 bool SIMbase::ignoreDirichlet = false;
+
+
+SIMbase::MADof::MADof(const PatchVec& myModel, size_t nodes,
+                      unsigned char basis, unsigned char nndof)
+{
+  madof.resize(nodes+1, 0);
+  for (size_t i = 0; i < myModel.size(); i++) {
+    char nType = basis == 1 ? 'D' : 'P'+basis-2;
+    for (size_t j = 0; j < myModel[i]->getNoNodes(); j++) {
+      int n = myModel[i]->getNodeID(j+1);
+      if (n > 0 && myModel[i]->getNodeType(j+1) == nType)
+        madof[n] = nndof;
+      else if (n > 0)
+        madof[n] = myModel[i]->getNodalDOFs(j+1);
+    }
+  }
+
+  madof[0] = 1;
+  for (size_t n = 0; n < nodes; n++)
+    madof[n+1] += madof[n];
+}
 
 
 SIMbase::SIMbase (IntegrandBase* itg) : g2l(&myGlb2Loc)
@@ -177,6 +198,8 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
         for (int j = first; j <= last && j > -1; j++)
           myPatches.push_back(j);
       }
+      for (int i = first; i <= last; ++i)
+        adm.dd.setPatchOwner(i, proc);
     }
 
     // If equal number of blocks per processor
@@ -184,6 +207,8 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
       for (int j = 1; j <= proc; j++)
         myPatches.push_back(adm.getProcId()*proc+j);
       nGlPatches = adm.getNoProcs()*proc;
+      for (int i = 1; i <= nGlPatches; ++i)
+        adm.dd.setPatchOwner(i, (i-1) / proc);
     }
   }
 
@@ -488,19 +513,33 @@ bool SIMbase::parse (const TiXmlElement* elem)
       result = false;
   }
 
-  // Create the default geometry of no patchfile is specified
+  // parse partitioning first
+  if (!strcasecmp(elem->Value(),"geometry")) {
+    for (const TiXmlElement* part = elem->FirstChildElement("partitioning");
+                             part; part = part->NextSiblingElement("partitioning"))
+      result &= this->parseGeometryTag(part);
+  }
+
+  // Create the default geometry if no patchfile is specified
   if (myModel.empty() && !strcasecmp(elem->Value(),"geometry"))
     if (this->getNoParamDim() > 0 && !elem->FirstChildElement("patchfile"))
     {
       IFEM::cout <<"  Using default linear geometry basis on unit domain [0,1]";
       if (this->getNoParamDim() > 1) IFEM::cout <<"^"<< this->getNoParamDim();
       IFEM::cout << std::endl;
-      myModel.resize(1,this->createDefaultGeometry(elem));
+      myModel = this->createDefaultGeometry(elem);
+      bool sets=false;
+      utl::getAttribute(elem,"sets",sets);
+      if (sets)
+        for (auto& it : this->createDefaultTopologySets(elem))
+          myEntitys[it.first] = it.second;
+
+      geoTag = new TiXmlElement(*elem);
     }
 
   if (!strcasecmp(elem->Value(),"linearsolver")) {
     if (!mySolParams)
-      mySolParams = new LinSolParams(nsd);
+      mySolParams = new LinSolParams();
     result &= mySolParams->read(elem);
   }
 
@@ -516,6 +555,8 @@ bool SIMbase::parse (const TiXmlElement* elem)
       result &= opt.parseEigSolTag(child);
     else if (!strcasecmp(elem->Value(),"postprocessing"))
       result &= this->parseOutputTag(child);
+    else if (!strcasecmp(elem->Value(),"console"))
+      result &= this->opt.parseConsoleTag(child);
     else if (!strcasecmp(elem->Value(),"discretization"))
       result &= opt.parseDiscretizationTag(child);
 
@@ -542,7 +583,7 @@ int SIMbase::parseMaterialSet (const TiXmlElement* elem, int mindex)
 const char** SIMbase::getPrioritizedTags () const
 {
   // Tags to be parsed first, and in the order specified
-  static const char* special[] = { "discretization", "geometry", 0 };
+  static const char* special[] = { "console", "discretization", "geometry", 0 };
   return special;
 }
 
@@ -766,9 +807,9 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
 void SIMbase::readLinSolParams (std::istream& is, int npar)
 {
   if (!mySolParams)
-    mySolParams = new LinSolParams(nsd);
+    mySolParams = new LinSolParams;
 
-  mySolParams->read(is,npar);
+  std::cerr << "Reading linear solver parameters from .inp is no longer supported" << std::endl;
 }
 
 
@@ -818,13 +859,11 @@ bool SIMbase::createFEMmodel (char resetNumb)
   if (nGlPatches == 0 && (!adm.isParallel() || adm.getNoProcs() == 1))
     nGlPatches = myModel.size();
 
-#ifdef HAS_PETSC
-  // When PETSc is used, we need to retain all DOFs in the equation system.
-  // The fixed DOFs (if any) will receive a homogeneous constraint instead.
-  ASMbase::fixHomogeneousDirichlet = opt.solver != SystemMatrix::PETSC;
-#else
-  ASMbase::fixHomogeneousDirichlet = true;
-#endif
+  if (geoTag) {
+    this->createDefaultTopology(geoTag);
+    delete geoTag;
+    geoTag = nullptr;
+  }
 
   return true;
 }
@@ -1063,7 +1102,7 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   if (mySam) delete mySam;
 #ifdef HAS_PETSC
   if (opt.solver == SystemMatrix::PETSC)
-    mySam = new SAMpatchPara(*g2l,adm);
+    mySam = new SAMpatchPETSc(*g2l,adm);
   else
     mySam = new SAMpatch();
 #else
@@ -1072,23 +1111,18 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   if (!static_cast<SAMpatch*>(mySam)->init(myModel,ngnod))
     return false;
 
+  if (!adm.dd.setup(adm,*this))
+  {
+    std::cerr <<"\n *** SIMbase::preprocess(): Error establishing domain decomposition." << std::endl;
+    return false;
+  }
+
   if (!myProblem)
   {
     std::cerr <<"\n *** SIMbase::preprocess(): No problem integrand for the "
               << this->getName() <<"-simulator."<< std::endl;
     return false;
   }
-
-  if (opt.solver == SystemMatrix::PETSC)
-    for (mit = myModel.begin(); mit != myModel.end() && myProblem; ++mit)
-      if ((*mit)->end_BC() != (*mit)->begin_BC())
-      {
-        std::cerr <<"\n *** SIMbase::preprocess: Patch "<< (*mit)->idx+1
-                  <<"  has boundary condition codes (eliminated DOFs).\n"
-                  <<"       This is not supported when PETSc is used,"
-                  <<" the input file must be corrected."<< std::endl;
-        return false;
-      }
 
   // Now perform the sub-class specific final preprocessing, if any
   return this->preprocessB() && ierr == 0;
@@ -1531,11 +1565,7 @@ bool SIMbase::updateDirichlet (double time, const Vector* prevSol)
 {
   if (prevSol)
     for (size_t i = 0; i < myModel.size(); i++)
-#ifdef PARALLEL_PETSC
-      if (!myModel[i]->updateDirichlet(myScalars,myVectors,time,g2l))
-#else
       if (!myModel[i]->updateDirichlet(myScalars,myVectors,time))
-#endif
 	return false;
 
   SAMpatch* pSam = dynamic_cast<SAMpatch*>(mySam);
@@ -2017,11 +2047,6 @@ Vec4 SIMbase::getNodeCoord (int inod) const
 
 bool SIMbase::isFixed (int inod, int dof) const
 {
-#ifdef HAS_PETSC
-  SAMpatchPara* pSam = dynamic_cast<SAMpatchPara*>(mySam);
-  if (pSam) return pSam->isDirichlet(inod,dof);
-#endif
-
   size_t node = 0;
   for (PatchVec::const_iterator it = myModel.begin(); it != myModel.end(); ++it)
     if ((node = (*it)->getNodeIndex(inod,true)))
@@ -2523,23 +2548,48 @@ bool SIMbase::extractPatchSolution (IntegrandBase* problem,
 
 
 size_t SIMbase::extractPatchSolution (const Vector& sol, Vector& vec,
-                                      int pindx, unsigned char nndof) const
+                                      int pindx, unsigned char nndof,
+                                      unsigned char basis) const
 {
   ASMbase* pch = pindx >= 0 ? this->getPatch(pindx+1) : nullptr;
   if (!pch || sol.empty()) return 0;
 
-  pch->extractNodeVec(sol,vec,nndof);
+  // Need an additional MADOF
+  if (basis != 0 && nndof != 0 &&
+      nndof != getNoFields(basis) && this->getNoFields(2) > 0) {
+    int key = basis << 16 + nndof;
+    if (addMADOFs.find(key) == addMADOFs.end())
+      addMADOFs[key] = MADof(myModel, this->getNoNodes(true), basis, nndof);
 
-  return (nndof > 0 ? nndof : pch->getNoFields(1))*pch->getNoNodes(1);
+    pch->extractNodeVec(sol,vec,&addMADOFs[key].get()[0]);
+  }
+  else
+    pch->extractNodeVec(sol,vec,nndof,basis);
+
+  return vec.size();
 }
 
 
 bool SIMbase::injectPatchSolution (Vector& sol, const Vector& vec,
-                                   int pindx, unsigned char nndof) const
+                                   int pindx, unsigned char nndof,
+                                   unsigned char basis) const
 {
   ASMbase* pch = pindx >= 0 ? this->getPatch(pindx+1) : nullptr;
+  if (!pch)
+    return false;
 
-  return pch ? pch->injectNodeVec(vec,sol,nndof) : false;
+  // Need an additional MADOF
+  if (basis != 0 && nndof != 0 &&
+      nndof != getNoFields(basis) && this->getNoFields(2) > 0) {
+    int key = basis << 16 + nndof;
+    if (addMADOFs.find(key) == addMADOFs.end())
+      addMADOFs[key] = MADof(myModel, this->getNoNodes(true), basis, nndof);
+
+    pch->injectNodeVec(addMADOFs[key].get(), vec, sol, basis);
+    return true;
+  }
+  else
+    return pch->injectNodeVec(vec,sol,nndof);
 }
 
 

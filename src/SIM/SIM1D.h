@@ -89,7 +89,7 @@ protected:
   //! \param[out] patches Array of patches that were read
   //! \param[in] whiteSpace For message formatting
   virtual bool readPatches(std::istream& isp, PatchVec& patches,
-                           const char* whiteSpace);
+                           const char* whiteSpace) const;
 
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   //! \param[in] patch 1-based index of the patch to receive the property
@@ -105,8 +105,20 @@ protected:
   //! \details Reimplemented to account for twist angle in beam problems.
   virtual bool createFEMmodel(char = 'y');
 
+  //! \brief Creates G2 representation of a line.
+  //! \param geo XML block with geometry definition
+  std::string createDefaultG2(const TiXmlElement* geo) const;
+
   //! \brief Creates a default single-patch geometry.
-  virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const;
+  virtual PatchVec createDefaultGeometry(const TiXmlElement* geo) const;
+
+  //! \brief Creates topology for default geometry.
+  //! \param[in] geo XML element containing geometry defintion
+  virtual bool createDefaultTopology(const TiXmlElement* geo) {return true;}
+
+  //! \brief Creates topology sets for default geometry.
+  //! \param[in] geo XML element containing geometry defintion
+  virtual TopologySet createDefaultTopologySets(const TiXmlElement* geo) const;
 
 protected:
   unsigned char nf; //!< Number of scalar fields
