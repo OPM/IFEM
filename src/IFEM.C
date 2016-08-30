@@ -22,7 +22,7 @@
 #include "petscsys.h"
 #endif
 #elif defined(HAVE_MPI)
-#include "mpi.h"
+#include <mpi.h>
 #endif
 
 int IFEM::argc;
