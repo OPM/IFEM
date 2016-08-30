@@ -82,8 +82,10 @@ private:
   //! \param[in] orient Orientation of faces
   //! \param[in] basis Which basis to connect
   //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
+  //! \param[in] dim Dimensionality of connection
   bool addConnection(int master, int slave, int mEdge, int sEdge,
-                     int orient, int basis = 0, bool coordCheck = true);
+                     int orient, int basis = 0,
+                     bool coordCheck = true, int dim = 2);
 
 protected:
   //! \brief Parses a data section from an XML document.

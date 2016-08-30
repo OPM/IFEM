@@ -85,8 +85,10 @@ private:
   //! \param sEdge Edge on slave
   //! \param rever Whether connection is reversed or not.
   //! \param coordCheck False to turn off coordinate checks.
+  //! \param dim Dimensionality of connection.
   bool addConnection(int master, int slave, int mEdge, int sEdge,
-                     bool rever, int basis=0, bool coordCheck=true);
+                     bool rever, int basis=0, bool coordCheck=true,
+                     int dim = 1);
 
 protected:
   //! \brief Parses a data section from an XML document.

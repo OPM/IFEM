@@ -70,25 +70,27 @@ SIM2D::SIM2D (IntegrandBase* itg, unsigned char n, bool check) : SIMgeneric(itg)
 
 
 bool SIM2D::addConnection(int master, int slave, int mEdge, int sEdge,
-                          bool rever, int basis, bool coordCheck)
+                          bool rever, int basis, bool coordCheck, int dim)
 {
   int lmaster = getLocalPatchIndex(master);
   int lslave = getLocalPatchIndex(slave);
 
   if (lmaster > 0 && lslave > 0)
   {
-    IFEM::cout <<"\tConnecting P"<< lslave <<" E"<< sEdge
-               <<" to P"<< lmaster <<" E"<< mEdge
-               <<" reversed? "<< rever << std::endl;
-    ASMs2D* spch = static_cast<ASMs2D*>(myModel[lslave-1]);
-    ASMs2D* mpch = static_cast<ASMs2D*>(myModel[lmaster-1]);
-    if (!spch->connectPatch(sEdge,*mpch,mEdge,rever,basis,coordCheck))
-      return false;
+    if (dim > 0) {
+      IFEM::cout <<"\tConnecting P"<< lslave <<" E"<< sEdge
+                 <<" to P"<< lmaster <<" E"<< mEdge
+                 <<" reversed? "<< rever << std::endl;
+      ASMs2D* spch = static_cast<ASMs2D*>(myModel[lslave-1]);
+      ASMs2D* mpch = static_cast<ASMs2D*>(myModel[lmaster-1]);
+      if (!spch->connectPatch(sEdge,*mpch,mEdge,rever,basis,coordCheck))
+        return false;
+    }
   }
   else
     adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave,
                                                                   mEdge, sEdge,
-                                                                  rever?1:0, 1, basis});
+                                                                  rever?1:0, dim, basis});
 
   return true;
 }
@@ -193,15 +195,18 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     const TiXmlElement* child = elem->FirstChildElement("connection");
     for (; child; child = child->NextSiblingElement())
     {
-      int master = 0, slave = 0, mEdge = 0, sEdge = 0, basis = 0;
+      int master = 0, slave = 0, mEdge = 0, sEdge = 0, basis = 0, dim = 1;
       bool rever = false, periodic = false;
       utl::getAttribute(child,"master",master);
       utl::getAttribute(child,"medge",mEdge);
+      utl::getAttribute(child,"midx",mEdge);
       utl::getAttribute(child,"slave",slave);
       utl::getAttribute(child,"sedge",sEdge);
+      utl::getAttribute(child,"sidx",sEdge);
       utl::getAttribute(child,"reverse",rever);
       utl::getAttribute(child,"basis",basis);
       utl::getAttribute(child,"periodic",periodic);
+      utl::getAttribute(child,"dim",dim);
 
       if (master == slave ||
           master < 1 || master > nGlPatches ||
@@ -212,7 +217,7 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
         return false;
       }
 
-      if (!addConnection(master, slave, mEdge, sEdge, rever, basis, !periodic))
+      if (!addConnection(master, slave, mEdge, sEdge, rever, basis, !periodic, dim))
         return false;
 
       if (opt.discretization == ASM::SplineC1) {

@@ -48,30 +48,32 @@ SIM3D::SIM3D (IntegrandBase* itg, unsigned char n, bool check) : SIMgeneric(itg)
 
 
 bool SIM3D::addConnection(int master, int slave, int mFace, int sFace,
-                          int orient, int basis, bool coordCheck)
+                          int orient, int basis, bool coordCheck, int dim)
 {
   int lmaster = getLocalPatchIndex(master);
   int lslave = getLocalPatchIndex(slave);
   if (lmaster > 0 && lslave > 0) {
-    IFEM::cout <<"\tConnecting P"<< lslave <<" F"<< sFace
-               <<" to P"<< lmaster <<" F"<< mFace
-               <<" orient "<< orient;
-    if (basis != 0)
-      IFEM::cout << " (basis " << basis << ")";
-    IFEM::cout << std::endl;
-    ASMs3D* spch = static_cast<ASMs3D*>(myModel[lslave-1]);
-    ASMs3D* mpch = static_cast<ASMs3D*>(myModel[lmaster-1]);
-    if (basis != 0) {
-      auto bases = utl::getDigits(basis);
-      for (const int& b : bases)
-        if (!spch->connectPatch(sFace,*mpch,mFace,orient,b,coordCheck))
-          return false;
-    } else if (!spch->connectPatch(sFace,*mpch,mFace,orient,basis,coordCheck))
-      return false;
+    if (dim == 2) {
+      IFEM::cout <<"\tConnecting P"<< lslave <<" F"<< sFace
+                 <<" to P"<< lmaster <<" F"<< mFace
+                 <<" orient "<< orient;
+      if (basis != 0)
+        IFEM::cout << " (basis " << basis << ")";
+      IFEM::cout << std::endl;
+      ASMs3D* spch = static_cast<ASMs3D*>(myModel[lslave-1]);
+      ASMs3D* mpch = static_cast<ASMs3D*>(myModel[lmaster-1]);
+      if (basis != 0) {
+        auto bases = utl::getDigits(basis);
+        for (const int& b : bases)
+          if (!spch->connectPatch(sFace,*mpch,mFace,orient,b,coordCheck))
+            return false;
+      } else if (!spch->connectPatch(sFace,*mpch,mFace,orient,basis,coordCheck))
+        return false;
+    }
   } else
     adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave,
                                                                   mFace, sFace,
-                                                                  orient, 2, basis});
+                                                                  orient, dim, basis});
 
   return true;
 }
@@ -177,15 +179,18 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
     const TiXmlElement* child = elem->FirstChildElement("connection");
     for (; child; child = child->NextSiblingElement())
     {
-      int master = 0, slave = 0, mFace = 0, sFace = 0, orient = 0, basis = 0;
+      int master = 0, slave = 0, mFace = 0, sFace = 0, orient = 0, basis = 0, dim = 2;
       bool periodic = false;
       utl::getAttribute(child,"master",master);
       utl::getAttribute(child,"mface",mFace);
+      utl::getAttribute(child,"midx",mFace);
       utl::getAttribute(child,"slave",slave);
       utl::getAttribute(child,"sface",sFace);
+      utl::getAttribute(child,"sidx",sFace);
       utl::getAttribute(child,"orient",orient);
       utl::getAttribute(child,"basis",basis);
       utl::getAttribute(child,"periodic",periodic);
+      utl::getAttribute(child,"dim",dim);
 
       if (master == slave ||
           master < 1 || master > nGlPatches ||
@@ -195,7 +200,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
                   << master <<" "<< slave << std::endl;
         return false;
       }
-      if (!addConnection(master, slave, mFace, sFace, orient, basis, !periodic))
+      if (!addConnection(master, slave, mFace, sFace, orient, basis, !periodic, dim))
         return false;
     }
   }
