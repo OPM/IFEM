@@ -256,10 +256,7 @@ int ASMbase::getNodeID (size_t inod, bool) const
 
 char ASMbase::getLMType(size_t n) const
 {
-  if (n >= myLMs.first && n <= myLMs.second)
-    return myLMTypes[n-myLMs.first];
-
-  return 'L';
+  return this->isLMn(n) ? myLMTypes[n-myLMs.first] : 0;
 }
 
 
