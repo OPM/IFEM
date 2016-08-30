@@ -19,6 +19,7 @@
 #include <vector>
 #include <cstddef>
 
+class ASMbase;
 class ProcessAdm;
 class SAMpatch;
 class SIMbase;
@@ -60,6 +61,10 @@ public:
         // then by slave id
         if (A.slave != B.slave)
           return A.slave < B.slave;
+
+        // then by dim
+        if (A.dim != B.dim)
+          return A.dim < B.dim;
 
         // finally by index on master
         return A.midx < B.midx;
@@ -180,13 +185,31 @@ private:
   //! \param cbasis If non-empty, bases to connect
   std::vector<int> setupEquationNumbers(const SIMbase& sim,
                                         int pidx, int lidx,
-                                        const std::set<int>& cbasis);
+                                        const std::set<int>& cbasis,
+                                        int dim);
+
+  //! \brief Setup node numbers for all bases on a boundary.
+  //! \param basis Bases to grab nodes for
+  //! \param lNodes Resulting nodes
+  //! \param cbasis Bases to connect
+  //! \param pch Patch to obtain nodes for
+  //! \param dim Dimension of boundary to obtain nodes for
+  //! \param lidx Local index of boundary to obtain nodes for
+  void setupNodeNumbers(int basis, std::vector<int>& lNodes,
+                        std::set<int>& cbasis,
+                        const ASMbase* pch,
+                        int dim, int lidx);
 
   //! \brief Calculate the global node numbers for given finite element model.
   bool calcGlobalNodeNumbers(const ProcessAdm& adm, const SIMbase& sim);
 
   //! \brief Calculate the global equation numbers for given finite element model.
   bool calcGlobalEqNumbers(const ProcessAdm& adm, const SIMbase& sim);
+
+  //! \brief Sanity check model.
+  //! \details Collects the corners of all patches in the model and make sure nodes
+  //!          with matching coordinates have the same global node ID.
+  bool sanityCheckCorners(const SIMbase& sim);
 
   std::map<int,int> patchOwner; //!< Process that owns a particular patch
 

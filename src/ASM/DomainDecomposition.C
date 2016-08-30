@@ -15,12 +15,14 @@
 #include "ASMbase.h"
 #include "ASMstruct.h"
 #include "ASM2D.h"
+#include "ASM3D.h"
 #include "LinSolParams.h"
 #include "ProcessAdm.h"
 #include "SAMpatch.h"
 #include "SIMbase.h"
 #include "IFEM.h"
 #include "Utilities.h"
+#include "Vec3.h"
 #include <cassert>
 #include <numeric>
 #include <iostream>
@@ -46,6 +48,22 @@ public:
     pch->getSize(n1,n2,n3,basis);
     int nsd = pch->getNoSpaceDim();
     if (nsd == 3) {
+      if (dim == 1) {
+        if (lIdx <= 4)
+          nodes.resize(n1);
+        else if (lIdx >= 5 && lIdx <= 8)
+          nodes.resize(n2);
+        else
+          nodes.resize(n3);
+
+        if (orient == 0)
+          std::iota(nodes.begin(), nodes.end(), 0);
+        else
+          std::iota(nodes.rbegin(), nodes.rend(), 0);
+
+        return;
+      }
+
       int dim1, dim2;
       if (lIdx == 1 || lIdx == 2)
         dim1 = n2, dim2 = n3;
@@ -277,6 +295,58 @@ std::vector<IntVec> DomainDecomposition::calcSubdomains3D(size_t nel1, size_t ne
 }
 
 
+void DomainDecomposition::setupNodeNumbers(int basis, IntVec& lNodes,
+                                           std::set<int>& cbasis,
+                                           const ASMbase* pch,
+                                           int dim, int lidx)
+{
+  if (basis != 0) // specified base
+    cbasis = utl::getDigits(basis);
+  else if (dim == 0 || (dim == 1 && pch->getNoSpaceDim() == 3)) {
+    // need to expand to all bases for corners and edges
+    for (size_t b = 1; b <= pch->getNoBasis(); ++b)
+      cbasis.insert(b);
+  } else // directly add nodes, cbasis remains empty
+    pch->getBoundaryNodes(lidx, lNodes);
+
+  const ASM2D* pch2D = dynamic_cast<const ASM2D*>(pch);
+  const ASM3D* pch3D = dynamic_cast<const ASM3D*>(pch);
+  for (auto& it2 : cbasis) {
+    if (dim == 0) {
+      int node = 0;
+      if (pch2D) {
+        static std::map<int, std::array<int,2>> vmap2D
+         {{1, {-1, -1}},
+          {2, { 1, -1}},
+          {3, {-1,  1}},
+          {4, { 1,  1}}};
+        auto itc = vmap2D.find(lidx);
+        node = pch2D->getCorner(itc->second[0], itc->second[1], it2);
+      } else if (pch3D) {
+        static std::map<int, std::array<int,3>> vmap3D
+         {{1, {-1, -1, -1}},
+          {2, { 1, -1, -1}},
+          {3, {-1,  1, -1}},
+          {4, { 1,  1, -1}},
+          {5, {-1, -1,  1}},
+          {6, { 1, -1,  1}},
+          {7, {-1,  1,  1}},
+          {8, { 1,  1,  1}}};
+        auto itc = vmap3D.find(lidx);
+        node = pch3D->getCorner(itc->second[0], itc->second[1],
+                                          itc->second[2], it2);
+      }
+      lNodes.push_back(pch->getNodeID(node));
+    } else if (dim == 1 && pch3D) {
+      std::vector<int> eNodes = pch3D->getEdge(lidx, false, it2);
+      for (const int& it : eNodes)
+        lNodes.push_back(pch->getNodeID(it));
+    } else
+      pch->getBoundaryNodes(lidx, lNodes, it2);
+  }
+}
+
+
 bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
                                                 const SIMbase& sim)
 {
@@ -311,12 +381,8 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
 
     std::set<int> cbasis;
     IntVec lNodes;
-    if (it.basis != 0) {
-      cbasis = utl::getDigits(it.basis);
-      for (auto& it2 : cbasis)
-        sim.getPatch(sidx)->getBoundaryNodes(it.sidx, lNodes, it2);
-    } else
-      sim.getPatch(sidx)->getBoundaryNodes(it.sidx, lNodes);
+
+    setupNodeNumbers(it.basis, lNodes, cbasis, sim.getPatch(sidx), it.dim, it.sidx);
 
     int nRecv;
     adm.receive(nRecv, getPatchOwner(it.master));
@@ -369,30 +435,8 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
       continue;
 
     std::set<int> cbasis;
-    if (it.basis != 0)
-      cbasis = utl::getDigits(it.basis);
-
     std::vector<int> glbNodes;
-    for (size_t b = 1; b <= sim.getPatch(midx)->getNoBasis(); ++b) {
-      if (it.dim == 0) {
-        static std::map<int, std::array<int,2>> vmap2D
-        {{1, {-1, -1}},
-          {2, { 1, -1}},
-          {3, {-1,  1}},
-          {4, { 1,  1}}};
-
-          auto itc = vmap2D.find(it.midx);
-          const ASM2D* pch = dynamic_cast<ASM2D*>(sim.getPatch(midx));
-          if (!pch)
-            continue;
-          int corner = pch->getCorner(itc->second[0], itc->second[1], b);
-          if (corner > 0)
-            glbNodes.push_back(corner);
-      } else {
-        if (cbasis.empty() || cbasis.find(b) != cbasis.end())
-          sim.getPatch(midx)->getBoundaryNodes(it.midx, glbNodes, b);
-      }
-    }
+    setupNodeNumbers(it.basis, glbNodes, cbasis, sim.getPatch(midx), it.dim, it.midx);
 
     for (size_t i = 0; i < glbNodes.size(); ++i)
       glbNodes[i] = MLGN[glbNodes[i]-1];
@@ -428,23 +472,8 @@ std::vector<int> DomainDecomposition::setupEquationNumbers(const SIMbase& sim,
         continue;
 
       if (lNodes[basis-1].empty()) {
-        if (dim == 0) {
-          if (sim.getPatch(pidx)->getNoSpaceDim() == 2) {
-            const ASM2D* pch = dynamic_cast<ASM2D*>(sim.getPatch(pidx));
-            if (!pch)
-              continue;
-            static std::map<int, std::array<int,2>> vmap2D
-              {{1, {-1, -1}},
-               {2, { 1, -1}},
-               {3, {-1,  1}},
-               {4, { 1,  1}}};
-
-            auto itc = vmap2D.find(lidx);
-
-            lNodes[basis-1] = {pch->getCorner(itc->second[0], itc->second[1], basis)};
-          }
-        } else
-          sim.getPatch(pidx)->getBoundaryNodes(lidx, lNodes[basis-1], basis);
+        IntSet dummy;
+        setupNodeNumbers(basis, lNodes[basis-1], dummy, sim.getPatch(pidx), dim, lidx);
       }
 
       std::set<int> components;
@@ -719,10 +748,96 @@ int DomainDecomposition::getGlobalEq(int lEq, size_t idx) const
 }
 
 
+bool DomainDecomposition::sanityCheckCorners(const SIMbase& sim)
+{
+#ifdef HAVE_MPI
+  const ProcessAdm& adm = sim.getProcessAdm();
+  if (!adm.isParallel())
+    return true;
+
+  std::vector<int> sizes(adm.getNoProcs());
+  for (int i = 1; i <= sim.getNoPatches(); ++i)
+    sizes[adm.dd.getPatchOwner(i)] += 5*sim.getPatch(1)->getNoBasis() *
+                                      pow(2,sim.getNoSpaceDim());
+
+  std::vector<int> displ(adm.getNoProcs());
+  for (int i = 1; i < adm.getNoProcs(); ++i)
+    displ[i] = displ[i-1] + sizes[i-1];
+
+  std::vector<double> loc_data;
+  for (int i = 1; i <= sim.getNoPatches(); ++i) {
+    int pIdx;
+    if ((pIdx=sim.getLocalPatchIndex(i)) > 0) {
+      const ASM2D* pch2D = nullptr;
+      if (sim.getNoSpaceDim() == 2)
+        pch2D = dynamic_cast<const ASM2D*>(sim.getPatch(pIdx));
+      const ASM3D* pch3D = nullptr;
+      if (sim.getNoSpaceDim() == 3)
+        pch3D = dynamic_cast<const ASM3D*>(sim.getPatch(pIdx));
+      if (pch2D || pch3D) {
+        for (size_t c = 0; c < pow(2,sim.getPatch(pIdx)->getNoSpaceDim()); ++c) {
+          for (size_t b = 1; b <= sim.getPatch(pIdx)->getNoBasis(); ++b) {
+            int node;
+            if (pch2D)
+              node = pch2D->getCorner((c == 1 || c == 3) ? 1 : -1,
+                                                 c >= 2  ? 1 : -1, b);
+            else if (pch3D)
+              node = pch3D->getCorner((c == 1 || c == 3 || c == 5 || c == 7) ? 1 : -1,
+                                      (c == 2 || c == 3 || c == 6 || c == 7) ? 1 : -1,
+                                                                     c >= 4  ? 1 : -1, b);
+
+            Vec3 pos = sim.getPatch(pIdx)->getCoord(node);
+            loc_data.push_back(pos[0]);
+            loc_data.push_back(pos[1]);
+            loc_data.push_back(pos[2]);
+            loc_data.push_back(b);
+            loc_data.push_back(adm.dd.getMLGN()[sim.getPatch(pIdx)->getNodeID(node)-1]);
+          }
+        }
+      }
+    }
+  }
+
+  std::vector<double> glob_data(displ.back()+sizes.back());
+  MPI_Allgatherv(loc_data.data(), loc_data.size(), MPI_DOUBLE,
+                 glob_data.data(), sizes.data(), displ.data(), MPI_DOUBLE,
+                 *adm.getCommunicator());
+
+  // unpack data
+  std::vector<std::array<double,5>> corners;
+  for (size_t i = 0; i < glob_data.size(); i += 5)
+    corners.push_back({glob_data[i], glob_data[i+1],
+                        glob_data[i+2], glob_data[i+3], glob_data[i+4]});
+
+  for (const auto& c : corners) {
+    auto fail = std::find_if(corners.begin(), corners.end(),
+                            [c](const std::array<double,5>& C)
+                            {
+                              return std::fabs(C[0]-c[0]) < 1e-6 &&
+                                     std::fabs(C[1]-c[1]) < 1e-6 &&
+                                     std::fabs(C[2]-c[2]) < 1e-6 &&
+                                    (int)c[3] == (int)C[3] &&
+                                    (int)c[4] != (int)C[4];
+                            });
+    if (fail != corners.end()) {
+      std::cerr << "** DomainDecomposition::setup ** Corner node " << (int)c[4]
+                << " with coordinates (" << c[0] << "," << c[1] << "," << c[2] << ")"
+                << " found with different global ID " << (int)(*fail)[4]
+                << " for basis " << (int)c[3] << "."
+                << " You have to add vertex / edge connections." << std::endl;
+      return false;
+    }
+  }
+#endif
+
+  return true;
+}
+
+
 bool DomainDecomposition::setup(const ProcessAdm& adm, const SIMbase& sim)
 {
 #ifdef HAVE_MPI
-  if (adm.isParallel()) {
+  if (!adm.isParallel())
     IFEM::cout << "Establishing domain decomposition" << std::endl;
 
 #if SP_DEBUG > 1
@@ -732,8 +847,8 @@ bool DomainDecomposition::setup(const ProcessAdm& adm, const SIMbase& sim)
                   ", slave/idx=" << it.slave << "/" << it.sidx <<
                   ", orient=" << it.orient << ", dim=" << it.dim <<
                   ", basis=" << it.basis << std::endl;
-#endif
   }
+#endif
 #endif
 
   sam = dynamic_cast<const SAMpatch*>(sim.getSAM());
@@ -758,6 +873,10 @@ bool DomainDecomposition::setup(const ProcessAdm& adm, const SIMbase& sim)
 #endif
 
   if (ok < adm.getNoProcs())
+    return false;
+
+  // sanity check all corners of the patches
+  if (!sanityCheckCorners(sim))
     return false;
 
   lok = 1;
