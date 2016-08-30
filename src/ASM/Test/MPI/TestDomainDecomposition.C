@@ -13,6 +13,7 @@
 #include "DomainDecomposition.h"
 #include "SAM.h"
 #include "ASMbase.h"
+#include "IntegrandBase.h"
 #include "SIM2D.h"
 #include "SIM3D.h"
 #include "IFEM.h"
@@ -40,6 +41,14 @@ protected:
 
     return true;
   }
+};
+
+
+template<class Dim>
+class DummySIM : public Dim {
+public:
+  class DummyIntegrand : public IntegrandBase {};
+  DummySIM() : Dim(1) { Dim::myProblem = new DummyIntegrand; }
 };
 
 
@@ -83,20 +92,26 @@ class TestDomainDecomposition3D : public testing::Test,
 };
 
 
-TEST(TestDomainDecomposition2D, Corner)
+TEST_P(TestDomainDecomposition2D, Corner)
 {
-  SIM2D sim(1);
+  DummySIM<SIM2D> sim;
   std::stringstream str;
-  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_corner.xinp";
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_corner";
+  if (GetParam() == 1)
+    str << "_fail";
+  str << ".xinp";
   sim.read(str.str().c_str());
-  sim.preprocess();
 
-  const ProcessAdm& adm = sim.getProcessAdm();
-  str.str("");
-  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_corner_nodes";
-  str << adm.getProcId() << ".ref";
-  IntVec B = readIntVector(str.str());
-  check_intvectors_equal(adm.dd.getMLGN(), B);
+  if (GetParam() == 0) {
+    ASSERT_TRUE(sim.preprocess());
+    const ProcessAdm& adm = sim.getProcessAdm();
+    str.str("");
+    str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_corner_nodes";
+    str << adm.getProcId() << ".ref";
+    IntVec B = readIntVector(str.str());
+    check_intvectors_equal(adm.dd.getMLGN(), B);
+  } else
+    ASSERT_FALSE(sim.preprocess());
 }
 
 
@@ -454,6 +469,32 @@ TEST_P(TestDomainDecomposition3D, SetupMixedBasisPeriodic)
 //  str << GetParam() << "_eqs" << adm.getProcId() << ".ref";
 //  B = readIntVector(str.str());
 //  check_intvectors_equal(adm.dd.getMLGEQ(), B);
+}
+
+
+TEST_P(TestDomainDecomposition3D, Corner)
+{
+  if (GetParam() > 1)
+    return;
+
+  DummySIM<SIM3D> sim;
+  std::stringstream str;
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_corner";
+  if (GetParam() == 1)
+    str << "_fail";
+  str << ".xinp";
+  sim.read(str.str().c_str());
+
+  if (GetParam() == 0) {
+    ASSERT_TRUE(sim.preprocess());
+    const ProcessAdm& adm = sim.getProcessAdm();
+    str.str("");
+    str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_corner_nodes";
+    str << adm.getProcId() << ".ref";
+    IntVec B = readIntVector(str.str());
+    check_intvectors_equal(adm.dd.getMLGN(), B);
+  } else
+    ASSERT_FALSE(sim.preprocess());
 }
 
 

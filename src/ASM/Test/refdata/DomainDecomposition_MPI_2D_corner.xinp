@@ -9,7 +9,7 @@
   <!-- General - geometry definitions !-->
   <geometry>
     <partitioning procs="4" nperproc="1"/>
-    <patchfile>src/ASM/Test/refdata/backstep-4.g2</patchfile>
+    <patchfile>src/ASM/Test/refdata/backstep2D-4.g2</patchfile>
     <refine lowerpatch="1" upperpatch="4" u="1" v="1"/>
     <topology>
       <connection master="1" medge="2" slave="2" sedge="1"/>
