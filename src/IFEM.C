@@ -109,11 +109,11 @@ int IFEM::Init (int arg_c, char** arg_v, const char* title)
   std::cout << "disabled";
 #endif
 
-  std::cout <<"\n       ISTL support: "<<
+  std::cout <<"\n       ISTL support: ";
 #if HAS_ISTL
-    "enabled (v" << ISTL_VERSION << ")";
+  std::cout << "enabled (v" << ISTL_VERSION << ")";
 #else
-    "disabled";
+  std::cout << "disabled";
 #endif
 
   std::cout <<"\n        VTF support: ";
