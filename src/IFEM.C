@@ -18,9 +18,10 @@
 
 #ifdef HAS_PETSC
 #include "petscversion.h"
-#endif
 #ifdef HAVE_MPI
 #include "petscsys.h"
+#endif
+#elif defined(HAVE_MPI)
 #include "mpi.h"
 #endif
 
@@ -51,7 +52,11 @@ int IFEM::Init (int arg_c, char** arg_v, const char* title)
     std::cout <<"\n\n Executing command:\n";
 #ifdef HAVE_MPI
     int nProc = 1;
+#ifdef HAS_PETSC
     MPI_Comm_size(PETSC_COMM_WORLD,&nProc);
+#else
+    MPI_Comm_size(MPI_COMM_WORLD,&nProc);
+#endif
     if (nProc > 1)
       std::cout <<" mpirun -np "<< nProc;
 #endif

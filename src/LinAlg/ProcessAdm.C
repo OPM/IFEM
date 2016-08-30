@@ -55,7 +55,7 @@ ProcessAdm::ProcessAdm(bool) : cout(std::cout)
   MPI_Comm_rank(comm,&myPid);
   MPI_Comm_size(comm,&nProc);
   cout = IFEM::cout;
-  parallel = true;
+  parallel = nProc > 1;
 }
 #endif
 
