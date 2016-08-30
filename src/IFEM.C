@@ -63,7 +63,7 @@ int IFEM::Init (int arg_c, char** arg_v, const char* title)
                                << IFEM_VERSION_MINOR <<"."
                                << IFEM_VERSION_PATCH <<" initialized =====";
 
-  std::cout <<"\n       HDF5 support: ":
+  std::cout <<"\n       HDF5 support: ";
 #if HAS_HDF5
     std::cout << "enabled";
 #else
