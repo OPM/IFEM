@@ -228,7 +228,7 @@ bool ASMbase::addGlobalLagrangeMultipliers (const IntVec& mGLag,
   if (omp_get_max_threads() > 1) {
     std::cerr << "** Cannot do multi-threaded assembly with global multipliers. **" << std::endl
               << "\t Setting OMP_NUM_THREADS = 1" << std::endl;
-    omp_set_max_threads(1);
+    omp_set_num_threads(1);
   }
 #endif
 
