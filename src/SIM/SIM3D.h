@@ -68,13 +68,15 @@ public:
   //! \brief Connect two patches.
   //! \param master Master patch
   //! \param slave Slave patch
-  //! \param mFace Face on master
-  //! \param sFace Face on slave
+  //! \param mIdx Index on master
+  //! \param sIdx Index on slave
   //! \param orient Orientation flag for connection
   //! \param basis Which bases to connect (0 for all)
   //! \param coordCheck False to turn off coordinate checks
+  //! \param[in] dim Dimensionality of connection
   bool addConnection(int master, int slave, int mFace, int sFace,
-                     int orient, int basis = 0, bool coordCheck = true);
+                     int orient, int basis = 0, bool coordCheck = true,
+                     int dim = 2);
 
   //! \brief Evaluates the primary solution at the given point.
   //! \param[in] psol Primary solution vector

@@ -100,8 +100,10 @@ public:
   //! \param orient Orientation flag
   //! \param basis Which bases to connect (0 for all)
   //! \param coordCheck False to turn off coordinate checks.
+  //! \param dim Dimensionality of connection
   virtual bool addConnection(int master, int slave, int mIdx, int sIdx,
-                             int orient, int basis = 0, bool coordCheck = true)
+                             int orient, int basis = 0, bool coordCheck = true,
+                             int dim = 1)
   { return false; }
 
 protected:
