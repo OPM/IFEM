@@ -50,8 +50,8 @@ SIM2D::SIM2D (IntegrandBase* itg, unsigned char n, bool check) : SIMgeneric(itg)
 }
 
 
-bool SIM2D::addConnection(int master, int slave, int mIdx,
-                          int sIdx, int orient, int basis, bool coordCheck)
+bool SIM2D::addConnection(int master, int slave, int mIdx, int sIdx,
+                          int orient, int basis, bool coordCheck, int dim)
 {
   if (orient < 0 || orient > 1) {
     std::cerr << "** SIM2D::addConnection ** Invalid orientation "
@@ -64,31 +64,33 @@ bool SIM2D::addConnection(int master, int slave, int mIdx,
 
   if (lmaster > 0 && lslave > 0)
   {
-    IFEM::cout <<"\tConnecting P"<< lslave <<" E"<< sIdx
-               <<" to P"<< lmaster <<" E"<< mIdx;
-    if (orient == 1)
-      IFEM::cout <<" orientation 1";
-    IFEM::cout << std::endl;
+    if (dim > 0)  {
+      IFEM::cout <<"\tConnecting P"<< lslave <<" E"<< sIdx
+                 <<" to P"<< lmaster <<" E"<< mIdx;
+      if (orient == 1)
+        IFEM::cout <<" orientation 1";
+      IFEM::cout << std::endl;
 
-    ASMs2D* spch = static_cast<ASMs2D*>(myModel[lslave-1]);
-    ASMs2D* mpch = static_cast<ASMs2D*>(myModel[lmaster-1]);
-    std::set<int> bases;
-    if (basis == 0)
-      for (size_t b = 1; b <= spch->getNoBasis(); ++b)
-        bases.insert(b);
-    else
-      bases = utl::getDigits(basis);
-    for (const int& b : bases)
-      if (!spch->connectPatch(sIdx,*mpch,mIdx,orient==1?true:false,b,coordCheck))
-        return false;
-      else if (opt.discretization == ASM::SplineC1 && b == 1)
-        top.push_back(Interface(static_cast<ASMs2DC1*>(mpch),mIdx,
-                                static_cast<ASMs2DC1*>(spch),sIdx,orient==1?true:false));
+      ASMs2D* spch = static_cast<ASMs2D*>(myModel[lslave-1]);
+      ASMs2D* mpch = static_cast<ASMs2D*>(myModel[lmaster-1]);
+      std::set<int> bases;
+      if (basis == 0)
+        for (size_t b = 1; b <= spch->getNoBasis(); ++b)
+          bases.insert(b);
+      else
+        bases = utl::getDigits(basis);
+      for (const int& b : bases)
+        if (!spch->connectPatch(sIdx,*mpch,mIdx,orient==1?true:false,b,coordCheck))
+          return false;
+        else if (opt.discretization == ASM::SplineC1 && b == 1)
+          top.push_back(Interface(static_cast<ASMs2DC1*>(mpch),mIdx,
+                                  static_cast<ASMs2DC1*>(spch),sIdx,orient==1?true:false));
+    }
   }
   else
     adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave,
                                                                   mIdx, sIdx,
-                                                                  orient, 1, basis});
+                                                                  orient, dim, basis});
 
   return true;
 }
@@ -183,7 +185,7 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
     const TiXmlElement* child = elem->FirstChildElement("connection");
     for (; child; child = child->NextSiblingElement())
     {
-      int master = 0, slave = 0, mIdx = 0, sIdx = 0, basis = 0, orient = 0;
+      int master = 0, slave = 0, mIdx = 0, sIdx = 0, basis = 0, orient = 0, dim = 1;
       bool rever = false, periodic = false;
       utl::getAttribute(child,"master",master);
       if (!utl::getAttribute(child,"midx",mIdx))
@@ -196,6 +198,7 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
         orient = rever ? 1 : 0;
       utl::getAttribute(child,"basis",basis);
       utl::getAttribute(child,"periodic",periodic);
+      utl::getAttribute(child,"dim",dim);
 
       if (master == slave ||
           master < 1 || master > nGlPatches ||
@@ -206,8 +209,8 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
         return false;
       }
 
-      if (!this->addConnection(master, slave, mIdx, sIdx, orient, basis, !periodic)) {
-        std::cerr <<" ** SIM2D::parse: Error establishing connection." << std::endl;
+      if (!addConnection(master, slave, mIdx, sIdx, rever, basis, !periodic, dim)) {
+        std::cerr <<" ** SIM3D::parse: Error establishing connection." << std::endl;
         return false;
       }
     }
