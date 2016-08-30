@@ -490,48 +490,58 @@ size_t ASMu3D::constrainFaceLocal(int dir, bool open, int dof, int code, bool pr
 	return 0;
 }
 
+
+std::vector<int> ASMu3D::getEdge(int lEdge, bool open, int) const
+{
+  // lEdge = 1-4, running index is u (vmin,wmin), (vmax,wmin), (vmin,wmax), (vmax,wmax)
+  // lEdge = 5-8, running index is v (umin,wmin), (umax,wmin), (umin,wmax), (umax,wmax)
+  // lEdge = 9-12, running index is w
+
+  int edge = LR::NONE;
+  if(lEdge == 1)
+    edge = LR::BOTTOM | LR::SOUTH;
+  else if(lEdge == 2)
+    edge = LR::BOTTOM | LR::NORTH;
+  else if(lEdge == 3)
+    edge = LR::TOP    | LR::SOUTH;
+  else if(lEdge == 4)
+    edge = LR::TOP    | LR::NORTH;
+  else if(lEdge == 5)
+    edge = LR::BOTTOM | LR::WEST;
+  else if(lEdge == 6)
+    edge = LR::BOTTOM | LR::EAST;
+  else if(lEdge == 7)
+    edge = LR::TOP    | LR::WEST;
+  else if(lEdge == 8)
+    edge = LR::TOP    | LR::EAST;
+  else if(lEdge == 9)
+    edge = LR::SOUTH  | LR::WEST;
+  else if(lEdge == 10)
+    edge = LR::SOUTH  | LR::EAST;
+  else if(lEdge == 11)
+    edge = LR::NORTH  | LR::WEST;
+  else if(lEdge == 12)
+    edge = LR::NORTH  | LR::EAST;
+
+  // get all the boundary functions from the LRspline object
+  std::vector<LR::Basisfunction*> thisEdge;
+  lrspline->getEdgeFunctions(thisEdge, (LR::parameterEdge) edge, 1);
+  std::vector<int> result;
+  for (LR::Basisfunction* b  : thisEdge)
+    result.push_back(b->getId()+1);
+
+  return result;
+}
+
 void ASMu3D::constrainEdge (int lEdge, bool open, int dof, int code, char)
 {
-	if(open)
-		std::cerr << "\nWARNING: ASMu3D::constrainEdge, open boundary conditions not supported yet. Treating it as closed" << std::endl;
+  if(open)
+    std::cerr << "\nWARNING: ASMu3D::constrainEdge, open boundary conditions not supported yet. Treating it as closed" << std::endl;
 
-	// lEdge = 1-4, running index is u (vmin,wmin), (vmax,wmin), (vmin,wmax), (vmax,wmax)
-	// lEdge = 5-8, running index is v (umin,wmin), (umax,wmin), (umin,wmax), (umax,wmax)
-	// lEdge = 9-12, running index is w
-
-	int edge = LR::NONE;
-	if(lEdge == 1) 
-		edge = LR::BOTTOM | LR::SOUTH;
-	else if(lEdge == 2) 
-		edge = LR::BOTTOM | LR::NORTH;
-	else if(lEdge == 3) 
-		edge = LR::TOP    | LR::SOUTH;
-	else if(lEdge == 4) 
-		edge = LR::TOP    | LR::NORTH;
-	else if(lEdge == 5) 
-		edge = LR::BOTTOM | LR::WEST;
-	else if(lEdge == 6) 
-		edge = LR::BOTTOM | LR::EAST;
-	else if(lEdge == 7) 
-		edge = LR::TOP    | LR::WEST;
-	else if(lEdge == 8) 
-		edge = LR::TOP    | LR::EAST;
-	else if(lEdge == 9) 
-		edge = LR::SOUTH  | LR::WEST;
-	else if(lEdge == 10) 
-		edge = LR::SOUTH  | LR::EAST;
-	else if(lEdge == 11) 
-		edge = LR::NORTH  | LR::WEST;
-	else if(lEdge == 12) 
-		edge = LR::NORTH  | LR::EAST;
-
-	// get all the boundary functions from the LRspline object
-	std::vector<LR::Basisfunction*> thisEdge;
-	lrspline->getEdgeFunctions(thisEdge, (LR::parameterEdge) edge, 1);
-
-	// enforce the boundary conditions
-	for(LR::Basisfunction* b  : thisEdge)
-		this->prescribe(b->getId()+1,dof,code);
+  // enforce the boundary conditions
+  std::vector<int> nodes = this->getEdge(lEdge, open, 1);
+  for (const int& node : nodes)
+    this->prescribe(node,dof,code);
 }
 
 
