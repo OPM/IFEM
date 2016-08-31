@@ -329,43 +329,23 @@ bool ASMs1D::connectBasis (int vertex, ASMs1D& neighbor, int nvertex,
     std::cerr <<" *** ASMs1D::connectPatch: Logic error, cannot"
 	      <<" connect a sharedFE patch with an unshared one"<< std::endl;
     return false;
+  } else if (vertex < 1 || vertex > 2) {
+    std::cerr <<" *** ASMs1D::connectPatch: Invalid slave vertex "
+              << vertex << std::endl;
+    return false;
+  } else if (nvertex < 1 || nvertex > 2) {
+    std::cerr <<" *** ASMs1D::connectPatch: Invalid master vertex "
+              << nvertex << std::endl;
+    return false;
   }
 
   // Set up the slave node number for this curve patch
-
   int n1 = this->getSize(basis);
-
-  switch (vertex)
-    {
-    case 2: // Positive I-direction
-      slave += n1;
-    case 1: // Negative I-direction
-      slave += 1;
-      break;
-
-    default:
-      std::cerr <<" *** ASMs1D::connectPatch: Invalid slave vertex "
-		<< vertex << std::endl;
-      return false;
-    }
+  slave += vertex == 2 ? n1 : 1;
 
   // Set up the master node number for the neighboring patch
-
   n1 = neighbor.getSize(basis);
-
-  switch (nvertex)
-    {
-    case 2: // Positive I-direction
-      master += n1;
-    case 1: // Negative I-direction
-      master += 1;
-      break;
-
-    default:
-      std::cerr <<" *** ASMs1D::connectPatch: Invalid master vertex "
-		<< nvertex << std::endl;
-      return false;
-    }
+  master += nvertex == 2 ? n1 : 1;
 
   const double xtol = 1.0e-4;
   if (!neighbor.getCoord(master).equal(this->getCoord(slave),xtol))
