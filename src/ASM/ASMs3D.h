@@ -199,7 +199,9 @@ public:
   //! \param[in] lIndex Local index of the boundary face
   //! \param glbNodes Array of global boundary node numbers
   //! \param basis Which basis to grab nodes for (0 for all)
-  virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes, int basis) const;
+  //! \param local If true return patch-local node numbers
+  virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes,
+                                int basis, bool local = false) const;
 
   //! \brief Returns the node index for a given corner.
   virtual int getCorner(int I, int J, int K, int basis = 1) const;

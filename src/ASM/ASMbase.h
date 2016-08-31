@@ -210,8 +210,9 @@ public:
   //! \param[in] lIndex Local index of the boundary face/edge
   //! \param glbNodes Array of global boundary node numbers
   //! \param basis Which basis to grab nodes for (0 for all)
+  //! \param local If true, return patch-local numbers
   virtual void getBoundaryNodes(int lIndex, IntVec& glbNodes,
-                                int basis = 0) const = 0;
+                                int basis = 0, bool local = false) const = 0;
 
   //! \brief Finds the node that is closest to the given point.
   virtual std::pair<size_t,double> findClosestNode(const Vec3&) const

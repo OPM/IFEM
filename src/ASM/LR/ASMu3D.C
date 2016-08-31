@@ -1930,7 +1930,7 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
 }
 
 
-void ASMu3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis) const
+void ASMu3D::getBoundaryNodes (int lIndex, IntVec& nodes, int basis, bool local) const
 {
   // TODO: Implement this before attempting FSI simulations with LR B-splines
 }

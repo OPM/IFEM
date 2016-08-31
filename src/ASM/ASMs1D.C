@@ -584,17 +584,20 @@ bool ASMs1D::updateRotations (const Vector& displ, bool reInit)
 }
 
 
-void ASMs1D::getBoundaryNodes (int lIndex, IntVec& glbNodes, int) const
+void ASMs1D::getBoundaryNodes (int lIndex, IntVec& glbNodes,
+                               int, bool local) const
 {
   if (!curv) return; // silently ignore empty patches
 
   size_t iel = lIndex == 1 ? 0 : nel-1;
   if (MLGE[iel] > 0)
   {
+    int node;
     if (lIndex == 1)
-      glbNodes.push_back(MLGN[MNPC[iel].front()]);
+      node = MNPC[iel].front();
     else if (lIndex == 2)
-      glbNodes.push_back(MLGN[MNPC[iel][curv->order()-1]]);
+      node = MNPC[iel][curv->order()-1];
+    glbNodes.push_back(local ? node : MLGN[node]);
   }
 }
 
