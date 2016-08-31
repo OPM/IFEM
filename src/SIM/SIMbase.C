@@ -558,25 +558,25 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
       IFEM::cout <<"\nNumber of patches: "<< npatch << std::endl;
       for (int i = 0; i < npatch && (cline = utl::readLine(is)); i++)
       {
-	std::ifstream is(cline);
-	if (is.good())
-	{
-	  IFEM::cout <<"\nReading patch file "<< cline << std::endl;
-	  ASMbase* pch = this->readPatch(is,i);
-	  if (pch)
-	    myModel.push_back(pch);
-	}
-	else
-	  std::cerr <<" *** SIMbase: Failure opening patch file"
-		    << cline << std::endl;
+        std::ifstream is(cline);
+        if (is.good())
+        {
+          IFEM::cout <<"\nReading patch file "<< cline << std::endl;
+          ASMbase* pch = this->readPatch(is,i);
+          if (pch)
+            myModel.push_back(pch);
+        }
+        else
+          std::cerr <<" *** SIMbase: Failure opening patch file"
+                    << cline << std::endl;
       }
 
       if ((int)myModel.size() < npatch)
       {
-	std::cerr <<" *** SIMbase::parse: Expected "<< npatch
-		  <<" patches but could read only "<< myModel.size()
-		  << std::endl;
-	return false;
+        std::cerr <<" *** SIMbase::parse: Expected "<< npatch
+                  <<" patches but could read only "<< myModel.size()
+                  << std::endl;
+        return false;
       }
     }
     else // just read through the npatch next lines without doing anything
@@ -594,8 +594,8 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
 
       if (myModel.empty())
       {
-	std::cerr <<" *** SIMbase::parse: No patches read"<< std::endl;
-	return false;
+        std::cerr <<" *** SIMbase::parse: No patches read"<< std::endl;
+        return false;
       }
     }
   }
@@ -618,9 +618,9 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
       std::ifstream isn(filename.c_str());
       if (!isn.good())
       {
-	std::cerr <<" *** SIMbase::read: Failure opening input file "
-		  << filename << std::endl;
-	return false;
+        std::cerr <<" *** SIMbase::read: Failure opening input file "
+                  << filename << std::endl;
+        return false;
       }
 
       if (basis < 2) IFEM::cout <<"\n";
@@ -630,18 +630,18 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
 
       while (isn.good())
       {
-	int patch = 0;
-	isn >> patch;
-	if (!oneBasedIdx) ++patch;
-	int pid = this->getLocalPatchIndex(patch);
-	if (pid < 0) return false;
+        int patch = 0;
+        isn >> patch;
+        if (!oneBasedIdx) ++patch;
+        int pid = this->getLocalPatchIndex(patch);
+        if (pid < 0) return false;
 
-	if (!this->readNodes(isn,pid-1,basis,oneBasedIdx))
-	{
-	  std::cerr <<" *** SIMbase::parse: Failed to assign node numbers"
-		    <<" for patch "<< patch << std::endl;
-	  return false;
-	}
+        if (!this->readNodes(isn,pid-1,basis,oneBasedIdx))
+        {
+          std::cerr <<" *** SIMbase::parse: Failed to assign node numbers"
+                    <<" for patch "<< patch << std::endl;
+          return false;
+        }
       }
     }
   }
@@ -656,7 +656,7 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
     if (!isp)
     {
       std::cerr <<" *** SIMbase::read: Failure opening input file "
-		<< std::string(keyWord+i) << std::endl;
+                << std::string(keyWord+i) << std::endl;
       return false;
     }
 
@@ -670,16 +670,16 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
 
       if (!oneBasedIdx)
       {
-	// We always require the item indices to be 1-based
-	++p.patch;
-	++lindx;
+        // We always require the item indices to be 1-based
+        ++p.patch;
+        ++lindx;
       }
 
       p.ldim = ldim;
       p.lindx = lindx;
       p.patch = this->getLocalPatchIndex(p.patch);
       if (p.patch > 0 && isp.good())
-	myProps.push_back(p);
+        myProps.push_back(p);
     }
   }
 
@@ -696,18 +696,18 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
       IFEM::cout <<"\tDirichlet code "<< code <<": ";
       if (d == 0.0)
       {
-	this->setPropertyType(code,Property::DIRICHLET);
-	IFEM::cout <<"(fixed)";
+        this->setPropertyType(code,Property::DIRICHLET);
+        IFEM::cout <<"(fixed)";
       }
       else if (code > 0)
       {
-	this->setPropertyType(-code,Property::DIRICHLET_INHOM);
+        this->setPropertyType(-code,Property::DIRICHLET_INHOM);
 
-	cline = strtok(nullptr," ");
-	myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,d));
+        cline = strtok(nullptr," ");
+        myScalars[code] = const_cast<RealFunc*>(utl::parseRealFunc(cline,d));
       }
       else
-	IFEM::cout <<"(ignored)";
+        IFEM::cout <<"(ignored)";
       IFEM::cout << std::endl;
     }
   }
@@ -731,16 +731,16 @@ bool SIMbase::parse (char* keyWord, std::istream& is)
 
       if (proc == myPid && last >= first)
       {
-	myPatches.reserve(last-first+1);
-	for (int j = first; j <= last; j++)
-	  myPatches.push_back(j);
+        myPatches.reserve(last-first+1);
+        for (int j = first; j <= last; j++)
+          myPatches.push_back(j);
       }
     }
 
     if (myPatches.empty())
     {
       std::cerr <<" *** SIMbase::parse: No partitioning input for processor: "
-		<< myPid << std::endl;
+                << myPid << std::endl;
       return false;
     }
   }
@@ -835,7 +835,7 @@ int SIMbase::getLocalPatchIndex (int patchNo) const
   if (patchNo < 1 || (patchNo > nGlPatches && nGlPatches > 0))
   {
     std::cerr <<" *** SIMbase::getLocalPatchIndex: Patch number "<< patchNo
-	      <<" out of range [1,"<< nGlPatches <<"]"<< std::endl;
+              <<" out of range [1,"<< nGlPatches <<"]"<< std::endl;
     return -1;
   }
   else if (myPatches.empty() || nProc == 1)
@@ -904,8 +904,8 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
   if (!pchWthMat.empty())
     for (mit = myModel.begin(), patch = 1; mit != myModel.end(); ++mit, patch++)
       if (std::find(pchWthMat.begin(),pchWthMat.end(),*mit) == pchWthMat.end())
-	myProps.push_back(Property(Property::MATERIAL,999999,patch,
-				   (*mit)->getNoParamDim()));
+        myProps.push_back(Property(Property::MATERIAL,999999,patch,
+                                   (*mit)->getNoParamDim()));
 
   if (fixDup)
   {
@@ -915,16 +915,16 @@ bool SIMbase::preprocess (const IntVec& ignored, bool fixDup)
     for (mit = myModel.begin(), patch = 1; mit != myModel.end(); ++mit, patch++)
       if (!(*mit)->empty())
       {
-	IFEM::cout <<"   * Checking Patch "<< patch << std::endl;
-	for (size_t node = 1; node <= (*mit)->getNoNodes(); node++)
-	{
-	  Vec3 X((*mit)->getCoord(node));
-	  std::map<Vec3,int>::const_iterator xit = globalNodes.find(X);
-	  if (xit == globalNodes.end())
-	    globalNodes.insert(std::make_pair(X,(*mit)->getNodeID(node)));
-	  else if ((*mit)->mergeNodes(node,xit->second))
-	    nDupl++;
-	}
+        IFEM::cout <<"   * Checking Patch "<< patch << std::endl;
+        for (size_t node = 1; node <= (*mit)->getNoNodes(); node++)
+        {
+          Vec3 X((*mit)->getCoord(node));
+          std::map<Vec3,int>::const_iterator xit = globalNodes.find(X);
+          if (xit == globalNodes.end())
+            globalNodes.insert(std::make_pair(X,(*mit)->getNodeID(node)));
+          else if ((*mit)->mergeNodes(node,xit->second))
+            nDupl++;
+        }
       }
     if (nDupl > 0)
       IFEM::cout <<"   * "<< nDupl <<" duplicated nodes merged."<< std::endl;
@@ -1241,7 +1241,7 @@ bool SIMbase::setTracProperty (int code, Property::Type ptype,
 
 
 bool SIMbase::setNeumann (const std::string& prop, const std::string& type,
-			  int direction, int code)
+                          int direction, int code)
 {
   if (direction == 0 && this->getNoFields() == 1)
   {
@@ -1403,8 +1403,8 @@ void SIMbase::setQuadratureRule (size_t ng, bool redimBuffers, bool printQP)
       // Account for possibly more than one Neumann property on a boundary
       bool notCounted = true;
       for (PropertyVec::const_iterator q = myProps.begin(); q != p; ++q)
-	if (q->patch == p->patch && q->lindx == p->lindx && q->pcode==p->pcode)
-	  notCounted = false;
+        if (q->patch == p->patch && q->lindx == p->lindx && q->pcode==p->pcode)
+          notCounted = false;
 
       if (notCounted) // Count the boundary integration points
         myModel[p->patch-1]->getNoBouPoints(nBouGP,abs(p->ldim),p->lindx);
@@ -1520,7 +1520,7 @@ bool SIMbase::initDirichlet (double time)
   if (time == 0.0)
     for (size_t i = 0; i < myModel.size(); i++)
       if (!myModel[i]->initConstraints())
-	return false;
+        return false;
 
   Vector dummy;
   return this->updateDirichlet(time,&dummy);
@@ -1536,7 +1536,7 @@ bool SIMbase::updateDirichlet (double time, const Vector* prevSol)
 #else
       if (!myModel[i]->updateDirichlet(myScalars,myVectors,time))
 #endif
-	return false;
+        return false;
 
   SAMpatch* pSam = dynamic_cast<SAMpatch*>(mySam);
   return pSam ? pSam->updateConstraintEqs(myModel,prevSol) : true;
@@ -1565,7 +1565,7 @@ bool SIMbase::updateGrid (const std::string& field)
   if (displ) return this->updateGrid(*displ);
 
   std::cerr <<" *** SIMbase::updateGrid: No such field \""<< field
-	    <<"\" registered for \""<< this->getName() <<"\"."<< std::endl;
+            <<"\" registered for \""<< this->getName() <<"\"."<< std::endl;
   return false;
 }
 
@@ -1634,7 +1634,7 @@ int SIMbase::findClosestNode (const Vec3& X) const
 
 
 bool SIMbase::assembleSystem (const TimeDomain& time, const Vectors& prevSol,
-			      bool newLHSmatrix, bool poorConvg)
+                              bool newLHSmatrix, bool poorConvg)
 {
   PROFILE1("Element assembly");
 
@@ -1810,7 +1810,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
       std::ofstream os(it->fname.c_str());
       os << std::setprecision(17);
       SystemMatrix* M = myEqSys->getMatrix(0);
-      char matName[] = {'A'};
+      char matName[] = "A";
       for (int i = 0; M; M = myEqSys->getMatrix(++i), ++matName[0])
         M->dump(os,it->format,matName); // label matrices as A,B,C,...
     }
@@ -1822,7 +1822,7 @@ bool SIMbase::solveSystem (Vector& solution, int printSol,
       std::ofstream os(it->fname.c_str());
       os << std::setprecision(17);
       SystemVector* c = myEqSys->getVector(0);
-      char vecName[] = {'b'};
+      char vecName[] = "b";
       for (int i = 0; c; c = myEqSys->getVector(++i), ++vecName[0])
         c->dump(os,it->format,vecName); // label vectors as b,c,d,...
     }
@@ -2062,7 +2062,7 @@ void SIMbase::addToRHSvector (size_t idx, const SystemVector& vec, double scale)
 
 
 void SIMbase::iterationNorms (const Vector& u, const Vector& r,
-			      double& eNorm, double& rNorm, double& dNorm) const
+                              double& eNorm, double& rNorm, double& dNorm) const
 {
   eNorm = mySam->dot(r,u,'A');
   rNorm = mySam->norm2(r,'D');
@@ -2071,7 +2071,7 @@ void SIMbase::iterationNorms (const Vector& u, const Vector& r,
 
 
 double SIMbase::solutionNorms (const Vector& x, double* inf,
-			       size_t* ind, size_t nf, char type) const
+                               size_t* ind, size_t nf, char type) const
 {
   if (inf && ind && nf == 0) nf = nsd;
 
@@ -2104,8 +2104,8 @@ ForceBase* SIMbase::getNodalForceIntegrand () const
 
 
 bool SIMbase::solutionNorms (const TimeDomain& time,
-			     const Vectors& psol, const Vectors& ssol,
-			     Vectors& gNorm, Matrix* eNorm)
+                             const Vectors& psol, const Vectors& ssol,
+                             Vectors& gNorm, Matrix* eNorm)
 {
   PROFILE1("Norm integration");
 
@@ -2164,18 +2164,18 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   for (p = myProps.begin(); p != myProps.end() && ok; ++p)
     if (p->pcode == Property::MATERIAL)
       if (!(pch = this->getPatch(p->patch)))
-	ok = false;
+        ok = false;
       else if (this->initMaterial(p->pindx))
       {
-	lp = p->patch;
-	ok = this->extractPatchSolution(psol,lp-1);
-	for (k = 0; k < ssol.size(); k++)
-	  if (!ssol[k].empty())
-	    pch->extractNodeVec(ssol[k],norm->getProjection(k),nCmp);
-	ok &= pch->integrate(*norm,globalNorm,time);
+        lp = p->patch;
+        ok = this->extractPatchSolution(psol,lp-1);
+        for (k = 0; k < ssol.size(); k++)
+          if (!ssol[k].empty())
+            pch->extractNodeVec(ssol[k],norm->getProjection(k),nCmp);
+        ok &= pch->integrate(*norm,globalNorm,time);
       }
       else
-	ok = false;
+        ok = false;
 
   if (lp == 0)
     // All patches are referring to the same material, and we assume it has
@@ -2184,8 +2184,8 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
     {
       ok = this->extractPatchSolution(psol,i);
       for (k = 0; k < ssol.size(); k++)
-	if (!ssol[k].empty())
-	  myModel[i]->extractNodeVec(ssol[k],norm->getProjection(k),nCmp);
+        if (!ssol[k].empty())
+          myModel[i]->extractNodeVec(ssol[k],norm->getProjection(k),nCmp);
       ok &= myModel[i]->integrate(*norm,globalNorm,time);
       lp = i+1;
     }
@@ -2193,30 +2193,30 @@ bool SIMbase::solutionNorms (const TimeDomain& time,
   if (norm->hasBoundaryTerms())
     for (p = myProps.begin(); p != myProps.end() && ok; ++p)
       if (p->pcode == Property::NEUMANN)
-	if (!(pch = this->getPatch(p->patch)))
-	  ok = false;
+        if (!(pch = this->getPatch(p->patch)))
+          ok = false;
 
-	else if (abs(p->ldim)+1 == pch->getNoParamDim())
-	  if (this->initNeumann(p->pindx))
-	  {
-	    if (p->patch != lp)
-	      ok = this->extractPatchSolution(psol,p->patch-1);
-	    ok &= pch->integrate(*norm,p->lindx,globalNorm,time);
-	    lp = p->patch;
-	  }
-	  else
-	    ok = false;
+        else if (abs(p->ldim)+1 == pch->getNoParamDim())
+          if (this->initNeumann(p->pindx))
+          {
+            if (p->patch != lp)
+              ok = this->extractPatchSolution(psol,p->patch-1);
+            ok &= pch->integrate(*norm,p->lindx,globalNorm,time);
+            lp = p->patch;
+          }
+          else
+            ok = false;
 
-	else if (abs(p->ldim)+2 == pch->getNoParamDim())
-	  if (this->initNeumann(p->pindx))
-	  {
-	    if (p->patch != lp)
-	      ok = this->extractPatchSolution(psol,p->patch-1);
-	    ok &= pch->integrateEdge(*norm,p->lindx,globalNorm,time);
-	    lp = p->patch;
-	  }
-	  else
-	    ok = false;
+        else if (abs(p->ldim)+2 == pch->getNoParamDim())
+          if (this->initNeumann(p->pindx))
+          {
+            if (p->patch != lp)
+              ok = this->extractPatchSolution(psol,p->patch-1);
+            ok &= pch->integrateEdge(*norm,p->lindx,globalNorm,time);
+            lp = p->patch;
+          }
+          else
+            ok = false;
 
   if (!ok) std::cerr <<" *** SIMbase::solutionNorms: Failure.\n"<< std::endl;
 
@@ -2304,8 +2304,8 @@ bool SIMbase::getCurrentReactions (RealArray& RF, int pcode) const
 
 
 bool SIMbase::systemModes (std::vector<Mode>& solution,
-			   int nev, int ncv, int iop, double shift,
-			   size_t iA, size_t iB)
+                           int nev, int ncv, int iop, double shift,
+                           size_t iA, size_t iB)
 {
   if (nev < 1 || ncv <= nev) return false;
 
@@ -2352,8 +2352,8 @@ bool SIMbase::systemModes (std::vector<Mode>& solution,
 
 
 bool SIMbase::project (Matrix& ssol, const Vector& psol,
-		       SIMoptions::ProjectionMethod pMethod,
-		       const TimeDomain& time) const
+                       SIMoptions::ProjectionMethod pMethod,
+                       const TimeDomain& time) const
 {
   PROFILE1("Solution projection");
 
@@ -2433,7 +2433,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
 
     case SIMoptions::LEASTSQ:
       if (msgLevel > 1 && i == 0)
-	IFEM::cout <<"\tLeast squares projection"<< std::endl;
+        IFEM::cout <<"\tLeast squares projection"<< std::endl;
       ok = myModel[i]->evalSolution(values,*myProblem,nullptr,'W');
       break;
 
@@ -2458,13 +2458,13 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
     // (these are typically the interface nodes)
     for (n = 1; n <= nNodes; n++)
       if (count.empty())
-	ssol.fillColumn(myModel[i]->getNodeID(n),values.getColumn(n));
+        ssol.fillColumn(myModel[i]->getNodeID(n),values.getColumn(n));
       else
       {
-	int inod = myModel[i]->getNodeID(n);
-	for (j = 1; j <= nComps; j++)
-	  ssol(j,inod) += values(j,n);
-	count(inod) ++;
+        int inod = myModel[i]->getNodeID(n);
+        for (j = 1; j <= nComps; j++)
+          ssol(j,inod) += values(j,n);
+        count(inod) ++;
       }
   }
 
@@ -2472,7 +2472,7 @@ bool SIMbase::project (Matrix& ssol, const Vector& psol,
   for (n = 1; n <= count.size(); n++)
     if (count(n) > 1.0)
       for (j = 1; j <= ssol.rows(); j++)
-	ssol(j,n) /= count(n);
+        ssol(j,n) /= count(n);
 
   return true;
 }
@@ -2554,7 +2554,7 @@ bool SIMbase::evalSecondarySolution (Matrix& field, int pindx) const
 
 
 bool SIMbase::extractPatchElmRes (const Matrix& glbRes, Matrix& elRes,
-				  int pindx) const
+                                  int pindx) const
 {
   ASMbase* pch = pindx >= 0 ? this->getPatch(pindx+1) : nullptr;
   if (!pch || glbRes.empty()) return false;

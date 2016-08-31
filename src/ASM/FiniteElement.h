@@ -11,8 +11,7 @@
 //!
 //==============================================================================
 
-#ifndef _FINITE_ELEMENT_H
-#define _FINITE_ELEMENT_H
+#pragma once
 
 #include "MatVec.h"
 #include "Vec3.h"
@@ -72,6 +71,7 @@ public:
   std::vector<Tensor> Tn;   //!< Array of element nodal rotation matrices
 };
 
+std::ostream& operator<<(std::ostream& os, const FiniteElement& obj);
 
 /*!
   \brief Class representing a mixed finite element.
@@ -109,4 +109,3 @@ protected:
   std::vector<Matrix3D> d2NxdX2;
 };
 
-#endif
