@@ -643,94 +643,49 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
     std::cerr <<" *** ASMs3D::connectPatch: Logic error, cannot"
 	      <<" connect a shared patch with an unshared one"<< std::endl;
     return false;
-  }
-
-  // Set up the slave node numbers for this volume patch
-
-  int n1, n2, n3;
-  if (!this->getSize(n1,n2,n3,basis)) return false;
-  int node = slave+1, i1 = 0, i2 = 0;
-
-  switch (face)
-    {
-    case 2: // Positive I-direction
-      node += n1-1;
-    case 1: // Negative I-direction
-      i1 = n1;
-      n1 = n2;
-      n2 = n3;
-      break;
-
-    case 4: // Positive J-direction
-      node += n1*(n2-1);
-    case 3: // Negative J-direction
-      i2 = n1*(n2-1);
-      i1 = 1;
-      n2 = n3;
-      break;
-
-    case 6: // Positive K-direction
-      node += n1*n2*(n3-1);
-    case 5: // Negative K-direction
-      i1 = 1;
-      break;
-
-    default:
-      std::cerr <<" *** ASMs3D::connectPatch: Invalid slave face "
-		<< face << std::endl;
-      return false;
-    }
-
-  int i, j;
-  IntMat slaveNodes(n1,IntVec(n2,0));
-  for (j = 0; j < n2; j++, node += i2)
-    for (i = 0; i < n1; i++, node += i1)
-      slaveNodes[i][j] = node;
-
-  // Set up the master node numbers for the neighboring volume patch
-
-  if (!neighbor.getSize(n1,n2,n3,basis)) return false;
-  node = master+1; i1 = i2 = 0;
-
-  switch (nface)
-    {
-    case 2: // Positive I-direction
-      node += n1-1;
-    case 1: // Negative I-direction
-      i1 = n1;
-      n1 = n2;
-      n2 = n3;
-      break;
-
-    case 4: // Positive J-direction
-      node += n1*(n2-1);
-    case 3: // Negative J-direction
-      i2 = n1*(n2-1);
-      i1 = 1;
-      n2 = n3;
-      break;
-
-    case 6: // Positive K-direction
-      node += n1*n2*(n3-1);
-    case 5: // Negative K-direction
-      i1 = 1;
-      break;
-
-    default:
-      std::cerr <<" *** ASMs3D::connectPatch: Invalid master face "
-		<< nface << std::endl;
-      return false;
-    }
-
-  if (norient < 0 || norient > 7)
-  {
+  } else if (face < 1 || face > 6) {
+    std::cerr <<" *** ASMs3D::connectPatch: Invalid slave face "
+              << face << std::endl;
+    return false;
+  } else if (nface < 1 || nface > 6) {
+    std::cerr <<" *** ASMs3D::connectPatch: Invalid master face "
+              << nface << std::endl;
+    return false;
+  } else if (norient < 0 || norient > 7) {
     std::cerr <<" *** ASMs3D::connectPatch: Orientation flag "
 	      << norient <<" is out of range [0,7]"<< std::endl;
     return false;
   }
 
-  int m1 = slaveNodes.size();
-  int m2 = slaveNodes.front().size();
+  // lambda function to set correct dimension of face
+  auto&& correctSizes = [](int& n1, int& n2, int& n3, int face)
+                  {
+                    if (face == 1 || face == 2)
+                      n1 = n2, n2 = n3;
+                    else if (face == 3 || face == 4)
+                      n2 = n3;
+                  };
+
+  int m1, m2, m3;
+  if (!this->getSize(m1,m2,m3,basis)) return false;
+  correctSizes(m1,m2,m3,face);
+
+  int n1, n2, n3;
+  if (!neighbor.getSize(n1,n2,n3,basis)) return false;
+  correctSizes(n1,n2,n3,nface);
+
+  // Set up the slave node numbers for this volume patch
+  IntVec slaveNodes;
+  this->getBoundaryNodes(face, slaveNodes, basis, true);
+  for (int& it : slaveNodes)
+    it += slave;
+
+  // Set up the master node numbers for the neighboring volume patch
+  IntVec masterNodes;
+  neighbor.getBoundaryNodes(nface, masterNodes, basis, true);
+  for (int& it : masterNodes)
+    it += master;
+
   if (norient < 4 ? (n1 != m1 || n2 != m2) : (n2 != m1 || n1 != m2))
   {
     std::cerr <<" *** ASMs3D::connectPatch: Non-matching faces, sizes "
@@ -739,8 +694,8 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
   }
 
   const double xtol = 1.0e-4;
-  for (j = 0; j < n2; j++, node += i2)
-    for (i = 0; i < n1; i++, node += i1)
+  for (int j = 0; j < n2; j++)
+    for (int i = 0; i < n1; i++)
     {
       int k = i, l = j;
       switch (norient)
@@ -755,7 +710,8 @@ bool ASMs3D::connectBasis (int face, ASMs3D& neighbor, int nface, int norient,
 	default: k =    i  ; l = j     ;
 	}
 
-      int slave = slaveNodes[k][l];
+      int slave = slaveNodes[l*n1+k];
+      int node = masterNodes[j*n1+i];
       if (coordCheck && !neighbor.getCoord(node).equal(this->getCoord(slave),xtol))
       {
 	std::cerr <<" *** ASMs3D::connectPatch: Non-matching nodes "
