@@ -613,7 +613,11 @@ public:
   //! \brief Returns a const reference to our FEM model.
   const PatchVec& getFEModel() const { return myModel; }
   //! \brief Returns a pointer to a specified patch of our FEM model.
-  ASMbase* getPatch(size_t idx) const;
+  //! \param[in] idx 1-based patch index
+  //! \param[in] glbIndex If \e true, the patch index is assumed to be global
+  //! for the whole model, otherwise it is assumed local within current process.
+  //! For serial applications this option has no effect.
+  ASMbase* getPatch(int idx, bool glbIndex = false) const;
 
   //! \brief Initializes material properties for the given patch.
   bool setPatchMaterial(size_t patch);

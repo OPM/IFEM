@@ -149,7 +149,7 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
       for (int i = 1; i <= nGlPatches; i++)
       {
         std::vector<int> nodes;
-        ASMbase* pch = this->getPatch(this->getLocalPatchIndex(i));
+        ASMbase* pch = this->getPatch(i,true);
         if (pch && hdf5.readVector(0, field ? field : "node numbers", i, nodes))
           pch->setNodeNumbers(nodes);
       }
@@ -849,9 +849,10 @@ int SIMbase::getLocalPatchIndex (int patchNo) const
 }
 
 
-ASMbase* SIMbase::getPatch (size_t idx) const
+ASMbase* SIMbase::getPatch (int idx, bool glbIndex) const
 {
-  return idx > 0 && idx <= myModel.size() ? myModel[idx-1] : nullptr;
+  int pid = glbIndex ? this->getLocalPatchIndex(idx) : idx;
+  return pid > 0 && (size_t)pid <= myModel.size() ? myModel[pid-1] : nullptr;
 }
 
 
