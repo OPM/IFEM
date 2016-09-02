@@ -16,6 +16,8 @@
 
 #include "SIMgeneric.h"
 
+class ASMs2DC1;
+
 
 /*!
   \brief Driver class for 2D NURBS-based FEM solver.
@@ -69,6 +71,16 @@ public:
   //! \param[in] whiteSpace For message formatting
   virtual bool readPatches(std::istream& isp, PatchVec& patches,
                            const char* whiteSpace) const;
+
+  //! \brief Connect two patches.
+  //! \param master Master patch
+  //! \param slave Slave patch
+  //! \param mEdge Edge on master
+  //! \param sEdge Edge on slave
+  //! \param orient Orientation flag for connection (1 for reversed)
+  //! \param coordCheck False to turn off coordinate checks
+  bool addConnection(int master, int slave, int mEdge, int sEdge,
+                     int orient, int basis=0, bool coordCheck=true);
 
   //! \brief Evaluates the primary solution at the given point.
   //! \param[in] psol Primary solution vector
@@ -126,6 +138,27 @@ protected:
 protected:
   CharVec nf;         //!< Number of scalar fields
   bool    checkRHSys; //!< Check if all patches are in a right-hand system
+
+
+  /*!
+    \brief A struct defining a patch interface for C1-continuous models.
+  */
+
+  struct Interface
+  {
+    std::pair<ASMs2DC1*,int> master; //!< Patch and edge index of the master
+    std::pair<ASMs2DC1*,int> slave;  //!< Patch and edge index of the slave
+    bool reversed;                   //!< Relative orientation toggle
+    //! \brief Constructor initializing an Interface instance.
+    Interface(ASMs2DC1* m, int me, ASMs2DC1* s, int se, bool r = false)
+    {
+      master = std::make_pair(m,me);
+      slave = std::make_pair(s,se);
+      reversed = r;
+    }
+  };
+
+  std::vector<Interface> top; //!< Interfaces for C1 connection handling
 };
 
 #endif

@@ -91,6 +91,17 @@ public:
   //! \brief Returns a list of prioritized XML-tags.
   virtual const char** getPrioritizedTags() const;
 
+  //! \brief Connect two patches.
+  //! \param master Master patch
+  //! \param slave Slave patch
+  //! \param mIdx Index on master
+  //! \param sIdx Index on slave
+  //! \param orient Orientation flag
+  //! \param coordCheck False to turn off coordinate checks.
+  virtual bool addConnection(int master, int slave, int mIdx, int sIdx,
+                             int orient, bool coordCheck=true)
+  { return false; }
+
 protected:
   //! \brief Parses the "set" attribute of a material XML-tag.
   //! \param[in] elem The XML element extract the set name from
