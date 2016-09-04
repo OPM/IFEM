@@ -48,6 +48,14 @@ public:
   //! \brief Returns a reference to the basis function 2nd-derivatives.
   virtual Matrix3D& hess(char) { return d2NdX2; }
 
+protected:
+  //! \brief Writes the finite element object to the given output stream.
+  virtual std::ostream& write(std::ostream& os) const;
+
+  //! \brief Global Output stream operator.
+  friend std::ostream& operator<<(std::ostream& os, const FiniteElement& fe);
+
+public:
   // Gauss point quantities
   size_t   iGP;    //!< Global integration point counter
   double   u;      //!< First parameter of current point
@@ -104,6 +112,10 @@ public:
   virtual Matrix3D& hess(char b) { return b == 1 ? d2NdX2 : d2NxdX2[b-2]; }
 
 protected:
+  //! \brief Writes the finite element object to the given output stream.
+  virtual std::ostream& write(std::ostream& os) const;
+
+private:
   Vectors                 Nx;
   std::vector<Matrix>    dNxdX;
   std::vector<Matrix3D> d2NxdX2;
