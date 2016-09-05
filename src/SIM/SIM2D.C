@@ -86,7 +86,9 @@ bool SIM2D::addConnection(int master, int slave, int mIdx,
                                 static_cast<ASMs2DC1*>(spch),sIdx,orient==1?true:false));
   }
   else
-    adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave, mIdx, sIdx, orient, 1});
+    adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave,
+                                                                  mIdx, sIdx,
+                                                                  orient, 1, basis});
 
   return true;
 }
