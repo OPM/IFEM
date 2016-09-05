@@ -14,6 +14,7 @@
 #include "SIM3D.h"
 #include "ASMs3D.h"
 #include "Functions.h"
+#include "ModelGenerator.h"
 #include "Utilities.h"
 #include "IFEM.h"
 #include "Vec3Oper.h"
@@ -808,6 +809,12 @@ bool SIM3D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
   }
 
   return static_cast<ASMs3D*>(myModel[pchInd])->assignNodeNumbers(n,basis);
+}
+
+
+ModelGenerator* SIM3D::createModelGenerator(const TiXmlElement* geo) const
+{
+  return new DefaultGeometry3D(geo);
 }
 
 

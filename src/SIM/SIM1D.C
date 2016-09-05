@@ -15,6 +15,7 @@
 #include "IFEM.h"
 #include "ASMs1D.h"
 #include "Functions.h"
+#include "ModelGenerator.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
 #include "tinyxml.h"
@@ -532,6 +533,12 @@ bool SIM1D::createFEMmodel (char)
       ok = myModel[i]->generateFEMTopology();
 
   return ok;
+}
+
+
+ModelGenerator* SIM1D::createModelGenerator(const TiXmlElement* geo) const
+{
+  return new DefaultGeometry1D(geo);
 }
 
 

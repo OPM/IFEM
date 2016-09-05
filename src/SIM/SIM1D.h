@@ -82,6 +82,10 @@ protected:
   //! \brief Parses the twist angle description along the curve.
   bool parseTwist(const TiXmlElement* elem);
 
+  //! \brief Creates a default single-patch model generator.
+  //! \param[in] geo XML element containing geometry defintion
+  virtual ModelGenerator* createModelGenerator(const TiXmlElement* geo) const;
+
   //! \brief Parses a data section from an XML document.
   //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);

@@ -135,6 +135,10 @@ protected:
   //! \brief Creates a default single-patch geometry.
   virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const;
 
+  //! \brief Creates a default single-patch model generator.
+  //! \param[in] geo XML element containing geometry defintion
+  virtual ModelGenerator* createModelGenerator(const TiXmlElement* geo) const;
+
 protected:
   CharVec nf;         //!< Number of scalar fields
   bool    checkRHSys; //!< Check if all patches are in a right-hand system

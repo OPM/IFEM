@@ -29,6 +29,7 @@
 #include "AnaSol.h"
 #include "Vec3Oper.h"
 #include "Functions.h"
+#include "ModelGenerator.h"
 #include "Profiler.h"
 #include "Utilities.h"
 #include "HDF5Writer.h"
@@ -53,6 +54,7 @@ SIMbase::SIMbase (IntegrandBase* itg) : g2l(&myGlb2Loc)
   myEqSys = nullptr;
   mySam = nullptr;
   mySolParams = nullptr;
+  myGen = nullptr;
   nGlPatches = 0;
   nIntGP = nBouGP = 0;
 
@@ -74,6 +76,7 @@ SIMbase::~SIMbase ()
   if (myEqSys)     delete myEqSys;
   if (mySam)       delete mySam;
   if (mySolParams) delete mySolParams;
+  delete myGen;
 
   for (PatchVec::iterator i1 = myModel.begin(); i1 != myModel.end(); i1++)
     delete *i1;
