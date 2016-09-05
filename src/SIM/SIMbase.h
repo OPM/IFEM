@@ -755,27 +755,16 @@ private:
   size_t nIntGP; //!< Number of interior integration points in the whole model
   size_t nBouGP; //!< Number of boundary integration points in the whole model
 
-  //! \brief Class holding a MADOF for a given number of dofs on a given basis
-  class MADof {
-    public:
-      //! \brief Dummy constructor needed due to std::map.
-      MADof() {}
-      //! \brief Constructor.
-      //! \param[in] myModel The patch vector to setup the MADOF for
-      //! \param[in] nodes Total number of global nodes in model
-      //! \param[in] basis The basis to specify number of DOFs for
-      //! \param[in] nndof Number of DOFs on given basis
-      MADof(const PatchVec& myModel, size_t nodes,
-            unsigned char basis, unsigned char nndof);
+  //! \brief Setup a MADOF with an extraordinary amount of DOFs on a basis.
+  //! \param[in] myModel The patch vector to setup the MADOF for
+  //! \param[in] nodes Total number of global nodes in model
+  //! \param[in] basis The basis to specify number of DOFs for
+  //! \param[in] nndof Number of DOFs on given basis
+  std::vector<int> setupAdditionalMADOF(const PatchVec& myModel, size_t nodes,
+                                        unsigned char basis,
+                                        unsigned char nndof) const;
 
-      //! \brief Access MADof array.
-      const std::vector<int>& get() const { return madof; }
-
-    protected:
-      std::vector<int> madof; //!< The MADOF array
-  };
-
-  mutable std::map<int, MADof> addMADOFs; //!< Additional MADOF arrays.
+  mutable std::map<int, std::vector<int>> addMADOFs; //!< Additional MADOF arrays.
 };
 
 #endif
