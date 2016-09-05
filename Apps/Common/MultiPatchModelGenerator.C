@@ -162,6 +162,9 @@ bool MultiPatchModelGenerator2D::createTopology (SIMbase& sim) const
 TopologySet
 MultiPatchModelGenerator2D::createTopologySets (const SIMbase& sim) const
 {
+  if (!sets)
+    return TopologySet();
+
   TopologySet result;
   TopEntity& e1 = result["Edge1"];
   TopEntity& e2 = result["Edge2"];
@@ -378,6 +381,9 @@ bool MultiPatchModelGenerator3D::createTopology (SIMbase& sim) const
 TopologySet
 MultiPatchModelGenerator3D::createTopologySets (const SIMbase& sim) const
 {
+  if (!sets)
+    return TopologySet();
+
   // 0-based -> 1-based IJK
   auto&& IJK = [this](int i, int j, int k) { return 1 + (k*ny+j)*nx + i; };
 
