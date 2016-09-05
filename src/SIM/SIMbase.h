@@ -760,9 +760,11 @@ private:
   //! \param[in] nodes Total number of global nodes in model
   //! \param[in] basis The basis to specify number of DOFs for
   //! \param[in] nndof Number of DOFs on given basis
-  std::vector<int> setupAdditionalMADOF(const PatchVec& myModel, size_t nodes,
-                                        unsigned char basis,
-                                        unsigned char nndof) const;
+  //! \param[out] madof Generated MADOF array
+  void setupAdditionalMADOF(const PatchVec& myModel, size_t nodes,
+                            unsigned char basis,
+                            unsigned char nndof,
+                            std::vector<int>& madof) const;
 
   mutable std::map<int, std::vector<int>> addMADOFs; //!< Additional MADOF arrays.
 };
