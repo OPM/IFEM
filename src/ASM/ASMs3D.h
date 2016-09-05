@@ -317,7 +317,6 @@ public:
   //! \param neighbor The neighbor patch
   //! \param[in] nface Local face index of neighbor patch, in range [1,6]
   //! \param[in] norient Relative face orientation flag (see below)
-  //! \param[in] basis (ignored)
   //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
   //!
   //! \details The face orientation flag \a norient must be in range [0,7].
@@ -326,7 +325,7 @@ public:
   //! - middle digit = 1: Parameter \a u in neighbor patch face is reversed
   //! - right digit = 1: Parameter \a v in neighbor patch face is reversed
   virtual bool connectPatch(int face, ASMs3D& neighbor, int nface, int norient,
-                            int basis = 0, bool coordCheck = true);
+                            int = 0, bool coordCheck = true);
 
   //! \brief Makes two opposite boundary faces periodic.
   //! \param[in] dir Parameter direction defining the periodic faces
