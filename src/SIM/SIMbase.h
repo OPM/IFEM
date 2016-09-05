@@ -32,6 +32,7 @@ class LinSolParams;
 class TimeStep;
 class SystemVector;
 class Vec4;
+class ModelGenerator;
 namespace LR { struct RefineData; }
 
 //! Property code to integrand map
@@ -669,6 +670,9 @@ public:
   RealFunc* getSclFunc(int code) const;
 
 protected:
+  //! \brief Instantiate a generator for the finite element model.
+  //! \param[in] geo XML element containing geometry defintion
+  virtual ModelGenerator* createModelGenerator(const TiXmlElement* geo) const = 0;
   //! \brief Creates a default single-patch geometry.
   //! \param[in] geo XML element containing geometry defintion
   virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const = 0;
@@ -730,6 +734,7 @@ protected:
   IntegrandBase* myProblem; //!< The main integrand of this simulator
   IntegrandMap   myInts;    //!< Set of all integrands involved
   AnaSol*        mySol;     //!< Analytical/Exact solution
+  ModelGenerator* myGen;    //!< Model generator to use
 
   //! \brief A struct with data for system matrix/vector dumps.
   struct DumpData

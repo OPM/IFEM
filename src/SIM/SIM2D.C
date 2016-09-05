@@ -16,6 +16,7 @@
 #include "ASMs2DC1.h"
 #include "ImmersedBoundaries.h"
 #include "Functions.h"
+#include "ModelGenerator.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
 #include "tinyxml.h"
@@ -789,6 +790,12 @@ void SIM2D::clonePatches (const PatchVec& patches,
 
   if (nGlPatches == 0)
     nGlPatches = myModel.size();
+}
+
+
+ModelGenerator* SIM2D::createModelGenerator(const TiXmlElement* geo) const
+{
+  return new DefaultGeometry2D(geo);
 }
 
 
