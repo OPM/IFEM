@@ -989,9 +989,8 @@ void ASMbase::extractNodeVec (const Vector& globRes, Vector& nodeVec,
   }
 }
 
-void ASMbase::injectNodeVec (const std::vector<int>& madof,
-                             const Vector& nodeVec, Vector& globVec,
-                             int basis) const
+void ASMbase::injectNodeVec (const Vector& nodeVec, Vector& globVec,
+                             const std::vector<int>& madof, int basis) const
 {
   size_t ldof = 0;
   char bType = basis == 1 ? 'D' : 'P'+basis-2;
