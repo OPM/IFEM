@@ -747,7 +747,6 @@ protected:
   IntegrandBase* myProblem; //!< The main integrand of this simulator
   IntegrandMap   myInts;    //!< Set of all integrands involved
   AnaSol*        mySol;     //!< Analytical/Exact solution
-  ModelGenerator* myGen;    //!< Model generator to use
 
   //! \brief A struct with data for system matrix/vector dumps.
   struct DumpData

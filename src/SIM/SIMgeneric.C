@@ -20,9 +20,10 @@ void SIMgeneric::createDefaultModel ()
 {
   if (!myModel.empty()) return;
 
-  myGen = this->createModelGenerator(nullptr);
-  myModel = myGen->createGeometry(*this);
+  ModelGenerator* gen = this->createModelGenerator(nullptr);
+  myModel = gen->createGeometry(*this);
   nGlPatches = myModel.size();
+  delete gen;
 }
 
 

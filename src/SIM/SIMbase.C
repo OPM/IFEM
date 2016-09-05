@@ -54,7 +54,6 @@ SIMbase::SIMbase (IntegrandBase* itg) : g2l(&myGlb2Loc)
   myEqSys = nullptr;
   mySam = nullptr;
   mySolParams = nullptr;
-  myGen = nullptr;
   nGlPatches = 0;
   nIntGP = nBouGP = 0;
 
@@ -76,7 +75,6 @@ SIMbase::~SIMbase ()
   if (myEqSys)     delete myEqSys;
   if (mySam)       delete mySam;
   if (mySolParams) delete mySolParams;
-  delete myGen;
 
   for (PatchVec::iterator i1 = myModel.begin(); i1 != myModel.end(); i1++)
     delete *i1;
@@ -498,6 +496,7 @@ bool SIMbase::parse (const TiXmlElement* elem)
       result = false;
   }
 
+  ModelGenerator* gen = nullptr;
   // Create the default geometry of no patchfile is specified
   if (myModel.empty() && !strcasecmp(elem->Value(),"geometry"))
     if (this->getNoParamDim() > 0 && !elem->FirstChildElement("patchfile"))
@@ -507,12 +506,12 @@ bool SIMbase::parse (const TiXmlElement* elem)
                          part; part = part->NextSiblingElement("partitioning"))
         result &= this->parseGeometryTag(part);
 
-      myGen = this->createModelGenerator(elem);
-      myModel = myGen->createGeometry(*this);
+      gen = this->createModelGenerator(elem);
+      myModel = gen->createGeometry(*this);
       if (myPatches.empty())
         nGlPatches = myModel.size();
 
-      TopologySet set = myGen->createTopologySets(*this);
+      TopologySet set = gen->createTopologySets(*this);
       for (auto& it : set)
         myEntitys[it.first] = it.second;
     }
@@ -540,8 +539,10 @@ bool SIMbase::parse (const TiXmlElement* elem)
     else if (!strcasecmp(elem->Value(),"discretization"))
       result &= opt.parseDiscretizationTag(child);
 
-  if (myGen)
-    myGen->createTopology(*this);
+  if (gen)
+    gen->createTopology(*this);
+
+  delete gen;
 
   return result;
 }
