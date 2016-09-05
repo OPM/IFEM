@@ -103,7 +103,8 @@ public:
   //! \param[in] revers Indicates whether the two edges have opposite directions
   //! \param[in] coordCheck False to disable coordinate checks (periodic connections)
   virtual bool connectPatch(int edge, ASMs2D& neighbor, int nedge,
-                            bool revers = false, int basis = 0, bool coordCheck=true);
+                            bool revers = false, int basis = 0,
+                            bool coordCheck = true);
 
   //! \brief Makes two opposite boundary edges periodic.
   //! \param[in] dir Parameter direction defining the periodic edges
