@@ -48,6 +48,9 @@ protected:
   { return nullptr; }
   //! \brief Preprocesses the result sampling points.
   virtual void preprocessResultPoints() {}
+  //! \brief Creates a model generator.
+  virtual ModelGenerator* createModelGenerator(const TiXmlElement*) const
+  { return nullptr; }
 };
 
 #endif

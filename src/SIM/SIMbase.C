@@ -502,11 +502,19 @@ bool SIMbase::parse (const TiXmlElement* elem)
   if (myModel.empty() && !strcasecmp(elem->Value(),"geometry"))
     if (this->getNoParamDim() > 0 && !elem->FirstChildElement("patchfile"))
     {
-      IFEM::cout <<"  Using default linear geometry basis on unit domain [0,1]";
-      if (this->getNoParamDim() > 1) IFEM::cout <<"^"<< this->getNoParamDim();
-      IFEM::cout << std::endl;
-      nGlPatches = 1;
-      myModel.resize(1,this->createDefaultGeometry(elem));
+      // parse partitioning first
+      for (const TiXmlElement* part = elem->FirstChildElement("partitioning");
+                         part; part = part->NextSiblingElement("partitioning"))
+        result &= this->parseGeometryTag(part);
+
+      myGen = this->createModelGenerator(elem);
+      myModel = myGen->createGeometry(*this);
+      if (myPatches.empty())
+        nGlPatches = myModel.size();
+
+      TopologySet set = myGen->createTopologySets(*this);
+      for (auto& it : set)
+        myEntitys[it.first] = it.second;
     }
 
   if (!strcasecmp(elem->Value(),"linearsolver")) {
@@ -529,6 +537,9 @@ bool SIMbase::parse (const TiXmlElement* elem)
       result &= this->parseOutputTag(child);
     else if (!strcasecmp(elem->Value(),"discretization"))
       result &= opt.parseDiscretizationTag(child);
+
+  if (myGen)
+    myGen->createTopology(*this);
 
   return result;
 }

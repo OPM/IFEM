@@ -673,9 +673,6 @@ protected:
   //! \brief Instantiate a generator for the finite element model.
   //! \param[in] geo XML element containing geometry defintion
   virtual ModelGenerator* createModelGenerator(const TiXmlElement* geo) const = 0;
-  //! \brief Creates a default single-patch geometry.
-  //! \param[in] geo XML element containing geometry defintion
-  virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const = 0;
 
   //! \brief Initializes material properties for integration of interior terms.
   virtual bool initMaterial(size_t) { return true; }

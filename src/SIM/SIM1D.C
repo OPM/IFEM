@@ -538,58 +538,8 @@ bool SIM1D::createFEMmodel (char)
 
 ModelGenerator* SIM1D::createModelGenerator(const TiXmlElement* geo) const
 {
+  IFEM::cout <<"  Using default linear geometry basis on unit domain [0,1]";
   return new DefaultGeometry1D(geo);
-}
-
-
-ASMbase* SIM1D::createDefaultGeometry (const TiXmlElement* geo) const
-{
-  std::string g2("100 1 0 0\n");
-  g2.append(1,'0'+nsd);
-
-  bool rational=false;
-  utl::getAttribute(geo,"rational",rational);
-  if (rational)
-    IFEM::cout << "\t Rational basis\n";
-  g2.append(rational?" 1":" 0");
-  g2.append("\n2 2\n0 0 1 1\n");
-
-  unsigned char d;
-  std::string XYZ;
-  if (utl::getAttribute(geo,"X0",XYZ))
-  {
-    IFEM::cout <<"\tX0 = "<< XYZ << std::endl;
-    g2.append(XYZ);
-  }
-  else
-  {
-    g2.append("0.0");
-    for (d = 1; d < nsd; d++)
-      g2.append(" 0.0");
-  }
-  if (rational)
-    g2.append(" 1.0");
-  g2.append("\n");
-  if (utl::getAttribute(geo,"X1",XYZ))
-  {
-    IFEM::cout <<"\tX1 = "<< XYZ << std::endl;
-    g2.append(XYZ);
-  }
-  else
-  {
-    XYZ = "1.0";
-    if (utl::getAttribute(geo,"L",XYZ))
-      IFEM::cout <<"\tLength scale = "<< XYZ << std::endl;
-    g2.append(XYZ);
-    for (d = 1; d < nsd; d++)
-      g2.append(" 0.0");
-  }
-  if (rational)
-    g2.append(" 1.0");
-  g2.append("\n");
-
-  std::istringstream unitLine(g2);
-  return this->readPatch(unitLine,0,{nf});
 }
 
 
