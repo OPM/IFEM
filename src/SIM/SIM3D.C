@@ -62,7 +62,7 @@ bool SIM3D::addConnection(int master, int slave, int mIdx,
     IFEM::cout <<"\tConnecting P"<< lslave <<" F"<< sIdx
                <<" to P"<< lmaster <<" F"<< mIdx;
     if (orient != 0)
-      IFEM::cout <<" orientation "<< orient << std::endl;
+      IFEM::cout <<" orient "<< orient << std::endl;
     IFEM::cout << std::endl;
 
     ASMs3D* spch = static_cast<ASMs3D*>(myModel[lslave-1]);
