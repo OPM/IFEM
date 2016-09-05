@@ -109,9 +109,6 @@ protected:
   //! \details Reimplemented to account for twist angle in beam problems.
   virtual bool createFEMmodel(char = 'y');
 
-  //! \brief Creates a default single-patch geometry.
-  virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const;
-
 protected:
   unsigned char nf; //!< Number of scalar fields
 

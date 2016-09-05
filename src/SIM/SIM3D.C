@@ -814,81 +814,8 @@ bool SIM3D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
 
 ModelGenerator* SIM3D::createModelGenerator(const TiXmlElement* geo) const
 {
+  IFEM::cout <<"  Using default linear geometry basis on unit domain [0,1]^3";
   return new DefaultGeometry3D(geo);
-}
-
-
-ASMbase* SIM3D::createDefaultGeometry (const TiXmlElement* geo) const
-{
-  std::string g2("700 1 0 0\n3 ");
-
-  bool rational = false;
-  utl::getAttribute(geo,"rational",rational);
-  if (rational)
-    IFEM::cout <<"  Rational basis"<< std::endl;
-
-  g2.append(rational ? "1\n" : "0\n");
-  g2.append("2 2\n0 0 1 1\n"
-            "2 2\n0 0 1 1\n"
-            "2 2\n0 0 1 1\n");
-
-  std::array<double,24> nodes =
-    {{ 0.0, 0.0, 0.0,
-       1.0, 0.0, 0.0,
-       0.0, 1.0, 0.0,
-       1.0, 1.0, 0.0,
-       0.0, 0.0, 1.0,
-       1.0, 0.0, 1.0,
-       0.0, 1.0, 1.0,
-       1.0, 1.0, 1.0 }};
-
-  double scale = 1.0;
-  if (utl::getAttribute(geo,"scale",scale))
-    IFEM::cout <<"\tscale = "<< scale << std::endl;
-
-  double Lx = 1.0, Ly = 1.0, Lz = 1.0;
-  if (utl::getAttribute(geo,"Lx",Lx))
-    IFEM::cout <<"\tLength in X: "<< Lx << std::endl;
-  Lx *= scale;
-  if (utl::getAttribute(geo,"Ly",Ly))
-    IFEM::cout <<"\tLength in Y: "<< Ly << std::endl;
-  Ly *= scale;
-  if (utl::getAttribute(geo,"Lz",Lz))
-    IFEM::cout <<"\tLength in Z: "<< Lz << std::endl;
-  Lz *= scale;
-
-  if (Lx != 1.0)
-    nodes[3] = nodes[9] = nodes[15] = nodes[21] = Lx;
-  if (Ly != 1.0)
-    nodes[7] = nodes[10] = nodes[19] = nodes[22] = Ly;
-  if (Lz != 1.0)
-    nodes[14] = nodes[17] = nodes[20] = nodes[23] = Lz;
-
-  std::string corner;
-  if (utl::getAttribute(geo,"X0",corner)) {
-    std::stringstream str(corner);
-    Vec3 X0;
-    str >> X0;
-    IFEM::cout <<"\tCorner: "<< X0 << std::endl;
-    for (size_t i = 0; i < nodes.size(); i += 3)
-    {
-      nodes[i]   += X0.x;
-      nodes[i+1] += X0.y;
-      nodes[i+2] += X0.z;
-    }
-  }
-
-  for (size_t i = 0; i < nodes.size(); i += 3)
-  {
-    std::stringstream str;
-    for (size_t j = 0; j < 3; j++)
-      str << nodes[i+j] <<" ";
-    g2.append(str.str());
-    g2.append(rational ? "1.0\n" : "\n");
-  }
-
-  std::istringstream unitCube(g2);
-  return this->readPatch(unitCube,0,nf);
 }
 
 
