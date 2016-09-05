@@ -997,6 +997,13 @@ void ASMbase::injectNodeVec (const Vector& nodeVec, Vector& globVec,
   for (size_t i = 0; i < MLGN.size(); i++)
     if (basis == 0 || this->getNodeType(i+1) == bType) {
       int inod = MLGN[i];
+#ifdef INDEX_CHECK
+      if (inod < 1 || inod > (int)madof.size()) {
+        std::cerr <<" *** ASMbase::injectNodeVec: Node "<< inod
+                  <<" outside given madof (of size " << madof.size() << ")"<< std::endl;
+        continue;
+      }
+#endif
       int idof = madof[inod-1] - 1;
       int jdof = madof[inod] - 1;
       bool ok = true;
