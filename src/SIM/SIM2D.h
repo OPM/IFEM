@@ -131,8 +131,9 @@ protected:
   virtual bool addConstraint(int patch, int lndx, int ldim,
                              int dirs, int code, int& ngnod, char basis = 1);
 
-  //! \brief Creates a default single-patch geometry.
-  virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const;
+  //! \brief Creates a default single-patch model generator.
+  //! \param[in] geo XML element containing geometry defintion
+  virtual ModelGenerator* createModelGenerator(const TiXmlElement* geo) const;
 
 protected:
   CharVec nf;         //!< Number of scalar fields

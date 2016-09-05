@@ -32,6 +32,7 @@ class LinSolParams;
 class TimeStep;
 class SystemVector;
 class Vec4;
+class ModelGenerator;
 namespace LR { struct RefineData; }
 
 //! Property code to integrand map
@@ -674,9 +675,9 @@ public:
   RealFunc* getSclFunc(int code) const;
 
 protected:
-  //! \brief Creates a default single-patch geometry.
+  //! \brief Instantiate a generator for the finite element model.
   //! \param[in] geo XML element containing geometry defintion
-  virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const = 0;
+  virtual ModelGenerator* createModelGenerator(const TiXmlElement* geo) const = 0;
 
   //! \brief Initializes material properties for integration of interior terms.
   virtual bool initMaterial(size_t) { return true; }

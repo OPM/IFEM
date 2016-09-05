@@ -16,6 +16,7 @@
 #include "ASMs2DC1.h"
 #include "ImmersedBoundaries.h"
 #include "Functions.h"
+#include "ModelGenerator.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
 #include "tinyxml.h"
@@ -814,60 +815,10 @@ void SIM2D::clonePatches (const PatchVec& patches,
 }
 
 
-ASMbase* SIM2D::createDefaultGeometry (const TiXmlElement* geo) const
+ModelGenerator* SIM2D::createModelGenerator(const TiXmlElement* geo) const
 {
-  std::string g2("200 1 0 0\n");
-  g2.append(nsd > 2 ? "3" : "2");
-  bool rational=false;
-  utl::getAttribute(geo,"rational",rational);
-  if (rational)
-    IFEM::cout << "\t Rational basis\n";
-  g2.append(rational?" 1":" 0");
-  g2.append("\n2 2\n0 0 1 1\n2 2\n0 0 1 1");
-
-  Vec3 X0;
-  std::string corner;
-  if (utl::getAttribute(geo,"X0",corner)) {
-    std::stringstream str(corner); str >> X0;
-    IFEM::cout <<"  Corner: "<< X0 << std::endl;
-  }
-
-  double scale = 1.0;
-  if (utl::getAttribute(geo,"scale",scale))
-    IFEM::cout <<"  Scale: "<< scale << std::endl;
-
-  double Lx = 1.0, Ly = 1.0;
-  if (utl::getAttribute(geo,"Lx",Lx))
-    IFEM::cout <<"  Length in X: "<< Lx << std::endl;
-  Lx *= scale;
-  if (utl::getAttribute(geo,"Ly",Ly))
-    IFEM::cout <<"  Length in Y: "<< Ly << std::endl;
-  Ly *= scale;
-
-  std::stringstream str;
-  str <<"\n"<< X0.x <<" "<< X0.y;
-  if (nsd > 2) str <<" 0.0";
-  if (rational) str << " 1.0";
-  g2.append(str.str());
-  str.str("");
-  str <<"\n"<< X0.x+Lx <<" "<< X0.y;
-  if (nsd > 2) str <<" 0.0";
-  if (rational) str << " 1.0";
-  g2.append(str.str());
-  str.str("");
-  str <<"\n"<< X0.x <<" "<< X0.y+Ly;
-  if (nsd > 2) str <<" 0.0";
-  if (rational) str << " 1.0";
-  g2.append(str.str());
-  str.str("");
-  str <<"\n"<< X0.x+Lx <<" "<< X0.y+Ly;
-  if (nsd > 2) str <<" 0.0";
-  if (rational) str << " 1.0";
-  g2.append(str.str());
-  g2.append("\n");
-
-  std::istringstream unitSquare(g2);
-  return this->readPatch(unitSquare,0,nf);
+  IFEM::cout <<"  Using default linear geometry basis on unit domain [0,1]^2";
+  return new DefaultGeometry2D(geo);
 }
 
 
