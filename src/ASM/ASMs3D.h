@@ -204,7 +204,7 @@ public:
   //! \brief Returns the node index for a given corner.
   virtual int getCorner(int I, int J, int K, int basis = 1) const;
 
-  //! \brief Returns the node index for a given corner.
+  //! \brief Returns the node indices for a given edge.
   virtual std::vector<int> getEdge(int lEdge, bool open, int basis = 1) const;
 
   //! \brief Assigns new global node numbers for all nodes of the patch.
