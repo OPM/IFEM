@@ -2509,23 +2509,48 @@ bool SIMbase::extractPatchSolution (IntegrandBase* problem,
 
 
 size_t SIMbase::extractPatchSolution (const Vector& sol, Vector& vec,
-                                      int pindx, unsigned char nndof) const
+                                      int pindx, unsigned char nndof,
+                                      unsigned char basis) const
 {
   ASMbase* pch = pindx >= 0 ? this->getPatch(pindx+1) : nullptr;
   if (!pch || sol.empty()) return 0;
 
-  pch->extractNodeVec(sol,vec,nndof);
+  // Need an additional MADOF
+  if (basis != 0 && nndof != 0 &&
+      nndof != this->getNoFields(basis) && this->getNoFields(2) > 0) {
+    int key = basis << 16 + nndof;
+    if (addMADOFs.find(key) == addMADOFs.end())
+      this->setupAdditionalMADOF(basis, nndof, addMADOFs[key]);
 
-  return (nndof > 0 ? nndof : pch->getNoFields(1))*pch->getNoNodes(1);
+    pch->extractNodeVec(sol,vec,&addMADOFs[key][0]);
+  }
+  else
+    pch->extractNodeVec(sol,vec,nndof,basis);
+
+  return vec.size();
 }
 
 
 bool SIMbase::injectPatchSolution (Vector& sol, const Vector& vec,
-                                   int pindx, unsigned char nndof) const
+                                   int pindx, unsigned char nndof,
+                                   unsigned char basis) const
 {
   ASMbase* pch = pindx >= 0 ? this->getPatch(pindx+1) : nullptr;
+  if (!pch)
+    return false;
 
-  return pch ? pch->injectNodeVec(vec,sol,nndof) : false;
+  // Need an additional MADOF
+  if (basis != 0 && nndof != 0 &&
+      nndof != this->getNoFields(basis) && this->getNoFields(2) > 0) {
+    int key = basis << 16 + nndof;
+    if (addMADOFs.find(key) == addMADOFs.end())
+      this->setupAdditionalMADOF(basis, nndof, addMADOFs[key]);
+
+    pch->injectNodeVec(vec, sol, addMADOFs[key], basis);
+    return true;
+  }
+  else
+    return pch->injectNodeVec(vec,sol,nndof);
 }
 
 
@@ -2613,4 +2638,27 @@ bool SIMbase::refine (const LR::RefineData& prm,
     }
 
   return isRefined;
+}
+
+
+void SIMbase::setupAdditionalMADOF(unsigned char basis,
+                                   unsigned char nndof,
+                                   std::vector<int>& madof) const
+{
+  size_t nodes = this->getNoNodes(true);
+  madof.resize(nodes+1, 0);
+  for (size_t i = 0; i < myModel.size(); i++) {
+    char nType = basis == 1 ? 'D' : 'P'+basis-2;
+    for (size_t j = 0; j < myModel[i]->getNoNodes(); j++) {
+      int n = myModel[i]->getNodeID(j+1);
+      if (n > 0 && myModel[i]->getNodeType(j+1) == nType)
+        madof[n] = nndof;
+      else if (n > 0)
+        madof[n] = myModel[i]->getNodalDOFs(j+1);
+    }
+  }
+
+  madof[0] = 1;
+  for (size_t n = 0; n < nodes; n++)
+    madof[n+1] += madof[n];
 }
