@@ -2518,8 +2518,8 @@ size_t SIMbase::extractPatchSolution (const Vector& sol, Vector& vec,
       nndof != this->getNoFields(basis) && this->getNoFields(2) > 0) {
     int key = basis << 16 + nndof;
     if (addMADOFs.find(key) == addMADOFs.end())
-      setupAdditionalMADOF(myModel, this->getNoNodes(true),
-                           basis, nndof, addMADOFs[key]);
+      this->setupAdditionalMADOF(myModel, this->getNoNodes(true),
+                                 basis, nndof, addMADOFs[key]);
 
     pch->extractNodeVec(sol,vec,&addMADOFs[key][0]);
   }
@@ -2543,8 +2543,8 @@ bool SIMbase::injectPatchSolution (Vector& sol, const Vector& vec,
       nndof != this->getNoFields(basis) && this->getNoFields(2) > 0) {
     int key = basis << 16 + nndof;
     if (addMADOFs.find(key) == addMADOFs.end())
-      setupAdditionalMADOF(myModel, this->getNoNodes(true),
-                           basis, nndof, addMADOFs[key]);
+      this->setupAdditionalMADOF(myModel, this->getNoNodes(true),
+                                 basis, nndof, addMADOFs[key]);
 
     pch->injectNodeVec(vec, sol, addMADOFs[key], basis);
     return true;
