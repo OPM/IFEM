@@ -207,14 +207,6 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
         return false;
       }
     }
-
-    // Second pass for C1-continuous patches, to set up additional constraints
-    std::vector<Interface>::const_iterator it;
-    for (it = top.begin(); it != top.end(); it++)
-      if (!it->slave.first->connectC1(it->slave.second,
-                                      it->master.first,
-                                      it->master.second,
-                                      it->reversed)) return false;
   }
 
   else if (!strcasecmp(elem->Value(),"periodic"))
@@ -277,6 +269,14 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
           myModel.front()->addHole(R,X1,Y1,X2,Y2);
       }
   }
+
+  // Second pass for C1-continuous patches, to set up additional constraints
+  std::vector<Interface>::const_iterator it;
+  for (it = top.begin(); it != top.end(); it++)
+    if (!it->slave.first->connectC1(it->slave.second,
+                                    it->master.first,
+                                    it->master.second,
+                                    it->reversed)) return false;
 
   return true;
 }
