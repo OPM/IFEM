@@ -397,7 +397,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
   if (level == 0 || geometryUpdated || (abs(entry.second.results) & DataExporter::GRID)) {
     writeBasis(sim,basisname,1,level);
     if (sim->mixedProblem())
-      for (size_t b=2; b <= sim->getPatch(1)->getNoBasis(); ++b) {
+      for (size_t b=2; b <= sim->getNoBasis(); ++b) {
         std::stringstream str;
         str << sim->getName() << "-" << b;
         writeBasis(sim,str.str(),b,level);
@@ -454,7 +454,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
           if (sim->mixedProblem())
           {
             size_t ofs = 0;
-            for (size_t b=1; b <= sim->getPatch(loc)->getNoBasis(); ++b) {
+            for (size_t b=1; b <= sim->getNoBasis(); ++b) {
               ndof1 = sim->getPatch(loc)->getNoNodes(b)*sim->getPatch(loc)->getNoFields(b);
               writeArray(group2,prefix+prob->getField1Name(10+b),ndof1,
                          psol.ptr()+ofs,H5T_NATIVE_DOUBLE);
@@ -545,7 +545,7 @@ void HDF5Writer::writeSIM (int level, const DataEntry& entry,
         }
         else if (sim->mixedProblem())
         {
-          for (size_t b=1; b <= sim->getPatch(1)->getNoBasis(); ++b)
+          for (size_t b=1; b <= sim->getNoBasis(); ++b)
             writeArray(group2,prefix+prob->getField1Name(10+b),0,&dummy,H5T_NATIVE_DOUBLE);
         }
         else
