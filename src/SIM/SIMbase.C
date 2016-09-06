@@ -2518,8 +2518,7 @@ size_t SIMbase::extractPatchSolution (const Vector& sol, Vector& vec,
       nndof != this->getNoFields(basis) && this->getNoFields(2) > 0) {
     int key = basis << 16 + nndof;
     if (addMADOFs.find(key) == addMADOFs.end())
-      this->setupAdditionalMADOF(myModel, this->getNoNodes(true),
-                                 basis, nndof, addMADOFs[key]);
+      this->setupAdditionalMADOF(basis, nndof, addMADOFs[key]);
 
     pch->extractNodeVec(sol,vec,&addMADOFs[key][0]);
   }
@@ -2543,8 +2542,7 @@ bool SIMbase::injectPatchSolution (Vector& sol, const Vector& vec,
       nndof != this->getNoFields(basis) && this->getNoFields(2) > 0) {
     int key = basis << 16 + nndof;
     if (addMADOFs.find(key) == addMADOFs.end())
-      this->setupAdditionalMADOF(myModel, this->getNoNodes(true),
-                                 basis, nndof, addMADOFs[key]);
+      this->setupAdditionalMADOF(basis, nndof, addMADOFs[key]);
 
     pch->injectNodeVec(vec, sol, addMADOFs[key], basis);
     return true;
@@ -2641,12 +2639,11 @@ bool SIMbase::refine (const LR::RefineData& prm,
 }
 
 
-void SIMbase::setupAdditionalMADOF(const PatchVec& myModel,
-                                   size_t nodes,
-                                   unsigned char basis,
+void SIMbase::setupAdditionalMADOF(unsigned char basis,
                                    unsigned char nndof,
                                    std::vector<int>& madof) const
 {
+  size_t nodes = this->getNoNodes(true);
   madof.resize(nodes+1, 0);
   for (size_t i = 0; i < myModel.size(); i++) {
     char nType = basis == 1 ? 'D' : 'P'+basis-2;

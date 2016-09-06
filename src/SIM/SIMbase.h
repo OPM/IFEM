@@ -756,13 +756,10 @@ private:
   size_t nBouGP; //!< Number of boundary integration points in the whole model
 
   //! \brief Setup a MADOF with an extraordinary amount of DOFs on a basis.
-  //! \param[in] myModel The patch vector to setup the MADOF for
-  //! \param[in] nodes Total number of global nodes in model
   //! \param[in] basis The basis to specify number of DOFs for
   //! \param[in] nndof Number of DOFs on given basis
   //! \param[out] madof Generated MADOF array
-  void setupAdditionalMADOF(const PatchVec& myModel, size_t nodes,
-                            unsigned char basis,
+  void setupAdditionalMADOF(unsigned char basis,
                             unsigned char nndof,
                             std::vector<int>& madof) const;
 
