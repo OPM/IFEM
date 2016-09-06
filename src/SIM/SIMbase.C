@@ -2515,7 +2515,7 @@ size_t SIMbase::extractPatchSolution (const Vector& sol, Vector& vec,
 
   // Need an additional MADOF
   if (basis != 0 && nndof != 0 &&
-      nndof != getNoFields(basis) && this->getNoFields(2) > 0) {
+      nndof != this->getNoFields(basis) && this->getNoFields(2) > 0) {
     int key = basis << 16 + nndof;
     if (addMADOFs.find(key) == addMADOFs.end())
       setupAdditionalMADOF(myModel, this->getNoNodes(true),
@@ -2540,7 +2540,7 @@ bool SIMbase::injectPatchSolution (Vector& sol, const Vector& vec,
 
   // Need an additional MADOF
   if (basis != 0 && nndof != 0 &&
-      nndof != getNoFields(basis) && this->getNoFields(2) > 0) {
+      nndof != this->getNoFields(basis) && this->getNoFields(2) > 0) {
     int key = basis << 16 + nndof;
     if (addMADOFs.find(key) == addMADOFs.end())
       setupAdditionalMADOF(myModel, this->getNoNodes(true),
