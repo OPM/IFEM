@@ -238,7 +238,6 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
                                       it->master.first,
                                       it->master.second,
                                       it->reversed)) return false;
-
   }
 
   else if (!strcasecmp(elem->Value(),"periodic"))
