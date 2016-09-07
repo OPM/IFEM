@@ -139,27 +139,6 @@ protected:
 protected:
   CharVec nf;         //!< Number of scalar fields
   bool    checkRHSys; //!< Check if all patches are in a right-hand system
-
-
-  /*!
-    \brief A struct defining a patch interface for C1-continuous models.
-  */
-
-  struct Interface
-  {
-    std::pair<ASMs2DC1*,int> master; //!< Patch and edge index of the master
-    std::pair<ASMs2DC1*,int> slave;  //!< Patch and edge index of the slave
-    bool reversed;                   //!< Relative orientation toggle
-    //! \brief Constructor initializing an Interface instance.
-    Interface(ASMs2DC1* m, int me, ASMs2DC1* s, int se, bool r = false)
-    {
-      master = std::make_pair(m,me);
-      slave = std::make_pair(s,se);
-      reversed = r;
-    }
-  };
-
-  std::vector<Interface> top; //!< Interfaces for C1 connection handling
 };
 
 #endif

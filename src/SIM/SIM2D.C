@@ -27,6 +27,25 @@
 #include <sstream>
 
 
+/*!
+  \brief A struct defining a patch interface for C1-continuous models.
+*/
+
+struct Interface
+{
+  std::pair<ASMs2DC1*,int> master; //!< Patch and edge index of the master
+  std::pair<ASMs2DC1*,int> slave;  //!< Patch and edge index of the slave
+  bool reversed;                   //!< Relative orientation toggle
+  //! \brief Constructor initializing an Interface instance.
+  Interface(ASMs2DC1* m, int me, ASMs2DC1* s, int se, bool r = false)
+  {
+    master = std::make_pair(m,me);
+    slave = std::make_pair(s,se);
+    reversed = r;
+  }
+};
+
+
 SIM2D::SIM2D (unsigned char n1, bool check)
 {
   nsd = 2;
@@ -79,9 +98,6 @@ bool SIM2D::addConnection(int master, int slave, int mIdx,
     for (const int& b : bases)
       if (!spch->connectPatch(sIdx,*mpch,mIdx,orient==1?true:false,b,coordCheck))
         return false;
-      else if (opt.discretization == ASM::SplineC1 && b == 1)
-        top.push_back(Interface(static_cast<ASMs2DC1*>(mpch),mIdx,
-                                static_cast<ASMs2DC1*>(spch),sIdx,orient==1?true:false));
   }
   else
     adm.dd.ghostConnections.insert(DomainDecomposition::Interface{master, slave, mIdx, sIdx, orient, 1});
@@ -205,8 +221,24 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
       if (!this->addConnection(master, slave, mIdx, sIdx, orient, basis, !periodic)) {
         std::cerr <<" ** SIM2D::parse: Error establishing connection." << std::endl;
         return false;
+      } else if (opt.discretization == ASM::SplineC1) {
+        int lmaster = this->getLocalPatchIndex(master);
+        int lslave = this->getLocalPatchIndex(slave);
+
+        top.push_back(Interface(static_cast<ASMs2DC1*>(this->getPatch(lmaster)),mIdx,
+                                static_cast<ASMs2DC1*>(this->getPatch(lslave)),sIdx,
+                                orient==1?true:false));
       }
     }
+
+    // Second pass for C1-continuous patches, to set up additional constraints
+    std::vector<Interface>::const_iterator it;
+    for (it = top.begin(); it != top.end(); it++)
+      if (!it->slave.first->connectC1(it->slave.second,
+                                      it->master.first,
+                                      it->master.second,
+                                      it->reversed)) return false;
+
   }
 
   else if (!strcasecmp(elem->Value(),"periodic"))
@@ -269,14 +301,6 @@ bool SIM2D::parseGeometryTag (const TiXmlElement* elem)
           myModel.front()->addHole(R,X1,Y1,X2,Y2);
       }
   }
-
-  // Second pass for C1-continuous patches, to set up additional constraints
-  std::vector<Interface>::const_iterator it;
-  for (it = top.begin(); it != top.end(); it++)
-    if (!it->slave.first->connectC1(it->slave.second,
-                                    it->master.first,
-                                    it->master.second,
-                                    it->reversed)) return false;
 
   return true;
 }
