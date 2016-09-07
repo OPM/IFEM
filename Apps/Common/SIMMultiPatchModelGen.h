@@ -11,7 +11,7 @@
 //!
 //==============================================================================
 
-#ifndef _SIM_MULTPATCH_MODEL_GEN_H_
+#ifndef _SIM_MULTIPATCH_MODEL_GEN_H_
 #define _SIM_MULTIPATCH_MODEL_GEN_H_
 
 #include "SIMbase.h"
@@ -25,17 +25,11 @@ class SIMMultiPatchModelGen : public Dim {
 public:
   //! \brief Default constructor.
   //! \param[in] n1 Number of fields
-  //! \param[in] check If \e true, ensure the model is in a right-hand system
-  SIMMultiPatchModelGen(int n1,
-                        bool checkRHS=false) :
-    Dim(n1, checkRHS) {}
+  SIMMultiPatchModelGen(int n1) : Dim(n1) {}
 
   //! \brief Default constructor.
   //! \param[in] unf Number of fields on bases
-  //! \param[in] check If \e true, ensure the model is in a right-hand system
-  SIMMultiPatchModelGen(const SIMbase::CharVec& unf,
-                        bool checkRHS=false) :
-    Dim(unf,checkRHS) {}
+  SIMMultiPatchModelGen(const SIMbase::CharVec& unf) : Dim(unf) {}
 
   //! \brief Empty destructor
   virtual ~SIMMultiPatchModelGen() {}
