@@ -35,10 +35,11 @@ public:
   struct Interface {
     int master; //!< Master patch (global number).
     int slave;  //!< Slave patch (global number).
-    int midx;   //!< Index of boundary on master:
+    int midx;   //!< Index of boundary on master.
     int sidx;   //!< Index of boundary on slave.
     int orient; //!< Orientation.
     int dim;    //!< Dimension of boundary.
+    int basis;  //!< Basis of boundary.
   };
 
   //! \brief Functor to order ghost connections.
@@ -177,8 +178,10 @@ private:
   //! \param sim Simulator with patches and linear solver block information
   //! \param pidx Patch index
   //! \param lidx Boundary index on patch
+  //! \param cbasis If non-empty, bases to connect
   std::vector<int> setupEquationNumbers(const SIMbase& sim,
-                                        int pidx, int lidx);
+                                        int pidx, int lidx,
+                                        const std::set<int>& cbasis);
 
   //! \brief Calculate the global node numbers for given finite element model.
   bool calcGlobalNodeNumbers(const ProcessAdm& adm, const SIMbase& sim);

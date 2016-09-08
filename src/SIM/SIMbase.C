@@ -29,6 +29,7 @@
 #include "AnaSol.h"
 #include "Vec3Oper.h"
 #include "Functions.h"
+#include "ModelGenerator.h"
 #include "Profiler.h"
 #include "Utilities.h"
 #include "HDF5Writer.h"
@@ -53,6 +54,7 @@ SIMbase::SIMbase (IntegrandBase* itg) : g2l(&myGlb2Loc)
   myEqSys = nullptr;
   mySam = nullptr;
   mySolParams = nullptr;
+  myGen = nullptr;
   nGlPatches = 0;
   nIntGP = nBouGP = 0;
 
@@ -74,6 +76,7 @@ SIMbase::~SIMbase ()
   if (myEqSys)     delete myEqSys;
   if (mySam)       delete mySam;
   if (mySolParams) delete mySolParams;
+  delete myGen;
 
   for (PatchVec::iterator i1 = myModel.begin(); i1 != myModel.end(); i1++)
     delete *i1;
@@ -499,11 +502,19 @@ bool SIMbase::parse (const TiXmlElement* elem)
   if (myModel.empty() && !strcasecmp(elem->Value(),"geometry"))
     if (this->getNoParamDim() > 0 && !elem->FirstChildElement("patchfile"))
     {
-      IFEM::cout <<"  Using default linear geometry basis on unit domain [0,1]";
-      if (this->getNoParamDim() > 1) IFEM::cout <<"^"<< this->getNoParamDim();
-      IFEM::cout << std::endl;
-      nGlPatches = 1;
-      myModel.resize(1,this->createDefaultGeometry(elem));
+      // parse partitioning first
+      for (const TiXmlElement* part = elem->FirstChildElement("partitioning");
+                         part; part = part->NextSiblingElement("partitioning"))
+        result &= this->parseGeometryTag(part);
+
+      myGen = this->createModelGenerator(elem);
+      myModel = myGen->createGeometry(*this);
+      if (myPatches.empty())
+        nGlPatches = myModel.size();
+
+      TopologySet set = myGen->createTopologySets(*this);
+      for (auto& it : set)
+        myEntitys[it.first] = it.second;
     }
 
   if (!strcasecmp(elem->Value(),"linearsolver")) {
@@ -528,6 +539,9 @@ bool SIMbase::parse (const TiXmlElement* elem)
       result &= this->opt.parseConsoleTag(child);
     else if (!strcasecmp(elem->Value(),"discretization"))
       result &= opt.parseDiscretizationTag(child);
+
+  if (myGen)
+    myGen->createTopology(*this);
 
   return result;
 }

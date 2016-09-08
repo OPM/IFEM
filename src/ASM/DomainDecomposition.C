@@ -321,8 +321,15 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
     if (sidx < 1)
       continue;
 
+    std::set<int> cbasis;
     IntVec lNodes;
-    sim.getPatch(sidx)->getBoundaryNodes(it.sidx, lNodes);
+    if (it.basis != 0) {
+      cbasis = utl::getDigits(it.basis);
+      for (auto& it2 : cbasis)
+        sim.getPatch(sidx)->getBoundaryNodes(it.sidx, lNodes, it2);
+    } else
+      sim.getPatch(sidx)->getBoundaryNodes(it.sidx, lNodes);
+
     int nRecv;
     adm.receive(nRecv, getPatchOwner(it.master));
     if (nRecv =! lNodes.size()) {
@@ -335,14 +342,16 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
     adm.receive(glbNodes, getPatchOwner(it.master));
     size_t ofs = 0;
     for (size_t b = 1; b <= sim.getPatch(sidx)->getNoBasis(); ++b) {
-      NodeIterator iter(dynamic_cast<const ASMstruct*>(sim.getPatch(sidx)),
-                        it.orient, it.sidx, b);
-      auto it_n = iter.begin();
-      for (size_t i = 0; i < iter.size(); ++i, ++it_n) {
-        int node = MLGN[lNodes[i+ofs]-1];
-        old2new[node] = glbNodes[*it_n + ofs];
+      if (cbasis.empty() || cbasis.find(b) != cbasis.end()) {
+        NodeIterator iter(dynamic_cast<const ASMstruct*>(sim.getPatch(sidx)),
+                          it.orient, it.sidx, b);
+        auto it_n = iter.begin();
+        for (size_t i = 0; i < iter.size(); ++i, ++it_n) {
+          int node = MLGN[lNodes[i+ofs]-1];
+          old2new[node] = glbNodes[*it_n + ofs];
+        }
+        ofs += iter.size();
       }
-      ofs += iter.size();
     }
   }
   // add multiplier remappings
@@ -379,8 +388,15 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
     if (midx < 1)
       continue;
 
+    std::set<int> cbasis;
+    if (it.basis != 0)
+      cbasis = utl::getDigits(it.basis);
+
     std::vector<int> glbNodes;
-    sim.getPatch(midx)->getBoundaryNodes(it.midx, glbNodes);
+    for (size_t b = 1; b <= sim.getPatch(midx)->getNoBasis(); ++b)
+      if (cbasis.empty() || cbasis.find(b) != cbasis.end())
+        sim.getPatch(midx)->getBoundaryNodes(it.midx, glbNodes, b);
+
     for (size_t i = 0; i < glbNodes.size(); ++i)
       glbNodes[i] = MLGN[glbNodes[i]-1];
 
@@ -394,7 +410,7 @@ bool DomainDecomposition::calcGlobalNodeNumbers(const ProcessAdm& adm,
 
 
 std::vector<int> DomainDecomposition::setupEquationNumbers(const SIMbase& sim,
-                                                           int pidx, int lidx)
+                                                           int pidx, int lidx, const std::set<int>& cbasis)
 {
   std::vector<IntVec> lNodes(sim.getPatch(pidx)->getNoBasis());
   std::vector<int> result;
@@ -408,6 +424,9 @@ std::vector<int> DomainDecomposition::setupEquationNumbers(const SIMbase& sim,
       bases = utl::getDigits(sim.getSolParams()->getBlock(block-1).basis);
 
     for (const int& basis : bases) {
+      if (!cbasis.empty() && cbasis.find(basis) == cbasis.end())
+        continue;
+
       if (lNodes[basis-1].empty())
         sim.getPatch(pidx)->getBoundaryNodes(lidx, lNodes[basis-1], basis);
 
@@ -529,7 +548,11 @@ bool DomainDecomposition::calcGlobalEqNumbers(const ProcessAdm& adm,
     if (sidx < 1)
       continue;
 
-    IntVec locEqs = setupEquationNumbers(sim, sidx, it.sidx);
+    std::set<int> cbasis;
+    if (it.basis != 0)
+      cbasis = utl::getDigits(it.basis);
+
+    IntVec locEqs = setupEquationNumbers(sim, sidx, it.sidx, cbasis);
 
     int nRecv;
     adm.receive(nRecv, getPatchOwner(it.master));
@@ -553,6 +576,9 @@ bool DomainDecomposition::calcGlobalEqNumbers(const ProcessAdm& adm,
         bases = utl::getDigits(sim.getSolParams()->getBlock(block-1).basis);
 
       for (const int& basis : bases) {
+        if (!cbasis.empty() && cbasis.find(basis) == cbasis.end())
+          continue;
+
         std::set<int> components;
         if (block == 0 || sim.getSolParams()->getBlock(block-1).comps == 0) {
           for (size_t i = 1; i <= sim.getPatch(sidx)->getNoFields(basis); ++i)
@@ -569,7 +595,7 @@ bool DomainDecomposition::calcGlobalEqNumbers(const ProcessAdm& adm,
             int leq = locEqs[ofs+i*nodeDofs+comp];
             int geq = glbEqs[ofs+(*it_n)*nodeDofs+comp];
             if (leq < 1 && geq > 0) {
-              std::cerr <<"\n *** DomainDecomposition::calcGlobalNodeNumbers(): "
+              std::cerr <<"\n *** DomainDecomposition::calcGlobalEqNumbers(): "
                         << "Topology error on process " << adm.getProcId()
                         << ", dof constraint mismatch "
                         << "local: " << leq << " global " << geq << std::endl;
@@ -637,7 +663,11 @@ bool DomainDecomposition::calcGlobalEqNumbers(const ProcessAdm& adm,
     if (midx < 1)
       continue;
 
-    IntVec glbEqs = setupEquationNumbers(sim, midx, it.midx);
+    std::set<int> cbasis;
+    if (it.basis != 0)
+      cbasis = utl::getDigits(it.basis);
+
+    IntVec glbEqs = setupEquationNumbers(sim, midx, it.midx, cbasis);
     adm.send(int(glbEqs.size()), getPatchOwner(it.slave));
     adm.send(glbEqs, getPatchOwner(it.slave));
   }
