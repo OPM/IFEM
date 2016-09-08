@@ -32,6 +32,7 @@ class LinSolParams;
 class TimeStep;
 class SystemVector;
 class Vec4;
+class ModelGenerator;
 namespace LR { struct RefineData; }
 
 //! Property code to integrand map
@@ -90,6 +91,20 @@ public:
 
   //! \brief Returns a list of prioritized XML-tags.
   virtual const char** getPrioritizedTags() const;
+
+  //! \brief Connect two patches.
+  //! \param master Master patch
+  //! \param slave Slave patch
+  //! \param mIdx Index on master
+  //! \param sIdx Index on slave
+  //! \param orient Orientation flag
+  //! \param basis Bases to connect (0 for all)
+  //! \param coordCheck False to turn off coordinate checks
+  //! \param dim Dimensionality of connection
+  virtual bool addConnection(int master, int slave, int mIdx, int sIdx,
+                             int orient, int basis=0,
+                             bool coordCheck=true, int dim=1)
+  { return false; }
 
 protected:
   //! \brief Parses the "set" attribute of a material XML-tag.
@@ -651,13 +666,20 @@ public:
   virtual ASMbase* readPatch(std::istream& isp, int pchInd,
                              const CharVec& unf = CharVec()) const = 0;
 
+  //! \brief Reads patches from given input stream.
+  //! \param[in] isp The input stream to read from
+  //! \param[out] patches Array of patches that were read
+  //! \param[in] whiteSpace For message formatting
+  virtual bool readPatches(std::istream& isp, PatchVec& patches,
+                           const char* whiteSpace = "") const = 0;
+
   //! \brief Returns a scalar function associated with \a code.
   RealFunc* getSclFunc(int code) const;
 
 protected:
-  //! \brief Creates a default single-patch geometry.
+  //! \brief Instantiate a generator for the finite element model.
   //! \param[in] geo XML element containing geometry defintion
-  virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const = 0;
+  virtual ModelGenerator* createModelGenerator(const TiXmlElement* geo) const = 0;
 
   //! \brief Initializes material properties for integration of interior terms.
   virtual bool initMaterial(size_t) { return true; }
@@ -666,12 +688,6 @@ protected:
   //! \brief Initializes for integration of Neumann terms for a given property.
   virtual bool initNeumann(size_t) { return true; }
 
-  //! \brief Reads patches from given input stream.
-  //! \param[in] isp The input stream to read from
-  //! \param[out] patches Array of patches that were read
-  //! \param[in] whiteSpace For message formatting
-  virtual bool readPatches(std::istream& isp, PatchVec& patches,
-                           const char* whiteSpace = "") = 0;
   //! \brief Reads global node data for a patch from given input stream.
   //! \param[in] isn The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read node data for
@@ -734,6 +750,7 @@ protected:
   IntegrandBase* myProblem; //!< The main integrand of this simulator
   IntegrandMap   myInts;    //!< Set of all integrands involved
   AnaSol*        mySol;     //!< Analytical/Exact solution
+  ModelGenerator* myGen;    //!< Model generator to use
 
   //! \brief A struct with data for system matrix/vector dumps.
   struct DumpData

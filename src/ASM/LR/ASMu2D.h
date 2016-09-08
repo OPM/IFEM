@@ -235,7 +235,7 @@ public:
                                const std::map<int,int>* g2l = nullptr);
 
   //! \brief Returns the node index for a given corner.
-  int getCorner(int I, int J, int basis = 1) const;
+  virtual int getCorner(int I, int J, int basis = 1) const;
   //! \brief Returns the node indices for a given edge.
   std::vector<int> getEdgeNodes(int edge, int basis = 1) const;
 

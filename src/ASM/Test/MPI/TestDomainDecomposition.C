@@ -13,6 +13,7 @@
 #include "DomainDecomposition.h"
 #include "SAM.h"
 #include "ASMbase.h"
+#include "IntegrandBase.h"
 #include "SIM2D.h"
 #include "SIM3D.h"
 #include "IFEM.h"
@@ -40,6 +41,14 @@ protected:
 
     return true;
   }
+};
+
+
+template<class Dim>
+class DummySIM : public Dim {
+public:
+  class DummyIntegrand : public IntegrandBase {};
+  DummySIM() : Dim(1) { Dim::myProblem = new DummyIntegrand; }
 };
 
 
@@ -83,6 +92,29 @@ class TestDomainDecomposition3D : public testing::Test,
 };
 
 
+TEST_P(TestDomainDecomposition2D, Corner)
+{
+  DummySIM<SIM2D> sim;
+  std::stringstream str;
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_corner";
+  if (GetParam() == 1)
+    str << "_fail";
+  str << ".xinp";
+  sim.read(str.str().c_str());
+
+  if (GetParam() == 0) {
+    ASSERT_TRUE(sim.preprocess());
+    const ProcessAdm& adm = sim.getProcessAdm();
+    str.str("");
+    str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_corner_nodes";
+    str << adm.getProcId() << ".ref";
+    IntVec B = readIntVector(str.str());
+    check_intvectors_equal(adm.dd.getMLGN(), B);
+  } else
+    ASSERT_FALSE(sim.preprocess());
+}
+
+
 TEST_P(TestDomainDecomposition2D, SetupSingleBasis)
 {
   SIM2D sim(2);
@@ -111,6 +143,26 @@ TEST_P(TestDomainDecomposition2D, SetupSingleBasis)
 }
 
 
+TEST_P(TestDomainDecomposition2D, SetupSingleBasisPeriodic)
+{
+  SIM2D sim(2);
+  std::stringstream str;
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_periodic";
+  str << GetParam() << ".xinp";
+  sim.read(str.str().c_str());
+  sim.preprocess();
+
+  const ProcessAdm& adm = sim.getProcessAdm();
+  const SAM* sam = sim.getSAM();
+  str.str("");
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_periodic";
+  str << GetParam() << "_nodes" << adm.getProcId() << ".ref";
+  IntVec B = readIntVector(str.str());
+  check_intvectors_equal(adm.dd.getMLGN(), B);
+  ASSERT_EQ(sam->getNoNodes(), 9);
+}
+
+
 TEST_P(TestDomainDecomposition2D, SetupSingleBasisGlobalLM)
 {
   TestGlobalLMSIM sim(2);
@@ -121,7 +173,6 @@ TEST_P(TestDomainDecomposition2D, SetupSingleBasisGlobalLM)
   sim.preprocess();
 
   const ProcessAdm& adm = sim.getProcessAdm();
-
   str.str("");
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_orient";
   str << GetParam() << "_eqs" << adm.getProcId() << ".ref";
@@ -191,6 +242,32 @@ TEST_P(TestDomainDecomposition2D, SetupMixedBasis)
 }
 
 
+TEST_P(TestDomainDecomposition2D, SetupMixedBasisPeriodic)
+{
+  SIM2D sim({2,2});
+  std::stringstream str;
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_periodic";
+  str << GetParam() << ".xinp";
+  sim.read(str.str().c_str());
+  sim.preprocess();
+
+  const ProcessAdm& adm = sim.getProcessAdm();
+  const SAM* sam = sim.getSAM();
+  str.str("");
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_mixed_periodic";
+  str << GetParam() << "_nodes" << adm.getProcId() << ".ref";
+  IntVec B = readIntVector(str.str());
+  check_intvectors_equal(adm.dd.getMLGN(), B);
+  ASSERT_EQ(sam->getNoNodes(), 25);
+  ASSERT_EQ(sam->getNoDOFs(), 50);
+  str.str("");
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_mixed_periodic";
+  str << GetParam() << "_eqs" << adm.getProcId() << ".ref";
+  B = readIntVector(str.str());
+  check_intvectors_equal(adm.dd.getMLGEQ(), B);
+}
+
+
 TEST_P(TestDomainDecomposition2D, SetupMixedBasisBlockEqsBasis)
 {
   SIM2D sim({2,2});
@@ -229,7 +306,6 @@ TEST_P(TestDomainDecomposition2D, SetupMixedBasisBlockEqsBasisGlobalLM)
   sim.preprocess();
 
   const ProcessAdm& adm = sim.getProcessAdm();
-
   str.str("");
   str << "src/ASM/Test/refdata/DomainDecomposition_MPI_2D_4_mixed_orient";
   str << GetParam() << "_eqs" << adm.getProcId() << ".ref";
@@ -292,6 +368,27 @@ TEST_P(TestDomainDecomposition3D, SetupSingleBasis)
 }
 
 
+TEST_P(TestDomainDecomposition3D, SetupSingleBasisPeriodic)
+{
+  if (GetParam() > 2)
+    return;
+
+  SIM3D sim(3);
+  std::stringstream str;
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_periodic";
+  str << GetParam() << ".xinp";
+  sim.read(str.str().c_str());
+  sim.preprocess();
+
+  const ProcessAdm& adm = sim.getProcessAdm();
+  str.str("");
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_periodic";
+  str << GetParam() << "_nodes" << adm.getProcId() << ".ref";
+  IntVec B = readIntVector(str.str());
+  check_intvectors_equal(adm.dd.getMLGN(), B);
+}
+
+
 TEST_P(TestDomainDecomposition3D, SetupSingleBasisBlockEqsComponent)
 {
   if (GetParam() > 0)
@@ -345,6 +442,59 @@ TEST_P(TestDomainDecomposition3D, SetupMixedBasis)
   str << GetParam() << "_eqs" << adm.getProcId() << ".ref";
   B = readIntVector(str.str());
   check_intvectors_equal(adm.dd.getMLGEQ(), B);
+}
+
+
+TEST_P(TestDomainDecomposition3D, SetupMixedBasisPeriodic)
+{
+  if (GetParam() > 3)
+    return;
+
+  SIM3D sim({1,1});
+  std::stringstream str;
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_periodic";
+  str << GetParam() << ".xinp";
+  sim.read(str.str().c_str());
+  sim.preprocess();
+
+  const ProcessAdm& adm = sim.getProcessAdm();
+  str.str("");
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_mixed_periodic";
+  str << GetParam() << "_nodes" << adm.getProcId() << ".ref";
+  IntVec B = readIntVector(str.str());
+
+  check_intvectors_equal(adm.dd.getMLGN(), B);
+//  str.str("");
+//  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_mixed_periodic";
+//  str << GetParam() << "_eqs" << adm.getProcId() << ".ref";
+//  B = readIntVector(str.str());
+//  check_intvectors_equal(adm.dd.getMLGEQ(), B);
+}
+
+
+TEST_P(TestDomainDecomposition3D, Corner)
+{
+  if (GetParam() > 1)
+    return;
+
+  DummySIM<SIM3D> sim;
+  std::stringstream str;
+  str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_corner";
+  if (GetParam() == 1)
+    str << "_fail";
+  str << ".xinp";
+  sim.read(str.str().c_str());
+
+  if (GetParam() == 0) {
+    ASSERT_TRUE(sim.preprocess());
+    const ProcessAdm& adm = sim.getProcessAdm();
+    str.str("");
+    str << "src/ASM/Test/refdata/DomainDecomposition_MPI_3D_4_corner_nodes";
+    str << adm.getProcId() << ".ref";
+    IntVec B = readIntVector(str.str());
+    check_intvectors_equal(adm.dd.getMLGN(), B);
+  } else
+    ASSERT_FALSE(sim.preprocess());
 }
 
 

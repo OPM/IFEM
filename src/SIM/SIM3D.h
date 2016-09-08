@@ -58,6 +58,25 @@ public:
   virtual ASMbase* readPatch(std::istream& isp, int pchInd,
                              const CharVec& unf) const;
 
+  //! \brief Reads patches from given input stream.
+  //! \param[in] isp The input stream to read from
+  //! \param[out] patches Array of patches that were read
+  //! \param[in] whiteSpace For message formatting
+  virtual bool readPatches(std::istream& isp, PatchVec& patches,
+                           const char* whiteSpace) const;
+
+  //! \brief Connect two patches.
+  //! \param master Master patch
+  //! \param slave Slave patch
+  //! \param mIdx Index on master
+  //! \param sIdx Index on slave
+  //! \param orient Orientation flag for connection
+  //! \param[in] basis Bases to connect (0 for all)
+  //! \param coordCheck False to turn off coordinate checks
+  //! \param[in] dim Dimensionality of connection
+  bool addConnection(int master, int slave, int mFace, int sFace,
+                     int orient, int basis=0, bool coordCheck=true, int dim=2);
+
   //! \brief Evaluates the primary solution at the given point.
   //! \param[in] psol Primary solution vector
   //! \param[in] u First parameter of the point to evaluate at
@@ -85,12 +104,6 @@ protected:
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
 
-  //! \brief Reads patches from given input stream.
-  //! \param[in] isp The input stream to read from
-  //! \param[out] patches Array of patches that were read
-  //! \param[in] whiteSpace For message formatting
-  virtual bool readPatches(std::istream& isp, PatchVec& patches,
-                           const char* whiteSpace);
   //! \brief Reads global node data for a patch from given input stream.
   //! \param[in] isn The input stream to read from
   //! \param[in] pchInd 0-based index of the patch to read node data for
@@ -125,8 +138,9 @@ protected:
   bool addConstraint(int patch, int lndx, int line, double xi,
                      int dirs, char basis = 1);
 
-  //! \brief Creates a default single-patch geometry.
-  virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const;
+  //! \brief Creates a default single-patch model generator.
+  //! \param[in] geo XML element containing geometry defintion
+  virtual ModelGenerator* createModelGenerator(const TiXmlElement* geo) const;
 
 protected:
   CharVec nf;         //!< Number of scalar fields

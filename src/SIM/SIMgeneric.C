@@ -13,14 +13,16 @@
 
 #include "SIMgeneric.h"
 #include "ASMbase.h"
+#include "ModelGenerator.h"
 
 
 void SIMgeneric::createDefaultModel ()
 {
   if (!myModel.empty()) return;
 
-  nGlPatches = 1;
-  myModel.resize(1,this->createDefaultGeometry(nullptr));
+  myGen = this->createModelGenerator(nullptr);
+  myModel = myGen->createGeometry(*this);
+  nGlPatches = myModel.size();
 }
 
 

@@ -127,6 +127,9 @@ public:
   //! \param[in] nSegSpan Number of visualization segments over each knot-span
   virtual bool getGridParameters(std::vector<double>& prm,
                                  int dir, int nSegSpan) const = 0;
+
+  //! \brief Returns the node index for a given corner.
+  virtual int getCorner(int I, int J, int basis = 1) const = 0;
 };
 
 #endif

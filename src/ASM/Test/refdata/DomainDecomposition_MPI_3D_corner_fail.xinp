@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+
+  <console>
+    <logging output_prefix="foo"/>
+  </console>
+
+  <!-- General - geometry definitions !-->
+  <geometry>
+    <partitioning procs="4" nperproc="1"/>
+    <patchfile>src/ASM/Test/refdata/backstep-4.g2</patchfile>
+    <refine lowerpatch="1" upperpatch="4" u="1" v="1" w="1"/>
+    <topology>
+      <connection master="3" mface="6" slave="4" sface="5"/>
+      <connection master="2" mface="2" slave="4" sface="1"/>
+      <connection master="1" mface="2" slave="2" sface="1"/>
+    </topology>
+  </geometry>
+
+</simulation>
