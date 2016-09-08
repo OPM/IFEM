@@ -71,9 +71,10 @@ public:
   //! \param mFace Face on master
   //! \param sFace Face on slave
   //! \param orient Orientation flag for connection
+  //! \param basis Which bases to connect (0 for all)
   //! \param coordCheck False to turn off coordinate checks
   bool addConnection(int master, int slave, int mFace, int sFace,
-                     int orient, int basis=0, bool coordCheck=true);
+                     int orient, int basis = 0, bool coordCheck = true);
 
   //! \brief Evaluates the primary solution at the given point.
   //! \param[in] psol Primary solution vector

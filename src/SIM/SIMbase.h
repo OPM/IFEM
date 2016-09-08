@@ -98,9 +98,10 @@ public:
   //! \param mIdx Index on master
   //! \param sIdx Index on slave
   //! \param orient Orientation flag
+  //! \param basis Which bases to connect (0 for all)
   //! \param coordCheck False to turn off coordinate checks.
   virtual bool addConnection(int master, int slave, int mIdx, int sIdx,
-                             int orient, bool coordCheck=true)
+                             int orient, int basis = 0, bool coordCheck = true)
   { return false; }
 
 protected:

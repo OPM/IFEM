@@ -16,8 +16,6 @@
 
 #include "SIMgeneric.h"
 
-class ASMs2DC1;
-
 
 /*!
   \brief Driver class for 2D NURBS-based FEM solver.
@@ -78,9 +76,10 @@ public:
   //! \param mEdge Edge on master
   //! \param sEdge Edge on slave
   //! \param orient Orientation flag for connection (1 for reversed)
+  //! \param basis Which bases to connect (0 for all)
   //! \param coordCheck False to turn off coordinate checks
   bool addConnection(int master, int slave, int mEdge, int sEdge,
-                     int orient, int basis=0, bool coordCheck=true);
+                     int orient, int basis = 0, bool coordCheck = true);
 
   //! \brief Evaluates the primary solution at the given point.
   //! \param[in] psol Primary solution vector
