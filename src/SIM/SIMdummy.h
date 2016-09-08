@@ -38,7 +38,7 @@ public:
   { return nullptr; }
 protected:
   //! \brief Reads patches from given input stream.
-  virtual bool readPatches(std::istream&,SIMdependency::PatchVec&,const char*)
+  virtual bool readPatches(std::istream&,SIMdependency::PatchVec&,const char*) const
   { return false; }
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   virtual bool addConstraint(int,int,int,int,int,int&,char)
@@ -48,6 +48,9 @@ protected:
   { return nullptr; }
   //! \brief Preprocesses the result sampling points.
   virtual void preprocessResultPoints() {}
+  //! \brief Creates a model generator.
+  virtual ModelGenerator* createModelGenerator(const TiXmlElement*) const
+  { return nullptr; }
 };
 
 #endif

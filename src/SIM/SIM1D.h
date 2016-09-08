@@ -50,6 +50,13 @@ public:
   virtual ASMbase* readPatch(std::istream& isp, int pchInd,
                              const CharVec& unf) const;
 
+  //! \brief Reads patches from given input stream.
+  //! \param[in] isp The input stream to read from
+  //! \param[out] patches Array of patches that were read
+  //! \param[in] whiteSpace For message formatting
+  virtual bool readPatches(std::istream& isp, PatchVec& patches,
+                           const char* whiteSpace) const;
+
   //! \brief Evaluates the primary solution at the given point.
   //! \param[in] psol Primary solution vector
   //! \param[in] u Parameter of the point to evaluate at
@@ -75,6 +82,10 @@ protected:
   //! \brief Parses the twist angle description along the curve.
   bool parseTwist(const TiXmlElement* elem);
 
+  //! \brief Creates a default single-patch model generator.
+  //! \param[in] geo XML element containing geometry defintion
+  virtual ModelGenerator* createModelGenerator(const TiXmlElement* geo) const;
+
   //! \brief Parses a data section from an XML document.
   //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);
@@ -83,13 +94,6 @@ protected:
   //! \param[in] keyWord Keyword of current data section to read
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
-
-  //! \brief Reads patches from given input stream.
-  //! \param[in] isp The input stream to read from
-  //! \param[out] patches Array of patches that were read
-  //! \param[in] whiteSpace For message formatting
-  virtual bool readPatches(std::istream& isp, PatchVec& patches,
-                           const char* whiteSpace);
 
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   //! \param[in] patch 1-based index of the patch to receive the property
@@ -104,9 +108,6 @@ protected:
   //! \brief Creates the computational FEM model from the spline patches.
   //! \details Reimplemented to account for twist angle in beam problems.
   virtual bool createFEMmodel(char = 'y');
-
-  //! \brief Creates a default single-patch geometry.
-  virtual ASMbase* createDefaultGeometry(const TiXmlElement* geo) const;
 
 protected:
   unsigned char nf; //!< Number of scalar fields
