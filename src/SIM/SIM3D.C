@@ -203,7 +203,7 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
         return false;
       }
 
-      if (!this->addConnection(master, slave, mFace, sFace,
+      if (!this->addConnection(master, slave, mIdx, sIdx,
                                orient, basis, !periodic, dim))
       {
         std::cerr <<" *** SIM3D::parse: Error establishing connection."
