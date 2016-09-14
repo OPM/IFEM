@@ -20,6 +20,7 @@
 #include "Vec3.h"
 #include "Vec3Oper.h"
 #include "tinyxml.h"
+#include <array>
 
 
 MultiPatchModelGenerator2D::MultiPatchModelGenerator2D (const TiXmlElement* geo) :

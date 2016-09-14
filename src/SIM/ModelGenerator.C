@@ -18,6 +18,7 @@
 #include "Vec3.h"
 #include "Vec3Oper.h"
 #include "tinyxml.h"
+#include <array>
 
 
 ModelGenerator::ModelGenerator (const TiXmlElement* elem) :
