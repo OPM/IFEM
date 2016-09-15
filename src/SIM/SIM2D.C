@@ -372,6 +372,14 @@ bool SIM2D::parse (const TiXmlElement* elem)
     else if (!strcasecmp(elem->Value(),"boundaryconditions"))
       result &= this->parseBCTag(child);
 
+  if (myGen && result) {
+    if (!this->createFEMmodel()) return false;
+    myGen->createTopology(*this);
+  }
+
+  delete myGen;
+  myGen = nullptr;
+
   return result;
 }
 
