@@ -135,7 +135,7 @@ bool MultiPatchModelGenerator2D::createTopology (SIMbase& sim) const
   if (periodic_x)
     for (int i = 0; i < ny; ++i)
       if (nx > 1) {
-        if (!sim.addConnection(IJ(0, i), IJ(nx-1, i), 1, 2, 0, false))
+        if (!sim.addConnection(IJ(0, i), IJ(nx-1, i), 1, 2, 0, 0, false))
           return false;
       } else {
          IFEM::cout <<"\tPeriodic I-direction P"<< IJ(0,i) << std::endl;
@@ -147,7 +147,7 @@ bool MultiPatchModelGenerator2D::createTopology (SIMbase& sim) const
   if (periodic_y)
     for (int i = 0; i < nx; ++i)
       if (ny > 1)
-        if (!sim.addConnection(IJ(i,0), IJ(i,ny-1), 3, 4, 0, false))
+        if (!sim.addConnection(IJ(i,0), IJ(i,ny-1), 3, 4, 0, 0, false))
           return false;
       else {
          IFEM::cout <<"\tPeriodic J-direction P"<< IJ(i,0)<< std::endl;
@@ -321,26 +321,26 @@ bool MultiPatchModelGenerator3D::createTopology (SIMbase& sim) const
   for (int k = 0; k < nz; ++k)
     for (int j = 0; j < ny; ++j)
       for (int i = 0; i < nx-1; ++i)
-        if (!sim.addConnection(IJK(i,j,k), IJK(i+1,j,k), 2, 1, 0))
+        if (!sim.addConnection(IJK(i,j,k), IJK(i+1,j,k), 2, 1, 0, 0, true, 2))
           return false;
 
   for (int k = 0; k < nz; ++k)
     for (int j = 0; j < ny-1; ++j)
       for (int i = 0; i < nx; ++i)
-        if (!sim.addConnection(IJK(i,j,k), IJK(i,j+1,k), 4, 3, 0))
+        if (!sim.addConnection(IJK(i,j,k), IJK(i,j+1,k), 4, 3, 0, 0, true, 2))
           return false;
 
   for (int k = 0; k < nz-1; ++k)
     for (int j = 0; j < ny; ++j)
       for (int i = 0; i < nx; ++i)
-        if (!sim.addConnection(IJK(i,j,k), IJK(i,j,k+1), 6, 5, 0))
+        if (!sim.addConnection(IJK(i,j,k), IJK(i,j,k+1), 6, 5, 0, 0, true, 2))
           return false;
 
   if (periodic_x)
     for (int k = 0; k < nz; ++k)
       for (int j = 0; j < ny; ++j)
         if (nx > 1) {
-          if (!sim.addConnection(IJK(0,j,k), IJK(nx-1,j,k), 1, 2, 0, false))
+          if (!sim.addConnection(IJK(0,j,k), IJK(nx-1,j,k), 1, 2, 0, 0, false, 2))
             return false;
         } else {
           IFEM::cout <<"\tPeriodic I-direction P"<< IJK(0,j,k) << std::endl;
@@ -353,7 +353,7 @@ bool MultiPatchModelGenerator3D::createTopology (SIMbase& sim) const
     for (int k = 0; k < nz; ++k)
       for (int i = 0; i < nx; ++i)
         if (ny > 1) {
-          if (!sim.addConnection(IJK(i,0,k), IJK(i,ny-1,k), 3, 4, 0, false))
+          if (!sim.addConnection(IJK(i,0,k), IJK(i,ny-1,k), 3, 4, 0, 0, false, 2))
             return false;
          } else {
           IFEM::cout <<"\tPeriodic J-direction P"<< IJK(i,0,k) << std::endl;
@@ -366,7 +366,7 @@ bool MultiPatchModelGenerator3D::createTopology (SIMbase& sim) const
     for (int j = 0; j < ny; ++j)
       for (int i = 0; i < nx; ++i)
         if (nz > 1) {
-          if (!sim.addConnection(IJK(i,j,0), IJK(i,j,nz-1), 5, 6, 0, false))
+          if (!sim.addConnection(IJK(i,j,0), IJK(i,j,nz-1), 5, 6, 0, 0, false, 2))
             return false;
         } else {
           IFEM::cout <<"\tPeriodic K-direction P"<< IJK(i,j,0) << std::endl;
