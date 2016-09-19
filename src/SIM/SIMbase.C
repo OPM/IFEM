@@ -169,8 +169,9 @@ bool SIMbase::parseGeometryTag (const TiXmlElement* elem)
       return true;
     IFEM::cout <<"\tNumber of partitions: "<< proc << std::endl;
 
-    nGlPatches = 0;
     const TiXmlElement* part = elem->FirstChildElement("part");
+    if (part)
+      nGlPatches = 0;
     for (; part; part = part->NextSiblingElement("part")) {
       int first = -2, last = -2;
       utl::getAttribute(part,"proc",proc);
