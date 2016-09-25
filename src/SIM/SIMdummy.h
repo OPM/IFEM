@@ -36,17 +36,17 @@ public:
   //! \brief Reads a patch from given input stream.
   virtual ASMbase* readPatch(std::istream&,int, const SIMbase::CharVec&) const
   { return nullptr; }
-protected:
   //! \brief Reads patches from given input stream.
   virtual bool readPatches(std::istream&,SIMdependency::PatchVec&,const char*) const
   { return false; }
+protected:
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   virtual bool addConstraint(int,int,int,int,int,int&,char)
   { return false; }
   //! \brief Preprocesses the result sampling points.
   virtual void preprocessResultPoints() {}
   //! \brief Creates a model generator.
-  virtual ModelGenerator* createModelGenerator(const TiXmlElement*) const
+  virtual ModelGenerator* getModelGenerator(const TiXmlElement*) const
   { return nullptr; }
 };
 

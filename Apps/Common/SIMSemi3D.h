@@ -195,10 +195,13 @@ public:
   }
 
   //! \brief Sets the initial conditions.
-  void setInitialConditions()
+  bool setInitialConditions()
   {
+    bool ok = true;
     for (size_t i=0;i<m_planes.size();++i)
-      m_planes[i]->setInitialConditions();
+      ok &= m_planes[i]->setInitialConditions();
+
+    return ok;
   }
 
   //! \brief Initialize the FEM system.

@@ -49,12 +49,13 @@ public:
   virtual bool mixedProblem() const { return nf.size() > 1; }
 
   //! \brief Returns the number of parameter dimensions in the model.
-  unsigned short int getNoParamDim() const { return 2; }
+  virtual unsigned short int getNoParamDim() const { return 2; }
 
   //! \brief Creates the FE model by copying the given patches.
   //! \param[in] patches List of patches to borrow the grid from
   //! \param[in] g2ln Global-to-local node number mapping for the borrowed grid
-  void clonePatches(const PatchVec& patches, const std::map<int,int>& g2ln);
+  virtual void clonePatches(const PatchVec& patches,
+                            const std::map<int,int>& g2ln);
 
   //! \brief Reads a patch from given input stream.
   //! \param[in] isp The input stream to read from
@@ -70,19 +71,18 @@ public:
   virtual bool readPatches(std::istream& isp, PatchVec& patches,
                            const char* whiteSpace) const;
 
-  //! \brief Connect two patches.
-  //! \param master Master patch
-  //! \param slave Slave patch
-  //! \param mIdx Index on master
-  //! \param sIdx Index on slave
-  //! \param basis Bases to connect (0 for all)
-  //! \param orient Orientation flag for connection (1 for reversed)
-  //! \param basis Which bases to connect (0 for all)
-  //! \param coordCheck False to turn off coordinate checks
-  //! \param dim Dimensionality of connection
-  bool addConnection(int master, int slave, int mEdge, int sEdge,
-                     int orient, int basis = 0, bool coordCheck = true,
-                     int dim = 1);
+  //! \brief Connects two patches.
+  //! \param[in] master Master patch
+  //! \param[in] slave Slave patch
+  //! \param[in] mEdge Edge index on master patch
+  //! \param[in] sEdge Edge index on slave patch
+  //! \param[in] orient Orientation flag for connection (1 for reversed)
+  //! \param[in] basis Which bases to connect (0 for all)
+  //! \param[in] coordCheck If \e false, do not check for matching coordinates
+  //! \param[in] dim Dimensionality of connection
+  virtual bool addConnection(int master, int slave, int mEdge, int sEdge,
+                             int orient, int basis = 0, bool coordCheck = true,
+                             int dim = 1);
 
   //! \brief Evaluates the primary solution at the given point.
   //! \param[in] psol Primary solution vector
@@ -134,9 +134,9 @@ protected:
   virtual bool addConstraint(int patch, int lndx, int ldim,
                              int dirs, int code, int& ngnod, char basis = 1);
 
-  //! \brief Creates a default single-patch model generator.
+  //! \brief Returns a FEM model generator for a default single-patch model.
   //! \param[in] geo XML element containing geometry defintion
-  virtual ModelGenerator* createModelGenerator(const TiXmlElement* geo) const;
+  virtual ModelGenerator* getModelGenerator(const TiXmlElement* geo) const;
 
 protected:
   CharVec nf;         //!< Number of scalar fields

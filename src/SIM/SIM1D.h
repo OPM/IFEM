@@ -41,7 +41,7 @@ public:
   virtual ~SIM1D() { delete twist; }
 
   //! \brief Returns the number of parameter dimensions in the model.
-  unsigned short int getNoParamDim() const { return 1; }
+  virtual unsigned short int getNoParamDim() const { return 1; }
 
   //! \brief Reads a patch from given input stream.
   //! \param[in] isp The input stream to read from
@@ -82,10 +82,6 @@ protected:
   //! \brief Parses the twist angle description along the curve.
   bool parseTwist(const TiXmlElement* elem);
 
-  //! \brief Creates a default single-patch model generator.
-  //! \param[in] geo XML element containing geometry defintion
-  virtual ModelGenerator* createModelGenerator(const TiXmlElement* geo) const;
-
   //! \brief Parses a data section from an XML document.
   //! \param[in] elem The XML element to parse
   virtual bool parse(const TiXmlElement* elem);
@@ -105,6 +101,11 @@ protected:
   virtual bool addConstraint(int patch, int lndx, int ldim,
                              int dirs, int code, int&, char basis = 1);
 
+  //! \brief Returns a FEM model generator for a default single-patch model.
+  //! \param[in] geo XML element containing geometry defintion
+  virtual ModelGenerator* getModelGenerator(const TiXmlElement* geo) const;
+
+public:
   //! \brief Creates the computational FEM model from the spline patches.
   //! \details Reimplemented to account for twist angle in beam problems.
   virtual bool createFEMmodel(char = 'y');

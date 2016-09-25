@@ -17,7 +17,6 @@
 #include "SIMadmin.h"
 #include "SIMdependency.h"
 #include "TimeDomain.h"
-#include "TopologySet.h"
 #include "Property.h"
 #include "Function.h"
 #include "MatVec.h"
@@ -32,8 +31,6 @@ class LinSolParams;
 class TimeStep;
 class SystemVector;
 class Vec4;
-class ModelGenerator;
-namespace LR { struct RefineData; }
 
 //! Property code to integrand map
 typedef std::multimap<int,IntegrandBase*> IntegrandMap;
@@ -75,97 +72,20 @@ public:
   // Model input and pre-processing methods
   // ======================================
 
+  //! \brief Creates the computational FEM model from the spline patches.
+  //! \param[in] resetNumb If \e 'y', start element and node numbers from zero
+  virtual bool createFEMmodel(char resetNumb = 'y') = 0;
+
   //! \brief Initializes the property containers of the model.
   //! \details Use this method to clear the model before re-reading
   //! the input file in the refinement step of an adaptive simulation.
   virtual void clearProperties();
-
-  //! \brief Parses a data section from an input stream.
-  //! \param[in] keyWord Keyword of current data section to read
-  //! \param is The file stream to read from
-  virtual bool parse(char* keyWord, std::istream& is);
-
-  //! \brief Parses a data section from an xml document.
-  //! \param[in] elem The XML element to parse
-  virtual bool parse(const TiXmlElement* elem);
-
-  //! \brief Returns a list of prioritized XML-tags.
-  virtual const char** getPrioritizedTags() const;
-
-  //! \brief Connect two patches.
-  //! \param master Master patch
-  //! \param slave Slave patch
-  //! \param mIdx Index on master
-  //! \param sIdx Index on slave
-  //! \param orient Orientation flag
-  //! \param basis Which bases to connect (0 for all)
-  //! \param coordCheck False to turn off coordinate checks.
-  //! \param dim Dimensionality of connection
-  virtual bool addConnection(int master, int slave, int mIdx, int sIdx,
-                             int orient, int basis = 0, bool coordCheck = true,
-                             int dim = 1)
-  { return false; }
-
-protected:
-  //! \brief Parses the "set" attribute of a material XML-tag.
-  //! \param[in] elem The XML element extract the set name from
-  //! \param[in] mindex Index into problem-dependent material property container
-  //! \return The property code to be associated with the material
-  int parseMaterialSet(const TiXmlElement* elem, int mindex);
-  //! \brief Parses a subelement of the \a resultoutput XML-tag.
-  virtual bool parseOutputTag(const TiXmlElement* elem);
-
-private:
-  //! \brief Parses a subelement of the \a geometry XML-tag.
-  bool parseGeometryTag(const TiXmlElement* elem);
-  //! \brief Parses a subelement of the \a boundaryconditions XML-tag.
-  bool parseBCTag(const TiXmlElement* elem);
-  //! \brief Parses a subelement of the \a linearsolver XML-tag.
-  bool parseLinSolTag(const TiXmlElement* elem);
-
-public:
-  //! \brief Creates the FE model by copying the given patches.
-  virtual void clonePatches(const PatchVec&, const std::map<int,int>&) {}
-
-  //! \brief Refines the mesh adaptively.
-  //! \param[in] prm Input data used to control the refinement
-  //! \param[in] fName Optional mesh output file (Encapsulated PostScript)
-  bool refine(const LR::RefineData& prm, const char* fName = nullptr);
-
-  //! \brief Refines the mesh adaptively.
-  //! \param[in] prm Input data used to control the refinement
-  //! \param[in] sol Vector to interpolate onto refined mesh
-  //! \param[in] fName Optional mesh output file (Encapsulated PostScript)
-  bool refine(const LR::RefineData& prm,
-              Vector& sol, const char* fName = nullptr);
-
-  //! \brief Refines the mesh adaptively.
-  //! \param[in] prm Input data used to control the refinement
-  //! \param[in] sol Vectors to interpolate onto refined mesh
-  //! \param[in] fName Optional mesh output file (Encapsulated PostScript)
-  bool refine(const LR::RefineData& prm,
-              Vectors& sol, const char* fName = nullptr);
 
   //! \brief Performs some pre-processing tasks on the FE model.
   //! \param[in] ignored Indices of patches to ignore in the analysis
   //! \param[in] fixDup Merge duplicated FE nodes on patch interfaces?
   bool preprocess(const std::vector<int>& ignored = std::vector<int>(),
                   bool fixDup = false);
-
-  //! \brief Defines a vector field property.
-  //! \param[in] code The property code to be associated with the property
-  //! \param[in] ptype The property type to be associated with the given code
-  //! \param[in] field The vector field representing the physical property
-  //! \param[in] pflag Flag for local axis directions (see setPropertyType)
-  size_t setVecProperty(int code, Property::Type ptype,
-                        VecFunc* field = nullptr, int pflag = -1);
-
-  //! \brief Defines a traction field property.
-  //! \param[in] code The property code to be associated with the property
-  //! \param[in] ptype The property type to be associated with the given code
-  //! \param[in] field The traction field representing the physical property
-  bool setTracProperty(int code, Property::Type ptype,
-                       TractionFunc* field = nullptr);
 
   //! \brief Allocates the system matrices of the FE problem to be solved.
   //! \param[in] mType The matrix format to use
@@ -516,47 +436,14 @@ public:
   //! out of scope.
   ForceBase* getNodalForceIntegrand() const;
 
-  //! \brief Returns a unique integer code for a Property set.
-  //! \param[in] setName Name of the topology set the property is defined on
-  //! \param[in] comp The solution components on which the property is applied
-  //!
-  //! \details The actual Property objects are also created (one for each entity
-  //! in the topology set) and their type is set to UNDEFINED. The method
-  //! setPropertyType must be used to assign the actual Property type.
-  int getUniquePropertyCode(const std::string& setName, int comp = 0);
-  //! \brief Creates a set of Property objects.
-  //! \param[in] setName Name of the topology set the property is defined on
-  //! \param[in] pc The property code to be associated with this set
-  bool createPropertySet(const std::string& setName, int pc);
-
   //! \brief Returns the SAM object for this SIM
   const SAM* getSAM() const { return mySam; }
 
 protected:
-  //! \brief Defines the type of a property set.
-  //! \param[in] code The property code to be associated with the property type
-  //! \param[in] ptype The property type to be associated with the given code
-  //! \param[in] pindex 0-based index into problem-dependent property container
-  //! \param[in] basis 1-based index into basis associated with property
-  size_t setPropertyType(int code, Property::Type ptype, int pindex = -1,
-                         char basis = 1);
-
-  //! \brief Defines a Neumann boundary condition property by parsing a string.
-  //! \param[in] prop The string to parse the property definition from
-  //! \param[in] type Additional option defining the type of property definition
-  //! \param[in] ndir Direction of the surface traction on the Neumann boundary
-  //! \param[in] code The property code to be associated with this property
-  bool setNeumann(const std::string& prop, const std::string& type,
-		  int ndir, int code);
-
   //! \brief Returns a vector function associated with given patch and property.
   //! \param[in] patch 1-based index of the patch to retrieve property for
   //! \param[in] ptype The property type associated with the vector function
   VecFunc* getVecFunc(size_t patch, Property::Type ptype) const;
-
-  //! \brief Creates the computational FEM model from the spline patches.
-  //! \param[in] resetNumb If \e 'y', start element and node numbers from zero
-  virtual bool createFEMmodel(char resetNumb = 'y');
 
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   //! \param[in] patch 1-based index of the patch to receive the property
@@ -657,50 +544,16 @@ public:
   //! \brief Adds a system vector to the given right-hand-side vector.
   void addToRHSvector(size_t idx, const SystemVector& vec, double scale = 1.0);
 
-  typedef std::vector<unsigned char> CharVec; //!< Convenience declaration
-
-  //! \brief Reads a patch from given input stream.
-  //! \param[in] isp The input stream to read from
-  //! \param[in] pchInd 0-based index of the patch to read
-  //! \param[in] unf Number of unknowns per basis function for each field
-  virtual ASMbase* readPatch(std::istream& isp, int pchInd,
-                             const CharVec& unf = CharVec()) const = 0;
-
-  //! \brief Reads patches from given input stream.
-  //! \param[in] isp The input stream to read from
-  //! \param[out] patches Array of patches that were read
-  //! \param[in] whiteSpace For message formatting
-  virtual bool readPatches(std::istream& isp, PatchVec& patches,
-                           const char* whiteSpace = "") const = 0;
-
   //! \brief Returns a scalar function associated with \a code.
   RealFunc* getSclFunc(int code) const;
 
 protected:
-  //! \brief Instantiate a generator for the finite element model.
-  //! \param[in] geo XML element containing geometry defintion
-  virtual ModelGenerator* createModelGenerator(const TiXmlElement* geo) const = 0;
-
   //! \brief Initializes material properties for integration of interior terms.
   virtual bool initMaterial(size_t) { return true; }
   //! \brief Initializes the body load properties for current patch.
   virtual bool initBodyLoad(size_t) { return true; }
   //! \brief Initializes for integration of Neumann terms for a given property.
   virtual bool initNeumann(size_t) { return true; }
-
-  //! \brief Reads global node data for a patch from given input stream.
-  //! \param[in] isn The input stream to read from
-  //! \param[in] pchInd 0-based index of the patch to read node data for
-  //! \param[in] basis The basis to read node data for (when mixed FEM, 0 = all)
-  //! \param[in] oneBased If \e true the read node numbers are assumed
-  //! one-based. If \e false they are assumed to be zero-based.
-  virtual bool readNodes(std::istream& isn, int pchInd, int basis = 0,
-			 bool oneBased = false) { return false; }
-  //! \brief Reads node numbers from given input stream.
-  //! \param[in] isn The input stream to read from
-  virtual void readNodes(std::istream& isn) {}
-  //! \brief Reads a LinSolParams object from the given stream.
-  void readLinSolParams(std::istream& is, int npar);
 
   //! \brief Assembles problem-dependent discrete terms, if any.
   virtual bool assembleDiscreteTerms(const IntegrandBase*,
@@ -730,6 +583,8 @@ public:
   static bool ignoreDirichlet; //!< Set to \e true for free vibration analysis
   static bool preserveNOrder;  //!< Set to \e true to preserve node ordering
 
+  typedef std::vector<unsigned char> CharVec; //!< Convenience declaration
+
 protected:
   //! \brief Scalar field container
   typedef std::map<int,RealFunc*>     SclFuncMap;
@@ -744,14 +599,12 @@ protected:
   unsigned char  nsd;       //!< Number of spatial dimensions
   PatchVec       myModel;   //!< The actual NURBS/spline model
   PropertyVec    myProps;   //!< Physical property mapping
-  TopologySet    myEntitys; //!< Set of named topological entities
   SclFuncMap     myScalars; //!< Scalar property fields
   VecFuncMap     myVectors; //!< Vector property fields
   TracFuncMap    myTracs;   //!< Traction property fields
   IntegrandBase* myProblem; //!< The main integrand of this simulator
   IntegrandMap   myInts;    //!< Set of all integrands involved
   AnaSol*        mySol;     //!< Analytical/Exact solution
-  ModelGenerator* myGen;    //!< Model generator
 
   //! \brief A struct with data for system matrix/vector dumps.
   struct DumpData

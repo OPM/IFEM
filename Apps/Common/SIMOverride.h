@@ -43,11 +43,11 @@ public:
   //! \copydoc SIMadmin::read(const char*)
   bool read(const char* fileName) { return base.read(fileName); }
 
-  //! \copydoc ISolver::setInitialConditions()
-  void setInitialConditions() { base.setInitialConditions(); }
+  //! \copydoc SIMinput::setInitialConditions()
+  bool setInitialConditions() { return base.setInitialConditions(); }
+  //! \copydoc SIMinput::hasIC(const std::string&) const
+  bool hasIC(const std::string& name) const { return base.hasIC(name); }
 
-  //! \copydoc SIMdependency::hasIC(const std::string&) const
-  virtual bool hasIC(const std::string& name) const { return base.hasIC(name); }
   //! \copydoc SIMdependency::getNoSpaceDim() const
   virtual size_t getNoSpaceDim() const { return base.getNoSpaceDim(); }
   //! \copydoc SIMdependency::getName() const

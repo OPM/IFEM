@@ -12,12 +12,12 @@
 //==============================================================================
 
 #include "SIM1D.h"
-#include "IFEM.h"
+#include "ModelGenerator.h"
 #include "ASMs1D.h"
 #include "Functions.h"
-#include "ModelGenerator.h"
 #include "Utilities.h"
 #include "Vec3Oper.h"
+#include "IFEM.h"
 #include "tinyxml.h"
 #include <sstream>
 
@@ -83,9 +83,10 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
       for (int j = lowpatch; j <= uppatch; j++)
         if ((pch = dynamic_cast<ASM1D*>(this->getPatch(j,true))))
         {
-          IFEM::cout <<"\tRefining P"<< j;
+          IFEM::cout <<"\tRefining P"<< j
+                     <<" with grading "<< elem->FirstChild()->Value() <<":";
           for (size_t i = 0; i < xi.size(); i++)
-            IFEM::cout <<" "<< xi[i];
+            IFEM::cout << (i%10 || xi.size() < 11 ? " " : "\n\t") << xi[i];
           IFEM::cout << std::endl;
           pch->refine(xi);
         }
@@ -235,6 +236,12 @@ bool SIM1D::parse (const TiXmlElement* elem)
       result &= this->parseGeometryTag(child);
     else if (!strcasecmp(elem->Value(),"boundaryconditions"))
       result &= this->parseBCTag(child);
+
+  if (myGen && result)
+    result = myGen->createTopology(*this);
+
+  delete myGen;
+  myGen = nullptr;
 
   return result;
 }
@@ -477,9 +484,10 @@ bool SIM1D::addConstraint (int patch, int lndx, int ldim, int dirs, int code,
 
 
 ASMbase* SIM1D::readPatch (std::istream& isp, int pchInd,
-                           const std::vector<unsigned char>& unf) const
+                           const CharVec& unf) const
 {
-  ASMbase* pch = ASM1D::create(opt.discretization,nsd, unf.empty()?nf:unf.front());
+  ASMbase* pch = ASM1D::create(opt.discretization,nsd,
+                               unf.empty() ? nf : unf.front());
   if (pch)
   {
     if (!pch->read(isp))
@@ -501,7 +509,8 @@ bool SIM1D::readPatches (std::istream& isp, PatchVec& patches,
   for (int pchInd = 1; isp.good(); pchInd++)
     if ((pch = ASM1D::create(opt.discretization,nsd,nf)))
     {
-      IFEM::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
+      if (whiteSpace)
+        IFEM::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
       if (!pch->read(isp))
       {
         delete pch;
@@ -536,9 +545,8 @@ bool SIM1D::createFEMmodel (char)
 }
 
 
-ModelGenerator* SIM1D::createModelGenerator(const TiXmlElement* geo) const
+ModelGenerator* SIM1D::getModelGenerator (const TiXmlElement* geo) const
 {
-  IFEM::cout <<"  Using default linear geometry basis on unit domain [0,1]";
   return new DefaultGeometry1D(geo);
 }
 

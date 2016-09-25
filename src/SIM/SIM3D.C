@@ -12,19 +12,17 @@
 //==============================================================================
 
 #include "SIM3D.h"
+#include "ModelGenerator.h"
 #include "ASMs3D.h"
 #include "Functions.h"
-#include "ModelGenerator.h"
 #include "Utilities.h"
-#include "IFEM.h"
 #include "Vec3Oper.h"
+#include "IFEM.h"
 #include "tinyxml.h"
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
 #include <fstream>
-#include <sstream>
-#include <array>
 
 
 SIM3D::SIM3D (unsigned char n1, bool check)
@@ -135,9 +133,10 @@ bool SIM3D::parseGeometryTag (const TiXmlElement* elem)
       for (int j = lowpatch; j <= uppatch; j++)
         if ((pch = dynamic_cast<ASM3D*>(this->getPatch(j,true))))
         {
-          IFEM::cout <<"\tRefining P"<< j <<" dir="<< dir;
+          IFEM::cout <<"\tRefining P"<< j <<" dir="<< dir
+                     <<" with grading "<< elem->FirstChild()->Value() <<":";
           for (size_t i = 0; i < xi.size(); i++)
-            IFEM::cout <<" "<< xi[i];
+            IFEM::cout << (i%10 || xi.size() < 11 ? " " : "\n\t") << xi[i];
           IFEM::cout << std::endl;
           pch->refine(dir-1,xi);
         }
@@ -280,10 +279,9 @@ bool SIM3D::parse (const TiXmlElement* elem)
     else if (!strcasecmp(elem->Value(),"boundaryconditions"))
       result &= this->parseBCTag(child);
 
-  if (myGen && result) {
-    if (!this->createFEMmodel()) return false;
-    myGen->createTopology(*this);
-  }
+  if (myGen && result)
+    result = myGen->createTopology(*this);
+
   delete myGen;
   myGen = nullptr;
 
@@ -733,10 +731,11 @@ bool SIM3D::addConstraint (int patch, int lndx, int line, double xi,
 
 
 ASMbase* SIM3D::readPatch (std::istream& isp, int pchInd,
-                           const std::vector<unsigned char>& unf) const
+                           const CharVec& unf) const
 {
-  const std::vector<unsigned char>& uunf = unf.empty()?nf:unf;
-  ASMbase* pch = ASM3D::create(opt.discretization,uunf,uunf.size() > 1 && uunf[1] > 0);
+  const CharVec& uunf = unf.empty() ? nf : unf;
+  bool isMixed = uunf.size() > 1 && uunf[1] > 0;
+  ASMbase* pch = ASM3D::create(opt.discretization,uunf,isMixed);
   if (pch)
   {
     if (!pch->read(isp))
@@ -758,8 +757,9 @@ bool SIM3D::readPatches (std::istream& isp, PatchVec& patches,
                          const char* whiteSpace) const
 {
   ASMbase* pch = nullptr;
+  bool isMixed = nf.size() > 1 && nf[1] > 0;
   for (int pchInd = 1; isp.good(); pchInd++)
-    if ((pch = ASM3D::create(opt.discretization,nf,nf.size() > 1 && nf[1] > 0)))
+    if ((pch = ASM3D::create(opt.discretization,nf,isMixed)))
     {
       if (!pch->read(isp))
       {
@@ -770,7 +770,8 @@ bool SIM3D::readPatches (std::istream& isp, PatchVec& patches,
         delete pch;
       else
       {
-        IFEM::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
+        if (whiteSpace)
+          IFEM::cout << whiteSpace <<"Reading patch "<< pchInd << std::endl;
         pch->idx = patches.size();
         patches.push_back(pch);
         if (checkRHSys)
@@ -830,9 +831,8 @@ bool SIM3D::readNodes (std::istream& isn, int pchInd, int basis, bool oneBased)
 }
 
 
-ModelGenerator* SIM3D::createModelGenerator(const TiXmlElement* geo) const
+ModelGenerator* SIM3D::getModelGenerator (const TiXmlElement* geo) const
 {
-  IFEM::cout <<"  Using default linear geometry basis on unit domain [0,1]^3";
   return new DefaultGeometry3D(geo);
 }
 

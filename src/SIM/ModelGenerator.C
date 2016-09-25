@@ -12,11 +12,11 @@
 //==============================================================================
 
 #include "ModelGenerator.h"
-#include "SIMbase.h"
-#include "IFEM.h"
+#include "SIMinput.h"
 #include "Utilities.h"
 #include "Vec3.h"
 #include "Vec3Oper.h"
+#include "IFEM.h"
 #include "tinyxml.h"
 #include <array>
 
@@ -28,32 +28,34 @@ bool ModelGenerator::topologySets () const
 }
 
 
-SIMdependency::PatchVec ModelGenerator::createGeometry (const SIMbase& m) const
+SIMdependency::PatchVec ModelGenerator::createGeometry (const SIMinput& m) const
 {
   std::istringstream g2(this->createG2(m.getNoSpaceDim()));
   SIMdependency::PatchVec result;
-  m.readPatches(g2,result,"\t");
+  m.readPatches(g2,result,nullptr);
   return result;
 }
 
 
 std::string DefaultGeometry1D::createG2 (int nsd) const
 {
+  IFEM::cout <<"  Generating linear geometry on unit parameter domain [0,1]";
+
   std::string g2("100 1 0 0\n");
   g2.append(1,'0'+nsd);
 
-  bool rational=false;
+  bool rational = false;
   utl::getAttribute(geo,"rational",rational);
   if (rational)
-    IFEM::cout << "\t Rational basis\n";
-  g2.append(rational?" 1":" 0");
+    IFEM::cout <<"\n\tRational basis.";
+  g2.append(rational ? " 1" : " 0");
   g2.append("\n2 2\n0 0 1 1\n");
 
   unsigned char d;
   std::string XYZ;
   if (utl::getAttribute(geo,"X0",XYZ))
   {
-    IFEM::cout <<"  X0 = "<< XYZ << std::endl;
+    IFEM::cout <<"\n\tX0 = "<< XYZ;
     g2.append(XYZ);
   }
   else
@@ -62,32 +64,29 @@ std::string DefaultGeometry1D::createG2 (int nsd) const
     for (d = 1; d < nsd; d++)
       g2.append(" 0.0");
   }
-  if (rational)
-    g2.append(" 1.0");
-  g2.append("\n");
+  g2.append(rational ? " 1.0\n" : "\n");
   if (utl::getAttribute(geo,"X1",XYZ))
   {
-    IFEM::cout <<"\tX1 = "<< XYZ << std::endl;
+    IFEM::cout <<"\n\tX1 = "<< XYZ;
     g2.append(XYZ);
   }
   else
   {
     XYZ = "1.0";
     if (utl::getAttribute(geo,"L",XYZ))
-      IFEM::cout <<"  Length scale: "<< XYZ << std::endl;
+      IFEM::cout <<"\n\tLength = "<< XYZ;
     g2.append(XYZ);
     for (d = 1; d < nsd; d++)
       g2.append(" 0.0");
   }
-  if (rational)
-    g2.append(" 1.0");
-  g2.append("\n");
+  g2.append(rational ? " 1.0\n" : "\n");
 
+  IFEM::cout << std::endl;
   return g2;
 }
 
 
-TopologySet DefaultGeometry1D::createTopologySets (const SIMbase&) const
+TopologySet DefaultGeometry1D::createTopologySets (const SIMinput&) const
 {
   TopologySet result;
   if (this->topologySets())
@@ -106,61 +105,66 @@ TopologySet DefaultGeometry1D::createTopologySets (const SIMbase&) const
 
 std::string DefaultGeometry2D::createG2 (int nsd) const
 {
+  IFEM::cout <<"  Generating linear geometry on unit parameter domain [0,1]^2";
+
   std::string g2("200 1 0 0\n");
   g2.append(nsd > 2 ? "3" : "2");
-  bool rational=false;
+
+  bool rational = false;
   utl::getAttribute(geo,"rational",rational);
   if (rational)
-    IFEM::cout << "\t Rational basis\n";
-  g2.append(rational?" 1":" 0");
+    IFEM::cout <<"\n\tRational basis.";
+  g2.append(rational ? " 1" : " 0");
   g2.append("\n2 2\n0 0 1 1\n2 2\n0 0 1 1");
 
   Vec3 X0;
   std::string corner;
-  if (utl::getAttribute(geo,"X0",corner)) {
+  if (utl::getAttribute(geo,"X0",corner))
+  {
     std::stringstream str(corner); str >> X0;
-    IFEM::cout <<"  Corner: "<< X0 << std::endl;
+    IFEM::cout <<"\n\tCorner = "<< X0;
   }
 
   double scale = 1.0;
   if (utl::getAttribute(geo,"scale",scale))
-    IFEM::cout <<"  Scale: "<< scale << std::endl;
+    IFEM::cout <<"\n\tScale = "<< scale;
 
   double Lx = 1.0, Ly = 1.0;
   if (utl::getAttribute(geo,"Lx",Lx))
-    IFEM::cout <<"  Length in X: "<< Lx << std::endl;
+    IFEM::cout <<"\n\tLength in X = "<< Lx;
   Lx *= scale;
   if (utl::getAttribute(geo,"Ly",Ly))
-    IFEM::cout <<"  Length in Y: "<< Ly << std::endl;
+    IFEM::cout <<"\n\tLength in Y = "<< Ly;
   Ly *= scale;
 
   std::stringstream str;
   str <<"\n"<< X0.x <<" "<< X0.y;
   if (nsd > 2) str <<" 0.0";
-  if (rational) str << " 1.0";
+  if (rational) str <<" 1.0";
   g2.append(str.str());
   str.str("");
   str <<"\n"<< X0.x+Lx <<" "<< X0.y;
   if (nsd > 2) str <<" 0.0";
-  if (rational) str << " 1.0";
+  if (rational) str <<" 1.0";
   g2.append(str.str());
   str.str("");
   str <<"\n"<< X0.x <<" "<< X0.y+Ly;
   if (nsd > 2) str <<" 0.0";
-  if (rational) str << " 1.0";
+  if (rational) str <<" 1.0";
   g2.append(str.str());
   str.str("");
   str <<"\n"<< X0.x+Lx <<" "<< X0.y+Ly;
   if (nsd > 2) str <<" 0.0";
-  if (rational) str << " 1.0";
+  if (rational) str <<" 1.0";
   g2.append(str.str());
   g2.append("\n");
 
+  IFEM::cout << std::endl;
   return g2;
 }
 
 
-TopologySet DefaultGeometry2D::createTopologySets (const SIMbase&) const
+TopologySet DefaultGeometry2D::createTopologySets (const SIMinput&) const
 {
   TopologySet result;
   if (this->topologySets())
@@ -182,13 +186,14 @@ TopologySet DefaultGeometry2D::createTopologySets (const SIMbase&) const
 
 std::string DefaultGeometry3D::createG2 (int) const
 {
+  IFEM::cout <<"  Generating linear geometry on unit parameter domain [0,1]^3";
+
   std::string g2("700 1 0 0\n3 ");
 
   bool rational = false;
   utl::getAttribute(geo,"rational",rational);
   if (rational)
-    IFEM::cout <<"  Rational basis"<< std::endl;
-
+    IFEM::cout <<"\n\tRational basis.";
   g2.append(rational ? "1\n" : "0\n");
   g2.append("2 2\n0 0 1 1\n"
             "2 2\n0 0 1 1\n"
@@ -206,17 +211,17 @@ std::string DefaultGeometry3D::createG2 (int) const
 
   double scale = 1.0;
   if (utl::getAttribute(geo,"scale",scale))
-    IFEM::cout <<"\tscale = "<< scale << std::endl;
+    IFEM::cout <<"\n\tScale = "<< scale;
 
   double Lx = 1.0, Ly = 1.0, Lz = 1.0;
   if (utl::getAttribute(geo,"Lx",Lx))
-    IFEM::cout <<"\tLength in X: "<< Lx << std::endl;
+    IFEM::cout <<"\n\tLength in X = "<< Lx;
   Lx *= scale;
   if (utl::getAttribute(geo,"Ly",Ly))
-    IFEM::cout <<"\tLength in Y: "<< Ly << std::endl;
+    IFEM::cout <<"\n\tLength in Y = "<< Ly;
   Ly *= scale;
   if (utl::getAttribute(geo,"Lz",Lz))
-    IFEM::cout <<"\tLength in Z: "<< Lz << std::endl;
+    IFEM::cout <<"\n\tLength in Z = "<< Lz;
   Lz *= scale;
 
   if (Lx != 1.0)
@@ -227,11 +232,12 @@ std::string DefaultGeometry3D::createG2 (int) const
     nodes[14] = nodes[17] = nodes[20] = nodes[23] = Lz;
 
   std::string corner;
-  if (utl::getAttribute(geo,"X0",corner)) {
+  if (utl::getAttribute(geo,"X0",corner))
+  {
     std::stringstream str(corner);
     Vec3 X0;
     str >> X0;
-    IFEM::cout <<"\tCorner: "<< X0 << std::endl;
+    IFEM::cout <<"\n\tCorner = "<< X0;
     for (size_t i = 0; i < nodes.size(); i += 3)
     {
       nodes[i]   += X0.x;
@@ -249,11 +255,12 @@ std::string DefaultGeometry3D::createG2 (int) const
     g2.append(rational ? "1.0\n" : "\n");
   }
 
+  IFEM::cout << std::endl;
   return g2;
 }
 
 
-TopologySet DefaultGeometry3D::createTopologySets (const SIMbase&) const
+TopologySet DefaultGeometry3D::createTopologySets (const SIMinput&) const
 {
   TopologySet result;
   if (this->topologySets())
@@ -266,7 +273,8 @@ TopologySet DefaultGeometry3D::createTopologySets (const SIMbase&) const
     }
 
     std::string edge = "Edge1";
-    for (size_t i = 1; i <= 12; ++i, ++edge.back()) {
+    for (size_t i = 1; i <= 12; ++i, ++edge.back())
+    {
       result[edge].insert(TopItem(1,i,1));
       result["Frame"].insert(TopItem(1,i,1));
       if (i == 9)
@@ -274,7 +282,8 @@ TopologySet DefaultGeometry3D::createTopologySets (const SIMbase&) const
     }
 
     std::string vert = "Vertex1";
-    for (size_t i = 1; i <= 8; ++i, ++vert.back()) {
+    for (size_t i = 1; i <= 8; ++i, ++vert.back())
+    {
       result[vert].insert(TopItem(1,i,0));
       result["Corners"].insert(TopItem(1,i,0));
     }

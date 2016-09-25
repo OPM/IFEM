@@ -32,9 +32,9 @@ public:
   virtual ~MultiPatchModelGenerator2D() {}
 
   //! \brief Creates topology for geometry.
-  virtual bool createTopology(SIMbase& sim) const;
+  virtual bool createTopology(SIMinput& sim) const;
   //! \brief Creates topology sets for geometry.
-  virtual TopologySet createTopologySets(const SIMbase& sim) const;
+  virtual TopologySet createTopologySets(const SIMinput& sim) const;
 
 protected:
   //! \brief Generates the G2 description of the geometry.
@@ -63,9 +63,9 @@ public:
   virtual ~MultiPatchModelGenerator3D() {}
 
   //! \brief Creates topology for geometry.
-  virtual bool createTopology(SIMbase& sim) const;
+  virtual bool createTopology(SIMinput& sim) const;
   //! \brief Creates topology sets for geometry.
-  virtual TopologySet createTopologySets(const SIMbase& sim) const;
+  virtual TopologySet createTopologySets(const SIMinput& sim) const;
 
 protected:
   //! \brief Generates the G2 description of the geometry.

@@ -14,7 +14,7 @@
 #ifndef _SIM_OUTPUT_H
 #define _SIM_OUTPUT_H
 
-#include "SIMbase.h"
+#include "SIMinput.h"
 #include "Vec3.h"
 
 class VTF;
@@ -30,11 +30,11 @@ typedef std::pair<Vec3,double> PointValue; //!< Convenience type
   which contains the main simulation driver.
 */
 
-class SIMoutput : public SIMbase
+class SIMoutput : public SIMinput
 {
 protected:
   //! \brief The constructor just forwards to the base class constructor.
-  SIMoutput(IntegrandBase* itg) : SIMbase(itg), myGeomID(0), myVtf(nullptr) {}
+  SIMoutput(IntegrandBase* itg) : SIMinput(itg), myGeomID(0), myVtf(nullptr) {}
 
 public:
   //! \brief The destructor frees the dynamically allocated VTF object.
@@ -43,14 +43,11 @@ public:
   //! \brief Initializes the property containers of the model.
   virtual void clearProperties();
 
+  using SIMinput::parse;
   //! \brief Parses a data section from an input stream.
   //! \param[in] keyWord Keyword of current data section to read
   //! \param is The file stream to read from
   virtual bool parse(char* keyWord, std::istream& is);
-
-  //! \brief Parses a data section from an xml document.
-  //! \param[in] elem The XML element to parse
-  virtual bool parse(const TiXmlElement* elem);
 
 protected:
   //! \brief Parses a subelement of the \a resultoutput XML-tag.

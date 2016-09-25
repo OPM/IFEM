@@ -49,7 +49,7 @@ public:
   virtual bool mixedProblem() const { return nf.size() > 1; }
 
   //! \brief Returns the number of parameter dimensions in the model.
-  unsigned short int getNoParamDim() const { return 3; }
+  virtual unsigned short int getNoParamDim() const { return 3; }
 
   //! \brief Reads a patch from given input stream.
   //! \param[in] isp The input stream to read from
@@ -65,18 +65,18 @@ public:
   virtual bool readPatches(std::istream& isp, PatchVec& patches,
                            const char* whiteSpace) const;
 
-  //! \brief Connect two patches.
-  //! \param master Master patch
-  //! \param slave Slave patch
-  //! \param mIdx Index on master
-  //! \param sIdx Index on slave
-  //! \param orient Orientation flag for connection
-  //! \param basis Which bases to connect (0 for all)
-  //! \param coordCheck False to turn off coordinate checks
+  //! \brief Connects two patches.
+  //! \param[in] master Master patch
+  //! \param[in] slave Slave patch
+  //! \param[in] mFace Face index on master patch
+  //! \param[in] sFace Face index on slave patch
+  //! \param[in] orient Orientation flag for connection
+  //! \param[in] basis Which bases to connect (0 for all)
+  //! \param[in] coordCheck If \e false, do not check for matching coordinates
   //! \param[in] dim Dimensionality of connection
-  bool addConnection(int master, int slave, int mFace, int sFace,
-                     int orient, int basis = 0, bool coordCheck = true,
-                     int dim = 2);
+  virtual bool addConnection(int master, int slave, int mFace, int sFace,
+                             int orient, int basis = 0, bool coordCheck = true,
+                             int dim = 2);
 
   //! \brief Evaluates the primary solution at the given point.
   //! \param[in] psol Primary solution vector
@@ -139,9 +139,9 @@ protected:
   bool addConstraint(int patch, int lndx, int line, double xi,
                      int dirs, char basis = 1);
 
-  //! \brief Creates a default single-patch model generator.
+  //! \brief Returns a FEM model generator for a default single-patch model.
   //! \param[in] geo XML element containing geometry defintion
-  virtual ModelGenerator* createModelGenerator(const TiXmlElement* geo) const;
+  virtual ModelGenerator* getModelGenerator(const TiXmlElement* geo) const;
 
 protected:
   CharVec nf;         //!< Number of scalar fields

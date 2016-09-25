@@ -16,6 +16,8 @@
 
 #include "SIMbase.h"
 
+class ModelGenerator;
+
 
 /*!
   \brief Inherit this class to equip your SIM with multi-patch model generators.
@@ -39,7 +41,7 @@ public:
 protected:
   //! \brief Instantiates a generator for the finite element model.
   //! \param[in] geo XML element containing geometry defintion
-  virtual ModelGenerator* createModelGenerator(const TiXmlElement* geo) const;
+  virtual ModelGenerator* getModelGenerator(const TiXmlElement* geo) const;
 };
 
 #endif

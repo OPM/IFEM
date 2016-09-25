@@ -20,7 +20,7 @@ bool SIMgeneric::createDefaultModel ()
 {
   if (!myModel.empty()) return false;
 
-  ModelGenerator* gen = this->createModelGenerator(nullptr);
+  ModelGenerator* gen = this->getModelGenerator(nullptr);
   if (!gen) return false;
 
   myModel = gen->createGeometry(*this);

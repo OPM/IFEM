@@ -135,19 +135,18 @@ public:
   }
 
   //! \brief Sets the initial conditions for the simulators.
-  void setInitialConditions()
+  bool setInitialConditions()
   {
-    S1.setInitialConditions();
-    S2.setInitialConditions();
+    return S1.setInitialConditions() && S2.setInitialConditions();
   }
 
-  //! \copydoc SIMdependency::hasIC(const std::string&) const
+  //! \brief Checks whether a named initial condition is present.
   bool hasIC(const std::string& name) const
   {
     return S1.hasIC(name) || S2.hasIC(name);
   }
 
-  //! \copydoc SIMdependency::getField(const std::string&)
+  //! \brief Returns the nodal vector of named field in this SIM.
   utl::vector<double>* getField(const std::string& name)
   {
     utl::vector<double>* result = S1.getField(name);

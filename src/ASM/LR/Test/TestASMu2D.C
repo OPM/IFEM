@@ -100,6 +100,7 @@ TEST_P(TestASMu2D, ConstrainEdge)
   SIM2D sim(1);
   sim.opt.discretization = ASM::LRSpline;
   ASSERT_TRUE(sim.read("src/ASM/LR/Test/refdata/boundary_nodes.xinp"));
+  sim.preprocess();
   ASMu2D* pch = static_cast<ASMu2D*>(sim.getPatch(1));
   pch->constrainEdge(GetParam().edgeIdx, false, 1, 1, 1);
   std::vector<int> glbNodes;
@@ -114,6 +115,7 @@ TEST_P(TestASMu2D, ConstrainEdgeOpen)
   SIM2D sim(1);
   sim.opt.discretization = ASM::LRSpline;
   ASSERT_TRUE(sim.read("src/ASM/LR/Test/refdata/boundary_nodes.xinp"));
+  sim.preprocess();
   ASMu2D* pch = static_cast<ASMu2D*>(sim.getPatch(1));
   pch->constrainEdge(GetParam().edgeIdx, true, 1, 1, 1);
   std::vector<int> glbNodes;

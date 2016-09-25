@@ -39,7 +39,7 @@ SIMoutput::~SIMoutput ()
 void SIMoutput::clearProperties ()
 {
   myPoints.clear();
-  this->SIMbase::clearProperties();
+  this->SIMinput::clearProperties();
 }
 
 
@@ -77,7 +77,7 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
   if (strcasecmp(elem->Value(),"resultpoints"))
-    return this->SIMbase::parseOutputTag(elem);
+    return this->SIMinput::parseOutputTag(elem);
 
   std::string fname;
   if (utl::getAttribute(elem,"file",fname))
@@ -154,16 +154,10 @@ bool SIMoutput::parseOutputTag (const TiXmlElement* elem)
 }
 
 
-bool SIMoutput::parse (const TiXmlElement* elem)
-{
-  return this->SIMbase::parse(elem);
-}
-
-
 bool SIMoutput::parse (char* keyWord, std::istream& is)
 {
   if (strncasecmp(keyWord,"RESULTPOINTS",12))
-    return this->SIMbase::parse(keyWord,is);
+    return this->SIMinput::parse(keyWord,is);
 
   char* cline = keyWord+12;
   int nres = atoi(strtok(cline," "));

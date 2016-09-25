@@ -45,7 +45,7 @@ public:
   {}
 
   bool read(const char*) { return read_called = true; }
-  void setInitialConditions() { setinitialconditions_called = true; }
+  bool setInitialConditions() { return setinitialconditions_called = true; }
   bool hasIC(const std::string&) const { return hasic_called = true; }
   size_t getNoSpaceDim() const { getnospacedim_called = true; return 2; }
   std::string getName() const { getname_called = true; return "SIMMock"; }

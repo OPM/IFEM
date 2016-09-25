@@ -12,10 +12,10 @@
 //==============================================================================
 
 #include "MultiPatchModelGenerator.h"
+#include "SIMinput.h"
 #include "ASMs2D.h"
 #include "ASMs3D.h"
 #include "IFEM.h"
-#include "SIMbase.h"
 #include "Utilities.h"
 #include "Vec3.h"
 #include "Vec3Oper.h"
@@ -40,32 +40,28 @@ std::string MultiPatchModelGenerator2D::createG2 (int nsd) const
   bool rational=false;
   utl::getAttribute(geo,"rational",rational);
   if (rational)
-    IFEM::cout << "\t Rational basis\n";
+    IFEM::cout <<"\tRational basis.";
   double scale = 1.0;
   if (utl::getAttribute(geo,"scale",scale))
-    IFEM::cout <<"  Scale: "<< scale << std::endl;
+    IFEM::cout <<"\n\tScale = "<< scale;
 
   double Lx = 1.0, Ly = 1.0;
   if (utl::getAttribute(geo,"Lx",Lx))
-    IFEM::cout <<"  Length in X: "<< Lx << std::endl;
+    IFEM::cout <<"\n\tLength in X = "<< Lx;
   Lx *= scale;
   if (utl::getAttribute(geo,"Ly",Ly))
-    IFEM::cout <<"  Length in Y: "<< Ly << std::endl;
+    IFEM::cout <<"\n\tLength in Y = "<< Ly;
   Ly *= scale;
 
   Vec3 X0;
   std::string corner;
   if (utl::getAttribute(geo,"X0",corner)) {
     std::stringstream str(corner); str >> X0;
-    IFEM::cout <<"  Corner: "<< X0 << std::endl;
+    IFEM::cout <<"\n\tCorner = "<< X0;
   }
 
-  int nx = 1;
-  int ny = 1;
-  if (utl::getAttribute(geo,"nx",nx))
-    IFEM::cout << "  Split in X: " << nx  << std::endl;
-  if (utl::getAttribute(geo,"ny",ny))
-    IFEM::cout << "  Split in Y: " << ny << std::endl;
+  IFEM::cout <<"\n\tSplit in X = "<< nx;
+  IFEM::cout <<"\n\tSplit in Y = "<< ny;
 
   if (nx > 1)
     Lx /= nx;
@@ -104,12 +100,16 @@ std::string MultiPatchModelGenerator2D::createG2 (int nsd) const
     }
   }
 
+  IFEM::cout << std::endl;
   return g2;
 }
 
 
-bool MultiPatchModelGenerator2D::createTopology (SIMbase& sim) const
+bool MultiPatchModelGenerator2D::createTopology (SIMinput& sim) const
 {
+  if (!sim.createFEMmodel())
+    return false;
+
   auto&& IJ = [this](int i, int j) { return 1 + j*nx + i; };
 
   for (int j = 0; j < ny; ++j)
@@ -153,7 +153,7 @@ bool MultiPatchModelGenerator2D::createTopology (SIMbase& sim) const
 
 
 TopologySet
-MultiPatchModelGenerator2D::createTopologySets (const SIMbase& sim) const
+MultiPatchModelGenerator2D::createTopologySets (const SIMinput& sim) const
 {
   TopologySet result;
   if (!this->topologySets())
@@ -219,43 +219,40 @@ std::string MultiPatchModelGenerator3D::createG2 (int) const
   bool rational = false;
   utl::getAttribute(geo,"rational",rational);
   if (rational)
-    IFEM::cout <<"  Rational basis"<< std::endl;
+    IFEM::cout <<"\tRational basis.";
 
   double scale = 1.0;
   if (utl::getAttribute(geo,"scale",scale))
-    IFEM::cout <<"  Scale: "<< scale << std::endl;
+    IFEM::cout <<"\n\tScale = "<< scale;
 
   double Lx = 1.0, Ly = 1.0, Lz = 1.0;
   if (utl::getAttribute(geo,"Lx",Lx))
-    IFEM::cout <<"  Length in X: "<< Lx << std::endl;
+    IFEM::cout <<"\n\tLength in X = "<< Lx;
   Lx *= scale;
   if (utl::getAttribute(geo,"Ly",Ly))
-    IFEM::cout <<"  Length in Y: "<< Ly << std::endl;
+    IFEM::cout <<"\n\tLength in Y = "<< Ly;
   Ly *= scale;
   if (utl::getAttribute(geo,"Lz",Lz))
-    IFEM::cout <<"  Length in Z: "<< Lz << std::endl;
+    IFEM::cout <<"\n\tLength in Z = "<< Lz;
   Lz *= scale;
 
-  int nx = 1;
-  int ny = 1;
-  int nz = 1;
-  if (utl::getAttribute(geo,"nx",nx))
-    IFEM::cout << "  Split in X: " << nx  << std::endl;
-  if (utl::getAttribute(geo,"ny",ny))
-    IFEM::cout << "  Split in Y: " << ny << std::endl;
-  if (utl::getAttribute(geo,"nz",nz))
-    IFEM::cout << "  Split in Z: " << nz << std::endl;
+  IFEM::cout <<"\n\tSplit in X = "<< nx;
+  IFEM::cout <<"\n\tSplit in Y = "<< ny;
+  IFEM::cout <<"\n\tSplit in Z = "<< nz;
 
-  Lx /= nx;
-  Ly /= ny;
-  Lz /= nz;
+  if (nx > 1)
+    Lx /= nx;
+  if (ny > 1)
+    Ly /= ny;
+  if (nz > 1)
+    Lz /= nz;
 
   std::string corner;
   Vec3 X0;
   if (utl::getAttribute(geo,"X0",corner)) {
     std::stringstream str(corner);
     str >> X0;
-    IFEM::cout <<"  Corner: "<< X0 << std::endl;
+    IFEM::cout <<"\n\tCorner = "<< X0;
   }
 
   std::array<double,24> nodes =
@@ -292,12 +289,16 @@ std::string MultiPatchModelGenerator3D::createG2 (int) const
     }
   }
 
+  IFEM::cout << std::endl;
   return g2;
 }
 
 
-bool MultiPatchModelGenerator3D::createTopology (SIMbase& sim) const
+bool MultiPatchModelGenerator3D::createTopology (SIMinput& sim) const
 {
+  if (!sim.createFEMmodel())
+    return false;
+
   auto&& IJK = [this](int i, int j, int k) { return 1 + (k*ny+j)*nx + i; };
 
   for (int k = 0; k < nz; ++k)
@@ -362,7 +363,7 @@ bool MultiPatchModelGenerator3D::createTopology (SIMbase& sim) const
 }
 
 TopologySet
-MultiPatchModelGenerator3D::createTopologySets (const SIMbase& sim) const
+MultiPatchModelGenerator3D::createTopologySets (const SIMinput& sim) const
 {
   TopologySet result;
   if (!this->topologySets())

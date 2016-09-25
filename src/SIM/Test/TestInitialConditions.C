@@ -14,20 +14,35 @@
 
 #include "gtest/gtest.h"
 
+
+class TestSIM : public SIM2D
+{
+public:
+  TestSIM() : SIM2D(4)
+  {
+    EXPECT_TRUE(this->read("src/SIM/Test/refdata/input.xinp"));
+  }
+  virtual ~TestSIM() {}
+  const InitialCondVec* getIC() const
+  {
+    return myICs.empty() ? nullptr : &myICs.begin()->second;
+  }
+};
+
+
 TEST(TestInitialConditions, Parse)
 {
-  SIM2D sim(4);
-  EXPECT_TRUE(sim.read("src/SIM/Test/refdata/input.xinp"));
+  TestSIM sim;
 
   // Recognize both comp and component attributes and correct priority
   // Boundary conditions
   for (int i = 1; i < 5; i++)
     ASSERT_FLOAT_EQ((float)i,(*sim.getSclFunc(i))(Vec3()));
+
   // Initial conditions
-  ASSERT_TRUE(sim.getICs().begin() != sim.getICs().end());
-  const std::vector<SIMdependency::ICInfo>& bar = sim.getICs().begin()->second;
-  for (std::vector<SIMdependency::ICInfo>::const_iterator info = bar.begin();
-       info != bar.end(); info++)
+  const SIMinput::InitialCondVec* ic = sim.getIC();
+  ASSERT_TRUE(ic != nullptr);
+  for (auto info = ic->begin(); info != ic->end(); ++info)
     switch (info->component) {
       case 1:
         ASSERT_EQ(info->function, "1");

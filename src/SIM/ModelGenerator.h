@@ -18,7 +18,7 @@
 #include "TopologySet.h"
 #include <string>
 
-class SIMbase;
+class SIMinput;
 class TiXmlElement;
 
 
@@ -37,14 +37,14 @@ public:
 
   //! \brief Creates a geometry.
   //! \param[in] m Simulator object with patch read function to use
-  virtual SIMdependency::PatchVec createGeometry(const SIMbase& m) const;
+  virtual SIMdependency::PatchVec createGeometry(const SIMinput& m) const;
 
   //! \brief Creates topology for multi-patch geometries.
-  virtual bool createTopology(SIMbase&) const { return true; }
+  virtual bool createTopology(SIMinput&) const { return true; }
 
   //! \brief Creates topology sets for geometry.
   //! \param[in] sim Simulator object with patch ownerships
-  virtual TopologySet createTopologySets(const SIMbase& sim) const = 0;
+  virtual TopologySet createTopologySets(const SIMinput& sim) const = 0;
 
 protected:
   //! \brief Generates the G2 description of the geometry.
@@ -74,7 +74,7 @@ public:
   virtual ~DefaultGeometry1D() {}
 
   //! \brief Creates topology sets for geometry.
-  virtual TopologySet createTopologySets(const SIMbase&) const;
+  virtual TopologySet createTopologySets(const SIMinput&) const;
 
 protected:
   //! \brief Generates the G2 description of the geometry.
@@ -98,7 +98,7 @@ public:
   virtual ~DefaultGeometry2D() {}
 
   //! \brief Creates topology sets for geometry.
-  virtual TopologySet createTopologySets(const SIMbase&) const;
+  virtual TopologySet createTopologySets(const SIMinput&) const;
 
 protected:
   //! \brief Generates the G2 description of the geometry.
@@ -122,7 +122,7 @@ public:
   virtual ~DefaultGeometry3D() {}
 
   //! \brief Creates topology sets for geometry.
-  virtual TopologySet createTopologySets(const SIMbase&) const;
+  virtual TopologySet createTopologySets(const SIMinput&) const;
 
 protected:
   //! \brief Generates the G2 description of the geometry.

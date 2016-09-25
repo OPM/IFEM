@@ -74,7 +74,7 @@ public:
     return 1;
   }
   void registerFields(DataExporter&) { registerfields_called = true; }
-  void setInitialConditions() { setinitialconditions_called = true; }
+  bool setInitialConditions() { return setinitialconditions_called = true; }
   bool hasIC(const std::string&) const { hasic_called = true; return false; }
   utl::vector<double>* getField(const std::string& name)
   {
