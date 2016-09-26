@@ -59,4 +59,23 @@ bool getTauNSALEPt(double dt, double mu, const Vector& U, const Matrix& G, doubl
   return true;
 }
 
+
+bool getTauPtJac(const Vector& U, const Matrix& G, const double tauM, Vector& tauMjac)
+{
+  tauMjac = -pow(tauM,3)*G*U;
+
+  return true;
+}
+
+
+bool getTauNSPtJac(const Vector& U, const Matrix& G, const double tauM, const double& tauC, Vector& tauMjac, Vector& tauCjac)
+{
+  if (!getTauPtJac(U, G, tauM, tauMjac))
+    return false;
+
+  tauCjac = (-tauC/tauM) * tauMjac;
+
+  return true;
+}
+
 }
