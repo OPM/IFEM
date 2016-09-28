@@ -45,6 +45,24 @@ namespace StabilizationUtils {
   //! \details Stabilization parameters in integration point
   bool getTauNSALEPt(double dt, double mu, const Vector& U, const Matrix& G,
 		     double& tauM, double& tauC, const double Ct=2.0, const double Cl=36.0);
+
+  //! \brief Computes variation of stability parameters with respect to velocity
+  //! \param[in] U  Velocity vector
+  //! \param[in] G  The G matrix
+  //! \param[in] tauM Stabilization parameter for momentum
+  //! \param[out] tauMjac Variation of tauM with respect to U
+  bool getTauPtJac(const Vector& U, const Matrix& G, const double tauM, Vector& tauMjac);
+  
+  
+  //! \brief Computes variation of stability parameters with respect to velocity
+  //! \param[in] U  Velocity vector
+  //! \param[in] G  The G matrix
+  //! \param[in] tauM Stabilization parameter for momentum
+  //! \param[in] tauC Stabilization parameter for continuity
+  //! \param[out] tauMjac Variation of tauM with respect to U
+  //! \param[out] tauCjac Variation of tauC with respect to U
+  bool getTauNSPtJac(const Vector& U, const Matrix& G, const double tauM,
+      const double& tauC, Vector& tauMjac, Vector& tauCjac);
 }
 
 #endif
