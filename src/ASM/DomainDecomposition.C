@@ -666,13 +666,14 @@ bool DomainDecomposition::calcGlobalEqNumbers(const ProcessAdm& adm,
           for (size_t comp = 0; comp < components.size(); ++comp) {
             int leq = locEqs[ofs+i*nodeDofs+comp];
             int geq = glbEqs[ofs+(*it_n)*nodeDofs+comp];
-            if (leq < 1 && geq > 0) {
+            if ((leq < 1 && geq > 0) || (leq > 0 && geq < 1)) {
               std::cerr <<"\n *** DomainDecomposition::calcGlobalEqNumbers(): "
                         << "Topology error on process " << adm.getProcId()
                         << ", dof constraint mismatch "
                         << "local: " << leq << " global " << geq << std::endl;
               return false;
             }
+
             if (leq < 1)
               continue;
 
@@ -797,7 +798,7 @@ bool DomainDecomposition::sanityCheckCorners(const SIMbase& sim)
       if (pch2D || pch3D) {
         for (size_t c = 0; c < pow(2,sim.getPatch(pIdx)->getNoSpaceDim()); ++c) {
           for (size_t b = 1; b <= sim.getPatch(pIdx)->getNoBasis(); ++b) {
-            int node;
+            int node = 0;
             if (pch2D)
               node = pch2D->getCorner((c == 1 || c == 3) ? 1 : -1,
                                                  c >= 2  ? 1 : -1, b);
