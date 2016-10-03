@@ -12,7 +12,6 @@
 //==============================================================================
 
 #include "DomainDecomposition.h"
-#include "ASMbase.h"
 #include "ASMstruct.h"
 #include "ASM2D.h"
 #include "ASM3D.h"
@@ -20,12 +19,10 @@
 #include "ProcessAdm.h"
 #include "SAMpatch.h"
 #include "SIMbase.h"
-#include "IFEM.h"
 #include "Utilities.h"
 #include "Vec3.h"
-#include <cassert>
+#include "IFEM.h"
 #include <numeric>
-#include <iostream>
 
 
 //! \brief Iterator for matching nodes on edges/faces with a given orientation and index.
@@ -302,40 +299,36 @@ void DomainDecomposition::setupNodeNumbers(int basis, IntVec& lNodes,
 {
   if (basis != 0) // specified base
     cbasis = utl::getDigits(basis);
-  else if (dim == 0 || (dim == 1 && pch->getNoSpaceDim() == 3)) {
+  else if (dim == 0 || (dim == 1 && pch->getNoSpaceDim() == 3))
     // need to expand to all bases for corners and edges
     for (size_t b = 1; b <= pch->getNoBasis(); ++b)
       cbasis.insert(b);
-  } else // directly add nodes, cbasis remains empty
+  else // directly add nodes, cbasis remains empty
     pch->getBoundaryNodes(lidx, lNodes);
 
   const ASM2D* pch2D = dynamic_cast<const ASM2D*>(pch);
   const ASM3D* pch3D = dynamic_cast<const ASM3D*>(pch);
-  for (auto& it2 : cbasis) {
+  for (const int& it2 : cbasis)
     if (dim == 0) {
       int node = 0;
-      if (pch2D) {
-        static std::map<int, std::array<int,2>> vmap2D
-         {{1, {-1, -1}},
-          {2, { 1, -1}},
-          {3, {-1,  1}},
-          {4, { 1,  1}}};
-        auto itc = vmap2D.find(lidx);
-        node = pch2D->getCorner(itc->second[0], itc->second[1], it2);
-      } else if (pch3D) {
-        static std::map<int, std::array<int,3>> vmap3D
-         {{1, {-1, -1, -1}},
-          {2, { 1, -1, -1}},
-          {3, {-1,  1, -1}},
-          {4, { 1,  1, -1}},
-          {5, {-1, -1,  1}},
-          {6, { 1, -1,  1}},
-          {7, {-1,  1,  1}},
-          {8, { 1,  1,  1}}};
-        auto itc = vmap3D.find(lidx);
-        node = pch3D->getCorner(itc->second[0], itc->second[1],
-                                          itc->second[2], it2);
-      }
+      if (pch2D)
+        switch (lidx) {
+        case 1: node = pch2D->getCorner(-1,-1, it2); break;
+        case 2: node = pch2D->getCorner( 1,-1, it2); break;
+        case 3: node = pch2D->getCorner(-1, 1, it2); break;
+        case 4: node = pch2D->getCorner( 1, 1, it2); break;
+        }
+      else if (pch3D)
+        switch (lidx) {
+        case 1: node = pch3D->getCorner(-1,-1,-1, it2); break;
+        case 2: node = pch3D->getCorner( 1,-1,-1, it2); break;
+        case 3: node = pch3D->getCorner(-1, 1,-1, it2); break;
+        case 4: node = pch3D->getCorner( 1, 1,-1, it2); break;
+        case 5: node = pch3D->getCorner(-1,-1, 1, it2); break;
+        case 6: node = pch3D->getCorner( 1,-1, 1, it2); break;
+        case 7: node = pch3D->getCorner(-1, 1, 1, it2); break;
+        case 8: node = pch3D->getCorner( 1, 1, 1, it2); break;
+        }
       lNodes.push_back(pch->getNodeID(node));
     } else if (dim == 1 && pch3D) {
       std::vector<int> eNodes = pch3D->getEdge(lidx, false, it2);
@@ -343,7 +336,6 @@ void DomainDecomposition::setupNodeNumbers(int basis, IntVec& lNodes,
         lNodes.push_back(pch->getNodeID(it));
     } else
       pch->getBoundaryNodes(lidx, lNodes, it2);
-  }
 }
 
 
