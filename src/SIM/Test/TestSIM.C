@@ -10,10 +10,10 @@
 //!
 //==============================================================================
 
-#include "IntegrandBase.h"
 #include "IFEM.h"
 #include "SIM2D.h"
 #include "SIM3D.h"
+#include "IntegrandBase.h"
 
 #include "gtest/gtest.h"
 #include "tinyxml.h"
@@ -31,26 +31,21 @@ public:
   {
     return this->addMADOF(basis, nndof);
   }
+
 private:
   class TestProjectIntegrand : public IntegrandBase {
   public:
     TestProjectIntegrand(int dim) : IntegrandBase(dim) {}
 
-    //! \brief Evaluates the secondary solution at a result point.
-    //! \param[out] s The solution field values at current point
-    //! \param[in] fe Finite element data at current point
-    //! \param[in] X Cartesian coordinates of current point
-    //! \param[in] MNPC Nodal point correspondance for the basis function values
-    bool evalSol(Vector& s, const FiniteElement& fe, const Vec3& X,
-                 const std::vector<int>& MNPC) const override
+    virtual bool evalSol(Vector& s, const FiniteElement&, const Vec3& X,
+                         const std::vector<int>&) const
     {
       s.resize(1);
       s(1) = X[0] + X[1] + X[2];
-
       return true;
     }
 
-    size_t getNoFields(int = 2) const override { return 1; }
+    virtual size_t getNoFields(int) const { return 1; }
   };
 };
 

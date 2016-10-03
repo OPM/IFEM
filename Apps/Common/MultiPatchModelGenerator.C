@@ -108,16 +108,6 @@ std::string MultiPatchModelGenerator2D::createG2 (int nsd) const
 }
 
 
-SIMdependency::PatchVec
-MultiPatchModelGenerator2D::createGeometry (const SIMbase& sim) const
-{
-  std::istringstream rect(this->createG2(sim.getNoSpaceDim()));
-  SIMdependency::PatchVec result;
-  sim.readPatches(rect,result,"\t");
-  return result;
-}
-
-
 bool MultiPatchModelGenerator2D::createTopology (SIMbase& sim) const
 {
   auto&& IJ = [this](int i, int j) { return 1 + j*nx + i; };
@@ -133,27 +123,29 @@ bool MultiPatchModelGenerator2D::createTopology (SIMbase& sim) const
         return false;
 
   if (periodic_x)
-    for (int i = 0; i < ny; ++i)
+    for (int j = 0; j < ny; ++j)
       if (nx > 1) {
-        if (!sim.addConnection(IJ(0, i), IJ(nx-1, i), 1, 2, 0, 0, false))
+        if (!sim.addConnection(IJ(0,j), IJ(nx-1,j), 1, 2, 0, 0, false))
           return false;
-      } else {
-         IFEM::cout <<"\tPeriodic I-direction P"<< IJ(0,i) << std::endl;
-         ASMs2D* pch = dynamic_cast<ASMs2D*>(sim.getPatch(IJ(0,i), true));
-         if (pch)
-           pch->closeEdges(1);
+      }
+      else {
+        IFEM::cout <<"\tPeriodic I-direction P"<< IJ(0,j) << std::endl;
+        ASMs2D* pch = dynamic_cast<ASMs2D*>(sim.getPatch(IJ(0,j), true));
+        if (pch)
+          pch->closeEdges(1);
       }
 
   if (periodic_y)
     for (int i = 0; i < nx; ++i)
-      if (ny > 1)
+      if (ny > 1) {
         if (!sim.addConnection(IJ(i,0), IJ(i,ny-1), 3, 4, 0, 0, false))
           return false;
+      }
       else {
-         IFEM::cout <<"\tPeriodic J-direction P"<< IJ(i,0)<< std::endl;
-         ASMs2D* pch = dynamic_cast<ASMs2D*>(sim.getPatch(IJ(i,0), true));
-         if (pch)
-           pch->closeEdges(2);
+        IFEM::cout <<"\tPeriodic J-direction P"<< IJ(i,0)<< std::endl;
+        ASMs2D* pch = dynamic_cast<ASMs2D*>(sim.getPatch(IJ(i,0), true));
+        if (pch)
+          pch->closeEdges(2);
       }
 
   return true;
@@ -163,10 +155,10 @@ bool MultiPatchModelGenerator2D::createTopology (SIMbase& sim) const
 TopologySet
 MultiPatchModelGenerator2D::createTopologySets (const SIMbase& sim) const
 {
-  if (!sets)
-    return TopologySet();
-
   TopologySet result;
+  if (!this->topologySets())
+    return result;
+
   TopEntity& e1 = result["Edge1"];
   TopEntity& e2 = result["Edge2"];
   TopEntity& e3 = result["Edge3"];
@@ -289,8 +281,8 @@ std::string MultiPatchModelGenerator3D::createG2 (int) const
         for (size_t i = 0; i < nodes.size(); i += 3)
         {
           std::stringstream str;
-          std::array<int,3> N {x,y,z};
-          std::array<double,3> L {Lx,Ly,Lz};
+          std::array<int,3> N = {{x,y,z}};
+          std::array<double,3> L = {{Lx,Ly,Lz}};
           for (size_t j = 0; j < 3; j++)
             str << (j==0?"":" ") << X0[j]+N[j]*L[j]+nodes[i+j]*L[j];
           g2.append(str.str());
@@ -301,16 +293,6 @@ std::string MultiPatchModelGenerator3D::createG2 (int) const
   }
 
   return g2;
-}
-
-
-SIMdependency::PatchVec
-MultiPatchModelGenerator3D::createGeometry (const SIMbase& sim) const
-{
-  std::istringstream hex(this->createG2(sim.getNoSpaceDim()));
-  SIMdependency::PatchVec result;
-  sim.readPatches(hex,result,"\t");
-  return result;
 }
 
 
@@ -382,8 +364,9 @@ bool MultiPatchModelGenerator3D::createTopology (SIMbase& sim) const
 TopologySet
 MultiPatchModelGenerator3D::createTopologySets (const SIMbase& sim) const
 {
-  if (!sets)
-    return TopologySet();
+  TopologySet result;
+  if (!this->topologySets())
+    return result;
 
   // 0-based -> 1-based IJK
   auto&& IJK = [this](int i, int j, int k) { return 1 + (k*ny+j)*nx + i; };
@@ -404,8 +387,6 @@ MultiPatchModelGenerator3D::createTopologySets (const SIMbase& sim) const
   auto&& IJK2J = [this,IJK](int i, int j, int k) { return IJK(i, j*(ny-1), k); };
   // start/end K
   auto&& IJK2K = [this,IJK](int i, int j, int k) { return IJK(i, j, k*(nz-1)); };
-
-  TopologySet result;
 
   // insertion lambda
   auto&& insertion = [&sim,&result](TopItem top,

@@ -12,8 +12,8 @@
 //==============================================================================
 
 #include "ModelGenerator.h"
-#include "IFEM.h"
 #include "SIMbase.h"
+#include "IFEM.h"
 #include "Utilities.h"
 #include "Vec3.h"
 #include "Vec3Oper.h"
@@ -21,10 +21,19 @@
 #include <array>
 
 
-ModelGenerator::ModelGenerator (const TiXmlElement* elem) :
-  sets(false), geo(elem)
+bool ModelGenerator::topologySets () const
 {
-  utl::getAttribute(geo, "sets", sets);
+  bool sets = false;
+  return utl::getAttribute(geo,"sets",sets) && sets;
+}
+
+
+SIMdependency::PatchVec ModelGenerator::createGeometry (const SIMbase& m) const
+{
+  std::istringstream g2(this->createG2(m.getNoSpaceDim()));
+  SIMdependency::PatchVec result;
+  m.readPatches(g2,result,"\t");
+  return result;
 }
 
 
@@ -78,27 +87,18 @@ std::string DefaultGeometry1D::createG2 (int nsd) const
 }
 
 
-SIMdependency::PatchVec DefaultGeometry1D::createGeometry (const SIMbase& sim) const
-{
-  std::istringstream unitLine(this->createG2(sim.getNoSpaceDim()));
-  SIMdependency::PatchVec result;
-  sim.readPatches(unitLine,result,"\t");
-  return result;
-}
-
-
 TopologySet DefaultGeometry1D::createTopologySets (const SIMbase&) const
 {
-  if (!sets)
-    return TopologySet();
-
   TopologySet result;
-  result["Vertex1"].insert(TopItem(1,1,0));
-  result["Vertex2"].insert(TopItem(1,2,0));
-  result["Boundary"].insert(TopItem(1,1,0));
-  result["Boundary"].insert(TopItem(1,2,0));
-  result["Corners"].insert(TopItem(1,1,0));
-  result["Corners"].insert(TopItem(1,2,0));
+  if (this->topologySets())
+  {
+    result["Vertex1"].insert(TopItem(1,1,0));
+    result["Vertex2"].insert(TopItem(1,2,0));
+    result["Boundary"].insert(TopItem(1,1,0));
+    result["Boundary"].insert(TopItem(1,2,0));
+    result["Corners"].insert(TopItem(1,1,0));
+    result["Corners"].insert(TopItem(1,2,0));
+  }
 
   return result;
 }
@@ -160,28 +160,20 @@ std::string DefaultGeometry2D::createG2 (int nsd) const
 }
 
 
-SIMdependency::PatchVec DefaultGeometry2D::createGeometry (const SIMbase& sim) const
-{
-  std::istringstream unitSquare(this->createG2(sim.getNoSpaceDim()));
-  SIMdependency::PatchVec result;
-  sim.readPatches(unitSquare,result,"\t");
-  return result;
-}
-
-
 TopologySet DefaultGeometry2D::createTopologySets (const SIMbase&) const
 {
-  if (!sets)
-    return TopologySet();
-
   TopologySet result;
-  std::string vert = "Vertex1";
-  std::string edge = "Edge1";
-  for (size_t i = 1; i <= 4; ++i, ++vert.back(), ++edge.back()) {
-    result[vert].insert(TopItem(1,i,0));
-    result[edge].insert(TopItem(1,i,1));
-    result["Corners"].insert(TopItem(1,i,0));
-    result["Boundary"].insert(TopItem(1,i,1));
+  if (this->topologySets())
+  {
+    std::string vert = "Vertex1";
+    std::string edge = "Edge1";
+    for (size_t i = 1; i <= 4; ++i, ++vert.back(), ++edge.back())
+    {
+      result[vert].insert(TopItem(1,i,0));
+      result[edge].insert(TopItem(1,i,1));
+      result["Corners"].insert(TopItem(1,i,0));
+      result["Boundary"].insert(TopItem(1,i,1));
+    }
   }
 
   return result;
@@ -261,40 +253,31 @@ std::string DefaultGeometry3D::createG2 (int) const
 }
 
 
-SIMdependency::PatchVec DefaultGeometry3D::createGeometry (const SIMbase& sim) const
-{
-  std::istringstream unitCube(this->createG2());
-  SIMdependency::PatchVec result;
-  sim.readPatches(unitCube,result,"\t");
-  return result;
-}
-
-
 TopologySet DefaultGeometry3D::createTopologySets (const SIMbase&) const
 {
-  if (!sets)
-    return TopologySet();
-
   TopologySet result;
+  if (this->topologySets())
+  {
+    std::string face = "Face1";
+    for (size_t i = 1; i <= 6; ++i, ++face.back())
+    {
+      result[face].insert(TopItem(1,i,2));
+      result["Boundary"].insert(TopItem(1,i,2));
+    }
 
-  std::string face = "Face1";
-  for (size_t i = 1; i <= 6; ++i, ++face.back()) {
-    result[face].insert(TopItem(1,i,2));
-    result["Boundary"].insert(TopItem(1,i,2));
-  }
+    std::string edge = "Edge1";
+    for (size_t i = 1; i <= 12; ++i, ++edge.back()) {
+      result[edge].insert(TopItem(1,i,1));
+      result["Frame"].insert(TopItem(1,i,1));
+      if (i == 9)
+	edge = "Edge1/"; // '/' + 1 == '0'
+    }
 
-  std::string edge = "Edge1";
-  for (size_t i = 1; i <= 12; ++i, ++edge.back()) {
-    result[edge].insert(TopItem(1,i,1));
-    result["Frame"].insert(TopItem(1,i,1));
-    if (i == 9)
-      edge = "Edge1/"; // '/' + 1 == '0'
-  }
-
-  std::string vert = "Vertex1";
-  for (size_t i = 1; i <= 8; ++i, ++vert.back()) {
-    result[vert].insert(TopItem(1,i,0));
-    result["Corners"].insert(TopItem(1,i,0));
+    std::string vert = "Vertex1";
+    for (size_t i = 1; i <= 8; ++i, ++vert.back()) {
+      result[vert].insert(TopItem(1,i,0));
+      result["Corners"].insert(TopItem(1,i,0));
+    }
   }
 
   return result;

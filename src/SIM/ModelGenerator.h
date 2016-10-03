@@ -21,6 +21,7 @@
 class SIMbase;
 class TiXmlElement;
 
+
 /*!
   \brief Base class for model generators for FEM simulators.
 */
@@ -28,120 +29,104 @@ class TiXmlElement;
 class ModelGenerator
 {
 public:
-  //! \brief Constructor initializes common members
+  //! \brief The constructor initializes the common members.
   //!\ param elem XML element to parse
-  ModelGenerator(const TiXmlElement* elem);
-
+  ModelGenerator(const TiXmlElement* elem) : geo(elem) {}
   //! \brief Empty destructor.
   virtual ~ModelGenerator() {}
 
   //! \brief Creates a geometry.
-  //! \param[in] sim SIM with patch read function to use
-  virtual SIMdependency::PatchVec createGeometry(const SIMbase& sim) const = 0;
+  //! \param[in] m Simulator object with patch read function to use
+  virtual SIMdependency::PatchVec createGeometry(const SIMbase& m) const;
 
-  //! \brief Creates topology for geometry.
-  //! \param[in] geo XML element containing geometry defintion
-  //! \param sim Simulator to apply topology to
-  virtual bool createTopology(SIMbase& sim) const = 0;
+  //! \brief Creates topology for multi-patch geometries.
+  virtual bool createTopology(SIMbase&) const { return true; }
 
   //! \brief Creates topology sets for geometry.
-  //! \param[in] sim Simulator with patch ownerships
+  //! \param[in] sim Simulator object with patch ownerships
   virtual TopologySet createTopologySets(const SIMbase& sim) const = 0;
 
 protected:
-  bool sets; //!< Whether to generate topologysets or not
+  //! \brief Generates the G2 description of the geometry.
+  //! \param nsd Number of spatial dimension
+  virtual std::string createG2(int nsd) const { return ""; }
+
+  //! \brief Returns \e true if topology sets is to be generated.
+  bool topologySets() const;
+
+protected:
   const TiXmlElement* geo; //!< Pointer to xml element describing geometry
 };
 
 
 /*!
   \brief Default model generator for 1D FEM simulators.
-  \details Generates a line.
+  \details Generates a line domain.
 */
 
-class DefaultGeometry1D : public ModelGenerator {
+class DefaultGeometry1D : public ModelGenerator
+{
 public:
   //! \brief The constructor forwards to the base class.
   //! \param[in] geo XML element containing geometry defintion
   DefaultGeometry1D(const TiXmlElement* geo) : ModelGenerator(geo) {}
-
-  //! \brief Creates a 1D single-patch geometry.
-  //! \param[in] sim SIM with patch read function to use
-  SIMdependency::PatchVec createGeometry(const SIMbase& sim) const override;
-
-  //! \brief Creates the topology
-  //! \details No topology information for single patch models
-  bool createTopology(SIMbase&) const override
-  { return true; }
+  //! \brief Empty destructor.
+  virtual ~DefaultGeometry1D() {}
 
   //! \brief Creates topology sets for geometry.
-  TopologySet createTopologySets(const SIMbase&) const override;
+  virtual TopologySet createTopologySets(const SIMbase&) const;
 
 protected:
   //! \brief Generates the G2 description of the geometry.
   //! \param nsd Number of spatial dimension
-  std::string createG2 (int nsd = 2) const;
+  virtual std::string createG2(int nsd) const;
 };
 
 
 /*!
   \brief Default model generator for 2D FEM simulators.
-  \details Generates a rectangle.
+  \details Generates a quadrilateral domain.
 */
 
-class DefaultGeometry2D : public ModelGenerator {
+class DefaultGeometry2D : public ModelGenerator
+{
 public:
   //! \brief The constructor forwards to the base class.
   //! \param[in] geo XML element containing geometry defintion
   DefaultGeometry2D(const TiXmlElement* geo) : ModelGenerator(geo) {}
-
-  //! \brief Creates a 2D rectangular single-patch geometry.
-  //! \param[in] sim SIM with patch read function to use
-  SIMdependency::PatchVec createGeometry(const SIMbase& sim) const override;
-
-  //! \brief Creates the topology
-  //! \param sim Simulator to apply topology to
-  //! \details No topology information for single patch models
-  bool createTopology(SIMbase&) const override
-  { return true; }
+  //! \brief Empty destructor.
+  virtual ~DefaultGeometry2D() {}
 
   //! \brief Creates topology sets for geometry.
-  TopologySet createTopologySets(const SIMbase&) const override;
+  virtual TopologySet createTopologySets(const SIMbase&) const;
 
 protected:
   //! \brief Generates the G2 description of the geometry.
   //! \param nsd Number of spatial dimension
-  std::string createG2 (int nsd = 3) const;
+  virtual std::string createG2(int nsd) const;
 };
 
 
 /*!
   \brief Default model generator for 3D FEM simulators.
-  \details Generates a hexahedra.
+  \details Generates a hexahedral domain.
 */
 
-class DefaultGeometry3D : public ModelGenerator {
+class DefaultGeometry3D : public ModelGenerator
+{
 public:
   //! \brief The constructor forwards to the base class.
   //! \param[in] geo XML element containing geometry defintion
   DefaultGeometry3D(const TiXmlElement* geo) : ModelGenerator(geo) {}
-
-  //! \brief Creates a 3D hexahedral single-patch geometry.
-  //! \param[in] sim Simulator with patch read function to use
-  SIMdependency::PatchVec createGeometry(const SIMbase& sim) const override;
-
-  //! \brief Creates the topology
-  //! \param sim Simulator to apply topology to
-  //! \details No topology information for single patch models
-  bool createTopology(SIMbase&) const override
-  { return true; }
+  //! \brief Empty destructor.
+  virtual ~DefaultGeometry3D() {}
 
   //! \brief Creates topology sets for geometry.
-  TopologySet createTopologySets(const SIMbase&) const override;
+  virtual TopologySet createTopologySets(const SIMbase&) const;
 
 protected:
   //! \brief Generates the G2 description of the geometry.
-  std::string createG2 (int = 3) const;
+  virtual std::string createG2(int) const;
 };
 
 #endif

@@ -37,9 +37,9 @@ public:
   virtual ~SIMMultiPatchModelGen() {}
 
 protected:
-  //! \brief Instantiate a generator for the finite element model.
+  //! \brief Instantiates a generator for the finite element model.
   //! \param[in] geo XML element containing geometry defintion
-  ModelGenerator* createModelGenerator(const TiXmlElement* geo) const override;
+  virtual ModelGenerator* createModelGenerator(const TiXmlElement* geo) const;
 };
 
 #endif
