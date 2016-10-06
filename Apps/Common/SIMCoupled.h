@@ -96,10 +96,10 @@ public:
   virtual void registerDependency(SIMdependency* sim, const std::string& name,
                                   short int nvc,
                                   const std::vector<ASMbase*>& patches,
-                                  char diffBasis = 0)
+                                  char diffBasis = 0, int component = 1)
   {
-    S1.registerDependency(sim, name, nvc, patches, diffBasis);
-    S2.registerDependency(sim, name, nvc, patches, diffBasis);
+    S1.registerDependency(sim, name, nvc, patches, diffBasis, component);
+    S2.registerDependency(sim, name, nvc, patches, diffBasis, component);
   }
 
   //! \brief Registers a dependency on a field from another SIM object.

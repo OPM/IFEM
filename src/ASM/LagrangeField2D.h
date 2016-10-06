@@ -33,9 +33,10 @@ public:
   //! \param[in] patch The spline patch on which the field is to be defined
   //! \param[in] v Array of control point field values
   //! \param[in] basis Basis to use from patch
+  //! \param[in] cmp Component to use
   //! \param[in] name Name of field
   LagrangeField2D(const ASMs2DLag* patch, const RealArray& v,
-		  char basis = 1, const char* name = nullptr);
+                  char basis = 1, char cmp = 1, const char* name = nullptr);
   //! \brief Empty destructor.
   virtual ~LagrangeField2D() {}
 

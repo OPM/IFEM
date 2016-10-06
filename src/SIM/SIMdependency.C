@@ -20,11 +20,13 @@
 
 void SIMdependency::registerDependency (SIMdependency* sim,
                                         const std::string& name, short int nvc,
-                                        const PatchVec& patches, char diffBasis)
+                                        const PatchVec& patches,
+                                        char diffBasis, int component)
 {
   this->SIMdependency::registerDependency(sim,name,nvc);
   depFields.back().patches = patches;
   depFields.back().differentBasis = diffBasis;
+  depFields.back().comp_use = component;
 }
 
 
@@ -143,7 +145,8 @@ bool SIMdependency::extractPatchDependencies (IntegrandBase* problem,
     if (it->differentBasis > 0) {
       if (it->components == 1)
         problem->setNamedField(it->name,Field::create(patch,*lvec,
-                                                      it->differentBasis));
+                                                      it->differentBasis,
+                                                      it->comp_use));
       else
         problem->setNamedFields(it->name,Fields::create(patch,*lvec,
                                                         it->differentBasis));

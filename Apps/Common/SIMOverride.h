@@ -69,11 +69,11 @@ public:
   const ProcessAdm& getProcessAdm() const { return base.getProcessAdm(); }
 
   //! \copydoc SIMdependency::registerDependency(SIMdependency*,const std::string&,short int,const PatchVec&,char)
-  virtual void registerDependency(SIMdependency* sim, const std::string& name,
-                                  short int nvc, const PatchVec& patches,
-                                  char diffBasis = 0)
+  void registerDependency(SIMdependency* sim, const std::string& name,
+                          short int nvc, const PatchVec& patches,
+                          char diffBasis = 0, int component = 1) override
   {
-    base.registerDependency(sim, name, nvc, patches, diffBasis);
+    base.registerDependency(sim, name, nvc, patches, diffBasis, component);
   }
 
   //! \copydoc SIMdependency::registerDependency(SIMdependency*,const std::string&,short int)

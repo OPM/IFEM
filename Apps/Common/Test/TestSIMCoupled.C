@@ -51,7 +51,7 @@ public:
   bool saveModel(char*, int&, int&) { return savemodel_called = true; }
   bool init(const TimeStep&) { return init_called = true; }
   void registerDependency(SIMdependency*, const std::string&,
-                          short int, const std::vector<ASMbase*>&, bool)
+                          short int, const std::vector<ASMbase*>&, char, int)
   {
     registerdependency1_called = true;
   }

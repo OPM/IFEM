@@ -36,11 +36,22 @@ SplineFields3D::SplineFields3D (const ASMs3D* patch,
   const int p3 = basis->order(2);
   nelm = (n1-p1+1)*(n2-p2+1)*(n3-p3+1);
 
-  // Ensure the values array has compatible length, pad with zeros if necessary
-  nf = v.size()/nno;
-  values.resize(nf*nno);
-  RealArray::const_iterator end = v.size() > nf*nno ? v.begin()+nf*nno:v.end();
-  std::copy(v.begin(),end,values.begin());
+  size_t ofs = 0;
+  for (char i = 1; i < nbasis; ++i)
+    ofs += patch->getNoNodes(i)*patch->getNoFields(i);
+  auto vit = v.begin()+ofs;
+
+  nf = 3;
+  int nfc = patch->getNoFields(nbasis);
+  values.resize(nno*nf);
+  int ndof = nfc*nno;
+  auto end = v.size() > ofs+ndof ? vit+ndof : v.end();
+  if (nfc == 3)
+    std::copy(vit,end,values.begin());
+  else
+    for (size_t i = 0; i < nno && vit != end; ++i, vit += nfc)
+      for (size_t j = 0; j < 3; ++j)
+        values[3*i+j] = *(vit+j);
 }
 
 

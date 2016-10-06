@@ -10,6 +10,7 @@
 //!
 //==============================================================================
 
+#include "Field.h"
 #include "Fields.h"
 #include "FiniteElement.h"
 #include "SIM2D.h"
@@ -31,6 +32,7 @@ TEST(TestSplineFields, Value2D)
                             1.0, -1.0,
                             3.0, 1.0};
   Fields* fvector = Fields::create(sim.getPatch(1), vc);
+  Field* fscalar = Field::create(sim.getPatch(1), vc, 1, 2);
   static std::vector<std::array<double,4>> tests_vector =
         {{0.5, 0.5, 1.25, 0.25},
          {1.0, 0.0, 1.0,  1.0},
@@ -44,7 +46,9 @@ TEST(TestSplineFields, Value2D)
     fvector->valueFE(fe, v);
     ASSERT_FLOAT_EQ(v(1), it[2]);
     ASSERT_FLOAT_EQ(v(2), it[3]);
+    ASSERT_FLOAT_EQ(fscalar->valueFE(fe), it[3]);
   }
+
 }
 
 
@@ -90,6 +94,7 @@ TEST(TestSplineFields, Value3D)
                             2.0,  0.0,  0.0,
                             3.0,  1.0,  1.0};
   Fields* fvector = Fields::create(sim.getPatch(1), vc);
+  Field* fscalar = Field::create(sim.getPatch(1), vc, 1, 2);
   static std::vector<std::array<double,6>> tests_scalar =
       {{0.5, 0.5, 0.5, 1.5,  0.5,  0.5},
        {0.0, 0.0, 0.0, 0.0,  0.0,  0.0},
@@ -110,6 +115,7 @@ TEST(TestSplineFields, Value3D)
     ASSERT_FLOAT_EQ(v(1), it[3]);
     ASSERT_FLOAT_EQ(v(2), it[4]);
     ASSERT_FLOAT_EQ(v(3), it[5]);
+    ASSERT_FLOAT_EQ(fscalar->valueFE(fe), it[4]);
   }
 }
 
