@@ -45,6 +45,7 @@ bool utl::parseKnots (std::vector<Real>& xi)
   {
     // Geometric grading
     bool  biased = toupper(cline[0]) == 'B';
+    bool centered = toupper(cline[0]) == 'C';
     int    ru    = atoi(strtok(nullptr," "));
     double alpha = atof(strtok(nullptr," "));
     double xi1   = (cline = strtok(nullptr," ")) ? atof(cline) : 0.0;
@@ -55,16 +56,32 @@ bool utl::parseKnots (std::vector<Real>& xi)
       alpha = pow(alpha,1.0/Real(ru));
 
     double x = xi1;
-    double D = xi2 - xi1;
-    D *= (alpha == 1.0 ? 1.0/Real(ru+1) : (1.0-alpha)/(1.0-pow(alpha,ru+1)));
-    if (xi1 > 0.0) xi.push_back(xi1);
-    for (int i = 0; i < ru; i++)
-    {
-      x += D;
-      D *= alpha;
-      xi.push_back(x);
+    if (centered) {
+      double D = (xi2 - xi1) / 2.0;
+      D *= (alpha == 1.0 ? 1.0/Real(ru/2+1) : (1.0-alpha)/(1.0-pow(alpha,1+ru/2)));
+      if (xi1 > 0.0) xi.push_back(xi1);
+      for (int i = 0; i < ru / 2; i++)
+      {
+        x += D;
+        D *= alpha;
+        xi.push_back(x);
+      }
+      xi.push_back(xi1 + (xi2-xi1)/2.0);
+      for (int i = 0; i < ru / 2; ++i)
+        xi.push_back(xi2 - xi[ru/2-1-i]+xi1);
+      if (xi2 < 1.0) xi.push_back(xi2);
+    } else {
+      double D = xi2 - xi1;
+      D *= (alpha == 1.0 ? 1.0/Real(ru+1) : (1.0-alpha)/(1.0-pow(alpha,ru+1)));
+      if (xi1 > 0.0) xi.push_back(xi1);
+      for (int i = 0; i < ru; i++)
+      {
+        x += D;
+        D *= alpha;
+        xi.push_back(x);
+      }
+      if (xi2 < 1.0) xi.push_back(xi2);
     }
-    if (xi2 < 1.0) xi.push_back(xi2);
   }
   else
   {
