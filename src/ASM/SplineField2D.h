@@ -37,9 +37,10 @@ public:
   //! \param[in] patch The spline patch on which the field is to be defined
   //! \param[in] v Array of control point field values
   //! \param[in] basis Basis to use from patch
+  //! \param[in] cmp Component to use from source field. Pass 0 to use vector as-is.
   //! \param[in] name Name of spline field
   SplineField2D(const ASMs2D* patch, const RealArray& v,
-                char basis = 1, const char* name = nullptr);
+                char basis = 1, char cmp = 1, const char* name = nullptr);
   //! \brief Empty destructor.
   virtual ~SplineField2D() {}
 

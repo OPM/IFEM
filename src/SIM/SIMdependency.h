@@ -40,11 +40,12 @@ private:
     PatchVec       patches;        //!< Patch geometry the field is defined over
     std::string    name;           //!< Field name
     short int      components;     //!< Number of field components per node
+    short int      comp_use;       //!< Component to use from field
     char           differentBasis; //!< Toggle usage of an independent basis
     //! \brief Default constructor.
     Dependency(SIMdependency* s = nullptr, const std::string& f = "",
                short int n = 1) : sim(s), name(f), components(n),
-                                  differentBasis(0) {}
+                                  comp_use(1), differentBasis(0) {}
   };
 
   //! \brief SIM dependency container
@@ -71,9 +72,10 @@ public:
   //! \param[in] nvc Number of components in field
   //! \param[in] patches The geometry the field is defined over
   //! \param[in] diffBasis If non-null, use diffBasis base from patch vector
+  //! \param[in] component Component to use from field
   virtual void registerDependency(SIMdependency* sim, const std::string& name,
                                   short int nvc, const PatchVec& patches,
-                                  char diffBasis = 0);
+                                  char diffBasis = 0, int component = 1);
   //! \brief Registers a dependency on a field from another SIM object.
   //! \param[in] sim The SIM object holding the field we depend on
   //! \param[in] name Name of field we depend on

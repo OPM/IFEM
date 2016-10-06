@@ -64,7 +64,7 @@ public:
     return result;
   }
   void registerDependency(SIMdependency*, const std::string&, short int,
-                          const std::vector<ASMbase*>&, char)
+                          const std::vector<ASMbase*>&, char, int)
   {
     registerdependency_called = true;
   }
