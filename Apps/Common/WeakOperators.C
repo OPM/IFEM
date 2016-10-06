@@ -37,136 +37,134 @@ namespace WeakOperators {
   //! \brief Helper applying a divergence (1) or a gradient (2) or both (0) operation
   template<int Operation>
   static void DivGrad(Matrix& EM, const FiniteElement& fe,
-              double scale=1.0, size_t nf=1)
+              double scale, int basis, int tbasis)
   {
-    for (size_t i = 1; i <= fe.N.size();++i)
-      for (size_t j = 1; j <= fe.N.size();++j)
-        for (size_t k = 1; k <= fe.dNdX.cols(); ++k) {
-          double div = fe.N(j)*fe.dNdX(i,k)*fe.detJxW;
-          if (Operation == 2 || Operation == 0)
-            EM(nf*(i-1)+k,nf*j) += -scale*div;
-          if (Operation == 1 || Operation == 0)
-            EM(nf*j, nf*(i-1)+k) += scale*div;
+    size_t nsd = fe.grad(basis).cols();
+    for (size_t i = 1; i <= fe.basis(tbasis).size();++i)
+      for (size_t j = 1; j <= fe.basis(basis).size();++j)
+        for (size_t k = 1; k <= nsd; ++k) {
+          double div = fe.basis(basis)(j)*fe.grad(tbasis)(i,k)*fe.detJxW;
+          if (Operation == 2)
+            EM((i-1)*nsd+k,j) += -scale*div;
+          if (Operation == 1)
+            EM(j, (i-1)*nsd+k) += scale*div;
         }
   }
 
 
   void Advection(Matrix& EM, const FiniteElement& fe,
-                 const Vec3& AC, double scale,
-                 size_t cmp, size_t nf, size_t scmp)
+                 const Vec3& AC, double scale, int basis)
   {
-    Matrix C(fe.N.size(), fe.N.size());
-    for (size_t i = 1; i <= fe.N.size(); ++i) {
-      for (size_t j = 1; j <= fe.N.size(); ++j) {
+    Matrix C(fe.basis(basis).size(), fe.basis(basis).size());
+    size_t ncmp = EM.rows() / C.rows();
+    for (size_t i = 1; i <= fe.basis(basis).size(); ++i) {
+      for (size_t j = 1; j <= fe.basis(basis).size(); ++j) {
         // Sum convection for each direction
-        for (size_t k = 1; k <= fe.dNdX.cols(); ++k)
+        for (size_t k = 1; k <= fe.grad(basis).cols(); ++k)
           C(i,j) += AC[k-1]*fe.dNdX(j,k);
 
         C(i,j) *= scale*fe.N(i)*fe.detJxW;
       }
     }
-    addComponents(EM, C, cmp, nf, scmp);
+    addComponents(EM, C, ncmp, ncmp, 0);
   }
 
 
-  void Divergence(Matrix& EM, const FiniteElement& fe,
-                  size_t nf, double scale)
+  void Divergence(Matrix& EM, const FiniteElement& fe, double scale,
+                  int basis, int tbasis)
   {
-    DivGrad<1>(EM,fe,scale,nf);
+    DivGrad<1>(EM,fe,scale,basis,tbasis);
   }
 
 
-  void PressureDiv(Matrix& EM, const FiniteElement& fe,
-                   size_t nf, double scale)
+  void Gradient(Matrix& EM, const FiniteElement& fe, double scale,
+                int basis, int tbasis)
   {
-    DivGrad<0>(EM,fe,scale,nf);
-  }
-
-
-  void Gradient(Matrix& EM, const FiniteElement& fe,
-                size_t nf, double scale)
-  {
-    DivGrad<2>(EM,fe,scale,nf);
+    DivGrad<2>(EM,fe,scale,basis,tbasis);
   }
 
 
   void Divergence(Vector& EV, const FiniteElement& fe,
-                  const Vec3& D, double scale, size_t cmp, size_t nf)
+                  const Vec3& D, double scale, int basis)
   {
-    for (size_t i = 1; i <= fe.N.size(); ++i) {
+    for (size_t i = 1; i <= fe.basis(basis).size(); ++i) {
       double div=0.0;
-      for (size_t k = 1; k <= fe.dNdX.cols(); ++k)
-        div += D[k-1]*fe.dNdX(i,k);
-      EV((i-1)*nf+cmp) += scale*div*fe.detJxW;
+      for (size_t k = 1; k <= fe.grad(basis).cols(); ++k)
+        div += D[k-1]*fe.grad(basis)(i,k);
+      EV(i) += scale*div*fe.detJxW;
     }
   }
 
 
   void Gradient(Vector& EV, const FiniteElement& fe,
-                double scale, size_t nf)
+                double scale, int basis)
   {
-    for (size_t i = 1; i <= fe.N.size(); ++i)
-      for (size_t k = 1; k <= fe.dNdX.cols(); ++k)
-        EV((i-1)*nf+k) += scale*fe.dNdX(i,k)*fe.detJxW;
+    size_t nsd = fe.grad(basis).cols();
+    for (size_t i = 1; i <= fe.basis(basis).size(); ++i)
+      for (size_t k = 1; k <= nsd; ++k)
+        EV((i-1)*nsd+k) += scale*fe.grad(basis)(i,k)*fe.detJxW;
   }
 
 
   void Laplacian(Matrix& EM, const FiniteElement& fe,
-                 double scale, size_t cmp, size_t nf,
-                 bool stress, size_t scmp, unsigned char basis)
+                 double scale, bool stress, int basis)
   {
+    size_t cmp = EM.rows() / fe.basis(basis).size();
     Matrix A;
     A.multiply(fe.grad(basis),fe.grad(basis),false,true);
     A *= scale*fe.detJxW;
-    addComponents(EM, A, cmp, nf, scmp);
+    addComponents(EM, A, cmp, cmp, 0);
     if (stress)
-      for (size_t i = 1; i <= fe.N.size(); i++)
-        for (size_t j = 1; j <= fe.N.size(); j++)
+      for (size_t i = 1; i <= fe.basis(basis).size(); i++)
+        for (size_t j = 1; j <= fe.basis(basis).size(); j++)
           for (size_t k = 1; k <= cmp; k++)
             for (size_t l = 1; l <= cmp; l++)
-              EM(nf*(j-1)+k+scmp,nf*(i-1)+l+scmp) += scale*fe.grad(basis)(i,k)*fe.grad(basis)(j,l)*fe.detJxW;
+              EM(cmp*(j-1)+k,cmp*(i-1)+l) += scale*fe.grad(basis)(i,k)*fe.grad(basis)(j,l)*fe.detJxW;
   }
 
 
   void LaplacianCoeff(Matrix& EM, const Matrix& K,
                       const FiniteElement& fe,
-                      double scale)
+                      double scale, int basis)
   {
     Matrix KB;
-    KB.multiply(K,fe.dNdX,false,true).multiply(scale*fe.detJxW);
-    EM.multiply(fe.dNdX,KB,false,false,true);
+    KB.multiply(K,fe.grad(basis),false,true).multiply(scale*fe.detJxW);
+    EM.multiply(fe.grad(basis),KB,false,false,true);
   }
 
 
   void Mass(Matrix& EM, const FiniteElement& fe,
-            double scale, size_t cmp, size_t nf, size_t scmp,
-            unsigned char basis)
+            double scale, int basis)
   {
+    size_t ncmp = EM.rows()/fe.basis(basis).size();
     Matrix A;
     A.outer_product(fe.basis(basis),fe.basis(basis),false);
     A *= scale*fe.detJxW;
-    addComponents(EM, A, cmp, nf, scmp);
+    addComponents(EM, A, ncmp, ncmp, 0);
   }
 
 
   void Source(Vector& EV, const FiniteElement& fe,
-              double scale, size_t cmp, size_t nf, size_t scmp,
-              unsigned char basis)
+              double scale, int cmp, int basis)
   {
-    if (cmp == 1 && nf == 1)
+    size_t ncmp = EV.size() / fe.basis(basis).size();
+    if (cmp == 1 && ncmp == 1)
       EV.add(fe.basis(basis), scale*fe.detJxW);
     else {
       for (size_t i = 1; i <= fe.basis(basis).size(); ++i)
-        for (size_t k = 1; k <= cmp; ++k)
-          EV(nf*(i-1)+k+scmp) += scale*fe.basis(basis)(i)*fe.detJxW;
+        for (size_t k  = (cmp == 0 ? 1: cmp);
+                    k <= (cmp == 0 ? ncmp : cmp); ++k)
+          EV(ncmp*(i-1)+k) += scale*fe.basis(basis)(i)*fe.detJxW;
     }
   }
 
 
   void Source(Vector& EV, const FiniteElement& fe,
-              const Vec3& f, double scale, size_t cmp, size_t nf, size_t scmp)
+              const Vec3& f, double scale, int basis)
   {
-    for (size_t i=0;i<cmp;++i)
-      Source(EV, fe, f[i+scmp]*scale, 1, nf, scmp+i);
+    size_t cmp = EV.size() / fe.basis(basis).size();
+    for (size_t i = 1; i <= fe.basis(basis).size(); ++i)
+      for (size_t k = 1; k <= cmp; ++k)
+        EV(cmp*(i-1)+k) += scale*f[k-1]*fe.basis(basis)(i)*fe.detJxW;
   }
 }
