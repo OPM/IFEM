@@ -13,6 +13,7 @@
 #include "Field.h"
 #include "Fields.h"
 #include "FiniteElement.h"
+#include "ASMmxBase.h"
 #include "SIM2D.h"
 #include "SIM3D.h"
 
@@ -48,7 +49,49 @@ TEST(TestSplineFields, Value2D)
     ASSERT_FLOAT_EQ(v(2), it[3]);
     ASSERT_FLOAT_EQ(fscalar->valueFE(fe), it[3]);
   }
+}
 
+
+TEST(TestSplineFields, Value2Dmx)
+{
+  ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
+  SIM2D sim({1,1,1});
+  sim.createDefaultModel();
+  sim.preprocess();
+
+  // {x+y+x*y, x-y+x*y}
+  std::vector<double> vc = {0.0,
+                            0.5,
+                            1.0,
+                            1.0,
+                            2.0,
+                            3.0,
+                            // y
+                            0.0,
+                            1.0,
+                           -0.5,
+                            1.0,
+                           -1.0,
+                            1.0,
+                            // p
+                            0.0, 1.0, 1.0, 2.0}; // x + y
+  Fields* fvector = Fields::create(sim.getPatch(1), vc, 12);
+  Field* fscalar = Field::create(sim.getPatch(1), vc, 3, 1);
+  static std::vector<std::array<double,5>> tests_vector =
+                          {{0.5, 0.5, 1.25, 0.25, 1.0},
+                           {1.0, 0.0, 1.0,  1.0,  1.0},
+                           {0.0, 1.0, 1.0, -1.0,  1.0},
+                           {1.0, 1.0, 3.0,  1.0,  2.0}};
+  for (const auto& it : tests_vector) {
+    FiniteElement fe;
+    fe.u = it[0];
+    fe.v = it[1];
+    Vector v(2);
+    fvector->valueFE(fe, v);
+    ASSERT_FLOAT_EQ(v(1), it[2]);
+    ASSERT_FLOAT_EQ(v(2), it[3]);
+    ASSERT_FLOAT_EQ(fscalar->valueFE(fe), it[4]);
+  }
 }
 
 
@@ -174,5 +217,60 @@ TEST(TestSplineFields, Grad3D)
     for (size_t i = 0; i < 3; ++i)
       for (size_t j = 0; j <3; ++j)
         ASSERT_FLOAT_EQ(gradu(i+1,j+1), it.second[i*3+j]);
+  }
+}
+
+
+TEST(TestSplineFields, Value3Dmx)
+{
+  ASMmxBase::Type = ASMmxBase::DIV_COMPATIBLE;
+  SIM3D sim({1,1,1,1});
+  sim.createDefaultModel();
+  sim.preprocess();
+
+  // {x+y+z+x*y*z, x+y-z+x*y*z, x-y+z+x*y*z}
+  std::vector<double> vc = {0.0, 0.5, 1.0,
+                            1.0, 1.5, 2.0,
+                            1.0, 1.5, 2.0,
+                            2.0, 3.0, 4.0,
+                            // y
+                            0.0, 1.0,
+                            0.5, 1.5,
+                            1.0, 2.0,
+                           -1.0, 0.0,
+                           -0.5, 1.0,
+                            0.0, 2.0,
+                            // z
+                            0.0, 1.0,
+                           -1.0, 0.0,
+                            0.5, 1.5,
+                           -0.5, 1.0,
+                            1.0, 2.0,
+                            0.0, 2.0,
+                            // p
+                            0.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 3.0};
+  Fields* fvector = Fields::create(sim.getPatch(1), vc, 123);
+  Field* fscalar = Field::create(sim.getPatch(1), vc, 4, 1);
+  static std::vector<std::array<double,7>> tests_vector =
+                         {{0.5, 0.5, 0.5, 1.625, 0.625, 0.625, 1.5},
+                          {0.0, 0.0, 0.0,   0.0,   0.0,   0.0, 0.0},
+                          {1.0, 0.0, 0.0,   1.0,   1.0,   1.0, 1.0},
+                          {0.0, 1.0, 0.0,   1.0,   1.0,  -1.0, 1.0},
+                          {1.0, 1.0, 0.0,   2.0,   2.0,   0.0, 2.0},
+                          {0.0, 0.0, 1.0,   1.0,  -1.0,   1.0, 1.0},
+                          {1.0, 0.0, 1.0,   2.0,   0.0,   2.0, 2.0},
+                          {0.0, 1.0, 1.0,   2.0,   0.0,   0.0, 2.0},
+                          {1.0, 1.0, 1.0,   4.0,   2.0,   2.0, 3.0}};
+  for (const auto& it : tests_vector) {
+    FiniteElement fe;
+    fe.u = it[0];
+    fe.v = it[1];
+    fe.w = it[2];
+    Vector v(3);
+    fvector->valueFE(fe, v);
+    ASSERT_FLOAT_EQ(v(1), it[3]);
+    ASSERT_FLOAT_EQ(v(2), it[4]);
+    ASSERT_FLOAT_EQ(v(3), it[5]);
+    ASSERT_FLOAT_EQ(fscalar->valueFE(fe), it[6]);
   }
 }
