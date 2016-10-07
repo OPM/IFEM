@@ -45,9 +45,9 @@ private:
 
 public:
   //! \brief Constructor creating a zero or identity tesnor.
-  Tensor(const t_ind nsd, bool identity = false);
+  explicit Tensor(const t_ind nsd, bool identity = false);
   //! \brief Constructor creating a transformation from a face normal vector.
-  Tensor(const Vec3& vn, bool vnIsX = false);
+  explicit Tensor(const Vec3& vn, bool vnIsX = false);
   //! \brief Constructor creating a transformation from two tangent vectors.
   Tensor(const Vec3& t1, const Vec3& t2,
          bool t1isZ = false, bool t2isXZ = false);
