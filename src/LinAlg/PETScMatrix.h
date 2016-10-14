@@ -171,13 +171,31 @@ public:
   //! \brief Get vector of block matrices. Used for tests only.
   const std::vector<Mat>& getBlockMatrices() const { return matvec; }
 
+  //! \brief Remove pointers related to matrix-free operators.
+  void clearMxV();
+
   //! \brief Set the linear solver parameters (solver type, preconditioner, tolerances).
   //! \param[in] P Preconditioner  matrix (ignored here)
   //! \param[in] Pb Preconditioner vector (ignored here)
   //! \return True on success
   virtual bool setParameters(PETScMatrix* P = nullptr, PETScVector* Pb = nullptr);
+
+  //! \brief Set matrix-free operator.
+  void setMxV(PETScMxV* MxV, bool ownMatrix=false);
+
+  //! \brief Set matrix-free preconditioner.
+  void setPC(PETScPC* pc) { mfpc = pc; }
+
+  //! \brief Set externally provided initial guess for iterative solver.
+  void setInitialGuess(PETScVector* init) { extInitGuess = init; }
+
+  //! \brief Enable/disable solution using sparse direct solver.
+  void setSolveSparse(bool direct) { solveSparse = direct; }
+
+  //! \brief Returns a reference to our linear solver parameters.
+  PETScSolParams& getSolParams() { return solParams; }
 protected:
-  //! \brief Solve a linear system
+  //! \brief Solve a linear system.
   bool solve(const Vec& b, Vec& x, bool newLHS, bool knoll);
 
   //! \brief Solve system stored in the elem map.
@@ -190,6 +208,9 @@ protected:
   PETScMatrix(const PETScMatrix& A) = delete;
 
   Mat                 pA;              //!< The actual PETSc matrix
+  PETScMxV*           mxv;             //!< Matrix-free operator implementation
+  bool                mxvOwnMatrix=true;    //!< The matrix-free operator depends on the assembled matrix
+  PETScPC*            mfpc;            //!< Matrix-free preconditioner implementation
   KSP                 ksp;             //!< Linear equation solver
   MatNullSpace*       nsp;             //!< Null-space of linear operator
   const ProcessAdm&   adm;             //!< Process administrator
@@ -203,6 +224,8 @@ protected:
   LinAlg::LinearSystemType linsysType; //!< Linear system type
   IS glob2LocEq = nullptr; //!< Index set for global-to-local equations.
   std::vector<Mat> matvec; //!< Blocks for block matrices.
+  PETScVector* extInitGuess = nullptr; //!< Externally provided initial guess
+  bool solveSparse = false; //!< Solve using sparse direct solver
 
   std::vector<IS> isvec; //!< Index sets for blocks.
   std::vector<std::array<int,3>> glb2Blk; //!< Maps matrix entries in CSC order to block matrix entries.

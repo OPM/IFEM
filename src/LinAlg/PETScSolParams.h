@@ -40,6 +40,41 @@ typedef std::vector<ISVec>       ISMat;        //!< Index set matrix
 enum SchurPrec { SIMPLE, MSIMPLER, PCD };
 
 
+/*! \brief Interface to use a simulator as a matrix-vector product.
+*/
+
+class PETScMxV {
+public:
+  //! \brief Obtain the matrix to use as preconditioner.
+  virtual bool evalPC(Mat& P) = 0;
+
+  //! \brief Evaluate the matrix-vector product y=A*x.
+  virtual bool evalMxV(Vec& x, Vec& y) = 0;
+};
+
+
+/*! \brief Interface to use a simulator as a preconditioner.
+*/
+
+class PETScPC {
+public:
+  //! \brief Evaluate y = P^-1*x
+  virtual bool eval(Vec& x, Vec& y) = 0;
+
+  //! \brief Get the name of the preconditioner.
+  virtual const char* getName() const { return "SimPC"; }
+};
+
+
+extern "C" {
+  //! \brief Evaluate the matrix-vector product y=A*x
+  PetscErrorCode PETScSIMMxV(Mat A, Vec x, Vec y);
+
+  //! \brief Evaluate the preconditioner y=P^-1*x
+  PetscErrorCode PETScSIMPC(PC pc, Vec x, Vec y);
+}
+
+
 /*!
   \brief Class for PETSc solver parameters.
   \details It contains information about solver method, preconditioner

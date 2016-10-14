@@ -135,8 +135,8 @@ Real PETScVector::Linfnorm() const
 
 PETScMatrix::PETScMatrix (const ProcessAdm& padm, const LinSolParams& spar,
                           LinAlg::LinearSystemType ltype) :
- SparseMatrix(SUPERLU, 1), nsp(nullptr), adm(padm), solParams(spar, adm),
- linsysType(ltype)
+  SparseMatrix(SUPERLU, 1), mxv(nullptr), mxvOwnMatrix(true), mfpc(nullptr),
+  nsp(nullptr), adm(padm), solParams(spar, adm), linsysType(ltype)
 {
   // Create matrix object, by default the matrix type is AIJ
   MatCreate(*adm.getCommunicator(),&pA);
@@ -188,9 +188,12 @@ void PETScMatrix::initAssembly (const SAM& sam, bool delayLocking)
     return;
 
   // Get number of local equations in linear system
-  const PetscInt neq  = adm.dd.getMaxEq()- adm.dd.getMinEq() + 1;
+  bool mxv = solParams.getIntValue("matrixfree") ? true : false;
+  if (mxv && !mxvOwnMatrix)
+    return;
 
   // Set correct number of rows and columns for matrix.
+  const PetscInt neq  = adm.dd.getMaxEq() - adm.dd.getMinEq() + 1;
   MatSetSizes(pA,neq,neq,PETSC_DECIDE,PETSC_DECIDE);
 
   // Allocate sparsity pattern
@@ -407,6 +410,9 @@ void PETScMatrix::initAssembly (const SAM& sam, bool delayLocking)
 
 bool PETScMatrix::beginAssembly()
 {
+  if (mxv && !mxvOwnMatrix)
+    return true;
+
   if (matvec.empty()) {
     for (size_t j = 0; j < cols(); ++j)
       for (int i = IA[j]; i < IA[j+1]; ++i)
@@ -432,6 +438,9 @@ bool PETScMatrix::beginAssembly()
 
 bool PETScMatrix::endAssembly()
 {
+  if (mxv && !mxvOwnMatrix)
+    return true;
+
   // Finalizes parallel assembly process
   MatAssemblyEnd(pA,MAT_FINAL_ASSEMBLY);
   return true;
@@ -441,6 +450,8 @@ bool PETScMatrix::endAssembly()
 void PETScMatrix::init ()
 {
   SparseMatrix::init();
+  if (mxv && !mxvOwnMatrix)
+    return;
 
   // Set all matrix elements to zero
   if (matvec.empty())
@@ -467,6 +478,9 @@ bool PETScMatrix::multiply (const SystemVector& B, SystemVector& C) const
 
 bool PETScMatrix::solve (SystemVector& B, bool newLHS, Real*)
 {
+  if (this->solveSparse)
+    return this->SparseMatrix::solve(B, newLHS, nullptr);
+
   PETScVector* Bptr = dynamic_cast<PETScVector*>(&B);
   if (!Bptr)
     return false;
@@ -474,13 +488,24 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS, Real*)
   if (A.empty())
     return this->solveDirect(*Bptr);
 
-  Vec x;
-  VecDuplicate(Bptr->getVector(),&x);
-  VecCopy(Bptr->getVector(),x);
+  bool result;
+  if (extInitGuess) {
+    Vec x;
+    VecDuplicate(Bptr->getVector(),&x);
+    VecCopy(Bptr->getVector(), x);
+    VecCopy(extInitGuess->getVector(), Bptr->getVector());
+    VecCopy(x, extInitGuess->getVector());
+    VecDestroy(&x);
+    result = this->solve(extInitGuess->getVector(),Bptr->getVector(),newLHS,false);
+  } else {
+    Vec x;
+    VecDuplicate(Bptr->getVector(),&x);
+    VecCopy(Bptr->getVector(),x);
 
-  bool result = this->solve(x,Bptr->getVector(),newLHS,
-                            solParams.getStringValue("type") != "preonly");
-  VecDestroy(&x);
+    result = this->solve(x,Bptr->getVector(),newLHS,
+                         solParams.getStringValue("type") != "preonly");
+    VecDestroy(&x);
+  }
 
   return result;
 }
@@ -488,6 +513,8 @@ bool PETScMatrix::solve (SystemVector& B, bool newLHS, Real*)
 
 bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
 {
+  if (this->solveSparse)
+    return this->SparseMatrix::solve(b, x, newLHS);
   const PETScVector* Bptr = dynamic_cast<const PETScVector*>(&b);
   if (!Bptr)
     return false;
@@ -500,27 +527,63 @@ bool PETScMatrix::solve (const SystemVector& b, SystemVector& x, bool newLHS)
 }
 
 
+void PETScMatrix::setMxV(PETScMxV* MxV, bool ownMatrix)
+{
+  mxv = MxV;
+  mxvOwnMatrix = ownMatrix;
+  solveSparse = false;
+  forcedKSPType = "gmres";
+}
+
+
+void PETScMatrix::clearMxV()
+{
+  if (!mxv)
+    return;
+
+  if (mxvOwnMatrix) {
+    MatDestroy(&pA);
+    MatDuplicate(matvec.front(), MAT_COPY_VALUES, &pA);
+    MatDestroy(&matvec.front());
+    matvec.clear();
+  }
+
+  this->setMxV(nullptr);
+  this->setPC(nullptr);
+  setParams = true;
+  extInitGuess = nullptr;
+  forcedKSPType.clear();
+}
+
+
 bool PETScMatrix::solve (const Vec& b, Vec& x, bool newLHS, bool knoll)
 {
-  // Reset linear solver
-  if (nLinSolves && solParams.getIntValue("reset_solves"))
-    if (nLinSolves%solParams.getIntValue("reset_solves") == 0) {
-      KSPDestroy(&ksp);
-      KSPCreate(*adm.getCommunicator(),&ksp);
-      setParams = true;
-    }
-
   if (setParams) {
+    Mat P;
+    if (mxv) {
+      if (mxvOwnMatrix) {
+        matvec.resize(1);
+        MatDuplicate(pA, MAT_COPY_VALUES, &matvec.front());
+      }
+      const PetscInt neq  = adm.dd.getMaxEq()- adm.dd.getMinEq() + 1;
+      MatCreateShell(*adm.getCommunicator(), neq, neq,
+                     PETSC_DETERMINE, PETSC_DETERMINE, mxv, &pA);
+      MatShellSetOperation(pA, MATOP_MULT, (void(*)(void))&PETScSIMMxV);
+      MatSetUp(pA);
+      if (!mfpc)
+        mxv->evalPC(P);
+    }
 #if PETSC_VERSION_MINOR < 5
-    KSPSetOperators(ksp,pA,pA, newLHS ? SAME_NONZERO_PATTERN : SAME_PRECONDITIONER);
+    KSPSetOperators(ksp,pA,mxv ? P : pA, newLHS ? SAME_NONZERO_PATTERN : SAME_PRECONDITIONER);
 #else
-    KSPSetOperators(ksp,pA,pA);
+    KSPSetOperators(ksp,pA,mxv && !mfpc ? P : pA);
     KSPSetReusePreconditioner(ksp, newLHS ? PETSC_FALSE : PETSC_TRUE);
 #endif
     if (!setParameters())
       return false;
     setParams = false;
   }
+
   if (knoll)
     KSPSetInitialGuessKnoll(ksp,PETSC_TRUE);
   else
@@ -682,7 +745,12 @@ bool PETScMatrix::setParameters(PETScMatrix* P, PETScVector* Pb)
   PC pc;
   KSPGetPC(ksp,&pc);
 
-  if (matvec.empty()) {
+  if (mfpc) {
+    PCSetType(pc,PCSHELL);
+    PCShellSetContext(pc, mfpc);
+    PCShellSetName(pc, mfpc->getName());
+    PCShellSetApply(pc, PETScSIMPC);
+  } else if (matvec.empty()) {
     solParams.setupPC(pc, 0, "", std::set<int>());
   } else {
     if (matvec.size() > 4) {

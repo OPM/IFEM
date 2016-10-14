@@ -99,6 +99,9 @@ public:
   bool setTracProperty(int code, Property::Type ptype,
                        TractionFunc* field = nullptr);
 
+  //! \brief Increase additional refinement.
+  void increaseAdditionalRefinement() { ++addRef; }
+
 private:
   //! \brief Parses a subelement of the \a geometry XML-tag.
   bool parseGeometryTag(const TiXmlElement* elem);
@@ -242,6 +245,8 @@ private:
                            const InitialCondVec& info);
 
 protected:
+  int addRef = 0; //!< Additional refinement to perform
+
   ModelGenerator* myGen; //!< Model generator
 
   TopologySet myEntitys; //!< Set of named topological entities
