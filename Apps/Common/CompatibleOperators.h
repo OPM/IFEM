@@ -72,6 +72,13 @@ public:
     //! \param[in] fe The finite element to evaluate for
     //! \param[in] f Vector with contributions
     //! \param[in] scale Scaling factor for contribution
+    static void Source(Vectors& EV, const FiniteElement& fe, double scale=1.0);
+
+    //! \brief Compute a vector-source term.
+    //! \param[out] EV The element vectors to add contribution to
+    //! \param[in] fe The finite element to evaluate for
+    //! \param[in] f Vector with contributions
+    //! \param[in] scale Scaling factor for contribution
     static void Source(Vectors& EV, const FiniteElement& fe,
                        const Vec3& f, double scale=1.0);
   };

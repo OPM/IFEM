@@ -83,6 +83,15 @@ void CompatibleOperators::Weak::Source(Vectors& EV,
 }
 
 
+void CompatibleOperators::Weak::Source(Vectors& EV,
+                                       const FiniteElement& fe,
+                                       double scale)
+{
+  for (size_t k = 1; k <= fe.grad(1).cols(); ++k)
+    EqualOrderOperators::Weak::Source(EV[k], fe, scale, 1, k);
+}
+
+
 void CompatibleOperators::Residual::Laplacian(Vectors& EV,
                                               const FiniteElement& fe,
                                               const Tensor& dUdX,
