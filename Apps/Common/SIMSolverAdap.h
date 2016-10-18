@@ -28,7 +28,11 @@ template<class T1> class SIMSolverAdap : public SIMSolver<T1>
 {
 public:
   //! \brief The constructor forwards to the parent class constructor.
-  SIMSolverAdap(T1& s1) : SIMSolver<T1>(s1), aSim(s1,false) {}
+  SIMSolverAdap(T1& s1) : SIMSolver<T1>(s1), aSim(s1,false)
+  {
+    this->S1.setSol(&aSim.getSolution());
+  }
+
   //! \brief Empty destructor.
   virtual ~SIMSolverAdap() {}
 
@@ -39,7 +43,6 @@ public:
     if (exporter)
       exporter->setNormPrefixes(aSim.getNormPrefixes());
 
-    this->S1.setSol(&aSim.getSolution());
     aSim.setupProjections();
     aSim.initAdaptor(0,2);
 
