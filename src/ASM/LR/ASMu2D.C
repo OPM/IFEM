@@ -625,24 +625,27 @@ void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
   }
   std::vector<int> nodes = this->getEdgeNodes(edge,basis);
 
-  // Skip the first and last function if we are requesting an open boundary.
-  // I here assume the edgeFunctions are ordered such that the physical
-  // end points are represented by the first and last edgeFunction.
-  if (!open)
-    this->prescribe(nodes.front(),dof,code);
-
+  int bcode = code;
   if (code > 0) {
     std::vector<LR::Basisfunction*> funcs;
     dirich.push_back(DirichletEdge(this->getBasis(basis)->edgeCurve(edge,funcs),
                                    dof,code));
-  }
+  } else if (code < 0)
+    bcode = -code;
+
+  // Skip the first and last function if we are requesting an open boundary.
+  // I here assume the edgeFunctions are ordered such that the physical
+  // end points are represented by the first and last edgeFunction.
+  if (!open)
+    this->prescribe(nodes.front(),dof,bcode);
+
 
   for (size_t i = 1; i < nodes.size()-1; i++)
     if (this->prescribe(nodes[i],dof,-code) == 0 && code > 0)
       dirich.back().nodes.push_back(std::make_pair(i,nodes[i]));
 
   if (!open)
-    this->prescribe(nodes.back(),dof,code);
+    this->prescribe(nodes.back(),dof,bcode);
 
   if (code > 0)
     if (dirich.back().nodes.empty())
