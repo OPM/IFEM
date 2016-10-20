@@ -719,13 +719,17 @@ int ASMu2D::getCorner(int I, int J, int basis) const
 	      <<" corners returned from LRSplineSurface::getEdgeFunctions()"
               << std::endl;
 
-  return edgeFunctions.front()->getId()+1;
+  size_t ofs = 1;
+  for (int i = 1; i < basis; i++)
+    ofs += this->getNoNodes(i);
+
+  return edgeFunctions.front()->getId()+ofs;
 }
 
 
-void ASMu2D::constrainCorner (int I, int J, int dof, int code, char)
+void ASMu2D::constrainCorner (int I, int J, int dof, int code, char basis)
 {
-  int corner = getCorner(I, J, 1);
+  int corner = getCorner(I, J, basis);
   if (corner == 0)
     return;
   else

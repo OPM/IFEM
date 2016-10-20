@@ -306,8 +306,7 @@ public:
   int getCorner(int vertex, int basis)
   {
     static const int indices[4][2] = {{-1,-1}, {1, -1}, {-1, 1}, {1,1}};
-    size_t ofs = getStartNode(basis);
-    return ofs + pch->getCorner(indices[vertex-1][0], indices[vertex-1][1], basis);
+    return pch->getCorner(indices[vertex-1][0], indices[vertex-1][1], basis);
   }
 
   //! \copydoc NodalConstraintASM2DHelper::constrainEdge
