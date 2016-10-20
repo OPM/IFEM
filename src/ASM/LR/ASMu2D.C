@@ -616,14 +616,33 @@ std::vector<int> ASMu2D::getEdgeNodes (int edge, int basis) const
 void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 {
   LR::parameterEdge edge;
+  int c1, c2;
   switch (dir) {
-  case -2: edge = LR::SOUTH; break;
-  case -1: edge = LR::WEST; break;
-  case  1: edge = LR::EAST; break;
-  case  2: edge = LR::NORTH; break;
+  case -2:
+    edge = LR::SOUTH;
+    c1 = this->getCorner(-1, -1, basis);
+    c2 = this->getCorner( 1, -1, basis);
+    break;
+  case -1:
+    edge = LR::WEST;
+    c1 = this->getCorner(-1, -1, basis);
+    c2 = this->getCorner(-1,  1, basis);
+    break;
+  case  1:
+    edge = LR::EAST;
+    c1 = this->getCorner( 1, -1, basis);
+    c2 = this->getCorner( 1,  1, basis);
+    break;
+  case  2:
+    edge = LR::NORTH;
+    c1 = this->getCorner(-1,  1, basis);
+    c2 = this->getCorner( 1,  1, basis);
+    break;
   default: return;
   }
   std::vector<int> nodes = this->getEdgeNodes(edge,basis);
+  nodes.erase(std::find(nodes.begin(), nodes.end(), c1));
+  nodes.erase(std::find(nodes.begin(), nodes.end(), c2));
 
   int bcode = code;
   if (code > 0) {
@@ -634,18 +653,15 @@ void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
     bcode = -code;
 
   // Skip the first and last function if we are requesting an open boundary.
-  // I here assume the edgeFunctions are ordered such that the physical
-  // end points are represented by the first and last edgeFunction.
   if (!open)
-    this->prescribe(nodes.front(),dof,bcode);
+    this->prescribe(c1,dof,bcode);
 
-
-  for (size_t i = 1; i < nodes.size()-1; i++)
+  for (size_t i = 0; i < nodes.size(); i++)
     if (this->prescribe(nodes[i],dof,-code) == 0 && code > 0)
       dirich.back().nodes.push_back(std::make_pair(i,nodes[i]));
 
   if (!open)
-    this->prescribe(nodes.back(),dof,bcode);
+    this->prescribe(c2,dof,bcode);
 
   if (code > 0)
     if (dirich.back().nodes.empty())
