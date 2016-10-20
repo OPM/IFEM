@@ -245,7 +245,7 @@ TEST_P(TestSIMNodalConstraint, Edge2DLRmx)
   }
   for (size_t i=1; i <= pch.getNoNodes(2); ++i) {
     if (std::find(nodes.begin(), nodes.end(), i+ofs) != nodes.end() &&
-        i+ofs != pch.getCorner(1,-1,2) && GetParam() == 1)
+        i+ofs != (size_t)pch.getCorner(1,-1,2) && GetParam() == 1)
       check_mpc(pch.findMPC(i+ofs, 1), pch.getCorner(1,-1,2));
     else if (std::find(nodes.begin(), nodes.end(), i+ofs) != nodes.end() && GetParam() == 3)
       check_mpc(pch.findMPC(i+ofs, 1), pch.getCorner(1,1,2));

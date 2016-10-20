@@ -658,7 +658,7 @@ void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 
   for (size_t i = 0; i < nodes.size(); i++)
     if (this->prescribe(nodes[i],dof,-code) == 0 && code > 0)
-      dirich.back().nodes.push_back(std::make_pair(i,nodes[i]));
+      dirich.back().nodes.push_back(std::make_pair(i+1,nodes[i]));
 
   if (!open)
     this->prescribe(c2,dof,bcode);
