@@ -692,7 +692,7 @@ int ASMu2D::getCorner(int I, int J, int basis) const
 {
   std::vector<LR::Basisfunction*> edgeFunctions;
 
-  const LR::LRSplineSurface* srf = getBasis(basis);
+  const LR::LRSplineSurface* srf = this->getBasis(basis);
 
   // Note: Corners are identified by "coordinates" {-1,-1} {-1,1} {1,-1} {1,1}.
   if (I < 0) {

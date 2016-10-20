@@ -171,11 +171,13 @@ public:
   //! \param[in] J Parameter index in v-direction
   //! \param[in] dof Which DOFs to constrain at the node
   //! \param[in] code Inhomogeneous dirichlet condition code
+  //! \param[in] basis Basis to constrain node for
   //!
   //! \details The sign of the two indices is used to define whether we want
   //! the node at the beginning or the end of that parameter direction.
   //! The magnitude of the indices are not used.
-  virtual void constrainCorner(int I, int J, int dof, int code = 0, char = 1);
+  virtual void constrainCorner(int I, int J, int dof,
+                               int code = 0, char basis = 1);
   //! \brief Constrains a node identified by two relative parameter values.
   //! \param[in] xi Parameter in u-direction
   //! \param[in] eta Parameter in v-direction
