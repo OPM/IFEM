@@ -38,7 +38,8 @@ struct Property
     ROBIN,
     DIRICHLET,
     DIRICHLET_INHOM,
-    DIRICHLET_ANASOL
+    DIRICHLET_ANASOL,
+    OTHER
   };
 
   Type   pcode; //!< Physical property code
