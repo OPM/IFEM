@@ -32,8 +32,8 @@
 LocalIntegral* IntegrandBase::getLocalIntegral (size_t nen, size_t,
                                                 bool neumann) const
 {
-  ElmMats* result = new ElmMats(!neumann && m_mode != SIM::RECOVERY);
-  result->rhsOnly = m_mode == SIM::RHS_ONLY || m_mode == SIM::RECOVERY;
+  ElmMats* result = new ElmMats(!neumann && m_mode < SIM::RECOVERY);
+  result->rhsOnly = m_mode >= SIM::RHS_ONLY;
   result->resize(neumann ? 0 : 1, 1);
   result->redim(npv*nen);
 

@@ -37,6 +37,7 @@ namespace SIM //! Simulation scope
     STIFF_ONLY,
     MASS_ONLY,
     RHS_ONLY,
+    INT_FORCES,
     RECOVERY
   };
 
