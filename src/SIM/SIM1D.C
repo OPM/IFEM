@@ -61,11 +61,40 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
       uppatch = myModel.size();
     utl::getAttribute(elem,"upperpatch",uppatch);
 
-    if (lowpatch < 1 || uppatch > nGlPatches)
+    std::string set;
+    utl::getAttribute(elem,"set",set);
+    IntVec patches;
+    if (set.empty())
     {
-      std::cerr <<" *** SIM1D::parse: Invalid patch indices, lower="
-                << lowpatch <<" upper="<< uppatch << std::endl;
-      return false;
+      if (lowpatch < 1 || uppatch > nGlPatches)
+      {
+        std::cerr <<" *** SIM1D::parse: Invalid patch indices, lower="
+                  << lowpatch <<" upper="<< uppatch << std::endl;
+        return false;
+      }
+      patches.resize(uppatch-lowpatch+1);
+      std::iota(patches.begin(), patches.end(), lowpatch);
+    }
+    else
+    {
+      auto tit = myEntitys.find(set);
+      if (tit == myEntitys.end())
+      {
+        std::cerr <<" *** SIM1D::parse: Unknown topologyset " << set
+                  <<" given for " << (isRefine?"refine":"raiseorder") << "."
+                  << std::endl;
+        return false;
+      }
+      for (auto& it : tit->second)
+        if (it.idim == 1)
+          patches.push_back(it.patch);
+      if (patches.empty())
+      {
+        std::cerr <<" *** SIM1D::parse: Invalid topologyset " << set
+                  <<" given for " << (isRefine?"refine":"raiseorder")
+                  << " (no patches in set)." << std::endl;
+        return false;
+      }
     }
 
     ASM1D* pch = nullptr;
@@ -76,7 +105,7 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
       {
         int addu = 0;
         utl::getAttribute(elem,"u",addu);
-        for (int j = lowpatch; j <= uppatch; j++)
+        for (int j : patches)
           if ((pch = dynamic_cast<ASM1D*>(this->getPatch(j,true))))
           {
             IFEM::cout <<"\tRefining P"<< j <<" "<< addu << std::endl;
@@ -84,7 +113,7 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
           }
       }
       else
-        for (int j = lowpatch; j <= uppatch; j++)
+        for (int j : patches)
           if ((pch = dynamic_cast<ASM1D*>(this->getPatch(j,true))))
           {
             IFEM::cout <<"\tRefining P"<< j;
@@ -98,7 +127,7 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
     {
       int addu = 0;
       utl::getAttribute(elem,"u",addu);
-      for (int j = lowpatch; j <= uppatch; j++)
+      for (int j : patches)
         if ((pch = dynamic_cast<ASM1D*>(this->getPatch(j,true))))
         {
           IFEM::cout <<"\tRaising order of P"<< j <<" "<< addu << std::endl;
