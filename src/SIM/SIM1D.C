@@ -50,8 +50,10 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
 {
   IFEM::cout <<"  Parsing <"<< elem->Value() <<">"<< std::endl;
 
-  if (!strcasecmp(elem->Value(),"refine"))
+  if (!strcasecmp(elem->Value(),"refine") ||
+      !strcasecmp(elem->Value(),"raiseorder"))
   {
+    bool isRefine = !strcasecmp(elem->Value(),"refine");
     int lowpatch = 1, uppatch = 1;
     if (utl::getAttribute(elem,"patch",lowpatch))
       uppatch = lowpatch;
@@ -67,55 +69,42 @@ bool SIM1D::parseGeometryTag (const TiXmlElement* elem)
     }
 
     ASM1D* pch = nullptr;
-    RealArray xi;
-    if (!utl::parseKnots(elem,xi))
+    if (isRefine)
+    {
+      RealArray xi;
+      if (!utl::parseKnots(elem,xi))
+      {
+        int addu = 0;
+        utl::getAttribute(elem,"u",addu);
+        for (int j = lowpatch; j <= uppatch; j++)
+          if ((pch = dynamic_cast<ASM1D*>(this->getPatch(j,true))))
+          {
+            IFEM::cout <<"\tRefining P"<< j <<" "<< addu << std::endl;
+            pch->uniformRefine(addu);
+          }
+      }
+      else
+        for (int j = lowpatch; j <= uppatch; j++)
+          if ((pch = dynamic_cast<ASM1D*>(this->getPatch(j,true))))
+          {
+            IFEM::cout <<"\tRefining P"<< j;
+            for (size_t i = 0; i < xi.size(); i++)
+              IFEM::cout <<" "<< xi[i];
+            IFEM::cout << std::endl;
+            pch->refine(xi);
+          }
+    }
+    else
     {
       int addu = 0;
       utl::getAttribute(elem,"u",addu);
       for (int j = lowpatch; j <= uppatch; j++)
         if ((pch = dynamic_cast<ASM1D*>(this->getPatch(j,true))))
         {
-          IFEM::cout <<"\tRefining P"<< j <<" "<< addu << std::endl;
-          pch->uniformRefine(addu);
+          IFEM::cout <<"\tRaising order of P"<< j <<" "<< addu << std::endl;
+          static_cast<ASM1D*>(pch)->raiseOrder(addu);
         }
     }
-    else
-      for (int j = lowpatch; j <= uppatch; j++)
-        if ((pch = dynamic_cast<ASM1D*>(this->getPatch(j,true))))
-        {
-          IFEM::cout <<"\tRefining P"<< j;
-          for (size_t i = 0; i < xi.size(); i++)
-            IFEM::cout <<" "<< xi[i];
-          IFEM::cout << std::endl;
-          pch->refine(xi);
-        }
-  }
-
-  else if (!strcasecmp(elem->Value(),"raiseorder"))
-  {
-    int lowpatch = 1, uppatch = 1;
-    if (utl::getAttribute(elem,"patch",lowpatch))
-      uppatch = lowpatch;
-    if (utl::getAttribute(elem,"lowerpatch",lowpatch))
-      uppatch = myModel.size();
-    utl::getAttribute(elem,"upperpatch",uppatch);
-
-    if (lowpatch < 1 || uppatch > nGlPatches)
-    {
-      std::cerr <<" *** SIM1D::parse: Invalid patch indices, lower="
-                << lowpatch <<" upper="<< uppatch << std::endl;
-      return false;
-    }
-
-    ASM1D* pch = nullptr;
-    int addu = 0;
-    utl::getAttribute(elem,"u",addu);
-    for (int j = lowpatch; j <= uppatch; j++)
-      if ((pch = dynamic_cast<ASM1D*>(this->getPatch(j,true))))
-      {
-        IFEM::cout <<"\tRaising order of P"<< j <<" "<< addu << std::endl;
-        static_cast<ASM1D*>(pch)->raiseOrder(addu);
-      }
   }
 
   else if (!strcasecmp(elem->Value(),"topology"))
