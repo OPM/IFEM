@@ -478,22 +478,27 @@ MultiPatchModelGenerator2D::createTopologySets (const SIMinput& sim) const
   TopEntity& e3 = result["Edge3"];
   TopEntity& e4 = result["Edge4"];
   TopEntity& e5 = result["Boundary"];
+  TopEntity& e1f = result["Edge1Patches"];
+  TopEntity& e2f = result["Edge2Patches"];
+  TopEntity& e3f = result["Edge3Patches"];
+  TopEntity& e4f = result["Edge4Patches"];
 
-  auto&& insertion = [&sim, &e5](TopEntity& e, TopItem top)
+  auto&& insertion = [&sim, &e5](TopEntity& e, TopEntity& ef, TopItem top)
   {
     if ((top.patch = sim.getLocalPatchIndex(top.patch)) > 0) {
       e.insert(top);
+      ef.insert(TopItem(top.patch,0,2));
       e5.insert(top);
     }
   };
 
   for (size_t i = 0; i < ny; ++i) {
-    insertion(e1, TopItem(i*nx+1,1,1));
-    insertion(e2, TopItem((i+1)*nx,2,1));
+    insertion(e1, e1f, TopItem(i*nx+1,1,1));
+    insertion(e2, e2f, TopItem((i+1)*nx,2,1));
   }
   for (size_t i = 0; i < nx; ++i) {
-    insertion(e3, TopItem(i+1,3,1));
-    insertion(e4, TopItem(nx*(ny-1)+1+i,4,1));
+    insertion(e3, e3f, TopItem(i+1,3,1));
+    insertion(e4, e4f, TopItem(nx*(ny-1)+1+i,4,1));
   }
 
   TopEntity& c = result["Corners"];
@@ -509,6 +514,20 @@ MultiPatchModelGenerator2D::createTopologySets (const SIMinput& sim) const
   insertionv(result["Vertex2"], TopItem(nx,2,0));
   insertionv(result["Vertex3"], TopItem(nx*(ny-1)+1,3,0));
   insertionv(result["Vertex4"], TopItem(nx*ny,4,0));
+
+  std::set<int> used;
+  for (size_t i = 1; i <= 4; ++i) {
+    std::stringstream str;
+    str << "Edge" << i << "Patches";
+    for (auto& it : result[str.str()])
+      used.insert(it.patch);
+  }
+
+  TopEntity& innerp = result["InnerPatches"];
+  size_t j;
+  for (size_t i = 1; i <= nx*ny; ++i)
+    if ((j = sim.getLocalPatchIndex(i)) > 0 && used.find(j) == used.end())
+      innerp.insert(TopItem(j, 0, 2));
 
   return result;
 }
@@ -848,10 +867,15 @@ MultiPatchModelGenerator3D::createTopologySets (const SIMinput& sim) const
                        std::stringstream str;
                        str << type << top.item;
                        TopEntity& topI = result[str.str()];
+                       TopEntity* topIf=nullptr;
+                       if (type == "Face")
+                         topIf = &result[str.str()+"Patches"];
                        TopEntity& globI = result[glob];
                        if ((top.patch = sim.getLocalPatchIndex(top.patch)) > 0) {
                          topI.insert(top);
                          globI.insert(top);
+                         if (topIf)
+                           topIf->insert(TopItem(top.patch, 0, 3));
                        }
                      };
 
@@ -892,6 +916,20 @@ MultiPatchModelGenerator3D::createTopologySets (const SIMinput& sim) const
     for (size_t j = 0; j < 2; ++j, ++r)
       for (size_t i = 0; i < nx; ++i)
         insertion(TopItem(IJKI(i,j,k),r,1), "Frame", "Edge");
+
+  std::set<int> used;
+  for (size_t i = 1; i <= 6; ++i) {
+    std::stringstream str;
+    str << "Face" << i << "Patches";
+    for (auto& it : result[str.str()])
+      used.insert(it.patch);
+  }
+
+  TopEntity& innerp = result["InnerPatches"];
+  size_t j;
+  for (size_t i = 1; i <= nx*ny*nz; ++i)
+    if ((j = sim.getLocalPatchIndex(i)) > 0 && used.find(j) == used.end())
+      innerp.insert(TopItem(j, 0, 3));
 
   return result;
 }

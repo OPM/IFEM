@@ -187,6 +187,19 @@ TEST(TestMultiPatchModelGenerator2D, Subdivisions)
 }
 
 
+TEST(TestMultiPatchModelGenerator2D, InnerPatches)
+{
+  TiXmlDocument doc;
+  doc.Parse("<geometry nx=\"3\" ny=\"3\" sets=\"true\"/>");
+  TestModelGeneratorWrapper<MultiPatchModelGenerator2D> gen(doc.RootElement());
+  std::string g2 = gen.createG2(2);
+  SIM2D sim;
+  TopologySet sets = gen.createTopologySets(sim);
+  ASSERT_EQ(sets["InnerPatches"].size(), 1u);
+  ASSERT_EQ(sets["InnerPatches"].begin()->patch, 5u);
+}
+
+
 TEST_P(TestMultiPatchModelGenerator3D, Generate)
 {
   TiXmlDocument doc;
@@ -791,6 +804,19 @@ INSTANTIATE_TEST_CASE_P(TestGetSubPatch3D,
                         testing::ValuesIn(SubPatch3D));
 
 
+TEST(TestMultiPatchModelGenerator3D, InnerPatches)
+{
+  TiXmlDocument doc;
+  doc.Parse("<geometry nx=\"3\" ny=\"3\" nz=\"3\"  sets=\"true\"/>");
+  TestModelGeneratorWrapper<MultiPatchModelGenerator3D> gen(doc.RootElement());
+  std::string g2 = gen.createG2(2);
+  SIM3D sim;
+  TopologySet sets = gen.createTopologySets(sim);
+  ASSERT_EQ(sets["InnerPatches"].size(), 1u);
+  ASSERT_EQ(sets["InnerPatches"].begin()->patch, 14u);
+}
+
+
 const std::vector<GeomTest> geometry2D =
   {{"<geometry sets=\"true\"/>", 2,
     "200 1 0 0\n"
@@ -806,9 +832,14 @@ const std::vector<GeomTest> geometry2D =
     "Boundary: 1 1 1 1 2 1 1 3 1 1 4 1 \n"
     "Corners: 1 1 0 1 2 0 1 3 0 1 4 0 \n"
     "Edge1: 1 1 1 \n"
+    "Edge1Patches: 1 0 2 \n"
     "Edge2: 1 2 1 \n"
+    "Edge2Patches: 1 0 2 \n"
     "Edge3: 1 3 1 \n"
+    "Edge3Patches: 1 0 2 \n"
     "Edge4: 1 4 1 \n"
+    "Edge4Patches: 1 0 2 \n"
+    "InnerPatches: \n"
     "Vertex1: 1 1 0 \n"
     "Vertex2: 1 2 0 \n"
     "Vertex3: 1 3 0 \n"
@@ -910,9 +941,14 @@ const std::vector<GeomTest> geometry2D =
      "Boundary: 1 1 1 1 3 1 1 4 1 2 2 1 2 3 1 2 4 1 \n"
      "Corners: 1 1 0 1 3 0 2 2 0 2 4 0 \n"
      "Edge1: 1 1 1 \n"
+     "Edge1Patches: 1 0 2 \n"
      "Edge2: 2 2 1 \n"
+     "Edge2Patches: 2 0 2 \n"
      "Edge3: 1 3 1 2 3 1 \n"
+     "Edge3Patches: 1 0 2 2 0 2 \n"
      "Edge4: 1 4 1 2 4 1 \n"
+     "Edge4Patches: 1 0 2 2 0 2 \n"
+     "InnerPatches: \n"
      "Vertex1: 1 1 0 \n"
      "Vertex2: 2 2 0 \n"
      "Vertex3: 1 3 0 \n"
@@ -942,9 +978,14 @@ const std::vector<GeomTest> geometry2D =
      "Boundary: 1 1 1 1 2 1 1 3 1 2 1 1 2 2 1 2 4 1 \n"
      "Corners: 1 1 0 1 2 0 2 3 0 2 4 0 \n"
      "Edge1: 1 1 1 2 1 1 \n"
+     "Edge1Patches: 1 0 2 2 0 2 \n"
      "Edge2: 1 2 1 2 2 1 \n"
+     "Edge2Patches: 1 0 2 2 0 2 \n"
      "Edge3: 1 3 1 \n"
+     "Edge3Patches: 1 0 2 \n"
      "Edge4: 2 4 1 \n"
+     "Edge4Patches: 2 0 2 \n"
+     "InnerPatches: \n"
      "Vertex1: 1 1 0 \n"
      "Vertex2: 1 2 0 \n"
      "Vertex3: 2 3 0 \n"
@@ -994,9 +1035,14 @@ const std::vector<GeomTest> geometry2D =
      "Boundary: 1 1 1 1 3 1 2 2 1 2 3 1 3 1 1 3 4 1 4 2 1 4 4 1 \n"
      "Corners: 1 1 0 2 2 0 3 3 0 4 4 0 \n"
      "Edge1: 1 1 1 3 1 1 \n"
+     "Edge1Patches: 1 0 2 3 0 2 \n"
      "Edge2: 2 2 1 4 2 1 \n"
+     "Edge2Patches: 2 0 2 4 0 2 \n"
      "Edge3: 1 3 1 2 3 1 \n"
+     "Edge3Patches: 1 0 2 2 0 2 \n"
      "Edge4: 3 4 1 4 4 1 \n"
+     "Edge4Patches: 3 0 2 4 0 2 \n"
+     "InnerPatches: \n"
      "Vertex1: 1 1 0 \n"
      "Vertex2: 2 2 0 \n"
      "Vertex3: 3 3 0 \n"
@@ -1041,12 +1087,19 @@ const std::vector<GeomTest> geometry3D =
     "Edge8: 1 8 1 \n"
     "Edge9: 1 9 1 \n"
     "Face1: 1 1 2 \n"
+    "Face1Patches: 1 0 3 \n"
     "Face2: 1 2 2 \n"
+    "Face2Patches: 1 0 3 \n"
     "Face3: 1 3 2 \n"
+    "Face3Patches: 1 0 3 \n"
     "Face4: 1 4 2 \n"
+    "Face4Patches: 1 0 3 \n"
     "Face5: 1 5 2 \n"
+    "Face5Patches: 1 0 3 \n"
     "Face6: 1 6 2 \n"
+    "Face6Patches: 1 0 3 \n"
     "Frame: 1 1 1 1 2 1 1 3 1 1 4 1 1 5 1 1 6 1 1 7 1 1 8 1 1 9 1 1 10 1 1 11 1 1 12 1 \n"
+    "InnerPatches: \n"
     "Vertex1: 1 1 0 \n"
     "Vertex2: 1 2 0 \n"
     "Vertex3: 1 3 0 \n"
@@ -1248,12 +1301,19 @@ const std::vector<GeomTest> geometry3D =
    "Edge8: 2 8 1 \n"
    "Edge9: 1 9 1 2 9 1 \n"
    "Face1: 1 1 2 \n"
+   "Face1Patches: 1 0 3 \n"
    "Face2: 2 2 2 \n"
+   "Face2Patches: 2 0 3 \n"
    "Face3: 1 3 2 2 3 2 \n"
+   "Face3Patches: 1 0 3 2 0 3 \n"
    "Face4: 1 4 2 2 4 2 \n"
+   "Face4Patches: 1 0 3 2 0 3 \n"
    "Face5: 1 5 2 2 5 2 \n"
+   "Face5Patches: 1 0 3 2 0 3 \n"
    "Face6: 1 6 2 2 6 2 \n"
+   "Face6Patches: 1 0 3 2 0 3 \n"
    "Frame: 1 1 1 1 3 1 1 5 1 1 7 1 1 9 1 1 10 1 1 11 1 1 12 1 2 2 1 2 4 1 2 6 1 2 8 1 2 9 1 2 10 1 2 11 1 2 12 1 \n"
+   "InnerPatches: \n"
    "Vertex1: 1 1 0 \n"
    "Vertex2: 2 2 0 \n"
    "Vertex3: 1 3 0 \n"
@@ -1311,12 +1371,19 @@ const std::vector<GeomTest> geometry3D =
    "Edge8: 2 8 1 \n"
    "Edge9: 1 9 1 \n"
    "Face1: 1 1 2 2 1 2 \n"
+   "Face1Patches: 1 0 3 2 0 3 \n"
    "Face2: 1 2 2 2 2 2 \n"
+   "Face2Patches: 1 0 3 2 0 3 \n"
    "Face3: 1 3 2 \n"
+   "Face3Patches: 1 0 3 \n"
    "Face4: 2 4 2 \n"
+   "Face4Patches: 2 0 3 \n"
    "Face5: 1 5 2 2 5 2 \n"
+   "Face5Patches: 1 0 3 2 0 3 \n"
    "Face6: 1 6 2 2 6 2 \n"
+   "Face6Patches: 1 0 3 2 0 3 \n"
    "Frame: 1 1 1 1 2 1 1 3 1 1 4 1 1 5 1 1 6 1 1 9 1 1 11 1 2 1 1 2 2 1 2 3 1 2 4 1 2 7 1 2 8 1 2 10 1 2 12 1 \n"
+   "InnerPatches: \n"
    "Vertex1: 1 1 0 \n"
    "Vertex2: 1 2 0 \n"
    "Vertex3: 2 3 0 \n"
@@ -1374,12 +1441,19 @@ const std::vector<GeomTest> geometry3D =
     "Edge8: 1 8 1 2 8 1 \n"
     "Edge9: 1 9 1 \n"
     "Face1: 1 1 2 2 1 2 \n"
+    "Face1Patches: 1 0 3 2 0 3 \n"
     "Face2: 1 2 2 2 2 2 \n"
+    "Face2Patches: 1 0 3 2 0 3 \n"
     "Face3: 1 3 2 2 3 2 \n"
+    "Face3Patches: 1 0 3 2 0 3 \n"
     "Face4: 1 4 2 2 4 2 \n"
+    "Face4Patches: 1 0 3 2 0 3 \n"
     "Face5: 1 5 2 \n"
+    "Face5Patches: 1 0 3 \n"
     "Face6: 2 6 2 \n"
+    "Face6Patches: 2 0 3 \n"
     "Frame: 1 1 1 1 2 1 1 5 1 1 6 1 1 7 1 1 8 1 1 9 1 1 10 1 2 3 1 2 4 1 2 5 1 2 6 1 2 7 1 2 8 1 2 11 1 2 12 1 \n"
+    "InnerPatches: \n"
     "Vertex1: 1 1 0 \n"
     "Vertex2: 1 2 0 \n"
     "Vertex3: 1 3 0 \n"
@@ -1540,11 +1614,17 @@ const std::vector<GeomTest> geometry3D =
     "Edge8: 4 8 1 8 8 1 \n"
     "Edge9: 1 9 1 2 9 1 \n"
     "Face1: 1 1 2 3 1 2 5 1 2 7 1 2 \n"
+    "Face1Patches: 1 0 3 3 0 3 5 0 3 7 0 3 \n"
     "Face2: 2 2 2 4 2 2 6 2 2 8 2 2 \n"
+    "Face2Patches: 2 0 3 4 0 3 6 0 3 8 0 3 \n"
     "Face3: 1 3 2 2 3 2 5 3 2 6 3 2 \n"
+    "Face3Patches: 1 0 3 2 0 3 5 0 3 6 0 3 \n"
     "Face4: 3 4 2 4 4 2 7 4 2 8 4 2 \n"
+    "Face4Patches: 3 0 3 4 0 3 7 0 3 8 0 3 \n"
     "Face5: 1 5 2 2 5 2 3 5 2 4 5 2 \n"
+    "Face5Patches: 1 0 3 2 0 3 3 0 3 4 0 3 \n"
     "Face6: 5 6 2 6 6 2 7 6 2 8 6 2 \n"
+    "Face6Patches: 5 0 3 6 0 3 7 0 3 8 0 3 \n"
     "Frame: 1 1 1 1 5 1 1 9 1 "
     "2 2 1 2 6 1 2 9 1 "
     "3 1 1 3 7 1 3 10 1 "
@@ -1553,6 +1633,7 @@ const std::vector<GeomTest> geometry3D =
     "6 4 1 6 6 1 6 11 1 "
     "7 3 1 7 7 1 7 12 1 "
     "8 4 1 8 8 1 8 12 1 \n"
+    "InnerPatches: \n"
     "Vertex1: 1 1 0 \n"
     "Vertex2: 2 2 0 \n"
     "Vertex3: 3 3 0 \n"
