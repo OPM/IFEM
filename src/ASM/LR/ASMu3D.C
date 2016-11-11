@@ -687,8 +687,26 @@ double ASMu3D::getParametricArea (int iel, int dir) const
 	    << dir << std::endl;
 	return DERR;
 }
-#undef DERR
 
+double ASMu3D::getParametricVolume (int iel) const
+{
+#ifdef INDEX_CHECK
+  if (iel < 1 || (size_t)iel > MNPC.size())
+  {
+    std::cerr <<" *** ASMu3D::getParametricArea: Element index "<< iel
+              <<" out of range [1,"<< MNPC.size() <<"]."<< std::endl;
+    return DERR;
+  }
+#endif
+  if (MNPC[iel-1].empty())
+    return 0.0;
+
+  LR::Element *el = lrspline->getElement(iel-1);
+  double du = el->getParmax(0) - el->getParmin(0);
+  double dv = el->getParmax(1) - el->getParmin(1);
+  double dw = el->getParmax(2) - el->getParmin(2);
+  return du*dv*dw;
+}
 
 bool ASMu3D::getElementCoordinates (Matrix& X, int iel) const
 {
@@ -1796,14 +1814,18 @@ bool ASMu3D::evalSolution (Matrix& sField, const Vector& locSol,
 bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
                            const int* npe, char project) const
 {
+  if (npe == nullptr || npe[0] != npe[1] || npe[0] != npe[2] || npe[1] != npe[2])
+  {
+    std::cerr <<" *** ASMu2D::evalSolution: LR B-splines require the"
+              <<" same number of evaluation points in u-, v- and w-direction."
+              << std::endl;
+    return false;
+  }
+
   // Project the secondary solution onto the spline basis
   LR::LRSplineVolume* v = nullptr;
-  if (project == 'A')
-    v = this->projectSolutionLocalApprox(integrand);
-  else if (project == 'L')
-    v = this->projectSolutionLocal(integrand);
-  else if (project == 'W')
-    v = this->projectSolutionLeastSquare(integrand);
+  if (project == 'S')
+    v = this->scRecovery(integrand);
   else if (project == 'D' || !npe)
     v = this->projectSolution(integrand);
 
@@ -1821,10 +1843,16 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
       else if (v)
       {
         // Evaluate the projected field at the result sampling points
-        const Vector& svec = sField; // using utl::matrix cast operator
-        sField.resize(v->dimension(),
-                      gpar[0].size()*gpar[1].size()*gpar[2].size());
-        v->gridEvaluator(gpar[0],gpar[1],gpar[2],const_cast<Vector&>(svec));
+        Go::Point p;
+        sField.resize(v->dimension(),gpar[0].size()*gpar[1].size()*gpar[2].size());
+
+        int iel = 0; // evaluation points are always structured in element order
+        for (size_t i = 0; i < gpar[0].size(); i++)
+        {
+          if ((i+1)%npe[0] == 0) iel++;
+          v->point(p,gpar[0][i],gpar[1][i],gpar[2][i],iel);
+          sField.fillColumn(i+1,p.begin());
+        }
         delete v;
         return true;
       }
@@ -1835,16 +1863,14 @@ bool ASMu3D::evalSolution (Matrix& sField, const IntegrandBase& integrand,
   else if (v)
   {
     // Extract control point values from the spline object
-    sField.resize(v->dimension(),
-                  v->numCoefs());
-    sField.fill(&(*v->coefs_begin()));
+    sField.resize(v->dimension(),v->nBasisFunctions());
+    for (int i = 0; i < v->nBasisFunctions(); i++)
+      sField.fillColumn(i+1,&(*v->getBasisfunction(i)->cp()));
     delete v;
     return true;
   }
 
-  std::cerr <<" *** ASMu3D::evalSolution: Failure!";
-  if (project) std::cerr <<" project="<< project;
-  std::cerr << std::endl;
+  std::cerr <<" *** ASMu2D::evalSolution: Failure!"<< std::endl;
   return false;
 }
 
