@@ -311,10 +311,29 @@ public:
   //! \brief Returns the spline volume representing the basis of this patch.
   virtual const LR::LRSplineVolume* getBasis(int = 1) const { return lrspline.get(); }
 
+private:
+  //! \brief Projects the secondary solution field onto the primary basis.
+  //! \param[in] integrand Object with problem-specific data and methods
+  LR::LRSplineVolume* projectSolution(const IntegrandBase& integrand) const;
+  //! \brief Projects the secondary solution using a superconvergent approach.
+  //! \param[in] integrand Object with problem-specific data and methods
+  LR::LRSplineVolume* scRecovery(const IntegrandBase& integrand) const;
+
+  //! \brief Interpolates an LR spline at a given set of parametric coordinates.
+  //! \param[in] upar Parametric interpolation points in the u-direction
+  //! \param[in] vpar Parametric interpolation points in the v-direction
+  //! \param[in] wpar Parametric interpolation points in the v-direction
+  //! \param[in] points Interpolation values stored as one point per matrix row
+  //! \return A LRSplineVolume representation of the interpolated points
+  LR::LRSplineVolume* regularInterpolation(const RealArray& upar,
+                                           const RealArray& vpar,
+                                           const RealArray& wpar,
+                                           const Matrix& points) const;
+
 public:
   //! \brief Projects the secondary solution field onto the primary basis.
   //! \param[in] integrand Object with problem-specific data and methods
-  virtual LR::LRSpline* evalSolution(const IntegrandBase& integrand) const { return nullptr; }
+  virtual LR::LRSpline* evalSolution(const IntegrandBase& integrand) const ;
 
   //! \brief Evaluates the secondary solution field at the given points.
   //! \param[out] sField Solution field
@@ -338,7 +357,7 @@ public:
   //! \param[in] continuous If \e true, a continuous L2-projection is used
   virtual bool globalL2projection(Matrix& sField,
                                   const IntegrandBase& integrand,
-                                  bool continuous = false) const { return false; }
+                                  bool continuous = false) const;
 
 protected:
 
