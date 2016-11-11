@@ -239,7 +239,7 @@ public:
   //! \brief Returns the node index for a given corner.
   virtual int getCorner(int I, int J, int basis = 1) const;
   //! \brief Returns the node indices for a given edge.
-  std::vector<int> getEdgeNodes(int edge, int basis = 1) const;
+  std::vector<int> getEdgeNodes(int edge, int basis = 1, bool sort=false) const;
 
 protected:
   //! \brief Evaluates an integral over the interior patch domain.

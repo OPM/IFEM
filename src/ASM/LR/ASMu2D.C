@@ -595,7 +595,7 @@ void ASMu2D::closeEdges (int dir, int basis, int master)
 */
 
 
-std::vector<int> ASMu2D::getEdgeNodes (int edge, int basis) const
+std::vector<int> ASMu2D::getEdgeNodes (int edge, int basis, bool sort) const
 {
   size_t ofs = 1;
   for (int i = 1; i < basis; i++)
@@ -604,6 +604,15 @@ std::vector<int> ASMu2D::getEdgeNodes (int edge, int basis) const
   std::vector<LR::Basisfunction*> edgeFunctions;
   this->getBasis(basis)->getEdgeFunctions(edgeFunctions,
                                           static_cast<LR::parameterEdge>(edge));
+
+  if (sort) {
+    int dir = (edge == LR::WEST || edge == LR::EAST) ? 1 : 0;
+    std::sort(edgeFunctions.begin(), edgeFunctions.end(),
+              [dir](const LR::Basisfunction* a, const LR::Basisfunction* b)
+              {
+                return a->getGrevilleParameter()[dir] < b->getGrevilleParameter()[dir];
+              });
+  }
 
   std::vector<int> result(edgeFunctions.size());
   std::transform(edgeFunctions.begin(), edgeFunctions.end(), result.begin(),
