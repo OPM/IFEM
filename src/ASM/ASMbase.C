@@ -23,6 +23,7 @@
 
 
 bool ASMbase::fixHomogeneousDirichlet = true;
+int  ASMbase::dbgElm = 0;
 
 
 /*!
@@ -1008,8 +1009,8 @@ bool ASMbase::extractNodalVec (const Vector& globRes, Vector& nodeVec,
 bool ASMbase::injectNodalVec (const Vector& nodeVec, Vector& globVec,
                               const std::vector<int>& madof, int basis) const
 {
-  if (madof.empty()) 
-  { 
+  if (madof.empty())
+  {
     std::cerr <<" *** ASMbase::injectNodalVec: Empty MADOF array."<< std::endl;
     return false;
   }

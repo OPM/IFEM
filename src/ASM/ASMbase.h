@@ -654,6 +654,8 @@ protected:
 public:
   static bool fixHomogeneousDirichlet; //!< If \e true, pre-eliminate fixed DOFs
 
+  static int dbgElm; //!< One-based element index to print debugging info for
+
   size_t idx; //!< Index of this patch in the multi-patch model
 
 protected:

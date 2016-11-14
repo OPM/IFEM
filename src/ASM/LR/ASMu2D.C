@@ -637,13 +637,13 @@ void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
   // get all elements and functions on this edge
   std::vector<LR::Basisfunction*> edgeFunctions;
   std::vector<LR::Element*>       edgeElements;
-  lr->getEdgeFunctions(edgeFunctions, edge);
-  lr->getEdgeElements( edgeElements,  edge);
+  lr->getEdgeFunctions(edgeFunctions,edge);
+  lr->getEdgeElements (edgeElements ,edge);
 
   // find the corners since these are not to be included in the L2-fitting
   // of the inhomogenuous dirichlet boundaries; corners are interpolatory.
-  // Optimization note: loop over the "edge"-container to manually pick up the
-  //                    end nodes. LRspine::getEdgeFunctions() does a global search.
+  // Optimization note: loop over the "edge"-container to manually pick up
+  // the end nodes. LRspine::getEdgeFunctions() does a global search.
   std::vector<LR::Basisfunction*> c1, c2;
   switch (edge)
   {
@@ -676,7 +676,7 @@ void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
   int bcode = abs(code);
 
   int j = 0;
-  for (auto b : edgeFunctions )
+  for (auto b : edgeFunctions)
   {
     de.MLGN[j++] = b->getId();
     // skip corners for open boundaries
@@ -993,6 +993,11 @@ bool ASMu2D::integrate (Integrand& integrand,
   std::vector<LR::Element*>::iterator el = lrspline->elementBegin();
   for (int iel = 1; el != lrspline->elementEnd(); el++, iel++)
   {
+#ifdef SP_DEBUG
+    if (dbgElm < 0 && iel != -dbgElm)
+      continue; // Skipping all elements, except for -dbgElm
+#endif
+
     FiniteElement fe(MNPC[iel-1].size());
     fe.iel = MLGE[iel-1];
 
@@ -1091,13 +1096,18 @@ bool ASMu2D::integrate (Integrand& integrand,
           lrspline->computeBasis(fe.u,fe.v,spline, iel-1);
           SplineUtils::extractBasis(spline,fe.N,dNdu);
 #if SP_DEBUG > 4
-          std::cout <<"\nBasis functions at a integration point "
-                    <<" : (u,v) = "<< spline.param[0] <<" "<< spline.param[1]
-                    <<"  left_idx = "<< spline.left_idx[0] <<" "<< spline.left_idx[1];
-          for (size_t ii = 0; ii < spline.basisValues.size(); ii++)
-            std::cout <<'\n'<< 1+ii <<'\t' << spline.basisValues[ii] <<'\t'
-                      << spline.basisDerivs_u[ii] <<'\t'<< spline.basisDerivs_v[ii];
-          std::cout << std::endl;
+          if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
+          {
+            std::cout <<"\nBasis functions at a integration point "
+                      <<" : (u,v) = "<< spline.param[0] <<" "<< spline.param[1]
+                      <<"  left_idx = "<< spline.left_idx[0]
+                      <<" "<< spline.left_idx[1];
+            for (size_t ii = 0; ii < spline.basisValues.size(); ii++)
+              std::cout <<'\n'<< 1+ii <<'\t' << spline.basisValues[ii] <<'\t'
+                        << spline.basisDerivs_u[ii] <<'\t'
+                        << spline.basisDerivs_v[ii];
+            std::cout << std::endl;
+          }
 #endif
         }
 
@@ -1111,7 +1121,8 @@ bool ASMu2D::integrate (Integrand& integrand,
             return false;
 
 #if SP_DEBUG > 4
-        std::cout <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
+        if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
+          std::cout <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
 #endif
 
         // Cartesian coordinates of current integration point
@@ -1134,6 +1145,10 @@ bool ASMu2D::integrate (Integrand& integrand,
       return false;
 
     A->destruct();
+
+#ifdef SP_DEBUG
+    if (iel == -dbgElm) break; // Skipping all elements, except for -dbgElm
+#endif
   }
 
   return true;
@@ -1177,6 +1192,11 @@ bool ASMu2D::integrate (Integrand& integrand,
     // Get element area in the parameter space
     double dA = this->getParametricArea(iel);
     if (dA < 0.0) return false; // topology error (probably logic error)
+
+#ifdef SP_DEBUG
+    if (dbgElm < 0 && iel != -dbgElm)
+      continue; // Skipping all elements, except for -dbgElm
+#endif
 
     // Set up control point (nodal) coordinates for current element
     if (!this->getElementCoordinates(Xnod,iel)) return false;
@@ -1230,8 +1250,9 @@ bool ASMu2D::integrate (Integrand& integrand,
           return false;
 
 #if SP_DEBUG > 4
-      std::cout <<"\niel, ip = "<< iel <<" "<< ip
-                <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
+      if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
+        std::cout <<"\niel, ip = "<< iel <<" "<< ip
+                  <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
 #endif
 
       // Cartesian coordinates of current integration point
@@ -1254,6 +1275,10 @@ bool ASMu2D::integrate (Integrand& integrand,
       return false;
 
     A->destruct();
+
+#ifdef SP_DEBUG
+    if (iel == -dbgElm) break; // Skipping all elements, except for -dbgElm
+#endif
   }
 
   return true;
@@ -1306,6 +1331,11 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
   std::vector<LR::Element*>::iterator el = lrspline->elementBegin();
   for (int iel = 1; el != lrspline->elementEnd(); el++, iel++)
   {
+#ifdef SP_DEBUG
+    if (dbgElm < 0 && iel != -dbgElm)
+      continue; // Skipping all elements, except for -dbgElm
+#endif
+
     // Skip elements that are not on current boundary edge
     bool skipMe = false;
     switch (edgeDir)
@@ -1383,6 +1413,11 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
       return false;
 
     A->destruct();
+
+#ifdef SP_DEBUG
+    if (dbgElm < 0 && iel == -dbgElm)
+      break; // Skipping all elements, except for -dbgElm
+#endif
   }
 
   return true;
@@ -1870,9 +1905,9 @@ bool ASMu2D::updateDirichlet (const std::map<int,RealFunc*>& func,
           (*mit)->setSlaveCoeff(edgeControlmatrix[dof-1][nit->first]);
         else                           //scalar condition
           (*mit)->setSlaveCoeff(edgeControlpoints[nit->first]);
- #if SP_DEBUG > 1
+#if SP_DEBUG > 1
         std::cout <<"Updated constraint: "<< **mit;
- #endif
+#endif
       }
     }
   }

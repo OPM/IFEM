@@ -448,15 +448,14 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
   // Evaluate basis function derivatives at all integration points
   std::vector<std::vector<Go::BasisDerivs>> splinex(m_basis.size());
   std::vector<std::vector<Go::BasisDerivs2>> splinex2(m_basis.size());
-  if (use2ndDer) {
+  if (use2ndDer)
 #pragma omp parallel for schedule(static)
     for (size_t i=0;i<m_basis.size();++i)
       m_basis[i]->computeBasisGrid(gpar[0],gpar[1],gpar[2],splinex2[i]);
-  } else {
+  else
 #pragma omp parallel for schedule(static)
     for (size_t i=0;i<m_basis.size();++i)
       m_basis[i]->computeBasisGrid(gpar[0],gpar[1],gpar[2],splinex[i]);
-  }
 
   std::vector<size_t> elem_sizes;
   for (auto& it : m_basis)
@@ -513,7 +512,7 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
 
         if (useElmVtx)
           this->getElementCorners(i1-1,i2-1,i3-1,fe.XC);
- 
+
         if (integrand.getIntegrandType() & Integrand::G_MATRIX)
         {
           // Element size in parametric space
@@ -553,13 +552,12 @@ bool ASMs3Dmx::integrate (Integrand& integrand,
               fe.w = gpar[2](k+1,i3-p3+1);
 
               // Fetch basis function derivatives at current integration point
-              if (use2ndDer) {
+              if (use2ndDer)
                 for (size_t b = 0; b < m_basis.size(); ++b)
                   SplineUtils::extractBasis(splinex2[b][ip],fe.basis(b+1),dNxdu[b], d2Nxdu2[b]);
-              } else {
+              else
                 for (size_t b = 0; b < m_basis.size(); ++b)
                   SplineUtils::extractBasis(splinex[b][ip],fe.basis(b+1),dNxdu[b]);
-              }
 
               // Compute Jacobian inverse of the coordinate mapping and
               // basis function derivatives w.r.t. Cartesian coordinates

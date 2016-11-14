@@ -688,7 +688,11 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
   for (i = 0; i < n1; i++, node += i1)
   {
     int slave = slaveNodes[revers ? n1-i-1 : i];
-    if (coordCheck && !neighbor.getCoord(node).equal(this->getCoord(slave),xtol))
+    if (!coordCheck)
+      ASMbase::collapseNodes(neighbor,node,*this,slave);
+    else if (neighbor.getCoord(node).equal(this->getCoord(slave),xtol))
+      ASMbase::collapseNodes(neighbor,node,*this,slave);
+    else
     {
       std::cerr <<" *** ASMs2D::connectPatch: Non-matching nodes "
 		<< node <<": "<< neighbor.getCoord(node)
@@ -696,8 +700,6 @@ bool ASMs2D::connectBasis (int edge, ASMs2D& neighbor, int nedge, bool revers,
 		<< slave <<": "<< this->getCoord(slave) << std::endl;
       return false;
     }
-    else
-      ASMbase::collapseNodes(neighbor,node,*this,slave);
   }
 
   return true;
@@ -1017,7 +1019,7 @@ size_t ASMs2D::constrainEdgeLocal (int dir, bool open, int dof, int code,
 void ASMs2D::constrainCorner (int I, int J, int dof, int code, char basis)
 {
   int node = this->getCorner(I, J, basis);
-  if (node > -1)
+  if (node > 0)
     this->prescribe(node,dof,code);
 }
 
@@ -1535,6 +1537,11 @@ bool ASMs2D::integrate (Integrand& integrand,
         fe.iel = MLGE[iel];
         if (fe.iel < 1) continue; // zero-area element
 
+#ifdef SP_DEBUG
+        if (dbgElm < 0 && 1+iel != -dbgElm)
+          continue; // Skipping all elements, except for -dbgElm
+#endif
+
         int i1 = p1 + iel % nel1;
         int i2 = p2 + iel / nel1;
 
@@ -1686,10 +1693,13 @@ bool ASMs2D::integrate (Integrand& integrand,
               utl::getGmat(Jac,dXidu,fe.G);
 
 #if SP_DEBUG > 4
-            std::cout <<"\niel, ip = "<< iel <<" "<< ip
-                      <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
-            if (!fe.d2NdX2.empty())
-              std::cout <<"d2NdX2 ="<< fe.d2NdX2;
+            if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
+            {
+              std::cout <<"\niel, ip = "<< iel <<" "<< ip
+                        <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
+              if (!fe.d2NdX2.empty())
+                std::cout <<"d2NdX2 ="<< fe.d2NdX2;
+            }
 #endif
 
             // Cartesian coordinates of current integration point
@@ -1714,6 +1724,10 @@ bool ASMs2D::integrate (Integrand& integrand,
           ok = false;
 
         A->destruct();
+
+#ifdef SP_DEBUG
+	if (iel == -dbgElm) break; // Skipping all elements, except for -dbgElm
+#endif
       }
     }
   }
@@ -1787,6 +1801,11 @@ bool ASMs2D::integrate (Integrand& integrand,
 
         fe.iel = MLGE[iel];
         if (fe.iel < 1) continue; // zero-area element
+
+#ifdef SP_DEBUG
+        if (dbgElm < 0 && iel != -dbgElm)
+          continue; // Skipping all elements, except for -dbgElm
+#endif
 
         int i1 = p1 + iel % nel1;
         int i2 = p2 + iel / nel1;
@@ -1864,8 +1883,9 @@ bool ASMs2D::integrate (Integrand& integrand,
             utl::getGmat(Jac,dXidu,fe.G);
 
 #if SP_DEBUG > 4
-          std::cout <<"\niel, jp = "<< iel <<" "<< jp
-                    <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
+          if (iel == dbgElm || iel == -dbgElm || dbgElm == 0)
+            std::cout <<"\niel, jp = "<< iel <<" "<< jp
+                      <<"\nN ="<< fe.N <<"dNdX ="<< fe.dNdX;
 #endif
 
           // Cartesian coordinates of current integration point
@@ -1890,6 +1910,10 @@ bool ASMs2D::integrate (Integrand& integrand,
           ok = false;
 
         A->destruct();
+
+#ifdef SP_DEBUG
+	if (iel == -dbgElm) break; // Skipping all elements, except for -dbgElm
+#endif
       }
     }
   }
@@ -2134,6 +2158,11 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       fe.iel = abs(MLGE[doXelms+iel-1]);
       if (fe.iel < 1) continue; // zero-area element
 
+#ifdef SP_DEBUG
+      if (dbgElm < 0 && iel != -dbgElm)
+        continue; // Skipping all elements, except for -dbgElm
+#endif
+
       // Skip elements that are not on current boundary edge
       bool skipMe = false;
       switch (edgeDir)
@@ -2220,6 +2249,11 @@ bool ASMs2D::integrate (Integrand& integrand, int lIndex,
       A->destruct();
 
       if (!ok) return false;
+
+#ifdef SP_DEBUG
+      if (dbgElm < 0 && iel == -dbgElm)
+        break; // Skipping all elements, except for -dbgElm
+#endif
     }
 
   return true;
@@ -2728,7 +2762,7 @@ bool ASMs2D::evaluate (const RealFunc* func, RealArray& vec,
 }
 
 
-int ASMs2D::getCorner(int I, int J, int basis) const
+int ASMs2D::getCorner (int I, int J, int basis) const
 {
   int n1, n2, node = 1;
   for (char i = 1; i <= basis; i++)
