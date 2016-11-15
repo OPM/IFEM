@@ -96,11 +96,8 @@ void ASMu2Dmx::clear (bool retainGeometry)
 
 size_t ASMu2Dmx::getNoNodes (int basis) const
 {
-  if (basis > (int)nb.size() || basis < 0)
-    basis = 0;
-
-  if (basis == 0)
-    return std::accumulate(nb.begin(), nb.end(), 0);
+  if (basis > (int)nb.size() || basis < 1)
+    return this->ASMbase::getNoNodes(basis);
 
   return nb[basis-1];
 }
