@@ -668,3 +668,22 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm,
 
   return true;
 }
+
+
+Vec3 ASMu2Dmx::getCoord (size_t inod) const
+{
+  size_t b = 0;
+  size_t nbb = 0;
+  while (nbb + nb[b] < inod && b < nb.size())
+    nbb += nb[b++];
+  ++b;
+
+  const LR::Basisfunction* basis = this->getBasis(b)->getBasisfunction(inod-nbb-1);
+  if (!basis) {
+    std::cerr << "Asked to get coordinate for node " << inod
+              << ", but only have " << this->getBasis(b)->nBasisFunctions()
+              << " nodes in basis " << b << std::endl;
+    return Vec3();
+  }
+  return Vec3(&(*basis->cp()),nsd);
+}
