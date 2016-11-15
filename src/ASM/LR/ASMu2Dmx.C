@@ -237,6 +237,8 @@ bool ASMu2Dmx::generateFEMTopology ()
   std::cout <<"NEL = "<< nel <<" NNOD = "<< nnod << std::endl;
 #endif
 
+  geo = m_basis[geoBasis-1].get();
+
   return true;
 }
 
