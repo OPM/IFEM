@@ -1245,19 +1245,17 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
 	
-	int edge = LR::NONE;
-	if(lIndex == 1) 
-		edge = LR::WEST;
-	else if(lIndex == 2) 
-		edge = LR::EAST;
-	else if(lIndex == 3) 
-		edge = LR::SOUTH;
-	else if(lIndex == 4) 
-		edge = LR::NORTH;
-	else if(lIndex == 5) 
-		edge = LR::BOTTOM;
-	else if(lIndex == 6) 
-		edge = LR::TOP;
+  LR::parameterEdge edge;
+	switch(lIndex)
+	{
+	case 1: edge = LR::WEST;   break;
+	case 2: edge = LR::EAST;   break;
+	case 3: edge = LR::SOUTH;  break;
+	case 4: edge = LR::NORTH;  break;
+	case 5: edge = LR::BOTTOM; break;
+	case 6: edge = LR::TOP;    break;
+	default:edge = LR::NONE;
+	}
 	
 	// fetch all elements along the chosen edge
 	std::vector<LR::Element*> edgeElms;
@@ -1324,7 +1322,13 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
 		}
 
         // Initialize element quantities
-        LocalIntegral* A = integrand.getLocalIntegral(fe.N.size(),fe.iel,true);
+        LocalIntegral* A = integrand.getLocalIntegral(nBasis,fe.iel,true);
+        if (!integrand.initElementBou(MNPC[iEl],*A))
+        {
+          A->destruct();
+          ok = false;
+          break;
+        }
 
 		// --- Integration loop over all Gauss points in each direction --------
 
