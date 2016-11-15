@@ -1131,9 +1131,9 @@ bool ASMu3D::integrate (Integrand& integrand,
 
 					// Extract bezier basis functions
 					B.fillColumn(1, BN.getColumn(ig));
-					B.fillColumn(2, BdNdu.getColumn(ig)*2/du);
-					B.fillColumn(3, BdNdv.getColumn(ig)*2/dv);
-					B.fillColumn(4, BdNdw.getColumn(ig)*2/dw);
+					B.fillColumn(2, BdNdu.getColumn(ig)*2.0/du);
+					B.fillColumn(3, BdNdv.getColumn(ig)*2.0/dv);
+					B.fillColumn(4, BdNdw.getColumn(ig)*2.0/dw);
 
 					// Fetch basis function derivatives at current integration point
 					if (integrand.getIntegrandType() & Integrand::SECOND_DERIVATIVES)

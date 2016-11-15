@@ -115,7 +115,7 @@ public:
   virtual LR::LRSpline* evalSolution(const IntegrandBase& integrand) const = 0;
 
   //! \brief Returns a Bezier basis of order \a p.
-  static Go::BsplineBasis getBezierBasis(int p, double start=-1, double end=1);
+  static Go::BsplineBasis getBezierBasis(int p, double start=-1.0, double end=1.0);
 
   //! \brief Returns a list of basis functions having support on given elements.
   IntVec getFunctionsForElements(const IntVec& elements);
