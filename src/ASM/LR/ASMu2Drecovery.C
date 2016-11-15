@@ -283,9 +283,13 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
     // if(nel*ng1*ng2 < nPol)
     if(true)
     {
-      // KMO: Here I'm not sure how this will change when m > 1.
-      // In that case I think we would need smaller patches (as in the tensor
-      // splines case). But how to do that???
+      // I am unsure as to the consequence of going back to previous if-statement
+      // here so we keep if(true) for now. This was introduced mainly when considering
+      // functions that live on the boundary and have support on few elements;
+      // corner functions have support on one element. Using i.e. 2x2 points 
+      // for every element is not enough to fit 1,x,x^2,x^3,y,xy,...x^3y^3 when
+      // we only have one element. The solution is getExtendedSupport, which is the
+      // union of support from all functions that overlap *b. 
       supportElements = b->getExtendedSupport();
       elStart = supportElements.begin();
       elEnd   = supportElements.end();
