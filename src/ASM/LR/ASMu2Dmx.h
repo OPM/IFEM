@@ -72,6 +72,9 @@ public:
   //! \brief Returns the classification of a node.
   //! \param[in] inod 1-based node index local to current patch
   virtual char getNodeType(size_t inod) const;
+  //! \brief Returns the global coordinates for the given node.
+  //! \param[in] inod 1-based node index local to current patch
+  virtual Vec3 getCoord(size_t inod) const;
 
   //! \brief Initializes the patch level MADOF array for mixed problems.
   virtual void initMADOF(const int* sysMadof);
