@@ -1289,6 +1289,8 @@ bool ASMu2D::integrate (Integrand& integrand, int lIndex,
     // Get integration gauss points over this element
     this->getGaussPointParameters(gpar[t2-1],t2-1,nGP,iel,xg);
 
+    if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+      this->getElementCorners(iel,fe.XC);
 
     // --- Integration loop over all Gauss points along the edge -------------
 

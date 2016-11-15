@@ -445,6 +445,9 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
       return false;
     }
 
+    if (integrand.getIntegrandType() & Integrand::ELEMENT_CORNERS)
+      this->getElementCorners(iel,fe.XC);
+
     // Get integration gauss points over this element
     this->getGaussPointParameters(gpar[t2-1],t2-1,nGP,geoEl,xg);
 
