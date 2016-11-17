@@ -897,6 +897,7 @@ bool DomainDecomposition::setup(const ProcessAdm& adm, const SIMbase& sim)
   if (sim.getSolParams() && sim.getSolParams()->getNoBlocks() > 1) {
     IFEM::cout << "\tEstablishing local block equation numbers" << std::endl;
     const LinSolParams& solParams = *sim.getSolParams();
+    blocks.clear();
     blocks.resize(solParams.getNoBlocks()+1);
 
     // Find local equations for each block
