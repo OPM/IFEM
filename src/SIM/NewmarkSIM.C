@@ -314,12 +314,11 @@ SIM::ConvStatus NewmarkSIM::solveStep (TimeStep& param, SIM::SolutionMode,
 
   if (msgLevel >= 0)
   {
-    std::streamsize oldPrec = 0;
+    utl::LogStream& cout = model.getProcessAdm().cout;
     double digits = log10(param.time.t)-log10(param.time.dt);
-    if (digits > 6.0) oldPrec = IFEM::cout.precision(ceil(digits));
-    IFEM::cout <<"\n  step="<< param.step
-               <<"  time="<< param.time.t << std::endl;
-    if (digits > 6.0) IFEM::cout.precision(oldPrec);
+    size_t stdPrec = digits > 6.0 ? cout.precision(ceil(digits)) : 0;
+    cout <<"\n  step="<< param.step <<"  time="<< param.time.t << std::endl;
+    if (digits > 6.0) cout.precision(stdPrec);
   }
 
   if (subiter&FIRST && !model.updateDirichlet(param.time.t,&solution.front()))
@@ -462,15 +461,16 @@ SIM::ConvStatus NewmarkSIM::checkConvergence (TimeStep& param)
   if (msgLevel > 0)
   {
     // Print convergence history
-    std::ios::fmtflags oldFlags = IFEM::cout.flags(std::ios::scientific);
-    std::streamsize oldPrec = IFEM::cout.precision(3);
-    IFEM::cout <<"  iter="<< param.iter
-               <<"  conv="<< fabs(norm)
-               <<"  enen="<< norms[0]
-               <<"  resn="<< norms[1]
-               <<"  incn="<< norms[2] << std::endl;
-    IFEM::cout.flags(oldFlags);
-    IFEM::cout.precision(oldPrec);
+    utl::LogStream& cout = model.getProcessAdm().cout;
+    std::ios::fmtflags stdFlags = cout.flags(std::ios::scientific);
+    std::streamsize stdPrec = cout.precision(3);
+    cout <<"  iter="<< param.iter
+         <<"  conv="<< fabs(norm)
+         <<"  enen="<< norms[0]
+         <<"  resn="<< norms[1]
+         <<"  incn="<< norms[2] << std::endl;
+    cout.flags(stdFlags);
+    cout.precision(stdPrec);
   }
 
   // Check for convergence or divergence

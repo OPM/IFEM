@@ -138,7 +138,7 @@ SIM::ConvStatus EigenModeSIM::solveStep (TimeStep& param, SIM::SolutionMode,
   for (size_t i = 0; i < amplitude.size() && i < modes.size(); i++)
     solution.front().add(modes[i].eigVec,amplitude[i]*sin(modes[i].eigVal*t));
 
-  if (msgLevel >= 0 && myPid == 0) std::cout << std::endl;
+  if (msgLevel >= 0) model.getProcessAdm().cout << std::endl;
   return this->solutionNorms(param.time,zero_tolerance,outPrec) ?
     SIM::CONVERGED : SIM::FAILURE;
 }

@@ -47,17 +47,21 @@ NonLinSIM::~NonLinSIM ()
 {
   if (slowNodes.empty()) return;
 
+  utl::LogStream& cout = model.getProcessAdm().cout;
+
   std::map<int,int>::const_iterator nit;
-  std::cout <<"\n *** Here are the nodal points flagged with slow convergence"
-            <<"\n     ======================================================="
-            <<"\n     Node  Count  Patch  Coordinates\n";
+  cout <<"\n *** Here are the nodal points flagged with slow convergence"
+       <<"\n     ======================================================="
+       <<"\n     Node  Count  Patch  Coordinates\n";
   for (nit = slowNodes.begin(); nit != slowNodes.end(); ++nit)
   {
     Vec4 X = model.getNodeCoord(nit->first);
-    std::cout << std::setw(9) << nit->first
-              << std::setw(5) << nit->second
-              << std::setw(7) << X.idx <<"    ";
-    X.Vec3::print(std::cout) << std::endl;
+    cout << std::setw(9) << nit->first
+         << std::setw(5) << nit->second
+         << std::setw(7) << X.idx <<"   ";
+    for (int i = 0; i < 3; i++)
+      cout <<" "<< utl::trunc(X[i]);
+    cout << std::endl;
   }
 }
 
@@ -197,20 +201,15 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
 
   if (msgLevel >= 0)
   {
-    std::streamsize oldPrec = 0;
+    utl::LogStream& cout = model.getProcessAdm().cout;
     double digits = log10(param.time.t)-log10(param.time.dt);
-    if (digits > 6.0)
-    {
-      oldPrec = std::cout.precision();
-      model.getProcessAdm().cout << std::setprecision(ceil(digits));
-    }
-    model.getProcessAdm().cout <<"\n  step="<< param.step <<"  time="<< param.time.t;
+    std::streamsize oldPrec = digits > 6.0 ? cout.precision(ceil(digits)) : 0;
+    cout <<"\n  step="<< param.step <<"  time="<< param.time.t;
     if (param.maxCFL > 0.0)
-      model.getProcessAdm().cout <<"  CFL = "<< param.time.CFL << std::endl;
+      cout <<"  CFL = "<< param.time.CFL << std::endl;
     else
-      model.getProcessAdm().cout << std::endl;
-    if (oldPrec > 0)
-      model.getProcessAdm().cout << std::setprecision(oldPrec);
+      cout << std::endl;
+    if (oldPrec > 0) cout << std::setprecision(oldPrec);
   }
 
   param.iter = 0;
@@ -427,46 +426,47 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
   if (msgLevel > 0)
   {
     // Print convergence history
-    std::ios::fmtflags oldFlags = std::cout.flags(std::ios::scientific);
-    std::streamsize oldPrec = std::cout.precision(3);
-    model.getProcessAdm().cout <<"  iter="<< param.iter
-                               <<"  conv="<< fabs(norm)
-                               <<"  enen="<< enorm
-                               <<"  resn="<< resNorm
-                               <<"  incn="<< linsolNorm << std::endl;
+    utl::LogStream& cout = model.getProcessAdm().cout;
+    std::ios::fmtflags oldFlags = cout.flags(std::ios::scientific);
+    std::streamsize oldPrec = cout.precision(3);
+    cout <<"  iter="<< param.iter
+         <<"  conv="<< fabs(norm)
+         <<"  enen="<< enorm
+         <<"  resn="<< resNorm
+         <<"  incn="<< linsolNorm << std::endl;
     if (status == SLOW && prnSlow > 0)
     {
       // Find and print out the worst DOF(s) when detecting slow convergence
       std::map<std::pair<int,int>,RealArray> worstDOFs;
       model.getWorstDofs(linsol,residual,prnSlow,convTol*refNorm,worstDOFs);
-      std::cout <<"  ** Slow convergence detected";
+      cout <<"  ** Slow convergence detected";
       if (worstDOFs.size() > 1)
-        std::cout <<", here are the "<< worstDOFs.size() <<" worst DOFs:";
+        cout <<", here are the "<< worstDOFs.size() <<" worst DOFs:";
       else if (worstDOFs.size() == 1)
-        std::cout <<", here is the worst DOF:";
+        cout <<", here is the worst DOF:";
       else
-        std::cout <<".";
+        cout <<".";
       std::map<std::pair<int,int>,RealArray>::const_iterator it;
       for (it = worstDOFs.begin(); it != worstDOFs.end(); it++)
       {
-        std::cout <<"\n     Node "<< it->first.first
-                  <<" local DOF "<< it->first.second;
+        cout <<"\n     Node "<< it->first.first
+             <<" local DOF "<< it->first.second;
         char nodeType = model.getNodeType(it->first.first);
         if (nodeType != ' ')
-          std::cout <<" ("<< nodeType <<")";
-        std::cout <<" :\tEnergy = "<< it->second[0]
-                  <<"\tdu = "<< it->second[1]
-                  <<"\tres = "<< it->second[2];
+          cout <<" ("<< nodeType <<")";
+        cout <<" :\tEnergy = "<< it->second[0]
+             <<"\tdu = "<< it->second[1]
+             <<"\tres = "<< it->second[2];
         std::map<int,int>::iterator nit = slowNodes.find(it->first.first);
         if (nit == slowNodes.end())
           slowNodes.insert(std::make_pair(it->first.first,1));
         else
           ++nit->second;
       }
-      std::cout << std::endl;
+      cout << std::endl;
     }
-    std::cout.flags(oldFlags);
-    std::cout.precision(oldPrec);
+    cout.flags(oldFlags);
+    cout.precision(oldPrec);
   }
 
   // Check for convergence or divergence
