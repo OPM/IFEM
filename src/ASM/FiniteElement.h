@@ -88,10 +88,8 @@ public:
 class MxFiniteElement : public FiniteElement
 {
 public:
-  //! \brief Default constructor.
-  MxFiniteElement(const std::vector<size_t>& n, size_t i = 0) :
-    FiniteElement(n.front(),i), Nx(n.size()-1), dNxdX(n.size()-1), d2NxdX2(n.size()-1)
-  {}
+  //! \brief The constructor initializes the size of each basis.
+  MxFiniteElement(const std::vector<size_t>& n, size_t ip = 0);
 
   //! \brief Empty destructor.
   virtual ~MxFiniteElement() {}
