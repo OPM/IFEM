@@ -38,7 +38,7 @@ NonLinSIM::NonLinSIM (SIMbase& sim, CNORM n) : MultiStepSIM(sim), iteNorm(n)
   rTol    = 0.000001;
   aTol    = 0.0;
   divgLim = 10.0;
-  alpha   = 1.0;
+  alpha   = alphaO = 1.0;
   eta     = 0.0;
 }
 
@@ -213,7 +213,7 @@ ConvStatus NonLinSIM::solveStep (TimeStep& param, SolutionMode mode,
   }
 
   param.iter = 0;
-  alpha = 1.0;
+  alpha = alphaO = 1.0;
   if (fromIni) // Always solve from initial configuration
     solution.front().fill(0.0);
 
@@ -320,22 +320,31 @@ SIM::ConvStatus NonLinSIM::solveIteration (TimeStep& param)
 }
 
 
+/*!
+  This procedure is as described on pages 115,116 in Kjell Magne Mathisen's
+  Dr.Ing. thesis: "Large displacement analysis of flexible and rigid systems
+  considering displacement-dependent loads and nonlinear constraints", 1990.
+*/
+
 bool NonLinSIM::lineSearch (TimeStep& param)
 {
   if (eta <= 0.0) return true; // No line search
+
+  if (!model.setMode(SIM::RHS_ONLY))
+    return false;
 
   double s0 = residual.dot(linsol);
   double smin = fabs(s0);
   double cmin = 1.0;
   double ck = 1.0;
-  double cp = 1.0;
+  double cp = 0.0;
 #ifdef SP_DEBUG
-  std::cout <<"\t0: ck="<< ck <<" sk="<< s0 << std::endl;
+  std::cout << std::setw(8) << 0 <<": ck=0        sk="<< s0 << std::endl;
 #endif
 
-  alpha = 1.0;
   for (int iter = 1; iter <= 10; iter++)
   {
+    alpha = ck - cp;
     if (!this->updateConfiguration(param))
       return false;
 
@@ -347,11 +356,14 @@ bool NonLinSIM::lineSearch (TimeStep& param)
 
     double sk = residual.dot(linsol);
 #ifdef SP_DEBUG
-    std::cout <<"\t"<< iter <<": ck="<< ck <<" sk="<< sk << std::endl;
+    std::cout << std::setw(8) << iter
+              <<": ck="<< std::left << std::setw(9) << ck
+              <<"sk="<< sk << std::right << std::endl;
 #endif
     if (fabs(sk) < eta*fabs(s0))
     {
       alpha = 0.0;
+      alphaO = ck;
       return true;
     }
     else if (fabs(sk) < smin)
@@ -370,13 +382,13 @@ bool NonLinSIM::lineSearch (TimeStep& param)
     if (fabs(ck-cp) < 0.5*eta*fabs(ck+cp))
     {
       alpha = 0.0;
+      alphaO = ck;
       return true;
     }
-
-    alpha = ck - alpha;
   }
 
-  alpha = cmin - alpha;
+  alpha = cmin - cp;
+  alphaO = cmin;
   return true;
 }
 
@@ -433,7 +445,11 @@ ConvStatus NonLinSIM::checkConvergence (TimeStep& param)
          <<"  conv="<< fabs(norm)
          <<"  enen="<< enorm
          <<"  resn="<< resNorm
-         <<"  incn="<< linsolNorm << std::endl;
+         <<"  incn="<< linsolNorm;
+    if (alphaO != 1.0)
+      cout <<"  alpha="<< alphaO;
+    cout << std::endl;
+
     if (status == SLOW && prnSlow > 0)
     {
       // Find and print out the worst DOF(s) when detecting slow convergence

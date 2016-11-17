@@ -105,6 +105,7 @@ protected:
   double divgLim; //!< Relative divergence limit
   double eta;     //!< Line search tolerance
   double alpha;   //!< Iteration acceleration parameter (for line search)
+  double alphaO;  //!< Final line search acceleration scaling (for output only)
   int    maxit;   //!< Maximum number of iterations in a load step
   int    maxIncr; //!< Maximum number of iterations with increasing norm
   int    nupdat;  //!< Number of iterations with updated tangent
