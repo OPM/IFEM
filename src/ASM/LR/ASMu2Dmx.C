@@ -522,13 +522,23 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
 
   std::vector<Go::BasisPtsSf> splinex(m_basis.size());
 
+  std::vector<size_t> nc(nfx.size());
+  std::copy(nfx.begin(), nfx.end(), nc.begin());
+  // assume first basis only
+  if (locSol.size() < std::inner_product(nb.begin(), nb.end(), nfx.begin(), 0u)) {
+    std::fill(nc.begin(), nc.end(), 0);
+    nc[0] = nfx[0];
+  }
+
   // Evaluate the primary solution field at each point
   sField.resize(std::accumulate(nfx.begin(), nfx.end(), 0), nPoints);
   for (size_t i = 0; i < nPoints; i++)
   {
     size_t ofs=0;
     Vector Ztmp;
-    for (size_t j=0; j < m_basis.size(); ++j) {
+    for (size_t j=0; j <  m_basis.size(); ++j) {
+      if (nc[j] == 0)
+        continue;
       // Fetch element containing evaluation point.
       // Sadly, points are not always ordered in the same way as the elements.
       int iel = m_basis[j]->getElementContaining(gpar[0][i],gpar[1][i]);
@@ -541,14 +551,14 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
       Matrix val1(nfx[j], splinex[j].basisValues.size());
       size_t col=1;
       for (auto* b : (*el_it)->support()) {
-        for (size_t n=1;n<=nfx[j];++n)
-          val1(n, col) = locSol(b->getId()*nfx[j]+n+ofs);
+        for (size_t n = 1; n <= nc[j]; ++n)
+          val1(n, col) = locSol(b->getId()*nc[j]+n+ofs);
         ++col;
       }
       Vector Ytmp;
       val1.multiply(splinex[j].basisValues,Ytmp);
       Ztmp.insert(Ztmp.end(),Ytmp.begin(),Ytmp.end());
-      ofs += nb[j]*nfx[j];
+      ofs += nb[j]*nc[j];
     }
 
     sField.fillColumn(i+1, Ztmp);
