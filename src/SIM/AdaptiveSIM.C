@@ -204,8 +204,7 @@ bool AdaptiveSIM::solveStep (const char* inputfile, int iStep)
 
   // Assemble the linear FE equation system
   model.setMode(SIM::STATIC,true);
-  model.initSystem(iStep == 1 ? SystemMatrix::DENSE : opt.solver,
-                    1, model.getNoRHS());
+  model.initSystem(opt.solver, 1, model.getNoRHS());
   model.setQuadratureRule(opt.nGauss[0],true);
 
   if (!model.assembleSystem())
