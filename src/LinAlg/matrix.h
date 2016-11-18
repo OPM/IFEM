@@ -626,6 +626,16 @@ namespace utl //! General utility classes and functions.
     bool multiply(const std::vector<T>& X, std::vector<T>& Y,
                   bool transA = false, char addTo = 0) const;
 
+    /*! \brief Matrix-vector multiplication.
+      \details Performs the following operations (\b A = \a *this):
+      -# \f$ {\bf Y} = {\alpha}{\bf A} {\bf X} + {\beta}{\bf Y}\f$
+      -# \f$ {\bf Y} = {\alpha}{\bf A}^T {\bf X} + {\beta}{\bf Y}\f$
+    */
+    bool multiply(const std::vector<T>& X, std::vector<T>& Y,
+                  double alpha, double beta, bool transA = false,
+                  int stridex = 1, int stridey = 1,
+                  int ofsx = 0, int ofsy = 0) const;
+
     //! \brief Outer product between two vectors.
     bool outer_product(const std::vector<T>& X, const std::vector<T>& Y,
                        bool addTo = false, T alpha = T(1))
@@ -1050,6 +1060,25 @@ namespace utl //! General utility classes and functions.
   }
 
   template<> inline
+  bool matrix<float>::multiply(const std::vector<float>& X,
+                               std::vector<float>& Y,
+                               double alpha, double beta, bool transA,
+                               int stridex, int stridey, int ofsx,
+                               int ofsy) const
+  {
+    if (!this->compatible(X,transA)) return false;
+
+    cblas_sgemv(CblasColMajor,
+                transA ? CblasTrans : CblasNoTrans,
+                nrow, ncol, alpha,
+                this->ptr(), nrow,
+                &X[ofsx], stridex, beta,
+                &Y[ofsy], stridey);
+
+    return true;
+  }
+
+  template<> inline
   bool matrix<double>::multiply(const std::vector<double>& X,
                                 std::vector<double>& Y,
                                 bool transA, char addTo) const
@@ -1063,6 +1092,25 @@ namespace utl //! General utility classes and functions.
                 this->ptr(), nrow,
                 &X.front(), 1, addTo ? 1.0 : 0.0,
                 &Y.front(), 1);
+
+    return true;
+  }
+
+  template<> inline
+  bool matrix<double>::multiply(const std::vector<double>& X,
+                                std::vector<double>& Y,
+                                double alpha, double beta, bool transA,
+                                int stridex, int stridey,
+                                int ofsx, int ofsy) const
+  {
+    if (!this->compatible(X,transA)) return false;
+
+    cblas_dgemv(CblasColMajor,
+                transA ? CblasTrans : CblasNoTrans,
+                nrow, ncol, alpha,
+                this->ptr(), nrow,
+                &X[ofsx], stridex, beta,
+                &Y[ofsy], stridey);
 
     return true;
   }
@@ -1355,6 +1403,26 @@ namespace utl //! General utility classes and functions.
           Y[i] += THIS(j+1,i+1) * (addTo > 0 ? X[j] : -X[j]);
         else
           Y[i] += THIS(i+1,j+1) * (addTo > 0 ? X[j] : -X[j]);
+
+    return true;
+  }
+
+  template<class T> inline
+  bool matrix<T>::multiply(const std::vector<T>& X, std::vector<T>& Y,
+                           double alpha, double beta, bool transA,
+                           int stridex, int stridey,
+                           int ofsx, int ofsy) const
+  {
+    if (!this->compatible(X,transA)) return false;
+
+    for (size_t i = ofsy; i < Y.size(); i += stridey) {
+      Y[i] *= beta;
+      for (size_t j = ofsx; j < X.size(); j += stridex)
+        if (transA)
+          Y[i] += alpha * THIS(j+1,i+1) * X[j];
+        else
+          Y[i] += alpha * THIS(i+1,j+1) * X[j];
+    }
 
     return true;
   }
