@@ -297,11 +297,11 @@ LR::LRSplineVolume* ASMu3D::scRecovery (const IntegrandBase& integrand) const
 
     // Special case for basis functions with too many zero knot spans by using
     // the extended support
-    // if(nel*ng1*ng2*ng3 < nPol)
-    if(true)
+    // if (nel*ng1*ng2*ng3 < nPol)
+    if (true)
     {
       // I am unsure as to the consequence of going back to previous if-statement
-      // here so we keep if(true) for now. This was introduced mainly when considering
+      // here so we keep if (true) for now. This was introduced mainly when considering
       // functions that live on the boundary and have support on few elements;
       // corner functions have support on one element. Using i.e. 2x2 points
       // for every element is not enough to fit 1,x,x^2,x^3,y,xy,...x^3y^3 when

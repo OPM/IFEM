@@ -61,7 +61,7 @@ bool ASMu3D::read (std::istream& is)
   // read inputfile as either an LRSpline file directly or a tensor product B-spline and convert
   char firstline[256];
   is.getline(firstline, 256);
-  if(strncmp(firstline, "# LRSPLINE", 10) == 0) {
+  if (strncmp(firstline, "# LRSPLINE", 10) == 0) {
                 lrspline.reset(new LR::LRSplineVolume());
     is >> *lrspline;
   } else { // probably a SplineVolume, so we'll read that and convert
@@ -446,7 +446,7 @@ void ASMu3D::closeFaces (int dir, int basis, int master)
 
 void ASMu3D::constrainFace (int dir, bool open, int dof, int code, char)
 {
-  if(open)
+  if (open)
     std::cerr << "\nWARNING: ASMu3D::constrainFace, open boundary conditions not supported yet. Treating it as closed" << std::endl;
 
   int bcode = code;
@@ -460,17 +460,17 @@ void ASMu3D::constrainFace (int dir, bool open, int dof, int code, char)
 
   // get all the boundary functions from the LRspline object
   std::vector<LR::Basisfunction*> thisEdge;
-  if(dir == -1)
+  if (dir == -1)
     lrspline->getEdgeFunctions(thisEdge, LR::WEST, 1);
-  else if(dir == 1)
+  else if (dir == 1)
     lrspline->getEdgeFunctions(thisEdge, LR::EAST, 1);
-  else if(dir == -2)
+  else if (dir == -2)
     lrspline->getEdgeFunctions(thisEdge, LR::SOUTH, 1);
-  else if(dir == 2)
+  else if (dir == 2)
     lrspline->getEdgeFunctions(thisEdge, LR::NORTH, 1);
-  else if(dir == -3)
+  else if (dir == -3)
     lrspline->getEdgeFunctions(thisEdge, LR::BOTTOM, 1);
-  else if(dir == 3)
+  else if (dir == 3)
     lrspline->getEdgeFunctions(thisEdge, LR::TOP, 1);
 
   std::cout << "\nNumber of constraints: " << thisEdge.size() << std::endl;
@@ -495,29 +495,29 @@ std::vector<int> ASMu3D::getEdge(int lEdge, bool open, int) const
   // lEdge = 9-12, running index is w
 
   int edge = LR::NONE;
-  if(lEdge == 1)
+  if (lEdge == 1)
     edge = LR::BOTTOM | LR::SOUTH;
-  else if(lEdge == 2)
+  else if (lEdge == 2)
     edge = LR::BOTTOM | LR::NORTH;
-  else if(lEdge == 3)
+  else if (lEdge == 3)
     edge = LR::TOP    | LR::SOUTH;
-  else if(lEdge == 4)
+  else if (lEdge == 4)
     edge = LR::TOP    | LR::NORTH;
-  else if(lEdge == 5)
+  else if (lEdge == 5)
     edge = LR::BOTTOM | LR::WEST;
-  else if(lEdge == 6)
+  else if (lEdge == 6)
     edge = LR::BOTTOM | LR::EAST;
-  else if(lEdge == 7)
+  else if (lEdge == 7)
     edge = LR::TOP    | LR::WEST;
-  else if(lEdge == 8)
+  else if (lEdge == 8)
     edge = LR::TOP    | LR::EAST;
-  else if(lEdge == 9)
+  else if (lEdge == 9)
     edge = LR::SOUTH  | LR::WEST;
-  else if(lEdge == 10)
+  else if (lEdge == 10)
     edge = LR::SOUTH  | LR::EAST;
-  else if(lEdge == 11)
+  else if (lEdge == 11)
     edge = LR::NORTH  | LR::WEST;
-  else if(lEdge == 12)
+  else if (lEdge == 12)
     edge = LR::NORTH  | LR::EAST;
 
   // get all the boundary functions from the LRspline object
@@ -532,7 +532,7 @@ std::vector<int> ASMu3D::getEdge(int lEdge, bool open, int) const
 
 void ASMu3D::constrainEdge (int lEdge, bool open, int dof, int code, char)
 {
-  if(open)
+  if (open)
     std::cerr << "\nWARNING: ASMu3D::constrainEdge, open boundary conditions not supported yet. Treating it as closed" << std::endl;
 
   // enforce the boundary conditions
@@ -619,11 +619,11 @@ void ASMu3D::constrainLine (int fdir, int ldir, double xi, int dof,
 void ASMu3D::constrainCorner (int I, int J, int K, int dof, int code, char)
 {
   int corner = LR::NONE;
-  if(  I < 0) corner |= LR::WEST;
+  if (  I < 0) corner |= LR::WEST;
   else        corner |= LR::EAST;
-  if(  J < 0) corner |= LR::SOUTH;
+  if (  J < 0) corner |= LR::SOUTH;
   else        corner |= LR::NORTH;
-  if(  K < 0) corner |= LR::BOTTOM;
+  if (  K < 0) corner |= LR::BOTTOM;
   else        corner |= LR::TOP;
 
   std::vector<LR::Basisfunction*> one_function;
@@ -887,12 +887,12 @@ void ASMu3D::evaluateBasis (FiniteElement &el, int derivs) const
   size_t jp, n = 1;
   for (jp = 0; jp < nBasis; jp++, n++) {
     el.N   (n)      = result[jp][0];
-    if(derivs > 0) {
+    if (derivs > 0) {
       el.dNdX (n,1)    = result[jp][1];
       el.dNdX (n,2)    = result[jp][2];
       el.dNdX (n,3)    = result[jp][3];
     }
-    if(derivs > 1) {
+    if (derivs > 1) {
       el.d2NdX2(n,1,1) = result[jp][4];
       el.d2NdX2(n,1,2) = el.d2NdX2(n,2,1) = result[jp][5];
       el.d2NdX2(n,1,3) = el.d2NdX2(n,3,1) = result[jp][6];
@@ -1147,37 +1147,37 @@ bool ASMu3D::integrate (Integrand& integrand,
           int allP = p1*p2*p3;
           double sum = 0;
           for(int qq=1; qq<=N; qq++) sum+= fe.N(qq);
-          if(fabs(sum-1) > 1e-10) {
+          if (fabs(sum-1) > 1e-10) {
             std::cerr << "fe.N not sums to one at integration point #" << ig << std::endl;
             exit(123);
           }
           sum = 0;
           for(int qq=1; qq<=N; qq++) sum+= dNdu(qq,1);
-          if(fabs(sum) > 1e-10) {
+          if (fabs(sum) > 1e-10) {
             std::cerr << "dNdu not sums to zero at integration point #" << ig << std::endl;
             exit(123);
           }
           sum = 0;
           for(int qq=1; qq<=N; qq++) sum+= dNdu(qq,2);
-          if(fabs(sum) > 1e-10) {
+          if (fabs(sum) > 1e-10) {
             std::cerr << "dNdv not sums to zero at integration point #" << ig << std::endl;
             exit(123);
           }
           sum = 0;
           for(int qq=1; qq<=N; qq++) sum+= dNdu(qq,3);
-          if(fabs(sum) > 1e-10) {
+          if (fabs(sum) > 1e-10) {
             std::cerr << "dNdw not sums to zero at integration point #" << ig << std::endl;
             exit(123);
           }
           sum = 0;
           for(int qq=1; qq<=allP; qq++) sum+= B(qq,1);
-          if(fabs(sum-1) > 1e-10) {
+          if (fabs(sum-1) > 1e-10) {
             std::cerr << "Bezier basis not sums to one at integration point #" << ig << std::endl;
             exit(123);
           }
           sum = 0;
           for(int qq=1; qq<=allP; qq++) sum+= B(qq,2);
-          if(fabs(sum) > 1e-10) {
+          if (fabs(sum) > 1e-10) {
             std::cerr << "Bezier derivatives not sums to zero at integration point #" << ig << std::endl;
             exit(123);
           }
@@ -1642,9 +1642,9 @@ bool ASMu3D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
           double u = umin + (umax-umin)/nSegPerSpan*iu;
           double v = vmin + (vmax-vmin)/nSegPerSpan*iv;
           double w = wmin + (wmax-wmin)/nSegPerSpan*iw;
-          if(dir==0)
+          if (dir==0)
             prm.push_back(u);
-          else if(dir==1)
+          else if (dir==1)
             prm.push_back(v);
           else
             prm.push_back(w);
@@ -1657,9 +1657,9 @@ bool ASMu3D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
 
 bool ASMu3D::tesselate (ElementBlock& grid, const int* npe) const
 {
-  if(!lrspline) return false;
+  if (!lrspline) return false;
 
-  if(npe[0] != npe[1] || npe[0] != npe[2]) {
+  if (npe[0] != npe[1] || npe[0] != npe[2]) {
     std::cerr << "ASMu2D::tesselate does not support different tesselation resolution in "
               << "u- and v-direction. nviz u = " << npe[0] << ", nviz v = " << npe[1]
               << ", nviz w = " << npe[2] << std::endl;
@@ -2020,7 +2020,7 @@ int ASMu3D::getCorner(int I, int J, int K, int basis) const
   std::vector<LR::Basisfunction*> corner; // vector of one function for corner-input
   vol->getEdgeFunctions(corner, (LR::parameterEdge) edge);
 
-  if( corner.empty() )
+  if ( corner.empty() )
     return -1;
 
   size_t ofs = 1;

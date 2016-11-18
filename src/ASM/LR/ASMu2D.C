@@ -63,7 +63,7 @@ bool ASMu2D::read (std::istream& is)
   // read inputfile as either an LRSpline file directly or a tensor product B-spline and convert
   char firstline[256];
   is.getline(firstline, 256);
-  if(strncmp(firstline, "# LRSPLINE", 10) == 0) {
+  if (strncmp(firstline, "# LRSPLINE", 10) == 0) {
     lrspline.reset(new LR::LRSplineSurface());
     is >> *lrspline;
   } else { // probably a SplineSurface, so we'll read that and convert
@@ -179,7 +179,7 @@ bool ASMu2D::diagonalRefine (int minBasisfunctions)
     u += h;
     v += h;
     iter++;
-    if( u>end1 ) {
+    if ( u>end1 ) {
       h /= 2.0;
       iter = 0;
       u = h/2.0;
@@ -204,17 +204,17 @@ bool ASMu2D::uniformRefine (int minBasisfunctions)
   double u = h/2.0;
   double v = h/2.0;
   while(lrspline->nBasisFunctions() < minBasisfunctions) {
-    if(step_u) {
+    if (step_u) {
       lrspline->insert_const_u_edge(u, 0, end2);
       u += h;
-      if(u > end1) {
+      if (u > end1) {
         step_u = !step_u;
         u = h/4.0;
       }
     } else {
       lrspline->insert_const_v_edge(v, 0, end1);
       v += h;
-      if(v > end2) {
+      if (v > end2) {
         step_u = !step_u;
         v = h/4.0;
         h /= 2.0;
@@ -1389,7 +1389,7 @@ bool ASMu2D::getGridParameters (RealArray& prm, int dir, int nSegPerSpan) const
       for(int iu=0; iu<=nSegPerSpan; iu++) {
         double u = umin + (umax-umin)/nSegPerSpan*iu;
         double v = vmin + (vmax-vmin)/nSegPerSpan*iv;
-        if(dir==0)
+        if (dir==0)
           prm.push_back(u);
         else
           prm.push_back(v);
@@ -1451,9 +1451,9 @@ bool ASMu2D::tesselate (ElementBlock& grid, const int* npe) const
 #ifdef SP_DEBUG
   std::cout << "ASMu2D::tesselate(  )\n";
 #endif
-  if(!lrspline) return false;
+  if (!lrspline) return false;
 
-  if(npe[0] != npe[1]) {
+  if (npe[0] != npe[1]) {
     std::cerr << "ASMu2D::tesselate does not support different tesselation resolution in "
               << "u- and v-direction. nviz u = " << npe[0] << ", nviz v = " << npe[1] << "\n";
     return false;

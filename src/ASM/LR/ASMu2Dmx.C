@@ -636,7 +636,7 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm,
   // do actual refinement
   if (doRefine == 'E')
     m_basis[bas]->refineByDimensionIncrease(prm.errors,beta);
-  else if(strat == LR_STRUCTURED_MESH)
+  else if (strat == LR_STRUCTURED_MESH)
     m_basis[bas]->refineBasisFunction(prm.elements);
   else
     m_basis[bas]->refineElement(prm.elements);
