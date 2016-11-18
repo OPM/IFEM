@@ -164,7 +164,7 @@ public:
   //! \param[in] project If \e true, the local axis directions are projected
   //! \return Number of additional nodes added due to local axis constraints
   virtual size_t constrainEdgeLocal(int dir, bool open, int dof, int code,
-				    bool project = false);
+                                    bool project = false);
 
   //! \brief Constrains a corner node identified by the two parameter indices.
   //! \param[in] I Parameter index in u-direction
@@ -358,8 +358,8 @@ public:
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] continuous If \e true, a continuous L2-projection is used
   virtual bool globalL2projection(Matrix& sField,
-				  const IntegrandBase& integrand,
-				  bool continuous = false) const;
+                                  const IntegrandBase& integrand,
+                                  bool continuous = false) const;
 
   //! \brief Transfers Gauss point variables from old basis to this patch.
   //! \param[in] oldBasis The LR-spline basis to transfer from

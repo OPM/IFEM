@@ -42,8 +42,8 @@ static void expandTensorGrid (const RealArray* in, RealArray* out)
 
 
 bool ASMu2Dmx::globalL2projection (Matrix& sField,
-				   const IntegrandBase& integrand,
-				   bool continuous) const
+                                   const IntegrandBase& integrand,
+                                   bool continuous) const
 {
   if (!m_basis[0] || !m_basis[1]) return true; // silently ignore empty patches
 
@@ -158,14 +158,14 @@ bool ASMu2Dmx::globalL2projection (Matrix& sField,
               int jnod = MNPC[iel-1][jj+el_ofs]+1;
               for (size_t k=1;k<=nfx[b];++k) {
                 A((inod-nod_ofs)*nfx[b]+k+eq_ofs,(jnod-nod_ofs)*nfx[b]+k+eq_ofs) += phi[b][ii]*phi[b][jj]*dJw;
-	   }
+           }
             }
             for (size_t k=1;k<=nfx[b];++k)
               B((inod-nod_ofs)*nfx[b]+k+eq_ofs) += phi[b][ii]*sField(k,ip+1)*dJw;
           }
           el_ofs += elem_sizes[b];
           eq_ofs += nb[b]*nfx[b];
-	  nod_ofs += nb[b];
+          nod_ofs += nb[b];
         }
       }
   }

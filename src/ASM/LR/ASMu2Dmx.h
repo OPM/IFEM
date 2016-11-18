@@ -88,7 +88,7 @@ public:
   //! \param glbInt The integrated quantity
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   virtual bool integrate(Integrand& integrand,
-			 GlobalIntegral& glbInt, const TimeDomain& time);
+                         GlobalIntegral& glbInt, const TimeDomain& time);
 
   //! \brief Evaluates a boundary integral over a patch edge.
   //! \param integrand Object with problem-specific data and methods
@@ -96,7 +96,7 @@ public:
   //! \param glbInt The integrated quantity
   //! \param[in] time Parameters for nonlinear/time-dependent simulations
   virtual bool integrate(Integrand& integrand, int lIndex,
-			 GlobalIntegral& glbInt, const TimeDomain& time);
+                         GlobalIntegral& glbInt, const TimeDomain& time);
 
 
   // Post-processing methods
@@ -107,7 +107,7 @@ public:
   //! \param[in] locSol Solution vector local to current patch
   //! \param[in] nodes 1-based local node numbers to extract solution for
   virtual bool getSolution(Matrix& sField, const Vector& locSol,
-			   const IntVec& nodes) const;
+                           const IntVec& nodes) const;
 
   //! \brief Evaluates the primary solution field at the given points.
   //! \param[out] sField Solution field
@@ -139,29 +139,29 @@ public:
   //! Otherwise, we assume that it contains the \a u and \a v parameters
   //! directly for each sampling point.
   virtual bool evalSolution(Matrix& sField, const IntegrandBase& integrand,
-			    const RealArray* gpar, bool regular = true) const;
+                            const RealArray* gpar, bool regular = true) const;
 
   //! \brief Extracts nodal results for this patch from the global vector.
   //! \param[in] globVec Global solution vector in DOF-order
   //! \param[out] nodeVec Nodal result vector for this patch
   //! \param[in] basis Which basis (or 0 for both) to extract nodal values for
   virtual void extractNodeVec(const Vector& globVec, Vector& nodeVec,
-			      unsigned char = 0, int basis = 0) const;
+                              unsigned char = 0, int basis = 0) const;
 
   //! \brief Inject nodal results for this patch into a global vector.
   //! \param[in] nodeVec Nodal result vector for this patch
   //! \param[out] globVec Global solution vector in DOF-order
   //! \param[in] basis Which basis (or 0 for both) to extract nodal values for
   virtual bool injectNodeVec(const Vector& nodeVec, Vector& globVec,
-			     unsigned char = 0, int basis = 0) const;
+                             unsigned char = 0, int basis = 0) const;
 
   //! \brief Projects the secondary solution using a discrete global L2-norm.
   //! \param[out] sField Secondary solution field control point values
   //! \param[in] integrand Object with problem-specific data and methods
   //! \param[in] continuous If \e true, a continuous L2-projection is used
   virtual bool globalL2projection(Matrix& sField,
-				  const IntegrandBase& integrand,
-				  bool continuous = false) const;
+                                  const IntegrandBase& integrand,
+                                  bool continuous = false) const;
 
   using ASMu2D::refine;
   //! \brief Refines the mesh adaptively.

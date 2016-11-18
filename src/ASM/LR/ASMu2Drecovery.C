@@ -96,8 +96,8 @@ LR::LRSpline* ASMu2D::evalSolution (const IntegrandBase& integrand) const
 
 
 bool ASMu2D::globalL2projection (Matrix& sField,
-				 const IntegrandBase& integrand,
-				 bool continuous) const
+                                 const IntegrandBase& integrand,
+                                 bool continuous) const
 {
   if (!lrspline) return true; // silently ignore empty patches
 
@@ -339,29 +339,29 @@ LR::LRSplineSurface* ASMu2D::scRecovery (const IntegrandBase& integrand) const
       // Loop over the Gauss points in current knot-span
       int i, j, ig = 1;
       for (j = 0; j < ng2; j++)
-	for (i = 0; i < ng1; i++, ig++)
-	{
-	  // Evaluate the polynomial expansion at current Gauss point
-	  lrspline->point(X,gaussPt[0][i],gaussPt[1][j]);
-	  evalMonomials(n1,n2,X[0]-G[0],X[1]-G[1],P);
+        for (i = 0; i < ng1; i++, ig++)
+        {
+          // Evaluate the polynomial expansion at current Gauss point
+          lrspline->point(X,gaussPt[0][i],gaussPt[1][j]);
+          evalMonomials(n1,n2,X[0]-G[0],X[1]-G[1],P);
 #if SP_DEBUG > 2
-	  std::cout <<"Greville     point: "<< G
-		    <<"\nGauss        point: "<< gaussPt[0][i] <<", "<< gaussPt[0][j]
-		    <<"\nMapped gauss point: "<< X
-		    <<"\nP-matrix:"<< P <<"--------------------\n"<< std::endl;
+          std::cout <<"Greville     point: "<< G
+                    <<"\nGauss        point: "<< gaussPt[0][i] <<", "<< gaussPt[0][j]
+                    <<"\nMapped gauss point: "<< X
+                    <<"\nP-matrix:"<< P <<"--------------------\n"<< std::endl;
 #endif
 
-	  for (k = 1; k <= nPol; k++)
-	  {
-	    // Accumulate the projection matrix, A += P^t * P
-	    for (l = 1; l <= nPol; l++)
-	      A(k,l) += P(k)*P(l);
+          for (k = 1; k <= nPol; k++)
+          {
+            // Accumulate the projection matrix, A += P^t * P
+            for (l = 1; l <= nPol; l++)
+              A(k,l) += P(k)*P(l);
 
-	    // Accumulate the right-hand-side matrix, B += P^t * sigma
-	    for (l = 1; l <= nCmp; l++)
-	      B(k,l) += P(k)*sField(l,ig);
-	  }
-	}
+            // Accumulate the right-hand-side matrix, B += P^t * sigma
+            for (l = 1; l <= nCmp; l++)
+              B(k,l) += P(k)*sField(l,ig);
+          }
+        }
     }
 
 #if SP_DEBUG > 2
