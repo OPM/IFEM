@@ -171,8 +171,8 @@ public:
             diff += dUdX(k,l)*fe.grad(basis)(i,l);
           diff *= scale*fe.detJxW;
 
-          // Add negative residual to rhs of momentum equation
-          EV((i-1)*cmp + k) -= diff;
+          // Add residual to rhs of momentum equation
+          EV((i-1)*cmp + k) += diff;
         }
       }
 
@@ -182,7 +182,7 @@ public:
           for (size_t k = 1;k <= cmp;k++)
             for (size_t l = 1;l <= cmp;l++)
               // Diffusion
-              EV((i-1)*cmp + k) -= scale*dUdX(l,k)*fe.grad(basis)(i,l)*fe.detJxW;
+              EV((i-1)*cmp + k) += scale*dUdX(l,k)*fe.grad(basis)(i,l)*fe.detJxW;
       }
     }
   };
