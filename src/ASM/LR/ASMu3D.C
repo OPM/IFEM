@@ -2007,6 +2007,25 @@ bool ASMu3D::getOrder (int& p1, int& p2, int& p3) const
 
 int ASMu3D::getCorner(int I, int J, int K, int basis) const
 {
-  std::cerr << "ASMu3D::getCorner not implemented properly yet" << std::endl;
-  exit(776654);
+  int edge = LR::NONE;
+  if (I > 0) edge |= LR::EAST;
+  else       edge |= LR::WEST;
+  if (J > 0) edge |= LR::NORTH;
+  else       edge |= LR::SOUTH;
+  if (K > 0) edge |= LR::TOP;
+  else       edge |= LR::BOTTOM;
+
+  const LR::LRSplineVolume* vol = this->getBasis(basis);
+
+  std::vector<LR::Basisfunction*> corner; // vector of one function for corner-input
+  vol->getEdgeFunctions(corner, (LR::parameterEdge) edge);
+
+  if( corner.empty() )
+    return -1;
+
+  size_t ofs = 1;
+  for (int i = 1; i < basis; i++)
+    ofs += this->getNoNodes(i);
+
+  return corner.front()->getId()+ofs;
 }
