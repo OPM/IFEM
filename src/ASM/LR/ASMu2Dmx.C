@@ -39,7 +39,7 @@
 
 
 ASMu2Dmx::ASMu2Dmx (unsigned char n_s,
-		    const std::vector<unsigned char>& n_f)
+                    const std::vector<unsigned char>& n_f)
   : ASMu2D(n_s), ASMmxBase(n_f)
 {
 }
@@ -149,14 +149,14 @@ void ASMu2Dmx::initMADOF (const int* sysMadof)
 
 
 void ASMu2Dmx::extractNodeVec (const Vector& globRes, Vector& nodeVec,
-			       unsigned char, int basis) const
+                               unsigned char, int basis) const
 {
   this->extractNodeVecMx(globRes,nodeVec,basis);
 }
 
 
 bool ASMu2Dmx::injectNodeVec (const Vector& nodeRes, Vector& globRes,
-			      unsigned char, int basis) const
+                              unsigned char, int basis) const
 {
   this->injectNodeVecMx(globRes,nodeRes,basis);
   return true;
@@ -164,7 +164,7 @@ bool ASMu2Dmx::injectNodeVec (const Vector& nodeRes, Vector& globRes,
 
 
 bool ASMu2Dmx::getSolution (Matrix& sField, const Vector& locSol,
-			    const IntVec& nodes) const
+                            const IntVec& nodes) const
 {
   return this->getSolutionMx(sField,locSol,nodes);
 }
@@ -244,8 +244,8 @@ bool ASMu2Dmx::generateFEMTopology ()
 
 
 bool ASMu2Dmx::integrate (Integrand& integrand,
-			  GlobalIntegral& glInt,
-			  const TimeDomain& time)
+                          GlobalIntegral& glInt,
+                          const TimeDomain& time)
 {
   if (m_basis.empty())
     return true; // silently ignore empty patches
@@ -309,38 +309,38 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
     for (int j = 0; j < nGauss; j++)
       for (int i = 0; i < nGauss; i++, fe.iGP++)
       {
-	// Local element coordinates of current integration point
-	fe.xi  = xg[i];
-	fe.eta = xg[j];
+        // Local element coordinates of current integration point
+        fe.xi  = xg[i];
+        fe.eta = xg[j];
 
-	// Parameter values of current integration point
-	fe.u = gpar[0][i];
-	fe.v = gpar[1][j];
+        // Parameter values of current integration point
+        fe.u = gpar[0][i];
+        fe.v = gpar[1][j];
 
-	// Compute basis function derivatives at current integration point
+        // Compute basis function derivatives at current integration point
         std::vector<Go::BasisDerivsSf> splinex(m_basis.size());
         for (size_t i=0; i < m_basis.size(); ++i) {
           m_basis[i]->computeBasis(fe.u, fe.v, splinex[i], els[i]-1);
           SplineUtils::extractBasis(splinex[i],fe.basis(i+1),dNxdu[i]);
         }
 
-	// Compute Jacobian inverse of coordinate mapping and derivatives
+        // Compute Jacobian inverse of coordinate mapping and derivatives
         // basis function derivatives w.r.t. Cartesian coordinates
         fe.detJxW = utl::Jacobian(Jac,fe.grad(geoBasis),Xnod,dNxdu[geoBasis-1]);
-	if (fe.detJxW == 0.0) continue; // skip singular points
+        if (fe.detJxW == 0.0) continue; // skip singular points
         for (size_t b = 0; b < m_basis.size(); ++b)
           if (b != (size_t)geoBasis-1)
             fe.grad(b+1).multiply(dNxdu[b],Jac);
 
-	// Cartesian coordinates of current integration point
+        // Cartesian coordinates of current integration point
         X = Xnod * fe.basis(geoBasis);
-	X.t = time.t;
+        X.t = time.t;
 
-	// Evaluate the integrand and accumulate element contributions
-	fe.detJxW *= 0.25*dA*wg[i]*wg[j];
-	PROFILE3("Integrand::evalInt");
-	if (!integrand.evalIntMx(*A,fe,time,X))
-	  return false;
+        // Evaluate the integrand and accumulate element contributions
+        fe.detJxW *= 0.25*dA*wg[i]*wg[j];
+        PROFILE3("Integrand::evalInt");
+        if (!integrand.evalIntMx(*A,fe,time,X))
+          return false;
       }
 
     // Finalize the element quantities
@@ -359,8 +359,8 @@ bool ASMu2Dmx::integrate (Integrand& integrand,
 
 
 bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
-			  GlobalIntegral& glInt,
-			  const TimeDomain& time)
+                          GlobalIntegral& glInt,
+                          const TimeDomain& time)
 {
   if (!m_basis[0] || !m_basis[1])
     return true; // silently ignore empty patches
@@ -490,7 +490,7 @@ bool ASMu2Dmx::integrate (Integrand& integrand, int lIndex,
       // Evaluate the integrand and accumulate element contributions
       fe.detJxW *= 0.5*dS*wg[i];
       if (!integrand.evalBouMx(*A,fe,time,X,normal))
-	return false;
+        return false;
     }
 
     // Finalize the element quantities
@@ -569,7 +569,7 @@ bool ASMu2Dmx::evalSolution (Matrix& sField, const Vector& locSol,
 
 
 bool ASMu2Dmx::evalSolution (Matrix& sField, const IntegrandBase& integrand,
-			     const RealArray* gpar, bool regular) const
+                             const RealArray* gpar, bool regular) const
 {
   return evalSolution(sField,
                      const_cast<IntegrandBase&>(integrand).getSolution(0),
