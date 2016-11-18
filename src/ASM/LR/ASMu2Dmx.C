@@ -591,7 +591,8 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm,
     return true; // No refinement
 
   // which basis to refine
-  size_t bas = geoBasis-1;
+  size_t bas = (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2 ||
+                ASMmxBase::Type == ASMmxBase::FULL_CONT_RAISE_BASIS2) ? 1 : 0;
 
   // to pick up if LR splines get stuck while doing refinement
   // print entry and exit point of this function
@@ -600,7 +601,7 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm,
   int    multiplicity = prm.options.size() > 1 ? prm.options[1]       : 1;
   if (multiplicity > 1)
     for (int d = 0; d < geo->nVariate(); d++) {
-      int p = geo->order(d) - 1;
+      int p = m_basis[bas]->order(d) - 1;
       if (multiplicity > p) multiplicity = p;
     }
 
@@ -645,14 +646,22 @@ bool ASMu2Dmx::refine (const LR::RefineData& prm,
     for (size_t j = 0; j < m_basis.size(); ++j)
       if (j == bas)
         continue;
-      else if (line->span_u_line_)
-        m_basis[j]->insert_const_u_edge(line->const_par_,
-                                        line->start_, line->stop_,
-                                        line->multiplicity_);
-      else
-        m_basis[j]->insert_const_v_edge(line->const_par_,
-                                        line->start_, line->stop_,
-                                        line->multiplicity_);
+      else {
+        int mult = 1;
+        if (ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS1 ||
+            ASMmxBase::Type == ASMmxBase::REDUCED_CONT_RAISE_BASIS2) {
+          int p = m_basis[bas]->order(line->span_u_line_ ? 1 : 0)-1;
+          int k = p - line->multiplicity_;
+          int q = m_basis[j]->order(line->span_u_line_ ? 1 : 0)-1;
+          mult = q-k;
+        }
+        if (line->span_u_line_)
+          m_basis[j]->insert_const_v_edge(line->const_par_,
+                                          line->start_, line->stop_, mult);
+        else
+          m_basis[j]->insert_const_u_edge(line->const_par_,
+                                          line->start_, line->stop_, mult);
+      }
 
   size_t len = 0;
   for (size_t j = 0; j< m_basis.size(); ++j) {
