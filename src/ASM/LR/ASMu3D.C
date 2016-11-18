@@ -460,17 +460,17 @@ void ASMu3D::constrainFace (int dir, bool open, int dof, int code, char)
 
   // get all the boundary functions from the LRspline object
   std::vector<LR::Basisfunction*> thisEdge;
-  if(dir == -1) 
+  if(dir == -1)
     lrspline->getEdgeFunctions(thisEdge, LR::WEST, 1);
-  else if(dir == 1) 
+  else if(dir == 1)
     lrspline->getEdgeFunctions(thisEdge, LR::EAST, 1);
-  else if(dir == -2) 
+  else if(dir == -2)
     lrspline->getEdgeFunctions(thisEdge, LR::SOUTH, 1);
-  else if(dir == 2) 
+  else if(dir == 2)
     lrspline->getEdgeFunctions(thisEdge, LR::NORTH, 1);
-  else if(dir == -3) 
+  else if(dir == -3)
     lrspline->getEdgeFunctions(thisEdge, LR::BOTTOM, 1);
-  else if(dir == 3) 
+  else if(dir == 3)
     lrspline->getEdgeFunctions(thisEdge, LR::TOP, 1);
 
   std::cout << "\nNumber of constraints: " << thisEdge.size() << std::endl;
@@ -887,7 +887,7 @@ void ASMu3D::evaluateBasis (FiniteElement &el, int derivs) const
   size_t jp, n = 1;
   for (jp = 0; jp < nBasis; jp++, n++) {
     el.N   (n)      = result[jp][0];
-    if(derivs > 0) {  
+    if(derivs > 0) {
       el.dNdX (n,1)    = result[jp][1];
       el.dNdX (n,2)    = result[jp][2];
       el.dNdX (n,3)    = result[jp][3];
@@ -935,7 +935,7 @@ bool ASMu3D::integrate (Integrand& integrand,
         double u[2*p1];
         double v[2*p2];
         double w[2*p3];
-        basis1.computeBasisValues(xg[xi],   u, 1); 
+        basis1.computeBasisValues(xg[xi],   u, 1);
         basis2.computeBasisValues(xg[eta],  v, 1);
         basis3.computeBasisValues(xg[zeta], w, 1);
         int ib=1; // basis function iterator
@@ -1091,7 +1091,7 @@ bool ASMu3D::integrate (Integrand& integrand,
             fe.w = redpar[2](k+1,i3-p3+1);
 
             // Fetch basis function derivatives at current point
-            evaluateBasis(fe, 1); 
+            evaluateBasis(fe, 1);
 
             // Compute Jacobian inverse and derivatives
             fe.detJxW = utl::Jacobian(Jac,fe.dNdX,Xnod,dNdu);
@@ -1115,8 +1115,8 @@ bool ASMu3D::integrate (Integrand& integrand,
 
     Matrix B(p1*p2*p3, 4); // Bezier evaluation points and derivatives
     ig = 1;
-    for (int k = 0; k < nGauss; k++) 
-      for (int j = 0; j < nGauss; j++) 
+    for (int k = 0; k < nGauss; k++)
+      for (int j = 0; j < nGauss; j++)
         for (int i = 0; i < nGauss; i++, fe.iGP++, ig++)
         {
           // Local element coordinates of current integration point
@@ -1244,7 +1244,7 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
 
   std::map<char,size_t>::const_iterator iit = firstBp.find(lIndex);
   size_t firstp = iit == firstBp.end() ? 0 : iit->second;
-  
+
   LR::parameterEdge edge;
   switch(lIndex)
   {
@@ -1256,7 +1256,7 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
   case 6: edge = LR::TOP;    break;
   default:edge = LR::NONE;
   }
-  
+
   // fetch all elements along the chosen edge
   std::vector<LR::Element*> edgeElms;
   lrspline->getEdgeElements(edgeElms, (LR::parameterEdge) edge);
@@ -1316,8 +1316,8 @@ bool ASMu3D::integrate (Integrand& integrand, int lIndex,
     if (integrand.getIntegrandType() & Integrand::G_MATRIX)
     {
       // Element size in parametric space
-      dXidu[0] = el->getParmax(0) - el->getParmin(0);   
-      dXidu[1] = el->getParmax(1) - el->getParmin(1); 
+      dXidu[0] = el->getParmax(0) - el->getParmin(0);
+      dXidu[1] = el->getParmax(1) - el->getParmin(1);
       dXidu[2] = el->getParmax(2) - el->getParmin(2);
     }
 
@@ -1661,7 +1661,7 @@ bool ASMu3D::tesselate (ElementBlock& grid, const int* npe) const
 
   if(npe[0] != npe[1] || npe[0] != npe[2]) {
     std::cerr << "ASMu2D::tesselate does not support different tesselation resolution in "
-              << "u- and v-direction. nviz u = " << npe[0] << ", nviz v = " << npe[1] 
+              << "u- and v-direction. nviz u = " << npe[0] << ", nviz v = " << npe[1]
               << ", nviz w = " << npe[2] << std::endl;
     return false;
   }
