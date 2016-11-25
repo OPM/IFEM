@@ -131,6 +131,7 @@ void ASMu2D::clear (bool retainGeometry)
 
   // Erase the FE data
   this->ASMbase::clear(retainGeometry);
+  this->dirich.clear();
 }
 
 
@@ -615,69 +616,113 @@ std::vector<int> ASMu2D::getEdgeNodes (int edge, int basis) const
 
 void ASMu2D::constrainEdge (int dir, bool open, int dof, int code, char basis)
 {
+  // figure out function index offset (when using multiple basis)
+  size_t ofs = 1;
+  for (int i = 1; i < basis; i++)
+    ofs += this->getNoNodes(i);
+
+  // figure out what edge we are at
   LR::parameterEdge edge;
-  int c1, c2;
   switch (dir) {
-  case -2:
-    edge = LR::SOUTH;
-    c1 = this->getCorner(-1, -1, basis);
-    c2 = this->getCorner( 1, -1, basis);
+  case -2: edge = LR::SOUTH; break;
+  case -1: edge = LR::WEST;  break;
+  case  1: edge = LR::EAST;  break;
+  case  2: edge = LR::NORTH; break;
+  default: return;
+  }
+
+  // fetch the right basis to consider
+  LR::LRSplineSurface* lr = this->getBasis(basis);
+
+  // get all elements and functions on this edge
+  std::vector<LR::Basisfunction*> edgeFunctions;
+  std::vector<LR::Element*>       edgeElements;
+  lr->getEdgeFunctions(edgeFunctions, edge);
+  lr->getEdgeElements( edgeElements,  edge);
+
+  // find the corners since these are not to be included in the L2-fitting
+  // of the inhomogenuous dirichlet boundaries; corners are interpolatory.
+  // Optimization note: loop over the "edge"-container to manually pick up the
+  //                    end nodes. LRspine::getEdgeFunctions() does a global search.
+  std::vector<LR::Basisfunction*> c1, c2;
+  switch (edge)
+  {
+  case LR::SOUTH:
+    lr->getEdgeFunctions(c1, LR::SOUTH_WEST);
+    lr->getEdgeFunctions(c2, LR::SOUTH_EAST);
     break;
-  case -1:
-    edge = LR::WEST;
-    c1 = this->getCorner(-1, -1, basis);
-    c2 = this->getCorner(-1,  1, basis);
+  case LR::WEST:
+    lr->getEdgeFunctions(c1, LR::SOUTH_WEST);
+    lr->getEdgeFunctions(c2, LR::NORTH_WEST);
     break;
-  case  1:
-    edge = LR::EAST;
-    c1 = this->getCorner( 1, -1, basis);
-    c2 = this->getCorner( 1,  1, basis);
+  case LR::EAST:
+    lr->getEdgeFunctions(c1, LR::NORTH_EAST);
+    lr->getEdgeFunctions(c2, LR::SOUTH_EAST);
     break;
-  case  2:
-    edge = LR::NORTH;
-    c1 = this->getCorner(-1,  1, basis);
-    c2 = this->getCorner( 1,  1, basis);
+  case LR::NORTH:
+    lr->getEdgeFunctions(c1, LR::NORTH_WEST);
+    lr->getEdgeFunctions(c2, LR::NORTH_EAST);
     break;
   default: return;
   }
-  std::vector<int> nodes = this->getEdgeNodes(edge,basis);
-  nodes.erase(std::find(nodes.begin(), nodes.end(), c1));
-  nodes.erase(std::find(nodes.begin(), nodes.end(), c2));
 
-  int bcode = code;
-  if (code > 0) {
-    std::vector<LR::Basisfunction*> funcs;
-    dirich.push_back(DirichletEdge(this->getBasis(basis)->edgeCurve(edge,funcs),
-                                   dof,code));
-  } else if (code < 0)
-    bcode = -code;
+  // build up the local element/node correspondence needed by the projection
+  // call on this edge by ASMu2D::updateDirichlet()
+  DirichletEdge de(edgeFunctions.size(), edgeElements.size(), dof, code, basis);
+  de.corners[0] = c1[0]->getId();
+  de.corners[1] = c2[0]->getId();
+  de.edg  = edge;
+  de.lr   = lr;
+  int bcode = abs(code);
 
-  // Skip the first and last function if we are requesting an open boundary.
-  if (!open)
-    this->prescribe(c1,dof,bcode);
-
-  for (size_t i = 0; i < nodes.size(); i++)
-    if (this->prescribe(nodes[i],dof,-code) == 0 && code > 0)
-      dirich.back().nodes.push_back(std::make_pair(i+1,nodes[i]));
-
-  if (!open)
-    this->prescribe(c2,dof,bcode);
-
-  if (code > 0)
-    if (dirich.back().nodes.empty())
-      dirich.pop_back(); // In the unlikely event of a 2-point boundary
-#if SP_DEBUG > 1
-  else
+  int j = 0;
+  for (auto b : edgeFunctions )
   {
-    std::cout <<"Non-corner boundary nodes:";
-    for (size_t i = 0; i < dirich.back().nodes.size(); i++)
-      std::cout <<" ("<< dirich.back().nodes[i].first
-                <<","<< dirich.back().nodes[i].second
-                <<")";
-    std::cout <<"\nThese nodes will be subjected to Dirichlet projection"
-              << std::endl;
+    de.MLGN[j++] = b->getId();
+    // skip corners for open boundaries
+    if (open && (b->getId() == de.corners[0] || b->getId() == de.corners[1]))
+      continue;
+    else
+    {
+      // corners are interpolated (positive 'code')
+      if (b->getId() == de.corners[0] || b->getId() == de.corners[1])
+        this->prescribe(b->getId()+ofs, dof,  bcode);
+      // inhomogenuous dirichlet conditions by function evaluation (negative 'code')
+      else if (code > 0)
+        this->prescribe(b->getId()+ofs, dof, -bcode);
+      // (in)homogenuous constant dirichlet conditions
+      else
+        this->prescribe(b->getId()+ofs, dof,  bcode);
+    }
   }
-#endif
+
+  // build MLGE and MNPC matrix
+  for (size_t i=0; i<edgeElements.size(); i++)
+  {
+    LR::Element* el = edgeElements[i];
+
+    // for mixed FEM models, let MLGE point to the *geometry* index
+    if (de.lr != this->lrspline.get())
+    {
+      double umid = (el->umax() + el->umin())/2.0;
+      double vmid = (el->vmax() + el->vmin())/2.0;
+      de.MLGE[i] = lrspline->getElementContaining(umid, vmid);
+    }
+    else
+    {
+      de.MLGE[i] = el->getId();
+    }
+    for (auto b : el->support())
+    {
+      de.MNPC[i].push_back(-1);
+      for (auto l2g : de.MLGN)
+        // can't do map::find, since this works on first
+        if (b->getId() == l2g.second)
+          de.MNPC[i].back() = l2g.first;
+    }
+  }
+  if (code > 0)
+    dirich.push_back(de);
 }
 
 
@@ -1773,60 +1818,67 @@ bool ASMu2D::updateDirichlet (const std::map<int,RealFunc*>& func,
                               const std::map<int,VecFunc*>& vfunc, double time,
                               const std::map<int,int>* g2l)
 {
-  std::map<int,RealFunc*>::const_iterator fit;
-  std::map<int,VecFunc*>::const_iterator vfit;
+
+  std::map<int,RealFunc*>::const_iterator    fit;
+  std::map<int,VecFunc*>::const_iterator     vfit;
+  std::map<int,int>::const_iterator          nit;
   std::vector<DirichletEdge>::const_iterator dit;
-  std::vector<Ipair>::const_iterator nit;
 
   for (size_t i = 0; i < dirich.size(); i++)
   {
-    // Project the function onto the spline curve basis
-    Go::SplineCurve* dcrv = 0;
+    // figure out function index offset (when using multiple basis)
+    size_t ofs = 0;
+    for (int j = 1; j < dirich[i].basis; j++)
+      ofs += this->getNoNodes(j);
+
+    RealArray edgeControlpoints;
+    Real2DMat edgeControlmatrix;
     if ((fit = func.find(dirich[i].code)) != func.end())
-      dcrv = SplineUtils::project(dirich[i].curve,*fit->second,time);
+      edgeL2projection(dirich[i], *fit->second, edgeControlpoints, time);
     else if ((vfit = vfunc.find(dirich[i].code)) != vfunc.end())
-      dcrv = SplineUtils::project(dirich[i].curve,*vfit->second,nf,time);
+      edgeL2projection(dirich[i], *vfit->second, edgeControlmatrix, time);
     else
     {
       std::cerr <<" *** ASMu2D::updateDirichlet: Code "<< dirich[i].code
                 <<" is not associated with any function."<< std::endl;
       return false;
     }
-    if (!dcrv)
+    if (edgeControlpoints.empty() && edgeControlmatrix.empty())
     {
       std::cerr <<" *** ASMu2D::updateDirichlet: Projection failure."
                 << std::endl;
       return false;
     }
 
-    // Loop over the (interior) nodes (control points) of this boundary curve
-    for (nit = dirich[i].nodes.begin(); nit != dirich[i].nodes.end(); ++nit)
+    // Loop over the nodes of this boundary curve
+    for (nit = dirich[i].MLGN.begin(); nit != dirich[i].MLGN.end(); nit++)
+    {
+      // skip corner nodes, since these are special cased (interpolatory)
+      if (nit->second == dirich[i].corners[0] ||
+          nit->second == dirich[i].corners[1])
+        continue;
       for (int dofs = dirich[i].dof; dofs > 0; dofs /= 10)
       {
         int dof = dofs%10;
         // Find the constraint equation for current (node,dof)
-        MPC pDOF(MLGN[nit->second-1],dof);
+        MPC pDOF(MLGN[nit->second]+ofs,dof);
         MPCIter mit = mpcs.find(&pDOF);
         if (mit == mpcs.end()) continue; // probably a deleted constraint
 
-        // Find index to the control point value for this (node,dof) in dcrv
-        RealArray::const_iterator cit = dcrv->coefs_begin();
-        if (dcrv->dimension() > 1) // A vector field is specified
-          cit += (nit->first-1)*dcrv->dimension() + (dof-1);
-        else // A scalar field is specified at this dof
-          cit += (nit->first-1);
-
         // Now update the prescribed value in the constraint equation
-        (*mit)->setSlaveCoeff(*cit);
-#if SP_DEBUG > 1
+        if (edgeControlpoints.empty()) // vector conditions
+          (*mit)->setSlaveCoeff(edgeControlmatrix[dof-1][nit->first]);
+        else                           //scalar condition
+          (*mit)->setSlaveCoeff(edgeControlpoints[nit->first]);
+ #if SP_DEBUG > 1
         std::cout <<"Updated constraint: "<< **mit;
-#endif
+ #endif
       }
-    delete dcrv;
+    }
   }
 
   // The parent class method takes care of the corner nodes with direct
-  // evaluation of the Dirichlet functions (since they are interpolatory)
+  // evaluation of the Dirichlet functions; since they are interpolatory
   return this->ASMbase::updateDirichlet(func,vfunc,time,g2l);
 }
 
