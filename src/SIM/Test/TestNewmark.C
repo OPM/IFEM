@@ -109,7 +109,7 @@ public:
     if (myProblem->getMode() == SIM::MASS_ONLY) {
       ElmMats elm;
       elm.resize(1,1); elm.redim(1);
-      elm.A[0].fill(M); // Mass Matrix
+      elm.A[0].fill(M); // Mass matrix
       ok = myEqSys->assemble(&elm,1);
     }
     else {
@@ -159,7 +159,7 @@ public:
       NewmarkMats elm(intPrm[0],intPrm[1],intPrm[2],intPrm[3]);
       elm.resize(3,1); elm.redim(2); elm.vec.resize(3);
       elm.setStepSize(time.dt,0);
-      elm.A[1](1,1) = elm.A[1](2,2) = M; // Mass Matrix
+      elm.A[1](1,1) = elm.A[1](2,2) = M; // Mass matrix
       elm.A[2](1,1) = elm.A[2](2,2) = K; // Stiffness matrix
       elm.A[2](2,1) = elm.A[2](1,2) = -K;
       elm.b[0] = elm.A[2]*prevSol.front(); // Elastic forces
