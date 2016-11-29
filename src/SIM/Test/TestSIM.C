@@ -10,7 +10,6 @@
 //!
 //==============================================================================
 
-#include "IFEM.h"
 #include "SIM2D.h"
 #include "SIM3D.h"
 #include "IntegrandBase.h"
@@ -19,12 +18,14 @@
 #include "tinyxml.h"
 
 
-template<class Dim>
-class TestProjectSIM : public Dim {
+template<class Dim> class TestProjectSIM : public Dim
+{
 public:
   TestProjectSIM(const SIMbase::CharVec& nf) : Dim(nf)
   {
     Dim::myProblem = new TestProjectIntegrand(Dim::dimension);
+    EXPECT_TRUE(this->createDefaultModel());
+    EXPECT_TRUE(this->preprocess());
   }
 
   bool addMixedMADOF(unsigned char basis, unsigned char nndof)
@@ -33,7 +34,8 @@ public:
   }
 
 private:
-  class TestProjectIntegrand : public IntegrandBase {
+  class TestProjectIntegrand : public IntegrandBase
+  {
   public:
     TestProjectIntegrand(int dim) : IntegrandBase(dim) {}
 
@@ -50,15 +52,17 @@ private:
 };
 
 
+class DummyIntegrand : public IntegrandBase {};
+
+
 TEST(TestSIM, UniqueBoundaryNodes)
 {
-  SIM2D sim(1);
+  SIM2D sim(new DummyIntegrand(),1);
   ASSERT_TRUE(sim.read("src/SIM/Test/refdata/boundary_nodes.xinp"));
-  sim.preprocess();
+  ASSERT_TRUE(sim.preprocess());
 
-  int bcode = sim.getUniquePropertyCode("dir",0);
   std::vector<int> vec;
-  sim.getBoundaryNodes(bcode, vec);
+  sim.getBoundaryNodes(sim.getUniquePropertyCode("dir",0),vec);
 
   std::sort(vec.begin(), vec.end());
   ASSERT_TRUE(std::unique(vec.begin(), vec.end()) == vec.end());
@@ -68,8 +72,6 @@ TEST(TestSIM, UniqueBoundaryNodes)
 TEST(TestSIM2D, ProjectSolution)
 {
   TestProjectSIM<SIM2D> sim({1});
-  sim.createDefaultModel();
-  ASSERT_TRUE(sim.preprocess());
 
   Matrix ssol;
   ASSERT_TRUE(sim.project(ssol, Vector(sim.getNoDOFs())));
@@ -84,8 +86,6 @@ TEST(TestSIM2D, ProjectSolution)
 TEST(TestSIM2D, ProjectSolutionMixed)
 {
   TestProjectSIM<SIM2D> sim({1,1});
-  sim.createDefaultModel();
-  ASSERT_TRUE(sim.preprocess());
 
   Matrix ssol;
   ASSERT_TRUE(sim.project(ssol, Vector(sim.getNoDOFs())));
@@ -100,8 +100,6 @@ TEST(TestSIM2D, ProjectSolutionMixed)
 TEST(TestSIM3D, ProjectSolution)
 {
   TestProjectSIM<SIM3D> sim({1});
-  sim.createDefaultModel();
-  ASSERT_TRUE(sim.preprocess());
 
   Matrix ssol;
   ASSERT_TRUE(sim.project(ssol, Vector(sim.getNoDOFs())));
@@ -117,8 +115,6 @@ TEST(TestSIM3D, ProjectSolution)
 TEST(TestSIM3D, ProjectSolutionMixed)
 {
   TestProjectSIM<SIM3D> sim({1,1});
-  sim.createDefaultModel();
-  ASSERT_TRUE(sim.preprocess());
 
   Matrix ssol;
   ASSERT_TRUE(sim.project(ssol, Vector(sim.getNoDOFs())));
@@ -134,36 +130,33 @@ TEST(TestSIM3D, ProjectSolutionMixed)
 TEST(TestSIM, InjectPatchSolution)
 {
   TestProjectSIM<SIM2D> sim({1,1});
-  sim.createDefaultModel();
-  ASSERT_TRUE(sim.preprocess());
 
   Vector sol(2*sim.getNoNodes(true, 1) + sim.getNoNodes(true, 2));
   Vector lsol(2*sim.getNoNodes(true, 1));
-  for (size_t i = 0; i < sim.getNoNodes(true,1); ++i)
+  size_t i, ofs;
+  for (i = 0; i < sim.getNoNodes(true,1); i++)
     lsol[2*i] = lsol[2*i+1] = i+1;
 
   ASSERT_TRUE(sim.addMixedMADOF(1, 2));
   sim.injectPatchSolution(sol, lsol, 0, 2, 1);
-  size_t ofs = 0;
-  for (size_t i = 0; i < sim.getNoNodes(true,1); ++i, ofs += 2) {
+  for (i = ofs = 0; i < sim.getNoNodes(true,1); i++, ofs += 2) {
     ASSERT_FLOAT_EQ(sol[ofs], i+1);
     ASSERT_FLOAT_EQ(sol[ofs+1], i+1);
   }
-  for (size_t i = 0; i < sim.getNoNodes(true,2); ++i, ++ofs)
+  for (i = 0; i < sim.getNoNodes(true,2); i++, ofs++)
     ASSERT_FLOAT_EQ(sol[ofs], 0);
 
   ASSERT_TRUE(sim.addMixedMADOF(2, 2));
   Vector sol2(sim.getNoNodes(true, 1) + 2*sim.getNoNodes(true, 2));
   Vector lsol2(2*sim.getNoNodes(true, 2));
-  for (size_t i = 0; i < sim.getNoNodes(true,2); ++i)
+  for (i = 0; i < sim.getNoNodes(true,2); i++)
     lsol2[2*i] = lsol2[2*i+1] = i+1;
 
   sim.injectPatchSolution(sol2, lsol2, 0, 2, 2);
-  ofs = 0;
-  for (size_t i = 0; i < sim.getNoNodes(true,1); ++i, ++ofs)
+  for (i = ofs = 0; i < sim.getNoNodes(true,1); i++, ofs++)
     ASSERT_FLOAT_EQ(sol2[ofs], 0);
 
-  for (size_t i = 0; i < sim.getNoNodes(true,2); ++i, ofs += 2) {
+  for (i = 0; i < sim.getNoNodes(true,2); i++, ofs += 2) {
     ASSERT_FLOAT_EQ(sol2[ofs], i+1);
     ASSERT_FLOAT_EQ(sol2[ofs+1], i+1);
   }
