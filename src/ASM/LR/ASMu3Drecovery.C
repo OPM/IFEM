@@ -401,7 +401,7 @@ LR::LRSplineVolume* ASMu3D::scRecovery (const IntegrandBase& integrand) const
 #if SP_DEBUG > 1
     std::cout <<"Greville point "<< ip <<" (u,v,w) = "
               << gpar[0][ip-1] <<" "<< gpar[1][ip-1] <<" "<< gpar[2][ip-1] <<" :";
-    for (k = 1; k <= nCmp; k++)
+    for (size_t k = 1; k <= nCmp; k++)
       std::cout <<" "<< sValues(k,ip);
     std::cout << std::endl;
 #endif

@@ -43,9 +43,6 @@ protected:
   //! \brief Preprocesses a user-defined Dirichlet boundary property.
   virtual bool addConstraint(int,int,int,int,int,int&,char)
   { return false; }
-  //! \brief Creates a default single-patch geometry.
-  virtual ASMbase* createDefaultGeometry(const TiXmlElement*) const
-  { return nullptr; }
   //! \brief Preprocesses the result sampling points.
   virtual void preprocessResultPoints() {}
   //! \brief Creates a model generator.

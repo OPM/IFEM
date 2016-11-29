@@ -21,7 +21,7 @@
   \brief Generic SIM class with some added functionalities.
   \details This class extends the SIMbase class with some added functionalities
   of generic character, which can be used to access the FE data and structures
-  on a more flexible way.
+  in a more flexible way.
 */
 
 class SIMgeneric : public SIMoutput
@@ -35,13 +35,13 @@ public:
   virtual ~SIMgeneric() {}
 
   //! \brief Creates a model with the default geometry (line, plane, cube).
-  void createDefaultModel();
+  bool createDefaultModel();
 
   //! \brief Evaluates the primary solution at the given point.
   //! \param[in] psol Primary solution vector
   //! \param[in] par Parameters of the point to evaluate at
   //! \param[in] deriv Derivative order of the solution
-  //! \param[in] patch 1-based patch index contining the evaluation point
+  //! \param[in] patch 1-based patch index containing the evaluation point
   //! \return Evaluated solution values
   Vector getSolution(const Vector& psol, const double* par,
                      int deriv = 0, int patch = 1) const;
@@ -50,7 +50,7 @@ public:
   //! \param[in] xi Dimensionless parameters in range [0,1] of the point
   //! \param[out] X The Cartesian coordinates of the point
   //! \param[out] param The parameters of the point in the knot-span domain
-  //! \param[in] patch 1-based patch index contining the evaluation point
+  //! \param[in] patch 1-based patch index containing the evaluation point
   //! \return Local node number within the patch that matches the point
   int evalPoint(const double* xi, Vec3& X,
                 double* param = nullptr, int patch = 1) const;

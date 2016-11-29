@@ -12,18 +12,22 @@
 //==============================================================================
 
 #include "SIMgeneric.h"
-#include "ASMbase.h"
 #include "ModelGenerator.h"
+#include "ASMbase.h"
 
 
-void SIMgeneric::createDefaultModel ()
+bool SIMgeneric::createDefaultModel ()
 {
-  if (!myModel.empty()) return;
+  if (!myModel.empty()) return false;
 
   ModelGenerator* gen = this->createModelGenerator(nullptr);
+  if (!gen) return false;
+
   myModel = gen->createGeometry(*this);
   nGlPatches = myModel.size();
   delete gen;
+
+  return nGlPatches > 0;
 }
 
 
@@ -33,7 +37,7 @@ Vector SIMgeneric::getSolution (const Vector& psol, const double* par,
   if (psol.empty() || !par || opt.discretization < ASM::Spline)
     return Vector();
 
-  ASMbase* pch = this->getPatch(this->getLocalPatchIndex(patch));
+  ASMbase* pch = this->getPatch(patch,true);
   if (!pch) return Vector();
 
   size_t ndim = pch->getNoParamDim();
@@ -54,7 +58,7 @@ Vector SIMgeneric::getSolution (const Vector& psol, const double* par,
 int SIMgeneric::evalPoint (const double* xi, Vec3& X, double* param,
                            int patch) const
 {
-  ASMbase* pch = this->getPatch(this->getLocalPatchIndex(patch));
+  ASMbase* pch = this->getPatch(patch,true);
   if (!pch) return -1;
 
   double dummy[3];
