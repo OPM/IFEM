@@ -15,6 +15,7 @@
 #include "Utilities.h"
 #include "IFEM.h"
 #include "tinyxml.h"
+#include <sstream>
 
 
 TimeStep::TimeStep () : step(0), iter(time.it), lstep(0)
@@ -117,7 +118,10 @@ bool TimeStep::parse (const TiXmlElement* elem)
     double start = 0.0, end = 0.0, dt = 0.0;
     utl::getAttribute(child,"start",start);
     utl::getAttribute(child,"end",end);
-    if (mySteps.empty()) starTime = start;
+    if (mySteps.empty())
+      starTime = start;
+    else
+      start = mySteps.back().second;
 
     if (child->FirstChild())
     {
@@ -125,17 +129,37 @@ bool TimeStep::parse (const TiXmlElement* elem)
       std::istringstream cline(child->FirstChild()->Value());
       cline >> dt;
       if (dt > 1.0 && ceil(dt) == dt)
-      {
         // The number of steps are specified
-        dt = (end - (mySteps.empty() ? starTime : mySteps.back().second))/dt;
-        timeStep.push_back(dt);
-      }
+        timeStep.push_back((end-start)/dt);
+
       else while (!cline.fail() && !cline.bad())
       {
         // The time step size(s) is/are specified
         timeStep.push_back(dt);
         cline >> dt;
       }
+
+      bool graded = false;
+      utl::getAttribute(child,"graded",graded);
+      if (graded && timeStep.size() == 2)
+      {
+        // Geometric grading
+        double dt  = timeStep.front();
+        double dt2 = timeStep.back();
+        double eta = 1.0 - (dt - dt2)/(end - start);
+        timeStep.resize(1);
+        for (double T = start+dt; T < end; T += dt)
+        {
+          dt *= eta;
+          timeStep.push_back(T+dt <= end ? dt : end-T);
+        }
+        IFEM::cout <<"\tGeometric graded time increments in ["
+                   << start <<","<< end <<"]:\n\t"<< timeStep.front();
+        for (size_t i = 1; i < timeStep.size(); i++)
+          IFEM::cout << (i%10 ? " " : "\n\t") << timeStep[i];
+        IFEM::cout << std::endl;
+      }
+
       if (!timeStep.empty())
         mySteps.push_back(std::make_pair(timeStep,end));
     }
