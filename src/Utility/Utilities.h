@@ -16,7 +16,6 @@
 
 #include "matrix.h"
 #include <string>
-#include <sstream>
 #include <iostream>
 #include <vector>
 #include <map>
@@ -70,6 +69,15 @@ namespace utl
   //! \return \e true if the attribute \a att is found in \a xml,
   //! otherwise \e false
   bool getAttribute(const TiXmlElement* xml, const char* att, int& val);
+  //! \brief Extracts a char attribute value from the specified XML-element.
+  //! \param[in] xml Pointer to XML-element to extract from
+  //! \param[in] att The attribute tag
+  //! \param[out] val The attribute value
+  //! \param[in] useIntValue If \e true, convert the value to an integer
+  //! \return \e true if the attribute \a att is found in \a xml,
+  //! otherwise \e false
+  bool getAttribute(const TiXmlElement* xml, const char* att, char& val,
+                    bool useIntValue = true);
   //! \brief Extracts a size_t attribute value from the specified XML-element.
   //! \param[in] xml Pointer to XML-element to extract from
   //! \param[in] att The attribute tag
@@ -178,16 +186,6 @@ namespace utl
   //! \note It is assumed that the array \a a is sorted in encreasing order on
   //! input. If this is not the case the method will deliver incorrect result.
   size_t find_closest(const std::vector<Real>& a, Real v);
-
-  //! \brief Prints a string stream to an output stream.
-  //! \param out The output stream to print to
-  //! \param[in] str The string stream to print
-  //! \param[in] pid The PID of this process (only process 0 will print)
-  //!
-  //! \details This method makes sure to flush the output stream
-  //! across all processes up front.
-  void printSyncronized(std::ostream& out,
-                        const std::stringstream& str, int pid);
 
   //! \brief Right-justifies the input string to the given total \a width.
   std::string adjustRight(size_t width, const std::string& s,

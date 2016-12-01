@@ -17,10 +17,6 @@
 #include <cstdlib>
 #include <algorithm>
 
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
-
 
 void utl::parseIntegers (std::vector<int>& values, const char* argv)
 {
@@ -148,6 +144,18 @@ bool utl::getAttribute (const TiXmlElement* xml, const char* att, int& val)
 {
   if (xml && xml->Attribute(att))
     val = atoi(xml->Attribute(att));
+  else
+    return false;
+
+  return true;
+}
+
+
+bool utl::getAttribute (const TiXmlElement* xml, const char* att, char& val,
+                        bool useIntValue)
+{
+  if (xml && xml->Attribute(att))
+    val = useIntValue ? atoi(xml->Attribute(att)) : xml->Attribute(att)[0];
   else
     return false;
 
@@ -353,18 +361,6 @@ size_t utl::find_closest (const std::vector<Real>& a, Real v)
     return 0;
   else
     return i-1;
-}
-
-
-void utl::printSyncronized (std::ostream& out, const std::stringstream& str,
-                            int pid)
-{
-  out << std::flush;
-#ifdef HAVE_MPI
-  MPI_Barrier(MPI_COMM_WORLD);
-#endif
-  if (pid == 0)
-    out << str.str();
 }
 
 
