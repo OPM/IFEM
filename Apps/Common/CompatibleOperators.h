@@ -28,7 +28,7 @@ class CompatibleOperators
 public:
   //! \brief Common weak operators using div-compatible discretizations.
   class Weak {
-    public:
+  public:
     //! \brief Compute an advection term.
     //! \param[out] EM The element matrices to add contribution to
     //! \param[in] fe The finite element to evaluate for
@@ -36,6 +36,16 @@ public:
     //! \param[in] scale Scaling factor for contribution
     static void Advection(std::vector<Matrix>& EM, const FiniteElement& fe,
                           const Vec3& AC, double scale=1.0);
+
+    //! \brief Compute a (nonlinear) convection term.
+    //! \param[out] EM The element matrix to add contribution to
+    //! \param[in] fe The finite element to evaluate for
+    //! \param[in] U  Advecting field
+    //! \param[in] conservative True to use the conservative formulation
+    //! \param[in] basis Basis to use
+    static void Convection(std::vector<Matrix>& EM, const FiniteElement& fe,
+                           const Vec3& U, const Tensor& dUdX, double scale,
+                           bool conservative=false);
 
     //! \brief Compute a gradient term.
     //! \param[out] EM The element matrix to add contribution to
@@ -86,7 +96,20 @@ public:
   //! \brief Common weak residual operators using div-compatible discretizations.
   class Residual
   {
-    public:
+  public:
+    //! \brief Compute a convection term in a residual vector.
+    //! \param EV The element vector to add contribution to
+    //! \param[in] fe The finite element to evaluate for
+    //! \param[in] U Advected field
+    //! \param[in] dUdX Advected field gradient
+    //! \param[in] UC Advecting field
+    //! \param[in] scale Scaling factor for contribution
+    //! \param[in] conservative True to use the conservative formulation
+    //! \param[in] basis Basis to use
+    static void Convection(Vectors& EV, const FiniteElement& fe,
+                           const Vec3& U, const Tensor& dUdX, const Vec3& UC,
+                           double scale, bool conservative=false);
+
     //! \brief Compute a laplacian term in a residual vector.
     //! \param[out] EV The element vector to add contribution to
     //! \param[in] fe The finite element to evaluate for
