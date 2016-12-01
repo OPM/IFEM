@@ -28,6 +28,32 @@ void CompatibleOperators::Weak::Advection(std::vector<Matrix>& EM,
           EM[n](i,j) += scale*AC[k]*fe.grad(n)(j,k)*fe.basis(n)(i)*fe.detJxW;
 }
 
+
+void CompatibleOperators::Weak::Convection(std::vector<Matrix>& EM,
+                                           const FiniteElement& fe,
+                                           const Vec3& U,
+                                           const Tensor& dUdX,
+                                           double scale,
+                                           bool conservative)
+{
+  // Convection
+  static const double vidx[3][3] = {{1, 6, 7},
+                                    {10, 2, 11},
+                                    {14, 15, 3}};
+  size_t nsd = fe.grad(1).cols();
+  for (size_t m=1; m <= nsd; ++m)
+    for (size_t i=1; i <= fe.basis(m).size(); ++i)
+      for (size_t n = 1; n <= nsd; ++n)
+        for (size_t j=1; j <= fe.basis(n).size(); ++j) {
+          double conv = fe.basis(n)(j) * dUdX(m,n);
+          if (m == n)
+            for (size_t k = 1; k <= nsd; ++k)
+              conv += U[k-1] * fe.grad(n)(j,k);
+          EM[vidx[m-1][n-1]](i,j) += scale * conv * fe.basis(m)(i) * fe.detJxW;
+        }
+}
+
+
 void CompatibleOperators::Weak::Gradient(std::vector<Matrix>& EM,
                                         const FiniteElement& fe,
                                         double scale)
@@ -89,6 +115,22 @@ void CompatibleOperators::Weak::Source(Vectors& EV,
 {
   for (size_t k = 1; k <= fe.grad(1).cols(); ++k)
     EqualOrderOperators::Weak::Source(EV[k], fe, scale, 1, k);
+}
+
+
+void CompatibleOperators::Residual::Convection(Vectors& EV, const FiniteElement& fe,
+                                               const Vec3& U, const Tensor& dUdX,
+                                               const Vec3& UC, double scale,
+                                               bool conservative)
+{
+  size_t nsd = fe.grad(1).cols();
+  for (size_t n=1; n <= nsd; ++n) {
+    double conv = 0.0;
+    for (size_t k = 1; k<= nsd; ++k)
+      conv += U[k-1]*dUdX(n, k);
+    for (size_t i=1; i <= fe.basis(n).size(); ++i)
+      EV[n](i) -= scale * conv * fe.basis(n)(i) * fe.detJxW;
+  }
 }
 
 
