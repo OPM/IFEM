@@ -238,7 +238,7 @@ bool SplineField3D::hessianFE(const FiniteElement& fe, Matrix& H) const
     ASMs3D::scatterInd(vol->numCoefs(0),vol->numCoefs(1),vol->numCoefs(2),
 		       uorder,vorder,worder,spline.left_idx,ip);
   }
-    
+
   // Evaluate the Jacobian inverse
   Matrix Xnod, Jac;
   Vector Xctrl(&(*vol->coefs_begin()),vol->coefs_end()-vol->coefs_begin());

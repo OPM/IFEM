@@ -183,7 +183,7 @@ bool SplineFields3D::hessianFE(const FiniteElement& fe, Matrix3D& H) const
   }
   else {
     vol->computeBasis(fe.u,fe.v,fe.w,spline);
-    
+
     dNdu.resize(nen,3);
     for (size_t n = 1; n <= nen; n++) {
       dNdu(n,1) = spline.basisDerivs_u[n-1];
@@ -194,7 +194,7 @@ bool SplineFields3D::hessianFE(const FiniteElement& fe, Matrix3D& H) const
     ASMs3D::scatterInd(vol->numCoefs(0),vol->numCoefs(1),vol->numCoefs(2),
 		       uorder,vorder,worder,spline.left_idx,ip);
   }
-    
+
   // Evaluate the Jacobian inverse
   Matrix Xnod, Jac;
   Vector Xctrl(&(*vol->coefs_begin()),vol->coefs_end()-vol->coefs_begin());
@@ -229,7 +229,7 @@ bool SplineFields3D::hessianFE(const FiniteElement& fe, Matrix3D& H) const
 
   Matrix Vnod;
   utl::gather(ip,nf,values,Vnod);
-  return H.multiply(Vnod,d2Ndu2); 
+  return H.multiply(Vnod,d2Ndu2);
 }
 
 

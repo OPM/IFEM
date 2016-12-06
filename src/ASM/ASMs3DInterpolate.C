@@ -255,7 +255,7 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
                   pnts_parts.insert(pnts_parts.end(), pnts.begin()+(j+count)*2*perknot, pnts.begin()+((j+count)*2+(2*p-1))*perknot);
                   std::vector<double> coefs;
                   SplineInterpolator::quasiinterpolate(par_u_parts, pnts_parts,
-                                                       tg_pnt, basis_u, 
+                                                       tg_pnt, basis_u,
                                                        j+count+countj, coefs);
                   cv_coefs.insert(cv_coefs.end(), coefs.begin(), coefs.end());
                   count_intern = j+count+countj;
@@ -268,7 +268,7 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
                   pnts_parts.insert(pnts_parts.end(), pnts.begin()+(p-m+1+j+2*count)*perknot, pnts.begin()+(3*p-m-1+j+2*count+1)*perknot);
                   std::vector<double> coefs;
 
-                  SplineInterpolator::quasiinterpolate(par_u_parts, pnts_parts, tg_pnt, 
+                  SplineInterpolator::quasiinterpolate(par_u_parts, pnts_parts, tg_pnt,
                                                        basis_u, j+countj, coefs);
                   cv_coefs.insert(cv_coefs.end(), coefs.begin(), coefs.end());
                   count_intern = j+countj;
@@ -281,7 +281,7 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
                   pnts_parts.insert(pnts_parts.end(), pnts.begin()+(j+count+((p-m+2)*0.5)+m-2)*2*perknot, pnts.begin()+((j+count+((p-m+2)*0.5)+m-2)*2+(2*p-1))*perknot);
                   std::vector<double> coefs;
 
-                  SplineInterpolator::quasiinterpolate(par_u_parts, pnts_parts, tg_pnt, 
+                  SplineInterpolator::quasiinterpolate(par_u_parts, pnts_parts, tg_pnt,
                                                        basis_u, j+countj, coefs);
                   cv_coefs.insert(cv_coefs.end(), coefs.begin(), coefs.end());
                   count_intern = j+countj;
@@ -297,7 +297,7 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
                   pnts_parts.insert(pnts_parts.end(), pnts.begin()+(j+count)*2*perknot, pnts.begin()+((j+count)*2+(2*p-1))*perknot);
                   std::vector<double> coefs;
 
-                  SplineInterpolator::quasiinterpolate(par_u_parts, pnts_parts, 
+                  SplineInterpolator::quasiinterpolate(par_u_parts, pnts_parts,
                                                        tg_pnt, basis_u,
                                                        j+count+countj, coefs);
                   cv_coefs.insert(cv_coefs.end(), coefs.begin(), coefs.end());
@@ -311,7 +311,7 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
                   pnts_parts.insert(pnts_parts.end(), pnts.begin()+(p-m+j+2*count)*perknot, pnts.begin()+(3*p-m-2+2*count+j+1)*perknot);
                   std::vector<double> coefs;
 
-                  SplineInterpolator::quasiinterpolate(par_u_parts, pnts_parts, 
+                  SplineInterpolator::quasiinterpolate(par_u_parts, pnts_parts,
                                                        tg_pnt, basis_u,
                                                        j+countj, coefs);
                   cv_coefs.insert(cv_coefs.end(), coefs.begin(), coefs.end());
@@ -343,10 +343,10 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
                                                        tg_pnt, basis_u,
                                                        j+countj, coefs);
                   cv_coefs.insert(cv_coefs.end(), coefs.begin(), coefs.end());
-                }                            
+                }
               }//else
               dcount = p+(m-2);
-            }//end if multivalue 
+            }//end if multivalue
             else
             {
               if (dcount > 0)
@@ -358,7 +358,7 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
 
                 std::vector<double> coefs;
 
-                SplineInterpolator::quasiinterpolate(par_u_parts, pnts_parts, 
+                SplineInterpolator::quasiinterpolate(par_u_parts, pnts_parts,
                                                       tg_pnt, basis_u,
                                                       ti+dcount, coefs);
                 cv_coefs.insert(cv_coefs.end(), coefs.begin(), coefs.end());
@@ -414,7 +414,7 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
 
     if (count_multipl_knots_v == 0)
     {
-      for (int vi = 0; vi< vi_end;vi++)        
+      for (int vi = 0; vi< vi_end;vi++)
       {
         std::vector<double> coefs_parts;
         std::vector<double> par_v_parts;
@@ -448,7 +448,7 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
             terminate = 2*ti+1;
 
             if ( (!(q&1) && !(m&1)) || ( (q&1) && (m&1) ) )
-            {        
+            {
               int countj=0;
               for (int j= 0; j < (q-m+2)*0.5;j++){
                 std::vector<double> coefs_parts;
@@ -457,7 +457,7 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
                 coefs_parts.insert(coefs_parts.end(), cv_coefs.begin()+(j+count)*2*ucount, cv_coefs.begin()+((j+count)*2+(2*q-1))*ucount);
                 std::vector<double> sf_coefs_parts;
 
-                SplineInterpolator::quasiinterpolate(par_v_parts, coefs_parts, 
+                SplineInterpolator::quasiinterpolate(par_v_parts, coefs_parts,
                                                      tg_pnt, basis_v,
                                                      j+count+countj, sf_coefs_parts);
                 sf_coefs.insert(sf_coefs.end(), sf_coefs_parts.begin(), sf_coefs_parts.end());
@@ -471,7 +471,7 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
                 coefs_parts.insert(coefs_parts.end(), cv_coefs.begin()+(q-m+1+j+2*count)*ucount, cv_coefs.begin()+(3*q-m-1+j+2*count+1)*ucount);
                 std::vector<double> sf_coefs_parts;
 
-                SplineInterpolator::quasiinterpolate(par_v_parts, coefs_parts, 
+                SplineInterpolator::quasiinterpolate(par_v_parts, coefs_parts,
                                                      tg_pnt, basis_v,
                                                      j+countj, sf_coefs_parts);
                 sf_coefs.insert(sf_coefs.end(), sf_coefs_parts.begin(), sf_coefs_parts.end());
@@ -552,11 +552,11 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
                                                      tg_pnt, basis_v,
                                                      j+countj, sf_coefs_parts);
                 sf_coefs.insert(sf_coefs.end(), sf_coefs_parts.begin(), sf_coefs_parts.end());
-              }                    
+              }
             }//else
 
             dcount = q+(m-2);
-          }//end if multivalue 
+          }//end if multivalue
           else
           {
             if (dcount > 0)
@@ -568,7 +568,7 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
               coefs_parts.insert(coefs_parts.end(), cv_coefs.begin()+(dcount+ti-(m-1))*2*ucount, cv_coefs.begin()+((dcount+ti-(m-1))*2+(2*q-1))*ucount);
               std::vector<double> sf_coefs_parts;
 
-              SplineInterpolator::quasiinterpolate(par_v_parts, coefs_parts, 
+              SplineInterpolator::quasiinterpolate(par_v_parts, coefs_parts,
                                                    tg_pnt, basis_v,
                                                    ti+dcount, sf_coefs_parts);
               sf_coefs.insert(sf_coefs.end(), sf_coefs_parts.begin(), sf_coefs_parts.end());
@@ -614,7 +614,7 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
     std::vector<std::vector<double> > gm;
     std::vector<double> tmp;
     for(int i = 0; i < gmyl ; i++)
-    { 
+    {
       for(int  j=0 ; j < gmxl*perknot  ;j++)
       {
         tmp.push_back( 0.0 );
@@ -651,7 +651,7 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
               for (int i = starti;i<(starti+2*q-1);i++)
                 for (int j = (startj+p-1)*perknot;j<(startj+p)*perknot;j++)
                   gm[i][j] = 1;}
-              else if (invxl == 1) // 
+              else if (invxl == 1) //
               {if (b == 0)
                 for (int i = starti; i< (starti+q);i++)
                   for (int j = startj;j<(startj+2*p-1)*perknot;j++)
@@ -738,7 +738,7 @@ quasiInterpolation(const Go::BsplineBasis& basis_u,
   \param[in] weights NURBS weights for the projective control points
   \return Spline volume object representing the projected field
 
-  \note VariationDiminishingSplineApproximation only for function values! 
+  \note VariationDiminishingSplineApproximation only for function values!
 */
 
 static Go::SplineVolume*
