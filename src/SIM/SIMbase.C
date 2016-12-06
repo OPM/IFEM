@@ -392,7 +392,10 @@ bool SIMbase::parseBCTag (const TiXmlElement* elem)
       this->setPropertyType(code,Property::DIRICHLET_INHOM,comp,basis);
       IFEM::cout <<"\tDirichlet code "<< code;
       if (!type.empty()) IFEM::cout <<" ("<< type <<")";
-      myScalars[abs(code)] = utl::parseRealFunc(dval->Value(),type);
+      auto func = utl::parseRealFunc(dval->Value(),type);
+      if (!func)
+        return false;
+      myScalars[abs(code)] = func;
       IFEM::cout << std::endl;
     }
   }
